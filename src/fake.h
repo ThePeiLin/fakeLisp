@@ -24,8 +24,11 @@ listTreeNode* becomeTree(const char*);
 char* getStringFromList(const char*);
 listTreeNode* eval(listTreeNode*);
 int addSpecialFunction(char*,void(*)(listTreeNode*));
-int addFunction(char*,listTreeNode*);
+int addDefine(char*,listTreeNode*);
 void callFunction(listTreeNode*);
 void (*(findSpecialFunction(const char*)))(listTreeNode*);
 void returnTree(listTreeNode*);
+listTreeNode* copyTree(listTreeNode*);
+listTreeNode* deleteTree(listTreeNode*);
+listTreeNode* deleteNode(listTreeNode*);
 #endif

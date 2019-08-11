@@ -39,7 +39,6 @@ listTreeNode* becomeTree(const char* str)
 		if(*(str+i)=='(')
 		{
 			i++;
-			lor=l;
 			if(root==NULL)
 			{
 				root=(listTreeNode*)malloc(sizeof(listTreeNode));
@@ -64,6 +63,7 @@ listTreeNode* becomeTree(const char* str)
 					objNode->prev=prev;
 					prev->leftType=node;
 					prev->left=(void*)objNode;
+					lor=l;
 				}
 				else if(lor==r)
 				{

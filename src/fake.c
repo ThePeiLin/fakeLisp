@@ -161,6 +161,7 @@ char* getStringFromList(const char* str)
 }
 listTreeNode* eval(listTreeNode* objTree)
 {
+	if(objTree->leftType==node)eval(objTree->left);
 	callFunction(objTree);
 	returnTree(objTree);
 	return objTree;
@@ -193,13 +194,19 @@ int addSpecialFunction(char* name,void(*spFun)(listTreeNode*))
 }
 void callFunction(listTreeNode* root)
 {
-	findSpecialFunction((char*)root->left)(root);
+	void (*pf)(listTreeNode*)=findSpecialFunction((char*)root->left);
+	if(pf==NULL)
+		printf("NO FUNCTION!\n");
+	else pf(root);
 }
 void (*(findSpecialFunction(const char* name)))(listTreeNode*)
 {
 	sfc* current=specialfc;
 	while(current!=NULL&&strcmp(current->functionName,name))current=current->next;
-	return current->function;
+	if(current==NULL)
+		return NULL;
+	else
+		return current->function;
 }
 void returnTree(listTreeNode* objTree)
 {

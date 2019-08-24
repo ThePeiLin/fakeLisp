@@ -103,7 +103,21 @@ listTreeNode* becomeTree(const char* str)
 		{
 			int j=0;
 			char* tmpStr=(char*)str+i;
+			while(isspace(*(tmpStr+j)))j--;
+			if(*(tmpStr+j)==',')
+			{
+				j=1;
+				while(isspace(*(tmpStr+j)))j++;
+				i+=j;
+				continue;
+			}
+			j=0;
 			while(isspace(*(tmpStr+j)))j++;
+			if(*(tmpStr+j)==',')
+			{
+				i+=j;
+				continue;
+			}
 			i+=j;
 			listTreeNode* tmp=(listTreeNode*)malloc(sizeof(listTreeNode));
 			tmp->leftType=nil;
@@ -217,5 +231,76 @@ void returnTree(listTreeNode* objTree)
 		objTree->leftType=prev->leftType;
 		objTree->left=prev->left;
 		free(prev);
+	}
+}
+listTreeNode* deleteTree(listTreeNode* objTree)
+{
+	while(objTree!=NULL)
+	{
+		if(objTree->leftType==node)objTree=objTree->left;
+		if(objTree->leftType==nil&&objTree->rightType==node)objTree=objTree->right;
+		if(objTree->leftType==nil&&objTree->rightType==nil)
+		{
+			listTreeNode* prev=objTree;
+			objTree=objTree->prev;
+			if(objTree==NULL)
+			{
+				free(prev);
+				break;
+			}
+			if(objTree->left==prev)objTree->leftType=nil;
+			else if(objTree->right==prev)objTree->rightType=nil;
+			free(prev);
+		}
+		if(objTree->leftType==sym||objTree->leftType==chars)
+		{
+			free(objTree->left);
+			objTree->leftType=nil;
+		}
+		if(objTree->leftType==nil&&(objTree->rightType==sym||objTree->rightType==chars))
+		{
+			free(objTree->right);
+			objTree->rightType=nil;
+		}
+	}
+}
+listTreeNode* deleteNode(listTreeNode* objTree)
+{
+	listTreeNode* tmp=objTree;
+	while(1)
+	{
+		if(objTree->leftType==node)objTree=objTree->left;
+		if(objTree->leftType==nil&&objTree->rightType==node)objTree=objTree->right;
+		if(objTree->leftType==nil&&objTree->rightType==nil)
+		{
+			listTreeNode* prev=objTree;
+			objTree=objTree->prev;
+			if(objTree==NULL)
+			{
+				free(prev);
+				break;
+			}
+			if(objTree->left==prev)objTree->leftType=nil;
+			else if(objTree->right==prev)objTree->rightType=nil;
+			free(prev);
+		}
+		if(objTree->leftType==sym||objTree->leftType==chars)
+		{
+			free(objTree->left);
+			objTree->leftType=nil;
+		}
+		if(objTree->leftType==nil&&(objTree->rightType==sym||objTree->rightType==chars))
+		{
+			free(objTree->right);
+			objTree->rightType=nil;
+		}
+		if(objTree==tmp)
+		{
+			tmp=objTree->prev;
+			free(objTree);
+			if(tmp->left==objTree)tmp->leftType=nil;
+			else if(tmp->right==objTree)tmp->rightType=nil;
+			break;
+		}
 	}
 }

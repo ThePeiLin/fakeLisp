@@ -66,6 +66,7 @@ int main(int argc,char** argv)
 				if(str!=NULL)objTree=eval(becomeTree(str));
 				free(str);
 				printf("%s\n",(char*)objTree->left);
+				deleteTree(objTree);
 			}
 			if(ch=='\n')printf(">>>");
 		}

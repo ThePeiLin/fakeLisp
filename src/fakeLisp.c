@@ -14,10 +14,11 @@ int main(int argc,char** argv)
 	addSpecialFunction("mul",T_mul);
 	addSpecialFunction("div",T_div);
 	addSpecialFunction("exit",T_exit);
-	/*if(argc>1)
+	if(argc>1)
 	{
 		if(isScript(argv[1]))
 		{
+			FILE* file;
 			if((file=fopen(argv[1],"r"))==NULL)
 			{
 				printf("Can't open %s\n",argv[1]);
@@ -25,6 +26,21 @@ int main(int argc,char** argv)
 			}
 			else
 			{
+				while(1)
+				{
+					char ch;
+					char* str=NULL;
+					ch=getc(file);
+					if(ch=='(')
+					{
+						listTreeNode* objTree;
+						ungetc(ch,file);
+						str=getListFromFile(file);
+						if(str!=NULL)objTree=eval(becomeTree(str));
+						free(str);
+					}
+					else if(ch==EOF)break;
+				}
 			}
 		}
 		else
@@ -33,7 +49,7 @@ int main(int argc,char** argv)
 			exit(EXIT_FAILURE);
 		}
 	}
-	else*/ if(argc<2)
+	else if(argc<2)
 	{
 		puts("Ready");
 		printf(">>>");
@@ -61,9 +77,7 @@ int isScript(const char* filename)
 	char back[4];
 	int i;
 	int len=strlen(filename);
-	for(i=0;i<3;i++)back[i]=filename[len-2+i];
+	for(i=0;i<3;i++)back[i]=filename[len-3+i];
 	back[3]=0;
-	if(!strcmp(back,".fs"))
-		return 1;
-	else return 0;
+	return !strcmp(back,".fl");
 }

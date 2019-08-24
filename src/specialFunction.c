@@ -114,7 +114,6 @@ void T_div(listTreeNode* objTree)
 }
 void T_exit(listTreeNode* objTree)
 {
-	free(objTree->left);
-	free(objTree);//This function should delete the whole tree,so function "deleteTree" will replace "free"	
+	deleteTree(objTree);
 	exit(0);
 }

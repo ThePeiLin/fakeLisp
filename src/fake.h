@@ -3,7 +3,7 @@
 #include<stdio.h>
 typedef struct ListTreeNode
 {
-	enum{nil,sym,chars,node}
+	enum{nil,node,sym,chars}
 	leftType,
 	rightType;
 	struct ListTreeNode* prev;

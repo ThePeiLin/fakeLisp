@@ -1,5 +1,5 @@
-specialFunction.o: src/specialFunction.c src/specialFunction.h
-	gcc -c src/specialFunction.c
+functionAndForm.o: src/functionAndForm.c src/functionAndForm.h
+	gcc -c src/functionAndForm.c
 fake.o: src/fake.c src/fake.h
 	gcc -c src/fake.c
 floatAndString.o:src/floatAndString.c src/floatAndString.h

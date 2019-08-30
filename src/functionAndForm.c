@@ -1,10 +1,10 @@
 #include<stdlib.h>
 #include<ctype.h>
-#include"floatAndString.h"
-#include"specialFunction.h"
+#include"numAndString.h"
+#include"functionAndForm.h"
 void T_add(listTreeNode* objTree)
 {
-	double result=0;
+	long result=0;
 	listTreeNode* current=objTree;
 	while(current->right!=NULL)current=current->right;
 	while(current!=objTree)
@@ -12,17 +12,14 @@ void T_add(listTreeNode* objTree)
 		if(current->leftType==node)eval(current->left);
 		else if(current->leftType==chars&&(isdigit(*(char*)(current->left))||*(char*)(current->left)=='-'))
 		{
-			result+=stringToFloat((char*)current->left);
-			free(current->left);
+			result+=stringToInt((char*)current->left);
 			current=current->prev;
-			free(current->right);
-			current->rightType=nil;
-			current->right=NULL;
 		}
 	}
 	free(objTree->left);
+	deleteNode(objTree->right);
 	objTree->leftType=chars;
-	objTree->left=floatToString(result);
+	objTree->left=intToString(result);
 	objTree->rightType=nil;
 	objTree->right=NULL;
 }

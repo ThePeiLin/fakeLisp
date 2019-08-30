@@ -3,8 +3,8 @@
 #include<string.h>
 #include<ctype.h>
 #include"fake.h"
-#include"specialFunction.h"
-#include"floatAndString.h"
+#include"functionAndForm.h"
+#include"numAndString.h"
 sfc* specialfc=0;
 int isScript(const char*);
 int main(int argc,char** argv)
@@ -13,6 +13,7 @@ int main(int argc,char** argv)
 	addSpecialFunction("sub",T_sub);
 	addSpecialFunction("mul",T_mul);
 	addSpecialFunction("div",T_div);
+	addSpecialFunction("mod",T_mod);
 	addSpecialFunction("exit",T_exit);
 	if(argc>1)
 	{

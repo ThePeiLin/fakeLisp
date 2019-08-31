@@ -28,6 +28,8 @@ int addDefine(char*,listTreeNode*);
 void callFunction(listTreeNode*);
 void (*(findFunction(const char*)))(listTreeNode*);
 void returnTree(listTreeNode*);
+void printfList(listTreeNode*);
+listTreeNode* createNode(listTreeNode* const);
 listTreeNode* copyTree(listTreeNode*);
 listTreeNode* deleteTree(listTreeNode*);
 listTreeNode* deleteNode(listTreeNode*);

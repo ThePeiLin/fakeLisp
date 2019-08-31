@@ -17,7 +17,11 @@ char* getListFromFile(FILE* file)
 		i++;
 		j=i-1;
 		before=tmp;
-		tmp=(char*)malloc(sizeof(char)*i);
+		if(!(tmp=(char*)malloc(sizeof(char)*i)))
+		{
+			printf("error:Out of memory!\n");
+			exit(1);
+		}
 		for(k=0;k<j;k++)*(tmp+k)=*(before+k);
 		*(tmp+j)=ch;
 		if(before!=NULL)free(before);
@@ -41,12 +45,7 @@ listTreeNode* becomeTree(const char* str)
 			i++;
 			if(root==NULL)
 			{
-				root=(listTreeNode*)malloc(sizeof(listTreeNode));
-				root->prev=NULL;
-				root->leftType=nil;
-				root->left=NULL;
-				root->rightType=nil;
-				root->right=NULL;
+				root=createNode(NULL);
 				objNode=root;
 			}
 			else
@@ -55,12 +54,7 @@ listTreeNode* becomeTree(const char* str)
 				if(lor==l)
 				{
 					prev=objNode;
-					objNode=(listTreeNode*)malloc(sizeof(listTreeNode));
-					objNode->leftType=nil;
-					objNode->left=NULL;
-					objNode->rightType=nil;
-					objNode->right=NULL;
-					objNode->prev=prev;
+					objNode=createNode(prev);
 					prev->leftType=node;
 					prev->left=(void*)objNode;
 					lor=l;
@@ -68,12 +62,7 @@ listTreeNode* becomeTree(const char* str)
 				else if(lor==r)
 				{
 					prev=objNode;
-					objNode=(listTreeNode*)malloc(sizeof(listTreeNode));
-					objNode->leftType=nil;
-					objNode->left=NULL;
-					objNode->rightType=nil;
-					objNode->right=NULL;
-					objNode->prev=prev;
+					objNode=createNode(prev);
 					prev->rightType=node;
 					prev->right=(void*)objNode;
 					lor=l;
@@ -119,12 +108,7 @@ listTreeNode* becomeTree(const char* str)
 				continue;
 			}
 			i+=j;
-			listTreeNode* tmp=(listTreeNode*)malloc(sizeof(listTreeNode));
-			tmp->leftType=nil;
-			tmp->left=NULL;
-			tmp->rightType=nil;
-			tmp->right=NULL;
-			tmp->prev=objNode;
+			listTreeNode* tmp=createNode(objNode);
 			objNode->rightType=node;
 			objNode->right=(void*)tmp;
 			objNode=tmp;
@@ -165,7 +149,11 @@ char* getStringFromList(const char* str)
 		i++;
 		j=i-1;
 		before=tmp;
-		tmp=(char*)malloc(sizeof(char)*i);
+		if(!(tmp=(char*)malloc(sizeof(char)*i)))
+		{
+			printf("error:Out of memory!\n");
+			exit(1);
+		}
 		for(k=0;k<j;k++)*(tmp+k)=*(before+k);
 		*(tmp+j)=ch;
 		if(before!=NULL)free(before);
@@ -186,7 +174,11 @@ int addFunction(char* name,void(*pFun)(listTreeNode*))
 	faf* prev=NULL;
 	if(current==NULL)
 	{
-		funAndForm=(faf*)malloc(sizeof(faf));
+		if(!(funAndForm=(faf*)malloc(sizeof(faf))))
+		{
+			printf("error:Out of memory!\n");
+			exit(1);
+		}
 		funAndForm->functionName=name;
 		funAndForm->function=pFun;
 		funAndForm->next=NULL;
@@ -199,7 +191,11 @@ int addFunction(char* name,void(*pFun)(listTreeNode*))
 			prev=current;
 			current=current->next;
 		}
-		current=(faf*)malloc(sizeof(faf));
+		if(!(current=(faf*)malloc(sizeof(faf))))
+		{
+			printf("error:Out of memory!\n");
+			exit(1);
+		}
 		current->functionName=name;
 		current->function=pFun;
 		current->next=NULL;
@@ -304,6 +300,33 @@ listTreeNode* deleteNode(listTreeNode* objTree)
 		}
 	}
 }
-int printList(listTreeNode* objTree)
+void printList(listTreeNode* objTree)
 {
+	if(objTree->prev==NULL||objTree->prev->left==objTree)putchar('(');
+	if(objTree->leftType==chars||objTree->leftType==sym)printf("%s",(char*)objTree->left);
+	if(objTree->leftType==node)printList(objTree->left);
+	if(objTree->rightType==chars||objTree->leftType==sym)printf(",%s",(char*)objTree->right);
+	if(objTree->rightType==node)
+	{
+		putchar(' ');
+		printList(objTree->right);
+	}
+	if(objTree->prev==NULL||objTree->prev->left==objTree)putchar(')');
+}
+listTreeNode* createNode(listTreeNode* const prev)
+{
+	listTreeNode* tmp;
+	if((tmp=(listTreeNode*)malloc(sizeof(listTreeNode))))
+	{
+		tmp->prev=prev;
+		tmp->leftType=nil;
+		tmp->left=NULL;
+		tmp->rightType=nil;
+		tmp->right=NULL;
+	}
+	else 
+	{
+		printf("error:Out of memory!\n");
+		exit(1);
+	}
 }

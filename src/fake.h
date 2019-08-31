@@ -13,20 +13,20 @@ typedef struct ListTreeNode
 
 
 
-typedef struct SFC
+typedef struct FAF//function and form
 {
 	char* functionName;
 	void (*function)(listTreeNode*);
-	struct SFC* next;
-}sfc;
+	struct FAF* next;
+}faf;
 char* getListFromFile(FILE*);
 listTreeNode* becomeTree(const char*);
 char* getStringFromList(const char*);
 listTreeNode* eval(listTreeNode*);
-int addSpecialFunction(char*,void(*)(listTreeNode*));
+int addFunction(char*,void(*)(listTreeNode*));
 int addDefine(char*,listTreeNode*);
 void callFunction(listTreeNode*);
-void (*(findSpecialFunction(const char*)))(listTreeNode*);
+void (*(findFunction(const char*)))(listTreeNode*);
 void returnTree(listTreeNode*);
 listTreeNode* copyTree(listTreeNode*);
 listTreeNode* deleteTree(listTreeNode*);

@@ -5,16 +5,16 @@
 #include"fake.h"
 #include"functionAndForm.h"
 #include"numAndString.h"
-sfc* specialfc=0;
+
 int isScript(const char*);
 int main(int argc,char** argv)
 {
-	addSpecialFunction("add",T_add);
-	addSpecialFunction("sub",T_sub);
-	addSpecialFunction("mul",T_mul);
-	addSpecialFunction("div",T_div);
-	addSpecialFunction("mod",T_mod);
-	addSpecialFunction("exit",T_exit);
+	addFunction("add",T_add);
+	addFunction("sub",T_sub);
+	addFunction("mul",T_mul);
+	addFunction("div",T_div);
+	addFunction("mod",T_mod);
+	addFunction("exit",T_exit);
 	if(argc>1)
 	{
 		if(isScript(argv[1]))

@@ -72,32 +72,37 @@ void T_mul(listTreeNode* objTree)
 }
 void T_div(listTreeNode* objTree)
 {
-	double beDiv;
-	double divNum=1;
+	long quotient=0;
+	long remainder=0;
+	long beDiv=0;
+	long divNum=0;
 	listTreeNode* pBeDiv=objTree->right;
+	if(pBeDiv!=NULL)
+	{
+		if(pBeDiv->leftType==node)eval(pBeDiv->left);
+		else beDiv=stringToInt(pBeDiv->left);
+	}
+	else exit(0);
 	listTreeNode* pDivNum=pBeDiv->right;
-	if(pBeDiv->leftType==node)eval(pBeDiv->left);
-	if(pBeDiv->leftType==chars&&(isdigit(*(char*)(pBeDiv->left))||*(char*)(pBeDiv->left)=='-'))
-		beDiv=stringToFloat(pBeDiv->left);
-	while(pDivNum->rightType!=nil&&pDivNum->right!=NULL)pDivNum=pDivNum->right;
-	while(pDivNum!=pBeDiv)
+	if(pDivNum!=NULL)
 	{
 		if(pDivNum->leftType==node)eval(pDivNum->left);
-		if(pDivNum->leftType==chars&&(isdigit(*(char*)(pDivNum->left))||*(char*)(pDivNum->left)=='-'))
-		{
-			divNum*=stringToFloat((char*)pDivNum->left);
-			free(pDivNum->left);
-			pDivNum=pDivNum->prev;
-			free(pDivNum->right);
-			pDivNum->rightType=nil;
-			pDivNum->right=NULL;
-		}
+		else divNum=stringToInt(pDivNum->left);
 	}
-	free(pBeDiv->left);
-	free(pBeDiv);
+	else exit(0);
+	remainder=beDiv%divNum;
+	quotient=(beDiv-remainder)/divNum;
 	free(objTree->left);
-	objTree->left=floatToString(beDiv/divNum);
-	objTree->leftType=chars;
+	listTreeNode* tmp=createNode(objTree);
+	tmp->left=intToString(quotient);
+	tmp->leftType=chars;
+	tmp->rightType=node;
+	listTreeNode* tmp1=tmp->right=createNode(tmp);
+	tmp1->leftType=chars;
+	tmp1->left=intToString(remainder);
+	deleteNode(objTree->right);
+	objTree->leftType=node;
+	objTree->left=tmp;
 	objTree->rightType=nil;
 	objTree->right=NULL;
 }
@@ -126,6 +131,7 @@ void T_mod(listTreeNode* objTree)
 	objTree->leftType=chars;
 	deleteNode(objTree->right);
 	objTree->rightType=nil;
+	objTree->right=NULL;
 }
 void T_exit(listTreeNode* objTree)
 {

@@ -330,3 +330,46 @@ listTreeNode* createNode(listTreeNode* const prev)
 		exit(1);
 	}
 }
+listTreeNode* copyTree(listTreeNode* objTree)
+{
+	listTreeNode* tmp=createNode(NULL);
+	if(objTree->leftType==node)
+	{
+		tmp->leftType=node;
+		tmp->left=copyTree(objTree->left);
+		listTreeNode* tmp1=tmp->left;
+		tmp1->prev=tmp;
+	}
+	if(objTree->rightType==node)
+	{
+		tmp->rightType=node;
+		tmp->right=copyTree(objTree->right);
+		listTreeNode* tmp1=tmp->right;
+		tmp1->prev=tmp;
+	}
+	if(objTree->leftType==chars||objTree->leftType==sym)
+	{
+		int i;
+		int len=strlen(objTree->left)+1;
+		tmp->leftType=objTree->leftType;
+		if(!(tmp->left=(char*)malloc(sizeof(char)*len)))
+		{
+			printf("error:Out of memory!");
+			exit(1);
+		}
+		for(i=0;i<len;i++)*((char*)(tmp->left)+i)=*((char*)(objTree->left)+i);
+	}
+	if(objTree->rightType==chars||objTree->leftType==sym)
+	{
+		int i;
+		int len=strlen(objTree->right)+1;
+		tmp->rightType=objTree->rightType;
+		if(!(tmp->right=(char*)malloc(sizeof(char)*len)))
+		{
+			printf("error:Out of memory!");
+			exit(1);
+		}
+		for(i=0;i<len;i++)*((char*)(tmp->right)+i)=*((char*)(objTree->left)+i);
+	}
+	return tmp;
+}

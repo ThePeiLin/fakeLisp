@@ -66,7 +66,15 @@ int main(int argc,char** argv)
 				str=getListFromFile(stdin);
 				if(str!=NULL)objTree=eval(becomeTree(str));
 				free(str);
-				printf("%s\n",(char*)objTree->left);
+				if(objTree->leftType==chars||objTree->leftType==sym)
+					printf("%s\n",(char*)objTree->left);
+				else if(objTree->leftType==node)
+				{
+					printList(objTree->left);
+					putchar('\n');
+				}
+				else if(objTree->leftType==nil)
+					printf("nil\n");
 				deleteTree(objTree);
 			}
 			if(ch=='\n')printf(">>>");

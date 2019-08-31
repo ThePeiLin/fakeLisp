@@ -1,9 +1,10 @@
 #ifndef TREE_H_
 #define TREE_H_
 #include<stdio.h>
+enum TYPES{nil,node,sym,chars};
 typedef struct ListTreeNode
 {
-	enum{nil,node,sym,chars}
+	enum TYPES
 	leftType,
 	rightType;
 	struct ListTreeNode* prev;
@@ -11,7 +12,13 @@ typedef struct ListTreeNode
 	void* right;
 }listTreeNode;
 
-
+typedef struct Defines
+{
+	enum TYPES type;
+	char* symName;
+	void* NSC;//node or symbol or chars
+	struct Defines* next;
+}defines;
 
 typedef struct FAF//function and form
 {
@@ -28,7 +35,7 @@ int addDefine(char*,listTreeNode*);
 void callFunction(listTreeNode*);
 void (*(findFunction(const char*)))(listTreeNode*);
 void returnTree(listTreeNode*);
-void printfList(listTreeNode*);
+void printList(listTreeNode*);
 listTreeNode* createNode(listTreeNode* const);
 listTreeNode* copyTree(listTreeNode*);
 listTreeNode* deleteTree(listTreeNode*);

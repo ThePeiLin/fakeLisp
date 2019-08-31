@@ -2,7 +2,7 @@
 #include<string.h>
 #include<ctype.h>
 #include"fake.h"
-extern sfc* specialfc;
+static faf* funAndForm;
 char* getListFromFile(FILE* file)
 {
 	char* tmp=NULL;
@@ -180,16 +180,16 @@ listTreeNode* eval(listTreeNode* objTree)
 	returnTree(objTree);
 	return objTree;
 }
-int addSpecialFunction(char* name,void(*spFun)(listTreeNode*))
+int addFunction(char* name,void(*pFun)(listTreeNode*))
 {
-	sfc* current=specialfc;
-	sfc* prev=NULL;
+	faf* current=funAndForm;
+	faf* prev=NULL;
 	if(current==NULL)
 	{
-		specialfc=(sfc*)malloc(sizeof(sfc));
-		specialfc->functionName=name;
-		specialfc->function=spFun;
-		specialfc->next=NULL;
+		funAndForm=(faf*)malloc(sizeof(faf));
+		funAndForm->functionName=name;
+		funAndForm->function=pFun;
+		funAndForm->next=NULL;
 	}
 	else
 	{
@@ -199,23 +199,23 @@ int addSpecialFunction(char* name,void(*spFun)(listTreeNode*))
 			prev=current;
 			current=current->next;
 		}
-		current=(sfc*)malloc(sizeof(sfc));
+		current=(faf*)malloc(sizeof(faf));
 		current->functionName=name;
-		current->function=spFun;
+		current->function=pFun;
 		current->next=NULL;
 		prev->next=current;
 	}
 }
 void callFunction(listTreeNode* root)
 {
-	void (*pf)(listTreeNode*)=findSpecialFunction((char*)root->left);
+	void (*pf)(listTreeNode*)=findFunction((char*)root->left);
 	if(pf==NULL)
 		printf("NO FUNCTION!\n");
 	else pf(root);
 }
-void (*(findSpecialFunction(const char* name)))(listTreeNode*)
+void (*(findFunction(const char* name)))(listTreeNode*)
 {
-	sfc* current=specialfc;
+	faf* current=funAndForm;
 	while(current!=NULL&&strcmp(current->functionName,name))current=current->next;
 	if(current==NULL)
 		return NULL;
@@ -303,4 +303,7 @@ listTreeNode* deleteNode(listTreeNode* objTree)
 			break;
 		}
 	}
+}
+int printList(listTreeNode* objTree)
+{
 }

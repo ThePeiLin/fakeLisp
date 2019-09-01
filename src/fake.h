@@ -1,6 +1,7 @@
 #ifndef TREE_H_
 #define TREE_H_
 #include<stdio.h>
+#define OUTOFMEMORY 1
 enum TYPES{nil,node,sym,chars};
 typedef struct ListTreeNode
 {
@@ -26,12 +27,14 @@ typedef struct FAF//function and form
 	void (*function)(listTreeNode*);
 	struct FAF* next;
 }faf;
+defines* findDefine(const char);
+void errors(int);
 char* getListFromFile(FILE*);
 listTreeNode* becomeTree(const char*);
 char* getStringFromList(const char*);
 listTreeNode* eval(listTreeNode*);
 int addFunction(char*,void(*)(listTreeNode*));
-int addDefine(char*,listTreeNode*);
+int addDefine(const char*,void*,enum TYPES);
 void callFunction(listTreeNode*);
 void (*(findFunction(const char*)))(listTreeNode*);
 void returnTree(listTreeNode*);

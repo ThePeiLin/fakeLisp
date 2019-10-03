@@ -2,8 +2,25 @@
 #include<string.h>
 #include<ctype.h>
 #include"fake.h"
+#include"numAndString.h"
 static faf* funAndForm=NULL;
-static defines* def=NULL;
+static defines* GlobDef=NULL;
+
+char* getStringFromList(const char* str)
+{
+	char* tmp=NULL;
+	int len=0;
+	while((*(str+len)!='(')
+			&&(*(str+len)!=')')
+			&&!isspace(*(str+len))
+			&&(*(str+len)!=',')
+			&&(*(str+len)!=0))len++;
+	if(!(tmp=(char*)malloc(sizeof(char)*len+1)))errors(OUTOFMEMORY);
+	memcpy(tmp,str,len);
+	if(tmp!=NULL)*(tmp+len)='\0';
+	return tmp;
+}
+
 char* getListFromFile(FILE* file)
 {
 	char* tmp=NULL;
@@ -11,7 +28,6 @@ char* getListFromFile(FILE* file)
 	char ch;
 	int i=0;
 	int j;
-	int k;
 	int braketsNum=0;
 	while((ch=getc(file))!=EOF)
 	{
@@ -19,7 +35,7 @@ char* getListFromFile(FILE* file)
 		j=i-1;
 		before=tmp;
 		if(!(tmp=(char*)malloc(sizeof(char)*i)))errors(OUTOFMEMORY);
-		for(k=0;k<j;k++)*(tmp+k)=*(before+k);
+		memcpy(tmp,before,j);
 		*(tmp+j)=ch;
 		if(before!=NULL)free(before);
 		if(ch=='(')braketsNum++;
@@ -29,7 +45,11 @@ char* getListFromFile(FILE* file)
 	if(tmp!=NULL)*(tmp+i)='\0';
 	return tmp;
 }
-listTreeNode* becomeTree(const char* str)
+
+
+
+
+listTreeNode* becomeTree(const char* objStr)
 {
 	enum{l,r}lor=l;
 	int i=0;
@@ -37,7 +57,7 @@ listTreeNode* becomeTree(const char* str)
 	listTreeNode* objNode=NULL;
 	while(1)
 	{
-		if(*(str+i)=='(')
+		if(*(objStr+i)=='(')
 		{
 			i++;
 			if(root==NULL)
@@ -66,7 +86,7 @@ listTreeNode* becomeTree(const char* str)
 				}
 			}
 		}
-		else if(*(str+i)==')')
+		else if(*(objStr+i)==')')
 		{
 			i++;
 			listTreeNode* prev=NULL;
@@ -80,15 +100,15 @@ listTreeNode* becomeTree(const char* str)
 			if((listTreeNode*)(objNode->left)==prev)lor=l;
 			else if((listTreeNode*)(objNode->right)==prev)lor=r;
 		}
-		else if(*(str+i)==',')
+		else if(*(objStr+i)==',')
 		{
 			i++;
 			lor=r;
 		}
-		else if(isspace(*(str+i)))
+		else if(isspace(*(objStr+i)))
 		{
 			int j=0;
-			char* tmpStr=(char*)str+i;
+			char* tmpStr=(char*)objStr+i;
 			while(isspace(*(tmpStr+j)))j--;
 			if(*(tmpStr+j)==',')
 			{
@@ -110,9 +130,9 @@ listTreeNode* becomeTree(const char* str)
 			objNode->right=(void*)tmp;
 			objNode=tmp;
 		}
-		else if(isalpha(*(str+i)))
+		else if(isalpha(*(objStr+i)))
 		{
-			char* tmp=getStringFromList(str+i);
+			char* tmp=getStringFromList(objStr+i);
 			if(lor==l)
 			{
 				objNode->leftType=sym;
@@ -125,50 +145,53 @@ listTreeNode* becomeTree(const char* str)
 			}
 			i+=strlen(tmp);
 		}
-		else if(isdigit(*(str+i))||*(str+i)=='-')
+		else if(*(objStr+i)=='"')
 		{
-			char* tmp=getStringFromList(str+i);
+			rawString tmp=getStringBetweenMarks(objStr+i);
 			if(lor==l)
 			{
-				objNode->leftType=chars;
-				objNode->left=(void*)tmp;
+				objNode->leftType=val;
+				if(!(objNode->left=(leaf*)malloc(sizeof(leaf))))errors(OUTOFMEMORY);
+				((leaf*)objNode->left)->type=str;
+				((leaf*)objNode->left)->prev=objNode;
+				((leaf*)objNode->left)->value=(void*)tmp.str;
 			}
 			else if(lor==r)
 			{
-				objNode->rightType=chars;
-				objNode->right=(void*)tmp;
+				objNode->rightType=val;
+				if(!(objNode->left=(leaf*)malloc(sizeof(leaf))))errors(OUTOFMEMORY);
+				((leaf*)objNode->right)->type=str;
+				((leaf*)objNode->right)->prev=objNode;
+				((leaf*)objNode->right)->value=(void*)tmp.str;
+			}
+			i+=tmp.len;
+		}
+		else if(isdigit(*(objStr+i))||*(objStr+i)=='-')
+		{
+			char* tmp=getStringFromList(objStr+i);
+			if(lor==l)
+			{
+				objNode->leftType=val;
+				if(!(objNode->left=(leaf*)malloc(sizeof(leaf))))errors(OUTOFMEMORY);
+				((leaf*)objNode->left)->type=num;
+				((leaf*)objNode->left)->prev=objNode;
+				((leaf*)objNode->left)->value=(void*)tmp;
+			}
+			else if(lor==r)
+			{
+				objNode->rightType=val;
+				if(!(objNode->right=(leaf*)malloc(sizeof(leaf))))errors(OUTOFMEMORY);
+				((leaf*)objNode->left)->type=num;
+				((leaf*)objNode->left)->prev=objNode;
+				((leaf*)objNode->left)->value=(void*)tmp;
 			}
 			i+=strlen(tmp);
 		}
 	}
 	return root;
 }
-char* getStringFromList(const char* str)
-{
-	char* tmp=NULL;
-	char* before;
-	char ch;
-	int i=0;
-	int j;
-	int k;
-	while((*(str+i)!='(')
-			&&(*(str+i)!=')')
-			&&!isspace(*(str+i))
-			&&(*(str+i)!=',')
-			&&(*(str+i)!=0))
-	{
-		ch=*(str+i);
-		i++;
-		j=i-1;
-		before=tmp;
-		if(!(tmp=(char*)malloc(sizeof(char)*i)))errors(OUTOFMEMORY);
-		for(k=0;k<j;k++)*(tmp+k)=*(before+k);
-		*(tmp+j)=ch;
-		if(before!=NULL)free(before);
-	}
-	if(tmp!=NULL)*(tmp+i)='\0';
-	return tmp;
-}
+
+
 listTreeNode* eval(listTreeNode* objTree)
 {
 	if(objTree->leftType==node)eval(objTree->left);
@@ -248,12 +271,12 @@ listTreeNode* deleteTree(listTreeNode* objTree)
 			else if(objTree->right==prev)objTree->rightType=nil;
 			free(prev);
 		}
-		if(objTree->leftType==sym||objTree->leftType==chars)
+		if(objTree->leftType==sym||objTree->leftType==val)
 		{
 			free(objTree->left);
 			objTree->leftType=nil;
 		}
-		if(objTree->leftType==nil&&(objTree->rightType==sym||objTree->rightType==chars))
+		if(objTree->leftType==nil&&(objTree->rightType==sym||objTree->rightType==val))
 		{
 			free(objTree->right);
 			objTree->rightType=nil;
@@ -280,12 +303,12 @@ listTreeNode* deleteNode(listTreeNode* objTree)
 			else if(objTree->right==prev)objTree->rightType=nil;
 			free(prev);
 		}
-		if(objTree->leftType==sym||objTree->leftType==chars)
+		if(objTree->leftType==sym||objTree->leftType==val)
 		{
 			free(objTree->left);
 			objTree->leftType=nil;
 		}
-		if(objTree->leftType==nil&&(objTree->rightType==sym||objTree->rightType==chars))
+		if(objTree->leftType==nil&&(objTree->rightType==sym||objTree->rightType==val))
 		{
 			free(objTree->right);
 			objTree->rightType=nil;
@@ -303,10 +326,12 @@ listTreeNode* deleteNode(listTreeNode* objTree)
 void printList(listTreeNode* objTree)
 {
 	if(objTree->prev==NULL||objTree->prev->left==objTree)putchar('(');
-	if(objTree->leftType==chars||objTree->leftType==sym)printf("%s",(char*)objTree->left);
-	if(objTree->leftType==node)printList(objTree->left);
-	if(objTree->rightType==chars||objTree->leftType==sym)printf(",%s",(char*)objTree->right);
-	if(objTree->rightType==node)
+	if(objTree->leftType==sym)printf("%s",(char*)objTree->left);
+	else if(objTree->leftType=val)printf("%s",(char*)((leaf*)objTree->left)->value);
+	else if(objTree->leftType==node)printList(objTree->left);
+	if(objTree->rightType==sym)printf(",%s",(char*)objTree->right);
+	else if(objTree->rightType==val)printf(",%s",(char*)((leaf*)objTree->right)->value);
+	else if(objTree->rightType==node)
 	{
 		putchar(' ');
 		printList(objTree->right);
@@ -343,7 +368,7 @@ listTreeNode* copyTree(listTreeNode* objTree)
 		listTreeNode* tmp1=tmp->right;
 		tmp1->prev=tmp;
 	}
-	if(objTree->leftType==chars||objTree->leftType==sym)
+	if(objTree->leftType==val||objTree->leftType==sym)
 	{
 		int i;
 		int len=strlen(objTree->left)+1;
@@ -351,7 +376,7 @@ listTreeNode* copyTree(listTreeNode* objTree)
 		if(!(tmp->left=(char*)malloc(sizeof(char)*len)))errors(OUTOFMEMORY);
 		for(i=0;i<len;i++)*((char*)(tmp->left)+i)=*((char*)(objTree->left)+i);
 	}
-	if(objTree->rightType==chars||objTree->leftType==sym)
+	if(objTree->rightType==val||objTree->leftType==sym)
 	{
 		int i;
 		int len=strlen(objTree->right)+1;
@@ -361,10 +386,13 @@ listTreeNode* copyTree(listTreeNode* objTree)
 	}
 	return tmp;
 }
-int addDefine(const char* symName,void* obj,enum TYPES types)
+
+
+
+/*int addDefine(const char* symName,void* obj,enum TYPES types)
 {
-	defines* current==NULL;
-	defines* prev==NULL;
+	defines* current=NULL;
+	defines* prev=NULL;
 	int len=strlen(symName)+1;
 	if(def==NULL)
 	{
@@ -374,11 +402,12 @@ int addDefine(const char* symName,void* obj,enum TYPES types)
 		for(i=0;i<len;i++)*(def->symName+i)=*(symName+i);
 		def->next=NULL;
 		if(types==node)def->NSC=copyTree(obj);
-		else if(types==chars||types==sym)
+		else if(types==val||types==sym)
 		{
-			int len=strlen((char*)obj)+1;
-			if(!(def->NSC=(char*)malloc(sizeof(char)*len)))errors(OUTOFMEMORY);
-			for(i=0;i<len;i++)*((char*)(def->NSC)+i)=*((char*)obj+i);
+			int len=strlen((char*)obj->value)+1;
+			if(!(def->NSC=(leaf*)malloc(sizeof(leaf))))errors(OUTOFMEMORY);
+			if(!((leaf*)(def->NSC)->value=(char*)malloc(sizeof(char)*len)))errors(OUTOFMEMORY);
+			for(i=0;i<len;i++)*((char*)((leaf*)(def->NSC)->value)+i)=*((char*)obj+i);
 		}
 		else if(types==nil)def->NSC=NULL;
 		def->type=types;
@@ -398,23 +427,26 @@ int addDefine(const char* symName,void* obj,enum TYPES types)
 		current->next=NULL;
 		prev->next=current;
 		if(types==node)current->NSC=copyTree(obj);
-		else if(types==chars||types==sym)
+		else if(types==val||types==sym)
 		{
-			int len=strlen((char*)obj)+1;
-			if(!(current->NSC=(char*)malloc(sizeof(char)*len)))errors(OUTOFMEMORY);
-			for(i=0;i<len;i++)*((char*)(current->NSC)+i)=*((char*)obj+i);
+			int len=strlen((char*)obj->value)+1;
+			if(!(current->NSC=(leaf*)malloc(sizeof(leaf))))errors(OUTOFMEMORY);
+			if(!((leaf*)(current->NSC)->value=(char*)malloc(sizeof(char)*len)))errors(OUTOFMEMORY);
+			for(i=0;i<len;i++)*((char*)((leaf*)(current->NSC)->value)+i)=*((char*)obj+i);
 		}
 		else if(types==nil)current->NSC=NULL;
 		current->type=types;
 	}
-}
+}*/
+
+
 void errors(int types)
 {
-	switch(types)
+	static char* inform[]=
 	{
-		case OUTOFMEMORY:
-			fprintf(stderr,"error:Out of memory!\n");
-			exit(1);
-			break;
-	}
+		"dummy",
+		"Out of memory!\n"
+	};
+	fprintf(stderr,"error:%s",inform[types]);
+	exit(1);
 }

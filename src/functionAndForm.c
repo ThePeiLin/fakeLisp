@@ -10,7 +10,7 @@ void T_add(listTreeNode* objTree)
 	while(current!=objTree)
 	{
 		if(current->leftType==node)eval(current->left);
-		else if(current->leftType==chars&&(isdigit(*(char*)(current->left))||*(char*)(current->left)=='-'))
+		else if(current->leftType==val&&(isdigit(*(char*)(current->left))||*(char*)(current->left)=='-'))
 		{
 			result+=stringToInt((char*)current->left);
 			current=current->prev;
@@ -18,7 +18,7 @@ void T_add(listTreeNode* objTree)
 	}
 	free(objTree->left);
 	deleteNode(objTree->right);
-	objTree->leftType=chars;
+	objTree->leftType=val;
 	objTree->left=intToString(result);
 	objTree->rightType=nil;
 	objTree->right=NULL;
@@ -30,13 +30,13 @@ void T_sub(listTreeNode* objTree)
 	listTreeNode* pBeSub=objTree->right;
 	listTreeNode* pSubNum=pBeSub->right;
 	if(pBeSub->leftType==node)eval(pBeSub->left);
-	if(pBeSub->leftType==chars&&(isdigit(*(char*)(pBeSub->left))||*(char*)(pBeSub->left)=='-'))
+	if(pBeSub->leftType==val&&(isdigit(*(char*)(pBeSub->left))||*(char*)(pBeSub->left)=='-'))
 		beSub=stringToInt(pBeSub->left);
 	while(pSubNum->rightType!=nil&&pSubNum->right!=NULL)pSubNum=pSubNum->right;
 	while(pSubNum!=pBeSub)
 	{
 		if(pSubNum->leftType==node)eval(pSubNum->left);
-		if(pSubNum->leftType==chars&&(isdigit(*(char*)(pSubNum->left))||*(char*)(pSubNum->left)=='-'))
+		if(pSubNum->leftType==val&&(isdigit(*(char*)(pSubNum->left))||*(char*)(pSubNum->left)=='-'))
 		{
 			subNum+=stringToInt((char*)pSubNum->left);
 			pSubNum=pSubNum->prev;
@@ -45,7 +45,7 @@ void T_sub(listTreeNode* objTree)
 	free(objTree->left);
 	deleteNode(objTree->right);
 	objTree->left=intToString(beSub-subNum);
-	objTree->leftType=chars;
+	objTree->leftType=val;
 	objTree->rightType=nil;
 	objTree->right=NULL;
 }
@@ -57,14 +57,14 @@ void T_mul(listTreeNode* objTree)
 	while(current!=objTree)
 	{
 		if(current->leftType==node)eval(current->left);
-		else if(current->leftType==chars&&(isdigit(*(char*)(current->left))||*(char*)(current->left)=='-'))
+		else if(current->leftType==val&&(isdigit(*(char*)(current->left))||*(char*)(current->left)=='-'))
 		{
 			result*=stringToInt((char*)current->left);
 			current=current->prev;
 		}
 	}
 	free(objTree->left);
-	objTree->leftType=chars;
+	objTree->leftType=val;
 	objTree->left=intToString(result);
 	deleteNode(objTree->right);
 	objTree->rightType=nil;
@@ -95,11 +95,8 @@ void T_div(listTreeNode* objTree)
 	free(objTree->left);
 	listTreeNode* tmp=createNode(objTree);
 	tmp->left=intToString(quotient);
-	tmp->leftType=chars;
-	tmp->rightType=node;
-	listTreeNode* tmp1=tmp->right=createNode(tmp);
-	tmp1->leftType=chars;
-	tmp1->left=intToString(remainder);
+	tmp->leftType=val;
+	tmp->rightType=nil;
 	deleteNode(objTree->right);
 	objTree->leftType=node;
 	objTree->left=tmp;
@@ -128,7 +125,7 @@ void T_mod(listTreeNode* objTree)
 	result=beMod%modNum;
 	free(objTree->left);
 	objTree->left=intToString(result);
-	objTree->leftType=chars;
+	objTree->leftType=val;
 	deleteNode(objTree->right);
 	objTree->rightType=nil;
 	objTree->right=NULL;

@@ -62,7 +62,7 @@ rawString getStringBetweenMarks(const char* str)
 	int len=0;
 	int i=1;
 	int j;
-	while(*(str+i)!='"')
+	while(*(str+i)!='\"')
 	{
 		if(*(str+i)=='\\')
 		{
@@ -85,9 +85,7 @@ rawString getStringBetweenMarks(const char* str)
 						ch=0;
 						int k=0;
 						int len;
-						while((isdigit(*(str+i+3+k))
-								||(*(str+i+3+k)>='A'&&*(str+i+3+k)<='F')
-								||(*(str+i+3+k)>='a'&&*(str+i+3+k)<='f'))&&k<3)k++;
+						while(isxdigit(*(str+i+3+)))k++;
 						len=k;
 						while(k>0)
 						{
@@ -165,4 +163,18 @@ rawString getStringBetweenMarks(const char* str)
 	obj.len=i+1;
 	obj.str=tmp;
 	return obj;
+}
+void printRawString(char* objStr,FILE* out)
+{
+	char* tmpStr=objStr;
+	int len=strlen(objStr);
+	putc('\"',out);
+	for(;tmpStr<objStr+len;tmpStr++)
+	{
+		if(isgraph(*tmpStr))
+			putc(*tmpStr,out);
+		else
+			fprintf(out,"\\0x%0x",*tmpStr);
+	}
+	putc('\"',out);
 }

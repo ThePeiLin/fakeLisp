@@ -7,6 +7,7 @@ typedef struct RawString
 } rawString;
 int power(int,int);
 rawString getStringBetweenMarks(const char*);
+void printRawString(const char*,FILE*);
 char* floatToString(double);
 double stringToFloat(const char*);
 char* intToString(long);

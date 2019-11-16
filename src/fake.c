@@ -4,7 +4,7 @@
 #include"fake.h"
 #include"numAndString.h"
 static nativeFunc* funAndForm=NULL;
-static defines* GlobDef=NULL;
+static env* glob=NULL;
 
 char* getStringFromList(const char* str)
 {
@@ -34,7 +34,8 @@ char* getListFromFile(FILE* file)
 		i++;
 		j=i-1;
 		before=tmp;
-		if(!(tmp=(char*)malloc(sizeof(char)*i)))errors(OUTOFMEMORY);
+		if(!(tmp=(char*)malloc(sizeof(char)*i)))
+			errors(OUTOFMEMORY);
 		memcpy(tmp,before,j);
 		*(tmp+j)=ch;
 		if(before!=NULL)free(before);
@@ -49,21 +50,23 @@ char* getListFromFile(FILE* file)
 
 
 
-listTreeNode* becomeTree(const char* objStr)
+branch* becomeTree(const char* objStr)
 {
 	int i=0;
-	listTreeNode* root=NULL;
+	branch* root=NULL;
 	listTreeNode* objNode=NULL;
 	branch* objBra;
-	while(1)
+	while(*(objStr+i)!='\0')
 	{
 		if(*(objStr+i)=='(')
 		{
 			i++;
 			if(root==NULL)
 			{
-				root=createNode(NULL);
-				objNode=root;
+				root=createBranch();
+				root->type=node;
+				root->twig=createNode(NULL);
+				objNode=root->twig;
 				objBra=&objNode->left;
 			}
 			else
@@ -154,18 +157,15 @@ listTreeNode* becomeTree(const char* objStr)
 
 listTreeNode* eval(listTreeNode* objTree)
 {
-	if(objTree->leftType==node)eval(objTree->left);
-	if(objTree->prev->left==objTree)callFunction(objTree);
-	returnTree(objTree);
-	return objTree;
+	
 }
-int addFunction(char* name,void(*pFun)(listTreeNode*))
+int addFunction(char* name,void(*pFun)(listTreeNode*,env*))
 {
-	faf* current=funAndForm;
-	faf* prev=NULL;
+	nativeFunc* current=funAndForm;
+	nativeFunc* prev=NULL;
 	if(current==NULL)
 	{
-		if(!(funAndForm=(faf*)malloc(sizeof(faf))))errors(OUTOFMEMORY);
+		if(!(funAndForm=(nativeFunc*)malloc(sizeof(nativeFunc))))errors(OUTOFMEMORY);
 		funAndForm->functionName=name;
 		funAndForm->function=pFun;
 		funAndForm->next=NULL;
@@ -178,14 +178,14 @@ int addFunction(char* name,void(*pFun)(listTreeNode*))
 			prev=current;
 			current=current->next;
 		}
-		if(!(current=(faf*)malloc(sizeof(faf))))errors(OUTOFMEMORY);
+		if(!(current=(nativeFunc*)malloc(sizeof(nativeFunc))))errors(OUTOFMEMORY);
 		current->functionName=name;
 		current->function=pFun;
 		current->next=NULL;
 		prev->next=current;
 	}
 }
-void callFunction(listTreeNode* root)
+void callFunction(listTreeNode* root,env* enviorment)
 {
 	void (*pf)(listTreeNode*)=findFunction((char*)root->left);
 	if(pf==NULL)
@@ -194,7 +194,7 @@ void callFunction(listTreeNode* root)
 }
 void (*(findFunction(const char* name)))(listTreeNode*)
 {
-	faf* current=funAndForm;
+	nativeFunc* current=funAndForm;
 	while(current!=NULL&&strcmp(current->functionName,name))current=current->next;
 	if(current==NULL)
 		return NULL;
@@ -203,15 +203,10 @@ void (*(findFunction(const char* name)))(listTreeNode*)
 }
 void returnTree(listTreeNode* objTree)
 {
-	if(objTree->prev!=NULL&&objTree->prev!=objTree->prev->right)
-	{
-		listTreeNode* prev=objTree;
-		objTree=objTree->prev;
-		objTree->leftType=prev->leftType;
-		objTree->left=prev->left;
-		free(prev);
-	}
+	
 }
+
+
 listTreeNode* deleteTree(listTreeNode* objTree)
 {
 	while(objTree!=NULL)
@@ -259,62 +254,81 @@ listTreeNode* deleteTree(listTreeNode* objTree)
 		}
 	}
 }
-listTreeNode* deleteNode(listTreeNode* objTree)
+
+
+branch* deleteNode(branch* objBra)
 {
-	listTreeNode* tmp=objTree;
-	while(1)
+	if(objBra->type==sym)
+		free(objBra->twig);
+	else if(objBra->type==val)
 	{
-		if(objTree->left.type==node)objTree=objTree->left.twig;
-		if(objTree->left.type==nil&&objTree->right.type==node)objTree=objTree->right.twig;
-		if(objTree->left.type==nil&&objTree->right.type==nil)
+		free(((leaf*)objBra->twig)->val);
+		free(objBra->twig);
+	}
+	else if(objBra->type==node)
+	{
+		listTreeNode* objTree=objBra->twig;
+		listTreeNode* tmp=objTree;
+		while(1)
 		{
-			listTreeNode* prev=objTree;
-			objTree=objTree->prev;
-			if(objTree==NULL)
+			if(objTree->left.type==node)objTree=objTree->left.twig;
+			if(objTree->left.type==nil&&objTree->right.type==node)objTree=objTree->right.twig;
+			if(objTree->left.type==nil&&objTree->right.type==nil)
 			{
+				listTreeNode* prev=objTree;
+				objTree=objTree->prev;
+				if(objTree==NULL)
+				{
+					free(prev);
+					break;
+				}
+				if(objTree->left.twig==prev)objTree->left.type=nil;
+				else if(objTree->right.twig==prev)objTree->right.type=nil;
 				free(prev);
+			}
+			if(objTree->left.type==sym)
+			{
+				free(objTree->left.twig);
+				objTree->left.twig=NULL;
+				objTree->left.type=nil;
+			}
+			if(objTree->left.type==nil&&objTree->right.type==sym)
+			{
+				free(objTree->right.twig);
+				objTree->right.twig=NULL;
+				objTree->right.type=nil;
+			}
+			if(objTree->left.type==val)
+			{
+				free(((leaf*)objTree->left.twig)->value);
+				free(objTree->left.twig);
+				objTree->left.twig=NULL;
+				objTree->left.type=nil;
+			}
+			if(objTree->left.type==nil&&objTree->right.type==val)
+			{
+				free(((leaf*)objTree->right.twig)->value);
+				free(objTree->right.twig);
+				objTree->right.twig=NULL;
+				objTree->right.type=nil;
+			}
+			if(objTree==tmp)
+			{
+				tmp=objTree->prev;
+				free(objTree);
+				if(tmp->left.twig==objTree)tmp->left.type=nil;
+				else if(tmp->right.twig==objTree)tmp->right.type=nil;
 				break;
 			}
-			if(objTree->left.twig==prev)objTree->left.type=nil;
-			else if(objTree->right.twig==prev)objTree->right.type=nil;
-			free(prev);
-		}
-		if(objTree->left.type==sym)
-		{
-			free(objTree->left.twig);
-			objTree->left.twig=NULL;
-			objTree->left.type=nil;
-		}
-		if(objTree->left.type==nil&&objTree->right.type==sym)
-		{
-			free(objTree->right.twig);
-			objTree->right.twig=NULL;
-			objTree->right.type=nil;
-		}
-		if(objTree->left.type==val)
-		{
-			free(((leaf*)objTree->left.twig)->value);
-			free(objTree->left.twig);
-			objTree->left.twig=NULL;
-			objTree->left.type=nil;
-		}
-		if(objTree->left.type==nil&&objTree->right.type==val)
-		{
-			free(((leaf*)objTree->right.twig)->value);
-			free(objTree->right.twig);
-			objTree->right.twig=NULL;
-			objTree->right.type=nil;
-		}
-		if(objTree==tmp)
-		{
-			tmp=objTree->prev;
-			free(objTree);
-			if(tmp->left.twig==objTree)tmp->left.type=nil;
-			else if(tmp->right.twig==objTree)tmp->right.type=nil;
-			break;
 		}
 	}
+	objBra->type=nil;
+	objBra->twig=NULL;
+	return objBra;
 }
+
+
+
 void printList(listTreeNode* objTree,FILE* out)
 {
 	if(objTree->prev==NULL||objTree->prev->left.twig==objTree)putc('(',out);
@@ -403,64 +417,92 @@ listTreeNode* copyTree(listTreeNode* objTree)
 
 
 
-/*int addDefine(const char* symName,void* obj,enum TYPES types)
+defines* addDefine(const char* symName,const branch* objBra,env* curEnv)
 {
-	defines* current=NULL;
-	defines* prev=NULL;
-	int len=strlen(symName)+1;
-	if(def==NULL)
+	env* current=(curEnv==NULL)?glob:curEnv;
+	if(current==NULL)
 	{
-		int i;
-		if(!(def=(defines*)malloc(sizeof(defines))))errors(OUTOFMEMORY);
-		if(!(def->symName=(char*)malloc(sizeof(char)*len)))errors(OUTOFMEMORY);
-		for(i=0;i<len;i++)*(def->symName+i)=*(symName+i);
-		def->next=NULL;
-		if(types==node)def->NSC=copyTree(obj);
-		else if(types==val||types==sym)
+		current=newEnv();
+		if(current->symbols==NULL)
 		{
-			int len=strlen((char*)obj->value)+1;
-			if(!(def->NSC=(leaf*)malloc(sizeof(leaf))))errors(OUTOFMEMORY);
-			if(!((leaf*)(def->NSC)->value=(char*)malloc(sizeof(char)*len)))errors(OUTOFMEMORY);
-			for(i=0;i<len;i++)*((char*)((leaf*)(def->NSC)->value)+i)=*((char*)obj+i);
+			current->symbols=(defines*)malloc(sizeof(defines));
+			current->symbols->symName=symName;
+			current->obj.type=objBra->type;
+			current->obj.twig=objBra->twig;
+			current->symbols->next=NULL;
+			return current->symbols;
 		}
-		else if(types==nil)def->NSC=NULL;
-		def->type=types;
+		else
+		{
+			defines* curSym=findDefines(symName,curEnv);
+			if(curSym==NULL)
+			{
+				curSym* prev=NULL;
+				curSym=curEnv->symbols;
+				while(curSym->next!=NULL)
+					curSym=curSym->next;
+				prev=curSym;
+				if(!(curSym=(defines*)malloc(sizeof(defines))))errors(OUTOFMEMORY);
+				prev->next=curSym;
+				curSym->obj.type=objBra.type;
+				curSym->obj.twig=objBra.type;
+				curSym->next=NULL;
+			}
+			else
+			{
+				deleteNode(&curSym->obj);
+				curSym->obj.type=objBra.type;
+				curSym->obj.twig=objBra.twig;
+			}
+			return curSym;
+		}
+	}
+}
+
+env* newEnv()
+{
+	if(glob==NULL)
+	{
+		glob=(env*)malloc(sizeof(env));
+		glob->prev=NULL;
+		glob->symbols=NULL;
+		glob->next=NULL;
+		return glob;
 	}
 	else
 	{
-		int i;
-		current=def;
-		while(current->next)
-		{
-			prev=current;
-			current=current->next;
-		}
-		if(!(current=(defines*)malloc(sizeof(defines))))errors(OUTOFMEMORY);
-		if(!(current->symName=(char*)malloc(sizeof(char)*len)))errors(OUTOFMEMORY);
-		for(i=0;i<len;i++)*(current->symName+i)=*(symName+i);
+		env* current=glob;
+		env* prev=NULL;
+		while(currnet->next)current->next;
+		prev=current;
+		if(!(current=(env*)malloc(sizeof(env))))
+			errors(OUTOFMEMORY);
+		current->prev=prev;
+		current->symbols=NULL;
 		current->next=NULL;
-		prev->next=current;
-		if(types==node)current->NSC=copyTree(obj);
-		else if(types==val||types==sym)
-		{
-			int len=strlen((char*)obj->value)+1;
-			if(!(current->NSC=(leaf*)malloc(sizeof(leaf))))errors(OUTOFMEMORY);
-			if(!((leaf*)(current->NSC)->value=(char*)malloc(sizeof(char)*len)))errors(OUTOFMEMORY);
-			for(i=0;i<len;i++)*((char*)((leaf*)(current->NSC)->value)+i)=*((char*)obj+i);
-		}
-		else if(types==nil)current->NSC=NULL;
-		current->type=types;
+		return current;
 	}
-}*/
+}
 
-
-void errors(int types)
+defines* findDefines(char* name,env* curEnv)
 {
-	static char* inform[]=
+	current=(curEnv==NULL)?glob:curEnv;
+	if(current->symbols==NULL)return NULL;
+	else
 	{
-		"dummy",
-		"Out of memory!\n"
-	};
-	fprintf(stderr,"error:%s",inform[types]);
-	exit(1);
+		defines* curSym=current->symbols;
+		while(curSym&&strcmp(name,curSym->symName))
+			curSym=curSym->next;
+		return curSym;
+	}
+}
+
+branch* createBranch()
+{
+	branch* tmp=NULL;
+	if(!(branch==(branch*)malloc(sizeof(branch))))
+		errors(OUTOFMEMORY);
+	tmp->type=nil;
+	tmp->twig=NULL;
+	return tmp;
 }

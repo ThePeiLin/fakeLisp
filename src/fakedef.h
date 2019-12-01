@@ -3,26 +3,26 @@
 #define OUTOFMEMORY 1
 typedef struct
 {
-	enum {nil,node,sym,val} type;
+	enum {nil,con,sym,val} type;
 	void* twig;
 }branch;
-typedef struct ListTreeNode
+typedef struct ConsPair
 {
-	struct ListTreeNode* prev;
-	branch left,right;
-}listTreeNode;
+	struct ConsPair* prev;
+	branch* left,right;
+}consPair;
 
 typedef struct Leaf
 {
 	enum{num,str} type;
-	listTreeNode* prev;
+	consPair* prev;
 	void* value;
 }leaf;
 
 typedef struct Defines
 {
 	char* symName;
-	branch obj;//node or symbol or val
+	branch* obj;//node or symbol or val
 	struct Defines* next;
 }defines;
 
@@ -36,7 +36,7 @@ typedef struct Env
 typedef struct NativeFunc//function and form
 {
 	char* functionName;
-	void (*function)(listTreeNode*);
+	void (*function)(branch*);
 	struct NativeFunc* next;
 }nativeFunc;
 

@@ -54,7 +54,7 @@ branch* becomeTree(const char* objStr)
 {
 	int i=0;
 	branch* root=NULL;
-	listTreeNode* objNode=NULL;
+	consPair* objNode=NULL;
 	branch* objBra;
 	while(*(objStr+i)!='\0')
 	{
@@ -64,39 +64,39 @@ branch* becomeTree(const char* objStr)
 			if(root==NULL)
 			{
 				root=createBranch();
-				root->type=node;
-				root->twig=createNode(NULL);
+				root->type=con;
+				root->twig=createCons(NULL);
 				objNode=root->twig;
-				objBra=&objNode->left;
+				objBra=objNode->left;
 			}
 			else
 			{
-				objNode=createNode(objNode);
-				objBra->type=node;
+				objNode=createCons(objNode);
+				objBra->type=con;
 				objBra->twig=(void*)objNode;
-				objBra=&objNode->left;
+				objBra=objNode->left;
 			}
 		}
 		else if(*(objStr+i)==')')
 		{
 			i++;
-			listTreeNode* prev=NULL;
+			consPair* prev=NULL;
 			if(objNode==NULL)break;
-			while(1)
+			do
 			{
 				prev=objNode;
 				objNode=objNode->prev;
-				if(objNode==NULL||objNode->left.twig==prev)break;
 			}
-			if(objNode->left.twig==prev)
-				objBra=&objNode->left;
-			else if(objNode->right.twig==prev)
-				objBra=&objNode->right;
+			while(objNode==NULL||objNode->left->twig==prev);
+			if(objNode->left->twig==prev)
+				objBra=objNode->left;
+			else if(objNode->right->twig==prev)
+				objBra=objNode->right;
 		}
 		else if(*(objStr+i)==',')
 		{
 			i++;
-			objBra=&objNode->right;
+			objBra=objNode->right;
 		}
 		else if(isspace(*(objStr+i)))
 		{
@@ -118,10 +118,11 @@ branch* becomeTree(const char* objStr)
 				continue;
 			}
 			i+=j;
-			listTreeNode* tmp=createNode(objNode);
-			objNode->right.type=node;
-			objNode->right.twig=(void*)tmp;
+			consPair* tmp=createCons(objNode);
+			objNode->right->type=con;
+			objNode->right->twig=(void*)tmp;
 			objNode=tmp;
+			objBra=objNode->left;
 		}
 		else if(isalpha(*(objStr+i)))
 		{
@@ -155,11 +156,11 @@ branch* becomeTree(const char* objStr)
 }
 
 
-listTreeNode* eval(listTreeNode* objTree)
+consPair* eval(branch* objBra,env* curEnv)
 {
 	
 }
-int addFunction(char* name,void(*pFun)(listTreeNode*,env*))
+int addFunction(char* name,void(*pFun)(branch*,env*))
 {
 	nativeFunc* current=funAndForm;
 	nativeFunc* prev=NULL;
@@ -185,14 +186,11 @@ int addFunction(char* name,void(*pFun)(listTreeNode*,env*))
 		prev->next=current;
 	}
 }
-void callFunction(listTreeNode* root,env* enviorment)
+void callFunction(branch* root,env* curEnv)
 {
-	void (*pf)(listTreeNode*)=findFunction((char*)root->left);
-	if(pf==NULL)
-		printf("NO FUNCTION!\n");
-	else pf(root);
+	
 }
-void (*(findFunction(const char* name)))(listTreeNode*)
+void (*(findFunction(const char* name)))(branch*)
 {
 	nativeFunc* current=funAndForm;
 	while(current!=NULL&&strcmp(current->functionName,name))current=current->next;
@@ -201,56 +199,56 @@ void (*(findFunction(const char* name)))(listTreeNode*)
 	else
 		return current->function;
 }
-void returnTree(listTreeNode* objTree)
+void returnTree(branch* objBra)
 {
 	
 }
 
 
-listTreeNode* deleteTree(listTreeNode* objTree)
+branch* destroyList(branch* objBra)
 {
-	while(objTree!=NULL)
+	while((consPair*)(objBra->twig)->prev!=NULL)
 	{
-		if(objTree->left.type==node)objTree=objTree->left.twig;
-		if(objTree->left.type==nil&&objTree->right.type==node)objTree=objTree->right.twig;
-		if(objTree->left.type==nil&&objTree->right.type==nil)
+		if(objTree->left->type==con)objTree=objTree->left->twig;
+		if(objTree->left->type==nil&&objTree->right->type==con)objTree=objTree->right->twig;
+		if(objTree->left->type==nil&&objTree->right->type==nil)
 		{
-			listTreeNode* prev=objTree;
+			consPair* prev=objTree;
 			objTree=objTree->prev;
 			if(objTree==NULL)
 			{
 				free(prev);
 				break;
 			}
-			if(objTree->left.twig==prev)objTree->left.type=nil;
-			else if(objTree->right.twig==prev)objTree->right.type=nil;
+			if(objTree->left->twig==prev)objTree->left->type=nil;
+			else if(objTree->right->twig==prev)objTree->right->type=nil;
 			free(prev);
 		}
-		if(objTree->left.type==sym)
+		if(objTree->left->type==sym)
 		{
-			free(objTree->left.twig);
-			objTree->left.twig=NULL;
-			objTree->left.type=nil;
+			free(objTree->left->twig);
+			objTree->left->twig=NULL;
+			objTree->left->type=nil;
 		}
-		if(objTree->left.type==nil&&objTree->right.type==sym)
+		if(objTree->left->type==nil&&objTree->right->type==sym)
 		{
-			free(objTree->right.twig);
-			objTree->right.twig=NULL;
-			objTree->right.type=nil;
+			free(objTree->right->twig);
+			objTree->right->twig=NULL;
+			objTree->right->type=nil;
 		}
-		if(objTree->left.type==val)
+		if(objTree->left->type==val)
 		{
-			free(((leaf*)objTree->left.twig)->value);
-			free(objTree->left.twig);
-			objTree->left.twig=NULL;
-			objTree->left.type=nil;
+			free(((leaf*)objTree->left->twig)->value);
+			free(objTree->left->twig);
+			objTree->left->twig=NULL;
+			objTree->left->type=nil;
 		}
-		if(objTree->left.type==nil&&objTree->right.type==val)
+		if(objTree->left->type==nil&&objTree->right->type==val)
 		{
-			free(((leaf*)objTree->right.twig)->value);
-			free(objTree->right.twig);
-			objTree->right.twig=NULL;
-			objTree->right.type=nil;
+			free(((leaf*)objTree->right->twig)->value);
+			free(objTree->right->twig);
+			objTree->right->twig=NULL;
+			objTree->right->type=nil;
 		}
 	}
 }
@@ -265,59 +263,59 @@ branch* deleteNode(branch* objBra)
 		free(((leaf*)objBra->twig)->val);
 		free(objBra->twig);
 	}
-	else if(objBra->type==node)
+	else if(objBra->type==con)
 	{
-		listTreeNode* objTree=objBra->twig;
-		listTreeNode* tmp=objTree;
+		consPair* objTree=objBra->twig;
+		consPair* tmp=objTree;
 		while(1)
 		{
-			if(objTree->left.type==node)objTree=objTree->left.twig;
-			if(objTree->left.type==nil&&objTree->right.type==node)objTree=objTree->right.twig;
-			if(objTree->left.type==nil&&objTree->right.type==nil)
+			if(objTree->left->type==con)objTree=objTree->left->twig;
+			if(objTree->left->type==nil&&objTree->right->type==con)objTree=objTree->right->twig;
+			if(objTree->left->type==nil&&objTree->right->type==nil)
 			{
-				listTreeNode* prev=objTree;
+				consPair* prev=objTree;
 				objTree=objTree->prev;
 				if(objTree==NULL)
 				{
 					free(prev);
 					break;
 				}
-				if(objTree->left.twig==prev)objTree->left.type=nil;
-				else if(objTree->right.twig==prev)objTree->right.type=nil;
+				if(objTree->left->twig==prev)objTree->left->type=nil;
+				else if(objTree->right->twig==prev)objTree->right->type=nil;
 				free(prev);
 			}
-			if(objTree->left.type==sym)
+			if(objTree->left->type==sym)
 			{
-				free(objTree->left.twig);
-				objTree->left.twig=NULL;
-				objTree->left.type=nil;
+				free(objTree->left->twig);
+				objTree->left->twig=NULL;
+				objTree->left->type=nil;
 			}
-			if(objTree->left.type==nil&&objTree->right.type==sym)
+			if(objTree->left->type==nil&&objTree->right->type==sym)
 			{
-				free(objTree->right.twig);
-				objTree->right.twig=NULL;
-				objTree->right.type=nil;
+				free(objTree->right->twig);
+				objTree->right->twig=NULL;
+				objTree->right->type=nil;
 			}
-			if(objTree->left.type==val)
+			if(objTree->left->type==val)
 			{
-				free(((leaf*)objTree->left.twig)->value);
-				free(objTree->left.twig);
-				objTree->left.twig=NULL;
-				objTree->left.type=nil;
+				free(((leaf*)objTree->left->twig)->value);
+				free(objTree->left->twig);
+				objTree->left->twig=NULL;
+				objTree->left->type=nil;
 			}
-			if(objTree->left.type==nil&&objTree->right.type==val)
+			if(objTree->left->type==nil&&objTree->right->type==val)
 			{
-				free(((leaf*)objTree->right.twig)->value);
-				free(objTree->right.twig);
-				objTree->right.twig=NULL;
-				objTree->right.type=nil;
+				free(((leaf*)objTree->right->twig)->value);
+				free(objTree->right->twig);
+				objTree->right->twig=NULL;
+				objTree->right->type=nil;
 			}
 			if(objTree==tmp)
 			{
 				tmp=objTree->prev;
 				free(objTree);
-				if(tmp->left.twig==objTree)tmp->left.type=nil;
-				else if(tmp->right.twig==objTree)tmp->right.type=nil;
+				if(tmp->left->twig==objTree)tmp->left->type=nil;
+				else if(tmp->right->twig==objTree)tmp->right->type=nil;
 				break;
 			}
 		}
@@ -329,88 +327,89 @@ branch* deleteNode(branch* objBra)
 
 
 
-void printList(listTreeNode* objTree,FILE* out)
+void printList(branch* objBra,FILE* out)
 {
-	if(objTree->prev==NULL||objTree->prev->left.twig==objTree)putc('(',out);
-	if(objTree->left.type==sym)fputs(objTree->left.twig,out);
-	else if(objTree->left.type=val)printRawString(((leaf*)objTree->left.twig)->value,out);
-	else if(objTree->left.type==node)printList(objTree->left.twig,out);
-	if(objTree->right.type==sym)
+	if(objTree->prev==NULL||objTree->prev->left->twig==objTree)putc('(',out);
+	if(objTree->left->type==sym)fputs(objTree->left->twig,out);
+	else if(objTree->left->type=val)printRawString(((leaf*)objTree->left->twig)->value,out);
+	else if(objTree->left->type==con)printList(objTree->left->twig,out);
+	if(objTree->right->type==sym)
 	{
 		putc(',',out);
-		printRawString(objTree->right.twig,out);
+		printRawString(objTree->right->twig,out);
 	}
-	else if(objTree->right.type==val)
+	else if(objTree->right->type==val)
 	{
 		putc(',',out);
-		printRawString(((leaf*)objTree->right.twig)->value,out);
+		printRawString(((leaf*)objTree->right->twig)->value,out);
 	}
-	else if(objTree->right.type==node)
+	else if(objTree->right->type==con)
 	{
 		putc(' ',out);
-		printList(objTree->right.twig,out);
+		printList(objTree->right->twig,out);
 	}
-	if(objTree->prev==NULL||(listTreeNode*)(objTree->prev)->left.twig==objTree)putc(')',out);
+	if(objTree->prev==NULL||(consPair*)(objTree->prev)->left->twig==objTree)putc(')',out);
 }
-listTreeNode* createNode(listTreeNode* const prev)
+consPair* createCons(consPair* const prev)
 {
-	listTreeNode* tmp;
-	if((tmp=(listTreeNode*)malloc(sizeof(listTreeNode))))
+	consPair* tmp;
+	branch* left,right;
+	if((tmp=(consPair*)malloc(sizeof(consPair))))
 	{
+		left=createBranch();
+		right=createBranch();
 		tmp->prev=prev;
-		tmp->left.type=nil;
-		tmp->left.twig=NULL;
-		tmp->right.type=nil;
-		tmp->right.twig=NULL;
+		tmp->left=left;
+		tmp->right=right;
 	}
 	else errors(OUTOFMEMORY);
 }
-listTreeNode* copyTree(listTreeNode* objTree)
+branch* copyTree(branch* objBra)
 {
-	listTreeNode* tmp=createNode(NULL);
-	if(objTree->left.type==node)
+	consPair* tmp=createCons(NULL);
+	if(objTree->left->type==con)
 	{
-		tmp->left.type=node;
-		tmp->left.twig=copyTree(objTree->left.twig);
-		listTreeNode* tmp1=tmp->left.twig;
+		tmp->left->type=con;
+		tmp->left->twig=copyTree(objTree->left->twig);
+		consPair* tmp1=tmp->left->twig;
 		tmp1->prev=tmp;
 	}
-	if(objTree->right.type==node)
+	if(objTree->right->type==con)
 	{
-		tmp->right.type=node;
-		tmp->right.twig=copyTree(objTree->right.twig);
-		listTreeNode* tmp1=tmp->right.twig;
+		tmp->right->type=con;
+		tmp->right->twig=copyTree(objTree->right->twig);
+		consPair* tmp1=tmp->right->twig;
 		tmp1->prev=tmp;
 	}
-	if(objTree->left.type==sym)
+	if(objTree->left->type==sym)
 	{
-		int len=strlen(objTree->left.twig)+1;
-		tmp->left.type=objTree->left.type;
-		if(!(tmp->left.twig=(char*)malloc(sizeof(char)*len)))errors(OUTOFMEMORY);
-		memcpy(tmp->left.twig,objTree->left.twig,len);
+		int len=strlen(objTree->left->twig)+1;
+		tmp->left->type=objTree->left->type;
+		if(!(tmp->left->twig=(char*)malloc(sizeof(char)*len)))errors(OUTOFMEMORY);
+		memcpy(tmp->left->twig,objTree->left->twig,len);
 	}
-	if(objTree->left.type==sym)
+	if(objTree->left->type==sym)
 	{
-		int len=strlen(objTree->right.twig)+1;
-		tmp->right.type=objTree->right.type;
-		if(!(tmp->right.twig=(char*)malloc(sizeof(char)*len)))errors(OUTOFMEMORY);
-		memcpy(tmp->right.twig,objTree->right.twig,len);
+		int len=strlen(objTree->right->twig)+1;
+		tmp->right->type=objTree->right->type;
+		if(!(tmp->right->twig=(char*)malloc(sizeof(char)*len)))errors(OUTOFMEMORY);
+		memcpy(tmp->right->twig,objTree->right->twig,len);
 	}
-	if(objTree->left.type==val)
+	if(objTree->left->type==val)
 	{
-		tmp->left.type=objTree->left.type;
-		int len=strlen(((leaf*)objTree->left.twig)->value)+1;
-		if(!(tmp->left.twig=(leaf*)malloc(sizeof(leaf))))errors(OUTOFMEMORY);
-		if(!(((leaf*)tmp->left.twig)->value=(char*)malloc(sizeof(char)*len)))errors(OUTOFMEMORY);
-		memcpy(((leaf*)tmp->left.twig)->value,((leaf*)objTree->left.twig)->value,len);
+		tmp->left->type=objTree->left->type;
+		int len=strlen(((leaf*)objTree->left->twig)->value)+1;
+		if(!(tmp->left->twig=(leaf*)malloc(sizeof(leaf))))errors(OUTOFMEMORY);
+		if(!(((leaf*)tmp->left->twig)->value=(char*)malloc(sizeof(char)*len)))errors(OUTOFMEMORY);
+		memcpy(((leaf*)tmp->left->twig)->value,((leaf*)objTree->left->twig)->value,len);
 	}
-	if(objTree->right.type==val)
+	if(objTree->right->type==val)
 	{
-		tmp->right.type=objTree->right.type;
-		int len=strlen(((leaf*)objTree->right.twig)->value)+1;
-		if(!(tmp->right.twig=(leaf*)malloc(sizeof(leaf))))errors(OUTOFMEMORY);
-		if(!(((leaf*)tmp->right.twig)->value=(char*)malloc(sizeof(char)*len)))errors(OUTOFMEMORY);
-		memcpy(((leaf*)tmp->right.twig)->value,((leaf*)objTree->right.twig)->value,len);
+		tmp->right->type=objTree->right->type;
+		int len=strlen(((leaf*)objTree->right->twig)->value)+1;
+		if(!(tmp->right->twig=(leaf*)malloc(sizeof(leaf))))errors(OUTOFMEMORY);
+		if(!(((leaf*)tmp->right->twig)->value=(char*)malloc(sizeof(char)*len)))errors(OUTOFMEMORY);
+		memcpy(((leaf*)tmp->right->twig)->value,((leaf*)objTree->right->twig)->value,len);
 	}
 	return tmp;
 }
@@ -427,8 +426,8 @@ defines* addDefine(const char* symName,const branch* objBra,env* curEnv)
 		{
 			current->symbols=(defines*)malloc(sizeof(defines));
 			current->symbols->symName=symName;
-			current->obj.type=objBra->type;
-			current->obj.twig=objBra->twig;
+			current->obj->type=objBra->type;
+			current->obj->twig=objBra->twig;
 			current->symbols->next=NULL;
 			return current->symbols;
 		}
@@ -444,15 +443,15 @@ defines* addDefine(const char* symName,const branch* objBra,env* curEnv)
 				prev=curSym;
 				if(!(curSym=(defines*)malloc(sizeof(defines))))errors(OUTOFMEMORY);
 				prev->next=curSym;
-				curSym->obj.type=objBra.type;
-				curSym->obj.twig=objBra.type;
+				curSym->obj->type=objBra->type;
+				curSym->obj->twig=objBra->type;
 				curSym->next=NULL;
 			}
 			else
 			{
 				deleteNode(&curSym->obj);
-				curSym->obj.type=objBra.type;
-				curSym->obj.twig=objBra.twig;
+				curSym->obj->type=objBra->type;
+				curSym->obj->twig=objBra->twig;
 			}
 			return curSym;
 		}

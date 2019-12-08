@@ -3,26 +3,26 @@
 #define OUTOFMEMORY 1
 typedef struct
 {
-	enum {nil,con,sym,val} type;
+	enum {nil,con,val} type;
 	void* twig;
 }branch;
 typedef struct ConsPair
 {
 	struct ConsPair* prev;
-	branch* left,right;
+	branch left,right;
 }consPair;
 
-typedef struct Leaf
+typedef struct Atom
 {
-	enum{num,str} type;
 	consPair* prev;
+	enum{sym,num,str} type;
 	void* value;
-}leaf;
+}atom
 
 typedef struct Defines
 {
 	char* symName;
-	branch* obj;//node or symbol or val
+	branch obj;//node or symbol or val
 	struct Defines* next;
 }defines;
 
@@ -46,7 +46,7 @@ void errors(int types)
 	static char* inform[]=
 	{
 		"dummy",
-		"Out of memory!\n"
+		"Out of memory!\n",
 	};
 	fprintf(stderr,"error:%s",inform[types]);
 	exit(1);

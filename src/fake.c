@@ -353,14 +353,13 @@ void printList(branch* objBra,FILE* out)
 consPair* createCons(consPair* const prev)
 {
 	consPair* tmp;
-	branch* left,right;
 	if((tmp=(consPair*)malloc(sizeof(consPair))))
 	{
-		left=createBranch();
-		right=createBranch();
+		tmp->left.type=nil;
+		tmp->left.twig=NULL;
+		tmp->right.type=nil;
+		tmp->right.twig=NULL;
 		tmp->prev=prev;
-		tmp->left=left;
-		tmp->right=right;
 	}
 	else errors(OUTOFMEMORY);
 }

@@ -11,12 +11,12 @@ int addFunction(char*,void(*)(consPair*,env*));
 defines* addDefine(const char*,const branch*,env*);
 void callFunction(consPair*,env*);
 void (*(findFunction(const char*)))(branch*,env*);
-void returnTree(branch*);
+void returnList(branch*);
 void printList(branch*,FILE*);
-consPair* createNode(consPair* const);
+consPair* createCons(consPair* const);
 branch* createBranch();
-branch* copyTree(branch*);
-branch* deleteTree(branch*);
-branch* deleteNode(branch*);
+branch* copyList(branch*);
+branch* distoryList(branch*);
+branch* deleteCons(branch*);
 env* newEnv();
 #endif

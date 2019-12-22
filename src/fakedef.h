@@ -3,21 +3,21 @@
 #define OUTOFMEMORY 1
 typedef struct
 {
-	enum {nil,node,sym,val} type;
+	enum {nil,con,val} type;
 	void* twig;
 }branch;
-typedef struct ListTreeNode
+typedef struct ConsPair
 {
-	struct ListTreeNode* prev;
+	struct ConsPair* prev;
 	branch left,right;
-}listTreeNode;
+}consPair;
 
-typedef struct Leaf
+typedef struct Atom
 {
-	enum{num,str} type;
-	listTreeNode* prev;
+	consPair* prev;
+	enum{sym,num,str} type;
 	void* value;
-}leaf;
+}atom
 
 typedef struct Defines
 {
@@ -36,7 +36,7 @@ typedef struct Env
 typedef struct NativeFunc//function and form
 {
 	char* functionName;
-	void (*function)(listTreeNode*);
+	void (*function)(branch*);
 	struct NativeFunc* next;
 }nativeFunc;
 
@@ -46,7 +46,7 @@ void errors(int types)
 	static char* inform[]=
 	{
 		"dummy",
-		"Out of memory!\n"
+		"Out of memory!\n",
 	};
 	fprintf(stderr,"error:%s",inform[types]);
 	exit(1);

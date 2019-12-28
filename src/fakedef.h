@@ -3,9 +3,11 @@
 #define OUTOFMEMORY 1
 typedef struct
 {
-	enum {nil,con,val} type;
+	enum {nil,con,atm} type;
 	void* twig;
 }branch;
+
+
 typedef struct ConsPair
 {
 	struct ConsPair* prev;

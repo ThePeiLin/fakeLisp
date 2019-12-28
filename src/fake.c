@@ -272,26 +272,39 @@ branch* destroyList(branch* objBra)
 
 void printList(branch* objBra,FILE* out)
 {
-	if(objTree->prev==NULL||objTree->prev->left->twig==objTree)putc('(',out);
-	if(objTree->left->type==sym)fputs(objTree->left->twig,out);
-	else if(objTree->left->type=atm)printRawString(((atom*)objTree->left->twig)->value,out);
-	else if(objTree->left->type==con)printList(objTree->left->twig,out);
-	if(objTree->right->type==sym)
+	consPair* objNode=(objBra->type==con)?objBra->twig:NULL;
+	branch* tmp=objBra;
+	while(tmp!=NULL&&objBra!=nil)
 	{
-		putc(',',out);
-		printRawString(objTree->right->twig,out);
+		if(objNode!=NULL)
+		{
+			if(objNode->left.type=con)
+			{
+				putc('(',out);
+				objNode=objNode->left.twig;
+				tmp=&objNode->left;
+			}
+			else if(objNode->right.type=con)
+			{
+				putc(' ',out);
+				objNode=objNode->right.twig;
+				tmp=&objNode->right;
+			}
+			else if(objNode->right.type==atm)putc(',',out);
+		}
+		if(tmp->type==atm)
+		{
+			if(((atom*)tmp->twig)->type==sym||((atom*)tmp->twig)->type==num)fprintf(out,"%s",((atom*)tmp->twig)->value);
+			if(((atom*)tmp->twig)->type==str)printRawString(((atom*)tmp->twig)->value,out);
+			if(&objNode->left==tmp)tmp=&objNode->right;
+		}
+		if(&objNode->right==tmp)
+		{
+			putc(')',out);
+			objNode=objNode->prev;
+			objBra=&objNode->right;
+		}
 	}
-	else if(objTree->right->type==atm)
-	{
-		putc(',',out);
-		printRawString(((atom*)objTree->right->twig)->value,out);
-	}
-	else if(objTree->right->type==con)
-	{
-		putc(' ',out);
-		printList(objTree->right->twig,out);
-	}
-	if(objTree->prev==NULL||(consPair*)(objTree->prev)->left->twig==objTree)putc(')',out);
 }
 
 consPair* createCons(consPair* const prev)

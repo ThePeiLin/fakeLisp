@@ -267,6 +267,7 @@ branch* destroyList(branch* objBra)
 		deleteNode(&objNode->left);
 		deleteNode(&objNode->right);
 	}
+	free(objNode);
 }
 
 void printList(branch* objBra,FILE* out)
@@ -310,31 +311,50 @@ consPair* createCons(consPair* const prev)
 branch* copyTree(branch* objBra)
 {
 	branch* tmpBra=objBra;
-	branch* copiedBra=createBranch();
+	branch* root=createBranch();
+	branch copiedBra=root;
 	consPair* objNode=NULL;
 	consPair* copiedNode=NULL;
-	while(objBra!=NULL&&objBra->type!=nil)
+	while(tmpBra!=NULL&&tmpBra->type!=nil)
 	{
-		if(tmpBra->type==con)
+		if(objBra->type==con)
 		{
 			consPair* tmp=copiedNode;
-			objNode=tmpBra->twig;
+			objNode=objBra->twig;
 			copiedNode=createCons(tmp);
 			copiedBra=&copiedNode->left;
 		}
-		if(tmpBra->type==atm)
+		if(objBra->type==atm)
 		{
 			char* tmpStr=NULL;
-			char* objStr=((atom*)tmpBra->twig)->value;
+			char* objStr=((atom*)objBra->twig)->value;
 			if(!(tmpStr=(char*)malloc(strlen(objStr)+1)))errors(OUTOFMEMORY);
 			copiedBra->type=atm;
 			if(!(copiedBra->twig=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY);
 			((atom*)copiedBra->twig)->prev=copiedNode;
-			((atom*)copiedBra->twig)->type=((atom*)tmpBra->twig)->type;
+			((atom*)copiedBra->twig)->type=((atom*)objBra->twig)->type;
 			memcpy(tmpStr,objStr,strlen(objStr)+1);
 			((atom*)copiedBra->twig)->value=tmpStr;
+			if(((atom*)objBra->twig)->prev==NULL)break;
+			if(&copiedNode->left==objBra)
+			{
+				copiedBra=&copiedNode->right;
+				objBra=&objNode->right;
+			}
 		}
+		if(objNode!=NULL&&objNode->left.type==copiedNode.left&&objNode->right.type==copiedNode->right.type)
+		{
+			copiedNode=copiedNode->prev;
+			objNode=objNode->prev;
+			if(&copiedNode->left==copiedBra)
+			{
+				copiedBra=&copiedNode->right;
+				objBra=&objNode->right;
+			}
+		}
+		if(objNode==NULL)break;
 	}
+	return root;
 }
 
 defines* addDefine(const char* symName,const branch* objBra,env* curEnv)

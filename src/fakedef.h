@@ -6,6 +6,8 @@ typedef struct
 	enum {nil,con,atm} type;
 	void* twig;
 }branch;
+
+
 typedef struct ConsPair
 {
 	struct ConsPair* prev;

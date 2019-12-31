@@ -321,53 +321,59 @@ consPair* createCons(consPair* const prev)
 	else errors(OUTOFMEMORY);
 }
 
-branch* copyTree(branch* objBra)
+int copyTree(branch* objBra,const branch* copiedBra)
 {
-	branch* tmpBra=objBra;
-	branch* root=createBranch();
-	branch copiedBra=root;
 	consPair* objNode=NULL;
 	consPair* copiedNode=NULL;
-	while(tmpBra!=NULL&&tmpBra->type!=nil)
+	while(copiedBra!=NULL)
 	{
-		if(objBra->type==con)
+		if(copiedBra->type==con)
 		{
-			consPair* tmp=copiedNode;
-			objNode=objBra->twig;
-			copiedNode=createCons(tmp);
+			consPair* tmp=objNode;
+			copiedNode=copiedBra->twig;
+			objNode=createCons(tmp);
+			objBra=&objNode->left;
 			copiedBra=&copiedNode->left;
 		}
-		if(objBra->type==atm)
+		if(copiedBra->type==atm)
 		{
+			atom* tmp1=NULL;
+			atom* tmp2=(atom*)copiedBra->twig;
 			char* tmpStr=NULL;
-			char* objStr=((atom*)objBra->twig)->value;
+			char* objStr=tmp2->value;
 			if(!(tmpStr=(char*)malloc(strlen(objStr)+1)))errors(OUTOFMEMORY);
-			copiedBra->type=atm;
-			if(!(copiedBra->twig=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY);
-			((atom*)copiedBra->twig)->prev=copiedNode;
-			((atom*)copiedBra->twig)->type=((atom*)objBra->twig)->type;
+			objBra->type=atm;
+			if(!(tmp1=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY);
+			objBra->twig=tmp1;
+			tmp1->prev=objNode;
+			tmp1->type=tmp2->type;
 			memcpy(tmpStr,objStr,strlen(objStr)+1);
-			((atom*)copiedBra->twig)->value=tmpStr;
-			if(((atom*)objBra->twig)->prev==NULL)break;
-			if(&copiedNode->left==objBra)
-			{
-				copiedBra=&copiedNode->right;
-				objBra=&objNode->right;
-			}
-		}
-		if(objNode!=NULL&&objNode->left.type==copiedNode.left&&objNode->right.type==copiedNode->right.type)
-		{
-			copiedNode=copiedNode->prev;
-			objNode=objNode->prev;
+			tmp1->value=tmpStr;
+			if(tmp2->prev==NULL)break;
 			if(&copiedNode->left==copiedBra)
 			{
-				copiedBra=&copiedNode->right;
 				objBra=&objNode->right;
+				copiedBra=&copiedNode->right;
 			}
 		}
-		if(objNode==NULL)break;
+		if(copiedBra->type==nil)
+		{
+			objBra->type=nil;
+			objBra->twig=NULL;
+		}
+		if(objNode!=NULL&&copiedNode!=NULL&&copiedNode->left.type==objNode.left&&copiedNode->right.type==objNode->right.type)
+		{
+			objNode=objNode->prev;
+			copiedNode=copiedNode->prev;
+			if(&objNode->left==objBra)
+			{
+				objBra=&objNode->right;
+				copiedBra=&copiedNode->right;
+			}
+		}
+		if(copiedNode==NULL)break;
 	}
-	return root;
+	return 1;
 }
 
 defines* addDefine(const char* symName,const branch* objBra,env* curEnv)

@@ -15,7 +15,7 @@ void returnList(branch*);
 void printList(branch*,FILE*);
 consPair* createCons(consPair* const);
 branch* createBranch();
-branch* copyList(branch*);
+int copyList(branch*,branch*);
 branch* distoryList(branch*);
 branch* deleteCons(branch*);
 env* newEnv();

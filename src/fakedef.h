@@ -1,5 +1,6 @@
 #ifndef _FAKEDEF_H_
 #define _FAKEDEF_H_
+#include<stdlib.h>
 #define OUTOFMEMORY 1
 typedef struct
 {
@@ -19,7 +20,7 @@ typedef struct Atom
 	consPair* prev;
 	enum{sym,num,str} type;
 	void* value;
-}atom
+}atom;
 
 typedef struct Defines
 {

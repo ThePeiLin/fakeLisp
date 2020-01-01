@@ -166,7 +166,7 @@ branch* eval(branch* objBra,env* curEnv)
 {
 	
 }
-/*int addFunction(char* name,void(*pFun)(branch*,env*))
+int addFunction(char* name,void(*pFun)(branch*,env*))
 {
 	nativeFunc* current=funAndForm;
 	nativeFunc* prev=NULL;
@@ -191,12 +191,12 @@ branch* eval(branch* objBra,env* curEnv)
 		current->next=NULL;
 		prev->next=current;
 	}
-}*/
-/*void callFunction(branch* root,env* curEnv)
+}
+void callFunction(branch* root,env* curEnv)
 {
 	
 }
-void (*(findFunction(const char* name)))(branch*)
+void (*(findFunction(const char* name)))(branch*,env*)
 {
 	nativeFunc* current=funAndForm;
 	while(current!=NULL&&strcmp(current->functionName,name))current=current->next;
@@ -204,7 +204,7 @@ void (*(findFunction(const char* name)))(branch*)
 		return NULL;
 	else
 		return current->function;
-}*/
+}
 void returnTree(branch* objBra)
 {
 	
@@ -390,7 +390,7 @@ int copyTree(branch* objBra,const branch* copiedBra)
 	return 1;
 }
 
-/*defines* addDefine(const char* symName,const branch* objBra,env* curEnv)
+defines* addDefine(const char* symName,const branch* objBra,env* curEnv)
 {
 	env* current=(curEnv==NULL)?glob:curEnv;
 	if(current==NULL)
@@ -399,9 +399,9 @@ int copyTree(branch* objBra,const branch* copiedBra)
 		if(current->symbols==NULL)
 		{
 			current->symbols=(defines*)malloc(sizeof(defines));
-			current->symbols->symName=symName;
-			current->obj->type=objBra->type;
-			current->obj->twig=objBra->twig;
+			memcpy(current->symbols->symName,symName,strlen(symName)+1);
+			current->symbols->obj.type=objBra->type;
+			current->symbols->obj.twig=objBra->twig;
 			current->symbols->next=NULL;
 			return current->symbols;
 		}
@@ -410,29 +410,29 @@ int copyTree(branch* objBra,const branch* copiedBra)
 			defines* curSym=findDefines(symName,curEnv);
 			if(curSym==NULL)
 			{
-				curSym* prev=NULL;
+				defines* prev=NULL;
 				curSym=curEnv->symbols;
 				while(curSym->next!=NULL)
 					curSym=curSym->next;
 				prev=curSym;
 				if(!(curSym=(defines*)malloc(sizeof(defines))))errors(OUTOFMEMORY);
 				prev->next=curSym;
-				curSym->obj->type=objBra->type;
-				curSym->obj->twig=objBra->type;
+				curSym->obj.type=objBra->type;
+				curSym->obj.twig=objBra->twig;
 				curSym->next=NULL;
 			}
 			else
 			{
 				deleteNode(&curSym->obj);
-				curSym->obj->type=objBra->type;
-				curSym->obj->twig=objBra->twig;
+				curSym->obj.type=objBra->type;
+				curSym->obj.twig=objBra->twig;
 			}
 			return curSym;
 		}
 	}
-}*/
+}
 
-/*env* newEnv()
+env* newEnv()
 {
 	if(glob==NULL)
 	{
@@ -446,7 +446,7 @@ int copyTree(branch* objBra,const branch* copiedBra)
 	{
 		env* current=glob;
 		env* prev=NULL;
-		while(currnet->next)current->next;
+		while(current->next)current->next;
 		prev=current;
 		if(!(current=(env*)malloc(sizeof(env))))
 			errors(OUTOFMEMORY);
@@ -457,9 +457,9 @@ int copyTree(branch* objBra,const branch* copiedBra)
 	}
 }
 
-defines* findDefines(char* name,env* curEnv)
+defines* findDefines(const char* name,env* curEnv)
 {
-	current=(curEnv==NULL)?glob:curEnv;
+	env* current=(curEnv==NULL)?glob:curEnv;
 	if(current->symbols==NULL)return NULL;
 	else
 	{
@@ -468,7 +468,7 @@ defines* findDefines(char* name,env* curEnv)
 			curSym=curSym->next;
 		return curSym;
 	}
-}*/
+}
 
 branch* createBranch()
 {

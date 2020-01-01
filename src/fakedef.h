@@ -39,7 +39,7 @@ typedef struct Env
 typedef struct NativeFunc//function and form
 {
 	char* functionName;
-	void (*function)(branch*);
+	void (*function)(branch*,env*);
 	struct NativeFunc* next;
 }nativeFunc;
 

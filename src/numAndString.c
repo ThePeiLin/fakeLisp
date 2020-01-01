@@ -85,7 +85,7 @@ rawString getStringBetweenMarks(const char* str)
 						ch=0;
 						int k=0;
 						int len;
-						while(isxdigit(*(str+i+3+)))k++;
+						while(isxdigit(*(str+i+3)))k++;
 						len=k;
 						while(k>0)
 						{
@@ -164,9 +164,9 @@ rawString getStringBetweenMarks(const char* str)
 	obj.str=tmp;
 	return obj;
 }
-void printRawString(char* objStr,FILE* out)
+void printRawString(const char* objStr,FILE* out)
 {
-	char* tmpStr=objStr;
+	const char* tmpStr=objStr;
 	int len=strlen(objStr);
 	putc('\"',out);
 	for(;tmpStr<objStr+len;tmpStr++)

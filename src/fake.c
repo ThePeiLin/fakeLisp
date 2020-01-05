@@ -82,12 +82,11 @@ branch* becomeTree(const char* objStr)
 			i++;
 			consPair* prev=NULL;
 			if(objNode==NULL)break;
-			do
+			while(objNode->prev!=NULL&&objNode->left.twig!=prev)
 			{
 				prev=objNode;
 				objNode=objNode->prev;
 			}
-			while(objNode==NULL&&objNode->left.twig==prev);
 			if(objNode->left.twig==prev)
 				objBra=&objNode->left;
 			else if(objNode->right.twig==prev)
@@ -309,6 +308,7 @@ void printList(branch* objBra,FILE* out)
 		{
 			putc(')',out);
 			consPair* prev=NULL;
+			if(objNode->prev==NULL)break;
 			while(objNode->prev!=NULL)
 			{
 				prev=objNode;

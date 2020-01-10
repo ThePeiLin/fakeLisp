@@ -398,7 +398,8 @@ defines* addDefine(const char* symName,const branch* objBra,env* curEnv)
 		current=newEnv();
 		if(current->symbols==NULL)
 		{
-			current->symbols=(defines*)malloc(sizeof(defines));
+			if(!(current->symbols=(defines*)malloc(sizeof(defines))))errors(OUTOFMEMORY);
+			if(!(current->symbols->symName=(char*)malloc(sizeof(char)*(strlen(symName)+1))))erros(OUTOFMEMORY);
 			memcpy(current->symbols->symName,symName,strlen(symName)+1);
 			current->symbols->obj.type=objBra->type;
 			current->symbols->obj.twig=objBra->twig;
@@ -416,6 +417,8 @@ defines* addDefine(const char* symName,const branch* objBra,env* curEnv)
 					curSym=curSym->next;
 				prev=curSym;
 				if(!(curSym=(defines*)malloc(sizeof(defines))))errors(OUTOFMEMORY);
+				if(!(curSym->symName=(char*)malloc(sizeof(char)*(strlen(symName)+1))))erros(OUTOFMEMORY);
+				mmemcpy(curSym->symName,symName,strlen(symName)+1);
 				prev->next=curSym;
 				curSym->obj.type=objBra->type;
 				curSym->obj.twig=objBra->twig;
@@ -424,6 +427,9 @@ defines* addDefine(const char* symName,const branch* objBra,env* curEnv)
 			else
 			{
 				deleteNode(&curSym->obj);
+				free(curSym->symName);
+				if(!(curSym->symName=(char*)malloc(sizeof(char)*(strlen(symName)+1))))erros(OUTOFMEMORY);
+				mmemcpy(curSym->symName,symName,strlen(symName)+1);
 				curSym->obj.type=objBra->type;
 				curSym->obj.twig=objBra->twig;
 			}

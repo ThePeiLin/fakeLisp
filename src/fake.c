@@ -427,9 +427,6 @@ defines* addDefine(const char* symName,const branch* objBra,env* curEnv)
 			else
 			{
 				deleteNode(&curSym->obj);
-				free(curSym->symName);
-				if(!(curSym->symName=(char*)malloc(sizeof(char)*(strlen(symName)+1))))erros(OUTOFMEMORY);
-				mmemcpy(curSym->symName,symName,strlen(symName)+1);
 				curSym->obj.type=objBra->type;
 				curSym->obj.twig=objBra->twig;
 			}

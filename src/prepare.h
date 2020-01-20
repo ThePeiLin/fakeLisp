@@ -4,9 +4,9 @@
 
 typedef struct Matching
 {
-	branch* format;
-	branch* express;
-	struct Match* next;
+	cell* format;
+	cell* express;
+	struct Matching* next;
 }matching;
 
 typedef struct Macro
@@ -16,8 +16,8 @@ typedef struct Macro
 	struct macro* next;
 }macro;
 
-int macroMatch(branch*);
-branch* macroExpand(branch*);
+int macroMatch(cell*);
+cell* macroExpand(cell*);
 macro* findMacro(const char*);
-macro* createMacro(const char*,branch*);
+macro* createMacro(const char*,cell*);
 #endif

@@ -14,7 +14,7 @@ void (*(findFunction(const char*)))(cell*,env*);
 void returnList(cell*);
 void printList(cell*,FILE*);
 consPair* createCons(consPair*);
-cell* createBranch();
+cell* createCell();
 int copyList(cell*,cell*);
 cell* distoryList(cell*);
 cell* deleteCons(cell*);

@@ -5,14 +5,14 @@
 typedef struct
 {
 	enum {nil,con,atm} type;
-	void* twig;
-}branch;
+	void* pointer;
+}cell;
 
 
 typedef struct ConsPair
 {
 	struct ConsPair* prev;
-	branch left,right;
+	cell left,right;
 }consPair;
 
 typedef struct Atom

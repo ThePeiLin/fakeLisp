@@ -5,7 +5,7 @@
 defines* findDefines(const char*,env*);
 char* getListFromFile(FILE*);
 char* getStringFromList(const char*);
-branch* becomeTree(const char*);
+branch* createTree(const char*);
 branch* eval(branch*,env*);
 int addFunction(char*,void(*)(branch*,env*));
 defines* addDefine(const char*,const branch*,env*);

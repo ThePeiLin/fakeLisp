@@ -50,7 +50,7 @@ char* getListFromFile(FILE* file)
 
 
 
-branch* becomeTree(const char* objStr)
+branch* createTree(const char* objStr)
 {
 	int i=0;
 	branch* root=NULL;

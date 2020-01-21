@@ -25,7 +25,7 @@ typedef struct Atom
 typedef struct Defines
 {
 	char* symName;
-	branch obj;//node or symbol or val
+	cell obj;//node or symbol or val
 	struct Defines* next;
 }defines;
 
@@ -39,7 +39,7 @@ typedef struct Env
 typedef struct NativeFunc//function and form
 {
 	char* functionName;
-	void (*function)(branch*,env*);
+	void (*function)(cell*,env*);
 	struct NativeFunc* next;
 }nativeFunc;
 

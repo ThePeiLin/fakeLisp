@@ -123,17 +123,6 @@ cell* createTree(const char* objStr)
 			objNode=tmp;
 			objBra=&objNode->left;
 		}
-		else if(isalpha(*(objStr+i)))
-		{
-			if(root==NULL)objBra=root=createCell();
-			char* tmp=getStringFromList(objStr+i);
-			objBra->type=atm;
-			if(!(objBra->pointer=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY);
-			((atom*)objBra->pointer)->prev=objNode;
-			((atom*)objBra->pointer)->type=sym;
-			((atom*)objBra->pointer)->value=tmp;
-			i+=strlen(tmp);
-		}
 		else if(*(objStr+i)=='\"')
 		{
 			if(root==NULL)objBra=root=createCell();
@@ -145,7 +134,7 @@ cell* createTree(const char* objStr)
 			((atom*)objBra->pointer)->value=(void*)tmp.str;
 			i+=tmp.len;
 		}
-		else if(isdigit(*(objStr+i))||*(objStr+i)=='-')
+		else if(isdigit(*(objStr+i))||(*(objStr+i)=='-'&&isdigit(objStr+i+1)))
 		{
 			if(root==NULL)objBra=root=createCell();
 			char* tmp=getStringFromList(objStr+i);
@@ -154,6 +143,17 @@ cell* createTree(const char* objStr)
 			((atom*)objBra->pointer)->type=num;
 			((atom*)objBra->pointer)->prev=objNode;
 			((atom*)objBra->pointer)->value=(void*)tmp;
+			i+=strlen(tmp);
+		}
+		else
+		{
+			if(root==NULL)objBra=root=createCell();
+			char* tmp=getStringFromList(objStr+i);
+			objBra->type=atm;
+			if(!(objBra->pointer=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY);
+			((atom*)objBra->pointer)->prev=objNode;
+			((atom*)objBra->pointer)->type=sym;
+			((atom*)objBra->pointer)->value=tmp;
 			i+=strlen(tmp);
 		}
 	}

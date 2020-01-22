@@ -5,7 +5,7 @@
 typedef struct
 {
 	enum {nil,con,atm} type;
-	void* pointer;
+	void* value;
 }cell;
 
 
@@ -21,27 +21,6 @@ typedef struct Atom
 	enum{sym,num,str} type;
 	void* value;
 }atom;
-
-typedef struct Defines
-{
-	char* symName;
-	cell obj;//node or symbol or val
-	struct Defines* next;
-}defines;
-
-typedef struct Env
-{
-	struct Env* prev;
-	defines* symbols;
-	struct Env* next;
-}env;
-
-typedef struct NativeFunc//function and form
-{
-	char* functionName;
-	void (*function)(cell*,env*);
-	struct NativeFunc* next;
-}nativeFunc;
 
 void errors(int);
 void errors(int types)

@@ -65,15 +65,15 @@ cell* createTree(const char* objStr)
 			{
 				root=createCell();
 				root->type=con;
-				root->pointer=createCons(NULL);
-				objNode=root->pointer;
+				root->value=createCons(NULL);
+				objNode=root->value;
 				objBra=&objNode->left;
 			}
 			else
 			{
 				objNode=createCons(objNode);
 				objBra->type=con;
-				objBra->pointer=(void*)objNode;
+				objBra->value=(void*)objNode;
 				objBra=&objNode->left;
 			}
 		}
@@ -82,14 +82,14 @@ cell* createTree(const char* objStr)
 			i++;
 			consPair* prev=NULL;
 			if(objNode==NULL)break;
-			while(objNode->prev!=NULL&&objNode->left.pointer!=prev)
+			while(objNode->prev!=NULL&&objNode->left.value!=prev)
 			{
 				prev=objNode;
 				objNode=objNode->prev;
 			}
-			if(objNode->left.pointer==prev)
+			if(objNode->left.value==prev)
 				objBra=&objNode->left;
-			else if(objNode->right.pointer==prev)
+			else if(objNode->right.value==prev)
 				objBra=&objNode->right;
 		}
 		else if(*(objStr+i)==',')
@@ -119,7 +119,7 @@ cell* createTree(const char* objStr)
 			i+=j;
 			consPair* tmp=createCons(objNode);
 			objNode->right.type=con;
-			objNode->right.pointer=(void*)tmp;
+			objNode->right.value=(void*)tmp;
 			objNode=tmp;
 			objBra=&objNode->left;
 		}
@@ -128,10 +128,10 @@ cell* createTree(const char* objStr)
 			if(root==NULL)objBra=root=createCell();
 			rawString tmp=getStringBetweenMarks(objStr+i);
 			objBra->type=atm;
-			if(!(objBra->pointer=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY);
-			((atom*)objBra->pointer)->type=str;
-			((atom*)objBra->pointer)->prev=objNode;
-			((atom*)objBra->pointer)->value=(void*)tmp.str;
+			if(!(objBra->value=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY);
+			((atom*)objBra->value)->type=str;
+			((atom*)objBra->value)->prev=objNode;
+			((atom*)objBra->value)->value=(void*)tmp.str;
 			i+=tmp.len;
 		}
 		else if(isdigit(*(objStr+i))||(*(objStr+i)=='-'&&isdigit(objStr+i+1)))
@@ -139,10 +139,10 @@ cell* createTree(const char* objStr)
 			if(root==NULL)objBra=root=createCell();
 			char* tmp=getStringFromList(objStr+i);
 			objBra->type=atm;
-			if(!(objBra->pointer=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY);
-			((atom*)objBra->pointer)->type=num;
-			((atom*)objBra->pointer)->prev=objNode;
-			((atom*)objBra->pointer)->value=(void*)tmp;
+			if(!(objBra->value=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY);
+			((atom*)objBra->value)->type=num;
+			((atom*)objBra->value)->prev=objNode;
+			((atom*)objBra->value)->value=(void*)tmp;
 			i+=strlen(tmp);
 		}
 		else
@@ -150,10 +150,10 @@ cell* createTree(const char* objStr)
 			if(root==NULL)objBra=root=createCell();
 			char* tmp=getStringFromList(objStr+i);
 			objBra->type=atm;
-			if(!(objBra->pointer=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY);
-			((atom*)objBra->pointer)->prev=objNode;
-			((atom*)objBra->pointer)->type=sym;
-			((atom*)objBra->pointer)->value=tmp;
+			if(!(objBra->value=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY);
+			((atom*)objBra->value)->prev=objNode;
+			((atom*)objBra->value)->type=sym;
+			((atom*)objBra->value)->value=tmp;
 			i+=strlen(tmp);
 		}
 	}
@@ -217,16 +217,16 @@ cell* deleteNode(cell* objBra)
 	{
 		if(tmpBra->type==con)
 		{
-			objNode=tmpBra->pointer;
+			objNode=tmpBra->value;
 			tmpBra=&objNode->left;
 		}
 		if(tmpBra->type==atm)
 		{
-			objNode=((atom*)tmpBra->pointer)->prev;
-			free(((atom*)tmpBra->pointer)->value);
-			free(tmpBra->pointer);
+			objNode=((atom*)tmpBra->value)->prev;
+			free(((atom*)tmpBra->value)->value);
+			free(tmpBra->value);
 			tmpBra->type=nil;
-			tmpBra->pointer=NULL;
+			tmpBra->value=NULL;
 		}
 		if(objNode!=NULL&&objNode->left.type==nil)tmpBra=&objNode->right;
 		if(objNode!=NULL&&objNode->right.type==nil&&objNode->left.type==nil)
@@ -234,31 +234,31 @@ cell* deleteNode(cell* objBra)
 			consPair* prev=objNode;
 			objNode=objNode->prev;
 			tmpBra=&objNode->left;
-			if(tmpBra->pointer==prev)
+			if(tmpBra->value==prev)
 			{
 				tmpBra->type=nil;
-				tmpBra->pointer=NULL;
+				tmpBra->value=NULL;
 			}
 			else
 			{
 				objNode->right.type=nil;
-				objNode->right.pointer=NULL;
+				objNode->right.value=NULL;
 			}
 			free(prev);
 		}
 		if(objNode==NULL||objNode->prev==NULL)break;
 	}
-	if(objBra->type!=nil)free(objBra->pointer);
+	if(objBra->type!=nil)free(objBra->value);
 	objBra->type=nil;
-	objBra->pointer=NULL;
+	objBra->value=NULL;
 	return objBra;
 }
 
 cell* destroyList(cell* objBra)
 {
 	consPair* objNode=NULL;
-	if(objBra->type==con)objNode=((consPair*)objBra->pointer)->prev;
-	if(objBra->type==atm)objNode=((atom*)objBra->pointer)->prev;
+	if(objBra->type==con)objNode=((consPair*)objBra->value)->prev;
+	if(objBra->type==atm)objNode=((atom*)objBra->value)->prev;
 	if(objBra->type==nil)return objBra;
 	while(objNode!=NULL&&objNode->prev!=NULL)objNode=objNode->prev;
 	if(objNode!=NULL)
@@ -271,7 +271,7 @@ cell* destroyList(cell* objBra)
 
 void printList(cell* objBra,FILE* out)
 {
-	consPair* tmpNode=(objBra->type==con)?objBra->pointer:NULL;
+	consPair* tmpNode=(objBra->type==con)?objBra->value:NULL;
 	consPair* objNode=tmpNode;
 	cell* tmp=objBra;
 	while(tmp!=NULL)
@@ -281,13 +281,13 @@ void printList(cell* objBra,FILE* out)
 			if(objNode!=NULL&&tmp==&objNode->right)
 			{
 				putc(' ',out);
-				objNode=objNode->right.pointer;
+				objNode=objNode->right.value;
 				tmp=&objNode->left;
 			}
 			else
 			{
 				putc('(',out);
-				objNode=tmp->pointer;
+				objNode=tmp->value;
 				tmp=&objNode->left;
 				continue;
 			}
@@ -295,9 +295,9 @@ void printList(cell* objBra,FILE* out)
 		else if(tmp->type==atm||tmp->type==nil)
 		{
 			if(objNode!=NULL&&tmp==&objNode->right&&tmp->type==atm)putc(',',out);
-			if(tmp->type!=nil&&(((atom*)tmp->pointer)->type==sym||((atom*)tmp->pointer)->type==num))
-				fprintf(out,"%s",((atom*)tmp->pointer)->value);
-			else if (tmp->type!=nil)printRawString(((atom*)tmp->pointer)->value,out);
+			if(tmp->type!=nil&&(((atom*)tmp->value)->type==sym||((atom*)tmp->value)->type==num))
+				fprintf(out,"%s",((atom*)tmp->value)->value);
+			else if (tmp->type!=nil)printRawString(((atom*)tmp->value)->value,out);
 			if(objNode!=NULL&&tmp==&objNode->left)
 			{
 				tmp=&objNode->right;
@@ -313,10 +313,10 @@ void printList(cell* objBra,FILE* out)
 			{
 				prev=objNode;
 				objNode=objNode->prev;
-				if(prev==objNode->left.pointer)break;
+				if(prev==objNode->left.value)break;
 			}
 			if(objNode!=NULL)tmp=&objNode->right;
-			if(objNode==tmpNode&&prev==objNode->right.pointer)break;
+			if(objNode==tmpNode&&prev==objNode->right.value)break;
 		}
 	}
 }
@@ -327,9 +327,9 @@ consPair* createCons(consPair* prev)
 	if((tmp=(consPair*)malloc(sizeof(consPair))))
 	{
 		tmp->left.type=nil;
-		tmp->left.pointer=NULL;
+		tmp->left.value=NULL;
 		tmp->right.type=nil;
-		tmp->right.pointer=NULL;
+		tmp->right.value=NULL;
 		tmp->prev=prev;
 	}
 	else errors(OUTOFMEMORY);
@@ -344,7 +344,7 @@ int copyTree(cell* objBra,const cell* copiedBra)
 		if(copiedBra->type==con)
 		{
 			consPair* tmp=objNode;
-			copiedNode=copiedBra->pointer;
+			copiedNode=copiedBra->value;
 			objNode=createCons(tmp);
 			objBra=&objNode->left;
 			copiedBra=&copiedNode->left;
@@ -352,13 +352,13 @@ int copyTree(cell* objBra,const cell* copiedBra)
 		if(copiedBra->type==atm)
 		{
 			atom* tmp1=NULL;
-			atom* tmp2=(atom*)copiedBra->pointer;
+			atom* tmp2=(atom*)copiedBra->value;
 			char* tmpStr=NULL;
 			char* objStr=tmp2->value;
 			if(!(tmpStr=(char*)malloc(strlen(objStr)+1)))errors(OUTOFMEMORY);
 			objBra->type=atm;
 			if(!(tmp1=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY);
-			objBra->pointer=tmp1;
+			objBra->value=tmp1;
 			tmp1->prev=objNode;
 			tmp1->type=tmp2->type;
 			memcpy(tmpStr,objStr,strlen(objStr)+1);
@@ -373,7 +373,7 @@ int copyTree(cell* objBra,const cell* copiedBra)
 		if(copiedBra->type==nil)
 		{
 			objBra->type=nil;
-			objBra->pointer=NULL;
+			objBra->value=NULL;
 		}
 		if(objNode!=NULL&&copiedNode!=NULL&&copiedNode->left.type==objNode->left.type&&copiedNode->right.type==objNode->right.type)
 		{
@@ -401,7 +401,7 @@ defines* addDefine(const char* symName,const cell* objBra,env* curEnv)
 			current->symbols=(defines*)malloc(sizeof(defines));
 			memcpy(current->symbols->symName,symName,strlen(symName)+1);
 			current->symbols->obj.type=objBra->type;
-			current->symbols->obj.pointer=objBra->pointer;
+			current->symbols->obj.value=objBra->value;
 			current->symbols->next=NULL;
 			return current->symbols;
 		}
@@ -418,14 +418,14 @@ defines* addDefine(const char* symName,const cell* objBra,env* curEnv)
 				if(!(curSym=(defines*)malloc(sizeof(defines))))errors(OUTOFMEMORY);
 				prev->next=curSym;
 				curSym->obj.type=objBra->type;
-				curSym->obj.pointer=objBra->pointer;
+				curSym->obj.value=objBra->value;
 				curSym->next=NULL;
 			}
 			else
 			{
 				deleteNode(&curSym->obj);
 				curSym->obj.type=objBra->type;
-				curSym->obj.pointer=objBra->pointer;
+				curSym->obj.value=objBra->value;
 			}
 			return curSym;
 		}
@@ -476,6 +476,6 @@ cell* createCell()
 	if(!(tmp=(cell*)malloc(sizeof(cell))))
 		errors(OUTOFMEMORY);
 	tmp->type=nil;
-	tmp->pointer=NULL;
+	tmp->value=NULL;
 	return tmp;
 }

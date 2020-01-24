@@ -318,6 +318,7 @@ void printList(cell* objBra,FILE* out)
 			if(objNode!=NULL)tmp=&objNode->right;
 			if(objNode==tmpNode&&prev==objNode->right.value)break;
 		}
+		if(objNode==NULL)break;
 	}
 }
 
@@ -337,55 +338,66 @@ consPair* createCons(consPair* prev)
 
 int copyTree(cell* objBra,const cell* copiedBra)
 {
+	if(copiedBra==NULL||objBra==NULL)return 0;
 	consPair* objNode=NULL;
 	consPair* copiedNode=NULL;
-	while(copiedBra!=NULL)
+	consPair* tmpNode=(copiedBra->type==con)?copiedBra->value:NULL;
+	copiedNode=tmpNode;
+	while(1)
 	{
+		objBra->type=copiedBra->type'
 		if(copiedBra->type==con)
 		{
-			consPair* tmp=objNode;
-			copiedNode=copiedBra->value;
-			objNode=createCons(tmp);
-			objBra=&objNode->left;
+			objNode=createNode(objNode);
 			copiedBra=&copiedNode->left;
+			objBra=&objNode->left;
+			continue;
 		}
-		if(copiedBra->type==atm)
+		else if(copiedBra->type==atm)
 		{
-			atom* tmp1=NULL;
-			atom* tmp2=(atom*)copiedBra->value;
-			char* tmpStr=NULL;
-			char* objStr=tmp2->value;
-			if(!(tmpStr=(char*)malloc(strlen(objStr)+1)))errors(OUTOFMEMORY);
-			objBra->type=atm;
-			if(!(tmp1=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY);
-			objBra->value=tmp1;
-			tmp1->prev=objNode;
-			tmp1->type=tmp2->type;
-			memcpy(tmpStr,objStr,strlen(objStr)+1);
-			tmp1->value=tmpStr;
-			if(tmp2->prev==NULL)break;
-			if(&copiedNode->left==copiedBra)
+			atom* coAtm=copiedBra->value;
+			atom* objAtm=NULL;
+			if(!(objAtm=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY);
+			objAtm->type=coAtm->type;
+			memcpy(objAtm->value,coAtm->value,strlen(coAtm->value)+1);
+			if(copiedBra==&copiedNode->left)
+			{
+				copiedBra=&copiedNode->right;
+				objBra=&objNode->right;
+				continue;
+			}
+			
+		}
+		else if(copiedBra->type==nil)
+		{
+			objBra->type=NULL;
+			if(copiedBra==&copiedNode->left)
 			{
 				objBra=&objNode->right;
 				copiedBra=&copiedNode->right;
+				continue;
 			}
 		}
-		if(copiedBra->type==nil)
+		if(copiedNode!==NULL&&copiedBra==&copiedNode->right)
 		{
-			objBra->type=nil;
-			objBra->value=NULL;
-		}
-		if(objNode!=NULL&&copiedNode!=NULL&&copiedNode->left.type==objNode->left.type&&copiedNode->right.type==objNode->right.type)
-		{
-			objNode=objNode->prev;
-			copiedNode=copiedNode->prev;
-			if(&objNode->left==objBra)
+			consPair* objPrev=NULL;
+			consPair* coPrev=NULL;
+			if(copiedNode->prev==NULL)break;
+			while(copiedNode->prev!=NULL)
 			{
-				objBra=&objNode->right;
-				copiedBra=&copiedNode->right;
+				coPrev=copiedNode;
+				copiedNode=copiedNode->prev;
+				objPrev=objNode;
+				objNode=objNode->prev;
+				if(coPrev==copiedNode->left.value)break;
 			}
+			if(copeidNode!=NULL)
+			{
+				copiedBra=&copiedNode->right;
+				objBra=&objBra->right;
+			}
+			if(copiedNode==tmpNode&&coPrev==copiedNode->right)break;
 		}
-		if(copiedNode==NULL)break;
 	}
 	return 1;
 }

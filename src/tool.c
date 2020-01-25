@@ -179,6 +179,61 @@ void printRawString(const char* objStr,FILE* out)
 	putc('\"',out);
 }
 
+int concmp(cell* first,cell* second)
+{
+	if(first==NULL||second==NULL)return 0;
+	consPair* firCons=NULL;
+	consPair* secCons=NULL;
+	consPair* tmpCons=(first->type==con)?first->value:NULL;
+	while(1)
+	{
+		if(first->type!=second->type)return 0;
+		else if(first->type==con)
+		{
+			firCons=first->value;
+			secCons=second->value;
+			first=&firCons->left;
+			second=&secCons->left;
+			continue;
+		}
+		else if(first->type=atm||first->type==nil)
+		{
+			if(first->type==atm)
+			{
+				atom* firAtm=first->value;
+				atom* secAtm=second->value;
+				if(strcmp(firAtm->value,secAtm->value)!=0)return 0;
+			}
+			if(firCons!=NULL&&first==&firCons->left)
+			{
+				first=&firCons->right;
+				second=&secCons->right;
+				continue;
+			}
+		}
+		if(firCons!=NULL&&first==&firCons->right)
+		{
+			consPair* firPrev=NULL;
+			consPair* secPrev=NULL;
+			if(firCons->prev==NULL)break;
+			while(firCons->prev!=NULL)
+			{
+				firPrev=firCons;
+				secPrev=secCons;
+				firCons=firCons->prev;
+				secCons=secCons->prev;
+				if(firPrev==firCons->left.value)break;
+			}
+			if(firCons!=NULL)
+			{
+				first=&firCons->right;
+				secCons=&secCons->right;
+			}
+			if(firCons==tmpCons&&first==&firCons->right)break;
+		}
+	}
+	return 1;
+}
 void errors(int types)
 {
 	static char* inform[]=

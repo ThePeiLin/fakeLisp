@@ -227,7 +227,7 @@ int concmp(cell* first,cell* second)
 			if(firCons!=NULL)
 			{
 				first=&firCons->right;
-				secCons=&secCons->right;
+				second=&secCons->right;
 			}
 			if(firCons==tmpCons&&first==&firCons->right)break;
 		}

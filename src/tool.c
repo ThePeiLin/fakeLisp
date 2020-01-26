@@ -202,6 +202,7 @@ int concmp(cell* first,cell* second)
 			{
 				atom* firAtm=first->value;
 				atom* secAtm=second->value;
+				if(firAtm->type!=secAtm->type)return 0;
 				if(strcmp(firAtm->value,secAtm->value)!=0)return 0;
 			}
 			if(firCons!=NULL&&first==&firCons->left)

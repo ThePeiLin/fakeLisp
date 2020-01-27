@@ -212,7 +212,13 @@ int concmp(cell* first,cell* second)
 				continue;
 			}
 		}
-		if(firCons!=NULL&&first==&firCons->right)
+		if(firCons!=NULL&&first==&firCons->left)
+		{
+			first=&firCons->right;
+			second=&secCons->right;
+			continue;
+		}
+		else if(firCons!=NULL&&first==&firCons->right)
 		{
 			consPair* firPrev=NULL;
 			consPair* secPrev=NULL;
@@ -229,6 +235,7 @@ int concmp(cell* first,cell* second)
 			{
 				first=&firCons->right;
 				second=&secCons->right;
+				continue;
 			}
 			if(firCons==tmpCons&&first==&firCons->right)break;
 		}

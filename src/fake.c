@@ -165,23 +165,40 @@ int eval(cell* objCell,env* curEnv)
 {
 	while(objCell->type==con)
 	{
-		objCell=&((consPair*)objCell->value)->left;
-		char* symName=((atom*)objCell->value)->value;
-		int (*pfunc)(cell*,env*)=findFunc(symName);
-		if(findFunc(symName)==NULL)
+		objCell=&(atom*)(objCell->value)->left;
+		if(objCell->type==nil)break;
+		else if(objCell->type==atm)
 		{
-			if(cell* replace=findDefines(symName)==NULL)return 2;
-			if(objCell->type==atm&&((atom*)objCell->value)->type==sym)
+			atom* objAtm=objCell->value;
+			if(objAtm->type==sym)
 			{
-				consPair* prev=((atom*)objCell->value)->prev;
-				copyTree(objCell,replace);
-				((atom*)objCell->value)->prev=prev;
-				if(prev==NULL||prev==prev->right.value)continue;
-				else break;
+				char* symName=objAtm->value;
+				cell* replace=NULL;
+				env* tmpEnv=curEnv;
+				while(tmpEnv->prev==NULL)
+				{
+					replace=findDefines(symName,tmpEnv);
+					if(replace==NULL)tmpEnv=tmpEnv->prev;
+					else break;
+				}
+				if(replace==NULL)return 1;
+				consPair* prev=objAtm->prev;
+				int prevType=objAtm->type;
+				copy(objCell,replace);
+				if(objCell->type==con)
+					((consPair*)objCell->value)->prev=prev;
+				else if(objCell->type==atm)
+				{
+					((atom*)objCell->value)->prev=prev;
+					if(((atom*)objCell->value)->type==sym)continue;
+				}
+				if(prevType!=sym&&(prev==NULL||prev==prev->prev->value.right)break;
 			}
+			else break;
 		}
-		else pfunc(objCell,curEnv);
 	}
+	returnTree(objCell);
+	return 0;
 }
 int addFunc(char* name,int (*pFun)(cell*,env*))
 {

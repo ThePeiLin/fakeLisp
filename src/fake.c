@@ -163,9 +163,27 @@ cell* createTree(const char* objStr)
 
 int eval(cell* objCell,env* curEnv)
 {
-	
+	while(objCell->type==con)
+	{
+		objCell=&((consPair*)objCell->value)->left;
+		char* symName=((atom*)objCell->value)->value;
+		int (*pfunc)(cell*,env*)=findFunc(symName);
+		if(findFunc(symName)==NULL)
+		{
+			if(cell* replace=findDefines(symName)==NULL)return 2;
+			if(objCell->type==atm&&((atom*)objCell->value)->type==sym)
+			{
+				consPair* prev=((atom*)objCell->value)->prev;
+				copyTree(objCell,replace);
+				((atom*)objCell->value)->prev=prev;
+				if(prev==NULL||prev==prev->right.value)continue;
+				else break;
+			}
+		}
+		else pfunc(objCell,curEnv);
+	}
 }
-int addFunction(char* name,int (*pFun)(cell*,env*))
+int addFunc(char* name,int (*pFun)(cell*,env*))
 {
 	nativeFunc* current=funAndForm;
 	nativeFunc* prev=NULL;
@@ -191,11 +209,11 @@ int addFunction(char* name,int (*pFun)(cell*,env*))
 		prev->next=current;
 	}
 }
-void callFunction(cell* root,env* curEnv)
+void callFunc(cell* objCell,env* curEnv)
 {
-	
+	findFunc(((atom*)objCell->value)->value)(objCell,curEnv);
 }
-int (*(findFunction(const char* name)))(cell*,env*)
+int (*(findFunc(const char* name)))(cell*,env*)
 {
 	nativeFunc* current=funAndForm;
 	while(current!=NULL&&strcmp(current->functionName,name))current=current->next;

@@ -1,5 +1,5 @@
-#ifndef _FAKEDEF_H_
-#define _FAKEDEF_H_
+#ifndef FAKEDEF_H
+#define FAKEDEF_H
 #include<stdlib.h>
 #define OUTOFMEMORY 1
 typedef struct
@@ -21,16 +21,4 @@ typedef struct Atom
 	enum{sym,num,str} type;
 	void* value;
 }atom;
-
-void errors(int);
-void errors(int types)
-{
-	static char* inform[]=
-	{
-		"dummy",
-		"Out of memory!\n",
-	};
-	fprintf(stderr,"error:%s",inform[types]);
-	exit(1);
-}
 #endif

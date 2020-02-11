@@ -54,7 +54,7 @@ cell* createTree(const char* objStr)
 {
 	int i=0;
 	cell* root=NULL;
-	consPair* objCons=NULL;
+	conspair* objCons=NULL;
 	cell* objCell;
 	while(*(objStr+i)!='\0')
 	{
@@ -63,7 +63,7 @@ cell* createTree(const char* objStr)
 			i++;
 			if(root==NULL)
 			{
-				root=createCell();
+				root=createCell(objCons);
 				root->type=con;
 				root->value=createCons(NULL);
 				objCons=root->value;
@@ -80,7 +80,7 @@ cell* createTree(const char* objStr)
 		else if(*(objStr+i)==')')
 		{
 			i++;
-			consPair* prev=NULL;
+			conspair* prev=NULL;
 			if(objCons==NULL)break;
 			while(objCons->prev!=NULL&&objCons->left.value!=prev)
 			{
@@ -117,7 +117,7 @@ cell* createTree(const char* objStr)
 				continue;
 			}
 			i+=j;
-			consPair* tmp=createCons(objCons);
+			conspair* tmp=createCons(objCons);
 			objCons->right.type=con;
 			objCons->right.value=(void*)tmp;
 			objCons=tmp;
@@ -125,80 +125,39 @@ cell* createTree(const char* objStr)
 		}
 		else if(*(objStr+i)=='\"')
 		{
-			if(root==NULL)objCell=root=createCell();
+			if(root==NULL)objCell=root=createCell(objCons);
 			rawString tmp=getStringBetweenMarks(objStr+i);
 			objCell->type=atm;
-			if(!(objCell->value=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY);
-			((atom*)objCell->value)->type=str;
-			((atom*)objCell->value)->prev=objCons;
-			((atom*)objCell->value)->value=(void*)tmp.str;
+			objCell->value=(void*)createAtom(str,tmp.str,objCons);
 			i+=tmp.len;
+			free(tmp.str);
 		}
 		else if(isdigit(*(objStr+i))||(*(objStr+i)=='-'&&isdigit(objStr+i+1)))
 		{
-			if(root==NULL)objCell=root=createCell();
+			if(root==NULL)objCell=root=createCell(objCons);
 			char* tmp=getStringFromList(objStr+i);
 			objCell->type=atm;
-			if(!(objCell->value=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY);
-			((atom*)objCell->value)->type=num;
-			((atom*)objCell->value)->prev=objCons;
-			((atom*)objCell->value)->value=(void*)tmp;
+			objCell->value=(void*)createAtom(num,tmp,objCons);
 			i+=strlen(tmp);
+			free(tmp);
 		}
 		else
 		{
-			if(root==NULL)objCell=root=createCell();
+			if(root==NULL)objCell=root=createCell(objCons);
 			char* tmp=getStringFromList(objStr+i);
 			objCell->type=atm;
-			if(!(objCell->value=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY);
-			((atom*)objCell->value)->prev=objCons;
-			((atom*)objCell->value)->type=sym;
-			((atom*)objCell->value)->value=tmp;
+			objCell->value=(void*)createAtom(sym,tmp,objCons);
 			i+=strlen(tmp);
+			free(tmp);
 		}
 	}
 	return root;
 }
 
 
-int eval(cell* objCell,env* curEnv)
+int evalution(cell* objCell,env* curEnv)
 {
-	while(objCell->type==con)
-	{
-		objCell=&(atom*)(objCell->value)->left;
-		if(objCell->type==nil)break;
-		else if(objCell->type==atm)
-		{
-			atom* objAtm=objCell->value;
-			if(objAtm->type==sym)
-			{
-				char* symName=objAtm->value;
-				cell* replace=NULL;
-				env* tmpEnv=curEnv;
-				while(tmpEnv->prev==NULL)
-				{
-					replace=findDefines(symName,tmpEnv);
-					if(replace==NULL)tmpEnv=tmpEnv->prev;
-					else break;
-				}
-				if(replace==NULL)return 1;
-				consPair* prev=objAtm->prev;
-				int prevType=objAtm->type;
-				copy(objCell,replace);
-				if(objCell->type==con)
-					((consPair*)objCell->value)->prev=prev;
-				else if(objCell->type==atm)
-				{
-					((atom*)objCell->value)->prev=prev;
-					if(((atom*)objCell->value)->type==sym)continue;
-				}
-				if(prevType!=sym&&(prev==NULL||prev==prev->prev->value.right)break;
-			}
-			else break;
-		}
-	}
-	returnTree(objCell);
-	return 0;
+	
 }
 int addFunc(char* name,int (*pFun)(cell*,env*))
 {
@@ -247,7 +206,7 @@ void returnTree(cell* objCell)
 cell* deleteCons(cell* objCell)
 {
 	cell* tmpCell=objCell;
-	consPair* objCons=NULL;
+	conspair* objCons=NULL;
 	while(tmpCell!=NULL)
 	{
 		if(tmpCell->type==con)
@@ -266,7 +225,7 @@ cell* deleteCons(cell* objCell)
 		if(objCons!=NULL&&objCons->left.type==nil)tmpCell=&objCons->right;
 		if(objCons!=NULL&&objCons->right.type==nil&&objCons->left.type==nil)
 		{
-			consPair* prev=objCons;
+			conspair* prev=objCons;
 			objCons=objCons->prev;
 			tmpCell=&objCons->left;
 			if(tmpCell->value==prev)
@@ -291,8 +250,8 @@ cell* deleteCons(cell* objCell)
 
 cell* destroyList(cell* objCell)
 {
-	consPair* objCons=NULL;
-	if(objCell->type==con)objCons=((consPair*)objCell->value)->prev;
+	conspair* objCons=NULL;
+	if(objCell->type==con)objCons=((conspair*)objCell->value)->prev;
 	if(objCell->type==atm)objCons=((atom*)objCell->value)->prev;
 	if(objCell->type==nil)return objCell;
 	while(objCons!=NULL&&objCons->prev!=NULL)objCons=objCons->prev;
@@ -306,8 +265,8 @@ cell* destroyList(cell* objCell)
 
 void printList(cell* objCell,FILE* out)
 {
-	consPair* tmpCons=(objCell->type==con)?objCell->value:NULL;
-	consPair* objCons=tmpCons;
+	conspair* tmpCons=(objCell->type==con)?objCell->value:NULL;
+	conspair* objCons=tmpCons;
 	cell* tmp=objCell;
 	while(tmp!=NULL)
 	{
@@ -343,7 +302,7 @@ void printList(cell* objCell,FILE* out)
 		if(objCons!=NULL&&tmp==&objCons->right)
 		{
 			putc(')',out);
-			consPair* prev=NULL;
+			conspair* prev=NULL;
 			if(objCons->prev==NULL)break;
 			while(objCons->prev!=NULL)
 			{
@@ -358,13 +317,15 @@ void printList(cell* objCell,FILE* out)
 	}
 }
 
-consPair* createCons(consPair* prev)
+conspair* createCons(conspair* prev)
 {
-	consPair* tmp;
-	if((tmp=(consPair*)malloc(sizeof(consPair))))
+	conspair* tmp;
+	if((tmp=(conspair*)malloc(sizeof(conspair))))
 	{
+		tmp->left.outer=tmp;
 		tmp->left.type=nil;
 		tmp->left.value=NULL;
+		tmp->right.type=tmp;
 		tmp->right.type=nil;
 		tmp->right.value=NULL;
 		tmp->prev=prev;
@@ -372,12 +333,12 @@ consPair* createCons(consPair* prev)
 	else errors(OUTOFMEMORY);
 }
 
-int copyTree(cell* objCell,const cell* copiedCell)
+int copyList(cell* objCell,const cell* copiedCell)
 {
 	if(copiedCell==NULL||objCell==NULL)return 0;
-	consPair* objCons=NULL;
-	consPair* copiedCons=NULL;
-	consPair* tmpCons=(copiedCell->type==con)?copiedCell->value:NULL;
+	conspair* objCons=NULL;
+	conspair* copiedCons=NULL;
+	conspair* tmpCons=(copiedCell->type==con)?copiedCell->value:NULL;
 	copiedCons=tmpCons;
 	while(1)
 	{
@@ -421,8 +382,8 @@ int copyTree(cell* objCell,const cell* copiedCell)
 		}
 		if(copiedCons!=NULL&&copiedCell==&copiedCons->right)
 		{
-			consPair* objPrev=NULL;
-			consPair* coPrev=NULL;
+			conspair* objPrev=NULL;
+			conspair* coPrev=NULL;
 			if(copiedCons->prev==NULL)break;
 			while(copiedCons->prev!=NULL)
 			{
@@ -523,12 +484,77 @@ defines* findDefines(const char* name,env* curEnv)
 	}
 }
 
-cell* createCell()
+cell* createCell(conspair* outer)
 {
 	cell* tmp=NULL;
 	if(!(tmp=(cell*)malloc(sizeof(cell))))
 		errors(OUTOFMEMORY);
+	tmp->outer=outer;
 	tmp->type=nil;
 	tmp->value=NULL;
 	return tmp;
+}
+atom* createAtom(int type,const char* value,conspair* prev)
+{
+	if(!(atom* tmp=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY);
+	if(!(tmp->value=(char*)malloc(strlen(value)+1)))errors(OUTOFMEMORY);
+	tmp->prev=prev;
+	tmp->type=type;
+	memcpy(tmp->value,value,strlen(value)+1);
+	return tmp;
+}
+
+void replace(cell* fir,cell* sec)
+{
+	conspair* tmp=fir->outer;
+	deleteCons(fir);
+	copyList(fir,sec);
+	if(fir->type==con)(conspair*)(fir->value)->prev=tmp;
+	else if(fir->type==atm)(atom*)(fir->value)->prev=tmp;
+}
+
+int eval(cell* objCell,env* curEnv)
+{
+	while(objCell->type!=nil||(atom*)(objCell->value)->type!=sym)
+	{
+		if(objCell->type==atm)
+		{
+			atom* objAtm=objCell->value;
+			if(objAtom->type==sym)
+			{
+				int (*pfun)(cell*,env*)=NULL;
+				pfun=findFunc(objAtom->value);
+				if(pfun!=NULL)
+				{
+					if(objCell->outer==NULL)return 1;
+					pfun(objCell,curEnv);
+					if((conspair*)(objCell->outer)->right.type==nil)
+					{
+						if((conspair*)(objCell->outer)->prev!=NULL)
+						{
+							objCell=&(conspair*)(objCell->outer)->prev->left;
+							continue;
+						}
+						else break;
+					}
+				}
+				else
+				{
+					cell* reCell=NULL;
+					env* tmpEnv=curEnv;
+					while(reCell=&(findDefines(objAtom->value,tmpEnv)->obj))
+							tmpEnv=tmpEnv->prev;
+					if(reCell!=NULL)
+					{
+						replace(objCell,reCell);
+						if(objCell->outer==NULL||(conspair*)(objCell->outer)->right.type==nil
+								||(conspair*)(objCell->outer)->prev!=(conspair*)(objCell->outer)->prev->rihgt.value)break;
+					}
+					else return 1;
+				}
+			}
+		}
+		else if(objCell->type==con)objCell=&(conspair*)(objCell->outer)->left;
+	}
+	return 0;
 }

@@ -198,7 +198,7 @@ int (*(findFunc(const char* name)))(cell*,env*)
 	else
 		return current->function;
 }
-void returnTree(cell* objCell)
+int retree(cell* objCell)
 {
 	
 }
@@ -494,6 +494,7 @@ cell* createCell(conspair* outer)
 	tmp->value=NULL;
 	return tmp;
 }
+
 atom* createAtom(int type,const char* value,conspair* prev)
 {
 	if(!(atom* tmp=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY);
@@ -547,8 +548,10 @@ int eval(cell* objCell,env* curEnv)
 					if(reCell!=NULL)
 					{
 						replace(objCell,reCell);
-						if(objCell->outer==NULL||(conspair*)(objCell->outer)->right.type==nil
-								||(conspair*)(objCell->outer)->prev!=(conspair*)(objCell->outer)->prev->rihgt.value)break;
+						if(objCell->outer==NULL
+						||((conspair*)(objCell->outer)->prev!=NULL
+						&&(conspair*)(objCell->outer)->prev!=(conspair*)(objCell->outer)->prev->rihgt.value))
+							break;
 					}
 					else return 1;
 				}
@@ -556,5 +559,5 @@ int eval(cell* objCell,env* curEnv)
 		}
 		else if(objCell->type==con)objCell=&(conspair*)(objCell->outer)->left;
 	}
-	return 0;
+	return retree(objCell);
 }

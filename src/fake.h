@@ -33,7 +33,7 @@ int addFunc(char*,void(*)(cell*,env*));
 defines* addDefine(const char*,const cell*,env*);
 void callFunc(cell*,env*);
 void (*(findFunc(const char*)))(cell*,env*);
-void returnList(cell*);
+int retree(cell*);
 void printList(cell*,FILE*);
 conspair* createCons(conspair*);
 cell* createCell();

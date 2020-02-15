@@ -2,17 +2,17 @@
 #define PREPARE_H
 #include"fakedef.h"
 
-typedef struct Matching
+typedef struct Pattern
 {
 	cell* format;
 	cell* express;
 	struct Matching* next;
-}matching;
+}pattern;
 
 typedef struct Macro
 {
 	char* name;
-	matching* term;
+	pattern* term;
 	struct macro* next;
 }macro;
 

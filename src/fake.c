@@ -3,6 +3,10 @@
 #include<ctype.h>
 #include"fake.h"
 #include"tool.h"
+#define SYMUNDEFINE 1
+#define SYNTAXERROR 2
+#define FAILRETURN 3
+
 static nativeFunc* funAndForm=NULL;
 static env* glob=NULL;
 
@@ -154,11 +158,6 @@ cell* createTree(const char* objStr)
 	return root;
 }
 
-
-int evalution(cell* objCell,env* curEnv)
-{
-	
-}
 int addFunc(char* name,int (*pFun)(cell*,env*))
 {
 	nativeFunc* current=funAndForm;
@@ -198,9 +197,28 @@ int (*(findFunc(const char* name)))(cell*,env*)
 	else
 		return current->function;
 }
-int retree(cell* objCell)
+int retree(cell* fir,cell* sec)
 {
-	
+	if(fir->value==sec->value)return 0;
+	else if((sec->outer==NULL||(conspair*)(sec->outer)->prev->right.value==(conspair*)(sec->outer))&&(conspair*)(sec->value)->right.type==nil)
+	{
+		cell* beDel=createCell(NULL);
+		beDel->type=sec->type;
+		beDel->value=sec->value;
+		(conspair*)(fir->outer)->left.type=nil;
+		(conspair*)(fir->outer)->left.value=NULL;
+		if(fir->type==con)
+			(conspair*)(fir->value)->prev=sec->outer;
+		else if(fir->type==atm)
+			(atom*)(fir->value)->prev=sec->outer;
+		sec->type=fir->type;
+		sec->value=fir->value;
+		deleteCons(beDel);
+		free(beDel);
+		return 0;
+	}
+	else
+		return FAILRETURN;
 }
 
 cell* deleteCons(cell* objCell)
@@ -516,6 +534,7 @@ void replace(cell* fir,cell* sec)
 
 int eval(cell* objCell,env* curEnv)
 {
+	cell* tmpCell=objCell;
 	while(objCell->type!=nil||(atom*)(objCell->value)->type!=sym)
 	{
 		if(objCell->type==atm)
@@ -527,7 +546,7 @@ int eval(cell* objCell,env* curEnv)
 				pfun=findFunc(objAtom->value);
 				if(pfun!=NULL)
 				{
-					if(objCell->outer==NULL)return 1;
+						if(objCell->outer==NULL)return SYNTAXERROR;
 					pfun(objCell,curEnv);
 					if((conspair*)(objCell->outer)->right.type==nil)
 					{
@@ -553,11 +572,11 @@ int eval(cell* objCell,env* curEnv)
 						&&(conspair*)(objCell->outer)->prev!=(conspair*)(objCell->outer)->prev->rihgt.value))
 							break;
 					}
-					else return 1;
+					else return SYMUNDEFINE;
 				}
 			}
 		}
 		else if(objCell->type==con)objCell=&(conspair*)(objCell->outer)->left;
 	}
-	return retree(objCell);
+	return retree(objCell,tmpCell);
 }

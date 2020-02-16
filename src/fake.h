@@ -1,6 +1,6 @@
 #ifndef TREE_H_
 #define TREE_H_
-#include<stddef.h>
+#include<stdio.h>
 #include"fakedef.h"
 
 typedef struct Defines
@@ -28,16 +28,16 @@ defines* findDefines(const char*,env*);
 char* getListFromFile(FILE*);
 char* getStringFromList(const char*);
 cell* createTree(const char*);
-int addFunc(char*,void(*)(cell*,env*));
+int addFunc(char*,int (*)(cell*,env*));
 defines* addDefine(const char*,const cell*,env*);
 void callFunc(cell*,env*);
-void (*(findFunc(const char*)))(cell*,env*);
+int (*(findFunc(const char*)))(cell*,env*);
 int retree(cell*,cell*);
 void printList(cell*,FILE*);
 conspair* createCons(conspair*);
 cell* createCell();
 atom* createAtom(int type,const char*,conspair*);
-void copyList(cell*,cell*);
+int copyList(cell*,const cell*);
 cell* distoryList(cell*);
 cell* deleteCons(cell*);
 env* newEnv();

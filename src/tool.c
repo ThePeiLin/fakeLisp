@@ -2,6 +2,7 @@
 #include<stdio.h>
 #include<string.h>
 #include<ctype.h>
+#include"tool.h"
 
 char* floatToString(double num)
 {

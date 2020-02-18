@@ -1,10 +1,10 @@
-functionAndForm.o: src/functionAndForm.c src/functionAndForm.h
-	gcc -c src/functionAndForm.c
+form.o: src/form.c src/form.h
+	gcc -c src/form.c
 fake.o: src/fake.c src/fake.h
 	gcc -c src/fake.c
-numAndString.o:src/numAndString.c src/numAndString.h
-	gcc -c src/numAndString.c
+tool.o: src/tool.c src/tool.h
+	gcc -c src/tool.c
 fakeLisp.o: src/fakeLisp.c
 	gcc -c src/fakeLisp.c
 fakeLisp: fakeLisp.o functionAndForm.o fake.o numAndString.o
-	gcc -o fakeLisp fakeLisp.o numAndString.o fake.o functionAndForm.o
+	gcc -o fakeLisp fakeLisp.o tool.o fake.o form.o

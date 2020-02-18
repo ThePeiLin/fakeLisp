@@ -3,9 +3,6 @@
 #include<ctype.h>
 #include"fake.h"
 #include"tool.h"
-#define SYMUNDEFINE 1
-#define SYNTAXERROR 2
-#define FAILRETURN 3
 
 static nativeFunc* funAndForm=NULL;
 static env* glob=NULL;
@@ -197,6 +194,7 @@ int (*(findFunc(const char* name)))(cell*,env*)
 	else
 		return current->function;
 }
+
 int retree(cell* fir,cell* sec)
 {
 	if(fir->value==sec->value)return 0;
@@ -265,7 +263,7 @@ int deleteCons(cell* objCell)
 			}
 		}
 		if(objCons==NULL)break;
-		if(objCons->prev==NULL&&tmpCell==&objCons->right)
+		if(tmpCell==&objCons->right)
 		{
 			objCell->type=nil;
 			objCell->value=NULL;
@@ -559,15 +557,7 @@ int eval(cell* objCell,env* curEnv)
 				{
 					if(objCell->outer==NULL)return SYNTAXERROR;
 					pfun(objCell,curEnv);
-					if(((conspair*)objCell->outer)->right.type==nil)
-					{
-						if(((conspair*)objCell->outer)->prev!=NULL)
-						{
-							objCell=&((conspair*)objCell->outer)->prev->left;
-							continue;
-						}
-						else break;
-					}
+					if(((conspair*)objCell->outer)->right.type==nil)break;
 				}
 				else
 				{
@@ -581,11 +571,12 @@ int eval(cell* objCell,env* curEnv)
 						if(objCell->outer==NULL
 						||(((conspair*)objCell->outer)->prev!=NULL
 						&&((conspair*)objCell->outer)->prev!=((conspair*)objCell->outer)->prev->right.value))
-							break;
+						break;
 					}
-					else return SYMUNDEFINE;
+						else return SYMUNDEFINE;
 				}
 			}
+			else break;
 		}
 		else if(objCell->type==con)objCell=&(((conspair*)objCell->value)->left);
 	}

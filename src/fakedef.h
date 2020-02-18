@@ -1,8 +1,9 @@
 #ifndef FAKEDEF_H
 #define FAKEDEF_H
 #include<stdlib.h>
-#define OUTOFMEMORY 1
-
+#define SYMUNDEFINE 1
+#define SYNTAXERROR 2
+#define FAILRETURN 3
 typedef struct
 {
 	void* outer;

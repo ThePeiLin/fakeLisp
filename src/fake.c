@@ -205,14 +205,14 @@ int retree(cell* fir,cell* sec)
 		cell* beDel=createCell(NULL);
 		beDel->type=sec->type;
 		beDel->value=sec->value;
-		((conspair*)fir->outer)->left.type=nil;
-		((conspair*)fir->outer)->left.value=NULL;
+		sec->type=fir->type;
+		sec->value=fir->value;
 		if(fir->type==con)
 			((conspair*)fir->value)->prev=sec->outer;
 		else if(fir->type==atm)
 			((atom*)fir->value)->prev=sec->outer;
-		sec->type=fir->type;
-		sec->value=fir->value;
+		((conspair*)fir->outer)->left.type=nil;
+		((conspair*)fir->outer)->left.value=NULL;
 		deleteCons(beDel);
 		free(beDel);
 		return 0;
@@ -221,49 +221,58 @@ int retree(cell* fir,cell* sec)
 		return FAILRETURN;
 }
 
-cell* deleteCons(cell* objCell)
+int deleteCons(cell* objCell)
 {
+	conspair* tmpCons=(objCell->type==con)?objCell->value:NULL;
+	conspair* objCons=tmpCons;
 	cell* tmpCell=objCell;
-	conspair* objCons=NULL;
 	while(tmpCell!=NULL)
 	{
 		if(tmpCell->type==con)
 		{
-			objCons=tmpCell->value;
-			tmpCell=&objCons->left;
-		}
-		if(tmpCell->type==atm)
-		{
-			objCons=((atom*)tmpCell->value)->prev;
-			free(((atom*)tmpCell->value)->value);
-			free(tmpCell->value);
-			tmpCell->type=nil;
-			tmpCell->value=NULL;
-		}
-		if(objCons!=NULL&&objCons->left.type==nil)tmpCell=&objCons->right;
-		if(objCons!=NULL&&objCons->right.type==nil&&objCons->left.type==nil)
-		{
-			conspair* prev=objCons;
-			objCons=objCons->prev;
-			tmpCell=&objCons->left;
-			if(tmpCell->value==prev)
+			if(objCons!=NULL&&tmpCell==&objCons->right)
 			{
-				tmpCell->type=nil;
-				tmpCell->value=NULL;
+				objCons=objCons->right.value;
+				tmpCell=&objCons->left;
 			}
 			else
 			{
-				objCons->right.type=nil;
-				objCons->right.value=NULL;
+				objCons=tmpCell->value;
+				tmpCell=&objCons->left;
+				continue;
 			}
-			free(prev);
 		}
-		if(objCons==NULL||objCons->prev==NULL)break;
+		else if(tmpCell->type==atm)
+		{
+			if(tmpCell->type!=nil)
+			{
+				atom* tmpAtm=(atom*)tmpCell->value;
+				free(tmpAtm->value);
+				free(tmpAtm);
+				tmpCell->type=nil;
+				tmpCell->value=NULL;
+			}
+		}
+		else if(tmpCell->type==nil)
+		{
+			if(tmpCell==&objCons->left)tmpCell=&objCons->right;
+			else if(tmpCell==&objCons->right)
+			{
+				conspair* prev=objCons;
+				objCons=objCons->prev;
+				tmpCell=&objCons->right;
+				free(prev);
+			}
+		}
+		if(objCons==NULL)break;
+		if(objCons->prev==NULL&&tmpCell==&objCons->right)
+		{
+			objCell->type=nil;
+			objCell->value=NULL;
+			break;
+		}
 	}
-	if(objCell->type!=nil)free(objCell->value);
-	objCell->type=nil;
-	objCell->value=NULL;
-	return objCell;
+	return 0;
 }
 
 cell* destroyList(cell* objCell)
@@ -578,7 +587,7 @@ int eval(cell* objCell,env* curEnv)
 				}
 			}
 		}
-		else if(objCell->type==con)objCell=&((conspair*)objCell->outer)->left;
+		else if(objCell->type==con)objCell=&(((conspair*)objCell->value)->left);
 	}
 	return retree(objCell,tmpCell);
 }

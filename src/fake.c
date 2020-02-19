@@ -263,7 +263,7 @@ int deleteCons(cell* objCell)
 			}
 		}
 		if(objCons==NULL)break;
-		if(tmpCell==&objCons->right)
+		else if(tmpCons==objCons&&tmpCell==&objCons->right)
 		{
 			objCell->type=nil;
 			objCell->value=NULL;

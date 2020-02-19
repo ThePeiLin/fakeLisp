@@ -253,7 +253,11 @@ int deleteCons(cell* objCell)
 		}
 		else if(tmpCell->type==nil)
 		{
-			if(tmpCell==&objCons->left)tmpCell=&objCons->right;
+			if(tmpCell==&objCons->left)
+			{
+				tmpCell=&objCons->right;
+				continue;
+			}
 			else if(tmpCell==&objCons->right)
 			{
 				conspair* prev=objCons;

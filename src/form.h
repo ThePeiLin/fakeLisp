@@ -2,7 +2,7 @@
 #define FORM_H
 #include"fake.h"
 #include"tool.h"
-static cell** dealArg(cell*,env*,int);
+static cell** dealArg(cell*,int);
 static void deleteArg(cell**,int);
 int N_quote(cell*,env*);
 int N_car(cell*,env*);

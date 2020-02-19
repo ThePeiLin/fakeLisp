@@ -264,10 +264,10 @@ int deleteCons(cell* objCell)
 				objCons=objCons->prev;
 				tmpCell=&objCons->right;
 				free(prev);
+				if(tmpCons==objCons)break;
 			}
 		}
 		if(objCons==NULL)break;
-		else if(tmpCons==objCons&&tmpCell==&objCons->right)
 		{
 			objCell->type=nil;
 			objCell->value=NULL;
@@ -559,7 +559,9 @@ int eval(cell* objCell,env* curEnv)
 				pfun=findFunc(objAtm->value);
 				if(pfun!=NULL)
 				{
-					if(objCell->outer==NULL)return SYNTAXERROR;
+					if(objCell->outer==NULL||(((conspair*)objCell->outer)->prev!=NULL
+					&&objCell->outer==((conspair*)objCell->outer)->prev->right.value))
+						return SYNTAXERROR;
 					pfun(objCell,curEnv);
 					if(((conspair*)objCell->outer)->right.type==nil)break;
 				}

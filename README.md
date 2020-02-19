@@ -11,5 +11,5 @@ I use comma to divide car and cdr not dot.Such as (1,2) and (1,(1,2)).\n
 And you only can call function in brakets.For exmple,(add 1 1) and (add 1 (sub 2 3)).\n
 
 ## Something I want to do after I graduate:
-**1.add some function that can control list.**\n
+**1.add some function that can control list.\n**
 **2.add "define".**

@@ -1,5 +1,5 @@
 # fakeLisp
-<font size=4>This is a simple LISP interpreter.  
+<font size=5>This is a simple LISP interpreter.  
 This interpreter only has 4 function now,but it will have more later.  
 I will add more function after I graduate from high school.  
 The 4 functions that it has are "add","sub","mul" and "div".  

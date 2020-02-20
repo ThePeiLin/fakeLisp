@@ -182,7 +182,7 @@ void printRawString(const char* objStr,FILE* out)
 
 int concmp(cell* first,cell* second)
 {
-	if(first==NULL||second==NULL)return 0;
+	if(first==NULL&&second==NULL)return 0;
 	conspair* firCons=NULL;
 	conspair* secCons=NULL;
 	conspair* tmpCons=(first->type==con)?first->value:NULL;
@@ -197,7 +197,7 @@ int concmp(cell* first,cell* second)
 			second=&secCons->left;
 			continue;
 		}
-		else if(first->type=atm||first->type==nil)
+		else if(first->type==atm||first->type==nil)
 		{
 			if(first->type==atm)
 			{
@@ -240,6 +240,7 @@ int concmp(cell* first,cell* second)
 			}
 			if(firCons==tmpCons&&first==&firCons->right)break;
 		}
+		if(firCons==NULL&&secCons==NULL)break;
 	}
 	return 1;
 }

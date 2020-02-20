@@ -1,5 +1,6 @@
 #include<stdlib.h>
 #include"form.h"
+#include"tool.h"
 
 cell** dealArg(cell* argCell,int num)
 {
@@ -91,8 +92,8 @@ int N_car(cell* objCell,env* curEnv)
 		((conspair*)objCell->value)->prev=(conspair*)objCell->outer;
 	else if(objCell->type==atm)
 		((atom*)objCell->value)->prev=(conspair*)objCell->outer;
-	args[0]->type=nil;
-	args[0]->value=NULL;
+	((conspair*)args[0]->value)->left.type=nil;
+	((conspair*)args[0]->value)->left.value=NULL;
 	deleteArg(args,1);
 }
 
@@ -108,8 +109,8 @@ int N_cdr(cell* objCell,env* curEnv)
 		((conspair*)objCell->value)->prev=(conspair*)objCell->outer;
 	else if(objCell->type==atm)
 		((atom*)objCell->value)->prev=(conspair*)objCell->outer;
-	args[0]->type=nil;
-	args[0]->value=NULL;
+	((conspair*)args[0]->value)->right.type=nil;
+	((conspair*)args[0]->value)->right.value=NULL;
 	deleteArg(args,1);
 	return 0;
 }
@@ -139,6 +140,26 @@ int N_cons(cell* objCell,env* curEnv)
 	args[0]->value=NULL;
 	args[1]->type=nil;
 	args[1]->value=NULL;
+	deleteArg(args,2);
+	return 0;
+}
+
+int N_eq(cell* objCell,env* curEnv)
+{
+	deleteCons(objCell);
+	cell** args=dealArg(&((conspair*)objCell->outer)->right,2);
+	eval(args[0],curEnv);
+	eval(args[1],curEnv);
+	if(concmp(args[0],args[1])==0)
+	{
+		objCell->type=nil;
+		objCell->value=NULL;
+	}
+	else
+	{
+		objCell->type=atm;
+		objCell->value=createAtom(num,"1",objCell->outer);
+	}
 	deleteArg(args,2);
 	return 0;
 }

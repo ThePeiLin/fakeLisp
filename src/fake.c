@@ -318,7 +318,8 @@ void printList(cell* objCell,FILE* out)
 		else if(tmp->type==atm||tmp->type==nil)
 		{
 			if(objCons!=NULL&&tmp==&objCons->right&&tmp->type==atm)putc(',',out);
-			if(objCons!=NULL&&tmp==&objCons->left&&tmp->type==nil)fputs("nil",out);
+			if((objCons!=NULL&&tmp==&objCons->left&&tmp->type==nil)
+			||(tmp->outer==NULL&&tmp->type==nil))fputs("nil",out);
 			if(tmp->type!=nil&&(((atom*)tmp->value)->type==sym||((atom*)tmp->value)->type==num))
 				fprintf(out,"%s",((atom*)tmp->value)->value);
 			else if (tmp->type!=nil)printRawString(((atom*)tmp->value)->value,out);
@@ -560,7 +561,9 @@ int eval(cell* objCell,env* curEnv)
 				if(pfun!=NULL)
 				{
 					if(objCell->outer==NULL||(((conspair*)objCell->outer)->prev!=NULL
-					&&objCell->outer==((conspair*)objCell->outer)->prev->right.value))
+					&&objCell->outer==((conspair*)objCell->outer)->prev->right.value)
+					||(((conspair*)objCell->outer)->right.type==atm
+					||(((conspair*)objCell->outer)->right.type==nil)))
 						return SYNTAXERROR;
 					pfun(objCell,curEnv);
 					if(((conspair*)objCell->outer)->right.type==nil)break;

@@ -9,17 +9,17 @@ typedef struct
 	void* outer;
 	enum {nil,con,atm} type;
 	void* value;
-}cell;
+}cptr;
 
-typedef struct ConsPair
+typedef struct Cell
 {
-	struct ConsPair* prev;
-	cell left,right;
-}conspair;
+	struct Cell* prev;
+	cptr left,right;
+}cell;
 
 typedef struct Atom
 {
-	conspair* prev;
+	cell* prev;
 	enum{sym,num,str} type;
 	void* value;
 }atom;

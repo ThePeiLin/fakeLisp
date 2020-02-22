@@ -180,21 +180,21 @@ void printRawString(const char* objStr,FILE* out)
 	putc('\"',out);
 }
 
-int concmp(cell* first,cell* second)
+int concmp(cptr* first,cptr* second)
 {
 	if(first==NULL&&second==NULL)return 0;
-	conspair* firCons=NULL;
-	conspair* secCons=NULL;
-	conspair* tmpCons=(first->type==con)?first->value:NULL;
+	cell* firCell=NULL;
+	cell* secCell=NULL;
+	cell* tmpCell=(first->type==con)?first->value:NULL;
 	while(1)
 	{
 		if(first->type!=second->type)return 0;
 		else if(first->type==con)
 		{
-			firCons=first->value;
-			secCons=second->value;
-			first=&firCons->left;
-			second=&secCons->left;
+			firCell=first->value;
+			secCell=second->value;
+			first=&firCell->left;
+			second=&secCell->left;
 			continue;
 		}
 		else if(first->type==atm||first->type==nil)
@@ -206,41 +206,41 @@ int concmp(cell* first,cell* second)
 				if(firAtm->type!=secAtm->type)return 0;
 				if(strcmp(firAtm->value,secAtm->value)!=0)return 0;
 			}
-			if(firCons!=NULL&&first==&firCons->left)
+			if(firCell!=NULL&&first==&firCell->left)
 			{
-				first=&firCons->right;
-				second=&secCons->right;
+				first=&firCell->right;
+				second=&secCell->right;
 				continue;
 			}
 		}
-		if(firCons!=NULL&&first==&firCons->left)
+		if(firCell!=NULL&&first==&firCell->left)
 		{
-			first=&firCons->right;
-			second=&secCons->right;
+			first=&firCell->right;
+			second=&secCell->right;
 			continue;
 		}
-		else if(firCons!=NULL&&first==&firCons->right)
+		else if(firCell!=NULL&&first==&firCell->right)
 		{
-			conspair* firPrev=NULL;
-			conspair* secPrev=NULL;
-			if(firCons->prev==NULL)break;
-			while(firCons->prev!=NULL)
+			cell* firPrev=NULL;
+			cell* secPrev=NULL;
+			if(firCell->prev==NULL)break;
+			while(firCell->prev!=NULL)
 			{
-				firPrev=firCons;
-				secPrev=secCons;
-				firCons=firCons->prev;
-				secCons=secCons->prev;
-				if(firPrev==firCons->left.value)break;
+				firPrev=firCell;
+				secPrev=secCell;
+				firCell=firCell->prev;
+				secCell=secCell->prev;
+				if(firPrev==firCell->left.value)break;
 			}
-			if(firCons!=NULL)
+			if(firCell!=NULL)
 			{
-				first=&firCons->right;
-				second=&secCons->right;
+				first=&firCell->right;
+				second=&secCell->right;
 				continue;
 			}
-			if(firCons==tmpCons&&first==&firCons->right)break;
+			if(firCell==tmpCell&&first==&firCell->right)break;
 		}
-		if(firCons==NULL&&secCons==NULL)break;
+		if(firCell==NULL&&secCell==NULL)break;
 	}
 	return 1;
 }

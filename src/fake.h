@@ -6,7 +6,7 @@
 typedef struct Defines
 {
 	char* symName;
-	cell obj;//node or symbol or val
+	cptr obj;//node or symbol or val
 	struct Defines* next;
 }defines;
 
@@ -20,27 +20,27 @@ typedef struct Env
 typedef struct NativeFunc//function and form
 {
 	char* functionName;
-	int (*function)(cell*,env*);
+	int (*function)(cptr*,env*);
 	struct NativeFunc* next;
 }nativeFunc;
 
 defines* findDefines(const char*,env*);
 char* getListFromFile(FILE*);
 char* getStringFromList(const char*);
-cell* createTree(const char*);
-int addFunc(char*,int (*)(cell*,env*));
-defines* addDefine(const char*,const cell*,env*);
-void callFunc(cell*,env*);
-int (*(findFunc(const char*)))(cell*,env*);
-int retree(cell*,cell*);
-void printList(cell*,FILE*);
-conspair* createCons(conspair*);
-cell* createCell();
-atom* createAtom(int type,const char*,conspair*);
-int copyList(cell*,const cell*);
-int distoryList(cell*);
-int deleteCons(cell*);
+cptr* createTree(const char*);
+int addFunc(char*,int (*)(cptr*,env*));
+defines* addDefine(const char*,const cptr*,env*);
+void callFunc(cptr*,env*);
+int (*(findFunc(const char*)))(cptr*,env*);
+int retree(cptr*,cptr*);
+void printList(cptr*,FILE*);
+cell* createCell(cell*);
+cptr* createCptr();
+atom* createAtom(int type,const char*,cell*);
+int copyList(cptr*,const cptr*);
+int distoryList(cptr*);
+int deleteCell(cptr*);
 env* newEnv();
-static void replace(cell*,cell*);
-int eval(cell*,env*);
+void replace(cptr*,cptr*);
+int eval(cptr*,env*);
 #endif

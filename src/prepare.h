@@ -4,8 +4,8 @@
 
 typedef struct Pattern
 {
-	cell* format;
-	cell* express;
+	cptr* format;
+	cptr* express;
 	struct Matching* next;
 }pattern;
 
@@ -16,8 +16,8 @@ typedef struct Macro
 	struct macro* next;
 }macro;
 
-int macroMatch(cell*);
-cell* macroExpand(cell*);
+int macroMatch(cptr*);
+cptr* macroExpand(cptr*);
 macro* findMacro(const char*);
-macro* createMacro(const char*,cell*);
+macro* createMacro(const char*,cptr*);
 #endif

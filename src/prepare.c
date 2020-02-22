@@ -1,4 +1,4 @@
-int macroMatch(cell*)
+int macroMatch(cptr*)
 {
 
 }

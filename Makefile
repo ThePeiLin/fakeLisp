@@ -6,5 +6,5 @@ tool.o: src/tool.c src/tool.h
 	gcc -c src/tool.c
 fakeLisp.o: src/fakeLisp.c
 	gcc -c src/fakeLisp.c
-fakeLisp: fakeLisp.o functionAndForm.o fake.o numAndString.o
+fakeLisp: fakeLisp.o form.o fake.o tool.o
 	gcc -o fakeLisp fakeLisp.o tool.o fake.o form.o

@@ -3,6 +3,7 @@
 #include"fake.h"
 #include"tool.h"
 static cptr** dealArg(cptr*,int);
+static int coutArg(cptr*);
 static void deleteArg(cptr**,int);
 int N_quote(cptr*,env*);
 int N_car(cptr*,env*);

@@ -65,7 +65,7 @@ cptr* createTree(const char* objStr)
 			if(root==NULL)
 			{
 				root=createCptr(objCell);
-				root->type=con;
+				root->type=cel;
 				root->value=createCell(NULL);
 				objCell=root->value;
 				objCptr=&objCell->left;
@@ -73,7 +73,7 @@ cptr* createTree(const char* objStr)
 			else
 			{
 				objCell=createCell(objCell);
-				objCptr->type=con;
+				objCptr->type=cel;
 				objCptr->value=(void*)objCell;
 				objCptr=&objCell->left;
 			}
@@ -119,7 +119,7 @@ cptr* createTree(const char* objStr)
 			}
 			i+=j;
 			cell* tmp=createCell(objCell);
-			objCell->right.type=con;
+			objCell->right.type=cel;
 			objCell->right.value=(void*)tmp;
 			objCell=tmp;
 			objCptr=&objCell->left;
@@ -205,7 +205,7 @@ int retree(cptr* fir,cptr* sec)
 		beDel->value=sec->value;
 		sec->type=fir->type;
 		sec->value=fir->value;
-		if(fir->type==con)
+		if(fir->type==cel)
 			((cell*)fir->value)->prev=sec->outer;
 		else if(fir->type==atm)
 			((atom*)fir->value)->prev=sec->outer;
@@ -221,12 +221,12 @@ int retree(cptr* fir,cptr* sec)
 
 int deleteCell(cptr* objCptr)
 {
-	cell* tmpCell=(objCptr->type==con)?objCptr->value:NULL;
+	cell* tmpCell=(objCptr->type==cel)?objCptr->value:NULL;
 	cell* objCell=tmpCell;
 	cptr* tmpCptr=objCptr;
 	while(tmpCptr!=NULL)
 	{
-		if(tmpCptr->type==con)
+		if(tmpCptr->type==cel)
 		{
 			if(objCell!=NULL&&tmpCptr==&objCell->right)
 			{
@@ -280,7 +280,7 @@ int deleteCell(cptr* objCptr)
 cptr* destroyList(cptr* objCptr)
 {
 	cell* objCell=NULL;
-	if(objCptr->type==con)objCell=((cell*)objCptr->value)->prev;
+	if(objCptr->type==cel)objCell=((cell*)objCptr->value)->prev;
 	if(objCptr->type==atm)objCell=((atom*)objCptr->value)->prev;
 	if(objCptr->type==nil)return objCptr;
 	while(objCell!=NULL&&objCell->prev!=NULL)objCell=objCell->prev;
@@ -294,12 +294,12 @@ cptr* destroyList(cptr* objCptr)
 
 void printList(cptr* objCptr,FILE* out)
 {
-	cell* tmpCell=(objCptr->type==con)?objCptr->value:NULL;
+	cell* tmpCell=(objCptr->type==cel)?objCptr->value:NULL;
 	cell* objCell=tmpCell;
 	cptr* tmp=objCptr;
 	while(tmp!=NULL)
 	{
-		if(tmp->type==con)
+		if(tmp->type==cel)
 		{
 			if(objCell!=NULL&&tmp==&objCell->right)
 			{
@@ -368,12 +368,12 @@ int copyList(cptr* objCptr,const cptr* copiedCptr)
 	if(copiedCptr==NULL||objCptr==NULL)return 0;
 	cell* objCell=NULL;
 	cell* copiedCell=NULL;
-	cell* tmpCell=(copiedCptr->type==con)?copiedCptr->value:NULL;
+	cell* tmpCell=(copiedCptr->type==cel)?copiedCptr->value:NULL;
 	copiedCell=tmpCell;
 	while(1)
 	{
 		objCptr->type=copiedCptr->type;
-		if(copiedCptr->type==con)
+		if(copiedCptr->type==cel)
 		{
 			objCell=createCell(objCell);
 			objCptr->value=objCell;

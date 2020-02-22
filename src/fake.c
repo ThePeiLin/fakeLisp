@@ -415,7 +415,7 @@ int copyList(cell* objCell,const cell* copiedCell)
 			conspair* objPrev=NULL;
 			conspair* coPrev=NULL;
 			if(copiedCons->prev==NULL)break;
-			while(copiedCons->prev!=NULL)
+			while(objCons->prev!=NULL&&copiedCons!=NULL)
 			{
 				coPrev=copiedCons;
 				copiedCons=copiedCons->prev;
@@ -430,6 +430,7 @@ int copyList(cell* objCell,const cell* copiedCell)
 			}
 			if(copiedCons==tmpCons&&copiedCell==&copiedCons->right)break;
 		}
+		if(copiedCons==NULL)break;
 	}
 	return 1;
 }
@@ -549,7 +550,7 @@ int eval(cell* objCell,env* curEnv)
 {
 	curEnv=(curEnv==NULL)?glob:curEnv;
 	cell* tmpCell=objCell;
-	while(objCell->type!=nil||((atom*)objCell->value)->type!=sym)
+	while(objCell->type!=nil)
 	{
 		if(objCell->type==atm)
 		{
@@ -562,8 +563,7 @@ int eval(cell* objCell,env* curEnv)
 				{
 					if(objCell->outer==NULL||(((conspair*)objCell->outer)->prev!=NULL
 					&&objCell->outer==((conspair*)objCell->outer)->prev->right.value)
-					||(((conspair*)objCell->outer)->right.type==atm
-					||(((conspair*)objCell->outer)->right.type==nil)))
+					)
 						return SYNTAXERROR;
 					pfun(objCell,curEnv);
 					if(((conspair*)objCell->outer)->right.type==nil)break;

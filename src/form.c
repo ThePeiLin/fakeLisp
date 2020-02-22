@@ -4,7 +4,7 @@
 
 cptr** dealArg(cptr* argCptr,int num)
 {
-	cptr* tmpCptr=(argCptr->type==con)?argCptr:NULL;
+	cptr* tmpCptr=(argCptr->type==cel)?argCptr:NULL;
 	cptr** args=NULL;
 	if(!(args=(cptr**)malloc(num*sizeof(cptr*))))errors(OUTOFMEMORY);
 	int i;
@@ -30,7 +30,7 @@ cptr** dealArg(cptr* argCptr,int num)
 		((cell*)tmpCptr->value)->prev=NULL;
 		tmpCptr->type=argCptr->type;
 		tmpCptr->value=argCptr->value;
-		if(argCptr->type==con)
+		if(argCptr->type==cel)
 			((cell*)argCptr->value)->prev=(cell*)tmpCptr->outer;
 		else if(argCptr->type==atm)
 			((atom*)argCptr->value)->prev=(cell*)tmpCptr->outer;
@@ -42,6 +42,16 @@ cptr** dealArg(cptr* argCptr,int num)
 	return args;
 }
 
+int coutArg(cptr* argCptr)
+{
+	int num=0;
+	while(argCptr->type==cel)
+	{
+		num++;
+		argCptr=&((cell*)argCptr->value)->right;
+	}
+	return num;
+}
 void deleteArg(cptr** args,int num)
 {
 	int i;
@@ -87,7 +97,7 @@ int N_cons(cptr* objCptr,env* curEnv)
 	cptr** args=dealArg(&((cell*)objCptr->outer)->right,2);
 	eval(args[0],curEnv);
 	eval(args[0],curEnv);
-	objCptr->type=con;
+	objCptr->type=cel;
 	cell* tmpCell=objCptr->value=createCell((cell*)objCptr->outer);
 	replace(&tmpCell->left,args[0]);
 	replace(&tmpCell->right,args[1]);
@@ -101,7 +111,7 @@ int N_eq(cptr* objCptr,env* curEnv)
 	cptr** args=dealArg(&((cell*)objCptr->outer)->right,2);
 	eval(args[0],curEnv);
 	eval(args[1],curEnv);
-	if(concmp(args[0],args[1])==0)
+	if(cel(args[0],args[1])==0)
 	{
 		objCptr->type=nil;
 		objCptr->value=NULL;
@@ -120,7 +130,7 @@ int N_atom(cptr* objCptr,env* curEnv)
 	deleteCell(objCptr);
 	cptr** args=dealArg(&((cell*)objCptr->outer)->right,1);
 	eval(args[0],curEnv);
-	if(args[0]->type!=con)
+	if(args[0]->type!=cel)
 	{
 		objCptr->type=atm;
 		objCptr->value=createAtom(num,"1",objCptr->outer);
@@ -153,7 +163,7 @@ int N_null(cptr* objCptr,env* curEnv)
 		objCptr->type=atm;
 		objCptr->value=createAtom(num,"1",objCptr->outer);
 	}
-	else if(args[0]->type==con)
+	else if(args[0]->type==cel)
 	{
 		cell* tmpCell=args[0]->value;
 		if(tmpCell->left.type==nil&&tmpCell->right.type==nil)
@@ -174,4 +184,25 @@ int N_null(cptr* objCptr,env* curEnv)
 	}
 	deleteArg(args,1);
 	return 0;
+}
+
+int N_cond(cptr* objCptr,env* curEnv)
+{
+	deleteCell(objCptr);
+	int argn=coutArg(&((cell*)objCptr->outer)->right);
+	cptr** args=dealArg(&((cell*)objCptr->outer)->right,aegn);
+	int i;
+	for(i=0;i<num;i++)
+	{
+		if(args[i]->type!=cel)return SYNTAXERROR;
+		cptr* condition=&((cell*)args[i]->value)->left;
+		eval(condition,curEnv);
+		if(condtition->type==atm)break;
+		else if(condition->type==cel)
+		{
+			cell* tmpCell=(cell*)condition->value;
+			if(tmpCell->left.type!=nil||tmpCell->right.type!=nil)break;
+		}
+	}
+	deleteArg(args,num);
 }

@@ -7,7 +7,7 @@
 typedef struct
 {
 	void* outer;
-	enum {nil,con,atm} type;
+	enum {nil,cel,atm} type;
 	void* value;
 }cptr;
 

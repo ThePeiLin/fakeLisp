@@ -68,14 +68,14 @@ cptr* createTree(const char* objStr)
 				root->type=cel;
 				root->value=createCell(NULL);
 				objCell=root->value;
-				objCptr=&objCell->left;
+				objCptr=&objCell->car;
 			}
 			else
 			{
 				objCell=createCell(objCell);
 				objCptr->type=cel;
 				objCptr->value=(void*)objCell;
-				objCptr=&objCell->left;
+				objCptr=&objCell->car;
 			}
 		}
 		else if(*(objStr+i)==')')
@@ -83,20 +83,20 @@ cptr* createTree(const char* objStr)
 			i++;
 			cell* prev=NULL;
 			if(objCell==NULL)break;
-			while(objCell->prev!=NULL&&objCell->left.value!=prev)
+			while(objCell->prev!=NULL&&objCell->car.value!=prev)
 			{
 				prev=objCell;
 				objCell=objCell->prev;
 			}
-			if(objCell->left.value==prev)
-				objCptr=&objCell->left;
-			else if(objCell->right.value==prev)
-				objCptr=&objCell->right;
+			if(objCell->car.value==prev)
+				objCptr=&objCell->car;
+			else if(objCell->cdr.value==prev)
+				objCptr=&objCell->cdr;
 		}
 		else if(*(objStr+i)==',')
 		{
 			i++;
-			objCptr=&objCell->right;
+			objCptr=&objCell->cdr;
 		}
 		else if(isspace(*(objStr+i)))
 		{
@@ -119,10 +119,10 @@ cptr* createTree(const char* objStr)
 			}
 			i+=j;
 			cell* tmp=createCell(objCell);
-			objCell->right.type=cel;
-			objCell->right.value=(void*)tmp;
+			objCell->cdr.type=cel;
+			objCell->cdr.value=(void*)tmp;
 			objCell=tmp;
-			objCptr=&objCell->left;
+			objCptr=&objCell->car;
 		}
 		else if(*(objStr+i)=='\"')
 		{
@@ -198,7 +198,7 @@ int (*(findFunc(const char* name)))(cptr*,env*)
 int retree(cptr* fir,cptr* sec)
 {
 	if(fir->value==sec->value)return 0;
-	else if((sec->outer==NULL||((cell*)sec->outer)->prev->right.value==((cell*)sec->outer))&&((cell*)sec->value)->right.type==nil)
+	else if(((cell*)sec->value)->cdr.type==nil)
 	{
 		cptr* beDel=createCptr(NULL);
 		beDel->type=sec->type;
@@ -209,8 +209,8 @@ int retree(cptr* fir,cptr* sec)
 			((cell*)fir->value)->prev=sec->outer;
 		else if(fir->type==atm)
 			((atom*)fir->value)->prev=sec->outer;
-		((cell*)fir->outer)->left.type=nil;
-		((cell*)fir->outer)->left.value=NULL;
+		((cell*)fir->outer)->car.type=nil;
+		((cell*)fir->outer)->car.value=NULL;
 		deleteCell(beDel);
 		free(beDel);
 		return 0;
@@ -228,15 +228,15 @@ int deleteCell(cptr* objCptr)
 	{
 		if(tmpCptr->type==cel)
 		{
-			if(objCell!=NULL&&tmpCptr==&objCell->right)
+			if(objCell!=NULL&&tmpCptr==&objCell->cdr)
 			{
-				objCell=objCell->right.value;
-				tmpCptr=&objCell->left;
+				objCell=objCell->cdr.value;
+				tmpCptr=&objCell->car;
 			}
 			else
 			{
 				objCell=tmpCptr->value;
-				tmpCptr=&objCell->left;
+				tmpCptr=&objCell->car;
 				continue;
 			}
 		}
@@ -253,16 +253,16 @@ int deleteCell(cptr* objCptr)
 		}
 		else if(tmpCptr->type==nil)
 		{
-			if(tmpCptr==&objCell->left)
+			if(tmpCptr==&objCell->car)
 			{
-				tmpCptr=&objCell->right;
+				tmpCptr=&objCell->cdr;
 				continue;
 			}
-			else if(tmpCptr==&objCell->right)
+			else if(tmpCptr==&objCell->cdr)
 			{
 				cell* prev=objCell;
 				objCell=objCell->prev;
-				tmpCptr=&objCell->right;
+				tmpCptr=&objCell->cdr;
 				free(prev);
 				if(tmpCell==objCell)break;
 			}
@@ -286,8 +286,8 @@ cptr* destroyList(cptr* objCptr)
 	while(objCell!=NULL&&objCell->prev!=NULL)objCell=objCell->prev;
 	if(objCell!=NULL)
 	{
-		deleteCell(&objCell->left);
-		deleteCell(&objCell->right);
+		deleteCell(&objCell->car);
+		deleteCell(&objCell->cdr);
 	}
 	free(objCell);
 }
@@ -301,35 +301,35 @@ void printList(cptr* objCptr,FILE* out)
 	{
 		if(tmp->type==cel)
 		{
-			if(objCell!=NULL&&tmp==&objCell->right)
+			if(objCell!=NULL&&tmp==&objCell->cdr)
 			{
 				putc(' ',out);
-				objCell=objCell->right.value;
-				tmp=&objCell->left;
+				objCell=objCell->cdr.value;
+				tmp=&objCell->car;
 			}
 			else
 			{
 				putc('(',out);
 				objCell=tmp->value;
-				tmp=&objCell->left;
+				tmp=&objCell->car;
 				continue;
 			}
 		}
 		else if(tmp->type==atm||tmp->type==nil)
 		{
-			if(objCell!=NULL&&tmp==&objCell->right&&tmp->type==atm)putc(',',out);
-			if((objCell!=NULL&&tmp==&objCell->left&&tmp->type==nil)
+			if(objCell!=NULL&&tmp==&objCell->cdr&&tmp->type==atm)putc(',',out);
+			if((objCell!=NULL&&tmp==&objCell->car&&tmp->type==nil)
 			||(tmp->outer==NULL&&tmp->type==nil))fputs("nil",out);
 			if(tmp->type!=nil&&(((atom*)tmp->value)->type==sym||((atom*)tmp->value)->type==num))
 				fprintf(out,"%s",((atom*)tmp->value)->value);
 			else if (tmp->type!=nil)printRawString(((atom*)tmp->value)->value,out);
-			if(objCell!=NULL&&tmp==&objCell->left)
+			if(objCell!=NULL&&tmp==&objCell->car)
 			{
-				tmp=&objCell->right;
+				tmp=&objCell->cdr;
 				continue;
 			}
 		}
-		if(objCell!=NULL&&tmp==&objCell->right)
+		if(objCell!=NULL&&tmp==&objCell->cdr)
 		{
 			putc(')',out);
 			cell* prev=NULL;
@@ -338,10 +338,10 @@ void printList(cptr* objCptr,FILE* out)
 			{
 				prev=objCell;
 				objCell=objCell->prev;
-				if(prev==objCell->left.value)break;
+				if(prev==objCell->car.value)break;
 			}
-			if(objCell!=NULL)tmp=&objCell->right;
-			if(objCell==tmpCell&&prev==objCell->right.value)break;
+			if(objCell!=NULL)tmp=&objCell->cdr;
+			if(objCell==tmpCell&&prev==objCell->cdr.value)break;
 		}
 		if(objCell==NULL)break;
 	}
@@ -352,12 +352,12 @@ cell* createCell(cell* prev)
 	cell* tmp;
 	if((tmp=(cell*)malloc(sizeof(cell))))
 	{
-		tmp->left.outer=tmp;
-		tmp->left.type=nil;
-		tmp->left.value=NULL;
-		tmp->right.outer=tmp;
-		tmp->right.type=nil;
-		tmp->right.value=NULL;
+		tmp->car.outer=tmp;
+		tmp->car.type=nil;
+		tmp->car.value=NULL;
+		tmp->cdr.outer=tmp;
+		tmp->cdr.type=nil;
+		tmp->cdr.value=NULL;
 		tmp->prev=prev;
 	}
 	else errors(OUTOFMEMORY);
@@ -378,9 +378,9 @@ int copyList(cptr* objCptr,const cptr* copiedCptr)
 			objCell=createCell(objCell);
 			objCptr->value=objCell;
 			copiedCell=copiedCptr->value;
-			copiedCptr=&copiedCell->left;
-			copiedCptr=&copiedCell->left;
-			objCptr=&objCell->left;
+			copiedCptr=&copiedCell->car;
+			copiedCptr=&copiedCell->car;
+			objCptr=&objCell->car;
 			continue;
 		}
 		else if(copiedCptr->type==atm)
@@ -392,10 +392,10 @@ int copyList(cptr* objCptr,const cptr* copiedCptr)
 			if(!(objAtm->value=(char*)malloc(strlen(coAtm->value)+1)))errors(OUTOFMEMORY);
 			objAtm->type=coAtm->type;
 			memcpy(objAtm->value,coAtm->value,strlen(coAtm->value)+1);
-			if(copiedCptr==&copiedCell->left)
+			if(copiedCptr==&copiedCell->car)
 			{
-				copiedCptr=&copiedCell->right;
-				objCptr=&objCell->right;
+				copiedCptr=&copiedCell->cdr;
+				objCptr=&objCell->cdr;
 				continue;
 			}
 			
@@ -403,14 +403,14 @@ int copyList(cptr* objCptr,const cptr* copiedCptr)
 		else if(copiedCptr->type==nil)
 		{
 			objCptr->value=NULL;
-			if(copiedCptr==&copiedCell->left)
+			if(copiedCptr==&copiedCell->car)
 			{
-				objCptr=&objCell->right;
-				copiedCptr=&copiedCell->right;
+				objCptr=&objCell->cdr;
+				copiedCptr=&copiedCell->cdr;
 				continue;
 			}
 		}
-		if(copiedCell!=NULL&&copiedCptr==&copiedCell->right)
+		if(copiedCell!=NULL&&copiedCptr==&copiedCell->cdr)
 		{
 			cell* objPrev=NULL;
 			cell* coPrev=NULL;
@@ -421,14 +421,14 @@ int copyList(cptr* objCptr,const cptr* copiedCptr)
 				copiedCell=copiedCell->prev;
 				objPrev=objCell;
 				objCell=objCell->prev;
-				if(coPrev==copiedCell->left.value)break;
+				if(coPrev==copiedCell->car.value)break;
 			}
 			if(copiedCell!=NULL)
 			{
-				copiedCptr=&copiedCell->right;
-				objCptr=&objCell->right;
+				copiedCptr=&copiedCell->cdr;
+				objCptr=&objCell->cdr;
 			}
-			if(copiedCell==tmpCell&&copiedCptr==&copiedCell->right)break;
+			if(copiedCell==tmpCell&&copiedCptr==&copiedCell->cdr)break;
 		}
 		if(copiedCell==NULL)break;
 	}
@@ -542,7 +542,7 @@ void replace(cptr* fir,cptr* sec)
 	cell* tmp=fir->outer;
 	deleteCell(fir);
 	copyList(fir,sec);
-	if(fir->type==con)((cell*)fir->value)->prev=tmp;
+	if(fir->type==cel)((cell*)fir->value)->prev=tmp;
 	else if(fir->type==atm)((atom*)fir->value)->prev=tmp;
 }
 
@@ -562,11 +562,11 @@ int eval(cptr* objCptr,env* curEnv)
 				if(pfun!=NULL)
 				{
 					if(objCptr->outer==NULL||(((cell*)objCptr->outer)->prev!=NULL
-					&&objCptr->outer==((cell*)objCptr->outer)->prev->right.value)
+					&&objCptr->outer==((cell*)objCptr->outer)->prev->cdr.value)
 					)
 						return SYNTAXERROR;
 					pfun(objCptr,curEnv);
-					if(((cell*)objCptr->outer)->right.type==nil)break;
+					if(((cell*)objCptr->outer)->cdr.type==nil)break;
 				}
 				else
 				{
@@ -579,7 +579,7 @@ int eval(cptr* objCptr,env* curEnv)
 						replace(objCptr,reCptr);
 						if(objCptr->outer==NULL
 						||(((cell*)objCptr->outer)->prev!=NULL
-						&&((cell*)objCptr->outer)->prev!=((cell*)objCptr->outer)->prev->right.value))
+						&&((cell*)objCptr->outer)->prev!=((cell*)objCptr->outer)->prev->cdr.value))
 						break;
 					}
 						else return SYMUNDEFINE;
@@ -587,7 +587,7 @@ int eval(cptr* objCptr,env* curEnv)
 			}
 			else break;
 		}
-		else if(objCptr->type==con)objCptr=&(((cell*)objCptr->value)->left);
+		else if(objCptr->type==cel)objCptr=&(((cell*)objCptr->value)->car);
 	}
 	return retree(objCptr,tmpCptr);
 }

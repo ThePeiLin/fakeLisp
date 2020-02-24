@@ -24,7 +24,7 @@ typedef struct NativeFunc//function and form
 	struct NativeFunc* next;
 }nativeFunc;
 
-defines* findDefines(const char*,env*);
+defines* findDefine(const char*,env*);
 char* getListFromFile(FILE*);
 char* getStringFromList(const char*);
 cptr* createTree(const char*);
@@ -39,8 +39,9 @@ cptr* createCptr();
 atom* createAtom(int type,const char*,cell*);
 int copyList(cptr*,const cptr*);
 int distoryList(cptr*);
-int deleteCell(cptr*);
+int deleteCptr(cptr*);
 env* newEnv();
-void replace(cptr*,cptr*);
+void replace(cptr*,const cptr*);
 int eval(cptr*,env*);
+int cptrcmp(cptr*,cptr*);
 #endif

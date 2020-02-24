@@ -14,6 +14,5 @@ char* floatToString(double);
 double stringToFloat(const char*);
 char* intToString(long);
 long stringToInt(const char*);
-int concmp(cptr*,cptr*);
 void errors(int);
 #endif

@@ -14,7 +14,7 @@ typedef struct
 typedef struct Cell
 {
 	struct Cell* prev;
-	cptr left,right;
+	cptr car,cdr;
 }cell;
 
 typedef struct Atom

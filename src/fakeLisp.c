@@ -14,7 +14,10 @@ int main(int argc,char** argv)
 	addFunc("eq",N_eq);
 	addFunc("atom",N_atom);
 	addFunc("null",N_null);
+	addFunc("cond",N_cond);
+	addFunc("define",N_define);
 	cptr* begin=NULL;
+	newEnv();
 	while(1)
 	{
 		printf(">>>");
@@ -23,7 +26,7 @@ int main(int argc,char** argv)
 		eval(begin,NULL);
 		printList(begin,stdout);
 		putchar('\n');
-		deleteCell(begin);
+		deleteCptr(begin);
 		begin=NULL;
 		char ch=getchar();
 		if(ch!='\n')ungetc(ch,stdin);

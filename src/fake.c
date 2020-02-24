@@ -5,7 +5,7 @@
 #include"tool.h"
 
 static nativeFunc* funAndForm=NULL;
-static env* glob=NULL;
+static env* Glob=NULL;
 
 char* getStringFromList(const char* str)
 {
@@ -195,6 +195,71 @@ int (*(findFunc(const char* name)))(cptr*,env*)
 		return current->function;
 }
 
+int cptrcmp(cptr* first,cptr* second)
+{
+	if(first==NULL&&second==NULL)return 0;
+	cell* firCell=NULL;
+	cell* secCell=NULL;
+	cell* tmpCell=(first->type==cel)?first->value:NULL;
+	while(1)
+	{
+		if(first->type!=second->type)return 0;
+		else if(first->type==cel)
+		{
+			firCell=first->value;
+			secCell=second->value;
+			first=&firCell->car;
+			second=&secCell->car;
+			continue;
+		}
+		else if(first->type==atm||first->type==nil)
+		{
+			if(first->type==atm)
+			{
+				atom* firAtm=first->value;
+				atom* secAtm=second->value;
+				if(firAtm->type!=secAtm->type)return 0;
+				if(strcmp(firAtm->value,secAtm->value)!=0)return 0;
+			}
+			if(firCell!=NULL&&first==&firCell->car)
+			{
+				first=&firCell->cdr;
+				second=&secCell->cdr;
+				continue;
+			}
+		}
+		if(firCell!=NULL&&first==&firCell->car)
+		{
+			first=&firCell->cdr;
+			second=&secCell->cdr;
+			continue;
+		}
+		else if(firCell!=NULL&&first==&firCell->cdr)
+		{
+			cell* firPrev=NULL;
+			cell* secPrev=NULL;
+			if(firCell->prev==NULL)break;
+			while(firCell->prev!=NULL)
+			{
+				firPrev=firCell;
+				secPrev=secCell;
+				firCell=firCell->prev;
+				secCell=secCell->prev;
+				if(firPrev==firCell->car.value)break;
+			}
+			if(firCell!=NULL)
+			{
+				first=&firCell->cdr;
+				second=&secCell->cdr;
+				continue;
+			}
+			if(firCell==tmpCell&&first==&firCell->cdr)break;
+		}
+		if(firCell==NULL&&secCell==NULL)break;
+	}
+	return 1;
+}
+
 int retree(cptr* fir,cptr* sec)
 {
 	if(fir->value==sec->value)return 0;
@@ -211,7 +276,7 @@ int retree(cptr* fir,cptr* sec)
 			((atom*)fir->value)->prev=sec->outer;
 		((cell*)fir->outer)->car.type=nil;
 		((cell*)fir->outer)->car.value=NULL;
-		deleteCell(beDel);
+		deleteCptr(beDel);
 		free(beDel);
 		return 0;
 	}
@@ -219,7 +284,7 @@ int retree(cptr* fir,cptr* sec)
 		return FAILRETURN;
 }
 
-int deleteCell(cptr* objCptr)
+int deleteCptr(cptr* objCptr)
 {
 	cell* tmpCell=(objCptr->type==cel)?objCptr->value:NULL;
 	cell* objCell=tmpCell;
@@ -286,8 +351,8 @@ cptr* destroyList(cptr* objCptr)
 	while(objCell!=NULL&&objCell->prev!=NULL)objCell=objCell->prev;
 	if(objCell!=NULL)
 	{
-		deleteCell(&objCell->car);
-		deleteCell(&objCell->cdr);
+		deleteCptr(&objCell->car);
+		deleteCptr(&objCell->cdr);
 	}
 	free(objCell);
 }
@@ -437,59 +502,50 @@ int copyList(cptr* objCptr,const cptr* copiedCptr)
 
 defines* addDefine(const char* symName,const cptr* objCptr,env* curEnv)
 {
-	env* current=(curEnv==NULL)?glob:curEnv;
-	if(current==NULL)
+	env* current=(curEnv==NULL)?Glob:curEnv;
+	if(current==NULL)current=newEnv();
+	if(current->symbols==NULL)
 	{
-		current=newEnv();
-		if(current->symbols==NULL)
+		if(!(current->symbols=(defines*)malloc(sizeof(defines))))errors(OUTOFMEMORY);
+		if(!(current->symbols->symName=(char*)malloc(sizeof(char)*(strlen(symName)+1))))errors(OUTOFMEMORY);
+		memcpy(current->symbols->symName,symName,strlen(symName)+1);
+		replace(&current->symbols->obj,objCptr);
+		return current->symbols;
+	}
+	else
+	{
+		defines* curSym=findDefine(symName,current);
+		if(curSym==NULL)
 		{
-			current->symbols=(defines*)malloc(sizeof(defines));
-			memcpy(current->symbols->symName,symName,strlen(symName)+1);
-			current->symbols->obj.type=objCptr->type;
-			current->symbols->obj.value=objCptr->value;
-			current->symbols->next=NULL;
-			return current->symbols;
+			defines* prev=NULL;
+			curSym=curEnv->symbols;
+			while(curSym->next!=NULL)
+				curSym=curSym->next;
+			prev=curSym;
+			if(!(curSym=(defines*)malloc(sizeof(defines))))errors(OUTOFMEMORY);
+			prev->next=curSym;
+			curSym->next=NULL;
+			replace(&curSym->obj,objCptr);
 		}
 		else
-		{
-			defines* curSym=findDefines(symName,curEnv);
-			if(curSym==NULL)
-			{
-				defines* prev=NULL;
-				curSym=curEnv->symbols;
-				while(curSym->next!=NULL)
-					curSym=curSym->next;
-				prev=curSym;
-				if(!(curSym=(defines*)malloc(sizeof(defines))))errors(OUTOFMEMORY);
-				prev->next=curSym;
-				curSym->obj.type=objCptr->type;
-				curSym->obj.value=objCptr->value;
-				curSym->next=NULL;
-			}
-			else
-			{
-				deleteCell(&curSym->obj);
-				curSym->obj.type=objCptr->type;
-				curSym->obj.value=objCptr->value;
-			}
-			return curSym;
-		}
+			replace(&curSym->obj,objCptr);
+		return curSym;
 	}
 }
 
 env* newEnv()
 {
-	if(glob==NULL)
+	if(Glob==NULL)
 	{
-		glob=(env*)malloc(sizeof(env));
-		glob->prev=NULL;
-		glob->symbols=NULL;
-		glob->next=NULL;
-		return glob;
+		Glob=(env*)malloc(sizeof(env));
+		Glob->prev=NULL;
+		Glob->symbols=NULL;
+		Glob->next=NULL;
+		return Glob;
 	}
 	else
 	{
-		env* current=glob;
+		env* current=Glob;
 		env* prev=NULL;
 		while(current->next)current->next;
 		prev=current;
@@ -502,13 +558,14 @@ env* newEnv()
 	}
 }
 
-defines* findDefines(const char* name,env* curEnv)
+defines* findDefine(const char* name,env* curEnv)
 {
-	env* current=(curEnv==NULL)?glob:curEnv;
+	env* current=(curEnv==NULL)?Glob:curEnv;
 	if(current->symbols==NULL)return NULL;
 	else
 	{
 		defines* curSym=current->symbols;
+		defines* prev=NULL;
 		while(curSym&&strcmp(name,curSym->symName))
 			curSym=curSym->next;
 		return curSym;
@@ -537,10 +594,10 @@ atom* createAtom(int type,const char* value,cell* prev)
 	return tmp;
 }
 
-void replace(cptr* fir,cptr* sec)
+void replace(cptr* fir,const cptr* sec)
 {
 	cell* tmp=fir->outer;
-	deleteCell(fir);
+	deleteCptr(fir);
 	copyList(fir,sec);
 	if(fir->type==cel)((cell*)fir->value)->prev=tmp;
 	else if(fir->type==atm)((atom*)fir->value)->prev=tmp;
@@ -548,7 +605,7 @@ void replace(cptr* fir,cptr* sec)
 
 int eval(cptr* objCptr,env* curEnv)
 {
-	curEnv=(curEnv==NULL)?glob:curEnv;
+	curEnv=(curEnv==NULL)?Glob:curEnv;
 	cptr* tmpCptr=objCptr;
 	while(objCptr->type!=nil)
 	{
@@ -572,7 +629,7 @@ int eval(cptr* objCptr,env* curEnv)
 				{
 					cptr* reCptr=NULL;
 					env* tmpEnv=curEnv;
-					while(reCptr=&(findDefines(objAtm->value,tmpEnv)->obj))
+					while(!(reCptr=&(findDefine(objAtm->value,tmpEnv)->obj)))
 							tmpEnv=tmpEnv->prev;
 					if(reCptr!=NULL)
 					{

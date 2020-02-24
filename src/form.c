@@ -1,6 +1,5 @@
 #include<stdlib.h>
 #include"form.h"
-#include"tool.h"
 
 cptr** dealArg(cptr* argCptr,int num)
 {
@@ -36,7 +35,7 @@ cptr** dealArg(cptr* argCptr,int num)
 			((atom*)argCptr->value)->prev=(cell*)tmpCptr->outer;
 		argCptr->type=nil;
 		argCptr->value=NULL;
-		deleteCell(beDel);
+		deleteCptr(beDel);
 		free(beDel);
 	}
 	return args;
@@ -56,13 +55,13 @@ void deleteArg(cptr** args,int num)
 {
 	int i;
 	for(i=0;i++;i<num)
-		deleteCell(args[i]);
+		deleteCptr(args[i]);
 	free(args);
 }
 
 int N_quote(cptr* objCptr,env* curEnv)
 {
-	deleteCell(objCptr);
+	deleteCptr(objCptr);
 	cptr** args=dealArg(&((cell*)objCptr->outer)->cdr,1);
 	replace(objCptr,args[0]);
 	deleteArg(args,1);	
@@ -71,7 +70,7 @@ int N_quote(cptr* objCptr,env* curEnv)
 
 int N_car(cptr* objCptr,env* curEnv)
 {
-	deleteCell(objCptr);
+	deleteCptr(objCptr);
 	cptr** args=dealArg(&((cell*)objCptr->outer)->cdr,1);
 	eval(args[0],curEnv);
 	if(args[0]->type==atm||args[0]->type==nil)return SYNTAXERROR;
@@ -82,7 +81,7 @@ int N_car(cptr* objCptr,env* curEnv)
 
 int N_cdr(cptr* objCptr,env* curEnv)
 {
-	deleteCell(objCptr);
+	deleteCptr(objCptr);
 	cptr** args=dealArg(&((cell*)objCptr->outer)->cdr,1);
 	eval(args[0],curEnv);
 	if(args[0]->type==atm||args[0]->type==nil)return SYNTAXERROR;
@@ -93,10 +92,10 @@ int N_cdr(cptr* objCptr,env* curEnv)
 
 int N_cons(cptr* objCptr,env* curEnv)
 {
-	deleteCell(objCptr);
+	deleteCptr(objCptr);
 	cptr** args=dealArg(&((cell*)objCptr->outer)->cdr,2);
 	eval(args[0],curEnv);
-	eval(args[0],curEnv);
+	eval(args[1],curEnv);
 	objCptr->type=cel;
 	cell* tmpCell=objCptr->value=createCell((cell*)objCptr->outer);
 	replace(&tmpCell->car,args[0]);
@@ -107,7 +106,7 @@ int N_cons(cptr* objCptr,env* curEnv)
 
 int N_eq(cptr* objCptr,env* curEnv)
 {
-	deleteCell(objCptr);
+	deleteCptr(objCptr);
 	cptr** args=dealArg(&((cell*)objCptr->outer)->cdr,2);
 	eval(args[0],curEnv);
 	eval(args[1],curEnv);
@@ -127,7 +126,7 @@ int N_eq(cptr* objCptr,env* curEnv)
 
 int N_atom(cptr* objCptr,env* curEnv)
 {
-	deleteCell(objCptr);
+	deleteCptr(objCptr);
 	cptr** args=dealArg(&((cell*)objCptr->outer)->cdr,1);
 	eval(args[0],curEnv);
 	if(args[0]->type!=cel)
@@ -155,7 +154,7 @@ int N_atom(cptr* objCptr,env* curEnv)
 
 int N_null(cptr* objCptr,env* curEnv)
 {
-	deleteCell(objCptr);
+	deleteCptr(objCptr);
 	cptr** args=dealArg(&((cell*)objCptr->outer)->cdr,1);
 	eval(args[0],curEnv);
 	if(args[0]->type==nil)
@@ -188,7 +187,7 @@ int N_null(cptr* objCptr,env* curEnv)
 
 int N_cond(cptr* objCptr,env* curEnv)
 {
-	deleteCell(objCptr);
+	deleteCptr(objCptr);
 	int argn=coutArg(&((cell*)objCptr->outer)->cdr);
 	cptr** args=dealArg(&((cell*)objCptr->outer)->cdr,argn);
 	int i;
@@ -232,5 +231,17 @@ int N_cond(cptr* objCptr,env* curEnv)
 	replace(objCptr,result[resNum-1]);
 	deleteArg(result,resNum);
 	deleteArg(args,argn);
+	return 0;
+}
+
+int N_define(cptr* objCptr,env* curEnv)
+{
+	deleteCptr(objCptr);
+	cptr** args=dealArg(&((cell*)objCptr->outer)->cdr,2);
+	eval(args[1],curEnv);
+	if(args[0]->type!=atm)return SYNTAXERROR;
+	addDefine(((atom*)args[0]->value)->value,args[1],curEnv);
+	replace(objCptr,args[1]);
+	deleteArg(args,2);
 	return 0;
 }

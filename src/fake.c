@@ -133,7 +133,7 @@ cptr* createTree(const char* objStr)
 			i+=tmp.len;
 			free(tmp.str);
 		}
-		else if(isdigit(*(objStr+i))||(*(objStr+i)=='-'&&isdigit(objStr+i+1)))
+		else if(isdigit(*(objStr+i))||(*(objStr+i)=='-'&&isdigit(*(objStr+i+1))))
 		{
 			if(root==NULL)objCptr=root=createCptr(objCell);
 			char* tmp=getStringFromList(objStr+i);

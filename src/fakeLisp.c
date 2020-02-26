@@ -24,6 +24,7 @@ int main(int argc,char** argv)
 		char* list=getListFromFile(stdin);
 		begin=createTree(list);
 		eval(begin,NULL);
+		fputs(";=>",stdout);
 		printList(begin,stdout);
 		putchar('\n');
 		deleteCptr(begin);

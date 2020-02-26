@@ -612,37 +612,41 @@ int eval(cptr* objCptr,env* curEnv)
 		if(objCptr->type==atm)
 		{
 			atom* objAtm=objCptr->value;
-			if(objAtm->type==sym)
+			if(objCptr->outer==NULL||((((cell*)objCptr->outer)->prev!=NULL)&&((cell*)objCptr->outer)->prev->cdr.value==(cell*)objCptr->outer))
+			{
+				if(objAtm->type!=sym)break;
+				cptr* reCptr=NULL;
+				env* tmpEnv=curEnv;
+				while(!(reCptr=&(findDefine(objAtm->value,tmpEnv)->obj)))
+					tmpEnv=tmpEnv->prev;
+				if(reCptr!=NULL)
+				{
+					replace(objCptr,reCptr);
+					break;
+				}
+				else return SYMUNDEFINE;
+			}
+			else
 			{
 				int (*pfun)(cptr*,env*)=NULL;
 				pfun=findFunc(objAtm->value);
 				if(pfun!=NULL)
 				{
-					if(objCptr->outer==NULL||(((cell*)objCptr->outer)->prev!=NULL
-					&&objCptr->outer==((cell*)objCptr->outer)->prev->cdr.value)
-					)
-						return SYNTAXERROR;
-					pfun(objCptr,curEnv);
-					if(((cell*)objCptr->outer)->cdr.type==nil)break;
+					int status;
+					status=pfun(objCptr,curEnv);
+					if(status!=0)
+					return status;
 				}
 				else
 				{
 					cptr* reCptr=NULL;
 					env* tmpEnv=curEnv;
-					while(!(reCptr=&(findDefine(objAtm->value,tmpEnv)->obj)))
-							tmpEnv=tmpEnv->prev;
-					if(reCptr!=NULL)
-					{
-						replace(objCptr,reCptr);
-						if(objCptr->outer==NULL
-						||(((cell*)objCptr->outer)->prev!=NULL
-						&&((cell*)objCptr->outer)->prev!=((cell*)objCptr->outer)->prev->cdr.value))
-						break;
-					}
-						else return SYMUNDEFINE;
+					while(!(reCptr=&(findDefine(objAtm->value,tmpEnv)->obj)))tmpEnv=tmpEnv->prev;
+					if(reCptr!=NULL)replace(objCptr,reCptr);
+					else return SYMUNDEFINE;
 				}
+				if(((cell*)objCptr->outer)->cdr.type!=cel)break;
 			}
-			else break;
 		}
 		else if(objCptr->type==cel)objCptr=&(((cell*)objCptr->value)->car);
 	}

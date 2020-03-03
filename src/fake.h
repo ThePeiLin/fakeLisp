@@ -41,6 +41,7 @@ int copyList(cptr*,const cptr*);
 int distoryList(cptr*);
 int deleteCptr(cptr*);
 env* newEnv();
+void destroyEnv(env*);
 void replace(cptr*,const cptr*);
 int eval(cptr*,env*);
 int cptrcmp(cptr*,cptr*);

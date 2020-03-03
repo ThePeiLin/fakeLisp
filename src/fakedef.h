@@ -6,7 +6,7 @@
 #define FAILRETURN 3
 typedef struct
 {
-	void* outer;
+	struct Cell* outer;
 	enum {nil,cel,atm} type;
 	void* value;
 }cptr;

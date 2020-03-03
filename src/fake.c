@@ -274,8 +274,8 @@ int retree(cptr* fir,cptr* sec)
 			((cell*)fir->value)->prev=sec->outer;
 		else if(fir->type==atm)
 			((atom*)fir->value)->prev=sec->outer;
-		((cell*)fir->outer)->car.type=nil;
-		((cell*)fir->outer)->car.value=NULL;
+		fir->outer->car.type=nil;
+		fir->outer->car.value=NULL;
 		deleteCptr(beDel);
 		free(beDel);
 		return 0;
@@ -493,7 +493,7 @@ int copyList(cptr* objCptr,const cptr* copiedCptr)
 				copiedCptr=&copiedCell->cdr;
 				objCptr=&objCell->cdr;
 			}
-			if(copiedCell==tmpCell&&copiedCptr==&copiedCell->cdr)break;
+			if(copiedCell==tmpCell&&copiedCptr->type==objCptr->type)break;
 		}
 		if(copiedCell==NULL)break;
 	}
@@ -510,6 +510,7 @@ defines* addDefine(const char* symName,const cptr* objCptr,env* curEnv)
 		if(!(current->symbols->symName=(char*)malloc(sizeof(char)*(strlen(symName)+1))))errors(OUTOFMEMORY);
 		memcpy(current->symbols->symName,symName,strlen(symName)+1);
 		replace(&current->symbols->obj,objCptr);
+		current->symbols->next=NULL;
 		return current->symbols;
 	}
 	else
@@ -523,6 +524,8 @@ defines* addDefine(const char* symName,const cptr* objCptr,env* curEnv)
 				curSym=curSym->next;
 			prev=curSym;
 			if(!(curSym=(defines*)malloc(sizeof(defines))))errors(OUTOFMEMORY);
+			if(!(curSym->symName=(char*)malloc(sizeof(char)*(strlen(symName)+1))))errors(OUTOFMEMORY);
+			memcpy(curSym->symName,symName,strlen(symName)+1);
 			prev->next=curSym;
 			curSym->next=NULL;
 			replace(&curSym->obj,objCptr);
@@ -556,6 +559,22 @@ env* newEnv()
 		current->next=NULL;
 		return current;
 	}
+}
+
+void destroyEnv(env* objEnv)
+{
+	objEnv=(objEnv==NULL)?Glob:objEnv;
+	defines* delsym=objEnv->symbols;
+	while(delsym!=NULL)
+	{
+		free(delsym->symName);
+		deleteCptr(&delsym->obj);
+		defines* prev=delsym;
+		delsym=delsym->next;
+		free(prev);
+	}
+	objEnv->prev->next=NULL;
+	free(objEnv);
 }
 
 defines* findDefine(const char* name,env* curEnv)
@@ -612,15 +631,17 @@ int eval(cptr* objCptr,env* curEnv)
 		if(objCptr->type==atm)
 		{
 			atom* objAtm=objCptr->value;
-			if(objCptr->outer==NULL||((((cell*)objCptr->outer)->prev!=NULL)&&((cell*)objCptr->outer)->prev->cdr.value==(cell*)objCptr->outer))
+			if(objCptr->outer==NULL||((objCptr->outer->prev!=NULL)&&(objCptr->outer->prev->cdr.value==objCptr->outer)))
 			{
 				if(objAtm->type!=sym)break;
 				cptr* reCptr=NULL;
+				defines* objDef=NULL;
 				env* tmpEnv=curEnv;
-				while(!(reCptr=&(findDefine(objAtm->value,tmpEnv)->obj)))
+				while(!(objDef=findDefine(objAtm->value,tmpEnv)))
 					tmpEnv=tmpEnv->prev;
-				if(reCptr!=NULL)
+				if(objDef!=NULL)
 				{
+					reCptr=&objDef->obj;
 					replace(objCptr,reCptr);
 					break;
 				}
@@ -632,10 +653,8 @@ int eval(cptr* objCptr,env* curEnv)
 				pfun=findFunc(objAtm->value);
 				if(pfun!=NULL)
 				{
-					int status;
-					status=pfun(objCptr,curEnv);
-					if(status!=0)
-					return status;
+					int status=pfun(objCptr,curEnv);
+					if(status!=0)return status;
 				}
 				else
 				{
@@ -645,7 +664,7 @@ int eval(cptr* objCptr,env* curEnv)
 					if(reCptr!=NULL)replace(objCptr,reCptr);
 					else return SYMUNDEFINE;
 				}
-				if(((cell*)objCptr->outer)->cdr.type!=cel)break;
+				if(objCptr->outer->cdr.type!=cel)break;
 			}
 		}
 		else if(objCptr->type==cel)objCptr=&(((cell*)objCptr->value)->car);

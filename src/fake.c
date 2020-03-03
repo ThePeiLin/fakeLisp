@@ -32,6 +32,7 @@ char* getListFromFile(FILE* file)
 	int braketsNum=0;
 	while((ch=getc(file))!=EOF)
 	{
+		if(ch=='\n'&&braketsNum==0)break;
 		i++;
 		j=i-1;
 		before=tmp;
@@ -42,6 +43,7 @@ char* getListFromFile(FILE* file)
 		if(before!=NULL)free(before);
 		if(ch=='(')braketsNum++;
 		if(ch==')')braketsNum--;
+		if(isalnum(ch))continue;
 		if(braketsNum==0)break;
 	}
 	if(tmp!=NULL)*(tmp+i)='\0';
@@ -637,7 +639,7 @@ int eval(cptr* objCptr,env* curEnv)
 				cptr* reCptr=NULL;
 				defines* objDef=NULL;
 				env* tmpEnv=curEnv;
-				while(!(objDef=findDefine(objAtm->value,tmpEnv)))
+				while(!(objDef=findDefine(objAtm->value,tmpEnv))&&tmpEnv!=NULL)
 					tmpEnv=tmpEnv->prev;
 				if(objDef!=NULL)
 				{

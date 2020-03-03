@@ -16,21 +16,26 @@ int main(int argc,char** argv)
 	addFunc("null",N_null);
 	addFunc("cond",N_cond);
 	addFunc("define",N_define);
+	addFunc("lambda",N_lambda);
 	cptr* begin=NULL;
 	newEnv();
 	while(1)
 	{
 		printf(">>>");
+		char ch;
+		while(isspace(ch=getc(stdin)));
+		if(ch==EOF)break;
+		ungetc(ch,stdin);
 		char* list=getListFromFile(stdin);
 		begin=createTree(list);
-		eval(begin,NULL);
+		int status=eval(begin,NULL);
+		if(status!=0)return SYNTAXERROR;
 		fputs(";=>",stdout);
 		printList(begin,stdout);
 		putchar('\n');
 		deleteCptr(begin);
+		free(begin);
 		begin=NULL;
-		char ch=getchar();
-		if(ch!='\n')ungetc(ch,stdin);
 	}
 	return 0;
 }

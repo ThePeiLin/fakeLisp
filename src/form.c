@@ -208,55 +208,40 @@ int N_null(cptr* objCptr,env* curEnv)
 int N_cond(cptr* objCptr,env* curEnv)
 {
 	deleteCptr(objCptr);
-	int argn=coutArg(&((cell*)objCptr->outer)->cdr);
-	cptr** args=dealArg(&((cell*)objCptr->outer)->cdr,argn);
-	if(args==NULL)return SYNTAXERROR;
+	int condNum=coutArg(&objCptr->outer->cdr);
+	cptr** condition=dealArg(&objCptr->outer->cdr,condNum);
+	if(condition==NULL)return SYNTAXERROR;
 	int i;
-	for(i=0;i<argn;i++)
+	for(i=0;i<condNum;i++)
 	{
-		if(args[i]->type!=cel)
+		if(condition[i]->type!=cel)
 		{
-			deleteArg(args,argn);
+			deleteArg(condition,condNum);
 			return SYNTAXERROR;
 		}
-		cptr* condition=&((cell*)args[i]->value)->car;
-		int status=eval(condition,curEnv);
-		if(status!=0)return SYNTAXERROR;
-		if(condition->type==atm)break;
-		else if(condition->type==cel)
+		int expNum=coutArg(condition[i]);
+		cptr** expression=dealArg(condition[i],expNum);
+		if(expression==NULL)return SYNTAXERROR;
+		int status=eval(expression[0],curEnv);
+		if(status!=0)return status;
+		if(expression[0]->type==nil)
 		{
-			cell* tmpCell=(cell*)condition->value;
-			if(tmpCell->car.type!=nil||tmpCell->cdr.type!=nil)break;
-			else
-			{
-				if(i=argn-1)
-				{
-					objCptr->type=nil;
-					objCptr->value=NULL;
-					deleteArg(args,argn);
-					return 0;
-				}
-			}
+			deleteArg(expression,expNum);
+			continue;
 		}
-		else if(condition->type==nil&&i==argn-1)
+		int j;
+		for(j=1;j<expNum;j++)
 		{
-			objCptr->type=nil;
-			objCptr->value=NULL;
-			deleteArg(args,argn);
-			return 0;
+			int status=eval(expression[j],curEnv);
+			if(status!=0)return status;
 		}
+		replace(objCptr,expression[expNum-1]);
+		deleteArg(expression,expNum);
+		deleteArg(condition,condNum);
+		return 0;
 	}
-	int j;
-	int resNum=coutArg(&((cell*)args[i]->value)->cdr);
-	cptr** result=dealArg(&((cell*)args[i]->value)->cdr,resNum);
-	for(j=0;j<resNum;j++)
-	{
-		int status=eval(result[j],curEnv);
-		if(status!=0)return SYNTAXERROR;
-	}
-	replace(objCptr,result[resNum-1]);
-	deleteArg(result,resNum);
-	deleteArg(args,argn);
+	objCptr->type=nil;
+	objCptr->value=NULL;
 	return 0;
 }
 

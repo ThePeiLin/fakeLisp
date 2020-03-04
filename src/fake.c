@@ -661,15 +661,23 @@ int eval(cptr* objCptr,env* curEnv)
 				else
 				{
 					cptr* reCptr=NULL;
+					defines* objDef=NULL;
 					env* tmpEnv=curEnv;
-					while(!(reCptr=&(findDefine(objAtm->value,tmpEnv)->obj)))tmpEnv=tmpEnv->prev;
-					if(reCptr!=NULL)replace(objCptr,reCptr);
+					while(!(objDef=findDefine(objAtm->value,tmpEnv))&&tmpEnv!=NULL)
+						tmpEnv=tmpEnv->prev;
+					if(objDef!=NULL)
+					{
+						reCptr=&objDef->obj;
+						replace(objCptr,reCptr);
+						break;
+					}
 					else return SYMUNDEFINE;
 				}
 				if(objCptr->outer->cdr.type!=cel)break;
 			}
 		}
 		else if(objCptr->type==cel)objCptr=&(((cell*)objCptr->value)->car);
+		else if(objCptr->type==nil)break;
 	}
 	return retree(objCptr,tmpCptr);
 }

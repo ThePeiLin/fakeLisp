@@ -32,9 +32,9 @@ cptr** dealArg(cptr* argCptr,int num)
 		tmpCptr->type=argCptr->type;
 		tmpCptr->value=argCptr->value;
 		if(argCptr->type==cel)
-			((cell*)argCptr->value)->prev=(cell*)tmpCptr->outer;
+			((cell*)argCptr->value)->prev=tmpCptr->outer;
 		else if(argCptr->type==atm)
-			((atom*)argCptr->value)->prev=(cell*)tmpCptr->outer;
+			((atom*)argCptr->value)->prev=tmpCptr->outer;
 		argCptr->type=nil;
 		argCptr->value=NULL;
 		deleteCptr(beDel);
@@ -67,7 +67,7 @@ void deleteArg(cptr** args,int num)
 int N_quote(cptr* objCptr,env* curEnv)
 {
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&((cell*)objCptr->outer)->cdr,1);
+	cptr** args=dealArg(&objCptr->outer->cdr,1);
 	if(args==NULL)return SYNTAXERROR;
 	replace(objCptr,args[0]);
 	deleteArg(args,1);	
@@ -77,7 +77,7 @@ int N_quote(cptr* objCptr,env* curEnv)
 int N_car(cptr* objCptr,env* curEnv)
 {
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&((cell*)objCptr->outer)->cdr,1);
+	cptr** args=dealArg(&objCptr->outer->cdr,1);
 	if(args==NULL)return SYNTAXERROR;
 	int status=eval(args[0],curEnv);
 	if(status!=0)return status;
@@ -90,7 +90,7 @@ int N_car(cptr* objCptr,env* curEnv)
 int N_cdr(cptr* objCptr,env* curEnv)
 {
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&((cell*)objCptr->outer)->cdr,1);
+	cptr** args=dealArg(&objCptr->outer->cdr,1);
 	if(args==NULL)return SYNTAXERROR;
 	int status=eval(args[0],curEnv);
 	if(status!=0)return status;
@@ -103,14 +103,14 @@ int N_cdr(cptr* objCptr,env* curEnv)
 int N_cons(cptr* objCptr,env* curEnv)
 {
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&((cell*)objCptr->outer)->cdr,2);
+	cptr** args=dealArg(&objCptr->outer->cdr,2);
 	if(args==NULL)return SYNTAXERROR;
 	int status=eval(args[0],curEnv);
 	if(status!=0)return status;
 	status=eval(args[1],curEnv);
 	if(status!=0)return status;
 	objCptr->type=cel;
-	cell* tmpCell=objCptr->value=createCell((cell*)objCptr->outer);
+	cell* tmpCell=objCptr->value=createCell(objCptr->outer);
 	replace(&tmpCell->car,args[0]);
 	replace(&tmpCell->cdr,args[1]);
 	deleteArg(args,2);
@@ -120,7 +120,7 @@ int N_cons(cptr* objCptr,env* curEnv)
 int N_eq(cptr* objCptr,env* curEnv)
 {
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&((cell*)objCptr->outer)->cdr,2);
+	cptr** args=dealArg(&objCptr->outer->cdr,2);
 	if(args==NULL)return SYNTAXERROR;
 	int status=eval(args[0],curEnv);
 	if(status!=0)return SYNTAXERROR;
@@ -143,7 +143,7 @@ int N_eq(cptr* objCptr,env* curEnv)
 int N_atom(cptr* objCptr,env* curEnv)
 {
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&((cell*)objCptr->outer)->cdr,1);
+	cptr** args=dealArg(&objCptr->outer->cdr,1);
 	if(args==NULL)return SYNTAXERROR;
 	int status=eval(args[0],curEnv);
 	if(status!=0)return SYNTAXERROR;
@@ -173,7 +173,7 @@ int N_atom(cptr* objCptr,env* curEnv)
 int N_null(cptr* objCptr,env* curEnv)
 {
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&((cell*)objCptr->outer)->cdr,1);
+	cptr** args=dealArg(&objCptr->outer->cdr,1);
 	if(args==NULL)return SYNTAXERROR;
 	int status=eval(args[0],curEnv);
 	if(status!=0)return SYNTAXERROR;
@@ -248,7 +248,7 @@ int N_cond(cptr* objCptr,env* curEnv)
 int N_define(cptr* objCptr,env* curEnv)
 {
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&((cell*)objCptr->outer)->cdr,2);
+	cptr** args=dealArg(&objCptr->outer->cdr,2);
 	if(args==NULL)return SYNTAXERROR;
 	int status=eval(args[1],curEnv);
 	if(status!=0)return SYNTAXERROR;
@@ -262,13 +262,13 @@ int N_define(cptr* objCptr,env* curEnv)
 int N_lambda(cptr* objCptr,env* curEnv)
 {
 	deleteCptr(objCptr);
-	int expNum=coutArg(&((cell*)objCptr->outer)->cdr);
-	cptr** expression=dealArg(&((cell*)objCptr->outer)->cdr,expNum);
+	int expNum=coutArg(&objCptr->outer->cdr);
+	cptr** expression=dealArg(&objCptr->outer->cdr,expNum);
 	if(expression==NULL)return SYNTAXERROR;
 	int fakeArgNum=coutArg(expression[0]);
 	cptr** fakeArg=dealArg(expression[0],fakeArgNum);
 	if(fakeArg==NULL)return SYNTAXERROR;
-	if(((cell*)objCptr->outer)->prev==NULL)return SYNTAXERROR;
+	if(objCptr->outer->prev==NULL)return SYNTAXERROR;
 	cptr** realArg=dealArg(&objCptr->outer->prev->cdr,fakeArgNum);
 	if(realArg==NULL)return SYNTAXERROR;
 	int i;

@@ -21,6 +21,6 @@ typedef struct Atom
 {
 	cell* prev;
 	enum{sym,num,str} type;
-	void* value;
+	char* value;
 }atom;
 #endif

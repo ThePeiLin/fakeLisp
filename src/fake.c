@@ -674,7 +674,6 @@ int eval(cptr* objCptr,env* curEnv)
 					{
 						reCptr=&objDef->obj;
 						replace(objCptr,reCptr);
-						break;
 					}
 					else return SYMUNDEFINE;
 				}

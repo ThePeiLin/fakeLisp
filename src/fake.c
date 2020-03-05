@@ -56,6 +56,7 @@ char* getListFromFile(FILE* file)
 cptr* createTree(const char* objStr)
 {
 	int i=0;
+	int braketsNum=0;
 	cptr* root=NULL;
 	cell* objCell=NULL;
 	cptr* objCptr;
@@ -64,6 +65,7 @@ cptr* createTree(const char* objStr)
 		if(*(objStr+i)=='(')
 		{
 			i++;
+			braketsNum++;
 			if(root==NULL)
 			{
 				root=createCptr(objCell);
@@ -83,6 +85,7 @@ cptr* createTree(const char* objStr)
 		else if(*(objStr+i)==')')
 		{
 			i++;
+			braketsNum--;
 			cell* prev=NULL;
 			if(objCell==NULL)break;
 			while(objCell->prev!=NULL&&objCell->car.value!=prev)
@@ -152,7 +155,9 @@ cptr* createTree(const char* objStr)
 			objCptr->value=(void*)createAtom(sym,tmp,objCell);
 			i+=strlen(tmp);
 			free(tmp);
+			continue;
 		}
+		if(braketsNum==0)break;
 	}
 	return root;
 }

@@ -7,6 +7,8 @@ typedef struct RawString
 	int len;
 	char * str;
 } rawString;
+char* getListFromFile(FILE*);
+char* getStringFromList(const char*);
 int power(int,int);
 rawString getStringBetweenMarks(const char*);
 void printRawString(const char*,FILE*);

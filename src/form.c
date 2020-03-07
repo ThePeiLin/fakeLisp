@@ -53,6 +53,7 @@ int coutArg(cptr* argCptr)
 	}
 	return num;
 }
+
 void deleteArg(cptr** args,int num)
 {
 	int i;
@@ -296,5 +297,35 @@ int N_lambda(cptr* objCptr,env* curEnv)
 	deleteArg(realArg,fakeArgNum);
 	deleteArg(expression,expNum);
 	destroyEnv(tmpEnv);
+	return 0;
+}
+
+int N_list(cptr* objCptr,env* curEnv)
+{
+	deleteCptr(objCptr);
+	int argNum=coutArg(&objCptr->outer->cdr);
+	cptr** args=dealArg(&objCptr->outer->cdr,argNum);
+	if(args==NULL)return SYNTAXERROR;
+	int i;
+	cptr* result=createCptr(NULL);
+	cptr* tmp=result;
+	for(i=0;i<argNum;i++)
+	{
+		int status=eval(args[i],curEnv);
+		if(status!=0)
+		{
+			deleteArg(args,argNum);
+			deleteCptr(result);
+			return status;
+		}
+		tmp->type=cel;
+		tmp->value=createCell(tmp->outer);
+		cell* tmpCell=tmp->value;
+		replace(&tmpCell->car,args[i]);
+		tmp=&tmpCell->cdr;
+	}
+	replace(objCptr,result);
+	deleteCptr(result);
+	deleteArg(args,argNum);
 	return 0;
 }

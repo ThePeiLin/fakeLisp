@@ -25,8 +25,6 @@ typedef struct NativeFunc//function and form
 }nativeFunc;
 
 defines* findDefine(const char*,env*);
-char* getListFromFile(FILE*);
-char* getStringFromList(const char*);
 cptr* createTree(const char*);
 int addFunc(char*,int (*)(cptr*,env*));
 defines* addDefine(const char*,const cptr*,env*);

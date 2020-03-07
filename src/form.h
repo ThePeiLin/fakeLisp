@@ -12,7 +12,7 @@ int N_cons(cptr*,env*);
 int N_eq(cptr*,env*);
 int N_lambda(cptr*,env*);
 int N_print(cptr*,env*);
-int N_list(cptr*,env);
+int N_list(cptr*,env*);
 int N_let(cptr*,env*);
 int N_atom(cptr*,env*);
 int N_null(cptr*,env*);

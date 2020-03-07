@@ -7,52 +7,6 @@
 static nativeFunc* funAndForm=NULL;
 static env* Glob=NULL;
 
-char* getStringFromList(const char* str)
-{
-	char* tmp=NULL;
-	int len=0;
-	while((*(str+len)!='(')
-			&&(*(str+len)!=')')
-			&&!isspace(*(str+len))
-			&&(*(str+len)!=',')
-			&&(*(str+len)!=0))len++;
-	if(!(tmp=(char*)malloc(sizeof(char)*len+1)))errors(OUTOFMEMORY);
-	memcpy(tmp,str,len);
-	if(tmp!=NULL)*(tmp+len)='\0';
-	return tmp;
-}
-
-char* getListFromFile(FILE* file)
-{
-	char* tmp=NULL;
-	char* before;
-	char ch;
-	int i=0;
-	int j;
-	int braketsNum=0;
-	while((ch=getc(file))!=EOF)
-	{
-		if(ch=='\n'&&braketsNum==0)break;
-		i++;
-		j=i-1;
-		before=tmp;
-		if(!(tmp=(char*)malloc(sizeof(char)*i)))
-			errors(OUTOFMEMORY);
-		memcpy(tmp,before,j);
-		*(tmp+j)=ch;
-		if(before!=NULL)free(before);
-		if(ch=='(')braketsNum++;
-		if(ch==')')braketsNum--;
-		if(isalnum(ch))continue;
-		if(braketsNum==0)break;
-	}
-	if(tmp!=NULL)*(tmp+i)='\0';
-	return tmp;
-}
-
-
-
-
 cptr* createTree(const char* objStr)
 {
 	int i=0;

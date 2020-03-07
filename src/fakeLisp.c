@@ -2,6 +2,7 @@
 #include<stdlib.h>
 #include<string.h>
 #include<ctype.h>
+#include"fakeLisp.h"
 #include"fake.h"
 #include"tool.h"
 #include"form.h"
@@ -17,6 +18,7 @@ int main(int argc,char** argv)
 	addFunc("cond",N_cond);
 	addFunc("define",N_define);
 	addFunc("lambda",N_lambda);
+	addFunc("list",N_list);
 	cptr* begin=NULL;
 	newEnv();
 	while(1)
@@ -28,6 +30,8 @@ int main(int argc,char** argv)
 		ungetc(ch,stdin);
 		char* list=getListFromFile(stdin);
 		begin=createTree(list);
+		free(list);
+		list=NULL;
 		int status=eval(begin,NULL);
 		if(status!=0)return SYNTAXERROR;
 		fputs(";=>",stdout);

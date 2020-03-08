@@ -3,7 +3,7 @@
 #include<stdlib.h>
 #define SYMUNDEFINE 1
 #define SYNTAXERROR 2
-#define FAILRETURN 3
+#define TOOMUCHARGS 3
 typedef struct
 {
 	struct Cell* outer;

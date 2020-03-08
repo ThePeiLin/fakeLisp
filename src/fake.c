@@ -40,6 +40,12 @@ cptr* createTree(const char* objStr)
 		{
 			i++;
 			braketsNum--;
+			if(braketsNum<0)
+			{
+				printf("%s:Syntax error.\n",objStr);
+				if(root!=NULL)deleteCptr(root);
+				return NULL;
+			}
 			cell* prev=NULL;
 			if(objCell==NULL)break;
 			while(objCell->prev!=NULL&&objCell->car.value!=prev)
@@ -242,11 +248,12 @@ int retree(cptr* fir,cptr* sec)
 		return 0;
 	}
 	else
-		return FAILRETURN;
+		return TOOMUCHARGS;
 }
 
 int deleteCptr(cptr* objCptr)
 {
+	if(objCptr==NULL)return 0;
 	cell* tmpCell=(objCptr->type==cel)?objCptr->value:NULL;
 	cell* objCell=tmpCell;
 	cptr* tmpCptr=objCptr;
@@ -318,11 +325,12 @@ cptr* destroyList(cptr* objCptr)
 	free(objCell);
 }
 
-void printList(cptr* objCptr,FILE* out)
+void printList(const cptr* objCptr,FILE* out)
 {
+	if(objCptr==NULL)return;
 	cell* tmpCell=(objCptr->type==cel)?objCptr->value:NULL;
 	cell* objCell=tmpCell;
-	cptr* tmp=objCptr;
+	const cptr* tmp=objCptr;
 	while(tmp!=NULL)
 	{
 		if(tmp->type==cel)
@@ -585,6 +593,7 @@ void replace(cptr* fir,const cptr* sec)
 
 int eval(cptr* objCptr,env* curEnv)
 {
+	if(objCptr==NULL)return SYNTAXERROR;
 	curEnv=(curEnv==NULL)?Glob:curEnv;
 	cptr* tmpCptr=objCptr;
 	while(objCptr->type!=nil)
@@ -606,7 +615,11 @@ int eval(cptr* objCptr,env* curEnv)
 					replace(objCptr,reCptr);
 					break;
 				}
-				else return SYMUNDEFINE;
+				else
+				{
+					exError(objCptr,SYMUNDEFINE);
+					return SYMUNDEFINE;
+				}
 			}
 			else
 			{
@@ -629,7 +642,11 @@ int eval(cptr* objCptr,env* curEnv)
 						reCptr=&objDef->obj;
 						replace(objCptr,reCptr);
 					}
-					else return SYMUNDEFINE;
+					else 
+					{
+						exError(objCptr,SYMUNDEFINE);
+						return SYMUNDEFINE;
+					}
 				}
 				if(objCptr->outer->cdr.type!=cel)break;
 			}
@@ -638,4 +655,15 @@ int eval(cptr* objCptr,env* curEnv)
 		else if(objCptr->type==nil)break;
 	}
 	return retree(objCptr,tmpCptr);
+}
+
+void exError(const cptr* obj,int type)
+{
+	printList(obj,stdout);
+	switch(type)
+	{
+		case SYMUNDEFINE:printf(":Symbol is undefined.\n");break;
+		case SYNTAXERROR:printf(":Syntax error.\n");break;
+		case TOOMUCHARGS:printf(":Too much args.\n");break;
+	}
 }

@@ -31,7 +31,7 @@ defines* addDefine(const char*,const cptr*,env*);
 void callFunc(cptr*,env*);
 int (*(findFunc(const char*)))(cptr*,env*);
 int retree(cptr*,cptr*);
-void printList(cptr*,FILE*);
+void printList(const cptr*,FILE*);
 cell* createCell(cell*);
 cptr* createCptr();
 atom* createAtom(int type,const char*,cell*);
@@ -43,4 +43,5 @@ void destroyEnv(env*);
 void replace(cptr*,const cptr*);
 int eval(cptr*,env*);
 int cptrcmp(cptr*,cptr*);
+static void exError(const cptr*,int);
 #endif

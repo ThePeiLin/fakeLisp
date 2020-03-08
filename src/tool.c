@@ -14,7 +14,7 @@ char* getListFromFile(FILE* file)
 	int braketsNum=0;
 	while((ch=getc(file))!=EOF)
 	{
-		if(ch=='\n'&&braketsNum==0)break;
+		if(ch=='\n'&&braketsNum<=0)break;
 		i++;
 		j=i-1;
 		before=tmp;
@@ -26,7 +26,7 @@ char* getListFromFile(FILE* file)
 		if(ch=='(')braketsNum++;
 		if(ch==')')braketsNum--;
 		if(isalnum(ch))continue;
-		if(braketsNum==0)break;
+		if(braketsNum<=0)break;
 	}
 	if(tmp!=NULL)*(tmp+i)='\0';
 	return tmp;

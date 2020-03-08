@@ -32,8 +32,7 @@ int main(int argc,char** argv)
 		begin=createTree(list);
 		free(list);
 		list=NULL;
-		int status=eval(begin,NULL);
-		if(status!=0)return SYNTAXERROR;
+		eval(begin,NULL);
 		fputs(";=>",stdout);
 		printList(begin,stdout);
 		putchar('\n');

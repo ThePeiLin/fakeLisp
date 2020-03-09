@@ -11,7 +11,6 @@ typedef struct Pattern
 
 typedef struct Macro
 {
-	char* name;
 	pattern* term;
 	struct macro* next;
 }macro;
@@ -19,5 +18,6 @@ typedef struct Macro
 int macroMatch(cptr*);
 cptr* macroExpand(cptr*);
 macro* findMacro(const char*);
-macro* createMacro(const char*,cptr*);
+macro* createMacro(cptr*,cptr*);
+int addMacro(macro*);
 #endif

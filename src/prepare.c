@@ -2,9 +2,11 @@
 #include"fake.h"
 static macro* Head=NULL;
 static masym* First=NULL;
-int macroMatch(cptr* objCptr)
+macro* macroMatch(cptr* objCptr)
 {
-	
+	macro* current=Head;
+	while(current!=NULL&&!fmatcmp(objCptr,current->format))current=current->next;
+	return current;
 }
 
 int addMacro(cptr* format,cptr* express)
@@ -62,6 +64,7 @@ int fmatcmp(cptr* origin,cptr* format)
 				continue;
 			}
 		}
+		else if(origin->type!=format->type)return 0;
 		else if(oriCell!=NULL&&origin==&origin->cdr)
 		{
 			cell* oriPrev=NULL;

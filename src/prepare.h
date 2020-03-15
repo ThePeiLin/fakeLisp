@@ -2,22 +2,23 @@
 #define PREPARE_H
 #include"fakedef.h"
 
-typedef struct Pattern
+typedef struct Macro
 {
 	cptr* format;
 	cptr* express;
-	struct Matching* next;
-}pattern;
-
-typedef struct Macro
-{
-	pattern* term;
 	struct macro* next;
 }macro;
 
+typedef struct MacroSym
+{
+	char* symName;
+	int (*Func)(cptr*);
+	struct MacroSym* next;
+}masym;
+
 int macroMatch(cptr*);
 cptr* macroExpand(cptr*);
-macro* findMacro(const char*);
 macro* createMacro(cptr*,cptr*);
 int addMacro(macro*);
+masym* findMasym(const char*)
 #endif

@@ -17,7 +17,7 @@ typedef struct MacroSym
 }masym;
 
 macro* macroMatch(cptr*);
-cptr* macroExpand(cptr*);
+int macroExpand(cptr*);
 macro* createMacro(cptr*,cptr*);
 int addMacro(macro*);
 masym* findMasym(const char*);

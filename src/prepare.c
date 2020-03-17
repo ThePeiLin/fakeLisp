@@ -2,6 +2,7 @@
 #include"fake.h"
 static macro* Head=NULL;
 static masym* First=NULL;
+static env* macroEnv=NULL;
 macro* macroMatch(cptr* objCptr)
 {
 	macro* current=Head;
@@ -89,4 +90,20 @@ int fmatcmp(cptr* origin,cptr* format)
 		if(oriCell==NULL&&forCell==NULL)break;
 	}
 	return 1;
+}
+
+int macroExpand(cptr* objCptr)
+{
+	macro* tmp=macroMatch(objCptr);
+	if(tmp!=NULL)
+	{
+		cptr* tmpCptr=createCptr(NULL);
+		copyCptr(tmpCptr,tmp->express);
+		eval(tmpCptr,MacroEnv);
+		deleteCptr(objCptr);
+		replace(objCptr,tmpCptr);
+		deleteCptr(tmpCptr);
+		free(tmpCptr);
+	}
+	return 0;
 }

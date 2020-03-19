@@ -68,7 +68,7 @@ cptr* createTree(const char* objStr)
 			int j=0;
 			char* tmpStr=(char*)objStr+i;
 			while(isspace(*(tmpStr+j)))j--;
-			if(*(tmpStr+j)==',')
+			if(*(tmpStr+j)==','||*(tmpStr+j)=='(')
 			{
 				j=1;
 				while(isspace(*(tmpStr+j)))j++;

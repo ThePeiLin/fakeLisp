@@ -38,7 +38,7 @@ atom* createAtom(int type,const char*,cell*);
 int copyList(cptr*,const cptr*);
 int distoryList(cptr*);
 int deleteCptr(cptr*);
-env* newEnv();
+env* newEnv(env*);
 void destroyEnv(env*);
 void replace(cptr*,const cptr*);
 int eval(cptr*,env*);

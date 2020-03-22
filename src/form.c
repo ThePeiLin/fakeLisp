@@ -278,7 +278,7 @@ int N_lambda(cptr* objCptr,env* curEnv)
 		int status=eval(realArg[i],curEnv);
 		if(status!=0)return status;
 	}
-	env* tmpEnv=newEnv();
+	env* tmpEnv=newEnv(curEnv);
 	for(i=0;i<fakeArgNum;i++)
 	{
 		atom* tmpAtm=NULL;

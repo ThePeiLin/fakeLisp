@@ -2,7 +2,7 @@
 #include"fake.h"
 static macro* Head=NULL;
 static masym* First=NULL;
-static env* macroEnv=NULL;
+static env* MacroEnv=NULL;
 macro* macroMatch(cptr* objCptr)
 {
 	macro* current=Head;
@@ -38,6 +38,7 @@ masym* findMasym(const char* name)
 
 int fmatcmp(cptr* origin,cptr* format)
 {
+	MacroEnv=newEnv(NULL);
 	cell* tmpCell=(format->type==cel)?format->value:NULL;
 	cell* forCell=tmpCell;
 	cell* oriCell=(origin->type==cell)?origin:NULL;
@@ -56,8 +57,17 @@ int fmatcmp(cptr* origin,cptr* format)
 			atom* tmpAtm=format->value;
 			masym* tmpSym=findMasym(tmpAtm->value);
 			if(tmpSym==NULL)
-				if(!cptrcmp(origin,format))return 0;
-			if(!tmpSym->Func(origin))return 0;
+				if(!cptrcmp(origin,format))
+				{
+					destroyEnv(MacroEnv);
+					return 0;
+				}
+			if(!tmpSym->Func(origin))
+			{
+				destroyEnv(MacroEnv);
+				MacorEnv=NULL;
+				return 0;
+			}
 			if(oriCell!=NULL&&origin==&oriCell->car)
 			{
 				origin=&oriCell->cdr;
@@ -65,7 +75,12 @@ int fmatcmp(cptr* origin,cptr* format)
 				continue;
 			}
 		}
-		else if(origin->type!=format->type)return 0;
+		else if(origin->type!=format->type)
+		{
+			destroyEnv(MacroEnv);
+			MacroEnv=NULL;
+			return 0;
+		}
 		else if(oriCell!=NULL&&origin==&origin->cdr)
 		{
 			cell* oriPrev=NULL;
@@ -104,6 +119,48 @@ int macroExpand(cptr* objCptr)
 		replace(objCptr,tmpCptr);
 		deleteCptr(tmpCptr);
 		free(tmpCptr);
+	}
+	return 0;
+}
+
+int M_ATOM(cptr* objCptr)
+{
+	static int count=0;
+	if(objCptr->type==atm)
+	{
+		char* num;
+		char* symName;
+		if(!(num=(char*)malloc((sizeof(int)*2)+1)))errors(OUTOFMEMORY);
+		sprintf(num,"%x",count);
+		if(!(symName=(char*)malloc(strlen("ATOM")+strlen(num)+1)))errors(OUTOFMEMORY);
+		strcpy(symName,"ATOM");
+		strcat(symName,num);
+		addDefine(symName,objCptr,MacroEnv);
+		free(symName);
+		free(num);
+		count++;
+		return 1;
+	}
+	return 0;
+}
+
+int M_CELL(cptr* objCptr)
+{
+	static int count=0;
+	if(objCptr->type==cel)
+	{
+		char* num;
+		char* symName;
+		if(!(num=(char*)malloc((sizeof(int)*2)+1)))errors(OUTOFMEMORY);
+		sprintf(num,"%x",count);
+		if(!(symName=(char*)malloc(strlen("CELL")+strlen(num)+1)))errors(OUTOFMEMORY);
+		strcpy(symName,"CELL");
+		strcat(symName,num);
+		addDefine(symName,objCptr,MacroEnv);
+		free(symName);
+		free(num);
+		count++;
+		return 1;
 	}
 	return 0;
 }

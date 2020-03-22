@@ -20,7 +20,6 @@ int main(int argc,char** argv)
 	addFunc("lambda",N_lambda);
 	addFunc("list",N_list);
 	cptr* begin=NULL;
-	newEnv();
 	while(1)
 	{
 		printf(">>>");

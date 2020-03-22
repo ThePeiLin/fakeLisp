@@ -22,4 +22,6 @@ macro* createMacro(cptr*,cptr*);
 int addMacro(macro*);
 masym* findMasym(const char*);
 int fmatcmp(cptr*,cptr*);
+int M_ATOM(cptr*);
+int M_CELL(cptr*);
 #endif

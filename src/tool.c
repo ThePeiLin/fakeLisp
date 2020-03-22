@@ -229,6 +229,7 @@ void errors(int types)
 	{
 		"dummy",
 		"Out of memory!\n",
+		"Wrong environment!\n",
 	};
 	fprintf(stderr,"error:%s",inform[types]);
 	exit(1);

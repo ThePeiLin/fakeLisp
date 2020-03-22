@@ -2,6 +2,7 @@
 #define TOOL_H
 #include"fakedef.h"
 #define OUTOFMEMORY 1
+#define WRONGENV 2
 typedef struct RawString
 {
 	int len;

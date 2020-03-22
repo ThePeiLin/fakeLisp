@@ -471,20 +471,19 @@ int copyList(cptr* objCptr,const cptr* copiedCptr)
 
 defines* addDefine(const char* symName,const cptr* objCptr,env* curEnv)
 {
-	env* current=(curEnv==NULL)?Glob:curEnv;
-	if(current==NULL)current=newEnv();
-	if(current->symbols==NULL)
+	if(curEnv==NULL)errors(WRONGENV);
+	if(curEnv->symbols==NULL)
 	{
-		if(!(current->symbols=(defines*)malloc(sizeof(defines))))errors(OUTOFMEMORY);
-		if(!(current->symbols->symName=(char*)malloc(sizeof(char)*(strlen(symName)+1))))errors(OUTOFMEMORY);
-		memcpy(current->symbols->symName,symName,strlen(symName)+1);
-		replace(&current->symbols->obj,objCptr);
-		current->symbols->next=NULL;
-		return current->symbols;
+		if(!(curEnv->symbols=(defines*)malloc(sizeof(defines))))errors(OUTOFMEMORY);
+		if(!(curEnv->symbols->symName=(char*)malloc(sizeof(char)*(strlen(symName)+1))))errors(OUTOFMEMORY);
+		memcpy(curEnv->symbols->symName,symName,strlen(symName)+1);
+		replace(&curEnv->symbols->obj,objCptr);
+		curEnv->symbols->next=NULL;
+		return curEnv->symbols;
 	}
 	else
 	{
-		defines* curSym=findDefine(symName,current);
+		defines* curSym=findDefine(symName,curEnv);
 		if(curSym==NULL)
 		{
 			defines* prev=NULL;
@@ -505,29 +504,13 @@ defines* addDefine(const char* symName,const cptr* objCptr,env* curEnv)
 	}
 }
 
-env* newEnv()
+env* newEnv(env* prev)
 {
-	if(Glob==NULL)
-	{
-		Glob=(env*)malloc(sizeof(env));
-		Glob->prev=NULL;
-		Glob->symbols=NULL;
-		Glob->next=NULL;
-		return Glob;
-	}
-	else
-	{
-		env* current=Glob;
-		env* prev=NULL;
-		while(current->next)current->next;
-		prev=current;
-		if(!(current=(env*)malloc(sizeof(env))))
-			errors(OUTOFMEMORY);
-		current->prev=prev;
-		current->symbols=NULL;
-		current->next=NULL;
-		return current;
-	}
+	env* curEnv=NULL;
+	if(!(curEnv=(env*)malloc(sizeof(env))))errors(OUTOFMEMORY);
+	curEnv->prev=prev;
+	if(prev!=NULL)prev->next=curEnv;
+	return curEnv;
 }
 
 void destroyEnv(env* objEnv)
@@ -593,6 +576,7 @@ void replace(cptr* fir,const cptr* sec)
 
 int eval(cptr* objCptr,env* curEnv)
 {
+	curEnv=(curEnv==NULL)?(Glob=(Glob==NULL)?newEnv(NULL):Glob):curEnv;
 	if(objCptr==NULL)return SYNTAXERROR;
 	curEnv=(curEnv==NULL)?Glob:curEnv;
 	cptr* tmpCptr=objCptr;

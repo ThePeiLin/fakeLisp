@@ -20,4 +20,5 @@ int N_cond(cptr*,env*);
 int N_define(cptr*,env*);
 int N_defmacro(cptr*,env*);
 int N_exit(cptr*,env*);
+int N_defmacro(cptr*,env*);
 #endif

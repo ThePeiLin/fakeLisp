@@ -1,5 +1,7 @@
-#include"prepare.h"
+#include"pretreatment.h"
 #include"fake.h"
+#include"tool.h"
+#include<string.h>
 static macro* Head=NULL;
 static masym* First=NULL;
 static env* MacroEnv=NULL;
@@ -41,7 +43,7 @@ int fmatcmp(cptr* origin,cptr* format)
 	MacroEnv=newEnv(NULL);
 	cell* tmpCell=(format->type==cel)?format->value:NULL;
 	cell* forCell=tmpCell;
-	cell* oriCell=(origin->type==cell)?origin:NULL;
+	cell* oriCell=(origin->type==cel)?origin->value:NULL;
 	while(origin!=NULL)
 	{
 		if(format->type==cel&&origin->type==cel)
@@ -65,7 +67,7 @@ int fmatcmp(cptr* origin,cptr* format)
 			if(!tmpSym->Func(origin))
 			{
 				destroyEnv(MacroEnv);
-				MacorEnv=NULL;
+				MacroEnv=NULL;
 				return 0;
 			}
 			if(oriCell!=NULL&&origin==&oriCell->car)
@@ -81,7 +83,7 @@ int fmatcmp(cptr* origin,cptr* format)
 			MacroEnv=NULL;
 			return 0;
 		}
-		else if(oriCell!=NULL&&origin==&origin->cdr)
+		else if(oriCell!=NULL&&origin==&oriCell->cdr)
 		{
 			cell* oriPrev=NULL;
 			cell* forPrev=NULL;
@@ -100,7 +102,7 @@ int fmatcmp(cptr* origin,cptr* format)
 				format=&forCell->cdr;
 				continue;
 			}
-			if(forCell==tmpCell&&oriCell=&oriCell-cdr)break;
+			if(forCell==tmpCell)break;
 		}
 		if(oriCell==NULL&&forCell==NULL)break;
 	}

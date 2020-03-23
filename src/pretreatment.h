@@ -6,7 +6,7 @@ typedef struct Macro
 {
 	cptr* format;
 	cptr* express;
-	struct macro* next;
+	struct Macro* next;
 }macro;
 
 typedef struct MacroSym
@@ -18,8 +18,7 @@ typedef struct MacroSym
 
 macro* macroMatch(cptr*);
 int macroExpand(cptr*);
-macro* createMacro(cptr*,cptr*);
-int addMacro(macro*);
+int addMacro(cptr*,cptr*);
 masym* findMasym(const char*);
 int fmatcmp(cptr*,cptr*);
 int M_ATOM(cptr*);

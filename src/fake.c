@@ -397,7 +397,7 @@ cell* createCell(cell* prev)
 	else errors(OUTOFMEMORY);
 }
 
-int copyList(cptr* objCptr,const cptr* copiedCptr)
+int copyCptr(cptr* objCptr,const cptr* copiedCptr)
 {
 	if(copiedCptr==NULL||objCptr==NULL)return 0;
 	cell* objCell=NULL;
@@ -486,16 +486,11 @@ defines* addDefine(const char* symName,const cptr* objCptr,env* curEnv)
 		defines* curSym=findDefine(symName,curEnv);
 		if(curSym==NULL)
 		{
-			defines* prev=NULL;
-			curSym=curEnv->symbols;
-			while(curSym->next!=NULL)
-				curSym=curSym->next;
-			prev=curSym;
 			if(!(curSym=(defines*)malloc(sizeof(defines))))errors(OUTOFMEMORY);
 			if(!(curSym->symName=(char*)malloc(sizeof(char)*(strlen(symName)+1))))errors(OUTOFMEMORY);
 			memcpy(curSym->symName,symName,strlen(symName)+1);
-			prev->next=curSym;
-			curSym->next=NULL;
+			curSym->next=curEnv->symbols;
+			curEnv->symbols=curSym;
 			replace(&curSym->obj,objCptr);
 		}
 		else
@@ -509,13 +504,12 @@ env* newEnv(env* prev)
 	env* curEnv=NULL;
 	if(!(curEnv=(env*)malloc(sizeof(env))))errors(OUTOFMEMORY);
 	curEnv->prev=prev;
-	if(prev!=NULL)prev->next=curEnv;
 	return curEnv;
 }
 
 void destroyEnv(env* objEnv)
 {
-	objEnv=(objEnv==NULL)?Glob:objEnv;
+	if(objEnv==NULL)errors(WRONGENV);
 	defines* delsym=objEnv->symbols;
 	while(delsym!=NULL)
 	{
@@ -525,7 +519,6 @@ void destroyEnv(env* objEnv)
 		delsym=delsym->next;
 		free(prev);
 	}
-	objEnv->prev->next=NULL;
 	free(objEnv);
 }
 
@@ -569,7 +562,7 @@ void replace(cptr* fir,const cptr* sec)
 {
 	cell* tmp=fir->outer;
 	deleteCptr(fir);
-	copyList(fir,sec);
+	copyCptr(fir,sec);
 	if(fir->type==cel)((cell*)fir->value)->prev=tmp;
 	else if(fir->type==atm)((atom*)fir->value)->prev=tmp;
 }
@@ -612,7 +605,7 @@ int eval(cptr* objCptr,env* curEnv)
 				if(pfun!=NULL)
 				{
 					int status=pfun(objCptr,curEnv);
-					if(status!=0)return status;
+					if(status!=0)exError(objCptr,status);
 				}
 				else
 				{

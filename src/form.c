@@ -1,5 +1,6 @@
 #include<stdlib.h>
 #include"form.h"
+#include"pretreatment.h"
 
 cptr** dealArg(cptr* argCptr,int num)
 {
@@ -9,10 +10,8 @@ cptr** dealArg(cptr* argCptr,int num)
 	int i;
 	for(i=0;i<num;i++)
 	{
-		if(argCptr->type==nil)
+		if(argCptr->type==nil||argCptr->type==atm)
 			args[i]=createCptr(NULL);
-		else if(argCptr->type==atm)
-			return NULL;
 		else
 		{
 			args[i]=createCptr(NULL);
@@ -327,5 +326,29 @@ int N_list(cptr* objCptr,env* curEnv)
 	replace(objCptr,result);
 	deleteCptr(result);
 	deleteArg(args,argNum);
+	return 0;
+}
+
+int N_defmacro(cptr* objCptr,env* curEnv)
+{
+	deleteCptr(objCptr);
+	int argNum=coutArg(&objCptr->outer->cdr);
+	cptr** args=dealArg(&objCptr->outer->cdr,argNum);
+	if(args==NULL)return SYNTAXERROR;
+	int i;
+	for(i=0;i<argNum;i++)
+	{
+		if(args[i]->type!=cel)return SYNTAXERROR;
+		if(coutArg(args[i])!=2)return SYNTAXERROR;
+		cptr** condition=dealArg(args[i],2);
+		if(condition==NULL)return SYNTAXERROR;
+		cptr* pattern=condition[0];
+		cptr* express=condition[1];
+		addMacro(pattern,express);
+		deleteArg(condition,2);
+	}
+	deleteArg(args,argNum);
+	objCptr->type=nil;
+	objCptr->value=NULL;
 	return 0;
 }

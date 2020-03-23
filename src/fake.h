@@ -14,7 +14,6 @@ typedef struct Env
 {
 	struct Env* prev;
 	defines* symbols;
-	struct Env* next;
 }env;
 
 typedef struct NativeFunc//function and form
@@ -35,7 +34,7 @@ void printList(const cptr*,FILE*);
 cell* createCell(cell*);
 cptr* createCptr();
 atom* createAtom(int type,const char*,cell*);
-int copyList(cptr*,const cptr*);
+int copyCptr(cptr*,const cptr*);
 int distoryList(cptr*);
 int deleteCptr(cptr*);
 env* newEnv(env*);

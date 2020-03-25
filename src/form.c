@@ -47,7 +47,8 @@ int coutArg(cptr* argCptr)
 	int num=0;
 	while(argCptr->type==cel)
 	{
-		num++;
+		cptr* tmp=&((cell*)argCptr->value)->car;
+		if(tmp->type!=nil)num++;
 		argCptr=&((cell*)argCptr->value)->cdr;
 	}
 	return num;
@@ -262,30 +263,34 @@ int N_define(cptr* objCptr,env* curEnv)
 int N_lambda(cptr* objCptr,env* curEnv)
 {
 	deleteCptr(objCptr);
+	if(objCptr->outer->prev==NULL)return SYNTAXERROR;
+	env* tmpEnv=newEnv(curEnv);
+	int i;
 	int expNum=coutArg(&objCptr->outer->cdr);
 	cptr** expression=dealArg(&objCptr->outer->cdr,expNum);
 	if(expression==NULL)return SYNTAXERROR;
 	int fakeArgNum=coutArg(expression[0]);
-	cptr** fakeArg=dealArg(expression[0],fakeArgNum);
-	if(fakeArg==NULL)return SYNTAXERROR;
-	if(objCptr->outer->prev==NULL)return SYNTAXERROR;
-	cptr** realArg=dealArg(&objCptr->outer->prev->cdr,fakeArgNum);
-	if(realArg==NULL)return SYNTAXERROR;
-	int i;
-	for(i=0;i<fakeArgNum;i++)
+	if(fakeArgNum!=0)
 	{
-		int status=eval(realArg[i],curEnv);
-		if(status!=0)return status;
-	}
-	env* tmpEnv=newEnv(curEnv);
-	for(i=0;i<fakeArgNum;i++)
-	{
-		atom* tmpAtm=NULL;
-		if(fakeArg[i]->type==atm)
-			tmpAtm=fakeArg[i]->value;
-		else
-			return SYNTAXERROR;
-		addDefine(tmpAtm->value,realArg[i],tmpEnv);
+		cptr** fakeArg=dealArg(expression[0],fakeArgNum);
+		if(fakeArg==NULL)return SYNTAXERROR;
+		cptr** realArg=dealArg(&objCptr->outer->prev->cdr,fakeArgNum);
+		if(realArg==NULL)return SYNTAXERROR;
+		for(i=0;i<fakeArgNum;i++)
+		{
+			int status=eval(realArg[i],curEnv);
+			if(status!=0)return status;
+		}
+		for(i=0;i<fakeArgNum;i++)
+		{
+			atom* tmpAtm=NULL;
+			if(fakeArg[i]->type==atm)
+				tmpAtm=fakeArg[i]->value;
+			else
+				return SYNTAXERROR;
+			addDefine(tmpAtm->value,realArg[i],tmpEnv);
+		}
+		deleteArg(realArg,fakeArgNum);
 	}
 	for(i=1;i<expNum;i++)
 	{
@@ -293,7 +298,6 @@ int N_lambda(cptr* objCptr,env* curEnv)
 		if(status!=0)return status;
 	}
 	replace(objCptr,expression[expNum-1]);
-	deleteArg(realArg,fakeArgNum);
 	deleteArg(expression,expNum);
 	destroyEnv(tmpEnv);
 	return 0;

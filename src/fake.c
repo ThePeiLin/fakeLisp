@@ -3,6 +3,7 @@
 #include<ctype.h>
 #include"fake.h"
 #include"tool.h"
+#include"pretreatment.h"
 
 static nativeFunc* funAndForm=NULL;
 static env* Glob=NULL;
@@ -48,10 +49,11 @@ cptr* createTree(const char* objStr)
 			}
 			cell* prev=NULL;
 			if(objCell==NULL)break;
-			while(objCell->prev!=NULL&&objCell->car.value!=prev)
+			while(objCell->prev!=NULL)
 			{
 				prev=objCell;
 				objCell=objCell->prev;
+				if(objCell->car.value==prev)break;
 			}
 			if(objCell->car.value==prev)
 				objCptr=&objCell->car;
@@ -218,7 +220,6 @@ int cptrcmp(cptr* first,cptr* second)
 			{
 				first=&firCell->cdr;
 				second=&secCell->cdr;
-				continue;
 			}
 			if(firCell==tmpCell&&first==&firCell->cdr)break;
 		}
@@ -628,7 +629,11 @@ int eval(cptr* objCptr,env* curEnv)
 				if(objCptr->outer->cdr.type!=cel)break;
 			}
 		}
-		else if(objCptr->type==cel)objCptr=&(((cell*)objCptr->value)->car);
+		else if(objCptr->type==cel)
+		{
+			macroExpand(objCptr);
+			objCptr=&(((cell*)objCptr->value)->car);
+		}
 		else if(objCptr->type==nil)break;
 	}
 	return retree(objCptr,tmpCptr);

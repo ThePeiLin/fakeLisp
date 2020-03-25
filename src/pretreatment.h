@@ -21,6 +21,9 @@ int macroExpand(cptr*);
 int addMacro(cptr*,cptr*);
 masym* findMasym(const char*);
 int fmatcmp(cptr*,cptr*);
+void addRule(const char*,int (*)(cptr*));
 int M_ATOM(cptr*);
 int M_CELL(cptr*);
+void initPretreatment();
+static void clearCount();
 #endif

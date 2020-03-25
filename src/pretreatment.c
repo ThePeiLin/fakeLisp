@@ -34,7 +34,7 @@ int addMacro(cptr* format,cptr* express)
 masym* findMasym(const char* name)
 {
 	masym* current=First;
-	while(current!=NULL&&!strcmp(current->symName,name))current=current->next;
+	while(current!=NULL&&strcmp(current->symName,name))current=current->next;
 	return current;
 }
 
@@ -46,7 +46,14 @@ int fmatcmp(cptr* origin,cptr* format)
 	cell* oriCell=(origin->type==cel)?origin->value:NULL;
 	while(origin!=NULL)
 	{
-		if(format->type==cel&&origin->type==cel)
+		if(origin->type!=format->type)
+		{
+			destroyEnv(MacroEnv);
+			MacroEnv=NULL;
+			clearCount();
+			return 0;
+		}
+		else if(format->type==cel&&origin->type==cel)
 		{
 			forCell=format->value;
 			oriCell=origin->value;
@@ -54,21 +61,29 @@ int fmatcmp(cptr* origin,cptr* format)
 			origin=&oriCell->car;
 			continue;
 		}
-		else if(format->type==atm)
+		else if(format->type==atm||format->type==nil)
 		{
-			atom* tmpAtm=format->value;
-			masym* tmpSym=findMasym(tmpAtm->value);
-			if(tmpSym==NULL)
-				if(!cptrcmp(origin,format))
+			if(format->type==atm)
+			{
+				atom* tmpAtm=format->value;
+				masym* tmpSym=findMasym(tmpAtm->value);
+				if(tmpSym==NULL)
+				{
+					if(!cptrcmp(origin,format))
+					{
+						destroyEnv(MacroEnv);
+						MacroEnv=NULL;
+						clearCount();
+						return 0;
+					}
+				}
+				else if(!tmpSym->Func(origin))
 				{
 					destroyEnv(MacroEnv);
+					MacroEnv=NULL;
+					clearCount();
 					return 0;
 				}
-			if(!tmpSym->Func(origin))
-			{
-				destroyEnv(MacroEnv);
-				MacroEnv=NULL;
-				return 0;
 			}
 			if(oriCell!=NULL&&origin==&oriCell->car)
 			{
@@ -77,11 +92,11 @@ int fmatcmp(cptr* origin,cptr* format)
 				continue;
 			}
 		}
-		else if(origin->type!=format->type)
+		if(oriCell!=NULL&&origin==&oriCell->car)
 		{
-			destroyEnv(MacroEnv);
-			MacroEnv=NULL;
-			return 0;
+			origin=&oriCell->cdr;
+			format=&forCell->cdr;
+			continue;
 		}
 		else if(oriCell!=NULL&&origin==&oriCell->cdr)
 		{
@@ -100,12 +115,12 @@ int fmatcmp(cptr* origin,cptr* format)
 			{
 				origin=&oriCell->cdr;
 				format=&forCell->cdr;
-				continue;
 			}
-			if(forCell==tmpCell)break;
+			if(forCell==tmpCell&&format==&forCell->cdr)break;
 		}
 		if(oriCell==NULL&&forCell==NULL)break;
 	}
+	clearCount();
 	return 1;
 }
 
@@ -125,17 +140,36 @@ int macroExpand(cptr* objCptr)
 	return 0;
 }
 
+void initPretreatment()
+{
+	addRule("ATOM",M_ATOM);
+	addRule("CELL",M_CELL);
+	MacroEnv=newEnv(NULL);
+	
+}
+void addRule(const char* name,int (*obj)(cptr*))
+{
+	masym* current=NULL;
+	if(!(current=(masym*)malloc(sizeof(masym))))errors(OUTOFMEMORY);
+	if(!(current->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY);
+	current->next=First;
+	First=current;
+	strcpy(current->symName,name);
+	current->Func=obj;
+}
+
 int M_ATOM(cptr* objCptr)
 {
-	static int count=0;
-	if(objCptr->type==atm)
+	static int count;
+	if(objCptr==NULL)count=0;
+	else if(objCptr->type==atm)
 	{
 		char* num;
 		char* symName;
 		if(!(num=(char*)malloc((sizeof(int)*2)+1)))errors(OUTOFMEMORY);
 		sprintf(num,"%x",count);
-		if(!(symName=(char*)malloc(strlen("ATOM")+strlen(num)+1)))errors(OUTOFMEMORY);
-		strcpy(symName,"ATOM");
+		if(!(symName=(char*)malloc(strlen("ATOM#")+strlen(num)+1)))errors(OUTOFMEMORY);
+		strcpy(symName,"ATOM#");
 		strcat(symName,num);
 		addDefine(symName,objCptr,MacroEnv);
 		free(symName);
@@ -148,15 +182,16 @@ int M_ATOM(cptr* objCptr)
 
 int M_CELL(cptr* objCptr)
 {
-	static int count=0;
-	if(objCptr->type==cel)
+	static int count;
+	if(objCptr==NULL)count=0;
+	else if(objCptr->type==cel)
 	{
 		char* num;
 		char* symName;
 		if(!(num=(char*)malloc((sizeof(int)*2)+1)))errors(OUTOFMEMORY);
 		sprintf(num,"%x",count);
-		if(!(symName=(char*)malloc(strlen("CELL")+strlen(num)+1)))errors(OUTOFMEMORY);
-		strcpy(symName,"CELL");
+		if(!(symName=(char*)malloc(strlen("CELL#")+strlen(num)+1)))errors(OUTOFMEMORY);
+		strcpy(symName,"CELL#");
 		strcat(symName,num);
 		addDefine(symName,objCptr,MacroEnv);
 		free(symName);
@@ -165,4 +200,14 @@ int M_CELL(cptr* objCptr)
 		return 1;
 	}
 	return 0;
+}
+
+void clearCount()
+{
+	masym* current=First;
+	while(current!=NULL)
+	{
+		current->Func(NULL);
+		current=current->next;
+	}
 }

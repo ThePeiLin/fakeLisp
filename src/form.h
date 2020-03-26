@@ -5,6 +5,7 @@
 static cptr** dealArg(cptr*,int);
 static int coutArg(cptr*);
 static void deleteArg(cptr**,int);
+static int isNil(cptr*);
 int N_quote(cptr*,env*);
 int N_car(cptr*,env*);
 int N_cdr(cptr*,env*);
@@ -16,6 +17,9 @@ int N_list(cptr*,env*);
 int N_let(cptr*,env*);
 int N_atom(cptr*,env*);
 int N_null(cptr*,env*);
+int N_and(cptr*,env*);
+int N_or(cptr*,env*);
+int N_not(cptr*,env*);
 int N_cond(cptr*,env*);
 int N_define(cptr*,env*);
 int N_defmacro(cptr*,env*);

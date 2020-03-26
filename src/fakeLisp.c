@@ -51,6 +51,9 @@ void initEvalution()
 	addFunc("atom",N_atom);
 	addFunc("null",N_null);
 	addFunc("cond",N_cond);
+	addFunc("and",N_and);
+	addFunc("or",N_or);
+	addFunc("not",N_not);
 	addFunc("define",N_define);
 	addFunc("lambda",N_lambda);
 	addFunc("list",N_list);

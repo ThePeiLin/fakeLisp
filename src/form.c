@@ -65,6 +65,17 @@ void deleteArg(cptr** args,int num)
 	free(args);
 }
 
+int isNil(cptr* objCptr)
+{
+	if(objCptr->type==nil)return 1;
+	else if(objCptr->type==cel)
+	{
+		cell* tmpCell=objCptr->value;
+		if(tmpCell->car.type==nil&&tmpCell->cdr.type==nil)return 1;
+	}
+	return 0;
+}
+
 int N_quote(cptr* objCptr,env* curEnv)
 {
 	deleteCptr(objCptr);
@@ -155,7 +166,7 @@ int N_atom(cptr* objCptr,env* curEnv)
 	}
 	else
 	{
-		cell* tmpCell=objCptr->value;
+		cell* tmpCell=args[0]->value;
 		if(tmpCell->car.type==nil&&tmpCell->cdr.type==nil)
 		{
 			objCptr->type=atm;
@@ -177,7 +188,7 @@ int N_null(cptr* objCptr,env* curEnv)
 	cptr** args=dealArg(&objCptr->outer->cdr,1);
 	if(args==NULL)return SYNTAXERROR;
 	int status=eval(args[0],curEnv);
-	if(status!=0)return SYNTAXERROR;
+	if(status!=0)return status;
 	if(args[0]->type==nil)
 	{
 		objCptr->type=atm;
@@ -196,6 +207,73 @@ int N_null(cptr* objCptr,env* curEnv)
 			objCptr->type=nil;
 			objCptr->value=NULL;
 		}
+	}
+	else
+	{
+		objCptr->type=nil;
+		objCptr->value=NULL;
+	}
+	deleteArg(args,1);
+	return 0;
+}
+
+int N_and(cptr* objCptr,env* curEnv)
+{
+	deleteCptr(objCptr);
+	cptr** args=dealArg(&objCptr->outer->cdr,2);
+	if(args==NULL)return SYNTAXERROR;
+	int status=eval(args[0],curEnv);
+	if(status!=0)return status;
+	status=eval(args[1],curEnv);
+	if(status!=0)return status;
+	if(isNil(args[0])||isNil(args[1]))
+	{
+		objCptr->type=nil;
+		objCptr->value=NULL;
+	}
+	else
+	{
+		objCptr->type=atm;
+		objCptr->value=createAtom(num,"1",objCptr->outer);
+	}
+	deleteArg(args,1);
+	return 0;
+}
+
+int N_or(cptr* objCptr,env* curEnv)
+{
+	deleteCptr(objCptr);
+	cptr** args=dealArg(&objCptr->outer->cdr,2);
+	if(args==NULL)return SYNTAXERROR;
+	int status=eval(args[0],curEnv);
+	if(status!=0)return status;
+	status=eval(args[1],curEnv);
+	if(status!=0)return status;
+	if(isNil(args[0])&&isNil(args[1]))
+	{
+		objCptr->type=nil;
+		objCptr->value=NULL;
+	}
+	else
+	{
+		objCptr->type=atm;
+		objCptr->value=createAtom(num,"1",objCptr->outer);
+	}
+	deleteArg(args,1);
+	return 0;
+}
+
+int N_not(cptr* objCptr,env* curEnv)
+{
+	deleteCptr(objCptr);
+	cptr** args=dealArg(&objCptr->outer->cdr,1);
+	if(args==NULL)return SYNTAXERROR;
+	int status=eval(args[0],curEnv);
+	if(status!=0)return status;
+	if(isNil(args[0]))
+	{
+		objCptr->type=atm;
+		objCptr->value=createAtom(num,"1",objCptr->outer);
 	}
 	else
 	{

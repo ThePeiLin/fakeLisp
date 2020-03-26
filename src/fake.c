@@ -505,6 +505,7 @@ env* newEnv(env* prev)
 	env* curEnv=NULL;
 	if(!(curEnv=(env*)malloc(sizeof(env))))errors(OUTOFMEMORY);
 	curEnv->prev=prev;
+	curEnv->symbols=NULL;
 	return curEnv;
 }
 

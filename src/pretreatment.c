@@ -234,3 +234,24 @@ void clearCount()
 		current=current->next;
 	}
 }
+
+void deleteMacro(cptr* objCptr)
+{
+	macro* current=Head;
+	macro* prev=NULL;
+	while(current!=NULL&&!cptrcmp(objCptr,current->format))
+	{
+		prev=current;
+		current=current->next;
+	}
+	if(current!=NULL)
+	{
+		if(current==Head)Head=current->next;
+		deleteCptr(current->format);
+		deleteCptr(current->express);
+		free(current->format);
+		free(current->express);
+		if(prev!=NULL)prev->next=current->next;
+		free(current);
+	}
+}

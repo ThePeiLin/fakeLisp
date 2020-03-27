@@ -58,5 +58,6 @@ void initEvalution()
 	addFunc("lambda",N_lambda);
 	addFunc("list",N_list);
 	addFunc("defmacro",N_defmacro);
+	addFunc("undef",N_undef);
 	initPretreatment();
 }

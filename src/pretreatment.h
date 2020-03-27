@@ -24,6 +24,8 @@ int fmatcmp(cptr*,cptr*);
 void addRule(const char*,int (*)(cptr*));
 int M_ATOM(cptr*);
 int M_CELL(cptr*);
+int M_ANY(cptr*);
 void initPretreatment();
 static void clearCount();
+void deleteMacro(cptr*);
 #endif

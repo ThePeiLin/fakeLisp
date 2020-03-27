@@ -15,8 +15,7 @@ cptr** dealArg(cptr* argCptr,int num)
 		else
 		{
 			args[i]=createCptr(NULL);
-			args[i]->type=((cell*)argCptr->value)->car.type;
-			args[i]->value=((cell*)argCptr->value)->car.value;
+			replace(args[i],&((cell*)argCptr->value)->car);
 			((cell*)argCptr->value)->car.type=nil;
 			((cell*)argCptr->value)->car.value=NULL;
 			argCptr=&((cell*)argCptr->value)->cdr;
@@ -430,6 +429,18 @@ int N_defmacro(cptr* objCptr,env* curEnv)
 		deleteArg(condition,2);
 	}
 	deleteArg(args,argNum);
+	objCptr->type=nil;
+	objCptr->value=NULL;
+	return 0;
+}
+
+int N_undef(cptr* objCptr,env* curEnv)
+{
+	deleteCptr(objCptr);
+	cptr** args=dealArg(&objCptr->outer->cdr,1);
+	if(args==NULL)return SYNTAXERROR;
+	deleteMacro(args[0]);
+	deleteArg(args,1);
 	objCptr->type=nil;
 	objCptr->value=NULL;
 	return 0;

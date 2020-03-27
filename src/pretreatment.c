@@ -144,6 +144,7 @@ void initPretreatment()
 {
 	addRule("ATOM",M_ATOM);
 	addRule("CELL",M_CELL);
+	addRule("ANY",M_ANY);
 	MacroEnv=newEnv(NULL);
 	
 }
@@ -192,6 +193,28 @@ int M_CELL(cptr* objCptr)
 		sprintf(num,"%x",count);
 		if(!(symName=(char*)malloc(strlen("CELL#")+strlen(num)+1)))errors(OUTOFMEMORY);
 		strcpy(symName,"CELL#");
+		strcat(symName,num);
+		addDefine(symName,objCptr,MacroEnv);
+		free(symName);
+		free(num);
+		count++;
+		return 1;
+	}
+	return 0;
+}
+
+int M_ANY(cptr* objCptr)
+{
+	static int count;
+	if(objCptr==NULL)count=0;
+	else
+	{
+		char* num;
+		char* symName;
+		if(!(num=(char*)malloc((sizeof(int)*2)+1)))errors(OUTOFMEMORY);
+		sprintf(num,"%x",count);
+		if(!(symName=(char*)malloc(strlen("ANY#")+strlen(num)+1)))errors(OUTOFMEMORY);
+		strcpy(symName,"ANY#");
 		strcat(symName,num);
 		addDefine(symName,objCptr,MacroEnv);
 		free(symName);

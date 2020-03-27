@@ -7,4 +7,23 @@ fakeLisp是一个用c言编写的简单的lisp解释器，由于技术原因，�
 	(lambda (x)  
 		(cons 9 x))))  
 支持宏；  
-可在src/fakeLisp.c文件中查看可用内置函数；
+目前可用函数及特殊形式有：  
+car  
+cdr  
+cons  
+quote  
+define  
+eq  
+atom  
+null  
+and  
+or  
+not  
+lambda  
+list  
+defmacro  
+其中，defmacro的语法比较特殊，为：
+(defmacro (用于匹配的表达式 用于返回的表达式) 其他的宏...)  
+宏没有名字，而是通过匹配表达式来实现宏的嵌入，如：  
+(defmacro ((c ATOM ATOM) (list (quote cons) ATOM#0 ATOM#1)))  
+这个宏会匹配形如(c ATOM ATOM)的表达式，并用(list (quote cons) ATOM#0 ATOM#1)的结果替换原来的表达式，即表达式(c 9 9)会被替换为(cons 9 9)  

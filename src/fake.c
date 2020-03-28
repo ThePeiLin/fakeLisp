@@ -609,6 +609,7 @@ int eval(cptr* objCptr,env* curEnv)
 				{
 					int status=pfun(objCptr,curEnv);
 					if(status!=0)exError(objCptr,status);
+					if(objCptr->outer->cdr.type!=cel)break;
 				}
 				else
 				{

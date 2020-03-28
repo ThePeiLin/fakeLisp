@@ -602,6 +602,7 @@ int eval(cptr* objCptr,env* curEnv)
 			}
 			else
 			{
+				int before=objCptr->outer->cdr.type;
 				int (*pfun)(cptr*,env*)=NULL;
 				pfun=findFunc(objAtm->value);
 				if(pfun!=NULL)
@@ -627,7 +628,7 @@ int eval(cptr* objCptr,env* curEnv)
 						return SYMUNDEFINE;
 					}
 				}
-				if(objCptr->outer->cdr.type!=cel)break;
+				if(before!=nil&&objCptr->outer->cdr.type!=cel)break;
 			}
 		}
 		else if(objCptr->type==cel)

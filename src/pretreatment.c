@@ -46,14 +46,7 @@ int fmatcmp(cptr* origin,cptr* format)
 	cell* oriCell=(origin->type==cel)?origin->value:NULL;
 	while(origin!=NULL)
 	{
-		if(origin->type!=format->type)
-		{
-			destroyEnv(MacroEnv);
-			MacroEnv=NULL;
-			clearCount();
-			return 0;
-		}
-		else if(format->type==cel&&origin->type==cel)
+		if(format->type==cel&&origin->type==cel)
 		{
 			forCell=format->value;
 			oriCell=origin->value;
@@ -91,6 +84,13 @@ int fmatcmp(cptr* origin,cptr* format)
 				format=&forCell->cdr;
 				continue;
 			}
+		}
+		else if(origin->type!=format->type)
+		{
+			destroyEnv(MacroEnv);
+			MacroEnv=NULL;
+			clearCount();
+			return 0;
 		}
 		if(oriCell!=NULL&&origin==&oriCell->car)
 		{

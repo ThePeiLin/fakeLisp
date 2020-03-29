@@ -30,7 +30,7 @@ defmacro
 这个宏会匹配形如(c ATOM ATOM)的表达式，并用(list (quote cons) ATOM#0 ATOM#1)的结果替换原来的表达式，  
 即表达式(c 9 9)会被替换为(cons 9 9).  
 
-下面是defun宏：
+下面是defun宏:  
 (defmacro  
 (defun ATOM CELL,CELL)  
 (list (quote define) ATOM#0 (list (quote quote) (cons (quote lambda) (cons CELL#0 CELL#1)))))  

@@ -208,7 +208,7 @@ int cptrcmp(cptr* first,cptr* second)
 			cell* firPrev=NULL;
 			cell* secPrev=NULL;
 			if(firCell->prev==NULL)break;
-			while(firCell->prev!=NULL)
+			while(firCell->prev!=NULL&&firCell!=tmpCell)
 			{
 				firPrev=firCell;
 				secPrev=secCell;
@@ -311,7 +311,7 @@ int deleteCptr(cptr* objCptr)
 	return 0;
 }
 
-cptr* destroyList(cptr* objCptr)
+cptr* destroyCptr(cptr* objCptr)
 {
 	cell* objCell=NULL;
 	if(objCptr->type==cel)objCell=((cell*)objCptr->value)->prev;
@@ -369,7 +369,7 @@ void printList(const cptr* objCptr,FILE* out)
 			putc(')',out);
 			cell* prev=NULL;
 			if(objCell->prev==NULL)break;
-			while(objCell->prev!=NULL)
+			while(objCell->prev!=NULL&&objCell!=tmpCell)
 			{
 				prev=objCell;
 				objCell=objCell->prev;

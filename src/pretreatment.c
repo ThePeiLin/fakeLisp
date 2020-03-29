@@ -103,7 +103,7 @@ int fmatcmp(cptr* origin,cptr* format)
 			cell* oriPrev=NULL;
 			cell* forPrev=NULL;
 			if(oriCell->prev==NULL)break;
-			while(oriCell->prev!=NULL)
+			while(oriCell->prev!=NULL&&forCell!=tmpCell)
 			{
 				oriPrev=oriCell;
 				forPrev=forCell;

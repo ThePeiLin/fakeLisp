@@ -353,7 +353,7 @@ void printList(const cptr* objCptr,FILE* out)
 		else if(tmp->type==atm||tmp->type==nil)
 		{
 			if(objCell!=NULL&&tmp==&objCell->cdr&&tmp->type==atm)putc(',',out);
-			if((objCell!=NULL&&tmp==&objCell->car&&tmp->type==nil)
+			if((objCell!=NULL&&tmp==&objCell->car&&tmp->type==nil&&objCell->cdr.type!=nil)
 			||(tmp->outer==NULL&&tmp->type==nil))fputs("nil",out);
 			if(tmp->type!=nil&&(((atom*)tmp->value)->type==sym||((atom*)tmp->value)->type==num))
 				fprintf(out,"%s",((atom*)tmp->value)->value);
@@ -450,7 +450,7 @@ int copyCptr(cptr* objCptr,const cptr* copiedCptr)
 			cell* objPrev=NULL;
 			cell* coPrev=NULL;
 			if(copiedCell->prev==NULL)break;
-			while(objCell->prev!=NULL&&copiedCell!=NULL)
+			while(objCell->prev!=NULL&&copiedCell!=NULL&&copiedCell!=tmpCell)
 			{
 				coPrev=copiedCell;
 				copiedCell=copiedCell->prev;

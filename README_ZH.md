@@ -23,6 +23,7 @@ not
 lambda  
 list  
 defmacro  
+undef（用于取消宏的定义）  
 其中，defmacro的语法比较特殊，为：
 (defmacro 用于匹配的表达式 用于返回的表达式)  
 宏没有名字，而是通过匹配表达式来实现宏的嵌入，如：  

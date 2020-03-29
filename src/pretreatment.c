@@ -127,15 +127,15 @@ int fmatcmp(cptr* origin,cptr* format)
 int macroExpand(cptr* objCptr)
 {
 	macro* tmp=macroMatch(objCptr);
-	if(tmp!=NULL)
+	if(tmp!=NULL&&objCptr!=tmp->express)
 	{
 		cptr* tmpCptr=createCptr(NULL);
-		copyCptr(tmpCptr,tmp->express);
-		eval(tmpCptr,MacroEnv);
-		deleteCptr(objCptr);
-		replace(objCptr,tmpCptr);
-		deleteCptr(tmpCptr);
-		free(tmpCptr);
+		replace(tmpCptr,tmp->express);
+		eval(tmp->express,MacroEnv);
+		replace(objCptr,tmp->express);
+		deleteCptr(tmp->express);
+		free(tmp->express);
+		tmp->express=tmpCptr;
 	}
 	return 0;
 }

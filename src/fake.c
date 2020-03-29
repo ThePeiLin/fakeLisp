@@ -629,7 +629,6 @@ int eval(cptr* objCptr,env* curEnv)
 						return SYMUNDEFINE;
 					}
 				}
-				if(before!=nil&&objCptr->outer->cdr.type!=cel)break;
 			}
 		}
 		else if(objCptr->type==cel)

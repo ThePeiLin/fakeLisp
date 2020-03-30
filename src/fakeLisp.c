@@ -59,5 +59,10 @@ void initEvalution()
 	addFunc("list",N_list);
 	addFunc("defmacro",N_defmacro);
 	addFunc("undef",N_undef);
+	addFunc("add",N_add);
+	addFunc("sub",N_sub);
+	addFunc("mul",N_mul);
+	addFunc("div",N_div);
+	addFunc("mod",N_mod);
 	initPretreatment();
 }

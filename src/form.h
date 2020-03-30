@@ -26,4 +26,9 @@ int N_defmacro(cptr*,env*);
 int N_exit(cptr*,env*);
 int N_defmacro(cptr*,env*);
 int N_undef(cptr*,env*);
+int N_add(cptr*,env*);
+int N_sub(cptr*,env*);
+int N_mul(cptr*,env*);
+int N_div(cptr*,env*);
+int N_mod(cptr*,env*);
 #endif

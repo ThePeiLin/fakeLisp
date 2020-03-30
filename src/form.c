@@ -512,3 +512,127 @@ int N_undef(cptr* objCptr,env* curEnv)
 	objCptr->value=NULL;
 	return 0;
 }
+
+int N_add(cptr* objCptr,env* curEnv)
+{
+	deleteCptr(objCptr);
+	cptr** args=dealArg(&objCptr->outer->cdr,2);
+	int status=eval(args[0],curEnv);
+	if(status!=0||args[0]->type!=atm)
+	{
+		deleteArg(args,2);
+		return status;
+	}
+	status=eval(args[1],curEnv);
+	if(status!=0||args[1]->type!=atm)
+	{
+		deleteArg(args,2);
+		return status;
+	}
+	long result=stringToInt(((atom*)args[0]->value)->value)+stringToInt(((atom*)args[1]->value)->value);
+	char* tmpStr=intToString(result);
+	objCptr->type=atm;
+	objCptr->value=createAtom(num,tmpStr,objCptr->outer);
+	free(tmpStr);
+	deleteArg(args,2);
+	return 0;
+}
+
+int N_sub(cptr* objCptr,env* curEnv)
+{
+	cptr** args=dealArg(&objCptr->outer->cdr,2);
+	int status=eval(args[0],curEnv);
+	if(status!=0||args[0]->type!=atm)
+	{
+		deleteArg(args,2);
+		return status;
+	}
+	status=eval(args[1],curEnv);
+	if(status!=0||args[1]->type!=atm)
+	{
+		deleteArg(args,2);
+		return status;
+	}
+	long result=stringToInt(((atom*)args[0]->value)->value)-stringToInt(((atom*)args[1]->value)->value);
+	char* tmpStr=intToString(result);
+	objCptr->type=atm;
+	objCptr->value=createAtom(num,tmpStr,objCptr->outer);
+	free(tmpStr);
+	deleteArg(args,2);
+	return 0;
+}
+
+int N_mul(cptr* objCptr,env* curEnv)
+{
+	deleteCptr(objCptr);
+	cptr** args=dealArg(&objCptr->outer->cdr,2);
+	int status=eval(args[0],curEnv);
+	if(status!=0||args[0]->type!=atm)
+	{
+		deleteArg(args,2);
+		return status;
+	}
+	status=eval(args[1],curEnv);
+	if(status!=0||args[1]->type!=atm)
+	{
+		deleteArg(args,2);
+		return status;
+	}
+	long result=stringToInt(((atom*)args[0]->value)->value)*stringToInt(((atom*)args[1]->value)->value);
+	char* tmpStr=intToString(result);
+	objCptr->type=atm;
+	objCptr->value=createAtom(num,tmpStr,objCptr->outer);
+	free(tmpStr);
+	deleteArg(args,2);
+	return 0;
+}
+
+int N_div(cptr* objCptr,env* curEnv)
+{
+	deleteCptr(objCptr);
+	cptr** args=dealArg(&objCptr->outer->cdr,2);
+	int status=eval(args[0],curEnv);
+	if(status!=0||args[0]->type!=atm)
+	{
+		deleteArg(args,2);
+		return status;
+	}
+	status=eval(args[1],curEnv);
+	if(status!=0||args[1]->type!=atm)
+	{
+		deleteArg(args,2);
+		return status;
+	}
+	long result=stringToInt(((atom*)args[0]->value)->value)/stringToInt(((atom*)args[1]->value)->value);
+	char* tmpStr=intToString(result);
+	objCptr->type=atm;
+	objCptr->value=createAtom(num,tmpStr,objCptr->outer);
+	free(tmpStr);
+	deleteArg(args,2);
+	return 0;
+}
+
+int N_mod(cptr* objCptr,env* curEnv)
+{
+	deleteCptr(objCptr);
+	cptr** args=dealArg(&objCptr->outer->cdr,2);
+	int status=eval(args[0],curEnv);
+	if(status!=0||args[0]->type!=atm)
+	{
+		deleteArg(args,2);
+		return status;
+	}
+	status=eval(args[1],curEnv);
+	if(status!=0||args[1]->type!=atm)
+	{
+		deleteArg(args,2);
+		return status;
+	}
+	long result=stringToInt(((atom*)args[0]->value)->value)%stringToInt(((atom*)args[1]->value)->value);
+	char* tmpStr=intToString(result);
+	objCptr->type=atm;
+	objCptr->value=createAtom(num,tmpStr,objCptr->outer);
+	free(tmpStr);
+	deleteArg(args,2);
+	return 0;
+}

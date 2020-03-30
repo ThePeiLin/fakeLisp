@@ -634,6 +634,7 @@ int eval(cptr* objCptr,env* curEnv)
 		else if(objCptr->type==cel)
 		{
 			macroExpand(objCptr);
+			if(objCptr->type!=cel)continue;
 			objCptr=&(((cell*)objCptr->value)->car);
 		}
 		else if(objCptr->type==nil)break;

@@ -54,7 +54,7 @@ int fmatcmp(cptr* origin,cptr* format)
 			origin=&oriCell->car;
 			continue;
 		}
-		else if(format->type==atm||format->type==nil)
+		else if(format->type==atm)
 		{
 			if(format->type==atm)
 			{

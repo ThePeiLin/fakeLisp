@@ -1,6 +1,7 @@
 #ifndef FAKEDEF_H
 #define FAKEDEF_H
-#include<stddef.h>
+#include<stdio.h>
+#include<stdlib.h>
 #define SYMUNDEFINE 1
 #define SYNTAXERROR 2
 #define TOOMUCHARGS 3

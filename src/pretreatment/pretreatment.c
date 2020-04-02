@@ -1,6 +1,6 @@
 #include"pretreatment.h"
-#include"fake.h"
-#include"tool.h"
+#include"../fake/fake.h"
+#include"../tool/tool.h"
 #include<string.h>
 static macro* Head=NULL;
 static masym* First=NULL;

@@ -1,7 +1,7 @@
 #ifndef TREE_H_
 #define TREE_H_
 #include<stdio.h>
-#include"fakedef.h"
+#include"../fakedef.h"
 defines* findDefine(const char*,env*);
 cptr* createTree(const char*);
 int addFunc(char*,int (*)(cptr*,env*));

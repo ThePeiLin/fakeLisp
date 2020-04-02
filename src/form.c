@@ -1,4 +1,5 @@
 #include<stdlib.h>
+#include"tool.h"
 #include"form.h"
 #include"pretreatment.h"
 

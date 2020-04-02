@@ -18,4 +18,12 @@ double stringToFloat(const char*);
 char* intToString(long);
 long stringToInt(const char*);
 void errors(int);
+cell* createCell(cell*);
+cptr* createCptr();
+atom* createAtom(int type,const char*,cell*);
+int destoryCptr(cptr*);
+int cptrcmp(cptr*,cptr*);
+int deleteCptr(cptr*);
+int copyCptr(cptr*,const cptr*);
+void replace(cptr*,const cptr*);
 #endif

@@ -2,8 +2,8 @@
 #include<string.h>
 #include<ctype.h>
 #include"fake.h"
-#include"../tool/tool.h"
-#include"../pretreatment/pretreatment.h"
+#include"tool.h"
+#include"pretreatment.h"
 
 static nativeFunc* funAndForm=NULL;
 static env* Glob=NULL;

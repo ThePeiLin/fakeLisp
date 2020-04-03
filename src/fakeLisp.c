@@ -3,10 +3,10 @@
 #include<string.h>
 #include<ctype.h>
 #include"fakeLisp.h"
-#include"../fake/fake.h"
-#include"../tool/tool.h"
-#include"../form/form.h"
-#include"../pretreatment/pretreatment.h"
+#include"fake.h"
+#include"tool.h"
+#include"form.h"
+#include"pretreatment.h"
 
 int main(int argc,char** argv)
 {

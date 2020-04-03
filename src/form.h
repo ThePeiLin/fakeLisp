@@ -1,6 +1,6 @@
 #ifndef FORM_H
 #define FORM_H
-#include"../fakedef.h"
+#include"fakedef.h"
 static cptr** dealArg(cptr*,int);
 static int coutArg(cptr*);
 static void deleteArg(cptr**,int);

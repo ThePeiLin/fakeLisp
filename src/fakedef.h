@@ -52,4 +52,10 @@ typedef struct SymbolForCompiler
 	cptr* obj;
 	struct SymbolForCompiler* next;
 }compSym;
+
+typedef struct ExcutableByteCode
+{
+	int64_t size;
+	void* opcode;
+}exByCode;
 #endif

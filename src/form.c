@@ -1,8 +1,8 @@
 #include<stdlib.h>
-#include"../tool/tool.h"
-#include"../fake/fake.h"
+#include"tool.h"
+#include"fake.h"
 #include"form.h"
-#include"../pretreatment/pretreatment.h"
+#include"pretreatment.h"
 
 cptr** dealArg(cptr* argCptr,int num)
 {

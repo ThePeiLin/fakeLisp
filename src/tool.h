@@ -1,6 +1,6 @@
 #ifndef TOOL_H
 #define TOOL_H
-#include"../fakedef.h"
+#include"fakedef.h"
 #define OUTOFMEMORY 1
 #define WRONGENV 2
 typedef struct RawString

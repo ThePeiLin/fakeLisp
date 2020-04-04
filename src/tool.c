@@ -241,10 +241,10 @@ cell* createCell(cell* prev)
 	if((tmp=(cell*)malloc(sizeof(cell))))
 	{
 		tmp->car.outer=tmp;
-		tmp->car.type=nil;
+		tmp->car.type=NIL;
 		tmp->car.value=NULL;
 		tmp->cdr.outer=tmp;
-		tmp->cdr.type=nil;
+		tmp->cdr.type=NIL;
 		tmp->cdr.value=NULL;
 		tmp->prev=prev;
 	}
@@ -257,7 +257,7 @@ cptr* createCptr(cell* outer)
 	if(!(tmp=(cptr*)malloc(sizeof(cptr))))
 		errors(OUTOFMEMORY);
 	tmp->outer=outer;
-	tmp->type=nil;
+	tmp->type=NIL;
 	tmp->value=NULL;
 	return tmp;
 }
@@ -278,12 +278,12 @@ int copyCptr(cptr* objCptr,const cptr* copiedCptr)
 	if(copiedCptr==NULL||objCptr==NULL)return 0;
 	cell* objCell=NULL;
 	cell* copiedCell=NULL;
-	cell* tmpCell=(copiedCptr->type==cel)?copiedCptr->value:NULL;
+	cell* tmpCell=(copiedCptr->type==CEL)?copiedCptr->value:NULL;
 	copiedCell=tmpCell;
 	while(1)
 	{
 		objCptr->type=copiedCptr->type;
-		if(copiedCptr->type==cel)
+		if(copiedCptr->type==CEL)
 		{
 			objCell=createCell(objCell);
 			objCptr->value=objCell;
@@ -293,7 +293,7 @@ int copyCptr(cptr* objCptr,const cptr* copiedCptr)
 			objCptr=&objCell->car;
 			continue;
 		}
-		else if(copiedCptr->type==atm)
+		else if(copiedCptr->type==ATM)
 		{
 			atom* coAtm=copiedCptr->value;
 			atom* objAtm=NULL;
@@ -310,7 +310,7 @@ int copyCptr(cptr* objCptr,const cptr* copiedCptr)
 			}
 			
 		}
-		else if(copiedCptr->type==nil)
+		else if(copiedCptr->type==NIL)
 		{
 			objCptr->value=NULL;
 			if(copiedCptr==&copiedCell->car)
@@ -349,16 +349,16 @@ void replace(cptr* fir,const cptr* sec)
 	cell* tmp=fir->outer;
 	deleteCptr(fir);
 	copyCptr(fir,sec);
-	if(fir->type==cel)((cell*)fir->value)->prev=tmp;
-	else if(fir->type==atm)((atom*)fir->value)->prev=tmp;
+	if(fir->type==CEL)((cell*)fir->value)->prev=tmp;
+	else if(fir->type==ATM)((atom*)fir->value)->prev=tmp;
 }
 
 cptr* destroyCptr(cptr* objCptr)
 {
 	cell* objCell=NULL;
-	if(objCptr->type==cel)objCell=((cell*)objCptr->value)->prev;
-	if(objCptr->type==atm)objCell=((atom*)objCptr->value)->prev;
-	if(objCptr->type==nil)return objCptr;
+	if(objCptr->type==CEL)objCell=((cell*)objCptr->value)->prev;
+	if(objCptr->type==ATM)objCell=((atom*)objCptr->value)->prev;
+	if(objCptr->type==NIL)return objCptr;
 	while(objCell!=NULL&&objCell->prev!=NULL)objCell=objCell->prev;
 	if(objCell!=NULL)
 	{
@@ -370,12 +370,12 @@ cptr* destroyCptr(cptr* objCptr)
 int deleteCptr(cptr* objCptr)
 {
 	if(objCptr==NULL)return 0;
-	cell* tmpCell=(objCptr->type==cel)?objCptr->value:NULL;
+	cell* tmpCell=(objCptr->type==CEL)?objCptr->value:NULL;
 	cell* objCell=tmpCell;
 	cptr* tmpCptr=objCptr;
 	while(tmpCptr!=NULL)
 	{
-		if(tmpCptr->type==cel)
+		if(tmpCptr->type==CEL)
 		{
 			if(objCell!=NULL&&tmpCptr==&objCell->cdr)
 			{
@@ -389,18 +389,18 @@ int deleteCptr(cptr* objCptr)
 				continue;
 			}
 		}
-		else if(tmpCptr->type==atm)
+		else if(tmpCptr->type==ATM)
 		{
-			if(tmpCptr->type!=nil)
+			if(tmpCptr->type!=NIL)
 			{
 				atom* tmpAtm=(atom*)tmpCptr->value;
 				free(tmpAtm->value);
 				free(tmpAtm);
-				tmpCptr->type=nil;
+				tmpCptr->type=NIL;
 				tmpCptr->value=NULL;
 			}
 		}
-		else if(tmpCptr->type==nil)
+		else if(tmpCptr->type==NIL)
 		{
 			if(tmpCptr==&objCell->car)
 			{
@@ -418,7 +418,7 @@ int deleteCptr(cptr* objCptr)
 		}
 		if(objCell==NULL)break;
 		{
-			objCptr->type=nil;
+			objCptr->type=NIL;
 			objCptr->value=NULL;
 			break;
 		}
@@ -431,11 +431,11 @@ int cptrcmp(cptr* first,cptr* second)
 	if(first==NULL&&second==NULL)return 0;
 	cell* firCell=NULL;
 	cell* secCell=NULL;
-	cell* tmpCell=(first->type==cel)?first->value:NULL;
+	cell* tmpCell=(first->type==CEL)?first->value:NULL;
 	while(1)
 	{
 		if(first->type!=second->type)return 0;
-		else if(first->type==cel)
+		else if(first->type==CEL)
 		{
 			firCell=first->value;
 			secCell=second->value;
@@ -443,9 +443,9 @@ int cptrcmp(cptr* first,cptr* second)
 			second=&secCell->car;
 			continue;
 		}
-		else if(first->type==atm||first->type==nil)
+		else if(first->type==ATM||first->type==NIL)
 		{
-			if(first->type==atm)
+			if(first->type==ATM)
 			{
 				atom* firAtm=first->value;
 				atom* secAtm=second->value;

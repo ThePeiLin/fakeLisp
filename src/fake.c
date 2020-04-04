@@ -24,7 +24,7 @@ cptr* createTree(const char* objStr)
 			if(root==NULL)
 			{
 				root=createCptr(objCell);
-				root->type=cel;
+				root->type=CEL;
 				root->value=createCell(NULL);
 				objCell=root->value;
 				objCptr=&objCell->car;
@@ -32,7 +32,7 @@ cptr* createTree(const char* objStr)
 			else
 			{
 				objCell=createCell(objCell);
-				objCptr->type=cel;
+				objCptr->type=CEL;
 				objCptr->value=(void*)objCell;
 				objCptr=&objCell->car;
 			}
@@ -86,7 +86,7 @@ cptr* createTree(const char* objStr)
 			}
 			i+=j;
 			cell* tmp=createCell(objCell);
-			objCell->cdr.type=cel;
+			objCell->cdr.type=CEL;
 			objCell->cdr.value=(void*)tmp;
 			objCell=tmp;
 			objCptr=&objCell->car;
@@ -95,8 +95,8 @@ cptr* createTree(const char* objStr)
 		{
 			if(root==NULL)objCptr=root=createCptr(objCell);
 			rawString tmp=getStringBetweenMarks(objStr+i);
-			objCptr->type=atm;
-			objCptr->value=(void*)createAtom(str,tmp.str,objCell);
+			objCptr->type=ATM;
+			objCptr->value=(void*)createAtom(STR,tmp.str,objCell);
 			i+=tmp.len;
 			free(tmp.str);
 		}
@@ -104,8 +104,8 @@ cptr* createTree(const char* objStr)
 		{
 			if(root==NULL)objCptr=root=createCptr(objCell);
 			char* tmp=getStringFromList(objStr+i);
-			objCptr->type=atm;
-			objCptr->value=(void*)createAtom(num,tmp,objCell);
+			objCptr->type=ATM;
+			objCptr->value=(void*)createAtom(NUM,tmp,objCell);
 			i+=strlen(tmp);
 			free(tmp);
 		}
@@ -113,8 +113,8 @@ cptr* createTree(const char* objStr)
 		{
 			if(root==NULL)objCptr=root=createCptr(objCell);
 			char* tmp=getStringFromList(objStr+i);
-			objCptr->type=atm;
-			objCptr->value=(void*)createAtom(sym,tmp,objCell);
+			objCptr->type=ATM;
+			objCptr->value=(void*)createAtom(SYM,tmp,objCell);
 			i+=strlen(tmp);
 			free(tmp);
 			continue;
@@ -169,18 +169,18 @@ int (*(findFunc(const char* name)))(cptr*,env*)
 int retree(cptr* fir,cptr* sec)
 {
 	if(fir->value==sec->value)return 0;
-	else if(((cell*)sec->value)->cdr.type==nil)
+	else if(((cell*)sec->value)->cdr.type==NIL)
 	{
 		cptr* beDel=createCptr(NULL);
 		beDel->type=sec->type;
 		beDel->value=sec->value;
 		sec->type=fir->type;
 		sec->value=fir->value;
-		if(fir->type==cel)
+		if(fir->type==CEL)
 			((cell*)fir->value)->prev=sec->outer;
-		else if(fir->type==atm)
+		else if(fir->type==ATM)
 			((atom*)fir->value)->prev=sec->outer;
-		fir->outer->car.type=nil;
+		fir->outer->car.type=NIL;
 		fir->outer->car.value=NULL;
 		deleteCptr(beDel);
 		free(beDel);
@@ -193,12 +193,12 @@ int retree(cptr* fir,cptr* sec)
 void printList(const cptr* objCptr,FILE* out)
 {
 	if(objCptr==NULL)return;
-	cell* tmpCell=(objCptr->type==cel)?objCptr->value:NULL;
+	cell* tmpCell=(objCptr->type==CEL)?objCptr->value:NULL;
 	cell* objCell=tmpCell;
 	const cptr* tmp=objCptr;
 	while(tmp!=NULL)
 	{
-		if(tmp->type==cel)
+		if(tmp->type==CEL)
 		{
 			if(objCell!=NULL&&tmp==&objCell->cdr)
 			{
@@ -214,14 +214,14 @@ void printList(const cptr* objCptr,FILE* out)
 				continue;
 			}
 		}
-		else if(tmp->type==atm||tmp->type==nil)
+		else if(tmp->type==ATM||tmp->type==NIL)
 		{
-			if(objCell!=NULL&&tmp==&objCell->cdr&&tmp->type==atm)putc(',',out);
-			if((objCell!=NULL&&tmp==&objCell->car&&tmp->type==nil&&objCell->cdr.type!=nil)
-			||(tmp->outer==NULL&&tmp->type==nil))fputs("nil",out);
-			if(tmp->type!=nil&&(((atom*)tmp->value)->type==sym||((atom*)tmp->value)->type==num))
+			if(objCell!=NULL&&tmp==&objCell->cdr&&tmp->type==ATM)putc(',',out);
+			if((objCell!=NULL&&tmp==&objCell->car&&tmp->type==NIL&&objCell->cdr.type!=NIL)
+			||(tmp->outer==NULL&&tmp->type==NIL))fputs("nil",out);
+			if(tmp->type!=NIL&&(((atom*)tmp->value)->type==SYM||((atom*)tmp->value)->type==NUM))
 				fprintf(out,"%s",((atom*)tmp->value)->value);
-			else if (tmp->type!=nil)printRawString(((atom*)tmp->value)->value,out);
+			else if (tmp->type!=NIL)printRawString(((atom*)tmp->value)->value,out);
 			if(objCell!=NULL&&tmp==&objCell->car)
 			{
 				tmp=&objCell->cdr;
@@ -320,14 +320,14 @@ int eval(cptr* objCptr,env* curEnv)
 	if(objCptr==NULL)return SYNTAXERROR;
 	curEnv=(curEnv==NULL)?Glob:curEnv;
 	cptr* tmpCptr=objCptr;
-	while(objCptr->type!=nil)
+	while(objCptr->type!=NIL)
 	{
-		if(objCptr->type==atm)
+		if(objCptr->type==ATM)
 		{
 			atom* objAtm=objCptr->value;
 			if(objCptr->outer==NULL||((objCptr->outer->prev!=NULL)&&(objCptr->outer->prev->cdr.value==objCptr->outer)))
 			{
-				if(objAtm->type!=sym)break;
+				if(objAtm->type!=SYM)break;
 				cptr* reCptr=NULL;
 				defines* objDef=NULL;
 				env* tmpEnv=curEnv;
@@ -354,7 +354,7 @@ int eval(cptr* objCptr,env* curEnv)
 				{
 					int status=pfun(objCptr,curEnv);
 					if(status!=0)exError(objCptr,status);
-					if(objCptr->outer->cdr.type!=cel)break;
+					if(objCptr->outer->cdr.type!=CEL)break;
 				}
 				else
 				{
@@ -376,13 +376,13 @@ int eval(cptr* objCptr,env* curEnv)
 				}
 			}
 		}
-		else if(objCptr->type==cel)
+		else if(objCptr->type==CEL)
 		{
 			macroExpand(objCptr);
-			if(objCptr->type!=cel)continue;
+			if(objCptr->type!=CEL)continue;
 			objCptr=&(((cell*)objCptr->value)->car);
 		}
-		else if(objCptr->type==nil)break;
+		else if(objCptr->type==NIL)break;
 	}
 	return retree(objCptr,tmpCptr);
 }

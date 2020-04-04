@@ -8,7 +8,7 @@
 typedef struct
 {
 	struct Cell* outer;
-	enum {nil,cel,atm} type;
+	enum {NIL,CEL,ATM} type;
 	void* value;
 }cptr;
 
@@ -21,7 +21,7 @@ typedef struct Cell
 typedef struct Atom
 {
 	cell* prev;
-	enum{sym,num,str} type;
+	enum{SYM,NUM,STR} type;
 	char* value;
 }atom;
 

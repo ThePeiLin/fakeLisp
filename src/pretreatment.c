@@ -14,7 +14,7 @@ macro* macroMatch(cptr* objCptr)
 
 int addMacro(cptr* format,cptr* express)
 {
-	if(format->type!=cel)return SYNTAXERROR;
+	if(format->type!=CEL)return SYNTAXERROR;
 	macro* current=Head;
 	while(current!=NULL&&!cptrcmp(format,current->format))
 		current=current->next;
@@ -41,12 +41,12 @@ masym* findMasym(const char* name)
 int fmatcmp(cptr* origin,cptr* format)
 {
 	MacroEnv=newEnv(NULL);
-	cell* tmpCell=(format->type==cel)?format->value:NULL;
+	cell* tmpCell=(format->type==CEL)?format->value:NULL;
 	cell* forCell=tmpCell;
-	cell* oriCell=(origin->type==cel)?origin->value:NULL;
+	cell* oriCell=(origin->type==CEL)?origin->value:NULL;
 	while(origin!=NULL)
 	{
-		if(format->type==cel&&origin->type==cel)
+		if(format->type==CEL&&origin->type==CEL)
 		{
 			forCell=format->value;
 			oriCell=origin->value;
@@ -54,9 +54,9 @@ int fmatcmp(cptr* origin,cptr* format)
 			origin=&oriCell->car;
 			continue;
 		}
-		else if(format->type==atm)
+		else if(format->type==ATM)
 		{
-			if(format->type==atm)
+			if(format->type==ATM)
 			{
 				atom* tmpAtm=format->value;
 				masym* tmpSym=findMasym(tmpAtm->value);
@@ -163,7 +163,7 @@ int M_ATOM(cptr* objCptr)
 {
 	static int count;
 	if(objCptr==NULL)count=0;
-	else if(objCptr->type==atm)
+	else if(objCptr->type==ATM)
 	{
 		char* num;
 		char* symName;
@@ -185,7 +185,7 @@ int M_CELL(cptr* objCptr)
 {
 	static int count;
 	if(objCptr==NULL)count=0;
-	else if(objCptr->type==cel)
+	else if(objCptr->type==CEL)
 	{
 		char* num;
 		char* symName;

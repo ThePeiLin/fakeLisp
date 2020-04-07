@@ -18,10 +18,11 @@ typedef struct CompilerEnv
 int newCompiler(int,FILE*);
 exCode* compiler(cptr*);
 int isTailCall(comDef*);
-int constFolding(cptr*);
-cptr* checkAST(cptr*);
-int analyseSyntaxError(cptr*);
-cptr* analyseAST(cptr*);
-static cptr** divideAST(cptr*);
-static int countAST(cptr*);
+void constFolding(cptr*);
+int analyseSyntaxError(cptr*);//t
+cptr* analyseAST(cptr*);//t
+static cptr** divideAST(cptr*);//t
+static int countAST(cptr*);//t
+static void deleteASTs(cptr**,int);
+static int isFoldable(cptr**);
 #endif

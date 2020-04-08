@@ -10,23 +10,27 @@
 
 int main(int argc,char** argv)
 {
+	FILE* fp=(argc>1)?fopen(argv[1],"r"):stdin;
 	initEvalution();
 	while(1)
 	{
 		cptr* begin=NULL;
-		printf(">>>");
+		if(fp==stdin)printf(">>>");
 		char ch;
-		while(isspace(ch=getc(stdin)));
+		while(isspace(ch=getc(fp)));
 		if(ch==EOF)break;
-		ungetc(ch,stdin);
-		char* list=getListFromFile(stdin);
+		ungetc(ch,fp);
+		char* list=getListFromFile(fp);
 		if(list==NULL)continue;
 		begin=evalution(list);
 		free(list);
 		list=NULL;
-		fputs(";=>",stdout);
-		printList(begin,stdout);
-		putchar('\n');
+		if(fp==stdin)
+		{
+			fputs(";=>",stdout);
+			printList(begin,stdout);
+			putchar('\n');
+		}
 		deleteCptr(begin);
 		free(begin);
 		begin=NULL;
@@ -65,5 +69,6 @@ void initEvalution()
 	addFunc("mul",N_mul);
 	addFunc("div",N_div);
 	addFunc("mod",N_mod);
+	addFunc("print",N_print);
 	initPretreatment();
 }

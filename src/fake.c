@@ -10,6 +10,7 @@ static env* Glob=NULL;
 
 cptr* createTree(const char* objStr)
 {
+	if(objStr==NULL)return NULL;
 	int i=0;
 	int braketsNum=0;
 	cptr* root=NULL;

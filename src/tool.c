@@ -11,9 +11,15 @@ char* getListFromFile(FILE* file)
 	char ch;
 	int i=0;
 	int j;
+	int mark=0;
 	int braketsNum=0;
 	while((ch=getc(file))!=EOF)
 	{
+		if(ch==';'&&!mark)
+		{
+			while(getc(file)!='\n');
+			continue;
+		}
 		if(ch=='\n'&&braketsNum<=0)break;
 		i++;
 		j=i-1;
@@ -22,6 +28,7 @@ char* getListFromFile(FILE* file)
 			errors(OUTOFMEMORY);
 		memcpy(tmp,before,j);
 		*(tmp+j)=ch;
+		mark^=(ch=='\"'&&*(tmp+j-1)!='\\');
 		if(before!=NULL)free(before);
 		if(ch=='(')braketsNum++;
 		if(ch==')')braketsNum--;

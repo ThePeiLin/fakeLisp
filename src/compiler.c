@@ -14,7 +14,7 @@ void constFolding(cptr* objCptr)
 	while(othCptr->type==CEL)
 	{
 		cptr* tmpCptr=&((cell*)othCptr->value)->car;
-		int status=isFoldable(tmpCptr);
+		int status=isFoldable(&tmpCptr);
 		if(status==ISABLE)eval(tmpCptr,NULL);
 		else if(status==ISCELL)
 		{

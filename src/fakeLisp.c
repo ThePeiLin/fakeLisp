@@ -20,6 +20,7 @@ int main(int argc,char** argv)
 		if(ch==EOF)break;
 		ungetc(ch,stdin);
 		char* list=getListFromFile(stdin);
+		if(list==NULL)continue;
 		begin=evalution(list);
 		free(list);
 		list=NULL;

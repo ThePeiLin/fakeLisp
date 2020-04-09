@@ -30,4 +30,5 @@ int N_sub(cptr*,env*);
 int N_mul(cptr*,env*);
 int N_div(cptr*,env*);
 int N_mod(cptr*,env*);
+int N_print(cptr*,env*);
 #endif

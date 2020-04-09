@@ -202,7 +202,7 @@ rawString getStringBetweenMarks(const char* str)
 		len++;
 		j=len-1;
 		before=tmp;
-		if(!(tmp=(char*)malloc(sizeof(char)*len)))
+		if(!(tmp=(char*)malloc(sizeof(char)*(len+1))))
 		{
 			fprintf(stderr,"Out of memory!\n");
 			exit(1);
@@ -400,6 +400,7 @@ int deleteCptr(cptr* objCptr)
 		else if(tmpCptr->type==ATM)
 		{
 			atom* tmpAtm=(atom*)tmpCptr->value;
+			//printf("%s\n",tmpAtm->value);
 			free(tmpAtm->value);
 			free(tmpAtm);
 			tmpCptr->type=NIL;
@@ -417,6 +418,7 @@ int deleteCptr(cptr* objCptr)
 			{
 				cell* prev=objCell;
 				objCell=objCell->prev;
+				//printf("free CELL\n");
 				free(prev);
 				if(objCell==NULL||prev==tmpCell)break;
 				if(prev==objCell->car.value)

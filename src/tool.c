@@ -15,6 +15,7 @@ char* getListFromFile(FILE* file)
 	int braketsNum=0;
 	while((ch=getc(file))!=EOF)
 	{
+		if(isspace(ch)&&!braketsNum)continue;
 		if(ch==';'&&!mark)
 		{
 			while(getc(file)!='\n');
@@ -210,7 +211,7 @@ rawString getStringBetweenMarks(const char* str)
 		*(tmp+j)=ch;
 		if(before!=NULL)free(before);
 	}
-	if(tmp!=NULL)*(tmp+i)='\0';
+	if(tmp!=NULL)*(tmp+len)='\0';
 	obj.len=i+1;
 	obj.str=tmp;
 	return obj;
@@ -398,14 +399,12 @@ int deleteCptr(cptr* objCptr)
 		}
 		else if(tmpCptr->type==ATM)
 		{
-			if(tmpCptr->type!=NIL)
-			{
-				atom* tmpAtm=(atom*)tmpCptr->value;
-				free(tmpAtm->value);
-				free(tmpAtm);
-				tmpCptr->type=NIL;
-				tmpCptr->value=NULL;
-			}
+			atom* tmpAtm=(atom*)tmpCptr->value;
+			free(tmpAtm->value);
+			free(tmpAtm);
+			tmpCptr->type=NIL;
+			tmpCptr->value=NULL;
+			continue;
 		}
 		else if(tmpCptr->type==NIL)
 		{
@@ -418,12 +417,22 @@ int deleteCptr(cptr* objCptr)
 			{
 				cell* prev=objCell;
 				objCell=objCell->prev;
-				tmpCptr=&objCell->cdr;
 				free(prev);
-				if(tmpCell==objCell)break;
+				if(objCell==NULL)break;
+				if(prev==objCell->car.value)
+				{
+					objCell->car.type=NIL;
+					objCell->car.value=NULL;
+				}
+				else if(prev==objCell->cdr.value)
+				{
+					objCell->cdr.type=NIL;
+					objCell->cdr.value=NULL;
+				}
+				tmpCptr=&objCell->cdr;
 			}
 		}
-		if(objCell==NULL)break;
+		if(objCell==NULL)
 		{
 			objCptr->type=NIL;
 			objCptr->value=NULL;

@@ -638,3 +638,19 @@ int N_mod(cptr* objCptr,env* curEnv)
 	deleteArg(args,2);
 	return 0;
 }
+
+int N_print(cptr* objCptr,env* curEnv)
+{
+	deleteCptr(objCptr);
+	cptr** args=dealArg(&objCptr->outer->cdr,1);
+	int status=eval(args[0],curEnv);
+	if(args[0]->type==CEL)
+	{
+		deleteArg(args,1);
+		return status;
+	}
+	atom* tmpAtom=args[0]->value;
+	fprintf(stdout,"%s",tmpAtom->value);
+	replace(objCptr,args[0]);
+	deleteArg(args,1);
+}

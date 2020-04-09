@@ -418,7 +418,7 @@ int deleteCptr(cptr* objCptr)
 				cell* prev=objCell;
 				objCell=objCell->prev;
 				free(prev);
-				if(objCell==NULL)break;
+				if(objCell==NULL||prev==tmpCell)break;
 				if(prev==objCell->car.value)
 				{
 					objCell->car.type=NIL;
@@ -439,6 +439,8 @@ int deleteCptr(cptr* objCptr)
 			break;
 		}
 	}
+	objCptr->type=NIL;
+	objCptr->value=NULL;
 	return 0;
 }
 

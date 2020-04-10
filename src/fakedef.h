@@ -25,6 +25,12 @@ typedef struct Atom
 	char* value;
 }atom;
 
+typedef struct
+{
+	int status;
+	cptr* place;
+}errorStatus;
+
 typedef struct Defines
 {
 	char* symName;
@@ -41,7 +47,7 @@ typedef struct Env
 typedef struct NativeFunc//function and form
 {
 	char* functionName;
-	int (*function)(cptr*,env*);
+	errorStatus (*function)(cptr*,env*);
 	struct NativeFunc* next;
 }nativeFunc;
 

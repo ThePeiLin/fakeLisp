@@ -125,7 +125,7 @@ cptr* createTree(const char* objStr)
 	return root;
 }
 
-int addFunc(char* name,int (*pFun)(cptr*,env*))
+void addFunc(char* name,errorStatus (*pFun)(cptr*,env*))
 {
 	nativeFunc* current=funAndForm;
 	nativeFunc* prev=NULL;
@@ -151,11 +151,8 @@ int addFunc(char* name,int (*pFun)(cptr*,env*))
 		prev->next=current;
 	}
 }
-void callFunc(cptr* objCptr,env* curEnv)
-{
-	findFunc(((atom*)objCptr->value)->value)(objCptr,curEnv);
-}
-int (*(findFunc(const char* name)))(cptr*,env*)
+
+errorStatus (*(findFunc(const char* name)))(cptr*,env*)
 {
 	nativeFunc* current=funAndForm;
 	while(current!=NULL&&strcmp(current->functionName,name))current=current->next;
@@ -167,9 +164,10 @@ int (*(findFunc(const char* name)))(cptr*,env*)
 
 
 
-int retree(cptr* fir,cptr* sec)
+errorStatus retree(cptr* fir,cptr* sec)
 {
-	if(fir->value==sec->value)return 0;
+	errorStatus status={0,NULL};
+	if(fir->value==sec->value)return status;
 	else if(((cell*)sec->value)->cdr.type==NIL)
 	{
 		cptr* beDel=createCptr(NULL);
@@ -185,10 +183,15 @@ int retree(cptr* fir,cptr* sec)
 		fir->outer->car.value=NULL;
 		deleteCptr(beDel);
 		free(beDel);
-		return 0;
+		return status;
 	}
 	else
-		return TOOMUCHARGS;
+	{
+		status.status=TOOMUCHARGS;
+		status.place=createCptr(NULL);
+		replace(status.place,sec);
+		return status;
+	}
 }
 
 void printList(const cptr* objCptr,FILE* out)
@@ -315,10 +318,14 @@ defines* findDefine(const char* name,env* curEnv)
 	}
 }
 
-int eval(cptr* objCptr,env* curEnv)
+errorStatus eval(cptr* objCptr,env* curEnv)
 {
 	curEnv=(curEnv==NULL)?(Glob=(Glob==NULL)?newEnv(NULL):Glob):curEnv;
-	if(objCptr==NULL)return SYNTAXERROR;
+	if(objCptr==NULL)
+	{
+		errorStatus status={SYNTAXERROR,objCptr};
+		return status;
+	}
 	curEnv=(curEnv==NULL)?Glob:curEnv;
 	cptr* tmpCptr=objCptr;
 	while(objCptr->type!=NIL)
@@ -342,19 +349,21 @@ int eval(cptr* objCptr,env* curEnv)
 				}
 				else
 				{
-					exError(objCptr,SYMUNDEFINE);
-					return SYMUNDEFINE;
+					errorStatus status;
+					status.status=SYMUNDEFINE;
+					status.place=objCptr;
+					return status;
 				}
 			}
 			else
 			{
 				int before=objCptr->outer->cdr.type;
-				int (*pfun)(cptr*,env*)=NULL;
+				errorStatus (*pfun)(cptr*,env*)=NULL;
 				pfun=findFunc(objAtm->value);
 				if(pfun!=NULL)
 				{
-					int status=pfun(objCptr,curEnv);
-					if(status!=0)exError(objCptr,status);
+					errorStatus status=pfun(objCptr,curEnv);
+					if(status.status!=0)return status;
 					if(objCptr->outer->cdr.type!=CEL)break;
 				}
 				else
@@ -371,8 +380,10 @@ int eval(cptr* objCptr,env* curEnv)
 					}
 					else 
 					{
-						exError(objCptr,SYMUNDEFINE);
-						return SYMUNDEFINE;
+						errorStatus status;
+						status.status=SYMUNDEFINE;
+						status.place=objCptr;
+						return status;
 					}
 				}
 			}

@@ -40,9 +40,14 @@ int main(int argc,char** argv)
 
 cptr* evalution(const char* objStr)
 {
-	
+	errorStatus status={0,NULL};
 	cptr* begin=createTree(objStr);
-	eval(begin,NULL);
+	status=eval(begin,NULL);
+	if(status.status!=0)
+	{
+		exError(status.place,status.status);
+		deleteCptr(status.place);
+	}
 	return begin;
 }
 

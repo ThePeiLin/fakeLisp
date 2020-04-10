@@ -4,15 +4,14 @@
 #include"fakedef.h"
 defines* findDefine(const char*,env*);
 cptr* createTree(const char*);
-int addFunc(char*,int (*)(cptr*,env*));
+void addFunc(char*,errorStatus (*)(cptr*,env*));
 defines* addDefine(const char*,const cptr*,env*);
-void callFunc(cptr*,env*);
-int (*(findFunc(const char*)))(cptr*,env*);
-int retree(cptr*,cptr*);
+errorStatus (*(findFunc(const char*)))(cptr*,env*);
+errorStatus retree(cptr*,cptr*);
 int copyCptr(cptr*,const cptr*);
 env* newEnv(env*);
 void destroyEnv(env*);
 void printList(const cptr*,FILE*);
-int eval(cptr*,env*);
-static void exError(const cptr*,int);
+errorStatus eval(cptr*,env*);
+void exError(const cptr*,int);
 #endif

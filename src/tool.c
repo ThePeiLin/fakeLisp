@@ -15,13 +15,13 @@ char* getListFromFile(FILE* file)
 	int braketsNum=0;
 	while((ch=getc(file))!=EOF)
 	{
-		if(isspace(ch)&&!braketsNum)continue;
 		if(ch==';'&&!mark)
 		{
 			while(getc(file)!='\n');
 			continue;
 		}
 		if(ch=='\n'&&braketsNum<=0)break;
+		if(isspace(ch)&&!braketsNum)continue;
 		i++;
 		j=i-1;
 		before=tmp;

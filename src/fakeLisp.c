@@ -11,6 +11,11 @@
 int main(int argc,char** argv)
 {
 	FILE* fp=(argc>1)?fopen(argv[1],"r"):stdin;
+	if(fp==NULL)
+	{
+		perror(argv[1]);
+		return EXIT_FAILURE;
+	}
 	initEvalution();
 	while(1)
 	{

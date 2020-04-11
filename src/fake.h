@@ -7,7 +7,7 @@ cptr* createTree(const char*);
 void addFunc(char*,errorStatus (*)(cptr*,env*));
 defines* addDefine(const char*,const cptr*,env*);
 errorStatus (*(findFunc(const char*)))(cptr*,env*);
-errorStatus retree(cptr*,cptr*);
+int retree(cptr*,cptr*);
 int copyCptr(cptr*,const cptr*);
 env* newEnv(env*);
 void destroyEnv(env*);

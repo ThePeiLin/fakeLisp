@@ -164,10 +164,9 @@ errorStatus (*(findFunc(const char* name)))(cptr*,env*)
 
 
 
-errorStatus retree(cptr* fir,cptr* sec)
+int retree(cptr* fir,cptr* sec)
 {
-	errorStatus status={0,NULL};
-	if(fir->value==sec->value)return status;
+	if(fir->value==sec->value)return 0;
 	else if(((cell*)sec->value)->cdr.type==NIL)
 	{
 		cptr* beDel=createCptr(NULL);
@@ -183,15 +182,10 @@ errorStatus retree(cptr* fir,cptr* sec)
 		fir->outer->car.value=NULL;
 		deleteCptr(beDel);
 		free(beDel);
-		return status;
+		return 0;
 	}
 	else
-	{
-		status.status=TOOMUCHARGS;
-		status.place=createCptr(NULL);
-		replace(status.place,sec);
-		return status;
-	}
+		return 1;
 }
 
 void printList(const cptr* objCptr,FILE* out)
@@ -320,10 +314,12 @@ defines* findDefine(const char* name,env* curEnv)
 
 errorStatus eval(cptr* objCptr,env* curEnv)
 {
+	errorStatus status={0,NULL};
 	curEnv=(curEnv==NULL)?(Glob=(Glob==NULL)?newEnv(NULL):Glob):curEnv;
 	if(objCptr==NULL)
 	{
-		errorStatus status={SYNTAXERROR,objCptr};
+		status.status=SYNTAXERROR;
+		status.place=objCptr;
 		return status;
 	}
 	curEnv=(curEnv==NULL)?Glob:curEnv;
@@ -349,7 +345,6 @@ errorStatus eval(cptr* objCptr,env* curEnv)
 				}
 				else
 				{
-					errorStatus status;
 					status.status=SYMUNDEFINE;
 					status.place=objCptr;
 					return status;
@@ -362,7 +357,7 @@ errorStatus eval(cptr* objCptr,env* curEnv)
 				pfun=findFunc(objAtm->value);
 				if(pfun!=NULL)
 				{
-					errorStatus status=pfun(objCptr,curEnv);
+					status=pfun(objCptr,curEnv);
 					if(status.status!=0)return status;
 					if(objCptr->outer->cdr.type!=CEL)break;
 				}
@@ -380,7 +375,6 @@ errorStatus eval(cptr* objCptr,env* curEnv)
 					}
 					else 
 					{
-						errorStatus status;
 						status.status=SYMUNDEFINE;
 						status.place=objCptr;
 						return status;
@@ -396,7 +390,8 @@ errorStatus eval(cptr* objCptr,env* curEnv)
 		}
 		else if(objCptr->type==NIL)break;
 	}
-	return retree(objCptr,tmpCptr);
+	retree(objCptr,tmpCptr);
+	return status;
 }
 
 void exError(const cptr* obj,int type)
@@ -406,6 +401,5 @@ void exError(const cptr* obj,int type)
 	{
 		case SYMUNDEFINE:printf(":Symbol is undefined.\n");break;
 		case SYNTAXERROR:printf(":Syntax error.\n");break;
-		case TOOMUCHARGS:printf(":Too much args.\n");break;
 	}
 }

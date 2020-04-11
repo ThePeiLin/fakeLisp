@@ -774,16 +774,17 @@ errorStatus N_print(cptr* objCptr,env* curEnv)
 		deleteArg(args,1);
 		return status;
 	}
-	if(args[0]->type==ATM)
+	if(args[0]->type!=ATM)
 	{
 		status.status=SYNTAXERROR;
 		status.place=createCptr(NULL);
 		replace(status.place,args[0]);
-		deleteArg(args,2);
+		deleteArg(args,1);
 		return status;
 	}
 	atom* tmpAtom=args[0]->value;
 	fprintf(stdout,"%s",tmpAtom->value);
 	replace(objCptr,args[0]);
 	deleteArg(args,1);
+	return status;
 }

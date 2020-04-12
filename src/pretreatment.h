@@ -12,20 +12,21 @@ typedef struct Macro
 typedef struct MacroSym
 {
 	char* symName;
-	int (*Func)(cptr*);
+	int (*Func)(const cptr*,const char*);
 	struct MacroSym* next;
 }masym;
 
-macro* macroMatch(cptr*);
+macro* macroMatch(const cptr*);
 int macroExpand(cptr*);
 int addMacro(cptr*,cptr*);
 masym* findMasym(const char*);
-int fmatcmp(cptr*,cptr*);
-void addRule(const char*,int (*)(cptr*));
-int M_ATOM(cptr*);
-int M_CELL(cptr*);
-int M_ANY(cptr*);
+int fmatcmp(const cptr*,const cptr*);
+void addRule(const char*,int (*)(const cptr*,const char*));
+int M_ATOM(const cptr*,const char*);
+int M_CELL(const cptr*,const char*);
+int M_ANY(const cptr*,const char*);
 void initPretreatment();
 static void clearCount();
+static const char* hasAnotherName(const char*);
 void deleteMacro(cptr*);
 #endif

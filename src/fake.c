@@ -125,14 +125,15 @@ cptr* createTree(const char* objStr)
 	return root;
 }
 
-void addFunc(char* name,errorStatus (*pFun)(cptr*,env*))
+void addFunc(const char* name,errorStatus (*pFun)(cptr*,env*))
 {
 	nativeFunc* current=funAndForm;
 	nativeFunc* prev=NULL;
 	if(current==NULL)
 	{
 		if(!(funAndForm=(nativeFunc*)malloc(sizeof(nativeFunc))))errors(OUTOFMEMORY);
-		funAndForm->functionName=name;
+		if(!(funAndForm->functionName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY);
+		strcpy(funAndForm->functionName,name);
 		funAndForm->function=pFun;
 		funAndForm->next=NULL;
 	}
@@ -145,7 +146,8 @@ void addFunc(char* name,errorStatus (*pFun)(cptr*,env*))
 			current=current->next;
 		}
 		if(!(current=(nativeFunc*)malloc(sizeof(nativeFunc))))errors(OUTOFMEMORY);
-		current->functionName=name;
+		if(!(current->functionName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY);
+		strcpy(current->functionName,name);
 		current->function=pFun;
 		current->next=NULL;
 		prev->next=current;
@@ -298,9 +300,9 @@ void destroyEnv(env* objEnv)
 	free(objEnv);
 }
 
-defines* findDefine(const char* name,env* curEnv)
+defines* findDefine(const char* name,const env* curEnv)
 {
-	env* current=(curEnv==NULL)?Glob:curEnv;
+	const env* current=(curEnv==NULL)?Glob:curEnv;
 	if(current->symbols==NULL)return NULL;
 	else
 	{

@@ -446,7 +446,7 @@ int deleteCptr(cptr* objCptr)
 	return 0;
 }
 
-int cptrcmp(cptr* first,cptr* second)
+int cptrcmp(const cptr* first,const cptr* second)
 {
 	if(first==NULL&&second==NULL)return 0;
 	cell* firCell=NULL;

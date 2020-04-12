@@ -35,7 +35,7 @@ masym* findMasym(const char* name)
 {
 	masym* current=First;
 	const char* anotherName=hasAnotherName(name);
-	int len=(anotherName==NULL)?strlen(name):(anotherName-name);
+	int len=(anotherName==NULL)?strlen(name):(anotherName-name-1);
 	while(current!=NULL&&memcmp(current->symName,name,len))current=current->next;
 	return current;
 }
@@ -72,7 +72,7 @@ int fmatcmp(const cptr* origin,const cptr* format)
 						return 0;
 					}
 				}
-				else if(!tmpSym->Func(origin,hasAnotherName(tmpAtm->value)+1))
+				else if(!tmpSym->Func(origin,hasAnotherName(tmpAtm->value)))
 				{
 					destroyEnv(MacroEnv);
 					MacroEnv=NULL;
@@ -288,5 +288,5 @@ const char* hasAnotherName(const char* name)
 	const char* tmp=name;
 	for(;tmp<name+len;tmp++)
 		if(*tmp=='#')break;
-	return (tmp==name+len)?NULL:tmp;
+	return (tmp==name+len)?NULL:tmp+1;
 }

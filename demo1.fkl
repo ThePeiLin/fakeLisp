@@ -1,0 +1,24 @@
+(defmacro  
+ (defun ATOM CELL,CELL)  
+ (list (quote define) ATOM#0 (list (quote quote) (cons (quote lambda) (cons CELL#0 CELL#1)))))
+(define else 1)
+(define nil ())
+(defun gls (objlist) 
+ (cond ((null (cdr objlist))
+        (car objlist))
+       (else
+        (gls (cdr objlist)))))
+
+(defun adl (objlist object) 
+ (defun tmpfun (objlist tmp)
+  (cond ((null (cdr objlist))
+         (cons (car objlist) tmp))
+        (else
+         (tmpfun (cdr objlist) (cons (car objlist) tmp)))))
+ (tmpfun (cons object (tmpfun objlist nil)) nil))
+(print (gls (quote (9 2 3))))
+(print "\n")
+(print (gls (adl (quote (9 2 3)) 4)))
+(print "\n")
+(print "Hello,world!\n")
+(print "你好，世界！\n")

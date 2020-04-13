@@ -32,9 +32,12 @@ char* getListFromFile(FILE* file)
 		mark^=(ch=='\"'&&*(tmp+j-1)!='\\');
 		if(before!=NULL)free(before);
 		if(ch=='(')braketsNum++;
-		if(ch==')')braketsNum--;
-		if(isalnum(ch))continue;
-		if(braketsNum<=0)break;
+		else if(ch==')')
+		{
+			braketsNum--;
+			if(braketsNum<=0)break;
+		}
+		else continue;
 	}
 	if(tmp!=NULL)*(tmp+i)='\0';
 	return tmp;

@@ -287,6 +287,6 @@ const char* hasAnotherName(const char* name)
 	int len=strlen(name);
 	const char* tmp=name;
 	for(;tmp<name+len;tmp++)
-		if(*tmp=='#')break;
+		if(*tmp=='#'&&(*(tmp-1)!='#'||*(tmp+1)!='#'))break;
 	return (tmp==name+len)?NULL:tmp+1;
 }

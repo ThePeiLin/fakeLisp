@@ -101,7 +101,7 @@ cptr* createTree(const char* objStr)
 			i+=tmp.len;
 			free(tmp.str);
 		}
-		else if(isdigit(*(objStr+i))||(*(objStr+i)=='-'))
+		else if(isdigit(*(objStr+i))||(*(objStr+i)=='-'&&isdigit(*(objStr+i+1))))
 		{
 			if(root==NULL)objCptr=root=createCptr(objCell);
 			char* tmp=getStringFromList(objStr+i);
@@ -407,9 +407,10 @@ void exError(const cptr* obj,int type)
 }
 int hasAlpha(const char* objStr)
 {
-	const char* tmp=objStr;
+	if(!isdigit(*objStr)&&*objStr!='-')return 1;
+	const char* tmp=objStr+1;
 	int len=strlen(objStr);
 	for(;tmp<objStr+len;tmp++)
-		if(isalpha(*tmp))return 1;
+		if(!isdigit(*tmp))return 1;
 	return 0;
 }

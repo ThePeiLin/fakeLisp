@@ -13,4 +13,5 @@ void destroyEnv(env*);
 void printList(const cptr*,FILE*);
 errorStatus eval(cptr*,env*);
 void exError(const cptr*,int);
+static int hasAlpha(const char*);
 #endif

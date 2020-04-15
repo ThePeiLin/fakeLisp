@@ -101,12 +101,12 @@ cptr* createTree(const char* objStr)
 			i+=tmp.len;
 			free(tmp.str);
 		}
-		else if(isdigit(*(objStr+i))||(*(objStr+i)=='-'&&isdigit(*(objStr+i+1))))
+		else if(isdigit(*(objStr+i))||(*(objStr+i)=='-'))
 		{
 			if(root==NULL)objCptr=root=createCptr(objCell);
 			char* tmp=getStringFromList(objStr+i);
 			objCptr->type=ATM;
-			objCptr->value=(void*)createAtom(NUM,tmp,objCell);
+			objCptr->value=(void*)createAtom((hasAlpha(tmp))?SYM:NUM,tmp,objCell);
 			i+=strlen(tmp);
 			free(tmp);
 		}
@@ -404,4 +404,12 @@ void exError(const cptr* obj,int type)
 		case SYMUNDEFINE:printf(":Symbol is undefined.\n");break;
 		case SYNTAXERROR:printf(":Syntax error.\n");break;
 	}
+}
+int hasAlpha(const char* objStr)
+{
+	const char* tmp=objStr;
+	int len=strlen(objStr);
+	for(;tmp<objStr+len;tmp++)
+		if(isalpha(*tmp))return 1;
+	return 0;
 }

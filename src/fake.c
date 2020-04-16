@@ -166,28 +166,16 @@ errorStatus (*(findFunc(const char* name)))(cptr*,env*)
 
 
 
-int retree(cptr* fir,cptr* sec)
+int retree(cptr** fir,cptr* sec)
 {
-	if(fir->value==sec->value)return 0;
-	else if(((cell*)sec->value)->cdr.type==NIL)
+	while(*fir!=sec)
 	{
-		cptr* beDel=createCptr(NULL);
-		beDel->type=sec->type;
-		beDel->value=sec->value;
-		sec->type=fir->type;
-		sec->value=fir->value;
-		if(fir->type==CEL)
-			((cell*)fir->value)->prev=sec->outer;
-		else if(fir->type==ATM)
-			((atom*)fir->value)->prev=sec->outer;
-		fir->outer->car.type=NIL;
-		fir->outer->car.value=NULL;
-		deleteCptr(beDel);
-		free(beDel);
-		return 0;
+		cptr* preCptr=((*fir)->outer->prev==NULL)?sec:&(*fir)->outer->prev->car;
+		replace(preCptr,*fir);
+		*fir=preCptr;
+		if(preCptr->outer!=NULL&&preCptr->outer->cdr.type!=NIL)return 0;
 	}
-	else
-		return 1;
+	return 1;
 }
 
 void printList(const cptr* objCptr,FILE* out)
@@ -361,7 +349,6 @@ errorStatus eval(cptr* objCptr,env* curEnv)
 				{
 					status=pfun(objCptr,curEnv);
 					if(status.status!=0)return status;
-					if(objCptr->outer->cdr.type!=CEL)break;
 				}
 				else
 				{
@@ -389,10 +376,10 @@ errorStatus eval(cptr* objCptr,env* curEnv)
 			macroExpand(objCptr);
 			if(objCptr->type!=CEL)continue;
 			objCptr=&(((cell*)objCptr->value)->car);
+			continue;
 		}
-		else if(objCptr->type==NIL)break;
+		if(retree(&objCptr,tmpCptr))break;
 	}
-	retree(objCptr,tmpCptr);
 	return status;
 }
 

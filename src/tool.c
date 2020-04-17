@@ -357,12 +357,11 @@ int copyCptr(cptr* objCptr,const cptr* copiedCptr)
 void replace(cptr* fir,const cptr* sec)
 {
 	cell* tmp=fir->outer;
-	cptr* beDel=createCptr(NULL);
-	beDel->type=fir->type;
-	beDel->value=fir->value;
+	cptr tmpCptr={NULL,NIL,NULL};
+	tmpCptr.type=fir->type;
+	tmpCptr.value=fir->value;
 	copyCptr(fir,sec);
-	free(beDel);
-	deleteCptr(beDel);
+	deleteCptr(&tmpCptr);
 	if(fir->type==CEL)((cell*)fir->value)->prev=tmp;
 	else if(fir->type==ATM)((atom*)fir->value)->prev=tmp;
 }

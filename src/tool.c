@@ -265,8 +265,7 @@ cell* createCell(cell* prev)
 cptr* createCptr(cell* outer)
 {
 	cptr* tmp=NULL;
-	if(!(tmp=(cptr*)malloc(sizeof(cptr))))
-		errors(OUTOFMEMORY);
+	if(!(tmp=(cptr*)malloc(sizeof(cptr))))errors(OUTOFMEMORY);
 	tmp->outer=outer;
 	tmp->type=NIL;
 	tmp->value=NULL;
@@ -362,8 +361,8 @@ void replace(cptr* fir,const cptr* sec)
 	beDel->type=fir->type;
 	beDel->value=fir->value;
 	copyCptr(fir,sec);
-	deleteCptr(beDel);
 	free(beDel);
+	deleteCptr(beDel);
 	if(fir->type==CEL)((cell*)fir->value)->prev=tmp;
 	else if(fir->type==ATM)((atom*)fir->value)->prev=tmp;
 }
@@ -416,12 +415,12 @@ int deleteCptr(cptr* objCptr)
 		}
 		else if(tmpCptr->type==NIL)
 		{
-			if(tmpCptr==&objCell->car)
+			if(objCell!=NULL&&tmpCptr==&objCell->car)
 			{
 				tmpCptr=&objCell->cdr;
 				continue;
 			}
-			else if(tmpCptr==&objCell->cdr)
+			else if(objCell!=NULL&&tmpCptr==&objCell->cdr)
 			{
 				cell* prev=objCell;
 				objCell=objCell->prev;
@@ -441,12 +440,7 @@ int deleteCptr(cptr* objCptr)
 				tmpCptr=&objCell->cdr;
 			}
 		}
-		if(objCell==NULL)
-		{
-			objCptr->type=NIL;
-			objCptr->value=NULL;
-			break;
-		}
+		if(objCell==NULL)break;
 	}
 	objCptr->type=NIL;
 	objCptr->value=NULL;

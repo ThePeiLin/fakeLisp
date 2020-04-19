@@ -128,12 +128,14 @@ int fmatcmp(const cptr* origin,const cptr* format)
 
 int macroExpand(cptr* objCptr)
 {
+	errorStatus status={0,NULL};
 	macro* tmp=macroMatch(objCptr);
 	if(tmp!=NULL&&objCptr!=tmp->express)
 	{
 		cptr* tmpCptr=createCptr(NULL);
 		replace(tmpCptr,tmp->express);
-		eval(tmp->express,MacroEnv);
+		status=eval(tmp->express,MacroEnv);
+		if(status.status!=0)exError(status.place,status.status);
 		replace(objCptr,tmp->express);
 		deleteCptr(tmp->express);
 		free(tmp->express);

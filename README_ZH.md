@@ -23,6 +23,7 @@ not
 lambda  
 list  
 defmacro  
+print  
 undef（用于取消宏的定义）  
 其中，defmacro的语法比较特殊，为：
 (defmacro 用于匹配的表达式 用于返回的表达式)  
@@ -35,3 +36,5 @@ undef（用于取消宏的定义）
 (defmacro  
 (defun ATOM CELL,CELL)  
 (list (quote define) ATOM#0 (list (quote quote) (cons (quote lambda) (cons CELL#0 CELL#1)))))  
+
+我应该会添加复合过程类型

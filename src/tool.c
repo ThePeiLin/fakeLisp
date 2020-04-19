@@ -20,8 +20,29 @@ char* getListFromFile(FILE* file)
 			while(getc(file)!='\n');
 			continue;
 		}
-		if(ch=='\n'&&braketsNum<=0)break;
-		if(isspace(ch)&&!braketsNum)continue;
+		else if(ch=='\n'&&braketsNum<=0)break;
+		else if(ch=='\'')
+		{
+			char beQuote[]="(quote ";
+			char* tmpList=subGetList(file);
+			char* other=NULL;
+			if(!(other=(char*)malloc(sizeof(char)*(strlen(tmpList)+strlen(beQuote)+1))))errors(OUTOFMEMORY);
+			strcpy(other,beQuote);
+			strcat(other,tmpList);
+			other[strlen(beQuote)+strlen(tmpList)]=')';
+			i++;
+			j=i-1;
+			before=tmp;
+			if(!(tmp=(char*)malloc(sizeof(char)*(i+strlen(other)))))errors(OUTOFMEMORY);
+			memcpy(tmp,before,j);
+			memcpy(tmp+j,other,strlen(other));
+			i+=strlen(other)-1;
+			if(before!=NULL)free(before);
+			free(other);
+			free(tmpList);
+			continue;
+		}
+		else if(isspace(ch)&&!braketsNum)continue;
 		i++;
 		j=i-1;
 		before=tmp;
@@ -36,6 +57,52 @@ char* getListFromFile(FILE* file)
 		{
 			braketsNum--;
 			if(braketsNum<=0)break;
+		}
+		else continue;
+	}
+	if(tmp!=NULL)*(tmp+i)='\0';
+	return tmp;
+}
+
+char* subGetList(FILE* file)
+{
+	char* tmp=NULL;
+	char* before;
+	int ch;
+	int i=0;
+	int j;
+	int mark=0;
+	int braketsNum=0;
+	while((ch=getc(file))!=EOF)
+	{
+		if(ch==';'&&!mark)
+		{
+			while(getc(file)!='\n');
+			continue;
+		}
+		if(isspace(ch)&&!braketsNum)
+		{
+			ungetc(ch,file);
+			break;
+		}
+		i++;
+		j=i-1;
+		before=tmp;
+		if(!(tmp=(char*)malloc(sizeof(char)*i)))
+			errors(OUTOFMEMORY);
+		memcpy(tmp,before,j);
+		*(tmp+j)=ch;
+		mark^=(ch=='\"'&&*(tmp+j-1)!='\\');
+		if(before!=NULL)free(before);
+		if(ch=='(')braketsNum++;
+		else if(ch==')')
+		{
+			braketsNum--;
+			if(braketsNum<=0)
+			{
+				if(braketsNum<0)ungetc(ch,file);
+				break;
+			}
 		}
 		else continue;
 	}
@@ -83,10 +150,12 @@ char* intToString(long num)
 {
 	int i;
 	char numString[sizeof(long)*2+3];
+	for(i=0;i<sizeof(long)*2+3;i++)numString[i]=0;
 	sprintf(numString,"%ld",num);
 	int lenOfNum=strlen(numString)+1;
-	char* tmp=(char*)malloc(lenOfNum*sizeof(char));
-	for(i=0;i<lenOfNum;i++)*(tmp+i)=numString[i];
+	char* tmp=NULL;
+	if(!(tmp=(char*)malloc(lenOfNum*sizeof(char))))errors(OUTOFMEMORY);
+	memcpy(tmp,numString,lenOfNum);;
 	return tmp;
 }
 

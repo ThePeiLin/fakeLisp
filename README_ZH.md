@@ -35,6 +35,6 @@ undef（用于取消宏的定义）
 下面是defun宏:  
 (defmacro  
 (defun ATOM CELL,CELL)  
-(list (quote define) ATOM#0 (list (quote quote) (cons (quote lambda) (cons CELL#0 CELL#1)))))  
+(list 'define ATOM#0 (list 'quote (cons 'lambda (cons CELL#0 CELL#1)))))  
 
 我应该会添加复合过程类型

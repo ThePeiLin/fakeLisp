@@ -23,6 +23,8 @@ char* getListFromFile(FILE* file)
 		else if(ch=='\n'&&braketsNum<=0)break;
 		else if(ch=='\'')
 		{
+			while(isspace((ch=getc(file))));
+			ungetc(ch,file);
 			char beQuote[]="(quote ";
 			char* tmpList=subGetList(file);
 			char* other=NULL;

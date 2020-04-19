@@ -9,6 +9,7 @@ typedef struct RawString
 	char * str;
 } rawString;
 char* getListFromFile(FILE*);
+static char* subGetList(FILE*);
 char* getStringFromList(const char*);
 int power(int,int);
 rawString getStringBetweenMarks(const char*);

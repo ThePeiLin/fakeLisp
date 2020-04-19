@@ -1,6 +1,6 @@
 (defmacro  
  (defun ATOM#FUNCNAME CELL#ARGS,CELL#EXPRESSION)  
- (list (quote define) FUNCNAME (list (quote quote) (cons (quote lambda) (cons ARGS EXPRESSION)))))
+ (list 'define FUNCNAME (list 'quote (cons 'lambda (cons ARGS EXPRESSION)))))
 (define else 1)
 (define nil ())
 (defun gls (objlist) 

@@ -2,6 +2,7 @@
 #define FAKEDEF_H
 #include<stdio.h>
 #include<stdlib.h>
+#include<stdint.h>
 #define SYMUNDEFINE 1
 #define SYNTAXERROR 2
 typedef struct

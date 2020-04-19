@@ -33,13 +33,12 @@ char* getListFromFile(FILE* file)
 			strcpy(other,beQuote);
 			strcat(other,tmpList);
 			other[len-1]=')';
-			i++;
-			j=i-1;
+			i+=len;
+			j=i-len;
 			before=tmp;
-			if(!(tmp=(char*)malloc(sizeof(char)*(i+len))))errors(OUTOFMEMORY);
+			if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))errors(OUTOFMEMORY);
 			memcpy(tmp,before,j);
 			memcpy(tmp+j,other,len);
-			i+=len-1;
 			if(before!=NULL)free(before);
 			free(other);
 			free(tmpList);
@@ -49,7 +48,7 @@ char* getListFromFile(FILE* file)
 		i++;
 		j=i-1;
 		before=tmp;
-		if(!(tmp=(char*)malloc(sizeof(char)*i)))
+		if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))
 			errors(OUTOFMEMORY);
 		memcpy(tmp,before,j);
 		*(tmp+j)=ch;

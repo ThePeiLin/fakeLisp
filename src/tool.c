@@ -87,6 +87,15 @@ char* subGetList(FILE* file)
 			ungetc(ch,file);
 			break;
 		}
+		else if(ch==')')
+		{
+			braketsNum--;
+			if(braketsNum<=0)
+			{
+				if(braketsNum<0)ungetc(ch,file);
+				break;
+			}
+		}
 		i++;
 		j=i-1;
 		before=tmp;
@@ -97,15 +106,6 @@ char* subGetList(FILE* file)
 		mark^=(ch=='\"'&&*(tmp+j-1)!='\\');
 		if(before!=NULL)free(before);
 		if(ch=='(')braketsNum++;
-		else if(ch==')')
-		{
-			braketsNum--;
-			if(braketsNum<=0)
-			{
-				if(braketsNum<0)ungetc(ch,file);
-				break;
-			}
-		}
 		else continue;
 	}
 	if(tmp!=NULL)*(tmp+i)='\0';

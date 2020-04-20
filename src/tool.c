@@ -90,22 +90,23 @@ char* subGetList(FILE* file)
 		else if(ch==')')
 		{
 			braketsNum--;
-			if(braketsNum<=0)
+			if(braketsNum<0)
 			{
-				if(braketsNum<0)ungetc(ch,file);
+				ungetc(ch,file);
 				break;
 			}
 		}
 		i++;
 		j=i-1;
 		before=tmp;
-		if(!(tmp=(char*)malloc(sizeof(char)*i)))
+		if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))
 			errors(OUTOFMEMORY);
 		memcpy(tmp,before,j);
 		*(tmp+j)=ch;
 		mark^=(ch=='\"'&&*(tmp+j-1)!='\\');
 		if(before!=NULL)free(before);
 		if(ch=='(')braketsNum++;
+		if(ch==')'&&braketsNum<=0)break;
 		else continue;
 	}
 	if(tmp!=NULL)*(tmp+i)='\0';

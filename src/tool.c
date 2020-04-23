@@ -96,6 +96,11 @@ char* subGetList(FILE* file)
 				break;
 			}
 		}
+		else if(ch==','&&braketsNum<=0)
+		{
+			ungetc(ch,file);
+			break;
+		}
 		i++;
 		j=i-1;
 		before=tmp;

@@ -153,7 +153,7 @@ void initPretreatment()
 	addRule("ATOM",M_ATOM);
 	addRule("CELL",M_CELL);
 	addRule("ANY",M_ANY);
-	addRule("VALREPT",M_VALREPT);
+	addRule("VAREPT",M_VAREPT);
 	MacroEnv=newEnv(NULL);
 	
 }
@@ -201,7 +201,7 @@ int M_ANY(const cptr** pobjCptr,const cptr** poriCptr,const char* name,env* curE
 	return 0;
 }
 
-int M_VALREPT(const cptr** pobjCptr,const cptr** poriCptr,const char* name,env* curEnv)
+int M_VAREPT(const cptr** pobjCptr,const cptr** poriCptr,const char* name,env* curEnv)
 {
 	static int deep;
 	static const cptr* old;

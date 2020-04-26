@@ -25,7 +25,7 @@ void addRule(const char*,int (*)(const cptr**,const cptr**,const char*,env*));
 int M_ATOM(const cptr**,const cptr**,const char*,env*);
 int M_CELL(const cptr**,const cptr**,const char*,env*);
 int M_ANY(const cptr**,const cptr**,const char*,env*);
-int M_VALREPT(const cptr**,const cptr**,const char*,env*);
+int M_VAREPT(const cptr**,const cptr**,const char*,env*);
 void initPretreatment();
 void deleteMacro(cptr*);
 static const char* hasAnotherName(const char*);

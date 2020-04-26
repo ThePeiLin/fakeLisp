@@ -62,21 +62,19 @@ int fmatcmp(const cptr* origin,const cptr* format)
 			{
 				atom* tmpAtm=format->value;
 				masym* tmpSym=findMasym(tmpAtm->value);
-				if(tmpSym==NULL)
+				if(tmpSym==NULL||!hasAnotherName(tmpAtm->value))
 				{
 					if(!cptrcmp(origin,format))
 					{
 						destroyEnv(MacroEnv);
 						MacroEnv=NULL;
-						clearCount();
 						return 0;
 					}
 				}
-				else if(!tmpSym->Func(origin,hasAnotherName(tmpAtm->value)))
+				else if(!tmpSym->Func(origin,format,hasAnotherName(tmpAtm->value),MacroEnv))
 				{
 					destroyEnv(MacroEnv);
 					MacroEnv=NULL;
-					clearCount();
 					return 0;
 				}
 			}
@@ -91,7 +89,6 @@ int fmatcmp(const cptr* origin,const cptr* format)
 		{
 			destroyEnv(MacroEnv);
 			MacroEnv=NULL;
-			clearCount();
 			return 0;
 		}
 		if(oriCell!=NULL&&origin==&oriCell->car)
@@ -122,7 +119,6 @@ int fmatcmp(const cptr* origin,const cptr* format)
 		}
 		if(oriCell==NULL&&forCell==NULL)break;
 	}
-	clearCount();
 	return 1;
 }
 
@@ -152,7 +148,7 @@ void initPretreatment()
 	MacroEnv=newEnv(NULL);
 	
 }
-void addRule(const char* name,int (*obj)(const cptr*,const char*))
+void addRule(const char* name,int (*obj)(const cptr*,const cptr*,const char*,env*))
 {
 	masym* current=NULL;
 	if(!(current=(masym*)malloc(sizeof(masym))))errors(OUTOFMEMORY);
@@ -163,104 +159,146 @@ void addRule(const char* name,int (*obj)(const cptr*,const char*))
 	current->Func=obj;
 }
 
-int M_ATOM(const cptr* objCptr,const char* name)
+int M_ATOM(const cptr* objCptr,const cptr* oriCptr,const char* name,env* curEnv)
 {
-	static int count;
-	if(objCptr==NULL)count=0;
+	if(objCptr==NULL)return 0;
 	else if(objCptr->type==ATM)
 	{
-		if(name==NULL)
-		{
-			char* num;
-			char* symName;
-			if(!(num=(char*)malloc((sizeof(int)*2)+1)))errors(OUTOFMEMORY);
-			sprintf(num,"%x",count);
-			if(!(symName=(char*)malloc(strlen("ATOM#")+strlen(num)+1)))errors(OUTOFMEMORY);
-			strcpy(symName,"ATOM#");
-			strcat(symName,num);
-			addDefine(symName,objCptr,MacroEnv);
-			free(symName);
-			free(num);
-			count++;
-			return 1;
-		}
-		else
-		{
-			addDefine(name,objCptr,MacroEnv);
-			return 1;
-		}
+		addDefine(name,objCptr,curEnv);
+		return 1;
 	}
 	return 0;
 }
 
-int M_CELL(const cptr* objCptr,const char* name)
+int M_CELL(const cptr* objCptr,const cptr* oriCptr,const char* name,env* curEnv)
 {
-	static int count;
-	if(objCptr==NULL)count=0;
+	if(objCptr==NULL)return 0;
 	else if(objCptr->type==CEL)
 	{
-		if(name==NULL)
-		{
-			char* num;
-			char* symName;
-			if(!(num=(char*)malloc((sizeof(int)*2)+1)))errors(OUTOFMEMORY);
-			sprintf(num,"%x",count);
-			if(!(symName=(char*)malloc(strlen("CELL#")+strlen(num)+1)))errors(OUTOFMEMORY);
-			strcpy(symName,"CELL#");
-			strcat(symName,num);
-			addDefine(symName,objCptr,MacroEnv);
-			free(symName);
-			free(num);
-			count++;
-			return 1;
-		}
-		else
-		{
-			addDefine(name,objCptr,MacroEnv);
-			return 1;
-		}
+		addDefine(name,objCptr,curEnv);
+		return 1;
 	}
 	return 0;
 }
 
-int M_ANY(const cptr* objCptr,const char* name)
+int M_ANY(const cptr* objCptr,const cptr* oriCptr,const char* name,env* curEnv)
 {
-	static int count;
-	if(objCptr==NULL)count=0;
+	if(objCptr==NULL)return 0;
 	else
 	{
-		if(name==NULL)
-		{
-			char* num;
-			char* symName;
-			if(!(num=(char*)malloc((sizeof(int)*2)+1)))errors(OUTOFMEMORY);
-			sprintf(num,"%x",count);
-			if(!(symName=(char*)malloc(strlen("ANY#")+strlen(num)+1)))errors(OUTOFMEMORY);
-			strcpy(symName,"ANY#");
-			strcat(symName,num);
-			addDefine(symName,objCptr,MacroEnv);
-			free(symName);
-			free(num);
-			count++;
-			return 1;
-		}
-		else
-		{
-			addDefine(name,objCptr,MacroEnv);
-			return 1;
-		}
+		addDefine(name,objCptr,curEnv);
+		return 1;
 	}
 	return 0;
 }
 
-void clearCount()
+int M_VALREPT(const cptr* objCptr,const cptr* oriCptr,const char* name,env* curEnv)
 {
-	masym* current=First;
-	while(current!=NULL)
+	cptr* format=&oriCptr->outer->prev->car;
+	const cptr* origin=objCptr;
+	cptr tmp={NULL,NIL,NULL};
+	env* forValRept=NULL;
+	if(objCptr==NULL)return 0;
+	else
 	{
-		current->Func(NULL,NULL);
-		current=current->next;
+		defines* valreptdef=addDefine(name,&tmp,MacroEnv);
+		forValRept=newEnv(NULL);
+		cell* tmpCell=(format->type==CEL)?format->value:NULL;
+		cell* forCell=tmpCell;
+		cell* oriCell=(origin->type==CEL)?origin->value:NULL;
+		while(origin!=NULL)
+		{
+			if(format->type==CEL&&origin->type==CEL)
+			{
+				forCell=format->value;
+				oriCell=origin->value;
+				format=&forCell->car;
+				origin=&oriCell->car;
+				continue;
+			}
+			else if(format->type==ATM)
+			{
+				if(format->type==ATM)
+				{
+					atom* tmpAtm=format->value;
+					masym* tmpSym=findMasym(tmpAtm->value);
+					const char* anotherName=hasAnotherName(tmpAtm->value);
+					if(tmpSym==NULL||!anotherName)
+					{
+						if(!cptrcmp(origin,format))
+						{
+							destroyEnv(forValRept);
+							forValRept=NULL;
+							return 0;
+						}
+					}
+					else
+					{
+						if(tmpSym->Func(origin,format,anotherName,forValRept))
+						{
+							int len=strlen(name)+strlen(anotherName)+2;
+							char symName[len];
+							strcpy(symName,name);
+							strcat(symName,"#");
+							strcat(symName,anotherName);
+							defines* tmpDef=findDefine(symName,MacroEnv);
+							if(tmpDef==NULL)tmpDef=addDefine(symName,&tmp,MacroEnv);
+							addToList(&tmpDef->obj,&findDefine(anotherName,forValRept)->obj);
+						}
+						else
+						{
+							destroyEnv(forValRept);
+							forValRept=NULL;
+							return 0;
+						}
+					}
+				}
+				if(oriCell!=NULL&&origin==&oriCell->car)
+				{
+					origin=&oriCell->cdr;
+					format=&forCell->cdr;
+					continue;
+				}
+			}
+			else if(origin->type!=format->type)
+			{
+				destroyEnv(forValRept);
+				forValRept=NULL;
+				return 0;
+			}
+			if(oriCell!=NULL&&origin==&oriCell->car)
+			{
+				origin=&oriCell->cdr;
+				format=&forCell->cdr;
+				continue;
+			}
+			else if(oriCell!=NULL&&origin==&oriCell->cdr)
+			{
+				cell* oriPrev=NULL;
+				cell* forPrev=NULL;
+				if(oriCell->prev==NULL)break;
+				while(oriCell->prev!=NULL&&forCell!=tmpCell)
+				{
+					oriPrev=oriCell;
+					forPrev=forCell;
+					oriCell=oriCell->prev;
+					forCell=forCell->prev;
+					if(oriPrev==oriCell->car.value)break;
+				}
+				if(oriCell!=NULL)
+				{
+					origin=&oriCell->cdr;
+					format=&forCell->cdr;
+				}
+				if(forCell==tmpCell&&format==&forCell->cdr)break;
+			}
+			if(oriCell==NULL&&forCell==NULL)break;
+		}
+		destroyEnv(forValRept);
+		addToList(&valreptdef->obj,objCptr);
+		return 1;
 	}
+	return 0;
 }
 
 void deleteMacro(cptr* objCptr)
@@ -291,4 +329,9 @@ const char* hasAnotherName(const char* name)
 	for(;tmp<name+len;tmp++)
 		if(*tmp=='#'&&(*(tmp-1)!='#'||*(tmp+1)!='#'))break;
 	return (tmp==name+len)?NULL:tmp+1;
+}
+
+cptr* addToList(cptr* fir,const cptr* sec)
+{
+
 }

@@ -1,24 +1,31 @@
 (define else 1)
 (define nil ())
+
+;defun宏
 (defmacro  
  (defun ATOM#FUNCNAME CELL#ARGS,CELL#EXPRESSION)  
  (list 'define FUNCNAME (list 'quote (cons 'lambda (cons ARGS EXPRESSION)))))
+
+;if宏
 (defmacro
  (if ANY#COND ANY#EXPRESSION1 ANY#EXPRESSION2)
  (list 'cond (list COND EXPRESSION1) (list 'else EXPRESSION2)))
-(defun gls (objlist)
+
+;get something form list
+(defun gsl (objlist)
  (if (null (cdr objlist))
   (car objlist)
-  (gls (cdr objlist))))
+  (gsl (cdr objlist))))
 (defun ael (objlist object)
  (defun tmpfun (objlist tmp)
   (if (null (cdr objlist))
    (cons (car objlist) tmp)
    (tmpfun (cdr objlist) (cons (car objlist) tmp))))
  (tmpfun (cons object (tmpfun objlist nil)) nil))
-(print (gls '(9 2 3)))
+
+(print (gsl '(9 2 3)))
 (print "\n")
-(print (gls (ael '(9 2 3) 4)))
+(print (gsl (ael '(9 2 3) 4)))
 (print "\n")
 (print "Hello,world!\n")
 (print "你好，世界！\n")

@@ -47,5 +47,17 @@ typedef struct FunctionValue
 	struct ExcutableCode* func;
 }funcVal;
 
+typedef struct
+{
+	int count;
+	char* name;
+}subSymbol;
+
+typedef struct SymbolList
+{
+	int size;
+	subSymbol* symbols;
+}symlist;
+
 int execute(exCode*);
 #endif

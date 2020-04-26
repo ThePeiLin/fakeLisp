@@ -214,6 +214,7 @@ int M_VALREPT(const cptr** pobjCptr,const cptr** poriCptr,const char* name,env* 
 	if(*pobjCptr==NULL)return 0;
 	else
 	{
+		int otherDeep=0;
 		defines* valreptdef=addDefine(name,&tmp,MacroEnv);
 		forValRept=newEnv(NULL);
 		cell* tmpCell=(format->type==CEL)?format->value:NULL;
@@ -247,7 +248,7 @@ int M_VALREPT(const cptr** pobjCptr,const cptr** poriCptr,const char* name,env* 
 					}
 					else
 					{
-						if(tmpSym->Func(&origin,&format,anotherName,forValRept))
+						if(otherDeep=tmpSym->Func(&origin,&format,anotherName,forValRept))
 						{
 							forCell=(format==&(*poriCptr)->outer->prev->car)?NULL:format->outer;
 							int len=strlen(name)+strlen(anotherName)+2;
@@ -291,6 +292,12 @@ int M_VALREPT(const cptr** pobjCptr,const cptr** poriCptr,const char* name,env* 
 				cell* oriPrev=NULL;
 				cell* forPrev=NULL;
 				if(oriCell->prev==NULL)break;
+				while(otherDeep-1>0)
+				{
+					oriPrev=oriCell;
+					oriCell=oriCell->prev;
+					otherDeep--;
+				}
 				while(oriCell->prev!=NULL&&forCell!=tmpCell)
 				{
 					oriPrev=oriCell;

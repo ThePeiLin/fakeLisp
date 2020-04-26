@@ -29,6 +29,6 @@ int M_VALREPT(const cptr*,const cptr*,const char*,env*);
 void initPretreatment();
 void deleteMacro(cptr*);
 static const char* hasAnotherName(const char*);
-static cptr* addToList(cptr*,const cptr*);
+static void addToList(cptr*,const cptr*);
 static int addToDefine(const char*,env*,cptr*);
 #endif

@@ -331,7 +331,10 @@ const char* hasAnotherName(const char* name)
 	return (tmp==name+len)?NULL:tmp+1;
 }
 
-cptr* addToList(cptr* fir,const cptr* sec)
+void addToList(cptr* fir,const cptr* sec)
 {
-
+	while(fir->type!=NIL)fir=&((cell*)fir->value)->cdr;
+	fir->type=CEL;
+	fir->value=createCell(fir->outer);
+	replace(&((cell*)fir->value)->car,sec);
 }

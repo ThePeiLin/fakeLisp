@@ -46,6 +46,7 @@ int fmatcmp(const cptr* origin,const cptr* format)
 	cell* tmpCell=(format->type==CEL)?format->value:NULL;
 	cell* forCell=tmpCell;
 	cell* oriCell=(origin->type==CEL)?origin->value:NULL;
+	int deep=0;
 	while(origin!=NULL)
 	{
 		if(format->type==CEL&&origin->type==CEL)
@@ -71,14 +72,15 @@ int fmatcmp(const cptr* origin,const cptr* format)
 						return 0;
 					}
 				}
-				else if(!tmpSym->Func(origin,format,hasAnotherName(tmpAtm->value),MacroEnv))
+				else if(!(deep=tmpSym->Func(&origin,&format,hasAnotherName(tmpAtm->value),MacroEnv)))
 				{
 					destroyEnv(MacroEnv);
 					MacroEnv=NULL;
 					return 0;
 				}
+				forCell=format->outer;
 			}
-			if(oriCell!=NULL&&origin==&oriCell->car)
+			if(forCell!=NULL&&format==&forCell->car)
 			{
 				origin=&oriCell->cdr;
 				format=&forCell->cdr;
@@ -91,17 +93,23 @@ int fmatcmp(const cptr* origin,const cptr* format)
 			MacroEnv=NULL;
 			return 0;
 		}
-		if(oriCell!=NULL&&origin==&oriCell->car)
+		if(forCell!=NULL&&format==&forCell->car)
 		{
 			origin=&oriCell->cdr;
 			format=&forCell->cdr;
 			continue;
 		}
-		else if(oriCell!=NULL&&origin==&oriCell->cdr)
+		else if(forCell!=NULL&&format==&forCell->cdr)
 		{
 			cell* oriPrev=NULL;
 			cell* forPrev=NULL;
 			if(oriCell->prev==NULL)break;
+			while(deep-1>0)
+			{
+				oriPrev=oriCell;
+				oriCell=oriCell->prev;
+				deep--;
+			}
 			while(oriCell->prev!=NULL&&forCell!=tmpCell)
 			{
 				oriPrev=oriCell;
@@ -145,10 +153,11 @@ void initPretreatment()
 	addRule("ATOM",M_ATOM);
 	addRule("CELL",M_CELL);
 	addRule("ANY",M_ANY);
+	addRule("VALREPT",M_VALREPT);
 	MacroEnv=newEnv(NULL);
 	
 }
-void addRule(const char* name,int (*obj)(const cptr*,const cptr*,const char*,env*))
+void addRule(const char* name,int (*obj)(const cptr**,const cptr**,const char*,env*))
 {
 	masym* current=NULL;
 	if(!(current=(masym*)malloc(sizeof(masym))))errors(OUTOFMEMORY);
@@ -159,46 +168,50 @@ void addRule(const char* name,int (*obj)(const cptr*,const cptr*,const char*,env
 	current->Func=obj;
 }
 
-int M_ATOM(const cptr* objCptr,const cptr* oriCptr,const char* name,env* curEnv)
+int M_ATOM(const cptr** pobjCptr,const cptr** poriCptr,const char* name,env* curEnv)
 {
-	if(objCptr==NULL)return 0;
-	else if(objCptr->type==ATM)
+	if(*pobjCptr==NULL)return 0;
+	else if((*pobjCptr)->type==ATM)
 	{
-		addDefine(name,objCptr,curEnv);
+		addDefine(name,*pobjCptr,curEnv);
 		return 1;
 	}
 	return 0;
 }
 
-int M_CELL(const cptr* objCptr,const cptr* oriCptr,const char* name,env* curEnv)
+int M_CELL(const cptr** pobjCptr,const cptr** poriCptr,const char* name,env* curEnv)
 {
-	if(objCptr==NULL)return 0;
-	else if(objCptr->type==CEL)
+	if(*pobjCptr==NULL)return 0;
+	else if((*pobjCptr)->type==CEL)
 	{
-		addDefine(name,objCptr,curEnv);
+		addDefine(name,*pobjCptr,curEnv);
 		return 1;
 	}
 	return 0;
 }
 
-int M_ANY(const cptr* objCptr,const cptr* oriCptr,const char* name,env* curEnv)
+int M_ANY(const cptr** pobjCptr,const cptr** poriCptr,const char* name,env* curEnv)
 {
-	if(objCptr==NULL)return 0;
+	if(*pobjCptr==NULL)return 0;
 	else
 	{
-		addDefine(name,objCptr,curEnv);
+		addDefine(name,*pobjCptr,curEnv);
 		return 1;
 	}
 	return 0;
 }
 
-int M_VALREPT(const cptr* objCptr,const cptr* oriCptr,const char* name,env* curEnv)
+int M_VALREPT(const cptr** pobjCptr,const cptr** poriCptr,const char* name,env* curEnv)
 {
-	cptr* format=&oriCptr->outer->prev->car;
-	const cptr* origin=objCptr;
+	static int deep;
+	static const cptr* old;
+	const cptr* format=&(*poriCptr)->outer->prev->car;
+	if(old!=format)deep=0;
+	const cptr* toReturn=format;
+	const cptr* origin=*pobjCptr;
 	cptr tmp={NULL,NIL,NULL};
 	env* forValRept=NULL;
-	if(objCptr==NULL)return 0;
+	if(*pobjCptr==NULL)return 0;
 	else
 	{
 		defines* valreptdef=addDefine(name,&tmp,MacroEnv);
@@ -234,8 +247,9 @@ int M_VALREPT(const cptr* objCptr,const cptr* oriCptr,const char* name,env* curE
 					}
 					else
 					{
-						if(tmpSym->Func(origin,format,anotherName,forValRept))
+						if(tmpSym->Func(&origin,&format,anotherName,forValRept))
 						{
+							forCell=(format==&(*poriCptr)->outer->prev->car)?NULL:format->outer;
 							int len=strlen(name)+strlen(anotherName)+2;
 							char symName[len];
 							strcpy(symName,name);
@@ -253,7 +267,7 @@ int M_VALREPT(const cptr* objCptr,const cptr* oriCptr,const char* name,env* curE
 						}
 					}
 				}
-				if(oriCell!=NULL&&origin==&oriCell->car)
+				if(forCell!=NULL&&format==&forCell->car)
 				{
 					origin=&oriCell->cdr;
 					format=&forCell->cdr;
@@ -266,13 +280,13 @@ int M_VALREPT(const cptr* objCptr,const cptr* oriCptr,const char* name,env* curE
 				forValRept=NULL;
 				return 0;
 			}
-			if(oriCell!=NULL&&origin==&oriCell->car)
+			if(forCell!=NULL&&format==&forCell->car)
 			{
 				origin=&oriCell->cdr;
 				format=&forCell->cdr;
 				continue;
 			}
-			else if(oriCell!=NULL&&origin==&oriCell->cdr)
+			else if(forCell!=NULL&&format==&forCell->cdr)
 			{
 				cell* oriPrev=NULL;
 				cell* forPrev=NULL;
@@ -292,11 +306,14 @@ int M_VALREPT(const cptr* objCptr,const cptr* oriCptr,const char* name,env* curE
 				}
 				if(forCell==tmpCell&&format==&forCell->cdr)break;
 			}
-			if(oriCell==NULL&&forCell==NULL)break;
+			if(forCell==NULL)break;
 		}
+		if((cell*)(*pobjCptr)->outer->cdr.type!=NIL)*poriCptr=toReturn;
+		old=toReturn;
+		deep++;
 		destroyEnv(forValRept);
-		addToList(&valreptdef->obj,objCptr);
-		return 1;
+		addToList(&valreptdef->obj,*pobjCptr);
+		return deep;
 	}
 	return 0;
 }

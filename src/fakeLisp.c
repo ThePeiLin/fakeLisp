@@ -16,6 +16,7 @@ int main(int argc,char** argv)
 		perror(argv[1]);
 		return EXIT_FAILURE;
 	}
+	int isStdin=(fp==stdin)?1:0;
 	initEvalution();
 	while(1)
 	{
@@ -27,7 +28,7 @@ int main(int argc,char** argv)
 		ungetc(ch,fp);
 		char* list=getListFromFile(fp);
 		if(list==NULL)continue;
-		begin=evalution(list);
+		begin=evalution(list,isStdin);
 		free(list);
 		list=NULL;
 		if(fp==stdin)
@@ -43,7 +44,7 @@ int main(int argc,char** argv)
 	return 0;
 }
 
-cptr* evalution(const char* objStr)
+cptr* evalution(const char* objStr,int isStdin)
 {
 	errorStatus status={0,NULL};
 	cptr* begin=createTree(objStr);
@@ -52,6 +53,11 @@ cptr* evalution(const char* objStr)
 	{
 		exError(status.place,status.status);
 		deleteCptr(status.place);
+		if(!isStdin)
+		{
+			deleteCptr(begin);
+			exit(0);
+		}
 	}
 	return begin;
 }

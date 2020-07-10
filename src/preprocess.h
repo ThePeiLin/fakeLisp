@@ -12,7 +12,7 @@ typedef struct Macro
 typedef struct MacroSym
 {
 	char* symName;
-	int (*Func)(const cptr**,const cptr**,const char*,env*);
+	int (*Func)(const cptr*,const cptr*,const char*,env*);
 	struct MacroSym* next;
 }masym;
 
@@ -21,11 +21,12 @@ int macroExpand(cptr*);
 int addMacro(cptr*,cptr*);
 masym* findMasym(const char*);
 int fmatcmp(const cptr*,const cptr*);
-void addRule(const char*,int (*)(const cptr**,const cptr**,const char*,env*));
-int M_ATOM(const cptr**,const cptr**,const char*,env*);
-int M_CELL(const cptr**,const cptr**,const char*,env*);
-int M_ANY(const cptr**,const cptr**,const char*,env*);
-int M_VAREPT(const cptr**,const cptr**,const char*,env*);
+void addRule(const char*,int (*)(const cptr*,const cptr*,const char*,env*));
+int M_ATOM(const cptr*,const cptr*,const char*,env*);
+int M_CELL(const cptr*,const cptr*,const char*,env*);
+int M_ANY(const cptr*,const cptr*,const char*,env*);
+int M_VAREPT(const cptr*,const cptr*,const char*,env*);
+int M_COLT(const cptr*,const cptr*,const char*,env*);
 void initPretreatment();
 void deleteMacro(cptr*);
 static const char* hasAnotherName(const char*);

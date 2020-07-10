@@ -21,7 +21,17 @@ typedef struct Cell
 typedef struct Atom
 {
 	cell* prev;
-	enum{SYM,NUM,STR} type;
+	enum{SYM,/*INT,CHR,FLA*/NUM,STR} type;
+	/*
+	union
+	{
+		char* sym;
+		char* str;
+		char chr;
+		int num;
+		double fla;
+	}
+	*/
 	char* value;
 }atom;
 

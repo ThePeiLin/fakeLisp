@@ -6,7 +6,7 @@
 #include"fake.h"
 #include"tool.h"
 #include"form.h"
-#include"pretreatment.h"
+#include"preprocess.h"
 
 int main(int argc,char** argv)
 {

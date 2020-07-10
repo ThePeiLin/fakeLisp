@@ -3,7 +3,7 @@
 #include<ctype.h>
 #include"fake.h"
 #include"tool.h"
-#include"pretreatment.h"
+#include"preprocess.h"
 
 static nativeFunc* funAndForm=NULL;
 static env* Glob=NULL;
@@ -401,4 +401,18 @@ int hasAlpha(const char* objStr)
 	for(;tmp<objStr+len;tmp++)
 		if(!isdigit(*tmp))return 1;
 	return 0;
+}
+
+cptr* nextCptr(const cptr* objCptr)
+{
+	if(objCptr->outer!=NULL&&objCptr->outer->cdr.type==CEL)
+		return &((cell*)objCptr->outer->cdr.value)->car;
+	return NULL;
+}
+
+cptr* prevCptr(const cptr* objCptr)
+{
+	if(objCptr->outer->prev!=NULL)
+		return &objCptr->outer->prev->car;
+	return NULL;
 }

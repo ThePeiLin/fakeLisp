@@ -11,11 +11,11 @@
  (if ANY#COND ANY#EXPRESSION1 ANY#EXPRESSION2)
  (list 'cond (list COND EXPRESSION1) (list 'else EXPRESSION2)))
 
-;get something form list
-(defun gsl (objlist)
+;get the last element of a list
+(defun gle (objlist)
  (if (null (cdr objlist))
   (car objlist)
-  (gsl (cdr objlist))))
+  (gle (cdr objlist))))
 (defun ael (objlist object)
  (defun tmpfun (objlist tmp)
   (if (null (cdr objlist))
@@ -23,9 +23,9 @@
    (tmpfun (cdr objlist) (cons (car objlist) tmp))))
  (tmpfun (cons object (tmpfun objlist nil)) nil))
 
-(print (gsl '(9 2 3)))
+(print (gle '(9 2 3)))
 (print "\n")
-(print (gsl (ael '(9 2 3) 4)))
+(print (gle (ael '(9 2 3) 4)))
 (print "\n")
 (print "Hello,world!\n")
 (print "你好，世界！\n")

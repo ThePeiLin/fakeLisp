@@ -78,6 +78,11 @@ int fmatcmp(const cptr* origin,const cptr* format)
 					return 0;
 				}
 				forCell=format->outer;
+				if(tmpSym!=NULL&&tmpSym->Func==M_VAREPT)
+				{
+					format=&forCell->cdr;
+					origin=&oriCell->cdr;
+				}
 			}
 			if(forCell!=NULL&&format==&forCell->car)
 			{
@@ -90,13 +95,17 @@ int fmatcmp(const cptr* origin,const cptr* format)
 				format->type==CEL&&
 				((cell*)format->value)->car.type==ATM)
 		{
-			atom* tmpAtm=format->value;
+			atom* tmpAtm=((cell*)format->value)->car.value;
 			masym* tmpSym=findMasym(tmpAtm->value);
 			if(tmpSym->Func!=M_VAREPT)
 			{
 				destroyEnv(MacroEnv);
 				MacroEnv=NULL;
 				return 0;
+			}
+			else
+			{
+				M_VAREPT(&origin->outer->car,&((cell*)format->value)->car,NULL,MacroEnv);
 			}
 		}
 		else if(origin->type!=format->type)
@@ -212,17 +221,18 @@ int M_ANY(const cptr* oriCptr,const cptr* fmtCptr,const char* name,env* curEnv)
 int M_VAREPT(const cptr* oriCptr,const cptr* fmtCptr,const char* name,env* curEnv)
 {
 	fmtCptr=&fmtCptr->outer->prev->car;
-	const cptr* origin=oriCptr;
 	const cptr* format=fmtCptr;
 	const cptr tmp={NULL,NIL,NULL};
 	cell* forCell=(format->type==CEL)?format->value:NULL;
-	cell* oriCell=(origin->type==CEL)?origin->value:NULL;
 	cell* tmpCell=forCell;
 	env* forValRept=newEnv(NULL);
 	defines* valreptdef=addDefine(name,&tmp,MacroEnv);
-
 	while(oriCptr!=NULL&&fmtCptr!=NULL)
 	{
+		const cptr* origin=oriCptr;
+		const cptr* format=fmtCptr;
+		cell* forCell=(format->type==CEL)?format->value:NULL;
+		cell* oriCell=(origin->type==CEL)?origin->value:NULL;
 		while(origin!=NULL&&format!=NULL)
 		{
 			if(format->type==CEL&&origin->type==CEL)
@@ -240,7 +250,11 @@ int M_VAREPT(const cptr* oriCptr,const cptr* fmtCptr,const char* name,env* curEn
 				const char* anotherName=hasAnotherName(tmpAtm->value);
 				if(tmpSym==NULL||tmpSym->Func==M_VAREPT||!anotherName)
 				{
-					if(!cptrcmp(origin,format))break;
+					if(!cptrcmp(origin,format))
+					{
+						destroyEnv(forValRept);
+						return 0;
+					}
 				}
 				else
 				{
@@ -298,7 +312,7 @@ int M_VAREPT(const cptr* oriCptr,const cptr* fmtCptr,const char* name,env* curEn
 		addToList(&valreptdef->obj,oriCptr);
 		oriCptr=nextCptr(oriCptr);
 	}
-	return 0;
+	return 1;
 }
 void deleteMacro(cptr* objCptr)
 {

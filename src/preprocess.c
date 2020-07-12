@@ -161,6 +161,7 @@ int macroExpand(cptr* objCptr)
 		deleteCptr(tmp->express);
 		free(tmp->express);
 		tmp->express=tmpCptr;
+		return 1;
 	}
 	return 0;
 }
@@ -314,6 +315,11 @@ int M_VAREPT(const cptr* oriCptr,const cptr* fmtCptr,const char* name,env* curEn
 	}
 	return 1;
 }
+
+int M_COLT(const cptr* oriCptr,const cptr* fmtCptr,const char* name,env* curEnv)
+{
+}
+
 void deleteMacro(cptr* objCptr)
 {
 	macro* current=Head;

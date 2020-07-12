@@ -2,6 +2,11 @@
 #define TREE_H_
 #include<stdio.h>
 #include"fakedef.h"
+typedef struct KeyWord
+{
+	char* word;
+	struct KeyWord* next;
+}keyWord;
 defines* findDefine(const char*,const env*);
 cptr* createTree(const char*);
 void addFunc(const char*,errorStatus (*)(cptr*,env*));
@@ -15,5 +20,7 @@ errorStatus eval(cptr*,env*);
 void exError(const cptr*,int);
 cptr* nextCptr(const cptr*);
 cptr* prevCptr(const cptr*);
+int addKeyWord(const char*);
+keyWord* hasKeyWord(const cptr*);
 static int hasAlpha(const char*);
 #endif

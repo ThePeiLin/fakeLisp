@@ -8,7 +8,7 @@ char* getListFromFile(FILE* file)
 {
 	char* tmp=NULL;
 	char* before;
-	char ch;
+	int ch;
 	int i=0;
 	int j;
 	int mark=0;
@@ -61,6 +61,11 @@ char* getListFromFile(FILE* file)
 			if(braketsNum<=0)break;
 		}
 		else continue;
+	}
+	if(ch==EOF&&braketsNum!=0&&file!=stdin)
+	{
+		free(tmp);
+		return NULL;
 	}
 	if(tmp!=NULL)*(tmp+i)='\0';
 	return tmp;

@@ -7,6 +7,7 @@
 
 static nativeFunc* funAndForm=NULL;
 static env* Glob=NULL;
+static keyWord* KeyWords=NULL;
 
 cptr* createTree(const char* objStr)
 {
@@ -374,7 +375,12 @@ errorStatus eval(cptr* objCptr,env* curEnv)
 		}
 		else if(objCptr->type==CEL)
 		{
-			macroExpand(objCptr);
+			if(!macroExpand(objCptr)&&hasKeyWord(objCptr))
+			{
+				status.status=SYNTAXERROR;
+				status.place=objCptr;
+				return status;
+			}
 			if(objCptr->type!=CEL)continue;
 			objCptr=&(((cell*)objCptr->value)->car);
 			continue;
@@ -414,5 +420,52 @@ cptr* prevCptr(const cptr* objCptr)
 {
 	if(objCptr->outer->prev!=NULL)
 		return &objCptr->outer->prev->car;
+	return NULL;
+}
+
+int addKeyWord(const char* objStr)
+{
+	if(objStr!=NULL)
+	{
+		int len=strlen(objStr)+1;
+		keyWord* tmp=(keyWord*)malloc(sizeof(keyWord));
+		char* tmpStr=(char*)malloc(sizeof(char)*len);
+		if(tmp==NULL||tmpStr==NULL)errors(OUTOFMEMORY);
+		memcpy(tmpStr,objStr,len);
+		tmp->word=tmpStr;
+		tmp->next=KeyWords;
+		KeyWords=tmp;
+		return 1;
+	}
+	return 0;
+}
+
+keyWord* hasKeyWord(const cptr* objCptr)
+{
+	atom* tmpAtm=NULL;
+	if(objCptr->type==ATM&&(tmpAtm=objCptr->value)->type==SYM)
+	{
+		keyWord* tmp=KeyWords;
+		while(tmp!=NULL&&strcmp(tmpAtm->value,tmp->word))
+			tmp=tmp->next;
+		return tmp;
+	}
+	else if(objCptr->type==CEL)
+	{
+		keyWord* tmp=NULL;
+		for(objCptr=&((cell*)objCptr->value)->car;objCptr!=NULL;objCptr=nextCptr(objCptr))
+		{
+			tmp=KeyWords;
+			tmpAtm=(objCptr->type==ATM)?objCptr->value:NULL;
+			if(tmpAtm==NULL)
+			{
+				tmp=NULL;
+				continue;
+			}
+			while(tmp!=NULL&&strcmp(tmpAtm->value,tmp->word))
+				tmp=tmp->next;
+		}
+		return tmp;
+	}
 	return NULL;
 }

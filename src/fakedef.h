@@ -7,20 +7,20 @@
 #define SYNTAXERROR 2
 typedef struct
 {
-	struct Cell* outer;
-	enum {NIL,CEL,ATM} type;
+	struct Pair* outer;
+	enum {NIL,PAR,ATM} type;
 	void* value;
 }cptr;
 
-typedef struct Cell
+typedef struct Pair
 {
-	struct Cell* prev;
+	struct Pair* prev;
 	cptr car,cdr;
-}cell;
+}pair;
 
 typedef struct Atom
 {
-	cell* prev;
+	pair* prev;
 	enum{SYM,/*INT,CHR,FLA*/NUM,STR} type;
 	/*
 	union

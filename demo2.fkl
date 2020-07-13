@@ -1,4 +1,4 @@
-(defmacro (let ((ATOM#NAME ANY#VALUE) VAREPT#OTHER),CELL#BODY)
+(defmacro (let ((ATOM#NAME ANY#VALUE) VAREPT#OTHER),PAIR#BODY)
           (cons (cons 'lambda (cons (cons NAME OTHER#NAME) BODY)) (cons VALUE OTHER#VALUE)))
 (let ((a 8)
 	  (b 9)

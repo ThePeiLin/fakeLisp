@@ -328,10 +328,10 @@ void errors(int types)
 	exit(1);
 }
 
-cell* createCell(cell* prev)
+pair* createPair(pair* prev)
 {
-	cell* tmp;
-	if((tmp=(cell*)malloc(sizeof(cell))))
+	pair* tmp;
+	if((tmp=(pair*)malloc(sizeof(pair))))
 	{
 		tmp->car.outer=tmp;
 		tmp->car.type=NIL;
@@ -344,7 +344,7 @@ cell* createCell(cell* prev)
 	else errors(OUTOFMEMORY);
 }
 
-cptr* createCptr(cell* outer)
+cptr* createCptr(pair* outer)
 {
 	cptr* tmp=NULL;
 	if(!(tmp=(cptr*)malloc(sizeof(cptr))))errors(OUTOFMEMORY);
@@ -354,7 +354,7 @@ cptr* createCptr(cell* outer)
 	return tmp;
 }
 
-atom* createAtom(int type,const char* value,cell* prev)
+atom* createAtom(int type,const char* value,pair* prev)
 {
 	atom* tmp=NULL;
 	if(!(tmp=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY);
@@ -368,21 +368,21 @@ atom* createAtom(int type,const char* value,cell* prev)
 int copyCptr(cptr* objCptr,const cptr* copiedCptr)
 {
 	if(copiedCptr==NULL||objCptr==NULL)return 0;
-	cell* objCell=NULL;
-	cell* copiedCell=NULL;
-	cell* tmpCell=(copiedCptr->type==CEL)?copiedCptr->value:NULL;
-	copiedCell=tmpCell;
+	pair* objPair=NULL;
+	pair* copiedPair=NULL;
+	pair* tmpPair=(copiedCptr->type==PAR)?copiedCptr->value:NULL;
+	copiedPair=tmpPair;
 	while(1)
 	{
 		objCptr->type=copiedCptr->type;
-		if(copiedCptr->type==CEL)
+		if(copiedCptr->type==PAR)
 		{
-			objCell=createCell(objCell);
-			objCptr->value=objCell;
-			copiedCell=copiedCptr->value;
-			copiedCptr=&copiedCell->car;
-			copiedCptr=&copiedCell->car;
-			objCptr=&objCell->car;
+			objPair=createPair(objPair);
+			objCptr->value=objPair;
+			copiedPair=copiedCptr->value;
+			copiedCptr=&copiedPair->car;
+			copiedCptr=&copiedPair->car;
+			objCptr=&objPair->car;
 			continue;
 		}
 		else if(copiedCptr->type==ATM)
@@ -394,10 +394,10 @@ int copyCptr(cptr* objCptr,const cptr* copiedCptr)
 			if(!(objAtm->value=(char*)malloc(strlen(coAtm->value)+1)))errors(OUTOFMEMORY);
 			objAtm->type=coAtm->type;
 			memcpy(objAtm->value,coAtm->value,strlen(coAtm->value)+1);
-			if(copiedCptr==&copiedCell->car)
+			if(copiedCptr==&copiedPair->car)
 			{
-				copiedCptr=&copiedCell->cdr;
-				objCptr=&objCell->cdr;
+				copiedCptr=&copiedPair->cdr;
+				objCptr=&objPair->cdr;
 				continue;
 			}
 			
@@ -405,82 +405,82 @@ int copyCptr(cptr* objCptr,const cptr* copiedCptr)
 		else if(copiedCptr->type==NIL)
 		{
 			objCptr->value=NULL;
-			if(copiedCptr==&copiedCell->car)
+			if(copiedCptr==&copiedPair->car)
 			{
-				objCptr=&objCell->cdr;
-				copiedCptr=&copiedCell->cdr;
+				objCptr=&objPair->cdr;
+				copiedCptr=&copiedPair->cdr;
 				continue;
 			}
 		}
-		if(copiedCell!=NULL&&copiedCptr==&copiedCell->cdr)
+		if(copiedPair!=NULL&&copiedCptr==&copiedPair->cdr)
 		{
-			cell* objPrev=NULL;
-			cell* coPrev=NULL;
-			if(copiedCell->prev==NULL)break;
-			while(objCell->prev!=NULL&&copiedCell!=NULL&&copiedCell!=tmpCell)
+			pair* objPrev=NULL;
+			pair* coPrev=NULL;
+			if(copiedPair->prev==NULL)break;
+			while(objPair->prev!=NULL&&copiedPair!=NULL&&copiedPair!=tmpPair)
 			{
-				coPrev=copiedCell;
-				copiedCell=copiedCell->prev;
-				objPrev=objCell;
-				objCell=objCell->prev;
-				if(coPrev==copiedCell->car.value)break;
+				coPrev=copiedPair;
+				copiedPair=copiedPair->prev;
+				objPrev=objPair;
+				objPair=objPair->prev;
+				if(coPrev==copiedPair->car.value)break;
 			}
-			if(copiedCell!=NULL)
+			if(copiedPair!=NULL)
 			{
-				copiedCptr=&copiedCell->cdr;
-				objCptr=&objCell->cdr;
+				copiedCptr=&copiedPair->cdr;
+				objCptr=&objPair->cdr;
 			}
-			if(copiedCell==tmpCell&&copiedCptr->type==objCptr->type)break;
+			if(copiedPair==tmpPair&&copiedCptr->type==objCptr->type)break;
 		}
-		if(copiedCell==NULL)break;
+		if(copiedPair==NULL)break;
 	}
 	return 1;
 }
 void replace(cptr* fir,const cptr* sec)
 {
-	cell* tmp=fir->outer;
+	pair* tmp=fir->outer;
 	cptr tmpCptr={NULL,NIL,NULL};
 	tmpCptr.type=fir->type;
 	tmpCptr.value=fir->value;
 	copyCptr(fir,sec);
 	deleteCptr(&tmpCptr);
-	if(fir->type==CEL)((cell*)fir->value)->prev=tmp;
+	if(fir->type==PAR)((pair*)fir->value)->prev=tmp;
 	else if(fir->type==ATM)((atom*)fir->value)->prev=tmp;
 }
 
 cptr* destroyCptr(cptr* objCptr)
 {
-	cell* objCell=NULL;
-	if(objCptr->type==CEL)objCell=((cell*)objCptr->value)->prev;
-	if(objCptr->type==ATM)objCell=((atom*)objCptr->value)->prev;
+	pair* objPair=NULL;
+	if(objCptr->type==PAR)objPair=((pair*)objCptr->value)->prev;
+	if(objCptr->type==ATM)objPair=((atom*)objCptr->value)->prev;
 	if(objCptr->type==NIL)return objCptr;
-	while(objCell!=NULL&&objCell->prev!=NULL)objCell=objCell->prev;
-	if(objCell!=NULL)
+	while(objPair!=NULL&&objPair->prev!=NULL)objPair=objPair->prev;
+	if(objPair!=NULL)
 	{
-		deleteCptr(&objCell->car);
-		deleteCptr(&objCell->cdr);
+		deleteCptr(&objPair->car);
+		deleteCptr(&objPair->cdr);
 	}
-	free(objCell);
+	free(objPair);
 }
 int deleteCptr(cptr* objCptr)
 {
 	if(objCptr==NULL)return 0;
-	cell* tmpCell=(objCptr->type==CEL)?objCptr->value:NULL;
-	cell* objCell=tmpCell;
+	pair* tmpPair=(objCptr->type==PAR)?objCptr->value:NULL;
+	pair* objPair=tmpPair;
 	cptr* tmpCptr=objCptr;
 	while(tmpCptr!=NULL)
 	{
-		if(tmpCptr->type==CEL)
+		if(tmpCptr->type==PAR)
 		{
-			if(objCell!=NULL&&tmpCptr==&objCell->cdr)
+			if(objPair!=NULL&&tmpCptr==&objPair->cdr)
 			{
-				objCell=objCell->cdr.value;
-				tmpCptr=&objCell->car;
+				objPair=objPair->cdr.value;
+				tmpCptr=&objPair->car;
 			}
 			else
 			{
-				objCell=tmpCptr->value;
-				tmpCptr=&objCell->car;
+				objPair=tmpCptr->value;
+				tmpCptr=&objPair->car;
 				continue;
 			}
 		}
@@ -496,32 +496,32 @@ int deleteCptr(cptr* objCptr)
 		}
 		else if(tmpCptr->type==NIL)
 		{
-			if(objCell!=NULL&&tmpCptr==&objCell->car)
+			if(objPair!=NULL&&tmpCptr==&objPair->car)
 			{
-				tmpCptr=&objCell->cdr;
+				tmpCptr=&objPair->cdr;
 				continue;
 			}
-			else if(objCell!=NULL&&tmpCptr==&objCell->cdr)
+			else if(objPair!=NULL&&tmpCptr==&objPair->cdr)
 			{
-				cell* prev=objCell;
-				objCell=objCell->prev;
-				//printf("free CELL\n");
+				pair* prev=objPair;
+				objPair=objPair->prev;
+				//printf("free PAR\n");
 				free(prev);
-				if(objCell==NULL||prev==tmpCell)break;
-				if(prev==objCell->car.value)
+				if(objPair==NULL||prev==tmpPair)break;
+				if(prev==objPair->car.value)
 				{
-					objCell->car.type=NIL;
-					objCell->car.value=NULL;
+					objPair->car.type=NIL;
+					objPair->car.value=NULL;
 				}
-				else if(prev==objCell->cdr.value)
+				else if(prev==objPair->cdr.value)
 				{
-					objCell->cdr.type=NIL;
-					objCell->cdr.value=NULL;
+					objPair->cdr.type=NIL;
+					objPair->cdr.value=NULL;
 				}
-				tmpCptr=&objCell->cdr;
+				tmpCptr=&objPair->cdr;
 			}
 		}
-		if(objCell==NULL)break;
+		if(objPair==NULL)break;
 	}
 	objCptr->type=NIL;
 	objCptr->value=NULL;
@@ -531,18 +531,18 @@ int deleteCptr(cptr* objCptr)
 int cptrcmp(const cptr* first,const cptr* second)
 {
 	if(first==NULL&&second==NULL)return 0;
-	cell* firCell=NULL;
-	cell* secCell=NULL;
-	cell* tmpCell=(first->type==CEL)?first->value:NULL;
+	pair* firPair=NULL;
+	pair* secPair=NULL;
+	pair* tmpPair=(first->type==PAR)?first->value:NULL;
 	while(1)
 	{
 		if(first->type!=second->type)return 0;
-		else if(first->type==CEL)
+		else if(first->type==PAR)
 		{
-			firCell=first->value;
-			secCell=second->value;
-			first=&firCell->car;
-			second=&secCell->car;
+			firPair=first->value;
+			secPair=second->value;
+			first=&firPair->car;
+			second=&secPair->car;
 			continue;
 		}
 		else if(first->type==ATM||first->type==NIL)
@@ -554,40 +554,40 @@ int cptrcmp(const cptr* first,const cptr* second)
 				if(firAtm->type!=secAtm->type)return 0;
 				if(strcmp(firAtm->value,secAtm->value)!=0)return 0;
 			}
-			if(firCell!=NULL&&first==&firCell->car)
+			if(firPair!=NULL&&first==&firPair->car)
 			{
-				first=&firCell->cdr;
-				second=&secCell->cdr;
+				first=&firPair->cdr;
+				second=&secPair->cdr;
 				continue;
 			}
 		}
-		if(firCell!=NULL&&first==&firCell->car)
+		if(firPair!=NULL&&first==&firPair->car)
 		{
-			first=&firCell->cdr;
-			second=&secCell->cdr;
+			first=&firPair->cdr;
+			second=&secPair->cdr;
 			continue;
 		}
-		else if(firCell!=NULL&&first==&firCell->cdr)
+		else if(firPair!=NULL&&first==&firPair->cdr)
 		{
-			cell* firPrev=NULL;
-			cell* secPrev=NULL;
-			if(firCell->prev==NULL)break;
-			while(firCell->prev!=NULL&&firCell!=tmpCell)
+			pair* firPrev=NULL;
+			pair* secPrev=NULL;
+			if(firPair->prev==NULL)break;
+			while(firPair->prev!=NULL&&firPair!=tmpPair)
 			{
-				firPrev=firCell;
-				secPrev=secCell;
-				firCell=firCell->prev;
-				secCell=secCell->prev;
-				if(firPrev==firCell->car.value)break;
+				firPrev=firPair;
+				secPrev=secPair;
+				firPair=firPair->prev;
+				secPair=secPair->prev;
+				if(firPrev==firPair->car.value)break;
 			}
-			if(firCell!=NULL)
+			if(firPair!=NULL)
 			{
-				first=&firCell->cdr;
-				second=&secCell->cdr;
+				first=&firPair->cdr;
+				second=&secPair->cdr;
 			}
-			if(firCell==tmpCell&&first==&firCell->cdr)break;
+			if(firPair==tmpPair&&first==&firPair->cdr)break;
 		}
-		if(firCell==NULL&&secCell==NULL)break;
+		if(firPair==NULL&&secPair==NULL)break;
 	}
 	return 1;
 }

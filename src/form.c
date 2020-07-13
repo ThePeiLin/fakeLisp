@@ -2,11 +2,11 @@
 #include"tool.h"
 #include"fake.h"
 #include"form.h"
-#include"pretreatment.h"
+#include"preprocess.h"
 
 cptr** dealArg(cptr* argCptr,int num)
 {
-	cptr* tmpCptr=(argCptr->type==CEL)?argCptr:NULL;
+	cptr* tmpCptr=(argCptr->type==PAR)?argCptr:NULL;
 	cptr** args=NULL;
 	if(!(args=(cptr**)malloc(num*sizeof(cptr*))))errors(OUTOFMEMORY);
 	int i;
@@ -17,9 +17,9 @@ cptr** dealArg(cptr* argCptr,int num)
 		else
 		{
 			args[i]=createCptr(NULL);
-			replace(args[i],&((cell*)argCptr->value)->car);
-			deleteCptr(&((cell*)argCptr->value)->car);
-			argCptr=&((cell*)argCptr->value)->cdr;
+			replace(args[i],&((pair*)argCptr->value)->car);
+			deleteCptr(&((pair*)argCptr->value)->car);
+			argCptr=&((pair*)argCptr->value)->cdr;
 		}
 	}
 	if(tmpCptr!=NULL)
@@ -27,11 +27,11 @@ cptr** dealArg(cptr* argCptr,int num)
 		cptr* beDel=createCptr(NULL);
 		beDel->type=tmpCptr->type;
 		beDel->value=tmpCptr->value;
-		((cell*)tmpCptr->value)->prev=NULL;
+		((pair*)tmpCptr->value)->prev=NULL;
 		tmpCptr->type=argCptr->type;
 		tmpCptr->value=argCptr->value;
-		if(argCptr->type==CEL)
-			((cell*)argCptr->value)->prev=tmpCptr->outer;
+		if(argCptr->type==PAR)
+			((pair*)argCptr->value)->prev=tmpCptr->outer;
 		else if(argCptr->type==ATM)
 			((atom*)argCptr->value)->prev=tmpCptr->outer;
 		argCptr->type=NIL;
@@ -45,11 +45,11 @@ cptr** dealArg(cptr* argCptr,int num)
 int coutArg(cptr* argCptr)
 {
 	int num=0;
-	while(argCptr->type==CEL)
+	while(argCptr->type==PAR)
 	{
-		cptr* tmp=&((cell*)argCptr->value)->car;
+		cptr* tmp=&((pair*)argCptr->value)->car;
 		if(tmp->type!=NIL)num++;
-		argCptr=&((cell*)argCptr->value)->cdr;
+		argCptr=&((pair*)argCptr->value)->cdr;
 	}
 	return num;
 }
@@ -68,10 +68,10 @@ void deleteArg(cptr** args,int num)
 int isNil(cptr* objCptr)
 {
 	if(objCptr->type==NIL)return 1;
-	else if(objCptr->type==CEL)
+	else if(objCptr->type==PAR)
 	{
-		cell* tmpCell=objCptr->value;
-		if(tmpCell->car.type==NIL&&tmpCell->cdr.type==NIL)return 1;
+		pair* tmpPair=objCptr->value;
+		if(tmpPair->car.type==NIL&&tmpPair->cdr.type==NIL)return 1;
 	}
 	return 0;
 }
@@ -105,7 +105,7 @@ errorStatus N_car(cptr* objCptr,env* curEnv)
 		deleteArg(args,1);
 		return status;
 	}
-	replace(objCptr,&((cell*)args[0]->value)->car);
+	replace(objCptr,&((pair*)args[0]->value)->car);
 	deleteArg(args,1);
 	return status;
 }
@@ -129,7 +129,7 @@ errorStatus N_cdr(cptr* objCptr,env* curEnv)
 		deleteArg(args,1);
 		return status;
 	}
-	replace(objCptr,&((cell*)args[0]->value)->cdr);
+	replace(objCptr,&((pair*)args[0]->value)->cdr);
 	deleteArg(args,1);
 	return status;
 }
@@ -151,10 +151,10 @@ errorStatus N_cons(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	objCptr->type=CEL;
-	cell* tmpCell=objCptr->value=createCell(objCptr->outer);
-	replace(&tmpCell->car,args[0]);
-	replace(&tmpCell->cdr,args[1]);
+	objCptr->type=PAR;
+	pair* tmpPair=objCptr->value=createPair(objCptr->outer);
+	replace(&tmpPair->car,args[0]);
+	replace(&tmpPair->cdr,args[1]);
 	deleteArg(args,2);
 	return status;
 }
@@ -201,15 +201,15 @@ errorStatus N_atom(cptr* objCptr,env* curEnv)
 		deleteArg(args,1);
 		return status;
 	}
-	if(args[0]->type!=CEL)
+	if(args[0]->type!=PAR)
 	{
 		objCptr->type=ATM;
 		objCptr->value=createAtom(NUM,"1",objCptr->outer);
 	}
 	else
 	{
-		cell* tmpCell=args[0]->value;
-		if(tmpCell->car.type==NIL&&tmpCell->cdr.type==NIL)
+		pair* tmpPair=args[0]->value;
+		if(tmpPair->car.type==NIL&&tmpPair->cdr.type==NIL)
 		{
 			objCptr->type=ATM;
 			objCptr->value=createAtom(NUM,"1",objCptr->outer);
@@ -240,10 +240,10 @@ errorStatus N_null(cptr* objCptr,env* curEnv)
 		objCptr->type=ATM;
 		objCptr->value=createAtom(NUM,"1",objCptr->outer);
 	}
-	else if(args[0]->type==CEL)
+	else if(args[0]->type==PAR)
 	{
-		cell* tmpCell=args[0]->value;
-		if(tmpCell->car.type==NIL&&tmpCell->cdr.type==NIL)
+		pair* tmpPair=args[0]->value;
+		if(tmpPair->car.type==NIL&&tmpPair->cdr.type==NIL)
 		{
 			objCptr->type=ATM;
 			objCptr->value=createAtom(NUM,"1",objCptr->outer);
@@ -359,7 +359,7 @@ errorStatus N_cond(cptr* objCptr,env* curEnv)
 	int i;
 	for(i=0;i<condNum;i++)
 	{
-		if(condition[i]->type!=CEL)
+		if(condition[i]->type!=PAR)
 		{
 			status.status=SYNTAXERROR;
 			status.place=createCptr(NULL);
@@ -508,11 +508,11 @@ errorStatus N_list(cptr* objCptr,env* curEnv)
 			deleteCptr(result);
 			return status;
 		}
-		tmp->type=CEL;
-		tmp->value=createCell(tmp->outer);
-		cell* tmpCell=tmp->value;
-		replace(&tmpCell->car,args[i]);
-		tmp=&tmpCell->cdr;
+		tmp->type=PAR;
+		tmp->value=createPair(tmp->outer);
+		pair* tmpPair=tmp->value;
+		replace(&tmpPair->car,args[i]);
+		tmp=&tmpPair->cdr;
 	}
 	replace(objCptr,result);
 	deleteCptr(result);
@@ -525,7 +525,7 @@ errorStatus N_defmacro(cptr* objCptr,env* curEnv)
 	errorStatus status={0,NULL};
 	deleteCptr(objCptr);
 	cptr** args=dealArg(&objCptr->outer->cdr,2);
-	if(args[0]->type!=CEL)
+	if(args[0]->type!=PAR)
 	{
 		status.status=SYNTAXERROR;
 		status.place=createCptr(NULL);

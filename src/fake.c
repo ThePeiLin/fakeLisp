@@ -15,7 +15,7 @@ cptr* createTree(const char* objStr)
 	int i=0;
 	int braketsNum=0;
 	cptr* root=NULL;
-	cell* objCell=NULL;
+	pair* objPair=NULL;
 	cptr* objCptr;
 	while(*(objStr+i)!='\0')
 	{
@@ -25,18 +25,18 @@ cptr* createTree(const char* objStr)
 			braketsNum++;
 			if(root==NULL)
 			{
-				root=createCptr(objCell);
-				root->type=CEL;
-				root->value=createCell(NULL);
-				objCell=root->value;
-				objCptr=&objCell->car;
+				root=createCptr(objPair);
+				root->type=PAR;
+				root->value=createPair(NULL);
+				objPair=root->value;
+				objCptr=&objPair->car;
 			}
 			else
 			{
-				objCell=createCell(objCell);
-				objCptr->type=CEL;
-				objCptr->value=(void*)objCell;
-				objCptr=&objCell->car;
+				objPair=createPair(objPair);
+				objCptr->type=PAR;
+				objCptr->value=(void*)objPair;
+				objCptr=&objPair->car;
 			}
 		}
 		else if(*(objStr+i)==')')
@@ -49,23 +49,23 @@ cptr* createTree(const char* objStr)
 				if(root!=NULL)deleteCptr(root);
 				return NULL;
 			}
-			cell* prev=NULL;
-			if(objCell==NULL)break;
-			while(objCell->prev!=NULL)
+			pair* prev=NULL;
+			if(objPair==NULL)break;
+			while(objPair->prev!=NULL)
 			{
-				prev=objCell;
-				objCell=objCell->prev;
-				if(objCell->car.value==prev)break;
+				prev=objPair;
+				objPair=objPair->prev;
+				if(objPair->car.value==prev)break;
 			}
-			if(objCell->car.value==prev)
-				objCptr=&objCell->car;
-			else if(objCell->cdr.value==prev)
-				objCptr=&objCell->cdr;
+			if(objPair->car.value==prev)
+				objCptr=&objPair->car;
+			else if(objPair->cdr.value==prev)
+				objCptr=&objPair->cdr;
 		}
 		else if(*(objStr+i)==',')
 		{
 			i++;
-			objCptr=&objCell->cdr;
+			objCptr=&objPair->cdr;
 		}
 		else if(isspace(*(objStr+i)))
 		{
@@ -87,36 +87,36 @@ cptr* createTree(const char* objStr)
 				continue;
 			}
 			i+=j;
-			cell* tmp=createCell(objCell);
-			objCell->cdr.type=CEL;
-			objCell->cdr.value=(void*)tmp;
-			objCell=tmp;
-			objCptr=&objCell->car;
+			pair* tmp=createPair(objPair);
+			objPair->cdr.type=PAR;
+			objPair->cdr.value=(void*)tmp;
+			objPair=tmp;
+			objCptr=&objPair->car;
 		}
 		else if(*(objStr+i)=='\"')
 		{
-			if(root==NULL)objCptr=root=createCptr(objCell);
+			if(root==NULL)objCptr=root=createCptr(objPair);
 			rawString tmp=getStringBetweenMarks(objStr+i);
 			objCptr->type=ATM;
-			objCptr->value=(void*)createAtom(STR,tmp.str,objCell);
+			objCptr->value=(void*)createAtom(STR,tmp.str,objPair);
 			i+=tmp.len;
 			free(tmp.str);
 		}
 		else if(isdigit(*(objStr+i))||(*(objStr+i)=='-'&&isdigit(*(objStr+i+1))))
 		{
-			if(root==NULL)objCptr=root=createCptr(objCell);
+			if(root==NULL)objCptr=root=createCptr(objPair);
 			char* tmp=getStringFromList(objStr+i);
 			objCptr->type=ATM;
-			objCptr->value=(void*)createAtom((hasAlpha(tmp))?SYM:NUM,tmp,objCell);
+			objCptr->value=(void*)createAtom((hasAlpha(tmp))?SYM:NUM,tmp,objPair);
 			i+=strlen(tmp);
 			free(tmp);
 		}
 		else
 		{
-			if(root==NULL)objCptr=root=createCptr(objCell);
+			if(root==NULL)objCptr=root=createCptr(objPair);
 			char* tmp=getStringFromList(objStr+i);
 			objCptr->type=ATM;
-			objCptr->value=(void*)createAtom(SYM,tmp,objCell);
+			objCptr->value=(void*)createAtom(SYM,tmp,objPair);
 			i+=strlen(tmp);
 			free(tmp);
 			continue;
@@ -182,56 +182,56 @@ int retree(cptr** fir,cptr* sec)
 void printList(const cptr* objCptr,FILE* out)
 {
 	if(objCptr==NULL)return;
-	cell* tmpCell=(objCptr->type==CEL)?objCptr->value:NULL;
-	cell* objCell=tmpCell;
+	pair* tmpPair=(objCptr->type==PAR)?objCptr->value:NULL;
+	pair* objPair=tmpPair;
 	const cptr* tmp=objCptr;
 	while(tmp!=NULL)
 	{
-		if(tmp->type==CEL)
+		if(tmp->type==PAR)
 		{
-			if(objCell!=NULL&&tmp==&objCell->cdr)
+			if(objPair!=NULL&&tmp==&objPair->cdr)
 			{
 				putc(' ',out);
-				objCell=objCell->cdr.value;
-				tmp=&objCell->car;
+				objPair=objPair->cdr.value;
+				tmp=&objPair->car;
 			}
 			else
 			{
 				putc('(',out);
-				objCell=tmp->value;
-				tmp=&objCell->car;
+				objPair=tmp->value;
+				tmp=&objPair->car;
 				continue;
 			}
 		}
 		else if(tmp->type==ATM||tmp->type==NIL)
 		{
-			if(objCell!=NULL&&tmp==&objCell->cdr&&tmp->type==ATM)putc(',',out);
-			if((objCell!=NULL&&tmp==&objCell->car&&tmp->type==NIL&&objCell->cdr.type!=NIL)
+			if(objPair!=NULL&&tmp==&objPair->cdr&&tmp->type==ATM)putc(',',out);
+			if((objPair!=NULL&&tmp==&objPair->car&&tmp->type==NIL&&objPair->cdr.type!=NIL)
 			||(tmp->outer==NULL&&tmp->type==NIL))fputs("nil",out);
 			if(tmp->type!=NIL&&(((atom*)tmp->value)->type==SYM||((atom*)tmp->value)->type==NUM))
 				fprintf(out,"%s",((atom*)tmp->value)->value);
 			else if (tmp->type!=NIL)printRawString(((atom*)tmp->value)->value,out);
-			if(objCell!=NULL&&tmp==&objCell->car)
+			if(objPair!=NULL&&tmp==&objPair->car)
 			{
-				tmp=&objCell->cdr;
+				tmp=&objPair->cdr;
 				continue;
 			}
 		}
-		if(objCell!=NULL&&tmp==&objCell->cdr)
+		if(objPair!=NULL&&tmp==&objPair->cdr)
 		{
 			putc(')',out);
-			cell* prev=NULL;
-			if(objCell->prev==NULL)break;
-			while(objCell->prev!=NULL&&objCell!=tmpCell)
+			pair* prev=NULL;
+			if(objPair->prev==NULL)break;
+			while(objPair->prev!=NULL&&objPair!=tmpPair)
 			{
-				prev=objCell;
-				objCell=objCell->prev;
-				if(prev==objCell->car.value)break;
+				prev=objPair;
+				objPair=objPair->prev;
+				if(prev==objPair->car.value)break;
 			}
-			if(objCell!=NULL)tmp=&objCell->cdr;
-			if(objCell==tmpCell&&prev==objCell->cdr.value)break;
+			if(objPair!=NULL)tmp=&objPair->cdr;
+			if(objPair==tmpPair&&prev==objPair->cdr.value)break;
 		}
-		if(objCell==NULL)break;
+		if(objPair==NULL)break;
 	}
 }
 
@@ -373,7 +373,7 @@ errorStatus eval(cptr* objCptr,env* curEnv)
 				}
 			}
 		}
-		else if(objCptr->type==CEL)
+		else if(objCptr->type==PAR)
 		{
 			if(!macroExpand(objCptr)&&hasKeyWord(objCptr))
 			{
@@ -381,8 +381,8 @@ errorStatus eval(cptr* objCptr,env* curEnv)
 				status.place=objCptr;
 				return status;
 			}
-			if(objCptr->type!=CEL)continue;
-			objCptr=&(((cell*)objCptr->value)->car);
+			if(objCptr->type!=PAR)continue;
+			objCptr=&(((pair*)objCptr->value)->car);
 			continue;
 		}
 		if(retree(&objCptr,tmpCptr))break;
@@ -411,8 +411,8 @@ int hasAlpha(const char* objStr)
 
 cptr* nextCptr(const cptr* objCptr)
 {
-	if(objCptr->outer!=NULL&&objCptr->outer->cdr.type==CEL)
-		return &((cell*)objCptr->outer->cdr.value)->car;
+	if(objCptr->outer!=NULL&&objCptr->outer->cdr.type==PAR)
+		return &((pair*)objCptr->outer->cdr.value)->car;
 	return NULL;
 }
 
@@ -450,10 +450,10 @@ keyWord* hasKeyWord(const cptr* objCptr)
 			tmp=tmp->next;
 		return tmp;
 	}
-	else if(objCptr->type==CEL)
+	else if(objCptr->type==PAR)
 	{
 		keyWord* tmp=NULL;
-		for(objCptr=&((cell*)objCptr->value)->car;objCptr!=NULL;objCptr=nextCptr(objCptr))
+		for(objCptr=&((pair*)objCptr->value)->car;objCptr!=NULL;objCptr=nextCptr(objCptr))
 		{
 			tmp=KeyWords;
 			tmpAtm=(objCptr->type==ATM)?objCptr->value:NULL;

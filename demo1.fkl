@@ -3,7 +3,7 @@
 
 ;defun宏
 (defmacro  
- (defun ATOM#FUNCNAME CELL#ARGS,CELL#EXPRESSION)  
+ (defun ATOM#FUNCNAME PAIR#ARGS,PAIR#EXPRESSION)  
  (list 'define FUNCNAME (list 'quote (cons 'lambda (cons ARGS EXPRESSION)))))
 
 ;if宏

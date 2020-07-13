@@ -14,7 +14,16 @@ macro* macroMatch(const cptr* objCptr)
 
 int addMacro(cptr* format,cptr* express)
 {
-	if(format->type!=CEL)return SYNTAXERROR;
+	if(format->type!=PAR)return SYNTAXERROR;
+	cptr* tmpCptr=NULL;
+	for(tmpCptr=&((pair*)format->value)->car;tmpCptr!=NULL;tmpCptr=nextCptr(tmpCptr))
+	{
+		if(tmpCptr->type==ATM)
+		{
+			atom* tmpAtm=tmpCptr->value;
+			if(tmpAtm->type==SYM&&!hasAnotherName(tmpCptr->value))addKeyWord(tmpCptr->value);
+		}
+	}
 	macro* current=Head;
 	while(current!=NULL&&!cptrcmp(format,current->format))
 		current=current->next;
@@ -43,17 +52,17 @@ masym* findMasym(const char* name)
 int fmatcmp(const cptr* origin,const cptr* format)
 {
 	MacroEnv=newEnv(NULL);
-	cell* tmpCell=(format->type==CEL)?format->value:NULL;
-	cell* forCell=tmpCell;
-	cell* oriCell=(origin->type==CEL)?origin->value:NULL;
+	pair* tmpPair=(format->type==PAR)?format->value:NULL;
+	pair* forPair=tmpPair;
+	pair* oriPair=(origin->type==PAR)?origin->value:NULL;
 	while(origin!=NULL)
 	{
-		if(format->type==CEL&&origin->type==CEL)
+		if(format->type==PAR&&origin->type==PAR)
 		{
-			forCell=format->value;
-			oriCell=origin->value;
-			format=&forCell->car;
-			origin=&oriCell->car;
+			forPair=format->value;
+			oriPair=origin->value;
+			format=&forPair->car;
+			origin=&oriPair->car;
 			continue;
 		}
 		else if(format->type==ATM)
@@ -77,25 +86,25 @@ int fmatcmp(const cptr* origin,const cptr* format)
 					MacroEnv=NULL;
 					return 0;
 				}
-				forCell=format->outer;
+				forPair=format->outer;
 				if(tmpSym!=NULL&&tmpSym->Func==M_VAREPT)
 				{
-					format=&forCell->cdr;
-					origin=&oriCell->cdr;
+					format=&forPair->cdr;
+					origin=&oriPair->cdr;
 				}
 			}
-			if(forCell!=NULL&&format==&forCell->car)
+			if(forPair!=NULL&&format==&forPair->car)
 			{
-				origin=&oriCell->cdr;
-				format=&forCell->cdr;
+				origin=&oriPair->cdr;
+				format=&forPair->cdr;
 				continue;
 			}
 		}
 		else if(origin->type==NIL&&
-				format->type==CEL&&
-				((cell*)format->value)->car.type==ATM)
+				format->type==PAR&&
+				((pair*)format->value)->car.type==ATM)
 		{
-			atom* tmpAtm=((cell*)format->value)->car.value;
+			atom* tmpAtm=((pair*)format->value)->car.value;
 			masym* tmpSym=findMasym(tmpAtm->value);
 			if(tmpSym->Func!=M_VAREPT)
 			{
@@ -105,7 +114,7 @@ int fmatcmp(const cptr* origin,const cptr* format)
 			}
 			else
 			{
-				M_VAREPT(&origin->outer->car,&((cell*)format->value)->car,NULL,MacroEnv);
+				M_VAREPT(&origin->outer->car,&((pair*)format->value)->car,NULL,MacroEnv);
 			}
 		}
 		else if(origin->type!=format->type)
@@ -116,33 +125,33 @@ int fmatcmp(const cptr* origin,const cptr* format)
 		}
 
 
-		if(forCell!=NULL&&format==&forCell->car)
+		if(forPair!=NULL&&format==&forPair->car)
 		{
-			origin=&oriCell->cdr;
-			format=&forCell->cdr;
+			origin=&oriPair->cdr;
+			format=&forPair->cdr;
 			continue;
 		}
-		else if(forCell!=NULL&&format==&forCell->cdr)
+		else if(forPair!=NULL&&format==&forPair->cdr)
 		{
-			cell* oriPrev=NULL;
-			cell* forPrev=NULL;
-			if(oriCell->prev==NULL)break;
-			while(oriCell->prev!=NULL&&forCell!=tmpCell)
+			pair* oriPrev=NULL;
+			pair* forPrev=NULL;
+			if(oriPair->prev==NULL)break;
+			while(oriPair->prev!=NULL&&forPair!=tmpPair)
 			{
-				oriPrev=oriCell;
-				forPrev=forCell;
-				oriCell=oriCell->prev;
-				forCell=forCell->prev;
-				if(oriPrev==oriCell->car.value)break;
+				oriPrev=oriPair;
+				forPrev=forPair;
+				oriPair=oriPair->prev;
+				forPair=forPair->prev;
+				if(oriPrev==oriPair->car.value)break;
 			}
-			if(oriCell!=NULL)
+			if(oriPair!=NULL)
 			{
-				origin=&oriCell->cdr;
-				format=&forCell->cdr;
+				origin=&oriPair->cdr;
+				format=&forPair->cdr;
 			}
-			if(forCell==tmpCell&&format==&forCell->cdr)break;
+			if(forPair==tmpPair&&format==&forPair->cdr)break;
 		}
-		if(oriCell==NULL&&forCell==NULL)break;
+		if(oriPair==NULL&&forPair==NULL)break;
 	}
 	return 1;
 }
@@ -169,7 +178,7 @@ int macroExpand(cptr* objCptr)
 void initPretreatment()
 {
 	addRule("ATOM",M_ATOM);
-	addRule("CELL",M_CELL);
+	addRule("PAIR",M_PAIR);
 	addRule("ANY",M_ANY);
 	addRule("VAREPT",M_VAREPT);
 	MacroEnv=newEnv(NULL);
@@ -197,10 +206,10 @@ int M_ATOM(const cptr* oriCptr,const cptr* fmtCptr,const char* name,env* curEnv)
 	return 0;
 }
 
-int M_CELL(const cptr* oriCptr,const cptr* fmtCptr,const char* name,env* curEnv)
+int M_PAIR(const cptr* oriCptr,const cptr* fmtCptr,const char* name,env* curEnv)
 {
 	if(oriCptr==NULL)return 0;
-	else if(oriCptr->type==CEL)
+	else if(oriCptr->type==PAR)
 	{
 		addDefine(name,oriCptr,curEnv);
 		return 1;
@@ -224,24 +233,24 @@ int M_VAREPT(const cptr* oriCptr,const cptr* fmtCptr,const char* name,env* curEn
 	fmtCptr=&fmtCptr->outer->prev->car;
 	const cptr* format=fmtCptr;
 	const cptr tmp={NULL,NIL,NULL};
-	cell* forCell=(format->type==CEL)?format->value:NULL;
-	cell* tmpCell=forCell;
+	pair* forPair=(format->type==PAR)?format->value:NULL;
+	pair* tmpPair=forPair;
 	env* forValRept=newEnv(NULL);
 	defines* valreptdef=addDefine(name,&tmp,MacroEnv);
 	while(oriCptr!=NULL&&fmtCptr!=NULL)
 	{
 		const cptr* origin=oriCptr;
 		const cptr* format=fmtCptr;
-		cell* forCell=(format->type==CEL)?format->value:NULL;
-		cell* oriCell=(origin->type==CEL)?origin->value:NULL;
+		pair* forPair=(format->type==PAR)?format->value:NULL;
+		pair* oriPair=(origin->type==PAR)?origin->value:NULL;
 		while(origin!=NULL&&format!=NULL)
 		{
-			if(format->type==CEL&&origin->type==CEL)
+			if(format->type==PAR&&origin->type==PAR)
 			{
-				forCell=format->value;
-				oriCell=origin->value;
-				format=&forCell->car;
-				origin=&oriCell->car;
+				forPair=format->value;
+				oriPair=origin->value;
+				format=&forPair->car;
+				origin=&oriPair->car;
 				continue;
 			}
 			else if(format->type==ATM)
@@ -261,7 +270,7 @@ int M_VAREPT(const cptr* oriCptr,const cptr* fmtCptr,const char* name,env* curEn
 				{
 					if(tmpSym->Func(origin,format,anotherName,forValRept))
 					{
-						forCell=(format==&fmtCptr->outer->prev->car)?NULL:format->outer;
+						forPair=(format==&fmtCptr->outer->prev->car)?NULL:format->outer;
 						int len=strlen(name)+strlen(anotherName)+2;
 						char symName[len];
 						strcpy(symName,name);
@@ -273,41 +282,41 @@ int M_VAREPT(const cptr* oriCptr,const cptr* fmtCptr,const char* name,env* curEn
 					}
 					else break;
 				}
-				if(forCell!=NULL&&format==&forCell->car)
+				if(forPair!=NULL&&format==&forPair->car)
 				{
-					origin=&oriCell->cdr;
-					format=&forCell->cdr;
+					origin=&oriPair->cdr;
+					format=&forPair->cdr;
 					continue;
 				}
 			}
 			else if(origin->type!=format->type)break;
-			if(forCell!=NULL&&format==&forCell->car)
+			if(forPair!=NULL&&format==&forPair->car)
 			{
-				origin=&oriCell->cdr;
-				format=&forCell->cdr;
+				origin=&oriPair->cdr;
+				format=&forPair->cdr;
 				continue;
 			}
-			else if(forCell!=NULL&&format==&forCell->cdr)
+			else if(forPair!=NULL&&format==&forPair->cdr)
 			{
-				cell* oriPrev=NULL;
-				cell* forPrev=NULL;
-				if(oriCell->prev==NULL)break;
-				while(oriCell->prev!=NULL&&forCell!=tmpCell)
+				pair* oriPrev=NULL;
+				pair* forPrev=NULL;
+				if(oriPair->prev==NULL)break;
+				while(oriPair->prev!=NULL&&forPair!=tmpPair)
 				{
-					oriPrev=oriCell;
-					forPrev=forCell;
-					oriCell=oriCell->prev;
-					forCell=forCell->prev;
-					if(oriPrev==oriCell->car.value)break;
+					oriPrev=oriPair;
+					forPrev=forPair;
+					oriPair=oriPair->prev;
+					forPair=forPair->prev;
+					if(oriPrev==oriPair->car.value)break;
 				}
-				if(oriCell!=NULL)
+				if(oriPair!=NULL)
 				{
-					origin=&oriCell->cdr;
-					format=&forCell->cdr;
+					origin=&oriPair->cdr;
+					format=&forPair->cdr;
 				}
-				if(forCell==tmpCell&&format==&forCell->cdr)break;
+				if(forPair==tmpPair&&format==&forPair->cdr)break;
 			}
-			if(forCell==NULL)break;
+			if(forPair==NULL)break;
 		}
 		destroyEnv(forValRept);
 		addToList(&valreptdef->obj,oriCptr);
@@ -352,8 +361,8 @@ const char* hasAnotherName(const char* name)
 
 void addToList(cptr* fir,const cptr* sec)
 {
-	while(fir->type!=NIL)fir=&((cell*)fir->value)->cdr;
-	fir->type=CEL;
-	fir->value=createCell(fir->outer);
-	replace(&((cell*)fir->value)->car,sec);
+	while(fir->type!=NIL)fir=&((pair*)fir->value)->cdr;
+	fir->type=PAR;
+	fir->value=createPair(fir->outer);
+	replace(&((pair*)fir->value)->car,sec);
 }

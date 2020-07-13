@@ -21,7 +21,7 @@ int addMacro(cptr* format,cptr* express)
 		if(tmpCptr->type==ATM)
 		{
 			atom* tmpAtm=tmpCptr->value;
-			if(tmpAtm->type==SYM&&!hasAnotherName(tmpCptr->value))addKeyWord(tmpCptr->value);
+			if(tmpAtm->type==SYM&&!hasAnotherName(tmpCptr->value))addKeyWord(tmpAtm->value);
 		}
 	}
 	macro* current=Head;

@@ -33,7 +33,7 @@ typedef struct SubPair
 {
 	int car;
 	int cdr;
-}subcell;
+}subpair;
 
 typedef struct StaticStack
 {

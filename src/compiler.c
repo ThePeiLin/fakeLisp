@@ -23,14 +23,14 @@ void constFolding(cptr* objCptr)
 		}
 		if(othCptr->type==NIL)
 		{
-			pair* othCell=othCptr->outer;
-			pair* prevCell=NULL;
-			while(othCell!=NULL&&(othCell->car.type!=PAR||othCell->car.value!=prev))
+			pair* othPair=othCptr->outer;
+			pair* prevPair=NULL;
+			while(othPair!=NULL&&(othPair->car.type!=PAR||othPair->car.value!=prev))
 			{
-				prev=othCell;
-				othCell=othCell->prev;
+				prev=othPair;
+				othPair=othPair->prev;
 			}
-			othCptr=&othCell->prev->cdr;
+			othCptr=&othPair->prev->cdr;
 		}
 		othCptr=((pair*)othCptr->value)->cdr;
 	}

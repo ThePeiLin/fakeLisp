@@ -4,32 +4,32 @@
 
 typedef struct StackValue
 {
-	enum{NIL,STR,SYM,NUM,LIST,CEL} type;
+	enum{NIL,STR,SYM,NUM,LIST,PAR} type;
 	union
 	{
 		void* nil;
 		char* str;
 		char* sym;
 		int64_t num;
-		struct SubCell cel;
+		struct SubPair cel;
 		union SubStackValue* list;
 	}
 }stackValue;
 
 typedef struct SubStackValue
 {
-	enum{NIL,SYM,STR,NUM,CEL} type;
+	enum{NIL,SYM,STR,NUM,PAR} type;
 	union
 	{
 		void* nil;
 		char* sym;
 		char* str;
 		int num;
-		struct SubCell cel;
+		struct SubPair cel;
 	}
 }substackValue;
 
-typedef struct SubCell
+typedef struct SubPair
 {
 	int car;
 	int cdr;

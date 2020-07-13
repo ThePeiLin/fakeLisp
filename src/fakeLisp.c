@@ -10,7 +10,6 @@
 
 int main(int argc,char** argv)
 {
-	addKeyWord("let");
 	FILE* fp=(argc>1)?fopen(argv[1],"r"):stdin;
 	if(fp==NULL)
 	{

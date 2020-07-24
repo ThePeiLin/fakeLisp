@@ -2,30 +2,125 @@
 #include<string.h>
 #include"tool.h"
 #include"syntax.h"
+#include"fake.h"
 static synRule* Head=NULL;
 
-cptr* checkAST(cptr* objCptr)
+int (*checkAST(const cptr* objCptr))(const cptr*)
 {
-	synRule* objRule=NULL;
-	objRule=findSynRule(((atom*)objCptr->value)->value);
-	if(objRule!=NULL)
-		return objRule->check(objCptr);
-	return NULL;
+	synRule* current=NULL;
+	for(current=Head;current!=NULL;current=current->next)
+		if(current->check(objCptr))break;
+	return current->check;
 }
 
-void addSynRule(const char* name,int (*check)(cptr*))
+void addSynRule(int (*check)(const cptr*))
 {
 	synRule* current=NULL;
 	if(!(current=(synRule*)malloc(sizeof(synRule))))errors(OUTOFMEMORY);
-	strcpy(current->tokenName,name);
 	current->check=check;
 	current->next=Head;
 	Head=current;
 }
 
-synRule* findSynRule(const char* name)
+int isDefExpression(const cptr* objCptr)
 {
-	current=Head;
-	while(current!=NULL&&strcmp(current->tokenName,name))current=current->next;
-	return current;
+	objCptr=(objCptr->type==PAR)?&((pair*)objCptr->value)->car:NULL;
+	if(objCptr!=NULL&&nextCptr(objCptr)!=NULL&&nextCptr(nextCptr(objCptr))!=NULL)
+	{
+		if(objCptr->type!=ATM||nextCptr(objCptr)->type!=ATM)return 0;
+		else
+		{
+			atom* first=objCptr->value;
+			atom* second=nextCptr(objCptr)->value;
+			if(first->type!=SYM||second->type!=SYM||strcmp(first->value,"define"))return 0;
+		}
+	}
+	else return 0;
+	return 1;
+}
+
+int isSymbol(const cptr* objCptr)
+{
+	atom* tmpAtm=(objCptr->type==ATM)?objCptr->value:NULL;
+	if(tmpAtm==NULL||tmpAtm->type!=SYM)return 0;
+	return 1;
+}
+
+int isConstant(const cptr* objCptr)
+{
+	if(objCptr->type==NIL)return 1;
+	atom* tmpAtm=(objCptr->type==ATM)?objCptr->value:NULL;
+	if(tmpAtm!=NULL&&tmpAtm->type==SYM)return 0;
+	if(isQuoteExpression(objCptr))return 1;
+}
+
+int isAndExpression(const cptr* objCptr)
+{
+	if(!isLegal(objCptr))return 0;
+	objCptr=(objCptr->type==PAR)?&((pair*)objCptr->value)->car:NULL;
+	if(objCptr!=NULL)
+	{
+		atom* tmpAtm=(objCptr->type==ATM)?objCptr->value:NULL;
+		if(tmpAtm!=NULL&&!strcmp(tmpAtm->value,"and"))return 1;
+	}
+	return 0;
+}
+
+int isOrExpression(const cptr* objCptr)
+{
+	if(!isLegal(objCptr))return 0;
+	objCptr=(objCptr->type==PAR)?&((pair*)objCptr->value)->car:NULL;
+	if(objCptr!=NULL)
+	{
+		atom* tmpAtm=(objCptr->type==ATM)?objCptr->value:NULL;
+		if(tmpAtm!=NULL&&!strcmp(tmpAtm->value,"or"))return 1;
+	}
+	return 0;
+}
+
+int isQuoteExpression(const cptr* objCptr)
+{
+	objCptr=(isLegal(objCptr)&&objCptr->type==PAR)?&((pair*)objCptr->value)->car:NULL;
+	atom* tmpAtm=(objCptr!=NULL&&objCptr->type==ATM)?objCptr->value:NULL;
+	if(tmpAtm!=NULL&&!strcmp(tmpAtm->value,"quote"))return 1;
+	return 0;
+}
+
+int isFunctionCall(const cptr* objCptr)
+{
+	if(isLegal(objCptr)&&!hasKeyWord(objCptr))return 1;
+	return 0;
+}
+
+int isLegal(const cptr* objCptr)
+{
+	const cptr* tmpCptr=objCptr;
+	if(tmpCptr->type==PAR)
+	{
+		tmpCptr=&((pair*)tmpCptr->value)->car;
+		cptr* tmp=nextCptr(objCptr);
+		while(tmp!=NULL)
+		{
+			tmp=nextCptr(tmp);
+			tmpCptr=nextCptr(tmpCptr);
+		}
+		if(objCptr->outer->cdr.type!=NIL)return 0;
+		synRule* current=NULL;
+		for(current=Head;current!=NULL;current=current->next)
+			if(!current->check(objCptr))return 0;
+	}
+	return 1;
+}
+
+void initSyntax()
+{
+	addSynRule(isDefExpression);
+	addSynRule(isSetqExpression);
+	addSynRule(isLambdaExpresssion);
+	addSynRule(isCondExpression);
+	addSynRule(isConstant);
+	addSynRule(isFunctionCall);
+	addSynRule(isSymbol);
+	addSynRule(isAndExpression);
+	addSynRule(isOrExpression);
 }

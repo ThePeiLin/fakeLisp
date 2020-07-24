@@ -409,20 +409,6 @@ int hasAlpha(const char* objStr)
 	return 0;
 }
 
-cptr* nextCptr(const cptr* objCptr)
-{
-	if(objCptr->outer!=NULL&&objCptr->outer->cdr.type==PAR)
-		return &((pair*)objCptr->outer->cdr.value)->car;
-	return NULL;
-}
-
-cptr* prevCptr(const cptr* objCptr)
-{
-	if(objCptr->outer->prev!=NULL)
-		return &objCptr->outer->prev->car;
-	return NULL;
-}
-
 int addKeyWord(const char* objStr)
 {
 	if(objStr!=NULL)
@@ -457,12 +443,13 @@ keyWord* hasKeyWord(const cptr* objCptr)
 		{
 			tmp=KeyWords;
 			tmpAtm=(objCptr->type==ATM)?objCptr->value:NULL;
-			if(tmpAtm==NULL)
+			atom* cdrAtm=(objCptr->outer->cdr.type==ATM)?objCptr->outer->cdr.value:NULL;
+			if(tmpAtm==NULL&&cdrAtm==NULL)
 			{
 				tmp=NULL;
 				continue;
 			}
-			while(tmp!=NULL&&strcmp(tmpAtm->value,tmp->word))
+			while(tmp!=NULL&&tmpAtm!=NULL&&strcmp(tmpAtm->value,tmp->word)&&cdrAtm!=NULL&&strcmp(cdrAtm->value,tmp->word))
 				tmp=tmp->next;
 		}
 		return tmp;

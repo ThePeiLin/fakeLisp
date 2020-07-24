@@ -20,8 +20,10 @@ int addMacro(cptr* format,cptr* express)
 	{
 		if(tmpCptr->type==ATM)
 		{
-			atom* tmpAtm=tmpCptr->value;
-			if(tmpAtm->type==SYM&&!hasAnotherName(tmpCptr->value))addKeyWord(tmpAtm->value);
+			atom* carAtm=tmpCptr->value;
+			atom* cdrAtm=(tmpCptr->outer->cdr.type==ATM)?tmpCptr->outer->cdr.value:NULL;
+			if(carAtm->type==SYM&&!hasAnotherName(carAtm->value))addKeyWord(carAtm->value);
+			if(cdrAtm!=NULL&&cdrAtm->type==SYM&&!hasAnotherName(cdrAtm->value))addKeyWord(carAtm->value);
 		}
 	}
 	macro* current=Head;
@@ -175,7 +177,7 @@ int macroExpand(cptr* objCptr)
 	return 0;
 }
 
-void initPretreatment()
+void initPreprocess()
 {
 	addRule("ATOM",M_ATOM);
 	addRule("PAIR",M_PAIR);

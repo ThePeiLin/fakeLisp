@@ -591,3 +591,17 @@ int cptrcmp(const cptr* first,const cptr* second)
 	}
 	return 1;
 }
+
+cptr* nextCptr(const cptr* objCptr)
+{
+	if(objCptr->outer!=NULL&&objCptr->outer->cdr.type==PAR)
+		return &((pair*)objCptr->outer->cdr.value)->car;
+	return NULL;
+}
+
+cptr* prevCptr(const cptr* objCptr)
+{
+	if(objCptr->outer->prev!=NULL)
+		return &objCptr->outer->prev->car;
+	return NULL;
+}

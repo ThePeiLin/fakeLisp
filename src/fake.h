@@ -18,8 +18,6 @@ void destroyEnv(env*);
 void printList(const cptr*,FILE*);
 errorStatus eval(cptr*,env*);
 void exError(const cptr*,int);
-cptr* nextCptr(const cptr*);
-cptr* prevCptr(const cptr*);
 int addKeyWord(const char*);
 keyWord* hasKeyWord(const cptr*);
 static int hasAlpha(const char*);

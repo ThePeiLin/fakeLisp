@@ -27,7 +27,7 @@ int M_PAIR(const cptr*,const cptr*,const char*,env*);
 int M_ANY(const cptr*,const cptr*,const char*,env*);
 int M_VAREPT(const cptr*,const cptr*,const char*,env*);
 int M_COLT(const cptr*,const cptr*,const char*,env*);
-void initPretreatment();
+void initPreprocess();
 void deleteMacro(cptr*);
 static const char* hasAnotherName(const char*);
 static void addToList(cptr*,const cptr*);

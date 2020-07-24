@@ -27,4 +27,6 @@ int cptrcmp(const cptr*,const cptr*);
 int deleteCptr(cptr*);
 int copyCptr(cptr*,const cptr*);
 void replace(cptr*,const cptr*);
+cptr* nextCptr(const cptr*);
+cptr* prevCptr(const cptr*);
 #endif

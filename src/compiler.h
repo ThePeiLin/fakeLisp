@@ -16,7 +16,7 @@ typedef struct CompilerEnv
 }compEnv;
 
 int newCompiler(int,FILE*);
-exCode* compiler(cptr*);
+exCode* compiler(const cptr*);
 int isTailCall(comDef*);
 void constFolding(cptr*);
 int analyseSyntaxError(cptr*);//t

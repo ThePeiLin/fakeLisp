@@ -86,5 +86,5 @@ void initEvalution()
 	addFunc("div",N_div);
 	addFunc("mod",N_mod);
 	addFunc("print",N_print);
-	initPretreatment();
+	initPreprocess();
 }

@@ -4,8 +4,8 @@ fakeLisp是一个用c言编写的简单的lisp解释器，由于技术原因，�
 由于没有复合过程（其实是自己不会），所以自定义函数实际上是将一个列表与一个符号绑定；  
 自定义函数示例：  
 (defun gle (obj)  
-(cond ((null (cdr obj)) (car obj))  
-(1 (gle (cdr obj)))))  
+       (cond ((null (cdr obj)) (car obj))  
+       (1 (gle (cdr obj)))))  
   
 支持宏；  
 目前可用函数及特殊形式有：  
@@ -34,7 +34,7 @@ undef（用于取消宏的定义）
 
 下面是defun宏:  
 (defmacro  
-(defun ATOM#FUNCNAME CELL#ARGS,CELL#EXPRESSION)  
-(list 'define FUNCNAME (list 'quote (cons 'lambda (cons ARGS EXPRESSION)))))  
+         (defun ATOM#FUNCNAME CELL#ARGS,CELL#EXPRESSION)  
+         (list 'define FUNCNAME (list 'quote (cons 'lambda (cons ARGS EXPRESSION)))))  
 
 我应该会添加复合过程类型

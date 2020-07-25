@@ -4,6 +4,7 @@
 #include"fake.h"
 #include"tool.h"
 #include"preprocess.h"
+#include"syntax.h"
 
 static nativeFunc* funAndForm=NULL;
 static env* Glob=NULL;
@@ -381,6 +382,7 @@ errorStatus eval(cptr* objCptr,env* curEnv)
 				status.place=objCptr;
 				return status;
 			}
+			if(isLambdaExpression(objCptr)&&(objCptr->outer==NULL||(objCptr->outer->prev!=NULL&&objCptr->outer->prev->cdr.value==objCptr->outer)))break;
 			if(objCptr->type!=PAR)continue;
 			objCptr=&(((pair*)objCptr->value)->car);
 			continue;

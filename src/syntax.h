@@ -9,11 +9,11 @@ typedef struct SyntaxRule
 
 void addSynRule(int (*)(const cptr*));
 int (*checkAST(const cptr*))(const cptr*);
-void initSyntax();
+//void initSyntax();
 int isLegal(const cptr*);
 int isDefExpression(const cptr*);
 int isSetqExpression(const cptr*);
-int isLambdaExpresssion(const cptr*);
+int isLambdaExpression(const cptr*);
 int isCondExpression(const cptr*);
 int isConstant(const cptr*);
 int isFunctionCall(const cptr*);

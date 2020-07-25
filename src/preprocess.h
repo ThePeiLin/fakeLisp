@@ -32,4 +32,6 @@ void deleteMacro(cptr*);
 static const char* hasAnotherName(const char*);
 static void addToList(cptr*,const cptr*);
 static int addToDefine(const char*,env*,cptr*);
+static int getWordNum(const char*);
+static char* getWord(const char*,int);
 #endif

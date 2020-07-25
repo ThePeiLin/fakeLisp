@@ -449,7 +449,7 @@ keyWord* hasKeyWord(const cptr* objCptr)
 				tmp=NULL;
 				continue;
 			}
-			while(tmp!=NULL&&tmpAtm!=NULL&&strcmp(tmpAtm->value,tmp->word)&&cdrAtm!=NULL&&strcmp(cdrAtm->value,tmp->word))
+			while(tmp!=NULL&&tmpAtm!=NULL&&strcmp(tmpAtm->value,tmp->word)&&(cdrAtm==NULL||(cdrAtm==NULL&&strcmp(cdrAtm->value,tmp->word))))
 				tmp=tmp->next;
 		}
 		return tmp;

@@ -23,7 +23,31 @@ int addMacro(cptr* format,cptr* express)
 			atom* carAtm=tmpCptr->value;
 			atom* cdrAtm=(tmpCptr->outer->cdr.type==ATM)?tmpCptr->outer->cdr.value:NULL;
 			if(carAtm->type==SYM&&!hasAnotherName(carAtm->value))addKeyWord(carAtm->value);
-			if(cdrAtm!=NULL&&cdrAtm->type==SYM&&!hasAnotherName(cdrAtm->value))addKeyWord(carAtm->value);
+			if(carAtm->type==SYM&&hasAnotherName(carAtm->value)&&!memcmp(carAtm->value,"COLT",4))
+			{
+				const char* name=hasAnotherName(carAtm->value);
+				int i;
+				int num=getWordNum(name);
+				for(i=0;i<num;i++)
+				{
+					char* word=getWord(name,i+1);
+					addKeyWord(word);
+					free(word);
+				}
+			}
+			if(cdrAtm!=NULL&&cdrAtm->type==SYM&&!hasAnotherName(cdrAtm->value))addKeyWord(cdrAtm->value);
+			if(cdrAtm!=NULL&&cdrAtm->type==SYM&&hasAnotherName(cdrAtm->value)&&!memcmp(cdrAtm->value,"COLT",4))
+			{
+				const char* name=hasAnotherName(cdrAtm->value);
+				int i;
+				int num=getWordNum(name);
+				for(i=0;i<num;i++)
+				{
+					char* word=getWord(name,i+1);
+					addKeyWord(word);
+					free(word);
+				}
+			}
 		}
 	}
 	macro* current=Head;
@@ -183,6 +207,7 @@ void initPreprocess()
 	addRule("PAIR",M_PAIR);
 	addRule("ANY",M_ANY);
 	addRule("VAREPT",M_VAREPT);
+	addRule("COLT",M_COLT);
 	MacroEnv=newEnv(NULL);
 	
 }
@@ -329,6 +354,23 @@ int M_VAREPT(const cptr* oriCptr,const cptr* fmtCptr,const char* name,env* curEn
 
 int M_COLT(const cptr* oriCptr,const cptr* fmtCptr,const char* name,env* curEnv)
 {
+	int i;
+	int num=getWordNum(name);
+	atom* tmpAtm=(oriCptr->type==ATM)?oriCptr->value:NULL;
+	if(tmpAtm!=NULL&&tmpAtm->type==SYM)
+		for(i=0;i<num;i++)
+		{
+			char* word=getWord(name,i+1);
+			if(!strcmp(word,tmpAtm->value))
+			{
+				char* tmpName=getWord(name,0);
+				addDefine(tmpName,oriCptr,curEnv);
+				free(word);
+				free(tmpName);
+				return 1;
+			}
+		}
+	return 0;
 }
 
 void deleteMacro(cptr* objCptr)
@@ -367,4 +409,35 @@ void addToList(cptr* fir,const cptr* sec)
 	fir->type=PAR;
 	fir->value=createPair(fir->outer);
 	replace(&((pair*)fir->value)->car,sec);
+}
+
+int getWordNum(const char* name)
+{
+	int i;
+	int num=0;
+	int len=strlen(name);
+	for(i=0;i<len-1;i++)
+		if(name[i]=='#')num++;
+	return num;
+}
+
+char* getWord(const char* name,int num)
+{
+	int len=strlen(name);
+	int tmpNum=0;
+	int tmplen=0;
+	char* tmpStr=NULL;
+	int i;
+	int j;
+	for(i=0;i<len&&tmpNum<num;i++)
+		if(name[i]=='#')tmpNum++;
+	for(j=i;j<len;j++)
+	{
+		if(name[j]!='#')tmplen++;
+		else break;
+	}
+	if(!(tmpStr=(char*)malloc(sizeof(char)*(tmplen+1))))errors(OUTOFMEMORY);
+	strncpy(tmpStr,name+i,tmplen);
+	tmpStr[tmplen]='\0';
+	return tmpStr;
 }

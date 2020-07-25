@@ -34,7 +34,7 @@ undef（用于取消宏的定义）
 
 下面是defun宏:  
 (defmacro  
-         (defun ATOM#FUNCNAME CELL#ARGS,CELL#EXPRESSION)  
-         (list 'define FUNCNAME (list 'quote (cons 'lambda (cons ARGS EXPRESSION)))))  
+          (defun ATOM#FUNCNAME CELL#ARGS,CELL#EXPRESSION)  
+          (list 'define FUNCNAME (list 'quote (cons 'lambda (cons ARGS EXPRESSION)))))  
 
 我应该会添加复合过程类型

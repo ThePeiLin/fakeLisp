@@ -86,6 +86,14 @@ int isQuoteExpression(const cptr* objCptr)
 	return 0;
 }
 
+int isLambdaExpression(const cptr* objCptr)
+{
+	objCptr=(objCptr->type==PAR)?&((pair*)objCptr->value)->car:NULL;
+	atom* tmpAtm=(objCptr!=NULL&&objCptr->type==ATM)?objCptr->value:NULL;
+	if(tmpAtm!=NULL&&tmpAtm->type==SYM&&!strcmp(tmpAtm->value,"lambda"))return 1;
+	return 0;
+}
+
 int isFunctionCall(const cptr* objCptr)
 {
 	if(isLegal(objCptr)&&!hasKeyWord(objCptr))return 1;
@@ -112,15 +120,15 @@ int isLegal(const cptr* objCptr)
 	return 1;
 }
 
-void initSyntax()
+/*void initSyntax()
 {
 	addSynRule(isDefExpression);
 	addSynRule(isSetqExpression);
-	addSynRule(isLambdaExpresssion);
+	addSynRule(isLambdaExpression);
 	addSynRule(isCondExpression);
 	addSynRule(isConstant);
 	addSynRule(isFunctionCall);
 	addSynRule(isSymbol);
 	addSynRule(isAndExpression);
 	addSynRule(isOrExpression);
-}
+}*/

@@ -108,9 +108,31 @@ cptr* createTree(const char* objStr)
 			if(root==NULL)objCptr=root=createCptr(objPair);
 			char* tmp=getStringFromList(objStr+i);
 			objCptr->type=ATM;
-			objCptr->value=(void*)createAtom((hasAlpha(tmp))?SYM:NUM,tmp,objPair);
+			objCptr->value=(void*)createAtom((hasAlpha(tmp))?SYM:INT,NULL,objPair);
+			atom* tmpAtm=objCptr->value;
+			if(isDouble(tmp))
+			{
+				tmpAtm->type=DOU;
+				double num=stringToDouble(tmp);
+				tmpAtm->value.dou=num;
+			}
+			else
+			{
+				int32_t num=stringToInt(tmp);
+				tmpAtm->value.num=num;
+			}
 			i+=strlen(tmp);
 			free(tmp);
+		}
+		else if(*(objStr+i)=='#'&&*(objStr+1+i)=='\\')
+		{
+			if(root==NULL)objCptr=root=createCptr(objPair);
+			char* tmp=getStringFromList(objStr+i);
+			objCptr->type=ATM;
+			objCptr->value=(void*)createAtom(CHR,NULL,objPair);
+			atom* tmpAtm=objCptr->value;
+			if(tmp[2]!='\\')tmpAtm->value.chr=tmp[2];
+			else tmpAtm->value.chr=stringToChar(tmp[3]);
 		}
 		else
 		{

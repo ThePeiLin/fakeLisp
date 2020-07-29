@@ -1,5 +1,6 @@
 #ifndef TOOL_H
 #define TOOL_H
+#include<stdint.h>
 #include"fakedef.h"
 #define OUTOFMEMORY 1
 #define WRONGENV 2
@@ -8,20 +9,25 @@ typedef struct RawString
 	int len;
 	char * str;
 } rawString;
+int isHexNum(const char*);
+int isOctNum(const char*);
+int isDouble(const char*);
 char* getListFromFile(FILE*);
 static char* subGetList(FILE*);
 char* getStringFromList(const char*);
 int power(int,int);
 rawString getStringBetweenMarks(const char*);
 void printRawString(const char*,FILE*);
-char* floatToString(double);
-double stringToFloat(const char*);
+char* doubleToString(double);
+double stringToDouble(const char*);
 char* intToString(long);
-long stringToInt(const char*);
+int32_t stringToInt(const char*);
+int stringToChar(const char*);
 void errors(int);
 pair* createPair(pair*);
 cptr* createCptr(pair*);
 atom* createAtom(int type,const char*,pair*);
+void freeAtom(atom*);
 int destoryCptr(cptr*);
 int cptrcmp(const cptr*,const cptr*);
 int deleteCptr(cptr*);

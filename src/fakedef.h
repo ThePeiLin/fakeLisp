@@ -21,18 +21,14 @@ typedef struct Pair
 typedef struct Atom
 {
 	pair* prev;
-	enum{SYM,/*INT,CHR,FLA*/NUM,STR} type;
-	/*
+	enum{SYM,INT,CHR,DOU,STR} type;
 	union
 	{
-		char* sym;
 		char* str;
 		char chr;
 		int num;
-		double fla;
-	}
-	*/
-	char* value;
+		double dou;
+	} value;
 }atom;
 
 typedef struct
@@ -69,9 +65,9 @@ typedef struct SymbolForCompiler
 	struct SymbolForCompiler* next;
 }compSym;
 
-typedef struct ExcutableByteCode
+typedef struct ByteCode
 {
-	int64_t size;
-	void* opcode;
-}exByCode;
+	uint32_t size;
+	char* opcode;
+}byteCode;
 #endif

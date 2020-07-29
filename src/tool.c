@@ -2,6 +2,8 @@
 #include<stdio.h>
 #include<string.h>
 #include<ctype.h>
+#include<stdint.h>
+#include<math.h>
 #include"tool.h"
 
 char* getListFromFile(FILE* file)
@@ -138,7 +140,7 @@ char* getStringFromList(const char* str)
 	return tmp;
 }
 
-char* floatToString(double num)
+char* DoubleToString(double num)
 {
 	int i;
 	char numString[sizeof(double)*2+3];
@@ -150,7 +152,7 @@ char* floatToString(double num)
 }
 
 
-double stringToFloat(const char* str)
+double stringToDouble(const char* str)
 {
 	double tmp;
 	sscanf(str,"%lf",&tmp);
@@ -173,10 +175,14 @@ char* intToString(long num)
 }
 
 
-long stringToInt(const char* str)
+int32_t stringToInt(const char* str)
 {
-	long tmp;
-	sscanf(str,"%ld",&tmp);
+	int32_t tmp;
+	char* format=NULL;
+	if(isHexNum(str))format="%lx";
+	else if(isOctNum(str))format="%lo";
+	else format="%ld";
+	sscanf(str,format,&tmp);
 	return tmp;
 }
 
@@ -358,10 +364,19 @@ atom* createAtom(int type,const char* value,pair* prev)
 {
 	atom* tmp=NULL;
 	if(!(tmp=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY);
-	if(!(tmp->value=(char*)malloc(strlen(value)+1)))errors(OUTOFMEMORY);
+	if(type==SYM||type==STR)
+	{
+		if(!(tmp->value.str=(char*)malloc(strlen(value)+1)))errors(OUTOFMEMORY);
+		memcpy(tmp->value.str,value,strlen(value)+1);
+	}
+	else if(type==CHR)
+		tmp->value.chr=0;
+	else if(type==INT)
+		tmp->value.num=0;
+	else if(type==DOU)
+		tmp->value.dou=0;
 	tmp->prev=prev;
 	tmp->type=type;
-	memcpy(tmp->value,value,strlen(value)+1);
 	return tmp;
 }
 
@@ -388,12 +403,14 @@ int copyCptr(cptr* objCptr,const cptr* copiedCptr)
 		else if(copiedCptr->type==ATM)
 		{
 			atom* coAtm=copiedCptr->value;
-			atom* objAtm=NULL;
-			if(!(objAtm=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY);
+			atom* objAtm=createAtom(coAtm->type,NULL,objPair);
 			objCptr->value=objAtm;
-			if(!(objAtm->value=(char*)malloc(strlen(coAtm->value)+1)))errors(OUTOFMEMORY);
-			objAtm->type=coAtm->type;
-			memcpy(objAtm->value,coAtm->value,strlen(coAtm->value)+1);
+			if(objAtm->type==SYM||objAtm->type==STR)
+			{
+				if(!(objAtm->value.str=(char*)malloc(strlen(coAtm->value.str)+1)))errors(OUTOFMEMORY);
+				strcpy(objAtm->value.str,coAtm->value.str);
+			}
+			else memcpy(&objAtm->type,&coAtm->type,sizeof(atom)-sizeof(pair*));
 			if(copiedCptr==&copiedPair->car)
 			{
 				copiedCptr=&copiedPair->cdr;
@@ -486,10 +503,7 @@ int deleteCptr(cptr* objCptr)
 		}
 		else if(tmpCptr->type==ATM)
 		{
-			atom* tmpAtm=(atom*)tmpCptr->value;
-			//printf("%s\n",tmpAtm->value);
-			free(tmpAtm->value);
-			free(tmpAtm);
+			freeAtom(tmpCptr->value);
 			tmpCptr->type=NIL;
 			tmpCptr->value=NULL;
 			continue;
@@ -552,11 +566,12 @@ int cptrcmp(const cptr* first,const cptr* second)
 				atom* firAtm=first->value;
 				atom* secAtm=second->value;
 				if(firAtm->type!=secAtm->type)return 0;
-				if(strcmp(firAtm->value,secAtm->value)!=0)return 0;
+				if((firAtm->type==SYM||firAtm->type==STR)&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
+				else if(firAtm->type==DOU&&fabs(firAtm->value.dou-secAtm->value.dou)!=0)return 0;
+				else if(!memcmp(&firAtm->type,&secAtm->type,sizeof(atom)-sizeof(pair*)))return 0;
 			}
 			if(firPair!=NULL&&first==&firPair->car)
-			{
-				first=&firPair->cdr;
+			{ first=&firPair->cdr;
 				second=&secPair->cdr;
 				continue;
 			}
@@ -604,4 +619,44 @@ cptr* prevCptr(const cptr* objCptr)
 	if(objCptr->outer->prev!=NULL)
 		return &objCptr->outer->prev->car;
 	return NULL;
+}
+
+int isHexNum(const char* objStr)
+{
+	if(objStr!=NULL&&strlen(objStr)>3&&objStr[0]=='-'&&objStr[1]=='0'&&(objStr[2]=='x'||objStr[2]=='X'))return 1;
+	if(objStr!=NULL&&strlen(objStr)>2&&objStr[0]=='0'&&(objStr[1]=='x'||objStr[1]=='X'))return 1;
+	return 0;
+}
+
+int isOctNum(const char* objStr)
+{
+	if(objStr!=NULL&&strlen(objStr)>2&&objStr[0]=='-'&&objStr[1]=='0'&&objStr[2]!='x'&&objStr[2]!='X')return 1;
+	if(objStr!=NULL&&strlen(objStr)>1&&objStr[0]=='0'&&objStr[1]!='x'&&objStr[1]!='X')return 1;
+	return 0;
+}
+
+int isDouble(const char* objStr)
+{
+	int i;
+	int len=strlen(objStr);
+	for(i=0;i<len;i++)
+		if(!isdigit(objStr[i])&&(objStr[i]!='.'||objStr[i]!='-'))return 0;
+	return 1;
+}
+
+int stringToChar(const char* objStr)
+{
+	char* format=NULL;
+	if(isHexNum(objStr))format="%x";
+	else if(isOctNum(objStr))format="%o";
+	else format="%d";
+	int tmp=0;
+	sscanf(objStr,format,&tmp);
+	return tmp;
+}
+
+void freeAtom(atom* objAtm)
+{
+	if(objAtm->type==SYM||objAtm->type==STR)free(objAtm->value.str);
+	free(objAtm);
 }

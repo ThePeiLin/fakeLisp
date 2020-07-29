@@ -4,54 +4,31 @@
 #include"compiler.h"
 #include"tool.h"
 #include"fake.h"
+#include"opcode.h"
 #define ISABLE 0
 #define ISPAIR 1
 #define ISUNABLE 2
 
-void constFolding(cptr* objCptr)
+cptr* checkAst(cptr* objCptr)
 {
-	cptr* othCptr=&((pair*)objCptr->value)->cdr;
-	while(othCptr->type==PAR)
-	{
-		cptr* tmpCptr=&((pair*)othCptr->value)->car;
-		int status=isFoldable(&tmpCptr);
-		if(status==ISABLE)eval(tmpCptr,NULL);
-		else if(status==ISPAIR)
-		{
-			othCptr=((pair*)tmpCptr->value)->cdr;
-			continue;
-		}
-		if(othCptr->type==NIL)
-		{
-			pair* othPair=othCptr->outer;
-			pair* prevPair=NULL;
-			while(othPair!=NULL&&(othPair->car.type!=PAR||othPair->car.value!=prev))
-			{
-				prev=othPair;
-				othPair=othPair->prev;
-			}
-			othCptr=&othPair->prev->cdr;
-		}
-		othCptr=((pair*)othCptr->value)->cdr;
-	}
-}
-cptr* analyseAST(cptr* objCptr)
-{
-	if(!analyseSyntaxError(objCptr))return objCptr;
-	int size=countAST(cptr* objCptr);
-	cptr** ASTs=divideAST(objCptr);
+	if(!isLegal(objCptr))return objCptr;
+	int num=countAst(objCptr);
+	cptr** asts=divieAst(objCptr);
 	int i;
 	for(i=0;i<size;i++)
+		cptr* tmp=(!isLagel(asts[i]))?asts[i]:NULL;
+}
+
+status analyseAST(cptr* objCptr)
+{
+	status tmp={0,NULL};
+	cptr* tmpCptr=checkAst(objCptr);
+	if(tmpCptr)
 	{
-		cptr* tmp=checkAST(ASTs[i]);
-		if(tmp!=NULL)
-		{
-			deleteASTs(ASTs,size);
-			return tmp;
-		}
+		tmp.status=SYNTAXERROR;
+		tmp.place=tmpCptr;
 	}
-	deleteASTs(ASTs,size);
-	return NULL;
+	return tmp;
 }
 
 int countAST(cptr* objCptr)
@@ -81,14 +58,6 @@ cptr** divideAST(cptr* objCptr);
 	return tmp;
 }
 
-int analyseSyntaxError(cptr* objCptr)
-{
-	while(objCptr->type==PAR)
-		objCptr=&((pair*)objCptr->value)->cdr;
-	if(objCptr->type==atm)return 0;
-	return 1;
-}
-
 void deleteASTs(cptr** ASTs,int num)
 {
 	int i;
@@ -100,27 +69,29 @@ void deleteASTs(cptr** ASTs,int num)
 	free(ASTs);
 }
 
-int isFoldable(cptr** pobjCptr)
+byteCode* complierInt(const cptr* objCptr)
 {
-	cptr* objCptr=*pobjCptr;
-	int isAble=0;
-	if(objCptr->type==PAR)
+	atom* tmpAtm=objCptr->value;
+	byteCode* tmp=NULL;
+	if(!(tmp=(byteCode*)malloc(sizeof(byteCode))))errors(OUTOFMEMORY);
+	tmp->size=5;
+	if(!(tmp->opcode=(void*)malloc(sizeof(char)*5)))errors(OUTOFMEMORY);
+	tmp->opcode[0]=FAKE_PUSH_INT;
+	int32_t num=0;
+	char* format=NULL;
+	if(isHexNum(tmpAtm->value))format="%lx";
+	else if(isOctNum(tmpAtm->value))format="%lo";
+	else format="%ld";
+	sscanf(tmpAtm->value,format,&num);
+	memcpy(tmp->opcode+1,&num,4);
+	return tmp;
+}
+
+void freeByteCode(byteCode* obj)
+{
+	if(obj!=NULL)
 	{
-		cptr* tmpCptr=&((pair*)objCptr->value)->cdr;
-		while(tmpCptr==PAR)
-		{
-			if(((pair*)tmpCptr->value)->car.type==PAR)
-			{
-				*pobjCptr=&((pair*)tmpCptr->value)->car;
-				return ISPAIR
-			}
-			else if(((pair*)tmpCptr->value)->car.type==ATM)
-			{
-				atom* tmpAtom=((pair*)tmpCptr->value)->car.value;
-				if(tmpAtom->type==SYM)return ISUBABLE;
-			}
-			tmpCptr=((pair*)tmpCptr->value)->cdr;
-		}
+		free(obj->opcode);
+		free(obj);
 	}
-	return ISABLE;
 }

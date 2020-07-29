@@ -16,13 +16,15 @@ typedef struct CompilerEnv
 }compEnv;
 
 int newCompiler(int,FILE*);
-exCode* compiler(const cptr*);
+byteCode* compiler(const cptr*);
 int isTailCall(comDef*);
-void constFolding(cptr*);
-int analyseSyntaxError(cptr*);//t
-cptr* analyseAST(cptr*);//t
+status analyseAST(cptr*);//t
+cptr* checkAst(const cptr*);
 static cptr** divideAST(cptr*);//t
 static int countAST(cptr*);//t
 static void deleteASTs(cptr**,int);
-static int isFoldable(cptr**);
+static byteCode* compileConstant(const cptr*);
+static byteCode* compileNum(const cptr*);
+static byteCode* appendByteCode(const byteCode*,const byteCode*);
+static void freeByteCode(byteCode*);
 #endif

@@ -21,7 +21,7 @@ typedef struct Pair
 typedef struct Atom
 {
 	pair* prev;
-	enum{SYM,INT,CHR,DOU,STR} type;
+	enum{SYM=1,INT,CHR,DOU,STR} type;
 	union
 	{
 		char* str;

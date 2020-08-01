@@ -22,30 +22,36 @@ int addMacro(cptr* format,cptr* express)
 		{
 			atom* carAtm=tmpCptr->value;
 			atom* cdrAtm=(tmpCptr->outer->cdr.type==ATM)?tmpCptr->outer->cdr.value:NULL;
-			if(carAtm->type==SYM&&!hasAnotherName(carAtm->value))addKeyWord(carAtm->value);
-			if(carAtm->type==SYM&&hasAnotherName(carAtm->value)&&!memcmp(carAtm->value,"COLT",4))
+			if(carAtm->type==SYM)
 			{
-				const char* name=hasAnotherName(carAtm->value);
-				int i;
-				int num=getWordNum(name);
-				for(i=0;i<num;i++)
+				if(!hasAnotherName(carAtm->value.str))addKeyWord(carAtm->value.str);
+				else if(hasAnotherName(carAtm->value.str)&&!memcmp(carAtm->value.str,"COLT",4))
 				{
-					char* word=getWord(name,i+1);
-					addKeyWord(word);
-					free(word);
+					const char* name=hasAnotherName(carAtm->value.str);
+					int i;
+					int num=getWordNum(name);
+					for(i=0;i<num;i++)
+					{
+						char* word=getWord(name,i+1);
+						addKeyWord(word);
+						free(word);
+					}
 				}
 			}
-			if(cdrAtm!=NULL&&cdrAtm->type==SYM&&!hasAnotherName(cdrAtm->value))addKeyWord(cdrAtm->value);
-			if(cdrAtm!=NULL&&cdrAtm->type==SYM&&hasAnotherName(cdrAtm->value)&&!memcmp(cdrAtm->value,"COLT",4))
+			if(cdrAtm!=NULL&&cdrAtm->type==SYM)
 			{
-				const char* name=hasAnotherName(cdrAtm->value);
-				int i;
-				int num=getWordNum(name);
-				for(i=0;i<num;i++)
+				if(!hasAnotherName(cdrAtm->value.str))addKeyWord(cdrAtm->value.str);
+				else if(hasAnotherName(cdrAtm->value.str)&&!memcmp(cdrAtm->value.str,"COLT",4))
 				{
-					char* word=getWord(name,i+1);
-					addKeyWord(word);
-					free(word);
+					const char* name=hasAnotherName(cdrAtm->value.str);
+					int i;
+					int num=getWordNum(name);
+					for(i=0;i<num;i++)
+					{
+						char* word=getWord(name,i+1);
+						addKeyWord(word);
+						free(word);
+					}
 				}
 			}
 		}
@@ -63,6 +69,7 @@ int addMacro(cptr* format,cptr* express)
 	}
 	else
 		current->express=express;
+	printAllKeyWord();
 	return 0;
 }
 
@@ -93,11 +100,12 @@ int fmatcmp(const cptr* origin,const cptr* format)
 		}
 		else if(format->type==ATM)
 		{
-			if(format->type==ATM)
+			atom* tmpAtm=format->value;
+			masym* tmpSym=NULL;
+			if(tmpAtm->type==SYM)
 			{
-				atom* tmpAtm=format->value;
-				masym* tmpSym=findMasym(tmpAtm->value);
-				if(tmpSym==NULL||!hasAnotherName(tmpAtm->value))
+				tmpSym=findMasym(tmpAtm->value.str);
+				if(tmpSym==NULL||!hasAnotherName(tmpAtm->value.str))
 				{
 					if(!cptrcmp(origin,format))
 					{
@@ -106,18 +114,18 @@ int fmatcmp(const cptr* origin,const cptr* format)
 						return 0;
 					}
 				}
-				else if(!tmpSym->Func(origin,format,hasAnotherName(tmpAtm->value),MacroEnv))
+				else if(!tmpSym->Func(origin,format,hasAnotherName(tmpAtm->value.str),MacroEnv))
 				{
 					destroyEnv(MacroEnv);
 					MacroEnv=NULL;
 					return 0;
 				}
-				forPair=format->outer;
-				if(tmpSym!=NULL&&tmpSym->Func==M_VAREPT)
-				{
-					format=&forPair->cdr;
-					origin=&oriPair->cdr;
-				}
+			}
+			forPair=format->outer;
+			if(tmpSym!=NULL&&tmpSym->Func==M_VAREPT)
+			{
+				format=&forPair->cdr;
+				origin=&oriPair->cdr;
 			}
 			if(forPair!=NULL&&format==&forPair->car)
 			{
@@ -131,7 +139,7 @@ int fmatcmp(const cptr* origin,const cptr* format)
 				((pair*)format->value)->car.type==ATM)
 		{
 			atom* tmpAtm=((pair*)format->value)->car.value;
-			masym* tmpSym=findMasym(tmpAtm->value);
+			masym* tmpSym=findMasym(tmpAtm->value.str);
 			if(tmpSym->Func!=M_VAREPT)
 			{
 				destroyEnv(MacroEnv);
@@ -149,8 +157,6 @@ int fmatcmp(const cptr* origin,const cptr* format)
 			MacroEnv=NULL;
 			return 0;
 		}
-
-
 		if(forPair!=NULL&&format==&forPair->car)
 		{
 			origin=&oriPair->cdr;
@@ -283,31 +289,34 @@ int M_VAREPT(const cptr* oriCptr,const cptr* fmtCptr,const char* name,env* curEn
 			else if(format->type==ATM)
 			{
 				atom* tmpAtm=format->value;
-				masym* tmpSym=findMasym(tmpAtm->value);
-				const char* anotherName=hasAnotherName(tmpAtm->value);
-				if(tmpSym==NULL||tmpSym->Func==M_VAREPT||!anotherName)
+				if(tmpAtm->type==SYM)
 				{
-					if(!cptrcmp(origin,format))
+					masym* tmpSym=findMasym(tmpAtm->value.str);
+					const char* anotherName=hasAnotherName(tmpAtm->value.str);
+					if(tmpSym==NULL||tmpSym->Func==M_VAREPT||!anotherName)
 					{
-						destroyEnv(forValRept);
-						return 0;
+						if(!cptrcmp(origin,format))
+						{
+							destroyEnv(forValRept);
+							return 0;
+						}
 					}
-				}
-				else
-				{
-					if(tmpSym->Func(origin,format,anotherName,forValRept))
+					else
 					{
-						forPair=(format==&fmtCptr->outer->prev->car)?NULL:format->outer;
-						int len=strlen(name)+strlen(anotherName)+2;
-						char symName[len];
-						strcpy(symName,name);
-						strcat(symName,"#");
-						strcat(symName,anotherName);
-						defines* tmpDef=findDefine(symName,MacroEnv);
-						if(tmpDef==NULL)tmpDef=addDefine(symName,&tmp,MacroEnv);
-						addToList(&tmpDef->obj,&findDefine(anotherName,forValRept)->obj);
+						if(tmpSym->Func(origin,format,anotherName,forValRept))
+						{
+							forPair=(format==&fmtCptr->outer->prev->car)?NULL:format->outer;
+							int len=strlen(name)+strlen(anotherName)+2;
+							char symName[len];
+							strcpy(symName,name);
+							strcat(symName,"#");
+							strcat(symName,anotherName);
+							defines* tmpDef=findDefine(symName,MacroEnv);
+							if(tmpDef==NULL)tmpDef=addDefine(symName,&tmp,MacroEnv);
+							addToList(&tmpDef->obj,&findDefine(anotherName,forValRept)->obj);
+						}
+						else break;
 					}
-					else break;
 				}
 				if(forPair!=NULL&&format==&forPair->car)
 				{
@@ -361,7 +370,7 @@ int M_COLT(const cptr* oriCptr,const cptr* fmtCptr,const char* name,env* curEnv)
 		for(i=0;i<num;i++)
 		{
 			char* word=getWord(name,i+1);
-			if(!strcmp(word,tmpAtm->value))
+			if(!strcmp(word,tmpAtm->value.str))
 			{
 				char* tmpName=getWord(name,0);
 				addDefine(tmpName,oriCptr,curEnv);

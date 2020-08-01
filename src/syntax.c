@@ -32,7 +32,7 @@ int isDefExpression(const cptr* objCptr)
 		{
 			atom* first=objCptr->value;
 			atom* second=nextCptr(objCptr)->value;
-			if(first->type!=SYM||second->type!=SYM||strcmp(first->value,"define"))return 0;
+			if(first->type!=SYM||second->type!=SYM||strcmp(first->value.str,"define"))return 0;
 		}
 	}
 	else return 0;
@@ -61,7 +61,7 @@ int isAndExpression(const cptr* objCptr)
 	if(objCptr!=NULL)
 	{
 		atom* tmpAtm=(objCptr->type==ATM)?objCptr->value:NULL;
-		if(tmpAtm!=NULL&&!strcmp(tmpAtm->value,"and"))return 1;
+		if(tmpAtm!=NULL&&tmpAtm->type==SYM&&!strcmp(tmpAtm->value.str,"and"))return 1;
 	}
 	return 0;
 }
@@ -73,7 +73,7 @@ int isOrExpression(const cptr* objCptr)
 	if(objCptr!=NULL)
 	{
 		atom* tmpAtm=(objCptr->type==ATM)?objCptr->value:NULL;
-		if(tmpAtm!=NULL&&!strcmp(tmpAtm->value,"or"))return 1;
+		if(tmpAtm!=NULL&&tmpAtm->type==SYM&&!strcmp(tmpAtm->value.str,"or"))return 1;
 	}
 	return 0;
 }
@@ -82,7 +82,7 @@ int isQuoteExpression(const cptr* objCptr)
 {
 	objCptr=(isLegal(objCptr)&&objCptr->type==PAR)?&((pair*)objCptr->value)->car:NULL;
 	atom* tmpAtm=(objCptr!=NULL&&objCptr->type==ATM)?objCptr->value:NULL;
-	if(tmpAtm!=NULL&&!strcmp(tmpAtm->value,"quote"))return 1;
+	if(tmpAtm!=NULL&&tmpAtm->type==SYM&&!strcmp(tmpAtm->value.str,"quote"))return 1;
 	return 0;
 }
 
@@ -90,7 +90,7 @@ int isLambdaExpression(const cptr* objCptr)
 {
 	objCptr=(objCptr->type==PAR)?&((pair*)objCptr->value)->car:NULL;
 	atom* tmpAtm=(objCptr!=NULL&&objCptr->type==ATM)?objCptr->value:NULL;
-	if(tmpAtm!=NULL&&tmpAtm->type==SYM&&!strcmp(tmpAtm->value,"lambda"))return 1;
+	if(tmpAtm!=NULL&&tmpAtm->type==SYM&&!strcmp(tmpAtm->value.str,"lambda"))return 1;
 	return 0;
 }
 

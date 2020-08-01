@@ -20,5 +20,5 @@ errorStatus eval(cptr*,env*);
 void exError(const cptr*,int);
 int addKeyWord(const char*);
 keyWord* hasKeyWord(const cptr*);
-static int hasAlpha(const char*);
+void printAllKeyWord();
 #endif

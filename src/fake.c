@@ -107,20 +107,23 @@ cptr* createTree(const char* objStr)
 		{
 			if(root==NULL)objCptr=root=createCptr(objPair);
 			char* tmp=getStringFromList(objStr+i);
-			objCptr->type=ATM;
-			objCptr->value=(void*)createAtom((hasAlpha(tmp))?SYM:INT,NULL,objPair);
-			atom* tmpAtm=objCptr->value;
-			if(isDouble(tmp))
+			atom* tmpAtm=NULL;
+			if(!isNum(tmp))
+				tmpAtm=createAtom(SYM,tmp,objPair); 
+			else if(isDouble(tmp))
 			{
-				tmpAtm->type=DOU;
+				tmpAtm=createAtom(DOU,NULL,objPair);
 				double num=stringToDouble(tmp);
 				tmpAtm->value.dou=num;
 			}
 			else
 			{
+				tmpAtm=createAtom(INT,NULL,objPair);
 				int32_t num=stringToInt(tmp);
 				tmpAtm->value.num=num;
 			}
+			objCptr->type=ATM;
+			objCptr->value=tmpAtm;
 			i+=strlen(tmp);
 			free(tmp);
 		}
@@ -132,7 +135,7 @@ cptr* createTree(const char* objStr)
 			objCptr->value=(void*)createAtom(CHR,NULL,objPair);
 			atom* tmpAtm=objCptr->value;
 			if(tmp[2]!='\\')tmpAtm->value.chr=tmp[2];
-			else tmpAtm->value.chr=stringToChar(tmp[3]);
+			else tmpAtm->value.chr=stringToChar(&tmp[3]);
 		}
 		else
 		{
@@ -231,9 +234,16 @@ void printList(const cptr* objCptr,FILE* out)
 			if(objPair!=NULL&&tmp==&objPair->cdr&&tmp->type==ATM)putc(',',out);
 			if((objPair!=NULL&&tmp==&objPair->car&&tmp->type==NIL&&objPair->cdr.type!=NIL)
 			||(tmp->outer==NULL&&tmp->type==NIL))fputs("nil",out);
-			if(tmp->type!=NIL&&(((atom*)tmp->value)->type==SYM||((atom*)tmp->value)->type==NUM))
-				fprintf(out,"%s",((atom*)tmp->value)->value);
-			else if (tmp->type!=NIL)printRawString(((atom*)tmp->value)->value,out);
+			if(tmp->type!=NIL)
+			{
+				atom* tmpAtm=tmp->value;
+				if(tmpAtm->type==SYM)
+					fprintf(out,"%s",tmpAtm->value.str);
+				else if (tmpAtm->type==STR)printRawString(tmpAtm->value.str,out);
+				else if(tmpAtm->type==INT)fprintf(out,"%d",tmpAtm->value.num);
+				else if(tmpAtm->type==DOU)fprintf(out,"%f",tmpAtm->value.dou);
+				else if(tmpAtm->type==CHR)printRawChar(tmpAtm->value.chr,out);
+			}
 			if(objPair!=NULL&&tmp==&objPair->car)
 			{
 				tmp=&objPair->cdr;
@@ -349,7 +359,7 @@ errorStatus eval(cptr* objCptr,env* curEnv)
 				cptr* reCptr=NULL;
 				defines* objDef=NULL;
 				env* tmpEnv=curEnv;
-				while(!(objDef=findDefine(objAtm->value,tmpEnv))&&tmpEnv!=NULL)
+				while(!(objDef=findDefine(objAtm->value.str,tmpEnv))&&tmpEnv!=NULL)
 					tmpEnv=tmpEnv->prev;
 				if(objDef!=NULL)
 				{
@@ -366,9 +376,15 @@ errorStatus eval(cptr* objCptr,env* curEnv)
 			}
 			else
 			{
+				if(objAtm->type!=SYM)
+				{
+					status.status=SYNTAXERROR;
+					status.place=objCptr;
+					return status;
+				}
 				int before=objCptr->outer->cdr.type;
 				errorStatus (*pfun)(cptr*,env*)=NULL;
-				pfun=findFunc(objAtm->value);
+				pfun=findFunc(objAtm->value.str);
 				if(pfun!=NULL)
 				{
 					status=pfun(objCptr,curEnv);
@@ -379,7 +395,7 @@ errorStatus eval(cptr* objCptr,env* curEnv)
 					cptr* reCptr=NULL;
 					defines* objDef=NULL;
 					env* tmpEnv=curEnv;
-					while(!(objDef=findDefine(objAtm->value,tmpEnv))&&tmpEnv!=NULL)
+					while(!(objDef=findDefine(objAtm->value.str,tmpEnv))&&tmpEnv!=NULL)
 						tmpEnv=tmpEnv->prev;
 					if(objDef!=NULL)
 					{
@@ -423,15 +439,6 @@ void exError(const cptr* obj,int type)
 		case SYNTAXERROR:printf(":Syntax error.\n");break;
 	}
 }
-int hasAlpha(const char* objStr)
-{
-	if(!isdigit(*objStr)&&*objStr!='-')return 1;
-	const char* tmp=objStr+1;
-	int len=strlen(objStr);
-	for(;tmp<objStr+len;tmp++)
-		if(!isdigit(*tmp))return 1;
-	return 0;
-}
 
 int addKeyWord(const char* objStr)
 {
@@ -456,7 +463,7 @@ keyWord* hasKeyWord(const cptr* objCptr)
 	if(objCptr->type==ATM&&(tmpAtm=objCptr->value)->type==SYM)
 	{
 		keyWord* tmp=KeyWords;
-		while(tmp!=NULL&&strcmp(tmpAtm->value,tmp->word))
+		while(tmp!=NULL&&strcmp(tmpAtm->value.str,tmp->word))
 			tmp=tmp->next;
 		return tmp;
 	}
@@ -468,15 +475,25 @@ keyWord* hasKeyWord(const cptr* objCptr)
 			tmp=KeyWords;
 			tmpAtm=(objCptr->type==ATM)?objCptr->value:NULL;
 			atom* cdrAtm=(objCptr->outer->cdr.type==ATM)?objCptr->outer->cdr.value:NULL;
-			if(tmpAtm==NULL&&cdrAtm==NULL)
+			if((tmpAtm==NULL||tmpAtm->type!=SYM)&&(cdrAtm==NULL||cdrAtm->type!=SYM))
 			{
 				tmp=NULL;
 				continue;
 			}
-			while(tmp!=NULL&&tmpAtm!=NULL&&strcmp(tmpAtm->value,tmp->word)&&(cdrAtm==NULL||(cdrAtm==NULL&&strcmp(cdrAtm->value,tmp->word))))
+			while(tmp!=NULL&&tmpAtm!=NULL&&strcmp(tmpAtm->value.str,tmp->word)&&(cdrAtm==NULL||(cdrAtm!=NULL&&strcmp(cdrAtm->value.str,tmp->word))))
 				tmp=tmp->next;
 		}
 		return tmp;
 	}
 	return NULL;
+}
+
+void printAllKeyWord()
+{
+	keyWord* tmp=KeyWords;
+	while(tmp!=NULL)
+	{
+		puts(tmp->word);
+		tmp=tmp->next;
+	}
 }

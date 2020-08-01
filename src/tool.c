@@ -403,14 +403,17 @@ int copyCptr(cptr* objCptr,const cptr* copiedCptr)
 		else if(copiedCptr->type==ATM)
 		{
 			atom* coAtm=copiedCptr->value;
-			atom* objAtm=createAtom(coAtm->type,NULL,objPair);
-			objCptr->value=objAtm;
-			if(objAtm->type==SYM||objAtm->type==STR)
+			atom* objAtm=NULL;
+			if(coAtm->type==SYM||coAtm->type==STR)
+				objAtm=createAtom(coAtm->type,coAtm->value.str,objPair);
+			else
 			{
-				if(!(objAtm->value.str=(char*)malloc(strlen(coAtm->value.str)+1)))errors(OUTOFMEMORY);
-				strcpy(objAtm->value.str,coAtm->value.str);
+				objAtm=createAtom(coAtm->type,NULL,objPair);
+				if(objAtm->type==DOU)objAtm->value.dou=coAtm->value.dou;
+				else if(objAtm->type==INT)objAtm->value.num=coAtm->value.num;
+				else if(objAtm->type==CHR)objAtm->value.chr=coAtm->value.chr;
 			}
-			else memcpy(&objAtm->type,&coAtm->type,sizeof(atom)-sizeof(pair*));
+			objCptr->value=objAtm;
 			if(copiedCptr==&copiedPair->car)
 			{
 				copiedCptr=&copiedPair->cdr;
@@ -630,33 +633,56 @@ int isHexNum(const char* objStr)
 
 int isOctNum(const char* objStr)
 {
-	if(objStr!=NULL&&strlen(objStr)>2&&objStr[0]=='-'&&objStr[1]=='0'&&objStr[2]!='x'&&objStr[2]!='X')return 1;
-	if(objStr!=NULL&&strlen(objStr)>1&&objStr[0]=='0'&&objStr[1]!='x'&&objStr[1]!='X')return 1;
+	if(objStr!=NULL&&strlen(objStr)>2&&objStr[0]=='-'&&objStr[1]=='0'&&!isalpha(objStr[2]))return 1;
+	if(objStr!=NULL&&strlen(objStr)>1&&objStr[0]=='0'&&!isalpha(objStr[1]))return 1;
 	return 0;
 }
 
 int isDouble(const char* objStr)
 {
-	int i;
+	int i=(objStr[0]=='-')?1:0;
 	int len=strlen(objStr);
-	for(i=0;i<len;i++)
-		if(!isdigit(objStr[i])&&(objStr[i]!='.'||objStr[i]!='-'))return 0;
-	return 1;
+	for(;i<len;i++)
+		if(objStr[i]=='.')return 1;
+	return 0;
 }
 
-int stringToChar(const char* objStr)
+char stringToChar(const char* objStr)
 {
 	char* format=NULL;
 	if(isHexNum(objStr))format="%x";
 	else if(isOctNum(objStr))format="%o";
 	else format="%d";
-	int tmp=0;
+	char tmp=0;
 	sscanf(objStr,format,&tmp);
 	return tmp;
+}
+
+int isNum(const char* objStr)
+{
+	if(!isxdigit(*objStr)&&(*objStr!='-'||*objStr!='.'))return 0;
+	int len=strlen(objStr);
+	int i=(*objStr=='-')?1:0;
+	int hasDot=0;
+	for(;i<len;i++)
+	{
+		hasDot+=(objStr[i]=='.')?1:0;
+		if(objStr[i]=='.'&&hasDot>1)return 0;
+		if(!isxdigit(objStr[i])&&objStr[i]!='.')return 0;
+	}
+	return 1;
 }
 
 void freeAtom(atom* objAtm)
 {
 	if(objAtm->type==SYM||objAtm->type==STR)free(objAtm->value.str);
 	free(objAtm);
+}
+
+void printRawChar(char chr,FILE* out)
+{
+	if(isgraph(chr))
+		fprintf(out,"#\\%c",chr);
+	else
+		fprintf(out,"#\\\\0x%x",(int)chr);
 }

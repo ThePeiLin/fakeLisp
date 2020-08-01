@@ -183,8 +183,10 @@ errorStatus N_eq(cptr* objCptr,env* curEnv)
 	}
 	else
 	{
+		atom* tmpAtm=createAtom(INT,NULL,objCptr->outer);
 		objCptr->type=ATM;
-		objCptr->value=createAtom(NUM,"1",objCptr->outer);
+		objCptr->value=tmpAtm;
+		tmpAtm->value.num=1;
 	}
 	deleteArg(args,2);
 	return status;
@@ -203,16 +205,20 @@ errorStatus N_atom(cptr* objCptr,env* curEnv)
 	}
 	if(args[0]->type!=PAR)
 	{
+		atom* tmpAtm=createAtom(INT,NULL,objCptr->outer);
 		objCptr->type=ATM;
-		objCptr->value=createAtom(NUM,"1",objCptr->outer);
+		objCptr->value=tmpAtm;
+		tmpAtm->value.num=1;
 	}
 	else
 	{
 		pair* tmpPair=args[0]->value;
 		if(tmpPair->car.type==NIL&&tmpPair->cdr.type==NIL)
 		{
+			atom* tmpAtm=createAtom(INT,NULL,objCptr->outer);
 			objCptr->type=ATM;
-			objCptr->value=createAtom(NUM,"1",objCptr->outer);
+			objCptr->value=tmpAtm;
+			tmpAtm->value.num=1;
 		}
 		else
 		{
@@ -237,16 +243,20 @@ errorStatus N_null(cptr* objCptr,env* curEnv)
 	}
 	if(args[0]->type==NIL)
 	{
+		atom* tmpAtm=createAtom(INT,NULL,objCptr->outer);
 		objCptr->type=ATM;
-		objCptr->value=createAtom(NUM,"1",objCptr->outer);
+		objCptr->value=tmpAtm;
+		tmpAtm->value.num=1;
 	}
 	else if(args[0]->type==PAR)
 	{
 		pair* tmpPair=args[0]->value;
 		if(tmpPair->car.type==NIL&&tmpPair->cdr.type==NIL)
 		{
+			atom* tmpAtm=createAtom(INT,NULL,objCptr->outer);
 			objCptr->type=ATM;
-			objCptr->value=createAtom(NUM,"1",objCptr->outer);
+			objCptr->value=tmpAtm;
+			tmpAtm->value.num=1;
 		}
 		else 
 		{
@@ -287,8 +297,10 @@ errorStatus N_and(cptr* objCptr,env* curEnv)
 	}
 	else
 	{
+		atom* tmpAtm=createAtom(INT,NULL,objCptr->outer);
 		objCptr->type=ATM;
-		objCptr->value=createAtom(NUM,"1",objCptr->outer);
+		objCptr->value=tmpAtm;
+		tmpAtm->value.num=1;
 	}
 	deleteArg(args,1);
 	return status;
@@ -318,8 +330,10 @@ errorStatus N_or(cptr* objCptr,env* curEnv)
 	}
 	else
 	{
+		atom* tmpAtm=createAtom(INT,NULL,objCptr->outer);
 		objCptr->type=ATM;
-		objCptr->value=createAtom(NUM,"1",objCptr->outer);
+		objCptr->value=tmpAtm;
+		tmpAtm->value.num=1;
 	}
 	deleteArg(args,1);
 	return status;
@@ -338,8 +352,10 @@ errorStatus N_not(cptr* objCptr,env* curEnv)
 	}
 	if(isNil(args[0]))
 	{
+		atom* tmpAtm=createAtom(INT,NULL,objCptr->outer);
 		objCptr->type=ATM;
-		objCptr->value=createAtom(NUM,"1",objCptr->outer);
+		objCptr->value=tmpAtm;
+		tmpAtm->value.num=1;
 	}
 	else
 	{
@@ -421,7 +437,16 @@ errorStatus N_define(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	addDefine(((atom*)args[0]->value)->value,args[1],curEnv);
+	atom* tmpAtm=args[0]->value;
+	if(tmpAtm->type!=SYM)
+	{
+		status.status=SYNTAXERROR;
+		status.place=createCptr(NULL);
+		replace(status.place,args[0]);
+		deleteArg(args,2);
+		return status;
+	}
+	addDefine(tmpAtm->value.str,args[1],curEnv);
 	replace(objCptr,args[1]);
 	deleteArg(args,2);
 	return status;
@@ -459,7 +484,7 @@ errorStatus N_lambda(cptr* objCptr,env* curEnv)
 		for(i=0;i<fakeArgNum;i++)
 		{
 			atom* tmpAtm=NULL;
-			if(fakeArg[i]->type==ATM)
+			if(fakeArg[i]->type==ATM&&((atom*)fakeArg[i]->value)->type==SYM)
 				tmpAtm=fakeArg[i]->value;
 			else
 			{
@@ -470,7 +495,7 @@ errorStatus N_lambda(cptr* objCptr,env* curEnv)
 				deleteArg(realArg,fakeArgNum);
 				return status;
 			}
-			addDefine(tmpAtm->value,realArg[i],tmpEnv);
+			addDefine(tmpAtm->value.str,realArg[i],tmpEnv);
 		}
 		deleteArg(realArg,fakeArgNum);
 		deleteArg(fakeArg,fakeArgNum);
@@ -587,11 +612,39 @@ errorStatus N_add(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	long result=stringToInt(((atom*)args[0]->value)->value)+stringToInt(((atom*)args[1]->value)->value);
-	char* tmpStr=intToString(result);
+	atom* atom1=args[0]->value;
+	atom* atom2=args[1]->value;
+	if(atom1->type!=DOU&&atom1->type!=INT)
+	{
+		status.status=SYNTAXERROR;
+		status.place=createCptr(NULL);
+		replace(status.place,args[0]);
+		deleteArg(args,2);
+		return status;
+	}
+	if(atom2->type!=DOU&&atom2->type!=INT)
+	{
+		status.status=SYNTAXERROR;
+		status.place=createCptr(NULL);
+		replace(status.place,args[1]);
+		deleteArg(args,2);
+		return status;
+	}
+	atom* tmpAtm=createAtom(0,NULL,objCptr->outer);
+	if(atom1->type==DOU||atom2->type==DOU)
+	{
+		double result=((atom1->type==DOU)?atom1->value.dou:atom1->value.num)+((atom2->type==DOU)?atom2->value.dou:atom2->value.num);
+		tmpAtm->type=DOU;
+		tmpAtm->value.dou=result;
+	}
+	else if(atom1->type==INT&&atom2->type==INT)
+	{
+		int32_t result=atom1->value.num+atom2->value.num;
+		tmpAtm->type=INT;
+		tmpAtm->value.num=result;
+	}
 	objCptr->type=ATM;
-	objCptr->value=createAtom(NUM,tmpStr,objCptr->outer);
-	free(tmpStr);
+	objCptr->value=tmpAtm;
 	deleteArg(args,2);
 	return status;
 }
@@ -628,11 +681,39 @@ errorStatus N_sub(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	long result=stringToInt(((atom*)args[0]->value)->value)-stringToInt(((atom*)args[1]->value)->value);
-	char* tmpStr=intToString(result);
+	atom* atom1=args[0]->value;
+	atom* atom2=args[1]->value;
+	if(atom1->type!=DOU&&atom1->type!=INT)
+	{
+		status.status=SYNTAXERROR;
+		status.place=createCptr(NULL);
+		replace(status.place,args[0]);
+		deleteArg(args,2);
+		return status;
+	}
+	if(atom2->type!=DOU&&atom2->type!=INT)
+	{
+		status.status=SYNTAXERROR;
+		status.place=createCptr(NULL);
+		replace(status.place,args[1]);
+		deleteArg(args,2);
+		return status;
+	}
+	atom* tmpAtm=createAtom(0,NULL,objCptr->outer);
+	if(atom1->type==DOU||atom2->type==DOU)
+	{
+		double result=((atom1->type==DOU)?atom1->value.dou:atom1->value.num)-((atom2->type==DOU)?atom2->value.dou:atom2->value.num);
+		tmpAtm->type=DOU;
+		tmpAtm->value.dou=result;
+	}
+	else if(atom1->type==INT&&atom2->type==INT)
+	{
+		long result=atom1->value.num-atom2->value.num;
+		tmpAtm->type=INT;
+		tmpAtm->value.num=result;
+	}
 	objCptr->type=ATM;
-	objCptr->value=createAtom(NUM,tmpStr,objCptr->outer);
-	free(tmpStr);
+	objCptr->value=tmpAtm;
 	deleteArg(args,2);
 	return status;
 }
@@ -670,11 +751,39 @@ errorStatus N_mul(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	long result=stringToInt(((atom*)args[0]->value)->value)*stringToInt(((atom*)args[1]->value)->value);
-	char* tmpStr=intToString(result);
+	atom* atom1=args[0]->value;
+	atom* atom2=args[1]->value;
+	if(atom1->type!=DOU&&atom1->type!=INT)
+	{
+		status.status=SYNTAXERROR;
+		status.place=createCptr(NULL);
+		replace(status.place,args[0]);
+		deleteArg(args,2);
+		return status;
+	}
+	if(atom2->type!=DOU&&atom2->type!=INT)
+	{
+		status.status=SYNTAXERROR;
+		status.place=createCptr(NULL);
+		replace(status.place,args[1]);
+		deleteArg(args,2);
+		return status;
+	}
+	atom* tmpAtm=createAtom(0,NULL,objCptr->outer);
+	if(atom1->type==DOU||atom2->type==DOU)
+	{
+		double result=((atom1->type==DOU)?atom1->value.dou:atom1->value.num)*((atom2->type==DOU)?atom2->value.dou:atom2->value.num);
+		tmpAtm->type=DOU;
+		tmpAtm->value.dou=result;
+	}
+	else if(atom1->type==INT&&atom2->type==INT)
+	{
+		int32_t result=atom1->value.num*atom2->value.num;
+		tmpAtm->type=INT;
+		tmpAtm->value.num=result;
+	}
 	objCptr->type=ATM;
-	objCptr->value=createAtom(NUM,tmpStr,objCptr->outer);
-	free(tmpStr);
+	objCptr->value=tmpAtm;
 	deleteArg(args,2);
 	return status;
 }
@@ -712,11 +821,33 @@ errorStatus N_div(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	long result=stringToInt(((atom*)args[0]->value)->value)/stringToInt(((atom*)args[1]->value)->value);
-	char* tmpStr=intToString(result);
+	atom* atom1=args[0]->value;
+	atom* atom2=args[1]->value;
+	if(atom1->type!=DOU&&atom1->type!=INT)
+	{
+		status.status=SYNTAXERROR;
+		status.place=createCptr(NULL);
+		replace(status.place,args[0]);
+		deleteArg(args,2);
+		return status;
+	}
+	if(atom2->type!=DOU&&atom2->type!=INT)
+	{
+		status.status=SYNTAXERROR;
+		status.place=createCptr(NULL);
+		replace(status.place,args[1]);
+		deleteArg(args,2);
+		return status;
+	}
+	atom* tmpAtm=createAtom(DOU,NULL,objCptr->outer);
+	if(atom1->type==DOU||atom2->type==DOU)
+	{
+		double result=((atom1->type==DOU)?atom1->value.dou:atom1->value.num)/((atom2->type==DOU)?atom2->value.dou:atom2->value.num);
+		tmpAtm->type=DOU;
+		tmpAtm->value.dou=result;
+	}
 	objCptr->type=ATM;
-	objCptr->value=createAtom(NUM,tmpStr,objCptr->outer);
-	free(tmpStr);
+	objCptr->value=tmpAtm;
 	deleteArg(args,2);
 	return status;
 }
@@ -754,11 +885,27 @@ errorStatus N_mod(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	long result=stringToInt(((atom*)args[0]->value)->value)%stringToInt(((atom*)args[1]->value)->value);
-	char* tmpStr=intToString(result);
-	objCptr->type=ATM;
-	objCptr->value=createAtom(NUM,tmpStr,objCptr->outer);
-	free(tmpStr);
+	atom* atom1=args[0]->value;
+	atom* atom2=args[1]->value;
+	if(atom1->type!=DOU&&atom1->type!=INT)
+	{
+		status.status=SYNTAXERROR;
+		status.place=createCptr(NULL);
+		replace(status.place,args[0]);
+		deleteArg(args,2);
+		return status;
+	}
+	if(atom2->type!=DOU&&atom2->type!=INT)
+	{
+		status.status=SYNTAXERROR;
+		status.place=createCptr(NULL);
+		replace(status.place,args[1]);
+		deleteArg(args,2);
+		return status;
+	}
+	atom* tmpAtm=createAtom(INT,NULL,objCptr->outer);
+	int32_t result=((atom1->type==DOU)?(int)atom1->value.dou:atom1->value.num)%((atom2->type==DOU)?(int)atom2->value.dou:atom2->value.num);
+	tmpAtm->value.num=result;
 	deleteArg(args,2);
 	return status;
 }

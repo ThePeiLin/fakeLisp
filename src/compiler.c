@@ -69,29 +69,42 @@ void deleteASTs(cptr** ASTs,int num)
 	free(ASTs);
 }
 
-byteCode* complierInt(const cptr* objCptr)
+byteCode* complierAtom(const cptr* objCptr)
 {
 	atom* tmpAtm=objCptr->value;
 	byteCode* tmp=NULL;
-	if(!(tmp=(byteCode*)malloc(sizeof(byteCode))))errors(OUTOFMEMORY);
-	tmp->size=5;
-	if(!(tmp->opcode=(void*)malloc(sizeof(char)*5)))errors(OUTOFMEMORY);
-	tmp->opcode[0]=FAKE_PUSH_INT;
-	int32_t num=0;
-	char* format=NULL;
-	if(isHexNum(tmpAtm->value))format="%lx";
-	else if(isOctNum(tmpAtm->value))format="%lo";
-	else format="%ld";
-	sscanf(tmpAtm->value,format,&num);
-	memcpy(tmp->opcode+1,&num,4);
+	switch(tmpAtm->type)
+	{
+		case SYM:
+		case STR:
+			tmp=createByteCode(sizeof(char)+strlen(tmpAtm->value.str)+1);
+			tmp->code[0]=FAKE_PUSH_STR;
+			strcpy(tmp->code+1,tmpAtm->value.str);
+			break;
+		case INT:
+			tmp=createByteCode(sizeof(char)+sizeof(fakeInt));
+			tmp->code[0]=FAKE_PUSH_INT;
+			*(fakeInt*)(tmp->code+1)=tmpAtm->value.num;
+			break;
+		case DOU:
+			tmp=createByteCode(sizeof(char)+sizeof(double));
+			tmp->code[0]=FAKE_PUSH_DOU;
+			*(double*)(tmp->code+1)=tmpAtm->value.dou;
+			break;
+		case CHR:
+			tmp=createByteCode(sizeof(char)+sizeof(char));
+			tmp->code[0]=FAKE_PUSH_CHR;
+			tmp->code[1]=tmpAtm->value.chr;
+			break;
+	}
 	return tmp;
 }
 
-void freeByteCode(byteCode* obj)
+byteCode* createEmptyByteCode(unsigned int size)
 {
-	if(obj!=NULL)
-	{
-		free(obj->opcode);
-		free(obj);
-	}
+	byteCode* tmp=NULL;
+	if(!(tmp=(byteCode*)malloc(sizeof(byteCode))))errors(OUTOFMEMORY);
+	tmp->size=size;
+	if(!(tmp->code=(char*)calloc(size,sizeof(char*))))errors(OUTOFMEMORY);
+	return tmp;
 }

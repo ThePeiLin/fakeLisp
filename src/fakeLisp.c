@@ -76,7 +76,7 @@ void initEvalution()
 	addFunc("or",N_or);
 	addFunc("not",N_not);
 	addFunc("define",N_define);
-	addFunc("lambda",N_lambda);
+//	addFunc("lambda",N_lambda);
 	addFunc("list",N_list);
 	addFunc("defmacro",N_defmacro);
 	addFunc("undef",N_undef);
@@ -85,6 +85,6 @@ void initEvalution()
 	addFunc("mul",N_mul);
 	addFunc("div",N_div);
 	addFunc("mod",N_mod);
-	addFunc("print",N_print);
+//	addFunc("print",N_print);
 	initPreprocess();
 }

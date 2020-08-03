@@ -18,7 +18,7 @@ void destroyEnv(env*);
 void printList(const cptr*,FILE*);
 errorStatus eval(cptr*,env*);
 void exError(const cptr*,int);
-int addKeyWord(const char*);
+void addKeyWord(const char*);
 keyWord* hasKeyWord(const cptr*);
 void printAllKeyWord();
 #endif

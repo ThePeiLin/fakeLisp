@@ -69,7 +69,7 @@ int addMacro(cptr* format,cptr* express)
 	}
 	else
 		current->express=express;
-	printAllKeyWord();
+	//printAllKeyWord();
 	return 0;
 }
 

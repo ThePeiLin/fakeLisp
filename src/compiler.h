@@ -27,4 +27,5 @@ static byteCode* compileConstant(const cptr*);
 static byteCode* compileNum(const cptr*);
 static byteCode* appendByteCode(const byteCode*,const byteCode*);
 static void freeByteCode(byteCode*);
+static byteCode* createEmptyByteCode(unsigned int);
 #endif

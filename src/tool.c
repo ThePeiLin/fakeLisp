@@ -22,7 +22,7 @@ char* getListFromFile(FILE* file)
 			while(getc(file)!='\n');
 			continue;
 		}
-		else if(ch=='\n'&&braketsNum<=0)break;
+		else if(ch=='\n'&&braketsNum<=0&&!mark)break;
 		else if(ch=='\'')
 		{
 			while(isspace((ch=getc(file))));
@@ -175,9 +175,9 @@ char* intToString(long num)
 }
 
 
-int32_t stringToInt(const char* str)
+int64_t stringToInt(const char* str)
 {
-	int32_t tmp;
+	int64_t tmp;
 	char* format=NULL;
 	if(isHexNum(str))format="%lx";
 	else if(isOctNum(str))format="%lo";
@@ -264,6 +264,11 @@ rawString getStringBetweenMarks(const char* str)
 					while(k>0)ch=ch+(*(str+i+1+len-k)-'0')*power(10,--k);
 					i+=len+1;
 				}
+			}
+			else if(*(str+i+1)=='\n')
+			{
+				i+=2;
+				continue;
 			}
 			else
 			{
@@ -364,17 +369,18 @@ atom* createAtom(int type,const char* value,pair* prev)
 {
 	atom* tmp=NULL;
 	if(!(tmp=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY);
-	if(type==SYM||type==STR)
+	switch(type)
 	{
-		if(!(tmp->value.str=(char*)malloc(strlen(value)+1)))errors(OUTOFMEMORY);
-		memcpy(tmp->value.str,value,strlen(value)+1);
-	}
-	else if(type==CHR)
-		tmp->value.chr=0;
-	else if(type==INT)
-		tmp->value.num=0;
-	else if(type==DOU)
-		tmp->value.dou=0;
+		case SYM:
+		case STR:
+			if(!(tmp->value.str=(char*)malloc(strlen(value)+1)))errors(OUTOFMEMORY);
+			strcpy(tmp->value.str,value);
+			break;
+		case CHR:
+		case INT:
+		case DOU:
+			*(int64_t*)(&tmp->value)=0;break;
+	}		
 	tmp->prev=prev;
 	tmp->type=type;
 	return tmp;
@@ -650,12 +656,37 @@ int isDouble(const char* objStr)
 char stringToChar(const char* objStr)
 {
 	char* format=NULL;
-	if(isHexNum(objStr))format="%x";
-	else if(isOctNum(objStr))format="%o";
-	else format="%d";
-	char tmp=0;
-	sscanf(objStr,format,&tmp);
-	return tmp;
+	char ch=0;
+	if(isNum(objStr))
+	{
+		if(isHexNum(objStr))format="%x";
+		else if(isOctNum(objStr))format="%o";
+		else format="%d";
+		sscanf(objStr,format,&ch);
+	}
+	else
+	{
+		switch(*(objStr))
+		{
+			case 'A':
+			case 'a':ch=0x07;break;
+			case 'b':
+			case 'B':ch=0x08;break;
+			case 't':
+			case 'T':ch=0x09;break;
+			case 'n':
+			case 'N':ch=0x0a;break;
+			case 'v':
+			case 'V':ch=0x0b;break;
+			case 'f':
+			case 'F':ch=0x0c;break;
+			case 'r':
+			case 'R':ch=0x0d;break;
+			case '\\':ch=0x5c;break;
+			default:ch=*(objStr);break;
+		}
+	}
+	return ch;
 }
 
 int isNum(const char* objStr)

@@ -639,7 +639,7 @@ errorStatus N_add(cptr* objCptr,env* curEnv)
 	}
 	else if(atom1->type==INT&&atom2->type==INT)
 	{
-		int32_t result=atom1->value.num+atom2->value.num;
+		int64_t result=atom1->value.num+atom2->value.num;
 		tmpAtm->type=INT;
 		tmpAtm->value.num=result;
 	}
@@ -778,7 +778,7 @@ errorStatus N_mul(cptr* objCptr,env* curEnv)
 	}
 	else if(atom1->type==INT&&atom2->type==INT)
 	{
-		int32_t result=atom1->value.num*atom2->value.num;
+		int64_t result=atom1->value.num*atom2->value.num;
 		tmpAtm->type=INT;
 		tmpAtm->value.num=result;
 	}
@@ -904,7 +904,7 @@ errorStatus N_mod(cptr* objCptr,env* curEnv)
 		return status;
 	}
 	atom* tmpAtm=createAtom(INT,NULL,objCptr->outer);
-	int32_t result=((atom1->type==DOU)?(int)atom1->value.dou:atom1->value.num)%((atom2->type==DOU)?(int)atom2->value.dou:atom2->value.num);
+	int64_t result=((atom1->type==DOU)?(int)atom1->value.dou:atom1->value.num)%((atom2->type==DOU)?(int)atom2->value.dou:atom2->value.num);
 	tmpAtm->value.num=result;
 	deleteArg(args,2);
 	return status;

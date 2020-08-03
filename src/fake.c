@@ -119,7 +119,7 @@ cptr* createTree(const char* objStr)
 			else
 			{
 				tmpAtm=createAtom(INT,NULL,objPair);
-				int32_t num=stringToInt(tmp);
+				int64_t num=stringToInt(tmp);
 				tmpAtm->value.num=num;
 			}
 			objCptr->type=ATM;
@@ -237,12 +237,23 @@ void printList(const cptr* objCptr,FILE* out)
 			if(tmp->type!=NIL)
 			{
 				atom* tmpAtm=tmp->value;
-				if(tmpAtm->type==SYM)
-					fprintf(out,"%s",tmpAtm->value.str);
-				else if (tmpAtm->type==STR)printRawString(tmpAtm->value.str,out);
-				else if(tmpAtm->type==INT)fprintf(out,"%d",tmpAtm->value.num);
-				else if(tmpAtm->type==DOU)fprintf(out,"%f",tmpAtm->value.dou);
-				else if(tmpAtm->type==CHR)printRawChar(tmpAtm->value.chr,out);
+				switch(tmpAtm->type)
+				{
+					case SYM:
+						fprintf(out,"%s",tmpAtm->value.str);
+						break;
+					case STR:
+						printRawString(tmpAtm->value.str,out);
+						break;
+					case INT:
+						fprintf(out,"%ld",tmpAtm->value.num);
+						break;
+					case DOU:
+						fprintf(out,"%lf",tmpAtm->value.num);
+						break;
+					case CHR:
+						printRawChar(tmpAtm->value.chr,out);
+				}			
 			}
 			if(objPair!=NULL&&tmp==&objPair->car)
 			{
@@ -440,21 +451,24 @@ void exError(const cptr* obj,int type)
 	}
 }
 
-int addKeyWord(const char* objStr)
+void addKeyWord(const char* objStr)
 {
 	if(objStr!=NULL)
 	{
-		int len=strlen(objStr)+1;
-		keyWord* tmp=(keyWord*)malloc(sizeof(keyWord));
-		char* tmpStr=(char*)malloc(sizeof(char)*len);
-		if(tmp==NULL||tmpStr==NULL)errors(OUTOFMEMORY);
-		memcpy(tmpStr,objStr,len);
-		tmp->word=tmpStr;
-		tmp->next=KeyWords;
-		KeyWords=tmp;
-		return 1;
+		keyWord* current=KeyWords;
+		keyWord* prev=NULL;
+		while(current!=NULL&&strcmp(current->word,objStr)){prev=current;current=current->next;}
+		if(current==NULL)
+		{
+			current=(keyWord*)malloc(sizeof(keyWord));
+			current->word=(char*)malloc(sizeof(char)*strlen(objStr));
+			if(current==NULL||current->word==NULL)errors(OUTOFMEMORY);
+			strcpy(current->word,objStr);
+			if(prev!=NULL)prev->next=current;
+			else KeyWords=current;
+			current->next=NULL;
+		}
 	}
-	return 0;
 }
 
 keyWord* hasKeyWord(const cptr* objCptr)

@@ -23,7 +23,7 @@ char* getListFromFile(FILE* file)
 			ungetc('\n',file);
 			continue;
 		}
-		else if(ch=='\n'&&braketsNum<=0&&!mark)break;
+		else if(ch=='\n'&&braketsNum<=0&&!mark){ungetc('\n',file);break;}
 		else if(ch=='\'')
 		{
 			while(isspace((ch=getc(file))));

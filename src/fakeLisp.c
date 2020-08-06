@@ -16,42 +16,20 @@ int main(int argc,char** argv)
 		perror(argv[1]);
 		return EXIT_FAILURE;
 	}
-	int isStdin=(fp==stdin)?1:0;
+	intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp);
 	initEvalution();
-	while(1)
-	{
-		cptr* begin=NULL;
-		if(fp==stdin)printf(">>>");
-		char ch;
-		while(isspace(ch=getc(fp)));
-		if(ch==EOF)break;
-		ungetc(ch,fp);
-		char* list=getListFromFile(fp);
-		if(list==NULL)continue;
-		begin=evalution(list,isStdin);
-		free(list);
-		list=NULL;
-		if(fp==stdin)
-		{
-			fputs(";=>",stdout);
-			printList(begin,stdout);
-			putchar('\n');
-		}
-		deleteCptr(begin);
-		free(begin);
-		begin=NULL;
-	}
+	runIntpr(inter);
 	return 0;
 }
 
-cptr* evalution(const char* objStr,int isStdin)
+cptr* evalution(const char* objStr,int isStdin,intpr* inter)
 {
 	errorStatus status={0,NULL};
-	cptr* begin=createTree(objStr);
+	cptr* begin=createTree(objStr,inter);
 	status=eval(begin,NULL);
 	if(status.status!=0)
 	{
-		exError(status.place,status.status);
+		exError(status.place,status.status,inter);
 		deleteCptr(status.place);
 		if(!isStdin)
 		{
@@ -87,4 +65,32 @@ void initEvalution()
 	addFunc("mod",N_mod);
 //	addFunc("print",N_print);
 	initPreprocess();
+}
+
+void runIntpr(intpr* inter)
+{
+	int isStdin=(inter->file==stdin)?1:0;
+	for(;;)
+	{
+		cptr* begin=NULL;
+		if(isStdin)printf(">>>");
+		char ch;
+		while(isspace(ch=getc(inter->file)))if(ch=='\n')inter->curline+=1;;
+		if(ch==EOF)break;
+		ungetc(ch,inter->file);
+		char* list=getListFromFile(inter->file);
+		if(list==NULL)continue;
+		begin=evalution(list,isStdin,inter);
+		free(list);
+		list=NULL;
+		if(isStdin)
+		{
+			fputs(";=>",stdout);
+			printList(begin,stdout);
+			putchar('\n');
+		}
+		deleteCptr(begin);
+		free(begin);
+		begin=NULL;
+	}
 }

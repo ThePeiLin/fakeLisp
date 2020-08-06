@@ -8,6 +8,7 @@
 typedef struct
 {
 	struct Pair* outer;
+	int curline;
 	enum {NIL,PAR,ATM} type;
 	void* value;
 }cptr;
@@ -48,6 +49,7 @@ typedef struct Env
 {
 	struct Env* prev;
 	defines* symbols;
+	struct Env* next;
 }env;
 
 typedef struct NativeFunc//function and form
@@ -70,4 +72,11 @@ typedef struct ByteCode
 	uint64_t size;
 	char* code;
 }byteCode;
+typedef struct
+{
+	char* filename;
+	FILE* file;
+	env* glob;
+	int curline;
+}intpr;
 #endif

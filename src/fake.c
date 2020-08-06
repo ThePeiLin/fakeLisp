@@ -10,7 +10,7 @@ static nativeFunc* funAndForm=NULL;
 static env* Glob=NULL;
 static keyWord* KeyWords=NULL;
 
-cptr* createTree(const char* objStr)
+cptr* createTree(const char* objStr,intpr* inter)
 {
 	if(objStr==NULL)return NULL;
 	int i=0;
@@ -26,15 +26,15 @@ cptr* createTree(const char* objStr)
 			braketsNum++;
 			if(root==NULL)
 			{
-				root=createCptr(objPair);
+				root=newCptr(inter->curline,objPair);
 				root->type=PAR;
-				root->value=createPair(NULL);
+				root->value=newPair(inter->curline,NULL);
 				objPair=root->value;
 				objCptr=&objPair->car;
 			}
 			else
 			{
-				objPair=createPair(objPair);
+				objPair=newPair(inter->curline,objPair);
 				objCptr->type=PAR;
 				objCptr->value=(void*)objPair;
 				objCptr=&objPair->car;
@@ -70,6 +70,7 @@ cptr* createTree(const char* objStr)
 		}
 		else if(isspace(*(objStr+i)))
 		{
+			if(*(objStr+1)=='\n')inter->curline+=1;
 			int j=0;
 			char* tmpStr=(char*)objStr+i;
 			while(isspace(*(tmpStr+j)))j--;
@@ -88,7 +89,7 @@ cptr* createTree(const char* objStr)
 				continue;
 			}
 			i+=j;
-			pair* tmp=createPair(objPair);
+			pair* tmp=newPair(inter->curline,objPair);
 			objPair->cdr.type=PAR;
 			objPair->cdr.value=(void*)tmp;
 			objPair=tmp;
@@ -96,29 +97,29 @@ cptr* createTree(const char* objStr)
 		}
 		else if(*(objStr+i)=='\"')
 		{
-			if(root==NULL)objCptr=root=createCptr(objPair);
-			rawString tmp=getStringBetweenMarks(objStr+i);
+			if(root==NULL)objCptr=root=newCptr(inter->curline,objPair);
+			rawString tmp=getStringBetweenMarks(objStr+i,inter);
 			objCptr->type=ATM;
-			objCptr->value=(void*)createAtom(STR,tmp.str,objPair);
+			objCptr->value=(void*)newAtom(STR,tmp.str,objPair);
 			i+=tmp.len;
 			free(tmp.str);
 		}
 		else if(isdigit(*(objStr+i))||(*(objStr+i)=='-'&&isdigit(*(objStr+i+1))))
 		{
-			if(root==NULL)objCptr=root=createCptr(objPair);
+			if(root==NULL)objCptr=root=newCptr(inter->curline,objPair);
 			char* tmp=getStringFromList(objStr+i);
 			atom* tmpAtm=NULL;
 			if(!isNum(tmp))
-				tmpAtm=createAtom(SYM,tmp,objPair); 
+				tmpAtm=newAtom(SYM,tmp,objPair); 
 			else if(isDouble(tmp))
 			{
-				tmpAtm=createAtom(DOU,NULL,objPair);
+				tmpAtm=newAtom(DOU,NULL,objPair);
 				double num=stringToDouble(tmp);
 				tmpAtm->value.dou=num;
 			}
 			else
 			{
-				tmpAtm=createAtom(INT,NULL,objPair);
+				tmpAtm=newAtom(INT,NULL,objPair);
 				int64_t num=stringToInt(tmp);
 				tmpAtm->value.num=num;
 			}
@@ -129,20 +130,20 @@ cptr* createTree(const char* objStr)
 		}
 		else if(*(objStr+i)=='#'&&*(objStr+1+i)=='\\')
 		{
-			if(root==NULL)objCptr=root=createCptr(objPair);
+			if(root==NULL)objCptr=root=newCptr(inter->curline,objPair);
 			char* tmp=getStringFromList(objStr+i);
 			objCptr->type=ATM;
-			objCptr->value=(void*)createAtom(CHR,NULL,objPair);
+			objCptr->value=(void*)newAtom(CHR,NULL,objPair);
 			atom* tmpAtm=objCptr->value;
 			if(tmp[2]!='\\')tmpAtm->value.chr=tmp[2];
 			else tmpAtm->value.chr=stringToChar(&tmp[3]);
 		}
 		else
 		{
-			if(root==NULL)objCptr=root=createCptr(objPair);
+			if(root==NULL)objCptr=root=newCptr(inter->curline,objPair);
 			char* tmp=getStringFromList(objStr+i);
 			objCptr->type=ATM;
-			objCptr->value=(void*)createAtom(SYM,tmp,objPair);
+			objCptr->value=(void*)newAtom(SYM,tmp,objPair);
 			i+=strlen(tmp);
 			free(tmp);
 			continue;
@@ -309,29 +310,6 @@ defines* addDefine(const char* symName,const cptr* objCptr,env* curEnv)
 	}
 }
 
-env* newEnv(env* prev)
-{
-	env* curEnv=NULL;
-	if(!(curEnv=(env*)malloc(sizeof(env))))errors(OUTOFMEMORY);
-	curEnv->prev=prev;
-	curEnv->symbols=NULL;
-	return curEnv;
-}
-
-void destroyEnv(env* objEnv)
-{
-	if(objEnv==NULL)errors(WRONGENV);
-	defines* delsym=objEnv->symbols;
-	while(delsym!=NULL)
-	{
-		free(delsym->symName);
-		deleteCptr(&delsym->obj);
-		defines* prev=delsym;
-		delsym=delsym->next;
-		free(prev);
-	}
-	free(objEnv);
-}
 
 defines* findDefine(const char* name,const env* curEnv)
 {
@@ -441,8 +419,9 @@ errorStatus eval(cptr* objCptr,env* curEnv)
 	return status;
 }
 
-void exError(const cptr* obj,int type)
+void exError(const cptr* obj,int type,intpr* inter)
 {
+	if(inter!=NULL)printf("In file \"%s\",line %d\n",inter->filename,obj->curline);
 	printList(obj,stdout);
 	switch(type)
 	{
@@ -496,6 +475,7 @@ keyWord* hasKeyWord(const cptr* objCptr)
 			}
 			while(tmp!=NULL&&tmpAtm!=NULL&&strcmp(tmpAtm->value.str,tmp->word)&&(cdrAtm==NULL||(cdrAtm!=NULL&&strcmp(cdrAtm->value.str,tmp->word))))
 				tmp=tmp->next;
+			if(tmp!=NULL)break;
 		}
 		return tmp;
 	}

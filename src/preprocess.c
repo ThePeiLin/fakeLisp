@@ -194,10 +194,10 @@ int macroExpand(cptr* objCptr)
 	macro* tmp=macroMatch(objCptr);
 	if(tmp!=NULL&&objCptr!=tmp->express)
 	{
-		cptr* tmpCptr=createCptr(NULL);
+		cptr* tmpCptr=newCptr(0,NULL);
 		replace(tmpCptr,tmp->express);
 		status=eval(tmp->express,MacroEnv);
-		if(status.status!=0)exError(status.place,status.status);
+		if(status.status!=0)exError(status.place,status.status,NULL);
 		replace(objCptr,tmp->express);
 		deleteCptr(tmp->express);
 		free(tmp->express);
@@ -265,7 +265,7 @@ int M_VAREPT(const cptr* oriCptr,const cptr* fmtCptr,const char* name,env* curEn
 {
 	fmtCptr=&fmtCptr->outer->prev->car;
 	const cptr* format=fmtCptr;
-	const cptr tmp={NULL,NIL,NULL};
+	const cptr tmp={NULL,0,NIL,NULL};
 	pair* forPair=(format->type==PAR)?format->value:NULL;
 	pair* tmpPair=forPair;
 	env* forValRept=newEnv(NULL);
@@ -416,7 +416,7 @@ void addToList(cptr* fir,const cptr* sec)
 {
 	while(fir->type!=NIL)fir=&((pair*)fir->value)->cdr;
 	fir->type=PAR;
-	fir->value=createPair(fir->outer);
+	fir->value=newPair(0,fir->outer);
 	replace(&((pair*)fir->value)->car,sec);
 }
 

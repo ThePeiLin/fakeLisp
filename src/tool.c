@@ -20,6 +20,7 @@ char* getListFromFile(FILE* file)
 		if(ch==';'&&!mark)
 		{
 			while(getc(file)!='\n');
+			ungetc('\n',file);
 			continue;
 		}
 		else if(ch=='\n'&&braketsNum<=0&&!mark)break;
@@ -87,6 +88,7 @@ char* subGetList(FILE* file)
 		if(ch==';'&&!mark)
 		{
 			while(getc(file)!='\n');
+			ungetc('\n',file);
 			continue;
 		}
 		if(isspace(ch)&&!braketsNum)
@@ -196,7 +198,7 @@ int power(int first,int second)
 }
 
 
-rawString getStringBetweenMarks(const char* str)
+rawString getStringBetweenMarks(const char* str,intpr* inter)
 {
 	rawString obj;
 	char ch=0;
@@ -207,6 +209,7 @@ rawString getStringBetweenMarks(const char* str)
 	int j;
 	while(*(str+i)!='\"')
 	{
+		if(*(str+i)=='\n')inter->curline+=1;
 		if(*(str+i)=='\\')
 		{
 			if(isdigit(*(str+i+1)))
@@ -339,7 +342,7 @@ void errors(int types)
 	exit(1);
 }
 
-pair* createPair(pair* prev)
+pair* newPair(int curline,pair* prev)
 {
 	pair* tmp;
 	if((tmp=(pair*)malloc(sizeof(pair))))
@@ -351,21 +354,24 @@ pair* createPair(pair* prev)
 		tmp->cdr.type=NIL;
 		tmp->cdr.value=NULL;
 		tmp->prev=prev;
+		tmp->car.curline=curline;
+		tmp->cdr.curline=curline;
 	}
 	else errors(OUTOFMEMORY);
 }
 
-cptr* createCptr(pair* outer)
+cptr* newCptr(int curline,pair* outer)
 {
 	cptr* tmp=NULL;
 	if(!(tmp=(cptr*)malloc(sizeof(cptr))))errors(OUTOFMEMORY);
 	tmp->outer=outer;
+	tmp->curline=curline;
 	tmp->type=NIL;
 	tmp->value=NULL;
 	return tmp;
 }
 
-atom* createAtom(int type,const char* value,pair* prev)
+atom* newAtom(int type,const char* value,pair* prev)
 {
 	atom* tmp=NULL;
 	if(!(tmp=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY);
@@ -398,7 +404,7 @@ int copyCptr(cptr* objCptr,const cptr* copiedCptr)
 		objCptr->type=copiedCptr->type;
 		if(copiedCptr->type==PAR)
 		{
-			objPair=createPair(objPair);
+			objPair=newPair(0,objPair);
 			objCptr->value=objPair;
 			copiedPair=copiedCptr->value;
 			copiedCptr=&copiedPair->car;
@@ -411,10 +417,10 @@ int copyCptr(cptr* objCptr,const cptr* copiedCptr)
 			atom* coAtm=copiedCptr->value;
 			atom* objAtm=NULL;
 			if(coAtm->type==SYM||coAtm->type==STR)
-				objAtm=createAtom(coAtm->type,coAtm->value.str,objPair);
+				objAtm=newAtom(coAtm->type,coAtm->value.str,objPair);
 			else
 			{
-				objAtm=createAtom(coAtm->type,NULL,objPair);
+				objAtm=newAtom(coAtm->type,NULL,objPair);
 				if(objAtm->type==DOU)objAtm->value.dou=coAtm->value.dou;
 				else if(objAtm->type==INT)objAtm->value.num=coAtm->value.num;
 				else if(objAtm->type==CHR)objAtm->value.chr=coAtm->value.chr;
@@ -465,7 +471,7 @@ int copyCptr(cptr* objCptr,const cptr* copiedCptr)
 void replace(cptr* fir,const cptr* sec)
 {
 	pair* tmp=fir->outer;
-	cptr tmpCptr={NULL,NIL,NULL};
+	cptr tmpCptr={NULL,0,NIL,NULL};
 	tmpCptr.type=fir->type;
 	tmpCptr.value=fir->value;
 	copyCptr(fir,sec);
@@ -716,4 +722,62 @@ void printRawChar(char chr,FILE* out)
 		fprintf(out,"#\\%c",chr);
 	else
 		fprintf(out,"#\\\\0x%x",(int)chr);
+}
+
+env* newEnv(env* prev)
+{
+	env* curEnv=NULL;
+	if(!(curEnv=(env*)malloc(sizeof(env))))errors(OUTOFMEMORY);
+	if(prev!=NULL)prev->next=curEnv;
+	curEnv->prev=prev;
+	curEnv->next=NULL;
+	curEnv->symbols=NULL;
+	return curEnv;
+}
+
+void destroyEnv(env* objEnv)
+{
+	if(objEnv==NULL)errors(WRONGENV);
+	while(objEnv!=NULL)
+	{
+		defines* delsym=objEnv->symbols;
+		while(delsym!=NULL)
+		{
+			free(delsym->symName);
+			deleteCptr(&delsym->obj);
+			defines* prev=delsym;
+			delsym=delsym->next;
+			free(prev);
+		}
+		env* prev=objEnv;
+		objEnv=objEnv->next;
+		free(prev);
+	}
+}
+
+intpr* newIntpr(const char* filename,FILE* file)
+{
+	intpr* tmp=NULL;
+	if(!(tmp=(intpr*)malloc(sizeof(intpr))))errors(OUTOFMEMORY);
+	if(!(tmp->filename=(char*)malloc(sizeof(char)*(strlen(filename)+1))))errors(OUTOFMEMORY);
+	strcpy(tmp->filename,filename);
+	tmp->file=file;
+	tmp->glob=newEnv(NULL);
+	tmp->curline=1;
+	return tmp;
+}
+
+void freeIntpr(intpr* inter)
+{
+	free(inter->filename);
+	fclose(inter->file);
+	destroyEnv(inter->glob);
+	free(inter);
+}
+
+char getci(intpr* inter)
+{
+	char ch=getc(inter->file);
+	inter->curline+=(ch=='\n')?1:0;
+	return ch;
 }

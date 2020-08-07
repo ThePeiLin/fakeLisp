@@ -7,7 +7,6 @@
 #include"syntax.h"
 
 static nativeFunc* funAndForm=NULL;
-static env* Glob=NULL;
 static keyWord* KeyWords=NULL;
 
 cptr* createTree(const char* objStr,intpr* inter)
@@ -313,11 +312,10 @@ defines* addDefine(const char* symName,const cptr* objCptr,env* curEnv)
 
 defines* findDefine(const char* name,const env* curEnv)
 {
-	const env* current=(curEnv==NULL)?Glob:curEnv;
-	if(current->symbols==NULL)return NULL;
+	if(curEnv->symbols==NULL)return NULL;
 	else
 	{
-		defines* curSym=current->symbols;
+		defines* curSym=curEnv->symbols;
 		defines* prev=NULL;
 		while(curSym&&strcmp(name,curSym->symName))
 			curSym=curSym->next;
@@ -328,14 +326,12 @@ defines* findDefine(const char* name,const env* curEnv)
 errorStatus eval(cptr* objCptr,env* curEnv)
 {
 	errorStatus status={0,NULL};
-	curEnv=(curEnv==NULL)?(Glob=(Glob==NULL)?newEnv(NULL):Glob):curEnv;
 	if(objCptr==NULL)
 	{
 		status.status=SYNTAXERROR;
 		status.place=objCptr;
 		return status;
 	}
-	curEnv=(curEnv==NULL)?Glob:curEnv;
 	cptr* tmpCptr=objCptr;
 	while(objCptr->type!=NIL)
 	{

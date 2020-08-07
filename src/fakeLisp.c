@@ -22,7 +22,7 @@ int main(int argc,char** argv)
 	return 0;
 }
 
-cptr* evalution(const char* objStr,int isStdin,intpr* inter)
+cptr* evalution(const char* objStr,intpr* inter)
 {
 	errorStatus status={0,NULL};
 	cptr* begin=createTree(objStr,inter);
@@ -31,12 +31,19 @@ cptr* evalution(const char* objStr,int isStdin,intpr* inter)
 	{
 		exError(status.place,status.status,inter);
 		deleteCptr(status.place);
-		if(!isStdin)
+		if(inter->file!=stdin)
 		{
 			deleteCptr(begin);
 			exit(0);
 		}
 	}
+	else 
+		if(inter->file==stdin)
+		{
+			fputs(";=>",stdout);
+			printList(begin,stdout);
+			putchar('\n');
+		}
 	return begin;
 }
 
@@ -69,26 +76,19 @@ void initEvalution()
 
 void runIntpr(intpr* inter)
 {
-	int isStdin=(inter->file==stdin)?1:0;
 	for(;;)
 	{
 		cptr* begin=NULL;
-		if(isStdin)printf(">>>");
+		if(inter->file==stdin)printf(">>>");
 		char ch;
 		while(isspace(ch=getc(inter->file)))if(ch=='\n')inter->curline+=1;;
 		if(ch==EOF)break;
 		ungetc(ch,inter->file);
 		char* list=getListFromFile(inter->file);
 		if(list==NULL)continue;
-		begin=evalution(list,isStdin,inter);
+		begin=evalution(list,inter);
 		free(list);
 		list=NULL;
-		if(isStdin)
-		{
-			fputs(";=>",stdout);
-			printList(begin,stdout);
-			putchar('\n');
-		}
 		deleteCptr(begin);
 		free(begin);
 		begin=NULL;

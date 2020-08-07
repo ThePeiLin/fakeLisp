@@ -26,7 +26,7 @@ cptr* evalution(const char* objStr,intpr* inter)
 {
 	errorStatus status={0,NULL};
 	cptr* begin=createTree(objStr,inter);
-	status=eval(begin,NULL);
+	status=eval(begin,inter->glob);
 	if(status.status!=0)
 	{
 		exError(status.place,status.status,inter);

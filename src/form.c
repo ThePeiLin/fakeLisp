@@ -614,7 +614,7 @@ errorStatus N_add(cptr* objCptr,env* curEnv)
 	}
 	atom* atom1=args[0]->value;
 	atom* atom2=args[1]->value;
-	if(atom1->type!=DOU&&atom1->type!=INT)
+	if(atom1->type!=DBL&&atom1->type!=INT)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -622,7 +622,7 @@ errorStatus N_add(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	if(atom2->type!=DOU&&atom2->type!=INT)
+	if(atom2->type!=DBL&&atom2->type!=INT)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -631,11 +631,11 @@ errorStatus N_add(cptr* objCptr,env* curEnv)
 		return status;
 	}
 	atom* tmpAtm=newAtom(0,NULL,objCptr->outer);
-	if(atom1->type==DOU||atom2->type==DOU)
+	if(atom1->type==DBL||atom2->type==DBL)
 	{
-		double result=((atom1->type==DOU)?atom1->value.dou:atom1->value.num)+((atom2->type==DOU)?atom2->value.dou:atom2->value.num);
-		tmpAtm->type=DOU;
-		tmpAtm->value.dou=result;
+		double result=((atom1->type==DBL)?atom1->value.dbl:atom1->value.num)+((atom2->type==DBL)?atom2->value.dbl:atom2->value.num);
+		tmpAtm->type=DBL;
+		tmpAtm->value.dbl=result;
 	}
 	else if(atom1->type==INT&&atom2->type==INT)
 	{
@@ -683,7 +683,7 @@ errorStatus N_sub(cptr* objCptr,env* curEnv)
 	}
 	atom* atom1=args[0]->value;
 	atom* atom2=args[1]->value;
-	if(atom1->type!=DOU&&atom1->type!=INT)
+	if(atom1->type!=DBL&&atom1->type!=INT)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -691,7 +691,7 @@ errorStatus N_sub(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	if(atom2->type!=DOU&&atom2->type!=INT)
+	if(atom2->type!=DBL&&atom2->type!=INT)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -700,11 +700,11 @@ errorStatus N_sub(cptr* objCptr,env* curEnv)
 		return status;
 	}
 	atom* tmpAtm=newAtom(0,NULL,objCptr->outer);
-	if(atom1->type==DOU||atom2->type==DOU)
+	if(atom1->type==DBL||atom2->type==DBL)
 	{
-		double result=((atom1->type==DOU)?atom1->value.dou:atom1->value.num)-((atom2->type==DOU)?atom2->value.dou:atom2->value.num);
-		tmpAtm->type=DOU;
-		tmpAtm->value.dou=result;
+		double result=((atom1->type==DBL)?atom1->value.dbl:atom1->value.num)-((atom2->type==DBL)?atom2->value.dbl:atom2->value.num);
+		tmpAtm->type=DBL;
+		tmpAtm->value.dbl=result;
 	}
 	else if(atom1->type==INT&&atom2->type==INT)
 	{
@@ -753,7 +753,7 @@ errorStatus N_mul(cptr* objCptr,env* curEnv)
 	}
 	atom* atom1=args[0]->value;
 	atom* atom2=args[1]->value;
-	if(atom1->type!=DOU&&atom1->type!=INT)
+	if(atom1->type!=DBL&&atom1->type!=INT)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -761,7 +761,7 @@ errorStatus N_mul(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	if(atom2->type!=DOU&&atom2->type!=INT)
+	if(atom2->type!=DBL&&atom2->type!=INT)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -770,11 +770,11 @@ errorStatus N_mul(cptr* objCptr,env* curEnv)
 		return status;
 	}
 	atom* tmpAtm=newAtom(0,NULL,objCptr->outer);
-	if(atom1->type==DOU||atom2->type==DOU)
+	if(atom1->type==DBL||atom2->type==DBL)
 	{
-		double result=((atom1->type==DOU)?atom1->value.dou:atom1->value.num)*((atom2->type==DOU)?atom2->value.dou:atom2->value.num);
-		tmpAtm->type=DOU;
-		tmpAtm->value.dou=result;
+		double result=((atom1->type==DBL)?atom1->value.dbl:atom1->value.num)*((atom2->type==DBL)?atom2->value.dbl:atom2->value.num);
+		tmpAtm->type=DBL;
+		tmpAtm->value.dbl=result;
 	}
 	else if(atom1->type==INT&&atom2->type==INT)
 	{
@@ -823,7 +823,7 @@ errorStatus N_div(cptr* objCptr,env* curEnv)
 	}
 	atom* atom1=args[0]->value;
 	atom* atom2=args[1]->value;
-	if(atom1->type!=DOU&&atom1->type!=INT)
+	if(atom1->type!=DBL&&atom1->type!=INT)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -831,7 +831,7 @@ errorStatus N_div(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	if(atom2->type!=DOU&&atom2->type!=INT)
+	if(atom2->type!=DBL&&atom2->type!=INT)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -839,12 +839,12 @@ errorStatus N_div(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	atom* tmpAtm=newAtom(DOU,NULL,objCptr->outer);
-	if(atom1->type==DOU||atom2->type==DOU)
+	atom* tmpAtm=newAtom(DBL,NULL,objCptr->outer);
+	if(atom1->type==DBL||atom2->type==DBL)
 	{
-		double result=((atom1->type==DOU)?atom1->value.dou:atom1->value.num)/((atom2->type==DOU)?atom2->value.dou:atom2->value.num);
-		tmpAtm->type=DOU;
-		tmpAtm->value.dou=result;
+		double result=((atom1->type==DBL)?atom1->value.dbl:atom1->value.num)/((atom2->type==DBL)?atom2->value.dbl:atom2->value.num);
+		tmpAtm->type=DBL;
+		tmpAtm->value.dbl=result;
 	}
 	objCptr->type=ATM;
 	objCptr->value=tmpAtm;
@@ -887,7 +887,7 @@ errorStatus N_mod(cptr* objCptr,env* curEnv)
 	}
 	atom* atom1=args[0]->value;
 	atom* atom2=args[1]->value;
-	if(atom1->type!=DOU&&atom1->type!=INT)
+	if(atom1->type!=DBL&&atom1->type!=INT)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -895,7 +895,7 @@ errorStatus N_mod(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	if(atom2->type!=DOU&&atom2->type!=INT)
+	if(atom2->type!=DBL&&atom2->type!=INT)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -904,7 +904,7 @@ errorStatus N_mod(cptr* objCptr,env* curEnv)
 		return status;
 	}
 	atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
-	int64_t result=((atom1->type==DOU)?(int)atom1->value.dou:atom1->value.num)%((atom2->type==DOU)?(int)atom2->value.dou:atom2->value.num);
+	int64_t result=((atom1->type==DBL)?(int)atom1->value.dbl:atom1->value.num)%((atom2->type==DBL)?(int)atom2->value.dbl:atom2->value.num);
 	tmpAtm->value.num=result;
 	deleteArg(args,2);
 	return status;

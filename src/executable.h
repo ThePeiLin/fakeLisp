@@ -2,21 +2,20 @@
 #define EXECUTABLE_H
 #include"fakedef.h"
 
-typedef struct StackValue
+typedef struct FunctionValue
 {
-	enum{NIL,STR,SYM,NUM,LIST,PAR} type;
-	union
-	{
-		void* nil;
-		char* str;
-		char* sym;
-		int64_t num;
-		struct SubPair cel;
-		union SubStackValue* list;
-	}
-}stackValue;
+	int num;
+	byteCode** func;
+}funcVal;
 
-typedef struct SubStackValue
+typedef struct
+{
+	int prev;
+	int car;
+	int cdr;
+}subpair;
+
+typedef struct
 {
 	enum{NIL,SYM,STR,NUM,PAR} type;
 	union
@@ -24,28 +23,31 @@ typedef struct SubStackValue
 		void* nil;
 		char* sym;
 		char* str;
-		int num;
-		struct SubPair cel;
+		int64_t num;
+		subpair par;
+		funVal func;
 	}
 }substackValue;
 
-typedef struct SubPair
+typedef struct
 {
-	int car;
-	int cdr;
-}subpair;
+	enum{NIL,STR,SYM,NUM,PAR,FUN} type;
+	union
+	{
+		void* nil;
+		char* str;
+		char* sym;
+		int64_t num;
+		substackValue par;
+		funcval func;
+	}
+}stackValue;
 
-typedef struct StaticStack
+typedef struct
 {
 	int size;
 	stackValue* stack;
 }statStack;
-
-typedef struct FunctionValue
-{
-	int size;
-	struct ExcutableCode* func;
-}funcVal;
 
 typedef struct
 {

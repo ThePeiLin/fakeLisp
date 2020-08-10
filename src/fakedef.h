@@ -22,13 +22,13 @@ typedef struct Pair
 typedef struct Atom
 {
 	pair* prev;
-	enum{SYM=1,INT,CHR,DOU,STR} type;
+	enum{SYM=1,INT,CHR,DBL,STR} type;
 	union
 	{
 		char* str;
 		char chr;
 		int64_t num;
-		double dou;
+		double dbl;
 	} value;
 }atom;
 

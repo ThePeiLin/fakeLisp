@@ -46,7 +46,7 @@ int isSymbol(const cptr* objCptr)
 	return 1;
 }
 
-int isConstant(const cptr* objCptr)
+int isConst(const cptr* objCptr)
 {
 	if(objCptr->type==NIL)return 1;
 	atom* tmpAtm=(objCptr->type==ATM)?objCptr->value:NULL;
@@ -94,7 +94,7 @@ int isLambdaExpression(const cptr* objCptr)
 	return 0;
 }
 
-int isFunctionCall(const cptr* objCptr)
+int isListForm(const cptr* objCptr)
 {
 	if(isLegal(objCptr)&&!hasKeyWord(objCptr))return 1;
 	return 0;
@@ -126,7 +126,7 @@ int isLegal(const cptr* objCptr)
 	addSynRule(isSetqExpression);
 	addSynRule(isLambdaExpression);
 	addSynRule(isCondExpression);
-	addSynRule(isConstant);
+	addSynRule(isConst);
 	addSynRule(isFunctionCall);
 	addSynRule(isSymbol);
 	addSynRule(isAndExpression);

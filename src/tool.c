@@ -336,10 +336,152 @@ void errors(int types)
 	{
 		"dummy",
 		"Out of memory!\n",
-		"Wrong environment!\n",
 	};
 	fprintf(stderr,"error:%s",inform[types]);
 	exit(1);
+}
+
+cptr* createTree(const char* objStr,intpr* inter)
+{
+	if(objStr==NULL)return NULL;
+	int i=0;
+	int braketsNum=0;
+	cptr* root=NULL;
+	pair* objPair=NULL;
+	cptr* objCptr;
+	while(*(objStr+i)!='\0')
+	{
+		if(*(objStr+i)=='(')
+		{
+			i++;
+			braketsNum++;
+			if(root==NULL)
+			{
+				root=newCptr(inter->curline,objPair);
+				root->type=PAR;
+				root->value=newPair(inter->curline,NULL);
+				objPair=root->value;
+				objCptr=&objPair->car;
+			}
+			else
+			{
+				objPair=newPair(inter->curline,objPair);
+				objCptr->type=PAR;
+				objCptr->value=(void*)objPair;
+				objCptr=&objPair->car;
+			}
+		}
+		else if(*(objStr+i)==')')
+		{
+			i++;
+			braketsNum--;
+			if(braketsNum<0)
+			{
+				printf("%s:Syntax error.\n",objStr);
+				if(root!=NULL)deleteCptr(root);
+				return NULL;
+			}
+			pair* prev=NULL;
+			if(objPair==NULL)break;
+			while(objPair->prev!=NULL)
+			{
+				prev=objPair;
+				objPair=objPair->prev;
+				if(objPair->car.value==prev)break;
+			}
+			if(objPair->car.value==prev)
+				objCptr=&objPair->car;
+			else if(objPair->cdr.value==prev)
+				objCptr=&objPair->cdr;
+		}
+		else if(*(objStr+i)==',')
+		{
+			i++;
+			objCptr=&objPair->cdr;
+		}
+		else if(isspace(*(objStr+i)))
+		{
+			if(*(objStr+1)=='\n')inter->curline+=1;
+			int j=0;
+			char* tmpStr=(char*)objStr+i;
+			while(isspace(*(tmpStr+j)))j--;
+			if(*(tmpStr+j)==','||*(tmpStr+j)=='(')
+			{
+				j=1;
+				while(isspace(*(tmpStr+j)))j++;
+				i+=j;
+				continue;
+			}
+			j=0;
+			while(isspace(*(tmpStr+j)))j++;
+			if(*(tmpStr+j)==',')
+			{
+				i+=j;
+				continue;
+			}
+			i+=j;
+			pair* tmp=newPair(inter->curline,objPair);
+			objPair->cdr.type=PAR;
+			objPair->cdr.value=(void*)tmp;
+			objPair=tmp;
+			objCptr=&objPair->car;
+		}
+		else if(*(objStr+i)=='\"')
+		{
+			if(root==NULL)objCptr=root=newCptr(inter->curline,objPair);
+			rawString tmp=getStringBetweenMarks(objStr+i,inter);
+			objCptr->type=ATM;
+			objCptr->value=(void*)newAtom(STR,tmp.str,objPair);
+			i+=tmp.len;
+			free(tmp.str);
+		}
+		else if(isdigit(*(objStr+i))||(*(objStr+i)=='-'&&isdigit(*(objStr+i+1))))
+		{
+			if(root==NULL)objCptr=root=newCptr(inter->curline,objPair);
+			char* tmp=getStringFromList(objStr+i);
+			atom* tmpAtm=NULL;
+			if(!isNum(tmp))
+				tmpAtm=newAtom(SYM,tmp,objPair); 
+			else if(isDouble(tmp))
+			{
+				tmpAtm=newAtom(DBL,NULL,objPair);
+				double num=stringToDouble(tmp);
+				tmpAtm->value.dbl=num;
+			}
+			else
+			{
+				tmpAtm=newAtom(INT,NULL,objPair);
+				int64_t num=stringToInt(tmp);
+				tmpAtm->value.num=num;
+			}
+			objCptr->type=ATM;
+			objCptr->value=tmpAtm;
+			i+=strlen(tmp);
+			free(tmp);
+		}
+		else if(*(objStr+i)=='#'&&*(objStr+1+i)=='\\')
+		{
+			if(root==NULL)objCptr=root=newCptr(inter->curline,objPair);
+			char* tmp=getStringFromList(objStr+i);
+			objCptr->type=ATM;
+			objCptr->value=(void*)newAtom(CHR,NULL,objPair);
+			atom* tmpAtm=objCptr->value;
+			if(tmp[2]!='\\')tmpAtm->value.chr=tmp[2];
+			else tmpAtm->value.chr=stringToChar(&tmp[3]);
+		}
+		else
+		{
+			if(root==NULL)objCptr=root=newCptr(inter->curline,objPair);
+			char* tmp=getStringFromList(objStr+i);
+			objCptr->type=ATM;
+			objCptr->value=(void*)newAtom(SYM,tmp,objPair);
+			i+=strlen(tmp);
+			free(tmp);
+			continue;
+		}
+		if(braketsNum==0)break;
+	}
+	return root;
 }
 
 pair* newPair(int curline,pair* prev)
@@ -384,7 +526,7 @@ atom* newAtom(int type,const char* value,pair* prev)
 			break;
 		case CHR:
 		case INT:
-		case DOU:
+		case DBL:
 			*(int64_t*)(&tmp->value)=0;break;
 	}		
 	tmp->prev=prev;
@@ -421,7 +563,7 @@ int copyCptr(cptr* objCptr,const cptr* copiedCptr)
 			else
 			{
 				objAtm=newAtom(coAtm->type,NULL,objPair);
-				if(objAtm->type==DOU)objAtm->value.dou=coAtm->value.dou;
+				if(objAtm->type==DBL)objAtm->value.dbl=coAtm->value.dbl;
 				else if(objAtm->type==INT)objAtm->value.num=coAtm->value.num;
 				else if(objAtm->type==CHR)objAtm->value.chr=coAtm->value.chr;
 			}
@@ -582,7 +724,7 @@ int cptrcmp(const cptr* first,const cptr* second)
 				atom* secAtm=second->value;
 				if(firAtm->type!=secAtm->type)return 0;
 				if((firAtm->type==SYM||firAtm->type==STR)&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
-				else if(firAtm->type==DOU&&fabs(firAtm->value.dou-secAtm->value.dou)!=0)return 0;
+				else if(firAtm->type==DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
 				else if(!memcmp(&firAtm->type,&secAtm->type,sizeof(atom)-sizeof(pair*)))return 0;
 			}
 			if(firPair!=NULL&&first==&firPair->car)
@@ -716,6 +858,90 @@ void freeAtom(atom* objAtm)
 	free(objAtm);
 }
 
+void printList(const cptr* objCptr,FILE* out)
+{
+	if(objCptr==NULL)return;
+	pair* tmpPair=(objCptr->type==PAR)?objCptr->value:NULL;
+	pair* objPair=tmpPair;
+	while(objCptr!=NULL)
+	{
+		if(objCptr->type==PAR)
+		{
+			if(objPair!=NULL&&objCptr==&objPair->cdr)
+			{
+				putc(' ',out);
+				objPair=objPair->cdr.value;
+				objCptr=&objPair->car;
+			}
+			else
+			{
+				putc('(',out);
+				objPair=objCptr->value;
+				objCptr=&objPair->car;
+				continue;
+			}
+		}
+		else if(objCptr->type==ATM||objCptr->type==NIL)
+		{
+			if(objPair!=NULL&&objCptr==&objPair->cdr&&objCptr->type==ATM)putc(',',out);
+			if((objPair!=NULL&&objCptr==&objPair->car&&objCptr->type==NIL&&objPair->cdr.type!=NIL)
+			||(objCptr->outer==NULL&&objCptr->type==NIL))fputs("nil",out);
+			if(objCptr->type!=NIL)
+			{
+				atom* tmpAtm=objCptr->value;
+				switch(tmpAtm->type)
+				{
+					case SYM:
+						fprintf(out,"%s",tmpAtm->value.str);
+						break;
+					case STR:
+						printRawString(tmpAtm->value.str,out);
+						break;
+					case INT:
+						fprintf(out,"%ld",tmpAtm->value.num);
+						break;
+					case DBL:
+						fprintf(out,"%lf",tmpAtm->value.dbl);
+						break;
+					case CHR:
+						printRawChar(tmpAtm->value.chr,out);
+				}			
+			}
+			if(objPair!=NULL&&objCptr==&objPair->car)
+			{
+				objCptr=&objPair->cdr;
+				continue;
+			}
+		}
+		if(objPair!=NULL&&objCptr==&objPair->cdr)
+		{
+			putc(')',out);
+			pair* prev=NULL;
+			if(objPair->prev==NULL)break;
+			while(objPair->prev!=NULL&&objPair!=tmpPair)
+			{
+				prev=objPair;
+				objPair=objPair->prev;
+				if(prev==objPair->car.value)break;
+			}
+			if(objPair!=NULL)objCptr=&objPair->cdr;
+			if(objPair==tmpPair&&prev==objPair->cdr.value)break;
+		}
+		if(objPair==NULL)break;
+	}
+}
+
+void exError(const cptr* obj,int type,intpr* inter)
+{
+	if(inter!=NULL)printf("In file \"%s\",line %d\n",inter->filename,obj->curline);
+	printList(obj,stdout);
+	switch(type)
+	{
+		case SYMUNDEFINE:printf(":Symbol is undefined.\n");break;
+		case SYNTAXERROR:printf(":Syntax error.\n");break;
+	}
+}
+
 void printRawChar(char chr,FILE* out)
 {
 	if(isgraph(chr))
@@ -737,7 +963,7 @@ env* newEnv(env* prev)
 
 void destroyEnv(env* objEnv)
 {
-	if(objEnv==NULL)errors(WRONGENV);
+	if(objEnv==NULL)return;
 	while(objEnv!=NULL)
 	{
 		defines* delsym=objEnv->symbols;

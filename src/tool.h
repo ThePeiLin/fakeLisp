@@ -3,7 +3,6 @@
 #include<stdint.h>
 #include"fakedef.h"
 #define OUTOFMEMORY 1
-#define WRONGENV 2
 typedef struct RawString
 {
 	int len;
@@ -26,6 +25,9 @@ char* intToString(long);
 int64_t stringToInt(const char*);
 char stringToChar(const char*);
 void errors(int);
+cptr* createTree(const char*,intpr*);
+void exError(const cptr*,int,intpr*);
+void printList(const cptr*,FILE*);
 pair* newPair(int,pair*);
 cptr* newCptr(int,pair*);
 atom* newAtom(int type,const char*,pair*);

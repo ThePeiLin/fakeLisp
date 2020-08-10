@@ -9,148 +9,7 @@
 static nativeFunc* funAndForm=NULL;
 static keyWord* KeyWords=NULL;
 
-cptr* createTree(const char* objStr,intpr* inter)
-{
-	if(objStr==NULL)return NULL;
-	int i=0;
-	int braketsNum=0;
-	cptr* root=NULL;
-	pair* objPair=NULL;
-	cptr* objCptr;
-	while(*(objStr+i)!='\0')
-	{
-		if(*(objStr+i)=='(')
-		{
-			i++;
-			braketsNum++;
-			if(root==NULL)
-			{
-				root=newCptr(inter->curline,objPair);
-				root->type=PAR;
-				root->value=newPair(inter->curline,NULL);
-				objPair=root->value;
-				objCptr=&objPair->car;
-			}
-			else
-			{
-				objPair=newPair(inter->curline,objPair);
-				objCptr->type=PAR;
-				objCptr->value=(void*)objPair;
-				objCptr=&objPair->car;
-			}
-		}
-		else if(*(objStr+i)==')')
-		{
-			i++;
-			braketsNum--;
-			if(braketsNum<0)
-			{
-				printf("%s:Syntax error.\n",objStr);
-				if(root!=NULL)deleteCptr(root);
-				return NULL;
-			}
-			pair* prev=NULL;
-			if(objPair==NULL)break;
-			while(objPair->prev!=NULL)
-			{
-				prev=objPair;
-				objPair=objPair->prev;
-				if(objPair->car.value==prev)break;
-			}
-			if(objPair->car.value==prev)
-				objCptr=&objPair->car;
-			else if(objPair->cdr.value==prev)
-				objCptr=&objPair->cdr;
-		}
-		else if(*(objStr+i)==',')
-		{
-			i++;
-			objCptr=&objPair->cdr;
-		}
-		else if(isspace(*(objStr+i)))
-		{
-			if(*(objStr+1)=='\n')inter->curline+=1;
-			int j=0;
-			char* tmpStr=(char*)objStr+i;
-			while(isspace(*(tmpStr+j)))j--;
-			if(*(tmpStr+j)==','||*(tmpStr+j)=='(')
-			{
-				j=1;
-				while(isspace(*(tmpStr+j)))j++;
-				i+=j;
-				continue;
-			}
-			j=0;
-			while(isspace(*(tmpStr+j)))j++;
-			if(*(tmpStr+j)==',')
-			{
-				i+=j;
-				continue;
-			}
-			i+=j;
-			pair* tmp=newPair(inter->curline,objPair);
-			objPair->cdr.type=PAR;
-			objPair->cdr.value=(void*)tmp;
-			objPair=tmp;
-			objCptr=&objPair->car;
-		}
-		else if(*(objStr+i)=='\"')
-		{
-			if(root==NULL)objCptr=root=newCptr(inter->curline,objPair);
-			rawString tmp=getStringBetweenMarks(objStr+i,inter);
-			objCptr->type=ATM;
-			objCptr->value=(void*)newAtom(STR,tmp.str,objPair);
-			i+=tmp.len;
-			free(tmp.str);
-		}
-		else if(isdigit(*(objStr+i))||(*(objStr+i)=='-'&&isdigit(*(objStr+i+1))))
-		{
-			if(root==NULL)objCptr=root=newCptr(inter->curline,objPair);
-			char* tmp=getStringFromList(objStr+i);
-			atom* tmpAtm=NULL;
-			if(!isNum(tmp))
-				tmpAtm=newAtom(SYM,tmp,objPair); 
-			else if(isDouble(tmp))
-			{
-				tmpAtm=newAtom(DOU,NULL,objPair);
-				double num=stringToDouble(tmp);
-				tmpAtm->value.dou=num;
-			}
-			else
-			{
-				tmpAtm=newAtom(INT,NULL,objPair);
-				int64_t num=stringToInt(tmp);
-				tmpAtm->value.num=num;
-			}
-			objCptr->type=ATM;
-			objCptr->value=tmpAtm;
-			i+=strlen(tmp);
-			free(tmp);
-		}
-		else if(*(objStr+i)=='#'&&*(objStr+1+i)=='\\')
-		{
-			if(root==NULL)objCptr=root=newCptr(inter->curline,objPair);
-			char* tmp=getStringFromList(objStr+i);
-			objCptr->type=ATM;
-			objCptr->value=(void*)newAtom(CHR,NULL,objPair);
-			atom* tmpAtm=objCptr->value;
-			if(tmp[2]!='\\')tmpAtm->value.chr=tmp[2];
-			else tmpAtm->value.chr=stringToChar(&tmp[3]);
-		}
-		else
-		{
-			if(root==NULL)objCptr=root=newCptr(inter->curline,objPair);
-			char* tmp=getStringFromList(objStr+i);
-			objCptr->type=ATM;
-			objCptr->value=(void*)newAtom(SYM,tmp,objPair);
-			i+=strlen(tmp);
-			free(tmp);
-			continue;
-		}
-		if(braketsNum==0)break;
-	}
-	return root;
-}
+
 
 void addFunc(const char* name,errorStatus (*pFun)(cptr*,env*))
 {
@@ -205,107 +64,32 @@ int retree(cptr** fir,cptr* sec)
 	return 1;
 }
 
-void printList(const cptr* objCptr,FILE* out)
-{
-	if(objCptr==NULL)return;
-	pair* tmpPair=(objCptr->type==PAR)?objCptr->value:NULL;
-	pair* objPair=tmpPair;
-	const cptr* tmp=objCptr;
-	while(tmp!=NULL)
-	{
-		if(tmp->type==PAR)
-		{
-			if(objPair!=NULL&&tmp==&objPair->cdr)
-			{
-				putc(' ',out);
-				objPair=objPair->cdr.value;
-				tmp=&objPair->car;
-			}
-			else
-			{
-				putc('(',out);
-				objPair=tmp->value;
-				tmp=&objPair->car;
-				continue;
-			}
-		}
-		else if(tmp->type==ATM||tmp->type==NIL)
-		{
-			if(objPair!=NULL&&tmp==&objPair->cdr&&tmp->type==ATM)putc(',',out);
-			if((objPair!=NULL&&tmp==&objPair->car&&tmp->type==NIL&&objPair->cdr.type!=NIL)
-			||(tmp->outer==NULL&&tmp->type==NIL))fputs("nil",out);
-			if(tmp->type!=NIL)
-			{
-				atom* tmpAtm=tmp->value;
-				switch(tmpAtm->type)
-				{
-					case SYM:
-						fprintf(out,"%s",tmpAtm->value.str);
-						break;
-					case STR:
-						printRawString(tmpAtm->value.str,out);
-						break;
-					case INT:
-						fprintf(out,"%ld",tmpAtm->value.num);
-						break;
-					case DOU:
-						fprintf(out,"%lf",tmpAtm->value.num);
-						break;
-					case CHR:
-						printRawChar(tmpAtm->value.chr,out);
-				}			
-			}
-			if(objPair!=NULL&&tmp==&objPair->car)
-			{
-				tmp=&objPair->cdr;
-				continue;
-			}
-		}
-		if(objPair!=NULL&&tmp==&objPair->cdr)
-		{
-			putc(')',out);
-			pair* prev=NULL;
-			if(objPair->prev==NULL)break;
-			while(objPair->prev!=NULL&&objPair!=tmpPair)
-			{
-				prev=objPair;
-				objPair=objPair->prev;
-				if(prev==objPair->car.value)break;
-			}
-			if(objPair!=NULL)tmp=&objPair->cdr;
-			if(objPair==tmpPair&&prev==objPair->cdr.value)break;
-		}
-		if(objPair==NULL)break;
-	}
-}
-
 defines* addDefine(const char* symName,const cptr* objCptr,env* curEnv)
 {
-	if(curEnv==NULL)errors(WRONGENV);
 	if(curEnv->symbols==NULL)
 	{
 		if(!(curEnv->symbols=(defines*)malloc(sizeof(defines))))errors(OUTOFMEMORY);
 		if(!(curEnv->symbols->symName=(char*)malloc(sizeof(char)*(strlen(symName)+1))))errors(OUTOFMEMORY);
-		memcpy(curEnv->symbols->symName,symName,strlen(symName)+1);
+		strcpy(curEnv->symbols->symName,symName);
 		replace(&curEnv->symbols->obj,objCptr);
 		curEnv->symbols->next=NULL;
 		return curEnv->symbols;
 	}
 	else
 	{
-		defines* curSym=findDefine(symName,curEnv);
-		if(curSym==NULL)
+		defines* curDef=findDefine(symName,curEnv);
+		if(curDef==NULL)
 		{
-			if(!(curSym=(defines*)malloc(sizeof(defines))))errors(OUTOFMEMORY);
-			if(!(curSym->symName=(char*)malloc(sizeof(char)*(strlen(symName)+1))))errors(OUTOFMEMORY);
-			memcpy(curSym->symName,symName,strlen(symName)+1);
-			curSym->next=curEnv->symbols;
-			curEnv->symbols=curSym;
-			replace(&curSym->obj,objCptr);
+			if(!(curDef=(defines*)malloc(sizeof(defines))))errors(OUTOFMEMORY);
+			if(!(curDef->symName=(char*)malloc(sizeof(char)*(strlen(symName)+1))))errors(OUTOFMEMORY);
+			strcpy(curDef->symName,symName);
+			curDef->next=curEnv->symbols;
+			curEnv->symbols=curDef;
+			replace(&curDef->obj,objCptr);
 		}
 		else
-			replace(&curSym->obj,objCptr);
-		return curSym;
+			replace(&curDef->obj,objCptr);
+		return curDef;
 	}
 }
 
@@ -315,11 +99,11 @@ defines* findDefine(const char* name,const env* curEnv)
 	if(curEnv->symbols==NULL)return NULL;
 	else
 	{
-		defines* curSym=curEnv->symbols;
+		defines* curDef=curEnv->symbols;
 		defines* prev=NULL;
-		while(curSym&&strcmp(name,curSym->symName))
-			curSym=curSym->next;
-		return curSym;
+		while(curDef&&strcmp(name,curDef->symName))
+			curDef=curDef->next;
+		return curDef;
 	}
 }
 
@@ -344,7 +128,7 @@ errorStatus eval(cptr* objCptr,env* curEnv)
 				cptr* reCptr=NULL;
 				defines* objDef=NULL;
 				env* tmpEnv=curEnv;
-				while(!(objDef=findDefine(objAtm->value.str,tmpEnv))&&tmpEnv!=NULL)
+				while(tmpEnv!=NULL&&!(objDef=findDefine(objAtm->value.str,tmpEnv)))
 					tmpEnv=tmpEnv->prev;
 				if(objDef!=NULL)
 				{
@@ -380,7 +164,7 @@ errorStatus eval(cptr* objCptr,env* curEnv)
 					cptr* reCptr=NULL;
 					defines* objDef=NULL;
 					env* tmpEnv=curEnv;
-					while(!(objDef=findDefine(objAtm->value.str,tmpEnv))&&tmpEnv!=NULL)
+					while(tmpEnv!=NULL&&!(objDef=findDefine(objAtm->value.str,tmpEnv)))
 						tmpEnv=tmpEnv->prev;
 					if(objDef!=NULL)
 					{
@@ -413,17 +197,6 @@ errorStatus eval(cptr* objCptr,env* curEnv)
 		if(retree(&objCptr,tmpCptr))break;
 	}
 	return status;
-}
-
-void exError(const cptr* obj,int type,intpr* inter)
-{
-	if(inter!=NULL)printf("In file \"%s\",line %d\n",inter->filename,obj->curline);
-	printList(obj,stdout);
-	switch(type)
-	{
-		case SYMUNDEFINE:printf(":Symbol is undefined.\n");break;
-		case SYNTAXERROR:printf(":Syntax error.\n");break;
-	}
 }
 
 void addKeyWord(const char* objStr)

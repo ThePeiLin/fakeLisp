@@ -27,7 +27,7 @@ typedef struct Atom
 	{
 		char* str;
 		char chr;
-		int64_t num;
+		int32_t num;
 		double dbl;
 	} value;
 }atom;
@@ -69,7 +69,7 @@ typedef struct SymbolForCompiler
 
 typedef struct ByteCode
 {
-	uint64_t size;
+	uint32_t size;
 	char* code;
 }byteCode;
 typedef struct

@@ -111,11 +111,7 @@ errorStatus eval(cptr* objCptr,env* curEnv)
 {
 	errorStatus status={0,NULL};
 	if(objCptr==NULL)
-	{
-		status.status=SYNTAXERROR;
-		status.place=objCptr;
 		return status;
-	}
 	cptr* tmpCptr=objCptr;
 	while(objCptr->type!=NIL)
 	{

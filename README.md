@@ -8,4 +8,4 @@ The grammer of command that can be run by This interpreter like scheme Lisp but 
 
 I use comma to divide car and cdr not dot.Such as (1,2) and (1,(1,2)).  
 And you only can call function in brakets.For exmple,(add 1 1) and (add 1 (sub 2 3)).  
-If you want more information about this interpreter please read README_ZH.md,because my English is really bad.
+If you want more information about this interpreter please read [README_ZH.md](./README_ZH.md),because my English is really bad.

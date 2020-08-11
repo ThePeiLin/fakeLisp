@@ -31,13 +31,16 @@ undef（用于取消宏的定义）
 其中，defmacro的语法比较特殊，为：
 (defmacro 用于匹配的表达式 用于返回的表达式)  
 宏没有名字，而是通过匹配表达式来实现宏的嵌入，如：  
+```
 (defmacro (c ATOM#FIR ATOM#SEC) (list 'cons FIR SEC))  
+```
 这个宏会匹配形如(c ATOM ATOM)的表达式，并用(list 'cons FIR FIR)的结果替换原来的表达式，  
 即表达式(c 9 9)会被替换为(cons 9 9).  
 
 下面是defun宏:  
+```
 (defmacro  
           (defun ATOM#FUNCNAME CELL#ARGS,CELL#EXPRESSION)  
           (list 'define FUNCNAME (list 'quote (cons 'lambda (cons ARGS EXPRESSION)))))  
-
+```
 我应该会添加复合过程类型

@@ -23,7 +23,7 @@ typedef struct
 		void* nil;
 		char* sym;
 		char* str;
-		int64_t num;
+		int32_t num;
 		subpair par;
 		funVal func;
 	}
@@ -37,7 +37,7 @@ typedef struct
 		void* nil;
 		char* str;
 		char* sym;
-		int64_t num;
+		int32_t num;
 		substackValue par;
 		funcval func;
 	}

@@ -38,7 +38,7 @@ cptr* evalution(const char* objStr,intpr* inter)
 		}
 	}
 	else 
-		if(inter->file==stdin)
+		if(begin!=NULL&&inter->file==stdin)
 		{
 			fputs(";=>",stdout);
 			printList(begin,stdout);

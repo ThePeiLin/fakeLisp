@@ -177,9 +177,9 @@ char* intToString(long num)
 }
 
 
-int64_t stringToInt(const char* str)
+int32_t stringToInt(const char* str)
 {
-	int64_t tmp;
+	int32_t tmp;
 	char* format=NULL;
 	if(isHexNum(str))format="%lx";
 	else if(isOctNum(str))format="%lo";
@@ -377,6 +377,7 @@ cptr* createTree(const char* objStr,intpr* inter)
 			braketsNum--;
 			if(braketsNum<0)
 			{
+				printf("In file \"%s\",line %d\n",inter->filename,inter->curline);
 				printf("%s:Syntax error.\n",objStr);
 				if(root!=NULL)deleteCptr(root);
 				return NULL;
@@ -451,7 +452,7 @@ cptr* createTree(const char* objStr,intpr* inter)
 			else
 			{
 				tmpAtm=newAtom(INT,NULL,objPair);
-				int64_t num=stringToInt(tmp);
+				int32_t num=stringToInt(tmp);
 				tmpAtm->value.num=num;
 			}
 			objCptr->type=ATM;
@@ -527,7 +528,7 @@ atom* newAtom(int type,const char* value,pair* prev)
 		case CHR:
 		case INT:
 		case DBL:
-			*(int64_t*)(&tmp->value)=0;break;
+			*(int32_t*)(&tmp->value)=0;break;
 	}		
 	tmp->prev=prev;
 	tmp->type=type;
@@ -933,7 +934,7 @@ void printList(const cptr* objCptr,FILE* out)
 
 void exError(const cptr* obj,int type,intpr* inter)
 {
-	if(inter!=NULL)printf("In file \"%s\",line %d\n",inter->filename,obj->curline);
+	if(inter!=NULL)printf("In file \"%s\",line %d\n",inter->filename,(obj==NULL)?inter->curline:obj->curline);
 	printList(obj,stdout);
 	switch(type)
 	{

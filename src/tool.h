@@ -22,7 +22,7 @@ void printRawChar(char,FILE*);
 char* doubleToString(double);
 double stringToDouble(const char*);
 char* intToString(long);
-int64_t stringToInt(const char*);
+int32_t stringToInt(const char*);
 char stringToChar(const char*);
 void errors(int);
 cptr* createTree(const char*,intpr*);

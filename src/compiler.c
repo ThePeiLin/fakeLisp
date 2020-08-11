@@ -103,9 +103,9 @@ byteCode* compileAtom(const cptr* objCptr)
 			strcpy(tmp->code+1,tmpAtm->value.str);
 			break;
 		case INT:
-			tmp=createByteCode(sizeof(char)+sizeof(int64_t));
+			tmp=createByteCode(sizeof(char)+sizeof(int32_t));
 			tmp->code[0]=FAKE_PUSH_INT;
-			*(int64_t*)(tmp->code+1)=tmpAtm->value.num;
+			*(int32_t*)(tmp->code+1)=tmpAtm->value.num;
 			break;
 		case DBL:
 			tmp=createByteCode(sizeof(char)+sizeof(double));

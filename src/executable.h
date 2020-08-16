@@ -2,17 +2,17 @@
 #define EXECUTABLE_H
 #include"fakedef.h"
 
-typedef struct FunctionValue
+typedef struct
 {
-	int num;
-	byteCode** func;
-}funcVal;
+	varstack local;
+	byteCode* proc;
+}fakeproc;
 
 typedef struct
 {
-	int prev;
-	int car;
-	int cdr;
+	int32_t prev;
+	int32_t car;
+	int32_t cdr;
 }subpair;
 
 typedef struct
@@ -24,8 +24,9 @@ typedef struct
 		char* sym;
 		char* str;
 		int32_t num;
+		double dbl;
 		subpair par;
-		funVal func;
+		compProc proc;
 	}
 }substackValue;
 
@@ -38,16 +39,18 @@ typedef struct
 		char* str;
 		char* sym;
 		int32_t num;
-		substackValue par;
-		funcval func;
+		double dbl;
+		substackValue* par;
+		compProc* proc;
 	}
 }stackValue;
 
 typedef struct
 {
+	int32_t bound;
 	int size;
 	stackValue* stack;
-}statStack;
+}varstack;
 
 typedef struct
 {

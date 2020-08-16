@@ -72,6 +72,7 @@ typedef struct ByteCode
 	uint32_t size;
 	char* code;
 }byteCode;
+
 typedef struct
 {
 	char* filename;

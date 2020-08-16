@@ -233,6 +233,7 @@ byteCode* compileConst(const cptr* objCptr,compEnv* curEnv,complr* comp)
 
 byteCode* compileListForm(const cptr* objCptr,compEnv* curEnv,complr* comp)
 {
+	pair* tmpPair=objCptr->value;
 	byteCode* beFree=NULL;	
 	byteCode* tmp1=NULL;
 	byteCode* tmp=createByteCode(0);
@@ -263,6 +264,7 @@ byteCode* compileListForm(const cptr* objCptr,compEnv* curEnv,complr* comp)
 		{
 			beFree=tmp;
 			tmp=codeCat(tmp,resBound);
+			if(objCptr->outer==tmpPair)break;
 			objCptr=prevCptr(&objCptr->outer->prev->car);
 		}
 	}
@@ -395,8 +397,94 @@ byteCode* compileSym(const cptr* objCptr,compEnv* curEnv,complr* comp)
 
 byteCode* compileAnd(const cptr* objCptr,compEnv* curEnv,complr* comp)
 {
+	pair* tmpPair=objCptr->value;
+	byteCode* jumpiffalse=createByteCode(sizeof(char)+sizeof(int32_t));
+	byteCode* push1=createByteCode(sizeof(char)+sizeof(int32_t));
+	byteCode* pop=createByteCode(sizeof(char));
+	byteCode* tmp=createByteCode(0);
+	pop->code[0]=FAKE_POP;
+	jumpiffalse->code[0]=FAKE_JMP_IF_FALSE;
+	push1->code[0]=FAKE_PUSH_INT;
+	*(int32_t*)(push1->code+sizeof(char))=1;
+	while(objCptr!=NULL)
+	{
+		if(isAndExpression(objCptr))
+		{
+			for(objCptr=&((pair*)objCptr->value)->car;nextCptr(objCptr)!=NULL;objCptr=nextCptr(objCptr));
+			continue;
+		}
+		else if(prevCptr(objCptr)!=NULL)
+		{
+			byteCode* beFree=tmp;
+			byteCode* tmp1=compile(objCptr,curEnv,comp);
+			tmp=codeCat(tmp1,tmp);
+			freeByteCode(beFree);
+			beFree=tmp;
+			*(int32_t*)(jumpiffalse->code+sizeof(char))=tmp->size+pop->size;
+			byteCode* tmp2=codeCat(jumpiffalse,pop);
+			tmp=codeCat(tmp2,tmp);
+			freeByteCode(beFree);
+		}
+		if(prevCptr(objCptr)!=NULL)objCptr=prevCptr(objCptr);
+		else
+		{
+			byteCode* beFree=tmp;
+			tmp=codeCat(push1,tmp);
+			freeByteCode(beFree);
+			if(objCptr->outer==tmpPair)break;
+			objCptr=prevCptr(&objCptr->outer->prev->car);		
+		}
+	}
+	freeByteCode(pop);
+	freeByteCode(jumpiffalse);
+	freeByteCode(push1);
+	return tmp;
 }
 
+byteCode* compileOr(const cptr* objCptr,compEnv* curEnv,complr* comp)
+{
+	pair* tmpPair=objCptr->value;
+	byteCode* jumpifture=createByteCode(sizeof(char)+sizeof(int32_t));
+	byteCode* pushNil=createByteCode(sizeof(char));
+	byteCode* pop=createByteCode(sizeof(char));
+	byteCode* tmp=createByteCode(0);
+	pop->code[0]=FAKE_POP;
+	jumpifture->code[0]=FAKE_JMP_IF_TURE;
+	while(objCptr!=NULL)
+	{
+		if(isOrExpression(objCptr))
+		{
+			for(objCptr=&((pair*)objCptr->value)->car;nextCptr(objCptr)!=NULL;objCptr=nextCptr(objCptr));
+			continue;
+		}
+		else if(prevCptr(objCptr)!=NULL)
+		{
+			byteCode* beFree=tmp;
+			byteCode* tmp1=compile(objCptr,curEnv,comp);
+			tmp=codeCat(tmp1,tmp);
+			freeByteCode(beFree);
+			beFree=tmp;
+			*(int32_t*)(jumpifture->code+sizeof(char))=tmp->size+pop->size;
+			byteCode* tmp2=codeCat(jumpifture,pop);
+			tmp=codeCat(tmp2,tmp);
+			freeByteCode(tmp2);
+			freeByteCode(beFree);
+		}
+		if(prevCptr(objCptr)!=NULL)objCptr=prevCptr(objCptr);
+		else
+		{
+			byteCode* beFree=tmp;
+			tmp=codeCat(pushNil,tmp);
+			freeByteCode(beFree);
+			if(objCptr->outer==tmpPair)break;
+			objCptr=prevCptr(&objCptr->outer->prev->car);		
+		}	
+	}
+	freeByteCode(pop);
+	freeByteCode(jumpifture);
+	freeByteCode(pushNil);
+	return tmp;
+}
 byteCode* compileLambda(const cptr* objCptr,compEnv* curEnv,complr* comp)
 {
 	pair* tmpPair=objCptr->value;

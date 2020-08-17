@@ -594,7 +594,9 @@ byteCode* compileCond(const cptr* objCptr,compEnv* curEnv,complr* comp)
 		if(isCondExpression(objCptr))
 		{
 			i++;
-			list=realloc(list,i*sizeof(cptr*));
+			const cptr** tmplist=NULL;
+			tmplist=realloc(list,i*sizeof(cptr*));
+			if(tmplist==NULL)errors(OUTOFMEMORY);
 			list[i]=objCptr;
 			for(cond=&((pair*)objCptr->value)->car;nextCptr(cond)!=NULL;cond=nextCptr(cond));
 			for(objCptr=&((pair*)cond->value)->car;nextCptr(objCptr)!=NULL;objCptr=nextCptr(objCptr));
@@ -630,12 +632,12 @@ byteCode* compileCond(const cptr* objCptr,compEnv* curEnv,complr* comp)
 			{
 				objCptr=list[i];
 				i--;
-				list=(const cptr**)realloc(list,i*sizeof(cptr*));
-				if(list==NULL)errors(OUTOFMEMORY);
+				const cptr** tmplist=NULL;
+				tmplist=(const cptr**)realloc(list,i*sizeof(cptr*));
+				if(tmplist==NULL)errors(OUTOFMEMORY);
 			}
 		}
 	}
-	free(list);
 	freeByteCode(endofcond);
 	freeByteCode(pushnil);
 	freeByteCode(pop);

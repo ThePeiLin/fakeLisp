@@ -569,7 +569,7 @@ byteCode* compileCond(const cptr* objCptr,compEnv* curEnv,complr* comp)
 	int i=0;
 	const cptr* cond=NULL;
 	const cptr** list=NULL;
-	list=(const cptr**)realloc(list,i*sizeof(cptr*));
+	list=(const cptr**)malloc(0);
 	if(list==NULL)errors(OUTOFMEMORY);
 	pair* tmpPair=objCptr->value;
 	byteCode* push1=createByteCode(sizeof(char)+sizeof(int32_t));

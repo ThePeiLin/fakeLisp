@@ -601,7 +601,7 @@ byteCode* compileCond(const cptr* objCptr,compEnv* curEnv,complr* comp)
 			for(cond=&((pair*)objCptr->value)->car;nextCptr(cond)!=NULL;cond=nextCptr(cond));
 			for(objCptr=&((pair*)cond->value)->car;nextCptr(objCptr)!=NULL;objCptr=nextCptr(objCptr));
 			byteCode* beFree=tmp;
-			tmp=codeCat(tmp,endofcond);
+			tmp=codeCat(endofcond,tmp);
 			*(int32_t*)(jump->code+sizeof(char))=tmp->size;
 			beFree=tmp;
 			tmp=codeCat(tmp,jump);

@@ -564,6 +564,86 @@ byteCode* compileLambda(const cptr* objCptr,compEnv* curEnv,complr* comp)
 	return tmp;
 }
 
+byteCode* compileCond(const cptr* objCptr,compEnv* curEnv,complr* comp)
+{
+	int i=0;
+	const cptr* cond=NULL;
+	const cptr** list=NULL;
+	list=(const cptr**)realloc(list,i*sizeof(cptr*));
+	if(list==NULL)errors(OUTOFMEMORY);
+	pair* tmpPair=objCptr->value;
+	byteCode* push1=createByteCode(sizeof(char)+sizeof(int32_t));
+	byteCode* pushnil=createByteCode(sizeof(char));
+	byteCode* jumpiffalse=createByteCode(sizeof(char)+sizeof(int32_t));
+	byteCode* jump=createByteCode(sizeof(char)+sizeof(int32_t));
+	byteCode* pop=createByteCode(sizeof(char));
+	byteCode* tmp=createByteCode(0);
+	pop->code[0]=FAKE_POP;
+	pushnil->code[0]=FAKE_PUSH_NIL;
+	jumpiffalse->code[0]=FAKE_JMP_IF_FALSE;
+	jump->code[0]=FAKE_JMP;
+	push1->code[0]=FAKE_PUSH_INT;
+	*(int32_t*)(jumpiffalse->code+sizeof(char))=pushnil->size;
+	*(int32_t*)(push1->code+sizeof(char))=1;
+	byteCode* endofcond=codeCat(push1,jumpiffalse);
+	byteCode* beFree=endofcond;
+	endofcond=codeCat(endofcond,pushnil);
+	freeByteCode(beFree);
+	for(;;objCptr=prevCptr(objCptr))
+	{
+		if(isCondExpression(objCptr))
+		{
+			i++;
+			list=realloc(list,i*sizeof(cptr*));
+			list[i]=objCptr;
+			for(cond=&((pair*)objCptr->value)->car;nextCptr(cond)!=NULL;cond=nextCptr(cond));
+			for(objCptr=&((pair*)cond->value)->car;nextCptr(objCptr)!=NULL;objCptr=nextCptr(objCptr));
+			byteCode* beFree=tmp;
+			tmp=codeCat(tmp,endofcond);
+			*(int32_t*)(jump->code+sizeof(char))=tmp->size;
+			beFree=tmp;
+			tmp=codeCat(tmp,jump);
+			freeByteCode(beFree);
+			continue;
+		}
+		else
+		{
+			byteCode* tmp1=compile(objCptr,curEnv,comp);
+			if(prevCptr(objCptr)==NULL)
+			{
+				*(int32_t*)(jumpiffalse->code+sizeof(char))=tmp->size+pop->size;
+				byteCode* tmp2=codeCat(jumpiffalse,pop);
+				byteCode* beFree=tmp1;
+				tmp1=codeCat(tmp1,tmp2);
+				freeByteCode(beFree);
+				freeByteCode(tmp2);
+			}
+			byteCode* beFree=tmp;
+			tmp=codeCat(tmp1,tmp);
+			freeByteCode(beFree);
+		}
+		if(prevCptr(objCptr)==NULL)
+		{
+			cond=prevCptr(cond);
+			if(cond->outer==tmpPair)break;
+			if(prevCptr(cond)==NULL)
+			{
+				objCptr=list[i];
+				i--;
+				list=(const cptr**)realloc(list,i*sizeof(cptr*));
+				if(list==NULL)errors(OUTOFMEMORY);
+			}
+		}
+	}
+	free(list);
+	freeByteCode(endofcond);
+	freeByteCode(pushnil);
+	freeByteCode(pop);
+	freeByteCode(jumpiffalse);
+	freeByteCode(jump);
+	return tmp;
+}
+
 byteCode* codeCat(const byteCode* fir,const byteCode* sec)
 {
 	byteCode* tmp=createByteCode(fir->size+sec->size);

@@ -245,8 +245,8 @@ byteCode* compileSetq(cptr* objCptr,compEnv* curEnv,intpr* inter)
 	while(isSetqExpression(tir))
 	{
 		fir=&((pair*)tir->value)->car;
-		sec=nextCptr(tir);
-		tir=nextCptr(fir);
+		sec=nextCptr(fir);
+		tir=nextCptr(sec);
 	}
 	beFree=tmp;
 	tmp1=compile(tir,curEnv,inter);
@@ -402,10 +402,13 @@ byteCode* compileOr(cptr* objCptr,compEnv* curEnv,intpr* inter)
 	freeByteCode(pushNil);
 	return tmp;
 }
+
 byteCode* compileLambda(cptr* objCptr,compEnv* curEnv,intpr* inter)
 {
 	pair* tmpPair=objCptr->value;
 	pair* objPair=NULL;
+	rawproc* tmpRawProc=NULL;
+	rawproc* prevRawProc=inter->procs;
 	byteCode* tmp=createByteCode(0);
 	byteCode* proc=createByteCode(0);
 	compEnv* tmpEnv=curEnv;
@@ -415,43 +418,14 @@ byteCode* compileLambda(cptr* objCptr,compEnv* curEnv,intpr* inter)
 	initProc->code[0]=FAKE_INIT_PROC;
 	popVar->code[0]=FAKE_POP_VAR;
 	pushProc->code[0]=FAKE_PUSH_PROC;
-	for(;;objCptr=nextCptr(objCptr))
+	for(;;)
 	{
-		rawproc* tmpRawProc=NULL;
-		if(isLambdaExpression(objCptr))
-		{
-			tmpEnv=newCompEnv(tmpEnv);
-			objPair=objCptr->value;
-			tmpRawProc=addRawProc(proc,inter);
-			cptr* argCptr=&((pair*)nextCptr(&((pair*)objCptr->value)->car)->value)->car;
-			while(argCptr!=NULL)
-			{
-				atom* tmpAtm=argCptr->value;
-				compDef* tmpDef=addCompDef(tmpEnv,tmpAtm->value.str);
-				*(int32_t*)(popVar->code+sizeof(char))=tmpDef->count;
-				byteCode* beFree=tmpRawProc->proc;
-				tmpRawProc->proc=codeCat(tmpRawProc->proc,popVar);
-				freeByteCode(beFree);
-				argCptr=nextCptr(argCptr);
-			}
-			objCptr=nextCptr(nextCptr(&((pair*)objCptr->value)->car));
-			continue;
-		}
-		else
-		{
-			byteCode* tmp1=compile(objCptr,tmpEnv,inter);
-			byteCode* beFree=tmpRawProc->proc;
-			tmpRawProc->proc=codeCat(tmpRawProc->proc,tmp1);
-			freeByteCode(tmp1);
-			freeByteCode(beFree);
-			objCptr=nextCptr(objCptr);
-		}
 		if(objCptr==NULL)
 		{
 			*(int32_t*)(pushProc->code+sizeof(char))=tmpRawProc->count;
 			*(int32_t*)(initProc->code+sizeof(char))=tmpEnv->symbols->count;
 			byteCode* tmp1=codeCat(pushProc,initProc);
-			if(tmpRawProc->next==NULL)
+			if(tmpRawProc->next==prevRawProc)
 			{
 				byteCode* beFree=tmp;
 				tmp=codeCat(tmp,tmp1);
@@ -473,6 +447,36 @@ byteCode* compileLambda(cptr* objCptr,compEnv* curEnv,intpr* inter)
 				tmpRawProc=tmpRawProc->next;
 				continue;
 			}
+			else break;
+		}
+		if(isLambdaExpression(objCptr))
+		{
+			tmpEnv=newCompEnv(tmpEnv);
+			objPair=objCptr->value;
+			objCptr=&objPair->car;
+			tmpRawProc=addRawProc(proc,inter);
+			cptr* argCptr=&((pair*)nextCptr(objCptr)->value)->car;
+			while(argCptr!=NULL)
+			{
+				atom* tmpAtm=argCptr->value;
+				compDef* tmpDef=addCompDef(tmpEnv,tmpAtm->value.str);
+				*(int32_t*)(popVar->code+sizeof(char))=tmpDef->count;
+				byteCode* beFree=tmpRawProc->proc;
+				tmpRawProc->proc=codeCat(tmpRawProc->proc,popVar);
+				freeByteCode(beFree);
+				argCptr=nextCptr(argCptr);
+			}
+			objCptr=nextCptr(nextCptr(objCptr));
+			continue;
+		}
+		else
+		{
+			byteCode* tmp1=compile(objCptr,tmpEnv,inter);
+			byteCode* beFree=tmpRawProc->proc;
+			tmpRawProc->proc=codeCat(tmpRawProc->proc,tmp1);
+			freeByteCode(tmp1);
+			freeByteCode(beFree);
+			objCptr=nextCptr(objCptr);
 		}
 	}
 	freeByteCode(initProc);

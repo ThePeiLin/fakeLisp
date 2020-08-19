@@ -72,7 +72,16 @@ static codeinfor codeName[]=
 	{"pop_var",4},
 	{"pop_car",0},
 	{"pop_cdr",0},
-	{"add",0}
+	{"add",0},
+	{"sub",0},
+	{"mul",0},
+	{"div",0},
+	{"mod",0},
+	{"atom",0},
+	{"null",0},
+	{"init_proc",4},
+	{"set_bound",0},
+	{"res_bound",0}
 };
 
 #endif

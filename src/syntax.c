@@ -104,6 +104,7 @@ int isConst(const cptr* objCptr)
 	atom* tmpAtm=(objCptr->type==ATM)?objCptr->value:NULL;
 	if(tmpAtm!=NULL&&tmpAtm->type!=SYM)return 1;
 	if(objCptr->type==PAR&&isQuoteExpression(objCptr))return 1;
+	return 0;
 }
 
 int isAndExpression(const cptr* objCptr)

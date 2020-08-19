@@ -406,7 +406,7 @@ cptr* createTree(const char* objStr,intpr* inter)
 			int j=0;
 			char* tmpStr=(char*)objStr+i;
 			while(isspace(*(tmpStr+j)))j--;
-			if(*(tmpStr+j)==','||*(tmpStr+j)=='('||*(tmpStr+j)==')')
+			if(*(tmpStr+j)==','||*(tmpStr+j)=='(')
 			{
 				j=1;
 				while(isspace(*(tmpStr+j)))j++;
@@ -415,7 +415,7 @@ cptr* createTree(const char* objStr,intpr* inter)
 			}
 			j=0;
 			while(isspace(*(tmpStr+j)))j++;
-			if(*(tmpStr+j)==',')
+			if(*(tmpStr+j)==','||*(tmpStr+j)==')')
 			{
 				i+=j;
 				continue;
@@ -1060,7 +1060,7 @@ compDef* addCompDef(compEnv* curEnv,const char* name)
 		if(!(curEnv->symbols=(compDef*)malloc(sizeof(compDef))))errors(OUTOFMEMORY);
 		if(!(curEnv->symbols->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY);
 		strcpy(curEnv->symbols->symName,name);
-		curEnv->symbols->count=(curEnv->prev==NULL)?0:curEnv->prev->symbols->count+1;
+		curEnv->symbols->count=(curEnv->prev==NULL||curEnv->prev->symbols==NULL)?0:curEnv->prev->symbols->count+1;
 		curEnv->symbols->next=NULL;
 		return curEnv->symbols;
 	}

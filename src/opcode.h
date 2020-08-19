@@ -47,4 +47,32 @@ enum opcode
 	FAKE_SEND,
 	FAKE_ACCEPT
 };
+
+typedef struct
+{
+	char* codeName;
+	int len;
+}codeinfor;
+
+static codeinfor codeName[]=
+{
+	{"dummy",0},
+	{"push_nil",0},
+	{"push_pair",0},
+	{"push_int",4},
+	{"push_chr",1},
+	{"push_dbl",8},
+	{"push_str",-1},
+	{"push_sym",-1},
+	{"push_var",4},
+	{"push_car",0},
+	{"push_cdr",0},
+	{"push_proc",4},
+	{"push_pop",0},
+	{"push_pop_var",4},
+	{"push_pop_car",0},
+	{"push_pop_cdr",0},
+	{"add",0}
+};
+
 #endif

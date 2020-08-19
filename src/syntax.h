@@ -11,6 +11,7 @@ void addSynRule(int (*)(const cptr*));
 int (*checkAST(const cptr*))(const cptr*);
 //void initSyntax();
 int isLegal(const cptr*);
+int isPreprocess(const cptr*);
 int isDefExpression(const cptr*);
 int isSetqExpression(const cptr*);
 int isLambdaExpression(const cptr*);

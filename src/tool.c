@@ -406,7 +406,7 @@ cptr* createTree(const char* objStr,intpr* inter)
 			int j=0;
 			char* tmpStr=(char*)objStr+i;
 			while(isspace(*(tmpStr+j)))j--;
-			if(*(tmpStr+j)==','||*(tmpStr+j)=='(')
+			if(*(tmpStr+j)==','||*(tmpStr+j)=='('||*(tmpStr+j)==')')
 			{
 				j=1;
 				while(isspace(*(tmpStr+j)))j++;
@@ -989,8 +989,9 @@ intpr* newIntpr(const char* filename,FILE* file)
 	if(!(tmp->filename=(char*)malloc(sizeof(char)*(strlen(filename)+1))))errors(OUTOFMEMORY);
 	strcpy(tmp->filename,filename);
 	tmp->file=file;
-	tmp->glob=newEnv(NULL);
 	tmp->curline=1;
+	tmp->glob=newCompEnv(NULL);
+	tmp->procs=NULL;
 	return tmp;
 }
 
@@ -998,7 +999,15 @@ void freeIntpr(intpr* inter)
 {
 	free(inter->filename);
 	fclose(inter->file);
-	destroyEnv(inter->glob);
+	destroyCompEnv(inter->glob);
+	rawproc* tmp=inter->procs;
+	while(tmp!=NULL)
+	{
+		rawproc* prev=tmp;
+		tmp=tmp->next;
+		freeByteCode(prev->proc);
+		free(prev);
+	}
 	free(inter);
 }
 
@@ -1007,4 +1016,111 @@ char getci(intpr* inter)
 	char ch=getc(inter->file);
 	inter->curline+=(ch=='\n')?1:0;
 	return ch;
+}
+
+compEnv* newCompEnv(compEnv* prev)
+{
+	compEnv* tmp=(compEnv*)malloc(sizeof(compEnv));
+	if(tmp==NULL)errors(OUTOFMEMORY);
+	tmp->prev=prev;
+	tmp->symbols=NULL;
+	return tmp;
+}
+
+void destroyCompEnv(compEnv* objEnv)
+{
+	compDef* tmpDef=objEnv->symbols;
+	while(tmpDef!=NULL)
+	{
+		compDef* prev=tmpDef;
+		tmpDef=tmpDef->next;
+		free(prev->symName);
+		free(prev);
+	}
+	free(objEnv);
+}
+
+compDef* findCompDef(const char* name,compEnv* curEnv)
+{
+	if(curEnv->symbols==NULL)return NULL;
+	else
+	{
+		compDef* curDef=curEnv->symbols;
+		compDef* prev=NULL;
+		while(curDef&&strcmp(name,curDef->symName))
+			curDef=curDef->next;
+		return curDef;
+	}
+}
+
+compDef* addCompDef(compEnv* curEnv,const char* name)
+{
+	if(curEnv->symbols==NULL)
+	{
+		if(!(curEnv->symbols=(compDef*)malloc(sizeof(compDef))))errors(OUTOFMEMORY);
+		if(!(curEnv->symbols->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY);
+		strcpy(curEnv->symbols->symName,name);
+		curEnv->symbols->count=(curEnv->prev==NULL)?0:curEnv->prev->symbols->count+1;
+		curEnv->symbols->next=NULL;
+		return curEnv->symbols;
+	}
+	else
+	{
+		compDef* curDef=findCompDef(name,curEnv);
+		if(curDef==NULL)
+		{
+			compDef* prevDef=curEnv->symbols;
+			while(prevDef->next!=NULL)prevDef=prevDef->next;
+			if(!(curDef=(compDef*)malloc(sizeof(compDef))))errors(OUTOFMEMORY);
+			if(!(curDef->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY);
+			strcpy(curDef->symName,name);
+			prevDef->next=curDef;
+			curDef->count=prevDef->count+1;
+		}
+		return curDef;
+	}
+}
+
+rawproc* newRawProc(int32_t count)
+{
+	rawproc* tmp=(rawproc*)malloc(sizeof(rawproc));
+	if(tmp==NULL)errors(OUTOFMEMORY);
+	tmp->count=count;
+	tmp->proc=NULL;
+	tmp->next=NULL;
+	return tmp;
+}
+
+rawproc* addRawProc(byteCode* proc,intpr* inter)
+{
+	byteCode* tmp=createByteCode(proc->size);
+	memcpy(tmp->code,proc->code,proc->size);
+	rawproc* tmpProc=newRawProc((inter->procs==NULL)?0:inter->procs->count+1);
+	tmpProc->proc=tmp;
+	tmpProc->next=inter->procs;
+	inter->procs=tmpProc;
+	return tmpProc;
+}
+
+byteCode* createByteCode(unsigned int size)
+{
+	byteCode* tmp=NULL;
+	if(!(tmp=(byteCode*)malloc(sizeof(byteCode))))errors(OUTOFMEMORY);
+	tmp->size=size;
+	if(!(tmp->code=(char*)calloc(size,sizeof(char*))))errors(OUTOFMEMORY);
+	return tmp;
+}
+
+void freeByteCode(byteCode* obj)
+{
+	free(obj->code);
+	free(obj);
+}
+
+byteCode* codeCat(const byteCode* fir,const byteCode* sec)
+{
+	byteCode* tmp=createByteCode(fir->size+sec->size);
+	memcpy(tmp->code,fir->code,fir->size);
+	memcpy(tmp->code+fir->size,sec->code,sec->size);
+	return tmp;
 }

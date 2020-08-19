@@ -7,6 +7,8 @@
 #include"tool.h"
 #include"form.h"
 #include"preprocess.h"
+#include"syntax.h"
+#include"compiler.h"
 
 int main(int argc,char** argv)
 {
@@ -26,24 +28,17 @@ cptr* evalution(const char* objStr,intpr* inter)
 {
 	errorStatus status={0,NULL};
 	cptr* begin=createTree(objStr,inter);
-	status=eval(begin,inter->glob);
-	if(status.status!=0)
+	if(isPreprocess(begin))
 	{
-		exError(status.place,status.status,inter);
-		deleteCptr(status.place);
-		if(inter->file!=stdin)
-		{
-			deleteCptr(begin);
-			exit(0);
-		}
+		status=eval(begin,NULL);
+		
+	
 	}
-	else 
-		if(begin!=NULL&&inter->file==stdin)
-		{
-			fputs(";=>",stdout);
-			printList(begin,stdout);
-			putchar('\n');
-		}
+	else
+	{
+		byteCode* tmpByteCode=compile(begin,inter->glob,inter);
+		printByteCode(tmpByteCode);
+	}
 	return begin;
 }
 
@@ -64,7 +59,7 @@ void initEvalution()
 //	addFunc("lambda",N_lambda);
 	addFunc("list",N_list);
 	addFunc("defmacro",N_defmacro);
-	addFunc("undef",N_undef);
+//	addFunc("undef",N_undef);
 	addFunc("add",N_add);
 	addFunc("sub",N_sub);
 	addFunc("mul",N_mul);
@@ -86,7 +81,28 @@ void runIntpr(intpr* inter)
 		ungetc(ch,inter->file);
 		char* list=getListFromFile(inter->file);
 		if(list==NULL)continue;
-		begin=evalution(list,inter);
+		errorStatus status={0,NULL};
+		begin=createTree(list,inter);
+		if(isPreprocess(begin))
+		{
+			status=eval(begin,NULL);
+			if(status.status!=0)
+			{
+				exError(status.place,status.status,inter);
+				deleteCptr(status.place);
+				if(inter->file!=stdin)
+				{
+					deleteCptr(begin);
+					exit(0);
+				}
+			}
+		}
+		else
+		{
+			byteCode* tmpByteCode=compile(begin,inter->glob,inter);
+			printByteCode(tmpByteCode);
+			freeByteCode(tmpByteCode);
+		}
 		free(list);
 		list=NULL;
 		deleteCptr(begin);

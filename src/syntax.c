@@ -22,6 +22,22 @@ void addSynRule(int (*check)(const cptr*))
 	Head=current;
 }
 
+int isPreprocess(const cptr* objCptr)
+{
+	objCptr=(objCptr->type==PAR)?&((pair*)objCptr->value)->car:NULL;
+	if(objCptr!=NULL&&nextCptr(objCptr)!=NULL&&nextCptr(nextCptr(objCptr))!=NULL)
+	{
+		if(objCptr->type!=ATM||nextCptr(objCptr)->type!=PAR)return 0;
+		else
+		{
+			atom* tmpAtm=objCptr->value;
+			if(tmpAtm->type!=SYM||strcmp(tmpAtm->value.str,"defmacro"))return 0;
+		}
+		return 1;
+	}
+	else return 0;
+}
+
 int isDefExpression(const cptr* objCptr)
 {
 	objCptr=(objCptr->type==PAR)?&((pair*)objCptr->value)->car:NULL;
@@ -34,9 +50,45 @@ int isDefExpression(const cptr* objCptr)
 			atom* second=nextCptr(objCptr)->value;
 			if(first->type!=SYM||second->type!=SYM||strcmp(first->value.str,"define"))return 0;
 		}
+		return 1;
 	}
 	else return 0;
-	return 1;
+}
+
+int isSetqExpression(const cptr* objCptr)
+{
+	objCptr=(objCptr->type==PAR)?&((pair*)objCptr->value)->car:NULL;
+	if(objCptr!=NULL&&nextCptr(objCptr)!=NULL&&nextCptr(nextCptr(objCptr))!=NULL)
+	{
+		if(objCptr->type!=ATM||nextCptr(objCptr)->type!=ATM)return 0;
+		else
+		{
+			atom* first=objCptr->value;
+			atom* second=nextCptr(objCptr)->value;
+			if(first->type!=SYM||second->type!=SYM||strcmp(first->value.str,"setq"))return 0;
+		}
+		return 1;
+	}
+	else return 0;
+}
+
+int isCondExpression(const cptr* objCptr)
+{
+	objCptr=(objCptr->type==PAR)?&((pair*)objCptr->value)->car:NULL;
+	if(objCptr!=NULL)
+	{
+		if(objCptr->type==ATM)
+		{
+			atom* tmpAtm=objCptr->value;
+			if(tmpAtm->type!=SYM||strcmp(tmpAtm->value.str,"cond"))return 0;
+			else
+			{
+				for(objCptr=nextCptr(objCptr);objCptr!=NULL;objCptr=nextCptr(objCptr))
+					if(!isLegal(objCptr)||objCptr->type!=PAR)return 0;
+			}
+		}
+		return 1;
+	}else return 0;
 }
 
 int isSymbol(const cptr* objCptr)
@@ -50,8 +102,8 @@ int isConst(const cptr* objCptr)
 {
 	if(objCptr->type==NIL)return 1;
 	atom* tmpAtm=(objCptr->type==ATM)?objCptr->value:NULL;
-	if(tmpAtm!=NULL&&tmpAtm->type==SYM)return 0;
-	if(isQuoteExpression(objCptr))return 1;
+	if(tmpAtm!=NULL&&tmpAtm->type!=SYM)return 1;
+	if(objCptr->type==PAR&&isQuoteExpression(objCptr))return 1;
 }
 
 int isAndExpression(const cptr* objCptr)
@@ -103,32 +155,32 @@ int isListForm(const cptr* objCptr)
 int isLegal(const cptr* objCptr)
 {
 	const cptr* tmpCptr=objCptr;
-	if(tmpCptr->type==PAR)
+	if(objCptr->type==PAR)
 	{
-		tmpCptr=&((pair*)tmpCptr->value)->car;
-		cptr* tmp=nextCptr(objCptr);
-		while(tmp!=NULL)
+		objCptr=&((pair*)objCptr->value)->car;
+		const cptr* prevCptr=NULL;
+		while(objCptr!=NULL)
 		{
-			tmp=nextCptr(tmp);
-			tmpCptr=nextCptr(tmpCptr);
+			prevCptr=objCptr;
+			objCptr=nextCptr(objCptr);
 		}
-		if(objCptr->outer->cdr.type!=NIL)return 0;
+		if(prevCptr->outer->cdr.type!=NIL)return 0;
 		synRule* current=NULL;
 		for(current=Head;current!=NULL;current=current->next)
-			if(!current->check(objCptr))return 0;
+			if(!current->check(tmpCptr))return 0;
 	}
 	return 1;
 }
 
-/*void initSyntax()
+void initSyntax()
 {
 	addSynRule(isDefExpression);
 	addSynRule(isSetqExpression);
 	addSynRule(isLambdaExpression);
 	addSynRule(isCondExpression);
 	addSynRule(isConst);
-	addSynRule(isFunctionCall);
+	addSynRule(isListForm);
 	addSynRule(isSymbol);
 	addSynRule(isAndExpression);
 	addSynRule(isOrExpression);
-}*/
+}

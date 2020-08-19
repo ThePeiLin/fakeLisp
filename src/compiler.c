@@ -3,111 +3,25 @@
 #include"compiler.h"
 #include"syntax.h"
 #include"tool.h"
-#include"fake.h"
+#include"preprocess.h"
 #include"opcode.h"
 
-complr* newCompiler(intpr* inter)
+byteCode* compile(cptr* objCptr,compEnv* curEnv,intpr* inter)
 {
-	complr* tmp=(complr*)malloc(sizeof(complr));
-	if(tmp==NULL)errors(OUTOFMEMORY);
-	tmp->inter=inter;
-	tmp->glob=newCompEnv(NULL);
-	tmp->procs=NULL;
-	return tmp;
+	macroExpand(objCptr);
+	if(isConst(objCptr))return compileConst(objCptr,curEnv,inter);
+	if(isSymbol(objCptr))return compileSym(objCptr,curEnv,inter);
+	if(isConst(objCptr))return compileConst(objCptr,curEnv,inter);
+	if(isDefExpression(objCptr))return compileDef(objCptr,curEnv,inter);
+	if(isSetqExpression(objCptr))return compileSym(objCptr,curEnv,inter);
+	if(isCondExpression(objCptr))return compileCond(objCptr,curEnv,inter);
+	if(isAndExpression(objCptr))return compileAnd(objCptr,curEnv,inter);
+	if(isOrExpression(objCptr))return compileOr(objCptr,curEnv,inter);
+	if(isLambdaExpression(objCptr))return compileLambda(objCptr,curEnv,inter);
+	if(isListForm(objCptr))return compileListForm(objCptr,curEnv,inter);
 }
 
-void freeCompiler(complr* comp)
-{
-	freeIntpr(comp->inter);
-	destroyCompEnv(comp->glob);
-	rawproc* tmp=comp->procs;
-	while(tmp!=NULL)
-	{
-		rawproc* prev=tmp;
-		tmp=tmp->next;
-		freeByteCode(prev->proc);
-		free(prev);
-	}
-	free(comp);
-}
-
-compEnv* newCompEnv(compEnv* prev)
-{
-	compEnv* tmp=(compEnv*)malloc(sizeof(compEnv));
-	if(tmp==NULL)errors(OUTOFMEMORY);
-	tmp->prev=prev;
-	tmp->symbols=NULL;
-	return tmp;
-}
-
-void destroyCompEnv(compEnv* objEnv)
-{
-	compDef* tmpDef=objEnv->symbols;
-	while(tmpDef!=NULL)
-	{
-		compDef* prev=tmpDef;
-		tmpDef=tmpDef->next;
-		free(prev->symName);
-		free(prev);
-	}
-	free(objEnv);
-}
-
-compDef* findCompDef(const char* name,compEnv* curEnv)
-{
-	if(curEnv->symbols==NULL)return NULL;
-	else
-	{
-		compDef* curDef=curEnv->symbols;
-		compDef* prev=NULL;
-		while(curDef&&strcmp(name,curDef->symName))
-			curDef=curDef->next;
-		return curDef;
-	}
-}
-compDef* addCompDef(compEnv* curEnv,const char* name)
-{
-	if(curEnv->symbols==NULL)
-	{
-		if(!(curEnv->symbols=(compDef*)malloc(sizeof(compDef))))errors(OUTOFMEMORY);
-		if(!(curEnv->symbols->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY);
-		strcpy(curEnv->symbols->symName,name);
-		curEnv->symbols->count=(curEnv->prev==NULL)?0:curEnv->prev->symbols->count+1;
-		curEnv->symbols->next=NULL;
-		return curEnv->symbols;
-	}
-	else
-	{
-		compDef* curDef=findCompDef(name,curEnv);
-		if(curDef==NULL)
-		{
-			compDef* prevDef=curEnv->symbols;
-			while(prevDef->next!=NULL)prevDef=prevDef->next;
-			if(!(curDef=(compDef*)malloc(sizeof(compDef))))errors(OUTOFMEMORY);
-			if(!(curDef->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY);
-			strcpy(curDef->symName,name);
-			prevDef->next=curDef;
-			curDef->count=prevDef->count+1;
-		}
-		return curDef;
-	}
-}
-
-byteCode* compile(const cptr* objCptr,compEnv* curEnv,complr* comp)
-{
-	if(isConst(objCptr))return compileConst(objCptr,curEnv,comp);
-	if(isSymbol(objCptr))return compileSym(objCptr,curEnv,comp);
-	if(isConst(objCptr))return compileConst(objCptr,curEnv,comp);
-	if(isDefExpression(objCptr))return compileDef(objCptr,curEnv,comp);
-	if(isSetqExpression(objCptr))return compileSym(objCptr,curEnv,comp);
-	if(isCondExpression(objCptr))return compileCond(objCptr,curEnv,comp);
-	if(isAndExpression(objCptr))return compileAnd(objCptr,curEnv,comp);
-	if(isOrExpression(objCptr))return compileOr(objCptr,curEnv,comp);
-	if(isLambdaExpression(objCptr))return compileLambda(objCptr,curEnv,comp);
-	if(isListForm(objCptr))return compileListForm(objCptr,curEnv,comp);
-}
-
-byteCode* compileAtom(const cptr* objCptr)
+byteCode* compileAtom(cptr* objCptr)
 {
 	atom* tmpAtm=objCptr->value;
 	byteCode* tmp=NULL;
@@ -145,7 +59,7 @@ byteCode* compileNil()
 	return tmp;
 }
 
-byteCode* compilePair(const cptr* objCptr)
+byteCode* compilePair(cptr* objCptr)
 {
 	byteCode* tmp=createByteCode(0);
 	byteCode* beFree=NULL;
@@ -157,14 +71,13 @@ byteCode* compilePair(const cptr* objCptr)
 	popToCar->code[0]=FAKE_POP_CAR;
 	popToCdr->code[0]=FAKE_POP_CDR;
 	pushPair->code[0]=FAKE_PUSH_PAIR;
-	const cptr* tmpCptr=objCptr;
-	objCptr=&objPair->car;
+	cptr* tmpCptr=objCptr;
 	while(objCptr!=NULL)
 	{
 		if(objCptr->type==PAR)
 		{
 			beFree=tmp;
-			tmp=codeCat(pushPair,tmp);
+			tmp=codeCat(tmp,pushPair);
 			freeByteCode(beFree);
 			objPair=objCptr->value;
 			objCptr=&objPair->car;
@@ -209,7 +122,7 @@ byteCode* compilePair(const cptr* objCptr)
 	return tmp;
 }
 
-byteCode* compileQuote(const cptr* objCptr)
+byteCode* compileQuote(cptr* objCptr)
 {
 	objCptr=&((pair*)objCptr->value)->car;
 	objCptr=nextCptr(objCptr);
@@ -221,7 +134,7 @@ byteCode* compileQuote(const cptr* objCptr)
 	}
 }
 
-byteCode* compileConst(const cptr* objCptr,compEnv* curEnv,complr* comp)
+byteCode* compileConst(cptr* objCptr,compEnv* curEnv,intpr* inter)
 {
 	switch(objCptr->type)
 	{
@@ -231,7 +144,7 @@ byteCode* compileConst(const cptr* objCptr,compEnv* curEnv,complr* comp)
 	}
 }
 
-byteCode* compileListForm(const cptr* objCptr,compEnv* curEnv,complr* comp)
+byteCode* compileListForm(cptr* objCptr,compEnv* curEnv,intpr* inter)
 {
 	pair* tmpPair=objCptr->value;
 	byteCode* beFree=NULL;	
@@ -254,7 +167,7 @@ byteCode* compileListForm(const cptr* objCptr,compEnv* curEnv,complr* comp)
 		else
 		{
 			beFree=tmp;
-			tmp1=compile(objCptr,curEnv,comp);
+			tmp1=compile(objCptr,curEnv,inter);
 			tmp=codeCat(tmp,tmp1);
 			freeByteCode(tmp1);
 			freeByteCode(beFree);
@@ -273,12 +186,12 @@ byteCode* compileListForm(const cptr* objCptr,compEnv* curEnv,complr* comp)
 	return tmp;
 }
 
-byteCode* compileDef(const cptr* objCptr,compEnv* curEnv,complr* comp)
+byteCode* compileDef(cptr* objCptr,compEnv* curEnv,intpr* inter)
 {
 	pair* tmpPair=objCptr->value;
-	const cptr* fir=objCptr->value;
-	const cptr* sec=nextCptr(fir);
-	const cptr* tir=nextCptr(sec);
+	cptr* fir=objCptr->value;
+	cptr* sec=nextCptr(fir);
+	cptr* tir=nextCptr(sec);
 	byteCode* tmp=createByteCode(0);
 	byteCode* beFree=NULL;
 	byteCode* tmp1=NULL;
@@ -291,7 +204,7 @@ byteCode* compileDef(const cptr* objCptr,compEnv* curEnv,complr* comp)
 		tir=nextCptr(sec);
 	}
 	beFree=tmp;
-	tmp1=compile(tir,curEnv,comp);
+	tmp1=compile(tir,curEnv,inter);
 	tmp=codeCat(tmp,tmp1);
 	freeByteCode(beFree);
 	freeByteCode(tmp1);	
@@ -315,12 +228,12 @@ byteCode* compileDef(const cptr* objCptr,compEnv* curEnv,complr* comp)
 	return tmp;
 }
 
-byteCode* compileSetq(const cptr* objCptr,compEnv* curEnv,complr* comp)
+byteCode* compileSetq(cptr* objCptr,compEnv* curEnv,intpr* inter)
 {
 	pair* tmpPair=objCptr->value;
-	const cptr* fir=objCptr->value;
-	const cptr* sec=nextCptr(fir);
-	const cptr* tir=nextCptr(sec);
+	cptr* fir=objCptr->value;
+	cptr* sec=nextCptr(fir);
+	cptr* tir=nextCptr(sec);
 	byteCode* tmp=createByteCode(0);
 	byteCode* beFree=NULL;
 	byteCode* tmp1=NULL;
@@ -333,7 +246,7 @@ byteCode* compileSetq(const cptr* objCptr,compEnv* curEnv,complr* comp)
 		tir=nextCptr(fir);
 	}
 	beFree=tmp;
-	tmp1=compile(tir,curEnv,comp);
+	tmp1=compile(tir,curEnv,inter);
 	tmp=codeCat(tmp,tmp1);
 	freeByteCode(beFree);
 	freeByteCode(tmp1);
@@ -372,7 +285,7 @@ byteCode* compileSetq(const cptr* objCptr,compEnv* curEnv,complr* comp)
 	return tmp;
 }
 
-byteCode* compileSym(const cptr* objCptr,compEnv* curEnv,complr* comp)
+byteCode* compileSym(cptr* objCptr,compEnv* curEnv,intpr* inter)
 {
 	byteCode* pushVar=createByteCode(sizeof(char)+sizeof(int32_t));
 	atom* tmpAtm=objCptr->value;
@@ -395,7 +308,7 @@ byteCode* compileSym(const cptr* objCptr,compEnv* curEnv,complr* comp)
 	return pushVar;
 }
 
-byteCode* compileAnd(const cptr* objCptr,compEnv* curEnv,complr* comp)
+byteCode* compileAnd(cptr* objCptr,compEnv* curEnv,intpr* inter)
 {
 	pair* tmpPair=objCptr->value;
 	byteCode* jumpiffalse=createByteCode(sizeof(char)+sizeof(int32_t));
@@ -416,7 +329,7 @@ byteCode* compileAnd(const cptr* objCptr,compEnv* curEnv,complr* comp)
 		else if(prevCptr(objCptr)!=NULL)
 		{
 			byteCode* beFree=tmp;
-			byteCode* tmp1=compile(objCptr,curEnv,comp);
+			byteCode* tmp1=compile(objCptr,curEnv,inter);
 			tmp=codeCat(tmp1,tmp);
 			freeByteCode(beFree);
 			beFree=tmp;
@@ -441,7 +354,7 @@ byteCode* compileAnd(const cptr* objCptr,compEnv* curEnv,complr* comp)
 	return tmp;
 }
 
-byteCode* compileOr(const cptr* objCptr,compEnv* curEnv,complr* comp)
+byteCode* compileOr(cptr* objCptr,compEnv* curEnv,intpr* inter)
 {
 	pair* tmpPair=objCptr->value;
 	byteCode* jumpifture=createByteCode(sizeof(char)+sizeof(int32_t));
@@ -460,7 +373,7 @@ byteCode* compileOr(const cptr* objCptr,compEnv* curEnv,complr* comp)
 		else if(prevCptr(objCptr)!=NULL)
 		{
 			byteCode* beFree=tmp;
-			byteCode* tmp1=compile(objCptr,curEnv,comp);
+			byteCode* tmp1=compile(objCptr,curEnv,inter);
 			tmp=codeCat(tmp1,tmp);
 			freeByteCode(beFree);
 			beFree=tmp;
@@ -485,13 +398,13 @@ byteCode* compileOr(const cptr* objCptr,compEnv* curEnv,complr* comp)
 	freeByteCode(pushNil);
 	return tmp;
 }
-byteCode* compileLambda(const cptr* objCptr,compEnv* curEnv,complr* comp)
+byteCode* compileLambda(cptr* objCptr,compEnv* curEnv,intpr* inter)
 {
 	pair* tmpPair=objCptr->value;
 	pair* objPair=NULL;
 	byteCode* tmp=createByteCode(0);
 	byteCode* proc=createByteCode(0);
-	compEnv* tmpEnv=NULL;
+	compEnv* tmpEnv=curEnv;
 	byteCode* initProc=createByteCode(sizeof(char)+sizeof(int32_t));
 	byteCode* popVar=createByteCode(sizeof(char)+sizeof(int32_t));
 	byteCode* pushProc=createByteCode(sizeof(char)+sizeof(int32_t));
@@ -503,9 +416,10 @@ byteCode* compileLambda(const cptr* objCptr,compEnv* curEnv,complr* comp)
 		rawproc* tmpRawProc=NULL;
 		if(isLambdaExpression(objCptr))
 		{
+			tmpEnv=newCompEnv(tmpEnv);
 			objPair=objCptr->value;
-			tmpRawProc=addRawProc(proc,comp);
-			const cptr* argCptr=&((pair*)nextCptr(&((pair*)objCptr->value)->car)->value)->car;
+			tmpRawProc=addRawProc(proc,inter);
+			cptr* argCptr=&((pair*)nextCptr(&((pair*)objCptr->value)->car)->value)->car;
 			while(argCptr!=NULL)
 			{
 				atom* tmpAtm=argCptr->value;
@@ -521,7 +435,7 @@ byteCode* compileLambda(const cptr* objCptr,compEnv* curEnv,complr* comp)
 		}
 		else
 		{
-			byteCode* tmp1=compile(objCptr,tmpEnv,comp);
+			byteCode* tmp1=compile(objCptr,tmpEnv,inter);
 			byteCode* beFree=tmpRawProc->proc;
 			tmpRawProc->proc=codeCat(tmpRawProc->proc,tmp1);
 			freeByteCode(tmp1);
@@ -564,12 +478,12 @@ byteCode* compileLambda(const cptr* objCptr,compEnv* curEnv,complr* comp)
 	return tmp;
 }
 
-byteCode* compileCond(const cptr* objCptr,compEnv* curEnv,complr* comp)
+byteCode* compileCond(cptr* objCptr,compEnv* curEnv,intpr* inter)
 {
 	int i=0;
-	const cptr* cond=NULL;
-	const cptr** list=NULL;
-	list=(const cptr**)malloc(0);
+	cptr* cond=NULL;
+	cptr** list=NULL;
+	list=(cptr**)malloc(0);
 	if(list==NULL)errors(OUTOFMEMORY);
 	pair* tmpPair=objCptr->value;
 	byteCode* push1=createByteCode(sizeof(char)+sizeof(int32_t));
@@ -594,7 +508,7 @@ byteCode* compileCond(const cptr* objCptr,compEnv* curEnv,complr* comp)
 		if(isCondExpression(objCptr))
 		{
 			i++;
-			const cptr** tmplist=NULL;
+			cptr** tmplist=NULL;
 			tmplist=realloc(list,i*sizeof(cptr*));
 			if(tmplist==NULL)errors(OUTOFMEMORY);
 			list[i]=objCptr;
@@ -610,7 +524,7 @@ byteCode* compileCond(const cptr* objCptr,compEnv* curEnv,complr* comp)
 		}
 		else
 		{
-			byteCode* tmp1=compile(objCptr,curEnv,comp);
+			byteCode* tmp1=compile(objCptr,curEnv,inter);
 			if(prevCptr(objCptr)==NULL)
 			{
 				*(int32_t*)(jumpiffalse->code+sizeof(char))=tmp->size+pop->size;
@@ -632,8 +546,8 @@ byteCode* compileCond(const cptr* objCptr,compEnv* curEnv,complr* comp)
 			{
 				objCptr=list[i];
 				i--;
-				const cptr** tmplist=NULL;
-				tmplist=(const cptr**)realloc(list,i*sizeof(cptr*));
+				cptr** tmplist=NULL;
+				tmplist=(cptr**)realloc(list,i*sizeof(cptr*));
 				if(tmplist==NULL)errors(OUTOFMEMORY);
 			}
 		}
@@ -646,46 +560,35 @@ byteCode* compileCond(const cptr* objCptr,compEnv* curEnv,complr* comp)
 	return tmp;
 }
 
-byteCode* codeCat(const byteCode* fir,const byteCode* sec)
+void printByteCode(const byteCode* tmpCode)
 {
-	byteCode* tmp=createByteCode(fir->size+sec->size);
-	memcpy(tmp->code,fir->code,fir->size);
-	memcpy(tmp->code+fir->size,sec->code,sec->size);
-	return tmp;
-}
-
-byteCode* createByteCode(unsigned int size)
-{
-	byteCode* tmp=NULL;
-	if(!(tmp=(byteCode*)malloc(sizeof(byteCode))))errors(OUTOFMEMORY);
-	tmp->size=size;
-	if(!(tmp->code=(char*)calloc(size,sizeof(char*))))errors(OUTOFMEMORY);
-	return tmp;
-}
-
-void freeByteCode(byteCode* obj)
-{
-	free(obj->code);
-	free(obj);
-}
-
-rawproc* newRawProc(int32_t count)
-{
-	rawproc* tmp=(rawproc*)malloc(sizeof(rawproc));
-	if(tmp==NULL)errors(OUTOFMEMORY);
-	tmp->count=count;
-	tmp->proc=NULL;
-	tmp->next=NULL;
-	return tmp;
-}
-
-rawproc* addRawProc(byteCode* proc,complr* comp)
-{
-	byteCode* tmp=createByteCode(proc->size);
-	memcpy(tmp->code,proc->code,proc->size);
-	rawproc* tmpProc=newRawProc((comp->procs==NULL)?0:comp->procs->count+1);
-	tmpProc->proc=tmp;
-	tmpProc->next=comp->procs;
-	comp->procs=tmpProc;
-	return tmpProc;
+	int i=0;
+	while(i<tmpCode->size)
+	{
+		int tmplen=0;
+		printf("%s ",codeName[tmpCode->code[i]]);
+		switch(codeName[tmpCode->code[i]].len)
+		{
+			case -1:
+				tmplen=strlen(tmpCode->code+i+1);
+				printf("%s",tmpCode->code+i+1);
+				i+=tmplen+2;
+				break;
+			case 0:
+				i+=1;
+				break;
+			case 1:
+				printf("%c",tmpCode->code[i+1]);
+				i+=2;
+				break;
+			case 4:
+				printf("%d",*(int32_t*)(tmpCode->code+i+1));
+				i+=5;
+				break;
+			case 8:
+				printf("%lf",*(double*)(tmpCode->code+i+1));
+				break;
+		}
+		putchar('\n');
+	}
 }

@@ -68,10 +68,10 @@ static codeinfor codeName[]=
 	{"push_car",0},
 	{"push_cdr",0},
 	{"push_proc",4},
-	{"push_pop",0},
-	{"push_pop_var",4},
-	{"push_pop_car",0},
-	{"push_pop_cdr",0},
+	{"pop",0},
+	{"pop_var",4},
+	{"pop_car",0},
+	{"pop_cdr",0},
 	{"add",0}
 };
 

@@ -11,9 +11,8 @@ byteCode* compile(cptr* objCptr,compEnv* curEnv,intpr* inter)
 	macroExpand(objCptr);
 	if(isConst(objCptr))return compileConst(objCptr,curEnv,inter);
 	if(isSymbol(objCptr))return compileSym(objCptr,curEnv,inter);
-	if(isConst(objCptr))return compileConst(objCptr,curEnv,inter);
 	if(isDefExpression(objCptr))return compileDef(objCptr,curEnv,inter);
-	if(isSetqExpression(objCptr))return compileSym(objCptr,curEnv,inter);
+	if(isSetqExpression(objCptr))return compileSetq(objCptr,curEnv,inter);
 	if(isCondExpression(objCptr))return compileCond(objCptr,curEnv,inter);
 	if(isAndExpression(objCptr))return compileAnd(objCptr,curEnv,inter);
 	if(isOrExpression(objCptr))return compileOr(objCptr,curEnv,inter);
@@ -28,6 +27,10 @@ byteCode* compileAtom(cptr* objCptr)
 	switch(tmpAtm->type)
 	{
 		case SYM:
+			tmp=createByteCode(sizeof(char)+strlen(tmpAtm->value.str)+1);
+			tmp->code[0]=FAKE_PUSH_SYM;
+			strcpy(tmp->code+1,tmpAtm->value.str);
+			break;
 		case STR:
 			tmp=createByteCode(sizeof(char)+strlen(tmpAtm->value.str)+1);
 			tmp->code[0]=FAKE_PUSH_STR;
@@ -189,7 +192,7 @@ byteCode* compileListForm(cptr* objCptr,compEnv* curEnv,intpr* inter)
 byteCode* compileDef(cptr* objCptr,compEnv* curEnv,intpr* inter)
 {
 	pair* tmpPair=objCptr->value;
-	cptr* fir=objCptr->value;
+	cptr* fir=&((pair*)objCptr->value)->car;
 	cptr* sec=nextCptr(fir);
 	cptr* tir=nextCptr(sec);
 	byteCode* tmp=createByteCode(0);
@@ -231,7 +234,7 @@ byteCode* compileDef(cptr* objCptr,compEnv* curEnv,intpr* inter)
 byteCode* compileSetq(cptr* objCptr,compEnv* curEnv,intpr* inter)
 {
 	pair* tmpPair=objCptr->value;
-	cptr* fir=objCptr->value;
+	cptr* fir=&((pair*)objCptr->value)->car;
 	cptr* sec=nextCptr(fir);
 	cptr* tir=nextCptr(sec);
 	byteCode* tmp=createByteCode(0);
@@ -288,6 +291,7 @@ byteCode* compileSetq(cptr* objCptr,compEnv* curEnv,intpr* inter)
 byteCode* compileSym(cptr* objCptr,compEnv* curEnv,intpr* inter)
 {
 	byteCode* pushVar=createByteCode(sizeof(char)+sizeof(int32_t));
+	pushVar->code[0]=FAKE_PUSH_VAR;
 	atom* tmpAtm=objCptr->value;
 	compDef* tmpDef=NULL;
 	compEnv* tmpEnv=curEnv;
@@ -587,6 +591,7 @@ void printByteCode(const byteCode* tmpCode)
 				break;
 			case 8:
 				printf("%lf",*(double*)(tmpCode->code+i+1));
+				i+=9;
 				break;
 		}
 		putchar('\n');

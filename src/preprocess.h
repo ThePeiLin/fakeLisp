@@ -2,20 +2,6 @@
 #define PREPARE_H
 #include"fakedef.h"
 
-typedef struct Macro
-{
-	cptr* format;
-	cptr* express;
-	struct Macro* next;
-}macro;
-
-typedef struct MacroSym
-{
-	char* symName;
-	int (*Func)(const cptr*,const cptr*,const char*,env*);
-	struct MacroSym* next;
-}masym;
-
 macro* macroMatch(const cptr*);
 int macroExpand(cptr*);
 int addMacro(cptr*,cptr*);

@@ -179,12 +179,6 @@ errorStatus eval(cptr* objCptr,env* curEnv)
 		}
 		else if(objCptr->type==PAR)
 		{
-			if(!macroExpand(objCptr)&&hasKeyWord(objCptr))
-			{
-				status.status=SYNTAXERROR;
-				status.place=objCptr;
-				return status;
-			}
 			if(isLambdaExpression(objCptr)&&(objCptr->outer==NULL||(objCptr->outer->prev!=NULL&&objCptr->outer->prev->cdr.value==objCptr->outer)))break;
 			if(objCptr->type!=PAR)continue;
 			objCptr=&(((pair*)objCptr->value)->car);

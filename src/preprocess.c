@@ -2,12 +2,12 @@
 #include"preprocess.h"
 #include"fake.h"
 #include"tool.h"
-static macro* Head=NULL;
-static masym* First=NULL;
+static macro* FirstMacro=NULL;
+static masym* FirstMasym=NULL;
 static env* MacroEnv=NULL;
 macro* macroMatch(const cptr* objCptr)
 {
-	macro* current=Head;
+	macro* current=FirstMacro;
 	while(current!=NULL&&!fmatcmp(objCptr,current->format))current=current->next;
 	return current;
 }
@@ -56,7 +56,7 @@ int addMacro(cptr* format,cptr* express)
 			}
 		}
 	}
-	macro* current=Head;
+	macro* current=FirstMacro;
 	while(current!=NULL&&!cptrcmp(format,current->format))
 		current=current->next;
 	if(current==NULL)
@@ -64,8 +64,8 @@ int addMacro(cptr* format,cptr* express)
 		if(!(current=(macro*)malloc(sizeof(macro))))errors(OUTOFMEMORY);
 		current->format=format;
 		current->express=express;
-		current->next=Head;
-		Head=current;
+		current->next=FirstMacro;
+		FirstMacro=current;
 	}
 	else
 		current->express=express;
@@ -75,7 +75,7 @@ int addMacro(cptr* format,cptr* express)
 
 masym* findMasym(const char* name)
 {
-	masym* current=First;
+	masym* current=FirstMasym;
 	const char* anotherName=hasAnotherName(name);
 	int len=(anotherName==NULL)?strlen(name):(anotherName-name-1);
 	while(current!=NULL&&memcmp(current->symName,name,len))current=current->next;
@@ -222,8 +222,8 @@ void addRule(const char* name,int (*obj)(const cptr*,const cptr*,const char*,env
 	masym* current=NULL;
 	if(!(current=(masym*)malloc(sizeof(masym))))errors(OUTOFMEMORY);
 	if(!(current->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY);
-	current->next=First;
-	First=current;
+	current->next=FirstMasym;
+	FirstMasym=current;
 	strcpy(current->symName,name);
 	current->Func=obj;
 }
@@ -384,7 +384,7 @@ int M_COLT(const cptr* oriCptr,const cptr* fmtCptr,const char* name,env* curEnv)
 
 void deleteMacro(cptr* objCptr)
 {
-	macro* current=Head;
+	macro* current=FirstMacro;
 	macro* prev=NULL;
 	while(current!=NULL&&!cptrcmp(objCptr,current->format))
 	{
@@ -393,7 +393,7 @@ void deleteMacro(cptr* objCptr)
 	}
 	if(current!=NULL)
 	{
-		if(current==Head)Head=current->next;
+		if(current==FirstMacro)FirstMacro=current->next;
 		deleteCptr(current->format);
 		deleteCptr(current->express);
 		free(current->format);

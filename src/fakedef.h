@@ -59,13 +59,19 @@ typedef struct NativeFunc//function and form
 	struct NativeFunc* next;
 }nativeFunc;
 
-typedef struct SymbolForCompiler
+typedef struct Macro
 {
-	int count;
+	cptr* format;
+	cptr* express;
+	struct Macro* next;
+}macro;
+
+typedef struct MacroSym
+{
 	char* symName;
-	cptr* obj;
-	struct SymbolForCompiler* next;
-}compSym;
+	int (*Func)(const cptr*,const cptr*,const char*,env*);
+	struct MacroSym* next;
+}masym;
 
 typedef struct ByteCode
 {
@@ -73,11 +79,32 @@ typedef struct ByteCode
 	char* code;
 }byteCode;
 
+typedef struct CompilerDefines
+{
+	int32_t count;
+	char* symName;
+	struct CompilerDefines* next;
+}compDef;
+
+typedef struct CompilerEnv
+{
+	struct CompilerEnv* prev;
+	compDef* symbols;
+}compEnv;
+
+typedef struct RawProc
+{
+	int32_t count;
+	byteCode* proc;
+	struct RawProc* next;
+}rawproc;
+
 typedef struct
 {
 	char* filename;
 	FILE* file;
-	env* glob;
 	int curline;
+	compEnv* glob;
+	rawproc* procs;
 }intpr;
 #endif

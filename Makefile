@@ -10,7 +10,7 @@ syntax.o: src/syntax.*
 	gcc -g -c src/syntax.c
 fakeLisp.o: src/fakeLisp.*
 	gcc -g -c src/fakeLisp.c
-compiler.o: src/compiler.*
+compiler.o: src/compiler.* src/opcode.h
 	gcc -g -c src/compiler.c
-fakeLisp: fakeLisp.o form.o fake.o tool.o preprocess.o syntax.o
-	gcc -g -o fakeLisp fakeLisp.o tool.o fake.o form.o preprocess.o syntax.o
+fakeLisp: fakeLisp.o form.o fake.o tool.o preprocess.o syntax.o compiler.o
+	gcc -g -o fakeLisp fakeLisp.o tool.o fake.o form.o preprocess.o syntax.o compiler.o

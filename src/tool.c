@@ -774,7 +774,7 @@ cptr* nextCptr(const cptr* objCptr)
 
 cptr* prevCptr(const cptr* objCptr)
 {
-	if(objCptr->outer->prev!=NULL)
+	if(objCptr->outer!=NULL&&objCptr->outer->prev!=NULL&&objCptr->outer->prev->cdr.value==objCptr->outer)
 		return &objCptr->outer->prev->car;
 	return NULL;
 }

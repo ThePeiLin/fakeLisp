@@ -36,7 +36,7 @@ enum opcode
 	FAKE_LT,
 	FAKE_GE,
 	FAKE_LE,
-	FAKE_LOG_NOT,
+	FAKE_NOT,
 	FAKE_JMP_IF_TURE,
 	FAKE_JMP_IF_FALSE,
 	FAKE_JMP,
@@ -81,7 +81,26 @@ static codeinfor codeName[]=
 	{"null",0},
 	{"init_proc",4},
 	{"set_bound",0},
-	{"res_bound",0}
+	{"res_bound",0},
+	{"exit",0},
+	{"open",0},
+	{"close",0},
+	{"eq",0},
+	{"ne",0},
+	{"gt",0},
+	{"lt",0},
+	{"ge",0},
+	{"le",0},
+	{"not",0},
+	{"jmp_if_ture",4},
+	{"jmp_if_false",4},
+	{"jmp",4},
+	{"in",0},
+	{"out",0},
+	{"go",0},
+	{"run",0},
+	{"send",0},
+	{"accept",0}
 };
 
 #endif

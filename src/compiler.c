@@ -149,23 +149,34 @@ byteCode* compileConst(cptr* objCptr,compEnv* curEnv,intpr* inter)
 
 byteCode* compileListForm(cptr* objCptr,compEnv* curEnv,intpr* inter)
 {
+	cptr* headoflist=NULL;
 	pair* tmpPair=objCptr->value;
-	byteCode* beFree=NULL;	
+	byteCode* beFree=NULL;
 	byteCode* tmp1=NULL;
 	byteCode* tmp=createByteCode(0);
 	byteCode* setBound=createByteCode(1);
 	byteCode* resBound=createByteCode(1);
 	setBound->code[0]=FAKE_SET_BOUND;
 	resBound->code[0]=FAKE_RES_BOUND;
-	while(objCptr!=NULL)
+	for(;;)
 	{
+		if(objCptr==NULL)
+		{
+			beFree=tmp;
+			tmp=codeCat(tmp,resBound);
+			freeByteCode(beFree);
+			if(headoflist->outer==tmpPair)break;
+			objCptr=prevCptr(&headoflist->outer->prev->car);
+			for(headoflist=&headoflist->outer->prev->car;prevCptr(headoflist)!=NULL;headoflist=prevCptr(headoflist));
+			continue;
+		}
 		if(isListForm(objCptr))
 		{
 			beFree=tmp;
 			tmp=codeCat(tmp,setBound);
 			freeByteCode(beFree);
-			for(objCptr=&((pair*)objCptr->value)->car;nextCptr(objCptr)!=NULL;objCptr=nextCptr(objCptr));
-			continue;
+			headoflist=&((pair*)objCptr->value)->car;
+			for(objCptr=headoflist;nextCptr(objCptr)!=NULL;objCptr=nextCptr(objCptr));
 		}
 		else
 		{
@@ -174,14 +185,7 @@ byteCode* compileListForm(cptr* objCptr,compEnv* curEnv,intpr* inter)
 			tmp=codeCat(tmp,tmp1);
 			freeByteCode(tmp1);
 			freeByteCode(beFree);
-		}
-		if(prevCptr(objCptr)!=NULL)objCptr=prevCptr(objCptr);
-		else
-		{
-			beFree=tmp;
-			tmp=codeCat(tmp,resBound);
-			if(objCptr->outer==tmpPair)break;
-			objCptr=prevCptr(&objCptr->outer->prev->car);
+			objCptr=prevCptr(objCptr);
 		}
 	}
 	freeByteCode(setBound);

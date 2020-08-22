@@ -80,15 +80,15 @@ int isCondExpression(const cptr* objCptr)
 		if(objCptr->type==ATM)
 		{
 			atom* tmpAtm=objCptr->value;
-			if(tmpAtm->type!=SYM||strcmp(tmpAtm->value.str,"cond"))return 0;
-			else
+			if(tmpAtm->type==SYM&&!strcmp(tmpAtm->value.str,"cond"))
 			{
 				for(objCptr=nextCptr(objCptr);objCptr!=NULL;objCptr=nextCptr(objCptr))
 					if(!isLegal(objCptr)||objCptr->type!=PAR)return 0;
+				return 1;
 			}
 		}
-		return 1;
-	}else return 0;
+	}
+	return 0;
 }
 
 int isSymbol(const cptr* objCptr)
@@ -149,7 +149,7 @@ int isLambdaExpression(const cptr* objCptr)
 
 int isListForm(const cptr* objCptr)
 {
-	if(isLegal(objCptr)&&!hasKeyWord(objCptr))return 1;
+	if(objCptr->type==PAR&&isLegal(objCptr)&&!hasKeyWord(objCptr))return 1;
 	return 0;
 }
 

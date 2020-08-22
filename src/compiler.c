@@ -551,7 +551,7 @@ void printByteCode(const byteCode* tmpCode)
 	while(i<tmpCode->size)
 	{
 		int tmplen=0;
-		printf("%s ",codeName[tmpCode->code[i]]);
+		printf("%s ",codeName[tmpCode->code[i]].codeName);
 		switch(codeName[tmpCode->code[i]].len)
 		{
 			case -1:

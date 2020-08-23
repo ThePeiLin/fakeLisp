@@ -193,12 +193,12 @@ byteCode* compileListForm(cptr* objCptr,compEnv* curEnv,intpr* inter)
 	return tmp;
 }
 
-byteCode* compileDef(cptr* objCptr,compEnv* curEnv,intpr* inter)
+byteCode* compileDef(cptr* tir,compEnv* curEnv,intpr* inter)
 {
-	pair* tmpPair=objCptr->value;
-	cptr* fir=&((pair*)objCptr->value)->car;
-	cptr* sec=nextCptr(fir);
-	cptr* tir=nextCptr(sec);
+	pair* tmpPair=tir->value;
+	cptr* fir=NULL;
+	cptr* sec=NULL;
+	cptr* objCptr=NULL;
 	byteCode* tmp=createByteCode(0);
 	byteCode* beFree=NULL;
 	byteCode* tmp1=NULL;
@@ -210,11 +210,7 @@ byteCode* compileDef(cptr* objCptr,compEnv* curEnv,intpr* inter)
 		sec=nextCptr(fir);
 		tir=nextCptr(sec);
 	}
-	beFree=tmp;
-	tmp1=compile(tir,curEnv,inter);
-	tmp=codeCat(tmp,tmp1);
-	freeByteCode(beFree);
-	freeByteCode(tmp1);	
+	objCptr=tir;
 	for(;;)
 	{
 		atom* tmpAtm=sec->value;
@@ -231,6 +227,11 @@ byteCode* compileDef(cptr* objCptr,compEnv* curEnv,intpr* inter)
 			fir=prevCptr(sec);
 		}
 	}
+	beFree=tmp;
+	tmp1=compile(objCptr,curEnv,inter);
+	tmp=codeCat(tmp1,tmp);
+	freeByteCode(beFree);
+	freeByteCode(tmp1);	
 	freeByteCode(popVar);
 	return tmp;
 }

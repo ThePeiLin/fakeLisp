@@ -1076,6 +1076,7 @@ compDef* addCompDef(compEnv* curEnv,const char* name)
 			strcpy(curDef->symName,name);
 			prevDef->next=curDef;
 			curDef->count=prevDef->count+1;
+			curDef->next=NULL;
 		}
 		return curDef;
 	}

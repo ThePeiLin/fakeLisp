@@ -3,7 +3,6 @@
 #include<string.h>
 #include<ctype.h>
 #include"fakeLisp.h"
-#include"fake.h"
 #include"tool.h"
 #include"form.h"
 #include"preprocess.h"
@@ -22,24 +21,6 @@ int main(int argc,char** argv)
 	initEvalution();
 	runIntpr(inter);
 	return 0;
-}
-
-cptr* evalution(const char* objStr,intpr* inter)
-{
-	errorStatus status={0,NULL};
-	cptr* begin=createTree(objStr,inter);
-	if(isPreprocess(begin))
-	{
-		status=eval(begin,NULL);
-		
-	
-	}
-	else
-	{
-		byteCode* tmpByteCode=compile(begin,inter->glob,inter);
-		printByteCode(tmpByteCode);
-	}
-	return begin;
 }
 
 void initEvalution()
@@ -99,7 +80,7 @@ void runIntpr(intpr* inter)
 		}
 		else
 		{
-			byteCode* tmpByteCode=compile(begin,inter->glob,inter);
+			byteCode* tmpByteCode=compile(begin,inter->glob,inter,&status);
 			printByteCode(tmpByteCode);
 			freeByteCode(tmpByteCode);
 		}

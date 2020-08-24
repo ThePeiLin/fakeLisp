@@ -2,7 +2,7 @@
 #include<string.h>
 #include"tool.h"
 #include"syntax.h"
-#include"fake.h"
+#include"preprocess.h"
 static synRule* Head=NULL;
 
 int (*checkAST(const cptr* objCptr))(const cptr*)

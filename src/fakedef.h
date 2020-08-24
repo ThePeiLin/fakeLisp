@@ -107,4 +107,10 @@ typedef struct
 	compEnv* glob;
 	rawproc* procs;
 }intpr;
+
+typedef struct KeyWord
+{
+	char* word;
+	struct KeyWord* next;
+}keyWord;
 #endif

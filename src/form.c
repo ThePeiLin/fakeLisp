@@ -1,6 +1,5 @@
 #include<stdlib.h>
 #include"tool.h"
-#include"fake.h"
 #include"form.h"
 #include"preprocess.h"
 

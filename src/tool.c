@@ -926,7 +926,7 @@ void printList(const cptr* objCptr,FILE* out)
 				if(prev==objPair->car.value)break;
 			}
 			if(objPair!=NULL)objCptr=&objPair->cdr;
-			if(objPair==tmpPair&&prev==objPair->cdr.value)break;
+			if(objPair==tmpPair&&(prev==objPair->cdr.value||prev==NULL))break;
 		}
 		if(objPair==NULL)break;
 	}

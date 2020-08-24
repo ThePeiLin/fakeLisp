@@ -17,6 +17,7 @@ int isSetqExpression(const cptr*);
 int isLambdaExpression(const cptr*);
 int isCondExpression(const cptr*);
 int isConst(const cptr*);
+int isNil(const cptr*);
 int isListForm(const cptr*);
 int isSymbol(const cptr*);
 int isAndExpression(const cptr*);

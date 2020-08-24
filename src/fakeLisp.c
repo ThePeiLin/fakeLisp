@@ -81,8 +81,21 @@ void runIntpr(intpr* inter)
 		else
 		{
 			byteCode* tmpByteCode=compile(begin,inter->glob,inter,&status);
-			printByteCode(tmpByteCode);
-			freeByteCode(tmpByteCode);
+			if(status.status!=0)
+			{
+				exError(status.place,status.status,inter);
+				deleteCptr(status.place);
+				if(inter->file!=stdin)
+				{
+					deleteCptr(begin);
+					exit(0);
+				}
+			}
+			else
+			{
+				printByteCode(tmpByteCode);
+				freeByteCode(tmpByteCode);
+			}
 		}
 		free(list);
 		list=NULL;

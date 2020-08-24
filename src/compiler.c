@@ -467,7 +467,7 @@ byteCode* compileLambda(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* 
 		if(objCptr==NULL)
 		{
 			*(int32_t*)(pushProc->code+sizeof(char))=tmpRawProc->count;
-			*(int32_t*)(initProc->code+sizeof(char))=(tmpEnv->symbols==NULL)?-1:tmpEnv->symbols->count;
+			*(int32_t*)(initProc->code+sizeof(char))=(tmpEnv->symbols==NULL)?0:tmpEnv->symbols->count;
 			byteCode* tmp1=codeCat(pushProc,initProc);
 			if(tmpRawProc->next==prevRawProc)
 			{

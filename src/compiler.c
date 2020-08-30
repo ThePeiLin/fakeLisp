@@ -601,6 +601,12 @@ byteCode* compileCond(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* st
 				freeByteCode(beFree);
 				freeByteCode(tmp2);
 			}
+			if(prevCptr(objCptr)!=NULL&&nextCptr(objCptr)!=NULL)
+			{
+				byteCode* beFree=tmp1;
+				tmp1=codeCat(tmp1,pop);
+				freeByteCode(beFree);
+			}
 			byteCode* beFree=tmpCond;
 			tmpCond=codeCat(tmp1,tmpCond);
 			freeByteCode(beFree);

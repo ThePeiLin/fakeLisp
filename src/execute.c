@@ -47,6 +47,20 @@ static int (*ByteCodes[])(executor*,excode*)=
 	B_accept
 };
 
+executor* newExecutor(byteCode* mainproc,byteCode* procs)
+{
+	executor* exe=(executor*)malloc(sizeof(executor));
+	exe->mainproc=newExCode(mainproc);
+	exe->procs=procs;
+	exe->stack=newStack(0);
+	exe->files=newFileStack();
+	return exe;
+}
+
+int RunExecute(executor* exe)
+{
+}
+
 int B_dummy(executor* exe,excode* proc)
 {
 	fprintf(stderr,"Wrong byte code!\n");
@@ -171,29 +185,35 @@ int B_push_car(executor* exe,excode* proc)
 	fakesubstack* substack=stack->values[stack->tp-1].value.obj;
 	substackvalue* tmpsubvalue=substack->values;
 	if(tmpsubvalue->type!=PAR)return 1;
+	stackvalue* topValue=getTopValue(stack);
 	if(substack->values[tmpsubvalue->value.par.car].type==PAR)
 	{
 		int32_t start=tmpsubvalue->value.par.car;
 		int32_t end=(start<tmpsubvalue->value.par.cdr)?tmpsubvalue->value.par.cdr:substack->tp;
 		fakesubstack* tmpsubstack=copyPair(substack,start,end);
 		freeSubStack(substack);
-		stack->values[stack->tp-1].value.obj=tmpsubstack;
+		topValue->value.obj=tmpsubstack;
 		return 0;
 	}
 	else
 	{
-		stack->values[stack->tp-1].type=substack->values[tmpsubvalue->value.par.car].type;
+		topValue->type=substack->values[tmpsubvalue->value.par.car].type;
 		substackvalue* tmpsubstackvalue=copySubValue(substack->values+tmpsubvalue->value.par.car);
-		if(stack->values[stack->tp-1].type==STR||stack->values[stack->tp-1].type==SYM||stack->values[stack->tp-1].type==PRC)
-			stack->values[stack->tp-1].value.obj=tmpsubstackvalue->value.obj;
-		else if(stack->values[stack->tp-1].type==CHR)
-			stack->values[stack->tp-1].value.chr=tmpsubstackvalue->value.chr;
-		else if(stack->values[stack->tp-1].type==INT)
-			stack->values[stack->tp-1].value.num=tmpsubstackvalue->value.num;
-		else if(stack->values[stack->tp-1].type==DBL)
-			stack->values[stack->tp-1].value.dbl=tmpsubstackvalue->value.dbl;
-		return 0;
+		switch(topValue->type)
+		{
+			case STR:
+			case SYM:
+			case PRC:
+				topValue->value.obj=tmpsubstackvalue->value.obj;break;
+			case CHR:
+				topValue->value.chr=tmpsubstackvalue->value.chr;break;
+			case INT:
+				topValue->value.num=tmpsubstackvalue->value.num;break;
+			case DBL:
+				topValue->value.dbl=tmpsubstackvalue->value.dbl;break;
+		}
 	}
+	return 0;
 }
 
 int B_push_cdr(executor* exe,excode* proc)
@@ -205,29 +225,35 @@ int B_push_cdr(executor* exe,excode* proc)
 	fakesubstack* substack=stack->values[stack->tp-1].value.obj;
 	substackvalue* tmpsubvalue=substack->values;
 	if(tmpsubvalue->type!=PAR)return 1;
+	stackvalue* topValue=getTopValue(stack);
 	if(substack->values[tmpsubvalue->value.par.cdr].type==PAR)
 	{
 		int32_t start=tmpsubvalue->value.par.cdr;
 		int32_t end=(start<tmpsubvalue->value.par.car)?tmpsubvalue->value.par.car:substack->tp;
 		fakesubstack* tmpsubstack=copyPair(substack,start,end);
 		freeSubStack(substack);
-		stack->values[stack->tp-1].value.obj=tmpsubstack;
+		topValue->value.obj=tmpsubstack;
 		return 0;
 	}
 	else
 	{
-		stack->values[stack->tp-1].type=substack->values[tmpsubvalue->value.par.cdr].type;
+		topValue->type=substack->values[tmpsubvalue->value.par.cdr].type;
 		substackvalue* tmpsubstackvalue=copySubValue(substack->values+tmpsubvalue->value.par.cdr);
-		if(stack->values[stack->tp-1].type==STR||stack->values[stack->tp-1].type==SYM||stack->values[stack->tp-1].type==PRC)
-			stack->values[stack->tp-1].value.obj=tmpsubstackvalue->value.obj;
-		else if(stack->values[stack->tp-1].type==CHR)
-			stack->values[stack->tp-1].value.chr=tmpsubstackvalue->value.chr;
-		else if(stack->values[stack->tp-1].type==INT)
-			stack->values[stack->tp-1].value.num=tmpsubstackvalue->value.num;
-		else if(stack->values[stack->tp-1].type==DBL)
-			stack->values[stack->tp-1].value.dbl=tmpsubstackvalue->value.dbl;
-		return 0;
+		switch(topValue->type)
+		{
+			case STR:
+			case SYM:
+			case PRC:
+				topValue->value.obj=tmpsubstackvalue->value.obj;break;
+			case CHR:
+				topValue->value.chr=tmpsubstackvalue->value.chr;break;
+			case INT:
+				topValue->value.num=tmpsubstackvalue->value.num;break;
+			case DBL:
+				topValue->value.dbl=tmpsubstackvalue->value.dbl;break;
+		}
 	}
+	return 0;
 }
 
 int B_push_proc(executor* exe,excode* proc)
@@ -238,7 +264,7 @@ int B_push_proc(executor* exe,excode* proc)
 	if(stack->values==NULL)errors(OUTOFMEMORY);
 	stack->size+=64;
 	stack->values[stack->tp].type=PRC;
-	stack->values[stack->tp].value.obj=newExcode(exe->procs[countOfProc]);
+	stack->values[stack->tp].value.obj=newExcode(exe->procs+countOfProc);
 	stack->tp+=1;
 	proc->cp+=5;
 	return 0;
@@ -251,14 +277,101 @@ int B_pop(executor* exe,excode* proc)
 	if(stack->size-(stack->tp-1)>64)stack->values=(stackvalue*)realloc(stack->values,sizeof(stackvalue)*(stack->size-64));
 	if(stack->values==NULL)errors(OUTOFMEMORY);
 	stack->size-=64;
-	switch(stack->values[stack->tp-1].type)
+	stackvalue* topValue=getTopValue(stack);
+	switch(topValue->type)
 	{
-		case PAR:freeSubStack(stack->values[stack->tp-1].value.obj);break;
+		case PAR:freesubstack(topValue->value.obj);break;
 		case STR:
-		case SYM:freeSubStack(stack->values[stack->tp-1].value.obj);break;
+		case SYM:free(topValue->value.obj);break;
 	}
 	stack->tp-=1;
 	proc->cp+=1;
+	return 0;
+}
+
+int B_pop_var(executor* exe,excode* proc)
+{
+	fakestack* stack=exe->stack;
+	if(stack->size-(stack->tp-1)>64)stack->values=(stackvalue*)realloc(stack->values,sizeof(stackvalue)*(stack->size-64));
+	if(stack->values==NULL)errors(OUTOFMEMORY);
+	stack->size-=64;
+	int32_t countOfVar=*(int32_t*)(proc->code+proc->cp+1);
+	varstack* curEnv=proc->localenv;
+	while(countOfVar<curEnv->bound)curEnv=curEnv->prev;
+	stackvalue* tmpValue=curEnv->values+countOfVar-(curEnv->bound);
+	stackvalue* topValue=getTopValue(stack);
+	switch(topValue->type)
+	{
+		case PAR:
+			tmpValue->type=PAR;
+			freeSubStack(tmpValue->value.obj);
+			tmpValue->value.obj=copyPair(topValue->value.obj,0,((fakesubstack*)topValue->value.obj)->tp);
+			freeSubStack(topValue->value.obj);
+			break;
+		case STR:
+		case SYM:
+			tmpValue->type=topValue->type;
+			free(tmpValue->value.obj);
+			tmpValue->value.obj=copyStr(topValue->value.obj);
+			free(topValue->value.obj);
+			break;
+		case PRC:
+			tmpValue->type=topValue->type;
+			((excode*)tmpValue->value.obj)->refcount-=1;
+			tmpValue->value=topValue->value;
+			break;
+		default:
+			tmpValue->type=topValue->type;
+			tmpValue->value=topValue->value;
+			break;
+	}
+	stack->tp-=1;
+	proc->cp+=5;
+	return 0;
+}
+
+int B_pop_rest_var(executor* exe,excode* proc)
+{
+	fakestack* stack=exe->stack;
+	int32_t size=0;
+	int32_t tmpTp=stack->tp;
+	for(;tmpTp>stack->bp;tmpTp--)
+	{
+		stackvalue* tmpValue=getValue(stack,stack->tp);
+		if(tmpValue->type!=PAR)size+=1;
+		else
+			size+=((fakesubstack*)tmpValue->value.obj)->size;
+	}
+	fakesubstack* substack=newSubStack(size);
+	int32_t prevPair=-1;
+	while(stack->tp>stack->bp)
+	{
+		stackvalue* topValue=getTopValue(stack);
+		prevPair=writeWithPair(topValue,substack,prevPair);
+		switch(topValue->type)
+		{
+			case PAR:freesubstack(topValue->value.obj);break;
+			case STR:
+			case SYM:free(topValue->value.obj);break;
+		}
+		stack->tp-=1;
+		if(stack->size-(stack->tp-1)>64)stack->values=(stackvalue*)realloc(stack->values,sizeof(stackvalue)*(stack->size-64));
+		if(stack->values==NULL)errors(OUTOFMEMORY);
+		stack->size-=64;
+	}
+	int32_t countOfVar=*(int32_t*)(proc->code+proc->cp+1);
+	while(countOfVar<curEnv->bound)curEnv=curEnv->prev;
+	stackvalue* tmpValue=curEnv->values+countOfVar-(curEnv->bound);
+	switch(tmpValue->type)
+	{
+		case PAR:freeSubStack(tmpValue->value.obj);break;
+		case PRC:((excode*)tmpValue->value.obj)->refcount-=1;break;
+		case STR:
+		case SYM:free(tmpValue->value.obj);break;
+	}
+	tmpValue->type=PAR;
+	tmpValue->value.obj=substack;
+	proc->cp+=5;
 	return 0;
 }
 
@@ -327,6 +440,7 @@ stackvalue* copyValue(stackvalue* obj)
 
 fakesubstack* copyPair(fakesubstack* obj,int32_t start,int32_t end)
 {
+	if(end==-1)end=obj->tp;
 	fakesubstack* tmp=newSubStack(end-start);
 	while(tmp->tp<tmp->size)
 	{
@@ -349,4 +463,72 @@ excode* newExcode(byteCode* proc)
 	tmp->size=proc->size;
 	tmp->code=proc->code;
 	return tmp;
+}
+
+char* copyStr(const char* str)
+{
+	char* tmp=(char*)malloc(sizeof(char)*(strlen(str)+1));
+	if(tmp==NULL)errors(OUTOFMEMORY);
+	strcpy(tmp,str);
+	return tmp;
+}
+
+stackvalue* getTopValue(fakestack* stack)
+{
+	return stack->values+stack->tp-1;
+}
+
+stackvalue* getValue(fakestack* stack,int32_t place)
+{
+	return stack->values+place;
+}
+
+substackvalue* getSubValue(fakesubstack* substack,int32_t place)
+{
+	return substack->values+place;
+}
+
+int32_t writeWithPair(stackvalue* obj,fakesubstack* substack,int32_t prev)
+{
+	int32_t newPrev=substack->tp;
+	if(prev!=-1)
+	{
+		substackvalue* prevPair=getSubValue(substack,prev);
+		prevPair->value.par.cdr=substack->tp;
+	}
+	substackvalue* newPair=getSubValue(substack,substack->tp);
+	substack->tp+=1;
+	newPair->value.par.car=substack->tp;
+	newPair->value.par.cdr=0;
+	substackvalue* tmpValue=getSubValue(substack,substack->tp);
+	tmpValue->type=obj->type;
+	switch(obj->type)
+	{
+		case STR:
+		case SYM:
+			tmpValue->value.obj=copyStr(obj->value.obj);
+			substack->tp+=1;
+			break;
+		case INT:
+			tmpValue->value.num=obj->value.num;
+			substack->tp+=1;
+			break;
+		case DBL:
+			tmpValue->value.dbl=obj->value.dbl;
+			substack->tp+=1;
+			break;
+		case CHR:
+			tmpValue->value.chr=obj->value.chr;
+			substack->tp+=1;
+			break;
+		case PRC:
+			tmpValue->value.obj=obj->value.obj;
+			substack->tp+=1;
+			break;
+		case PAR:
+			memcpy(tmpValue,copyPair(obj->value.obj,0,-1),((fakesubstack*)obj->value.obj)->size*sizeof(substackvalue));
+			substack->tp+=((fakesubstack*)obj->value.obj)->size;
+			break;
+	}
+	return newPrev;
 }

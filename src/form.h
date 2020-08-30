@@ -4,7 +4,7 @@
 static cptr** dealArg(cptr*,int);
 static int coutArg(cptr*);
 static void deleteArg(cptr**,int);
-static int isNil(cptr*);
+static int isFalse(const cptr*);
 errorStatus N_quote(cptr*,env*);
 errorStatus N_car(cptr*,env*);
 errorStatus N_cdr(cptr*,env*);

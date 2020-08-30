@@ -5,11 +5,14 @@
 #include<stdint.h>
 #define SYMUNDEFINE 1
 #define SYNTAXERROR 2
+
+typedef enum{NIL,SYM,STR,INT,CHR,DBL,PAR,PRC,ATM} valueType;
+
 typedef struct
 {
 	struct Pair* outer;
 	int curline;
-	enum {NIL,PAR,ATM} type;
+	valueType type;
 	void* value;
 }cptr;
 
@@ -22,7 +25,7 @@ typedef struct Pair
 typedef struct Atom
 {
 	pair* prev;
-	enum{SYM=1,INT,CHR,DBL,STR} type;
+	valueType type;
 	union
 	{
 		char* str;

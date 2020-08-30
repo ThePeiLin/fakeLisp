@@ -64,7 +64,7 @@ void deleteArg(cptr** args,int num)
 	free(args);
 }
 
-int isNil(cptr* objCptr)
+int isFalse(const cptr* objCptr)
 {
 	if(objCptr->type==NIL)return 1;
 	else if(objCptr->type==PAR)
@@ -289,7 +289,7 @@ errorStatus N_and(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	if(isNil(args[0])||isNil(args[1]))
+	if(isFalse(args[0])||isFalse(args[1]))
 	{
 		objCptr->type=NIL;
 		objCptr->value=NULL;
@@ -322,7 +322,7 @@ errorStatus N_or(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	if(isNil(args[0])&&isNil(args[1]))
+	if(isFalse(args[0])&&isFalse(args[1]))
 	{
 		objCptr->type=NIL;
 		objCptr->value=NULL;
@@ -349,7 +349,7 @@ errorStatus N_not(cptr* objCptr,env* curEnv)
 		deleteArg(args,1);
 		return status;
 	}
-	if(isNil(args[0]))
+	if(isFalse(args[0]))
 	{
 		atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
 		objCptr->type=ATM;

@@ -4,32 +4,6 @@
 
 typedef struct
 {
-	int32_t car;
-	int32_t cdr;
-}subpair;
-
-typedef struct
-{
-	valueType type;
-	union
-	{
-		void* obj;
-		int32_t num;
-		char chr;
-		double dbl;
-		subpair par;
-	}value;
-}substackvalue;
-
-typedef struct
-{
-	int32_t tp;
-	uint32_t size;
-	substackvalue* values;
-}fakesubstack;
-
-typedef struct
-{
 	valueType type;
 	union
 	{
@@ -39,6 +13,12 @@ typedef struct
 		double dbl;
 	}value;
 }stackvalue;
+
+typedef struct
+{
+	stackvalue* car;
+	stackvalue* cdr;
+}fakepair;
 
 typedef struct VarStack
 {
@@ -67,18 +47,6 @@ typedef struct
 	uint32_t size;
 	stackvalue* values;
 }fakestack;
-
-typedef struct
-{
-	int count;
-	char* name;
-}subSymbol;
-
-typedef struct SymbolList
-{
-	int size;
-	subSymbol* symbols;
-}symlist;
 
 typedef struct
 {
@@ -142,18 +110,14 @@ int B_send(executor*,excode*);
 int B_accept(executor*,excode*);
 static fakestack* newStack(uint32_t);
 static filestack* newFileStack();
-static fakesubstack* newSubStack(uint32_t);
 static excode* newExcode(byteCode*);
 static stackvalue* copyValue(stackvalue*);
 static stackvalue* getTopValue(fakestack*);
 static stackvalue* getValue(fakestack*,int32_t);
-static substackvalue* getSubValue(fakesubstack*,int32_t);
-static substackvalue* getTopSubValue(fakesubstack*,int32_t);
-static substackvalue* copySubValue(substackvalue*);
-static int32_t writeWithPair(stackvalue*,fakesubstack*,int32_t);
 static char* copyStr(const char*);
-static void freeSubStackValue(substackvalue*);
+static void freeExcode(excode*);
+static void clearStack(fakestack*,int32_t,int32_t);
 static void freeStackValue(stackvalue*);
-static void freeSubStack(fakesubstack*);
-static fakesubstack* copyPair(fakesubstack*,int32_t,int32_t);
+static fakepair* copyPair(const fakepair*);
+static fakepair* newFakePair(stackvalue*,stackvalue*);
 #endif

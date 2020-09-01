@@ -172,6 +172,38 @@ int B_push_var(executor* exe,excode* proc)
 	return 0;
 }
 
+int B_push_car(executor* exe,excode* proc)
+{
+	fakestack* stack=exe->stack;
+	stackvalue* objValue=getTopValue(stack);
+	if(objValue->type!=PAR)return 1;
+	else
+	{
+		stackvalue* tmpValue=copyValue(getCar(objValue));
+		stack->values[stack->tp-1]=*tmpValue;
+		free(tmpValue);
+		clearStackValue(objValue);
+	}
+	proc->cp+=1;
+	return 0;
+}
+
+int B_push_cdr(executor* exe,excode* proc)
+{
+	fakestack* stack=exe->stack;
+	stackvalue* objValue=getTopValue(stack);
+	if(objValue->type!=PAR)return 1;
+	else
+	{
+		stackvalue* tmpValue=copyValue(getCdr(objValue));
+		stack->values[stack->tp-1]=*tmpValue;
+		free(tmpValue);
+		clearStackValue(objValue);
+	}
+	proc->cp+=1;
+	return 0;
+}
+
 int B_push_proc(executor* exe,excode* proc)
 {
 	fakestack* stack=exe->stack;
@@ -184,7 +216,33 @@ int B_push_proc(executor* exe,excode* proc)
 	stack->tp+=1;
 	proc->cp+=5;
 	return 0;
+}
 
+int B_pop(executor* exe,excode* proc)
+{
+	fakestack* stack=exe->stack;
+	clearStackValue(getTopValue(stack));
+	stack->tp-=1;
+	if(stack->size-stack->tp>64)stack->values=(stackvalue*)realloc(stack->values,sizeof(stackvalue)*(stack->size-64));
+	if(stack->values==NULL)errors(OUTOFMEMORY);
+	stack->size-=64;
+	proc->cp+=1;
+	return 0;
+}
+
+int B_pop_var(executor* exe,excode* proc)
+{
+	fakestack* stack=exe->stack;
+	int32_t countOfVar=*(int32_t*)(proc->code+proc->cp+1);
+	varstack* curEnv=proc->localenv;
+	while(countOfVar<curEnv->bound)curEnv=curEnv->prev;
+	stackvalue* tmpValue=curEnv->values+countOfVar-(curEnv->bound);
+	*tmpValue=*getTopValue(stack);
+	stack->tp-=1;
+	if(stack->size-stack->tp>64)stack->values=(stackvalue*)realloc(stack->values,sizeof(stackvalue)*(stack->size-64));
+	if(stack->values==NULL)errors(OUTOFMEMORY);
+	stack->size-=64;
+	proc->cp+=5;
 }
 
 excode* newExcode(byteCode* proc)
@@ -216,4 +274,16 @@ stackvalue* getTopValue(fakestack* stack)
 stackvalue* getValue(fakestack* stack,int32_t place)
 {
 	return stack->values+place;
+}
+
+stackvalue* getCar(stackvalue* obj)
+{
+	if(obj->type!=PAR)return NULL;
+	else return ((fakepair*)obj->value.obj)->car;
+}
+
+stackvalue* getCdr(stackvalue* obj)
+{
+	if(obj->type!=PAR)return NULL;
+	else return ((fakepair*)obj->value.obj)->cdr;
 }

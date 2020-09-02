@@ -64,8 +64,8 @@ typedef struct
 	filestack* files;
 }fakeVM;
 
-int RunExecute(fakeVM*);
-fakeVM* newExecutor(byteCode*,byteCode*);
+int RunFakeVM(fakeVM*);
+fakeVM* newFakeVM(byteCode*,byteCode*);
 int B_dummy(fakeVM*,excode*);
 int B_push_nil(fakeVM*,excode*);
 int B_push_pair(fakeVM*,excode*);
@@ -77,6 +77,7 @@ int B_push_sym(fakeVM*,excode*);
 int B_push_var(fakeVM*,excode*);
 int B_push_car(fakeVM*,excode*);
 int B_push_cdr(fakeVM*,excode*);
+int B_push_top(fakeVM*,excode*);
 int B_push_proc(fakeVM*,excode*);
 int B_pop(fakeVM*,excode*);
 int B_pop_var(fakeVM*,excode*);
@@ -123,6 +124,4 @@ static stackvalue* getCdr(stackvalue*);
 static char* copyStr(const char*);
 static void freeExcode(excode*);
 static void freeStackValue(stackvalue*);
-static fakepair* copyPair(const fakepair*);
-static fakepair* newFakePair(stackvalue*,stackvalue*);
 #endif

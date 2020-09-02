@@ -1,7 +1,7 @@
 # fakeLisp
 This is a simple LISP interpreter.  
 The grammer of command that can be run by This interpreter like scheme Lisp but it's not lisp,so I call it fakeLisp.  
-This interpreter only can't compile a whole file,but it can compile expressions that you input with console.  
+This interpreter only can't compile a whole file,but it can compile expressions that you input in console.  
 The "defmacro" key word is able to use,and some special form is also able to use in expanding macro.   
 
 

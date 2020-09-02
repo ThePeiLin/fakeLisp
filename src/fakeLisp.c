@@ -46,6 +46,8 @@ void initEvalution()
 	addFunc("mul",N_mul);
 	addFunc("div",N_div);
 	addFunc("mod",N_mod);
+	addFunc("append",N_append);
+	addFunc("extend",N_extend);
 //	addFunc("print",N_print);
 	initPreprocess();
 }
@@ -96,6 +98,8 @@ void runIntpr(intpr* inter)
 				printByteCode(tmpByteCode);
 				freeByteCode(tmpByteCode);
 			}
+			printList(begin,stdout);
+			putchar('\n');
 		}
 		free(list);
 		list=NULL;

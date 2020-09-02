@@ -209,8 +209,10 @@ byteCode* compileDef(cptr* tir,compEnv* curEnv,intpr* inter,errorStatus* status)
 	byteCode* tmp=createByteCode(0);
 	byteCode* beFree=NULL;
 	byteCode* tmp1=NULL;
+	byteCode* pushTop=createByteCode(sizeof(char));
 	byteCode* popVar=createByteCode(sizeof(char)+sizeof(int32_t));
 	popVar->code[0]=FAKE_POP_VAR;
+	pushTop->code[0]=FAKE_PUSH_TOP;
 	while(isDefExpression(tir))			
 	{
 		fir=&((pair*)tir->value)->car;
@@ -224,8 +226,10 @@ byteCode* compileDef(cptr* tir,compEnv* curEnv,intpr* inter,errorStatus* status)
 		compDef* tmpDef=addCompDef(curEnv,tmpAtm->value.str);
 		*(int32_t*)(popVar->code+sizeof(char))=tmpDef->count;
 		beFree=tmp;
-		tmp=codeCat(tmp,popVar);
+		byteCode* tmp2=codeCat(pushTop,popVar);
+		tmp=codeCat(tmp,tmp2);
 		freeByteCode(beFree);
+		freeByteCode(tmp2);
 		if(fir->outer==tmpPair)break;
 		else
 		{
@@ -240,12 +244,14 @@ byteCode* compileDef(cptr* tir,compEnv* curEnv,intpr* inter,errorStatus* status)
 	{
 		freeByteCode(tmp);
 		freeByteCode(popVar);
+		freeByteCode(pushTop);
 		return NULL;
 	}
 	tmp=codeCat(tmp1,tmp);
 	freeByteCode(beFree);
 	freeByteCode(tmp1);	
 	freeByteCode(popVar);
+	freeByteCode(pushTop);
 	return tmp;
 }
 
@@ -258,8 +264,10 @@ byteCode* compileSetq(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* st
 	byteCode* tmp=createByteCode(0);
 	byteCode* beFree=NULL;
 	byteCode* tmp1=NULL;
+	byteCode* pushTop=createByteCode(sizeof(char));
 	byteCode* popVar=createByteCode(sizeof(char)+sizeof(int32_t));
 	popVar->code[0]=FAKE_POP_VAR;
+	pushTop->code[0]=FAKE_PUSH_TOP;
 	while(isSetqExpression(tir))
 	{
 		fir=&((pair*)tir->value)->car;
@@ -272,6 +280,7 @@ byteCode* compileSetq(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* st
 	{
 		freeByteCode(tmp);
 		freeByteCode(popVar);
+		freeByteCode(pushTop);
 		return NULL;
 	}
 	tmp=codeCat(tmp,tmp1);
@@ -293,14 +302,17 @@ byteCode* compileSetq(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* st
 			status->place=objCptr;
 			freeByteCode(tmp);
 			freeByteCode(popVar);
+			freeByteCode(pushTop);
 			return NULL;
 		}
 		else
 		{
 			*(int32_t*)(popVar->code+sizeof(char))=tmpDef->count;
+			byteCode* tmp2=codeCat(pushTop,popVar);
 			beFree=tmp;
-			tmp=codeCat(tmp,popVar);
+			tmp=codeCat(tmp,tmp2);
 			freeByteCode(beFree);
+			freeByteCode(tmp2);
 			if(fir->outer==tmpPair)break;
 			else
 			{
@@ -310,6 +322,7 @@ byteCode* compileSetq(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* st
 			}
 		}
 	}
+	freeByteCode(pushTop);
 	freeByteCode(popVar);
 	return tmp;
 }

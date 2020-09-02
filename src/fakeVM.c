@@ -12,6 +12,7 @@ static int (*ByteCodes[])(fakeVM*,excode*)=
 	B_push_var,
 	B_push_car,
 	B_push_cdr,
+	B_push_top,
 	B_push_proc,
 	B_pop,
 	B_pop_var,
@@ -47,7 +48,7 @@ static int (*ByteCodes[])(fakeVM*,excode*)=
 	B_accept
 };
 
-fakeVM* newExecutor(byteCode* mainproc,byteCode* procs)
+fakeVM* newFakeVM(byteCode* mainproc,byteCode* procs)
 {
 	fakeVM* exe=(fakeVM*)malloc(sizeof(fakeVM));
 	exe->mainproc=newExcode(mainproc);
@@ -55,10 +56,6 @@ fakeVM* newExecutor(byteCode* mainproc,byteCode* procs)
 	exe->stack=newStack(0);
 	exe->files=newFileStack();
 	return exe;
-}
-
-int RunExecute(fakeVM* exe)
-{
 }
 
 int B_dummy(fakeVM* exe,excode* proc)
@@ -82,7 +79,6 @@ int B_push_nil(fakeVM* exe,excode* proc)
 
 int B_push_pair(fakeVM* exe,excode* proc)
 {
-	fakepair* tmpair=newFakePair(NULL,NULL);
 	fakestack* stack=exe->stack;
 	if(stack->tp>=stack->size)stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size+64));
 	if(stack->values==NULL)errors(OUTOFMEMORY);
@@ -218,6 +214,19 @@ int B_push_cdr(fakeVM* exe,excode* proc)
 	return 0;
 }
 
+int B_push_top(fakeVM* exe,excode* proc)
+{
+	fakestack* stack=exe->stack;
+	if(stack->tp==stack->bp)return 1;
+	if(stack->tp>=stack->size)stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size+64));
+	if(stack->values==NULL)errors(OUTOFMEMORY);
+	stack->size+=64;
+	stack->values[stack->tp]=copyValue(getTopValue(stack));
+	stack->tp+=1;
+	proc->cp+=9;
+	return 0;
+}
+
 int B_push_proc(fakeVM* exe,excode* proc)
 {
 	fakestack* stack=exe->stack;
@@ -237,6 +246,7 @@ int B_pop(fakeVM* exe,excode* proc)
 {
 	fakestack* stack=exe->stack;
 	freeStackValue(getTopValue(stack));
+	stack->values[stack->tp-1]=NULL;
 	stack->tp-=1;
 	if(stack->size-stack->tp>64)
 	{
@@ -259,6 +269,7 @@ int B_pop_var(fakeVM* exe,excode* proc)
 	stackvalue** pValue=curEnv->values+countOfVar-(curEnv->bound);
 	freeStackValue(*pValue);
 	*pValue=getTopValue(stack);
+	stack->values[stack->tp-1]=NULL;
 	stack->tp-=1;
 	if(stack->size-stack->tp>64)
 	{
@@ -285,7 +296,7 @@ int B_pop_rest_var(fakeVM* exe,excode* proc)
 	for(;;)
 	{
 		stackvalue* topValue=getTopValue(stack);
-		tmp->value.par.car=topValue;
+		tmp->value.par.car=copyValue(topValue);
 		stack->tp-=1;
 		if(stack->size-stack->tp>64)
 		{
@@ -505,6 +516,70 @@ char* copyStr(const char* str)
 	if(tmp==NULL)errors(OUTOFMEMORY);
 	strcpy(tmp,str);
 	return tmp;
+}
+
+fakestack* newStack(uint32_t size)
+{
+	fakestack* tmp=(fakestack*)malloc(sizeof(fakestack));
+	if(tmp==NULL)errors(OUTOFMEMORY);
+	tmp->size=size;
+	tmp->tp=0;
+	tmp->bp=0;
+	tmp->values=(stackvalue**)calloc(size,sizeof(stackvalue*));
+	if(tmp->values==NULL)errors(OUTOFMEMORY);
+	return tmp;
+}
+
+filestack* newFileStack()
+{
+	filestack* tmp=(filestack*)malloc(sizeof(filestack));
+	if(tmp==NULL)errors(OUTOFMEMORY);
+	tmp->size=3;
+	tmp->files=(FILE**)malloc(sizeof(FILE*)*3);
+	tmp->files[0]=stdin;
+	tmp->files[1]=stdout;
+	tmp->files[2]=stderr;
+	return tmp;
+}
+
+stackvalue* newStackValue(valueType type)
+{
+	stackvalue* tmp=(stackvalue*)calloc(1,sizeof(stackvalue));
+	if(tmp==NULL)errors(OUTOFMEMORY);
+	tmp->type=type;
+	return tmp;
+}
+
+void freeStackValue(stackvalue* obj)
+{
+	if(obj->type==STR||obj->type==SYM)free(obj->value.str);
+	else if(obj->type==PRC)
+	{
+		if(obj->value.prc->refcount==0)freeExcode(obj->value.prc);
+		else obj->value.prc->refcount-=1;
+	}
+	else if(obj->type==PAR)
+	{
+		freeStackValue(obj->value.par.car);
+		freeStackValue(obj->value.par.cdr);
+	}
+	free(obj);
+}
+
+stackvalue* copyValue(stackvalue* obj)
+{
+	stackvalue* tmp=newStackValue(obj->type);
+	if(obj->type==STR||obj->type==SYM)tmp->value.str=copyStr(obj->value.str);
+	else if(obj->type==PAR)
+	{
+		tmp->value.par.car=copyValue(obj->value.par.car);
+		tmp->value.par.cdr=copyValue(obj->value.par.cdr);
+	}
+	else
+	{
+		if(obj->type==PRC)obj->value.prc->refcount+=1;
+		tmp->value=obj->value;
+	}
 }
 
 stackvalue* getTopValue(fakestack* stack)

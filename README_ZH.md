@@ -1,17 +1,16 @@
 # fakeLisp
 fakeLisp是一个用c言编写的简单的lisp解释器，由于技术原因，暂时不能解释文件，只能用控制台运行。  
 语法与lisp类似，但点对表达式中的分割符是逗号，即：(ii,uu)；  
-由于没有复合过程（其实是自己不会），所以自定义函数实际上是将一个列表与一个符号绑定；  
 自定义函数示例：  
 
 ```
-(defun gle (obj)  
+(defin gle (lambda (obj)  
        (cond ((null (cdr obj)) (car obj))  
-       (1 (gle (cdr obj)))))  
+       (1 (gle (cdr obj))))))  
 ```
 
 支持宏；  
-目前可用函数及特殊形式有：  
+目前在展开宏的表达式中可用的特殊形式有：  
 car  
 cdr  
 cons  
@@ -23,11 +22,9 @@ null
 and  
 or  
 not  
-lambda  
 list  
-defmacro  
-print  
-undef（用于取消宏的定义）  
+append
+extend  
 其中，defmacro的语法比较特殊，为：
 (defmacro 用于匹配的表达式 用于返回的表达式)  
 宏没有名字，而是通过匹配表达式来实现宏的嵌入，如：  
@@ -43,4 +40,7 @@ undef（用于取消宏的定义）
           (defun ATOM#FUNCNAME CELL#ARGS,CELL#EXPRESSION)  
           (list 'define FUNCNAME (list 'quote (cons 'lambda (cons ARGS EXPRESSION)))))  
 ```
-我应该会添加复合过程类型
+
+目前正在写字节码解释器。  
+所以目前只有宏和编译功能。  
+目前还没求值功能，应为还没有用字节码写内置复合过程。  

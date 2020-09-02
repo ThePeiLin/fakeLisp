@@ -566,7 +566,76 @@ errorStatus N_defmacro(cptr* objCptr,env* curEnv)
 	return status;
 }
 
-errorStatus N_undef(cptr* objCptr,env* curEnv)
+errorStatus N_append(cptr* objCptr,env* curEnv)
+{
+	errorStatus status={0,NULL};
+	deleteCptr(objCptr);
+	cptr** args=dealArg(&objCptr->outer->cdr,2);
+	status=eval(args[0],curEnv);
+	if(status.status!=0)
+	{
+		deleteArg(args,2);
+		return status;
+	}
+	status=eval(args[1],curEnv);
+	if(status.status!=0)
+	{
+		deleteArg(args,2);
+		return status;
+	}
+	if(args[0]->type!=PAR)
+	{
+		status.status=SYNTAXERROR;
+		status.place=newCptr(0,NULL);
+		replace(status.place,args[0]);
+		deleteArg(args,2);
+		return status;
+	}
+	cptr* tmp=&((pair*)args[0]->value)->car;
+	while(nextCptr(tmp)!=NULL)tmp=nextCptr(tmp);
+	pair* tmpPair=newPair(0,tmp->outer);
+	tmp->outer->cdr.type=PAR;
+	tmp->outer->cdr.value=tmpPair;
+	replace(&tmpPair->car,args[1]);
+	replace(objCptr,args[0]);
+	deleteArg(args,2);
+	return status;
+}
+
+errorStatus N_extend(cptr* objCptr,env* curEnv)
+{
+	errorStatus status={0,NULL};
+	deleteCptr(objCptr);
+	cptr** args=dealArg(&objCptr->outer->cdr,2);
+	status=eval(args[0],curEnv);
+	if(status.status!=0)
+	{
+		deleteArg(args,2);
+		return status;
+	}
+	status=eval(args[1],curEnv);
+	if(status.status!=0)
+	{
+		deleteArg(args,2);
+		return status;
+	}
+	if(args[0]->type!=PAR)
+	{
+		status.status=SYNTAXERROR;
+		status.place=newCptr(0,NULL);
+		replace(status.place,args[0]);
+		deleteArg(args,2);
+		return status;
+	}
+	cptr* tmp=&((pair*)args[0]->value)->car;
+	while(nextCptr(tmp)!=NULL)tmp=nextCptr(tmp);
+	replace(&tmp->outer->cdr,args[1]);
+	replace(objCptr,args[0]);
+	deleteArg(args,2);
+	return status;
+}
+
+/*errorStatus N_undef(cptr* objCptr,env* curEnv)
 {
 	errorStatus status={0,NULL};
 	deleteCptr(objCptr);
@@ -576,7 +645,7 @@ errorStatus N_undef(cptr* objCptr,env* curEnv)
 	objCptr->type=NIL;
 	objCptr->value=NULL;
 	return status;
-}
+}*/
 
 errorStatus N_add(cptr* objCptr,env* curEnv)
 {

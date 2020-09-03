@@ -29,6 +29,7 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_init_proc,
 	B_end_proc,
 	B_set_bp,
+	B_invoke,
 	B_res_bp,
 	B_open,
 	B_close,
@@ -585,7 +586,7 @@ int B_init_proc(fakeVM* exe)
 int B_end_proc(fakeVM* exe)
 {
 	excode* tmp=exe->curproc;
-	exe->curproc=tmp->prov;
+	exe->curproc=tmp->prev;
 	freeExcode(tmp);
 	return 0;
 }
@@ -593,7 +594,7 @@ int B_end_proc(fakeVM* exe)
 int B_set_bp(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
-	excode* proc=stack->curproc;
+	excode* proc=exe->curproc;
 	stackvalue* prevBp=newStackValue(INT);
 	prevBp->value.num=stack->bp;
 	stack->values[stack->tp]=prevBp;

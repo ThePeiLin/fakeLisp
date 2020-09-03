@@ -1,6 +1,6 @@
 #include"tool.c"
 #include"fakeVM.h"
-static int (*ByteCodes[])(fakeVM*,excode*)=
+static int (*ByteCodes[])(fakeVM*)=
 {
 	B_dummy,
 	B_push_nil,
@@ -52,22 +52,24 @@ fakeVM* newFakeVM(byteCode* mainproc,byteCode* procs)
 {
 	fakeVM* exe=(fakeVM*)malloc(sizeof(fakeVM));
 	exe->mainproc=newExcode(mainproc);
+	exe->curproc=exe->mainproc;
 	exe->procs=procs;
 	exe->stack=newStack(0);
 	exe->files=newFileStack();
 	return exe;
 }
 
-int B_dummy(fakeVM* exe,excode* proc)
+int B_dummy(fakeVM* exe)
 {
 	fprintf(stderr,"Wrong byte code!\n");
 	exit(EXIT_FAILURE);
 	return 1;
 }
 
-int B_push_nil(fakeVM* exe,excode* proc)
+int B_push_nil(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
 	if(stack->tp>=stack->size)stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size+64));
 	if(stack->values==NULL)errors(OUTOFMEMORY);
 	stack->size+=64;
@@ -77,9 +79,10 @@ int B_push_nil(fakeVM* exe,excode* proc)
 	return 0;
 }
 
-int B_push_pair(fakeVM* exe,excode* proc)
+int B_push_pair(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
 	if(stack->tp>=stack->size)stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size+64));
 	if(stack->values==NULL)errors(OUTOFMEMORY);
 	stack->size+=64;
@@ -92,9 +95,10 @@ int B_push_pair(fakeVM* exe,excode* proc)
 	return 0;
 }
 
-int B_push_int(fakeVM* exe,excode* proc)
+int B_push_int(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
 	if(stack->tp>=stack->size)stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size+64));
 	if(stack->values==NULL)errors(OUTOFMEMORY);
 	stack->size+=64;
@@ -106,9 +110,10 @@ int B_push_int(fakeVM* exe,excode* proc)
 	return 0;
 }
 
-int B_push_chr(fakeVM* exe,excode* proc)
+int B_push_chr(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
 	if(stack->tp>=stack->size)stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size+64));
 	if(stack->values==NULL)errors(OUTOFMEMORY);
 	stack->size+=64;
@@ -120,9 +125,10 @@ int B_push_chr(fakeVM* exe,excode* proc)
 	return 0;
 }
 
-int B_push_dbl(fakeVM* exe,excode* proc)
+int B_push_dbl(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
 	if(stack->tp>=stack->size)stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size+64));
 	if(stack->values==NULL)errors(OUTOFMEMORY);
 	stack->size+=64;
@@ -134,13 +140,14 @@ int B_push_dbl(fakeVM* exe,excode* proc)
 	return 0;
 }
 
-int B_push_str(fakeVM* exe,excode* proc)
+int B_push_str(fakeVM* exe)
 {
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
 	int len=strlen((char*)(proc->code+proc->cp+1));
 	char* tmpStr=(char*)malloc(sizeof(char)*(len+1));
 	if(tmpStr==NULL)errors(OUTOFMEMORY);
 	strcpy(tmpStr,proc->code+proc->cp+1);
-	fakestack* stack=exe->stack;
 	if(stack->tp>=stack->size)stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size+64));
 	if(stack->values==NULL)errors(OUTOFMEMORY);
 	stack->size+=64;
@@ -152,13 +159,14 @@ int B_push_str(fakeVM* exe,excode* proc)
 	return 0;
 }
 
-int B_push_sym(fakeVM* exe,excode* proc)
+int B_push_sym(fakeVM* exe)
 {
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
 	int len=strlen((char*)(proc->code+proc->cp+1));
 	char* tmpStr=(char*)malloc(sizeof(char)*(len+1));
 	if(tmpStr==NULL)errors(OUTOFMEMORY);
 	strcpy(tmpStr,proc->code+proc->cp+1);
-	fakestack* stack=exe->stack;
 	if(stack->tp>=stack->size)stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size+64));
 	if(stack->values==NULL)errors(OUTOFMEMORY);
 	stack->size+=64;
@@ -170,9 +178,10 @@ int B_push_sym(fakeVM* exe,excode* proc)
 	return 0;
 }
 
-int B_push_var(fakeVM* exe,excode* proc)
+int B_push_var(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
 	if(stack->tp>=stack->size)stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size+64));
 	if(stack->values==NULL)errors(OUTOFMEMORY);
 	stack->size+=64;
@@ -186,9 +195,10 @@ int B_push_var(fakeVM* exe,excode* proc)
 	return 0;
 }
 
-int B_push_car(fakeVM* exe,excode* proc)
+int B_push_car(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
 	stackvalue* objValue=getTopValue(stack);
 	if(objValue->type!=PAR)return 1;
 	else
@@ -200,9 +210,10 @@ int B_push_car(fakeVM* exe,excode* proc)
 	return 0;
 }
 
-int B_push_cdr(fakeVM* exe,excode* proc)
+int B_push_cdr(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
 	stackvalue* objValue=getTopValue(stack);
 	if(objValue->type!=PAR)return 1;
 	else
@@ -214,9 +225,10 @@ int B_push_cdr(fakeVM* exe,excode* proc)
 	return 0;
 }
 
-int B_push_top(fakeVM* exe,excode* proc)
+int B_push_top(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
 	if(stack->tp==stack->bp)return 1;
 	if(stack->tp>=stack->size)stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size+64));
 	if(stack->values==NULL)errors(OUTOFMEMORY);
@@ -227,9 +239,10 @@ int B_push_top(fakeVM* exe,excode* proc)
 	return 0;
 }
 
-int B_push_proc(fakeVM* exe,excode* proc)
+int B_push_proc(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
 	int32_t countOfProc=*(int32_t*)(proc->code+proc->cp+1);
 	if(stack->tp>=stack->size)stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size+64));
 	if(stack->values==NULL)errors(OUTOFMEMORY);
@@ -242,9 +255,10 @@ int B_push_proc(fakeVM* exe,excode* proc)
 	return 0;
 }
 
-int B_pop(fakeVM* exe,excode* proc)
+int B_pop(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
 	freeStackValue(getTopValue(stack));
 	stack->values[stack->tp-1]=NULL;
 	stack->tp-=1;
@@ -258,9 +272,10 @@ int B_pop(fakeVM* exe,excode* proc)
 	return 0;
 }
 
-int B_pop_var(fakeVM* exe,excode* proc)
+int B_pop_var(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
 	int32_t countOfVar=*(int32_t*)(proc->code+proc->cp+1);
 	varstack* curEnv=proc->localenv;
 	while(countOfVar<curEnv->bound)curEnv=curEnv->prev;
@@ -281,9 +296,10 @@ int B_pop_var(fakeVM* exe,excode* proc)
 	return 0;
 }
 
-int B_pop_rest_var(fakeVM* exe,excode* proc)
+int B_pop_rest_var(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
 	int32_t countOfVar=*(int32_t*)(proc->code+proc->cp+1);
 	varstack* curEnv=proc->localenv;
 	while(countOfVar<curEnv->bound)curEnv=curEnv->prev;
@@ -317,9 +333,10 @@ int B_pop_rest_var(fakeVM* exe,excode* proc)
 	return 0;
 }
 
-int B_pop_car(fakeVM* exe,excode* proc)
+int B_pop_car(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
 	stackvalue* topValue=getTopValue(stack);
 	stackvalue* objValue=getValue(stack,stack->tp-2);
 	if(objValue->type!=PAR)return 1;
@@ -337,9 +354,10 @@ int B_pop_car(fakeVM* exe,excode* proc)
 	return 0;
 }
 
-int B_pop_cdr(fakeVM* exe,excode* proc)
+int B_pop_cdr(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
 	stackvalue* topValue=getTopValue(stack);
 	stackvalue* objValue=getValue(stack,stack->tp-2);
 	if(objValue->type!=PAR)return 1;
@@ -357,9 +375,10 @@ int B_pop_cdr(fakeVM* exe,excode* proc)
 	return 0;
 }
 
-int B_add(fakeVM* exe,excode* proc)
+int B_add(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
 	stackvalue* firValue=getValue(stack,stack->tp-1);
 	stackvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
@@ -390,9 +409,10 @@ int B_add(fakeVM* exe,excode* proc)
 	return 0;
 }
 
-int B_sub(fakeVM* exe,excode* proc)
+int B_sub(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
 	stackvalue* firValue=getValue(stack,stack->tp-1);
 	stackvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
@@ -423,9 +443,10 @@ int B_sub(fakeVM* exe,excode* proc)
 	return 0;
 }
 
-int B_mul(fakeVM* exe,excode* proc)
+int B_mul(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
 	stackvalue* firValue=getValue(stack,stack->tp-1);
 	stackvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
@@ -456,9 +477,10 @@ int B_mul(fakeVM* exe,excode* proc)
 	return 0;
 }
 
-int B_div(fakeVM* exe,excode* proc)
+int B_div(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
 	stackvalue* firValue=getValue(stack,stack->tp-1);
 	stackvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
@@ -479,9 +501,10 @@ int B_div(fakeVM* exe,excode* proc)
 	return 0;
 }
 
-int B_mod(fakeVM* exe,excode* proc)
+int B_mod(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
 	stackvalue* firValue=getValue(stack,stack->tp-1);
 	stackvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
@@ -502,9 +525,10 @@ int B_mod(fakeVM* exe,excode* proc)
 	return 0;
 }
 
-int B_atom(fakeVM* exe,excode* proc)
+int B_atom(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
 	stackvalue* topValue=getTopValue(stack);
 	if(topValue==NULL||topValue->type!=PAR)
 	{
@@ -528,9 +552,10 @@ int B_atom(fakeVM* exe,excode* proc)
 	return 0;
 }
 
-int B_null(fakeVM* exe,excode* proc)
+int B_null(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
 	stackvalue* topValue=getTopValue(stack);
 	if(topValue==NULL||(topValue->type==PAR&&(topValue->value.par.car==NULL&&topValue->value.par.cdr==NULL)))
 	{
@@ -544,9 +569,10 @@ int B_null(fakeVM* exe,excode* proc)
 	return 0;
 }
 
-int B_init_proc(fakeVM* exe,excode* proc)
+int B_init_proc(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
 	stackvalue* topValue=getTopValue(stack);
 	if(topValue->type!=PRC)return 1;
 	int32_t boundOfProc=*(int32_t*)(proc->code+proc->cp+1);
@@ -555,6 +581,32 @@ int B_init_proc(fakeVM* exe,excode* proc)
 	return 0;
 
 }
+
+int B_end_proc(fakeVM* exe)
+{
+	excode* tmp=exe->curproc;
+	exe->curproc=tmp->prov;
+	freeExcode(tmp);
+	return 0;
+}
+
+int B_set_bp(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=stack->curproc;
+	stackvalue* prevBp=newStackValue(INT);
+	prevBp->value.num=stack->bp;
+	stack->values[stack->tp]=prevBp;
+	stack->tp+=1;
+	stack->bp=stack->tp;
+	proc->cp+=1;
+	return 0;
+}
+
+int B_res_bp(fakeVM* exe)
+{
+}
+
 excode* newExcode(byteCode* proc)
 {
 	excode* tmp=(excode*)malloc(sizeof(excode));

@@ -437,6 +437,7 @@ int macroExpand(cptr* objCptr)
 	macro* tmp=macroMatch(objCptr);
 	if(tmp!=NULL&&objCptr!=tmp->express)
 	{
+		addDefine("RAWEXPRESS",objCptr,MacroEnv);
 		cptr* tmpCptr=newCptr(0,NULL);
 		replace(tmpCptr,tmp->express);
 		status=eval(tmp->express,MacroEnv);
@@ -450,7 +451,7 @@ int macroExpand(cptr* objCptr)
 	return 0;
 }
 
-void initPreprocess()
+void initPreprocess(intpr* inter)
 {
 	addRule("ATOM",M_ATOM);
 	addRule("PAIR",M_PAIR);
@@ -458,7 +459,27 @@ void initPreprocess()
 	addRule("VAREPT",M_VAREPT);
 	addRule("COLT",M_COLT);
 	MacroEnv=newEnv(NULL);
-	
+	addKeyWord("define");
+	addKeyWord("setq");
+	addKeyWord("quote");
+	addKeyWord("cond");
+	addKeyWord("and");
+	addKeyWord("or");
+	addKeyWord("lambda");
+	addMacro(createTree("(define ATOM#NAME ANY#VALUE)",inter),
+			createTree("RAWEXPRESS",inter));
+	addMacro(createTree("(setq ATOM#NAME ANY#VALUE)",inter),
+			createTree("RAWEXPRESS",inter));
+	addMacro(createTree("(quote ANY#VALUE)",inter),
+			createTree("RAWEXPRESS",inter));
+	addMacro(createTree("(cond (ANY#COND,PAIR#BODY) VAREPT#ANOTHER)",inter),
+			createTree("RAWEXPRESS",inter));
+	addMacro(createTree("(and,PAIR#OTHER)",inter),
+			createTree("RAWEXPRESS",inter));
+	addMacro(createTree("(or,PAIR#OTHER)",inter),
+			createTree("RAWEXPRESS",inter));
+	addMacro(createTree("(lambda ANY#ARGS,PAIR#BODY)",inter),
+			createTree("RAWEXPRESS",inter));
 }
 void addRule(const char* name,int (*obj)(const cptr*,const cptr*,const char*,env*))
 {

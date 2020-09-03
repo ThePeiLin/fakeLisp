@@ -49,11 +49,11 @@ void initEvalution()
 	addFunc("append",N_append);
 	addFunc("extend",N_extend);
 //	addFunc("print",N_print);
-	initPreprocess();
 }
 
 void runIntpr(intpr* inter)
 {
+	initPreprocess(inter);
 	for(;;)
 	{
 		cptr* begin=NULL;

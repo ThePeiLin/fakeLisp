@@ -95,6 +95,7 @@ int B_null(fakeVM*);
 int B_init_proc(fakeVM*);
 int B_end_proc(fakeVM*);
 int B_set_bp(fakeVM*);
+int B_invoke(fakeVM*);
 int B_res_bp(fakeVM*);
 int B_open(fakeVM*);
 int B_close(fakeVM*);

@@ -386,6 +386,7 @@ int B_add(fakeVM* exe,excode* proc)
 	}
 	freeStackValue(firValue);
 	freeStackValue(secValue);
+	proc->cp+=1;
 	return 0;
 }
 
@@ -418,6 +419,7 @@ int B_sub(fakeVM* exe,excode* proc)
 	}
 	freeStackValue(firValue);
 	freeStackValue(secValue);
+	proc->cp+=1;
 	return 0;
 }
 
@@ -450,6 +452,7 @@ int B_mul(fakeVM* exe,excode* proc)
 	}
 	freeStackValue(firValue);
 	freeStackValue(secValue);
+	proc->cp+=1;
 	return 0;
 }
 
@@ -472,6 +475,7 @@ int B_div(fakeVM* exe,excode* proc)
 	stack->values[stack->tp]=tmpValue;
 	freeStackValue(firValue);
 	freeStackValue(secValue);
+	proc->cp+=1;
 	return 0;
 }
 
@@ -494,9 +498,63 @@ int B_mod(fakeVM* exe,excode* proc)
 	stack->values[stack->tp]=tmpValue;
 	freeStackValue(firValue);
 	freeStackValue(secValue);
+	proc->cp+=1;
 	return 0;
 }
 
+int B_atom(fakeVM* exe,excode* proc)
+{
+	fakestack* stack=exe->stack;
+	stackvalue* topValue=getTopValue(stack);
+	if(topValue==NULL||topValue->type!=PAR)
+	{
+		stackvalue* TRUE=newStackValue(INT);
+		TRUE->value.num=1;
+		stack->values[stack->tp-1]=TRUE;
+	}
+	else
+	{
+		if(topValue->value.par.car==NULL&&topValue->value.par.cdr==NULL)
+		{
+			stackvalue* TRUE=newStackValue(INT);
+			TRUE->value.num=1;
+			stack->values[stack->tp-1]=TRUE;
+		}
+		else
+			stack->values[stack->tp-1]=NULL;
+	}
+	freeStackValue(topValue);
+	proc->cp+=1;
+	return 0;
+}
+
+int B_null(fakeVM* exe,excode* proc)
+{
+	fakestack* stack=exe->stack;
+	stackvalue* topValue=getTopValue(stack);
+	if(topValue==NULL||(topValue->type==PAR&&(topValue->value.par.car==NULL&&topValue->value.par.cdr==NULL)))
+	{
+		stackvalue* TRUE=newStackValue(INT);
+		TRUE->value.num=1;
+		stack->values[stack->tp-1]=TRUE;
+	}
+	else stack->values[stack->tp-1]=NULL;
+	freeStackValue(topValue);
+	proc->cp+=1;
+	return 0;
+}
+
+int B_init_proc(fakeVM* exe,excode* proc)
+{
+	fakestack* stack=exe->stack;
+	stackvalue* topValue=getTopValue(stack);
+	if(topValue->type!=PRC)return 1;
+	int32_t boundOfProc=*(int32_t*)(proc->code+proc->cp+1);
+	topValue->value.prc->localenv=newVarStack(boundOfProc,1,proc->localenv);
+	proc->cp+=5;
+	return 0;
+
+}
 excode* newExcode(byteCode* proc)
 {
 	excode* tmp=(excode*)malloc(sizeof(excode));
@@ -580,6 +638,44 @@ stackvalue* copyValue(stackvalue* obj)
 		if(obj->type==PRC)obj->value.prc->refcount+=1;
 		tmp->value=obj->value;
 	}
+}
+
+void freeExcode(excode* proc)
+{
+	varstack* curEnv=proc->localenv;
+	if(curEnv->next!=NULL&&curEnv->next->prev==curEnv)
+	{
+		curEnv->inProc=0;
+		return;
+	}
+	else freeVarStack(curEnv);
+	curEnv=curEnv->prev;
+	while(curEnv!=NULL)
+	{
+		if(!curEnv->inProc)freeVarStack(curEnv);
+		curEnv=curEnv->prev;
+	}
+	free(proc);
+}
+
+varstack* newVarStack(int32_t bound,int inProc,varstack* prev)
+{
+	varstack* tmp=(varstack*)malloc(sizeof(varstack));
+	tmp->inProc=inProc;
+	tmp->bound=bound;
+	tmp->size=0;
+	tmp->values=NULL;
+	tmp->next=NULL;
+	tmp->prev=prev;
+	if(prev!=NULL)prev->next=tmp;
+	return tmp;
+}
+
+void freeVarStack(varstack* obj)
+{
+	stackvalue** tmp=obj->values;
+	for(;tmp<obj->values+obj->size;tmp++)freeStackValue(*tmp);
+	free(obj);
 }
 
 stackvalue* getTopValue(fakestack* stack)

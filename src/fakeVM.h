@@ -26,7 +26,7 @@ typedef struct VarStack
 {
 	struct VarStack* prev;
 	struct VarStack* next;
-	int beBound;
+	int inProc;
 	int32_t bound;
 	uint32_t size;
 	stackvalue** values;
@@ -124,4 +124,6 @@ static stackvalue* getCdr(stackvalue*);
 static char* copyStr(const char*);
 static void freeExcode(excode*);
 static void freeStackValue(stackvalue*);
+static varstack* newVarStack(int32_t,int,varstack*);
+static void freeVarStack(varstack*);
 #endif

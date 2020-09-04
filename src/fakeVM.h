@@ -66,6 +66,7 @@ typedef struct
 }fakeVM;
 
 int RunFakeVM(fakeVM*);
+void printStackValue(stackvalue*);
 fakeVM* newFakeVM(byteCode*,byteCode*);
 int B_dummy(fakeVM*);
 int B_push_nil(fakeVM*);

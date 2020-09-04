@@ -60,6 +60,21 @@ fakeVM* newFakeVM(byteCode* mainproc,byteCode* procs)
 	return exe;
 }
 
+int runFakeVM(fakeVM* exe)
+{
+	while(exe->curproc->cp!=exe->curproc->size)
+	{
+		excode* curproc=exe->curproc;
+		switch(ByteCodes[curproc->code[curproc->cp]](exe))
+		{
+			case 1:fprintf(stderr,"Wrong arguements!\n");
+				   exit(EXIT_FAILURE);
+			case 2:fprintf(stderr,"Stack error!\n");
+				   exit(EXIT_FAILURE);
+		}
+	}
+}
+
 int B_dummy(fakeVM* exe)
 {
 	fprintf(stderr,"Wrong byte code!\n");
@@ -586,8 +601,12 @@ int B_init_proc(fakeVM* exe)
 int B_end_proc(fakeVM* exe)
 {
 	excode* tmp=exe->curproc;
+	varstack* tmpEnv=tmp->localenv;
+	freeVarStack(tmp->localenv);
+	tmp->localenv=newVarStack(tmpEnv->bound,1,tmpEnv->prev);
 	exe->curproc=tmp->prev;
-	freeExcode(tmp);
+	tmp->cp=0;
+	tmp->prev=NULL;
 	return 0;
 }
 
@@ -606,6 +625,41 @@ int B_set_bp(fakeVM* exe)
 
 int B_res_bp(fakeVM* exe)
 {
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	if(stack->tp>stack->bp)return 2;
+	stackvalue* prevBp=getTopValue(stack);
+	stack->bp=prevBp->value.num;
+	freeStackValue(prevBp);
+	stack->tp-=1;
+	if(stack->size-stack->tp>64)
+	{
+		stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size-64));
+		if(stack->values==NULL)errors(OUTOFMEMORY);
+		stack->size-=64;
+	}
+	proc->cp+=1;
+	return 0;
+}
+
+int B_invoke(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	stackvalue* tmpProc=getTopValue(stack);
+	if(tmpProc->type!=PRC)return 1;
+	tmpProc->value.prc->prev=exe->curproc;
+	exe->curproc=tmpProc->value.prc;
+	freeStackValue(tmpProc);
+	stack->tp-=1;
+	if(stack->size-stack->tp>64)
+	{
+		stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size-64));
+		if(stack->values==NULL)errors(OUTOFMEMORY);
+		stack->size-=64;
+	}
+	proc->cp+=1;
+	return 0;
 }
 
 excode* newExcode(byteCode* proc)
@@ -751,4 +805,23 @@ stackvalue* getCdr(stackvalue* obj)
 {
 	if(obj->type!=PAR)return NULL;
 	else return obj->value.par.cdr;
+}
+
+void printStackValue(stackvalue* objValue)
+{
+	switch(objValue->type)
+	{
+		case INT:printf("%d",objValue->value.num);break;
+		case DBL:printf("%lf",objValue->value.dbl);break;
+		case CHR:printRawChar(objValue->value.chr,stdout);break;
+		case SYM:printf("%s",objValue->value.str);break;
+		case STR:printRawString(objValue->value.str,stdout);break;
+		case PRC:printf("<#proc>");break;
+		case PAR:putchar('(');
+				 printStackValue(objValue->value.par.car);
+				 putchar(',');
+				 printStackValue(objValue->value.par.cdr);
+				 putchar(')');
+				 break;
+	}
 }

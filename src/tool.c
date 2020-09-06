@@ -501,6 +501,7 @@ pair* newPair(int curline,pair* prev)
 		tmp->cdr.curline=curline;
 	}
 	else errors(OUTOFMEMORY);
+	return tmp;
 }
 
 cptr* newCptr(int curline,pair* outer)
@@ -651,6 +652,7 @@ int deleteCptr(cptr* objCptr)
 			{
 				objPair=objPair->cdr.value;
 				tmpCptr=&objPair->car;
+				continue;
 			}
 			else
 			{
@@ -677,7 +679,7 @@ int deleteCptr(cptr* objCptr)
 			{
 				pair* prev=objPair;
 				objPair=objPair->prev;
-				//printf("free PAR\n");
+			//	printf("free PAR\n");
 				free(prev);
 				if(objPair==NULL||prev==tmpPair)break;
 				if(prev==objPair->car.value)
@@ -1108,7 +1110,9 @@ byteCode* createByteCode(unsigned int size)
 	byteCode* tmp=NULL;
 	if(!(tmp=(byteCode*)malloc(sizeof(byteCode))))errors(OUTOFMEMORY);
 	tmp->size=size;
-	if(!(tmp->code=(char*)calloc(size,sizeof(char*))))errors(OUTOFMEMORY);
+	if(!(tmp->code=(char*)malloc(size*sizeof(char))))errors(OUTOFMEMORY);
+	int i=0;
+	for(;i<tmp->size;i++)tmp->code[i]=0;
 	return tmp;
 }
 
@@ -1123,5 +1127,12 @@ byteCode* codeCat(const byteCode* fir,const byteCode* sec)
 	byteCode* tmp=createByteCode(fir->size+sec->size);
 	memcpy(tmp->code,fir->code,fir->size);
 	memcpy(tmp->code+fir->size,sec->code,sec->size);
+	return tmp;
+}
+
+byteCode* copyByteCode(const byteCode* obj)
+{
+	byteCode* tmp=createByteCode(obj->size);
+	memcpy(tmp->code,obj->code,obj->size);
 	return tmp;
 }

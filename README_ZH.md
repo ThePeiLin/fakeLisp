@@ -46,6 +46,5 @@ extend
           (list 'define FUNCNAME (list 'quote (cons 'lambda (cons ARGS EXPRESSION)))))  
 ```
 
-目前正在写字节码解释器。  
-所以目前只有宏和编译功能。  
-目前还没求值功能，应为还没有用字节码写内置复合过程。  
+目前还没有添加内置函数，且部分字节码还未实现。  
+依旧不能编译整个文件。  

@@ -12,7 +12,7 @@ compiler.o: src/compiler.* src/opcode.h src/fakedef.h
 	gcc -g -c src/compiler.c
 fakeVM.o: src/fakeVM.* src/fakedef.h
 	gcc -g -c src/fakeVM.c
-fakeLisp: fakeLisp.o form.o tool.o preprocess.o syntax.o compiler.o
-	gcc -g -o fakeLisp fakeLisp.o tool.o form.o preprocess.o syntax.o compiler.o
+fakeLisp: fakeLisp.o form.o tool.o preprocess.o syntax.o compiler.o fakeVM.o
+	gcc -g -o fakeLisp fakeLisp.o tool.o form.o preprocess.o syntax.o compiler.o fakeVM.o
 clean:
 	rm *.o

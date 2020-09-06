@@ -107,6 +107,7 @@ void runIntpr(intpr* inter)
 				printByteCode(tmpByteCode);
 				runFakeVM(anotherVM);
 				fakestack* stack=anotherVM->stack;
+				printf("=> ");
 				printStackValue(getTopValue(stack));
 				freeStackValue(getTopValue(stack));
 				stack->tp-=1;

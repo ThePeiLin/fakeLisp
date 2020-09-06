@@ -528,7 +528,7 @@ byteCode* compileLambda(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* 
 			if(nextCptr(objCptr)->type==PAR)
 			{
 				cptr* argCptr=&((pair*)nextCptr(objCptr)->value)->car;
-				while(argCptr!=NULL)
+				while(argCptr!=NULL&&argCptr->type!=NIL)
 				{
 					atom* tmpAtm=(argCptr->type==ATM)?argCptr->value:NULL;
 					if(argCptr->type!=ATM||tmpAtm==NULL||tmpAtm->type!=SYM)

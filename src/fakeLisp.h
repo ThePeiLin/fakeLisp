@@ -4,4 +4,5 @@
 void initEvalution();
 int isscript(const char*);
 void runIntpr(intpr*);
+byteCode* castRawproc(byteCode*,rawproc*);
 #endif

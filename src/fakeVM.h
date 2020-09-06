@@ -65,7 +65,7 @@ typedef struct
 	filestack* files;
 }fakeVM;
 
-int RunFakeVM(fakeVM*);
+int runFakeVM(fakeVM*);
 void printStackValue(stackvalue*);
 fakeVM* newFakeVM(byteCode*,byteCode*);
 int B_dummy(fakeVM*);
@@ -120,13 +120,13 @@ static filestack* newFileStack();
 static excode* newExcode(byteCode*);
 static stackvalue* copyValue(stackvalue*);
 static stackvalue* newStackValue(valueType);
-static stackvalue* getTopValue(fakestack*);
-static stackvalue* getValue(fakestack*,int32_t);
+stackvalue* getTopValue(fakestack*);
+stackvalue* getValue(fakestack*,int32_t);
 static stackvalue* getCar(stackvalue*);
 static stackvalue* getCdr(stackvalue*);
 static char* copyStr(const char*);
 static void freeExcode(excode*);
-static void freeStackValue(stackvalue*);
-static varstack* newVarStack(int32_t,int,varstack*);
+void freeStackValue(stackvalue*);
+varstack* newVarStack(int32_t,int,varstack*);
 static void freeVarStack(varstack*);
 #endif

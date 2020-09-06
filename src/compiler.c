@@ -90,7 +90,7 @@ byteCode* compilePair(cptr* objCptr)
 			objCptr=&objPair->car;
 			continue;
 		}
-		else if(objCptr->type==ATM||objCptr==NIL)
+		else if(objCptr->type==ATM||objCptr->type==NIL)
 		{
 			beFree=tmp;
 			byteCode* tmp1=(objCptr->type==ATM)?compileAtom(objCptr):compileNil();
@@ -558,10 +558,10 @@ byteCode* compileLambda(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* 
 					byteCode* beFree=tmpRawProc->proc;
 					tmpRawProc->proc=codeCat(tmpRawProc->proc,popVar);
 					freeByteCode(beFree);
-					if(nextCptr(argCptr)==NULL)
+					if(nextCptr(argCptr)==NULL&&argCptr->outer->cdr.type==ATM)
 					{
 						atom* tmpAtom1=(argCptr->outer->cdr.type==ATM)?argCptr->outer->cdr.value:NULL;
-						if(argCptr->outer->cdr.type!=NIL&&tmpAtom1!=NULL&&tmpAtom1->type!=SYM)
+						if(tmpAtom1!=NULL&&tmpAtom1->type!=SYM)
 						{
 							status->status=SYNTAXERROR;
 							status->place=tmpCptr;

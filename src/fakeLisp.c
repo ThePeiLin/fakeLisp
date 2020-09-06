@@ -8,6 +8,7 @@
 #include"preprocess.h"
 #include"syntax.h"
 #include"compiler.h"
+#include"fakeVM.h"
 
 int main(int argc,char** argv)
 {
@@ -54,9 +55,11 @@ void initEvalution()
 void runIntpr(intpr* inter)
 {
 	initPreprocess(inter);
+	fakeVM* anotherVM=newFakeVM(NULL,NULL);
+	varstack* globEnv=newVarStack(0,1,NULL);
 	for(;;)
 	{
-		cptr* begin=NULL;
+		cptr begin={NULL,0,0,NULL};
 		if(inter->file==stdin)printf(">>>");
 		char ch;
 		while(isspace(ch=getc(inter->file)))if(ch=='\n')inter->curline+=1;;
@@ -65,46 +68,71 @@ void runIntpr(intpr* inter)
 		char* list=getListFromFile(inter->file);
 		if(list==NULL)continue;
 		errorStatus status={0,NULL};
-		begin=createTree(list,inter);
-		if(isPreprocess(begin))
+		begin=*createTree(list,inter);
+		if(isPreprocess(&begin))
 		{
-			status=eval(begin,NULL);
+			status=eval(&begin,NULL);
 			if(status.status!=0)
 			{
 				exError(status.place,status.status,inter);
 				deleteCptr(status.place);
 				if(inter->file!=stdin)
 				{
-					deleteCptr(begin);
+					deleteCptr(&begin);
 					exit(0);
 				}
 			}
 		}
 		else
 		{
-			byteCode* tmpByteCode=compile(begin,inter->glob,inter,&status);
+			byteCode* tmpByteCode=compile(&begin,inter->glob,inter,&status);
 			if(status.status!=0)
 			{
 				exError(status.place,status.status,inter);
 				deleteCptr(status.place);
 				if(inter->file!=stdin)
 				{
-					deleteCptr(begin);
+					deleteCptr(&begin);
 					exit(0);
 				}
 			}
 			else
 			{
+				anotherVM->procs=castRawproc(anotherVM->procs,inter->procs);
+				anotherVM->mainproc->code=tmpByteCode->code;
+				anotherVM->mainproc->localenv=globEnv;
+				anotherVM->mainproc->size=tmpByteCode->size;
+				anotherVM->mainproc->cp=0;
+				anotherVM->curproc=anotherVM->mainproc;
 				printByteCode(tmpByteCode);
+				runFakeVM(anotherVM);
+				fakestack* stack=anotherVM->stack;
+				printStackValue(getTopValue(stack));
+				freeStackValue(getTopValue(stack));
+				stack->tp-=1;
+				putchar('\n');
 				freeByteCode(tmpByteCode);
 			}
-			printList(begin,stdout);
-			putchar('\n');
 		}
 		free(list);
 		list=NULL;
-		deleteCptr(begin);
-		free(begin);
-		begin=NULL;
+		deleteCptr(&begin);
+	}
+}
+
+byteCode* castRawproc(byteCode* prev,rawproc* procs)
+{
+	if(procs==NULL)return NULL;
+	else
+	{
+		byteCode* tmp=(byteCode*)realloc(prev,sizeof(byteCode)*(procs->count+1));
+		if(tmp==NULL)errors(OUTOFMEMORY);
+		rawproc* curRawproc=procs;
+		while(curRawproc!=NULL)
+		{
+			tmp[curRawproc->count]=*curRawproc->proc;
+			curRawproc=curRawproc->next;
+		}
+		return tmp;
 	}
 }

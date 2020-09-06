@@ -229,7 +229,7 @@ int B_push_var(fakeVM* exe)
 	}
 	int32_t countOfVar=*(int32_t*)(proc->code+proc->cp+1);
 	varstack* curEnv=proc->localenv;
-	while(countOfVar<curEnv->bound)curEnv=curEnv->prev;
+	while(curEnv->bound==-1||countOfVar<curEnv->bound)curEnv=curEnv->prev;
 	stackvalue* tmpValue=copyValue(*(curEnv->values+countOfVar-(curEnv->bound)));
 	stack->values[stack->tp]=tmpValue;
 	stack->tp+=1;
@@ -637,8 +637,10 @@ int B_end_proc(fakeVM* exe)
 {
 	excode* tmp=exe->curproc;
 	varstack* tmpEnv=tmp->localenv;
-	freeVarStack(tmp->localenv);
 	tmp->localenv=newVarStack(tmpEnv->bound,1,tmpEnv->prev);
+	tmpEnv->inProc=0;
+	freeVarStack(tmpEnv);
+	if(tmp->refcount==0)freeExcode(tmp);
 	exe->curproc=tmp->prev;
 	tmp->cp=0;
 	tmp->prev=NULL;
@@ -681,12 +683,11 @@ int B_invoke(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
 	excode* proc=exe->curproc;
-	stackvalue* tmpProc=copyValue(getTopValue(stack));
+	stackvalue* tmpProc=getTopValue(stack);
 	if(tmpProc->type!=PRC)return 1;
 	tmpProc->value.prc->prev=exe->curproc;
 	exe->curproc=tmpProc->value.prc;
 	free(tmpProc);
-	freeStackValue(getTopValue(stack));
 	stack->tp-=1;
 	if(stack->size-stack->tp>64)
 	{
@@ -803,17 +804,16 @@ stackvalue* copyValue(stackvalue* obj)
 void freeExcode(excode* proc)
 {
 	varstack* curEnv=proc->localenv;
-	if(curEnv->next!=NULL&&curEnv->next->prev==curEnv)
-	{
-		curEnv->inProc=0;
-		return;
-	}
-	else freeVarStack(curEnv);
-	curEnv=curEnv->prev;
+	varstack* prev=curEnv->prev;
+	curEnv->inProc=0;
+	if(curEnv->next==NULL||curEnv->next->prev!=curEnv)freeVarStack(curEnv);
+	curEnv=prev;
+	curEnv->next=NULL;
 	while(curEnv!=NULL)
 	{
-		if(!curEnv->inProc)freeVarStack(curEnv);
-		curEnv=curEnv->prev;
+		varstack* prev=curEnv->prev;
+		freeVarStack(curEnv);
+		curEnv=prev;
 	}
 	free(proc);
 }
@@ -833,9 +833,17 @@ varstack* newVarStack(int32_t bound,int inProc,varstack* prev)
 
 void freeVarStack(varstack* obj)
 {
-	stackvalue** tmp=obj->values;
-	for(;tmp<obj->values+obj->size;tmp++)freeStackValue(*tmp);
-	free(obj);
+	if(obj->inProc==0&&(obj->next==NULL||obj->next->prev!=obj))
+	{
+		if(obj->values!=NULL)
+		{
+			stackvalue** tmp=obj->values;
+			for(;tmp<obj->values+obj->size;tmp++)freeStackValue(*tmp);
+		}
+		if(obj->prev!=NULL)obj->prev->next=NULL;
+		free(obj);
+		//printf("free local env\n");
+	}
 }
 
 stackvalue* getTopValue(fakestack* stack)

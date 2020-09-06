@@ -327,10 +327,18 @@ int B_pop_var(fakeVM* exe)
 	int32_t countOfVar=*(int32_t*)(proc->code+proc->cp+1);
 	varstack* curEnv=proc->localenv;
 	while(countOfVar<curEnv->bound)curEnv=curEnv->prev;
-	if(countOfVar-curEnv->bound>=curEnv->size)curEnv->values=(stackvalue**)realloc(curEnv->values,sizeof(stackvalue*)*(stack->size+64));
-	curEnv->size+=64;
-	stackvalue** pValue=curEnv->values+countOfVar-(curEnv->bound);
-	freeStackValue(*pValue);
+	stackvalue** pValue=NULL;
+	if(countOfVar-curEnv->bound>=curEnv->size)
+	{
+		curEnv->values=(stackvalue**)realloc(curEnv->values,sizeof(stackvalue*)*(stack->size+1));
+		curEnv->size+=1;
+		pValue=curEnv->values+countOfVar-(curEnv->bound);
+	}
+	else 
+	{
+		pValue=curEnv->values+countOfVar-(curEnv->bound);
+		freeStackValue(*pValue);
+	}
 	if(stack->tp>stack->bp)
 	{
 		*pValue=getTopValue(stack);
@@ -354,10 +362,18 @@ int B_pop_rest_var(fakeVM* exe)
 	int32_t countOfVar=*(int32_t*)(proc->code+proc->cp+1);
 	varstack* curEnv=proc->localenv;
 	while(countOfVar<curEnv->bound)curEnv=curEnv->prev;
-	if(countOfVar-curEnv->bound>=curEnv->size)curEnv->values=(stackvalue**)realloc(curEnv->values,sizeof(stackvalue*)*(stack->size+64));
-	curEnv->size+=64;
-	stackvalue** tmpValue=curEnv->values+countOfVar-(curEnv->bound);
-	freeStackValue(*tmpValue);
+	stackvalue** tmpValue=NULL;
+	if(countOfVar-curEnv->bound>=curEnv->size)
+	{
+		curEnv->values=(stackvalue**)realloc(curEnv->values,sizeof(stackvalue*)*(stack->size+1));
+		curEnv->size+=1;
+		tmpValue=curEnv->values+countOfVar-(curEnv->bound);
+	}
+	else
+	{
+		tmpValue=curEnv->values+countOfVar-(curEnv->bound);
+		freeStackValue(*tmpValue);
+	}
 	stackvalue* obj=newStackValue(PAR);
 	stackvalue* tmp=obj;
 	for(;;)
@@ -756,7 +772,7 @@ stackvalue* newStackValue(valueType type)
 	{
 		case INT:tmp->value.num=0;break;
 		case DBL:tmp->value.dbl=0;break;
-		case CHR:tmp->value.chr='\n';break;
+		case CHR:tmp->value.chr='\0';break;
 		case SYM:
 		case STR:tmp->value.str=NULL;break;
 		case PRC:tmp->value.prc=NULL;break;

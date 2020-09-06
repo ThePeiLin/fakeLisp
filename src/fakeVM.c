@@ -331,15 +331,18 @@ int B_pop_var(fakeVM* exe)
 	curEnv->size+=64;
 	stackvalue** pValue=curEnv->values+countOfVar-(curEnv->bound);
 	freeStackValue(*pValue);
-	*pValue=getTopValue(stack);
-	stack->values[stack->tp-1]=NULL;
-	stack->tp-=1;
-	if(stack->size-stack->tp>64)
+	if(stack->tp>stack->bp)
 	{
-		stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size-64));
-		if(stack->values==NULL)errors(OUTOFMEMORY);
-		stack->size-=64;
-	}
+		*pValue=getTopValue(stack);
+		stack->values[stack->tp-1]=NULL;
+		stack->tp-=1;
+		if(stack->size-stack->tp>64)
+		{
+			stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size-64));
+			if(stack->values==NULL)errors(OUTOFMEMORY);
+			stack->size-=64;
+		}
+	}else *pValue=NULL;
 	proc->cp+=5;
 	return 0;
 }
@@ -678,11 +681,12 @@ int B_invoke(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
 	excode* proc=exe->curproc;
-	stackvalue* tmpProc=getTopValue(stack);
+	stackvalue* tmpProc=copyValue(getTopValue(stack));
 	if(tmpProc->type!=PRC)return 1;
 	tmpProc->value.prc->prev=exe->curproc;
 	exe->curproc=tmpProc->value.prc;
-	freeStackValue(tmpProc);
+	free(tmpProc);
+	freeStackValue(getTopValue(stack));
 	stack->tp-=1;
 	if(stack->size-stack->tp>64)
 	{

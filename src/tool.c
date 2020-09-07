@@ -1059,10 +1059,21 @@ compDef* addCompDef(compEnv* curEnv,const char* name)
 {
 	if(curEnv->symbols==NULL)
 	{
+		compEnv* tmpEnv=curEnv->prev;
 		if(!(curEnv->symbols=(compDef*)malloc(sizeof(compDef))))errors(OUTOFMEMORY);
 		if(!(curEnv->symbols->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY);
 		strcpy(curEnv->symbols->symName,name);
-		curEnv->symbols->count=(curEnv->prev==NULL||curEnv->prev->symbols==NULL)?0:curEnv->prev->symbols->count+1;
+		while(tmpEnv!=NULL&&tmpEnv->symbols==NULL)tmpEnv=tmpEnv->prev;
+		if(tmpEnv==NULL)
+		{
+			curEnv->symbols->count=0;
+		}
+		else
+		{
+			compDef* tmpDef=tmpEnv->symbols;
+			while(tmpDef->next!=NULL)tmpDef=tmpDef->next;
+			curEnv->symbols->count=tmpDef->count+1;
+		}
 		curEnv->symbols->next=NULL;
 		return curEnv->symbols;
 	}

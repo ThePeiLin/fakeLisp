@@ -655,7 +655,7 @@ int B_end_proc(fakeVM* exe)
 	stackvalue* tmpValue=getTopValue(stack);
 	excode* tmp=exe->curproc;
 	varstack* tmpEnv=tmp->localenv;
-	if(tmpValue->type==PRC)tmpEnv->next=tmpValue->value.prc->localenv;
+	if(tmpValue->type==PRC&&tmpValue->value.prc->localenv->prev==tmpEnv)tmpEnv->next=tmpValue->value.prc->localenv;
 	tmp->localenv=newVarStack(tmpEnv->bound,1,tmpEnv->prev);
 	tmpEnv->inProc=0;
 	freeVarStack(tmpEnv);

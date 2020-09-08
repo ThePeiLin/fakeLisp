@@ -326,7 +326,7 @@ int B_pop_var(fakeVM* exe)
 	excode* proc=exe->curproc;
 	int32_t countOfVar=*(int32_t*)(proc->code+proc->cp+1);
 	varstack* curEnv=proc->localenv;
-	while(countOfVar<curEnv->bound)curEnv=curEnv->prev;
+	while(curEnv->bound==-1||countOfVar<curEnv->bound)curEnv=curEnv->prev;
 	stackvalue** pValue=NULL;
 	if(countOfVar-curEnv->bound>=curEnv->size)
 	{
@@ -361,7 +361,7 @@ int B_pop_rest_var(fakeVM* exe)
 	excode* proc=exe->curproc;
 	int32_t countOfVar=*(int32_t*)(proc->code+proc->cp+1);
 	varstack* curEnv=proc->localenv;
-	while(countOfVar<curEnv->bound)curEnv=curEnv->prev;
+	while(curEnv->bound==-1||countOfVar<curEnv->bound)curEnv=curEnv->prev;
 	stackvalue** tmpValue=NULL;
 	if(countOfVar-curEnv->bound>=curEnv->size)
 	{
@@ -651,15 +651,22 @@ int B_init_proc(fakeVM* exe)
 
 int B_end_proc(fakeVM* exe)
 {
+	fakestack* stack=exe->stack;
+	stackvalue* tmpValue=getTopValue(stack);
 	excode* tmp=exe->curproc;
 	varstack* tmpEnv=tmp->localenv;
+	if(tmpValue->type==PRC)tmpEnv->next=tmpValue->value.prc->localenv;
 	tmp->localenv=newVarStack(tmpEnv->bound,1,tmpEnv->prev);
 	tmpEnv->inProc=0;
 	freeVarStack(tmpEnv);
-	if(tmp->refcount==0)freeExcode(tmp);
 	exe->curproc=tmp->prev;
-	tmp->cp=0;
-	tmp->prev=NULL;
+	if(tmp->refcount==0)freeExcode(tmp);
+	else
+	{
+		tmp->refcount-=1;
+		tmp->cp=0;
+		tmp->prev=NULL;
+	}
 	return 0;
 }
 
@@ -699,11 +706,12 @@ int B_invoke(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
 	excode* proc=exe->curproc;
-	stackvalue* tmpProc=getTopValue(stack);
-	if(tmpProc->type!=PRC)return 1;
-	tmpProc->value.prc->prev=exe->curproc;
-	exe->curproc=tmpProc->value.prc;
-	free(tmpProc);
+	stackvalue* tmpValue=getTopValue(stack);
+	if(tmpValue->type!=PRC)return 1;
+	excode* tmpProc=tmpValue->value.prc;
+	tmpProc->prev=exe->curproc;
+	exe->curproc=tmpProc;
+	free(tmpValue);
 	stack->tp-=1;
 	if(stack->size-stack->tp>64)
 	{
@@ -820,18 +828,18 @@ stackvalue* copyValue(stackvalue* obj)
 void freeExcode(excode* proc)
 {
 	varstack* curEnv=proc->localenv;
-	varstack* prev=curEnv->prev;
+	varstack* prev=(curEnv->prev!=NULL&&(curEnv->prev->next==NULL||curEnv->prev->next==curEnv))?curEnv->prev:NULL;
 	curEnv->inProc=0;
 	if(curEnv->next==NULL||curEnv->next->prev!=curEnv)freeVarStack(curEnv);
 	curEnv=prev;
-	curEnv->next=NULL;
 	while(curEnv!=NULL)
 	{
-		varstack* prev=curEnv->prev;
+		varstack* prev=(curEnv->prev!=NULL&&(curEnv->prev->next==NULL||curEnv->prev->next==curEnv))?curEnv->prev:NULL;
 		freeVarStack(curEnv);
 		curEnv=prev;
 	}
 	free(proc);
+	printf("Free proc!\n");
 }
 
 varstack* newVarStack(int32_t bound,int inProc,varstack* prev)
@@ -843,7 +851,6 @@ varstack* newVarStack(int32_t bound,int inProc,varstack* prev)
 	tmp->values=NULL;
 	tmp->next=NULL;
 	tmp->prev=prev;
-	if(prev!=NULL)prev->next=tmp;
 	return tmp;
 }
 
@@ -856,7 +863,7 @@ void freeVarStack(varstack* obj)
 			stackvalue** tmp=obj->values;
 			for(;tmp<obj->values+obj->size;tmp++)freeStackValue(*tmp);
 		}
-		if(obj->prev!=NULL)obj->prev->next=NULL;
+		if(obj->prev!=NULL&&obj->prev->next==obj)obj->prev->next=NULL;
 		free(obj);
 		//printf("free local env\n");
 	}

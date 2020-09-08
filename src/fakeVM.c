@@ -839,7 +839,7 @@ void freeExcode(excode* proc)
 		curEnv=prev;
 	}
 	free(proc);
-	printf("Free proc!\n");
+	//printf("Free proc!\n");
 }
 
 varstack* newVarStack(int32_t bound,int inProc,varstack* prev)

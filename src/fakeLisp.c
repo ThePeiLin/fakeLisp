@@ -59,7 +59,7 @@ void runIntpr(intpr* inter)
 	varstack* globEnv=newVarStack(0,1,NULL);
 	for(;;)
 	{
-		cptr begin={NULL,0,0,NULL};
+		cptr* begin=NULL;
 		if(inter->file==stdin)printf(">>>");
 		char ch;
 		while(isspace(ch=getc(inter->file)))if(ch=='\n')inter->curline+=1;;
@@ -68,31 +68,31 @@ void runIntpr(intpr* inter)
 		char* list=getListFromFile(inter->file);
 		if(list==NULL)continue;
 		errorStatus status={0,NULL};
-		begin=*createTree(list,inter);
-		if(isPreprocess(&begin))
+		begin=createTree(list,inter);
+		if(isPreprocess(begin))
 		{
-			status=eval(&begin,NULL);
+			status=eval(begin,NULL);
 			if(status.status!=0)
 			{
 				exError(status.place,status.status,inter);
 				deleteCptr(status.place);
 				if(inter->file!=stdin)
 				{
-					deleteCptr(&begin);
+					deleteCptr(begin);
 					exit(0);
 				}
 			}
 		}
 		else
 		{
-			byteCode* tmpByteCode=compile(&begin,inter->glob,inter,&status);
+			byteCode* tmpByteCode=compile(begin,inter->glob,inter,&status);
 			if(status.status!=0)
 			{
 				exError(status.place,status.status,inter);
 				deleteCptr(status.place);
 				if(inter->file!=stdin)
 				{
-					deleteCptr(&begin);
+					deleteCptr(begin);
 					exit(0);
 				}
 			}
@@ -117,7 +117,8 @@ void runIntpr(intpr* inter)
 		}
 		free(list);
 		list=NULL;
-		deleteCptr(&begin);
+		deleteCptr(begin);
+		free(begin);
 	}
 }
 

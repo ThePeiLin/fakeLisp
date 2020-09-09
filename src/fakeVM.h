@@ -65,7 +65,7 @@ typedef struct
 	filestack* files;
 }fakeVM;
 
-int runFakeVM(fakeVM*);
+void runFakeVM(fakeVM*);
 void printStackValue(stackvalue*);
 fakeVM* newFakeVM(byteCode*,byteCode*);
 int B_dummy(fakeVM*);

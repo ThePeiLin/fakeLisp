@@ -62,7 +62,7 @@ fakeVM* newFakeVM(byteCode* mainproc,byteCode* procs)
 	return exe;
 }
 
-int runFakeVM(fakeVM* exe)
+void runFakeVM(fakeVM* exe)
 {
 	while(exe->curproc!=NULL&&exe->curproc->cp!=exe->curproc->size)
 	{
@@ -865,7 +865,7 @@ void freeVarStack(varstack* obj)
 		}
 		if(obj->prev!=NULL&&obj->prev->next==obj)obj->prev->next=NULL;
 		free(obj);
-		//printf("free local env\n");
+		//printf("Free env!\n");
 	}
 }
 

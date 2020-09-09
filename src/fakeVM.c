@@ -166,7 +166,7 @@ int B_push_dbl(fakeVM* exe)
 		stack->size+=64;
 	}
 	stackvalue* objValue=newStackValue(DBL);
-	objValue->value.num=*(double*)(proc->code+proc->cp+1);
+	objValue->value.dbl=*(double*)(proc->code+proc->cp+1);
 	stack->values[stack->tp]=objValue;
 	stack->tp+=1;
 	proc->cp+=9;

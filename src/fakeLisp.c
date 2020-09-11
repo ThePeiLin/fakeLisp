@@ -69,56 +69,59 @@ void runIntpr(intpr* inter)
 		if(list==NULL)continue;
 		errorStatus status={0,NULL};
 		begin=createTree(list,inter);
-		if(isPreprocess(begin))
+		if(begin!=NULL)
 		{
-			status=eval(begin,NULL);
-			if(status.status!=0)
+			if(isPreprocess(begin))
 			{
-				exError(status.place,status.status,inter);
-				deleteCptr(status.place);
-				if(inter->file!=stdin)
+				status=eval(begin,NULL);
+				if(status.status!=0)
 				{
-					deleteCptr(begin);
-					exit(0);
-				}
-			}
-		}
-		else
-		{
-			byteCode* tmpByteCode=compile(begin,inter->glob,inter,&status);
-			if(status.status!=0)
-			{
-				exError(status.place,status.status,inter);
-				deleteCptr(status.place);
-				if(inter->file!=stdin)
-				{
-					deleteCptr(begin);
-					exit(0);
+					exError(status.place,status.status,inter);
+					deleteCptr(status.place);
+					if(inter->file!=stdin)
+					{
+						deleteCptr(begin);
+						exit(0);
+					}
 				}
 			}
 			else
 			{
-				anotherVM->procs=castRawproc(anotherVM->procs,inter->procs);
-				anotherVM->mainproc->code=tmpByteCode->code;
-				anotherVM->mainproc->localenv=globEnv;
-				anotherVM->mainproc->size=tmpByteCode->size;
-				anotherVM->mainproc->cp=0;
-				anotherVM->curproc=anotherVM->mainproc;
-				//printByteCode(tmpByteCode);
-				runFakeVM(anotherVM);
-				fakestack* stack=anotherVM->stack;
-				printf("=> ");
-				printStackValue(getTopValue(stack));
-				freeStackValue(getTopValue(stack));
-				stack->tp-=1;
-				putchar('\n');
-				freeByteCode(tmpByteCode);
+				byteCode* tmpByteCode=compile(begin,inter->glob,inter,&status);
+				if(status.status!=0)
+				{
+					exError(status.place,status.status,inter);
+					deleteCptr(status.place);
+					if(inter->file!=stdin)
+					{
+						deleteCptr(begin);
+						exit(0);
+					}
+				}
+				else
+				{
+					anotherVM->procs=castRawproc(anotherVM->procs,inter->procs);
+					anotherVM->mainproc->code=tmpByteCode->code;
+					anotherVM->mainproc->localenv=globEnv;
+					anotherVM->mainproc->size=tmpByteCode->size;
+					anotherVM->mainproc->cp=0;
+					anotherVM->curproc=anotherVM->mainproc;
+					//printByteCode(tmpByteCode);
+					runFakeVM(anotherVM);
+					fakestack* stack=anotherVM->stack;
+					printf("=> ");
+					printStackValue(getTopValue(stack));
+					freeStackValue(getTopValue(stack));
+					stack->tp-=1;
+					putchar('\n');
+					freeByteCode(tmpByteCode);
+				}
 			}
+			free(list);
+			list=NULL;
+			deleteCptr(begin);
+			free(begin);
 		}
-		free(list);
-		list=NULL;
-		deleteCptr(begin);
-		free(begin);
 	}
 }
 

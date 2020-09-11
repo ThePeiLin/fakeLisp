@@ -723,6 +723,10 @@ int B_invoke(fakeVM* exe)
 	return 0;
 }
 
+int B_open(fakeVM* exe)
+{
+}
+
 excode* newExcode(byteCode* proc)
 {
 	excode* tmp=(excode*)malloc(sizeof(excode));

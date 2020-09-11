@@ -683,7 +683,6 @@ byteCode* compileCond(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* st
 	byteCode* jump=createByteCode(sizeof(char)+sizeof(int32_t));
 	byteCode* pop=createByteCode(sizeof(char));
 	byteCode* tmp=createByteCode(0);
-	byteCode* tmpCond=createByteCode(0);
 	pop->code[0]=FAKE_POP;
 	pushnil->code[0]=FAKE_PUSH_NIL;
 	jumpiffalse->code[0]=FAKE_JMP_IF_FALSE;
@@ -692,6 +691,7 @@ byteCode* compileCond(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* st
 	while(prevCptr(cond)!=NULL)
 	{
 		for(objCptr=&((pair*)cond->value)->car;nextCptr(objCptr)!=NULL;objCptr=nextCptr(objCptr));
+		byteCode* tmpCond=createByteCode(0);
 		while(objCptr!=NULL)
 		{
 			byteCode* tmp1=compile(objCptr,curEnv,inter,status);

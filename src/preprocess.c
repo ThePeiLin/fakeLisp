@@ -391,7 +391,9 @@ int fmatcmp(const cptr* origin,const cptr* format)
 			}
 			else
 			{
-				M_VAREPT(&origin->outer->car,&((pair*)format->value)->car,NULL,MacroEnv);
+				cptr* tmp=&((pair*)format->value)->car;
+				atom* tmpAtm=tmp->value;
+				M_VAREPT(NULL,tmp,hasAnotherName(tmpAtm->value.str),MacroEnv);
 			}
 		}
 		else if(origin->type!=format->type)

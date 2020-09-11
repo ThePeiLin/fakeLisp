@@ -21,18 +21,20 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_pop_rest_var,
 	B_pop_car,
 	B_pop_cdr,
+	B_init_proc,
+	B_end_proc,
+	B_set_bp,
+	B_invoke,
+	B_res_bp,
+	B_jump_if_ture,
+	B_jump_if_false,
 	B_add,
 	B_sub,
 	B_mul,
 	B_div,
 	B_mod,
 	B_atom,
-	B_null,
-	B_init_proc,
-	B_end_proc,
-	B_set_bp,
-	B_invoke,
-	B_res_bp/*,
+	B_null,/*
 	B_open,
 	B_close,
 	B_eq,
@@ -41,8 +43,6 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_lt,
 	B_le,
 	B_not,
-	B_jump_if_ture,
-	B_jump_if_false,
 	B_in,
 	B_out,
 	B_go,
@@ -723,8 +723,26 @@ int B_invoke(fakeVM* exe)
 	return 0;
 }
 
-int B_open(fakeVM* exe)
+int B_jump_if_ture(fakeVM* exe)
 {
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	stackvalue* tmpValue=getTopValue(stack);
+	proc->cp+=5;
+}
+
+int B_jump_if_false(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	stackvalue* tmpValue=getTopValue(stack);
+	if(tmpValue==NULL||(tmpValue->type==PAR&&tmpValue->value.par.car==NULL&&tmpValue->value.par.cdr==NULL))
+	{
+		int32_t where=*(int32_t*)(proc->cp+sizeof(char));
+		proc->cp+=where;
+	}
+	proc->cp+=5;
+	return 0;
 }
 
 excode* newExcode(byteCode* proc)

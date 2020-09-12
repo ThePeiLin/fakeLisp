@@ -106,7 +106,7 @@ void runIntpr(intpr* inter)
 					anotherVM->mainproc->size=tmpByteCode->size;
 					anotherVM->mainproc->cp=0;
 					anotherVM->curproc=anotherVM->mainproc;
-					printByteCode(tmpByteCode);
+				//	printByteCode(tmpByteCode);
 					runFakeVM(anotherVM);
 					fakestack* stack=anotherVM->stack;
 					printf("=> ");

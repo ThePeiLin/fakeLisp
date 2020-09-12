@@ -35,9 +35,9 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_div,
 	B_mod,
 	B_atom,
-	B_null,/*
+	B_null,
 	B_open,
-	B_close,
+	B_close,/*
 	B_eq,
 	B_ne,
 	B_gt,
@@ -462,14 +462,14 @@ int B_add(fakeVM* exe)
 		double result=((firValue->type==DBL)?firValue->value.dbl:firValue->value.num)+((secValue->type==DBL)?secValue->value.dbl:secValue->value.num);
 		stackvalue* tmpValue=newStackValue(DBL);
 		tmpValue->value.dbl=result;
-		stack->values[stack->tp]=tmpValue;
+		stack->values[stack->tp-1]=tmpValue;
 	}
 	else if(firValue->type==INT&&secValue->type==INT)
 	{
 		int32_t result=firValue->value.num+secValue->value.num;
 		stackvalue* tmpValue=newStackValue(INT);
 		tmpValue->value.num=result;
-		stack->values[stack->tp]=tmpValue;
+		stack->values[stack->tp-1]=tmpValue;
 	}
 	freeStackValue(firValue);
 	freeStackValue(secValue);
@@ -493,17 +493,17 @@ int B_sub(fakeVM* exe)
 	if((firValue->type!=INT&&firValue->type!=DBL)||(secValue->type!=INT&&secValue->type!=DBL))return 1;
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
-		double result=((firValue->type==DBL)?firValue->value.dbl:firValue->value.num)-((secValue->type==DBL)?secValue->value.dbl:secValue->value.num);
+		double result=((secValue->type==DBL)?secValue->value.dbl:secValue->value.num)-((firValue->type==DBL)?firValue->value.dbl:firValue->value.num);
 		stackvalue* tmpValue=newStackValue(DBL);
 		tmpValue->value.dbl=result;
-		stack->values[stack->tp]=tmpValue;
+		stack->values[stack->tp-1]=tmpValue;
 	}
 	else if(firValue->type==INT&&secValue->type==INT)
 	{
-		int32_t result=firValue->value.num-secValue->value.num;
+		int32_t result=secValue->value.num-firValue->value.num;
 		stackvalue* tmpValue=newStackValue(INT);
 		tmpValue->value.num=result;
-		stack->values[stack->tp]=tmpValue;
+		stack->values[stack->tp-1]=tmpValue;
 	}
 	freeStackValue(firValue);
 	freeStackValue(secValue);
@@ -530,14 +530,14 @@ int B_mul(fakeVM* exe)
 		double result=((firValue->type==DBL)?firValue->value.dbl:firValue->value.num)*((secValue->type==DBL)?secValue->value.dbl:secValue->value.num);
 		stackvalue* tmpValue=newStackValue(DBL);
 		tmpValue->value.dbl=result;
-		stack->values[stack->tp]=tmpValue;
+		stack->values[stack->tp-1]=tmpValue;
 	}
 	else if(firValue->type==INT&&secValue->type==INT)
 	{
 		int32_t result=firValue->value.num*secValue->value.num;
 		stackvalue* tmpValue=newStackValue(INT);
 		tmpValue->value.num=result;
-		stack->values[stack->tp]=tmpValue;
+		stack->values[stack->tp-1]=tmpValue;
 	}
 	freeStackValue(firValue);
 	freeStackValue(secValue);
@@ -559,10 +559,10 @@ int B_div(fakeVM* exe)
 		stack->size-=64;
 	}
 	if((firValue->type!=INT&&firValue->type!=DBL)||(secValue->type!=INT&&secValue->type!=DBL))return 1;
-	double result=((firValue->type==DBL)?firValue->value.dbl:firValue->value.num)/((secValue->type==DBL)?secValue->value.dbl:secValue->value.num);
+	double result=((secValue->type==DBL)?secValue->value.dbl:secValue->value.num)/((firValue->type==DBL)?firValue->value.dbl:firValue->value.num);
 	stackvalue* tmpValue=newStackValue(DBL);
 	tmpValue->value.dbl=result;
-	stack->values[stack->tp]=tmpValue;
+	stack->values[stack->tp-1]=tmpValue;
 	freeStackValue(firValue);
 	freeStackValue(secValue);
 	proc->cp+=1;
@@ -583,10 +583,10 @@ int B_mod(fakeVM* exe)
 		stack->size-=64;
 	}
 	if((firValue->type!=INT&&firValue->type!=DBL)||(secValue->type!=INT&&secValue->type!=DBL))return 1;
-	int32_t result=((int32_t)((firValue->type==DBL)?firValue->value.dbl:firValue->value.num))%((int32_t)((secValue->type==DBL)?secValue->value.dbl:secValue->value.num));
+	int32_t result=((int32_t)((secValue->type==DBL)?secValue->value.dbl:secValue->value.num))%((int32_t)((firValue->type==DBL)?firValue->value.dbl:firValue->value.num));
 	stackvalue* tmpValue=newStackValue(INT);
 	tmpValue->value.dbl=result;
-	stack->values[stack->tp]=tmpValue;
+	stack->values[stack->tp-1]=tmpValue;
 	freeStackValue(firValue);
 	freeStackValue(secValue);
 	proc->cp+=1;
@@ -759,6 +759,64 @@ int B_jump(fakeVM* exe)
 	proc->cp+=where+5;
 	return 0;
 }
+
+int B_open(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	filestack* files=exe->files;
+	stackvalue* mode=getTopValue(stack);
+	stackValue* filename=getValue(stack,stack->tp-2);
+	stack->tp-=1;
+	if(firValue->type!=STR||secValue->type!=STR)return 1;
+	int32_t i=0;
+	FILE* file=fopen(filename->value.str,mode->value.str);
+	if(file==NULL)i=-1;
+	if(i!=-1)
+	{
+		for(;i<files->size;i++)if(files->files[i]!=NULL)break;
+		if(i==size)
+		{
+			files->files=(FILE**)realloc(files->files,sizeof(FILE*)*(files->size+1));
+			files->files[i]=file;
+		}
+		else files->files=[i]=file;
+	}
+	stackvalue* countOfFile=newStackValue(INT);
+	countOfFile->value.num=(int32_t)i;
+	stack->values[stack->tp-1]=countOfFile;
+	freeStackValue(filename);
+	freeStackValue(mode);
+	proc->cp+=1;
+	return 0;
+}
+
+int B_close(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	filestack* files=exe->files;
+	stackvalue* topValue=getTopValue(stack);
+	if(topValue->type!=INT)return 1;
+	if(topValue->value.num>files->size)return 2;
+	if(fclose(files->files[topValue->value.num])==EOF)topValue->value.num=-1;
+	else files->files[topValue->value.num]=NULL;
+	proc->cp+=1;
+	return 0;
+}
+
+int B_eq(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	stackvalue* firValue=getTopValue(stack);
+	stackvalue* secValue=getValue(stack,stack->tp-2);
+	stack->tp-=1;
+	if(stackvaluecmp(firValue,secValue))
+	{
+	}
+}
+
 excode* newExcode(byteCode* proc)
 {
 	excode* tmp=(excode*)malloc(sizeof(excode));

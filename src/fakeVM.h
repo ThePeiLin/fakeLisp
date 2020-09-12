@@ -126,6 +126,7 @@ static stackvalue* getCar(stackvalue*);
 static stackvalue* getCdr(stackvalue*);
 static char* copyStr(const char*);
 static void freeExcode(excode*);
+static int stackvaluecmp(stackvalue*,stackvalue*);
 void freeStackValue(stackvalue*);
 varstack* newVarStack(int32_t,int,varstack*);
 static void freeVarStack(varstack*);

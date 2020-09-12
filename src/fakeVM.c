@@ -28,6 +28,7 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_res_bp,
 	B_jump_if_ture,
 	B_jump_if_false,
+	B_jump,
 	B_add,
 	B_sub,
 	B_mul,
@@ -728,7 +729,13 @@ int B_jump_if_ture(fakeVM* exe)
 	fakestack* stack=exe->stack;
 	excode* proc=exe->curproc;
 	stackvalue* tmpValue=getTopValue(stack);
+	if(!(tmpValue==NULL||(tmpValue->type==PAR&&tmpValue->value.par.car==NULL&&tmpValue->value.par.cdr==NULL)))
+	{
+		int32_t where=*(int32_t*)(proc->code+proc->cp+sizeof(char));
+		proc->cp+=where;
+	}
 	proc->cp+=5;
+	return 0;
 }
 
 int B_jump_if_false(fakeVM* exe)
@@ -738,13 +745,20 @@ int B_jump_if_false(fakeVM* exe)
 	stackvalue* tmpValue=getTopValue(stack);
 	if(tmpValue==NULL||(tmpValue->type==PAR&&tmpValue->value.par.car==NULL&&tmpValue->value.par.cdr==NULL))
 	{
-		int32_t where=*(int32_t*)(proc->cp+sizeof(char));
+		int32_t where=*(int32_t*)(proc->code+proc->cp+sizeof(char));
 		proc->cp+=where;
 	}
 	proc->cp+=5;
 	return 0;
 }
 
+int B_jump(fakeVM* exe)
+{
+	excode* proc=exe->curproc;
+	int32_t where=*(int32_t*)(proc->code+proc->cp+sizeof(char));
+	proc->cp+=where+5;
+	return 0;
+}
 excode* newExcode(byteCode* proc)
 {
 	excode* tmp=(excode*)malloc(sizeof(excode));

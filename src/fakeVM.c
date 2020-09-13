@@ -39,10 +39,10 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_atom,
 	B_null,
 	B_open,
-	B_close,/*
+	B_close,
 	B_eq,
-	B_ne,
-	B_gt,
+	B_gt,/*
+	B_ge,
 	B_lt,
 	B_le,
 	B_not,
@@ -816,7 +816,50 @@ int B_eq(fakeVM* exe)
 	stack->tp-=1;
 	if(stackvaluecmp(firValue,secValue))
 	{
+		stackvalue* tmpValue=newStackValue(INT);
+		tmpValue->value.num=1;
+		stack->values[stack->tp-1]=tmpValue;
 	}
+	else stack->values[stack->tp-1]=NULL;
+	freeStackValue(firValue);
+	freeStackValue(secValue);
+	proc->cp+=1;
+	return 0;
+}
+
+int B_gt(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	stackvalue* firValue=getTopValue(stack);
+	stackvalue* secValue=getValue(stack,stack->tp-2);
+	stack->tp-=1;
+	if((firValue->type!=INT||firValue->type!=DBL)||(secValue->type!=INT||secValue->type!=DBL))return 1;
+	if(firValue->type==DBL||secValue->type==DBL)
+	{
+		double result=((secValue->type==DBL)?secValue->value.dbl:secValue->value.num)-((firValue->type==DBL)?firValue->value.dbl:firValue->value.num);
+		if(result>0)
+		{
+			stackvalue* tmpValue=newStackValue(INT);
+			tmpValue->value.num=1;
+			stack->values[stack->tp-1]=tmpValue;
+		}
+		else stack->values[stack->tp-1]=NULL;
+	}
+	else if(firValue->type==INT&&secValue->type==INT)
+	{
+		if(secValue->value.num>firValue->value.num)
+		{
+			stackvalue* tmpValue=newStackValue(INT);
+			tmpValue->value.num=1;
+			stack->values[stack->tp-1]=tmpValue;
+		}
+		else stack->values[stack->tp-1]=NULL;
+	}
+	freeStackValue(firValue);
+	freeStackValue(secValue);
+	proc->cp+=1;
+	return 0;
 }
 
 excode* newExcode(byteCode* proc)

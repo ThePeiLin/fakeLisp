@@ -1,6 +1,8 @@
 #include"tool.h"
 #include"fakeVM.h"
 #include<string.h>
+#include<math.h>
+
 static int (*ByteCodes[])(fakeVM*)=
 {
 	B_dummy,
@@ -766,21 +768,21 @@ int B_open(fakeVM* exe)
 	excode* proc=exe->curproc;
 	filestack* files=exe->files;
 	stackvalue* mode=getTopValue(stack);
-	stackValue* filename=getValue(stack,stack->tp-2);
+	stackvalue* filename=getValue(stack,stack->tp-2);
 	stack->tp-=1;
-	if(firValue->type!=STR||secValue->type!=STR)return 1;
+	if(filename->type!=STR||mode->type!=STR)return 1;
 	int32_t i=0;
 	FILE* file=fopen(filename->value.str,mode->value.str);
 	if(file==NULL)i=-1;
 	if(i!=-1)
 	{
 		for(;i<files->size;i++)if(files->files[i]!=NULL)break;
-		if(i==size)
+		if(i==files->size)
 		{
 			files->files=(FILE**)realloc(files->files,sizeof(FILE*)*(files->size+1));
 			files->files[i]=file;
 		}
-		else files->files=[i]=file;
+		else files->files[i]=file;
 	}
 	stackvalue* countOfFile=newStackValue(INT);
 	countOfFile->value.num=(int32_t)i;
@@ -1007,5 +1009,25 @@ void printStackValue(stackvalue* objValue)
 				 putchar(')');
 				 break;
 		default:printf("Bad value!");break;
+	}
+}
+
+int stackvaluecmp(stackvalue* fir,stackvalue* sec)
+{
+	if(fir==NULL&&sec==NULL)return 1;
+	else if(fir!=sec&&(fir!=NULL||sec!=NULL))return 0;
+	if(fir->type!=sec->type)return 0;
+	else
+	{
+		switch(fir->type)
+		{
+			case INT:return fir->value.num==sec->value.num;
+			case CHR:return fir->value.chr==sec->value.chr;
+			case DBL:return fabs(fir->value.dbl-sec->value.dbl)==0;
+			case STR:
+			case SYM:return !strcmp(fir->value.str,sec->value.str);
+			case PRC:return fir->value.prc==sec->value.prc;
+			case PAR:return stackvaluecmp(fir->value.par.car,sec->value.par.car)&&stackvaluecmp(fir->value.par.cdr,sec->value.par.cdr);
+		}
 	}
 }

@@ -41,11 +41,11 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_open,
 	B_close,
 	B_eq,
-	B_gt,/*
+	B_gt,
 	B_ge,
 	B_lt,
 	B_le,
-	B_not,
+	B_not,/*
 	B_in,
 	B_out,
 	B_go,
@@ -859,6 +859,132 @@ int B_gt(fakeVM* exe)
 	freeStackValue(firValue);
 	freeStackValue(secValue);
 	proc->cp+=1;
+	return 0;
+}
+
+int B_ge(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	stackvalue* firValue=getTopValue(stack);
+	stackvalue* secValue=getValue(stack,stack->tp-2);
+	stack->tp-=1;
+	if((firValue->type!=INT||firValue->type!=DBL)||(secValue->type!=INT||secValue->type!=DBL))return 1;
+	if(firValue->type==DBL||secValue->type==DBL)
+	{
+		double result=((secValue->type==DBL)?secValue->value.dbl:secValue->value.num)-((firValue->type==DBL)?firValue->value.dbl:firValue->value.num);
+		if(result>=0)
+		{
+			stackvalue* tmpValue=newStackValue(INT);
+			tmpValue->value.num=1;
+			stack->values[stack->tp-1]=tmpValue;
+		}
+		else stack->values[stack->tp-1]=NULL;
+	}
+	else if(firValue->type==INT&&secValue->type==INT)
+	{
+		if(secValue->value.num>=firValue->value.num)
+		{
+			stackvalue* tmpValue=newStackValue(INT);
+			tmpValue->value.num=1;
+			stack->values[stack->tp-1]=tmpValue;
+		}
+		else stack->values[stack->tp-1]=NULL;
+	}
+	freeStackValue(firValue);
+	freeStackValue(secValue);
+	proc->cp+=1;
+	return 0;
+}
+
+int B_lt(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	stackvalue* firValue=getTopValue(stack);
+	stackvalue* secValue=getValue(stack,stack->tp-2);
+	stack->tp-=1;
+	if((firValue->type!=INT||firValue->type!=DBL)||(secValue->type!=INT||secValue->type!=DBL))return 1;
+	if(firValue->type==DBL||secValue->type==DBL)
+	{
+		double result=((secValue->type==DBL)?secValue->value.dbl:secValue->value.num)-((firValue->type==DBL)?firValue->value.dbl:firValue->value.num);
+		if(result<0)
+		{
+			stackvalue* tmpValue=newStackValue(INT);
+			tmpValue->value.num=1;
+			stack->values[stack->tp-1]=tmpValue;
+		}
+		else stack->values[stack->tp-1]=NULL;
+	}
+	else if(firValue->type==INT&&secValue->type==INT)
+	{
+		if(secValue->value.num<firValue->value.num)
+		{
+			stackvalue* tmpValue=newStackValue(INT);
+			tmpValue->value.num=1;
+			stack->values[stack->tp-1]=tmpValue;
+		}
+		else stack->values[stack->tp-1]=NULL;
+	}
+	freeStackValue(firValue);
+	freeStackValue(secValue);
+	proc->cp+=1;
+	return 0;
+}
+
+int B_le(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	stackvalue* firValue=getTopValue(stack);
+	stackvalue* secValue=getValue(stack,stack->tp-2);
+	stack->tp-=1;
+	if((firValue->type!=INT||firValue->type!=DBL)||(secValue->type!=INT||secValue->type!=DBL))return 1;
+	if(firValue->type==DBL||secValue->type==DBL)
+	{
+		double result=((secValue->type==DBL)?secValue->value.dbl:secValue->value.num)-((firValue->type==DBL)?firValue->value.dbl:firValue->value.num);
+		if(result<=0)
+		{
+			stackvalue* tmpValue=newStackValue(INT);
+			tmpValue->value.num=1;
+			stack->values[stack->tp-1]=tmpValue;
+		}
+		else stack->values[stack->tp-1]=NULL;
+	}
+	else if(firValue->type==INT&&secValue->type==INT)
+	{
+		if(secValue->value.num<=firValue->value.num)
+		{
+			stackvalue* tmpValue=newStackValue(INT);
+			tmpValue->value.num=1;
+			stack->values[stack->tp-1]=tmpValue;
+		}
+		else stack->values[stack->tp-1]=NULL;
+	}
+	freeStackValue(firValue);
+	freeStackValue(secValue);
+	proc->cp+=1;
+	return 0;
+}
+
+int B_not(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	stackvalue* tmpValue=getTopValue(stack);
+	if(tmpValue==NULL||(tmpValue->type==PAR&&tmpValue->value.par.car==NULL&&tmpValue->value.par.cdr==NULL))
+	{
+		freeStackValue(tmpValue);
+		tmpValue=newStackValue(INT);
+		tmpValue->value.num=1;
+		stack->values[stack->tp-1]=tmpValue;
+	}
+	else
+	{
+		freeStackValue(tmpValue);
+		stack->values[stack->tp-1]=NULL;
+	}
+	proc+=1;
 	return 0;
 }
 

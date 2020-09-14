@@ -39,13 +39,20 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_atom,
 	B_null,
 	B_open,
-	B_close,
+	B_close,/*
+	B_cast_to_chr,
+	B_cast_to_int,
+	B_cast_to_str,
+	B_cast_to_sym,
+	B_get_chr_str,
+	B_get_str_str,
+	B_str_cat,
 	B_eq,
 	B_gt,
 	B_ge,
 	B_lt,
 	B_le,
-	B_not,/*
+	B_not,
 	B_in,
 	B_out,
 	B_go,
@@ -313,12 +320,7 @@ int B_pop(fakeVM* exe)
 	freeStackValue(getTopValue(stack));
 	stack->values[stack->tp-1]=NULL;
 	stack->tp-=1;
-	if(stack->size-stack->tp>64)
-	{
-		stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size-64));
-		if(stack->values==NULL)errors(OUTOFMEMORY);
-		stack->size-=64;
-	}
+	stackRecycle(stack);
 	proc->cp+=1;
 	return 0;
 }
@@ -347,12 +349,7 @@ int B_pop_var(fakeVM* exe)
 		*pValue=getTopValue(stack);
 		stack->values[stack->tp-1]=NULL;
 		stack->tp-=1;
-		if(stack->size-stack->tp>64)
-		{
-			stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size-64));
-			if(stack->values==NULL)errors(OUTOFMEMORY);
-			stack->size-=64;
-		}
+		stackRecycle(stack);
 	}else *pValue=NULL;
 	proc->cp+=5;
 	return 0;
@@ -384,12 +381,7 @@ int B_pop_rest_var(fakeVM* exe)
 		stackvalue* topValue=getTopValue(stack);
 		tmp->value.par.car=copyValue(topValue);
 		stack->tp-=1;
-		if(stack->size-stack->tp>64)
-		{
-			stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size-64));
-			if(stack->values==NULL)errors(OUTOFMEMORY);
-			stack->size-=64;
-		}
+		stackRecycle(stack);
 		if(stack->tp>stack->bp)
 		{
 			tmp->value.par.cdr=newStackValue(PAR);
@@ -414,12 +406,7 @@ int B_pop_car(fakeVM* exe)
 	objValue->value.par.car=copyValue(topValue);
 	freeStackValue(topValue);
 	stack->tp-=1;
-	if(stack->size-stack->tp>64)
-	{
-		stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size-64));
-		if(stack->values==NULL)errors(OUTOFMEMORY);
-		stack->size-=64;
-	}
+	stackRecycle(stack);
 	proc->cp+=1;
 	return 0;
 }
@@ -435,12 +422,7 @@ int B_pop_cdr(fakeVM* exe)
 	objValue->value.par.cdr=copyValue(topValue);
 	freeStackValue(topValue);
 	stack->tp-=1;
-	if(stack->size-stack->tp>64)
-	{
-		stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size-64));
-		if(stack->values==NULL)errors(OUTOFMEMORY);
-		stack->size-=64;
-	}
+	stackRecycle(stack);
 	proc->cp+=1;
 	return 0;
 }
@@ -452,12 +434,7 @@ int B_add(fakeVM* exe)
 	stackvalue* firValue=getValue(stack,stack->tp-1);
 	stackvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
-	if(stack->size-stack->tp>64)
-	{
-		stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size-64));
-		if(stack->values==NULL)errors(OUTOFMEMORY);
-		stack->size-=64;
-	}
+	stackRecycle(stack);
 	if((firValue->type!=INT&&firValue->type!=DBL)||(secValue->type!=INT&&secValue->type!=DBL))return 1;
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
@@ -486,12 +463,7 @@ int B_sub(fakeVM* exe)
 	stackvalue* firValue=getValue(stack,stack->tp-1);
 	stackvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
-	if(stack->size-stack->tp>64)
-	{
-		stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size-64));
-		if(stack->values==NULL)errors(OUTOFMEMORY);
-		stack->size-=64;
-	}
+	stackRecycle(stack);
 	if((firValue->type!=INT&&firValue->type!=DBL)||(secValue->type!=INT&&secValue->type!=DBL))return 1;
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
@@ -520,12 +492,7 @@ int B_mul(fakeVM* exe)
 	stackvalue* firValue=getValue(stack,stack->tp-1);
 	stackvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
-	if(stack->size-stack->tp>64)
-	{
-		stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size-64));
-		if(stack->values==NULL)errors(OUTOFMEMORY);
-		stack->size-=64;
-	}
+	stackRecycle(stack);
 	if((firValue->type!=INT&&firValue->type!=DBL)||(secValue->type!=INT&&secValue->type!=DBL))return 1;
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
@@ -554,12 +521,7 @@ int B_div(fakeVM* exe)
 	stackvalue* firValue=getValue(stack,stack->tp-1);
 	stackvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
-	if(stack->size-stack->tp>64)
-	{
-		stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size-64));
-		if(stack->values==NULL)errors(OUTOFMEMORY);
-		stack->size-=64;
-	}
+	stackRecycle(stack);
 	if((firValue->type!=INT&&firValue->type!=DBL)||(secValue->type!=INT&&secValue->type!=DBL))return 1;
 	double result=((secValue->type==DBL)?secValue->value.dbl:secValue->value.num)/((firValue->type==DBL)?firValue->value.dbl:firValue->value.num);
 	stackvalue* tmpValue=newStackValue(DBL);
@@ -578,12 +540,7 @@ int B_mod(fakeVM* exe)
 	stackvalue* firValue=getValue(stack,stack->tp-1);
 	stackvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
-	if(stack->size-stack->tp>64)
-	{
-		stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size-64));
-		if(stack->values==NULL)errors(OUTOFMEMORY);
-		stack->size-=64;
-	}
+	stackRecycle(stack);
 	if((firValue->type!=INT&&firValue->type!=DBL)||(secValue->type!=INT&&secValue->type!=DBL))return 1;
 	int32_t result=((int32_t)((secValue->type==DBL)?secValue->value.dbl:secValue->value.num))%((int32_t)((firValue->type==DBL)?firValue->value.dbl:firValue->value.num));
 	stackvalue* tmpValue=newStackValue(INT);
@@ -695,12 +652,7 @@ int B_res_bp(fakeVM* exe)
 	stack->bp=prevBp->value.num;
 	freeStackValue(prevBp);
 	stack->tp-=1;
-	if(stack->size-stack->tp>64)
-	{
-		stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size-64));
-		if(stack->values==NULL)errors(OUTOFMEMORY);
-		stack->size-=64;
-	}
+	stackRecycle(stack);
 	proc->cp+=1;
 	return 0;
 }
@@ -716,12 +668,7 @@ int B_invoke(fakeVM* exe)
 	exe->curproc=tmpProc;
 	free(tmpValue);
 	stack->tp-=1;
-	if(stack->size-stack->tp>64)
-	{
-		stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size-64));
-		if(stack->values==NULL)errors(OUTOFMEMORY);
-		stack->size-=64;
-	}
+	stackRecycle(stack);
 	proc->cp+=1;
 	return 0;
 }
@@ -770,6 +717,7 @@ int B_open(fakeVM* exe)
 	stackvalue* mode=getTopValue(stack);
 	stackvalue* filename=getValue(stack,stack->tp-2);
 	stack->tp-=1;
+	stackRecycle(stack);
 	if(filename->type!=STR||mode->type!=STR)return 1;
 	int32_t i=0;
 	FILE* file=fopen(filename->value.str,mode->value.str);
@@ -814,6 +762,7 @@ int B_eq(fakeVM* exe)
 	stackvalue* firValue=getTopValue(stack);
 	stackvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
+	stackRecycle(stack);
 	if(stackvaluecmp(firValue,secValue))
 	{
 		stackvalue* tmpValue=newStackValue(INT);
@@ -834,6 +783,7 @@ int B_gt(fakeVM* exe)
 	stackvalue* firValue=getTopValue(stack);
 	stackvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
+	stackRecycle(stack);
 	if((firValue->type!=INT||firValue->type!=DBL)||(secValue->type!=INT||secValue->type!=DBL))return 1;
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
@@ -869,6 +819,7 @@ int B_ge(fakeVM* exe)
 	stackvalue* firValue=getTopValue(stack);
 	stackvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
+	stackRecycle(stack);
 	if((firValue->type!=INT||firValue->type!=DBL)||(secValue->type!=INT||secValue->type!=DBL))return 1;
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
@@ -904,6 +855,7 @@ int B_lt(fakeVM* exe)
 	stackvalue* firValue=getTopValue(stack);
 	stackvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
+	stackRecycle(stack);
 	if((firValue->type!=INT||firValue->type!=DBL)||(secValue->type!=INT||secValue->type!=DBL))return 1;
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
@@ -939,6 +891,7 @@ int B_le(fakeVM* exe)
 	stackvalue* firValue=getTopValue(stack);
 	stackvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
+	stackRecycle(stack);
 	if((firValue->type!=INT||firValue->type!=DBL)||(secValue->type!=INT||secValue->type!=DBL))return 1;
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
@@ -984,6 +937,137 @@ int B_not(fakeVM* exe)
 		freeStackValue(tmpValue);
 		stack->values[stack->tp-1]=NULL;
 	}
+	proc+=1;
+	return 0;
+}
+
+int B_cast_to_chr(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	stackvalue* topValue=getTopValue(stack);
+	if(topValue==NULL||topValue->type==PAR||topValue->type==PRC)return 1;
+	stackvalue* tmpValue=newStackValue(CHR);
+	switch(topValue->type)
+	{
+		case INT:tmpValue->value.chr=topValue->value.num;break;
+		case DBL:tmpValue->value.chr=(int32_t)topValue->value.dbl;break;
+		case CHR:tmpValue->value.chr=topValue->value.chr;break;
+		case STR:
+		case SYM:tmpValue->value.chr=topValue->value.str[0];break;
+	}
+	stack->values[stack->tp-1]=tmpValue;
+	freeStackValue(topValue);
+	proc+=1;
+	return 0;
+}
+
+int B_cast_to_int(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	stackvalue* topValue=getTopValue(stack);
+	if(topValue==NULL||topValue->type==PAR||topValue->type==PRC)return 1;
+	stackvalue* tmpValue=newStackValue(INT);
+	switch(topValue->type)
+	{
+		case INT:tmpValue->value.num=topValue->value.num;break;
+		case DBL:tmpValue->value.num=(int32_t)topValue->value.dbl;break;
+		case CHR:tmpValue->value.num=topValue->value.chr;break;
+		case STR:
+		case SYM:tmpValue->value.num=stringToInt(topValue->value.str);break;
+	}
+	stack->values[stack->tp-1]=tmpValue;
+	freeStackValue(topValue);
+	proc+=1;
+	return 0;
+}
+
+int B_cast_to_dbl(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	stackvalue* topValue=getTopValue(stack);
+	if(topValue==NULL||topValue->type==PAR||topValue->type==PRC)return 1;
+	stackvalue* tmpValue=newStackValue(DBL);
+	switch(topValue->type)
+	{
+		case INT:tmpValue->value.dbl=(double)topValue->value.num;break;
+		case DBL:tmpValue->value.dbl=topValue->value.dbl;break;
+		case CHR:tmpValue->value.dbl=(double)(int32_t)topValue->value.chr;break;
+		case STR:
+		case SYM:tmpValue->value.dbl=stringToDouble(topValue->value.str);break;
+	}
+	stack->values[stack->tp-1]=tmpValue;
+	freeStackValue(topValue);
+	proc+=1;
+	return 0;
+}
+
+int B_cast_to_str(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	stackvalue* topValue=getTopValue(stack);
+	if(topValue==NULL||topValue->type==PAR||topValue->type==PRC)return 1;
+	stackvalue* tmpValue=newStackValue(STR);
+	switch(topValue->type)
+	{
+		case INT:tmpValue->value.str=intToString(topValue->value.num);break;
+		case DBL:tmpValue->value.str=doubleToString(topValue->value.dbl);break;
+		case CHR:tmpValue->value.str=(char*)malloc(sizeof(char)*2);
+				 if(tmpValue->value.str==NULL)errors(OUTOFMEMORY);
+				 tmpValue->value.str[0]=topValue->value.chr;
+				 tmpValue->value.str[1]='\0';
+				 break;
+		case STR:
+		case SYM:tmpValue->value.str=copyStr(topValue->value.str);break;
+	}
+	stack->values[stack->tp-1]=tmpValue;
+	freeStackValue(topValue);
+	proc+=1;
+	return 0;
+}
+
+int B_cast_to_sym(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	stackvalue* topValue=getTopValue(stack);
+	if(topValue==NULL||topValue->type==PAR||topValue->type==PRC)return 1;
+	stackvalue* tmpValue=newStackValue(SYM);
+	switch(topValue->type)
+	{
+		case INT:tmpValue->value.str=intToString(topValue->value.num);break;
+		case DBL:tmpValue->value.str=doubleToString(topValue->value.dbl);break;
+		case CHR:tmpValue->value.str=(char*)malloc(sizeof(char)*2);
+				 if(tmpValue->value.str==NULL)errors(OUTOFMEMORY);
+				 tmpValue->value.str[0]=topValue->value.chr;
+				 tmpValue->value.str[1]='\0';
+				 break;
+		case STR:
+		case SYM:tmpValue->value.str=copyStr(topValue->value.str);break;
+	}
+	stack->values[stack->tp-1]=tmpValue;
+	freeStackValue(topValue);
+	proc+=1;
+	return 0;
+}
+
+int B_get_chr_str(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	stackvalue* objStr=getTopValue(stack);
+	stackvalue* place=getValue(stack,stack->tp-2);
+	stack->tp-=1;
+	stackRecycle(stack);
+	if(objStr==NULL||place==NULL||objStr->type!=STR||place->type!=INT)return 1;
+	stackvalue* objChr=newStackValue(CHR);
+	objChr->value.chr=objStr->value.str[place->value.num];
+	stack->values[stack->tp-1]=objChr;
+	freeStackValue(objStr);
+	freeStackValue(place);
 	proc+=1;
 	return 0;
 }
@@ -1198,5 +1282,15 @@ int stackvaluecmp(stackvalue* fir,stackvalue* sec)
 			case PRC:return fir->value.prc==sec->value.prc;
 			case PAR:return stackvaluecmp(fir->value.par.car,sec->value.par.car)&&stackvaluecmp(fir->value.par.cdr,sec->value.par.cdr);
 		}
+	}
+}
+
+void stackRecycle(fakestack* stack)
+{
+	if(stack->size-stack->tp>64)
+	{
+		stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size-64));
+		if(stack->values==NULL)errors(OUTOFMEMORY);
+		stack->size-=64;
 	}
 }

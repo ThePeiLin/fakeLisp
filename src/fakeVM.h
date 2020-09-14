@@ -107,6 +107,7 @@ int B_cast_to_str(fakeVM*);
 int B_cast_to_sym(fakeVM*);
 int B_get_chr_str(fakeVM*);
 int B_get_str_str(fakeVM*);
+int B_str_len(fakeVM*);
 int B_str_cat(fakeVM*);
 int B_eq(fakeVM*);
 int B_gt(fakeVM*);

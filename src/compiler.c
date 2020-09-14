@@ -735,6 +735,9 @@ byteCode* compileCond(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* st
 		cond=prevCptr(cond);
 	}
 	byteCode* beFree=tmp;
+	tmp=codeCat(tmp,pop);
+	freeByteCode(beFree);
+	beFree=tmp;
 	tmp=codeCat(tmp,pushnil);
 	freeByteCode(beFree);
 	freeByteCode(pushnil);

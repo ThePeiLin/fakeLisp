@@ -142,7 +142,7 @@ char* getStringFromList(const char* str)
 	return tmp;
 }
 
-char* DoubleToString(double num)
+char* doubleToString(double num)
 {
 	int i;
 	char numString[sizeof(double)*2+3];

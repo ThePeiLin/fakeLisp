@@ -39,13 +39,12 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_atom,
 	B_null,
 	B_open,
-	B_close,/*
+	B_close,
 	B_cast_to_chr,
 	B_cast_to_int,
 	B_cast_to_str,
 	B_cast_to_sym,
 	B_get_chr_str,
-	B_get_str_str,
 	B_str_len,
 	B_str_cat,
 	B_eq,
@@ -54,10 +53,14 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_lt,
 	B_le,
 	B_not,
-	B_in,
-	B_out,
+	B_getc,
+	B_ungetc,
+	B_write,
+	B_tell,
+	B_seek,
+	B_rewind,/*
 	B_go,
-	B_run,
+	B_wait,
 	B_send,
 	B_accept*/
 };
@@ -607,7 +610,6 @@ int B_init_proc(fakeVM* exe)
 	topValue->value.prc->localenv=newVarStack(boundOfProc,1,proc->localenv);
 	proc->cp+=5;
 	return 0;
-
 }
 
 int B_end_proc(fakeVM* exe)
@@ -749,8 +751,13 @@ int B_close(fakeVM* exe)
 	filestack* files=exe->files;
 	stackvalue* topValue=getTopValue(stack);
 	if(topValue==NULL||topValue->type!=INT)return 1;
-	if(topValue->value.num>files->size)return 2;
-	if(fclose(files->files[topValue->value.num])==EOF)topValue->value.num=-1;
+	if(topValue->value.num>=files->size)return 2;
+	FILE* objFile=files->files[topValue->value.num];
+	if(fclose(objFile)==EOF)
+	{
+		files->files[topValue->value.num]=NULL;
+		topValue->value.num=-1;
+	}
 	else files->files[topValue->value.num]=NULL;
 	proc->cp+=1;
 	return 0;
@@ -805,7 +812,7 @@ int B_gt(fakeVM* exe)
 			tmpValue->value.num=1;
 			stack->values[stack->tp-1]=tmpValue;
 		}
-		else stack->values[stack->tp-1]=NULL;
+			else stack->values[stack->tp-1]=NULL;
 	}
 	freeStackValue(firValue);
 	freeStackValue(secValue);
@@ -1087,6 +1094,131 @@ int B_str_len(fakeVM* exe)
 	proc+=1;
 	return 0;
 }
+
+int B_str_cat(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	stackvalue* fir=getTopValue(stack);
+	stackvalue* sec=getValue(stack,stack->tp-2);
+	stack->tp-=1;
+	stackRecycle(stack);
+	if(fir==NULL||sec==NULL||fir->type!=STR||sec->type!=STR)return 1;
+	int firlen=strlen(fir->value.str);
+	int seclen=strlen(sec->value.str);
+	char* tmpStr=(char*)malloc(sizeof(char)*(firlen+seclen+1));
+	if(tmpStr==NULL)errors(OUTOFMEMORY);
+	strcpy(tmpStr,sec->value.str);
+	strcat(tmpStr,fir->value.str);
+	stackvalue* tmpValue=newStackValue(STR);
+	tmpValue->value.str=tmpStr;
+	stack->values[stack->tp-1]=tmpValue;
+	freeStackValue(fir);
+	freeStackValue(sec);
+	proc+=1;
+	return 0;
+}
+
+int B_getc(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	filestack* files=exe->files;
+	stackvalue* file=getTopValue(stack);
+	if(file==NULL||file->type!=INT)return 1;
+	if(file->value.num>=files->size)return 2;
+	stackvalue* tmpChr=newStackValue(CHR);
+	tmpChr->value.chr=getc(files->files[file->value.num]);
+	stack->values[stack->tp-1]=tmpChr;
+	freeStackValue(file);
+	proc+=1;
+	return 0;
+}
+
+int B_ungetc(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	filestack* files=exe->files;
+	stackvalue* file=getTopValue(stack);
+	stackvalue* tmpChr=getValue(stack,stack->tp-2);
+	stack->tp-=1;
+	stackRecycle(stack);
+	if(file==NULL||tmpChr==NULL||file->type!=INT||tmpChr->type!=CHR)return 1;
+	if(file->value.num>=files->size)return 2;
+	tmpChr->value.chr=ungetc(tmpChr->value.chr,files->files[file->value.num]);
+	freeStackValue(file);
+	proc+=1;
+	return 0;
+}
+
+int B_write(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	filestack* files=exe->files;
+	stackvalue* file=getTopValue(stack);
+	stackvalue* obj=getValue(stack,stack->tp-2);
+	stack->tp-=1;
+	stackRecycle(stack);
+	if(file==NULL||file->type!=INT)return 1;
+	if(file->value.num>=files->size)return 2;
+	FILE* objFile=files->files[file->value.num];
+	if(objFile==NULL)return 2;
+	printStackValue(obj,objFile);
+	proc+=1;
+	return 0;
+}
+
+int B_tell(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	filestack* files=exe->files;
+	stackvalue* file=getTopValue(stack);
+	if(file==NULL||file->type!=INT)return 1;
+	if(file->value.num>=files->size)return 2;
+	FILE* objFile=files->files[file->value.num];
+	if(objFile==NULL)return 2;
+	else file->value.num=ftell(objFile);
+	proc+=1;
+	return 0;
+}
+
+int B_seek(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	filestack* files=exe->files;
+	stackvalue* where=getTopValue(stack);
+	stackvalue* file=getValue(stack,stack->tp-2);
+	stack->tp-=1;
+	stackRecycle(stack);
+	if(where==NULL||file==NULL||where->type!=INT||file->type!=INT)return 1;
+	if(file->value.num>=files->size)return 2;
+	FILE* objFile=files->files[file->value.num];
+	if(objFile==NULL)return 2;
+	file->value.num=fseek(objFile,where->value.num,SEEK_CUR);
+	freeStackValue(where);
+	proc+=1;
+	return 0;
+}
+
+int B_rewind(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	filestack* files=exe->files;
+	stackvalue* file=getTopValue(stack);
+	if(file==NULL||file->type!=INT)return 1;
+	if(file->value.num>=files->size)return 2;
+	FILE* objFile=files->files[file->value.num];
+	if(objFile==NULL)return 2;
+	rewind(objFile);
+	proc+=1;
+	return 0;
+}
+
 excode* newExcode(byteCode* proc)
 {
 	excode* tmp=(excode*)malloc(sizeof(excode));
@@ -1255,28 +1387,28 @@ stackvalue* getCdr(stackvalue* obj)
 	else return obj->value.par.cdr;
 }
 
-void printStackValue(stackvalue* objValue)
+void printStackValue(stackvalue* objValue,FILE* fp)
 {
 	if(objValue==NULL)
 	{
-		printf("nil");
+		fprintf(fp,"nil");
 		return;
 	}
 	switch(objValue->type)
 	{
-		case INT:printf("%d",objValue->value.num);break;
-		case DBL:printf("%lf",objValue->value.dbl);break;
-		case CHR:printRawChar(objValue->value.chr,stdout);break;
-		case SYM:printf("%s",objValue->value.str);break;
-		case STR:printRawString(objValue->value.str,stdout);break;
-		case PRC:printf("<#proc>");break;
-		case PAR:putchar('(');
-				 printStackValue(objValue->value.par.car);
-				 putchar(',');
-				 printStackValue(objValue->value.par.cdr);
-				 putchar(')');
+		case INT:fprintf(fp,"%d",objValue->value.num);break;
+		case DBL:fprintf(fp,"%lf",objValue->value.dbl);break;
+		case CHR:printRawChar(objValue->value.chr,fp);break;
+		case SYM:fprintf(fp,"%s",objValue->value.str);break;
+		case STR:printRawString(objValue->value.str,fp);break;
+		case PRC:fprintf(fp,"<#proc>");break;
+		case PAR:putc('(',fp);
+				 printStackValue(objValue->value.par.car,fp);
+				 putc(',',fp);
+				 printStackValue(objValue->value.par.cdr,fp);
+				 putc(')',fp);
 				 break;
-		default:printf("Bad value!");break;
+		default:fprintf(fp,"Bad value!");break;
 	}
 }
 

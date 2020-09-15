@@ -110,7 +110,7 @@ void runIntpr(intpr* inter)
 					runFakeVM(anotherVM);
 					fakestack* stack=anotherVM->stack;
 					printf("=> ");
-					printStackValue(getTopValue(stack));
+					printStackValue(getTopValue(stack),stdout);
 					freeStackValue(getTopValue(stack));
 					stack->tp-=1;
 					putchar('\n');

@@ -44,6 +44,12 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_cast_to_int,
 	B_cast_to_str,
 	B_cast_to_sym,
+	B_is_chr,
+	B_is_int,
+	B_is_dbl,
+	B_is_str,
+	B_is_sym,
+	B_is_prc,
 	B_get_chr_str,
 	B_str_len,
 	B_str_cat,
@@ -68,6 +74,7 @@ static int (*ByteCodes[])(fakeVM*)=
 fakeVM* newFakeVM(byteCode* mainproc,byteCode* procs)
 {
 	fakeVM* exe=(fakeVM*)malloc(sizeof(fakeVM));
+	if(exe==NULL)errors(OUTOFMEMORY);
 	exe->mainproc=newExcode(mainproc);
 	exe->curproc=exe->mainproc;
 	exe->procs=procs;
@@ -1063,12 +1070,114 @@ int B_cast_to_sym(fakeVM* exe)
 	return 0;
 }
 
+int B_is_chr(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	stackvalue* objValue=getTopValue(stack);
+	if(objValue!=NULL&&objValue->type==CHR)
+	{
+		stackvalue* tmpValue=newStackValue(INT);
+		tmpValue->value.num=1;
+		stack->values[stack->tp-1]=tmpValue;
+	}
+	else stack->values[stack->tp-1]=NULL;
+	freeStackValue(objValue);
+	proc+=1;
+	return 0;
+}
+
+int B_is_int(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	stackvalue* objValue=getTopValue(stack);
+	if(objValue!=NULL&&objValue->type==INT)
+	{
+		stackvalue* tmpValue=newStackValue(INT);
+		tmpValue->value.num=1;
+		stack->values[stack->tp-1]=tmpValue;
+	}
+	else stack->values[stack->tp-1]=NULL;
+	freeStackValue(objValue);
+	proc+=1;
+	return 0;
+}
+
+int B_is_dbl(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	stackvalue* objValue=getTopValue(stack);
+	if(objValue!=NULL&&objValue->type==DBL)
+	{
+		stackvalue* tmpValue=newStackValue(INT);
+		tmpValue->value.num=1;
+		stack->values[stack->tp-1]=tmpValue;
+	}
+	else stack->values[stack->tp-1]=NULL;
+	freeStackValue(objValue);
+	proc+=1;
+	return 0;
+}
+
+int B_is_str(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	stackvalue* objValue=getTopValue(stack);
+	if(objValue!=NULL&&objValue->type==STR)
+	{
+		stackvalue* tmpValue=newStackValue(INT);
+		tmpValue->value.num=1;
+		stack->values[stack->tp-1]=tmpValue;
+	}
+	else stack->values[stack->tp-1]=NULL;
+	freeStackValue(objValue);
+	proc+=1;
+	return 0;
+}
+
+int B_is_sym(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	stackvalue* objValue=getTopValue(stack);
+	if(objValue!=NULL&&objValue->type==SYM)
+	{
+		stackvalue* tmpValue=newStackValue(INT);
+		tmpValue->value.num=1;
+		stack->values[stack->tp-1]=tmpValue;
+	}
+	else stack->values[stack->tp-1]=NULL;
+	freeStackValue(objValue);
+	proc+=1;
+	return 0;
+}
+
+int B_is_prc(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	excode* proc=exe->curproc;
+	stackvalue* objValue=getTopValue(stack);
+	if(objValue!=NULL&&objValue->type==PRC)
+	{
+		stackvalue* tmpValue=newStackValue(INT);
+		tmpValue->value.num=1;
+		stack->values[stack->tp-1]=tmpValue;
+	}
+	else stack->values[stack->tp-1]=NULL;
+	freeStackValue(objValue);
+	proc+=1;
+	return 0;
+}
+
 int B_get_chr_str(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
 	excode* proc=exe->curproc;
-	stackvalue* objStr=getTopValue(stack);
-	stackvalue* place=getValue(stack,stack->tp-2);
+	stackvalue* place=getTopValue(stack);
+	stackvalue* objStr=getValue(stack,stack->tp-2);
 	stack->tp-=1;
 	stackRecycle(stack);
 	if(objStr==NULL||place==NULL||objStr->type!=STR||place->type!=INT)return 1;

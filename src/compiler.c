@@ -724,7 +724,7 @@ byteCode* compileCond(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* st
 			freeByteCode(beFree);
 			objCptr=prevCptr(objCptr);
 		}
-		*(int32_t*)(jump->code+sizeof(char))=tmp->size+pushnil->size;
+		*(int32_t*)(jump->code+sizeof(char))=tmp->size+pushnil->size+pop->size;
 		byteCode* beFree=tmpCond;
 		tmpCond=codeCat(tmpCond,jump);
 		freeByteCode(beFree);

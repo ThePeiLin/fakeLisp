@@ -68,6 +68,7 @@ typedef struct
 void runFakeVM(fakeVM*);
 void printStackValue(stackvalue*,FILE*);
 fakeVM* newFakeVM(byteCode*,byteCode*);
+void initGlobEnv(varstack*);
 int B_dummy(fakeVM*);
 int B_push_nil(fakeVM*);
 int B_push_pair(fakeVM*);
@@ -149,4 +150,5 @@ void freeStackValue(stackvalue*);
 varstack* newVarStack(int32_t,int,varstack*);
 static void freeVarStack(varstack*);
 static void stackRecycle(fakestack*);
+static excode* newBuiltInProc(byteCode*);
 #endif

@@ -6,6 +6,50 @@
 #include<math.h>
 #include"tool.h"
 
+char* builtInSymbolList[]=
+{
+	"nil",
+	"else",
+	"cons",
+	"car",
+	"cdr",
+	"atom",
+	"null",
+	"ischr",
+	"isint",
+	"isdbl",
+	"isstr",
+	"issym",
+	"isprc",
+	"eq",
+	"gt",
+	"ge",
+	"lt",
+	"le",
+	"not",
+	"dbl",
+	"str",
+	"sym",
+	"chr",
+	"int",
+	"add",
+	"sub",
+	"mul",
+	"div",
+	"mod",
+	"gchstr",
+	"strlen",
+	"strcat",
+	"open",
+	"close",
+	"getc",
+	"ungetc",
+	"write",
+	"tell",
+	"seek",
+	"rewind",
+};
+
 char* getListFromFile(FILE* file)
 {
 	char* tmp=NULL;
@@ -469,6 +513,8 @@ cptr* createTree(const char* objStr,intpr* inter)
 			atom* tmpAtm=objCptr->value;
 			if(tmp[2]!='\\')tmpAtm->value.chr=tmp[2];
 			else tmpAtm->value.chr=stringToChar(&tmp[3]);
+			i+=strlen(tmp);
+			free(tmp);
 		}
 		else
 		{
@@ -993,6 +1039,7 @@ intpr* newIntpr(const char* filename,FILE* file)
 	tmp->file=file;
 	tmp->curline=1;
 	tmp->glob=newCompEnv(NULL);
+	initCompEnv(tmp->glob);
 	tmp->procs=NULL;
 	return tmp;
 }
@@ -1146,4 +1193,10 @@ byteCode* copyByteCode(const byteCode* obj)
 	byteCode* tmp=createByteCode(obj->size);
 	memcpy(tmp->code,obj->code,obj->size);
 	return tmp;
+}
+
+void initCompEnv(compEnv* curEnv)
+{
+	int i;
+	for(i=0;i<40;i++)addCompDef(curEnv,builtInSymbolList[i]);
 }

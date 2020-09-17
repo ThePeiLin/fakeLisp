@@ -51,6 +51,7 @@ cptr* nextCptr(const cptr*);
 cptr* prevCptr(const cptr*);
 byteCode* createByteCode(unsigned int);
 byteCode* codeCat(const byteCode*,const byteCode*);
+void initCompEnv(compEnv*);
 byteCode* copyByteCode(const byteCode*);
 void freeByteCode(byteCode*);
 #endif

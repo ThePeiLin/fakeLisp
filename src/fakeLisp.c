@@ -111,11 +111,14 @@ void runIntpr(intpr* inter)
 				//	printByteCode(tmpByteCode);
 					runFakeVM(anotherVM);
 					fakestack* stack=anotherVM->stack;
-					printf("=> ");
-					printStackValue(getTopValue(stack),stdout);
+					if(inter->file==stdin)
+					{
+						printf("=> ");
+						printStackValue(getTopValue(stack),stdout);
+						putchar('\n');
+					}
 					freeStackValue(getTopValue(stack));
 					stack->tp-=1;
-					putchar('\n');
 					freeByteCode(tmpByteCode);
 				}
 			}

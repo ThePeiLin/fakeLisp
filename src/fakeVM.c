@@ -1,5 +1,6 @@
 #include"tool.h"
 #include"fakeVM.h"
+#include"opcode.h"
 #include<string.h>
 #include<math.h>
 
@@ -38,10 +39,9 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_mod,
 	B_atom,
 	B_null,
-	B_open,
-	B_close,
 	B_cast_to_chr,
 	B_cast_to_int,
+	B_cast_to_dbl,
 	B_cast_to_str,
 	B_cast_to_sym,
 	B_is_chr,
@@ -53,6 +53,8 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_get_chr_str,
 	B_str_len,
 	B_str_cat,
+	B_open,
+	B_close,
 	B_eq,
 	B_gt,
 	B_ge,
@@ -71,6 +73,536 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_accept*/
 };
 
+byteCode P_cons=
+{
+	25,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,1,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_PAIR,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_POP_CAR,
+		FAKE_PUSH_VAR,1,0,0,0,
+		FAKE_POP_CDR,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_car=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_PUSH_CAR,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_cdr=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_PUSH_CDR,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_atom=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_ATOM,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_null=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_NULL,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_isint=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_IS_INT,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_ischr=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_IS_CHR,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_isdbl=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_IS_DBL,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_isstr=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_IS_STR,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_issym=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_IS_SYM,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_isprc=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_IS_PRC,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_eq=
+{
+	23,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,1,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_PUSH_VAR,1,0,0,0,
+		FAKE_EQ,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_gt=
+{
+	23,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,1,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_PUSH_VAR,1,0,0,0,
+		FAKE_GT,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_ge=
+{
+	23,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,1,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_PUSH_VAR,1,0,0,0,
+		FAKE_GE,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_lt=
+{
+	23,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,1,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_PUSH_VAR,1,0,0,0,
+		FAKE_LT,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_le=
+{
+	23,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,1,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_PUSH_VAR,1,0,0,0,
+		FAKE_LE,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_not=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_NOT,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_dbl=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_CAST_TO_DBL,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_str=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_CAST_TO_STR,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_sym=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_CAST_TO_SYM,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_chr=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_CAST_TO_CHR,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_int=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_CAST_TO_INT,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_add=
+{
+	23,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,1,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_PUSH_VAR,1,0,0,0,
+		FAKE_ADD,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_sub=
+{
+	23,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,1,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_PUSH_VAR,1,0,0,0,
+		FAKE_SUB,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_mul=
+{
+	23,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,1,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_PUSH_VAR,1,0,0,0,
+		FAKE_MUL,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_div=
+{
+	23,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,1,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_PUSH_VAR,1,0,0,0,
+		FAKE_DIV,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_mod=
+{
+	23,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,1,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_PUSH_VAR,1,0,0,0,
+		FAKE_MOD,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_gchstr=
+{
+	23,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,1,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_PUSH_VAR,1,0,0,0,
+		FAKE_GET_CHR_STR,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_strlen=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_STR_LEN,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_strcat=
+{
+	23,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,1,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_PUSH_VAR,1,0,0,0,
+		FAKE_STR_CAT,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_open=
+{
+	23,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,1,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_PUSH_VAR,1,0,0,0,
+		FAKE_OPEN,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_close=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_CLOSE,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_getc=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_GETC,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_ungetc=
+{
+	23,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,1,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_PUSH_VAR,1,0,0,0,
+		FAKE_UNGETC,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_write=
+{
+	23,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,1,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_PUSH_VAR,1,0,0,0,
+		FAKE_WRITE,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_tell=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_TELL,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_seek=
+{
+	23,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,1,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_PUSH_VAR,1,0,0,0,
+		FAKE_SEEK,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_rewind=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_REWIND,
+		FAKE_END_PROC
+	}
+};
+
 fakeVM* newFakeVM(byteCode* mainproc,byteCode* procs)
 {
 	fakeVM* exe=(fakeVM*)malloc(sizeof(fakeVM));
@@ -81,6 +613,63 @@ fakeVM* newFakeVM(byteCode* mainproc,byteCode* procs)
 	exe->stack=newStack(0);
 	exe->files=newFileStack();
 	return exe;
+}
+
+void initGlobEnv(varstack* obj)
+{
+	byteCode buildInProcs[]=
+	{
+		P_cons,
+		P_car,
+		P_cdr,
+		P_atom,
+		P_null,
+		P_ischr,
+		P_isint,
+		P_isdbl,
+		P_isstr,
+		P_issym,
+		P_isprc,
+		P_eq,
+		P_gt,
+		P_ge,
+		P_lt,
+		P_le,
+		P_not,
+		P_dbl,
+		P_str,
+		P_sym,
+		P_chr,
+		P_int,
+		P_add,
+		P_sub,
+		P_mul,
+		P_div,
+		P_mod,
+		P_gchstr,
+		P_strlen,
+		P_strcat,
+		P_open,
+		P_close,
+		P_getc,
+		P_ungetc,
+		P_write,
+		P_tell,
+		P_seek,
+		P_rewind
+	};
+	obj->size=40;
+	obj->values=(stackvalue**)realloc(obj->values,sizeof(stackvalue*)*40);
+	if(obj->values==NULL)errors(OUTOFMEMORY);
+	obj->values[0]=NULL;
+	obj->values[1]=newStackValue(INT);
+	obj->values[1]->value.num=1;
+	int i=2;
+	for(;i<40;i++)
+	{
+		obj->values[i]=newStackValue(PRC);
+		obj->values[i]->value.prc=newBuiltInProc(copyByteCode(buildInProcs+(i-2)));
+	}
 }
 
 void runFakeVM(fakeVM* exe)
@@ -555,7 +1144,7 @@ int B_mod(fakeVM* exe)
 	if((firValue==NULL||secValue==NULL)||(firValue->type!=INT&&firValue->type!=DBL)||(secValue->type!=INT&&secValue->type!=DBL))return 1;
 	int32_t result=((int32_t)((secValue->type==DBL)?secValue->value.dbl:secValue->value.num))%((int32_t)((firValue->type==DBL)?firValue->value.dbl:firValue->value.num));
 	stackvalue* tmpValue=newStackValue(INT);
-	tmpValue->value.dbl=result;
+	tmpValue->value.num=result;
 	stack->values[stack->tp-1]=tmpValue;
 	freeStackValue(firValue);
 	freeStackValue(secValue);
@@ -734,16 +1323,17 @@ int B_open(fakeVM* exe)
 	if(file==NULL)i=-1;
 	if(i!=-1)
 	{
-		for(;i<files->size;i++)if(files->files[i]!=NULL)break;
+		for(;i<files->size;i++)if(files->files[i]==NULL)break;
 		if(i==files->size)
 		{
 			files->files=(FILE**)realloc(files->files,sizeof(FILE*)*(files->size+1));
 			files->files[i]=file;
+			files->size+=1;
 		}
 		else files->files[i]=file;
 	}
 	stackvalue* countOfFile=newStackValue(INT);
-	countOfFile->value.num=(int32_t)i;
+	countOfFile->value.num=i;
 	stack->values[stack->tp-1]=countOfFile;
 	freeStackValue(filename);
 	freeStackValue(mode);
@@ -953,7 +1543,7 @@ int B_not(fakeVM* exe)
 		freeStackValue(tmpValue);
 		stack->values[stack->tp-1]=NULL;
 	}
-	proc+=1;
+	proc->cp+=1;
 	return 0;
 }
 
@@ -974,7 +1564,7 @@ int B_cast_to_chr(fakeVM* exe)
 	}
 	stack->values[stack->tp-1]=tmpValue;
 	freeStackValue(topValue);
-	proc+=1;
+	proc->cp+=1;
 	return 0;
 }
 
@@ -995,7 +1585,7 @@ int B_cast_to_int(fakeVM* exe)
 	}
 	stack->values[stack->tp-1]=tmpValue;
 	freeStackValue(topValue);
-	proc+=1;
+	proc->cp+=1;
 	return 0;
 }
 
@@ -1016,7 +1606,7 @@ int B_cast_to_dbl(fakeVM* exe)
 	}
 	stack->values[stack->tp-1]=tmpValue;
 	freeStackValue(topValue);
-	proc+=1;
+	proc->cp+=1;
 	return 0;
 }
 
@@ -1041,7 +1631,7 @@ int B_cast_to_str(fakeVM* exe)
 	}
 	stack->values[stack->tp-1]=tmpValue;
 	freeStackValue(topValue);
-	proc+=1;
+	proc->cp+=1;
 	return 0;
 }
 
@@ -1066,7 +1656,7 @@ int B_cast_to_sym(fakeVM* exe)
 	}
 	stack->values[stack->tp-1]=tmpValue;
 	freeStackValue(topValue);
-	proc+=1;
+	proc->cp+=1;
 	return 0;
 }
 
@@ -1083,7 +1673,7 @@ int B_is_chr(fakeVM* exe)
 	}
 	else stack->values[stack->tp-1]=NULL;
 	freeStackValue(objValue);
-	proc+=1;
+	proc->cp+=1;
 	return 0;
 }
 
@@ -1100,7 +1690,7 @@ int B_is_int(fakeVM* exe)
 	}
 	else stack->values[stack->tp-1]=NULL;
 	freeStackValue(objValue);
-	proc+=1;
+	proc->cp+=1;
 	return 0;
 }
 
@@ -1117,7 +1707,7 @@ int B_is_dbl(fakeVM* exe)
 	}
 	else stack->values[stack->tp-1]=NULL;
 	freeStackValue(objValue);
-	proc+=1;
+	proc->cp+=1;
 	return 0;
 }
 
@@ -1134,7 +1724,7 @@ int B_is_str(fakeVM* exe)
 	}
 	else stack->values[stack->tp-1]=NULL;
 	freeStackValue(objValue);
-	proc+=1;
+	proc->cp+=1;
 	return 0;
 }
 
@@ -1151,7 +1741,7 @@ int B_is_sym(fakeVM* exe)
 	}
 	else stack->values[stack->tp-1]=NULL;
 	freeStackValue(objValue);
-	proc+=1;
+	proc->cp+=1;
 	return 0;
 }
 
@@ -1168,7 +1758,7 @@ int B_is_prc(fakeVM* exe)
 	}
 	else stack->values[stack->tp-1]=NULL;
 	freeStackValue(objValue);
-	proc+=1;
+	proc->cp+=1;
 	return 0;
 }
 
@@ -1186,7 +1776,7 @@ int B_get_chr_str(fakeVM* exe)
 	stack->values[stack->tp-1]=objChr;
 	freeStackValue(objStr);
 	freeStackValue(place);
-	proc+=1;
+	proc->cp+=1;
 	return 0;
 }
 
@@ -1200,7 +1790,7 @@ int B_str_len(fakeVM* exe)
 	len->value.num=strlen(objStr->value.str);
 	stack->values[stack->tp-1]=len;
 	freeStackValue(objStr);
-	proc+=1;
+	proc->cp+=1;
 	return 0;
 }
 
@@ -1224,7 +1814,7 @@ int B_str_cat(fakeVM* exe)
 	stack->values[stack->tp-1]=tmpValue;
 	freeStackValue(fir);
 	freeStackValue(sec);
-	proc+=1;
+	proc->cp+=1;
 	return 0;
 }
 
@@ -1240,7 +1830,7 @@ int B_getc(fakeVM* exe)
 	tmpChr->value.chr=getc(files->files[file->value.num]);
 	stack->values[stack->tp-1]=tmpChr;
 	freeStackValue(file);
-	proc+=1;
+	proc->cp+=1;
 	return 0;
 }
 
@@ -1257,7 +1847,7 @@ int B_ungetc(fakeVM* exe)
 	if(file->value.num>=files->size)return 2;
 	tmpChr->value.chr=ungetc(tmpChr->value.chr,files->files[file->value.num]);
 	freeStackValue(file);
-	proc+=1;
+	proc->cp+=1;
 	return 0;
 }
 
@@ -1275,7 +1865,7 @@ int B_write(fakeVM* exe)
 	FILE* objFile=files->files[file->value.num];
 	if(objFile==NULL)return 2;
 	printStackValue(obj,objFile);
-	proc+=1;
+	proc->cp+=1;
 	return 0;
 }
 
@@ -1290,7 +1880,7 @@ int B_tell(fakeVM* exe)
 	FILE* objFile=files->files[file->value.num];
 	if(objFile==NULL)return 2;
 	else file->value.num=ftell(objFile);
-	proc+=1;
+	proc->cp+=1;
 	return 0;
 }
 
@@ -1309,7 +1899,7 @@ int B_seek(fakeVM* exe)
 	if(objFile==NULL)return 2;
 	file->value.num=fseek(objFile,where->value.num,SEEK_CUR);
 	freeStackValue(where);
-	proc+=1;
+	proc->cp+=1;
 	return 0;
 }
 
@@ -1324,7 +1914,7 @@ int B_rewind(fakeVM* exe)
 	FILE* objFile=files->files[file->value.num];
 	if(objFile==NULL)return 2;
 	rewind(objFile);
-	proc+=1;
+	proc->cp+=1;
 	return 0;
 }
 
@@ -1549,4 +2139,18 @@ void stackRecycle(fakestack* stack)
 		if(stack->values==NULL)errors(OUTOFMEMORY);
 		stack->size-=64;
 	}
+}
+
+excode* newBuiltInProc(byteCode* proc)
+{
+	excode* tmp=(excode*)malloc(sizeof(excode));
+	if(tmp==NULL)errors(OUTOFMEMORY);
+	tmp->prev=NULL;
+	tmp->localenv=newVarStack(0,1,NULL);
+	if(proc!=NULL)
+	{
+		tmp->size=proc->size;
+		tmp->code=proc->code;
+	}
+	return tmp;
 }

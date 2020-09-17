@@ -28,7 +28,7 @@ and
 or  
 not  
 list  
-append
+append  
 extend  
 其中，defmacro的语法比较特殊，为：
 (defmacro 用于匹配的表达式 用于返回的表达式)  

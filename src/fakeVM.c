@@ -2114,7 +2114,7 @@ void printStackValue(stackvalue* objValue,FILE* fp)
 int stackvaluecmp(stackvalue* fir,stackvalue* sec)
 {
 	if(fir==NULL&&sec==NULL)return 1;
-	else if(fir!=sec&&(fir!=NULL||sec!=NULL))return 0;
+	if((fir==NULL||sec==NULL)&&fir!=sec)return 0;
 	if(fir->type!=sec->type)return 0;
 	else
 	{

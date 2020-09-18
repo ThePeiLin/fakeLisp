@@ -58,6 +58,7 @@ void runIntpr(intpr* inter)
 	initPreprocess(inter);
 	fakeVM* anotherVM=newFakeVM(NULL,NULL);
 	varstack* globEnv=newVarStack(0,1,NULL);
+	anotherVM->mainproc->localenv=globEnv;
 	initGlobEnv(globEnv);
 	for(;;)
 	{
@@ -103,9 +104,9 @@ void runIntpr(intpr* inter)
 				else
 				{
 					anotherVM->procs=castRawproc(anotherVM->procs,inter->procs);
-					anotherVM->mainproc->code=tmpByteCode->code;
+					anotherVM->mainproc->code=newExcode(tmpByteCode);
+					anotherVM->mainproc->code->localenv=globEnv;
 					anotherVM->mainproc->localenv=globEnv;
-					anotherVM->mainproc->size=tmpByteCode->size;
 					anotherVM->mainproc->cp=0;
 					anotherVM->curproc=anotherVM->mainproc;
 				//	printByteCode(tmpByteCode);

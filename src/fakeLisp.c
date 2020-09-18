@@ -118,6 +118,8 @@ void runIntpr(intpr* inter)
 						printStackValue(getTopValue(stack),stdout);
 						putchar('\n');
 					}
+				//	printf("stack->tp=%d\n",stack->tp);
+				//	printAllStack(stack);
 					freeStackValue(getTopValue(stack));
 					stack->tp-=1;
 					freeByteCode(tmpByteCode);
@@ -147,3 +149,4 @@ byteCode* castRawproc(byteCode* prev,rawproc* procs)
 		return tmp;
 	}
 }
+

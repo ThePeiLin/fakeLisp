@@ -34,13 +34,19 @@ typedef struct VarStack
 
 typedef struct ExCode
 {
-	struct ExCode* prev;
 	varstack* localenv;
-	int32_t cp;
 	int32_t refcount;
 	uint32_t size;
 	char* code;
 }excode;
+
+typedef struct FakeProcess
+{
+	struct FakeProcess* prev;
+	varstack* localenv;
+	int32_t cp;
+	excode* code;
+}fakeprocess;
 
 typedef struct
 {
@@ -58,9 +64,9 @@ typedef struct
 
 typedef struct
 {
-	excode* curproc;
+	fakeprocess* curproc;
 	byteCode* procs;
-	excode* mainproc;
+	fakeprocess* mainproc;
 	fakestack* stack;
 	filestack* files;
 }fakeVM;
@@ -136,7 +142,7 @@ int B_send(fakeVM*);
 int B_accept(fakeVM*);
 static fakestack* newStack(uint32_t);
 static filestack* newFileStack();
-static excode* newExcode(byteCode*);
+excode* newExcode(byteCode*);
 static stackvalue* copyValue(stackvalue*);
 static stackvalue* newStackValue(valueType);
 stackvalue* getTopValue(fakestack*);
@@ -151,4 +157,5 @@ varstack* newVarStack(int32_t,int,varstack*);
 static void freeVarStack(varstack*);
 static void stackRecycle(fakestack*);
 static excode* newBuiltInProc(byteCode*);
+static fakeprocess* newFakeProcess(excode*,fakeprocess*);
 #endif

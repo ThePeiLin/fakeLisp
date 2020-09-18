@@ -1,6 +1,4 @@
-(define else 1)
-(define nil ())
-
+(define print write)
 ;defun宏
 (defmacro  
  (defun ATOM#FUNCNAME PAIR#ARGS,PAIR#EXPRESSION)  
@@ -12,27 +10,36 @@
  (list 'cond (list COND EXPRESSION1) (list 'else EXPRESSION2)))
 
 ;get the last element of a list
-(defun gle (objlist)
- (if (null (cdr objlist))
-  (car objlist)
-  (gle (cdr objlist))))
+;(defun gle (objlist)
+; (if (null (cdr objlist))
+;  (car objlist)
+;  (gle (cdr objlist))))
+
+(define gle (lambda (objlist)
+			(cond ((null (cdr objlist)) (car objlist))
+			      (else (gle (cdr objlist))))))
+(define fact (lambda (n)
+			(cond ((le n 1) n)
+				  (else (mul n (fact (sub n 1)))))))
 (defun ael (objlist object)
  (defun tmpfun (objlist tmp)
   (if (null (cdr objlist))
    (cons (car objlist) tmp)
    (tmpfun (cdr objlist) (cons (car objlist) tmp))))
  (tmpfun (cons object (tmpfun objlist nil)) nil))
+
+
 (defun ii (f x)
  (f x))
 (defun printPair (x)
- (print (car x))
- (print ",")
- (print (cdr x)))
-
-(print (gle '(9 2 3)))
-(print "\n")
-(print (gle (ael '(9 2 3) 4)))
-(print "\n")
-(print "Hello,world!\n")
-(print "你好，世界！\n")
+ (print "(" 1)
+ (print (car x) 1)
+ (print "," 1)
+ (print (cdr x) 1)
+ (print ")" 1))
+(print (gle '(9 8 1)) 1)
+(print "\n" 1)
+(print "Hello,world!\n" 1)
+(print "你好，世界！\n" 1)
 (printPair (ii (lambda (x) (cons 9 x)) 8))
+(print "\n" 1)

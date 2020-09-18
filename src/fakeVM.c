@@ -694,6 +694,7 @@ void runFakeVM(fakeVM* exe)
 				fprintf(stderr,"Stack error!\n");
 				exit(EXIT_FAILURE);
 		}
+		//printAllStack(exe->stack);
 	}
 }
 
@@ -2189,4 +2190,14 @@ fakeprocess* newFakeProcess(excode* code,fakeprocess* prev)
 	tmp->cp=0;
 	tmp->code=code;
 	return tmp;
+}
+
+void printAllStack(fakestack* stack)
+{
+	int i=stack->tp-1;
+	for(;i>=0;i--)
+	{
+		printStackValue(stack->values[i],stdout);
+		putchar('\n');
+	}
 }

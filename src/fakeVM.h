@@ -158,4 +158,5 @@ static void freeVarStack(varstack*);
 static void stackRecycle(fakestack*);
 static excode* newBuiltInProc(byteCode*);
 static fakeprocess* newFakeProcess(excode*,fakeprocess*);
+void printAllStack(fakestack*);
 #endif

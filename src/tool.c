@@ -63,37 +63,42 @@ char* getListFromFile(FILE* file)
 	int anotherChar=0;
 	while((ch=getc(file))!=EOF)
 	{
-		i++;
-		j=i-1;
-		before=tmp;
-		if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))
-			errors(OUTOFMEMORY);
-		memcpy(tmp,before,j);
-		*(tmp+j)=ch;
-		mark^=(ch=='\"'&&*(tmp+j-1)!='\\');
-		if(before!=NULL)free(before);
-		if(ch=='(')braketsNum++;
-		else if(ch==')')
+		if(ch==')')
 		{
-			braketsNum--;
-			if(braketsNum<=0)break;
+			if(braketsNum<=0)continue;
+			else braketsNum--;
 		}
-		if(ch==';'&&!mark)
+		if(ch=='\'')
 		{
-			while(getc(file)!='\n');
-			continue;
-		}
-		else if(isspace(ch)&&braketsNum<=0&&!mark&&anotherChar)break;
-		else if(ch=='\'')
-		{
-			while(isspace((ch=getc(file))));
+			anotherChar=1;
+			int numOfSpace=0;
+			int lenOfMemory=1;
+			char* stringOfSpace=(char*)malloc(sizeof(char)*lenOfMemory);
+			if(stringOfSpace==NULL)errors(OUTOFMEMORY);
+			stringOfSpace[numOfSpace]='\0';
+			char* before=NULL;
+			while(isspace((ch=getc(file))))
+			{
+				numOfSpace++;
+				lenOfMemory++;
+				before=stringOfSpace;
+				if(!(stringOfSpace=(char*)malloc(sizeof(char)*lenOfMemory)))errors(OUTOFMEMORY);
+				if(before!=NULL)
+				{
+					memcpy(stringOfSpace,before,numOfSpace);
+					free(before);
+				}
+				stringOfSpace[numOfSpace-1]=ch;
+			}
+			stringOfSpace[numOfSpace]='\0';
 			ungetc(ch,file);
 			char beQuote[]="(quote ";
 			char* tmpList=subGetList(file);
 			char* other=NULL;
-			int len=strlen(tmpList)+strlen(beQuote)+1;
+			int len=strlen(tmpList)+strlen(beQuote)+strlen(stringOfSpace)+1;
 			if(!(other=(char*)malloc(sizeof(char)*len)))errors(OUTOFMEMORY);
 			strcpy(other,beQuote);
+			strcat(other,stringOfSpace);
 			strcat(other,tmpList);
 			other[len-1]=')';
 			i+=len;
@@ -107,6 +112,22 @@ char* getListFromFile(FILE* file)
 			free(tmpList);
 			continue;
 		}
+		i++;
+		j=i-1;
+		before=tmp;
+		if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))
+			errors(OUTOFMEMORY);
+		memcpy(tmp,before,j);
+		*(tmp+j)=ch;
+		mark^=(ch=='\"'&&*(tmp+j-1)!='\\');
+		if(before!=NULL)free(before);
+		if(ch=='(')braketsNum++;
+		if(ch==';'&&!mark)
+		{
+			while(getc(file)!='\n');
+			continue;
+		}
+		else if(isspace(ch)&&braketsNum<=0&&!mark&&anotherChar)break;
 		else if(!isspace(ch))anotherChar=1;
 	}
 	if(ch==EOF&&braketsNum!=0&&file!=stdin)
@@ -127,14 +148,26 @@ char* subGetList(FILE* file)
 	int j;
 	int mark=0;
 	int braketsNum=0;
+	int anotherChar=0;
 	while((ch=getc(file))!=EOF)
 	{
+		i++;
+		j=i-1;
+		before=tmp;
+		if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))
+			errors(OUTOFMEMORY);
+		memcpy(tmp,before,j);
+		*(tmp+j)=ch;
+		mark^=(ch=='\"'&&*(tmp+j-1)!='\\');
+		if(before!=NULL)free(before);
+		if(ch=='(')braketsNum++;
+		if(ch==')'&&braketsNum<=0)break;
 		if(ch==';'&&!mark)
 		{
 			while(getc(file)!='\n');
 			continue;
 		}
-		if(isspace(ch)&&!braketsNum)break;
+		if(isspace(ch)&&braketsNum<=0&&anotherChar){ungetc(ch,file);break;}
 		else if(ch==')')
 		{
 			braketsNum--;
@@ -149,18 +182,7 @@ char* subGetList(FILE* file)
 			ungetc(ch,file);
 			break;
 		}
-		i++;
-		j=i-1;
-		before=tmp;
-		if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))
-			errors(OUTOFMEMORY);
-		memcpy(tmp,before,j);
-		*(tmp+j)=ch;
-		mark^=(ch=='\"'&&*(tmp+j-1)!='\\');
-		if(before!=NULL)free(before);
-		if(ch=='(')braketsNum++;
-		if(ch==')'&&braketsNum<=0)break;
-		else continue;
+		else if(!isspace(ch))anotherChar=1;
 	}
 	if(tmp!=NULL)*(tmp+i)='\0';
 	return tmp;
@@ -415,13 +437,6 @@ cptr* createTree(const char* objStr,intpr* inter)
 		{
 			i++;
 			braketsNum--;
-			if(braketsNum<0)
-			{
-				printf("In file \"%s\",line %d\n",inter->filename,inter->curline);
-				printf("%s:Syntax error.\n",objStr);
-				if(root!=NULL)deleteCptr(root);
-				return NULL;
-			}
 			pair* prev=NULL;
 			if(objPair==NULL)break;
 			while(objPair->prev!=NULL)
@@ -1032,8 +1047,7 @@ intpr* newIntpr(const char* filename,FILE* file)
 {
 	intpr* tmp=NULL;
 	if(!(tmp=(intpr*)malloc(sizeof(intpr))))errors(OUTOFMEMORY);
-	if(!(tmp->filename=(char*)malloc(sizeof(char)*(strlen(filename)+1))))errors(OUTOFMEMORY);
-	strcpy(tmp->filename,filename);
+	tmp->filename=copyStr(filename);
 	tmp->file=file;
 	tmp->curline=1;
 	tmp->glob=newCompEnv(NULL);
@@ -1190,4 +1204,13 @@ void initCompEnv(compEnv* curEnv)
 {
 	int i;
 	for(i=0;i<41;i++)addCompDef(curEnv,builtInSymbolList[i]);
+}
+
+char* copyStr(const char* str)
+{
+	if(str==NULL)return NULL;
+	char* tmp=(char*)malloc(sizeof(char)*(strlen(str)+1));
+	if(tmp==NULL)errors(OUTOFMEMORY);
+	strcpy(tmp,str);
+	return tmp;
 }

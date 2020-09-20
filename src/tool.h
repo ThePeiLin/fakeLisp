@@ -38,6 +38,7 @@ compEnv* newCompEnv(compEnv*);
 compDef* findCompDef(const char*,compEnv*);
 void destroyCompEnv(compEnv*);
 intpr* newIntpr(const char*,FILE*);
+char* copyStr(const char*);
 void freeIntpr(intpr*);
 void freeAtom(atom*);
 int destoryCptr(cptr*);

@@ -150,7 +150,6 @@ stackvalue* getTopValue(fakestack*);
 stackvalue* getValue(fakestack*,int32_t);
 static stackvalue* getCar(stackvalue*);
 static stackvalue* getCdr(stackvalue*);
-static char* copyStr(const char*);
 static void freeExcode(excode*);
 static int stackvaluecmp(stackvalue*,stackvalue*);
 void freeStackValue(stackvalue*);

@@ -1895,6 +1895,29 @@ int B_ungetc(fakeVM* exe)
 	return 0;
 }
 
+int B_read(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	fakeprocess* proc=exe->curproc;
+	filestack* files=exe->files;
+	stackvalue* file=getTopValue(stack);
+	if(file==NULL||file->type!=INT)return 1;
+	if(file->value.num>=files->size)return 2;
+	FILE* tmpFile=files->files[file->value.num];
+	char* tmpString=getListFromFile(tmpFile);
+	intpr* tmpIntpr=newIntpr(NULL,tmpFile);
+	cptr* tmpCptr=createTree(tmpString,tmpIntpr);
+	stackvalue* tmp=castCptrStackValue(tmpCptr);
+	stack->values[stack->tp-1]=tmp;
+	free(tmpIntpr);
+	free(tmpString);
+	deleteCptr(tmpCptr);
+	free(tmpCptr);
+	freeStackValue(file);
+	proc->cp+=1;
+	return 0;
+}
+
 int B_write(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
@@ -1973,14 +1996,6 @@ excode* newExcode(byteCode* proc)
 		tmp->size=proc->size;
 		tmp->code=proc->code;
 	}
-	return tmp;
-}
-
-char* copyStr(const char* str)
-{
-	char* tmp=(char*)malloc(sizeof(char)*(strlen(str)+1));
-	if(tmp==NULL)errors(OUTOFMEMORY);
-	strcpy(tmp,str);
 	return tmp;
 }
 
@@ -2215,4 +2230,31 @@ void printAllStack(fakestack* stack)
 		printStackValue(stack->values[i],stdout);
 		putchar('\n');
 	}
+}
+
+stackvalue* castCptrStackValue(const cptr* objCptr)
+{
+	if(objCptr->type==ATM)
+	{
+		atom* tmpAtm=objCptr->value;
+		stackvalue* tmp=newStackValue(tmpAtm->type);
+		switch(tmpAtm->type)
+		{
+			case INT:tmp->value.num=tmpAtm->value.num;break;
+			case DBL:tmp->value.dbl=tmpAtm->value.dbl;break;
+			case CHR:tmp->value.chr=tmpAtm->value.chr;break;
+			case SYM:
+			case STR:tmp->value.str=copyStr(tmpAtm->value.str);break;
+		}
+		return tmp;
+	}
+	else if(objCptr->type==PAR)
+	{
+		pair* objPair=objCptr->value;
+		stackvalue* tmp=newStackValue(PAR);
+		tmp->value.par.car=castCptrStackValue(&objPair->car);
+		tmp->value.par.cdr=castCptrStackValue(&objPair->cdr);
+		return tmp;
+	}
+	else if(objCptr->type==NIL)return NULL;
 }

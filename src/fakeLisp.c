@@ -13,15 +13,31 @@
 
 int main(int argc,char** argv)
 {
+	char* filename=argv[1];
 	FILE* fp=(argc>1)?fopen(argv[1],"r"):stdin;
 	if(fp==NULL)
 	{
-		perror(argv[1]);
+		perror(filename);
 		return EXIT_FAILURE;
 	}
-	intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp);
-	initEvalution();
-	runIntpr(inter);
+	if(isscript(filename))
+	{
+		intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp);
+		initEvalution();
+		runIntpr(inter);
+	}
+	else if(iscode(filename))
+	{
+		byteCode* rawprocess=loadRawproc(fp);
+		byteCode* mainprocess=loadByteCode(fp);
+		fakeVM* anotherVM=newFakeVM(mainprocess,rawprocess);
+		runFakeVM(anotherVM);
+	}
+	else
+	{
+		fprintf(stderr,"error: It is not a correct file.\n");
+		return EXIT_FAILURE;
+	}
 	return 0;
 }
 
@@ -150,3 +166,58 @@ byteCode* castRawproc(byteCode* prev,rawproc* procs)
 	}
 }
 
+int isscript(const char* filename)
+{
+	int i;
+	int len=strlen(filename);
+	for(i=len;i>=0;i--)if(filename[i]=='.')break;
+	int lenOfExtension=strlen(filename+i);
+	if(lenOfExtension!=4)return 0;
+	else return !strcmp(filename+i,".fkl");
+}
+
+int iscode(const char* filename)
+{
+	int i;
+	int len=strlen(filename);
+	for(i=len;i>=0;i--)if(filename[i]=='.')break;
+	int lenOfExtension=strlen(filename+i);
+	if(lenOfExtension!=5)return 0;
+	else return !strcmp(filename+i,".fklc");
+}
+
+byteCode* loadRawproc(FILE* fp)
+{
+	int32_t num=0;
+	int i=0;
+	fread(&num,sizeof(int32_t),fp);
+	byteCode* tmp=(byteCode*)malloc(sizeof(byteCode)*num);
+	if(tmp==NULL)errors(OUTOFMEMORY);
+	for(;i<num;i++)
+	{
+		int32_t size=0;
+		fread(&size,sizeof(int32_t),fp);
+		tmp[i].size=size;
+		tmp[i].code=(char*)malloc(sizeof(char)*size);
+		if(tmp[i].code==NULL)errors(OUTOFMEMORY);
+		int j=0;
+		for(;j<size;j++)
+			tmp[i].code[j]=getc(fp);
+	}
+	return tmp;
+}
+
+byteCode* loadByteCode(FILE* fp)
+{
+	int32_t size=0;
+	int i=0;
+	fread(&size,sizeof(int32_t),fp);
+	byteCode* tmp=(byteCode*)malloc(sizeof(byteCode));
+	if(tmp==NULL)errors(OUTOFMEMORY);
+	tmp->size=size;
+	tmp->code=(char*)malloc(sizeof(char)*size);
+	if(tmp->code==NULL)errors(OUTOFMEMORY);
+	for(;i<size;i++)
+		tmp->code[i]=getc(fp);
+	return tmp;
+}

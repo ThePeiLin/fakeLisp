@@ -44,6 +44,7 @@ char* builtInSymbolList[]=
 	"close",
 	"getc",
 	"ungetc",
+	"read",
 	"write",
 	"tell",
 	"seek",
@@ -59,15 +60,30 @@ char* getListFromFile(FILE* file)
 	int j;
 	int mark=0;
 	int braketsNum=0;
+	int anotherChar=0;
 	while((ch=getc(file))!=EOF)
 	{
+		i++;
+		j=i-1;
+		before=tmp;
+		if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))
+			errors(OUTOFMEMORY);
+		memcpy(tmp,before,j);
+		*(tmp+j)=ch;
+		mark^=(ch=='\"'&&*(tmp+j-1)!='\\');
+		if(before!=NULL)free(before);
+		if(ch=='(')braketsNum++;
+		else if(ch==')')
+		{
+			braketsNum--;
+			if(braketsNum<=0)break;
+		}
 		if(ch==';'&&!mark)
 		{
 			while(getc(file)!='\n');
-			ungetc('\n',file);
 			continue;
 		}
-		else if(ch=='\n'&&braketsNum<=0&&!mark){ungetc('\n',file);break;}
+		else if(isspace(ch)&&braketsNum<=0&&!mark&&anotherChar)break;
 		else if(ch=='\'')
 		{
 			while(isspace((ch=getc(file))));
@@ -91,23 +107,7 @@ char* getListFromFile(FILE* file)
 			free(tmpList);
 			continue;
 		}
-		else if(isspace(ch)&&!braketsNum)continue;
-		i++;
-		j=i-1;
-		before=tmp;
-		if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))
-			errors(OUTOFMEMORY);
-		memcpy(tmp,before,j);
-		*(tmp+j)=ch;
-		mark^=(ch=='\"'&&*(tmp+j-1)!='\\');
-		if(before!=NULL)free(before);
-		if(ch=='(')braketsNum++;
-		else if(ch==')')
-		{
-			braketsNum--;
-			if(braketsNum<=0)break;
-		}
-		else continue;
+		else if(!isspace(ch))anotherChar=1;
 	}
 	if(ch==EOF&&braketsNum!=0&&file!=stdin)
 	{
@@ -132,14 +132,9 @@ char* subGetList(FILE* file)
 		if(ch==';'&&!mark)
 		{
 			while(getc(file)!='\n');
-			ungetc('\n',file);
 			continue;
 		}
-		if(isspace(ch)&&!braketsNum)
-		{
-			ungetc(ch,file);
-			break;
-		}
+		if(isspace(ch)&&!braketsNum)break;
 		else if(ch==')')
 		{
 			braketsNum--;
@@ -387,7 +382,7 @@ void errors(int types)
 
 cptr* createTree(const char* objStr,intpr* inter)
 {
-	if(objStr==NULL)return NULL;
+	//if(objStr==NULL)return NULL;
 	int i=0;
 	int braketsNum=0;
 	cptr* root=NULL;
@@ -395,6 +390,7 @@ cptr* createTree(const char* objStr,intpr* inter)
 	cptr* objCptr;
 	while(*(objStr+i)!='\0')
 	{
+		if(*(objStr+i)=='\n')inter->curline+=1;
 		if(*(objStr+i)=='(')
 		{
 			i++;
@@ -446,7 +442,6 @@ cptr* createTree(const char* objStr,intpr* inter)
 		}
 		else if(isspace(*(objStr+i)))
 		{
-			if(*(objStr+1)=='\n')inter->curline+=1;
 			int j=0;
 			char* tmpStr=(char*)objStr+i;
 			while(isspace(*(tmpStr+j)))j--;
@@ -465,11 +460,14 @@ cptr* createTree(const char* objStr,intpr* inter)
 				continue;
 			}
 			i+=j;
-			pair* tmp=newPair(inter->curline,objPair);
-			objPair->cdr.type=PAR;
-			objPair->cdr.value=(void*)tmp;
-			objPair=tmp;
-			objCptr=&objPair->car;
+			if(objPair!=NULL)
+			{
+				pair* tmp=newPair(inter->curline,objPair);
+				objPair->cdr.type=PAR;
+				objPair->cdr.value=(void*)tmp;
+				objPair=tmp;
+				objCptr=&objPair->car;
+			}
 		}
 		else if(*(objStr+i)=='\"')
 		{
@@ -526,7 +524,7 @@ cptr* createTree(const char* objStr,intpr* inter)
 			free(tmp);
 			continue;
 		}
-		if(braketsNum==0)break;
+		if(braketsNum<=0&&root!=NULL)break;
 	}
 	return root;
 }
@@ -1060,13 +1058,6 @@ void freeIntpr(intpr* inter)
 	free(inter);
 }
 
-char getci(intpr* inter)
-{
-	char ch=getc(inter->file);
-	inter->curline+=(ch=='\n')?1:0;
-	return ch;
-}
-
 compEnv* newCompEnv(compEnv* prev)
 {
 	compEnv* tmp=(compEnv*)malloc(sizeof(compEnv));
@@ -1198,5 +1189,5 @@ byteCode* copyByteCode(const byteCode* obj)
 void initCompEnv(compEnv* curEnv)
 {
 	int i;
-	for(i=0;i<40;i++)addCompDef(curEnv,builtInSymbolList[i]);
+	for(i=0;i<41;i++)addCompDef(curEnv,builtInSymbolList[i]);
 }

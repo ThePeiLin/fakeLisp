@@ -132,6 +132,7 @@ int B_jump_if_false(fakeVM*);
 int B_jump(fakeVM*);
 int B_getc(fakeVM*);
 int B_ungetc(fakeVM*);
+int B_read(fakeVM*);
 int B_write(fakeVM*);
 int B_tell(fakeVM*);
 int B_seek(fakeVM*);
@@ -159,4 +160,5 @@ static void stackRecycle(fakestack*);
 static excode* newBuiltInProc(byteCode*);
 static fakeprocess* newFakeProcess(excode*,fakeprocess*);
 void printAllStack(fakestack*);
+static stackvalue* castCptrStackValue(const cptr*);
 #endif

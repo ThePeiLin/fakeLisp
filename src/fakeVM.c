@@ -63,6 +63,7 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_not,
 	B_getc,
 	B_ungetc,
+	B_read,
 	B_write,
 	B_tell,
 	B_seek,
@@ -547,6 +548,19 @@ byteCode P_ungetc=
 	}
 };
 
+byteCode P_read=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_READ,
+		FAKE_END_PROC
+	}
+};
+
 byteCode P_write=
 {
 	23,
@@ -653,19 +667,20 @@ void initGlobEnv(varstack* obj)
 		P_close,
 		P_getc,
 		P_ungetc,
+		P_read,
 		P_write,
 		P_tell,
 		P_seek,
 		P_rewind
 	};
-	obj->size=40;
+	obj->size=41;
 	obj->values=(stackvalue**)realloc(obj->values,sizeof(stackvalue*)*40);
 	if(obj->values==NULL)errors(OUTOFMEMORY);
 	obj->values[0]=NULL;
 	obj->values[1]=newStackValue(INT);
 	obj->values[1]->value.num=1;
 	int i=2;
-	for(;i<40;i++)
+	for(;i<41;i++)
 	{
 		obj->values[i]=newStackValue(PRC);
 		obj->values[i]->value.prc=newBuiltInProc(copyByteCode(buildInProcs+(i-2)));

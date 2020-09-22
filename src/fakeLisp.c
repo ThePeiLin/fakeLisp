@@ -20,7 +20,7 @@ int main(int argc,char** argv)
 		perror(filename);
 		return EXIT_FAILURE;
 	}
-	if(isscript(filename))
+	if(argc==1||isscript(filename))
 	{
 		intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp);
 		initEvalution();
@@ -190,13 +190,13 @@ byteCode* loadRawproc(FILE* fp)
 {
 	int32_t num=0;
 	int i=0;
-	fread(&num,sizeof(int32_t),fp);
+	fread(&num,sizeof(int32_t),1,fp);
 	byteCode* tmp=(byteCode*)malloc(sizeof(byteCode)*num);
 	if(tmp==NULL)errors(OUTOFMEMORY);
 	for(;i<num;i++)
 	{
 		int32_t size=0;
-		fread(&size,sizeof(int32_t),fp);
+		fread(&size,sizeof(int32_t),1,fp);
 		tmp[i].size=size;
 		tmp[i].code=(char*)malloc(sizeof(char)*size);
 		if(tmp[i].code==NULL)errors(OUTOFMEMORY);
@@ -211,7 +211,7 @@ byteCode* loadByteCode(FILE* fp)
 {
 	int32_t size=0;
 	int i=0;
-	fread(&size,sizeof(int32_t),fp);
+	fread(&size,sizeof(int32_t),1,fp);
 	byteCode* tmp=(byteCode*)malloc(sizeof(byteCode));
 	if(tmp==NULL)errors(OUTOFMEMORY);
 	tmp->size=size;

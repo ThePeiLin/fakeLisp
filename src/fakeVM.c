@@ -1319,11 +1319,14 @@ int B_jump_if_ture(fakeVM* exe)
 	fakeprocess* proc=exe->curproc;
 	excode* tmpCode=proc->code;
 	stackvalue* tmpValue=getTopValue(stack);
+	stack->tp-=1;
+	stackRecycle(stack);
 	if(!(tmpValue==NULL||(tmpValue->type==PAR&&tmpValue->value.par.car==NULL&&tmpValue->value.par.cdr==NULL)))
 	{
 		int32_t where=*(int32_t*)(tmpCode->code+proc->cp+sizeof(char));
 		proc->cp+=where;
 	}
+	freeStackValue(tmpValue);
 	proc->cp+=5;
 	return 0;
 }
@@ -1334,11 +1337,14 @@ int B_jump_if_false(fakeVM* exe)
 	fakeprocess* proc=exe->curproc;
 	excode* tmpCode=proc->code;
 	stackvalue* tmpValue=getTopValue(stack);
+	stack->tp-=1;
+	stackRecycle(stack);
 	if(tmpValue==NULL||(tmpValue->type==PAR&&tmpValue->value.par.car==NULL&&tmpValue->value.par.cdr==NULL))
 	{
 		int32_t where=*(int32_t*)(tmpCode->code+proc->cp+sizeof(char));
 		proc->cp+=where;
 	}
+	freeStackValue(tmpValue);
 	proc->cp+=5;
 	return 0;
 }

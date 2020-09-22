@@ -1,3 +1,6 @@
+OS := $(shell uname -s)
+IS_LINUX := $(shell echo $(OS)|grep -i linux)
+object=fakeLisp.o form.o tool.o preprocess.o syntax.o compiler.o fakeVM.o
 form.o: src/form.* src/fakedef.h
 	gcc -g -c src/form.c
 tool.o: src/tool.* src/fakedef.h
@@ -12,7 +15,13 @@ compiler.o: src/compiler.* src/opcode.h src/fakedef.h
 	gcc -g -c src/compiler.c
 fakeVM.o: src/fakeVM.* src/fakedef.h
 	gcc -g -c src/fakeVM.c
-fakeLisp: fakeLisp.o form.o tool.o preprocess.o syntax.o compiler.o fakeVM.o
-	gcc -g -o fakeLisp fakeLisp.o tool.o form.o preprocess.o syntax.o compiler.o fakeVM.o
+fakeLisp: $(object)
+	gcc -g -o fakeLisp $(object)
+
+.PHONY: clean
 clean:
-	rm *.o
+ifdef IS_LINUX
+	rm *.o fakeLisp
+else
+	del *.o fakeLisp.exe
+endif

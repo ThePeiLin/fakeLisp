@@ -706,12 +706,10 @@ byteCode* compileCond(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* st
 			}
 			if(prevCptr(objCptr)==NULL)
 			{
-				*(int32_t*)(jumpiffalse->code+sizeof(char))=tmpCond->size+pop->size+jump->size;
-				byteCode* tmp2=codeCat(jumpiffalse,pop);
+				*(int32_t*)(jumpiffalse->code+sizeof(char))=tmpCond->size+jump->size;
 				byteCode* beFree=tmp1;
-				tmp1=codeCat(tmp1,tmp2);
+				tmp1=codeCat(tmp1,jumpiffalse);
 				freeByteCode(beFree);
-				freeByteCode(tmp2);
 			}
 			if(prevCptr(objCptr)!=NULL&&nextCptr(objCptr)!=NULL)
 			{
@@ -724,11 +722,9 @@ byteCode* compileCond(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* st
 			freeByteCode(beFree);
 			objCptr=prevCptr(objCptr);
 		}
-		*(int32_t*)(jump->code+sizeof(char))=tmp->size+pushnil->size+pop->size;
+		*(int32_t*)(jump->code+sizeof(char))=tmp->size+pushnil->size;
 		byteCode* beFree=tmpCond;
 		tmpCond=codeCat(tmpCond,jump);
-		beFree=tmpCond;
-		tmpCond=codeCat(tmpCond,pop);
 		freeByteCode(beFree);
 		beFree=tmp;
 		tmp=codeCat(tmpCond,tmp);

@@ -411,7 +411,6 @@ cptr* createTree(const char* objStr,intpr* inter)
 	cptr* objCptr;
 	while(*(objStr+i)!='\0')
 	{
-		if(*(objStr+i)=='\n')inter->curline+=1;
 		if(*(objStr+i)=='(')
 		{
 			i++;
@@ -467,7 +466,11 @@ cptr* createTree(const char* objStr,intpr* inter)
 				continue;
 			}
 			j=0;
-			while(isspace(*(tmpStr+j)))j++;
+			while(isspace(*(tmpStr+j)))
+			{
+				if(*(objStr+i)=='\n')inter->curline+=1;
+				j++;
+			}
 			if(*(tmpStr+j)==','||*(tmpStr+j)==')')
 			{
 				i+=j;

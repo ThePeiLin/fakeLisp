@@ -84,6 +84,7 @@ void runIntpr(intpr* inter)
 		if(ch==EOF)break;
 		else ungetc(ch,inter->file);
 		char* list=getListFromFile(inter->file);
+		//printf("%s",list);
 		if(list==NULL)continue;
 		errorStatus status={0,NULL};
 		begin=createTree(list,inter);

@@ -128,8 +128,8 @@ char* getListFromFile(FILE* file)
 		*(tmp+j)=ch;
 		if(before!=NULL)free(before);
 		if(ch=='('&&!mark)braketsNum++;
-		else if(isspace(ch)&&braketsNum<=0&&!mark&&anotherChar)break;
-		else if(!isspace(ch))anotherChar=1;
+		if(!isspace(ch))anotherChar=1;
+		if(braketsNum<=0&&!mark&&anotherChar)break;
 	}
 	if(ch==EOF&&braketsNum!=0&&file!=stdin)
 	{
@@ -468,7 +468,7 @@ cptr* createTree(const char* objStr,intpr* inter)
 			j=0;
 			while(isspace(*(tmpStr+j)))
 			{
-				if(*(objStr+i)=='\n')inter->curline+=1;
+				if(*(tmpStr+j)=='\n')inter->curline+=1;
 				j++;
 			}
 			if(*(tmpStr+j)==','||*(tmpStr+j)==')')

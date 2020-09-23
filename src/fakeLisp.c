@@ -80,16 +80,16 @@ void runIntpr(intpr* inter)
 	{
 		cptr* begin=NULL;
 		if(inter->file==stdin)printf(">>>");
-		char ch;
-		while(isspace(ch=getc(inter->file)))if(ch=='\n')inter->curline+=1;;
+		int ch=getc(inter->file);
 		if(ch==EOF)break;
-		ungetc(ch,inter->file);
+		else ungetc(ch,inter->file);
 		char* list=getListFromFile(inter->file);
 		if(list==NULL)continue;
 		errorStatus status={0,NULL};
 		begin=createTree(list,inter);
 		if(begin!=NULL)
 		{
+
 			if(isPreprocess(begin))
 			{
 				status=eval(begin,NULL);
@@ -106,6 +106,8 @@ void runIntpr(intpr* inter)
 			}
 			else
 			{
+			//	printList(begin,stdout);
+			//	putchar('\n');
 				byteCode* tmpByteCode=compile(begin,inter->glob,inter,&status);
 				if(status.status!=0)
 				{
@@ -134,7 +136,8 @@ void runIntpr(intpr* inter)
 						printStackValue(getTopValue(stack),stdout);
 						putchar('\n');
 					}
-				//	printf("stack->tp=%d\n",stack->tp);
+				//	fprintf(stderr,"======\n");
+				//	fprintf(stderr,"stack->tp=%d\n",stack->tp);
 				//	printAllStack(stack);
 					freeStackValue(getTopValue(stack));
 					stack->tp-=1;
@@ -166,25 +169,6 @@ byteCode* castRawproc(byteCode* prev,rawproc* procs)
 	}
 }
 
-int isscript(const char* filename)
-{
-	int i;
-	int len=strlen(filename);
-	for(i=len;i>=0;i--)if(filename[i]=='.')break;
-	int lenOfExtension=strlen(filename+i);
-	if(lenOfExtension!=4)return 0;
-	else return !strcmp(filename+i,".fkl");
-}
-
-int iscode(const char* filename)
-{
-	int i;
-	int len=strlen(filename);
-	for(i=len;i>=0;i--)if(filename[i]=='.')break;
-	int lenOfExtension=strlen(filename+i);
-	if(lenOfExtension!=5)return 0;
-	else return !strcmp(filename+i,".fklc");
-}
 
 byteCode* loadRawproc(FILE* fp)
 {

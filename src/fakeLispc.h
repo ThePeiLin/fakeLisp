@@ -1,2 +1,6 @@
+#ifndef FAKELISPC_H
+#define FAKELISPC_H
 #include"fakedef.h"
-byteCode* compileTheWholeFile(intpr*);
+byteCode* compileFile(intpr*);
+byteCode* castRawproc(rawproc*);
+#endif

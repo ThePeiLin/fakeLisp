@@ -27,8 +27,6 @@
    (cons (car objlist) tmp)
    (tmpfun (cdr objlist) (cons (car objlist) tmp))))
  (tmpfun (cons object (tmpfun objlist nil)) nil))
-
-
 (defun ii (f x)
  (f x))
 (defun printPair (x)

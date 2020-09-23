@@ -698,13 +698,13 @@ void runFakeVM(fakeVM* exe)
 		{
 			case 1:
 				fprintf(stderr,"%s\n",codeName[tmpCode->code[curproc->cp]].codeName);
-				printStackValue(getTopValue(exe->stack),stderr);
+				printAllStack(exe->stack);
 				putc('\n',stderr);
 				fprintf(stderr,"Wrong arguements!\n");
 				exit(EXIT_FAILURE);
 			case 2:	
 				fprintf(stderr,"%s\n",codeName[tmpCode->code[curproc->cp]].codeName);
-				printStackValue(getTopValue(exe->stack),stderr);
+				printAllStack(exe->stack);
 				putc('\n',stderr);
 				fprintf(stderr,"Stack error!\n");
 				exit(EXIT_FAILURE);

@@ -63,7 +63,14 @@ char* getListFromFile(FILE* file)
 	int anotherChar=0;
 	while((ch=getc(file))!=EOF)
 	{
-		if(ch==')')
+		mark^=(ch=='\"'&&(tmp==NULL||*(tmp+j)!='\\'));
+		if(ch==';'&&!mark)
+		{
+			while(getc(file)!='\n');
+			ungetc('\n',file);
+			continue;
+		}
+		if(ch==')'&&!mark)
 		{
 			if(braketsNum<=0)continue;
 			else braketsNum--;
@@ -119,14 +126,8 @@ char* getListFromFile(FILE* file)
 			errors(OUTOFMEMORY);
 		memcpy(tmp,before,j);
 		*(tmp+j)=ch;
-		mark^=(ch=='\"'&&*(tmp+j-1)!='\\');
 		if(before!=NULL)free(before);
-		if(ch=='(')braketsNum++;
-		if(ch==';'&&!mark)
-		{
-			while(getc(file)!='\n');
-			continue;
-		}
+		if(ch=='('&&!mark)braketsNum++;
 		else if(isspace(ch)&&braketsNum<=0&&!mark&&anotherChar)break;
 		else if(!isspace(ch))anotherChar=1;
 	}
@@ -151,6 +152,19 @@ char* subGetList(FILE* file)
 	int anotherChar=0;
 	while((ch=getc(file))!=EOF)
 	{
+		if(ch==')')
+		{
+			if(braketsNum<=0)
+			{
+				ungetc(ch,file);
+				break;
+			}else braketsNum--;
+		}
+		if(ch==';'&&!mark)
+		{
+			while(getc(file)!='\n');
+			continue;
+		}
 		i++;
 		j=i-1;
 		before=tmp;
@@ -161,22 +175,7 @@ char* subGetList(FILE* file)
 		mark^=(ch=='\"'&&*(tmp+j-1)!='\\');
 		if(before!=NULL)free(before);
 		if(ch=='(')braketsNum++;
-		if(ch==')'&&braketsNum<=0)break;
-		if(ch==';'&&!mark)
-		{
-			while(getc(file)!='\n');
-			continue;
-		}
 		if(isspace(ch)&&braketsNum<=0&&anotherChar){ungetc(ch,file);break;}
-		else if(ch==')')
-		{
-			braketsNum--;
-			if(braketsNum<0)
-			{
-				ungetc(ch,file);
-				break;
-			}
-		}
 		else if(ch==','&&braketsNum<=0)
 		{
 			ungetc(ch,file);
@@ -1213,4 +1212,25 @@ char* copyStr(const char* str)
 	if(tmp==NULL)errors(OUTOFMEMORY);
 	strcpy(tmp,str);
 	return tmp;
+
+}
+
+int isscript(const char* filename)
+{
+	int i;
+	int len=strlen(filename);
+	for(i=len;i>=0;i--)if(filename[i]=='.')break;
+	int lenOfExtension=strlen(filename+i);
+	if(lenOfExtension!=4)return 0;
+	else return !strcmp(filename+i,".fkl");
+}
+
+int iscode(const char* filename)
+{
+	int i;
+	int len=strlen(filename);
+	for(i=len;i>=0;i--)if(filename[i]=='.')break;
+	int lenOfExtension=strlen(filename+i);
+	if(lenOfExtension!=5)return 0;
+	else return !strcmp(filename+i,".fklc");
 }

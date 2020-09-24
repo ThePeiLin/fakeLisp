@@ -6,6 +6,7 @@
 #include"opcode.h"
 #include"preprocess.h"
 #include"syntax.h"
+#include"form.h"
 int main(int argc,char** argv)
 {
 	char* filename=argv[1];
@@ -17,6 +18,7 @@ int main(int argc,char** argv)
 	}
 	if(argc==1||isscript(filename))
 	{
+		initEvalution();
 		int i;
 		intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp);
 		byteCode* mainByteCode=compileFile(inter);
@@ -27,7 +29,7 @@ int main(int argc,char** argv)
 		FILE* outfp=fopen(outputname,"w");
 		fwrite(&numOfRawproc,sizeof(numOfRawproc),1,outfp);
 		byteCode* rawProcList=castRawproc(inter->procs);
-		for(i=0;i<=numOfRawproc;i++)
+		for(i=0;i<numOfRawproc;i++)
 		{
 			int32_t size=rawProcList[i].size;
 			char* code=rawProcList[i].code;
@@ -101,6 +103,7 @@ byteCode* compileFile(intpr* inter)
 			}
 		}
 	}
+	return tmp;
 }
 
 byteCode* castRawproc(rawproc* procs)
@@ -118,4 +121,32 @@ byteCode* castRawproc(rawproc* procs)
 		}
 		return tmp;
 	}
+}
+
+void initEvalution()
+{
+	addFunc("quote",N_quote);
+	addFunc("car",N_car);
+	addFunc("cdr",N_cdr);
+	addFunc("cons",N_cons);
+	addFunc("eq",N_eq);
+	addFunc("atom",N_atom);
+	addFunc("null",N_null);
+	addFunc("cond",N_cond);
+	addFunc("and",N_and);
+	addFunc("or",N_or);
+	addFunc("not",N_not);
+	addFunc("define",N_define);
+//	addFunc("lambda",N_lambda);
+	addFunc("list",N_list);
+	addFunc("defmacro",N_defmacro);
+//	addFunc("undef",N_undef);
+	addFunc("add",N_add);
+	addFunc("sub",N_sub);
+	addFunc("mul",N_mul);
+	addFunc("div",N_div);
+	addFunc("mod",N_mod);
+	addFunc("append",N_append);
+	addFunc("extend",N_extend);
+//	addFunc("print",N_print);
 }

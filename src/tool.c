@@ -64,18 +64,18 @@ char* getListFromFile(FILE* file)
 	while((ch=getc(file))!=EOF)
 	{
 		mark^=(ch=='\"'&&(tmp==NULL||*(tmp+j)!='\\'));
-		if(ch==';'&&!mark)
+		if(ch==';'&&!mark&&(tmp==NULL||*(tmp+j)!='\\'))
 		{
 			while(getc(file)!='\n');
 			ungetc('\n',file);
 			continue;
 		}
-		if(ch==')'&&!mark)
+		if(ch==')'&&!mark&&(tmp==NULL||*(tmp+j)!='\\'))
 		{
 			if(braketsNum<=0)continue;
 			else braketsNum--;
 		}
-		if(ch=='\'')
+		if(ch=='\''&&!mark&&(tmp==NULL||*(tmp+j)!='\\'))
 		{
 			anotherChar=1;
 			int numOfSpace=0;
@@ -119,6 +119,11 @@ char* getListFromFile(FILE* file)
 			free(tmpList);
 			continue;
 		}
+		if(isspace(ch)&&braketsNum<=0&&!mark&&anotherChar)
+		{
+			ungetc(ch,file);
+			break;
+		}
 		i++;
 		j=i-1;
 		before=tmp;
@@ -127,9 +132,8 @@ char* getListFromFile(FILE* file)
 		memcpy(tmp,before,j);
 		*(tmp+j)=ch;
 		if(before!=NULL)free(before);
-		if(ch=='('&&!mark)braketsNum++;
+		if(ch=='('&&!mark&&(tmp==NULL||*(tmp+j-1)!='\\'))braketsNum++;
 		if(!isspace(ch))anotherChar=1;
-		if(braketsNum<=0&&!mark&&anotherChar)break;
 	}
 	if(ch==EOF&&braketsNum!=0&&file!=stdin)
 	{
@@ -152,7 +156,7 @@ char* subGetList(FILE* file)
 	int anotherChar=0;
 	while((ch=getc(file))!=EOF)
 	{
-		if(ch==')')
+		if(ch==')'&&!mark&&(tmp==NULL||*(tmp+j)!='\\'))
 		{
 			if(braketsNum<=0)
 			{
@@ -160,11 +164,17 @@ char* subGetList(FILE* file)
 				break;
 			}else braketsNum--;
 		}
-		if(ch==';'&&!mark)
+		if(ch==';'&&!mark&&(tmp==NULL||*(tmp+j)!='\\'))
 		{
 			while(getc(file)!='\n');
 			continue;
 		}
+		if(ch==','&&braketsNum<=0&&!mark&&(tmp==NULL||(*(tmp+j-1)!='\\')))
+		{
+			ungetc(ch,file);
+			break;
+		}
+		if(isspace(ch)&&braketsNum<=0&&anotherChar){ungetc(ch,file);break;}
 		i++;
 		j=i-1;
 		before=tmp;
@@ -174,13 +184,7 @@ char* subGetList(FILE* file)
 		*(tmp+j)=ch;
 		mark^=(ch=='\"'&&*(tmp+j-1)!='\\');
 		if(before!=NULL)free(before);
-		if(ch=='(')braketsNum++;
-		if(isspace(ch)&&braketsNum<=0&&anotherChar){ungetc(ch,file);break;}
-		else if(ch==','&&braketsNum<=0)
-		{
-			ungetc(ch,file);
-			break;
-		}
+		if(ch=='('&&!mark&&(tmp==NULL||*(tmp+j-1)!='\\'))braketsNum++;
 		else if(!isspace(ch))anotherChar=1;
 	}
 	if(tmp!=NULL)*(tmp+i)='\0';
@@ -196,7 +200,18 @@ char* getStringFromList(const char* str)
 			&&!isspace(*(str+len))
 			&&(*(str+len)!=',')
 			&&(*(str+len)!=0))len++;
-	if(!(tmp=(char*)malloc(sizeof(char)*len+1)))errors(OUTOFMEMORY);
+	if(!(tmp=(char*)malloc(sizeof(char)*(len+1))))errors(OUTOFMEMORY);
+	memcpy(tmp,str,len);
+	if(tmp!=NULL)*(tmp+len)='\0';
+	return tmp;
+}
+
+char* getStringAfterBackslash(const char* str)
+{
+	char* tmp=NULL;
+	int len=0;
+	while(!isspace(*(str+len))&&*(str+len)!='\0')len++;
+	if(!(tmp=(char*)malloc(sizeof(char)*(len+1))))errors(OUTOFMEMORY);
 	memcpy(tmp,str,len);
 	if(tmp!=NULL)*(tmp+len)='\0';
 	return tmp;
@@ -522,7 +537,7 @@ cptr* createTree(const char* objStr,intpr* inter)
 		else if(*(objStr+i)=='#'&&*(objStr+1+i)=='\\')
 		{
 			if(root==NULL)objCptr=root=newCptr(inter->curline,objPair);
-			char* tmp=getStringFromList(objStr+i);
+			char* tmp=getStringAfterBackslash(objStr+i);
 			objCptr->type=ATM;
 			objCptr->value=(void*)newAtom(CHR,NULL,objPair);
 			atom* tmpAtm=objCptr->value;

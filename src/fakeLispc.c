@@ -87,8 +87,8 @@ byteCode* compileFile(intpr* inter)
 				{
 					exError(status.place,status.status,inter);
 					deleteCptr(status.place);
-					freeByteCode(tmpByteCode);
 					freeByteCode(tmp);
+					exit(EXIT_FAILURE);
 				}
 				byteCode* tmp1=codeCat(tmpByteCode,pop);
 				byteCode* beFree=tmp;

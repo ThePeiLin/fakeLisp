@@ -30,7 +30,12 @@ int main(int argc,char** argv)
 	{
 		byteCode* rawprocess=loadRawproc(fp);
 		byteCode* mainprocess=loadByteCode(fp);
+	//	printByteCode(mainprocess);
 		fakeVM* anotherVM=newFakeVM(mainprocess,rawprocess);
+		varstack* globEnv=newVarStack(0,1,NULL);
+		anotherVM->mainproc->localenv=globEnv;
+		anotherVM->mainproc->code->localenv=globEnv;
+		initGlobEnv(globEnv);
 		runFakeVM(anotherVM);
 	}
 	else

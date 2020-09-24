@@ -1,6 +1,7 @@
 OS := $(shell uname -s)
 IS_LINUX := $(shell echo $(OS)|grep -i linux)
-object=fakeLisp.o form.o tool.o preprocess.o syntax.o compiler.o fakeVM.o
+objectOfFakeLisp=fakeLisp.o form.o tool.o preprocess.o syntax.o compiler.o fakeVM.o
+objectOfFakeLispc=fakeLispc.o form.o tool.o preprocess.o syntax.o compiler.o
 form.o: src/form.* src/fakedef.h
 	gcc -g -c src/form.c
 tool.o: src/tool.* src/fakedef.h
@@ -15,8 +16,12 @@ compiler.o: src/compiler.* src/opcode.h src/fakedef.h
 	gcc -g -c src/compiler.c
 fakeVM.o: src/fakeVM.* src/fakedef.h
 	gcc -g -c src/fakeVM.c
-fakeLisp: $(object)
-	gcc -g -o fakeLisp $(object)
+fakeLispc.o: src/fakeLispc.* src/fakedef.h
+	gcc -g -c src/fakeLispc.c
+fakeLisp: $(objectOfFakeLisp)
+	gcc -g -o fakeLisp $(objectOfFakeLisp)
+fakeLispc: $(objectOfFakeLispc)
+	gcc -g -o fakeLispc $(objectOfFakeLispc)
 
 .PHONY: clean
 clean:

@@ -32,8 +32,8 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_jump_if_ture,
 	B_jump_if_false,
 	B_jump,
-//	B_set_jump,
-//	B_jump_back,
+	B_set_jump,
+	B_jump_back,
 	B_add,
 	B_sub,
 	B_mul,
@@ -1365,6 +1365,18 @@ int B_jump(fakeVM* exe)
 	int32_t where=*(int32_t*)(tmpCode->code+proc->cp+sizeof(char));
 	proc->cp+=where+5;
 	return 0;
+}
+
+int B_set_jump(fakeVM* exe)
+{
+	fprintf(stderr,"This byte code has not been build yet!\n");
+	exit(EXIT_FAILURE);
+}
+
+int B_jump_back(fakeVM* exe)
+{
+	fprintf(stderr,"This byte code has not been build yet!\n");
+	exit(EXIT_FAILURE);
 }
 
 int B_open(fakeVM* exe)

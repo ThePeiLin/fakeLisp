@@ -1276,6 +1276,12 @@ int B_set_bp(fakeVM* exe)
 	fakeprocess* proc=exe->curproc;
 	stackvalue* prevBp=newStackValue(INT);
 	prevBp->value.num=stack->bp;
+	if(stack->tp>=stack->size)
+	{
+		stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size+64));
+		if(stack->values==NULL)errors(OUTOFMEMORY);
+		stack->size+=64;
+	}
 	stack->values[stack->tp]=prevBp;
 	stack->tp+=1;
 	stack->bp=stack->tp;

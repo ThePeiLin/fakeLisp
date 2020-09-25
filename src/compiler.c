@@ -358,9 +358,7 @@ byteCode* compileAnd(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* sta
 	pair* tmpPair=objCptr->value;
 	byteCode* jumpiffalse=createByteCode(sizeof(char)+sizeof(int32_t));
 	byteCode* push1=createByteCode(sizeof(char)+sizeof(int32_t));
-	byteCode* pop=createByteCode(sizeof(char));
 	byteCode* tmp=createByteCode(0);
-	pop->code[0]=FAKE_POP;
 	jumpiffalse->code[0]=FAKE_JMP_IF_FALSE;
 	push1->code[0]=FAKE_PUSH_INT;
 	*(int32_t*)(push1->code+sizeof(char))=1;
@@ -378,7 +376,6 @@ byteCode* compileAnd(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* sta
 			if(status->status!=0)
 			{
 				freeByteCode(tmp);
-				freeByteCode(pop);
 				freeByteCode(jumpiffalse);
 				freeByteCode(push1);
 				return NULL;
@@ -386,9 +383,8 @@ byteCode* compileAnd(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* sta
 			tmp=codeCat(tmp1,tmp);
 			freeByteCode(beFree);
 			beFree=tmp;
-			*(int32_t*)(jumpiffalse->code+sizeof(char))=tmp->size+pop->size;
-			byteCode* tmp2=codeCat(jumpiffalse,pop);
-			tmp=codeCat(tmp2,tmp);
+			*(int32_t*)(jumpiffalse->code+sizeof(char))=tmp->size;
+			tmp=codeCat(jumpiffalse,tmp);
 			freeByteCode(beFree);
 			objCptr=prevCptr(objCptr);
 		}
@@ -401,7 +397,6 @@ byteCode* compileAnd(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* sta
 			objCptr=prevCptr(&objCptr->outer->prev->car);		
 		}
 	}
-	freeByteCode(pop);
 	freeByteCode(jumpiffalse);
 	freeByteCode(push1);
 	return tmp;
@@ -412,10 +407,8 @@ byteCode* compileOr(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* stat
 	pair* tmpPair=objCptr->value;
 	byteCode* jumpifture=createByteCode(sizeof(char)+sizeof(int32_t));
 	byteCode* pushnil=createByteCode(sizeof(char));
-	byteCode* pop=createByteCode(sizeof(char));
 	byteCode* tmp=createByteCode(0);
 	pushnil->code[0]=FAKE_PUSH_NIL;
-	pop->code[0]=FAKE_POP;
 	jumpifture->code[0]=FAKE_JMP_IF_TURE;
 	while(objCptr!=NULL)
 	{
@@ -438,10 +431,8 @@ byteCode* compileOr(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* stat
 			tmp=codeCat(tmp1,tmp);
 			freeByteCode(beFree);
 			beFree=tmp;
-			*(int32_t*)(jumpifture->code+sizeof(char))=tmp->size+pop->size;
-			byteCode* tmp2=codeCat(jumpifture,pop);
-			tmp=codeCat(tmp2,tmp);
-			freeByteCode(tmp2);
+			*(int32_t*)(jumpifture->code+sizeof(char))=tmp->size;
+			tmp=codeCat(jumpifture,tmp);
 			freeByteCode(beFree);
 			objCptr=prevCptr(objCptr);
 		}
@@ -454,7 +445,6 @@ byteCode* compileOr(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* stat
 			objCptr=prevCptr(&objCptr->outer->prev->car);		
 		}	
 	}
-	freeByteCode(pop);
 	freeByteCode(jumpifture);
 	freeByteCode(pushnil);
 	return tmp;

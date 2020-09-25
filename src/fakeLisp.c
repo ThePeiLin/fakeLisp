@@ -30,7 +30,7 @@ int main(int argc,char** argv)
 	{
 		byteCode* rawprocess=loadRawproc(fp);
 		byteCode* mainprocess=loadByteCode(fp);
-	//	printByteCode(mainprocess);
+		//printByteCode(mainprocess);
 		fakeVM* anotherVM=newFakeVM(mainprocess,rawprocess);
 		varstack* globEnv=newVarStack(0,1,NULL);
 		anotherVM->mainproc->localenv=globEnv;
@@ -89,7 +89,7 @@ void runIntpr(intpr* inter)
 		if(ch==EOF)break;
 		else ungetc(ch,inter->file);
 		char* list=getListFromFile(inter->file);
-		//printf("%s",list);
+	//	printf("%s",list);
 		if(list==NULL)continue;
 		errorStatus status={0,NULL};
 		begin=createTree(list,inter);

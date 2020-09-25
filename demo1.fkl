@@ -37,6 +37,8 @@
  (print ")" 1))
 (print (gle '(9 8 1)) 1)
 (print "\n" 1)
+(print (ael '(9 8 7) 6) 1)
+(print "\n" 1)
 (print "Hello,world!\n" 1)
 (print "你好，世界！\n" 1)
 (printPair (ii (lambda (x) (cons 9 x)) 8))

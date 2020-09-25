@@ -476,9 +476,9 @@ void initPreprocess(intpr* inter)
 			createTree("RAWEXPRESS",inter));
 	addMacro(createTree("(cond (ANY#COND,PAIR#BODY) VAREPT#ANOTHER)",inter),
 			createTree("RAWEXPRESS",inter));
-	addMacro(createTree("(and,PAIR#OTHER)",inter),
+	addMacro(createTree("(and,ANY#OTHER)",inter),
 			createTree("RAWEXPRESS",inter));
-	addMacro(createTree("(or,PAIR#OTHER)",inter),
+	addMacro(createTree("(or,ANY#OTHER)",inter),
 			createTree("RAWEXPRESS",inter));
 	addMacro(createTree("(lambda ANY#ARGS,PAIR#BODY)",inter),
 			createTree("RAWEXPRESS",inter));
@@ -534,14 +534,73 @@ int M_VAREPT(const cptr* oriCptr,const cptr* fmtCptr,const char* name,env* curEn
 	const cptr tmp={NULL,0,NIL,NULL};
 	pair* forPair=(format->type==PAR)?format->value:NULL;
 	pair* tmpPair=forPair;
-	env* forValRept=newEnv(NULL);
 	defines* valreptdef=addDefine(name,&tmp,MacroEnv);
+	if(oriCptr==NULL)
+	{
+		const cptr* format=fmtCptr;
+		pair* forPair=(format->type==PAR)?format->value:NULL;
+		env* forValRept=newEnv(NULL);
+		while(format!=NULL)
+		{
+			if(format->type==PAR)
+			{
+				forPair=format->value;
+				format=&forPair->car;
+				continue;
+			}
+			else if(format->type==ATM)
+			{
+				atom* tmpAtm=format->value;
+				if(tmpAtm->type==SYM)
+				{
+					const char* anotherName=hasAnotherName(tmpAtm->value.str);
+					if(anotherName)
+					{
+						forPair=(format==&fmtCptr->outer->prev->car)?NULL:format->outer;
+						int len=strlen(name)+strlen(anotherName)+2;
+						char symName[len];
+						strcpy(symName,name);
+						strcat(symName,"#");
+						strcat(symName,anotherName);
+						defines* tmpDef=findDefine(symName,MacroEnv);
+						if(tmpDef==NULL)tmpDef=addDefine(symName,&tmp,MacroEnv);
+					}
+				}
+				if(forPair!=NULL&&format==&forPair->car)
+				{
+					format=&forPair->cdr;
+					continue;
+				}
+			}
+			if(forPair!=NULL&&format==&forPair->car)
+			{
+				format=&forPair->cdr;
+				continue;
+			}
+			else if(forPair!=NULL&&format==&forPair->cdr)
+			{
+				pair* forPrev=NULL;
+				while(forPair!=tmpPair)
+				{
+					forPrev=forPair;
+					forPair=forPair->prev;
+					if(forPair==forPair->car.value)break;
+				}
+				if(forPair!=NULL)
+					format=&forPair->cdr;
+				if(forPair==tmpPair&&format==&forPair->cdr)break;
+			}
+			if(forPair==NULL)break;
+		}
+		destroyEnv(forValRept);
+	}
 	while(oriCptr!=NULL&&fmtCptr!=NULL)
 	{
 		const cptr* origin=oriCptr;
 		const cptr* format=fmtCptr;
 		pair* forPair=(format->type==PAR)?format->value:NULL;
 		pair* oriPair=(origin->type==PAR)?origin->value:NULL;
+		env* forValRept=newEnv(NULL);
 		while(origin!=NULL&&format!=NULL)
 		{
 			if(format->type==PAR&&origin->type==PAR)
@@ -622,7 +681,8 @@ int M_VAREPT(const cptr* oriCptr,const cptr* fmtCptr,const char* name,env* curEn
 		}
 		destroyEnv(forValRept);
 		addToList(&valreptdef->obj,oriCptr);
-		oriCptr=nextCptr(oriCptr);
+		const cptr* tmp=oriCptr;
+		oriCptr=nextCptr(tmp);
 	}
 	return 1;
 }

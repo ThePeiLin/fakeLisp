@@ -2,7 +2,7 @@
 #define COMPILER_H
 #include"fakedef.h"
 
-static int isTailCall(const char*,const cptr*);
+static int isTailCall(const cptr*);
 void printByteCode(const byteCode*);
 byteCode* compile(cptr*,compEnv*,intpr*,errorStatus*);
 byteCode* compileConst(cptr*,compEnv*,intpr*,errorStatus*);

@@ -765,3 +765,40 @@ void printByteCode(const byteCode* tmpCode)
 		putchar('\n');
 	}
 }
+
+int isTailCall(const cptr* obj)
+{
+	pair* objPair=obj->value;
+	cptr* first=&objPair->car;
+	cptr* name=nextCptr(first);
+	cptr* expressions=nextCptr(name);
+	if(!isLambdaExpression(expressions))return 0;
+	else
+	{
+		cptr* lastCptr=getLast(expressions);
+		if(isListForm(lastCptr)&&cptrcmp(name,getFirst(lastCptr)))return 1;
+		else if(isCondExpression(lastCptr))
+		{
+			cptr* firstCond=nextCptr(getFirst(lastCptr));
+			while(firstCond!=NULL)
+			{
+				cptr* lastCondCptr=getLast(firstCond);
+				if(isListForm(lastCondCptr)&&cptrcmp(name,getFirst(lastCondCptr)))return 1;
+				firstCond=nextCptr(firstCond);
+			}
+		}
+		else if(isAndExpression(lastCptr))
+		{
+			cptr* lastExpression=getLast(lastCptr);
+			if(isListForm(lastExpression)&&cptrcmp(name,getFirst(lastExpression)))return 1;
+			else return 0;
+		}
+		else if(isOrExpression(lastCptr))
+		{
+			cptr* lastExpression=getLast(lastCptr);
+			if(isListForm(lastExpression)&&cptrcmp(name,getFirst(lastExpression)))return 1;
+			else return 0;
+		}
+		else return 0;
+	}
+}

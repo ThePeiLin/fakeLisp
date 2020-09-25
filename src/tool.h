@@ -53,6 +53,8 @@ int copyCptr(cptr*,const cptr*);
 void replace(cptr*,const cptr*);
 cptr* nextCptr(const cptr*);
 cptr* prevCptr(const cptr*);
+cptr* getLast(const cptr*);
+cptr* getFirst(const cptr*);
 byteCode* createByteCode(unsigned int);
 byteCode* codeCat(const byteCode*,const byteCode*);
 void initCompEnv(compEnv*);

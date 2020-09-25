@@ -22,6 +22,7 @@ int main(int argc,char** argv)
 		int i;
 		intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp);
 		byteCode* mainByteCode=compileFile(inter);
+		printByteCode(mainByteCode);
 		char* outputname=(char*)malloc(sizeof(char)*(strlen(filename)+2));
 		strcpy(outputname,filename);
 		strcat(outputname,"c");

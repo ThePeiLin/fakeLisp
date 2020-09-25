@@ -693,7 +693,7 @@ void runFakeVM(fakeVM* exe)
 	{
 		fakeprocess* curproc=exe->curproc;
 		excode* tmpCode=curproc->code;
-		//fprintf(stderr,"%s\n",codeName[tmpCode->code[curproc->cp]].codeName);
+	//	fprintf(stderr,"%s\n",codeName[tmpCode->code[curproc->cp]].codeName);
 		switch(ByteCodes[tmpCode->code[curproc->cp]](exe))
 		{
 			case 1:
@@ -709,7 +709,10 @@ void runFakeVM(fakeVM* exe)
 				fprintf(stderr,"Stack error!\n");
 				exit(EXIT_FAILURE);
 		}
-		//printAllStack(exe->stack);
+	//	fprintf(stderr,"=========\n");
+	//	fprintf(stderr,"stack->tp=%d\n",exe->stack->tp);
+	//	printAllStack(exe->stack);
+	//	putc('\n',stderr);
 	}
 }
 
@@ -1255,6 +1258,7 @@ int B_end_proc(fakeVM* exe)
 	if(tmpValue!=NULL&&tmpValue->type==PRC&&tmpValue->value.prc->localenv->prev==tmpEnv)tmpEnv->next=tmpValue->value.prc->localenv;
 	if(tmpCode==tmpProc->prev->code)tmpCode->localenv=tmpProc->prev->localenv;
 	else tmpCode->localenv=newVarStack(tmpEnv->bound,1,tmpEnv->prev);
+	if(tmpEnv->prev!=NULL&&tmpEnv->prev->next==tmpEnv)tmpEnv->prev->next=tmpCode->localenv;
 	tmpEnv->inProc=0;
 	freeVarStack(tmpEnv);
 	if(tmpCode->refcount==0)freeExcode(tmpCode);
@@ -1319,14 +1323,17 @@ int B_jump_if_ture(fakeVM* exe)
 	fakeprocess* proc=exe->curproc;
 	excode* tmpCode=proc->code;
 	stackvalue* tmpValue=getTopValue(stack);
-	stack->tp-=1;
-	stackRecycle(stack);
 	if(!(tmpValue==NULL||(tmpValue->type==PAR&&tmpValue->value.par.car==NULL&&tmpValue->value.par.cdr==NULL)))
 	{
 		int32_t where=*(int32_t*)(tmpCode->code+proc->cp+sizeof(char));
 		proc->cp+=where;
 	}
-	freeStackValue(tmpValue);
+	else
+	{
+		stack->tp-=1;
+		stackRecycle(stack);
+		freeStackValue(tmpValue);
+	}
 	proc->cp+=5;
 	return 0;
 }
@@ -2086,7 +2093,7 @@ stackvalue* copyValue(stackvalue* obj)
 void freeExcode(excode* proc)
 {
 	varstack* curEnv=proc->localenv;
-	varstack* prev=(curEnv->prev!=NULL&&(curEnv->prev->next==NULL||curEnv->prev->next==curEnv))?curEnv->prev:NULL;
+	varstack* prev=(curEnv->prev!=NULL&&(curEnv->prev->next!=NULL&&curEnv->prev->next==curEnv))?curEnv->prev:NULL;
 	curEnv->inProc=0;
 	if(curEnv->next==NULL||curEnv->next->prev!=curEnv)freeVarStack(curEnv);
 	curEnv=prev;

@@ -918,6 +918,7 @@ char stringToChar(const char* objStr)
 
 int isNum(const char* objStr)
 {
+	if(isHexNum(objStr))return 1;
 	if(!isxdigit(*objStr)&&(*objStr!='-'||*objStr!='.'))return 0;
 	int len=strlen(objStr);
 	int i=(*objStr=='-')?1:0;

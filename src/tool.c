@@ -1253,3 +1253,18 @@ int iscode(const char* filename)
 	if(lenOfExtension!=5)return 0;
 	else return !strcmp(filename+i,".fklc");
 }
+
+cptr* getLast(const cptr* objList)
+{
+	pair* objPair=objList->value;
+	cptr* first=&objPair->car;
+	for(;nextCptr(first)!=NULL;first=nextCptr(first));
+	return first;
+}
+
+cptr* getFirst(const cptr* objList)
+{
+	pair* objPair=objList->value;
+	cptr* first=&objPair->car;
+	return first;
+}

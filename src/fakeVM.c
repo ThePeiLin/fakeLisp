@@ -32,6 +32,8 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_jump_if_ture,
 	B_jump_if_false,
 	B_jump,
+//	B_set_jump,
+//	B_jump_back,
 	B_add,
 	B_sub,
 	B_mul,
@@ -987,7 +989,7 @@ int B_pop_var(fakeVM* exe)
 		stack->values[stack->tp-1]=NULL;
 		stack->tp-=1;
 		stackRecycle(stack);
-	}else *pValue=NULL;
+	}else return 2;
 	proc->cp+=5;
 	return 0;
 }

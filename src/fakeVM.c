@@ -2116,7 +2116,7 @@ varstack* newVarStack(int32_t bound,int inProc,varstack* prev)
 	tmp->values=NULL;
 	tmp->next=NULL;
 	tmp->prev=prev;
-	//fprintf(stderr,"New env!\n");
+//	fprintf(stderr,"New env!\n");
 	return tmp;
 }
 
@@ -2131,7 +2131,7 @@ void freeVarStack(varstack* obj)
 		}
 		if(obj->prev!=NULL&&obj->prev->next==obj)obj->prev->next=NULL;
 		free(obj);
-		//printf("Free env!\n");
+	//	printf("Free env!\n");
 	}
 }
 

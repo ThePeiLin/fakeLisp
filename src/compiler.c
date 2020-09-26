@@ -732,40 +732,6 @@ byteCode* compileCond(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* st
 	return tmp;
 }
 
-/*byteCode* compileTailCall(cptr* objCptr,compEnv* curEnv,intpr inter,errorStatus* status)
-{
-	cptr* last=getLast(objCptr);
-	byteCode* tmp=createByteCode(1);
-	byteCode* jumpback=createByteCode(1);
-	jumpback->code[0]=FAKE_JMP_BACK;
-	tmp->code[0]=FAKE_SET_BP;
-	for(;;)
-	{
-		if(prevCptr(last)==NULL)
-		{
-			byteCode* beFree=codeCat(tmp,jumpback);
-			freeByteCode(beFree);
-			break;
-		}
-		else
-		{
-			byteCode* beFree=tmp;
-			byteCode* tmp1=compile(last,curEnv,inter,status);
-			if(status->status!=0)
-			{
-				freeByteCode(tmp);
-				tmp=NULL;
-				break;
-			}
-			byteCode* tmp=codeCat(tmp,tmp1);
-			freeByteCode(beFree);
-			freeByteCode(tmp1);
-		}
-	}
-	freeByteCode(jumpback);
-	return tmp;
-}*/
-
 void printByteCode(const byteCode* tmpCode)
 {
 	int i=0;
@@ -797,42 +763,5 @@ void printByteCode(const byteCode* tmpCode)
 				break;
 		}
 		putchar('\n');
-	}
-}
-
-int isTailCall(const cptr* obj)
-{
-	pair* objPair=obj->value;
-	cptr* first=&objPair->car;
-	cptr* name=nextCptr(first);
-	cptr* expressions=nextCptr(name);
-	if(!isLambdaExpression(expressions))return 0;
-	else
-	{
-		cptr* lastCptr=getLast(expressions);
-		if(isListForm(lastCptr)&&cptrcmp(name,getFirst(lastCptr)))return 1;
-		else if(isCondExpression(lastCptr))
-		{
-			cptr* firstCond=nextCptr(getFirst(lastCptr));
-			while(firstCond!=NULL)
-			{
-				cptr* lastCondCptr=getLast(firstCond);
-				if(isListForm(lastCondCptr)&&cptrcmp(name,getFirst(lastCondCptr)))return 1;
-				firstCond=nextCptr(firstCond);
-			}
-		}
-		else if(isAndExpression(lastCptr))
-		{
-			cptr* lastExpression=getLast(lastCptr);
-			if(isListForm(lastExpression)&&cptrcmp(name,getFirst(lastExpression)))return 1;
-			else return 0;
-		}
-		else if(isOrExpression(lastCptr))
-		{
-			cptr* lastExpression=getLast(lastCptr);
-			if(isListForm(lastExpression)&&cptrcmp(name,getFirst(lastExpression)))return 1;
-			else return 0;
-		}
-		else return 0;
 	}
 }

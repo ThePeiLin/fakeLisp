@@ -2,7 +2,6 @@
 #define COMPILER_H
 #include"fakedef.h"
 
-static int isTailCall(const cptr*);
 void printByteCode(const byteCode*);
 byteCode* compile(cptr*,compEnv*,intpr*,errorStatus*);
 byteCode* compileConst(cptr*,compEnv*,intpr*,errorStatus*);
@@ -18,5 +17,4 @@ byteCode* compileCond(cptr*,compEnv*,intpr*,errorStatus*);
 byteCode* compileLambda(cptr*,compEnv*,intpr*,errorStatus*);
 byteCode* compileAnd(cptr*,compEnv*,intpr*,errorStatus*);
 byteCode* compileOr(cptr*,compEnv*,intpr*,errorStatus*);
-byteCode* compileTailCall(cptr*,compEnv*,intpr*,errorStatus*);
 #endif

@@ -4,7 +4,7 @@ fakeLisp是一个用c言编写的简单的lisp解释器。目前还无法编译�
 自定义函数示例：  
 
 ```
-(defin gle (lambda (obj)  
+(define gle (lambda (obj)  
        (cond ((null (cdr obj)) (car obj))  
        (1 (gle (cdr obj))))))  
 ```

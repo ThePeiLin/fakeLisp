@@ -1252,6 +1252,7 @@ int B_end_proc(fakeVM* exe)
 	fakestack* stack=exe->stack;
 	stackvalue* tmpValue=getTopValue(stack);
 	fakeprocess* tmpProc=exe->curproc;
+	fprintf(stdout,"End proc: %p\n",tmpProc->code);
 	exe->curproc=exe->curproc->prev;
 	excode* tmpCode=tmpProc->code;
 	varstack* tmpEnv=tmpCode->localenv;
@@ -1310,7 +1311,10 @@ int B_invoke(fakeVM* exe)
 	excode* tmpCode=tmpValue->value.prc;
 	fakeprocess* prevProc=hasSameProc(tmpCode,proc);
 	if(stack->bp==1&&isTheLastExpress(proc)&&prevProc)
+	{
 		prevProc->cp=0;
+		if(prevProc!=proc)proc->cp+=1;
+	}
 	else 
 	{
 		fakeprocess* tmpProc=newFakeProcess(tmpCode,proc);
@@ -2244,7 +2248,7 @@ fakeprocess* newFakeProcess(excode* code,fakeprocess* prev)
 	tmp->prev=prev;
 	tmp->cp=0;
 	tmp->code=code;
-//	fprintf(stderr,"New proc: %p\n",code);
+	fprintf(stdout,"New proc: %p\n",code);
 	return tmp;
 }
 

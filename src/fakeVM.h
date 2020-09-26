@@ -130,8 +130,6 @@ int B_not(fakeVM*);
 int B_jump_if_ture(fakeVM*);
 int B_jump_if_false(fakeVM*);
 int B_jump(fakeVM*);
-int B_set_jump(fakeVM*);
-int B_jump_back(fakeVM*);
 int B_getc(fakeVM*);
 int B_ungetc(fakeVM*);
 int B_read(fakeVM*);
@@ -162,4 +160,6 @@ static excode* newBuiltInProc(byteCode*);
 static fakeprocess* newFakeProcess(excode*,fakeprocess*);
 void printAllStack(fakestack*);
 static stackvalue* castCptrStackValue(const cptr*);
+static fakeprocess* hasSameProc(excode*,fakeprocess*);
+static int isTheLastExpress(const fakeprocess*);
 #endif

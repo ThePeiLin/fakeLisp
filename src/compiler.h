@@ -18,4 +18,5 @@ byteCode* compileCond(cptr*,compEnv*,intpr*,errorStatus*);
 byteCode* compileLambda(cptr*,compEnv*,intpr*,errorStatus*);
 byteCode* compileAnd(cptr*,compEnv*,intpr*,errorStatus*);
 byteCode* compileOr(cptr*,compEnv*,intpr*,errorStatus*);
+byteCode* compileTailCall(cptr*,compEnv*,intpr*,errorStatus*);
 #endif

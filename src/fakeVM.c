@@ -32,8 +32,6 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_jump_if_ture,
 	B_jump_if_false,
 	B_jump,
-	B_set_jump,
-	B_jump_back,
 	B_add,
 	B_sub,
 	B_mul,
@@ -702,13 +700,13 @@ void runFakeVM(fakeVM* exe)
 				fprintf(stderr,"%s\n",codeName[tmpCode->code[curproc->cp]].codeName);
 				printAllStack(exe->stack);
 				putc('\n',stderr);
-				fprintf(stderr,"Wrong arguements!\n");
+				fprintf(stderr,"error:Wrong arguements!\n");
 				exit(EXIT_FAILURE);
 			case 2:	
 				fprintf(stderr,"%s\n",codeName[tmpCode->code[curproc->cp]].codeName);
 				printAllStack(exe->stack);
 				putc('\n',stderr);
-				fprintf(stderr,"Stack error!\n");
+				fprintf(stderr,"error:Stack error!\n");
 				exit(EXIT_FAILURE);
 		}
 	//	fprintf(stderr,"=========\n");
@@ -1310,18 +1308,24 @@ int B_invoke(fakeVM* exe)
 	stackvalue* tmpValue=getTopValue(stack);
 	if(tmpValue==NULL||tmpValue->type!=PRC)return 1;
 	excode* tmpCode=tmpValue->value.prc;
-	fakeprocess* tmpProc=newFakeProcess(tmpCode,proc);
-	if(tmpProc->code==proc->code)
+	fakeprocess* prevProc=hasSameProc(tmpCode,proc);
+	if(stack->bp==1&&isTheLastExpress(proc)&&prevProc)
+		prevProc->cp=0;
+	else 
 	{
-		tmpProc->localenv=newVarStack(tmpCode->localenv->bound,1,tmpCode->localenv->prev);
-		tmpCode->localenv=tmpProc->localenv;
+		fakeprocess* tmpProc=newFakeProcess(tmpCode,proc);
+		if(tmpCode->localenv->prev!=NULL&&tmpCode->localenv->prev->next!=tmpCode->localenv)
+		{
+			tmpProc->localenv=newVarStack(tmpCode->localenv->bound,1,tmpCode->localenv->prev);
+			tmpCode->localenv=tmpProc->localenv;
+		}
+		else tmpProc->localenv=tmpCode->localenv;
+		exe->curproc=tmpProc;
+		proc->cp+=1;
 	}
-	else tmpProc->localenv=tmpCode->localenv;
-	exe->curproc=tmpProc;
 	free(tmpValue);
 	stack->tp-=1;
 	stackRecycle(stack);
-	proc->cp+=1;
 	return 0;
 }
 
@@ -1371,18 +1375,6 @@ int B_jump(fakeVM* exe)
 	int32_t where=*(int32_t*)(tmpCode->code+proc->cp+sizeof(char));
 	proc->cp+=where+5;
 	return 0;
-}
-
-int B_set_jump(fakeVM* exe)
-{
-	fprintf(stderr,"This byte code has not been build yet!\n");
-	exit(EXIT_FAILURE);
-}
-
-int B_jump_back(fakeVM* exe)
-{
-	fprintf(stderr,"This byte code has not been build yet!\n");
-	exit(EXIT_FAILURE);
 }
 
 int B_open(fakeVM* exe)
@@ -2136,7 +2128,7 @@ varstack* newVarStack(int32_t bound,int inProc,varstack* prev)
 	tmp->values=NULL;
 	tmp->next=NULL;
 	tmp->prev=prev;
-//	fprintf(stderr,"New env!\n");
+//	fprintf(stderr,"New env: %p\n",tmp);
 	return tmp;
 }
 
@@ -2151,7 +2143,7 @@ void freeVarStack(varstack* obj)
 		}
 		if(obj->prev!=NULL&&obj->prev->next==obj)obj->prev->next=NULL;
 		free(obj);
-	//	printf("Free env!\n");
+	//	fprintf(stderr,"Free env:%p\n",obj);
 	}
 }
 
@@ -2252,16 +2244,21 @@ fakeprocess* newFakeProcess(excode* code,fakeprocess* prev)
 	tmp->prev=prev;
 	tmp->cp=0;
 	tmp->code=code;
+//	fprintf(stderr,"New proc: %p\n",code);
 	return tmp;
 }
 
 void printAllStack(fakestack* stack)
 {
-	int i=stack->tp-1;
-	for(;i>=0;i--)
+	if(stack->tp==0)printf("[#EMPTY]\n");
+	else
 	{
-		printStackValue(stack->values[i],stdout);
-		putchar('\n');
+		int i=stack->tp-1;
+		for(;i>=0;i--)
+		{
+			printStackValue(stack->values[i],stdout);
+			putchar('\n');
+		}
 	}
 }
 
@@ -2290,4 +2287,26 @@ stackvalue* castCptrStackValue(const cptr* objCptr)
 		return tmp;
 	}
 	else if(objCptr->type==NIL)return NULL;
+}
+
+fakeprocess* hasSameProc(excode* objCode,fakeprocess* curproc)
+{
+	while(curproc!=NULL&&curproc->code!=objCode)curproc=curproc->prev;
+	return curproc;
+}
+
+int isTheLastExpress(const fakeprocess* proc)
+{
+	char* code=proc->code->code;
+	int32_t size=proc->code->size;
+	if(proc->cp==size-2)return 1;
+	else
+	{
+		if(code[proc->cp+1]==FAKE_JMP)
+		{
+			int32_t where=*(int32_t*)(code+proc->cp+2);
+			if((where+proc->cp+1+5)==size-1)return 1;
+		}
+		else return 0;
+	}
 }

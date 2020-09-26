@@ -732,6 +732,40 @@ byteCode* compileCond(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* st
 	return tmp;
 }
 
+/*byteCode* compileTailCall(cptr* objCptr,compEnv* curEnv,intpr inter,errorStatus* status)
+{
+	cptr* last=getLast(objCptr);
+	byteCode* tmp=createByteCode(1);
+	byteCode* jumpback=createByteCode(1);
+	jumpback->code[0]=FAKE_JMP_BACK;
+	tmp->code[0]=FAKE_SET_BP;
+	for(;;)
+	{
+		if(prevCptr(last)==NULL)
+		{
+			byteCode* beFree=codeCat(tmp,jumpback);
+			freeByteCode(beFree);
+			break;
+		}
+		else
+		{
+			byteCode* beFree=tmp;
+			byteCode* tmp1=compile(last,curEnv,inter,status);
+			if(status->status!=0)
+			{
+				freeByteCode(tmp);
+				tmp=NULL;
+				break;
+			}
+			byteCode* tmp=codeCat(tmp,tmp1);
+			freeByteCode(beFree);
+			freeByteCode(tmp1);
+		}
+	}
+	freeByteCode(jumpback);
+	return tmp;
+}*/
+
 void printByteCode(const byteCode* tmpCode)
 {
 	int i=0;

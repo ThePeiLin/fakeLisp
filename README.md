@@ -1,6 +1,6 @@
 # fakeLisp
 This is a simple LISP interpreter.  
-The grammer of this languege that can be executed by this interpreter looks like Scheme Lisp but it's not lisp,so I call the languege that this interpreter interpret "fakeLisp".  
+The grammer of this languege looks like Scheme Lisp but it's not lisp,so I call the languege that this interpreter interpret "fakeLisp".  
 The "defmacro" key word is able to use,and some special form is also able to use in expanding macro.   
 This interpreter can compile source code to byte code.  
 

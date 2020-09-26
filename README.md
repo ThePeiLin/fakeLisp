@@ -1,8 +1,8 @@
 # fakeLisp
 This is a simple LISP interpreter.  
-The grammer of command that can be run by This interpreter like scheme Lisp but it's not lisp,so I call it fakeLisp.  
-This interpreter only can't compile a whole file,but it can compile expressions that you input in console.  
+The grammer of command that can be executed by this interpreter like scheme Lisp but it's not lisp,so I call it fakeLisp.  
 The "defmacro" key word is able to use,and some special form is also able to use in expanding macro.   
+This interpreter can compile source code to byte code.  
 
 
 I use comma to divide car and cdr but not dot.Such as (1,2) and (1,(1,2)).  

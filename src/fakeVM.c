@@ -1259,7 +1259,7 @@ int B_end_proc(fakeVM* exe)
 	if(tmpValue!=NULL&&tmpValue->type==PRC&&tmpValue->value.prc->localenv->prev==tmpEnv)tmpEnv->next=tmpValue->value.prc->localenv;
 	if(tmpCode==tmpProc->prev->code)tmpCode->localenv=tmpProc->prev->localenv;
 	else tmpCode->localenv=newVarStack(tmpEnv->bound,1,tmpEnv->prev);
-	if(tmpEnv->prev!=NULL&&tmpEnv->prev->next==tmpEnv)tmpEnv->prev->next=tmpCode->localenv;
+	if(tmpEnv->prev!=NULL&&tmpEnv->prev->next==tmpEnv&&tmpEnv->next==NULL)tmpEnv->prev->next=tmpCode->localenv;
 	tmpEnv->inProc=0;
 	freeVarStack(tmpEnv);
 	if(tmpCode->refcount==0)freeExcode(tmpCode);
@@ -2146,8 +2146,8 @@ void freeVarStack(varstack* obj)
 			for(;tmp<obj->values+obj->size;tmp++)freeStackValue(*tmp);
 		}
 		if(obj->prev!=NULL&&obj->prev->next==obj)obj->prev->next=NULL;
-		free(obj);
 	//	fprintf(stderr,"Free env:%p\n",obj);
+		free(obj);
 	}
 }
 

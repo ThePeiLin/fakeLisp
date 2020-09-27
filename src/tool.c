@@ -10,6 +10,9 @@ char* builtInSymbolList[]=
 {
 	"nil",
 	"else",
+	"stdin",
+	"stdout",
+	"stderr",
 	"cons",
 	"car",
 	"cdr",
@@ -43,6 +46,7 @@ char* builtInSymbolList[]=
 	"open",
 	"close",
 	"getc",
+	"getch",
 	"ungetc",
 	"read",
 	"write",
@@ -119,11 +123,6 @@ char* getListFromFile(FILE* file)
 			free(tmpList);
 			continue;
 		}
-		if(isspace(ch)&&braketsNum<=0&&!mark&&anotherChar)
-		{
-			ungetc(ch,file);
-			break;
-		}
 		i++;
 		j=i-1;
 		before=tmp;
@@ -133,6 +132,8 @@ char* getListFromFile(FILE* file)
 		*(tmp+j)=ch;
 		if(before!=NULL)free(before);
 		if(ch=='('&&!mark&&(tmp==NULL||*(tmp+j-1)!='\\'))braketsNum++;
+		if(isspace(ch)&&braketsNum<=0&&!mark&&anotherChar)
+			break;
 		if(!isspace(ch))anotherChar=1;
 	}
 	if(ch==EOF&&braketsNum!=0&&file!=stdin)
@@ -558,6 +559,7 @@ cptr* createTree(const char* objStr,intpr* inter)
 		}
 		if(braketsNum<=0&&root!=NULL)break;
 	}
+	for(;i<strlen(objStr);i++)if(isspace(objStr[i])&&objStr[i]=='\n')inter->curline+=1;
 	return root;
 }
 

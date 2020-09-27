@@ -3,6 +3,8 @@
 #include"opcode.h"
 #include<string.h>
 #include<math.h>
+#include<termios.h>
+#include<unistd.h>
 
 static int (*ByteCodes[])(fakeVM*)=
 {
@@ -62,6 +64,7 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_le,
 	B_not,
 	B_getc,
+	B_getch,
 	B_ungetc,
 	B_read,
 	B_write,
@@ -533,6 +536,17 @@ byteCode P_getc=
 	}
 };
 
+byteCode P_getch=
+{
+	3,
+	(char[])
+	{
+		FAKE_RES_BP,
+		FAKE_GETCH,
+		FAKE_END_PROC
+	}
+};
+
 byteCode P_ungetc=
 {
 	23,
@@ -666,6 +680,7 @@ void initGlobEnv(varstack* obj)
 		P_open,
 		P_close,
 		P_getc,
+		P_getch,
 		P_ungetc,
 		P_read,
 		P_write,
@@ -673,17 +688,23 @@ void initGlobEnv(varstack* obj)
 		P_seek,
 		P_rewind
 	};
-	obj->size=41;
+	obj->size=45;
 	obj->values=(stackvalue**)realloc(obj->values,sizeof(stackvalue*)*40);
 	if(obj->values==NULL)errors(OUTOFMEMORY);
 	obj->values[0]=NULL;
 	obj->values[1]=newStackValue(INT);
 	obj->values[1]->value.num=1;
-	int i=2;
-	for(;i<41;i++)
+	obj->values[2]=newStackValue(INT);
+	obj->values[2]->value.num=0;
+	obj->values[3]=newStackValue(INT);
+	obj->values[3]->value.num=1;
+	obj->values[4]=newStackValue(INT);
+	obj->values[4]->value.num=2;
+	int i=5;
+	for(;i<45;i++)
 	{
 		obj->values[i]=newStackValue(PRC);
-		obj->values[i]->value.prc=newBuiltInProc(copyByteCode(buildInProcs+(i-2)));
+		obj->values[i]->value.prc=newBuiltInProc(copyByteCode(buildInProcs+(i-5)));
 	}
 }
 
@@ -1908,6 +1929,24 @@ int B_getc(fakeVM* exe)
 	return 0;
 }
 
+int B_getch(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	fakeprocess* proc=exe->curproc;
+	if(stack->tp>=stack->size)
+	{
+		stack->values=(stackvalue**)realloc(stack->values,sizeof(stackvalue*)*(stack->size+64));
+		if(stack->values==NULL)errors(OUTOFMEMORY);
+		stack->size+=64;
+	}
+	stackvalue* tmpChr=newStackValue(CHR);
+	tmpChr->value.chr=getch();
+	stack->values[stack->tp]=tmpChr;
+	stack->tp+=1;
+	proc->cp+=1;
+	return 0;
+}
+
 int B_ungetc(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
@@ -2314,4 +2353,17 @@ int isTheLastExpress(const fakeprocess* proc)
 		}
 		else return 0;
 	}
+}
+
+int getch()
+{
+	struct termios oldt,newt;
+	int ch;
+	tcgetattr(STDIN_FILENO,&oldt);
+	newt=oldt;
+	newt.c_lflag &=~(ICANON|ECHO);
+	tcsetattr(STDIN_FILENO,TCSANOW,&newt);
+	ch=getchar();
+	tcsetattr(STDIN_FILENO,TCSANOW,&oldt);
+	return ch;
 }

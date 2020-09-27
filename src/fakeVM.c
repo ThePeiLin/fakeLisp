@@ -1321,7 +1321,7 @@ int B_invoke(fakeVM* exe)
 		if(tmpCode->localenv->prev!=NULL&&tmpCode->localenv->prev->next!=tmpCode->localenv)
 		{
 			tmpProc->localenv=newVarStack(tmpCode->localenv->bound,1,tmpCode->localenv->prev);
-freeVarStack(tmpCode->localenv);
+			if(!hasSameProc(tmpCode,proc))freeVarStack(tmpCode->localenv);
 			tmpCode->localenv=tmpProc->localenv;
 		}
 		else tmpProc->localenv=tmpCode->localenv;

@@ -1886,6 +1886,27 @@ int B_nth(fakeVM* exe)
 	return 0;
 }
 
+int B_length(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	fakeprocess* proc=exe->curproc;
+	stackvalue* objlist=getTopValue(stack);
+	if(objlist==NULL||objlist->type!=PAR)return 1;
+	int32_t i=0;
+	for(stackvalue* tmp=objlist;tmp==NULL&&tmp->type==PAR;tmp=getCdr(tmp))i++;
+	stackvalue* num=newStackValue(INT);
+	num->value.num=i;
+	stack->values[stack->tp-1]=num;
+	freeStackValue(objlist);
+	proc->cp+=1;
+	return 0;
+	freeStackValue(objlist);
+}
+
+int B_setl(fakeVM* exe)
+{
+}
+
 int B_get_chr_str(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;

@@ -52,6 +52,10 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_is_str,
 	B_is_sym,
 	B_is_prc,
+	//B_nth,
+	//B_length,
+	//B_setl,
+	//B_append,
 	B_get_chr_str,
 	B_str_len,
 	B_str_cat,
@@ -1850,6 +1854,34 @@ int B_is_prc(fakeVM* exe)
 	}
 	else stack->values[stack->tp-1]=NULL;
 	freeStackValue(objValue);
+	proc->cp+=1;
+	return 0;
+}
+
+int B_nth(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	fakeprocess* proc=exe->curproc;
+	stackvalue* place=getTopValue(stack);
+	stackvalue* objlist=getValue(stack,stack->tp-2);
+	stack->tp-1;
+	stackRecycle(stack);
+	if(objlist==NULL||place==NULL||objlist->type!=PAR||place->type!=INT)return 1;
+	stackvalue* obj=getCar(objlist);
+	objlist->value.par.car=NULL;
+	stackvalue* objPair=getCdr(objlist);
+	int i=0;
+	for(;i<place->value.num;i++)
+	{
+		if(objPair==NULL)return 2;
+		freeStackValue(obj);
+		obj=getCar(objPair);
+		objPair->value.par.car=NULL;
+		objPair=getCdr(objPair);
+	}
+	stack->values[stack->tp-1]=obj;
+	freeStackValue(objlist);
+	freeStackValue(place);
 	proc->cp+=1;
 	return 0;
 }

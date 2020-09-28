@@ -1222,8 +1222,8 @@ byteCode* copyByteCode(const byteCode* obj)
 
 void initCompEnv(compEnv* curEnv)
 {
-	int i;
-	for(i=0;i<41;i++)addCompDef(curEnv,builtInSymbolList[i]);
+	int i=0;
+	for(;i<45;i++)addCompDef(curEnv,builtInSymbolList[i]);
 }
 
 char* copyStr(const char* str)

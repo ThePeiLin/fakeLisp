@@ -162,6 +162,6 @@ static fakeprocess* newFakeProcess(excode*,fakeprocess*);
 void printAllStack(fakestack*);
 static stackvalue* castCptrStackValue(const cptr*);
 static fakeprocess* hasSameProc(excode*,fakeprocess*);
-static int isTheLastExpress(const fakeprocess*);
+static int isTheLastExpress(const fakeprocess*,const fakeprocess*);
 static int getch();
 #endif

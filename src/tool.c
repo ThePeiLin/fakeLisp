@@ -5,7 +5,7 @@
 #include<stdint.h>
 #include<math.h>
 #include"tool.h"
-
+#define NUMOFBUILDINSYMBOL 45
 char* builtInSymbolList[]=
 {
 	"nil",
@@ -1223,7 +1223,7 @@ byteCode* copyByteCode(const byteCode* obj)
 void initCompEnv(compEnv* curEnv)
 {
 	int i=0;
-	for(;i<45;i++)addCompDef(curEnv,builtInSymbolList[i]);
+	for(;i<NUMOFBUILDINSYMBOL;i++)addCompDef(curEnv,builtInSymbolList[i]);
 }
 
 char* copyStr(const char* str)

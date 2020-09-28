@@ -5,7 +5,7 @@
 #include<math.h>
 #include<termios.h>
 #include<unistd.h>
-
+#define NUMOFBUILTINSYMBOL 45
 static int (*ByteCodes[])(fakeVM*)=
 {
 	B_dummy,
@@ -689,7 +689,7 @@ void initGlobEnv(varstack* obj)
 		P_rewind
 	};
 	obj->size=45;
-	obj->values=(stackvalue**)realloc(obj->values,sizeof(stackvalue*)*45);
+	obj->values=(stackvalue**)realloc(obj->values,sizeof(stackvalue*)*NUMOFBUILTINSYMBOL);
 	if(obj->values==NULL)errors(OUTOFMEMORY);
 	obj->values[0]=NULL;
 	obj->values[1]=newStackValue(INT);
@@ -701,7 +701,7 @@ void initGlobEnv(varstack* obj)
 	obj->values[4]=newStackValue(INT);
 	obj->values[4]->value.num=2;
 	int i=5;
-	for(;i<45;i++)
+	for(;i<NUMOFBUILTINSYMBOL;i++)
 	{
 		obj->values[i]=newStackValue(PRC);
 		obj->values[i]->value.prc=newBuiltInProc(copyByteCode(buildInProcs+(i-5)));
@@ -994,7 +994,7 @@ int B_pop_var(fakeVM* exe)
 	if(countOfVar-curEnv->bound>=curEnv->size)
 	{
 		curEnv->size+=1;
-		curEnv->values=(stackvalue**)realloc(curEnv->values,sizeof(stackvalue*)*(curEnv->size));
+		curEnv->values=(stackvalue**)realloc(curEnv->values,sizeof(stackvalue*)*curEnv->size);
 		pValue=curEnv->values+countOfVar-(curEnv->bound);
 	}
 	else 
@@ -1024,8 +1024,8 @@ int B_pop_rest_var(fakeVM* exe)
 	stackvalue** tmpValue=NULL;
 	if(countOfVar-curEnv->bound>=curEnv->size)
 	{
-		curEnv->values=(stackvalue**)realloc(curEnv->values,sizeof(stackvalue*)*(stack->size+1));
 		curEnv->size+=1;
+		curEnv->values=(stackvalue**)realloc(curEnv->values,sizeof(stackvalue*)*curEnv->size);
 		tmpValue=curEnv->values+countOfVar-(curEnv->bound);
 	}
 	else

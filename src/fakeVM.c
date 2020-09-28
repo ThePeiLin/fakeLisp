@@ -689,7 +689,7 @@ void initGlobEnv(varstack* obj)
 		P_rewind
 	};
 	obj->size=45;
-	obj->values=(stackvalue**)realloc(obj->values,sizeof(stackvalue*)*40);
+	obj->values=(stackvalue**)realloc(obj->values,sizeof(stackvalue*)*45);
 	if(obj->values==NULL)errors(OUTOFMEMORY);
 	obj->values[0]=NULL;
 	obj->values[1]=newStackValue(INT);
@@ -993,8 +993,8 @@ int B_pop_var(fakeVM* exe)
 	stackvalue** pValue=NULL;
 	if(countOfVar-curEnv->bound>=curEnv->size)
 	{
-		curEnv->values=(stackvalue**)realloc(curEnv->values,sizeof(stackvalue*)*(stack->size+1));
 		curEnv->size+=1;
+		curEnv->values=(stackvalue**)realloc(curEnv->values,sizeof(stackvalue*)*(curEnv->size));
 		pValue=curEnv->values+countOfVar-(curEnv->bound);
 	}
 	else 
@@ -1329,13 +1329,11 @@ int B_invoke(fakeVM* exe)
 	fakeprocess* proc=exe->curproc;
 	stackvalue* tmpValue=getTopValue(stack);
 	if(tmpValue==NULL||tmpValue->type!=PRC)return 1;
+	proc->cp+=1;
 	excode* tmpCode=tmpValue->value.prc;
 	fakeprocess* prevProc=hasSameProc(tmpCode,proc);
-	if(stack->bp==1&&isTheLastExpress(proc)&&prevProc)
-	{
+	if(stack->bp==1&&isTheLastExpress(proc,prevProc)&&prevProc)
 		prevProc->cp=0;
-		if(prevProc!=proc)proc->cp+=1;
-	}
 	else 
 	{
 		fakeprocess* tmpProc=newFakeProcess(tmpCode,proc);
@@ -1347,7 +1345,6 @@ int B_invoke(fakeVM* exe)
 		}
 		else tmpProc->localenv=tmpCode->localenv;
 		exe->curproc=tmpProc;
-		proc->cp+=1;
 	}
 	free(tmpValue);
 	stack->tp-=1;
@@ -2339,20 +2336,23 @@ fakeprocess* hasSameProc(excode* objCode,fakeprocess* curproc)
 	return curproc;
 }
 
-int isTheLastExpress(const fakeprocess* proc)
+int isTheLastExpress(const fakeprocess* proc,const fakeprocess* same)
 {
-	char* code=proc->code->code;
-	int32_t size=proc->code->size;
-	if(proc->cp==size-2)return 1;
-	else
+	if(same==NULL)return 0;
+	for(;;)
 	{
-		if(code[proc->cp+1]==FAKE_JMP)
+		char* code=proc->code->code;
+		int32_t size=proc->code->size;
+		if(code[proc->cp]==FAKE_JMP)
 		{
-			int32_t where=*(int32_t*)(code+proc->cp+2);
-			if((where+proc->cp+1+5)==size-1)return 1;
+			int32_t where=*(int32_t*)(code+proc->cp+1);
+			if((where+proc->cp+5)!=size-1)return 0;
 		}
-		else return 0;
+		else if(proc->cp!=size-1)return 0;
+		if(proc==same)break;
+		proc=proc->prev;
 	}
+	return 1;
 }
 
 int getch()

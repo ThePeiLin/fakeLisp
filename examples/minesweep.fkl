@@ -1,0 +1,79 @@
+;;This program havn't been finished yet.
+(defmacro
+ (if ANY#COND ANY#EXPRESSION1 ANY#EXPRESSION2)
+ (list 'cond (list COND EXPRESSION1) (list 't EXPRESSION2)))
+(defmacro (define (ATOM#NAME,ANY#ARG),PAIR#EXPRESSION)
+          (list 'define NAME (cons 'lambda (cons ARG EXPRESSION))))
+(define (resl objlist)
+ (define tmpfn (lambda (objlist tmp)
+  (if (null (cdr objlist))
+      (cons (car objlist) tmp)
+      (tmpfn (cdr objlist)
+             (cons (car objlist) tmp)))))
+ (tmpfn objlist))
+(defmacro (ARRY ATOM#X ATOM#Y)
+ (list 'add X (list 'mul Y 'rrow)))
+(define (newTerm)
+ (write "\033[?1049h" stdout))
+
+(define (delTerm)
+ (write "\033[?1049l" stdout))
+
+(define (createEmptyList size)
+ (define iter (lambda (size count list)
+  (cond ((eq size count) list)
+        (t (iter
+			   size
+               (add count 1) 
+               (append list '()))))))
+ (iter size 1 '()))
+
+(define (setl list place value)
+ (define getafter (lambda (list place count)
+  (cond ((eq place count) (cdr list))
+        (t (getafter
+               (cdr list) 
+               place 
+               (add count 1))))))
+ (define getbefore (lambda (list place count tmp)
+  (cond ((eq place count) (cons (car list) tmp))
+        (t (getbefore (cdr list)
+                         place
+                         (add count 1)
+                         (cons (car list) tmp))))))
+ (append (resl (getbefore list place 0 '()))
+         (cons value (getafter list place 0)))
+)
+
+(define (getMapFront place map) (car (nth place map)))
+(define (getMapBack place map) (cdr (nth place map)))
+
+(define (createMap line  row bombnum)
+ (define rline (add line 2))
+ (define rrow (add row 2))
+ (define map (createEmptyList (mul rline rrow)))
+ (define (setfront i map)
+  (if (eq i (mul rrow rline)) map
+      (setfront (add i 1) (setl map i (cons 1 0)))))
+ (define (setbomb map i)
+  (define yr (add 1 (rand line)))
+  (define xr (add 1 (rand row)))
+  (if (eq i bombnum)
+      map
+      (setbomb (setl map (ARRY xr yr)
+                     (if (eq (getMapBack (ARRY xr yr) map) 0)
+                         (cons (getMapFront (ARRY xr yr) map) 9)
+                         (cons (getMapFront (ARRY xr yr) map) 0)))
+               (add i (if (eq (getMapBack (ARRY xr yr) map) 9) 1 0)))))
+ (define (setBound map line row)
+  (define (tmp1 map xc yc)
+   (if (gt xc (add row 1))
+       map
+       (tmp1 (setl map (ARRY xc yc) (cons 4 10)) (add xc 1))))
+  (define (tmp2 map yc)
+   (if (gt yc (add line 1))
+       map
+       (tmp2 (tmp1 map 0 (add yc 1))))))
+ (define (setnum map xc yc))
+)
+

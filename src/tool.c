@@ -125,7 +125,7 @@ char* getListFromFile(FILE* file)
 			free(tmpList);
 			continue;
 		}
-		if(!isspace(ch)&&anotherChar&&braketsNum<=0&&!mark)
+		if(!isspace(ch)&&ch!=')'&&anotherChar&&braketsNum<=0&&!mark)
 		{
 			ungetc(ch,file);
 			break;

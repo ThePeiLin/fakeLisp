@@ -631,6 +631,7 @@ int copyCptr(cptr* objCptr,const cptr* copiedCptr)
 	while(1)
 	{
 		objCptr->type=copiedCptr->type;
+		objCptr->curline=copiedCptr->curline;
 		if(copiedCptr->type==PAR)
 		{
 			objPair=newPair(0,objPair);

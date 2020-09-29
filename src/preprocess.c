@@ -383,13 +383,13 @@ int fmatcmp(const cptr* origin,const cptr* format)
 		{
 			atom* tmpAtm=((pair*)format->value)->car.value;
 			masym* tmpSym=findMasym(tmpAtm->value.str);
-			if(tmpSym->Func!=M_VAREPT)
+			if(tmpSym!=NULL&&tmpSym->Func!=M_VAREPT)
 			{
 				destroyEnv(MacroEnv);
 				MacroEnv=NULL;
 				return 0;
 			}
-			else
+			else if(tmpSym!=NULL)
 			{
 				cptr* tmp=&((pair*)format->value)->car;
 				atom* tmpAtm=tmp->value;

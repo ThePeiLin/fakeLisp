@@ -5,7 +5,8 @@
 #include<math.h>
 #include<termios.h>
 #include<unistd.h>
-#define NUMOFBUILTINSYMBOL 46
+#include<time.h>
+#define NUMOFBUILTINSYMBOL 47
 static int (*ByteCodes[])(fakeVM*)=
 {
 	B_dummy,
@@ -39,6 +40,7 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_mul,
 	B_div,
 	B_mod,
+	B_rand,
 	B_atom,
 	B_null,
 	B_cast_to_chr,
@@ -453,6 +455,19 @@ byteCode P_mod=
 	}
 };
 
+byteCode P_rand=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_RAND,
+		FAKE_END_PROC
+	}
+};
+
 byteCode P_nth=
 {
 	23,
@@ -690,6 +705,7 @@ void initGlobEnv(varstack* obj)
 		P_mul,
 		P_div,
 		P_mod,
+		P_rand,
 		P_nth,
 		P_length,
 		P_append,
@@ -1241,6 +1257,19 @@ int B_mod(fakeVM* exe)
 	stack->values[stack->tp-1]=tmpValue;
 	freeStackValue(firValue);
 	freeStackValue(secValue);
+	proc->cp+=1;
+	return 0;
+}
+
+int B_rand(fakeVM* exe)
+{
+	srand((time(NULL)));
+	fakestack* stack=exe->stack;
+	fakeprocess* proc=exe->curproc;
+	stackvalue* lim=getTopValue(stack);
+	if(lim==NULL||lim->type!=INT)return 1;
+	int32_t result=rand()%(lim->value.num);
+	lim->value.num=result;
 	proc->cp+=1;
 	return 0;
 }

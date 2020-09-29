@@ -5,7 +5,7 @@
 #include<stdint.h>
 #include<math.h>
 #include"tool.h"
-#define NUMOFBUILDINSYMBOL 46
+#define NUMOFBUILDINSYMBOL 47
 char* builtInSymbolList[]=
 {
 	"nil",
@@ -40,6 +40,7 @@ char* builtInSymbolList[]=
 	"mul",
 	"div",
 	"mod",
+	"rand",
 	"nth",
 	"length",
 	"append",
@@ -123,6 +124,11 @@ char* getListFromFile(FILE* file)
 			free(other);
 			free(tmpList);
 			continue;
+		}
+		if(!isspace(ch)&&anotherChar&&braketsNum<=0&&!mark)
+		{
+			ungetc(ch,file);
+			break;
 		}
 		i++;
 		j=i-1;

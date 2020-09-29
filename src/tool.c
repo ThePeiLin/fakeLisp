@@ -279,7 +279,7 @@ rawString getStringBetweenMarks(const char* str,intpr* inter)
 {
 	rawString obj;
 	char ch=0;
-	char* tmp=NULL;
+	char* tmp=(char*)malloc(sizeof(char)*1);
 	char* before;
 	int len=0;
 	int i=1;

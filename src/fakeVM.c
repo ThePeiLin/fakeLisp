@@ -5,7 +5,7 @@
 #include<math.h>
 #include<termios.h>
 #include<unistd.h>
-#define NUMOFBUILTINSYMBOL 45
+#define NUMOFBUILTINSYMBOL 46
 static int (*ByteCodes[])(fakeVM*)=
 {
 	B_dummy,
@@ -52,12 +52,9 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_is_str,
 	B_is_sym,
 	B_is_prc,
-	//B_nth,
-	//B_length,
-	//B_setl,
-	//B_append,
-	B_get_chr_str,
-	B_str_len,
+	B_nth,
+	B_length,
+	B_append,
 	B_str_cat,
 	B_open,
 	B_close,
@@ -456,7 +453,7 @@ byteCode P_mod=
 	}
 };
 
-byteCode P_gchstr=
+byteCode P_nth=
 {
 	23,
 	(char[])
@@ -466,12 +463,12 @@ byteCode P_gchstr=
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
-		FAKE_GET_CHR_STR,
+		FAKE_NTH,
 		FAKE_END_PROC
 	}
 };
 
-byteCode P_strlen=
+byteCode P_length=
 {
 	13,
 	(char[])
@@ -479,7 +476,22 @@ byteCode P_strlen=
 		FAKE_POP_VAR,0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
-		FAKE_STR_LEN,
+		FAKE_LENGTH,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_append=
+{
+	23,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,1,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_PUSH_VAR,1,0,0,0,
+		FAKE_APPEND,
 		FAKE_END_PROC
 	}
 };
@@ -678,8 +690,9 @@ void initGlobEnv(varstack* obj)
 		P_mul,
 		P_div,
 		P_mod,
-		P_gchstr,
-		P_strlen,
+		P_nth,
+		P_length,
+		P_append,
 		P_strcat,
 		P_open,
 		P_close,
@@ -692,7 +705,7 @@ void initGlobEnv(varstack* obj)
 		P_seek,
 		P_rewind
 	};
-	obj->size=45;
+	obj->size=NUMOFBUILTINSYMBOL;
 	obj->values=(stackvalue**)realloc(obj->values,sizeof(stackvalue*)*NUMOFBUILTINSYMBOL);
 	if(obj->values==NULL)errors(OUTOFMEMORY);
 	obj->values[0]=NULL;
@@ -912,12 +925,18 @@ int B_push_car(fakeVM* exe)
 	fakestack* stack=exe->stack;
 	fakeprocess* proc=exe->curproc;
 	stackvalue* objValue=getTopValue(stack);
-	if(objValue->type!=PAR)return 1;
-	else
+	if(objValue==NULL||(objValue->type!=PAR&&objValue->type!=STR))return 1;
+	if(objValue->type==PAR)
 	{
 		stack->values[stack->tp-1]=copyValue(getCar(objValue));
-		freeStackValue(objValue);
 	}
+	else
+	{
+		stackvalue* chr=newStackValue(CHR);
+		chr->value.chr=objValue->value.str[0];
+		stack->values[stack->tp-1]=chr;
+	}
+	freeStackValue(objValue);
 	proc->cp+=1;
 	return 0;
 }
@@ -927,12 +946,23 @@ int B_push_cdr(fakeVM* exe)
 	fakestack* stack=exe->stack;
 	fakeprocess* proc=exe->curproc;
 	stackvalue* objValue=getTopValue(stack);
-	if(objValue->type!=PAR)return 1;
-	else
+	if(objValue==NULL||(objValue->type!=PAR&&objValue->type!=STR))return 1;
+	if(objValue->type==PAR)
 	{
 		stack->values[stack->tp-1]=copyValue(getCdr(objValue));
-		freeStackValue(objValue);
 	}
+	else
+	{
+		char* str=objValue->value.str;
+		if(strlen(str)==0)stack->values[stack->tp-1]=NULL;
+		else
+		{
+			stackvalue* tmpStr=newStackValue(STR);
+			tmpStr->value.str=copyStr(objValue->value.str+1);
+			stack->values[stack->tp-1]=tmpStr;
+		}
+	}
+	freeStackValue(objValue);
 	proc->cp+=1;
 	return 0;
 }
@@ -1862,24 +1892,33 @@ int B_nth(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
 	fakeprocess* proc=exe->curproc;
-	stackvalue* place=getTopValue(stack);
-	stackvalue* objlist=getValue(stack,stack->tp-2);
+	stackvalue* place=getValue(stack,stack->tp-2);
+	stackvalue* objlist=getTopValue(stack);
 	stack->tp-1;
 	stackRecycle(stack);
-	if(objlist==NULL||place==NULL||objlist->type!=PAR||place->type!=INT)return 1;
-	stackvalue* obj=getCar(objlist);
-	objlist->value.par.car=NULL;
-	stackvalue* objPair=getCdr(objlist);
-	int i=0;
-	for(;i<place->value.num;i++)
+	if(objlist==NULL||place==NULL||(objlist->type!=PAR&&objlist->type!=STR)||place->type!=INT)return 1;
+	if(objlist->type==PAR)
 	{
-		if(objPair==NULL)return 2;
-		freeStackValue(obj);
-		obj=getCar(objPair);
-		objPair->value.par.car=NULL;
-		objPair=getCdr(objPair);
+		stackvalue* obj=getCar(objlist);
+		objlist->value.par.car=NULL;
+		stackvalue* objPair=getCdr(objlist);
+		int i=0;
+		for(;i<place->value.num;i++)
+		{
+			if(objPair==NULL)return 2;
+			freeStackValue(obj);
+			obj=getCar(objPair);
+			objPair->value.par.car=NULL;
+			objPair=getCdr(objPair);
+		}
+		stack->values[stack->tp-1]=obj;
 	}
-	stack->values[stack->tp-1]=obj;
+	else
+	{
+		stackvalue* objChr=newStackValue(CHR);
+		objChr->value.chr=objlist->value.str[place->value.num];
+		stack->values[stack->tp-1]=objChr;
+	}
 	freeStackValue(objlist);
 	freeStackValue(place);
 	proc->cp+=1;
@@ -1891,50 +1930,39 @@ int B_length(fakeVM* exe)
 	fakestack* stack=exe->stack;
 	fakeprocess* proc=exe->curproc;
 	stackvalue* objlist=getTopValue(stack);
-	if(objlist==NULL||objlist->type!=PAR)return 1;
-	int32_t i=0;
-	for(stackvalue* tmp=objlist;tmp==NULL&&tmp->type==PAR;tmp=getCdr(tmp))i++;
-	stackvalue* num=newStackValue(INT);
-	num->value.num=i;
-	stack->values[stack->tp-1]=num;
+	if(objlist==NULL||(objlist->type!=PAR&&objlist->type!=STR))return 1;
+	if(objlist->type==PAR)
+	{
+		int32_t i=0;
+		for(stackvalue* tmp=objlist;tmp==NULL&&tmp->type==PAR;tmp=getCdr(tmp))i++;
+		stackvalue* num=newStackValue(INT);
+		num->value.num=i;
+		stack->values[stack->tp-1]=num;
+	}
+	else
+	{
+		stackvalue* len=newStackValue(INT);
+		len->value.num=strlen(objlist->value.str);
+		stack->values[stack->tp-1]=len;
+	}
 	freeStackValue(objlist);
 	proc->cp+=1;
 	return 0;
-	freeStackValue(objlist);
 }
 
-int B_setl(fakeVM* exe)
-{
-}
-
-int B_get_chr_str(fakeVM* exe)
+int B_append(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
 	fakeprocess* proc=exe->curproc;
-	stackvalue* place=getTopValue(stack);
-	stackvalue* objStr=getValue(stack,stack->tp-2);
+	stackvalue* fir=getTopValue(stack);
+	stackvalue* sec=getValue(stack,stack->tp-2);
 	stack->tp-=1;
 	stackRecycle(stack);
-	if(objStr==NULL||place==NULL||objStr->type!=STR||place->type!=INT)return 1;
-	stackvalue* objChr=newStackValue(CHR);
-	objChr->value.chr=objStr->value.str[place->value.num];
-	stack->values[stack->tp-1]=objChr;
-	freeStackValue(objStr);
-	freeStackValue(place);
-	proc->cp+=1;
-	return 0;
-}
-
-int B_str_len(fakeVM* exe)
-{
-	fakestack* stack=exe->stack;
-	fakeprocess* proc=exe->curproc;
-	stackvalue* objStr=getTopValue(stack);
-	if(objStr==NULL||objStr->type!=STR)return 1;
-	stackvalue* len=newStackValue(INT);
-	len->value.num=strlen(objStr->value.str);
-	stack->values[stack->tp-1]=len;
-	freeStackValue(objStr);
+	if(fir==NULL||sec==NULL||fir->type!=PAR||sec->type!=PAR)return 1;
+	stackvalue* lastpair=fir;
+	while(getCdr(lastpair)!=NULL)lastpair=getCdr(lastpair);
+	lastpair->value.par.cdr=sec;
+	stack->values[stack->tp-1]=fir;
 	proc->cp+=1;
 	return 0;
 }

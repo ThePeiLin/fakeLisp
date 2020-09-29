@@ -5,7 +5,7 @@
 #include<stdint.h>
 #include<math.h>
 #include"tool.h"
-#define NUMOFBUILDINSYMBOL 45
+#define NUMOFBUILDINSYMBOL 46
 char* builtInSymbolList[]=
 {
 	"nil",
@@ -40,8 +40,9 @@ char* builtInSymbolList[]=
 	"mul",
 	"div",
 	"mod",
-	"gchstr",
-	"strlen",
+	"nth",
+	"length",
+	"append",
 	"strcat",
 	"open",
 	"close",

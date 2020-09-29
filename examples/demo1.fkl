@@ -7,7 +7,7 @@
 ;if宏
 (defmacro
  (if ANY#COND ANY#EXPRESSION1 ANY#EXPRESSION2)
- (list 'cond (list COND EXPRESSION1) (list 'else EXPRESSION2)))
+ (list 'cond (list COND EXPRESSION1) (list 't EXPRESSION2)))
 
 ;get the last element of a list
 ;(defun gle (objlist)
@@ -17,10 +17,10 @@
 
 (define gle (lambda (objlist)
 			(cond ((null (cdr objlist)) (car objlist))
-			      (else (gle (cdr objlist))))))
+			      (t (gle (cdr objlist))))))
 (define fact (lambda (n)
 			(cond ((le n 1) n)
-				  (else (mul n (fact (sub n 1)))))))
+				  (t (mul n (fact (sub n 1)))))))
 (defun ael (objlist object)
  (defun tmpfun (objlist tmp)
   (if (null (cdr objlist))

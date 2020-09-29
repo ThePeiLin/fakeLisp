@@ -9,6 +9,11 @@
 #include"form.h"
 int main(int argc,char** argv)
 {
+	if(argc<2)
+	{
+		fprintf(stderr,"error:Not input file!\n");
+		return EXIT_FAILURE;
+	}
 	char* filename=argv[1];
 	FILE* fp=(argc>1)?fopen(argv[1],"r"):stdin;
 	if(fp==NULL)

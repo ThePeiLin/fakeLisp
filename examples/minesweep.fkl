@@ -5,11 +5,11 @@
 (defmacro (define (ATOM#NAME,ANY#ARG),PAIR#EXPRESSION)
           (list 'define NAME (cons 'lambda (cons ARG EXPRESSION))))
 (define (resl objlist)
- (define tmpfn (lambda (objlist tmp)
+ (define (tmpfn objlist tmp)
   (if (null (cdr objlist))
       (cons (car objlist) tmp)
       (tmpfn (cdr objlist)
-             (cons (car objlist) tmp)))))
+             (cons (car objlist) tmp))))
  (tmpfn objlist))
 (defmacro (ARRY ATOM#X ATOM#Y)
  (list 'add X (list 'mul Y 'rrow)))
@@ -20,27 +20,27 @@
  (write "\033[?1049l" stdout))
 
 (define (createEmptyList size)
- (define iter (lambda (size count list)
-  (cond ((eq size count) list)
-        (t (iter
+ (define (iter size count list)
+  (if (eq size count) list
+       (iter
 			   size
                (add count 1) 
-               (append list '()))))))
+               (append list '()))))
  (iter size 1 '()))
 
 (define (setl list place value)
- (define getafter (lambda (list place count)
+ (define (getafter list place count)
   (cond ((eq place count) (cdr list))
         (t (getafter
                (cdr list) 
                place 
-               (add count 1))))))
- (define getbefore (lambda (list place count tmp)
+               (add count 1)))))
+ (define (getbefore list place count tmp)
   (cond ((eq place count) (cons (car list) tmp))
         (t (getbefore (cdr list)
                          place
                          (add count 1)
-                         (cons (car list) tmp))))))
+                         (cons (car list) tmp)))))
  (append (resl (getbefore list place 0 '()))
          (cons value (getafter list place 0)))
 )
@@ -74,6 +74,7 @@
    (if (gt yc (add line 1))
        map
        (tmp2 (tmp1 map 0 (add yc 1))))))
- (define (setnum map xc yc))
-)
+ (define (setnum map xc yc)
+  (define (getAround map xc yc))
+))
 

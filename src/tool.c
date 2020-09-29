@@ -9,7 +9,7 @@
 char* builtInSymbolList[]=
 {
 	"nil",
-	"else",
+	"t",
 	"stdin",
 	"stdout",
 	"stderr",

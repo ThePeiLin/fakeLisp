@@ -725,8 +725,8 @@ void initGlobEnv(varstack* obj)
 	obj->values=(stackvalue**)realloc(obj->values,sizeof(stackvalue*)*NUMOFBUILTINSYMBOL);
 	if(obj->values==NULL)errors(OUTOFMEMORY);
 	obj->values[0]=NULL;
-	obj->values[1]=newStackValue(INT);
-	obj->values[1]->value.num=1;
+	obj->values[1]=newStackValue(SYM);
+	obj->values[1]->value.str=copyStr("t");
 	obj->values[2]=newStackValue(INT);
 	obj->values[2]->value.num=0;
 	obj->values[3]=newStackValue(INT);

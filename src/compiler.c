@@ -582,7 +582,7 @@ byteCode* compileLambda(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* 
 					argCptr=nextCptr(argCptr);
 				}
 			}
-			else
+			else if(nextCptr(objCptr)->type==ATM)
 			{
 				atom* tmpAtm=nextCptr(objCptr)->value;
 				if(tmpAtm->type!=SYM)

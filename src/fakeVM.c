@@ -1263,7 +1263,7 @@ int B_mod(fakeVM* exe)
 
 int B_rand(fakeVM* exe)
 {
-	srand((time(NULL)));
+	srand((unsigned)time(NULL));
 	fakestack* stack=exe->stack;
 	fakeprocess* proc=exe->curproc;
 	stackvalue* lim=getTopValue(stack);

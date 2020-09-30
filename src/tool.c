@@ -125,11 +125,6 @@ char* getListFromFile(FILE* file)
 			free(tmpList);
 			continue;
 		}
-		if(!isspace(ch)&&ch!=')'&&anotherChar&&braketsNum<=0&&!mark)
-		{
-			ungetc(ch,file);
-			break;
-		}
 		i++;
 		j=i-1;
 		before=tmp;
@@ -149,6 +144,36 @@ char* getListFromFile(FILE* file)
 		return NULL;
 	}
 	if(tmp!=NULL)*(tmp+i)='\0';
+	return tmp;
+}
+
+char* getAtomFrom(FILE* file)
+{
+	char* tmp=(char*)malloc(sizeof(char));
+	if(tmp==NULL)errors(OUTOFMEMORY);
+	tmp[0]='\0'
+	char* before;
+	int i=0;
+	int j;
+	while((ch=getc(file))!=EOF)
+	{
+		if(isspace(ch)||ch==')'||ch=='('||ch==',')
+		{
+			ungetc(ch,file);
+			break;
+		}
+		i++;
+		j=i-1;
+		before=tmp;
+		if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))errors(OUTOFMEMORY);
+		if(before!=NULL)
+		{
+			memcpy(tmp,before,j);
+			free(before)
+		}
+		*(tmp+j)=ch;
+	}
+	if(tmp!=NULL)tmp[i]='\0';
 	return tmp;
 }
 

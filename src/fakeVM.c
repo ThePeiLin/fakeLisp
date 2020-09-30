@@ -1395,7 +1395,7 @@ int B_invoke(fakeVM* exe)
 	proc->cp+=1;
 	excode* tmpCode=tmpValue->value.prc;
 	fakeprocess* prevProc=hasSameProc(tmpCode,proc);
-	if(stack->bp==1&&isTheLastExpress(proc,prevProc)&&prevProc)
+	if(isTheLastExpress(proc,prevProc)&&prevProc)
 		prevProc->cp=0;
 	else 
 	{

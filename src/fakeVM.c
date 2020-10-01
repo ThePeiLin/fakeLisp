@@ -2337,8 +2337,11 @@ void printStackValue(stackvalue* objValue,FILE* fp)
 		case PRC:fprintf(fp,"<#proc>");break;
 		case PAR:putc('(',fp);
 				 printStackValue(objValue->value.par.car,fp);
-				 putc(',',fp);
-				 printStackValue(objValue->value.par.cdr,fp);
+				 if(objValue->value.par.cdr!=NULL)
+				 {
+					putc(',',fp);
+					printStackValue(objValue->value.par.cdr,fp);
+				 }
 				 putc(')',fp);
 				 break;
 		default:fprintf(fp,"Bad value!");break;

@@ -59,31 +59,23 @@ char* builtInSymbolList[]=
 
 char* getListFromFile(FILE* file)
 {
-	char* tmp=NULL;
-	char* before;
+	char* before=NULL;
 	int ch;
-	int i=0;
-	int j;
-	int mark=0;
+	int lenOfStr=0;
 	int braketsNum=0;
-	int anotherChar=0;
+	int memSize=1;
+	char* tmp=(char*)malloc(sizeof(char)*memSize);
+	if(tmp==NULL)errors(OUTOFMEMORY);
 	while((ch=getc(file))!=EOF)
 	{
-		mark^=(ch=='\"'&&(tmp==NULL||*(tmp+j)!='\\'));
-		if(ch==';'&&!mark&&(tmp==NULL||*(tmp+j)!='\\'))
+		if(ch==';')
 		{
 			while(getc(file)!='\n');
 			ungetc('\n',file);
 			continue;
 		}
-		if(ch==')'&&!mark&&(tmp==NULL||*(tmp+j)!='\\'))
+		else if(ch=='\'')
 		{
-			if(braketsNum<=0)continue;
-			else braketsNum--;
-		}
-		if(ch=='\''&&!mark&&(tmp==NULL||*(tmp+j)!='\\'))
-		{
-			anotherChar=1;
 			int numOfSpace=0;
 			int lenOfMemory=1;
 			char* stringOfSpace=(char*)malloc(sizeof(char)*lenOfMemory);
@@ -114,46 +106,58 @@ char* getListFromFile(FILE* file)
 			strcat(other,stringOfSpace);
 			strcat(other,tmpList);
 			other[len-1]=')';
-			i+=len;
-			j=i-len;
+			lenOfStr+=len;
 			before=tmp;
-			if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))errors(OUTOFMEMORY);
-			memcpy(tmp,before,j);
-			memcpy(tmp+j,other,len);
+			if(!(tmp=(char*)malloc(sizeof(char)*(lenOfStr+1))))errors(OUTOFMEMORY);
+			memcpy(tmp,before,memSize);
+			strncat(tmp,other,len);
 			if(before!=NULL)free(before);
+			memSize=lenOfStr+1;
 			free(other);
 			free(tmpList);
 			continue;
 		}
-		i++;
-		j=i-1;
+		lenOfStr++;
+		memSize++;
 		before=tmp;
-		if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))
+		if(!(tmp=(char*)malloc(sizeof(char)*(memSize))))
 			errors(OUTOFMEMORY);
-		memcpy(tmp,before,j);
-		*(tmp+j)=ch;
-		if(before!=NULL)free(before);
-		if(ch=='('&&!mark&&(tmp==NULL||*(tmp+j-1)!='\\'))braketsNum++;
-		if(isspace(ch)&&braketsNum<=0&&!mark&&anotherChar)
-			break;
-		if(!isspace(ch))anotherChar=1;
+		if(before!=NULL)
+		{
+			memcpy(tmp,before,lenOfStr-1);
+			free(before);
+		}
+		tmp[lenOfStr-1]=ch;
+		tmp[lenOfStr]='\0';
+		if(ch=='(')braketsNum++;
+		else if(ch==')')braketsNum--;
+		else if(isspace(ch)&&braketsNum<=0)break;
+		else if(!isspace(ch))
+		{
+			char* tmpStr=(ch=='\"')?getStringAfterMark(file):getAtomFromFile(file);
+			tmp=(char*)realloc(tmp,sizeof(char)*(strlen(tmpStr)+strlen(tmp)+1));
+			if(tmp==NULL)errors(OUTOFMEMORY);
+			strcat(tmp,tmpStr);
+			lenOfStr=strlen(tmp);
+			memSize=lenOfStr+1;
+		}
 	}
 	if(ch==EOF&&braketsNum!=0&&file!=stdin)
 	{
 		free(tmp);
 		return NULL;
 	}
-	if(tmp!=NULL)*(tmp+i)='\0';
 	return tmp;
 }
 
-char* getAtomFrom(FILE* file)
+char* getAtomFromFile(FILE* file)
 {
 	char* tmp=(char*)malloc(sizeof(char));
 	if(tmp==NULL)errors(OUTOFMEMORY);
-	tmp[0]='\0'
+	tmp[0]='\0';
 	char* before;
 	int i=0;
+	char ch;
 	int j;
 	while((ch=getc(file))!=EOF)
 	{
@@ -169,9 +173,36 @@ char* getAtomFrom(FILE* file)
 		if(before!=NULL)
 		{
 			memcpy(tmp,before,j);
-			free(before)
+			free(before);
 		}
 		*(tmp+j)=ch;
+	}
+	if(tmp!=NULL)tmp[i]='\0';
+	return tmp;
+}
+
+char* getStringAfterMark(FILE* file)
+{
+	char* tmp=(char*)malloc(sizeof(char));
+	if(tmp==NULL)errors(OUTOFMEMORY);
+	tmp[0]='\0';
+	char* before;
+	int i=0;
+	int j;
+	int ch;
+	while((ch=getc(file))!=EOF)
+	{
+		i++;
+		j=i-1;
+		before=tmp;
+		if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))errors(OUTOFMEMORY);
+		if(before!=NULL)
+		{
+			memcpy(tmp,before,j);
+			free(before);
+		}
+		tmp[j]=ch;
+		if(ch=='\"'&&tmp[j-1]!='\\')break;
 	}
 	if(tmp!=NULL)tmp[i]='\0';
 	return tmp;

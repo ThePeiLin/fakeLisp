@@ -5,10 +5,11 @@
 #include<stdint.h>
 #include<math.h>
 #include"tool.h"
-#define NUMOFBUILDINSYMBOL 46
+#define NUMOFBUILDINSYMBOL 47
 char* builtInSymbolList[]=
 {
 	"nil",
+	"EOF",
 	"stdin",
 	"stdout",
 	"stderr",

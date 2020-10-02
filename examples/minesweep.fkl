@@ -1,18 +1,26 @@
 ;;This program havn't been finished yet.
+(defmacro (let ATOM#LETNAME ((ATOM#NAME ANY#VALUE) VAREPT#OTHER),PAIR#BODY)
+          (cons (list 'define LETNAME (cons 'lambda (cons (cons NAME OTHER#NAME) BODY))) (cons VALUE OTHER#VALUE)))
 (defmacro
- (if ANY#COND ANY#EXPRESSION1 ANY#EXPRESSION2)
- (list 'cond (list COND EXPRESSION1) (list 't EXPRESSION2)))
+ (if ANY#COND ANY#EXPRESSION1,ANY#EXPRESSION2)
+ (list 'cond (list COND EXPRESSION1) (cons 1 EXPRESSION2)))
+
 (defmacro (define (ATOM#NAME,ANY#ARG),PAIR#EXPRESSION)
           (list 'define NAME (cons 'lambda (cons ARG EXPRESSION))))
-(define (resl objlist)
- (define (tmpfn objlist tmp)
-  (if (null (cdr objlist))
-      (cons (car objlist) tmp)
-      (tmpfn (cdr objlist)
-             (cons (car objlist) tmp))))
- (tmpfn objlist))
-(defmacro (ARRY ATOM#X ATOM#Y)
+
+(defmacro (ARRY ANY#X ANY#Y)
  (list 'add X (list 'mul Y 'rrow)))
+
+(define (neq a b) (not (eq a b)))
+(define (1+ a) (add a 1))
+(define (1- a) (sub a 1))
+(define (resl objlist)
+ (let loop ((tmplist objlist) (tmp nil))
+  (if (null (cdr tmplist))
+      (cons (car tmplist) tmp)
+      (loop (cdr objlist)
+            (cons (car tmplist) tmp)))))
+
 (define (newTerm)
  (write "\033[?1049h" stdout))
 
@@ -20,61 +28,84 @@
  (write "\033[?1049l" stdout))
 
 (define (createEmptyList size)
- (define (iter size count list)
-  (if (eq size count) list
-       (iter
-			   size
-               (add count 1) 
-               (append list '()))))
- (iter size 1 '()))
+ (let loop ((count 1) (list '()))
+  (if (eq size count)
+      list
+      (loop (1+ count)
+            (append list '())))))
 
 (define (setl list place value)
  (define (getafter list place count)
   (cond ((eq place count) (cdr list))
-        (t (getafter
+        (1 (getafter
                (cdr list) 
                place 
-               (add count 1)))))
+               (1+ count)))))
  (define (getbefore list place count tmp)
   (cond ((eq place count) (cons (car list) tmp))
-        (t (getbefore (cdr list)
+        (1 (getbefore (cdr list)
                          place
-                         (add count 1)
+                         (1+ count)
                          (cons (car list) tmp)))))
  (append (resl (getbefore list place 0 '()))
-         (cons value (getafter list place 0)))
-)
+         (cons value (getafter list place 0))))
 
 (define (getMapFront place map) (car (nth place map)))
 (define (getMapBack place map) (cdr (nth place map)))
 
-(define (createMap line  row bombnum)
+(define (createMap line row bombnum)
  (define rline (add line 2))
  (define rrow (add row 2))
  (define map (createEmptyList (mul rline rrow)))
- (define (setfront i map)
-  (if (eq i (mul rrow rline)) map
-      (setfront (add i 1) (setl map i (cons 1 0)))))
- (define (setbomb map i)
-  (define yr (add 1 (rand line)))
-  (define xr (add 1 (rand row)))
-  (if (eq i bombnum)
-      map
-      (setbomb (setl map (ARRY xr yr)
-                     (if (eq (getMapBack (ARRY xr yr) map) 0)
-                         (cons (getMapFront (ARRY xr yr) map) 9)
-                         (cons (getMapFront (ARRY xr yr) map) 0)))
-               (add i (if (eq (getMapBack (ARRY xr yr) map) 9) 1 0)))))
- (define (setBound map line row)
-  (define (tmp1 map xc yc)
-   (if (gt xc (add row 1))
-       map
-       (tmp1 (setl map (ARRY xc yc) (cons 4 10)) (add xc 1))))
-  (define (tmp2 map yc)
-   (if (gt yc (add line 1))
-       map
-       (tmp2 (tmp1 map 0 (add yc 1))))))
- (define (setnum map xc yc)
-  (define (getAround map xc yc))
-))
-
+ (let loop ((i 0))
+  (cond ((lt i (mul rline rrow))
+         (setq map (setl map i (cons 1 0)))
+         (loop (1+ i)))))
+ (let loop ((yc 0))
+  (cond ((le yc (add line row))
+         (let loop1 ((xc 0))
+          (cond ((le xc (1+ row))
+                 (if (or (eq yc 0)
+                         (eq yc (1+ line))
+                         (eq xc 0)
+                         (eq xc (1+ row)))
+                     (setq map (setl map (ARRY xc yc) (cons 4 9))))
+                 (loop1 (1+ xc)))))
+         (loop (1+ yc)))))
+ (let loop ((i 0))
+  (define yr (1+ (rand line)))
+  (define xr (1+ (rand row)))
+  (define place (ARRY xr yr))
+  (cond ((lt i bombnum)
+         (setq i (add i 
+                      (if (eq (cdr (nth place map)) 0) 1 0)))
+         (setq map (setl map 
+                         place 
+                         (cons (car (nth place map))
+                               (if (eq (cdr (nth place map)) 9) 0 9))))
+         (loop i))))
+ (define (getAroundBombNum map x y)
+  (define i 0)
+  (if (eq (cdr (nth (ARRY (1- x) (1- y 1)) map)) 9) (setq i (1+ i)))
+  (if (eq (cdr (nth (ARRY x (1- y)) map)) 9) (setq i (1+ i)))
+  (if (eq (cdr (nth (ARRY (1+ x) (1- y 1)) map)) 9) (setq i (1+ i)))
+  (if (eq (cdr (nth (ARRY (1- x 1) y) map)) 9) (setq i (1+ i)))
+  (if (eq (cdr (nth (ARRY (1+ x) y) map)) 9) (setq i (1+ i)))
+  (if (eq (cdr (nth (ARRY (1- x 1) (1+ y)) map)) 9) (setq i (1+ i)))
+  (if (eq (cdr (nth (ARRY x (1+ y)) map)) 9) (setq i (1+ i)))
+  (if (eq (cdr (nth (ARRY (1+ x) (1+ y)) map)) 9) (setq i (1+ i)))
+  i)
+ (let loop ((yc 1))
+  (cond ((le yc line)
+         (let loop1 ((xc 1))
+          (define place (ARRY xc yc))
+          (cond ((le xc row)
+                 (if (neq (cdr (nth place  map)) 9)
+                     (setq map
+                           (setl map 
+                                 place 
+                                 (cons (car (nth place map))
+                                       (getAroundBombNum map xc yc)))))
+                 (loop1 (1+ xc)))))
+         (loop (1+ yc)))))
+ map)

@@ -229,7 +229,7 @@ keyWord* hasKeyWord(const cptr* objCptr)
 				tmp=NULL;
 				continue;
 			}
-			while(tmp!=NULL&&tmpAtm!=NULL&&strcmp(tmpAtm->value.str,tmp->word)&&(cdrAtm==NULL||(cdrAtm!=NULL&&strcmp(cdrAtm->value.str,tmp->word))))
+			while(tmp!=NULL&&tmpAtm!=NULL&&strcmp(tmpAtm->value.str,tmp->word)&&(cdrAtm==NULL||cdrAtm->type!=SYM||(cdrAtm!=NULL&&strcmp(cdrAtm->value.str,tmp->word))))
 				tmp=tmp->next;
 			if(tmp!=NULL)break;
 		}
@@ -474,7 +474,7 @@ void initPreprocess(intpr* inter)
 			createTree("RAWEXPRESS",inter));
 	addMacro(createTree("(quote ANY#VALUE)",inter),
 			createTree("RAWEXPRESS",inter));
-	addMacro(createTree("(cond (ANY#COND,PAIR#BODY) VAREPT#ANOTHER)",inter),
+	addMacro(createTree("(cond (ANY#COND,ANY#BODY) VAREPT#ANOTHER)",inter),
 			createTree("RAWEXPRESS",inter));
 	addMacro(createTree("(and,ANY#OTHER)",inter),
 			createTree("RAWEXPRESS",inter));

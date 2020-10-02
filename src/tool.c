@@ -5,11 +5,10 @@
 #include<stdint.h>
 #include<math.h>
 #include"tool.h"
-#define NUMOFBUILDINSYMBOL 47
+#define NUMOFBUILDINSYMBOL 46
 char* builtInSymbolList[]=
 {
 	"nil",
-	"t",
 	"stdin",
 	"stdout",
 	"stderr",
@@ -132,7 +131,7 @@ char* getListFromFile(FILE* file)
 		if(ch=='(')braketsNum++;
 		else if(ch==')')braketsNum--;
 		else if(isspace(ch)&&braketsNum<=0)break;
-		else if(!isspace(ch))
+		else if(!isspace(ch)&&ch!=',')
 		{
 			char* tmpStr=(ch=='\"')?getStringAfterMark(file):getAtomFromFile(file);
 			tmp=(char*)realloc(tmp,sizeof(char)*(strlen(tmpStr)+strlen(tmp)+1));
@@ -1030,7 +1029,7 @@ void printList(const cptr* objCptr,FILE* out)
 		else if(objCptr->type==ATM||objCptr->type==NIL)
 		{
 			if(objPair!=NULL&&objCptr==&objPair->cdr&&objCptr->type==ATM)putc(',',out);
-			if((objPair!=NULL&&objCptr==&objPair->car&&objCptr->type==NIL&&objPair->cdr.type!=NIL)
+			if((objPair!=NULL&&objCptr==&objPair->car&&objCptr->type==NIL&&objPair->prev!=NULL)
 			||(objCptr->outer==NULL&&objCptr->type==NIL))fputs("nil",out);
 			if(objCptr->type!=NIL)
 			{

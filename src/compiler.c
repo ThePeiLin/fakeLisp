@@ -8,7 +8,7 @@
 
 byteCode* compile(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* status)
 {
-	if((!macroExpand(objCptr)&&hasKeyWord(objCptr))||!isLegal(objCptr))
+	if(objCptr->type==PAR&&(!macroExpand(objCptr)&&hasKeyWord(objCptr))||!isLegal(objCptr))
 	{
 		status->status=SYNTAXERROR;
 		status->place=objCptr;
@@ -696,10 +696,16 @@ byteCode* compileCond(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* st
 			}
 			if(prevCptr(objCptr)==NULL)
 			{
-				*(int32_t*)(jumpiffalse->code+sizeof(char))=tmpCond->size+jump->size;
+				*(int32_t*)(jumpiffalse->code+sizeof(char))=tmpCond->size+jump->size+((objCptr->outer->cdr.type==NIL)?pushnil->size:0);
 				byteCode* beFree=tmp1;
 				tmp1=codeCat(tmp1,jumpiffalse);
 				freeByteCode(beFree);
+				if(objCptr->outer->cdr.type==NIL)
+				{
+					beFree=tmp1;
+					tmp1=codeCat(tmp1,pushnil);
+					freeByteCode(beFree);
+				}
 			}
 			if(prevCptr(objCptr)!=NULL&&nextCptr(objCptr)!=NULL)
 			{

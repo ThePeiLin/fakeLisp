@@ -274,7 +274,11 @@ char* getStringAfterBackslash(const char* str)
 {
 	char* tmp=NULL;
 	int len=0;
-	while(!isspace(*(str+len))&&*(str+len)!='\0')len++;
+	while(!isspace(*(str+len))&&*(str+len)!='\0')
+	{
+		len++;
+		if(!isdigit(str[len])&&str[len-1]!='\\')break;
+	}
 	if(!(tmp=(char*)malloc(sizeof(char)*(len+1))))errors(OUTOFMEMORY);
 	memcpy(tmp,str,len);
 	if(tmp!=NULL)*(tmp+len)='\0';
@@ -601,13 +605,13 @@ cptr* createTree(const char* objStr,intpr* inter)
 		else if(*(objStr+i)=='#'&&*(objStr+1+i)=='\\')
 		{
 			if(root==NULL)objCptr=root=newCptr(inter->curline,objPair);
-			char* tmp=getStringAfterBackslash(objStr+i);
+			char* tmp=getStringAfterBackslash(objStr+i+2);
 			objCptr->type=ATM;
 			objCptr->value=(void*)newAtom(CHR,NULL,objPair);
 			atom* tmpAtm=objCptr->value;
-			if(tmp[2]!='\\')tmpAtm->value.chr=tmp[2];
-			else tmpAtm->value.chr=stringToChar(&tmp[3]);
-			i+=strlen(tmp);
+			if(tmp[0]!='\\')tmpAtm->value.chr=tmp[0];
+			else tmpAtm->value.chr=stringToChar(tmp+1);
+			i+=strlen(tmp)+2;
 			free(tmp);
 		}
 		else

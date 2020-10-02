@@ -6,7 +6,7 @@
 #include<termios.h>
 #include<unistd.h>
 #include<time.h>
-#define NUMOFBUILTINSYMBOL 46
+#define NUMOFBUILTINSYMBOL 47
 static int (*ByteCodes[])(fakeVM*)=
 {
 	B_dummy,
@@ -726,16 +726,18 @@ void initGlobEnv(varstack* obj)
 	if(obj->values==NULL)errors(OUTOFMEMORY);
 	obj->values[0]=NULL;
 	obj->values[1]=newStackValue(INT);
-	obj->values[1]->value.num=0;
+	obj->values[1]->value.num=EOF;
 	obj->values[2]=newStackValue(INT);
-	obj->values[2]->value.num=1;
+	obj->values[2]->value.num=0;
 	obj->values[3]=newStackValue(INT);
-	obj->values[3]->value.num=2;
-	int i=4;
+	obj->values[3]->value.num=1;
+	obj->values[4]=newStackValue(INT);
+	obj->values[4]->value.num=2;
+	int i=5;
 	for(;i<NUMOFBUILTINSYMBOL;i++)
 	{
 		obj->values[i]=newStackValue(PRC);
-		obj->values[i]->value.prc=newBuiltInProc(copyByteCode(buildInProcs+(i-4)));
+		obj->values[i]->value.prc=newBuiltInProc(copyByteCode(buildInProcs+(i-5)));
 	}
 }
 

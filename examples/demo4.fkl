@@ -1,0 +1,29 @@
+(defmacro (define (ATOM#NAME,ANY#ARG),PAIR#EXPRESSION)
+          (list 'define NAME (cons 'lambda (cons ARG EXPRESSION))))
+
+(defmacro (let ATOM#LETNAME ((ATOM#NAME ANY#VALUE) VAREPT#OTHER),PAIR#BODY)
+          (cons (list 'define LETNAME (cons 'lambda (cons (cons NAME OTHER#NAME) BODY))) (cons VALUE OTHER#VALUE)))
+
+(defmacro
+ (if ANY#COND ANY#EXPRESSION1,ANY#EXPRESSION2)
+ (list 'cond (list COND EXPRESSION1) (cons 1 EXPRESSION2)))
+(define (newTerm)
+ (write "\033[?1049h" stdout))
+
+(define (delTerm)
+ (write "\033[?1049l" stdout))
+(define (moveLeft) (write "\033[1D" stdout))
+(define (moveRight) (write "\033[1C" stdout))
+(define (moveUp) (write "\033[1A" stdout))
+(define (moveDown) (write "\033[1B" stdout))
+(define (print) (write "FA♂Q" stdout))
+
+(newTerm)
+(let main ((ch (getch)))
+ (cond ((eq ch #\h) (moveLeft))
+       ((eq ch #\k) (moveUp))
+       ((eq ch #\j) (moveDown))
+       ((eq ch #\l) (moveRight))
+       ((eq ch #\\0x20) (print)))
+ (if (not (eq ch #\\4)) (main (getch))))
+(delTerm)

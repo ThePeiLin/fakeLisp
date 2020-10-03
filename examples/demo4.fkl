@@ -16,7 +16,7 @@
 (define (moveRight) (write "\033[1C" stdout))
 (define (moveUp) (write "\033[1A" stdout))
 (define (moveDown) (write "\033[1B" stdout))
-(define (print) (write "FA♂Q" stdout))
+(define (print) (write "FAQ" stdout))
 
 (newTerm)
 (let main ((ch (getch)))
@@ -24,6 +24,7 @@
        ((eq ch #\k) (moveUp))
        ((eq ch #\j) (moveDown))
        ((eq ch #\l) (moveRight))
+       ((eq ch #\d) (write #\\0x20 stdout))
        ((eq ch #\\0x20) (print)))
  (if (not (eq ch #\\4)) (main (getch))))
 (delTerm)

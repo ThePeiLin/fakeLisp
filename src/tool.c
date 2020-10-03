@@ -277,7 +277,7 @@ char* getStringAfterBackslash(const char* str)
 	while(!isspace(*(str+len))&&*(str+len)!='\0')
 	{
 		len++;
-		if(!isdigit(str[len])&&str[len-1]!='\\')break;
+		if(!isalnum(str[len])&&str[len-1]!='\\')break;
 	}
 	if(!(tmp=(char*)malloc(sizeof(char)*(len+1))))errors(OUTOFMEMORY);
 	memcpy(tmp,str,len);

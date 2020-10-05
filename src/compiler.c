@@ -8,6 +8,8 @@
 
 byteCode* compile(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* status)
 {
+//	printList(objCptr,stderr);
+//	printf("\n===================\n");
 	if(objCptr->type==PAR&&(!macroExpand(objCptr)&&hasKeyWord(objCptr))||!isLegal(objCptr))
 	{
 		status->status=SYNTAXERROR;

@@ -89,10 +89,12 @@ void runIntpr(intpr* inter)
 		if(ch==EOF)break;
 		else ungetc(ch,inter->file);
 		char* list=getListFromFile(inter->file);
-	//	printf("%s",list);
+	//	printf("%s\n==================\n",list);
 		if(list==NULL)continue;
 		errorStatus status={0,NULL};
 		begin=createTree(list,inter);
+	//	printList(begin,stderr);
+	//	printf("\n==============\n");
 		if(begin!=NULL)
 		{
 

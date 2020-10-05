@@ -160,15 +160,21 @@
   (define (moveLeft) (setq xl (sub xl (if (gt xl 2) 1 0))))
   (define (moveRight) (setq xl (add xl (if (lt xl (1+ row)) 1 0))))
   (define (setFlag)
+    (define front (car (nth place map)))
+    (define back (cdr (nth place map)))
     (setq rbombnum (sub rbombnum (if (eq (cdr (nth place map)) 9) 1 0)))
-    (cond ((eq (car (nth place map)) 1) (DEC bombnum))
-          ((eq (car (nth place map)) 2) (INC bombnum)))
+    (cond ((eq front 1)
+           (DEC bombnum)
+           (if (eq back 9) (DEC rbombnum)))
+          ((eq front 2)
+           (INC bombnum)
+           (if (eq back 9) (INC rbombnum))))
     (setq map
           (setl map
                 place
-                (cons (if (eq (car (nth place map)) 3)
+                (cons (if (eq front 3)
                           1
-                          (1+ (car (nth place map))))))))
+                          (1+ front))))))
   (define (quit)
     (setq isGameOver 1)
     (delTerm))
@@ -199,9 +205,9 @@
                                                                   0
                                                                   (car (nth place map))))))
                                             (loop-xt (sub xt (if (or (eq yt tier)
-                                                                   (eq yt (NEG tier)))
-                                                               1
-                                                            (mul tier 2)))))))
+                                                                     (eq yt (NEG tier)))
+                                                                 1
+                                                                 (mul tier 2)))))))
                                    (loop-yt (1- yt)))))
                           (loop-tier (add tier (if (canOpenBlock map row line x y tier) 1 0))))))))))
   (let loop-ch ((ch (getch)))
@@ -214,7 +220,7 @@
           ((eq ch #\q) (quit)))
     (if (neq ch #\\4) (loop-ch (getch))))))
 
-(define (printMap map row line xl yl)
+(define (printMap map row line xl yl bombnum)
   (define rrow row)
   (define rline line)
   (write "\033[1;1H" stdout)

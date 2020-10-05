@@ -251,7 +251,8 @@ void printAllKeyWord()
 macro* macroMatch(const cptr* objCptr)
 {
 	macro* current=FirstMacro;
-	while(current!=NULL&&!fmatcmp(objCptr,current->format))current=current->next;
+	while(current!=NULL&&!fmatcmp(objCptr,current->format))
+		current=current->next;
 	return current;
 }
 
@@ -327,6 +328,10 @@ masym* findMasym(const char* name)
 
 int fmatcmp(const cptr* origin,const cptr* format)
 {
+//	printList(origin,stderr);
+//	printf("\n---------\n");
+//	printList(format,stderr);
+//	printf("\n========\n");
 	MacroEnv=newEnv(NULL);
 	pair* tmpPair=(format->type==PAR)?format->value:NULL;
 	pair* forPair=tmpPair;

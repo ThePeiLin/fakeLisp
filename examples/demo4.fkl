@@ -31,4 +31,3 @@
        ((eq ch #\\0x20) (print)))
  (if (not (eq ch #\\4)) (main (getch))))
 (delTerm)
-(print 1 2 3 4)

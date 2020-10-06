@@ -1923,7 +1923,7 @@ int B_nth(fakeVM* exe)
 	fakeprocess* proc=exe->curproc;
 	stackvalue* place=getValue(stack,stack->tp-2);
 	stackvalue* objlist=getTopValue(stack);
-	stack->tp-1;
+	stack->tp-=1;
 	stackRecycle(stack);
 	if(objlist==NULL||place==NULL||(objlist->type!=PAR&&objlist->type!=STR)||place->type!=INT)return 1;
 	if(objlist->type==PAR)

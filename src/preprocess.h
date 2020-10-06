@@ -6,6 +6,7 @@
 defines* findDefine(const char*,const env*);
 void addFunc(const char*,errorStatus (*)(cptr*,env*));
 defines* addDefine(const char*,const cptr*,env*);
+defines* newDefines(const char*);
 errorStatus (*(findFunc(const char*)))(cptr*,env*);
 int retree(cptr**,cptr*);
 errorStatus eval(cptr*,env*);

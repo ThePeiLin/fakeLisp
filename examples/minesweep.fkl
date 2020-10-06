@@ -38,24 +38,24 @@
 
 (define (createEmptyList size)
   (let loop-count ((count 1) (list '((1,0))))
-    (if (eq size count)
+    (if (ge count size)
         list
         (loop-count (1+ count)
-              (append list '((1,0)))))))
+                    (cons '(1,0) list)))))
 
 (define (setl list place value)
   (define (getafter list place count)
-    (cond ((eq place count) (cdr list))
+    (cond ((le place count) (cdr list))
           (1 (getafter (cdr list) 
                        place 
                        (1+ count)))))
   (define (getbefore list place count tmp)
-    (cond ((eq place count) (cons (car list) tmp))
+    (cond ((le place count) (cons (car list) tmp))
           (1 (getbefore (cdr list)
                         place
                         (1+ count)
                         (cons (car list) tmp)))))
-  (append (resl (getbefore list place 0 '()))
+  (append (resl (getbefore list place 1 '()))
           (cons value (getafter list place 0))))
 
 (define (getMapFront place map) (car (nth place map)))

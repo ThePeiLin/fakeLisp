@@ -54,7 +54,7 @@ char* builtInSymbolList[]=
 	"write",
 	"tell",
 	"seek",
-	"rewind",
+	"rewind"
 };
 
 char* getListFromFile(FILE* file)
@@ -1188,7 +1188,6 @@ compDef* findCompDef(const char* name,compEnv* curEnv)
 	else
 	{
 		compDef* curDef=curEnv->symbols;
-		compDef* prev=NULL;
 		while(curDef&&strcmp(name,curDef->symName))
 			curDef=curDef->next;
 		return curDef;
@@ -1205,9 +1204,7 @@ compDef* addCompDef(compEnv* curEnv,const char* name)
 		strcpy(curEnv->symbols->symName,name);
 		while(tmpEnv!=NULL&&tmpEnv->symbols==NULL)tmpEnv=tmpEnv->prev;
 		if(tmpEnv==NULL)
-		{
 			curEnv->symbols->count=0;
-		}
 		else
 		{
 			compDef* tmpDef=tmpEnv->symbols;
@@ -1291,7 +1288,8 @@ byteCode* copyByteCode(const byteCode* obj)
 void initCompEnv(compEnv* curEnv)
 {
 	int i=0;
-	for(;i<NUMOFBUILDINSYMBOL;i++)addCompDef(curEnv,builtInSymbolList[i]);
+	for(;i<NUMOFBUILDINSYMBOL;i++)
+		addCompDef(curEnv,builtInSymbolList[i]);
 }
 
 char* copyStr(const char* str)

@@ -8,8 +8,6 @@
 
 byteCode* compile(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* status)
 {
-//	printList(objCptr,stderr);
-//	printf("\n===================\n");
 	if(objCptr->type==PAR&&(!macroExpand(objCptr)&&hasKeyWord(objCptr))||!isLegal(objCptr))
 	{
 		status->status=SYNTAXERROR;
@@ -500,12 +498,14 @@ byteCode* compileLambda(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* 
 			tmpRawProc->proc=codeCat(tmpRawProc->proc,endproc);
 			freeByteCode(beFree);
 			freeByteCode(tmp1);
+			compEnv* prev=tmpEnv;
+			tmpEnv=tmpEnv->prev;
+			destroyCompEnv(prev);
 			if(objPair!=tmpPair)
 			{
 				objPair=objPair->prev;
 				objCptr=nextCptr(&objPair->car);
 				while(objPair->prev!=NULL&&objPair->prev->cdr.value==objPair)objPair=objPair->prev;
-				tmpEnv=tmpEnv->prev;
 				tmpRawProc=tmpRawProc->next;
 				continue;
 			}

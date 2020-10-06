@@ -66,9 +66,7 @@ defines* addDefine(const char* symName,const cptr* objCptr,env* curEnv)
 {
 	if(curEnv->symbols==NULL)
 	{
-		if(!(curEnv->symbols=(defines*)malloc(sizeof(defines))))errors(OUTOFMEMORY);
-		if(!(curEnv->symbols->symName=(char*)malloc(sizeof(char)*(strlen(symName)+1))))errors(OUTOFMEMORY);
-		strcpy(curEnv->symbols->symName,symName);
+		curEnv->symbols=newDefines(symName);
 		replace(&curEnv->symbols->obj,objCptr);
 		curEnv->symbols->next=NULL;
 		return curEnv->symbols;
@@ -78,9 +76,7 @@ defines* addDefine(const char* symName,const cptr* objCptr,env* curEnv)
 		defines* curDef=findDefine(symName,curEnv);
 		if(curDef==NULL)
 		{
-			if(!(curDef=(defines*)malloc(sizeof(defines))))errors(OUTOFMEMORY);
-			if(!(curDef->symName=(char*)malloc(sizeof(char)*(strlen(symName)+1))))errors(OUTOFMEMORY);
-			strcpy(curDef->symName,symName);
+			curDef=newDefines(symName);
 			curDef->next=curEnv->symbols;
 			curEnv->symbols=curDef;
 			replace(&curDef->obj,objCptr);
@@ -328,10 +324,6 @@ masym* findMasym(const char* name)
 
 int fmatcmp(const cptr* origin,const cptr* format)
 {
-//	printList(origin,stderr);
-//	printf("\n---------\n");
-//	printList(format,stderr);
-//	printf("\n========\n");
 	MacroEnv=newEnv(NULL);
 	pair* tmpPair=(format->type==PAR)?format->value:NULL;
 	pair* forPair=tmpPair;
@@ -370,6 +362,7 @@ int fmatcmp(const cptr* origin,const cptr* format)
 				}
 			}
 			forPair=format->outer;
+			oriPair=origin->outer;
 			if(tmpSym!=NULL&&tmpSym->Func==M_VAREPT)
 			{
 				format=&forPair->cdr;
@@ -780,4 +773,16 @@ char* getWord(const char* name,int num)
 	strncpy(tmpStr,name+i,tmplen);
 	tmpStr[tmplen]='\0';
 	return tmpStr;
+}
+
+defines* newDefines(const char* name)
+{
+	defines* tmp=(defines*)malloc(sizeof(defines));
+	if(tmp==NULL)errors(OUTOFMEMORY);
+	tmp->symName=(char*)malloc(sizeof(char)*(strlen(name)+1));
+	if(tmp->symName==NULL)errors(OUTOFMEMORY);
+	strcpy(tmp->symName,name);
+	tmp->obj=(cptr){NULL,0,NIL,NULL};
+	tmp->next=NULL;
+	return tmp;
 }

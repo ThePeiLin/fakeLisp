@@ -1,0 +1,2 @@
+(define i (lambda (x) (cond ((not (eq 0 x)) (write "Hello,world!\n" stdout) (i (sub x 1))))))
+(i 3)

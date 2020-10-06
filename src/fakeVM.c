@@ -1988,10 +1988,10 @@ int B_append(fakeVM* exe)
 	stack->tp-=1;
 	stackRecycle(stack);
 	if(fir==NULL||sec==NULL||fir->type!=PAR||sec->type!=PAR)return 1;
-	stackvalue* lastpair=fir;
+	stackvalue* lastpair=sec;
 	while(getCdr(lastpair)!=NULL)lastpair=getCdr(lastpair);
-	lastpair->value.par.cdr=sec;
-	stack->values[stack->tp-1]=fir;
+	lastpair->value.par.cdr=fir;
+	stack->values[stack->tp-1]=sec;
 	proc->cp+=1;
 	return 0;
 }

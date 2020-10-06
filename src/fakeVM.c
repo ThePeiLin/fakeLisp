@@ -2172,6 +2172,11 @@ excode* newExcode(byteCode* proc)
 		tmp->size=proc->size;
 		tmp->code=proc->code;
 	}
+	else
+	{
+		tmp->size=0;
+		tmp->code=NULL;
+	}
 	return tmp;
 }
 
@@ -2387,6 +2392,11 @@ excode* newBuiltInProc(byteCode* proc)
 	{
 		tmp->size=proc->size;
 		tmp->code=proc->code;
+	}
+	else
+	{
+		tmp->size=0;
+		tmp->code=NULL;
 	}
 	return tmp;
 }

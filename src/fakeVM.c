@@ -1963,7 +1963,7 @@ int B_length(fakeVM* exe)
 	if(objlist->type==PAR)
 	{
 		int32_t i=0;
-		for(stackvalue* tmp=objlist;tmp==NULL&&tmp->type==PAR;tmp=getCdr(tmp))i++;
+		for(stackvalue* tmp=objlist;tmp!=NULL&&tmp->type==PAR;tmp=getCdr(tmp))i++;
 		stackvalue* num=newStackValue(INT);
 		num->value.num=i;
 		stack->values[stack->tp-1]=num;
@@ -1987,11 +1987,15 @@ int B_append(fakeVM* exe)
 	stackvalue* sec=getValue(stack,stack->tp-2);
 	stack->tp-=1;
 	stackRecycle(stack);
-	if(fir==NULL||sec==NULL||fir->type!=PAR||sec->type!=PAR)return 1;
-	stackvalue* lastpair=sec;
-	while(getCdr(lastpair)!=NULL)lastpair=getCdr(lastpair);
-	lastpair->value.par.cdr=fir;
-	stack->values[stack->tp-1]=sec;
+	if(sec!=NULL&&sec->type!=PAR)return 1;
+	if(sec!=NULL)
+	{
+		stackvalue* lastpair=sec;
+		while(getCdr(lastpair)!=NULL)lastpair=getCdr(lastpair);
+		lastpair->value.par.cdr=fir;
+		stack->values[stack->tp-1]=sec;
+	}
+	else stack->values[stack->tp-1]=fir;
 	proc->cp+=1;
 	return 0;
 }
@@ -2421,6 +2425,7 @@ void printAllStack(fakestack* stack)
 		for(;i>=0;i--)
 		{
 			printStackValue(stack->values[i],stdout);
+			if(stack->bp==i)printf("\nBp->");
 			putchar('\n');
 		}
 	}

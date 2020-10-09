@@ -27,7 +27,7 @@ double stringToDouble(const char*);
 char* intToString(long);
 int32_t stringToInt(const char*);
 char stringToChar(const char*);
-void errors(int);
+void errors(int,const char*,int);
 cptr* createTree(const char*,intpr*);
 void exError(const cptr*,int,intpr*);
 void printList(const cptr*,FILE*);
@@ -62,4 +62,5 @@ byteCode* codeCat(const byteCode*,const byteCode*);
 void initCompEnv(compEnv*);
 byteCode* copyByteCode(const byteCode*);
 void freeByteCode(byteCode*);
+void printByteCode(const byteCode*,FILE*);
 #endif

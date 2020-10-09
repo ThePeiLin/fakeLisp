@@ -358,9 +358,11 @@ byteCode* compileAnd(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* sta
 	pair* tmpPair=objCptr->value;
 	byteCode* jumpiffalse=createByteCode(sizeof(char)+sizeof(int32_t));
 	byteCode* push1=createByteCode(sizeof(char)+sizeof(int32_t));
+	byteCode* pop=createByteCode(sizeof(char));
 	byteCode* tmp=createByteCode(0);
 	jumpiffalse->code[0]=FAKE_JMP_IF_FALSE;
 	push1->code[0]=FAKE_PUSH_INT;
+	pop->code[0]=FAKE_POP;
 	*(int32_t*)(push1->code+sizeof(char))=1;
 	while(objCptr!=NULL)
 	{
@@ -381,6 +383,9 @@ byteCode* compileAnd(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* sta
 				return NULL;
 			}
 			tmp=codeCat(tmp1,tmp);
+			freeByteCode(beFree);
+			beFree=tmp;
+			tmp=codeCat(pop,tmp);
 			freeByteCode(beFree);
 			beFree=tmp;
 			*(int32_t*)(jumpiffalse->code+sizeof(char))=tmp->size;
@@ -698,21 +703,23 @@ byteCode* compileCond(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* st
 			}
 			if(prevCptr(objCptr)==NULL)
 			{
-				*(int32_t*)(jumpiffalse->code+sizeof(char))=tmpCond->size+jump->size+((objCptr->outer->cdr.type==NIL)?pushnil->size:0);
+				*(int32_t*)(jumpiffalse->code+sizeof(char))=tmpCond->size+((nextCptr(cond)==NULL)?0:jump->size)+((objCptr->outer->cdr.type==NIL)?pushnil->size:0);
 				byteCode* beFree=tmp1;
 				tmp1=codeCat(tmp1,jumpiffalse);
 				freeByteCode(beFree);
 				if(objCptr->outer->cdr.type==NIL)
 				{
 					beFree=tmp1;
-					tmp1=codeCat(tmp1,pushnil);
+					byteCode* tmp2=codeCat(pop,pushnil);
+					tmp1=codeCat(tmp1,tmp2);
 					freeByteCode(beFree);
+					freeByteCode(tmp2);
 				}
 			}
-			if(prevCptr(objCptr)!=NULL&&nextCptr(objCptr)!=NULL)
+			if(prevCptr(objCptr)!=NULL)
 			{
 				byteCode* beFree=tmp1;
-				tmp1=codeCat(tmp1,pop);
+				tmp1=codeCat(pop,tmp1);
 				freeByteCode(beFree);
 			}
 			byteCode* beFree=tmpCond;
@@ -720,56 +727,28 @@ byteCode* compileCond(cptr* objCptr,compEnv* curEnv,intpr* inter,errorStatus* st
 			freeByteCode(beFree);
 			objCptr=prevCptr(objCptr);
 		}
-		*(int32_t*)(jump->code+sizeof(char))=tmp->size+pushnil->size;
 		byteCode* beFree=tmpCond;
-		tmpCond=codeCat(tmpCond,jump);
-		freeByteCode(beFree);
+		if(prevCptr(prevCptr(cond))!=NULL)
+		{
+			tmpCond=codeCat(pop,tmpCond);
+			freeByteCode(beFree);
+		}
+		if(nextCptr(cond)!=NULL)
+		{
+			beFree=tmpCond;
+			*(int32_t*)(jump->code+sizeof(char))=tmp->size;
+			tmpCond=codeCat(tmpCond,jump);
+			freeByteCode(beFree);
+		}
 		beFree=tmp;
 		tmp=codeCat(tmpCond,tmp);
 		freeByteCode(beFree);
 		freeByteCode(tmpCond);
 		cond=prevCptr(cond);
 	}
-	byteCode* beFree=tmp;
-	tmp=codeCat(tmp,pushnil);
-	freeByteCode(beFree);
 	freeByteCode(pushnil);
 	freeByteCode(pop);
 	freeByteCode(jumpiffalse);
 	freeByteCode(jump);
 	return tmp;
-}
-
-void printByteCode(const byteCode* tmpCode)
-{
-	int i=0;
-	while(i<tmpCode->size)
-	{
-		int tmplen=0;
-		printf("%s ",codeName[tmpCode->code[i]].codeName);
-		switch(codeName[tmpCode->code[i]].len)
-		{
-			case -1:
-				tmplen=strlen(tmpCode->code+i+1);
-				printf("%s",tmpCode->code+i+1);
-				i+=tmplen+2;
-				break;
-			case 0:
-				i+=1;
-				break;
-			case 1:
-				printf("%c",tmpCode->code[i+1]);
-				i+=2;
-				break;
-			case 4:
-				printf("%d",*(int32_t*)(tmpCode->code+i+1));
-				i+=5;
-				break;
-			case 8:
-				printf("%lf",*(double*)(tmpCode->code+i+1));
-				i+=9;
-				break;
-		}
-		putchar('\n');
-	}
 }

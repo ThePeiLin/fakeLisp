@@ -2,7 +2,6 @@
 #define COMPILER_H
 #include"fakedef.h"
 
-void printByteCode(const byteCode*);
 byteCode* compile(cptr*,compEnv*,intpr*,errorStatus*);
 byteCode* compileConst(cptr*,compEnv*,intpr*,errorStatus*);
 byteCode* compileQuote(cptr*);

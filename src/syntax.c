@@ -16,7 +16,7 @@ int (*checkAST(const cptr* objCptr))(const cptr*)
 void addSynRule(int (*check)(const cptr*))
 {
 	synRule* current=NULL;
-	if(!(current=(synRule*)malloc(sizeof(synRule))))errors(OUTOFMEMORY);
+	if(!(current=(synRule*)malloc(sizeof(synRule))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	current->check=check;
 	current->next=Head;
 	Head=current;

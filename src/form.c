@@ -7,7 +7,7 @@ cptr** dealArg(cptr* argCptr,int num)
 {
 	cptr* tmpCptr=(argCptr->type==PAR)?argCptr:NULL;
 	cptr** args=NULL;
-	if(!(args=(cptr**)malloc(num*sizeof(cptr*))))errors(OUTOFMEMORY);
+	if(!(args=(cptr**)malloc(num*sizeof(cptr*))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	int i;
 	for(i=0;i<num;i++)
 	{

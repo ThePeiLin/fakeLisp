@@ -5,6 +5,7 @@
 #include<stdint.h>
 #include<math.h>
 #include"tool.h"
+#include"opcode.h"
 #define NUMOFBUILDINSYMBOL 47
 char* builtInSymbolList[]=
 {
@@ -65,7 +66,7 @@ char* getListFromFile(FILE* file)
 	int braketsNum=0;
 	int memSize=1;
 	char* tmp=(char*)malloc(sizeof(char)*memSize);
-	if(tmp==NULL)errors(OUTOFMEMORY);
+	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 	while((ch=getc(file))!=EOF)
 	{
 		if(ch==';')
@@ -79,7 +80,7 @@ char* getListFromFile(FILE* file)
 			int numOfSpace=0;
 			int lenOfMemory=1;
 			char* stringOfSpace=(char*)malloc(sizeof(char)*lenOfMemory);
-			if(stringOfSpace==NULL)errors(OUTOFMEMORY);
+			if(stringOfSpace==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 			stringOfSpace[numOfSpace]='\0';
 			char* before=NULL;
 			while(isspace((ch=getc(file))))
@@ -87,7 +88,7 @@ char* getListFromFile(FILE* file)
 				numOfSpace++;
 				lenOfMemory++;
 				before=stringOfSpace;
-				if(!(stringOfSpace=(char*)malloc(sizeof(char)*lenOfMemory)))errors(OUTOFMEMORY);
+				if(!(stringOfSpace=(char*)malloc(sizeof(char)*lenOfMemory)))errors(OUTOFMEMORY,__FILE__,__LINE__);
 				if(before!=NULL)
 				{
 					memcpy(stringOfSpace,before,numOfSpace);
@@ -101,14 +102,14 @@ char* getListFromFile(FILE* file)
 			char* tmpList=subGetList(file);
 			char* other=NULL;
 			int len=strlen(tmpList)+strlen(beQuote)+strlen(stringOfSpace)+1;
-			if(!(other=(char*)malloc(sizeof(char)*len)))errors(OUTOFMEMORY);
+			if(!(other=(char*)malloc(sizeof(char)*len)))errors(OUTOFMEMORY,__FILE__,__LINE__);
 			strcpy(other,beQuote);
 			strcat(other,stringOfSpace);
 			strcat(other,tmpList);
 			other[len-1]=')';
 			lenOfStr+=len;
 			before=tmp;
-			if(!(tmp=(char*)malloc(sizeof(char)*(lenOfStr+1))))errors(OUTOFMEMORY);
+			if(!(tmp=(char*)malloc(sizeof(char)*(lenOfStr+1))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 			memcpy(tmp,before,memSize);
 			strncat(tmp,other,len);
 			if(before!=NULL)free(before);
@@ -121,7 +122,7 @@ char* getListFromFile(FILE* file)
 		memSize++;
 		before=tmp;
 		if(!(tmp=(char*)malloc(sizeof(char)*(memSize))))
-			errors(OUTOFMEMORY);
+			errors(OUTOFMEMORY,__FILE__,__LINE__);
 		if(before!=NULL)
 		{
 			memcpy(tmp,before,lenOfStr-1);
@@ -136,7 +137,7 @@ char* getListFromFile(FILE* file)
 		{
 			char* tmpStr=(ch=='\"')?getStringAfterMark(file):getAtomFromFile(file);
 			tmp=(char*)realloc(tmp,sizeof(char)*(strlen(tmpStr)+strlen(tmp)+1));
-			if(tmp==NULL)errors(OUTOFMEMORY);
+			if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 			strcat(tmp,tmpStr);
 			lenOfStr=strlen(tmp);
 			memSize=lenOfStr+1;
@@ -153,7 +154,7 @@ char* getListFromFile(FILE* file)
 char* getAtomFromFile(FILE* file)
 {
 	char* tmp=(char*)malloc(sizeof(char));
-	if(tmp==NULL)errors(OUTOFMEMORY);
+	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp[0]='\0';
 	char* before;
 	int i=0;
@@ -169,7 +170,7 @@ char* getAtomFromFile(FILE* file)
 		i++;
 		j=i-1;
 		before=tmp;
-		if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))errors(OUTOFMEMORY);
+		if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 		if(before!=NULL)
 		{
 			memcpy(tmp,before,j);
@@ -184,7 +185,7 @@ char* getAtomFromFile(FILE* file)
 char* getStringAfterMark(FILE* file)
 {
 	char* tmp=(char*)malloc(sizeof(char));
-	if(tmp==NULL)errors(OUTOFMEMORY);
+	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp[0]='\0';
 	char* before;
 	int i=0;
@@ -195,7 +196,7 @@ char* getStringAfterMark(FILE* file)
 		i++;
 		j=i-1;
 		before=tmp;
-		if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))errors(OUTOFMEMORY);
+		if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 		if(before!=NULL)
 		{
 			memcpy(tmp,before,j);
@@ -243,7 +244,7 @@ char* subGetList(FILE* file)
 		j=i-1;
 		before=tmp;
 		if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))
-			errors(OUTOFMEMORY);
+			errors(OUTOFMEMORY,__FILE__,__LINE__);
 		memcpy(tmp,before,j);
 		*(tmp+j)=ch;
 		mark^=(ch=='\"'&&*(tmp+j-1)!='\\');
@@ -264,7 +265,7 @@ char* getStringFromList(const char* str)
 			&&!isspace(*(str+len))
 			&&(*(str+len)!=',')
 			&&(*(str+len)!=0))len++;
-	if(!(tmp=(char*)malloc(sizeof(char)*(len+1))))errors(OUTOFMEMORY);
+	if(!(tmp=(char*)malloc(sizeof(char)*(len+1))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	memcpy(tmp,str,len);
 	if(tmp!=NULL)*(tmp+len)='\0';
 	return tmp;
@@ -279,7 +280,7 @@ char* getStringAfterBackslash(const char* str)
 		len++;
 		if(!isalnum(str[len])&&str[len-1]!='\\')break;
 	}
-	if(!(tmp=(char*)malloc(sizeof(char)*(len+1))))errors(OUTOFMEMORY);
+	if(!(tmp=(char*)malloc(sizeof(char)*(len+1))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	memcpy(tmp,str,len);
 	if(tmp!=NULL)*(tmp+len)='\0';
 	return tmp;
@@ -314,7 +315,7 @@ char* intToString(long num)
 	sprintf(numString,"%ld",num);
 	int lenOfNum=strlen(numString)+1;
 	char* tmp=NULL;
-	if(!(tmp=(char*)malloc(lenOfNum*sizeof(char))))errors(OUTOFMEMORY);
+	if(!(tmp=(char*)malloc(lenOfNum*sizeof(char))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	memcpy(tmp,numString,lenOfNum);;
 	return tmp;
 }
@@ -473,14 +474,14 @@ void printRawString(const char* objStr,FILE* out)
 	putc('\"',out);
 }
 
-void errors(int types)
+void errors(int types,const char* filename,int line)
 {
 	static char* inform[]=
 	{
 		"dummy",
 		"Out of memory!\n",
 	};
-	fprintf(stderr,"error:%s",inform[types]);
+	fprintf(stderr,"In file \"%s\" line %d\nerror:%s",filename,line,inform[types]);
 	exit(1);
 }
 
@@ -645,14 +646,14 @@ pair* newPair(int curline,pair* prev)
 		tmp->car.curline=curline;
 		tmp->cdr.curline=curline;
 	}
-	else errors(OUTOFMEMORY);
+	else errors(OUTOFMEMORY,__FILE__,__LINE__);
 	return tmp;
 }
 
 cptr* newCptr(int curline,pair* outer)
 {
 	cptr* tmp=NULL;
-	if(!(tmp=(cptr*)malloc(sizeof(cptr))))errors(OUTOFMEMORY);
+	if(!(tmp=(cptr*)malloc(sizeof(cptr))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp->outer=outer;
 	tmp->curline=curline;
 	tmp->type=NIL;
@@ -663,12 +664,12 @@ cptr* newCptr(int curline,pair* outer)
 atom* newAtom(int type,const char* value,pair* prev)
 {
 	atom* tmp=NULL;
-	if(!(tmp=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY);
+	if(!(tmp=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	switch(type)
 	{
 		case SYM:
 		case STR:
-			if(!(tmp->value.str=(char*)malloc(strlen(value)+1)))errors(OUTOFMEMORY);
+			if(!(tmp->value.str=(char*)malloc(strlen(value)+1)))errors(OUTOFMEMORY,__FILE__,__LINE__);
 			strcpy(tmp->value.str,value);
 			break;
 		case CHR:
@@ -1103,7 +1104,7 @@ void printRawChar(char chr,FILE* out)
 env* newEnv(env* prev)
 {
 	env* curEnv=NULL;
-	if(!(curEnv=(env*)malloc(sizeof(env))))errors(OUTOFMEMORY);
+	if(!(curEnv=(env*)malloc(sizeof(env))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	if(prev!=NULL)prev->next=curEnv;
 	curEnv->prev=prev;
 	curEnv->next=NULL;
@@ -1134,7 +1135,7 @@ void destroyEnv(env* objEnv)
 intpr* newIntpr(const char* filename,FILE* file)
 {
 	intpr* tmp=NULL;
-	if(!(tmp=(intpr*)malloc(sizeof(intpr))))errors(OUTOFMEMORY);
+	if(!(tmp=(intpr*)malloc(sizeof(intpr))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp->filename=copyStr(filename);
 	tmp->file=file;
 	tmp->curline=1;
@@ -1163,7 +1164,7 @@ void freeIntpr(intpr* inter)
 compEnv* newCompEnv(compEnv* prev)
 {
 	compEnv* tmp=(compEnv*)malloc(sizeof(compEnv));
-	if(tmp==NULL)errors(OUTOFMEMORY);
+	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp->prev=prev;
 	tmp->symbols=NULL;
 	return tmp;
@@ -1199,8 +1200,8 @@ compDef* addCompDef(compEnv* curEnv,const char* name)
 	if(curEnv->symbols==NULL)
 	{
 		compEnv* tmpEnv=curEnv->prev;
-		if(!(curEnv->symbols=(compDef*)malloc(sizeof(compDef))))errors(OUTOFMEMORY);
-		if(!(curEnv->symbols->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY);
+		if(!(curEnv->symbols=(compDef*)malloc(sizeof(compDef))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(!(curEnv->symbols->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 		strcpy(curEnv->symbols->symName,name);
 		while(tmpEnv!=NULL&&tmpEnv->symbols==NULL)tmpEnv=tmpEnv->prev;
 		if(tmpEnv==NULL)
@@ -1221,8 +1222,8 @@ compDef* addCompDef(compEnv* curEnv,const char* name)
 		{
 			compDef* prevDef=curEnv->symbols;
 			while(prevDef->next!=NULL)prevDef=prevDef->next;
-			if(!(curDef=(compDef*)malloc(sizeof(compDef))))errors(OUTOFMEMORY);
-			if(!(curDef->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY);
+			if(!(curDef=(compDef*)malloc(sizeof(compDef))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+			if(!(curDef->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 			strcpy(curDef->symName,name);
 			prevDef->next=curDef;
 			curDef->count=prevDef->count+1;
@@ -1235,7 +1236,7 @@ compDef* addCompDef(compEnv* curEnv,const char* name)
 rawproc* newRawProc(int32_t count)
 {
 	rawproc* tmp=(rawproc*)malloc(sizeof(rawproc));
-	if(tmp==NULL)errors(OUTOFMEMORY);
+	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp->count=count;
 	tmp->proc=NULL;
 	tmp->next=NULL;
@@ -1256,9 +1257,9 @@ rawproc* addRawProc(byteCode* proc,intpr* inter)
 byteCode* createByteCode(unsigned int size)
 {
 	byteCode* tmp=NULL;
-	if(!(tmp=(byteCode*)malloc(sizeof(byteCode))))errors(OUTOFMEMORY);
+	if(!(tmp=(byteCode*)malloc(sizeof(byteCode))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp->size=size;
-	if(!(tmp->code=(char*)malloc(size*sizeof(char))))errors(OUTOFMEMORY);
+	if(!(tmp->code=(char*)malloc(size*sizeof(char))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	int i=0;
 	for(;i<tmp->size;i++)tmp->code[i]=0;
 	return tmp;
@@ -1296,7 +1297,7 @@ char* copyStr(const char* str)
 {
 	if(str==NULL)return NULL;
 	char* tmp=(char*)malloc(sizeof(char)*(strlen(str)+1));
-	if(tmp==NULL)errors(OUTOFMEMORY);
+	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 	strcpy(tmp,str);
 	return tmp;
 
@@ -1335,4 +1336,38 @@ cptr* getFirst(const cptr* objList)
 	pair* objPair=objList->value;
 	cptr* first=&objPair->car;
 	return first;
+}
+
+void printByteCode(const byteCode* tmpCode,FILE* fp)
+{
+	int i=0;
+	while(i<tmpCode->size)
+	{
+		int tmplen=0;
+		fprintf(fp,"%s ",codeName[tmpCode->code[i]].codeName);
+		switch(codeName[tmpCode->code[i]].len)
+		{
+			case -1:
+				tmplen=strlen(tmpCode->code+i+1);
+				fprintf(fp,"%s",tmpCode->code+i+1);
+				i+=tmplen+2;
+				break;
+			case 0:
+				i+=1;
+				break;
+			case 1:
+				fprintf(fp,"%c",tmpCode->code[i+1]);
+				i+=2;
+				break;
+			case 4:
+				fprintf(fp,"%d",*(int32_t*)(tmpCode->code+i+1));
+				i+=5;
+				break;
+			case 8:
+				fprintf(fp,"%lf",*(double*)(tmpCode->code+i+1));
+				i+=9;
+				break;
+		}
+		putc('\n',fp);
+	}
 }

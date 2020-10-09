@@ -15,8 +15,8 @@ void addFunc(const char* name,errorStatus (*pFun)(cptr*,env*))
 	nativeFunc* prev=NULL;
 	if(current==NULL)
 	{
-		if(!(funAndForm=(nativeFunc*)malloc(sizeof(nativeFunc))))errors(OUTOFMEMORY);
-		if(!(funAndForm->functionName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY);
+		if(!(funAndForm=(nativeFunc*)malloc(sizeof(nativeFunc))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(!(funAndForm->functionName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 		strcpy(funAndForm->functionName,name);
 		funAndForm->function=pFun;
 		funAndForm->next=NULL;
@@ -29,8 +29,8 @@ void addFunc(const char* name,errorStatus (*pFun)(cptr*,env*))
 			prev=current;
 			current=current->next;
 		}
-		if(!(current=(nativeFunc*)malloc(sizeof(nativeFunc))))errors(OUTOFMEMORY);
-		if(!(current->functionName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY);
+		if(!(current=(nativeFunc*)malloc(sizeof(nativeFunc))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(!(current->functionName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 		strcpy(current->functionName,name);
 		current->function=pFun;
 		current->next=NULL;
@@ -193,7 +193,7 @@ void addKeyWord(const char* objStr)
 		{
 			current=(keyWord*)malloc(sizeof(keyWord));
 			current->word=(char*)malloc(sizeof(char)*strlen(objStr));
-			if(current==NULL||current->word==NULL)errors(OUTOFMEMORY);
+			if(current==NULL||current->word==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 			strcpy(current->word,objStr);
 			if(prev!=NULL)prev->next=current;
 			else KeyWords=current;
@@ -301,7 +301,7 @@ int addMacro(cptr* format,cptr* express)
 		current=current->next;
 	if(current==NULL)
 	{
-		if(!(current=(macro*)malloc(sizeof(macro))))errors(OUTOFMEMORY);
+		if(!(current=(macro*)malloc(sizeof(macro))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 		current->format=format;
 		current->express=express;
 		current->next=FirstMacro;
@@ -484,8 +484,8 @@ void initPreprocess(intpr* inter)
 void addRule(const char* name,int (*obj)(const cptr*,const cptr*,const char*,env*))
 {
 	masym* current=NULL;
-	if(!(current=(masym*)malloc(sizeof(masym))))errors(OUTOFMEMORY);
-	if(!(current->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY);
+	if(!(current=(masym*)malloc(sizeof(masym))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(!(current->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	current->next=FirstMasym;
 	FirstMasym=current;
 	strcpy(current->symName,name);
@@ -769,7 +769,7 @@ char* getWord(const char* name,int num)
 		if(name[j]!='#')tmplen++;
 		else break;
 	}
-	if(!(tmpStr=(char*)malloc(sizeof(char)*(tmplen+1))))errors(OUTOFMEMORY);
+	if(!(tmpStr=(char*)malloc(sizeof(char)*(tmplen+1))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	strncpy(tmpStr,name+i,tmplen);
 	tmpStr[tmplen]='\0';
 	return tmpStr;
@@ -778,9 +778,9 @@ char* getWord(const char* name,int num)
 defines* newDefines(const char* name)
 {
 	defines* tmp=(defines*)malloc(sizeof(defines));
-	if(tmp==NULL)errors(OUTOFMEMORY);
+	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp->symName=(char*)malloc(sizeof(char)*(strlen(name)+1));
-	if(tmp->symName==NULL)errors(OUTOFMEMORY);
+	if(tmp->symName==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 	strcpy(tmp->symName,name);
 	tmp->obj=(cptr){NULL,0,NIL,NULL};
 	tmp->next=NULL;

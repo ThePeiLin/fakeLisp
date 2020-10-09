@@ -118,7 +118,7 @@ byteCode* castRawproc(rawproc* procs)
 	else
 	{
 		byteCode* tmp=(byteCode*)malloc(sizeof(byteCode)*(procs->count+1));
-		if(tmp==NULL)errors(OUTOFMEMORY);
+		if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 		rawproc* curRawproc=procs;
 		while(curRawproc!=NULL)
 		{

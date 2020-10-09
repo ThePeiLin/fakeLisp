@@ -30,7 +30,7 @@ int main(int argc,char** argv)
 	{
 		byteCode* rawprocess=loadRawproc(fp);
 		byteCode* mainprocess=loadByteCode(fp);
-		//printByteCode(mainprocess);
+		//printByteCode(mainprocess,stdout);
 		fakeVM* anotherVM=newFakeVM(mainprocess,rawprocess);
 		varstack* globEnv=newVarStack(0,1,NULL);
 		anotherVM->mainproc->localenv=globEnv;
@@ -135,7 +135,7 @@ void runIntpr(intpr* inter)
 					anotherVM->mainproc->localenv=globEnv;
 					anotherVM->mainproc->cp=0;
 					anotherVM->curproc=anotherVM->mainproc;
-				//	printByteCode(tmpByteCode);
+				//	printByteCode(tmpByteCode,stdout);
 					runFakeVM(anotherVM);
 					fakestack* stack=anotherVM->stack;
 					if(inter->file==stdin)
@@ -146,7 +146,7 @@ void runIntpr(intpr* inter)
 					}
 				//	fprintf(stderr,"======\n");
 				//	fprintf(stderr,"stack->tp=%d\n",stack->tp);
-				//	printAllStack(stack);
+				//	printAllStack(stack,stderr);
 					freeStackValue(getTopValue(stack));
 					stack->tp-=1;
 					freeByteCode(tmpByteCode);
@@ -166,7 +166,11 @@ byteCode* castRawproc(byteCode* prev,rawproc* procs)
 	else
 	{
 		byteCode* tmp=(byteCode*)realloc(prev,sizeof(byteCode)*(procs->count+1));
-		if(tmp==NULL)errors(OUTOFMEMORY);
+		if(tmp==NULL)
+		{
+			fprintf(stderr,"In file \"%s\",line %d\n",__FILE__,__LINE__);
+			errors(OUTOFMEMORY,__FILE__,__LINE__);
+		}
 		rawproc* curRawproc=procs;
 		while(curRawproc!=NULL)
 		{
@@ -184,14 +188,22 @@ byteCode* loadRawproc(FILE* fp)
 	int i=0;
 	fread(&num,sizeof(int32_t),1,fp);
 	byteCode* tmp=(byteCode*)malloc(sizeof(byteCode)*num);
-	if(tmp==NULL)errors(OUTOFMEMORY);
+	if(tmp==NULL)
+	{
+		fprintf(stderr,"In file \"%s\",line %d\n",__FILE__,__LINE__);
+		errors(OUTOFMEMORY,__FILE__,__LINE__);
+	}
 	for(;i<num;i++)
 	{
 		int32_t size=0;
 		fread(&size,sizeof(int32_t),1,fp);
 		tmp[i].size=size;
 		tmp[i].code=(char*)malloc(sizeof(char)*size);
-		if(tmp[i].code==NULL)errors(OUTOFMEMORY);
+		if(tmp[i].code==NULL)
+		{
+			fprintf(stderr,"In file \"%s\",line %d\n",__FILE__,__LINE__);
+			errors(OUTOFMEMORY,__FILE__,__LINE__);
+		}
 		int j=0;
 		for(;j<size;j++)
 			tmp[i].code[j]=getc(fp);
@@ -205,10 +217,12 @@ byteCode* loadByteCode(FILE* fp)
 	int i=0;
 	fread(&size,sizeof(int32_t),1,fp);
 	byteCode* tmp=(byteCode*)malloc(sizeof(byteCode));
-	if(tmp==NULL)errors(OUTOFMEMORY);
+	if(tmp==NULL)
+		errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp->size=size;
 	tmp->code=(char*)malloc(sizeof(char)*size);
-	if(tmp->code==NULL)errors(OUTOFMEMORY);
+	if(tmp->code==NULL)
+		errors(OUTOFMEMORY,__FILE__,__LINE__);
 	for(;i<size;i++)
 		tmp->code[i]=getc(fp);
 	return tmp;

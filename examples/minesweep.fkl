@@ -84,10 +84,11 @@
     (define front (car (nth place map)))
     (define back (cdr (nth place map)))
     (cond ((lt i bombnum)
+           (cond ((eq back 0)
            (setq map (setl map 
                            place 
                            (cons front
-                                 (if (eq back 9) 0 9))))
+                                 9)))))
            (loop-i (add i 
                         (if (eq back 0) 1 0))))))
   (define (getAroundBombNum map x y)
@@ -135,20 +136,20 @@
                 (neq (cdr (nth (ARRY (sub x xt) (sub y yt)) map)) 9)))
       1
       nil))
-(define (canOpenBlock map row line x y tier mode)
+(define (canOpenBlock map row line x y tier)
   (define rrow (add row 2))
   (define rline (add line 2))
   (define isCan nil)
      (let loop-yt ((yt tier))
        (cond ((and (gt yt (1- (NEG tier))) (not isCan))
-              (let loop-xt ((xt tier) (not isCan))
-                (cond ((gt xt (1- (NEG tier)))
-                       (if (canOpen row line map x y tier)
+              (let loop-xt ((xt tier))
+                (cond ((and (gt xt (1- (NEG tier))) (not isCan))
+                       (if (canOpen map row line x y tier)
                            (setq isCan 1)
                            (loop-xt (sub xt (if (or (eq yt tier)
-                                                   (eq yt (NEG tier)))
-                                               1
-                                               (mul tier 2)))))))))
+                                                    (eq yt (NEG tier)))
+                                                1
+                                                (mul tier 2)))))))))
              (1 (loop-yt (1- yt)))))
   isCan)
 
@@ -170,8 +171,6 @@
                                46
                                0))
              (define place (ARRY xp yp))
-             (define front (car (nth place map)))
-             (define back (cdr (nth place map)))
              (cond ((le xp (1+ row))
                     (let ((front (car (nth place map)))
                           (back (cdr (nth place map))))
@@ -183,21 +182,21 @@
                                  (print "\033[0m\033["
                                         light
                                         "m*")))
-                            ((eq front 1)
-                             (print "\033[0m\033["
-                                    light
-                                    "m="))
-                            ((eq front 2)
-                             (print "\033[0m\033["
-                                    light
-                                    "m!"))
-                            ((eq front 3)
-                             (print "\033[0m\033["
-                                    light
-                                    "m?"))
-                            ((eq front 4)
-                             (write "\033[0m\033[44m#"
-                                    stdout))))
+                             ((eq front 1)
+                              (print "\033[0m\033["
+                                     light
+                                     "m="))
+                             ((eq front 2)
+                              (print "\033[0m\033["
+                                     light
+                                     "m!"))
+                             ((eq front 3)
+                              (print "\033[0m\033["
+                                     light
+                                     "m?"))
+                             ((eq front 4)
+                              (write "\033[0m\033[44m#"
+                                     stdout))))
                     (loop-xp (1+ xp)))))
            (write "\n" stdout)
            (loop-yp (1+ yp)))))
@@ -210,12 +209,12 @@
   (define yl (int (1+ (div rline 2))))
   (define rbombnum bombnum)
   (define isGameOver nil)
-  (define place (ARRY (1- xl) (1- yl)))
   (define (moveUp) (setq yl (sub yl (if (gt yl 2) 1 0))))
   (define (moveDown) (setq yl (add yl (if (lt yl (1+ line)) 1 0))))
   (define (moveLeft) (setq xl (sub xl (if (gt xl 2) 1 0))))
   (define (moveRight) (setq xl (add xl (if (lt xl (1+ row)) 1 0))))
   (define (setFlag)
+    (define place (ARRY (1- xl) (1- yl)))
     (define front (car (nth place map)))
     (define back (cdr (nth place map)))
     (cond ((eq front 1)
@@ -227,9 +226,10 @@
     (setq map
           (setl map
                 place
-                (cons (if (eq (car (nth place map)) 3)
+                (cons (if (eq front 3)
                           1
-                          (1+ (car (nth place map))))))))
+                          (1+ front))
+                      back))))
   (define (quit)
     (setq isGameOver 1)
     (delTerm))
@@ -237,37 +237,40 @@
     (define x (1- xl))
     (define y (1- yl))
     (define place (ARRY x y))
-    (if (neq (car (nth place map) 0))
-        (cond ((eq (cdr (nth place map)) 9)
-               (setq isGameOver 1))
-              ((eq (cdr (nth place map)) 0)
-               (setq map
-                     (setl map
-                           place
-                           (cons 0
-                                 (cdr (nth place map))))))
-              (1 (let loop-tier ((tier 1))
-                   (cond ((canOpenBlock map row line x y tier)
-                          (let loop-yt ((yt tier))
-                            (cond ((gt yt (1- (NEG tier)))
-                                   (let loop-xt ((xt tier))
-                                     (define place (ARRY (sub x xt) (sub y yt)))
-                                     (cond ((gt xt (1- (NEG xt)))
-                                            (setq map
-                                                  (setl map
-                                                        place
-                                                        (cons (if (canOpen map row line x y tier)
-                                                                  0
-                                                                  (car (nth place map))))))
-                                            (loop-xt (sub xt (if (or (eq yt tier)
-                                                                     (eq yt (NEG tier)))
-                                                                 1
-                                                                 (mul tier 2)))))))
-                                   (loop-yt (1- yt)))))
-                          (loop-tier (add tier (if (canOpenBlock map row line x y tier) 1 0))))))))))
+    (define front (car (nth place map)))
+    (define back (cdr (nth place map)))
+    (cond ((eq back 9)
+           (setq isGameOver 1))
+          (1 ;(neq back 0)
+           (setq map
+                 (setl map
+                       place
+                       (cons 0 back))))
+         ; (1
+         ;  (setq map (setl map place (cons 0 back)))
+         ;  (let loop-tier ((tier 1))
+         ;      (cond ((canOpenBlock map row line x y tier)
+         ;             (let loop-yt ((yt tier))
+         ;               (cond ((gt yt (1- (NEG tier)))
+         ;                      (let loop-xt ((xt tier))
+         ;                        (define place (ARRY (sub x xt) (sub y yt)))
+         ;                        (define front (car (nth place map)))
+         ;                        (define back (cdr (nth place map)))
+         ;                        (cond ((gt xt (1- (NEG xt)))
+         ;                               (setq map
+         ;                                     (setl map
+         ;                                           place
+         ;                                           (cons (if (canOpen map row line x y tier) 0 front)
+         ;                                                 back)))
+         ;                               (loop-xt (sub xt (if (or (eq yt tier)
+         ;                                                        (eq yt (NEG tier)))
+         ;                                                    1
+         ;                                                    (mul tier 2)))))))
+         ;                      (loop-yt (1- yt)))))
+         ;             (loop-tier (add tier (if (canOpenBlock map row line x y tier) 1 0)))))))
+         ))
   (printMap map row line xl yl bombnum)
   (let loop-ch ((ch (getch)))
-    (printMap map row line xl yl bombnum)
     (cond ((eq ch #\h) (moveLeft))
           ((eq ch #\k) (moveUp))
           ((eq ch #\j) (moveDown))
@@ -275,12 +278,16 @@
           ((eq ch #\a) (setFlag))
           ((eq ch #\s) (openBlock))
           ((eq ch #\q) (quit)))
+    (printMap map row line xl yl bombnum)
     (if (neq ch #\\4) (loop-ch (getch)))))
+(newTerm)
 (write "Input line and row\n" stdout)
 (define line (read stdin))
 (define row (read stdin))
 (write "Input bomb number\n" stdout)
 (define bombNum (read stdin))
 (define map (createMap line row bombNum))
-;(write map stdout)
-(printMap map row line 2 2 bombNum)
+(write map stderr)
+(write #\\n stderr)
+(main map line row bombNum)
+(delTerm)

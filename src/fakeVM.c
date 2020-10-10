@@ -759,6 +759,8 @@ void runFakeVM(fakeVM* exe)
 			putc('\n',stderr);
 			fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
 			fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",curproc->cp,stack->bp,codeName[tmpCode->code[curproc->cp]].codeName);
+			printEnv(exe->curproc->localenv,stderr);
+			putc('\n',stderr);
 			switch(status)
 			{
 				case 1:
@@ -770,7 +772,7 @@ void runFakeVM(fakeVM* exe)
 			}
 		}
 	//	fprintf(stdout,"=========\n");
-	//	fprintf(stdout,"stack->tp=%d\n",exe->stack->tp);
+	//	fprintf(stderr,"stack->tp=%d\n",exe->stack->tp);
 	//	printAllStack(exe->stack,stderr);
 	//	putc('\n',stderr);
 	}
@@ -1148,14 +1150,14 @@ int B_add(fakeVM* exe)
 	fakeprocess* proc=exe->curproc;
 	stackvalue* firValue=getValue(stack,stack->tp-1);
 	stackvalue* secValue=getValue(stack,stack->tp-2);
-	stack->tp-=1;
-	stackRecycle(exe);
 	if((firValue==NULL||secValue==NULL)||(firValue->type!=INT&&firValue->type!=DBL)||(secValue->type!=INT&&secValue->type!=DBL))return 1;
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
 		double result=((firValue->type==DBL)?firValue->value.dbl:firValue->value.num)+((secValue->type==DBL)?secValue->value.dbl:secValue->value.num);
 		stackvalue* tmpValue=newStackValue(DBL);
 		tmpValue->value.dbl=result;
+		stack->tp-=1;
+		stackRecycle(exe);
 		stack->values[stack->tp-1]=tmpValue;
 	}
 	else if(firValue->type==INT&&secValue->type==INT)
@@ -1163,6 +1165,8 @@ int B_add(fakeVM* exe)
 		int32_t result=firValue->value.num+secValue->value.num;
 		stackvalue* tmpValue=newStackValue(INT);
 		tmpValue->value.num=result;
+		stack->tp-=1;
+		stackRecycle(exe);
 		stack->values[stack->tp-1]=tmpValue;
 	}
 	freeStackValue(firValue);
@@ -1933,7 +1937,6 @@ int B_nth(fakeVM* exe)
 	fakeprocess* proc=exe->curproc;
 	stackvalue* place=getValue(stack,stack->tp-2);
 	stackvalue* objlist=getTopValue(stack);
-	stackRecycle(exe);
 	if(objlist==NULL||place==NULL||(objlist->type!=PAR&&objlist->type!=STR)||place->type!=INT)return 1;
 	if(objlist->type==PAR)
 	{
@@ -1950,11 +1953,13 @@ int B_nth(fakeVM* exe)
 			objPair=getCdr(objPair);
 		}
 		stack->tp-=1;
+		stackRecycle(exe);
 		stack->values[stack->tp-1]=obj;
 	}
 	else
 	{
 		stack->tp-=1;
+		stackRecycle(exe);
 		stackvalue* objChr=newStackValue(CHR);
 		objChr->value.chr=objlist->value.str[place->value.num];
 		stack->values[stack->tp-1]=objChr;
@@ -2449,7 +2454,6 @@ void printAllStack(fakestack* stack,FILE* fp)
 		int i=stack->tp-1;
 		for(;i>=0;i--)
 		{
-			if(stack->bp==i)fprintf(fp,"\nBp->\n");
 			printStackValue(stack->values[i],fp);
 			putc('\n',fp);
 		}
@@ -2519,4 +2523,14 @@ int getch()
 	ch=getchar();
 	tcsetattr(STDIN_FILENO,TCSANOW,&oldt);
 	return ch;
+}
+
+void printEnv(varstack* curEnv,FILE* fp)
+{
+	fprintf(fp,"ENV:");
+	for(int i=0;i<curEnv->size;i++)
+	{
+		printStackValue(curEnv->values[i],fp);
+		putc(' ',fp);
+	}
 }

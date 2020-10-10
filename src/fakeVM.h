@@ -166,4 +166,5 @@ static stackvalue* castCptrStackValue(const cptr*);
 static fakeprocess* hasSameProc(excode*,fakeprocess*);
 static int isTheLastExpress(const fakeprocess*,const fakeprocess*);
 static int getch();
+void printEnv(varstack*,FILE*);
 #endif

@@ -129,13 +129,13 @@ void runIntpr(intpr* inter)
 				}
 				else
 				{
+				//	printByteCode(tmpByteCode,stdout);
 					anotherVM->procs=castRawproc(anotherVM->procs,inter->procs);
 					anotherVM->mainproc->code=newExcode(tmpByteCode);
 					anotherVM->mainproc->code->localenv=globEnv;
 					anotherVM->mainproc->localenv=globEnv;
 					anotherVM->mainproc->cp=0;
 					anotherVM->curproc=anotherVM->mainproc;
-				//	printByteCode(tmpByteCode,stdout);
 					runFakeVM(anotherVM);
 					fakestack* stack=anotherVM->stack;
 					if(inter->file==stdin)
@@ -145,7 +145,7 @@ void runIntpr(intpr* inter)
 						putchar('\n');
 					}
 				//	fprintf(stderr,"======\n");
-				//	fprintf(stderr,"stack->tp=%d\n",stack->tp);
+					fprintf(stderr,"stack->tp=%d\n",stack->tp);
 				//	printAllStack(stack,stderr);
 					freeStackValue(getTopValue(stack));
 					stack->tp-=1;

@@ -18,15 +18,16 @@ fakeVM.o: src/fakeVM.* src/fakedef.h
 	gcc -g -c -W src/fakeVM.c
 fakeLispc.o: src/fakeLispc.* src/fakedef.h
 	gcc -g -c -W src/fakeLispc.c
-fakeLisp: $(objectOfFakeLisp)
+fakeLisp: $(objectOfFakeLisp) $(objectOfFakeLispc)
 	gcc -g -o fakeLisp $(objectOfFakeLisp)
+	gcc -g -o fakeLispc $(objectOfFakeLispc)
 fakeLispc: $(objectOfFakeLispc)
 	gcc -g -o fakeLispc $(objectOfFakeLispc)
 
 .PHONY: clean
 clean:
 ifdef IS_LINUX
-	rm *.o fakeLisp
+	rm *.o fakeLisp fakeLispc
 else
-	del *.o fakeLisp.exe
+	del *.o fakeLisp.exe fakeLispc.exe
 endif

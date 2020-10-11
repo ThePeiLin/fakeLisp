@@ -23,7 +23,7 @@
 (define (1+ a) (add a 1))
 (define (1- a) (sub a 1))
 (define (resl objlist)
-  (if (null objlist) 
+  (if (null objlist)
     objlist
     (let loop-tmplist ((tmplist objlist) (tmp nil))
       (if (null (cdr tmplist))
@@ -50,8 +50,8 @@
 (define (setl list place value)
   (define (getafter list place count)
     (cond ((le place count) (cdr list))
-          (1 (getafter (cdr list) 
-                       place 
+          (1 (getafter (cdr list)
+                       place
                        (1+ count)))))
   (define (getbefore list place count tmp)
     (cond ((le place count) tmp)
@@ -85,11 +85,11 @@
     (define back (cdr (nth place map)))
     (cond ((lt i bombnum)
            (cond ((eq back 0)
-                  (setq map (setl map 
-                                  place 
+                  (setq map (setl map
+                                  place
                                   (cons front
                                         9)))))
-           (loop-i (add i 
+           (loop-i (add i
                         (if (eq back 0) 1 0))))))
   (define (getAroundBombNum map x y)
     (define i 0)
@@ -111,8 +111,8 @@
              (cond ((le xc row)
                     (if (neq back 9)
                       (setq map
-                            (setl map 
-                                  place 
+                            (setl map
+                                  place
                                   (cons front
                                         (getAroundBombNum map xc yc)))))
                     (loop-xc (1+ xc)))))

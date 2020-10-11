@@ -145,7 +145,7 @@ void runIntpr(intpr* inter)
 						putchar('\n');
 					}
 				//	fprintf(stderr,"======\n");
-					fprintf(stderr,"stack->tp=%d\n",stack->tp);
+				//	fprintf(stderr,"stack->tp=%d\n",stack->tp);
 				//	printAllStack(stack,stderr);
 					freeStackValue(getTopValue(stack));
 					stack->tp-=1;

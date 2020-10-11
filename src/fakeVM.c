@@ -3,7 +3,11 @@
 #include"opcode.h"
 #include<string.h>
 #include<math.h>
+#ifdef _WIN32
+#include<conio.h>
+#else
 #include<termios.h>
+#endif
 #include<unistd.h>
 #include<time.h>
 #define NUMOFBUILTINSYMBOL 47
@@ -1095,12 +1099,12 @@ int B_pop_rest_var(fakeVM* exe)
 	stackvalue* tmp=obj;
 	for(;;)
 	{
-		stackvalue* topValue=getTopValue(stack);
-		tmp->value.par.car=copyValue(topValue);
-		stack->tp-=1;
-		stackRecycle(exe);
 		if(stack->tp>stack->bp)
 		{
+			stackvalue* topValue=getTopValue(stack);
+			tmp->value.par.car=copyValue(topValue);
+			stack->tp-=1;
+			stackRecycle(exe);
 			tmp->value.par.cdr=newStackValue(PAR);
 			tmp=tmp->value.par.cdr;
 		}
@@ -2512,6 +2516,7 @@ int isTheLastExpress(const fakeprocess* proc,const fakeprocess* same)
 	return 1;
 }
 
+#ifndef _WIN32
 int getch()
 {
 	struct termios oldt,newt;
@@ -2524,6 +2529,7 @@ int getch()
 	tcsetattr(STDIN_FILENO,TCSANOW,&oldt);
 	return ch;
 }
+#endif
 
 void printEnv(varstack* curEnv,FILE* fp)
 {

@@ -28,6 +28,6 @@
        ((eq ch #\j) (moveDown))
        ((eq ch #\l) (moveRight))
        ((eq ch #\d) (write #\\0x20 stdout))
-       ((eq ch #\\0x20) (print)))
+       ((eq ch #\\0x20) (printFaQ)))
  (if (not (eq ch #\\4)) (main (getch))))
 (delTerm)

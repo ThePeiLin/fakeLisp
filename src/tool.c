@@ -65,10 +65,12 @@ char* getListFromFile(FILE* file)
 	int lenOfStr=0;
 	int braketsNum=0;
 	int memSize=1;
+	int anotherChar=0;
 	char* tmp=(char*)malloc(sizeof(char)*memSize);
 	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 	while((ch=getc(file))!=EOF)
 	{
+		if(!isspace(ch))anotherChar=1;
 		if(ch==';')
 		{
 			while(getc(file)!='\n');
@@ -132,7 +134,7 @@ char* getListFromFile(FILE* file)
 		tmp[lenOfStr]='\0';
 		if(ch=='(')braketsNum++;
 		else if(ch==')')braketsNum--;
-		else if(isspace(ch)&&braketsNum<=0)break;
+		else if(isspace(ch)&&braketsNum<=0&&anotherChar)break;
 		else if(!isspace(ch)&&ch!=',')
 		{
 			char* tmpStr=(ch=='\"')?getStringAfterMark(file):getAtomFromFile(file);

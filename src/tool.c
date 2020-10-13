@@ -6,7 +6,7 @@
 #include<math.h>
 #include"tool.h"
 #include"opcode.h"
-#define NUMOFBUILDINSYMBOL 47
+#define NUMOFBUILDINSYMBOL 48
 char* builtInSymbolList[]=
 {
 	"nil",
@@ -55,7 +55,8 @@ char* builtInSymbolList[]=
 	"write",
 	"tell",
 	"seek",
-	"rewind"
+	"rewind",
+	"exit"
 };
 
 char* getListFromFile(FILE* file)
@@ -311,7 +312,7 @@ double stringToDouble(const char* str)
 
 char* intToString(long num)
 {
-	int i;
+	size_t i;
 	char numString[sizeof(long)*2+3];
 	for(i=0;i<sizeof(long)*2+3;i++)numString[i]=0;
 	sprintf(numString,"%ld",num);
@@ -490,7 +491,7 @@ void errors(int types,const char* filename,int line)
 cptr* createTree(const char* objStr,intpr* inter)
 {
 	//if(objStr==NULL)return NULL;
-	int i=0;
+	size_t i=0;
 	int braketsNum=0;
 	cptr* root=NULL;
 	pair* objPair=NULL;
@@ -1262,7 +1263,7 @@ byteCode* createByteCode(unsigned int size)
 	if(!(tmp=(byteCode*)malloc(sizeof(byteCode))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp->size=size;
 	if(!(tmp->code=(char*)malloc(size*sizeof(char))))errors(OUTOFMEMORY,__FILE__,__LINE__);
-	int i=0;
+	uint32_t i=0;
 	for(;i<tmp->size;i++)tmp->code[i]=0;
 	return tmp;
 }
@@ -1342,7 +1343,7 @@ cptr* getFirst(const cptr* objList)
 
 void printByteCode(const byteCode* tmpCode,FILE* fp)
 {
-	int i=0;
+	uint32_t i=0;
 	while(i<tmpCode->size)
 	{
 		int tmplen=0;

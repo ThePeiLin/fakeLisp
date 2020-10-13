@@ -140,6 +140,7 @@ int B_write(fakeVM*);
 int B_tell(fakeVM*);
 int B_seek(fakeVM*);
 int B_rewind(fakeVM*);
+int B_exit(fakeVM*);
 int B_go(fakeVM*);
 int B_wait(fakeVM*);
 int B_send(fakeVM*);
@@ -165,7 +166,7 @@ void printAllStack(fakestack*,FILE*);
 static stackvalue* castCptrStackValue(const cptr*);
 static fakeprocess* hasSameProc(excode*,fakeprocess*);
 static int isTheLastExpress(const fakeprocess*,const fakeprocess*);
-#ifdef __LINUX__
+#ifndef _WIN32
 static int getch();
 #endif
 void printEnv(varstack*,FILE*);

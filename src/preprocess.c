@@ -317,7 +317,7 @@ masym* findMasym(const char* name)
 {
 	masym* current=FirstMasym;
 	const char* anotherName=hasAnotherName(name);
-	int len=(anotherName==NULL)?strlen(name):(anotherName-name-1);
+	int64_t len=0;if(anotherName==NULL)len=strlen(name);else len=(anotherName-name-1);
 	while(current!=NULL&&memcmp(current->symName,name,len))current=current->next;
 	return current;
 }

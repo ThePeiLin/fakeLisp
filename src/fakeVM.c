@@ -10,7 +10,7 @@
 #endif
 #include<unistd.h>
 #include<time.h>
-#define NUMOFBUILTINSYMBOL 47
+#define NUMOFBUILTINSYMBOL 48
 static int (*ByteCodes[])(fakeVM*)=
 {
 	B_dummy,
@@ -77,7 +77,8 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_write,
 	B_tell,
 	B_seek,
-	B_rewind,/*
+	B_rewind,
+	B_exit,/*
 	B_go,
 	B_wait,
 	B_send,
@@ -666,6 +667,19 @@ byteCode P_rewind=
 	}
 };
 
+byteCode P_exit=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_EXIT,
+		FAKE_END_PROC
+	}
+};
+
 fakeVM* newFakeVM(byteCode* mainproc,byteCode* procs)
 {
 	fakeVM* exe=(fakeVM*)malloc(sizeof(fakeVM));
@@ -723,7 +737,8 @@ void initGlobEnv(varstack* obj)
 		P_write,
 		P_tell,
 		P_seek,
-		P_rewind
+		P_rewind,
+		P_exit
 	};
 	obj->size=NUMOFBUILTINSYMBOL;
 	obj->values=(stackvalue**)realloc(obj->values,sizeof(stackvalue*)*NUMOFBUILTINSYMBOL);
@@ -2228,6 +2243,16 @@ int B_rewind(fakeVM* exe)
 	return 0;
 }
 
+int B_exit(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	fakeprocess* proc=exe->curproc;
+	stackvalue* exitStatus=getTopValue(stack);
+	if(exitStatus->type!=INT)return 1;
+	exit(exitStatus->value.num);
+	proc->cp+=1;
+	return 0;
+}
 excode* newExcode(byteCode* proc)
 {
 	excode* tmp=(excode*)malloc(sizeof(excode));

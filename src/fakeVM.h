@@ -62,14 +62,27 @@ typedef struct
 	FILE** files;
 }filestack;
 
+typedef struct ThreadMessage
+{
+	stackvalue* message;
+	struct ThreadMessage* next;
+}threadMessage;
+
 typedef struct
 {
 	fakeprocess* curproc;
 	byteCode* procs;
 	fakeprocess* mainproc;
 	fakestack* stack;
+	threadMessage* queue;
 	filestack* files;
 }fakeVM;
+
+typedef struct
+{
+	int32_t size;
+	fakeVM** VMs;
+}fakeVMStack;
 
 void runFakeVM(fakeVM*);
 void printStackValue(stackvalue*,FILE*);
@@ -163,6 +176,11 @@ static void stackRecycle(fakeVM*);
 static excode* newBuiltInProc(byteCode*);
 static fakeprocess* newFakeProcess(excode*,fakeprocess*);
 void printAllStack(fakestack*,FILE*);
+static int createNewThread(fakeVM*);
+static fakeVMStack* newThreadStack(int32_t);
+static threadMessage* newMessage(stackvalue*);
+static int sendMessage(threadMessage*,fakeVM*);
+static stackvalue* acceptMassage(fakeVM*);
 static stackvalue* castCptrStackValue(const cptr*);
 static fakeprocess* hasSameProc(excode*,fakeprocess*);
 static int isTheLastExpress(const fakeprocess*,const fakeprocess*);

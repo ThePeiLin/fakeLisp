@@ -3,6 +3,7 @@
 #include"opcode.h"
 #include<string.h>
 #include<math.h>
+#include<pthread.h>
 #ifdef _WIN32
 #include<conio.h>
 #else
@@ -688,6 +689,7 @@ fakeVM* newFakeVM(byteCode* mainproc,byteCode* procs)
 	exe->curproc=exe->mainproc;
 	exe->procs=procs;
 	exe->stack=newStack(0);
+	exe->queue=NULL;
 	exe->files=newFileStack();
 	return exe;
 }

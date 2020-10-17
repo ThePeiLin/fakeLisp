@@ -220,33 +220,65 @@ byteCode* compileDef(cptr* tir,compEnv* curEnv,intpr* inter,errorStatus* status)
 		tir=nextCptr(sec);
 	}
 	objCptr=tir;
-	for(;;)
+	if(isLambdaExpression(objCptr))
 	{
-		atom* tmpAtm=sec->value;
-		compDef* tmpDef=addCompDef(curEnv,tmpAtm->value.str);
-		*(int32_t*)(popVar->code+sizeof(char))=tmpDef->count;
-		beFree=tmp;
-		byteCode* tmp2=codeCat(pushTop,popVar);
-		tmp=codeCat(tmp,tmp2);
-		freeByteCode(beFree);
-		freeByteCode(tmp2);
-		if(fir->outer==tmpPair)break;
-		else
+		for(;;)
 		{
-			tir=&fir->outer->prev->car;
-			sec=prevCptr(tir);
-			fir=prevCptr(sec);
+			atom* tmpAtm=sec->value;
+			compDef* tmpDef=addCompDef(curEnv,tmpAtm->value.str);
+			*(int32_t*)(popVar->code+sizeof(char))=tmpDef->count;
+			beFree=tmp;
+			byteCode* tmp2=codeCat(pushTop,popVar);
+			tmp=codeCat(tmp,tmp2);
+			freeByteCode(beFree);
+			freeByteCode(tmp2);
+			if(fir->outer==tmpPair)break;
+			else
+			{
+				tir=&fir->outer->prev->car;
+				sec=prevCptr(tir);
+				fir=prevCptr(sec);
+			}
+		}
+		tmp1=compile(objCptr,curEnv,inter,status);
+		if(status->status!=0)
+		{
+			freeByteCode(tmp);
+			freeByteCode(popVar);
+			freeByteCode(pushTop);
+			return NULL;
+		}
+	}
+	else
+	{
+		tmp1=compile(objCptr,curEnv,inter,status);
+		if(status->status!=0)
+		{
+			freeByteCode(tmp);
+			freeByteCode(popVar);
+			freeByteCode(pushTop);
+			return NULL;
+		}
+		for(;;)
+		{
+			atom* tmpAtm=sec->value;
+			compDef* tmpDef=addCompDef(curEnv,tmpAtm->value.str);
+			*(int32_t*)(popVar->code+sizeof(char))=tmpDef->count;
+			beFree=tmp;
+			byteCode* tmp2=codeCat(pushTop,popVar);
+			tmp=codeCat(tmp,tmp2);
+			freeByteCode(beFree);
+			freeByteCode(tmp2);
+			if(fir->outer==tmpPair)break;
+			else
+			{
+				tir=&fir->outer->prev->car;
+				sec=prevCptr(tir);
+				fir=prevCptr(sec);
+			}
 		}
 	}
 	beFree=tmp;
-	tmp1=compile(objCptr,curEnv,inter,status);
-	if(status->status!=0)
-	{
-		freeByteCode(tmp);
-		freeByteCode(popVar);
-		freeByteCode(pushTop);
-		return NULL;
-	}
 	tmp=codeCat(tmp1,tmp);
 	freeByteCode(beFree);
 	freeByteCode(tmp1);	

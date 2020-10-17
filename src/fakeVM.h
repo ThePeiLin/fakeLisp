@@ -8,6 +8,12 @@ typedef struct
 	struct StackValue* cdr;
 }fakepair;
 
+typedef struct
+{
+	int32_t size;
+	int8_t* arry;
+}bitArry;
+
 typedef struct StackValue
 {
 	valueType type;
@@ -16,6 +22,7 @@ typedef struct StackValue
 		char* str;
 		struct ExCode* prc;
 		fakepair pair;
+		bitArry bary;
 		int32_t num;
 		char chr;
 		double dbl;

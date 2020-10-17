@@ -790,6 +790,8 @@ void runFakeVM(fakeVM* exe)
 				case 2:	
 					fprintf(stderr,"error:Stack error!\n");
 					exit(EXIT_FAILURE);
+				case 3:fprintf(stderr,"error:End of file!\n");
+					   exit(EXIT_FAILURE);
 			}
 		}
 	//	fprintf(stdout,"=========\n");
@@ -2167,7 +2169,9 @@ int B_read(fakeVM* exe)
 	char* tmpString=getListFromFile(tmpFile);
 	intpr* tmpIntpr=newIntpr(NULL,tmpFile);
 	cptr* tmpCptr=createTree(tmpString,tmpIntpr);
-	stackvalue* tmp=castCptrStackValue(tmpCptr);
+	stackvalue* tmp=NULL;
+	if(tmpCptr==NULL)return 3;
+	tmp=castCptrStackValue(tmpCptr);
 	stack->values[stack->tp-1]=tmp;
 	free(tmpIntpr);
 	free(tmpString);

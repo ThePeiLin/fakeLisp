@@ -832,9 +832,9 @@ int B_push_pair(fakeVM* exe)
 		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 		stack->size+=64;
 	}
-	stackvalue* objValue=newStackValue(PAR);
-	objValue->value.par.car=NULL;
-	objValue->value.par.cdr=NULL;
+	stackvalue* objValue=newStackValue(PAIR);
+	objValue->value.pair.car=NULL;
+	objValue->value.pair.cdr=NULL;
 	stack->values[stack->tp]=objValue;
 	stack->tp+=1;
 	proc->cp+=1;
@@ -970,8 +970,8 @@ int B_push_car(fakeVM* exe)
 	fakestack* stack=exe->stack;
 	fakeprocess* proc=exe->curproc;
 	stackvalue* objValue=getTopValue(stack);
-	if(objValue==NULL||(objValue->type!=PAR&&objValue->type!=STR))return 1;
-	if(objValue->type==PAR)
+	if(objValue==NULL||(objValue->type!=PAIR&&objValue->type!=STR))return 1;
+	if(objValue->type==PAIR)
 	{
 		stack->values[stack->tp-1]=copyValue(getCar(objValue));
 	}
@@ -991,8 +991,8 @@ int B_push_cdr(fakeVM* exe)
 	fakestack* stack=exe->stack;
 	fakeprocess* proc=exe->curproc;
 	stackvalue* objValue=getTopValue(stack);
-	if(objValue==NULL||(objValue->type!=PAR&&objValue->type!=STR))return 1;
-	if(objValue->type==PAR)
+	if(objValue==NULL||(objValue->type!=PAIR&&objValue->type!=STR))return 1;
+	if(objValue->type==PAIR)
 	{
 		stack->values[stack->tp-1]=copyValue(getCdr(objValue));
 	}
@@ -1112,18 +1112,18 @@ int B_pop_rest_var(fakeVM* exe)
 		tmpValue=curEnv->values+countOfVar-(curEnv->bound);
 		freeStackValue(*tmpValue);
 	}
-	stackvalue* obj=newStackValue(PAR);
+	stackvalue* obj=newStackValue(PAIR);
 	stackvalue* tmp=obj;
 	for(;;)
 	{
 		if(stack->tp>stack->bp)
 		{
 			stackvalue* topValue=getTopValue(stack);
-			tmp->value.par.car=copyValue(topValue);
+			tmp->value.pair.car=copyValue(topValue);
 			stack->tp-=1;
 			stackRecycle(exe);
-			tmp->value.par.cdr=newStackValue(PAR);
-			tmp=tmp->value.par.cdr;
+			tmp->value.pair.cdr=newStackValue(PAIR);
+			tmp=tmp->value.pair.cdr;
 		}
 		else break;
 	}
@@ -1139,9 +1139,9 @@ int B_pop_car(fakeVM* exe)
 	fakeprocess* proc=exe->curproc;
 	stackvalue* topValue=getTopValue(stack);
 	stackvalue* objValue=getValue(stack,stack->tp-2);
-	if(objValue==NULL||objValue->type!=PAR)return 1;
-	freeStackValue(objValue->value.par.car);
-	objValue->value.par.car=copyValue(topValue);
+	if(objValue==NULL||objValue->type!=PAIR)return 1;
+	freeStackValue(objValue->value.pair.car);
+	objValue->value.pair.car=copyValue(topValue);
 	freeStackValue(topValue);
 	stack->tp-=1;
 	stackRecycle(exe);
@@ -1155,9 +1155,9 @@ int B_pop_cdr(fakeVM* exe)
 	fakeprocess* proc=exe->curproc;
 	stackvalue* topValue=getTopValue(stack);
 	stackvalue* objValue=getValue(stack,stack->tp-2);
-	if(objValue==NULL||objValue->type!=PAR)return 1;
-	freeStackValue(objValue->value.par.cdr);
-	objValue->value.par.cdr=copyValue(topValue);
+	if(objValue==NULL||objValue->type!=PAIR)return 1;
+	freeStackValue(objValue->value.pair.cdr);
+	objValue->value.pair.cdr=copyValue(topValue);
 	freeStackValue(topValue);
 	stack->tp-=1;
 	stackRecycle(exe);
@@ -1310,7 +1310,7 @@ int B_atom(fakeVM* exe)
 	fakestack* stack=exe->stack;
 	fakeprocess* proc=exe->curproc;
 	stackvalue* topValue=getTopValue(stack);
-	if(topValue==NULL||topValue->type!=PAR)
+	if(topValue==NULL||topValue->type!=PAIR)
 	{
 		stackvalue* TRUE=newStackValue(INT);
 		TRUE->value.num=1;
@@ -1318,7 +1318,7 @@ int B_atom(fakeVM* exe)
 	}
 	else
 	{
-		if(topValue->value.par.car==NULL&&topValue->value.par.cdr==NULL)
+		if(topValue->value.pair.car==NULL&&topValue->value.pair.cdr==NULL)
 		{
 			stackvalue* TRUE=newStackValue(INT);
 			TRUE->value.num=1;
@@ -1337,7 +1337,7 @@ int B_null(fakeVM* exe)
 	fakestack* stack=exe->stack;
 	fakeprocess* proc=exe->curproc;
 	stackvalue* topValue=getTopValue(stack);
-	if(topValue==NULL||(topValue->type==PAR&&(topValue->value.par.car==NULL&&topValue->value.par.cdr==NULL)))
+	if(topValue==NULL||(topValue->type==PAIR&&(topValue->value.pair.car==NULL&&topValue->value.pair.cdr==NULL)))
 	{
 		stackvalue* TRUE=newStackValue(INT);
 		TRUE->value.num=1;
@@ -1452,7 +1452,7 @@ int B_jump_if_ture(fakeVM* exe)
 	fakeprocess* proc=exe->curproc;
 	excode* tmpCode=proc->code;
 	stackvalue* tmpValue=getTopValue(stack);
-	if(!(tmpValue==NULL||(tmpValue->type==PAR&&tmpValue->value.par.car==NULL&&tmpValue->value.par.cdr==NULL)))
+	if(!(tmpValue==NULL||(tmpValue->type==PAIR&&tmpValue->value.pair.car==NULL&&tmpValue->value.pair.cdr==NULL)))
 	{
 		int32_t where=*(int32_t*)(tmpCode->code+proc->cp+sizeof(char));
 		proc->cp+=where;
@@ -1474,7 +1474,7 @@ int B_jump_if_false(fakeVM* exe)
 	excode* tmpCode=proc->code;
 	stackvalue* tmpValue=getTopValue(stack);
 	stackRecycle(exe);
-	if(tmpValue==NULL||(tmpValue->type==PAR&&tmpValue->value.par.car==NULL&&tmpValue->value.par.cdr==NULL))
+	if(tmpValue==NULL||(tmpValue->type==PAIR&&tmpValue->value.pair.car==NULL&&tmpValue->value.pair.cdr==NULL))
 	{
 		int32_t where=*(int32_t*)(tmpCode->code+proc->cp+sizeof(char));
 		proc->cp+=where;
@@ -1579,7 +1579,7 @@ int B_gt(fakeVM* exe)
 	stackvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
 	stackRecycle(exe);
-	if(firValue==NULL||secValue==NULL||firValue->type==PAR||firValue->type==PRC||secValue->type==PAR||secValue->type==PRC)return 1;
+	if(firValue==NULL||secValue==NULL||firValue->type==PAIR||firValue->type==PRC||secValue->type==PAIR||secValue->type==PRC)return 1;
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
 		double result=((secValue->type==DBL)?secValue->value.dbl:secValue->value.num)-((firValue->type==DBL)?firValue->value.dbl:firValue->value.num);
@@ -1626,7 +1626,7 @@ int B_ge(fakeVM* exe)
 	stackvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
 	stackRecycle(exe);
-	if(firValue==NULL||secValue==NULL||firValue->type==PAR||firValue->type==PRC||secValue->type==PAR||secValue->type==PRC)return 1;
+	if(firValue==NULL||secValue==NULL||firValue->type==PAIR||firValue->type==PRC||secValue->type==PAIR||secValue->type==PRC)return 1;
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
 		double result=((secValue->type==DBL)?secValue->value.dbl:secValue->value.num)-((firValue->type==DBL)?firValue->value.dbl:firValue->value.num);
@@ -1673,7 +1673,7 @@ int B_lt(fakeVM* exe)
 	stackvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
 	stackRecycle(exe);
-	if(firValue==NULL||secValue==NULL||firValue->type==PAR||firValue->type==PRC||secValue->type==PAR||secValue->type==PRC)return 1;
+	if(firValue==NULL||secValue==NULL||firValue->type==PAIR||firValue->type==PRC||secValue->type==PAIR||secValue->type==PRC)return 1;
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
 		double result=((secValue->type==DBL)?secValue->value.dbl:secValue->value.num)-((firValue->type==DBL)?firValue->value.dbl:firValue->value.num);
@@ -1720,7 +1720,7 @@ int B_le(fakeVM* exe)
 	stackvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
 	stackRecycle(exe);
-	if(firValue==NULL||secValue==NULL||firValue->type==PAR||firValue->type==PRC||secValue->type==PAR||secValue->type==PRC)return 1;
+	if(firValue==NULL||secValue==NULL||firValue->type==PAIR||firValue->type==PRC||secValue->type==PAIR||secValue->type==PRC)return 1;
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
 		double result=((secValue->type==DBL)?secValue->value.dbl:secValue->value.num)-((firValue->type==DBL)?firValue->value.dbl:firValue->value.num);
@@ -1764,7 +1764,7 @@ int B_not(fakeVM* exe)
 	fakestack* stack=exe->stack;
 	fakeprocess* proc=exe->curproc;
 	stackvalue* tmpValue=getTopValue(stack);
-	if(tmpValue==NULL||(tmpValue->type==PAR&&tmpValue->value.par.car==NULL&&tmpValue->value.par.cdr==NULL))
+	if(tmpValue==NULL||(tmpValue->type==PAIR&&tmpValue->value.pair.car==NULL&&tmpValue->value.pair.cdr==NULL))
 	{
 		freeStackValue(tmpValue);
 		tmpValue=newStackValue(INT);
@@ -1785,7 +1785,7 @@ int B_cast_to_chr(fakeVM* exe)
 	fakestack* stack=exe->stack;
 	fakeprocess* proc=exe->curproc;
 	stackvalue* topValue=getTopValue(stack);
-	if(topValue==NULL||topValue->type==PAR||topValue->type==PRC)return 1;
+	if(topValue==NULL||topValue->type==PAIR||topValue->type==PRC)return 1;
 	stackvalue* tmpValue=newStackValue(CHR);
 	switch(topValue->type)
 	{
@@ -1806,7 +1806,7 @@ int B_cast_to_int(fakeVM* exe)
 	fakestack* stack=exe->stack;
 	fakeprocess* proc=exe->curproc;
 	stackvalue* topValue=getTopValue(stack);
-	if(topValue==NULL||topValue->type==PAR||topValue->type==PRC)return 1;
+	if(topValue==NULL||topValue->type==PAIR||topValue->type==PRC)return 1;
 	stackvalue* tmpValue=newStackValue(INT);
 	switch(topValue->type)
 	{
@@ -1827,7 +1827,7 @@ int B_cast_to_dbl(fakeVM* exe)
 	fakestack* stack=exe->stack;
 	fakeprocess* proc=exe->curproc;
 	stackvalue* topValue=getTopValue(stack);
-	if(topValue==NULL||topValue->type==PAR||topValue->type==PRC)return 1;
+	if(topValue==NULL||topValue->type==PAIR||topValue->type==PRC)return 1;
 	stackvalue* tmpValue=newStackValue(DBL);
 	switch(topValue->type)
 	{
@@ -1848,7 +1848,7 @@ int B_cast_to_str(fakeVM* exe)
 	fakestack* stack=exe->stack;
 	fakeprocess* proc=exe->curproc;
 	stackvalue* topValue=getTopValue(stack);
-	if(topValue==NULL||topValue->type==PAR||topValue->type==PRC)return 1;
+	if(topValue==NULL||topValue->type==PAIR||topValue->type==PRC)return 1;
 	stackvalue* tmpValue=newStackValue(STR);
 	switch(topValue->type)
 	{
@@ -1873,7 +1873,7 @@ int B_cast_to_sym(fakeVM* exe)
 	fakestack* stack=exe->stack;
 	fakeprocess* proc=exe->curproc;
 	stackvalue* topValue=getTopValue(stack);
-	if(topValue==NULL||topValue->type==PAR||topValue->type==PRC)return 1;
+	if(topValue==NULL||topValue->type==PAIR||topValue->type==PRC)return 1;
 	stackvalue* tmpValue=newStackValue(SYM);
 	switch(topValue->type)
 	{
@@ -2001,11 +2001,11 @@ int B_nth(fakeVM* exe)
 	fakeprocess* proc=exe->curproc;
 	stackvalue* place=getValue(stack,stack->tp-2);
 	stackvalue* objlist=getTopValue(stack);
-	if(objlist==NULL||place==NULL||(objlist->type!=PAR&&objlist->type!=STR)||place->type!=INT)return 1;
-	if(objlist->type==PAR)
+	if(objlist==NULL||place==NULL||(objlist->type!=PAIR&&objlist->type!=STR)||place->type!=INT)return 1;
+	if(objlist->type==PAIR)
 	{
 		stackvalue* obj=getCar(objlist);
-		objlist->value.par.car=NULL;
+		objlist->value.pair.car=NULL;
 		stackvalue* objPair=getCdr(objlist);
 		int i=0;
 		for(;i<place->value.num;i++)
@@ -2013,7 +2013,7 @@ int B_nth(fakeVM* exe)
 			if(objPair==NULL)return 2;
 			freeStackValue(obj);
 			obj=getCar(objPair);
-			objPair->value.par.car=NULL;
+			objPair->value.pair.car=NULL;
 			objPair=getCdr(objPair);
 		}
 		stack->tp-=1;
@@ -2039,11 +2039,11 @@ int B_length(fakeVM* exe)
 	fakestack* stack=exe->stack;
 	fakeprocess* proc=exe->curproc;
 	stackvalue* objlist=getTopValue(stack);
-	if(objlist==NULL||(objlist->type!=PAR&&objlist->type!=STR))return 1;
-	if(objlist->type==PAR)
+	if(objlist==NULL||(objlist->type!=PAIR&&objlist->type!=STR))return 1;
+	if(objlist->type==PAIR)
 	{
 		int32_t i=0;
-		for(stackvalue* tmp=objlist;tmp!=NULL&&tmp->type==PAR;tmp=getCdr(tmp))i++;
+		for(stackvalue* tmp=objlist;tmp!=NULL&&tmp->type==PAIR;tmp=getCdr(tmp))i++;
 		stackvalue* num=newStackValue(INT);
 		num->value.num=i;
 		stack->values[stack->tp-1]=num;
@@ -2067,12 +2067,12 @@ int B_append(fakeVM* exe)
 	stackvalue* sec=getValue(stack,stack->tp-2);
 	stack->tp-=1;
 	stackRecycle(exe);
-	if(sec!=NULL&&sec->type!=PAR)return 1;
+	if(sec!=NULL&&sec->type!=PAIR)return 1;
 	if(sec!=NULL)
 	{
 		stackvalue* lastpair=sec;
 		while(getCdr(lastpair)!=NULL)lastpair=getCdr(lastpair);
-		lastpair->value.par.cdr=fir;
+		lastpair->value.pair.cdr=fir;
 		stack->values[stack->tp-1]=sec;
 	}
 	else stack->values[stack->tp-1]=fir;
@@ -2311,8 +2311,8 @@ stackvalue* newStackValue(valueType type)
 		case SYM:
 		case STR:tmp->value.str=NULL;break;
 		case PRC:tmp->value.prc=NULL;break;
-		case PAR:tmp->value.par.car=NULL;
-				 tmp->value.par.cdr=NULL;
+		case PAIR:tmp->value.pair.car=NULL;
+				 tmp->value.pair.cdr=NULL;
 	}
 	return tmp;
 }
@@ -2326,10 +2326,10 @@ void freeStackValue(stackvalue* obj)
 		if(obj->value.prc->refcount==0)freeExcode(obj->value.prc);
 		else obj->value.prc->refcount-=1;
 	}
-	else if(obj->type==PAR)
+	else if(obj->type==PAIR)
 	{
-		freeStackValue(obj->value.par.car);
-		freeStackValue(obj->value.par.cdr);
+		freeStackValue(obj->value.pair.car);
+		freeStackValue(obj->value.pair.cdr);
 	}
 	free(obj);
 }
@@ -2339,10 +2339,10 @@ stackvalue* copyValue(stackvalue* obj)
 	if(obj==NULL)return NULL;
 	stackvalue* tmp=newStackValue(obj->type);
 	if(obj->type==STR||obj->type==SYM)tmp->value.str=copyStr(obj->value.str);
-	else if(obj->type==PAR)
+	else if(obj->type==PAIR)
 	{
-		tmp->value.par.car=copyValue(obj->value.par.car);
-		tmp->value.par.cdr=copyValue(obj->value.par.cdr);
+		tmp->value.pair.car=copyValue(obj->value.pair.car);
+		tmp->value.pair.cdr=copyValue(obj->value.pair.cdr);
 	}
 	else
 	{
@@ -2409,14 +2409,14 @@ stackvalue* getValue(fakestack* stack,int32_t place)
 
 stackvalue* getCar(stackvalue* obj)
 {
-	if(obj->type!=PAR)return NULL;
-	else return obj->value.par.car;
+	if(obj->type!=PAIR)return NULL;
+	else return obj->value.pair.car;
 }
 
 stackvalue* getCdr(stackvalue* obj)
 {
-	if(obj->type!=PAR)return NULL;
-	else return obj->value.par.cdr;
+	if(obj->type!=PAIR)return NULL;
+	else return obj->value.pair.cdr;
 }
 
 void printStackValue(stackvalue* objValue,FILE* fp)
@@ -2434,12 +2434,12 @@ void printStackValue(stackvalue* objValue,FILE* fp)
 		case SYM:fprintf(fp,"%s",objValue->value.str);break;
 		case STR:fprintf(fp,"%s",objValue->value.str);break;
 		case PRC:fprintf(fp,"<#proc>");break;
-		case PAR:putc('(',fp);
-				 printStackValue(objValue->value.par.car,fp);
-				 if(objValue->value.par.cdr!=NULL)
+		case PAIR:putc('(',fp);
+				 printStackValue(objValue->value.pair.car,fp);
+				 if(objValue->value.pair.cdr!=NULL)
 				 {
 					putc(',',fp);
-					printStackValue(objValue->value.par.cdr,fp);
+					printStackValue(objValue->value.pair.cdr,fp);
 				 }
 				 putc(')',fp);
 				 break;
@@ -2462,7 +2462,7 @@ int stackvaluecmp(stackvalue* fir,stackvalue* sec)
 			case STR:
 			case SYM:return !strcmp(fir->value.str,sec->value.str);
 			case PRC:return fir->value.prc==sec->value.prc;
-			case PAR:return stackvaluecmp(fir->value.par.car,sec->value.par.car)&&stackvaluecmp(fir->value.par.cdr,sec->value.par.cdr);
+			case PAIR:return stackvaluecmp(fir->value.pair.car,sec->value.pair.car)&&stackvaluecmp(fir->value.pair.cdr,sec->value.pair.cdr);
 		}
 	}
 }
@@ -2550,12 +2550,12 @@ stackvalue* castCptrStackValue(const cptr* objCptr)
 		}
 		return tmp;
 	}
-	else if(objCptr->type==PAR)
+	else if(objCptr->type==PAIR)
 	{
-		pair* objPair=objCptr->value;
-		stackvalue* tmp=newStackValue(PAR);
-		tmp->value.par.car=castCptrStackValue(&objPair->car);
-		tmp->value.par.cdr=castCptrStackValue(&objPair->cdr);
+		prepair* objPair=objCptr->value;
+		stackvalue* tmp=newStackValue(PAIR);
+		tmp->value.pair.car=castCptrStackValue(&objPair->car);
+		tmp->value.pair.cdr=castCptrStackValue(&objPair->cdr);
 		return tmp;
 	}
 	else if(objCptr->type==NIL)return NULL;

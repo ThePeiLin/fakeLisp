@@ -24,10 +24,10 @@ void addSynRule(int (*check)(const cptr*))
 
 int isPreprocess(const cptr* objCptr)
 {
-	objCptr=(objCptr->type==PAR)?&((pair*)objCptr->value)->car:NULL;
+	objCptr=(objCptr->type==PAIR)?&((prepair*)objCptr->value)->car:NULL;
 	if(objCptr!=NULL&&nextCptr(objCptr)!=NULL&&nextCptr(nextCptr(objCptr))!=NULL)
 	{
-		if(objCptr->type!=ATM||nextCptr(objCptr)->type!=PAR)return 0;
+		if(objCptr->type!=ATM||nextCptr(objCptr)->type!=PAIR)return 0;
 		else
 		{
 			atom* tmpAtm=objCptr->value;
@@ -40,7 +40,7 @@ int isPreprocess(const cptr* objCptr)
 
 int isDefExpression(const cptr* objCptr)
 {
-	objCptr=(objCptr->type==PAR)?&((pair*)objCptr->value)->car:NULL;
+	objCptr=(objCptr->type==PAIR)?&((prepair*)objCptr->value)->car:NULL;
 	if(objCptr!=NULL&&nextCptr(objCptr)!=NULL&&nextCptr(nextCptr(objCptr))!=NULL)
 	{
 		if(objCptr->type!=ATM||nextCptr(objCptr)->type!=ATM)return 0;
@@ -57,7 +57,7 @@ int isDefExpression(const cptr* objCptr)
 
 int isSetqExpression(const cptr* objCptr)
 {
-	objCptr=(objCptr->type==PAR)?&((pair*)objCptr->value)->car:NULL;
+	objCptr=(objCptr->type==PAIR)?&((prepair*)objCptr->value)->car:NULL;
 	if(objCptr!=NULL&&nextCptr(objCptr)!=NULL&&nextCptr(nextCptr(objCptr))!=NULL)
 	{
 		if(objCptr->type!=ATM||nextCptr(objCptr)->type!=ATM)return 0;
@@ -74,7 +74,7 @@ int isSetqExpression(const cptr* objCptr)
 
 int isCondExpression(const cptr* objCptr)
 {
-	objCptr=(objCptr->type==PAR)?&((pair*)objCptr->value)->car:NULL;
+	objCptr=(objCptr->type==PAIR)?&((prepair*)objCptr->value)->car:NULL;
 	if(objCptr!=NULL)
 	{
 		if(objCptr->type==ATM)
@@ -83,7 +83,7 @@ int isCondExpression(const cptr* objCptr)
 			if(tmpAtm->type==SYM&&!strcmp(tmpAtm->value.str,"cond"))
 			{
 				for(objCptr=nextCptr(objCptr);objCptr!=NULL;objCptr=nextCptr(objCptr))
-					if(!isLegal(objCptr)||objCptr->type!=PAR)return 0;
+					if(!isLegal(objCptr)||objCptr->type!=PAIR)return 0;
 				return 1;
 			}
 		}
@@ -101,9 +101,9 @@ int isSymbol(const cptr* objCptr)
 int isNil(const cptr* objCptr)
 {
 	if(objCptr->type==NIL)return 1;
-	else if(objCptr->type==PAR)
+	else if(objCptr->type==PAIR)
 	{
-		pair* tmpPair=objCptr->value;
+		prepair* tmpPair=objCptr->value;
 		if(tmpPair->car.type==NIL&&tmpPair->cdr.type==NIL)return 1;
 	}
 	return 0;
@@ -114,14 +114,14 @@ int isConst(const cptr* objCptr)
 	if(isNil(objCptr))return 1;
 	atom* tmpAtm=(objCptr->type==ATM)?objCptr->value:NULL;
 	if(tmpAtm!=NULL&&tmpAtm->type!=SYM)return 1;
-	if(objCptr->type==PAR&&(isQuoteExpression(objCptr)||(((pair*)objCptr->value)->car.type==NIL&&((pair*)objCptr->value)->car.type==NIL)))return 1;
+	if(objCptr->type==PAIR&&(isQuoteExpression(objCptr)||(((prepair*)objCptr->value)->car.type==NIL&&((prepair*)objCptr->value)->car.type==NIL)))return 1;
 	return 0;
 }
 
 int isAndExpression(const cptr* objCptr)
 {
 	if(!isLegal(objCptr))return 0;
-	objCptr=(objCptr->type==PAR)?&((pair*)objCptr->value)->car:NULL;
+	objCptr=(objCptr->type==PAIR)?&((prepair*)objCptr->value)->car:NULL;
 	if(objCptr!=NULL)
 	{
 		atom* tmpAtm=(objCptr->type==ATM)?objCptr->value:NULL;
@@ -133,7 +133,7 @@ int isAndExpression(const cptr* objCptr)
 int isOrExpression(const cptr* objCptr)
 {
 	if(!isLegal(objCptr))return 0;
-	objCptr=(objCptr->type==PAR)?&((pair*)objCptr->value)->car:NULL;
+	objCptr=(objCptr->type==PAIR)?&((prepair*)objCptr->value)->car:NULL;
 	if(objCptr!=NULL)
 	{
 		atom* tmpAtm=(objCptr->type==ATM)?objCptr->value:NULL;
@@ -144,7 +144,7 @@ int isOrExpression(const cptr* objCptr)
 
 int isQuoteExpression(const cptr* objCptr)
 {
-	objCptr=(isLegal(objCptr)&&objCptr->type==PAR)?&((pair*)objCptr->value)->car:NULL;
+	objCptr=(isLegal(objCptr)&&objCptr->type==PAIR)?&((prepair*)objCptr->value)->car:NULL;
 	atom* tmpAtm=(objCptr!=NULL&&objCptr->type==ATM)?objCptr->value:NULL;
 	if(tmpAtm!=NULL&&tmpAtm->type==SYM&&!strcmp(tmpAtm->value.str,"quote"))return 1;
 	return 0;
@@ -152,7 +152,7 @@ int isQuoteExpression(const cptr* objCptr)
 
 int isLambdaExpression(const cptr* objCptr)
 {
-	objCptr=(objCptr->type==PAR)?&((pair*)objCptr->value)->car:NULL;
+	objCptr=(objCptr->type==PAIR)?&((prepair*)objCptr->value)->car:NULL;
 	atom* tmpAtm=(objCptr!=NULL&&objCptr->type==ATM)?objCptr->value:NULL;
 	if(tmpAtm!=NULL&&tmpAtm->type==SYM&&!strcmp(tmpAtm->value.str,"lambda"))return 1;
 	return 0;
@@ -160,16 +160,16 @@ int isLambdaExpression(const cptr* objCptr)
 
 int isListForm(const cptr* objCptr)
 {
-	if(objCptr->type==PAR&&isLegal(objCptr)&&!hasKeyWord(objCptr)&&!isNil(objCptr))return 1;
+	if(objCptr->type==PAIR&&isLegal(objCptr)&&!hasKeyWord(objCptr)&&!isNil(objCptr))return 1;
 	return 0;
 }
 
 int isLegal(const cptr* objCptr)
 {
 	const cptr* tmpCptr=objCptr;
-	if(objCptr->type==PAR)
+	if(objCptr->type==PAIR)
 	{
-		objCptr=&((pair*)objCptr->value)->car;
+		objCptr=&((prepair*)objCptr->value)->car;
 		const cptr* prevCptr=NULL;
 		while(objCptr!=NULL)
 		{

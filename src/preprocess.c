@@ -171,10 +171,10 @@ errorStatus eval(cptr* objCptr,env* curEnv)
 				}
 			}
 		}
-		else if(objCptr->type==PAR)
+		else if(objCptr->type==PAIR)
 		{
-			if(objCptr->type!=PAR)continue;
-			objCptr=&(((pair*)objCptr->value)->car);
+			if(objCptr->type!=PAIR)continue;
+			objCptr=&(((prepair*)objCptr->value)->car);
 			continue;
 		}
 		if(retree(&objCptr,tmpCptr))break;
@@ -212,10 +212,10 @@ keyWord* hasKeyWord(const cptr* objCptr)
 			tmp=tmp->next;
 		return tmp;
 	}
-	else if(objCptr->type==PAR)
+	else if(objCptr->type==PAIR)
 	{
 		keyWord* tmp=NULL;
-		for(objCptr=&((pair*)objCptr->value)->car;objCptr!=NULL;objCptr=nextCptr(objCptr))
+		for(objCptr=&((prepair*)objCptr->value)->car;objCptr!=NULL;objCptr=nextCptr(objCptr))
 		{
 			tmp=KeyWords;
 			tmpAtm=(objCptr->type==ATM)?objCptr->value:NULL;
@@ -254,9 +254,9 @@ macro* macroMatch(const cptr* objCptr)
 
 int addMacro(cptr* format,cptr* express)
 {
-	if(format->type!=PAR)return SYNTAXERROR;
+	if(format->type!=PAIR)return SYNTAXERROR;
 	cptr* tmpCptr=NULL;
-	for(tmpCptr=&((pair*)format->value)->car;tmpCptr!=NULL;tmpCptr=nextCptr(tmpCptr))
+	for(tmpCptr=&((prepair*)format->value)->car;tmpCptr!=NULL;tmpCptr=nextCptr(tmpCptr))
 	{
 		if(tmpCptr->type==ATM)
 		{
@@ -325,12 +325,12 @@ masym* findMasym(const char* name)
 int fmatcmp(const cptr* origin,const cptr* format)
 {
 	MacroEnv=newEnv(NULL);
-	pair* tmpPair=(format->type==PAR)?format->value:NULL;
-	pair* forPair=tmpPair;
-	pair* oriPair=(origin->type==PAR)?origin->value:NULL;
+	prepair* tmpPair=(format->type==PAIR)?format->value:NULL;
+	prepair* forPair=tmpPair;
+	prepair* oriPair=(origin->type==PAIR)?origin->value:NULL;
 	while(origin!=NULL)
 	{
-		if(format->type==PAR&&origin->type==PAR)
+		if(format->type==PAIR&&origin->type==PAIR)
 		{
 			forPair=format->value;
 			oriPair=origin->value;
@@ -376,10 +376,10 @@ int fmatcmp(const cptr* origin,const cptr* format)
 			}
 		}
 		else if(origin->type==NIL&&
-				format->type==PAR&&
-				((pair*)format->value)->car.type==ATM)
+				format->type==PAIR&&
+				((prepair*)format->value)->car.type==ATM)
 		{
-			atom* tmpAtm=((pair*)format->value)->car.value;
+			atom* tmpAtm=((prepair*)format->value)->car.value;
 			masym* tmpSym=findMasym(tmpAtm->value.str);
 			if(tmpSym!=NULL&&tmpSym->Func!=M_VAREPT)
 			{
@@ -389,7 +389,7 @@ int fmatcmp(const cptr* origin,const cptr* format)
 			}
 			else if(tmpSym!=NULL)
 			{
-				cptr* tmp=&((pair*)format->value)->car;
+				cptr* tmp=&((prepair*)format->value)->car;
 				atom* tmpAtm=tmp->value;
 				M_VAREPT(NULL,tmp,hasAnotherName(tmpAtm->value.str),MacroEnv);
 			}
@@ -408,8 +408,8 @@ int fmatcmp(const cptr* origin,const cptr* format)
 		}
 		else if(forPair!=NULL&&format==&forPair->cdr)
 		{
-			pair* oriPrev=NULL;
-			pair* forPrev=NULL;
+			prepair* oriPrev=NULL;
+			prepair* forPrev=NULL;
 			if(oriPair->prev==NULL)break;
 			while(oriPair->prev!=NULL&&forPair!=tmpPair)
 			{
@@ -506,7 +506,7 @@ int M_ATOM(const cptr* oriCptr,const cptr* fmtCptr,const char* name,env* curEnv)
 int M_PAIR(const cptr* oriCptr,const cptr* fmtCptr,const char* name,env* curEnv)
 {
 	if(oriCptr==NULL)return 0;
-	else if(oriCptr->type==PAR)
+	else if(oriCptr->type==PAIR)
 	{
 		addDefine(name,oriCptr,curEnv);
 		return 1;
@@ -530,17 +530,17 @@ int M_VAREPT(const cptr* oriCptr,const cptr* fmtCptr,const char* name,env* curEn
 	fmtCptr=&fmtCptr->outer->prev->car;
 	const cptr* format=fmtCptr;
 	const cptr tmp={NULL,0,NIL,NULL};
-	pair* forPair=(format->type==PAR)?format->value:NULL;
-	pair* tmpPair=forPair;
+	prepair* forPair=(format->type==PAIR)?format->value:NULL;
+	prepair* tmpPair=forPair;
 	defines* valreptdef=addDefine(name,&tmp,MacroEnv);
 	if(oriCptr==NULL)
 	{
 		const cptr* format=fmtCptr;
-		pair* forPair=(format->type==PAR)?format->value:NULL;
+		prepair* forPair=(format->type==PAIR)?format->value:NULL;
 		env* forValRept=newEnv(NULL);
 		while(format!=NULL)
 		{
-			if(format->type==PAR)
+			if(format->type==PAIR)
 			{
 				forPair=format->value;
 				format=&forPair->car;
@@ -577,7 +577,7 @@ int M_VAREPT(const cptr* oriCptr,const cptr* fmtCptr,const char* name,env* curEn
 			}
 			else if(forPair!=NULL&&format==&forPair->cdr)
 			{
-				pair* forPrev=NULL;
+				prepair* forPrev=NULL;
 				while(forPair!=tmpPair)
 				{
 					forPrev=forPair;
@@ -596,12 +596,12 @@ int M_VAREPT(const cptr* oriCptr,const cptr* fmtCptr,const char* name,env* curEn
 	{
 		const cptr* origin=oriCptr;
 		const cptr* format=fmtCptr;
-		pair* forPair=(format->type==PAR)?format->value:NULL;
-		pair* oriPair=(origin->type==PAR)?origin->value:NULL;
+		prepair* forPair=(format->type==PAIR)?format->value:NULL;
+		prepair* oriPair=(origin->type==PAIR)?origin->value:NULL;
 		env* forValRept=newEnv(NULL);
 		while(origin!=NULL&&format!=NULL)
 		{
-			if(format->type==PAR&&origin->type==PAR)
+			if(format->type==PAIR&&origin->type==PAIR)
 			{
 				forPair=format->value;
 				oriPair=origin->value;
@@ -657,8 +657,8 @@ int M_VAREPT(const cptr* oriCptr,const cptr* fmtCptr,const char* name,env* curEn
 			}
 			else if(forPair!=NULL&&format==&forPair->cdr)
 			{
-				pair* oriPrev=NULL;
-				pair* forPrev=NULL;
+				prepair* oriPrev=NULL;
+				prepair* forPrev=NULL;
 				if(oriPair->prev==NULL)break;
 				while(oriPair->prev!=NULL&&forPair!=tmpPair)
 				{
@@ -738,10 +738,10 @@ const char* hasAnotherName(const char* name)
 
 void addToList(cptr* fir,const cptr* sec)
 {
-	while(fir->type!=NIL)fir=&((pair*)fir->value)->cdr;
-	fir->type=PAR;
+	while(fir->type!=NIL)fir=&((prepair*)fir->value)->cdr;
+	fir->type=PAIR;
 	fir->value=newPair(0,fir->outer);
-	replace(&((pair*)fir->value)->car,sec);
+	replace(&((prepair*)fir->value)->car,sec);
 }
 
 int getWordNum(const char* name)

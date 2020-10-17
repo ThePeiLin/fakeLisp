@@ -5,7 +5,7 @@
 
 cptr** dealArg(cptr* argCptr,int num)
 {
-	cptr* tmpCptr=(argCptr->type==PAR)?argCptr:NULL;
+	cptr* tmpCptr=(argCptr->type==PAIR)?argCptr:NULL;
 	cptr** args=NULL;
 	if(!(args=(cptr**)malloc(num*sizeof(cptr*))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	int i;
@@ -16,9 +16,9 @@ cptr** dealArg(cptr* argCptr,int num)
 		else
 		{
 			args[i]=newCptr(0,NULL);
-			replace(args[i],&((pair*)argCptr->value)->car);
-			deleteCptr(&((pair*)argCptr->value)->car);
-			argCptr=&((pair*)argCptr->value)->cdr;
+			replace(args[i],&((prepair*)argCptr->value)->car);
+			deleteCptr(&((prepair*)argCptr->value)->car);
+			argCptr=&((prepair*)argCptr->value)->cdr;
 		}
 	}
 	if(tmpCptr!=NULL)
@@ -26,11 +26,11 @@ cptr** dealArg(cptr* argCptr,int num)
 		cptr* beDel=newCptr(0,NULL);
 		beDel->type=tmpCptr->type;
 		beDel->value=tmpCptr->value;
-		((pair*)tmpCptr->value)->prev=NULL;
+		((prepair*)tmpCptr->value)->prev=NULL;
 		tmpCptr->type=argCptr->type;
 		tmpCptr->value=argCptr->value;
-		if(argCptr->type==PAR)
-			((pair*)argCptr->value)->prev=tmpCptr->outer;
+		if(argCptr->type==PAIR)
+			((prepair*)argCptr->value)->prev=tmpCptr->outer;
 		else if(argCptr->type==ATM)
 			((atom*)argCptr->value)->prev=tmpCptr->outer;
 		argCptr->type=NIL;
@@ -44,11 +44,11 @@ cptr** dealArg(cptr* argCptr,int num)
 int coutArg(cptr* argCptr)
 {
 	int num=0;
-	while(argCptr->type==PAR)
+	while(argCptr->type==PAIR)
 	{
-		cptr* tmp=&((pair*)argCptr->value)->car;
+		cptr* tmp=&((prepair*)argCptr->value)->car;
 		if(tmp->type!=NIL)num++;
-		argCptr=&((pair*)argCptr->value)->cdr;
+		argCptr=&((prepair*)argCptr->value)->cdr;
 	}
 	return num;
 }
@@ -67,9 +67,9 @@ void deleteArg(cptr** args,int num)
 int isFalse(const cptr* objCptr)
 {
 	if(objCptr->type==NIL)return 1;
-	else if(objCptr->type==PAR)
+	else if(objCptr->type==PAIR)
 	{
-		pair* tmpPair=objCptr->value;
+		prepair* tmpPair=objCptr->value;
 		if(tmpPair->car.type==NIL&&tmpPair->cdr.type==NIL)return 1;
 	}
 	return 0;
@@ -104,7 +104,7 @@ errorStatus N_car(cptr* objCptr,env* curEnv)
 		deleteArg(args,1);
 		return status;
 	}
-	replace(objCptr,&((pair*)args[0]->value)->car);
+	replace(objCptr,&((prepair*)args[0]->value)->car);
 	deleteArg(args,1);
 	return status;
 }
@@ -128,7 +128,7 @@ errorStatus N_cdr(cptr* objCptr,env* curEnv)
 		deleteArg(args,1);
 		return status;
 	}
-	replace(objCptr,&((pair*)args[0]->value)->cdr);
+	replace(objCptr,&((prepair*)args[0]->value)->cdr);
 	deleteArg(args,1);
 	return status;
 }
@@ -150,8 +150,8 @@ errorStatus N_cons(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	objCptr->type=PAR;
-	pair* tmpPair=objCptr->value=newPair(0,objCptr->outer);
+	objCptr->type=PAIR;
+	prepair* tmpPair=objCptr->value=newPair(0,objCptr->outer);
 	replace(&tmpPair->car,args[0]);
 	replace(&tmpPair->cdr,args[1]);
 	deleteArg(args,2);
@@ -202,7 +202,7 @@ errorStatus N_atom(cptr* objCptr,env* curEnv)
 		deleteArg(args,1);
 		return status;
 	}
-	if(args[0]->type!=PAR)
+	if(args[0]->type!=PAIR)
 	{
 		atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
 		objCptr->type=ATM;
@@ -211,7 +211,7 @@ errorStatus N_atom(cptr* objCptr,env* curEnv)
 	}
 	else
 	{
-		pair* tmpPair=args[0]->value;
+		prepair* tmpPair=args[0]->value;
 		if(tmpPair->car.type==NIL&&tmpPair->cdr.type==NIL)
 		{
 			atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
@@ -247,9 +247,9 @@ errorStatus N_null(cptr* objCptr,env* curEnv)
 		objCptr->value=tmpAtm;
 		tmpAtm->value.num=1;
 	}
-	else if(args[0]->type==PAR)
+	else if(args[0]->type==PAIR)
 	{
-		pair* tmpPair=args[0]->value;
+		prepair* tmpPair=args[0]->value;
 		if(tmpPair->car.type==NIL&&tmpPair->cdr.type==NIL)
 		{
 			atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
@@ -374,7 +374,7 @@ errorStatus N_cond(cptr* objCptr,env* curEnv)
 	int i;
 	for(i=0;i<condNum;i++)
 	{
-		if(condition[i]->type!=PAR)
+		if(condition[i]->type!=PAIR)
 		{
 			status.status=SYNTAXERROR;
 			status.place=newCptr(0,NULL);
@@ -532,9 +532,9 @@ errorStatus N_list(cptr* objCptr,env* curEnv)
 			deleteCptr(result);
 			return status;
 		}
-		tmp->type=PAR;
+		tmp->type=PAIR;
 		tmp->value=newPair(0,tmp->outer);
-		pair* tmpPair=tmp->value;
+		prepair* tmpPair=tmp->value;
 		replace(&tmpPair->car,args[i]);
 		tmp=&tmpPair->cdr;
 	}
@@ -549,7 +549,7 @@ errorStatus N_defmacro(cptr* objCptr,env* curEnv)
 	errorStatus status={0,NULL};
 	deleteCptr(objCptr);
 	cptr** args=dealArg(&objCptr->outer->cdr,2);
-	if(args[0]->type!=PAR)
+	if(args[0]->type!=PAIR)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -583,7 +583,7 @@ errorStatus N_append(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	if(args[0]->type!=PAR)
+	if(args[0]->type!=PAIR)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -591,10 +591,10 @@ errorStatus N_append(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	cptr* tmp=&((pair*)args[0]->value)->car;
+	cptr* tmp=&((prepair*)args[0]->value)->car;
 	while(nextCptr(tmp)!=NULL)tmp=nextCptr(tmp);
-	pair* tmpPair=newPair(0,tmp->outer);
-	tmp->outer->cdr.type=PAR;
+	prepair* tmpPair=newPair(0,tmp->outer);
+	tmp->outer->cdr.type=PAIR;
 	tmp->outer->cdr.value=tmpPair;
 	replace(&tmpPair->car,args[1]);
 	replace(objCptr,args[0]);
@@ -619,7 +619,7 @@ errorStatus N_extend(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	if(args[0]->type!=PAR)
+	if(args[0]->type!=PAIR)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -627,7 +627,7 @@ errorStatus N_extend(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	cptr* tmp=&((pair*)args[0]->value)->car;
+	cptr* tmp=&((prepair*)args[0]->value)->car;
 	while(nextCptr(tmp)!=NULL)tmp=nextCptr(tmp);
 	replace(&tmp->outer->cdr,args[1]);
 	replace(objCptr,args[0]);

@@ -15,7 +15,7 @@ typedef struct StackValue
 	{
 		char* str;
 		struct ExCode* prc;
-		fakepair par;
+		fakepair pair;
 		int32_t num;
 		char chr;
 		double dbl;

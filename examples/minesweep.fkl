@@ -339,6 +339,6 @@
 (main gMap line row bombNum)
 (define rline (add line 2))
 (define rrow (add row 2))
-(print "\033[" (1- (int (div rline 2))) ";" (add rrow 2) "H" "Press any key to quit.")
+(print "\033[" (add (int (div rline 2)) 2) ";" (add rrow 2) "H" "Press any key to quit.")
 (getch)
 (delTerm)

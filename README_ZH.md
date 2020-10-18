@@ -48,7 +48,6 @@ extend
 
 目前可用内置函数及符号有：  
 nil  
-else  
 cons  
 car  
 cdr  

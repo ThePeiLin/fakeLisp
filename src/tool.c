@@ -6,7 +6,7 @@
 #include<math.h>
 #include"tool.h"
 #include"opcode.h"
-#define NUMOFBUILDINSYMBOL 48
+#define NUMOFBUILDINSYMBOL 52
 char* builtInSymbolList[]=
 {
 	"nil",
@@ -25,6 +25,7 @@ char* builtInSymbolList[]=
 	"isstr",
 	"issym",
 	"isprc",
+	"isbyt",
 	"eq",
 	"gt",
 	"ge",
@@ -36,6 +37,7 @@ char* builtInSymbolList[]=
 	"sym",
 	"chr",
 	"int",
+	"byt",
 	"add",
 	"sub",
 	"mul",
@@ -46,12 +48,14 @@ char* builtInSymbolList[]=
 	"length",
 	"append",
 	"strcat",
+	"bytcat",
 	"open",
 	"close",
 	"getc",
 	"getch",
 	"ungetc",
 	"read",
+	"readb",
 	"write",
 	"tell",
 	"seek",

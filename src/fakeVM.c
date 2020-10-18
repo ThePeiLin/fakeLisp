@@ -11,7 +11,7 @@
 #endif
 #include<unistd.h>
 #include<time.h>
-#define NUMOFBUILTINSYMBOL 48
+#define NUMOFBUILTINSYMBOL 52
 static int (*ByteCodes[])(fakeVM*)=
 {
 	B_dummy,
@@ -53,16 +53,19 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_cast_to_dbl,
 	B_cast_to_str,
 	B_cast_to_sym,
+	B_cast_to_byte,
 	B_is_chr,
 	B_is_int,
 	B_is_dbl,
 	B_is_str,
 	B_is_sym,
 	B_is_prc,
+	B_is_byte,
 	B_nth,
 	B_length,
 	B_append,
 	B_str_cat,
+	B_byte_cat,
 	B_open,
 	B_close,
 	B_eq,
@@ -234,6 +237,19 @@ byteCode P_isprc=
 	}
 };
 
+byteCode P_isbyt=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_IS_BYTE,
+		FAKE_END_PROC
+	}
+};
+
 byteCode P_eq=
 {
 	23,
@@ -387,6 +403,19 @@ byteCode P_int=
 	}
 };
 
+byteCode P_byt=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_CAST_TO_BYTE,
+		FAKE_END_PROC
+	}
+};
+
 byteCode P_add=
 {
 	23,
@@ -533,6 +562,21 @@ byteCode P_strcat=
 	}
 };
 
+byteCode P_bytcat=
+{
+	23,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,1,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_PUSH_VAR,1,0,0,0,
+		FAKE_BYTE_CAT,
+		FAKE_END_PROC
+	}
+};
+
 byteCode P_open=
 {
 	23,
@@ -609,6 +653,21 @@ byteCode P_read=
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_READ,
+		FAKE_END_PROC
+	}
+};
+
+byteCode P_readb=
+{
+	23,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,1,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_PUSH_VAR,1,0,0,0,
+		FAKE_READB,
 		FAKE_END_PROC
 	}
 };
@@ -710,6 +769,7 @@ void initGlobEnv(varstack* obj)
 		P_isstr,
 		P_issym,
 		P_isprc,
+		P_isbyt,
 		P_eq,
 		P_gt,
 		P_ge,
@@ -721,6 +781,7 @@ void initGlobEnv(varstack* obj)
 		P_sym,
 		P_chr,
 		P_int,
+		P_byt,
 		P_add,
 		P_sub,
 		P_mul,
@@ -731,12 +792,14 @@ void initGlobEnv(varstack* obj)
 		P_length,
 		P_append,
 		P_strcat,
+		P_bytcat,
 		P_open,
 		P_close,
 		P_getc,
 		P_getch,
 		P_ungetc,
 		P_read,
+		P_readb,
 		P_write,
 		P_tell,
 		P_seek,
@@ -1797,6 +1860,7 @@ int B_cast_to_chr(fakeVM* exe)
 		case CHR:tmpValue->value.chr=topValue->value.chr;break;
 		case STR:
 		case SYM:tmpValue->value.chr=topValue->value.str[0];break;
+		case BYTE:tmpValue->value.dbl=*(char*)topValue->value.byte.arry;break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
 	freeStackValue(topValue);
@@ -1818,6 +1882,7 @@ int B_cast_to_int(fakeVM* exe)
 		case CHR:tmpValue->value.num=topValue->value.chr;break;
 		case STR:
 		case SYM:tmpValue->value.num=stringToInt(topValue->value.str);break;
+		case BYTE:tmpValue->value.dbl=*(int32_t*)topValue->value.byte.arry;break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
 	freeStackValue(topValue);
@@ -1839,6 +1904,7 @@ int B_cast_to_dbl(fakeVM* exe)
 		case CHR:tmpValue->value.dbl=(double)(int32_t)topValue->value.chr;break;
 		case STR:
 		case SYM:tmpValue->value.dbl=stringToDouble(topValue->value.str);break;
+		case BYTE:tmpValue->value.dbl=*(double*)topValue->value.byte.arry;break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
 	freeStackValue(topValue);
@@ -1864,6 +1930,7 @@ int B_cast_to_str(fakeVM* exe)
 				 break;
 		case STR:
 		case SYM:tmpValue->value.str=copyStr(topValue->value.str);break;
+		case BYTE:tmpValue->value.str=copyStr(topValue->value.byte.arry);break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
 	freeStackValue(topValue);
@@ -1889,6 +1956,43 @@ int B_cast_to_sym(fakeVM* exe)
 				 break;
 		case STR:
 		case SYM:tmpValue->value.str=copyStr(topValue->value.str);break;
+		case BYTE:tmpValue->value.str=copyStr(topValue->value.byte.arry);break;
+	}
+	stack->values[stack->tp-1]=tmpValue;
+	freeStackValue(topValue);
+	proc->cp+=1;
+	return 0;
+}
+
+int B_cast_to_byte(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	fakeprocess* proc=exe->curproc;
+	stackvalue* topValue=getTopValue(stack);
+	if(topValue==NULL||topValue->type==PAIR||topValue->type==PRC)return 1;
+	stackvalue* tmpValue=newStackValue(BYTE);
+	switch(topValue->type)
+	{
+		case INT:tmpValue->value.byte.size=sizeof(int32_t);
+				 tmpValue->value.byte.arry=createArry(sizeof(int32_t));
+				 *(int32_t*)tmpValue->value.byte.arry=topValue->value.num;
+				 break;
+		case DBL:tmpValue->value.byte.size=sizeof(double);
+				 tmpValue->value.byte.arry=createArry(sizeof(double));
+				 *(double*)tmpValue->value.byte.arry=topValue->value.dbl;
+				 break;
+		case CHR:tmpValue->value.byte.size=sizeof(char);
+				 tmpValue->value.byte.arry=createArry(sizeof(char));
+				 *(char*)tmpValue->value.byte.arry=topValue->value.chr;
+				 break;
+		case STR:
+		case SYM:tmpValue->value.byte.size=strlen(tmpValue->value.str+1);
+				 tmpValue->value.byte.arry=copyStr(topValue->value.str);
+				 break;
+		case BYTE:tmpValue->value.byte.size=topValue->value.byte.size;
+				  tmpValue->value.byte.arry=createArry(topValue->value.byte.size);
+				  memcpy(tmpValue->value.byte.arry,topValue->value.byte.arry,topValue->value.byte.size);
+				  break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
 	freeStackValue(topValue);
@@ -1998,13 +2102,30 @@ int B_is_prc(fakeVM* exe)
 	return 0;
 }
 
+int B_is_byte(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	fakeprocess* proc=exe->curproc;
+	stackvalue* topValue=getTopValue(stack);
+	if(topValue!=NULL&&topValue->type==BYTE)
+	{
+		stackvalue* tmpValue=newStackValue(INT);
+		tmpValue->value.num=1;
+		stack->values[stack->tp-1]=tmpValue;
+	}
+	else stack->values[stack->tp-1]=NULL;
+	freeStackValue(topValue);
+	proc->cp+=1;
+	return 0;
+}
+
 int B_nth(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
 	fakeprocess* proc=exe->curproc;
 	stackvalue* place=getValue(stack,stack->tp-2);
 	stackvalue* objlist=getTopValue(stack);
-	if(objlist==NULL||place==NULL||(objlist->type!=PAIR&&objlist->type!=STR)||place->type!=INT)return 1;
+	if(objlist==NULL||place==NULL||(objlist->type!=PAIR&&objlist->type!=STR&&objlist->type!=BYTE)||place->type!=INT)return 1;
 	if(objlist->type==PAIR)
 	{
 		stackvalue* obj=getCar(objlist);
@@ -2023,13 +2144,23 @@ int B_nth(fakeVM* exe)
 		stackRecycle(exe);
 		stack->values[stack->tp-1]=obj;
 	}
-	else
+	else if(objlist->type==STR)
 	{
 		stack->tp-=1;
 		stackRecycle(exe);
 		stackvalue* objChr=newStackValue(CHR);
 		objChr->value.chr=objlist->value.str[place->value.num];
 		stack->values[stack->tp-1]=objChr;
+	}
+	else if(objlist->type==BYTE)
+	{
+		stack->tp-=1;
+		stackRecycle(exe);
+		stackvalue* objByte=newStackValue(BYTE);
+		objByte->value.byte.size=1;
+		objByte->value.byte.arry=createArry(sizeof(int8_t));
+		objByte->value.byte.arry[0]=objlist->value.byte.arry[place->value.num];
+		stack->values[stack->tp-1]=objByte;
 	}
 	freeStackValue(objlist);
 	freeStackValue(place);
@@ -2042,7 +2173,7 @@ int B_length(fakeVM* exe)
 	fakestack* stack=exe->stack;
 	fakeprocess* proc=exe->curproc;
 	stackvalue* objlist=getTopValue(stack);
-	if(objlist==NULL||(objlist->type!=PAIR&&objlist->type!=STR))return 1;
+	if(objlist==NULL||(objlist->type!=PAIR&&objlist->type!=STR&&objlist->type!=BYTE))return 1;
 	if(objlist->type==PAIR)
 	{
 		int32_t i=0;
@@ -2051,10 +2182,16 @@ int B_length(fakeVM* exe)
 		num->value.num=i;
 		stack->values[stack->tp-1]=num;
 	}
-	else
+	else if(objlist->type==STR)
 	{
 		stackvalue* len=newStackValue(INT);
 		len->value.num=strlen(objlist->value.str);
+		stack->values[stack->tp-1]=len;
+	}
+	else if(objlist->type==BYTE)
+	{
+		stackvalue* len=newStackValue(INT);
+		len->value.num=objlist->value.byte.size;
 		stack->values[stack->tp-1]=len;
 	}
 	freeStackValue(objlist);
@@ -2089,18 +2226,42 @@ int B_str_cat(fakeVM* exe)
 	fakeprocess* proc=exe->curproc;
 	stackvalue* fir=getTopValue(stack);
 	stackvalue* sec=getValue(stack,stack->tp-2);
-	stack->tp-=1;
-	stackRecycle(exe);
 	if(fir==NULL||sec==NULL||fir->type!=STR||sec->type!=STR)return 1;
 	int firlen=strlen(fir->value.str);
 	int seclen=strlen(sec->value.str);
 	char* tmpStr=(char*)malloc(sizeof(char)*(firlen+seclen+1));
 	if(tmpStr==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	stack->tp-=1;
+	stackRecycle(exe);
 	strcpy(tmpStr,sec->value.str);
 	strcat(tmpStr,fir->value.str);
 	stackvalue* tmpValue=newStackValue(STR);
 	tmpValue->value.str=tmpStr;
 	stack->values[stack->tp-1]=tmpValue;
+	freeStackValue(fir);
+	freeStackValue(sec);
+	proc->cp+=1;
+	return 0;
+}
+
+int B_byte_cat(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	fakeprocess* proc=exe->curproc;
+	stackvalue* fir=getTopValue(stack);
+	stackvalue* sec=getValue(stack,stack->tp-2);
+	if(fir==NULL||sec==NULL||fir->type!=BYTE||sec->type!=BYTE)return 1;
+	int32_t firSize=fir->value.byte.size;
+	int32_t secSize=sec->value.byte.size;
+	stackvalue* tmpByte=newStackValue(BYTE);
+	tmpByte->value.byte.size=firSize+secSize;
+	int8_t* tmpArry=createArry(firSize+secSize);
+	memcpy(tmpArry,sec->value.byte.arry,secSize);
+	memcpy(tmpArry+firSize,fir->value.byte.arry,firSize);
+	tmpByte->value.byte.arry=tmpArry;
+	stack->tp-=1;
+	stackRecycle(exe);
+	stack->values[stack->tp-1]=tmpByte;
 	freeStackValue(fir);
 	freeStackValue(sec);
 	proc->cp+=1;
@@ -2167,6 +2328,7 @@ int B_read(fakeVM* exe)
 	if(file==NULL||file->type!=INT)return 1;
 	if(file->value.num>=files->size)return 2;
 	FILE* tmpFile=files->files[file->value.num];
+	if(tmpFile==NULL)return 2;
 	char* tmpString=getListFromFile(tmpFile);
 	intpr* tmpIntpr=newIntpr(NULL,tmpFile);
 	cptr* tmpCptr=createTree(tmpString,tmpIntpr);
@@ -2178,6 +2340,32 @@ int B_read(fakeVM* exe)
 	free(tmpString);
 	deleteCptr(tmpCptr);
 	free(tmpCptr);
+	freeStackValue(file);
+	proc->cp+=1;
+	return 0;
+}
+
+int B_readb(fakeVM* exe)
+{
+	fakestack* stack=exe->stack;
+	fakeprocess* proc=exe->curproc;
+	filestack* files=exe->files;
+	stackvalue* file=getTopValue(stack);
+	stackvalue* size=getValue(stack,stack->tp-2);
+	if(file==NULL||file->type!=INT||size==NULL||size->type!=INT)return 1;
+	if(file->value.num>=files->size)return 2;
+	FILE* fp=files->files[file->value.num];
+	if(fp==NULL)return 2;
+	stackvalue* tmpBary=newStackValue(BYTE);
+	int8_t* arry=(int8_t*)malloc(sizeof(int8_t)*size->value.num);
+	if(arry==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	fread(arry,sizeof(int8_t),size->value.num,fp);
+	tmpBary->value.byte.size=size->value.num;
+	tmpBary->value.byte.arry=arry;
+	stack->tp-=1;
+	stackRecycle(exe);
+	stack->values[stack->tp-1]=tmpBary;
+	freeStackValue(size);
 	freeStackValue(file);
 	proc->cp+=1;
 	return 0;
@@ -2317,7 +2505,10 @@ stackvalue* newStackValue(valueType type)
 		case STR:tmp->value.str=NULL;break;
 		case PRC:tmp->value.prc=NULL;break;
 		case PAIR:tmp->value.pair.car=NULL;
-				 tmp->value.pair.cdr=NULL;
+				  tmp->value.pair.cdr=NULL;
+				  break;
+		case BYTE:tmp->value.byte.size=0;
+				  tmp->value.byte.arry=NULL;
 	}
 	return tmp;
 }
@@ -2336,6 +2527,8 @@ void freeStackValue(stackvalue* obj)
 		freeStackValue(obj->value.pair.car);
 		freeStackValue(obj->value.pair.cdr);
 	}
+	else if(obj->type==BYTE)
+		free(obj->value.byte.arry);
 	free(obj);
 }
 
@@ -2348,6 +2541,12 @@ stackvalue* copyValue(stackvalue* obj)
 	{
 		tmp->value.pair.car=copyValue(obj->value.pair.car);
 		tmp->value.pair.cdr=copyValue(obj->value.pair.cdr);
+	}
+	else if(obj->type==BYTE)
+	{
+		tmp->value.byte.size=obj->value.byte.size;
+		tmp->value.byte.arry=createArry(obj->value.byte.size);
+		memcpy(tmp->value.byte.arry,obj->value.byte.arry,obj->value.byte.size);
 	}
 	else
 	{
@@ -2448,6 +2647,8 @@ void printStackValue(stackvalue* objValue,FILE* fp)
 				 }
 				 putc(')',fp);
 				 break;
+		case BYTE:printByteArry(objValue->value.byte,fp);
+				  break;
 		default:fprintf(fp,"Bad value!");break;
 	}
 }
@@ -2613,5 +2814,22 @@ void printEnv(varstack* curEnv,FILE* fp)
 	{
 		printStackValue(curEnv->values[i],fp);
 		putc(' ',fp);
+	}
+}
+
+int8_t* createArry(int32_t size)
+{
+	int8_t* tmp=(int8_t*)malloc(sizeof(int8_t)*size);
+	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	return tmp;
+}
+
+void printByteArry(byteArry obj,FILE* fp)
+{
+	for(int i=0;i<obj.size;i++)
+	{
+		int8_t j=obj.arry[i];
+		fprintf(fp,"%X",j%16);
+		fprintf(fp,"%X",j/16);
 	}
 }

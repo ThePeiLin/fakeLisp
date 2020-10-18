@@ -75,6 +75,7 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_getch,
 	B_ungetc,
 	B_read,
+	B_readb,
 	B_write,
 	B_tell,
 	B_seek,

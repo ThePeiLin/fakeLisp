@@ -99,6 +99,7 @@ typedef struct RawProc
 {
 	int32_t count;
 	byteCode* proc;
+//	compEnv* curEnv;
 	struct RawProc* next;
 }rawproc;
 

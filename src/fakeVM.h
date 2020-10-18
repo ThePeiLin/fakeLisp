@@ -10,6 +10,18 @@ typedef struct
 
 typedef struct
 {
+	int32_t count;
+	char* sym;
+}VMsym;
+
+/*typedef struct
+{
+	int32_t size;
+	VMsym* symbols;
+}symlist;*/
+
+typedef struct
+{
 	int32_t size;
 	int8_t* arry;
 }bitArry;
@@ -42,6 +54,7 @@ typedef struct VarStack
 typedef struct ExCode
 {
 	varstack* localenv;
+//	symlist* syms;
 	int32_t refcount;
 	uint32_t size;
 	char* code;
@@ -156,6 +169,7 @@ int B_getc(fakeVM*);
 int B_getch(fakeVM*);
 int B_ungetc(fakeVM*);
 int B_read(fakeVM*);
+int B_readb(fakeVM*);
 int B_write(fakeVM*);
 int B_tell(fakeVM*);
 int B_seek(fakeVM*);

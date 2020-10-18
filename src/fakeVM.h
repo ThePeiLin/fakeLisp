@@ -24,7 +24,7 @@ typedef struct
 {
 	int32_t size;
 	int8_t* arry;
-}bitArry;
+}byteArry;
 
 typedef struct StackValue
 {
@@ -34,7 +34,7 @@ typedef struct StackValue
 		char* str;
 		struct ExCode* prc;
 		fakepair pair;
-		bitArry bary;
+		byteArry byte;
 		int32_t num;
 		char chr;
 		double dbl;
@@ -146,16 +146,19 @@ int B_cast_to_int(fakeVM*);
 int B_cast_to_dbl(fakeVM*);
 int B_cast_to_str(fakeVM*);
 int B_cast_to_sym(fakeVM*);
+int B_cast_to_byte(fakeVM*);
 int B_is_chr(fakeVM*);
 int B_is_int(fakeVM*);
 int B_is_dbl(fakeVM*);
 int B_is_str(fakeVM*);
 int B_is_sym(fakeVM*);
 int B_is_prc(fakeVM*);
+int B_is_byte(fakeVM*);
 int B_nth(fakeVM*);
 int B_length(fakeVM*);
 int B_append(fakeVM*);
 int B_str_cat(fakeVM*);
+int B_byte_cat(fakeVM*);
 int B_eq(fakeVM*);
 int B_gt(fakeVM*);
 int B_ge(fakeVM*);
@@ -205,6 +208,8 @@ static stackvalue* acceptMassage(fakeVM*);
 static stackvalue* castCptrStackValue(const cptr*);
 static fakeprocess* hasSameProc(excode*,fakeprocess*);
 static int isTheLastExpress(const fakeprocess*,const fakeprocess*);
+static void printByteArry(byteArry,FILE*);
+static int8_t* createArry(int32_t);
 #ifndef _WIN32
 static int getch();
 #endif

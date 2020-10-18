@@ -6,7 +6,7 @@
 #define SYMUNDEFINE 1
 #define SYNTAXERROR 2
 
-typedef enum{NIL,SYM,STR,INT,CHR,BARY,DBL,PAIR,PRC,ATM} valueType;
+typedef enum{NIL,SYM,STR,INT,CHR,BYTE,DBL,PAIR,PRC,ATM} valueType;
 
 typedef struct
 {

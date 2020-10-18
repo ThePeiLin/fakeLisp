@@ -48,6 +48,10 @@ extend
 
 目前可用内置函数及符号有：  
 nil  
+EOF  
+stdin  
+stdout  
+stderr  
 cons  
 car  
 cdr  
@@ -59,6 +63,7 @@ isdbl
 isstr  
 issym  
 isprc  
+isbyt  
 eq  
 gt  
 ge  
@@ -70,6 +75,7 @@ str
 sym  
 chr  
 int  
+byt  
 add  
 sub  
 mul  
@@ -78,6 +84,7 @@ mod
 gchstr  
 strlen  
 strcat  
+bytcat  
 open  
 close  
 getc  

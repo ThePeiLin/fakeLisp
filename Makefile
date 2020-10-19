@@ -2,27 +2,32 @@ OS := $(shell uname -s)
 IS_LINUX := $(shell echo $(OS)|grep -i linux)
 objectOfFakeLisp=fakeLisp.o form.o tool.o preprocess.o syntax.o compiler.o fakeVM.o
 objectOfFakeLispc=fakeLispc.o form.o tool.o preprocess.o syntax.o compiler.o
+ifeq ($(DEBUG),YES)
+FLAG=-g -W
+else
+FLAG=-W
+endif
 form.o: src/form.* src/fakedef.h
-	gcc -g -c -W src/form.c
+	gcc $(FLAG) -c src/form.c
 tool.o: src/tool.* src/fakedef.h
-	gcc -g -c -W src/tool.c
+	gcc $(FLAG) -c src/tool.c
 preprocess.o: src/preprocess.* src/fakedef.h
-	gcc -g -c -W src/preprocess.c
+	gcc $(FLAG) -c src/preprocess.c
 syntax.o: src/syntax.* src/fakedef.h
-	gcc -g -c -W src/syntax.c
+	gcc $(FLAG) -c src/syntax.c
 fakeLisp.o: src/fakeLisp.* src/fakedef.h
-	gcc -g -c -W src/fakeLisp.c
+	gcc $(FLAG) -c src/fakeLisp.c
 compiler.o: src/compiler.* src/opcode.h src/fakedef.h
-	gcc -g -c -W src/compiler.c
+	gcc $(FLAG) -c src/compiler.c
 fakeVM.o: src/fakeVM.* src/fakedef.h
-	gcc -g -c -W src/fakeVM.c
+	gcc $(FLAG) -c src/fakeVM.c
 fakeLispc.o: src/fakeLispc.* src/fakedef.h
-	gcc -g -c -W src/fakeLispc.c
+	gcc $(FLAG) -c src/fakeLispc.c
 fakeLisp: $(objectOfFakeLisp) $(objectOfFakeLispc)
-	gcc -g -o fakeLisp $(objectOfFakeLisp)
-	gcc -g -o fakeLispc $(objectOfFakeLispc)
+	gcc -o fakeLisp $(objectOfFakeLisp)
+	gcc -o fakeLispc $(objectOfFakeLispc)
 fakeLispc: $(objectOfFakeLispc)
-	gcc -g -o fakeLispc $(objectOfFakeLispc)
+	gcc -o fakeLispc $(objectOfFakeLispc)
 
 .PHONY: clean
 clean:

@@ -6,7 +6,7 @@
 #include<math.h>
 #include"tool.h"
 #include"opcode.h"
-#define NUMOFBUILDINSYMBOL 52
+#define NUMOFBUILDINSYMBOL 54
 char* builtInSymbolList[]=
 {
 	"nil",
@@ -57,6 +57,8 @@ char* builtInSymbolList[]=
 	"read",
 	"readb",
 	"write",
+	"writeb",
+	"princ",
 	"tell",
 	"seek",
 	"rewind",
@@ -151,10 +153,11 @@ char* getListFromFile(FILE* file)
 			memSize=lenOfStr+1;
 		}
 	}
-	if(ch==EOF&&braketsNum!=0&&file!=stdin)
+	if(ch==EOF&&braketsNum!=0)
 	{
+		fprintf(stderr,"%s:Syntax error.\n",tmp);
 		free(tmp);
-		return NULL;
+		exit(EXIT_FAILURE);
 	}
 	return tmp;
 }
@@ -1093,7 +1096,7 @@ void printList(const cptr* objCptr,FILE* out)
 void exError(const cptr* obj,int type,intpr* inter)
 {
 	if(inter!=NULL)printf("In file \"%s\",line %d\n",inter->filename,(obj==NULL)?inter->curline:obj->curline);
-	printList(obj,stdout);
+	if(obj!=NULL)printList(obj,stdout);
 	switch(type)
 	{
 		case SYMUNDEFINE:printf(":Symbol is undefined.\n");break;

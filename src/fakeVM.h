@@ -106,6 +106,7 @@ typedef struct
 
 void runFakeVM(fakeVM*);
 void printStackValue(stackvalue*,FILE*);
+void princStackValue(stackvalue*,FILE*);
 fakeVM* newFakeVM(byteCode*,byteCode*);
 void initGlobEnv(varstack*);
 int B_dummy(fakeVM*);
@@ -174,6 +175,8 @@ int B_ungetc(fakeVM*);
 int B_read(fakeVM*);
 int B_readb(fakeVM*);
 int B_write(fakeVM*);
+int B_writeb(fakeVM*);
+int B_princ(fakeVM*);
 int B_tell(fakeVM*);
 int B_seek(fakeVM*);
 int B_rewind(fakeVM*);

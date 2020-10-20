@@ -78,6 +78,11 @@ char* getListFromFile(FILE* file)
 	tmp[0]='\0';
 	while((ch=getc(file))!=EOF)
 	{
+		if(lenOfStr!=0&&tmp[lenOfStr-1]==')'&&ch=='('&&braketsNum==0)
+		{
+			ungetc(ch,file);
+			break;
+		}
 		if(!isspace(ch))anotherChar=1;
 		if(ch==';')
 		{
@@ -153,7 +158,7 @@ char* getListFromFile(FILE* file)
 			memSize=lenOfStr+1;
 		}
 	}
-	if(ch==EOF&&braketsNum!=0)
+	if(braketsNum!=0)
 	{
 		fprintf(stderr,"%s:Syntax error.\n",tmp);
 		free(tmp);
@@ -508,6 +513,17 @@ cptr* createTree(const char* objStr,intpr* inter)
 	{
 		if(*(objStr+i)=='(')
 		{
+			if(*(objStr+i-1)==')')
+			{
+				if(objPair!=NULL)
+				{
+					prepair* tmp=newPair(inter->curline,objPair);
+					objPair->cdr.type=PAIR;
+					objPair->cdr.value=(void*)tmp;
+					objPair=tmp;
+					objCptr=&objPair->car;
+				}
+			}
 			i++;
 			braketsNum++;
 			if(root==NULL)

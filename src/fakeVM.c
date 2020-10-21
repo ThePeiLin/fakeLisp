@@ -1187,6 +1187,7 @@ int B_pop_var(fakeVM* exe)
 	fakestack* stack=exe->stack;
 	fakeprocess* proc=exe->curproc;
 	excode* tmpCode=proc->code;
+	if(!(stack->tp>stack->bp))return 2;
 	int32_t countOfVar=*(int32_t*)(tmpCode->code+proc->cp+1);
 	varstack* curEnv=proc->localenv;
 	while(curEnv->bound==-1||countOfVar<curEnv->bound)curEnv=curEnv->prev;
@@ -1202,13 +1203,10 @@ int B_pop_var(fakeVM* exe)
 		pValue=curEnv->values+countOfVar-(curEnv->bound);
 		freeStackValue(*pValue);
 	}
-	if(stack->tp>stack->bp)
-	{
-		*pValue=getTopValue(stack);
-		stack->values[stack->tp-1]=NULL;
-		stack->tp-=1;
-		stackRecycle(exe);
-	}else return 2;
+	*pValue=getTopValue(stack);
+	stack->values[stack->tp-1]=NULL;
+	stack->tp-=1;
+	stackRecycle(exe);
 	proc->cp+=5;
 	return 0;
 }
@@ -2930,11 +2928,16 @@ int getch()
 
 void printEnv(varstack* curEnv,FILE* fp)
 {
-	fprintf(fp,"ENV:");
-	for(int i=0;i<curEnv->size;i++)
+	if(curEnv->size==0)
+		fprintf(fp,"This ENV is empty!");
+	else
 	{
-		printStackValue(curEnv->values[i],fp);
-		putc(' ',fp);
+		fprintf(fp,"ENV:");
+		for(int i=0;i<curEnv->size;i++)
+		{
+			printStackValue(curEnv->values[i],fp);
+			putc(' ',fp);
+		}
 	}
 }
 

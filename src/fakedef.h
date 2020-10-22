@@ -6,13 +6,13 @@
 #define SYMUNDEFINE 1
 #define SYNTAXERROR 2
 
-typedef enum{NIL,SYM,STR,INT,CHR,BYTE,DBL,PAIR,PRC,ATM} valueType;
+typedef enum{NIL,SYM,STR,INT,CHR,BYTE,DBL,PAIR,PRC,ATM} ValueType;
 
 typedef struct
 {
 	struct Pair* outer;
 	int curline;
-	valueType type;
+	ValueType type;
 	void* value;
 }cptr;
 
@@ -25,7 +25,7 @@ typedef struct Pair
 typedef struct Atom
 {
 	prepair* prev;
-	valueType type;
+	ValueType type;
 	union
 	{
 		char* str;

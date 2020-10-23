@@ -2,6 +2,6 @@
 #define FAKELISPC_H
 #include"fakedef.h"
 void initEvalution();
-byteCode* compileFile(intpr*);
-byteCode* castRawproc(rawproc*);
+ByteCode* compileFile(intpr*);
+ByteCode* castRawproc(RawProc*);
 #endif

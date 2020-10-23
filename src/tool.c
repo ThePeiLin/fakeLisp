@@ -1128,10 +1128,10 @@ void printRawChar(char chr,FILE* out)
 		fprintf(out,"#\\\\0x%x",(int)chr);
 }
 
-env* newEnv(env* prev)
+PreEnv* newEnv(PreEnv* prev)
 {
-	env* curEnv=NULL;
-	if(!(curEnv=(env*)malloc(sizeof(env))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+	PreEnv* curEnv=NULL;
+	if(!(curEnv=(PreEnv*)malloc(sizeof(PreEnv))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	if(prev!=NULL)prev->next=curEnv;
 	curEnv->prev=prev;
 	curEnv->next=NULL;
@@ -1139,21 +1139,21 @@ env* newEnv(env* prev)
 	return curEnv;
 }
 
-void destroyEnv(env* objEnv)
+void destroyEnv(PreEnv* objEnv)
 {
 	if(objEnv==NULL)return;
 	while(objEnv!=NULL)
 	{
-		defines* delsym=objEnv->symbols;
+		PreDef* delsym=objEnv->symbols;
 		while(delsym!=NULL)
 		{
 			free(delsym->symName);
 			deleteCptr(&delsym->obj);
-			defines* prev=delsym;
+			PreDef* prev=delsym;
 			delsym=delsym->next;
 			free(prev);
 		}
-		env* prev=objEnv;
+		PreEnv* prev=objEnv;
 		objEnv=objEnv->next;
 		free(prev);
 	}
@@ -1177,10 +1177,10 @@ void freeIntpr(intpr* inter)
 	free(inter->filename);
 	fclose(inter->file);
 	destroyCompEnv(inter->glob);
-	rawproc* tmp=inter->procs;
+	RawProc* tmp=inter->procs;
 	while(tmp!=NULL)
 	{
-		rawproc* prev=tmp;
+		RawProc* prev=tmp;
 		tmp=tmp->next;
 		freeByteCode(prev->proc);
 		free(prev);
@@ -1188,21 +1188,21 @@ void freeIntpr(intpr* inter)
 	free(inter);
 }
 
-compEnv* newCompEnv(compEnv* prev)
+CompEnv* newCompEnv(CompEnv* prev)
 {
-	compEnv* tmp=(compEnv*)malloc(sizeof(compEnv));
+	CompEnv* tmp=(CompEnv*)malloc(sizeof(CompEnv));
 	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp->prev=prev;
 	tmp->symbols=NULL;
 	return tmp;
 }
 
-void destroyCompEnv(compEnv* objEnv)
+void destroyCompEnv(CompEnv* objEnv)
 {
-	compDef* tmpDef=objEnv->symbols;
+	CompDef* tmpDef=objEnv->symbols;
 	while(tmpDef!=NULL)
 	{
-		compDef* prev=tmpDef;
+		CompDef* prev=tmpDef;
 		tmpDef=tmpDef->next;
 		free(prev->symName);
 		free(prev);
@@ -1210,24 +1210,24 @@ void destroyCompEnv(compEnv* objEnv)
 	free(objEnv);
 }
 
-compDef* findCompDef(const char* name,compEnv* curEnv)
+CompDef* findCompDef(const char* name,CompEnv* curEnv)
 {
 	if(curEnv->symbols==NULL)return NULL;
 	else
 	{
-		compDef* curDef=curEnv->symbols;
+		CompDef* curDef=curEnv->symbols;
 		while(curDef&&strcmp(name,curDef->symName))
 			curDef=curDef->next;
 		return curDef;
 	}
 }
 
-compDef* addCompDef(compEnv* curEnv,const char* name)
+CompDef* addCompDef(CompEnv* curEnv,const char* name)
 {
 	if(curEnv->symbols==NULL)
 	{
-		compEnv* tmpEnv=curEnv->prev;
-		if(!(curEnv->symbols=(compDef*)malloc(sizeof(compDef))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+		CompEnv* tmpEnv=curEnv->prev;
+		if(!(curEnv->symbols=(CompDef*)malloc(sizeof(CompDef))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 		if(!(curEnv->symbols->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 		strcpy(curEnv->symbols->symName,name);
 		while(tmpEnv!=NULL&&tmpEnv->symbols==NULL)tmpEnv=tmpEnv->prev;
@@ -1235,7 +1235,7 @@ compDef* addCompDef(compEnv* curEnv,const char* name)
 			curEnv->symbols->count=0;
 		else
 		{
-			compDef* tmpDef=tmpEnv->symbols;
+			CompDef* tmpDef=tmpEnv->symbols;
 			while(tmpDef->next!=NULL)tmpDef=tmpDef->next;
 			curEnv->symbols->count=tmpDef->count+1;
 		}
@@ -1244,12 +1244,12 @@ compDef* addCompDef(compEnv* curEnv,const char* name)
 	}
 	else
 	{
-		compDef* curDef=findCompDef(name,curEnv);
+		CompDef* curDef=findCompDef(name,curEnv);
 		if(curDef==NULL)
 		{
-			compDef* prevDef=curEnv->symbols;
+			CompDef* prevDef=curEnv->symbols;
 			while(prevDef->next!=NULL)prevDef=prevDef->next;
-			if(!(curDef=(compDef*)malloc(sizeof(compDef))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+			if(!(curDef=(CompDef*)malloc(sizeof(CompDef))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 			if(!(curDef->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 			strcpy(curDef->symName,name);
 			prevDef->next=curDef;
@@ -1260,9 +1260,9 @@ compDef* addCompDef(compEnv* curEnv,const char* name)
 	}
 }
 
-rawproc* newRawProc(int32_t count)
+RawProc* newRawProc(int32_t count)
 {
-	rawproc* tmp=(rawproc*)malloc(sizeof(rawproc));
+	RawProc* tmp=(RawProc*)malloc(sizeof(RawProc));
 	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp->count=count;
 	tmp->proc=NULL;
@@ -1270,21 +1270,21 @@ rawproc* newRawProc(int32_t count)
 	return tmp;
 }
 
-rawproc* addRawProc(byteCode* proc,intpr* inter)
+RawProc* addRawProc(ByteCode* proc,intpr* inter)
 {
-	byteCode* tmp=createByteCode(proc->size);
+	ByteCode* tmp=createByteCode(proc->size);
 	memcpy(tmp->code,proc->code,proc->size);
-	rawproc* tmpProc=newRawProc((inter->procs==NULL)?0:inter->procs->count+1);
+	RawProc* tmpProc=newRawProc((inter->procs==NULL)?0:inter->procs->count+1);
 	tmpProc->proc=tmp;
 	tmpProc->next=inter->procs;
 	inter->procs=tmpProc;
 	return tmpProc;
 }
 
-byteCode* createByteCode(unsigned int size)
+ByteCode* createByteCode(unsigned int size)
 {
-	byteCode* tmp=NULL;
-	if(!(tmp=(byteCode*)malloc(sizeof(byteCode))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+	ByteCode* tmp=NULL;
+	if(!(tmp=(ByteCode*)malloc(sizeof(ByteCode))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp->size=size;
 	if(!(tmp->code=(char*)malloc(size*sizeof(char))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	uint32_t i=0;
@@ -1292,28 +1292,28 @@ byteCode* createByteCode(unsigned int size)
 	return tmp;
 }
 
-void freeByteCode(byteCode* obj)
+void freeByteCode(ByteCode* obj)
 {
 	free(obj->code);
 	free(obj);
 }
 
-byteCode* codeCat(const byteCode* fir,const byteCode* sec)
+ByteCode* codeCat(const ByteCode* fir,const ByteCode* sec)
 {
-	byteCode* tmp=createByteCode(fir->size+sec->size);
+	ByteCode* tmp=createByteCode(fir->size+sec->size);
 	memcpy(tmp->code,fir->code,fir->size);
 	memcpy(tmp->code+fir->size,sec->code,sec->size);
 	return tmp;
 }
 
-byteCode* copyByteCode(const byteCode* obj)
+ByteCode* copyByteCode(const ByteCode* obj)
 {
-	byteCode* tmp=createByteCode(obj->size);
+	ByteCode* tmp=createByteCode(obj->size);
 	memcpy(tmp->code,obj->code,obj->size);
 	return tmp;
 }
 
-void initCompEnv(compEnv* curEnv)
+void initCompEnv(CompEnv* curEnv)
 {
 	int i=0;
 	for(;i<NUMOFBUILDINSYMBOL;i++)
@@ -1365,7 +1365,7 @@ ANS_cptr* getFirst(const ANS_cptr* objList)
 	return first;
 }
 
-void printByteCode(const byteCode* tmpCode,FILE* fp)
+void printByteCode(const ByteCode* tmpCode,FILE* fp)
 {
 	uint32_t i=0;
 	while(i<tmpCode->size)

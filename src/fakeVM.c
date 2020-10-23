@@ -92,7 +92,7 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_accept*/
 };
 
-byteCode P_cons=
+ByteCode P_cons=
 {
 	25,
 	(char[])
@@ -109,7 +109,7 @@ byteCode P_cons=
 	}
 };
 
-byteCode P_car=
+ByteCode P_car=
 {
 	13,
 	(char[])
@@ -122,7 +122,7 @@ byteCode P_car=
 	}
 };
 
-byteCode P_cdr=
+ByteCode P_cdr=
 {
 	13,
 	(char[])
@@ -135,7 +135,7 @@ byteCode P_cdr=
 	}
 };
 
-byteCode P_ANS_atom=
+ByteCode P_ANS_atom=
 {
 	13,
 	(char[])
@@ -148,7 +148,7 @@ byteCode P_ANS_atom=
 	}
 };
 
-byteCode P_null=
+ByteCode P_null=
 {
 	13,
 	(char[])
@@ -161,7 +161,7 @@ byteCode P_null=
 	}
 };
 
-byteCode P_isint=
+ByteCode P_isint=
 {
 	13,
 	(char[])
@@ -174,7 +174,7 @@ byteCode P_isint=
 	}
 };
 
-byteCode P_ischr=
+ByteCode P_ischr=
 {
 	13,
 	(char[])
@@ -187,7 +187,7 @@ byteCode P_ischr=
 	}
 };
 
-byteCode P_isdbl=
+ByteCode P_isdbl=
 {
 	13,
 	(char[])
@@ -200,7 +200,7 @@ byteCode P_isdbl=
 	}
 };
 
-byteCode P_isstr=
+ByteCode P_isstr=
 {
 	13,
 	(char[])
@@ -213,7 +213,7 @@ byteCode P_isstr=
 	}
 };
 
-byteCode P_issym=
+ByteCode P_issym=
 {
 	13,
 	(char[])
@@ -226,7 +226,7 @@ byteCode P_issym=
 	}
 };
 
-byteCode P_isprc=
+ByteCode P_isprc=
 {
 	13,
 	(char[])
@@ -239,7 +239,7 @@ byteCode P_isprc=
 	}
 };
 
-byteCode P_isbyt=
+ByteCode P_isbyt=
 {
 	13,
 	(char[])
@@ -252,7 +252,7 @@ byteCode P_isbyt=
 	}
 };
 
-byteCode P_eq=
+ByteCode P_eq=
 {
 	23,
 	(char[])
@@ -267,7 +267,7 @@ byteCode P_eq=
 	}
 };
 
-byteCode P_gt=
+ByteCode P_gt=
 {
 	23,
 	(char[])
@@ -282,7 +282,7 @@ byteCode P_gt=
 	}
 };
 
-byteCode P_ge=
+ByteCode P_ge=
 {
 	23,
 	(char[])
@@ -297,7 +297,7 @@ byteCode P_ge=
 	}
 };
 
-byteCode P_lt=
+ByteCode P_lt=
 {
 	23,
 	(char[])
@@ -312,7 +312,7 @@ byteCode P_lt=
 	}
 };
 
-byteCode P_le=
+ByteCode P_le=
 {
 	23,
 	(char[])
@@ -327,7 +327,7 @@ byteCode P_le=
 	}
 };
 
-byteCode P_not=
+ByteCode P_not=
 {
 	13,
 	(char[])
@@ -340,7 +340,7 @@ byteCode P_not=
 	}
 };
 
-byteCode P_dbl=
+ByteCode P_dbl=
 {
 	13,
 	(char[])
@@ -353,7 +353,7 @@ byteCode P_dbl=
 	}
 };
 
-byteCode P_str=
+ByteCode P_str=
 {
 	13,
 	(char[])
@@ -366,7 +366,7 @@ byteCode P_str=
 	}
 };
 
-byteCode P_sym=
+ByteCode P_sym=
 {
 	13,
 	(char[])
@@ -379,7 +379,7 @@ byteCode P_sym=
 	}
 };
 
-byteCode P_chr=
+ByteCode P_chr=
 {
 	13,
 	(char[])
@@ -392,7 +392,7 @@ byteCode P_chr=
 	}
 };
 
-byteCode P_int=
+ByteCode P_int=
 {
 	13,
 	(char[])
@@ -405,7 +405,7 @@ byteCode P_int=
 	}
 };
 
-byteCode P_byt=
+ByteCode P_byt=
 {
 	13,
 	(char[])
@@ -418,7 +418,7 @@ byteCode P_byt=
 	}
 };
 
-byteCode P_add=
+ByteCode P_add=
 {
 	23,
 	(char[])
@@ -433,7 +433,7 @@ byteCode P_add=
 	}
 };
 
-byteCode P_sub=
+ByteCode P_sub=
 {
 	23,
 	(char[])
@@ -448,7 +448,7 @@ byteCode P_sub=
 	}
 };
 
-byteCode P_mul=
+ByteCode P_mul=
 {
 	23,
 	(char[])
@@ -463,7 +463,7 @@ byteCode P_mul=
 	}
 };
 
-byteCode P_div=
+ByteCode P_div=
 {
 	23,
 	(char[])
@@ -478,7 +478,7 @@ byteCode P_div=
 	}
 };
 
-byteCode P_mod=
+ByteCode P_mod=
 {
 	23,
 	(char[])
@@ -493,7 +493,7 @@ byteCode P_mod=
 	}
 };
 
-byteCode P_rand=
+ByteCode P_rand=
 {
 	13,
 	(char[])
@@ -506,7 +506,7 @@ byteCode P_rand=
 	}
 };
 
-byteCode P_nth=
+ByteCode P_nth=
 {
 	23,
 	(char[])
@@ -521,7 +521,7 @@ byteCode P_nth=
 	}
 };
 
-byteCode P_length=
+ByteCode P_length=
 {
 	13,
 	(char[])
@@ -534,7 +534,7 @@ byteCode P_length=
 	}
 };
 
-byteCode P_append=
+ByteCode P_append=
 {
 	23,
 	(char[])
@@ -549,7 +549,7 @@ byteCode P_append=
 	}
 };
 
-byteCode P_strcat=
+ByteCode P_strcat=
 {
 	23,
 	(char[])
@@ -564,7 +564,7 @@ byteCode P_strcat=
 	}
 };
 
-byteCode P_bytcat=
+ByteCode P_bytcat=
 {
 	23,
 	(char[])
@@ -579,7 +579,7 @@ byteCode P_bytcat=
 	}
 };
 
-byteCode P_open=
+ByteCode P_open=
 {
 	23,
 	(char[])
@@ -594,7 +594,7 @@ byteCode P_open=
 	}
 };
 
-byteCode P_close=
+ByteCode P_close=
 {
 	13,
 	(char[])
@@ -607,7 +607,7 @@ byteCode P_close=
 	}
 };
 
-byteCode P_getc=
+ByteCode P_getc=
 {
 	13,
 	(char[])
@@ -620,7 +620,7 @@ byteCode P_getc=
 	}
 };
 
-byteCode P_getch=
+ByteCode P_getch=
 {
 	3,
 	(char[])
@@ -631,7 +631,7 @@ byteCode P_getch=
 	}
 };
 
-byteCode P_ungetc=
+ByteCode P_ungetc=
 {
 	23,
 	(char[])
@@ -646,7 +646,7 @@ byteCode P_ungetc=
 	}
 };
 
-byteCode P_read=
+ByteCode P_read=
 {
 	13,
 	(char[])
@@ -659,7 +659,7 @@ byteCode P_read=
 	}
 };
 
-byteCode P_readb=
+ByteCode P_readb=
 {
 	23,
 	(char[])
@@ -674,7 +674,7 @@ byteCode P_readb=
 	}
 };
 
-byteCode P_write=
+ByteCode P_write=
 {
 	23,
 	(char[])
@@ -689,7 +689,7 @@ byteCode P_write=
 	}
 };
 
-byteCode P_writeb=
+ByteCode P_writeb=
 {
 	23,
 	(char[])
@@ -704,7 +704,7 @@ byteCode P_writeb=
 	}
 };
 
-byteCode P_princ=
+ByteCode P_princ=
 {
 	23,
 	(char[])
@@ -719,7 +719,7 @@ byteCode P_princ=
 	}
 };
 
-byteCode P_tell=
+ByteCode P_tell=
 {
 	13,
 	(char[])
@@ -732,7 +732,7 @@ byteCode P_tell=
 	}
 };
 
-byteCode P_seek=
+ByteCode P_seek=
 {
 	23,
 	(char[])
@@ -747,7 +747,7 @@ byteCode P_seek=
 	}
 };
 
-byteCode P_rewind=
+ByteCode P_rewind=
 {
 	13,
 	(char[])
@@ -760,7 +760,7 @@ byteCode P_rewind=
 	}
 };
 
-byteCode P_exit=
+ByteCode P_exit=
 {
 	13,
 	(char[])
@@ -773,7 +773,7 @@ byteCode P_exit=
 	}
 };
 
-fakeVM* newFakeVM(byteCode* mainproc,byteCode* procs)
+fakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 {
 	fakeVM* exe=(fakeVM*)malloc(sizeof(fakeVM));
 	if(exe==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
@@ -788,7 +788,7 @@ fakeVM* newFakeVM(byteCode* mainproc,byteCode* procs)
 
 void initGlobEnv(varstack* obj)
 {
-	byteCode buildInProcs[]=
+	ByteCode buildInProcs[]=
 	{
 		P_cons,
 		P_car,
@@ -866,7 +866,7 @@ void runFakeVM(fakeVM* exe)
 	{
 		fakeprocess* curproc=exe->curproc;
 		excode* tmpCode=curproc->code;
-		byteCode tmpByteCode={tmpCode->size,tmpCode->code};
+		ByteCode tmpByteCode={tmpCode->size,tmpCode->code};
 	//	fprintf(stderr,"%s\n",codeName[tmpCode->code[curproc->cp]].codeName);
 		int status=ByteCodes[tmpCode->code[curproc->cp]](exe);
 		if(status!=0)
@@ -2537,7 +2537,7 @@ int B_exit(fakeVM* exe)
 	proc->cp+=1;
 	return 0;
 }
-excode* newExcode(byteCode* proc)
+excode* newExcode(ByteCode* proc)
 {
 	excode* tmp=(excode*)malloc(sizeof(excode));
 	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
@@ -2671,7 +2671,7 @@ varstack* newVarStack(int32_t bound,int inProc,varstack* prev)
 	tmp->values=NULL;
 	tmp->next=NULL;
 	tmp->prev=prev;
-//	fprintf(stderr,"New env: %p\n",tmp);
+//	fprintf(stderr,"New PreEnv: %p\n",tmp);
 	return tmp;
 }
 
@@ -2685,7 +2685,7 @@ void freeVarStack(varstack* obj)
 			for(;tmp<obj->values+obj->size;tmp++)freeStackValue(*tmp);
 		}
 		if(obj->prev!=NULL&&obj->prev->next==obj)obj->prev->next=NULL;
-	//	fprintf(stderr,"Free env:%p\n",obj);
+	//	fprintf(stderr,"Free PreEnv:%p\n",obj);
 		free(obj);
 	}
 }
@@ -2797,7 +2797,7 @@ void stackRecycle(fakeVM* exe)
 	fakestack* stack=exe->stack;
 	fakeprocess* curproc=exe->curproc;
 	excode* tmpCode=curproc->code;
-	byteCode tmpByteCode={tmpCode->size,tmpCode->code};
+	ByteCode tmpByteCode={tmpCode->size,tmpCode->code};
 	if(stack->size-stack->tp>64)
 	{
 	//	size_t newSize=stack->size-64;
@@ -2816,7 +2816,7 @@ void stackRecycle(fakeVM* exe)
 	}
 }
 
-excode* newBuiltInProc(byteCode* proc)
+excode* newBuiltInProc(ByteCode* proc)
 {
 	excode* tmp=(excode*)malloc(sizeof(excode));
 	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);

@@ -75,7 +75,7 @@ int isFalse(const ANS_cptr* objCptr)
 	return 0;
 }
 
-ErrorStatus N_quote(ANS_cptr* objCptr,env* curEnv)
+ErrorStatus N_quote(ANS_cptr* objCptr,PreEnv* curEnv)
 {
 	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
@@ -85,7 +85,7 @@ ErrorStatus N_quote(ANS_cptr* objCptr,env* curEnv)
 	return status;
 }
 
-ErrorStatus N_car(ANS_cptr* objCptr,env* curEnv)
+ErrorStatus N_car(ANS_cptr* objCptr,PreEnv* curEnv)
 {
 	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
@@ -109,7 +109,7 @@ ErrorStatus N_car(ANS_cptr* objCptr,env* curEnv)
 	return status;
 }
 
-ErrorStatus N_cdr(ANS_cptr* objCptr,env* curEnv)
+ErrorStatus N_cdr(ANS_cptr* objCptr,PreEnv* curEnv)
 {
 	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
@@ -133,7 +133,7 @@ ErrorStatus N_cdr(ANS_cptr* objCptr,env* curEnv)
 	return status;
 }
 
-ErrorStatus N_cons(ANS_cptr* objCptr,env* curEnv)
+ErrorStatus N_cons(ANS_cptr* objCptr,PreEnv* curEnv)
 {
 	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
@@ -158,7 +158,7 @@ ErrorStatus N_cons(ANS_cptr* objCptr,env* curEnv)
 	return status;
 }
 
-ErrorStatus N_eq(ANS_cptr* objCptr,env* curEnv)
+ErrorStatus N_eq(ANS_cptr* objCptr,PreEnv* curEnv)
 {
 	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
@@ -191,7 +191,7 @@ ErrorStatus N_eq(ANS_cptr* objCptr,env* curEnv)
 	return status;
 }
 
-ErrorStatus N_ANS_atom(ANS_cptr* objCptr,env* curEnv)
+ErrorStatus N_ANS_atom(ANS_cptr* objCptr,PreEnv* curEnv)
 {
 	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
@@ -229,7 +229,7 @@ ErrorStatus N_ANS_atom(ANS_cptr* objCptr,env* curEnv)
 	return status;
 }
 
-ErrorStatus N_null(ANS_cptr* objCptr,env* curEnv)
+ErrorStatus N_null(ANS_cptr* objCptr,PreEnv* curEnv)
 {
 	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
@@ -272,7 +272,7 @@ ErrorStatus N_null(ANS_cptr* objCptr,env* curEnv)
 	return status;
 }
 
-ErrorStatus N_and(ANS_cptr* objCptr,env* curEnv)
+ErrorStatus N_and(ANS_cptr* objCptr,PreEnv* curEnv)
 {
 	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
@@ -305,7 +305,7 @@ ErrorStatus N_and(ANS_cptr* objCptr,env* curEnv)
 	return status;
 }
 
-ErrorStatus N_or(ANS_cptr* objCptr,env* curEnv)
+ErrorStatus N_or(ANS_cptr* objCptr,PreEnv* curEnv)
 {
 	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
@@ -338,7 +338,7 @@ ErrorStatus N_or(ANS_cptr* objCptr,env* curEnv)
 	return status;
 }
 
-ErrorStatus N_not(ANS_cptr* objCptr,env* curEnv)
+ErrorStatus N_not(ANS_cptr* objCptr,PreEnv* curEnv)
 {
 	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
@@ -365,7 +365,7 @@ ErrorStatus N_not(ANS_cptr* objCptr,env* curEnv)
 	return status;
 }
 
-ErrorStatus N_cond(ANS_cptr* objCptr,env* curEnv)
+ErrorStatus N_cond(ANS_cptr* objCptr,PreEnv* curEnv)
 {
 	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
@@ -417,7 +417,7 @@ ErrorStatus N_cond(ANS_cptr* objCptr,env* curEnv)
 	return status;
 }
 
-ErrorStatus N_define(ANS_cptr* objCptr,env* curEnv)
+ErrorStatus N_define(ANS_cptr* objCptr,PreEnv* curEnv)
 {
 	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
@@ -451,7 +451,7 @@ ErrorStatus N_define(ANS_cptr* objCptr,env* curEnv)
 	return status;
 }
 
-ErrorStatus N_lambda(ANS_cptr* objCptr,env* curEnv)
+ErrorStatus N_lambda(ANS_cptr* objCptr,PreEnv* curEnv)
 {
 	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
@@ -461,7 +461,7 @@ ErrorStatus N_lambda(ANS_cptr* objCptr,env* curEnv)
 		status.place=newCptr(0,NULL);
 		return status;
 	}
-	env* tmpEnv=newEnv(curEnv);
+	PreEnv* tmpEnv=newEnv(curEnv);
 	int i;
 	int expNum=coutArg(&objCptr->outer->cdr);
 	ANS_cptr** expression=dealArg(&objCptr->outer->cdr,expNum);
@@ -514,7 +514,7 @@ ErrorStatus N_lambda(ANS_cptr* objCptr,env* curEnv)
 	return status;
 }
 
-ErrorStatus N_list(ANS_cptr* objCptr,env* curEnv)
+ErrorStatus N_list(ANS_cptr* objCptr,PreEnv* curEnv)
 {
 	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
@@ -544,7 +544,7 @@ ErrorStatus N_list(ANS_cptr* objCptr,env* curEnv)
 	return status;
 }
 
-ErrorStatus N_defmacro(ANS_cptr* objCptr,env* curEnv)
+ErrorStatus N_defmacro(ANS_cptr* objCptr,PreEnv* curEnv)
 {
 	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
@@ -566,7 +566,7 @@ ErrorStatus N_defmacro(ANS_cptr* objCptr,env* curEnv)
 	return status;
 }
 
-ErrorStatus N_append(ANS_cptr* objCptr,env* curEnv)
+ErrorStatus N_append(ANS_cptr* objCptr,PreEnv* curEnv)
 {
 	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
@@ -602,7 +602,7 @@ ErrorStatus N_append(ANS_cptr* objCptr,env* curEnv)
 	return status;
 }
 
-ErrorStatus N_extend(ANS_cptr* objCptr,env* curEnv)
+ErrorStatus N_extend(ANS_cptr* objCptr,PreEnv* curEnv)
 {
 	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
@@ -635,7 +635,7 @@ ErrorStatus N_extend(ANS_cptr* objCptr,env* curEnv)
 	return status;
 }
 
-/*ErrorStatus N_undef(ANS_cptr* objCptr,env* curEnv)
+/*ErrorStatus N_undef(ANS_cptr* objCptr,PreEnv* curEnv)
 {
 	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
@@ -647,7 +647,7 @@ ErrorStatus N_extend(ANS_cptr* objCptr,env* curEnv)
 	return status;
 }*/
 
-ErrorStatus N_add(ANS_cptr* objCptr,env* curEnv)
+ErrorStatus N_add(ANS_cptr* objCptr,PreEnv* curEnv)
 {
 	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
@@ -717,7 +717,7 @@ ErrorStatus N_add(ANS_cptr* objCptr,env* curEnv)
 	return status;
 }
 
-ErrorStatus N_sub(ANS_cptr* objCptr,env* curEnv)
+ErrorStatus N_sub(ANS_cptr* objCptr,PreEnv* curEnv)
 {
 	ErrorStatus status={0,NULL};
 	ANS_cptr** args=dealArg(&objCptr->outer->cdr,2);
@@ -786,7 +786,7 @@ ErrorStatus N_sub(ANS_cptr* objCptr,env* curEnv)
 	return status;
 }
 
-ErrorStatus N_mul(ANS_cptr* objCptr,env* curEnv)
+ErrorStatus N_mul(ANS_cptr* objCptr,PreEnv* curEnv)
 {
 	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
@@ -856,7 +856,7 @@ ErrorStatus N_mul(ANS_cptr* objCptr,env* curEnv)
 	return status;
 }
 
-ErrorStatus N_div(ANS_cptr* objCptr,env* curEnv)
+ErrorStatus N_div(ANS_cptr* objCptr,PreEnv* curEnv)
 {
 	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
@@ -920,7 +920,7 @@ ErrorStatus N_div(ANS_cptr* objCptr,env* curEnv)
 	return status;
 }
 
-ErrorStatus N_mod(ANS_cptr* objCptr,env* curEnv)
+ErrorStatus N_mod(ANS_cptr* objCptr,PreEnv* curEnv)
 {
 	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
@@ -978,7 +978,7 @@ ErrorStatus N_mod(ANS_cptr* objCptr,env* curEnv)
 	return status;
 }
 
-ErrorStatus N_print(ANS_cptr* objCptr,env* curEnv)
+ErrorStatus N_print(ANS_cptr* objCptr,PreEnv* curEnv)
 {
 	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);

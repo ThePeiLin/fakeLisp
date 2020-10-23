@@ -91,7 +91,7 @@ typedef struct ThreadMessage
 typedef struct
 {
 	fakeprocess* curproc;
-	byteCode* procs;
+	ByteCode* procs;
 	fakeprocess* mainproc;
 	fakestack* stack;
 	threadMessage* queue;
@@ -107,7 +107,7 @@ typedef struct
 void runFakeVM(fakeVM*);
 void printStackValue(stackvalue*,FILE*);
 void princStackValue(stackvalue*,FILE*);
-fakeVM* newFakeVM(byteCode*,byteCode*);
+fakeVM* newFakeVM(ByteCode*,ByteCode*);
 void initGlobEnv(varstack*);
 int B_dummy(fakeVM*);
 int B_push_nil(fakeVM*);
@@ -187,7 +187,7 @@ int B_send(fakeVM*);
 int B_accept(fakeVM*);
 static fakestack* newStack(uint32_t);
 static filestack* newFileStack();
-excode* newExcode(byteCode*);
+excode* newExcode(ByteCode*);
 static stackvalue* copyValue(stackvalue*);
 static stackvalue* newStackValue(ValueType);
 stackvalue* getTopValue(fakestack*);
@@ -200,7 +200,7 @@ void freeStackValue(stackvalue*);
 varstack* newVarStack(int32_t,int,varstack*);
 static void freeVarStack(varstack*);
 static void stackRecycle(fakeVM*);
-static excode* newBuiltInProc(byteCode*);
+static excode* newBuiltInProc(ByteCode*);
 static fakeprocess* newFakeProcess(excode*,fakeprocess*);
 void printAllStack(fakestack*,FILE*);
 static int createNewThread(fakeVM*);

@@ -3,7 +3,7 @@
 #include"fakedef.h"
 void initEvalution();
 void runIntpr(intpr*);
-byteCode* castRawproc(byteCode*,rawproc*);
-byteCode* loadRawproc(FILE*);
-byteCode* loadByteCode(FILE*);
+ByteCode* castRawproc(ByteCode*,RawProc*);
+ByteCode* loadRawproc(FILE*);
+ByteCode* loadByteCode(FILE*);
 #endif

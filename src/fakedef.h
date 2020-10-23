@@ -41,75 +41,75 @@ typedef struct
 	ANS_cptr* place;
 }ErrorStatus;
 
-typedef struct Defines
+typedef struct Pre_Def
 {
 	char* symName;
 	ANS_cptr obj;//node or symbol or val
 	struct Defines* next;
-}defines;
+}PreDef;
 
-typedef struct Env
+typedef struct Pre_Env
 {
-	struct Env* prev;
-	defines* symbols;
+	struct Pre_Env* prev;
+	PreDef* symbols;
 	struct Env* next;
-}env;
+}PreEnv;
 
-typedef struct NativeFunc//function and form
+typedef struct Pre_Func//function and form
 {
 	char* functionName;
-	ErrorStatus (*function)(ANS_cptr*,env*);
-	struct NativeFunc* next;
-}nativeFunc;
+	ErrorStatus (*function)(ANS_cptr*,PreEnv*);
+	struct Pre_Func* next;
+}PreFunc;
 
-typedef struct Macro
+typedef struct Pre_Macro
 {
 	ANS_cptr* format;
 	ANS_cptr* express;
-	struct Macro* next;
-}macro;
+	struct Pre_Macro* next;
+}PreMacro;
 
-typedef struct MacroSym
+typedef struct Pre_MacroSym
 {
 	char* symName;
-	int (*Func)(const ANS_cptr*,const ANS_cptr*,const char*,env*);
+	int (*Func)(const ANS_cptr*,const ANS_cptr*,const char*,PreEnv*);
 	struct MacroSym* next;
-}masym;
+}PreMasym;
 
-typedef struct ByteCode
+typedef struct
 {
 	uint32_t size;
 	char* code;
-}byteCode;
+}ByteCode;
 
-typedef struct CompilerDefines
+typedef struct Comp_Def
 {
 	int32_t count;
 	char* symName;
-	struct CompilerDefines* next;
-}compDef;
+	struct Comp_Def* next;
+}CompDef;
 
-typedef struct CompilerEnv
+typedef struct Comp_Env
 {
-	struct CompilerEnv* prev;
-	compDef* symbols;
-}compEnv;
+	struct Comp_Env* prev;
+	CompDef* symbols;
+}CompEnv;
 
-typedef struct RawProc
+typedef struct Raw_Proc
 {
 	int32_t count;
-	byteCode* proc;
-//	compEnv* curEnv;
-	struct RawProc* next;
-}rawproc;
+	ByteCode* proc;
+//	CompEnv* curEnv;
+	struct Raw_Proc* next;
+}RawProc;
 
 typedef struct
 {
 	char* filename;
 	FILE* file;
 	int curline;
-	compEnv* glob;
-	rawproc* procs;
+	CompEnv* glob;
+	RawProc* procs;
 }intpr;
 
 typedef struct KeyWord

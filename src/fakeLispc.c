@@ -26,7 +26,7 @@ int main(int argc,char** argv)
 		initEvalution();
 		int i;
 		intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp);
-		byteCode* mainByteCode=compileFile(inter);
+		ByteCode* mainByteCode=compileFile(inter);
 	//	printByteCode(mainByteCode);
 		char* outputname=(char*)malloc(sizeof(char)*(strlen(filename)+2));
 		strcpy(outputname,filename);
@@ -34,7 +34,7 @@ int main(int argc,char** argv)
 		int32_t numOfRawproc=(inter->procs==NULL)?0:inter->procs->count+1;
 		FILE* outfp=fopen(outputname,"w");
 		fwrite(&numOfRawproc,sizeof(numOfRawproc),1,outfp);
-		byteCode* rawProcList=castRawproc(inter->procs);
+		ByteCode* rawProcList=castRawproc(inter->procs);
 		for(i=0;i<numOfRawproc;i++)
 		{
 			int32_t size=rawProcList[i].size;
@@ -58,12 +58,12 @@ int main(int argc,char** argv)
 	return 0;
 }
 
-byteCode* compileFile(intpr* inter)
+ByteCode* compileFile(intpr* inter)
 {
 	initPreprocess(inter);
 	char ch;
-	byteCode* tmp=createByteCode(0);
-	byteCode* pop=createByteCode(1);
+	ByteCode* tmp=createByteCode(0);
+	ByteCode* pop=createByteCode(1);
 	pop->code[0]=FAKE_POP;
 	while((ch=getc(inter->file))!=EOF)
 	{
@@ -88,7 +88,7 @@ byteCode* compileFile(intpr* inter)
 			}
 			else
 			{
-				byteCode* tmpByteCode=compile(begin,inter->glob,inter,&status);
+				ByteCode* tmpByteCode=compile(begin,inter->glob,inter,&status);
 				if(status.status!=0)
 				{
 					exError(status.place,status.status,inter);
@@ -96,8 +96,8 @@ byteCode* compileFile(intpr* inter)
 					freeByteCode(tmp);
 					exit(EXIT_FAILURE);
 				}
-				byteCode* tmp1=codeCat(tmpByteCode,pop);
-				byteCode* beFree=tmp;
+				ByteCode* tmp1=codeCat(tmpByteCode,pop);
+				ByteCode* beFree=tmp;
 				tmp=codeCat(tmp,tmp1);
 				freeByteCode(tmp1);
 				freeByteCode(tmpByteCode);
@@ -112,14 +112,14 @@ byteCode* compileFile(intpr* inter)
 	return tmp;
 }
 
-byteCode* castRawproc(rawproc* procs)
+ByteCode* castRawproc(RawProc* procs)
 {
 	if(procs==NULL)return NULL;
 	else
 	{
-		byteCode* tmp=(byteCode*)malloc(sizeof(byteCode)*(procs->count+1));
+		ByteCode* tmp=(ByteCode*)malloc(sizeof(ByteCode)*(procs->count+1));
 		if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
-		rawproc* curRawproc=procs;
+		RawProc* curRawproc=procs;
 		while(curRawproc!=NULL)
 		{
 			tmp[curRawproc->count]=*curRawproc->proc;

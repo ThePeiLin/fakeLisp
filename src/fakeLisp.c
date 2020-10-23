@@ -28,10 +28,10 @@ int main(int argc,char** argv)
 	}
 	else if(iscode(filename))
 	{
-		byteCode* rawprocess=loadRawproc(fp);
-		byteCode* mainprocess=loadByteCode(fp);
+		ByteCode* RawProcess=loadRawproc(fp);
+		ByteCode* mainprocess=loadByteCode(fp);
 		//printByteCode(mainprocess,stdout);
-		fakeVM* anotherVM=newFakeVM(mainprocess,rawprocess);
+		fakeVM* anotherVM=newFakeVM(mainprocess,RawProcess);
 		varstack* globEnv=newVarStack(0,1,NULL);
 		anotherVM->mainproc->localenv=globEnv;
 		anotherVM->mainproc->code->localenv=globEnv;
@@ -116,7 +116,7 @@ void runIntpr(intpr* inter)
 			{
 			//	printList(begin,stdout);
 			//	putchar('\n');
-				byteCode* tmpByteCode=compile(begin,inter->glob,inter,&status);
+				ByteCode* tmpByteCode=compile(begin,inter->glob,inter,&status);
 				if(status.status!=0)
 				{
 					exError(status.place,status.status,inter);
@@ -160,18 +160,18 @@ void runIntpr(intpr* inter)
 	}
 }
 
-byteCode* castRawproc(byteCode* prev,rawproc* procs)
+ByteCode* castRawproc(ByteCode* prev,RawProc* procs)
 {
 	if(procs==NULL)return NULL;
 	else
 	{
-		byteCode* tmp=(byteCode*)realloc(prev,sizeof(byteCode)*(procs->count+1));
+		ByteCode* tmp=(ByteCode*)realloc(prev,sizeof(ByteCode)*(procs->count+1));
 		if(tmp==NULL)
 		{
 			fprintf(stderr,"In file \"%s\",line %d\n",__FILE__,__LINE__);
 			errors(OUTOFMEMORY,__FILE__,__LINE__);
 		}
-		rawproc* curRawproc=procs;
+		RawProc* curRawproc=procs;
 		while(curRawproc!=NULL)
 		{
 			tmp[curRawproc->count]=*curRawproc->proc;
@@ -182,12 +182,12 @@ byteCode* castRawproc(byteCode* prev,rawproc* procs)
 }
 
 
-byteCode* loadRawproc(FILE* fp)
+ByteCode* loadRawproc(FILE* fp)
 {
 	int32_t num=0;
 	int i=0;
 	fread(&num,sizeof(int32_t),1,fp);
-	byteCode* tmp=(byteCode*)malloc(sizeof(byteCode)*num);
+	ByteCode* tmp=(ByteCode*)malloc(sizeof(ByteCode)*num);
 	if(tmp==NULL)
 	{
 		fprintf(stderr,"In file \"%s\",line %d\n",__FILE__,__LINE__);
@@ -211,12 +211,12 @@ byteCode* loadRawproc(FILE* fp)
 	return tmp;
 }
 
-byteCode* loadByteCode(FILE* fp)
+ByteCode* loadByteCode(FILE* fp)
 {
 	int32_t size=0;
 	int i=0;
 	fread(&size,sizeof(int32_t),1,fp);
-	byteCode* tmp=(byteCode*)malloc(sizeof(byteCode));
+	ByteCode* tmp=(ByteCode*)malloc(sizeof(ByteCode));
 	if(tmp==NULL)
 		errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp->size=size;

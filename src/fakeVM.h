@@ -208,7 +208,7 @@ static fakeVMStack* newThreadStack(int32_t);
 static threadMessage* newMessage(stackvalue*);
 static int sendMessage(threadMessage*,fakeVM*);
 static stackvalue* acceptMassage(fakeVM*);
-static stackvalue* castCptrStackValue(const Cptr*);
+static stackvalue* castCptrStackValue(const ANS_cptr*);
 static fakeprocess* hasSameProc(excode*,fakeprocess*);
 static int isTheLastExpress(const fakeprocess*,const fakeprocess*);
 static void printByteArry(byteArry,FILE*);

@@ -9,7 +9,7 @@ static keyWord* KeyWords=NULL;
 
 
 
-void addFunc(const char* name,ErrorStatus (*pFun)(Cptr*,env*))
+void addFunc(const char* name,ErrorStatus (*pFun)(ANS_cptr*,env*))
 {
 	nativeFunc* current=funAndForm;
 	nativeFunc* prev=NULL;
@@ -38,7 +38,7 @@ void addFunc(const char* name,ErrorStatus (*pFun)(Cptr*,env*))
 	}
 }
 
-ErrorStatus (*(findFunc(const char* name)))(Cptr*,env*)
+ErrorStatus (*(findFunc(const char* name)))(ANS_cptr*,env*)
 {
 	nativeFunc* current=funAndForm;
 	while(current!=NULL&&strcmp(current->functionName,name))current=current->next;
@@ -50,11 +50,11 @@ ErrorStatus (*(findFunc(const char* name)))(Cptr*,env*)
 
 
 
-int retree(Cptr** fir,Cptr* sec)
+int retree(ANS_cptr** fir,ANS_cptr* sec)
 {
 	while(*fir!=sec)
 	{
-		Cptr* preCptr=((*fir)->outer->prev==NULL)?sec:&(*fir)->outer->prev->car;
+		ANS_cptr* preCptr=((*fir)->outer->prev==NULL)?sec:&(*fir)->outer->prev->car;
 		replace(preCptr,*fir);
 		*fir=preCptr;
 		if(preCptr->outer!=NULL&&preCptr->outer->cdr.type!=NIL)return 0;
@@ -62,7 +62,7 @@ int retree(Cptr** fir,Cptr* sec)
 	return 1;
 }
 
-defines* addDefine(const char* symName,const Cptr* objCptr,env* curEnv)
+defines* addDefine(const char* symName,const ANS_cptr* objCptr,env* curEnv)
 {
 	if(curEnv->symbols==NULL)
 	{
@@ -101,12 +101,12 @@ defines* findDefine(const char* name,const env* curEnv)
 	}
 }
 
-ErrorStatus eval(Cptr* objCptr,env* curEnv)
+ErrorStatus eval(ANS_cptr* objCptr,env* curEnv)
 {
 	ErrorStatus status={0,NULL};
 	if(objCptr==NULL)
 		return status;
-	Cptr* tmpCptr=objCptr;
+	ANS_cptr* tmpCptr=objCptr;
 	while(objCptr->type!=NIL)
 	{
 		if(objCptr->type==ATM)
@@ -115,7 +115,7 @@ ErrorStatus eval(Cptr* objCptr,env* curEnv)
 			if(objCptr->outer==NULL||((objCptr->outer->prev!=NULL)&&(objCptr->outer->prev->cdr.value==objCptr->outer)))
 			{
 				if(objAtm->type!=SYM)break;
-				Cptr* reCptr=NULL;
+				ANS_cptr* reCptr=NULL;
 				defines* objDef=NULL;
 				env* tmpEnv=curEnv;
 				while(tmpEnv!=NULL&&!(objDef=findDefine(objAtm->value.str,tmpEnv)))
@@ -142,7 +142,7 @@ ErrorStatus eval(Cptr* objCptr,env* curEnv)
 					return status;
 				}
 				int before=objCptr->outer->cdr.type;
-				ErrorStatus (*pfun)(Cptr*,env*)=NULL;
+				ErrorStatus (*pfun)(ANS_cptr*,env*)=NULL;
 				pfun=findFunc(objAtm->value.str);
 				if(pfun!=NULL)
 				{
@@ -151,7 +151,7 @@ ErrorStatus eval(Cptr* objCptr,env* curEnv)
 				}
 				else
 				{
-					Cptr* reCptr=NULL;
+					ANS_cptr* reCptr=NULL;
 					defines* objDef=NULL;
 					env* tmpEnv=curEnv;
 					while(tmpEnv!=NULL&&!(objDef=findDefine(objAtm->value.str,tmpEnv)))
@@ -202,7 +202,7 @@ void addKeyWord(const char* objStr)
 	}
 }
 
-keyWord* hasKeyWord(const Cptr* objCptr)
+keyWord* hasKeyWord(const ANS_cptr* objCptr)
 {
 	ANS_atom* tmpAtm=NULL;
 	if(objCptr->type==ATM&&(tmpAtm=objCptr->value)->type==SYM)
@@ -244,7 +244,7 @@ void printAllKeyWord()
 	}
 }
 
-macro* macroMatch(const Cptr* objCptr)
+macro* macroMatch(const ANS_cptr* objCptr)
 {
 	macro* current=FirstMacro;
 	while(current!=NULL&&!fmatcmp(objCptr,current->format))
@@ -252,10 +252,10 @@ macro* macroMatch(const Cptr* objCptr)
 	return current;
 }
 
-int addMacro(Cptr* format,Cptr* express)
+int addMacro(ANS_cptr* format,ANS_cptr* express)
 {
 	if(format->type!=PAIR)return SYNTAXERROR;
-	Cptr* tmpCptr=NULL;
+	ANS_cptr* tmpCptr=NULL;
 	for(tmpCptr=&((ANS_pair*)format->value)->car;tmpCptr!=NULL;tmpCptr=nextCptr(tmpCptr))
 	{
 		if(tmpCptr->type==ATM)
@@ -297,7 +297,7 @@ int addMacro(Cptr* format,Cptr* express)
 		}
 	}
 	macro* current=FirstMacro;
-	while(current!=NULL&&!Cptrcmp(format,current->format))
+	while(current!=NULL&&!ANS_cptrcmp(format,current->format))
 		current=current->next;
 	if(current==NULL)
 	{
@@ -322,7 +322,7 @@ masym* findMasym(const char* name)
 	return current;
 }
 
-int fmatcmp(const Cptr* origin,const Cptr* format)
+int fmatcmp(const ANS_cptr* origin,const ANS_cptr* format)
 {
 	MacroEnv=newEnv(NULL);
 	ANS_pair* tmpPair=(format->type==PAIR)?format->value:NULL;
@@ -347,7 +347,7 @@ int fmatcmp(const Cptr* origin,const Cptr* format)
 				tmpSym=findMasym(tmpAtm->value.str);
 				if(tmpSym==NULL||!hasAnotherName(tmpAtm->value.str))
 				{
-					if(!Cptrcmp(origin,format))
+					if(!ANS_cptrcmp(origin,format))
 					{
 						destroyEnv(MacroEnv);
 						MacroEnv=NULL;
@@ -389,7 +389,7 @@ int fmatcmp(const Cptr* origin,const Cptr* format)
 			}
 			else if(tmpSym!=NULL)
 			{
-				Cptr* tmp=&((ANS_pair*)format->value)->car;
+				ANS_cptr* tmp=&((ANS_pair*)format->value)->car;
 				ANS_atom* tmpAtm=tmp->value;
 				M_VAREPT(NULL,tmp,hasAnotherName(tmpAtm->value.str),MacroEnv);
 			}
@@ -431,14 +431,14 @@ int fmatcmp(const Cptr* origin,const Cptr* format)
 	return 1;
 }
 
-int macroExpand(Cptr* objCptr)
+int macroExpand(ANS_cptr* objCptr)
 {
 	ErrorStatus status={0,NULL};
 	macro* tmp=macroMatch(objCptr);
 	if(tmp!=NULL&&objCptr!=tmp->express)
 	{
 		addDefine("RAWEXPRESS",objCptr,MacroEnv);
-		Cptr* tmpCptr=newCptr(0,NULL);
+		ANS_cptr* tmpCptr=newCptr(0,NULL);
 		replace(tmpCptr,tmp->express);
 		status=eval(tmp->express,MacroEnv);
 		if(status.status!=0)exError(status.place,status.status,NULL);
@@ -481,7 +481,7 @@ void initPreprocess(intpr* inter)
 	addMacro(createTree("(lambda ANY#ARGS,PAIR#BODY)",inter),
 			createTree("RAWEXPRESS",inter));
 }
-void addRule(const char* name,int (*obj)(const Cptr*,const Cptr*,const char*,env*))
+void addRule(const char* name,int (*obj)(const ANS_cptr*,const ANS_cptr*,const char*,env*))
 {
 	masym* current=NULL;
 	if(!(current=(masym*)malloc(sizeof(masym))))errors(OUTOFMEMORY,__FILE__,__LINE__);
@@ -492,7 +492,7 @@ void addRule(const char* name,int (*obj)(const Cptr*,const Cptr*,const char*,env
 	current->Func=obj;
 }
 
-int M_ATOM(const Cptr* oriCptr,const Cptr* fmtCptr,const char* name,env* curEnv)
+int M_ATOM(const ANS_cptr* oriCptr,const ANS_cptr* fmtCptr,const char* name,env* curEnv)
 {
 	if(oriCptr==NULL)return 0;
 	else if(oriCptr->type==ATM)
@@ -503,7 +503,7 @@ int M_ATOM(const Cptr* oriCptr,const Cptr* fmtCptr,const char* name,env* curEnv)
 	return 0;
 }
 
-int M_PAIR(const Cptr* oriCptr,const Cptr* fmtCptr,const char* name,env* curEnv)
+int M_PAIR(const ANS_cptr* oriCptr,const ANS_cptr* fmtCptr,const char* name,env* curEnv)
 {
 	if(oriCptr==NULL)return 0;
 	else if(oriCptr->type==PAIR)
@@ -514,7 +514,7 @@ int M_PAIR(const Cptr* oriCptr,const Cptr* fmtCptr,const char* name,env* curEnv)
 	return 0;
 }
 
-int M_ANY(const Cptr* oriCptr,const Cptr* fmtCptr,const char* name,env* curEnv)
+int M_ANY(const ANS_cptr* oriCptr,const ANS_cptr* fmtCptr,const char* name,env* curEnv)
 {
 	if(oriCptr==NULL)return 0;
 	else
@@ -525,17 +525,17 @@ int M_ANY(const Cptr* oriCptr,const Cptr* fmtCptr,const char* name,env* curEnv)
 	return 0;
 }
 
-int M_VAREPT(const Cptr* oriCptr,const Cptr* fmtCptr,const char* name,env* curEnv)
+int M_VAREPT(const ANS_cptr* oriCptr,const ANS_cptr* fmtCptr,const char* name,env* curEnv)
 {
 	fmtCptr=&fmtCptr->outer->prev->car;
-	const Cptr* format=fmtCptr;
-	const Cptr tmp={NULL,0,NIL,NULL};
+	const ANS_cptr* format=fmtCptr;
+	const ANS_cptr tmp={NULL,0,NIL,NULL};
 	ANS_pair* forPair=(format->type==PAIR)?format->value:NULL;
 	ANS_pair* tmpPair=forPair;
 	defines* valreptdef=addDefine(name,&tmp,MacroEnv);
 	if(oriCptr==NULL)
 	{
-		const Cptr* format=fmtCptr;
+		const ANS_cptr* format=fmtCptr;
 		ANS_pair* forPair=(format->type==PAIR)?format->value:NULL;
 		env* forValRept=newEnv(NULL);
 		while(format!=NULL)
@@ -594,8 +594,8 @@ int M_VAREPT(const Cptr* oriCptr,const Cptr* fmtCptr,const char* name,env* curEn
 	}
 	while(oriCptr!=NULL&&fmtCptr!=NULL)
 	{
-		const Cptr* origin=oriCptr;
-		const Cptr* format=fmtCptr;
+		const ANS_cptr* origin=oriCptr;
+		const ANS_cptr* format=fmtCptr;
 		ANS_pair* forPair=(format->type==PAIR)?format->value:NULL;
 		ANS_pair* oriPair=(origin->type==PAIR)?origin->value:NULL;
 		env* forValRept=newEnv(NULL);
@@ -618,7 +618,7 @@ int M_VAREPT(const Cptr* oriCptr,const Cptr* fmtCptr,const char* name,env* curEn
 					const char* anotherName=hasAnotherName(tmpAtm->value.str);
 					if(tmpSym==NULL||tmpSym->Func==M_VAREPT||!anotherName)
 					{
-						if(!Cptrcmp(origin,format))
+						if(!ANS_cptrcmp(origin,format))
 						{
 							destroyEnv(forValRept);
 							return 0;
@@ -679,13 +679,13 @@ int M_VAREPT(const Cptr* oriCptr,const Cptr* fmtCptr,const char* name,env* curEn
 		}
 		destroyEnv(forValRept);
 		addToList(&valreptdef->obj,oriCptr);
-		const Cptr* tmp=oriCptr;
+		const ANS_cptr* tmp=oriCptr;
 		oriCptr=nextCptr(tmp);
 	}
 	return 1;
 }
 
-int M_COLT(const Cptr* oriCptr,const Cptr* fmtCptr,const char* name,env* curEnv)
+int M_COLT(const ANS_cptr* oriCptr,const ANS_cptr* fmtCptr,const char* name,env* curEnv)
 {
 	int i;
 	int num=getWordNum(name);
@@ -706,11 +706,11 @@ int M_COLT(const Cptr* oriCptr,const Cptr* fmtCptr,const char* name,env* curEnv)
 	return 0;
 }
 
-void deleteMacro(Cptr* objCptr)
+void deleteMacro(ANS_cptr* objCptr)
 {
 	macro* current=FirstMacro;
 	macro* prev=NULL;
-	while(current!=NULL&&!Cptrcmp(objCptr,current->format))
+	while(current!=NULL&&!ANS_cptrcmp(objCptr,current->format))
 	{
 		prev=current;
 		current=current->next;
@@ -736,7 +736,7 @@ const char* hasAnotherName(const char* name)
 	return (tmp==name+len)?NULL:tmp+1;
 }
 
-void addToList(Cptr* fir,const Cptr* sec)
+void addToList(ANS_cptr* fir,const ANS_cptr* sec)
 {
 	while(fir->type!=NIL)fir=&((ANS_pair*)fir->value)->cdr;
 	fir->type=PAIR;
@@ -782,7 +782,7 @@ defines* newDefines(const char* name)
 	tmp->symName=(char*)malloc(sizeof(char)*(strlen(name)+1));
 	if(tmp->symName==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 	strcpy(tmp->symName,name);
-	tmp->obj=(Cptr){NULL,0,NIL,NULL};
+	tmp->obj=(ANS_cptr){NULL,0,NIL,NULL};
 	tmp->next=NULL;
 	return tmp;
 }

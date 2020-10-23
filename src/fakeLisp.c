@@ -195,7 +195,7 @@ ByteCode* loadRawproc(FILE* fp)
 	}
 	for(;i<num;i++)
 	{
-		uint32_t size=0;
+		int32_t size=0;
 		fread(&size,sizeof(int32_t),1,fp);
 		tmp[i].size=size;
 		tmp[i].code=(char*)malloc(sizeof(char)*size);
@@ -204,7 +204,7 @@ ByteCode* loadRawproc(FILE* fp)
 			fprintf(stderr,"In file \"%s\",line %d\n",__FILE__,__LINE__);
 			errors(OUTOFMEMORY,__FILE__,__LINE__);
 		}
-		int j=0;
+		int32_t j=0;
 		for(;j<size;j++)
 			tmp[i].code[j]=getc(fp);
 	}
@@ -213,8 +213,8 @@ ByteCode* loadRawproc(FILE* fp)
 
 ByteCode* loadByteCode(FILE* fp)
 {
-	uint32_t size=0;
-	int i=0;
+	int32_t size=0;
+	int32_t i=0;
 	fread(&size,sizeof(int32_t),1,fp);
 	ByteCode* tmp=(ByteCode*)malloc(sizeof(ByteCode));
 	if(tmp==NULL)

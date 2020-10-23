@@ -16,7 +16,7 @@ typedef struct
 
 /*typedef struct
 {
-	uint32_t size;
+	int32_t size;
 	VMsym* symbols;
 }symlist;*/
 
@@ -41,7 +41,7 @@ typedef struct VM_Env
 	struct VM_Env* next;
 	int inProc;
 	int32_t bound;
-	uint32_t size;
+	int32_t size;
 	VMvalue** values;
 }VMenv;
 
@@ -50,7 +50,7 @@ typedef struct VM_Code
 	VMenv* localenv;
 //	symlist* syms;
 	int32_t refcount;
-	uint32_t size;
+	int32_t size;
 	char* code;
 }VMcode;
 
@@ -66,13 +66,13 @@ typedef struct
 {
 	int32_t tp;
 	int32_t bp;
-	uint32_t size;
+	int32_t size;
 	VMvalue** values;
 }VMstack;
 
 typedef struct
 {
-	uint32_t size;
+	int32_t size;
 	FILE** files;
 }filestack;
 
@@ -94,7 +94,7 @@ typedef struct
 
 typedef struct
 {
-	uint32_t size;
+	int32_t size;
 	fakeVM** VMs;
 }fakeVMStack;
 
@@ -180,7 +180,7 @@ int B_go(fakeVM*);
 int B_wait(fakeVM*);
 int B_send(fakeVM*);
 int B_accept(fakeVM*);
-static VMstack* newStack(uint32_t);
+static VMstack* newStack(int32_t);
 static filestack* newFileStack();
 VMcode* newVMcode(ByteCode*);
 static VMvalue* copyValue(VMvalue*);
@@ -207,7 +207,7 @@ static VMvalue* castCptrVMvalue(const ANS_cptr*);
 static VMprocess* hasSameProc(VMcode*,VMprocess*);
 static int isTheLastExpress(const VMprocess*,const VMprocess*);
 static void printByteArry(ByteArry,FILE*);
-static uint8_t* createByteArry(uint32_t);
+static uint8_t* createByteArry(int32_t);
 #ifndef _WIN32
 static int getch();
 #endif

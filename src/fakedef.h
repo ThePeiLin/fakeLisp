@@ -10,7 +10,7 @@ typedef enum{NIL,SYM,STR,INT,CHR,BYTE,DBL,PAIR,PRC,ATM} ValueType;
 
 typedef struct
 {
-	uint32_t size;
+	int32_t size;
 	uint8_t* arry;
 }ByteArry;
 
@@ -85,7 +85,7 @@ typedef struct Pre_MacroSym
 
 typedef struct
 {
-	uint32_t size;
+	int32_t size;
 	char* code;
 }ByteCode;
 

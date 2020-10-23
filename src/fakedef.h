@@ -10,6 +10,12 @@ typedef enum{NIL,SYM,STR,INT,CHR,BYTE,DBL,PAIR,PRC,ATM} ValueType;
 
 typedef struct
 {
+	int32_t size;
+	int8_t* arry;
+}ByteArry;
+
+typedef struct
+{
 	struct ANS_Pair* outer;
 	int curline;
 	ValueType type;
@@ -32,6 +38,7 @@ typedef struct ANS_atom
 		char chr;
 		int32_t num;
 		double dbl;
+		ByteArry byte;
 	} value;
 }ANS_atom;
 
@@ -45,14 +52,14 @@ typedef struct Pre_Def
 {
 	char* symName;
 	ANS_cptr obj;//node or symbol or val
-	struct Defines* next;
+	struct Pre_Def* next;
 }PreDef;
 
 typedef struct Pre_Env
 {
 	struct Pre_Env* prev;
 	PreDef* symbols;
-	struct Env* next;
+	struct Pre_Env* next;
 }PreEnv;
 
 typedef struct Pre_Func//function and form
@@ -73,7 +80,7 @@ typedef struct Pre_MacroSym
 {
 	char* symName;
 	int (*Func)(const ANS_cptr*,const ANS_cptr*,const char*,PreEnv*);
-	struct MacroSym* next;
+	struct Pre_MacroSym* next;
 }PreMasym;
 
 typedef struct

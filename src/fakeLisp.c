@@ -32,7 +32,7 @@ int main(int argc,char** argv)
 		ByteCode* mainprocess=loadByteCode(fp);
 		//printByteCode(mainprocess,stdout);
 		fakeVM* anotherVM=newFakeVM(mainprocess,RawProcess);
-		varstack* globEnv=newVarStack(0,1,NULL);
+		VMenv* globEnv=newVMenv(0,1,NULL);
 		anotherVM->mainproc->localenv=globEnv;
 		anotherVM->mainproc->code->localenv=globEnv;
 		initGlobEnv(globEnv);
@@ -78,7 +78,7 @@ void runIntpr(intpr* inter)
 {
 	initPreprocess(inter);
 	fakeVM* anotherVM=newFakeVM(NULL,NULL);
-	varstack* globEnv=newVarStack(0,1,NULL);
+	VMenv* globEnv=newVMenv(0,1,NULL);
 	anotherVM->mainproc->localenv=globEnv;
 	initGlobEnv(globEnv);
 	for(;;)
@@ -131,23 +131,23 @@ void runIntpr(intpr* inter)
 				{
 				//	printByteCode(tmpByteCode,stdout);
 					anotherVM->procs=castRawproc(anotherVM->procs,inter->procs);
-					anotherVM->mainproc->code=newExcode(tmpByteCode);
+					anotherVM->mainproc->code=newVMcode(tmpByteCode);
 					anotherVM->mainproc->code->localenv=globEnv;
 					anotherVM->mainproc->localenv=globEnv;
 					anotherVM->mainproc->cp=0;
 					anotherVM->curproc=anotherVM->mainproc;
 					runFakeVM(anotherVM);
-					fakestack* stack=anotherVM->stack;
+					VMstack* stack=anotherVM->stack;
 					if(inter->file==stdin)
 					{
 						printf("=> ");
-						printStackValue(getTopValue(stack),stdout);
+						printVMvalue(getTopValue(stack),stdout);
 						putchar('\n');
 					}
 				//	fprintf(stderr,"======\n");
 				//	fprintf(stderr,"stack->tp=%d\n",stack->tp);
 				//	printAllStack(stack,stderr);
-					freeStackValue(getTopValue(stack));
+					freeVMvalue(getTopValue(stack));
 					stack->tp-=1;
 					freeByteCode(tmpByteCode);
 				}

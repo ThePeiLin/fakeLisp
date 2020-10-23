@@ -612,7 +612,7 @@ ANS_cptr* createTree(const char* objStr,intpr* inter)
 			char* tmp=getStringFromList(objStr+i);
 			ANS_atom* tmpAtm=NULL;
 			if(!isNum(tmp))
-				tmpAtm=newAtom(SYM,tmp,objPair); 
+				tmpAtm=newAtom(SYM,tmp,objPair);
 			else if(isDouble(tmp))
 			{
 				tmpAtm=newAtom(DBL,NULL,objPair);
@@ -639,6 +639,19 @@ ANS_cptr* createTree(const char* objStr,intpr* inter)
 			ANS_atom* tmpAtm=objCptr->value;
 			if(tmp[0]!='\\')tmpAtm->value.chr=tmp[0];
 			else tmpAtm->value.chr=stringToChar(tmp+1);
+			i+=strlen(tmp)+2;
+			free(tmp);
+		}
+		else if(*(objStr+i)=='@'&&*(objStr+1+i)=='\\')
+		{
+			if(root==NULL)objCptr=root=newCptr(inter->curline,objPair);
+			char* tmp=getStringAfterBackslash(objStr+i+2);
+			objCptr->type=ATM;
+			objCptr->value=(void*)newAtom(BYTE,NULL,objPair);
+			ANS_atom* tmpAtm=objCptr->value;
+			int32_t size=strlen(tmp)/2+strlen(tmp)%2;
+			tmpAtm->value.byte.size=size;
+			tmpAtm->value.byte.arry=castStrByteArry(tmp);
 			i+=strlen(tmp)+2;
 			free(tmp);
 		}
@@ -703,7 +716,10 @@ ANS_atom* newAtom(int type,const char* value,ANS_pair* prev)
 		case INT:
 		case DBL:
 			*(int32_t*)(&tmp->value)=0;break;
-	}		
+		case BYTE:
+			tmp->value.byte.size=0;
+			tmp->value.byte.arry=NULL;break;
+	}
 	tmp->prev=prev;
 	tmp->type=type;
 	return tmp;
@@ -1033,6 +1049,11 @@ int isNum(const char* objStr)
 void freeAtom(ANS_atom* objAtm)
 {
 	if(objAtm->type==SYM||objAtm->type==STR)free(objAtm->value.str);
+	else if(objAtm->type==BYTE)
+	{
+		objAtm->value.byte.size=0;
+		free(objAtm->value.byte.arry);
+	}
 	free(objAtm);
 }
 
@@ -1397,4 +1418,32 @@ void printByteCode(const ByteCode* tmpCode,FILE* fp)
 		}
 		putc('\n',fp);
 	}
+}
+
+int8_t castCharInt(char ch)
+{
+	if(isdigit(ch))return ch-'0';
+	else if(isxdigit(ch))
+	{
+		if(ch>='a'&&ch<='f')return 10+ch-'a';
+		else if(ch>='A'&&ch<='F')return 10+ch-'A';
+	}
+	return 0;
+}
+
+int8_t* castStrByteArry(const char* str)
+{
+	int len=strlen(str);
+	int32_t size=len/2+1;
+	int8_t* tmp=(int8_t*)malloc(sizeof(int8_t)*size);
+	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	int i=0;
+	int k=0;
+	for(;i<size;i++)
+	{
+		tmp[i]=castCharInt(str[k]);
+		if(str[k+1]!='\0')tmp[i]+=16*castCharInt(str[k+1]);
+		k+=2;
+	}
+	return tmp;
 }

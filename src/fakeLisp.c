@@ -53,7 +53,7 @@ void initEvalution()
 	addFunc("cdr",N_cdr);
 	addFunc("cons",N_cons);
 	addFunc("eq",N_eq);
-	addFunc("atom",N_atom);
+	addFunc("ANS_atom",N_ANS_atom);
 	addFunc("null",N_null);
 	addFunc("cond",N_cond);
 	addFunc("and",N_and);
@@ -83,7 +83,7 @@ void runIntpr(intpr* inter)
 	initGlobEnv(globEnv);
 	for(;;)
 	{
-		cptr* begin=NULL;
+		Cptr* begin=NULL;
 		if(inter->file==stdin)printf(">>>");
 		int ch=getc(inter->file);
 		if(ch==EOF)break;
@@ -91,7 +91,7 @@ void runIntpr(intpr* inter)
 		char* list=getListFromFile(inter->file);
 	//	printf("%s\n==================\n",list);
 		if(list==NULL)continue;
-		errorStatus status={0,NULL};
+		ErrorStatus status={0,NULL};
 		begin=createTree(list,inter);
 	//	printList(begin,stderr);
 	//	printf("\n==============\n");

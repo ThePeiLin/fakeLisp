@@ -3,24 +3,24 @@
 #include"fakedef.h"
 typedef struct SyntaxRule
 {
-	int (*check)(const cptr*);
+	int (*check)(const Cptr*);
 	struct SyntaxRule* next;
 }synRule;
 
-void addSynRule(int (*)(const cptr*));
-int (*checkAST(const cptr*))(const cptr*);
+void addSynRule(int (*)(const Cptr*));
+int (*checkAST(const Cptr*))(const Cptr*);
 //void initSyntax();
-int isLegal(const cptr*);
-int isPreprocess(const cptr*);
-int isDefExpression(const cptr*);
-int isSetqExpression(const cptr*);
-int isLambdaExpression(const cptr*);
-int isCondExpression(const cptr*);
-int isConst(const cptr*);
-int isNil(const cptr*);
-int isListForm(const cptr*);
-int isSymbol(const cptr*);
-int isAndExpression(const cptr*);
-int isOrExpression(const cptr*);
-int isQuoteExpression(const cptr*);
+int isLegal(const Cptr*);
+int isPreprocess(const Cptr*);
+int isDefExpression(const Cptr*);
+int isSetqExpression(const Cptr*);
+int isLambdaExpression(const Cptr*);
+int isCondExpression(const Cptr*);
+int isConst(const Cptr*);
+int isNil(const Cptr*);
+int isListForm(const Cptr*);
+int isSymbol(const Cptr*);
+int isAndExpression(const Cptr*);
+int isOrExpression(const Cptr*);
+int isQuoteExpression(const Cptr*);
 #endif

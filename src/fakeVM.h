@@ -6,7 +6,7 @@ typedef struct
 {
 	struct StackValue* car;
 	struct StackValue* cdr;
-}fakepair;
+}VMpair;
 
 typedef struct
 {
@@ -24,7 +24,7 @@ typedef struct
 {
 	int32_t size;
 	int8_t* arry;
-}byteArry;
+}ByteArry;
 
 typedef struct StackValue
 {
@@ -33,8 +33,8 @@ typedef struct StackValue
 	{
 		char* str;
 		struct ExCode* prc;
-		fakepair pair;
-		byteArry byte;
+		VMpair pair;
+		ByteArry byte;
 		int32_t num;
 		char chr;
 		double dbl;
@@ -211,7 +211,7 @@ static stackvalue* acceptMassage(fakeVM*);
 static stackvalue* castCptrStackValue(const ANS_cptr*);
 static fakeprocess* hasSameProc(excode*,fakeprocess*);
 static int isTheLastExpress(const fakeprocess*,const fakeprocess*);
-static void printByteArry(byteArry,FILE*);
+static void printByteArry(ByteArry,FILE*);
 static int8_t* createByteArry(int32_t);
 #ifndef _WIN32
 static int getch();

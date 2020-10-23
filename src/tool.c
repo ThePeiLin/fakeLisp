@@ -649,7 +649,7 @@ ANS_cptr* createTree(const char* objStr,intpr* inter)
 			objCptr->type=ATM;
 			objCptr->value=(void*)newAtom(BYTE,NULL,objPair);
 			ANS_atom* tmpAtm=objCptr->value;
-			int32_t size=strlen(tmp)/2+strlen(tmp)%2;
+			uint32_t size=strlen(tmp)/2+strlen(tmp)%2;
 			tmpAtm->value.byte.size=size;
 			tmpAtm->value.byte.arry=castStrByteArry(tmp);
 			i+=strlen(tmp)+2;
@@ -1420,7 +1420,7 @@ void printByteCode(const ByteCode* tmpCode,FILE* fp)
 	}
 }
 
-int8_t castCharInt(char ch)
+uint8_t castCharInt(char ch)
 {
 	if(isdigit(ch))return ch-'0';
 	else if(isxdigit(ch))
@@ -1431,11 +1431,11 @@ int8_t castCharInt(char ch)
 	return 0;
 }
 
-int8_t* castStrByteArry(const char* str)
+uint8_t* castStrByteArry(const char* str)
 {
 	int len=strlen(str);
-	int32_t size=len/2+1;
-	int8_t* tmp=(int8_t*)malloc(sizeof(int8_t)*size);
+	uint32_t size=len/2+1;
+	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
 	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 	int i=0;
 	int k=0;

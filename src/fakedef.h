@@ -10,8 +10,8 @@ typedef enum{NIL,SYM,STR,INT,CHR,BYTE,DBL,PAIR,PRC,ATM} ValueType;
 
 typedef struct
 {
-	int32_t size;
-	int8_t* arry;
+	uint32_t size;
+	uint8_t* arry;
 }ByteArry;
 
 typedef struct

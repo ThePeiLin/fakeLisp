@@ -3,11 +3,11 @@
 #include"form.h"
 #include"preprocess.h"
 
-cptr** dealArg(cptr* argCptr,int num)
+Cptr** dealArg(Cptr* argCptr,int num)
 {
-	cptr* tmpCptr=(argCptr->type==PAIR)?argCptr:NULL;
-	cptr** args=NULL;
-	if(!(args=(cptr**)malloc(num*sizeof(cptr*))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+	Cptr* tmpCptr=(argCptr->type==PAIR)?argCptr:NULL;
+	Cptr** args=NULL;
+	if(!(args=(Cptr**)malloc(num*sizeof(Cptr*))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	int i;
 	for(i=0;i<num;i++)
 	{
@@ -16,23 +16,23 @@ cptr** dealArg(cptr* argCptr,int num)
 		else
 		{
 			args[i]=newCptr(0,NULL);
-			replace(args[i],&((prepair*)argCptr->value)->car);
-			deleteCptr(&((prepair*)argCptr->value)->car);
-			argCptr=&((prepair*)argCptr->value)->cdr;
+			replace(args[i],&((ANS_pair*)argCptr->value)->car);
+			deleteCptr(&((ANS_pair*)argCptr->value)->car);
+			argCptr=&((ANS_pair*)argCptr->value)->cdr;
 		}
 	}
 	if(tmpCptr!=NULL)
 	{
-		cptr* beDel=newCptr(0,NULL);
+		Cptr* beDel=newCptr(0,NULL);
 		beDel->type=tmpCptr->type;
 		beDel->value=tmpCptr->value;
-		((prepair*)tmpCptr->value)->prev=NULL;
+		((ANS_pair*)tmpCptr->value)->prev=NULL;
 		tmpCptr->type=argCptr->type;
 		tmpCptr->value=argCptr->value;
 		if(argCptr->type==PAIR)
-			((prepair*)argCptr->value)->prev=tmpCptr->outer;
+			((ANS_pair*)argCptr->value)->prev=tmpCptr->outer;
 		else if(argCptr->type==ATM)
-			((atom*)argCptr->value)->prev=tmpCptr->outer;
+			((ANS_atom*)argCptr->value)->prev=tmpCptr->outer;
 		argCptr->type=NIL;
 		argCptr->value=NULL;
 		deleteCptr(beDel);
@@ -41,19 +41,19 @@ cptr** dealArg(cptr* argCptr,int num)
 	return args;
 }
 
-int coutArg(cptr* argCptr)
+int coutArg(Cptr* argCptr)
 {
 	int num=0;
 	while(argCptr->type==PAIR)
 	{
-		cptr* tmp=&((prepair*)argCptr->value)->car;
+		Cptr* tmp=&((ANS_pair*)argCptr->value)->car;
 		if(tmp->type!=NIL)num++;
-		argCptr=&((prepair*)argCptr->value)->cdr;
+		argCptr=&((ANS_pair*)argCptr->value)->cdr;
 	}
 	return num;
 }
 
-void deleteArg(cptr** args,int num)
+void deleteArg(Cptr** args,int num)
 {
 	int i;
 	for(i=0;i++;i<num)
@@ -64,32 +64,32 @@ void deleteArg(cptr** args,int num)
 	free(args);
 }
 
-int isFalse(const cptr* objCptr)
+int isFalse(const Cptr* objCptr)
 {
 	if(objCptr->type==NIL)return 1;
 	else if(objCptr->type==PAIR)
 	{
-		prepair* tmpPair=objCptr->value;
+		ANS_pair* tmpPair=objCptr->value;
 		if(tmpPair->car.type==NIL&&tmpPair->cdr.type==NIL)return 1;
 	}
 	return 0;
 }
 
-errorStatus N_quote(cptr* objCptr,env* curEnv)
+ErrorStatus N_quote(Cptr* objCptr,env* curEnv)
 {
-	errorStatus status={0,NULL};
+	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&objCptr->outer->cdr,1);
+	Cptr** args=dealArg(&objCptr->outer->cdr,1);
 	replace(objCptr,args[0]);
 	deleteArg(args,1);
 	return status;
 }
 
-errorStatus N_car(cptr* objCptr,env* curEnv)
+ErrorStatus N_car(Cptr* objCptr,env* curEnv)
 {
-	errorStatus status={0,NULL};
+	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&objCptr->outer->cdr,1);
+	Cptr** args=dealArg(&objCptr->outer->cdr,1);
 	status=eval(args[0],curEnv);
 	if(status.status!=0)
 	{
@@ -104,16 +104,16 @@ errorStatus N_car(cptr* objCptr,env* curEnv)
 		deleteArg(args,1);
 		return status;
 	}
-	replace(objCptr,&((prepair*)args[0]->value)->car);
+	replace(objCptr,&((ANS_pair*)args[0]->value)->car);
 	deleteArg(args,1);
 	return status;
 }
 
-errorStatus N_cdr(cptr* objCptr,env* curEnv)
+ErrorStatus N_cdr(Cptr* objCptr,env* curEnv)
 {
-	errorStatus status={0,NULL};
+	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&objCptr->outer->cdr,1);
+	Cptr** args=dealArg(&objCptr->outer->cdr,1);
 	status=eval(args[0],curEnv);
 	if(status.status!=0)
 	{
@@ -128,16 +128,16 @@ errorStatus N_cdr(cptr* objCptr,env* curEnv)
 		deleteArg(args,1);
 		return status;
 	}
-	replace(objCptr,&((prepair*)args[0]->value)->cdr);
+	replace(objCptr,&((ANS_pair*)args[0]->value)->cdr);
 	deleteArg(args,1);
 	return status;
 }
 
-errorStatus N_cons(cptr* objCptr,env* curEnv)
+ErrorStatus N_cons(Cptr* objCptr,env* curEnv)
 {
-	errorStatus status={0,NULL};
+	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&objCptr->outer->cdr,2);
+	Cptr** args=dealArg(&objCptr->outer->cdr,2);
 	status=eval(args[0],curEnv);
 	if(status.status!=0)
 	{
@@ -151,18 +151,18 @@ errorStatus N_cons(cptr* objCptr,env* curEnv)
 		return status;
 	}
 	objCptr->type=PAIR;
-	prepair* tmpPair=objCptr->value=newPair(0,objCptr->outer);
+	ANS_pair* tmpPair=objCptr->value=newPair(0,objCptr->outer);
 	replace(&tmpPair->car,args[0]);
 	replace(&tmpPair->cdr,args[1]);
 	deleteArg(args,2);
 	return status;
 }
 
-errorStatus N_eq(cptr* objCptr,env* curEnv)
+ErrorStatus N_eq(Cptr* objCptr,env* curEnv)
 {
-	errorStatus status={0,NULL};
+	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&objCptr->outer->cdr,2);
+	Cptr** args=dealArg(&objCptr->outer->cdr,2);
 	status=eval(args[0],curEnv);
 	if(status.status!=0)
 	{
@@ -175,14 +175,14 @@ errorStatus N_eq(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	if(cptrcmp(args[0],args[1])==0)
+	if(Cptrcmp(args[0],args[1])==0)
 	{
 		objCptr->type=NIL;
 		objCptr->value=NULL;
 	}
 	else
 	{
-		atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
+		ANS_atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
 		objCptr->type=ATM;
 		objCptr->value=tmpAtm;
 		tmpAtm->value.num=1;
@@ -191,11 +191,11 @@ errorStatus N_eq(cptr* objCptr,env* curEnv)
 	return status;
 }
 
-errorStatus N_atom(cptr* objCptr,env* curEnv)
+ErrorStatus N_ANS_atom(Cptr* objCptr,env* curEnv)
 {
-	errorStatus status={0,NULL};
+	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&objCptr->outer->cdr,1);
+	Cptr** args=dealArg(&objCptr->outer->cdr,1);
 	status=eval(args[0],curEnv);
 	if(status.status!=0)
 	{
@@ -204,17 +204,17 @@ errorStatus N_atom(cptr* objCptr,env* curEnv)
 	}
 	if(args[0]->type!=PAIR)
 	{
-		atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
+		ANS_atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
 		objCptr->type=ATM;
 		objCptr->value=tmpAtm;
 		tmpAtm->value.num=1;
 	}
 	else
 	{
-		prepair* tmpPair=args[0]->value;
+		ANS_pair* tmpPair=args[0]->value;
 		if(tmpPair->car.type==NIL&&tmpPair->cdr.type==NIL)
 		{
-			atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
+			ANS_atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
 			objCptr->type=ATM;
 			objCptr->value=tmpAtm;
 			tmpAtm->value.num=1;
@@ -229,11 +229,11 @@ errorStatus N_atom(cptr* objCptr,env* curEnv)
 	return status;
 }
 
-errorStatus N_null(cptr* objCptr,env* curEnv)
+ErrorStatus N_null(Cptr* objCptr,env* curEnv)
 {
-	errorStatus status={0,NULL};
+	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&objCptr->outer->cdr,1);
+	Cptr** args=dealArg(&objCptr->outer->cdr,1);
 	status=eval(args[0],curEnv);
 	if(status.status!=0)
 	{
@@ -242,17 +242,17 @@ errorStatus N_null(cptr* objCptr,env* curEnv)
 	}
 	if(args[0]->type==NIL)
 	{
-		atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
+		ANS_atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
 		objCptr->type=ATM;
 		objCptr->value=tmpAtm;
 		tmpAtm->value.num=1;
 	}
 	else if(args[0]->type==PAIR)
 	{
-		prepair* tmpPair=args[0]->value;
+		ANS_pair* tmpPair=args[0]->value;
 		if(tmpPair->car.type==NIL&&tmpPair->cdr.type==NIL)
 		{
-			atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
+			ANS_atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
 			objCptr->type=ATM;
 			objCptr->value=tmpAtm;
 			tmpAtm->value.num=1;
@@ -272,11 +272,11 @@ errorStatus N_null(cptr* objCptr,env* curEnv)
 	return status;
 }
 
-errorStatus N_and(cptr* objCptr,env* curEnv)
+ErrorStatus N_and(Cptr* objCptr,env* curEnv)
 {
-	errorStatus status={0,NULL};
+	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&objCptr->outer->cdr,2);
+	Cptr** args=dealArg(&objCptr->outer->cdr,2);
 	status=eval(args[0],curEnv);
 	if(status.status!=0)
 	{
@@ -296,7 +296,7 @@ errorStatus N_and(cptr* objCptr,env* curEnv)
 	}
 	else
 	{
-		atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
+		ANS_atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
 		objCptr->type=ATM;
 		objCptr->value=tmpAtm;
 		tmpAtm->value.num=1;
@@ -305,11 +305,11 @@ errorStatus N_and(cptr* objCptr,env* curEnv)
 	return status;
 }
 
-errorStatus N_or(cptr* objCptr,env* curEnv)
+ErrorStatus N_or(Cptr* objCptr,env* curEnv)
 {
-	errorStatus status={0,NULL};
+	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&objCptr->outer->cdr,2);
+	Cptr** args=dealArg(&objCptr->outer->cdr,2);
 	status=eval(args[0],curEnv);
 	if(status.status!=0)
 	{
@@ -329,7 +329,7 @@ errorStatus N_or(cptr* objCptr,env* curEnv)
 	}
 	else
 	{
-		atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
+		ANS_atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
 		objCptr->type=ATM;
 		objCptr->value=tmpAtm;
 		tmpAtm->value.num=1;
@@ -338,11 +338,11 @@ errorStatus N_or(cptr* objCptr,env* curEnv)
 	return status;
 }
 
-errorStatus N_not(cptr* objCptr,env* curEnv)
+ErrorStatus N_not(Cptr* objCptr,env* curEnv)
 {
-	errorStatus status={0,NULL};
+	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&objCptr->outer->cdr,1);
+	Cptr** args=dealArg(&objCptr->outer->cdr,1);
 	status=eval(args[0],curEnv);
 	if(status.status!=0)
 	{
@@ -351,7 +351,7 @@ errorStatus N_not(cptr* objCptr,env* curEnv)
 	}
 	if(isFalse(args[0]))
 	{
-		atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
+		ANS_atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
 		objCptr->type=ATM;
 		objCptr->value=tmpAtm;
 		tmpAtm->value.num=1;
@@ -365,12 +365,12 @@ errorStatus N_not(cptr* objCptr,env* curEnv)
 	return status;
 }
 
-errorStatus N_cond(cptr* objCptr,env* curEnv)
+ErrorStatus N_cond(Cptr* objCptr,env* curEnv)
 {
-	errorStatus status={0,NULL};
+	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
 	int condNum=coutArg(&objCptr->outer->cdr);
-	cptr** condition=dealArg(&objCptr->outer->cdr,condNum);
+	Cptr** condition=dealArg(&objCptr->outer->cdr,condNum);
 	int i;
 	for(i=0;i<condNum;i++)
 	{
@@ -383,7 +383,7 @@ errorStatus N_cond(cptr* objCptr,env* curEnv)
 			return status;
 		}
 		int expNum=coutArg(condition[i]);
-		cptr** expression=dealArg(condition[i],expNum);
+		Cptr** expression=dealArg(condition[i],expNum);
 		status=eval(expression[0],curEnv);
 		if(status.status!=0)
 		{
@@ -417,11 +417,11 @@ errorStatus N_cond(cptr* objCptr,env* curEnv)
 	return status;
 }
 
-errorStatus N_define(cptr* objCptr,env* curEnv)
+ErrorStatus N_define(Cptr* objCptr,env* curEnv)
 {
-	errorStatus status={0,NULL};
+	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&objCptr->outer->cdr,2);
+	Cptr** args=dealArg(&objCptr->outer->cdr,2);
 	status=eval(args[1],curEnv);
 	if(status.status!=0)
 	{
@@ -436,7 +436,7 @@ errorStatus N_define(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	atom* tmpAtm=args[0]->value;
+	ANS_atom* tmpAtm=args[0]->value;
 	if(tmpAtm->type!=SYM)
 	{
 		status.status=SYNTAXERROR;
@@ -451,9 +451,9 @@ errorStatus N_define(cptr* objCptr,env* curEnv)
 	return status;
 }
 
-errorStatus N_lambda(cptr* objCptr,env* curEnv)
+ErrorStatus N_lambda(Cptr* objCptr,env* curEnv)
 {
-	errorStatus status={0,NULL};
+	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
 	if(objCptr->outer->prev==NULL)
 	{
@@ -464,15 +464,15 @@ errorStatus N_lambda(cptr* objCptr,env* curEnv)
 	env* tmpEnv=newEnv(curEnv);
 	int i;
 	int expNum=coutArg(&objCptr->outer->cdr);
-	cptr** expression=dealArg(&objCptr->outer->cdr,expNum);
+	Cptr** expression=dealArg(&objCptr->outer->cdr,expNum);
 	int fakeArgNum=coutArg(expression[0]);
 	if(fakeArgNum!=0)
 	{
-		cptr** fakeArg=dealArg(expression[0],fakeArgNum);
-		cptr** realArg=dealArg(&objCptr->outer->prev->cdr,fakeArgNum);
+		Cptr** fakeArg=dealArg(expression[0],fakeArgNum);
+		Cptr** realArg=dealArg(&objCptr->outer->prev->cdr,fakeArgNum);
 		for(i=0;i<fakeArgNum;i++)
 		{
-			errorStatus status=eval(realArg[i],curEnv);
+			ErrorStatus status=eval(realArg[i],curEnv);
 			if(status.status!=0)
 			{
 				deleteArg(fakeArg,fakeArgNum);
@@ -482,8 +482,8 @@ errorStatus N_lambda(cptr* objCptr,env* curEnv)
 		}
 		for(i=0;i<fakeArgNum;i++)
 		{
-			atom* tmpAtm=NULL;
-			if(fakeArg[i]->type==ATM&&((atom*)fakeArg[i]->value)->type==SYM)
+			ANS_atom* tmpAtm=NULL;
+			if(fakeArg[i]->type==ATM&&((ANS_atom*)fakeArg[i]->value)->type==SYM)
 				tmpAtm=fakeArg[i]->value;
 			else
 			{
@@ -514,15 +514,15 @@ errorStatus N_lambda(cptr* objCptr,env* curEnv)
 	return status;
 }
 
-errorStatus N_list(cptr* objCptr,env* curEnv)
+ErrorStatus N_list(Cptr* objCptr,env* curEnv)
 {
-	errorStatus status={0,NULL};
+	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
 	int argNum=coutArg(&objCptr->outer->cdr);
-	cptr** args=dealArg(&objCptr->outer->cdr,argNum);
+	Cptr** args=dealArg(&objCptr->outer->cdr,argNum);
 	int i;
-	cptr* result=newCptr(0,NULL);
-	cptr* tmp=result;
+	Cptr* result=newCptr(0,NULL);
+	Cptr* tmp=result;
 	for(i=0;i<argNum;i++)
 	{
 		status=eval(args[i],curEnv);
@@ -534,7 +534,7 @@ errorStatus N_list(cptr* objCptr,env* curEnv)
 		}
 		tmp->type=PAIR;
 		tmp->value=newPair(0,tmp->outer);
-		prepair* tmpPair=tmp->value;
+		ANS_pair* tmpPair=tmp->value;
 		replace(&tmpPair->car,args[i]);
 		tmp=&tmpPair->cdr;
 	}
@@ -544,11 +544,11 @@ errorStatus N_list(cptr* objCptr,env* curEnv)
 	return status;
 }
 
-errorStatus N_defmacro(cptr* objCptr,env* curEnv)
+ErrorStatus N_defmacro(Cptr* objCptr,env* curEnv)
 {
-	errorStatus status={0,NULL};
+	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&objCptr->outer->cdr,2);
+	Cptr** args=dealArg(&objCptr->outer->cdr,2);
 	if(args[0]->type!=PAIR)
 	{
 		status.status=SYNTAXERROR;
@@ -557,8 +557,8 @@ errorStatus N_defmacro(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	cptr* pattern=args[0];
-	cptr* express=args[1];
+	Cptr* pattern=args[0];
+	Cptr* express=args[1];
 	addMacro(pattern,express);
 	deleteArg(args,2);
 	objCptr->type=NIL;
@@ -566,11 +566,11 @@ errorStatus N_defmacro(cptr* objCptr,env* curEnv)
 	return status;
 }
 
-errorStatus N_append(cptr* objCptr,env* curEnv)
+ErrorStatus N_append(Cptr* objCptr,env* curEnv)
 {
-	errorStatus status={0,NULL};
+	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&objCptr->outer->cdr,2);
+	Cptr** args=dealArg(&objCptr->outer->cdr,2);
 	status=eval(args[0],curEnv);
 	if(status.status!=0)
 	{
@@ -591,9 +591,9 @@ errorStatus N_append(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	cptr* tmp=&((prepair*)args[0]->value)->car;
+	Cptr* tmp=&((ANS_pair*)args[0]->value)->car;
 	while(nextCptr(tmp)!=NULL)tmp=nextCptr(tmp);
-	prepair* tmpPair=newPair(0,tmp->outer);
+	ANS_pair* tmpPair=newPair(0,tmp->outer);
 	tmp->outer->cdr.type=PAIR;
 	tmp->outer->cdr.value=tmpPair;
 	replace(&tmpPair->car,args[1]);
@@ -602,11 +602,11 @@ errorStatus N_append(cptr* objCptr,env* curEnv)
 	return status;
 }
 
-errorStatus N_extend(cptr* objCptr,env* curEnv)
+ErrorStatus N_extend(Cptr* objCptr,env* curEnv)
 {
-	errorStatus status={0,NULL};
+	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&objCptr->outer->cdr,2);
+	Cptr** args=dealArg(&objCptr->outer->cdr,2);
 	status=eval(args[0],curEnv);
 	if(status.status!=0)
 	{
@@ -627,7 +627,7 @@ errorStatus N_extend(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	cptr* tmp=&((prepair*)args[0]->value)->car;
+	Cptr* tmp=&((ANS_pair*)args[0]->value)->car;
 	while(nextCptr(tmp)!=NULL)tmp=nextCptr(tmp);
 	replace(&tmp->outer->cdr,args[1]);
 	replace(objCptr,args[0]);
@@ -635,11 +635,11 @@ errorStatus N_extend(cptr* objCptr,env* curEnv)
 	return status;
 }
 
-/*errorStatus N_undef(cptr* objCptr,env* curEnv)
+/*ErrorStatus N_undef(Cptr* objCptr,env* curEnv)
 {
-	errorStatus status={0,NULL};
+	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&objCptr->outer->cdr,1);
+	Cptr** args=dealArg(&objCptr->outer->cdr,1);
 	deleteMacro(args[0]);
 	deleteArg(args,1);
 	objCptr->type=NIL;
@@ -647,11 +647,11 @@ errorStatus N_extend(cptr* objCptr,env* curEnv)
 	return status;
 }*/
 
-errorStatus N_add(cptr* objCptr,env* curEnv)
+ErrorStatus N_add(Cptr* objCptr,env* curEnv)
 {
-	errorStatus status={0,NULL};
+	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&objCptr->outer->cdr,2);
+	Cptr** args=dealArg(&objCptr->outer->cdr,2);
 	status=eval(args[0],curEnv);
 	if(status.status!=0)
 	{
@@ -680,9 +680,9 @@ errorStatus N_add(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	atom* atom1=args[0]->value;
-	atom* atom2=args[1]->value;
-	if(atom1->type!=DBL&&atom1->type!=INT)
+	ANS_atom* ANS_atom1=args[0]->value;
+	ANS_atom* ANS_atom2=args[1]->value;
+	if(ANS_atom1->type!=DBL&&ANS_atom1->type!=INT)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -690,7 +690,7 @@ errorStatus N_add(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	if(atom2->type!=DBL&&atom2->type!=INT)
+	if(ANS_atom2->type!=DBL&&ANS_atom2->type!=INT)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -698,16 +698,16 @@ errorStatus N_add(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	atom* tmpAtm=newAtom(0,NULL,objCptr->outer);
-	if(atom1->type==DBL||atom2->type==DBL)
+	ANS_atom* tmpAtm=newAtom(0,NULL,objCptr->outer);
+	if(ANS_atom1->type==DBL||ANS_atom2->type==DBL)
 	{
-		double result=((atom1->type==DBL)?atom1->value.dbl:atom1->value.num)+((atom2->type==DBL)?atom2->value.dbl:atom2->value.num);
+		double result=((ANS_atom1->type==DBL)?ANS_atom1->value.dbl:ANS_atom1->value.num)+((ANS_atom2->type==DBL)?ANS_atom2->value.dbl:ANS_atom2->value.num);
 		tmpAtm->type=DBL;
 		tmpAtm->value.dbl=result;
 	}
-	else if(atom1->type==INT&&atom2->type==INT)
+	else if(ANS_atom1->type==INT&&ANS_atom2->type==INT)
 	{
-		int32_t result=atom1->value.num+atom2->value.num;
+		int32_t result=ANS_atom1->value.num+ANS_atom2->value.num;
 		tmpAtm->type=INT;
 		tmpAtm->value.num=result;
 	}
@@ -717,10 +717,10 @@ errorStatus N_add(cptr* objCptr,env* curEnv)
 	return status;
 }
 
-errorStatus N_sub(cptr* objCptr,env* curEnv)
+ErrorStatus N_sub(Cptr* objCptr,env* curEnv)
 {
-	errorStatus status={0,NULL};
-	cptr** args=dealArg(&objCptr->outer->cdr,2);
+	ErrorStatus status={0,NULL};
+	Cptr** args=dealArg(&objCptr->outer->cdr,2);
 	status=eval(args[0],curEnv);
 	if(status.status!=0)
 	{
@@ -749,9 +749,9 @@ errorStatus N_sub(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	atom* atom1=args[0]->value;
-	atom* atom2=args[1]->value;
-	if(atom1->type!=DBL&&atom1->type!=INT)
+	ANS_atom* ANS_atom1=args[0]->value;
+	ANS_atom* ANS_atom2=args[1]->value;
+	if(ANS_atom1->type!=DBL&&ANS_atom1->type!=INT)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -759,7 +759,7 @@ errorStatus N_sub(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	if(atom2->type!=DBL&&atom2->type!=INT)
+	if(ANS_atom2->type!=DBL&&ANS_atom2->type!=INT)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -767,16 +767,16 @@ errorStatus N_sub(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	atom* tmpAtm=newAtom(0,NULL,objCptr->outer);
-	if(atom1->type==DBL||atom2->type==DBL)
+	ANS_atom* tmpAtm=newAtom(0,NULL,objCptr->outer);
+	if(ANS_atom1->type==DBL||ANS_atom2->type==DBL)
 	{
-		double result=((atom1->type==DBL)?atom1->value.dbl:atom1->value.num)-((atom2->type==DBL)?atom2->value.dbl:atom2->value.num);
+		double result=((ANS_atom1->type==DBL)?ANS_atom1->value.dbl:ANS_atom1->value.num)-((ANS_atom2->type==DBL)?ANS_atom2->value.dbl:ANS_atom2->value.num);
 		tmpAtm->type=DBL;
 		tmpAtm->value.dbl=result;
 	}
-	else if(atom1->type==INT&&atom2->type==INT)
+	else if(ANS_atom1->type==INT&&ANS_atom2->type==INT)
 	{
-		long result=atom1->value.num-atom2->value.num;
+		long result=ANS_atom1->value.num-ANS_atom2->value.num;
 		tmpAtm->type=INT;
 		tmpAtm->value.num=result;
 	}
@@ -786,11 +786,11 @@ errorStatus N_sub(cptr* objCptr,env* curEnv)
 	return status;
 }
 
-errorStatus N_mul(cptr* objCptr,env* curEnv)
+ErrorStatus N_mul(Cptr* objCptr,env* curEnv)
 {
-	errorStatus status={0,NULL};
+	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&objCptr->outer->cdr,2);
+	Cptr** args=dealArg(&objCptr->outer->cdr,2);
 	status=eval(args[0],curEnv);
 	if(status.status!=0)
 	{
@@ -819,9 +819,9 @@ errorStatus N_mul(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	atom* atom1=args[0]->value;
-	atom* atom2=args[1]->value;
-	if(atom1->type!=DBL&&atom1->type!=INT)
+	ANS_atom* ANS_atom1=args[0]->value;
+	ANS_atom* ANS_atom2=args[1]->value;
+	if(ANS_atom1->type!=DBL&&ANS_atom1->type!=INT)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -829,7 +829,7 @@ errorStatus N_mul(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	if(atom2->type!=DBL&&atom2->type!=INT)
+	if(ANS_atom2->type!=DBL&&ANS_atom2->type!=INT)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -837,16 +837,16 @@ errorStatus N_mul(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	atom* tmpAtm=newAtom(0,NULL,objCptr->outer);
-	if(atom1->type==DBL||atom2->type==DBL)
+	ANS_atom* tmpAtm=newAtom(0,NULL,objCptr->outer);
+	if(ANS_atom1->type==DBL||ANS_atom2->type==DBL)
 	{
-		double result=((atom1->type==DBL)?atom1->value.dbl:atom1->value.num)*((atom2->type==DBL)?atom2->value.dbl:atom2->value.num);
+		double result=((ANS_atom1->type==DBL)?ANS_atom1->value.dbl:ANS_atom1->value.num)*((ANS_atom2->type==DBL)?ANS_atom2->value.dbl:ANS_atom2->value.num);
 		tmpAtm->type=DBL;
 		tmpAtm->value.dbl=result;
 	}
-	else if(atom1->type==INT&&atom2->type==INT)
+	else if(ANS_atom1->type==INT&&ANS_atom2->type==INT)
 	{
-		int32_t result=atom1->value.num*atom2->value.num;
+		int32_t result=ANS_atom1->value.num*ANS_atom2->value.num;
 		tmpAtm->type=INT;
 		tmpAtm->value.num=result;
 	}
@@ -856,11 +856,11 @@ errorStatus N_mul(cptr* objCptr,env* curEnv)
 	return status;
 }
 
-errorStatus N_div(cptr* objCptr,env* curEnv)
+ErrorStatus N_div(Cptr* objCptr,env* curEnv)
 {
-	errorStatus status={0,NULL};
+	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&objCptr->outer->cdr,2);
+	Cptr** args=dealArg(&objCptr->outer->cdr,2);
 	status=eval(args[0],curEnv);
 	if(status.status!=0)
 	{
@@ -889,9 +889,9 @@ errorStatus N_div(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	atom* atom1=args[0]->value;
-	atom* atom2=args[1]->value;
-	if(atom1->type!=DBL&&atom1->type!=INT)
+	ANS_atom* ANS_atom1=args[0]->value;
+	ANS_atom* ANS_atom2=args[1]->value;
+	if(ANS_atom1->type!=DBL&&ANS_atom1->type!=INT)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -899,7 +899,7 @@ errorStatus N_div(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	if(atom2->type!=DBL&&atom2->type!=INT)
+	if(ANS_atom2->type!=DBL&&ANS_atom2->type!=INT)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -907,10 +907,10 @@ errorStatus N_div(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	atom* tmpAtm=newAtom(DBL,NULL,objCptr->outer);
-	if(atom1->type==DBL||atom2->type==DBL)
+	ANS_atom* tmpAtm=newAtom(DBL,NULL,objCptr->outer);
+	if(ANS_atom1->type==DBL||ANS_atom2->type==DBL)
 	{
-		double result=((atom1->type==DBL)?atom1->value.dbl:atom1->value.num)/((atom2->type==DBL)?atom2->value.dbl:atom2->value.num);
+		double result=((ANS_atom1->type==DBL)?ANS_atom1->value.dbl:ANS_atom1->value.num)/((ANS_atom2->type==DBL)?ANS_atom2->value.dbl:ANS_atom2->value.num);
 		tmpAtm->type=DBL;
 		tmpAtm->value.dbl=result;
 	}
@@ -920,11 +920,11 @@ errorStatus N_div(cptr* objCptr,env* curEnv)
 	return status;
 }
 
-errorStatus N_mod(cptr* objCptr,env* curEnv)
+ErrorStatus N_mod(Cptr* objCptr,env* curEnv)
 {
-	errorStatus status={0,NULL};
+	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&objCptr->outer->cdr,2);
+	Cptr** args=dealArg(&objCptr->outer->cdr,2);
 	status=eval(args[0],curEnv);
 	if(status.status!=0)
 	{
@@ -953,9 +953,9 @@ errorStatus N_mod(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	atom* atom1=args[0]->value;
-	atom* atom2=args[1]->value;
-	if(atom1->type!=DBL&&atom1->type!=INT)
+	ANS_atom* ANS_atom1=args[0]->value;
+	ANS_atom* ANS_atom2=args[1]->value;
+	if(ANS_atom1->type!=DBL&&ANS_atom1->type!=INT)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -963,7 +963,7 @@ errorStatus N_mod(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	if(atom2->type!=DBL&&atom2->type!=INT)
+	if(ANS_atom2->type!=DBL&&ANS_atom2->type!=INT)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -971,18 +971,18 @@ errorStatus N_mod(cptr* objCptr,env* curEnv)
 		deleteArg(args,2);
 		return status;
 	}
-	atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
-	int32_t result=((atom1->type==DBL)?(int)atom1->value.dbl:atom1->value.num)%((atom2->type==DBL)?(int)atom2->value.dbl:atom2->value.num);
+	ANS_atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
+	int32_t result=((ANS_atom1->type==DBL)?(int)ANS_atom1->value.dbl:ANS_atom1->value.num)%((ANS_atom2->type==DBL)?(int)ANS_atom2->value.dbl:ANS_atom2->value.num);
 	tmpAtm->value.num=result;
 	deleteArg(args,2);
 	return status;
 }
 
-errorStatus N_print(cptr* objCptr,env* curEnv)
+ErrorStatus N_print(Cptr* objCptr,env* curEnv)
 {
-	errorStatus status={0,NULL};
+	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
-	cptr** args=dealArg(&objCptr->outer->cdr,1);
+	Cptr** args=dealArg(&objCptr->outer->cdr,1);
 	status=eval(args[0],curEnv);
 	if(status.status!=0)
 	{
@@ -997,7 +997,7 @@ errorStatus N_print(cptr* objCptr,env* curEnv)
 		deleteArg(args,1);
 		return status;
 	}
-	atom* tmpAtom=args[0]->value;
+	ANS_atom* tmpAtom=args[0]->value;
 	fprintf(stdout,"%s",tmpAtom->value);
 	replace(objCptr,args[0]);
 	deleteArg(args,1);

@@ -28,7 +28,7 @@ typedef struct
 
 typedef struct StackValue
 {
-	valueType type;
+	ValueType type;
 	union
 	{
 		char* str;
@@ -133,7 +133,7 @@ int B_mul(fakeVM*);
 int B_div(fakeVM*);
 int B_mod(fakeVM*);
 int B_rand(fakeVM*);
-int B_atom(fakeVM*);
+int B_ANS_atom(fakeVM*);
 int B_null(fakeVM*);
 int B_init_proc(fakeVM*);
 int B_end_proc(fakeVM*);
@@ -189,7 +189,7 @@ static fakestack* newStack(uint32_t);
 static filestack* newFileStack();
 excode* newExcode(byteCode*);
 static stackvalue* copyValue(stackvalue*);
-static stackvalue* newStackValue(valueType);
+static stackvalue* newStackValue(ValueType);
 stackvalue* getTopValue(fakestack*);
 stackvalue* getValue(fakestack*,int32_t);
 static stackvalue* getCar(stackvalue*);
@@ -208,11 +208,11 @@ static fakeVMStack* newThreadStack(int32_t);
 static threadMessage* newMessage(stackvalue*);
 static int sendMessage(threadMessage*,fakeVM*);
 static stackvalue* acceptMassage(fakeVM*);
-static stackvalue* castCptrStackValue(const cptr*);
+static stackvalue* castCptrStackValue(const Cptr*);
 static fakeprocess* hasSameProc(excode*,fakeprocess*);
 static int isTheLastExpress(const fakeprocess*,const fakeprocess*);
 static void printByteArry(byteArry,FILE*);
-static int8_t* createArry(int32_t);
+static int8_t* createByteArry(int32_t);
 #ifndef _WIN32
 static int getch();
 #endif

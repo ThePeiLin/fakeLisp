@@ -10,21 +10,21 @@ typedef enum{NIL,SYM,STR,INT,CHR,BYTE,DBL,PAIR,PRC,ATM} ValueType;
 
 typedef struct
 {
-	struct Pair* outer;
+	struct ANS_Pair* outer;
 	int curline;
 	ValueType type;
 	void* value;
-}cptr;
+}ANS_Cptr;
 
-typedef struct Pair
+typedef struct ANS_Pair
 {
-	struct Pair* prev;
-	cptr car,cdr;
-}prepair;
+	struct ANS_Pair* prev;
+	Cptr car,cdr;
+}ANS_pair;
 
-typedef struct Atom
+typedef struct ANS_atom
 {
-	prepair* prev;
+	ANS_pair* prev;
 	ValueType type;
 	union
 	{
@@ -33,18 +33,18 @@ typedef struct Atom
 		int32_t num;
 		double dbl;
 	} value;
-}atom;
+}ANS_atom;
 
 typedef struct
 {
 	int status;
-	cptr* place;
-}errorStatus;
+	Cptr* place;
+}ErrorStatus;
 
 typedef struct Defines
 {
 	char* symName;
-	cptr obj;//node or symbol or val
+	Cptr obj;//node or symbol or val
 	struct Defines* next;
 }defines;
 
@@ -58,21 +58,21 @@ typedef struct Env
 typedef struct NativeFunc//function and form
 {
 	char* functionName;
-	errorStatus (*function)(cptr*,env*);
+	ErrorStatus (*function)(Cptr*,env*);
 	struct NativeFunc* next;
 }nativeFunc;
 
 typedef struct Macro
 {
-	cptr* format;
-	cptr* express;
+	Cptr* format;
+	Cptr* express;
 	struct Macro* next;
 }macro;
 
 typedef struct MacroSym
 {
 	char* symName;
-	int (*Func)(const cptr*,const cptr*,const char*,env*);
+	int (*Func)(const Cptr*,const Cptr*,const char*,env*);
 	struct MacroSym* next;
 }masym;
 

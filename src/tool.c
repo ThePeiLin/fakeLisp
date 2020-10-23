@@ -17,7 +17,7 @@ char* builtInSymbolList[]=
 	"cons",
 	"car",
 	"cdr",
-	"atom",
+	"ANS_atom",
 	"null",
 	"ischr",
 	"isint",
@@ -501,14 +501,14 @@ void errors(int types,const char* filename,int line)
 	exit(1);
 }
 
-cptr* createTree(const char* objStr,intpr* inter)
+Cptr* createTree(const char* objStr,intpr* inter)
 {
 	//if(objStr==NULL)return NULL;
 	size_t i=0;
 	int braketsNum=0;
-	cptr* root=NULL;
-	prepair* objPair=NULL;
-	cptr* objCptr;
+	Cptr* root=NULL;
+	ANS_pair* objPair=NULL;
+	Cptr* objCptr;
 	while(*(objStr+i)!='\0')
 	{
 		if(*(objStr+i)=='(')
@@ -517,7 +517,7 @@ cptr* createTree(const char* objStr,intpr* inter)
 			{
 				if(objPair!=NULL)
 				{
-					prepair* tmp=newPair(inter->curline,objPair);
+					ANS_pair* tmp=newPair(inter->curline,objPair);
 					objPair->cdr.type=PAIR;
 					objPair->cdr.value=(void*)tmp;
 					objPair=tmp;
@@ -546,7 +546,7 @@ cptr* createTree(const char* objStr,intpr* inter)
 		{
 			i++;
 			braketsNum--;
-			prepair* prev=NULL;
+			ANS_pair* prev=NULL;
 			if(objPair==NULL)break;
 			while(objPair->prev!=NULL)
 			{
@@ -590,7 +590,7 @@ cptr* createTree(const char* objStr,intpr* inter)
 			i+=j;
 			if(objPair!=NULL)
 			{
-				prepair* tmp=newPair(inter->curline,objPair);
+				ANS_pair* tmp=newPair(inter->curline,objPair);
 				objPair->cdr.type=PAIR;
 				objPair->cdr.value=(void*)tmp;
 				objPair=tmp;
@@ -610,7 +610,7 @@ cptr* createTree(const char* objStr,intpr* inter)
 		{
 			if(root==NULL)objCptr=root=newCptr(inter->curline,objPair);
 			char* tmp=getStringFromList(objStr+i);
-			atom* tmpAtm=NULL;
+			ANS_atom* tmpAtm=NULL;
 			if(!isNum(tmp))
 				tmpAtm=newAtom(SYM,tmp,objPair); 
 			else if(isDouble(tmp))
@@ -636,7 +636,7 @@ cptr* createTree(const char* objStr,intpr* inter)
 			char* tmp=getStringAfterBackslash(objStr+i+2);
 			objCptr->type=ATM;
 			objCptr->value=(void*)newAtom(CHR,NULL,objPair);
-			atom* tmpAtm=objCptr->value;
+			ANS_atom* tmpAtm=objCptr->value;
 			if(tmp[0]!='\\')tmpAtm->value.chr=tmp[0];
 			else tmpAtm->value.chr=stringToChar(tmp+1);
 			i+=strlen(tmp)+2;
@@ -658,10 +658,10 @@ cptr* createTree(const char* objStr,intpr* inter)
 	return root;
 }
 
-prepair* newPair(int curline,prepair* prev)
+ANS_pair* newPair(int curline,ANS_pair* prev)
 {
-	prepair* tmp;
-	if((tmp=(prepair*)malloc(sizeof(prepair))))
+	ANS_pair* tmp;
+	if((tmp=(ANS_pair*)malloc(sizeof(ANS_pair))))
 	{
 		tmp->car.outer=tmp;
 		tmp->car.type=NIL;
@@ -677,10 +677,10 @@ prepair* newPair(int curline,prepair* prev)
 	return tmp;
 }
 
-cptr* newCptr(int curline,prepair* outer)
+Cptr* newCptr(int curline,ANS_pair* outer)
 {
-	cptr* tmp=NULL;
-	if(!(tmp=(cptr*)malloc(sizeof(cptr))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+	Cptr* tmp=NULL;
+	if(!(tmp=(Cptr*)malloc(sizeof(Cptr))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp->outer=outer;
 	tmp->curline=curline;
 	tmp->type=NIL;
@@ -688,10 +688,10 @@ cptr* newCptr(int curline,prepair* outer)
 	return tmp;
 }
 
-atom* newAtom(int type,const char* value,prepair* prev)
+ANS_atom* newAtom(int type,const char* value,ANS_pair* prev)
 {
-	atom* tmp=NULL;
-	if(!(tmp=(atom*)malloc(sizeof(atom))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+	ANS_atom* tmp=NULL;
+	if(!(tmp=(ANS_atom*)malloc(sizeof(ANS_atom))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	switch(type)
 	{
 		case SYM:
@@ -709,12 +709,12 @@ atom* newAtom(int type,const char* value,prepair* prev)
 	return tmp;
 }
 
-int copyCptr(cptr* objCptr,const cptr* copiedCptr)
+int copyCptr(Cptr* objCptr,const Cptr* copiedCptr)
 {
 	if(copiedCptr==NULL||objCptr==NULL)return 0;
-	prepair* objPair=NULL;
-	prepair* copiedPair=NULL;
-	prepair* tmpPair=(copiedCptr->type==PAIR)?copiedCptr->value:NULL;
+	ANS_pair* objPair=NULL;
+	ANS_pair* copiedPair=NULL;
+	ANS_pair* tmpPair=(copiedCptr->type==PAIR)?copiedCptr->value:NULL;
 	copiedPair=tmpPair;
 	while(1)
 	{
@@ -732,8 +732,8 @@ int copyCptr(cptr* objCptr,const cptr* copiedCptr)
 		}
 		else if(copiedCptr->type==ATM)
 		{
-			atom* coAtm=copiedCptr->value;
-			atom* objAtm=NULL;
+			ANS_atom* coAtm=copiedCptr->value;
+			ANS_atom* objAtm=NULL;
 			if(coAtm->type==SYM||coAtm->type==STR)
 				objAtm=newAtom(coAtm->type,coAtm->value.str,objPair);
 			else
@@ -764,8 +764,8 @@ int copyCptr(cptr* objCptr,const cptr* copiedCptr)
 		}
 		if(copiedPair!=NULL&&copiedCptr==&copiedPair->cdr)
 		{
-			prepair* objPrev=NULL;
-			prepair* coPrev=NULL;
+			ANS_pair* objPrev=NULL;
+			ANS_pair* coPrev=NULL;
 			if(copiedPair->prev==NULL)break;
 			while(objPair->prev!=NULL&&copiedPair!=NULL&&copiedPair!=tmpPair)
 			{
@@ -786,23 +786,23 @@ int copyCptr(cptr* objCptr,const cptr* copiedCptr)
 	}
 	return 1;
 }
-void replace(cptr* fir,const cptr* sec)
+void replace(Cptr* fir,const Cptr* sec)
 {
-	prepair* tmp=fir->outer;
-	cptr tmpCptr={NULL,0,NIL,NULL};
+	ANS_pair* tmp=fir->outer;
+	Cptr tmpCptr={NULL,0,NIL,NULL};
 	tmpCptr.type=fir->type;
 	tmpCptr.value=fir->value;
 	copyCptr(fir,sec);
 	deleteCptr(&tmpCptr);
-	if(fir->type==PAIR)((prepair*)fir->value)->prev=tmp;
-	else if(fir->type==ATM)((atom*)fir->value)->prev=tmp;
+	if(fir->type==PAIR)((ANS_pair*)fir->value)->prev=tmp;
+	else if(fir->type==ATM)((ANS_atom*)fir->value)->prev=tmp;
 }
 
-cptr* destroyCptr(cptr* objCptr)
+Cptr* destroyCptr(Cptr* objCptr)
 {
-	prepair* objPair=NULL;
-	if(objCptr->type==PAIR)objPair=((prepair*)objCptr->value)->prev;
-	if(objCptr->type==ATM)objPair=((atom*)objCptr->value)->prev;
+	ANS_pair* objPair=NULL;
+	if(objCptr->type==PAIR)objPair=((ANS_pair*)objCptr->value)->prev;
+	if(objCptr->type==ATM)objPair=((ANS_atom*)objCptr->value)->prev;
 	if(objCptr->type==NIL)return objCptr;
 	while(objPair!=NULL&&objPair->prev!=NULL)objPair=objPair->prev;
 	if(objPair!=NULL)
@@ -812,12 +812,12 @@ cptr* destroyCptr(cptr* objCptr)
 	}
 	free(objPair);
 }
-int deleteCptr(cptr* objCptr)
+int deleteCptr(Cptr* objCptr)
 {
 	if(objCptr==NULL)return 0;
-	prepair* tmpPair=(objCptr->type==PAIR)?objCptr->value:NULL;
-	prepair* objPair=tmpPair;
-	cptr* tmpCptr=objCptr;
+	ANS_pair* tmpPair=(objCptr->type==PAIR)?objCptr->value:NULL;
+	ANS_pair* objPair=tmpPair;
+	Cptr* tmpCptr=objCptr;
 	while(tmpCptr!=NULL)
 	{
 		if(tmpCptr->type==PAIR)
@@ -851,7 +851,7 @@ int deleteCptr(cptr* objCptr)
 			}
 			else if(objPair!=NULL&&tmpCptr==&objPair->cdr)
 			{
-				prepair* prev=objPair;
+				ANS_pair* prev=objPair;
 				objPair=objPair->prev;
 			//	printf("free PAIR\n");
 				free(prev);
@@ -876,12 +876,12 @@ int deleteCptr(cptr* objCptr)
 	return 0;
 }
 
-int cptrcmp(const cptr* first,const cptr* second)
+int Cptrcmp(const Cptr* first,const Cptr* second)
 {
 	if(first==NULL&&second==NULL)return 0;
-	prepair* firPair=NULL;
-	prepair* secPair=NULL;
-	prepair* tmpPair=(first->type==PAIR)?first->value:NULL;
+	ANS_pair* firPair=NULL;
+	ANS_pair* secPair=NULL;
+	ANS_pair* tmpPair=(first->type==PAIR)?first->value:NULL;
 	while(1)
 	{
 		if(first->type!=second->type)return 0;
@@ -897,12 +897,12 @@ int cptrcmp(const cptr* first,const cptr* second)
 		{
 			if(first->type==ATM)
 			{
-				atom* firAtm=first->value;
-				atom* secAtm=second->value;
+				ANS_atom* firAtm=first->value;
+				ANS_atom* secAtm=second->value;
 				if(firAtm->type!=secAtm->type)return 0;
 				if((firAtm->type==SYM||firAtm->type==STR)&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
 				else if(firAtm->type==DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
-				else if(!memcmp(&firAtm->type,&secAtm->type,sizeof(atom)-sizeof(prepair*)))return 0;
+				else if(!memcmp(&firAtm->type,&secAtm->type,sizeof(ANS_atom)-sizeof(ANS_pair*)))return 0;
 			}
 			if(firPair!=NULL&&first==&firPair->car)
 			{ first=&firPair->cdr;
@@ -918,8 +918,8 @@ int cptrcmp(const cptr* first,const cptr* second)
 		}
 		else if(firPair!=NULL&&first==&firPair->cdr)
 		{
-			prepair* firPrev=NULL;
-			prepair* secPrev=NULL;
+			ANS_pair* firPrev=NULL;
+			ANS_pair* secPrev=NULL;
 			if(firPair->prev==NULL)break;
 			while(firPair->prev!=NULL&&firPair!=tmpPair)
 			{
@@ -941,14 +941,14 @@ int cptrcmp(const cptr* first,const cptr* second)
 	return 1;
 }
 
-cptr* nextCptr(const cptr* objCptr)
+Cptr* nextCptr(const Cptr* objCptr)
 {
 	if(objCptr->outer!=NULL&&objCptr->outer->cdr.type==PAIR)
-		return &((prepair*)objCptr->outer->cdr.value)->car;
+		return &((ANS_pair*)objCptr->outer->cdr.value)->car;
 	return NULL;
 }
 
-cptr* prevCptr(const cptr* objCptr)
+Cptr* prevCptr(const Cptr* objCptr)
 {
 	if(objCptr->outer!=NULL&&objCptr->outer->prev!=NULL&&objCptr->outer->prev->cdr.value==objCptr->outer)
 		return &objCptr->outer->prev->car;
@@ -1030,17 +1030,17 @@ int isNum(const char* objStr)
 	return 1;
 }
 
-void freeAtom(atom* objAtm)
+void freeAtom(ANS_atom* objAtm)
 {
 	if(objAtm->type==SYM||objAtm->type==STR)free(objAtm->value.str);
 	free(objAtm);
 }
 
-void printList(const cptr* objCptr,FILE* out)
+void printList(const Cptr* objCptr,FILE* out)
 {
 	if(objCptr==NULL)return;
-	prepair* tmpPair=(objCptr->type==PAIR)?objCptr->value:NULL;
-	prepair* objPair=tmpPair;
+	ANS_pair* tmpPair=(objCptr->type==PAIR)?objCptr->value:NULL;
+	ANS_pair* objPair=tmpPair;
 	while(objCptr!=NULL)
 	{
 		if(objCptr->type==PAIR)
@@ -1066,7 +1066,7 @@ void printList(const cptr* objCptr,FILE* out)
 			||(objCptr->outer==NULL&&objCptr->type==NIL))fputs("nil",out);
 			if(objCptr->type!=NIL)
 			{
-				atom* tmpAtm=objCptr->value;
+				ANS_atom* tmpAtm=objCptr->value;
 				switch(tmpAtm->type)
 				{
 					case SYM:
@@ -1094,7 +1094,7 @@ void printList(const cptr* objCptr,FILE* out)
 		if(objPair!=NULL&&objCptr==&objPair->cdr)
 		{
 			putc(')',out);
-			prepair* prev=NULL;
+			ANS_pair* prev=NULL;
 			if(objPair->prev==NULL)break;
 			while(objPair->prev!=NULL&&objPair!=tmpPair)
 			{
@@ -1109,7 +1109,7 @@ void printList(const cptr* objCptr,FILE* out)
 	}
 }
 
-void exError(const cptr* obj,int type,intpr* inter)
+void exError(const Cptr* obj,int type,intpr* inter)
 {
 	if(inter!=NULL)printf("In file \"%s\",line %d\n",inter->filename,(obj==NULL)?inter->curline:obj->curline);
 	if(obj!=NULL)printList(obj,stdout);
@@ -1350,18 +1350,18 @@ int iscode(const char* filename)
 	else return !strcmp(filename+i,".fklc");
 }
 
-cptr* getLast(const cptr* objList)
+Cptr* getLast(const Cptr* objList)
 {
-	prepair* objPair=objList->value;
-	cptr* first=&objPair->car;
+	ANS_pair* objPair=objList->value;
+	Cptr* first=&objPair->car;
 	for(;nextCptr(first)!=NULL;first=nextCptr(first));
 	return first;
 }
 
-cptr* getFirst(const cptr* objList)
+Cptr* getFirst(const Cptr* objList)
 {
-	prepair* objPair=objList->value;
-	cptr* first=&objPair->car;
+	ANS_pair* objPair=objList->value;
+	Cptr* first=&objPair->car;
 	return first;
 }
 

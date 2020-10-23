@@ -119,7 +119,7 @@ static codeinfor codeName[]=
 	{"div",0},
 	{"mod",0},
 	{"rand",0},
-	{"atom",0},
+	{"ANS_atom",0},
 	{"null",0},
 	{"cast_to_chr",0},
 	{"cast_to_int",0},

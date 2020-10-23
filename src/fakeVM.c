@@ -46,7 +46,7 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_div,
 	B_mod,
 	B_rand,
-	B_atom,
+	B_ANS_atom,
 	B_null,
 	B_cast_to_chr,
 	B_cast_to_int,
@@ -135,7 +135,7 @@ byteCode P_cdr=
 	}
 };
 
-byteCode P_atom=
+byteCode P_ANS_atom=
 {
 	13,
 	(char[])
@@ -793,7 +793,7 @@ void initGlobEnv(varstack* obj)
 		P_cons,
 		P_car,
 		P_cdr,
-		P_atom,
+		P_ANS_atom,
 		P_null,
 		P_ischr,
 		P_isint,
@@ -1085,7 +1085,7 @@ int B_push_car(fakeVM* exe)
 	{
 		stackvalue* bt=newStackValue(BYTE);
 		bt->value.byte.size=1;
-		bt->value.byte.arry=createArry(1);
+		bt->value.byte.arry=createByteArry(1);
 		bt->value.byte.arry[0]=objValue->value.byte.arry[0];
 		stack->values[stack->tp-1]=bt;
 	}
@@ -1123,7 +1123,7 @@ int B_push_cdr(fakeVM* exe)
 		{
 			int32_t size=objValue->value.byte.size-1;
 			bt->value.byte.size=size;
-			bt->value.byte.arry=createArry(size);
+			bt->value.byte.arry=createByteArry(size);
 			memcpy(bt->value.byte.arry,objValue->value.byte.arry+1,size);
 			stack->values[stack->tp-1]=bt;
 		}
@@ -1424,7 +1424,7 @@ int B_rand(fakeVM* exe)
 	return 0;
 }
 
-int B_atom(fakeVM* exe)
+int B_ANS_atom(fakeVM* exe)
 {
 	fakestack* stack=exe->stack;
 	fakeprocess* proc=exe->curproc;
@@ -2027,15 +2027,15 @@ int B_cast_to_byte(fakeVM* exe)
 	switch(topValue->type)
 	{
 		case INT:tmpValue->value.byte.size=sizeof(int32_t);
-				 tmpValue->value.byte.arry=createArry(sizeof(int32_t));
+				 tmpValue->value.byte.arry=createByteArry(sizeof(int32_t));
 				 *(int32_t*)tmpValue->value.byte.arry=topValue->value.num;
 				 break;
 		case DBL:tmpValue->value.byte.size=sizeof(double);
-				 tmpValue->value.byte.arry=createArry(sizeof(double));
+				 tmpValue->value.byte.arry=createByteArry(sizeof(double));
 				 *(double*)tmpValue->value.byte.arry=topValue->value.dbl;
 				 break;
 		case CHR:tmpValue->value.byte.size=sizeof(char);
-				 tmpValue->value.byte.arry=createArry(sizeof(char));
+				 tmpValue->value.byte.arry=createByteArry(sizeof(char));
 				 *(char*)tmpValue->value.byte.arry=topValue->value.chr;
 				 break;
 		case STR:
@@ -2043,7 +2043,7 @@ int B_cast_to_byte(fakeVM* exe)
 				 tmpValue->value.byte.arry=copyStr(topValue->value.str);
 				 break;
 		case BYTE:tmpValue->value.byte.size=topValue->value.byte.size;
-				  tmpValue->value.byte.arry=createArry(topValue->value.byte.size);
+				  tmpValue->value.byte.arry=createByteArry(topValue->value.byte.size);
 				  memcpy(tmpValue->value.byte.arry,topValue->value.byte.arry,topValue->value.byte.size);
 				  break;
 	}
@@ -2211,7 +2211,7 @@ int B_nth(fakeVM* exe)
 		stackRecycle(exe);
 		stackvalue* objByte=newStackValue(BYTE);
 		objByte->value.byte.size=1;
-		objByte->value.byte.arry=createArry(sizeof(int8_t));
+		objByte->value.byte.arry=createByteArry(sizeof(int8_t));
 		objByte->value.byte.arry[0]=objlist->value.byte.arry[place->value.num];
 		stack->values[stack->tp-1]=objByte;
 	}
@@ -2308,7 +2308,7 @@ int B_byte_cat(fakeVM* exe)
 	int32_t secSize=sec->value.byte.size;
 	stackvalue* tmpByte=newStackValue(BYTE);
 	tmpByte->value.byte.size=firSize+secSize;
-	int8_t* tmpArry=createArry(firSize+secSize);
+	int8_t* tmpArry=createByteArry(firSize+secSize);
 	memcpy(tmpArry,sec->value.byte.arry,secSize);
 	memcpy(tmpArry+firSize,fir->value.byte.arry,firSize);
 	tmpByte->value.byte.arry=tmpArry;
@@ -2384,7 +2384,7 @@ int B_read(fakeVM* exe)
 	if(tmpFile==NULL)return 2;
 	char* tmpString=getListFromFile(tmpFile);
 	intpr* tmpIntpr=newIntpr(NULL,tmpFile);
-	cptr* tmpCptr=createTree(tmpString,tmpIntpr);
+	Cptr* tmpCptr=createTree(tmpString,tmpIntpr);
 	stackvalue* tmp=NULL;
 	if(tmpCptr==NULL)return 3;
 	tmp=castCptrStackValue(tmpCptr);
@@ -2580,7 +2580,7 @@ filestack* newFileStack()
 	return tmp;
 }
 
-stackvalue* newStackValue(valueType type)
+stackvalue* newStackValue(ValueType type)
 {
 	stackvalue* tmp=(stackvalue*)malloc(sizeof(stackvalue));
 	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
@@ -2634,7 +2634,7 @@ stackvalue* copyValue(stackvalue* obj)
 	else if(obj->type==BYTE)
 	{
 		tmp->value.byte.size=obj->value.byte.size;
-		tmp->value.byte.arry=createArry(obj->value.byte.size);
+		tmp->value.byte.arry=createByteArry(obj->value.byte.size);
 		memcpy(tmp->value.byte.arry,obj->value.byte.arry,obj->value.byte.size);
 	}
 	else
@@ -2859,11 +2859,11 @@ void printAllStack(fakestack* stack,FILE* fp)
 	}
 }
 
-stackvalue* castCptrStackValue(const cptr* objCptr)
+stackvalue* castCptrStackValue(const Cptr* objCptr)
 {
 	if(objCptr->type==ATM)
 	{
-		atom* tmpAtm=objCptr->value;
+		ANS_atom* tmpAtm=objCptr->value;
 		stackvalue* tmp=newStackValue(tmpAtm->type);
 		switch(tmpAtm->type)
 		{
@@ -2877,7 +2877,7 @@ stackvalue* castCptrStackValue(const cptr* objCptr)
 	}
 	else if(objCptr->type==PAIR)
 	{
-		prepair* objPair=objCptr->value;
+		ANS_pair* objPair=objCptr->value;
 		stackvalue* tmp=newStackValue(PAIR);
 		tmp->value.pair.car=castCptrStackValue(&objPair->car);
 		tmp->value.pair.cdr=castCptrStackValue(&objPair->cdr);
@@ -2941,7 +2941,7 @@ void printEnv(varstack* curEnv,FILE* fp)
 	}
 }
 
-int8_t* createArry(int32_t size)
+int8_t* createByteArry(int32_t size)
 {
 	int8_t* tmp=(int8_t*)malloc(sizeof(int8_t)*size);
 	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);

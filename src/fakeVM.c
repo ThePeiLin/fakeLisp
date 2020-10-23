@@ -2760,7 +2760,7 @@ void printVMvalue(VMvalue* objValue,FILE* fp)
 				 }
 				 putc(')',fp);
 				 break;
-		case BYTE:printByteArry(objValue->value.byte,fp);
+		case BYTE:printByteArry(&objValue->value.byte,fp);
 				  break;
 		default:fprintf(fp,"Bad value!");break;
 	}
@@ -2790,7 +2790,7 @@ void princVMvalue(VMvalue* objValue,FILE* fp)
 				 }
 				 putc(')',fp);
 				 break;
-		case BYTE:printByteArry(objValue->value.byte,fp);
+		case BYTE:printByteArry(&objValue->value.byte,fp);
 				  break;
 		default:fprintf(fp,"Bad value!");break;
 	}
@@ -2970,15 +2970,4 @@ uint8_t* createByteArry(int32_t size)
 	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
 	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 	return tmp;
-}
-
-void printByteArry(ByteArry obj,FILE* fp)
-{
-	fputs("@\\",fp);
-	for(int i=0;i<obj.size;i++)
-	{
-		uint8_t j=obj.arry[i];
-		fprintf(fp,"%X",j%16);
-		fprintf(fp,"%X",j/16);
-	}
 }

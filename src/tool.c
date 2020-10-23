@@ -1104,7 +1104,11 @@ void printList(const ANS_cptr* objCptr,FILE* out)
 						break;
 					case CHR:
 						printRawChar(tmpAtm->value.chr,out);
-				}			
+						break;
+					case BYTE:
+						printByteArry(&tmpAtm->value.byte,out);
+						break;
+				}
 			}
 			if(objPair!=NULL&&objCptr==&objPair->car)
 			{
@@ -1395,6 +1399,11 @@ void printByteCode(const ByteCode* tmpCode,FILE* fp)
 		fprintf(fp,"%s ",codeName[tmpCode->code[i]].codeName);
 		switch(codeName[tmpCode->code[i]].len)
 		{
+			case -2:
+				fprintf(fp,"%d ",*(int32_t*)(tmpCode->code+i+1));
+				printAsByteArry((uint8_t*)(tmpCode->code+i+5),*(int32_t*)(tmpCode->code+i+1),fp);
+				i+=5+*(int32_t*)(tmpCode->code+i+1);
+				break;
 			case -1:
 				tmplen=strlen(tmpCode->code+i+1);
 				fprintf(fp,"%s",tmpCode->code+i+1);
@@ -1446,4 +1455,26 @@ uint8_t* castStrByteArry(const char* str)
 		k+=2;
 	}
 	return tmp;
+}
+
+void printByteArry(const ByteArry* obj,FILE* fp)
+{
+	fputs("@\\",fp);
+	for(int i=0;i<obj->size;i++)
+	{
+		uint8_t j=obj->arry[i];
+		fprintf(fp,"%X",j%16);
+		fprintf(fp,"%X",j/16);
+	}
+}
+
+void printAsByteArry(const uint8_t* arry,int32_t size,FILE* fp)
+{
+	fputs("@\\",fp);
+	for(int i=0;i<size;i++)
+	{
+		uint8_t j=arry[i];
+		fprintf(fp,"%X",j%16);
+		fprintf(fp,"%X",j/16);
+	}
 }

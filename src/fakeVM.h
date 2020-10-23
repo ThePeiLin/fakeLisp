@@ -4,8 +4,8 @@
 
 typedef struct
 {
-	struct StackValue* car;
-	struct StackValue* cdr;
+	struct VM_Value* car;
+	struct VM_Value* cdr;
 }VMpair;
 
 typedef struct
@@ -20,61 +20,55 @@ typedef struct
 	VMsym* symbols;
 }symlist;*/
 
-typedef struct
-{
-	int32_t size;
-	int8_t* arry;
-}ByteArry;
-
-typedef struct StackValue
+typedef struct VM_Value
 {
 	ValueType type;
 	union
 	{
 		char* str;
-		struct ExCode* prc;
+		struct VM_Code* prc;
 		VMpair pair;
 		ByteArry byte;
 		int32_t num;
 		char chr;
 		double dbl;
 	}value;
-}stackvalue;
+}VMvalue;
 
-typedef struct VarStack
+typedef struct VM_Env
 {
-	struct VarStack* prev;
-	struct VarStack* next;
+	struct VM_Env* prev;
+	struct VM_Env* next;
 	int inProc;
 	int32_t bound;
 	uint32_t size;
-	stackvalue** values;
-}varstack;
+	VMvalue** values;
+}VMenv;
 
-typedef struct ExCode
+typedef struct VM_Code
 {
-	varstack* localenv;
+	VMenv* localenv;
 //	symlist* syms;
 	int32_t refcount;
 	uint32_t size;
 	char* code;
-}excode;
+}VMcode;
 
-typedef struct FakeProcess
+typedef struct VM_Process
 {
-	struct FakeProcess* prev;
-	varstack* localenv;
+	struct VM_Process* prev;
+	VMenv* localenv;
 	int32_t cp;
-	excode* code;
-}fakeprocess;
+	VMcode* code;
+}VMprocess;
 
 typedef struct
 {
 	int32_t tp;
 	int32_t bp;
 	uint32_t size;
-	stackvalue** values;
-}fakestack;
+	VMvalue** values;
+}VMstack;
 
 typedef struct
 {
@@ -84,16 +78,16 @@ typedef struct
 
 typedef struct ThreadMessage
 {
-	stackvalue* message;
+	VMvalue* message;
 	struct ThreadMessage* next;
 }threadMessage;
 
 typedef struct
 {
-	fakeprocess* curproc;
+	VMprocess* curproc;
 	ByteCode* procs;
-	fakeprocess* mainproc;
-	fakestack* stack;
+	VMprocess* mainproc;
+	VMstack* stack;
 	threadMessage* queue;
 	filestack* files;
 }fakeVM;
@@ -105,10 +99,10 @@ typedef struct
 }fakeVMStack;
 
 void runFakeVM(fakeVM*);
-void printStackValue(stackvalue*,FILE*);
-void princStackValue(stackvalue*,FILE*);
+void printVMvalue(VMvalue*,FILE*);
+void princVMvalue(VMvalue*,FILE*);
 fakeVM* newFakeVM(ByteCode*,ByteCode*);
-void initGlobEnv(varstack*);
+void initGlobEnv(VMenv*);
 int B_dummy(fakeVM*);
 int B_push_nil(fakeVM*);
 int B_push_pair(fakeVM*);
@@ -117,6 +111,7 @@ int B_push_chr(fakeVM*);
 int B_push_dbl(fakeVM*);
 int B_push_str(fakeVM*);
 int B_push_sym(fakeVM*);
+int B_push_byte(fakeVM*);
 int B_push_var(fakeVM*);
 int B_push_car(fakeVM*);
 int B_push_cdr(fakeVM*);
@@ -185,36 +180,36 @@ int B_go(fakeVM*);
 int B_wait(fakeVM*);
 int B_send(fakeVM*);
 int B_accept(fakeVM*);
-static fakestack* newStack(uint32_t);
+static VMstack* newStack(uint32_t);
 static filestack* newFileStack();
-excode* newExcode(ByteCode*);
-static stackvalue* copyValue(stackvalue*);
-static stackvalue* newStackValue(ValueType);
-stackvalue* getTopValue(fakestack*);
-stackvalue* getValue(fakestack*,int32_t);
-static stackvalue* getCar(stackvalue*);
-static stackvalue* getCdr(stackvalue*);
-static void freeExcode(excode*);
-static int stackvaluecmp(stackvalue*,stackvalue*);
-void freeStackValue(stackvalue*);
-varstack* newVarStack(int32_t,int,varstack*);
-static void freeVarStack(varstack*);
+VMcode* newVMcode(ByteCode*);
+static VMvalue* copyValue(VMvalue*);
+static VMvalue* newVMvalue(ValueType);
+VMvalue* getTopValue(VMstack*);
+VMvalue* getValue(VMstack*,int32_t);
+static VMvalue* getCar(VMvalue*);
+static VMvalue* getCdr(VMvalue*);
+static void freeVMcode(VMcode*);
+static int VMvaluecmp(VMvalue*,VMvalue*);
+void freeVMvalue(VMvalue*);
+VMenv* newVMenv(int32_t,int,VMenv*);
+static void freeVMenv(VMenv*);
 static void stackRecycle(fakeVM*);
-static excode* newBuiltInProc(ByteCode*);
-static fakeprocess* newFakeProcess(excode*,fakeprocess*);
-void printAllStack(fakestack*,FILE*);
+static VMcode* newBuiltInProc(ByteCode*);
+static VMprocess* newFakeProcess(VMcode*,VMprocess*);
+void printAllStack(VMstack*,FILE*);
 static int createNewThread(fakeVM*);
 static fakeVMStack* newThreadStack(int32_t);
-static threadMessage* newMessage(stackvalue*);
+static threadMessage* newMessage(VMvalue*);
 static int sendMessage(threadMessage*,fakeVM*);
-static stackvalue* acceptMassage(fakeVM*);
-static stackvalue* castCptrStackValue(const ANS_cptr*);
-static fakeprocess* hasSameProc(excode*,fakeprocess*);
-static int isTheLastExpress(const fakeprocess*,const fakeprocess*);
+static VMvalue* acceptMassage(fakeVM*);
+static VMvalue* castCptrVMvalue(const ANS_cptr*);
+static VMprocess* hasSameProc(VMcode*,VMprocess*);
+static int isTheLastExpress(const VMprocess*,const VMprocess*);
 static void printByteArry(ByteArry,FILE*);
 static int8_t* createByteArry(int32_t);
 #ifndef _WIN32
 static int getch();
 #endif
-void printEnv(varstack*,FILE*);
+void printEnv(VMenv*,FILE*);
 #endif

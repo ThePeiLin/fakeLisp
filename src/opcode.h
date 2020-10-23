@@ -1,7 +1,7 @@
 #ifndef OPCODE_H
 #define OPCODE_H
 enum opcode
-{	
+{
 	FAKE_PUSH_NIL=1,
 	FAKE_PUSH_PAIR,//it push an empty pair,
 	FAKE_PUSH_INT,
@@ -9,6 +9,7 @@ enum opcode
 	FAKE_PUSH_DBL,
 	FAKE_PUSH_STR,
 	FAKE_PUSH_SYM,
+	FAKE_PUSH_BYTE,
 	FAKE_PUSH_VAR,
 	FAKE_PUSH_CAR,
 	FAKE_PUSH_CDR,
@@ -95,6 +96,7 @@ static codeinfor codeName[]=
 	{"push_dbl",8},
 	{"push_str",-1},
 	{"push_sym",-1},
+	{"push_byte",-2},
 	{"push_var",4},
 	{"push_car",0},
 	{"push_cdr",0},

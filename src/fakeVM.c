@@ -1050,8 +1050,8 @@ int B_push_byte(fakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMcode* tmpCode=proc->code;
-	int32_t size=*(int32_t*)(tmpCode->code+proc->cp+1);
-	int8_t* tmp=createByteArry(size);
+	uint32_t size=*(int32_t*)(tmpCode->code+proc->cp+1);
+	uint8_t* tmp=createByteArry(size);
 	memcpy(tmp,tmpCode->code+proc->cp+5,size);
 	if(stack->tp>=stack->size)
 	{
@@ -1145,7 +1145,7 @@ int B_push_cdr(fakeVM* exe)
 		if(bt->value.byte.size==1)stack->values[stack->tp-1]=NULL;
 		else
 		{
-			int32_t size=objValue->value.byte.size-1;
+			uint32_t size=objValue->value.byte.size-1;
 			bt->value.byte.size=size;
 			bt->value.byte.arry=createByteArry(size);
 			memcpy(bt->value.byte.arry,objValue->value.byte.arry+1,size);
@@ -2235,7 +2235,7 @@ int B_nth(fakeVM* exe)
 		stackRecycle(exe);
 		VMvalue* objByte=newVMvalue(BYTE);
 		objByte->value.byte.size=1;
-		objByte->value.byte.arry=createByteArry(sizeof(int8_t));
+		objByte->value.byte.arry=createByteArry(sizeof(uint8_t));
 		objByte->value.byte.arry[0]=objlist->value.byte.arry[place->value.num];
 		stack->values[stack->tp-1]=objByte;
 	}
@@ -2332,7 +2332,7 @@ int B_byte_cat(fakeVM* exe)
 	int32_t secSize=sec->value.byte.size;
 	VMvalue* tmpByte=newVMvalue(BYTE);
 	tmpByte->value.byte.size=firSize+secSize;
-	int8_t* tmpArry=createByteArry(firSize+secSize);
+	uint8_t* tmpArry=createByteArry(firSize+secSize);
 	memcpy(tmpArry,sec->value.byte.arry,secSize);
 	memcpy(tmpArry+firSize,fir->value.byte.arry,firSize);
 	tmpByte->value.byte.arry=tmpArry;
@@ -2434,9 +2434,9 @@ int B_readb(fakeVM* exe)
 	FILE* fp=files->files[file->value.num];
 	if(fp==NULL)return 2;
 	VMvalue* tmpBary=newVMvalue(BYTE);
-	int8_t* arry=(int8_t*)malloc(sizeof(int8_t)*size->value.num);
+	uint8_t* arry=(uint8_t*)malloc(sizeof(uint8_t)*size->value.num);
 	if(arry==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
-	fread(arry,sizeof(int8_t),size->value.num,fp);
+	fread(arry,sizeof(uint8_t),size->value.num,fp);
 	tmpBary->value.byte.size=size->value.num;
 	tmpBary->value.byte.arry=arry;
 	stack->tp-=1;
@@ -2479,7 +2479,7 @@ int B_writeb(fakeVM* exe)
 	if(objFile==NULL)return 2;
 	stack->tp-=1;
 	stackRecycle(exe);
-	fwrite(bt->value.byte.arry,sizeof(int8_t),bt->value.byte.size,objFile);
+	fwrite(bt->value.byte.arry,sizeof(uint8_t),bt->value.byte.size,objFile);
 	proc->cp+=1;
 	return 0;
 }
@@ -2922,7 +2922,7 @@ int isTheLastExpress(const VMprocess* proc,const VMprocess* same)
 	for(;;)
 	{
 		char* code=proc->code->code;
-		int32_t size=proc->code->size;
+		uint32_t size=proc->code->size;
 		if(code[proc->cp]==FAKE_JMP)
 		{
 			int32_t where=*(int32_t*)(code+proc->cp+1);
@@ -2965,9 +2965,9 @@ void printEnv(VMenv* curEnv,FILE* fp)
 	}
 }
 
-int8_t* createByteArry(int32_t size)
+uint8_t* createByteArry(uint32_t size)
 {
-	int8_t* tmp=(int8_t*)malloc(sizeof(int8_t)*size);
+	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
 	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 	return tmp;
 }
@@ -2977,7 +2977,7 @@ void printByteArry(ByteArry obj,FILE* fp)
 	fputs("@\\",fp);
 	for(int i=0;i<obj.size;i++)
 	{
-		int8_t j=obj.arry[i];
+		uint8_t j=obj.arry[i];
 		fprintf(fp,"%X",j%16);
 		fprintf(fp,"%X",j/16);
 	}

@@ -195,7 +195,7 @@ ByteCode* loadRawproc(FILE* fp)
 	}
 	for(;i<num;i++)
 	{
-		int32_t size=0;
+		uint32_t size=0;
 		fread(&size,sizeof(int32_t),1,fp);
 		tmp[i].size=size;
 		tmp[i].code=(char*)malloc(sizeof(char)*size);
@@ -213,7 +213,7 @@ ByteCode* loadRawproc(FILE* fp)
 
 ByteCode* loadByteCode(FILE* fp)
 {
-	int32_t size=0;
+	uint32_t size=0;
 	int i=0;
 	fread(&size,sizeof(int32_t),1,fp);
 	ByteCode* tmp=(ByteCode*)malloc(sizeof(ByteCode));

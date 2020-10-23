@@ -37,12 +37,12 @@ int main(int argc,char** argv)
 		ByteCode* rawProcList=castRawproc(inter->procs);
 		for(i=0;i<numOfRawproc;i++)
 		{
-			int32_t size=rawProcList[i].size;
+			uint32_t size=rawProcList[i].size;
 			char* code=rawProcList[i].code;
 			fwrite(&size,sizeof(size),1,outfp);
 			fwrite(code,sizeof(char),size,outfp);
 		}
-		int32_t sizeOfMain=mainByteCode->size;
+		uint32_t sizeOfMain=mainByteCode->size;
 		char* code=mainByteCode->code;
 		fwrite(&sizeOfMain,sizeof(sizeOfMain),1,outfp);
 		fwrite(code,sizeof(char),sizeOfMain,outfp);

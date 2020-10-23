@@ -16,7 +16,7 @@ typedef struct
 
 /*typedef struct
 {
-	int32_t size;
+	uint32_t size;
 	VMsym* symbols;
 }symlist;*/
 
@@ -94,7 +94,7 @@ typedef struct
 
 typedef struct
 {
-	int32_t size;
+	uint32_t size;
 	fakeVM** VMs;
 }fakeVMStack;
 
@@ -207,7 +207,7 @@ static VMvalue* castCptrVMvalue(const ANS_cptr*);
 static VMprocess* hasSameProc(VMcode*,VMprocess*);
 static int isTheLastExpress(const VMprocess*,const VMprocess*);
 static void printByteArry(ByteArry,FILE*);
-static int8_t* createByteArry(int32_t);
+static uint8_t* createByteArry(uint32_t);
 #ifndef _WIN32
 static int getch();
 #endif

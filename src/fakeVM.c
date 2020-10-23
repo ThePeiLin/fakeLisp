@@ -2948,7 +2948,7 @@ int8_t* createByteArry(int32_t size)
 	return tmp;
 }
 
-void printByteArry(byteArry obj,FILE* fp)
+void printByteArry(ByteArry obj,FILE* fp)
 {
 	fputs("@\\",fp);
 	for(int i=0;i<obj.size;i++)

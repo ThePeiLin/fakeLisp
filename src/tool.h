@@ -65,4 +65,6 @@ void initCompEnv(CompEnv*);
 ByteCode* copyByteCode(const ByteCode*);
 void freeByteCode(ByteCode*);
 void printByteCode(const ByteCode*,FILE*);
+void printByteArry(const ByteArry*,FILE*);
+void printAsByteArry(const uint8_t*,int32_t,FILE*);
 #endif

@@ -206,7 +206,6 @@ static VMvalue* acceptMassage(fakeVM*);
 static VMvalue* castCptrVMvalue(const ANS_cptr*);
 static VMprocess* hasSameProc(VMcode*,VMprocess*);
 static int isTheLastExpress(const VMprocess*,const VMprocess*);
-static void printByteArry(ByteArry,FILE*);
 static uint8_t* createByteArry(int32_t);
 #ifndef _WIN32
 static int getch();

@@ -129,7 +129,7 @@ void runIntpr(intpr* inter)
 				}
 				else
 				{
-				//	printByteCode(tmpByteCode,stdout);
+					printByteCode(tmpByteCode,stdout);
 					anotherVM->procs=castRawproc(anotherVM->procs,inter->procs);
 					anotherVM->mainproc->code=newVMcode(tmpByteCode);
 					anotherVM->mainproc->code->localenv=globEnv;

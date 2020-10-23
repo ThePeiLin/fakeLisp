@@ -11,7 +11,7 @@ ErrorStatus (*(findFunc(const char*)))(ANS_cptr*,PreEnv*);
 int retree(ANS_cptr**,ANS_cptr*);
 ErrorStatus eval(ANS_cptr*,PreEnv*);
 void addKeyWord(const char*);
-keyWord* hasKeyWord(const ANS_cptr*);
+KeyWord* hasKeyWord(const ANS_cptr*);
 void printAllKeyWord();
 PreMacro* PreMacroMatch(const ANS_cptr*);
 int PreMacroExpand(ANS_cptr*);

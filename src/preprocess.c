@@ -5,7 +5,7 @@ static PreMacro* FirstMacro=NULL;
 static PreMasym* FirstMasym=NULL;
 static PreEnv* MacroEnv=NULL;
 static PreFunc* funAndForm=NULL;
-static keyWord* KeyWords=NULL;
+static KeyWord* KeyWords=NULL;
 
 
 
@@ -186,12 +186,12 @@ void addKeyWord(const char* objStr)
 {
 	if(objStr!=NULL)
 	{
-		keyWord* current=KeyWords;
-		keyWord* prev=NULL;
+		KeyWord* current=KeyWords;
+		KeyWord* prev=NULL;
 		while(current!=NULL&&strcmp(current->word,objStr)){prev=current;current=current->next;}
 		if(current==NULL)
 		{
-			current=(keyWord*)malloc(sizeof(keyWord));
+			current=(KeyWord*)malloc(sizeof(KeyWord));
 			current->word=(char*)malloc(sizeof(char)*strlen(objStr));
 			if(current==NULL||current->word==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 			strcpy(current->word,objStr);
@@ -202,19 +202,19 @@ void addKeyWord(const char* objStr)
 	}
 }
 
-keyWord* hasKeyWord(const ANS_cptr* objCptr)
+KeyWord* hasKeyWord(const ANS_cptr* objCptr)
 {
 	ANS_atom* tmpAtm=NULL;
 	if(objCptr->type==ATM&&(tmpAtm=objCptr->value)->type==SYM)
 	{
-		keyWord* tmp=KeyWords;
+		KeyWord* tmp=KeyWords;
 		while(tmp!=NULL&&strcmp(tmpAtm->value.str,tmp->word))
 			tmp=tmp->next;
 		return tmp;
 	}
 	else if(objCptr->type==PAIR)
 	{
-		keyWord* tmp=NULL;
+		KeyWord* tmp=NULL;
 		for(objCptr=&((ANS_pair*)objCptr->value)->car;objCptr!=NULL;objCptr=nextCptr(objCptr))
 		{
 			tmp=KeyWords;
@@ -236,7 +236,7 @@ keyWord* hasKeyWord(const ANS_cptr* objCptr)
 
 void printAllKeyWord()
 {
-	keyWord* tmp=KeyWords;
+	KeyWord* tmp=KeyWords;
 	while(tmp!=NULL)
 	{
 		puts(tmp->word);

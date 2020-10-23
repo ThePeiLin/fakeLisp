@@ -112,9 +112,9 @@ typedef struct
 	RawProc* procs;
 }intpr;
 
-typedef struct KeyWord
+typedef struct Key_Word
 {
 	char* word;
-	struct KeyWord* next;
-}keyWord;
+	struct Key_Word* next;
+}KeyWord;
 #endif

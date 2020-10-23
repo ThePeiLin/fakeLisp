@@ -1050,7 +1050,7 @@ int B_push_byte(fakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMcode* tmpCode=proc->code;
-	uint32_t size=*(int32_t*)(tmpCode->code+proc->cp+1);
+	int32_t size=*(int32_t*)(tmpCode->code+proc->cp+1);
 	uint8_t* tmp=createByteArry(size);
 	memcpy(tmp,tmpCode->code+proc->cp+5,size);
 	if(stack->tp>=stack->size)
@@ -1145,7 +1145,7 @@ int B_push_cdr(fakeVM* exe)
 		if(bt->value.byte.size==1)stack->values[stack->tp-1]=NULL;
 		else
 		{
-			uint32_t size=objValue->value.byte.size-1;
+			int32_t size=objValue->value.byte.size-1;
 			bt->value.byte.size=size;
 			bt->value.byte.arry=createByteArry(size);
 			memcpy(bt->value.byte.arry,objValue->value.byte.arry+1,size);
@@ -1222,7 +1222,7 @@ int B_pop_var(fakeVM* exe)
 		curEnv->values=(VMvalue**)realloc(curEnv->values,sizeof(VMvalue*)*curEnv->size);
 		pValue=curEnv->values+countOfVar-(curEnv->bound);
 	}
-	else 
+	else
 	{
 		pValue=curEnv->values+countOfVar-(curEnv->bound);
 		freeVMvalue(*pValue);
@@ -2580,7 +2580,7 @@ VMcode* newVMcode(ByteCode* proc)
 	return tmp;
 }
 
-VMstack* newStack(uint32_t size)
+VMstack* newStack(int32_t size)
 {
 	VMstack* tmp=(VMstack*)malloc(sizeof(VMstack));
 	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
@@ -2922,7 +2922,7 @@ int isTheLastExpress(const VMprocess* proc,const VMprocess* same)
 	for(;;)
 	{
 		char* code=proc->code->code;
-		uint32_t size=proc->code->size;
+		int32_t size=proc->code->size;
 		if(code[proc->cp]==FAKE_JMP)
 		{
 			int32_t where=*(int32_t*)(code+proc->cp+1);
@@ -2965,7 +2965,7 @@ void printEnv(VMenv* curEnv,FILE* fp)
 	}
 }
 
-uint8_t* createByteArry(uint32_t size)
+uint8_t* createByteArry(int32_t size)
 {
 	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
 	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);

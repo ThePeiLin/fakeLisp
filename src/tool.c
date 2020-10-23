@@ -649,7 +649,7 @@ ANS_cptr* createTree(const char* objStr,intpr* inter)
 			objCptr->type=ATM;
 			objCptr->value=(void*)newAtom(BYTE,NULL,objPair);
 			ANS_atom* tmpAtm=objCptr->value;
-			uint32_t size=strlen(tmp)/2+strlen(tmp)%2;
+			int32_t size=strlen(tmp)/2+strlen(tmp)%2;
 			tmpAtm->value.byte.size=size;
 			tmpAtm->value.byte.arry=castStrByteArry(tmp);
 			i+=strlen(tmp)+2;
@@ -1308,7 +1308,7 @@ ByteCode* createByteCode(unsigned int size)
 	if(!(tmp=(ByteCode*)malloc(sizeof(ByteCode))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp->size=size;
 	if(!(tmp->code=(char*)malloc(size*sizeof(char))))errors(OUTOFMEMORY,__FILE__,__LINE__);
-	uint32_t i=0;
+	int32_t i=0;
 	for(;i<tmp->size;i++)tmp->code[i]=0;
 	return tmp;
 }
@@ -1388,7 +1388,7 @@ ANS_cptr* getFirst(const ANS_cptr* objList)
 
 void printByteCode(const ByteCode* tmpCode,FILE* fp)
 {
-	uint32_t i=0;
+	int32_t i=0;
 	while(i<tmpCode->size)
 	{
 		int tmplen=0;
@@ -1434,10 +1434,10 @@ uint8_t castCharInt(char ch)
 uint8_t* castStrByteArry(const char* str)
 {
 	int len=strlen(str);
-	uint32_t size=len/2+1;
+	int32_t size=len/2+1;
 	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
 	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
-	int i=0;
+	int32_t i=0;
 	int k=0;
 	for(;i<size;i++)
 	{

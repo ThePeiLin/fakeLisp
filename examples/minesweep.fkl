@@ -221,13 +221,17 @@
                     (let ((front (car (nth place gMap)))
                           (back (cdr (nth place gMap))))
                       (cond ((eq front 0)
-                             (if (le back 9)
-                               (print "\033[0m\033["
-                                      light
-                                      "m" back)
-                               (print "\033[0m\033["
-                                      light
-                                      "m*")))
+                             (cond ((eq back 0)
+                                    (print "\033[0m\033["
+                                           light
+                                           "m."))
+                                   ((lt back 9)
+                                    (print "\033[0m\033["
+                                           light
+                                           "m" back))
+                                   (1 (print "\033[0m\033["
+                                             light
+                                             "m*"))))
                             ((eq front 1)
                              (print "\033[0m\033["
                                     light
@@ -247,6 +251,7 @@
            (princ "\n" stdout)
            (loop-yp (1+ yp)))))
   (printBombNum))
+
 (define (main gMap line row bombnum)
   (define rrow (add row 2))
   (define rline (add line 2))
@@ -314,6 +319,14 @@
                              (loop-yt (1- yt)))))
                     (loop-tier (add tier (if (haveUnopenedBlock gMap row line x y tier) 0 1)))))))
           ))
+  (define (openAllBlock)
+    (define numOfBlock (mul (add line 2) (add row 2)))
+    (let loop-i ((i 0))
+      (cond ((lt i numOfBlock)
+             (let ((back (cdr (nth i gMap)))
+                   (front (car (nth i gMap))))
+               (if (neq front 4) (setq gMap (setl gMap i (cons 0 back)))))
+             (loop-i (1+ i))))))
   (printMap gMap row line xl yl bombnum)
   (let loop-ch ((ch (getch)))
     (cond ((eq ch #\h) (moveLeft))
@@ -324,17 +337,22 @@
           ((eq ch #\s) (openBlock))
           ((eq ch #\q) (quit)))
     (printMap gMap row line xl yl bombnum)
-    (if isGameOver (print "\033[" (int (div rline 2)) ";" (add rrow 2) "H" "You fail!"))
+    (cond (isGameOver (openAllBlock)
+                      (printMap gMap row line xl yl bombnum)
+                      (print "\033[" (int (div rline 2)) ";" (add rrow 2) "H" "You fail!")
+                      ))
     (cond ((eq 0 rbombnum)
            (print "\033[" (int (div rline 2)) ";" (add rrow 2) "H" "You win!")
            (setq isGameOver 1)))
     (if (and (not isGameOver) (neq ch #\\4)) (loop-ch (getch)))))
+
 (newTerm)
 (princ "Input line and row\n" stdout)
 (define line (read stdin))
 (define row (read stdin))
 (princ "Input bomb number\n" stdout)
 (define bombNum (read stdin))
+(princ "\033[2J" stdout)
 (define gMap (createMap line row bombNum))
 (main gMap line row bombNum)
 (define rline (add line 2))

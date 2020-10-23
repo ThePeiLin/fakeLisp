@@ -2,18 +2,18 @@
 #define COMPILER_H
 #include"fakedef.h"
 
-byteCode* compile(Cptr*,compEnv*,intpr*,ErrorStatus*);
-byteCode* compileConst(Cptr*,compEnv*,intpr*,ErrorStatus*);
-byteCode* compileQuote(Cptr*);
-byteCode* compileAtom(Cptr*);
-byteCode* compilePair(Cptr*);
-byteCode* compileListForm(Cptr*,compEnv*,intpr*,ErrorStatus*);
+byteCode* compile(ANS_cptr*,compEnv*,intpr*,ErrorStatus*);
+byteCode* compileConst(ANS_cptr*,compEnv*,intpr*,ErrorStatus*);
+byteCode* compileQuote(ANS_cptr*);
+byteCode* compileAtom(ANS_cptr*);
+byteCode* compilePair(ANS_cptr*);
+byteCode* compileListForm(ANS_cptr*,compEnv*,intpr*,ErrorStatus*);
 byteCode* compileNil();
-byteCode* compileDef(Cptr*,compEnv*,intpr*,ErrorStatus*);
-byteCode* compileSetq(Cptr*,compEnv*,intpr*,ErrorStatus*);
-byteCode* compileSym(Cptr*,compEnv*,intpr*,ErrorStatus*);
-byteCode* compileCond(Cptr*,compEnv*,intpr*,ErrorStatus*);
-byteCode* compileLambda(Cptr*,compEnv*,intpr*,ErrorStatus*);
-byteCode* compileAnd(Cptr*,compEnv*,intpr*,ErrorStatus*);
-byteCode* compileOr(Cptr*,compEnv*,intpr*,ErrorStatus*);
+byteCode* compileDef(ANS_cptr*,compEnv*,intpr*,ErrorStatus*);
+byteCode* compileSetq(ANS_cptr*,compEnv*,intpr*,ErrorStatus*);
+byteCode* compileSym(ANS_cptr*,compEnv*,intpr*,ErrorStatus*);
+byteCode* compileCond(ANS_cptr*,compEnv*,intpr*,ErrorStatus*);
+byteCode* compileLambda(ANS_cptr*,compEnv*,intpr*,ErrorStatus*);
+byteCode* compileAnd(ANS_cptr*,compEnv*,intpr*,ErrorStatus*);
+byteCode* compileOr(ANS_cptr*,compEnv*,intpr*,ErrorStatus*);
 #endif

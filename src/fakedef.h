@@ -14,12 +14,12 @@ typedef struct
 	int curline;
 	ValueType type;
 	void* value;
-}ANS_Cptr;
+}ANS_cptr;
 
 typedef struct ANS_Pair
 {
 	struct ANS_Pair* prev;
-	Cptr car,cdr;
+	ANS_cptr car,cdr;
 }ANS_pair;
 
 typedef struct ANS_atom
@@ -38,13 +38,13 @@ typedef struct ANS_atom
 typedef struct
 {
 	int status;
-	Cptr* place;
+	ANS_cptr* place;
 }ErrorStatus;
 
 typedef struct Defines
 {
 	char* symName;
-	Cptr obj;//node or symbol or val
+	ANS_cptr obj;//node or symbol or val
 	struct Defines* next;
 }defines;
 
@@ -58,21 +58,21 @@ typedef struct Env
 typedef struct NativeFunc//function and form
 {
 	char* functionName;
-	ErrorStatus (*function)(Cptr*,env*);
+	ErrorStatus (*function)(ANS_cptr*,env*);
 	struct NativeFunc* next;
 }nativeFunc;
 
 typedef struct Macro
 {
-	Cptr* format;
-	Cptr* express;
+	ANS_cptr* format;
+	ANS_cptr* express;
 	struct Macro* next;
 }macro;
 
 typedef struct MacroSym
 {
 	char* symName;
-	int (*Func)(const Cptr*,const Cptr*,const char*,env*);
+	int (*Func)(const ANS_cptr*,const ANS_cptr*,const char*,env*);
 	struct MacroSym* next;
 }masym;
 

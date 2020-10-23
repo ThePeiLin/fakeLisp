@@ -501,14 +501,14 @@ void errors(int types,const char* filename,int line)
 	exit(1);
 }
 
-Cptr* createTree(const char* objStr,intpr* inter)
+ANS_cptr* createTree(const char* objStr,intpr* inter)
 {
 	//if(objStr==NULL)return NULL;
 	size_t i=0;
 	int braketsNum=0;
-	Cptr* root=NULL;
+	ANS_cptr* root=NULL;
 	ANS_pair* objPair=NULL;
-	Cptr* objCptr;
+	ANS_cptr* objCptr;
 	while(*(objStr+i)!='\0')
 	{
 		if(*(objStr+i)=='(')
@@ -677,10 +677,10 @@ ANS_pair* newPair(int curline,ANS_pair* prev)
 	return tmp;
 }
 
-Cptr* newCptr(int curline,ANS_pair* outer)
+ANS_cptr* newCptr(int curline,ANS_pair* outer)
 {
-	Cptr* tmp=NULL;
-	if(!(tmp=(Cptr*)malloc(sizeof(Cptr))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+	ANS_cptr* tmp=NULL;
+	if(!(tmp=(ANS_cptr*)malloc(sizeof(ANS_cptr))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp->outer=outer;
 	tmp->curline=curline;
 	tmp->type=NIL;
@@ -709,7 +709,7 @@ ANS_atom* newAtom(int type,const char* value,ANS_pair* prev)
 	return tmp;
 }
 
-int copyCptr(Cptr* objCptr,const Cptr* copiedCptr)
+int copyCptr(ANS_cptr* objCptr,const ANS_cptr* copiedCptr)
 {
 	if(copiedCptr==NULL||objCptr==NULL)return 0;
 	ANS_pair* objPair=NULL;
@@ -786,10 +786,10 @@ int copyCptr(Cptr* objCptr,const Cptr* copiedCptr)
 	}
 	return 1;
 }
-void replace(Cptr* fir,const Cptr* sec)
+void replace(ANS_cptr* fir,const ANS_cptr* sec)
 {
 	ANS_pair* tmp=fir->outer;
-	Cptr tmpCptr={NULL,0,NIL,NULL};
+	ANS_cptr tmpCptr={NULL,0,NIL,NULL};
 	tmpCptr.type=fir->type;
 	tmpCptr.value=fir->value;
 	copyCptr(fir,sec);
@@ -798,7 +798,7 @@ void replace(Cptr* fir,const Cptr* sec)
 	else if(fir->type==ATM)((ANS_atom*)fir->value)->prev=tmp;
 }
 
-Cptr* destroyCptr(Cptr* objCptr)
+ANS_cptr* destroyCptr(ANS_cptr* objCptr)
 {
 	ANS_pair* objPair=NULL;
 	if(objCptr->type==PAIR)objPair=((ANS_pair*)objCptr->value)->prev;
@@ -812,12 +812,12 @@ Cptr* destroyCptr(Cptr* objCptr)
 	}
 	free(objPair);
 }
-int deleteCptr(Cptr* objCptr)
+int deleteCptr(ANS_cptr* objCptr)
 {
 	if(objCptr==NULL)return 0;
 	ANS_pair* tmpPair=(objCptr->type==PAIR)?objCptr->value:NULL;
 	ANS_pair* objPair=tmpPair;
-	Cptr* tmpCptr=objCptr;
+	ANS_cptr* tmpCptr=objCptr;
 	while(tmpCptr!=NULL)
 	{
 		if(tmpCptr->type==PAIR)
@@ -876,7 +876,7 @@ int deleteCptr(Cptr* objCptr)
 	return 0;
 }
 
-int Cptrcmp(const Cptr* first,const Cptr* second)
+int ANS_cptrcmp(const ANS_cptr* first,const ANS_cptr* second)
 {
 	if(first==NULL&&second==NULL)return 0;
 	ANS_pair* firPair=NULL;
@@ -941,14 +941,14 @@ int Cptrcmp(const Cptr* first,const Cptr* second)
 	return 1;
 }
 
-Cptr* nextCptr(const Cptr* objCptr)
+ANS_cptr* nextCptr(const ANS_cptr* objCptr)
 {
 	if(objCptr->outer!=NULL&&objCptr->outer->cdr.type==PAIR)
 		return &((ANS_pair*)objCptr->outer->cdr.value)->car;
 	return NULL;
 }
 
-Cptr* prevCptr(const Cptr* objCptr)
+ANS_cptr* prevCptr(const ANS_cptr* objCptr)
 {
 	if(objCptr->outer!=NULL&&objCptr->outer->prev!=NULL&&objCptr->outer->prev->cdr.value==objCptr->outer)
 		return &objCptr->outer->prev->car;
@@ -1036,7 +1036,7 @@ void freeAtom(ANS_atom* objAtm)
 	free(objAtm);
 }
 
-void printList(const Cptr* objCptr,FILE* out)
+void printList(const ANS_cptr* objCptr,FILE* out)
 {
 	if(objCptr==NULL)return;
 	ANS_pair* tmpPair=(objCptr->type==PAIR)?objCptr->value:NULL;
@@ -1109,7 +1109,7 @@ void printList(const Cptr* objCptr,FILE* out)
 	}
 }
 
-void exError(const Cptr* obj,int type,intpr* inter)
+void exError(const ANS_cptr* obj,int type,intpr* inter)
 {
 	if(inter!=NULL)printf("In file \"%s\",line %d\n",inter->filename,(obj==NULL)?inter->curline:obj->curline);
 	if(obj!=NULL)printList(obj,stdout);
@@ -1350,18 +1350,18 @@ int iscode(const char* filename)
 	else return !strcmp(filename+i,".fklc");
 }
 
-Cptr* getLast(const Cptr* objList)
+ANS_cptr* getLast(const ANS_cptr* objList)
 {
 	ANS_pair* objPair=objList->value;
-	Cptr* first=&objPair->car;
+	ANS_cptr* first=&objPair->car;
 	for(;nextCptr(first)!=NULL;first=nextCptr(first));
 	return first;
 }
 
-Cptr* getFirst(const Cptr* objList)
+ANS_cptr* getFirst(const ANS_cptr* objList)
 {
 	ANS_pair* objPair=objList->value;
-	Cptr* first=&objPair->car;
+	ANS_cptr* first=&objPair->car;
 	return first;
 }
 

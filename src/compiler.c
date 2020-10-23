@@ -6,7 +6,7 @@
 #include"preprocess.h"
 #include"opcode.h"
 
-byteCode* compile(Cptr* objCptr,compEnv* curEnv,intpr* inter,ErrorStatus* status)
+byteCode* compile(ANS_cptr* objCptr,compEnv* curEnv,intpr* inter,ErrorStatus* status)
 {
 	if(objCptr->type==PAIR&&(!macroExpand(objCptr)&&hasKeyWord(objCptr))||!isLegal(objCptr))
 	{
@@ -25,7 +25,7 @@ byteCode* compile(Cptr* objCptr,compEnv* curEnv,intpr* inter,ErrorStatus* status
 	if(isListForm(objCptr))return compileListForm(objCptr,curEnv,inter,status);
 }
 
-byteCode* compileAtom(Cptr* objCptr)
+byteCode* compileAtom(ANS_cptr* objCptr)
 {
 	ANS_atom* tmpAtm=objCptr->value;
 	byteCode* tmp=NULL;
@@ -67,7 +67,7 @@ byteCode* compileNil()
 	return tmp;
 }
 
-byteCode* compilePair(Cptr* objCptr)
+byteCode* compilePair(ANS_cptr* objCptr)
 {
 	byteCode* tmp=createByteCode(0);
 	byteCode* beFree=NULL;
@@ -129,7 +129,7 @@ byteCode* compilePair(Cptr* objCptr)
 	return tmp;
 }
 
-byteCode* compileQuote(Cptr* objCptr)
+byteCode* compileQuote(ANS_cptr* objCptr)
 {
 	objCptr=&((ANS_pair*)objCptr->value)->car;
 	objCptr=nextCptr(objCptr);
@@ -141,16 +141,16 @@ byteCode* compileQuote(Cptr* objCptr)
 	}
 }
 
-byteCode* compileConst(Cptr* objCptr,compEnv* curEnv,intpr* inter,ErrorStatus* status)
+byteCode* compileConst(ANS_cptr* objCptr,compEnv* curEnv,intpr* inter,ErrorStatus* status)
 {
 		if(objCptr->type==ATM)return compileAtom(objCptr);
 		if(isNil(objCptr))return compileNil();
 		if(isQuoteExpression)return compileQuote(objCptr);
 }
 
-byteCode* compileListForm(Cptr* objCptr,compEnv* curEnv,intpr* inter,ErrorStatus* status)
+byteCode* compileListForm(ANS_cptr* objCptr,compEnv* curEnv,intpr* inter,ErrorStatus* status)
 {
-	Cptr* headoflist=NULL;
+	ANS_cptr* headoflist=NULL;
 	ANS_pair* tmpPair=objCptr->value;
 	byteCode* beFree=NULL;
 	byteCode* tmp1=NULL;
@@ -200,12 +200,12 @@ byteCode* compileListForm(Cptr* objCptr,compEnv* curEnv,intpr* inter,ErrorStatus
 	return tmp;
 }
 
-byteCode* compileDef(Cptr* tir,compEnv* curEnv,intpr* inter,ErrorStatus* status)
+byteCode* compileDef(ANS_cptr* tir,compEnv* curEnv,intpr* inter,ErrorStatus* status)
 {
 	ANS_pair* tmpPair=tir->value;
-	Cptr* fir=NULL;
-	Cptr* sec=NULL;
-	Cptr* objCptr=NULL;
+	ANS_cptr* fir=NULL;
+	ANS_cptr* sec=NULL;
+	ANS_cptr* objCptr=NULL;
 	byteCode* tmp=createByteCode(0);
 	byteCode* beFree=NULL;
 	byteCode* tmp1=NULL;
@@ -287,12 +287,12 @@ byteCode* compileDef(Cptr* tir,compEnv* curEnv,intpr* inter,ErrorStatus* status)
 	return tmp;
 }
 
-byteCode* compileSetq(Cptr* objCptr,compEnv* curEnv,intpr* inter,ErrorStatus* status)
+byteCode* compileSetq(ANS_cptr* objCptr,compEnv* curEnv,intpr* inter,ErrorStatus* status)
 {
 	ANS_pair* tmpPair=objCptr->value;
-	Cptr* fir=&((ANS_pair*)objCptr->value)->car;
-	Cptr* sec=nextCptr(fir);
-	Cptr* tir=nextCptr(sec);
+	ANS_cptr* fir=&((ANS_pair*)objCptr->value)->car;
+	ANS_cptr* sec=nextCptr(fir);
+	ANS_cptr* tir=nextCptr(sec);
 	byteCode* tmp=createByteCode(0);
 	byteCode* beFree=NULL;
 	byteCode* tmp1=NULL;
@@ -359,7 +359,7 @@ byteCode* compileSetq(Cptr* objCptr,compEnv* curEnv,intpr* inter,ErrorStatus* st
 	return tmp;
 }
 
-byteCode* compileSym(Cptr* objCptr,compEnv* curEnv,intpr* inter,ErrorStatus* status)
+byteCode* compileSym(ANS_cptr* objCptr,compEnv* curEnv,intpr* inter,ErrorStatus* status)
 {
 	byteCode* pushVar=createByteCode(sizeof(char)+sizeof(int32_t));
 	pushVar->code[0]=FAKE_PUSH_VAR;
@@ -385,7 +385,7 @@ byteCode* compileSym(Cptr* objCptr,compEnv* curEnv,intpr* inter,ErrorStatus* sta
 	return pushVar;
 }
 
-byteCode* compileAnd(Cptr* objCptr,compEnv* curEnv,intpr* inter,ErrorStatus* status)
+byteCode* compileAnd(ANS_cptr* objCptr,compEnv* curEnv,intpr* inter,ErrorStatus* status)
 {
 	ANS_pair* tmpPair=objCptr->value;
 	byteCode* jumpiffalse=createByteCode(sizeof(char)+sizeof(int32_t));
@@ -426,7 +426,7 @@ byteCode* compileAnd(Cptr* objCptr,compEnv* curEnv,intpr* inter,ErrorStatus* sta
 	return tmp;
 }
 
-byteCode* compileOr(Cptr* objCptr,compEnv* curEnv,intpr* inter,ErrorStatus* status)
+byteCode* compileOr(ANS_cptr* objCptr,compEnv* curEnv,intpr* inter,ErrorStatus* status)
 {
 	ANS_pair* tmpPair=objCptr->value;
 	byteCode* jumpifture=createByteCode(sizeof(char)+sizeof(int32_t));
@@ -474,9 +474,9 @@ byteCode* compileOr(Cptr* objCptr,compEnv* curEnv,intpr* inter,ErrorStatus* stat
 	return tmp;
 }
 
-byteCode* compileLambda(Cptr* objCptr,compEnv* curEnv,intpr* inter,ErrorStatus* status)
+byteCode* compileLambda(ANS_cptr* objCptr,compEnv* curEnv,intpr* inter,ErrorStatus* status)
 {
-	Cptr* tmpCptr=objCptr;
+	ANS_cptr* tmpCptr=objCptr;
 	ANS_pair* tmpPair=objCptr->value;
 	ANS_pair* objPair=NULL;
 	rawproc* tmpRawProc=NULL;
@@ -543,7 +543,7 @@ byteCode* compileLambda(Cptr* objCptr,compEnv* curEnv,intpr* inter,ErrorStatus* 
 			tmpRawProc=addRawProc(proc,inter);
 			if(nextCptr(objCptr)->type==PAIR)
 			{
-				Cptr* argCptr=&((ANS_pair*)nextCptr(objCptr)->value)->car;
+				ANS_cptr* argCptr=&((ANS_pair*)nextCptr(objCptr)->value)->car;
 				while(argCptr!=NULL&&argCptr->type!=NIL)
 				{
 					ANS_atom* tmpAtm=(argCptr->type==ATM)?argCptr->value:NULL;
@@ -691,9 +691,9 @@ byteCode* compileLambda(Cptr* objCptr,compEnv* curEnv,intpr* inter,ErrorStatus* 
 	return tmp;
 }
 
-byteCode* compileCond(Cptr* objCptr,compEnv* curEnv,intpr* inter,ErrorStatus* status)
+byteCode* compileCond(ANS_cptr* objCptr,compEnv* curEnv,intpr* inter,ErrorStatus* status)
 {
-	Cptr* cond=NULL;
+	ANS_cptr* cond=NULL;
 	byteCode* pushnil=createByteCode(sizeof(char));
 	byteCode* jumpiffalse=createByteCode(sizeof(char)+sizeof(int32_t));
 	byteCode* jump=createByteCode(sizeof(char)+sizeof(int32_t));

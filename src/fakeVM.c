@@ -2384,7 +2384,7 @@ int B_read(fakeVM* exe)
 	if(tmpFile==NULL)return 2;
 	char* tmpString=getListFromFile(tmpFile);
 	intpr* tmpIntpr=newIntpr(NULL,tmpFile);
-	Cptr* tmpCptr=createTree(tmpString,tmpIntpr);
+	ANS_cptr* tmpCptr=createTree(tmpString,tmpIntpr);
 	stackvalue* tmp=NULL;
 	if(tmpCptr==NULL)return 3;
 	tmp=castCptrStackValue(tmpCptr);
@@ -2859,7 +2859,7 @@ void printAllStack(fakestack* stack,FILE* fp)
 	}
 }
 
-stackvalue* castCptrStackValue(const Cptr* objCptr)
+stackvalue* castCptrStackValue(const ANS_cptr* objCptr)
 {
 	if(objCptr->type==ATM)
 	{

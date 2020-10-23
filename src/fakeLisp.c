@@ -83,7 +83,7 @@ void runIntpr(intpr* inter)
 	initGlobEnv(globEnv);
 	for(;;)
 	{
-		Cptr* begin=NULL;
+		ANS_cptr* begin=NULL;
 		if(inter->file==stdin)printf(">>>");
 		int ch=getc(inter->file);
 		if(ch==EOF)break;

@@ -68,7 +68,7 @@ byteCode* compileFile(intpr* inter)
 	while((ch=getc(inter->file))!=EOF)
 	{
 		ungetc(ch,inter->file);
-		Cptr* begin=NULL;
+		ANS_cptr* begin=NULL;
 		char* list=getListFromFile(inter->file);
 		if(list==NULL)continue;
 		ErrorStatus status={0,NULL};

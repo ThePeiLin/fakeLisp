@@ -287,7 +287,7 @@ ByteCode* compileDef(ANS_cptr* tir,CompEnv* curEnv,intpr* inter,ErrorStatus* sta
 	beFree=tmp;
 	tmp=codeCat(tmp1,tmp);
 	freeByteCode(beFree);
-	freeByteCode(tmp1);	
+	freeByteCode(tmp1);
 	freeByteCode(popVar);
 	freeByteCode(pushTop);
 	return tmp;
@@ -336,8 +336,8 @@ ByteCode* compileSetq(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus
 		}
 		if(tmpDef==NULL)
 		{
-			status->status=SYNTAXERROR;
-			status->place=objCptr;
+			status->status=SYMUNDEFINE;
+			status->place=sec;
 			freeByteCode(tmp);
 			freeByteCode(popVar);
 			freeByteCode(pushTop);

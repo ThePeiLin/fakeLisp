@@ -2981,3 +2981,63 @@ void printProc(VMvalue* objValue,FILE* fp)
 	printByteCode(&tmp,fp);
 	fputc('>',fp);
 }
+
+VMheap* createHeap()
+{
+	VMheap* tmp=(VMheap*)malloc(sizeof(VMheap));
+	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	tmp->size=0;
+	tmp->threshold=THRESHOLD_SIZE;
+	tmp->head=NULL;
+	return tmp;
+}
+
+void GC_mark(fakeVM* exe)
+{
+	GC_markValueInStack(exe->stack);
+	GC_markMassage(exe->queue);
+}
+
+void GC_sweep(VMheap* heap)
+{
+	VMvalue* cur=heap->head;
+	while(cur!=NULL)
+	{
+		VMvalue* next=cur->next;
+		if(!mark)
+		{
+			if(cur->prev==NULL)
+				heap->head=cur->next;
+			freeVMvalue(cur);
+		}
+		else cur->mark=0;
+		cur=next;
+	}
+}
+
+void GC_markValueInStack(VMstack* stack)
+{
+	int32_t i=0;
+	for(;i<stack->tp;i++)
+	{
+		VMvalue* tmp=stack->values[i];
+		GC_markValue(tmp);
+	}
+}
+
+void GC_markMessage(threadMessage* head)
+{
+	while(head!=NULL)
+	{
+		GC_markValue(head->message);
+		head=head->next;
+	}
+}
+
+void GC_markValue(VMvalue* value)
+{
+	value->mark=1;
+	if(value->type==PAR)
+	{
+	}
+}

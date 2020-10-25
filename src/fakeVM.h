@@ -1,7 +1,7 @@
 #ifndef EXECUTE_H
 #define EXECUTE_H
 #include"fakedef.h"
-
+#define THRESHOLD_SIZE 64
 typedef struct
 {
 	struct VM_Value* car;
@@ -22,6 +22,8 @@ typedef struct
 
 typedef struct VM_Value
 {
+//	int8_t mark;
+//	int8_t isable;
 	ValueType type;
 	union
 	{
@@ -33,6 +35,7 @@ typedef struct VM_Value
 		char chr;
 		double dbl;
 	}value;
+	struct VM_Value* next;
 }VMvalue;
 
 typedef struct VM_Env
@@ -92,6 +95,13 @@ typedef struct
 	filestack* files;
 }fakeVM;
 
+typedef struct VM_Heap
+{
+	int32_t size;
+	int32_t threshold;
+	VMvalue* head;
+}VMheap;
+
 typedef struct
 {
 	int32_t size;
@@ -99,8 +109,9 @@ typedef struct
 }fakeVMStack;
 
 void runFakeVM(fakeVM*);
-void printVMvalue(VMvalue*,FILE*);
+void printVMvalue(VMvalue*,FILE*,int8_t);
 void princVMvalue(VMvalue*,FILE*);
+void printProc(VMvalue*,FILE*);
 fakeVM* newFakeVM(ByteCode*,ByteCode*);
 void initGlobEnv(VMenv*);
 int B_dummy(fakeVM*);
@@ -184,7 +195,7 @@ static VMstack* newStack(int32_t);
 static filestack* newFileStack();
 VMcode* newVMcode(ByteCode*);
 static VMvalue* copyValue(VMvalue*);
-static VMvalue* newVMvalue(ValueType);
+static VMvalue* newVMvalue(ValueType,VMheap*);
 VMvalue* getTopValue(VMstack*);
 VMvalue* getValue(VMstack*,int32_t);
 static VMvalue* getCar(VMvalue*);
@@ -211,4 +222,8 @@ static uint8_t* createByteArry(int32_t);
 static int getch();
 #endif
 void printEnv(VMenv*,FILE*);
+VMheap* createHeap();
+void GC_mark(fakeVM*);
+void GC_sweep(VMvalue*);
+void GC_compact(VMvalue*);
 #endif

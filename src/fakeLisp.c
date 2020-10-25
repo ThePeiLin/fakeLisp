@@ -141,7 +141,7 @@ void runIntpr(intpr* inter)
 					if(inter->file==stdin)
 					{
 						printf("=> ");
-						printVMvalue(getTopValue(stack),stdout);
+						printVMvalue(getTopValue(stack),stdout,1);
 						putchar('\n');
 					}
 				//	fprintf(stderr,"======\n");

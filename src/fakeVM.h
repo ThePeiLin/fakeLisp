@@ -22,7 +22,7 @@ typedef struct
 
 typedef struct VM_Value
 {
-//	int8_t mark;
+	int8_t mark;
 	int8_t type;
 	union
 	{
@@ -139,7 +139,7 @@ int B_mul(fakeVM*);
 int B_div(fakeVM*);
 int B_mod(fakeVM*);
 int B_rand(fakeVM*);
-int B_ANS_atom(fakeVM*);
+int B_atom(fakeVM*);
 int B_null(fakeVM*);
 int B_init_proc(fakeVM*);
 int B_end_proc(fakeVM*);
@@ -213,7 +213,7 @@ static int createNewThread(fakeVM*);
 static fakeVMStack* newThreadStack(int32_t);
 static threadMessage* newMessage(VMvalue*);
 static int sendMessage(threadMessage*,fakeVM*);
-static VMvalue* acceptMassage(fakeVM*);
+static VMvalue* acceptMessage(fakeVM*);
 static VMvalue* castCptrVMvalue(const ANS_cptr*);
 static VMprocess* hasSameProc(VMcode*,VMprocess*);
 static int isTheLastExpress(const VMprocess*,const VMprocess*);
@@ -227,7 +227,7 @@ void GC_mark(fakeVM*);
 void GC_markValue(VMvalue*);
 void GC_markValueInStack(VMstack*);
 void GC_markValueInEnv(VMenv*);
-void GC_markMassage(threadMessage*);
+void GC_markMessage(threadMessage*);
 void GC_sweep(VMheap*);
 void GC_compact(VMheap*);
 #endif

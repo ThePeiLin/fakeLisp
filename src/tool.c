@@ -1355,6 +1355,15 @@ char* copyStr(const char* str)
 
 }
 
+ByteArry copyByteArry(const ByteArry tmp)
+{
+	int8_t* tmpArry=(int8_t*)malloc(tmp.size*sizeof(int8_t));
+	if(tmpArry==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	memcpy(tmpArry,tmp.arry,tmp.size);
+	ByteArry toReturn={tmp.size,tmpArry};
+	return toReturn;
+}
+
 int isscript(const char* filename)
 {
 	int i;

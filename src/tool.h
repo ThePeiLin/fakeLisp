@@ -46,6 +46,7 @@ intpr* newIntpr(const char*,FILE*);
 int isscript(const char*);
 int iscode(const char*);
 char* copyStr(const char*);
+ByteArry copyByteArry(ByteArry);
 void freeIntpr(intpr*);
 void freeAtom(ANS_atom*);
 int destoryCptr(ANS_cptr*);

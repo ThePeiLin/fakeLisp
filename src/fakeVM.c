@@ -2461,7 +2461,7 @@ int B_write(fakeVM* exe)
 	if(objFile==NULL)return 2;
 	stack->tp-=1;
 	stackRecycle(exe);
-	printVMvalue(obj,objFile);
+	printVMvalue(obj,objFile,0);
 	proc->cp+=1;
 	return 0;
 }
@@ -2736,7 +2736,7 @@ VMvalue* getCdr(VMvalue* obj)
 	else return obj->value.pair.cdr;
 }
 
-void printVMvalue(VMvalue* objValue,FILE* fp)
+void printVMvalue(VMvalue* objValue,FILE* fp,int8_t mode)
 {
 	if(objValue==NULL)
 	{
@@ -2750,13 +2750,15 @@ void printVMvalue(VMvalue* objValue,FILE* fp)
 		case CHR:printRawChar(objValue->value.chr,fp);break;
 		case SYM:fprintf(fp,"%s",objValue->value.str);break;
 		case STR:printRawString(objValue->value.str,fp);break;
-		case PRC:fprintf(fp,"<#proc>");break;
+		case PRC:
+				if(mode==1)printProc(objValue,fp);
+				else fprintf(fp,"<#proc>");break;
 		case PAIR:putc('(',fp);
-				 printVMvalue(objValue->value.pair.car,fp);
+				 printVMvalue(objValue->value.pair.car,fp,mode);
 				 if(objValue->value.pair.cdr!=NULL)
 				 {
 					putc(',',fp);
-					printVMvalue(objValue->value.pair.cdr,fp);
+					printVMvalue(objValue->value.pair.cdr,fp,mode);
 				 }
 				 putc(')',fp);
 				 break;
@@ -2782,11 +2784,11 @@ void princVMvalue(VMvalue* objValue,FILE* fp)
 		case STR:fprintf(fp,"%s",objValue->value.str);break;
 		case PRC:fprintf(fp,"<#proc>");break;
 		case PAIR:putc('(',fp);
-				 printVMvalue(objValue->value.pair.car,fp);
+				 printVMvalue(objValue->value.pair.car,fp,0);
 				 if(objValue->value.pair.cdr!=NULL)
 				 {
 					putc(',',fp);
-					printVMvalue(objValue->value.pair.cdr,fp);
+					printVMvalue(objValue->value.pair.cdr,fp,0);
 				 }
 				 putc(')',fp);
 				 break;
@@ -2877,7 +2879,7 @@ void printAllStack(VMstack* stack,FILE* fp)
 		int i=stack->tp-1;
 		for(;i>=0;i--)
 		{
-			printVMvalue(stack->values[i],fp);
+			printVMvalue(stack->values[i],fp,0);
 			putc('\n',fp);
 		}
 	}
@@ -2959,7 +2961,7 @@ void printEnv(VMenv* curEnv,FILE* fp)
 		fprintf(fp,"ENV:");
 		for(int i=0;i<curEnv->size;i++)
 		{
-			printVMvalue(curEnv->values[i],fp);
+			printVMvalue(curEnv->values[i],fp,0);
 			putc(' ',fp);
 		}
 	}
@@ -2970,4 +2972,12 @@ uint8_t* createByteArry(int32_t size)
 	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
 	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 	return tmp;
+}
+
+void printProc(VMvalue* objValue,FILE* fp)
+{
+	fputs("\n<#proc\n",fp);
+	ByteCode tmp={objValue->value.prc->size,objValue->value.prc->code};
+	printByteCode(&tmp,fp);
+	fputc('>',fp);
 }

@@ -23,8 +23,7 @@ typedef struct
 typedef struct VM_Value
 {
 //	int8_t mark;
-//	int8_t isable;
-	ValueType type;
+	int8_t type;
 	union
 	{
 		char* str;
@@ -34,7 +33,8 @@ typedef struct VM_Value
 		int32_t num;
 		char chr;
 		double dbl;
-	}value;
+	}u;
+	struct VM_value* prev;
 	struct VM_Value* next;
 }VMvalue;
 
@@ -195,7 +195,7 @@ static VMstack* newStack(int32_t);
 static filestack* newFileStack();
 VMcode* newVMcode(ByteCode*);
 static VMvalue* copyValue(VMvalue*);
-static VMvalue* newVMvalue(ValueType,VMheap*);
+static VMvalue* newVMvalue(ValueType/*,VMheap**/);
 VMvalue* getTopValue(VMstack*);
 VMvalue* getValue(VMstack*,int32_t);
 static VMvalue* getCar(VMvalue*);
@@ -224,6 +224,10 @@ static int getch();
 void printEnv(VMenv*,FILE*);
 VMheap* createHeap();
 void GC_mark(fakeVM*);
-void GC_sweep(VMvalue*);
-void GC_compact(VMvalue*);
+void GC_markValue(VMvalue*);
+void GC_markValueInStack(VMstack*);
+void GC_markValueInEnv(VMenv*);
+void GC_markMassage(threadMessage*);
+void GC_sweep(VMheap*);
+void GC_compact(VMheap*);
 #endif

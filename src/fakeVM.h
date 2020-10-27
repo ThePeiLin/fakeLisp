@@ -227,6 +227,7 @@ void GC_mark(fakeVM*);
 void GC_markValue(VMvalue*);
 void GC_markValueInStack(VMstack*);
 void GC_markValueInEnv(VMenv*);
+void GC_markValueInCallChain(VMprocess*);
 void GC_markMessage(threadMessage*);
 void GC_sweep(VMheap*);
 void GC_compact(VMheap*);

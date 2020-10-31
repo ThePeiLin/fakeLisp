@@ -934,12 +934,15 @@ int B_push_pair(fakeVM* exe)
 		stack->size+=64;
 	}
 	VMvalue* objValue=newVMvalue(PAIR);
+	//VMvalue* objValue=newVMvalue(PAIR,0,newVMpair());
+	//objValue->access=1;
 	objValue->u.pair.car=NULL;
 	objValue->u.pair.cdr=NULL;
 	stack->values[stack->tp]=objValue;
 	stack->tp+=1;
 	proc->cp+=1;
 	return 0;
+
 }
 
 int B_push_int(fakeVM* exe)
@@ -954,6 +957,7 @@ int B_push_int(fakeVM* exe)
 		stack->size+=64;
 	}
 	VMvalue* objValue=newVMvalue(INT);
+	//VMvalue* objValue=newVMvalue(INT,1,tmpCode->code+proc->cp+1);
 	objValue->u.num=*(int32_t*)(tmpCode->code+proc->cp+1);
 	stack->values[stack->tp]=objValue;
 	stack->tp+=1;
@@ -973,6 +977,7 @@ int B_push_chr(fakeVM* exe)
 		stack->size+=64;
 	}
 	VMvalue* objValue=newVMvalue(CHR);
+	//VMvalue* objValue=newVMvalue(CHR,1,tmpCode->code+proc->cp+1);
 	objValue->u.num=*(tmpCode->code+proc->cp+1);
 	stack->values[stack->tp]=objValue;
 	stack->tp+=1;
@@ -992,6 +997,7 @@ int B_push_dbl(fakeVM* exe)
 		stack->size+=64;
 	}
 	VMvalue* objValue=newVMvalue(DBL);
+	//VMvalue* objValue=newVMvalue(DBL,1,tmpCode->code+proc->cp+1);
 	objValue->u.dbl=*(double*)(tmpCode->code+proc->cp+1);
 	stack->values[stack->tp]=objValue;
 	stack->tp+=1;
@@ -1015,6 +1021,7 @@ int B_push_str(fakeVM* exe)
 		stack->size+=64;
 	}
 	VMvalue* objValue=newVMvalue(STR);
+	//VMvalue* objValue=newVMvalue(SYM,1,tmpCode->code+proc->cp+1);
 	objValue->u.str=tmpStr;
 	stack->values[stack->tp]=objValue;
 	stack->tp+=1;
@@ -1038,6 +1045,7 @@ int B_push_sym(fakeVM* exe)
 		stack->size+=64;
 	}
 	VMvalue* objValue=newVMvalue(SYM);
+	//VMvalue* objValue=newVMvalue(SYM,1,tmpCode->code+proc->cp+1);
 	objValue->u.str=tmpStr;
 	stack->values[stack->tp]=objValue;
 	stack->tp+=1;
@@ -1062,6 +1070,9 @@ int B_push_byte(fakeVM* exe)
 	VMvalue* objValue=newVMvalue(BYTE);
 	objValue->u.byte.size=size;
 	objValue->u.byte.arry=tmp;
+	//ByteArry tmpArry={size,tmp};
+	//VMvalue* objValue=newVMvalue(BYTE,1,&tmp);
+	//free(tmp);
 	stack->values[stack->tp]=objValue;
 	stack->tp+=1;
 	proc->cp+=5+size;
@@ -1098,16 +1109,19 @@ int B_push_car(fakeVM* exe)
 	if(objValue->type==PAIR)
 	{
 		stack->values[stack->tp-1]=copyValue(getCar(objValue));
+		//stack->values[stack->tp-1]=getCar(objValue);
 	}
 	else if(objValue->type==STR)
 	{
 		VMvalue* ch=newVMvalue(CHR);
+		//VMvalue* ch=newVMvalue(CHR,0,&objValue->u.str[0]);
 		ch->u.chr=objValue->u.str[0];
 		stack->values[stack->tp-1]=ch;
 	}
 	else if(objValue->type==BYTE)
 	{
 		VMvalue* bt=newVMvalue(BYTE);
+		//VMvalue* bt=newVMvalue(BYTE,0,newByteArry(1,objValue->u.byte->arry,0));
 		bt->u.byte.size=1;
 		bt->u.byte.arry=createByteArry(1);
 		bt->u.byte.arry[0]=objValue->u.byte.arry[0];
@@ -1127,6 +1141,7 @@ int B_push_cdr(fakeVM* exe)
 	if(objValue->type==PAIR)
 	{
 		stack->values[stack->tp-1]=copyValue(getCdr(objValue));
+		//stack->values[stack->tp-1]=getCdr(objValue);
 	}
 	else if(objValue->type==STR)
 	{
@@ -1135,16 +1150,18 @@ int B_push_cdr(fakeVM* exe)
 		else
 		{
 			VMvalue* tmpStr=newVMvalue(STR);
+			//VMvalue* tmpStr=newVMvalue(STR,0,objValue->u.str+1);
 			tmpStr->u.str=copyStr(objValue->u.str+1);
 			stack->values[stack->tp-1]=tmpStr;
 		}
 	}
 	else if(objValue->type==BYTE)
 	{
-		VMvalue* bt=newVMvalue(BYTE);
-		if(bt->u.byte.size==1)stack->values[stack->tp-1]=NULL;
+		if(objValue->u.byte.size==1)stack->values[stack->tp-1]=NULL;
 		else
 		{
+			VMvalue* bt=newVMvalue(BYTE);
+			//VMvalue* bt=newVMvalue(BYTE,0,newByteArry(objValue->u.byte->size-1,objValue->u.byte->arry+1,0));
 			int32_t size=objValue->u.byte.size-1;
 			bt->u.byte.size=size;
 			bt->u.byte.arry=createByteArry(size);
@@ -1169,6 +1186,7 @@ int B_push_top(fakeVM* exe)
 		stack->size+=64;
 	}
 	stack->values[stack->tp]=copyValue(getTopValue(stack));
+	//stack->values[stack->tp]=getTopValue(stack);
 	stack->tp+=1;
 	proc->cp+=1;
 	return 0;
@@ -1187,6 +1205,7 @@ int B_push_proc(fakeVM* exe)
 		stack->size+=64;
 	}
 	VMvalue* objValue=newVMvalue(PRC);
+	//VMvalue* objValue=newVMvalue(PRC,1,newVMcode(exe->procs+countOfProc));
 	objValue->u.prc=newVMcode(exe->procs+countOfProc);
 	stack->values[stack->tp]=objValue;
 	stack->tp+=1;
@@ -1285,6 +1304,7 @@ int B_pop_car(fakeVM* exe)
 	if(objValue==NULL||objValue->type!=PAIR)return 1;
 	freeVMvalue(objValue->u.pair.car);
 	objValue->u.pair.car=copyValue(topValue);
+	//objValue->u.pair->car=topValue;
 	freeVMvalue(topValue);
 	stack->tp-=1;
 	stackRecycle(exe);
@@ -2604,7 +2624,7 @@ filestack* newFileStack()
 	return tmp;
 }
 
-VMvalue* newVMvalue(ValueType type)
+VMvalue* newVMvalue(ValueType type/*,int access,void* pValue,VMheap* heap*/)
 {
 	VMvalue* tmp=(VMvalue*)malloc(sizeof(VMvalue));
 	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
@@ -2624,6 +2644,29 @@ VMvalue* newVMvalue(ValueType type)
 				  tmp->u.byte.arry=NULL;
 	}
 	return tmp;
+	/*
+	VMvalue* tmp(VMvalue*)malloc(sizeof(VMvalue));
+	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	tmp->type=type;
+	tmp->mark=0;
+	tmp->access=access;
+	tmp->next=heap->root;
+	heap->root->prev=tmp;
+	tmp->prev=NULL;
+	heap->root=tmp;
+	switch(type)
+	{
+		case CHR:tmp->u.chr=(access)?copyMemory(pValue,sizeof(char)):pValue;break;
+		case INT:tmp->u.inte=(access)?copyMemory(pValue,sizeof(int32_t)):pValue;break;
+		case DBL:tmp->u.dbl=(access)?copyMemory(pValue,sizeof(double)):pValue;break;
+		case SYM:
+		case STR:tmp->u.str=(access)?copyStr(pValue):pValue;break;
+		case PAIR:tmp->u.pair=(access)?copyPair(pValue):pValue;break;
+		case PRC:tmp->u.prc=pValue;break;
+		case BYTE:tmp->u.byte=(access)?copyByteArry(pValue):pValue;
+	}
+	return tmp;
+	*/
 }
 
 void freeVMvalue(VMvalue* obj)
@@ -3053,3 +3096,37 @@ void GC_markValueInEnv(VMenv* curEnv)
 	for(;i<curEnv->size;i++)
 		GC_markValue(curEnv->values[i]);
 }
+
+//void* copyMemory(void* pm,size_t size)
+//{
+//	void* tmp=(void*)malloc(size);
+//	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+//	memcpy(tmp,pm,size);
+//	return pm;
+//}
+//
+//VMpair* newVMpair()
+//{
+//		VMpair* tmp=(VMpair*)malloc(sizeof(VMpair));
+//		if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+//		tmp->car=NULL;
+//		tmp->cdr=NULL;
+//		return tmp;
+//}
+//
+//ByteArry* newByteArry(size_t size,uint8_t* arry,int access)
+//{
+//	ByteArry* tmp=(ByteArry*)malloc(sizeof(ByteArry));
+//	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+//	tmp->size=size;
+//	tmp->arry=(access)?copyArry(size,arry):arry;
+//	return tmp;
+//}
+//
+//uint8_t* copyArry(size_t size,uint8_t* arry)
+//{
+//	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
+//	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+//	memcpy(tmp,arry,size);
+//	return tmp;
+//}

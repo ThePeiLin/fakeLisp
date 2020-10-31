@@ -34,6 +34,19 @@ typedef struct VM_Value
 		char chr;
 		double dbl;
 	}u;
+	//unsigned int mark :1;
+	//unsigned int access :1;
+	//unsigned int type :6;
+	//union
+	//{
+	//	char* chr;
+	//	char* str;
+	//	VMpair* pair;
+	//	ByteArry* byte;
+	//	int32_t* integer;
+	//	double* dbl;
+	//	struct VM_code* prc;
+	//}u;
 	struct VM_value* prev;
 	struct VM_Value* next;
 }VMvalue;

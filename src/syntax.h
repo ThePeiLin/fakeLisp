@@ -14,6 +14,7 @@ int isLegal(const ANS_cptr*);
 int isPreprocess(const ANS_cptr*);
 int isDefExpression(const ANS_cptr*);
 int isSetqExpression(const ANS_cptr*);
+int isSetfExpression(const ANS_cptr*);
 int isLambdaExpression(const ANS_cptr*);
 int isCondExpression(const ANS_cptr*);
 int isConst(const ANS_cptr*);

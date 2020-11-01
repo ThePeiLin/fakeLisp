@@ -72,6 +72,22 @@ int isSetqExpression(const ANS_cptr* objCptr)
 	else return 0;
 }
 
+int isSetfExpression(const ANS_cptr* objCptr)
+{
+	objCptr=(objCptr->type==PAIR)?&((ANS_pair*)objCptr->value)->car:NULL;
+	if(objCptr!=NULL&&nextCptr(objCptr)!=NULL&nextCptr(nextCptr(objCptr))!=NULL)
+	{
+		if(objCptr->type!=ATM)return 0;
+		else
+		{
+			ANS_atom* first=objCptr->value;
+			if(first->type!=SYM||strcmp(first->value.str,"setf"))return 0;
+		}
+		return 1;
+	}
+	else return 0;
+}
+
 int isCondExpression(const ANS_cptr* objCptr)
 {
 	objCptr=(objCptr->type==PAIR)?&((ANS_pair*)objCptr->value)->car:NULL;

@@ -470,6 +470,8 @@ void initPreprocess(intpr* inter)
 			createTree("RAWEXPRESS",inter));
 	addMacro(createTree("(setq ATOM#NAME ANY#VALUE)",inter),
 			createTree("RAWEXPRESS",inter));
+	addMacro(createTree("(setf ANY#PLACE ANY#VALUE)",inter),
+			createTree("RAWEXPRESS",inter));
 	addMacro(createTree("(quote ANY#VALUE)",inter),
 			createTree("RAWEXPRESS",inter));
 	addMacro(createTree("(cond (ANY#COND,ANY#BODY) VAREPT#ANOTHER)",inter),

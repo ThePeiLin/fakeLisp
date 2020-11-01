@@ -787,7 +787,7 @@ fakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 	return exe;
 }
 
-void initGlobEnv(VMenv* obj)
+void initGlobEnv(VMenv* obj,VMheap* heap)
 {
 	ByteCode buildInProcs[]=
 	{
@@ -844,20 +844,19 @@ void initGlobEnv(VMenv* obj)
 	obj->size=NUMOFBUILTINSYMBOL;
 	obj->values=(VMvalue**)realloc(obj->values,sizeof(VMvalue*)*NUMOFBUILTINSYMBOL);
 	if(obj->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	int32_t tmpInt=EOF;
 	obj->values[0]=NULL;
-	obj->values[1]=newVMvalue(INT);
-	obj->values[1]->u.num=EOF;
-	obj->values[2]=newVMvalue(INT);
-	obj->values[2]->u.num=0;
-	obj->values[3]=newVMvalue(INT);
-	obj->values[3]->u.num=1;
-	obj->values[4]=newVMvalue(INT);
-	obj->values[4]->u.num=2;
+	obj->values[1]=newVMvalue(INT,&tmpInt,heap,1);
+	tmpInt=0;
+	obj->values[2]=newVMvalue(INT,&tmpInt,heap,1);
+	tmpInt=1;
+	obj->values[3]=newVMvalue(INT,&tmpInt,heap,1);
+	tmpInt=2;
+	obj->values[4]=newVMvalue(INT,&tmpInt,heap,1);
 	int i=5;
 	for(;i<NUMOFBUILTINSYMBOL;i++)
 	{
-		obj->values[i]=newVMvalue(PRC);
-		obj->values[i]->u.prc=newBuiltInProc(copyByteCode(buildInProcs+(i-5)));
+		obj->values[i]=newVMvalue(PRC,newBuiltInProc(copyByteCode(buildInProcs+(i-5))),heap,1);
 	}
 }
 
@@ -886,7 +885,7 @@ void runFakeVM(fakeVM* exe)
 				case 1:
 					fprintf(stderr,"error:Wrong arguements!\n");
 					exit(EXIT_FAILURE);
-				case 2:	
+				case 2:
 					fprintf(stderr,"error:Stack error!\n");
 					exit(EXIT_FAILURE);
 				case 3:fprintf(stderr,"error:End of file!\n");
@@ -917,7 +916,7 @@ int B_push_nil(fakeVM* exe)
 		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 		stack->size+=64;
 	}
-	stack->values[stack->tp]=NULL;
+	stack->values[stack->tp]=newVMvalue(NIL,NULL,exe->heap,0);
 	stack->tp+=1;
 	proc->cp+=1;
 	return 0;
@@ -933,11 +932,8 @@ int B_push_pair(fakeVM* exe)
 		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 		stack->size+=64;
 	}
-	VMvalue* objValue=newVMvalue(PAIR);
-	//VMvalue* objValue=newVMvalue(PAIR,0,newVMpair());
-	//objValue->access=1;
-	objValue->u.pair.car=NULL;
-	objValue->u.pair.cdr=NULL;
+	VMvalue* objValue=newVMvalue(PAIR,newVMpair(),exe->heap,0);
+	objValue->access=1;
 	stack->values[stack->tp]=objValue;
 	stack->tp+=1;
 	proc->cp+=1;
@@ -956,9 +952,9 @@ int B_push_int(fakeVM* exe)
 		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 		stack->size+=64;
 	}
-	VMvalue* objValue=newVMvalue(INT);
-	//VMvalue* objValue=newVMvalue(INT,1,tmpCode->code+proc->cp+1);
-	objValue->u.num=*(int32_t*)(tmpCode->code+proc->cp+1);
+	//VMvalue* objValue=newVMvalue(INT);
+	VMvalue* objValue=newVMvalue(INT,tmpCode->code+proc->cp+1,exe->heap,1);
+	//objValue->u.num=*(int32_t*)(tmpCode->code+proc->cp+1);
 	stack->values[stack->tp]=objValue;
 	stack->tp+=1;
 	proc->cp+=5;
@@ -976,9 +972,9 @@ int B_push_chr(fakeVM* exe)
 		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 		stack->size+=64;
 	}
-	VMvalue* objValue=newVMvalue(CHR);
-	//VMvalue* objValue=newVMvalue(CHR,1,tmpCode->code+proc->cp+1);
-	objValue->u.num=*(tmpCode->code+proc->cp+1);
+	//VMvalue* objValue=newVMvalue(CHR);
+	VMvalue* objValue=newVMvalue(CHR,tmpCode->code+proc->cp+1,exe->heap,1);
+	//objValue->u.num=*(tmpCode->code+proc->cp+1);
 	stack->values[stack->tp]=objValue;
 	stack->tp+=1;
 	proc->cp+=2;
@@ -996,9 +992,9 @@ int B_push_dbl(fakeVM* exe)
 		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 		stack->size+=64;
 	}
-	VMvalue* objValue=newVMvalue(DBL);
-	//VMvalue* objValue=newVMvalue(DBL,1,tmpCode->code+proc->cp+1);
-	objValue->u.dbl=*(double*)(tmpCode->code+proc->cp+1);
+	//VMvalue* objValue=newVMvalue(DBL);
+	VMvalue* objValue=newVMvalue(DBL,tmpCode->code+proc->cp+1,exe->heap,1);
+	//objValue->u.dbl=*(double*)(tmpCode->code+proc->cp+1);
 	stack->values[stack->tp]=objValue;
 	stack->tp+=1;
 	proc->cp+=9;
@@ -1020,9 +1016,9 @@ int B_push_str(fakeVM* exe)
 		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 		stack->size+=64;
 	}
-	VMvalue* objValue=newVMvalue(STR);
-	//VMvalue* objValue=newVMvalue(SYM,1,tmpCode->code+proc->cp+1);
-	objValue->u.str=tmpStr;
+	//VMvalue* objValue=newVMvalue(STR);
+	VMvalue* objValue=newVMvalue(SYM,tmpCode->code+proc->cp+1,exe->heap,1);
+	//objValue->u.str=tmpStr;
 	stack->values[stack->tp]=objValue;
 	stack->tp+=1;
 	proc->cp+=2+len;
@@ -1044,9 +1040,9 @@ int B_push_sym(fakeVM* exe)
 		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 		stack->size+=64;
 	}
-	VMvalue* objValue=newVMvalue(SYM);
-	//VMvalue* objValue=newVMvalue(SYM,1,tmpCode->code+proc->cp+1);
-	objValue->u.str=tmpStr;
+	//VMvalue* objValue=newVMvalue(SYM);
+	VMvalue* objValue=newVMvalue(SYM,tmpCode->code+proc->cp+1,exe->heap,1);
+	//objValue->u.str=tmpStr;
 	stack->values[stack->tp]=objValue;
 	stack->tp+=1;
 	proc->cp+=2+len;
@@ -1067,12 +1063,12 @@ int B_push_byte(fakeVM* exe)
 		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 		stack->size+=64;
 	}
-	VMvalue* objValue=newVMvalue(BYTE);
-	objValue->u.byte.size=size;
-	objValue->u.byte.arry=tmp;
-	//ByteArry tmpArry={size,tmp};
-	//VMvalue* objValue=newVMvalue(BYTE,1,&tmp);
-	//free(tmp);
+	//VMvalue* objValue=newVMvalue(BYTE);
+	//objValue->u.byte.size=size;
+	//objValue->u.byte.arry=tmp;
+	ByteArry tmpArry={size,tmp};
+	VMvalue* objValue=newVMvalue(BYTE,&tmp,exe->heap,1);
+	free(tmp);
 	stack->values[stack->tp]=objValue;
 	stack->tp+=1;
 	proc->cp+=5+size;
@@ -1093,7 +1089,7 @@ int B_push_var(fakeVM* exe)
 	int32_t countOfVar=*(int32_t*)(tmpCode->code+proc->cp+1);
 	VMenv* curEnv=proc->localenv;
 	while(curEnv->bound==-1||countOfVar<curEnv->bound)curEnv=curEnv->prev;
-	VMvalue* tmpValue=copyValue(*(curEnv->values+countOfVar-(curEnv->bound)));
+	VMvalue* tmpValue=*(curEnv->values+countOfVar-(curEnv->bound));
 	stack->values[stack->tp]=tmpValue;
 	stack->tp+=1;
 	proc->cp+=5;
@@ -1108,23 +1104,25 @@ int B_push_car(fakeVM* exe)
 	if(objValue==NULL||(objValue->type!=PAIR&&objValue->type!=STR&&objValue->type!=BYTE))return 1;
 	if(objValue->type==PAIR)
 	{
-		stack->values[stack->tp-1]=copyValue(getCar(objValue));
-		//stack->values[stack->tp-1]=getCar(objValue);
+		//stack->values[stack->tp-1]=copyValue(getCar(objValue));
+		stack->values[stack->tp-1]=getCar(objValue);
 	}
 	else if(objValue->type==STR)
 	{
-		VMvalue* ch=newVMvalue(CHR);
-		//VMvalue* ch=newVMvalue(CHR,0,&objValue->u.str[0]);
-		ch->u.chr=objValue->u.str[0];
+		//VMvalue* ch=newVMvalue(CHR);
+		VMvalue* ch=newVMvalue(CHR,&objValue->u.str[0],exe->heap,1);
+		//ch->u.chr=objValue->u.str[0];
 		stack->values[stack->tp-1]=ch;
 	}
 	else if(objValue->type==BYTE)
 	{
-		VMvalue* bt=newVMvalue(BYTE);
-		//VMvalue* bt=newVMvalue(BYTE,0,newByteArry(1,objValue->u.byte->arry,0));
-		bt->u.byte.size=1;
-		bt->u.byte.arry=createByteArry(1);
-		bt->u.byte.arry[0]=objValue->u.byte.arry[0];
+		//VMvalue* bt=newVMvalue(BYTE);
+		ByteArry* tmp=newByteArry(1,objValue->u.byte->arry,0);
+		VMvalue* bt=newVMvalue(BYTE,NULL,exe->heap,1);
+		bt->u.byte=tmp;
+		//bt->u.byte.size=1;
+		//bt->u.byte.arry=createByteArry(1);
+		//bt->u.byte.arry[0]=objValue->u.byte.arry[0];
 		stack->values[stack->tp-1]=bt;
 	}
 	freeVMvalue(objValue);
@@ -1140,8 +1138,8 @@ int B_push_cdr(fakeVM* exe)
 	if(objValue==NULL||(objValue->type!=PAIR&&objValue->type!=STR&&objValue->type!=BYTE))return 1;
 	if(objValue->type==PAIR)
 	{
-		stack->values[stack->tp-1]=copyValue(getCdr(objValue));
-		//stack->values[stack->tp-1]=getCdr(objValue);
+		//stack->values[stack->tp-1]=copyValue(getCdr(objValue));
+		stack->values[stack->tp-1]=getCdr(objValue);
 	}
 	else if(objValue->type==STR)
 	{
@@ -1149,23 +1147,25 @@ int B_push_cdr(fakeVM* exe)
 		if(strlen(str)==0)stack->values[stack->tp-1]=NULL;
 		else
 		{
-			VMvalue* tmpStr=newVMvalue(STR);
-			//VMvalue* tmpStr=newVMvalue(STR,0,objValue->u.str+1);
-			tmpStr->u.str=copyStr(objValue->u.str+1);
+			//VMvalue* tmpStr=newVMvalue(STR);
+			VMvalue* tmpStr=newVMvalue(STR,objValue->u.str+1,exe->heap,0);
+			//tmpStr->u.str=copyStr(objValue->u.str+1);
 			stack->values[stack->tp-1]=tmpStr;
 		}
 	}
 	else if(objValue->type==BYTE)
 	{
-		if(objValue->u.byte.size==1)stack->values[stack->tp-1]=NULL;
+		if(objValue->u.byte->size==1)stack->values[stack->tp-1]=NULL;
 		else
 		{
-			VMvalue* bt=newVMvalue(BYTE);
-			//VMvalue* bt=newVMvalue(BYTE,0,newByteArry(objValue->u.byte->size-1,objValue->u.byte->arry+1,0));
-			int32_t size=objValue->u.byte.size-1;
-			bt->u.byte.size=size;
-			bt->u.byte.arry=createByteArry(size);
-			memcpy(bt->u.byte.arry,objValue->u.byte.arry+1,size);
+			//VMvalue* bt=newVMvalue(BYTE);
+			ByteArry* tmp=newByteArry(objValue->u.byte->size-1,objValue->u.byte->arry+1,0);
+			VMvalue* bt=newVMvalue(BYTE,NULL,exe->heap,0);
+			bt->u.byte=tmp;
+			//int32_t size=objValue->u.byte.size-1;
+			//bt->u.byte.size=size;
+			//bt->u.byte.arry=createByteArry(size);
+			//memcpy(bt->u.byte.arry,objValue->u.byte.arry+1,size);
 			stack->values[stack->tp-1]=bt;
 		}
 	}
@@ -1185,8 +1185,8 @@ int B_push_top(fakeVM* exe)
 		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 		stack->size+=64;
 	}
-	stack->values[stack->tp]=copyValue(getTopValue(stack));
-	//stack->values[stack->tp]=getTopValue(stack);
+	//stack->values[stack->tp]=copyValue(getTopValue(stack));
+	stack->values[stack->tp]=getTopValue(stack);
 	stack->tp+=1;
 	proc->cp+=1;
 	return 0;
@@ -1204,9 +1204,9 @@ int B_push_proc(fakeVM* exe)
 		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 		stack->size+=64;
 	}
-	VMvalue* objValue=newVMvalue(PRC);
-	//VMvalue* objValue=newVMvalue(PRC,1,newVMcode(exe->procs+countOfProc));
-	objValue->u.prc=newVMcode(exe->procs+countOfProc);
+	//VMvalue* objValue=newVMvalue(PRC);
+	VMvalue* objValue=newVMvalue(PRC,newVMcode(exe->procs+countOfProc),exe->heap,1);
+	//objValue->u.prc=newVMcode(exe->procs+countOfProc);
 	stack->values[stack->tp]=objValue;
 	stack->tp+=1;
 	proc->cp+=5;
@@ -1274,23 +1274,24 @@ int B_pop_rest_var(fakeVM* exe)
 		tmpValue=curEnv->values+countOfVar-(curEnv->bound);
 		freeVMvalue(*tmpValue);
 	}
-	VMvalue* obj=newVMvalue(PAIR);
+	//VMvalue* obj=newVMvalue(PAIR);
+	VMvalue* obj=newVMvalue(PAIR,newVMpair(),exe->heap,1);
 	VMvalue* tmp=obj;
 	for(;;)
 	{
 		if(stack->tp>stack->bp)
 		{
 			VMvalue* topValue=getTopValue(stack);
-			tmp->u.pair.car=copyValue(topValue);
+			tmp->u.pair->car=topValue;
 			stack->tp-=1;
 			stackRecycle(exe);
-			tmp->u.pair.cdr=newVMvalue(PAIR);
-			tmp=tmp->u.pair.cdr;
+			//tmp->u.pair.cdr=newVMvalue(PAIR);
+			tmp->u.pair->cdr=newVMvalue(PAIR,newVMpair(),exe->heap,1);
+			tmp=tmp->u.pair->cdr;
 		}
 		else break;
 	}
-	*tmpValue=copyValue(obj);
-	freeVMvalue(obj);
+	*tmpValue=obj;
 	proc->cp+=5;
 	return 0;
 }
@@ -1302,9 +1303,9 @@ int B_pop_car(fakeVM* exe)
 	VMvalue* topValue=getTopValue(stack);
 	VMvalue* objValue=getValue(stack,stack->tp-2);
 	if(objValue==NULL||objValue->type!=PAIR)return 1;
-	freeVMvalue(objValue->u.pair.car);
-	objValue->u.pair.car=copyValue(topValue);
-	//objValue->u.pair->car=topValue;
+	//freeVMvalue(objValue->u.pair->car);
+	//objValue->u.pair->car=copyValue(topValue);
+	objValue->u.pair->car=topValue;
 	freeVMvalue(topValue);
 	stack->tp-=1;
 	stackRecycle(exe);
@@ -1319,8 +1320,9 @@ int B_pop_cdr(fakeVM* exe)
 	VMvalue* topValue=getTopValue(stack);
 	VMvalue* objValue=getValue(stack,stack->tp-2);
 	if(objValue==NULL||objValue->type!=PAIR)return 1;
-	freeVMvalue(objValue->u.pair.cdr);
-	objValue->u.pair.cdr=copyValue(topValue);
+	//freeVMvalue(objValue->u.pair.cdr);
+	//objValue->u.pair.cdr=copyValue(topValue);
+	objValue->u.pair->cdr=topValue;
 	freeVMvalue(topValue);
 	stack->tp-=1;
 	stackRecycle(exe);
@@ -1337,24 +1339,22 @@ int B_add(fakeVM* exe)
 	if((firValue==NULL||secValue==NULL)||(firValue->type!=INT&&firValue->type!=DBL)||(secValue->type!=INT&&secValue->type!=DBL))return 1;
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
-		double result=((firValue->type==DBL)?firValue->u.dbl:firValue->u.num)+((secValue->type==DBL)?secValue->u.dbl:secValue->u.num);
-		VMvalue* tmpValue=newVMvalue(DBL);
-		tmpValue->u.dbl=result;
+		double result=((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num)+((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num);
+		VMvalue* tmpValue=newVMvalue(DBL,&result,exe->heap,1);
 		stack->tp-=1;
 		stackRecycle(exe);
 		stack->values[stack->tp-1]=tmpValue;
 	}
 	else if(firValue->type==INT&&secValue->type==INT)
 	{
-		int32_t result=firValue->u.num+secValue->u.num;
-		VMvalue* tmpValue=newVMvalue(INT);
-		tmpValue->u.num=result;
+		int32_t result=*firValue->u.num+*secValue->u.num;
+		VMvalue* tmpValue=newVMvalue(INT,&result,exe->heap,1);
 		stack->tp-=1;
 		stackRecycle(exe);
 		stack->values[stack->tp-1]=tmpValue;
 	}
-	freeVMvalue(firValue);
-	freeVMvalue(secValue);
+	//freeVMvalue(firValue);
+	//freeVMvalue(secValue);
 	proc->cp+=1;
 	return 0;
 }
@@ -1370,20 +1370,16 @@ int B_sub(fakeVM* exe)
 	if((firValue==NULL||secValue==NULL)||(firValue->type!=INT&&firValue->type!=DBL)||(secValue->type!=INT&&secValue->type!=DBL))return 1;
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
-		double result=((secValue->type==DBL)?secValue->u.dbl:secValue->u.num)-((firValue->type==DBL)?firValue->u.dbl:firValue->u.num);
-		VMvalue* tmpValue=newVMvalue(DBL);
-		tmpValue->u.dbl=result;
+		double result=((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num)-((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num);
+		VMvalue* tmpValue=newVMvalue(DBL,&result,exe->heap,1);
 		stack->values[stack->tp-1]=tmpValue;
 	}
 	else if(firValue->type==INT&&secValue->type==INT)
 	{
-		int32_t result=secValue->u.num-firValue->u.num;
-		VMvalue* tmpValue=newVMvalue(INT);
-		tmpValue->u.num=result;
+		int32_t result=*secValue->u.num-*firValue->u.num;
+		VMvalue* tmpValue=newVMvalue(INT,&result,exe->heap,1);
 		stack->values[stack->tp-1]=tmpValue;
 	}
-	freeVMvalue(firValue);
-	freeVMvalue(secValue);
 	proc->cp+=1;
 	return 0;
 }
@@ -1399,20 +1395,16 @@ int B_mul(fakeVM* exe)
 	if((firValue==NULL||secValue==NULL)||(firValue->type!=INT&&firValue->type!=DBL)||(secValue->type!=INT&&secValue->type!=DBL))return 1;
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
-		double result=((firValue->type==DBL)?firValue->u.dbl:firValue->u.num)*((secValue->type==DBL)?secValue->u.dbl:secValue->u.num);
-		VMvalue* tmpValue=newVMvalue(DBL);
-		tmpValue->u.dbl=result;
+		double result=((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num)*((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num);
+		VMvalue* tmpValue=newVMvalue(DBL,&result,exe->heap,1);
 		stack->values[stack->tp-1]=tmpValue;
 	}
 	else if(firValue->type==INT&&secValue->type==INT)
 	{
-		int32_t result=firValue->u.num*secValue->u.num;
-		VMvalue* tmpValue=newVMvalue(INT);
-		tmpValue->u.num=result;
+		int32_t result=*firValue->u.num*(*secValue->u.num);
+		VMvalue* tmpValue=newVMvalue(INT,&result,exe->heap,1);
 		stack->values[stack->tp-1]=tmpValue;
 	}
-	freeVMvalue(firValue);
-	freeVMvalue(secValue);
 	proc->cp+=1;
 	return 0;
 }
@@ -1426,12 +1418,9 @@ int B_div(fakeVM* exe)
 	stack->tp-=1;
 	stackRecycle(exe);
 	if((firValue==NULL||secValue==NULL)||(firValue->type!=INT&&firValue->type!=DBL)||(secValue->type!=INT&&secValue->type!=DBL))return 1;
-	double result=((secValue->type==DBL)?secValue->u.dbl:secValue->u.num)/((firValue->type==DBL)?firValue->u.dbl:firValue->u.num);
-	VMvalue* tmpValue=newVMvalue(DBL);
-	tmpValue->u.dbl=result;
+	double result=((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num)/((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num);
+	VMvalue* tmpValue=newVMvalue(DBL,&result,exe->heap,1);
 	stack->values[stack->tp-1]=tmpValue;
-	freeVMvalue(firValue);
-	freeVMvalue(secValue);
 	proc->cp+=1;
 	return 0;
 }
@@ -1445,12 +1434,9 @@ int B_mod(fakeVM* exe)
 	stack->tp-=1;
 	stackRecycle(exe);
 	if((firValue==NULL||secValue==NULL)||(firValue->type!=INT&&firValue->type!=DBL)||(secValue->type!=INT&&secValue->type!=DBL))return 1;
-	int32_t result=((int32_t)((secValue->type==DBL)?secValue->u.dbl:secValue->u.num))%((int32_t)((firValue->type==DBL)?firValue->u.dbl:firValue->u.num));
-	VMvalue* tmpValue=newVMvalue(INT);
-	tmpValue->u.num=result;
+	int32_t result=((int32_t)((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num))%((int32_t)((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num));
+	VMvalue* tmpValue=newVMvalue(INT,&result,exe->heap,1);
 	stack->values[stack->tp-1]=tmpValue;
-	freeVMvalue(firValue);
-	freeVMvalue(secValue);
 	proc->cp+=1;
 	return 0;
 }
@@ -1462,8 +1448,9 @@ int B_rand(fakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* lim=getTopValue(stack);
 	if(lim==NULL||lim->type!=INT)return 1;
-	int32_t result=rand()%(lim->u.num);
-	lim->u.num=result;
+	int32_t result=rand()%(*lim->u.num);
+	if(lim->access)free(lim->u.num);
+	lim->u.num=copyMemory(&result,sizeof(int32_t));
 	proc->cp+=1;
 	return 0;
 }
@@ -1474,23 +1461,14 @@ int B_atom(fakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue==NULL||topValue->type!=PAIR)
-	{
-		VMvalue* TRUE=newVMvalue(INT);
-		TRUE->u.num=1;
-		stack->values[stack->tp-1]=TRUE;
-	}
+		stack->values[stack->tp-1]=newTrueValue(exe->heap);
 	else
 	{
-		if(topValue->u.pair.car==NULL&&topValue->u.pair.cdr==NULL)
-		{
-			VMvalue* TRUE=newVMvalue(INT);
-			TRUE->u.num=1;
-			stack->values[stack->tp-1]=TRUE;
-		}
+		if(getCar(topValue)==NULL&&getCdr(topValue)==NULL)
+			stack->values[stack->tp-1]=newTrueValue(exe->heap);
 		else
-			stack->values[stack->tp-1]=NULL;
+			stack->values[stack->tp-1]=newNilValue(exe->heap);
 	}
-	freeVMvalue(topValue);
 	proc->cp+=1;
 	return 0;
 }
@@ -1500,14 +1478,11 @@ int B_null(fakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMvalue* topValue=getTopValue(stack);
-	if(topValue==NULL||(topValue->type==PAIR&&(topValue->u.pair.car==NULL&&topValue->u.pair.cdr==NULL)))
+	if(topValue==NULL||(topValue->type==PAIR&&(getCar(topValue)==NULL&&getCdr(topValue)==NULL)))
 	{
-		VMvalue* TRUE=newVMvalue(INT);
-		TRUE->u.num=1;
-		stack->values[stack->tp-1]=TRUE;
+		stack->values[stack->tp-1]=newTrueValue(exe->heap);
 	}
-	else stack->values[stack->tp-1]=NULL;
-	freeVMvalue(topValue);
+	else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	proc->cp+=1;
 	return 0;
 }
@@ -1540,8 +1515,6 @@ int B_end_proc(fakeVM* exe)
 	if(tmpEnv->prev!=NULL&&tmpEnv->prev->next==tmpEnv&&tmpEnv->next==NULL)tmpEnv->prev->next=tmpCode->localenv;
 	tmpEnv->inProc=0;
 	freeVMenv(tmpEnv);
-	if(tmpCode->refcount==0)freeVMcode(tmpCode);
-	else tmpCode->refcount-=1;
 	free(tmpProc);
 	tmpProc=NULL;
 	return 0;
@@ -1551,8 +1524,7 @@ int B_set_bp(fakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
-	VMvalue* prevBp=newVMvalue(INT);
-	prevBp->u.num=stack->bp;
+	VMvalue* prevBp=newVMvalue(INT,&stack->bp,exe->heap,1);
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
@@ -1572,7 +1544,7 @@ int B_res_bp(fakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	if(stack->tp>stack->bp)return 2;
 	VMvalue* prevBp=getTopValue(stack);
-	stack->bp=prevBp->u.num;
+	stack->bp=*prevBp->u.num;
 	freeVMvalue(prevBp);
 	stack->tp-=1;
 	stackRecycle(exe);
@@ -1591,7 +1563,7 @@ int B_invoke(fakeVM* exe)
 	VMprocess* prevProc=hasSameProc(tmpCode,proc);
 	if(isTheLastExpress(proc,prevProc)&&prevProc)
 		prevProc->cp=0;
-	else 
+	else
 	{
 		VMprocess* tmpProc=newFakeProcess(tmpCode,proc);
 		if(tmpCode->localenv->prev!=NULL&&tmpCode->localenv->prev->next!=tmpCode->localenv)
@@ -1615,7 +1587,7 @@ int B_jump_if_ture(fakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMcode* tmpCode=proc->code;
 	VMvalue* tmpValue=getTopValue(stack);
-	if(!(tmpValue==NULL||(tmpValue->type==PAIR&&tmpValue->u.pair.car==NULL&&tmpValue->u.pair.cdr==NULL)))
+	if(!(tmpValue==NULL||(tmpValue->type==PAIR&&getCar(tmpValue)==NULL&&getCdr(tmpValue)==NULL)))
 	{
 		int32_t where=*(int32_t*)(tmpCode->code+proc->cp+sizeof(char));
 		proc->cp+=where;
@@ -1624,7 +1596,6 @@ int B_jump_if_ture(fakeVM* exe)
 	{
 		stack->tp-=1;
 		stackRecycle(exe);
-		freeVMvalue(tmpValue);
 	}
 	proc->cp+=5;
 	return 0;
@@ -1637,7 +1608,7 @@ int B_jump_if_false(fakeVM* exe)
 	VMcode* tmpCode=proc->code;
 	VMvalue* tmpValue=getTopValue(stack);
 	stackRecycle(exe);
-	if(tmpValue==NULL||(tmpValue->type==PAIR&&tmpValue->u.pair.car==NULL&&tmpValue->u.pair.cdr==NULL))
+	if(tmpValue==NULL||(tmpValue->type==PAIR&&getCar(tmpValue)==NULL&&getCdr(tmpValue)==NULL))
 	{
 		int32_t where=*(int32_t*)(tmpCode->code+proc->cp+sizeof(char));
 		proc->cp+=where;
@@ -1685,11 +1656,8 @@ int B_open(fakeVM* exe)
 		}
 		else files->files[i]=file;
 	}
-	VMvalue* countOfFile=newVMvalue(INT);
-	countOfFile->u.num=i;
+	VMvalue* countOfFile=newVMvalue(INT,&i,exe->heap,1);
 	stack->values[stack->tp-1]=countOfFile;
-	freeVMvalue(filename);
-	freeVMvalue(mode);
 	proc->cp+=1;
 	return 0;
 }
@@ -1701,14 +1669,14 @@ int B_close(fakeVM* exe)
 	filestack* files=exe->files;
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue==NULL||topValue->type!=INT)return 1;
-	if(topValue->u.num>=files->size)return 2;
-	FILE* objFile=files->files[topValue->u.num];
+	if(*topValue->u.num>=files->size)return 2;
+	FILE* objFile=files->files[*topValue->u.num];
 	if(fclose(objFile)==EOF)
 	{
-		files->files[topValue->u.num]=NULL;
-		topValue->u.num=-1;
+		files->files[*topValue->u.num]=NULL;
+		*topValue->u.num=-1;
 	}
-	else files->files[topValue->u.num]=NULL;
+	else files->files[*topValue->u.num]=NULL;
 	proc->cp+=1;
 	return 0;
 }
@@ -1721,15 +1689,9 @@ int B_eq(fakeVM* exe)
 	VMvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
 	stackRecycle(exe);
-	if(VMvaluecmp(firValue,secValue))
-	{
-		VMvalue* tmpValue=newVMvalue(INT);
-		tmpValue->u.num=1;
-		stack->values[stack->tp-1]=tmpValue;
-	}
-	else stack->values[stack->tp-1]=NULL;
-	freeVMvalue(firValue);
-	freeVMvalue(secValue);
+	if(firValue==secValue)
+		stack->values[stack->tp-1]=newTrueValue(exe->heap);
+	else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	proc->cp+=1;
 	return 0;
 }
@@ -1745,38 +1707,24 @@ int B_gt(fakeVM* exe)
 	if(firValue==NULL||secValue==NULL||firValue->type==PAIR||firValue->type==PRC||secValue->type==PAIR||secValue->type==PRC)return 1;
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
-		double result=((secValue->type==DBL)?secValue->u.dbl:secValue->u.num)-((firValue->type==DBL)?firValue->u.dbl:firValue->u.num);
+		double result=((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num)-((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num);
 		if(result>0)
-		{
-			VMvalue* tmpValue=newVMvalue(INT);
-			tmpValue->u.num=1;
-			stack->values[stack->tp-1]=tmpValue;
-		}
-		else stack->values[stack->tp-1]=NULL;
+			stack->values[stack->tp-1]=newTrueValue(exe->heap);
+		else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	}
 	else if(firValue->type==INT&&secValue->type==INT)
 	{
-		if(secValue->u.num>firValue->u.num)
-		{
-			VMvalue* tmpValue=newVMvalue(INT);
-			tmpValue->u.num=1;
-			stack->values[stack->tp-1]=tmpValue;
-		}
-		else stack->values[stack->tp-1]=NULL;
+		if(*secValue->u.num>*firValue->u.num)
+			stack->values[stack->tp-1]=newTrueValue(exe->heap);
+		else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	}
 	else if(firValue->type==secValue->type&&(firValue->type==SYM||firValue->type==STR))
 	{
 		if(strcmp(secValue->u.str,firValue->u.str)>0)
-		{
-			VMvalue* tmpValue=newVMvalue(INT);
-			tmpValue->u.num=1;
-			stack->values[stack->tp-1]=tmpValue;
-		}
-		else stack->values[stack->tp-1]=NULL;
+			stack->values[stack->tp-1]=newTrueValue(exe->heap);
+		else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	}
 	else return 1;
-	freeVMvalue(firValue);
-	freeVMvalue(secValue);
 	proc->cp+=1;
 	return 0;
 }
@@ -1792,38 +1740,24 @@ int B_ge(fakeVM* exe)
 	if(firValue==NULL||secValue==NULL||firValue->type==PAIR||firValue->type==PRC||secValue->type==PAIR||secValue->type==PRC)return 1;
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
-		double result=((secValue->type==DBL)?secValue->u.dbl:secValue->u.num)-((firValue->type==DBL)?firValue->u.dbl:firValue->u.num);
+		double result=((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num)-((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num);
 		if(result>=0)
-		{
-			VMvalue* tmpValue=newVMvalue(INT);
-			tmpValue->u.num=1;
-			stack->values[stack->tp-1]=tmpValue;
-		}
-		else stack->values[stack->tp-1]=NULL;
+			stack->values[stack->tp-1]=newTrueValue(exe->heap);
+		else stack->values[stack->tp-1]=newTrueValue(exe->heap);
 	}
 	else if(firValue->type==INT&&secValue->type==INT)
 	{
 		if(secValue->u.num>=firValue->u.num)
-		{
-			VMvalue* tmpValue=newVMvalue(INT);
-			tmpValue->u.num=1;
-			stack->values[stack->tp-1]=tmpValue;
-		}
-		else stack->values[stack->tp-1]=NULL;
+			stack->values[stack->tp-1]=newTrueValue(exe->heap);
+		else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	}
 	else if(firValue->type==secValue->type&&(firValue->type==SYM||firValue->type==STR))
 	{
 		if(strcmp(secValue->u.str,firValue->u.str)>=0)
-		{
-			VMvalue* tmpValue=newVMvalue(INT);
-			tmpValue->u.num=1;
-			stack->values[stack->tp-1]=tmpValue;
-		}
-		else stack->values[stack->tp-1]=NULL;
+			stack->values[stack->tp-1]=newTrueValue(exe->heap);
+		else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	}
 	else return 1;
-	freeVMvalue(firValue);
-	freeVMvalue(secValue);
 	proc->cp+=1;
 	return 0;
 }
@@ -1839,38 +1773,24 @@ int B_lt(fakeVM* exe)
 	if(firValue==NULL||secValue==NULL||firValue->type==PAIR||firValue->type==PRC||secValue->type==PAIR||secValue->type==PRC)return 1;
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
-		double result=((secValue->type==DBL)?secValue->u.dbl:secValue->u.num)-((firValue->type==DBL)?firValue->u.dbl:firValue->u.num);
+		double result=((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num)-((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num);
 		if(result<0)
-		{
-			VMvalue* tmpValue=newVMvalue(INT);
-			tmpValue->u.num=1;
-			stack->values[stack->tp-1]=tmpValue;
-		}
-		else stack->values[stack->tp-1]=NULL;
+			stack->values[stack->tp-1]=newTrueValue(exe->heap);
+		else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	}
 	else if(firValue->type==INT&&secValue->type==INT)
 	{
 		if(secValue->u.num<firValue->u.num)
-		{
-			VMvalue* tmpValue=newVMvalue(INT);
-			tmpValue->u.num=1;
-			stack->values[stack->tp-1]=tmpValue;
-		}
-		else stack->values[stack->tp-1]=NULL;
+			stack->values[stack->tp-1]=newTrueValue(exe->heap);
+		else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	}
 	else if(firValue->type==secValue->type&&(firValue->type==SYM||firValue->type==STR))
 	{
 		if(strcmp(secValue->u.str,firValue->u.str)<0)
-		{
-			VMvalue* tmpValue=newVMvalue(INT);
-			tmpValue->u.num=1;
-			stack->values[stack->tp-1]=tmpValue;
-		}
-		else stack->values[stack->tp-1]=NULL;
+			stack->values[stack->tp-1]=newTrueValue(exe->heap);
+		else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	}
 	else return 1;
-	freeVMvalue(firValue);
-	freeVMvalue(secValue);
 	proc->cp+=1;
 	return 0;
 }
@@ -1886,38 +1806,24 @@ int B_le(fakeVM* exe)
 	if(firValue==NULL||secValue==NULL||firValue->type==PAIR||firValue->type==PRC||secValue->type==PAIR||secValue->type==PRC)return 1;
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
-		double result=((secValue->type==DBL)?secValue->u.dbl:secValue->u.num)-((firValue->type==DBL)?firValue->u.dbl:firValue->u.num);
+		double result=((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num)-((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num);
 		if(result<=0)
-		{
-			VMvalue* tmpValue=newVMvalue(INT);
-			tmpValue->u.num=1;
-			stack->values[stack->tp-1]=tmpValue;
-		}
-		else stack->values[stack->tp-1]=NULL;
+			stack->values[stack->tp-1]=newTrueValue(exe->heap);
+		else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	}
 	else if(firValue->type==INT&&secValue->type==INT)
 	{
 		if(secValue->u.num<=firValue->u.num)
-		{
-			VMvalue* tmpValue=newVMvalue(INT);
-			tmpValue->u.num=1;
-			stack->values[stack->tp-1]=tmpValue;
-		}
-		else stack->values[stack->tp-1]=NULL;
+			stack->values[stack->tp-1]=newTrueValue(exe->heap);
+		else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	}
 	else if(firValue->type==secValue->type&&(firValue->type==SYM||firValue->type==STR))
 	{
 		if(strcmp(secValue->u.str,firValue->u.str)<=0)
-		{
-			VMvalue* tmpValue=newVMvalue(INT);
-			tmpValue->u.num=1;
-			stack->values[stack->tp-1]=tmpValue;
-		}
-		else stack->values[stack->tp-1]=NULL;
+			stack->values[stack->tp-1]=newTrueValue(exe->heap);
+		else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	}
 	else return 1;
-	freeVMvalue(firValue);
-	freeVMvalue(secValue);
 	proc->cp+=1;
 	return 0;
 }
@@ -1927,18 +1833,10 @@ int B_not(fakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMvalue* tmpValue=getTopValue(stack);
-	if(tmpValue==NULL||(tmpValue->type==PAIR&&tmpValue->u.pair.car==NULL&&tmpValue->u.pair.cdr==NULL))
-	{
-		freeVMvalue(tmpValue);
-		tmpValue=newVMvalue(INT);
-		tmpValue->u.num=1;
-		stack->values[stack->tp-1]=tmpValue;
-	}
+	if(tmpValue==NULL||(tmpValue->type==PAIR&&getCar(tmpValue)==NULL&&getCdr(tmpValue)==NULL))
+		stack->values[stack->tp-1]=newTrueValue(exe->heap);
 	else
-	{
-		freeVMvalue(tmpValue);
-		stack->values[stack->tp-1]=NULL;
-	}
+		stack->values[stack->tp-1]=newNilValue(exe->heap);
 	proc->cp+=1;
 	return 0;
 }
@@ -1949,18 +1847,17 @@ int B_cast_to_chr(fakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue==NULL||topValue->type==PAIR||topValue->type==PRC)return 1;
-	VMvalue* tmpValue=newVMvalue(CHR);
+	VMvalue* tmpValue=newVMvalue(CHR,NULL,exe->heap,1);
 	switch(topValue->type)
 	{
-		case INT:tmpValue->u.chr=topValue->u.num;break;
-		case DBL:tmpValue->u.chr=(int32_t)topValue->u.dbl;break;
-		case CHR:tmpValue->u.chr=topValue->u.chr;break;
+		case INT:*tmpValue->u.chr=*topValue->u.num;break;
+		case DBL:*tmpValue->u.chr=(int32_t)*topValue->u.dbl;break;
+		case CHR:*tmpValue->u.chr=*topValue->u.chr;break;
 		case STR:
-		case SYM:tmpValue->u.chr=topValue->u.str[0];break;
-		case BYTE:tmpValue->u.dbl=*(char*)topValue->u.byte.arry;break;
+		case SYM:*tmpValue->u.chr=topValue->u.str[0];break;
+		case BYTE:*tmpValue->u.dbl=*(char*)topValue->u.byte->arry;break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
-	freeVMvalue(topValue);
 	proc->cp+=1;
 	return 0;
 }
@@ -1971,18 +1868,17 @@ int B_cast_to_int(fakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue==NULL||topValue->type==PAIR||topValue->type==PRC)return 1;
-	VMvalue* tmpValue=newVMvalue(INT);
+	VMvalue* tmpValue=newVMvalue(INT,NULL,exe->heap,1);
 	switch(topValue->type)
 	{
-		case INT:tmpValue->u.num=topValue->u.num;break;
-		case DBL:tmpValue->u.num=(int32_t)topValue->u.dbl;break;
-		case CHR:tmpValue->u.num=topValue->u.chr;break;
+		case INT:*tmpValue->u.num=*topValue->u.num;break;
+		case DBL:*tmpValue->u.num=(int32_t)*topValue->u.dbl;break;
+		case CHR:*tmpValue->u.num=*topValue->u.chr;break;
 		case STR:
-		case SYM:tmpValue->u.num=stringToInt(topValue->u.str);break;
-		case BYTE:tmpValue->u.dbl=*(int32_t*)topValue->u.byte.arry;break;
+		case SYM:*tmpValue->u.num=stringToInt(topValue->u.str);break;
+		case BYTE:*tmpValue->u.dbl=*(int32_t*)topValue->u.byte->arry;break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
-	freeVMvalue(topValue);
 	proc->cp+=1;
 	return 0;
 }
@@ -1993,18 +1889,17 @@ int B_cast_to_dbl(fakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue==NULL||topValue->type==PAIR||topValue->type==PRC)return 1;
-	VMvalue* tmpValue=newVMvalue(DBL);
+	VMvalue* tmpValue=newVMvalue(DBL,NULL,exe->heap,1);
 	switch(topValue->type)
 	{
-		case INT:tmpValue->u.dbl=(double)topValue->u.num;break;
-		case DBL:tmpValue->u.dbl=topValue->u.dbl;break;
-		case CHR:tmpValue->u.dbl=(double)(int32_t)topValue->u.chr;break;
+		case INT:*tmpValue->u.dbl=(double)*topValue->u.num;break;
+		case DBL:*tmpValue->u.dbl=*topValue->u.dbl;break;
+		case CHR:*tmpValue->u.dbl=(double)(int32_t)*topValue->u.chr;break;
 		case STR:
-		case SYM:tmpValue->u.dbl=stringToDouble(topValue->u.str);break;
-		case BYTE:tmpValue->u.dbl=*(double*)topValue->u.byte.arry;break;
+		case SYM:*tmpValue->u.dbl=stringToDouble(topValue->u.str);break;
+		case BYTE:*tmpValue->u.dbl=*(double*)topValue->u.byte->arry;break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
-	freeVMvalue(topValue);
 	proc->cp+=1;
 	return 0;
 }
@@ -2015,22 +1910,21 @@ int B_cast_to_str(fakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue==NULL||topValue->type==PAIR||topValue->type==PRC)return 1;
-	VMvalue* tmpValue=newVMvalue(STR);
+	VMvalue* tmpValue=newVMvalue(STR,NULL,exe->heap,1);
 	switch(topValue->type)
 	{
-		case INT:tmpValue->u.str=intToString(topValue->u.num);break;
-		case DBL:tmpValue->u.str=doubleToString(topValue->u.dbl);break;
+		case INT:tmpValue->u.str=intToString(*topValue->u.num);break;
+		case DBL:tmpValue->u.str=doubleToString(*topValue->u.dbl);break;
 		case CHR:tmpValue->u.str=(char*)malloc(sizeof(char)*2);
 				 if(tmpValue->u.str==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
-				 tmpValue->u.str[0]=topValue->u.chr;
+				 tmpValue->u.str[0]=*topValue->u.chr;
 				 tmpValue->u.str[1]='\0';
 				 break;
 		case STR:
 		case SYM:tmpValue->u.str=copyStr(topValue->u.str);break;
-		case BYTE:tmpValue->u.str=copyStr(topValue->u.byte.arry);break;
+		case BYTE:tmpValue->u.str=copyStr(topValue->u.byte->arry);break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
-	freeVMvalue(topValue);
 	proc->cp+=1;
 	return 0;
 }
@@ -2041,22 +1935,21 @@ int B_cast_to_sym(fakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue==NULL||topValue->type==PAIR||topValue->type==PRC)return 1;
-	VMvalue* tmpValue=newVMvalue(SYM);
+	VMvalue* tmpValue=newVMvalue(SYM,NULL,exe->heap,1);
 	switch(topValue->type)
 	{
-		case INT:tmpValue->u.str=intToString(topValue->u.num);break;
-		case DBL:tmpValue->u.str=doubleToString(topValue->u.dbl);break;
+		case INT:tmpValue->u.str=intToString((long)*topValue->u.num);break;
+		case DBL:tmpValue->u.str=doubleToString(*topValue->u.dbl);break;
 		case CHR:tmpValue->u.str=(char*)malloc(sizeof(char)*2);
 				 if(tmpValue->u.str==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
-				 tmpValue->u.str[0]=topValue->u.chr;
+				 tmpValue->u.str[0]=*topValue->u.chr;
 				 tmpValue->u.str[1]='\0';
 				 break;
 		case STR:
 		case SYM:tmpValue->u.str=copyStr(topValue->u.str);break;
-		case BYTE:tmpValue->u.str=copyStr(topValue->u.byte.arry);break;
+		case BYTE:tmpValue->u.str=copyStr(topValue->u.byte->arry);break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
-	freeVMvalue(topValue);
 	proc->cp+=1;
 	return 0;
 }
@@ -2067,32 +1960,32 @@ int B_cast_to_byte(fakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue==NULL||topValue->type==PAIR||topValue->type==PRC)return 1;
-	VMvalue* tmpValue=newVMvalue(BYTE);
+	VMvalue* tmpValue=newVMvalue(BYTE,NULL,exe->heap,1);
+	tmpValue->u.byte=newEmptyByteArry();
 	switch(topValue->type)
 	{
-		case INT:tmpValue->u.byte.size=sizeof(int32_t);
-				 tmpValue->u.byte.arry=createByteArry(sizeof(int32_t));
-				 *(int32_t*)tmpValue->u.byte.arry=topValue->u.num;
+		case INT:tmpValue->u.byte->size=sizeof(int32_t);
+				 tmpValue->u.byte->arry=createByteArry(sizeof(int32_t));
+				 *(int32_t*)tmpValue->u.byte->arry=*topValue->u.num;
 				 break;
-		case DBL:tmpValue->u.byte.size=sizeof(double);
-				 tmpValue->u.byte.arry=createByteArry(sizeof(double));
-				 *(double*)tmpValue->u.byte.arry=topValue->u.dbl;
+		case DBL:tmpValue->u.byte->size=sizeof(double);
+				 tmpValue->u.byte->arry=createByteArry(sizeof(double));
+				 *(double*)tmpValue->u.byte->arry=*topValue->u.dbl;
 				 break;
-		case CHR:tmpValue->u.byte.size=sizeof(char);
-				 tmpValue->u.byte.arry=createByteArry(sizeof(char));
-				 *(char*)tmpValue->u.byte.arry=topValue->u.chr;
+		case CHR:tmpValue->u.byte->size=sizeof(char);
+				 tmpValue->u.byte->arry=createByteArry(sizeof(char));
+				 *(char*)tmpValue->u.byte->arry=*topValue->u.chr;
 				 break;
 		case STR:
-		case SYM:tmpValue->u.byte.size=strlen(tmpValue->u.str+1);
-				 tmpValue->u.byte.arry=copyStr(topValue->u.str);
+		case SYM:tmpValue->u.byte->size=strlen(tmpValue->u.str+1);
+				 tmpValue->u.byte->arry=copyStr(topValue->u.str);
 				 break;
-		case BYTE:tmpValue->u.byte.size=topValue->u.byte.size;
-				  tmpValue->u.byte.arry=createByteArry(topValue->u.byte.size);
-				  memcpy(tmpValue->u.byte.arry,topValue->u.byte.arry,topValue->u.byte.size);
+		case BYTE:tmpValue->u.byte->size=topValue->u.byte->size;
+				  tmpValue->u.byte->arry=createByteArry(topValue->u.byte->size);
+				  memcpy(tmpValue->u.byte->arry,topValue->u.byte->arry,topValue->u.byte->size);
 				  break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
-	freeVMvalue(topValue);
 	proc->cp+=1;
 	return 0;
 }
@@ -2103,13 +1996,8 @@ int B_is_chr(fakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* objValue=getTopValue(stack);
 	if(objValue!=NULL&&objValue->type==CHR)
-	{
-		VMvalue* tmpValue=newVMvalue(INT);
-		tmpValue->u.num=1;
-		stack->values[stack->tp-1]=tmpValue;
-	}
-	else stack->values[stack->tp-1]=NULL;
-	freeVMvalue(objValue);
+		stack->values[stack->tp-1]=newTrueValue(exe->heap);
+	else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	proc->cp+=1;
 	return 0;
 }
@@ -2120,13 +2008,8 @@ int B_is_int(fakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* objValue=getTopValue(stack);
 	if(objValue!=NULL&&objValue->type==INT)
-	{
-		VMvalue* tmpValue=newVMvalue(INT);
-		tmpValue->u.num=1;
-		stack->values[stack->tp-1]=tmpValue;
-	}
-	else stack->values[stack->tp-1]=NULL;
-	freeVMvalue(objValue);
+		stack->values[stack->tp-1]=newTrueValue(exe->heap);
+	else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	proc->cp+=1;
 	return 0;
 }
@@ -2137,13 +2020,8 @@ int B_is_dbl(fakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* objValue=getTopValue(stack);
 	if(objValue!=NULL&&objValue->type==DBL)
-	{
-		VMvalue* tmpValue=newVMvalue(INT);
-		tmpValue->u.num=1;
-		stack->values[stack->tp-1]=tmpValue;
-	}
-	else stack->values[stack->tp-1]=NULL;
-	freeVMvalue(objValue);
+		stack->values[stack->tp-1]=newTrueValue(exe->heap);
+	else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	proc->cp+=1;
 	return 0;
 }
@@ -2154,13 +2032,8 @@ int B_is_str(fakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* objValue=getTopValue(stack);
 	if(objValue!=NULL&&objValue->type==STR)
-	{
-		VMvalue* tmpValue=newVMvalue(INT);
-		tmpValue->u.num=1;
-		stack->values[stack->tp-1]=tmpValue;
-	}
-	else stack->values[stack->tp-1]=NULL;
-	freeVMvalue(objValue);
+		stack->values[stack->tp-1]=newTrueValue(exe->heap);
+	else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	proc->cp+=1;
 	return 0;
 }
@@ -2171,13 +2044,8 @@ int B_is_sym(fakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* objValue=getTopValue(stack);
 	if(objValue!=NULL&&objValue->type==SYM)
-	{
-		VMvalue* tmpValue=newVMvalue(INT);
-		tmpValue->u.num=1;
-		stack->values[stack->tp-1]=tmpValue;
-	}
-	else stack->values[stack->tp-1]=NULL;
-	freeVMvalue(objValue);
+		stack->values[stack->tp-1]=newTrueValue(exe->heap);
+	else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	proc->cp+=1;
 	return 0;
 }
@@ -2188,13 +2056,8 @@ int B_is_prc(fakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* objValue=getTopValue(stack);
 	if(objValue!=NULL&&objValue->type==PRC)
-	{
-		VMvalue* tmpValue=newVMvalue(INT);
-		tmpValue->u.num=1;
-		stack->values[stack->tp-1]=tmpValue;
-	}
-	else stack->values[stack->tp-1]=NULL;
-	freeVMvalue(objValue);
+		stack->values[stack->tp-1]=newTrueValue(exe->heap);
+	else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	proc->cp+=1;
 	return 0;
 }
@@ -2205,13 +2068,8 @@ int B_is_byte(fakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue!=NULL&&topValue->type==BYTE)
-	{
-		VMvalue* tmpValue=newVMvalue(INT);
-		tmpValue->u.num=1;
-		stack->values[stack->tp-1]=tmpValue;
-	}
-	else stack->values[stack->tp-1]=NULL;
-	freeVMvalue(topValue);
+		stack->values[stack->tp-1]=newTrueValue(exe->heap);
+	else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	proc->cp+=1;
 	return 0;
 }
@@ -2226,15 +2084,14 @@ int B_nth(fakeVM* exe)
 	if(objlist->type==PAIR)
 	{
 		VMvalue* obj=getCar(objlist);
-		objlist->u.pair.car=NULL;
+		objlist->u.pair->car=NULL;
 		VMvalue* objPair=getCdr(objlist);
 		int i=0;
-		for(;i<place->u.num;i++)
+		for(;i<*place->u.num;i++)
 		{
 			if(objPair==NULL)return 2;
-			freeVMvalue(obj);
 			obj=getCar(objPair);
-			objPair->u.pair.car=NULL;
+			objPair->u.pair->car=NULL;
 			objPair=getCdr(objPair);
 		}
 		stack->tp-=1;
@@ -2245,22 +2102,17 @@ int B_nth(fakeVM* exe)
 	{
 		stack->tp-=1;
 		stackRecycle(exe);
-		VMvalue* objChr=newVMvalue(CHR);
-		objChr->u.chr=objlist->u.str[place->u.num];
+		VMvalue* objChr=newVMvalue(CHR,objlist->u.str+*place->u.num,exe->heap,0);
 		stack->values[stack->tp-1]=objChr;
 	}
 	else if(objlist->type==BYTE)
 	{
 		stack->tp-=1;
 		stackRecycle(exe);
-		VMvalue* objByte=newVMvalue(BYTE);
-		objByte->u.byte.size=1;
-		objByte->u.byte.arry=createByteArry(sizeof(uint8_t));
-		objByte->u.byte.arry[0]=objlist->u.byte.arry[place->u.num];
+		VMvalue* objByte=newVMvalue(BYTE,NULL,exe->heap,0);
+		objByte->u.byte=newByteArry(1,objlist->u.byte->arry+*place->u.num,0);
 		stack->values[stack->tp-1]=objByte;
 	}
-	freeVMvalue(objlist);
-	freeVMvalue(place);
 	proc->cp+=1;
 	return 0;
 }
@@ -2275,22 +2127,15 @@ int B_length(fakeVM* exe)
 	{
 		int32_t i=0;
 		for(VMvalue* tmp=objlist;tmp!=NULL&&tmp->type==PAIR;tmp=getCdr(tmp))i++;
-		VMvalue* num=newVMvalue(INT);
-		num->u.num=i;
-		stack->values[stack->tp-1]=num;
+		stack->values[stack->tp-1]=newVMvalue(INT,&i,exe->heap,1);
 	}
 	else if(objlist->type==STR)
 	{
-		VMvalue* len=newVMvalue(INT);
-		len->u.num=strlen(objlist->u.str);
-		stack->values[stack->tp-1]=len;
+		int32_t len=strlen(objlist->u.str);
+		stack->values[stack->tp-1]=newVMvalue(INT,&len,exe->heap,1);
 	}
 	else if(objlist->type==BYTE)
-	{
-		VMvalue* len=newVMvalue(INT);
-		len->u.num=objlist->u.byte.size;
-		stack->values[stack->tp-1]=len;
-	}
+		stack->values[stack->tp-1]=newVMvalue(INT,&objlist->u.byte->size,exe->heap,1);
 	freeVMvalue(objlist);
 	proc->cp+=1;
 	return 0;
@@ -2309,7 +2154,7 @@ int B_append(fakeVM* exe)
 	{
 		VMvalue* lastpair=sec;
 		while(getCdr(lastpair)!=NULL)lastpair=getCdr(lastpair);
-		lastpair->u.pair.cdr=fir;
+		lastpair->u.pair->cdr=fir;
 		stack->values[stack->tp-1]=sec;
 	}
 	else stack->values[stack->tp-1]=fir;
@@ -2332,8 +2177,8 @@ int B_str_cat(fakeVM* exe)
 	stackRecycle(exe);
 	strcpy(tmpStr,sec->u.str);
 	strcat(tmpStr,fir->u.str);
-	VMvalue* tmpValue=newVMvalue(STR);
-	tmpValue->u.str=tmpStr;
+	VMvalue* tmpValue=newVMvalue(STR,tmpStr,exe->heap,0);
+	tmpValue->access=1;
 	stack->values[stack->tp-1]=tmpValue;
 	freeVMvalue(fir);
 	freeVMvalue(sec);
@@ -2348,19 +2193,18 @@ int B_byte_cat(fakeVM* exe)
 	VMvalue* fir=getTopValue(stack);
 	VMvalue* sec=getValue(stack,stack->tp-2);
 	if(fir==NULL||sec==NULL||fir->type!=BYTE||sec->type!=BYTE)return 1;
-	int32_t firSize=fir->u.byte.size;
-	int32_t secSize=sec->u.byte.size;
-	VMvalue* tmpByte=newVMvalue(BYTE);
-	tmpByte->u.byte.size=firSize+secSize;
+	int32_t firSize=fir->u.byte->size;
+	int32_t secSize=sec->u.byte->size;
+	VMvalue* tmpByte=newVMvalue(BYTE,NULL,exe->heap,1);
+	tmpByte->u.byte=newEmptyByteArry();
+	tmpByte->u.byte->size=firSize+secSize;
 	uint8_t* tmpArry=createByteArry(firSize+secSize);
-	memcpy(tmpArry,sec->u.byte.arry,secSize);
-	memcpy(tmpArry+firSize,fir->u.byte.arry,firSize);
-	tmpByte->u.byte.arry=tmpArry;
+	memcpy(tmpArry,sec->u.byte->arry,secSize);
+	memcpy(tmpArry+firSize,fir->u.byte->arry,firSize);
+	tmpByte->u.byte->arry=tmpArry;
 	stack->tp-=1;
 	stackRecycle(exe);
 	stack->values[stack->tp-1]=tmpByte;
-	freeVMvalue(fir);
-	freeVMvalue(sec);
 	proc->cp+=1;
 	return 0;
 }
@@ -2372,11 +2216,9 @@ int B_getc(fakeVM* exe)
 	filestack* files=exe->files;
 	VMvalue* file=getTopValue(stack);
 	if(file==NULL||file->type!=INT)return 1;
-	if(file->u.num>=files->size)return 2;
-	VMvalue* tmpChr=newVMvalue(CHR);
-	tmpChr->u.chr=getc(files->files[file->u.num]);
-	stack->values[stack->tp-1]=tmpChr;
-	freeVMvalue(file);
+	if(*file->u.num>=files->size)return 2;
+	char ch=getc(files->files[*file->u.num]);
+	stack->values[stack->tp-1]=newVMvalue(CHR,&ch,exe->heap,1);
 	proc->cp+=1;
 	return 0;
 }
@@ -2391,9 +2233,8 @@ int B_getch(fakeVM* exe)
 		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 		stack->size+=64;
 	}
-	VMvalue* tmpChr=newVMvalue(CHR);
-	tmpChr->u.chr=getch();
-	stack->values[stack->tp]=tmpChr;
+	char ch=getch();
+	stack->values[stack->tp]=newVMvalue(CHR,&ch,exe->heap,1);
 	stack->tp+=1;
 	proc->cp+=1;
 	return 0;
@@ -2409,9 +2250,9 @@ int B_ungetc(fakeVM* exe)
 	stack->tp-=1;
 	stackRecycle(exe);
 	if(file==NULL||tmpChr==NULL||file->type!=INT||tmpChr->type!=CHR)return 1;
-	if(file->u.num>=files->size)return 2;
-	tmpChr->u.chr=ungetc(tmpChr->u.chr,files->files[file->u.num]);
-	freeVMvalue(file);
+	if(*file->u.num>=files->size)return 2;
+	char ch=ungetc(*tmpChr->u.chr,files->files[*file->u.num]);
+	stack->values[stack->tp-1]=newVMvalue(CHR,&ch,exe->heap,1);
 	proc->cp+=1;
 	return 0;
 }
@@ -2423,15 +2264,15 @@ int B_read(fakeVM* exe)
 	filestack* files=exe->files;
 	VMvalue* file=getTopValue(stack);
 	if(file==NULL||file->type!=INT)return 1;
-	if(file->u.num>=files->size)return 2;
-	FILE* tmpFile=files->files[file->u.num];
+	if(*file->u.num>=files->size)return 2;
+	FILE* tmpFile=files->files[*file->u.num];
 	if(tmpFile==NULL)return 2;
 	char* tmpString=getListFromFile(tmpFile);
 	intpr* tmpIntpr=newIntpr(NULL,tmpFile);
 	ANS_cptr* tmpCptr=createTree(tmpString,tmpIntpr);
 	VMvalue* tmp=NULL;
 	if(tmpCptr==NULL)return 3;
-	tmp=castCptrVMvalue(tmpCptr);
+	tmp=castCptrVMvalue(tmpCptr,exe->heap);
 	stack->values[stack->tp-1]=tmp;
 	free(tmpIntpr);
 	free(tmpString);
@@ -2450,20 +2291,19 @@ int B_readb(fakeVM* exe)
 	VMvalue* file=getTopValue(stack);
 	VMvalue* size=getValue(stack,stack->tp-2);
 	if(file==NULL||file->type!=INT||size==NULL||size->type!=INT)return 1;
-	if(file->u.num>=files->size)return 2;
-	FILE* fp=files->files[file->u.num];
+	if(*file->u.num>=files->size)return 2;
+	FILE* fp=files->files[*file->u.num];
 	if(fp==NULL)return 2;
-	VMvalue* tmpBary=newVMvalue(BYTE);
-	uint8_t* arry=(uint8_t*)malloc(sizeof(uint8_t)*size->u.num);
+	VMvalue* tmpBary=newVMvalue(BYTE,NULL,exe->heap,1);
+	uint8_t* arry=(uint8_t*)malloc(sizeof(uint8_t)*(*size->u.num));
 	if(arry==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
-	fread(arry,sizeof(uint8_t),size->u.num,fp);
-	tmpBary->u.byte.size=size->u.num;
-	tmpBary->u.byte.arry=arry;
+	fread(arry,sizeof(uint8_t),*size->u.num,fp);
+	tmpBary->u.byte=newEmptyByteArry();
+	tmpBary->u.byte->size=*size->u.num;
+	tmpBary->u.byte->arry=arry;
 	stack->tp-=1;
 	stackRecycle(exe);
 	stack->values[stack->tp-1]=tmpBary;
-	freeVMvalue(size);
-	freeVMvalue(file);
 	proc->cp+=1;
 	return 0;
 }
@@ -2476,8 +2316,8 @@ int B_write(fakeVM* exe)
 	VMvalue* file=getTopValue(stack);
 	VMvalue* obj=getValue(stack,stack->tp-2);
 	if(file==NULL||file->type!=INT)return 1;
-	if(file->u.num>=files->size)return 2;
-	FILE* objFile=files->files[file->u.num];
+	if(*file->u.num>=files->size)return 2;
+	FILE* objFile=files->files[*file->u.num];
 	if(objFile==NULL)return 2;
 	stack->tp-=1;
 	stackRecycle(exe);
@@ -2494,12 +2334,12 @@ int B_writeb(fakeVM* exe)
 	VMvalue* file=getTopValue(stack);
 	VMvalue* bt=getValue(stack,stack->tp-2);
 	if(file==NULL||file->type!=INT||bt==NULL||bt->type!=BYTE)return 1;
-	if(file->u.num>=files->size)return 2;
-	FILE* objFile=files->files[file->u.num];
+	if(*file->u.num>=files->size)return 2;
+	FILE* objFile=files->files[*file->u.num];
 	if(objFile==NULL)return 2;
 	stack->tp-=1;
 	stackRecycle(exe);
-	fwrite(bt->u.byte.arry,sizeof(uint8_t),bt->u.byte.size,objFile);
+	fwrite(bt->u.byte->arry,sizeof(uint8_t),bt->u.byte->size,objFile);
 	proc->cp+=1;
 	return 0;
 }
@@ -2512,8 +2352,8 @@ int B_princ(fakeVM* exe)
 	VMvalue* file=getTopValue(stack);
 	VMvalue* obj=getValue(stack,stack->tp-2);
 	if(file==NULL||file->type!=INT)return 1;
-	if(file->u.num>=files->size)return 2;
-	FILE* objFile=files->files[file->u.num];
+	if(*file->u.num>=files->size)return 2;
+	FILE* objFile=files->files[*file->u.num];
 	if(objFile==NULL)return 2;
 	stack->tp-=1;
 	stackRecycle(exe);
@@ -2529,10 +2369,14 @@ int B_tell(fakeVM* exe)
 	filestack* files=exe->files;
 	VMvalue* file=getTopValue(stack);
 	if(file==NULL||file->type!=INT)return 1;
-	if(file->u.num>=files->size)return 2;
-	FILE* objFile=files->files[file->u.num];
+	if(*file->u.num>=files->size)return 2;
+	FILE* objFile=files->files[*file->u.num];
 	if(objFile==NULL)return 2;
-	else file->u.num=ftell(objFile);
+	else
+	{
+		int32_t place=ftell(objFile);
+		VMvalue* tmp=newVMvalue(INT,&place,exe->heap,1);
+	}
 	proc->cp+=1;
 	return 0;
 }
@@ -2547,11 +2391,14 @@ int B_seek(fakeVM* exe)
 	stack->tp-=1;
 	stackRecycle(exe);
 	if(where==NULL||file==NULL||where->type!=INT||file->type!=INT)return 1;
-	if(file->u.num>=files->size)return 2;
-	FILE* objFile=files->files[file->u.num];
+	if(*file->u.num>=files->size)return 2;
+	FILE* objFile=files->files[*file->u.num];
 	if(objFile==NULL)return 2;
-	file->u.num=fseek(objFile,where->u.num,SEEK_CUR);
-	freeVMvalue(where);
+	else
+	{
+		int32_t place=fseek(objFile,*where->u.num,SEEK_CUR);
+		VMvalue* tmp=newVMvalue(INT,&place,exe->heap,1);
+	}
 	proc->cp+=1;
 	return 0;
 }
@@ -2563,8 +2410,8 @@ int B_rewind(fakeVM* exe)
 	filestack* files=exe->files;
 	VMvalue* file=getTopValue(stack);
 	if(file==NULL||file->type!=INT)return 1;
-	if(file->u.num>=files->size)return 2;
-	FILE* objFile=files->files[file->u.num];
+	if(*file->u.num>=files->size)return 2;
+	FILE* objFile=files->files[*file->u.num];
 	if(objFile==NULL)return 2;
 	rewind(objFile);
 	proc->cp+=1;
@@ -2577,7 +2424,7 @@ int B_exit(fakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* exitStatus=getTopValue(stack);
 	if(exitStatus->type!=INT)return 1;
-	exit(exitStatus->u.num);
+	exit(*exitStatus->u.num);
 	proc->cp+=1;
 	return 0;
 }
@@ -2586,7 +2433,6 @@ VMcode* newVMcode(ByteCode* proc)
 	VMcode* tmp=(VMcode*)malloc(sizeof(VMcode));
 	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp->localenv=NULL;
-	tmp->refcount=0;
 	if(proc!=NULL)
 	{
 		tmp->size=proc->size;
@@ -2624,90 +2470,95 @@ filestack* newFileStack()
 	return tmp;
 }
 
-VMvalue* newVMvalue(ValueType type/*,int access,void* pValue,VMheap* heap*/)
+VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap,int access)
 {
+	//VMvalue* tmp=(VMvalue*)malloc(sizeof(VMvalue));
+	//if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	//tmp->type=type;
+	//switch(type)
+	//{
+	//	case INT:tmp->u.num=0;break;
+	//	case DBL:tmp->u.dbl=0;break;
+	//	case CHR:tmp->u.chr='\0';break;
+	//	case SYM:
+	//	case STR:tmp->u.str=NULL;break;
+	//	case PRC:tmp->u.prc=NULL;break;
+	//	case PAIR:tmp->u.pair->car=NULL;
+	//			  tmp->u.pair.cdr=NULL;
+	//			  break;
+	//	case BYTE:tmp->u.byte.size=0;
+	//			  tmp->u.byte.arry=NULL;
+	//}
+	//return tmp;
 	VMvalue* tmp=(VMvalue*)malloc(sizeof(VMvalue));
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
-	tmp->type=type;
-	switch(type)
-	{
-		case INT:tmp->u.num=0;break;
-		case DBL:tmp->u.dbl=0;break;
-		case CHR:tmp->u.chr='\0';break;
-		case SYM:
-		case STR:tmp->u.str=NULL;break;
-		case PRC:tmp->u.prc=NULL;break;
-		case PAIR:tmp->u.pair.car=NULL;
-				  tmp->u.pair.cdr=NULL;
-				  break;
-		case BYTE:tmp->u.byte.size=0;
-				  tmp->u.byte.arry=NULL;
-	}
-	return tmp;
-	/*
-	VMvalue* tmp(VMvalue*)malloc(sizeof(VMvalue));
 	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp->type=type;
 	tmp->mark=0;
 	tmp->access=access;
-	tmp->next=heap->root;
-	heap->root->prev=tmp;
+	tmp->next=heap->head;
+	heap->head->prev=tmp;
 	tmp->prev=NULL;
-	heap->root=tmp;
+	heap->head=tmp;
 	switch(type)
 	{
 		case CHR:tmp->u.chr=(access)?copyMemory(pValue,sizeof(char)):pValue;break;
-		case INT:tmp->u.inte=(access)?copyMemory(pValue,sizeof(int32_t)):pValue;break;
+		case INT:tmp->u.num=(access)?copyMemory(pValue,sizeof(int32_t)):pValue;break;
 		case DBL:tmp->u.dbl=(access)?copyMemory(pValue,sizeof(double)):pValue;break;
 		case SYM:
 		case STR:tmp->u.str=(access)?copyStr(pValue):pValue;break;
-		case PAIR:tmp->u.pair=(access)?copyPair(pValue):pValue;break;
+		case PAIR:tmp->u.pair=pValue;break;
 		case PRC:tmp->u.prc=pValue;break;
-		case BYTE:tmp->u.byte=(access)?copyByteArry(pValue):pValue;
+		case BYTE:tmp->u.byte=(pValue!=NULL)?newByteArry(((ByteArry*)pValue)->size,((ByteArry*)pValue)->arry,access):NULL;
 	}
 	return tmp;
-	*/
 }
 
 void freeVMvalue(VMvalue* obj)
 {
-	if(obj==NULL)return;
-	if(obj->type==STR||obj->type==SYM)free(obj->u.str);
-	else if(obj->type==PRC)
+	if(obj->access)
 	{
-		if(obj->u.prc->refcount==0)freeVMcode(obj->u.prc);
-		else obj->u.prc->refcount-=1;
+		switch(obj->type)
+		{
+			case BYTE:
+				if(obj->access)
+					free(obj->u.byte->arry);
+				free(obj->u.byte);
+				break;
+			case SYM:
+			case STR:
+				free(obj->u.str);break;
+			case INT:free(obj->u.num);break;
+			case DBL:free(obj->u.dbl);break;
+			case PRC:freeVMcode(obj->u.prc);break;
+			case PAIR:free(obj->u.pair);break;
+			case CHR:free(obj->u.chr);break;
+		}
 	}
-	else if(obj->type==PAIR)
-	{
-		freeVMvalue(obj->u.pair.car);
-		freeVMvalue(obj->u.pair.cdr);
-	}
-	else if(obj->type==BYTE)
-		free(obj->u.byte.arry);
 	free(obj);
 }
 
-VMvalue* copyValue(VMvalue* obj)
+VMvalue* copyValue(VMvalue* obj,VMheap* heap)
 {
-	if(obj==NULL)return NULL;
-	VMvalue* tmp=newVMvalue(obj->type);
-	if(obj->type==STR||obj->type==SYM)tmp->u.str=copyStr(obj->u.str);
+	VMvalue* tmp=NULL;
+	if(obj->type==NIL)
+		tmp=newNilValue(heap);
+	else if(obj->type==INT)
+		tmp=newVMvalue(INT,obj->u.num,heap,1);
+	else if(obj->type==DBL)
+		tmp=newVMvalue(DBL,obj->u.dbl,heap,1);
+	else if(obj->type==CHR)
+		tmp=newVMvalue(CHR,obj->u.chr,heap,1);
+	else if(obj->type==BYTE)
+		tmp=newVMvalue(BYTE,obj->u.byte,heap,1);
+	else if(obj->type==STR||obj->type==SYM)
+		tmp=newVMvalue(obj->type,obj->u.str,heap,1);
+	else if(obj->type==PRC)
+		tmp=newVMvalue(PRC,copyVMcode(obj->u.prc,heap),heap,1);
 	else if(obj->type==PAIR)
 	{
-		tmp->u.pair.car=copyValue(obj->u.pair.car);
-		tmp->u.pair.cdr=copyValue(obj->u.pair.cdr);
-	}
-	else if(obj->type==BYTE)
-	{
-		tmp->u.byte.size=obj->u.byte.size;
-		tmp->u.byte.arry=createByteArry(obj->u.byte.size);
-		memcpy(tmp->u.byte.arry,obj->u.byte.arry,obj->u.byte.size);
-	}
-	else
-	{
-		tmp->u=obj->u;
-		if(obj->type==PRC)obj->u.prc->refcount+=1;
+		tmp=newVMvalue(PAIR,newVMpair(),heap,1);
+		tmp->u.pair->car=copyValue(obj->u.pair->car,heap);
+		tmp->u.pair->cdr=copyValue(obj->u.pair->cdr,heap);
 	}
 	return tmp;
 }
@@ -2770,42 +2621,38 @@ VMvalue* getValue(VMstack* stack,int32_t place)
 VMvalue* getCar(VMvalue* obj)
 {
 	if(obj->type!=PAIR)return NULL;
-	else return obj->u.pair.car;
+	else return obj->u.pair->car;
 }
 
 VMvalue* getCdr(VMvalue* obj)
 {
 	if(obj->type!=PAIR)return NULL;
-	else return obj->u.pair.cdr;
+	else return obj->u.pair->cdr;
 }
 
 void printVMvalue(VMvalue* objValue,FILE* fp,int8_t mode)
 {
-	if(objValue==NULL)
-	{
-		fprintf(fp,"nil");
-		return;
-	}
 	switch(objValue->type)
 	{
-		case INT:fprintf(fp,"%d",objValue->u.num);break;
-		case DBL:fprintf(fp,"%lf",objValue->u.dbl);break;
-		case CHR:printRawChar(objValue->u.chr,fp);break;
+		case NIL:fprintf(fp,"nil");break;
+		case INT:fprintf(fp,"%d",*objValue->u.num);break;
+		case DBL:fprintf(fp,"%lf",*objValue->u.dbl);break;
+		case CHR:printRawChar(*objValue->u.chr,fp);break;
 		case SYM:fprintf(fp,"%s",objValue->u.str);break;
 		case STR:printRawString(objValue->u.str,fp);break;
 		case PRC:
 				if(mode==1)printProc(objValue,fp);
 				else fprintf(fp,"<#proc>");break;
 		case PAIR:putc('(',fp);
-				 printVMvalue(objValue->u.pair.car,fp,mode);
-				 if(objValue->u.pair.cdr!=NULL)
+				 printVMvalue(objValue->u.pair->car,fp,mode);
+				 if(objValue->u.pair->cdr!=NULL)
 				 {
 					putc(',',fp);
-					printVMvalue(objValue->u.pair.cdr,fp,mode);
+					printVMvalue(objValue->u.pair->cdr,fp,mode);
 				 }
 				 putc(')',fp);
 				 break;
-		case BYTE:printByteArry(&objValue->u.byte,fp);
+		case BYTE:printByteArry(objValue->u.byte,fp);
 				  break;
 		default:fprintf(fp,"Bad value!");break;
 	}
@@ -2813,29 +2660,25 @@ void printVMvalue(VMvalue* objValue,FILE* fp,int8_t mode)
 
 void princVMvalue(VMvalue* objValue,FILE* fp)
 {
-	if(objValue==NULL)
-	{
-		fprintf(fp,"nil");
-		return;
-	}
 	switch(objValue->type)
 	{
-		case INT:fprintf(fp,"%d",objValue->u.num);break;
-		case DBL:fprintf(fp,"%lf",objValue->u.dbl);break;
-		case CHR:putc(objValue->u.chr,fp);break;
+		case NIL:fprintf(fp,"nil");break;
+		case INT:fprintf(fp,"%d",*objValue->u.num);break;
+		case DBL:fprintf(fp,"%lf",*objValue->u.dbl);break;
+		case CHR:putc(*objValue->u.chr,fp);break;
 		case SYM:fprintf(fp,"%s",objValue->u.str);break;
 		case STR:fprintf(fp,"%s",objValue->u.str);break;
 		case PRC:fprintf(fp,"<#proc>");break;
 		case PAIR:putc('(',fp);
-				 printVMvalue(objValue->u.pair.car,fp,0);
-				 if(objValue->u.pair.cdr!=NULL)
+				 printVMvalue(objValue->u.pair->car,fp,0);
+				 if(objValue->u.pair->cdr!=NULL)
 				 {
 					putc(',',fp);
-					printVMvalue(objValue->u.pair.cdr,fp,0);
+					printVMvalue(objValue->u.pair->cdr,fp,0);
 				 }
 				 putc(')',fp);
 				 break;
-		case BYTE:printByteArry(&objValue->u.byte,fp);
+		case BYTE:printByteArry(objValue->u.byte,fp);
 				  break;
 		default:fprintf(fp,"Bad value!");break;
 	}
@@ -2843,20 +2686,19 @@ void princVMvalue(VMvalue* objValue,FILE* fp)
 
 int VMvaluecmp(VMvalue* fir,VMvalue* sec)
 {
-	if(fir==NULL&&sec==NULL)return 1;
-	if((fir==NULL||sec==NULL)&&fir!=sec)return 0;
+	if(fir==sec)return 1;
 	if(fir->type!=sec->type)return 0;
 	else
 	{
 		switch(fir->type)
 		{
-			case INT:return fir->u.num==sec->u.num;
-			case CHR:return fir->u.chr==sec->u.chr;
-			case DBL:return fabs(fir->u.dbl-sec->u.dbl)==0;
+			case INT:return *fir->u.num==*sec->u.num;
+			case CHR:return *fir->u.chr==*sec->u.chr;
+			case DBL:return fabs(*fir->u.dbl-*sec->u.dbl)==0;
 			case STR:
 			case SYM:return !strcmp(fir->u.str,sec->u.str);
 			case PRC:return fir->u.prc==sec->u.prc;
-			case PAIR:return VMvaluecmp(fir->u.pair.car,sec->u.pair.car)&&VMvaluecmp(fir->u.pair.cdr,sec->u.pair.cdr);
+			case PAIR:return VMvaluecmp(fir->u.pair->car,sec->u.pair->car)&&VMvaluecmp(fir->u.pair->cdr,sec->u.pair->cdr);
 		}
 	}
 }
@@ -2928,32 +2770,32 @@ void printAllStack(VMstack* stack,FILE* fp)
 	}
 }
 
-VMvalue* castCptrVMvalue(const ANS_cptr* objCptr)
+VMvalue* castCptrVMvalue(const ANS_cptr* objCptr,VMheap* heap)
 {
 	if(objCptr->type==ATM)
 	{
 		ANS_atom* tmpAtm=objCptr->value;
-		VMvalue* tmp=newVMvalue(tmpAtm->type);
+		VMvalue* tmp=NULL;
 		switch(tmpAtm->type)
 		{
-			case INT:tmp->u.num=tmpAtm->value.num;break;
-			case DBL:tmp->u.dbl=tmpAtm->value.dbl;break;
-			case CHR:tmp->u.chr=tmpAtm->value.chr;break;
-			case BYTE:tmp->u.byte=copyByteArry(tmpAtm->value.byte);break;
+			case INT:tmp=newVMvalue(INT,&tmpAtm->value.num,heap,1);break;
+			case DBL:tmp=newVMvalue(DBL,&tmpAtm->value.dbl,heap,1);break;
+			case CHR:tmp=newVMvalue(CHR,&tmpAtm->value.chr,heap,1);break;
+			case BYTE:tmp=newVMvalue(BYTE,&tmpAtm->value.byte,heap,1);break;
 			case SYM:
-			case STR:tmp->u.str=copyStr(tmpAtm->value.str);break;
+			case STR:tmp=newVMvalue(tmpAtm->type,tmpAtm->value.str,heap,1);break;
 		}
 		return tmp;
 	}
 	else if(objCptr->type==PAIR)
 	{
 		ANS_pair* objPair=objCptr->value;
-		VMvalue* tmp=newVMvalue(PAIR);
-		tmp->u.pair.car=castCptrVMvalue(&objPair->car);
-		tmp->u.pair.cdr=castCptrVMvalue(&objPair->cdr);
+		VMvalue* tmp=newVMvalue(PAIR,newVMpair,heap,1);
+		tmp->u.pair->car=castCptrVMvalue(&objPair->car,heap);
+		tmp->u.pair->cdr=castCptrVMvalue(&objPair->cdr,heap);
 		return tmp;
 	}
-	else if(objCptr->type==NIL)return NULL;
+	else if(objCptr->type==NIL)return newNilValue(heap);
 }
 
 VMprocess* hasSameProc(VMcode* objCode,VMprocess* curproc)
@@ -3083,8 +2925,8 @@ void GC_markValue(VMvalue* value)
 	value->mark=1;
 	if(value->type==PAIR)
 	{
-		GC_markValue(value->u.pair.car);
-		GC_markValue(value->u.pair.cdr);
+		GC_markValue(value->u.pair->car);
+		GC_markValue(value->u.pair->cdr);
 	}
 	else if(value->type==PRC)
 		GC_markValueInEnv(value->u.prc->localenv);
@@ -3097,36 +2939,74 @@ void GC_markValueInEnv(VMenv* curEnv)
 		GC_markValue(curEnv->values[i]);
 }
 
-//void* copyMemory(void* pm,size_t size)
-//{
-//	void* tmp=(void*)malloc(size);
-//	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
-//	memcpy(tmp,pm,size);
-//	return pm;
-//}
-//
-//VMpair* newVMpair()
-//{
-//		VMpair* tmp=(VMpair*)malloc(sizeof(VMpair));
-//		if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
-//		tmp->car=NULL;
-//		tmp->cdr=NULL;
-//		return tmp;
-//}
-//
-//ByteArry* newByteArry(size_t size,uint8_t* arry,int access)
-//{
-//	ByteArry* tmp=(ByteArry*)malloc(sizeof(ByteArry));
-//	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
-//	tmp->size=size;
-//	tmp->arry=(access)?copyArry(size,arry):arry;
-//	return tmp;
-//}
-//
-//uint8_t* copyArry(size_t size,uint8_t* arry)
-//{
-//	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
-//	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
-//	memcpy(tmp,arry,size);
-//	return tmp;
-//}
+void* copyMemory(void* pm,size_t size)
+{
+	void* tmp=(void*)malloc(size);
+	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(pm!=NULL)
+		memcpy(tmp,pm,size);
+	return pm;
+}
+
+VMpair* newVMpair()
+{
+		VMpair* tmp=(VMpair*)malloc(sizeof(VMpair));
+		if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+		tmp->car=NULL;
+		tmp->cdr=NULL;
+		return tmp;
+}
+
+ByteArry* newByteArry(size_t size,uint8_t* arry,int access)
+{
+	ByteArry* tmp=(ByteArry*)malloc(sizeof(ByteArry));
+	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	tmp->size=size;
+	tmp->arry=(access)?copyArry(size,arry):arry;
+	return tmp;
+}
+
+ByteArry* newEmptyByteArry()
+{
+	ByteArry* tmp=(ByteArry*)malloc(sizeof(ByteArry));
+	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	return tmp;
+}
+
+uint8_t* copyArry(size_t size,uint8_t* arry)
+{
+	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
+	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	memcpy(tmp,arry,size);
+	return tmp;
+}
+
+VMvalue* newTrueValue(VMheap* heap)
+{
+	int32_t i=1;
+	VMvalue* tmp=newVMvalue(INT,&i,heap,1);
+	return tmp;
+}
+
+VMvalue* newNilValue(VMheap* heap)
+{
+	VMvalue* tmp=newVMvalue(NIL,NULL,heap,0);
+	return tmp;
+}
+
+ByteArry* copyByteArry(const ByteArry* obj)
+{
+	if(obj==NULL)return NULL;
+	ByteArry* tmp=(ByteArry*)malloc(sizeof(ByteArry));
+	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	int8_t* tmpArry=(int8_t*)malloc(tmp->size*sizeof(int8_t));
+	if(tmpArry==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	memcpy(tmpArry,obj->arry,obj->size);
+	tmp->size=obj->size;
+	tmp->arry=tmpArry;
+	return tmp;
+}
+
+VMcode* copyVMcode(VMcode* obj)
+{
+}

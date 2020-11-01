@@ -25,7 +25,7 @@ int M_ANY(const ANS_cptr*,const ANS_cptr*,const char*,PreEnv*);
 int M_VAREPT(const ANS_cptr*,const ANS_cptr*,const char*,PreEnv*);
 int M_COLT(const ANS_cptr*,const ANS_cptr*,const char*,PreEnv*);
 int M_RAW(const ANS_cptr*,const ANS_cptr*,const char*,PreEnv*);
-void initPreprocess();
+void initPreprocess(intpr*);
 void deleteMacro(ANS_cptr*);
 static const char* hasAnotherName(const char*);
 static void addToList(ANS_cptr*,const ANS_cptr*);

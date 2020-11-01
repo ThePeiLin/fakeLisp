@@ -11,6 +11,7 @@ ByteCode* compileListForm(ANS_cptr*,CompEnv*,intpr*,ErrorStatus*);
 ByteCode* compileNil();
 ByteCode* compileDef(ANS_cptr*,CompEnv*,intpr*,ErrorStatus*);
 ByteCode* compileSetq(ANS_cptr*,CompEnv*,intpr*,ErrorStatus*);
+ByteCode* compileSetf(ANS_cptr*,CompEnv*,intpr*,ErrorStatus*);
 ByteCode* compileSym(ANS_cptr*,CompEnv*,intpr*,ErrorStatus*);
 ByteCode* compileCond(ANS_cptr*,CompEnv*,intpr*,ErrorStatus*);
 ByteCode* compileLambda(ANS_cptr*,CompEnv*,intpr*,ErrorStatus*);

@@ -18,6 +18,7 @@ ByteCode* compile(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* st
 	if(isSymbol(objCptr))return compileSym(objCptr,curEnv,inter,status);
 	if(isDefExpression(objCptr))return compileDef(objCptr,curEnv,inter,status);
 	if(isSetqExpression(objCptr))return compileSetq(objCptr,curEnv,inter,status);
+	if(isSetfExpression(objCptr))return compileSetf(objCptr,curEnv,inter,status);
 	if(isCondExpression(objCptr))return compileCond(objCptr,curEnv,inter,status);
 	if(isAndExpression(objCptr))return compileAnd(objCptr,curEnv,inter,status);
 	if(isOrExpression(objCptr))return compileOr(objCptr,curEnv,inter,status);
@@ -362,6 +363,46 @@ ByteCode* compileSetq(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus
 	}
 	freeByteCode(pushTop);
 	freeByteCode(popVar);
+	return tmp;
+}
+
+ByteCode* compileSetf(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* status)
+{
+	ANS_cptr* fir=&((ANS_pair*)objCptr->value)->car;
+	ANS_cptr* sec=nextCptr(fir);
+	ANS_cptr* tir=nextCptr(sec);
+	ByteCode* tmp=createByteCode(0);
+	ByteCode* beFree=NULL;
+	ByteCode* popRef=createByteCode(sizeof(char));
+	popRef->code[0]=FAKE_POP_REF;
+	ByteCode* tmp1=NULL;
+	tmp1=compile(sec,curEnv,inter,status);
+	if(status->status!=0)
+	{
+		freeByteCode(tmp);
+		freeByteCode(popRef);
+		return NULL;
+	}
+	beFree=tmp;
+	tmp=codeCat(tmp,tmp1);
+	freeByteCode(beFree);
+	ByteCode* tmp2=compile(tir,curEnv,inter,status);
+	if(status->status!=0)
+	{
+		freeByteCode(tmp);
+		freeByteCode(tmp1);
+		freeByteCode(popRef);
+		return NULL;
+	}
+	beFree=tmp;
+	tmp=codeCat(tmp,tmp2);
+	freeByteCode(beFree);
+	beFree=tmp;
+	tmp=codeCat(tmp,popRef);
+	freeByteCode(beFree);
+	freeByteCode(popRef);
+	freeByteCode(tmp1);
+	freeByteCode(tmp2);
 	return tmp;
 }
 

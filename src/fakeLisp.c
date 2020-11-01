@@ -35,7 +35,7 @@ int main(int argc,char** argv)
 		VMenv* globEnv=newVMenv(0,1,NULL);
 		anotherVM->mainproc->localenv=globEnv;
 		anotherVM->mainproc->code->localenv=globEnv;
-		initGlobEnv(globEnv);
+		initGlobEnv(globEnv,anotherVM->heap);
 		runFakeVM(anotherVM);
 	}
 	else
@@ -80,7 +80,7 @@ void runIntpr(intpr* inter)
 	fakeVM* anotherVM=newFakeVM(NULL,NULL);
 	VMenv* globEnv=newVMenv(0,1,NULL);
 	anotherVM->mainproc->localenv=globEnv;
-	initGlobEnv(globEnv);
+	initGlobEnv(globEnv,anotherVM->heap);
 	for(;;)
 	{
 		ANS_cptr* begin=NULL;
@@ -129,7 +129,7 @@ void runIntpr(intpr* inter)
 				}
 				else
 				{
-				//	printByteCode(tmpByteCode,stdout);
+				//	printByteCode(tmpByteCode,stderr);
 					anotherVM->procs=castRawproc(anotherVM->procs,inter->procs);
 					anotherVM->mainproc->code=newVMcode(tmpByteCode);
 					anotherVM->mainproc->code->localenv=globEnv;
@@ -144,10 +144,9 @@ void runIntpr(intpr* inter)
 						printVMvalue(getTopValue(stack),stdout,1);
 						putchar('\n');
 					}
-				//	fprintf(stderr,"======\n");
-				//	fprintf(stderr,"stack->tp=%d\n",stack->tp);
-				//	printAllStack(stack,stderr);
-					freeVMvalue(getTopValue(stack));
+					//fprintf(stderr,"======\n");
+					//fprintf(stderr,"stack->tp=%d\n",stack->tp);
+					//printAllStack(stack,stderr);
 					stack->tp-=1;
 					freeByteCode(tmpByteCode);
 				}

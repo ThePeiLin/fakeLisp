@@ -1327,6 +1327,7 @@ int B_pop_ref(fakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* topValue=getTopValue(stack);
 	VMvalue* objValue=getValue(stack,stack->tp-2);
+	if(objValue->access==0&&objValue->type!=topValue->type)return 1;
 	copyRef(objValue,topValue);
 	stack->tp-=1;
 	stackRecycle(exe);
@@ -3018,13 +3019,16 @@ void copyRef(VMvalue* obj,VMvalue* src)
 	obj->type=src->type;
 	switch(src->type)
 	{
-		case INT:if(obj->access)free(obj->u.num);obj->u.num=src->u.num;break;
-		case CHR:if(obj->access)free(obj->u.chr);obj->u.chr=src->u.chr;break;
-		case DBL:if(obj->access)free(obj->u.dbl);obj->u.dbl=src->u.dbl;break;
-		case PAIR:if(obj->access)free(obj->u.pair);obj->u.pair=src->u.pair;break;
-		case PRC:if(obj->access)freeVMcode(obj->u.prc);obj->u.prc=src->u.prc;break;
+		case INT:*obj->u.num=*src->u.num;break;
+		case CHR:*obj->u.chr=*src->u.chr;break;
+		case DBL:*obj->u.dbl=*src->u.dbl;break;
+		case PAIR:if(obj->access)free(obj->u.pair);obj->u.pair=src->u.pair;
+					  obj->access=0;break;
+		case PRC:if(obj->access)freeVMcode(obj->u.prc);obj->u.prc=src->u.prc;
+					 obj->access=0;break;
 		case SYM:
-		case STR:if(obj->access)free(obj->u.str);obj->u.str=src->u.str;break;
+		case STR:if(obj->access)free(obj->u.str);obj->u.str=src->u.str;
+					 obj->access=0;break;
 		case BYTE:
 				if(obj->access)
 				{
@@ -3036,7 +3040,6 @@ void copyRef(VMvalue* obj,VMvalue* src)
 				obj->u.byte->arry=obj->u.byte->arry;
 				break;
 	}
-	obj->access=0;
 }
 
 VMenv* copyVMenv(VMenv* objEnv,VMheap* heap)

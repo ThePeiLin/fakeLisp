@@ -22,32 +22,32 @@ typedef struct
 
 typedef struct VM_Value
 {
-	int8_t mark;
-	int8_t type;
-	union
-	{
-		char* str;
-		struct VM_Code* prc;
-		VMpair pair;
-		ByteArry byte;
-		int32_t num;
-		char chr;
-		double dbl;
-	}u;
-	//unsigned int mark :1;
-	//unsigned int access :1;
-	//unsigned int type :6;
+	//int8_t mark;
+	//int8_t type;
 	//union
 	//{
-	//	char* chr;
 	//	char* str;
-	//	VMpair* pair;
-	//	ByteArry* byte;
-	//	int32_t* integer;
-	//	double* dbl;
-	//	struct VM_code* prc;
+	//	struct VM_Code* prc;
+	//	VMpair pair;
+	//	ByteArry byte;
+	//	int32_t num;
+	//	char chr;
+	//	double dbl;
 	//}u;
-	struct VM_value* prev;
+	unsigned int mark :1;
+	unsigned int access :1;
+	unsigned int type :6;
+	union
+	{
+		char* chr;
+		char* str;
+		VMpair* pair;
+		ByteArry* byte;
+		int32_t* num;
+		double* dbl;
+		struct VM_Code* prc;
+	}u;
+	struct VM_Value* prev;
 	struct VM_Value* next;
 }VMvalue;
 
@@ -65,7 +65,6 @@ typedef struct VM_Code
 {
 	VMenv* localenv;
 //	symlist* syms;
-	int32_t refcount;
 	int32_t size;
 	char* code;
 }VMcode;
@@ -106,6 +105,7 @@ typedef struct
 	VMstack* stack;
 	threadMessage* queue;
 	filestack* files;
+	struct VM_Heap* heap;
 }fakeVM;
 
 typedef struct VM_Heap
@@ -126,7 +126,7 @@ void printVMvalue(VMvalue*,FILE*,int8_t);
 void princVMvalue(VMvalue*,FILE*);
 void printProc(VMvalue*,FILE*);
 fakeVM* newFakeVM(ByteCode*,ByteCode*);
-void initGlobEnv(VMenv*);
+void initGlobEnv(VMenv*,VMheap*);
 int B_dummy(fakeVM*);
 int B_push_nil(fakeVM*);
 int B_push_pair(fakeVM*);
@@ -207,8 +207,10 @@ int B_accept(fakeVM*);
 static VMstack* newStack(int32_t);
 static filestack* newFileStack();
 VMcode* newVMcode(ByteCode*);
-static VMvalue* copyValue(VMvalue*);
-static VMvalue* newVMvalue(ValueType/*,VMheap**/);
+static VMvalue* copyValue(VMvalue*,VMheap*);
+static VMvalue* newVMvalue(ValueType,void*,VMheap*,int);
+static VMvalue* newTrueValue(VMheap*);
+static VMvalue* newNilValue(VMheap*);
 VMvalue* getTopValue(VMstack*);
 VMvalue* getValue(VMstack*,int32_t);
 static VMvalue* getCar(VMvalue*);
@@ -217,6 +219,7 @@ static void freeVMcode(VMcode*);
 static int VMvaluecmp(VMvalue*,VMvalue*);
 void freeVMvalue(VMvalue*);
 VMenv* newVMenv(int32_t,int,VMenv*);
+VMpair* newVMpair();
 static void freeVMenv(VMenv*);
 static void stackRecycle(fakeVM*);
 static VMcode* newBuiltInProc(ByteCode*);
@@ -227,7 +230,7 @@ static fakeVMStack* newThreadStack(int32_t);
 static threadMessage* newMessage(VMvalue*);
 static int sendMessage(threadMessage*,fakeVM*);
 static VMvalue* acceptMessage(fakeVM*);
-static VMvalue* castCptrVMvalue(const ANS_cptr*);
+static VMvalue* castCptrVMvalue(const ANS_cptr*,VMheap*);
 static VMprocess* hasSameProc(VMcode*,VMprocess*);
 static int isTheLastExpress(const VMprocess*,const VMprocess*);
 static uint8_t* createByteArry(int32_t);
@@ -236,6 +239,12 @@ static int getch();
 #endif
 void printEnv(VMenv*,FILE*);
 VMheap* createHeap();
+void* copyMemory(void*,size_t);
+ByteArry* newByteArry(size_t,uint8_t*,int);
+ByteArry* copyByteArry(const ByteArry*);
+ByteArry* newEmptyByteArry();
+uint8_t* copyArry(size_t,uint8_t*);
+VMcode* copyVMcode(VMcode*,VMheap*);
 void GC_mark(fakeVM*);
 void GC_markValue(VMvalue*);
 void GC_markValueInStack(VMstack*);

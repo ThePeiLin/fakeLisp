@@ -6,7 +6,7 @@
 #include<math.h>
 #include"tool.h"
 #include"opcode.h"
-#define NUMOFBUILDINSYMBOL 54
+#define NUMOFBUILDINSYMBOL 55
 char* builtInSymbolList[]=
 {
 	"nil",
@@ -27,6 +27,7 @@ char* builtInSymbolList[]=
 	"isprc",
 	"isbyt",
 	"eq",
+	"equal",
 	"gt",
 	"ge",
 	"lt",
@@ -752,6 +753,12 @@ int copyCptr(ANS_cptr* objCptr,const ANS_cptr* copiedCptr)
 			ANS_atom* objAtm=NULL;
 			if(coAtm->type==SYM||coAtm->type==STR)
 				objAtm=newAtom(coAtm->type,coAtm->value.str,objPair);
+			else if(coAtm->type==BYTE)
+			{
+				objAtm=newAtom(coAtm->type,NULL,objPair);
+				objAtm->value.byte.size=coAtm->value.byte.size;
+				objAtm->value.byte.arry=copyMemory(coAtm->value.byte.arry,coAtm->value.byte.size);
+			}
 			else
 			{
 				objAtm=newAtom(coAtm->type,NULL,objPair);
@@ -1106,7 +1113,7 @@ void printList(const ANS_cptr* objCptr,FILE* out)
 						printRawChar(tmpAtm->value.chr,out);
 						break;
 					case BYTE:
-						printByteArry(&tmpAtm->value.byte,out);
+						printByteArry(&tmpAtm->value.byte,out,1);
 						break;
 				}
 			}
@@ -1459,9 +1466,9 @@ uint8_t* castStrByteArry(const char* str)
 	return tmp;
 }
 
-void printByteArry(const ByteArry* obj,FILE* fp)
+void printByteArry(const ByteArry* obj,FILE* fp,int mode)
 {
-	fputs("@\\",fp);
+	if(mode)fputs("@\\",fp);
 	for(int i=0;i<obj->size;i++)
 	{
 		uint8_t j=obj->arry[i];
@@ -1479,4 +1486,13 @@ void printAsByteArry(const uint8_t* arry,int32_t size,FILE* fp)
 		fprintf(fp,"%X",j%16);
 		fprintf(fp,"%X",j/16);
 	}
+}
+
+void* copyMemory(void* pm,size_t size)
+{
+	void* tmp=(void*)malloc(size);
+	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(pm!=NULL)
+		memcpy(tmp,pm,size);
+	return tmp;
 }

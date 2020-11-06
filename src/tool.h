@@ -54,6 +54,7 @@ void destroyEnv(PreEnv*);
 int ANS_cptrcmp(const ANS_cptr*,const ANS_cptr*);
 int deleteCptr(ANS_cptr*);
 int copyCptr(ANS_cptr*,const ANS_cptr*);
+void* copyMemory(void*,size_t);
 void replace(ANS_cptr*,const ANS_cptr*);
 ANS_cptr* nextCptr(const ANS_cptr*);
 ANS_cptr* prevCptr(const ANS_cptr*);
@@ -65,6 +66,6 @@ void initCompEnv(CompEnv*);
 ByteCode* copyByteCode(const ByteCode*);
 void freeByteCode(ByteCode*);
 void printByteCode(const ByteCode*,FILE*);
-void printByteArry(const ByteArry*,FILE*);
+void printByteArry(const ByteArry*,FILE*,int);
 void printAsByteArry(const uint8_t*,int32_t,FILE*);
 #endif

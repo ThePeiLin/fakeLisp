@@ -220,7 +220,7 @@ ByteCode* compileDef(ANS_cptr* tir,CompEnv* curEnv,intpr* inter,ErrorStatus* sta
 	ByteCode* popVar=createByteCode(sizeof(char)+sizeof(int32_t));
 	popVar->code[0]=FAKE_POP_VAR;
 	pushTop->code[0]=FAKE_PUSH_TOP;
-	while(isDefExpression(tir))			
+	while(isDefExpression(tir))
 	{
 		fir=&((ANS_pair*)tir->value)->car;
 		sec=nextCptr(fir);

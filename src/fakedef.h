@@ -6,10 +6,11 @@
 #define SYMUNDEFINE 1
 #define SYNTAXERROR 2
 
-typedef enum{NIL,SYM,STR,INT,CHR,BYTE,DBL,PAIR,PRC,ATM} ValueType;
+typedef enum{NIL,INT,CHR,DBL,SYM,STR,BYTE,PRC,PAIR,ATM} ValueType;
 
 typedef struct
 {
+	int32_t refcount;
 	int32_t size;
 	uint8_t* arry;
 }ByteArry;

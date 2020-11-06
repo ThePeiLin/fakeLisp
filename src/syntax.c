@@ -75,7 +75,7 @@ int isSetqExpression(const ANS_cptr* objCptr)
 int isSetfExpression(const ANS_cptr* objCptr)
 {
 	objCptr=(objCptr->type==PAIR)?&((ANS_pair*)objCptr->value)->car:NULL;
-	if(objCptr!=NULL&&nextCptr(objCptr)!=NULL&nextCptr(nextCptr(objCptr))!=NULL)
+	if(objCptr!=NULL&&nextCptr(objCptr)!=NULL&&nextCptr(nextCptr(objCptr))!=NULL)
 	{
 		if(objCptr->type!=ATM)return 0;
 		else

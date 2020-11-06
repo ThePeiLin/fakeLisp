@@ -4,6 +4,7 @@
 #define THRESHOLD_SIZE 64
 typedef struct
 {
+	int32_t refcount;
 	struct VM_Value* car;
 	struct VM_Value* cdr;
 }VMpair;
@@ -40,12 +41,13 @@ typedef struct VM_Value
 	union
 	{
 		char* chr;
-		char* str;
+		struct VM_Str* str;
 		VMpair* pair;
 		ByteArry* byte;
 		int32_t* num;
 		double* dbl;
 		struct VM_Code* prc;
+		void* all;
 	}u;
 	struct VM_Value* prev;
 	struct VM_Value* next;
@@ -63,12 +65,18 @@ typedef struct VM_Env
 
 typedef struct VM_Code
 {
+	int32_t refcount;
 	VMenv* localenv;
 //	symlist* syms;
 	int32_t size;
 	char* code;
 }VMcode;
 
+typedef struct VM_Str
+{
+	int32_t refcount;
+	char* str;
+}VMstr;
 typedef struct VM_Process
 {
 	struct VM_Process* prev;
@@ -181,7 +189,7 @@ int B_append(fakeVM*);
 int B_str_cat(fakeVM*);
 int B_byte_cat(fakeVM*);
 int B_eq(fakeVM*);
-int B_eql(fakeVM*);
+int B_equal(fakeVM*);
 int B_gt(fakeVM*);
 int B_ge(fakeVM*);
 int B_lt(fakeVM*);
@@ -219,9 +227,14 @@ static VMvalue* getCar(VMvalue*);
 static VMvalue* getCdr(VMvalue*);
 static void freeVMcode(VMcode*);
 static int VMvaluecmp(VMvalue*,VMvalue*);
+static int subVMvaluecmp(VMvalue*,VMvalue*);
+static int byteArryCmp(ByteArry*,ByteArry*);
 void freeVMvalue(VMvalue*);
+void freeVMstr(VMstr*);
+void freeRef(VMvalue*);
 VMenv* newVMenv(int32_t,int,VMenv*);
 VMpair* newVMpair(VMheap*);
+VMstr* newVMstr(const char*);
 static void freeVMenv(VMenv*);
 static void stackRecycle(fakeVM*);
 static VMcode* newBuiltInProc(ByteCode*);
@@ -241,13 +254,13 @@ static int getch();
 #endif
 void printEnv(VMenv*,FILE*);
 VMheap* createHeap();
-void* copyMemory(void*,size_t);
-ByteArry* newByteArry(size_t,uint8_t*,int);
+ByteArry* newByteArry(size_t,uint8_t*);
 ByteArry* copyByteArry(const ByteArry*);
 ByteArry* newEmptyByteArry();
 uint8_t* copyArry(size_t,uint8_t*);
 VMcode* copyVMcode(VMcode*,VMheap*);
 VMenv* copyVMenv(VMenv*,VMheap*);
+void writeRef(VMvalue*,VMvalue*);
 void copyRef(VMvalue*,VMvalue*);
 void GC_mark(fakeVM*);
 void GC_markValue(VMvalue*);

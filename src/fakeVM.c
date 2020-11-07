@@ -2574,7 +2574,6 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap,int access)
 	//return tmp;
 	VMvalue* tmp=(VMvalue*)malloc(sizeof(VMvalue));
 	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
-	heap->size+=1;
 	tmp->type=type;
 	tmp->mark=0;
 	tmp->access=access;

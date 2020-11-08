@@ -446,6 +446,15 @@ ByteCode* compileAnd(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus*
 	for(objCptr=&((ANS_pair*)objCptr->value)->car;nextCptr(objCptr)!=NULL;objCptr=nextCptr(objCptr));
 	for(;prevCptr(objCptr)!=NULL;objCptr=prevCptr(objCptr))
 	{
+		if(isDefExpression(objCptr))
+		{
+			status->status=ILLEGALEXPR;
+			status->place=objCptr;
+			freeByteCode(tmp);
+			freeByteCode(jumpiffalse);
+			freeByteCode(push1);
+			return NULL;
+		}
 		ByteCode* tmp1=compile(objCptr,curEnv,inter,status);
 		ByteCode* beFree=tmp1;
 		if(status->status!=0)
@@ -490,6 +499,15 @@ ByteCode* compileOr(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* 
 		}
 		else if(prevCptr(objCptr)!=NULL)
 		{
+			if(isDefExpression(objCptr))
+			{
+				status->status=ILLEGALEXPR;
+				status->place=objCptr;
+				freeByteCode(tmp);
+				freeByteCode(jumpifture);
+				freeByteCode(pushnil);
+				return NULL;
+			}
 			ByteCode* beFree=tmp;
 			ByteCode* tmp1=compile(objCptr,curEnv,inter,status);
 			if(status->status!=0)
@@ -757,6 +775,17 @@ ByteCode* compileCond(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus
 		ByteCode* tmpCond=createByteCode(0);
 		while(objCptr!=NULL)
 		{
+			if(isDefExpression(objCptr))
+			{
+				status->status=ILLEGALEXPR;
+				status->place=objCptr;
+				freeByteCode(tmp);
+				freeByteCode(jumpiffalse);
+				freeByteCode(jump);
+				freeByteCode(pop);
+				freeByteCode(tmpCond);
+				return NULL;
+			}
 			ByteCode* tmp1=compile(objCptr,curEnv,inter,status);
 			if(status->status!=0)
 			{

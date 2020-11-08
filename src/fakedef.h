@@ -5,6 +5,7 @@
 #include<stdint.h>
 #define SYMUNDEFINE 1
 #define SYNTAXERROR 2
+#define ILLEGALEXPR 3
 
 typedef enum{NIL,INT,CHR,DBL,SYM,STR,BYTE,PRC,PAIR,ATM} ValueType;
 

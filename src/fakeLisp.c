@@ -141,7 +141,9 @@ void runIntpr(intpr* inter)
 					if(inter->file==stdin)
 					{
 						printf("=> ");
-						printVMvalue(getTopValue(stack),stdout,1);
+						VMvalue* tmp=getTopValue(stack);
+						VMpair* tmpPair=(tmp->type==PAIR)?tmp->u.pair:NULL;
+						printVMvalue(tmp,tmpPair,stdout,1);
 						putchar('\n');
 					}
 					//fprintf(stderr,"======\n");

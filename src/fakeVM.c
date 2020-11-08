@@ -2386,7 +2386,8 @@ int B_write(fakeVM* exe)
 	if(objFile==NULL)return 2;
 	stack->tp-=1;
 	stackRecycle(exe);
-	printVMvalue(obj,objFile,0);
+	VMpair* tmpPair=(obj->type==PAIR)?obj->u.pair:NULL;
+	printVMvalue(obj,tmpPair,objFile,0);
 	proc->cp+=1;
 	return 0;
 }
@@ -2422,7 +2423,8 @@ int B_princ(fakeVM* exe)
 	if(objFile==NULL)return 2;
 	stack->tp-=1;
 	stackRecycle(exe);
-	princVMvalue(obj,objFile);
+	VMpair* tmpPair=(obj->type==PAIR)?obj->u.pair:NULL;
+	princVMvalue(obj,tmpPair,objFile);
 	proc->cp+=1;
 	return 0;
 }
@@ -2689,7 +2691,7 @@ VMvalue* getCdr(VMvalue* obj)
 	else return obj->u.pair->cdr;
 }
 
-void printVMvalue(VMvalue* objValue,FILE* fp,int8_t mode)
+void printVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t mode)
 {
 	switch(objValue->type)
 	{
@@ -2702,22 +2704,30 @@ void printVMvalue(VMvalue* objValue,FILE* fp,int8_t mode)
 		case PRC:
 				if(mode==1)printProc(objValue,fp);
 				else fprintf(fp,"<#proc>");break;
-		case PAIR:putc('(',fp);
-				 printVMvalue(objValue->u.pair->car,fp,mode);
-				 if(objValue->u.pair->cdr!=NULL)
-				 {
+		case PAIR:
+				putc('(',fp);
+				if(objValue->u.pair->car->type==PAIR&&objValue->u.pair->car->u.pair==begin)
+					fprintf(fp,"##");
+				else
+					printVMvalue(objValue->u.pair->car,begin,fp,mode);
+				if(objValue->u.pair->cdr->type!=NIL)
+				{
 					putc(',',fp);
-					printVMvalue(objValue->u.pair->cdr,fp,mode);
-				 }
-				 putc(')',fp);
-				 break;
-		case BYTE:printByteArry(objValue->u.byte,fp,1);
-				  break;
+					if(objValue->u.pair->cdr->type==PAIR&&objValue->u.pair->cdr->u.pair==begin)
+						fprintf(fp,"##");
+					else
+						printVMvalue(objValue->u.pair->cdr,begin,fp,mode);
+				}
+				putc(')',fp);
+				break;
+		case BYTE:
+				printByteArry(objValue->u.byte,fp,1);
+				break;
 		default:fprintf(fp,"Bad value!");break;
 	}
 }
 
-void princVMvalue(VMvalue* objValue,FILE* fp)
+void princVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp)
 {
 	switch(objValue->type)
 	{
@@ -2727,18 +2737,27 @@ void princVMvalue(VMvalue* objValue,FILE* fp)
 		case CHR:putc(*objValue->u.chr,fp);break;
 		case SYM:fprintf(fp,"%s",objValue->u.str->str);break;
 		case STR:fprintf(fp,"%s",objValue->u.str->str);break;
-		case PRC:fprintf(fp,"<#proc>");break;
-		case PAIR:putc('(',fp);
-				 printVMvalue(objValue->u.pair->car,fp,0);
-				 if(objValue->u.pair->cdr!=NULL)
-				 {
+		case PRC:
+				fprintf(fp,"<#proc>");break;
+		case PAIR:
+				putc('(',fp);
+				if(objValue->u.pair->car->type==PAIR&&objValue->u.pair->car->u.pair==begin)
+					fprintf(fp,"##");
+				else
+					princVMvalue(objValue->u.pair->car,begin,fp);
+				if(objValue->u.pair->cdr->type!=NIL)
+				{
 					putc(',',fp);
-					printVMvalue(objValue->u.pair->cdr,fp,0);
-				 }
-				 putc(')',fp);
-				 break;
-		case BYTE:printByteArry(objValue->u.byte,fp,0);
-				  break;
+					if(objValue->u.pair->cdr->type==PAIR&&objValue->u.pair->cdr->u.pair==begin)
+						fprintf(fp,"##");
+					else
+						princVMvalue(objValue->u.pair->cdr,begin,fp);
+				}
+				putc(')',fp);
+				break;
+		case BYTE:
+				printByteArry(objValue->u.byte,fp,0);
+				break;
 		default:fprintf(fp,"Bad value!");break;
 	}
 }
@@ -2843,7 +2862,9 @@ void printAllStack(VMstack* stack,FILE* fp)
 		for(;i>=0;i--)
 		{
 			fprintf(fp,"%d:",i);
-			printVMvalue(stack->values[i],fp,0);
+			VMvalue* tmp=stack->values[i];
+			VMpair* tmpPair=(tmp->type==PAIR)?tmp->u.pair:NULL;
+			printVMvalue(tmp,tmpPair,fp,0);
 			putc('\n',fp);
 		}
 	}
@@ -2926,7 +2947,9 @@ void printEnv(VMenv* curEnv,FILE* fp)
 		fprintf(fp,"ENV:");
 		for(int i=0;i<curEnv->size;i++)
 		{
-			printVMvalue(curEnv->values[i],fp,0);
+			VMvalue* tmp=curEnv->values[i];
+			VMpair* tmpPair=(tmp->type==PAIR)?tmp->u.pair:NULL;
+			printVMvalue(tmp,tmpPair,fp,0);
 			putc(' ',fp);
 		}
 	}

@@ -130,8 +130,8 @@ typedef struct
 }fakeVMStack;
 
 void runFakeVM(fakeVM*);
-void printVMvalue(VMvalue*,FILE*,int8_t);
-void princVMvalue(VMvalue*,FILE*);
+void printVMvalue(VMvalue*,VMpair*,FILE*,int8_t);
+void princVMvalue(VMvalue*,VMpair*,FILE*);
 void printProc(VMvalue*,FILE*);
 fakeVM* newFakeVM(ByteCode*,ByteCode*);
 void initGlobEnv(VMenv*,VMheap*);

@@ -19,6 +19,7 @@
   (list 'setq SYM (list '1- SYM)))
 (defmacro (NEG ANY#VALUE)
   (list 'sub 0 VALUE))
+(define eq equal)
 (define (neq a b) (not (eq a b)))
 (define (1+ a) (add a 1))
 (define (1- a) (sub a 1))

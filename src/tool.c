@@ -1144,11 +1144,12 @@ void printList(const ANS_cptr* objCptr,FILE* out)
 void exError(const ANS_cptr* obj,int type,intpr* inter)
 {
 	if(inter!=NULL)printf("In file \"%s\",line %d\n",inter->filename,(obj==NULL)?inter->curline:obj->curline);
-	if(obj!=NULL)printList(obj,stdout);
+	if(obj!=NULL)printList(obj,stderr);
 	switch(type)
 	{
-		case SYMUNDEFINE:printf(":Symbol is undefined.\n");break;
-		case SYNTAXERROR:printf(":Syntax error.\n");break;
+		case SYMUNDEFINE:fprintf(stderr,":Symbol is undefined.\n");break;
+		case SYNTAXERROR:fprintf(stderr,":Syntax error.\n");break;
+		case ILLEGALEXPR:fprintf(stderr,":Illegal expression here.\n");break;
 	}
 }
 

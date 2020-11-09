@@ -57,6 +57,7 @@ car
 cdr  
 atom  
 null  
+app  
 ischr  
 isint  
 isdbl  

@@ -8,22 +8,26 @@
 
 ByteCode* compile(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* status)
 {
-	if(objCptr->type==PAIR&&(!PreMacroExpand(objCptr)&&hasKeyWord(objCptr))||!isLegal(objCptr))
+	for(;;)
 	{
-		status->status=SYNTAXERROR;
-		status->place=objCptr;
-		return NULL;
+		if(isConst(objCptr))return compileConst(objCptr,curEnv,inter,status);
+		if(isSymbol(objCptr))return compileSym(objCptr,curEnv,inter,status);
+		if(isDefExpression(objCptr))return compileDef(objCptr,curEnv,inter,status);
+		if(isSetqExpression(objCptr))return compileSetq(objCptr,curEnv,inter,status);
+		if(isSetfExpression(objCptr))return compileSetf(objCptr,curEnv,inter,status);
+		if(isCondExpression(objCptr))return compileCond(objCptr,curEnv,inter,status);
+		if(isAndExpression(objCptr))return compileAnd(objCptr,curEnv,inter,status);
+		if(isOrExpression(objCptr))return compileOr(objCptr,curEnv,inter,status);
+		if(isLambdaExpression(objCptr))return compileLambda(objCptr,curEnv,inter,status);
+		if(PreMacroExpand(objCptr))continue;
+		else if(hasKeyWord(objCptr))
+		{
+			status->status=SYNTAXERROR;
+			status->place=objCptr;
+			return NULL;
+		}
+		else if(isListForm(objCptr))return compileListForm(objCptr,curEnv,inter,status);
 	}
-	if(isConst(objCptr))return compileConst(objCptr,curEnv,inter,status);
-	if(isSymbol(objCptr))return compileSym(objCptr,curEnv,inter,status);
-	if(isDefExpression(objCptr))return compileDef(objCptr,curEnv,inter,status);
-	if(isSetqExpression(objCptr))return compileSetq(objCptr,curEnv,inter,status);
-	if(isSetfExpression(objCptr))return compileSetf(objCptr,curEnv,inter,status);
-	if(isCondExpression(objCptr))return compileCond(objCptr,curEnv,inter,status);
-	if(isAndExpression(objCptr))return compileAnd(objCptr,curEnv,inter,status);
-	if(isOrExpression(objCptr))return compileOr(objCptr,curEnv,inter,status);
-	if(isLambdaExpression(objCptr))return compileLambda(objCptr,curEnv,inter,status);
-	if(isListForm(objCptr))return compileListForm(objCptr,curEnv,inter,status);
 }
 
 ByteCode* compileAtom(ANS_cptr* objCptr)

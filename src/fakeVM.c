@@ -2167,7 +2167,7 @@ int B_nth(fakeVM* exe)
 	{
 		stack->tp-=1;
 		stackRecycle(exe);
-		VMvalue* objChr=newVMvalue(CHR,objlist->u.str+*place->u.num,exe->heap,0);
+		VMvalue* objChr=newVMvalue(CHR,objlist->u.str->str+*place->u.num,exe->heap,0);
 		stack->values[stack->tp-1]=objChr;
 	}
 	else if(objlist->type==BYTE)

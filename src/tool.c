@@ -6,7 +6,7 @@
 #include<math.h>
 #include"tool.h"
 #include"opcode.h"
-#define NUMOFBUILDINSYMBOL 55
+#define NUMOFBUILDINSYMBOL 56
 char* builtInSymbolList[]=
 {
 	"nil",
@@ -17,8 +17,9 @@ char* builtInSymbolList[]=
 	"cons",
 	"car",
 	"cdr",
-	"ANS_atom",
+	"atom",
 	"null",
+	"app",
 	"ischr",
 	"isint",
 	"isdbl",

@@ -11,7 +11,7 @@
 #endif
 #include<unistd.h>
 #include<time.h>
-#define NUMOFBUILTINSYMBOL 55
+#define NUMOFBUILTINSYMBOL 56
 static int (*ByteCodes[])(fakeVM*)=
 {
 	B_dummy,
@@ -28,6 +28,7 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_push_cdr,
 	B_push_top,
 	B_push_proc,
+	B_push_list_arg,
 	B_pop,
 	B_pop_var,
 	B_pop_rest_var,
@@ -161,6 +162,23 @@ ByteCode P_null=
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_NULL,
 		FAKE_END_PROC
+	}
+};
+
+ByteCode P_app=
+{
+	25,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,1,0,0,0,
+		FAKE_RES_BP,
+		FAKE_SET_BP,
+		FAKE_PUSH_VAR,1,0,0,0,
+		FAKE_PUSH_LIST_ARG,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_INVOKE,
+		FAKE_END_PROC,
 	}
 };
 
@@ -814,6 +832,7 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 		P_cdr,
 		P_atom,
 		P_null,
+		P_app,
 		P_ischr,
 		P_isint,
 		P_isdbl,
@@ -1246,6 +1265,31 @@ int B_push_proc(fakeVM* exe)
 	stack->values[stack->tp]=objValue;
 	stack->tp+=1;
 	proc->cp+=5;
+	return 0;
+}
+
+int B_push_list_arg(fakeVM* exe)
+{
+	VMstack* stack=exe->stack;
+	VMprocess* proc=exe->curproc;
+	VMcode* tmpCode=proc->code;
+	VMvalue* tmpList=getTopValue(stack);
+	stack->tp-=1;
+	while(tmpList->type!=NIL)
+	{
+		if(stack->tp>=stack->size)
+		{
+			stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
+			if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+			stack->size+=64;
+		}
+		VMvalue* tmp=newNilValue(exe->heap);
+		copyRef(tmp,tmpList->u.pair->car);
+		stack->values[stack->tp]=tmp;
+		stack->tp+=1;
+		tmpList=tmpList->u.pair->cdr;
+	}
+	proc->cp+=1;
 	return 0;
 }
 

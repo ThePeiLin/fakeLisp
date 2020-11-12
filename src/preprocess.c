@@ -466,22 +466,6 @@ void initPreprocess(intpr* inter)
 	addKeyWord("or");
 	addKeyWord("lambda");
 	addKeyWord("setf");
-//	addMacro(createTree("(define ATOM#NAME ANY#VALUE)",inter),
-//			createTree("RAWEXPRESS",inter));
-//	addMacro(createTree("(setq ATOM#NAME ANY#VALUE)",inter),
-//			createTree("RAWEXPRESS",inter));
-//	addMacro(createTree("(setf ANY#PLACE ANY#VALUE)",inter),
-//			createTree("RAWEXPRESS",inter));
-//	addMacro(createTree("(quote ANY#VALUE)",inter),
-//			createTree("RAWEXPRESS",inter));
-//	addMacro(createTree("(cond (ANY#COND,ANY#BODY) VAREPT#ANOTHER)",inter),
-//			createTree("RAWEXPRESS",inter));
-//	addMacro(createTree("(and,ANY#OTHER)",inter),
-//			createTree("RAWEXPRESS",inter));
-//	addMacro(createTree("(or,ANY#OTHER)",inter),
-//			createTree("RAWEXPRESS",inter));
-//	addMacro(createTree("(lambda ANY#ARGS,PAIR#BODY)",inter),
-//			createTree("RAWEXPRESS",inter));
 }
 void addRule(const char* name,int (*obj)(const ANS_cptr*,const ANS_cptr*,const char*,PreEnv*))
 {

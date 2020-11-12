@@ -19,7 +19,7 @@ fakeLisp.o: src/fakeLisp.* src/fakedef.h
 	gcc $(FLAG) -c src/fakeLisp.c
 compiler.o: src/compiler.* src/opcode.h src/fakedef.h
 	gcc $(FLAG) -c src/compiler.c
-fakeVM.o: src/fakeVM.* src/fakedef.h
+fakeVM.o: src/fakeVM.* src/fakedef.h src/opcode.h
 	gcc $(FLAG) -c src/fakeVM.c
 fakeLispc.o: src/fakeLispc.* src/fakedef.h
 	gcc $(FLAG) -c src/fakeLispc.c

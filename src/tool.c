@@ -644,7 +644,7 @@ ANS_cptr* createTree(const char* objStr,intpr* inter)
 			i+=strlen(tmp)+2;
 			free(tmp);
 		}
-		else if(*(objStr+i)=='@'&&*(objStr+1+i)=='\\')
+		else if(*(objStr+i)=='#'&&*(objStr+1+i)=='b')
 		{
 			if(root==NULL)objCptr=root=newCptr(inter->curline,objPair);
 			char* tmp=getStringAfterBackslash(objStr+i+2);
@@ -1470,7 +1470,7 @@ uint8_t* castStrByteArry(const char* str)
 
 void printByteArry(const ByteArry* obj,FILE* fp,int mode)
 {
-	if(mode)fputs("@\\",fp);
+	if(mode)fputs("#b",fp);
 	for(int i=0;i<obj->size;i++)
 	{
 		uint8_t j=obj->arry[i];

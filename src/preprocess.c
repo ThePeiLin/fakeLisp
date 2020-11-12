@@ -162,7 +162,7 @@ ErrorStatus eval(ANS_cptr* objCptr,PreEnv* curEnv)
 						replace(objCptr,reCptr);
 						continue;
 					}
-					else 
+					else
 					{
 						status.status=SYMUNDEFINE;
 						status.place=objCptr;
@@ -437,7 +437,6 @@ int PreMacroExpand(ANS_cptr* objCptr)
 	PreMacro* tmp=PreMacroMatch(objCptr);
 	if(tmp!=NULL&&objCptr!=tmp->express)
 	{
-		addDefine("RAWEXPRESS",objCptr,MacroEnv);
 		ANS_cptr* tmpCptr=newCptr(0,NULL);
 		replace(tmpCptr,tmp->express);
 		status=eval(tmp->express,MacroEnv);

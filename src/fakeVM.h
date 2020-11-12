@@ -50,6 +50,7 @@ typedef struct VM_Value
 		struct VM_Code* prc;
 		void* all;
 	}u;
+	pthread_mutex_t lock;
 	struct VM_Value* prev;
 	struct VM_Value* next;
 }VMvalue;

@@ -2605,6 +2605,7 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap,int access)
 	tmp->mark=0;
 	tmp->access=access;
 	tmp->next=heap->head;
+	tmp->lock=PTHREAD_MUTEX_INITIALIZER;
 	if(heap->head!=NULL)heap->head->prev=tmp;
 	tmp->prev=NULL;
 	heap->head=tmp;

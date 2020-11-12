@@ -3,7 +3,6 @@
 #include"opcode.h"
 #include<string.h>
 #include<math.h>
-#include<pthread.h>
 #ifdef _WIN32
 #include<conio.h>
 #else

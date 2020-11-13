@@ -1323,6 +1323,14 @@ int B_pop_var(fakeVM* exe)
 	*pValue=newNilValue(exe->heap);
 	(*pValue)->access=1;
 	VMvalue* topValue=getTopValue(stack);
+	if(topValue==NULL)
+	{
+		printProc(proc->code,stderr);
+		fprintf(stderr,"\n%d\n",proc->localenv->size);
+		fprintf(stderr,"cp=%d\n",proc->cp);
+		printEnv(proc->localenv,stderr);
+		exit(1);
+	}
 	copyRef(*pValue,topValue);
 	stack->tp-=1;
 	stackRecycle(exe);
@@ -2105,7 +2113,7 @@ int B_is_chr(fakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMvalue* objValue=getTopValue(stack);
-	if(objValue!=NULL&&objValue->type==CHR)
+	if(objValue->type==CHR)
 		stack->values[stack->tp-1]=newTrueValue(exe->heap);
 	else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	proc->cp+=1;
@@ -2117,7 +2125,7 @@ int B_is_int(fakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMvalue* objValue=getTopValue(stack);
-	if(objValue!=NULL&&objValue->type==INT)
+	if(objValue->type==INT)
 		stack->values[stack->tp-1]=newTrueValue(exe->heap);
 	else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	proc->cp+=1;
@@ -2129,7 +2137,7 @@ int B_is_dbl(fakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMvalue* objValue=getTopValue(stack);
-	if(objValue!=NULL&&objValue->type==DBL)
+	if(objValue->type==DBL)
 		stack->values[stack->tp-1]=newTrueValue(exe->heap);
 	else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	proc->cp+=1;
@@ -2141,7 +2149,7 @@ int B_is_str(fakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMvalue* objValue=getTopValue(stack);
-	if(objValue!=NULL&&objValue->type==STR)
+	if(objValue->type==STR)
 		stack->values[stack->tp-1]=newTrueValue(exe->heap);
 	else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	proc->cp+=1;
@@ -2153,7 +2161,7 @@ int B_is_sym(fakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMvalue* objValue=getTopValue(stack);
-	if(objValue!=NULL&&objValue->type==SYM)
+	if(objValue->type==SYM)
 		stack->values[stack->tp-1]=newTrueValue(exe->heap);
 	else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	proc->cp+=1;
@@ -2165,7 +2173,7 @@ int B_is_prc(fakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMvalue* objValue=getTopValue(stack);
-	if(objValue!=NULL&&objValue->type==PRC)
+	if(objValue->type==PRC)
 		stack->values[stack->tp-1]=newTrueValue(exe->heap);
 	else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	proc->cp+=1;
@@ -2177,7 +2185,7 @@ int B_is_byte(fakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMvalue* topValue=getTopValue(stack);
-	if(topValue!=NULL&&topValue->type==BYTE)
+	if(topValue->type==BYTE)
 		stack->values[stack->tp-1]=newTrueValue(exe->heap);
 	else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	proc->cp+=1;
@@ -2605,7 +2613,7 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap,int access)
 	tmp->mark=0;
 	tmp->access=access;
 	tmp->next=heap->head;
-	tmp->lock=PTHREAD_MUTEX_INITIALIZER;
+	//tmp->lock=PTHREAD_MUTEX_INITIALIZER;
 	if(heap->head!=NULL)heap->head->prev=tmp;
 	tmp->prev=NULL;
 	heap->head=tmp;
@@ -2746,7 +2754,7 @@ void printVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t mode)
 		case SYM:fprintf(fp,"%s",objValue->u.str->str);break;
 		case STR:printRawString(objValue->u.str->str,fp);break;
 		case PRC:
-				if(mode==1)printProc(objValue,fp);
+				if(mode==1)printProc(objValue->u.prc,fp);
 				else fprintf(fp,"<#proc>");break;
 		case PAIR:
 				putc('(',fp);
@@ -3006,10 +3014,10 @@ uint8_t* createByteArry(int32_t size)
 	return tmp;
 }
 
-void printProc(VMvalue* objValue,FILE* fp)
+void printProc(VMcode* code,FILE* fp)
 {
 	fputs("\n<#proc\n",fp);
-	ByteCode tmp={objValue->u.prc->size,objValue->u.prc->code};
+	ByteCode tmp={code->size,code->code};
 	printByteCode(&tmp,fp);
 	fputc('>',fp);
 }
@@ -3149,8 +3157,11 @@ VMenv* copyVMenv(VMenv* objEnv,VMheap* heap)
 
 void freeVMenv(VMenv* obj)
 {
-	free(obj->values);
-	free(obj);
+	if(obj->next!=NULL&&obj->next->prev!=obj)
+	{
+		free(obj->values);
+		free(obj);
+	}
 }
 
 VMheap* createHeap()

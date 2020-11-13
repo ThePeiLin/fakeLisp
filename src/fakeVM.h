@@ -134,7 +134,7 @@ typedef struct
 void runFakeVM(fakeVM*);
 void printVMvalue(VMvalue*,VMpair*,FILE*,int8_t);
 void princVMvalue(VMvalue*,VMpair*,FILE*);
-void printProc(VMvalue*,FILE*);
+void printProc(VMcode*,FILE*);
 fakeVM* newFakeVM(ByteCode*,ByteCode*);
 void initGlobEnv(VMenv*,VMheap*);
 int B_dummy(fakeVM*);

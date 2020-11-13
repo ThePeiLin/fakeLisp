@@ -1323,14 +1323,6 @@ int B_pop_var(fakeVM* exe)
 	*pValue=newNilValue(exe->heap);
 	(*pValue)->access=1;
 	VMvalue* topValue=getTopValue(stack);
-	if(topValue==NULL)
-	{
-		printProc(proc->code,stderr);
-		fprintf(stderr,"\n%d\n",proc->localenv->size);
-		fprintf(stderr,"cp=%d\n",proc->cp);
-		printEnv(proc->localenv,stderr);
-		exit(1);
-	}
 	copyRef(*pValue,topValue);
 	stack->tp-=1;
 	stackRecycle(exe);

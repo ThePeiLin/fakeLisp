@@ -11,6 +11,7 @@
 #include<unistd.h>
 #include<time.h>
 #define NUMOFBUILTINSYMBOL 56
+pthread_mutex_t GClock=PTHREAD_MUTEX_INITIALIZER;
 static int (*ByteCodes[])(fakeVM*)=
 {
 	B_dummy,
@@ -818,7 +819,7 @@ fakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 	exe->stack=newStack(0);
 	exe->queue=NULL;
 	exe->files=newFileStack();
-	exe->heap=createHeap();
+	exe->heap=newVMheap();
 	return exe;
 }
 
@@ -901,6 +902,8 @@ void runFakeVM(fakeVM* exe)
 {
 	while(exe->curproc!=NULL&&exe->curproc->cp!=exe->curproc->code->size)
 	{
+		pthread_mutex_lock(&GClock);
+		pthread_mutex_unlock(&GClock);
 		VMprocess* curproc=exe->curproc;
 		VMcode* tmpCode=curproc->code;
 		ByteCode tmpByteCode={tmpCode->size,tmpCode->code};
@@ -929,14 +932,20 @@ void runFakeVM(fakeVM* exe)
 					   exit(EXIT_FAILURE);
 			}
 		}
-		if(exe->heap->size>exe->heap->threshold)
+		if(pthread_mutex_trylock(&GClock))
+			continue;
+		else
 		{
-			//fprintf(stderr,"\nValue that be marked:\n");
-			GC_mark(exe);
-			//fprintf(stderr,"\n=======\nValue that be sweep:\n");
-			GC_sweep(exe->heap);
-			//fprintf(stderr,"======\n");
-			exe->heap->threshold=exe->heap->size+THRESHOLD_SIZE;
+			if(exe->heap->size>exe->heap->threshold)
+			{
+				//fprintf(stderr,"\nValue that be marked:\n");
+				GC_mark(exe);
+				//fprintf(stderr,"\n=======\nValue that be sweep:\n");
+				GC_sweep(exe->heap);
+				//fprintf(stderr,"======\n");
+				exe->heap->threshold=exe->heap->size+THRESHOLD_SIZE;
+			}
+			pthread_mutex_unlock(&GClock);
 		}
 	//	fprintf(stdout,"=========\n");
 	//	fprintf(stderr,"stack->tp=%d\n",exe->stack->tp);
@@ -2534,6 +2543,7 @@ int B_exit(fakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* exitStatus=getTopValue(stack);
 	if(exitStatus->type!=INT)return 1;
+	pthread_mutex_destroy(&GClock);
 	exit(*exitStatus->u.num);
 	proc->cp+=1;
 	return 0;
@@ -2605,11 +2615,13 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap,int access)
 	tmp->mark=0;
 	tmp->access=access;
 	tmp->next=heap->head;
-	//tmp->lock=PTHREAD_MUTEX_INITIALIZER;
-	if(heap->head!=NULL)heap->head->prev=tmp;
 	tmp->prev=NULL;
+	pthread_rwlock_init(&tmp->lock,NULL);
+	pthread_mutex_lock(&heap->lock);
+	if(heap->head!=NULL)heap->head->prev=tmp;
 	heap->head=tmp;
 	heap->size+=1;
+	pthread_mutex_unlock(&heap->lock);
 	switch(type)
 	{
 		case NIL:tmp->u.all=NULL;break;
@@ -3156,13 +3168,14 @@ void freeVMenv(VMenv* obj)
 	}
 }
 
-VMheap* createHeap()
+VMheap* newVMheap()
 {
 	VMheap* tmp=(VMheap*)malloc(sizeof(VMheap));
 	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp->size=0;
 	tmp->threshold=THRESHOLD_SIZE;
 	tmp->head=NULL;
+	pthread_mutex_init(&tmp->lock,NULL);
 	return tmp;
 }
 
@@ -3239,6 +3252,7 @@ void GC_sweep(VMheap* heap)
 			if(cur->prev!=NULL)cur->prev->next=cur->next;
 			if(cur->access)freeRef(cur);
 			cur=cur->next;
+			pthread_rwlock_destroy(&prev->lock);
 			free(prev);
 			heap->size-=1;
 		}
@@ -3293,6 +3307,13 @@ void freeVMstr(VMstr* obj)
 
 void copyRef(VMvalue* fir,VMvalue* sec)
 {
+	for(;;)
+	{
+		pthread_rwlock_wrlock(&fir->lock);
+		if(pthread_rwlock_tryrdlock(&sec->lock))
+			pthread_rwlock_unlock(&fir->lock);
+		else break;
+	}
 	freeRef(fir);
 	fir->type=sec->type;
 	if(fir->type<SYM&&fir->type>NIL)
@@ -3353,6 +3374,8 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 				break;
 		}
 	}
+	pthread_rwlock_unlock(&sec->lock);
+	pthread_rwlock_unlock(&fir->lock);
 }
 
 int byteArryCmp(ByteArry* fir,ByteArry* sec)

@@ -50,7 +50,7 @@ typedef struct VM_Value
 		struct VM_Code* prc;
 		void* all;
 	}u;
-	pthread_mutex_t lock;
+	pthread_rwlock_t lock;
 	struct VM_Value* prev;
 	struct VM_Value* next;
 }VMvalue;
@@ -120,6 +120,7 @@ typedef struct
 
 typedef struct VM_Heap
 {
+	pthread_mutex_t lock;
 	int32_t size;
 	int32_t threshold;
 	VMvalue* head;
@@ -256,7 +257,7 @@ static uint8_t* createByteArry(int32_t);
 static int getch();
 #endif
 void printEnv(VMenv*,FILE*);
-VMheap* createHeap();
+VMheap* newVMheap();
 ByteArry* newByteArry(size_t,uint8_t*);
 ByteArry* copyByteArry(const ByteArry*);
 ByteArry* newEmptyByteArry();

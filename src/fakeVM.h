@@ -97,6 +97,7 @@ typedef struct
 
 typedef struct
 {
+	pthread_mutex_t lock;
 	int32_t size;
 	FILE** files;
 }filestack;
@@ -109,6 +110,8 @@ typedef struct ThreadMessage
 
 typedef struct
 {
+	int32_t VMid;
+	pthread_t tid;
 	VMprocess* curproc;
 	ByteCode* procs;
 	VMprocess* mainproc;
@@ -137,6 +140,7 @@ void printVMvalue(VMvalue*,VMpair*,FILE*,int8_t);
 void princVMvalue(VMvalue*,VMpair*,FILE*);
 void printProc(VMcode*,FILE*);
 fakeVM* newFakeVM(ByteCode*,ByteCode*);
+fakeVM* newThreadVM(VMcode*,ByteCode*,filestack*,VMheap*);
 void initGlobEnv(VMenv*,VMheap*);
 int B_dummy(fakeVM*);
 int B_push_nil(fakeVM*);
@@ -193,6 +197,7 @@ int B_append(fakeVM*);
 int B_str_cat(fakeVM*);
 int B_byte_cat(fakeVM*);
 int B_eq(fakeVM*);
+int B_eqn(fakeVM*);
 int B_equal(fakeVM*);
 int B_gt(fakeVM*);
 int B_ge(fakeVM*);
@@ -232,6 +237,7 @@ static VMvalue* getCdr(VMvalue*);
 static void freeVMcode(VMcode*);
 static int VMvaluecmp(VMvalue*,VMvalue*);
 static int subVMvaluecmp(VMvalue*,VMvalue*);
+static int numcmp(VMvalue*,VMvalue*);
 static int byteArryCmp(ByteArry*,ByteArry*);
 void freeVMvalue(VMvalue*);
 void freeVMstr(VMstr*);

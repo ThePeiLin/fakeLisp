@@ -80,6 +80,7 @@ void runIntpr(intpr* inter)
 	fakeVM* anotherVM=newFakeVM(NULL,NULL);
 	VMenv* globEnv=newVMenv(0,1,NULL);
 	anotherVM->mainproc->localenv=globEnv;
+	anotherVM->tid=pthread_self();
 	initGlobEnv(globEnv,anotherVM->heap);
 	for(;;)
 	{

@@ -932,6 +932,7 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 	for(;i<NUMOFBUILTINSYMBOL;i++)
 	{
 		obj->values[i]=newVMvalue(PRC,newBuiltInProc(copyByteCode(buildInProcs+(i-5))),heap,1);
+		obj->values[i]->u.prc->refcount+=1;
 	}
 }
 
@@ -976,6 +977,8 @@ void runFakeVM(fakeVM* exe)
 				case 4:fprintf(stderr,"error:Too much arguements!\n");
 					   exit(EXIT_FAILURE);
 				case 5:fprintf(stderr,"error:Too few arguements!\n");
+					   exit(EXIT_FAILURE);
+				case 6:fprintf(stderr,"error:Can't create thread!\n");
 					   exit(EXIT_FAILURE);
 			}
 		}
@@ -1659,7 +1662,10 @@ int B_end_proc(fakeVM* exe)
 	tmpEnv->inProc=0;
 	freeVMenv(tmpEnv);
 	free(tmpProc);
-	tmpCode->refcount-=1;
+	if(tmpCode->refcount==0)
+		freeVMcode(tmpCode);
+	else
+		tmpCode->refcount-=1;
 	return 0;
 }
 
@@ -3070,7 +3076,8 @@ VMvalue* castCptrVMvalue(const ANS_cptr* objCptr,VMheap* heap)
 
 VMprocess* hasSameProc(VMcode* objCode,VMprocess* curproc)
 {
-	while(curproc!=NULL&&curproc->code!=objCode)curproc=curproc->prev;
+	while(curproc!=NULL&&curproc->code!=objCode)
+		curproc=curproc->prev;
 	return curproc;
 }
 
@@ -3370,8 +3377,11 @@ void GC_sweep(VMheap* heap)
 			free(prev);
 			heap->size-=1;
 		}
-		cur->mark=0;
-		cur=cur->next;
+		else
+		{
+			cur->mark=0;
+			cur=cur->next;
+		}
 	}
 }
 
@@ -3398,7 +3408,8 @@ void freeRef(VMvalue* obj)
 				else obj->u.pair->refcount-=1;
 				break;
 			case PRC:
-				if(!obj->u.pair->refcount)freeVMcode(obj->u.prc);
+				if(!obj->u.prc->refcount)
+					freeVMcode(obj->u.prc);
 				else obj->u.prc->refcount-=1;
 				break;
 			case BYTE:

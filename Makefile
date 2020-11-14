@@ -7,6 +7,8 @@ FLAG=-g -W
 else
 FLAG=-W
 endif
+
+LINK=-lpthread
 form.o: src/form.* src/fakedef.h
 	gcc $(FLAG) -c src/form.c
 tool.o: src/tool.* src/fakedef.h
@@ -24,7 +26,7 @@ fakeVM.o: src/fakeVM.* src/fakedef.h src/opcode.h
 fakeLispc.o: src/fakeLispc.* src/fakedef.h
 	gcc $(FLAG) -c src/fakeLispc.c
 fakeLisp: $(objectOfFakeLisp) $(objectOfFakeLispc)
-	gcc -o fakeLisp $(objectOfFakeLisp)
+	gcc -o fakeLisp $(objectOfFakeLisp) $(LINK)
 	gcc -o fakeLispc $(objectOfFakeLispc)
 fakeLispc: $(objectOfFakeLispc)
 	gcc -o fakeLispc $(objectOfFakeLispc)

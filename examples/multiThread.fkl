@@ -1,0 +1,7 @@
+(define id (go (lambda ()
+                 (cond ((eqn (accept) "I'm your father!")
+                        (princ "Thread#1:Noooooooo!\n" stdout))))
+               ()))
+(princ "Thread#0:I'm your father!\n" stdout)
+(send "I'm your father!" id)
+(wait id)

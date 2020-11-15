@@ -3411,11 +3411,8 @@ void GC_markValueInCallChain(VMprocess* cur)
 	for(;cur!=NULL;cur=cur->prev)
 	{
 		VMenv* curEnv=cur->localenv;
-		while(curEnv!=NULL)
-		{
+		for(;curEnv!=NULL;curEnv=curEnv->prev)
 			GC_markValueInEnv(curEnv);
-			curEnv=curEnv->prev;
-		}
 	}
 }
 

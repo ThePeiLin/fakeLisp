@@ -32,7 +32,7 @@ int main(int argc,char** argv)
 		ByteCode* mainprocess=loadByteCode(fp);
 		//printByteCode(mainprocess,stdout);
 		fakeVM* anotherVM=newFakeVM(mainprocess,RawProcess);
-		VMenv* globEnv=newVMenv(0,1,NULL);
+		VMenv* globEnv=newVMenv(0,NULL);
 		anotherVM->mainproc->localenv=globEnv;
 		anotherVM->mainproc->code->localenv=globEnv;
 		initGlobEnv(globEnv,anotherVM->heap);
@@ -78,7 +78,7 @@ void runIntpr(intpr* inter)
 {
 	initPreprocess(inter);
 	fakeVM* anotherVM=newFakeVM(NULL,NULL);
-	VMenv* globEnv=newVMenv(0,1,NULL);
+	VMenv* globEnv=newVMenv(0,NULL);
 	anotherVM->mainproc->localenv=globEnv;
 	anotherVM->tid=pthread_self();
 	initGlobEnv(globEnv,anotherVM->heap);

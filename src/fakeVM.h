@@ -50,7 +50,6 @@ typedef struct VM_Value
 		struct VM_Code* prc;
 		void* all;
 	}u;
-	pthread_rwlock_t lock;
 	struct VM_Value* prev;
 	struct VM_Value* next;
 }VMvalue;
@@ -58,8 +57,7 @@ typedef struct VM_Value
 typedef struct VM_Env
 {
 	struct VM_Env* prev;
-	struct VM_Env* next;
-	unsigned int inProc:1;
+	int32_t refcount;
 	int32_t bound;
 	int32_t size;
 	VMvalue** values;
@@ -245,7 +243,7 @@ void freeVMstr(VMstr*);
 void freeRef(VMvalue*);
 void freeVMstack(VMstack*);
 void freeMessage(threadMessage*);
-VMenv* newVMenv(int32_t,int,VMenv*);
+VMenv* newVMenv(int32_t,VMenv*);
 VMpair* newVMpair(VMheap*);
 VMstr* newVMstr(const char*);
 static void freeVMenv(VMenv*);

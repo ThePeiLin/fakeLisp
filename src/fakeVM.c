@@ -983,11 +983,11 @@ void runFakeVM(fakeVM* exe)
 					   exit(EXIT_FAILURE);
 			}
 		}
-		//if(pthread_mutex_trylock(&GClock))
-		//	continue;
-		//else
+		if(pthread_mutex_trylock(&GClock))
+			continue;
+		else
 		{
-		//	if(exe->heap->size>exe->heap->threshold)
+			if(exe->heap->size>exe->heap->threshold)
 			{
 				//fprintf(stderr,"\nValue that be marked:\n");
 				GC_mark(exe);
@@ -996,7 +996,7 @@ void runFakeVM(fakeVM* exe)
 				//fprintf(stderr,"======\n");
 				exe->heap->threshold=exe->heap->size+THRESHOLD_SIZE;
 			}
-		//	pthread_mutex_unlock(&GClock);
+			pthread_mutex_unlock(&GClock);
 		}
 	//	fprintf(stdout,"=========\n");
 	//	fprintf(stderr,"stack->tp=%d\n",exe->stack->tp);

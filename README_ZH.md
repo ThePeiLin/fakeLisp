@@ -105,6 +105,10 @@ tell
 seek  
 rewind  
 exit  
+go  
+wait  
+send  
+accept  
 
 可用特殊形式有:  
 define  

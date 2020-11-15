@@ -1711,14 +1711,16 @@ int B_end_proc(fakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* tmpProc=exe->curproc;
 //	fprintf(stdout,"End proc: %p\n",tmpProc->code);
-	exe->curproc=exe->curproc->prev;
+	VMprocess* prev=exe->curproc->prev;
 	VMcode* tmpCode=tmpProc->code;
 	VMenv* tmpEnv=tmpCode->localenv;
 	if(tmpProc->prev!=NULL&&tmpCode==tmpProc->prev->code)
 		tmpCode->localenv=tmpProc->prev->localenv;
 	else
 		tmpCode->localenv=newVMenv(tmpEnv->bound,tmpEnv->prev);
-	free(tmpProc);
+	if(tmpProc!=exe->mainproc)
+		free(tmpProc);
+	exe->curproc=prev;
 	freeVMenv(tmpEnv);
 	if(tmpCode->refcount==0)
 		freeVMcode(tmpCode);
@@ -2735,13 +2737,8 @@ int B_wait(fakeVM* exe)
 	if(tid->type!=INT)return 1;
 	fakeVM* objVM=GlobFakeVMs.VMs[*tid->u.num];
 	pthread_join(objVM->tid,NULL);
-	VMcode* threadCode=objVM->mainproc->code;
 	VMenv* threadEnv=objVM->mainproc->localenv;
 	freeVMenv(threadEnv);
-	if(threadCode->refcount==0)
-		freeVMcode(threadCode);
-	else
-		threadCode->refcount-=1;
 	stack->values[stack->tp-1]=objVM->stack->values[0];
 	GlobFakeVMs.VMs[objVM->VMid]=NULL;
 	freeMessage(objVM->queue);

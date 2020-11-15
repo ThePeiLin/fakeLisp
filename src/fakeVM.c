@@ -10,7 +10,7 @@
 #endif
 #include<unistd.h>
 #include<time.h>
-#define NUMOFBUILTINSYMBOL 57
+#define NUMOFBUILTINSYMBOL 61
 pthread_mutex_t GClock=PTHREAD_MUTEX_INITIALIZER;
 fakeVMStack GlobFakeVMs={0,NULL};
 static int (*ByteCodes[])(fakeVM*)=
@@ -91,11 +91,11 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_tell,
 	B_seek,
 	B_rewind,
-	B_exit,/*
+	B_exit,
 	B_go,
 	B_wait,
 	B_send,
-	B_accept*/
+	B_accept
 };
 
 ByteCode P_cons=
@@ -826,6 +826,60 @@ ByteCode P_exit=
 	}
 };
 
+ByteCode P_go=
+{
+	23,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,1,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_PUSH_VAR,1,0,0,0,
+		FAKE_GO,
+		FAKE_END_PROC
+	}
+};
+
+ByteCode P_wait=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_WAIT,
+		FAKE_END_PROC
+	}
+};
+
+ByteCode P_send=
+{
+	23,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,1,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_PUSH_VAR,1,0,0,0,
+		FAKE_SEND,
+		FAKE_END_PROC
+	}
+};
+
+ByteCode P_accept=
+{
+	3,
+	(char[])
+	{
+		FAKE_RES_BP,
+		FAKE_ACCEPT,
+		FAKE_END_PROC
+	}
+};
+
 fakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 {
 	fakeVM* exe=(fakeVM*)malloc(sizeof(fakeVM));
@@ -915,7 +969,11 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 		P_tell,
 		P_seek,
 		P_rewind,
-		P_exit
+		P_exit,
+		P_go,
+		P_wait,
+		P_send,
+		P_accept
 	};
 	obj->size=NUMOFBUILTINSYMBOL;
 	obj->values=(VMvalue**)realloc(obj->values,sizeof(VMvalue*)*NUMOFBUILTINSYMBOL);
@@ -943,6 +1001,7 @@ void* ThreadVMFunc(void* p)
 	runFakeVM(exe);
 	return NULL;
 }
+
 void runFakeVM(fakeVM* exe)
 {
 	while(exe->curproc!=NULL&&exe->curproc->cp!=exe->curproc->code->size)
@@ -1655,7 +1714,7 @@ int B_end_proc(fakeVM* exe)
 	exe->curproc=exe->curproc->prev;
 	VMcode* tmpCode=tmpProc->code;
 	VMenv* tmpEnv=tmpCode->localenv;
-	if(tmpCode==tmpProc->prev->code)
+	if(tmpProc->prev!=NULL&&tmpCode==tmpProc->prev->code)
 		tmpCode->localenv=tmpProc->prev->localenv;
 	else
 		tmpCode->localenv=newVMenv(tmpEnv->bound,tmpEnv->prev);
@@ -2628,8 +2687,8 @@ int B_go(fakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
-	VMvalue* threadProc=getTopValue(stack);
-	VMvalue* threadArg=getValue(stack,stack->tp-2);
+	VMvalue* threadArg=getTopValue(stack);
+	VMvalue* threadProc=getValue(stack,stack->tp-2);
 	if(threadProc->type!=PRC||(threadArg->type!=PAIR&&threadArg->type!=NIL))
 		return 1;
 	fakeVM* threadVM=newThreadVM(threadProc->u.prc,exe->procs,exe->files,exe->heap);
@@ -3587,6 +3646,7 @@ fakeVM* newThreadVM(VMcode* main,ByteCode* procs,filestack* files,VMheap* heap)
 	fakeVM* exe=(fakeVM*)malloc(sizeof(fakeVM));
 	if(exe==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 	exe->mainproc=newFakeProcess(main,NULL);
+	exe->mainproc->localenv=main->localenv;
 	exe->curproc=exe->mainproc;
 	exe->procs=procs;
 	main->refcount+=1;
@@ -3594,6 +3654,7 @@ fakeVM* newThreadVM(VMcode* main,ByteCode* procs,filestack* files,VMheap* heap)
 	exe->queue=NULL;
 	exe->files=files;
 	exe->heap=heap;
+	pthread_mutex_init(&exe->lock,NULL);
 	fakeVM** ppFakeVM=NULL;
 	int i=0;
 	for(;i<GlobFakeVMs.size;i++)

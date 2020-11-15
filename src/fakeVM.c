@@ -983,11 +983,11 @@ void runFakeVM(fakeVM* exe)
 					   exit(EXIT_FAILURE);
 			}
 		}
-		if(pthread_mutex_trylock(&GClock))
-			continue;
-		else
+		//if(pthread_mutex_trylock(&GClock))
+		//	continue;
+		//else
 		{
-			if(exe->heap->size>exe->heap->threshold)
+		//	if(exe->heap->size>exe->heap->threshold)
 			{
 				//fprintf(stderr,"\nValue that be marked:\n");
 				GC_mark(exe);
@@ -996,7 +996,7 @@ void runFakeVM(fakeVM* exe)
 				//fprintf(stderr,"======\n");
 				exe->heap->threshold=exe->heap->size+THRESHOLD_SIZE;
 			}
-			pthread_mutex_unlock(&GClock);
+		//	pthread_mutex_unlock(&GClock);
 		}
 	//	fprintf(stdout,"=========\n");
 	//	fprintf(stderr,"stack->tp=%d\n",exe->stack->tp);
@@ -2904,7 +2904,6 @@ VMenv* newVMenv(int32_t bound,VMenv* prev)
 	tmp->prev=prev;
 	if(prev!=0)prev->refcount+=1;
 	tmp->refcount=0;
-//	fprintf(stderr,"New PreEnv: %p\n",tmp);
 	return tmp;
 }
 
@@ -3394,7 +3393,7 @@ void GC_markValue(VMvalue* obj)
 		else if(obj->type==PRC)
 		{
 			VMenv* curEnv=obj->u.prc->localenv;
-			for(;curEnv!=NULL&&curEnv->refcount==0;curEnv=curEnv->prev)
+			for(;curEnv!=NULL;curEnv=curEnv->prev)
 				GC_markValueInEnv(curEnv);
 		}
 	}
@@ -3410,7 +3409,14 @@ void GC_markValueInEnv(VMenv* curEnv)
 void GC_markValueInCallChain(VMprocess* cur)
 {
 	for(;cur!=NULL;cur=cur->prev)
-		GC_markValueInEnv(cur->localenv);
+	{
+		VMenv* curEnv=cur->localenv;
+		while(curEnv!=NULL)
+		{
+			GC_markValueInEnv(curEnv);
+			curEnv=curEnv->prev;
+		}
+	}
 }
 
 void GC_markValueInStack(VMstack* stack)

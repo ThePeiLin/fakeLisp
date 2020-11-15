@@ -1642,7 +1642,7 @@ int B_init_proc(fakeVM* exe)
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue->type!=PRC)return 1;
 	int32_t boundOfProc=*(int32_t*)(tmpCode->code+proc->cp+1);
-	topValue->u.prc->localenv=newVMenv(boundOfProc,1,tmpCode->localenv);
+	topValue->u.prc->localenv=newVMenv(boundOfProc,tmpCode->localenv);
 	proc->cp+=5;
 	return 0;
 }
@@ -1650,19 +1650,17 @@ int B_init_proc(fakeVM* exe)
 int B_end_proc(fakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMvalue* tmpValue=getTopValue(stack);
 	VMprocess* tmpProc=exe->curproc;
 //	fprintf(stdout,"End proc: %p\n",tmpProc->code);
 	exe->curproc=exe->curproc->prev;
 	VMcode* tmpCode=tmpProc->code;
 	VMenv* tmpEnv=tmpCode->localenv;
-	if(tmpValue!=NULL&&tmpValue->type==PRC&&tmpValue->u.prc->localenv->prev==tmpEnv)tmpEnv->next=tmpValue->u.prc->localenv;
-	if(tmpCode==tmpProc->prev->code)tmpCode->localenv=tmpProc->prev->localenv;
-	else tmpCode->localenv=newVMenv(tmpEnv->bound,1,tmpEnv->prev);
-	if(tmpEnv->prev!=NULL&&tmpEnv->prev->next==tmpEnv&&tmpEnv->next==NULL)tmpEnv->prev->next=tmpCode->localenv;
-	tmpEnv->inProc=0;
-	freeVMenv(tmpEnv);
+	if(tmpCode==tmpProc->prev->code)
+		tmpCode->localenv=tmpProc->prev->localenv;
+	else
+		tmpCode->localenv=newVMenv(tmpEnv->bound,tmpEnv->prev);
 	free(tmpProc);
+	freeVMenv(tmpEnv);
 	if(tmpCode->refcount==0)
 		freeVMcode(tmpCode);
 	else
@@ -1716,13 +1714,13 @@ int B_invoke(fakeVM* exe)
 	{
 		tmpCode->refcount+=1;
 		VMprocess* tmpProc=newFakeProcess(tmpCode,proc);
-		if(tmpCode->localenv->prev!=NULL&&tmpCode->localenv->prev->next!=tmpCode->localenv)
+		if(hasSameProc(tmpCode,proc))
 		{
-			tmpProc->localenv=newVMenv(tmpCode->localenv->bound,1,tmpCode->localenv->prev);
-			if(!hasSameProc(tmpCode,proc))freeVMenv(tmpCode->localenv);
+			tmpProc->localenv=newVMenv(tmpCode->localenv->bound,tmpCode->localenv->prev);
 			tmpCode->localenv=tmpProc->localenv;
 		}
-		else tmpProc->localenv=tmpCode->localenv;
+		else
+			tmpProc->localenv=tmpCode->localenv;
 		exe->curproc=tmpProc;
 	}
 	stack->tp-=1;
@@ -2812,7 +2810,6 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap,int access)
 	tmp->access=access;
 	tmp->next=heap->head;
 	tmp->prev=NULL;
-	pthread_rwlock_init(&tmp->lock,NULL);
 	pthread_mutex_lock(&heap->lock);
 	if(heap->head!=NULL)heap->head->prev=tmp;
 	heap->head=tmp;
@@ -2893,30 +2890,20 @@ VMvalue* copyValue(VMvalue* obj,VMheap* heap)
 
 void freeVMcode(VMcode* proc)
 {
-	VMenv* curEnv=proc->localenv;
-	VMenv* prev=(curEnv->prev!=NULL&&(curEnv->prev->next!=NULL&&curEnv->prev->next==curEnv))?curEnv->prev:NULL;
-	curEnv->inProc=0;
-	if(curEnv->next==NULL||curEnv->next->prev!=curEnv)freeVMenv(curEnv);
-	curEnv=prev;
-	while(curEnv!=NULL)
-	{
-		VMenv* prev=(curEnv->prev!=NULL&&(curEnv->prev->next==NULL||curEnv->prev->next==curEnv))?curEnv->prev:NULL;
-		freeVMenv(curEnv);
-		curEnv=prev;
-	}
+	freeVMenv(proc->localenv);
 	free(proc);
 	//printf("Free proc!\n");
 }
 
-VMenv* newVMenv(int32_t bound,int inProc,VMenv* prev)
+VMenv* newVMenv(int32_t bound,VMenv* prev)
 {
 	VMenv* tmp=(VMenv*)malloc(sizeof(VMenv));
-	tmp->inProc=inProc;
 	tmp->bound=bound;
 	tmp->size=0;
 	tmp->values=NULL;
-	tmp->next=NULL;
 	tmp->prev=prev;
+	if(prev!=0)prev->refcount+=1;
+	tmp->refcount=0;
 //	fprintf(stderr,"New PreEnv: %p\n",tmp);
 	return tmp;
 }
@@ -3079,7 +3066,7 @@ VMcode* newBuiltInProc(ByteCode* proc)
 {
 	VMcode* tmp=(VMcode*)malloc(sizeof(VMcode));
 	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
-	tmp->localenv=newVMenv(0,1,NULL);
+	tmp->localenv=newVMenv(0,NULL);
 	if(proc!=NULL)
 	{
 		tmp->size=proc->size;
@@ -3344,24 +3331,33 @@ void writeRef(VMvalue* fir,VMvalue* sec)
 
 VMenv* copyVMenv(VMenv* objEnv,VMheap* heap)
 {
-	VMenv* tmp=newVMenv(objEnv->size,objEnv->inProc,NULL);
+	VMenv* tmp=newVMenv(objEnv->size,NULL);
 	tmp->bound=objEnv->bound;
 	tmp->values=(VMvalue**)malloc(sizeof(VMvalue*));
 	if(tmp->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 	int i=0;
 	for(;i<objEnv->size;i++)
 		tmp->values[i]=copyValue(objEnv->values[i],heap);
-	if(objEnv->inProc==0)tmp->prev=copyVMenv(objEnv->prev,heap);
-	tmp->prev->next=tmp;
+	tmp->prev=(objEnv->prev->refcount==0)?copyVMenv(objEnv->prev,heap):objEnv->prev;
 	return tmp;
 }
 
 void freeVMenv(VMenv* obj)
 {
-	if(obj->next!=NULL&&obj->next->prev!=obj)
+	while(obj!=NULL)
 	{
-		free(obj->values);
-		free(obj);
+		if(obj->refcount==0)
+		{
+			VMenv* prev=obj;
+			obj=obj->prev;
+			free(prev->values);
+			free(prev);
+		}
+		else
+		{
+			obj->refcount-=1;
+			break;
+		}
 	}
 }
 
@@ -3398,7 +3394,7 @@ void GC_markValue(VMvalue* obj)
 		else if(obj->type==PRC)
 		{
 			VMenv* curEnv=obj->u.prc->localenv;
-			for(;curEnv&&curEnv->prev&&curEnv->prev->next==curEnv;curEnv=curEnv->prev)
+			for(;curEnv!=NULL&&curEnv->refcount==0;curEnv=curEnv->prev)
 				GC_markValueInEnv(curEnv);
 		}
 	}
@@ -3449,7 +3445,6 @@ void GC_sweep(VMheap* heap)
 			if(cur->prev!=NULL)cur->prev->next=cur->next;
 			if(cur->access)freeRef(cur);
 			cur=cur->next;
-			pthread_rwlock_destroy(&prev->lock);
 			free(prev);
 			heap->size-=1;
 		}
@@ -3508,13 +3503,6 @@ void freeVMstr(VMstr* obj)
 
 void copyRef(VMvalue* fir,VMvalue* sec)
 {
-	for(;;)
-	{
-		pthread_rwlock_wrlock(&fir->lock);
-		if(pthread_rwlock_tryrdlock(&sec->lock))
-			pthread_rwlock_unlock(&fir->lock);
-		else break;
-	}
 	freeRef(fir);
 	fir->type=sec->type;
 	if(fir->type<SYM&&fir->type>NIL)
@@ -3575,8 +3563,6 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 				break;
 		}
 	}
-	pthread_rwlock_unlock(&sec->lock);
-	pthread_rwlock_unlock(&fir->lock);
 }
 
 int byteArryCmp(ByteArry* fir,ByteArry* sec)

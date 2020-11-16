@@ -110,8 +110,9 @@ typedef struct
 {
 	int32_t VMid;
 	pthread_t tid;
-	VMprocess* curproc;
+	unsigned int mark :1;
 	ByteCode* procs;
+	VMprocess* curproc;
 	VMprocess* mainproc;
 	VMstack* stack;
 	pthread_mutex_t lock;

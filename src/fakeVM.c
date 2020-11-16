@@ -887,6 +887,7 @@ fakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 	exe->mainproc=newFakeProcess(newVMcode(mainproc),NULL);
 	exe->curproc=exe->mainproc;
 	exe->procs=procs;
+	exe->mark=1;
 	exe->stack=newStack(0);
 	exe->queue=NULL;
 	exe->files=newFileStack();
@@ -999,7 +1000,12 @@ void* ThreadVMFunc(void* p)
 {
 	fakeVM* exe=(fakeVM*)p;
 	runFakeVM(exe);
-	return NULL;
+	exe->mark=0;
+	pthread_mutex_destroy(&exe->lock);
+	freeMessage(exe->queue);
+	VMvalue* toReturn=exe->stack->values[0];
+	freeVMstack(exe->stack);
+	return (void*)(toReturn);
 }
 
 void runFakeVM(fakeVM* exe)
@@ -1048,12 +1054,24 @@ void runFakeVM(fakeVM* exe)
 		{
 			if(exe->heap->size>exe->heap->threshold)
 			{
-				//fprintf(stderr,"\nValue that be marked:\n");
-				GC_mark(exe);
+				int i=0;
+				for(;i<GlobFakeVMs.size;i++)
+				{
+					//fprintf(stderr,"\nValue that be marked:\n");
+					if(GlobFakeVMs.VMs[i]->mark)
+						GC_mark(GlobFakeVMs.VMs[i]);
+					else
+					{
+						free(GlobFakeVMs.VMs[i]);
+						GlobFakeVMs.VMs[i]=NULL;
+					}
+				}
 				//fprintf(stderr,"\n=======\nValue that be sweep:\n");
 				GC_sweep(exe->heap);
 				//fprintf(stderr,"======\n");
+				pthread_mutex_lock(&exe->heap->lock);
 				exe->heap->threshold=exe->heap->size+THRESHOLD_SIZE;
+				pthread_mutex_unlock(&exe->heap->lock);
 			}
 			pthread_mutex_unlock(&GClock);
 		}
@@ -1714,13 +1732,12 @@ int B_end_proc(fakeVM* exe)
 	VMprocess* prev=exe->curproc->prev;
 	VMcode* tmpCode=tmpProc->code;
 	VMenv* tmpEnv=tmpCode->localenv;
+	exe->curproc=prev;
 	if(tmpProc->prev!=NULL&&tmpCode==tmpProc->prev->code)
 		tmpCode->localenv=tmpProc->prev->localenv;
 	else
 		tmpCode->localenv=newVMenv(tmpEnv->bound,tmpEnv->prev);
-	if(tmpProc!=exe->mainproc)
-		free(tmpProc);
-	exe->curproc=prev;
+	free(tmpProc);
 	freeVMenv(tmpEnv);
 	if(tmpCode->refcount==0)
 		freeVMcode(tmpCode);
@@ -2733,17 +2750,15 @@ int B_wait(fakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
-	VMvalue* tid=getTopValue(stack);
-	if(tid->type!=INT)return 1;
-	fakeVM* objVM=GlobFakeVMs.VMs[*tid->u.num];
-	pthread_join(objVM->tid,NULL);
-	VMenv* threadEnv=objVM->mainproc->localenv;
-	freeVMenv(threadEnv);
-	stack->values[stack->tp-1]=objVM->stack->values[0];
-	GlobFakeVMs.VMs[objVM->VMid]=NULL;
-	freeMessage(objVM->queue);
-	freeVMstack(objVM->stack);
+	VMvalue* VMid=getTopValue(stack);
+	VMvalue* retval=NULL;
+	if(VMid->type!=INT)return 1;
+	fakeVM* objVM=GlobFakeVMs.VMs[*VMid->u.num];
+	pthread_t tid=objVM->tid;
+	pthread_join(tid,(void**)&retval);
 	free(objVM);
+	GlobFakeVMs.VMs[*VMid->u.num]=NULL;
+	stack->values[stack->tp-1]=retval;
 	proc->cp+=1;
 	return 0;
 }
@@ -3646,6 +3661,7 @@ fakeVM* newThreadVM(VMcode* main,ByteCode* procs,filestack* files,VMheap* heap)
 	exe->mainproc->localenv=main->localenv;
 	exe->curproc=exe->mainproc;
 	exe->procs=procs;
+	exe->mark=1;
 	main->refcount+=1;
 	exe->stack=newStack(0);
 	exe->queue=NULL;

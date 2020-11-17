@@ -1047,6 +1047,8 @@ void runFakeVM(fakeVM* exe)
 					   exit(EXIT_FAILURE);
 				case 6:fprintf(stderr,"error:Can't create thread!\n");
 					   exit(EXIT_FAILURE);
+				case 7:fprintf(stderr,"error:Thread error!\n");
+					   exit(EXIT_FAILURE);
 			}
 		}
 		if(pthread_mutex_trylock(&GClock))
@@ -2754,7 +2756,9 @@ int B_wait(fakeVM* exe)
 	VMvalue* VMid=getTopValue(stack);
 	VMvalue* retval=NULL;
 	if(VMid->type!=INT)return 1;
+	if(*VMid->u.num>=GlobFakeVMs.size)return 7;
 	fakeVM* objVM=GlobFakeVMs.VMs[*VMid->u.num];
+	if(objVM==NULL||objVM->mark==0)return 7;
 	pthread_t tid=objVM->tid;
 	pthread_join(tid,(void**)&retval);
 	free(objVM);
@@ -2771,7 +2775,9 @@ int B_send(fakeVM* exe)
 	VMvalue* tid=getTopValue(stack);
 	VMvalue* message=getValue(stack,stack->tp-2);
 	if(tid->type!=INT)return 1;
+	if(*tid->u.num>=GlobFakeVMs.size)return 7;
 	fakeVM* objVM=GlobFakeVMs.VMs[*tid->u.num];
+	if(objVM==NULL||objVM->mark==0)return 7;
 	pthread_mutex_lock(&objVM->lock);
 	if(objVM->queue==NULL)
 		objVM->queue=newThreadMessage(message,exe->heap);

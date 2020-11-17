@@ -991,8 +991,9 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 	int i=5;
 	for(;i<NUMOFBUILTINSYMBOL;i++)
 	{
-		obj->values[i]=newVMvalue(PRC,newBuiltInProc(copyByteCode(buildInProcs+(i-5))),heap,1);
-		obj->values[i]->u.prc->refcount+=1;
+		ByteCode* tmp=copyByteCode(buildInProcs+(i-5));
+		obj->values[i]=newVMvalue(PRC,newBuiltInProc(tmp),heap,1);
+		free(tmp);
 	}
 }
 
@@ -2822,7 +2823,9 @@ VMcode* newVMcode(ByteCode* proc)
 	if(proc!=NULL)
 	{
 		tmp->size=proc->size;
-		tmp->code=proc->code;
+		tmp->code=(char*)malloc(sizeof(char)*(tmp->size));
+		if(tmp->code==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+		memcpy(tmp->code,proc->code,tmp->size);
 	}
 	else
 	{
@@ -2962,6 +2965,7 @@ VMvalue* copyValue(VMvalue* obj,VMheap* heap)
 void freeVMcode(VMcode* proc)
 {
 	freeVMenv(proc->localenv);
+	free(proc->code);
 	free(proc);
 	//printf("Free proc!\n");
 }
@@ -3137,6 +3141,7 @@ VMcode* newBuiltInProc(ByteCode* proc)
 	VMcode* tmp=(VMcode*)malloc(sizeof(VMcode));
 	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp->localenv=newVMenv(0,NULL);
+	tmp->refcount=0;
 	if(proc!=NULL)
 	{
 		tmp->size=proc->size;

@@ -6,7 +6,7 @@
 #include<math.h>
 #include"tool.h"
 #include"opcode.h"
-#define NUMOFBUILDINSYMBOL 60
+#define NUMOFBUILDINSYMBOL 61
 char* builtInSymbolList[]=
 {
 	"nil",
@@ -68,7 +68,8 @@ char* builtInSymbolList[]=
 	"exit",
 	"go",
 	"send",
-	"accept"
+	"accept",
+	"getid"
 };
 
 char* getListFromFile(FILE* file)

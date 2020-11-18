@@ -80,7 +80,8 @@ enum opcode
 	FAKE_EXIT,
 	FAKE_GO,
 	FAKE_SEND,
-	FAKE_ACCEPT
+	FAKE_ACCEPT,
+	FAKE_GETID
 };
 
 typedef struct
@@ -170,7 +171,8 @@ static codeinfor codeName[]=
 	{"exit",0},
 	{"go",0},
 	{"send",0},
-	{"accept",0}
+	{"accept",0},
+	{"getid",0}
 };
 
 #endif

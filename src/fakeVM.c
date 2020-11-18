@@ -10,7 +10,7 @@
 #endif
 #include<unistd.h>
 #include<time.h>
-#define NUMOFBUILTINSYMBOL 60
+#define NUMOFBUILTINSYMBOL 61
 pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
 fakeVMStack GlobFakeVMs={0,NULL};
 static int (*ByteCodes[])(fakeVM*)=
@@ -94,7 +94,8 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_exit,
 	B_go,
 	B_send,
-	B_accept
+	B_accept,
+	B_getid
 };
 
 ByteCode P_cons=
@@ -866,6 +867,17 @@ ByteCode P_accept=
 	}
 };
 
+ByteCode P_getid=
+{
+	3,
+	(char[])
+	{
+		FAKE_RES_BP,
+		FAKE_GETID,
+		FAKE_END_PROC
+	}
+};
+
 fakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 {
 	fakeVM* exe=(fakeVM*)malloc(sizeof(fakeVM));
@@ -875,7 +887,8 @@ fakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 	exe->procs=procs;
 	exe->mark=1;
 	exe->stack=newStack(0);
-	exe->queue=NULL;
+	exe->queueHead=NULL;
+	exe->queueTail=NULL;
 	exe->files=newFileStack();
 	exe->heap=newVMheap();
 	pthread_mutex_init(&exe->lock,NULL);
@@ -959,7 +972,8 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 		P_exit,
 		P_go,
 		P_send,
-		P_accept
+		P_accept,
+		P_getid
 	};
 	obj->size=NUMOFBUILTINSYMBOL;
 	obj->values=(VMvalue**)realloc(obj->values,sizeof(VMvalue*)*NUMOFBUILTINSYMBOL);
@@ -988,7 +1002,7 @@ void* ThreadVMFunc(void* p)
 	runFakeVM(exe);
 	exe->mark=0;
 	pthread_mutex_destroy(&exe->lock);
-	freeMessage(exe->queue);
+	freeMessage(exe->queueHead);
 	freeVMstack(exe->stack);
 	return NULL;
 }
@@ -2740,14 +2754,16 @@ int B_send(fakeVM* exe)
 	fakeVM* objVM=GlobFakeVMs.VMs[*tid->u.num];
 	if(objVM==NULL||objVM->mark==0)return 7;
 	pthread_mutex_lock(&objVM->lock);
-	if(objVM->queue==NULL)
-		objVM->queue=newThreadMessage(message,exe->heap);
+	if(objVM->queueTail==NULL)
+	{
+		objVM->queueHead=newThreadMessage(message,exe->heap);
+		objVM->queueTail=objVM->queueHead;
+	}
 	else
 	{
-		threadMessage* cur=objVM->queue;
-		while(cur->next!=NULL)
-			cur=cur->next;
+		threadMessage* cur=objVM->queueTail;
 		cur->next=newThreadMessage(message,exe->heap);
+		objVM->queueTail=cur->next;
 	}
 	pthread_mutex_unlock(&objVM->lock);
 	stack->tp-=1;
@@ -2768,13 +2784,34 @@ int B_accept(fakeVM* exe)
 	}
 	VMvalue* tmp=newNilValue(exe->heap);
 	tmp->access=1;
-	while(exe->queue==NULL);
+	while(exe->queueHead==NULL);
 	pthread_mutex_lock(&exe->lock);
-	copyRef(tmp,exe->queue->message);
-	threadMessage* prev=exe->queue;
-	exe->queue=exe->queue->next;
+	copyRef(tmp,exe->queueHead->message);
+	threadMessage* prev=exe->queueHead;
+	{
+		exe->queueHead=prev->next;
+		if(exe->queueHead==NULL)
+			exe->queueTail=NULL;
+	}
 	free(prev);
 	pthread_mutex_unlock(&exe->lock);
+	stack->values[stack->tp]=tmp;
+	stack->tp+=1;
+	proc->cp+=1;
+	return 0;
+}
+
+int B_getid(fakeVM* exe)
+{
+	VMstack* stack=exe->stack;
+	VMprocess* proc=exe->curproc;
+	if(stack->tp>=stack->size)
+	{
+		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
+		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+		stack->size+=64;
+	}
+	VMvalue* tmp=newVMvalue(INT,&exe->VMid,exe->heap,1);
 	stack->values[stack->tp]=tmp;
 	stack->tp+=1;
 	proc->cp+=1;
@@ -3418,7 +3455,7 @@ void GC_mark(fakeVM* exe)
 {
 	GC_markValueInStack(exe->stack);
 	GC_markValueInCallChain(exe->curproc);
-	GC_markMessage(exe->queue);
+	GC_markMessage(exe->queueHead);
 }
 
 void GC_markValue(VMvalue* obj)
@@ -3636,7 +3673,8 @@ fakeVM* newThreadVM(VMcode* main,ByteCode* procs,filestack* files,VMheap* heap)
 	exe->mark=1;
 	main->refcount+=1;
 	exe->stack=newStack(0);
-	exe->queue=NULL;
+	exe->queueHead=NULL;
+	exe->queueTail=NULL;
 	exe->files=files;
 	exe->heap=heap;
 	pthread_mutex_init(&exe->lock,NULL);

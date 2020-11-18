@@ -116,7 +116,8 @@ typedef struct
 	VMprocess* mainproc;
 	VMstack* stack;
 	pthread_mutex_t lock;
-	threadMessage* queue;
+	threadMessage* queueHead;
+	threadMessage* queueTail;
 	filestack* files;
 	struct VM_Heap* heap;
 }fakeVM;
@@ -222,6 +223,7 @@ int B_exit(fakeVM*);
 int B_go(fakeVM*);
 int B_send(fakeVM*);
 int B_accept(fakeVM*);
+int B_getid(fakeVM*);
 static VMstack* newStack(int32_t);
 static filestack* newFileStack();
 VMcode* newVMcode(ByteCode*);

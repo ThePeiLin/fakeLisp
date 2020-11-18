@@ -220,7 +220,6 @@ int B_seek(fakeVM*);
 int B_rewind(fakeVM*);
 int B_exit(fakeVM*);
 int B_go(fakeVM*);
-int B_wait(fakeVM*);
 int B_send(fakeVM*);
 int B_accept(fakeVM*);
 static VMstack* newStack(int32_t);

@@ -10,8 +10,8 @@
 #endif
 #include<unistd.h>
 #include<time.h>
-#define NUMOFBUILTINSYMBOL 61
-pthread_mutex_t GClock=PTHREAD_MUTEX_INITIALIZER;
+#define NUMOFBUILTINSYMBOL 60
+pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
 fakeVMStack GlobFakeVMs={0,NULL};
 static int (*ByteCodes[])(fakeVM*)=
 {
@@ -93,7 +93,6 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_rewind,
 	B_exit,
 	B_go,
-	B_wait,
 	B_send,
 	B_accept
 };
@@ -841,19 +840,6 @@ ByteCode P_go=
 	}
 };
 
-ByteCode P_wait=
-{
-	13,
-	(char[])
-	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_RES_BP,
-		FAKE_PUSH_VAR,0,0,0,0,
-		FAKE_WAIT,
-		FAKE_END_PROC
-	}
-};
-
 ByteCode P_send=
 {
 	23,
@@ -972,7 +958,6 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 		P_rewind,
 		P_exit,
 		P_go,
-		P_wait,
 		P_send,
 		P_accept
 	};
@@ -1004,17 +989,15 @@ void* ThreadVMFunc(void* p)
 	exe->mark=0;
 	pthread_mutex_destroy(&exe->lock);
 	freeMessage(exe->queue);
-	VMvalue* toReturn=exe->stack->values[0];
 	freeVMstack(exe->stack);
-	return (void*)(toReturn);
+	return NULL;
 }
 
 void runFakeVM(fakeVM* exe)
 {
 	while(exe->curproc!=NULL&&exe->curproc->cp!=exe->curproc->code->size)
 	{
-		pthread_mutex_lock(&GClock);
-		pthread_mutex_unlock(&GClock);
+		pthread_rwlock_rdlock(&GClock);
 		VMprocess* curproc=exe->curproc;
 		VMcode* tmpCode=curproc->code;
 		ByteCode tmpByteCode={tmpCode->size,tmpCode->code};
@@ -1051,32 +1034,29 @@ void runFakeVM(fakeVM* exe)
 					   exit(EXIT_FAILURE);
 			}
 		}
-		if(pthread_mutex_trylock(&GClock))
-			continue;
-		else
+		pthread_rwlock_unlock(&GClock);
+		if(exe->heap->size>exe->heap->threshold)
 		{
-			if(exe->heap->size>exe->heap->threshold)
+			pthread_rwlock_wrlock(&GClock);
+			int i=0;
+			for(;i<GlobFakeVMs.size;i++)
 			{
-				int i=0;
-				for(;i<GlobFakeVMs.size;i++)
+				//fprintf(stderr,"\nValue that be marked:\n");
+				if(GlobFakeVMs.VMs[i]->mark)
+					GC_mark(GlobFakeVMs.VMs[i]);
+				else
 				{
-					//fprintf(stderr,"\nValue that be marked:\n");
-					if(GlobFakeVMs.VMs[i]->mark)
-						GC_mark(GlobFakeVMs.VMs[i]);
-					else
-					{
-						free(GlobFakeVMs.VMs[i]);
-						GlobFakeVMs.VMs[i]=NULL;
-					}
+					free(GlobFakeVMs.VMs[i]);
+					GlobFakeVMs.VMs[i]=NULL;
 				}
-				//fprintf(stderr,"\n=======\nValue that be sweep:\n");
-				GC_sweep(exe->heap);
-				//fprintf(stderr,"======\n");
-				pthread_mutex_lock(&exe->heap->lock);
-				exe->heap->threshold=exe->heap->size+THRESHOLD_SIZE;
-				pthread_mutex_unlock(&exe->heap->lock);
 			}
-			pthread_mutex_unlock(&GClock);
+			//fprintf(stderr,"\n=======\nValue that be sweep:\n");
+			GC_sweep(exe->heap);
+			//fprintf(stderr,"======\n");
+			pthread_mutex_lock(&exe->heap->lock);
+			exe->heap->threshold=exe->heap->size+THRESHOLD_SIZE;
+			pthread_mutex_unlock(&exe->heap->lock);
+			pthread_rwlock_unlock(&GClock);
 		}
 	//	fprintf(stdout,"=========\n");
 	//	fprintf(stderr,"stack->tp=%d\n",exe->stack->tp);
@@ -2699,7 +2679,7 @@ int B_exit(fakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* exitStatus=getTopValue(stack);
 	if(exitStatus->type!=INT)return 1;
-	pthread_mutex_destroy(&GClock);
+	pthread_rwlock_destroy(&GClock);
 	exit(*exitStatus->u.num);
 	proc->cp+=1;
 	return 0;
@@ -2745,25 +2725,6 @@ int B_go(fakeVM* exe)
 		return 6;
 	else
 		stack->values[stack->tp-1]=newVMvalue(INT,&threadVM->VMid,exe->heap,1);
-	proc->cp+=1;
-	return 0;
-}
-
-int B_wait(fakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMprocess* proc=exe->curproc;
-	VMvalue* VMid=getTopValue(stack);
-	VMvalue* retval=NULL;
-	if(VMid->type!=INT)return 1;
-	if(*VMid->u.num>=GlobFakeVMs.size)return 7;
-	fakeVM* objVM=GlobFakeVMs.VMs[*VMid->u.num];
-	if(objVM==NULL||objVM->mark==0)return 7;
-	pthread_t tid=objVM->tid;
-	pthread_join(tid,(void**)&retval);
-	free(objVM);
-	GlobFakeVMs.VMs[*VMid->u.num]=NULL;
-	stack->values[stack->tp-1]=retval;
 	proc->cp+=1;
 	return 0;
 }

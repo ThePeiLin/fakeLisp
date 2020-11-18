@@ -79,7 +79,6 @@ enum opcode
 	FAKE_REWIND,
 	FAKE_EXIT,
 	FAKE_GO,
-	FAKE_WAIT,
 	FAKE_SEND,
 	FAKE_ACCEPT
 };
@@ -170,7 +169,6 @@ static codeinfor codeName[]=
 	{"rewind",0},
 	{"exit",0},
 	{"go",0},
-	{"wait",0},
 	{"send",0},
 	{"accept",0}
 };

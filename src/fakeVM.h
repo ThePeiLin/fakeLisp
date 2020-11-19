@@ -224,6 +224,7 @@ int B_go(fakeVM*);
 int B_send(fakeVM*);
 int B_accept(fakeVM*);
 int B_getid(fakeVM*);
+int B_slp(fakeVM*);
 static VMstack* newStack(int32_t);
 static filestack* newFileStack();
 VMcode* newVMcode(ByteCode*);

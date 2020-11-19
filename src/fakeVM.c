@@ -5,6 +5,7 @@
 #include<math.h>
 #ifdef _WIN32
 #include<conio.h>
+#include<windows.h>
 #else
 #include<termios.h>
 #endif
@@ -881,12 +882,14 @@ ByteCode P_getid=
 
 ByteCode P_slp=
 {
-	13,
+	23,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_PUSH_VAR,1,0,0,0,
 		FAKE_SLP,
 		FAKE_END_PROC
 	}
@@ -2838,9 +2841,21 @@ int B_slp(fakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMvalue* second=getTopValue(stack);
+	VMvalue* mode=getValue(stack,stack->tp-2);
 	if(second->type!=INT)return 1;
+	if(mode->type==NIL||(mode->type==PAIR&&getCar(mode)->type==NIL&&getCdr(mode)->type==NIL))
+		sleep(*second->u.num);
+	else
+	{
+#ifdef _WIN32
+		Sleep(*second->u.num);
+#else
+		usleep(*second->u.num);
+#endif
+	}
+	stack->tp-=1;
+	stack->values[stack->tp-1]=second;
 	proc->cp+=1;
-	sleep(*second->u.num);
 	return 0;
 }
 

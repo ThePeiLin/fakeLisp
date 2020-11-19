@@ -10,7 +10,7 @@
 #endif
 #include<unistd.h>
 #include<time.h>
-#define NUMOFBUILTINSYMBOL 61
+#define NUMOFBUILTINSYMBOL 62
 pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
 fakeVMStack GlobFakeVMs={0,NULL};
 static int (*ByteCodes[])(fakeVM*)=
@@ -95,7 +95,8 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_go,
 	B_send,
 	B_accept,
-	B_getid
+	B_getid,
+	B_slp
 };
 
 ByteCode P_cons=
@@ -878,6 +879,19 @@ ByteCode P_getid=
 	}
 };
 
+ByteCode P_slp=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_SLP,
+		FAKE_END_PROC
+	}
+};
+
 fakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 {
 	fakeVM* exe=(fakeVM*)malloc(sizeof(fakeVM));
@@ -973,7 +987,8 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 		P_go,
 		P_send,
 		P_accept,
-		P_getid
+		P_getid,
+		P_slp
 	};
 	obj->size=NUMOFBUILTINSYMBOL;
 	obj->values=(VMvalue**)realloc(obj->values,sizeof(VMvalue*)*NUMOFBUILTINSYMBOL);
@@ -2815,6 +2830,17 @@ int B_getid(fakeVM* exe)
 	stack->values[stack->tp]=tmp;
 	stack->tp+=1;
 	proc->cp+=1;
+	return 0;
+}
+
+int B_slp(fakeVM* exe)
+{
+	VMstack* stack=exe->stack;
+	VMprocess* proc=exe->curproc;
+	VMvalue* second=getTopValue(stack);
+	if(second->type!=INT)return 1;
+	proc->cp+=1;
+	sleep(*second->u.num);
 	return 0;
 }
 

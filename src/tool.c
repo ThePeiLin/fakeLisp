@@ -1338,12 +1338,25 @@ void freeByteCode(ByteCode* obj)
 	free(obj);
 }
 
-ByteCode* codeCat(const ByteCode* fir,const ByteCode* sec)
+void codeCat(ByteCode* fir,const ByteCode* sec)
 {
-	ByteCode* tmp=createByteCode(fir->size+sec->size);
-	memcpy(tmp->code,fir->code,fir->size);
-	memcpy(tmp->code+fir->size,sec->code,sec->size);
-	return tmp;
+	int32_t size=fir->size;
+	fir->size=sec->size+fir->size;
+	fir->code=(char*)realloc(fir->code,sizeof(char)*fir->size);
+	if(!fir->code)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	memcpy(fir->code+size,sec->code,sec->size);
+}
+
+void reCodeCat(const ByteCode* fir,ByteCode* sec)
+{
+	int32_t size=fir->size;
+	char* tmp=(char*)malloc(sizeof(char)*(fir->size+sec->size));
+	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	memcpy(tmp,fir->code,fir->size);
+	memcpy(tmp+size,sec->code,sec->size);
+	free(sec->code);
+	sec->code=tmp;
+	sec->size=fir->size+sec->size;
 }
 
 ByteCode* copyByteCode(const ByteCode* obj)

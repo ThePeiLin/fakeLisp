@@ -96,12 +96,9 @@ ByteCode* compileFile(intpr* inter)
 					freeByteCode(tmp);
 					exit(EXIT_FAILURE);
 				}
-				ByteCode* tmp1=codeCat(tmpByteCode,pop);
-				ByteCode* beFree=tmp;
-				tmp=codeCat(tmp,tmp1);
-				freeByteCode(tmp1);
+				if(tmp->size)reCodeCat(pop,tmpByteCode);
+				codeCat(tmp,tmpByteCode);
 				freeByteCode(tmpByteCode);
-				freeByteCode(beFree);
 				free(list);
 				list=NULL;
 				deleteCptr(begin);

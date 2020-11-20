@@ -6,7 +6,7 @@
 #define SYMUNDEFINE 1
 #define SYNTAXERROR 2
 #define ILLEGALEXPR 3
-#define CURCULARLOAD 4
+#define CIRCULARLOAD 4
 
 typedef enum{NIL,INT,CHR,DBL,SYM,STR,BYTE,PRC,PAIR,ATM} ValueType;
 

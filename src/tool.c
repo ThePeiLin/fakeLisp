@@ -1157,7 +1157,7 @@ void exError(const ANS_cptr* obj,int type,intpr* inter)
 		case SYMUNDEFINE:fprintf(stderr,":Symbol is undefined.\n");break;
 		case SYNTAXERROR:fprintf(stderr,":Syntax error.\n");break;
 		case ILLEGALEXPR:fprintf(stderr,":Illegal expression here.\n");break;
-		case CURCULARLOAD:fprintf(stderr,":curcular load file.\n");break;
+		case CIRCULARLOAD:fprintf(stderr,":Circular load file.\n");break;
 	}
 }
 

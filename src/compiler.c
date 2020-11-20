@@ -19,6 +19,7 @@ ByteCode* compile(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* st
 		if(isAndExpression(objCptr))return compileAnd(objCptr,curEnv,inter,status);
 		if(isOrExpression(objCptr))return compileOr(objCptr,curEnv,inter,status);
 		if(isLambdaExpression(objCptr))return compileLambda(objCptr,curEnv,inter,status);
+		if(isLoadExpression(objCptr))return compileLoad(objCptr,curEnv,inter,status);
 		if(PreMacroExpand(objCptr))continue;
 		else if(hasKeyWord(objCptr))
 		{
@@ -499,7 +500,7 @@ ByteCode* compileLambda(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStat
 	ANS_pair* tmpPair=objCptr->value;
 	ANS_pair* objPair=NULL;
 	RawProc* tmpRawProc=NULL;
-	RawProc* prevRawProc=inter->procs;
+	RawProc* prevRawProc=getHeadRawProc(inter);
 	ByteCode* tmp=createByteCode(0);
 	ByteCode* proc=createByteCode(0);
 	CompEnv* tmpEnv=curEnv;
@@ -756,5 +757,85 @@ ByteCode* compileCond(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus
 	freeByteCode(pop);
 	freeByteCode(jumpiffalse);
 	freeByteCode(jump);
+	return tmp;
+}
+
+ByteCode* compileLoad(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* status)
+{
+	ANS_cptr* fir=&((ANS_pair*)objCptr->value)->car;
+	ANS_cptr* pFileName=nextCptr(fir);
+	ANS_atom* name=pFileName->value;
+	if(hasLoadSameFile(name->value.str,inter))
+	{
+		status->status=CURCULARLOAD;
+		status->place=pFileName;
+		return NULL;
+	}
+	FILE* file=fopen(name->value.str,"r");
+	if(file==NULL)
+	{
+		perror(name->value.str);
+		exit(EXIT_FAILURE);
+	}
+	intpr* tmpIntpr=newIntpr(name->value.str,fopen(name->value.str,"r"),curEnv);
+	tmpIntpr->prev=inter;
+	tmpIntpr->procs=inter->procs;
+	tmpIntpr->glob=curEnv;
+	ByteCode* tmp=compileFile(tmpIntpr);
+	free(tmpIntpr->filename);
+	fclose(tmpIntpr->file);
+	free(tmpIntpr);
+	//printByteCode(tmp,stderr);
+	return tmp;
+}
+
+ByteCode* compileFile(intpr* inter)
+{
+	initPreprocess(inter);
+	char ch;
+	ByteCode* tmp=createByteCode(0);
+	ByteCode* pop=createByteCode(1);
+	pop->code[0]=FAKE_POP;
+	while((ch=getc(inter->file))!=EOF)
+	{
+		ungetc(ch,inter->file);
+		ANS_cptr* begin=NULL;
+		char* list=getListFromFile(inter->file);
+		if(list==NULL)continue;
+		ErrorStatus status={0,NULL};
+		begin=createTree(list,inter);
+		if(begin!=NULL)
+		{
+			if(isPreprocess(begin))
+			{
+				status=eval(begin,NULL);
+				if(status.status!=0)
+				{
+					exError(status.place,status.status,inter);
+					deleteCptr(status.place);
+					deleteCptr(begin);
+					exit(EXIT_FAILURE);
+				}
+			}
+			else
+			{
+				ByteCode* tmpByteCode=compile(begin,inter->glob,inter,&status);
+				if(status.status!=0)
+				{
+					exError(status.place,status.status,inter);
+					deleteCptr(status.place);
+					freeByteCode(tmp);
+					exit(EXIT_FAILURE);
+				}
+				if(tmp->size)reCodeCat(pop,tmpByteCode);
+				codeCat(tmp,tmpByteCode);
+				freeByteCode(tmpByteCode);
+				free(list);
+				list=NULL;
+				deleteCptr(begin);
+				free(begin);
+			}
+		}
+	}
 	return tmp;
 }

@@ -466,6 +466,7 @@ void initPreprocess(intpr* inter)
 	addKeyWord("or");
 	addKeyWord("lambda");
 	addKeyWord("setf");
+	addKeyWord("load");
 }
 void addRule(const char* name,int (*obj)(const ANS_cptr*,const ANS_cptr*,const char*,PreEnv*))
 {

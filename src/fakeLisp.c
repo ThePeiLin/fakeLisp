@@ -22,7 +22,7 @@ int main(int argc,char** argv)
 	}
 	if(argc==1||isscript(filename))
 	{
-		intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp);
+		intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL);
 		initEvalution();
 		runIntpr(inter);
 	}
@@ -130,7 +130,7 @@ void runIntpr(intpr* inter)
 				}
 				else
 				{
-				//	printByteCode(tmpByteCode,stderr);
+					//printByteCode(tmpByteCode,stderr);
 					anotherVM->procs=castRawproc(anotherVM->procs,inter->procs);
 					anotherVM->mainproc->code=newVMcode(tmpByteCode);
 					anotherVM->mainproc->code->localenv=globEnv;

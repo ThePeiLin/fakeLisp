@@ -1157,6 +1157,7 @@ void exError(const ANS_cptr* obj,int type,intpr* inter)
 		case SYMUNDEFINE:fprintf(stderr,":Symbol is undefined.\n");break;
 		case SYNTAXERROR:fprintf(stderr,":Syntax error.\n");break;
 		case ILLEGALEXPR:fprintf(stderr,":Illegal expression here.\n");break;
+		case CURCULARLOAD:fprintf(stderr,":curcular load file.\n");break;
 	}
 }
 
@@ -1199,16 +1200,22 @@ void destroyEnv(PreEnv* objEnv)
 	}
 }
 
-intpr* newIntpr(const char* filename,FILE* file)
+intpr* newIntpr(const char* filename,FILE* file,CompEnv* env)
 {
 	intpr* tmp=NULL;
 	if(!(tmp=(intpr*)malloc(sizeof(intpr))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp->filename=copyStr(filename);
 	tmp->file=file;
 	tmp->curline=1;
+	tmp->procs=NULL;
+	tmp->prev=NULL;
+	if(env)
+	{
+		tmp->glob=env;
+		return tmp;
+	}
 	tmp->glob=newCompEnv(NULL);
 	initCompEnv(tmp->glob);
-	tmp->procs=NULL;
 	return tmp;
 }
 
@@ -1312,6 +1319,7 @@ RawProc* newRawProc(int32_t count)
 
 RawProc* addRawProc(ByteCode* proc,intpr* inter)
 {
+	while(inter->prev!=NULL)inter=inter->prev;
 	ByteCode* tmp=createByteCode(proc->size);
 	memcpy(tmp->code,proc->code,proc->size);
 	RawProc* tmpProc=newRawProc((inter->procs==NULL)?0:inter->procs->count+1);
@@ -1443,7 +1451,7 @@ void printByteCode(const ByteCode* tmpCode,FILE* fp)
 				i+=1;
 				break;
 			case 1:
-				fprintf(fp,"%c",tmpCode->code[i+1]);
+				printRawChar(tmpCode->code[i+1],fp);
 				i+=2;
 				break;
 			case 4:
@@ -1516,4 +1524,22 @@ void* copyMemory(void* pm,size_t size)
 	if(pm!=NULL)
 		memcpy(tmp,pm,size);
 	return tmp;
+}
+
+int hasLoadSameFile(const char* filename,const intpr* inter)
+{
+	while(inter!=NULL)
+	{
+		if(!strcmp(inter->filename,filename))
+			return 1;
+		inter=inter->prev;
+	}
+	return 0;
+}
+
+RawProc* getHeadRawProc(const intpr* inter)
+{
+	while(inter->prev!=NULL)
+		inter=inter->prev;
+	return inter->procs;
 }

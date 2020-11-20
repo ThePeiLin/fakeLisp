@@ -6,6 +6,7 @@
 #define SYMUNDEFINE 1
 #define SYNTAXERROR 2
 #define ILLEGALEXPR 3
+#define CURCULARLOAD 4
 
 typedef enum{NIL,INT,CHR,DBL,SYM,STR,BYTE,PRC,PAIR,ATM} ValueType;
 
@@ -112,13 +113,14 @@ typedef struct Raw_Proc
 	struct Raw_Proc* next;
 }RawProc;
 
-typedef struct
+typedef struct Interpreter
 {
 	char* filename;
 	FILE* file;
 	int curline;
 	CompEnv* glob;
 	RawProc* procs;
+	struct Interpreter* prev;
 }intpr;
 
 typedef struct Key_Word

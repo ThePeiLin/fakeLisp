@@ -200,6 +200,23 @@ int isLegal(const ANS_cptr* objCptr)
 	return 1;
 }
 
+int isLoadExpression(const ANS_cptr* objCptr)
+{
+	if(objCptr->type==PAIR)
+	{
+		ANS_cptr* fir=&((ANS_pair*)objCptr->value)->car;
+		ANS_cptr* sec=nextCptr(fir);
+		if(sec==NULL)return 0;
+		if(fir->type!=ATM||sec->type!=ATM)
+			return 0;
+		ANS_atom* firAtm=fir->value;
+		ANS_atom* secAtm=sec->value;
+		if(firAtm->type==SYM&&!strcmp(firAtm->value.str,"load")&&(secAtm->type==SYM||secAtm->type==STR))
+			return 1;
+	}
+	return 0;
+}
+
 void initSyntax()
 {
 	addSynRule(isDefExpression);

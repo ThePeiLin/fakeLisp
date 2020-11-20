@@ -24,4 +24,5 @@ int isSymbol(const ANS_cptr*);
 int isAndExpression(const ANS_cptr*);
 int isOrExpression(const ANS_cptr*);
 int isQuoteExpression(const ANS_cptr*);
+int isLoadExpression(const ANS_cptr*);
 #endif

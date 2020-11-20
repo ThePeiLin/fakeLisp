@@ -25,9 +25,9 @@ int main(int argc,char** argv)
 	{
 		initEvalution();
 		int i;
-		intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp);
+		intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL);
 		ByteCode* mainByteCode=compileFile(inter);
-	//	printByteCode(mainByteCode);
+		//printByteCode(mainByteCode,stderr);
 		char* outputname=(char*)malloc(sizeof(char)*(strlen(filename)+2));
 		strcpy(outputname,filename);
 		strcat(outputname,"c");
@@ -56,57 +56,6 @@ int main(int argc,char** argv)
 		return EXIT_FAILURE;
 	}
 	return 0;
-}
-
-ByteCode* compileFile(intpr* inter)
-{
-	initPreprocess(inter);
-	char ch;
-	ByteCode* tmp=createByteCode(0);
-	ByteCode* pop=createByteCode(1);
-	pop->code[0]=FAKE_POP;
-	while((ch=getc(inter->file))!=EOF)
-	{
-		ungetc(ch,inter->file);
-		ANS_cptr* begin=NULL;
-		char* list=getListFromFile(inter->file);
-		if(list==NULL)continue;
-		ErrorStatus status={0,NULL};
-		begin=createTree(list,inter);
-		if(begin!=NULL)
-		{
-			if(isPreprocess(begin))
-			{
-				status=eval(begin,NULL);
-				if(status.status!=0)
-				{
-					exError(status.place,status.status,inter);
-					deleteCptr(status.place);
-					deleteCptr(begin);
-					exit(EXIT_FAILURE);
-				}
-			}
-			else
-			{
-				ByteCode* tmpByteCode=compile(begin,inter->glob,inter,&status);
-				if(status.status!=0)
-				{
-					exError(status.place,status.status,inter);
-					deleteCptr(status.place);
-					freeByteCode(tmp);
-					exit(EXIT_FAILURE);
-				}
-				if(tmp->size)reCodeCat(pop,tmpByteCode);
-				codeCat(tmp,tmpByteCode);
-				freeByteCode(tmpByteCode);
-				free(list);
-				list=NULL;
-				deleteCptr(begin);
-				free(begin);
-			}
-		}
-	}
-	return tmp;
 }
 
 ByteCode* castRawproc(RawProc* procs)

@@ -2554,7 +2554,7 @@ int B_read(fakeVM* exe)
 	FILE* tmpFile=files->files[*file->u.num];
 	if(tmpFile==NULL)return 2;
 	char* tmpString=getListFromFile(tmpFile);
-	intpr* tmpIntpr=newIntpr(NULL,tmpFile);
+	intpr* tmpIntpr=newIntpr(NULL,tmpFile,NULL);
 	ANS_cptr* tmpCptr=createTree(tmpString,tmpIntpr);
 	VMvalue* tmp=NULL;
 	if(tmpCptr==NULL)return 3;

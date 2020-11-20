@@ -42,7 +42,7 @@ RawProc* addRawProc(ByteCode*,intpr*);
 CompEnv* newCompEnv(CompEnv*);
 void destroyCompEnv(CompEnv*);
 CompDef* findCompDef(const char*,CompEnv*);
-intpr* newIntpr(const char*,FILE*);
+intpr* newIntpr(const char*,FILE*,CompEnv*);
 int isscript(const char*);
 int iscode(const char*);
 char* copyStr(const char*);
@@ -69,4 +69,6 @@ void freeByteCode(ByteCode*);
 void printByteCode(const ByteCode*,FILE*);
 void printByteArry(const ByteArry*,FILE*,int);
 void printAsByteArry(const uint8_t*,int32_t,FILE*);
+int hasLoadSameFile(const char*,const intpr*);
+RawProc* getHeadRawProc(const intpr*);
 #endif

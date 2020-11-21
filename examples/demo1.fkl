@@ -1,7 +1,7 @@
 (define print princ)
 ;defun宏
-(defmacro  
- (defun ATOM#FUNCNAME PAIR#ARGS,PAIR#EXPRESSION)  
+(defmacro
+ (defun ATOM#FUNCNAME PAIR#ARGS,PAIR#EXPRESSION)
  (list 'define FUNCNAME (cons 'lambda (cons ARGS EXPRESSION))))
 
 ;if宏

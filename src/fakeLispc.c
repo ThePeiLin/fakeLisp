@@ -82,7 +82,7 @@ void initEvalution()
 	addFunc("cdr",N_cdr);
 	addFunc("cons",N_cons);
 	addFunc("eq",N_eq);
-	addFunc("ANS_atom",N_ANS_atom);
+	addFunc("atom",N_atom);
 	addFunc("null",N_null);
 	addFunc("cond",N_cond);
 	addFunc("and",N_and);
@@ -101,4 +101,5 @@ void initEvalution()
 	addFunc("append",N_append);
 	addFunc("extend",N_extend);
 	addFunc("print",N_print);
+	addFunc("import",N_import);
 }

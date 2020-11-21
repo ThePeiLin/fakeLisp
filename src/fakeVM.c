@@ -8,6 +8,7 @@
 #include<windows.h>
 #else
 #include<termios.h>
+#include<dlfcn.h>
 #endif
 #include<unistd.h>
 #include<time.h>
@@ -38,6 +39,7 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_pop_cdr,
 	B_pop_ref,
 	B_init_proc,
+	B_run_proc,
 	B_end_proc,
 	B_set_bp,
 	B_invoke,
@@ -1737,6 +1739,19 @@ int B_init_proc(fakeVM* exe)
 	topValue->u.prc->localenv=newVMenv(boundOfProc,tmpCode->localenv);
 	proc->cp+=5;
 	return 0;
+}
+
+int B_run_proc(fakeVM* exe)
+{
+	VMprocess* proc=exe->curproc;
+	VMcode* tmpCode=proc->code;
+	char* funcname=tmpCode->code+proc->cp+1;
+	char* headOfFunc="FAKE_";
+	char* realfuncName=(char*)malloc(sizeof(char)*(strlen(headOfFunc)+strlen(funcname)+1));
+	strcpy(realfuncName,headOfFunc);
+	strcat(realfuncName,funcname);
+	proc->cp+=2+strlen(funcname);
+	return ((ModFunc)getAddress(realfuncName,exe->modules))(exe);
 }
 
 int B_end_proc(fakeVM* exe)

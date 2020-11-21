@@ -71,4 +71,12 @@ void printByteArry(const ByteArry*,FILE*,int);
 void printAsByteArry(const uint8_t*,int32_t,FILE*);
 int hasLoadSameFile(const char*,const intpr*);
 RawProc* getHeadRawProc(const intpr*);
+ANS_cptr* getANSPairCar(const ANS_cptr*);
+ANS_cptr* getANSPairCdr(const ANS_cptr*);
+ByteCode* newDllFuncProc(const char*);
+Dlls* newDll(DllHandle);
+Dlls* loadDll(const char*,Dlls**,Modlist**);
+void* getAddress(const char*,Dlls*);
+void deleteAllDll();
+Modlist* newModList(const char*);
 #endif

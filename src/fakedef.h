@@ -8,7 +8,6 @@
 #define SYNTAXERROR 2
 #define ILLEGALEXPR 3
 #define CIRCULARLOAD 4
-
 typedef enum{NIL,INT,CHR,DBL,SYM,STR,BYTE,PRC,PAIR,ATM} ValueType;
 
 typedef struct
@@ -66,13 +65,6 @@ typedef struct Pre_Env
 	struct Pre_Env* next;
 }PreEnv;
 
-typedef struct Pre_Func//function and form
-{
-	char* functionName;
-	ErrorStatus (*function)(ANS_cptr*,PreEnv*);
-	struct Pre_Func* next;
-}PreFunc;
-
 typedef struct Pre_Macro
 {
 	ANS_cptr* format;
@@ -114,6 +106,13 @@ typedef struct Raw_Proc
 	struct Raw_Proc* next;
 }RawProc;
 
+typedef struct Mod_List
+{
+	char* name;
+	int32_t count;
+	struct Mod_List* next;
+}Modlist;
+
 typedef struct Interpreter
 {
 	char* filename;
@@ -121,8 +120,17 @@ typedef struct Interpreter
 	int curline;
 	CompEnv* glob;
 	RawProc* procs;
+	struct DLL_s* modules;
+	Modlist* modls;
 	struct Interpreter* prev;
 }intpr;
+
+typedef struct Pre_Func//function and form
+{
+	char* functionName;
+	ErrorStatus (*function)(ANS_cptr*,PreEnv*,struct Interpreter*);
+	struct Pre_Func* next;
+}PreFunc;
 
 typedef struct Key_Word
 {
@@ -246,6 +254,7 @@ typedef struct
 	threadMessage* queueHead;
 	threadMessage* queueTail;
 	filestack* files;
+	struct DLL_s* modules;
 	struct VM_Heap* heap;
 }fakeVM;
 
@@ -262,4 +271,20 @@ typedef struct
 	int32_t size;
 	fakeVM** VMs;
 }fakeVMStack;
+
+#ifdef _WIN32
+#include<windows.h>
+typedef HMODULE DllHandle;
+#else
+typedef void* DllHandle;
+#endif
+
+typedef struct DLL_s
+{
+	int32_t count;
+	DllHandle handle;
+	struct DLL_s* next;
+}Dlls;
+
+typedef int (*ModFunc)(fakeVM*);
 #endif

@@ -25,6 +25,7 @@ int main(int argc,char** argv)
 		intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL);
 		initEvalution();
 		runIntpr(inter);
+		deleteAllDll(inter->modules);
 	}
 	else if(iscode(filename))
 	{
@@ -53,7 +54,7 @@ void initEvalution()
 	addFunc("cdr",N_cdr);
 	addFunc("cons",N_cons);
 	addFunc("eq",N_eq);
-	addFunc("ANS_atom",N_ANS_atom);
+	addFunc("atom",N_atom);
 	addFunc("null",N_null);
 	addFunc("cond",N_cond);
 	addFunc("and",N_and);
@@ -72,6 +73,7 @@ void initEvalution()
 	addFunc("append",N_append);
 	addFunc("extend",N_extend);
 	addFunc("print",N_print);
+	addFunc("import",N_import);
 }
 
 void runIntpr(intpr* inter)
@@ -101,7 +103,7 @@ void runIntpr(intpr* inter)
 
 			if(isPreprocess(begin))
 			{
-				status=eval(begin,NULL);
+				status=eval(begin,NULL,inter);
 				if(status.status!=0)
 				{
 					exError(status.place,status.status,inter);
@@ -112,6 +114,7 @@ void runIntpr(intpr* inter)
 						exit(0);
 					}
 				}
+				anotherVM->modules=inter->modules;
 			}
 			else
 			{

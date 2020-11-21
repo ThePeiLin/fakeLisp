@@ -767,7 +767,7 @@ ByteCode* compileLoad(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus
 	ANS_atom* name=pFileName->value;
 	if(hasLoadSameFile(name->value.str,inter))
 	{
-		status->status=CURCULARLOAD;
+		status->status=CIRCULARLOAD;
 		status->place=pFileName;
 		return NULL;
 	}

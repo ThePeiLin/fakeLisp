@@ -1024,31 +1024,8 @@ ErrorStatus N_import(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 		return status;
 	}
 	ANS_atom* tmpAtom=args[0]->value;
-	char* libpath=getcwd(NULL,0);
-	if(libpath==NULL)
-	{
-		fprintf(stderr,"error:Fail to load path.\n");
-		exit(EXIT_FAILURE);
-	}
-	char* headoflib="lib";
-#ifdef _WIN32
-	char* s="\\";
-	char* tailoflib=".dll";
-#else
-	char* s="/";
-	char* tailoflib=".so";
-#endif
-	char* libname=(char*)malloc(sizeof(char)*(strlen(s)+strlen(libpath)+strlen(headoflib)+strlen(tailoflib)+strlen(tmpAtom->value.str)));
-	if(libname==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
-	strcpy(libname,libpath);
-	strcat(libname,s);
-	strcat(libname,headoflib);
-	strcat(libname,tmpAtom->value.str);
-	strcat(libname,tailoflib);
-	loadDll(libname,&inter->modules,&inter->modls);
+	loadDll(tmpAtom->value.str,&inter->modules,&inter->modls);
 	replace(objCptr,args[0]);
 	deleteArg(args,1);
-	free(libname);
-	free(libpath);
 	return status;
 }

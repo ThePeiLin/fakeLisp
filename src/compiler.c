@@ -20,7 +20,7 @@ ByteCode* compile(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* st
 		if(isOrExpression(objCptr))return compileOr(objCptr,curEnv,inter,status);
 		if(isLambdaExpression(objCptr))return compileLambda(objCptr,curEnv,inter,status);
 		if(isLoadExpression(objCptr))return compileLoad(objCptr,curEnv,inter,status);
-		if(PreMacroExpand(objCptr))continue;
+		if(PreMacroExpand(objCptr,inter))continue;
 		else if(hasKeyWord(objCptr))
 		{
 			status->status=SYNTAXERROR;
@@ -388,10 +388,45 @@ ByteCode* compileSym(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus*
 	}
 	if(tmpDef==NULL)
 	{
-		status->status=SYMUNDEFINE;
-		status->place=objCptr;
+		char* headOfFuncName="FAKE_";
+		char* realFuncName=(char*)malloc(sizeof(char)*(strlen(headOfFuncName)+strlen(tmpAtm->value.str)));
+		if(realFuncName==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+		strcpy(realFuncName,headOfFuncName);
+		strcat(realFuncName,tmpAtm->value.str);
+		void* funcAddress=getAddress(realFuncName,inter->modules);
+		if(funcAddress==NULL)
+		{
+			status->status=SYMUNDEFINE;
+			status->place=objCptr;
+			freeByteCode(pushVar);
+			return NULL;
+		}
+		CompDef* tmpDef=addCompDef(curEnv,tmpAtm->value.str);
+		ByteCode* dllFuncProc=newDllFuncProc(tmpAtm->value.str);
+		RawProc* tmpRawProc=addRawProc(dllFuncProc,inter);
+		ByteCode* pushProc=createByteCode(5);
+		ByteCode* initProc=createByteCode(5);
+		ByteCode* pushTop=createByteCode(1);
+		ByteCode* popVar=createByteCode(5);
+		ByteCode* tmp=createByteCode(0);
+		pushProc->code[0]=FAKE_PUSH_PROC;
+		initProc->code[0]=FAKE_INIT_PROC;
+		pushTop->code[0]=FAKE_PUSH_TOP;
+		popVar->code[0]=FAKE_POP_VAR;
+		*(int32_t*)(pushProc->code+sizeof(char))=tmpRawProc->count;
+		*(int32_t*)(initProc->code+sizeof(char))=(int32_t)0;
+		*(int32_t*)(popVar->code+sizeof(char))=tmpDef->count;
+		reCodeCat(popVar,tmp);
+		reCodeCat(pushTop,tmp);
+		reCodeCat(initProc,tmp);
+		reCodeCat(pushProc,tmp);
+		freeByteCode(dllFuncProc);
+		freeByteCode(pushProc);
+		freeByteCode(initProc);
+		freeByteCode(pushTop);
+		freeByteCode(popVar);
 		freeByteCode(pushVar);
-		return NULL;
+		return tmp;
 	}
 	else
 	{
@@ -779,7 +814,7 @@ ByteCode* compileLoad(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus
 	}
 	intpr* tmpIntpr=newIntpr(name->value.str,fopen(name->value.str,"r"),curEnv);
 	tmpIntpr->prev=inter;
-	tmpIntpr->procs=inter->procs;
+	tmpIntpr->procs=NULL;
 	tmpIntpr->glob=curEnv;
 	ByteCode* tmp=compileFile(tmpIntpr);
 	free(tmpIntpr->filename);
@@ -808,7 +843,7 @@ ByteCode* compileFile(intpr* inter)
 		{
 			if(isPreprocess(begin))
 			{
-				status=eval(begin,NULL);
+				status=eval(begin,NULL,inter);
 				if(status.status!=0)
 				{
 					exError(status.place,status.status,inter);
@@ -839,3 +874,28 @@ ByteCode* compileFile(intpr* inter)
 	}
 	return tmp;
 }
+
+
+//ByteCode* compileImport(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* status)
+//{
+//	ANS_cptr* first=getANSPairCar(objCptr);
+//	ANS_cptr* pName=nextCptr(first);
+//	ANS_atom* tmpAtom=pName->value;
+//	char* headoflib="lib";
+//#ifdef _WIN32
+//	char* tailoflib=".dll";
+//#else
+//	char* tailoflib=".so";
+//#endif
+//	char* libname=(char*)malloc(sizeof(char)*(strlen(headoflib)+strlen(tailoflib)+strlen(tmpAtom->value.str)));
+//	if(libname==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+//	strcpy(libname,headoflib);
+//	strcat(libname,tmpAtom->value.str);
+//	strcat(libname,tailoflib);
+//	loadPreDll(libname);
+//	ByteCode* loadMod=createByteCode(sizeof(char)+strlen(libname)+1);
+//	loadMod->code[0]=FAKE_LOAD_MOD;
+//	strcpy(loadMod->code+sizeof(char),libname);
+//	free(libname);
+//	return loadMod;
+//}

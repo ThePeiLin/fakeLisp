@@ -19,4 +19,5 @@ ByteCode* compileLambda(ANS_cptr*,CompEnv*,intpr*,ErrorStatus*);
 ByteCode* compileAnd(ANS_cptr*,CompEnv*,intpr*,ErrorStatus*);
 ByteCode* compileOr(ANS_cptr*,CompEnv*,intpr*,ErrorStatus*);
 ByteCode* compileLoad(ANS_cptr*,CompEnv*,intpr*,ErrorStatus*);
+//ByteCode* compileImport(ANS_cptr*,CompEnv*,intpr*,ErrorStatus*);
 #endif

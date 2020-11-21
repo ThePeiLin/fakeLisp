@@ -24,6 +24,12 @@ void addSynRule(int (*check)(const ANS_cptr*))
 
 int isPreprocess(const ANS_cptr* objCptr)
 {
+	if(isDefmacroExpression(objCptr)||isImportExpression(objCptr))return 1;
+	return 0;
+}
+
+int isDefmacroExpression(const ANS_cptr* objCptr)
+{
 	objCptr=(objCptr->type==PAIR)?&((ANS_pair*)objCptr->value)->car:NULL;
 	if(objCptr!=NULL&&nextCptr(objCptr)!=NULL&&nextCptr(nextCptr(objCptr))!=NULL)
 	{
@@ -35,7 +41,7 @@ int isPreprocess(const ANS_cptr* objCptr)
 		}
 		return 1;
 	}
-	else return 0;
+	return 0;
 }
 
 int isDefExpression(const ANS_cptr* objCptr)
@@ -216,6 +222,24 @@ int isLoadExpression(const ANS_cptr* objCptr)
 	}
 	return 0;
 }
+
+int isImportExpression(const ANS_cptr* objCptr)
+{
+	if(objCptr->type==PAIR)
+	{
+		ANS_cptr* fir=&((ANS_pair*)objCptr->value)->car;
+		ANS_cptr* sec=nextCptr(fir);
+		if(sec==NULL)return 0;
+		if(fir->type!=ATM||sec->type!=ATM)
+			return 0;
+		ANS_atom* firAtm=fir->value;
+		ANS_atom* secAtm=sec->value;
+		if(firAtm->type==SYM&&!strcmp(firAtm->value.str,"import")&&(secAtm->type==SYM||secAtm->type==STR))
+			return 1;
+	}
+	return 0;
+}
+
 
 void initSyntax()
 {

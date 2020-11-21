@@ -4,6 +4,9 @@
 #include<ctype.h>
 #include<stdint.h>
 #include<math.h>
+#ifndef _WIN32
+#include<dlfcn.h>
+#endif
 #include"tool.h"
 #include"opcode.h"
 #define NUMOFBUILDINSYMBOL 62
@@ -1209,6 +1212,8 @@ intpr* newIntpr(const char* filename,FILE* file,CompEnv* env)
 	tmp->curline=1;
 	tmp->procs=NULL;
 	tmp->prev=NULL;
+	tmp->modules=NULL;
+	tmp->modls=NULL;
 	if(env)
 	{
 		tmp->glob=env;
@@ -1542,4 +1547,108 @@ RawProc* getHeadRawProc(const intpr* inter)
 	while(inter->prev!=NULL)
 		inter=inter->prev;
 	return inter->procs;
+}
+
+ByteCode* newDllFuncProc(const char* name)
+{
+	ByteCode* runProc=createByteCode(sizeof(char)+strlen(name)+1);
+	ByteCode* endProc=createByteCode(1);
+	endProc->code[0]=FAKE_END_PROC;
+	runProc->code[0]=FAKE_RUN_PROC;
+	strcpy(runProc->code+sizeof(char),name);
+	codeCat(runProc,endProc);
+	freeByteCode(endProc);
+	return runProc;
+}
+
+ANS_cptr* getANSPairCar(const ANS_cptr* obj)
+{
+	ANS_pair* tmpPair=obj->value;
+	return &tmpPair->car;
+}
+
+ANS_cptr* getANSPairCdr(const ANS_cptr* obj)
+{
+	ANS_pair* tmpPair=obj->value;
+	return &tmpPair->cdr;
+}
+
+Dlls* newDll(DllHandle handle)
+{
+	Dlls* tmp=(Dlls*)malloc(sizeof(Dlls));
+	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	tmp->handle=handle;
+	return tmp;
+}
+
+Dlls* loadDll(const char* name,Dlls** Dhead,Modlist** Mhead)
+{
+#ifdef _WIN32
+	DllHandle handle=LoadLibrary(name);
+#else
+	DllHandle handle=dlopen(name,RTLD_LAZY);
+#endif
+	if(handle==NULL)
+	{
+		perror(dlerror());
+		fprintf(stderr,"error:Fail to load dll.\n");
+		exit(EXIT_FAILURE);
+	}
+	Dlls* tmp=newDll(handle);
+	Modlist* tmpL=newModList(name);
+	tmp->count=(*Dhead)?(*Dhead)->count+1:0;
+	tmp->next=*Dhead;
+	*Dhead=tmp;
+	tmpL->count=(*Mhead)?(*Mhead)->count+1:0;
+	tmpL->next=*Mhead;
+	*Mhead=tmpL;
+	return tmp;
+}
+
+void* getAddress(const char* funcname,Dlls* head)
+{
+	Dlls* cur=head;
+	void* pfunc=NULL;
+	while(cur!=NULL)
+	{
+#ifdef _WIN32
+		pfunc=GetProcAddress(cur->handle,funcname);
+#else
+		pfunc=dlsym(cur->handle,funcname);
+#endif
+		if(pfunc!=NULL)return pfunc;
+		cur=cur->next;
+	}
+	return NULL;
+}
+
+void deleteAllDll(Dlls* head)
+{
+	Dlls* cur=head;
+	while(cur)
+	{
+#ifdef _WIN32
+		FreeLibrary(cur->handle);
+#else
+		dlclose(cur->handle);
+#endif
+		cur=cur->next;
+	}
+}
+
+Dlls** getHeadOfMods(intpr* inter)
+{
+	while(inter->prev!=NULL)
+		inter=inter->prev;
+	return &inter->modules;
+}
+
+Modlist* newModList(const char* libname)
+{
+	Modlist* tmp=(Modlist*)malloc(sizeof(Modlist));
+	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	tmp->name=(char*)malloc(sizeof(char)*(strlen(libname)+1));
+	if(tmp->name==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	strcpy(tmp->name,libname);
+	return tmp;
 }

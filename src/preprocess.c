@@ -8,8 +8,7 @@ static PreFunc* funAndForm=NULL;
 static KeyWord* KeyWords=NULL;
 
 
-
-void addFunc(const char* name,ErrorStatus (*pFun)(ANS_cptr*,PreEnv*))
+void addFunc(const char* name,ErrorStatus (*pFun)(ANS_cptr*,PreEnv*,intpr*))
 {
 	PreFunc* current=funAndForm;
 	PreFunc* prev=NULL;
@@ -38,7 +37,7 @@ void addFunc(const char* name,ErrorStatus (*pFun)(ANS_cptr*,PreEnv*))
 	}
 }
 
-ErrorStatus (*(findFunc(const char* name)))(ANS_cptr*,PreEnv*)
+ErrorStatus (*(findFunc(const char* name)))(ANS_cptr*,PreEnv*,intpr*)
 {
 	PreFunc* current=funAndForm;
 	while(current!=NULL&&strcmp(current->functionName,name))current=current->next;
@@ -101,7 +100,7 @@ PreDef* findDefine(const char* name,const PreEnv* curEnv)
 	}
 }
 
-ErrorStatus eval(ANS_cptr* objCptr,PreEnv* curEnv)
+ErrorStatus eval(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 {
 	ErrorStatus status={0,NULL};
 	if(objCptr==NULL)
@@ -142,11 +141,11 @@ ErrorStatus eval(ANS_cptr* objCptr,PreEnv* curEnv)
 					return status;
 				}
 				int before=objCptr->outer->cdr.type;
-				ErrorStatus (*pfun)(ANS_cptr*,PreEnv*)=NULL;
+				ErrorStatus (*pfun)(ANS_cptr*,PreEnv*,intpr*)=NULL;
 				pfun=findFunc(objAtm->value.str);
 				if(pfun!=NULL)
 				{
-					status=pfun(objCptr,curEnv);
+					status=pfun(objCptr,curEnv,inter);
 					if(status.status!=0)return status;
 				}
 				else
@@ -431,7 +430,7 @@ int fmatcmp(const ANS_cptr* origin,const ANS_cptr* format)
 	return 1;
 }
 
-int PreMacroExpand(ANS_cptr* objCptr)
+int PreMacroExpand(ANS_cptr* objCptr,intpr* inter)
 {
 	ErrorStatus status={0,NULL};
 	PreMacro* tmp=PreMacroMatch(objCptr);
@@ -439,7 +438,7 @@ int PreMacroExpand(ANS_cptr* objCptr)
 	{
 		ANS_cptr* tmpCptr=newCptr(0,NULL);
 		replace(tmpCptr,tmp->express);
-		status=eval(tmp->express,MacroEnv);
+		status=eval(tmp->express,MacroEnv,inter);
 		if(status.status!=0)exError(status.place,status.status,NULL);
 		replace(objCptr,tmp->express);
 		deleteCptr(tmp->express);

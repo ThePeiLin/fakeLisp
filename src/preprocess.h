@@ -4,17 +4,17 @@
 
 
 PreDef* findDefine(const char*,const PreEnv*);
-void addFunc(const char*,ErrorStatus (*)(ANS_cptr*,PreEnv*));
+void addFunc(const char*,ErrorStatus (*)(ANS_cptr*,PreEnv*,intpr*));
 PreDef* addDefine(const char*,const ANS_cptr*,PreEnv*);
 PreDef* newDefines(const char*);
-ErrorStatus (*(findFunc(const char*)))(ANS_cptr*,PreEnv*);
+ErrorStatus (*(findFunc(const char*)))(ANS_cptr*,PreEnv*,intpr*);
 int retree(ANS_cptr**,ANS_cptr*);
-ErrorStatus eval(ANS_cptr*,PreEnv*);
+ErrorStatus eval(ANS_cptr*,PreEnv*,intpr*);
 void addKeyWord(const char*);
 KeyWord* hasKeyWord(const ANS_cptr*);
 void printAllKeyWord();
 PreMacro* PreMacroMatch(const ANS_cptr*);
-int PreMacroExpand(ANS_cptr*);
+int PreMacroExpand(ANS_cptr*,intpr* inter);
 int addMacro(ANS_cptr*,ANS_cptr*);
 PreMasym* findMasym(const char*);
 int fmatcmp(const ANS_cptr*,const ANS_cptr*);

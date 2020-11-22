@@ -191,7 +191,7 @@ void addKeyWord(const char* objStr)
 		if(current==NULL)
 		{
 			current=(KeyWord*)malloc(sizeof(KeyWord));
-			current->word=(char*)malloc(sizeof(char)*strlen(objStr));
+			current->word=(char*)malloc(sizeof(char)*(strlen(objStr)+1));
 			if(current==NULL||current->word==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 			strcpy(current->word,objStr);
 			if(prev!=NULL)prev->next=current;
@@ -771,4 +771,69 @@ PreDef* newDefines(const char* name)
 	tmp->obj=(ANS_cptr){NULL,0,NIL,NULL};
 	tmp->next=NULL;
 	return tmp;
+}
+
+void freeAllFunc()
+{
+	PreFunc* cur=funAndForm;
+	while(cur!=NULL)
+	{
+		free(cur->functionName);
+		PreFunc* prev=cur;
+		cur=cur->next;
+		free(prev);
+	}
+}
+
+void freeMacroEnv()
+{
+	destroyEnv(MacroEnv);
+}
+
+void freeAllKeyWord()
+{
+	KeyWord* cur=KeyWords;
+	while(cur!=NULL)
+	{
+		KeyWord* prev=cur;
+		cur=cur->next;
+		free(prev->word);
+		free(prev);
+	}
+}
+
+void freeAllRule()
+{
+	PreMasym* cur=FirstMasym;
+	while(cur!=NULL)
+	{
+		PreMasym* prev=cur;
+		cur=cur->next;
+		free(prev->symName);
+		free(prev);
+	}
+}
+
+void unInitPreprocess()
+{
+	freeAllFunc();
+	freeMacroEnv();
+	freeAllRule();
+	freeAllKeyWord();
+	freeAllMacro();
+}
+
+void freeAllMacro()
+{
+	PreMacro* cur=FirstMacro;
+	while(cur!=NULL)
+	{
+		PreMacro* prev=cur;
+		cur=cur->next;
+		deleteCptr(prev->format);
+		deleteCptr(prev->express);
+		free(prev->format);
+		free(prev->express);
+		free(prev);
+	}
 }

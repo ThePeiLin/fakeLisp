@@ -143,6 +143,7 @@ char* getListFromFile(FILE* file)
 			memSize=lenOfStr+1;
 			free(other);
 			free(tmpList);
+			free(stringOfSpace);
 			continue;
 		}
 		lenOfStr++;
@@ -168,6 +169,7 @@ char* getListFromFile(FILE* file)
 			strcat(tmp,tmpStr);
 			lenOfStr=strlen(tmp);
 			memSize=lenOfStr+1;
+			free(tmpStr);
 		}
 	}
 	if(braketsNum!=0)
@@ -381,7 +383,7 @@ rawString getStringBetweenMarks(const char* str,intpr* inter)
 	int j;
 	while(*(str+i)!='\"')
 	{
-		if(*(str+i)=='\n')inter->curline+=1;
+		if(*(str+i)=='\n'&&inter)inter->curline+=1;
 		if(*(str+i)=='\\')
 		{
 			if(isdigit(*(str+i+1)))
@@ -525,11 +527,12 @@ ANS_cptr* createTree(const char* objStr,intpr* inter)
 	{
 		if(*(objStr+i)=='(')
 		{
-			if(*(objStr+i-1)==')')
+			if(i!=0&&*(objStr+i-1)==')')
 			{
 				if(objPair!=NULL)
 				{
-					ANS_pair* tmp=newPair(inter->curline,objPair);
+					int curline=(inter)?inter->curline:0;
+					ANS_pair* tmp=newPair(curline,objPair);
 					objPair->cdr.type=PAIR;
 					objPair->cdr.value=(void*)tmp;
 					objPair=tmp;
@@ -540,15 +543,17 @@ ANS_cptr* createTree(const char* objStr,intpr* inter)
 			braketsNum++;
 			if(root==NULL)
 			{
-				root=newCptr(inter->curline,objPair);
+				int curline=(inter)?inter->curline:0;
+				root=newCptr(curline,objPair);
 				root->type=PAIR;
-				root->value=newPair(inter->curline,NULL);
+				root->value=newPair(curline,NULL);
 				objPair=root->value;
 				objCptr=&objPair->car;
 			}
 			else
 			{
-				objPair=newPair(inter->curline,objPair);
+				int curline=(inter)?inter->curline:0;
+				objPair=newPair(curline,objPair);
 				objCptr->type=PAIR;
 				objCptr->value=(void*)objPair;
 				objCptr=&objPair->car;
@@ -580,7 +585,7 @@ ANS_cptr* createTree(const char* objStr,intpr* inter)
 		{
 			int j=0;
 			char* tmpStr=(char*)objStr+i;
-			while(isspace(*(tmpStr+j)))j--;
+			while(j>(int)-i&&isspace(*(tmpStr+j)))j--;
 			if(*(tmpStr+j)==','||*(tmpStr+j)=='(')
 			{
 				j=1;
@@ -591,7 +596,9 @@ ANS_cptr* createTree(const char* objStr,intpr* inter)
 			j=0;
 			while(isspace(*(tmpStr+j)))
 			{
-				if(*(tmpStr+j)=='\n')inter->curline+=1;
+				if(*(tmpStr+j)=='\n')
+					if(inter)
+						inter->curline+=1;
 				j++;
 			}
 			if(*(tmpStr+j)==','||*(tmpStr+j)==')')
@@ -602,7 +609,8 @@ ANS_cptr* createTree(const char* objStr,intpr* inter)
 			i+=j;
 			if(objPair!=NULL)
 			{
-				ANS_pair* tmp=newPair(inter->curline,objPair);
+				int curline=(inter)?inter->curline:0;
+				ANS_pair* tmp=newPair(curline,objPair);
 				objPair->cdr.type=PAIR;
 				objPair->cdr.value=(void*)tmp;
 				objPair=tmp;
@@ -611,16 +619,18 @@ ANS_cptr* createTree(const char* objStr,intpr* inter)
 		}
 		else if(*(objStr+i)=='\"')
 		{
-			if(root==NULL)objCptr=root=newCptr(inter->curline,objPair);
+			int curline=(inter)?inter->curline:0;
+			if(root==NULL)objCptr=root=newCptr(curline,objPair);
 			rawString tmp=getStringBetweenMarks(objStr+i,inter);
 			objCptr->type=ATM;
 			objCptr->value=(void*)newAtom(STR,tmp.str,objPair);
 			i+=tmp.len;
 			free(tmp.str);
 		}
-		else if(isdigit(*(objStr+i))||(*(objStr+i)=='-'&&isdigit(*(objStr+i+1))))
+		else if(isdigit(*(objStr+i))||(*(objStr+i)=='-'&&(/**(objStr+i)&&*/isdigit(*(objStr+i+1)))))
 		{
-			if(root==NULL)objCptr=root=newCptr(inter->curline,objPair);
+			int curline=(inter)?inter->curline:0;
+			if(root==NULL)objCptr=root=newCptr(curline,objPair);
 			char* tmp=getStringFromList(objStr+i);
 			ANS_atom* tmpAtm=NULL;
 			if(!isNum(tmp))
@@ -642,9 +652,10 @@ ANS_cptr* createTree(const char* objStr,intpr* inter)
 			i+=strlen(tmp);
 			free(tmp);
 		}
-		else if(*(objStr+i)=='#'&&*(objStr+1+i)=='\\')
+		else if(*(objStr+i)=='#'&&(/**(objStr+i)&&*/*(objStr+1+i)=='\\'))
 		{
-			if(root==NULL)objCptr=root=newCptr(inter->curline,objPair);
+			int curline=(inter)?inter->curline:0;
+			if(root==NULL)objCptr=root=newCptr(curline,objPair);
 			char* tmp=getStringAfterBackslash(objStr+i+2);
 			objCptr->type=ATM;
 			objCptr->value=(void*)newAtom(CHR,NULL,objPair);
@@ -654,9 +665,10 @@ ANS_cptr* createTree(const char* objStr,intpr* inter)
 			i+=strlen(tmp)+2;
 			free(tmp);
 		}
-		else if(*(objStr+i)=='#'&&*(objStr+1+i)=='b')
+		else if(*(objStr+i)=='#'&&(/**(objStr+i)&&*/*(objStr+1+i)=='b'))
 		{
-			if(root==NULL)objCptr=root=newCptr(inter->curline,objPair);
+			int curline=(inter)?inter->curline:0;
+			if(root==NULL)objCptr=root=newCptr(curline,objPair);
 			char* tmp=getStringAfterBackslash(objStr+i+2);
 			objCptr->type=ATM;
 			objCptr->value=(void*)newAtom(BYTE,NULL,objPair);
@@ -669,7 +681,8 @@ ANS_cptr* createTree(const char* objStr,intpr* inter)
 		}
 		else
 		{
-			if(root==NULL)objCptr=root=newCptr(inter->curline,objPair);
+			int curline=(inter)?inter->curline:0;
+			if(root==NULL)objCptr=root=newCptr(curline,objPair);
 			char* tmp=getStringFromList(objStr+i);
 			objCptr->type=ATM;
 			objCptr->value=(void*)newAtom(SYM,tmp,objPair);
@@ -679,7 +692,9 @@ ANS_cptr* createTree(const char* objStr,intpr* inter)
 		}
 		if(braketsNum<=0&&root!=NULL)break;
 	}
-	for(;i<strlen(objStr);i++)if(isspace(objStr[i])&&objStr[i]=='\n')inter->curline+=1;
+	for(;i<strlen(objStr);i++)if(isspace(objStr[i])&&objStr[i]=='\n')
+		if(inter)
+			inter->curline+=1;
 	return root;
 }
 
@@ -1745,5 +1760,16 @@ void writeAllDll(intpr* inter,FILE* fp)
 	{
 		fwrite(cur->name,strlen(cur->name)+1,1,fp);
 		cur=cur->next;
+	}
+}
+
+void freeAllRawProc(RawProc* cur)
+{
+	while(cur!=NULL)
+	{
+		freeByteCode(cur->proc);
+		RawProc* prev=cur;
+		cur=cur->next;
+		free(prev);
 	}
 }

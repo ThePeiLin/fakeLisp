@@ -84,4 +84,5 @@ char* getDir(const char*);
 void writeAllDll(intpr*,FILE*);
 Dlls* loadAllModules(FILE*,Dlls**);
 char* getStringFromFile(FILE*);
+void freeAllRawProc(RawProc*);
 #endif

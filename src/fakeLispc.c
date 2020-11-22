@@ -48,8 +48,12 @@ int main(int argc,char** argv)
 		fwrite(&sizeOfMain,sizeof(sizeOfMain),1,outfp);
 		fwrite(code,sizeof(char),sizeOfMain,outfp);
 		writeAllDll(inter,outfp);
+		freeByteCode(mainByteCode);
+		free(rawProcList);
 		fclose(outfp);
-		fclose(fp);
+		freeIntpr(inter);
+		unInitPreprocess();
+		free(outputname);
 	}
 	else
 	{

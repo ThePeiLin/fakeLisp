@@ -950,8 +950,10 @@ int ANS_cptrcmp(const ANS_cptr* first,const ANS_cptr* second)
 				ANS_atom* secAtm=second->value;
 				if(firAtm->type!=secAtm->type)return 0;
 				if((firAtm->type==SYM||firAtm->type==STR)&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
+				else if(firAtm->type==INT&&firAtm->value.num!=secAtm->value.num)return 0;
 				else if(firAtm->type==DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
-				else if(!memcmp(&firAtm->type,&secAtm->type,sizeof(ANS_atom)-sizeof(ANS_pair*)))return 0;
+				else if(firAtm->type==CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
+				else if(firAtm->type==BYTE&&!byteArryEq(&firAtm->value.byte,&secAtm->value.byte))return 0;
 			}
 			if(firPair!=NULL&&first==&firPair->car)
 			{ first=&firPair->cdr;
@@ -1772,4 +1774,10 @@ void freeAllRawProc(RawProc* cur)
 		cur=cur->next;
 		free(prev);
 	}
+}
+
+int byteArryEq(ByteArry* fir,ByteArry* sec)
+{
+	if(fir->size!=sec->size)return 0;
+	else return !memcmp(fir->arry,sec->arry,sec->size);
 }

@@ -84,7 +84,7 @@ void initEvalution()
 
 void runIntpr(intpr* inter)
 {
-	initPreprocess(inter);
+	initPreprocess();
 	fakeVM* anotherVM=newFakeVM(NULL,NULL);
 	VMenv* globEnv=newVMenv(0,NULL);
 	anotherVM->mainproc->localenv=globEnv;

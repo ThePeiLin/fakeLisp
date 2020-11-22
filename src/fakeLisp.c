@@ -42,6 +42,7 @@ int main(int argc,char** argv)
 		anotherVM->mainproc->code->localenv=globEnv;
 		initGlobEnv(globEnv,anotherVM->heap);
 		runFakeVM(anotherVM);
+		GC_sweep(anotherVM->heap);
 		deleteAllDll(anotherVM->modules);
 	}
 	else
@@ -168,6 +169,7 @@ void runIntpr(intpr* inter)
 			free(begin);
 		}
 	}
+	GC_sweep(anotherVM->heap);
 }
 
 ByteCode* castRawproc(ByteCode* prev,RawProc* procs)

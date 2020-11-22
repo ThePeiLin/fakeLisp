@@ -859,19 +859,21 @@ ByteCode* compileFile(intpr* inter)
 				{
 					exError(status.place,status.status,inter);
 					deleteCptr(status.place);
+					freeByteCode(pop);
 					freeByteCode(tmp);
 					exit(EXIT_FAILURE);
 				}
 				if(tmp->size)reCodeCat(pop,tmpByteCode);
 				codeCat(tmp,tmpByteCode);
 				freeByteCode(tmpByteCode);
-				free(list);
-				list=NULL;
-				deleteCptr(begin);
-				free(begin);
 			}
+			deleteCptr(begin);
+			free(begin);
 		}
+		free(list);
+		list=NULL;
 	}
+	freeByteCode(pop);
 	return tmp;
 }
 

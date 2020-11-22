@@ -4,6 +4,7 @@
 #include<ctype.h>
 #include<stdint.h>
 #include<math.h>
+#include<unistd.h>
 #ifndef _WIN32
 #include<dlfcn.h>
 #endif
@@ -1213,7 +1214,8 @@ intpr* newIntpr(const char* filename,FILE* file,CompEnv* env)
 	tmp->procs=NULL;
 	tmp->prev=NULL;
 	tmp->modules=NULL;
-	tmp->modls=NULL;
+	tmp->head=NULL;
+	tmp->tail=NULL;
 	if(env)
 	{
 		tmp->glob=env;
@@ -1581,12 +1583,12 @@ Dlls* newDll(DllHandle handle)
 	return tmp;
 }
 
-Dlls* loadDll(const char* name,Dlls** Dhead,Modlist** Mhead)
+Dlls* loadDll(const char* rpath,Dlls** Dhead,const char* modname,Modlist** tail)
 {
 #ifdef _WIN32
-	DllHandle handle=LoadLibrary(name);
+	DllHandle handle=LoadLibrary(rpath);
 #else
-	DllHandle handle=dlopen(name,RTLD_LAZY);
+	DllHandle handle=dlopen(rpath,RTLD_LAZY);
 #endif
 	if(handle==NULL)
 	{
@@ -1595,13 +1597,17 @@ Dlls* loadDll(const char* name,Dlls** Dhead,Modlist** Mhead)
 		exit(EXIT_FAILURE);
 	}
 	Dlls* tmp=newDll(handle);
-	Modlist* tmpL=newModList(name);
 	tmp->count=(*Dhead)?(*Dhead)->count+1:0;
 	tmp->next=*Dhead;
 	*Dhead=tmp;
-	tmpL->count=(*Mhead)?(*Mhead)->count+1:0;
-	tmpL->next=*Mhead;
-	*Mhead=tmpL;
+	if(modname!=NULL&&tail!=NULL)
+	{
+		Modlist* tmpL=newModList(modname);
+		tmpL->count=(*tail)?(*tail)->count+1:0;
+		tmpL->next=NULL;
+		if(*tail)(*tail)->next=tmpL;
+		*tail=tmpL;
+	}
 	return tmp;
 }
 
@@ -1651,4 +1657,93 @@ Modlist* newModList(const char* libname)
 	if(tmp->name==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 	strcpy(tmp->name,libname);
 	return tmp;
+}
+
+Dlls* loadAllModules(FILE* fp,Dlls** mods)
+{
+	int32_t num=0;
+	int i=0;
+	fread(&num,sizeof(int32_t),1,fp);
+	for(;i<num;i++)
+	{
+		char* modname=getStringFromFile(fp);
+		char* rpath=realpath(modname,0);
+		if(rpath==NULL)
+		{
+			fprintf(stderr,"error:Failed to get real path.\n");
+			exit(EXIT_FAILURE);
+		}
+		loadDll(rpath,mods,NULL,NULL);
+		free(modname);
+		free(rpath);
+	}
+	return *mods;
+}
+
+void changeWorkPath(const char* filename)
+{
+	char* p=realpath(filename,NULL);
+	char* wp=getDir(p);
+	int32_t len=strlen(p);
+	if(chdir(wp))
+	{
+		fprintf(stderr,"error:Can't access path.\n");
+		exit(EXIT_FAILURE);
+	}
+	free(p);
+	free(wp);
+}
+
+char* getDir(const char* filename)
+{
+#ifdef _WIN32
+	char dp='\\';
+#else
+	char dp='/';
+#endif
+	int i=strlen(filename)-1;
+	for(;filename[i]!=dp;i--);
+	char* tmp=(char*)malloc(sizeof(char)*(i+1));
+	tmp[i]='\0';
+	memcpy(tmp,filename,i);
+	return tmp;
+}
+
+char* getStringFromFile(FILE* file)
+{
+	char* tmp=(char*)malloc(sizeof(char));
+	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	tmp[0]='\0';
+	char* before;
+	int i=0;
+	char ch;
+	int j;
+	while((ch=getc(file))!=EOF&&ch!='\0')
+	{
+		i++;
+		j=i-1;
+		before=tmp;
+		if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(before!=NULL)
+		{
+			memcpy(tmp,before,j);
+			free(before);
+		}
+		*(tmp+j)=ch;
+	}
+	if(tmp!=NULL)tmp[i]='\0';
+	return tmp;
+}
+
+void writeAllDll(intpr* inter,FILE* fp)
+{
+	int num=(inter->head==NULL)?0:inter->tail->count+1;
+	fwrite(&num,sizeof(int32_t),1,fp);
+	int i=0;
+	Modlist* cur=inter->head;
+	for(;i<num;i++)
+	{
+		fwrite(cur->name,strlen(cur->name)+1,1,fp);
+		cur=cur->next;
+	}
 }

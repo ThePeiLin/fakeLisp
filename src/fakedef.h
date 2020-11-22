@@ -121,7 +121,8 @@ typedef struct Interpreter
 	CompEnv* glob;
 	RawProc* procs;
 	struct DLL_s* modules;
-	Modlist* modls;
+	Modlist* head;
+	Modlist* tail;
 	struct Interpreter* prev;
 }intpr;
 

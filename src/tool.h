@@ -75,8 +75,13 @@ ANS_cptr* getANSPairCar(const ANS_cptr*);
 ANS_cptr* getANSPairCdr(const ANS_cptr*);
 ByteCode* newDllFuncProc(const char*);
 Dlls* newDll(DllHandle);
-Dlls* loadDll(const char*,Dlls**,Modlist**);
+Dlls* loadDll(const char*,Dlls**,const char*,Modlist**);
 void* getAddress(const char*,Dlls*);
 void deleteAllDll();
 Modlist* newModList(const char*);
+void changeWorkPath(const char*);
+char* getDir(const char*);
+void writeAllDll(intpr*,FILE*);
+Dlls* loadAllModules(FILE*,Dlls**);
+char* getStringFromFile(FILE*);
 #endif

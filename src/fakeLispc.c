@@ -23,16 +23,17 @@ int main(int argc,char** argv)
 	}
 	if(argc==1||isscript(filename))
 	{
+		char* outputname=(char*)malloc(sizeof(char)*(strlen(filename)+2));
+		strcpy(outputname,filename);
+		strcat(outputname,"c");
+		FILE* outfp=fopen(outputname,"w");
+		changeWorkPath(filename);
 		initEvalution();
 		int i;
 		intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL);
 		ByteCode* mainByteCode=compileFile(inter);
 		//printByteCode(mainByteCode,stderr);
-		char* outputname=(char*)malloc(sizeof(char)*(strlen(filename)+2));
-		strcpy(outputname,filename);
-		strcat(outputname,"c");
 		int32_t numOfRawproc=(inter->procs==NULL)?0:inter->procs->count+1;
-		FILE* outfp=fopen(outputname,"w");
 		fwrite(&numOfRawproc,sizeof(numOfRawproc),1,outfp);
 		ByteCode* rawProcList=castRawproc(inter->procs);
 		for(i=0;i<numOfRawproc;i++)
@@ -46,6 +47,7 @@ int main(int argc,char** argv)
 		char* code=mainByteCode->code;
 		fwrite(&sizeOfMain,sizeof(sizeOfMain),1,outfp);
 		fwrite(code,sizeof(char),sizeOfMain,outfp);
+		writeAllDll(inter,outfp);
 		fclose(outfp);
 		fclose(fp);
 	}

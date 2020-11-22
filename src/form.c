@@ -1024,8 +1024,25 @@ ErrorStatus N_import(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 		return status;
 	}
 	ANS_atom* tmpAtom=args[0]->value;
-	loadDll(tmpAtom->value.str,&inter->modules,&inter->modls);
+#ifdef _WIN32
+	char* filetype=".dll";
+#else
+	char* filetype=".so";
+#endif
+	char* modname=(char*)malloc(sizeof(char)*(strlen(filetype)+strlen(tmpAtom->value.str)+1));
+	strcpy(modname,tmpAtom->value.str);
+	strcat(modname,filetype);
+	char* rp=realpath(modname,0);
+	if(rp==NULL)
+	{
+		fprintf(stderr,"error:Failed to get real path.\n");
+		exit(EXIT_FAILURE);
+	}
+	loadDll(rp,&inter->modules,modname,&inter->tail);
+	if(inter->head==NULL)inter->head=inter->tail;
 	replace(objCptr,args[0]);
 	deleteArg(args,1);
+	free(modname);
+	free(rp);
 	return status;
 }

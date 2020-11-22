@@ -597,6 +597,7 @@ ByteCode* compileLambda(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStat
 						status->status=SYNTAXERROR;
 						status->place=tmpCptr;
 						freeByteCode(tmp);
+						freeByteCode(endproc);
 						freeByteCode(initProc);
 						freeByteCode(pushProc);
 						freeByteCode(popVar);
@@ -625,6 +626,7 @@ ByteCode* compileLambda(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStat
 							status->status=SYNTAXERROR;
 							status->place=tmpCptr;
 							freeByteCode(tmp);
+							freeByteCode(endproc);
 							freeByteCode(initProc);
 							freeByteCode(pushProc);
 							freeByteCode(popVar);
@@ -657,6 +659,7 @@ ByteCode* compileLambda(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStat
 					status->status=SYNTAXERROR;
 					status->place=tmpCptr;
 					freeByteCode(tmp);
+					freeByteCode(endproc);
 					freeByteCode(initProc);
 					freeByteCode(pushProc);
 					freeByteCode(popVar);
@@ -688,6 +691,7 @@ ByteCode* compileLambda(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStat
 			if(status->status!=0)
 			{
 				freeByteCode(tmp);
+				freeByteCode(endproc);
 				freeByteCode(initProc);
 				freeByteCode(pushProc);
 				freeByteCode(popVar);
@@ -719,6 +723,7 @@ ByteCode* compileLambda(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStat
 	freeByteCode(pop);
 	freeByteCode(popRestVar);
 	freeByteCode(resBp);
+	freeByteCode(endproc);
 	return tmp;
 }
 
@@ -826,7 +831,6 @@ ByteCode* compileLoad(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus
 
 ByteCode* compileFile(intpr* inter)
 {
-	initPreprocess(inter);
 	char ch;
 	ByteCode* tmp=createByteCode(0);
 	ByteCode* pop=createByteCode(1);

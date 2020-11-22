@@ -28,6 +28,7 @@ int main(int argc,char** argv)
 		strcat(outputname,"c");
 		FILE* outfp=fopen(outputname,"w");
 		changeWorkPath(filename);
+		initPreprocess();
 		initEvalution();
 		int i;
 		intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL);

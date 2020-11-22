@@ -449,14 +449,13 @@ int PreMacroExpand(ANS_cptr* objCptr,intpr* inter)
 	return 0;
 }
 
-void initPreprocess(intpr* inter)
+void initPreprocess()
 {
 	addRule("ATOM",M_ATOM);
 	addRule("PAIR",M_PAIR);
 	addRule("ANY",M_ANY);
 	addRule("VAREPT",M_VAREPT);
 	addRule("COLT",M_COLT);
-	MacroEnv=newEnv(NULL);
 	addKeyWord("define");
 	addKeyWord("setq");
 	addKeyWord("quote");
@@ -788,6 +787,7 @@ void freeAllFunc()
 void freeMacroEnv()
 {
 	destroyEnv(MacroEnv);
+	free(MacroEnv);
 }
 
 void freeAllKeyWord()

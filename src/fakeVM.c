@@ -3150,7 +3150,7 @@ int VMvaluecmp(VMvalue* fir,VMvalue* sec)
 			case SYM:return !strcmp(fir->u.str->str,sec->u.str->str);
 			case PRC:return fir->u.prc==sec->u.prc;
 			case PAIR:return VMvaluecmp(fir->u.pair->car,sec->u.pair->car)&&VMvaluecmp(fir->u.pair->cdr,sec->u.pair->cdr);
-			case BYTE:return byteArryCmp(fir->u.byte,sec->u.byte);
+			case BYTE:return byteArryEq(fir->u.byte,sec->u.byte);
 		}
 	}
 }
@@ -3702,12 +3702,6 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 				break;
 		}
 	}
-}
-
-int byteArryCmp(ByteArry* fir,ByteArry* sec)
-{
-	if(fir->size!=sec->size)return 0;
-	else return !memcmp(fir->arry,sec->arry,sec->size);
 }
 
 int numcmp(VMvalue* fir,VMvalue* sec)

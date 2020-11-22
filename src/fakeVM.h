@@ -108,7 +108,6 @@ static void freeVMcode(VMcode*);
 static int VMvaluecmp(VMvalue*,VMvalue*);
 static int subVMvaluecmp(VMvalue*,VMvalue*);
 static int numcmp(VMvalue*,VMvalue*);
-static int byteArryCmp(ByteArry*,ByteArry*);
 void freeVMvalue(VMvalue*);
 void freeVMstr(VMstr*);
 void freeRef(VMvalue*);

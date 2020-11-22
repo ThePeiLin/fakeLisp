@@ -8,7 +8,12 @@ else
 FLAG=-W
 endif
 
+ifdef IS_LINUX
+LINK=-lpthread -ldl
+else
 LINK=-lpthread
+endif
+
 form.o: src/form.* src/fakedef.h
 	gcc $(FLAG) -c src/form.c
 tool.o: src/tool.* src/fakedef.h
@@ -26,8 +31,8 @@ fakeVM.o: src/fakeVM.* src/fakedef.h src/opcode.h
 fakeLispc.o: src/fakeLispc.* src/fakedef.h
 	gcc $(FLAG) -c src/fakeLispc.c
 fakeLisp: $(objectOfFakeLisp) $(objectOfFakeLispc)
-	gcc -o fakeLisp $(objectOfFakeLisp) $(LINK)
-	gcc -o fakeLispc $(objectOfFakeLispc)
+	gcc $(FLAG) -o fakeLisp $(objectOfFakeLisp) $(LINK)
+	gcc $(FLAG) -o fakeLispc $(objectOfFakeLispc) $(LINK)
 fakeLispc: $(objectOfFakeLispc)
 	gcc -o fakeLispc $(objectOfFakeLispc)
 

@@ -22,6 +22,8 @@ int main(int argc,char** argv)
 	}
 	if(argc==1||isscript(filename))
 	{
+		if(fp!=stdin)
+			changeWorkPath(filename);
 		intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL);
 		initEvalution();
 		runIntpr(inter);
@@ -29,15 +31,18 @@ int main(int argc,char** argv)
 	}
 	else if(iscode(filename))
 	{
+		changeWorkPath(filename);
 		ByteCode* RawProcess=loadRawproc(fp);
 		ByteCode* mainprocess=loadByteCode(fp);
 		//printByteCode(mainprocess,stdout);
 		fakeVM* anotherVM=newFakeVM(mainprocess,RawProcess);
+		loadAllModules(fp,&anotherVM->modules);
 		VMenv* globEnv=newVMenv(0,NULL);
 		anotherVM->mainproc->localenv=globEnv;
 		anotherVM->mainproc->code->localenv=globEnv;
 		initGlobEnv(globEnv,anotherVM->heap);
 		runFakeVM(anotherVM);
+		deleteAllDll(anotherVM->modules);
 	}
 	else
 	{

@@ -26,7 +26,22 @@ int main(int argc,char** argv)
 			changeWorkPath(filename);
 		intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL);
 		initEvalution();
-		runIntpr(inter);
+		if(fp==stdin)
+			runIntpr(inter);
+		else
+		{
+			initPreprocess();
+			VMenv* globEnv=newVMenv(0,NULL);
+			ByteCode* mainByteCode=compileFile(inter);
+			fakeVM* anotherVM=newFakeVM(mainByteCode,castRawproc(NULL,inter->procs));
+			anotherVM->tid=pthread_self();
+			anotherVM->mainproc->localenv=globEnv;
+			anotherVM->mainproc->code->localenv=globEnv;
+			anotherVM->modules=inter->modules;
+			initGlobEnv(globEnv,anotherVM->heap);
+			runFakeVM(anotherVM);
+			GC_sweep(anotherVM->heap);
+		}
 		deleteAllDll(inter->modules);
 	}
 	else if(iscode(filename))

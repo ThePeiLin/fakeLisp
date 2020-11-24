@@ -10,6 +10,7 @@ ByteCode* compile(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* st
 {
 	for(;;)
 	{
+		if(isLoadExpression(objCptr))return compileLoad(objCptr,curEnv,inter,status);
 		if(isConst(objCptr))return compileConst(objCptr,curEnv,inter,status);
 		if(isSymbol(objCptr))return compileSym(objCptr,curEnv,inter,status);
 		if(isDefExpression(objCptr))return compileDef(objCptr,curEnv,inter,status);
@@ -19,7 +20,6 @@ ByteCode* compile(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* st
 		if(isAndExpression(objCptr))return compileAnd(objCptr,curEnv,inter,status);
 		if(isOrExpression(objCptr))return compileOr(objCptr,curEnv,inter,status);
 		if(isLambdaExpression(objCptr))return compileLambda(objCptr,curEnv,inter,status);
-		if(isLoadExpression(objCptr))return compileLoad(objCptr,curEnv,inter,status);
 		if(PreMacroExpand(objCptr,inter))continue;
 		else if(hasKeyWord(objCptr))
 		{
@@ -755,6 +755,7 @@ ByteCode* compileCond(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus
 				freeByteCode(jump);
 				freeByteCode(pop);
 				freeByteCode(tmpCond);
+				freeByteCode(pushnil);
 				return NULL;
 			}
 			ByteCode* tmp1=compile(objCptr,curEnv,inter,status);
@@ -765,6 +766,7 @@ ByteCode* compileCond(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus
 				freeByteCode(jump);
 				freeByteCode(pop);
 				freeByteCode(tmpCond);
+				freeByteCode(pushnil);
 				return NULL;
 			}
 			if(prevCptr(objCptr)==NULL)
@@ -780,6 +782,7 @@ ByteCode* compileCond(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus
 			if(prevCptr(objCptr)!=NULL)
 				reCodeCat(pop,tmp1);
 			reCodeCat(tmp1,tmpCond);
+			freeByteCode(tmp1);
 			objCptr=prevCptr(objCptr);
 		}
 		if(prevCptr(prevCptr(cond))!=NULL)

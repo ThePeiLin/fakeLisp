@@ -116,6 +116,7 @@ typedef struct Mod_List
 typedef struct Interpreter
 {
 	char* filename;
+	char* curDir;
 	FILE* file;
 	int curline;
 	CompEnv* glob;

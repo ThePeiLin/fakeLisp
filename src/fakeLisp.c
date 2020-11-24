@@ -22,8 +22,6 @@ int main(int argc,char** argv)
 	}
 	if(argc==1||isscript(filename))
 	{
-		if(fp!=stdin)
-			changeWorkPath(filename);
 		intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL);
 		initEvalution();
 		if(fp==stdin)

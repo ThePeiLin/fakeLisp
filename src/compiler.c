@@ -1,5 +1,6 @@
 #include<stdlib.h>
 #include<string.h>
+#include<unistd.h>
 #include"compiler.h"
 #include"syntax.h"
 #include"tool.h"
@@ -820,20 +821,30 @@ ByteCode* compileLoad(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus
 		perror(name->value.str);
 		exit(EXIT_FAILURE);
 	}
+	char* rp=realpath(name->value.str,0);
+	char* rd=getDir(rp);
 	intpr* tmpIntpr=newIntpr(name->value.str,fopen(name->value.str,"r"),curEnv);
 	tmpIntpr->prev=inter;
 	tmpIntpr->procs=NULL;
 	tmpIntpr->glob=curEnv;
+	tmpIntpr->head=NULL;
+	tmpIntpr->tail=NULL;
+	tmpIntpr->modules=NULL;
+	tmpIntpr->curDir=rd;
 	ByteCode* tmp=compileFile(tmpIntpr);
+	chdir(tmpIntpr->prev->curDir);
 	free(tmpIntpr->filename);
 	fclose(tmpIntpr->file);
 	free(tmpIntpr);
+	free(rp);
+	free(rd);
 	//printByteCode(tmp,stderr);
 	return tmp;
 }
 
 ByteCode* compileFile(intpr* inter)
 {
+	chdir(inter->curDir);
 	char ch;
 	ByteCode* tmp=createByteCode(0);
 	ByteCode* pop=createByteCode(1);

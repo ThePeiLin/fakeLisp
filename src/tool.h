@@ -90,4 +90,7 @@ int ModHasLoad(const char*,Modlist*);
 Dlls** getpDlls(intpr*);
 Modlist** getpTail(intpr*);
 Modlist** getpHead(intpr*);
+char** split(char*,char*,int*);
+char* relpath(char*,char*);
+char* getLastWorkDir(intpr*);
 #endif

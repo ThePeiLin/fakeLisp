@@ -5,6 +5,7 @@
 #include<stdint.h>
 #include<math.h>
 #include<unistd.h>
+#include<limits.h>
 #ifndef _WIN32
 #include<dlfcn.h>
 #endif
@@ -1226,6 +1227,8 @@ intpr* newIntpr(const char* filename,FILE* file,CompEnv* env)
 	intpr* tmp=NULL;
 	if(!(tmp=(intpr*)malloc(sizeof(intpr))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp->filename=copyStr(filename);
+	char* rp=realpath(filename,0);
+	tmp->curDir=getDir(rp);
 	tmp->file=file;
 	tmp->curline=1;
 	tmp->procs=NULL;
@@ -1240,6 +1243,7 @@ intpr* newIntpr(const char* filename,FILE* file,CompEnv* env)
 	}
 	tmp->glob=newCompEnv(NULL);
 	initCompEnv(tmp->glob);
+	free(rp);
 	return tmp;
 }
 
@@ -1816,10 +1820,84 @@ Modlist** getpTail(intpr* inter)
 	return &inter->tail;
 }
 
-
 Modlist** getpHead(intpr* inter)
 {
 	while(inter->prev)
 		inter=inter->prev;
 	return &inter->head;
+}
+
+char* getLastWorkDir(intpr* inter)
+{
+	while(inter->prev!=NULL)
+		inter=inter->prev;
+	return inter->curDir;
+}
+
+char* relpath(char* abs,char* relto)
+{
+#ifdef _WIN32
+	char* divstr="\\";
+	char* upperDir="..\\";
+#else
+	char* divstr="/";
+	char* upperDir="../";
+#endif
+	char* cabs=copyStr(abs);
+	char* crelto=copyStr(relto);
+	int lengthOfAbs=0;
+	int lengthOfRelto=0;
+	char** absDirs=split(cabs,divstr,&lengthOfAbs);
+	char** reltoDirs=split(crelto,divstr,&lengthOfRelto);
+	int length=(lengthOfAbs<lengthOfRelto)?lengthOfAbs:lengthOfRelto;
+	int lastCommonRoot=-1;
+	int index;
+	for(index=0;index<length;index++)
+	{
+		if(!strcmp(absDirs[index],reltoDirs[index]))
+			lastCommonRoot=index;
+		else break;
+	}
+	if(lastCommonRoot==-1)
+	{
+		fprintf(stderr,"Cant get relative path.\n");
+		exit(EXIT_FAILURE);
+	}
+	char rp[PATH_MAX]={0};
+	for(index=lastCommonRoot+1;index<lengthOfAbs;index++)
+		if(lengthOfAbs>0)
+			strcat(rp,upperDir);
+	for(index=lastCommonRoot+1;index<lengthOfRelto-1;index++)
+	{
+		strcat(rp,reltoDirs[index]);
+#ifdef _WIN32
+		strcat(rp,"\\");
+#else
+		strcat(rp,"/");
+#endif
+	}
+	strcat(rp,reltoDirs[lengthOfRelto-1]);
+	char* trp=copyStr(rp);
+	free(absDirs);
+	free(reltoDirs);
+	return trp;
+}
+
+char** split(char* str,char* divstr,int* length)
+{
+	int count=0;
+	int i=0;
+	char* pNext=NULL;
+	char** strArry=(char**)malloc(0);
+	if(strArry==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	pNext=strtok(str,divstr);
+	while(pNext!=NULL)
+	{
+		count++;
+		strArry=(char**)realloc(strArry,sizeof(char*)*count);
+		strArry[count-1]=pNext;
+		pNext=strtok(NULL,divstr);
+	}
+	*length=count;
+	return strArry;
 }

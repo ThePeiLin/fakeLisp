@@ -1678,13 +1678,22 @@ Modlist* newModList(const char* libname)
 
 Dlls* loadAllModules(FILE* fp,Dlls** mods)
 {
+#ifdef _WIN32
+	char* filetype=".dll";
+#else
+	char* filetype=".so";
+#endif
 	int32_t num=0;
 	int i=0;
 	fread(&num,sizeof(int32_t),1,fp);
 	for(;i<num;i++)
 	{
 		char* modname=getStringFromFile(fp);
-		char* rpath=realpath(modname,0);
+		char* realModname=(char*)malloc(sizeof(char)*(strlen(modname)+strlen(filetype)+1));
+		if(realModname==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+		strcpy(realModname,modname);
+		strcat(realModname,filetype);
+		char* rpath=realpath(realModname,0);
 		if(rpath==NULL)
 		{
 			fprintf(stderr,"error:Failed to get real path.\n");
@@ -1693,6 +1702,7 @@ Dlls* loadAllModules(FILE* fp,Dlls** mods)
 		loadDll(rpath,mods,NULL,NULL);
 		free(modname);
 		free(rpath);
+		free(realModname);
 	}
 	return *mods;
 }
@@ -1780,4 +1790,36 @@ int byteArryEq(ByteArry* fir,ByteArry* sec)
 {
 	if(fir->size!=sec->size)return 0;
 	else return !memcmp(fir->arry,sec->arry,sec->size);
+}
+
+int ModHasLoad(const char* name,Modlist* head)
+{
+	while(head)
+	{
+		if(!strcmp(name,head->name))return 1;
+		head=head->next;
+	}
+	return 0;
+}
+
+Dlls** getpDlls(intpr* inter)
+{
+	while(inter->prev)
+		inter=inter->prev;
+	return &inter->modules;
+}
+
+Modlist** getpTail(intpr* inter)
+{
+	while(inter->prev)
+		inter=inter->prev;
+	return &inter->tail;
+}
+
+
+Modlist** getpHead(intpr* inter)
+{
+	while(inter->prev)
+		inter=inter->prev;
+	return &inter->head;
 }

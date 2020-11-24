@@ -62,7 +62,7 @@ int coutArg(ANS_cptr* argCptr)
 void deleteArg(ANS_cptr** args,int num)
 {
 	int i;
-	for(i=0;i++;i<num)
+	for(i=0;i<num;i++)
 	{
 		deleteCptr(args[i]);
 		free(args[i]);
@@ -546,6 +546,7 @@ ErrorStatus N_list(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 	}
 	replace(objCptr,result);
 	deleteCptr(result);
+	free(result);
 	deleteArg(args,argNum);
 	return status;
 }
@@ -566,7 +567,7 @@ ErrorStatus N_defmacro(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 	ANS_cptr* pattern=args[0];
 	ANS_cptr* express=args[1];
 	addMacro(pattern,express);
-	deleteArg(args,2);
+	free(args);
 	objCptr->type=NIL;
 	objCptr->value=NULL;
 	return status;
@@ -1024,25 +1025,31 @@ ErrorStatus N_import(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 		return status;
 	}
 	ANS_atom* tmpAtom=args[0]->value;
-#ifdef _WIN32
-	char* filetype=".dll";
-#else
-	char* filetype=".so";
-#endif
-	char* modname=(char*)malloc(sizeof(char)*(strlen(filetype)+strlen(tmpAtom->value.str)+1));
-	strcpy(modname,tmpAtom->value.str);
-	strcat(modname,filetype);
-	char* rp=realpath(modname,0);
-	if(rp==NULL)
+	if(!ModHasLoad(tmpAtom->value.str,*getpHead(inter)))
 	{
-		fprintf(stderr,"error:Failed to get real path.\n");
-		exit(EXIT_FAILURE);
+#ifdef _WIN32
+		char* filetype=".dll";
+#else
+		char* filetype=".so";
+#endif
+		char* modname=(char*)malloc(sizeof(char)*(strlen(filetype)+strlen(tmpAtom->value.str)+1));
+		strcpy(modname,tmpAtom->value.str);
+		strcat(modname,filetype);
+		char* rp=realpath(modname,0);
+		if(rp==NULL)
+		{
+			fprintf(stderr,"error:Failed to get real path.\n");
+			exit(EXIT_FAILURE);
+		}
+		Dlls** pDlls=getpDlls(inter);
+		Modlist** pTail=getpTail(inter);
+		Modlist** pHead=getpHead(inter);
+		loadDll(rp,pDlls,tmpAtom->value.str,pTail);
+		if(*pHead==NULL)*pHead=*pTail;
+		free(modname);
+		free(rp);
 	}
-	loadDll(rp,&inter->modules,modname,&inter->tail);
-	if(inter->head==NULL)inter->head=inter->tail;
 	replace(objCptr,args[0]);
 	deleteArg(args,1);
-	free(modname);
-	free(rp);
 	return status;
 }

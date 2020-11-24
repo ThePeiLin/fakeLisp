@@ -1024,18 +1024,20 @@ ErrorStatus N_import(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 		deleteArg(args,1);
 		return status;
 	}
+#ifdef _WIN32
+	char* filetype=".dll";
+#else
+	char* filetype=".so";
+#endif
 	ANS_atom* tmpAtom=args[0]->value;
+	char* modname=(char*)malloc(sizeof(char)*(strlen(filetype)+strlen(tmpAtom->value.str)+1));
+	strcpy(modname,tmpAtom->value.str);
+	strcat(modname,filetype);
+	char* rp=realpath(modname,0);
+	char* rep=relpath(rp,getLastWorkDir(inter));
 	if(!ModHasLoad(tmpAtom->value.str,*getpHead(inter)))
 	{
-#ifdef _WIN32
-		char* filetype=".dll";
-#else
-		char* filetype=".so";
-#endif
-		char* modname=(char*)malloc(sizeof(char)*(strlen(filetype)+strlen(tmpAtom->value.str)+1));
-		strcpy(modname,tmpAtom->value.str);
-		strcat(modname,filetype);
-		char* rp=realpath(modname,0);
+
 		if(rp==NULL)
 		{
 			fprintf(stderr,"error:Failed to get real path.\n");

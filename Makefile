@@ -16,7 +16,7 @@ endif
 
 form.o: src/form.* src/fakedef.h
 	gcc $(FLAG) -c src/form.c
-tool.o: src/tool.* src/fakedef.h
+tool.o: src/tool.* src/fakedef.h src/opcode.h
 	gcc $(FLAG) -c src/tool.c
 preprocess.o: src/preprocess.* src/fakedef.h
 	gcc $(FLAG) -c src/preprocess.c

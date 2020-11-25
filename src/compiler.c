@@ -390,7 +390,7 @@ ByteCode* compileSym(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus*
 	if(tmpDef==NULL)
 	{
 		char* headOfFuncName="FAKE_";
-		char* realFuncName=(char*)malloc(sizeof(char)*(strlen(headOfFuncName)+strlen(tmpAtm->value.str)));
+		char* realFuncName=(char*)malloc(sizeof(char)*(1+strlen(headOfFuncName)+strlen(tmpAtm->value.str)));
 		if(realFuncName==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 		strcpy(realFuncName,headOfFuncName);
 		strcat(realFuncName,tmpAtm->value.str);
@@ -427,6 +427,7 @@ ByteCode* compileSym(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus*
 		freeByteCode(pushTop);
 		freeByteCode(popVar);
 		freeByteCode(pushVar);
+		free(realFuncName);
 		return tmp;
 	}
 	else

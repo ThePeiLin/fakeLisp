@@ -27,13 +27,13 @@ int main(int argc,char** argv)
 		strcpy(outputname,filename);
 		strcat(outputname,"c");
 		FILE* outfp=fopen(outputname,"w");
-		changeWorkPath(filename);
+		//changeWorkPath(filename);
 		initPreprocess();
 		initEvalution();
 		int i;
 		intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL);
 		ByteCode* mainByteCode=compileFile(inter);
-		printByteCode(mainByteCode,stderr);
+		//printByteCode(mainByteCode,stderr);
 		int32_t numOfRawproc=(inter->procs==NULL)?0:inter->procs->count+1;
 		fwrite(&numOfRawproc,sizeof(numOfRawproc),1,outfp);
 		ByteCode* rawProcList=castRawproc(inter->procs);

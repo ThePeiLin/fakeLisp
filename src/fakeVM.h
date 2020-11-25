@@ -40,7 +40,7 @@ int B_rand(fakeVM*);
 int B_atom(fakeVM*);
 int B_null(fakeVM*);
 int B_init_proc(fakeVM*);
-int B_run_proc(fakeVM*);
+int B_call_proc(fakeVM*);
 int B_end_proc(fakeVM*);
 int B_set_bp(fakeVM*);
 int B_invoke(fakeVM*);

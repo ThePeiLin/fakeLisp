@@ -1178,7 +1178,7 @@ void exError(const ANS_cptr* obj,int type,intpr* inter)
 	{
 		case SYMUNDEFINE:fprintf(stderr,":Symbol is undefined.\n");break;
 		case SYNTAXERROR:fprintf(stderr,":Syntax error.\n");break;
-		case ILLEGALEXPR:fprintf(stderr,":Illegal expression here.\n");break;
+		case ILLEGALEXPR:fprintf(stderr,":Invalid expression here.\n");break;
 		case CIRCULARLOAD:fprintf(stderr,":Circular load file.\n");break;
 	}
 }
@@ -1228,6 +1228,11 @@ intpr* newIntpr(const char* filename,FILE* file,CompEnv* env)
 	if(!(tmp=(intpr*)malloc(sizeof(intpr))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp->filename=copyStr(filename);
 	char* rp=realpath(filename,0);
+	if(rp==NULL)
+	{
+		fprintf(stderr,"%s:Cant get real path.\n",filename);
+		exit(EXIT_FAILURE);
+	}
 	tmp->curDir=getDir(rp);
 	tmp->file=file;
 	tmp->curline=1;
@@ -1250,8 +1255,11 @@ intpr* newIntpr(const char* filename,FILE* file,CompEnv* env)
 void freeIntpr(intpr* inter)
 {
 	free(inter->filename);
+	free(inter->curDir);
 	fclose(inter->file);
 	destroyCompEnv(inter->glob);
+	deleteAllDll(inter->modules);
+	freeModlist(inter->head);
 	RawProc* tmp=inter->procs;
 	while(tmp!=NULL)
 	{
@@ -1574,14 +1582,14 @@ RawProc* getHeadRawProc(const intpr* inter)
 
 ByteCode* newDllFuncProc(const char* name)
 {
-	ByteCode* runProc=createByteCode(sizeof(char)+strlen(name)+1);
+	ByteCode* callProc=createByteCode(sizeof(char)+strlen(name)+1);
 	ByteCode* endProc=createByteCode(1);
 	endProc->code[0]=FAKE_END_PROC;
-	runProc->code[0]=FAKE_RUN_PROC;
-	strcpy(runProc->code+sizeof(char),name);
-	codeCat(runProc,endProc);
+	callProc->code[0]=FAKE_CALL_PROC;
+	strcpy(callProc->code+sizeof(char),name);
+	codeCat(callProc,endProc);
 	freeByteCode(endProc);
-	return runProc;
+	return callProc;
 }
 
 ANS_cptr* getANSPairCar(const ANS_cptr* obj)
@@ -1614,7 +1622,6 @@ Dlls* loadDll(const char* rpath,Dlls** Dhead,const char* modname,Modlist** tail)
 	if(handle==NULL)
 	{
 		perror(dlerror());
-		fprintf(stderr,"error:Fail to load dll.\n");
 		exit(EXIT_FAILURE);
 	}
 	Dlls* tmp=newDll(handle);
@@ -1654,12 +1661,14 @@ void deleteAllDll(Dlls* head)
 	Dlls* cur=head;
 	while(cur)
 	{
+		Dlls* prev=cur;
 #ifdef _WIN32
-		FreeLibrary(cur->handle);
+		FreeLibrary(prev->handle);
 #else
-		dlclose(cur->handle);
+		dlclose(prev->handle);
 #endif
 		cur=cur->next;
+		free(prev);
 	}
 }
 
@@ -1700,7 +1709,7 @@ Dlls* loadAllModules(FILE* fp,Dlls** mods)
 		char* rpath=realpath(realModname,0);
 		if(rpath==NULL)
 		{
-			fprintf(stderr,"error:Failed to get real path.\n");
+			perror(rpath);
 			exit(EXIT_FAILURE);
 		}
 		loadDll(rpath,mods,NULL,NULL);
@@ -1718,7 +1727,7 @@ void changeWorkPath(const char* filename)
 	int32_t len=strlen(p);
 	if(chdir(wp))
 	{
-		fprintf(stderr,"error:Can't access path.\n");
+		perror(wp);
 		exit(EXIT_FAILURE);
 	}
 	free(p);
@@ -1735,6 +1744,7 @@ char* getDir(const char* filename)
 	int i=strlen(filename)-1;
 	for(;filename[i]!=dp;i--);
 	char* tmp=(char*)malloc(sizeof(char)*(i+1));
+	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp[i]='\0';
 	memcpy(tmp,filename,i);
 	return tmp;
@@ -1878,6 +1888,8 @@ char* relpath(char* abs,char* relto)
 	}
 	strcat(rp,reltoDirs[lengthOfRelto-1]);
 	char* trp=copyStr(rp);
+	free(cabs);
+	free(crelto);
 	free(absDirs);
 	free(reltoDirs);
 	return trp;
@@ -1900,4 +1912,15 @@ char** split(char* str,char* divstr,int* length)
 	}
 	*length=count;
 	return strArry;
+}
+
+void freeModlist(Modlist* cur)
+{
+	while(cur)
+	{
+		Modlist* prev=cur;
+		cur=cur->next;
+		free(prev->name);
+		free(prev);
+	}
 }

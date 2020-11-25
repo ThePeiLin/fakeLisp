@@ -1034,23 +1034,29 @@ ErrorStatus N_import(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 	strcpy(modname,tmpAtom->value.str);
 	strcat(modname,filetype);
 	char* rp=realpath(modname,0);
-	char* rep=relpath(rp,getLastWorkDir(inter));
-	if(!ModHasLoad(tmpAtom->value.str,*getpHead(inter)))
+	char* rep=relpath(getLastWorkDir(inter),rp);
+	char* rmodname=(char*)malloc(sizeof(char)*(strlen(rep)-strlen(filetype)+1));
+	if(!rmodname)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	memcpy(rmodname,rep,strlen(rep)-strlen(filetype));
+	rmodname[strlen(rep)-strlen(filetype)]='\0';
+	if(!ModHasLoad(rmodname,*getpHead(inter)))
 	{
 
 		if(rp==NULL)
 		{
-			fprintf(stderr,"error:Failed to get real path.\n");
+			perror(rep);
 			exit(EXIT_FAILURE);
 		}
 		Dlls** pDlls=getpDlls(inter);
 		Modlist** pTail=getpTail(inter);
 		Modlist** pHead=getpHead(inter);
-		loadDll(rp,pDlls,tmpAtom->value.str,pTail);
+		loadDll(rp,pDlls,rmodname,pTail);
 		if(*pHead==NULL)*pHead=*pTail;
-		free(modname);
-		free(rp);
 	}
+	free(rmodname);
+	free(modname);
+	free(rp);
+	free(rep);
 	replace(objCptr,args[0]);
 	deleteArg(args,1);
 	return status;

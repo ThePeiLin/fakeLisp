@@ -39,7 +39,7 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_pop_cdr,
 	B_pop_ref,
 	B_init_proc,
-	B_run_proc,
+	B_call_proc,
 	B_end_proc,
 	B_set_bp,
 	B_invoke,
@@ -1741,7 +1741,7 @@ int B_init_proc(fakeVM* exe)
 	return 0;
 }
 
-int B_run_proc(fakeVM* exe)
+int B_call_proc(fakeVM* exe)
 {
 	VMprocess* proc=exe->curproc;
 	VMcode* tmpCode=proc->code;

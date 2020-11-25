@@ -93,4 +93,6 @@ Modlist** getpHead(intpr*);
 char** split(char*,char*,int*);
 char* relpath(char*,char*);
 char* getLastWorkDir(intpr*);
+void freeAllDll(Dlls*);
+void freeModlist(Modlist*);
 #endif

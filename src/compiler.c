@@ -394,7 +394,7 @@ ByteCode* compileSym(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus*
 		if(realFuncName==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 		strcpy(realFuncName,headOfFuncName);
 		strcat(realFuncName,tmpAtm->value.str);
-		void* funcAddress=getAddress(realFuncName,inter->modules);
+		void* funcAddress=getAddress(realFuncName,*getpDlls(inter));
 		if(funcAddress==NULL)
 		{
 			status->status=SYMUNDEFINE;

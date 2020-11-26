@@ -1227,14 +1227,17 @@ intpr* newIntpr(const char* filename,FILE* file,CompEnv* env)
 	intpr* tmp=NULL;
 	if(!(tmp=(intpr*)malloc(sizeof(intpr))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp->filename=copyStr(filename);
-	char* rp=realpath(filename,0);
-	if(rp==NULL)
+	if(file!=stdin)
 	{
-		perror(rp);
-		exit(EXIT_FAILURE);
+		char* rp=realpath(filename,0);
+		if(rp==NULL)
+		{
+			perror(rp);
+			exit(EXIT_FAILURE);
+		}
+		tmp->curDir=getDir(rp);
+		free(rp);
 	}
-	tmp->curDir=getDir(rp);
-	free(rp);
 	tmp->file=file;
 	tmp->curline=1;
 	tmp->procs=NULL;

@@ -34,7 +34,7 @@ fakeLisp: $(objectOfFakeLisp) $(objectOfFakeLispc)
 	gcc $(FLAG) -o fakeLisp $(objectOfFakeLisp) $(LINK)
 	gcc $(FLAG) -o fakeLispc $(objectOfFakeLispc) $(LINK)
 fakeLispc: $(objectOfFakeLispc)
-	gcc -o fakeLispc $(objectOfFakeLispc)
+	gcc $(FLAG) fakeLispc $(objectOfFakeLispc)
 
 .PHONY: clean
 clean:

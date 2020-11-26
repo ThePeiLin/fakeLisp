@@ -822,23 +822,17 @@ ByteCode* compileLoad(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus
 		perror(name->value.str);
 		exit(EXIT_FAILURE);
 	}
-	char* rp=realpath(name->value.str,0);
-	char* rd=getDir(rp);
-	intpr* tmpIntpr=newIntpr(name->value.str,fopen(name->value.str,"r"),curEnv);
+	intpr* tmpIntpr=newIntpr(name->value.str,file,curEnv);
 	tmpIntpr->prev=inter;
 	tmpIntpr->procs=NULL;
 	tmpIntpr->glob=curEnv;
 	tmpIntpr->head=NULL;
 	tmpIntpr->tail=NULL;
 	tmpIntpr->modules=NULL;
-	tmpIntpr->curDir=rd;
 	ByteCode* tmp=compileFile(tmpIntpr);
 	chdir(tmpIntpr->prev->curDir);
-	free(tmpIntpr->filename);
-	fclose(tmpIntpr->file);
-	free(tmpIntpr);
-	free(rp);
-	free(rd);
+	tmpIntpr->glob=NULL;
+	freeIntpr(tmpIntpr);
 	//printByteCode(tmp,stderr);
 	return tmp;
 }

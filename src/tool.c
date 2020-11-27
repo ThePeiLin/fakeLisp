@@ -246,7 +246,7 @@ char* subGetList(FILE* file)
 	char* before;
 	int ch;
 	int i=0;
-	int j;
+	int j=0;
 	int mark=0;
 	int braketsNum=0;
 	int anotherChar=0;
@@ -265,7 +265,7 @@ char* subGetList(FILE* file)
 			while(getc(file)!='\n');
 			continue;
 		}
-		if(ch==','&&braketsNum<=0&&!mark&&(tmp==NULL||(*(tmp+j-1)!='\\')))
+		if(ch==','&&braketsNum<=0&&!mark&&(tmp==NULL||((j==0)&&(*(tmp+j-1)!='\\'))))
 		{
 			ungetc(ch,file);
 			break;
@@ -276,11 +276,14 @@ char* subGetList(FILE* file)
 		before=tmp;
 		if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))
 			errors(OUTOFMEMORY,__FILE__,__LINE__);
-		memcpy(tmp,before,j);
+		if(before!=NULL)
+		{
+			memcpy(tmp,before,j);
+			free(before);
+		}
 		*(tmp+j)=ch;
-		mark^=(ch=='\"'&&*(tmp+j-1)!='\\');
-		if(before!=NULL)free(before);
-		if(ch=='('&&!mark&&(tmp==NULL||*(tmp+j-1)!='\\'))braketsNum++;
+		mark^=(ch=='\"'&&(j==0||*(tmp+j-1)!='\\'));
+		if(ch=='('&&!mark&&(j==0||*(tmp+j-1)!='\\'))braketsNum++;
 		else if(!isspace(ch))anotherChar=1;
 	}
 	if(tmp!=NULL)*(tmp+i)='\0';

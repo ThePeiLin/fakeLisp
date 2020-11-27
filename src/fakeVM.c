@@ -12,7 +12,7 @@
 #endif
 #include<unistd.h>
 #include<time.h>
-#define NUMOFBUILTINSYMBOL 62
+#define NUMOFBUILTINSYMBOL 60
 pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
 fakeVMStack GlobFakeVMs={0,NULL};
 static int (*ByteCodes[])(fakeVM*)=
@@ -84,7 +84,6 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_le,
 	B_not,
 	B_getc,
-	B_getch,
 	B_ungetc,
 	B_read,
 	B_readb,
@@ -99,7 +98,6 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_send,
 	B_accept,
 	B_getid,
-	B_slp
 };
 
 ByteCode P_cons=
@@ -677,16 +675,16 @@ ByteCode P_getc=
 	}
 };
 
-ByteCode P_getch=
-{
-	3,
-	(char[])
-	{
-		FAKE_RES_BP,
-		FAKE_GETCH,
-		FAKE_END_PROC
-	}
-};
+//ByteCode P_getch=
+//{
+//	3,
+//	(char[])
+//	{
+//		FAKE_RES_BP,
+//		FAKE_GETCH,
+//		FAKE_END_PROC
+//	}
+//};
 
 ByteCode P_ungetc=
 {
@@ -882,20 +880,20 @@ ByteCode P_getid=
 	}
 };
 
-ByteCode P_slp=
-{
-	23,
-	(char[])
-	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
-		FAKE_RES_BP,
-		FAKE_PUSH_VAR,0,0,0,0,
-		FAKE_PUSH_VAR,1,0,0,0,
-		FAKE_SLP,
-		FAKE_END_PROC
-	}
-};
+//ByteCode P_slp=
+//{
+//	23,
+//	(char[])
+//	{
+//		FAKE_POP_VAR,0,0,0,0,
+//		FAKE_POP_VAR,1,0,0,0,
+//		FAKE_RES_BP,
+//		FAKE_PUSH_VAR,0,0,0,0,
+//		FAKE_PUSH_VAR,1,0,0,0,
+//		FAKE_SLP,
+//		FAKE_END_PROC
+//	}
+//};
 
 fakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 {
@@ -982,7 +980,6 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 		P_open,
 		P_close,
 		P_getc,
-		P_getch,
 		P_ungetc,
 		P_read,
 		P_readb,
@@ -997,7 +994,6 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 		P_send,
 		P_accept,
 		P_getid,
-		P_slp
 	};
 	obj->size=NUMOFBUILTINSYMBOL;
 	obj->values=(VMvalue**)realloc(obj->values,sizeof(VMvalue*)*NUMOFBUILTINSYMBOL);
@@ -2534,22 +2530,22 @@ int B_getc(fakeVM* exe)
 	return 0;
 }
 
-int B_getch(fakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMprocess* proc=exe->curproc;
-	if(stack->tp>=stack->size)
-	{
-		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
-		stack->size+=64;
-	}
-	char ch=getch();
-	stack->values[stack->tp]=newVMvalue(CHR,&ch,exe->heap,1);
-	stack->tp+=1;
-	proc->cp+=1;
-	return 0;
-}
+//int B_getch(fakeVM* exe)
+//{
+//	VMstack* stack=exe->stack;
+//	VMprocess* proc=exe->curproc;
+//	if(stack->tp>=stack->size)
+//	{
+//		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
+//		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+//		stack->size+=64;
+//	}
+//	char ch=getch();
+//	stack->values[stack->tp]=newVMvalue(CHR,&ch,exe->heap,1);
+//	stack->tp+=1;
+//	proc->cp+=1;
+//	return 0;
+//}
 
 int B_ungetc(fakeVM* exe)
 {
@@ -3043,7 +3039,8 @@ VMvalue* copyValue(VMvalue* obj,VMheap* heap)
 
 void freeVMcode(VMcode* proc)
 {
-	freeVMenv(proc->localenv);
+	if(proc->localenv)
+		freeVMenv(proc->localenv);
 	free(proc->code);
 	free(proc);
 	//printf("Free proc!\n");
@@ -3803,7 +3800,8 @@ void freeAllVMs()
 	int i=1;
 	fakeVM* cur=GlobFakeVMs.VMs[0];
 	pthread_mutex_destroy(&cur->lock);
-	freeVMcode(cur->mainproc->code);
+	if(cur->mainproc->code)
+		freeVMcode(cur->mainproc->code);
 	free(cur->mainproc);
 	freeVMstack(cur->stack);
 	freeFileStack(cur->files);
@@ -3861,4 +3859,9 @@ intpr* newTmpIntpr(const char* filename,FILE* fp)
 	tmp->tail=NULL;
 	tmp->glob=NULL;
 	return tmp;
+}
+
+void releaseSource()
+{
+	pthread_rwlock_unlock(&GClock);
 }

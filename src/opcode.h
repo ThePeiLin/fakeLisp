@@ -68,7 +68,6 @@ enum opcode
 	FAKE_LE,
 	FAKE_NOT,
 	FAKE_GETC,
-	FAKE_GETCH,
 	FAKE_UNGETC,
 	FAKE_READ,
 	FAKE_READB,
@@ -83,7 +82,6 @@ enum opcode
 	FAKE_SEND,
 	FAKE_ACCEPT,
 	FAKE_GETID,
-	FAKE_SLP
 };
 
 typedef struct
@@ -161,7 +159,6 @@ static codeinfor codeName[]=
 	{"le",0},
 	{"not",0},
 	{"getc",0},
-	{"getch",0},
 	{"ungetc",0},
 	{"read",0},
 	{"readb",0},
@@ -176,7 +173,6 @@ static codeinfor codeName[]=
 	{"send",0},
 	{"accept",0},
 	{"getid",0},
-	{"slp",0}
 };
 
 #endif

@@ -31,32 +31,45 @@ int main(int argc,char** argv)
 			initPreprocess();
 			VMenv* globEnv=newVMenv(0,NULL);
 			ByteCode* mainByteCode=compileFile(inter);
-			fakeVM* anotherVM=newFakeVM(mainByteCode,castRawproc(NULL,inter->procs));
+			ByteCode* rawProcList=castRawproc(NULL,inter->procs);
+			fakeVM* anotherVM=newFakeVM(mainByteCode,rawProcList);
+			freeByteCode(mainByteCode);
 			anotherVM->tid=pthread_self();
 			anotherVM->mainproc->localenv=globEnv;
 			anotherVM->mainproc->code->localenv=globEnv;
 			anotherVM->modules=inter->modules;
 			initGlobEnv(globEnv,anotherVM->heap);
 			runFakeVM(anotherVM);
-			GC_sweep(anotherVM->heap);
+			joinAllThread();
+			free(rawProcList);
+			freeIntpr(inter);
+			anotherVM->modules=NULL;
+			unInitPreprocess();
+			freeVMheap(anotherVM->heap);
+			freeAllVMs();
 		}
-		deleteAllDll(inter->modules);
 	}
 	else if(iscode(filename))
 	{
+		int32_t num=0;
 		changeWorkPath(filename);
-		ByteCode* RawProcess=loadRawproc(fp);
+		ByteCode* RawProcess=loadRawproc(fp,&num);
 		ByteCode* mainprocess=loadByteCode(fp);
 		//printByteCode(mainprocess,stdout);
 		fakeVM* anotherVM=newFakeVM(mainprocess,RawProcess);
+		VMheap* heap=anotherVM->heap;
+		freeByteCode(mainprocess);
 		loadAllModules(fp,&anotherVM->modules);
+		fclose(fp);
 		VMenv* globEnv=newVMenv(0,NULL);
 		anotherVM->mainproc->localenv=globEnv;
 		anotherVM->mainproc->code->localenv=globEnv;
 		initGlobEnv(globEnv,anotherVM->heap);
 		runFakeVM(anotherVM);
-		GC_sweep(anotherVM->heap);
-		deleteAllDll(anotherVM->modules);
+		joinAllThread();
+		freeAllVMs();
+		freeVMheap(heap);
+		freeRawProc(RawProcess,num);
 	}
 	else
 	{
@@ -103,6 +116,7 @@ void runIntpr(intpr* inter)
 	anotherVM->mainproc->localenv=globEnv;
 	anotherVM->tid=pthread_self();
 	initGlobEnv(globEnv,anotherVM->heap);
+	ByteCode* rawProcList=NULL;
 	for(;;)
 	{
 		ANS_cptr* begin=NULL;
@@ -111,12 +125,12 @@ void runIntpr(intpr* inter)
 		if(ch==EOF)break;
 		else ungetc(ch,inter->file);
 		char* list=getListFromFile(inter->file);
-	//	printf("%s\n==================\n",list);
+		//	printf("%s\n==================\n",list);
 		if(list==NULL)continue;
 		ErrorStatus status={0,NULL};
 		begin=createTree(list,inter);
-	//	printList(begin,stderr);
-	//	printf("\n==============\n");
+		//	printList(begin,stderr);
+		//	printf("\n==============\n");
 		if(begin!=NULL)
 		{
 
@@ -137,8 +151,8 @@ void runIntpr(intpr* inter)
 			}
 			else
 			{
-			//	printList(begin,stdout);
-			//	putchar('\n');
+				//	printList(begin,stdout);
+				//	putchar('\n');
 				ByteCode* tmpByteCode=compile(begin,inter->glob,inter,&status);
 				if(status.status!=0)
 				{
@@ -153,7 +167,8 @@ void runIntpr(intpr* inter)
 				else
 				{
 					//printByteCode(tmpByteCode,stderr);
-					anotherVM->procs=castRawproc(anotherVM->procs,inter->procs);
+					rawProcList=castRawproc(rawProcList,inter->procs);
+					anotherVM->procs=rawProcList;
 					anotherVM->mainproc->code=newVMcode(tmpByteCode);
 					anotherVM->mainproc->code->localenv=globEnv;
 					anotherVM->mainproc->localenv=globEnv;
@@ -182,7 +197,13 @@ void runIntpr(intpr* inter)
 			free(begin);
 		}
 	}
-	GC_sweep(anotherVM->heap);
+	joinAllThread();
+	free(rawProcList);
+	freeIntpr(inter);
+	anotherVM->modules=NULL;
+	unInitPreprocess();
+	freeVMheap(anotherVM->heap);
+	freeAllVMs();
 }
 
 ByteCode* castRawproc(ByteCode* prev,RawProc* procs)
@@ -207,11 +228,12 @@ ByteCode* castRawproc(ByteCode* prev,RawProc* procs)
 }
 
 
-ByteCode* loadRawproc(FILE* fp)
+ByteCode* loadRawproc(FILE* fp,int32_t* renum)
 {
 	int32_t num=0;
 	int i=0;
 	fread(&num,sizeof(int32_t),1,fp);
+	*renum=num;
 	ByteCode* tmp=(ByteCode*)malloc(sizeof(ByteCode)*num);
 	if(tmp==NULL)
 	{
@@ -234,6 +256,14 @@ ByteCode* loadRawproc(FILE* fp)
 			tmp[i].code[j]=getc(fp);
 	}
 	return tmp;
+}
+
+void freeRawProc(ByteCode* l,int32_t num)
+{
+	int i=0;
+	for(;i<num;i++)
+		free(l[i].code);
+	free(l);
 }
 
 ByteCode* loadByteCode(FILE* fp)

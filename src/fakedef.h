@@ -214,6 +214,7 @@ typedef struct VM_Str
 	int32_t refcount;
 	char* str;
 }VMstr;
+
 typedef struct VM_Process
 {
 	struct VM_Process* prev;

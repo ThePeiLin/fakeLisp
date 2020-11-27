@@ -1261,8 +1261,11 @@ intpr* newIntpr(const char* filename,FILE* file,CompEnv* env)
 void freeIntpr(intpr* inter)
 {
 	free(inter->filename);
-	free(inter->curDir);
-	fclose(inter->file);
+	if(inter->file!=stdin)
+	{
+		fclose(inter->file);
+		free(inter->curDir);
+	}
 	destroyCompEnv(inter->glob);
 	deleteAllDll(inter->modules);
 	freeModlist(inter->head);

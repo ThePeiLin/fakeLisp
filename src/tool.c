@@ -11,7 +11,7 @@
 #endif
 #include"tool.h"
 #include"opcode.h"
-#define NUMOFBUILDINSYMBOL 62
+#define NUMOFBUILDINSYMBOL 60
 char* builtInSymbolList[]=
 {
 	"nil",
@@ -60,7 +60,6 @@ char* builtInSymbolList[]=
 	"open",
 	"close",
 	"getc",
-	"getch",
 	"ungetc",
 	"read",
 	"readb",
@@ -75,7 +74,6 @@ char* builtInSymbolList[]=
 	"send",
 	"accept",
 	"getid",
-	"slp"
 };
 
 char* getListFromFile(FILE* file)
@@ -1241,6 +1239,8 @@ intpr* newIntpr(const char* filename,FILE* file,CompEnv* env)
 		tmp->curDir=getDir(rp);
 		free(rp);
 	}
+	else
+		tmp->curDir=getcwd(NULL,0);
 	tmp->file=file;
 	tmp->curline=1;
 	tmp->procs=NULL;
@@ -1262,10 +1262,8 @@ void freeIntpr(intpr* inter)
 {
 	free(inter->filename);
 	if(inter->file!=stdin)
-	{
 		fclose(inter->file);
-		free(inter->curDir);
-	}
+	free(inter->curDir);
 	destroyCompEnv(inter->glob);
 	deleteAllDll(inter->modules);
 	freeModlist(inter->head);

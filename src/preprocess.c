@@ -444,6 +444,7 @@ int PreMacroExpand(ANS_cptr* objCptr,intpr* inter)
 		deleteCptr(tmp->express);
 		free(tmp->express);
 		tmp->express=tmpCptr;
+		destroyEnv(MacroEnv);
 		return 1;
 	}
 	return 0;

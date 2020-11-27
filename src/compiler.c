@@ -455,6 +455,7 @@ ByteCode* compileAnd(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus*
 		{
 			status->status=ILLEGALEXPR;
 			status->place=objCptr;
+			freeByteCode(pop);
 			freeByteCode(tmp);
 			freeByteCode(jumpiffalse);
 			freeByteCode(push1);
@@ -463,6 +464,7 @@ ByteCode* compileAnd(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus*
 		ByteCode* tmp1=compile(objCptr,curEnv,inter,status);
 		if(status->status!=0)
 		{
+			freeByteCode(pop);
 			freeByteCode(tmp);
 			freeByteCode(jumpiffalse);
 			freeByteCode(push1);
@@ -475,6 +477,7 @@ ByteCode* compileAnd(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus*
 		freeByteCode(tmp1);
 	}
 	reCodeCat(push1,tmp);
+	freeByteCode(pop);
 	freeByteCode(jumpiffalse);
 	freeByteCode(push1);
 	return tmp;
@@ -515,6 +518,7 @@ ByteCode* compileOr(ANS_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* 
 				return NULL;
 			}
 			reCodeCat(tmp1,tmp);
+			freeByteCode(tmp1);
 			*(int32_t*)(jumpifture->code+sizeof(char))=tmp->size;
 			reCodeCat(jumpifture,tmp);
 			objCptr=prevCptr(objCptr);

@@ -35,6 +35,8 @@ fakeLisp: $(objectOfFakeLisp) $(objectOfFakeLispc)
 	gcc $(FLAG) -o fakeLispc $(objectOfFakeLispc) $(LINK)
 fakeLispc: $(objectOfFakeLispc)
 	gcc $(FLAG) fakeLispc $(objectOfFakeLispc)
+btk: src/tool.* src/fakeVM.*
+	gcc -fPIC -shared -g -o btk.so src/btk.c src/fakeVM.c src/tool.c
 
 .PHONY: clean
 clean:

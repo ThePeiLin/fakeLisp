@@ -901,8 +901,12 @@ fakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 {
 	fakeVM* exe=(fakeVM*)malloc(sizeof(fakeVM));
 	if(exe==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
-	exe->mainproc=newFakeProcess(newVMcode(mainproc),NULL);
+	if(mainproc!=NULL)
+		exe->mainproc=newFakeProcess(newVMcode(mainproc),NULL);
+	else
+		exe->mainproc=newFakeProcess(NULL,NULL);
 	exe->curproc=exe->mainproc;
+	exe->modules=NULL;
 	exe->procs=procs;
 	exe->mark=1;
 	exe->stack=newStack(0);
@@ -1023,7 +1027,9 @@ void* ThreadVMFunc(void* p)
 	exe->mark=0;
 	pthread_mutex_destroy(&exe->lock);
 	freeMessage(exe->queueHead);
+	exe->queueHead=NULL;
 	freeVMstack(exe->stack);
+	exe->stack=NULL;
 	return NULL;
 }
 
@@ -1508,6 +1514,7 @@ int B_pop_rest_var(fakeVM* exe)
 	{
 		if(stack->tp>stack->bp)
 		{
+			tmp->u.pair->car->access=1;
 			VMvalue* topValue=getTopValue(stack);
 			copyRef(tmp->u.pair->car,topValue);
 			stack->tp-=1;
@@ -1748,10 +1755,13 @@ int B_call_proc(fakeVM* exe)
 	char* funcname=tmpCode->code+proc->cp+1;
 	char* headOfFunc="FAKE_";
 	char* realfuncName=(char*)malloc(sizeof(char)*(strlen(headOfFunc)+strlen(funcname)+1));
+	if(realfuncName==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 	strcpy(realfuncName,headOfFunc);
 	strcat(realfuncName,funcname);
 	proc->cp+=2+strlen(funcname);
-	return ((ModFunc)getAddress(realfuncName,exe->modules))(exe);
+	int retval=((ModFunc)getAddress(realfuncName,exe->modules))(exe);
+	free(realfuncName);
+	return retval;
 }
 
 int B_end_proc(fakeVM* exe)
@@ -1769,7 +1779,7 @@ int B_end_proc(fakeVM* exe)
 		tmpCode->localenv=newVMenv(tmpEnv->bound,tmpEnv->prev);
 	free(tmpProc);
 	freeVMenv(tmpEnv);
-	if(tmpCode->refcount==0)
+	if(!tmpCode->refcount)
 		freeVMcode(tmpCode);
 	else
 		tmpCode->refcount-=1;
@@ -2569,7 +2579,7 @@ int B_read(fakeVM* exe)
 	FILE* tmpFile=files->files[*file->u.num];
 	if(tmpFile==NULL)return 2;
 	char* tmpString=getListFromFile(tmpFile);
-	intpr* tmpIntpr=newIntpr(NULL,tmpFile,NULL);
+	intpr* tmpIntpr=newTmpIntpr(NULL,tmpFile);
 	ANS_cptr* tmpCptr=createTree(tmpString,tmpIntpr);
 	VMvalue* tmp=NULL;
 	if(tmpCptr==NULL)return 3;
@@ -2740,10 +2750,9 @@ int B_go(fakeVM* exe)
 	VMvalue* threadProc=getValue(stack,stack->tp-2);
 	if(threadProc->type!=PRC||(threadArg->type!=PAIR&&threadArg->type!=NIL))
 		return 1;
-	fakeVM* threadVM=newThreadVM(threadProc->u.prc,exe->procs,exe->files,exe->heap);
+	fakeVM* threadVM=newThreadVM(threadProc->u.prc,exe->procs,exe->files,exe->heap,exe->modules);
 	VMstack* threadVMstack=threadVM->stack;
 	VMvalue* prevBp=newVMvalue(INT,&threadVMstack->bp,exe->heap,1);
-	threadProc->u.prc->refcount+=1;
 	if(threadVMstack->tp>=threadVMstack->size)
 	{
 		threadVMstack->values=(VMvalue**)realloc(threadVMstack->values,sizeof(VMvalue*)*(threadVMstack->size+64));
@@ -2933,6 +2942,16 @@ filestack* newFileStack()
 	tmp->files[1]=stdout;
 	tmp->files[2]=stderr;
 	return tmp;
+}
+
+void freeFileStack(filestack* s)
+{
+	int i=3;
+	for(;i<s->size;i++)
+		fclose(s->files[i]);
+	free(s->files);
+	pthread_mutex_destroy(&s->lock);
+	free(s);
 }
 
 VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap,int access)
@@ -3347,12 +3366,12 @@ void printProc(VMcode* code,FILE* fp)
 
 VMpair* newVMpair(VMheap* heap)
 {
-		VMpair* tmp=(VMpair*)malloc(sizeof(VMpair));
-		if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
-		tmp->refcount=0;
-		tmp->car=newNilValue(heap);
-		tmp->cdr=newNilValue(heap);
-		return tmp;
+	VMpair* tmp=(VMpair*)malloc(sizeof(VMpair));
+	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	tmp->refcount=0;
+	tmp->car=newNilValue(heap);
+	tmp->cdr=newNilValue(heap);
+	return tmp;
 }
 
 ByteArry* newByteArry(size_t size,uint8_t* arry)
@@ -3481,7 +3500,7 @@ void freeVMenv(VMenv* obj)
 {
 	while(obj!=NULL)
 	{
-		if(obj->refcount==0)
+		if(!obj->refcount)
 		{
 			VMenv* prev=obj;
 			obj=obj->prev;
@@ -3582,7 +3601,7 @@ void GC_sweep(VMheap* heap)
 				heap->head=cur->next;
 			if(cur->next!=NULL)cur->next->prev=cur->prev;
 			if(cur->prev!=NULL)cur->prev->next=cur->next;
-			if(cur->access)freeRef(cur);
+			freeRef(cur);
 			cur=cur->next;
 			free(prev);
 			heap->size-=1;
@@ -3607,7 +3626,8 @@ void freeRef(VMvalue* obj)
 			case STR:
 				if(!obj->u.str->refcount)
 				{
-					if(obj->access)free(obj->u.str->str);
+					if(obj->access)
+						free(obj->u.str->str);
 					free(obj->u.str);
 				}
 				else obj->u.str->refcount-=1;
@@ -3712,7 +3732,7 @@ int numcmp(VMvalue* fir,VMvalue* sec)
 	else return 0;
 }
 
-fakeVM* newThreadVM(VMcode* main,ByteCode* procs,filestack* files,VMheap* heap)
+fakeVM* newThreadVM(VMcode* main,ByteCode* procs,filestack* files,VMheap* heap,Dlls* d)
 {
 	fakeVM* exe=(fakeVM*)malloc(sizeof(fakeVM));
 	if(exe==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
@@ -3721,6 +3741,7 @@ fakeVM* newThreadVM(VMcode* main,ByteCode* procs,filestack* files,VMheap* heap)
 	exe->curproc=exe->mainproc;
 	exe->procs=procs;
 	exe->mark=1;
+	exe->modules=d;
 	main->refcount+=1;
 	exe->stack=newStack(0);
 	exe->queueHead=NULL;
@@ -3774,5 +3795,70 @@ threadMessage* newThreadMessage(VMvalue* val,VMheap* heap)
 	tmp->message->access=1;
 	copyRef(tmp->message,val);
 	tmp->next=NULL;
+	return tmp;
+}
+
+void freeAllVMs()
+{
+	int i=1;
+	fakeVM* cur=GlobFakeVMs.VMs[0];
+	pthread_mutex_destroy(&cur->lock);
+	freeVMcode(cur->mainproc->code);
+	free(cur->mainproc);
+	freeVMstack(cur->stack);
+	freeFileStack(cur->files);
+	deleteAllDll(cur->modules);
+	freeMessage(cur->queueHead);
+	free(cur);
+	for(;i<GlobFakeVMs.size;i++)
+	{
+		cur=GlobFakeVMs.VMs[i];
+		if(cur!=NULL)
+			free(cur);
+	}
+	free(GlobFakeVMs.VMs);
+}
+
+void freeVMheap(VMheap* h)
+{
+	GC_sweep(h);
+	pthread_mutex_destroy(&h->lock);
+	free(h);
+}
+
+void joinAllThread()
+{
+	int i=1;
+	for(;i<GlobFakeVMs.size;i++)
+	{
+		fakeVM* cur=GlobFakeVMs.VMs[i];
+		pthread_join(cur->tid,NULL);
+	}
+}
+
+intpr* newTmpIntpr(const char* filename,FILE* fp)
+{
+	intpr* tmp=NULL;
+	if(!(tmp=(intpr*)malloc(sizeof(intpr))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+	tmp->filename=copyStr(filename);
+	if(fp!=stdin)
+	{
+		char* rp=realpath(filename,0);
+		if(rp==NULL)
+		{
+			perror(rp);
+			exit(EXIT_FAILURE);
+		}
+		tmp->curDir=getDir(rp);
+		free(rp);
+	}
+	tmp->file=fp;
+	tmp->curline=1;
+	tmp->procs=NULL;
+	tmp->prev=NULL;
+	tmp->modules=NULL;
+	tmp->head=NULL;
+	tmp->tail=NULL;
+	tmp->glob=NULL;
 	return tmp;
 }

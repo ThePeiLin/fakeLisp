@@ -1,4 +1,5 @@
 ;;This program havn't been finished yet.
+(import ../btk)
 (defmacro (let ATOM#LETNAME ((ATOM#NAME ANY#VALUE) VAREPT#OTHER),PAIR#BODY)
   (cons (list 'define LETNAME (cons 'lambda (cons (cons NAME OTHER#NAME) BODY))) (cons VALUE OTHER#VALUE)))
 (defmacro (let ((ATOM#NAME ANY#VALUE) VAREPT#OTHER),PAIR#BODY)

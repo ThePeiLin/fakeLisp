@@ -1,3 +1,4 @@
+(import btk)
 (defmacro (define (ATOM#NAME,ANY#ARG),PAIR#EXPRESSION)
           (list 'define NAME (cons 'lambda (cons ARG EXPRESSION))))
 

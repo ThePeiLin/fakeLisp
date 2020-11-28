@@ -16,7 +16,7 @@
 #define NUMOFBUILTINSYMBOL 60
 
 fakeVMStack GlobFakeVMs={0,NULL};
-pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
+extern pthread_rwlock_t GClock;
 static int (*ByteCodes[])(fakeVM*)=
 {
 	B_dummy,

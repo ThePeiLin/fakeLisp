@@ -42,7 +42,7 @@ typedef struct ANS_atom
 		char chr;
 		int32_t num;
 		double dbl;
-		ByteArry byte;
+		ByteArry byta;
 	} value;
 }ANS_atom;
 
@@ -182,7 +182,7 @@ typedef struct VM_Value
 		char* chr;
 		struct VM_Str* str;
 		VMpair* pair;
-		ByteArry* byte;
+		ByteArry* byta;
 		int32_t* num;
 		double* dbl;
 		struct VM_Code* prc;

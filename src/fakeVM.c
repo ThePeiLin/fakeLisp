@@ -14,8 +14,9 @@
 #include<unistd.h>
 #include<time.h>
 #define NUMOFBUILTINSYMBOL 60
+
 fakeVMStack GlobFakeVMs={0,NULL};
-extern pthread_rwlock_t GClock;
+pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
 static int (*ByteCodes[])(fakeVM*)=
 {
 	B_dummy,

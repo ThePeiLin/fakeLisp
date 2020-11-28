@@ -1525,7 +1525,7 @@ uint8_t castCharInt(char ch)
 uint8_t* castStrByteArry(const char* str)
 {
 	int len=strlen(str);
-	int32_t size=len/2+1;
+	int32_t size=(len%2)?(len/2+1):len/2;
 	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
 	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 	int32_t i=0;

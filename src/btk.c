@@ -76,6 +76,32 @@ extern "C"{
 		return 0;
 	}
 
+	int FAKE_usleep(fakeVM* exe)
+	{
+		VMstack* stack=exe->stack;
+		VMprocess* proc=exe->curproc;
+		VMvalue* second=getTopValue(stack);
+		stack->tp-=1;
+		if(resBp(exe))return 4;
+		if(second->type!=INT)return 1;
+		int32_t s=*second->u.num;
+		releaseSource();
+#ifdef _WIN32
+		Sleep(s);
+#else
+		usleep(s);
+#endif
+		if(stack->tp>=stack->size)
+		{
+			stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
+			if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+			stack->size+=64;
+		}
+		stack->values[stack->tp]=newVMvalue(INT,&s,exe->heap,1);
+		stack->tp+=1;
+		return 0;
+	}
+
 #ifdef __cplusplus
 }
 #endif

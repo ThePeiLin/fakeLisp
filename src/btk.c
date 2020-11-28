@@ -7,7 +7,7 @@
 #include<unistd.h>
 #endif
 #include"tool.h"
-#include"fakeVM.h"
+#include"VMtool.h"
 
 #ifdef __cplusplus
 extern "C"{

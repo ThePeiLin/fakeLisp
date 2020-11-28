@@ -1,6 +1,6 @@
 OS := $(shell uname -s)
 IS_LINUX := $(shell echo $(OS)|grep -i linux)
-objectOfFakeLisp=fakeLisp.o form.o tool.o preprocess.o syntax.o compiler.o fakeVM.o
+objectOfFakeLisp=fakeLisp.o form.o tool.o preprocess.o syntax.o compiler.o fakeVM.o VMtool.o
 objectOfFakeLispc=fakeLispc.o form.o tool.o preprocess.o syntax.o compiler.o
 ifeq ($(DEBUG),YES)
 FLAG=-g -W
@@ -28,6 +28,8 @@ compiler.o: src/compiler.* src/opcode.h src/fakedef.h
 	gcc $(FLAG) -c src/compiler.c
 fakeVM.o: src/fakeVM.* src/fakedef.h src/opcode.h
 	gcc $(FLAG) -c src/fakeVM.c
+VMtool.o: src/VMtool.* src/fakedef.h src/tool.*
+	gcc $(FLAG) -c src/VMtool.c
 fakeLispc.o: src/fakeLispc.* src/fakedef.h
 	gcc $(FLAG) -c src/fakeLispc.c
 fakeLisp: $(objectOfFakeLisp) $(objectOfFakeLispc)
@@ -35,8 +37,8 @@ fakeLisp: $(objectOfFakeLisp) $(objectOfFakeLispc)
 	gcc $(FLAG) -o fakeLispc $(objectOfFakeLispc) $(LINK)
 fakeLispc: $(objectOfFakeLispc)
 	gcc $(FLAG) fakeLispc $(objectOfFakeLispc)
-btk: src/tool.* src/fakeVM.*
-	gcc -fPIC -shared -g -o btk.so src/btk.c src/fakeVM.c src/tool.c
+btk: src/tool.* src/VMtool.*
+	gcc -fPIC -shared -g -o btk.so src/btk.c src/VMtool.c src/tool.c
 
 .PHONY: clean
 clean:

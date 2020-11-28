@@ -9,6 +9,7 @@
 #define SYNTAXERROR 2
 #define ILLEGALEXPR 3
 #define CIRCULARLOAD 4
+
 typedef enum{NIL,IN32,CHR,DBL,SYM,STR,BYTA,PRC,PAIR,ATM} ValueType;
 
 typedef struct
@@ -254,6 +255,7 @@ typedef struct
 	VMprocess* curproc;
 	VMprocess* mainproc;
 	VMstack* stack;
+	pthread_rwlock_t* gclock;
 	pthread_mutex_t lock;
 	threadMessage* queueHead;
 	threadMessage* queueTail;

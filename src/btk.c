@@ -5,11 +5,10 @@
 #include<windows.h>
 #else
 #include<termios.h>
-#include<unistd.h>
 #endif
+#include<unistd.h>
 #include"tool.h"
 #include"VMtool.h"
-
 #ifdef __cplusplus
 extern "C"{
 #endif
@@ -64,7 +63,7 @@ extern "C"{
 		if(resBp(exe))return 4;
 		if(second->type!=IN32)return 1;
 		int32_t s=*second->u.num;
-		releaseSource();
+		releaseSource(exe);
 		s=sleep(s);
 		if(stack->tp>=stack->size)
 		{
@@ -86,7 +85,7 @@ extern "C"{
 		if(resBp(exe))return 4;
 		if(second->type!=IN32)return 1;
 		int32_t s=*second->u.num;
-		releaseSource();
+		releaseSource(exe);
 #ifdef _WIN32
 		Sleep(s);
 #else

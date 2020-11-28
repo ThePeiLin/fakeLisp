@@ -5,7 +5,7 @@
 #include<math.h>
 #include<pthread.h>
 
-pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
+extern pthread_rwlock_t GClock;
 VMcode* newVMcode(ByteCode* proc)
 {
 	VMcode* tmp=(VMcode*)malloc(sizeof(VMcode));

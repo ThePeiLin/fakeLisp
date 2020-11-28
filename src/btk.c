@@ -62,7 +62,7 @@ extern "C"{
 		VMvalue* second=getTopValue(stack);
 		stack->tp-=1;
 		if(resBp(exe))return 4;
-		if(second->type!=INT)return 1;
+		if(second->type!=IN32)return 1;
 		int32_t s=*second->u.num;
 		releaseSource();
 		s=sleep(s);
@@ -72,7 +72,7 @@ extern "C"{
 			if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 			stack->size+=64;
 		}
-		stack->values[stack->tp]=newVMvalue(INT,&s,exe->heap,1);
+		stack->values[stack->tp]=newVMvalue(IN32,&s,exe->heap,1);
 		stack->tp+=1;
 		return 0;
 	}
@@ -84,7 +84,7 @@ extern "C"{
 		VMvalue* second=getTopValue(stack);
 		stack->tp-=1;
 		if(resBp(exe))return 4;
-		if(second->type!=INT)return 1;
+		if(second->type!=IN32)return 1;
 		int32_t s=*second->u.num;
 		releaseSource();
 #ifdef _WIN32
@@ -98,7 +98,7 @@ extern "C"{
 			if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 			stack->size+=64;
 		}
-		stack->values[stack->tp]=newVMvalue(INT,&s,exe->heap,1);
+		stack->values[stack->tp]=newVMvalue(IN32,&s,exe->heap,1);
 		stack->tp+=1;
 		return 0;
 	}

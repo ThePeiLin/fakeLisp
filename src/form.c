@@ -1,6 +1,7 @@
 #include<stdlib.h>
 #include<string.h>
 #ifdef _WIN32
+#include<tchar.h>
 #include<direct.h>
 #else
 #include<unistd.h>
@@ -1033,7 +1034,11 @@ ErrorStatus N_import(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 	char* modname=(char*)malloc(sizeof(char)*(strlen(filetype)+strlen(tmpAtom->value.str)+1));
 	strcpy(modname,tmpAtom->value.str);
 	strcat(modname,filetype);
+#ifdef _WIN32
+	char* rp=_fullpath(NULL,modname,0);
+#else
 	char* rp=realpath(modname,0);
+#endif
 	char* rep=relpath(getLastWorkDir(inter),rp);
 	char* rmodname=(char*)malloc(sizeof(char)*(strlen(rep)-strlen(filetype)+1));
 	if(!rmodname)errors(OUTOFMEMORY,__FILE__,__LINE__);

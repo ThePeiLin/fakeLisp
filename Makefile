@@ -1,5 +1,3 @@
-OS := $(shell uname -s)
-IS_LINUX := $(shell echo $(OS)|grep -i linux)
 objectOfFakeLisp=fakeLisp.o form.o tool.o preprocess.o syntax.o compiler.o fakeVM.o VMtool.o
 objectOfFakeLispc=fakeLispc.o form.o tool.o preprocess.o syntax.o compiler.o
 ifeq ($(DEBUG),YES)
@@ -8,10 +6,10 @@ else
 FLAG=-W
 endif
 
-ifdef IS_LINUX
-LINK=-lpthread -ldl
-else
+ifeq ($(OS),WINDOWS)
 LINK=-lpthread
+else
+LINK=-lpthread -ldl
 endif
 
 form.o: src/form.* src/fakedef.h
@@ -29,21 +27,25 @@ compiler.o: src/compiler.* src/opcode.h src/fakedef.h
 VMtool.o: src/VMtool.* src/fakedef.h src/tool.*
 	gcc $(FLAG) -c src/VMtool.c
 fakeVM.o: src/fakeVM.* src/fakedef.h src/opcode.h src/VMtool.*
-	gcc $(FLAG) -c src/fakeVM.c
+	gcc $(FLAG) -c src/fakeVM.c src/VMtool.c
 fakeLispc.o: src/fakeLispc.* src/fakedef.h
 	gcc $(FLAG) -c src/fakeLispc.c
 fakeLisp: $(objectOfFakeLisp) $(objectOfFakeLispc)
 	gcc $(FLAG) -o fakeLisp $(objectOfFakeLisp) $(LINK)
 	gcc $(FLAG) -o fakeLispc $(objectOfFakeLispc) $(LINK)
 fakeLispc: $(objectOfFakeLispc)
-	gcc $(FLAG) fakeLispc $(objectOfFakeLispc)
+	gcc $(FLAG) -o fakeLispc $(objectOfFakeLispc)
 btk: src/tool.* src/VMtool.*
-	gcc -fPIC -shared -g -o btk.so src/btk.c src/VMtool.c src/tool.c
+ifeq ($(OS),WINDOWS)
+	gcc -fPIC -shared $(FLAG) -o btk.dll src/btk.c src/VMtool.c src/tool.c
+else
+	gcc -fPIC -shared $(FLAG) -o btk.so src/btk.c src/VMtool.c src/tool.c
+endif
 
 .PHONY: clean
 clean:
-ifdef IS_LINUX
-	rm *.o fakeLisp fakeLispc
-else
+ifeq ($(OS),WINDOWS)
 	del *.o fakeLisp.exe fakeLispc.exe
+else
+	rm *.o fakeLisp fakeLispc
 endif

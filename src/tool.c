@@ -8,6 +8,8 @@
 #include<limits.h>
 #ifndef _WIN32
 #include<dlfcn.h>
+#else
+#include<tchar.h>
 #endif
 #include"tool.h"
 #include"opcode.h"
@@ -1230,7 +1232,11 @@ intpr* newIntpr(const char* filename,FILE* file,CompEnv* env)
 	tmp->filename=copyStr(filename);
 	if(file!=stdin)
 	{
+#ifdef _WIN32
+		char* rp=_fullpath(NULL,filename,0);
+#else
 		char* rp=realpath(filename,0);
+#endif
 		if(rp==NULL)
 		{
 			perror(rp);
@@ -1624,14 +1630,33 @@ Dlls* loadDll(const char* rpath,Dlls** Dhead,const char* modname,Modlist** tail)
 {
 #ifdef _WIN32
 	DllHandle handle=LoadLibrary(rpath);
+	if(!handle)
+	{
+		TCHAR szBuf[128];
+		LPVOID lpMsgBuf;
+		DWORD dw = GetLastError();
+		FormatMessage (
+				FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+				NULL,
+				dw,
+				MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
+				(LPTSTR) &lpMsgBuf,
+				0, NULL );
+		wsprintf(szBuf,
+				_T("%s error Message (error code=%d): %s"),
+				_T("CreateDirectory"), dw, lpMsgBuf);
+		LocalFree(lpMsgBuf);
+		fprintf(stderr,"%s\n",szBuf);
+		exit(EXIT_FAILURE);
+	}
 #else
 	DllHandle handle=dlopen(rpath,RTLD_LAZY);
-#endif
 	if(handle==NULL)
 	{
 		perror(dlerror());
 		exit(EXIT_FAILURE);
 	}
+#endif
 	Dlls* tmp=newDll(handle);
 	tmp->count=(*Dhead)?(*Dhead)->count+1:0;
 	tmp->next=*Dhead;
@@ -1714,7 +1739,11 @@ Dlls* loadAllModules(FILE* fp,Dlls** mods)
 		if(realModname==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 		strcpy(realModname,modname);
 		strcat(realModname,filetype);
+#ifdef _WIN32
+		char* rpath=_fullpath(NULL,realModname,0);
+#else
 		char* rpath=realpath(realModname,0);
+#endif
 		if(rpath==NULL)
 		{
 			perror(rpath);
@@ -1730,7 +1759,11 @@ Dlls* loadAllModules(FILE* fp,Dlls** mods)
 
 void changeWorkPath(const char* filename)
 {
+#ifdef _WIN32
+	char* p=_fullpath(NULL,filename,0);
+#else
 	char* p=realpath(filename,NULL);
+#endif
 	char* wp=getDir(p);
 	int32_t len=strlen(p);
 	if(chdir(wp))

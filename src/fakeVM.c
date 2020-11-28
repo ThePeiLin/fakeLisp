@@ -5,6 +5,7 @@
 #include<string.h>
 #include<math.h>
 #ifdef _WIN32
+#include<tchar.h>
 #include<conio.h>
 #include<windows.h>
 #else
@@ -15,8 +16,8 @@
 #include<time.h>
 #define NUMOFBUILTINSYMBOL 60
 
+pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
 fakeVMStack GlobFakeVMs={0,NULL};
-extern pthread_rwlock_t GClock;
 static int (*ByteCodes[])(fakeVM*)=
 {
 	B_dummy,
@@ -914,6 +915,7 @@ fakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 	exe->queueTail=NULL;
 	exe->files=newFileStack();
 	exe->heap=newVMheap();
+	exe->gclock=&GClock;
 	pthread_mutex_init(&exe->lock,NULL);
 	fakeVM** ppFakeVM=NULL;
 	int i=0;
@@ -3391,6 +3393,7 @@ fakeVM* newThreadVM(VMcode* main,ByteCode* procs,filestack* files,VMheap* heap,D
 	exe->queueTail=NULL;
 	exe->files=files;
 	exe->heap=heap;
+	exe->gclock=&GClock;
 	pthread_mutex_init(&exe->lock,NULL);
 	fakeVM** ppFakeVM=NULL;
 	int i=0;
@@ -3487,7 +3490,11 @@ intpr* newTmpIntpr(const char* filename,FILE* fp)
 	tmp->filename=copyStr(filename);
 	if(fp!=stdin)
 	{
+#ifdef _WIN32
+		char* rp=_fullpath(NULL,filename,0);
+#else
 		char* rp=realpath(filename,0);
+#endif
 		if(rp==NULL)
 		{
 			perror(rp);

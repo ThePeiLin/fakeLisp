@@ -31,5 +31,5 @@ void freeVMcode(VMcode*);
 void freeVMvalue(VMvalue*);
 void freeVMstr(VMstr*);
 void freeVMenv(VMenv*);
-void releaseSource();
+void releaseSource(fakeVM*);
 #endif

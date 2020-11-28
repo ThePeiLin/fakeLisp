@@ -128,5 +128,4 @@ void GC_markMessage(threadMessage*);
 void GC_sweep(VMheap*);
 void GC_compact(VMheap*);
 intpr* newTmpIntpr(const char*,FILE*);
-void releaseSource();
 #endif

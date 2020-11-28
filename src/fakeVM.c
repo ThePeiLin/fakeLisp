@@ -14,8 +14,8 @@
 #include<unistd.h>
 #include<time.h>
 #define NUMOFBUILTINSYMBOL 60
-pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
 fakeVMStack GlobFakeVMs={0,NULL};
+extern pthread_rwlock_t GClock;
 static int (*ByteCodes[])(fakeVM*)=
 {
 	B_dummy,
@@ -3504,9 +3504,4 @@ intpr* newTmpIntpr(const char* filename,FILE* fp)
 	tmp->tail=NULL;
 	tmp->glob=NULL;
 	return tmp;
-}
-
-void releaseSource()
-{
-	pthread_rwlock_unlock(&GClock);
 }

@@ -3,12 +3,13 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<stdint.h>
+#include<pthread.h>
 #define THRESHOLD_SIZE 64
 #define SYMUNDEFINE 1
 #define SYNTAXERROR 2
 #define ILLEGALEXPR 3
 #define CIRCULARLOAD 4
-typedef enum{NIL,INT,CHR,DBL,SYM,STR,BYTE,PRC,PAIR,ATM} ValueType;
+typedef enum{NIL,IN32,CHR,DBL,SYM,STR,BYTA,PRC,PAIR,ATM} ValueType;
 
 typedef struct
 {

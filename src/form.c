@@ -188,7 +188,7 @@ ErrorStatus N_eq(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 	}
 	else
 	{
-		ANS_atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
+		ANS_atom* tmpAtm=newAtom(IN32,NULL,objCptr->outer);
 		objCptr->type=ATM;
 		objCptr->value=tmpAtm;
 		tmpAtm->value.num=1;
@@ -210,7 +210,7 @@ ErrorStatus N_atom(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 	}
 	if(args[0]->type!=PAIR)
 	{
-		ANS_atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
+		ANS_atom* tmpAtm=newAtom(IN32,NULL,objCptr->outer);
 		objCptr->type=ATM;
 		objCptr->value=tmpAtm;
 		tmpAtm->value.num=1;
@@ -220,7 +220,7 @@ ErrorStatus N_atom(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 		ANS_pair* tmpPair=args[0]->value;
 		if(tmpPair->car.type==NIL&&tmpPair->cdr.type==NIL)
 		{
-			ANS_atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
+			ANS_atom* tmpAtm=newAtom(IN32,NULL,objCptr->outer);
 			objCptr->type=ATM;
 			objCptr->value=tmpAtm;
 			tmpAtm->value.num=1;
@@ -248,7 +248,7 @@ ErrorStatus N_null(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 	}
 	if(args[0]->type==NIL)
 	{
-		ANS_atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
+		ANS_atom* tmpAtm=newAtom(IN32,NULL,objCptr->outer);
 		objCptr->type=ATM;
 		objCptr->value=tmpAtm;
 		tmpAtm->value.num=1;
@@ -258,7 +258,7 @@ ErrorStatus N_null(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 		ANS_pair* tmpPair=args[0]->value;
 		if(tmpPair->car.type==NIL&&tmpPair->cdr.type==NIL)
 		{
-			ANS_atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
+			ANS_atom* tmpAtm=newAtom(IN32,NULL,objCptr->outer);
 			objCptr->type=ATM;
 			objCptr->value=tmpAtm;
 			tmpAtm->value.num=1;
@@ -302,7 +302,7 @@ ErrorStatus N_and(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 	}
 	else
 	{
-		ANS_atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
+		ANS_atom* tmpAtm=newAtom(IN32,NULL,objCptr->outer);
 		objCptr->type=ATM;
 		objCptr->value=tmpAtm;
 		tmpAtm->value.num=1;
@@ -335,7 +335,7 @@ ErrorStatus N_or(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 	}
 	else
 	{
-		ANS_atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
+		ANS_atom* tmpAtm=newAtom(IN32,NULL,objCptr->outer);
 		objCptr->type=ATM;
 		objCptr->value=tmpAtm;
 		tmpAtm->value.num=1;
@@ -357,7 +357,7 @@ ErrorStatus N_not(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 	}
 	if(isFalse(args[0]))
 	{
-		ANS_atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
+		ANS_atom* tmpAtm=newAtom(IN32,NULL,objCptr->outer);
 		objCptr->type=ATM;
 		objCptr->value=tmpAtm;
 		tmpAtm->value.num=1;
@@ -689,7 +689,7 @@ ErrorStatus N_add(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 	}
 	ANS_atom* ANS_atom1=args[0]->value;
 	ANS_atom* ANS_atom2=args[1]->value;
-	if(ANS_atom1->type!=DBL&&ANS_atom1->type!=INT)
+	if(ANS_atom1->type!=DBL&&ANS_atom1->type!=IN32)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -697,7 +697,7 @@ ErrorStatus N_add(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 		deleteArg(args,2);
 		return status;
 	}
-	if(ANS_atom2->type!=DBL&&ANS_atom2->type!=INT)
+	if(ANS_atom2->type!=DBL&&ANS_atom2->type!=IN32)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -712,10 +712,10 @@ ErrorStatus N_add(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 		tmpAtm->type=DBL;
 		tmpAtm->value.dbl=result;
 	}
-	else if(ANS_atom1->type==INT&&ANS_atom2->type==INT)
+	else if(ANS_atom1->type==IN32&&ANS_atom2->type==IN32)
 	{
 		int32_t result=ANS_atom1->value.num+ANS_atom2->value.num;
-		tmpAtm->type=INT;
+		tmpAtm->type=IN32;
 		tmpAtm->value.num=result;
 	}
 	objCptr->type=ATM;
@@ -758,7 +758,7 @@ ErrorStatus N_sub(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 	}
 	ANS_atom* ANS_atom1=args[0]->value;
 	ANS_atom* ANS_atom2=args[1]->value;
-	if(ANS_atom1->type!=DBL&&ANS_atom1->type!=INT)
+	if(ANS_atom1->type!=DBL&&ANS_atom1->type!=IN32)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -766,7 +766,7 @@ ErrorStatus N_sub(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 		deleteArg(args,2);
 		return status;
 	}
-	if(ANS_atom2->type!=DBL&&ANS_atom2->type!=INT)
+	if(ANS_atom2->type!=DBL&&ANS_atom2->type!=IN32)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -781,10 +781,10 @@ ErrorStatus N_sub(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 		tmpAtm->type=DBL;
 		tmpAtm->value.dbl=result;
 	}
-	else if(ANS_atom1->type==INT&&ANS_atom2->type==INT)
+	else if(ANS_atom1->type==IN32&&ANS_atom2->type==IN32)
 	{
 		long result=ANS_atom1->value.num-ANS_atom2->value.num;
-		tmpAtm->type=INT;
+		tmpAtm->type=IN32;
 		tmpAtm->value.num=result;
 	}
 	objCptr->type=ATM;
@@ -828,7 +828,7 @@ ErrorStatus N_mul(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 	}
 	ANS_atom* ANS_atom1=args[0]->value;
 	ANS_atom* ANS_atom2=args[1]->value;
-	if(ANS_atom1->type!=DBL&&ANS_atom1->type!=INT)
+	if(ANS_atom1->type!=DBL&&ANS_atom1->type!=IN32)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -836,7 +836,7 @@ ErrorStatus N_mul(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 		deleteArg(args,2);
 		return status;
 	}
-	if(ANS_atom2->type!=DBL&&ANS_atom2->type!=INT)
+	if(ANS_atom2->type!=DBL&&ANS_atom2->type!=IN32)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -851,10 +851,10 @@ ErrorStatus N_mul(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 		tmpAtm->type=DBL;
 		tmpAtm->value.dbl=result;
 	}
-	else if(ANS_atom1->type==INT&&ANS_atom2->type==INT)
+	else if(ANS_atom1->type==IN32&&ANS_atom2->type==IN32)
 	{
 		int32_t result=ANS_atom1->value.num*ANS_atom2->value.num;
-		tmpAtm->type=INT;
+		tmpAtm->type=IN32;
 		tmpAtm->value.num=result;
 	}
 	objCptr->type=ATM;
@@ -898,7 +898,7 @@ ErrorStatus N_div(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 	}
 	ANS_atom* ANS_atom1=args[0]->value;
 	ANS_atom* ANS_atom2=args[1]->value;
-	if(ANS_atom1->type!=DBL&&ANS_atom1->type!=INT)
+	if(ANS_atom1->type!=DBL&&ANS_atom1->type!=IN32)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -906,7 +906,7 @@ ErrorStatus N_div(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 		deleteArg(args,2);
 		return status;
 	}
-	if(ANS_atom2->type!=DBL&&ANS_atom2->type!=INT)
+	if(ANS_atom2->type!=DBL&&ANS_atom2->type!=IN32)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -962,7 +962,7 @@ ErrorStatus N_mod(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 	}
 	ANS_atom* ANS_atom1=args[0]->value;
 	ANS_atom* ANS_atom2=args[1]->value;
-	if(ANS_atom1->type!=DBL&&ANS_atom1->type!=INT)
+	if(ANS_atom1->type!=DBL&&ANS_atom1->type!=IN32)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -970,7 +970,7 @@ ErrorStatus N_mod(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 		deleteArg(args,2);
 		return status;
 	}
-	if(ANS_atom2->type!=DBL&&ANS_atom2->type!=INT)
+	if(ANS_atom2->type!=DBL&&ANS_atom2->type!=IN32)
 	{
 		status.status=SYNTAXERROR;
 		status.place=newCptr(0,NULL);
@@ -978,7 +978,7 @@ ErrorStatus N_mod(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 		deleteArg(args,2);
 		return status;
 	}
-	ANS_atom* tmpAtm=newAtom(INT,NULL,objCptr->outer);
+	ANS_atom* tmpAtm=newAtom(IN32,NULL,objCptr->outer);
 	int32_t result=((ANS_atom1->type==DBL)?(int)ANS_atom1->value.dbl:ANS_atom1->value.num)%((ANS_atom2->type==DBL)?(int)ANS_atom2->value.dbl:ANS_atom2->value.num);
 	tmpAtm->value.num=result;
 	deleteArg(args,2);

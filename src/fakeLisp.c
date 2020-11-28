@@ -4,6 +4,7 @@
 #include<ctype.h>
 #include"fakeLisp.h"
 #include"tool.h"
+#include"VMtool.h"
 #include"form.h"
 #include"preprocess.h"
 #include"syntax.h"

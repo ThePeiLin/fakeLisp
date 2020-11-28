@@ -5,6 +5,7 @@
 #include<math.h>
 #include<pthread.h>
 
+pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
 VMcode* newVMcode(ByteCode* proc)
 {
 	VMcode* tmp=(VMcode*)malloc(sizeof(VMcode));
@@ -366,4 +367,7 @@ void freeVMenv(VMenv* obj)
 	}
 }
 
-
+void releaseSource()
+{
+	pthread_rwlock_unlock(&GClock);
+}

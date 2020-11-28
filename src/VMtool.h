@@ -1,7 +1,9 @@
 #ifndef VMTOOL_H
 #define VMTOOL_H
 #include"fakedef.h"
+#include<pthread.h>
 #include<stdint.h>
+
 VMcode* newVMcode(ByteCode*);
 VMvalue* copyValue(VMvalue*,VMheap*);
 VMvalue* newVMvalue(ValueType,void*,VMheap*,int);
@@ -29,4 +31,5 @@ void freeVMcode(VMcode*);
 void freeVMvalue(VMvalue*);
 void freeVMstr(VMstr*);
 void freeVMenv(VMenv*);
+void releaseSource();
 #endif

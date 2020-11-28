@@ -1876,11 +1876,13 @@ char* relpath(char* abs,char* relto)
 			lastCommonRoot=index;
 		else break;
 	}
+#ifdef _WIN32
 	if(lastCommonRoot==-1)
 	{
 		fprintf(stderr,"%s:Cant get relative path.\n",abs);
 		exit(EXIT_FAILURE);
 	}
+#endif
 	char rp[PATH_MAX]={0};
 	for(index=lastCommonRoot+1;index<lengthOfAbs;index++)
 		if(lengthOfAbs>0)
@@ -1894,7 +1896,8 @@ char* relpath(char* abs,char* relto)
 		strcat(rp,"/");
 #endif
 	}
-	strcat(rp,reltoDirs[lengthOfRelto-1]);
+	if(reltoDirs!=NULL)
+		strcat(rp,reltoDirs[lengthOfRelto-1]);
 	char* trp=copyStr(rp);
 	free(cabs);
 	free(crelto);

@@ -31,14 +31,14 @@ VMvalue* copyValue(VMvalue* obj,VMheap* heap)
 	VMvalue* tmp=NULL;
 	if(obj->type==NIL)
 		tmp=newNilValue(heap);
-	else if(obj->type==INT)
-		tmp=newVMvalue(INT,obj->u.num,heap,1);
+	else if(obj->type==IN32)
+		tmp=newVMvalue(IN32,obj->u.num,heap,1);
 	else if(obj->type==DBL)
 		tmp=newVMvalue(DBL,obj->u.dbl,heap,1);
 	else if(obj->type==CHR)
 		tmp=newVMvalue(CHR,obj->u.chr,heap,1);
-	else if(obj->type==BYTE)
-		tmp=newVMvalue(BYTE,obj->u.byte,heap,1);
+	else if(obj->type==BYTA)
+		tmp=newVMvalue(BYTA,obj->u.byta,heap,1);
 	else if(obj->type==STR||obj->type==SYM)
 		tmp=newVMvalue(obj->type,obj->u.str,heap,1);
 	else if(obj->type==PRC)
@@ -70,7 +70,7 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap,int access)
 	{
 		case NIL:tmp->u.all=NULL;break;
 		case CHR:tmp->u.chr=(access)?copyMemory(pValue,sizeof(char)):pValue;break;
-		case INT:tmp->u.num=(access)?copyMemory(pValue,sizeof(int32_t)):pValue;break;
+		case IN32:tmp->u.num=(access)?copyMemory(pValue,sizeof(int32_t)):pValue;break;
 		case DBL:tmp->u.dbl=(access)?copyMemory(pValue,sizeof(double)):pValue;break;
 		case SYM:
 		case STR:
@@ -79,8 +79,8 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap,int access)
 			tmp->u.pair=pValue;break;
 		case PRC:
 			tmp->u.prc=pValue;break;
-		case BYTE:
-			tmp->u.byte=pValue;break;
+		case BYTA:
+			tmp->u.byta=pValue;break;
 	}
 	return tmp;
 }
@@ -88,7 +88,7 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap,int access)
 VMvalue* newTrueValue(VMheap* heap)
 {
 	int32_t i=1;
-	VMvalue* tmp=newVMvalue(INT,&i,heap,1);
+	VMvalue* tmp=newVMvalue(IN32,&i,heap,1);
 	return tmp;
 }
 
@@ -128,14 +128,14 @@ int VMvaluecmp(VMvalue* fir,VMvalue* sec)
 	{
 		switch(fir->type)
 		{
-			case INT:return *fir->u.num==*sec->u.num;
+			case IN32:return *fir->u.num==*sec->u.num;
 			case CHR:return *fir->u.chr==*sec->u.chr;
 			case DBL:return fabs(*fir->u.dbl-*sec->u.dbl)==0;
 			case STR:
 			case SYM:return !strcmp(fir->u.str->str,sec->u.str->str);
 			case PRC:return fir->u.prc==sec->u.prc;
 			case PAIR:return VMvaluecmp(fir->u.pair->car,sec->u.pair->car)&&VMvaluecmp(fir->u.pair->cdr,sec->u.pair->cdr);
-			case BYTE:return byteArryEq(fir->u.byte,sec->u.byte);
+			case BYTA:return bytaArryEq(fir->u.byta,sec->u.byta);
 		}
 	}
 }
@@ -144,11 +144,11 @@ int subVMvaluecmp(VMvalue* fir,VMvalue* sec)
 {
 	if(fir==sec)return 1;
 	else if(fir->type!=sec->type)return 0;
-	else if(fir->type>=INT&&fir->type<=DBL)
+	else if(fir->type>=IN32&&fir->type<=DBL)
 	{
 		switch(fir->type)
 		{
-			case INT:return *fir->u.num==*sec->u.num;
+			case IN32:return *fir->u.num==*sec->u.num;
 			case CHR:return *fir->u.chr==*sec->u.chr;
 			case DBL:return fabs(*fir->u.dbl-*sec->u.dbl)==0;
 		}
@@ -211,10 +211,10 @@ VMvalue* castCptrVMvalue(const ANS_cptr* objCptr,VMheap* heap)
 		VMvalue* tmp=NULL;
 		switch(tmpAtm->type)
 		{
-			case INT:tmp=newVMvalue(INT,&tmpAtm->value.num,heap,1);break;
+			case IN32:tmp=newVMvalue(IN32,&tmpAtm->value.num,heap,1);break;
 			case DBL:tmp=newVMvalue(DBL,&tmpAtm->value.dbl,heap,1);break;
 			case CHR:tmp=newVMvalue(CHR,&tmpAtm->value.chr,heap,1);break;
-			case BYTE:tmp=newVMvalue(BYTE,&tmpAtm->value.byte,heap,1);break;
+			case BYTA:tmp=newVMvalue(BYTA,&tmpAtm->value.byta,heap,1);break;
 			case SYM:
 			case STR:tmp=newVMvalue(tmpAtm->type,tmpAtm->value.str,heap,1);break;
 		}
@@ -323,15 +323,15 @@ void freeVMvalue(VMvalue* obj)
 	{
 		switch(obj->type)
 		{
-			case BYTE:
+			case BYTA:
 				if(obj->access)
-					free(obj->u.byte->arry);
-				free(obj->u.byte);
+					free(obj->u.byta->arry);
+				free(obj->u.byta);
 				break;
 			case SYM:
 			case STR:
 				freeVMstr(obj->u.str);break;
-			case INT:free(obj->u.num);break;
+			case IN32:free(obj->u.num);break;
 			case DBL:free(obj->u.dbl);break;
 			case PRC:freeVMcode(obj->u.prc);break;
 			case PAIR:free(obj->u.pair);break;

@@ -147,7 +147,7 @@ static codeinfor codeName[]=
 	{"length",0},
 	{"append",0},
 	{"str_cat",0},
-	{"byte_cat",0},
+	{"byta_cat",0},
 	{"open",0},
 	{"close",0},
 	{"eq",0},

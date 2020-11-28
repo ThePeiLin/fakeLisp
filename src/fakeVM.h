@@ -1,5 +1,5 @@
-#ifndef EXECUTE_H
-#define EXECUTE_H
+#ifndef FAKEVM_H
+#define FAKEVM_H
 #include"fakedef.h"
 #include<pthread.h>
 
@@ -77,7 +77,6 @@ int B_jump_if_ture(fakeVM*);
 int B_jump_if_false(fakeVM*);
 int B_jump(fakeVM*);
 int B_getc(fakeVM*);
-//int B_getch(fakeVM*);
 int B_ungetc(fakeVM*);
 int B_read(fakeVM*);
 int B_readb(fakeVM*);
@@ -92,32 +91,12 @@ int B_go(fakeVM*);
 int B_send(fakeVM*);
 int B_accept(fakeVM*);
 int B_getid(fakeVM*);
-int B_slp(fakeVM*);
 VMstack* newStack(int32_t);
 filestack* newFileStack();
 void freeFileStack(filestack*);
-VMcode* newVMcode(ByteCode*);
-VMvalue* copyValue(VMvalue*,VMheap*);
-VMvalue* newVMvalue(ValueType,void*,VMheap*,int);
-VMvalue* newTrueValue(VMheap*);
-VMvalue* newNilValue(VMheap*);
-VMvalue* getTopValue(VMstack*);
-VMvalue* getValue(VMstack*,int32_t);
-VMvalue* getCar(VMvalue*);
-VMvalue* getCdr(VMvalue*);
-void freeVMcode(VMcode*);
-int VMvaluecmp(VMvalue*,VMvalue*);
-int subVMvaluecmp(VMvalue*,VMvalue*);
-int numcmp(VMvalue*,VMvalue*);
-void freeVMvalue(VMvalue*);
-void freeVMstr(VMstr*);
 void freeRef(VMvalue*);
 void freeVMstack(VMstack*);
 void freeMessage(threadMessage*);
-VMenv* newVMenv(int32_t,VMenv*);
-VMpair* newVMpair(VMheap*);
-VMstr* newVMstr(const char*);
-void freeVMenv(VMenv*);
 void stackRecycle(fakeVM*);
 VMcode* newBuiltInProc(ByteCode*);
 VMprocess* newFakeProcess(VMcode*,VMprocess*);
@@ -128,21 +107,13 @@ threadMessage* newThreadMessage(VMvalue*,VMheap*);
 threadMessage* newMessage(VMvalue*);
 int sendMessage(threadMessage*,fakeVM*);
 VMvalue* acceptMessage(fakeVM*);
-VMvalue* castCptrVMvalue(const ANS_cptr*,VMheap*);
 VMprocess* hasSameProc(VMcode*,VMprocess*);
 int isTheLastExpress(const VMprocess*,const VMprocess*);
-uint8_t* createByteArry(int32_t);
 #ifndef _WIN32
 static int getch();
 #endif
 void printEnv(VMenv*,FILE*);
 VMheap* newVMheap();
-ByteArry* newByteArry(size_t,uint8_t*);
-ByteArry* copyByteArry(const ByteArry*);
-ByteArry* newEmptyByteArry();
-uint8_t* copyArry(size_t,uint8_t*);
-VMcode* copyVMcode(VMcode*,VMheap*);
-VMenv* copyVMenv(VMenv*,VMheap*);
 void freeVMheap(VMheap*);
 void freeAllVMs();
 void joinAllThread();

@@ -48,7 +48,7 @@ ByteCode* compileAtom(ANS_cptr* objCptr)
 			tmp->code[0]=FAKE_PUSH_STR;
 			strcpy(tmp->code+1,tmpAtm->value.str);
 			break;
-		case INT:
+		case IN32:
 			tmp=createByteCode(sizeof(char)+sizeof(int32_t));
 			tmp->code[0]=FAKE_PUSH_INT;
 			*(int32_t*)(tmp->code+1)=tmpAtm->value.num;
@@ -63,11 +63,11 @@ ByteCode* compileAtom(ANS_cptr* objCptr)
 			tmp->code[0]=FAKE_PUSH_CHR;
 			tmp->code[1]=tmpAtm->value.chr;
 			break;
-		case BYTE:
-			tmp=createByteCode(sizeof(char)+sizeof(int32_t)+tmpAtm->value.byte.size);
+		case BYTA:
+			tmp=createByteCode(sizeof(char)+sizeof(int32_t)+tmpAtm->value.byta.size);
 			tmp->code[0]=FAKE_PUSH_BYTE;
-			*(int32_t*)(tmp->code+1)=tmpAtm->value.byte.size;
-			memcpy(tmp->code+5,tmpAtm->value.byte.arry,tmpAtm->value.byte.size);
+			*(int32_t*)(tmp->code+1)=tmpAtm->value.byta.size;
+			memcpy(tmp->code+5,tmpAtm->value.byta.arry,tmpAtm->value.byta.size);
 			break;
 	}
 	return tmp;

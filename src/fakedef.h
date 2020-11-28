@@ -169,7 +169,7 @@ typedef struct VM_Value
 	//	char* str;
 	//	struct VM_Code* prc;
 	//	VMpair pair;
-	//	ByteArry byte;
+	//	ByteArry byta;
 	//	int32_t num;
 	//	char chr;
 	//	double dbl;

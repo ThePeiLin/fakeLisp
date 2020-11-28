@@ -645,7 +645,7 @@ ANS_cptr* createTree(const char* objStr,intpr* inter)
 			}
 			else
 			{
-				tmpAtm=newAtom(INT,NULL,objPair);
+				tmpAtm=newAtom(IN32,NULL,objPair);
 				int32_t num=stringToInt(tmp);
 				tmpAtm->value.num=num;
 			}
@@ -673,11 +673,11 @@ ANS_cptr* createTree(const char* objStr,intpr* inter)
 			if(root==NULL)objCptr=root=newCptr(curline,objPair);
 			char* tmp=getStringAfterBackslash(objStr+i+2);
 			objCptr->type=ATM;
-			objCptr->value=(void*)newAtom(BYTE,NULL,objPair);
+			objCptr->value=(void*)newAtom(BYTA,NULL,objPair);
 			ANS_atom* tmpAtm=objCptr->value;
 			int32_t size=strlen(tmp)/2+strlen(tmp)%2;
-			tmpAtm->value.byte.size=size;
-			tmpAtm->value.byte.arry=castStrByteArry(tmp);
+			tmpAtm->value.byta.size=size;
+			tmpAtm->value.byta.arry=castStrByteArry(tmp);
 			i+=strlen(tmp)+2;
 			free(tmp);
 		}
@@ -742,12 +742,12 @@ ANS_atom* newAtom(int type,const char* value,ANS_pair* prev)
 			strcpy(tmp->value.str,value);
 			break;
 		case CHR:
-		case INT:
+		case IN32:
 		case DBL:
 			*(int32_t*)(&tmp->value)=0;break;
-		case BYTE:
-			tmp->value.byte.size=0;
-			tmp->value.byte.arry=NULL;break;
+		case BYTA:
+			tmp->value.byta.size=0;
+			tmp->value.byta.arry=NULL;break;
 	}
 	tmp->prev=prev;
 	tmp->type=type;
@@ -781,17 +781,17 @@ int copyCptr(ANS_cptr* objCptr,const ANS_cptr* copiedCptr)
 			ANS_atom* objAtm=NULL;
 			if(coAtm->type==SYM||coAtm->type==STR)
 				objAtm=newAtom(coAtm->type,coAtm->value.str,objPair);
-			else if(coAtm->type==BYTE)
+			else if(coAtm->type==BYTA)
 			{
 				objAtm=newAtom(coAtm->type,NULL,objPair);
-				objAtm->value.byte.size=coAtm->value.byte.size;
-				objAtm->value.byte.arry=copyMemory(coAtm->value.byte.arry,coAtm->value.byte.size);
+				objAtm->value.byta.size=coAtm->value.byta.size;
+				objAtm->value.byta.arry=copyMemory(coAtm->value.byta.arry,coAtm->value.byta.size);
 			}
 			else
 			{
 				objAtm=newAtom(coAtm->type,NULL,objPair);
 				if(objAtm->type==DBL)objAtm->value.dbl=coAtm->value.dbl;
-				else if(objAtm->type==INT)objAtm->value.num=coAtm->value.num;
+				else if(objAtm->type==IN32)objAtm->value.num=coAtm->value.num;
 				else if(objAtm->type==CHR)objAtm->value.chr=coAtm->value.chr;
 			}
 			objCptr->value=objAtm;
@@ -952,10 +952,10 @@ int ANS_cptrcmp(const ANS_cptr* first,const ANS_cptr* second)
 				ANS_atom* secAtm=second->value;
 				if(firAtm->type!=secAtm->type)return 0;
 				if((firAtm->type==SYM||firAtm->type==STR)&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
-				else if(firAtm->type==INT&&firAtm->value.num!=secAtm->value.num)return 0;
+				else if(firAtm->type==IN32&&firAtm->value.num!=secAtm->value.num)return 0;
 				else if(firAtm->type==DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
 				else if(firAtm->type==CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
-				else if(firAtm->type==BYTE&&!byteArryEq(&firAtm->value.byte,&secAtm->value.byte))return 0;
+				else if(firAtm->type==BYTA&&!bytaArryEq(&firAtm->value.byta,&secAtm->value.byta))return 0;
 			}
 			if(firPair!=NULL&&first==&firPair->car)
 			{ first=&firPair->cdr;
@@ -1086,10 +1086,10 @@ int isNum(const char* objStr)
 void freeAtom(ANS_atom* objAtm)
 {
 	if(objAtm->type==SYM||objAtm->type==STR)free(objAtm->value.str);
-	else if(objAtm->type==BYTE)
+	else if(objAtm->type==BYTA)
 	{
-		objAtm->value.byte.size=0;
-		free(objAtm->value.byte.arry);
+		objAtm->value.byta.size=0;
+		free(objAtm->value.byta.arry);
 	}
 	free(objAtm);
 }
@@ -1133,7 +1133,7 @@ void printList(const ANS_cptr* objCptr,FILE* out)
 					case STR:
 						printRawString(tmpAtm->value.str,out);
 						break;
-					case INT:
+					case IN32:
 						fprintf(out,"%ld",tmpAtm->value.num);
 						break;
 					case DBL:
@@ -1142,8 +1142,8 @@ void printList(const ANS_cptr* objCptr,FILE* out)
 					case CHR:
 						printRawChar(tmpAtm->value.chr,out);
 						break;
-					case BYTE:
-						printByteArry(&tmpAtm->value.byte,out,1);
+					case BYTA:
+						printByteArry(&tmpAtm->value.byta,out,1);
 						break;
 				}
 			}
@@ -1808,7 +1808,7 @@ void freeAllRawProc(RawProc* cur)
 	}
 }
 
-int byteArryEq(ByteArry* fir,ByteArry* sec)
+int bytaArryEq(ByteArry* fir,ByteArry* sec)
 {
 	if(fir->size!=sec->size)return 0;
 	else return !memcmp(fir->arry,sec->arry,sec->size);

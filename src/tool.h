@@ -85,7 +85,7 @@ void writeAllDll(intpr*,FILE*);
 Dlls* loadAllModules(FILE*,Dlls**);
 char* getStringFromFile(FILE*);
 void freeAllRawProc(RawProc*);
-int byteArryEq(ByteArry*,ByteArry*);
+int bytaArryEq(ByteArry*,ByteArry*);
 int ModHasLoad(const char*,Modlist*);
 Dlls** getpDlls(intpr*);
 Modlist** getpTail(intpr*);

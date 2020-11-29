@@ -14,7 +14,7 @@
 #endif
 #include<unistd.h>
 #include<time.h>
-#define NUMOFBUILTINSYMBOL 60
+#define NUMOFBUILTINSYMBOL 58
 
 pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
 fakeVMStack GlobFakeVMs={0,NULL};
@@ -86,8 +86,6 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_lt,
 	B_le,
 	B_not,
-	B_getc,
-	B_ungetc,
 	B_read,
 	B_readb,
 	B_write,
@@ -665,18 +663,18 @@ ByteCode P_close=
 	}
 };
 
-ByteCode P_getc=
-{
-	13,
-	(char[])
-	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_RES_BP,
-		FAKE_PUSH_VAR,0,0,0,0,
-		FAKE_GETC,
-		FAKE_END_PROC
-	}
-};
+//ByteCode P_getc=
+//{
+//	13,
+//	(char[])
+//	{
+//		FAKE_POP_VAR,0,0,0,0,
+//		FAKE_RES_BP,
+//		FAKE_PUSH_VAR,0,0,0,0,
+//		FAKE_GETC,
+//		FAKE_END_PROC
+//	}
+//};
 
 //ByteCode P_getch=
 //{
@@ -689,20 +687,20 @@ ByteCode P_getc=
 //	}
 //};
 
-ByteCode P_ungetc=
-{
-	23,
-	(char[])
-	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
-		FAKE_RES_BP,
-		FAKE_PUSH_VAR,0,0,0,0,
-		FAKE_PUSH_VAR,1,0,0,0,
-		FAKE_UNGETC,
-		FAKE_END_PROC
-	}
-};
+//ByteCode P_ungetc=
+//{
+//	23,
+//	(char[])
+//	{
+//		FAKE_POP_VAR,0,0,0,0,
+//		FAKE_POP_VAR,1,0,0,0,
+//		FAKE_RES_BP,
+//		FAKE_PUSH_VAR,0,0,0,0,
+//		FAKE_PUSH_VAR,1,0,0,0,
+//		FAKE_UNGETC,
+//		FAKE_END_PROC
+//	}
+//};
 
 ByteCode P_read=
 {
@@ -982,8 +980,6 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 		P_bytcat,
 		P_open,
 		P_close,
-		P_getc,
-		P_ungetc,
 		P_read,
 		P_readb,
 		P_write,
@@ -2519,19 +2515,19 @@ int B_byte_cat(fakeVM* exe)
 	return 0;
 }
 
-int B_getc(fakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMprocess* proc=exe->curproc;
-	filestack* files=exe->files;
-	VMvalue* file=getTopValue(stack);
-	if(file->type!=IN32)return 1;
-	if(*file->u.num>=files->size)return 2;
-	char ch=getc(files->files[*file->u.num]);
-	stack->values[stack->tp-1]=newVMvalue(CHR,&ch,exe->heap,1);
-	proc->cp+=1;
-	return 0;
-}
+//int B_getc(fakeVM* exe)
+//{
+//	VMstack* stack=exe->stack;
+//	VMprocess* proc=exe->curproc;
+//	filestack* files=exe->files;
+//	VMvalue* file=getTopValue(stack);
+//	if(file->type!=IN32)return 1;
+//	if(*file->u.num>=files->size)return 2;
+//	char ch=getc(files->files[*file->u.num]);
+//	stack->values[stack->tp-1]=newVMvalue(CHR,&ch,exe->heap,1);
+//	proc->cp+=1;
+//	return 0;
+//}
 
 //int B_getch(fakeVM* exe)
 //{
@@ -2550,22 +2546,22 @@ int B_getc(fakeVM* exe)
 //	return 0;
 //}
 
-int B_ungetc(fakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMprocess* proc=exe->curproc;
-	filestack* files=exe->files;
-	VMvalue* file=getTopValue(stack);
-	VMvalue* tmpChr=getValue(stack,stack->tp-2);
-	stack->tp-=1;
-	stackRecycle(exe);
-	if(file->type!=IN32||tmpChr->type!=CHR)return 1;
-	if(*file->u.num>=files->size)return 2;
-	char ch=ungetc(*tmpChr->u.chr,files->files[*file->u.num]);
-	stack->values[stack->tp-1]=newVMvalue(CHR,&ch,exe->heap,1);
-	proc->cp+=1;
-	return 0;
-}
+//int B_ungetc(fakeVM* exe)
+//{
+//	VMstack* stack=exe->stack;
+//	VMprocess* proc=exe->curproc;
+//	filestack* files=exe->files;
+//	VMvalue* file=getTopValue(stack);
+//	VMvalue* tmpChr=getValue(stack,stack->tp-2);
+//	stack->tp-=1;
+//	stackRecycle(exe);
+//	if(file->type!=IN32||tmpChr->type!=CHR)return 1;
+//	if(*file->u.num>=files->size)return 2;
+//	char ch=ungetc(*tmpChr->u.chr,files->files[*file->u.num]);
+//	stack->values[stack->tp-1]=newVMvalue(CHR,&ch,exe->heap,1);
+//	proc->cp+=1;
+//	return 0;
+//}
 
 int B_read(fakeVM* exe)
 {
@@ -3085,21 +3081,6 @@ int isTheLastExpress(const VMprocess* proc,const VMprocess* same)
 	}
 	return 1;
 }
-
-#ifndef _WIN32
-int getch()
-{
-	struct termios oldt,newt;
-	int ch;
-	tcgetattr(STDIN_FILENO,&oldt);
-	newt=oldt;
-	newt.c_lflag &=~(ICANON|ECHO);
-	tcsetattr(STDIN_FILENO,TCSANOW,&newt);
-	ch=getchar();
-	tcsetattr(STDIN_FILENO,TCSANOW,&oldt);
-	return ch;
-}
-#endif
 
 void printEnv(VMenv* curEnv,FILE* fp)
 {

@@ -76,8 +76,6 @@ int B_not(fakeVM*);
 int B_jump_if_ture(fakeVM*);
 int B_jump_if_false(fakeVM*);
 int B_jump(fakeVM*);
-int B_getc(fakeVM*);
-int B_ungetc(fakeVM*);
 int B_read(fakeVM*);
 int B_readb(fakeVM*);
 int B_write(fakeVM*);
@@ -109,9 +107,6 @@ int sendMessage(threadMessage*,fakeVM*);
 VMvalue* acceptMessage(fakeVM*);
 VMprocess* hasSameProc(VMcode*,VMprocess*);
 int isTheLastExpress(const VMprocess*,const VMprocess*);
-#ifndef _WIN32
-static int getch();
-#endif
 void printEnv(VMenv*,FILE*);
 VMheap* newVMheap();
 void freeVMheap(VMheap*);

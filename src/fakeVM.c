@@ -915,7 +915,6 @@ fakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 	exe->queueTail=NULL;
 	exe->files=newFileStack();
 	exe->heap=newVMheap();
-	exe->gclock=&GClock;
 	pthread_mutex_init(&exe->lock,NULL);
 	fakeVM** ppFakeVM=NULL;
 	int i=0;
@@ -1759,7 +1758,7 @@ int B_call_proc(fakeVM* exe)
 	strcpy(realfuncName,headOfFunc);
 	strcat(realfuncName,funcname);
 	proc->cp+=2+strlen(funcname);
-	int retval=((ModFunc)getAddress(realfuncName,exe->modules))(exe);
+	int retval=((ModFunc)getAddress(realfuncName,exe->modules))(exe,&GClock);
 	free(realfuncName);
 	return retval;
 }
@@ -3393,7 +3392,6 @@ fakeVM* newThreadVM(VMcode* main,ByteCode* procs,filestack* files,VMheap* heap,D
 	exe->queueTail=NULL;
 	exe->files=files;
 	exe->heap=heap;
-	exe->gclock=&GClock;
 	pthread_mutex_init(&exe->lock,NULL);
 	fakeVM** ppFakeVM=NULL;
 	int i=0;

@@ -370,6 +370,11 @@ void releaseSource(pthread_rwlock_t* pGClock)
 	pthread_rwlock_unlock(pGClock);
 }
 
+void lockSource(pthread_rwlock_t* pGClock)
+{
+	pthread_rwlock_rdlock(pGClock);
+}
+
 VMvalue* getArg(VMstack* stack)
 {
 	if(!(stack->tp>stack->bp))return NULL;

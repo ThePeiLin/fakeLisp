@@ -13,7 +13,7 @@
 #endif
 #include"tool.h"
 #include"opcode.h"
-#define NUMOFBUILDINSYMBOL 60
+#define NUMOFBUILDINSYMBOL 58
 char* builtInSymbolList[]=
 {
 	"nil",
@@ -61,8 +61,6 @@ char* builtInSymbolList[]=
 	"bytcat",
 	"open",
 	"close",
-	"getc",
-	"ungetc",
 	"read",
 	"readb",
 	"write",

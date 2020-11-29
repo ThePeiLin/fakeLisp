@@ -32,5 +32,6 @@ void freeVMvalue(VMvalue*);
 void freeVMstr(VMstr*);
 void freeVMenv(VMenv*);
 void releaseSource(pthread_rwlock_t*);
+void lockSource(pthread_rwlock_t*);
 VMvalue* getArg(VMstack*);
 #endif

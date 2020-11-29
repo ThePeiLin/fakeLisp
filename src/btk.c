@@ -71,6 +71,7 @@ extern "C"{
 			if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 			stack->size+=64;
 		}
+		lockSource(pGClock);
 		stack->values[stack->tp]=newVMvalue(IN32,&s,exe->heap,1);
 		stack->tp+=1;
 		return 0;
@@ -97,6 +98,7 @@ extern "C"{
 			if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
 			stack->size+=64;
 		}
+		lockSource(pGClock);
 		stack->values[stack->tp]=newVMvalue(IN32,&s,exe->heap,1);
 		stack->tp+=1;
 		return 0;

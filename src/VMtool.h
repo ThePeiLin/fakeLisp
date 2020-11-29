@@ -31,5 +31,6 @@ void freeVMcode(VMcode*);
 void freeVMvalue(VMvalue*);
 void freeVMstr(VMstr*);
 void freeVMenv(VMenv*);
-void releaseSource(fakeVM*);
+void releaseSource(pthread_rwlock_t*);
+VMvalue* getArg(VMstack*);
 #endif

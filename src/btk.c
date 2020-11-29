@@ -37,7 +37,7 @@ extern "C"{
 		return 0;
 	}
 
-	int FAKE_getch(fakeVM* exe)
+	int FAKE_getch(fakeVM* exe,pthread_rwlock_t* pGClock)
 	{
 		VMstack* stack=exe->stack;
 		VMprocess* proc=exe->curproc;
@@ -54,16 +54,16 @@ extern "C"{
 		return 0;
 	}
 
-	int FAKE_sleep(fakeVM* exe)
+	int FAKE_sleep(fakeVM* exe,pthread_rwlock_t* pGClock)
 	{
 		VMstack* stack=exe->stack;
 		VMprocess* proc=exe->curproc;
-		VMvalue* second=getTopValue(stack);
-		stack->tp-=1;
+		VMvalue* second=getArg(stack);
+		if(!second)return 5;
 		if(resBp(exe))return 4;
 		if(second->type!=IN32)return 1;
 		int32_t s=*second->u.num;
-		releaseSource(exe);
+		releaseSource(pGClock);
 		s=sleep(s);
 		if(stack->tp>=stack->size)
 		{
@@ -76,16 +76,16 @@ extern "C"{
 		return 0;
 	}
 
-	int FAKE_usleep(fakeVM* exe)
+	int FAKE_usleep(fakeVM* exe,pthread_rwlock_t* pGClock)
 	{
 		VMstack* stack=exe->stack;
 		VMprocess* proc=exe->curproc;
-		VMvalue* second=getTopValue(stack);
-		stack->tp-=1;
+		VMvalue* second=getArg(stack);
+		if(!second)return 5;
 		if(resBp(exe))return 4;
 		if(second->type!=IN32)return 1;
 		int32_t s=*second->u.num;
-		releaseSource(exe);
+		releaseSource(pGClock);
 #ifdef _WIN32
 		Sleep(s);
 #else

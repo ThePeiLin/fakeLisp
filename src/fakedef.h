@@ -255,7 +255,6 @@ typedef struct
 	VMprocess* curproc;
 	VMprocess* mainproc;
 	VMstack* stack;
-	pthread_rwlock_t* gclock;
 	pthread_mutex_t lock;
 	threadMessage* queueHead;
 	threadMessage* queueTail;
@@ -292,5 +291,5 @@ typedef struct DLL_s
 	struct DLL_s* next;
 }Dlls;
 
-typedef int (*ModFunc)(fakeVM*);
+typedef int (*ModFunc)(fakeVM*,pthread_rwlock_t*);
 #endif

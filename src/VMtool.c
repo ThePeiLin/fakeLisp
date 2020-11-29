@@ -365,7 +365,15 @@ void freeVMenv(VMenv* obj)
 	}
 }
 
-void releaseSource(fakeVM* exe)
+void releaseSource(pthread_rwlock_t* pGClock)
 {
-	pthread_rwlock_unlock(exe->gclock);
+	pthread_rwlock_unlock(pGClock);
+}
+
+VMvalue* getArg(VMstack* stack)
+{
+	if(!(stack->tp>stack->bp))return NULL;
+	VMvalue* tmp=getTopValue(stack);
+	stack->tp-=1;
+	return tmp;
 }

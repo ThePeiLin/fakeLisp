@@ -1033,7 +1033,7 @@ void runFakeVM(fakeVM* exe)
 		pthread_rwlock_unlock(&GClock);
 		if(exe->heap->size>exe->heap->threshold)
 		{
-			pthread_rwlock_wrlock(&GClock);
+			if(pthread_rwlock_trywrlock(&GClock))continue;
 			int i=0;
 			for(;i<GlobFakeVMs.size;i++)
 			{

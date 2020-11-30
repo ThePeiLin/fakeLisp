@@ -2,9 +2,8 @@
 #include<string.h>
 #include"tool.h"
 #include"syntax.h"
-#include"preprocess.h"
 static synRule* Head=NULL;
-
+static KeyWord* KeyWords=NULL;
 int (*checkAST(const ANS_cptr* objCptr))(const ANS_cptr*)
 {
 	synRule* current=NULL;
@@ -252,4 +251,78 @@ void initSyntax()
 	addSynRule(isSymbol);
 	addSynRule(isAndExpression);
 	addSynRule(isOrExpression);
+}
+
+KeyWord* hasKeyWord(const ANS_cptr* objCptr)
+{
+	ANS_atom* tmpAtm=NULL;
+	if(objCptr->type==ATM&&(tmpAtm=objCptr->value)->type==SYM)
+	{
+		KeyWord* tmp=KeyWords;
+		while(tmp!=NULL&&strcmp(tmpAtm->value.str,tmp->word))
+			tmp=tmp->next;
+		return tmp;
+	}
+	else if(objCptr->type==PAIR)
+	{
+		KeyWord* tmp=NULL;
+		for(objCptr=&((ANS_pair*)objCptr->value)->car;objCptr!=NULL;objCptr=nextCptr(objCptr))
+		{
+			tmp=KeyWords;
+			tmpAtm=(objCptr->type==ATM)?objCptr->value:NULL;
+			ANS_atom* cdrAtm=(objCptr->outer->cdr.type==ATM)?objCptr->outer->cdr.value:NULL;
+			if((tmpAtm==NULL||tmpAtm->type!=SYM)&&(cdrAtm==NULL||cdrAtm->type!=SYM))
+			{
+				tmp=NULL;
+				continue;
+			}
+			while(tmp!=NULL&&tmpAtm!=NULL&&strcmp(tmpAtm->value.str,tmp->word)&&(cdrAtm==NULL||cdrAtm->type!=SYM||(cdrAtm!=NULL&&strcmp(cdrAtm->value.str,tmp->word))))
+				tmp=tmp->next;
+			if(tmp!=NULL)break;
+		}
+		return tmp;
+	}
+	return NULL;
+}
+
+void printAllKeyWord()
+{
+	KeyWord* tmp=KeyWords;
+	while(tmp!=NULL)
+	{
+		puts(tmp->word);
+		tmp=tmp->next;
+	}
+}
+
+void addKeyWord(const char* objStr)
+{
+	if(objStr!=NULL)
+	{
+		KeyWord* current=KeyWords;
+		KeyWord* prev=NULL;
+		while(current!=NULL&&strcmp(current->word,objStr)){prev=current;current=current->next;}
+		if(current==NULL)
+		{
+			current=(KeyWord*)malloc(sizeof(KeyWord));
+			current->word=(char*)malloc(sizeof(char)*(strlen(objStr)+1));
+			if(current==NULL||current->word==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+			strcpy(current->word,objStr);
+			if(prev!=NULL)prev->next=current;
+			else KeyWords=current;
+			current->next=NULL;
+		}
+	}
+}
+
+void freeAllKeyWord()
+{
+	KeyWord* cur=KeyWords;
+	while(cur!=NULL)
+	{
+		KeyWord* prev=cur;
+		cur=cur->next;
+		free(prev->word);
+		free(prev);
+	}
 }

@@ -163,18 +163,6 @@ typedef struct
 
 typedef struct VM_Value
 {
-	//int8_t mark;
-	//int8_t type;
-	//union
-	//{
-	//	char* str;
-	//	struct VM_Code* prc;
-	//	VMpair pair;
-	//	ByteArry byta;
-	//	int32_t num;
-	//	char chr;
-	//	double dbl;
-	//}u;
 	unsigned int mark :1;
 	unsigned int access :1;
 	unsigned int type :6;

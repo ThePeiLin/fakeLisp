@@ -663,45 +663,6 @@ ByteCode P_close=
 	}
 };
 
-//ByteCode P_getc=
-//{
-//	13,
-//	(char[])
-//	{
-//		FAKE_POP_VAR,0,0,0,0,
-//		FAKE_RES_BP,
-//		FAKE_PUSH_VAR,0,0,0,0,
-//		FAKE_GETC,
-//		FAKE_END_PROC
-//	}
-//};
-
-//ByteCode P_getch=
-//{
-//	3,
-//	(char[])
-//	{
-//		FAKE_RES_BP,
-//		FAKE_GETCH,
-//		FAKE_END_PROC
-//	}
-//};
-
-//ByteCode P_ungetc=
-//{
-//	23,
-//	(char[])
-//	{
-//		FAKE_POP_VAR,0,0,0,0,
-//		FAKE_POP_VAR,1,0,0,0,
-//		FAKE_RES_BP,
-//		FAKE_PUSH_VAR,0,0,0,0,
-//		FAKE_PUSH_VAR,1,0,0,0,
-//		FAKE_UNGETC,
-//		FAKE_END_PROC
-//	}
-//};
-
 ByteCode P_read=
 {
 	13,
@@ -2514,54 +2475,6 @@ int B_byte_cat(fakeVM* exe)
 	proc->cp+=1;
 	return 0;
 }
-
-//int B_getc(fakeVM* exe)
-//{
-//	VMstack* stack=exe->stack;
-//	VMprocess* proc=exe->curproc;
-//	filestack* files=exe->files;
-//	VMvalue* file=getTopValue(stack);
-//	if(file->type!=IN32)return 1;
-//	if(*file->u.num>=files->size)return 2;
-//	char ch=getc(files->files[*file->u.num]);
-//	stack->values[stack->tp-1]=newVMvalue(CHR,&ch,exe->heap,1);
-//	proc->cp+=1;
-//	return 0;
-//}
-
-//int B_getch(fakeVM* exe)
-//{
-//	VMstack* stack=exe->stack;
-//	VMprocess* proc=exe->curproc;
-//	if(stack->tp>=stack->size)
-//	{
-//		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-//		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
-//		stack->size+=64;
-//	}
-//	char ch=getch();
-//	stack->values[stack->tp]=newVMvalue(CHR,&ch,exe->heap,1);
-//	stack->tp+=1;
-//	proc->cp+=1;
-//	return 0;
-//}
-
-//int B_ungetc(fakeVM* exe)
-//{
-//	VMstack* stack=exe->stack;
-//	VMprocess* proc=exe->curproc;
-//	filestack* files=exe->files;
-//	VMvalue* file=getTopValue(stack);
-//	VMvalue* tmpChr=getValue(stack,stack->tp-2);
-//	stack->tp-=1;
-//	stackRecycle(exe);
-//	if(file->type!=IN32||tmpChr->type!=CHR)return 1;
-//	if(*file->u.num>=files->size)return 2;
-//	char ch=ungetc(*tmpChr->u.chr,files->files[*file->u.num]);
-//	stack->values[stack->tp-1]=newVMvalue(CHR,&ch,exe->heap,1);
-//	proc->cp+=1;
-//	return 0;
-//}
 
 int B_read(fakeVM* exe)
 {

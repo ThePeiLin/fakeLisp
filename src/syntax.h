@@ -7,6 +7,10 @@ typedef struct SyntaxRule
 	struct SyntaxRule* next;
 }synRule;
 
+KeyWord* hasKeyWord(const ANS_cptr*);
+void addKeyWord(const char*);
+void printAllKeyWord();
+void freeAllKeyWord();
 void addSynRule(int (*)(const ANS_cptr*));
 int (*checkAST(const ANS_cptr*))(const ANS_cptr*);
 //void initSyntax();

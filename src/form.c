@@ -1039,6 +1039,11 @@ ErrorStatus N_import(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 #else
 	char* rp=realpath(modname,0);
 #endif
+	if(rp==NULL)
+	{
+		perror(modname);
+		exit(EXIT_FAILURE);
+	}
 	char* rep=relpath(getLastWorkDir(inter),rp);
 	char* rmodname=(char*)malloc(sizeof(char)*(strlen(rep)-strlen(filetype)+1));
 	if(!rmodname)errors(OUTOFMEMORY,__FILE__,__LINE__);

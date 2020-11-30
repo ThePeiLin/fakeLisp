@@ -1,11 +1,12 @@
 #include<string.h>
 #include"preprocess.h"
 #include"tool.h"
+#include"syntax.h"
+
 static PreMacro* FirstMacro=NULL;
 static PreMasym* FirstMasym=NULL;
 static PreEnv* MacroEnv=NULL;
 static PreFunc* funAndForm=NULL;
-static KeyWord* KeyWords=NULL;
 
 
 void addFunc(const char* name,ErrorStatus (*pFun)(ANS_cptr*,PreEnv*,intpr*))
@@ -179,68 +180,6 @@ ErrorStatus eval(ANS_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 		if(retree(&objCptr,tmpCptr))break;
 	}
 	return status;
-}
-
-void addKeyWord(const char* objStr)
-{
-	if(objStr!=NULL)
-	{
-		KeyWord* current=KeyWords;
-		KeyWord* prev=NULL;
-		while(current!=NULL&&strcmp(current->word,objStr)){prev=current;current=current->next;}
-		if(current==NULL)
-		{
-			current=(KeyWord*)malloc(sizeof(KeyWord));
-			current->word=(char*)malloc(sizeof(char)*(strlen(objStr)+1));
-			if(current==NULL||current->word==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
-			strcpy(current->word,objStr);
-			if(prev!=NULL)prev->next=current;
-			else KeyWords=current;
-			current->next=NULL;
-		}
-	}
-}
-
-KeyWord* hasKeyWord(const ANS_cptr* objCptr)
-{
-	ANS_atom* tmpAtm=NULL;
-	if(objCptr->type==ATM&&(tmpAtm=objCptr->value)->type==SYM)
-	{
-		KeyWord* tmp=KeyWords;
-		while(tmp!=NULL&&strcmp(tmpAtm->value.str,tmp->word))
-			tmp=tmp->next;
-		return tmp;
-	}
-	else if(objCptr->type==PAIR)
-	{
-		KeyWord* tmp=NULL;
-		for(objCptr=&((ANS_pair*)objCptr->value)->car;objCptr!=NULL;objCptr=nextCptr(objCptr))
-		{
-			tmp=KeyWords;
-			tmpAtm=(objCptr->type==ATM)?objCptr->value:NULL;
-			ANS_atom* cdrAtm=(objCptr->outer->cdr.type==ATM)?objCptr->outer->cdr.value:NULL;
-			if((tmpAtm==NULL||tmpAtm->type!=SYM)&&(cdrAtm==NULL||cdrAtm->type!=SYM))
-			{
-				tmp=NULL;
-				continue;
-			}
-			while(tmp!=NULL&&tmpAtm!=NULL&&strcmp(tmpAtm->value.str,tmp->word)&&(cdrAtm==NULL||cdrAtm->type!=SYM||(cdrAtm!=NULL&&strcmp(cdrAtm->value.str,tmp->word))))
-				tmp=tmp->next;
-			if(tmp!=NULL)break;
-		}
-		return tmp;
-	}
-	return NULL;
-}
-
-void printAllKeyWord()
-{
-	KeyWord* tmp=KeyWords;
-	while(tmp!=NULL)
-	{
-		puts(tmp->word);
-		tmp=tmp->next;
-	}
 }
 
 PreMacro* PreMacroMatch(const ANS_cptr* objCptr)
@@ -789,18 +728,6 @@ void freeMacroEnv()
 {
 	destroyEnv(MacroEnv);
 	free(MacroEnv);
-}
-
-void freeAllKeyWord()
-{
-	KeyWord* cur=KeyWords;
-	while(cur!=NULL)
-	{
-		KeyWord* prev=cur;
-		cur=cur->next;
-		free(prev->word);
-		free(prev);
-	}
 }
 
 void freeAllRule()

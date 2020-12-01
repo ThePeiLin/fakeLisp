@@ -16,14 +16,14 @@
 int main(int argc,char** argv)
 {
 	char* filename=argv[1];
-	FILE* fp=(argc>1)?fopen(argv[1],"r"):stdin;
-	if(fp==NULL)
-	{
-		perror(filename);
-		return EXIT_FAILURE;
-	}
 	if(argc==1||isscript(filename))
 	{
+		FILE* fp=(argc>1)?fopen(argv[1],"r"):stdin;
+		if(fp==NULL)
+		{
+			perror(filename);
+			return EXIT_FAILURE;
+		}
 		intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL);
 		initEvalution();
 		if(fp==stdin)
@@ -53,6 +53,12 @@ int main(int argc,char** argv)
 	}
 	else if(iscode(filename))
 	{
+		FILE* fp=fopen(argv[1],"rb");
+		if(fp==NULL)
+		{
+			perror(filename);
+			return EXIT_FAILURE;
+		}
 		int32_t num=0;
 		changeWorkPath(filename);
 		ByteCode* RawProcess=loadRawproc(fp,&num);

@@ -1228,7 +1228,7 @@ intpr* newIntpr(const char* filename,FILE* file,CompEnv* env)
 	intpr* tmp=NULL;
 	if(!(tmp=(intpr*)malloc(sizeof(intpr))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp->filename=copyStr(filename);
-	if(file!=stdin)
+	if(file!=stdin&&filename!=NULL)
 	{
 #ifdef _WIN32
 		char* rp=_fullpath(NULL,filename,0);
@@ -1264,7 +1264,8 @@ intpr* newIntpr(const char* filename,FILE* file,CompEnv* env)
 
 void freeIntpr(intpr* inter)
 {
-	free(inter->filename);
+	if(inter->filename)
+		free(inter->filename);
 	if(inter->file!=stdin)
 		fclose(inter->file);
 	free(inter->curDir);

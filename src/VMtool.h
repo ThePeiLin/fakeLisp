@@ -34,4 +34,5 @@ void freeVMenv(VMenv*);
 void releaseSource(pthread_rwlock_t*);
 void lockSource(pthread_rwlock_t*);
 VMvalue* getArg(VMstack*);
+FILE* getFile(filestack*,int32_t);
 #endif

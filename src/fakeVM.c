@@ -2483,8 +2483,7 @@ int B_read(fakeVM* exe)
 	filestack* files=exe->files;
 	VMvalue* file=getTopValue(stack);
 	if(file->type!=IN32)return 1;
-	if(*file->u.num>=files->size)return 2;
-	FILE* tmpFile=files->files[*file->u.num];
+	FILE* tmpFile=getFile(files,*file->u.num);
 	if(tmpFile==NULL)return 2;
 	char* tmpString=getListFromFile(tmpFile);
 	intpr* tmpIntpr=newTmpIntpr(NULL,tmpFile);
@@ -2509,8 +2508,7 @@ int B_readb(fakeVM* exe)
 	VMvalue* file=getTopValue(stack);
 	VMvalue* size=getValue(stack,stack->tp-2);
 	if(file->type!=IN32||size->type!=IN32)return 1;
-	if(*file->u.num>=files->size)return 2;
-	FILE* fp=files->files[*file->u.num];
+	FILE* fp=getFile(files,*file->u.num);
 	if(fp==NULL)return 2;
 	VMvalue* tmpBary=newVMvalue(BYTA,NULL,exe->heap,1);
 	uint8_t* arry=(uint8_t*)malloc(sizeof(uint8_t)*(*size->u.num));
@@ -2534,8 +2532,7 @@ int B_write(fakeVM* exe)
 	VMvalue* file=getTopValue(stack);
 	VMvalue* obj=getValue(stack,stack->tp-2);
 	if(file->type!=IN32)return 1;
-	if(*file->u.num>=files->size)return 2;
-	FILE* objFile=files->files[*file->u.num];
+	FILE* objFile=getFile(files,*file->u.num);
 	if(objFile==NULL)return 2;
 	stack->tp-=1;
 	stackRecycle(exe);
@@ -2553,8 +2550,7 @@ int B_writeb(fakeVM* exe)
 	VMvalue* file=getTopValue(stack);
 	VMvalue* bt=getValue(stack,stack->tp-2);
 	if(file->type!=IN32||bt->type!=BYTA)return 1;
-	if(*file->u.num>=files->size)return 2;
-	FILE* objFile=files->files[*file->u.num];
+	FILE* objFile=getFile(files,*file->u.num);
 	if(objFile==NULL)return 2;
 	stack->tp-=1;
 	stackRecycle(exe);
@@ -2820,7 +2816,8 @@ void freeFileStack(filestack* s)
 {
 	int i=3;
 	for(;i<s->size;i++)
-		fclose(s->files[i]);
+		if(s->files[i])
+			fclose(s->files[i]);
 	free(s->files);
 	pthread_mutex_destroy(&s->lock);
 	free(s);
@@ -3380,7 +3377,7 @@ intpr* newTmpIntpr(const char* filename,FILE* fp)
 	intpr* tmp=NULL;
 	if(!(tmp=(intpr*)malloc(sizeof(intpr))))errors(OUTOFMEMORY,__FILE__,__LINE__);
 	tmp->filename=copyStr(filename);
-	if(fp!=stdin)
+	if(fp!=stdin&&filename)
 	{
 #ifdef _WIN32
 		char* rp=_fullpath(NULL,filename,0);
@@ -3395,6 +3392,8 @@ intpr* newTmpIntpr(const char* filename,FILE* fp)
 		tmp->curDir=getDir(rp);
 		free(rp);
 	}
+	else
+		tmp->curDir=NULL;
 	tmp->file=fp;
 	tmp->curline=1;
 	tmp->procs=NULL;

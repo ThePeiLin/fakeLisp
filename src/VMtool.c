@@ -215,7 +215,7 @@ VMvalue* castCptrVMvalue(const ANS_cptr* objCptr,VMheap* heap)
 			case CHR:tmp=newVMvalue(CHR,&tmpAtm->value.chr,heap,1);break;
 			case BYTA:tmp=newVMvalue(BYTA,&tmpAtm->value.byta,heap,1);break;
 			case SYM:
-			case STR:tmp=newVMvalue(tmpAtm->type,tmpAtm->value.str,heap,1);break;
+			case STR:tmp=newVMvalue(tmpAtm->type,newVMstr(tmpAtm->value.str),heap,1);break;
 		}
 		return tmp;
 	}
@@ -381,4 +381,10 @@ VMvalue* getArg(VMstack* stack)
 	VMvalue* tmp=getTopValue(stack);
 	stack->tp-=1;
 	return tmp;
+}
+
+FILE* getFile(filestack* files,int32_t count)
+{
+	if(count>=files->size)return NULL;
+	return files->files[count];
 }

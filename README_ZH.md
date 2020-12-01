@@ -93,9 +93,6 @@ append
 rand  
 open  
 close  
-getc  
-getch  
-ungetc  
 read  
 readb  
 write  
@@ -120,6 +117,7 @@ and
 or  
 lambda  
 load  
+import  
 
 基于消息的多线程。  
 可以编译整个文件，有尾递归优化。

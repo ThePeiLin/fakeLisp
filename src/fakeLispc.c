@@ -26,7 +26,7 @@ int main(int argc,char** argv)
 		char* outputname=(char*)malloc(sizeof(char)*(strlen(filename)+2));
 		strcpy(outputname,filename);
 		strcat(outputname,"c");
-		FILE* outfp=fopen(outputname,"w");
+		FILE* outfp=fopen(outputname,"wb");
 		//changeWorkPath(filename);
 		initPreprocess();
 		initEvalution();

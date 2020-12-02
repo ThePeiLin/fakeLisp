@@ -2487,7 +2487,7 @@ int B_read(fakeVM* exe)
 	if(tmpFile==NULL)return 2;
 	char* tmpString=getListFromFile(tmpFile);
 	intpr* tmpIntpr=newTmpIntpr(NULL,tmpFile);
-	ANS_cptr* tmpCptr=createTree(tmpString,tmpIntpr);
+	AST_cptr* tmpCptr=createTree(tmpString,tmpIntpr);
 	VMvalue* tmp=NULL;
 	if(tmpCptr==NULL)return 3;
 	tmp=castCptrVMvalue(tmpCptr,exe->heap);

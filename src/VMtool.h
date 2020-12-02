@@ -19,7 +19,7 @@ int numcmp(VMvalue*,VMvalue*);
 VMenv* newVMenv(int32_t,VMenv*);
 VMpair* newVMpair(VMheap*);
 VMstr* newVMstr(const char*);
-VMvalue* castCptrVMvalue(const ANS_cptr*,VMheap*);
+VMvalue* castCptrVMvalue(const AST_cptr*,VMheap*);
 ByteArry* newByteArry(size_t,uint8_t*);
 ByteArry* copyByteArry(const ByteArry*);
 ByteArry* newEmptyByteArry();

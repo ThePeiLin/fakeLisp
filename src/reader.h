@@ -14,9 +14,9 @@ typedef struct Reader_Macro
 	struct Reader_Macro* next;
 }ReaderMacro;
 
-StringMatchPattern* newStringPattern(const char**);
+StringMatchPattern* newStringPattern(const char**,int32_t);
 void freeStringPattern(StringMatchPattern*);
-char** splitPattern(const char*);
+char** splitPattern(const char*,int32_t*);
 ReaderMacro* newReaderMacro(StringMatchPattern*,AST_cptr*);
 void freeReaderMacro(ReaderMacro*);
 char** getMacroChr(const char*);

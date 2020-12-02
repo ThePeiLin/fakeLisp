@@ -8,3 +8,5 @@ src/form.\* 提供预处理器的内置函数
 src/fakeVM.\*  提供运行字节码的虚拟机有关函数  
 src/fakeLisp.\* 解释器源文件  
 src/fakeLispc.\* 编译器源文件  
+src/VMtool.\* 虚拟机运行用通用工具  
+src/btk.c basic tool kit 基础工具套件，提供脚本调用的第三方函数  

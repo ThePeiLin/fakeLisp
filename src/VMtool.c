@@ -202,11 +202,11 @@ VMstr* newVMstr(const char* str)
 	return tmp;
 }
 
-VMvalue* castCptrVMvalue(const ANS_cptr* objCptr,VMheap* heap)
+VMvalue* castCptrVMvalue(const AST_cptr* objCptr,VMheap* heap)
 {
 	if(objCptr->type==ATM)
 	{
-		ANS_atom* tmpAtm=objCptr->value;
+		AST_atom* tmpAtm=objCptr->value;
 		VMvalue* tmp=NULL;
 		switch(tmpAtm->type)
 		{
@@ -221,7 +221,7 @@ VMvalue* castCptrVMvalue(const ANS_cptr* objCptr,VMheap* heap)
 	}
 	else if(objCptr->type==PAIR)
 	{
-		ANS_pair* objPair=objCptr->value;
+		AST_pair* objPair=objCptr->value;
 		VMpair* tmpPair=newVMpair(heap);
 		VMvalue* tmp=newVMvalue(PAIR,tmpPair,heap,1);
 		tmp->u.pair->car=castCptrVMvalue(&objPair->car,heap);

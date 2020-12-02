@@ -127,7 +127,7 @@ void runIntpr(intpr* inter)
 	ByteCode* rawProcList=NULL;
 	for(;;)
 	{
-		ANS_cptr* begin=NULL;
+		AST_cptr* begin=NULL;
 		if(inter->file==stdin)printf(">>>");
 		int ch=getc(inter->file);
 		if(ch==EOF)break;

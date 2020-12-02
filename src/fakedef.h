@@ -21,21 +21,21 @@ typedef struct
 
 typedef struct
 {
-	struct ANS_Pair* outer;
+	struct AST_Pair* outer;
 	int curline;
 	ValueType type;
 	void* value;
-}ANS_cptr;
+}AST_cptr;
 
-typedef struct ANS_Pair
+typedef struct AST_Pair
 {
-	struct ANS_Pair* prev;
-	ANS_cptr car,cdr;
-}ANS_pair;
+	struct AST_Pair* prev;
+	AST_cptr car,cdr;
+}AST_pair;
 
-typedef struct ANS_atom
+typedef struct AST_atom
 {
-	ANS_pair* prev;
+	AST_pair* prev;
 	ValueType type;
 	union
 	{
@@ -45,18 +45,18 @@ typedef struct ANS_atom
 		double dbl;
 		ByteArry byta;
 	} value;
-}ANS_atom;
+}AST_atom;
 
 typedef struct
 {
 	int status;
-	ANS_cptr* place;
+	AST_cptr* place;
 }ErrorStatus;
 
 typedef struct Pre_Def
 {
 	char* symName;
-	ANS_cptr obj;//node or symbol or val
+	AST_cptr obj;//node or symbol or val
 	struct Pre_Def* next;
 }PreDef;
 
@@ -69,15 +69,15 @@ typedef struct Pre_Env
 
 typedef struct Pre_Macro
 {
-	ANS_cptr* format;
-	ANS_cptr* express;
+	AST_cptr* format;
+	AST_cptr* express;
 	struct Pre_Macro* next;
 }PreMacro;
 
 typedef struct Pre_MacroSym
 {
 	char* symName;
-	int (*Func)(const ANS_cptr*,const ANS_cptr*,const char*,PreEnv*);
+	int (*Func)(const AST_cptr*,const AST_cptr*,const char*,PreEnv*);
 	struct Pre_MacroSym* next;
 }PreMasym;
 
@@ -132,7 +132,7 @@ typedef struct Interpreter
 typedef struct Pre_Func//function and form
 {
 	char* functionName;
-	ErrorStatus (*function)(ANS_cptr*,PreEnv*,struct Interpreter*);
+	ErrorStatus (*function)(AST_cptr*,PreEnv*,struct Interpreter*);
 	struct Pre_Func* next;
 }PreFunc;
 

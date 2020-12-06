@@ -12,6 +12,8 @@ else
 LINK=-lpthread -ldl
 endif
 
+reader.o: src/reader.* src/fakedef.h src/tool.*
+	gcc $(FLAG) -c src/reader.c
 form.o: src/form.* src/fakedef.h
 	gcc $(FLAG) -c src/form.c
 tool.o: src/tool.* src/fakedef.h src/opcode.h

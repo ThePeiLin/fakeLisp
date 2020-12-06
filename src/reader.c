@@ -147,13 +147,10 @@ char* readSingle(FILE* fp)
 			if(!tmp)tmp=readSpace(fp);
 			else
 			{
-				if(tmp!=NULL)
-				{
-					char* tmpStr=readSpace(fp);
-					tmp=(char*)realloc(tmp,sizeof(char)*(strlen(tmp)+strlen(tmpStr)+1));
-					strcat(tmp,tmpStr);
-					free(tmpStr);
-				}
+				char* tmpStr=readSpace(fp);
+				tmp=(char*)realloc(tmp,sizeof(char)*(strlen(tmp)+strlen(tmpStr)+1));
+				strcat(tmp,tmpStr);
+				free(tmpStr);
 			}
 			strSize=strlen(tmp);
 			memSize=strSize+1;
@@ -237,7 +234,7 @@ char* readString(FILE* fp)
 {
 	int32_t memSize=MAX_STRING_SIZE;
 	char* tmp=(char*)malloc(sizeof(char)*memSize);
-	if(!tmp)errors("readSpace",__FILE__,__LINE__);
+	if(!tmp)errors("readString",__FILE__,__LINE__);
 	int32_t strSize=0;
 	int ch=getc(fp);
 	for(;ch!=EOF;ch=getc(fp))

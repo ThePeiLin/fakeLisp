@@ -15,8 +15,8 @@ void addFunc(const char* name,ErrorStatus (*pFun)(AST_cptr*,PreEnv*,intpr*))
 	PreFunc* prev=NULL;
 	if(current==NULL)
 	{
-		if(!(funAndForm=(PreFunc*)malloc(sizeof(PreFunc))))errors(OUTOFMEMORY,__FILE__,__LINE__);
-		if(!(funAndForm->functionName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(!(funAndForm=(PreFunc*)malloc(sizeof(PreFunc))))errors("addFunc",__FILE__,__LINE__);
+		if(!(funAndForm->functionName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors("addFunc",__FILE__,__LINE__);
 		strcpy(funAndForm->functionName,name);
 		funAndForm->function=pFun;
 		funAndForm->next=NULL;
@@ -29,8 +29,8 @@ void addFunc(const char* name,ErrorStatus (*pFun)(AST_cptr*,PreEnv*,intpr*))
 			prev=current;
 			current=current->next;
 		}
-		if(!(current=(PreFunc*)malloc(sizeof(PreFunc))))errors(OUTOFMEMORY,__FILE__,__LINE__);
-		if(!(current->functionName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(!(current=(PreFunc*)malloc(sizeof(PreFunc))))errors("addFunc",__FILE__,__LINE__);
+		if(!(current->functionName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors("addFunc",__FILE__,__LINE__);
 		strcpy(current->functionName,name);
 		current->function=pFun;
 		current->next=NULL;
@@ -239,7 +239,7 @@ int addMacro(AST_cptr* format,AST_cptr* express)
 		current=current->next;
 	if(current==NULL)
 	{
-		if(!(current=(PreMacro*)malloc(sizeof(PreMacro))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(!(current=(PreMacro*)malloc(sizeof(PreMacro))))errors("addMacro",__FILE__,__LINE__);
 		current->format=format;
 		current->express=express;
 		current->next=FirstMacro;
@@ -409,8 +409,8 @@ void initPreprocess()
 void addRule(const char* name,int (*obj)(const AST_cptr*,const AST_cptr*,const char*,PreEnv*))
 {
 	PreMasym* current=NULL;
-	if(!(current=(PreMasym*)malloc(sizeof(PreMasym))))errors(OUTOFMEMORY,__FILE__,__LINE__);
-	if(!(current->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(!(current=(PreMasym*)malloc(sizeof(PreMasym))))errors("addRule",__FILE__,__LINE__);
+	if(!(current->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors("addRule",__FILE__,__LINE__);
 	current->next=FirstMasym;
 	FirstMasym=current;
 	strcpy(current->symName,name);
@@ -694,7 +694,7 @@ char* getWord(const char* name,int num)
 		if(name[j]!='#')tmplen++;
 		else break;
 	}
-	if(!(tmpStr=(char*)malloc(sizeof(char)*(tmplen+1))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(!(tmpStr=(char*)malloc(sizeof(char)*(tmplen+1))))errors("getWord",__FILE__,__LINE__);
 	strncpy(tmpStr,name+i,tmplen);
 	tmpStr[tmplen]='\0';
 	return tmpStr;
@@ -703,9 +703,9 @@ char* getWord(const char* name,int num)
 PreDef* newDefines(const char* name)
 {
 	PreDef* tmp=(PreDef*)malloc(sizeof(PreDef));
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("newDefines",__FILE__,__LINE__);
 	tmp->symName=(char*)malloc(sizeof(char)*(strlen(name)+1));
-	if(tmp->symName==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp->symName==NULL)errors("newDefines",__FILE__,__LINE__);
 	strcpy(tmp->symName,name);
 	tmp->obj=(AST_cptr){NULL,0,NIL,NULL};
 	tmp->next=NULL;

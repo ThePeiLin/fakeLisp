@@ -391,7 +391,7 @@ ByteCode* compileSym(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus*
 	{
 		char* headOfFuncName="FAKE_";
 		char* realFuncName=(char*)malloc(sizeof(char)*(1+strlen(headOfFuncName)+strlen(tmpAtm->value.str)));
-		if(realFuncName==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(realFuncName==NULL)errors("compileSym",__FILE__,__LINE__);
 		strcpy(realFuncName,headOfFuncName);
 		strcat(realFuncName,tmpAtm->value.str);
 		void* funcAddress=getAddress(realFuncName,*getpDlls(inter));

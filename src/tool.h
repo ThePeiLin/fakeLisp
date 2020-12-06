@@ -2,7 +2,6 @@
 #define TOOL_H
 #include<stdint.h>
 #include"fakedef.h"
-#define OUTOFMEMORY 1
 typedef struct RawString
 {
 	int len;
@@ -29,7 +28,7 @@ int32_t stringToInt(const char*);
 char stringToChar(const char*);
 uint8_t* castStrByteArry(const char*);
 uint8_t castCharInt(char);
-void errors(int,const char*,int);
+void errors(const char*,const char*,int);
 AST_cptr* createTree(const char*,intpr*);
 void exError(const AST_cptr*,int,intpr*);
 void printList(const AST_cptr*,FILE*);

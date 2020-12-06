@@ -85,7 +85,7 @@ char* getListFromFile(FILE* file)
 	int memSize=1;
 	int anotherChar=0;
 	char* tmp=(char*)malloc(sizeof(char)*memSize);
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("getListFromFile",__FILE__,__LINE__);
 	tmp[0]='\0';
 	while((ch=getc(file))!=EOF)
 	{
@@ -106,7 +106,7 @@ char* getListFromFile(FILE* file)
 			int numOfSpace=0;
 			int lenOfMemory=1;
 			char* stringOfSpace=(char*)malloc(sizeof(char)*lenOfMemory);
-			if(stringOfSpace==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+			if(stringOfSpace==NULL)errors("getListFromFile",__FILE__,__LINE__);
 			stringOfSpace[numOfSpace]='\0';
 			char* before=NULL;
 			while(isspace((ch=getc(file))))
@@ -114,7 +114,7 @@ char* getListFromFile(FILE* file)
 				numOfSpace++;
 				lenOfMemory++;
 				before=stringOfSpace;
-				if(!(stringOfSpace=(char*)malloc(sizeof(char)*lenOfMemory)))errors(OUTOFMEMORY,__FILE__,__LINE__);
+				if(!(stringOfSpace=(char*)malloc(sizeof(char)*lenOfMemory)))errors("getListFromFile",__FILE__,__LINE__);
 				if(before!=NULL)
 				{
 					memcpy(stringOfSpace,before,numOfSpace);
@@ -128,14 +128,14 @@ char* getListFromFile(FILE* file)
 			char* tmpList=subGetList(file);
 			char* other=NULL;
 			int len=strlen(tmpList)+strlen(beQuote)+strlen(stringOfSpace)+1;
-			if(!(other=(char*)malloc(sizeof(char)*len)))errors(OUTOFMEMORY,__FILE__,__LINE__);
+			if(!(other=(char*)malloc(sizeof(char)*len)))errors("getListFromFile",__FILE__,__LINE__);
 			strcpy(other,beQuote);
 			strcat(other,stringOfSpace);
 			strcat(other,tmpList);
 			other[len-1]=')';
 			lenOfStr+=len;
 			before=tmp;
-			if(!(tmp=(char*)malloc(sizeof(char)*(lenOfStr+1))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+			if(!(tmp=(char*)malloc(sizeof(char)*(lenOfStr+1))))errors("getListFromFile",__FILE__,__LINE__);
 			memcpy(tmp,before,memSize);
 			strncat(tmp,other,len);
 			if(before!=NULL)free(before);
@@ -149,7 +149,7 @@ char* getListFromFile(FILE* file)
 		memSize++;
 		before=tmp;
 		if(!(tmp=(char*)malloc(sizeof(char)*(memSize))))
-			errors(OUTOFMEMORY,__FILE__,__LINE__);
+			errors("getListFromFile",__FILE__,__LINE__);
 		if(before!=NULL)
 		{
 			memcpy(tmp,before,lenOfStr-1);
@@ -164,7 +164,7 @@ char* getListFromFile(FILE* file)
 		{
 			char* tmpStr=(ch=='\"')?getStringAfterMark(file):getAtomFromFile(file);
 			tmp=(char*)realloc(tmp,sizeof(char)*(strlen(tmpStr)+strlen(tmp)+1));
-			if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+			if(tmp==NULL)errors("getListFromFile",__FILE__,__LINE__);
 			strcat(tmp,tmpStr);
 			lenOfStr=strlen(tmp);
 			memSize=lenOfStr+1;
@@ -183,7 +183,7 @@ char* getListFromFile(FILE* file)
 char* getAtomFromFile(FILE* file)
 {
 	char* tmp=(char*)malloc(sizeof(char));
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("getAtomFromFile",__FILE__,__LINE__);
 	tmp[0]='\0';
 	char* before;
 	int i=0;
@@ -199,7 +199,7 @@ char* getAtomFromFile(FILE* file)
 		i++;
 		j=i-1;
 		before=tmp;
-		if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))errors("getAtomFromFile",__FILE__,__LINE__);
 		if(before!=NULL)
 		{
 			memcpy(tmp,before,j);
@@ -214,7 +214,7 @@ char* getAtomFromFile(FILE* file)
 char* getStringAfterMark(FILE* file)
 {
 	char* tmp=(char*)malloc(sizeof(char));
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("getStringAfterMark",__FILE__,__LINE__);
 	tmp[0]='\0';
 	char* before;
 	int i=0;
@@ -225,7 +225,7 @@ char* getStringAfterMark(FILE* file)
 		i++;
 		j=i-1;
 		before=tmp;
-		if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))errors("getStringAfterMark",__FILE__,__LINE__);
 		if(before!=NULL)
 		{
 			memcpy(tmp,before,j);
@@ -273,7 +273,7 @@ char* subGetList(FILE* file)
 		j=i-1;
 		before=tmp;
 		if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))
-			errors(OUTOFMEMORY,__FILE__,__LINE__);
+			errors("subGetList",__FILE__,__LINE__);
 		if(before!=NULL)
 		{
 			memcpy(tmp,before,j);
@@ -297,7 +297,7 @@ char* getStringFromList(const char* str)
 			&&!isspace(*(str+len))
 			&&(*(str+len)!=',')
 			&&(*(str+len)!=0))len++;
-	if(!(tmp=(char*)malloc(sizeof(char)*(len+1))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(!(tmp=(char*)malloc(sizeof(char)*(len+1))))errors("getStringFromList",__FILE__,__LINE__);
 	memcpy(tmp,str,len);
 	if(tmp!=NULL)*(tmp+len)='\0';
 	return tmp;
@@ -312,7 +312,7 @@ char* getStringAfterBackslash(const char* str)
 		len++;
 		if(!isalnum(str[len])&&str[len-1]!='\\')break;
 	}
-	if(!(tmp=(char*)malloc(sizeof(char)*(len+1))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(!(tmp=(char*)malloc(sizeof(char)*(len+1))))errors("getStringAfterBackslash",__FILE__,__LINE__);
 	memcpy(tmp,str,len);
 	if(tmp!=NULL)*(tmp+len)='\0';
 	return tmp;
@@ -347,7 +347,7 @@ char* intToString(long num)
 	sprintf(numString,"%ld",num);
 	int lenOfNum=strlen(numString)+1;
 	char* tmp=NULL;
-	if(!(tmp=(char*)malloc(lenOfNum*sizeof(char))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(!(tmp=(char*)malloc(lenOfNum*sizeof(char))))errors("intToString",__FILE__,__LINE__);
 	memcpy(tmp,numString,lenOfNum);;
 	return tmp;
 }
@@ -447,6 +447,7 @@ rawString getStringBetweenMarks(const char* str,intpr* inter)
 			else if(*(str+i+1)=='\n')
 			{
 				i+=2;
+				inter->curline+=1;
 				continue;
 			}
 			else
@@ -506,14 +507,10 @@ void printRawString(const char* objStr,FILE* out)
 	putc('\"',out);
 }
 
-void errors(int types,const char* filename,int line)
+void errors(const char* str,const char* filename,int line)
 {
-	static char* inform[]=
-	{
-		"dummy",
-		"Out of memory!\n",
-	};
-	fprintf(stderr,"In file \"%s\" line %d\nerror:%s",filename,line,inform[types]);
+	fprintf(stderr,"In file \"%s\" line %d\n");
+	perror(str);
 	exit(1);
 }
 
@@ -715,14 +712,14 @@ AST_pair* newPair(int curline,AST_pair* prev)
 		tmp->car.curline=curline;
 		tmp->cdr.curline=curline;
 	}
-	else errors(OUTOFMEMORY,__FILE__,__LINE__);
+	else errors("newPair",__FILE__,__LINE__);
 	return tmp;
 }
 
 AST_cptr* newCptr(int curline,AST_pair* outer)
 {
 	AST_cptr* tmp=NULL;
-	if(!(tmp=(AST_cptr*)malloc(sizeof(AST_cptr))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(!(tmp=(AST_cptr*)malloc(sizeof(AST_cptr))))errors("newCptr",__FILE__,__LINE__);
 	tmp->outer=outer;
 	tmp->curline=curline;
 	tmp->type=NIL;
@@ -733,12 +730,12 @@ AST_cptr* newCptr(int curline,AST_pair* outer)
 AST_atom* newAtom(int type,const char* value,AST_pair* prev)
 {
 	AST_atom* tmp=NULL;
-	if(!(tmp=(AST_atom*)malloc(sizeof(AST_atom))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(!(tmp=(AST_atom*)malloc(sizeof(AST_atom))))errors("newAtom",__FILE__,__LINE__);
 	switch(type)
 	{
 		case SYM:
 		case STR:
-			if(!(tmp->value.str=(char*)malloc(strlen(value)+1)))errors(OUTOFMEMORY,__FILE__,__LINE__);
+			if(!(tmp->value.str=(char*)malloc(strlen(value)+1)))errors("newAtom",__FILE__,__LINE__);
 			strcpy(tmp->value.str,value);
 			break;
 		case CHR:
@@ -1195,7 +1192,7 @@ void printRawChar(char chr,FILE* out)
 PreEnv* newEnv(PreEnv* prev)
 {
 	PreEnv* curEnv=NULL;
-	if(!(curEnv=(PreEnv*)malloc(sizeof(PreEnv))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(!(curEnv=(PreEnv*)malloc(sizeof(PreEnv))))errors("newEnv",__FILE__,__LINE__);
 	if(prev!=NULL)prev->next=curEnv;
 	curEnv->prev=prev;
 	curEnv->next=NULL;
@@ -1226,7 +1223,7 @@ void destroyEnv(PreEnv* objEnv)
 intpr* newIntpr(const char* filename,FILE* file,CompEnv* env)
 {
 	intpr* tmp=NULL;
-	if(!(tmp=(intpr*)malloc(sizeof(intpr))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(!(tmp=(intpr*)malloc(sizeof(intpr))))errors("newIntpr",__FILE__,__LINE__);
 	tmp->filename=copyStr(filename);
 	if(file!=stdin&&filename!=NULL)
 	{
@@ -1286,7 +1283,7 @@ void freeIntpr(intpr* inter)
 CompEnv* newCompEnv(CompEnv* prev)
 {
 	CompEnv* tmp=(CompEnv*)malloc(sizeof(CompEnv));
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("newCompEnv",__FILE__,__LINE__);
 	tmp->prev=prev;
 	tmp->symbols=NULL;
 	return tmp;
@@ -1323,8 +1320,8 @@ CompDef* addCompDef(CompEnv* curEnv,const char* name)
 	if(curEnv->symbols==NULL)
 	{
 		CompEnv* tmpEnv=curEnv->prev;
-		if(!(curEnv->symbols=(CompDef*)malloc(sizeof(CompDef))))errors(OUTOFMEMORY,__FILE__,__LINE__);
-		if(!(curEnv->symbols->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(!(curEnv->symbols=(CompDef*)malloc(sizeof(CompDef))))errors("addCompDef",__FILE__,__LINE__);
+		if(!(curEnv->symbols->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors("addCompDef",__FILE__,__LINE__);
 		strcpy(curEnv->symbols->symName,name);
 		while(tmpEnv!=NULL&&tmpEnv->symbols==NULL)tmpEnv=tmpEnv->prev;
 		if(tmpEnv==NULL)
@@ -1345,8 +1342,8 @@ CompDef* addCompDef(CompEnv* curEnv,const char* name)
 		{
 			CompDef* prevDef=curEnv->symbols;
 			while(prevDef->next!=NULL)prevDef=prevDef->next;
-			if(!(curDef=(CompDef*)malloc(sizeof(CompDef))))errors(OUTOFMEMORY,__FILE__,__LINE__);
-			if(!(curDef->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+			if(!(curDef=(CompDef*)malloc(sizeof(CompDef))))errors("addCompDef",__FILE__,__LINE__);
+			if(!(curDef->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors("addCompDef",__FILE__,__LINE__);
 			strcpy(curDef->symName,name);
 			prevDef->next=curDef;
 			curDef->count=prevDef->count+1;
@@ -1359,7 +1356,7 @@ CompDef* addCompDef(CompEnv* curEnv,const char* name)
 RawProc* newRawProc(int32_t count)
 {
 	RawProc* tmp=(RawProc*)malloc(sizeof(RawProc));
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("newRawProc",__FILE__,__LINE__);
 	tmp->count=count;
 	tmp->proc=NULL;
 	tmp->next=NULL;
@@ -1381,9 +1378,9 @@ RawProc* addRawProc(ByteCode* proc,intpr* inter)
 ByteCode* createByteCode(unsigned int size)
 {
 	ByteCode* tmp=NULL;
-	if(!(tmp=(ByteCode*)malloc(sizeof(ByteCode))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(!(tmp=(ByteCode*)malloc(sizeof(ByteCode))))errors("createByteCode",__FILE__,__LINE__);
 	tmp->size=size;
-	if(!(tmp->code=(char*)malloc(size*sizeof(char))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(!(tmp->code=(char*)malloc(size*sizeof(char))))errors("createByteCode",__FILE__,__LINE__);
 	int32_t i=0;
 	for(;i<tmp->size;i++)tmp->code[i]=0;
 	return tmp;
@@ -1400,7 +1397,7 @@ void codeCat(ByteCode* fir,const ByteCode* sec)
 	int32_t size=fir->size;
 	fir->size=sec->size+fir->size;
 	fir->code=(char*)realloc(fir->code,sizeof(char)*fir->size);
-	if(!fir->code)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(!fir->code)errors("codeCat",__FILE__,__LINE__);
 	memcpy(fir->code+size,sec->code,sec->size);
 }
 
@@ -1408,7 +1405,7 @@ void reCodeCat(const ByteCode* fir,ByteCode* sec)
 {
 	int32_t size=fir->size;
 	char* tmp=(char*)malloc(sizeof(char)*(fir->size+sec->size));
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("reCodeCat",__FILE__,__LINE__);
 	memcpy(tmp,fir->code,fir->size);
 	memcpy(tmp+size,sec->code,sec->size);
 	free(sec->code);
@@ -1434,7 +1431,7 @@ char* copyStr(const char* str)
 {
 	if(str==NULL)return NULL;
 	char* tmp=(char*)malloc(sizeof(char)*(strlen(str)+1));
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("copyStr",__FILE__,__LINE__);
 	strcpy(tmp,str);
 	return tmp;
 
@@ -1532,7 +1529,7 @@ uint8_t* castStrByteArry(const char* str)
 	int len=strlen(str);
 	int32_t size=(len%2)?(len/2+1):len/2;
 	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("castStrByteArry",__FILE__,__LINE__);
 	int32_t i=0;
 	int k=0;
 	for(;i<size;i++)
@@ -1569,7 +1566,7 @@ void printAsByteArry(const uint8_t* arry,int32_t size,FILE* fp)
 void* copyMemory(void* pm,size_t size)
 {
 	void* tmp=(void*)malloc(size);
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("copyMemory",__FILE__,__LINE__);
 	if(pm!=NULL)
 		memcpy(tmp,pm,size);
 	return tmp;
@@ -1620,7 +1617,7 @@ AST_cptr* getANSPairCdr(const AST_cptr* obj)
 Dlls* newDll(DllHandle handle)
 {
 	Dlls* tmp=(Dlls*)malloc(sizeof(Dlls));
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("newDll",__FILE__,__LINE__);
 	tmp->handle=handle;
 	return tmp;
 }
@@ -1714,9 +1711,9 @@ Dlls** getHeadOfMods(intpr* inter)
 Modlist* newModList(const char* libname)
 {
 	Modlist* tmp=(Modlist*)malloc(sizeof(Modlist));
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("newModList",__FILE__,__LINE__);
 	tmp->name=(char*)malloc(sizeof(char)*(strlen(libname)+1));
-	if(tmp->name==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp->name==NULL)errors("newModList",__FILE__,__LINE__);
 	strcpy(tmp->name,libname);
 	return tmp;
 }
@@ -1735,7 +1732,7 @@ Dlls* loadAllModules(FILE* fp,Dlls** mods)
 	{
 		char* modname=getStringFromFile(fp);
 		char* realModname=(char*)malloc(sizeof(char)*(strlen(modname)+strlen(filetype)+1));
-		if(realModname==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(realModname==NULL)errors("loadAllModules",__FILE__,__LINE__);
 		strcpy(realModname,modname);
 		strcat(realModname,filetype);
 #ifdef _WIN32
@@ -1784,7 +1781,7 @@ char* getDir(const char* filename)
 	int i=strlen(filename)-1;
 	for(;filename[i]!=dp;i--);
 	char* tmp=(char*)malloc(sizeof(char)*(i+1));
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("getDir",__FILE__,__LINE__);
 	tmp[i]='\0';
 	memcpy(tmp,filename,i);
 	return tmp;
@@ -1793,7 +1790,7 @@ char* getDir(const char* filename)
 char* getStringFromFile(FILE* file)
 {
 	char* tmp=(char*)malloc(sizeof(char));
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("getStringFromFile",__FILE__,__LINE__);
 	tmp[0]='\0';
 	char* before;
 	int i=0;
@@ -1804,7 +1801,7 @@ char* getStringFromFile(FILE* file)
 		i++;
 		j=i-1;
 		before=tmp;
-		if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))errors("getStringFromFile",__FILE__,__LINE__);
 		if(before!=NULL)
 		{
 			memcpy(tmp,before,j);
@@ -1944,7 +1941,7 @@ char** split(char* str,char* divstr,int* length)
 	int i=0;
 	char* pNext=NULL;
 	char** strArry=(char**)malloc(0);
-	if(strArry==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(strArry==NULL)errors("split",__FILE__,__LINE__);
 	pNext=strtok(str,divstr);
 	while(pNext!=NULL)
 	{

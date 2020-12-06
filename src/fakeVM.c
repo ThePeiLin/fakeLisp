@@ -860,7 +860,7 @@ ByteCode P_getid=
 fakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 {
 	fakeVM* exe=(fakeVM*)malloc(sizeof(fakeVM));
-	if(exe==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(exe==NULL)errors("newFakeVM",__FILE__,__LINE__);
 	if(mainproc!=NULL)
 		exe->mainproc=newFakeProcess(newVMcode(mainproc),NULL);
 	else
@@ -889,7 +889,7 @@ fakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 	{
 		int32_t size=GlobFakeVMs.size;
 		GlobFakeVMs.VMs=(fakeVM**)realloc(GlobFakeVMs.VMs,sizeof(fakeVM*)*(size+1));
-		if(size!=0&&GlobFakeVMs.VMs==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(size!=0&&GlobFakeVMs.VMs==NULL)errors("newFakeVM",__FILE__,__LINE__);
 		GlobFakeVMs.VMs[size]=exe;
 		GlobFakeVMs.size+=1;
 		exe->VMid=size;
@@ -957,7 +957,7 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 	};
 	obj->size=NUMOFBUILTINSYMBOL;
 	obj->values=(VMvalue**)realloc(obj->values,sizeof(VMvalue*)*NUMOFBUILTINSYMBOL);
-	if(obj->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(obj->values==NULL)errors("initGlobEnv",__FILE__,__LINE__);
 	int32_t tmpInt=EOF;
 	obj->values[0]=newNilValue(heap);
 	obj->values[1]=newVMvalue(IN32,&tmpInt,heap,1);
@@ -1087,7 +1087,7 @@ int B_push_nil(fakeVM* exe)
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(stack->values==NULL)errors("B_push_nil",__FILE__,__LINE__);
 		stack->size+=64;
 	}
 	stack->values[stack->tp]=newVMvalue(NIL,NULL,exe->heap,0);
@@ -1103,7 +1103,7 @@ int B_push_pair(fakeVM* exe)
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(stack->values==NULL)errors("B_push_pair",__FILE__,__LINE__);
 		stack->size+=64;
 	}
 	VMvalue* objValue=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap,0);
@@ -1123,7 +1123,7 @@ int B_push_int(fakeVM* exe)
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(stack->values==NULL)errors("B_push_int",__FILE__,__LINE__);
 		stack->size+=64;
 	}
 	//VMvalue* objValue=newVMvalue(IN32);
@@ -1143,7 +1143,7 @@ int B_push_chr(fakeVM* exe)
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(stack->values==NULL)errors("B_push_chr",__FILE__,__LINE__);
 		stack->size+=64;
 	}
 	//VMvalue* objValue=newVMvalue(CHR);
@@ -1163,7 +1163,7 @@ int B_push_dbl(fakeVM* exe)
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(stack->values==NULL)errors("B_push_dbl",__FILE__,__LINE__);
 		stack->size+=64;
 	}
 	//VMvalue* objValue=newVMvalue(DBL);
@@ -1184,7 +1184,7 @@ int B_push_str(fakeVM* exe)
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(stack->values==NULL)errors("B_push_str",__FILE__,__LINE__);
 		stack->size+=64;
 	}
 	//VMvalue* objValue=newVMvalue(STR);
@@ -1206,7 +1206,7 @@ int B_push_sym(fakeVM* exe)
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(stack->values==NULL)errors("B_push_sym",__FILE__,__LINE__);
 		stack->size+=64;
 	}
 	//VMvalue* objValue=newVMvalue(SYM);
@@ -1230,7 +1230,7 @@ int B_push_byte(fakeVM* exe)
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(stack->values==NULL)errors("B_push_byte",__FILE__,__LINE__);
 		stack->size+=64;
 	}
 	//VMvalue* objValue=newVMvalue(BYTA);
@@ -1253,7 +1253,7 @@ int B_push_var(fakeVM* exe)
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(stack->values==NULL)errors("B_push_var",__FILE__,__LINE__);
 		stack->size+=64;
 	}
 	int32_t countOfVar=*(int32_t*)(tmpCode->code+proc->cp+1);
@@ -1352,7 +1352,7 @@ int B_push_top(fakeVM* exe)
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(stack->values==NULL)errors("B_push_top",__FILE__,__LINE__);
 		stack->size+=64;
 	}
 	//stack->values[stack->tp]=copyValue(getTopValue(stack));
@@ -1371,7 +1371,7 @@ int B_push_proc(fakeVM* exe)
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(stack->values==NULL)errors("B_push_proc",__FILE__,__LINE__);
 		stack->size+=64;
 	}
 	//VMvalue* objValue=newVMvalue(PRC);
@@ -1395,7 +1395,7 @@ int B_push_list_arg(fakeVM* exe)
 		if(stack->tp>=stack->size)
 		{
 			stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-			if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+			if(stack->values==NULL)errors("B_push_list_arg",__FILE__,__LINE__);
 			stack->size+=64;
 		}
 		VMvalue* tmp=newNilValue(exe->heap);
@@ -1711,7 +1711,7 @@ int B_call_proc(fakeVM* exe)
 	char* funcname=tmpCode->code+proc->cp+1;
 	char* headOfFunc="FAKE_";
 	char* realfuncName=(char*)malloc(sizeof(char)*(strlen(headOfFunc)+strlen(funcname)+1));
-	if(realfuncName==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(realfuncName==NULL)errors("B_call_proc",__FILE__,__LINE__);
 	strcpy(realfuncName,headOfFunc);
 	strcat(realfuncName,funcname);
 	proc->cp+=2+strlen(funcname);
@@ -1750,7 +1750,7 @@ int B_set_bp(fakeVM* exe)
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(stack->values==NULL)errors("B_set_bp",__FILE__,__LINE__);
 		stack->size+=64;
 	}
 	stack->values[stack->tp]=prevBp;
@@ -2179,7 +2179,7 @@ int B_cast_to_str(fakeVM* exe)
 		case IN32:tmpValue->u.str->str=intToString(*topValue->u.num);break;
 		case DBL:tmpValue->u.str->str=doubleToString(*topValue->u.dbl);break;
 		case CHR:tmpValue->u.str->str=(char*)malloc(sizeof(char)*2);
-				 if(tmpValue->u.str->str==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+				 if(tmpValue->u.str->str==NULL)errors("B_cast_to_str",__FILE__,__LINE__);
 				 tmpValue->u.str->str[0]=*topValue->u.chr;
 				 tmpValue->u.str->str[1]='\0';
 				 break;
@@ -2205,7 +2205,7 @@ int B_cast_to_sym(fakeVM* exe)
 		case IN32:tmpValue->u.str->str=intToString((long)*topValue->u.num);break;
 		case DBL:tmpValue->u.str->str=doubleToString(*topValue->u.dbl);break;
 		case CHR:tmpValue->u.str->str=(char*)malloc(sizeof(char)*2);
-				 if(tmpValue->u.str->str==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+				 if(tmpValue->u.str->str==NULL)errors("B_cast_to_sym",__FILE__,__LINE__);
 				 tmpValue->u.str->str[0]=*topValue->u.chr;
 				 tmpValue->u.str->str[1]='\0';
 				 break;
@@ -2439,7 +2439,7 @@ int B_str_cat(fakeVM* exe)
 	int firlen=strlen(fir->u.str->str);
 	int seclen=strlen(sec->u.str->str);
 	char* tmpStr=(char*)malloc(sizeof(char)*(firlen+seclen+1));
-	if(tmpStr==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmpStr==NULL)errors("B_str_cat",__FILE__,__LINE__);
 	stack->tp-=1;
 	stackRecycle(exe);
 	strcpy(tmpStr,sec->u.str->str);
@@ -2512,7 +2512,7 @@ int B_readb(fakeVM* exe)
 	if(fp==NULL)return 2;
 	VMvalue* tmpBary=newVMvalue(BYTA,NULL,exe->heap,1);
 	uint8_t* arry=(uint8_t*)malloc(sizeof(uint8_t)*(*size->u.num));
-	if(arry==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(arry==NULL)errors("B_readb",__FILE__,__LINE__);
 	fread(arry,sizeof(uint8_t),*size->u.num,fp);
 	tmpBary->u.byta=newEmptyByteArry();
 	tmpBary->u.byta->size=*size->u.num;
@@ -2660,7 +2660,7 @@ int B_go(fakeVM* exe)
 	if(threadVMstack->tp>=threadVMstack->size)
 	{
 		threadVMstack->values=(VMvalue**)realloc(threadVMstack->values,sizeof(VMvalue*)*(threadVMstack->size+64));
-		if(threadVMstack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(threadVMstack->values==NULL)errors("B_go",__FILE__,__LINE__);
 		threadVMstack->size+=64;
 	}
 	threadVMstack->values[threadVMstack->tp]=prevBp;
@@ -2671,7 +2671,7 @@ int B_go(fakeVM* exe)
 		if(threadVMstack->tp>=threadVMstack->size)
 		{
 			threadVMstack->values=(VMvalue**)realloc(threadVMstack->values,sizeof(VMvalue*)*(threadVMstack->size+64));
-			if(threadVMstack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+			if(threadVMstack->values==NULL)errors("B_go",__FILE__,__LINE__);
 			threadVMstack->size+=64;
 		}
 		VMvalue* tmp=newNilValue(exe->heap);
@@ -2725,7 +2725,7 @@ int B_accept(fakeVM* exe)
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(stack->values==NULL)errors("B_accept",__FILE__,__LINE__);
 		stack->size+=64;
 	}
 	VMvalue* tmp=newNilValue(exe->heap);
@@ -2754,7 +2754,7 @@ int B_getid(fakeVM* exe)
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-		if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(stack->values==NULL)errors("B_getid",__FILE__,__LINE__);
 		stack->size+=64;
 	}
 	VMvalue* tmp=newVMvalue(IN32,&exe->VMid,exe->heap,1);
@@ -2790,19 +2790,19 @@ int B_slp(fakeVM* exe)
 VMstack* newStack(int32_t size)
 {
 	VMstack* tmp=(VMstack*)malloc(sizeof(VMstack));
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("newStack",__FILE__,__LINE__);
 	tmp->size=size;
 	tmp->tp=0;
 	tmp->bp=0;
 	tmp->values=(VMvalue**)malloc(size*sizeof(VMvalue*));
-	if(tmp->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp->values==NULL)errors("newStack",__FILE__,__LINE__);
 	return tmp;
 }
 
 filestack* newFileStack()
 {
 	filestack* tmp=(filestack*)malloc(sizeof(filestack));
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("newFileStack",__FILE__,__LINE__);
 	tmp->size=3;
 	pthread_mutex_init(&tmp->lock,NULL);
 	tmp->files=(FILE**)malloc(sizeof(FILE*)*3);
@@ -2911,7 +2911,7 @@ void stackRecycle(fakeVM* exe)
 			{
 				fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
 				fprintf(stderr,"cp=%d\n%s\n",curproc->cp,codeName[tmpCode->code[curproc->cp]].codeName);
-				errors(OUTOFMEMORY,__FILE__,__LINE__);
+				errors("stackRecycle",__FILE__,__LINE__);
 			}
 			stack->size-=64;
 	//	}
@@ -2921,7 +2921,7 @@ void stackRecycle(fakeVM* exe)
 VMcode* newBuiltInProc(ByteCode* proc)
 {
 	VMcode* tmp=(VMcode*)malloc(sizeof(VMcode));
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("newBuiltInProc",__FILE__,__LINE__);
 	tmp->localenv=newVMenv(0,NULL);
 	tmp->refcount=0;
 	if(proc!=NULL)
@@ -2940,7 +2940,7 @@ VMcode* newBuiltInProc(ByteCode* proc)
 VMprocess* newFakeProcess(VMcode* code,VMprocess* prev)
 {
 	VMprocess* tmp=(VMprocess*)malloc(sizeof(VMprocess));
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("newFakeProcess",__FILE__,__LINE__);
 	tmp->prev=prev;
 	tmp->cp=0;
 	tmp->code=code;
@@ -3067,7 +3067,7 @@ void writeRef(VMvalue* fir,VMvalue* sec)
 VMheap* newVMheap()
 {
 	VMheap* tmp=(VMheap*)malloc(sizeof(VMheap));
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("newVMheap",__FILE__,__LINE__);
 	tmp->size=0;
 	tmp->threshold=THRESHOLD_SIZE;
 	tmp->head=NULL;
@@ -3270,7 +3270,7 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 fakeVM* newThreadVM(VMcode* main,ByteCode* procs,filestack* files,VMheap* heap,Dlls* d)
 {
 	fakeVM* exe=(fakeVM*)malloc(sizeof(fakeVM));
-	if(exe==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(exe==NULL)errors("newThreadVM",__FILE__,__LINE__);
 	exe->mainproc=newFakeProcess(main,NULL);
 	exe->mainproc->localenv=main->localenv;
 	exe->curproc=exe->mainproc;
@@ -3298,7 +3298,7 @@ fakeVM* newThreadVM(VMcode* main,ByteCode* procs,filestack* files,VMheap* heap,D
 	{
 		int32_t size=GlobFakeVMs.size;
 		GlobFakeVMs.VMs=(fakeVM**)realloc(GlobFakeVMs.VMs,sizeof(fakeVM*)*(size+1));
-		if(size!=0&&GlobFakeVMs.VMs==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(size!=0&&GlobFakeVMs.VMs==NULL)errors("newThreadVM",__FILE__,__LINE__);
 		GlobFakeVMs.VMs[size]=exe;
 		GlobFakeVMs.size+=1;
 		exe->VMid=size;
@@ -3325,7 +3325,7 @@ void freeMessage(threadMessage* cur)
 threadMessage* newThreadMessage(VMvalue* val,VMheap* heap)
 {
 	threadMessage* tmp=(threadMessage*)malloc(sizeof(threadMessage));
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("newThreadMessage",__FILE__,__LINE__);
 	tmp->message=newNilValue(heap);
 	tmp->message->access=1;
 	copyRef(tmp->message,val);
@@ -3375,7 +3375,7 @@ void joinAllThread()
 intpr* newTmpIntpr(const char* filename,FILE* fp)
 {
 	intpr* tmp=NULL;
-	if(!(tmp=(intpr*)malloc(sizeof(intpr))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(!(tmp=(intpr*)malloc(sizeof(intpr))))errors("newTmpIntpr",__FILE__,__LINE__);
 	tmp->filename=copyStr(filename);
 	if(fp!=stdin&&filename)
 	{

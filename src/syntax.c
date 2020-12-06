@@ -15,7 +15,7 @@ int (*checkAST(const AST_cptr* objCptr))(const AST_cptr*)
 void addSynRule(int (*check)(const AST_cptr*))
 {
 	synRule* current=NULL;
-	if(!(current=(synRule*)malloc(sizeof(synRule))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(!(current=(synRule*)malloc(sizeof(synRule))))errors("addSynRule",__FILE__,__LINE__);
 	current->check=check;
 	current->next=Head;
 	Head=current;
@@ -306,7 +306,7 @@ void addKeyWord(const char* objStr)
 		{
 			current=(KeyWord*)malloc(sizeof(KeyWord));
 			current->word=(char*)malloc(sizeof(char)*(strlen(objStr)+1));
-			if(current==NULL||current->word==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+			if(current==NULL||current->word==NULL)errors("addKeyWord",__FILE__,__LINE__);
 			strcpy(current->word,objStr);
 			if(prev!=NULL)prev->next=current;
 			else KeyWords=current;

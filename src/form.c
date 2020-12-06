@@ -14,7 +14,7 @@ AST_cptr** dealArg(AST_cptr* argCptr,int num)
 {
 	AST_cptr* tmpCptr=(argCptr->type==PAIR)?argCptr:NULL;
 	AST_cptr** args=NULL;
-	if(!(args=(AST_cptr**)malloc(num*sizeof(AST_cptr*))))errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(!(args=(AST_cptr**)malloc(num*sizeof(AST_cptr*))))errors("dealArg",__FILE__,__LINE__);
 	int i;
 	for(i=0;i<num;i++)
 	{
@@ -1046,7 +1046,7 @@ ErrorStatus N_import(AST_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 	}
 	char* rep=relpath(getLastWorkDir(inter),rp);
 	char* rmodname=(char*)malloc(sizeof(char)*(strlen(rep)-strlen(filetype)+1));
-	if(!rmodname)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(!rmodname)errors("N_import",__FILE__,__LINE__);
 	memcpy(rmodname,rep,strlen(rep)-strlen(filetype));
 	rmodname[strlen(rep)-strlen(filetype)]='\0';
 	if(!ModHasLoad(rmodname,*getpHead(inter)))

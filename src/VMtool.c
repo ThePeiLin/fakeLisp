@@ -7,14 +7,14 @@
 VMcode* newVMcode(ByteCode* proc)
 {
 	VMcode* tmp=(VMcode*)malloc(sizeof(VMcode));
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("newVMcode",__FILE__,__LINE__);
 	tmp->refcount=0;
 	tmp->localenv=NULL;
 	if(proc!=NULL)
 	{
 		tmp->size=proc->size;
 		tmp->code=(char*)malloc(sizeof(char)*(tmp->size));
-		if(tmp->code==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(tmp->code==NULL)errors("newVMcode",__FILE__,__LINE__);
 		memcpy(tmp->code,proc->code,tmp->size);
 	}
 	else
@@ -54,7 +54,7 @@ VMvalue* copyValue(VMvalue* obj,VMheap* heap)
 VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap,int access)
 {
 	VMvalue* tmp=(VMvalue*)malloc(sizeof(VMvalue));
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("newVMvalue",__FILE__,__LINE__);
 	tmp->type=type;
 	tmp->mark=0;
 	tmp->access=access;
@@ -180,7 +180,7 @@ VMenv* newVMenv(int32_t bound,VMenv* prev)
 VMpair* newVMpair(VMheap* heap)
 {
 	VMpair* tmp=(VMpair*)malloc(sizeof(VMpair));
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("newVMpair",__FILE__,__LINE__);
 	tmp->refcount=0;
 	tmp->car=newNilValue(heap);
 	tmp->cdr=newNilValue(heap);
@@ -190,13 +190,13 @@ VMpair* newVMpair(VMheap* heap)
 VMstr* newVMstr(const char* str)
 {
 	VMstr* tmp=(VMstr*)malloc(sizeof(VMstr));
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("newVMstr",__FILE__,__LINE__);
 	tmp->refcount=0;
 	tmp->str=NULL;
 	if(str!=NULL)
 	{
 		tmp->str=(char*)malloc(sizeof(char)*(strlen(str)+1));
-		if(tmp->str==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+		if(tmp->str==NULL)errors("newVMstr",__FILE__,__LINE__);
 		strcpy(tmp->str,str);
 	}
 	return tmp;
@@ -234,7 +234,7 @@ VMvalue* castCptrVMvalue(const AST_cptr* objCptr,VMheap* heap)
 ByteArry* newByteArry(size_t size,uint8_t* arry)
 {
 	ByteArry* tmp=(ByteArry*)malloc(sizeof(ByteArry));
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("newByteArry",__FILE__,__LINE__);
 	tmp->size=size;
 	tmp->refcount=0;
 	if(arry!=NULL)
@@ -246,9 +246,9 @@ ByteArry* copyByteArry(const ByteArry* obj)
 {
 	if(obj==NULL)return NULL;
 	ByteArry* tmp=(ByteArry*)malloc(sizeof(ByteArry));
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("copyByteArry",__FILE__,__LINE__);
 	int8_t* tmpArry=(int8_t*)malloc(tmp->size*sizeof(int8_t));
-	if(tmpArry==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmpArry==NULL)errors("copyByteArry",__FILE__,__LINE__);
 	memcpy(tmpArry,obj->arry,obj->size);
 	tmp->size=obj->size;
 	tmp->arry=tmpArry;
@@ -258,14 +258,14 @@ ByteArry* copyByteArry(const ByteArry* obj)
 ByteArry* newEmptyByteArry()
 {
 	ByteArry* tmp=(ByteArry*)malloc(sizeof(ByteArry));
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("newEmptyByteArry",__FILE__,__LINE__);
 	return tmp;
 }
 
 uint8_t* copyArry(size_t size,uint8_t* arry)
 {
 	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("copyArry",__FILE__,__LINE__);
 	memcpy(tmp,arry,size);
 	return tmp;
 }
@@ -273,18 +273,18 @@ uint8_t* copyArry(size_t size,uint8_t* arry)
 uint8_t* createByteArry(int32_t size)
 {
 	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("createByteArry",__FILE__,__LINE__);
 	return tmp;
 }
 
 VMcode* copyVMcode(VMcode* obj,VMheap* heap)
 {
 	VMcode* tmp=(VMcode*)malloc(sizeof(VMcode));
-	if(tmp==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp==NULL)errors("copyVMcode",__FILE__,__LINE__);
 	tmp->refcount=0;
 	tmp->size=obj->size;
 	tmp->code=(char*)malloc(sizeof(char)*tmp->size);
-	if(tmp->code==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp->code==NULL)errors("copyVMcode",__FILE__,__LINE__);
 	memcpy(tmp->code,obj->code,tmp->size);
 	tmp->localenv=copyVMenv(obj->localenv,heap);
 	return tmp;
@@ -295,7 +295,7 @@ VMenv* copyVMenv(VMenv* objEnv,VMheap* heap)
 	VMenv* tmp=newVMenv(objEnv->size,NULL);
 	tmp->bound=objEnv->bound;
 	tmp->values=(VMvalue**)malloc(sizeof(VMvalue*));
-	if(tmp->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+	if(tmp->values==NULL)errors("copyVMenv",__FILE__,__LINE__);
 	int i=0;
 	for(;i<objEnv->size;i++)
 		tmp->values[i]=copyValue(objEnv->values[i],heap);

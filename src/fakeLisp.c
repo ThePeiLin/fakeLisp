@@ -228,7 +228,7 @@ ByteCode* castRawproc(ByteCode* prev,RawProc* procs)
 		if(tmp==NULL)
 		{
 			fprintf(stderr,"In file \"%s\",line %d\n",__FILE__,__LINE__);
-			errors(OUTOFMEMORY,__FILE__,__LINE__);
+			errors("castRawproc",__FILE__,__LINE__);
 		}
 		RawProc* curRawproc=procs;
 		while(curRawproc!=NULL)
@@ -251,7 +251,7 @@ ByteCode* loadRawproc(FILE* fp,int32_t* renum)
 	if(tmp==NULL)
 	{
 		fprintf(stderr,"In file \"%s\",line %d\n",__FILE__,__LINE__);
-		errors(OUTOFMEMORY,__FILE__,__LINE__);
+		errors("loadRawproc",__FILE__,__LINE__);
 	}
 	for(;i<num;i++)
 	{
@@ -262,7 +262,7 @@ ByteCode* loadRawproc(FILE* fp,int32_t* renum)
 		if(tmp[i].code==NULL)
 		{
 			fprintf(stderr,"In file \"%s\",line %d\n",__FILE__,__LINE__);
-			errors(OUTOFMEMORY,__FILE__,__LINE__);
+			errors("loadRawproc",__FILE__,__LINE__);
 		}
 		int32_t j=0;
 		for(;j<size;j++)
@@ -286,11 +286,11 @@ ByteCode* loadByteCode(FILE* fp)
 	fread(&size,sizeof(int32_t),1,fp);
 	ByteCode* tmp=(ByteCode*)malloc(sizeof(ByteCode));
 	if(tmp==NULL)
-		errors(OUTOFMEMORY,__FILE__,__LINE__);
+		errors("loadByteCode",__FILE__,__LINE__);
 	tmp->size=size;
 	tmp->code=(char*)malloc(sizeof(char)*size);
 	if(tmp->code==NULL)
-		errors(OUTOFMEMORY,__FILE__,__LINE__);
+		errors("loadByteCode",__FILE__,__LINE__);
 	for(;i<size;i++)
 		tmp->code[i]=getc(fp);
 	return tmp;

@@ -4,15 +4,15 @@
 #include<stdlib.h>
 #include<ctype.h>
 #define MAX_STRING_SIZE 64
-StringMatchPattern* newStringPattern(const char** parts,int32_t size)
+StringMatchPattern* newStringPattern(const char** parts,int32_t num)
 {
 	StringMatchPattern* tmp=(StringMatchPattern*)malloc(sizeof(StringMatchPattern));
 	if(!tmp)errors("newStringPattern",__FILE__,__LINE__);
-	tmp->size=size;
-	char** tmParts=(char**)malloc(sizeof(char*)*size);
+	tmp->num=num;
+	char** tmParts=(char**)malloc(sizeof(char*)*num);
 	if(!tmParts)errors("newStringPattern",__FILE__,__LINE__);
 	int i=0;
-	for(;i<size;i++)
+	for(;i<num;i++)
 		tmParts[i]=copyStr(parts[i]);
 	tmp->parts=tmParts;
 	return tmp;
@@ -21,8 +21,8 @@ StringMatchPattern* newStringPattern(const char** parts,int32_t size)
 void freeStringPattern(StringMatchPattern* o)
 {
 	int i=0;
-	int32_t size=o->size;
-	for(;i<size;i++)
+	int32_t num=o->num;
+	for(;i<num;i++)
 		free(o->parts[i]);
 	free(o->parts);
 	free(o);
@@ -45,11 +45,11 @@ void freeReaderMacro(ReaderMacro* tmp)
 	free(tmp);
 }
 
-char** splitPattern(const char* str,int32_t* size)
+char** splitPattern(const char* str,int32_t* num)
 {
 	int i=0;
 	int32_t count=countStringParts(str);
-	*size=count;
+	*num=count;
 	char** tmp=(char**)malloc(sizeof(char*)*count);
 	if(!tmp)errors("splitPattern",__FILE__,__LINE__);
 	count=0;
@@ -116,21 +116,35 @@ int32_t countStringParts(const char* str)
 	return count;
 }
 
-//char* readInPattern(intpr* inter,StringMatchPattern* head)
-//{
-//	static char* appendix;
-//	char* cur=NULL;
-//	if(appendix)
-//	{
-//		char* tmp=appendix;
-//		appendix=NULL;
-//		return tmp;
-//	}
-//	cur=readSingle(inter->file);
-//	appendix=readSingle(inter->file);
-//	if(findStringPattern(cur)&&findStringPattern(appendix))
-//	return cur;
-//}
+char* readInPattern(intpr* inter,StringMatchPattern* head)
+{
+	static char* appendix;
+	char* cur=NULL;
+	if(appendix)
+	{
+		char* tmp=appendix;
+		appendix=NULL;
+		return tmp;
+	}
+	cur=readSingle(inter->file);
+	appendix=readSingle(inter->file);
+	StringMatchPattern* curPattern=NULL;
+	cur=findStringPattern(cur,head);
+	if(!curPattern)curPattern=findStringPattern(appendix,head);
+	if(curPattern);
+	{
+		if(fullMatchStringPattern(cur,curPattern))return cur;
+		if(fullMatchStringPattern(appendix,curPattern))
+		{
+			cur=(char*)realloc(cur,sizeof(char)*(strlen(cur)+strlen(appendix)+1));
+			if(!cur)errors("readInPattern",__FILE__,__LINE__);
+			strcat(cur,appendix);
+			free(appendix);
+			appendix=NULL;
+		}
+	}
+	return cur;
+}
 
 char* readSingle(FILE* fp)
 {
@@ -166,6 +180,12 @@ char* readSingle(FILE* fp)
 				if(!tmp)errors("readSingle",__FILE__,__LINE__);
 				memSize+=MAX_STRING_SIZE;
 			}
+			if(ch==')')
+			{
+				strSize--;
+				ungetc(ch,fp);
+				break;
+			}
 			tmp[strSize-1]=ch;
 			break;
 		}
@@ -180,6 +200,12 @@ char* readSingle(FILE* fp)
 		case '\"':
 			subStr=readString(fp);
 			break;
+		case ')':
+			memSize=strlen(tmp)+1;
+			tmp=(char*)realloc(tmp,sizeof(char)*memSize);
+			if(!tmp)errors("readSingle",__FILE__,__LINE__);
+			return tmp;
+			break;
 		default:
 			subStr=readAtom(fp);
 			break;
@@ -193,6 +219,7 @@ char* readSingle(FILE* fp)
 	strcat(tmp,subStr);
 	memSize=strlen(tmp)+1;
 	tmp=(char*)realloc(tmp,sizeof(char)*memSize);
+	if(!tmp)errors("readSingle",__FILE__,__LINE__);
 	free(subStr);
 	return tmp;
 }
@@ -266,7 +293,7 @@ char* readAtom(FILE* fp)
 	int ch=getc(fp);
 	for(;ch!=EOF;ch=getc(fp))
 	{
-		if(isspace(ch)||ch==';'||ch==')'||ch=='(')
+		if(isspace(ch)||((strSize-1<0||tmp[strSize-1]!='\\')&&(ch==';'||ch==')'||ch=='('||ch=='\"')))
 		{
 			ungetc(ch,fp);
 			break;
@@ -326,4 +353,114 @@ char* readList(FILE* fp)
 		ch=getc(fp);
 	}
 	return tmp;
+}
+
+int32_t skipSpace(const char* str)
+{
+	int32_t i=0;
+	for(;str[i]!='\0'&&isspace(str[i]);i++);
+	return i;
+}
+
+StringMatchPattern* findStringPattern(const char* str,StringMatchPattern* head)
+{
+	while(head!=NULL)
+	{
+		char* part=head->parts[0];
+		if(!strncmp(str,part,strlen(part)))
+			break;
+		head=head->next;
+	}
+	return head;
+}
+
+int fullMatchStringPattern(StringMatchPattern** patterns,int32_t num)
+{
+}
+
+int matchStringPattern(const char* str,StringMatchPattern* pattern)
+{
+}
+
+char** splitStringInPattern(const char* str,StringMatchPattern* pattern,int32_t* num)
+{
+	int i=0;
+	*num=pattern->num;
+	char** tmp=(char*)malloc(sizeof(char*)*pattern->num);
+	if(!tmp)errors("splitStringInPattern",__FILE__,__LINE__);
+	int32_t* s=matchPartOfPattern(str,pattern);
+}
+
+int32_t* matchPartOfPattern(const char* str,StringMatchPattern* pattern)
+{
+	int32_t* splitIndex=(int32_t*)malloc(sizeof(int32_t)*(pattern->num));
+	if(!splitIndex)errors("matchPartOfPattern",__FILE__,__LINE__);
+	int32_t s=0;
+	int32_t i=0;
+	for(;i<pattern->num;i++)
+	{
+		char* part=pattern->parts[i];
+		if(isKeyString(part))
+		{
+			s=skipSpace(str+s);
+			if(!strncmp(str+s,part,strlen(part)))
+				splitIndex[i]=s;
+			s+=strlen(part);
+		}
+		else
+		{
+			s=skipSpace(str+s);
+			splitIndex[i]=s;
+			s+=skipSingleUntilNext(str+s,pattern->parts[i+1]);
+		}
+	}
+	return splitIndex;
+}
+
+int isKeyString(StringMatchPattern* pattern,int32_t count)
+{
+	char* part=pattern->parts[count];
+	if(part[0]=='[')
+		return 1;
+	return 0;
+}
+
+int32_t skipSingleUntilNext(const char* str,const char* part)
+{
+	if(str[0]=='(')
+		return skipParentheses(str);
+	else if(str[0]=='\"')
+		return skipString(str);
+	else
+		return skipAtom(str,part[0]);
+}
+
+int32_t skipParentheses(const char* str)
+{
+	int parentheses=0;
+	int mark=0;
+	int32_t i=0;
+	for(;str[i]!='\0';i++)
+	{
+		if(str[i]=='\"'&&(i<1||str[i-1]!='\\'))
+			mark^=1;
+		if(str[i]=='('&&(i<1||str[i-1]!='\\')&&!mark)
+			parentheses++;
+		else if(str[i]==')'&&(i<1||str[i-1]!='\\')&&!mark)
+			parentheses--;
+		if(parentheses==0)
+			break;
+	}
+	return i;
+}
+
+int32_t skipAtom(const char* str,char ch)
+{
+	int32_t i=0;
+	for(;str[i]!=0;i++)
+	{
+		if(str[i]==ch&&(i<1||str[i-1]!='\\'))
+			break;
+	}
+	return i;
 }

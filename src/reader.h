@@ -4,8 +4,9 @@
 #include<stdint.h>
 typedef struct String_Match_Pattern
 {
-	int32_t size;
+	int32_t num;
 	char** parts;
+	struct String_Match_Pattern* next;
 }StringMatchPattern;
 
 typedef struct Reader_Macro

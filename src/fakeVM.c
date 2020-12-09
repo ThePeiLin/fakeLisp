@@ -796,7 +796,7 @@ ByteCode P_go=
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
+		FAKE_POP_REST_VAR,1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -1463,23 +1463,24 @@ int B_pop_rest_var(fakeVM* exe)
 	}
 	else
 		tmpValue=curEnv->values+countOfVar-(curEnv->bound);
-	//VMvalue* obj=newVMvalue(PAIR);
-	VMvalue* obj=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap,1);
-	VMvalue* tmp=obj;
-	for(;;)
+	VMvalue* obj=newNilValue(exe->heap);
+	VMvalue* tmp=NULL;
+	if(stack->tp>stack->bp)
 	{
+		obj=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap,1);
+		tmp=obj;
+	}
+	while(stack->tp>stack->bp)
+	{
+		tmp->u.pair->car->access=1;
+		VMvalue* topValue=getTopValue(stack);
+		copyRef(tmp->u.pair->car,topValue);
+		stack->tp-=1;
+		stackRecycle(exe);
 		if(stack->tp>stack->bp)
-		{
-			tmp->u.pair->car->access=1;
-			VMvalue* topValue=getTopValue(stack);
-			copyRef(tmp->u.pair->car,topValue);
-			stack->tp-=1;
-			stackRecycle(exe);
-			//tmp->u.pair.cdr=newVMvalue(PAIR);
 			tmp->u.pair->cdr=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap,1);
-			tmp=tmp->u.pair->cdr;
-		}
 		else break;
+		tmp=tmp->u.pair->cdr;
 	}
 	*tmpValue=obj;
 	proc->cp+=5;

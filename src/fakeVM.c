@@ -1454,13 +1454,14 @@ int B_pop_rest_var(fakeVM* exe)
 	}
 	else
 		tmpValue=curEnv->values+countOfVar-(curEnv->bound);
-	VMvalue* obj=newNilValue(exe->heap);
+	VMvalue* obj=NULL;
 	VMvalue* tmp=NULL;
 	if(stack->tp>stack->bp)
 	{
 		obj=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap,1);
 		tmp=obj;
 	}
+	else obj=newNilValue(exe->heap);
 	while(stack->tp>stack->bp)
 	{
 		tmp->u.pair->car->access=1;

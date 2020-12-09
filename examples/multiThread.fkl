@@ -3,7 +3,7 @@
                         (princ "Thread#1:Noooooooo!\n" stdout)
                         (send nil x)
                        )))
-               (cons (getid) nil)))
+               (getid)))
 (princ "Thread#0:I'm your father!\n" stdout)
 (send "I'm your father!" id)
 (accept)

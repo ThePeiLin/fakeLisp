@@ -367,7 +367,7 @@ StringMatchPattern* findStringPattern(const char* str,StringMatchPattern* head)
 	while(head!=NULL)
 	{
 		char* part=head->parts[0];
-		if(!strncmp(str,part,strlen(part)))
+		if(!strncmp(str,part+1,strlen(part)-1))
 			break;
 		head=head->next;
 	}

@@ -13,7 +13,6 @@
 #endif
 #include"tool.h"
 #include"opcode.h"
-#define NUMOFBUILDINSYMBOL 58
 char* builtInSymbolList[]=
 {
 	"nil",
@@ -66,10 +65,6 @@ char* builtInSymbolList[]=
 	"write",
 	"writeb",
 	"princ",
-	"tell",
-	"seek",
-	"rewind",
-	"exit",
 	"go",
 	"send",
 	"accept",
@@ -1423,7 +1418,7 @@ ByteCode* copyByteCode(const ByteCode* obj)
 void initCompEnv(CompEnv* curEnv)
 {
 	int i=0;
-	for(;i<NUMOFBUILDINSYMBOL;i++)
+	for(;i<NUMOFBUILTINSYMBOL;i++)
 		addCompDef(curEnv,builtInSymbolList[i]);
 }
 

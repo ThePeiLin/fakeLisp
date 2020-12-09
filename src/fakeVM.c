@@ -14,7 +14,6 @@
 #endif
 #include<unistd.h>
 #include<time.h>
-#define NUMOFBUILTINSYMBOL 58
 
 pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
 fakeVMStack GlobFakeVMs={0,NULL};
@@ -91,10 +90,6 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_write,
 	B_writeb,
 	B_princ,
-	B_tell,
-	B_seek,
-	B_rewind,
-	B_exit,
 	B_go,
 	B_send,
 	B_accept,
@@ -736,59 +731,59 @@ ByteCode P_princ=
 	}
 };
 
-ByteCode P_tell=
-{
-	13,
-	(char[])
-	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_RES_BP,
-		FAKE_PUSH_VAR,0,0,0,0,
-		FAKE_TELL,
-		FAKE_END_PROC
-	}
-};
-
-ByteCode P_seek=
-{
-	23,
-	(char[])
-	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
-		FAKE_RES_BP,
-		FAKE_PUSH_VAR,0,0,0,0,
-		FAKE_PUSH_VAR,1,0,0,0,
-		FAKE_SEEK,
-		FAKE_END_PROC
-	}
-};
-
-ByteCode P_rewind=
-{
-	13,
-	(char[])
-	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_RES_BP,
-		FAKE_PUSH_VAR,0,0,0,0,
-		FAKE_REWIND,
-		FAKE_END_PROC
-	}
-};
-
-ByteCode P_exit=
-{
-	13,
-	(char[])
-	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_RES_BP,
-		FAKE_PUSH_VAR,0,0,0,0,
-		FAKE_EXIT,
-		FAKE_END_PROC
-	}
-};
+//ByteCode P_tell=
+//{
+//	13,
+//	(char[])
+//	{
+//		FAKE_POP_VAR,0,0,0,0,
+//		FAKE_RES_BP,
+//		FAKE_PUSH_VAR,0,0,0,0,
+//		FAKE_TELL,
+//		FAKE_END_PROC
+//	}
+//};
+//
+//ByteCode P_seek=
+//{
+//	23,
+//	(char[])
+//	{
+//		FAKE_POP_VAR,0,0,0,0,
+//		FAKE_POP_VAR,1,0,0,0,
+//		FAKE_RES_BP,
+//		FAKE_PUSH_VAR,0,0,0,0,
+//		FAKE_PUSH_VAR,1,0,0,0,
+//		FAKE_SEEK,
+//		FAKE_END_PROC
+//	}
+//};
+//
+//ByteCode P_rewind=
+//{
+//	13,
+//	(char[])
+//	{
+//		FAKE_POP_VAR,0,0,0,0,
+//		FAKE_RES_BP,
+//		FAKE_PUSH_VAR,0,0,0,0,
+//		FAKE_REWIND,
+//		FAKE_END_PROC
+//	}
+//};
+//
+//ByteCode P_exit=
+//{
+//	13,
+//	(char[])
+//	{
+//		FAKE_POP_VAR,0,0,0,0,
+//		FAKE_RES_BP,
+//		FAKE_PUSH_VAR,0,0,0,0,
+//		FAKE_EXIT,
+//		FAKE_END_PROC
+//	}
+//};
 
 ByteCode P_go=
 {
@@ -946,10 +941,6 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 		P_write,
 		P_writeb,
 		P_princ,
-		P_tell,
-		P_seek,
-		P_rewind,
-		P_exit,
 		P_go,
 		P_send,
 		P_accept,

@@ -55,10 +55,12 @@ char** splitPattern(const char* str,int32_t* num)
 	count=0;
 	for(;str[i]!='\0';i++)
 	{
-		if(str[i]=='[')
+		if(isspace(str[i]))
+			i+=skipSpace(str+i);
+		if((i-1<1||str[i-1]!='\\')&&str[i]=='[')
 		{
 			int j=i;
-			for(;str[j]!='\0'&&str[j]!=']';j++);
+			for(;str[j]!='\0'&&!((j-1<1||str[j-1]!='\\')&&str[j]==']');j++);
 			char* tmpStr=(char*)malloc(sizeof(char)*(j-i+2));
 			if(!tmpStr)errors("splitPattern",__FILE__,__LINE__);
 			memcpy(tmpStr,str+i,j-i+1);
@@ -69,7 +71,7 @@ char** splitPattern(const char* str,int32_t* num)
 			continue;
 		}
 		int j=i;
-		for(;str[j]!='\0'&&str[j]!='[';j++);
+		for(;str[j]!='\0'&&(((j-1<1||str[j-1]!='\\')&&str[j]!='[')&&!isspace(str[j]));j++);
 		char* tmpStr=(char*)malloc(sizeof(char)*(j-i+1));
 		if(!tmpStr)errors("splitPattern",__FILE__,__LINE__);
 		memcpy(tmpStr,str+i,j-i);
@@ -99,23 +101,25 @@ int32_t countStringParts(const char* str)
 	int32_t count=0;
 	for(;str[i]!='\0';i++)
 	{
-		if(str[i]=='[')
+		if(isspace(str[i]))
+			i+=skipSpace(str+i);
+		if((i-1<1||str[i-1]!='\\')&&str[i]=='[')
 		{
 			int j=i;
-			for(;str[j]!='\0'&&str[j]!=']';j++);
+			for(;str[j]!='\0'&&!((j-1<1||str[j-1]!='\\')&&str[j]==']');j++);
 			i=j;
 			count++;
 			continue;
 		}
 		int j=i;
-		for(;str[j]!='\0'&&str[j]!='[';j++);
+		for(;str[j]!='\0'&&(((j-1<1||str[j-1]!='\\')&&str[j]!='[')&&!isspace(str[j]));j++);
 		count++;
 		i=j-1;
 		continue;
 	}
 	return count;
 }
-
+#ifdef success
 char* readInPattern(intpr* inter,StringMatchPattern* head)
 {
 	static char* appendix;
@@ -145,7 +149,7 @@ char* readInPattern(intpr* inter,StringMatchPattern* head)
 	}
 	return cur;
 }
-
+#endif
 char* readSingle(FILE* fp)
 {
 	char* tmp=NULL;
@@ -361,15 +365,17 @@ int32_t skipSpace(const char* str)
 	for(;str[i]!='\0'&&isspace(str[i]);i++);
 	return i;
 }
-
+#ifdef success
 StringMatchPattern* findStringPattern(const char* str,StringMatchPattern* head)
 {
 	while(head!=NULL)
 	{
 		char* part=head->parts[0];
-		if(!strncmp(str,part+1,strlen(part)-2))
+		char* keyString=castKeyStringToNormalString(part);
+		if(!strncmp(str,keyString,strlen(keyString)));
 			break;
 		head=head->next;
+		free(KeyString);
 	}
 	return head;
 }
@@ -402,8 +408,9 @@ int32_t* matchPartOfPattern(const char* str,StringMatchPattern* pattern)
 		char* part=pattern->parts[i];
 		if(isKeyString(part))
 		{
+			char* keyString=castKeyStringToNormalString(part);
 			s=skipSpace(str+s);
-			if(!strncmp(str+s,part+1,strlen(part)-2))
+			if(!strncmp(str+s,keyString,strlen(keyString)))
 				splitIndex[i]=s;
 			s+=strlen(part);
 		}
@@ -463,4 +470,85 @@ int32_t skipAtom(const char* str,char ch)
 			break;
 	}
 	return i;
+}
+#endif
+
+char* castKeyStringToNormalString(const char* str)
+{
+	int32_t strSize=0;
+	int32_t memSize=MAX_STRING_SIZE;
+	int32_t i=1;
+	char* tmp=(char*)malloc(sizeof(char)*memSize);
+	while(str[i]!=']')
+	{
+		int ch=0;
+		if(str[i]=='\\')
+		{
+			if(isdigit(str[i+1]))
+			{
+				if(str[i+1]=='0')
+				{
+					if(isdigit(str[i+2]))
+					{
+						int len=0;
+						while((isdigit(str[i+2+len])&&(str[i+2+len]<'8')&&len<4))len++;
+						sscanf(str+i+1,"%4o",&ch);
+						i+=len+2;
+					}
+
+					else if(toupper(str[i+2])=='X')
+					{
+						int len=0;
+						while(isxdigit(str[i+3+len])&&len<2)len++;
+						sscanf(str+i+1,"%4x",&ch);
+						i+=len+3;
+					}
+				}
+				else if(isdigit(str[i+1]))
+				{
+					int len=0;
+					while(isdigit(str[i+1+len])&&len<4)len++;
+					sscanf(str+i+1,"%4d",&ch);
+					i+=len+1;
+				}
+			}
+			else if(str[i+1]=='\n')
+			{
+				i+=2;
+				continue;
+			}
+			else
+			{
+				switch(toupper(str[i+1]))
+				{
+					case 'A':ch=0x07;break;
+					case 'B':ch=0x08;break;
+					case 'T':ch=0x09;break;
+					case 'N':ch=0x0a;break;
+					case 'V':ch=0x0b;break;
+					case 'F':ch=0x0c;break;
+					case 'R':ch=0x0d;break;
+					case '\\':ch=0x5c;break;
+					default:ch=str[i+1];break;
+				}
+				i+=2;
+			}
+		}
+		else ch=str[i++];
+		strSize++;
+		if(strSize>memSize-1)
+		{
+			
+			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+MAX_STRING_SIZE));
+			if(!tmp)errors("castKeyStringToNormalString",__FILE__,__LINE__);
+			memSize+=MAX_STRING_SIZE;
+
+		}
+		tmp[strSize-1]=ch;
+	}
+	if(tmp)tmp[strSize]='\0';
+	memSize=strlen(tmp)+1;
+	tmp=(char*)realloc(tmp,memSize*sizeof(char));
+	if(!tmp)errors("castKeyStringToNormalString",__FILE__,__LINE__);
+	return tmp;
 }

@@ -76,6 +76,7 @@ enum opcode
 	FAKE_SEND,
 	FAKE_ACCEPT,
 	FAKE_GETID,
+	FAKE_PACK_CONT
 };
 
 typedef struct
@@ -161,6 +162,7 @@ static codeinfor codeName[]=
 	{"send",0},
 	{"accept",0},
 	{"getid",0},
+	{"pack_cont",0}
 };
 
 #endif

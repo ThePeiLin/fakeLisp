@@ -31,4 +31,6 @@ static char* readString(FILE*);
 static char* readAtom(FILE*);
 static char* readSpace(FILE*);
 static int32_t countStringParts(const char*);
+static int32_t skipSpace(const char*);
+char* castKeyStringToNormalString(const char*);
 #endif

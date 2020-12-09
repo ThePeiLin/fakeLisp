@@ -474,10 +474,7 @@ rawString getStringBetweenMarks(const char* str,intpr* inter)
 		j=len-1;
 		before=tmp;
 		if(!(tmp=(char*)malloc(sizeof(char)*(len+1))))
-		{
-			fprintf(stderr,"Out of memory!\n");
-			exit(1);
-		}
+			errors("getStringBetweenMarks",__FILE__,__LINE__);
 		if(before!=NULL)memcpy(tmp,before,j);
 		*(tmp+j)=ch;
 		if(before!=NULL)free(before);

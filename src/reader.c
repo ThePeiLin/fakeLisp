@@ -367,7 +367,7 @@ StringMatchPattern* findStringPattern(const char* str,StringMatchPattern* head)
 	while(head!=NULL)
 	{
 		char* part=head->parts[0];
-		if(!strncmp(str,part+1,strlen(part)-1))
+		if(!strncmp(str,part+1,strlen(part)-2))
 			break;
 		head=head->next;
 	}
@@ -403,7 +403,7 @@ int32_t* matchPartOfPattern(const char* str,StringMatchPattern* pattern)
 		if(isKeyString(part))
 		{
 			s=skipSpace(str+s);
-			if(!strncmp(str+s,part,strlen(part)))
+			if(!strncmp(str+s,part+1,strlen(part)-2))
 				splitIndex[i]=s;
 			s+=strlen(part);
 		}

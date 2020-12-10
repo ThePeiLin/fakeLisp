@@ -1956,3 +1956,83 @@ void freeModlist(Modlist* cur)
 		free(prev);
 	}
 }
+
+char* castEscapeCharater(const char* str,char end)
+{
+	int32_t strSize=0;
+	int32_t memSize=MAX_STRING_SIZE;
+	int32_t i=0;
+	char* tmp=(char*)malloc(sizeof(char)*memSize);
+	while(str[i]!=end)
+	{
+		int ch=0;
+		if(str[i]=='\\')
+		{
+			if(isdigit(str[i+1]))
+			{
+				if(str[i+1]=='0')
+				{
+					if(isdigit(str[i+2]))
+					{
+						int len=0;
+						while((isdigit(str[i+2+len])&&(str[i+2+len]<'8')&&len<4))len++;
+						sscanf(str+i+1,"%4o",&ch);
+						i+=len+2;
+					}
+
+					else if(toupper(str[i+2])=='X')
+					{
+						int len=0;
+						while(isxdigit(str[i+3+len])&&len<2)len++;
+						sscanf(str+i+1,"%4x",&ch);
+						i+=len+3;
+					}
+				}
+				else if(isdigit(str[i+1]))
+				{
+					int len=0;
+					while(isdigit(str[i+1+len])&&len<4)len++;
+					sscanf(str+i+1,"%4d",&ch);
+					i+=len+1;
+				}
+			}
+			else if(str[i+1]=='\n')
+			{
+				i+=2;
+				continue;
+			}
+			else
+			{
+				switch(toupper(str[i+1]))
+				{
+					case 'A':ch=0x07;break;
+					case 'B':ch=0x08;break;
+					case 'T':ch=0x09;break;
+					case 'N':ch=0x0a;break;
+					case 'V':ch=0x0b;break;
+					case 'F':ch=0x0c;break;
+					case 'R':ch=0x0d;break;
+					case '\\':ch=0x5c;break;
+					default:ch=str[i+1];break;
+				}
+				i+=2;
+			}
+		}
+		else ch=str[i++];
+		strSize++;
+		if(strSize>memSize-1)
+		{
+			
+			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+MAX_STRING_SIZE));
+			if(!tmp)errors("castKeyStringToNormalString",__FILE__,__LINE__);
+			memSize+=MAX_STRING_SIZE;
+
+		}
+		tmp[strSize-1]=ch;
+	}
+	if(tmp)tmp[strSize]='\0';
+	memSize=strlen(tmp)+1;
+	tmp=(char*)realloc(tmp,memSize*sizeof(char));
+	if(!tmp)errors("castKeyStringToNormalString",__FILE__,__LINE__);
+	return tmp;
+}

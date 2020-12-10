@@ -3,7 +3,6 @@
 #include<string.h>
 #include<stdlib.h>
 #include<ctype.h>
-#define MAX_STRING_SIZE 64
 StringMatchPattern* newStringPattern(const char** parts,int32_t num)
 {
 	StringMatchPattern* tmp=(StringMatchPattern*)malloc(sizeof(StringMatchPattern));
@@ -365,21 +364,22 @@ int32_t skipSpace(const char* str)
 	for(;str[i]!='\0'&&isspace(str[i]);i++);
 	return i;
 }
-#ifdef success
+
 StringMatchPattern* findStringPattern(const char* str,StringMatchPattern* head)
 {
 	while(head!=NULL)
 	{
 		char* part=head->parts[0];
-		char* keyString=castKeyStringToNormalString(part);
-		if(!strncmp(str,keyString,strlen(keyString)));
+		char* keyString=castEscapeCharater(part+1,']');
+		if(!strncmp(str,keyString,strlen(keyString)))
 			break;
 		head=head->next;
-		free(KeyString);
+		free(keyString);
 	}
 	return head;
 }
 
+#ifdef success
 int fullMatchStringPattern(StringMatchPattern** patterns,int32_t num)
 {
 }
@@ -397,26 +397,28 @@ char** splitStringInPattern(const char* str,StringMatchPattern* pattern,int32_t*
 	int32_t* s=matchPartOfPattern(str,pattern);
 }
 
-int32_t* matchPartOfPattern(const char* str,StringMatchPattern* pattern)
+#endif
+int32_t* matchPartOfPattern(const char* str,StringMatchPattern* pattern,int32_t* num)
 {
 	int32_t* splitIndex=(int32_t*)malloc(sizeof(int32_t)*(pattern->num));
 	if(!splitIndex)errors("matchPartOfPattern",__FILE__,__LINE__);
 	int32_t s=0;
 	int32_t i=0;
-	for(;i<pattern->num;i++)
+	*num=countInPattern(str,pattern);
+	for(;i<*num;i++)
 	{
 		char* part=pattern->parts[i];
 		if(isKeyString(part))
 		{
-			char* keyString=castKeyStringToNormalString(part);
-			s=skipSpace(str+s);
+			char* keyString=castEscapeCharater(part+1,']');
+			s+=skipSpace(str+s);
 			if(!strncmp(str+s,keyString,strlen(keyString)))
 				splitIndex[i]=s;
-			s+=strlen(part);
+			s+=strlen(keyString);
 		}
 		else
 		{
-			s=skipSpace(str+s);
+			s+=skipSpace(str+s);
 			splitIndex[i]=s;
 			s+=skipSingleUntilNext(str+s,pattern->parts[i+1]);
 		}
@@ -424,9 +426,34 @@ int32_t* matchPartOfPattern(const char* str,StringMatchPattern* pattern)
 	return splitIndex;
 }
 
-int isKeyString(StringMatchPattern* pattern,int32_t count)
+int32_t countInPattern(const char* str,StringMatchPattern* pattern)
 {
-	char* part=pattern->parts[count];
+	int32_t i=0;
+	int32_t s=0;
+	while(i<pattern->num)
+	{
+		if(str[s]=='\0')break;
+		char* part=pattern->parts[i];
+		if(isKeyString(part))
+		{
+			char* keyString=castEscapeCharater(part+1,']');
+			s+=skipSpace(str+s);
+			if(strncmp(str+s,keyString,strlen(keyString)))
+				break;
+			s+=strlen(keyString);
+		}
+		else
+		{
+			s+=skipSpace(str+s);
+			s+=skipSingleUntilNext(str+s,pattern->parts[i+1]);
+		}
+		i++;
+	}
+	return i;
+}
+
+int isKeyString(const char* part)
+{
 	if(part[0]=='[')
 		return 1;
 	return 0;
@@ -439,7 +466,14 @@ int32_t skipSingleUntilNext(const char* str,const char* part)
 	else if(str[0]=='\"')
 		return skipString(str);
 	else
-		return skipAtom(str,part[0]);
+	{
+		if(isKeyString(part))
+		{
+			char* keyString=castEscapeCharater(part+1,']');
+			return skipAtom(str,keyString[0]);
+		}
+		return skipAtom(str,'\0');
+	}
 }
 
 int32_t skipParentheses(const char* str)
@@ -447,7 +481,7 @@ int32_t skipParentheses(const char* str)
 	int parentheses=0;
 	int mark=0;
 	int32_t i=0;
-	for(;str[i]!='\0';i++)
+	while(str[i]!='\0')
 	{
 		if(str[i]=='\"'&&(i<1||str[i-1]!='\\'))
 			mark^=1;
@@ -455,6 +489,7 @@ int32_t skipParentheses(const char* str)
 			parentheses++;
 		else if(str[i]==')'&&(i<1||str[i-1]!='\\')&&!mark)
 			parentheses--;
+		i++;
 		if(parentheses==0)
 			break;
 	}
@@ -466,89 +501,15 @@ int32_t skipAtom(const char* str,char ch)
 	int32_t i=0;
 	for(;str[i]!=0;i++)
 	{
-		if(str[i]==ch&&(i<1||str[i-1]!='\\'))
+		if(isspace(str[i])||(ch!='\0'&&str[i]==ch)&&(i<1||str[i-1]!='\\'))
 			break;
 	}
 	return i;
 }
-#endif
 
-char* castKeyStringToNormalString(const char* str)
+int32_t skipString(const char* str)
 {
-	int32_t strSize=0;
-	int32_t memSize=MAX_STRING_SIZE;
-	int32_t i=1;
-	char* tmp=(char*)malloc(sizeof(char)*memSize);
-	while(str[i]!=']')
-	{
-		int ch=0;
-		if(str[i]=='\\')
-		{
-			if(isdigit(str[i+1]))
-			{
-				if(str[i+1]=='0')
-				{
-					if(isdigit(str[i+2]))
-					{
-						int len=0;
-						while((isdigit(str[i+2+len])&&(str[i+2+len]<'8')&&len<4))len++;
-						sscanf(str+i+1,"%4o",&ch);
-						i+=len+2;
-					}
-
-					else if(toupper(str[i+2])=='X')
-					{
-						int len=0;
-						while(isxdigit(str[i+3+len])&&len<2)len++;
-						sscanf(str+i+1,"%4x",&ch);
-						i+=len+3;
-					}
-				}
-				else if(isdigit(str[i+1]))
-				{
-					int len=0;
-					while(isdigit(str[i+1+len])&&len<4)len++;
-					sscanf(str+i+1,"%4d",&ch);
-					i+=len+1;
-				}
-			}
-			else if(str[i+1]=='\n')
-			{
-				i+=2;
-				continue;
-			}
-			else
-			{
-				switch(toupper(str[i+1]))
-				{
-					case 'A':ch=0x07;break;
-					case 'B':ch=0x08;break;
-					case 'T':ch=0x09;break;
-					case 'N':ch=0x0a;break;
-					case 'V':ch=0x0b;break;
-					case 'F':ch=0x0c;break;
-					case 'R':ch=0x0d;break;
-					case '\\':ch=0x5c;break;
-					default:ch=str[i+1];break;
-				}
-				i+=2;
-			}
-		}
-		else ch=str[i++];
-		strSize++;
-		if(strSize>memSize-1)
-		{
-			
-			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+MAX_STRING_SIZE));
-			if(!tmp)errors("castKeyStringToNormalString",__FILE__,__LINE__);
-			memSize+=MAX_STRING_SIZE;
-
-		}
-		tmp[strSize-1]=ch;
-	}
-	if(tmp)tmp[strSize]='\0';
-	memSize=strlen(tmp)+1;
-	tmp=(char*)realloc(tmp,memSize*sizeof(char));
-	if(!tmp)errors("castKeyStringToNormalString",__FILE__,__LINE__);
-	return tmp;
+	int32_t i=0;
+	for(;str[i]!=0&&(!((i-1<1||str[i-1]!='\\')&&str[i]=='\"'));i++);
+	return i;
 }

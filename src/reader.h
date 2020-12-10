@@ -18,6 +18,7 @@ typedef struct Reader_Macro
 
 StringMatchPattern* newStringPattern(const char**,int32_t);
 void freeStringPattern(StringMatchPattern*);
+StringMatchPattern* findStringPattern(const char*,StringMatchPattern*);
 char** splitPattern(const char*,int32_t*);
 ReaderMacro* newReaderMacro(StringMatchPattern*,AST_cptr*);
 void freeReaderMacro(ReaderMacro*);
@@ -32,5 +33,11 @@ static char* readAtom(FILE*);
 static char* readSpace(FILE*);
 static int32_t countStringParts(const char*);
 static int32_t skipSpace(const char*);
-char* castKeyStringToNormalString(const char*);
+/*static*/ int32_t* matchPartOfPattern(const char*,StringMatchPattern*,int32_t*);
+static int32_t countInPattern(const char* str,StringMatchPattern*);
+static int isKeyString(const char*);
+static int32_t skipSingleUntilNext(const char* str,const char*);
+static int32_t skipParentheses(const char*);
+static int32_t skipAtom(const char*,char);
+static int32_t skipString(const char*);
 #endif

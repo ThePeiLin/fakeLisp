@@ -19,6 +19,7 @@ char* getStringFromList(const char*);
 char* getStringAfterBackslash(const char*);
 int power(int,int);
 rawString getStringBetweenMarks(const char*,intpr*);
+char* castEscapeCharater(const char*,char);
 void printRawString(const char*,FILE*);
 void printRawChar(char,FILE*);
 char* doubleToString(double);

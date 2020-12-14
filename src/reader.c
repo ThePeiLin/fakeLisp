@@ -388,16 +388,25 @@ int matchStringPattern(const char* str,StringMatchPattern* pattern)
 {
 }
 
+#endif
 char** splitStringInPattern(const char* str,StringMatchPattern* pattern,int32_t* num)
 {
 	int i=0;
-	*num=pattern->num;
-	char** tmp=(char*)malloc(sizeof(char*)*pattern->num);
+	int32_t* s=matchPartOfPattern(str,pattern,num);
+	char** tmp=(char**)malloc(sizeof(char*)*(*num));
 	if(!tmp)errors("splitStringInPattern",__FILE__,__LINE__);
-	int32_t* s=matchPartOfPattern(str,pattern);
+	for(;i<*num;i++)
+	{
+		int32_t strSize=(i+1<*num)?((size_t)(s[i+1]-s[i])):strlen(str)-s[i];
+		char* tmpStr=(char*)malloc(sizeof(char)*(strSize+1));
+		if(!tmpStr)errors("splitStringInPattern",__FILE__,__LINE__);
+		memcpy(tmpStr,str+s[i],strSize);
+		tmpStr[strSize]='\0';
+		tmp[i]=tmpStr;
+	}
+	return tmp;
 }
 
-#endif
 int32_t* matchPartOfPattern(const char* str,StringMatchPattern* pattern,int32_t* num)
 {
 	int32_t* splitIndex=(int32_t*)malloc(sizeof(int32_t)*(pattern->num));
@@ -420,7 +429,8 @@ int32_t* matchPartOfPattern(const char* str,StringMatchPattern* pattern,int32_t*
 		{
 			s+=skipSpace(str+s);
 			splitIndex[i]=s;
-			s+=skipSingleUntilNext(str+s,pattern->parts[i+1]);
+			char* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
+			s+=skipUntilNext(str+s,next);
 		}
 	}
 	return splitIndex;
@@ -445,7 +455,7 @@ int32_t countInPattern(const char* str,StringMatchPattern* pattern)
 		else
 		{
 			s+=skipSpace(str+s);
-			s+=skipSingleUntilNext(str+s,pattern->parts[i+1]);
+			s+=skipUntilNext(str+s,pattern->parts[i+1]);
 		}
 		i++;
 	}
@@ -459,21 +469,31 @@ int isKeyString(const char* part)
 	return 0;
 }
 
-int32_t skipSingleUntilNext(const char* str,const char* part)
+int32_t skipUntilNext(const char* str,const char* part)
 {
-	if(str[0]=='(')
-		return skipParentheses(str);
-	else if(str[0]=='\"')
-		return skipString(str);
-	else
+	int32_t s=0;
+	while(str[s])
 	{
-		if(isKeyString(part))
+		if(str[s]=='(')
+			s+=skipParentheses(str+s);
+		else if(str[s]=='\"')
+			s+=skipString(str+s);
+		else if(isspace(str[s]))
+			s+=skipSpace(str+s);
+		else
 		{
-			char* keyString=castEscapeCharater(part+1,']');
-			return skipAtom(str,keyString[0]);
+			if(part&&isKeyString(part))
+			{
+				char* keyString=castEscapeCharater(part+1,']');
+				s+=skipAtom(str+s,keyString);
+				if(!strncmp(str+s,keyString,strlen(keyString)))
+					break;
+			}
+			s+=skipAtom(str+s,"");
 		}
-		return skipAtom(str,'\0');
+		if(!part)break;
 	}
+	return s;
 }
 
 int32_t skipParentheses(const char* str)
@@ -496,12 +516,13 @@ int32_t skipParentheses(const char* str)
 	return i;
 }
 
-int32_t skipAtom(const char* str,char ch)
+int32_t skipAtom(const char* str,const char* keyString)
 {
+	int32_t keyLen=strlen(keyString);
 	int32_t i=0;
 	for(;str[i]!=0;i++)
 	{
-		if(isspace(str[i])||(ch!='\0'&&str[i]==ch)&&(i<1||str[i-1]!='\\'))
+		if(isspace(str[i])||(keyLen&&!strncmp(str+i,keyString,keyLen))&&(i<1||str[i-1]!='\\'))
 			break;
 	}
 	return i;

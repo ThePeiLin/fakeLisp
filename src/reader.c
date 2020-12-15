@@ -455,7 +455,8 @@ int32_t countInPattern(const char* str,StringMatchPattern* pattern)
 		else
 		{
 			s+=skipSpace(str+s);
-			s+=skipUntilNext(str+s,pattern->parts[i+1]);
+			char* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
+			s+=skipUntilNext(str+s,next);
 		}
 		i++;
 	}
@@ -491,7 +492,7 @@ int32_t skipUntilNext(const char* str,const char* part)
 			}
 			s+=skipAtom(str+s,"");
 		}
-		if(!part)break;
+		if(!part||!isKeyString(part))break;
 	}
 	return s;
 }
@@ -520,7 +521,7 @@ int32_t skipAtom(const char* str,const char* keyString)
 {
 	int32_t keyLen=strlen(keyString);
 	int32_t i=0;
-	for(;str[i]!=0;i++)
+	for(;str[i]!='\0';i++)
 	{
 		if(isspace(str[i])||(keyLen&&!strncmp(str+i,keyString,keyLen))&&(i<1||str[i-1]!='\\'))
 			break;

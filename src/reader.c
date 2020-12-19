@@ -14,6 +14,8 @@ StringMatchPattern* newStringPattern(const char** parts,int32_t num)
 	for(;i<num;i++)
 		tmParts[i]=copyStr(parts[i]);
 	tmp->parts=tmParts;
+	tmp->next=NULL;
+	tmp->prev=NULL;
 	return tmp;
 }
 
@@ -118,37 +120,60 @@ int32_t countStringParts(const char* str)
 	}
 	return count;
 }
-#ifdef success
-char* readInPattern(intpr* inter,StringMatchPattern* head)
+
+char* readInPattern(FILE* fp,StringMatchPattern* head)
 {
-	static char* appendix;
-	char* cur=NULL;
-	if(appendix)
-	{
-		char* tmp=appendix;
-		appendix=NULL;
+	char* tmp=readSingle(fp);
+	StringMatchPattern* pattern=findStringPattern(tmp,head);
+	if(!pattern)
 		return tmp;
-	}
-	cur=readSingle(inter->file);
-	appendix=readSingle(inter->file);
-	StringMatchPattern* curPattern=NULL;
-	cur=findStringPattern(cur,head);
-	if(!curPattern)curPattern=findStringPattern(appendix,head);
-	if(curPattern);
+	for(;;)
 	{
-		if(fullMatchStringPattern(cur,curPattern))return cur;
-		if(fullMatchStringPattern(appendix,curPattern))
+		int32_t backIndex=0;
+		if(!isspace(tmp[strlen(tmp)-1]))
 		{
-			cur=(char*)realloc(cur,sizeof(char)*(strlen(cur)+strlen(appendix)+1));
-			if(!cur)errors("readInPattern",__FILE__,__LINE__);
-			strcat(cur,appendix);
-			free(appendix);
-			appendix=NULL;
+			int32_t num=0;
+			int32_t len=strlen(tmp);
+			int32_t* splitIndex=matchPartOfPattern(tmp,pattern,&num);
+			backIndex=splitIndex[num-1];
+			ungetString(tmp+backIndex,fp);
+			free(splitIndex);
 		}
+		else backIndex=strlen(tmp);
+		char* tmpNext=readInPattern(fp,head);
+		tmp=exStrCat(tmp,tmpNext,backIndex);
+		if(!matchStringPattern(tmp,pattern))break;
+		int ch=getc(fp);
+		if(isspace(ch))
+		{
+			ungetc(ch,fp);
+			char* tmpSpace=readSpace(fp);
+			tmp=exStrCat(tmp,tmpSpace,strlen(tmp));
+		}
+		else ungetc(ch,fp);
 	}
-	return cur;
+	if(isKeyString(pattern->parts[pattern->num-1]))
+	{
+		int32_t num=0;
+		int32_t* index=matchPartOfPattern(tmp,pattern,&num);
+		char* part=pattern->parts[num-1];
+		char* keyString=castEscapeCharater(part,']');
+		int32_t finaleIndex=index[num-1]+strlen(keyString);
+		ungetString(tmp+finaleIndex,fp);
+		tmp[finaleIndex]='\0';
+		int32_t memsize=strlen(tmp)+1;
+		tmp=(char*)realloc(tmp,memsize*sizeof(char));
+		if(!tmp)errors("readInPattern",__FILE__,__LINE__);
+	}
+	return tmp;
 }
-#endif
+
+int32_t matchStringPattern(const char* str,StringMatchPattern* pattern)
+{
+	int32_t num=countInPattern(str,pattern);
+	return (pattern->num-num);
+}
+
 char* readSingle(FILE* fp)
 {
 	char* tmp=NULL;
@@ -166,6 +191,7 @@ char* readSingle(FILE* fp)
 			{
 				char* tmpStr=readSpace(fp);
 				tmp=(char*)realloc(tmp,sizeof(char)*(strlen(tmp)+strlen(tmpStr)+1));
+				if(!tmp)errors("readSingle",__FILE__,__LINE__);
 				strcat(tmp,tmpStr);
 				free(tmpStr);
 			}
@@ -365,37 +391,49 @@ int32_t skipSpace(const char* str)
 	return i;
 }
 
-StringMatchPattern* findStringPattern(const char* str,StringMatchPattern* head)
+StringMatchPattern* findStringPattern(const char* str,StringMatchPattern* cur)
 {
-	while(head!=NULL)
+	StringMatchPattern* tmp=cur;
+	while(cur)
 	{
-		char* part=head->parts[0];
+		char* part=cur->parts[0];
 		char* keyString=castEscapeCharater(part+1,']');
 		if(!strncmp(str,keyString,strlen(keyString)))
+		{
+			free(keyString);
 			break;
-		head=head->next;
+		}
+		cur=cur->next;
 		free(keyString);
 	}
-	return head;
+	if(cur==NULL)
+	{
+		cur=tmp->prev;
+		while(cur)
+		{
+			char* part=cur->parts[0];
+			char* keyString=castEscapeCharater(part+1,']');
+			if(!strncmp(str,keyString,strlen(keyString)))
+			{
+				free(keyString);
+				break;
+			}
+			cur=cur->prev;
+			free(keyString);
+		}
+	}
+	return cur;
 }
 
-#ifdef success
-int fullMatchStringPattern(StringMatchPattern** patterns,int32_t num)
-{
-}
-
-int matchStringPattern(const char* str,StringMatchPattern* pattern)
-{
-}
-
-#endif
 char** splitStringInPattern(const char* str,StringMatchPattern* pattern,int32_t* num)
 {
 	int i=0;
 	int32_t* s=matchPartOfPattern(str,pattern,num);
-	char** tmp=(char**)malloc(sizeof(char*)*(*num));
+	char** tmp=(char**)malloc(sizeof(char*)*(pattern->num));
+	for(;i<pattern->num;i++)
+		tmp[i]=NULL;
 	if(!tmp)errors("splitStringInPattern",__FILE__,__LINE__);
-	for(;i<*num;i++)
+	for(i=0;i<*num;i++)
 	{
 		int32_t strSize=(i+1<*num)?((size_t)(s[i+1]-s[i])):strlen(str)-s[i];
 		char* tmpStr=(char*)malloc(sizeof(char)*(strSize+1));
@@ -404,16 +442,17 @@ char** splitStringInPattern(const char* str,StringMatchPattern* pattern,int32_t*
 		tmpStr[strSize]='\0';
 		tmp[i]=tmpStr;
 	}
+	free(s);
 	return tmp;
 }
 
 int32_t* matchPartOfPattern(const char* str,StringMatchPattern* pattern,int32_t* num)
 {
-	int32_t* splitIndex=(int32_t*)malloc(sizeof(int32_t)*(pattern->num));
+	*num=countInPattern(str,pattern);
+	int32_t* splitIndex=(int32_t*)malloc(sizeof(int32_t)*(*num));
 	if(!splitIndex)errors("matchPartOfPattern",__FILE__,__LINE__);
 	int32_t s=0;
 	int32_t i=0;
-	*num=countInPattern(str,pattern);
 	for(;i<*num;i++)
 	{
 		char* part=pattern->parts[i];
@@ -424,13 +463,20 @@ int32_t* matchPartOfPattern(const char* str,StringMatchPattern* pattern,int32_t*
 			if(!strncmp(str+s,keyString,strlen(keyString)))
 				splitIndex[i]=s;
 			s+=strlen(keyString);
+			free(keyString);
 		}
 		else
 		{
 			s+=skipSpace(str+s);
 			splitIndex[i]=s;
-			char* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
-			s+=skipUntilNext(str+s,next);
+			StringMatchPattern* nextPattern=findStringPattern(str+s,pattern);
+			if(nextPattern)
+				s+=skipInPattern(str+s,nextPattern);
+			else
+			{
+				char* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
+				s+=skipUntilNext(str+s,next);
+			}
 		}
 	}
 	return splitIndex;
@@ -440,23 +486,34 @@ int32_t countInPattern(const char* str,StringMatchPattern* pattern)
 {
 	int32_t i=0;
 	int32_t s=0;
+	int32_t len=strlen(str);
 	while(i<pattern->num)
 	{
-		if(str[s]=='\0')break;
+		if(s>=len)break;
 		char* part=pattern->parts[i];
 		if(isKeyString(part))
 		{
 			char* keyString=castEscapeCharater(part+1,']');
 			s+=skipSpace(str+s);
 			if(strncmp(str+s,keyString,strlen(keyString)))
+			{
+				free(keyString);
 				break;
+			}
 			s+=strlen(keyString);
+			free(keyString);
 		}
 		else
 		{
 			s+=skipSpace(str+s);
-			char* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
-			s+=skipUntilNext(str+s,next);
+			StringMatchPattern* nextPattern=findStringPattern(str+s,pattern);
+			if(nextPattern)
+				s+=skipInPattern(str+s,nextPattern);
+			else
+			{
+				char* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
+				s+=skipUntilNext(str+s,next);
+			}
 		}
 		i++;
 	}
@@ -488,7 +545,11 @@ int32_t skipUntilNext(const char* str,const char* part)
 				char* keyString=castEscapeCharater(part+1,']');
 				s+=skipAtom(str+s,keyString);
 				if(!strncmp(str+s,keyString,strlen(keyString)))
+				{
+					free(keyString);
 					break;
+				}
+				free(keyString);
 			}
 			s+=skipAtom(str+s,"");
 		}
@@ -523,8 +584,7 @@ int32_t skipAtom(const char* str,const char* keyString)
 	int32_t i=0;
 	for(;str[i]!='\0';i++)
 	{
-		if(isspace(str[i])||(keyLen&&!strncmp(str+i,keyString,keyLen))&&(i<1||str[i-1]!='\\'))
-			break;
+		if(isspace(str[i])||(keyLen&&!strncmp(str+i,keyString,keyLen))&&(i<1||str[i-1]!='\\')) break;
 	}
 	return i;
 }
@@ -534,4 +594,99 @@ int32_t skipString(const char* str)
 	int32_t i=0;
 	for(;str[i]!=0&&(!((i-1<1||str[i-1]!='\\')&&str[i]=='\"'));i++);
 	return i;
+}
+
+int32_t skipInPattern(const char* str,StringMatchPattern* pattern)
+{
+	int32_t i=0;
+	int32_t s=0;
+	for(;i<pattern->num;i++)
+	{
+		if(isKeyString(pattern->parts[i]))
+		{
+			char* part=pattern->parts[i];
+			char* keyString=castEscapeCharater(part+1,']');
+			s+=strlen(keyString);
+			free(keyString);
+		}
+		else
+		{
+			StringMatchPattern* nextPattern=findStringPattern(str+s,pattern);
+			if(nextPattern)
+				s+=skipInPattern(str+s,nextPattern);
+			else
+			{
+				char* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
+				s+=skipUntilNext(str+s,next);
+			}
+		}
+	}
+	return s;
+}
+
+void printInPattern(char** strs,StringMatchPattern* pattern,FILE* fp,int32_t count)
+{
+	int i=0;
+	for(;i<pattern->num;i++)
+	{
+		int j=0;
+		for(;j<count;j++)
+			putc('\t',fp);
+		if(isKeyString(pattern->parts[i]))
+		{
+			char* part=pattern->parts[i];
+			char* keyString=castEscapeCharater(part+1,']');
+			fprintf(fp,"%s\n",keyString);
+			free(keyString);
+		}
+		else
+		{
+			StringMatchPattern* nextPattern=findStringPattern(strs[i],pattern);
+			if(nextPattern)
+			{
+				int32_t num=0;
+				int32_t j=0;
+				char** ss=splitStringInPattern(strs[i],nextPattern,&num);
+				printInPattern(ss,nextPattern,fp,count+1);
+				for(;j<num;j++)
+					free(ss[j]);
+				free(ss);
+			}
+			else
+			{
+				putc('\t',fp);
+				fprintf(fp,"%s\n",strs[i]);
+			}
+		}
+	}
+}
+
+void freeStringArry(char** ss,int32_t num)
+{
+	int i=0;
+	for(;i<num;i++)
+		free(ss[i]);
+	free(ss);
+}
+
+char* getExceptKeyString(const char* s,const char* keyString)
+{
+	char* tmp=copyStr(s+strlen(keyString));
+	return tmp;
+}
+
+char* exStrCat(char* s1,const char* s2,int32_t i)
+{
+	int32_t len=strlen(s1)+strlen(s2)-i;
+	s1=(char*)realloc(s1,sizeof(char)*(len+1));
+	if(!s1)errors("exStrCat",__FILE__,__LINE__);
+	strcpy(s1+i,s2);
+	return s1;
+}
+
+void ungetString(const char* str,FILE* fp)
+{
+	int32_t i=strlen(str)-1;
+	for(;i>-1;i--)
+		ungetc(str[i],fp);
 }

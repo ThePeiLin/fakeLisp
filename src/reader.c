@@ -127,43 +127,36 @@ char* readInPattern(FILE* fp,StringMatchPattern* head)
 	StringMatchPattern* pattern=findStringPattern(tmp,head);
 	if(!pattern)
 		return tmp;
-	for(;;)
+	while(matchStringPattern(tmp,pattern))
 	{
-		int32_t backIndex=0;
-		if(!isspace(tmp[strlen(tmp)-1]))
+		int32_t num=0;
+		int32_t backIndex=strlen(tmp);
+		int32_t* splitIndex=matchPartOfPattern(tmp,pattern,&num);
+		if(!isKeyString(pattern->parts[num-1]))
 		{
-			int32_t num=0;
-			int32_t len=strlen(tmp);
-			int32_t* splitIndex=matchPartOfPattern(tmp,pattern,&num);
 			backIndex=splitIndex[num-1];
 			ungetString(tmp+backIndex,fp);
-			free(splitIndex);
 		}
-		else backIndex=strlen(tmp);
+		free(splitIndex);
 		char* tmpNext=readInPattern(fp,head);
 		tmp=exStrCat(tmp,tmpNext,backIndex);
-		if(!matchStringPattern(tmp,pattern))break;
-		int ch=getc(fp);
-		if(isspace(ch))
-		{
-			ungetc(ch,fp);
-			char* tmpSpace=readSpace(fp);
-			tmp=exStrCat(tmp,tmpSpace,strlen(tmp));
-		}
-		else ungetc(ch,fp);
+		free(tmpNext);
+		tmpNext=readSingle(fp);
+		tmp=exStrCat(tmp,tmpNext,strlen(tmp));
 	}
 	if(isKeyString(pattern->parts[pattern->num-1]))
 	{
 		int32_t num=0;
 		int32_t* index=matchPartOfPattern(tmp,pattern,&num);
 		char* part=pattern->parts[num-1];
-		char* keyString=castEscapeCharater(part,']');
+		char* keyString=castEscapeCharater(part+1,']');
 		int32_t finaleIndex=index[num-1]+strlen(keyString);
 		ungetString(tmp+finaleIndex,fp);
 		tmp[finaleIndex]='\0';
 		int32_t memsize=strlen(tmp)+1;
 		tmp=(char*)realloc(tmp,memsize*sizeof(char));
 		if(!tmp)errors("readInPattern",__FILE__,__LINE__);
+		free(keyString);
 	}
 	return tmp;
 }
@@ -602,15 +595,17 @@ int32_t skipInPattern(const char* str,StringMatchPattern* pattern)
 	int32_t s=0;
 	for(;i<pattern->num;i++)
 	{
-		if(isKeyString(pattern->parts[i]))
+		char* part=pattern->parts[i];
+		if(isKeyString(part))
 		{
-			char* part=pattern->parts[i];
 			char* keyString=castEscapeCharater(part+1,']');
+			s+=skipSpace(str+s);
 			s+=strlen(keyString);
 			free(keyString);
 		}
 		else
 		{
+			s+=skipSpace(str+s);
 			StringMatchPattern* nextPattern=findStringPattern(str+s,pattern);
 			if(nextPattern)
 				s+=skipInPattern(str+s,nextPattern);

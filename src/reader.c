@@ -143,6 +143,7 @@ char* readInPattern(FILE* fp,StringMatchPattern* head)
 		free(tmpNext);
 		tmpNext=readSingle(fp);
 		tmp=exStrCat(tmp,tmpNext,strlen(tmp));
+		free(tmpNext);
 	}
 	if(isKeyString(pattern->parts[pattern->num-1]))
 	{
@@ -157,6 +158,7 @@ char* readInPattern(FILE* fp,StringMatchPattern* head)
 		tmp=(char*)realloc(tmp,memsize*sizeof(char));
 		if(!tmp)errors("readInPattern",__FILE__,__LINE__);
 		free(keyString);
+		free(index);
 	}
 	return tmp;
 }
@@ -672,7 +674,7 @@ char* getExceptKeyString(const char* s,const char* keyString)
 
 char* exStrCat(char* s1,const char* s2,int32_t i)
 {
-	int32_t len=strlen(s1)+strlen(s2)-i;
+	int32_t len=strlen(s2)+i;
 	s1=(char*)realloc(s1,sizeof(char)*(len+1));
 	if(!s1)errors("exStrCat",__FILE__,__LINE__);
 	strcpy(s1+i,s2);

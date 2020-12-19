@@ -3364,36 +3364,3 @@ void joinAllThread()
 		pthread_join(cur->tid,NULL);
 	}
 }
-
-intpr* newTmpIntpr(const char* filename,FILE* fp)
-{
-	intpr* tmp=NULL;
-	if(!(tmp=(intpr*)malloc(sizeof(intpr))))errors("newTmpIntpr",__FILE__,__LINE__);
-	tmp->filename=copyStr(filename);
-	if(fp!=stdin&&filename)
-	{
-#ifdef _WIN32
-		char* rp=_fullpath(NULL,filename,0);
-#else
-		char* rp=realpath(filename,0);
-#endif
-		if(rp==NULL)
-		{
-			perror(rp);
-			exit(EXIT_FAILURE);
-		}
-		tmp->curDir=getDir(rp);
-		free(rp);
-	}
-	else
-		tmp->curDir=NULL;
-	tmp->file=fp;
-	tmp->curline=1;
-	tmp->procs=NULL;
-	tmp->prev=NULL;
-	tmp->modules=NULL;
-	tmp->head=NULL;
-	tmp->tail=NULL;
-	tmp->glob=NULL;
-	return tmp;
-}

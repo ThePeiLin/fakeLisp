@@ -501,7 +501,7 @@ void printRawString(const char* objStr,FILE* out)
 
 void errors(const char* str,const char* filename,int line)
 {
-	fprintf(stderr,"In file \"%s\" line %d\n");
+	fprintf(stderr,"In file \"%s\" line %d\n",filename,line);
 	perror(str);
 	exit(1);
 }
@@ -2022,7 +2022,6 @@ char* castEscapeCharater(const char* str,char end)
 		strSize++;
 		if(strSize>memSize-1)
 		{
-			
 			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+MAX_STRING_SIZE));
 			if(!tmp)errors("castKeyStringToNormalString",__FILE__,__LINE__);
 			memSize+=MAX_STRING_SIZE;
@@ -2034,5 +2033,38 @@ char* castEscapeCharater(const char* str,char end)
 	memSize=strlen(tmp)+1;
 	tmp=(char*)realloc(tmp,memSize*sizeof(char));
 	if(!tmp)errors("castKeyStringToNormalString",__FILE__,__LINE__);
+	return tmp;
+}
+
+intpr* newTmpIntpr(const char* filename,FILE* fp)
+{
+	intpr* tmp=NULL;
+	if(!(tmp=(intpr*)malloc(sizeof(intpr))))errors("newTmpIntpr",__FILE__,__LINE__);
+	tmp->filename=copyStr(filename);
+	if(fp!=stdin&&filename)
+	{
+#ifdef _WIN32
+		char* rp=_fullpath(NULL,filename,0);
+#else
+		char* rp=realpath(filename,0);
+#endif
+		if(rp==NULL)
+		{
+			perror(rp);
+			exit(EXIT_FAILURE);
+		}
+		tmp->curDir=getDir(rp);
+		free(rp);
+	}
+	else
+		tmp->curDir=NULL;
+	tmp->file=fp;
+	tmp->curline=1;
+	tmp->procs=NULL;
+	tmp->prev=NULL;
+	tmp->modules=NULL;
+	tmp->head=NULL;
+	tmp->tail=NULL;
+	tmp->glob=NULL;
 	return tmp;
 }

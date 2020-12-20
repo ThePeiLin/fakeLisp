@@ -3,6 +3,7 @@
 #include<string.h>
 #include<stdlib.h>
 #include<ctype.h>
+
 StringMatchPattern* newStringPattern(const char** parts,int32_t num)
 {
 	StringMatchPattern* tmp=(StringMatchPattern*)malloc(sizeof(StringMatchPattern));

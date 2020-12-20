@@ -1,11 +1,12 @@
-#include<stdlib.h>
-#include<string.h>
-#include<unistd.h>
 #include"compiler.h"
 #include"syntax.h"
 #include"tool.h"
 #include"preprocess.h"
 #include"opcode.h"
+#include"ast.h"
+#include<stdlib.h>
+#include<string.h>
+#include<unistd.h>
 
 ByteCode* compile(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* status)
 {
@@ -564,7 +565,15 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStat
 		if(objCptr==NULL)
 		{
 			*(int32_t*)(pushProc->code+sizeof(char))=tmpRawProc->count;
-			*(int32_t*)(initProc->code+sizeof(char))=(tmpEnv->symbols==NULL)?-1:tmpEnv->symbols->count;
+			if(tmpEnv->symbols==NULL)
+				*(int32_t*)(initProc->code+sizeof(char))=-1;
+			else
+			{
+				CompDef* tmpDef=tmpEnv->symbols;
+				while(tmpDef->next)
+					tmpDef=tmpDef->next;
+				*(int32_t*)(initProc->code+sizeof(char))=tmpDef->count;
+			}
 			ByteCode* tmp1=copyByteCode(pushProc);
 			codeCat(tmp1,initProc);
 			if(tmpRawProc->next==prevRawProc)

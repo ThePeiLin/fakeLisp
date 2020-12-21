@@ -1152,12 +1152,14 @@ CompDef* addCompDef(CompEnv* curEnv,const char* name)
 		CompDef* curDef=findCompDef(name,curEnv);
 		if(curDef==NULL)
 		{
+			CompDef* prevDef=curEnv->symbols;
+			while(prevDef->next!=NULL)prevDef=prevDef->next;
 			if(!(curDef=(CompDef*)malloc(sizeof(CompDef))))errors("addCompDef",__FILE__,__LINE__);
 			if(!(curDef->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors("addCompDef",__FILE__,__LINE__);
 			strcpy(curDef->symName,name);
-			curDef->count=curEnv->symbols->count+1;
-			curDef->next=curEnv->symbols;
-			curEnv->symbols=curDef;
+			prevDef->next=curDef;
+			curDef->count=prevDef->count+1;
+			curDef->next=NULL;
 		}
 		return curDef;
 	}
@@ -1885,4 +1887,25 @@ intpr* newTmpIntpr(const char* filename,FILE* fp)
 	tmp->tail=NULL;
 	tmp->glob=NULL;
 	return tmp;
+}
+
+ByteCode* castRawproc(ByteCode* prev,RawProc* procs)
+{
+	if(procs==NULL)return NULL;
+	else
+	{
+		ByteCode* tmp=(ByteCode*)realloc(prev,sizeof(ByteCode)*(procs->count+1));
+		if(tmp==NULL)
+		{
+			fprintf(stderr,"In file \"%s\",line %d\n",__FILE__,__LINE__);
+			errors("castRawproc",__FILE__,__LINE__);
+		}
+		RawProc* curRawproc=procs;
+		while(curRawproc!=NULL)
+		{
+			tmp[curRawproc->count]=*curRawproc->proc;
+			curRawproc=curRawproc->next;
+		}
+		return tmp;
+	}
 }

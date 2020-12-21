@@ -38,6 +38,7 @@ AST_atom* newAtom(int type,const char*,AST_pair*);
 CompDef* addCompDef(CompEnv*,const char*);
 RawProc* newRawProc(int32_t);
 RawProc* addRawProc(ByteCode*,intpr*);
+ByteCode* castRawproc(ByteCode*,RawProc*);
 CompEnv* newCompEnv(CompEnv*);
 void destroyCompEnv(CompEnv*);
 CompDef* findCompDef(const char*,CompEnv*);

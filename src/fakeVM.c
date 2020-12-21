@@ -2,6 +2,7 @@
 #include"VMtool.h"
 #include"fakeVM.h"
 #include"opcode.h"
+#include"ast.h"
 #include<string.h>
 #include<math.h>
 #ifdef _WIN32

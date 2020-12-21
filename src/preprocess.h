@@ -13,7 +13,8 @@ int retree(AST_cptr**,AST_cptr*);
 ErrorStatus eval(AST_cptr*,PreEnv*,intpr*);
 PreMacro* PreMacroMatch(const AST_cptr*);
 int PreMacroExpand(AST_cptr*,intpr* inter);
-int addMacro(AST_cptr*,AST_cptr*);
+//int addMacro(AST_cptr*,AST_cptr*);
+int addMacro(AST_cptr*,ByteCode*,int32_t,RawProc*);
 void freeMacroEnv();
 void freeAllRule();
 void unInitPreprocess();
@@ -34,4 +35,7 @@ static void addToList(AST_cptr*,const AST_cptr*);
 static int addToDefine(const char*,PreEnv*,AST_cptr*);
 static int getWordNum(const char*);
 static char* getWord(const char*,int);
+CompEnv* createMacroCompEnv(const AST_cptr*,CompEnv*);
+static VMenv* castPreEnvToVMenv(PreEnv*,int32_t,VMenv*,VMheap*);
+static int isVal(const char*);
 #endif

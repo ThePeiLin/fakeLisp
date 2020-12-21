@@ -1,8 +1,3 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
-#include<ctype.h>
-#include<pthread.h>
 #include"fakeLisp.h"
 #include"tool.h"
 #include"VMtool.h"
@@ -12,6 +7,12 @@
 #include"compiler.h"
 #include"fakeVM.h"
 #include"opcode.h"
+#include"ast.h"
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#include<ctype.h>
+#include<pthread.h>
 
 int main(int argc,char** argv)
 {
@@ -218,28 +219,6 @@ void runIntpr(intpr* inter)
 	freeVMheap(anotherVM->heap);
 	freeAllVMs();
 }
-
-ByteCode* castRawproc(ByteCode* prev,RawProc* procs)
-{
-	if(procs==NULL)return NULL;
-	else
-	{
-		ByteCode* tmp=(ByteCode*)realloc(prev,sizeof(ByteCode)*(procs->count+1));
-		if(tmp==NULL)
-		{
-			fprintf(stderr,"In file \"%s\",line %d\n",__FILE__,__LINE__);
-			errors("castRawproc",__FILE__,__LINE__);
-		}
-		RawProc* curRawproc=procs;
-		while(curRawproc!=NULL)
-		{
-			tmp[curRawproc->count]=*curRawproc->proc;
-			curRawproc=curRawproc->next;
-		}
-		return tmp;
-	}
-}
-
 
 ByteCode* loadRawproc(FILE* fp,int32_t* renum)
 {

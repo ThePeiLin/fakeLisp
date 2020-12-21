@@ -8,6 +8,7 @@
 #endif
 #include"tool.h"
 #include"form.h"
+#include"compiler.h"
 #include"preprocess.h"
 
 AST_cptr** dealArg(AST_cptr* argCptr,int num)
@@ -567,7 +568,23 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 	}
 	AST_cptr* pattern=args[0];
 	AST_cptr* express=args[1];
-	addMacro(pattern,express);
+	CompEnv* tmpGlobCompEnv=newCompEnv(NULL);
+	initCompEnv(tmpGlobCompEnv);
+	intpr* tmpInter=newTmpIntpr(NULL,NULL);
+	tmpInter->curline=inter->curline;
+	tmpInter->glob=tmpGlobCompEnv;
+	tmpInter->head=inter->head;
+	tmpInter->tail=inter->tail;
+	tmpInter->modules=inter->modules;
+	tmpInter->curDir=inter->curDir;
+	tmpInter->prev=NULL;
+	CompEnv* tmpCompEnv=createMacroCompEnv(args[0],tmpGlobCompEnv);
+	int32_t bound=(tmpCompEnv->symbols==NULL)?-1:tmpCompEnv->symbols->count;
+	ByteCode* tmpByteCode=compile(args[1],tmpCompEnv,inter,&status);
+	if(status.status)
+		exError(status.place,status.status,tmpInter);
+	addMacro(pattern,tmpByteCode,bound,tmpInter->procs);
+	//addMacro(pattern,express);
 	free(args);
 	objCptr->type=NIL;
 	objCptr->value=NULL;

@@ -1,5 +1,5 @@
-objectOfFakeLisp=fakeLisp.o form.o tool.o preprocess.o syntax.o compiler.o fakeVM.o VMtool.o
-objectOfFakeLispc=fakeLispc.o form.o tool.o preprocess.o syntax.o compiler.o
+objectOfFakeLisp=fakeLisp.o form.o tool.o preprocess.o syntax.o compiler.o fakeVM.o VMtool.o ast.o
+objectOfFakeLispc=fakeLispc.o form.o tool.o preprocess.o syntax.o compiler.o fakeVM.o VMtool.o ast.o
 ifeq ($(DEBUG),YES)
 FLAG=-g -W
 else
@@ -12,6 +12,8 @@ else
 LINK=-lpthread -ldl
 endif
 
+ast.o: src/ast.* src/fakedef.h src/tool.* src/VMtool.*
+	gcc $(FLAG) -c src/ast.c
 reader.o: src/reader.* src/fakedef.h src/tool.*
 	gcc $(FLAG) -c src/reader.c
 form.o: src/form.* src/fakedef.h
@@ -24,7 +26,7 @@ syntax.o: src/syntax.* src/fakedef.h
 	gcc $(FLAG) -c src/syntax.c
 fakeLisp.o: src/fakeLisp.* src/fakedef.h
 	gcc $(FLAG) -c src/fakeLisp.c
-compiler.o: src/compiler.* src/opcode.h src/fakedef.h
+compiler.o: src/compiler.* src/opcode.h src/fakedef.h src/ast.o
 	gcc $(FLAG) -c src/compiler.c
 VMtool.o: src/VMtool.* src/fakedef.h src/tool.*
 	gcc $(FLAG) -c src/VMtool.c
@@ -36,7 +38,7 @@ fakeLisp: $(objectOfFakeLisp) $(objectOfFakeLispc)
 	gcc $(FLAG) -o fakeLisp $(objectOfFakeLisp) $(LINK)
 	gcc $(FLAG) -o fakeLispc $(objectOfFakeLispc) $(LINK)
 fakeLispc: $(objectOfFakeLispc)
-	gcc $(FLAG) -o fakeLispc $(objectOfFakeLispc)
+	gcc $(FLAG) -o fakeLispc $(objectOfFakeLispc) $(LINK)
 btk: src/tool.* src/VMtool.*
 ifeq ($(OS),WINDOWS)
 	gcc -fPIC -shared $(FLAG) -o btk.dll src/btk.c src/VMtool.c src/tool.c

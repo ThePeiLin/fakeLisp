@@ -2,20 +2,6 @@
 #define READER_H
 #include"fakedef.h"
 #include<stdint.h>
-typedef struct String_Match_Pattern
-{
-	int32_t num;
-	char** parts;
-	struct String_Match_Pattern* prev;
-	struct String_Match_Pattern* next;
-}StringMatchPattern;
-
-typedef struct Reader_Macro
-{
-	StringMatchPattern* pattern;
-	AST_cptr* expression;
-	struct Reader_Macro* next;
-}ReaderMacro;
 
 StringMatchPattern* newStringPattern(const char**,int32_t);
 void freeStringPattern(StringMatchPattern*);

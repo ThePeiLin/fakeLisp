@@ -2,5 +2,4 @@
 #define FAKELISPC_H
 #include"fakedef.h"
 void initEvalution();
-ByteCode* castRawproc(RawProc*);
 #endif

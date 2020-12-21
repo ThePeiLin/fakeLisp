@@ -2,6 +2,9 @@
 #include"preprocess.h"
 #include"tool.h"
 #include"syntax.h"
+#include"VMtool.h"
+#include"fakeVM.h"
+#include"ast.h"
 
 static PreMacro* FirstMacro=NULL;
 static PreMasym* FirstMasym=NULL;
@@ -185,16 +188,17 @@ ErrorStatus eval(AST_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 PreMacro* PreMacroMatch(const AST_cptr* objCptr)
 {
 	PreMacro* current=FirstMacro;
-	while(current!=NULL&&!fmatcmp(objCptr,current->format))
+	while(current!=NULL&&!fmatcmp(objCptr,current->pattern))
 		current=current->next;
 	return current;
 }
 
-int addMacro(AST_cptr* format,AST_cptr* express)
+int addMacro(AST_cptr* pattern,ByteCode* proc,int32_t bound,RawProc* procs)
+//int addMacro(AST_cptr* format,AST_cptr* express)
 {
-	if(format->type!=PAIR)return SYNTAXERROR;
+	if(pattern->type!=PAIR)return SYNTAXERROR;
 	AST_cptr* tmpCptr=NULL;
-	for(tmpCptr=&((AST_pair*)format->value)->car;tmpCptr!=NULL;tmpCptr=nextCptr(tmpCptr))
+	for(tmpCptr=&((AST_pair*)pattern->value)->car;tmpCptr!=NULL;tmpCptr=nextCptr(tmpCptr))
 	{
 		if(tmpCptr->type==ATM)
 		{
@@ -202,6 +206,7 @@ int addMacro(AST_cptr* format,AST_cptr* express)
 			AST_atom* cdrAtm=(tmpCptr->outer->cdr.type==ATM)?tmpCptr->outer->cdr.value:NULL;
 			if(carAtm->type==SYM)
 			{
+				//if(!isVal(carAtm->value.str))addKeyWord(carAtm->value.str);
 				if(!hasAnotherName(carAtm->value.str))addKeyWord(carAtm->value.str);
 				else if(hasAnotherName(carAtm->value.str)&&!memcmp(carAtm->value.str,"COLT",4))
 				{
@@ -218,6 +223,7 @@ int addMacro(AST_cptr* format,AST_cptr* express)
 			}
 			if(cdrAtm!=NULL&&cdrAtm->type==SYM)
 			{
+				//if(!isVal(cdrAtm->value.str))addKeyWord(cdrAtm->value.str);
 				if(!hasAnotherName(cdrAtm->value.str))addKeyWord(cdrAtm->value.str);
 				else if(hasAnotherName(cdrAtm->value.str)&&!memcmp(cdrAtm->value.str,"COLT",4))
 				{
@@ -235,18 +241,28 @@ int addMacro(AST_cptr* format,AST_cptr* express)
 		}
 	}
 	PreMacro* current=FirstMacro;
-	while(current!=NULL&&!AST_cptrcmp(format,current->format))
+	while(current!=NULL&&!AST_cptrcmp(pattern,current->pattern))
 		current=current->next;
 	if(current==NULL)
 	{
 		if(!(current=(PreMacro*)malloc(sizeof(PreMacro))))errors("addMacro",__FILE__,__LINE__);
-		current->format=format;
-		current->express=express;
-		current->next=FirstMacro;
+		//current->format=format;
+		//current->express=express;
+		//current->next=FirstMacro;
+		current->pattern=pattern;
+		current->proc=proc;
+		current->bound=bound;
+		current->procs=procs;
 		FirstMacro=current;
 	}
 	else
-		current->express=express;
+	{
+		current->pattern=pattern;
+		current->proc=proc;
+		current->bound=bound;
+		current->procs=procs;
+		//current->express=express;
+	}
 	//printAllKeyWord();
 	return 0;
 }
@@ -279,20 +295,28 @@ int fmatcmp(const AST_cptr* origin,const AST_cptr* format)
 		else if(format->type==ATM)
 		{
 			AST_atom* tmpAtm=format->value;
-			PreMasym* tmpSym=NULL;
+			//PreMasym* tmpSym=NULL;
 			if(tmpAtm->type==SYM)
 			{
-				tmpSym=findMasym(tmpAtm->value.str);
-				if(tmpSym==NULL||!hasAnotherName(tmpAtm->value.str))
-				{
-					if(!AST_cptrcmp(origin,format))
-					{
-						destroyEnv(MacroEnv);
-						MacroEnv=NULL;
-						return 0;
-					}
-				}
-				else if(!tmpSym->Func(origin,format,hasAnotherName(tmpAtm->value.str),MacroEnv))
+				//tmpSym=findMasym(tmpAtm->value.str);
+				//if(tmpSym==NULL||!hasAnotherName(tmpAtm->value.str))
+				//{
+				//	if(!AST_cptrcmp(origin,format))
+				//	{
+				//		destroyEnv(MacroEnv);
+				//		MacroEnv=NULL;
+				//		return 0;
+				//	}
+				//}
+				//else if(!tmpSym->Func(origin,format,hasAnotherName(tmpAtm->value.str),MacroEnv))
+				//{
+				//	destroyEnv(MacroEnv);
+				//	MacroEnv=NULL;
+				//	return 0;
+				//}
+				if(isVal(tmpAtm->value.str))
+					addDefine(tmpAtm->value.str+1,origin,MacroEnv);
+				else if(!AST_cptrcmp(origin,format))
 				{
 					destroyEnv(MacroEnv);
 					MacroEnv=NULL;
@@ -301,11 +325,11 @@ int fmatcmp(const AST_cptr* origin,const AST_cptr* format)
 			}
 			forPair=format->outer;
 			oriPair=origin->outer;
-			if(tmpSym!=NULL&&tmpSym->Func==M_VAREPT)
-			{
-				format=&forPair->cdr;
-				origin=&oriPair->cdr;
-			}
+			//if(tmpSym!=NULL&&tmpSym->Func==M_VAREPT)
+			//{
+			//	format=&forPair->cdr;
+			//	origin=&oriPair->cdr;
+			//}
 			if(forPair!=NULL&&format==&forPair->car)
 			{
 				origin=&oriPair->cdr;
@@ -313,25 +337,25 @@ int fmatcmp(const AST_cptr* origin,const AST_cptr* format)
 				continue;
 			}
 		}
-		else if(origin->type==NIL&&
-				format->type==PAIR&&
-				((AST_pair*)format->value)->car.type==ATM)
-		{
-			AST_atom* tmpAtm=((AST_pair*)format->value)->car.value;
-			PreMasym* tmpSym=findMasym(tmpAtm->value.str);
-			if(tmpSym!=NULL&&tmpSym->Func!=M_VAREPT)
-			{
-				destroyEnv(MacroEnv);
-				MacroEnv=NULL;
-				return 0;
-			}
-			else if(tmpSym!=NULL)
-			{
-				AST_cptr* tmp=&((AST_pair*)format->value)->car;
-				AST_atom* tmpAtm=tmp->value;
-				M_VAREPT(NULL,tmp,hasAnotherName(tmpAtm->value.str),MacroEnv);
-			}
-		}
+		//else if(origin->type==NIL&&
+		//		format->type==PAIR&&
+		//		((AST_pair*)format->value)->car.type==ATM)
+		//{
+		//	AST_atom* tmpAtm=((AST_pair*)format->value)->car.value;
+		//	PreMasym* tmpSym=findMasym(tmpAtm->value.str);
+		//	if(tmpSym!=NULL&&tmpSym->Func!=M_VAREPT)
+		//	{
+		//		destroyEnv(MacroEnv);
+		//		MacroEnv=NULL;
+		//		return 0;
+		//	}
+		//	else if(tmpSym!=NULL)
+		//	{
+		//		AST_cptr* tmp=&((AST_pair*)format->value)->car;
+		//		AST_atom* tmpAtm=tmp->value;
+		//		M_VAREPT(NULL,tmp,hasAnotherName(tmpAtm->value.str),MacroEnv);
+		//	}
+		//}
 		else if(origin->type!=format->type)
 		{
 			destroyEnv(MacroEnv);
@@ -373,19 +397,34 @@ int PreMacroExpand(AST_cptr* objCptr,intpr* inter)
 {
 	ErrorStatus status={0,NULL};
 	PreMacro* tmp=PreMacroMatch(objCptr);
-	if(tmp!=NULL&&objCptr!=tmp->express)
+	if(tmp!=NULL)
 	{
-		AST_cptr* tmpCptr=newCptr(0,NULL);
-		replace(tmpCptr,tmp->express);
-		status=eval(tmp->express,MacroEnv,inter);
-		if(status.status!=0)exError(status.place,status.status,NULL);
-		replace(objCptr,tmp->express);
-		deleteCptr(tmp->express);
-		free(tmp->express);
-		tmp->express=tmpCptr;
-		destroyEnv(MacroEnv);
+		VMenv* tmpGlob=newVMenv(0,NULL);
+		ByteCode* rawProcList=castRawproc(NULL,tmp->procs);
+		fakeVM* tmpVM=newFakeVM(NULL,rawProcList);
+		initGlobEnv(tmpGlob,tmpVM->heap);
+		VMcode* tmpVMcode=newVMcode(tmp->proc);
+		VMenv* macroVMenv=castPreEnvToVMenv(MacroEnv,tmp->bound,tmpGlob,tmpVM->heap);
+		tmpVM->mainproc->localenv=macroVMenv;
+		tmpVMcode->localenv=macroVMenv;
+		tmpVM->mainproc->code=tmpVMcode;
+		tmpVM->modules=inter->modules;
+		runFakeVM(tmpVM);
+		AST_cptr* tmpCptr=castVMvalueToCptr(tmpVM->stack->values[0],inter->curline,NULL);
+		replace(objCptr,tmpCptr);
+
+		//AST_cptr* tmpCptr=newCptr(0,NULL);
+		//replace(tmpCptr,tmp->express);
+		//status=eval(tmp->express,MacroEnv,inter);
+		//if(status.status!=0)exError(status.place,status.status,NULL);
+		//replace(objCptr,tmp->express);
+		//deleteCptr(tmp->express);
+		//free(tmp->express);
+		//tmp->express=tmpCptr;
+		//destroyEnv(MacroEnv);
 		return 1;
 	}
+
 	return 0;
 }
 
@@ -635,7 +674,7 @@ void deleteMacro(AST_cptr* objCptr)
 {
 	PreMacro* current=FirstMacro;
 	PreMacro* prev=NULL;
-	while(current!=NULL&&!AST_cptrcmp(objCptr,current->format))
+	while(current!=NULL&&!AST_cptrcmp(objCptr,current->pattern))
 	{
 		prev=current;
 		current=current->next;
@@ -643,10 +682,10 @@ void deleteMacro(AST_cptr* objCptr)
 	if(current!=NULL)
 	{
 		if(current==FirstMacro)FirstMacro=current->next;
-		deleteCptr(current->format);
-		deleteCptr(current->express);
-		free(current->format);
-		free(current->express);
+		deleteCptr(current->pattern);
+		//deleteCptr(current->express);
+		free(current->pattern);
+		//free(current->express);
 		if(prev!=NULL)prev->next=current->next;
 		free(current);
 	}
@@ -659,6 +698,13 @@ const char* hasAnotherName(const char* name)
 	for(;tmp<name+len;tmp++)
 		if(*tmp=='#'&&(*(tmp-1)!='#'||*(tmp+1)!='#'))break;
 	return (tmp==name+len)?NULL:tmp+1;
+}
+
+int isVal(const char* name)
+{
+	if(name[0]=='#'&&strlen(name)>1)
+		return 1;
+	return 0;
 }
 
 void addToList(AST_cptr* fir,const AST_cptr* sec)
@@ -758,10 +804,88 @@ void freeAllMacro()
 	{
 		PreMacro* prev=cur;
 		cur=cur->next;
-		deleteCptr(prev->format);
-		deleteCptr(prev->express);
-		free(prev->format);
-		free(prev->express);
+		deleteCptr(prev->pattern);
+		//deleteCptr(prev->express);
+		free(prev->pattern);
+		//free(prev->express);
 		free(prev);
+	}
+}
+
+CompEnv* createMacroCompEnv(const AST_cptr* objCptr,CompEnv* prev)
+{
+	CompEnv* tmpEnv=newCompEnv(prev);
+	if(objCptr==NULL)return NULL;
+	AST_pair* tmpPair=(objCptr->type==PAIR)?objCptr->value:NULL;
+	AST_pair* objPair=tmpPair;
+	while(objCptr!=NULL)
+	{
+		if(objCptr->type==PAIR)
+		{
+			if(objPair!=NULL&&objCptr==&objPair->cdr)
+			{
+				objPair=objPair->cdr.value;
+				objCptr=&objPair->car;
+			}
+			else
+			{
+				objPair=objCptr->value;
+				objCptr=&objPair->car;
+				continue;
+			}
+		}
+		else if(objCptr->type==ATM||objCptr->type==NIL)
+		{
+			if(objCptr->type!=NIL)
+			{
+				AST_atom* tmpAtm=objCptr->value;
+				if(tmpAtm->type==SYM)
+				{
+					const char* tmpStr=tmpAtm->value.str;
+					if(isVal(tmpStr))
+						addCompDef(tmpEnv,tmpStr+1);
+				}
+			}
+			if(objPair!=NULL&&objCptr==&objPair->car)
+			{
+				objCptr=&objPair->cdr;
+				continue;
+			}
+		}
+		if(objPair!=NULL&&objCptr==&objPair->cdr)
+		{
+			AST_pair* prev=NULL;
+			if(objPair->prev==NULL)break;
+			while(objPair->prev!=NULL&&objPair!=tmpPair)
+			{
+				prev=objPair;
+				objPair=objPair->prev;
+				if(prev==objPair->car.value)break;
+			}
+			if(objPair!=NULL)objCptr=&objPair->cdr;
+			if(objPair==tmpPair&&(prev==objPair->cdr.value||prev==NULL))break;
+		}
+		if(objPair==NULL)break;
+	}
+	return tmpEnv;
+}
+
+VMenv* castPreEnvToVMenv(PreEnv* pe,int32_t b,VMenv* prev,VMheap* heap)
+{
+	int32_t size=0;
+	PreDef* tmpDef=pe->symbols;
+	while(tmpDef)
+	{
+		size++;
+		tmpDef=tmpDef->next;
+	}
+	VMenv* tmp=newVMenv(b,prev);
+	tmp->size=size;
+	VMvalue** values=(VMvalue**)malloc(sizeof(VMvalue*)*size);
+	int i=size-1;
+	for(tmpDef=pe->symbols;i>-1;i--)
+	{
+		values[i]=castCptrVMvalue(&tmpDef->obj,heap);
+		tmpDef=tmpDef->next;
 	}
 }

@@ -36,7 +36,7 @@ int main(int argc,char** argv)
 		//printByteCode(mainByteCode,stderr);
 		int32_t numOfRawproc=(inter->procs==NULL)?0:inter->procs->count+1;
 		fwrite(&numOfRawproc,sizeof(numOfRawproc),1,outfp);
-		ByteCode* rawProcList=castRawproc(inter->procs);
+		ByteCode* rawProcList=castRawproc(NULL,inter->procs);
 		for(i=0;i<numOfRawproc;i++)
 		{
 			int32_t size=rawProcList[i].size;
@@ -63,23 +63,6 @@ int main(int argc,char** argv)
 		return EXIT_FAILURE;
 	}
 	return 0;
-}
-
-ByteCode* castRawproc(RawProc* procs)
-{
-	if(procs==NULL)return NULL;
-	else
-	{
-		ByteCode* tmp=(ByteCode*)malloc(sizeof(ByteCode)*(procs->count+1));
-		if(tmp==NULL)errors("castRawproc",__FILE__,__LINE__);
-		RawProc* curRawproc=procs;
-		while(curRawproc!=NULL)
-		{
-			tmp[curRawproc->count]=*curRawproc->proc;
-			curRawproc=curRawproc->next;
-		}
-		return tmp;
-	}
 }
 
 void initEvalution()

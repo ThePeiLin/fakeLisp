@@ -45,7 +45,7 @@ extern "C"{
 		if(stack->tp>=stack->size)
 		{
 			stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-			if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+			if(stack->values==NULL)errors("FAKE_getch",__FILE__,__LINE__);
 			stack->size+=64;
 		}
 		char ch=getch();
@@ -68,7 +68,7 @@ extern "C"{
 		if(stack->tp>=stack->size)
 		{
 			stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-			if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+			if(stack->values==NULL)errors("FAKE_sleep",__FILE__,__LINE__);
 			stack->size+=64;
 		}
 		lockSource(pGClock);
@@ -95,13 +95,23 @@ extern "C"{
 		if(stack->tp>=stack->size)
 		{
 			stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-			if(stack->values==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
+			if(stack->values==NULL)errors("FAKE_usleep",__FILE__,__LINE__);
 			stack->size+=64;
 		}
 		lockSource(pGClock);
 		stack->values[stack->tp]=newVMvalue(IN32,&s,exe->heap,1);
 		stack->tp+=1;
 		return 0;
+	}
+	
+	int FAKE_exit(fakeVM* exe,pthread_rwlock_t* pGClock)
+	{
+		VMstack* stack=exe->stack;
+		VMvalue* exitCode=getArg(stack);
+		if(exitCode==NULL)
+			exit(0);
+		int32_t num=*exitCode->u.num;
+		exit(num);
 	}
 
 #ifdef __cplusplus

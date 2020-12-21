@@ -153,8 +153,6 @@ int subVMvaluecmp(VMvalue* fir,VMvalue* sec)
 		}
 	}
 	else if(fir->u.all!=sec->u.all)return 0;
-	
-
 }
 
 int numcmp(VMvalue* fir,VMvalue* sec)

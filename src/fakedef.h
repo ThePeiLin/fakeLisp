@@ -16,6 +16,12 @@ typedef enum{NIL,IN32,CHR,DBL,SYM,STR,BYTA,PRC,PAIR,ATM} ValueType;
 
 typedef struct
 {
+	int32_t size;
+	char* code;
+}ByteCode;
+
+typedef struct
+{
 	int32_t refcount;
 	int32_t size;
 	uint8_t* arry;
@@ -69,10 +75,20 @@ typedef struct Pre_Env
 	struct Pre_Env* next;
 }PreEnv;
 
+//typedef struct Pre_Macro
+//{
+//	AST_cptr* format;
+//	AST_cptr* express;
+//	struct Pre_Macro* next;
+//}PreMacro;
+
 typedef struct Pre_Macro
 {
-	AST_cptr* format;
-	AST_cptr* express;
+	AST_cptr* pattern;
+	int32_t bound;
+	ByteCode* proc;
+	struct Raw_Proc* procs;
+	struct DLL_s* modules;
 	struct Pre_Macro* next;
 }PreMacro;
 
@@ -82,12 +98,6 @@ typedef struct Pre_MacroSym
 	int (*Func)(const AST_cptr*,const AST_cptr*,const char*,PreEnv*);
 	struct Pre_MacroSym* next;
 }PreMasym;
-
-typedef struct
-{
-	int32_t size;
-	char* code;
-}ByteCode;
 
 typedef struct Comp_Def
 {
@@ -282,4 +292,20 @@ typedef struct DLL_s
 }Dlls;
 
 typedef int (*ModFunc)(fakeVM*,pthread_rwlock_t*);
+
+typedef struct String_Match_Pattern
+{
+	int32_t num;
+	char** parts;
+	struct String_Match_Pattern* prev;
+	struct String_Match_Pattern* next;
+}StringMatchPattern;
+
+typedef struct Reader_Macro
+{
+	StringMatchPattern* pattern;
+	AST_cptr* expression;
+	struct Reader_Macro* next;
+}ReaderMacro;
+
 #endif

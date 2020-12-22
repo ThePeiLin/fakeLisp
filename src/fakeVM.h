@@ -8,6 +8,7 @@ void printVMvalue(VMvalue*,VMpair*,FILE*,int8_t);
 void princVMvalue(VMvalue*,VMpair*,FILE*);
 void printProc(VMcode*,FILE*);
 fakeVM* newFakeVM(ByteCode*,ByteCode*);
+fakeVM* newTmpFakeVM(ByteCode*,ByteCode*);
 fakeVM* newThreadVM(VMcode*,ByteCode*,filestack*,VMheap*,Dlls*);
 void initGlobEnv(VMenv*,VMheap*);
 int B_dummy(fakeVM*);

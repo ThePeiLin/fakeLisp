@@ -544,9 +544,11 @@ AST_atom* newAtom(int type,const char* value,AST_pair* prev)
 	{
 		case SYM:
 		case STR:
-			if(!(tmp->value.str=(char*)malloc(strlen(value)+1)))errors("newAtom",__FILE__,__LINE__);
 			if(value!=NULL)
+			{
+				if(!(tmp->value.str=(char*)malloc(strlen(value)+1)))errors("newAtom",__FILE__,__LINE__);
 				strcpy(tmp->value.str,value);
+			}
 			else
 				tmp->value.str=NULL;
 			break;
@@ -1908,4 +1910,12 @@ ByteCode* castRawproc(ByteCode* prev,RawProc* procs)
 		}
 		return tmp;
 	}
+}
+
+void freeRawProc(ByteCode* l,int32_t num)
+{
+	int i=0;
+	for(;i<num;i++)
+		free(l[i].code);
+	free(l);
 }

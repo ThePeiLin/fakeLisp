@@ -23,7 +23,7 @@ ByteCode* compile(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* st
 		if(isOrExpression(objCptr))return compileOr(objCptr,curEnv,inter,status);
 		if(isLambdaExpression(objCptr))return compileLambda(objCptr,curEnv,inter,status);
 		if(PreMacroExpand(objCptr,inter))continue;
-		else if(hasKeyWord(objCptr))
+		else if(!isLegal(objCptr)||hasKeyWord(objCptr))
 		{
 			status->status=SYNTAXERROR;
 			status->place=objCptr;

@@ -195,7 +195,8 @@ AST_cptr* castVMvalueToCptr(VMvalue* value,int32_t curline,AST_pair* prev)
 		cptrType=PAIR;
 	else
 		cptrType=ATM;
-	AST_cptr* tmp=newCptr(cptrType,NULL);
+	AST_cptr* tmp=newCptr(curline,NULL);
+	tmp->type=cptrType;
 	if(cptrType==ATM)
 	{
 		AST_atom* tmpAtm=newAtom(value->type,NULL,prev);
@@ -221,7 +222,7 @@ AST_cptr* castVMvalueToCptr(VMvalue* value,int32_t curline,AST_pair* prev)
 		}
 		tmp->value=tmpAtm;
 	}
-	else
+	else if(cptrType==PAIR)
 	{
 		AST_pair* tmpPair=newPair(curline,prev);
 		AST_cptr* astCar=castVMvalueToCptr(value->u.pair->car,curline,tmpPair);

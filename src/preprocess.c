@@ -248,7 +248,7 @@ int addMacro(AST_cptr* pattern,ByteCode* proc,int32_t bound,RawProc* procs)
 		if(!(current=(PreMacro*)malloc(sizeof(PreMacro))))errors("addMacro",__FILE__,__LINE__);
 		//current->format=format;
 		//current->express=express;
-		//current->next=FirstMacro;
+		current->next=FirstMacro;
 		current->pattern=pattern;
 		current->proc=proc;
 		current->bound=bound;
@@ -402,6 +402,7 @@ int PreMacroExpand(AST_cptr* objCptr,intpr* inter)
 		VMenv* tmpGlob=newVMenv(0,NULL);
 		ByteCode* rawProcList=castRawproc(NULL,tmp->procs);
 		fakeVM* tmpVM=newFakeVM(NULL,rawProcList);
+		//fakeVM* tmpVM=newTmpFakeVM(NULL,rawProcList);
 		initGlobEnv(tmpGlob,tmpVM->heap);
 		VMcode* tmpVMcode=newVMcode(tmp->proc);
 		VMenv* macroVMenv=castPreEnvToVMenv(MacroEnv,tmp->bound,tmpGlob,tmpVM->heap);
@@ -411,8 +412,16 @@ int PreMacroExpand(AST_cptr* objCptr,intpr* inter)
 		tmpVM->modules=inter->modules;
 		runFakeVM(tmpVM);
 		AST_cptr* tmpCptr=castVMvalueToCptr(tmpVM->stack->values[0],inter->curline,NULL);
+		//freeVMheap(tmpVM->heap);
+		//pthread_mutex_destroy(&tmpVM->lock);
+		//if(tmpVM->mainproc->code)
+		//	freeVMcode(tmpVM->mainproc->code);
+		//free(tmpVM->mainproc);
+		//freeFileStack(tmpVM->files);
+		//freeMessage(tmpVM->queueHead);
+		//free(tmpVM);
 		replace(objCptr,tmpCptr);
-
+		deleteCptr(tmpCptr);
 		//AST_cptr* tmpCptr=newCptr(0,NULL);
 		//replace(tmpCptr,tmp->express);
 		//status=eval(tmp->express,MacroEnv,inter);
@@ -683,6 +692,15 @@ void deleteMacro(AST_cptr* objCptr)
 	{
 		if(current==FirstMacro)FirstMacro=current->next;
 		deleteCptr(current->pattern);
+		freeByteCode(current->proc);
+		RawProc* curRawProc=current->procs;
+		while(curRawProc)
+		{
+			RawProc* prev=curRawProc;
+			curRawProc=curRawProc->next;
+			freeByteCode(prev->proc);
+			free(prev);
+		}
 		//deleteCptr(current->express);
 		free(current->pattern);
 		//free(current->express);
@@ -702,7 +720,7 @@ const char* hasAnotherName(const char* name)
 
 int isVal(const char* name)
 {
-	if(name[0]=='#'&&strlen(name)>1)
+	if(name[0]=='$'&&strlen(name)>1)
 		return 1;
 	return 0;
 }
@@ -888,4 +906,6 @@ VMenv* castPreEnvToVMenv(PreEnv* pe,int32_t b,VMenv* prev,VMheap* heap)
 		values[i]=castCptrVMvalue(&tmpDef->obj,heap);
 		tmpDef=tmpDef->next;
 	}
+	tmp->values=values;
+	return tmp;
 }

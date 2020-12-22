@@ -582,15 +582,19 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 	CompEnv* tmpCompEnv=createMacroCompEnv(args[0],tmpGlobCompEnv);
 	int32_t bound=(tmpCompEnv->symbols==NULL)?-1:tmpCompEnv->symbols->count;
 	ByteCode* tmpByteCode=compile(args[1],tmpCompEnv,inter,&status);
-	if(status.status)
-		exError(status.place,status.status,tmpInter);
-	addMacro(pattern,tmpByteCode,bound,tmpInter->procs);
-	//addMacro(pattern,express);
-	destroyCompEnv(tmpCompEnv);
-	destroyCompEnv(tmpGlobCompEnv);
-	free(args);
-	objCptr->type=NIL;
-	objCptr->value=NULL;
+	if(!status.status)
+	{
+		addMacro(pattern,tmpByteCode,bound,tmpInter->procs);
+		//addMacro(pattern,express);
+		destroyCompEnv(tmpCompEnv);
+		destroyCompEnv(tmpGlobCompEnv);
+		deleteCptr(express);
+		free(args);
+		free(express);
+		free(tmpInter);
+		objCptr->type=NIL;
+		objCptr->value=NULL;
+	}
 	return status;
 }
 

@@ -401,8 +401,7 @@ int PreMacroExpand(AST_cptr* objCptr,intpr* inter)
 	{
 		VMenv* tmpGlob=newVMenv(0,NULL);
 		ByteCode* rawProcList=castRawproc(NULL,tmp->procs);
-		fakeVM* tmpVM=newFakeVM(NULL,rawProcList);
-		//fakeVM* tmpVM=newTmpFakeVM(NULL,rawProcList);
+		fakeVM* tmpVM=newTmpFakeVM(NULL,rawProcList);
 		initGlobEnv(tmpGlob,tmpVM->heap);
 		VMcode* tmpVMcode=newVMcode(tmp->proc);
 		VMenv* macroVMenv=castPreEnvToVMenv(MacroEnv,tmp->bound,tmpGlob,tmpVM->heap);
@@ -412,14 +411,14 @@ int PreMacroExpand(AST_cptr* objCptr,intpr* inter)
 		tmpVM->modules=inter->modules;
 		runFakeVM(tmpVM);
 		AST_cptr* tmpCptr=castVMvalueToCptr(tmpVM->stack->values[0],inter->curline,NULL);
-		//freeVMheap(tmpVM->heap);
-		//pthread_mutex_destroy(&tmpVM->lock);
-		//if(tmpVM->mainproc->code)
-		//	freeVMcode(tmpVM->mainproc->code);
-		//free(tmpVM->mainproc);
-		//freeFileStack(tmpVM->files);
-		//freeMessage(tmpVM->queueHead);
-		//free(tmpVM);
+		freeVMheap(tmpVM->heap);
+		pthread_mutex_destroy(&tmpVM->lock);
+		if(tmpVM->mainproc->code)
+			freeVMcode(tmpVM->mainproc->code);
+		free(tmpVM->mainproc);
+		freeFileStack(tmpVM->files);
+		freeMessage(tmpVM->queueHead);
+		free(tmpVM);
 		replace(objCptr,tmpCptr);
 		deleteCptr(tmpCptr);
 		//AST_cptr* tmpCptr=newCptr(0,NULL);

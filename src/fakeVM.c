@@ -896,7 +896,7 @@ fakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 fakeVM* newTmpFakeVM(ByteCode* mainproc,ByteCode* procs)
 {
 	fakeVM* exe=(fakeVM*)malloc(sizeof(fakeVM));
-	if(exe==NULL)errors("newFakeVM",__FILE__,__LINE__);
+	if(exe==NULL)errors("newTmpFakeVM",__FILE__,__LINE__);
 	if(mainproc!=NULL)
 		exe->mainproc=newFakeProcess(newVMcode(mainproc),NULL);
 	else
@@ -910,7 +910,7 @@ fakeVM* newTmpFakeVM(ByteCode* mainproc,ByteCode* procs)
 	exe->queueTail=NULL;
 	exe->files=newFileStack();
 	exe->heap=newVMheap();
-	exe->VMid=0;
+	exe->VMid=-1;
 	pthread_mutex_init(&exe->lock,NULL);
 	return exe;
 }
@@ -1049,17 +1049,21 @@ void runFakeVM(fakeVM* exe)
 		{
 			if(pthread_rwlock_trywrlock(&GClock))continue;
 			int i=0;
-			for(;i<GlobFakeVMs.size;i++)
+			if(exe->VMid!=-1)
 			{
-				//fprintf(stderr,"\nValue that be marked:\n");
-				if(GlobFakeVMs.VMs[i]->mark)
-					GC_mark(GlobFakeVMs.VMs[i]);
-				else
+				for(;i<GlobFakeVMs.size;i++)
 				{
-					free(GlobFakeVMs.VMs[i]);
-					GlobFakeVMs.VMs[i]=NULL;
+					//fprintf(stderr,"\nValue that be marked:\n");
+					if(GlobFakeVMs.VMs[i]->mark)
+						GC_mark(GlobFakeVMs.VMs[i]);
+					else
+					{
+						free(GlobFakeVMs.VMs[i]);
+						GlobFakeVMs.VMs[i]=NULL;
+					}
 				}
 			}
+			else GC_mark(exe);
 			//fprintf(stderr,"\n=======\nValue that be sweep:\n");
 			GC_sweep(exe->heap);
 			//fprintf(stderr,"======\n");

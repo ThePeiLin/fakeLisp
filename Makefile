@@ -12,12 +12,13 @@ else
 LINK=-lpthread -ldl
 endif
 
-ast.o: src/ast.* src/fakedef.h src/tool.* src/VMtool.*
-	gcc $(FLAG) -c src/ast.c
+
 reader.o: src/reader.* src/fakedef.h src/tool.*
 	gcc $(FLAG) -c src/reader.c
 form.o: src/form.* src/fakedef.h
 	gcc $(FLAG) -c src/form.c
+ast.o: src/ast.* src/fakedef.h src/tool.* src/VMtool.*
+	gcc $(FLAG) -c src/ast.c
 tool.o: src/tool.* src/fakedef.h src/opcode.h
 	gcc $(FLAG) -c src/tool.c
 preprocess.o: src/preprocess.* src/fakedef.h
@@ -26,7 +27,7 @@ syntax.o: src/syntax.* src/fakedef.h
 	gcc $(FLAG) -c src/syntax.c
 fakeLisp.o: src/fakeLisp.* src/fakedef.h
 	gcc $(FLAG) -c src/fakeLisp.c
-compiler.o: src/compiler.* src/opcode.h src/fakedef.h src/ast.o
+compiler.o: src/compiler.* src/opcode.h src/fakedef.h src/ast.h
 	gcc $(FLAG) -c src/compiler.c
 VMtool.o: src/VMtool.* src/fakedef.h src/tool.*
 	gcc $(FLAG) -c src/VMtool.c

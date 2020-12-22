@@ -411,16 +411,24 @@ int PreMacroExpand(AST_cptr* objCptr,intpr* inter)
 		tmpVM->modules=inter->modules;
 		runFakeVM(tmpVM);
 		AST_cptr* tmpCptr=castVMvalueToCptr(tmpVM->stack->values[0],inter->curline,NULL);
-		freeVMheap(tmpVM->heap);
 		pthread_mutex_destroy(&tmpVM->lock);
 		if(tmpVM->mainproc->code)
+		{
+			tmpGlob->refcount-=1;
+			freeVMenv(tmpGlob);
+			macroVMenv->prev=NULL;
 			freeVMcode(tmpVM->mainproc->code);
+		}
+		freeVMheap(tmpVM->heap);
 		free(tmpVM->mainproc);
+		freeVMstack(tmpVM->stack);
 		freeFileStack(tmpVM->files);
 		freeMessage(tmpVM->queueHead);
 		free(tmpVM);
 		replace(objCptr,tmpCptr);
 		deleteCptr(tmpCptr);
+		free(tmpCptr);
+		destroyEnv(MacroEnv);
 		//AST_cptr* tmpCptr=newCptr(0,NULL);
 		//replace(tmpCptr,tmp->express);
 		//status=eval(tmp->express,MacroEnv,inter);
@@ -432,7 +440,6 @@ int PreMacroExpand(AST_cptr* objCptr,intpr* inter)
 		//destroyEnv(MacroEnv);
 		return 1;
 	}
-
 	return 0;
 }
 
@@ -825,6 +832,7 @@ void freeAllMacro()
 		//deleteCptr(prev->express);
 		free(prev->pattern);
 		//free(prev->express);
+		freeByteCode(prev->proc);
 		free(prev);
 	}
 }

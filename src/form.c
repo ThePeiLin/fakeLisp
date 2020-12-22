@@ -571,6 +571,7 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 	CompEnv* tmpGlobCompEnv=newCompEnv(NULL);
 	initCompEnv(tmpGlobCompEnv);
 	intpr* tmpInter=newTmpIntpr(NULL,NULL);
+	tmpInter->filename=inter->filename;
 	tmpInter->curline=inter->curline;
 	tmpInter->glob=tmpGlobCompEnv;
 	tmpInter->head=inter->head;
@@ -585,6 +586,8 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 		exError(status.place,status.status,tmpInter);
 	addMacro(pattern,tmpByteCode,bound,tmpInter->procs);
 	//addMacro(pattern,express);
+	destroyCompEnv(tmpCompEnv);
+	destroyCompEnv(tmpGlobCompEnv);
 	free(args);
 	objCptr->type=NIL;
 	objCptr->value=NULL;

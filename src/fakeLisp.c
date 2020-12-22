@@ -250,14 +250,6 @@ ByteCode* loadRawproc(FILE* fp,int32_t* renum)
 	return tmp;
 }
 
-void freeRawProc(ByteCode* l,int32_t num)
-{
-	int i=0;
-	for(;i<num;i++)
-		free(l[i].code);
-	free(l);
-}
-
 ByteCode* loadByteCode(FILE* fp)
 {
 	int32_t size=0;

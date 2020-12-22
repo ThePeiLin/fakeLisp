@@ -96,4 +96,5 @@ char* relpath(char*,char*);
 char* getLastWorkDir(intpr*);
 void freeAllDll(Dlls*);
 void freeModlist(Modlist*);
+void freeRawProc(ByteCode*,int32_t);
 #endif

@@ -893,6 +893,28 @@ fakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 	return exe;
 }
 
+fakeVM* newTmpFakeVM(ByteCode* mainproc,ByteCode* procs)
+{
+	fakeVM* exe=(fakeVM*)malloc(sizeof(fakeVM));
+	if(exe==NULL)errors("newFakeVM",__FILE__,__LINE__);
+	if(mainproc!=NULL)
+		exe->mainproc=newFakeProcess(newVMcode(mainproc),NULL);
+	else
+		exe->mainproc=newFakeProcess(NULL,NULL);
+	exe->curproc=exe->mainproc;
+	exe->modules=NULL;
+	exe->procs=procs;
+	exe->mark=1;
+	exe->stack=newStack(0);
+	exe->queueHead=NULL;
+	exe->queueTail=NULL;
+	exe->files=newFileStack();
+	exe->heap=newVMheap();
+	exe->VMid=0;
+	pthread_mutex_init(&exe->lock,NULL);
+	return exe;
+}
+
 void initGlobEnv(VMenv* obj,VMheap* heap)
 {
 	ByteCode buildInProcs[]=

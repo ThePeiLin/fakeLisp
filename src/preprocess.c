@@ -203,40 +203,8 @@ int addMacro(AST_cptr* pattern,ByteCode* proc,int32_t bound,RawProc* procs)
 		{
 			AST_atom* carAtm=tmpCptr->value;
 			AST_atom* cdrAtm=(tmpCptr->outer->cdr.type==ATM)?tmpCptr->outer->cdr.value:NULL;
-			if(carAtm->type==SYM)
-			{
-				if(!isVal(carAtm->value.str))addKeyWord(carAtm->value.str);
-				//if(!hasAnotherName(carAtm->value.str))addKeyWord(carAtm->value.str);
-				//else if(hasAnotherName(carAtm->value.str)&&!memcmp(carAtm->value.str,"COLT",4))
-				//{
-				//	const char* name=hasAnotherName(carAtm->value.str);
-				//	int i;
-				//	int num=getWordNum(name);
-				//	for(i=0;i<num;i++)
-				//	{
-				//		char* word=getWord(name,i+1);
-				//		addKeyWord(word);
-				//		free(word);
-				//	}
-				//}
-			}
-			if(cdrAtm!=NULL&&cdrAtm->type==SYM)
-			{
-				if(!isVal(cdrAtm->value.str))addKeyWord(cdrAtm->value.str);
-				//if(!hasAnotherName(cdrAtm->value.str))addKeyWord(cdrAtm->value.str);
-				//else if(hasAnotherName(cdrAtm->value.str)&&!memcmp(cdrAtm->value.str,"COLT",4))
-				//{
-				//	const char* name=hasAnotherName(cdrAtm->value.str);
-				//	int i;
-				//	int num=getWordNum(name);
-				//	for(i=0;i<num;i++)
-				//	{
-				//		char* word=getWord(name,i+1);
-				//		addKeyWord(word);
-				//		free(word);
-				//	}
-				//}
-			}
+			if(carAtm->type==SYM&&!isVal(carAtm->value.str))addKeyWord(carAtm->value.str);
+			if(cdrAtm!=NULL&&cdrAtm->type==SYM&&!isVal(cdrAtm->value.str))addKeyWord(cdrAtm->value.str);
 		}
 	}
 	PreMacro* current=FirstMacro;
@@ -245,8 +213,6 @@ int addMacro(AST_cptr* pattern,ByteCode* proc,int32_t bound,RawProc* procs)
 	if(current==NULL)
 	{
 		if(!(current=(PreMacro*)malloc(sizeof(PreMacro))))errors("addMacro",__FILE__,__LINE__);
-		//current->format=format;
-		//current->express=express;
 		current->next=FirstMacro;
 		current->pattern=pattern;
 		current->proc=proc;

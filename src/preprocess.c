@@ -194,7 +194,6 @@ PreMacro* PreMacroMatch(const AST_cptr* objCptr)
 }
 
 int addMacro(AST_cptr* pattern,ByteCode* proc,int32_t bound,RawProc* procs)
-//int addMacro(AST_cptr* format,AST_cptr* express)
 {
 	if(pattern->type!=PAIR)return SYNTAXERROR;
 	AST_cptr* tmpCptr=NULL;
@@ -206,37 +205,37 @@ int addMacro(AST_cptr* pattern,ByteCode* proc,int32_t bound,RawProc* procs)
 			AST_atom* cdrAtm=(tmpCptr->outer->cdr.type==ATM)?tmpCptr->outer->cdr.value:NULL;
 			if(carAtm->type==SYM)
 			{
-				//if(!isVal(carAtm->value.str))addKeyWord(carAtm->value.str);
-				if(!hasAnotherName(carAtm->value.str))addKeyWord(carAtm->value.str);
-				else if(hasAnotherName(carAtm->value.str)&&!memcmp(carAtm->value.str,"COLT",4))
-				{
-					const char* name=hasAnotherName(carAtm->value.str);
-					int i;
-					int num=getWordNum(name);
-					for(i=0;i<num;i++)
-					{
-						char* word=getWord(name,i+1);
-						addKeyWord(word);
-						free(word);
-					}
-				}
+				if(!isVal(carAtm->value.str))addKeyWord(carAtm->value.str);
+				//if(!hasAnotherName(carAtm->value.str))addKeyWord(carAtm->value.str);
+				//else if(hasAnotherName(carAtm->value.str)&&!memcmp(carAtm->value.str,"COLT",4))
+				//{
+				//	const char* name=hasAnotherName(carAtm->value.str);
+				//	int i;
+				//	int num=getWordNum(name);
+				//	for(i=0;i<num;i++)
+				//	{
+				//		char* word=getWord(name,i+1);
+				//		addKeyWord(word);
+				//		free(word);
+				//	}
+				//}
 			}
 			if(cdrAtm!=NULL&&cdrAtm->type==SYM)
 			{
-				//if(!isVal(cdrAtm->value.str))addKeyWord(cdrAtm->value.str);
-				if(!hasAnotherName(cdrAtm->value.str))addKeyWord(cdrAtm->value.str);
-				else if(hasAnotherName(cdrAtm->value.str)&&!memcmp(cdrAtm->value.str,"COLT",4))
-				{
-					const char* name=hasAnotherName(cdrAtm->value.str);
-					int i;
-					int num=getWordNum(name);
-					for(i=0;i<num;i++)
-					{
-						char* word=getWord(name,i+1);
-						addKeyWord(word);
-						free(word);
-					}
-				}
+				if(!isVal(cdrAtm->value.str))addKeyWord(cdrAtm->value.str);
+				//if(!hasAnotherName(cdrAtm->value.str))addKeyWord(cdrAtm->value.str);
+				//else if(hasAnotherName(cdrAtm->value.str)&&!memcmp(cdrAtm->value.str,"COLT",4))
+				//{
+				//	const char* name=hasAnotherName(cdrAtm->value.str);
+				//	int i;
+				//	int num=getWordNum(name);
+				//	for(i=0;i<num;i++)
+				//	{
+				//		char* word=getWord(name,i+1);
+				//		addKeyWord(word);
+				//		free(word);
+				//	}
+				//}
 			}
 		}
 	}
@@ -257,6 +256,17 @@ int addMacro(AST_cptr* pattern,ByteCode* proc,int32_t bound,RawProc* procs)
 	}
 	else
 	{
+		deleteCptr(current->pattern);
+		free(current->pattern);
+		freeByteCode(current->proc);
+		RawProc* tmp=current->procs;
+		while(tmp!=NULL)
+		{
+			RawProc* prev=tmp;
+			tmp=tmp->next;
+			freeByteCode(prev->proc);
+			free(prev);
+		}
 		current->pattern=pattern;
 		current->proc=proc;
 		current->bound=bound;
@@ -410,7 +420,7 @@ int PreMacroExpand(AST_cptr* objCptr,intpr* inter)
 		tmpVM->mainproc->code=tmpVMcode;
 		tmpVM->modules=inter->modules;
 		runFakeVM(tmpVM);
-		AST_cptr* tmpCptr=castVMvalueToCptr(tmpVM->stack->values[0],inter->curline,NULL);
+		AST_cptr* tmpCptr=castVMvalueToCptr(tmpVM->stack->values[0],objCptr->curline,NULL);
 		pthread_mutex_destroy(&tmpVM->lock);
 		if(tmpVM->mainproc->code)
 		{
@@ -428,6 +438,7 @@ int PreMacroExpand(AST_cptr* objCptr,intpr* inter)
 		replace(objCptr,tmpCptr);
 		deleteCptr(tmpCptr);
 		free(tmpCptr);
+		free(rawProcList);
 		destroyEnv(MacroEnv);
 		//AST_cptr* tmpCptr=newCptr(0,NULL);
 		//replace(tmpCptr,tmp->express);
@@ -833,6 +844,14 @@ void freeAllMacro()
 		free(prev->pattern);
 		//free(prev->express);
 		freeByteCode(prev->proc);
+		RawProc* tmp=prev->procs;
+		while(tmp!=NULL)
+		{
+			RawProc* prev=tmp;
+			tmp=tmp->next;
+			freeByteCode(prev->proc);
+			free(prev);
+		}
 		free(prev);
 	}
 }

@@ -398,6 +398,7 @@ ByteCode* compileSym(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus*
 		void* funcAddress=getAddress(realFuncName,*getpDlls(inter));
 		if(funcAddress==NULL)
 		{
+			free(realFuncName);
 			status->status=SYMUNDEFINE;
 			status->place=objCptr;
 			freeByteCode(pushVar);

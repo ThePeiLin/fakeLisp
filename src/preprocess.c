@@ -266,7 +266,19 @@ int fmatcmp(const AST_cptr* origin,const AST_cptr* format)
 			if(tmpAtm->type==SYM)
 			{
 				if(isVal(tmpAtm->value.str))
+				{
+					if(origin->type==ATM)
+					{
+						AST_atom* tmpAtm2=origin->value;
+						if(tmpAtm2->type==SYM&&isKeyWord(tmpAtm2->value.str))
+						{
+							destroyEnv(MacroEnv);
+							MacroEnv=NULL;
+							return 0;
+						}
+					}
 					addDefine(tmpAtm->value.str+1,origin,MacroEnv);
+				}
 				else if(!AST_cptrcmp(origin,format))
 				{
 					destroyEnv(MacroEnv);

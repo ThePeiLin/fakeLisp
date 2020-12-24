@@ -1,4 +1,3 @@
-#include"fakeLispc.h"
 #include"tool.h"
 #include"compiler.h"
 #include"opcode.h"

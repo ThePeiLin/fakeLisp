@@ -174,7 +174,15 @@ ByteCode* compileListForm(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorSt
 			for(headoflist=&headoflist->outer->prev->car;prevCptr(headoflist)!=NULL;headoflist=prevCptr(headoflist));
 			continue;
 		}
-		if(isListForm(objCptr))
+		if(isDefExpression(objCptr))
+		{
+			status->status=INVALIDEXPR;
+			status->place=objCptr;
+			freeByteCode(tmp);
+			tmp=NULL;
+			break;
+		}
+		else if(isListForm(objCptr))
 		{
 			codeCat(tmp,setBp);
 			headoflist=&((AST_pair*)objCptr->value)->car;
@@ -455,7 +463,7 @@ ByteCode* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus*
 	{
 		if(isDefExpression(objCptr))
 		{
-			status->status=ILLEGALEXPR;
+			status->status=INVALIDEXPR;
 			status->place=objCptr;
 			freeByteCode(pop);
 			freeByteCode(tmp);
@@ -504,7 +512,7 @@ ByteCode* compileOr(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* 
 		{
 			if(isDefExpression(objCptr))
 			{
-				status->status=ILLEGALEXPR;
+				status->status=INVALIDEXPR;
 				status->place=objCptr;
 				freeByteCode(tmp);
 				freeByteCode(jumpifture);
@@ -756,7 +764,7 @@ ByteCode* compileCond(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus
 		{
 			if(isDefExpression(objCptr))
 			{
-				status->status=ILLEGALEXPR;
+				status->status=INVALIDEXPR;
 				status->place=objCptr;
 				freeByteCode(tmp);
 				freeByteCode(jumpiffalse);

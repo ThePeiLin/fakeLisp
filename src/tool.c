@@ -990,7 +990,7 @@ void exError(const AST_cptr* obj,int type,intpr* inter)
 	{
 		case SYMUNDEFINE:fprintf(stderr,":Symbol is undefined.\n");break;
 		case SYNTAXERROR:fprintf(stderr,":Syntax error.\n");break;
-		case ILLEGALEXPR:fprintf(stderr,":Invalid expression here.\n");break;
+		case INVALIDEXPR:fprintf(stderr,":Invalid expression here.\n");break;
 		case CIRCULARLOAD:fprintf(stderr,":Circular load file.\n");break;
 	}
 }

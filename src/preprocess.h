@@ -26,4 +26,5 @@ static VMenv* castPreEnvToVMenv(PreEnv*,int32_t,VMenv*,VMheap*);
 static ErrorStatus N_import(AST_cptr*,PreEnv*,intpr*);
 static ErrorStatus N_defmacro(AST_cptr*,PreEnv*,intpr*);
 static int isVal(const char*);
+static void addToList(AST_cptr*,const AST_cptr* src);
 #endif

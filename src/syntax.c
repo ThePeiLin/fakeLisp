@@ -326,3 +326,14 @@ void freeAllKeyWord()
 		free(prev);
 	}
 }
+
+int isKeyWord(const char* str)
+{
+	KeyWord* cur=KeyWords;
+	while(cur)
+	{
+		if(!strcmp(str,cur->word))return 1;
+		cur=cur->next;
+	}
+	return 0;
+}

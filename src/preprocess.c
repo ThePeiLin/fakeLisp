@@ -733,7 +733,7 @@ int MacroPatternCmp(const AST_cptr* first,const AST_cptr* second)
 				AST_atom* secAtm=second->value;
 				if(firAtm->type!=secAtm->type)return 0;
 				if(firAtm->type==SYM&&(!isVal(firAtm->value.str)||!isVal(secAtm->value.str))&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
-				else if(firAtm->type==STR&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
+				if(firAtm->type==STR&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
 				else if(firAtm->type==IN32&&firAtm->value.num!=secAtm->value.num)return 0;
 				else if(firAtm->type==DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
 				else if(firAtm->type==CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;

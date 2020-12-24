@@ -1,13 +1,17 @@
 (define print princ)
 ;defun宏
 (defmacro
- (defun ATOM#FUNCNAME PAIR#ARGS,PAIR#EXPRESSION)
- (list 'define FUNCNAME (cons 'lambda (cons ARGS EXPRESSION))))
+  (defun $name $args,$body)
+  ((lambda ()
+     (define list (lambda ls ls))
+     (list 'define name (cons 'lambda (cons args body))))))
 
 ;if宏
 (defmacro
- (if ANY#COND ANY#EXPRESSION1 ANY#EXPRESSION2)
- (list 'cond (list COND EXPRESSION1) (list 1 EXPRESSION2)))
+  (if $condition $exp1 $exp2)
+  ((lambda ()
+     (define list (lambda ls ls))
+     (list 'cond (list condition exp1) (list 1 exp2)))))
 
 ;get the last element of a list
 ;(defun gle (objlist)

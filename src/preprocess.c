@@ -424,6 +424,7 @@ void freeMacroEnv()
 {
 	destroyEnv(MacroEnv);
 	free(MacroEnv);
+	MacroEnv=NULL;
 }
 
 void unInitPreprocess()

@@ -1,5 +1,5 @@
-objectOfFakeLisp=fakeLisp.o form.o tool.o preprocess.o syntax.o compiler.o fakeVM.o VMtool.o ast.o
-objectOfFakeLispc=fakeLispc.o form.o tool.o preprocess.o syntax.o compiler.o fakeVM.o VMtool.o ast.o
+objectOfFakeLisp=fakeLisp.o tool.o preprocess.o syntax.o compiler.o fakeVM.o VMtool.o ast.o
+objectOfFakeLispc=fakeLispc.o tool.o preprocess.o syntax.o compiler.o fakeVM.o VMtool.o ast.o
 ifeq ($(DEBUG),YES)
 FLAG=-g -W
 else
@@ -15,8 +15,6 @@ endif
 
 reader.o: src/reader.* src/fakedef.h src/tool.*
 	gcc $(FLAG) -c src/reader.c
-form.o: src/form.* src/fakedef.h
-	gcc $(FLAG) -c src/form.c
 ast.o: src/ast.* src/fakedef.h src/tool.* src/VMtool.*
 	gcc $(FLAG) -c src/ast.c
 tool.o: src/tool.* src/fakedef.h src/opcode.h

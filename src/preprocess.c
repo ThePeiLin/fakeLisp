@@ -778,3 +778,11 @@ int MacroPatternCmp(const AST_cptr* first,const AST_cptr* second)
 	}
 	return 1;
 }
+
+void addToList(AST_cptr* fir,const const AST_cptr* sec)
+{
+	while(fir->type!=NIL)fir=&((AST_pair*)fir->value)->cdr;
+	fir->type=PAIR;
+	fir->value=newPair(sec->curline,fir->outer);
+	replace(&((AST_pair*)fir->value)->car,sec);
+}

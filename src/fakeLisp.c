@@ -1,7 +1,6 @@
 #include"fakeLisp.h"
 #include"tool.h"
 #include"VMtool.h"
-#include"form.h"
 #include"preprocess.h"
 #include"syntax.h"
 #include"compiler.h"
@@ -26,7 +25,6 @@ int main(int argc,char** argv)
 			return EXIT_FAILURE;
 		}
 		intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL);
-		initEvalution();
 		if(fp==stdin)
 			runIntpr(inter);
 		else
@@ -86,35 +84,6 @@ int main(int argc,char** argv)
 		return EXIT_FAILURE;
 	}
 	return 0;
-}
-
-void initEvalution()
-{
-	addFunc("quote",N_quote);
-	addFunc("car",N_car);
-	addFunc("cdr",N_cdr);
-	addFunc("cons",N_cons);
-	addFunc("eq",N_eq);
-	addFunc("atom",N_atom);
-	addFunc("null",N_null);
-	addFunc("cond",N_cond);
-	addFunc("and",N_and);
-	addFunc("or",N_or);
-	addFunc("not",N_not);
-	addFunc("define",N_define);
-	addFunc("lambda",N_lambda);
-	addFunc("list",N_list);
-	addFunc("defmacro",N_defmacro);
-//	addFunc("undef",N_undef);
-	addFunc("add",N_add);
-	addFunc("sub",N_sub);
-	addFunc("mul",N_mul);
-	addFunc("div",N_div);
-	addFunc("mod",N_mod);
-	addFunc("append",N_append);
-	addFunc("extend",N_extend);
-	addFunc("print",N_print);
-	addFunc("import",N_import);
 }
 
 void runIntpr(intpr* inter)

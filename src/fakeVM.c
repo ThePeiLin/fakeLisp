@@ -2674,6 +2674,8 @@ int B_go(fakeVM* exe)
 	VMvalue* threadProc=getValue(stack,stack->tp-2);
 	if(threadProc->type!=PRC||(threadArg->type!=PAIR&&threadArg->type!=NIL))
 		return 1;
+	if(exe->VMid==-1)
+		return 6;
 	fakeVM* threadVM=newThreadVM(threadProc->u.prc,exe->procs,exe->files,exe->heap,exe->modules);
 	VMstack* threadVMstack=threadVM->stack;
 	VMvalue* prevBp=newVMvalue(IN32,&threadVMstack->bp,exe->heap,1);

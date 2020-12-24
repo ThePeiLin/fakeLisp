@@ -9,7 +9,6 @@
 #include<math.h>
 
 static PreMacro* FirstMacro=NULL;
-static PreMasym* FirstMasym=NULL;
 static PreEnv* MacroEnv=NULL;
 static PreFunc* funAndForm=NULL;
 
@@ -387,16 +386,6 @@ void initPreprocess()
 	addKeyWord("lambda");
 	addKeyWord("setf");
 	addKeyWord("load");
-}
-void addRule(const char* name,int (*obj)(const AST_cptr*,const AST_cptr*,const char*,PreEnv*))
-{
-	PreMasym* current=NULL;
-	if(!(current=(PreMasym*)malloc(sizeof(PreMasym))))errors("addRule",__FILE__,__LINE__);
-	if(!(current->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors("addRule",__FILE__,__LINE__);
-	current->next=FirstMasym;
-	FirstMasym=current;
-	strcpy(current->symName,name);
-	current->Func=obj;
 }
 
 int isVal(const char* name)

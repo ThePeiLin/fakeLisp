@@ -75,13 +75,6 @@ typedef struct Pre_Env
 	struct Pre_Env* next;
 }PreEnv;
 
-//typedef struct Pre_Macro
-//{
-//	AST_cptr* format;
-//	AST_cptr* express;
-//	struct Pre_Macro* next;
-//}PreMacro;
-
 typedef struct Pre_Macro
 {
 	AST_cptr* pattern;
@@ -91,13 +84,6 @@ typedef struct Pre_Macro
 	struct DLL_s* modules;
 	struct Pre_Macro* next;
 }PreMacro;
-
-typedef struct Pre_MacroSym
-{
-	char* symName;
-	int (*Func)(const AST_cptr*,const AST_cptr*,const char*,PreEnv*);
-	struct Pre_MacroSym* next;
-}PreMasym;
 
 typedef struct Comp_Def
 {

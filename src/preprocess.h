@@ -14,6 +14,7 @@ ErrorStatus eval(AST_cptr*,PreEnv*,intpr*);
 PreMacro* PreMacroMatch(const AST_cptr*);
 int PreMacroExpand(AST_cptr*,intpr* inter);
 int addMacro(AST_cptr*,ByteCode*,int32_t,RawProc*);
+static int MacroPatternCmp(const AST_cptr*,const AST_cptr*);
 void freeMacroEnv();
 void unInitPreprocess();
 void freeAllMacro();

@@ -368,6 +368,7 @@ int PreMacroExpand(AST_cptr* objCptr,intpr* inter)
 		free(tmpCptr);
 		free(rawProcList);
 		destroyEnv(MacroEnv);
+		MacroEnv=NULL;
 		return 1;
 	}
 	return 0;

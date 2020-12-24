@@ -143,13 +143,14 @@ int subVMvaluecmp(VMvalue* fir,VMvalue* sec)
 {
 	if(fir==sec)return 1;
 	else if(fir->type!=sec->type)return 0;
-	else if(fir->type>=IN32&&fir->type<=DBL)
+	else if(fir->type>=IN32&&fir->type<=SYM)
 	{
 		switch(fir->type)
 		{
 			case IN32:return *fir->u.num==*sec->u.num;
 			case CHR:return *fir->u.chr==*sec->u.chr;
 			case DBL:return fabs(*fir->u.dbl-*sec->u.dbl)==0;
+			case SYM:return !strcmp(fir->u.str->str,sec->u.str->str);
 		}
 	}
 	else if(fir->u.all!=sec->u.all)return 0;

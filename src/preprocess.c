@@ -1,10 +1,11 @@
-#include<string.h>
 #include"preprocess.h"
 #include"tool.h"
 #include"syntax.h"
 #include"VMtool.h"
 #include"fakeVM.h"
 #include"ast.h"
+#include<string.h>
+#include<math.h>
 
 static PreMacro* FirstMacro=NULL;
 static PreMasym* FirstMasym=NULL;
@@ -197,21 +198,21 @@ int addMacro(AST_cptr* pattern,ByteCode* proc,int32_t bound,RawProc* procs)
 {
 	if(pattern->type!=PAIR)return SYNTAXERROR;
 	AST_cptr* tmpCptr=NULL;
-	for(tmpCptr=&((AST_pair*)pattern->value)->car;tmpCptr!=NULL;tmpCptr=nextCptr(tmpCptr))
-	{
-		if(tmpCptr->type==ATM)
-		{
-			AST_atom* carAtm=tmpCptr->value;
-			AST_atom* cdrAtm=(tmpCptr->outer->cdr.type==ATM)?tmpCptr->outer->cdr.value:NULL;
-			if(carAtm->type==SYM&&!isVal(carAtm->value.str))addKeyWord(carAtm->value.str);
-			if(cdrAtm!=NULL&&cdrAtm->type==SYM&&!isVal(cdrAtm->value.str))addKeyWord(cdrAtm->value.str);
-		}
-	}
 	PreMacro* current=FirstMacro;
-	while(current!=NULL&&!AST_cptrcmp(pattern,current->pattern))
+	while(current!=NULL&&!MacroPatternCmp(pattern,current->pattern))
 		current=current->next;
 	if(current==NULL)
 	{
+		for(tmpCptr=&((AST_pair*)pattern->value)->car;tmpCptr!=NULL;tmpCptr=nextCptr(tmpCptr))
+		{
+			if(tmpCptr->type==ATM)
+			{
+				AST_atom* carAtm=tmpCptr->value;
+				AST_atom* cdrAtm=(tmpCptr->outer->cdr.type==ATM)?tmpCptr->outer->cdr.value:NULL;
+				if(carAtm->type==SYM&&!isVal(carAtm->value.str))addKeyWord(carAtm->value.str);
+				if(cdrAtm!=NULL&&cdrAtm->type==SYM&&!isVal(cdrAtm->value.str))addKeyWord(cdrAtm->value.str);
+			}
+		}
 		if(!(current=(PreMacro*)malloc(sizeof(PreMacro))))errors("addMacro",__FILE__,__LINE__);
 		current->next=FirstMacro;
 		current->pattern=pattern;
@@ -237,7 +238,6 @@ int addMacro(AST_cptr* pattern,ByteCode* proc,int32_t bound,RawProc* procs)
 		current->proc=proc;
 		current->bound=bound;
 		current->procs=procs;
-		//current->express=express;
 	}
 	//printAllKeyWord();
 	return 0;
@@ -900,4 +900,73 @@ VMenv* castPreEnvToVMenv(PreEnv* pe,int32_t b,VMenv* prev,VMheap* heap)
 	}
 	tmp->values=values;
 	return tmp;
+}
+
+int MacroPatternCmp(const AST_cptr* first,const AST_cptr* second)
+{
+	if(first==NULL&&second==NULL)return 0;
+	AST_pair* firPair=NULL;
+	AST_pair* secPair=NULL;
+	AST_pair* tmpPair=(first->type==PAIR)?first->value:NULL;
+	while(1)
+	{
+		if(first->type!=second->type)return 0;
+		else if(first->type==PAIR)
+		{
+			firPair=first->value;
+			secPair=second->value;
+			first=&firPair->car;
+			second=&secPair->car;
+			continue;
+		}
+		else if(first->type==ATM||first->type==NIL)
+		{
+			if(first->type==ATM)
+			{
+				AST_atom* firAtm=first->value;
+				AST_atom* secAtm=second->value;
+				if(firAtm->type!=secAtm->type)return 0;
+				if(firAtm->type==SYM)
+					if((!isVal(secAtm->value.str)||!isVal(firAtm->value.str))&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
+				if(firAtm->type==STR&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
+				else if(firAtm->type==IN32&&firAtm->value.num!=secAtm->value.num)return 0;
+				else if(firAtm->type==DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
+				else if(firAtm->type==CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
+				else if(firAtm->type==BYTA&&!bytaArryEq(&firAtm->value.byta,&secAtm->value.byta))return 0;
+			}
+			if(firPair!=NULL&&first==&firPair->car)
+			{ first=&firPair->cdr;
+				second=&secPair->cdr;
+				continue;
+			}
+		}
+		if(firPair!=NULL&&first==&firPair->car)
+		{
+			first=&firPair->cdr;
+			second=&secPair->cdr;
+			continue;
+		}
+		else if(firPair!=NULL&&first==&firPair->cdr)
+		{
+			AST_pair* firPrev=NULL;
+			AST_pair* secPrev=NULL;
+			if(firPair->prev==NULL)break;
+			while(firPair->prev!=NULL&&firPair!=tmpPair)
+			{
+				firPrev=firPair;
+				secPrev=secPair;
+				firPair=firPair->prev;
+				secPair=secPair->prev;
+				if(firPrev==firPair->car.value)break;
+			}
+			if(firPair!=NULL)
+			{
+				first=&firPair->cdr;
+				second=&secPair->cdr;
+			}
+			if(firPair==tmpPair&&first==&firPair->cdr)break;
+		}
+		if(firPair==NULL&&secPair==NULL)break;
+	}
+	return 1;
 }

@@ -25,7 +25,7 @@ char* builtInSymbolList[]=
 	"cdr",
 	"atom",
 	"null",
-	"app",
+	"aply",
 	"ischr",
 	"isint",
 	"isdbl",

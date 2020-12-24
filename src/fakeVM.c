@@ -166,7 +166,7 @@ ByteCode P_null=
 	}
 };
 
-ByteCode P_app=
+ByteCode P_aply=
 {
 	25,
 	(char[])
@@ -924,7 +924,7 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 		P_cdr,
 		P_atom,
 		P_null,
-		P_app,
+		P_aply,
 		P_ischr,
 		P_isint,
 		P_isdbl,

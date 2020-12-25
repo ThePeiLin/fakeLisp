@@ -155,18 +155,15 @@ void runIntpr(intpr* inter)
 					anotherVM->curproc=anotherVM->mainproc;
 					runFakeVM(anotherVM);
 					VMstack* stack=anotherVM->stack;
-					if(inter->file==stdin)
+					if(inter->file==stdin&&stack->tp!=0)
 					{
-						printf("=> ");
-						VMvalue* tmp=getTopValue(stack);
-						VMpair* tmpPair=(tmp->type==PAIR)?tmp->u.pair:NULL;
-						printVMvalue(tmp,tmpPair,stdout,1);
-						putchar('\n');
+						printf("]=>");
+						printAllStack(stack,stdout);
 					}
 					//fprintf(stderr,"======\n");
 					//fprintf(stderr,"stack->tp=%d\n",stack->tp);
 					//printAllStack(stack,stderr);
-					stack->tp-=1;
+					stack->tp=0;
 					freeByteCode(tmpByteCode);
 					tmp->localenv=NULL;
 					freeVMcode(tmp);

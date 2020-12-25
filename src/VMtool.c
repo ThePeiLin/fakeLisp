@@ -37,16 +37,24 @@ VMvalue* copyValue(VMvalue* obj,VMheap* heap)
 	else if(obj->type==CHR)
 		tmp=newVMvalue(CHR,obj->u.chr,heap,1);
 	else if(obj->type==BYTA)
-		tmp=newVMvalue(BYTA,obj->u.byta,heap,1);
+	{
+		ByteArry* tmpByteArry=newByteArry(obj->u.byta->size,obj->u.byta->arry);
+		tmp=newVMvalue(BYTA,tmpByteArry,heap,1);
+	}
 	else if(obj->type==STR||obj->type==SYM)
-		tmp=newVMvalue(obj->type,obj->u.str,heap,1);
+	{
+		VMstr* tmpVMstr=newVMstr(obj->u.str->str);
+		tmp=newVMvalue(obj->type,tmpVMstr,heap,1);
+	}
 	else if(obj->type==PRC)
 		tmp=newVMvalue(PRC,copyVMcode(obj->u.prc,heap),heap,1);
 	else if(obj->type==PAIR)
 	{
 		tmp=newVMvalue(PAIR,newVMpair(heap),heap,1);
-		tmp->u.pair->car=copyValue(obj->u.pair->car,heap);
-		tmp->u.pair->cdr=copyValue(obj->u.pair->cdr,heap);
+		VMvalue* tmpCar=copyValue(obj->u.pair->car,heap);
+		VMvalue* tmpCdr=copyValue(obj->u.pair->cdr,heap);
+		tmp->u.pair->car=tmpCar;
+		tmp->u.pair->cdr=tmpCdr;
 	}
 	return tmp;
 }
@@ -386,4 +394,108 @@ FILE* getFile(filestack* files,int32_t count)
 {
 	if(count>=files->size)return NULL;
 	return files->files[count];
+}
+
+void copyRef(VMvalue* fir,VMvalue* sec)
+{
+	freeRef(fir);
+	fir->type=sec->type;
+	if(fir->type<SYM&&fir->type>NIL)
+	{
+		fir->access=1;
+		switch(fir->type)
+		{
+			case IN32:
+				fir->u.num=copyMemory(sec->u.num,sizeof(int32_t));
+				break;
+			case DBL:
+				fir->u.dbl=copyMemory(sec->u.dbl,sizeof(double));
+				break;
+			case CHR:
+				fir->u.chr=copyMemory(sec->u.chr,sizeof(char));
+				break;
+		}
+	}
+	else if(fir->type>=SYM&&fir->type<ATM)
+	{
+		switch(fir->type)
+		{
+			case SYM:
+			case STR:
+				if(!sec->access)
+				{
+					fir->u.str=newVMstr(sec->u.str->str);
+					fir->u.str->refcount+=1;
+				}
+				else
+				{
+					sec->u.str->refcount+=1;
+					fir->u.str=sec->u.str;
+				}
+				break;
+			case PAIR:
+				sec->u.pair->refcount+=1;
+				fir->u.pair=sec->u.pair;
+				break;
+			case PRC:
+				sec->u.prc->refcount+=1;
+				fir->u.prc=sec->u.prc;
+				break;
+			case BYTA:
+				if(!sec->access)
+				{
+					fir->u.byta=newByteArry(sec->u.byta->size,sec->u.byta->arry);
+					fir->u.byta->refcount+=1;
+				}
+				else
+				{
+					sec->u.byta->refcount+=1;
+					fir->u.byta=sec->u.byta;
+				}
+				break;
+			case NIL:
+				fir->u.all=NULL;
+				break;
+		}
+	}
+}
+
+void freeRef(VMvalue* obj)
+{
+	if(obj->type<SYM&&obj->type>NIL&&obj->access)
+		free(obj->u.all);
+	else if(obj->type>=SYM&&obj->type<ATM)
+	{
+		switch(obj->type)
+		{
+			case SYM:
+			case STR:
+				if(!obj->u.str->refcount)
+				{
+					if(obj->access)
+						free(obj->u.str->str);
+					free(obj->u.str);
+				}
+				else obj->u.str->refcount-=1;
+				break;
+			case PAIR:
+				if(!obj->u.pair->refcount)
+					free(obj->u.pair);
+				else obj->u.pair->refcount-=1;
+				break;
+			case PRC:
+				if(!obj->u.prc->refcount)
+					freeVMcode(obj->u.prc);
+				else obj->u.prc->refcount-=1;
+				break;
+			case BYTA:
+				if(!obj->u.byta->refcount)
+				{
+					if(obj->access)free(obj->u.byta->arry);
+					free(obj->u.byta);
+				}
+				else obj->u.byta->refcount-=1;
+				break;
+		}
+	}
 }

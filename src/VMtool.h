@@ -13,6 +13,8 @@ VMvalue* getTopValue(VMstack*);
 VMvalue* getValue(VMstack*,int32_t);
 VMvalue* getCar(VMvalue*);
 VMvalue* getCdr(VMvalue*);
+void copyRef(VMvalue*,VMvalue*);
+void freeRef(VMvalue*);
 int VMvaluecmp(VMvalue*,VMvalue*);
 int subVMvaluecmp(VMvalue*,VMvalue*);
 int numcmp(VMvalue*,VMvalue*);

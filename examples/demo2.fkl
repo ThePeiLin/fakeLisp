@@ -1,9 +1,30 @@
-(defmacro (let ((ATOM#NAME ANY#VALUE) VAREPT#OTHER),PAIR#BODY)
-          (cons (cons 'lambda (cons (cons NAME OTHER#NAME) BODY)) (cons VALUE OTHER#VALUE)))
+;(defmacro (let ((ATOM#NAME ANY#VALUE) VAREPT#OTHER),PAIR#BODY)
+;          (cons (cons 'lambda (cons (cons NAME OTHER#NAME) BODY)) (cons VALUE OTHER#VALUE)))
+
+(defmacro
+  (let $d,$b)
+  ((lambda ()
+     (define map
+       (lambda (f l)
+         (define map-iter
+           (lambda (f c p)
+             (cond ((null c) (append p nil))
+                   (1 (map-iter f (cdr c) (append p (cons (f (car c)) nil)))))))
+         (map-iter f l nil)))
+     (define args
+       (map
+         (lambda (sd) (nth 0 sd))
+         d))
+     (define vals
+       (map
+         (lambda (sd) (nth 1 sd))
+         d))
+     (cons (cons 'lambda (cons args b)) vals)
+     )))
+
 (let ((a 8)
       (b 9)
       (c 10))
  (princ a 1)
  (princ b 1)
- (princ c 1)
-)
+ (princ c 1))

@@ -1,6 +1,3 @@
-;(defmacro (let ((ATOM#NAME ANY#VALUE) VAREPT#OTHER),PAIR#BODY)
-;          (cons (cons 'lambda (cons (cons NAME OTHER#NAME) BODY)) (cons VALUE OTHER#VALUE)))
-
 (defmacro
   (let $d,$b)
   ((lambda ()
@@ -24,7 +21,9 @@
 
 (let ((a 8)
       (b 9)
-      (c 10))
+      (c 10)
+      (d 11))
  (princ a 1)
  (princ b 1)
- (princ c 1))
+ (princ c 1)
+ (princ d 1))

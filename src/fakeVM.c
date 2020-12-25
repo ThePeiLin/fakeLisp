@@ -1277,10 +1277,10 @@ int B_push_var(fakeVM* exe)
 	VMenv* curEnv=proc->localenv;
 	while(curEnv->bound==-1||countOfVar<curEnv->bound)curEnv=curEnv->prev;
 	VMvalue* tmpValue=*(curEnv->values+countOfVar-(curEnv->bound));
-	VMvalue* tmp=newNilValue(exe->heap);
-	tmp->access=1;
-	copyRef(tmp,tmpValue);
-	stack->values[stack->tp]=tmp;
+	//VMvalue* tmp=newNilValue(exe->heap);
+	//tmp->access=1;
+	//copyRef(tmp,tmpValue);
+	stack->values[stack->tp]=tmpValue;
 	stack->tp+=1;
 	proc->cp+=5;
 	return 0;

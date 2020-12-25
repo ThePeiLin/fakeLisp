@@ -732,60 +732,6 @@ ByteCode P_princ=
 	}
 };
 
-//ByteCode P_tell=
-//{
-//	13,
-//	(char[])
-//	{
-//		FAKE_POP_VAR,0,0,0,0,
-//		FAKE_RES_BP,
-//		FAKE_PUSH_VAR,0,0,0,0,
-//		FAKE_TELL,
-//		FAKE_END_PROC
-//	}
-//};
-//
-//ByteCode P_seek=
-//{
-//	23,
-//	(char[])
-//	{
-//		FAKE_POP_VAR,0,0,0,0,
-//		FAKE_POP_VAR,1,0,0,0,
-//		FAKE_RES_BP,
-//		FAKE_PUSH_VAR,0,0,0,0,
-//		FAKE_PUSH_VAR,1,0,0,0,
-//		FAKE_SEEK,
-//		FAKE_END_PROC
-//	}
-//};
-//
-//ByteCode P_rewind=
-//{
-//	13,
-//	(char[])
-//	{
-//		FAKE_POP_VAR,0,0,0,0,
-//		FAKE_RES_BP,
-//		FAKE_PUSH_VAR,0,0,0,0,
-//		FAKE_REWIND,
-//		FAKE_END_PROC
-//	}
-//};
-//
-//ByteCode P_exit=
-//{
-//	13,
-//	(char[])
-//	{
-//		FAKE_POP_VAR,0,0,0,0,
-//		FAKE_RES_BP,
-//		FAKE_PUSH_VAR,0,0,0,0,
-//		FAKE_EXIT,
-//		FAKE_END_PROC
-//	}
-//};
-
 ByteCode P_go=
 {
 	23,
@@ -837,21 +783,6 @@ ByteCode P_getid=
 		FAKE_END_PROC
 	}
 };
-
-//ByteCode P_slp=
-//{
-//	23,
-//	(char[])
-//	{
-//		FAKE_POP_VAR,0,0,0,0,
-//		FAKE_POP_VAR,1,0,0,0,
-//		FAKE_RES_BP,
-//		FAKE_PUSH_VAR,0,0,0,0,
-//		FAKE_PUSH_VAR,1,0,0,0,
-//		FAKE_SLP,
-//		FAKE_END_PROC
-//	}
-//};
 
 fakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 {

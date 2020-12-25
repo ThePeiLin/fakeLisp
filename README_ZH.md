@@ -10,42 +10,51 @@ fakeLisp是一个用c言编写的简单的lisp解释器。
 ```
 
 支持宏；  
-目前在展开宏的表达式中可用的特殊形式及函数有：  
-add  
-sub  
-mul  
-div  
-mod  
-car  
-cdr  
-cons  
-quote  
-define  
-eq  
-atom  
-null  
-and  
-or  
-not  
-list  
-append  
-extend  
-lambda  
-print  
-其中，defmacro的语法比较特殊，为：
-(defmacro 用于匹配的表达式 用于返回的表达式)  
+defmacro的语法比较特殊，为：
+(defmacro <用于匹配的表达式> <用于返回的表达式>)  
 宏没有名字，而是通过匹配表达式来实现表达式的替换，如：  
 ```scheme
-(defmacro (c ATOM#FIR ATOM#SEC) (list 'cons FIR SEC))  
+(defmacro (c $a $b) (cons 'cons (cons a (cons b nil))))  
 ```
-这个宏会匹配形如(c ATOM ATOM)的表达式，并用(list 'cons FIR FIR)的结果替换原来的表达式，  
+这个宏会匹配形如(c $a $b)的表达式，并用(cons 'cons (cons a (cons b nil)))的结果替换原来的表达式，  
 即表达式(c 9 9)会被替换为(cons 9 9).  
 
-下面是defun宏:  
+匹配过程中，名字带"$"的符号会绑定源表达式中对应的部分，
+如a绑定9，b绑定9。
+
+下面是let宏:  
 ```scheme
-(defmacro  
-          (defun ATOM#FUNCNAME CELL#ARGS,CELL#EXPRESSION)  
-          (list 'define FUNCNAME (list 'quote (cons 'lambda (cons ARGS EXPRESSION)))))  
+(defmacro
+  (let $d,$b)
+  ((lambda ()
+     (define map
+       (lambda (f l)
+         (define map-iter
+           (lambda (f c p)
+             (cond ((null c) (append p nil))
+                   (1 (map-iter f (cdr c) (append p (cons (f (car c)) nil)))))))
+         (map-iter f l nil)))
+     (define list (lambda ls ls))
+     (define args nil)
+     (define vals nil)
+     (cond ((issym d)
+            (setq
+              args
+              (map (lambda (sd) (nth 0 sd)) (car b)))
+            (setq
+              vals
+              (map (lambda (sd) (nth 1 sd)) (car b)))
+            (list 'let
+                  '()
+                  (list 'define d (cons 'lambda (cons args (cdr b))))
+                  (cons d vals)))
+           (1
+            (setq args
+                  (map (lambda (sd) (nth 0 sd)) d))
+            (setq vals
+                  (map (lambda (sd) (nth 1 sd)) d))
+            (cons (cons 'lambda (cons args b)) vals)
+            )))))  
 ```
 
 目前可用内置函数及符号有：  
@@ -69,6 +78,7 @@ isprc
 isbyt  
 eq  
 equal  
+eqn  
 gt  
 ge  
 lt  
@@ -98,10 +108,6 @@ readb
 write  
 princ   
 writeb  
-tell  
-seek  
-rewind  
-exit  
 go  
 send  
 accept  
@@ -118,11 +124,13 @@ or
 lambda  
 load  
 import  
+defmacro  
 
 基于消息的多线程。  
 可以编译整个文件，有尾递归优化。
 可以愉快地开始写lisp了。
 没有面向对象的功能，但如果你把复合过程当作对象那就算有面向对象的功能，  
 另外，如果觉得把复合过程当作对象写代码太麻烦的话可以写几个宏来方便实现面向对象的功能，  
-还有，这个解释器对宏的支持有点孱弱，我会找个时间来完善并加强。（比如无法用宏实现scheme的case）
+这个解释器的宏求值过程是跑虚拟机，这种设定给宏的展开过程提供了极大的灵活性。  
+另外，由于宏展开的虚拟机编号是-1，以此无法在宏展开过程中创建线程。
 我会找时间写调试器。还得实现一些编译时参数数量检查，不然太麻烦了。

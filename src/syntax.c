@@ -32,7 +32,7 @@ int isDefmacroExpression(const AST_cptr* objCptr)
 	objCptr=(objCptr->type==PAIR)?&((AST_pair*)objCptr->value)->car:NULL;
 	if(objCptr!=NULL&&nextCptr(objCptr)!=NULL&&nextCptr(nextCptr(objCptr))!=NULL)
 	{
-		if(objCptr->type!=ATM||nextCptr(objCptr)->type!=PAIR)return 0;
+		if(objCptr->type!=ATM||nextCptr(objCptr)->type==NIL)return 0;
 		else
 		{
 			AST_atom* tmpAtm=objCptr->value;

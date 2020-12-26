@@ -9,6 +9,7 @@
 #define SYNTAXERROR 2
 #define INVALIDEXPR 3
 #define CIRCULARLOAD 4
+#define INVALIDPATTERN 5
 #define NUMOFBUILTINSYMBOL 54
 #define MAX_STRING_SIZE 64
 
@@ -81,7 +82,6 @@ typedef struct Pre_Macro
 	int32_t bound;
 	ByteCode* proc;
 	struct Raw_Proc* procs;
-	struct DLL_s* modules;
 	struct Pre_Macro* next;
 }PreMacro;
 
@@ -283,15 +283,10 @@ typedef struct String_Match_Pattern
 {
 	int32_t num;
 	char** parts;
+	int32_t bound;
+	ByteCode* proc;
+	struct Raw_Proc* procs;
 	struct String_Match_Pattern* prev;
 	struct String_Match_Pattern* next;
 }StringMatchPattern;
-
-typedef struct Reader_Macro
-{
-	StringMatchPattern* pattern;
-	AST_cptr* expression;
-	struct Reader_Macro* next;
-}ReaderMacro;
-
 #endif

@@ -3,6 +3,6 @@
 #include"fakedef.h"
 #include<stdint.h>
 AST_cptr* castVMvalueToCptr(VMvalue*,int32_t,AST_pair*);
-AST_cptr* createTree(const char*,intpr*);
+AST_cptr* createTree(const char*,intpr*,StringMatchPattern*);
 static void addToList(AST_cptr*,const AST_cptr* src);
 #endif

@@ -5,6 +5,7 @@
 #include"ast.h"
 #include"VMtool.h"
 #include"fakeVM.h"
+#include"reader.h"
 #include<stdlib.h>
 #include<string.h>
 #include<unistd.h>
@@ -351,8 +352,8 @@ int fmatcmp(const AST_cptr* origin,const AST_cptr* format)
 
 CompEnv* createMacroCompEnv(const AST_cptr* objCptr,CompEnv* prev)
 {
-	CompEnv* tmpEnv=newCompEnv(prev);
 	if(objCptr==NULL)return NULL;
+	CompEnv* tmpEnv=newCompEnv(prev);
 	AST_pair* tmpPair=(objCptr->type==PAIR)?objCptr->value:NULL;
 	AST_pair* objPair=tmpPair;
 	while(objCptr!=NULL)
@@ -380,7 +381,7 @@ CompEnv* createMacroCompEnv(const AST_cptr* objCptr,CompEnv* prev)
 				{
 					const char* tmpStr=tmpAtm->value.str;
 					if(isVal(tmpStr))
-						addCompDef(tmpEnv,tmpStr+1);
+						addCompDef(tmpStr+1,tmpEnv);
 				}
 			}
 			if(objPair!=NULL&&objCptr==&objPair->car)
@@ -735,49 +736,80 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 	AST_cptr** args=dealArg(&objCptr->outer->cdr,2);
 	if(args[0]->type!=PAIR)
 	{
-		status.status=SYNTAXERROR;
-		status.place=newCptr(0,NULL);
-		replace(status.place,args[0]);
-		deleteArg(args,2);
-		return status;
-	}
-	AST_cptr* pattern=args[0];
-	AST_cptr* express=args[1];
-	CompEnv* tmpGlobCompEnv=newCompEnv(NULL);
-	initCompEnv(tmpGlobCompEnv);
-	intpr* tmpInter=newTmpIntpr(NULL,NULL);
-	tmpInter->filename=inter->filename;
-	tmpInter->curline=inter->curline;
-	tmpInter->glob=tmpGlobCompEnv;
-	tmpInter->head=inter->head;
-	tmpInter->tail=inter->tail;
-	tmpInter->modules=inter->modules;
-	tmpInter->curDir=inter->curDir;
-	tmpInter->prev=NULL;
-	CompEnv* tmpCompEnv=createMacroCompEnv(args[0],tmpGlobCompEnv);
-	int32_t bound=(tmpCompEnv->symbols==NULL)?-1:tmpCompEnv->symbols->count;
-	ByteCode* tmpByteCode=compile(args[1],tmpCompEnv,tmpInter,&status);
-	if(!status.status)
-	{
-		addMacro(pattern,tmpByteCode,bound,tmpInter->procs);
-		deleteCptr(express);
-		free(express);
-		free(args);
+		if(args[0]->type!=NIL)
+		{
+			AST_atom* tmpAtom=args[0]->value;
+			if(tmpAtom->type!=STR)
+			{
+				status.status=SYNTAXERROR;
+				status.place=newCptr(0,NULL);
+				replace(status.place,args[0]);
+				deleteArg(args,2);
+				return status;
+			}
+			char* tmpStr=tmpAtom->value.str;
+			if(isInValidStringPattern(tmpStr))
+			{
+				status.status=INVALIDPATTERN;
+				status.place=newCptr(0,NULL);
+				replace(status.place,args[0]);
+				deleteArg(args,2);
+				return status;
+			}
+			int32_t num=0;
+			char** parts=splitPattern(tmpStr,&num);
+			addStringPattern(parts,num,args[1],inter);
+			deleteArg(args,2);
+		}
+		else
+		{
+			status.status=SYNTAXERROR;
+			status.place=newCptr(0,NULL);
+			replace(status.place,args[0]);
+			deleteArg(args,2);
+			return status;
+		}
 	}
 	else
 	{
-		if(tmpByteCode)
-			freeByteCode(tmpByteCode);
-		exError(status.place,status.status,inter);
-		deleteArg(args,2);
-		status.place=NULL;
-		status.status=0;
+		AST_cptr* pattern=args[0];
+		AST_cptr* express=args[1];
+		CompEnv* tmpGlobCompEnv=newCompEnv(NULL);
+		initCompEnv(tmpGlobCompEnv);
+		intpr* tmpInter=newTmpIntpr(NULL,NULL);
+		tmpInter->filename=inter->filename;
+		tmpInter->curline=inter->curline;
+		tmpInter->glob=tmpGlobCompEnv;
+		tmpInter->head=inter->head;
+		tmpInter->tail=inter->tail;
+		tmpInter->modules=inter->modules;
+		tmpInter->curDir=inter->curDir;
+		tmpInter->prev=NULL;
+		CompEnv* tmpCompEnv=createMacroCompEnv(pattern,tmpGlobCompEnv);
+		int32_t bound=(tmpCompEnv->symbols==NULL)?-1:tmpCompEnv->symbols->count;
+		ByteCode* tmpByteCode=compile(express,tmpCompEnv,tmpInter,&status);
+		if(!status.status)
+		{
+			addMacro(pattern,tmpByteCode,bound,tmpInter->procs);
+			deleteCptr(express);
+			free(express);
+			free(args);
+		}
+		else
+		{
+			if(tmpByteCode)
+				freeByteCode(tmpByteCode);
+			exError(status.place,status.status,inter);
+			deleteArg(args,2);
+			status.place=NULL;
+			status.status=0;
+		}
+		destroyCompEnv(tmpCompEnv);
+		destroyCompEnv(tmpGlobCompEnv);
+		objCptr->type=NIL;
+		objCptr->value=NULL;
+		free(tmpInter);
 	}
-	destroyCompEnv(tmpCompEnv);
-	destroyCompEnv(tmpGlobCompEnv);
-	objCptr->type=NIL;
-	objCptr->value=NULL;
-	free(tmpInter);
 	return status;
 }
 
@@ -1004,7 +1036,7 @@ ByteCode* compileDef(AST_cptr* tir,CompEnv* curEnv,intpr* inter,ErrorStatus* sta
 		for(;;)
 		{
 			AST_atom* tmpAtm=sec->value;
-			CompDef* tmpDef=addCompDef(curEnv,tmpAtm->value.str);
+			CompDef* tmpDef=addCompDef(tmpAtm->value.str,curEnv);
 			*(int32_t*)(popVar->code+sizeof(char))=tmpDef->count;
 			codeCat(tmp,pushTop);
 			codeCat(tmp,popVar);
@@ -1038,7 +1070,7 @@ ByteCode* compileDef(AST_cptr* tir,CompEnv* curEnv,intpr* inter,ErrorStatus* sta
 		for(;;)
 		{
 			AST_atom* tmpAtm=sec->value;
-			CompDef* tmpDef=addCompDef(curEnv,tmpAtm->value.str);
+			CompDef* tmpDef=addCompDef(tmpAtm->value.str,curEnv);
 			*(int32_t*)(popVar->code+sizeof(char))=tmpDef->count;
 			codeCat(tmp,pushTop);
 			codeCat(tmp,popVar);
@@ -1185,7 +1217,7 @@ ByteCode* compileSym(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus*
 			freeByteCode(pushVar);
 			return NULL;
 		}
-		CompDef* tmpDef=addCompDef(curEnv,tmpAtm->value.str);
+		CompDef* tmpDef=addCompDef(tmpAtm->value.str,curEnv);
 		ByteCode* dllFuncProc=newDllFuncProc(tmpAtm->value.str);
 		RawProc* tmpRawProc=addRawProc(dllFuncProc,inter);
 		ByteCode* pushProc=createByteCode(5);
@@ -1404,7 +1436,7 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStat
 						}
 						return NULL;
 					}
-					CompDef* tmpDef=addCompDef(tmpEnv,tmpAtm->value.str);
+					CompDef* tmpDef=addCompDef(tmpAtm->value.str,tmpEnv);
 					*(int32_t*)(popVar->code+sizeof(char))=tmpDef->count;
 					codeCat(tmpRawProc->proc,popVar);
 					if(nextCptr(argCptr)==NULL&&argCptr->outer->cdr.type==ATM)
@@ -1433,7 +1465,7 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStat
 							}
 							return NULL;
 						}
-						tmpDef=addCompDef(tmpEnv,tmpAtom1->value.str);
+						tmpDef=addCompDef(tmpAtom1->value.str,tmpEnv);
 						*(int32_t*)(popRestVar->code+sizeof(char))=tmpDef->count;
 						codeCat(tmpRawProc->proc,popRestVar);
 					}
@@ -1466,7 +1498,7 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStat
 					}
 					return NULL;
 				}
-				CompDef* tmpDef=addCompDef(tmpEnv,tmpAtm->value.str);
+				CompDef* tmpDef=addCompDef(tmpAtm->value.str,tmpEnv);
 				*(int32_t*)(popRestVar->code+sizeof(char))=tmpDef->count;
 				codeCat(tmpRawProc->proc,popRestVar);
 			}
@@ -1638,7 +1670,7 @@ ByteCode* compileFile(intpr* inter)
 		char* list=getListFromFile(inter->file);
 		if(list==NULL)continue;
 		ErrorStatus status={0,NULL};
-		begin=createTree(list,inter);
+		begin=createTree(list,inter,NULL);
 		if(begin!=NULL)
 		{
 			if(isPreprocess(begin))

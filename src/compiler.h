@@ -26,7 +26,6 @@ void unInitPreprocess();
 void initPreprocess();
 static ErrorStatus N_import(AST_cptr*,PreEnv*,intpr*);
 static ErrorStatus N_defmacro(AST_cptr*,PreEnv*,intpr*);
-static void addToList(AST_cptr*,const AST_cptr* src);
 
 ByteCode* compileFile(intpr*);
 ByteCode* compile(AST_cptr*,CompEnv*,intpr*,ErrorStatus*);

@@ -1676,6 +1676,11 @@ ByteCode* compileFile(intpr* inter)
 		{
 			if(isPreprocess(begin))
 			{
+				if(isImportExpression(begin)&&tmp->size)
+				{
+					exError(begin,INVALIDEXPR,inter);
+					exit(EXIT_FAILURE);
+				}
 				status=eval(begin,NULL,inter);
 				if(status.status!=0)
 				{

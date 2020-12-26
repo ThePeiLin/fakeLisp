@@ -99,15 +99,12 @@ void runIntpr(intpr* inter)
 	{
 		AST_cptr* begin=NULL;
 		if(inter->file==stdin)printf(">>>");
-		int ch=getc(inter->file);
-		if(ch==EOF)break;
-		else ungetc(ch,inter->file);
 		StringMatchPattern* tmpPattern=NULL;
 		char* list=readInPattern(inter->file,&tmpPattern);
 		//	printf("%s\n==================\n",list);
 		if(list==NULL)continue;
 		ErrorStatus status={0,NULL};
-		begin=createTree(list,inter,NULL);
+		begin=createTree(list,inter,tmpPattern);
 		//	printList(begin,stderr);
 		//	printf("\n==============\n");
 		if(begin!=NULL)
@@ -176,6 +173,9 @@ void runIntpr(intpr* inter)
 			deleteCptr(begin);
 			free(begin);
 		}
+		int ch=getc(inter->file);
+		if(ch==EOF)break;
+		else ungetc(ch,inter->file);
 	}
 	freeVMenv(globEnv);
 	joinAllThread();

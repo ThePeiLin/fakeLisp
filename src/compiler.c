@@ -1667,10 +1667,11 @@ ByteCode* compileFile(intpr* inter)
 	{
 		ungetc(ch,inter->file);
 		AST_cptr* begin=NULL;
-		char* list=getListFromFile(inter->file);
+		StringMatchPattern* tmpPattern=NULL;
+		char* list=readInPattern(inter->file,&tmpPattern);
 		if(list==NULL)continue;
 		ErrorStatus status={0,NULL};
-		begin=createTree(list,inter,NULL);
+		begin=createTree(list,inter,tmpPattern);
 		if(begin!=NULL)
 		{
 			if(isPreprocess(begin))

@@ -1,5 +1,5 @@
-objectOfFakeLisp=fakeLisp.o tool.o preprocess.o syntax.o compiler.o fakeVM.o VMtool.o ast.o
-objectOfFakeLispc=fakeLispc.o tool.o preprocess.o syntax.o compiler.o fakeVM.o VMtool.o ast.o
+objectOfFakeLisp=fakeLisp.o tool.o syntax.o compiler.o fakeVM.o VMtool.o ast.o
+objectOfFakeLispc=fakeLispc.o tool.o syntax.o compiler.o fakeVM.o VMtool.o ast.o
 ifeq ($(DEBUG),YES)
 FLAG=-g -W
 else
@@ -19,8 +19,6 @@ ast.o: src/ast.* src/fakedef.h src/tool.* src/VMtool.*
 	gcc $(FLAG) -c src/ast.c
 tool.o: src/tool.* src/fakedef.h src/opcode.h
 	gcc $(FLAG) -c src/tool.c
-preprocess.o: src/preprocess.* src/fakedef.h
-	gcc $(FLAG) -c src/preprocess.c
 syntax.o: src/syntax.* src/fakedef.h
 	gcc $(FLAG) -c src/syntax.c
 fakeLisp.o: src/fakeLisp.* src/fakedef.h

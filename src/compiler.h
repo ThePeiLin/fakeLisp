@@ -15,7 +15,7 @@ void freeAllMacro();
 static int fmatcmp(const AST_cptr*,const AST_cptr*);
 int MacroPatternCmp(const AST_cptr*,const AST_cptr*);
 CompEnv* createMacroCompEnv(const AST_cptr*,CompEnv*);
-static VMenv* castPreEnvToVMenv(PreEnv*,int32_t,VMenv*,VMheap*);
+VMenv* castPreEnvToVMenv(PreEnv*,int32_t,VMenv*,VMheap*);
 static int isVal(const char*);
 void addFunc(const char*,ErrorStatus (*)(AST_cptr*,PreEnv*,intpr*));
 void freeAllFunc();

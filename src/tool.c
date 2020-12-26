@@ -992,6 +992,7 @@ void exError(const AST_cptr* obj,int type,intpr* inter)
 		case SYNTAXERROR:fprintf(stderr,":Syntax error.\n");break;
 		case INVALIDEXPR:fprintf(stderr,":Invalid expression here.\n");break;
 		case CIRCULARLOAD:fprintf(stderr,":Circular load file.\n");break;
+		case INVALIDPATTERN:fprintf(stderr,":Invalid string match pattern.\n");break;
 	}
 }
 
@@ -1048,7 +1049,7 @@ intpr* newIntpr(const char* filename,FILE* file,CompEnv* env)
 #endif
 		if(rp==NULL)
 		{
-			perror(rp);
+			perror(filename);
 			exit(EXIT_FAILURE);
 		}
 		tmp->curDir=getDir(rp);
@@ -1129,7 +1130,7 @@ CompDef* findCompDef(const char* name,CompEnv* curEnv)
 	}
 }
 
-CompDef* addCompDef(CompEnv* curEnv,const char* name)
+CompDef* addCompDef(const char* name,CompEnv* curEnv)
 {
 	if(curEnv->symbols==NULL)
 	{
@@ -1238,7 +1239,7 @@ void initCompEnv(CompEnv* curEnv)
 {
 	int i=0;
 	for(;i<NUMOFBUILTINSYMBOL;i++)
-		addCompDef(curEnv,builtInSymbolList[i]);
+		addCompDef(builtInSymbolList[i],curEnv);
 }
 
 char* copyStr(const char* str)
@@ -1872,7 +1873,7 @@ intpr* newTmpIntpr(const char* filename,FILE* fp)
 #endif
 		if(rp==NULL)
 		{
-			perror(rp);
+			perror(filename);
 			exit(EXIT_FAILURE);
 		}
 		tmp->curDir=getDir(rp);

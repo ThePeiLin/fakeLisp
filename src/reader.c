@@ -1,23 +1,63 @@
 #include"reader.h"
 #include"tool.h"
+#include"compiler.h"
 #include<string.h>
 #include<stdlib.h>
 #include<ctype.h>
 
-StringMatchPattern* newStringPattern(const char** parts,int32_t num)
+static StringMatchPattern* HeadOfStringPattern=NULL;
+
+StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,intpr* inter)
 {
-	StringMatchPattern* tmp=(StringMatchPattern*)malloc(sizeof(StringMatchPattern));
-	if(!tmp)errors("newStringPattern",__FILE__,__LINE__);
-	tmp->num=num;
-	char** tmParts=(char**)malloc(sizeof(char*)*num);
-	if(!tmParts)errors("newStringPattern",__FILE__,__LINE__);
-	int i=0;
-	for(;i<num;i++)
-		tmParts[i]=copyStr(parts[i]);
-	tmp->parts=tmParts;
-	tmp->next=NULL;
-	tmp->prev=NULL;
-	return tmp;
+	ErrorStatus status={0,NULL};
+	CompEnv* tmpGlobCompEnv=newCompEnv(NULL);
+	initCompEnv(tmpGlobCompEnv);
+	intpr* tmpInter=newTmpIntpr(NULL,NULL);
+	tmpInter->filename=inter->filename;
+	tmpInter->curline=inter->curline;
+	tmpInter->glob=tmpGlobCompEnv;
+	tmpInter->head=inter->head;
+	tmpInter->tail=inter->tail;
+	tmpInter->modules=inter->modules;
+	tmpInter->curDir=inter->curDir;
+	tmpInter->procs=NULL;
+	tmpInter->prev=NULL;
+	CompEnv* tmpCompEnv=createPatternCompEnv(parts,num,tmpGlobCompEnv);
+	int32_t bound=(tmpCompEnv->symbols==NULL)?-1:tmpCompEnv->symbols->count;
+	ByteCode* tmpByteCode=compile(express,tmpCompEnv,tmpInter,&status);
+	if(!status.status)
+	{
+		StringMatchPattern* tmp=(StringMatchPattern*)malloc(sizeof(StringMatchPattern));
+		if(!tmp)errors("newStringPattern",__FILE__,__LINE__);
+		tmp->num=num;
+		char** tmParts=(char**)malloc(sizeof(char*)*num);
+		if(!tmParts)errors("newStringPattern",__FILE__,__LINE__);
+		int i=0;
+		for(;i<num;i++)
+			tmParts[i]=copyStr(parts[i]);
+		tmp->parts=tmParts;
+		tmp->prev=NULL;
+		tmp->next=HeadOfStringPattern;
+		if(HeadOfStringPattern)
+			HeadOfStringPattern->prev=tmp;
+		HeadOfStringPattern=tmp;
+		tmp->procs=tmpInter->procs;
+		tmp->proc=tmpByteCode;
+		tmp->bound=bound;
+		return tmp;
+	}
+	else
+	{
+		if(tmpByteCode)
+			freeByteCode(tmpByteCode);
+		exError(status.place,status.status,inter);
+		status.place=NULL;
+		status.status=0;
+	}
+	destroyCompEnv(tmpCompEnv);
+	destroyCompEnv(tmpGlobCompEnv);
+	free(tmpInter);
+	return NULL;
 }
 
 void freeStringPattern(StringMatchPattern* o)
@@ -28,23 +68,6 @@ void freeStringPattern(StringMatchPattern* o)
 		free(o->parts[i]);
 	free(o->parts);
 	free(o);
-}
-
-ReaderMacro* newReaderMacro(StringMatchPattern* pattern,AST_cptr* expression)
-{
-	ReaderMacro* tmp=(ReaderMacro*)malloc(sizeof(ReaderMacro));
-	if(!tmp)errors("newReaderMacro",__FILE__,__LINE__);
-	tmp->pattern=pattern;
-	tmp->expression=expression;
-	tmp->next=NULL;
-	return tmp;
-}
-
-void freeReaderMacro(ReaderMacro* tmp)
-{
-	freeStringPattern(tmp->pattern);
-	deleteCptr(tmp->expression);
-	free(tmp);
 }
 
 char** splitPattern(const char* str,int32_t* num)
@@ -59,10 +82,10 @@ char** splitPattern(const char* str,int32_t* num)
 	{
 		if(isspace(str[i]))
 			i+=skipSpace(str+i);
-		if((i-1<1||str[i-1]!='\\')&&str[i]=='[')
+		if(str[i]=='[')
 		{
 			int j=i;
-			for(;str[j]!='\0'&&!((j-1<1||str[j-1]!='\\')&&str[j]==']');j++);
+			for(;str[j]!='\0'&&str[j]!=']';j++);
 			char* tmpStr=(char*)malloc(sizeof(char)*(j-i+2));
 			if(!tmpStr)errors("splitPattern",__FILE__,__LINE__);
 			memcpy(tmpStr,str+i,j-i+1);
@@ -73,7 +96,7 @@ char** splitPattern(const char* str,int32_t* num)
 			continue;
 		}
 		int j=i;
-		for(;str[j]!='\0'&&(((j-1<1||str[j-1]!='\\')&&str[j]!='[')&&!isspace(str[j]));j++);
+		for(;str[j]!='\0'&&str[j]!='[';j++);
 		char* tmpStr=(char*)malloc(sizeof(char)*(j-i+1));
 		if(!tmpStr)errors("splitPattern",__FILE__,__LINE__);
 		memcpy(tmpStr,str+i,j-i);
@@ -88,12 +111,12 @@ char** splitPattern(const char* str,int32_t* num)
 
 char* getKeyString(const char* str)
 {
-	int i=0;
-	for(;str[i]!='\0'&&str[i]!='[';i++);
+	int i=1;
+	for(;str[i]!='\0'&&str[i]!=']';i++);
 	char* tmp=(char*)malloc(sizeof(char)*(1+i));
 	if(!tmp)errors("getKeyString",__FILE__,__LINE__);
-	memcpy(tmp,str,i);
-	tmp[i]='\0';
+	memcpy(tmp,str+1,i);
+	tmp[i-1]='\0';
 	return tmp;
 }
 
@@ -105,16 +128,16 @@ int32_t countStringParts(const char* str)
 	{
 		if(isspace(str[i]))
 			i+=skipSpace(str+i);
-		if((i-1<1||str[i-1]!='\\')&&str[i]=='[')
+		if(str[i]=='[')
 		{
 			int j=i;
-			for(;str[j]!='\0'&&!((j-1<1||str[j-1]!='\\')&&str[j]==']');j++);
+			for(;str[j]!='\0'&&str[j]!=']';j++);
 			i=j;
 			count++;
 			continue;
 		}
 		int j=i;
-		for(;str[j]!='\0'&&(((j-1<1||str[j-1]!='\\')&&str[j]!='[')&&!isspace(str[j]));j++);
+		for(;str[j]!='\0'&&str[j]!='[';j++);
 		count++;
 		i=j-1;
 		continue;
@@ -122,10 +145,12 @@ int32_t countStringParts(const char* str)
 	return count;
 }
 
-char* readInPattern(FILE* fp,StringMatchPattern* head)
+char* readInPattern(FILE* fp,StringMatchPattern** retval)
 {
 	char* tmp=readSingle(fp);
-	StringMatchPattern* pattern=findStringPattern(tmp,head);
+	StringMatchPattern* pattern=findStringPattern(tmp+skipSpace(tmp),HeadOfStringPattern);
+	if(retval!=NULL)
+		*retval=pattern;
 	if(!pattern)
 		return tmp;
 	while(matchStringPattern(tmp,pattern))
@@ -139,9 +164,11 @@ char* readInPattern(FILE* fp,StringMatchPattern* head)
 			ungetString(tmp+backIndex,fp);
 		}
 		free(splitIndex);
-		char* tmpNext=readInPattern(fp,head);
+		char* tmpNext=readInPattern(fp,NULL);
 		tmp=exStrCat(tmp,tmpNext,backIndex);
 		free(tmpNext);
+		if(!matchStringPattern(tmp,pattern)&&tmp[strlen(tmp)-1]==')')
+			break;
 		tmpNext=readSingle(fp);
 		tmp=exStrCat(tmp,tmpNext,strlen(tmp));
 		free(tmpNext);
@@ -151,7 +178,7 @@ char* readInPattern(FILE* fp,StringMatchPattern* head)
 		int32_t num=0;
 		int32_t* index=matchPartOfPattern(tmp,pattern,&num);
 		char* part=pattern->parts[num-1];
-		char* keyString=castEscapeCharater(part+1,']');
+		char* keyString=getKeyString(part);
 		int32_t finaleIndex=index[num-1]+strlen(keyString);
 		ungetString(tmp+finaleIndex,fp);
 		tmp[finaleIndex]='\0';
@@ -299,7 +326,19 @@ char* readString(FILE* fp)
 			memSize+=MAX_STRING_SIZE;
 		}
 		tmp[strSize-1]=ch;
-		if(strSize>1&&tmp[strSize-2]!='\\'&&ch=='\"')
+		if(ch=='\\')
+		{
+			ch=getc(fp);
+			strSize++;
+			if(strSize>memSize-1)
+			{
+				tmp=(char*)realloc(tmp,sizeof(char)*(memSize+MAX_STRING_SIZE));
+				if(!tmp)errors("readString",__FILE__,__LINE__);
+				memSize+=MAX_STRING_SIZE;
+			}
+			tmp[strSize-1]=ch;
+		}
+		else if(ch=='\"')
 			break;
 	}
 	tmp[strSize]='\0';
@@ -389,11 +428,12 @@ int32_t skipSpace(const char* str)
 
 StringMatchPattern* findStringPattern(const char* str,StringMatchPattern* cur)
 {
-	StringMatchPattern* tmp=cur;
+	StringMatchPattern* tmp=(cur==NULL)?HeadOfStringPattern:cur;
+	cur=tmp;
 	while(cur)
 	{
 		char* part=cur->parts[0];
-		char* keyString=castEscapeCharater(part+1,']');
+		char* keyString=getKeyString(part);
 		if(!strncmp(str,keyString,strlen(keyString)))
 		{
 			free(keyString);
@@ -402,13 +442,13 @@ StringMatchPattern* findStringPattern(const char* str,StringMatchPattern* cur)
 		cur=cur->next;
 		free(keyString);
 	}
-	if(cur==NULL)
+	if(cur==NULL&&tmp!=NULL)
 	{
 		cur=tmp->prev;
 		while(cur)
 		{
 			char* part=cur->parts[0];
-			char* keyString=castEscapeCharater(part+1,']');
+			char* keyString=getKeyString(part);
 			if(!strncmp(str,keyString,strlen(keyString)))
 			{
 				free(keyString);
@@ -454,7 +494,7 @@ int32_t* matchPartOfPattern(const char* str,StringMatchPattern* pattern,int32_t*
 		char* part=pattern->parts[i];
 		if(isKeyString(part))
 		{
-			char* keyString=castEscapeCharater(part+1,']');
+			char* keyString=getKeyString(part);
 			s+=skipSpace(str+s);
 			if(!strncmp(str+s,keyString,strlen(keyString)))
 				splitIndex[i]=s;
@@ -489,7 +529,7 @@ int32_t countInPattern(const char* str,StringMatchPattern* pattern)
 		char* part=pattern->parts[i];
 		if(isKeyString(part))
 		{
-			char* keyString=castEscapeCharater(part+1,']');
+			char* keyString=getKeyString(part);
 			s+=skipSpace(str+s);
 			if(strncmp(str+s,keyString,strlen(keyString)))
 			{
@@ -538,7 +578,7 @@ int32_t skipUntilNext(const char* str,const char* part)
 		{
 			if(part&&isKeyString(part))
 			{
-				char* keyString=castEscapeCharater(part+1,']');
+				char* keyString=getKeyString(part);
 				s+=skipAtom(str+s,keyString);
 				if(!strncmp(str+s,keyString,strlen(keyString)))
 				{
@@ -601,7 +641,7 @@ int32_t skipInPattern(const char* str,StringMatchPattern* pattern)
 		char* part=pattern->parts[i];
 		if(isKeyString(part))
 		{
-			char* keyString=castEscapeCharater(part+1,']');
+			char* keyString=getKeyString(part);
 			s+=skipSpace(str+s);
 			s+=strlen(keyString);
 			free(keyString);
@@ -633,7 +673,7 @@ void printInPattern(char** strs,StringMatchPattern* pattern,FILE* fp,int32_t cou
 		if(isKeyString(pattern->parts[i]))
 		{
 			char* part=pattern->parts[i];
-			char* keyString=castEscapeCharater(part+1,']');
+			char* keyString=getKeyString(part);
 			fprintf(fp,"%s\n",keyString);
 			free(keyString);
 		}
@@ -687,4 +727,52 @@ void ungetString(const char* str,FILE* fp)
 	int32_t i=strlen(str)-1;
 	for(;i>-1;i--)
 		ungetc(str[i],fp);
+}
+
+int isInValidStringPattern(const char* str)
+{
+	StringMatchPattern* pattern=HeadOfStringPattern;
+	int32_t num=0;
+	char** parts=splitPattern(str,&num);
+	if(!isKeyString(parts[0]))
+	{
+		freeStringArry(parts,num);
+		return 1;
+	}
+	if(pattern)
+	{
+		char* keyString1=getKeyString(parts[0]);
+		int32_t len1=strlen(keyString1);
+		while(pattern->prev)
+			pattern=pattern->prev;
+		while(pattern)
+		{
+			char* keyString2=getKeyString(pattern->parts[0]);
+			int32_t len2=strlen(keyString2);
+			int32_t len=(len2>len1)?len1:len2;
+			if(!strncmp(keyString1,keyString2,len))
+			{
+				free(keyString2);
+				free(keyString1);
+				freeStringArry(parts,num);
+				return 1;
+			}
+			free(keyString2);
+			pattern=pattern->next;
+		}
+		free(keyString1);
+	}
+	freeStringArry(parts,num);
+	return 0;
+}
+
+CompEnv* createPatternCompEnv(char** parts,int32_t num,CompEnv* prev)
+{
+	if(parts==NULL)return NULL;
+	CompEnv* tmpEnv=newCompEnv(prev);
+	int32_t i=0;
+	for(;i<num;i++)
+		if(!isKeyString(parts[i]))
+			addCompDef(parts[i],tmpEnv);
+	return tmpEnv;
 }

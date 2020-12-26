@@ -1,4 +1,5 @@
 #include"fakeLisp.h"
+#include"reader.h"
 #include"tool.h"
 #include"VMtool.h"
 #include"syntax.h"
@@ -79,7 +80,7 @@ int main(int argc,char** argv)
 	}
 	else
 	{
-		fprintf(stderr,"error: It is not a correct file.\n");
+		fprintf(stderr,"%s: It is not a correct file.\n",filename);
 		return EXIT_FAILURE;
 	}
 	return 0;
@@ -101,11 +102,12 @@ void runIntpr(intpr* inter)
 		int ch=getc(inter->file);
 		if(ch==EOF)break;
 		else ungetc(ch,inter->file);
-		char* list=getListFromFile(inter->file);
+		StringMatchPattern* tmpPattern=NULL;
+		char* list=readInPattern(inter->file,&tmpPattern);
 		//	printf("%s\n==================\n",list);
 		if(list==NULL)continue;
 		ErrorStatus status={0,NULL};
-		begin=createTree(list,inter);
+		begin=createTree(list,inter,NULL);
 		//	printList(begin,stderr);
 		//	printf("\n==============\n");
 		if(begin!=NULL)

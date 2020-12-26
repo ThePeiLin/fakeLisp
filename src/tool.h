@@ -35,7 +35,7 @@ void printList(const AST_cptr*,FILE*);
 AST_pair* newPair(int,AST_pair*);
 AST_cptr* newCptr(int,AST_pair*);
 AST_atom* newAtom(int type,const char*,AST_pair*);
-CompDef* addCompDef(CompEnv*,const char*);
+CompDef* addCompDef(const char*,CompEnv*);
 RawProc* newRawProc(int32_t);
 RawProc* addRawProc(ByteCode*,intpr*);
 ByteCode* castRawproc(ByteCode*,RawProc*);

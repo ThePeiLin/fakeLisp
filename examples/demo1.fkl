@@ -1,3 +1,4 @@
+(defmacro "[']a" (cons (quote quote) (cons a nil)))
 (define print princ)
 ;defun宏
 (defmacro

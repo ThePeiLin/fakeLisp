@@ -1,5 +1,6 @@
 #include"ast.h"
 #include"tool.h"
+#include"reader.h"
 #include<string.h>
 #include<ctype.h>
 

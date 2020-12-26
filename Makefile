@@ -1,5 +1,5 @@
-objectOfFakeLisp=fakeLisp.o tool.o syntax.o compiler.o fakeVM.o VMtool.o ast.o
-objectOfFakeLispc=fakeLispc.o tool.o syntax.o compiler.o fakeVM.o VMtool.o ast.o
+objectOfFakeLisp=fakeLisp.o tool.o syntax.o compiler.o fakeVM.o VMtool.o ast.o reader.o
+objectOfFakeLispc=fakeLispc.o tool.o syntax.o compiler.o fakeVM.o VMtool.o ast.o reader.o
 ifeq ($(DEBUG),YES)
 FLAG=-g -W
 else

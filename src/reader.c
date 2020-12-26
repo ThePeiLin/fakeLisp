@@ -243,7 +243,8 @@ char* readSingle(FILE* fp)
 		}
 		ch=getc(fp);
 	}
-	tmp[strSize]='\0';
+	if(tmp)
+		tmp[strSize]='\0';
 	switch(ch)
 	{
 		case '(':

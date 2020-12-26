@@ -1,7 +1,6 @@
 #include"tool.h"
 #include"compiler.h"
 #include"opcode.h"
-#include"preprocess.h"
 #include"syntax.h"
 #include<string.h>
 #include<stdio.h>

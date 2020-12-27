@@ -173,6 +173,9 @@ void runIntpr(intpr* inter)
 			deleteCptr(begin);
 			free(begin);
 		}
+		else
+		{
+		}
 		int ch=getc(inter->file);
 		if(ch==EOF)break;
 		else ungetc(ch,inter->file);

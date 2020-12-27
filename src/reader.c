@@ -167,10 +167,14 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval)
 		if(isVar(pattern->parts[num-1]))
 		{
 			backIndex=splitIndex[num-1];
-			ungetString(tmp+backIndex,fp);
+			StringMatchPattern* tmpPattern=findStringPattern(tmp+backIndex,HeadOfStringPattern);
+			if(tmpPattern)
+				ungetString(tmp+backIndex,fp);
 		}
 		free(splitIndex);
 		char* tmpNext=readInPattern(fp,NULL);
+		if(tmpNext==NULL)
+			break;
 		tmp=exStrCat(tmp,tmpNext,backIndex);
 		free(tmpNext);
 		if(!matchStringPattern(tmp,pattern))
@@ -550,6 +554,7 @@ int32_t countInPattern(const char* str,StringMatchPattern* pattern)
 				s+=skipUntilNext(str+s,next);
 			}
 		}
+		s+=skipSpace(str+s);
 		i++;
 	}
 	return i;

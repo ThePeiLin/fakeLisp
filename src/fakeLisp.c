@@ -172,7 +172,10 @@ void runIntpr(intpr* inter)
 			free(begin);
 		}
 		int ch=getc(inter->file);
-		if(ch==EOF)break;
+		if(ch==EOF)
+			break;
+		if(ch==')')
+			continue;
 		else ungetc(ch,inter->file);
 	}
 	freeVMenv(globEnv);

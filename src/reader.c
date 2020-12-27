@@ -148,11 +148,8 @@ int32_t countStringParts(const char* str)
 char* readInPattern(FILE* fp,StringMatchPattern** retval)
 {
 	char* tmp=readSingle(fp);
-	if(!strlen(tmp))
-	{
-		free(tmp);
+	if(!tmp)
 		return NULL;
-	}
 	StringMatchPattern* pattern=findStringPattern(tmp+skipSpace(tmp),HeadOfStringPattern);
 	if(retval!=NULL)
 		*retval=pattern;
@@ -207,6 +204,8 @@ char* readSingle(FILE* fp)
 	int32_t memSize=0;
 	int32_t strSize=0;
 	int ch=getc(fp);
+	if(ch==EOF)
+		return NULL;
 	while(ch!=EOF)
 	{
 		if(isspace(ch))

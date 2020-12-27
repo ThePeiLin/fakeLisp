@@ -159,7 +159,7 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval)
 		*retval=pattern;
 	if(!pattern)
 		return tmp;
-	while(matchStringPattern(tmp,pattern))
+	for(;;)
 	{
 		int32_t num=0;
 		int32_t backIndex=strlen(tmp);
@@ -173,8 +173,17 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval)
 		char* tmpNext=readInPattern(fp,NULL);
 		tmp=exStrCat(tmp,tmpNext,backIndex);
 		free(tmpNext);
-		if(!matchStringPattern(tmp,pattern)&&tmp[strlen(tmp)-1]==')')
-			break;
+		if(!matchStringPattern(tmp,pattern))
+        {
+            int32_t* splitIndex=matchPartOfPattern(tmp,pattern,&num);
+            StringMatchPattern* pattern=findStringPattern(tmp+splitIndex[num-1],HeadOfStringPattern);
+            if(!pattern)
+			    break;
+			else
+				if(!matchStringPattern(tmp+splitIndex[num-1],pattern))
+					break;
+            free(splitIndex);
+        }
 		tmpNext=readSingle(fp);
 		tmp=exStrCat(tmp,tmpNext,strlen(tmp));
 		free(tmpNext);

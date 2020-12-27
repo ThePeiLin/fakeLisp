@@ -193,11 +193,19 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval)
             int32_t* splitIndex=matchPartOfPattern(tmp,pattern,&num);
             StringMatchPattern* pattern=findStringPattern(tmp+splitIndex[num-1],HeadOfStringPattern);
             if(!pattern)
+			{
+				free(splitIndex);
 			    break;
+			}
 			else
+			{
 				if(!matchStringPattern(tmp+splitIndex[num-1],pattern))
+				{
+					free(splitIndex);
 					break;
-            free(splitIndex);
+				}
+			}
+			free(splitIndex);
         }
 		tmpNext=readSingle(fp);
 		tmp=exStrCat(tmp,tmpNext,strlen(tmp));

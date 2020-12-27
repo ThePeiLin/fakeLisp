@@ -60,6 +60,7 @@ AST_cptr* createTree(const char* objStr,intpr* inter,StringMatchPattern* pattern
 		free(tmpVM);
 		free(rawProcList);
 		destroyEnv(tmpEnv);
+		freeStringArry(parts,num);
 		return tmpCptr;
 	}
 	else

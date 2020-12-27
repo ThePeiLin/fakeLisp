@@ -1,13 +1,46 @@
-(import btk)
-(defmacro (define (ATOM#NAME,ANY#ARG),PAIR#EXPRESSION)
-          (list 'define NAME (cons 'lambda (cons ARG EXPRESSION))))
-
-(defmacro (let ATOM#LETNAME ((ATOM#NAME ANY#VALUE) VAREPT#OTHER),PAIR#BODY)
-          (cons (list 'define LETNAME (cons 'lambda (cons (cons NAME OTHER#NAME) BODY))) (cons VALUE OTHER#VALUE)))
+(import ../btk)
+(defmacro "'[a]" (cons (quote quote) (cons a nil)))
+(defmacro (define ($name,$args),$body)
+  ((lambda ()
+     (define list (lambda ls ls))
+     (list 'define name (cons 'lambda (cons args body))))))
 
 (defmacro
- (if ANY#COND ANY#EXPRESSION1,ANY#EXPRESSION2)
- (list 'cond (list COND EXPRESSION1) (cons 1 EXPRESSION2)))
+  (let $d,$b)
+  ((lambda ()
+     (define map
+       (lambda (f l)
+         (define map-iter
+           (lambda (f c p)
+             (cond ((null c) (append p nil))
+                   (1 (map-iter f (cdr c) (append p (cons (f (car c)) nil)))))))
+         (map-iter f l nil)))
+     (define list (lambda ls ls))
+     (define args nil)
+     (define vals nil)
+     (cond ((issym d)
+            (setq
+              args
+              (map (lambda (sd) (nth 0 sd)) (car b)))
+            (setq
+              vals
+              (map (lambda (sd) (nth 1 sd)) (car b)))
+            (list 'let
+                  '()
+                  (list 'define d (cons 'lambda (cons args (cdr b))))
+                  (cons d vals)))
+           (1
+            (setq args
+                  (map (lambda (sd) (nth 0 sd)) d))
+            (setq vals
+                  (map (lambda (sd) (nth 1 sd)) d))
+            (cons (cons 'lambda (cons args b)) vals)
+            )))))
+
+(defmacro (if $condition $exp1,$exp2)
+  ((lambda ()
+     (define list (lambda ls ls))
+     (list 'cond (list condition exp1) (cons 1 exp2)))))
 (define (newTerm)
  (princ "\033[?1049h" stdout))
 (define (print,ls)

@@ -1,4 +1,4 @@
-(defmacro "[']a" (cons (quote quote) (cons a nil)))
+(defmacro "'[a]" (cons (quote quote) (cons a nil)))
 (defmacro
   (let $d,$b)
   ((lambda ()

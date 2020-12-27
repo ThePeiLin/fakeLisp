@@ -9,6 +9,7 @@ static StringMatchPattern* HeadOfStringPattern=NULL;
 
 StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,intpr* inter)
 {
+	StringMatchPattern* tmp=NULL;
 	ErrorStatus status={0,NULL};
 	CompEnv* tmpGlobCompEnv=newCompEnv(NULL);
 	initCompEnv(tmpGlobCompEnv);
@@ -27,7 +28,7 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 	ByteCode* tmpByteCode=compile(express,tmpCompEnv,tmpInter,&status);
 	if(!status.status)
 	{
-		StringMatchPattern* tmp=(StringMatchPattern*)malloc(sizeof(StringMatchPattern));
+		tmp=(StringMatchPattern*)malloc(sizeof(StringMatchPattern));
 		if(!tmp)errors("newStringPattern",__FILE__,__LINE__);
 		tmp->num=num;
 		char** tmParts=(char**)malloc(sizeof(char*)*num);
@@ -44,7 +45,6 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 		tmp->procs=tmpInter->procs;
 		tmp->proc=tmpByteCode;
 		tmp->bound=bound;
-		return tmp;
 	}
 	else
 	{
@@ -57,7 +57,7 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 	destroyCompEnv(tmpCompEnv);
 	destroyCompEnv(tmpGlobCompEnv);
 	free(tmpInter);
-	return NULL;
+	return tmp;
 }
 
 void freeStringPattern(StringMatchPattern* o)
@@ -109,12 +109,12 @@ char** splitPattern(const char* str,int32_t* num)
 	return tmp;
 }
 
-char* getKeyString(const char* str)
+char* getVarName(const char* str)
 {
 	int i=1;
 	for(;str[i]!='\0'&&str[i]!=']';i++);
 	char* tmp=(char*)malloc(sizeof(char)*(1+i));
-	if(!tmp)errors("getKeyString",__FILE__,__LINE__);
+	if(!tmp)errors("getVarName",__FILE__,__LINE__);
 	memcpy(tmp,str+1,i);
 	tmp[i-1]='\0';
 	return tmp;
@@ -148,6 +148,14 @@ int32_t countStringParts(const char* str)
 char* readInPattern(FILE* fp,StringMatchPattern** retval)
 {
 	char* tmp=readSingle(fp);
+	if(!strlen(tmp))
+	{
+		char ch=getc(fp);
+		tmp=(char*)realloc(tmp,sizeof(char)*2);
+		tmp[0]=ch;
+		tmp[1]='\0';
+		return tmp;
+	}
 	StringMatchPattern* pattern=findStringPattern(tmp+skipSpace(tmp),HeadOfStringPattern);
 	if(retval!=NULL)
 		*retval=pattern;
@@ -158,7 +166,7 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval)
 		int32_t num=0;
 		int32_t backIndex=strlen(tmp);
 		int32_t* splitIndex=matchPartOfPattern(tmp,pattern,&num);
-		if(!isKeyString(pattern->parts[num-1]))
+		if(isVar(pattern->parts[num-1]))
 		{
 			backIndex=splitIndex[num-1];
 			ungetString(tmp+backIndex,fp);
@@ -173,19 +181,17 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval)
 		tmp=exStrCat(tmp,tmpNext,strlen(tmp));
 		free(tmpNext);
 	}
-	if(isKeyString(pattern->parts[pattern->num-1]))
+	if(!isVar(pattern->parts[pattern->num-1]))
 	{
 		int32_t num=0;
 		int32_t* index=matchPartOfPattern(tmp,pattern,&num);
 		char* part=pattern->parts[num-1];
-		char* keyString=getKeyString(part);
-		int32_t finaleIndex=index[num-1]+strlen(keyString);
+		int32_t finaleIndex=index[num-1]+strlen(part);
 		ungetString(tmp+finaleIndex,fp);
 		tmp[finaleIndex]='\0';
 		int32_t memsize=strlen(tmp)+1;
 		tmp=(char*)realloc(tmp,memsize*sizeof(char));
 		if(!tmp)errors("readInPattern",__FILE__,__LINE__);
-		free(keyString);
 		free(index);
 	}
 	return tmp;
@@ -434,14 +440,9 @@ StringMatchPattern* findStringPattern(const char* str,StringMatchPattern* cur)
 	while(cur)
 	{
 		char* part=cur->parts[0];
-		char* keyString=getKeyString(part);
-		if(!strncmp(str,keyString,strlen(keyString)))
-		{
-			free(keyString);
+		if(!strncmp(str,part,strlen(part)))
 			break;
-		}
 		cur=cur->next;
-		free(keyString);
 	}
 	if(cur==NULL&&tmp!=NULL)
 	{
@@ -449,14 +450,9 @@ StringMatchPattern* findStringPattern(const char* str,StringMatchPattern* cur)
 		while(cur)
 		{
 			char* part=cur->parts[0];
-			char* keyString=getKeyString(part);
-			if(!strncmp(str,keyString,strlen(keyString)))
-			{
-				free(keyString);
+			if(!strncmp(str,part,strlen(part)))
 				break;
-			}
 			cur=cur->prev;
-			free(keyString);
 		}
 	}
 	return cur;
@@ -493,14 +489,12 @@ int32_t* matchPartOfPattern(const char* str,StringMatchPattern* pattern,int32_t*
 	for(;i<*num;i++)
 	{
 		char* part=pattern->parts[i];
-		if(isKeyString(part))
+		if(!isVar(part))
 		{
-			char* keyString=getKeyString(part);
 			s+=skipSpace(str+s);
-			if(!strncmp(str+s,keyString,strlen(keyString)))
+			if(!strncmp(str+s,part,strlen(part)))
 				splitIndex[i]=s;
-			s+=strlen(keyString);
-			free(keyString);
+			s+=strlen(part);
 		}
 		else
 		{
@@ -528,17 +522,12 @@ int32_t countInPattern(const char* str,StringMatchPattern* pattern)
 	{
 		if(s>=len)break;
 		char* part=pattern->parts[i];
-		if(isKeyString(part))
+		if(!isVar(part))
 		{
-			char* keyString=getKeyString(part);
 			s+=skipSpace(str+s);
-			if(strncmp(str+s,keyString,strlen(keyString)))
-			{
-				free(keyString);
+			if(strncmp(str+s,part,strlen(part)))
 				break;
-			}
-			s+=strlen(keyString);
-			free(keyString);
+			s+=strlen(part);
 		}
 		else
 		{
@@ -557,7 +546,7 @@ int32_t countInPattern(const char* str,StringMatchPattern* pattern)
 	return i;
 }
 
-int isKeyString(const char* part)
+int isVar(const char* part)
 {
 	if(part[0]=='[')
 		return 1;
@@ -577,20 +566,15 @@ int32_t skipUntilNext(const char* str,const char* part)
 			s+=skipSpace(str+s);
 		else
 		{
-			if(part&&isKeyString(part))
+			if(part&&!isVar(part))
 			{
-				char* keyString=getKeyString(part);
-				s+=skipAtom(str+s,keyString);
-				if(!strncmp(str+s,keyString,strlen(keyString)))
-				{
-					free(keyString);
+				s+=skipAtom(str+s,part);
+				if(!strncmp(str+s,part,strlen(part)))
 					break;
-				}
-				free(keyString);
 			}
 			s+=skipAtom(str+s,"");
 		}
-		if(!part||!isKeyString(part))break;
+		if(!part||isVar(part))break;
 	}
 	return s;
 }
@@ -640,12 +624,10 @@ int32_t skipInPattern(const char* str,StringMatchPattern* pattern)
 	for(;i<pattern->num;i++)
 	{
 		char* part=pattern->parts[i];
-		if(isKeyString(part))
+		if(!isVar(part))
 		{
-			char* keyString=getKeyString(part);
 			s+=skipSpace(str+s);
-			s+=strlen(keyString);
-			free(keyString);
+			s+=strlen(part);
 		}
 		else
 		{
@@ -671,12 +653,10 @@ void printInPattern(char** strs,StringMatchPattern* pattern,FILE* fp,int32_t cou
 		int j=0;
 		for(;j<count;j++)
 			putc('\t',fp);
-		if(isKeyString(pattern->parts[i]))
+		if(!isVar(pattern->parts[i]))
 		{
 			char* part=pattern->parts[i];
-			char* keyString=getKeyString(part);
-			fprintf(fp,"%s\n",keyString);
-			free(keyString);
+			fprintf(fp,"%s\n",part);
 		}
 		else
 		{
@@ -708,12 +688,6 @@ void freeStringArry(char** ss,int32_t num)
 	free(ss);
 }
 
-char* getExceptKeyString(const char* s,const char* keyString)
-{
-	char* tmp=copyStr(s+strlen(keyString));
-	return tmp;
-}
-
 char* exStrCat(char* s1,const char* s2,int32_t i)
 {
 	int32_t len=strlen(s2)+i;
@@ -735,33 +709,27 @@ int isInValidStringPattern(const char* str)
 	StringMatchPattern* pattern=HeadOfStringPattern;
 	int32_t num=0;
 	char** parts=splitPattern(str,&num);
-	if(!isKeyString(parts[0]))
+	if(isVar(parts[0]))
 	{
 		freeStringArry(parts,num);
 		return 1;
 	}
 	if(pattern)
 	{
-		char* keyString1=getKeyString(parts[0]);
-		int32_t len1=strlen(keyString1);
+		int32_t len1=strlen(parts[0]);
 		while(pattern->prev)
 			pattern=pattern->prev;
 		while(pattern)
 		{
-			char* keyString2=getKeyString(pattern->parts[0]);
-			int32_t len2=strlen(keyString2);
+			int32_t len2=strlen(pattern->parts[0]);
 			int32_t len=(len2>len1)?len1:len2;
-			if(!strncmp(keyString1,keyString2,len))
+			if(!strncmp(parts[0],pattern->parts[0],len))
 			{
-				free(keyString2);
-				free(keyString1);
 				freeStringArry(parts,num);
 				return 1;
 			}
-			free(keyString2);
 			pattern=pattern->next;
 		}
-		free(keyString1);
 	}
 	freeStringArry(parts,num);
 	return 0;
@@ -773,7 +741,32 @@ CompEnv* createPatternCompEnv(char** parts,int32_t num,CompEnv* prev)
 	CompEnv* tmpEnv=newCompEnv(prev);
 	int32_t i=0;
 	for(;i<num;i++)
-		if(!isKeyString(parts[i]))
-			addCompDef(parts[i],tmpEnv);
+		if(isVar(parts[i]))
+		{
+			char* varName=getVarName(parts[i]);
+			addCompDef(varName,tmpEnv);
+			free(varName);
+		}
 	return tmpEnv;
+}
+
+void freeAllStringPattern()
+{
+	StringMatchPattern* cur=HeadOfStringPattern;
+	while(cur)
+	{
+		StringMatchPattern* prev=cur;
+		cur=cur->next;
+		freeStringArry(prev->parts,prev->num);
+		freeByteCode(prev->proc);
+		RawProc* tmp=prev->procs;
+		while(tmp!=NULL)
+		{
+			RawProc* prev=tmp;
+			tmp=tmp->next;
+			freeByteCode(prev->proc);
+			free(prev);
+		}
+		free(prev);
+	}
 }

@@ -602,6 +602,7 @@ void freeAllFunc()
 
 void unInitPreprocess()
 {
+	freeAllStringPattern();
 	freeAllFunc();
 	freeMacroEnv();
 	freeAllKeyWord();
@@ -759,6 +760,7 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 			int32_t num=0;
 			char** parts=splitPattern(tmpStr,&num);
 			addStringPattern(parts,num,args[1],inter);
+			freeStringArry(parts,num);
 			deleteArg(args,2);
 		}
 		else

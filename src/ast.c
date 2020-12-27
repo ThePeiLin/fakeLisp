@@ -22,11 +22,13 @@ AST_cptr* createTree(const char* objStr,intpr* inter,StringMatchPattern* pattern
 		char** parts=splitStringInPattern(objStr,pattern,&num);
 		int j=0;
 		for(;j<num;j++)
-			if(!isKeyString(pattern->parts[j]))
+			if(isVar(pattern->parts[j]))
 			{
+				char* varName=getVarName(pattern->parts[j]);
 				StringMatchPattern* tmpPattern=findStringPattern(parts[i],pattern);
 				AST_cptr* tmpCptr=createTree(parts[j],inter,NULL);
-				addDefine(pattern->parts[j],tmpCptr,tmpEnv);
+				addDefine(varName,tmpCptr,tmpEnv);
+				free(varName);
 				deleteCptr(tmpCptr);
 				free(tmpCptr);
 			}
@@ -36,6 +38,7 @@ AST_cptr* createTree(const char* objStr,intpr* inter,StringMatchPattern* pattern
 		initGlobEnv(tmpGlobEnv,tmpVM->heap);
 		VMcode* tmpVMcode=newVMcode(pattern->proc);
 		VMenv* stringPatternEnv=castPreEnvToVMenv(tmpEnv,pattern->bound,tmpGlobEnv,tmpVM->heap);
+		tmpVMcode->localenv=stringPatternEnv;
 		tmpVM->mainproc->code=tmpVMcode;
 		tmpVM->mainproc->localenv=stringPatternEnv;
 		tmpVM->modules=inter->modules;
@@ -55,6 +58,7 @@ AST_cptr* createTree(const char* objStr,intpr* inter,StringMatchPattern* pattern
 		freeFileStack(tmpVM->files);
 		freeMessage(tmpVM->queueHead);
 		free(tmpVM);
+		free(rawProcList);
 		destroyEnv(tmpEnv);
 		return tmpCptr;
 	}

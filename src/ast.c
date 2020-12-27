@@ -31,8 +31,8 @@ AST_cptr* createTree(const char* objStr,intpr* inter,StringMatchPattern* pattern
 			if(isVar(pattern->parts[j]))
 			{
 				char* varName=getVarName(pattern->parts[j]);
-				StringMatchPattern* tmpPattern=findStringPattern(parts[i],pattern);
-				AST_cptr* tmpCptr=createTree(parts[j],inter,NULL);
+				StringMatchPattern* tmpPattern=findStringPattern(parts[j],pattern);
+				AST_cptr* tmpCptr=createTree(parts[j],inter,tmpPattern);
 				addDefine(varName,tmpCptr,tmpEnv);
 				free(varName);
 				deleteCptr(tmpCptr);
@@ -67,7 +67,7 @@ AST_cptr* createTree(const char* objStr,intpr* inter,StringMatchPattern* pattern
 		free(rawProcList);
 		destroyEnv(tmpEnv);
 		freeStringArry(parts,num);
-		inter->curline+=countChar(objStr,'\n',-1);
+		inter->curline+=countChar(objStr,'\n',skipInPattern(objStr,pattern));
 		return tmpCptr;
 	}
 	else
@@ -244,9 +244,7 @@ AST_cptr* createTree(const char* objStr,intpr* inter,StringMatchPattern* pattern
 						deleteCptr(tmpCptr);
 						free(tmpCptr);
 					}
-					inter->curline+=countChar(objStr+i,'\n',skipInPattern(objStr+i,tmpPattern));
 					i+=skipInPattern(objStr+i,tmpPattern);
-					continue;
 				}
 				else
 				{
@@ -256,15 +254,14 @@ AST_cptr* createTree(const char* objStr,intpr* inter,StringMatchPattern* pattern
 					objCptr->value=(void*)newAtom(SYM,tmp,objPair);
 					i+=strlen(tmp);
 					free(tmp);
+					if(!braketsNum)
+						break;
 					continue;
 				}
 			}
 			if(braketsNum<=0&&root!=NULL)break;
 		}
 	}
-	for(;i<strlen(objStr);i++)if(isspace(objStr[i])&&objStr[i]=='\n')
-		if(inter)
-			inter->curline+=1;
 	return root;
 }
 

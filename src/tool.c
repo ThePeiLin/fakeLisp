@@ -1708,3 +1708,22 @@ void freeRawProc(ByteCode* l,int32_t num)
 		free(l[i].code);
 	free(l);
 }
+
+int32_t countChar(const char* str,char c,int32_t len)
+{
+	int32_t num=0;
+	int32_t i=0;
+	if(len==-1)
+	{
+		for(;str[i]!='\0';i++)
+			if(str[i]==c)
+				num++;
+	}
+	else
+	{
+		for(;i<len;i++)
+			if(str[i]==c)
+				num++;
+	}
+	return num;
+}

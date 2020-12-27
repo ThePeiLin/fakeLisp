@@ -4,8 +4,8 @@
 #include<pthread.h>
 
 void runFakeVM(fakeVM*);
-void printVMvalue(VMvalue*,VMpair*,FILE*,int8_t);
-void princVMvalue(VMvalue*,VMpair*,FILE*);
+void printVMvalue(VMvalue*,VMpair*,FILE*,int8_t,int8_t);
+void princVMvalue(VMvalue*,VMpair*,FILE*,int8_t);
 void printProc(VMcode*,FILE*);
 fakeVM* newFakeVM(ByteCode*,ByteCode*);
 fakeVM* newTmpFakeVM(ByteCode*,ByteCode*);

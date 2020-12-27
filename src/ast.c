@@ -61,6 +61,7 @@ AST_cptr* createTree(const char* objStr,intpr* inter,StringMatchPattern* pattern
 		free(rawProcList);
 		destroyEnv(tmpEnv);
 		freeStringArry(parts,num);
+		inter->curline+=countChar(objStr,'\n',-1);
 		return tmpCptr;
 	}
 	else
@@ -235,6 +236,7 @@ AST_cptr* createTree(const char* objStr,intpr* inter,StringMatchPattern* pattern
 						deleteCptr(tmpCptr);
 						free(tmpCptr);
 					}
+					inter->curline+=countChar(objStr+i,'\n',skipInPattern(objStr+i,tmpPattern));
 					i+=skipInPattern(objStr+i,tmpPattern);
 					continue;
 				}

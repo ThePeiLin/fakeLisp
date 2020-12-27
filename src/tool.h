@@ -22,6 +22,7 @@ char* doubleToString(double);
 double stringToDouble(const char*);
 char* intToString(long);
 int32_t stringToInt(const char*);
+int32_t countChar(const char*,char,int32_t);
 char stringToChar(const char*);
 uint8_t* castStrByteArry(const char*);
 uint8_t castCharInt(char);

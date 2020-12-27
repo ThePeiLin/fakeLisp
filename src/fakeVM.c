@@ -1,5 +1,6 @@
 #include"tool.h"
 #include"VMtool.h"
+#include"reader.h"
 #include"fakeVM.h"
 #include"opcode.h"
 #include"ast.h"
@@ -2450,7 +2451,7 @@ int B_read(fakeVM* exe)
 	if(file->type!=IN32)return 1;
 	FILE* tmpFile=getFile(files,*file->u.num);
 	if(tmpFile==NULL)return 2;
-	char* tmpString=getListFromFile(tmpFile);
+	char* tmpString=readSingle(tmpFile);
 	intpr* tmpIntpr=newTmpIntpr(NULL,tmpFile);
 	AST_cptr* tmpCptr=createTree(tmpString,tmpIntpr,NULL);
 	VMvalue* tmp=NULL;

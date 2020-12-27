@@ -166,10 +166,21 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval)
 		int32_t* splitIndex=matchPartOfPattern(tmp,pattern,&num);
 		if(isVar(pattern->parts[num-1]))
 		{
-			backIndex=splitIndex[num-1];
-			StringMatchPattern* tmpPattern=findStringPattern(tmp+backIndex,HeadOfStringPattern);
+			int32_t tmpbackIndex=splitIndex[num-1];
+			StringMatchPattern* tmpPattern=findStringPattern(tmp+tmpbackIndex,HeadOfStringPattern);
 			if(tmpPattern)
-				ungetString(tmp+backIndex,fp);
+			{
+				ungetString(tmp+tmpbackIndex,fp);
+				backIndex=tmpbackIndex;
+			}
+			else
+			{
+				if(!matchStringPattern(tmp,pattern))
+				{
+					free(splitIndex);
+					return tmp;
+				}
+			}
 		}
 		free(splitIndex);
 		char* tmpNext=readInPattern(fp,NULL);

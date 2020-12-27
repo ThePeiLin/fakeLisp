@@ -171,6 +171,11 @@ void runIntpr(intpr* inter)
 			deleteCptr(begin);
 			free(begin);
 		}
+		else
+		{
+			if(list!=NULL)
+				free(list);
+		}
 		int ch=getc(inter->file);
 		if(ch==EOF)
 			break;

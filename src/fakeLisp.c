@@ -102,14 +102,12 @@ void runIntpr(intpr* inter)
 		StringMatchPattern* tmpPattern=NULL;
 		char* list=readInPattern(inter->file,&tmpPattern);
 		//	printf("%s\n==================\n",list);
-		if(list==NULL)continue;
 		ErrorStatus status={0,NULL};
 		begin=createTree(list,inter,tmpPattern);
 		//	printList(begin,stderr);
 		//	printf("\n==============\n");
 		if(begin!=NULL)
 		{
-
 			if(isPreprocess(begin))
 			{
 				status=eval(begin,NULL,inter);
@@ -172,9 +170,6 @@ void runIntpr(intpr* inter)
 			list=NULL;
 			deleteCptr(begin);
 			free(begin);
-		}
-		else
-		{
 		}
 		int ch=getc(inter->file);
 		if(ch==EOF)break;

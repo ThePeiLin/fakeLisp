@@ -150,11 +150,8 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval)
 	char* tmp=readSingle(fp);
 	if(!strlen(tmp))
 	{
-		char ch=getc(fp);
-		tmp=(char*)realloc(tmp,sizeof(char)*2);
-		tmp[0]=ch;
-		tmp[1]='\0';
-		return tmp;
+		free(tmp);
+		return NULL;
 	}
 	StringMatchPattern* pattern=findStringPattern(tmp+skipSpace(tmp),HeadOfStringPattern);
 	if(retval!=NULL)

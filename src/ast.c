@@ -9,7 +9,7 @@
 
 AST_cptr* createTree(const char* objStr,intpr* inter,StringMatchPattern* pattern)
 {
-	//if(objStr==NULL)return NULL;
+	if(objStr==NULL)return NULL;
 	size_t i=0;
 	int braketsNum=0;
 	AST_cptr* root=NULL;

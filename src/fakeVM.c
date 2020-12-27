@@ -2802,7 +2802,7 @@ void printVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t mode)
 		case STR:printRawString(objValue->u.str->str,fp);break;
 		case PRC:
 				if(mode==1)printProc(objValue->u.prc,fp);
-				else fprintf(fp,"<#proc>");break;
+				else fprintf(fp,"#<proc>");break;
 		case PAIR:
 				putc('(',fp);
 				if(objValue->u.pair->car->type==PAIR&&objValue->u.pair->car->u.pair==begin)
@@ -2837,7 +2837,7 @@ void princVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp)
 		case SYM:fprintf(fp,"%s",objValue->u.str->str);break;
 		case STR:fprintf(fp,"%s",objValue->u.str->str);break;
 		case PRC:
-				fprintf(fp,"<#proc>");break;
+				fprintf(fp,"#<proc>");break;
 		case PAIR:
 				putc('(',fp);
 				if(objValue->u.pair->car->type==PAIR&&objValue->u.pair->car->u.pair==begin)

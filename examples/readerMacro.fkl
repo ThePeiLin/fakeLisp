@@ -6,15 +6,21 @@
 (defmacro "call[a][b]" (cons a b))
 (defmacro "var[a]=[b]"
   (cons 'define (cons a (cons b nil))))
-(defmacro "defun[n][a]:[b]"
+(defmacro "defun[n][a]{[,b]}"
   ((lambda ()
-     (setq b (cons b nil))
      (define list (lambda ls ls))
      (list 'define n (cons 'lambda (cons a b))))))
 
 var pop=9
-defun list ls:ls
-defun square (a):call mul (a a)
+defun list ls
+{
+    ls
+}
+
+defun square (a)
+{
+    call mul (a a)
+}
 call princ ((\x.(add x 9) 9) stdout)
 call princ (#\\n stdout)
 call princ (call list (1 2 3) stdout)

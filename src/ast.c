@@ -36,6 +36,8 @@ AST_cptr* createTree(const char* objStr,intpr* inter,StringMatchPattern* pattern
 					StringMatchPattern* tmpPattern=findStringPattern(parts[j],pattern);
 					AST_cptr* tmpCptr=newCptr(inter->curline,NULL);
 					AST_cptr* tmpCptr2=createTree(parts[j]+i,inter,tmpPattern);
+					if(!tmpCptr2)
+						return NULL;
 					tmpCptr->type=PAIR;
 					tmpCptr->value=newPair(inter->curline,NULL);
 					replace(getFirst(tmpCptr),tmpCptr2);
@@ -47,7 +49,11 @@ AST_cptr* createTree(const char* objStr,intpr* inter,StringMatchPattern* pattern
 						tmpPattern=findStringPattern(parts[j]+i,pattern);
 						AST_cptr* tmpCptr2=createTree(parts[j]+i,inter,tmpPattern);
 						if(!tmpCptr2)
-							break;
+						{
+							deleteCptr(tmpCptr);
+							free(tmpCptr);
+							return NULL;
+						}
 						addToList(tmpCptr,tmpCptr2);
 						deleteCptr(tmpCptr2);
 						free(tmpCptr2);
@@ -205,7 +211,7 @@ AST_cptr* createTree(const char* objStr,intpr* inter,StringMatchPattern* pattern
 				inter->curline+=countChar(objStr+i,'\n',len);
 				objCptr->type=ATM;
 				objCptr->value=(void*)newAtom(STR,tmpStr,objPair);
-				i+=len;
+				i+=len+1;
 				free(tmpStr);
 			}
 			else if(isdigit(*(objStr+i))||(*(objStr+i)=='-'&&(/**(objStr+i)&&*/isdigit(*(objStr+i+1)))))

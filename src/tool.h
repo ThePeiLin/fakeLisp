@@ -1,12 +1,8 @@
 #ifndef TOOL_H
 #define TOOL_H
-#include<stdint.h>
 #include"fakedef.h"
-typedef struct RawString
-{
-	int len;
-	char * str;
-} rawString;
+#include<stdint.h>
+
 int isHexNum(const char*);
 int isOctNum(const char*);
 int isDouble(const char*);
@@ -14,8 +10,7 @@ int isNum(const char*);
 char* getStringFromList(const char*);
 char* getStringAfterBackslash(const char*);
 int power(int,int);
-rawString getStringBetweenMarks(const char*,intpr*);
-char* castEscapeCharater(const char*,char);
+char* castEscapeCharater(const char*,char,int32_t*);
 void printRawString(const char*,FILE*);
 void printRawChar(char,FILE*);
 char* doubleToString(double);

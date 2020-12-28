@@ -200,11 +200,13 @@ AST_cptr* createTree(const char* objStr,intpr* inter,StringMatchPattern* pattern
 			{
 				int curline=(inter)?inter->curline:0;
 				if(root==NULL)objCptr=root=newCptr(curline,objPair);
-				rawString tmp=getStringBetweenMarks(objStr+i,inter);
+				int32_t len=0;
+				char* tmpStr=castEscapeCharater(objStr+i+1,'\"',&len);
+				inter->curline+=countChar(objStr+i,'\n',len);
 				objCptr->type=ATM;
-				objCptr->value=(void*)newAtom(STR,tmp.str,objPair);
-				i+=tmp.len;
-				free(tmp.str);
+				objCptr->value=(void*)newAtom(STR,tmpStr,objPair);
+				i+=len;
+				free(tmpStr);
 			}
 			else if(isdigit(*(objStr+i))||(*(objStr+i)=='-'&&(/**(objStr+i)&&*/isdigit(*(objStr+i+1)))))
 			{

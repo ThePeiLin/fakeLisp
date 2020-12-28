@@ -1,5 +1,0 @@
-(load hello.fkl)
-(load demo3.fkl)
-(import test)
-(kk)
-(ll)

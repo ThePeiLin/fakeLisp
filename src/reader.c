@@ -111,11 +111,12 @@ char** splitPattern(const char* str,int32_t* num)
 
 char* getVarName(const char* str)
 {
-	int i=1;
+	int i=(str[1]==',')?2:1;
+	int j=i;
 	for(;str[i]!='\0'&&str[i]!=']';i++);
 	char* tmp=(char*)malloc(sizeof(char)*(1+i));
 	if(!tmp)errors("getVarName",__FILE__,__LINE__);
-	memcpy(tmp,str+1,i);
+	memcpy(tmp,str+j,i-j);
 	tmp[i-1]='\0';
 	return tmp;
 }
@@ -180,6 +181,15 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval)
 					free(splitIndex);
 					return tmp;
 				}
+			}
+		}
+		else
+		{
+			if(!matchStringPattern(tmp,pattern))
+			{
+				int32_t tmpbackIndex=splitIndex[num-1]+strlen(pattern->parts[num-1]);
+				free(splitIndex);
+				break;
 			}
 		}
 		free(splitIndex);
@@ -500,7 +510,7 @@ char** splitStringInPattern(const char* str,StringMatchPattern* pattern,int32_t*
 	if(!tmp)errors("splitStringInPattern",__FILE__,__LINE__);
 	for(i=0;i<*num;i++)
 	{
-		int32_t strSize=(i+1<*num)?((size_t)(s[i+1]-s[i])):strlen(str)-s[i];
+		int32_t strSize=(i+1<*num)?((size_t)(s[i+1]-s[i])):(size_t)skipInPattern(str,pattern)-s[i];
 		char* tmpStr=(char*)malloc(sizeof(char)*(strSize+1));
 		if(!tmpStr)errors("splitStringInPattern",__FILE__,__LINE__);
 		memcpy(tmpStr,str+s[i],strSize);
@@ -654,27 +664,32 @@ int32_t skipInPattern(const char* str,StringMatchPattern* pattern)
 {
 	int32_t i=0;
 	int32_t s=0;
-	for(;i<pattern->num;i++)
+	if(pattern)
 	{
-		char* part=pattern->parts[i];
-		if(!isVar(part))
+		for(;i<pattern->num;i++)
 		{
-			s+=skipSpace(str+s);
-			s+=strlen(part);
-		}
-		else
-		{
-			s+=skipSpace(str+s);
-			StringMatchPattern* nextPattern=findStringPattern(str+s,pattern);
-			if(nextPattern)
-				s+=skipInPattern(str+s,nextPattern);
+			char* part=pattern->parts[i];
+			if(!isVar(part))
+			{
+				s+=skipSpace(str+s);
+				s+=strlen(part);
+			}
 			else
 			{
-				char* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
-				s+=skipUntilNext(str+s,next);
+				s+=skipSpace(str+s);
+				StringMatchPattern* nextPattern=findStringPattern(str+s,pattern);
+				if(nextPattern)
+					s+=skipInPattern(str+s,nextPattern);
+				else
+				{
+					char* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
+					s+=skipUntilNext(str+s,next);
+				}
 			}
 		}
 	}
+	else
+		s+=skipUntilNext(str+s,NULL);
 	return s;
 }
 
@@ -802,4 +817,13 @@ void freeAllStringPattern()
 		}
 		free(prev);
 	}
+}
+
+int isMustList(const char* str)
+{
+	if(!isVar(str))
+		return 0;
+	if(str[1]==',')
+		return 1;
+	return 0;
 }

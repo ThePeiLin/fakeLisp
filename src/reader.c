@@ -114,10 +114,10 @@ char* getVarName(const char* str)
 	int i=(str[1]==',')?2:1;
 	int j=i;
 	for(;str[i]!='\0'&&str[i]!=']';i++);
-	char* tmp=(char*)malloc(sizeof(char)*(1+i));
+	char* tmp=(char*)malloc(sizeof(char)*(i-j+1));
 	if(!tmp)errors("getVarName",__FILE__,__LINE__);
 	memcpy(tmp,str+j,i-j);
-	tmp[i-1]='\0';
+	tmp[i-j]='\0';
 	return tmp;
 }
 
@@ -217,7 +217,7 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval)
 			}
 			free(splitIndex);
         }
-		tmpNext=readSingle(fp);
+		tmpNext=readInPattern(fp,NULL);
 		tmp=exStrCat(tmp,tmpNext,strlen(tmp));
 		free(tmpNext);
 	}
@@ -479,6 +479,7 @@ StringMatchPattern* findStringPattern(const char* str,StringMatchPattern* cur)
 {
 	StringMatchPattern* tmp=(cur==NULL)?HeadOfStringPattern:cur;
 	cur=tmp;
+	str+=skipSpace(str);
 	while(cur)
 	{
 		char* part=cur->parts[0];
@@ -606,10 +607,19 @@ int32_t skipUntilNext(const char* str,const char* part)
 		else if(str[s]=='\"')
 			s+=skipString(str+s);
 		else if(isspace(str[s]))
+		{
 			s+=skipSpace(str+s);
+			continue;
+		}
 		else
 		{
-			if(part&&!isVar(part))
+			StringMatchPattern* pattern=findStringPattern(str+s,HeadOfStringPattern);
+			if(pattern)
+			{
+				s+=skipInPattern(str+s,pattern);
+				continue;
+			}
+			else if(part&&!isVar(part))
 			{
 				s+=skipAtom(str+s,part);
 				if(!strncmp(str+s,part,strlen(part)))

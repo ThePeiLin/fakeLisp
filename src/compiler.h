@@ -26,6 +26,8 @@ void unInitPreprocess();
 void initPreprocess();
 static ErrorStatus N_import(AST_cptr*,PreEnv*,intpr*);
 static ErrorStatus N_defmacro(AST_cptr*,PreEnv*,intpr*);
+StringMatchPattern* addStringPattern(char**,int32_t,AST_cptr*,intpr*);
+static CompEnv* createPatternCompEnv(char**,int32_t,CompEnv*);
 
 ByteCode* compileFile(intpr*);
 ByteCode* compile(AST_cptr*,CompEnv*,intpr*,ErrorStatus*);

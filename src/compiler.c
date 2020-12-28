@@ -815,6 +815,54 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 	return status;
 }
 
+StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,intpr* inter)
+{
+	StringMatchPattern* tmp=NULL;
+	ErrorStatus status={0,NULL};
+	CompEnv* tmpGlobCompEnv=newCompEnv(NULL);
+	initCompEnv(tmpGlobCompEnv);
+	intpr* tmpInter=newTmpIntpr(NULL,NULL);
+	tmpInter->filename=inter->filename;
+	tmpInter->curline=inter->curline;
+	tmpInter->glob=tmpGlobCompEnv;
+	tmpInter->head=inter->head;
+	tmpInter->tail=inter->tail;
+	tmpInter->modules=inter->modules;
+	tmpInter->curDir=inter->curDir;
+	tmpInter->procs=NULL;
+	tmpInter->prev=NULL;
+	CompEnv* tmpCompEnv=createPatternCompEnv(parts,num,tmpGlobCompEnv);
+	int32_t bound=(tmpCompEnv->symbols==NULL)?-1:tmpCompEnv->symbols->count;
+	ByteCode* tmpByteCode=compile(express,tmpCompEnv,tmpInter,&status);
+	if(!status.status)
+	{
+		tmp=newStringMatchPattern();
+		tmp->num=num;
+		char** tmParts=(char**)malloc(sizeof(char*)*num);
+		if(!tmParts)errors("addStringPattern",__FILE__,__LINE__);
+		int i=0;
+		for(;i<num;i++)
+			tmParts[i]=copyStr(parts[i]);
+		tmp->parts=tmParts;
+		tmp->prev=NULL;
+		tmp->procs=tmpInter->procs;
+		tmp->proc=tmpByteCode;
+		tmp->bound=bound;
+	}
+	else
+	{
+		if(tmpByteCode)
+			freeByteCode(tmpByteCode);
+		exError(status.place,status.status,inter);
+		status.place=NULL;
+		status.status=0;
+	}
+	destroyCompEnv(tmpCompEnv);
+	destroyCompEnv(tmpGlobCompEnv);
+	free(tmpInter);
+	return tmp;
+}
+
 ByteCode* compile(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* status)
 {
 	for(;;)
@@ -838,6 +886,21 @@ ByteCode* compile(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* st
 		}
 		else if(isListForm(objCptr))return compileListForm(objCptr,curEnv,inter,status);
 	}
+}
+
+CompEnv* createPatternCompEnv(char** parts,int32_t num,CompEnv* prev)
+{
+	if(parts==NULL)return NULL;
+	CompEnv* tmpEnv=newCompEnv(prev);
+	int32_t i=0;
+	for(;i<num;i++)
+		if(isVar(parts[i]))
+		{
+			char* varName=getVarName(parts[i]);
+			addCompDef(varName,tmpEnv);
+			free(varName);
+		}
+	return tmpEnv;
 }
 
 ByteCode* compileAtom(AST_cptr* objCptr)

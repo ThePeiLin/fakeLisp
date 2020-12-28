@@ -3,9 +3,8 @@
 #include"fakedef.h"
 #include<stdint.h>
 
-StringMatchPattern* addStringPattern(char**,int32_t,AST_cptr*,intpr*);
-void freeStringPattern(StringMatchPattern*);
 StringMatchPattern* findStringPattern(const char*,StringMatchPattern*);
+StringMatchPattern* newStringMatchPattern();
 char** splitPattern(const char*,int32_t*);
 char** splitStringInPattern(const char*,StringMatchPattern*,int32_t*);
 char* readInPattern(FILE*,StringMatchPattern**);
@@ -14,6 +13,7 @@ char* getVarName(const char*);
 void printInPattern(char**,StringMatchPattern*,FILE*,int32_t);
 void freeStringArry(char** ss,int32_t num);
 void freeAllStringPattern();
+void freeStringPattern(StringMatchPattern*);
 int isInValidStringPattern(const char*);
 int isVar(const char*);
 int isMustList(const char*);
@@ -35,5 +35,4 @@ static int32_t skipUntilNext(const char* str,const char*);
 static int32_t skipParentheses(const char*);
 static int32_t skipAtom(const char*,const char*);
 static int32_t skipString(const char*);
-static CompEnv* createPatternCompEnv(char**,int32_t,CompEnv*);
 #endif

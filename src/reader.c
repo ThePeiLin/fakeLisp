@@ -1,74 +1,10 @@
 #include"reader.h"
 #include"tool.h"
-#include"compiler.h"
 #include<string.h>
 #include<stdlib.h>
 #include<ctype.h>
 
 static StringMatchPattern* HeadOfStringPattern=NULL;
-
-StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,intpr* inter)
-{
-	StringMatchPattern* tmp=NULL;
-	ErrorStatus status={0,NULL};
-	CompEnv* tmpGlobCompEnv=newCompEnv(NULL);
-	initCompEnv(tmpGlobCompEnv);
-	intpr* tmpInter=newTmpIntpr(NULL,NULL);
-	tmpInter->filename=inter->filename;
-	tmpInter->curline=inter->curline;
-	tmpInter->glob=tmpGlobCompEnv;
-	tmpInter->head=inter->head;
-	tmpInter->tail=inter->tail;
-	tmpInter->modules=inter->modules;
-	tmpInter->curDir=inter->curDir;
-	tmpInter->procs=NULL;
-	tmpInter->prev=NULL;
-	CompEnv* tmpCompEnv=createPatternCompEnv(parts,num,tmpGlobCompEnv);
-	int32_t bound=(tmpCompEnv->symbols==NULL)?-1:tmpCompEnv->symbols->count;
-	ByteCode* tmpByteCode=compile(express,tmpCompEnv,tmpInter,&status);
-	if(!status.status)
-	{
-		tmp=(StringMatchPattern*)malloc(sizeof(StringMatchPattern));
-		if(!tmp)errors("newStringPattern",__FILE__,__LINE__);
-		tmp->num=num;
-		char** tmParts=(char**)malloc(sizeof(char*)*num);
-		if(!tmParts)errors("newStringPattern",__FILE__,__LINE__);
-		int i=0;
-		for(;i<num;i++)
-			tmParts[i]=copyStr(parts[i]);
-		tmp->parts=tmParts;
-		tmp->prev=NULL;
-		tmp->next=HeadOfStringPattern;
-		if(HeadOfStringPattern)
-			HeadOfStringPattern->prev=tmp;
-		HeadOfStringPattern=tmp;
-		tmp->procs=tmpInter->procs;
-		tmp->proc=tmpByteCode;
-		tmp->bound=bound;
-	}
-	else
-	{
-		if(tmpByteCode)
-			freeByteCode(tmpByteCode);
-		exError(status.place,status.status,inter);
-		status.place=NULL;
-		status.status=0;
-	}
-	destroyCompEnv(tmpCompEnv);
-	destroyCompEnv(tmpGlobCompEnv);
-	free(tmpInter);
-	return tmp;
-}
-
-void freeStringPattern(StringMatchPattern* o)
-{
-	int i=0;
-	int32_t num=o->num;
-	for(;i<num;i++)
-		free(o->parts[i]);
-	free(o->parts);
-	free(o);
-}
 
 char** splitPattern(const char* str,int32_t* num)
 {
@@ -793,19 +729,24 @@ int isInValidStringPattern(const char* str)
 	return 0;
 }
 
-CompEnv* createPatternCompEnv(char** parts,int32_t num,CompEnv* prev)
+int isMustList(const char* str)
 {
-	if(parts==NULL)return NULL;
-	CompEnv* tmpEnv=newCompEnv(prev);
-	int32_t i=0;
-	for(;i<num;i++)
-		if(isVar(parts[i]))
-		{
-			char* varName=getVarName(parts[i]);
-			addCompDef(varName,tmpEnv);
-			free(varName);
-		}
-	return tmpEnv;
+	if(!isVar(str))
+		return 0;
+	if(str[1]==',')
+		return 1;
+	return 0;
+}
+
+StringMatchPattern* newStringMatchPattern()
+{
+	StringMatchPattern* tmp=(StringMatchPattern*)malloc(sizeof(StringMatchPattern));
+	if(!tmp)errors("newStringMatchPattern",__FILE__,__LINE__);
+	tmp->next=HeadOfStringPattern;
+	if(HeadOfStringPattern)
+		HeadOfStringPattern->prev=tmp;
+	HeadOfStringPattern=tmp;
+	return tmp;
 }
 
 void freeAllStringPattern()
@@ -829,11 +770,14 @@ void freeAllStringPattern()
 	}
 }
 
-int isMustList(const char* str)
+void freeStringPattern(StringMatchPattern* o)
 {
-	if(!isVar(str))
-		return 0;
-	if(str[1]==',')
-		return 1;
-	return 0;
+	int i=0;
+	int32_t num=o->num;
+	for(;i<num;i++)
+		free(o->parts[i]);
+	free(o->parts);
+	free(o);
 }
+
+

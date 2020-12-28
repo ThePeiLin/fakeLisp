@@ -6,18 +6,18 @@
 (defmacro "call[a][b]" (cons a b))
 (defmacro "var[a]=[b]"
   (cons 'define (cons a (cons b nil))))
-(defmacro "defun[n][a]{[,b]}"
+(defmacro "function[n][a]{[,b]}"
   ((lambda ()
      (define list (lambda ls ls))
      (list 'define n (cons 'lambda (cons a b))))))
 
 var pop=9
-defun list ls
+function list ls
 {
     ls
 }
 
-defun square (a)
+function square (a)
 {
     call mul (a a)
 }

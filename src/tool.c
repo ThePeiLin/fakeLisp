@@ -162,7 +162,9 @@ void printRawString(const char* objStr,FILE* out)
 	putc('\"',out);
 	for(;tmpStr<objStr+len;tmpStr++)
 	{
-		if(isgraph(*tmpStr))
+		if(*tmpStr=='\"')
+			fprintf(out,"\\\"");
+		else if(isgraph(*tmpStr))
 			putc(*tmpStr,out);
 		else
 		{

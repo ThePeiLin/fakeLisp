@@ -52,7 +52,6 @@ char* builtInSymbolList[]=
 	"mul",
 	"div",
 	"mod",
-	"rand",
 	"nth",
 	"length",
 	"append",

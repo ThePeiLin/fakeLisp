@@ -37,7 +37,6 @@ int B_sub(fakeVM*);
 int B_mul(fakeVM*);
 int B_div(fakeVM*);
 int B_mod(fakeVM*);
-int B_rand(fakeVM*);
 int B_atom(fakeVM*);
 int B_null(fakeVM*);
 int B_init_proc(fakeVM*);

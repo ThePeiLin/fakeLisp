@@ -545,19 +545,6 @@ ByteCode P_mod=
 	}
 };
 
-//ByteCode P_rand=
-//{
-//	13,
-//	(char[])
-//	{
-//		FAKE_POP_VAR,0,0,0,0,
-//		FAKE_RES_BP,
-//		FAKE_PUSH_VAR,0,0,0,0,
-//		FAKE_RAND,
-//		FAKE_END_PROC
-//	}
-//};
-
 ByteCode P_nth=
 {
 	23,

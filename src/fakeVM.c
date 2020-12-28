@@ -56,7 +56,6 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_mul,
 	B_div,
 	B_mod,
-	B_rand,
 	B_atom,
 	B_null,
 	B_cast_to_chr,
@@ -546,18 +545,18 @@ ByteCode P_mod=
 	}
 };
 
-ByteCode P_rand=
-{
-	13,
-	(char[])
-	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_RES_BP,
-		FAKE_PUSH_VAR,0,0,0,0,
-		FAKE_RAND,
-		FAKE_END_PROC
-	}
-};
+//ByteCode P_rand=
+//{
+//	13,
+//	(char[])
+//	{
+//		FAKE_POP_VAR,0,0,0,0,
+//		FAKE_RES_BP,
+//		FAKE_PUSH_VAR,0,0,0,0,
+//		FAKE_RAND,
+//		FAKE_END_PROC
+//	}
+//};
 
 ByteCode P_nth=
 {
@@ -883,7 +882,6 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 		P_mul,
 		P_div,
 		P_mod,
-		P_rand,
 		P_nth,
 		P_length,
 		P_append,
@@ -1606,20 +1604,6 @@ int B_mod(fakeVM* exe)
 	int32_t result=((int32_t)((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num))%((int32_t)((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num));
 	VMvalue* tmpValue=newVMvalue(IN32,&result,exe->heap,1);
 	stack->values[stack->tp-1]=tmpValue;
-	proc->cp+=1;
-	return 0;
-}
-
-int B_rand(fakeVM* exe)
-{
-	srand((unsigned)time(NULL));
-	VMstack* stack=exe->stack;
-	VMprocess* proc=exe->curproc;
-	VMvalue* lim=getTopValue(stack);
-	if(lim->type!=IN32)return 1;
-	int32_t result=rand()%(*lim->u.num);
-	if(lim->access)free(lim->u.num);
-	lim->u.num=copyMemory(&result,sizeof(int32_t));
 	proc->cp+=1;
 	return 0;
 }

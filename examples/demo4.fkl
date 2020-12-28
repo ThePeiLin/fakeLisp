@@ -34,8 +34,7 @@
                   (map (lambda (sd) (nth 0 sd)) d))
             (setq vals
                   (map (lambda (sd) (nth 1 sd)) d))
-            (cons (cons 'lambda (cons args b)) vals)
-            )))))
+            (cons (cons 'lambda (cons args b)) vals))))))
 
 (defmacro (if $condition $exp1,$exp2)
   ((lambda ()

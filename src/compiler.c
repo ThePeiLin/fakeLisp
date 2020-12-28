@@ -742,18 +742,14 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 			AST_atom* tmpAtom=args[0]->value;
 			if(tmpAtom->type!=STR)
 			{
-				status.status=SYNTAXERROR;
-				status.place=newCptr(0,NULL);
-				replace(status.place,args[0]);
+				exError(args[0],SYNTAXERROR,inter);
 				deleteArg(args,2);
 				return status;
 			}
 			char* tmpStr=tmpAtom->value.str;
 			if(isInValidStringPattern(tmpStr))
 			{
-				status.status=INVALIDPATTERN;
-				status.place=newCptr(0,NULL);
-				replace(status.place,args[0]);
+				exError(args[0],INVALIDEXPR,inter);
 				deleteArg(args,2);
 				return status;
 			}

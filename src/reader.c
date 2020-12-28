@@ -725,6 +725,26 @@ int isInValidStringPattern(const char* str)
 			pattern=pattern->next;
 		}
 	}
+	int i=0;
+	for(;i<num;i++)
+	{
+		if(isVar(parts[i])&&isMustList(parts[i]))
+		{
+			if(i<num-1)
+			{
+				if(isVar(parts[i-1])||isVar(parts[i+1]))
+				{
+					freeStringArry(parts,num);
+					return 1;
+				}
+			}
+			else
+			{
+				freeStringArry(parts,num);
+				return 1;
+			}
+		}
+	}
 	freeStringArry(parts,num);
 	return 0;
 }

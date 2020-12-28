@@ -41,6 +41,7 @@
   ((lambda ()
      (define list (lambda ls ls))
      (list 'cond (list condition exp1) (cons 1 exp2)))))
+
 (define (newTerm)
  (princ "\033[?1049h" stdout))
 (define (print,ls)

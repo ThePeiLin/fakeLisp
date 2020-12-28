@@ -16,6 +16,7 @@ void freeStringArry(char** ss,int32_t num);
 void freeAllStringPattern();
 int isInValidStringPattern(const char*);
 int isVar(const char*);
+int isMustList(const char*);
 int32_t skipInPattern(const char*,StringMatchPattern*);
 static int32_t matchStringPattern(const char*,StringMatchPattern* pattern);
 static void skipComment(FILE*);

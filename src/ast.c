@@ -31,12 +31,39 @@ AST_cptr* createTree(const char* objStr,intpr* inter,StringMatchPattern* pattern
 			if(isVar(pattern->parts[j]))
 			{
 				char* varName=getVarName(pattern->parts[j]);
-				StringMatchPattern* tmpPattern=findStringPattern(parts[j],pattern);
-				AST_cptr* tmpCptr=createTree(parts[j],inter,tmpPattern);
-				addDefine(varName,tmpCptr,tmpEnv);
+				if(isMustList(pattern->parts[j]))
+				{
+					StringMatchPattern* tmpPattern=findStringPattern(parts[j],pattern);
+					AST_cptr* tmpCptr=newCptr(inter->curline,NULL);
+					AST_cptr* tmpCptr2=createTree(parts[j]+i,inter,tmpPattern);
+					tmpCptr->type=PAIR;
+					tmpCptr->value=newPair(inter->curline,NULL);
+					replace(getFirst(tmpCptr),tmpCptr2);
+					deleteCptr(tmpCptr2);
+					free(tmpCptr2);
+					int i=skipInPattern(parts[j],tmpPattern);
+					for(;parts[j][i]!=0;i++)
+					{
+						tmpPattern=findStringPattern(parts[j]+i,pattern);
+						AST_cptr* tmpCptr2=createTree(parts[j]+i,inter,tmpPattern);
+						addToList(tmpCptr,tmpCptr2);
+						deleteCptr(tmpCptr2);
+						free(tmpCptr2);
+						i+=skipInPattern(parts[j]+i,tmpPattern);
+					}
+					addDefine(varName,tmpCptr,tmpEnv);
+					deleteCptr(tmpCptr);
+					free(tmpCptr);
+				}
+				else
+				{
+					StringMatchPattern* tmpPattern=findStringPattern(parts[j],pattern);
+					AST_cptr* tmpCptr=createTree(parts[j],inter,tmpPattern);
+					addDefine(varName,tmpCptr,tmpEnv);
+					deleteCptr(tmpCptr);
+					free(tmpCptr);
+				}
 				free(varName);
-				deleteCptr(tmpCptr);
-				free(tmpCptr);
 			}
 		ByteCode* rawProcList=castRawproc(NULL,pattern->procs);
 		fakeVM* tmpVM=newTmpFakeVM(NULL,rawProcList);
@@ -254,8 +281,8 @@ AST_cptr* createTree(const char* objStr,intpr* inter,StringMatchPattern* pattern
 					objCptr->value=(void*)newAtom(SYM,tmp,objPair);
 					i+=strlen(tmp);
 					free(tmp);
-					if(!braketsNum)
-						break;
+				//	if(!braketsNum)
+				//		break;
 					continue;
 				}
 			}

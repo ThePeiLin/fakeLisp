@@ -16,11 +16,11 @@ function list ls
 {
     ls
 }
-
 function square (a)
 {
     call mul (a a)
 }
+
 call princ ((\x.(add x 9) 9) stdout)
 call princ (#\\n stdout)
 call princ (call list (1 2 3) stdout)

@@ -135,7 +135,7 @@ int isConst(const AST_cptr* objCptr)
 	if(isNil(objCptr))return 1;
 	AST_atom* tmpAtm=(objCptr->type==ATM)?objCptr->value:NULL;
 	if(tmpAtm!=NULL&&tmpAtm->type!=SYM)return 1;
-	if(objCptr->type==PAIR&&(isQuoteExpression(objCptr)||(((AST_pair*)objCptr->value)->car.type==NIL&&((AST_pair*)objCptr->value)->car.type==NIL)))return 1;
+	if(objCptr->type==PAIR&&(isQuoteExpression(objCptr)||(((AST_pair*)objCptr->value)->car.type==NIL&&((AST_pair*)objCptr->value)->car.type==NIL&&isLegal(objCptr))))return 1;
 	return 0;
 }
 

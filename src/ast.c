@@ -49,9 +49,14 @@ AST_cptr* createTree(const char* objStr,intpr* inter,StringMatchPattern* pattern
 						AST_cptr* tmpCptr2=createTree(parts[j]+i,inter,tmpPattern);
 						if(!tmpCptr2)
 						{
-							deleteCptr(tmpCptr);
-							free(tmpCptr);
-							return NULL;
+							if(tmpPattern)
+							{
+								deleteCptr(tmpCptr);
+								free(tmpCptr);
+								return NULL;
+							}
+							else
+								break;
 						}
 						addToList(tmpCptr,tmpCptr2);
 						deleteCptr(tmpCptr2);

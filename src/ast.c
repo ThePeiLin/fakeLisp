@@ -3,7 +3,6 @@
 #include"reader.h"
 #include"VMtool.h"
 #include"fakeVM.h"
-#include"compiler.h"
 #include<string.h>
 #include<ctype.h>
 

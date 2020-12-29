@@ -499,3 +499,25 @@ void freeRef(VMvalue* obj)
 		}
 	}
 }
+
+VMenv* castPreEnvToVMenv(PreEnv* pe,int32_t b,VMenv* prev,VMheap* heap)
+{
+	int32_t size=0;
+	PreDef* tmpDef=pe->symbols;
+	while(tmpDef)
+	{
+		size++;
+		tmpDef=tmpDef->next;
+	}
+	VMenv* tmp=newVMenv(b,prev);
+	tmp->size=size;
+	VMvalue** values=(VMvalue**)malloc(sizeof(VMvalue*)*size);
+	int i=size-1;
+	for(tmpDef=pe->symbols;i>-1;i--)
+	{
+		values[i]=castCptrVMvalue(&tmpDef->obj,heap);
+		tmpDef=tmpDef->next;
+	}
+	tmp->values=values;
+	return tmp;
+}

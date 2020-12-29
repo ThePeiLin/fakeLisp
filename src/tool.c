@@ -1620,3 +1620,55 @@ int32_t countChar(const char* str,char c,int32_t len)
 	}
 	return num;
 }
+
+PreDef* findDefine(const char* name,const PreEnv* curEnv)
+{
+	if(curEnv->symbols==NULL)return NULL;
+	else
+	{
+		PreDef* curDef=curEnv->symbols;
+		PreDef* prev=NULL;
+		while(curDef&&strcmp(name,curDef->symName))
+			curDef=curDef->next;
+		return curDef;
+	}
+}
+
+PreDef* addDefine(const char* symName,const AST_cptr* objCptr,PreEnv* curEnv)
+{
+	if(curEnv->symbols==NULL)
+	{
+		curEnv->symbols=newDefines(symName);
+		replace(&curEnv->symbols->obj,objCptr);
+		curEnv->symbols->next=NULL;
+		return curEnv->symbols;
+	}
+	else
+	{
+		PreDef* curDef=findDefine(symName,curEnv);
+		if(curDef==NULL)
+		{
+			curDef=newDefines(symName);
+			curDef->next=curEnv->symbols;
+			curEnv->symbols=curDef;
+			replace(&curDef->obj,objCptr);
+		}
+		else
+			replace(&curDef->obj,objCptr);
+		return curDef;
+	}
+}
+
+PreDef* newDefines(const char* name)
+{
+	PreDef* tmp=(PreDef*)malloc(sizeof(PreDef));
+	if(tmp==NULL)errors("newDefines",__FILE__,__LINE__);
+	tmp->symName=(char*)malloc(sizeof(char)*(strlen(name)+1));
+	if(tmp->symName==NULL)errors("newDefines",__FILE__,__LINE__);
+	strcpy(tmp->symName,name);
+	tmp->obj=(AST_cptr){NULL,0,NIL,NULL};
+	tmp->next=NULL;
+	return tmp;
+}
+
+

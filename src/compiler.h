@@ -3,9 +3,6 @@
 #include"fakedef.h"
 
 
-PreDef* findDefine(const char*,const PreEnv*);
-PreDef* addDefine(const char*,const AST_cptr*,PreEnv*);
-PreDef* newDefines(const char*);
 PreMacro* PreMacroMatch(const AST_cptr*);
 int PreMacroExpand(AST_cptr*,intpr* inter);
 int addMacro(AST_cptr*,ByteCode*,int32_t,RawProc*);
@@ -15,7 +12,6 @@ void freeAllMacro();
 static int fmatcmp(const AST_cptr*,const AST_cptr*);
 int MacroPatternCmp(const AST_cptr*,const AST_cptr*);
 CompEnv* createMacroCompEnv(const AST_cptr*,CompEnv*);
-VMenv* castPreEnvToVMenv(PreEnv*,int32_t,VMenv*,VMheap*);
 static int isVal(const char*);
 void addFunc(const char*,ErrorStatus (*)(AST_cptr*,PreEnv*,intpr*));
 void freeAllFunc();

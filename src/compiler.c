@@ -15,56 +15,6 @@ static PreFunc* funAndForm=NULL;
 static PreMacro* FirstMacro=NULL;
 static PreEnv* MacroEnv=NULL;
 
-PreDef* findDefine(const char* name,const PreEnv* curEnv)
-{
-	if(curEnv->symbols==NULL)return NULL;
-	else
-	{
-		PreDef* curDef=curEnv->symbols;
-		PreDef* prev=NULL;
-		while(curDef&&strcmp(name,curDef->symName))
-			curDef=curDef->next;
-		return curDef;
-	}
-}
-
-PreDef* addDefine(const char* symName,const AST_cptr* objCptr,PreEnv* curEnv)
-{
-	if(curEnv->symbols==NULL)
-	{
-		curEnv->symbols=newDefines(symName);
-		replace(&curEnv->symbols->obj,objCptr);
-		curEnv->symbols->next=NULL;
-		return curEnv->symbols;
-	}
-	else
-	{
-		PreDef* curDef=findDefine(symName,curEnv);
-		if(curDef==NULL)
-		{
-			curDef=newDefines(symName);
-			curDef->next=curEnv->symbols;
-			curEnv->symbols=curDef;
-			replace(&curDef->obj,objCptr);
-		}
-		else
-			replace(&curDef->obj,objCptr);
-		return curDef;
-	}
-}
-
-PreDef* newDefines(const char* name)
-{
-	PreDef* tmp=(PreDef*)malloc(sizeof(PreDef));
-	if(tmp==NULL)errors("newDefines",__FILE__,__LINE__);
-	tmp->symName=(char*)malloc(sizeof(char)*(strlen(name)+1));
-	if(tmp->symName==NULL)errors("newDefines",__FILE__,__LINE__);
-	strcpy(tmp->symName,name);
-	tmp->obj=(AST_cptr){NULL,0,NIL,NULL};
-	tmp->next=NULL;
-	return tmp;
-}
-
 PreMacro* PreMacroMatch(const AST_cptr* objCptr)
 {
 	PreMacro* current=FirstMacro;
@@ -406,28 +356,6 @@ CompEnv* createMacroCompEnv(const AST_cptr* objCptr,CompEnv* prev)
 		if(objPair==NULL)break;
 	}
 	return tmpEnv;
-}
-
-VMenv* castPreEnvToVMenv(PreEnv* pe,int32_t b,VMenv* prev,VMheap* heap)
-{
-	int32_t size=0;
-	PreDef* tmpDef=pe->symbols;
-	while(tmpDef)
-	{
-		size++;
-		tmpDef=tmpDef->next;
-	}
-	VMenv* tmp=newVMenv(b,prev);
-	tmp->size=size;
-	VMvalue** values=(VMvalue**)malloc(sizeof(VMvalue*)*size);
-	int i=size-1;
-	for(tmpDef=pe->symbols;i>-1;i--)
-	{
-		values[i]=castCptrVMvalue(&tmpDef->obj,heap);
-		tmpDef=tmpDef->next;
-	}
-	tmp->values=values;
-	return tmp;
 }
 
 int isVal(const char* name)

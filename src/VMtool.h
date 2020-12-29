@@ -19,6 +19,7 @@ int VMvaluecmp(VMvalue*,VMvalue*);
 int subVMvaluecmp(VMvalue*,VMvalue*);
 int numcmp(VMvalue*,VMvalue*);
 VMenv* newVMenv(int32_t,VMenv*);
+VMenv* castPreEnvToVMenv(PreEnv*,int32_t,VMenv*,VMheap*);
 VMpair* newVMpair(VMheap*);
 VMstr* newVMstr(const char*);
 VMvalue* castCptrVMvalue(const AST_cptr*,VMheap*);

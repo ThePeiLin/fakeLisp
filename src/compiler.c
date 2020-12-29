@@ -945,7 +945,7 @@ ByteCode* compileConst(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatu
 {
 		if(objCptr->type==ATM)return compileAtom(objCptr);
 		if(isNil(objCptr))return compileNil();
-		if(isQuoteExpression)return compileQuote(objCptr);
+		if(isQuoteExpression(objCptr))return compileQuote(objCptr);
 }
 
 ByteCode* compileListForm(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* status)

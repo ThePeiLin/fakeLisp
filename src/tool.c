@@ -164,7 +164,7 @@ void printRawString(const char* objStr,FILE* out)
 	{
 		if(*tmpStr=='\"')
 			fprintf(out,"\\\"");
-		else if(isgraph(*tmpStr))
+		else if(isgraph(*tmpStr)||*tmpStr<0)
 			putc(*tmpStr,out);
 		else
 		{

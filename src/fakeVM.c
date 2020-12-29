@@ -932,15 +932,15 @@ void runFakeVM(fakeVM* exe)
 		int status=ByteCodes[tmpCode->code[curproc->cp]](exe);
 		if(status!=0)
 		{
-			VMstack* stack=exe->stack;
-			printByteCode(&tmpByteCode,stderr);
-			putc('\n',stderr);
-			printAllStack(exe->stack,stderr);
-			putc('\n',stderr);
-			fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
-			fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",curproc->cp,stack->bp,codeName[tmpCode->code[curproc->cp]].codeName);
-			printEnv(exe->curproc->localenv,stderr);
-			putc('\n',stderr);
+		//	VMstack* stack=exe->stack;
+		//	printByteCode(&tmpByteCode,stderr);
+		//	putc('\n',stderr);
+		//	printAllStack(exe->stack,stderr);
+		//	putc('\n',stderr);
+		//	fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
+		//	fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",curproc->cp,stack->bp,codeName[tmpCode->code[curproc->cp]].codeName);
+		//	printEnv(exe->curproc->localenv,stderr);
+		//	putc('\n',stderr);
 			switch(status)
 			{
 				case 1:
@@ -2783,7 +2783,10 @@ void printVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t mode,int8_t is
 				if(objValue->u.pair->car->type==PAIR&&objValue->u.pair->car->u.pair==begin)
 					fprintf(fp,"##");
 				else
-					printVMvalue(objValue->u.pair->car,begin,fp,mode,0);
+				{
+					if(objValue->u.pair->car->type!=NIL||isPrevPair)
+						printVMvalue(objValue->u.pair->car,begin,fp,mode,0);
+				}
 				if(objValue->u.pair->cdr->type!=NIL)
 				{
 					if(objValue->u.pair->cdr->type!=PAIR)

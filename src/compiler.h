@@ -42,5 +42,4 @@ ByteCode* compileLambda(AST_cptr*,CompEnv*,intpr*,ErrorStatus*);
 ByteCode* compileAnd(AST_cptr*,CompEnv*,intpr*,ErrorStatus*);
 ByteCode* compileOr(AST_cptr*,CompEnv*,intpr*,ErrorStatus*);
 ByteCode* compileLoad(AST_cptr*,CompEnv*,intpr*,ErrorStatus*);
-//ByteCode* compileImport(AST_cptr*,CompEnv*,intpr*,ErrorStatus*);
 #endif

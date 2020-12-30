@@ -977,6 +977,7 @@ void runFakeVM(fakeVM* exe)
 						GC_mark(GlobFakeVMs.VMs[i]);
 					else
 					{
+						pthread_join(GlobFakeVMs.VMs[i]->tid,NULL);
 						free(GlobFakeVMs.VMs[i]);
 						GlobFakeVMs.VMs[i]=NULL;
 					}
@@ -1637,7 +1638,7 @@ int B_init_proc(fakeVM* exe)
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue->type!=PRC)return WRONGARG;
 	int32_t boundOfProc=*(int32_t*)(tmpCode->code+proc->cp+1);
-	topValue->u.prc->localenv=newVMenv(boundOfProc,tmpCode->localenv);
+	topValue->u.prc->localenv=newVMenv(boundOfProc,proc->localenv);
 	proc->cp+=5;
 	return 0;
 }
@@ -1665,12 +1666,8 @@ int B_end_proc(fakeVM* exe)
 //	fprintf(stdout,"End proc: %p\n",tmpProc->code);
 	VMprocess* prev=exe->curproc->prev;
 	VMcode* tmpCode=tmpProc->code;
-	VMenv* tmpEnv=tmpCode->localenv;
+	VMenv* tmpEnv=tmpProc->localenv;
 	exe->curproc=prev;
-	if(tmpProc->prev!=NULL&&tmpCode==tmpProc->prev->code)
-		tmpCode->localenv=tmpProc->prev->localenv;
-	else
-		tmpCode->localenv=newVMenv(tmpEnv->bound,tmpEnv->prev);
 	free(tmpProc);
 	freeVMenv(tmpEnv);
 	if(!tmpCode->refcount)
@@ -1726,13 +1723,7 @@ int B_invoke(fakeVM* exe)
 	{
 		tmpCode->refcount+=1;
 		VMprocess* tmpProc=newFakeProcess(tmpCode,proc);
-		if(hasSameProc(tmpCode,proc))
-		{
-			tmpProc->localenv=newVMenv(tmpCode->localenv->bound,tmpCode->localenv->prev);
-			tmpCode->localenv=tmpProc->localenv;
-		}
-		else
-			tmpProc->localenv=tmpCode->localenv;
+		tmpProc->localenv=newVMenv(tmpCode->localenv->bound,tmpCode->localenv->prev);
 		exe->curproc=tmpProc;
 	}
 	stack->tp-=1;
@@ -3033,7 +3024,7 @@ fakeVM* newThreadVM(VMcode* main,ByteCode* procs,filestack* files,VMheap* heap,D
 	fakeVM* exe=(fakeVM*)malloc(sizeof(fakeVM));
 	if(exe==NULL)errors("newThreadVM",__FILE__,__LINE__);
 	exe->mainproc=newFakeProcess(main,NULL);
-	exe->mainproc->localenv=main->localenv;
+	exe->mainproc->localenv=newVMenv(main->localenv->bound,main->localenv->prev);
 	exe->curproc=exe->mainproc;
 	exe->procs=procs;
 	exe->mark=1;
@@ -3129,6 +3120,7 @@ void joinAllThread()
 	for(;i<GlobFakeVMs.size;i++)
 	{
 		fakeVM* cur=GlobFakeVMs.VMs[i];
-		pthread_join(cur->tid,NULL);
+		if(cur)
+			pthread_join(cur->tid,NULL);
 	}
 }

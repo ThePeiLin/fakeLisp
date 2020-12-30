@@ -2770,7 +2770,7 @@ void stackRecycle(fakeVM* exe)
 	//	size_t newSize=stack->size-64;
 	//	if(newSize>0)
 	//	{
-			printByteCode(&tmpByteCode,stderr);
+			//printByteCode(&tmpByteCode,stderr);
 			stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size-64));
 			if(stack->values==NULL)
 			{

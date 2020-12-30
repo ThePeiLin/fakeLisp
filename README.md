@@ -1,10 +1,116 @@
 # fakeLisp
-This is a simple LISP interpreter.  
-The grammer of this languege looks like Scheme Lisp but it's not lisp,so I call the languege that this interpreter interpret "fakeLisp".  
-The "defmacro" key word is able to use,and some special form is also able to use in expanding macro.   
-This interpreter can compile source code to byte code.  
 
+This is a new dialect of LISP.  
+This is a simple LISP interpreter that write with c language.  
+The grammer of this languege looks like lisp,but I use comma to divide the dot pair expressions;  
+For example: (ii,uu);  
 
-I use comma to divide car and cdr but not dot.Such as (1,2) and (1,(1,2)).  
-And you only can call function in brakets.For exmple,(add 1 1) and (add 1 (sub 2 3)).  
-If you want more information about this interpreter please read [README_ZH.md](./README_ZH.md),because my English is really bad.
+The interpreter can compile the sourse code to byte code and excute the byte code.  
+
+With only few built-in functions and special forms,   
+fakeLisp supports various programming paradigms like   
+funtional,  
+Object Oriented,  
+and so on.  
+
+For this language, funtion or procedure are a kind of data and it can be operated just like other basic data.  
+
+Using lambda expression and symbol-binding, you can define your own function.   
+
+The expression follows will create a function and bind it with the symbol "gle" . The function will get the last element of a list.  
+
+```scheme
+(define gle (lambda (obj)
+              (cond ((null (cdr obj)) (car obj))
+                    (1 (gle (cdr obj))))))
+```
+
+To simplify some complex expression, macro is a good choice.  
+
+The language support two kinds of macro, compiler macro and reader macro.  
+
+Macro can use to simplify some complex expressions and improve the readability of your program.  
+Here is compiler macro that use to simplify the process of define a new function.  
+
+```scheme
+(defmacro (define ($name,$args),$body)
+  ((lambda ()
+     (define list (lambda ls ls))
+     (list (quote define) name (cons (quote lambda) (cons args body))))))
+```
+
+With the macro above, you can define the gle function just like the expression follows.  
+
+```scheme
+(define (gle obj)
+  (cond ((null (cdr obj)) (car obj))
+        (1 (gle (cdr obj)))))
+```
+
+Available built-in functions are as follows:  
+
+cons  
+car  
+cdr  
+atom  
+null  
+app  
+ischr  
+isint  
+isdbl  
+isstr  
+issym  
+isprc  
+isbyt  
+eq  
+equal  
+eqn  
+gt  
+ge  
+lt  
+le  
+not  
+dbl  
+str  
+sym  
+chr  
+int  
+byt  
+add  
+sub  
+mul  
+div  
+mod  
+nth  
+length  
+strcat  
+bytcat  
+append  
+open  
+close  
+read  
+readb  
+write  
+princ   
+writeb  
+go  
+send  
+accept  
+getid  
+
+Special forms:  
+
+define  
+setq  
+setf  
+quote  
+cond  
+and  
+or  
+lambda  
+load  
+import  
+defmacro  
+
+##Chinese version:  
+[README_ZH.md](./README_ZH.md)

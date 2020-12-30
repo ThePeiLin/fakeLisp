@@ -1,11 +1,6 @@
 #ifndef SYNTAX_H
 #define SYNTAX_H
 #include"fakedef.h"
-typedef struct SyntaxRule
-{
-	int (*check)(const AST_cptr*);
-	struct SyntaxRule* next;
-}synRule;
 
 KeyWord* hasKeyWord(const AST_cptr*);
 void addKeyWord(const char*);
@@ -13,7 +8,6 @@ void printAllKeyWord();
 void freeAllKeyWord();
 void addSynRule(int (*)(const AST_cptr*));
 int (*checkAST(const AST_cptr*))(const AST_cptr*);
-//void initSyntax();
 int isLegal(const AST_cptr*);
 int isPreprocess(const AST_cptr*);
 int isDefExpression(const AST_cptr*);

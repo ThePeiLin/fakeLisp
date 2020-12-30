@@ -2,24 +2,8 @@
 #include<string.h>
 #include"tool.h"
 #include"syntax.h"
-static synRule* Head=NULL;
-static KeyWord* KeyWords=NULL;
-int (*checkAST(const AST_cptr* objCptr))(const AST_cptr*)
-{
-	synRule* current=NULL;
-	for(current=Head;current!=NULL;current=current->next)
-		if(current->check(objCptr))break;
-	return current->check;
-}
 
-void addSynRule(int (*check)(const AST_cptr*))
-{
-	synRule* current=NULL;
-	if(!(current=(synRule*)malloc(sizeof(synRule))))errors("addSynRule",__FILE__,__LINE__);
-	current->check=check;
-	current->next=Head;
-	Head=current;
-}
+static KeyWord* KeyWords=NULL;
 
 int isPreprocess(const AST_cptr* objCptr)
 {
@@ -198,9 +182,6 @@ int isLegal(const AST_cptr* objCptr)
 			objCptr=nextCptr(objCptr);
 		}
 		if(prevCptr->outer->cdr.type!=NIL)return 0;
-		synRule* current=NULL;
-		for(current=Head;current!=NULL;current=current->next)
-			if(!current->check(tmpCptr))return 0;
 	}
 	return 1;
 }
@@ -237,20 +218,6 @@ int isImportExpression(const AST_cptr* objCptr)
 			return 1;
 	}
 	return 0;
-}
-
-
-void initSyntax()
-{
-	addSynRule(isDefExpression);
-	addSynRule(isSetqExpression);
-	addSynRule(isLambdaExpression);
-	addSynRule(isCondExpression);
-	addSynRule(isConst);
-	addSynRule(isListForm);
-	addSynRule(isSymbol);
-	addSynRule(isAndExpression);
-	addSynRule(isOrExpression);
 }
 
 KeyWord* hasKeyWord(const AST_cptr* objCptr)

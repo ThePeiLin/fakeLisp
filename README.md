@@ -9,8 +9,8 @@ The interpreter can compile the sourse code to byte code and excute the byte cod
 
 With only few built-in functions and special forms,   
 fakeLisp supports various programming paradigms like   
-funtional,  
-Object Oriented,  
+funtional programming,  
+Object Oriented programming (if you think that procedure is a kind of object),  
 and so on.  
 
 For this language, funtion or procedure are a kind of data and it can be operated just like other basic data.  

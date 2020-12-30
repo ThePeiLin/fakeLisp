@@ -1703,28 +1703,3 @@ ByteCode* compileFile(intpr* inter)
 	freeByteCode(pop);
 	return tmp;
 }
-
-
-//ByteCode* compileImport(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* status)
-//{
-//	AST_cptr* first=getANSPairCar(objCptr);
-//	AST_cptr* pName=nextCptr(first);
-//	AST_atom* tmpAtom=pName->value;
-//	char* headoflib="lib";
-//#ifdef _WIN32
-//	char* tailoflib=".dll";
-//#else
-//	char* tailoflib=".so";
-//#endif
-//	char* libname=(char*)malloc(sizeof(char)*(strlen(headoflib)+strlen(tailoflib)+strlen(tmpAtom->value.str)));
-//	if(libname==NULL)errors(OUTOFMEMORY,__FILE__,__LINE__);
-//	strcpy(libname,headoflib);
-//	strcat(libname,tmpAtom->value.str);
-//	strcat(libname,tailoflib);
-//	loadPreDll(libname);
-//	ByteCode* loadMod=createByteCode(sizeof(char)+strlen(libname)+1);
-//	loadMod->code[0]=FAKE_LOAD_MOD;
-//	strcpy(loadMod->code+sizeof(char),libname);
-//	free(libname);
-//	return loadMod;
-//}

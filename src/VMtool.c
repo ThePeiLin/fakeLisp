@@ -179,7 +179,7 @@ VMenv* newVMenv(int32_t bound,VMenv* prev)
 	tmp->size=0;
 	tmp->values=NULL;
 	tmp->prev=prev;
-	if(prev!=0)prev->refcount+=1;
+	if(prev!=NULL)prev->refcount+=1;
 	tmp->refcount=0;
 	return tmp;
 }

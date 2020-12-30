@@ -47,7 +47,7 @@ With the macro above, you can define the gle function just like the expression f
         (1 (gle (cdr obj)))))
 ```
 
-Available built-in functions are as follows:  
+Available built-in functions:
 
 cons  
 car  
@@ -112,5 +112,5 @@ load
 import  
 defmacro  
 
-##Chinese version:  
+##  Chinese version:  
 [README_ZH.md](./README_ZH.md)

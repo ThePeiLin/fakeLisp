@@ -17,12 +17,13 @@ For this language, funtion or procedure are a kind of data and it can be operate
 
 Using lambda expression and symbol-binding, you can define your own function.   
 
-The expression follows will create a function and bind it with the symbol "gle" . The function will get the last element of a list.  
+The expression follows will create a function and bind it with the symbol "gle". The function "gle" can get the last element of a list.  
 
 ```scheme
-(define gle (lambda (obj)
-              (cond ((null (cdr obj)) (car obj))
-                    (1 (gle (cdr obj))))))
+(define gle
+  (lambda (obj)
+    (cond ((null (cdr obj)) (car obj))
+          (1 (gle (cdr obj))))))
 ```
 
 To simplify some complex expression, macro is a good choice.  

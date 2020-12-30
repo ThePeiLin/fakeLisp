@@ -108,7 +108,6 @@ length
 strcat  
 bytcat  
 append  
-rand  
 open  
 close  
 read  

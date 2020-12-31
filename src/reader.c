@@ -100,12 +100,15 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval)
 		strcpy(spaceString," ");
 		spaceString=exStrCat(spaceString,tmp,strlen(spaceString));
 		free(tmp);
-		int32_t backIndex=findKeyString(spaceString);
-		if(strlen(spaceString)!=(size_t)backIndex)
+		if(spaceString[strlen(spaceString)-1]!=')')
 		{
-			ungetString(spaceString+backIndex,fp);
-			spaceString[backIndex]='\0';
-			spaceString=(char*)realloc(spaceString,sizeof(char)*(strlen(spaceString)+1));
+			int32_t backIndex=findKeyString(spaceString);
+			if(strlen(spaceString)!=(size_t)backIndex)
+			{
+				ungetString(spaceString+backIndex,fp);
+				spaceString[backIndex]='\0';
+				spaceString=(char*)realloc(spaceString,sizeof(char)*(strlen(spaceString)+1));
+			}
 		}
 		return spaceString;
 	}

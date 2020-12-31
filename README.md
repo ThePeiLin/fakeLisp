@@ -40,7 +40,7 @@ Here is compiler macro that use to simplify the process of define a new function
      (list (quote define) name (cons (quote lambda) (cons args body))))))
 ```
 
-With the macro above, you can define the gle function just like the expression follows.  
+With the macro above, you can define the "gle" function just like the expression follows.  
 
 ```scheme
 (define (gle obj)

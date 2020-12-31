@@ -45,9 +45,6 @@ AST_cptr* createTree(const char* objStr,intpr* inter,StringMatchPattern* pattern
 					int i=skipInPattern(parts[j],tmpPattern);
 					for(;parts[j][i]!=0;i++)
 					{
-						i+=skipSpace(parts[j]+i);
-						if(!parts[j][i])
-							break;
 						tmpPattern=findStringPattern(parts[j]+i,pattern);
 						AST_cptr* tmpCptr2=createTree(parts[j]+i,inter,tmpPattern);
 						if(!tmpCptr2)
@@ -82,6 +79,10 @@ AST_cptr* createTree(const char* objStr,intpr* inter,StringMatchPattern* pattern
 				}
 				free(varName);
 			}
+			else
+			{
+				inter->curline+=countChar(parts[j],'\n',-1);
+			}
 		ByteCode* rawProcList=castRawproc(NULL,pattern->procs);
 		fakeVM* tmpVM=newTmpFakeVM(NULL,rawProcList);
 		VMenv* tmpGlobEnv=newVMenv(0,NULL);
@@ -111,7 +112,6 @@ AST_cptr* createTree(const char* objStr,intpr* inter,StringMatchPattern* pattern
 		free(rawProcList);
 		destroyEnv(tmpEnv);
 		freeStringArry(parts,num);
-		inter->curline+=countChar(objStr,'\n',skipInPattern(objStr,pattern));
 		return tmpCptr;
 	}
 	else

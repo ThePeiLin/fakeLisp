@@ -1,5 +1,5 @@
 (import ../btk)
-(defmacro "'[a]" (cons (quote quote) (cons a nil)))
+(defmacro "'(a)" (cons (quote quote) (cons a nil)))
 (defmacro (define ($name,$args),$body)
   ((lambda ()
      (define list (lambda ls ls))

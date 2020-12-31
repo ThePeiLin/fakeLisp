@@ -18,10 +18,10 @@ char** splitPattern(const char* str,int32_t* num)
 	{
 		if(isspace(str[i]))
 			i+=skipSpace(str+i);
-		if(str[i]=='[')
+		if(str[i]=='(')
 		{
 			int j=i;
-			for(;str[j]!='\0'&&str[j]!=']';j++);
+			for(;str[j]!='\0'&&str[j]!=')';j++);
 			char* tmpStr=(char*)malloc(sizeof(char)*(j-i+2));
 			if(!tmpStr)errors("splitPattern",__FILE__,__LINE__);
 			memcpy(tmpStr,str+i,j-i+1);
@@ -32,7 +32,7 @@ char** splitPattern(const char* str,int32_t* num)
 			continue;
 		}
 		int j=i;
-		for(;str[j]!='\0'&&str[j]!='[';j++);
+		for(;str[j]!='\0'&&str[j]!='(';j++);
 		char* tmpStr=(char*)malloc(sizeof(char)*(j-i+1));
 		if(!tmpStr)errors("splitPattern",__FILE__,__LINE__);
 		memcpy(tmpStr,str+i,j-i);
@@ -49,7 +49,7 @@ char* getVarName(const char* str)
 {
 	int i=(str[1]==',')?2:1;
 	int j=i;
-	for(;str[i]!='\0'&&str[i]!=']';i++);
+	for(;str[i]!='\0'&&str[i]!=')';i++);
 	char* tmp=(char*)malloc(sizeof(char)*(i-j+1));
 	if(!tmp)errors("getVarName",__FILE__,__LINE__);
 	memcpy(tmp,str+j,i-j);
@@ -65,16 +65,16 @@ int32_t countStringParts(const char* str)
 	{
 		if(isspace(str[i]))
 			i+=skipSpace(str+i);
-		if(str[i]=='[')
+		if(str[i]=='(')
 		{
 			int j=i;
-			for(;str[j]!='\0'&&str[j]!=']';j++);
+			for(;str[j]!='\0'&&str[j]!=')';j++);
 			i=j;
 			count++;
 			continue;
 		}
 		int j=i;
-		for(;str[j]!='\0'&&str[j]!='[';j++);
+		for(;str[j]!='\0'&&str[j]!='(';j++);
 		count++;
 		i=j-1;
 		continue;
@@ -528,7 +528,7 @@ int32_t countInPattern(const char* str,StringMatchPattern* pattern)
 
 int isVar(const char* part)
 {
-	if(part[0]=='[')
+	if(part[0]=='(')
 		return 1;
 	return 0;
 }

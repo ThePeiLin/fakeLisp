@@ -100,6 +100,13 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval)
 		strcpy(spaceString," ");
 		exStrCat(spaceString,tmp,strlen(spaceString));
 		free(tmp);
+		int32_t backIndex=findKeyString(spaceString);
+		if(strlen(spaceString)!=(size_t)backIndex)
+		{
+			ungetString(spaceString+backIndex,fp);
+			spaceString[backIndex]='\0';
+			spaceString=(char*)realloc(spaceString,sizeof(char)*(strlen(spaceString)+1));
+		}
 		return spaceString;
 	}
 	for(;;)
@@ -823,4 +830,21 @@ void freeStringPattern(StringMatchPattern* o)
 	free(o);
 }
 
-
+int32_t findKeyString(const char* str)
+{
+	StringMatchPattern* cur=HeadOfStringPattern;
+	while(cur)
+	{
+		int i=0;
+		char* keyString=cur->parts[0];
+		for(;str[i]!='\0';i++)
+		{
+			if(strlen(str+i)<strlen(keyString))
+				break;
+			if(!strncmp(keyString,str+i,strlen(keyString)))
+				return i;
+		}
+		cur=cur->next;
+	}
+	return strlen(str);
+}

@@ -67,7 +67,7 @@ define gle (lambda (obj) (cond ((null (car obj)) (car obj)) (1 (gle (cdr obj))))
 ```
 （拆分AST）
 
-=>
+=>  
 0.push_sym "obj"  
 1.push_num 0  
 2.push_num 1  

@@ -183,8 +183,6 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev)
 			free(splitIndex);
         }
 		tmpNext=readInPattern(fp,NULL,prev);
-		if(!tmpNext)
-			break;
 		tmp=exStrCat(tmp,tmpNext,strlen(tmp));
 		free(tmpNext);
 	}

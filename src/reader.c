@@ -183,6 +183,8 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev)
 			free(splitIndex);
         }
 		tmpNext=readInPattern(fp,NULL,prev);
+		if(!tmpNext)
+			break;
 		tmp=exStrCat(tmp,tmpNext,strlen(tmp));
 		free(tmpNext);
 	}
@@ -488,9 +490,9 @@ char** splitStringInPattern(const char* str,StringMatchPattern* pattern,int32_t*
 	int i=0;
 	int32_t* s=matchPartOfPattern(str,pattern,num);
 	char** tmp=(char**)malloc(sizeof(char*)*(pattern->num));
+	if(!tmp)errors("splitStringInPattern",__FILE__,__LINE__);
 	for(;i<pattern->num;i++)
 		tmp[i]=NULL;
-	if(!tmp)errors("splitStringInPattern",__FILE__,__LINE__);
 	for(i=0;i<*num;i++)
 	{
 		int32_t strSize=(i+1<*num)?((size_t)(s[i+1]-s[i])):(size_t)skipInPattern(str,pattern)-s[i];
@@ -525,14 +527,8 @@ int32_t* matchPartOfPattern(const char* str,StringMatchPattern* pattern,int32_t*
 		{
 			s+=skipSpace(str+s);
 			splitIndex[i]=s;
-			StringMatchPattern* nextPattern=findStringPattern(str+s,pattern);
-			if(nextPattern)
-				s+=skipInPattern(str+s,nextPattern);
-			else
-			{
-				char* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
-				s+=skipUntilNext(str+s,next);
-			}
+			char* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
+			s+=skipUntilNext(str+s,next);
 		}
 	}
 	return splitIndex;
@@ -557,14 +553,8 @@ int32_t countInPattern(const char* str,StringMatchPattern* pattern)
 		else
 		{
 			s+=skipSpace(str+s);
-			StringMatchPattern* nextPattern=findStringPattern(str+s,pattern);
-			if(nextPattern)
-				s+=skipInPattern(str+s,nextPattern);
-			else
-			{
-				char* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
-				s+=skipUntilNext(str+s,next);
-			}
+			char* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
+			s+=skipUntilNext(str+s,next);
 		}
 		s+=skipSpace(str+s);
 		i++;
@@ -670,14 +660,8 @@ int32_t skipInPattern(const char* str,StringMatchPattern* pattern)
 			else
 			{
 				s+=skipSpace(str+s);
-				StringMatchPattern* nextPattern=findStringPattern(str+s,pattern);
-				if(nextPattern)
-					s+=skipInPattern(str+s,nextPattern);
-				else
-				{
-					char* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
-					s+=skipUntilNext(str+s,next);
-				}
+				char* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
+				s+=skipUntilNext(str+s,next);
 			}
 		}
 	}

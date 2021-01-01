@@ -1652,12 +1652,13 @@ ByteCode* compileFile(intpr* inter)
 	ByteCode* tmp=createByteCode(0);
 	ByteCode* pop=createByteCode(1);
 	pop->code[0]=FAKE_POP;
+	char* prev=NULL;
 	while((ch=getc(inter->file))!=EOF)
 	{
 		ungetc(ch,inter->file);
 		AST_cptr* begin=NULL;
 		StringMatchPattern* tmpPattern=NULL;
-		char* list=readInPattern(inter->file,&tmpPattern);
+		char* list=readInPattern(inter->file,&tmpPattern,&prev);
 		if(list==NULL)continue;
 		ErrorStatus status={0,NULL};
 		begin=createTree(list,inter,tmpPattern);

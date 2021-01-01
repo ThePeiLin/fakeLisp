@@ -82,9 +82,16 @@ int32_t countStringParts(const char* str)
 	return count;
 }
 
-char* readInPattern(FILE* fp,StringMatchPattern** retval)
+char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev)
 {
-	char* tmp=readSingle(fp);
+	char* tmp=NULL;
+	if(*prev)
+	{
+		tmp=*prev;
+		*prev=NULL;
+	}
+	else
+		tmp=readSingle(fp);
 	if(!tmp||!strlen(tmp))
 	{
 		if(tmp)
@@ -106,7 +113,7 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval)
 			int32_t backIndex=findKeyString(spaceString);
 			if(strlen(spaceString)!=(size_t)backIndex)
 			{
-				ungetString(spaceString+backIndex,fp);
+				*prev=copyStr(spaceString+backIndex);
 				spaceString[backIndex]='\0';
 				spaceString=(char*)realloc(spaceString,sizeof(char)*(strlen(spaceString)+1));
 				if(!spaceString)errors("readInPattern",__FILE__,__LINE__);
@@ -125,7 +132,7 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval)
 			StringMatchPattern* tmpPattern=findStringPattern(tmp+tmpbackIndex,HeadOfStringPattern);
 			if(tmpPattern)
 			{
-				ungetString(tmp+tmpbackIndex,fp);
+				*prev=copyStr(tmp+tmpbackIndex);
 				backIndex=tmpbackIndex;
 			}
 			else
@@ -151,7 +158,7 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval)
 			}
 		}
 		free(splitIndex);
-		char* tmpNext=readInPattern(fp,NULL);
+		char* tmpNext=readInPattern(fp,NULL,prev);
 		if(tmpNext==NULL)
 			break;
 		tmp=exStrCat(tmp,tmpNext,backIndex);
@@ -175,7 +182,7 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval)
 			}
 			free(splitIndex);
         }
-		tmpNext=readInPattern(fp,NULL);
+		tmpNext=readInPattern(fp,NULL,prev);
 		tmp=exStrCat(tmp,tmpNext,strlen(tmp));
 		free(tmpNext);
 	}
@@ -185,7 +192,9 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval)
 		int32_t* index=matchPartOfPattern(tmp,pattern,&num);
 		char* part=pattern->parts[num-1];
 		int32_t finaleIndex=index[num-1]+strlen(part);
-		ungetString(tmp+finaleIndex,fp);
+		if(strlen(tmp+finaleIndex))
+			*prev=copyStr(tmp+finaleIndex);
+		else *prev=NULL;
 		tmp[finaleIndex]='\0';
 		int32_t memsize=strlen(tmp)+1;
 		tmp=(char*)realloc(tmp,memsize*sizeof(char));
@@ -194,7 +203,7 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval)
 	}
 	char* spaceString=(char*)malloc(sizeof(char)*(strlen(tmp)+2));
 	if(!spaceString)errors("readInPattern",__FILE__,__LINE__);
-	memcpy(spaceString," ");
+	strcpy(spaceString," ");
 	spaceString=exStrCat(spaceString,tmp,strlen(spaceString));
 	free(tmp);
 	return spaceString;
@@ -727,13 +736,6 @@ char* exStrCat(char* s1,const char* s2,int32_t i)
 	if(!s1)errors("exStrCat",__FILE__,__LINE__);
 	strcpy(s1+i,s2);
 	return s1;
-}
-
-void ungetString(const char* str,FILE* fp)
-{
-	int32_t i=strlen(str)-1;
-	for(;i>-1;i--)
-		ungetc(str[i],fp);
 }
 
 int isInValidStringPattern(const char* str)

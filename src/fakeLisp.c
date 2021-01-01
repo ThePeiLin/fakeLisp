@@ -95,12 +95,13 @@ void runIntpr(intpr* inter)
 	anotherVM->tid=pthread_self();
 	initGlobEnv(globEnv,anotherVM->heap);
 	ByteCode* rawProcList=NULL;
+	char* prev=NULL;
 	for(;;)
 	{
 		AST_cptr* begin=NULL;
 		if(inter->file==stdin)printf(">>>");
 		StringMatchPattern* tmpPattern=NULL;
-		char* list=readInPattern(inter->file,&tmpPattern);
+		char* list=readInPattern(inter->file,&tmpPattern,&prev);
 		//	printf("%s\n==================\n",list);
 		ErrorStatus status={0,NULL};
 		begin=createTree(list,inter,tmpPattern);

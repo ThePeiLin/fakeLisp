@@ -419,15 +419,15 @@ char* readList(FILE* fp)
 		{
 			if(!tmp)
 			{
-				tmp=(char*)malloc(sizeof(char)*2);
+				tmp=(char*)malloc(sizeof(char)*3);
 				if(!tmp)errors("readList",__FILE__,__LINE__);
-				strcpy(tmp,")");
+				strcpy(tmp," )");
 			}
 			else
 			{
-				tmp=(char*)realloc(tmp,sizeof(char)*(strlen(tmp)+2));
+				tmp=(char*)realloc(tmp,sizeof(char)*(strlen(tmp)+3));
 				if(!tmp)errors("readList",__FILE__,__LINE__);
-				strcat(tmp,")");
+				strcat(tmp," )");
 			}
 			break;
 		}

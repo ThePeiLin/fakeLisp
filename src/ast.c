@@ -347,6 +347,10 @@ AST_cptr* castVMvalueToCptr(VMvalue* value,int32_t curline,AST_pair* prev)
 				tmpAtm->value.byta.size=value->u.byta->size;
 				tmpAtm->value.byta.arry=copyMemory(value->u.byta->arry,value->u.byta->size);
 				break;
+			case PRC:
+				tmpAtm->type=SYM;
+				tmpAtm->value.str=copyStr("#<proc>");
+				break;
 		}
 		tmp->value=tmpAtm;
 	}

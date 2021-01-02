@@ -166,6 +166,8 @@ void printRawString(const char* objStr,FILE* out)
 			fprintf(out,"\\\"");
 		else if(isgraph(*tmpStr)||*tmpStr<0)
 			putc(*tmpStr,out);
+		else if(*tmpStr=='\x20')
+			putc(*tmpStr,out);
 		else
 		{
 			uint8_t j=*tmpStr;

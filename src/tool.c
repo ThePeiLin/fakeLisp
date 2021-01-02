@@ -54,7 +54,7 @@ char* builtInSymbolList[]=
 	"mod",
 	"nth",
 	"length",
-	"append",
+	"apend",
 	"strcat",
 	"bytcat",
 	"open",

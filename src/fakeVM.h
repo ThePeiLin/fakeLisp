@@ -62,7 +62,7 @@ int B_is_prc(fakeVM*);
 int B_is_byte(fakeVM*);
 int B_nth(fakeVM*);
 int B_length(fakeVM*);
-int B_append(fakeVM*);
+int B_apend(fakeVM*);
 int B_str_cat(fakeVM*);
 int B_byte_cat(fakeVM*);
 int B_eq(fakeVM*);

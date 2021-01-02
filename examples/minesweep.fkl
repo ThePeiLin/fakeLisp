@@ -1,5 +1,5 @@
 (import ../btk)
-(defmacro "'[a]" (cons (quote quote) (cons a nil)))
+(defmacro "'(a)" (cons (quote quote) (cons a nil)))
 (defmacro
   (let $d,$b)
   ((lambda ()
@@ -7,8 +7,8 @@
        (lambda (f l)
          (define map-iter
            (lambda (f c p)
-             (cond ((null c) (append p nil))
-                   (1 (map-iter f (cdr c) (append p (cons (f (car c)) nil)))))))
+             (cond ((null c) (apend p nil))
+                   (1 (map-iter f (cdr c) (apend p (cons (f (car c)) nil)))))))
          (map-iter f l nil)))
      (define list (lambda ls ls))
      (define args nil)
@@ -103,7 +103,7 @@
                         place
                         (1+ count)
                         (cons (car list) tmp)))))
-  (append (resl (getbefore list place 0 nil))
+  (apend (resl (getbefore list place 0 nil))
           (cons value (getafter list place 0))))
 
 (define (createMap line row bombnum)

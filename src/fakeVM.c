@@ -2678,7 +2678,10 @@ void princVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t isPrevPair)
 				if(objValue->u.pair->car->type==PAIR&&objValue->u.pair->car->u.pair==begin)
 					fprintf(fp,"##");
 				else
-					princVMvalue(objValue->u.pair->car,begin,fp,0);
+				{
+					if(objValue->u.pair->car->type!=NIL||isPrevPair)
+						princVMvalue(objValue->u.pair->car,begin,fp,0);
+				}
 				if(objValue->u.pair->cdr->type!=NIL)
 				{
 					if(objValue->u.pair->cdr->type!=PAIR)

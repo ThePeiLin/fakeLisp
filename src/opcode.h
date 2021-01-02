@@ -22,11 +22,13 @@ enum opcode
 	FAKE_POP_CAR,
 	FAKE_POP_CDR,
 	FAKE_POP_REF,
+	//FAKE_PACK_CC
 	FAKE_INIT_PROC,
 	FAKE_CALL_PROC,
 	FAKE_END_PROC,
 	FAKE_SET_BP,
 	FAKE_INVOKE,
+	//FAKE_RES_TP,
 	FAKE_RES_BP,
 	FAKE_JMP_IF_TURE,
 	FAKE_JMP_IF_FALSE,
@@ -75,7 +77,6 @@ enum opcode
 	FAKE_SEND,
 	FAKE_ACCEPT,
 	FAKE_GETID,
-	FAKE_PACK_CC
 };
 
 typedef struct
@@ -107,11 +108,13 @@ static codeinfor codeName[]=
 	{"pop_car",0},
 	{"pop_cdr",0},
 	{"pop_ref",0},
+	//{"pack_cc",0}
 	{"init_proc",4},
 	{"call_proc",-1},
 	{"end_proc",0},
 	{"set_bp",0},
 	{"invoke",0},
+	//{"res_tp",0},
 	{"res_bp",0},
 	{"jmp_if_ture",4},
 	{"jmp_if_false",4},
@@ -160,7 +163,6 @@ static codeinfor codeName[]=
 	{"send",0},
 	{"accept",0},
 	{"getid",0},
-	{"pack_cc",0}
 };
 
 #endif

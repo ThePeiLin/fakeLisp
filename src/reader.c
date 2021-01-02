@@ -105,8 +105,7 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev)
 	{
 		char* spaceString=(char*)malloc(sizeof(char)*(strlen(tmp)+2));
 		if(!spaceString)errors("readInPattern",__FILE__,__LINE__);
-		strcpy(spaceString," ");
-		spaceString=exStrCat(spaceString,tmp,strlen(spaceString));
+		sprintf(spaceString," %s",tmp);
 		free(tmp);
 		if(spaceString[strlen(spaceString)-1]!=')')
 		{
@@ -141,8 +140,8 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev)
 				{
 					free(splitIndex);
 					char* spaceString=(char*)malloc(sizeof(char)*(strlen(tmp)+2));
-					strcpy(spaceString," ");
-					spaceString=exStrCat(spaceString,tmp,strlen(spaceString));
+					if(!spaceString)errors("readInPattern",__FILE__,__LINE__);
+					sprintf(spaceString," %s",tmp);
 					free(tmp);
 					return spaceString;
 				}
@@ -203,8 +202,7 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev)
 	}
 	char* spaceString=(char*)malloc(sizeof(char)*(strlen(tmp)+2));
 	if(!spaceString)errors("readInPattern",__FILE__,__LINE__);
-	strcpy(spaceString," ");
-	spaceString=exStrCat(spaceString,tmp,strlen(spaceString));
+	sprintf(spaceString," %s",tmp);
 	free(tmp);
 	return spaceString;
 }
@@ -279,8 +277,7 @@ char* readSingle(FILE* fp)
 			if(!tmp)errors("readSingle",__FILE__,__LINE__);
 			char* spaceString=(char*)malloc(sizeof(char)*(strlen(tmp)+2));
 			if(!spaceString)errors("readSingle",__FILE__,__LINE__);
-			strcpy(spaceString," ");
-			spaceString=exStrCat(spaceString,tmp,strlen(spaceString));
+			sprintf(spaceString," %s",tmp);
 			free(tmp);
 			return spaceString;
 			break;
@@ -300,9 +297,8 @@ char* readSingle(FILE* fp)
 	if(!tmp)errors("readSingle",__FILE__,__LINE__);
 	free(subStr);
 	char* spaceString=(char*)malloc(sizeof(char)*(strlen(tmp)+2));
-	strcpy(spaceString," ");
-	spaceString=exStrCat(spaceString,tmp,strlen(spaceString));
 	if(!spaceString)errors("readSingle",__FILE__,__LINE__);
+	sprintf(spaceString," %s",tmp);
 	free(tmp);
 	return spaceString;
 }

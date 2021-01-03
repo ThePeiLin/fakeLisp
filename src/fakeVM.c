@@ -58,19 +58,13 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_mod,
 	B_atom,
 	B_null,
+	B_type_of,
 	B_cast_to_chr,
 	B_cast_to_int,
 	B_cast_to_dbl,
 	B_cast_to_str,
 	B_cast_to_sym,
 	B_cast_to_byte,
-	B_is_chr,
-	B_is_int,
-	B_is_dbl,
-	B_is_str,
-	B_is_sym,
-	B_is_prc,
-	B_is_byte,
 	B_nth,
 	B_length,
 	B_appd,
@@ -166,6 +160,19 @@ ByteCode P_null=
 	}
 };
 
+ByteCode P_type_of=
+{
+	13,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_TYPE_OF,
+		FAKE_END_PROC
+	}
+};
+
 ByteCode P_aply=
 {
 	25,
@@ -180,97 +187,6 @@ ByteCode P_aply=
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_INVOKE,
 		FAKE_END_PROC,
-	}
-};
-
-ByteCode P_isint=
-{
-	13,
-	(char[])
-	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_RES_BP,
-		FAKE_PUSH_VAR,0,0,0,0,
-		FAKE_IS_INT,
-		FAKE_END_PROC
-	}
-};
-
-ByteCode P_ischr=
-{
-	13,
-	(char[])
-	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_RES_BP,
-		FAKE_PUSH_VAR,0,0,0,0,
-		FAKE_IS_CHR,
-		FAKE_END_PROC
-	}
-};
-
-ByteCode P_isdbl=
-{
-	13,
-	(char[])
-	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_RES_BP,
-		FAKE_PUSH_VAR,0,0,0,0,
-		FAKE_IS_DBL,
-		FAKE_END_PROC
-	}
-};
-
-ByteCode P_isstr=
-{
-	13,
-	(char[])
-	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_RES_BP,
-		FAKE_PUSH_VAR,0,0,0,0,
-		FAKE_IS_STR,
-		FAKE_END_PROC
-	}
-};
-
-ByteCode P_issym=
-{
-	13,
-	(char[])
-	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_RES_BP,
-		FAKE_PUSH_VAR,0,0,0,0,
-		FAKE_IS_SYM,
-		FAKE_END_PROC
-	}
-};
-
-ByteCode P_isprc=
-{
-	13,
-	(char[])
-	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_RES_BP,
-		FAKE_PUSH_VAR,0,0,0,0,
-		FAKE_IS_PRC,
-		FAKE_END_PROC
-	}
-};
-
-ByteCode P_isbyt=
-{
-	13,
-	(char[])
-	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_RES_BP,
-		FAKE_PUSH_VAR,0,0,0,0,
-		FAKE_IS_BYTE,
-		FAKE_END_PROC
 	}
 };
 
@@ -842,14 +758,8 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 		P_cdr,
 		P_atom,
 		P_null,
+		P_type_of,
 		P_aply,
-		P_ischr,
-		P_isint,
-		P_isdbl,
-		P_isstr,
-		P_issym,
-		P_isprc,
-		P_isbyt,
 		P_eq,
 		P_eqn,
 		P_equal,
@@ -1579,6 +1489,29 @@ int B_null(fakeVM* exe)
 	return 0;
 }
 
+int B_type_of(fakeVM* exe)
+{
+	char* a[]=
+	{
+		"nil",
+		"int",
+		"chr",
+		"dbl",
+		"sym",
+		"str",
+		"byta",
+		"proc",
+		"pair"
+	};
+	VMstack* stack=exe->stack;
+	VMprocess* proc=exe->curproc;
+	VMvalue* topValue=getTopValue(stack);
+	int32_t type=topValue->type;
+	VMstr* str=newVMstr(a[type]);
+	stack->values[stack->tp-1]=newVMvalue(SYM,str,exe->heap,1);
+	proc->cp+=1;
+}
+
 int B_init_proc(fakeVM* exe)
 {
 	VMstack* stack=exe->stack;
@@ -2128,90 +2061,6 @@ int B_cast_to_byte(fakeVM* exe)
 				  break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
-	proc->cp+=1;
-	return 0;
-}
-
-int B_is_chr(fakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMprocess* proc=exe->curproc;
-	VMvalue* objValue=getTopValue(stack);
-	if(objValue->type==CHR)
-		stack->values[stack->tp-1]=newTrueValue(exe->heap);
-	else stack->values[stack->tp-1]=newNilValue(exe->heap);
-	proc->cp+=1;
-	return 0;
-}
-
-int B_is_int(fakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMprocess* proc=exe->curproc;
-	VMvalue* objValue=getTopValue(stack);
-	if(objValue->type==IN32)
-		stack->values[stack->tp-1]=newTrueValue(exe->heap);
-	else stack->values[stack->tp-1]=newNilValue(exe->heap);
-	proc->cp+=1;
-	return 0;
-}
-
-int B_is_dbl(fakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMprocess* proc=exe->curproc;
-	VMvalue* objValue=getTopValue(stack);
-	if(objValue->type==DBL)
-		stack->values[stack->tp-1]=newTrueValue(exe->heap);
-	else stack->values[stack->tp-1]=newNilValue(exe->heap);
-	proc->cp+=1;
-	return 0;
-}
-
-int B_is_str(fakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMprocess* proc=exe->curproc;
-	VMvalue* objValue=getTopValue(stack);
-	if(objValue->type==STR)
-		stack->values[stack->tp-1]=newTrueValue(exe->heap);
-	else stack->values[stack->tp-1]=newNilValue(exe->heap);
-	proc->cp+=1;
-	return 0;
-}
-
-int B_is_sym(fakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMprocess* proc=exe->curproc;
-	VMvalue* objValue=getTopValue(stack);
-	if(objValue->type==SYM)
-		stack->values[stack->tp-1]=newTrueValue(exe->heap);
-	else stack->values[stack->tp-1]=newNilValue(exe->heap);
-	proc->cp+=1;
-	return 0;
-}
-
-int B_is_prc(fakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMprocess* proc=exe->curproc;
-	VMvalue* objValue=getTopValue(stack);
-	if(objValue->type==PRC)
-		stack->values[stack->tp-1]=newTrueValue(exe->heap);
-	else stack->values[stack->tp-1]=newNilValue(exe->heap);
-	proc->cp+=1;
-	return 0;
-}
-
-int B_is_byte(fakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMprocess* proc=exe->curproc;
-	VMvalue* topValue=getTopValue(stack);
-	if(topValue->type==BYTA)
-		stack->values[stack->tp-1]=newTrueValue(exe->heap);
-	else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	proc->cp+=1;
 	return 0;
 }

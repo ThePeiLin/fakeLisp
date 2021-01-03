@@ -31,13 +31,13 @@ defmacro的语法比较特殊，为：
        (lambda (f l)
          (define map-iter
            (lambda (f c p)
-             (cond ((null c) (append p nil))
-                   (1 (map-iter f (cdr c) (append p (cons (f (car c)) nil)))))))
+             (cond ((null c) (appd p nil))
+                   (1 (map-iter f (cdr c) (appd p (cons (f (car c)) nil)))))))
          (map-iter f l nil)))
      (define list (lambda ls ls))
      (define args nil)
      (define vals nil)
-     (cond ((issym d)
+     (cond ((eq (typeof d) 'sym)
             (setq
               args
               (map (lambda (sd) (nth 0 sd)) (car b)))
@@ -76,14 +76,8 @@ car
 cdr  
 atom  
 null  
-app  
-ischr  
-isint  
-isdbl  
-isstr  
-issym  
-isprc  
-isbyt  
+aply  
+typeof  
 eq  
 equal  
 eqn  
@@ -107,7 +101,7 @@ nth
 length  
 strcat  
 bytcat  
-append  
+appd  
 open  
 close  
 read  

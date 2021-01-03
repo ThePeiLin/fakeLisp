@@ -55,14 +55,8 @@ car
 cdr  
 atom  
 null  
-app  
-ischr  
-isint  
-isdbl  
-isstr  
-issym  
-isprc  
-isbyt  
+aply  
+typeof  
 eq  
 equal  
 eqn  

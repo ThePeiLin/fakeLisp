@@ -1436,10 +1436,7 @@ int B_div(fakeVM* exe)
 	stackRecycle(exe);
 	if((firValue->type!=IN32&&firValue->type!=DBL)||(secValue->type!=IN32&&secValue->type!=DBL))return WRONGARG;
 	if((firValue->type==DBL&&fabs(*firValue->u.dbl)==0)||(firValue->type==IN32&&*firValue->u.num==0))
-	{
-		VMstr* tmpStr=newVMstr("inf");
-		tmpValue=newVMvalue(SYM,tmpStr,exe->heap,1);
-	}
+		tmpValue=newNilValue(exe->heap);
 	else
 	{
 		double result=((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num)/((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num);
@@ -1461,10 +1458,7 @@ int B_mod(fakeVM* exe)
 	stackRecycle(exe);
 	if((firValue->type!=IN32&&firValue->type!=DBL)||(secValue->type!=IN32&&secValue->type!=DBL))return WRONGARG;
 	if(!(*firValue->u.num))
-	{
-		VMstr* tmpStr=newVMstr("inf");
-		tmpValue=newVMvalue(SYM,tmpStr,exe->heap,1);
-	}
+		tmpValue=newNilValue(exe->heap);
 	else
 	{
 		int32_t result=((int32_t)((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num))%((int32_t)((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num));

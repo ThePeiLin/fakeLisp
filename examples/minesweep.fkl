@@ -7,8 +7,8 @@
        (lambda (f l)
          (define map-iter
            (lambda (f c p)
-             (cond ((null c) (apnd p nil))
-                   (1 (map-iter f (cdr c) (apnd p (cons (f (car c)) nil)))))))
+             (cond ((null c) (appd p nil))
+                   (1 (map-iter f (cdr c) (appd p (cons (f (car c)) nil)))))))
          (map-iter f l nil)))
      (define list (lambda ls ls))
      (define args nil)
@@ -103,7 +103,7 @@
                         place
                         (1+ count)
                         (cons (car list) tmp)))))
-  (apnd (resl (getbefore list place 0 nil))
+  (appd (resl (getbefore list place 0 nil))
           (cons value (getafter list place 0))))
 
 (define (createMap line row bombnum)

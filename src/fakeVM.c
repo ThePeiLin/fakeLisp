@@ -1431,11 +1431,20 @@ int B_div(fakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* firValue=getValue(stack,stack->tp-1);
 	VMvalue* secValue=getValue(stack,stack->tp-2);
+	VMvalue* tmpValue=NULL;
 	stack->tp-=1;
 	stackRecycle(exe);
 	if((firValue->type!=IN32&&firValue->type!=DBL)||(secValue->type!=IN32&&secValue->type!=DBL))return WRONGARG;
-	double result=((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num)/((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num);
-	VMvalue* tmpValue=newVMvalue(DBL,&result,exe->heap,1);
+	if((firValue->type==DBL&&fabs(*firValue->u.dbl)==0)||(firValue->type==IN32&&*firValue->u.num==0))
+	{
+		VMstr* tmpStr=newVMstr("inf");
+		tmpValue=newVMvalue(SYM,tmpStr,exe->heap,1);
+	}
+	else
+	{
+		double result=((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num)/((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num);
+		tmpValue=newVMvalue(DBL,&result,exe->heap,1);
+	}
 	stack->values[stack->tp-1]=tmpValue;
 	proc->cp+=1;
 	return 0;
@@ -1447,11 +1456,20 @@ int B_mod(fakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* firValue=getValue(stack,stack->tp-1);
 	VMvalue* secValue=getValue(stack,stack->tp-2);
+	VMvalue* tmpValue=NULL;
 	stack->tp-=1;
 	stackRecycle(exe);
 	if((firValue->type!=IN32&&firValue->type!=DBL)||(secValue->type!=IN32&&secValue->type!=DBL))return WRONGARG;
-	int32_t result=((int32_t)((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num))%((int32_t)((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num));
-	VMvalue* tmpValue=newVMvalue(IN32,&result,exe->heap,1);
+	if(!(*firValue->u.num))
+	{
+		VMstr* tmpStr=newVMstr("inf");
+		tmpValue=newVMvalue(SYM,tmpStr,exe->heap,1);
+	}
+	else
+	{
+		int32_t result=((int32_t)((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num))%((int32_t)((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num));
+		tmpValue=newVMvalue(IN32,&result,exe->heap,1);
+	}
 	stack->values[stack->tp-1]=tmpValue;
 	proc->cp+=1;
 	return 0;
@@ -1944,12 +1962,22 @@ int B_cast_to_int(fakeVM* exe)
 	VMvalue* tmpValue=newVMvalue(IN32,NULL,exe->heap,1);
 	switch(topValue->type)
 	{
-		case IN32:*tmpValue->u.num=*topValue->u.num;break;
-		case DBL:*tmpValue->u.num=(int32_t)*topValue->u.dbl;break;
-		case CHR:*tmpValue->u.num=*topValue->u.chr;break;
+		case IN32:
+			*tmpValue->u.num=*topValue->u.num;
+			break;
+		case DBL:
+			*tmpValue->u.num=(int32_t)*topValue->u.dbl;
+			break;
+		case CHR:
+			*tmpValue->u.num=*topValue->u.chr;
+			break;
 		case STR:
-		case SYM:*tmpValue->u.num=stringToInt(topValue->u.str->str);break;
-		case BYTA:*tmpValue->u.dbl=*(int32_t*)topValue->u.byta->arry;break;
+		case SYM:
+			*tmpValue->u.num=stringToInt(topValue->u.str->str);
+			break;
+		case BYTA:
+			*tmpValue->u.dbl=*(int32_t*)topValue->u.byta->arry;
+			break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
 	proc->cp+=1;

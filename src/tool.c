@@ -1,3 +1,5 @@
+#include"tool.h"
+#include"opcode.h"
 #include<stdlib.h>
 #include<stdio.h>
 #include<string.h>
@@ -11,8 +13,6 @@
 #else
 #include<tchar.h>
 #endif
-#include"tool.h"
-#include"opcode.h"
 char* builtInSymbolList[]=
 {
 	"nil",
@@ -25,14 +25,8 @@ char* builtInSymbolList[]=
 	"cdr",
 	"atom",
 	"null",
+	"typeof",
 	"aply",
-	"ischr",
-	"isint",
-	"isdbl",
-	"isstr",
-	"issym",
-	"isprc",
-	"isbyt",
 	"eq",
 	"eqn",
 	"equal",

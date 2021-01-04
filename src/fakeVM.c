@@ -35,6 +35,7 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_push_cdr,
 	B_push_top,
 	B_push_proc,
+	B_push_mod_proc,
 	B_push_list_arg,
 	B_pop,
 	B_pop_var,
@@ -1199,6 +1200,29 @@ int B_push_proc(fakeVM* exe)
 	return 0;
 }
 
+int B_push_mod_proc(fakeVM* exe)
+{
+	VMstack* stack=exe->stack;
+	VMprocess* proc=exe->curproc;
+	VMcode* tmpCode=proc->code;
+	char* funcname=tmpCode->code+proc->cp+1;
+	if(stack->tp>=stack->size)
+	{
+		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
+		if(stack->values==NULL)errors("B_push_proc",__FILE__,__LINE__);
+		stack->size+=64;
+	}
+	ByteCode* dllFunc=newDllFuncProc(funcname);
+	VMcode* tmp=newVMcode(dllFunc);
+	tmp->localenv=newVMenv(0,NULL);
+	VMvalue* tmpVMvalue=newVMvalue(PRC,tmp,exe->heap,1);
+	freeByteCode(dllFunc);
+	stack->values[stack->tp]=tmpVMvalue;
+	stack->tp+=1;
+	proc->cp+=2+strlen(funcname);
+	return 0;
+}
+
 int B_push_list_arg(fakeVM* exe)
 {
 	VMstack* stack=exe->stack;
@@ -1249,9 +1273,11 @@ int B_pop_var(fakeVM* exe)
 		int i=curEnv->size;
 		curEnv->size=countOfVar-curEnv->bound+1;
 		curEnv->values=(VMvalue**)realloc(curEnv->values,sizeof(VMvalue*)*curEnv->size);
-		pValue=curEnv->values+countOfVar-(curEnv->bound);
+		if(!curEnv->values)
+			errors("B_pop_var",__FILE__,__LINE__);
 		for(;i<curEnv->size;i++)
 			curEnv->values[i]=NULL;
+		pValue=curEnv->values+countOfVar-(curEnv->bound);
 	}
 	else
 		pValue=curEnv->values+countOfVar-(curEnv->bound);
@@ -1279,9 +1305,11 @@ int B_pop_rest_var(fakeVM* exe)
 		int i=curEnv->size;
 		curEnv->size=countOfVar-curEnv->bound+1;
 		curEnv->values=(VMvalue**)realloc(curEnv->values,sizeof(VMvalue*)*curEnv->size);
-		tmpValue=curEnv->values+countOfVar-(curEnv->bound);
+		if(!curEnv->values)
+			errors("B_pop_rest_var",__FILE__,__LINE__);
 		for(;i<curEnv->size;i++)
 			curEnv->values[i]=NULL;
+		tmpValue=curEnv->values+countOfVar-(curEnv->bound);
 	}
 	else
 		tmpValue=curEnv->values+countOfVar-(curEnv->bound);
@@ -1553,8 +1581,11 @@ int B_call_proc(fakeVM* exe)
 	if(realfuncName==NULL)errors("B_call_proc",__FILE__,__LINE__);
 	strcpy(realfuncName,headOfFunc);
 	strcat(realfuncName,funcname);
+	void* funcAddress=getAddress(realfuncName,exe->modules);
+	if(!funcAddress)
+		return STACKERROR;
+	int retval=((ModFunc)funcAddress)(exe,&GClock);
 	proc->cp+=2+strlen(funcname);
-	int retval=((ModFunc)getAddress(realfuncName,exe->modules))(exe,&GClock);
 	free(realfuncName);
 	return retval;
 }

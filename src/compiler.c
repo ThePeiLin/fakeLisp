@@ -1206,33 +1206,10 @@ ByteCode* compileSym(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus*
 			freeByteCode(pushVar);
 			return NULL;
 		}
-		CompDef* tmpDef=addCompDef(tmpAtm->value.str,curEnv);
-		ByteCode* dllFuncProc=newDllFuncProc(tmpAtm->value.str);
-		RawProc* tmpRawProc=addRawProc(dllFuncProc,inter);
-		ByteCode* pushProc=createByteCode(5);
-		ByteCode* initProc=createByteCode(5);
-		ByteCode* pushTop=createByteCode(1);
-		ByteCode* popVar=createByteCode(5);
-		ByteCode* tmp=createByteCode(0);
-		pushProc->code[0]=FAKE_PUSH_PROC;
-		initProc->code[0]=FAKE_INIT_PROC;
-		pushTop->code[0]=FAKE_PUSH_TOP;
-		popVar->code[0]=FAKE_POP_VAR;
-		*(int32_t*)(pushProc->code+sizeof(char))=tmpRawProc->count;
-		*(int32_t*)(initProc->code+sizeof(char))=(int32_t)0;
-		*(int32_t*)(popVar->code+sizeof(char))=tmpDef->count;
-		reCodeCat(popVar,tmp);
-		reCodeCat(pushTop,tmp);
-		reCodeCat(initProc,tmp);
-		reCodeCat(pushProc,tmp);
-		freeByteCode(dllFuncProc);
-		freeByteCode(pushProc);
-		freeByteCode(initProc);
-		freeByteCode(pushTop);
-		freeByteCode(popVar);
-		freeByteCode(pushVar);
-		free(realFuncName);
-		return tmp;
+		ByteCode* pushModProc=createByteCode(sizeof(char)+strlen(tmpAtm->value.str)+1);
+		pushModProc->code[0]=FAKE_PUSH_MOD_PROC;
+		strcpy(pushModProc->code+1,tmpAtm->value.str);
+		return pushModProc;
 	}
 	else
 	{

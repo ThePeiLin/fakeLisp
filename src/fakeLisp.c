@@ -107,6 +107,11 @@ void runIntpr(intpr* inter)
 		begin=createTree(list,inter,tmpPattern);
 		//	printList(begin,stderr);
 		//	printf("\n==============\n");
+		int ch=getc(inter->file);
+		if(ch==EOF)
+			break;
+		else if(ch!='\n')
+			ungetc(ch,inter->file);
 		if(begin!=NULL)
 		{
 			if(isPreprocess(begin))
@@ -177,12 +182,8 @@ void runIntpr(intpr* inter)
 			if(list!=NULL)
 				free(list);
 		}
-		int ch=getc(inter->file);
-		if(ch==EOF)
-			break;
-		if(ch==')')
-			continue;
-		else ungetc(ch,inter->file);
+		if(ch=='\n')
+			ungetc(ch,inter->file);
 	}
 	freeVMenv(globEnv);
 	joinAllThread();

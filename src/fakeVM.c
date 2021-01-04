@@ -1246,9 +1246,12 @@ int B_pop_var(fakeVM* exe)
 	VMvalue** pValue=NULL;
 	if(countOfVar-curEnv->bound>=curEnv->size)
 	{
-		curEnv->size+=1;
+		int i=curEnv->size;
+		curEnv->size=countOfVar-curEnv->bound+1;
 		curEnv->values=(VMvalue**)realloc(curEnv->values,sizeof(VMvalue*)*curEnv->size);
 		pValue=curEnv->values+countOfVar-(curEnv->bound);
+		for(;i<curEnv->size;i++)
+			curEnv->values[i]=NULL;
 	}
 	else
 		pValue=curEnv->values+countOfVar-(curEnv->bound);
@@ -1273,9 +1276,12 @@ int B_pop_rest_var(fakeVM* exe)
 	VMvalue** tmpValue=NULL;
 	if(countOfVar-curEnv->bound>=curEnv->size)
 	{
-		curEnv->size+=1;
+		int i=curEnv->size;
+		curEnv->size=countOfVar-curEnv->bound+1;
 		curEnv->values=(VMvalue**)realloc(curEnv->values,sizeof(VMvalue*)*curEnv->size);
 		tmpValue=curEnv->values+countOfVar-(curEnv->bound);
+		for(;i<curEnv->size;i++)
+			curEnv->values[i]=NULL;
 	}
 	else
 		tmpValue=curEnv->values+countOfVar-(curEnv->bound);

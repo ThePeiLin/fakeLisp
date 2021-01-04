@@ -1209,6 +1209,8 @@ ByteCode* compileSym(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus*
 		ByteCode* pushModProc=createByteCode(sizeof(char)+strlen(tmpAtm->value.str)+1);
 		pushModProc->code[0]=FAKE_PUSH_MOD_PROC;
 		strcpy(pushModProc->code+1,tmpAtm->value.str);
+		free(realFuncName);
+		freeByteCode(pushVar);
 		return pushModProc;
 	}
 	else

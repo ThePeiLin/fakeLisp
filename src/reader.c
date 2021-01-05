@@ -571,7 +571,12 @@ int32_t skipUntilNext(const char* str,const char* part)
 		if(str[s]=='(')
 			s+=skipParentheses(str+s);
 		else if(str[s]=='\"')
-			s+=skipString(str+s);
+		{
+			int32_t len=0;
+			char* tmpStr=castEscapeCharater(str+s+1,'\"',&len);
+			s+=len+1;
+			free(tmpStr);
+		}
 		else if(isspace(str[s]))
 		{
 			s+=skipSpace(str+s);
@@ -627,13 +632,6 @@ int32_t skipAtom(const char* str,const char* keyString)
 	{
 		if(isspace(str[i])||(keyLen&&!strncmp(str+i,keyString,keyLen))&&(i<1||str[i-1]!='\\')) break;
 	}
-	return i;
-}
-
-int32_t skipString(const char* str)
-{
-	int32_t i=0;
-	for(;str[i]!=0&&(!((i-1<1||str[i-1]!='\\')&&str[i]=='\"'));i++);
 	return i;
 }
 

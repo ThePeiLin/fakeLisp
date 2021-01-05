@@ -109,7 +109,13 @@ void runIntpr(intpr* inter)
 		//	printf("\n==============\n");
 		int ch=getc(inter->file);
 		if(ch==EOF)
-			break;
+		{
+			if(!list)
+			{
+				free(list);
+				break;
+			}
+		}
 		else if(ch!='\n')
 			ungetc(ch,inter->file);
 		if(begin!=NULL)

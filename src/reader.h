@@ -23,7 +23,6 @@ int32_t countInPattern(const char* str,StringMatchPattern*);
 int32_t skipUntilNext(const char* str,const char*);
 int32_t skipParentheses(const char*);
 int32_t skipAtom(const char*,const char*);
-int32_t skipString(const char*);
 static void skipComment(FILE*);
 static char* readList(FILE*);
 static char* readString(FILE*);

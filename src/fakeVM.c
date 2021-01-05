@@ -1556,6 +1556,7 @@ int B_type_of(fakeVM* exe)
 	VMstr* str=newVMstr(a[type]);
 	stack->values[stack->tp-1]=newVMvalue(SYM,str,exe->heap,1);
 	proc->cp+=1;
+	return 0;
 }
 
 int B_init_proc(fakeVM* exe)

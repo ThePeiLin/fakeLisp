@@ -2181,7 +2181,7 @@ int B_length(fakeVM* exe)
 	{
 		int32_t i=0;
 		for(VMvalue* tmp=objlist;tmp!=NULL&&tmp->type==PAIR;tmp=getCdr(tmp))
-			if(getCar(tmp)->type!=NIL&&getCdr(tmp)->type!=NIL)
+			if(!(getCar(tmp)->type==NIL&&getCdr(tmp)->type==NIL))
 				i++;
 		stack->values[stack->tp-1]=newVMvalue(IN32,&i,exe->heap,1);
 	}

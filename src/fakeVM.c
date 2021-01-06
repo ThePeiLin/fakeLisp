@@ -1282,9 +1282,10 @@ int B_pop_var(fakeVM* exe)
 	else
 		pValue=curEnv->values+countOfVar-(curEnv->bound);
 	VMvalue* topValue=getTopValue(stack);
-	*pValue=newNilValue(exe->heap);
-	(*pValue)->access=1;
-	copyRef(*pValue,topValue);
+	if(topValue->type<SYM&&topValue->type>NIL)
+		*pValue=copyValue(topValue,exe->heap);
+	else
+		*pValue=topValue;
 	stack->tp-=1;
 	stackRecycle(exe);
 	proc->cp+=5;

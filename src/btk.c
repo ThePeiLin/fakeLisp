@@ -122,7 +122,7 @@ int FAKE_rand(fakeVM* exe,pthread_rwlock_t* pGClock)
 	VMvalue*  lim=getArg(stack);
 	if(resBp(exe))return 4;
 	if(lim&&lim->type!=IN32)return 1;
-	int32_t limit=(lim==NULL)?INT_MAX:*lim->u.num;
+	int32_t limit=(lim==NULL||*lim->u.num==0)?INT_MAX:*lim->u.num;
 	int32_t result=rand()%limit;
 	VMvalue* toReturn=newVMvalue(IN32,&result,exe->heap,1);
 	stack->values[stack->tp]=toReturn;

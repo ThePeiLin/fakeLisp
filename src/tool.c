@@ -821,11 +821,7 @@ CompDef* addCompDef(const char* name,CompEnv* curEnv)
 		if(tmpEnv==NULL)
 			curEnv->symbols->count=0;
 		else
-		{
-			CompDef* tmpDef=tmpEnv->symbols;
-			while(tmpDef->next!=NULL)tmpDef=tmpDef->next;
-			curEnv->symbols->count=tmpDef->count+1;
-		}
+			curEnv->symbols->count=tmpEnv->symbols->count+1;
 		curEnv->symbols->next=NULL;
 		return curEnv->symbols;
 	}
@@ -834,14 +830,12 @@ CompDef* addCompDef(const char* name,CompEnv* curEnv)
 		CompDef* curDef=findCompDef(name,curEnv);
 		if(curDef==NULL)
 		{
-			CompDef* prevDef=curEnv->symbols;
-			while(prevDef->next!=NULL)prevDef=prevDef->next;
 			if(!(curDef=(CompDef*)malloc(sizeof(CompDef))))errors("addCompDef",__FILE__,__LINE__);
 			if(!(curDef->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors("addCompDef",__FILE__,__LINE__);
 			strcpy(curDef->symName,name);
-			prevDef->next=curDef;
-			curDef->count=prevDef->count+1;
-			curDef->next=NULL;
+			curDef->count=curEnv->symbols->count+1;
+			curDef->next=curEnv->symbols;
+			curEnv->symbols=curDef;
 		}
 		return curDef;
 	}

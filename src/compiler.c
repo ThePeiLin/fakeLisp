@@ -712,7 +712,16 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 		tmpInter->curDir=inter->curDir;
 		tmpInter->prev=NULL;
 		CompEnv* tmpCompEnv=createMacroCompEnv(pattern,tmpGlobCompEnv);
-		int32_t bound=(tmpCompEnv->symbols==NULL)?-1:tmpCompEnv->symbols->count;
+		int32_t bound=0;
+		if(tmpCompEnv->symbols==NULL)
+			bound=-1;
+		else
+		{
+			CompDef* curDef=tmpCompEnv->symbols;
+			while(curDef->next)
+				curDef=curDef->next;
+			bound=curDef->count;
+		}
 		ByteCode* tmpByteCode=compile(express,tmpCompEnv,tmpInter,&status);
 		if(!status.status)
 		{
@@ -756,7 +765,16 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 	tmpInter->procs=NULL;
 	tmpInter->prev=NULL;
 	CompEnv* tmpCompEnv=createPatternCompEnv(parts,num,tmpGlobCompEnv);
-	int32_t bound=(tmpCompEnv->symbols==NULL)?-1:tmpCompEnv->symbols->count;
+	int32_t bound=0;
+	if(tmpCompEnv->symbols==NULL)
+		bound=-1;
+	else
+	{
+		CompDef* curDef=tmpCompEnv->symbols;
+		while(curDef->next)
+			curDef=curDef->next;
+		bound=curDef->count;
+	}
 	ByteCode* tmpByteCode=compile(express,tmpCompEnv,tmpInter,&status);
 	if(!status.status)
 	{
@@ -1347,7 +1365,17 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStat
 		if(objCptr==NULL)
 		{
 			*(int32_t*)(pushProc->code+sizeof(char))=tmpRawProc->count;
-			*(int32_t*)(initProc->code+sizeof(char))=(tmpEnv->symbols==NULL)?-1:tmpEnv->symbols->count;
+			if(tmpEnv->symbols==NULL)
+			{
+				*(int32_t*)(initProc->code+sizeof(char))=-1;
+			}
+			else
+			{
+				CompDef* curDef=tmpEnv->symbols;
+				while(curDef->next)
+					curDef=curDef->next;
+				*(int32_t*)(initProc->code+sizeof(char))=curDef->count;
+			}
 			ByteCode* tmp1=copyByteCode(pushProc);
 			codeCat(tmp1,initProc);
 			if(tmpRawProc->next==prevRawProc)

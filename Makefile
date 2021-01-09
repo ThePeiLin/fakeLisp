@@ -31,7 +31,7 @@ fakeVM.o: src/fakeVM.* src/fakedef.h src/opcode.h src/VMtool.*
 	gcc $(FLAG) -c src/fakeVM.c src/VMtool.c
 fakeLispc.o: src/fakeLispc.* src/fakedef.h
 	gcc $(FLAG) -c src/fakeLispc.c
-fakeLisp: $(objectOfFakeLisp) $(objectOfFakeLispc)
+fakeLisp: $(objectOfFakeLisp) $(objectOfFakeLispc) btk
 	gcc $(FLAG) -o fakeLisp $(objectOfFakeLisp) $(LINK)
 	gcc $(FLAG) -o fakeLispc $(objectOfFakeLispc) $(LINK)
 fakeLispc: $(objectOfFakeLispc)

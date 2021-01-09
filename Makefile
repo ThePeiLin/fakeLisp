@@ -46,7 +46,7 @@ endif
 .PHONY: clean
 clean:
 ifeq ($(OS),WINDOWS)
-	del *.o fakeLisp.exe fakeLispc.exe
+	del *.o fakeLisp.exe fakeLispc.exe btk.dll
 else
-	rm *.o fakeLisp fakeLispc
+	rm *.o fakeLisp fakeLispc btk.so
 endif

@@ -8,6 +8,7 @@
 #else
 #include<termios.h>
 #endif
+#include<time.h>
 #include<unistd.h>
 #include<limits.h>
 #ifdef __cplusplus
@@ -126,6 +127,38 @@ int FAKE_rand(fakeVM* exe,pthread_rwlock_t* pGClock)
 	int32_t result=rand()%limit;
 	VMvalue* toReturn=newVMvalue(IN32,&result,exe->heap,1);
 	stack->values[stack->tp]=toReturn;
+	stack->tp+=1;
+	return 0;
+}
+
+int FAKE_getTime(fakeVM* exe,pthread_rwlock_t* pGClock)
+{
+	VMstack* stack=exe->stack;
+	if(resBp(exe))return 4;
+	time_t timer=time(NULL);
+	struct tm* tblock=NULL;
+	tblock=localtime(&timer);
+	char* sec=intToString(tblock->tm_sec);
+	char* min=intToString(tblock->tm_min);
+	char* hour=intToString(tblock->tm_hour);
+	char* day=intToString(tblock->tm_mday);
+	char* mon=intToString(tblock->tm_mon+1);
+	char* year=intToString(tblock->tm_year+1900);
+	int32_t timeLen=strlen(year)+strlen(mon)+strlen(day)+strlen(hour)+strlen(min)+strlen(sec)+5;
+	char* trueTime=(char*)malloc(sizeof(char)*(timeLen+1));
+	if(!trueTime)
+		errors("FAKE_getTime",__FILE__,__LINE__);
+	sprintf(trueTime,"%s-%s-%s_%s_%s_%s",year,mon,day,hour,min,sec);
+	free(sec);
+	free(min);
+	free(hour);
+	free(day);
+	free(mon);
+	free(year);
+	VMstr* tmpStr=newVMstr(trueTime);
+	VMvalue* tmpVMvalue=newVMvalue(STR,tmpStr,exe->heap,1);
+	stack->values[stack->tp]=tmpVMvalue;
+	free(trueTime);
 	stack->tp+=1;
 	return 0;
 }

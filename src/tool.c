@@ -1661,4 +1661,29 @@ PreDef* newDefines(const char* name)
 	return tmp;
 }
 
+SymbolTable* newSymbolTable()
+{
+	SymbolTable* tmp=(SymbolTable*)malloc(sizeof(SymbolTable));
+	if(!tmp)
+		errors("newSymbolTable",__FILE__,__LINE__);
+	tmp->list=NULL;
+	tmp->head=NULL;
+	tmp->tail=NULL;
+	tmp->size=0;
+	return tmp;
+}
 
+SymTabKeyNode* newSymTabKey(const char* key)
+{
+	SymTabKeyNode* tmp=(SymTabKeyNode*)malloc(sizeof(SymTabKeyNode));
+	tmp->size=0;
+	tmp->values=NULL;
+	tmp->key=copyStr(key);
+	tmp->prev=NULL;
+	tmp->next=NULL;
+	return tmp;
+}
+
+SymTabKeyNode* addSymTabKey(SymTabKeyNode* node,SymbolTable* table)
+{
+}

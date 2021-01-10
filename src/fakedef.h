@@ -85,6 +85,33 @@ typedef struct Pre_Macro
 	struct Pre_Macro* next;
 }PreMacro;
 
+typedef struct Symbol_Table_Value_Node
+{
+	unsigned int mark:1;
+	int32_t scope;
+	int32_t outer;
+	int32_t line;
+	Symbol_Table_Value_Node* prev;
+	Symbol_Table_Value_Node* next;
+}SymTabValNode;
+
+typedef struct Symbol_Table_Key_Node
+{
+	int32_t size;
+	char* key;
+	SymTabValNode* values;
+	struct Symbol_Table_Key_Node* prev;
+	struct Symbol_Table_Key_Node* next;
+}SymTabKeyNode;
+
+typedef struct Symbol_Table
+{
+	int32_t size;
+	SymTabKeyNode** list;
+	SymTabKeyNode* head;
+	SymTabKeyNode* tail;
+}SymbolTable;
+
 typedef struct Comp_Def
 {
 	int32_t count;
@@ -102,7 +129,6 @@ typedef struct Raw_Proc
 {
 	int32_t count;
 	ByteCode* proc;
-//	CompEnv* curEnv;
 	struct Raw_Proc* next;
 }RawProc;
 
@@ -153,12 +179,6 @@ typedef struct
 	char* sym;
 }VMsym;
 
-/*typedef struct
-{
-	int32_t size;
-	VMsym* symbols;
-}symlist;*/
-
 typedef struct VM_Value
 {
 	unsigned int mark :1;
@@ -192,7 +212,6 @@ typedef struct VM_Code
 {
 	int32_t refcount;
 	VMenv* localenv;
-//	symlist* syms;
 	int32_t size;
 	char* code;
 }VMcode;

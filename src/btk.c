@@ -163,6 +163,23 @@ int FAKE_getTime(fakeVM* exe,pthread_rwlock_t* pGClock)
 	stack->tp+=1;
 	return 0;
 }
+
+int FAKE_removeFile(fakeVM* exe,pthread_rwlock_t* pGClock)
+{
+	VMstack* stack=exe->stack;
+	VMvalue* name=getArg(stack);
+	if(!name)
+		return TOOFEWARG;
+	if(resBp(exe))
+		return TOOMUCHARG;
+	if(name->type!=STR)
+		return WRONGARG;
+	int32_t i=remove(name->u.str->str);
+	VMvalue* toReturn=newVMvalue(IN32,&i,exe->heap,1);
+	stack->values[stack->tp]=toReturn;
+	stack->tp+=1;
+	return 0;
+}
 #ifdef __cplusplus
 }
 #endif

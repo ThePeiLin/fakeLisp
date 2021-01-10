@@ -92,4 +92,12 @@ char* getLastWorkDir(intpr*);
 void freeAllDll(Dlls*);
 void freeModlist(Modlist*);
 void freeRawProc(ByteCode*,int32_t);
+
+SymbolTable* newSymbolTable();
+SymTabKeyNode* newSymTabKey(const char*);
+SymTabKeyNode* addSymTabKey(SymTabKeyNode*,SymbolTable*);
+SymTabValNode* newTabValNode(int32_t scope,int32_t outer);
+SymTabValNode* addTabValNode(SymTabValNode*,const char*);
+void freeSymTabKeyNode(SymTabKeyNode);
+void freeSymbolTable(SymbolTable*);
 #endif

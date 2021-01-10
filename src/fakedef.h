@@ -91,8 +91,8 @@ typedef struct Symbol_Table_Value_Node
 	int32_t scope;
 	int32_t outer;
 	int32_t line;
-	Symbol_Table_Value_Node* prev;
-	Symbol_Table_Value_Node* next;
+	struct Symbol_Table_Value_Node* prev;
+	struct Symbol_Table_Value_Node* next;
 }SymTabValNode;
 
 typedef struct Symbol_Table_Key_Node

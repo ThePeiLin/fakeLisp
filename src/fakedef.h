@@ -97,9 +97,10 @@ typedef struct Symbol_Table_Value_Node
 
 typedef struct Symbol_Table_Key_Node
 {
-	int32_t size;
 	char* key;
-	SymTabValNode* values;
+	int32_t size;
+	SymTabValNode** list;
+	SymTabValNode* head;
 	struct Symbol_Table_Key_Node* prev;
 	struct Symbol_Table_Key_Node* next;
 }SymTabKeyNode;
@@ -109,7 +110,6 @@ typedef struct Symbol_Table
 	int32_t size;
 	SymTabKeyNode** list;
 	SymTabKeyNode* head;
-	SymTabKeyNode* tail;
 }SymbolTable;
 
 typedef struct Comp_Def

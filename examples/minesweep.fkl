@@ -65,7 +65,8 @@
 (define (resl objlist)
   (if (null objlist)
     objlist
-    (let loop-tmplist ((tmplist objlist) (tmp nil))
+    (let loop-tmplist ((tmplist objlist)
+                       (tmp nil))
       (if (null (cdr tmplist))
         (cons (car tmplist) tmp)
         (loop-tmplist (cdr tmplist)

@@ -95,9 +95,12 @@ void freeRawProc(ByteCode*,int32_t);
 
 SymbolTable* newSymbolTable();
 SymTabKeyNode* newSymTabKey(const char*);
+SymTabValNode* newSymTabVal(int mark,int32_t scope,int32_t outer,int32_t line);
 SymTabKeyNode* addSymTabKey(SymTabKeyNode*,SymbolTable*);
-SymTabValNode* newTabValNode(int32_t scope,int32_t outer);
-SymTabValNode* addTabValNode(SymTabValNode*,const char*);
-void freeSymTabKeyNode(SymTabKeyNode);
+SymTabValNode* addSymTabVal(SymTabValNode*,SymTabKeyNode*);
+int SymTabValCmp(SymTabValNode*,SymTabValNode*);
+void updateSymTabValList(SymTabKeyNode*);
+void updateSymTabKeyList(SymbolTable*);
+void freeSymTabKeyNode(SymTabKeyNode*);
 void freeSymbolTable(SymbolTable*);
 #endif

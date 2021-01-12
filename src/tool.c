@@ -1668,7 +1668,6 @@ SymbolTable* newSymbolTable()
 		errors("newSymbolTable",__FILE__,__LINE__);
 	tmp->list=NULL;
 	tmp->head=NULL;
-	tmp->tail=NULL;
 	tmp->size=0;
 	return tmp;
 }
@@ -1676,9 +1675,26 @@ SymbolTable* newSymbolTable()
 SymTabKeyNode* newSymTabKey(const char* key)
 {
 	SymTabKeyNode* tmp=(SymTabKeyNode*)malloc(sizeof(SymTabKeyNode));
+	if(!tmp)
+		errors("newSymTabKey",__FILE__,__LINE__);
 	tmp->size=0;
-	tmp->values=NULL;
+	tmp->head=NULL;
+	tmp->list=NULL;
 	tmp->key=copyStr(key);
+	tmp->prev=NULL;
+	tmp->next=NULL;
+	return tmp;
+}
+
+SymTabValNode* newSymTabVal(int mark,int32_t scope,int32_t outer,int32_t line)
+{
+	SymTabValNode* tmp=(SymTabValNode*)malloc(sizeof(SymTabValNode));
+	if(!tmp)
+		errors("newSymTabVal",__FILE__,__LINE__);
+	tmp->mark=mark;
+	tmp->scope=scope;
+	tmp->outer=outer;
+	tmp->line=line;
 	tmp->prev=NULL;
 	tmp->next=NULL;
 	return tmp;
@@ -1686,4 +1702,163 @@ SymTabKeyNode* newSymTabKey(const char* key)
 
 SymTabKeyNode* addSymTabKey(SymTabKeyNode* node,SymbolTable* table)
 {
+	if(!table->head)
+	{
+		table->head=node;
+		table->size=1;
+		updateSymTabKeyList(table);
+	}
+	else
+	{
+		int32_t l=0;
+		int32_t h=table->size;
+		int32_t mid=l+(h-l)/2;
+		while(h-l>1)
+		{
+			if(strcmp(table->list[mid]->key,node->key)>=0)
+				h=mid-1;
+			else
+				l=mid+1;
+			mid=l+(h-l)/2;
+		}
+		if(strcmp(table->list[mid]->key,node->key)>=0)
+		{
+			SymTabKeyNode* tmp=table->list[mid];
+			node->prev=tmp->prev;
+			if(node->prev)
+				node->prev->next=node;
+			else
+				table->head=node;
+			tmp->prev=node;
+			node->next=tmp;
+		}
+		else
+		{
+			SymTabKeyNode* tmp=table->list[mid];
+			node->next=tmp->next;
+			if(node->next)
+				node->next->prev=node;
+			tmp->next=node;
+			node->prev=tmp;
+		}
+		table->size+=1;
+		updateSymTabKeyList(table);
+	}
+	return node;
+}
+
+SymTabValNode* addSymTabVal(SymTabValNode* val,SymTabKeyNode* node)
+{
+	if(!node->head)
+	{
+		node->head=val;
+		node->size=1;
+		updateSymTabValList(node);
+	}
+	else
+	{
+		int32_t l=0;
+		int32_t h=node->size;
+		int32_t mid=l+(h-l)/2;
+		while(h-l>1)
+		{
+			if(SymTabValCmp(node->list[mid],val)>=0)
+				h=mid-1;
+			else
+				l=mid+1;
+			mid=l+(h-l)/2;
+		}
+		if(SymTabValCmp(node->list[mid],val)>=0)
+		{
+			SymTabValNode* tmp=node->list[mid];
+			val->prev=tmp->prev;
+			if(val->prev)
+				val->prev->next=val;
+			else
+				node->head=val;
+			tmp->prev=val;
+			val->next=tmp;
+		}
+		else
+		{
+			SymTabValNode* tmp=node->list[mid];
+			val->next=tmp->next;
+			if(val->next)
+				val->next->prev=val;
+			tmp->next=val;
+			val->prev=tmp;
+		}
+		node->size+=1;
+		updateSymTabValList(node);
+	}
+	return val;
+}
+
+void updateSymTabKeyList(SymbolTable* table)
+{
+	int32_t i=0;
+	SymTabKeyNode* cur=table->head;
+	if(table->list)
+		free(table->list);
+	table->list=(SymTabKeyNode**)malloc(sizeof(SymTabKeyNode*)*table->size);
+	if(!table->list)
+		errors("updateSymTabKeyList",__FILE__,__LINE__);
+	for(;i<table->size;i++)
+	{
+		table->list[i]=cur;
+		cur=cur->next;
+	}
+}
+
+void updateSymTabValList(SymTabKeyNode* node)
+{
+	int32_t i=0;
+	SymTabValNode* cur=node->head;
+	if(node->list)
+		free(node->list);
+	node->list=(SymTabValNode**)malloc(sizeof(SymTabValNode*)*node->size);
+	if(!node->list)
+		errors("updateSymTabValList",__FILE__,__LINE__);
+	for(;i<node->size;i++)
+	{
+		node->list[i]=cur;
+		cur=cur->next;
+	}
+}
+
+void freeSymTabKeyNode(SymTabKeyNode* node)
+{
+	if(node->list)
+		free(node->list);
+	SymTabValNode* cur=node->head;
+	while(cur)
+	{
+		SymTabValNode* prev=cur;
+		cur=cur->next;
+		free(prev);
+	}
+	free(node->key);
+	free(node);
+}
+
+void freeSymbolTable(SymbolTable* table)
+{
+	if(table->list)
+		free(table->list);
+	SymTabKeyNode* cur=table->head;
+	while(cur)
+	{
+		SymTabKeyNode* prev=cur;
+		cur=cur->next;
+		freeSymTabKeyNode(prev);
+	}
+	free(table);
+}
+
+int SymTabValCmp(SymTabValNode* fir,SymTabValNode* sec)
+{
+	if(fir->scope!=sec->scope)
+		return fir->scope-sec->scope;
+	if(fir->mark!=sec->mark)
+		return sec->mark-fir->mark;
 }

@@ -705,6 +705,7 @@ fakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 	exe->queueTail=NULL;
 	exe->files=newFileStack();
 	exe->heap=newVMheap();
+	exe->callback=NULL;
 	pthread_mutex_init(&exe->lock,NULL);
 	fakeVM** ppFakeVM=NULL;
 	int i=0;
@@ -745,6 +746,7 @@ fakeVM* newTmpFakeVM(ByteCode* mainproc,ByteCode* procs)
 	exe->queueTail=NULL;
 	exe->files=newFileStack();
 	exe->heap=newVMheap();
+	exe->callback=NULL;
 	exe->VMid=-1;
 	pthread_mutex_init(&exe->lock,NULL);
 	return exe;
@@ -2897,6 +2899,7 @@ fakeVM* newThreadVM(VMcode* main,ByteCode* procs,filestack* files,VMheap* heap,D
 	exe->queueTail=NULL;
 	exe->files=files;
 	exe->heap=heap;
+	exe->callback=NULL;
 	pthread_mutex_init(&exe->lock,NULL);
 	fakeVM** ppFakeVM=NULL;
 	int i=0;
@@ -2984,5 +2987,21 @@ void joinAllThread()
 		fakeVM* cur=GlobFakeVMs.VMs[i];
 		if(cur)
 			pthread_join(cur->tid,NULL);
+	}
+}
+
+void deleteCallChain(fakeVM* exe)
+{
+	VMprocess* cur=exe->curproc;
+	while(cur)
+	{
+		VMprocess* prev=cur;
+		cur=cur->prev;
+		freeVMenv(prev->localenv);
+		if(!prev->code->refcount)
+			freeVMcode(prev->code);
+		else
+			prev->code->refcount-=1;
+		free(prev);
 	}
 }

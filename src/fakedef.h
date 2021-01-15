@@ -253,19 +253,20 @@ typedef struct ThreadMessage
 
 typedef struct
 {
+	unsigned int mark :1;
 	int32_t VMid;
 	pthread_t tid;
-	unsigned int mark :1;
+	pthread_mutex_t lock;
 	ByteCode* procs;
 	VMprocess* curproc;
 	VMprocess* mainproc;
 	VMstack* stack;
-	pthread_mutex_t lock;
 	threadMessage* queueHead;
 	threadMessage* queueTail;
 	filestack* files;
 	struct DLL_s* modules;
 	struct VM_Heap* heap;
+	void (*callback)();
 }fakeVM;
 
 typedef struct VM_Heap

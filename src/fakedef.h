@@ -87,7 +87,7 @@ typedef struct Pre_Macro
 
 typedef struct Symbol_Table_Value_Node
 {
-	unsigned int mark:1;
+	unsigned int ref:1;
 	int32_t scope;
 	int32_t outer;
 	int32_t line;

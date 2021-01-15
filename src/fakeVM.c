@@ -858,23 +858,24 @@ void runFakeVM(fakeVM* exe)
 			{
 				case WRONGARG:
 					fprintf(stderr,"error:Wrong arguements!\n");
-					exit(EXIT_FAILURE);
+					break;
 				case STACKERROR:
 					fprintf(stderr,"error:Stack error!\n");
-					exit(EXIT_FAILURE);
+					break;
 				case TOOMUCHARG:
 					fprintf(stderr,"error:Too much arguements!\n");
-					exit(EXIT_FAILURE);
+					break;
 				case TOOFEWARG:
 					fprintf(stderr,"error:Too few arguements!\n");
-					exit(EXIT_FAILURE);
+					break;
 				case CANTCREATETHREAD:
 					fprintf(stderr,"error:Can't create thread!\n");
-					exit(EXIT_FAILURE);
+					break;
 				case THREADERROR:
 					fprintf(stderr,"error:Thread error!\n");
-					exit(EXIT_FAILURE);
+					break;
 			}
+			exe->callback();
 		}
 		pthread_rwlock_unlock(&GClock);
 		if(exe->heap->size>exe->heap->threshold)
@@ -2993,7 +2994,7 @@ void joinAllThread()
 void deleteCallChain(fakeVM* exe)
 {
 	VMprocess* cur=exe->curproc;
-	while(cur)
+	while(cur->prev)
 	{
 		VMprocess* prev=cur;
 		cur=cur->prev;

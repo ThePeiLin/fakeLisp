@@ -266,7 +266,7 @@ typedef struct
 	filestack* files;
 	struct DLL_s* modules;
 	struct VM_Heap* heap;
-	void (*callback)();
+	void (*callback)(int,int);
 }fakeVM;
 
 typedef struct VM_Heap

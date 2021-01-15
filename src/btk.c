@@ -34,7 +34,7 @@ int getch()
 int resBp(fakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	if(stack->tp>stack->bp)return 4;
+	if(stack->tp>stack->bp)return TOOMUCHARG;
 	VMvalue* prevBp=getTopValue(stack);
 	stack->bp=*prevBp->u.num;
 	stack->tp-=1;
@@ -45,7 +45,7 @@ int FAKE_getch(fakeVM* exe,pthread_rwlock_t* pGClock)
 {
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
-	if(resBp(exe))return 4;
+	if(resBp(exe))return TOOMUCHARG;
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
@@ -63,9 +63,9 @@ int FAKE_sleep(fakeVM* exe,pthread_rwlock_t* pGClock)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMvalue* second=getArg(stack);
-	if(!second)return 5;
-	if(resBp(exe))return 4;
-	if(second->type!=IN32)return 1;
+	if(!second)return TOOFEWARG;
+	if(resBp(exe))return TOOMUCHARG;
+	if(second->type!=IN32)return WRONGARG;
 	int32_t s=*second->u.num;
 	releaseSource(pGClock);
 	s=sleep(s);
@@ -86,9 +86,9 @@ int FAKE_usleep(fakeVM* exe,pthread_rwlock_t* pGClock)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMvalue* second=getArg(stack);
-	if(!second)return 5;
-	if(resBp(exe))return 4;
-	if(second->type!=IN32)return 1;
+	if(!second)return TOOFEWARG;
+	if(resBp(exe))return TOOMUCHARG;
+	if(second->type!=IN32)return WRONGARG;
 	int32_t s=*second->u.num;
 	releaseSource(pGClock);
 #ifdef _WIN32
@@ -113,9 +113,9 @@ int FAKE_exit(fakeVM* exe,pthread_rwlock_t* pGClock)
 	VMstack* stack=exe->stack;
 	VMvalue* exitCode=getArg(stack);
 	if(exitCode==NULL)
-		exit(0);
+		exe->callback(0,2);
 	int32_t num=*exitCode->u.num;
-	exit(num);
+	exe->callback(num,2);
 }
 
 int FAKE_rand(fakeVM* exe,pthread_rwlock_t* pGClock)
@@ -123,8 +123,8 @@ int FAKE_rand(fakeVM* exe,pthread_rwlock_t* pGClock)
 	srand((unsigned)time(NULL));
 	VMstack* stack=exe->stack;
 	VMvalue*  lim=getArg(stack);
-	if(resBp(exe))return 4;
-	if(lim&&lim->type!=IN32)return 1;
+	if(resBp(exe))return TOOMUCHARG;
+	if(lim&&lim->type!=IN32)return WRONGARG;
 	int32_t limit=(lim==NULL||*lim->u.num==0)?INT_MAX:*lim->u.num;
 	int32_t result=rand()%limit;
 	VMvalue* toReturn=newVMvalue(IN32,&result,exe->heap,1);
@@ -136,7 +136,7 @@ int FAKE_rand(fakeVM* exe,pthread_rwlock_t* pGClock)
 int FAKE_getTime(fakeVM* exe,pthread_rwlock_t* pGClock)
 {
 	VMstack* stack=exe->stack;
-	if(resBp(exe))return 4;
+	if(resBp(exe))return TOOMUCHARG;
 	time_t timer=time(NULL);
 	struct tm* tblock=NULL;
 	tblock=localtime(&timer);

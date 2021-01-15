@@ -14,10 +14,11 @@
 #include<pthread.h>
 #include<setjmp.h>
 static jmp_buf buf;
-
-void errorCallBack()
+static int exitStatus=0;
+void errorCallBack(int status,int e)
 {
-	longjmp(buf,1);
+	exitStatus=status;
+	longjmp(buf,e);
 }
 
 int main(int argc,char** argv)
@@ -69,6 +70,7 @@ int main(int argc,char** argv)
 				unInitPreprocess();
 				freeVMheap(anotherVM->heap);
 				freeAllVMs();
+				return exitStatus;
 			}
 		}
 	}
@@ -110,6 +112,7 @@ int main(int argc,char** argv)
 			freeAllVMs();
 			freeVMheap(heap);
 			freeRawProc(RawProcess,num);
+			return exitStatus;
 		}
 	}
 	else
@@ -117,12 +120,13 @@ int main(int argc,char** argv)
 		fprintf(stderr,"%s: It is not a correct file.\n",filename);
 		return EXIT_FAILURE;
 	}
-	return 0;
+	return exitStatus;
 }
 
 void runIntpr(intpr* inter)
 {
 	initPreprocess();
+	int e=0;
 	fakeVM* anotherVM=newFakeVM(NULL,NULL);
 	VMenv* globEnv=newVMenv(0,NULL);
 	anotherVM->mainproc->localenv=globEnv;
@@ -131,7 +135,7 @@ void runIntpr(intpr* inter)
 	initGlobEnv(globEnv,anotherVM->heap);
 	ByteCode* rawProcList=NULL;
 	char* prev=NULL;
-	for(;;)
+	for(;!e;)
 	{
 		AST_cptr* begin=NULL;
 		if(inter->file==stdin)printf(">>>");
@@ -196,7 +200,7 @@ void runIntpr(intpr* inter)
 					anotherVM->mainproc->localenv=globEnv;
 					anotherVM->mainproc->cp=0;
 					anotherVM->curproc=anotherVM->mainproc;
-					if(!setjmp(buf))
+					if(!(e=setjmp(buf)))
 					{
 						runFakeVM(anotherVM);
 						VMstack* stack=anotherVM->stack;

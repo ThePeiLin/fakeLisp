@@ -875,7 +875,7 @@ void runFakeVM(fakeVM* exe)
 					fprintf(stderr,"error:Thread error!\n");
 					break;
 			}
-			exe->callback();
+			exe->callback(status,1);
 		}
 		pthread_rwlock_unlock(&GClock);
 		if(exe->heap->size>exe->heap->threshold)
@@ -1586,11 +1586,11 @@ int B_call_proc(fakeVM* exe)
 	strcpy(realfuncName,headOfFunc);
 	strcat(realfuncName,funcname);
 	void* funcAddress=getAddress(realfuncName,exe->modules);
+	free(realfuncName);
 	if(!funcAddress)
 		return STACKERROR;
 	int retval=((ModFunc)funcAddress)(exe,&GClock);
 	proc->cp+=2+strlen(funcname);
-	free(realfuncName);
 	return retval;
 }
 

@@ -1686,12 +1686,12 @@ SymTabKeyNode* newSymTabKey(const char* key)
 	return tmp;
 }
 
-SymTabValNode* newSymTabVal(int mark,int32_t scope,int32_t outer,int32_t line)
+SymTabValNode* newSymTabVal(int ref,int32_t scope,int32_t outer,int32_t line)
 {
 	SymTabValNode* tmp=(SymTabValNode*)malloc(sizeof(SymTabValNode));
 	if(!tmp)
 		errors("newSymTabVal",__FILE__,__LINE__);
-	tmp->mark=mark;
+	tmp->ref=ref;
 	tmp->scope=scope;
 	tmp->outer=outer;
 	tmp->line=line;
@@ -1859,6 +1859,5 @@ int SymTabValCmp(SymTabValNode* fir,SymTabValNode* sec)
 {
 	if(fir->scope!=sec->scope)
 		return fir->scope-sec->scope;
-	if(fir->mark!=sec->mark)
-		return sec->mark-fir->mark;
+	return fir->ref-sec->ref;
 }

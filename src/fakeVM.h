@@ -101,6 +101,7 @@ void printEnv(VMenv*,FILE*);
 VMheap* newVMheap();
 void freeVMheap(VMheap*);
 void freeAllVMs();
+void deleteCallChain(fakeVM*);
 void joinAllThread();
 void writeRef(VMvalue*,VMvalue*);
 void GC_mark(fakeVM*);

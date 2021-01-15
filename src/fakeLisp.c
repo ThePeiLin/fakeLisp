@@ -12,6 +12,13 @@
 #include<string.h>
 #include<ctype.h>
 #include<pthread.h>
+#include<setjmp.h>
+static jmp_buf buf;
+
+void errorCallBack()
+{
+	longjmp(buf,1);
+}
 
 int main(int argc,char** argv)
 {
@@ -39,15 +46,30 @@ int main(int argc,char** argv)
 			anotherVM->mainproc->localenv=globEnv;
 			anotherVM->mainproc->code->localenv=globEnv;
 			anotherVM->modules=inter->modules;
+			anotherVM->callback=errorCallBack;
 			initGlobEnv(globEnv,anotherVM->heap);
-			runFakeVM(anotherVM);
-			joinAllThread();
-			free(rawProcList);
-			freeIntpr(inter);
-			anotherVM->modules=NULL;
-			unInitPreprocess();
-			freeVMheap(anotherVM->heap);
-			freeAllVMs();
+			if(!setjmp(buf))
+			{
+				runFakeVM(anotherVM);
+				joinAllThread();
+				free(rawProcList);
+				freeIntpr(inter);
+				anotherVM->modules=NULL;
+				unInitPreprocess();
+				freeVMheap(anotherVM->heap);
+				freeAllVMs();
+			}
+			else
+			{
+				deleteCallChain(anotherVM);
+				joinAllThread();
+				free(rawProcList);
+				freeIntpr(inter);
+				anotherVM->modules=NULL;
+				unInitPreprocess();
+				freeVMheap(anotherVM->heap);
+				freeAllVMs();
+			}
 		}
 	}
 	else if(iscode(filename))
@@ -71,12 +93,24 @@ int main(int argc,char** argv)
 		VMenv* globEnv=newVMenv(0,NULL);
 		anotherVM->mainproc->localenv=globEnv;
 		anotherVM->mainproc->code->localenv=globEnv;
+		anotherVM->callback=errorCallBack;
 		initGlobEnv(globEnv,anotherVM->heap);
-		runFakeVM(anotherVM);
-		joinAllThread();
-		freeAllVMs();
-		freeVMheap(heap);
-		freeRawProc(RawProcess,num);
+		if(!setjmp(buf))
+		{
+			runFakeVM(anotherVM);
+			joinAllThread();
+			freeAllVMs();
+			freeVMheap(heap);
+			freeRawProc(RawProcess,num);
+		}
+		else
+		{
+			deleteCallChain(anotherVM);
+			joinAllThread();
+			freeAllVMs();
+			freeVMheap(heap);
+			freeRawProc(RawProcess,num);
+		}
 	}
 	else
 	{
@@ -93,6 +127,7 @@ void runIntpr(intpr* inter)
 	VMenv* globEnv=newVMenv(0,NULL);
 	anotherVM->mainproc->localenv=globEnv;
 	anotherVM->tid=pthread_self();
+	anotherVM->callback=errorCallBack;
 	initGlobEnv(globEnv,anotherVM->heap);
 	ByteCode* rawProcList=NULL;
 	char* prev=NULL;
@@ -161,21 +196,35 @@ void runIntpr(intpr* inter)
 					anotherVM->mainproc->localenv=globEnv;
 					anotherVM->mainproc->cp=0;
 					anotherVM->curproc=anotherVM->mainproc;
-					runFakeVM(anotherVM);
-					VMstack* stack=anotherVM->stack;
-					if(inter->file==stdin&&stack->tp!=0)
+					if(!setjmp(buf))
 					{
-						printf("]=>");
-						printAllStack(stack,stdout);
+						runFakeVM(anotherVM);
+						VMstack* stack=anotherVM->stack;
+						if(inter->file==stdin&&stack->tp!=0)
+						{
+							printf("]=>");
+							printAllStack(stack,stdout);
+						}
+						//fprintf(stderr,"======\n");
+						//fprintf(stderr,"stack->tp=%d\n",stack->tp);
+						//printAllStack(stack,stderr);
+						stack->tp=0;
+						freeByteCode(tmpByteCode);
+						tmp->localenv=NULL;
+						freeVMcode(tmp);
+						anotherVM->mainproc->code=NULL;
 					}
-					//fprintf(stderr,"======\n");
-					//fprintf(stderr,"stack->tp=%d\n",stack->tp);
-					//printAllStack(stack,stderr);
-					stack->tp=0;
-					freeByteCode(tmpByteCode);
-					tmp->localenv=NULL;
-					freeVMcode(tmp);
-					anotherVM->mainproc->code=NULL;
+					else
+					{
+						VMstack* stack=anotherVM->stack;
+						stack->tp=0;
+						stack->bp=0;
+						freeByteCode(tmpByteCode);
+						tmp->localenv=NULL;
+						freeVMcode(tmp);
+						anotherVM->mainproc->code=NULL;
+						deleteCallChain(anotherVM);
+					}
 				}
 			}
 			free(list);

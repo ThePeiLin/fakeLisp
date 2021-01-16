@@ -875,7 +875,8 @@ void runFakeVM(fakeVM* exe)
 					fprintf(stderr,"error:Thread error!\n");
 					break;
 			}
-			exe->callback(status,1);
+			int i[2]={status,1};
+			exe->callback(i);
 		}
 		pthread_rwlock_unlock(&GClock);
 		if(exe->heap->size>exe->heap->threshold)

@@ -15,10 +15,11 @@
 #include<setjmp.h>
 static jmp_buf buf;
 static int exitStatus=0;
-void errorCallBack(int status,int e)
+void errorCallBack(void* a)
 {
-	exitStatus=status;
-	longjmp(buf,e);
+	int* i=(int*)a;
+	exitStatus=i[0];
+	longjmp(buf,i[1]);
 }
 
 int main(int argc,char** argv)

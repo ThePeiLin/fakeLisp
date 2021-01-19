@@ -18,7 +18,7 @@
 #include<time.h>
 
 pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
-fakeVMStack GlobFakeVMs={0,NULL};
+fakeVMlist GlobFakeVMs={0,NULL};
 static int (*ByteCodes[])(fakeVM*)=
 {
 	B_dummy,

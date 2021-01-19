@@ -281,7 +281,7 @@ typedef struct
 {
 	int32_t size;
 	fakeVM** VMs;
-}fakeVMStack;
+}fakeVMlist;
 
 #ifdef _WIN32
 #include<windows.h>

@@ -90,7 +90,7 @@ VMcode* newBuiltInProc(ByteCode*);
 VMprocess* newFakeProcess(VMcode*,VMprocess*);
 void printAllStack(VMstack*,FILE*);
 int createNewThread(fakeVM*);
-fakeVMStack* newThreadStack(int32_t);
+fakeVMlist* newThreadStack(int32_t);
 threadMessage* newThreadMessage(VMvalue*,VMheap*);
 threadMessage* newMessage(VMvalue*);
 int sendMessage(threadMessage*,fakeVM*);

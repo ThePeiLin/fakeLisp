@@ -70,7 +70,7 @@ enum opcode
 	FAKE_PRINC,
 	FAKE_GO,
 	FAKE_SEND,
-	FAKE_ACCEPT,
+	FAKE_RECV,
 	FAKE_GETID,
 };
 
@@ -151,7 +151,7 @@ static codeinfor codeName[]=
 	{"princ",0},
 	{"go",0},
 	{"send",0},
-	{"accept",0},
+	{"recv",0},
 	{"getid",0},
 };
 

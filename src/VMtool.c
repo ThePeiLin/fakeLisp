@@ -390,7 +390,7 @@ VMvalue* getArg(VMstack* stack)
 	return tmp;
 }
 
-FILE* getFile(filestack* files,int32_t count)
+FILE* getFile(Filestack* files,int32_t count)
 {
 	if(count>=files->size)return NULL;
 	return files->files[count];

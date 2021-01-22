@@ -261,9 +261,9 @@ typedef struct
 	VMprocess* curproc;
 	VMprocess* mainproc;
 	VMstack* stack;
-	threadMessage* queueHead;
-	threadMessage* queueTail;
-	filestack* files;
+	ThreadMessage* queueHead;
+	ThreadMessage* queueTail;
+	Filestack* files;
 	struct DLL_s* modules;
 	struct VM_Heap* heap;
 	void (*callback)(void*);
@@ -280,7 +280,7 @@ typedef struct VM_Heap
 typedef struct
 {
 	int32_t size;
-	fakeVM** VMs;
+	FakeVM** VMs;
 }FakeVMlist;
 
 #ifdef _WIN32
@@ -297,7 +297,7 @@ typedef struct DLL_s
 	struct DLL_s* next;
 }Dlls;
 
-typedef int (*ModFunc)(fakeVM*,pthread_rwlock_t*);
+typedef int (*ModFunc)(FakeVM*,pthread_rwlock_t*);
 
 typedef struct String_Match_Pattern
 {

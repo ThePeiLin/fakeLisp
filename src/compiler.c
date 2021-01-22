@@ -23,7 +23,7 @@ PreMacro* PreMacroMatch(const AST_cptr* objCptr)
 	return current;
 }
 
-int PreMacroExpand(AST_cptr* objCptr,intpr* inter)
+int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 {
 	ErrorStatus status={0,NULL};
 	PreMacro* tmp=PreMacroMatch(objCptr);
@@ -31,7 +31,7 @@ int PreMacroExpand(AST_cptr* objCptr,intpr* inter)
 	{
 		VMenv* tmpGlob=newVMenv(0,NULL);
 		ByteCode* rawProcList=castRawproc(NULL,tmp->procs);
-		fakeVM* tmpVM=newTmpFakeVM(NULL,rawProcList);
+		FakeVM* tmpVM=newTmpFakeVM(NULL,rawProcList);
 		initGlobEnv(tmpGlob,tmpVM->heap);
 		VMcode* tmpVMcode=newVMcode(tmp->proc);
 		VMenv* macroVMenv=castPreEnvToVMenv(MacroEnv,tmp->bound,tmpGlob,tmpVM->heap);
@@ -365,7 +365,7 @@ int isVal(const char* name)
 	return 0;
 }
 
-void addFunc(const char* name,ErrorStatus (*pFun)(AST_cptr*,PreEnv*,intpr*))
+void addFunc(const char* name,ErrorStatus (*pFun)(AST_cptr*,PreEnv*,Intpr*))
 {
 	PreFunc* current=funAndForm;
 	PreFunc* prev=NULL;
@@ -394,7 +394,7 @@ void addFunc(const char* name,ErrorStatus (*pFun)(AST_cptr*,PreEnv*,intpr*))
 	}
 }
 
-ErrorStatus (*(findFunc(const char* name)))(AST_cptr*,PreEnv*,intpr*)
+ErrorStatus (*(findFunc(const char* name)))(AST_cptr*,PreEnv*,Intpr*)
 {
 	PreFunc* current=funAndForm;
 	while(current!=NULL&&strcmp(current->functionName,name))current=current->next;
@@ -420,7 +420,7 @@ int retree(AST_cptr** fir,AST_cptr* sec)
 
 
 
-ErrorStatus eval(AST_cptr* objCptr,PreEnv* curEnv,intpr* inter)
+ErrorStatus eval(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 {
 	ErrorStatus status={0,NULL};
 	if(objCptr==NULL)
@@ -461,7 +461,7 @@ ErrorStatus eval(AST_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 					return status;
 				}
 				int before=objCptr->outer->cdr.type;
-				ErrorStatus (*pfun)(AST_cptr*,PreEnv*,intpr*)=NULL;
+				ErrorStatus (*pfun)(AST_cptr*,PreEnv*,Intpr*)=NULL;
 				pfun=findFunc(objAtm->value.str);
 				if(pfun!=NULL)
 				{
@@ -598,7 +598,7 @@ void deleteArg(AST_cptr** args,int num)
 	free(args);
 }
 
-ErrorStatus N_import(AST_cptr* objCptr,PreEnv* curEnv,intpr* inter)
+ErrorStatus N_import(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 {
 	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
@@ -658,7 +658,7 @@ ErrorStatus N_import(AST_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 	return status;
 }
 
-ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,intpr* inter)
+ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 {
 	ErrorStatus status={0,NULL};
 	deleteCptr(objCptr);
@@ -702,7 +702,7 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 		AST_cptr* express=args[1];
 		CompEnv* tmpGlobCompEnv=newCompEnv(NULL);
 		initCompEnv(tmpGlobCompEnv);
-		intpr* tmpInter=newTmpIntpr(NULL,NULL);
+		Intpr* tmpInter=newTmpIntpr(NULL,NULL);
 		tmpInter->filename=inter->filename;
 		tmpInter->curline=inter->curline;
 		tmpInter->glob=tmpGlobCompEnv;
@@ -748,13 +748,13 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,intpr* inter)
 	return status;
 }
 
-StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,intpr* inter)
+StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,Intpr* inter)
 {
 	StringMatchPattern* tmp=NULL;
 	ErrorStatus status={0,NULL};
 	CompEnv* tmpGlobCompEnv=newCompEnv(NULL);
 	initCompEnv(tmpGlobCompEnv);
-	intpr* tmpInter=newTmpIntpr(NULL,NULL);
+	Intpr* tmpInter=newTmpIntpr(NULL,NULL);
 	tmpInter->filename=inter->filename;
 	tmpInter->curline=inter->curline;
 	tmpInter->glob=tmpGlobCompEnv;
@@ -805,7 +805,7 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 	return tmp;
 }
 
-ByteCode* compile(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* status)
+ByteCode* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status)
 {
 	for(;;)
 	{
@@ -959,14 +959,14 @@ ByteCode* compileQuote(AST_cptr* objCptr)
 	}
 }
 
-ByteCode* compileConst(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* status)
+ByteCode* compileConst(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status)
 {
 		if(objCptr->type==ATM)return compileAtom(objCptr);
 		if(isNil(objCptr))return compileNil();
 		if(isQuoteExpression(objCptr))return compileQuote(objCptr);
 }
 
-ByteCode* compileListForm(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* status)
+ByteCode* compileListForm(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status)
 {
 	AST_cptr* headoflist=NULL;
 	AST_pair* tmpPair=objCptr->value;
@@ -1019,7 +1019,7 @@ ByteCode* compileListForm(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorSt
 	return tmp;
 }
 
-ByteCode* compileDef(AST_cptr* tir,CompEnv* curEnv,intpr* inter,ErrorStatus* status)
+ByteCode* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* status)
 {
 	AST_pair* tmpPair=tir->value;
 	AST_cptr* fir=NULL;
@@ -1097,7 +1097,7 @@ ByteCode* compileDef(AST_cptr* tir,CompEnv* curEnv,intpr* inter,ErrorStatus* sta
 	return tmp;
 }
 
-ByteCode* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* status)
+ByteCode* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status)
 {
 	AST_pair* tmpPair=objCptr->value;
 	AST_cptr* fir=&((AST_pair*)objCptr->value)->car;
@@ -1163,7 +1163,7 @@ ByteCode* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus
 	return tmp;
 }
 
-ByteCode* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* status)
+ByteCode* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status)
 {
 	AST_cptr* fir=&((AST_pair*)objCptr->value)->car;
 	AST_cptr* sec=nextCptr(fir);
@@ -1196,7 +1196,7 @@ ByteCode* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus
 	return tmp;
 }
 
-ByteCode* compileSym(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* status)
+ByteCode* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status)
 {
 	ByteCode* pushVar=createByteCode(sizeof(char)+sizeof(int32_t));
 	pushVar->code[0]=FAKE_PUSH_VAR;
@@ -1238,7 +1238,7 @@ ByteCode* compileSym(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus*
 	return pushVar;
 }
 
-ByteCode* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* status)
+ByteCode* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status)
 {
 	AST_pair* tmpPair=objCptr->value;
 	ByteCode* jumpiffalse=createByteCode(sizeof(char)+sizeof(int32_t));
@@ -1284,7 +1284,7 @@ ByteCode* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus*
 	return tmp;
 }
 
-ByteCode* compileOr(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* status)
+ByteCode* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status)
 {
 	AST_pair* tmpPair=objCptr->value;
 	ByteCode* jumpifture=createByteCode(sizeof(char)+sizeof(int32_t));
@@ -1336,7 +1336,7 @@ ByteCode* compileOr(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* 
 	return tmp;
 }
 
-ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* status)
+ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status)
 {
 	AST_cptr* tmpCptr=objCptr;
 	AST_pair* tmpPair=objCptr->value;
@@ -1544,7 +1544,7 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStat
 	return tmp;
 }
 
-ByteCode* compileCond(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* status)
+ByteCode* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status)
 {
 	AST_cptr* cond=NULL;
 	ByteCode* pushnil=createByteCode(sizeof(char));
@@ -1620,7 +1620,7 @@ ByteCode* compileCond(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus
 	return tmp;
 }
 
-ByteCode* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus* status)
+ByteCode* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status)
 {
 	AST_cptr* fir=&((AST_pair*)objCptr->value)->car;
 	AST_cptr* pFileName=nextCptr(fir);
@@ -1637,7 +1637,7 @@ ByteCode* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus
 		perror(name->value.str);
 		exit(EXIT_FAILURE);
 	}
-	intpr* tmpIntpr=newIntpr(name->value.str,file,curEnv);
+	Intpr* tmpIntpr=newIntpr(name->value.str,file,curEnv);
 	tmpIntpr->prev=inter;
 	tmpIntpr->procs=NULL;
 	tmpIntpr->glob=curEnv;
@@ -1652,7 +1652,7 @@ ByteCode* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,intpr* inter,ErrorStatus
 	return tmp;
 }
 
-ByteCode* compileFile(intpr* inter)
+ByteCode* compileFile(Intpr* inter)
 {
 	chdir(inter->curDir);
 	char ch;

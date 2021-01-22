@@ -656,7 +656,7 @@ void printList(const AST_cptr* objCptr,FILE* out)
 	}
 }
 
-void exError(const AST_cptr* obj,int type,intpr* inter)
+void exError(const AST_cptr* obj,int type,Intpr* inter)
 {
 	if(inter!=NULL)fprintf(stderr,"In file \"%s\",line %d\n",inter->filename,(obj==NULL)?inter->curline:obj->curline);
 	if(obj!=NULL)printList(obj,stderr);
@@ -714,10 +714,10 @@ void destroyEnv(PreEnv* objEnv)
 	}
 }
 
-intpr* newIntpr(const char* filename,FILE* file,CompEnv* env)
+Intpr* newIntpr(const char* filename,FILE* file,CompEnv* env)
 {
-	intpr* tmp=NULL;
-	if(!(tmp=(intpr*)malloc(sizeof(intpr))))errors("newIntpr",__FILE__,__LINE__);
+	Intpr* tmp=NULL;
+	if(!(tmp=(Intpr*)malloc(sizeof(Intpr))))errors("newIntpr",__FILE__,__LINE__);
 	tmp->filename=copyStr(filename);
 	if(file!=stdin&&filename!=NULL)
 	{
@@ -753,7 +753,7 @@ intpr* newIntpr(const char* filename,FILE* file,CompEnv* env)
 	return tmp;
 }
 
-void freeIntpr(intpr* inter)
+void freeIntpr(Intpr* inter)
 {
 	if(inter->filename)
 		free(inter->filename);
@@ -851,7 +851,7 @@ RawProc* newRawProc(int32_t count)
 	return tmp;
 }
 
-RawProc* addRawProc(ByteCode* proc,intpr* inter)
+RawProc* addRawProc(ByteCode* proc,Intpr* inter)
 {
 	while(inter->prev!=NULL)inter=inter->prev;
 	ByteCode* tmp=createByteCode(proc->size);
@@ -1060,7 +1060,7 @@ void* copyMemory(void* pm,size_t size)
 	return tmp;
 }
 
-int hasLoadSameFile(const char* filename,const intpr* inter)
+int hasLoadSameFile(const char* filename,const Intpr* inter)
 {
 	while(inter!=NULL)
 	{
@@ -1071,7 +1071,7 @@ int hasLoadSameFile(const char* filename,const intpr* inter)
 	return 0;
 }
 
-RawProc* getHeadRawProc(const intpr* inter)
+RawProc* getHeadRawProc(const Intpr* inter)
 {
 	while(inter->prev!=NULL)
 		inter=inter->prev;
@@ -1189,7 +1189,7 @@ void deleteAllDll(Dlls* head)
 	}
 }
 
-Dlls** getHeadOfMods(intpr* inter)
+Dlls** getHeadOfMods(Intpr* inter)
 {
 	while(inter->prev!=NULL)
 		inter=inter->prev;
@@ -1301,7 +1301,7 @@ char* getStringFromFile(FILE* file)
 	return tmp;
 }
 
-void writeAllDll(intpr* inter,FILE* fp)
+void writeAllDll(Intpr* inter,FILE* fp)
 {
 	int num=(inter->head==NULL)?0:inter->tail->count+1;
 	fwrite(&num,sizeof(int32_t),1,fp);
@@ -1341,28 +1341,28 @@ int ModHasLoad(const char* name,Modlist* head)
 	return 0;
 }
 
-Dlls** getpDlls(intpr* inter)
+Dlls** getpDlls(Intpr* inter)
 {
 	while(inter->prev)
 		inter=inter->prev;
 	return &inter->modules;
 }
 
-Modlist** getpTail(intpr* inter)
+Modlist** getpTail(Intpr* inter)
 {
 	while(inter->prev)
 		inter=inter->prev;
 	return &inter->tail;
 }
 
-Modlist** getpHead(intpr* inter)
+Modlist** getpHead(Intpr* inter)
 {
 	while(inter->prev)
 		inter=inter->prev;
 	return &inter->head;
 }
 
-char* getLastWorkDir(intpr* inter)
+char* getLastWorkDir(Intpr* inter)
 {
 	while(inter->prev!=NULL)
 		inter=inter->prev;
@@ -1530,10 +1530,10 @@ char* castEscapeCharater(const char* str,char end,int32_t* len)
 	return tmp;
 }
 
-intpr* newTmpIntpr(const char* filename,FILE* fp)
+Intpr* newTmpIntpr(const char* filename,FILE* fp)
 {
-	intpr* tmp=NULL;
-	if(!(tmp=(intpr*)malloc(sizeof(intpr))))errors("newTmpIntpr",__FILE__,__LINE__);
+	Intpr* tmp=NULL;
+	if(!(tmp=(Intpr*)malloc(sizeof(Intpr))))errors("newTmpIntpr",__FILE__,__LINE__);
 	tmp->filename=copyStr(filename);
 	if(fp!=stdin&&filename)
 	{

@@ -33,7 +33,7 @@ int main(int argc,char** argv)
 			perror(filename);
 			return EXIT_FAILURE;
 		}
-		intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL);
+		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL);
 		if(fp==stdin)
 			runIntpr(inter);
 		else
@@ -42,7 +42,7 @@ int main(int argc,char** argv)
 			VMenv* globEnv=newVMenv(0,NULL);
 			ByteCode* mainByteCode=compileFile(inter);
 			ByteCode* rawProcList=castRawproc(NULL,inter->procs);
-			fakeVM* anotherVM=newFakeVM(mainByteCode,rawProcList);
+			FakeVM* anotherVM=newFakeVM(mainByteCode,rawProcList);
 			freeByteCode(mainByteCode);
 			anotherVM->tid=pthread_self();
 			anotherVM->mainproc->localenv=globEnv;
@@ -88,7 +88,7 @@ int main(int argc,char** argv)
 		ByteCode* RawProcess=loadRawproc(fp,&num);
 		ByteCode* mainprocess=loadByteCode(fp);
 		//printByteCode(mainprocess,stdout);
-		fakeVM* anotherVM=newFakeVM(mainprocess,RawProcess);
+		FakeVM* anotherVM=newFakeVM(mainprocess,RawProcess);
 		VMheap* heap=anotherVM->heap;
 		freeByteCode(mainprocess);
 		loadAllModules(fp,&anotherVM->modules);
@@ -124,11 +124,11 @@ int main(int argc,char** argv)
 	return exitStatus;
 }
 
-void runIntpr(intpr* inter)
+void runIntpr(Intpr* inter)
 {
 	initPreprocess();
 	int e=0;
-	fakeVM* anotherVM=newFakeVM(NULL,NULL);
+	FakeVM* anotherVM=newFakeVM(NULL,NULL);
 	VMenv* globEnv=newVMenv(0,NULL);
 	anotherVM->mainproc->localenv=globEnv;
 	anotherVM->tid=pthread_self();

@@ -6,7 +6,7 @@
 #include<string.h>
 #include<ctype.h>
 
-AST_cptr* createTree(const char* objStr,intpr* inter,StringMatchPattern* pattern)
+AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern)
 {
 	if(objStr==NULL)return NULL;
 	size_t i=0;
@@ -86,7 +86,7 @@ AST_cptr* createTree(const char* objStr,intpr* inter,StringMatchPattern* pattern
 				inter->curline+=countChar(parts[j],'\n',-1);
 		}
 		ByteCode* rawProcList=castRawproc(NULL,pattern->procs);
-		fakeVM* tmpVM=newTmpFakeVM(NULL,rawProcList);
+		FakeVM* tmpVM=newTmpFakeVM(NULL,rawProcList);
 		VMenv* tmpGlobEnv=newVMenv(0,NULL);
 		initGlobEnv(tmpGlobEnv,tmpVM->heap);
 		VMcode* tmpVMcode=newVMcode(pattern->proc);

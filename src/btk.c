@@ -31,7 +31,7 @@ int getch()
 	return ch;
 }
 #endif
-int resBp(fakeVM* exe)
+int resBp(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	if(stack->tp>stack->bp)return TOOMUCHARG;
@@ -41,7 +41,7 @@ int resBp(fakeVM* exe)
 	return 0;
 }
 
-int FAKE_getch(fakeVM* exe,pthread_rwlock_t* pGClock)
+int FAKE_getch(FakeVM* exe,pthread_rwlock_t* pGClock)
 {
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
@@ -58,7 +58,7 @@ int FAKE_getch(fakeVM* exe,pthread_rwlock_t* pGClock)
 	return 0;
 }
 
-int FAKE_sleep(fakeVM* exe,pthread_rwlock_t* pGClock)
+int FAKE_sleep(FakeVM* exe,pthread_rwlock_t* pGClock)
 {
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
@@ -81,7 +81,7 @@ int FAKE_sleep(fakeVM* exe,pthread_rwlock_t* pGClock)
 	return 0;
 }
 
-int FAKE_usleep(fakeVM* exe,pthread_rwlock_t* pGClock)
+int FAKE_usleep(FakeVM* exe,pthread_rwlock_t* pGClock)
 {
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
@@ -108,7 +108,7 @@ int FAKE_usleep(fakeVM* exe,pthread_rwlock_t* pGClock)
 	return 0;
 }
 
-int FAKE_exit(fakeVM* exe,pthread_rwlock_t* pGClock)
+int FAKE_exit(FakeVM* exe,pthread_rwlock_t* pGClock)
 {
 	VMstack* stack=exe->stack;
 	VMvalue* exitCode=getArg(stack);
@@ -120,7 +120,7 @@ int FAKE_exit(fakeVM* exe,pthread_rwlock_t* pGClock)
 	exe->callback(i);
 }
 
-int FAKE_rand(fakeVM* exe,pthread_rwlock_t* pGClock)
+int FAKE_rand(FakeVM* exe,pthread_rwlock_t* pGClock)
 {
 	srand((unsigned)time(NULL));
 	VMstack* stack=exe->stack;
@@ -135,7 +135,7 @@ int FAKE_rand(fakeVM* exe,pthread_rwlock_t* pGClock)
 	return 0;
 }
 
-int FAKE_getTime(fakeVM* exe,pthread_rwlock_t* pGClock)
+int FAKE_getTime(FakeVM* exe,pthread_rwlock_t* pGClock)
 {
 	VMstack* stack=exe->stack;
 	if(resBp(exe))return TOOMUCHARG;
@@ -167,7 +167,7 @@ int FAKE_getTime(fakeVM* exe,pthread_rwlock_t* pGClock)
 	return 0;
 }
 
-int FAKE_removeFile(fakeVM* exe,pthread_rwlock_t* pGClock)
+int FAKE_removeFile(FakeVM* exe,pthread_rwlock_t* pGClock)
 {
 	VMstack* stack=exe->stack;
 	VMvalue* name=getArg(stack);

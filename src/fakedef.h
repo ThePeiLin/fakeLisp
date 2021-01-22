@@ -151,7 +151,7 @@ typedef struct Interpreter
 	Modlist* head;
 	Modlist* tail;
 	struct Interpreter* prev;
-}intpr;
+}Intpr;
 
 typedef struct Pre_Func//function and form
 {
@@ -243,13 +243,13 @@ typedef struct
 	pthread_mutex_t lock;
 	int32_t size;
 	FILE** files;
-}filestack;
+}Filestack;
 
 typedef struct ThreadMessage
 {
 	VMvalue* message;
 	struct ThreadMessage* next;
-}threadMessage;
+}ThreadMessage;
 
 typedef struct
 {
@@ -267,7 +267,7 @@ typedef struct
 	struct DLL_s* modules;
 	struct VM_Heap* heap;
 	void (*callback)(void*);
-}fakeVM;
+}FakeVM;
 
 typedef struct VM_Heap
 {
@@ -281,7 +281,7 @@ typedef struct
 {
 	int32_t size;
 	fakeVM** VMs;
-}fakeVMlist;
+}FakeVMlist;
 
 #ifdef _WIN32
 #include<windows.h>

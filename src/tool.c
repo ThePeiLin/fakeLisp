@@ -60,7 +60,7 @@ char* builtInSymbolList[]=
 	"princ",
 	"go",
 	"send",
-	"accept",
+	"recv",
 	"getid",
 };
 

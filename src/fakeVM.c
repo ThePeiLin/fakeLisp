@@ -88,7 +88,7 @@ static int (*ByteCodes[])(fakeVM*)=
 	B_princ,
 	B_go,
 	B_send,
-	B_accept,
+	B_recv,
 	B_getid,
 };
 
@@ -666,13 +666,13 @@ ByteCode P_send=
 	}
 };
 
-ByteCode P_accept=
+ByteCode P_recv=
 {
 	3,
 	(char[])
 	{
 		FAKE_RES_BP,
-		FAKE_ACCEPT,
+		FAKE_RECV,
 		FAKE_END_PROC
 	}
 };
@@ -796,7 +796,7 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 		P_princ,
 		P_go,
 		P_send,
-		P_accept,
+		P_recv,
 		P_getid,
 	};
 	obj->size=NUMOFBUILTINSYMBOL;
@@ -2447,14 +2447,14 @@ int B_send(fakeVM* exe)
 	return 0;
 }
 
-int B_accept(fakeVM* exe)
+int B_recv(fakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-		if(stack->values==NULL)errors("B_accept",__FILE__,__LINE__);
+		if(stack->values==NULL)errors("B_recv",__FILE__,__LINE__);
 		stack->size+=64;
 	}
 	VMvalue* tmp=newNilValue(exe->heap);

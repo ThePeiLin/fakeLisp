@@ -1,7 +1,7 @@
+#include"syntax.h"
+#include"common.h"
 #include<stdlib.h>
 #include<string.h>
-#include"tool.h"
-#include"syntax.h"
 
 static KeyWord* KeyWords=NULL;
 

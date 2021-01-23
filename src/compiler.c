@@ -1,6 +1,6 @@
 #include"compiler.h"
 #include"syntax.h"
-#include"tool.h"
+#include"common.h"
 #include"opcode.h"
 #include"ast.h"
 #include"VMtool.h"

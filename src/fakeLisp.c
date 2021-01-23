@@ -1,6 +1,6 @@
 #include"fakeLisp.h"
 #include"reader.h"
-#include"tool.h"
+#include"common.h"
 #include"VMtool.h"
 #include"syntax.h"
 #include"compiler.h"

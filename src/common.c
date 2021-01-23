@@ -1,4 +1,4 @@
-#include"tool.h"
+#include"common.h"
 #include"opcode.h"
 #include<stdlib.h>
 #include<stdio.h>

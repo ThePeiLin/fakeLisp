@@ -1,4 +1,4 @@
-#include"tool.h"
+#include"common.h"
 #include"VMtool.h"
 #include"reader.h"
 #include"fakeVM.h"

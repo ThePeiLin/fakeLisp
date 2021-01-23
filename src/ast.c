@@ -1,5 +1,5 @@
 #include"ast.h"
-#include"tool.h"
+#include"common.h"
 #include"reader.h"
 #include"VMtool.h"
 #include"fakeVM.h"

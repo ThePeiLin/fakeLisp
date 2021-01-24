@@ -540,8 +540,8 @@ VMcontinuation* newVMcontinuation(VMstack* stack,VMprocess* curproc)
 	VMprocess* cur=curproc->prev;
 	VMcontinuation* tmp=(VMcontinuation*)malloc(sizeof(VMcontinuation));
 	if(!tmp)errors("newVMcontinuation",__FILE__,__LINE__);
-	tmp->status=(VMprocStatus*)malloc(sizeof(VMprocStatus)*size);
-	if(!tmp->status)errors("newVMcontinuation",__FILE__,__LINE__);
+	VMprocStatus* status=(VMprocStatus*)malloc(sizeof(VMprocStatus)*size);
+	if(!status)errors("newVMcontinuation",__FILE__,__LINE__);
 	tmp->stack=copyStack(stack);
 	tmp->size=size;
 	for(;i<size;i++)
@@ -553,7 +553,28 @@ VMcontinuation* newVMcontinuation(VMstack* stack,VMprocess* curproc)
 		tmp->status[i].proc=cur->code;
 		cur=cur->prev;
 	}
+	tmp->status=status;
 	return tmp;
+}
+
+void freeVMcontinuation(VMcontinuation* cont)
+{
+	int32_t i=0;
+	int32_t size=cont->size;
+	VMstack* stack=cont->stack;
+	VMprocStatus* status=cont->status;
+	free(stack->values);
+	free(stack);
+	for(;i<size;i++)
+	{
+		freeVMenv(status[i].env);
+		if(!status[i].proc->refcount)
+			freeVMcode(status[i].proc);
+		else
+			status[i].proc->refcount-=1;
+	}
+	free(status);
+	free(cont);
 }
 
 VMstack* copyStack(VMstack* stack)

@@ -48,6 +48,7 @@ static int (*ByteCodes[])(FakeVM*)=
 	B_end_proc,
 	B_set_bp,
 	B_invoke,
+	B_res_tp,
 	B_res_bp,
 	B_jump_if_ture,
 	B_jump_if_false,
@@ -1627,6 +1628,15 @@ int B_set_bp(FakeVM* exe)
 	stack->values[stack->tp]=prevBp;
 	stack->tp+=1;
 	stack->bp=stack->tp;
+	proc->cp+=1;
+	return 0;
+}
+
+int B_res_tp(FakeVM* exe)
+{
+	VMstack* stack=exe->stack;
+	VMprocess* proc=exe->curproc;
+	stack->tp=stack->bp;
 	proc->cp+=1;
 	return 0;
 }

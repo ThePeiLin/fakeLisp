@@ -309,4 +309,17 @@ typedef struct String_Match_Pattern
 	struct String_Match_Pattern* prev;
 	struct String_Match_Pattern* next;
 }StringMatchPattern;
+
+typedef struct VM_con
+{
+	int32_t cp;
+	VMcode* proc;
+	VMenv* env;
+}VMcon;
+
+typedef struct VM_Continuation
+{
+	int32_t size;
+	VMcon* callChain;
+}VMcontinuation;
 #endif

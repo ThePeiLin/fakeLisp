@@ -1350,7 +1350,7 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	ByteCode* popVar=createByteCode(sizeof(char)+sizeof(int32_t));
 	ByteCode* pushProc=createByteCode(sizeof(char)+sizeof(int32_t));
 	ByteCode* endproc=createByteCode(sizeof(char));
-	ByteCode* pop=createByteCode(sizeof(char));
+	ByteCode* resTp=createByteCode(sizeof(char));
 	ByteCode* resBp=createByteCode(sizeof(char));
 	ByteCode* popRestVar=createByteCode(sizeof(char)+sizeof(int32_t));
 	endproc->code[0]=FAKE_END_PROC;
@@ -1358,7 +1358,7 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	popVar->code[0]=FAKE_POP_VAR;
 	pushProc->code[0]=FAKE_PUSH_PROC;
 	resBp->code[0]=FAKE_RES_BP;
-	pop->code[0]=FAKE_POP;
+	resTp->code[0]=FAKE_POP;
 	popRestVar->code[0]=FAKE_POP_REST_VAR;
 	for(;;)
 	{
@@ -1419,7 +1419,7 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 						freeByteCode(pushProc);
 						freeByteCode(popVar);
 						freeByteCode(proc);
-						freeByteCode(pop);
+						freeByteCode(resTp);
 						freeByteCode(popRestVar);
 						freeByteCode(resBp);
 						inter->procs=prevRawProc;
@@ -1448,7 +1448,7 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 							freeByteCode(pushProc);
 							freeByteCode(popVar);
 							freeByteCode(proc);
-							freeByteCode(pop);
+							freeByteCode(resTp);
 							freeByteCode(popRestVar);
 							freeByteCode(resBp);
 							inter->procs=prevRawProc;
@@ -1481,7 +1481,7 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 					freeByteCode(pushProc);
 					freeByteCode(popVar);
 					freeByteCode(proc);
-					freeByteCode(pop);
+					freeByteCode(resTp);
 					freeByteCode(popRestVar);
 					freeByteCode(resBp);
 					inter->procs=prevRawProc;
@@ -1513,7 +1513,7 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 				freeByteCode(pushProc);
 				freeByteCode(popVar);
 				freeByteCode(proc);
-				freeByteCode(pop);
+				freeByteCode(resTp);
 				freeByteCode(popRestVar);
 				freeByteCode(resBp);
 				inter->procs=prevRawProc;
@@ -1527,7 +1527,7 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 				return NULL;
 			}
 			if(nextCptr(objCptr)!=NULL)
-				codeCat(tmp1,pop);
+				codeCat(tmp1,resTp);
 			codeCat(tmpRawProc->proc,tmp1);
 			freeByteCode(tmp1);
 			objCptr=nextCptr(objCptr);
@@ -1537,7 +1537,7 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	freeByteCode(pushProc);
 	freeByteCode(popVar);
 	freeByteCode(proc);
-	freeByteCode(pop);
+	freeByteCode(resTp);
 	freeByteCode(popRestVar);
 	freeByteCode(resBp);
 	freeByteCode(endproc);
@@ -1657,8 +1657,8 @@ ByteCode* compileFile(Intpr* inter)
 	chdir(inter->curDir);
 	char ch;
 	ByteCode* tmp=createByteCode(0);
-	ByteCode* pop=createByteCode(1);
-	pop->code[0]=FAKE_POP;
+	ByteCode* resTp=createByteCode(1);
+	resTp->code[0]=FAKE_RES_TP;
 	char* prev=NULL;
 	while((ch=getc(inter->file))!=EOF)
 	{
@@ -1694,11 +1694,11 @@ ByteCode* compileFile(Intpr* inter)
 				{
 					exError(status.place,status.status,inter);
 					deleteCptr(status.place);
-					freeByteCode(pop);
+					freeByteCode(resTp);
 					freeByteCode(tmp);
 					exit(EXIT_FAILURE);
 				}
-				if(tmp->size)reCodeCat(pop,tmpByteCode);
+				if(tmp->size)reCodeCat(resTp,tmpByteCode);
 				codeCat(tmp,tmpByteCode);
 				freeByteCode(tmpByteCode);
 			}
@@ -1708,6 +1708,6 @@ ByteCode* compileFile(Intpr* inter)
 		free(list);
 		list=NULL;
 	}
-	freeByteCode(pop);
+	freeByteCode(resTp);
 	return tmp;
 }

@@ -45,6 +45,7 @@ int B_call_proc(FakeVM*);
 int B_end_proc(FakeVM*);
 int B_set_bp(FakeVM*);
 int B_invoke(FakeVM*);
+int B_res_tp(FakeVM*);
 int B_res_bp(FakeVM*);
 int B_open(FakeVM*);
 int B_close(FakeVM*);

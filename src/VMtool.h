@@ -43,4 +43,6 @@ void releaseSource(pthread_rwlock_t*);
 void lockSource(pthread_rwlock_t*);
 VMvalue* getArg(VMstack*);
 FILE* getFile(Filestack*,int32_t);
+
+int32_t countCallChain(VMprocess*);
 #endif

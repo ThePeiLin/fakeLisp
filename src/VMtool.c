@@ -521,3 +521,14 @@ VMenv* castPreEnvToVMenv(PreEnv* pe,int32_t b,VMenv* prev,VMheap* heap)
 	tmp->values=values;
 	return tmp;
 }
+
+int32_t countCallChain(VMprocess* curproc)
+{
+	int32_t i=0;
+	while(curproc)
+	{
+		i++;
+		curproc=curproc->prev;
+	}
+	return i;
+}

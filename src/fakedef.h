@@ -13,7 +13,7 @@
 #define NUMOFBUILTINSYMBOL 47
 #define MAX_STRING_SIZE 64
 
-typedef enum{NIL=0,IN32,CHR,DBL,SYM,STR,BYTA,PRC,PAIR,ATM} ValueType;
+typedef enum{NIL=0,IN32,CHR,DBL,SYM,STR,BYTA,PRC,CON,PAIR,ATM} ValueType;
 
 typedef struct
 {
@@ -310,16 +310,17 @@ typedef struct String_Match_Pattern
 	struct String_Match_Pattern* next;
 }StringMatchPattern;
 
-typedef struct VM_con
+typedef struct VM_proc_status
 {
 	int32_t cp;
 	VMcode* proc;
 	VMenv* env;
-}VMcon;
+}VMprocStatus;
 
 typedef struct VM_Continuation
 {
 	int32_t size;
-	VMcon* callChain;
+	VMstack* stack;
+	VMprocStatus* status;
 }VMcontinuation;
 #endif

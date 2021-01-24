@@ -35,6 +35,7 @@ uint8_t* copyArry(size_t,uint8_t*);
 uint8_t* createByteArry(int32_t);
 VMcode* copyVMcode(VMcode*,VMheap*);
 VMenv* copyVMenv(VMenv*,VMheap*);
+VMstack* copyStack(VMstack*);
 void freeVMcode(VMcode*);
 void freeVMvalue(VMvalue*);
 void freeVMstr(VMstr*);
@@ -45,4 +46,5 @@ VMvalue* getArg(VMstack*);
 FILE* getFile(Filestack*,int32_t);
 
 int32_t countCallChain(VMprocess*);
+VMcontinuation* newVMcontinuation(VMstack*,VMprocess*);
 #endif

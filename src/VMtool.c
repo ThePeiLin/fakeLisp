@@ -532,3 +532,41 @@ int32_t countCallChain(VMprocess* curproc)
 	}
 	return i;
 }
+
+VMcontinuation* newVMcontinuation(VMstack* stack,VMprocess* curproc)
+{
+	int32_t size=countCallChain(curproc->prev);
+	int32_t i=0;
+	VMprocess* cur=curproc->prev;
+	VMcontinuation* tmp=(VMcontinuation*)malloc(sizeof(VMcontinuation));
+	if(!tmp)errors("newVMcontinuation",__FILE__,__LINE__);
+	tmp->status=(VMprocStatus*)malloc(sizeof(VMprocStatus)*size);
+	if(!tmp->status)errors("newVMcontinuation",__FILE__,__LINE__);
+	tmp->stack=copyStack(stack);
+	tmp->size=size;
+	for(;i<size;i++)
+	{
+		tmp->status[i].cp=cur->cp;
+		cur->localenv->refcount+=1;
+		tmp->status[i].env=cur->localenv;
+		cur->code->refcount+=1;
+		tmp->status[i].proc=cur->code;
+		cur=cur->prev;
+	}
+	return tmp;
+}
+
+VMstack* copyStack(VMstack* stack)
+{
+	int32_t i=0;
+	VMstack* tmp=(VMstack*)malloc(sizeof(VMstack));
+	if(!tmp)errors("copyStack",__FILE__,__LINE__);
+	tmp->size=stack->size;
+	tmp->tp=stack->tp;
+	tmp->bp=stack->bp;
+	tmp->values=(VMvalue**)malloc(sizeof(VMvalue*)*(tmp->size));
+	if(!tmp->values)errors("copyStack",__FILE__,__LINE__);
+	for(;i<stack->tp;i++)
+		tmp->values[i]=stack->values[i];
+	return tmp;
+}

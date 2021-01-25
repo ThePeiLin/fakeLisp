@@ -46,4 +46,5 @@ FILE* getFile(Filestack*,int32_t);
 
 int32_t countCallChain(VMprocess*);
 VMcontinuation* newVMcontinuation(VMstack*,VMprocess*);
+void freeVMcontinuation(VMcontinuation*);
 #endif

@@ -320,6 +320,7 @@ typedef struct VM_proc_status
 
 typedef struct VM_Continuation
 {
+	int32_t refcount;
 	int32_t size;
 	VMstack* stack;
 	VMprocStatus* status;

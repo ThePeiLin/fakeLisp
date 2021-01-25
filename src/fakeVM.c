@@ -690,6 +690,23 @@ ByteCode P_getid=
 	}
 };
 
+ByteCode P_callcc=
+{
+	25,
+	(char[])
+	{
+		FAKE_POP_VAR,0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PACK_CC,
+		FAKE_POP_VAR,1,0,0,0,
+		FAKE_SET_BP,
+		FAKE_PUSH_VAR,1,0,0,0,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_INVOKE,
+		FAKE_END_PROC
+	}
+};
+
 FakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 {
 	FakeVM* exe=(FakeVM*)malloc(sizeof(FakeVM));
@@ -1676,21 +1693,29 @@ int B_invoke(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMvalue* tmpValue=getTopValue(stack);
-	if(tmpValue->type!=PRC)return WRONGARG;
-	proc->cp+=1;
-	VMcode* tmpCode=tmpValue->u.prc;
-	VMprocess* prevProc=hasSameProc(tmpCode,proc);
-	if(isTheLastExpress(proc,prevProc)&&prevProc)
-		prevProc->cp=0;
+	if(tmpValue->type!=PRC&&tmpValue->type!=CONT)return WRONGARG;
+	if(tmpValue->type==PRC)
+	{
+		VMcode* tmpCode=tmpValue->u.prc;
+		VMprocess* prevProc=hasSameProc(tmpCode,proc);
+		if(isTheLastExpress(proc,prevProc)&&prevProc)
+			prevProc->cp=0;
+		else
+		{
+			tmpCode->refcount+=1;
+			VMprocess* tmpProc=newFakeProcess(tmpCode,proc);
+			tmpProc->localenv=newVMenv(tmpCode->localenv->bound,tmpCode->localenv->prev);
+			exe->curproc=tmpProc;
+		}
+		stack->tp-=1;
+		stackRecycle(exe);
+		proc->cp+=1;
+	}
 	else
 	{
-		tmpCode->refcount+=1;
-		VMprocess* tmpProc=newFakeProcess(tmpCode,proc);
-		tmpProc->localenv=newVMenv(tmpCode->localenv->bound,tmpCode->localenv->prev);
-		exe->curproc=tmpProc;
+		VMcontinuation* cc=tmpValue->u.cont;
+		createCallChainWithContinuation(exe,cc);
 	}
-	stack->tp-=1;
-	stackRecycle(exe);
 	return 0;
 }
 
@@ -2790,6 +2815,10 @@ void writeRef(VMvalue* fir,VMvalue* sec)
 				fir->u.prc=sec->u.prc;
 				fir->u.prc->refcount+=1;
 				break;
+			case CONT:
+				fir->u.cont=sec->u.cont;
+				fir->u.cont->refcount+=1;
+				break;
 			case SYM:
 			case STR:
 				if(!fir->access)
@@ -3030,4 +3059,40 @@ void deleteCallChain(FakeVM* exe)
 		freeVMcode(prev->code);
 		free(prev);
 	}
+}
+
+void createCallChainWithContinuation(FakeVM* vm,VMcontinuation* cc)
+{
+	VMstack* stack=vm->stack;
+	VMstack* tmpStack=copyStack(cc->stack);
+	int32_t i=stack->bp+1;
+	for(;i<stack->tp;i++)
+	{
+		if(tmpStack->tp>=tmpStack->size)
+		{
+			tmpStack->values=(VMvalue**)realloc(tmpStack->values,sizeof(VMvalue*)*(tmpStack->size+64));
+			if(tmpStack->values==NULL)errors("createCallChainWithContinuation",__FILE__,__LINE__);
+			tmpStack->size+=64;
+		}
+		tmpStack->values[tmpStack->tp]=stack->values[i];
+		tmpStack->tp+=1;
+	}
+	deleteCallChain(vm);
+	VMprocess* curproc=NULL;
+	for(i=cc->size-1;i>=0;i--)
+	{
+		VMprocess* cur=(VMprocess*)malloc(sizeof(VMprocess));
+		if(!cur)errors("createCallChainWithContinuation",__FILE__,__LINE__);
+		cur->prev=curproc;
+		cur->cp=cc->status[i].cp;
+		cur->localenv=cc->status[i].env;
+		cur->localenv->refcount+=1;
+		cur->code=cc->status[i].proc;
+		cur->code->refcount+=1;
+		curproc=cur;
+	}
+	vm->curproc=curproc;
+	while(curproc->prev)
+		curproc=curproc->prev;
+	vm->mainproc=curproc;
 }

@@ -420,6 +420,10 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 				sec->u.prc->refcount+=1;
 				fir->u.prc=sec->u.prc;
 				break;
+			case CONT:
+				sec->u.cont->refcount+=1;
+				fir->u.cont=sec->u.cont;
+				break;
 			case BYTA:
 				if(!sec->access)
 				{

@@ -473,6 +473,9 @@ void freeRef(VMvalue* obj)
 				}
 				else obj->u.byta->refcount-=1;
 				break;
+			case CONT:
+				freeVMcontinuation(obj->u.cont);
+				break;
 		}
 	}
 }
@@ -521,6 +524,7 @@ VMcontinuation* newVMcontinuation(VMstack* stack,VMprocess* curproc)
 	if(!status)errors("newVMcontinuation",__FILE__,__LINE__);
 	tmp->stack=copyStack(stack);
 	tmp->size=size;
+	tmp->refcount=0;
 	for(;i<size;i++)
 	{
 		tmp->status[i].cp=cur->cp;
@@ -536,22 +540,24 @@ VMcontinuation* newVMcontinuation(VMstack* stack,VMprocess* curproc)
 
 void freeVMcontinuation(VMcontinuation* cont)
 {
-	int32_t i=0;
-	int32_t size=cont->size;
-	VMstack* stack=cont->stack;
-	VMprocStatus* status=cont->status;
-	free(stack->values);
-	free(stack);
-	for(;i<size;i++)
+	if(!cont->refcount)
 	{
-		freeVMenv(status[i].env);
-		if(!status[i].proc->refcount)
+		int32_t i=0;
+		int32_t size=cont->size;
+		VMstack* stack=cont->stack;
+		VMprocStatus* status=cont->status;
+		free(stack->values);
+		free(stack);
+		for(;i<size;i++)
+		{
+			freeVMenv(status[i].env);
 			freeVMcode(status[i].proc);
-		else
-			status[i].proc->refcount-=1;
+		}
+		free(status);
+		free(cont);
 	}
-	free(status);
-	free(cont);
+	else
+		cont->refcount-=1;
 }
 
 VMstack* copyStack(VMstack* stack)

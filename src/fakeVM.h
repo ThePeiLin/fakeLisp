@@ -100,6 +100,7 @@ VMprocess* hasSameProc(VMcode*,VMprocess*);
 int isTheLastExpress(const VMprocess*,const VMprocess*);
 void printEnv(VMenv*,FILE*);
 VMheap* newVMheap();
+void createCallChainWithContinuation(FakeVM*,VMcontinuation*);
 void freeVMheap(VMheap*);
 void freeAllVMs();
 void deleteCallChain(FakeVM*);

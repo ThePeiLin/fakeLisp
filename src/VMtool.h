@@ -37,7 +37,6 @@ VMcode* copyVMcode(VMcode*,VMheap*);
 VMenv* copyVMenv(VMenv*,VMheap*);
 VMstack* copyStack(VMstack*);
 void freeVMcode(VMcode*);
-void freeVMvalue(VMvalue*);
 void freeVMstr(VMstr*);
 void freeVMenv(VMenv*);
 void releaseSource(pthread_rwlock_t*);

@@ -314,39 +314,16 @@ VMenv* copyVMenv(VMenv* objEnv,VMheap* heap)
 
 void freeVMcode(VMcode* proc)
 {
-	if(proc->localenv)
-		freeVMenv(proc->localenv);
-	free(proc->code);
-	free(proc);
-	//printf("Free proc!\n");
-}
-
-void freeVMvalue(VMvalue* obj)
-{
-	if(obj->prev!=NULL)
-		obj->prev->next=obj->next;
-	if(obj->next!=NULL)
-		obj->next->prev=obj->prev;
-	if(obj->access)
+	if(!proc->refcount)
 	{
-		switch(obj->type)
-		{
-			case BYTA:
-				if(obj->access)
-					free(obj->u.byta->arry);
-				free(obj->u.byta);
-				break;
-			case SYM:
-			case STR:
-				freeVMstr(obj->u.str);break;
-			case IN32:free(obj->u.num);break;
-			case DBL:free(obj->u.dbl);break;
-			case PRC:freeVMcode(obj->u.prc);break;
-			case PAIR:free(obj->u.pair);break;
-			case CHR:free(obj->u.chr);break;
-		}
+		if(proc->localenv)
+			freeVMenv(proc->localenv);
+		free(proc->code);
+		free(proc);
 	}
-	free(obj);
+	else
+		proc->refcount-=1;
+	//printf("Free proc!\n");
 }
 
 void freeVMstr(VMstr* obj)
@@ -486,9 +463,7 @@ void freeRef(VMvalue* obj)
 				else obj->u.pair->refcount-=1;
 				break;
 			case PRC:
-				if(!obj->u.prc->refcount)
-					freeVMcode(obj->u.prc);
-				else obj->u.prc->refcount-=1;
+				freeVMcode(obj->u.prc);
 				break;
 			case BYTA:
 				if(!obj->u.byta->refcount)

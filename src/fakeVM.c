@@ -1627,10 +1627,7 @@ int B_end_proc(FakeVM* exe)
 	exe->curproc=prev;
 	free(tmpProc);
 	freeVMenv(tmpEnv);
-	if(!tmpCode->refcount)
-		freeVMcode(tmpCode);
-	else
-		tmpCode->refcount-=1;
+	freeVMcode(tmpCode);
 	return 0;
 }
 
@@ -3030,10 +3027,7 @@ void deleteCallChain(FakeVM* exe)
 		VMprocess* prev=cur;
 		cur=cur->prev;
 		freeVMenv(prev->localenv);
-		if(!prev->code->refcount)
-			freeVMcode(prev->code);
-		else
-			prev->code->refcount-=1;
+		freeVMcode(prev->code);
 		free(prev);
 	}
 }

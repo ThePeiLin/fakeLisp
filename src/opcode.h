@@ -23,7 +23,7 @@ enum opcode
 	FAKE_POP_CAR,
 	FAKE_POP_CDR,
 	FAKE_POP_REF,
-	//FAKE_PACK_CC
+	FAKE_PACK_CC,
 	FAKE_INIT_PROC,
 	FAKE_CALL_PROC,
 	FAKE_END_PROC,
@@ -104,7 +104,7 @@ static codeinfor codeName[]=
 	{"pop_car",0},
 	{"pop_cdr",0},
 	{"pop_ref",0},
-	//{"pack_cc",0}
+	{"pack_cc",0},
 	{"init_proc",4},
 	{"call_proc",-1},
 	{"end_proc",0},

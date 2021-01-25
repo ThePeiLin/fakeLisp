@@ -43,6 +43,7 @@ static int (*ByteCodes[])(FakeVM*)=
 	B_pop_car,
 	B_pop_cdr,
 	B_pop_ref,
+	B_pack_cc,
 	B_init_proc,
 	B_call_proc,
 	B_end_proc,
@@ -1387,6 +1388,25 @@ int B_pop_ref(FakeVM* exe)
 	proc->cp+=1;
 	return 0;
 }
+
+int B_pack_cc(FakeVM* exe)
+{
+	VMstack* stack=exe->stack;
+	VMprocess* proc=exe->curproc;
+	if(stack->tp>=stack->size)
+	{
+		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
+		if(stack->values==NULL)errors("B_push_int",__FILE__,__LINE__);
+		stack->size+=64;
+	}
+	VMcontinuation* cc=newVMcontinuation(stack,proc->prev);
+	VMvalue* retval=newVMvalue(CONT,cc,exe->heap,1);
+	stack->values[stack->tp]=retval;
+	stack->tp+=1;
+	proc->cp+=1;
+	return 0;
+}
+
 int B_add(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;

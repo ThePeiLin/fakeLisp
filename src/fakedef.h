@@ -13,7 +13,7 @@
 #define NUMOFBUILTINSYMBOL 47
 #define MAX_STRING_SIZE 64
 
-typedef enum{NIL=0,IN32,CHR,DBL,SYM,STR,BYTA,PRC,CON,PAIR,ATM} ValueType;
+typedef enum{NIL=0,IN32,CHR,DBL,SYM,STR,BYTA,PRC,CONT,PAIR,ATM} ValueType;
 
 typedef struct
 {
@@ -193,6 +193,7 @@ typedef struct VM_Value
 		int32_t* num;
 		double* dbl;
 		struct VM_Code* prc;
+		struct VM_Continuation* cont;
 		void* all;
 	}u;
 	struct VM_Value* prev;

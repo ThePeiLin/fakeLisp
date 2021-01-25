@@ -88,6 +88,8 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap,int access)
 			tmp->u.prc=pValue;break;
 		case BYTA:
 			tmp->u.byta=pValue;break;
+		case CONT:
+			tmp->u.cont=pValue;break;
 	}
 	return tmp;
 }

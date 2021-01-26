@@ -62,6 +62,7 @@ char* builtInSymbolList[]=
 	"send",
 	"recv",
 	"getid",
+	"clcc"
 };
 
 char* getStringFromList(const char* str)

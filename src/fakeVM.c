@@ -690,7 +690,7 @@ ByteCode P_getid=
 	}
 };
 
-ByteCode P_callcc=
+ByteCode P_clcc=
 {
 	25,
 	(char[])
@@ -817,6 +817,7 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 		P_send,
 		P_recv,
 		P_getid,
+		P_clcc
 	};
 	obj->size=NUMOFBUILTINSYMBOL;
 	obj->values=(VMvalue**)realloc(obj->values,sizeof(VMvalue*)*NUMOFBUILTINSYMBOL);
@@ -864,15 +865,15 @@ void runFakeVM(FakeVM* exe)
 		int status=ByteCodes[tmpCode->code[curproc->cp]](exe);
 		if(status!=0)
 		{
-		//	VMstack* stack=exe->stack;
-		//	printByteCode(&tmpByteCode,stderr);
-		//	putc('\n',stderr);
-		//	printAllStack(exe->stack,stderr);
-		//	putc('\n',stderr);
-		//	fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
-		//	fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",curproc->cp,stack->bp,codeName[tmpCode->code[curproc->cp]].codeName);
-		//	printEnv(exe->curproc->localenv,stderr);
-		//	putc('\n',stderr);
+			VMstack* stack=exe->stack;
+			printByteCode(&tmpByteCode,stderr);
+			putc('\n',stderr);
+			printAllStack(exe->stack,stderr);
+			putc('\n',stderr);
+			fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
+			fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",curproc->cp,stack->bp,codeName[tmpCode->code[curproc->cp]].codeName);
+			printEnv(exe->curproc->localenv,stderr);
+			putc('\n',stderr);
 			switch(status)
 			{
 				case WRONGARG:
@@ -1416,7 +1417,7 @@ int B_pack_cc(FakeVM* exe)
 		if(stack->values==NULL)errors("B_push_int",__FILE__,__LINE__);
 		stack->size+=64;
 	}
-	VMcontinuation* cc=newVMcontinuation(stack,proc->prev);
+	VMcontinuation* cc=newVMcontinuation(stack,proc);
 	VMvalue* retval=newVMvalue(CONT,cc,exe->heap,1);
 	stack->values[stack->tp]=retval;
 	stack->tp+=1;
@@ -1713,6 +1714,9 @@ int B_invoke(FakeVM* exe)
 	}
 	else
 	{
+		stack->tp-=1;
+		stackRecycle(exe);
+		proc->cp+=1;
 		VMcontinuation* cc=tmpValue->u.cont;
 		createCallChainWithContinuation(exe,cc);
 	}
@@ -2593,7 +2597,8 @@ void printVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t mode,int8_t is
 		case STR:printRawString(objValue->u.str->str,fp);break;
 		case PRC:
 				if(mode==1)printProc(objValue->u.prc,fp);
-				else fprintf(fp,"#<proc>");break;
+				else fprintf(fp,"#<proc>");
+				break;
 		case PAIR:
 				if(isPrevPair)
 					putc(' ',fp);
@@ -2621,6 +2626,9 @@ void printVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t mode,int8_t is
 		case BYTA:
 				printByteArry(objValue->u.byta,fp,1);
 				break;
+		case CONT:
+				fprintf(fp,"#<cont>");
+				break;
 		default:fprintf(fp,"Bad value!");break;
 	}
 }
@@ -2636,7 +2644,8 @@ void princVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t isPrevPair)
 		case SYM:fprintf(fp,"%s",objValue->u.str->str);break;
 		case STR:fprintf(fp,"%s",objValue->u.str->str);break;
 		case PRC:
-				fprintf(fp,"#<proc>");break;
+				fprintf(fp,"#<proc>");
+				break;
 		case PAIR:
 				if(isPrevPair)
 					putc(' ',fp);
@@ -2663,6 +2672,9 @@ void princVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t isPrevPair)
 				break;
 		case BYTA:
 				printByteArry(objValue->u.byta,fp,0);
+				break;
+		case CONT:
+				fprintf(fp,"#<cont>");
 				break;
 		default:fprintf(fp,"Bad value!");break;
 	}

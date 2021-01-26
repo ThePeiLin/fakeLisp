@@ -196,7 +196,8 @@ void runIntpr(Intpr* inter)
 					rawProcList=castRawproc(rawProcList,inter->procs);
 					anotherVM->procs=rawProcList;
 					VMcode* tmp=newVMcode(tmpByteCode);
-					tmp->localenv=globEnv;
+					freeByteCode(tmpByteCode);
+					tmp->localenv=NULL;
 					anotherVM->mainproc->code=tmp;
 					anotherVM->mainproc->localenv=globEnv;
 					anotherVM->mainproc->cp=0;
@@ -213,9 +214,8 @@ void runIntpr(Intpr* inter)
 						//fprintf(stderr,"======\n");
 						//fprintf(stderr,"stack->tp=%d\n",stack->tp);
 						//printAllStack(stack,stderr);
+						tmp=anotherVM->mainproc->code;
 						stack->tp=0;
-						freeByteCode(tmpByteCode);
-						tmp->localenv=NULL;
 						freeVMcode(tmp);
 						anotherVM->mainproc->code=NULL;
 					}
@@ -224,7 +224,7 @@ void runIntpr(Intpr* inter)
 						VMstack* stack=anotherVM->stack;
 						stack->tp=0;
 						stack->bp=0;
-						freeByteCode(tmpByteCode);
+						tmp=anotherVM->mainproc->code;
 						tmp->localenv=NULL;
 						freeVMcode(tmp);
 						anotherVM->mainproc->code=NULL;

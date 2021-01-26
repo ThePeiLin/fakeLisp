@@ -2890,6 +2890,13 @@ void GC_markValue(VMvalue* obj)
 			for(;curEnv!=NULL;curEnv=curEnv->prev)
 				GC_markValueInEnv(curEnv);
 		}
+		else if(obj->type==CONT)
+		{
+			GC_markValueInStack(obj->u.cont->stack);
+			int32_t i=0;
+			for(;i<obj->u.cont->size;i++)
+				GC_markValueInEnv(obj->u.cont->status[i].env);
+		}
 	}
 }
 
@@ -3077,7 +3084,7 @@ void createCallChainWithContinuation(FakeVM* vm,VMcontinuation* cc)
 {
 	VMstack* stack=vm->stack;
 	VMstack* tmpStack=copyStack(cc->stack);
-	int32_t i=stack->bp+1;
+	int32_t i=stack->bp;
 	for(;i<stack->tp;i++)
 	{
 		if(tmpStack->tp>=tmpStack->size)
@@ -3090,7 +3097,12 @@ void createCallChainWithContinuation(FakeVM* vm,VMcontinuation* cc)
 		tmpStack->tp+=1;
 	}
 	deleteCallChain(vm);
+	freeVMcode(vm->mainproc->code);
+	freeVMenv(vm->mainproc->localenv);
+	free(vm->mainproc);
 	VMprocess* curproc=NULL;
+	vm->stack=tmpStack;
+	freeVMstack(stack);
 	for(i=cc->size-1;i>=0;i--)
 	{
 		VMprocess* cur=(VMprocess*)malloc(sizeof(VMprocess));

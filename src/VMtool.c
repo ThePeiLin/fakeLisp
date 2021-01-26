@@ -268,6 +268,9 @@ ByteArry* newEmptyByteArry()
 {
 	ByteArry* tmp=(ByteArry*)malloc(sizeof(ByteArry));
 	if(tmp==NULL)errors("newEmptyByteArry",__FILE__,__LINE__);
+	tmp->size=0;
+	tmp->refcount=0;
+	tmp->arry=NULL;
 	return tmp;
 }
 

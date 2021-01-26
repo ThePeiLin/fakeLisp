@@ -60,8 +60,6 @@ int B_type_of(FakeVM*);
 int B_nth(FakeVM*);
 int B_length(FakeVM*);
 int B_appd(FakeVM*);
-int B_str_cat(FakeVM*);
-int B_byte_cat(FakeVM*);
 int B_eq(FakeVM*);
 int B_eqn(FakeVM*);
 int B_equal(FakeVM*);

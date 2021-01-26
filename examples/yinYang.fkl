@@ -1,0 +1,38 @@
+(defmacro
+  (let $d,$b)
+  ((lambda ()
+     (define map
+       (lambda (f l)
+         (define map-iter
+           (lambda (f c p)
+             (cond ((null c) (appd p nil))
+                   (1 (map-iter f (cdr c) (appd p (cons (f (car c)) nil)))))))
+         (map-iter f l nil)))
+     (define list (lambda ls ls))
+     (define args nil)
+     (define vals nil)
+     (cond ((eq (typeof d) (quote sym))
+            (setq
+              args
+              (map (lambda (sd) (nth 0 sd)) (car b)))
+            (setq
+              vals
+              (map (lambda (sd) (nth 1 sd)) (car b)))
+            (list (quote let)
+                  (quote ())
+                  (list (quote define) d (cons (quote lambda) (cons args (cdr b))))
+                  (cons d vals)))
+           (1
+            (setq args
+                  (map (lambda (sd) (nth 0 sd)) d))
+            (setq vals
+                  (map (lambda (sd) (nth 1 sd)) d))
+            (cons (cons (quote lambda) (cons args b)) vals))))))
+
+(let ((yin
+        ((lambda (cc) (princ #\@ stdout) cc)
+         (clcc (lambda (c) c)))))
+  (let ((yang
+          ((lambda (cc) (princ #\* stdout) cc)
+           (clcc (lambda (c) c)))))
+    (yin yang)))

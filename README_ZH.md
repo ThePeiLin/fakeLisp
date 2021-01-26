@@ -124,8 +124,6 @@ div
 mod  
 nth  
 length  
-strcat  
-bytcat  
 appd  
 open  
 close  

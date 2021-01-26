@@ -531,11 +531,11 @@ VMcontinuation* newVMcontinuation(VMstack* stack,VMprocess* curproc)
 	tmp->refcount=0;
 	for(;i<size;i++)
 	{
-		tmp->status[i].cp=cur->cp;
+		status[i].cp=cur->cp;
 		cur->localenv->refcount+=1;
-		tmp->status[i].env=cur->localenv;
+		status[i].env=cur->localenv;
 		cur->code->refcount+=1;
-		tmp->status[i].proc=cur->code;
+		status[i].proc=cur->code;
 		cur=cur->prev;
 	}
 	tmp->status=status;

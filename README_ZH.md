@@ -136,8 +136,9 @@ princ
 writeb  
 go  
 send  
-accept  
+recv  
 getid  
+clcc  
 
 可用特殊形式有:  
 define  

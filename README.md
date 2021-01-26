@@ -90,8 +90,9 @@ princ
 writeb  
 go  
 send  
-accept  
+recv  
 getid  
+clcc  
 
 Special forms:  
 

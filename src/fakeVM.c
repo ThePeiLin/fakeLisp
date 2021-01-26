@@ -71,8 +71,6 @@ static int (*ByteCodes[])(FakeVM*)=
 	B_nth,
 	B_length,
 	B_appd,
-	B_str_cat,
-	B_byte_cat,
 	B_open,
 	B_close,
 	B_eq,
@@ -507,36 +505,6 @@ ByteCode P_appd=
 	}
 };
 
-ByteCode P_strcat=
-{
-	23,
-	(char[])
-	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
-		FAKE_RES_BP,
-		FAKE_PUSH_VAR,0,0,0,0,
-		FAKE_PUSH_VAR,1,0,0,0,
-		FAKE_STR_CAT,
-		FAKE_END_PROC
-	}
-};
-
-ByteCode P_bytcat=
-{
-	23,
-	(char[])
-	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
-		FAKE_RES_BP,
-		FAKE_PUSH_VAR,0,0,0,0,
-		FAKE_PUSH_VAR,1,0,0,0,
-		FAKE_BYTE_CAT,
-		FAKE_END_PROC
-	}
-};
-
 ByteCode P_open=
 {
 	23,
@@ -804,8 +772,6 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 		P_nth,
 		P_length,
 		P_appd,
-		P_strcat,
-		P_bytcat,
 		P_open,
 		P_close,
 		P_read,
@@ -2262,65 +2228,54 @@ int B_appd(FakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* fir=getTopValue(stack);
 	VMvalue* sec=getValue(stack,stack->tp-2);
-	stack->tp-=1;
-	stackRecycle(exe);
-	if(sec->type!=NIL&&sec->type!=PAIR)return WRONGARG;
-	if(sec->type!=NIL)
+	if(sec->type!=NIL&&sec->type!=PAIR&&sec->type!=STR&&sec->type!=BYTA)return WRONGARG;
+	if(sec->type==PAIR)
 	{
 		VMvalue* copyOfsec=copyValue(sec,exe->heap);
 		VMvalue* lastpair=copyOfsec;
 		while(getCdr(lastpair)->type!=NIL)lastpair=getCdr(lastpair);
 		lastpair->u.pair->cdr=fir;
+		stack->tp-=1;
+		stackRecycle(exe);
 		stack->values[stack->tp-1]=copyOfsec;
 	}
-	else stack->values[stack->tp-1]=fir;
-	proc->cp+=1;
-	return 0;
-}
-
-int B_str_cat(FakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMprocess* proc=exe->curproc;
-	VMvalue* fir=getTopValue(stack);
-	VMvalue* sec=getValue(stack,stack->tp-2);
-	if(fir->type!=STR||sec->type!=STR)return WRONGARG;
-	int firlen=strlen(fir->u.str->str);
-	int seclen=strlen(sec->u.str->str);
-	char* tmpStr=(char*)malloc(sizeof(char)*(firlen+seclen+1));
-	if(tmpStr==NULL)errors("B_str_cat",__FILE__,__LINE__);
-	stack->tp-=1;
-	stackRecycle(exe);
-	strcpy(tmpStr,sec->u.str->str);
-	strcat(tmpStr,fir->u.str->str);
-	VMstr* tmpVMstr=newVMstr(NULL);
-	tmpVMstr->str=tmpStr;
-	VMvalue* tmpValue=newVMvalue(STR,tmpVMstr,exe->heap,0);
-	tmpValue->access=1;
-	stack->values[stack->tp-1]=tmpValue;
-	proc->cp+=1;
-	return 0;
-}
-
-int B_byte_cat(FakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMprocess* proc=exe->curproc;
-	VMvalue* fir=getTopValue(stack);
-	VMvalue* sec=getValue(stack,stack->tp-2);
-	if(fir->type!=BYTA||sec->type!=BYTA)return WRONGARG;
-	int32_t firSize=fir->u.byta->size;
-	int32_t secSize=sec->u.byta->size;
-	VMvalue* tmpByte=newVMvalue(BYTA,NULL,exe->heap,1);
-	tmpByte->u.byta=newEmptyByteArry();
-	tmpByte->u.byta->size=firSize+secSize;
-	uint8_t* tmpArry=createByteArry(firSize+secSize);
-	memcpy(tmpArry,sec->u.byta->arry,secSize);
-	memcpy(tmpArry+firSize,fir->u.byta->arry,firSize);
-	tmpByte->u.byta->arry=tmpArry;
-	stack->tp-=1;
-	stackRecycle(exe);
-	stack->values[stack->tp-1]=tmpByte;
+	else if(sec->type==STR)
+	{
+		if(fir->type!=STR)return WRONGARG;
+		int32_t firlen=strlen(fir->u.str->str);
+		int32_t seclen=strlen(sec->u.str->str);
+		char* tmpStr=(char*)malloc(sizeof(char)*(firlen+seclen+1));
+		if(!tmpStr)errors("B_appd",__FILE__,__LINE__);
+		strcpy(tmpStr,sec->u.str->str);
+		strcat(tmpStr,fir->u.str->str);
+		VMstr* tmpVMstr=newVMstr(NULL);
+		tmpVMstr->str=tmpStr;
+		VMvalue* tmpValue=newVMvalue(STR,tmpVMstr,exe->heap,1);
+		stack->tp-=1;
+		stackRecycle(exe);
+		stack->values[stack->tp-1]=tmpValue;
+	}
+	else if(sec->type==BYTA)
+	{
+		int32_t firSize=fir->u.byta->size;
+		int32_t secSize=sec->u.byta->size;
+		VMvalue* tmpByte=newVMvalue(BYTA,NULL,exe->heap,1);
+		tmpByte->u.byta=newEmptyByteArry();
+		tmpByte->u.byta->size=firSize+secSize;
+		uint8_t* tmpArry=createByteArry(firSize+secSize);
+		memcpy(tmpArry,sec->u.byta->arry,secSize);
+		memcpy(tmpArry+firSize,fir->u.byta->arry,firSize);
+		tmpByte->u.byta->arry=tmpArry;
+		stack->tp-=1;
+		stackRecycle(exe);
+		stack->values[stack->tp-1]=tmpByte;
+	}
+	else
+	{
+		stack->tp-=1;
+		stackRecycle(exe);
+		stack->values[stack->tp-1]=fir;
+	}
 	proc->cp+=1;
 	return 0;
 }

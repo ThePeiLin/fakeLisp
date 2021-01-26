@@ -49,8 +49,6 @@ char* builtInSymbolList[]=
 	"nth",
 	"length",
 	"appd",
-	"strcat",
-	"bytcat",
 	"open",
 	"close",
 	"read",

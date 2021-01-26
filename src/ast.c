@@ -351,6 +351,10 @@ AST_cptr* castVMvalueToCptr(VMvalue* value,int32_t curline,AST_pair* prev)
 				tmpAtm->type=SYM;
 				tmpAtm->value.str=copyStr("#<proc>");
 				break;
+			case CONT:
+				tmpAtm->type=SYM;
+				tmpAtm->value.str=copyStr("#<proc>");
+				break;
 		}
 		tmp->value=tmpAtm;
 	}

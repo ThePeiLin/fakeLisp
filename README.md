@@ -78,8 +78,6 @@ div
 mod  
 nth  
 length  
-strcat  
-bytcat  
 append  
 open  
 close  

@@ -25,7 +25,7 @@ char* builtInSymbolList[]=
 	"cdr",
 	"atom",
 	"null",
-	"typeof",
+	"type",
 	"aply",
 	"eq",
 	"eqn",
@@ -1860,3 +1860,11 @@ int SymTabValCmp(SymTabValNode* fir,SymTabValNode* sec)
 		return fir->scope-sec->scope;
 	return fir->ref-sec->ref;
 }
+
+//CompEnv* createCompEnvWithSymbolTable(SymbolTable* table,int32_t scope,CompEnv* prev)
+//{
+//	addValidRefInScopeToPrevEnv(scope,table,prev);
+//	CompEnv* cur=newCompEnv(prev);
+//	addValidDefineInScopeToCurEnv(cur);
+//	return cur;
+//}

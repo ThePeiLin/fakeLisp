@@ -56,7 +56,7 @@ cdr
 atom  
 null  
 aply  
-typeof  
+type  
 eq  
 equal  
 eqn  
@@ -78,7 +78,7 @@ div
 mod  
 nth  
 length  
-append  
+appd  
 open  
 close  
 read  

@@ -61,7 +61,7 @@ static int (*ByteCodes[])(FakeVM*)=
 	B_mod,
 	B_atom,
 	B_null,
-	B_type_of,
+	B_type,
 	B_cast_to_chr,
 	B_cast_to_int,
 	B_cast_to_dbl,
@@ -1544,7 +1544,7 @@ int B_null(FakeVM* exe)
 	return 0;
 }
 
-int B_type_of(FakeVM* exe)
+int B_type(FakeVM* exe)
 {
 	char* a[]=
 	{
@@ -1556,6 +1556,7 @@ int B_type_of(FakeVM* exe)
 		"str",
 		"byta",
 		"proc",
+		"cont",
 		"pair"
 	};
 	VMstack* stack=exe->stack;

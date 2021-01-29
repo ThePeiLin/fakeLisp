@@ -56,7 +56,7 @@ int B_cast_to_dbl(FakeVM*);
 int B_cast_to_str(FakeVM*);
 int B_cast_to_sym(FakeVM*);
 int B_cast_to_byte(FakeVM*);
-int B_type_of(FakeVM*);
+int B_type(FakeVM*);
 int B_nth(FakeVM*);
 int B_length(FakeVM*);
 int B_appd(FakeVM*);

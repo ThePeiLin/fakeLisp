@@ -37,7 +37,7 @@ defmacro的语法比较特殊，为：
      (define list (lambda ls ls))
      (define args nil)
      (define vals nil)
-     (cond ((eq (typeof d) 'sym)
+     (cond ((eq (type d) 'sym)
             (setq
               args
               (map (lambda (sd) (nth 0 sd)) (car b)))
@@ -102,7 +102,7 @@ cdr
 atom  
 null  
 aply  
-typeof  
+type  
 eq  
 equal  
 eqn  

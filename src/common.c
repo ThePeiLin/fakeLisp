@@ -701,7 +701,7 @@ void destroyEnv(PreEnv* objEnv)
 		PreDef* delsym=objEnv->symbols;
 		while(delsym!=NULL)
 		{
-			free(delsym->symName);
+			free(delsym->symbol);
 			deleteCptr(&delsym->obj);
 			PreDef* prev=delsym;
 			delsym=delsym->next;
@@ -713,7 +713,7 @@ void destroyEnv(PreEnv* objEnv)
 	}
 }
 
-Intpr* newIntpr(const char* filename,FILE* file,CompEnv* env)
+Intpr* newIntpr(const char* filename,FILE* file,CompEnv* env,SymbolTable* table)
 {
 	Intpr* tmp=NULL;
 	if(!(tmp=(Intpr*)malloc(sizeof(Intpr))))errors("newIntpr",__FILE__,__LINE__);
@@ -742,13 +742,17 @@ Intpr* newIntpr(const char* filename,FILE* file,CompEnv* env)
 	tmp->modules=NULL;
 	tmp->head=NULL;
 	tmp->tail=NULL;
+	if(table)
+		tmp->table=table;
+	else
+		table=newSymbolTable();
 	if(env)
 	{
 		tmp->glob=env;
 		return tmp;
 	}
 	tmp->glob=newCompEnv(NULL);
-	initCompEnv(tmp->glob);
+	initCompEnv(tmp->glob,tmp->table);
 	return tmp;
 }
 
@@ -778,63 +782,64 @@ CompEnv* newCompEnv(CompEnv* prev)
 	CompEnv* tmp=(CompEnv*)malloc(sizeof(CompEnv));
 	if(tmp==NULL)errors("newCompEnv",__FILE__,__LINE__);
 	tmp->prev=prev;
-	tmp->symbols=NULL;
+	tmp->head=NULL;
 	return tmp;
 }
 
 void destroyCompEnv(CompEnv* objEnv)
 {
 	if(objEnv==NULL)return;
-	CompDef* tmpDef=objEnv->symbols;
+	CompDef* tmpDef=objEnv->head;
 	while(tmpDef!=NULL)
 	{
 		CompDef* prev=tmpDef;
 		tmpDef=tmpDef->next;
-		free(prev->symName);
 		free(prev);
 	}
 	free(objEnv);
 }
 
-CompDef* findCompDef(const char* name,CompEnv* curEnv)
+CompDef* findCompDef(const char* name,CompEnv* curEnv,SymbolTable* table)
 {
-	if(curEnv->symbols==NULL)return NULL;
+	if(curEnv->head==NULL)return NULL;
 	else
 	{
-		CompDef* curDef=curEnv->symbols;
-		while(curDef&&strcmp(name,curDef->symName))
+		SymTabNode* node=findSymbol(name,table);
+		int32_t id=node->id;
+		CompDef* curDef=curEnv->head;
+		while(curDef&&id==curDef->id)
 			curDef=curDef->next;
 		return curDef;
 	}
 }
 
-CompDef* addCompDef(const char* name,CompEnv* curEnv)
+CompDef* addCompDef(const char* name,CompEnv* curEnv,SymbolTable* table)
 {
-	if(curEnv->symbols==NULL)
+	if(curEnv->head==NULL)
 	{
 		CompEnv* tmpEnv=curEnv->prev;
-		if(!(curEnv->symbols=(CompDef*)malloc(sizeof(CompDef))))errors("addCompDef",__FILE__,__LINE__);
-		if(!(curEnv->symbols->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors("addCompDef",__FILE__,__LINE__);
-		strcpy(curEnv->symbols->symName,name);
-		while(tmpEnv!=NULL&&tmpEnv->symbols==NULL)tmpEnv=tmpEnv->prev;
-		if(tmpEnv==NULL)
-			curEnv->symbols->count=0;
-		else
-			curEnv->symbols->count=tmpEnv->symbols->count+1;
-		curEnv->symbols->next=NULL;
-		return curEnv->symbols;
+		SymTabNode* node=findSymbol(name,table);
+		if(!node)
+		{
+			node=newSymTabNode(name);
+			addSymTabNode(node,table);
+		}
+		if(!(curEnv->head=(CompDef*)malloc(sizeof(CompDef))))errors("addCompDef",__FILE__,__LINE__);
+		curEnv->head->next=NULL;
+		curEnv->head->id=node->id;
+		return curEnv->head;
 	}
 	else
 	{
-		CompDef* curDef=findCompDef(name,curEnv);
+		CompDef* curDef=findCompDef(name,curEnv,table);
 		if(curDef==NULL)
 		{
+			SymTabNode* node=newSymTabNode(name);
+			addSymTabNode(node,table);
 			if(!(curDef=(CompDef*)malloc(sizeof(CompDef))))errors("addCompDef",__FILE__,__LINE__);
-			if(!(curDef->symName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors("addCompDef",__FILE__,__LINE__);
-			strcpy(curDef->symName,name);
-			curDef->count=curEnv->symbols->count+1;
-			curDef->next=curEnv->symbols;
-			curEnv->symbols=curDef;
+			curDef->id=node->id;
+			curDef->next=curEnv->head;
+			curEnv->head=curDef;
 		}
 		return curDef;
 	}
@@ -907,11 +912,11 @@ ByteCode* copyByteCode(const ByteCode* obj)
 	return tmp;
 }
 
-void initCompEnv(CompEnv* curEnv)
+void initCompEnv(CompEnv* curEnv,SymbolTable* table)
 {
 	int i=0;
 	for(;i<NUMOFBUILTINSYMBOL;i++)
-		addCompDef(builtInSymbolList[i],curEnv);
+		addCompDef(builtInSymbolList[i],curEnv,table);
 }
 
 char* copyStr(const char* str)
@@ -1559,6 +1564,7 @@ Intpr* newTmpIntpr(const char* filename,FILE* fp)
 	tmp->head=NULL;
 	tmp->tail=NULL;
 	tmp->glob=NULL;
+	tmp->table=NULL;
 	return tmp;
 }
 
@@ -1617,27 +1623,27 @@ PreDef* findDefine(const char* name,const PreEnv* curEnv)
 	{
 		PreDef* curDef=curEnv->symbols;
 		PreDef* prev=NULL;
-		while(curDef&&strcmp(name,curDef->symName))
+		while(curDef&&strcmp(name,curDef->symbol))
 			curDef=curDef->next;
 		return curDef;
 	}
 }
 
-PreDef* addDefine(const char* symName,const AST_cptr* objCptr,PreEnv* curEnv)
+PreDef* addDefine(const char* symbol,const AST_cptr* objCptr,PreEnv* curEnv)
 {
 	if(curEnv->symbols==NULL)
 	{
-		curEnv->symbols=newDefines(symName);
+		curEnv->symbols=newDefines(symbol);
 		replace(&curEnv->symbols->obj,objCptr);
 		curEnv->symbols->next=NULL;
 		return curEnv->symbols;
 	}
 	else
 	{
-		PreDef* curDef=findDefine(symName,curEnv);
+		PreDef* curDef=findDefine(symbol,curEnv);
 		if(curDef==NULL)
 		{
-			curDef=newDefines(symName);
+			curDef=newDefines(symbol);
 			curDef->next=curEnv->symbols;
 			curEnv->symbols=curDef;
 			replace(&curDef->obj,objCptr);
@@ -1652,9 +1658,9 @@ PreDef* newDefines(const char* name)
 {
 	PreDef* tmp=(PreDef*)malloc(sizeof(PreDef));
 	if(tmp==NULL)errors("newDefines",__FILE__,__LINE__);
-	tmp->symName=(char*)malloc(sizeof(char)*(strlen(name)+1));
-	if(tmp->symName==NULL)errors("newDefines",__FILE__,__LINE__);
-	strcpy(tmp->symName,name);
+	tmp->symbol=(char*)malloc(sizeof(char)*(strlen(name)+1));
+	if(tmp->symbol==NULL)errors("newDefines",__FILE__,__LINE__);
+	strcpy(tmp->symbol,name);
 	tmp->obj=(AST_cptr){NULL,0,NIL,NULL};
 	tmp->next=NULL;
 	return tmp;
@@ -1666,46 +1672,28 @@ SymbolTable* newSymbolTable()
 	if(!tmp)
 		errors("newSymbolTable",__FILE__,__LINE__);
 	tmp->list=NULL;
-	tmp->head=NULL;
 	tmp->size=0;
 	return tmp;
 }
 
-SymTabKeyNode* newSymTabKey(const char* key)
+SymTabNode* newSymTabNode(const char* symbol)
 {
-	SymTabKeyNode* tmp=(SymTabKeyNode*)malloc(sizeof(SymTabKeyNode));
+	SymTabNode* tmp=(SymTabNode*)malloc(sizeof(SymTabNode));
 	if(!tmp)
-		errors("newSymTabKey",__FILE__,__LINE__);
-	tmp->size=0;
-	tmp->head=NULL;
-	tmp->list=NULL;
-	tmp->key=copyStr(key);
-	tmp->prev=NULL;
-	tmp->next=NULL;
+		errors("newSymTabNode",__FILE__,__LINE__);
+	tmp->id=0;
+	tmp->symbol=copyStr(symbol);
 	return tmp;
 }
 
-SymTabValNode* newSymTabVal(int ref,int32_t scope,int32_t outer,int32_t line)
+SymTabNode* addSymTabNode(SymTabNode* node,SymbolTable* table)
 {
-	SymTabValNode* tmp=(SymTabValNode*)malloc(sizeof(SymTabValNode));
-	if(!tmp)
-		errors("newSymTabVal",__FILE__,__LINE__);
-	tmp->ref=ref;
-	tmp->scope=scope;
-	tmp->outer=outer;
-	tmp->line=line;
-	tmp->prev=NULL;
-	tmp->next=NULL;
-	return tmp;
-}
-
-SymTabKeyNode* addSymTabKey(SymTabKeyNode* node,SymbolTable* table)
-{
-	if(!table->head)
+	if(!table->list)
 	{
-		table->head=node;
 		table->size=1;
-		updateSymTabKeyList(table);
+		node->id=table->size-1;
+		table->list=(SymTabNode**)malloc(sizeof(SymTabNode*)*1);
+		table->list[0]=node;
 	}
 	else
 	{
@@ -1714,157 +1702,68 @@ SymTabKeyNode* addSymTabKey(SymTabKeyNode* node,SymbolTable* table)
 		int32_t mid=l+(h-l)/2;
 		while(h-l>1)
 		{
-			if(strcmp(table->list[mid]->key,node->key)>=0)
+			if(strcmp(table->list[mid]->symbol,node->symbol)>=0)
 				h=mid-1;
 			else
 				l=mid+1;
 			mid=l+(h-l)/2;
 		}
-		if(strcmp(table->list[mid]->key,node->key)>=0)
+		table->size+=1;
+		if(strcmp(table->list[mid]->symbol,node->symbol)>=0)
 		{
-			SymTabKeyNode* tmp=table->list[mid];
-			node->prev=tmp->prev;
-			if(node->prev)
-				node->prev->next=node;
-			else
-				table->head=node;
-			tmp->prev=node;
-			node->next=tmp;
+			int32_t i=table->size-1;
+			table->list=(SymTabNode**)realloc(table->list,sizeof(SymTabNode*)*table->size);
+			if(!table->list)errors("addSymTabNode",__FILE__,__LINE__);
+			for(;i>mid-1;i--)
+				table->list[i]=table->list[i-1];
+			table->list[mid]=node;
 		}
 		else
 		{
-			SymTabKeyNode* tmp=table->list[mid];
-			node->next=tmp->next;
-			if(node->next)
-				node->next->prev=node;
-			tmp->next=node;
-			node->prev=tmp;
+			int32_t i=table->size-1;
+			table->list=(SymTabNode**)realloc(table->list,sizeof(SymTabNode*)*table->size);
+			if(!table->list)errors("addSymTabNode",__FILE__,__LINE__);
+			for(;i>mid;i--)
+				table->list[i]=table->list[i-1];
+			table->list[mid+1]=node;
 		}
-		table->size+=1;
-		updateSymTabKeyList(table);
+		node->id=table->size-1;
 	}
 	return node;
 }
 
-SymTabValNode* addSymTabVal(SymTabValNode* val,SymTabKeyNode* node)
+void freeSymTabNode(SymTabNode* node)
 {
-	if(!node->head)
-	{
-		node->head=val;
-		node->size=1;
-		updateSymTabValList(node);
-	}
-	else
-	{
-		int32_t l=0;
-		int32_t h=node->size;
-		int32_t mid=l+(h-l)/2;
-		while(h-l>1)
-		{
-			if(SymTabValCmp(node->list[mid],val)>=0)
-				h=mid-1;
-			else
-				l=mid+1;
-			mid=l+(h-l)/2;
-		}
-		if(SymTabValCmp(node->list[mid],val)>=0)
-		{
-			SymTabValNode* tmp=node->list[mid];
-			val->prev=tmp->prev;
-			if(val->prev)
-				val->prev->next=val;
-			else
-				node->head=val;
-			tmp->prev=val;
-			val->next=tmp;
-		}
-		else
-		{
-			SymTabValNode* tmp=node->list[mid];
-			val->next=tmp->next;
-			if(val->next)
-				val->next->prev=val;
-			tmp->next=val;
-			val->prev=tmp;
-		}
-		node->size+=1;
-		updateSymTabValList(node);
-	}
-	return val;
-}
-
-void updateSymTabKeyList(SymbolTable* table)
-{
-	int32_t i=0;
-	SymTabKeyNode* cur=table->head;
-	if(table->list)
-		free(table->list);
-	table->list=(SymTabKeyNode**)malloc(sizeof(SymTabKeyNode*)*table->size);
-	if(!table->list)
-		errors("updateSymTabKeyList",__FILE__,__LINE__);
-	for(;i<table->size;i++)
-	{
-		table->list[i]=cur;
-		cur=cur->next;
-	}
-}
-
-void updateSymTabValList(SymTabKeyNode* node)
-{
-	int32_t i=0;
-	SymTabValNode* cur=node->head;
-	if(node->list)
-		free(node->list);
-	node->list=(SymTabValNode**)malloc(sizeof(SymTabValNode*)*node->size);
-	if(!node->list)
-		errors("updateSymTabValList",__FILE__,__LINE__);
-	for(;i<node->size;i++)
-	{
-		node->list[i]=cur;
-		cur=cur->next;
-	}
-}
-
-void freeSymTabKeyNode(SymTabKeyNode* node)
-{
-	if(node->list)
-		free(node->list);
-	SymTabValNode* cur=node->head;
-	while(cur)
-	{
-		SymTabValNode* prev=cur;
-		cur=cur->next;
-		free(prev);
-	}
-	free(node->key);
+	free(node->symbol);
 	free(node);
 }
 
 void freeSymbolTable(SymbolTable* table)
 {
-	if(table->list)
-		free(table->list);
-	SymTabKeyNode* cur=table->head;
-	while(cur)
-	{
-		SymTabKeyNode* prev=cur;
-		cur=cur->next;
-		freeSymTabKeyNode(prev);
-	}
+	int32_t i=0;
+	for(;i<table->size;i++)
+		freeSymTabNode(table->list[i]);
+	free(table->list);
 	free(table);
 }
 
-int SymTabValCmp(SymTabValNode* fir,SymTabValNode* sec)
+SymTabNode* findSymbol(const char* symbol,SymbolTable* table)
 {
-	if(fir->scope!=sec->scope)
-		return fir->scope-sec->scope;
-	return fir->ref-sec->ref;
+	if(!table->list)
+		return NULL;
+	int32_t l=0;
+	int32_t h=table->size;
+	int32_t mid=l+(h-l)/2;
+	while(h-l>1)
+	{
+		int resultOfCmp=strcmp(table->list[mid]->symbol,symbol);
+		if(resultOfCmp>0)
+			h=mid-1;
+		else if(resultOfCmp<0)
+			l=mid-1;
+		else
+			return table->list[mid];
+		mid=l+(h-l)/2;
+	}
+	return NULL;
 }
-
-//CompEnv* createCompEnvWithSymbolTable(SymbolTable* table,int32_t scope,CompEnv* prev)
-//{
-//	addValidRefInScopeToPrevEnv(scope,table,prev);
-//	CompEnv* cur=newCompEnv(prev);
-//	addValidDefineInScopeToCurEnv(cur);
-//	return cur;
-//}

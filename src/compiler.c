@@ -34,7 +34,7 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 		FakeVM* tmpVM=newTmpFakeVM(NULL,rawProcList);
 		initGlobEnv(tmpGlob,tmpVM->heap);
 		VMcode* tmpVMcode=newVMcode(tmp->proc);
-		VMenv* macroVMenv=castPreEnvToVMenv(MacroEnv,tmp->bound,tmpGlob,tmpVM->heap);
+		VMenv* macroVMenv=castPreEnvToVMenv(MacroEnv,tmpGlob,tmpVM->heap);
 		tmpVM->mainproc->localenv=macroVMenv;
 		tmpVMcode->localenv=macroVMenv;
 		tmpVM->mainproc->code=tmpVMcode;
@@ -66,7 +66,7 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 	return 0;
 }
 
-int addMacro(AST_cptr* pattern,ByteCode* proc,int32_t bound,RawProc* procs)
+int addMacro(AST_cptr* pattern,ByteCode* proc,RawProc* procs)
 {
 	if(pattern->type!=PAIR)return SYNTAXERROR;
 	AST_cptr* tmpCptr=NULL;
@@ -89,7 +89,6 @@ int addMacro(AST_cptr* pattern,ByteCode* proc,int32_t bound,RawProc* procs)
 		current->next=FirstMacro;
 		current->pattern=pattern;
 		current->proc=proc;
-		current->bound=bound;
 		current->procs=procs;
 		FirstMacro=current;
 	}
@@ -108,7 +107,6 @@ int addMacro(AST_cptr* pattern,ByteCode* proc,int32_t bound,RawProc* procs)
 		}
 		current->pattern=pattern;
 		current->proc=proc;
-		current->bound=bound;
 		current->procs=procs;
 	}
 	//printAllKeyWord();
@@ -300,7 +298,7 @@ int fmatcmp(const AST_cptr* origin,const AST_cptr* format)
 	return 1;
 }
 
-CompEnv* createMacroCompEnv(const AST_cptr* objCptr,CompEnv* prev)
+CompEnv* createMacroCompEnv(const AST_cptr* objCptr,CompEnv* prev,SymbolTable* table)
 {
 	if(objCptr==NULL)return NULL;
 	CompEnv* tmpEnv=newCompEnv(prev);
@@ -331,7 +329,7 @@ CompEnv* createMacroCompEnv(const AST_cptr* objCptr,CompEnv* prev)
 				{
 					const char* tmpStr=tmpAtm->value.str;
 					if(isVal(tmpStr))
-						addCompDef(tmpStr+1,tmpEnv);
+						addCompDef(tmpStr+1,tmpEnv,table);
 				}
 			}
 			if(objPair!=NULL&&objCptr==&objPair->car)
@@ -701,31 +699,23 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 		AST_cptr* pattern=args[0];
 		AST_cptr* express=args[1];
 		CompEnv* tmpGlobCompEnv=newCompEnv(NULL);
-		initCompEnv(tmpGlobCompEnv);
+		SymbolTable* table=newSymbolTable();
+		initCompEnv(tmpGlobCompEnv,table);
 		Intpr* tmpInter=newTmpIntpr(NULL,NULL);
 		tmpInter->filename=inter->filename;
 		tmpInter->curline=inter->curline;
 		tmpInter->glob=tmpGlobCompEnv;
+		tmpInter->table=table;
 		tmpInter->head=inter->head;
 		tmpInter->tail=inter->tail;
 		tmpInter->modules=inter->modules;
 		tmpInter->curDir=inter->curDir;
 		tmpInter->prev=NULL;
-		CompEnv* tmpCompEnv=createMacroCompEnv(pattern,tmpGlobCompEnv);
-		int32_t bound=0;
-		if(tmpCompEnv->symbols==NULL)
-			bound=-1;
-		else
-		{
-			CompDef* curDef=tmpCompEnv->symbols;
-			while(curDef->next)
-				curDef=curDef->next;
-			bound=curDef->count;
-		}
+		CompEnv* tmpCompEnv=createMacroCompEnv(pattern,tmpGlobCompEnv,table);
 		ByteCode* tmpByteCode=compile(express,tmpCompEnv,tmpInter,&status);
 		if(!status.status)
 		{
-			addMacro(pattern,tmpByteCode,bound,tmpInter->procs);
+			addMacro(pattern,tmpByteCode,tmpInter->procs);
 			deleteCptr(express);
 			free(express);
 			free(args);
@@ -830,7 +820,7 @@ ByteCode* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* st
 	}
 }
 
-CompEnv* createPatternCompEnv(char** parts,int32_t num,CompEnv* prev)
+CompEnv* createPatternCompEnv(char** parts,CompEnv* prev,SymbolTable* table)
 {
 	if(parts==NULL)return NULL;
 	CompEnv* tmpEnv=newCompEnv(prev);
@@ -839,7 +829,7 @@ CompEnv* createPatternCompEnv(char** parts,int32_t num,CompEnv* prev)
 		if(isVar(parts[i]))
 		{
 			char* varName=getVarName(parts[i]);
-			addCompDef(varName,tmpEnv);
+			addCompDef(varName,tmpEnv,table);
 			free(varName);
 		}
 	return tmpEnv;
@@ -1043,7 +1033,7 @@ ByteCode* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* sta
 		for(;;)
 		{
 			AST_atom* tmpAtm=sec->value;
-			CompDef* tmpDef=addCompDef(tmpAtm->value.str,curEnv);
+			CompDef* tmpDef=addCompDef(tmpAtm->value.str,curEnv,table);
 			*(int32_t*)(popVar->code+sizeof(char))=tmpDef->count;
 			codeCat(tmp,pushTop);
 			codeCat(tmp,popVar);
@@ -1432,7 +1422,7 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 						}
 						return NULL;
 					}
-					CompDef* tmpDef=addCompDef(tmpAtm->value.str,tmpEnv);
+					CompDef* tmpDef=addCompDef(tmpAtm->value.str,tmpEnv,inter->table);
 					*(int32_t*)(popVar->code+sizeof(char))=tmpDef->count;
 					codeCat(tmpRawProc->proc,popVar);
 					if(nextCptr(argCptr)==NULL&&argCptr->outer->cdr.type==ATM)
@@ -1461,7 +1451,7 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 							}
 							return NULL;
 						}
-						tmpDef=addCompDef(tmpAtom1->value.str,tmpEnv);
+						tmpDef=addCompDef(tmpAtom1->value.str,tmpEnv,inter->table);
 						*(int32_t*)(popRestVar->code+sizeof(char))=tmpDef->count;
 						codeCat(tmpRawProc->proc,popRestVar);
 					}
@@ -1494,7 +1484,7 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 					}
 					return NULL;
 				}
-				CompDef* tmpDef=addCompDef(tmpAtm->value.str,tmpEnv);
+				CompDef* tmpDef=addCompDef(tmpAtm->value.str,tmpEnv,inter->table);
 				*(int32_t*)(popRestVar->code+sizeof(char))=tmpDef->count;
 				codeCat(tmpRawProc->proc,popRestVar);
 			}

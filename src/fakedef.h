@@ -64,7 +64,7 @@ typedef struct
 
 typedef struct Pre_Def
 {
-	char* symName;
+	char* symbol;
 	AST_cptr obj;//node or symbol or val
 	struct Pre_Def* next;
 }PreDef;
@@ -79,50 +79,33 @@ typedef struct Pre_Env
 typedef struct Pre_Macro
 {
 	AST_cptr* pattern;
-	int32_t bound;
 	ByteCode* proc;
 	struct Raw_Proc* procs;
 	struct Pre_Macro* next;
 }PreMacro;
 
-typedef struct Symbol_Table_Value_Node
+typedef struct Symbol_Table_Node
 {
-	unsigned int ref:1;
-	int32_t scope;
-	int32_t outer;
-	int32_t line;
-	struct Symbol_Table_Value_Node* prev;
-	struct Symbol_Table_Value_Node* next;
-}SymTabValNode;
-
-typedef struct Symbol_Table_Key_Node
-{
-	char* key;
-	int32_t size;
-	SymTabValNode** list;
-	SymTabValNode* head;
-	struct Symbol_Table_Key_Node* prev;
-	struct Symbol_Table_Key_Node* next;
-}SymTabKeyNode;
+	char* symbol;
+	int32_t id;
+}SymTabNode;
 
 typedef struct Symbol_Table
 {
 	int32_t size;
-	SymTabKeyNode** list;
-	SymTabKeyNode* head;
+	SymTabNode** list;
 }SymbolTable;
 
 typedef struct Comp_Def
 {
-	int32_t count;
-	char* symName;
+	int32_t id;
 	struct Comp_Def* next;
 }CompDef;
 
 typedef struct Comp_Env
 {
 	struct Comp_Env* prev;
-	CompDef* symbols;
+	CompDef* head;
 }CompEnv;
 
 typedef struct Raw_Proc
@@ -150,6 +133,7 @@ typedef struct Interpreter
 	struct DLL_s* modules;
 	Modlist* head;
 	Modlist* tail;
+	struct Symbol_Table* table;
 	struct Interpreter* prev;
 }Intpr;
 
@@ -200,13 +184,18 @@ typedef struct VM_Value
 	struct VM_Value* next;
 }VMvalue;
 
+typedef struct VM_Env_node
+{
+	int32_t id;
+	VMvalue* value;
+}VMenvNode;
+
 typedef struct VM_Env
 {
 	struct VM_Env* prev;
 	int32_t refcount;
-	int32_t bound;
 	int32_t size;
-	VMvalue** values;
+	VMenvNode** list;
 }VMenv;
 
 typedef struct VM_Code
@@ -304,7 +293,6 @@ typedef struct String_Match_Pattern
 {
 	int32_t num;
 	char** parts;
-	int32_t bound;
 	ByteCode* proc;
 	struct Raw_Proc* procs;
 	struct String_Match_Pattern* prev;

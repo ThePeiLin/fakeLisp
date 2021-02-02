@@ -9,6 +9,10 @@
 #define TOOFEWARG 4
 #define CANTCREATETHREAD 5
 #define THREADERROR 6
+
+VMenvNode* newVMenvNode(VMvalue*,int32_t);
+VMenvNode* addVMenvNode(VMenvNode*,VMenv*);
+void freeVMenvNode(VMenvNode*);
 VMcode* newVMcode(ByteCode*);
 VMvalue* copyValue(VMvalue*,VMheap*);
 VMvalue* newVMvalue(ValueType,void*,VMheap*,int);
@@ -23,8 +27,8 @@ void freeRef(VMvalue*);
 int VMvaluecmp(VMvalue*,VMvalue*);
 int subVMvaluecmp(VMvalue*,VMvalue*);
 int numcmp(VMvalue*,VMvalue*);
-VMenv* newVMenv(int32_t,VMenv*);
-VMenv* castPreEnvToVMenv(PreEnv*,int32_t,VMenv*,VMheap*);
+VMenv* newVMenv(VMenv*);
+VMenv* castPreEnvToVMenv(PreEnv*,VMenv*,VMheap*,SymbolTable*);
 VMpair* newVMpair(VMheap*);
 VMstr* newVMstr(const char*);
 VMvalue* castCptrVMvalue(const AST_cptr*,VMheap*);

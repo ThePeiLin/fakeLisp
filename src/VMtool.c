@@ -4,6 +4,7 @@
 #include<stdio.h>
 #include<math.h>
 #include<pthread.h>
+
 VMcode* newVMcode(ByteCode* proc)
 {
 	VMcode* tmp=(VMcode*)malloc(sizeof(VMcode));
@@ -174,12 +175,11 @@ int numcmp(VMvalue* fir,VMvalue* sec)
 	else return 0;
 }
 
-VMenv* newVMenv(int32_t bound,VMenv* prev)
+VMenv* newVMenv(VMenv* prev)
 {
 	VMenv* tmp=(VMenv*)malloc(sizeof(VMenv));
-	tmp->bound=bound;
 	tmp->size=0;
-	tmp->values=NULL;
+	tmp->list=NULL;
 	tmp->prev=prev;
 	if(prev!=NULL)prev->refcount+=1;
 	tmp->refcount=0;
@@ -304,13 +304,17 @@ VMcode* copyVMcode(VMcode* obj,VMheap* heap)
 
 VMenv* copyVMenv(VMenv* objEnv,VMheap* heap)
 {
-	VMenv* tmp=newVMenv(objEnv->size,NULL);
-	tmp->bound=objEnv->bound;
-	tmp->values=(VMvalue**)malloc(sizeof(VMvalue*));
-	if(tmp->values==NULL)errors("copyVMenv",__FILE__,__LINE__);
+	VMenv* tmp=newVMenv(NULL);
+	tmp->list=(VMenvNode**)malloc(sizeof(VMenvNode*)*objEnv->size);
+	if(tmp->list==NULL)errors("copyVMenv",__FILE__,__LINE__);
 	int i=0;
 	for(;i<objEnv->size;i++)
-		tmp->values[i]=copyValue(objEnv->values[i],heap);
+	{
+		VMenvNode* node=objEnv->list[i];
+		VMvalue* v=copyValue(node->value,heap);
+		VMenvNode* tmp=newVMenvNode(v,node->id);
+		objEnv->list[i]=tmp;
+	}
 	tmp->prev=(objEnv->prev->refcount==0)?copyVMenv(objEnv->prev,heap):objEnv->prev;
 	return tmp;
 }
@@ -343,7 +347,10 @@ void freeVMenv(VMenv* obj)
 		{
 			VMenv* prev=obj;
 			obj=obj->prev;
-			free(prev->values);
+			int32_t i=0;
+			for(;i<prev->size;i++)
+				freeVMenvNode(prev->list[i]);
+			free(prev->list);
 			free(prev);
 		}
 		else
@@ -487,7 +494,7 @@ void freeRef(VMvalue* obj)
 	}
 }
 
-VMenv* castPreEnvToVMenv(PreEnv* pe,int32_t b,VMenv* prev,VMheap* heap)
+VMenv* castPreEnvToVMenv(PreEnv* pe,VMenv* prev,VMheap* heap,SymbolTable* table)
 {
 	int32_t size=0;
 	PreDef* tmpDef=pe->symbols;
@@ -496,16 +503,13 @@ VMenv* castPreEnvToVMenv(PreEnv* pe,int32_t b,VMenv* prev,VMheap* heap)
 		size++;
 		tmpDef=tmpDef->next;
 	}
-	VMenv* tmp=newVMenv(b,prev);
-	tmp->size=size;
-	VMvalue** values=(VMvalue**)malloc(sizeof(VMvalue*)*size);
-	int i=size-1;
-	for(tmpDef=pe->symbols;i>-1;i--)
+	VMenv* tmp=newVMenv(prev);
+	for(tmpDef=pe->symbols;tmpDef;tmpDef=tmpDef->next)
 	{
-		values[i]=castCptrVMvalue(&tmpDef->obj,heap);
-		tmpDef=tmpDef->next;
+		VMvalue* v=castCptrVMvalue(&tmpDef->obj,heap);
+		VMenvNode* node=newVMenvNode(v,findSymbol(tmpDef->symbol,table)->id);
+		addVMenvNode(node,tmp);
 	}
-	tmp->values=values;
 	return tmp;
 }
 
@@ -580,4 +584,83 @@ VMstack* copyStack(VMstack* stack)
 	for(;i<stack->tp;i++)
 		tmp->values[i]=stack->values[i];
 	return tmp;
+}
+
+VMenvNode* newVMenvNode(VMvalue* value,int32_t id)
+{
+	VMenvNode* tmp=(VMenvNode*)malloc(sizeof(VMenvNode));
+	if(!tmp)errors("newVMenvNode",__FILE__,__LINE__);
+	tmp->id=id;
+	tmp->value=value;
+	return tmp;
+}
+
+VMenvNode* addVMenvNode(VMenvNode* node,VMenv* env)
+{
+	if(!env->list)
+	{
+		env->size=1;
+		env->list=(VMenvNode**)malloc(sizeof(VMenvNode*)*1);
+		if(!env->list)errors("addVMenvNode",__FILE__,__LINE__);
+		env->list[0]=node;
+	}
+	else
+	{
+		int32_t l=0;
+		int32_t h=env->size;
+		int32_t mid=l+(h-l)/2;
+		while(h-l>0)
+		{
+			if(env->list[mid]->id>=node->id)
+				h=mid-1;
+			else
+				l=mid+1;
+			mid=l+(h-l)/2;
+		}
+		env->size+=1;
+		if(env->list[mid]->id>=node->id)
+		{
+			int32_t i=env->size-1;
+			env->list=(VMenvNode**)realloc(env->list,sizeof(VMenvNode*)*env->size);
+			if(!env->list)errors("addVMenvNode",__FILE__,__LINE__);
+			for(;i>mid-1;i--)
+				env->list[i]=env->list[i-1];
+			env->list[mid]=node;
+		}
+		else
+		{
+			int32_t i=env->size-1;
+			env->list=(VMenvNode**)realloc(env->list,sizeof(VMenvNode*)*env->size);
+			if(!env->list)errors("addVMenvNode",__FILE__,__LINE__);
+			for(;i>mid;i--)
+				env->list[i]=env->list[i-1];
+			env->list[mid+1]=node;
+		}
+	}
+	return node;
+}
+
+VMenvNode* findVMenvNode(int32_t id,VMenv* env)
+{
+	if(!env->list)
+		return NULL;
+	int32_t l=0;
+	int32_t h=env->size;
+	int32_t mid=l+(h-l)/2;
+	while(h-l>1)
+	{
+		if(env->list[mid]->id>id)
+			h=mid-1;
+		else if(env->list[mid]->id<id)
+			l=mid-1;
+		else
+			return env->list[mid];
+		mid=l+(h-l)/2;
+	}
+	return NULL;
+}
+
+void freeVMenvNode(VMenvNode* node)
+{
+	free(node);
 }

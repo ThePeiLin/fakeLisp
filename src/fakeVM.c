@@ -17,6 +17,7 @@
 #include<unistd.h>
 #include<time.h>
 
+extern char* builtInSymbolList[NUMOFBUILTINSYMBOL];
 pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
 FakeVMlist GlobFakeVMs={0,NULL};
 static int (*ByteCodes[])(FakeVM*)=
@@ -859,6 +860,9 @@ void runFakeVM(FakeVM* exe)
 					break;
 				case THREADERROR:
 					fprintf(stderr,"error:Thread error!\n");
+					break;
+				case SYMUNDEFINE:
+					fprintf(stderr,"error:Symbol undefined!\n");
 					break;
 			}
 			int i[2]={status,1};

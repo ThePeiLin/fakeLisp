@@ -33,13 +33,13 @@ int main(int argc,char** argv)
 			perror(filename);
 			return EXIT_FAILURE;
 		}
-		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL);
+		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL);
 		if(fp==stdin)
 			runIntpr(inter);
 		else
 		{
 			initPreprocess();
-			VMenv* globEnv=newVMenv(0,NULL);
+			VMenv* globEnv=newVMenv(NULL);
 			ByteCode* mainByteCode=compileFile(inter);
 			ByteCode* rawProcList=castRawproc(NULL,inter->procs);
 			FakeVM* anotherVM=newFakeVM(mainByteCode,rawProcList);
@@ -49,7 +49,7 @@ int main(int argc,char** argv)
 			anotherVM->mainproc->code->localenv=globEnv;
 			anotherVM->modules=inter->modules;
 			anotherVM->callback=errorCallBack;
-			initGlobEnv(globEnv,anotherVM->heap);
+			initGlobEnv(globEnv,anotherVM->heap,inter->table);
 			if(!setjmp(buf))
 			{
 				runFakeVM(anotherVM);
@@ -93,11 +93,11 @@ int main(int argc,char** argv)
 		freeByteCode(mainprocess);
 		loadAllModules(fp,&anotherVM->modules);
 		fclose(fp);
-		VMenv* globEnv=newVMenv(0,NULL);
+		VMenv* globEnv=newVMenv(NULL);
 		anotherVM->mainproc->localenv=globEnv;
 		anotherVM->mainproc->code->localenv=globEnv;
 		anotherVM->callback=errorCallBack;
-		initGlobEnv(globEnv,anotherVM->heap);
+		initGlobEnv(globEnv,anotherVM->heap,NULL);
 		if(!setjmp(buf))
 		{
 			runFakeVM(anotherVM);
@@ -129,11 +129,11 @@ void runIntpr(Intpr* inter)
 	initPreprocess();
 	int e=0;
 	FakeVM* anotherVM=newFakeVM(NULL,NULL);
-	VMenv* globEnv=newVMenv(0,NULL);
+	VMenv* globEnv=newVMenv(NULL);
 	anotherVM->mainproc->localenv=globEnv;
 	anotherVM->tid=pthread_self();
 	anotherVM->callback=errorCallBack;
-	initGlobEnv(globEnv,anotherVM->heap);
+	initGlobEnv(globEnv,anotherVM->heap,inter->table);
 	ByteCode* rawProcList=NULL;
 	char* prev=NULL;
 	for(;!e;)

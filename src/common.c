@@ -1711,19 +1711,15 @@ SymTabNode* addSymTabNode(SymTabNode* node,SymbolTable* table)
 			else
 				l=mid+1;
 		}
-		int32_t b=l;
-		if(l<table->size&&strcmp(table->list[l]->symbol,node->symbol)<=0)
-		{
-			l=h;
-			b=l+(l<table->size&&strcmp(table->list[l]->symbol,node->symbol)<=0);
-		}
+		if(strcmp(table->list[mid]->symbol,node->symbol)<=0)
+			mid++;
 		table->size+=1;
 		int32_t i=table->size-1;
 		table->list=(SymTabNode**)realloc(table->list,sizeof(SymTabNode*)*table->size);
 		if(!table->list)errors("addSymTabNode",__FILE__,__LINE__);
-		for(;i>b;i--)
+		for(;i>mid;i--)
 			table->list[i]=table->list[i-1];
-		table->list[b]=node;
+		table->list[mid]=node;
 		node->id=table->size-1;
 	}
 	return node;

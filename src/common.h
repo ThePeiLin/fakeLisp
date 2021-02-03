@@ -97,6 +97,7 @@ SymbolTable* newSymbolTable();
 SymTabNode* newSymTabNode(const char*);
 SymTabNode* addSymTabNode(SymTabNode*,SymbolTable*);
 SymTabNode* findSymbol(const char*,SymbolTable*);
+void printSymbolTable(SymbolTable*,FILE*);
 void freeSymTabNode(SymTabNode*);
 void freeSymbolTable(SymbolTable*);
 #endif

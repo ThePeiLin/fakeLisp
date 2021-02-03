@@ -5,7 +5,7 @@
 
 PreMacro* PreMacroMatch(const AST_cptr*);
 int PreMacroExpand(AST_cptr*,Intpr* inter);
-int addMacro(AST_cptr*,ByteCode*,int32_t,RawProc*);
+int addMacro(AST_cptr*,ByteCode*,RawProc*);
 static int MacroPatternCmp(const AST_cptr*,const AST_cptr*);
 void freeMacroEnv();
 void freeAllMacro();
@@ -23,7 +23,7 @@ void initPreprocess();
 static ErrorStatus N_import(AST_cptr*,PreEnv*,Intpr*);
 static ErrorStatus N_defmacro(AST_cptr*,PreEnv*,Intpr*);
 StringMatchPattern* addStringPattern(char**,int32_t,AST_cptr*,Intpr*);
-static CompEnv* createPatternCompEnv(char**,CompEnv*,SymbolTable*);
+static CompEnv* createPatternCompEnv(char**,int32_t,CompEnv*,SymbolTable*);
 
 ByteCode* compileFile(Intpr*);
 ByteCode* compile(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*);

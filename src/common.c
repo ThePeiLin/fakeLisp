@@ -14,6 +14,56 @@
 #include<tchar.h>
 #endif
 
+char* builtInSymbolList[NUMOFBUILTINSYMBOL]=
+{
+	"nil",
+	"EOF",
+	"stdin",
+	"stdout",
+	"stderr",
+	"cons",
+	"car",
+	"cdr",
+	"atom",
+	"null",
+	"type",
+	"aply",
+	"eq",
+	"eqn",
+	"equal",
+	"gt",
+	"ge",
+	"lt",
+	"le",
+	"not",
+	"dbl",
+	"str",
+	"sym",
+	"chr",
+	"int",
+	"byt",
+	"add",
+	"sub",
+	"mul",
+	"div",
+	"mod",
+	"nth",
+	"length",
+	"appd",
+	"open",
+	"close",
+	"read",
+	"readb",
+	"write",
+	"writeb",
+	"princ",
+	"go",
+	"send",
+	"recv",
+	"getid",
+	"clcc"
+};
+
 char* getStringFromList(const char* str)
 {
 	char* tmp=NULL;
@@ -696,7 +746,7 @@ Intpr* newIntpr(const char* filename,FILE* file,CompEnv* env,SymbolTable* table)
 	if(table)
 		tmp->table=table;
 	else
-		table=newSymbolTable();
+		tmp->table=newSymbolTable();
 	if(env)
 	{
 		tmp->glob=env;
@@ -756,6 +806,8 @@ CompDef* findCompDef(const char* name,CompEnv* curEnv,SymbolTable* table)
 	else
 	{
 		SymTabNode* node=findSymbol(name,table);
+		if(node==NULL)
+			return NULL;
 		int32_t id=node->id;
 		CompDef* curDef=curEnv->head;
 		while(curDef&&id==curDef->id)
@@ -866,7 +918,7 @@ ByteCode* copyByteCode(const ByteCode* obj)
 void initCompEnv(CompEnv* curEnv,SymbolTable* table)
 {
 	int i=0;
-	for(;i<NUMOFBUILTINSYMBOL;i++)
+	for(i=0;i<NUMOFBUILTINSYMBOL;i++)
 		addCompDef(builtInSymbolList[i],curEnv,table);
 }
 
@@ -1650,34 +1702,28 @@ SymTabNode* addSymTabNode(SymTabNode* node,SymbolTable* table)
 	{
 		int32_t l=0;
 		int32_t h=table->size;
-		int32_t mid=l+(h-l)/2;
+		int32_t mid;
 		while(h-l>1)
 		{
+			mid=l+(h-l)/2;
 			if(strcmp(table->list[mid]->symbol,node->symbol)>=0)
 				h=mid-1;
 			else
 				l=mid+1;
-			mid=l+(h-l)/2;
+		}
+		int32_t b=l;
+		if(l<table->size&&strcmp(table->list[l]->symbol,node->symbol)<=0)
+		{
+			l=h;
+			b=l+((1-(h-l))&&l<table->size&&strcmp(table->list[l]->symbol,node->symbol)<=0);
 		}
 		table->size+=1;
-		if(strcmp(table->list[mid]->symbol,node->symbol)>=0)
-		{
-			int32_t i=table->size-1;
-			table->list=(SymTabNode**)realloc(table->list,sizeof(SymTabNode*)*table->size);
-			if(!table->list)errors("addSymTabNode",__FILE__,__LINE__);
-			for(;i>mid-1;i--)
-				table->list[i]=table->list[i-1];
-			table->list[mid]=node;
-		}
-		else
-		{
-			int32_t i=table->size-1;
-			table->list=(SymTabNode**)realloc(table->list,sizeof(SymTabNode*)*table->size);
-			if(!table->list)errors("addSymTabNode",__FILE__,__LINE__);
-			for(;i>mid;i--)
-				table->list[i]=table->list[i-1];
-			table->list[mid+1]=node;
-		}
+		int32_t i=table->size-1;
+		table->list=(SymTabNode**)realloc(table->list,sizeof(SymTabNode*)*table->size);
+		if(!table->list)errors("addSymTabNode",__FILE__,__LINE__);
+		for(;i>b;i--)
+			table->list[i]=table->list[i-1];
+		table->list[b]=node;
 		node->id=table->size-1;
 	}
 	return node;
@@ -1704,17 +1750,28 @@ SymTabNode* findSymbol(const char* symbol,SymbolTable* table)
 		return NULL;
 	int32_t l=0;
 	int32_t h=table->size;
-	int32_t mid=l+(h-l)/2;
+	int32_t mid;
 	while(h-l>1)
 	{
+		mid=l+(h-l)/2;
 		int resultOfCmp=strcmp(table->list[mid]->symbol,symbol);
 		if(resultOfCmp>0)
 			h=mid-1;
 		else if(resultOfCmp<0)
-			l=mid-1;
+			l=mid+1;
 		else
 			return table->list[mid];
-		mid=l+(h-l)/2;
 	}
 	return NULL;
+}
+
+void printSymbolTable(SymbolTable* table,FILE* fp)
+{
+	int32_t i=0;
+	for(;i<table->size;i++)
+	{
+		SymTabNode* cur=table->list[i];
+		printf("symbol:%s id:%d\n",cur->symbol,cur->id);
+	}
+	printf("size:%d\n",table->size);
 }

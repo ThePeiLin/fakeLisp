@@ -28,7 +28,7 @@ int main(int argc,char** argv)
 		//changeWorkPath(filename);
 		initPreprocess();
 		int i;
-		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL);
+		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL);
 		ByteCode* mainByteCode=compileFile(inter);
 		//printByteCode(mainByteCode,stderr);
 		int32_t numOfRawproc=(inter->procs==NULL)?0:inter->procs->count+1;

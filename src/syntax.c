@@ -7,7 +7,7 @@ static KeyWord* KeyWords=NULL;
 
 int isPreprocess(const AST_cptr* objCptr)
 {
-	if(isDefmacroExpression(objCptr)||isImportExpression(objCptr))return 1;
+	if(isDefmacroExpression(objCptr)/*||isImportExpression(objCptr)*/)return 1;
 	return 0;
 }
 

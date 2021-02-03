@@ -3,15 +3,10 @@
 #include"fakedef.h"
 #include<pthread.h>
 #include<stdint.h>
-#define WRONGARG 1
-#define STACKERROR 2
-#define TOOMUCHARG 3
-#define TOOFEWARG 4
-#define CANTCREATETHREAD 5
-#define THREADERROR 6
 
 VMenvNode* newVMenvNode(VMvalue*,int32_t);
 VMenvNode* addVMenvNode(VMenvNode*,VMenv*);
+VMenvNode* findVMenvNode(int32_t,VMenv*);
 void freeVMenvNode(VMenvNode*);
 VMcode* newVMcode(ByteCode*);
 VMvalue* copyValue(VMvalue*,VMheap*);

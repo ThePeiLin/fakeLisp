@@ -34,7 +34,7 @@ int getch()
 int resBp(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	if(stack->tp>stack->bp)return TOOMUCHARG;
+	if(stack->tp>stack->bp)return TOOMANYARG;
 	VMvalue* prevBp=getTopValue(stack);
 	stack->bp=*prevBp->u.num;
 	stack->tp-=1;
@@ -45,7 +45,7 @@ int FAKE_getch(FakeVM* exe,pthread_rwlock_t* pGClock)
 {
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
-	if(resBp(exe))return TOOMUCHARG;
+	if(resBp(exe))return TOOMANYARG;
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
@@ -64,7 +64,7 @@ int FAKE_sleep(FakeVM* exe,pthread_rwlock_t* pGClock)
 	VMprocess* proc=exe->curproc;
 	VMvalue* second=getArg(stack);
 	if(!second)return TOOFEWARG;
-	if(resBp(exe))return TOOMUCHARG;
+	if(resBp(exe))return TOOMANYARG;
 	if(second->type!=IN32)return WRONGARG;
 	int32_t s=*second->u.num;
 	releaseSource(pGClock);
@@ -87,7 +87,7 @@ int FAKE_usleep(FakeVM* exe,pthread_rwlock_t* pGClock)
 	VMprocess* proc=exe->curproc;
 	VMvalue* second=getArg(stack);
 	if(!second)return TOOFEWARG;
-	if(resBp(exe))return TOOMUCHARG;
+	if(resBp(exe))return TOOMANYARG;
 	if(second->type!=IN32)return WRONGARG;
 	int32_t s=*second->u.num;
 	releaseSource(pGClock);
@@ -125,7 +125,7 @@ int FAKE_rand(FakeVM* exe,pthread_rwlock_t* pGClock)
 	srand((unsigned)time(NULL));
 	VMstack* stack=exe->stack;
 	VMvalue*  lim=getArg(stack);
-	if(resBp(exe))return TOOMUCHARG;
+	if(resBp(exe))return TOOMANYARG;
 	if(lim&&lim->type!=IN32)return WRONGARG;
 	int32_t limit=(lim==NULL||*lim->u.num==0)?INT_MAX:*lim->u.num;
 	int32_t result=rand()%limit;
@@ -138,7 +138,7 @@ int FAKE_rand(FakeVM* exe,pthread_rwlock_t* pGClock)
 int FAKE_getTime(FakeVM* exe,pthread_rwlock_t* pGClock)
 {
 	VMstack* stack=exe->stack;
-	if(resBp(exe))return TOOMUCHARG;
+	if(resBp(exe))return TOOMANYARG;
 	time_t timer=time(NULL);
 	struct tm* tblock=NULL;
 	tblock=localtime(&timer);
@@ -174,7 +174,7 @@ int FAKE_removeFile(FakeVM* exe,pthread_rwlock_t* pGClock)
 	if(!name)
 		return TOOFEWARG;
 	if(resBp(exe))
-		return TOOMUCHARG;
+		return TOOMANYARG;
 	if(name->type!=STR)
 		return WRONGARG;
 	int32_t i=remove(name->u.str->str);

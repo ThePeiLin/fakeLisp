@@ -87,10 +87,10 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 		}
 		ByteCode* rawProcList=castRawproc(NULL,pattern->procs);
 		FakeVM* tmpVM=newTmpFakeVM(NULL,rawProcList);
-		VMenv* tmpGlobEnv=newVMenv(0,NULL);
-		initGlobEnv(tmpGlobEnv,tmpVM->heap);
+		VMenv* tmpGlobEnv=newVMenv(NULL);
+		initGlobEnv(tmpGlobEnv,tmpVM->heap,inter->table);
 		VMcode* tmpVMcode=newVMcode(pattern->proc);
-		VMenv* stringPatternEnv=castPreEnvToVMenv(tmpEnv,pattern->bound,tmpGlobEnv,tmpVM->heap);
+		VMenv* stringPatternEnv=castPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->heap,inter->table);
 		tmpVMcode->localenv=stringPatternEnv;
 		tmpVM->mainproc->code=tmpVMcode;
 		tmpVM->mainproc->localenv=stringPatternEnv;

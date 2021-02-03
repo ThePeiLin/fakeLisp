@@ -44,7 +44,6 @@ static int (*ByteCodes[])(FakeVM*)=
 	B_pop_cdr,
 	B_pop_ref,
 	B_pack_cc,
-	B_init_proc,
 	B_call_proc,
 	B_end_proc,
 	B_set_bp,
@@ -739,7 +738,7 @@ FakeVM* newTmpFakeVM(ByteCode* mainproc,ByteCode* procs)
 	return exe;
 }
 
-void initGlobEnv(VMenv* obj,VMheap* heap)
+void initGlobEnv(VMenv* obj,VMheap* heap,SymbolTable* table)
 {
 	ByteCode buildInProcs[]=
 	{
@@ -786,24 +785,25 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 		P_clcc
 	};
 	obj->size=NUMOFBUILTINSYMBOL;
-	obj->values=(VMvalue**)realloc(obj->values,sizeof(VMvalue*)*NUMOFBUILTINSYMBOL);
-	if(obj->values==NULL)errors("initGlobEnv",__FILE__,__LINE__);
+	obj->list=(VMenvNode**)malloc(sizeof(VMenvNode*)*NUMOFBUILTINSYMBOL);
+	if(obj->list==NULL)errors("initGlobEnv",__FILE__,__LINE__);
 	int32_t tmpInt=EOF;
-	obj->values[0]=newNilValue(heap);
-	obj->values[1]=newVMvalue(IN32,&tmpInt,heap,1);
+	obj->list[0]=newVMenvNode(newNilValue(heap),findSymbol(builtInSymbolList[0],table)->id);
+	obj->list[1]=newVMenvNode(newVMvalue(IN32,&tmpInt,heap,1),findSymbol(builtInSymbolList[1],table)->id);
 	tmpInt=0;
-	obj->values[2]=newVMvalue(IN32,&tmpInt,heap,1);
+	obj->list[2]=newVMenvNode(newVMvalue(IN32,&tmpInt,heap,1),findSymbol(builtInSymbolList[2],table)->id);
 	tmpInt=1;
-	obj->values[3]=newVMvalue(IN32,&tmpInt,heap,1);
+	obj->list[3]=newVMenvNode(newVMvalue(IN32,&tmpInt,heap,1),findSymbol(builtInSymbolList[3],table)->id);
 	tmpInt=2;
-	obj->values[4]=newVMvalue(IN32,&tmpInt,heap,1);
+	obj->list[4]=newVMenvNode(newVMvalue(IN32,&tmpInt,heap,1),findSymbol(builtInSymbolList[4],table)->id);
 	int i=5;
 	for(;i<NUMOFBUILTINSYMBOL;i++)
 	{
 		ByteCode* tmp=copyByteCode(buildInProcs+(i-5));
-		obj->values[i]=newVMvalue(PRC,newBuiltInProc(tmp),heap,1);
+		obj->list[i]=newVMenvNode(newVMvalue(PRC,newBuiltInProc(tmp),heap,1),findSymbol(builtInSymbolList[i],table)->id);
 		free(tmp);
 	}
+	sortVMenvList(obj);
 }
 
 void* ThreadVMFunc(void* p)
@@ -848,8 +848,8 @@ void runFakeVM(FakeVM* exe)
 				case STACKERROR:
 					fprintf(stderr,"error:Stack error!\n");
 					break;
-				case TOOMUCHARG:
-					fprintf(stderr,"error:Too much arguements!\n");
+				case TOOMANYARG:
+					fprintf(stderr,"error:Too many arguements!\n");
 					break;
 				case TOOFEWARG:
 					fprintf(stderr,"error:Too few arguements!\n");
@@ -1081,10 +1081,19 @@ int B_push_var(FakeVM* exe)
 		if(stack->values==NULL)errors("B_push_var",__FILE__,__LINE__);
 		stack->size+=64;
 	}
-	int32_t countOfVar=*(int32_t*)(tmpCode->code+proc->cp+1);
+	int32_t idOfVar=*(int32_t*)(tmpCode->code+proc->cp+1);
 	VMenv* curEnv=proc->localenv;
-	while(curEnv->bound==-1||countOfVar<curEnv->bound)curEnv=curEnv->prev;
-	VMvalue* tmpValue=*(curEnv->values+countOfVar-(curEnv->bound));
+	VMvalue* tmpValue=NULL;
+	int32_t i=0;
+	VMenvNode* tmp=NULL;
+	while(curEnv&&!tmp)
+	{
+		tmp=findVMenvNode(idOfVar,curEnv);
+		curEnv=curEnv->prev;
+	}
+	if(tmp==NULL)
+		return SYMUNDEFINE;
+	tmpValue=tmp->value;
 	stack->values[stack->tp]=tmpValue;
 	stack->tp+=1;
 	proc->cp+=5;
@@ -1183,7 +1192,9 @@ int B_push_proc(FakeVM* exe)
 		if(stack->values==NULL)errors("B_push_proc",__FILE__,__LINE__);
 		stack->size+=64;
 	}
-	VMvalue* objValue=newVMvalue(PRC,newVMcode(exe->procs+countOfProc),exe->heap,1);
+	VMcode* code=newVMcode(exe->procs+countOfProc);
+	code->localenv=newVMenv(proc->localenv);
+	VMvalue* objValue=newVMvalue(PRC,code,exe->heap,1);
 	stack->values[stack->tp]=objValue;
 	stack->tp+=1;
 	proc->cp+=5;
@@ -1204,7 +1215,7 @@ int B_push_mod_proc(FakeVM* exe)
 	}
 	ByteCode* dllFunc=newDllFuncProc(funcname);
 	VMcode* tmp=newVMcode(dllFunc);
-	tmp->localenv=newVMenv(0,NULL);
+	tmp->localenv=newVMenv(NULL);
 	VMvalue* tmpVMvalue=newVMvalue(PRC,tmp,exe->heap,1);
 	freeByteCode(dllFunc);
 	stack->values[stack->tp]=tmpVMvalue;
@@ -1254,30 +1265,39 @@ int B_pop_var(FakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMcode* tmpCode=proc->code;
 	if(!(stack->tp>stack->bp))return TOOFEWARG;
-	int32_t countOfVar=*(int32_t*)(tmpCode->code+proc->cp+1);
+	int32_t scopeOfVar=*(int32_t*)(tmpCode->code+proc->cp+1);
+	int32_t idOfVar=*(int32_t*)(tmpCode->code+proc->cp+5);
 	VMenv* curEnv=proc->localenv;
-	while(curEnv->bound==-1||countOfVar<curEnv->bound)curEnv=curEnv->prev;
 	VMvalue** pValue=NULL;
-	if(countOfVar-curEnv->bound>=curEnv->size)
+	if(scopeOfVar>=0)
 	{
-		int i=curEnv->size;
-		curEnv->size=countOfVar-curEnv->bound+1;
-		curEnv->values=(VMvalue**)realloc(curEnv->values,sizeof(VMvalue*)*curEnv->size);
-		if(!curEnv->values)
-			errors("B_pop_var",__FILE__,__LINE__);
-		for(;i<curEnv->size;i++)
-			curEnv->values[i]=NULL;
-		pValue=curEnv->values+countOfVar-(curEnv->bound);
+		int32_t i=0;
+		for(;i<scopeOfVar;i++)
+			curEnv=curEnv->prev;
+		VMenvNode* tmp=findVMenvNode(idOfVar,curEnv);
+		if(!tmp)
+			tmp=addVMenvNode(newVMenvNode(NULL,idOfVar),curEnv);
+		pValue=&tmp->value;
 	}
 	else
-		pValue=curEnv->values+countOfVar-(curEnv->bound);
+	{
+		VMenvNode* tmp=NULL;
+		while(curEnv&&!tmp)
+		{
+			tmp=findVMenvNode(idOfVar,curEnv);
+			curEnv=curEnv->prev;
+		}
+		if(tmp==NULL)
+			return SYMUNDEFINE;
+		pValue=&tmp->value;
+	}
 	VMvalue* topValue=getTopValue(stack);
 	*pValue=newNilValue(exe->heap);
 	(*pValue)->access=1;
 	copyRef(*pValue,topValue);
 	stack->tp-=1;
 	stackRecycle(exe);
-	proc->cp+=5;
+	proc->cp+=9;
 	return 0;
 }
 
@@ -1286,23 +1306,32 @@ int B_pop_rest_var(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMcode* tmpCode=proc->code;
-	int32_t countOfVar=*(int32_t*)(tmpCode->code+proc->cp+1);
+	int32_t scopeOfVar=*(int32_t*)(tmpCode->code+proc->cp+1);
+	int32_t idOfVar=*(int32_t*)(tmpCode->code+proc->cp+5);
 	VMenv* curEnv=proc->localenv;
-	while(curEnv->bound==-1||countOfVar<curEnv->bound)curEnv=curEnv->prev;
-	VMvalue** tmpValue=NULL;
-	if(countOfVar-curEnv->bound>=curEnv->size)
+	VMvalue** pValue=NULL;
+	if(scopeOfVar>=0)
 	{
-		int i=curEnv->size;
-		curEnv->size=countOfVar-curEnv->bound+1;
-		curEnv->values=(VMvalue**)realloc(curEnv->values,sizeof(VMvalue*)*curEnv->size);
-		if(!curEnv->values)
-			errors("B_pop_rest_var",__FILE__,__LINE__);
-		for(;i<curEnv->size;i++)
-			curEnv->values[i]=NULL;
-		tmpValue=curEnv->values+countOfVar-(curEnv->bound);
+		int32_t i=0;
+		for(;i<scopeOfVar;i++)
+			curEnv=curEnv->prev;
+		VMenvNode* tmp=findVMenvNode(idOfVar,curEnv);
+		if(!tmp)
+			tmp=addVMenvNode(newVMenvNode(NULL,idOfVar),curEnv);
+		pValue=&tmp->value;
 	}
 	else
-		tmpValue=curEnv->values+countOfVar-(curEnv->bound);
+	{
+		VMenvNode* tmp=NULL;
+		while(curEnv&&!tmp)
+		{
+			tmp=findVMenvNode(idOfVar,curEnv);
+			curEnv=curEnv->prev;
+		}
+		if(tmp==NULL)
+			return SYMUNDEFINE;
+		pValue=&tmp->value;
+	}
 	VMvalue* obj=NULL;
 	VMvalue* tmp=NULL;
 	if(stack->tp>stack->bp)
@@ -1323,8 +1352,8 @@ int B_pop_rest_var(FakeVM* exe)
 		else break;
 		tmp=tmp->u.pair->cdr;
 	}
-	*tmpValue=obj;
-	proc->cp+=5;
+	*pValue=obj;
+	proc->cp+=9;
 	return 0;
 }
 
@@ -1569,19 +1598,6 @@ int B_type(FakeVM* exe)
 	return 0;
 }
 
-int B_init_proc(FakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMprocess* proc=exe->curproc;
-	VMcode* tmpCode=proc->code;
-	VMvalue* topValue=getTopValue(stack);
-	if(topValue->type!=PRC)return WRONGARG;
-	int32_t boundOfProc=*(int32_t*)(tmpCode->code+proc->cp+1);
-	topValue->u.prc->localenv=newVMenv(boundOfProc,proc->localenv);
-	proc->cp+=5;
-	return 0;
-}
-
 int B_call_proc(FakeVM* exe)
 {
 	VMprocess* proc=exe->curproc;
@@ -1647,7 +1663,7 @@ int B_res_bp(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
-	if(stack->tp>stack->bp)return TOOMUCHARG;
+	if(stack->tp>stack->bp)return TOOMANYARG;
 	VMvalue* prevBp=getTopValue(stack);
 	stack->bp=*prevBp->u.num;
 	stack->tp-=1;
@@ -1672,7 +1688,7 @@ int B_invoke(FakeVM* exe)
 		{
 			tmpCode->refcount+=1;
 			VMprocess* tmpProc=newFakeProcess(tmpCode,proc);
-			tmpProc->localenv=newVMenv(tmpCode->localenv->bound,tmpCode->localenv->prev);
+			tmpProc->localenv=newVMenv(tmpCode->localenv->prev);
 			exe->curproc=tmpProc;
 		}
 		stack->tp-=1;
@@ -2664,7 +2680,7 @@ VMcode* newBuiltInProc(ByteCode* proc)
 {
 	VMcode* tmp=(VMcode*)malloc(sizeof(VMcode));
 	if(tmp==NULL)errors("newBuiltInProc",__FILE__,__LINE__);
-	tmp->localenv=newVMenv(0,NULL);
+	tmp->localenv=newVMenv(NULL);
 	tmp->refcount=0;
 	if(proc!=NULL)
 	{
@@ -2743,7 +2759,7 @@ void printEnv(VMenv* curEnv,FILE* fp)
 		fprintf(fp,"ENV:");
 		for(int i=0;i<curEnv->size;i++)
 		{
-			VMvalue* tmp=curEnv->values[i];
+			VMvalue* tmp=curEnv->list[i]->value;
 			VMpair* tmpPair=(tmp->type==PAIR)?tmp->u.pair:NULL;
 			printVMvalue(tmp,tmpPair,fp,0,0);
 			putc(' ',fp);
@@ -2860,7 +2876,7 @@ void GC_markValueInEnv(VMenv* curEnv)
 {
 	int32_t i=0;
 	for(;i<curEnv->size;i++)
-		GC_markValue(curEnv->values[i]);
+		GC_markValue(curEnv->list[i]->value);
 }
 
 void GC_markValueInCallChain(VMprocess* cur)
@@ -2921,7 +2937,7 @@ FakeVM* newThreadVM(VMcode* main,ByteCode* procs,Filestack* files,VMheap* heap,D
 	FakeVM* exe=(FakeVM*)malloc(sizeof(FakeVM));
 	if(exe==NULL)errors("newThreadVM",__FILE__,__LINE__);
 	exe->mainproc=newFakeProcess(main,NULL);
-	exe->mainproc->localenv=newVMenv(main->localenv->bound,main->localenv->prev);
+	exe->mainproc->localenv=newVMenv(main->localenv->prev);
 	exe->curproc=exe->mainproc;
 	exe->procs=procs;
 	exe->mark=1;
@@ -3075,4 +3091,20 @@ void createCallChainWithContinuation(FakeVM* vm,VMcontinuation* cc)
 	while(curproc->prev)
 		curproc=curproc->prev;
 	vm->mainproc=curproc;
+}
+
+void sortVMenvList(VMenv* env)
+{
+	int32_t i=0;
+	for(;i<env->size;i++)
+	{
+		int32_t j=i+1;
+		int32_t min=i;
+		for(;j<env->size;j++)
+			if(env->list[j]->id<env->list[min]->id)
+				min=j;
+		VMenvNode* t=env->list[i];
+		env->list[i]=env->list[min];
+		env->list[min]=t;
+	}
 }

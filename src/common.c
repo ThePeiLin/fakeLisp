@@ -13,55 +13,6 @@
 #else
 #include<tchar.h>
 #endif
-char* builtInSymbolList[]=
-{
-	"nil",
-	"EOF",
-	"stdin",
-	"stdout",
-	"stderr",
-	"cons",
-	"car",
-	"cdr",
-	"atom",
-	"null",
-	"type",
-	"aply",
-	"eq",
-	"eqn",
-	"equal",
-	"gt",
-	"ge",
-	"lt",
-	"le",
-	"not",
-	"dbl",
-	"str",
-	"sym",
-	"chr",
-	"int",
-	"byt",
-	"add",
-	"sub",
-	"mul",
-	"div",
-	"mod",
-	"nth",
-	"length",
-	"appd",
-	"open",
-	"close",
-	"read",
-	"readb",
-	"write",
-	"writeb",
-	"princ",
-	"go",
-	"send",
-	"recv",
-	"getid",
-	"clcc"
-};
 
 char* getStringFromList(const char* str)
 {

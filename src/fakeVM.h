@@ -10,7 +10,7 @@ void printProc(VMcode*,FILE*);
 FakeVM* newFakeVM(ByteCode*,ByteCode*);
 FakeVM* newTmpFakeVM(ByteCode*,ByteCode*);
 FakeVM* newThreadVM(VMcode*,ByteCode*,Filestack*,VMheap*,Dlls*);
-void initGlobEnv(VMenv*,VMheap*);
+void initGlobEnv(VMenv*,VMheap*,SymbolTable*);
 int B_dummy(FakeVM*);
 int B_push_nil(FakeVM*);
 int B_push_pair(FakeVM*);
@@ -41,7 +41,6 @@ int B_div(FakeVM*);
 int B_mod(FakeVM*);
 int B_atom(FakeVM*);
 int B_null(FakeVM*);
-int B_init_proc(FakeVM*);
 int B_call_proc(FakeVM*);
 int B_end_proc(FakeVM*);
 int B_set_bp(FakeVM*);
@@ -112,4 +111,6 @@ void GC_markValueInCallChain(VMprocess*);
 void GC_markMessage(ThreadMessage*);
 void GC_sweep(VMheap*);
 void GC_compact(VMheap*);
+
+static void sortVMenvList(VMenv*);
 #endif

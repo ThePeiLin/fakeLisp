@@ -664,3 +664,4 @@ void freeVMenvNode(VMenvNode* node)
 {
 	free(node);
 }
+

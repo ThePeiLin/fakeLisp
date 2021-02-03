@@ -5,15 +5,25 @@
 #include<stdint.h>
 #include<pthread.h>
 #define THRESHOLD_SIZE 64
-#define SYMUNDEFINE 1
-#define SYNTAXERROR 2
-#define INVALIDEXPR 3
-#define CIRCULARLOAD 4
-#define INVALIDPATTERN 5
 #define NUMOFBUILTINSYMBOL 46
 #define MAX_STRING_SIZE 64
 
 typedef enum{NIL=0,IN32,CHR,DBL,SYM,STR,BYTA,PRC,CONT,PAIR,ATM} ValueType;
+
+typedef enum
+{
+	SYMUNDEFINE=1,
+	SYNTAXERROR,
+	INVALIDEXPR,
+	CIRCULARLOAD,
+	INVALIDPATTERN,
+	WRONGARG,
+	STACKERROR,
+	TOOMANYARG,
+	TOOFEWARG,
+	CANTCREATETHREAD,
+	THREADERROR
+}ErrorType;
 
 typedef struct
 {
@@ -313,4 +323,54 @@ typedef struct VM_Continuation
 	VMstack* stack;
 	VMprocStatus* status;
 }VMcontinuation;
+
+char* builtInSymbolList[]=
+{
+	"nil",
+	"EOF",
+	"stdin",
+	"stdout",
+	"stderr",
+	"cons",
+	"car",
+	"cdr",
+	"atom",
+	"null",
+	"type",
+	"aply",
+	"eq",
+	"eqn",
+	"equal",
+	"gt",
+	"ge",
+	"lt",
+	"le",
+	"not",
+	"dbl",
+	"str",
+	"sym",
+	"chr",
+	"int",
+	"byt",
+	"add",
+	"sub",
+	"mul",
+	"div",
+	"mod",
+	"nth",
+	"length",
+	"appd",
+	"open",
+	"close",
+	"read",
+	"readb",
+	"write",
+	"writeb",
+	"princ",
+	"go",
+	"send",
+	"recv",
+	"getid",
+	"clcc"
+};
 #endif

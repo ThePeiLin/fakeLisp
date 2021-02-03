@@ -635,7 +635,7 @@ VMenvNode* findVMenvNode(int32_t id,VMenv* env)
 	if(!env->list)
 		return NULL;
 	int32_t l=0;
-	int32_t h=env->size;
+	int32_t h=env->size-1;
 	int32_t mid;
 	while(l<=h)
 	{

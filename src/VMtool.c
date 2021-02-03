@@ -608,34 +608,24 @@ VMenvNode* addVMenvNode(VMenvNode* node,VMenv* env)
 	{
 		int32_t l=0;
 		int32_t h=env->size;
-		int32_t mid=l+(h-l)/2;
-		while(h-l>0)
+		int32_t mid;
+		while(l<=h)
 		{
+			mid=l+(h-l)/2;
 			if(env->list[mid]->id>=node->id)
 				h=mid-1;
 			else
 				l=mid+1;
-			mid=l+(h-l)/2;
 		}
+		if(env->list[mid]->id<=node->id)
+			mid++;
 		env->size+=1;
-		if(env->list[mid]->id>=node->id)
-		{
-			int32_t i=env->size-1;
-			env->list=(VMenvNode**)realloc(env->list,sizeof(VMenvNode*)*env->size);
-			if(!env->list)errors("addVMenvNode",__FILE__,__LINE__);
-			for(;i>mid-1;i--)
-				env->list[i]=env->list[i-1];
-			env->list[mid]=node;
-		}
-		else
-		{
-			int32_t i=env->size-1;
-			env->list=(VMenvNode**)realloc(env->list,sizeof(VMenvNode*)*env->size);
-			if(!env->list)errors("addVMenvNode",__FILE__,__LINE__);
-			for(;i>mid;i--)
-				env->list[i]=env->list[i-1];
-			env->list[mid+1]=node;
-		}
+		int32_t i=env->size-1;
+		env->list=(VMenvNode**)realloc(env->list,sizeof(VMenvNode*)*env->size);
+		if(!env->list)errors("addVMenvNode",__FILE__,__LINE__);
+		for(;i>mid;i--)
+			env->list[i]=env->list[i-1];
+		env->list[mid]=node;
 	}
 	return node;
 }
@@ -646,16 +636,16 @@ VMenvNode* findVMenvNode(int32_t id,VMenv* env)
 		return NULL;
 	int32_t l=0;
 	int32_t h=env->size;
-	int32_t mid=l+(h-l)/2;
-	while(h-l>1)
+	int32_t mid;
+	while(l<=h)
 	{
+		mid=l+(h-l)/2;
 		if(env->list[mid]->id>id)
 			h=mid-1;
 		else if(env->list[mid]->id<id)
-			l=mid-1;
+			l=mid+1;
 		else
 			return env->list[mid];
-		mid=l+(h-l)/2;
 	}
 	return NULL;
 }

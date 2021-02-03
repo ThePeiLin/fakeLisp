@@ -1715,7 +1715,7 @@ SymTabNode* addSymTabNode(SymTabNode* node,SymbolTable* table)
 		if(l<table->size&&strcmp(table->list[l]->symbol,node->symbol)<=0)
 		{
 			l=h;
-			b=l+((1-(h-l))&&l<table->size&&strcmp(table->list[l]->symbol,node->symbol)<=0);
+			b=l+(l<table->size&&strcmp(table->list[l]->symbol,node->symbol)<=0);
 		}
 		table->size+=1;
 		int32_t i=table->size-1;

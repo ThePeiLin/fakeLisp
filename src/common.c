@@ -1701,9 +1701,9 @@ SymTabNode* addSymTabNode(SymTabNode* node,SymbolTable* table)
 	else
 	{
 		int32_t l=0;
-		int32_t h=table->size;
+		int32_t h=table->size-1;
 		int32_t mid;
-		while(h-l>1)
+		while(l<=h)
 		{
 			mid=l+(h-l)/2;
 			if(strcmp(table->list[mid]->symbol,node->symbol)>=0)
@@ -1749,9 +1749,9 @@ SymTabNode* findSymbol(const char* symbol,SymbolTable* table)
 	if(!table->list)
 		return NULL;
 	int32_t l=0;
-	int32_t h=table->size;
+	int32_t h=table->size-1;
 	int32_t mid;
-	while(h-l>1)
+	while(l<=h)
 	{
 		mid=l+(h-l)/2;
 		int resultOfCmp=strcmp(table->list[mid]->symbol,symbol);

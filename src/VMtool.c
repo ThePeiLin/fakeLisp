@@ -74,7 +74,7 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap,int access)
 	heap->head=tmp;
 	heap->size+=1;
 	pthread_mutex_unlock(&heap->lock);
-	switch(type)
+	switch((int)type)
 	{
 		case NIL:tmp->u.all=NULL;break;
 		case CHR:tmp->u.chr=(access)?copyMemory(pValue,sizeof(char)):pValue;break;
@@ -134,6 +134,7 @@ int VMvaluecmp(VMvalue* fir,VMvalue* sec)
 {
 	if(fir==sec)return 1;
 	if(fir->type!=sec->type)return 0;
+	if(fir->u.all==sec->u.all)return 1;
 	else
 	{
 		switch(fir->type)
@@ -148,6 +149,7 @@ int VMvaluecmp(VMvalue* fir,VMvalue* sec)
 			case BYTA:return bytaArryEq(fir->u.byta,sec->u.byta);
 		}
 	}
+	return 0;
 }
 
 int subVMvaluecmp(VMvalue* fir,VMvalue* sec)
@@ -164,7 +166,8 @@ int subVMvaluecmp(VMvalue* fir,VMvalue* sec)
 			case SYM:return !strcmp(fir->u.str->str,sec->u.str->str);
 		}
 	}
-	else if(fir->u.all!=sec->u.all)return 0;
+	else if(fir->u.all==sec->u.all)return 1;
+	return 0;
 }
 
 int numcmp(VMvalue* fir,VMvalue* sec)
@@ -217,7 +220,7 @@ VMvalue* castCptrVMvalue(const AST_cptr* objCptr,VMheap* heap)
 	{
 		AST_atom* tmpAtm=objCptr->value;
 		VMvalue* tmp=NULL;
-		switch(tmpAtm->type)
+		switch((int)tmpAtm->type)
 		{
 			case IN32:tmp=newVMvalue(IN32,&tmpAtm->value.num,heap,1);break;
 			case DBL:tmp=newVMvalue(DBL,&tmpAtm->value.dbl,heap,1);break;
@@ -238,6 +241,7 @@ VMvalue* castCptrVMvalue(const AST_cptr* objCptr,VMheap* heap)
 		return tmp;
 	}
 	else if(objCptr->type==NIL)return newNilValue(heap);
+	return NULL;
 }
 
 ByteArry* newByteArry(size_t size,uint8_t* arry)
@@ -256,7 +260,7 @@ ByteArry* copyByteArry(const ByteArry* obj)
 	if(obj==NULL)return NULL;
 	ByteArry* tmp=(ByteArry*)malloc(sizeof(ByteArry));
 	if(tmp==NULL)errors("copyByteArry",__FILE__,__LINE__);
-	int8_t* tmpArry=(int8_t*)malloc(tmp->size*sizeof(int8_t));
+	uint8_t* tmpArry=(uint8_t*)malloc(tmp->size*sizeof(uint8_t));
 	if(tmpArry==NULL)errors("copyByteArry",__FILE__,__LINE__);
 	memcpy(tmpArry,obj->arry,obj->size);
 	tmp->size=obj->size;

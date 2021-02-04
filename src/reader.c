@@ -5,6 +5,15 @@
 #include<ctype.h>
 
 static StringMatchPattern* HeadOfStringPattern=NULL;
+static void skipComment(FILE*);
+static char* readList(FILE*);
+static char* readString(FILE*);
+static char* readAtom(FILE*);
+static char* readSpace(FILE*);
+static char* exStrCat(char*,const char*,int32_t);
+static int32_t matchStringPattern(const char*,StringMatchPattern* pattern);
+static int32_t countStringParts(const char*);
+static int32_t* matchPartOfPattern(const char*,StringMatchPattern*,int32_t*);
 
 char** splitPattern(const char* str,int32_t* num)
 {
@@ -151,7 +160,6 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev)
 		{
 			if(!matchStringPattern(tmp,pattern))
 			{
-				int32_t tmpbackIndex=splitIndex[num-1]+strlen(pattern->parts[num-1]);
 				free(splitIndex);
 				break;
 			}
@@ -629,9 +637,8 @@ int32_t skipAtom(const char* str,const char* keyString)
 	int32_t keyLen=strlen(keyString);
 	int32_t i=0;
 	for(;str[i]!='\0';i++)
-	{
-		if(isspace(str[i])||(keyLen&&!strncmp(str+i,keyString,keyLen))&&(i<1||str[i-1]!='\\')) break;
-	}
+		if(isspace(str[i])||((keyLen&&!strncmp(str+i,keyString,keyLen))&&(i<1||str[i-1]!='\\')))
+			break;
 	return i;
 }
 

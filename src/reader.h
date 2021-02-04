@@ -23,14 +23,5 @@ int32_t countInPattern(const char* str,StringMatchPattern*);
 int32_t skipUntilNext(const char* str,const char*);
 int32_t skipParentheses(const char*);
 int32_t skipAtom(const char*,const char*);
-static void skipComment(FILE*);
-static char* readList(FILE*);
-static char* readString(FILE*);
-static char* readAtom(FILE*);
-static char* readSpace(FILE*);
-static char* exStrCat(char*,const char*,int32_t);
-static int32_t matchStringPattern(const char*,StringMatchPattern* pattern);
-static int32_t countStringParts(const char*);
-static int32_t* matchPartOfPattern(const char*,StringMatchPattern*,int32_t*);
 int32_t findKeyString(const char*);
 #endif

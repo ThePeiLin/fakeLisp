@@ -6,6 +6,7 @@
 #include<string.h>
 #include<ctype.h>
 
+static void addToList(AST_cptr*,const AST_cptr*);
 AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern)
 {
 	if(objStr==NULL)return NULL;
@@ -376,7 +377,7 @@ AST_cptr* castVMvalueToCptr(VMvalue* value,int32_t curline,AST_pair* prev)
 	return tmp;
 }
 
-void addToList(AST_cptr* fir,const const AST_cptr* sec)
+void addToList(AST_cptr* fir,const AST_cptr* sec)
 {
 	while(fir->type!=NIL)fir=&((AST_pair*)fir->value)->cdr;
 	fir->type=PAIR;

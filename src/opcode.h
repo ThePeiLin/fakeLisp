@@ -77,6 +77,7 @@ typedef struct
 	int len;
 }codeinfor;
 
+#ifdef USE_CODE_NAME
 static codeinfor codeName[]=
 {
 	{"dummy",0},
@@ -148,5 +149,5 @@ static codeinfor codeName[]=
 	{"recv",0},
 	{"getid",0},
 };
-
+#endif
 #endif

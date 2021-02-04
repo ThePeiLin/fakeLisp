@@ -1,9 +1,9 @@
 objectOfFakeLisp=fakeLisp.o common.o syntax.o compiler.o fakeVM.o VMtool.o ast.o reader.o
 objectOfFakeLispc=fakeLispc.o common.o syntax.o compiler.o fakeVM.o VMtool.o ast.o reader.o
 ifeq ($(DEBUG),YES)
-FLAG=-g -W
+FLAG=-g -Wall
 else
-FLAG=-W
+FLAG=-Wall
 endif
 
 ifeq ($(OS),WINDOWS)

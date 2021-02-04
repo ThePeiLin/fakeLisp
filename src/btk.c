@@ -44,7 +44,6 @@ int resBp(FakeVM* exe)
 int FAKE_getch(FakeVM* exe,pthread_rwlock_t* pGClock)
 {
 	VMstack* stack=exe->stack;
-	VMprocess* proc=exe->curproc;
 	if(resBp(exe))return TOOMANYARG;
 	if(stack->tp>=stack->size)
 	{
@@ -61,7 +60,6 @@ int FAKE_getch(FakeVM* exe,pthread_rwlock_t* pGClock)
 int FAKE_sleep(FakeVM* exe,pthread_rwlock_t* pGClock)
 {
 	VMstack* stack=exe->stack;
-	VMprocess* proc=exe->curproc;
 	VMvalue* second=getArg(stack);
 	if(!second)return TOOFEWARG;
 	if(resBp(exe))return TOOMANYARG;
@@ -84,7 +82,6 @@ int FAKE_sleep(FakeVM* exe,pthread_rwlock_t* pGClock)
 int FAKE_usleep(FakeVM* exe,pthread_rwlock_t* pGClock)
 {
 	VMstack* stack=exe->stack;
-	VMprocess* proc=exe->curproc;
 	VMvalue* second=getArg(stack);
 	if(!second)return TOOFEWARG;
 	if(resBp(exe))return TOOMANYARG;

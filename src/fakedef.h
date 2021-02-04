@@ -265,6 +265,7 @@ typedef struct
 	ThreadMessage* queueHead;
 	ThreadMessage* queueTail;
 	Filestack* files;
+	struct Symbol_Table* table;
 	struct DLL_s* modules;
 	struct VM_Heap* heap;
 	void (*callback)(void*);

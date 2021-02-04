@@ -832,15 +832,16 @@ void runFakeVM(FakeVM* exe)
 		int status=ByteCodes[tmpCode->code[curproc->cp]](exe);
 		if(status!=0)
 		{
-			VMstack* stack=exe->stack;
-			printByteCode(&tmpByteCode,stderr);
-			putc('\n',stderr);
-			printAllStack(exe->stack,stderr);
-			putc('\n',stderr);
-			fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
-			fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",curproc->cp,stack->bp,codeName[tmpCode->code[curproc->cp]].codeName);
-			printEnv(exe->curproc->localenv,stderr);
-			putc('\n',stderr);
+			//VMstack* stack=exe->stack;
+			//printByteCode(&tmpByteCode,stderr);
+			//putc('\n',stderr);
+			//printAllStack(exe->stack,stderr);
+			//putc('\n',stderr);
+			//fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
+			//fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",curproc->cp,stack->bp,codeName[tmpCode->code[curproc->cp]].codeName);
+			//printEnv(exe->curproc->localenv,stderr);
+			//putc('\n',stderr);
+			int32_t id;
 			switch(status)
 			{
 				case WRONGARG:
@@ -862,7 +863,9 @@ void runFakeVM(FakeVM* exe)
 					fprintf(stderr,"error:Thread error!\n");
 					break;
 				case SYMUNDEFINE:
-					fprintf(stderr,"error:Symbol undefined!\n");
+					id=getSymbolIdInByteCode(tmpCode->code+curproc->cp);
+					fprintf(stderr,"%s",exe->table->idl[id]->symbol);
+					fprintf(stderr,":Symbol undefined!\n");
 					break;
 			}
 			int i[2]={status,1};
@@ -3111,4 +3114,20 @@ void sortVMenvList(VMenv* env)
 		env->list[i]=env->list[min];
 		env->list[min]=t;
 	}
+}
+
+int32_t getSymbolIdInByteCode(const char* code)
+{
+	char op=*code;
+	switch(op)
+	{
+		case FAKE_PUSH_VAR:
+			return *(int32_t*)(code+sizeof(char));
+			break;
+		case FAKE_POP_VAR:
+		case FAKE_POP_REST_VAR:
+			return *(int32_t*)(code+sizeof(char)+sizeof(int32_t));
+			break;
+	}
+	return -1;
 }

@@ -619,7 +619,7 @@ void printList(const AST_cptr* objCptr,FILE* out)
 						printRawString(tmpAtm->value.str,out);
 						break;
 					case IN32:
-						fprintf(out,"%ld",tmpAtm->value.num);
+						fprintf(out,"%d",tmpAtm->value.num);
 						break;
 					case DBL:
 						fprintf(out,"%lf",tmpAtm->value.dbl);

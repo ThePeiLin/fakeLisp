@@ -300,14 +300,12 @@ int copyCptr(AST_cptr* objCptr,const AST_cptr* copiedCptr)
 		}
 		if(copiedPair!=NULL&&copiedCptr==&copiedPair->cdr)
 		{
-			AST_pair* objPrev=NULL;
 			AST_pair* coPrev=NULL;
 			if(copiedPair->prev==NULL)break;
 			while(objPair->prev!=NULL&&copiedPair!=NULL&&copiedPair!=tmpPair)
 			{
 				coPrev=copiedPair;
 				copiedPair=copiedPair->prev;
-				objPrev=objPair;
 				objPair=objPair->prev;
 				if(coPrev==copiedPair->car.value)break;
 			}
@@ -334,20 +332,6 @@ void replace(AST_cptr* fir,const AST_cptr* sec)
 	else if(fir->type==ATM)((AST_atom*)fir->value)->prev=tmp;
 }
 
-AST_cptr* destroyCptr(AST_cptr* objCptr)
-{
-	AST_pair* objPair=NULL;
-	if(objCptr->type==PAIR)objPair=((AST_pair*)objCptr->value)->prev;
-	if(objCptr->type==ATM)objPair=((AST_atom*)objCptr->value)->prev;
-	if(objCptr->type==NIL)return objCptr;
-	while(objPair!=NULL&&objPair->prev!=NULL)objPair=objPair->prev;
-	if(objPair!=NULL)
-	{
-		deleteCptr(&objPair->car);
-		deleteCptr(&objPair->cdr);
-	}
-	free(objPair);
-}
 int deleteCptr(AST_cptr* objCptr)
 {
 	if(objCptr==NULL)return 0;
@@ -457,12 +441,10 @@ int AST_cptrcmp(const AST_cptr* first,const AST_cptr* second)
 		else if(firPair!=NULL&&first==&firPair->cdr)
 		{
 			AST_pair* firPrev=NULL;
-			AST_pair* secPrev=NULL;
 			if(firPair->prev==NULL)break;
 			while(firPair->prev!=NULL&&firPair!=tmpPair)
 			{
 				firPrev=firPair;
-				secPrev=secPair;
 				firPair=firPair->prev;
 				secPair=secPair->prev;
 				if(firPrev==firPair->car.value)break;
@@ -610,7 +592,7 @@ void printList(const AST_cptr* objCptr,FILE* out)
 			if(objCptr->type!=NIL)
 			{
 				AST_atom* tmpAtm=objCptr->value;
-				switch(tmpAtm->type)
+				switch((int)tmpAtm->type)
 				{
 					case SYM:
 						fprintf(out,"%s",tmpAtm->value.str);
@@ -820,7 +802,6 @@ CompDef* addCompDef(const char* name,CompEnv* curEnv,SymbolTable* table)
 {
 	if(curEnv->head==NULL)
 	{
-		CompEnv* tmpEnv=curEnv->prev;
 		SymTabNode* node=findSymbol(name,table);
 		if(!node)
 		{
@@ -979,8 +960,8 @@ void printByteCode(const ByteCode* tmpCode,FILE* fp)
 	while(i<tmpCode->size)
 	{
 		int tmplen=0;
-		fprintf(fp,"%d: %s ",i,codeName[tmpCode->code[i]].codeName);
-		switch(codeName[tmpCode->code[i]].len)
+		fprintf(fp,"%d: %s ",i,codeName[(int)tmpCode->code[i]].codeName);
+		switch(codeName[(int)tmpCode->code[i]].len)
 		{
 			case -3:
 				fprintf(fp,"%d %d",*(int32_t*)(tmpCode->code+i+1),*(int32_t*)(tmpCode->code+i+1+sizeof(int32_t)));
@@ -1264,7 +1245,6 @@ void changeWorkPath(const char* filename)
 	char* p=realpath(filename,NULL);
 #endif
 	char* wp=getDir(p);
-	int32_t len=strlen(p);
 	if(chdir(wp))
 	{
 		perror(wp);
@@ -1441,7 +1421,6 @@ char* relpath(char* abs,char* relto)
 char** split(char* str,char* divstr,int* length)
 {
 	int count=0;
-	int i=0;
 	char* pNext=NULL;
 	char** strArry=(char**)malloc(0);
 	if(strArry==NULL)errors("split",__FILE__,__LINE__);
@@ -1633,7 +1612,6 @@ PreDef* findDefine(const char* name,const PreEnv* curEnv)
 	else
 	{
 		PreDef* curDef=curEnv->symbols;
-		PreDef* prev=NULL;
 		while(curDef&&strcmp(name,curDef->symbol))
 			curDef=curDef->next;
 		return curDef;

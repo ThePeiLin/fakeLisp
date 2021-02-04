@@ -4,7 +4,6 @@
 #include"reader.h"
 #include"fakeVM.h"
 #include"opcode.h"
-#include"ast.h"
 #include<string.h>
 #include<math.h>
 #ifdef _WIN32
@@ -2316,7 +2315,7 @@ int B_read(FakeVM* exe)
 	if(tmpFile==NULL)return STACKERROR;
 	char* tmpString=readSingle(tmpFile);
 	Intpr* tmpIntpr=newTmpIntpr(NULL,tmpFile);
-	AST_cptr* tmpCptr=createTree(tmpString,tmpIntpr,NULL);
+	AST_cptr* tmpCptr=baseCreateTree(tmpString,tmpIntpr);
 	VMvalue* tmp=NULL;
 	if(tmpCptr==NULL)
 		tmp=newNilValue(exe->heap);

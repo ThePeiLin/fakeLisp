@@ -6,13 +6,9 @@
 PreMacro* PreMacroMatch(const AST_cptr*);
 int PreMacroExpand(AST_cptr*,Intpr* inter);
 int addMacro(AST_cptr*,ByteCode*,RawProc*);
-static int MacroPatternCmp(const AST_cptr*,const AST_cptr*);
 void freeMacroEnv();
 void freeAllMacro();
-static int fmatcmp(const AST_cptr*,const AST_cptr*);
-int MacroPatternCmp(const AST_cptr*,const AST_cptr*);
 CompEnv* createMacroCompEnv(const AST_cptr*,CompEnv*,SymbolTable*);
-static int isVal(const char*);
 void addFunc(const char*,ErrorStatus (*)(AST_cptr*,PreEnv*,Intpr*));
 void freeAllFunc();
 ErrorStatus (*(findFunc(const char*)))(AST_cptr*,PreEnv*,Intpr*);
@@ -20,10 +16,7 @@ int retree(AST_cptr**,AST_cptr*);
 ErrorStatus eval(AST_cptr*,PreEnv*,Intpr*);
 void unInitPreprocess();
 void initPreprocess();
-static ErrorStatus N_import(AST_cptr*,PreEnv*,Intpr*);
-static ErrorStatus N_defmacro(AST_cptr*,PreEnv*,Intpr*);
 StringMatchPattern* addStringPattern(char**,int32_t,AST_cptr*,Intpr*);
-static CompEnv* createPatternCompEnv(char**,int32_t,CompEnv*,SymbolTable*);
 
 ByteCode* compileFile(Intpr*);
 ByteCode* compile(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*);

@@ -11,6 +11,12 @@
 #include<unistd.h>
 #include<math.h>
 
+static int MacroPatternCmp(const AST_cptr*,const AST_cptr*);
+static int fmatcmp(const AST_cptr*,const AST_cptr*);
+static int isVal(const char*);
+static ErrorStatus N_import(AST_cptr*,PreEnv*,Intpr*);
+static ErrorStatus N_defmacro(AST_cptr*,PreEnv*,Intpr*);
+static CompEnv* createPatternCompEnv(char**,int32_t,CompEnv*,SymbolTable*);
 static PreFunc* funAndForm=NULL;
 static PreMacro* FirstMacro=NULL;
 static PreEnv* MacroEnv=NULL;

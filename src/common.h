@@ -69,6 +69,7 @@ int hasLoadSameFile(const char*,const Intpr*);
 RawProc* getHeadRawProc(const Intpr*);
 AST_cptr* getANSPairCar(const AST_cptr*);
 AST_cptr* getANSPairCdr(const AST_cptr*);
+AST_cptr* baseCreateTree(const char*,Intpr*);
 ByteCode* newDllFuncProc(const char*);
 Dlls* newDll(DllHandle);
 Dlls* loadDll(const char*,Dlls**,const char*,Modlist**);

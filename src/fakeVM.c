@@ -1,3 +1,4 @@
+#define USE_CODE_NAME
 #include"common.h"
 #include"VMtool.h"
 #include"reader.h"
@@ -16,6 +17,9 @@
 #endif
 #include<unistd.h>
 #include<time.h>
+
+static void sortVMenvList(VMenv*);
+static int32_t getSymbolIdInByteCode(const char*);
 
 extern char* builtInSymbolList[NUMOFBUILTINSYMBOL];
 pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
@@ -827,11 +831,11 @@ void runFakeVM(FakeVM* exe)
 		pthread_rwlock_rdlock(&GClock);
 		VMprocess* curproc=exe->curproc;
 		VMcode* tmpCode=curproc->code;
-		ByteCode tmpByteCode={tmpCode->size,tmpCode->code};
 	//	fprintf(stderr,"%s\n",codeName[tmpCode->code[curproc->cp]].codeName);
-		int status=ByteCodes[tmpCode->code[curproc->cp]](exe);
+		int status=ByteCodes[(int)tmpCode->code[curproc->cp]](exe);
 		if(status!=0)
 		{
+			//ByteCode tmpByteCode={tmpCode->size,tmpCode->code};
 			//VMstack* stack=exe->stack;
 			//printByteCode(&tmpByteCode,stderr);
 			//putc('\n',stderr);
@@ -918,7 +922,7 @@ int B_dummy(FakeVM* exe)
 	printAllStack(exe->stack,stderr);
 	putc('\n',stderr);
 	fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
-	fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",curproc->cp,stack->bp,codeName[tmpCode->code[curproc->cp]].codeName);
+	fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",curproc->cp,stack->bp,codeName[(int)tmpCode->code[curproc->cp]].codeName);
 	printEnv(exe->curproc->localenv,stderr);
 	putc('\n',stderr);
 	fprintf(stderr,"Wrong byta code!\n");
@@ -1091,7 +1095,6 @@ int B_push_var(FakeVM* exe)
 	int32_t idOfVar=*(int32_t*)(tmpCode->code+proc->cp+1);
 	VMenv* curEnv=proc->localenv;
 	VMvalue* tmpValue=NULL;
-	int32_t i=0;
 	VMenvNode* tmp=NULL;
 	while(curEnv&&!tmp)
 	{
@@ -1235,7 +1238,6 @@ int B_push_list_arg(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
-	VMcode* tmpCode=proc->code;
 	VMvalue* tmpList=getTopValue(stack);
 	stack->tp-=1;
 	while(tmpList->type!=NIL)
@@ -1626,7 +1628,6 @@ int B_call_proc(FakeVM* exe)
 
 int B_end_proc(FakeVM* exe)
 {
-	VMstack* stack=exe->stack;
 	VMprocess* tmpProc=exe->curproc;
 //	fprintf(stdout,"End proc: %p\n",tmpProc->code);
 	VMprocess* prev=exe->curproc->prev;
@@ -2106,7 +2107,7 @@ int B_cast_to_str(FakeVM* exe)
 				 break;
 		case STR:
 		case SYM:tmpValue->u.str->str=copyStr(topValue->u.str->str);break;
-		case BYTA:tmpValue->u.str->str=copyStr(topValue->u.byta->arry);break;
+		case BYTA:tmpValue->u.str->str=copyStr((char*)topValue->u.byta->arry);break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
 	proc->cp+=1;
@@ -2132,7 +2133,7 @@ int B_cast_to_sym(FakeVM* exe)
 				 break;
 		case STR:
 		case SYM:tmpValue->u.str->str=copyStr(topValue->u.str->str);break;
-		case BYTA:tmpValue->u.str->str=copyStr(topValue->u.byta->arry);break;
+		case BYTA:tmpValue->u.str->str=copyStr((char*)topValue->u.byta->arry);break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
 	proc->cp+=1;
@@ -2163,7 +2164,7 @@ int B_cast_to_byte(FakeVM* exe)
 				 break;
 		case STR:
 		case SYM:tmpValue->u.byta->size=strlen(topValue->u.str->str+1);
-				 tmpValue->u.byta->arry=copyStr(topValue->u.str->str);
+				 tmpValue->u.byta->arry=(uint8_t*)copyStr(topValue->u.str->str);
 				 break;
 		case BYTA:tmpValue->u.byta->size=topValue->u.byta->size;
 				  tmpValue->u.byta->arry=createByteArry(topValue->u.byta->size);
@@ -2664,22 +2665,22 @@ void stackRecycle(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* curproc=exe->curproc;
 	VMcode* tmpCode=curproc->code;
-	ByteCode tmpByteCode={tmpCode->size,tmpCode->code};
 	if(stack->size-stack->tp>64)
 	{
-	//	size_t newSize=stack->size-64;
-	//	if(newSize>0)
-	//	{
-			//printByteCode(&tmpByteCode,stderr);
-			stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size-64));
-			if(stack->values==NULL)
-			{
-				fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
-				fprintf(stderr,"cp=%d\n%s\n",curproc->cp,codeName[tmpCode->code[curproc->cp]].codeName);
-				errors("stackRecycle",__FILE__,__LINE__);
-			}
-			stack->size-=64;
-	//	}
+		//	size_t newSize=stack->size-64;
+		//	if(newSize>0)
+		//	{
+		//ByteCode tmpByteCode={tmpCode->size,tmpCode->code};
+		//printByteCode(&tmpByteCode,stderr);
+		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size-64));
+		if(stack->values==NULL)
+		{
+			fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
+			fprintf(stderr,"cp=%d\n%s\n",curproc->cp,codeName[(int)tmpCode->code[curproc->cp]].codeName);
+			errors("stackRecycle",__FILE__,__LINE__);
+		}
+		stack->size-=64;
+		//	}
 	}
 }
 

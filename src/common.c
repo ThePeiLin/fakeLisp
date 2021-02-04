@@ -1,3 +1,4 @@
+#define USE_CODE_NAME
 #include"common.h"
 #include"opcode.h"
 #include<stdlib.h>

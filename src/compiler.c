@@ -25,7 +25,6 @@ PreMacro* PreMacroMatch(const AST_cptr* objCptr)
 
 int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 {
-	ErrorStatus status={0,NULL};
 	PreMacro* tmp=PreMacroMatch(objCptr);
 	if(tmp!=NULL)
 	{
@@ -159,12 +158,10 @@ int MacroPatternCmp(const AST_cptr* first,const AST_cptr* second)
 		else if(firPair!=NULL&&first==&firPair->cdr)
 		{
 			AST_pair* firPrev=NULL;
-			AST_pair* secPrev=NULL;
 			if(firPair->prev==NULL)break;
 			while(firPair->prev!=NULL&&firPair!=tmpPair)
 			{
 				firPrev=firPair;
-				secPrev=secPair;
 				firPair=firPair->prev;
 				secPair=secPair->prev;
 				if(firPrev==firPair->car.value)break;
@@ -276,12 +273,10 @@ int fmatcmp(const AST_cptr* origin,const AST_cptr* format)
 		else if(forPair!=NULL&&format==&forPair->cdr)
 		{
 			AST_pair* oriPrev=NULL;
-			AST_pair* forPrev=NULL;
 			if(oriPair->prev==NULL)break;
 			while(oriPair->prev!=NULL&&forPair!=tmpPair)
 			{
 				oriPrev=oriPair;
-				forPrev=forPair;
 				oriPair=oriPair->prev;
 				forPair=forPair->prev;
 				if(oriPrev==oriPair->car.value)break;
@@ -458,7 +453,6 @@ ErrorStatus eval(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 					status.place=objCptr;
 					return status;
 				}
-				int before=objCptr->outer->cdr.type;
 				ErrorStatus (*pfun)(AST_cptr*,PreEnv*,Intpr*)=NULL;
 				pfun=findFunc(objAtm->value.str);
 				if(pfun!=NULL)
@@ -828,7 +822,7 @@ ByteCode* compileAtom(AST_cptr* objCptr)
 {
 	AST_atom* tmpAtm=objCptr->value;
 	ByteCode* tmp=NULL;
-	switch(tmpAtm->type)
+	switch((int)tmpAtm->type)
 	{
 		case SYM:
 			tmp=createByteCode(sizeof(char)+strlen(tmpAtm->value.str)+1);
@@ -930,12 +924,13 @@ ByteCode* compileQuote(AST_cptr* objCptr)
 {
 	objCptr=&((AST_pair*)objCptr->value)->car;
 	objCptr=nextCptr(objCptr);
-	switch(objCptr->type)
+	switch((int)objCptr->type)
 	{
 		case PAIR:return compilePair(objCptr);
 		case ATM:return compileAtom(objCptr);
 		case NIL:return compileNil();
 	}
+	return NULL;
 }
 
 ByteCode* compileConst(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status)
@@ -943,6 +938,7 @@ ByteCode* compileConst(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatu
 		if(objCptr->type==ATM)return compileAtom(objCptr);
 		if(isNil(objCptr))return compileNil();
 		if(isQuoteExpression(objCptr))return compileQuote(objCptr);
+		return NULL;
 }
 
 ByteCode* compileListForm(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status)
@@ -1175,7 +1171,6 @@ ByteCode* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 
 ByteCode* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status)
 {
-	AST_pair* tmpPair=objCptr->value;
 	ByteCode* jumpiffalse=createByteCode(sizeof(char)+sizeof(int32_t));
 	ByteCode* push1=createByteCode(sizeof(char)+sizeof(int32_t));
 	ByteCode* pop=createByteCode(sizeof(char));

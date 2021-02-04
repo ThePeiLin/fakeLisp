@@ -111,7 +111,4 @@ void GC_markValueInCallChain(VMprocess*);
 void GC_markMessage(ThreadMessage*);
 void GC_sweep(VMheap*);
 void GC_compact(VMheap*);
-
-static void sortVMenvList(VMenv*);
-static int32_t getSymbolIdInByteCode(const char*);
 #endif

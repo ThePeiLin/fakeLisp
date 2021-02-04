@@ -49,6 +49,7 @@ int main(int argc,char** argv)
 			anotherVM->mainproc->code->localenv=globEnv;
 			anotherVM->modules=inter->modules;
 			anotherVM->callback=errorCallBack;
+			anotherVM->table=inter->table;
 			initGlobEnv(globEnv,anotherVM->heap,inter->table);
 			if(!setjmp(buf))
 			{

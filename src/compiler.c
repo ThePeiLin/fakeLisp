@@ -44,6 +44,7 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 		tmpVMcode->localenv=macroVMenv;
 		tmpVM->mainproc->code=tmpVMcode;
 		tmpVM->modules=inter->modules;
+		tmpVM->table=inter->table;
 		runFakeVM(tmpVM);
 		AST_cptr* tmpCptr=castVMvalueToCptr(tmpVM->stack->values[0],objCptr->curline,NULL);
 		pthread_mutex_destroy(&tmpVM->lock);
@@ -699,19 +700,18 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 		AST_cptr* pattern=args[0];
 		AST_cptr* express=args[1];
 		CompEnv* tmpGlobCompEnv=newCompEnv(NULL);
-		SymbolTable* table=newSymbolTable();
-		initCompEnv(tmpGlobCompEnv,table);
+		initCompEnv(tmpGlobCompEnv,inter->table);
 		Intpr* tmpInter=newTmpIntpr(NULL,NULL);
 		tmpInter->filename=inter->filename;
 		tmpInter->curline=inter->curline;
 		tmpInter->glob=tmpGlobCompEnv;
-		tmpInter->table=table;
+		tmpInter->table=inter->table;
 		tmpInter->head=inter->head;
 		tmpInter->tail=inter->tail;
 		tmpInter->modules=inter->modules;
 		tmpInter->curDir=inter->curDir;
 		tmpInter->prev=NULL;
-		CompEnv* tmpCompEnv=createMacroCompEnv(pattern,tmpGlobCompEnv,table);
+		CompEnv* tmpCompEnv=createMacroCompEnv(pattern,tmpGlobCompEnv,inter->table);
 		ByteCode* tmpByteCode=compile(express,tmpCompEnv,tmpInter,&status);
 		if(!status.status)
 		{
@@ -746,6 +746,7 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 	initCompEnv(tmpGlobCompEnv,inter->table);
 	Intpr* tmpInter=newTmpIntpr(NULL,NULL);
 	tmpInter->filename=inter->filename;
+	tmpInter->table=inter->table;
 	tmpInter->curline=inter->curline;
 	tmpInter->glob=tmpGlobCompEnv;
 	tmpInter->head=inter->head;
@@ -1165,8 +1166,12 @@ ByteCode* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 	}
 	if(tmpDef==NULL)
 	{
-		SymTabNode* node=newSymTabNode(tmpAtm->value.str);
-		addSymTabNode(node,inter->table);
+		SymTabNode* node=findSymbol(tmpAtm->value.str,inter->table);
+		if(!node)
+		{
+			node=newSymTabNode(tmpAtm->value.str);
+			addSymTabNode(node,inter->table);
+		}
 		id=node->id;
 	}
 	else

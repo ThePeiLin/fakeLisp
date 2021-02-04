@@ -607,7 +607,7 @@ VMenvNode* addVMenvNode(VMenvNode* node,VMenv* env)
 	else
 	{
 		int32_t l=0;
-		int32_t h=env->size;
+		int32_t h=env->size-1;
 		int32_t mid;
 		while(l<=h)
 		{

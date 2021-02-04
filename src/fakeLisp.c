@@ -156,6 +156,8 @@ void runIntpr(Intpr* inter)
 				break;
 			}
 		}
+		else if(ch==')')
+			fprintf(stderr,"Invalid input!\n");
 		else if(ch!='\n')
 			ungetc(ch,inter->file);
 		if(begin!=NULL)

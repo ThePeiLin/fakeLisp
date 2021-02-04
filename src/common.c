@@ -810,7 +810,7 @@ CompDef* findCompDef(const char* name,CompEnv* curEnv,SymbolTable* table)
 			return NULL;
 		int32_t id=node->id;
 		CompDef* curDef=curEnv->head;
-		while(curDef&&id==curDef->id)
+		while(curDef&&id!=curDef->id)
 			curDef=curDef->next;
 		return curDef;
 	}
@@ -837,8 +837,12 @@ CompDef* addCompDef(const char* name,CompEnv* curEnv,SymbolTable* table)
 		CompDef* curDef=findCompDef(name,curEnv,table);
 		if(curDef==NULL)
 		{
-			SymTabNode* node=newSymTabNode(name);
-			addSymTabNode(node,table);
+			SymTabNode* node=findSymbol(name,table);
+			if(!node)
+			{
+				node=newSymTabNode(name);
+				addSymTabNode(node,table);
+			}
 			if(!(curDef=(CompDef*)malloc(sizeof(CompDef))))errors("addCompDef",__FILE__,__LINE__);
 			curDef->id=node->id;
 			curDef->next=curEnv->head;
@@ -978,6 +982,10 @@ void printByteCode(const ByteCode* tmpCode,FILE* fp)
 		fprintf(fp,"%d: %s ",i,codeName[tmpCode->code[i]].codeName);
 		switch(codeName[tmpCode->code[i]].len)
 		{
+			case -3:
+				fprintf(fp,"%d %d",*(int32_t*)(tmpCode->code+i+1),*(int32_t*)(tmpCode->code+i+1+sizeof(int32_t)));
+				i+=9;
+				break;
 			case -2:
 				fprintf(fp,"%d ",*(int32_t*)(tmpCode->code+i+1));
 				printAsByteArry((uint8_t*)(tmpCode->code+i+5),*(int32_t*)(tmpCode->code+i+1),fp);
@@ -1696,6 +1704,7 @@ SymTabNode* addSymTabNode(SymTabNode* node,SymbolTable* table)
 		table->size=1;
 		node->id=table->size-1;
 		table->list=(SymTabNode**)malloc(sizeof(SymTabNode*)*1);
+		if(!table->list)errors("addSymTabNode",__FILE__,__LINE__);
 		table->list[0]=node;
 	}
 	else

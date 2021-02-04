@@ -94,11 +94,11 @@ static int (*ByteCodes[])(FakeVM*)=
 
 ByteCode P_cons=
 {
-	25,
+	33,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_PAIR,
 		FAKE_PUSH_VAR,0,0,0,0,
@@ -111,10 +111,10 @@ ByteCode P_cons=
 
 ByteCode P_car=
 {
-	13,
+	17,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_CAR,
@@ -124,10 +124,10 @@ ByteCode P_car=
 
 ByteCode P_cdr=
 {
-	13,
+	17,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_CDR,
@@ -137,10 +137,10 @@ ByteCode P_cdr=
 
 ByteCode P_atom=
 {
-	13,
+	17,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_ATOM,
@@ -150,10 +150,10 @@ ByteCode P_atom=
 
 ByteCode P_null=
 {
-	13,
+	17,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_NULL,
@@ -161,12 +161,12 @@ ByteCode P_null=
 	}
 };
 
-ByteCode P_type_of=
+ByteCode P_type=
 {
-	13,
+	17,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_TYPE_OF,
@@ -176,11 +176,11 @@ ByteCode P_type_of=
 
 ByteCode P_aply=
 {
-	25,
+	33,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_SET_BP,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -193,11 +193,11 @@ ByteCode P_aply=
 
 ByteCode P_eq=
 {
-	23,
+	31,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -208,11 +208,11 @@ ByteCode P_eq=
 
 ByteCode P_eqn=
 {
-	23,
+	31,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -223,11 +223,11 @@ ByteCode P_eqn=
 
 ByteCode P_equal=
 {
-	23,
+	31,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -238,11 +238,11 @@ ByteCode P_equal=
 
 ByteCode P_gt=
 {
-	23,
+	31,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -253,11 +253,11 @@ ByteCode P_gt=
 
 ByteCode P_ge=
 {
-	23,
+	31,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -268,11 +268,11 @@ ByteCode P_ge=
 
 ByteCode P_lt=
 {
-	23,
+	31,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -283,11 +283,11 @@ ByteCode P_lt=
 
 ByteCode P_le=
 {
-	23,
+	31,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -298,10 +298,10 @@ ByteCode P_le=
 
 ByteCode P_not=
 {
-	13,
+	17,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_NOT,
@@ -311,10 +311,10 @@ ByteCode P_not=
 
 ByteCode P_dbl=
 {
-	13,
+	17,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_CAST_TO_DBL,
@@ -324,10 +324,10 @@ ByteCode P_dbl=
 
 ByteCode P_str=
 {
-	13,
+	17,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_CAST_TO_STR,
@@ -337,10 +337,10 @@ ByteCode P_str=
 
 ByteCode P_sym=
 {
-	13,
+	17,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_CAST_TO_SYM,
@@ -350,10 +350,10 @@ ByteCode P_sym=
 
 ByteCode P_chr=
 {
-	13,
+	17,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_CAST_TO_CHR,
@@ -363,10 +363,10 @@ ByteCode P_chr=
 
 ByteCode P_int=
 {
-	13,
+	17,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_CAST_TO_INT,
@@ -376,10 +376,10 @@ ByteCode P_int=
 
 ByteCode P_byt=
 {
-	13,
+	17,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_CAST_TO_BYTE,
@@ -389,11 +389,11 @@ ByteCode P_byt=
 
 ByteCode P_add=
 {
-	23,
+	31,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -404,11 +404,11 @@ ByteCode P_add=
 
 ByteCode P_sub=
 {
-	23,
+	31,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -419,11 +419,11 @@ ByteCode P_sub=
 
 ByteCode P_mul=
 {
-	23,
+	31,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -434,11 +434,11 @@ ByteCode P_mul=
 
 ByteCode P_div=
 {
-	23,
+	31,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -449,11 +449,11 @@ ByteCode P_div=
 
 ByteCode P_mod=
 {
-	23,
+	31,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -464,11 +464,11 @@ ByteCode P_mod=
 
 ByteCode P_nth=
 {
-	23,
+	31,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -479,10 +479,10 @@ ByteCode P_nth=
 
 ByteCode P_length=
 {
-	13,
+	17,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_LENGTH,
@@ -492,11 +492,11 @@ ByteCode P_length=
 
 ByteCode P_appd=
 {
-	23,
+	31,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -507,11 +507,11 @@ ByteCode P_appd=
 
 ByteCode P_open=
 {
-	23,
+	31,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -522,10 +522,10 @@ ByteCode P_open=
 
 ByteCode P_close=
 {
-	13,
+	17,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_CLOSE,
@@ -535,10 +535,10 @@ ByteCode P_close=
 
 ByteCode P_read=
 {
-	13,
+	17,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_READ,
@@ -548,11 +548,11 @@ ByteCode P_read=
 
 ByteCode P_readb=
 {
-	23,
+	31,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -563,11 +563,11 @@ ByteCode P_readb=
 
 ByteCode P_write=
 {
-	23,
+	31,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -578,11 +578,11 @@ ByteCode P_write=
 
 ByteCode P_writeb=
 {
-	23,
+	31,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -593,11 +593,11 @@ ByteCode P_writeb=
 
 ByteCode P_princ=
 {
-	23,
+	31,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -608,11 +608,11 @@ ByteCode P_princ=
 
 ByteCode P_go=
 {
-	23,
+	31,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_REST_VAR,1,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_REST_VAR,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -623,11 +623,11 @@ ByteCode P_go=
 
 ByteCode P_send=
 {
-	23,
+	31,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
-		FAKE_POP_VAR,1,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -660,13 +660,13 @@ ByteCode P_getid=
 
 ByteCode P_clcc=
 {
-	25,
+	33,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PACK_CC,
-		FAKE_POP_VAR,1,0,0,0,
+		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
 		FAKE_SET_BP,
 		FAKE_PUSH_VAR,1,0,0,0,
 		FAKE_PUSH_VAR,0,0,0,0,
@@ -748,7 +748,7 @@ void initGlobEnv(VMenv* obj,VMheap* heap,SymbolTable* table)
 		P_cdr,
 		P_atom,
 		P_null,
-		P_type_of,
+		P_type,
 		P_aply,
 		P_eq,
 		P_eqn,

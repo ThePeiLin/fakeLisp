@@ -17,11 +17,11 @@ endif
 
 reader.o: src/reader.* src/fakedef.h common.o
 	gcc $(FLAG) -c src/reader.c
-ast.o: src/ast.* src/fakedef.h common.o VMtool.o fakeVM.o
+ast.o: src/ast.* src/fakedef.h fakeVM.o
 	gcc $(FLAG) -c src/ast.c
 common.o: src/common.* src/fakedef.h src/opcode.h
 	gcc $(FLAG) -c src/common.c
-syntax.o: src/syntax.* src/fakedef.h
+syntax.o: src/syntax.* src/fakedef.h common.o
 	gcc $(FLAG) -c src/syntax.c
 fakeLisp.o: src/fakeLisp.* src/fakedef.h
 	gcc $(FLAG) -c src/fakeLisp.c
@@ -29,8 +29,8 @@ compiler.o: src/compiler.* src/opcode.h src/fakedef.h ast.o
 	gcc $(FLAG) -c src/compiler.c
 VMtool.o: src/VMtool.* src/fakedef.h common.o
 	gcc $(FLAG) -c src/VMtool.c
-fakeVM.o: src/fakeVM.* src/fakedef.h src/opcode.h VMtool.o
-	gcc $(FLAG) -c src/fakeVM.c src/VMtool.c
+fakeVM.o: src/fakeVM.* src/fakedef.h src/opcode.h VMtool.o reader.o
+	gcc $(FLAG) -c src/fakeVM.c
 fakeLispc.o: src/fakeLispc.* src/fakedef.h
 	gcc $(FLAG) -c src/fakeLispc.c
 fakeLisp: $(objectOfFakeLisp) $(objectOfFakeLispc) $(BTK)

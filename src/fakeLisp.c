@@ -86,6 +86,7 @@ int main(int argc,char** argv)
 		}
 		int32_t num=0;
 		changeWorkPath(filename);
+		SymbolTable* table=loadSymbolTable(fp);
 		ByteCode* RawProcess=loadRawproc(fp,&num);
 		ByteCode* mainprocess=loadByteCode(fp);
 		//printByteCode(mainprocess,stdout);
@@ -95,10 +96,11 @@ int main(int argc,char** argv)
 		loadAllModules(fp,&anotherVM->modules);
 		fclose(fp);
 		VMenv* globEnv=newVMenv(NULL);
+		anotherVM->table=table;
 		anotherVM->mainproc->localenv=globEnv;
 		anotherVM->mainproc->code->localenv=globEnv;
 		anotherVM->callback=errorCallBack;
-		initGlobEnv(globEnv,anotherVM->heap,NULL);
+		initGlobEnv(globEnv,anotherVM->heap,table);
 		if(!setjmp(buf))
 		{
 			runFakeVM(anotherVM);
@@ -106,6 +108,7 @@ int main(int argc,char** argv)
 			freeAllVMs();
 			freeVMheap(heap);
 			freeRawProc(RawProcess,num);
+			freeSymbolTable(table);
 		}
 		else
 		{
@@ -114,6 +117,7 @@ int main(int argc,char** argv)
 			freeAllVMs();
 			freeVMheap(heap);
 			freeRawProc(RawProcess,num);
+			freeSymbolTable(table);
 			return exitStatus;
 		}
 	}
@@ -303,5 +307,21 @@ ByteCode* loadByteCode(FILE* fp)
 		errors("loadByteCode",__FILE__,__LINE__);
 	for(;i<size;i++)
 		tmp->code[i]=getc(fp);
+	return tmp;
+}
+
+SymbolTable* loadSymbolTable(FILE* fp)
+{
+	int32_t size=0;
+	int32_t i=0;
+	SymbolTable* tmp=newSymbolTable();
+	fread(&size,sizeof(int32_t),1,fp);
+	for(;i<size;i++)
+	{
+		char* symbol=getStringFromFile(fp);
+		SymTabNode* node=newSymTabNode(symbol);
+		addSymTabNode(node,tmp);
+		free(symbol);
+	}
 	return tmp;
 }

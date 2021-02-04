@@ -1951,3 +1951,12 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 	}
 	return root;
 }
+
+void writeSymbolTable(SymbolTable* table,FILE* fp)
+{
+	int32_t size=table->size;
+	fwrite(&size,sizeof(size),1,fp);
+	int32_t i=0;
+	for(;i<size;i++)
+		fwrite(table->idl[i]->symbol,strlen(table->idl[i]->symbol)+1,1,fp);
+}

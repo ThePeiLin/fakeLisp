@@ -4,4 +4,5 @@
 void runIntpr(Intpr*);
 ByteCode* loadRawproc(FILE*,int32_t*);
 ByteCode* loadByteCode(FILE*);
+SymbolTable* loadSymbolTable(FILE*);
 #endif

@@ -31,6 +31,7 @@ int main(int argc,char** argv)
 		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL);
 		ByteCode* mainByteCode=compileFile(inter);
 		//printByteCode(mainByteCode,stderr);
+		writeSymbolTable(inter->table,outfp);
 		int32_t numOfRawproc=(inter->procs==NULL)?0:inter->procs->count+1;
 		fwrite(&numOfRawproc,sizeof(numOfRawproc),1,outfp);
 		ByteCode* rawProcList=castRawproc(NULL,inter->procs);

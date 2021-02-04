@@ -130,13 +130,14 @@ void runIntpr(Intpr* inter)
 	int e=0;
 	FakeVM* anotherVM=newFakeVM(NULL,NULL);
 	VMenv* globEnv=newVMenv(NULL);
+	anotherVM->table=inter->table;
 	anotherVM->mainproc->localenv=globEnv;
 	anotherVM->tid=pthread_self();
 	anotherVM->callback=errorCallBack;
 	initGlobEnv(globEnv,anotherVM->heap,inter->table);
 	ByteCode* rawProcList=NULL;
 	char* prev=NULL;
-	for(;!e;)
+	for(;e<2;)
 	{
 		AST_cptr* begin=NULL;
 		if(inter->file==stdin)printf(">>>");

@@ -758,6 +758,7 @@ void freeIntpr(Intpr* inter)
 		freeByteCode(prev->proc);
 		free(prev);
 	}
+	freeSymbolTable(inter->table);
 	free(inter);
 }
 

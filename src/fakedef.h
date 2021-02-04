@@ -104,6 +104,7 @@ typedef struct Symbol_Table
 {
 	int32_t size;
 	SymTabNode** list;
+	SymTabNode** idl;
 }SymbolTable;
 
 typedef struct Comp_Def

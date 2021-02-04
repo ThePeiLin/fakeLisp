@@ -1683,6 +1683,7 @@ SymbolTable* newSymbolTable()
 	if(!tmp)
 		errors("newSymbolTable",__FILE__,__LINE__);
 	tmp->list=NULL;
+	tmp->idl=NULL;
 	tmp->size=0;
 	return tmp;
 }
@@ -1705,7 +1706,10 @@ SymTabNode* addSymTabNode(SymTabNode* node,SymbolTable* table)
 		node->id=table->size-1;
 		table->list=(SymTabNode**)malloc(sizeof(SymTabNode*)*1);
 		if(!table->list)errors("addSymTabNode",__FILE__,__LINE__);
+		table->idl=(SymTabNode**)malloc(sizeof(SymTabNode*)*1);
+		if(!table->idl)errors("addSymTabNode",__FILE__,__LINE__);
 		table->list[0]=node;
+		table->idl[0]=node;
 	}
 	else
 	{
@@ -1730,6 +1734,9 @@ SymTabNode* addSymTabNode(SymTabNode* node,SymbolTable* table)
 			table->list[i]=table->list[i-1];
 		table->list[mid]=node;
 		node->id=table->size-1;
+		table->idl=(SymTabNode**)realloc(table->idl,sizeof(SymTabNode*)*table->size);
+		if(!table->idl)errors("addSymTabNode",__FILE__,__LINE__);
+		table->idl[table->size-1]=node;
 	}
 	return node;
 }
@@ -1746,6 +1753,7 @@ void freeSymbolTable(SymbolTable* table)
 	for(;i<table->size;i++)
 		freeSymTabNode(table->list[i]);
 	free(table->list);
+	free(table->idl);
 	free(table);
 }
 

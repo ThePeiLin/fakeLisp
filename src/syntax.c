@@ -171,7 +171,6 @@ int isListForm(const AST_cptr* objCptr)
 
 int isLegal(const AST_cptr* objCptr)
 {
-	const AST_cptr* tmpCptr=objCptr;
 	if(objCptr->type==PAIR)
 	{
 		objCptr=&((AST_pair*)objCptr->value)->car;

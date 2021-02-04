@@ -115,6 +115,7 @@ int FAKE_exit(FakeVM* exe,pthread_rwlock_t* pGClock)
 	int32_t num=*exitCode->u.num;
 	i[0]=num;
 	exe->callback(i);
+	return 0;
 }
 
 int FAKE_rand(FakeVM* exe,pthread_rwlock_t* pGClock)

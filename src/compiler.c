@@ -1086,9 +1086,10 @@ ByteCode* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus
 		AST_atom* tmpAtm=sec->value;
 		CompDef* tmpDef=NULL;
 		CompEnv* tmpEnv=curEnv;
-		while(tmpEnv!=NULL&&tmpDef==NULL)
+		while(tmpEnv!=NULL)
 		{
 			tmpDef=findCompDef(tmpAtm->value.str,tmpEnv,inter->table);
+			if(tmpDef!=NULL)break;
 			tmpEnv=tmpEnv->prev;
 			scope++;
 		}

@@ -326,4 +326,7 @@ typedef struct VM_Continuation
 	VMprocStatus* status;
 }VMcontinuation;
 
+typedef struct VM_Line_Number_Table
+{
+}VMLineNumberTable;
 #endif

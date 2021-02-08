@@ -50,9 +50,11 @@ static int (*ByteCodes[])(FakeVM*)=
 	B_pack_cc,
 	B_call_proc,
 	B_end_proc,
+	B_set_tp,
 	B_set_bp,
 	B_invoke,
 	B_res_tp,
+	B_pop_tp,
 	B_res_bp,
 	B_jump_if_ture,
 	B_jump_if_false,
@@ -830,15 +832,17 @@ void runFakeVM(FakeVM* exe)
 		pthread_rwlock_rdlock(&GClock);
 		VMprocess* curproc=exe->curproc;
 		VMcode* tmpCode=curproc->code;
+		int32_t cp=curproc->cp;
 	//	fprintf(stderr,"%s\n",codeName[tmpCode->code[curproc->cp]].codeName);
-		int status=ByteCodes[(int)tmpCode->code[curproc->cp]](exe);
+		int status=ByteCodes[(int)tmpCode->code[cp]](exe);
+		//if(tmpCode->code[cp]==FAKE_RES_TP)
+		//	printAllStack(exe->stack,stderr,1);
 		if(status!=0)
 		{
 			//ByteCode tmpByteCode={tmpCode->size,tmpCode->code};
 			//VMstack* stack=exe->stack;
 			//printByteCode(&tmpByteCode,stderr);
 			//putc('\n',stderr);
-			//printAllStack(exe->stack,stderr);
 			//putc('\n',stderr);
 			//fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
 			//fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",curproc->cp,stack->bp,codeName[(int)tmpCode->code[curproc->cp]].codeName);
@@ -918,7 +922,7 @@ int B_dummy(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	printByteCode(&tmpByteCode,stderr);
 	putc('\n',stderr);
-	printAllStack(exe->stack,stderr);
+	printAllStack(exe->stack,stderr,1);
 	putc('\n',stderr);
 	fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
 	fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",curproc->cp,stack->bp,codeName[(int)tmpCode->code[curproc->cp]].codeName);
@@ -1639,6 +1643,22 @@ int B_end_proc(FakeVM* exe)
 	return 0;
 }
 
+int B_set_tp(FakeVM* exe)
+{
+	VMstack* stack=exe->stack;
+	VMprocess* proc=exe->curproc;
+	if(stack->tptp>=stack->tpsi)
+	{
+		stack->tpst=(int32_t*)realloc(stack->tpst,sizeof(int32_t)*(stack->tpsi+16));
+		if(stack->tpst==NULL)errors("B_set_tp",__FILE__,__LINE__);
+		stack->tpsi+=16;
+	}
+	stack->tpst[stack->tptp]=stack->tp;
+	stack->tptp+=1;
+	proc->cp+=1;
+	return 0;
+}
+
 int B_set_bp(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
@@ -1661,7 +1681,23 @@ int B_res_tp(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
-	stack->tp=stack->bp;
+	stack->tp=(stack->tpst)?stack->tpst[stack->tptp-1]:0;
+	proc->cp+=1;
+	return 0;
+}
+
+int B_pop_tp(FakeVM* exe)
+{
+	VMstack* stack=exe->stack;
+	VMprocess* proc=exe->curproc;
+	stack->tptp-=1;
+	if(stack->tpsi-stack->tptp>16)
+	{
+		stack->tpst=(int32_t*)realloc(stack->tpst,sizeof(int32_t)*(stack->tpsi-16));
+		if(stack->tpst==NULL)
+			errors("B_pop_tp",__FILE__,__LINE__);
+		stack->tpsi-=16;
+	}
 	proc->cp+=1;
 	return 0;
 }
@@ -2537,6 +2573,9 @@ VMstack* newStack(int32_t size)
 	tmp->bp=0;
 	tmp->values=(VMvalue**)malloc(size*sizeof(VMvalue*));
 	if(tmp->values==NULL)errors("newStack",__FILE__,__LINE__);
+	tmp->tpsi=0;
+	tmp->tptp=0;
+	tmp->tpst=NULL;
 	return tmp;
 }
 
@@ -2713,7 +2752,7 @@ VMprocess* newFakeProcess(VMcode* code,VMprocess* prev)
 	return tmp;
 }
 
-void printAllStack(VMstack* stack,FILE* fp)
+void printAllStack(VMstack* stack,FILE* fp,int mode)
 {
 	if(fp!=stdout)fprintf(fp,"Current stack:\n");
 	if(stack->tp==0)fprintf(fp,"[#EMPTY]\n");
@@ -2722,6 +2761,8 @@ void printAllStack(VMstack* stack,FILE* fp)
 		int i=stack->tp-1;
 		for(;i>=0;i--)
 		{
+			if(mode&&stack->bp==i)
+				fputs("->",stderr);
 			if(fp!=stdout)fprintf(fp,"%d:",i);
 			VMvalue* tmp=stack->values[i];
 			VMpair* tmpPair=(tmp->type==PAIR)?tmp->u.pair:NULL;
@@ -2981,6 +3022,7 @@ FakeVM* newThreadVM(VMcode* main,ByteCode* procs,Filestack* files,VMheap* heap,D
 
 void freeVMstack(VMstack* stack)
 {
+	free(stack->tpst);
 	free(stack->values);
 	free(stack);
 }

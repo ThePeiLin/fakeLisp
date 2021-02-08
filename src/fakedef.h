@@ -237,6 +237,9 @@ typedef struct
 	int32_t bp;
 	int32_t size;
 	VMvalue** values;
+	int32_t tpsi;
+	int32_t tptp;
+	int32_t* tpst;
 }VMstack;
 
 typedef struct

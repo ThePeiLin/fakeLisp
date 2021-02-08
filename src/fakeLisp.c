@@ -217,7 +217,7 @@ void runIntpr(Intpr* inter)
 						if(inter->file==stdin&&stack->tp!=0)
 						{
 							printf("]=>");
-							printAllStack(stack,stdout);
+							printAllStack(stack,stdout,0);
 						}
 						//fprintf(stderr,"======\n");
 						//fprintf(stderr,"stack->tp=%d\n",stack->tp);

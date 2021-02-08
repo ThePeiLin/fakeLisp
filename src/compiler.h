@@ -32,6 +32,7 @@ ByteCode* compileSetf(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);
 ByteCode* compileSym(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);
 ByteCode* compileCond(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);
 ByteCode* compileLambda(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);
+ByteCode* compileBegin(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);
 ByteCode* compileAnd(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);
 ByteCode* compileOr(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);
 ByteCode* compileLoad(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);

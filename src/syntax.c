@@ -163,6 +163,14 @@ int isLambdaExpression(const AST_cptr* objCptr)
 	return 0;
 }
 
+int isBeginExpression(const AST_cptr* objCptr)
+{
+	objCptr=(objCptr->type==PAIR)?&((AST_pair*)objCptr->value)->car:NULL;
+	AST_atom* tmpAtm=(objCptr!=NULL&&objCptr->type==ATM)?objCptr->value:NULL;
+	if(tmpAtm!=NULL&&tmpAtm->type==SYM&&!strcmp(tmpAtm->value.str,"begin"))return 1;
+	return 0;
+}
+
 int isFuncCall(const AST_cptr* objCptr)
 {
 	if(objCptr->type==PAIR&&isLegal(objCptr)&&!hasKeyWord(objCptr)&&!isNil(objCptr))return 1;

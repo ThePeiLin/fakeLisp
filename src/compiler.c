@@ -1293,17 +1293,34 @@ ByteCode* compileBegin(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatu
 {
 	AST_cptr* firCptr=nextCptr(getFirst(objCptr));
 	ByteCode* tmp=createByteCode(0);
+	ByteCode* resTp=createByteCode(1);
+	ByteCode* setTp=createByteCode(1);
+	ByteCode* popTp=createByteCode(1);
+	resTp->code[0]=FAKE_RES_TP;
+	setTp->code[0]=FAKE_SET_TP;
+	popTp->code[0]=FAKE_POP_TP;
 	while(firCptr)
 	{
 		ByteCode* tmp1=compile(firCptr,curEnv,inter,status,evalIm);
 		if(status->status!=0)
 		{
 			freeByteCode(tmp);
+			freeByteCode(resTp);
+			freeByteCode(setTp);
+			freeByteCode(popTp);
 			return NULL;
 		}
+		if(tmp->size)
+			reCodeCat(resTp,tmp1);
 		codeCat(tmp,tmp1);
+		freeByteCode(tmp1);
 		firCptr=nextCptr(firCptr);
 	}
+	reCodeCat(setTp,tmp);
+	codeCat(tmp,popTp);
+	freeByteCode(setTp);
+	freeByteCode(resTp);
+	freeByteCode(popTp);
 	return tmp;
 }
 
@@ -1323,24 +1340,31 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	ByteCode* resTp=createByteCode(sizeof(char));
 	ByteCode* resBp=createByteCode(sizeof(char));
 	ByteCode* popRestVar=createByteCode(sizeof(char)+sizeof(int32_t)*2);
+	ByteCode* setTp=createByteCode(sizeof(char));
+	ByteCode* popTp=createByteCode(sizeof(char));
 	endproc->code[0]=FAKE_END_PROC;
 	popVar->code[0]=FAKE_POP_VAR;
 	pushProc->code[0]=FAKE_PUSH_PROC;
 	resBp->code[0]=FAKE_RES_BP;
-	resTp->code[0]=FAKE_POP;
+	resTp->code[0]=FAKE_RES_TP;
+	setTp->code[0]=FAKE_SET_TP;
+	popTp->code[0]=FAKE_POP_TP;
 	popRestVar->code[0]=FAKE_POP_REST_VAR;
 	for(;;)
 	{
 		if(objCptr==NULL)
 		{
 			*(int32_t*)(pushProc->code+sizeof(char))=tmpRawProc->count;
-			ByteCode* tmp1=copyByteCode(pushProc);
 			if(tmpRawProc->next==prevRawProc)
-				codeCat(tmp,tmp1);
+			{
+				codeCat(tmp,pushProc);
+			}
 			else
-				codeCat(tmpRawProc->next->proc,tmp1);
+			{
+				codeCat(tmpRawProc->next->proc,pushProc);
+			}
+			codeCat(tmpRawProc->proc,popTp);
 			codeCat(tmpRawProc->proc,endproc);
-			freeByteCode(tmp1);
 			CompEnv* prev=tmpEnv;
 			tmpEnv=tmpEnv->prev;
 			destroyCompEnv(prev);
@@ -1378,6 +1402,8 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 						freeByteCode(resTp);
 						freeByteCode(popRestVar);
 						freeByteCode(resBp);
+						freeByteCode(setTp);
+						freeByteCode(popTp);
 						inter->procs=prevRawProc;
 						while(tmpRawProc!=prevRawProc)
 						{
@@ -1407,6 +1433,8 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 							freeByteCode(resTp);
 							freeByteCode(popRestVar);
 							freeByteCode(resBp);
+							freeByteCode(setTp);
+							freeByteCode(popTp);
 							inter->procs=prevRawProc;
 							while(tmpRawProc!=prevRawProc)
 							{
@@ -1440,6 +1468,8 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 					freeByteCode(resTp);
 					freeByteCode(popRestVar);
 					freeByteCode(resBp);
+					freeByteCode(setTp);
+					freeByteCode(popTp);
 					inter->procs=prevRawProc;
 					while(tmpRawProc!=prevRawProc)
 					{
@@ -1456,6 +1486,7 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 				codeCat(tmpRawProc->proc,popRestVar);
 			}
 			codeCat(tmpRawProc->proc,resBp);
+			codeCat(tmpRawProc->proc,setTp);
 			objCptr=nextCptr(nextCptr(objCptr));
 			continue;
 		}
@@ -1472,6 +1503,8 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 				freeByteCode(resTp);
 				freeByteCode(popRestVar);
 				freeByteCode(resBp);
+				freeByteCode(setTp);
+				freeByteCode(popTp);
 				inter->procs=prevRawProc;
 				while(tmpRawProc!=prevRawProc)
 				{
@@ -1496,6 +1529,8 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	freeByteCode(popRestVar);
 	freeByteCode(resBp);
 	freeByteCode(endproc);
+	freeByteCode(setTp);
+	freeByteCode(popTp);
 	return tmp;
 }
 
@@ -1580,10 +1615,16 @@ ByteCode* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus
 	AST_cptr* fir=&((AST_pair*)objCptr->value)->car;
 	AST_cptr* pFileName=nextCptr(fir);
 	AST_atom* name=pFileName->value;
+	ByteCode* setTp=createByteCode(1);
+	ByteCode* popTp=createByteCode(1);
+	setTp->code[0]=FAKE_SET_TP;
+	popTp->code[0]=FAKE_POP_TP;
 	if(hasLoadSameFile(name->value.str,inter))
 	{
 		status->status=CIRCULARLOAD;
 		status->place=pFileName;
+		freeByteCode(setTp);
+		freeByteCode(popTp);
 		return NULL;
 	}
 	FILE* file=fopen(name->value.str,"r");
@@ -1604,6 +1645,10 @@ ByteCode* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus
 	tmpIntpr->glob=NULL;
 	freeIntpr(tmpIntpr);
 	//printByteCode(tmp,stderr);
+	reCodeCat(setTp,tmp);
+	codeCat(tmp,popTp);
+	freeByteCode(setTp);
+	freeByteCode(popTp);
 	return tmp;
 }
 
@@ -1653,7 +1698,8 @@ ByteCode* compileFile(Intpr* inter,int evalIm)
 					freeByteCode(tmp);
 					exit(EXIT_FAILURE);
 				}
-				if(tmp->size)reCodeCat(resTp,tmpByteCode);
+				if(tmp->size)
+					reCodeCat(resTp,tmpByteCode);
 				codeCat(tmp,tmpByteCode);
 				freeByteCode(tmpByteCode);
 			}

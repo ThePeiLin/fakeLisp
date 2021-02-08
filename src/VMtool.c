@@ -587,6 +587,16 @@ VMstack* copyStack(VMstack* stack)
 	if(!tmp->values)errors("copyStack",__FILE__,__LINE__);
 	for(;i<stack->tp;i++)
 		tmp->values[i]=stack->values[i];
+	tmp->tptp=stack->tptp;
+	tmp->tpst=NULL;
+	tmp->tpsi=stack->tpsi;
+	if(tmp->tptp)
+	{
+		tmp->tpst=(int32_t*)malloc(sizeof(int32_t)*tmp->tpsi);
+		if(tmp->tpst)
+			errors("copyStack",__FILE__,__LINE__);
+		memcpy(tmp->tpst,stack->tpst,sizeof(int32_t)*(tmp->tptp-1));
+	}
 	return tmp;
 }
 

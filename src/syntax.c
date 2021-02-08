@@ -163,7 +163,7 @@ int isLambdaExpression(const AST_cptr* objCptr)
 	return 0;
 }
 
-int isListForm(const AST_cptr* objCptr)
+int isFuncCall(const AST_cptr* objCptr)
 {
 	if(objCptr->type==PAIR&&isLegal(objCptr)&&!hasKeyWord(objCptr)&&!isNil(objCptr))return 1;
 	return 0;

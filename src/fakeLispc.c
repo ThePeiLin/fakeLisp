@@ -29,7 +29,7 @@ int main(int argc,char** argv)
 		initPreprocess();
 		int i;
 		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL);
-		ByteCode* mainByteCode=compileFile(inter);
+		ByteCode* mainByteCode=compileFile(inter,1);
 		//printByteCode(mainByteCode,stderr);
 		writeSymbolTable(inter->table,outfp);
 		int32_t numOfRawproc=(inter->procs==NULL)?0:inter->procs->count+1;

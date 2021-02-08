@@ -513,6 +513,7 @@ void initPreprocess()
 	addKeyWord("lambda");
 	addKeyWord("setf");
 	addKeyWord("load");
+	addKeyWord("begin");
 }
 
 void freeAllFunc()
@@ -799,6 +800,7 @@ ByteCode* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* st
 		if(isAndExpression(objCptr))return compileAnd(objCptr,curEnv,inter,status,evalIm);
 		if(isOrExpression(objCptr))return compileOr(objCptr,curEnv,inter,status,evalIm);
 		if(isLambdaExpression(objCptr))return compileLambda(objCptr,curEnv,inter,status,evalIm);
+		if(isBeginExpression(objCptr)) return compileBegin(objCptr,curEnv,inter,status,evalIm);
 		if(PreMacroExpand(objCptr,inter))continue;
 		else if(!isLegal(objCptr)||hasKeyWord(objCptr))
 		{
@@ -984,9 +986,7 @@ ByteCode* compileFuncCall(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 		}
 		else
 		{
-			tmp1=(prevCptr(objCptr))?
-				compile(objCptr,curEnv,inter,status,0):
-				compile(objCptr,curEnv,inter,status,1);
+			tmp1=compile(objCptr,curEnv,inter,status,evalIm&1);
 			if(status->status!=0)
 			{
 				freeByteCode(tmp);
@@ -1022,7 +1022,9 @@ ByteCode* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* sta
 		tir=nextCptr(sec);
 	}
 	objCptr=tir;
-	tmp1=compile(objCptr,curEnv,inter,status,evalIm);
+	tmp1=(isLambdaExpression(objCptr))?
+		compile(objCptr,curEnv,inter,status,0):
+		compile(objCptr,curEnv,inter,status,evalIm);
 	if(status->status!=0)
 	{
 		freeByteCode(tmp);
@@ -1284,6 +1286,24 @@ ByteCode* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 	}
 	freeByteCode(jumpifture);
 	freeByteCode(pushnil);
+	return tmp;
+}
+
+ByteCode* compileBegin(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+{
+	AST_cptr* firCptr=nextCptr(getFirst(objCptr));
+	ByteCode* tmp=createByteCode(0);
+	while(firCptr)
+	{
+		ByteCode* tmp1=compile(firCptr,curEnv,inter,status,evalIm);
+		if(status->status!=0)
+		{
+			freeByteCode(tmp);
+			return NULL;
+		}
+		codeCat(tmp,tmp1);
+		firCptr=nextCptr(firCptr);
+	}
 	return tmp;
 }
 

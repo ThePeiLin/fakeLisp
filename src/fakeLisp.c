@@ -40,7 +40,7 @@ int main(int argc,char** argv)
 		{
 			initPreprocess();
 			VMenv* globEnv=newVMenv(NULL);
-			ByteCode* mainByteCode=compileFile(inter);
+			ByteCode* mainByteCode=compileFile(inter,1);
 			ByteCode* rawProcList=castRawproc(NULL,inter->procs);
 			FakeVM* anotherVM=newFakeVM(mainByteCode,rawProcList);
 			freeByteCode(mainByteCode);
@@ -187,7 +187,7 @@ void runIntpr(Intpr* inter)
 			{
 				//	printList(begin,stdout);
 				//	putchar('\n');
-				ByteCode* tmpByteCode=compile(begin,inter->glob,inter,&status);
+				ByteCode* tmpByteCode=compile(begin,inter->glob,inter,&status,1);
 				if(status.status!=0)
 				{
 					exError(status.place,status.status,inter);

@@ -17,7 +17,7 @@ int isLambdaExpression(const AST_cptr*);
 int isCondExpression(const AST_cptr*);
 int isConst(const AST_cptr*);
 int isNil(const AST_cptr*);
-int isListForm(const AST_cptr*);
+int isFuncCall(const AST_cptr*);
 int isSymbol(const AST_cptr*);
 int isAndExpression(const AST_cptr*);
 int isOrExpression(const AST_cptr*);

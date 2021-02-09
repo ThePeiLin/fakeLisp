@@ -231,9 +231,9 @@ AST_atom* newAtom(int type,const char* value,AST_pair* prev)
 		case IN32:
 		case DBL:
 			*(int32_t*)(&tmp->value)=0;break;
-		case BYTA:
-			tmp->value.byta.size=0;
-			tmp->value.byta.arry=NULL;break;
+		case BYTS:
+			tmp->value.byts.size=0;
+			tmp->value.byts.str=NULL;break;
 	}
 	tmp->prev=prev;
 	tmp->type=type;
@@ -267,11 +267,11 @@ int copyCptr(AST_cptr* objCptr,const AST_cptr* copiedCptr)
 			AST_atom* objAtm=NULL;
 			if(coAtm->type==SYM||coAtm->type==STR)
 				objAtm=newAtom(coAtm->type,coAtm->value.str,objPair);
-			else if(coAtm->type==BYTA)
+			else if(coAtm->type==BYTS)
 			{
 				objAtm=newAtom(coAtm->type,NULL,objPair);
-				objAtm->value.byta.size=coAtm->value.byta.size;
-				objAtm->value.byta.arry=copyMemory(coAtm->value.byta.arry,coAtm->value.byta.size);
+				objAtm->value.byts.size=coAtm->value.byts.size;
+				objAtm->value.byts.str=copyMemory(coAtm->value.byts.str,coAtm->value.byts.size);
 			}
 			else
 			{
@@ -425,7 +425,7 @@ int AST_cptrcmp(const AST_cptr* first,const AST_cptr* second)
 				else if(firAtm->type==IN32&&firAtm->value.num!=secAtm->value.num)return 0;
 				else if(firAtm->type==DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
 				else if(firAtm->type==CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
-				else if(firAtm->type==BYTA&&!bytaArryEq(&firAtm->value.byta,&secAtm->value.byta))return 0;
+				else if(firAtm->type==BYTS&&!bytsArryEq(&firAtm->value.byts,&secAtm->value.byts))return 0;
 			}
 			if(firPair!=NULL&&first==&firPair->car)
 			{ first=&firPair->cdr;
@@ -554,10 +554,10 @@ int isNum(const char* objStr)
 void freeAtom(AST_atom* objAtm)
 {
 	if(objAtm->type==SYM||objAtm->type==STR)free(objAtm->value.str);
-	else if(objAtm->type==BYTA)
+	else if(objAtm->type==BYTS)
 	{
-		objAtm->value.byta.size=0;
-		free(objAtm->value.byta.arry);
+		objAtm->value.byts.size=0;
+		free(objAtm->value.byts.str);
 	}
 	free(objAtm);
 }
@@ -610,8 +610,8 @@ void printList(const AST_cptr* objCptr,FILE* out)
 					case CHR:
 						printRawChar(tmpAtm->value.chr,out);
 						break;
-					case BYTA:
-						printByteArry(&tmpAtm->value.byta,out,1);
+					case BYTS:
+						printByteArry(&tmpAtm->value.byts,out,1);
 						break;
 				}
 			}
@@ -1027,23 +1027,23 @@ uint8_t* castStrByteArry(const char* str)
 	return tmp;
 }
 
-void printByteArry(const ByteArry* obj,FILE* fp,int mode)
+void printByteArry(const ByteString* obj,FILE* fp,int mode)
 {
 	if(mode)fputs("#b",fp);
 	for(int i=0;i<obj->size;i++)
 	{
-		uint8_t j=obj->arry[i];
+		uint8_t j=obj->str[i];
 		fprintf(fp,"%X",j%16);
 		fprintf(fp,"%X",j/16);
 	}
 }
 
-void printAsByteArry(const uint8_t* arry,int32_t size,FILE* fp)
+void printAsByteArry(const uint8_t* str,int32_t size,FILE* fp)
 {
 	fputs("@\\",fp);
 	for(int i=0;i<size;i++)
 	{
-		uint8_t j=arry[i];
+		uint8_t j=str[i];
 		fprintf(fp,"%X",j%16);
 		fprintf(fp,"%X",j/16);
 	}
@@ -1322,10 +1322,10 @@ void freeAllRawProc(RawProc* cur)
 	}
 }
 
-int bytaArryEq(ByteArry* fir,ByteArry* sec)
+int bytsArryEq(ByteString* fir,ByteString* sec)
 {
 	if(fir->size!=sec->size)return 0;
-	else return !memcmp(fir->arry,sec->arry,sec->size);
+	else return !memcmp(fir->str,sec->str,sec->size);
 }
 
 int ModHasLoad(const char* name,Modlist* head)
@@ -1929,11 +1929,11 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 			if(root==NULL)objCptr=root=newCptr(curline,objPair);
 			char* tmp=getStringAfterBackslash(objStr+i+2);
 			objCptr->type=ATM;
-			objCptr->value=(void*)newAtom(BYTA,NULL,objPair);
+			objCptr->value=(void*)newAtom(BYTS,NULL,objPair);
 			AST_atom* tmpAtm=objCptr->value;
 			int32_t size=strlen(tmp)/2+strlen(tmp)%2;
-			tmpAtm->value.byta.size=size;
-			tmpAtm->value.byta.arry=castStrByteArry(tmp);
+			tmpAtm->value.byts.size=size;
+			tmpAtm->value.byts.str=castStrByteArry(tmp);
 			i+=strlen(tmp)+2;
 			free(tmp);
 		}

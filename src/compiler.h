@@ -20,6 +20,9 @@ StringMatchPattern* addStringPattern(char**,int32_t,AST_cptr*,Intpr*);
 
 ByteCode* compileFile(Intpr*,int evalIm,ByteCode* fix);
 ByteCode* compile(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm,ByteCode* fix);
+ByteCode* compileQuquote(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm,ByteCode* fix);
+ByteCode* compileUnquote(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm,ByteCode* fix);
+ByteCode* compileUnqtsp(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm,ByteCode* fix);
 ByteCode* compileConst(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,ByteCode* fix);
 ByteCode* compileQuote(AST_cptr*);
 ByteCode* compileAtom(AST_cptr*);

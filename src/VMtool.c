@@ -37,10 +37,10 @@ VMvalue* copyValue(VMvalue* obj,VMheap* heap)
 		tmp=newVMvalue(DBL,obj->u.dbl,heap,1);
 	else if(obj->type==CHR)
 		tmp=newVMvalue(CHR,obj->u.chr,heap,1);
-	else if(obj->type==BYTA)
+	else if(obj->type==BYTS)
 	{
-		ByteArry* tmpByteArry=newByteArry(obj->u.byta->size,obj->u.byta->arry);
-		tmp=newVMvalue(BYTA,tmpByteArry,heap,1);
+		ByteString* tmpByteArry=newByteArry(obj->u.byts->size,obj->u.byts->str);
+		tmp=newVMvalue(BYTS,tmpByteArry,heap,1);
 	}
 	else if(obj->type==STR||obj->type==SYM)
 	{
@@ -87,8 +87,8 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap,int access)
 			tmp->u.pair=pValue;break;
 		case PRC:
 			tmp->u.prc=pValue;break;
-		case BYTA:
-			tmp->u.byta=pValue;break;
+		case BYTS:
+			tmp->u.byts=pValue;break;
 		case CONT:
 			tmp->u.cont=pValue;break;
 	}
@@ -146,7 +146,7 @@ int VMvaluecmp(VMvalue* fir,VMvalue* sec)
 			case SYM:return !strcmp(fir->u.str->str,sec->u.str->str);
 			case PRC:return fir->u.prc==sec->u.prc;
 			case PAIR:return VMvaluecmp(fir->u.pair->car,sec->u.pair->car)&&VMvaluecmp(fir->u.pair->cdr,sec->u.pair->cdr);
-			case BYTA:return bytaArryEq(fir->u.byta,sec->u.byta);
+			case BYTS:return bytsArryEq(fir->u.byts,sec->u.byts);
 		}
 	}
 	return 0;
@@ -225,7 +225,7 @@ VMvalue* castCptrVMvalue(const AST_cptr* objCptr,VMheap* heap)
 			case IN32:tmp=newVMvalue(IN32,&tmpAtm->value.num,heap,1);break;
 			case DBL:tmp=newVMvalue(DBL,&tmpAtm->value.dbl,heap,1);break;
 			case CHR:tmp=newVMvalue(CHR,&tmpAtm->value.chr,heap,1);break;
-			case BYTA:tmp=newVMvalue(BYTA,&tmpAtm->value.byta,heap,1);break;
+			case BYTS:tmp=newVMvalue(BYTS,&tmpAtm->value.byts,heap,1);break;
 			case SYM:
 			case STR:tmp=newVMvalue(tmpAtm->type,newVMstr(tmpAtm->value.str),heap,1);break;
 		}
@@ -244,45 +244,45 @@ VMvalue* castCptrVMvalue(const AST_cptr* objCptr,VMheap* heap)
 	return NULL;
 }
 
-ByteArry* newByteArry(size_t size,uint8_t* arry)
+ByteString* newByteArry(size_t size,uint8_t* str)
 {
-	ByteArry* tmp=(ByteArry*)malloc(sizeof(ByteArry));
+	ByteString* tmp=(ByteString*)malloc(sizeof(ByteString));
 	if(tmp==NULL)errors("newByteArry",__FILE__,__LINE__);
 	tmp->size=size;
 	tmp->refcount=0;
-	if(arry!=NULL)
-		tmp->arry=copyArry(size,arry);
+	if(str!=NULL)
+		tmp->str=copyArry(size,str);
 	return tmp;
 }
 
-ByteArry* copyByteArry(const ByteArry* obj)
+ByteString* copyByteArry(const ByteString* obj)
 {
 	if(obj==NULL)return NULL;
-	ByteArry* tmp=(ByteArry*)malloc(sizeof(ByteArry));
+	ByteString* tmp=(ByteString*)malloc(sizeof(ByteString));
 	if(tmp==NULL)errors("copyByteArry",__FILE__,__LINE__);
 	uint8_t* tmpArry=(uint8_t*)malloc(tmp->size*sizeof(uint8_t));
 	if(tmpArry==NULL)errors("copyByteArry",__FILE__,__LINE__);
-	memcpy(tmpArry,obj->arry,obj->size);
+	memcpy(tmpArry,obj->str,obj->size);
 	tmp->size=obj->size;
-	tmp->arry=tmpArry;
+	tmp->str=tmpArry;
 	return tmp;
 }
 
-ByteArry* newEmptyByteArry()
+ByteString* newEmptyByteArry()
 {
-	ByteArry* tmp=(ByteArry*)malloc(sizeof(ByteArry));
+	ByteString* tmp=(ByteString*)malloc(sizeof(ByteString));
 	if(tmp==NULL)errors("newEmptyByteArry",__FILE__,__LINE__);
 	tmp->size=0;
 	tmp->refcount=0;
-	tmp->arry=NULL;
+	tmp->str=NULL;
 	return tmp;
 }
 
-uint8_t* copyArry(size_t size,uint8_t* arry)
+uint8_t* copyArry(size_t size,uint8_t* str)
 {
 	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
 	if(tmp==NULL)errors("copyArry",__FILE__,__LINE__);
-	memcpy(tmp,arry,size);
+	memcpy(tmp,str,size);
 	return tmp;
 }
 
@@ -438,16 +438,16 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 				sec->u.cont->refcount+=1;
 				fir->u.cont=sec->u.cont;
 				break;
-			case BYTA:
+			case BYTS:
 				if(!sec->access)
 				{
-					fir->u.byta=newByteArry(sec->u.byta->size,sec->u.byta->arry);
-					fir->u.byta->refcount+=1;
+					fir->u.byts=newByteArry(sec->u.byts->size,sec->u.byts->str);
+					fir->u.byts->refcount+=1;
 				}
 				else
 				{
-					sec->u.byta->refcount+=1;
-					fir->u.byta=sec->u.byta;
+					sec->u.byts->refcount+=1;
+					fir->u.byts=sec->u.byts;
 				}
 				break;
 			case NIL:
@@ -483,13 +483,13 @@ void freeRef(VMvalue* obj)
 			case PRC:
 				freeVMcode(obj->u.prc);
 				break;
-			case BYTA:
-				if(!obj->u.byta->refcount)
+			case BYTS:
+				if(!obj->u.byts->refcount)
 				{
-					if(obj->access)free(obj->u.byta->arry);
-					free(obj->u.byta);
+					if(obj->access)free(obj->u.byts->str);
+					free(obj->u.byts);
 				}
-				else obj->u.byta->refcount-=1;
+				else obj->u.byts->refcount-=1;
 				break;
 			case CONT:
 				freeVMcontinuation(obj->u.cont);

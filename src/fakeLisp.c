@@ -40,7 +40,10 @@ int main(int argc,char** argv)
 		{
 			initPreprocess();
 			VMenv* globEnv=newVMenv(NULL);
-			ByteCode* mainByteCode=compileFile(inter,1);
+			ByteCode* fix=createByteCode(0);
+			ByteCode* mainByteCode=compileFile(inter,1,fix);
+			reCodeCat(fix,mainByteCode);
+			freeByteCode(fix);
 			ByteCode* rawProcList=castRawproc(NULL,inter->procs);
 			FakeVM* anotherVM=newFakeVM(mainByteCode,rawProcList);
 			freeByteCode(mainByteCode);
@@ -187,7 +190,8 @@ void runIntpr(Intpr* inter)
 			{
 				//	printList(begin,stdout);
 				//	putchar('\n');
-				ByteCode* tmpByteCode=compile(begin,inter->glob,inter,&status,1);
+				ByteCode* fix=createByteCode(0);
+				ByteCode* tmpByteCode=compile(begin,inter->glob,inter,&status,1,fix);
 				if(status.status!=0)
 				{
 					exError(status.place,status.status,inter);
@@ -200,6 +204,7 @@ void runIntpr(Intpr* inter)
 				}
 				else
 				{
+					reCodeCat(fix,tmpByteCode);
 					//printByteCode(tmpByteCode,stderr);
 					rawProcList=castRawproc(rawProcList,inter->procs);
 					anotherVM->procs=rawProcList;
@@ -239,6 +244,7 @@ void runIntpr(Intpr* inter)
 						deleteCallChain(anotherVM);
 					}
 				}
+				freeByteCode(fix);
 			}
 			free(list);
 			list=NULL;

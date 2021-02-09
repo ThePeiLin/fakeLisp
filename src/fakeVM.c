@@ -1681,7 +1681,7 @@ int B_res_tp(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
-	stack->tp=(stack->tpst)?stack->tpst[stack->tptp-1]:0;
+	stack->tp=(stack->tptp)?stack->tpst[stack->tptp-1]:0;
 	proc->cp+=1;
 	return 0;
 }

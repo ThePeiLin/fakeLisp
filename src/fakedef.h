@@ -8,7 +8,7 @@
 #define NUMOFBUILTINSYMBOL 46
 #define MAX_STRING_SIZE 64
 
-typedef enum{NIL=0,IN32,CHR,DBL,SYM,STR,BYTA,PRC,CONT,PAIR,ATM} ValueType;
+typedef enum{NIL=0,IN32,CHR,DBL,SYM,STR,BYTS,PRC,CONT,PAIR,ATM} ValueType;
 
 typedef enum
 {
@@ -35,8 +35,8 @@ typedef struct
 {
 	int32_t refcount;
 	int32_t size;
-	uint8_t* arry;
-}ByteArry;
+	uint8_t* str;
+}ByteString;
 
 typedef struct
 {
@@ -62,7 +62,7 @@ typedef struct AST_atom
 		char chr;
 		int32_t num;
 		double dbl;
-		ByteArry byta;
+		ByteString byts;
 	} value;
 }AST_atom;
 
@@ -184,7 +184,7 @@ typedef struct VM_Value
 		char* chr;
 		struct VM_Str* str;
 		VMpair* pair;
-		ByteArry* byta;
+		ByteString* byts;
 		int32_t* num;
 		double* dbl;
 		struct VM_Code* prc;

@@ -928,7 +928,7 @@ int B_dummy(FakeVM* exe)
 	fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",curproc->cp,stack->bp,codeName[(int)tmpCode->code[curproc->cp]].codeName);
 	printEnv(exe->curproc->localenv,stderr);
 	putc('\n',stderr);
-	fprintf(stderr,"Wrong byta code!\n");
+	fprintf(stderr,"Wrong byts code!\n");
 	exit(EXIT_FAILURE);
 	return WRONGARG;
 }
@@ -1075,9 +1075,9 @@ int B_push_byte(FakeVM* exe)
 		if(stack->values==NULL)errors("B_push_byte",__FILE__,__LINE__);
 		stack->size+=64;
 	}
-	ByteArry* tmpArry=newByteArry(size,NULL);
-	tmpArry->arry=tmp;
-	VMvalue* objValue=newVMvalue(BYTA,tmpArry,exe->heap,1);
+	ByteString* tmpArry=newByteArry(size,NULL);
+	tmpArry->str=tmp;
+	VMvalue* objValue=newVMvalue(BYTS,tmpArry,exe->heap,1);
 	stack->values[stack->tp]=objValue;
 	stack->tp+=1;
 	proc->cp+=5+size;
@@ -1118,7 +1118,7 @@ int B_push_car(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMvalue* objValue=getTopValue(stack);
-	if(objValue->type!=PAIR&&objValue->type!=STR&&objValue->type!=BYTA)return WRONGARG;
+	if(objValue->type!=PAIR&&objValue->type!=STR&&objValue->type!=BYTS)return WRONGARG;
 	if(objValue->type==PAIR)
 	{
 		stack->values[stack->tp-1]=getCar(objValue);
@@ -1128,11 +1128,11 @@ int B_push_car(FakeVM* exe)
 		VMvalue* ch=newVMvalue(CHR,&objValue->u.str[0],exe->heap,0);
 		stack->values[stack->tp-1]=ch;
 	}
-	else if(objValue->type==BYTA)
+	else if(objValue->type==BYTS)
 	{
-		ByteArry* tmp=newByteArry(1,NULL);
-		tmp->arry=objValue->u.byta->arry;
-		VMvalue* bt=newVMvalue(BYTA,tmp,exe->heap,0);
+		ByteString* tmp=newByteArry(1,NULL);
+		tmp->str=objValue->u.byts->str;
+		VMvalue* bt=newVMvalue(BYTS,tmp,exe->heap,0);
 		stack->values[stack->tp-1]=bt;
 	}
 	proc->cp+=1;
@@ -1144,7 +1144,7 @@ int B_push_cdr(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMvalue* objValue=getTopValue(stack);
-	if(objValue->type!=PAIR&&objValue->type!=STR&&objValue->type!=BYTA)return WRONGARG;
+	if(objValue->type!=PAIR&&objValue->type!=STR&&objValue->type!=BYTS)return WRONGARG;
 	if(objValue->type==PAIR)
 	{
 		stack->values[stack->tp-1]=getCdr(objValue);
@@ -1161,14 +1161,14 @@ int B_push_cdr(FakeVM* exe)
 			stack->values[stack->tp-1]=tmpStr;
 		}
 	}
-	else if(objValue->type==BYTA)
+	else if(objValue->type==BYTS)
 	{
-		if(objValue->u.byta->size==1)stack->values[stack->tp-1]=newNilValue(exe->heap);
+		if(objValue->u.byts->size==1)stack->values[stack->tp-1]=newNilValue(exe->heap);
 		else
 		{
-			ByteArry* tmp=newByteArry(objValue->u.byta->size-1,NULL);
-			tmp->arry=objValue->u.byta->arry+1;
-			VMvalue* bt=newVMvalue(BYTA,tmp,exe->heap,0);
+			ByteString* tmp=newByteArry(objValue->u.byts->size-1,NULL);
+			tmp->str=objValue->u.byts->str+1;
+			VMvalue* bt=newVMvalue(BYTS,tmp,exe->heap,0);
 			stack->values[stack->tp-1]=bt;
 		}
 	}
@@ -1595,7 +1595,7 @@ int B_type(FakeVM* exe)
 		"dbl",
 		"sym",
 		"str",
-		"byta",
+		"byts",
 		"proc",
 		"cont",
 		"pair"
@@ -2064,7 +2064,7 @@ int B_cast_to_chr(FakeVM* exe)
 		case CHR:*tmpValue->u.chr=*topValue->u.chr;break;
 		case STR:
 		case SYM:*tmpValue->u.chr=topValue->u.str->str[0];break;
-		case BYTA:*tmpValue->u.dbl=*(char*)topValue->u.byta->arry;break;
+		case BYTS:*tmpValue->u.dbl=*(char*)topValue->u.byts->str;break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
 	proc->cp+=1;
@@ -2093,8 +2093,8 @@ int B_cast_to_int(FakeVM* exe)
 		case SYM:
 			*tmpValue->u.num=stringToInt(topValue->u.str->str);
 			break;
-		case BYTA:
-			*tmpValue->u.dbl=*(int32_t*)topValue->u.byta->arry;
+		case BYTS:
+			*tmpValue->u.dbl=*(int32_t*)topValue->u.byts->str;
 			break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
@@ -2116,7 +2116,7 @@ int B_cast_to_dbl(FakeVM* exe)
 		case CHR:*tmpValue->u.dbl=(double)(int32_t)*topValue->u.chr;break;
 		case STR:
 		case SYM:*tmpValue->u.dbl=stringToDouble(topValue->u.str->str);break;
-		case BYTA:*tmpValue->u.dbl=*(double*)topValue->u.byta->arry;break;
+		case BYTS:*tmpValue->u.dbl=*(double*)topValue->u.byts->str;break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
 	proc->cp+=1;
@@ -2142,7 +2142,7 @@ int B_cast_to_str(FakeVM* exe)
 				 break;
 		case STR:
 		case SYM:tmpValue->u.str->str=copyStr(topValue->u.str->str);break;
-		case BYTA:tmpValue->u.str->str=copyStr((char*)topValue->u.byta->arry);break;
+		case BYTS:tmpValue->u.str->str=copyStr((char*)topValue->u.byts->str);break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
 	proc->cp+=1;
@@ -2168,7 +2168,7 @@ int B_cast_to_sym(FakeVM* exe)
 				 break;
 		case STR:
 		case SYM:tmpValue->u.str->str=copyStr(topValue->u.str->str);break;
-		case BYTA:tmpValue->u.str->str=copyStr((char*)topValue->u.byta->arry);break;
+		case BYTS:tmpValue->u.str->str=copyStr((char*)topValue->u.byts->str);break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
 	proc->cp+=1;
@@ -2181,29 +2181,29 @@ int B_cast_to_byte(FakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue->type==PAIR||topValue->type==PRC)return WRONGARG;
-	VMvalue* tmpValue=newVMvalue(BYTA,NULL,exe->heap,1);
-	tmpValue->u.byta=newEmptyByteArry();
+	VMvalue* tmpValue=newVMvalue(BYTS,NULL,exe->heap,1);
+	tmpValue->u.byts=newEmptyByteArry();
 	switch(topValue->type)
 	{
-		case IN32:tmpValue->u.byta->size=sizeof(int32_t);
-				 tmpValue->u.byta->arry=createByteArry(sizeof(int32_t));
-				 *(int32_t*)tmpValue->u.byta->arry=*topValue->u.num;
+		case IN32:tmpValue->u.byts->size=sizeof(int32_t);
+				 tmpValue->u.byts->str=createByteArry(sizeof(int32_t));
+				 *(int32_t*)tmpValue->u.byts->str=*topValue->u.num;
 				 break;
-		case DBL:tmpValue->u.byta->size=sizeof(double);
-				 tmpValue->u.byta->arry=createByteArry(sizeof(double));
-				 *(double*)tmpValue->u.byta->arry=*topValue->u.dbl;
+		case DBL:tmpValue->u.byts->size=sizeof(double);
+				 tmpValue->u.byts->str=createByteArry(sizeof(double));
+				 *(double*)tmpValue->u.byts->str=*topValue->u.dbl;
 				 break;
-		case CHR:tmpValue->u.byta->size=sizeof(char);
-				 tmpValue->u.byta->arry=createByteArry(sizeof(char));
-				 *(char*)tmpValue->u.byta->arry=*topValue->u.chr;
+		case CHR:tmpValue->u.byts->size=sizeof(char);
+				 tmpValue->u.byts->str=createByteArry(sizeof(char));
+				 *(char*)tmpValue->u.byts->str=*topValue->u.chr;
 				 break;
 		case STR:
-		case SYM:tmpValue->u.byta->size=strlen(topValue->u.str->str+1);
-				 tmpValue->u.byta->arry=(uint8_t*)copyStr(topValue->u.str->str);
+		case SYM:tmpValue->u.byts->size=strlen(topValue->u.str->str+1);
+				 tmpValue->u.byts->str=(uint8_t*)copyStr(topValue->u.str->str);
 				 break;
-		case BYTA:tmpValue->u.byta->size=topValue->u.byta->size;
-				  tmpValue->u.byta->arry=createByteArry(topValue->u.byta->size);
-				  memcpy(tmpValue->u.byta->arry,topValue->u.byta->arry,topValue->u.byta->size);
+		case BYTS:tmpValue->u.byts->size=topValue->u.byts->size;
+				  tmpValue->u.byts->str=createByteArry(topValue->u.byts->size);
+				  memcpy(tmpValue->u.byts->str,topValue->u.byts->str,topValue->u.byts->size);
 				  break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
@@ -2217,7 +2217,7 @@ int B_nth(FakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* place=getValue(stack,stack->tp-2);
 	VMvalue* objlist=getTopValue(stack);
-	if((objlist->type!=PAIR&&objlist->type!=STR&&objlist->type!=BYTA)||place->type!=IN32)return WRONGARG;
+	if((objlist->type!=PAIR&&objlist->type!=STR&&objlist->type!=BYTS)||place->type!=IN32)return WRONGARG;
 	if(objlist->type==PAIR)
 	{
 		VMvalue* obj=getCar(objlist);
@@ -2244,13 +2244,13 @@ int B_nth(FakeVM* exe)
 		VMvalue* objChr=newVMvalue(CHR,objlist->u.str->str+*place->u.num,exe->heap,0);
 		stack->values[stack->tp-1]=objChr;
 	}
-	else if(objlist->type==BYTA)
+	else if(objlist->type==BYTS)
 	{
 		stack->tp-=1;
 		stackRecycle(exe);
-		ByteArry* tmpByte=newByteArry(1,NULL);
-		tmpByte->arry=objlist->u.byta->arry+*place->u.num;
-		VMvalue* objByte=newVMvalue(BYTA,tmpByte,exe->heap,0);
+		ByteString* tmpByte=newByteArry(1,NULL);
+		tmpByte->str=objlist->u.byts->str+*place->u.num;
+		VMvalue* objByte=newVMvalue(BYTS,tmpByte,exe->heap,0);
 		stack->values[stack->tp-1]=objByte;
 	}
 	proc->cp+=1;
@@ -2262,7 +2262,7 @@ int B_length(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMvalue* objlist=getTopValue(stack);
-	if(objlist->type!=PAIR&&objlist->type!=STR&&objlist->type!=BYTA)return WRONGARG;
+	if(objlist->type!=PAIR&&objlist->type!=STR&&objlist->type!=BYTS)return WRONGARG;
 	if(objlist->type==PAIR)
 	{
 		int32_t i=0;
@@ -2276,8 +2276,8 @@ int B_length(FakeVM* exe)
 		int32_t len=strlen(objlist->u.str->str);
 		stack->values[stack->tp-1]=newVMvalue(IN32,&len,exe->heap,1);
 	}
-	else if(objlist->type==BYTA)
-		stack->values[stack->tp-1]=newVMvalue(IN32,&objlist->u.byta->size,exe->heap,1);
+	else if(objlist->type==BYTS)
+		stack->values[stack->tp-1]=newVMvalue(IN32,&objlist->u.byts->size,exe->heap,1);
 	proc->cp+=1;
 	return 0;
 }
@@ -2288,7 +2288,7 @@ int B_appd(FakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* fir=getTopValue(stack);
 	VMvalue* sec=getValue(stack,stack->tp-2);
-	if(sec->type!=NIL&&sec->type!=PAIR&&sec->type!=STR&&sec->type!=BYTA)return WRONGARG;
+	if(sec->type!=NIL&&sec->type!=PAIR&&sec->type!=STR&&sec->type!=BYTS)return WRONGARG;
 	if(sec->type==PAIR)
 	{
 		VMvalue* copyOfsec=copyValue(sec,exe->heap);
@@ -2315,17 +2315,17 @@ int B_appd(FakeVM* exe)
 		stackRecycle(exe);
 		stack->values[stack->tp-1]=tmpValue;
 	}
-	else if(sec->type==BYTA)
+	else if(sec->type==BYTS)
 	{
-		int32_t firSize=fir->u.byta->size;
-		int32_t secSize=sec->u.byta->size;
-		VMvalue* tmpByte=newVMvalue(BYTA,NULL,exe->heap,1);
-		tmpByte->u.byta=newEmptyByteArry();
-		tmpByte->u.byta->size=firSize+secSize;
+		int32_t firSize=fir->u.byts->size;
+		int32_t secSize=sec->u.byts->size;
+		VMvalue* tmpByte=newVMvalue(BYTS,NULL,exe->heap,1);
+		tmpByte->u.byts=newEmptyByteArry();
+		tmpByte->u.byts->size=firSize+secSize;
 		uint8_t* tmpArry=createByteArry(firSize+secSize);
-		memcpy(tmpArry,sec->u.byta->arry,secSize);
-		memcpy(tmpArry+firSize,fir->u.byta->arry,firSize);
-		tmpByte->u.byta->arry=tmpArry;
+		memcpy(tmpArry,sec->u.byts->str,secSize);
+		memcpy(tmpArry+firSize,fir->u.byts->str,firSize);
+		tmpByte->u.byts->str=tmpArry;
 		stack->tp-=1;
 		stackRecycle(exe);
 		stack->values[stack->tp-1]=tmpByte;
@@ -2376,13 +2376,13 @@ int B_readb(FakeVM* exe)
 	if(file->type!=IN32||size->type!=IN32)return WRONGARG;
 	FILE* fp=getFile(files,*file->u.num);
 	if(fp==NULL)return STACKERROR;
-	VMvalue* tmpBary=newVMvalue(BYTA,NULL,exe->heap,1);
-	uint8_t* arry=(uint8_t*)malloc(sizeof(uint8_t)*(*size->u.num));
-	if(arry==NULL)errors("B_readb",__FILE__,__LINE__);
-	fread(arry,sizeof(uint8_t),*size->u.num,fp);
-	tmpBary->u.byta=newEmptyByteArry();
-	tmpBary->u.byta->size=*size->u.num;
-	tmpBary->u.byta->arry=arry;
+	VMvalue* tmpBary=newVMvalue(BYTS,NULL,exe->heap,1);
+	uint8_t* str=(uint8_t*)malloc(sizeof(uint8_t)*(*size->u.num));
+	if(str==NULL)errors("B_readb",__FILE__,__LINE__);
+	fread(str,sizeof(uint8_t),*size->u.num,fp);
+	tmpBary->u.byts=newEmptyByteArry();
+	tmpBary->u.byts->size=*size->u.num;
+	tmpBary->u.byts->str=str;
 	stack->tp-=1;
 	stackRecycle(exe);
 	stack->values[stack->tp-1]=tmpBary;
@@ -2415,12 +2415,12 @@ int B_writeb(FakeVM* exe)
 	Filestack* files=exe->files;
 	VMvalue* file=getTopValue(stack);
 	VMvalue* bt=getValue(stack,stack->tp-2);
-	if(file->type!=IN32||bt->type!=BYTA)return WRONGARG;
+	if(file->type!=IN32||bt->type!=BYTS)return WRONGARG;
 	FILE* objFile=getFile(files,*file->u.num);
 	if(objFile==NULL)return STACKERROR;
 	stack->tp-=1;
 	stackRecycle(exe);
-	fwrite(bt->u.byta->arry,sizeof(uint8_t),bt->u.byta->size,objFile);
+	fwrite(bt->u.byts->str,sizeof(uint8_t),bt->u.byts->size,objFile);
 	proc->cp+=1;
 	return 0;
 }
@@ -2641,8 +2641,8 @@ void printVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t mode,int8_t is
 				if(!isPrevPair)
 					putc(')',fp);
 				break;
-		case BYTA:
-				printByteArry(objValue->u.byta,fp,1);
+		case BYTS:
+				printByteArry(objValue->u.byts,fp,1);
 				break;
 		case CONT:
 				fprintf(fp,"#<cont>");
@@ -2688,8 +2688,8 @@ void princVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t isPrevPair)
 				if(!isPrevPair)
 					putc(')',fp);
 				break;
-		case BYTA:
-				printByteArry(objValue->u.byta,fp,0);
+		case BYTS:
+				printByteArry(objValue->u.byts,fp,0);
 				break;
 		case CONT:
 				fprintf(fp,"#<cont>");
@@ -2861,13 +2861,13 @@ void writeRef(VMvalue* fir,VMvalue* sec)
 					fir->u.str+=1;
 				}
 				break;
-			case BYTA:
+			case BYTS:
 				if(!fir->access)
-					memcpy(fir->u.byta->arry,sec->u.byta->arry,(fir->u.byta->size>sec->u.byta->size)?sec->u.byta->size:fir->u.byta->size);
+					memcpy(fir->u.byts->str,sec->u.byts->str,(fir->u.byts->size>sec->u.byts->size)?sec->u.byts->size:fir->u.byts->size);
 				else
 				{
-					fir->u.byta=sec->u.byta;
-					fir->u.byta->refcount+=1;
+					fir->u.byts=sec->u.byts;
+					fir->u.byts->refcount+=1;
 				}
 				break;
 		}

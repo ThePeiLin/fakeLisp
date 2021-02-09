@@ -148,7 +148,7 @@ int MacroPatternCmp(const AST_cptr* first,const AST_cptr* second)
 				else if(firAtm->type==IN32&&firAtm->value.num!=secAtm->value.num)return 0;
 				else if(firAtm->type==DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
 				else if(firAtm->type==CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
-				else if(firAtm->type==BYTA&&!bytaArryEq(&firAtm->value.byta,&secAtm->value.byta))return 0;
+				else if(firAtm->type==BYTS&&!bytsArryEq(&firAtm->value.byts,&secAtm->value.byts))return 0;
 			}
 			if(firPair!=NULL&&first==&firPair->car)
 			{ first=&firPair->cdr;
@@ -863,11 +863,11 @@ ByteCode* compileAtom(AST_cptr* objCptr)
 			tmp->code[0]=FAKE_PUSH_CHR;
 			tmp->code[1]=tmpAtm->value.chr;
 			break;
-		case BYTA:
-			tmp=createByteCode(sizeof(char)+sizeof(int32_t)+tmpAtm->value.byta.size);
+		case BYTS:
+			tmp=createByteCode(sizeof(char)+sizeof(int32_t)+tmpAtm->value.byts.size);
 			tmp->code[0]=FAKE_PUSH_BYTE;
-			*(int32_t*)(tmp->code+1)=tmpAtm->value.byta.size;
-			memcpy(tmp->code+5,tmpAtm->value.byta.arry,tmpAtm->value.byta.size);
+			*(int32_t*)(tmp->code+1)=tmpAtm->value.byts.size;
+			memcpy(tmp->code+5,tmpAtm->value.byts.str,tmpAtm->value.byts.size);
 			break;
 	}
 	return tmp;

@@ -272,11 +272,11 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 				if(root==NULL)objCptr=root=newCptr(curline,objPair);
 				char* tmp=getStringAfterBackslash(objStr+i+2);
 				objCptr->type=ATM;
-				objCptr->value=(void*)newAtom(BYTA,NULL,objPair);
+				objCptr->value=(void*)newAtom(BYTS,NULL,objPair);
 				AST_atom* tmpAtm=objCptr->value;
 				int32_t size=strlen(tmp)/2+strlen(tmp)%2;
-				tmpAtm->value.byta.size=size;
-				tmpAtm->value.byta.arry=castStrByteArry(tmp);
+				tmpAtm->value.byts.size=size;
+				tmpAtm->value.byts.str=castStrByteArry(tmp);
 				i+=strlen(tmp)+2;
 				free(tmp);
 			}
@@ -345,9 +345,9 @@ AST_cptr* castVMvalueToCptr(VMvalue* value,int32_t curline,AST_pair* prev)
 			case CHR:
 				tmpAtm->value.chr=*value->u.chr;
 				break;
-			case BYTA:
-				tmpAtm->value.byta.size=value->u.byta->size;
-				tmpAtm->value.byta.arry=copyMemory(value->u.byta->arry,value->u.byta->size);
+			case BYTS:
+				tmpAtm->value.byts.size=value->u.byts->size;
+				tmpAtm->value.byts.str=copyMemory(value->u.byts->str,value->u.byts->size);
 				break;
 			case PRC:
 				tmpAtm->type=SYM;

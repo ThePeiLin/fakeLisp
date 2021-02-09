@@ -1176,13 +1176,6 @@ ByteCode* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 	}
 	if(tmpDef==NULL)
 	{
-		if(evalIm)
-		{
-			status->status=SYMUNDEFINE;
-			status->place=objCptr;
-			freeByteCode(pushVar);
-			return NULL;
-		}
 		SymTabNode* node=findSymbol(tmpAtm->value.str,inter->table);
 		if(!node)
 		{
@@ -1190,13 +1183,14 @@ ByteCode* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 			addSymTabNode(node,inter->table);
 		}
 		id=node->id;
+		void* funcAddress=NULL;
 		if(inter->modules)
 		{
 			char* funcName=(char*)malloc(sizeof(char)*(strlen("FAKE_")+strlen(tmpAtm->value.str)+1));
 			if(!funcName)
 				errors("compileSym",__FILE__,__LINE__);
 			sprintf(funcName,"FAKE_%s",tmpAtm->value.str);
-			void* funcAddress=getAddress(funcName,*getpDlls(inter));
+			funcAddress=getAddress(funcName,*getpDlls(inter));
 			if(funcAddress)
 			{
 				CompEnv* tmpGlob=NULL;
@@ -1217,6 +1211,13 @@ ByteCode* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 				freeByteCode(popVar);
 			}
 			free(funcName);
+		}
+		if((!inter->modules||!funcAddress)&&evalIm)
+		{
+			status->status=SYMUNDEFINE;
+			status->place=objCptr;
+			freeByteCode(pushVar);
+			return NULL;
 		}
 	}
 	else

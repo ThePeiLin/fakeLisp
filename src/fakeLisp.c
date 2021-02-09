@@ -9,6 +9,7 @@
 #include"ast.h"
 #include<stdio.h>
 #include<stdlib.h>
+#include<unistd.h>
 #include<string.h>
 #include<ctype.h>
 #include<pthread.h>
@@ -24,7 +25,7 @@ void errorCallBack(void* a)
 
 int main(int argc,char** argv)
 {
-	char* filename=argv[1];
+	char* filename=(argc>1)?argv[1]:NULL;
 	if(argc==1||isscript(filename))
 	{
 		FILE* fp=(argc>1)?fopen(argv[1],"r"):stdin;
@@ -38,6 +39,13 @@ int main(int argc,char** argv)
 			runIntpr(inter);
 		else
 		{
+#ifdef _WIN32
+			char* rp=_fullpath(NULL,filename,0);
+#else
+			char* rp=realpath(filename,0);
+#endif
+			char* workpath=getDir(rp);
+			free(rp);
 			initPreprocess();
 			VMenv* globEnv=newVMenv(NULL);
 			ByteCode* fix=createByteCode(0);
@@ -54,6 +62,8 @@ int main(int argc,char** argv)
 			anotherVM->callback=errorCallBack;
 			anotherVM->table=inter->table;
 			initGlobEnv(globEnv,anotherVM->heap,inter->table);
+			chdir(workpath);
+			free(workpath);
 			if(!setjmp(buf))
 			{
 				runFakeVM(anotherVM);

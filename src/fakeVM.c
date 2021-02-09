@@ -2642,7 +2642,7 @@ void printVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t mode,int8_t is
 					putc(')',fp);
 				break;
 		case BYTS:
-				printByteArry(objValue->u.byts,fp,1);
+				printByteStr(objValue->u.byts,fp,1);
 				break;
 		case CONT:
 				fprintf(fp,"#<cont>");
@@ -2689,7 +2689,7 @@ void princVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t isPrevPair)
 					putc(')',fp);
 				break;
 		case BYTS:
-				printByteArry(objValue->u.byts,fp,0);
+				printByteStr(objValue->u.byts,fp,0);
 				break;
 		case CONT:
 				fprintf(fp,"#<cont>");

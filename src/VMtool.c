@@ -146,7 +146,7 @@ int VMvaluecmp(VMvalue* fir,VMvalue* sec)
 			case SYM:return !strcmp(fir->u.str->str,sec->u.str->str);
 			case PRC:return fir->u.prc==sec->u.prc;
 			case PAIR:return VMvaluecmp(fir->u.pair->car,sec->u.pair->car)&&VMvaluecmp(fir->u.pair->cdr,sec->u.pair->cdr);
-			case BYTS:return bytsArryEq(fir->u.byts,sec->u.byts);
+			case BYTS:return bytsStrEq(fir->u.byts,sec->u.byts);
 		}
 	}
 	return 0;

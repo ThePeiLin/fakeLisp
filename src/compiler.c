@@ -148,7 +148,7 @@ int MacroPatternCmp(const AST_cptr* first,const AST_cptr* second)
 				else if(firAtm->type==IN32&&firAtm->value.num!=secAtm->value.num)return 0;
 				else if(firAtm->type==DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
 				else if(firAtm->type==CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
-				else if(firAtm->type==BYTS&&!bytsArryEq(&firAtm->value.byts,&secAtm->value.byts))return 0;
+				else if(firAtm->type==BYTS&&!bytsStrEq(&firAtm->value.byts,&secAtm->value.byts))return 0;
 			}
 			if(firPair!=NULL&&first==&firPair->car)
 			{ first=&firPair->cdr;

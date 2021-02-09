@@ -276,7 +276,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 				AST_atom* tmpAtm=objCptr->value;
 				int32_t size=strlen(tmp)/2+strlen(tmp)%2;
 				tmpAtm->value.byts.size=size;
-				tmpAtm->value.byts.str=castStrByteArry(tmp);
+				tmpAtm->value.byts.str=castStrByteStr(tmp);
 				i+=strlen(tmp)+2;
 				free(tmp);
 			}

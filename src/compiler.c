@@ -807,7 +807,7 @@ ByteCode* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* st
 		if(isLambdaExpression(objCptr))return compileLambda(objCptr,curEnv,inter,status,evalIm,fix);
 		if(isBeginExpression(objCptr)) return compileBegin(objCptr,curEnv,inter,status,evalIm,fix);
 		if(PreMacroExpand(objCptr,inter))continue;
-		else if(!isLegal(objCptr)||hasKeyWord(objCptr))
+		else if(!isValid(objCptr)||hasKeyWord(objCptr))
 		{
 			status->status=SYNTAXERROR;
 			status->place=objCptr;

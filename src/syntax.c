@@ -88,7 +88,7 @@ int isCondExpression(const AST_cptr* objCptr)
 			if(tmpAtm->type==SYM&&!strcmp(tmpAtm->value.str,"cond"))
 			{
 				for(objCptr=nextCptr(objCptr);objCptr!=NULL;objCptr=nextCptr(objCptr))
-					if(!isLegal(objCptr)||objCptr->type!=PAIR)return 0;
+					if(!isValid(objCptr)||objCptr->type!=PAIR)return 0;
 				return 1;
 			}
 		}
@@ -119,13 +119,13 @@ int isConst(const AST_cptr* objCptr)
 	if(isNil(objCptr))return 1;
 	AST_atom* tmpAtm=(objCptr->type==ATM)?objCptr->value:NULL;
 	if(tmpAtm!=NULL&&tmpAtm->type!=SYM)return 1;
-	if(objCptr->type==PAIR&&(isQuoteExpression(objCptr)||(((AST_pair*)objCptr->value)->car.type==NIL&&((AST_pair*)objCptr->value)->car.type==NIL&&isLegal(objCptr))))return 1;
+	if(objCptr->type==PAIR&&(isQuoteExpression(objCptr)||(((AST_pair*)objCptr->value)->car.type==NIL&&((AST_pair*)objCptr->value)->car.type==NIL&&isValid(objCptr))))return 1;
 	return 0;
 }
 
 int isAndExpression(const AST_cptr* objCptr)
 {
-	if(!isLegal(objCptr))return 0;
+	if(!isValid(objCptr))return 0;
 	objCptr=(objCptr->type==PAIR)?&((AST_pair*)objCptr->value)->car:NULL;
 	if(objCptr!=NULL)
 	{
@@ -137,7 +137,7 @@ int isAndExpression(const AST_cptr* objCptr)
 
 int isOrExpression(const AST_cptr* objCptr)
 {
-	if(!isLegal(objCptr))return 0;
+	if(!isValid(objCptr))return 0;
 	objCptr=(objCptr->type==PAIR)?&((AST_pair*)objCptr->value)->car:NULL;
 	if(objCptr!=NULL)
 	{
@@ -149,9 +149,33 @@ int isOrExpression(const AST_cptr* objCptr)
 
 int isQuoteExpression(const AST_cptr* objCptr)
 {
-	objCptr=(isLegal(objCptr)&&objCptr->type==PAIR)?&((AST_pair*)objCptr->value)->car:NULL;
+	objCptr=(isValid(objCptr)&&objCptr->type==PAIR)?&((AST_pair*)objCptr->value)->car:NULL;
 	AST_atom* tmpAtm=(objCptr!=NULL&&objCptr->type==ATM)?objCptr->value:NULL;
 	if(tmpAtm!=NULL&&tmpAtm->type==SYM&&!strcmp(tmpAtm->value.str,"quote"))return 1;
+	return 0;
+}
+
+int isUnquoteExpression(const AST_cptr* objCptr)
+{
+	objCptr=(isValid(objCptr)&&objCptr->type==PAIR)?&((AST_pair*)objCptr->value)->car:NULL;
+	AST_atom* tmpAtm=(objCptr!=NULL&&objCptr->type==ATM)?objCptr->value:NULL;
+	if(tmpAtm!=NULL&&tmpAtm->type==SYM&&!strcmp(tmpAtm->value.str,"unquote"))return 1;
+	return 0;
+}
+
+int isQuquoteExpression(const AST_cptr* objCptr)
+{
+	objCptr=(isValid(objCptr)&&objCptr->type==PAIR)?&((AST_pair*)objCptr->value)->car:NULL;
+	AST_atom* tmpAtm=(objCptr!=NULL&&objCptr->type==ATM)?objCptr->value:NULL;
+	if(tmpAtm!=NULL&&tmpAtm->type==SYM&&!strcmp(tmpAtm->value.str,"ququote"))return 1;
+	return 0;
+}
+
+int isUnqtspExpression(const AST_cptr* objCptr)
+{
+	objCptr=(isValid(objCptr)&&objCptr->type==PAIR)?&((AST_pair*)objCptr->value)->car:NULL;
+	AST_atom* tmpAtm=(objCptr!=NULL&&objCptr->type==ATM)?objCptr->value:NULL;
+	if(tmpAtm!=NULL&&tmpAtm->type==SYM&&!strcmp(tmpAtm->value.str,"unqtsp"))return 1;
 	return 0;
 }
 
@@ -173,11 +197,11 @@ int isBeginExpression(const AST_cptr* objCptr)
 
 int isFuncCall(const AST_cptr* objCptr)
 {
-	if(objCptr->type==PAIR&&isLegal(objCptr)&&!hasKeyWord(objCptr)&&!isNil(objCptr))return 1;
+	if(objCptr->type==PAIR&&isValid(objCptr)&&!hasKeyWord(objCptr)&&!isNil(objCptr))return 1;
 	return 0;
 }
 
-int isLegal(const AST_cptr* objCptr)
+int isValid(const AST_cptr* objCptr)
 {
 	if(objCptr->type==PAIR)
 	{

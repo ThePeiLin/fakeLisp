@@ -202,7 +202,6 @@ void runIntpr(Intpr* inter)
 				//	putchar('\n');
 				ByteCode* fix=createByteCode(0);
 				ByteCode* tmpByteCode=compile(begin,inter->glob,inter,&status,1,fix);
-				printByteCode(tmpByteCode,stderr);
 				if(status.status!=0)
 				{
 					exError(status.place,status.status,inter);

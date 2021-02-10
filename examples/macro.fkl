@@ -2,6 +2,7 @@
 (defmacro "`(a)" (cons (quote ququote) (cons a nil)))
 (defmacro "~(a)" (cons (quote unquote) (cons a nil)))
 (defmacro "~@(a)" (cons (quote unqtesp) (cons a nil)))
+
 (defmacro
   (let $d,$b)
   ((lambda ()
@@ -31,3 +32,9 @@
                   (map (lambda (sd) (nth 1 sd)) d))
             `((lambda ~args ~@b) ~@vals)
             )))))
+
+(defmacro (if $condition $exp1,$exp2)
+  `(cond (~condition ~exp1) ~(cons 1 exp2)))
+
+(defmacro (define  ($name,$args),$body)
+  `(define ~name (lambda ~args ~@body)))

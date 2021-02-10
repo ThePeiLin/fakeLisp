@@ -1,4 +1,4 @@
-(defmacro "'(a)" (cons (quote quote) (cons a nil)))
+(load macro.fkl)
 (define print princ)
 ;defun宏
 (defmacro
@@ -6,13 +6,6 @@
   ((lambda ()
      (define list (lambda ls ls))
      (list 'define name (cons 'lambda (cons args body))))))
-
-;if宏
-(defmacro
-  (if $condition $exp1 $exp2)
-  ((lambda ()
-     (define list (lambda ls ls))
-     (list 'cond (list condition exp1) (list 1 exp2)))))
 
 ;get the last element of a list
 ;(defun gle (objlist)

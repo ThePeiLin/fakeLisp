@@ -3,8 +3,8 @@
 #include"fakedef.h"
 #include<stdint.h>
 
-StringMatchPattern* findStringPattern(const char*,StringMatchPattern*);
-StringMatchPattern* newStringMatchPattern();
+StringMatchPattern* findStringPattern(const char*);
+StringMatchPattern* newStringMatchPattern(int32_t,char**,ByteCode*,RawProc*);
 char** splitPattern(const char*,int32_t*);
 char** splitStringInPattern(const char*,StringMatchPattern*,int32_t*);
 char* readInPattern(FILE*,StringMatchPattern**,char**);

@@ -107,7 +107,7 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev)
 			free(tmp);
 		return NULL;
 	}
-	StringMatchPattern* pattern=findStringPattern(tmp+skipSpace(tmp),HeadOfStringPattern);
+	StringMatchPattern* pattern=findStringPattern(tmp+skipSpace(tmp));
 	if(retval!=NULL)
 		*retval=pattern;
 	if(!pattern)
@@ -137,7 +137,7 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev)
 		if(isVar(pattern->parts[num-1]))
 		{
 			int32_t tmpbackIndex=splitIndex[num-1];
-			StringMatchPattern* tmpPattern=findStringPattern(tmp+tmpbackIndex,HeadOfStringPattern);
+			StringMatchPattern* tmpPattern=findStringPattern(tmp+tmpbackIndex);
 			if(tmpPattern)
 			{
 				*prev=copyStr(tmp+tmpbackIndex);
@@ -173,7 +173,7 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev)
 		if(!matchStringPattern(tmp,pattern))
         {
             int32_t* splitIndex=matchPartOfPattern(tmp,pattern,&num);
-            StringMatchPattern* pattern=findStringPattern(tmp+splitIndex[num-1],HeadOfStringPattern);
+            StringMatchPattern* pattern=findStringPattern(tmp+splitIndex[num-1]);
             if(!pattern)
 			{
 				free(splitIndex);
@@ -461,10 +461,11 @@ int32_t skipSpace(const char* str)
 	return i;
 }
 
-StringMatchPattern* findStringPattern(const char* str,StringMatchPattern* cur)
+StringMatchPattern* findStringPattern(const char* str)
 {
-	StringMatchPattern* tmp=(cur==NULL)?HeadOfStringPattern:cur;
-	cur=tmp;
+	if(!HeadOfStringPattern)
+		return NULL;
+	StringMatchPattern* cur=HeadOfStringPattern;
 	str+=skipSpace(str);
 	while(cur)
 	{
@@ -472,17 +473,6 @@ StringMatchPattern* findStringPattern(const char* str,StringMatchPattern* cur)
 		if(!strncmp(str,part,strlen(part)))
 			break;
 		cur=cur->next;
-	}
-	if(cur==NULL&&tmp!=NULL)
-	{
-		cur=tmp->prev;
-		while(cur)
-		{
-			char* part=cur->parts[0];
-			if(!strncmp(str,part,strlen(part)))
-				break;
-			cur=cur->prev;
-		}
 	}
 	return cur;
 }
@@ -592,7 +582,7 @@ int32_t skipUntilNext(const char* str,const char* part)
 		}
 		else
 		{
-			StringMatchPattern* pattern=findStringPattern(str+s,HeadOfStringPattern);
+			StringMatchPattern* pattern=findStringPattern(str+s);
 			if(pattern)
 			{
 				s+=skipInPattern(str+s,pattern);
@@ -684,7 +674,7 @@ void printInPattern(char** strs,StringMatchPattern* pattern,FILE* fp,int32_t cou
 		}
 		else
 		{
-			StringMatchPattern* nextPattern=findStringPattern(strs[i],pattern);
+			StringMatchPattern* nextPattern=findStringPattern(strs[i]);
 			if(nextPattern)
 			{
 				int32_t num=0;
@@ -733,14 +723,11 @@ int isInValidStringPattern(const char* str)
 	}
 	if(pattern)
 	{
-		int32_t len1=strlen(parts[0]);
 		while(pattern->prev)
 			pattern=pattern->prev;
 		while(pattern)
 		{
-			int32_t len2=strlen(pattern->parts[0]);
-			int32_t len=(len2>len1)?len1:len2;
-			if(!strncmp(parts[0],pattern->parts[0],len))
+			if(!strcmp(parts[0],pattern->parts[0]))
 			{
 				freeStringArry(parts,num);
 				return 1;
@@ -781,14 +768,58 @@ int isMustList(const char* str)
 	return 0;
 }
 
-StringMatchPattern* newStringMatchPattern()
+StringMatchPattern* newStringMatchPattern(int32_t num,char** parts,ByteCode* proc,RawProc* procs)
 {
 	StringMatchPattern* tmp=(StringMatchPattern*)malloc(sizeof(StringMatchPattern));
 	if(!tmp)errors("newStringMatchPattern",__FILE__,__LINE__);
-	tmp->next=HeadOfStringPattern;
-	if(HeadOfStringPattern)
-		HeadOfStringPattern->prev=tmp;
-	HeadOfStringPattern=tmp;
+	tmp->num=num;
+	tmp->parts=parts;
+	tmp->proc=proc;
+	tmp->procs=procs;
+	tmp->next=NULL;
+	tmp->prev=NULL;
+	if(!HeadOfStringPattern)
+		HeadOfStringPattern=tmp;
+	else
+	{
+		StringMatchPattern* cur=HeadOfStringPattern;
+		while(cur)
+		{
+			int32_t fir=strlen(tmp->parts[0]);
+			int32_t sec=strlen(cur->parts[0]);
+			if(fir>sec)
+			{
+				if(!cur->prev)
+				{
+					tmp->next=HeadOfStringPattern;
+					HeadOfStringPattern->prev=tmp;
+					HeadOfStringPattern=tmp;
+				}
+				else
+				{
+					cur->prev->next=tmp;
+					tmp->prev=cur->prev;
+					cur->prev=tmp;
+					tmp->next=cur;
+				}
+				break;
+			}
+			cur=cur->next;
+		}
+		if(!cur)
+		{
+			for(cur=HeadOfStringPattern;cur->next;cur=cur->next);
+			cur->next=tmp;
+			tmp->prev=cur;
+		}
+	}
+//	StringMatchPattern* cur=HeadOfStringPattern;
+//	fprintf(stderr,"===\n");
+//	while(cur)
+//	{
+//		fprintf(stderr,"%s\n",cur->parts[0]);
+//		cur=cur->next;
+//	}
 	return tmp;
 }
 

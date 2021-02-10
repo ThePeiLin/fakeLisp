@@ -767,17 +767,12 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 	ByteCode* tmpByteCode=compile(express,tmpCompEnv,tmpInter,&status,1,fix);
 	if(!status.status)
 	{
-		tmp=newStringMatchPattern();
-		tmp->num=num;
 		char** tmParts=(char**)malloc(sizeof(char*)*num);
 		if(!tmParts)errors("addStringPattern",__FILE__,__LINE__);
-		int i=0;
+		int32_t i=0;
 		for(;i<num;i++)
 			tmParts[i]=copyStr(parts[i]);
-		tmp->parts=tmParts;
-		tmp->prev=NULL;
-		tmp->procs=tmpInter->procs;
-		tmp->proc=tmpByteCode;
+		tmp=newStringMatchPattern(num,tmParts,tmpByteCode,tmpInter->procs);
 	}
 	else
 	{

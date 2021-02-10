@@ -514,6 +514,9 @@ void initPreprocess()
 	addKeyWord("setf");
 	addKeyWord("load");
 	addKeyWord("begin");
+	addKeyWord("unquote");
+	addKeyWord("ququote");
+	addKeyWord("unqtesp");
 }
 
 void freeAllFunc()
@@ -796,7 +799,9 @@ ByteCode* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* st
 	for(;;)
 	{
 		if(isLoadExpression(objCptr))return compileLoad(objCptr,curEnv,inter,status,evalIm,fix);
-		if(isConst(objCptr))return compileConst(objCptr,curEnv,inter,status,fix);
+		if(isConst(objCptr))return compileConst(objCptr,curEnv,inter,status,evalIm,fix);
+		if(isUnquoteExpression(objCptr))return compileUnquote(objCptr,curEnv,inter,status,evalIm,fix);
+		if(isQuquoteExpression(objCptr))return compileQuquote(objCptr,curEnv,inter,status,evalIm,fix);
 		if(isSymbol(objCptr))return compileSym(objCptr,curEnv,inter,status,evalIm,fix);
 		if(isDefExpression(objCptr))return compileDef(objCptr,curEnv,inter,status,evalIm,fix);
 		if(isSetqExpression(objCptr))return compileSetq(objCptr,curEnv,inter,status,evalIm,fix);
@@ -934,6 +939,77 @@ ByteCode* compilePair(AST_cptr* objCptr)
 	return tmp;
 }
 
+ByteCode* compileQuquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
+{
+	objCptr=nextCptr(getFirst(objCptr));
+	if(objCptr->type==ATM)
+		return compileAtom(objCptr);
+	else if(isUnquoteExpression(objCptr))
+		return compileUnquote(objCptr,curEnv,inter,status,evalIm,fix);
+	ByteCode* tmp=createByteCode(0);
+	AST_pair* objPair=objCptr->value;
+	AST_pair* tmpPair=objPair;
+	ByteCode* popToCar=createByteCode(1);
+	ByteCode* popToCdr=createByteCode(1);
+	ByteCode* pushPair=createByteCode(1);
+	popToCar->code[0]=FAKE_POP_CAR;
+	popToCdr->code[0]=FAKE_POP_CDR;
+	pushPair->code[0]=FAKE_PUSH_PAIR;
+	while(objCptr!=NULL)
+	{
+		if(isUnquoteExpression(objCptr))
+		{
+			ByteCode* tmp1=compileUnquote(objCptr,curEnv,inter,status,evalIm,fix);
+			codeCat(tmp1,(objCptr==&objPair->car)?popToCar:popToCdr);
+			codeCat(tmp,tmp1);
+			freeByteCode(tmp1);
+			if(objPair!=NULL&&objCptr==&objPair->car)
+			{
+				objCptr=&objPair->cdr;
+				continue;
+			}
+		}
+		else if(objCptr->type==PAIR)
+		{
+			codeCat(tmp,pushPair);
+			objPair=objCptr->value;
+			objCptr=&objPair->car;
+			continue;
+		}
+		else if(objCptr->type==ATM||objCptr->type==NIL)
+		{
+			ByteCode* tmp1=(objCptr->type==ATM)?compileAtom(objCptr):compileNil();
+			codeCat(tmp1,(objCptr==&objPair->car)?popToCar:popToCdr);
+			codeCat(tmp,tmp1);
+			freeByteCode(tmp1);
+			if(objPair!=NULL&&objCptr==&objPair->car)
+			{
+				objCptr=&objPair->cdr;
+				continue;
+			}
+		}
+		if(objPair!=NULL&&objCptr==&objPair->cdr)
+		{
+			AST_pair* prev=NULL;
+			if(objPair->prev==NULL)break;
+			while(objPair->prev!=NULL&&objPair!=tmpPair)
+			{
+				prev=objPair;
+				objPair=objPair->prev;
+				codeCat(tmp,(prev==objPair->car.value)?popToCar:popToCdr);
+				if(prev==objPair->car.value)break;
+			}
+			if(objPair!=NULL)objCptr=&objPair->cdr;
+			if(objPair==tmpPair&&(prev==objPair->cdr.value||prev==NULL))break;
+		}
+		if(objPair==NULL)break;
+	}
+	freeByteCode(popToCar);
+	freeByteCode(popToCdr);
+	freeByteCode(pushPair);
+	return tmp;
+}
+
 ByteCode* compileQuote(AST_cptr* objCptr)
 {
 	objCptr=&((AST_pair*)objCptr->value)->car;
@@ -947,7 +1023,13 @@ ByteCode* compileQuote(AST_cptr* objCptr)
 	return NULL;
 }
 
-ByteCode* compileConst(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,ByteCode* fix)
+ByteCode* compileUnquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
+{
+	objCptr=nextCptr(getFirst(objCptr));
+	return compile(objCptr,curEnv,inter,status,evalIm,fix);
+}
+
+ByteCode* compileConst(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
 {
 		if(objCptr->type==ATM)return compileAtom(objCptr);
 		if(isNil(objCptr))return compileNil();

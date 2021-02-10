@@ -590,10 +590,13 @@ VMstack* copyStack(VMstack* stack)
 	tmp->tptp=stack->tptp;
 	tmp->tpst=NULL;
 	tmp->tpsi=stack->tpsi;
-	tmp->tpst=(int32_t*)malloc(sizeof(int32_t)*tmp->tpsi);
-	if(!tmp->tpst)
-		errors("copyStack",__FILE__,__LINE__);
-	if(stack->tptp)memcpy(tmp->tpst,stack->tpst,sizeof(int32_t)*(tmp->tptp-1));
+	if(tmp->tpsi)
+	{
+		tmp->tpst=(int32_t*)malloc(sizeof(int32_t)*tmp->tpsi);
+		if(!tmp->tpst)
+			errors("copyStack",__FILE__,__LINE__);
+		if(tmp->tptp)memcpy(tmp->tpst,stack->tpst,sizeof(int32_t)*(tmp->tptp-1));
+	}
 	return tmp;
 }
 

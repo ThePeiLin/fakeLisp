@@ -987,8 +987,11 @@ ByteCode* compileQuquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 				status->place=objCptr;
 				return NULL;
 			}
+			ByteCode* appd=createByteCode(1);
+			appd->code[0]=FAKE_APPD;
 			ByteCode* tmp1=compile(nextCptr(getFirst(objCptr)),curEnv,inter,status,evalIm,fix);
-			codeCat(tmp1,popToCdr);
+			codeCat(tmp1,appd);
+			freeByteCode(appd);
 			codeCat(tmp,tmp1);
 			freeByteCode(tmp1);
 			if(objPair!=NULL&&objCptr==&objPair->car)

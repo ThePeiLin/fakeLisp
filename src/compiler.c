@@ -811,6 +811,12 @@ ByteCode* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* st
 		if(isOrExpression(objCptr))return compileOr(objCptr,curEnv,inter,status,evalIm,fix);
 		if(isLambdaExpression(objCptr))return compileLambda(objCptr,curEnv,inter,status,evalIm,fix);
 		if(isBeginExpression(objCptr)) return compileBegin(objCptr,curEnv,inter,status,evalIm,fix);
+		if(isUnqtespExpression(objCptr))
+		{
+			status->status=INVALIDEXPR;
+			status->place=objCptr;
+			return NULL;
+		}
 		if(PreMacroExpand(objCptr,inter))continue;
 		else if(!isValid(objCptr)||hasKeyWord(objCptr))
 		{
@@ -969,14 +975,37 @@ ByteCode* compileQuquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 				continue;
 			}
 		}
+		else if(isUnqtespExpression(objCptr))
+		{
+			if(objCptr==&objPair->cdr)
+			{
+				freeByteCode(popToCar);
+				freeByteCode(popToCdr);
+				freeByteCode(pushPair);
+				freeByteCode(tmp);
+				status->status=INVALIDEXPR;
+				status->place=objCptr;
+				return NULL;
+			}
+			ByteCode* tmp1=compile(nextCptr(getFirst(objCptr)),curEnv,inter,status,evalIm,fix);
+			codeCat(tmp1,popToCdr);
+			codeCat(tmp,tmp1);
+			freeByteCode(tmp1);
+			if(objPair!=NULL&&objCptr==&objPair->car)
+			{
+				objCptr=&objPair->cdr;
+				continue;
+			}
+		}
 		else if(objCptr->type==PAIR)
 		{
-			codeCat(tmp,pushPair);
+			if(!isUnqtespExpression(getFirst(objCptr)))
+				codeCat(tmp,pushPair);
 			objPair=objCptr->value;
 			objCptr=&objPair->car;
 			continue;
 		}
-		else if(objCptr->type==ATM||objCptr->type==NIL)
+		else if((objCptr->type==ATM||objCptr->type==NIL)&&(!isUnqtespExpression(&objPair->car)))
 		{
 			ByteCode* tmp1=(objCptr->type==ATM)?compileAtom(objCptr):compileNil();
 			codeCat(tmp1,(objCptr==&objPair->car)?popToCar:popToCdr);
@@ -996,7 +1025,8 @@ ByteCode* compileQuquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			{
 				prev=objPair;
 				objPair=objPair->prev;
-				codeCat(tmp,(prev==objPair->car.value)?popToCar:popToCdr);
+				if(prev!=NULL&&!isUnqtespExpression(&prev->car))
+					codeCat(tmp,(prev==objPair->car.value)?popToCar:popToCdr);
 				if(prev==objPair->car.value)break;
 			}
 			if(objPair!=NULL)objCptr=&objPair->cdr;

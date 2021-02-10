@@ -1787,6 +1787,7 @@ ByteCode* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus
 	ByteCode* tmp=compileFile(tmpIntpr,evalIm,fix);
 	chdir(tmpIntpr->prev->curDir);
 	tmpIntpr->glob=NULL;
+	tmpIntpr->table=NULL;
 	freeIntpr(tmpIntpr);
 	//printByteCode(tmp,stderr);
 	reCodeCat(setTp,tmp);

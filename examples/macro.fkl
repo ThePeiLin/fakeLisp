@@ -22,15 +22,15 @@
             (setq
               vals
               (map (lambda (sd) (nth 1 sd)) (car b)))
-            `(let () (define ~d ~@`(lambda ~@`(args,~(cdr b)))) ~(cons d vals))
-            (list 'let
-                  '()
-                  (list 'define d (cons 'lambda (cons args (cdr b))))
-                  (cons d vals)))
+            `(let () (define ~d (lambda ~args ~@(cdr b))) ~(cons d vals))
+            )
            (1
             (setq args
                   (map (lambda (sd) (nth 0 sd)) d))
             (setq vals
                   (map (lambda (sd) (nth 1 sd)) d))
-            `((lambda ~args ~b) ~vals))))))
-;            (cons (cons 'lambda (cons args b)) vals))))))
+            `((lambda ~args ~@b) ~@vals)
+            )))))
+
+(let test ()
+  (princ 'test stdout))

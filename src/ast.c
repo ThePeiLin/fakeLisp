@@ -35,7 +35,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 				char* varName=getVarName(pattern->parts[j]);
 				if(isMustList(pattern->parts[j]))
 				{
-					StringMatchPattern* tmpPattern=findStringPattern(parts[j],pattern);
+					StringMatchPattern* tmpPattern=findStringPattern(parts[j]);
 					AST_cptr* tmpCptr=newCptr(inter->curline,NULL);
 					AST_cptr* tmpCptr2=createTree(parts[j],inter,tmpPattern);
 					if(!tmpCptr2)
@@ -48,7 +48,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 					int i=skipInPattern(parts[j],tmpPattern);
 					for(;parts[j][i]!=0;i++)
 					{
-						tmpPattern=findStringPattern(parts[j]+i,pattern);
+						tmpPattern=findStringPattern(parts[j]+i);
 						AST_cptr* tmpCptr2=createTree(parts[j]+i,inter,tmpPattern);
 						if(!tmpCptr2)
 						{
@@ -74,7 +74,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 				}
 				else
 				{
-					StringMatchPattern* tmpPattern=findStringPattern(parts[j],pattern);
+					StringMatchPattern* tmpPattern=findStringPattern(parts[j]);
 					AST_cptr* tmpCptr=createTree(parts[j],inter,tmpPattern);
 					inter->curline+=countChar(parts[j]+skipInPattern(parts[j],tmpPattern),'\n',-1);
 					addDefine(varName,tmpCptr,tmpEnv);
@@ -283,7 +283,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 			else
 			{
 				int curline=(inter)?inter->curline:0;
-				StringMatchPattern* tmpPattern=findStringPattern(objStr+i,NULL);
+				StringMatchPattern* tmpPattern=findStringPattern(objStr+i);
 				if(tmpPattern)
 				{
 					AST_cptr* tmpCptr=createTree(objStr+i,inter,tmpPattern);

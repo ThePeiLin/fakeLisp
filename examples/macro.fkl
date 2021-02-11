@@ -13,7 +13,6 @@
              (cond ((null c) (appd p nil))
                    (1 (map-iter f (cdr c) (appd p (cons (f (car c)) nil)))))))
          (map-iter f l nil)))
-     (define list (lambda ls ls))
      (define args nil)
      (define vals nil)
      (cond ((eq (type d) 'sym)
@@ -33,8 +32,24 @@
             `((lambda ~args ~@b) ~@vals)
             )))))
 
+(defmacro
+  (let* $d,$b)
+  ((lambda ()
+     (cond ((or (not (eq (type d) 'pair))
+                (le (length d) 1))
+            `(let ~d ~@b))
+           (1
+            `(let (~(car d))
+               (let* ~(cdr d) ~@b)))))))
+
 (defmacro (if $condition $exp1,$exp2)
   `(cond (~condition ~exp1) ~(cons 1 exp2)))
 
 (defmacro (define  ($name,$args),$body)
   `(define ~name (lambda ~args ~@body)))
+
+(let* ((a 1)
+       (b a)
+       )
+  (princ a stdout)
+  (princ b stdout))

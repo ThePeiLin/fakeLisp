@@ -4,5 +4,4 @@
              (clcc (lambda (c) c))))
        (yang ((lambda (cc) (princ #\* stdout) cc)
               (clcc (lambda (c) c)))))
-  (getch)
   (yin yang))

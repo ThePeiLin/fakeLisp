@@ -24,13 +24,22 @@ int main(int argc,char** argv)
 		char* outputname=(char*)malloc(sizeof(char)*(strlen(filename)+2));
 		strcpy(outputname,filename);
 		strcat(outputname,"c");
-		FILE* outfp=fopen(outputname,"wb");
 		//changeWorkPath(filename);
 		initPreprocess();
 		int i;
 		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL);
 		ByteCode* fix=createByteCode(0);
-		ByteCode* mainByteCode=compileFile(inter,1,fix);
+		int status;
+		ByteCode* mainByteCode=compileFile(inter,1,fix,&status);
+		if(mainByteCode==NULL)
+		{
+			free(outputname);
+			freeIntpr(inter);
+			freeByteCode(fix);
+			unInitPreprocess();
+			return status;
+		}
+		FILE* outfp=fopen(outputname,"wb");
 		reCodeCat(fix,mainByteCode);
 		freeByteCode(fix);
 		//printByteCode(mainByteCode,stderr);

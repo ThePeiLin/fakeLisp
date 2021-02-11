@@ -10,6 +10,14 @@
 #include<string.h>
 #include<unistd.h>
 #include<math.h>
+#include<setjmp.h>
+
+static jmp_buf buf;
+static void errorCallBackForPreMacroExpand(void* a)
+{
+	int* i=(int*)a;
+	longjmp(buf,i[0]);
+}
 
 static int MacroPatternCmp(const AST_cptr*,const AST_cptr*);
 static int fmatcmp(const AST_cptr*,const AST_cptr*);
@@ -45,8 +53,38 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 		tmpVM->mainproc->code=tmpVMcode;
 		tmpVM->modules=inter->modules;
 		tmpVM->table=inter->table;
+		tmpVM->callback=errorCallBackForPreMacroExpand;
+		AST_cptr* tmpCptr=NULL;
 		runFakeVM(tmpVM);
-		AST_cptr* tmpCptr=castVMvalueToCptr(tmpVM->stack->values[0],objCptr->curline,NULL);
+		if(setjmp(buf)==0)
+		{
+			tmpCptr=castVMvalueToCptr(tmpVM->stack->values[0],objCptr->curline,NULL);
+			replace(objCptr,tmpCptr);
+			deleteCptr(tmpCptr);
+			free(tmpCptr);
+		}
+		else
+		{
+			deleteCallChain(tmpVM);
+			pthread_mutex_destroy(&tmpVM->lock);
+			if(tmpVM->mainproc->code)
+			{
+				tmpGlob->refcount-=1;
+				freeVMenv(tmpGlob);
+				macroVMenv->prev=NULL;
+				freeVMcode(tmpVM->mainproc->code);
+			}
+			freeVMheap(tmpVM->heap);
+			free(tmpVM->mainproc);
+			freeVMstack(tmpVM->stack);
+			freeFileStack(tmpVM->files);
+			freeMessage(tmpVM->queueHead);
+			free(tmpVM);
+			free(rawProcList);
+			destroyEnv(MacroEnv);
+			MacroEnv=NULL;
+			return 2;
+		}
 		pthread_mutex_destroy(&tmpVM->lock);
 		if(tmpVM->mainproc->code)
 		{
@@ -61,9 +99,6 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 		freeFileStack(tmpVM->files);
 		freeMessage(tmpVM->queueHead);
 		free(tmpVM);
-		replace(objCptr,tmpCptr);
-		deleteCptr(tmpCptr);
-		free(tmpCptr);
 		free(rawProcList);
 		destroyEnv(MacroEnv);
 		MacroEnv=NULL;
@@ -812,7 +847,15 @@ ByteCode* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* st
 			status->place=objCptr;
 			return NULL;
 		}
-		if(PreMacroExpand(objCptr,inter))continue;
+		int i=PreMacroExpand(objCptr,inter);
+		if(i==1)
+			continue;
+		else if(i==2)
+		{
+			status->status=MACROEXPANDFAILED;
+			status->place=objCptr;
+			return NULL;
+		}
 		else if(!isValid(objCptr)||hasKeyWord(objCptr))
 		{
 			status->status=SYNTAXERROR;
@@ -1784,21 +1827,24 @@ ByteCode* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus
 	tmpIntpr->head=NULL;
 	tmpIntpr->tail=NULL;
 	tmpIntpr->modules=NULL;
-	ByteCode* tmp=compileFile(tmpIntpr,evalIm,fix);
+	ByteCode* tmp=compileFile(tmpIntpr,evalIm,fix,NULL);
 	chdir(tmpIntpr->prev->curDir);
 	tmpIntpr->glob=NULL;
 	tmpIntpr->table=NULL;
 	freeIntpr(tmpIntpr);
 	//printByteCode(tmp,stderr);
-	reCodeCat(setTp,tmp);
-	codeCat(tmp,popTp);
-	reCodeCat(fix,tmp);
-	freeByteCode(setTp);
+	if(tmp)
+	{
+		reCodeCat(setTp,tmp);
+		codeCat(tmp,popTp);
+		reCodeCat(fix,tmp);
+	}
 	freeByteCode(popTp);
+	freeByteCode(setTp);
 	return tmp;
 }
 
-ByteCode* compileFile(Intpr* inter,int evalIm,ByteCode* fix)
+ByteCode* compileFile(Intpr* inter,int evalIm,ByteCode* fix,int* exitstatus)
 {
 	chdir(inter->curDir);
 	char ch;
@@ -1822,27 +1868,46 @@ ByteCode* compileFile(Intpr* inter,int evalIm,ByteCode* fix)
 				if(isImportExpression(begin)&&tmp->size)
 				{
 					exError(begin,INVALIDEXPR,inter);
-					exit(EXIT_FAILURE);
+					if(exitstatus)*exitstatus=INVALIDEXPR;
+					freeByteCode(tmp);
+					free(list);
+					deleteCptr(begin);
+					free(begin);
+					tmp=NULL;
+					break;
 				}
 				status=eval(begin,NULL,inter);
 				if(status.status!=0)
 				{
 					exError(status.place,status.status,inter);
+					if(exitstatus)*exitstatus=status.status;
 					deleteCptr(status.place);
+					freeByteCode(tmp);
+					free(list);
 					deleteCptr(begin);
-					exit(EXIT_FAILURE);
+					free(begin);
+					tmp=NULL;
+					break;
 				}
 			}
 			else
 			{
 				ByteCode* tmpByteCode=compile(begin,inter->glob,inter,&status,evalIm,fix);
-				if(status.status!=0)
+				if(!tmpByteCode||status.status!=0)
 				{
-					exError(status.place,status.status,inter);
-					deleteCptr(status.place);
-					freeByteCode(resTp);
+					if(status.status)
+					{
+						exError(status.place,status.status,inter);
+						if(exitstatus)*exitstatus=status.status;
+						deleteCptr(status.place);
+					}
+					if(tmpByteCode==NULL&&!status.status&&exitstatus)*exitstatus=MACROEXPANDFAILED;
 					freeByteCode(tmp);
-					exit(EXIT_FAILURE);
+					free(list);
+					deleteCptr(begin);
+					free(begin);
+					tmp=NULL;
+					break;
 				}
 				if(tmp->size)
 					reCodeCat(resTp,tmpByteCode);

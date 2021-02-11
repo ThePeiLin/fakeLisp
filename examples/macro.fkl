@@ -41,15 +41,21 @@
            (1
             `(let (~(car d))
                (let* ~(cdr d) ~@b)))))))
+(defmacro
+  (letrec $d,$b)
+  ((lambda ()
+     (define map
+       (lambda (f l)
+         (define map-iter
+           (lambda (f c p)
+             (cond ((null c) (appd p nil))
+                   (1 (map-iter f (cdr c) (appd p (cons (f (car c)) nil)))))))
+         (map-iter f l nil)))
+     (define dfs (map (lambda (sd) `(define ~(car sd) ~@(cdr sd))) d))
+     `(let () ~@dfs ~@b))))
 
 (defmacro (if $condition $exp1,$exp2)
   `(cond (~condition ~exp1) ~(cons 1 exp2)))
 
 (defmacro (define  ($name,$args),$body)
   `(define ~name (lambda ~args ~@body)))
-
-(let* ((a 1)
-       (b a)
-       )
-  (princ a stdout)
-  (princ b stdout))

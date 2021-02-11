@@ -650,6 +650,7 @@ void exError(const AST_cptr* obj,int type,Intpr* inter)
 		case INVALIDEXPR:fprintf(stderr,":Invalid expression here.\n");break;
 		case CIRCULARLOAD:fprintf(stderr,":Circular load file.\n");break;
 		case INVALIDPATTERN:fprintf(stderr,":Invalid string match pattern.\n");break;
+		case MACROEXPANDFAILED:fprintf(stderr,":Failed to expand macro.\n");break;
 	}
 }
 

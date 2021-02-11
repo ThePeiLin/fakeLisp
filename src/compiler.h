@@ -18,7 +18,7 @@ void unInitPreprocess();
 void initPreprocess();
 StringMatchPattern* addStringPattern(char**,int32_t,AST_cptr*,Intpr*);
 
-ByteCode* compileFile(Intpr*,int evalIm,ByteCode* fix);
+ByteCode* compileFile(Intpr*,int evalIm,ByteCode* fix,int*);
 ByteCode* compile(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm,ByteCode* fix);
 ByteCode* compileQuquote(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm,ByteCode* fix);
 ByteCode* compileUnquote(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm,ByteCode* fix);

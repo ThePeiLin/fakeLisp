@@ -16,6 +16,7 @@
 #include<setjmp.h>
 static jmp_buf buf;
 static int exitStatus=0;
+
 void errorCallBack(void* a)
 {
 	int* i=(int*)a;
@@ -47,11 +48,20 @@ int main(int argc,char** argv)
 			char* workpath=getDir(rp);
 			free(rp);
 			initPreprocess();
-			VMenv* globEnv=newVMenv(NULL);
 			ByteCode* fix=createByteCode(0);
-			ByteCode* mainByteCode=compileFile(inter,1,fix);
+			int status;
+			ByteCode* mainByteCode=compileFile(inter,1,fix,&status);
+			if(mainByteCode==NULL)
+			{
+				free(workpath);
+				freeIntpr(inter);
+				freeByteCode(fix);
+				unInitPreprocess();
+				return status;
+			}
 			reCodeCat(fix,mainByteCode);
 			freeByteCode(fix);
+			VMenv* globEnv=newVMenv(NULL);
 			ByteCode* rawProcList=castRawproc(NULL,inter->procs);
 			FakeVM* anotherVM=newFakeVM(mainByteCode,rawProcList);
 			freeByteCode(mainByteCode);
@@ -64,7 +74,7 @@ int main(int argc,char** argv)
 			initGlobEnv(globEnv,anotherVM->heap,inter->table);
 			chdir(workpath);
 			free(workpath);
-			if(!setjmp(buf))
+			if(setjmp(buf)==0)
 			{
 				runFakeVM(anotherVM);
 				joinAllThread();
@@ -75,7 +85,7 @@ int main(int argc,char** argv)
 				freeVMheap(anotherVM->heap);
 				freeAllVMs();
 			}
-			else
+			else if(setjmp(buf)==1)
 			{
 				deleteCallChain(anotherVM);
 				joinAllThread();

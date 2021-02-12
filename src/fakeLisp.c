@@ -177,26 +177,25 @@ void runIntpr(Intpr* inter)
 		//	printList(begin,stderr);
 		//	printf("\n==============\n");
 		int ch=getc(inter->file);
+		if(!begin&&(list||isAllSpace(list))&&ch!=EOF)
+		{
+			fprintf(stderr,"In file \"%s\",line %d\n",inter->filename,inter->curline);
+			if(list&&!isAllSpace(list))
+				fprintf(stderr,"%s:Invalid expression here.\n",list);
+			else
+				fprintf(stderr,"Can't create a valid object.\n");
+			free(list);
+			list=NULL;
+			continue;
+		}
 		if(ch==EOF)
 		{
 			if(list)
 				free(list);
 			break;
 		}
-		else if(ch==')')
-		{
-			fprintf(stderr,"In file \"%s\",line %d\n",inter->filename,inter->curline);
-			fprintf(stderr,"Invalid expression here.\n");
-		}
 		else if(ch!='\n')
 			ungetc(ch,inter->file);
-		else if(!begin)
-		{
-			fprintf(stderr,"In file \"%s\",line %d\n",inter->filename,inter->curline);
-			fprintf(stderr,"%s:Invalid expression here.\n",list);
-			free(list);
-			continue;
-		}
 		if(begin!=NULL)
 		{
 			if(isPreprocess(begin))

@@ -1,5 +1,5 @@
 (defmacro "'(a)" (cons (quote quote) (cons a nil)))
-(defmacro "`(a)" (cons (quote ququote) (cons a nil)))
+(defmacro "`(a)" (cons (quote qsquote) (cons a nil)))
 (defmacro "~(a)" (cons (quote unquote) (cons a nil)))
 (defmacro "~@(a)" (cons (quote unqtesp) (cons a nil)))
 

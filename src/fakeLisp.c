@@ -179,16 +179,21 @@ void runIntpr(Intpr* inter)
 		int ch=getc(inter->file);
 		if(ch==EOF)
 		{
-			if(!list)
-			{
+			if(list)
 				free(list);
-				break;
-			}
+			break;
 		}
 		else if(ch==')')
-			fprintf(stderr,"Invalid input!\n");
+			fprintf(stderr,"Invalid input.\n");
 		else if(ch!='\n')
 			ungetc(ch,inter->file);
+		if(!begin)
+		{
+			fprintf(stderr,"In file \"%s\",line %d\n",inter->filename,inter->curline);
+			fprintf(stderr,"%s:Invalid input.\n",list);
+			free(list);
+			continue;
+		}
 		if(begin!=NULL)
 		{
 			if(isPreprocess(begin))

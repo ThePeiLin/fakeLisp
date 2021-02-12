@@ -24,7 +24,7 @@ int isAndExpression(const AST_cptr*);
 int isOrExpression(const AST_cptr*);
 int isQuoteExpression(const AST_cptr*);
 int isUnquoteExpression(const AST_cptr*);
-int isQuquoteExpression(const AST_cptr*);
+int isQsquoteExpression(const AST_cptr*);
 int isUnqtespExpression(const AST_cptr*);
 int isLoadExpression(const AST_cptr*);
 int isImportExpression(const AST_cptr*);

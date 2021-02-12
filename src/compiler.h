@@ -20,7 +20,7 @@ StringMatchPattern* addStringPattern(char**,int32_t,AST_cptr*,Intpr*);
 
 ByteCode* compileFile(Intpr*,int evalIm,ByteCode* fix,int*);
 ByteCode* compile(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm,ByteCode* fix);
-ByteCode* compileQuquote(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm,ByteCode* fix);
+ByteCode* compileQsquote(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm,ByteCode* fix);
 ByteCode* compileUnquote(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm,ByteCode* fix);
 ByteCode* compileUnqtesp(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm,ByteCode* fix);
 ByteCode* compileConst(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm,ByteCode* fix);

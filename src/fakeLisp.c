@@ -186,14 +186,14 @@ void runIntpr(Intpr* inter)
 		else if(ch==')')
 		{
 			fprintf(stderr,"In file \"%s\",line %d\n",inter->filename,inter->curline);
-			fprintf(stderr,"Invalid input.\n");
+			fprintf(stderr,"Invalid expression here.\n");
 		}
 		else if(ch!='\n')
 			ungetc(ch,inter->file);
 		else if(!begin)
 		{
 			fprintf(stderr,"In file \"%s\",line %d\n",inter->filename,inter->curline);
-			fprintf(stderr,"%s:Invalid input.\n",list);
+			fprintf(stderr,"%s:Invalid expression here.\n",list);
 			free(list);
 			continue;
 		}

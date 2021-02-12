@@ -5,7 +5,7 @@
 
 (defmacro
   (let $d,$b)
-  ((lambda ()
+  (begin
      (define map
        (lambda (f l)
          (define map-iter
@@ -30,20 +30,20 @@
             (setq vals
                   (map (lambda (sd) (nth 1 sd)) d))
             `((lambda ~args ~@b) ~@vals)
-            )))))
+            ))))
 
 (defmacro
   (let* $d,$b)
-  ((lambda ()
+  (begin
      (cond ((or (not (eq (type d) 'pair))
                 (le (length d) 1))
             `(let ~d ~@b))
            (1
             `(let (~(car d))
-               (let* ~(cdr d) ~@b)))))))
+               (let* ~(cdr d) ~@b))))))
 (defmacro
   (letrec $d,$b)
-  ((lambda ()
+  (begin
      (define map
        (lambda (f l)
          (define map-iter
@@ -52,7 +52,7 @@
                    (1 (map-iter f (cdr c) (appd p (cons (f (car c)) nil)))))))
          (map-iter f l nil)))
      (define dfs (map (lambda (sd) `(define ~(car sd) ~@(cdr sd))) d))
-     `(let () ~@dfs ~@b))))
+     `(let () ~@dfs ~@b)))
 
 (defmacro (if $condition $exp1,$exp2)
   `(cond (~condition ~exp1) ~(cons 1 exp2)))

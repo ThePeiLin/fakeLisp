@@ -7,6 +7,7 @@
 #include"fakeVM.h"
 #include"reader.h"
 #include<stdlib.h>
+#include<ctype.h>
 #include<string.h>
 #include<unistd.h>
 #include<math.h>
@@ -1866,27 +1867,26 @@ ByteCode* compileFile(Intpr* inter,int evalIm,ByteCode* fix,int* exitstatus)
 		ErrorStatus status={0,NULL};
 		begin=createTree(list,inter,tmpPattern);
 		int ch=getc(inter->file);
-		if(ch==EOF)
+		if(!begin&&(list&&!(isAllSpace(list)&&ch==EOF)))
 		{
+			fprintf(stderr,"In file \"%s\",line %d\n",inter->filename,inter->curline);
+			if(list&&!isAllSpace(list))
+				fprintf(stderr,"%s:Invalid expression here.\n",list);
+			else
+				fprintf(stderr,"Can't create a valid object.\n");
 			if(list)
+			{
 				free(list);
+				list=NULL;
+			}
+			if(exitstatus)*exitstatus=INVALIDEXPR;
+			freeByteCode(tmp);
+			tmp=NULL;
 			break;
 		}
-		else if(ch==')')
-		{
-			fprintf(stderr,"In file \"%s\",line %d\n",inter->filename,inter->curline);
-			fprintf(stderr,"Invalid expression here.\n");
-			if(exitstatus)*exitstatus=INVALIDEXPR;
+		else if(!begin&&(isAllSpace(list)||ch==EOF))
 			break;
-		}
-		else if(ch!='\n')
-			ungetc(ch,inter->file);
-		else if(!begin)
-		{
-			fprintf(stderr,"In file \"%s\",line %d\n",inter->filename,inter->curline);
-			fprintf(stderr,"%s:Invalid expression here.\n",list);
-			if(exitstatus)*exitstatus=INVALIDEXPR;
-		}
+		ungetc(ch,inter->file);
 		if(begin!=NULL)
 		{
 			if(isPreprocess(begin))

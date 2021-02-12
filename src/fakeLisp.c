@@ -222,7 +222,7 @@ void runIntpr(Intpr* inter)
 						exit(0);
 					}
 				}
-				else
+				else if(tmpByteCode)
 				{
 					reCodeCat(fix,tmpByteCode);
 					//printByteCode(tmpByteCode,stderr);

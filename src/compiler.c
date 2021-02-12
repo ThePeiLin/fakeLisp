@@ -1802,23 +1802,17 @@ ByteCode* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus
 	AST_cptr* fir=&((AST_pair*)objCptr->value)->car;
 	AST_cptr* pFileName=nextCptr(fir);
 	AST_atom* name=pFileName->value;
-	ByteCode* setTp=createByteCode(1);
-	ByteCode* popTp=createByteCode(1);
-	setTp->code[0]=FAKE_SET_TP;
-	popTp->code[0]=FAKE_POP_TP;
 	if(hasLoadSameFile(name->value.str,inter))
 	{
 		status->status=CIRCULARLOAD;
 		status->place=pFileName;
-		freeByteCode(setTp);
-		freeByteCode(popTp);
 		return NULL;
 	}
 	FILE* file=fopen(name->value.str,"r");
 	if(file==NULL)
 	{
 		perror(name->value.str);
-		exit(EXIT_FAILURE);
+		return NULL;
 	}
 	Intpr* tmpIntpr=newIntpr(name->value.str,file,curEnv,inter->table);
 	tmpIntpr->prev=inter;
@@ -1833,6 +1827,10 @@ ByteCode* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus
 	tmpIntpr->table=NULL;
 	freeIntpr(tmpIntpr);
 	//printByteCode(tmp,stderr);
+	ByteCode* setTp=createByteCode(1);
+	ByteCode* popTp=createByteCode(1);
+	setTp->code[0]=FAKE_SET_TP;
+	popTp->code[0]=FAKE_POP_TP;
 	if(tmp)
 	{
 		reCodeCat(setTp,tmp);

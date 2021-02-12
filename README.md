@@ -103,6 +103,7 @@ and
 or  
 lambda  
 load  
+begin  
 unquote  
 qsquote  
 unqtesp  

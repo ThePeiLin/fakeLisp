@@ -1859,6 +1859,28 @@ ByteCode* compileFile(Intpr* inter,int evalIm,ByteCode* fix,int* exitstatus)
 		if(list==NULL)continue;
 		ErrorStatus status={0,NULL};
 		begin=createTree(list,inter,tmpPattern);
+		int ch=getc(inter->file);
+		if(ch==EOF)
+		{
+			if(list)
+				free(list);
+			break;
+		}
+		else if(ch==')')
+		{
+			fprintf(stderr,"In file \"%s\",line %d\n",inter->filename,inter->curline);
+			fprintf(stderr,"Invalid expression here.\n");
+			if(exitstatus)*exitstatus=INVALIDEXPR;
+			break;
+		}
+		else if(ch!='\n')
+			ungetc(ch,inter->file);
+		else if(!begin)
+		{
+			fprintf(stderr,"In file \"%s\",line %d\n",inter->filename,inter->curline);
+			fprintf(stderr,"%s:Invalid expression here.\n",list);
+			if(exitstatus)*exitstatus=INVALIDEXPR;
+		}
 		if(begin!=NULL)
 		{
 			if(isPreprocess(begin))
@@ -1914,6 +1936,14 @@ ByteCode* compileFile(Intpr* inter,int evalIm,ByteCode* fix,int* exitstatus)
 			}
 			deleteCptr(begin);
 			free(begin);
+		}
+		else
+		{
+			free(list);
+			list=NULL;
+			freeByteCode(tmp);
+			freeByteCode(resTp);
+			return NULL;
 		}
 		free(list);
 		list=NULL;

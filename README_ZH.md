@@ -74,19 +74,18 @@ import的语法为
 ```
 
 import与load的区别在于import不产生字节码，而且只能加载.dll文件或.so文件，二而load只能加载fakeLisp源代码文件，  
-并且加载好的.dll文件或.so文件中可调用的函数会作为常量供调用，如下面的代码错误的，（假设btk模块中有可调用的getch函数）  
+并且加载好的.dll文件或.so文件中可调用的函数的函数名会被添加到全局环境。（假设btk模块中有可调用的getch函数）  
 ```scheme
 (import btk)
 (setq getch "getch")
 ```
-其中，getch是一常量而不是变量，它会一直是常量直到getch符号被定义。  
+其中，getch是变量，调用getch会调用模块中对应的函数，直到该符号被重定义。
 如下面的代码，  
 ```scheme
 (import btk)
 (define getch 9)
 (setq getch 10)
 ```
-并且如上的定义只在当前的环境有效，所以最好不要试图重定义.dll文件或.so文件中可用的函数。  
 另外，所谓可用函数即函数名有\"FAKE_\"前缀的函数。
 
 ---

@@ -41,6 +41,7 @@ Intpr* newIntpr(const char*,FILE*,CompEnv*,SymbolTable*);
 Intpr* newTmpIntpr(const char*,FILE*);
 int isscript(const char*);
 int iscode(const char*);
+int isAllSpace(const char*);
 char* copyStr(const char*);
 void freeIntpr(Intpr*);
 void freeAtom(AST_atom*);

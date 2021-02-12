@@ -1961,3 +1961,11 @@ void writeSymbolTable(SymbolTable* table,FILE* fp)
 	for(;i<size;i++)
 		fwrite(table->idl[i]->symbol,strlen(table->idl[i]->symbol)+1,1,fp);
 }
+
+int isAllSpace(const char* str)
+{
+	for(;*str;str++)
+		if(!isspace(*str))
+			return 0;
+	return 1;
+}

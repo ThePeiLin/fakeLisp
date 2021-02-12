@@ -24,8 +24,8 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 		int j=0;
 		if(pattern->num-num)
 		{
-			fprintf(stderr,"In file \"%s\",line %d",inter->filename,inter->curline);
-			fprintf(stderr,"%s:Syntax error.\n",objStr);
+			freeStringArry(parts,num);
+			destroyEnv(tmpEnv);
 			return NULL;
 		}
 		for(;j<num;j++)
@@ -288,7 +288,11 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 				{
 					AST_cptr* tmpCptr=createTree(objStr+i,inter,tmpPattern);
 					if(tmpCptr==NULL)
+					{
+						deleteCptr(root);
+						free(root);
 						return NULL;
+					}
 					if(root==NULL)objCptr=root=tmpCptr;
 					else
 					{

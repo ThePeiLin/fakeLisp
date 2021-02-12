@@ -166,8 +166,11 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev)
 		}
 		free(splitIndex);
 		char* tmpNext=readInPattern(fp,NULL,prev);
-		if(tmpNext==NULL)
+		if(tmpNext==NULL||isAllSpace(tmpNext))
+		{
+			if(tmpNext)free(tmpNext);
 			break;
+		}
 		tmp=exStrCat(tmp,tmpNext,backIndex);
 		free(tmpNext);
 		if(!matchStringPattern(tmp,pattern))
@@ -545,6 +548,7 @@ int32_t countInPattern(const char* str,StringMatchPattern* pattern)
 		else
 		{
 			s+=skipSpace(str+s);
+			if(str[s]==')')break;
 			char* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
 			s+=skipUntilNext(str+s,next);
 		}

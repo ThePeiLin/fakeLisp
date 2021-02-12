@@ -163,11 +163,11 @@ int isUnquoteExpression(const AST_cptr* objCptr)
 	return 0;
 }
 
-int isQuquoteExpression(const AST_cptr* objCptr)
+int isQsquoteExpression(const AST_cptr* objCptr)
 {
 	objCptr=(isValid(objCptr)&&objCptr->type==PAIR)?&((AST_pair*)objCptr->value)->car:NULL;
 	AST_atom* tmpAtm=(objCptr!=NULL&&objCptr->type==ATM)?objCptr->value:NULL;
-	if(tmpAtm!=NULL&&tmpAtm->type==SYM&&!strcmp(tmpAtm->value.str,"ququote"))return 1;
+	if(tmpAtm!=NULL&&tmpAtm->type==SYM&&!strcmp(tmpAtm->value.str,"qsquote"))return 1;
 	return 0;
 }
 

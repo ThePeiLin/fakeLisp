@@ -550,7 +550,7 @@ void initPreprocess()
 	addKeyWord("load");
 	addKeyWord("begin");
 	addKeyWord("unquote");
-	addKeyWord("ququote");
+	addKeyWord("qsquote");
 	addKeyWord("unqtesp");
 }
 
@@ -831,7 +831,7 @@ ByteCode* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* st
 		if(isLoadExpression(objCptr))return compileLoad(objCptr,curEnv,inter,status,evalIm,fix);
 		if(isConst(objCptr))return compileConst(objCptr,curEnv,inter,status,evalIm,fix);
 		if(isUnquoteExpression(objCptr))return compileUnquote(objCptr,curEnv,inter,status,evalIm,fix);
-		if(isQuquoteExpression(objCptr))return compileQuquote(objCptr,curEnv,inter,status,evalIm,fix);
+		if(isQsquoteExpression(objCptr))return compileQsquote(objCptr,curEnv,inter,status,evalIm,fix);
 		if(isSymbol(objCptr))return compileSym(objCptr,curEnv,inter,status,evalIm,fix);
 		if(isDefExpression(objCptr))return compileDef(objCptr,curEnv,inter,status,evalIm,fix);
 		if(isSetqExpression(objCptr))return compileSetq(objCptr,curEnv,inter,status,evalIm,fix);
@@ -983,7 +983,7 @@ ByteCode* compilePair(AST_cptr* objCptr)
 	return tmp;
 }
 
-ByteCode* compileQuquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
+ByteCode* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
 {
 	objCptr=nextCptr(getFirst(objCptr));
 	if(objCptr->type==ATM)

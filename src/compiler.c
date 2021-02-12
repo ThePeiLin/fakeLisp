@@ -1885,7 +1885,11 @@ ByteCode* compileFile(Intpr* inter,int evalIm,ByteCode* fix,int* exitstatus)
 			break;
 		}
 		else if(!begin&&(isAllSpace(list)||ch==EOF))
+		{
+			if(list)
+				free(list);
 			break;
+		}
 		ungetc(ch,inter->file);
 		if(begin!=NULL)
 		{

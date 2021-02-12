@@ -24,37 +24,37 @@ defmacro的语法比较特殊，为：
 
 下面是let宏:  
 ```scheme
-(defmacro
-  (let $d,$b)
-  ((lambda ()
-     (define map
-       (lambda (f l)
-         (define map-iter
-           (lambda (f c p)
-             (cond ((null c) (appd p nil))
-                   (1 (map-iter f (cdr c) (appd p (cons (f (car c)) nil)))))))
-         (map-iter f l nil)))
-     (define list (lambda ls ls))
-     (define args nil)
-     (define vals nil)
-     (cond ((eq (type d) 'sym)
-            (setq
-              args
-              (map (lambda (sd) (nth 0 sd)) (car b)))
-            (setq
-              vals
-              (map (lambda (sd) (nth 1 sd)) (car b)))
-            (list 'let
-                  '()
-                  (list 'define d (cons 'lambda (cons args (cdr b))))
-                  (cons d vals)))
-           (1
-            (setq args
-                  (map (lambda (sd) (nth 0 sd)) d))
-            (setq vals
-                  (map (lambda (sd) (nth 1 sd)) d))
-            (cons (cons 'lambda (cons args b)) vals)
-            )))))  
+	(defmacro
+	 (let $d,$b)
+	 (begin
+	  (define map
+	   (lambda (f l)
+		(define map-iter
+		 (lambda (f c p)
+		  (cond ((null c) (appd p nil))
+		   (1 (map-iter f (cdr c) (appd p (cons (f (car c)) nil)))))))
+		(map-iter f l nil)))
+	  (define list (lambda ls ls))
+	  (define args nil)
+	  (define vals nil)
+	  (cond ((eq (type d) (quote sym))
+			 (setq
+			  args
+			  (map (lambda (sd) (nth 0 sd)) (car b)))
+			 (setq
+			  vals
+			  (map (lambda (sd) (nth 1 sd)) (car b)))
+			 (list (quote let)
+			  (quote ())
+			  (list (quote define) d (cons (quote lambda) (cons args (cdr b))))
+			  (cons d vals)))
+	   (1
+		(setq args
+		 (map (lambda (sd) (nth 0 sd)) d))
+		(setq vals
+		 (map (lambda (sd) (nth 1 sd)) d))
+		(cons (cons (quote lambda) (cons args b)) vals)
+	   ))))  
 ```
 如果用于匹配的表达式是字符串，则这个宏会在建立语法分析树时展开。
 下面是用宏实现的quote的语法糖：
@@ -148,6 +148,7 @@ and
 or  
 lambda  
 load   
+begin  
 unquote  
 qsquote  
 unqtesp  
@@ -163,7 +164,6 @@ setf可以给任何值赋值，因为setf是修改引用，
 可以愉快地开始写lisp了。  
 没有面向对象的功能，但如果你把复合过程当作对象那就算有面向对象的功能，  
 另外，如果觉得把复合过程当作对象写代码太麻烦的话可以写几个宏来方便实现面向对象的功能，  
-这个解释器的宏求值过程是跑虚拟机，这种设定给宏的展开过程提供了极大的灵活性。  
+这个解释器的宏展开过程是跑虚拟机，这种设置给宏的展开过程提供了极大的灵活性。  
 另外，由于宏展开的虚拟机编号是-1，以此无法在宏展开过程中创建线程。  
 我会找时间写调试器。还得实现一些编译时参数数量检查，不然太麻烦了。  
-暂时没有quasiquote、unquote和unquote-splicing等方便写宏的特殊形式。  

@@ -1316,6 +1316,12 @@ ByteCode* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus
 
 ByteCode* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
 {
+	if(hasKeyWord(objCptr))
+	{
+		status->status=SYNTAXERROR;
+		status->place=objCptr;
+		return NULL;
+	}
 	ByteCode* pushVar=createByteCode(sizeof(char)+sizeof(int32_t));
 	pushVar->code[0]=FAKE_PUSH_VAR;
 	AST_atom* tmpAtm=objCptr->value;

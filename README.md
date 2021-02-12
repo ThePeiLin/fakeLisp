@@ -103,6 +103,11 @@ and
 or  
 lambda  
 load  
+unquote  
+qsquote  
+unqtesp  
+
+Preprocesser commands:
 import  
 defmacro  
 

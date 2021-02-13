@@ -852,27 +852,27 @@ void runFakeVM(FakeVM* exe)
 			switch(status)
 			{
 				case WRONGARG:
-					fprintf(stderr,"error:Wrong arguements!\n");
+					fprintf(stderr,"error:Wrong arguements.\n");
 					break;
 				case STACKERROR:
-					fprintf(stderr,"error:Stack error!\n");
+					fprintf(stderr,"error:Stack error.\n");
 					break;
 				case TOOMANYARG:
-					fprintf(stderr,"error:Too many arguements!\n");
+					fprintf(stderr,"error:Too many arguements.\n");
 					break;
 				case TOOFEWARG:
-					fprintf(stderr,"error:Too few arguements!\n");
+					fprintf(stderr,"error:Too few arguements.\n");
 					break;
 				case CANTCREATETHREAD:
-					fprintf(stderr,"error:Can't create thread!\n");
+					fprintf(stderr,"error:Can't create thread.n");
 					break;
 				case THREADERROR:
-					fprintf(stderr,"error:Thread error!\n");
+					fprintf(stderr,"error:Thread error.\n");
 					break;
 				case SYMUNDEFINE:
 					id=getSymbolIdInByteCode(tmpCode->code+curproc->cp);
 					fprintf(stderr,"%s",exe->table->idl[id]->symbol);
-					fprintf(stderr,":Symbol undefined!\n");
+					fprintf(stderr,":Symbol is undefined.\n");
 					break;
 			}
 			int i[2]={status,1};

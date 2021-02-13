@@ -571,7 +571,9 @@ int32_t skipUntilNext(const char* str,const char* part)
 	while(str[s])
 	{
 		if(str[s]=='(')
+		{
 			s+=skipParentheses(str+s);
+		}
 		else if(str[s]=='\"')
 		{
 			int32_t len=0;
@@ -592,6 +594,8 @@ int32_t skipUntilNext(const char* str,const char* part)
 			if(pattern)
 			{
 				s+=skipInPattern(str+s,pattern);
+				if(!part)
+					break;
 				continue;
 			}
 			else if(part&&!isVar(part))

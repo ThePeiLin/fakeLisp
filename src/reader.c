@@ -584,6 +584,8 @@ int32_t skipUntilNext(const char* str,const char* part)
 			s+=skipSpace(str+s);
 			continue;
 		}
+		else if(str[s]==',')
+			break;
 		else
 		{
 			StringMatchPattern* pattern=findStringPattern(str+s);

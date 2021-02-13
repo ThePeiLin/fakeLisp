@@ -994,12 +994,14 @@ ByteCode* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	ByteCode* tmp=createByteCode(0);
 	AST_pair* objPair=objCptr->value;
 	AST_pair* tmpPair=objPair;
+	ByteCode* appd=createByteCode(1);
 	ByteCode* popToCar=createByteCode(1);
 	ByteCode* popToCdr=createByteCode(1);
 	ByteCode* pushPair=createByteCode(1);
 	popToCar->code[0]=FAKE_POP_CAR;
 	popToCdr->code[0]=FAKE_POP_CDR;
 	pushPair->code[0]=FAKE_PUSH_PAIR;
+	appd->code[0]=FAKE_APPD;
 	while(objCptr!=NULL)
 	{
 		if(isUnquoteExpression(objCptr))
@@ -1021,16 +1023,14 @@ ByteCode* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 				freeByteCode(popToCar);
 				freeByteCode(popToCdr);
 				freeByteCode(pushPair);
+				freeByteCode(appd);
 				freeByteCode(tmp);
 				status->status=INVALIDEXPR;
 				status->place=objCptr;
 				return NULL;
 			}
-			ByteCode* appd=createByteCode(1);
-			appd->code[0]=FAKE_APPD;
 			ByteCode* tmp1=compile(nextCptr(getFirst(objCptr)),curEnv,inter,status,evalIm,fix);
 			codeCat(tmp1,appd);
-			freeByteCode(appd);
 			codeCat(tmp,tmp1);
 			freeByteCode(tmp1);
 			if(objPair!=NULL&&objCptr==&objPair->car)
@@ -1068,7 +1068,7 @@ ByteCode* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 				prev=objPair;
 				objPair=objPair->prev;
 				if(prev!=NULL&&!isUnqtespExpression(&prev->car))
-					codeCat(tmp,(prev==objPair->car.value)?popToCar:popToCdr);
+					codeCat(tmp,(prev==objPair->car.value)?popToCar:appd);
 				if(prev==objPair->car.value)break;
 			}
 			if(objPair!=NULL)objCptr=&objPair->cdr;
@@ -1079,6 +1079,7 @@ ByteCode* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	freeByteCode(popToCar);
 	freeByteCode(popToCdr);
 	freeByteCode(pushPair);
+	freeByteCode(appd);
 	return tmp;
 }
 

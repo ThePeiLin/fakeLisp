@@ -340,14 +340,14 @@ typedef struct VM_Line_Number_Table
 
 typedef struct VM_Line_Number_Table_Key
 {
-	char* key;
+	int32_t key;
 	int32_t size;
 	struct VM_Line_Number_Table_Node** list;
 }VMLineNumTabKey;
 
 typedef struct VM_Line_Number_Table_Node
 {
-	int32_t id;
+	char* f;
 	int32_t line;
 	int32_t start;
 	int32_t end;

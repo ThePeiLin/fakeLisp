@@ -2068,7 +2068,7 @@ int B_cast_to_chr(FakeVM* exe)
 		case CHR:*tmpValue->u.chr=*topValue->u.chr;break;
 		case STR:
 		case SYM:*tmpValue->u.chr=topValue->u.str->str[0];break;
-		case BYTS:*tmpValue->u.dbl=*(char*)topValue->u.byts->str;break;
+		case BYTS:*tmpValue->u.chr=*(char*)topValue->u.byts->str;break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
 	proc->cp+=1;

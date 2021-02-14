@@ -1071,7 +1071,7 @@ int B_push_byte(FakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMcode* tmpCode=proc->code;
 	int32_t size=*(int32_t*)(tmpCode->code+proc->cp+1);
-	uint8_t* tmp=createByteArry(size);
+	uint8_t* tmp=createByteString(size);
 	memcpy(tmp,tmpCode->code+proc->cp+5,size);
 	if(stack->tp>=stack->size)
 	{
@@ -1079,7 +1079,7 @@ int B_push_byte(FakeVM* exe)
 		if(stack->values==NULL)errors("B_push_byte",__FILE__,__LINE__);
 		stack->size+=64;
 	}
-	ByteString* tmpArry=newByteArry(size,NULL);
+	ByteString* tmpArry=newByteString(size,NULL);
 	tmpArry->str=tmp;
 	VMvalue* objValue=newVMvalue(BYTS,tmpArry,exe->heap,1);
 	stack->values[stack->tp]=objValue;
@@ -1134,7 +1134,7 @@ int B_push_car(FakeVM* exe)
 	}
 	else if(objValue->type==BYTS)
 	{
-		ByteString* tmp=newByteArry(1,NULL);
+		ByteString* tmp=newByteString(1,NULL);
 		tmp->str=objValue->u.byts->str;
 		VMvalue* bt=newVMvalue(BYTS,tmp,exe->heap,0);
 		stack->values[stack->tp-1]=bt;
@@ -1170,7 +1170,7 @@ int B_push_cdr(FakeVM* exe)
 		if(objValue->u.byts->size==1)stack->values[stack->tp-1]=newNilValue(exe->heap);
 		else
 		{
-			ByteString* tmp=newByteArry(objValue->u.byts->size-1,NULL);
+			ByteString* tmp=newByteString(objValue->u.byts->size-1,NULL);
 			tmp->str=objValue->u.byts->str+1;
 			VMvalue* bt=newVMvalue(BYTS,tmp,exe->heap,0);
 			stack->values[stack->tp-1]=bt;
@@ -2190,15 +2190,15 @@ int B_cast_to_byte(FakeVM* exe)
 	switch(topValue->type)
 	{
 		case IN32:tmpValue->u.byts->size=sizeof(int32_t);
-				 tmpValue->u.byts->str=createByteArry(sizeof(int32_t));
+				 tmpValue->u.byts->str=createByteString(sizeof(int32_t));
 				 *(int32_t*)tmpValue->u.byts->str=*topValue->u.num;
 				 break;
 		case DBL:tmpValue->u.byts->size=sizeof(double);
-				 tmpValue->u.byts->str=createByteArry(sizeof(double));
+				 tmpValue->u.byts->str=createByteString(sizeof(double));
 				 *(double*)tmpValue->u.byts->str=*topValue->u.dbl;
 				 break;
 		case CHR:tmpValue->u.byts->size=sizeof(char);
-				 tmpValue->u.byts->str=createByteArry(sizeof(char));
+				 tmpValue->u.byts->str=createByteString(sizeof(char));
 				 *(char*)tmpValue->u.byts->str=*topValue->u.chr;
 				 break;
 		case STR:
@@ -2206,7 +2206,7 @@ int B_cast_to_byte(FakeVM* exe)
 				 tmpValue->u.byts->str=(uint8_t*)copyStr(topValue->u.str->str);
 				 break;
 		case BYTS:tmpValue->u.byts->size=topValue->u.byts->size;
-				  tmpValue->u.byts->str=createByteArry(topValue->u.byts->size);
+				  tmpValue->u.byts->str=createByteString(topValue->u.byts->size);
 				  memcpy(tmpValue->u.byts->str,topValue->u.byts->str,topValue->u.byts->size);
 				  break;
 	}
@@ -2252,7 +2252,7 @@ int B_nth(FakeVM* exe)
 	{
 		stack->tp-=1;
 		stackRecycle(exe);
-		ByteString* tmpByte=newByteArry(1,NULL);
+		ByteString* tmpByte=newByteString(1,NULL);
 		tmpByte->str=objlist->u.byts->str+*place->u.num;
 		VMvalue* objByte=newVMvalue(BYTS,tmpByte,exe->heap,0);
 		stack->values[stack->tp-1]=objByte;
@@ -2326,7 +2326,7 @@ int B_appd(FakeVM* exe)
 		VMvalue* tmpByte=newVMvalue(BYTS,NULL,exe->heap,1);
 		tmpByte->u.byts=newEmptyByteArry();
 		tmpByte->u.byts->size=firSize+secSize;
-		uint8_t* tmpArry=createByteArry(firSize+secSize);
+		uint8_t* tmpArry=createByteString(firSize+secSize);
 		memcpy(tmpArry,sec->u.byts->str,secSize);
 		memcpy(tmpArry+firSize,fir->u.byts->str,firSize);
 		tmpByte->u.byts->str=tmpArry;

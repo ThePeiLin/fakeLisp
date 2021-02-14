@@ -68,6 +68,7 @@ void printByteStr(const ByteString*,FILE*,int);
 void printAsByteStr(const uint8_t*,int32_t,FILE*);
 int hasLoadSameFile(const char*,const Intpr*);
 RawProc* getHeadRawProc(const Intpr*);
+Intpr* getFirstIntpr(Intpr*);
 AST_cptr* getANSPairCar(const AST_cptr*);
 AST_cptr* getANSPairCdr(const AST_cptr*);
 AST_cptr* baseCreateTree(const char*,Intpr*);

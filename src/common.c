@@ -842,6 +842,7 @@ RawProc* newRawProc(int32_t count)
 	if(tmp==NULL)errors("newRawProc",__FILE__,__LINE__);
 	tmp->count=count;
 	tmp->proc=NULL;
+	tmp->prev=NULL;
 	tmp->next=NULL;
 	return tmp;
 }
@@ -854,6 +855,8 @@ RawProc* addRawProc(ByteCode* proc,Intpr* inter)
 	RawProc* tmpProc=newRawProc((inter->procs==NULL)?0:inter->procs->count+1);
 	tmpProc->proc=tmp;
 	tmpProc->next=inter->procs;
+	if(inter->procs)
+		inter->procs->prev=tmpProc;
 	inter->procs=tmpProc;
 	return tmpProc;
 }
@@ -1075,6 +1078,13 @@ RawProc* getHeadRawProc(const Intpr* inter)
 	while(inter->prev!=NULL)
 		inter=inter->prev;
 	return inter->procs;
+}
+
+Intpr* getFirstIntpr(Intpr* inter)
+{
+	while(inter->prev!=NULL)
+		inter=inter->prev;
+	return inter;
 }
 
 ByteCode* newDllFuncProc(const char* name)

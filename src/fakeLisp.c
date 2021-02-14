@@ -87,7 +87,7 @@ int main(int argc,char** argv)
 				freeVMheap(anotherVM->heap);
 				freeAllVMs();
 			}
-			else if(setjmp(buf)==1)
+			else
 			{
 				deleteCallChain(anotherVM);
 				joinAllThread();

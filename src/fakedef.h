@@ -260,6 +260,8 @@ typedef struct
 {
 	unsigned int mark :1;
 	int32_t VMid;
+	int argc;
+	char** argv;
 	pthread_t tid;
 	pthread_mutex_t lock;
 	ByteCode* procs;

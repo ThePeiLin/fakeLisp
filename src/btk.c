@@ -16,8 +16,20 @@
 extern "C"
 {
 #endif
-
 #ifndef _WIN32
+
+void set_return(VMvalue* v,VMstack* stack,char* fn)
+{
+	if(stack->tp>=stack->size)
+	{
+		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
+		if(stack->values==NULL)errors(fn,__FILE__,__LINE__);
+		stack->size+=64;
+	}
+	stack->values[stack->tp]=v;
+	stack->tp+=1;
+}
+
 int getch()
 {
 	struct termios oldt,newt;
@@ -52,8 +64,7 @@ int FAKE_getch(FakeVM* exe,pthread_rwlock_t* pGClock)
 		stack->size+=64;
 	}
 	char ch=getch();
-	stack->values[stack->tp]=newVMvalue(CHR,&ch,exe->heap,1);
-	stack->tp+=1;
+	set_return(newVMvalue(CHR,&ch,exe->heap,1),stack,"FAKE_getch");
 	return 0;
 }
 
@@ -128,8 +139,7 @@ int FAKE_rand(FakeVM* exe,pthread_rwlock_t* pGClock)
 	int32_t limit=(lim==NULL||*lim->u.num==0)?INT_MAX:*lim->u.num;
 	int32_t result=rand()%limit;
 	VMvalue* toReturn=newVMvalue(IN32,&result,exe->heap,1);
-	stack->values[stack->tp]=toReturn;
-	stack->tp+=1;
+	set_return(toReturn,stack,"FAKE_rand");
 	return 0;
 }
 
@@ -159,9 +169,8 @@ int FAKE_getTime(FakeVM* exe,pthread_rwlock_t* pGClock)
 	free(year);
 	VMstr* tmpStr=newVMstr(trueTime);
 	VMvalue* tmpVMvalue=newVMvalue(STR,tmpStr,exe->heap,1);
-	stack->values[stack->tp]=tmpVMvalue;
+	set_return(tmpVMvalue,stack,"FAKE_getTime");
 	free(trueTime);
-	stack->tp+=1;
 	return 0;
 }
 
@@ -177,10 +186,28 @@ int FAKE_removeFile(FakeVM* exe,pthread_rwlock_t* pGClock)
 		return WRONGARG;
 	int32_t i=remove(name->u.str->str);
 	VMvalue* toReturn=newVMvalue(IN32,&i,exe->heap,1);
-	stack->values[stack->tp]=toReturn;
-	stack->tp+=1;
+	set_return(toReturn,stack,"FAKE_removeFile");
 	return 0;
 }
+
+int FAKE_argv(FakeVM* exe,pthread_rwlock_t* pGClock)
+{
+	VMstack* stack=exe->stack;
+	VMvalue* retval=NULL;
+	if(resBp(exe))
+		return TOOMANYARG;
+	else
+	{
+		retval=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap,1);
+		VMvalue* tmp=retval;
+		int32_t i=0;
+		for(;i<exe->argc;i++,tmp=getCdr(tmp))
+			tmp->u.pair->car=newVMvalue(STR,newVMstr(exe->argv[i]),exe->heap,1);
+	}
+	set_return(retval,stack,"FAKE_argv");
+	return 0;
+}
+
 #ifdef __cplusplus
 }
 #endif

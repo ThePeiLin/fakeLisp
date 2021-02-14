@@ -65,6 +65,8 @@ int main(int argc,char** argv)
 			ByteCode* rawProcList=castRawproc(NULL,inter->procs);
 			FakeVM* anotherVM=newFakeVM(mainByteCode,rawProcList);
 			freeByteCode(mainByteCode);
+			anotherVM->argc=argc-1;
+			anotherVM->argv=argv+1;
 			anotherVM->tid=pthread_self();
 			anotherVM->mainproc->localenv=globEnv;
 			anotherVM->mainproc->code->localenv=globEnv;
@@ -119,6 +121,8 @@ int main(int argc,char** argv)
 		loadAllModules(fp,&anotherVM->modules);
 		fclose(fp);
 		VMenv* globEnv=newVMenv(NULL);
+		anotherVM->argc=argc-1;
+		anotherVM->argv=argv+1;
 		anotherVM->table=table;
 		anotherVM->mainproc->localenv=globEnv;
 		anotherVM->mainproc->code->localenv=globEnv;

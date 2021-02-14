@@ -688,6 +688,8 @@ FakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 		exe->mainproc=newFakeProcess(newVMcode(mainproc),NULL);
 	else
 		exe->mainproc=newFakeProcess(NULL,NULL);
+	exe->argc=0;
+	exe->argv=NULL;
 	exe->curproc=exe->mainproc;
 	exe->modules=NULL;
 	exe->procs=procs;
@@ -733,6 +735,8 @@ FakeVM* newTmpFakeVM(ByteCode* mainproc,ByteCode* procs)
 	exe->modules=NULL;
 	exe->procs=procs;
 	exe->mark=1;
+	exe->argc=0;
+	exe->argv=NULL;
 	exe->stack=newStack(0);
 	exe->queueHead=NULL;
 	exe->queueTail=NULL;
@@ -2989,6 +2993,8 @@ FakeVM* newThreadVM(VMcode* main,ByteCode* procs,Filestack* files,VMheap* heap,D
 	exe->curproc=exe->mainproc;
 	exe->procs=procs;
 	exe->mark=1;
+	exe->argc=0;
+	exe->argv=NULL;
 	exe->modules=d;
 	main->refcount+=1;
 	exe->stack=newStack(0);

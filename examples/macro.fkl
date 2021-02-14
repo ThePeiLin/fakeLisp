@@ -63,6 +63,26 @@
   `(cond (~condition ~exp1) ~(cons 1 exp2)))
 
 (defmacro (case $v,$b)
-  (begin))
+  (begin
+    (define map
+      (lambda (f l)
+        (define map-iter
+          (lambda (f c p)
+            (cond ((null c) (appd p nil))
+                  (1 (map-iter f (cdr c) (appd p (cons (f (car c)) nil)))))))
+        (map-iter f l nil)))
+    (define body (let ((tb (map (lambda (x) (cdr x)) b))
+                       (cs (map (lambda (x)
+                                  (cons 'or
+                                        (map (lambda (x) `(equal ~v ~x)) x)))
+                                (map (lambda (x) (nth 0 x)) b))))
+                   (map (lambda (x)
+                          (define r (cons x (car tb)))
+                          (setq tb (cdr tb))
+                          r)
+                        cs)
+                   ))
+    `(cond,~body)))
+
 (defmacro (define  ($name,$args),$body)
   `(define ~name (lambda ~args ~@body)))

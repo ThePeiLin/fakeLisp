@@ -39,7 +39,7 @@ VMvalue* copyValue(VMvalue* obj,VMheap* heap)
 		tmp=newVMvalue(CHR,obj->u.chr,heap,1);
 	else if(obj->type==BYTS)
 	{
-		ByteString* tmpByteArry=newByteArry(obj->u.byts->size,obj->u.byts->str);
+		ByteString* tmpByteArry=newByteString(obj->u.byts->size,obj->u.byts->str);
 		tmp=newVMvalue(BYTS,tmpByteArry,heap,1);
 	}
 	else if(obj->type==STR||obj->type==SYM)
@@ -225,7 +225,7 @@ VMvalue* castCptrVMvalue(const AST_cptr* objCptr,VMheap* heap)
 			case IN32:tmp=newVMvalue(IN32,&tmpAtm->value.num,heap,1);break;
 			case DBL:tmp=newVMvalue(DBL,&tmpAtm->value.dbl,heap,1);break;
 			case CHR:tmp=newVMvalue(CHR,&tmpAtm->value.chr,heap,1);break;
-			case BYTS:tmp=newVMvalue(BYTS,&tmpAtm->value.byts,heap,1);break;
+			case BYTS:tmp=newVMvalue(BYTS,newByteString(tmpAtm->value.byts.size,tmpAtm->value.byts.str),heap,1);break;
 			case SYM:
 			case STR:tmp=newVMvalue(tmpAtm->type,newVMstr(tmpAtm->value.str),heap,1);break;
 		}
@@ -244,10 +244,10 @@ VMvalue* castCptrVMvalue(const AST_cptr* objCptr,VMheap* heap)
 	return NULL;
 }
 
-ByteString* newByteArry(size_t size,uint8_t* str)
+ByteString* newByteString(size_t size,uint8_t* str)
 {
 	ByteString* tmp=(ByteString*)malloc(sizeof(ByteString));
-	if(tmp==NULL)errors("newByteArry",__FILE__,__LINE__);
+	if(tmp==NULL)errors("newByteString",__FILE__,__LINE__);
 	tmp->size=size;
 	tmp->refcount=0;
 	if(str!=NULL)
@@ -286,10 +286,10 @@ uint8_t* copyArry(size_t size,uint8_t* str)
 	return tmp;
 }
 
-uint8_t* createByteArry(int32_t size)
+uint8_t* createByteString(int32_t size)
 {
 	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	if(tmp==NULL)errors("createByteArry",__FILE__,__LINE__);
+	if(tmp==NULL)errors("createByteString",__FILE__,__LINE__);
 	return tmp;
 }
 
@@ -441,7 +441,7 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 			case BYTS:
 				if(!sec->access)
 				{
-					fir->u.byts=newByteArry(sec->u.byts->size,sec->u.byts->str);
+					fir->u.byts=newByteString(sec->u.byts->size,sec->u.byts->str);
 					fir->u.byts->refcount+=1;
 				}
 				else

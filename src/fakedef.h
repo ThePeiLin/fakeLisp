@@ -124,6 +124,7 @@ typedef struct Raw_Proc
 {
 	int32_t count;
 	ByteCode* proc;
+	struct Raw_Proc* prev;
 	struct Raw_Proc* next;
 }RawProc;
 

@@ -1599,7 +1599,11 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 						freeByteCode(resBp);
 						freeByteCode(setTp);
 						freeByteCode(popTp);
-						inter->procs=prevRawProc;
+						destroyCompEnv(tmpEnv);
+						if(prevRawProc)
+							prevRawProc->prev=tmpRawProc->prev;
+						if(tmpRawProc->prev)
+							tmpRawProc->prev->next=prevRawProc;
 						while(tmpRawProc!=prevRawProc)
 						{
 							RawProc* prev=tmpRawProc;
@@ -1630,7 +1634,11 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 							freeByteCode(resBp);
 							freeByteCode(setTp);
 							freeByteCode(popTp);
-							inter->procs=prevRawProc;
+							destroyCompEnv(tmpEnv);
+							if(prevRawProc)
+								prevRawProc->prev=tmpRawProc->prev;
+							if(tmpRawProc->prev)
+								tmpRawProc->prev->next=prevRawProc;
 							while(tmpRawProc!=prevRawProc)
 							{
 								RawProc* prev=tmpRawProc;
@@ -1665,7 +1673,11 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 					freeByteCode(resBp);
 					freeByteCode(setTp);
 					freeByteCode(popTp);
-					inter->procs=prevRawProc;
+					destroyCompEnv(tmpEnv);
+					if(prevRawProc)
+						prevRawProc->prev=tmpRawProc->prev;
+					if(tmpRawProc->prev)
+						tmpRawProc->prev->next=prevRawProc;
 					while(tmpRawProc!=prevRawProc)
 					{
 						RawProc* prev=tmpRawProc;
@@ -1700,7 +1712,11 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 				freeByteCode(resBp);
 				freeByteCode(setTp);
 				freeByteCode(popTp);
-				inter->procs=prevRawProc;
+				destroyCompEnv(tmpEnv);
+				if(prevRawProc)
+					prevRawProc->prev=tmpRawProc->prev;
+				if(tmpRawProc->prev)
+					tmpRawProc->prev->next=prevRawProc;
 				while(tmpRawProc!=prevRawProc)
 				{
 					RawProc* prev=tmpRawProc;

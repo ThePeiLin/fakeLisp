@@ -1,9 +1,9 @@
-(import btk)
+(import ../btk)
 (load macro.fkl)
 
 (if (le (length (argv)) 1)
   (begin
-    (princ "No input file.\n" stdout)
+    (princ "No input file.\n" stderr)
     (exit 1)))
 
 (define code
@@ -12,17 +12,44 @@
   (close fp)
   (str c)))
 
+(defmacro (ADDMP $mp $e)
+  `(begin
+     (setq ~mp (add ~mp 1))
+     (if (eq (length m) ~mp)
+       (setq m (appd m ~e)))))
+
+(defmacro (ADDM $mp)
+  `(let ((c (nth ~mp m)))
+     (setf (nth ~mp m) (byt (chr (add 1 (int c)))))))
+
+(defmacro (SUBM $mp)
+  `(let ((c (nth ~mp m)))
+     (setf (nth ~mp m) (byt (chr (sub 1 (int c)))))))
+
+(defmacro (JUMPIFFALSE $cp)
+  `(let ((c (int (nth mp m))))
+     (if (eq c 0)
+       (let loop ((ch (nth ~cp code)))
+         (if (not (eq ch #\]))
+           (loop (nth (setq ~cp (add ~cp 1)) code)))))))
+
+(defmacro (JUMPBACK $cp)
+  `(let loop ((ch (nth ~cp code)))
+     (if (not (eq ch #\[))
+       (loop (nth (setq ~cp (sub ~cp 1)) code)))))
+
 (define m #b00)
 
 (let iter ((cp 0)
            (mp 0)
            (e #b00))
   (case (nth cp code)
-    ((#\>) (ADDMP mp m))
-    ((#\<) (SUBMP mp m))
-    ((#\+) (ADDM mp m))
-    ((#\-) (SUBM mp m))
+    ((#\>) (ADDMP mp e))
+    ((#\<) (setq mp (sub mp 1)))
+    ((#\+) (ADDM mp))
+    ((#\-) (SUBM mp))
     ((#\.) (princ (chr (nth mp m)) stdout))
-    ((#\,) (setf (nth mp m) (byt (read stdin))))
-    )
-  )
+    ((#\,) (setf (nth mp m) (byt (readb 1 stdin))))
+    ((#\[) (JUMPIFFALSE cp))
+    ((#\]) (JUMPBACK cp)))
+  (iter (add cp 1) mp e))

@@ -1923,7 +1923,7 @@ ByteCode* compileFile(Intpr* inter,int evalIm,ByteCode* fix,int* exitstatus)
 			}
 			else
 			{
-				ByteCode* tmpByteCode=compile(begin,inter->glob,inter,&status,evalIm,fix);
+				ByteCode* tmpByteCode=compile(begin,inter->glob,inter,&status,!isLambdaExpression(begin),fix);
 				if(!tmpByteCode||status.status!=0)
 				{
 					if(status.status)

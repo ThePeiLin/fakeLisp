@@ -222,7 +222,7 @@ void runIntpr(Intpr* inter)
 				//	printList(begin,stdout);
 				//	putchar('\n');
 				ByteCode* fix=createByteCode(0);
-				ByteCode* tmpByteCode=compile(begin,inter->glob,inter,&status,1,fix);
+				ByteCode* tmpByteCode=compile(begin,inter->glob,inter,&status,!isLambdaExpression(begin),fix);
 				if(status.status!=0)
 				{
 					exError(status.place,status.status,inter);

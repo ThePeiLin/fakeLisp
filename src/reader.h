@@ -8,7 +8,7 @@ StringMatchPattern* newStringMatchPattern(int32_t,char**,ByteCode*,RawProc*);
 char** splitPattern(const char*,int32_t*);
 char** splitStringInPattern(const char*,StringMatchPattern*,int32_t*);
 char* readInPattern(FILE*,StringMatchPattern**,char**);
-char* readSingle(FILE*,char**);
+char* readSingle(FILE*);
 char* getVarName(const char*);
 void printInPattern(char**,StringMatchPattern*,FILE*,int32_t);
 void freeStringArry(char** ss,int32_t num);

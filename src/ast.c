@@ -232,7 +232,12 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 			{
 				int curline=(inter)?inter->curline:0;
 				if(root==NULL)objCptr=root=newCptr(curline,objPair);
-				char* tmp=getStringFromList(objStr+i);
+				int32_t len=findKeyString(objStr+i);
+				char* tmp=(char*)malloc(sizeof(char)*(len+1));
+				if(!tmp)
+					errors("createTree",__FILE__,__LINE__);
+				strncpy(tmp,objStr+i,len);
+				tmp[len]='\0';
 				AST_atom* tmpAtm=NULL;
 				if(!isNum(tmp))
 					tmpAtm=newAtom(SYM,tmp,objPair);
@@ -250,7 +255,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 				}
 				objCptr->type=ATM;
 				objCptr->value=tmpAtm;
-				i+=strlen(tmp);
+				i+=len;
 				free(tmp);
 			}
 			else if(*(objStr+i)=='#'&&(/**(objStr+i)&&*/*(objStr+1+i)=='\\'))

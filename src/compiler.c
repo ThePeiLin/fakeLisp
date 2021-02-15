@@ -14,7 +14,6 @@
 #include<setjmp.h>
 
 static jmp_buf buf;
-static FakeVM* cVM=NULL;
 static void errorCallBackForPreMacroExpand(void* a)
 {
 	int* i=(int*)a;
@@ -50,7 +49,6 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 		initGlobEnv(tmpGlob,tmpVM->heap,inter->table);
 		VMcode* tmpVMcode=newVMcode(tmp->proc);
 		VMenv* macroVMenv=castPreEnvToVMenv(MacroEnv,tmpGlob,tmpVM->heap,inter->table);
-		cVM=tmpVM;
 		tmpVM->mainproc->localenv=macroVMenv;
 		tmpVMcode->localenv=macroVMenv;
 		tmpVM->mainproc->code=tmpVMcode;

@@ -100,7 +100,7 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev)
 		*prev=NULL;
 	}
 	else
-		tmp=readSingle(fp);
+		tmp=readSingle(fp,prev);
 	if(!tmp||!strlen(tmp))
 	{
 		if(tmp)
@@ -224,7 +224,7 @@ int32_t matchStringPattern(const char* str,StringMatchPattern* pattern)
 	return (pattern->num-num);
 }
 
-char* readSingle(FILE* fp)
+char* readSingle(FILE* fp,char** prev)
 {
 	char* tmp=NULL;
 	char* subStr=NULL;
@@ -293,7 +293,7 @@ char* readSingle(FILE* fp)
 			return spaceString;
 			break;
 		default:
-			subStr=readAtom(fp);
+			subStr=readInPattern(fp,NULL,prev);
 			break;
 	}
 	strSize+=strlen(subStr);
@@ -416,7 +416,7 @@ char* readAtom(FILE* fp)
 	return tmp;
 }
 
-char* readList(FILE* fp)
+char* readList(FILE* fp,char** prev)
 {
 	char* tmp=NULL;
 	int ch=getc(fp);
@@ -442,10 +442,10 @@ char* readList(FILE* fp)
 		{
 			ungetc(ch,fp);
 			if(!tmp)
-				tmp=readSingle(fp);
+				tmp=readSingle(fp,prev);
 			else
 			{
-				char* tmpStr=readSingle(fp);
+				char* tmpStr=readSingle(fp,prev);
 				tmp=(char*)realloc(tmp,sizeof(char)*(strlen(tmp)+strlen(tmpStr)+1));
 				if(!tmp)errors("readList",__FILE__,__LINE__);
 				strcat(tmp,tmpStr);

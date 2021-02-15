@@ -478,8 +478,8 @@ AST_cptr* prevCptr(const AST_cptr* objCptr)
 
 int isHexNum(const char* objStr)
 {
-	if(objStr!=NULL&&strlen(objStr)>3&&objStr[0]=='-'&&objStr[1]=='0'&&(objStr[2]=='x'||objStr[2]=='X'))return 1;
-	if(objStr!=NULL&&strlen(objStr)>2&&objStr[0]=='0'&&(objStr[1]=='x'||objStr[1]=='X'))return 1;
+	if(objStr!=NULL&&strlen(objStr)>2&&objStr[0]=='-'&&toupper(objStr[1])=='X')return 1;
+	if(objStr!=NULL&&strlen(objStr)>1&&toupper(objStr[0])=='X')return 1;
 	return 0;
 }
 
@@ -505,7 +505,11 @@ char stringToChar(const char* objStr)
 	char ch=0;
 	if(isNum(objStr))
 	{
-		if(isHexNum(objStr))format="%x";
+		if(isHexNum(objStr))
+		{
+			objStr++;
+			format="%x";
+		}
 		else if(isOctNum(objStr))format="%o";
 		else format="%d";
 		sscanf(objStr,format,&ch);
@@ -661,7 +665,7 @@ void printRawChar(char chr,FILE* out)
 	else
 	{
 		uint8_t j=chr;
-		fprintf(out,"#\\\\0x");
+		fprintf(out,"#\\\\x");
 		fprintf(out,"%X",j/16);
 		fprintf(out,"%X",j%16);
 	}
@@ -1481,21 +1485,22 @@ char* castEscapeCharater(const char* str,char end,int32_t* len)
 						while((isdigit(str[i+2+len])&&(str[i+2+len]<'8')&&len<4))len++;
 						sscanf(str+i+1,"%4o",&ch);
 						i+=len+2;
-					} else if(toupper(str[i+2])=='X')
-					{
-						int len=0;
-						while(isxdigit(str[i+3+len])&&len<2)len++;
-						sscanf(str+i+1,"%4x",&ch);
-						i+=len+3;
 					}
 				}
-				else if(isdigit(str[i+1]))
+				else
 				{
 					int len=0;
 					while(isdigit(str[i+1+len])&&len<4)len++;
 					sscanf(str+i+1,"%4d",&ch);
 					i+=len+1;
 				}
+			}
+			else if(toupper(str[i+1])=='X')
+			{
+				int len=0;
+				while(isxdigit(str[i+2+len])&&len<2)len++;
+				sscanf(str+i+1,"%4x",&ch);
+				i+=len+2;
 			}
 			else if(str[i+1]=='\n')
 			{

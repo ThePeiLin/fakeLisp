@@ -116,7 +116,7 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev)
 		if(!spaceString)errors("readInPattern",__FILE__,__LINE__);
 		sprintf(spaceString," %s",tmp);
 		free(tmp);
-		if(strncmp(spaceString+skipSpace(spaceString),"#\\",strlen("#\\"))&&spaceString[strlen(spaceString)-1]!=')')
+		if(spaceString[strlen(spaceString)-1]!=')')
 		{
 			int32_t backIndex=findKeyString(spaceString);
 			if(strlen(spaceString)!=(size_t)backIndex)
@@ -631,9 +631,51 @@ int32_t skipAtom(const char* str,const char* keyString)
 {
 	int32_t keyLen=strlen(keyString);
 	int32_t i=0;
-	for(;str[i]!='\0';i++)
-		if(isspace(str[i])||((keyLen&&!strncmp(str+i,keyString,keyLen))&&(i<1||str[i-1]!='\\')))
-			break;
+	i+=skipSpace(str);
+	if(str[i]=='\"')
+	{
+		int32_t len=0;
+		char* tStr=castEscapeCharater(str+i+1,'\"',&len);
+		free(tStr);
+		i+=len+1;
+	}
+	else if(str[i]=='#'&&(str[i+1]=='b'||str[i+1]=='\\'))
+	{
+		i++;
+		if(str[i]=='\\')
+		{
+			i++;
+			if(str[i]!='\\')
+				i++;
+			else
+			{
+				i++;
+				if(isdigit(str[i]))
+				{
+					int32_t j=0;
+					for(;isdigit(str[i+j])&&j<3;j++);
+					i+=j;
+				}
+				else if(toupper(str[i])=='X')
+					i+=2;
+				else
+					i++;
+			}
+		}
+		else if(str[i]=='b')
+		{
+			i++;
+			for(;isxdigit(str[i]);i++);
+		}
+	}
+	else
+	{
+		for(;str[i]!='\0';i++)
+		{
+			if(isspace(str[i])||(keyLen&&!strncmp(str+i,keyString,keyLen)))
+				break;
+		}
+	}
 	return i;
 }
 
@@ -866,13 +908,9 @@ int32_t findKeyString(const char* str)
 	{
 		int i=0;
 		char* keyString=cur->parts[0];
-		for(;str[i]!='\0';i++)
-		{
-			if(strlen(str+i)<strlen(keyString))
-				break;
-			if(!strncmp(keyString,str+i,strlen(keyString)))
-				return i;
-		}
+		i+=skipAtom(str+i,keyString);
+		if(str[i])
+			return i;
 		cur=cur->next;
 	}
 	return strlen(str);

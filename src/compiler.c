@@ -14,6 +14,7 @@
 #include<setjmp.h>
 
 static jmp_buf buf;
+static FakeVM* cVM=NULL;
 static void errorCallBackForPreMacroExpand(void* a)
 {
 	int* i=(int*)a;
@@ -49,6 +50,7 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 		initGlobEnv(tmpGlob,tmpVM->heap,inter->table);
 		VMcode* tmpVMcode=newVMcode(tmp->proc);
 		VMenv* macroVMenv=castPreEnvToVMenv(MacroEnv,tmpGlob,tmpVM->heap,inter->table);
+		cVM=tmpVM;
 		tmpVM->mainproc->localenv=macroVMenv;
 		tmpVMcode->localenv=macroVMenv;
 		tmpVM->mainproc->code=tmpVMcode;
@@ -56,18 +58,18 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 		tmpVM->table=inter->table;
 		tmpVM->callback=errorCallBackForPreMacroExpand;
 		AST_cptr* tmpCptr=NULL;
-		runFakeVM(tmpVM);
-		if(setjmp(buf)==0)
+		int i=runFakeVM(tmpVM);
+		if(!i)
 		{
 			tmpCptr=castVMvalueToCptr(tmpVM->stack->values[0],objCptr->curline,NULL);
 			replace(objCptr,tmpCptr);
 			deleteCptr(tmpCptr);
 			free(tmpCptr);
 		}
-		else
+		else if(i==1)
 		{
-			deleteCallChain(tmpVM);
 			pthread_mutex_destroy(&tmpVM->lock);
+			deleteCallChain(tmpVM);
 			if(tmpVM->mainproc->code)
 			{
 				tmpGlob->refcount-=1;
@@ -1521,6 +1523,7 @@ ByteCode* compileBegin(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatu
 
 ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
 {
+	Intpr* finter=getFirstIntpr(inter);
 	AST_cptr* tmpCptr=objCptr;
 	AST_pair* tmpPair=objCptr->value;
 	AST_pair* objPair=NULL;
@@ -1604,6 +1607,8 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 							prevRawProc->prev=tmpRawProc->prev;
 						if(tmpRawProc->prev)
 							tmpRawProc->prev->next=prevRawProc;
+						else
+							finter->procs=prevRawProc;
 						while(tmpRawProc!=prevRawProc)
 						{
 							RawProc* prev=tmpRawProc;
@@ -1639,6 +1644,8 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 								prevRawProc->prev=tmpRawProc->prev;
 							if(tmpRawProc->prev)
 								tmpRawProc->prev->next=prevRawProc;
+							else
+								finter->procs=prevRawProc;
 							while(tmpRawProc!=prevRawProc)
 							{
 								RawProc* prev=tmpRawProc;
@@ -1678,6 +1685,8 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 						prevRawProc->prev=tmpRawProc->prev;
 					if(tmpRawProc->prev)
 						tmpRawProc->prev->next=prevRawProc;
+					else
+						finter->procs=prevRawProc;
 					while(tmpRawProc!=prevRawProc)
 					{
 						RawProc* prev=tmpRawProc;
@@ -1717,6 +1726,8 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 					prevRawProc->prev=tmpRawProc->prev;
 				if(tmpRawProc->prev)
 					tmpRawProc->prev->next=prevRawProc;
+				else
+					finter->procs=prevRawProc;
 				while(tmpRawProc!=prevRawProc)
 				{
 					RawProc* prev=tmpRawProc;

@@ -829,7 +829,7 @@ void* ThreadVMFunc(void* p)
 	return NULL;
 }
 
-void runFakeVM(FakeVM* exe)
+int runFakeVM(FakeVM* exe)
 {
 	while(exe->curproc!=NULL&&exe->curproc->cp!=exe->curproc->code->size)
 	{
@@ -879,6 +879,8 @@ void runFakeVM(FakeVM* exe)
 					fprintf(stderr,":Symbol is undefined.\n");
 					break;
 			}
+			if(exe->VMid==-1)
+				return 1;
 			int i[2]={status,1};
 			exe->callback(i);
 		}
@@ -916,6 +918,7 @@ void runFakeVM(FakeVM* exe)
 	//	printAllStack(exe->stack,stderr);
 	//	putc('\n',stderr);
 	}
+	return 0;
 }
 
 int B_dummy(FakeVM* exe)

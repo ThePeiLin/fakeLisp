@@ -3,7 +3,7 @@
 #include"fakedef.h"
 #include<pthread.h>
 
-void runFakeVM(FakeVM*);
+int runFakeVM(FakeVM*);
 void printVMvalue(VMvalue*,VMpair*,FILE*,int8_t,int8_t);
 void princVMvalue(VMvalue*,VMpair*,FILE*,int8_t);
 void printProc(VMcode*,FILE*);

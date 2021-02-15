@@ -440,10 +440,7 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 				break;
 			case BYTS:
 				if(!sec->access)
-				{
 					fir->u.byts=newByteString(sec->u.byts->size,sec->u.byts->str);
-					fir->u.byts->refcount+=1;
-				}
 				else
 				{
 					sec->u.byts->refcount+=1;

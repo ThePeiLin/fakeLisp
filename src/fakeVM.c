@@ -2370,7 +2370,7 @@ int B_read(FakeVM* exe)
 	if(file->type!=IN32)return WRONGARG;
 	FILE* tmpFile=getFile(files,*file->u.num);
 	if(tmpFile==NULL)return STACKERROR;
-	char* tmpString=readSingle(tmpFile);
+	char* tmpString=baseReadSingle(tmpFile);
 	Intpr* tmpIntpr=newTmpIntpr(NULL,tmpFile);
 	AST_cptr* tmpCptr=baseCreateTree(tmpString,tmpIntpr);
 	VMvalue* tmp=NULL;

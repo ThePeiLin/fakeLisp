@@ -6,7 +6,7 @@
 
 static StringMatchPattern* HeadOfStringPattern=NULL;
 static void skipComment(FILE*);
-static char* readList(FILE*);
+static char* readList(FILE*,char**);
 static char* readString(FILE*);
 static char* readAtom(FILE*);
 static char* readSpace(FILE*);
@@ -14,6 +14,8 @@ static char* exStrCat(char*,const char*,int32_t);
 static int32_t matchStringPattern(const char*,StringMatchPattern* pattern);
 static int32_t countStringParts(const char*);
 static int32_t* matchPartOfPattern(const char*,StringMatchPattern*,int32_t*);
+
+static char* baseReadList(FILE*);
 
 char** splitPattern(const char* str,int32_t* num)
 {
@@ -100,7 +102,7 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev)
 		*prev=NULL;
 	}
 	else
-		tmp=readSingle(fp);
+		tmp=readSingle(fp,prev);
 	if(!tmp||!strlen(tmp))
 	{
 		if(tmp)
@@ -224,7 +226,7 @@ int32_t matchStringPattern(const char* str,StringMatchPattern* pattern)
 	return (pattern->num-num);
 }
 
-char* readSingle(FILE* fp)
+char* readSingle(FILE* fp,char** prev)
 {
 	char* tmp=NULL;
 	char* subStr=NULL;
@@ -277,7 +279,97 @@ char* readSingle(FILE* fp)
 	switch(ch)
 	{
 		case '(':
-			subStr=readList(fp);
+			subStr=readList(fp,prev);
+			break;
+		case '\"':
+			subStr=readString(fp);
+			break;
+		case ')':
+			memSize=strlen(tmp)+1;
+			tmp=(char*)realloc(tmp,sizeof(char)*memSize);
+			if(!tmp)errors("readSingle",__FILE__,__LINE__);
+			char* spaceString=(char*)malloc(sizeof(char)*(strlen(tmp)+2));
+			if(!spaceString)errors("readSingle",__FILE__,__LINE__);
+			sprintf(spaceString," %s",tmp);
+			free(tmp);
+			return spaceString;
+			break;
+		default:
+			subStr=readAtom(fp);
+			break;
+	}
+	strSize+=strlen(subStr);
+	if(strSize>memSize-1)
+	{
+		tmp=(char*)realloc(tmp,sizeof(char)*(strSize+1));
+		if(!tmp)errors("readSingle",__FILE__,__LINE__);
+	}
+	strcat(tmp,subStr);
+	memSize=strlen(tmp)+1;
+	tmp=(char*)realloc(tmp,sizeof(char)*memSize);
+	if(!tmp)errors("readSingle",__FILE__,__LINE__);
+	free(subStr);
+	char* spaceString=(char*)malloc(sizeof(char)*(strlen(tmp)+2));
+	if(!spaceString)errors("readSingle",__FILE__,__LINE__);
+	sprintf(spaceString," %s",tmp);
+	free(tmp);
+	return spaceString;
+}
+
+char* baseReadSingle(FILE* fp)
+{
+	char* tmp=NULL;
+	char* subStr=NULL;
+	int32_t memSize=0;
+	int32_t strSize=0;
+	int ch=getc(fp);
+	if(ch==EOF)
+		return NULL;
+	while(ch!=EOF)
+	{
+		if(isspace(ch))
+		{
+			ungetc(ch,fp);
+			if(!tmp)tmp=readSpace(fp);
+			else
+			{
+				char* tmpStr=readSpace(fp);
+				tmp=(char*)realloc(tmp,sizeof(char)*(strlen(tmp)+strlen(tmpStr)+1));
+				if(!tmp)errors("readSingle",__FILE__,__LINE__);
+				strcat(tmp,tmpStr);
+				free(tmpStr);
+			}
+			strSize=strlen(tmp);
+			memSize=strSize+1;
+		}
+		else if(ch==';')
+			skipComment(fp);
+		else
+		{
+			strSize++;
+			if(strSize>memSize-1)
+			{
+				tmp=(char*)realloc(tmp,sizeof(char)*(memSize+MAX_STRING_SIZE));
+				if(!tmp)errors("readSingle",__FILE__,__LINE__);
+				memSize+=MAX_STRING_SIZE;
+			}
+			if(ch==')')
+			{
+				strSize--;
+				ungetc(ch,fp);
+				break;
+			}
+			tmp[strSize-1]=ch;
+			break;
+		}
+		ch=getc(fp);
+	}
+	if(tmp)
+		tmp[strSize]='\0';
+	switch(ch)
+	{
+		case '(':
+			subStr=baseReadList(fp);
 			break;
 		case '\"':
 			subStr=readString(fp);
@@ -395,7 +487,7 @@ char* readAtom(FILE* fp)
 	int ch=getc(fp);
 	for(;ch!=EOF;ch=getc(fp))
 	{
-		if(isspace(ch)||((strSize-1<0||tmp[strSize-1]!='\\')&&(ch==';'||ch==')'||ch=='('||ch=='\"')))
+		if(isspace(ch)||((strSize-1<0||tmp[strSize-1]!='\\')&&(ch==';'||ch==')'||ch=='('||ch=='\"'||ch==',')))
 		{
 			ungetc(ch,fp);
 			break;
@@ -416,7 +508,7 @@ char* readAtom(FILE* fp)
 	return tmp;
 }
 
-char* readList(FILE* fp)
+char* readList(FILE* fp,char** prev)
 {
 	char* tmp=NULL;
 	int ch=getc(fp);
@@ -438,14 +530,29 @@ char* readList(FILE* fp)
 			}
 			break;
 		}
+		else if(ch==',')
+		{
+			if(!tmp)
+			{
+				tmp=(char*)malloc(sizeof(char)*3);
+				if(!tmp)errors("readList",__FILE__,__LINE__);
+				strcpy(tmp," ,");
+			}
+			else
+			{
+				tmp=(char*)realloc(tmp,sizeof(char)*(strlen(tmp)+3));
+				if(!tmp)errors("readList",__FILE__,__LINE__);
+				strcat(tmp," ,");
+			}
+		}
 		else
 		{
 			ungetc(ch,fp);
 			if(!tmp)
-				tmp=readSingle(fp);
+				tmp=readInPattern(fp,NULL,prev);
 			else
 			{
-				char* tmpStr=readSingle(fp);
+				char* tmpStr=readInPattern(fp,NULL,prev);
 				tmp=(char*)realloc(tmp,sizeof(char)*(strlen(tmp)+strlen(tmpStr)+1));
 				if(!tmp)errors("readList",__FILE__,__LINE__);
 				strcat(tmp,tmpStr);
@@ -914,4 +1021,45 @@ int32_t findKeyString(const char* str)
 		cur=cur->next;
 	}
 	return strlen(str);
+}
+
+char* baseReadList(FILE* fp)
+{
+	char* tmp=NULL;
+	int ch=getc(fp);
+	while(ch!=EOF)
+	{
+		if(ch==')')
+		{
+			if(!tmp)
+			{
+				tmp=(char*)malloc(sizeof(char)*3);
+				if(!tmp)errors("readList",__FILE__,__LINE__);
+				strcpy(tmp," )");
+			}
+			else
+			{
+				tmp=(char*)realloc(tmp,sizeof(char)*(strlen(tmp)+3));
+				if(!tmp)errors("readList",__FILE__,__LINE__);
+				strcat(tmp," )");
+			}
+			break;
+		}
+		else
+		{
+			ungetc(ch,fp);
+			if(!tmp)
+				tmp=baseReadSingle(fp);
+			else
+			{
+				char* tmpStr=baseReadSingle(fp);
+				tmp=(char*)realloc(tmp,sizeof(char)*(strlen(tmp)+strlen(tmpStr)+1));
+				if(!tmp)errors("readList",__FILE__,__LINE__);
+				strcat(tmp,tmpStr);
+				free(tmpStr);
+			}
+		}
+		ch=getc(fp);
+	}
+	return tmp;
 }

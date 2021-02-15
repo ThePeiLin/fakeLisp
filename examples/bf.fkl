@@ -18,6 +18,12 @@
      (if (eq (length m) ~mp)
        (setq m (appd m ~e)))))
 
+(defmacro (SUBMP $mp $e)
+  `(begin
+     (if (le ~mp 0)
+         (setq m (appd ~e mp))
+         (setq ~mp (sub ~mp 1)))))
+
 (defmacro (ADDM $mp)
   `(let ((c (nth ~mp m)))
      (setf (nth ~mp m) (byt (chr (add 1 (int c)))))))
@@ -45,7 +51,7 @@
            (e #b00))
   (case (nth cp code)
     ((#\>) (ADDMP mp e))
-    ((#\<) (setq mp (sub mp 1)))
+    ((#\<) (SUBMP mp e))
     ((#\+) (ADDM mp))
     ((#\-) (SUBM mp))
     ((#\.) (princ (chr (nth mp m)) stdout))

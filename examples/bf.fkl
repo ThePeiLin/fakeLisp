@@ -1,36 +1,40 @@
 (import ../btk)
 (load macro.fkl)
 
+(define code nil)
+
 (if (le (length (argv)) 1)
-  (begin
-    (princ "No input file.\n" stderr)
-    (exit 1)))
+  (setq code "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.")
+  (setq code
+        (let ((fp (open (nth 1 (argv)) "rb")))
+          (if (eq fp EOF)
+            (begin
+              (princ "Faild to open file" stderr)
+              (exit 1)))
+          (define c (read fp))
+          (close fp)
+          (str c))))
 
-(define code
-  (let* ((fp (open (nth 1 (argv))))
-         (c (read fp)))
-  (close fp)
-  (str c)))
-
-(defmacro (ADDMP $mp $e)
+(defmacro (ADDMP)
   `(begin
-     (setq ~mp (add ~mp 1))
-     (if (eq (length m) ~mp)
-       (setq m (appd m ~e)))))
+     (setq mp (add mp 1))
+     (if (ge mp (length m))
+       (setq m (appd m #b00)))))
 
-(defmacro (SUBMP $mp $e)
+(defmacro (SUBMP)
   `(begin
-     (if (le ~mp 0)
-         (setq m (appd ~e mp))
-         (setq ~mp (sub ~mp 1)))))
+     (if (le mp 0)
+         (setq m (appd #b00 mp))
+         (setq mp (sub mp 1)))
+     ))
 
-(defmacro (ADDM $mp)
-  `(let ((c (nth ~mp m)))
-     (setf (nth ~mp m) (byt (chr (add 1 (int c)))))))
+(defmacro (ADDM)
+  `(let ((c (chr (nth mp m))))
+     (setf (nth mp m) (byt (chr (add 1 (int c)))))))
 
-(defmacro (SUBM $mp)
-  `(let ((c (nth ~mp m)))
-     (setf (nth ~mp m) (byt (chr (sub 1 (int c)))))))
+(defmacro (SUBM)
+  `(let ((c (chr (nth mp m))))
+     (setf (nth mp m) (byt (chr (sub (int c) 1))))))
 
 (defmacro (JUMPIFFALSE $cp)
   `(let ((c (int (nth mp m))))
@@ -42,20 +46,21 @@
 (defmacro (JUMPBACK $cp)
   `(let loop ((ch (nth ~cp code)))
      (if (not (eq ch #\[))
-       (loop (nth (setq ~cp (sub ~cp 1)) code)))))
+       (loop (nth (setq ~cp (sub ~cp 1)) code))
+       (setq ~cp (sub ~cp 1)))))
 
 (define m #b00)
 
 (let iter ((cp 0)
-           (mp 0)
-           (e #b00))
+           (mp 0))
   (case (nth cp code)
-    ((#\>) (ADDMP mp e))
-    ((#\<) (SUBMP mp e))
-    ((#\+) (ADDM mp))
-    ((#\-) (SUBM mp))
+    ((#\>) (ADDMP))
+    ((#\<) (SUBMP))
+    ((#\+) (ADDM))
+    ((#\-) (SUBM))
     ((#\.) (princ (chr (nth mp m)) stdout))
     ((#\,) (setf (nth mp m) (byt (readb 1 stdin))))
     ((#\[) (JUMPIFFALSE cp))
     ((#\]) (JUMPBACK cp)))
-  (iter (add cp 1) mp e))
+  (if (lt cp (length code))
+    (iter (add cp 1) mp)))

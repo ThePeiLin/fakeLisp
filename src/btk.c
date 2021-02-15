@@ -202,7 +202,10 @@ int FAKE_argv(FakeVM* exe,pthread_rwlock_t* pGClock)
 		VMvalue* tmp=retval;
 		int32_t i=0;
 		for(;i<exe->argc;i++,tmp=getCdr(tmp))
+		{
 			tmp->u.pair->car=newVMvalue(STR,newVMstr(exe->argv[i]),exe->heap,1);
+			tmp->u.pair->cdr=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap,1);
+		}
 	}
 	set_return(retval,stack,"FAKE_argv");
 	return 0;

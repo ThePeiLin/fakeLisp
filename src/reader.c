@@ -116,7 +116,7 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev)
 		if(!spaceString)errors("readInPattern",__FILE__,__LINE__);
 		sprintf(spaceString," %s",tmp);
 		free(tmp);
-		if(spaceString[strlen(spaceString)-1]!=')')
+		if(strncmp(spaceString+skipSpace(spaceString),"#\\",strlen("#\\"))&&spaceString[strlen(spaceString)-1]!=')')
 		{
 			int32_t backIndex=findKeyString(spaceString);
 			if(strlen(spaceString)!=(size_t)backIndex)

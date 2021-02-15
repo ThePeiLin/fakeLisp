@@ -2082,6 +2082,7 @@ int B_cast_to_int(FakeVM* exe)
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue->type==PAIR||topValue->type==PRC)return WRONGARG;
 	VMvalue* tmpValue=newVMvalue(IN32,NULL,exe->heap,1);
+	int32_t m=0;
 	switch(topValue->type)
 	{
 		case IN32:
@@ -2098,7 +2099,8 @@ int B_cast_to_int(FakeVM* exe)
 			*tmpValue->u.num=stringToInt(topValue->u.str->str);
 			break;
 		case BYTS:
-			*tmpValue->u.dbl=*(int32_t*)topValue->u.byts->str;
+			memcpy(&m,topValue->u.byts->str,topValue->u.byts->size);
+			*tmpValue->u.num=m;
 			break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
@@ -2113,14 +2115,26 @@ int B_cast_to_dbl(FakeVM* exe)
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue->type==PAIR||topValue->type==PRC)return WRONGARG;
 	VMvalue* tmpValue=newVMvalue(DBL,NULL,exe->heap,1);
+	double d=0;
 	switch(topValue->type)
 	{
-		case IN32:*tmpValue->u.dbl=(double)*topValue->u.num;break;
-		case DBL:*tmpValue->u.dbl=*topValue->u.dbl;break;
-		case CHR:*tmpValue->u.dbl=(double)(int32_t)*topValue->u.chr;break;
+		case IN32:
+			*tmpValue->u.dbl=(double)*topValue->u.num;
+			break;
+		case DBL:
+			*tmpValue->u.dbl=*topValue->u.dbl;
+			break;
+		case CHR:
+			*tmpValue->u.dbl=(double)(int32_t)*topValue->u.chr;
+			break;
 		case STR:
-		case SYM:*tmpValue->u.dbl=stringToDouble(topValue->u.str->str);break;
-		case BYTS:*tmpValue->u.dbl=*(double*)topValue->u.byts->str;break;
+		case SYM:
+			*tmpValue->u.dbl=stringToDouble(topValue->u.str->str);
+			break;
+		case BYTS:
+			memcpy(&d,topValue->u.byts->str,topValue->u.byts->size);
+			*tmpValue->u.dbl=d;
+			break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
 	proc->cp+=1;
@@ -2328,7 +2342,7 @@ int B_appd(FakeVM* exe)
 		tmpByte->u.byts->size=firSize+secSize;
 		uint8_t* tmpArry=createByteString(firSize+secSize);
 		memcpy(tmpArry,sec->u.byts->str,secSize);
-		memcpy(tmpArry+firSize,fir->u.byts->str,firSize);
+		memcpy(tmpArry+secSize,fir->u.byts->str,firSize);
 		tmpByte->u.byts->str=tmpArry;
 		stack->tp-=1;
 		stackRecycle(exe);

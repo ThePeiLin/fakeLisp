@@ -131,12 +131,17 @@ int FAKE_exit(FakeVM* exe,pthread_rwlock_t* pGClock)
 
 int FAKE_rand(FakeVM* exe,pthread_rwlock_t* pGClock)
 {
-	srand((unsigned)time(NULL));
+	static int hasSrand=0;
+	if(!hasSrand)
+	{
+		srand((unsigned)time(NULL));
+		hasSrand=1;
+	}
 	VMstack* stack=exe->stack;
 	VMvalue*  lim=getArg(stack);
 	if(resBp(exe))return TOOMANYARG;
 	if(lim&&lim->type!=IN32)return WRONGARG;
-	int32_t limit=(lim==NULL||*lim->u.num==0)?INT_MAX:*lim->u.num;
+	int32_t limit=(lim==NULL||*lim->u.num==0)?RAND_MAX:*lim->u.num;
 	int32_t result=rand()%limit;
 	VMvalue* toReturn=newVMvalue(IN32,&result,exe->heap,1);
 	set_return(toReturn,stack,"FAKE_rand");

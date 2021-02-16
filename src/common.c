@@ -134,7 +134,7 @@ int32_t stringToInt(const char* str)
 {
 	int32_t tmp;
 	char* format=NULL;
-	if(isHexNum(str))format="%lx";
+	if(isHexNum(str+(str[0]=='0')))format="%lx";
 	else if(isOctNum(str))format="%lo";
 	else format="%ld";
 	sscanf(str,format,&tmp);
@@ -541,7 +541,7 @@ char stringToChar(const char* objStr)
 
 int isNum(const char* objStr)
 {
-	if(isHexNum(objStr))return 1;
+	if(isHexNum(objStr+(objStr[0]=='0')))return 1;
 	if(!isdigit(*objStr)&&*objStr!='-'&&*objStr!='.')return 0;
 	int len=strlen(objStr);
 	int i=(*objStr=='-')?1:0;

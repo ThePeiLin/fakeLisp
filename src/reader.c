@@ -1025,7 +1025,7 @@ int32_t findKeyString(const char* str)
 			return i;
 		cur=cur->next;
 	}
-	return strlen(str);
+	return skipAtom(str,"");
 }
 
 char* baseReadList(FILE* fp)

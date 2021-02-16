@@ -22,15 +22,11 @@ int main(int argc,char** argv)
 	}
 	if(argc==1||isscript(filename))
 	{
-		char* outputname=(char*)malloc(sizeof(char)*(strlen(filename)+2));
-		strcpy(outputname,filename);
-		strcat(outputname,"c");
-		FILE* outfp=fopen(outputname,"wb");
-		if(!outfp)
-		{
-			fprintf(stderr,"%s:Can't create byte code file!",outputname);
-			return 1;
-		}
+#ifdef _WIN32
+		char* rp=_fullpath(NULL,filename,0);
+#else
+		char* rp=realpath(filename,0);
+#endif
 		//changeWorkPath(filename);
 		initPreprocess();
 		int i;
@@ -40,12 +36,20 @@ int main(int argc,char** argv)
 		ByteCode* mainByteCode=compileFile(inter,1,fix,&status);
 		if(mainByteCode==NULL)
 		{
-			fclose(outfp);
-			free(outputname);
+			free(rp);
 			freeIntpr(inter);
 			freeByteCode(fix);
 			unInitPreprocess();
 			return status;
+		}
+		char* outputname=(char*)malloc(sizeof(char)*(strlen(rp)+2));
+		strcpy(outputname,rp);
+		strcat(outputname,"c");
+		FILE* outfp=fopen(outputname,"wb");
+		if(!outfp)
+		{
+			fprintf(stderr,"%s:Can't create byte code file!",outputname);
+			return 1;
 		}
 		reCodeCat(fix,mainByteCode);
 		freeByteCode(fix);
@@ -72,6 +76,7 @@ int main(int argc,char** argv)
 		freeIntpr(inter);
 		unInitPreprocess();
 		free(outputname);
+		free(rp);
 	}
 	else
 	{

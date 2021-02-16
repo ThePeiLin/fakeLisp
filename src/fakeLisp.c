@@ -181,7 +181,7 @@ void runIntpr(Intpr* inter)
 		//	printList(begin,stderr);
 		//	printf("\n==============\n");
 		int ch=getc(inter->file);
-		if(!begin&&(list&&isAllSpace(list))&&ch!=EOF)
+		if(!begin&&(list&&!(isAllSpace(list)&&ch==EOF)))
 		{
 			fprintf(stderr,"In file \"%s\",line %d\n",inter->filename,inter->curline);
 			if(list&&!isAllSpace(list))

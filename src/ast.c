@@ -175,6 +175,13 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 			}
 			else if(*(objStr+i)==',')
 			{
+				if(objCptr==&objPair->cdr)
+				{
+					if(root)
+						deleteCptr(root);
+					free(root);
+					return NULL;
+				}
 				i++;
 				objCptr=&objPair->cdr;
 			}

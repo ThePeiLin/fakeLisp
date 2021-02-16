@@ -1848,6 +1848,13 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 		}
 		else if(*(objStr+i)==',')
 		{
+			if(objCptr==&objPair->cdr)
+			{
+				if(root)
+					deleteCptr(root);
+				free(root);
+				return NULL;
+			}
 			i++;
 			objCptr=&objPair->cdr;
 		}

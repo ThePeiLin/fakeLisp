@@ -4,6 +4,7 @@
 #include"syntax.h"
 #include<string.h>
 #include<stdio.h>
+#include<stdlib.h>
 
 int main(int argc,char** argv)
 {
@@ -24,6 +25,12 @@ int main(int argc,char** argv)
 		char* outputname=(char*)malloc(sizeof(char)*(strlen(filename)+2));
 		strcpy(outputname,filename);
 		strcat(outputname,"c");
+		FILE* outfp=fopen(outputname,"wb");
+		if(!outfp)
+		{
+			fprintf(stderr,"%s:Can't create byte code file!",outputname);
+			return 1;
+		}
 		//changeWorkPath(filename);
 		initPreprocess();
 		int i;
@@ -33,13 +40,13 @@ int main(int argc,char** argv)
 		ByteCode* mainByteCode=compileFile(inter,1,fix,&status);
 		if(mainByteCode==NULL)
 		{
+			fclose(outfp);
 			free(outputname);
 			freeIntpr(inter);
 			freeByteCode(fix);
 			unInitPreprocess();
 			return status;
 		}
-		FILE* outfp=fopen(outputname,"wb");
 		reCodeCat(fix,mainByteCode);
 		freeByteCode(fix);
 		//printByteCode(mainByteCode,stderr);

@@ -36,6 +36,12 @@
   (let printList ((tls ls))
     (cond ((null (cdr tls)) (princ (car tls) stdout))
           (1 (princ (car tls) stdout) (printList (cdr tls))))))
+
+(define (fprint fp,ls)
+  (let iter ((tls ls))
+    (cond ((null (cdr tls)) (princ (car tls) fp))
+          (1 (princ (car tls) fp) (iter (cdr tls))))))
+
 (define (debugPrint file,ls)
   (let printList ((tls ls))
     (cond ((null (cdr tls)) (princ (car tls) file))

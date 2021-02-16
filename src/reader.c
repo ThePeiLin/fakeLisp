@@ -699,10 +699,15 @@ int32_t skipUntilNext(const char* str,const char* part)
 		{
 			StringMatchPattern* pattern=findStringPattern(str+s);
 			if(pattern)
+			{
 				s+=skipInPattern(str+s,pattern);
+				s+=skipSpace(str+s);
+				continue;
+			}
 			else if(part&&!isVar(part))
 			{
 				s+=skipAtom(str+s,part);
+				s+=skipSpace(str+s);
 				if(!strncmp(str+s,part,strlen(part)))
 					break;
 			}

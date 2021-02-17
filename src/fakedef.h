@@ -343,6 +343,7 @@ typedef struct VM_Line_Number_Table
 typedef struct VM_Line_Number_Table_Node
 {
 	char* f;
+	int32_t id;
 	int32_t line;
 	int32_t scp;
 	int32_t cpc;

@@ -702,7 +702,7 @@ void destroyEnv(PreEnv* objEnv)
 	}
 }
 
-Intpr* newIntpr(const char* filename,FILE* file,CompEnv* env,SymbolTable* table)
+Intpr* newIntpr(const char* filename,FILE* file,CompEnv* env,SymbolTable* table,LineNumberTable* lnt)
 {
 	Intpr* tmp=NULL;
 	if(!(tmp=(Intpr*)malloc(sizeof(Intpr))))errors("newIntpr",__FILE__,__LINE__);
@@ -735,6 +735,10 @@ Intpr* newIntpr(const char* filename,FILE* file,CompEnv* env,SymbolTable* table)
 		tmp->table=table;
 	else
 		tmp->table=newSymbolTable();
+	if(lnt)
+		tmp->lnt=lnt;
+	else
+		tmp->lnt=newLineNumTable();
 	if(env)
 	{
 		tmp->glob=env;
@@ -1573,6 +1577,7 @@ Intpr* newTmpIntpr(const char* filename,FILE* fp)
 	tmp->tail=NULL;
 	tmp->glob=NULL;
 	tmp->table=NULL;
+	tmp->lnt=NULL;
 	return tmp;
 }
 

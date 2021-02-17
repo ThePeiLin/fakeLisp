@@ -1808,6 +1808,8 @@ ByteCode* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus
 		perror(name->value.str);
 		return NULL;
 	}
+	SymTabNode* node=newSymTabNode(name->value.str);
+	addSymTabNode(node,inter->table);
 	Intpr* tmpIntpr=newIntpr(name->value.str,file,curEnv,inter->table);
 	tmpIntpr->prev=inter;
 	tmpIntpr->procs=NULL;

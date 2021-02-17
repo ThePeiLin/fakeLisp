@@ -334,18 +334,18 @@ typedef struct VM_Continuation
 	VMprocStatus* status;
 }VMcontinuation;
 
-typedef struct VM_Line_Number_Table
+typedef struct Line_Number_Table
 {
 	int32_t size;
-	struct VM_Line_Number_Table_Node** list;
-}VMLineNumberTable;
+	struct Line_Number_Table_Node** list;
+}LineNumberTable;
 
-typedef struct VM_Line_Number_Table_Node
+typedef struct Line_Number_Table_Node
 {
-	char* f;
 	int32_t id;
+	int32_t fid;
 	int32_t line;
 	int32_t scp;
 	int32_t cpc;
-}VMLineNumTabNode;
+}LineNumTabNode;
 #endif

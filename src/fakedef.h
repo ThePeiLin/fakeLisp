@@ -344,8 +344,8 @@ typedef struct Line_Number_Table_Node
 {
 	int32_t id;
 	int32_t fid;
-	int32_t line;
 	int32_t scp;
 	int32_t cpc;
+	int32_t line;
 }LineNumTabNode;
 #endif

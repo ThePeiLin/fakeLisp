@@ -148,6 +148,7 @@ typedef struct Interpreter
 	Modlist* head;
 	Modlist* tail;
 	struct Symbol_Table* table;
+	struct Line_Number_Table* lnt;
 	struct Interpreter* prev;
 }Intpr;
 

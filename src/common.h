@@ -37,7 +37,7 @@ ByteCode* castRawproc(ByteCode*,RawProc*);
 CompEnv* newCompEnv(CompEnv*);
 void destroyCompEnv(CompEnv*);
 CompDef* findCompDef(const char*,CompEnv*,SymbolTable*);
-Intpr* newIntpr(const char*,FILE*,CompEnv*,SymbolTable*);
+Intpr* newIntpr(const char*,FILE*,CompEnv*,SymbolTable*,LineNumberTable*);
 Intpr* newTmpIntpr(const char*,FILE*);
 int isscript(const char*);
 int iscode(const char*);

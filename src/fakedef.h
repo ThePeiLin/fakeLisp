@@ -24,6 +24,7 @@ typedef enum
 	CANTCREATETHREAD,
 	THREADERROR,
 	MACROEXPANDFAILED,
+	INVOKEERROR,
 }ErrorType;
 
 typedef struct

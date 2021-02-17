@@ -878,6 +878,11 @@ int runFakeVM(FakeVM* exe)
 					fprintf(stderr,"%s",exe->table->idl[id]->symbol);
 					fprintf(stderr,":Symbol is undefined.\n");
 					break;
+				case INVOKEERROR:
+					fprintf(stderr,"error:Try to invoke \"");
+					fprintValue(exe->stack->values[exe->stack->tp-1],stderr);
+					fprintf(stderr,"\"\n");
+					break;
 			}
 			if(exe->VMid==-1)
 				return 1;
@@ -1727,7 +1732,7 @@ int B_invoke(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMvalue* tmpValue=getTopValue(stack);
-	if(tmpValue->type!=PRC&&tmpValue->type!=CONT)return WRONGARG;
+	if(tmpValue->type!=PRC&&tmpValue->type!=CONT)return INVOKEERROR;
 	if(tmpValue->type==PRC)
 	{
 		VMcode* tmpCode=tmpValue->u.prc;
@@ -2791,6 +2796,12 @@ void printAllStack(VMstack* stack,FILE* fp,int mode)
 			putc('\n',fp);
 		}
 	}
+}
+
+void fprintValue(VMvalue* v,FILE* fp)
+{
+	VMpair* p=(v->type==PAIR)?v->u.pair:NULL;
+	printVMvalue(v,p,fp,0,0);
 }
 
 VMprocess* hasSameProc(VMcode* objCode,VMprocess* curproc)

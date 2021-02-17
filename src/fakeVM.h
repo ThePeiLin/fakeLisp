@@ -113,4 +113,6 @@ void GC_markValueInCallChain(VMprocess*);
 void GC_markMessage(ThreadMessage*);
 void GC_sweep(VMheap*);
 void GC_compact(VMheap*);
+
+void fprintValue(VMvalue*,FILE*);
 #endif

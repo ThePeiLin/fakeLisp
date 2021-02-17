@@ -15,6 +15,8 @@ BTK=btk.so
 endif
 
 
+line.o: src/line.* src/fakedef.h common.o
+	gcc $(FLAG) -c src/line.c
 reader.o: src/reader.* src/fakedef.h common.o
 	gcc $(FLAG) -c src/reader.c
 ast.o: src/ast.* src/fakedef.h fakeVM.o

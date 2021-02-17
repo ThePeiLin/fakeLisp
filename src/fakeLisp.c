@@ -50,6 +50,8 @@ int main(int argc,char** argv)
 			initPreprocess();
 			ByteCode* fix=createByteCode(0);
 			int status;
+			SymTabNode* node=newSymTabNode(filename);
+			addSymTabNode(node,inter->table);
 			ByteCode* mainByteCode=compileFile(inter,1,fix,&status);
 			if(mainByteCode==NULL)
 			{

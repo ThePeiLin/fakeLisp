@@ -31,6 +31,8 @@ int main(int argc,char** argv)
 		initPreprocess();
 		int i;
 		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL);
+		SymTabNode* node=newSymTabNode(argv[1]);
+		addSymTabNode(node,inter->table);
 		ByteCode* fix=createByteCode(0);
 		int status;
 		ByteCode* mainByteCode=compileFile(inter,1,fix,&status);

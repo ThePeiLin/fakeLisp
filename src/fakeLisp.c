@@ -35,7 +35,7 @@ int main(int argc,char** argv)
 			perror(filename);
 			return EXIT_FAILURE;
 		}
-		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL);
+		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
 		if(fp==stdin)
 			runIntpr(inter);
 		else

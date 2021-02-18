@@ -215,6 +215,7 @@ typedef struct VM_Env
 
 typedef struct VM_Code
 {
+	int32_t id;
 	int32_t refcount;
 	VMenv* localenv;
 	int32_t size;

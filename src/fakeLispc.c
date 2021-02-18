@@ -30,7 +30,7 @@ int main(int argc,char** argv)
 		//changeWorkPath(filename);
 		initPreprocess();
 		int i;
-		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL);
+		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
 		SymTabNode* node=newSymTabNode(argv[1]);
 		addSymTabNode(node,inter->table);
 		ByteCode* fix=createByteCode(0);

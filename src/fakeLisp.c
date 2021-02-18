@@ -48,7 +48,7 @@ int main(int argc,char** argv)
 			char* workpath=getDir(rp);
 			free(rp);
 			initPreprocess();
-			ByteCode* fix=createByteCode(0);
+			ByteCode* fix=newByteCode(0);
 			int status;
 			SymTabNode* node=newSymTabNode(filename);
 			addSymTabNode(node,inter->table);
@@ -223,7 +223,7 @@ void runIntpr(Intpr* inter)
 			{
 				//	printList(begin,stdout);
 				//	putchar('\n');
-				ByteCode* fix=createByteCode(0);
+				ByteCode* fix=newByteCode(0);
 				ByteCode* tmpByteCode=compile(begin,inter->glob,inter,&status,!isLambdaExpression(begin),fix);
 				if(status.status!=0)
 				{

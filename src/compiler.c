@@ -751,7 +751,7 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 		tmpInter->modules=inter->modules;
 		tmpInter->curDir=inter->curDir;
 		tmpInter->prev=NULL;
-		ByteCode* fix=createByteCode(0);
+		ByteCode* fix=newByteCode(0);
 		CompEnv* tmpCompEnv=createMacroCompEnv(pattern,tmpGlobCompEnv,inter->table);
 		ByteCode* tmpByteCode=compile(express,tmpCompEnv,tmpInter,&status,1,fix);
 		if(!status.status)
@@ -799,7 +799,7 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 	tmpInter->procs=NULL;
 	tmpInter->prev=NULL;
 	CompEnv* tmpCompEnv=createPatternCompEnv(parts,num,tmpGlobCompEnv,inter->table);
-	ByteCode* fix=createByteCode(0);
+	ByteCode* fix=newByteCode(0);
 	ByteCode* tmpByteCode=compile(express,tmpCompEnv,tmpInter,&status,1,fix);
 	if(!status.status)
 	{
@@ -889,32 +889,32 @@ ByteCode* compileAtom(AST_cptr* objCptr)
 	switch((int)tmpAtm->type)
 	{
 		case SYM:
-			tmp=createByteCode(sizeof(char)+strlen(tmpAtm->value.str)+1);
+			tmp=newByteCode(sizeof(char)+strlen(tmpAtm->value.str)+1);
 			tmp->code[0]=FAKE_PUSH_SYM;
 			strcpy(tmp->code+1,tmpAtm->value.str);
 			break;
 		case STR:
-			tmp=createByteCode(sizeof(char)+strlen(tmpAtm->value.str)+1);
+			tmp=newByteCode(sizeof(char)+strlen(tmpAtm->value.str)+1);
 			tmp->code[0]=FAKE_PUSH_STR;
 			strcpy(tmp->code+1,tmpAtm->value.str);
 			break;
 		case IN32:
-			tmp=createByteCode(sizeof(char)+sizeof(int32_t));
+			tmp=newByteCode(sizeof(char)+sizeof(int32_t));
 			tmp->code[0]=FAKE_PUSH_INT;
 			*(int32_t*)(tmp->code+1)=tmpAtm->value.num;
 			break;
 		case DBL:
-			tmp=createByteCode(sizeof(char)+sizeof(double));
+			tmp=newByteCode(sizeof(char)+sizeof(double));
 			tmp->code[0]=FAKE_PUSH_DBL;
 			*(double*)(tmp->code+1)=tmpAtm->value.dbl;
 			break;
 		case CHR:
-			tmp=createByteCode(sizeof(char)+sizeof(char));
+			tmp=newByteCode(sizeof(char)+sizeof(char));
 			tmp->code[0]=FAKE_PUSH_CHR;
 			tmp->code[1]=tmpAtm->value.chr;
 			break;
 		case BYTS:
-			tmp=createByteCode(sizeof(char)+sizeof(int32_t)+tmpAtm->value.byts.size);
+			tmp=newByteCode(sizeof(char)+sizeof(int32_t)+tmpAtm->value.byts.size);
 			tmp->code[0]=FAKE_PUSH_BYTE;
 			*(int32_t*)(tmp->code+1)=tmpAtm->value.byts.size;
 			memcpy(tmp->code+5,tmpAtm->value.byts.str,tmpAtm->value.byts.size);
@@ -925,19 +925,19 @@ ByteCode* compileAtom(AST_cptr* objCptr)
 
 ByteCode* compileNil()
 {
-	ByteCode* tmp=createByteCode(1);
+	ByteCode* tmp=newByteCode(1);
 	tmp->code[0]=FAKE_PUSH_NIL;
 	return tmp;
 }
 
 ByteCode* compilePair(AST_cptr* objCptr)
 {
-	ByteCode* tmp=createByteCode(0);
+	ByteCode* tmp=newByteCode(0);
 	AST_pair* objPair=objCptr->value;
 	AST_pair* tmpPair=objPair;
-	ByteCode* popToCar=createByteCode(1);
-	ByteCode* popToCdr=createByteCode(1);
-	ByteCode* pushPair=createByteCode(1);
+	ByteCode* popToCar=newByteCode(1);
+	ByteCode* popToCdr=newByteCode(1);
+	ByteCode* pushPair=newByteCode(1);
 	popToCar->code[0]=FAKE_POP_CAR;
 	popToCdr->code[0]=FAKE_POP_CDR;
 	pushPair->code[0]=FAKE_PUSH_PAIR;
@@ -991,13 +991,13 @@ ByteCode* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		return compileAtom(objCptr);
 	else if(isUnquoteExpression(objCptr))
 		return compileUnquote(objCptr,curEnv,inter,status,evalIm,fix);
-	ByteCode* tmp=createByteCode(0);
+	ByteCode* tmp=newByteCode(0);
 	AST_pair* objPair=objCptr->value;
 	AST_pair* tmpPair=objPair;
-	ByteCode* appd=createByteCode(1);
-	ByteCode* popToCar=createByteCode(1);
-	ByteCode* popToCdr=createByteCode(1);
-	ByteCode* pushPair=createByteCode(1);
+	ByteCode* appd=newByteCode(1);
+	ByteCode* popToCar=newByteCode(1);
+	ByteCode* popToCdr=newByteCode(1);
+	ByteCode* pushPair=newByteCode(1);
 	popToCar->code[0]=FAKE_POP_CAR;
 	popToCdr->code[0]=FAKE_POP_CDR;
 	pushPair->code[0]=FAKE_PUSH_PAIR;
@@ -1115,9 +1115,9 @@ ByteCode* compileFuncCall(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 	AST_cptr* headoflist=NULL;
 	AST_pair* tmpPair=objCptr->value;
 	ByteCode* tmp1=NULL;
-	ByteCode* tmp=createByteCode(0);
-	ByteCode* setBp=createByteCode(1);
-	ByteCode* invoke=createByteCode(1);
+	ByteCode* tmp=newByteCode(0);
+	ByteCode* setBp=newByteCode(1);
+	ByteCode* invoke=newByteCode(1);
 	setBp->code[0]=FAKE_SET_BP;
 	invoke->code[0]=FAKE_INVOKE;
 	for(;;)
@@ -1161,10 +1161,10 @@ ByteCode* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* sta
 	AST_cptr* fir=NULL;
 	AST_cptr* sec=NULL;
 	AST_cptr* objCptr=NULL;
-	ByteCode* tmp=createByteCode(0);
+	ByteCode* tmp=newByteCode(0);
 	ByteCode* tmp1=NULL;
-	ByteCode* pushTop=createByteCode(sizeof(char));
-	ByteCode* popVar=createByteCode(sizeof(char)+sizeof(int32_t)*2);
+	ByteCode* pushTop=newByteCode(sizeof(char));
+	ByteCode* popVar=newByteCode(sizeof(char)+sizeof(int32_t)*2);
 	popVar->code[0]=FAKE_POP_VAR;
 	pushTop->code[0]=FAKE_PUSH_TOP;
 	while(isDefExpression(tir))
@@ -1213,10 +1213,10 @@ ByteCode* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus
 	AST_cptr* fir=&((AST_pair*)objCptr->value)->car;
 	AST_cptr* sec=nextCptr(fir);
 	AST_cptr* tir=nextCptr(sec);
-	ByteCode* tmp=createByteCode(0);
+	ByteCode* tmp=newByteCode(0);
 	ByteCode* tmp1=NULL;
-	ByteCode* pushTop=createByteCode(sizeof(char));
-	ByteCode* popVar=createByteCode(sizeof(char)+sizeof(int32_t)*2);
+	ByteCode* pushTop=newByteCode(sizeof(char));
+	ByteCode* popVar=newByteCode(sizeof(char)+sizeof(int32_t)*2);
 	popVar->code[0]=FAKE_POP_VAR;
 	pushTop->code[0]=FAKE_PUSH_TOP;
 	while(isSetqExpression(tir))
@@ -1280,8 +1280,8 @@ ByteCode* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus
 	AST_cptr* fir=&((AST_pair*)objCptr->value)->car;
 	AST_cptr* sec=nextCptr(fir);
 	AST_cptr* tir=nextCptr(sec);
-	ByteCode* tmp=createByteCode(0);
-	ByteCode* popRef=createByteCode(sizeof(char));
+	ByteCode* tmp=newByteCode(0);
+	ByteCode* popRef=newByteCode(sizeof(char));
 	popRef->code[0]=FAKE_POP_REF;
 	ByteCode* tmp1=NULL;
 	tmp1=compile(sec,curEnv,inter,status,evalIm,fix);
@@ -1316,7 +1316,7 @@ ByteCode* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 		status->place=objCptr;
 		return NULL;
 	}
-	ByteCode* pushVar=createByteCode(sizeof(char)+sizeof(int32_t));
+	ByteCode* pushVar=newByteCode(sizeof(char)+sizeof(int32_t));
 	pushVar->code[0]=FAKE_PUSH_VAR;
 	AST_atom* tmpAtm=objCptr->value;
 	CompDef* tmpDef=NULL;
@@ -1351,8 +1351,8 @@ ByteCode* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 					inter=inter->prev;
 				tmpGlob=inter->glob;
 				addCompDef(tmpAtm->value.str,tmpGlob,inter->table);
-				ByteCode* pushModProc=createByteCode(sizeof(char)+strlen(tmpAtm->value.str)+1);
-				ByteCode* popVar=createByteCode(sizeof(char)+sizeof(int32_t)*2);
+				ByteCode* pushModProc=newByteCode(sizeof(char)+strlen(tmpAtm->value.str)+1);
+				ByteCode* popVar=newByteCode(sizeof(char)+sizeof(int32_t)*2);
 				pushModProc->code[0]=FAKE_PUSH_MOD_PROC;
 				popVar->code[0]=FAKE_POP_VAR;
 				*(int32_t*)(popVar->code+sizeof(char))=(int32_t)0;
@@ -1381,10 +1381,10 @@ ByteCode* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 
 ByteCode* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
 {
-	ByteCode* jumpiffalse=createByteCode(sizeof(char)+sizeof(int32_t));
-	ByteCode* push1=createByteCode(sizeof(char)+sizeof(int32_t));
-	ByteCode* pop=createByteCode(sizeof(char));
-	ByteCode* tmp=createByteCode(0);
+	ByteCode* jumpiffalse=newByteCode(sizeof(char)+sizeof(int32_t));
+	ByteCode* push1=newByteCode(sizeof(char)+sizeof(int32_t));
+	ByteCode* pop=newByteCode(sizeof(char));
+	ByteCode* tmp=newByteCode(0);
 	jumpiffalse->code[0]=FAKE_JMP_IF_FALSE;
 	push1->code[0]=FAKE_PUSH_INT;
 	pop->code[0]=FAKE_POP;
@@ -1417,9 +1417,9 @@ ByteCode* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 ByteCode* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
 {
 	AST_pair* tmpPair=objCptr->value;
-	ByteCode* jumpifture=createByteCode(sizeof(char)+sizeof(int32_t));
-	ByteCode* pushnil=createByteCode(sizeof(char));
-	ByteCode* tmp=createByteCode(0);
+	ByteCode* jumpifture=newByteCode(sizeof(char)+sizeof(int32_t));
+	ByteCode* pushnil=newByteCode(sizeof(char));
+	ByteCode* tmp=newByteCode(0);
 	pushnil->code[0]=FAKE_PUSH_NIL;
 	jumpifture->code[0]=FAKE_JMP_IF_TURE;
 	while(objCptr!=NULL)
@@ -1460,10 +1460,10 @@ ByteCode* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 ByteCode* compileBegin(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
 {
 	AST_cptr* firCptr=nextCptr(getFirst(objCptr));
-	ByteCode* tmp=createByteCode(0);
-	ByteCode* resTp=createByteCode(1);
-	ByteCode* setTp=createByteCode(1);
-	ByteCode* popTp=createByteCode(1);
+	ByteCode* tmp=newByteCode(0);
+	ByteCode* resTp=newByteCode(1);
+	ByteCode* setTp=newByteCode(1);
+	ByteCode* popTp=newByteCode(1);
 	resTp->code[0]=FAKE_RES_TP;
 	setTp->code[0]=FAKE_SET_TP;
 	popTp->code[0]=FAKE_POP_TP;
@@ -1500,17 +1500,17 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	AST_pair* objPair=NULL;
 	RawProc* tmpRawProc=NULL;
 	RawProc* prevRawProc=getHeadRawProc(inter);
-	ByteCode* tmp=createByteCode(0);
-	ByteCode* proc=createByteCode(0);
+	ByteCode* tmp=newByteCode(0);
+	ByteCode* proc=newByteCode(0);
 	CompEnv* tmpEnv=curEnv;
-	ByteCode* popVar=createByteCode(sizeof(char)+sizeof(int32_t)*2);
-	ByteCode* pushProc=createByteCode(sizeof(char)+sizeof(int32_t));
-	ByteCode* endproc=createByteCode(sizeof(char));
-	ByteCode* resTp=createByteCode(sizeof(char));
-	ByteCode* resBp=createByteCode(sizeof(char));
-	ByteCode* popRestVar=createByteCode(sizeof(char)+sizeof(int32_t)*2);
-	ByteCode* setTp=createByteCode(sizeof(char));
-	ByteCode* popTp=createByteCode(sizeof(char));
+	ByteCode* popVar=newByteCode(sizeof(char)+sizeof(int32_t)*2);
+	ByteCode* pushProc=newByteCode(sizeof(char)+sizeof(int32_t));
+	ByteCode* endproc=newByteCode(sizeof(char));
+	ByteCode* resTp=newByteCode(sizeof(char));
+	ByteCode* resBp=newByteCode(sizeof(char));
+	ByteCode* popRestVar=newByteCode(sizeof(char)+sizeof(int32_t)*2);
+	ByteCode* setTp=newByteCode(sizeof(char));
+	ByteCode* popTp=newByteCode(sizeof(char));
 	endproc->code[0]=FAKE_END_PROC;
 	popVar->code[0]=FAKE_POP_VAR;
 	pushProc->code[0]=FAKE_PUSH_PROC;
@@ -1718,11 +1718,11 @@ ByteCode* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 ByteCode* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
 {
 	AST_cptr* cond=NULL;
-	ByteCode* pushnil=createByteCode(sizeof(char));
-	ByteCode* jumpiffalse=createByteCode(sizeof(char)+sizeof(int32_t));
-	ByteCode* jump=createByteCode(sizeof(char)+sizeof(int32_t));
-	ByteCode* pop=createByteCode(sizeof(char));
-	ByteCode* tmp=createByteCode(0);
+	ByteCode* pushnil=newByteCode(sizeof(char));
+	ByteCode* jumpiffalse=newByteCode(sizeof(char)+sizeof(int32_t));
+	ByteCode* jump=newByteCode(sizeof(char)+sizeof(int32_t));
+	ByteCode* pop=newByteCode(sizeof(char));
+	ByteCode* tmp=newByteCode(0);
 	pop->code[0]=FAKE_POP;
 	pushnil->code[0]=FAKE_PUSH_NIL;
 	jumpiffalse->code[0]=FAKE_JMP_IF_FALSE;
@@ -1731,7 +1731,7 @@ ByteCode* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus
 	while(prevCptr(cond)!=NULL)
 	{
 		for(objCptr=&((AST_pair*)cond->value)->car;nextCptr(objCptr)!=NULL;objCptr=nextCptr(objCptr));
-		ByteCode* tmpCond=createByteCode(0);
+		ByteCode* tmpCond=newByteCode(0);
 		while(objCptr!=NULL)
 		{
 			ByteCode* tmp1=compile(objCptr,curEnv,inter,status,evalIm,fix);
@@ -1811,8 +1811,8 @@ ByteCode* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus
 	tmpIntpr->table=NULL;
 	freeIntpr(tmpIntpr);
 	//printByteCode(tmp,stderr);
-	ByteCode* setTp=createByteCode(1);
-	ByteCode* popTp=createByteCode(1);
+	ByteCode* setTp=newByteCode(1);
+	ByteCode* popTp=newByteCode(1);
 	setTp->code[0]=FAKE_SET_TP;
 	popTp->code[0]=FAKE_POP_TP;
 	if(tmp)
@@ -1830,8 +1830,8 @@ ByteCode* compileFile(Intpr* inter,int evalIm,ByteCode* fix,int* exitstatus)
 {
 	chdir(inter->curDir);
 	char ch;
-	ByteCode* tmp=createByteCode(0);
-	ByteCode* resTp=createByteCode(1);
+	ByteCode* tmp=newByteCode(0);
+	ByteCode* resTp=newByteCode(1);
 	resTp->code[0]=FAKE_RES_TP;
 	char* prev=NULL;
 	while((ch=getc(inter->file))!=EOF)

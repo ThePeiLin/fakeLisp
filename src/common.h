@@ -57,7 +57,7 @@ AST_cptr* nextCptr(const AST_cptr*);
 AST_cptr* prevCptr(const AST_cptr*);
 AST_cptr* getLast(const AST_cptr*);
 AST_cptr* getFirst(const AST_cptr*);
-ByteCode* createByteCode(unsigned int);
+ByteCode* newByteCode(unsigned int);
 void codeCat(ByteCode*,const ByteCode*);
 void reCodeCat(const ByteCode*,ByteCode*);
 void initCompEnv(CompEnv*,SymbolTable*);

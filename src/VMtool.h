@@ -8,7 +8,7 @@ VMenvNode* newVMenvNode(VMvalue*,int32_t);
 VMenvNode* addVMenvNode(VMenvNode*,VMenv*);
 VMenvNode* findVMenvNode(int32_t,VMenv*);
 void freeVMenvNode(VMenvNode*);
-VMcode* newVMcode(ByteCode*);
+VMcode* newVMcode(ByteCode*,int32_t);
 VMvalue* copyValue(VMvalue*,VMheap*);
 VMvalue* newVMvalue(ValueType,void*,VMheap*,int);
 VMvalue* newTrueValue(VMheap*);

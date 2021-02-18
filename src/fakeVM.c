@@ -685,7 +685,7 @@ FakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 	FakeVM* exe=(FakeVM*)malloc(sizeof(FakeVM));
 	if(exe==NULL)errors("newFakeVM",__FILE__,__LINE__);
 	if(mainproc!=NULL)
-		exe->mainproc=newFakeProcess(newVMcode(mainproc),NULL);
+		exe->mainproc=newFakeProcess(newVMcode(mainproc,0),NULL);
 	else
 		exe->mainproc=newFakeProcess(NULL,NULL);
 	exe->argc=0;
@@ -728,7 +728,7 @@ FakeVM* newTmpFakeVM(ByteCode* mainproc,ByteCode* procs)
 	FakeVM* exe=(FakeVM*)malloc(sizeof(FakeVM));
 	if(exe==NULL)errors("newTmpFakeVM",__FILE__,__LINE__);
 	if(mainproc!=NULL)
-		exe->mainproc=newFakeProcess(newVMcode(mainproc),NULL);
+		exe->mainproc=newFakeProcess(newVMcode(mainproc,0),NULL);
 	else
 		exe->mainproc=newFakeProcess(NULL,NULL);
 	exe->curproc=exe->mainproc;
@@ -1217,7 +1217,7 @@ int B_push_proc(FakeVM* exe)
 		if(stack->values==NULL)errors("B_push_proc",__FILE__,__LINE__);
 		stack->size+=64;
 	}
-	VMcode* code=newVMcode(exe->procs+countOfProc);
+	VMcode* code=newVMcode(exe->procs+countOfProc,countOfProc+1);
 	code->localenv=newVMenv(proc->localenv);
 	VMvalue* objValue=newVMvalue(PRC,code,exe->heap,1);
 	stack->values[stack->tp]=objValue;
@@ -1239,7 +1239,7 @@ int B_push_mod_proc(FakeVM* exe)
 		stack->size+=64;
 	}
 	ByteCode* dllFunc=newDllFuncProc(funcname);
-	VMcode* tmp=newVMcode(dllFunc);
+	VMcode* tmp=newVMcode(dllFunc,-1);
 	tmp->localenv=newVMenv(NULL);
 	VMvalue* tmpVMvalue=newVMvalue(PRC,tmp,exe->heap,1);
 	freeByteCode(dllFunc);
@@ -2756,11 +2756,13 @@ VMcode* newBuiltInProc(ByteCode* proc)
 	tmp->refcount=0;
 	if(proc!=NULL)
 	{
+		tmp->id=-1;
 		tmp->size=proc->size;
 		tmp->code=proc->code;
 	}
 	else
 	{
+		tmp->id=-1;
 		tmp->size=0;
 		tmp->code=NULL;
 	}

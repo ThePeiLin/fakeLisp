@@ -5,7 +5,7 @@
 #include<math.h>
 #include<pthread.h>
 
-VMcode* newVMcode(ByteCode* proc)
+VMcode* newVMcode(ByteCode* proc,int32_t id)
 {
 	VMcode* tmp=(VMcode*)malloc(sizeof(VMcode));
 	if(tmp==NULL)errors("newVMcode",__FILE__,__LINE__);
@@ -13,6 +13,7 @@ VMcode* newVMcode(ByteCode* proc)
 	tmp->localenv=NULL;
 	if(proc!=NULL)
 	{
+		tmp->id=id;
 		tmp->size=proc->size;
 		tmp->code=(char*)malloc(sizeof(char)*(tmp->size));
 		if(tmp->code==NULL)errors("newVMcode",__FILE__,__LINE__);
@@ -20,6 +21,7 @@ VMcode* newVMcode(ByteCode* proc)
 	}
 	else
 	{
+		tmp->id=id;
 		tmp->size=0;
 		tmp->code=NULL;
 	}

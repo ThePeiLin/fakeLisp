@@ -241,7 +241,7 @@ void runIntpr(Intpr* inter)
 					//printByteCode(tmpByteCode,stderr);
 					rawProcList=castRawproc(rawProcList,inter->procs);
 					anotherVM->procs=rawProcList;
-					VMcode* tmp=newVMcode(tmpByteCode);
+					VMcode* tmp=newVMcode(tmpByteCode,0);
 					freeByteCode(tmpByteCode);
 					tmp->localenv=NULL;
 					anotherVM->mainproc->code=tmp;

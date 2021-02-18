@@ -2003,19 +2003,8 @@ static int LineNumTabNodeCmp(LineNumTabNode* f,LineNumTabNode* s)
 		return (f->id)-(s->id);
 	else if(f->fid!=s->fid)
 		return (f->fid)-(s->fid);
-	else if(f->line!=s->line)
-		return (f->line)-(f->line);
-	return (f->scp)-(s->scp);
-}
-
-static int isInSameLine(LineNumTabNode* f,LineNumTabNode* s)
-{
-	if(f->id!=s->id)
-		return (f->id)-(s->id);
-	else if(f->fid!=s->fid)
-		return (f->fid)-(s->fid);
 	else
-		return (f->line)-(s->line);
+		return (f->line)-(f->line);
 }
 
 LineNumberTable* newLineNumTable()
@@ -2064,10 +2053,10 @@ LineNumTabNode* addLineNumNode(LineNumTabNode* node,LineNumberTable* table)
 			else
 				l=mid+1;
 		}
-		if(isInSameLine(table->list[mid],node)==0)
+		if(LineNumTabNodeCmp(table->list[mid],node)==0)
 		{
 			LineNumTabNodeAppd(table->list[mid],node);
-			return table->list[mid];
+			return NULL;
 		}
 		else if(LineNumTabNodeCmp(table->list[mid],node)<0)
 			mid++;

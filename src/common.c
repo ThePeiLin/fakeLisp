@@ -858,7 +858,7 @@ RawProc* newRawProc(int32_t count)
 RawProc* addRawProc(ByteCode* proc,Intpr* inter)
 {
 	while(inter->prev!=NULL)inter=inter->prev;
-	ByteCode* tmp=createByteCode(proc->size);
+	ByteCode* tmp=newByteCode(proc->size);
 	memcpy(tmp->code,proc->code,proc->size);
 	RawProc* tmpProc=newRawProc((inter->procs==NULL)?0:inter->procs->count+1);
 	tmpProc->proc=tmp;
@@ -869,12 +869,12 @@ RawProc* addRawProc(ByteCode* proc,Intpr* inter)
 	return tmpProc;
 }
 
-ByteCode* createByteCode(unsigned int size)
+ByteCode* newByteCode(unsigned int size)
 {
 	ByteCode* tmp=NULL;
-	if(!(tmp=(ByteCode*)malloc(sizeof(ByteCode))))errors("createByteCode",__FILE__,__LINE__);
+	if(!(tmp=(ByteCode*)malloc(sizeof(ByteCode))))errors("newByteCode",__FILE__,__LINE__);
 	tmp->size=size;
-	if(!(tmp->code=(char*)malloc(size*sizeof(char))))errors("createByteCode",__FILE__,__LINE__);
+	if(!(tmp->code=(char*)malloc(size*sizeof(char))))errors("newByteCode",__FILE__,__LINE__);
 	int32_t i=0;
 	for(;i<tmp->size;i++)tmp->code[i]=0;
 	return tmp;
@@ -909,7 +909,7 @@ void reCodeCat(const ByteCode* fir,ByteCode* sec)
 
 ByteCode* copyByteCode(const ByteCode* obj)
 {
-	ByteCode* tmp=createByteCode(obj->size);
+	ByteCode* tmp=newByteCode(obj->size);
 	memcpy(tmp->code,obj->code,obj->size);
 	return tmp;
 }
@@ -1097,8 +1097,8 @@ Intpr* getFirstIntpr(Intpr* inter)
 
 ByteCode* newDllFuncProc(const char* name)
 {
-	ByteCode* callProc=createByteCode(sizeof(char)+strlen(name)+1);
-	ByteCode* endProc=createByteCode(1);
+	ByteCode* callProc=newByteCode(sizeof(char)+strlen(name)+1);
+	ByteCode* endProc=newByteCode(1);
 	endProc->code[0]=FAKE_END_PROC;
 	callProc->code[0]=FAKE_CALL_PROC;
 	strcpy(callProc->code+sizeof(char),name);

@@ -33,7 +33,7 @@ int main(int argc,char** argv)
 		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
 		SymTabNode* node=newSymTabNode(argv[1]);
 		addSymTabNode(node,inter->table);
-		ByteCode* fix=createByteCode(0);
+		ByteCode* fix=newByteCode(0);
 		int status;
 		ByteCode* mainByteCode=compileFile(inter,1,fix,&status);
 		if(mainByteCode==NULL)

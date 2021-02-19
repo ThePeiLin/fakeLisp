@@ -16,6 +16,12 @@
 	for(;i<(s);i++)\
 	freeLineNumTabNode((l)[i]);\
 }
+
+#define INCREASE_ALL_SCP(l,ls,s) {int32_t i=0;\
+	for(;i<(ls);i++)\
+	(l)[i]->scp+=(s);\
+}
+
 static jmp_buf buf;
 static void errorCallBackForPreMacroExpand(void* a)
 {
@@ -991,10 +997,18 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 {
 	objCptr=nextCptr(getFirst(objCptr));
 	if(objCptr->type==ATM)
-		return compileAtom(objCptr);
+	{
+		ByteCodelnt* r=newByteCodelnt(compileAtom(objCptr));
+		r->size=1;
+		r->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
+		if(!r->l)
+			errors("compileQsquote",__FILE__,__LINE__);
+		r->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,r->bc->size,objCptr->curline);
+		return r;
+	}
 	else if(isUnquoteExpression(objCptr))
 		return compileUnquote(objCptr,curEnv,inter,status,evalIm,fix);
-	ByteCode* tmp=newByteCode(0);
+	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
 	AST_pair* objPair=objCptr->value;
 	AST_pair* tmpPair=objPair;
 	ByteCode* appd=newByteCode(1);
@@ -1009,10 +1023,21 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 	{
 		if(isUnquoteExpression(objCptr))
 		{
-			ByteCode* tmp1=compileUnquote(objCptr,curEnv,inter,status,evalIm,fix);
-			codeCat(tmp1,(objCptr==&objPair->car)?popToCar:popToCdr);
-			codeCat(tmp,tmp1);
-			freeByteCode(tmp1);
+			ByteCodelnt* tmp1=compileUnquote(objCptr,curEnv,inter,status,evalIm,fix);
+			if(status->status!=0)
+			{
+				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->size);
+				freeByteCodelnt(tmp);
+				freeByteCode(appd);
+				freeByteCode(popToCar);
+				freeByteCode(popToCdr);
+				freeByteCode(pushPair);
+				return NULL;
+			}
+			codeCat(tmp1->bc,(objCptr==&objPair->car)?popToCar:popToCdr);
+			tmp1->l[tmp1->size-1]->cpc+=(objCptr==&objPair->car)?popToCar->size:popToCdr->size;
+			codelntCat(tmp,tmp1);
+			freeByteCodelnt(tmp1);
 			if(objPair!=NULL&&objCptr==&objPair->car)
 			{
 				objCptr=&objPair->cdr;
@@ -1027,15 +1052,27 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 				freeByteCode(popToCdr);
 				freeByteCode(pushPair);
 				freeByteCode(appd);
-				freeByteCode(tmp);
+				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->size);
+				freeByteCodelnt(tmp);
 				status->status=INVALIDEXPR;
 				status->place=objCptr;
 				return NULL;
 			}
-			ByteCode* tmp1=compile(nextCptr(getFirst(objCptr)),curEnv,inter,status,evalIm,fix);
-			codeCat(tmp1,appd);
-			codeCat(tmp,tmp1);
-			freeByteCode(tmp1);
+			ByteCodelnt* tmp1=compile(nextCptr(getFirst(objCptr)),curEnv,inter,status,evalIm,fix);
+			if(status->status!=0)
+			{
+				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->size);
+				freeByteCodelnt(tmp);
+				freeByteCode(appd);
+				freeByteCode(popToCar);
+				freeByteCode(popToCdr);
+				freeByteCode(pushPair);
+				return NULL;
+			}
+			codeCat(tmp1->bc,appd);
+			tmp1->l[tmp1->size-1]->cpc+=appd->size;
+			codelntCat(tmp,tmp1);
+			freeByteCodelnt(tmp1);
 			if(objPair!=NULL&&objCptr==&objPair->car)
 			{
 				objCptr=&objPair->cdr;
@@ -1045,7 +1082,10 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 		else if(objCptr->type==PAIR)
 		{
 			if(!isUnqtespExpression(getFirst(objCptr)))
-				codeCat(tmp,pushPair);
+			{
+				codeCat(tmp->bc,pushPair);
+				tmp->l[tmp->size-1]->cpc+=pushPair->size;
+			}
 			objPair=objCptr->value;
 			objCptr=&objPair->car;
 			continue;
@@ -1054,7 +1094,8 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 		{
 			ByteCode* tmp1=(objCptr->type==ATM)?compileAtom(objCptr):compileNil();
 			codeCat(tmp1,(objCptr==&objPair->car)?popToCar:popToCdr);
-			codeCat(tmp,tmp1);
+			codeCat(tmp->bc,tmp1);
+			tmp->l[tmp->size-1]->cpc+=tmp1->size;
 			freeByteCode(tmp1);
 			if(objPair!=NULL&&objCptr==&objPair->car)
 			{
@@ -1071,7 +1112,10 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 				prev=objPair;
 				objPair=objPair->prev;
 				if(prev!=NULL&&!isUnqtespExpression(&prev->car))
-					codeCat(tmp,(prev==objPair->car.value)?popToCar:appd);
+				{
+					codeCat(tmp->bc,(prev==objPair->car.value)?popToCar:appd);
+					tmp->l[tmp->size-1]->cpc+=(prev==objPair->car.value)?popToCar->size:appd->size;
+				}
 				if(prev==objPair->car.value)break;
 			}
 			if(objPair!=NULL)objCptr=&objPair->cdr;
@@ -1413,7 +1457,7 @@ ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	ByteCode* jumpiffalse=newByteCode(sizeof(char)+sizeof(int32_t));
 	ByteCode* push1=newByteCode(sizeof(char)+sizeof(int32_t));
 	ByteCode* pop=newByteCode(sizeof(char));
-	ByteCode* tmp=newByteCode(0);
+	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
 	jumpiffalse->code[0]=FAKE_JMP_IF_FALSE;
 	push1->code[0]=FAKE_PUSH_INT;
 	pop->code[0]=FAKE_POP;
@@ -1421,22 +1465,29 @@ ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	for(objCptr=&((AST_pair*)objCptr->value)->car;nextCptr(objCptr)!=NULL;objCptr=nextCptr(objCptr));
 	for(;prevCptr(objCptr)!=NULL;objCptr=prevCptr(objCptr))
 	{
-		ByteCode* tmp1=compile(objCptr,curEnv,inter,status,evalIm,fix);
+		ByteCodelnt* tmp1=compile(objCptr,curEnv,inter,status,evalIm,fix);
 		if(status->status!=0)
 		{
 			freeByteCode(pop);
-			freeByteCode(tmp);
+			if(tmp->l)
+				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->size);
+			freeByteCodelnt(tmp);
 			freeByteCode(jumpiffalse);
 			freeByteCode(push1);
 			return NULL;
 		}
-		*(int32_t*)(jumpiffalse->code+sizeof(char))=tmp->size;
-		codeCat(tmp1,jumpiffalse);
-		reCodeCat(pop,tmp1);
-		reCodeCat(tmp1,tmp);
-		freeByteCode(tmp1);
+		*(int32_t*)(jumpiffalse->code+sizeof(char))=tmp->bc->size;
+		codeCat(tmp1->bc,jumpiffalse);
+		tmp1->l[tmp1->size-1]->cpc+=jumpiffalse->size;
+		reCodeCat(pop,tmp1->bc);
+		tmp1->l[0]->cpc+=pop->size;
+		INCREASE_ALL_SCP(tmp1->l+1,tmp1->size-1,pop->size);
+		reCodelntCat(tmp1,tmp);
+		freeByteCodelnt(tmp1);
 	}
-	reCodeCat(push1,tmp);
+	reCodeCat(push1,tmp->bc);
+	tmp->l[0]->cpc+=1;
+	INCREASE_ALL_SCP(tmp->l+1,tmp->size-1,push1->size);
 	freeByteCode(pop);
 	freeByteCode(jumpiffalse);
 	freeByteCode(push1);
@@ -1448,7 +1499,7 @@ ByteCodelnt* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatu
 	AST_pair* tmpPair=objCptr->value;
 	ByteCode* jumpifture=newByteCode(sizeof(char)+sizeof(int32_t));
 	ByteCode* pushnil=newByteCode(sizeof(char));
-	ByteCode* tmp=newByteCode(0);
+	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
 	pushnil->code[0]=FAKE_PUSH_NIL;
 	jumpifture->code[0]=FAKE_JMP_IF_TURE;
 	while(objCptr!=NULL)
@@ -1460,23 +1511,28 @@ ByteCodelnt* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatu
 		}
 		else if(prevCptr(objCptr)!=NULL)
 		{
-			ByteCode* tmp1=compile(objCptr,curEnv,inter,status,evalIm,fix);
+			ByteCodelnt* tmp1=compile(objCptr,curEnv,inter,status,evalIm,fix);
 			if(status->status!=0)
 			{
-				freeByteCode(tmp);
+				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->size);
+				freeByteCodelnt(tmp);
 				freeByteCode(jumpifture);
 				freeByteCode(pushnil);
 				return NULL;
 			}
-			reCodeCat(tmp1,tmp);
-			freeByteCode(tmp1);
+			reCodelntCat(tmp1,tmp);
+			freeByteCodelnt(tmp1);
 			*(int32_t*)(jumpifture->code+sizeof(char))=tmp->size;
-			reCodeCat(jumpifture,tmp);
+			reCodeCat(jumpifture,tmp->bc);
+			tmp->l[0]->cpc+=jumpifture->size;
+			INCREASE_ALL_SCP(tmp->l+1,tmp->size-1,jumpifture->size);
 			objCptr=prevCptr(objCptr);
 		}
 		if(prevCptr(objCptr)==NULL)
 		{
-			reCodeCat(pushnil,tmp);
+			reCodeCat(pushnil,tmp->bc);
+			tmp->l[0]->cpc+=pushnil->size;
+			INCREASE_ALL_SCP(tmp->l+1,tmp->size-1,pushnil->size);
 			if(objCptr->outer==tmpPair)break;
 			objCptr=prevCptr(&objCptr->outer->prev->car);
 		}
@@ -1489,7 +1545,7 @@ ByteCodelnt* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatu
 ByteCodelnt* compileBegin(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
 {
 	AST_cptr* firCptr=nextCptr(getFirst(objCptr));
-	ByteCode* tmp=newByteCode(0);
+	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
 	ByteCode* resTp=newByteCode(1);
 	ByteCode* setTp=newByteCode(1);
 	ByteCode* popTp=newByteCode(1);
@@ -1498,23 +1554,31 @@ ByteCodelnt* compileBegin(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 	popTp->code[0]=FAKE_POP_TP;
 	while(firCptr)
 	{
-		ByteCode* tmp1=compile(firCptr,curEnv,inter,status,evalIm,fix);
+		ByteCodelnt* tmp1=compile(firCptr,curEnv,inter,status,evalIm,fix);
 		if(status->status!=0)
 		{
-			freeByteCode(tmp);
+			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->size);
+			freeByteCodelnt(tmp);
 			freeByteCode(resTp);
 			freeByteCode(setTp);
 			freeByteCode(popTp);
 			return NULL;
 		}
 		if(tmp->size)
-			reCodeCat(resTp,tmp1);
-		codeCat(tmp,tmp1);
-		freeByteCode(tmp1);
+		{
+			reCodeCat(resTp,tmp1->bc);
+			tmp1->l[0]->cpc+=1;
+			INCREASE_ALL_SCP(tmp1->l,tmp1->size-1,resTp->size);
+		}
+		codelntCat(tmp,tmp1);
+		freeByteCodelnt(tmp1);
 		firCptr=nextCptr(firCptr);
 	}
-	reCodeCat(setTp,tmp);
-	codeCat(tmp,popTp);
+	reCodeCat(setTp,tmp->bc);
+	tmp->l[0]->cpc+=1;
+	INCREASE_ALL_SCP(tmp->l,tmp->size-1,setTp->size);
+	codeCat(tmp->bc,popTp);
+	tmp->l[tmp->size-1]->cpc+=popTp->size;
 	freeByteCode(setTp);
 	freeByteCode(resTp);
 	freeByteCode(popTp);
@@ -1751,7 +1815,7 @@ ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	ByteCode* jumpiffalse=newByteCode(sizeof(char)+sizeof(int32_t));
 	ByteCode* jump=newByteCode(sizeof(char)+sizeof(int32_t));
 	ByteCode* pop=newByteCode(sizeof(char));
-	ByteCode* tmp=newByteCode(0);
+	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
 	pop->code[0]=FAKE_POP;
 	pushnil->code[0]=FAKE_PUSH_NIL;
 	jumpiffalse->code[0]=FAKE_JMP_IF_FALSE;
@@ -1760,45 +1824,58 @@ ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	while(prevCptr(cond)!=NULL)
 	{
 		for(objCptr=&((AST_pair*)cond->value)->car;nextCptr(objCptr)!=NULL;objCptr=nextCptr(objCptr));
-		ByteCode* tmpCond=newByteCode(0);
+		ByteCodelnt* tmpCond=newByteCodelnt(newByteCode(0));
 		while(objCptr!=NULL)
 		{
-			ByteCode* tmp1=compile(objCptr,curEnv,inter,status,evalIm,fix);
+			ByteCodelnt* tmp1=compile(objCptr,curEnv,inter,status,evalIm,fix);
 			if(status->status!=0)
 			{
-				freeByteCode(tmp);
+				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->size);
+				freeByteCodelnt(tmp);
 				freeByteCode(jumpiffalse);
 				freeByteCode(jump);
 				freeByteCode(pop);
-				freeByteCode(tmpCond);
+				FREE_ALL_LINE_NUMBER_TABLE(tmpCond->l,tmp->size);
+				freeByteCodelnt(tmpCond);
 				freeByteCode(pushnil);
 				return NULL;
 			}
 			if(prevCptr(objCptr)==NULL)
 			{
-				*(int32_t*)(jumpiffalse->code+sizeof(char))=tmpCond->size+((nextCptr(cond)==NULL)?0:jump->size)+((objCptr->outer->cdr.type==NIL)?pushnil->size:0);
-				codeCat(tmp1,jumpiffalse);
+				*(int32_t*)(jumpiffalse->code+sizeof(char))=tmpCond->bc->size+((nextCptr(cond)==NULL)?0:jump->size)+((objCptr->outer->cdr.type==NIL)?pushnil->size:0);
+				codeCat(tmp1->bc,jumpiffalse);
+				tmp1->l[tmp1->size-1]->cpc+=jumpiffalse->size;
 				if(objCptr->outer->cdr.type==NIL)
 				{
-					codeCat(tmp1,pop);
-					codeCat(tmp1,pushnil);
+					codeCat(tmp1->bc,pop);
+					codeCat(tmp1->bc,pushnil);
+					tmp1->l[tmp1->size-1]->cpc+=pop->size+pushnil->size;
 				}
 			}
 			if(prevCptr(objCptr)!=NULL)
-				reCodeCat(pop,tmp1);
-			reCodeCat(tmp1,tmpCond);
-			freeByteCode(tmp1);
+			{
+				reCodeCat(pop,tmp1->bc);
+				tmp1->l[0]->cpc+=pop->size;
+				INCREASE_ALL_SCP(tmp1->l+1,tmp1->size-1,pop->size);
+			}
+			reCodelntCat(tmp1,tmpCond);
+			freeByteCodelnt(tmp1);
 			objCptr=prevCptr(objCptr);
 		}
 		if(prevCptr(prevCptr(cond))!=NULL)
-			reCodeCat(pop,tmpCond);
+		{
+			reCodeCat(pop,tmpCond->bc);
+			tmpCond->l[0]->cpc+=1;
+			INCREASE_ALL_SCP(tmpCond->l+1,tmpCond->size-1,pop->size);
+		}
 		if(nextCptr(cond)!=NULL)
 		{
 			*(int32_t*)(jump->code+sizeof(char))=tmp->size;
-			codeCat(tmpCond,jump);
+			codeCat(tmpCond->bc,jump);
+			tmpCond->l[tmpCond->size-1]->cpc+=jump->size;
 		}
-		reCodeCat(tmpCond,tmp);
-		freeByteCode(tmpCond);
+		reCodelntCat(tmpCond,tmp);
+		freeByteCodelnt(tmpCond);
 		cond=prevCptr(cond);
 	}
 	freeByteCode(pushnil);

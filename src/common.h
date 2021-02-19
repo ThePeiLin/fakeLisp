@@ -116,5 +116,5 @@ ByteCodelnt* newByteCodelnt(ByteCode* bc);
 void freeByteCodelnt(ByteCodelnt*);
 void increaseScpOfByteCodelnt(ByteCodelnt*,int32_t);
 void codelntCat(ByteCodelnt*,ByteCodelnt*);
-void ReCodelntCat(ByteCodelnt*,ByteCodelnt*);
+void reCodelntCat(ByteCodelnt*,ByteCodelnt*);
 #endif

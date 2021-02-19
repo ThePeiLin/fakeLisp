@@ -1926,7 +1926,7 @@ ByteCodelnt* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	tmpIntpr->head=NULL;
 	tmpIntpr->tail=NULL;
 	tmpIntpr->modules=NULL;
-	ByteCode* tmp=compileFile(tmpIntpr,evalIm,fix,NULL);
+	ByteCodelnt* tmp=compileFile(tmpIntpr,evalIm,fix,NULL);
 	chdir(tmpIntpr->prev->curDir);
 	tmpIntpr->glob=NULL;
 	tmpIntpr->table=NULL;
@@ -1938,9 +1938,14 @@ ByteCodelnt* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	popTp->code[0]=FAKE_POP_TP;
 	if(tmp)
 	{
-		reCodeCat(setTp,tmp);
-		codeCat(tmp,popTp);
-		reCodeCat(fix,tmp);
+		reCodeCat(setTp,tmp->bc);
+		tmp->l[0]->cpc+=setTp->size;
+		INCREASE_ALL_SCP(tmp->l+1,tmp->size-1,setTp->size);
+		codeCat(tmp->bc,popTp);
+		tmp->l[tmp->size-1]->cpc+=popTp->size;
+		reCodeCat(fix,tmp->bc);
+		tmp->l[0]->cpc+=fix->size;
+		INCREASE_ALL_SCP(tmp->l+1,tmp->size-1,fix->size);
 	}
 	freeByteCode(popTp);
 	freeByteCode(setTp);
@@ -1951,7 +1956,7 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,ByteCode* fix,int* exitstatus)
 {
 	chdir(inter->curDir);
 	char ch;
-	ByteCode* tmp=newByteCode(0);
+	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
 	ByteCode* resTp=newByteCode(1);
 	resTp->code[0]=FAKE_RES_TP;
 	char* prev=NULL;
@@ -1978,7 +1983,8 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,ByteCode* fix,int* exitstatus)
 				list=NULL;
 			}
 			if(exitstatus)*exitstatus=INVALIDEXPR;
-			freeByteCode(tmp);
+			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->size);
+			freeByteCodelnt(tmp);
 			tmp=NULL;
 			break;
 		}
@@ -1997,7 +2003,8 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,ByteCode* fix,int* exitstatus)
 				{
 					exError(begin,INVALIDEXPR,inter);
 					if(exitstatus)*exitstatus=INVALIDEXPR;
-					freeByteCode(tmp);
+					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->size);
+					freeByteCodelnt(tmp);
 					free(list);
 					deleteCptr(begin);
 					free(begin);
@@ -2010,7 +2017,8 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,ByteCode* fix,int* exitstatus)
 					exError(status.place,status.status,inter);
 					if(exitstatus)*exitstatus=status.status;
 					deleteCptr(status.place);
-					freeByteCode(tmp);
+					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->size);
+					freeByteCodelnt(tmp);
 					free(list);
 					deleteCptr(begin);
 					free(begin);
@@ -2020,8 +2028,8 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,ByteCode* fix,int* exitstatus)
 			}
 			else
 			{
-				ByteCode* tmpByteCode=compile(begin,inter->glob,inter,&status,!isLambdaExpression(begin),fix);
-				if(!tmpByteCode||status.status!=0)
+				ByteCodelnt* tmpByteCodelnt=compile(begin,inter->glob,inter,&status,!isLambdaExpression(begin),fix);
+				if(!tmpByteCodelnt||status.status!=0)
 				{
 					if(status.status)
 					{
@@ -2029,8 +2037,9 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,ByteCode* fix,int* exitstatus)
 						if(exitstatus)*exitstatus=status.status;
 						deleteCptr(status.place);
 					}
-					if(tmpByteCode==NULL&&!status.status&&exitstatus)*exitstatus=MACROEXPANDFAILED;
-					freeByteCode(tmp);
+					if(tmpByteCodelnt==NULL&&!status.status&&exitstatus)*exitstatus=MACROEXPANDFAILED;
+					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->size);
+					freeByteCodelnt(tmp);
 					free(list);
 					deleteCptr(begin);
 					free(begin);
@@ -2038,9 +2047,13 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,ByteCode* fix,int* exitstatus)
 					break;
 				}
 				if(tmp->size)
-					reCodeCat(resTp,tmpByteCode);
-				codeCat(tmp,tmpByteCode);
-				freeByteCode(tmpByteCode);
+				{
+					reCodeCat(resTp,tmpByteCodelnt->bc);
+					tmpByteCodelnt->l[0]->cpc+=resTp->size;
+					INCREASE_ALL_SCP(tmpByteCodelnt->l+1,tmpByteCodelnt->size-1,resTp->size);
+				}
+				codelntCat(tmp,tmpByteCodelnt);
+				freeByteCodelnt(tmpByteCodelnt);
 			}
 			deleteCptr(begin);
 			free(begin);
@@ -2049,7 +2062,8 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,ByteCode* fix,int* exitstatus)
 		{
 			free(list);
 			list=NULL;
-			freeByteCode(tmp);
+			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->size);
+			freeByteCodelnt(tmp);
 			freeByteCode(resTp);
 			return NULL;
 		}

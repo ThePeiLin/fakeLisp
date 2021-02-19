@@ -117,7 +117,7 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 	return 0;
 }
 
-int addMacro(AST_cptr* pattern,ByteCode* proc,RawProc* procs)
+int addMacro(AST_cptr* pattern,ByteCode* proc,RawProc* procs,LineNumberTable* lnt)
 {
 	if(pattern->type!=PAIR)return SYNTAXERROR;
 	AST_cptr* tmpCptr=NULL;
@@ -141,6 +141,7 @@ int addMacro(AST_cptr* pattern,ByteCode* proc,RawProc* procs)
 		current->pattern=pattern;
 		current->proc=proc;
 		current->procs=procs;
+		current->lnt=lnt;
 		FirstMacro=current;
 	}
 	else
@@ -159,6 +160,7 @@ int addMacro(AST_cptr* pattern,ByteCode* proc,RawProc* procs)
 		current->pattern=pattern;
 		current->proc=proc;
 		current->procs=procs;
+		current->lnt=lnt;
 	}
 	//printAllKeyWord();
 	return 0;
@@ -762,19 +764,25 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 		tmpInter->prev=NULL;
 		ByteCode* fix=newByteCode(0);
 		CompEnv* tmpCompEnv=createMacroCompEnv(pattern,tmpGlobCompEnv,inter->table);
-		ByteCode* tmpByteCode=compile(express,tmpCompEnv,tmpInter,&status,1,fix);
+		ByteCodelnt* tmpByteCodelnt=compile(express,tmpCompEnv,tmpInter,&status,1,fix);
 		if(!status.status)
 		{
-			reCodeCat(fix,tmpByteCode);
-			addMacro(pattern,tmpByteCode,tmpInter->procs);
+			reCodeCat(fix,tmpByteCodelnt->bc);
+			tmpByteCodelnt->l[0]->cpc+=fix->size;
+			INCREASE_ALL_SCP(tmpByteCodelnt->l+1,tmpByteCodelnt->size-1,fix->size);
+			addLineNumTabId(tmpByteCodelnt->l,tmpByteCodelnt->size,0,tmpInter->lnt); addMacro(pattern,tmpByteCodelnt->bc,tmpInter->procs,tmpInter->lnt);
 			deleteCptr(express);
 			free(express);
 			free(args);
+			free(tmpByteCodelnt);
 		}
 		else
 		{
-			if(tmpByteCode)
-				freeByteCode(tmpByteCode);
+			if(tmpByteCodelnt)
+			{
+				FREE_ALL_LINE_NUMBER_TABLE(tmpByteCodelnt->l,tmpByteCodelnt->size);
+				freeByteCodelnt(tmpByteCodelnt);
+			}
 			exError(status.place,status.status,inter);
 			deleteArg(args,2);
 			status.place=NULL;
@@ -809,7 +817,7 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 	tmpInter->prev=NULL;
 	CompEnv* tmpCompEnv=createPatternCompEnv(parts,num,tmpGlobCompEnv,inter->table);
 	ByteCode* fix=newByteCode(0);
-	ByteCode* tmpByteCode=compile(express,tmpCompEnv,tmpInter,&status,1,fix);
+	ByteCodelnt* tmpByteCodelnt=compile(express,tmpCompEnv,tmpInter,&status,1,fix);
 	if(!status.status)
 	{
 		char** tmParts=(char**)malloc(sizeof(char*)*num);
@@ -817,12 +825,19 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 		int32_t i=0;
 		for(;i<num;i++)
 			tmParts[i]=copyStr(parts[i]);
-		tmp=newStringMatchPattern(num,tmParts,tmpByteCode,tmpInter->procs);
+		reCodeCat(fix,tmpByteCodelnt->bc);
+		tmpByteCodelnt->l[0]->cpc+=fix->size;
+		INCREASE_ALL_SCP(tmpByteCodelnt->l+1,tmpByteCodelnt->size-1,fix->size);
+		addLineNumTabId(tmpByteCodelnt->l,tmpByteCodelnt->size,0,tmpInter->lnt);
+		tmp=newStringMatchPattern(num,tmParts,tmpByteCodelnt->bc,tmpInter->procs,inter->lnt);
 	}
 	else
 	{
-		if(tmpByteCode)
-			freeByteCode(tmpByteCode);
+		if(tmpByteCodelnt)
+		{
+			FREE_ALL_LINE_NUMBER_TABLE(tmpByteCodelnt->l,tmpByteCodelnt->size);
+			freeByteCodelnt(tmpByteCodelnt);
+		}
 		exError(status.place,status.status,inter);
 		status.place=NULL;
 		status.status=0;

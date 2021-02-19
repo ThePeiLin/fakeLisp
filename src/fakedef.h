@@ -98,6 +98,7 @@ typedef struct Pre_Env
 typedef struct Pre_Macro
 {
 	AST_cptr* pattern;
+	struct Line_Number_Table* lnt;
 	ByteCode* proc;
 	struct Raw_Proc* procs;
 	struct Pre_Macro* next;
@@ -285,6 +286,7 @@ typedef struct
 	struct Symbol_Table* table;
 	struct DLL_s* modules;
 	struct VM_Heap* heap;
+	struct Line_Number_Table* lnt;
 	void (*callback)(void*);
 }FakeVM;
 
@@ -324,6 +326,7 @@ typedef struct String_Match_Pattern
 	char** parts;
 	ByteCode* proc;
 	struct Raw_Proc* procs;
+	struct Line_Number_Table* lnt;
 	struct String_Match_Pattern* prev;
 	struct String_Match_Pattern* next;
 }StringMatchPattern;

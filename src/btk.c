@@ -18,18 +18,6 @@ extern "C"
 #endif
 #ifndef _WIN32
 
-void set_return(VMvalue* v,VMstack* stack,char* fn)
-{
-	if(stack->tp>=stack->size)
-	{
-		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-		if(stack->values==NULL)errors(fn,__FILE__,__LINE__);
-		stack->size+=64;
-	}
-	stack->values[stack->tp]=v;
-	stack->tp+=1;
-}
-
 int getch()
 {
 	struct termios oldt,newt;
@@ -64,7 +52,7 @@ int FAKE_getch(FakeVM* exe,pthread_rwlock_t* pGClock)
 		stack->size+=64;
 	}
 	char ch=getch();
-	set_return(newVMvalue(CHR,&ch,exe->heap,1),stack,"FAKE_getch");
+	SET_RETURN("FAKE_getch",newVMvalue(CHR,&ch,exe->heap,1),stack);
 	return 0;
 }
 
@@ -144,7 +132,7 @@ int FAKE_rand(FakeVM* exe,pthread_rwlock_t* pGClock)
 	int32_t limit=(lim==NULL||*lim->u.num==0)?RAND_MAX:*lim->u.num;
 	int32_t result=rand()%limit;
 	VMvalue* toReturn=newVMvalue(IN32,&result,exe->heap,1);
-	set_return(toReturn,stack,"FAKE_rand");
+	SET_RETURN("FAKE_rand",toReturn,stack);
 	return 0;
 }
 
@@ -174,7 +162,7 @@ int FAKE_getTime(FakeVM* exe,pthread_rwlock_t* pGClock)
 	free(year);
 	VMstr* tmpStr=newVMstr(trueTime);
 	VMvalue* tmpVMvalue=newVMvalue(STR,tmpStr,exe->heap,1);
-	set_return(tmpVMvalue,stack,"FAKE_getTime");
+	SET_RETURN("FAKE_getTime",tmpVMvalue,stack);
 	free(trueTime);
 	return 0;
 }
@@ -191,7 +179,7 @@ int FAKE_removeFile(FakeVM* exe,pthread_rwlock_t* pGClock)
 		return WRONGARG;
 	int32_t i=remove(name->u.str->str);
 	VMvalue* toReturn=newVMvalue(IN32,&i,exe->heap,1);
-	set_return(toReturn,stack,"FAKE_removeFile");
+	SET_RETURN("FAKE_removeFile",toReturn,stack);
 	return 0;
 }
 
@@ -212,7 +200,7 @@ int FAKE_argv(FakeVM* exe,pthread_rwlock_t* pGClock)
 			tmp->u.pair->cdr=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap,1);
 		}
 	}
-	set_return(retval,stack,"FAKE_argv");
+	SET_RETURN("FAKE_argv",retval,stack);
 	return 0;
 }
 

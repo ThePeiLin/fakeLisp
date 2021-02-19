@@ -2091,7 +2091,7 @@ void increaseScpOfByteCodelnt(ByteCodelnt* o,int32_t size)
 void codelntCat(ByteCodelnt* f,ByteCodelnt* s)
 {
 	increaseScpOfByteCodelnt(s,f->bc->size);
-	if(f->l[f->size-1]->line==s->l[0]->line)
+	if(f->l[f->size-1]->line==s->l[0]->line&&f->l[f->size-1]->fid==s->l[0]->fid)
 	{
 		f->l[f->size-1]->cpc+=s->l[0]->cpc;
 		f->l=(LineNumTabNode**)realloc(f->l,sizeof(LineNumTabNode*)*(f->size+s->size-1));
@@ -2099,6 +2099,7 @@ void codelntCat(ByteCodelnt* f,ByteCodelnt* s)
 			errors("codelntCat",__FILE__,__LINE__);
 		memcpy(f->l+f->size,s->l+1,s->size-1);
 		f->size+=s->size-1;
+		freeLineNumTabNode(s->l[0]);
 	}
 	else
 	{
@@ -2114,7 +2115,7 @@ void codelntCat(ByteCodelnt* f,ByteCodelnt* s)
 void reCodeCatlnt(ByteCodelnt* f,ByteCodelnt* s)
 {
 	increaseScpOfByteCodelnt(s,f->bc->size);
-	if(f->l[f->size-1]->line==s->l[0]->line)
+	if(f->l[f->size-1]->line==s->l[0]->line&&f->l[f->size-1]->fid==s->l[0]->fid)
 	{
 		LineNumTabNode** l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*(f->size+s->size-1));
 		if(!l)
@@ -2125,6 +2126,7 @@ void reCodeCatlnt(ByteCodelnt* f,ByteCodelnt* s)
 		free(s->l);
 		s->l=l;
 		s->size+=f->size-1;
+		freeLineNumTabNode(s->l[0]);
 	}
 	else
 	{

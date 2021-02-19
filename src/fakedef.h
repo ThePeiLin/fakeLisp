@@ -33,6 +33,13 @@ typedef struct
 	char* code;
 }ByteCode;
 
+typedef struct Byte_Code_with_Line_Number_Node
+{
+	int32_t size;
+	struct Line_Number_Table_Node** l;
+	ByteCode* bc;
+}ByteCodelnt;
+
 typedef struct
 {
 	int32_t refcount;
@@ -339,12 +346,18 @@ typedef struct VM_Continuation
 typedef struct Line_Number_Table
 {
 	int32_t size;
-	struct Line_Number_Table_Node** list;
+	struct Line_Number_Table_Id** list;
 }LineNumberTable;
+
+typedef struct Line_Number_Table_Id
+{
+	int32_t id;
+	int32_t size;
+	struct Line_Number_Table_Node** list;
+}LineNumTabId;
 
 typedef struct Line_Number_Table_Node
 {
-	int32_t id;
 	int32_t fid;
 	int32_t scp;
 	int32_t cpc;

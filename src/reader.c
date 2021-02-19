@@ -927,7 +927,7 @@ int isMustList(const char* str)
 	return 0;
 }
 
-StringMatchPattern* newStringMatchPattern(int32_t num,char** parts,ByteCode* proc,RawProc* procs)
+StringMatchPattern* newStringMatchPattern(int32_t num,char** parts,ByteCode* proc,RawProc* procs,LineNumberTable* lnt)
 {
 	StringMatchPattern* tmp=(StringMatchPattern*)malloc(sizeof(StringMatchPattern));
 	if(!tmp)errors("newStringMatchPattern",__FILE__,__LINE__);
@@ -937,6 +937,7 @@ StringMatchPattern* newStringMatchPattern(int32_t num,char** parts,ByteCode* pro
 	tmp->procs=procs;
 	tmp->next=NULL;
 	tmp->prev=NULL;
+	tmp->lnt=lnt;
 	if(!HeadOfStringPattern)
 		HeadOfStringPattern=tmp;
 	else

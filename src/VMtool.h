@@ -4,6 +4,19 @@
 #include<pthread.h>
 #include<stdint.h>
 
+#define SET_RETURN(fn,v,stack) if((stack)->tp>=(stack)->size)\
+{\
+	if((stack)->tp>=(stack)->size)\
+	{\
+		(stack)->values=(VMvalue**)realloc((stack)->values,sizeof(VMvalue*)*((stack)->size+64));\
+		if((stack)->values==NULL)\
+		errors((fn),__FILE__,__LINE__);\
+		(stack)->size+=64;\
+	}\
+	(stack)->values[(stack)->tp]=(v);\
+	(stack)->tp+=1;\
+}
+
 VMenvNode* newVMenvNode(VMvalue*,int32_t);
 VMenvNode* addVMenvNode(VMenvNode*,VMenv*);
 VMenvNode* findVMenvNode(int32_t,VMenv*);

@@ -107,10 +107,14 @@ void freeSymbolTable(SymbolTable*);
 void writeSymbolTable(SymbolTable*,FILE*);
 
 LineNumberTable* newLineNumTable();
-LineNumTabNode* newLineNumNode(int32_t id,int32_t fid,int32_t scp,int32_t cpc,int32_t line);
-LineNumTabNode* addLineNumNode(LineNumTabNode*,LineNumberTable*);
+LineNumTabNode* newLineNumTabNode(int32_t fid,int32_t scp,int32_t cpc,int32_t line);
 LineNumTabNode* findLineNumTabNode(int32_t id,int32_t cp,LineNumberTable*);
-void LineNumTabNodeAppd(LineNumTabNode*,LineNumTabNode*);
 void freeLineNumTabNode(LineNumTabNode*);
 void freeLineNumberTable(LineNumberTable*);
+
+ByteCodelnt* newByteCodelnt(ByteCode* bc);
+void freeByteCodelnt(ByteCodelnt*);
+void increaseScpOfByteCodelnt(ByteCodelnt*,int32_t);
+void codelntCat(ByteCodelnt*,ByteCodelnt*);
+void ReCodelntCat(ByteCodelnt*,ByteCodelnt*);
 #endif

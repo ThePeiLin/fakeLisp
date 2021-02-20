@@ -1602,225 +1602,137 @@ ByteCodelnt* compileBegin(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 
 ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
 {
-	Intpr* finter=getFirstIntpr(inter);
+	int32_t line=objCptr->curline;
 	AST_cptr* tmpCptr=objCptr;
-	AST_pair* tmpPair=objCptr->value;
 	AST_pair* objPair=NULL;
-	RawProc* tmpRawProc=NULL;
-	RawProc* prevRawProc=getHeadRawProc(inter);
-	ByteCode* tmp=newByteCode(0);
-	ByteCode* proc=newByteCode(0);
 	CompEnv* tmpEnv=curEnv;
 	ByteCode* popVar=newByteCode(sizeof(char)+sizeof(int32_t)*2);
-	ByteCode* pushProc=newByteCode(sizeof(char)+sizeof(int32_t));
-	ByteCode* endproc=newByteCode(sizeof(char));
-	ByteCode* resTp=newByteCode(sizeof(char));
-	ByteCode* resBp=newByteCode(sizeof(char));
 	ByteCode* popRestVar=newByteCode(sizeof(char)+sizeof(int32_t)*2);
-	ByteCode* setTp=newByteCode(sizeof(char));
-	ByteCode* popTp=newByteCode(sizeof(char));
-	endproc->code[0]=FAKE_END_PROC;
+	ByteCode* pArg=newByteCode(0);
 	popVar->code[0]=FAKE_POP_VAR;
-	pushProc->code[0]=FAKE_PUSH_PROC;
-	resBp->code[0]=FAKE_RES_BP;
-	resTp->code[0]=FAKE_RES_TP;
-	setTp->code[0]=FAKE_SET_TP;
-	popTp->code[0]=FAKE_POP_TP;
 	popRestVar->code[0]=FAKE_POP_REST_VAR;
-	for(;;)
+	tmpEnv=newCompEnv(tmpEnv);
+	objPair=objCptr->value;
+	objCptr=&objPair->car;
+	if(nextCptr(objCptr)->type==PAIR)
 	{
-		if(objCptr==NULL)
+		AST_cptr* argCptr=&((AST_pair*)nextCptr(objCptr)->value)->car;
+		while(argCptr!=NULL&&argCptr->type!=NIL)
 		{
-			*(int32_t*)(pushProc->code+sizeof(char))=tmpRawProc->count;
-			if(tmpRawProc->next==prevRawProc)
+			AST_atom* tmpAtm=(argCptr->type==ATM)?argCptr->value:NULL;
+			if(argCptr->type!=ATM||tmpAtm==NULL||tmpAtm->type!=SYM)
 			{
-				codeCat(tmp,pushProc);
+				status->status=SYNTAXERROR;
+				status->place=tmpCptr;
+				freeByteCode(popVar);
+				freeByteCode(popRestVar);
+				destroyCompEnv(tmpEnv);
+				return NULL;
 			}
-			else
+			CompDef* tmpDef=addCompDef(tmpAtm->value.str,tmpEnv,inter->table);
+			*(int32_t*)(popVar->code+sizeof(char))=(int32_t)0;
+			*(int32_t*)(popVar->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
+			codeCat(pArg,popVar);
+			if(nextCptr(argCptr)==NULL&&argCptr->outer->cdr.type==ATM)
 			{
-				codeCat(tmpRawProc->next->proc,pushProc);
-			}
-			codeCat(tmpRawProc->proc,popTp);
-			codeCat(tmpRawProc->proc,endproc);
-			CompEnv* prev=tmpEnv;
-			tmpEnv=tmpEnv->prev;
-			destroyCompEnv(prev);
-			if(objPair!=tmpPair)
-			{
-				objPair=objPair->prev;
-				objCptr=nextCptr(&objPair->car);
-				while(objPair->prev!=NULL&&objPair->prev->cdr.value==objPair)objPair=objPair->prev;
-				tmpRawProc=tmpRawProc->next;
-				continue;
-			}
-			else break;
-		}
-		if(isLambdaExpression(objCptr))
-		{
-			tmpEnv=newCompEnv(tmpEnv);
-			objPair=objCptr->value;
-			objCptr=&objPair->car;
-			tmpRawProc=addRawProc(proc,inter);
-			if(nextCptr(objCptr)->type==PAIR)
-			{
-				AST_cptr* argCptr=&((AST_pair*)nextCptr(objCptr)->value)->car;
-				while(argCptr!=NULL&&argCptr->type!=NIL)
-				{
-					AST_atom* tmpAtm=(argCptr->type==ATM)?argCptr->value:NULL;
-					if(argCptr->type!=ATM||tmpAtm==NULL||tmpAtm->type!=SYM)
-					{
-						status->status=SYNTAXERROR;
-						status->place=tmpCptr;
-						freeByteCode(tmp);
-						freeByteCode(endproc);
-						freeByteCode(pushProc);
-						freeByteCode(popVar);
-						freeByteCode(proc);
-						freeByteCode(resTp);
-						freeByteCode(popRestVar);
-						freeByteCode(resBp);
-						freeByteCode(setTp);
-						freeByteCode(popTp);
-						destroyCompEnv(tmpEnv);
-						while(tmpRawProc->prev)
-							tmpRawProc=tmpRawProc->prev;
-						finter->procs=prevRawProc;
-						while(tmpRawProc!=prevRawProc)
-						{
-							RawProc* prev=tmpRawProc;
-							tmpRawProc=tmpRawProc->next;
-							freeByteCode(prev->proc);
-							free(prev);
-						}
-						return NULL;
-					}
-					CompDef* tmpDef=addCompDef(tmpAtm->value.str,tmpEnv,inter->table);
-					*(int32_t*)(popVar->code+sizeof(char))=(int32_t)0;
-					*(int32_t*)(popVar->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
-					codeCat(tmpRawProc->proc,popVar);
-					if(nextCptr(argCptr)==NULL&&argCptr->outer->cdr.type==ATM)
-					{
-						AST_atom* tmpAtom1=(argCptr->outer->cdr.type==ATM)?argCptr->outer->cdr.value:NULL;
-						if(tmpAtom1!=NULL&&tmpAtom1->type!=SYM)
-						{
-							status->status=SYNTAXERROR;
-							status->place=tmpCptr;
-							freeByteCode(tmp);
-							freeByteCode(endproc);
-							freeByteCode(pushProc);
-							freeByteCode(popVar);
-							freeByteCode(proc);
-							freeByteCode(resTp);
-							freeByteCode(popRestVar);
-							freeByteCode(resBp);
-							freeByteCode(setTp);
-							freeByteCode(popTp);
-							destroyCompEnv(tmpEnv);
-							while(tmpRawProc->prev)
-								tmpRawProc=tmpRawProc->prev;
-							finter->procs=prevRawProc;
-							while(tmpRawProc!=prevRawProc)
-							{
-								RawProc* prev=tmpRawProc;
-								tmpRawProc=tmpRawProc->next;
-								freeByteCode(prev->proc);
-								free(prev);
-							}
-							return NULL;
-						}
-						tmpDef=addCompDef(tmpAtom1->value.str,tmpEnv,inter->table);
-						*(int32_t*)(popRestVar->code+sizeof(char))=(int32_t)0;
-						*(int32_t*)(popRestVar->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
-						codeCat(tmpRawProc->proc,popRestVar);
-					}
-					argCptr=nextCptr(argCptr);
-				}
-			}
-			else if(nextCptr(objCptr)->type==ATM)
-			{
-				AST_atom* tmpAtm=nextCptr(objCptr)->value;
-				if(tmpAtm->type!=SYM)
+				AST_atom* tmpAtom1=(argCptr->outer->cdr.type==ATM)?argCptr->outer->cdr.value:NULL;
+				if(tmpAtom1!=NULL&&tmpAtom1->type!=SYM)
 				{
 					status->status=SYNTAXERROR;
 					status->place=tmpCptr;
-					freeByteCode(tmp);
-					freeByteCode(endproc);
-					freeByteCode(pushProc);
 					freeByteCode(popVar);
-					freeByteCode(proc);
-					freeByteCode(resTp);
 					freeByteCode(popRestVar);
-					freeByteCode(resBp);
-					freeByteCode(setTp);
-					freeByteCode(popTp);
 					destroyCompEnv(tmpEnv);
-					while(tmpRawProc->prev)
-						tmpRawProc=tmpRawProc->prev;
-					finter->procs=prevRawProc;
-					while(tmpRawProc!=prevRawProc)
-					{
-						RawProc* prev=tmpRawProc;
-						tmpRawProc=tmpRawProc->next;
-						freeByteCode(prev->proc);
-						free(prev);
-					}
 					return NULL;
 				}
-				CompDef* tmpDef=addCompDef(tmpAtm->value.str,tmpEnv,inter->table);
+				tmpDef=addCompDef(tmpAtom1->value.str,tmpEnv,inter->table);
 				*(int32_t*)(popRestVar->code+sizeof(char))=(int32_t)0;
 				*(int32_t*)(popRestVar->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
-				codeCat(tmpRawProc->proc,popRestVar);
+				codeCat(pArg,popRestVar);
 			}
-			codeCat(tmpRawProc->proc,resBp);
-			codeCat(tmpRawProc->proc,setTp);
-			objCptr=nextCptr(nextCptr(objCptr));
-			continue;
-		}
-		else
-		{
-			ByteCode* tmp1=compile(objCptr,tmpEnv,inter,status,evalIm,fix);
-			if(status->status!=0)
-			{
-				freeByteCode(tmp);
-				freeByteCode(endproc);
-				freeByteCode(pushProc);
-				freeByteCode(popVar);
-				freeByteCode(proc);
-				freeByteCode(resTp);
-				freeByteCode(popRestVar);
-				freeByteCode(resBp);
-				freeByteCode(setTp);
-				freeByteCode(popTp);
-				destroyCompEnv(tmpEnv);
-				while(tmpRawProc->prev)
-					tmpRawProc=tmpRawProc->prev;
-				finter->procs=prevRawProc;
-				while(tmpRawProc!=prevRawProc)
-				{
-					RawProc* prev=tmpRawProc;
-					tmpRawProc=tmpRawProc->next;
-					freeByteCode(prev->proc);
-					free(prev);
-				}
-				return NULL;
-			}
-			if(nextCptr(objCptr)!=NULL)
-				codeCat(tmp1,resTp);
-			codeCat(tmpRawProc->proc,tmp1);
-			freeByteCode(tmp1);
-			objCptr=nextCptr(objCptr);
+			argCptr=nextCptr(argCptr);
 		}
 	}
-	freeByteCode(pushProc);
-	freeByteCode(popVar);
-	freeByteCode(proc);
-	freeByteCode(resTp);
+	else if(nextCptr(objCptr)->type==ATM)
+	{
+		AST_atom* tmpAtm=nextCptr(objCptr)->value;
+		if(tmpAtm->type!=SYM)
+		{
+			status->status=SYNTAXERROR;
+			status->place=tmpCptr;
+			freeByteCode(popVar);
+			freeByteCode(popRestVar);
+			destroyCompEnv(tmpEnv);
+			return NULL;
+		}
+		CompDef* tmpDef=addCompDef(tmpAtm->value.str,tmpEnv,inter->table);
+		*(int32_t*)(popRestVar->code+sizeof(char))=(int32_t)0;
+		*(int32_t*)(popRestVar->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
+		codeCat(pArg,popRestVar);
+	}
 	freeByteCode(popRestVar);
+	freeByteCode(popVar);
+	ByteCode* resBp=newByteCode(sizeof(char));
+	resBp->code[0]=FAKE_RES_BP;
+	ByteCode* setTp=newByteCode(sizeof(char));
+	setTp->code[0]=FAKE_SET_TP;
+	codeCat(pArg,resBp);
+	codeCat(pArg,setTp);
 	freeByteCode(resBp);
-	freeByteCode(endproc);
 	freeByteCode(setTp);
+	objCptr=nextCptr(nextCptr(objCptr));
+	ByteCodelnt* codeInRawProc=newByteCodelnt(pArg);
+	codeInRawProc->size=1;
+	codeInRawProc->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
+	if(!codeInRawProc->l)
+		errors("compileLambda",__FILE__,__LINE__);
+	codeInRawProc->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,pArg->size,line);
+	ByteCode* resTp=newByteCode(sizeof(char));
+	resTp->code[0]=FAKE_RES_TP;
+	for(;objCptr;objCptr=nextCptr(objCptr))
+	{
+		ByteCodelnt* tmp1=compile(objCptr,tmpEnv,inter,status,evalIm,fix);
+		if(status->status!=0)
+		{
+			freeByteCode(popVar);
+			freeByteCode(popRestVar);
+			freeByteCode(setTp);
+			FREE_ALL_LINE_NUMBER_TABLE(codeInRawProc->l,codeInRawProc->size);
+			freeByteCodelnt(codeInRawProc);
+			destroyCompEnv(tmpEnv);
+			return NULL;
+		}
+		if(nextCptr(objCptr)!=NULL)
+		{
+			codeCat(tmp1->bc,resTp);
+			tmp1->l[tmp1->size-1]->cpc+=resTp->size;
+		}
+		codelntCat(codeInRawProc,tmp1);
+		freeByteCodelnt(tmp1);
+	}
+	freeByteCode(resTp);
+	ByteCode* endproc=newByteCode(sizeof(char));
+	endproc->code[0]=FAKE_END_PROC;
+	ByteCode* popTp=newByteCode(sizeof(char));
+	popTp->code[0]=FAKE_POP_TP;
+	codeCat(codeInRawProc->bc,popTp);
+	codeCat(codeInRawProc->bc,endproc);
+	codeInRawProc->l[codeInRawProc->size-1]->cpc+=popTp->size+endproc->size;
+	freeByteCode(endproc);
 	freeByteCode(popTp);
-	return tmp;
+	int32_t pId=addRawProc(codeInRawProc->bc,inter)->count;
+	ByteCode* pushProc=newByteCode(sizeof(char)+sizeof(int32_t));
+	pushProc->code[0]=FAKE_PUSH_PROC;
+	*(int32_t*)(pushProc->code+sizeof(char))=pId;
+	addLineNumTabId(codeInRawProc->l,codeInRawProc->size,pId+1,inter->lnt);
+	free(codeInRawProc);
+	ByteCodelnt* toReturn=newByteCodelnt(pushProc);
+	toReturn->size=1;
+	toReturn->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
+	if(!toReturn->l)
+		errors("compileLambda",__FILE__,__LINE__);
+	toReturn->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,pushProc->size,line);
+	return toReturn;
 }
 
 ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)

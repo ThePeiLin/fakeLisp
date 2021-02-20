@@ -52,7 +52,7 @@ int main(int argc,char** argv)
 			int status;
 			SymTabNode* node=newSymTabNode(filename);
 			addSymTabNode(node,inter->table);
-			ByteCode* mainByteCode=compileFile(inter,1,fix,&status);
+			ByteCodelnt* mainByteCode=compileFile(inter,1,fix,&status);
 			if(mainByteCode==NULL)
 			{
 				free(workpath);
@@ -61,12 +61,15 @@ int main(int argc,char** argv)
 				unInitPreprocess();
 				return status;
 			}
-			reCodeCat(fix,mainByteCode);
+			reCodeCat(fix,mainByteCode->bc);
+			mainByteCode->l[0]->cpc+=fix->size;
+			INCREASE_ALL_SCP(mainByteCode->l+1,mainByteCode->size-1,fix->size);
 			freeByteCode(fix);
+			addLineNumTabId(mainByteCode->l,mainByteCode->size,0,inter->lnt);
 			VMenv* globEnv=newVMenv(NULL);
 			ByteCode* rawProcList=castRawproc(NULL,inter->procs);
-			FakeVM* anotherVM=newFakeVM(mainByteCode,rawProcList);
-			freeByteCode(mainByteCode);
+			FakeVM* anotherVM=newFakeVM(mainByteCode->bc,rawProcList);
+			freeByteCodelnt(mainByteCode);
 			anotherVM->argc=argc-1;
 			anotherVM->argv=argv+1;
 			anotherVM->tid=pthread_self();
@@ -75,6 +78,7 @@ int main(int argc,char** argv)
 			anotherVM->modules=inter->modules;
 			anotherVM->callback=errorCallBack;
 			anotherVM->table=inter->table;
+			anotherVM->lnt=inter->lnt;
 			initGlobEnv(globEnv,anotherVM->heap,inter->table);
 			chdir(workpath);
 			free(workpath);
@@ -224,7 +228,7 @@ void runIntpr(Intpr* inter)
 				//	printList(begin,stdout);
 				//	putchar('\n');
 				ByteCode* fix=newByteCode(0);
-				ByteCode* tmpByteCode=compile(begin,inter->glob,inter,&status,!isLambdaExpression(begin),fix);
+				ByteCodelnt* tmpByteCode=compile(begin,inter->glob,inter,&status,!isLambdaExpression(begin),fix);
 				if(status.status!=0)
 				{
 					exError(status.place,status.status,inter);
@@ -237,12 +241,15 @@ void runIntpr(Intpr* inter)
 				}
 				else if(tmpByteCode)
 				{
-					reCodeCat(fix,tmpByteCode);
+					reCodeCat(fix,tmpByteCode->bc);
+					tmpByteCode->l[0]->cpc+=fix->size;
+					INCREASE_ALL_SCP(tmpByteCode->l+1,tmpByteCode->size-1,fix->size);
+					addLineNumTabId(tmpByteCode->l,tmpByteCode->size,0,inter->lnt);
 					//printByteCode(tmpByteCode,stderr);
 					rawProcList=castRawproc(rawProcList,inter->procs);
 					anotherVM->procs=rawProcList;
-					VMcode* tmp=newVMcode(tmpByteCode,0);
-					freeByteCode(tmpByteCode);
+					VMcode* tmp=newVMcode(tmpByteCode->bc,0);
+					freeByteCodelnt(tmpByteCode);
 					tmp->localenv=NULL;
 					anotherVM->mainproc->code=tmp;
 					anotherVM->mainproc->localenv=globEnv;

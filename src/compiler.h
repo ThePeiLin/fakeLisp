@@ -2,6 +2,15 @@
 #define COMPILER_H
 #include"fakedef.h"
 
+#define FREE_ALL_LINE_NUMBER_TABLE(l,s) {int32_t i=0;\
+	for(;i<(s);i++)\
+	freeLineNumTabNode((l)[i]);\
+}
+
+#define INCREASE_ALL_SCP(l,ls,s) {int32_t i=0;\
+	for(;i<(ls);i++)\
+	(l)[i]->scp+=(s);\
+}
 
 PreMacro* PreMacroMatch(const AST_cptr*);
 int PreMacroExpand(AST_cptr*,Intpr* inter);

@@ -12,15 +12,6 @@
 #include<unistd.h>
 #include<math.h>
 #include<setjmp.h>
-#define FREE_ALL_LINE_NUMBER_TABLE(l,s) {int32_t i=0;\
-	for(;i<(s);i++)\
-	freeLineNumTabNode((l)[i]);\
-}
-
-#define INCREASE_ALL_SCP(l,ls,s) {int32_t i=0;\
-	for(;i<(ls);i++)\
-	(l)[i]->scp+=(s);\
-}
 
 static jmp_buf buf;
 static void errorCallBackForPreMacroExpand(void* a)

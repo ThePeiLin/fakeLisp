@@ -753,6 +753,7 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 		tmpInter->modules=inter->modules;
 		tmpInter->curDir=inter->curDir;
 		tmpInter->prev=NULL;
+		tmpInter->lnt=newLineNumTable();
 		ByteCode* fix=newByteCode(0);
 		CompEnv* tmpCompEnv=createMacroCompEnv(pattern,tmpGlobCompEnv,inter->table);
 		ByteCodelnt* tmpByteCodelnt=compile(express,tmpCompEnv,tmpInter,&status,1,fix);
@@ -760,8 +761,8 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 		{
 			reCodeCat(fix,tmpByteCodelnt->bc);
 			tmpByteCodelnt->l[0]->cpc+=fix->size;
-			INCREASE_ALL_SCP(tmpByteCodelnt->l+1,tmpByteCodelnt->size-1,fix->size);
-			addLineNumTabId(tmpByteCodelnt->l,tmpByteCodelnt->size,0,tmpInter->lnt); addMacro(pattern,tmpByteCodelnt->bc,tmpInter->procs,tmpInter->lnt);
+			INCREASE_ALL_SCP(tmpByteCodelnt->l+1,tmpByteCodelnt->ls-1,fix->size);
+			addLineNumTabId(tmpByteCodelnt->l,tmpByteCodelnt->ls,0,tmpInter->lnt); addMacro(pattern,tmpByteCodelnt->bc,tmpInter->procs,tmpInter->lnt);
 			deleteCptr(express);
 			free(express);
 			free(args);
@@ -771,7 +772,7 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 		{
 			if(tmpByteCodelnt)
 			{
-				FREE_ALL_LINE_NUMBER_TABLE(tmpByteCodelnt->l,tmpByteCodelnt->size);
+				FREE_ALL_LINE_NUMBER_TABLE(tmpByteCodelnt->l,tmpByteCodelnt->ls);
 				freeByteCodelnt(tmpByteCodelnt);
 			}
 			exError(status.place,status.status,inter);
@@ -806,6 +807,7 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 	tmpInter->curDir=inter->curDir;
 	tmpInter->procs=NULL;
 	tmpInter->prev=NULL;
+	tmpInter->lnt=newLineNumTable();
 	CompEnv* tmpCompEnv=createPatternCompEnv(parts,num,tmpGlobCompEnv,inter->table);
 	ByteCode* fix=newByteCode(0);
 	ByteCodelnt* tmpByteCodelnt=compile(express,tmpCompEnv,tmpInter,&status,1,fix);
@@ -818,15 +820,15 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 			tmParts[i]=copyStr(parts[i]);
 		reCodeCat(fix,tmpByteCodelnt->bc);
 		tmpByteCodelnt->l[0]->cpc+=fix->size;
-		INCREASE_ALL_SCP(tmpByteCodelnt->l+1,tmpByteCodelnt->size-1,fix->size);
-		addLineNumTabId(tmpByteCodelnt->l,tmpByteCodelnt->size,0,tmpInter->lnt);
+		INCREASE_ALL_SCP(tmpByteCodelnt->l+1,tmpByteCodelnt->ls-1,fix->size);
+		addLineNumTabId(tmpByteCodelnt->l,tmpByteCodelnt->ls,0,tmpInter->lnt);
 		tmp=newStringMatchPattern(num,tmParts,tmpByteCodelnt->bc,tmpInter->procs,inter->lnt);
 	}
 	else
 	{
 		if(tmpByteCodelnt)
 		{
-			FREE_ALL_LINE_NUMBER_TABLE(tmpByteCodelnt->l,tmpByteCodelnt->size);
+			FREE_ALL_LINE_NUMBER_TABLE(tmpByteCodelnt->l,tmpByteCodelnt->ls);
 			freeByteCodelnt(tmpByteCodelnt);
 		}
 		exError(status.place,status.status,inter);
@@ -1003,15 +1005,7 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 {
 	objCptr=nextCptr(getFirst(objCptr));
 	if(objCptr->type==ATM)
-	{
-		ByteCodelnt* r=newByteCodelnt(compileAtom(objCptr));
-		r->size=1;
-		r->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
-		if(!r->l)
-			errors("compileQsquote",__FILE__,__LINE__);
-		r->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,r->bc->size,objCptr->curline);
-		return r;
-	}
+		return compileConst(objCptr,curEnv,inter,status,evalIm,fix);
 	else if(isUnquoteExpression(objCptr))
 		return compileUnquote(objCptr,curEnv,inter,status,evalIm,fix);
 	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
@@ -1032,7 +1026,7 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 			ByteCodelnt* tmp1=compileUnquote(objCptr,curEnv,inter,status,evalIm,fix);
 			if(status->status!=0)
 			{
-				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->size);
+				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 				freeByteCodelnt(tmp);
 				freeByteCode(appd);
 				freeByteCode(popToCar);
@@ -1041,7 +1035,7 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 				return NULL;
 			}
 			codeCat(tmp1->bc,(objCptr==&objPair->car)?popToCar:popToCdr);
-			tmp1->l[tmp1->size-1]->cpc+=(objCptr==&objPair->car)?popToCar->size:popToCdr->size;
+			tmp1->l[tmp1->ls-1]->cpc+=(objCptr==&objPair->car)?popToCar->size:popToCdr->size;
 			codelntCat(tmp,tmp1);
 			freeByteCodelnt(tmp1);
 			if(objPair!=NULL&&objCptr==&objPair->car)
@@ -1058,7 +1052,7 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 				freeByteCode(popToCdr);
 				freeByteCode(pushPair);
 				freeByteCode(appd);
-				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->size);
+				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 				freeByteCodelnt(tmp);
 				status->status=INVALIDEXPR;
 				status->place=objCptr;
@@ -1067,7 +1061,7 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 			ByteCodelnt* tmp1=compile(nextCptr(getFirst(objCptr)),curEnv,inter,status,evalIm,fix);
 			if(status->status!=0)
 			{
-				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->size);
+				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 				freeByteCodelnt(tmp);
 				freeByteCode(appd);
 				freeByteCode(popToCar);
@@ -1076,7 +1070,7 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 				return NULL;
 			}
 			codeCat(tmp1->bc,appd);
-			tmp1->l[tmp1->size-1]->cpc+=appd->size;
+			tmp1->l[tmp1->ls-1]->cpc+=appd->ls;
 			codelntCat(tmp,tmp1);
 			freeByteCodelnt(tmp1);
 			if(objPair!=NULL&&objCptr==&objPair->car)
@@ -1088,21 +1082,18 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 		else if(objCptr->type==PAIR)
 		{
 			if(!isUnqtespExpression(getFirst(objCptr)))
-			{
 				codeCat(tmp->bc,pushPair);
-				tmp->l[tmp->size-1]->cpc+=pushPair->size;
-			}
 			objPair=objCptr->value;
 			objCptr=&objPair->car;
 			continue;
 		}
 		else if((objCptr->type==ATM||objCptr->type==NIL)&&(!isUnqtespExpression(&objPair->car)))
 		{
-			ByteCode* tmp1=(objCptr->type==ATM)?compileAtom(objCptr):compileNil();
-			codeCat(tmp1,(objCptr==&objPair->car)?popToCar:popToCdr);
-			codeCat(tmp->bc,tmp1);
-			tmp->l[tmp->size-1]->cpc+=tmp1->size;
-			freeByteCode(tmp1);
+			ByteCodelnt* tmp1=compileConst(objCptr,curEnv,inter,status,evalIm,fix);
+			codeCat(tmp1->bc,(objCptr==&objPair->car)?popToCar:popToCdr);
+			tmp1->l[tmp1->ls-1]->cpc+=(objCptr==&objPair->car)?popToCar->size:popToCdr->size;
+			codelntCat(tmp,tmp1);
+			freeByteCodelnt(tmp1);
 			if(objPair!=NULL&&objCptr==&objPair->car)
 			{
 				objCptr=&objPair->cdr;
@@ -1520,7 +1511,7 @@ ByteCodelnt* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatu
 			ByteCodelnt* tmp1=compile(objCptr,curEnv,inter,status,evalIm,fix);
 			if(status->status!=0)
 			{
-				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->size);
+				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 				freeByteCodelnt(tmp);
 				freeByteCode(jumpifture);
 				freeByteCode(pushnil);
@@ -1528,17 +1519,17 @@ ByteCodelnt* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatu
 			}
 			reCodelntCat(tmp1,tmp);
 			freeByteCodelnt(tmp1);
-			*(int32_t*)(jumpifture->code+sizeof(char))=tmp->size;
+			*(int32_t*)(jumpifture->code+sizeof(char))=tmp->bc->size;
 			reCodeCat(jumpifture,tmp->bc);
 			tmp->l[0]->cpc+=jumpifture->size;
-			INCREASE_ALL_SCP(tmp->l+1,tmp->size-1,jumpifture->size);
+			INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,jumpifture->size);
 			objCptr=prevCptr(objCptr);
 		}
 		if(prevCptr(objCptr)==NULL)
 		{
 			reCodeCat(pushnil,tmp->bc);
 			tmp->l[0]->cpc+=pushnil->size;
-			INCREASE_ALL_SCP(tmp->l+1,tmp->size-1,pushnil->size);
+			INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,pushnil->size);
 			if(objCptr->outer==tmpPair)break;
 			objCptr=prevCptr(&objCptr->outer->prev->car);
 		}
@@ -1563,18 +1554,18 @@ ByteCodelnt* compileBegin(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 		ByteCodelnt* tmp1=compile(firCptr,curEnv,inter,status,evalIm,fix);
 		if(status->status!=0)
 		{
-			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->size);
+			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 			freeByteCodelnt(tmp);
 			freeByteCode(resTp);
 			freeByteCode(setTp);
 			freeByteCode(popTp);
 			return NULL;
 		}
-		if(tmp->size)
+		if(tmp->bc->size)
 		{
 			reCodeCat(resTp,tmp1->bc);
 			tmp1->l[0]->cpc+=1;
-			INCREASE_ALL_SCP(tmp1->l,tmp1->size-1,resTp->size);
+			INCREASE_ALL_SCP(tmp1->l,tmp1->ls-1,resTp->size);
 		}
 		codelntCat(tmp,tmp1);
 		freeByteCodelnt(tmp1);
@@ -1582,9 +1573,9 @@ ByteCodelnt* compileBegin(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 	}
 	reCodeCat(setTp,tmp->bc);
 	tmp->l[0]->cpc+=1;
-	INCREASE_ALL_SCP(tmp->l,tmp->size-1,setTp->size);
+	INCREASE_ALL_SCP(tmp->l,tmp->ls-1,setTp->size);
 	codeCat(tmp->bc,popTp);
-	tmp->l[tmp->size-1]->cpc+=popTp->size;
+	tmp->l[tmp->ls-1]->cpc+=popTp->size;
 	freeByteCode(setTp);
 	freeByteCode(resTp);
 	freeByteCode(popTp);
@@ -1673,7 +1664,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	freeByteCode(setTp);
 	objCptr=nextCptr(nextCptr(objCptr));
 	ByteCodelnt* codeInRawProc=newByteCodelnt(pArg);
-	codeInRawProc->size=1;
+	codeInRawProc->ls=1;
 	codeInRawProc->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 	if(!codeInRawProc->l)
 		errors("compileLambda",__FILE__,__LINE__);
@@ -1688,7 +1679,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			freeByteCode(popVar);
 			freeByteCode(popRestVar);
 			freeByteCode(setTp);
-			FREE_ALL_LINE_NUMBER_TABLE(codeInRawProc->l,codeInRawProc->size);
+			FREE_ALL_LINE_NUMBER_TABLE(codeInRawProc->l,codeInRawProc->ls);
 			freeByteCodelnt(codeInRawProc);
 			destroyCompEnv(tmpEnv);
 			return NULL;
@@ -1696,7 +1687,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		if(nextCptr(objCptr)!=NULL)
 		{
 			codeCat(tmp1->bc,resTp);
-			tmp1->l[tmp1->size-1]->cpc+=resTp->size;
+			tmp1->l[tmp1->ls-1]->cpc+=resTp->size;
 		}
 		codelntCat(codeInRawProc,tmp1);
 		freeByteCodelnt(tmp1);
@@ -1708,17 +1699,17 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	popTp->code[0]=FAKE_POP_TP;
 	codeCat(codeInRawProc->bc,popTp);
 	codeCat(codeInRawProc->bc,endproc);
-	codeInRawProc->l[codeInRawProc->size-1]->cpc+=popTp->size+endproc->size;
+	codeInRawProc->l[codeInRawProc->ls-1]->cpc+=popTp->size+endproc->size;
 	freeByteCode(endproc);
 	freeByteCode(popTp);
 	int32_t pId=addRawProc(codeInRawProc->bc,inter)->count;
 	ByteCode* pushProc=newByteCode(sizeof(char)+sizeof(int32_t));
 	pushProc->code[0]=FAKE_PUSH_PROC;
 	*(int32_t*)(pushProc->code+sizeof(char))=pId;
-	addLineNumTabId(codeInRawProc->l,codeInRawProc->size,pId+1,inter->lnt);
+	addLineNumTabId(codeInRawProc->l,codeInRawProc->ls,pId+1,inter->lnt);
 	free(codeInRawProc);
 	ByteCodelnt* toReturn=newByteCodelnt(pushProc);
-	toReturn->size=1;
+	toReturn->ls=1;
 	toReturn->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 	if(!toReturn->l)
 		errors("compileLambda",__FILE__,__LINE__);
@@ -1748,12 +1739,12 @@ ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			ByteCodelnt* tmp1=compile(objCptr,curEnv,inter,status,evalIm,fix);
 			if(status->status!=0)
 			{
-				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->size);
+				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 				freeByteCodelnt(tmp);
 				freeByteCode(jumpiffalse);
 				freeByteCode(jump);
 				freeByteCode(pop);
-				FREE_ALL_LINE_NUMBER_TABLE(tmpCond->l,tmp->size);
+				FREE_ALL_LINE_NUMBER_TABLE(tmpCond->l,tmpCond->ls);
 				freeByteCodelnt(tmpCond);
 				freeByteCode(pushnil);
 				return NULL;
@@ -1762,19 +1753,19 @@ ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			{
 				*(int32_t*)(jumpiffalse->code+sizeof(char))=tmpCond->bc->size+((nextCptr(cond)==NULL)?0:jump->size)+((objCptr->outer->cdr.type==NIL)?pushnil->size:0);
 				codeCat(tmp1->bc,jumpiffalse);
-				tmp1->l[tmp1->size-1]->cpc+=jumpiffalse->size;
+				tmp1->l[tmp1->ls-1]->cpc+=jumpiffalse->size;
 				if(objCptr->outer->cdr.type==NIL)
 				{
 					codeCat(tmp1->bc,pop);
 					codeCat(tmp1->bc,pushnil);
-					tmp1->l[tmp1->size-1]->cpc+=pop->size+pushnil->size;
+					tmp1->l[tmp1->ls-1]->cpc+=pop->size+pushnil->size;
 				}
 			}
 			if(prevCptr(objCptr)!=NULL)
 			{
 				reCodeCat(pop,tmp1->bc);
 				tmp1->l[0]->cpc+=pop->size;
-				INCREASE_ALL_SCP(tmp1->l+1,tmp1->size-1,pop->size);
+				INCREASE_ALL_SCP(tmp1->l+1,tmp1->ls-1,pop->size);
 			}
 			reCodelntCat(tmp1,tmpCond);
 			freeByteCodelnt(tmp1);
@@ -1784,13 +1775,13 @@ ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		{
 			reCodeCat(pop,tmpCond->bc);
 			tmpCond->l[0]->cpc+=1;
-			INCREASE_ALL_SCP(tmpCond->l+1,tmpCond->size-1,pop->size);
+			INCREASE_ALL_SCP(tmpCond->l+1,tmpCond->ls-1,pop->size);
 		}
 		if(nextCptr(cond)!=NULL)
 		{
-			*(int32_t*)(jump->code+sizeof(char))=tmp->size;
+			*(int32_t*)(jump->code+sizeof(char))=tmp->bc->size;
 			codeCat(tmpCond->bc,jump);
-			tmpCond->l[tmpCond->size-1]->cpc+=jump->size;
+			tmpCond->l[tmpCond->ls-1]->cpc+=jump->size;
 		}
 		reCodelntCat(tmpCond,tmp);
 		freeByteCodelnt(tmpCond);
@@ -1800,6 +1791,7 @@ ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	freeByteCode(pop);
 	freeByteCode(jumpiffalse);
 	freeByteCode(jump);
+	printByteCode(tmp->bc,stderr);
 	return tmp;
 }
 
@@ -1843,12 +1835,12 @@ ByteCodelnt* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	{
 		reCodeCat(setTp,tmp->bc);
 		tmp->l[0]->cpc+=setTp->size;
-		INCREASE_ALL_SCP(tmp->l+1,tmp->size-1,setTp->size);
+		INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,setTp->size);
 		codeCat(tmp->bc,popTp);
-		tmp->l[tmp->size-1]->cpc+=popTp->size;
+		tmp->l[tmp->ls-1]->cpc+=popTp->size;
 		reCodeCat(fix,tmp->bc);
 		tmp->l[0]->cpc+=fix->size;
-		INCREASE_ALL_SCP(tmp->l+1,tmp->size-1,fix->size);
+		INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,fix->size);
 	}
 	freeByteCode(popTp);
 	freeByteCode(setTp);
@@ -1886,7 +1878,7 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,ByteCode* fix,int* exitstatus)
 				list=NULL;
 			}
 			if(exitstatus)*exitstatus=INVALIDEXPR;
-			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->size);
+			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 			freeByteCodelnt(tmp);
 			tmp=NULL;
 			break;
@@ -1902,11 +1894,11 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,ByteCode* fix,int* exitstatus)
 		{
 			if(isPreprocess(begin))
 			{
-				if(isImportExpression(begin)&&tmp->size)
+				if(isImportExpression(begin)&&tmp->bc->size)
 				{
 					exError(begin,INVALIDEXPR,inter);
 					if(exitstatus)*exitstatus=INVALIDEXPR;
-					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->size);
+					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 					freeByteCodelnt(tmp);
 					free(list);
 					deleteCptr(begin);
@@ -1920,7 +1912,7 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,ByteCode* fix,int* exitstatus)
 					exError(status.place,status.status,inter);
 					if(exitstatus)*exitstatus=status.status;
 					deleteCptr(status.place);
-					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->size);
+					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 					freeByteCodelnt(tmp);
 					free(list);
 					deleteCptr(begin);
@@ -1949,7 +1941,7 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,ByteCode* fix,int* exitstatus)
 					tmp=NULL;
 					break;
 				}
-				if(tmp->size)
+				if(tmp->bc->size)
 				{
 					reCodeCat(resTp,tmpByteCodelnt->bc);
 					tmpByteCodelnt->l[0]->cpc+=resTp->size;

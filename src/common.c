@@ -884,7 +884,7 @@ ByteCodelnt* newByteCodelnt(ByteCode* bc)
 {
 	ByteCodelnt* t=(ByteCodelnt*)malloc(sizeof(ByteCodelnt));
 	if(!t)errors("newByteCodelnt",__FILE__,__LINE__);
-	t->size=0;
+	t->ls=0;
 	t->l=NULL;
 	t->bc=bc;
 	return t;
@@ -2030,6 +2030,7 @@ LineNumTabId* newLineNumTabId(int32_t id)
 	LineNumTabId* t=(LineNumTabId*)malloc(sizeof(LineNumTabId));
 	if(!t)
 		errors("newLineNumTabId",__FILE__,__LINE__);
+	t->id=id;
 	t->size=0;
 	t->list=NULL;
 	return t;
@@ -2056,7 +2057,6 @@ LineNumTabId* addLineNumTabId(LineNumTabNode** list,int32_t size,int32_t id,Line
 		if(!table->list)
 			errors("addLineNumTabId",__FILE__,__LINE__);
 		LineNumTabId* i=newLineNumTabId(id);
-		i->id=id;
 		i->size=size;
 		i->list=list;
 		table->list[0]=i;
@@ -2064,6 +2064,12 @@ LineNumTabId* addLineNumTabId(LineNumTabNode** list,int32_t size,int32_t id,Line
 	}
 	else
 	{
+//		{
+//			fprintf(stderr,"----\n");
+//			int32_t i=0;
+//			for(;i<table->size;i++)
+//				fprintf(stderr,"%d\n",table->list[i]->id);
+//		}
 		int32_t l=0;
 		int32_t h=table->size-1;
 		int32_t mid;
@@ -2141,7 +2147,7 @@ LineNumTabNode* findLineNumTabNode(int32_t id,int32_t cp,LineNumberTable* t)
 void increaseScpOfByteCodelnt(ByteCodelnt* o,int32_t size)
 {
 	int32_t i=0;
-	for(;i<o->size;i++)
+	for(;i<o->ls;i++)
 		o->l[i]->scp+=size;
 }
 
@@ -2149,32 +2155,33 @@ void codelntCat(ByteCodelnt* f,ByteCodelnt* s)
 {
 	if(!f->l)
 	{
-		f->size=s->size;
-		f->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*s->size);
+		f->ls=s->ls;
+		f->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*s->ls);
 		if(!f->l)
 			errors("codelntCat",__FILE__,__LINE__);
-		memcpy(f->l,s->l,s->size);
+		s->l[s->ls-1]->cpc+=f->bc->size;
+		memcpy(f->l,s->l,(s->ls)*sizeof(LineNumTabNode*));
 	}
 	else
 	{
 		increaseScpOfByteCodelnt(s,f->bc->size);
-		if(f->l[f->size-1]->line==s->l[0]->line&&f->l[f->size-1]->fid==s->l[0]->fid)
+		if(f->l[f->ls-1]->line==s->l[0]->line&&f->l[f->ls-1]->fid==s->l[0]->fid)
 		{
-			f->l[f->size-1]->cpc+=s->l[0]->cpc;
-			f->l=(LineNumTabNode**)realloc(f->l,sizeof(LineNumTabNode*)*(f->size+s->size-1));
+			f->l[f->ls-1]->cpc+=s->l[0]->cpc;
+			f->l=(LineNumTabNode**)realloc(f->l,sizeof(LineNumTabNode*)*(f->ls+s->ls-1));
 			if(!f->l)
 				errors("codelntCat",__FILE__,__LINE__);
-			memcpy(f->l+f->size,s->l+1,s->size-1);
-			f->size+=s->size-1;
+			memcpy(f->l+f->ls,s->l+1,(s->ls-1)*sizeof(LineNumTabNode*));
+			f->ls+=s->ls-1;
 			freeLineNumTabNode(s->l[0]);
 		}
 		else
 		{
-			f->l=(LineNumTabNode**)realloc(f->l,sizeof(LineNumTabNode*)*(f->size+s->size));
+			f->l=(LineNumTabNode**)realloc(f->l,sizeof(LineNumTabNode*)*(f->ls+s->ls));
 			if(!f->l)
 				errors("codelntCat",__FILE__,__LINE__);
-			memcpy(f->l+f->size,s->l,s->size);
-			f->size+=s->size;
+			memcpy(f->l+f->ls,s->l,(s->ls)*sizeof(LineNumTabNode*));
+			f->ls+=s->ls;
 		}
 	}
 	codeCat(f->bc,s->bc);
@@ -2184,38 +2191,39 @@ void reCodelntCat(ByteCodelnt* f,ByteCodelnt* s)
 {
 	if(!s->l)
 	{
-		s->size=f->size;
-		s->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*f->size);
+		s->ls=f->ls;
+		s->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*f->ls);
 		if(!s->l)
-			errors("codelntCat",__FILE__,__LINE__);
-		memcpy(s->l,f->l,f->size);
+			errors("reCodelntCat",__FILE__,__LINE__);
+		f->l[f->ls-1]->cpc+=s->bc->size;
+		memcpy(s->l,f->l,(f->ls)*sizeof(LineNumTabNode*));
 	}
 	else
 	{
 		increaseScpOfByteCodelnt(s,f->bc->size);
-		if(f->l[f->size-1]->line==s->l[0]->line&&f->l[f->size-1]->fid==s->l[0]->fid)
+		if(f->l[f->ls-1]->line==s->l[0]->line&&f->l[f->ls-1]->fid==s->l[0]->fid)
 		{
-			LineNumTabNode** l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*(f->size+s->size-1));
+			LineNumTabNode** l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*(f->ls+s->ls-1));
 			if(!l)
 				errors("reCodeCat",__FILE__,__LINE__);
-			f->l[f->size-1]->cpc+=s->l[0]->cpc;
-			memcpy(l,f->l,f->size);
-			memcpy(l+f->size,s->l+1,s->size-1);
+			f->l[f->ls-1]->cpc+=s->l[0]->cpc;
+			freeLineNumTabNode(s->l[0]);
+			memcpy(l,f->l,(f->ls)*sizeof(LineNumTabNode*));
+			memcpy(l+f->ls,s->l+1,(s->ls-1)*sizeof(LineNumTabNode*));
 			free(s->l);
 			s->l=l;
-			s->size+=f->size-1;
-			freeLineNumTabNode(s->l[0]);
+			s->ls+=f->ls-1;
 		}
 		else
 		{
-			LineNumTabNode** l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*(f->size+s->size));
+			LineNumTabNode** l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*(f->ls+s->ls));
 			if(!l)
 				errors("reCodeCat",__FILE__,__LINE__);
-			memcpy(l,f->l,f->size);
-			memcpy(l+f->size,s->l,s->size);
+			memcpy(l,f->l,(f->ls)*sizeof(LineNumTabNode*));
+			memcpy(l+f->ls,s->l,(s->ls)*sizeof(LineNumTabNode*));
 			free(s->l);
 			s->l=l;
-			s->size+=f->size;
+			s->ls+=f->ls;
 		}
 	}
 	reCodeCat(f->bc,s->bc);

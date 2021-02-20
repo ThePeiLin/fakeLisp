@@ -35,7 +35,7 @@ typedef struct
 
 typedef struct Byte_Code_with_Line_Number_Node
 {
-	int32_t size;
+	int32_t ls;
 	struct Line_Number_Table_Node** l;
 	ByteCode* bc;
 }ByteCodelnt;

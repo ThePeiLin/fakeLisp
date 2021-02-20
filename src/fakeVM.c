@@ -843,15 +843,16 @@ int runFakeVM(FakeVM* exe)
 		//	printAllStack(exe->stack,stderr,1);
 		if(status!=0)
 		{
-			//ByteCode tmpByteCode={tmpCode->size,tmpCode->code};
-			//VMstack* stack=exe->stack;
-			//printByteCode(&tmpByteCode,stderr);
-			//putc('\n',stderr);
-			//putc('\n',stderr);
-			//fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
-			//fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",curproc->cp,stack->bp,codeName[(int)tmpCode->code[curproc->cp]].codeName);
-			//printEnv(exe->curproc->localenv,stderr);
-			//putc('\n',stderr);
+			ByteCode tmpByteCode={tmpCode->size,tmpCode->code};
+			VMstack* stack=exe->stack;
+			printByteCode(&tmpByteCode,stderr);
+			putc('\n',stderr);
+			putc('\n',stderr);
+			fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
+			fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",curproc->cp,stack->bp,codeName[(int)tmpCode->code[curproc->cp]].codeName);
+			printAllStack(stack,stderr,1);
+			printEnv(exe->curproc->localenv,stderr);
+			putc('\n',stderr);
 			int32_t id;
 			switch(status)
 			{

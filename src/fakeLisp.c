@@ -63,9 +63,9 @@ int main(int argc,char** argv)
 			}
 			reCodeCat(fix,mainByteCode->bc);
 			mainByteCode->l[0]->cpc+=fix->size;
-			INCREASE_ALL_SCP(mainByteCode->l+1,mainByteCode->size-1,fix->size);
+			INCREASE_ALL_SCP(mainByteCode->l+1,mainByteCode->ls-1,fix->size);
 			freeByteCode(fix);
-			addLineNumTabId(mainByteCode->l,mainByteCode->size,0,inter->lnt);
+			addLineNumTabId(mainByteCode->l,mainByteCode->ls,0,inter->lnt);
 			VMenv* globEnv=newVMenv(NULL);
 			ByteCode* rawProcList=castRawproc(NULL,inter->procs);
 			FakeVM* anotherVM=newFakeVM(mainByteCode->bc,rawProcList);
@@ -243,8 +243,8 @@ void runIntpr(Intpr* inter)
 				{
 					reCodeCat(fix,tmpByteCode->bc);
 					tmpByteCode->l[0]->cpc+=fix->size;
-					INCREASE_ALL_SCP(tmpByteCode->l+1,tmpByteCode->size-1,fix->size);
-					addLineNumTabId(tmpByteCode->l,tmpByteCode->size,0,inter->lnt);
+					INCREASE_ALL_SCP(tmpByteCode->l+1,tmpByteCode->ls-1,fix->size);
+					addLineNumTabId(tmpByteCode->l,tmpByteCode->ls,0,inter->lnt);
 					//printByteCode(tmpByteCode,stderr);
 					rawProcList=castRawproc(rawProcList,inter->procs);
 					anotherVM->procs=rawProcList;

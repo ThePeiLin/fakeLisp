@@ -1803,7 +1803,6 @@ ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	freeByteCode(pop);
 	freeByteCode(jumpiffalse);
 	freeByteCode(jump);
-	printByteCode(tmp->bc,stderr);
 	return tmp;
 }
 

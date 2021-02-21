@@ -769,7 +769,12 @@ int32_t skipAtom(const char* str,const char* keyString)
 					i+=j;
 				}
 				else if(toupper(str[i])=='X')
-					i+=2;
+				{
+					i++;
+					int32_t j=0;
+					for(;isxdigit(str[i+j])&&j<2;j++);
+					i+=j;
+				}
 				else
 					i++;
 			}

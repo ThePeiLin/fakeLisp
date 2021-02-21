@@ -249,7 +249,9 @@ void runIntpr(Intpr* inter)
 					rawProcList=castRawproc(rawProcList,inter->procs);
 					anotherVM->procs=rawProcList;
 					VMcode* tmp=newVMcode(tmpByteCode->bc,0);
-					freeByteCodelnt(tmpByteCode);
+					freeByteCode(tmpByteCode->bc);
+					free(tmpByteCode);
+					//freeByteCodelnt(tmpByteCode);
 					tmp->localenv=NULL;
 					anotherVM->mainproc->code=tmp;
 					anotherVM->mainproc->localenv=globEnv;

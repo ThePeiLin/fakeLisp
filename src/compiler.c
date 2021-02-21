@@ -1497,8 +1497,19 @@ ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 		freeByteCodelnt(tmp1);
 	}
 	reCodeCat(push1,tmp->bc);
-	tmp->l[0]->cpc+=1;
-	INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,push1->size);
+	if(!tmp->l)
+	{
+		tmp->ls=1;
+		tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
+		if(!tmp->l)
+			errors("compileAnd",__FILE__,__LINE__);
+		tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,tmp->bc->size,objCptr->curline);
+	}
+	else
+	{
+		tmp->l[0]->cpc+=push1->size;
+		INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,push1->size);
+	}
 	freeByteCode(pop);
 	freeByteCode(jumpiffalse);
 	freeByteCode(push1);
@@ -1542,8 +1553,19 @@ ByteCodelnt* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatu
 		if(prevCptr(objCptr)==NULL)
 		{
 			reCodeCat(pushnil,tmp->bc);
-			tmp->l[0]->cpc+=pushnil->size;
-			INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,pushnil->size);
+			if(!tmp->l)
+			{
+				tmp->ls=1;
+				tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
+				if(!tmp->l)
+					errors("compileOr",__FILE__,__LINE__);
+				tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,tmp->bc->size,objCptr->curline);
+			}
+			else
+			{
+				tmp->l[0]->cpc+=pushnil->size;
+				INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,pushnil->size);
+			}
 			if(objCptr->outer==tmpPair)break;
 			objCptr=prevCptr(&objCptr->outer->prev->car);
 		}
@@ -1586,8 +1608,19 @@ ByteCodelnt* compileBegin(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 		firCptr=nextCptr(firCptr);
 	}
 	reCodeCat(setTp,tmp->bc);
-	tmp->l[0]->cpc+=1;
-	INCREASE_ALL_SCP(tmp->l,tmp->ls-1,setTp->size);
+	if(!tmp->l)
+	{
+		tmp->ls=1;
+		tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
+		if(!tmp->l)
+			errors("compileBegin",__FILE__,__LINE__);
+		tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,tmp->bc->size,objCptr->curline);
+	}
+	else
+	{
+		tmp->l[0]->cpc+=1;
+		INCREASE_ALL_SCP(tmp->l,tmp->ls-1,setTp->size);
+	}
 	codeCat(tmp->bc,popTp);
 	tmp->l[tmp->ls-1]->cpc+=popTp->size;
 	freeByteCode(setTp);
@@ -1811,6 +1844,14 @@ ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		reCodelntCat(tmpCond,tmp);
 		freeByteCodelnt(tmpCond);
 		cond=prevCptr(cond);
+	}
+	if(!tmp->l)
+	{
+		tmp->ls=1;
+		tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
+		if(!tmp->l)
+			errors("compileCond",__FILE__,__LINE__);
+		tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,0,objCptr->curline);
 	}
 	freeByteCode(pushnil);
 	freeByteCode(pop);

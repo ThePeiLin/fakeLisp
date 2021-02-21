@@ -1845,13 +1845,12 @@ ByteCodelnt* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	if(tmp)
 	{
 		reCodeCat(setTp,tmp->bc);
-		tmp->l[0]->cpc+=setTp->size;
-		INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,setTp->size);
-		codeCat(tmp->bc,popTp);
-		tmp->l[tmp->ls-1]->cpc+=popTp->size;
 		reCodeCat(fix,tmp->bc);
-		tmp->l[0]->cpc+=fix->size;
-		INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,fix->size);
+		codeCat(tmp->bc,popTp);
+		tmp->l[0]->cpc+=fix->size+setTp->size;
+		INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,fix->size+setTp->size);
+		tmp->l[tmp->ls-1]->cpc+=popTp->size;
+
 	}
 	freeByteCode(popTp);
 	freeByteCode(setTp);
@@ -1863,6 +1862,11 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,ByteCode* fix,int* exitstatus)
 	chdir(inter->curDir);
 	char ch;
 	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
+	tmp->ls=1;
+	tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
+	if(!tmp->l)
+		errors("compileFile",__FILE__,__LINE__);
+	tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,0,1);
 	ByteCode* resTp=newByteCode(1);
 	resTp->code[0]=FAKE_RES_TP;
 	char* prev=NULL;

@@ -35,7 +35,7 @@ int main(int argc,char** argv)
 		addSymTabNode(node,inter->table);
 		ByteCode* fix=newByteCode(0);
 		int status;
-		ByteCode* mainByteCode=compileFile(inter,1,fix,&status);
+		ByteCodelnt* mainByteCode=compileFile(inter,1,fix,&status);
 		if(mainByteCode==NULL)
 		{
 			free(rp);
@@ -53,10 +53,14 @@ int main(int argc,char** argv)
 			fprintf(stderr,"%s:Can't create byte code file!",outputname);
 			return 1;
 		}
-		reCodeCat(fix,mainByteCode);
+		reCodeCat(fix,mainByteCode->bc);
+		mainByteCode->l[0]->cpc+=fix->size;
+		INCREASE_ALL_SCP(mainByteCode->l+1,mainByteCode->ls-1,fix->size);
 		freeByteCode(fix);
+		addLineNumTabId(mainByteCode->l,mainByteCode->ls,0,inter->lnt);
 		//printByteCode(mainByteCode,stderr);
 		writeSymbolTable(inter->table,outfp);
+		writeLineNumberTable(inter->lnt,outfp);
 		int32_t numOfRawproc=(inter->procs==NULL)?0:inter->procs->count+1;
 		fwrite(&numOfRawproc,sizeof(numOfRawproc),1,outfp);
 		ByteCode* rawProcList=castRawproc(NULL,inter->procs);
@@ -67,12 +71,13 @@ int main(int argc,char** argv)
 			fwrite(&size,sizeof(size),1,outfp);
 			fwrite(code,sizeof(char),size,outfp);
 		}
-		int32_t sizeOfMain=mainByteCode->size;
-		char* code=mainByteCode->code;
+		int32_t sizeOfMain=mainByteCode->bc->size;
+		char* code=mainByteCode->bc->code;
 		fwrite(&sizeOfMain,sizeof(sizeOfMain),1,outfp);
 		fwrite(code,sizeof(char),sizeOfMain,outfp);
 		writeAllDll(inter,outfp);
-		freeByteCode(mainByteCode);
+		freeByteCode(mainByteCode->bc);
+		free(mainByteCode);
 		free(rawProcList);
 		fclose(outfp);
 		freeIntpr(inter);

@@ -1609,6 +1609,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	popRestVar->code[0]=FAKE_POP_REST_VAR;
 	objPair=objCptr->value;
 	objCptr=&objPair->car;
+	RawProc* curproc=getHeadRawProc(inter);
 	if(nextCptr(objCptr)->type==PAIR)
 	{
 		AST_cptr* argCptr=&((AST_pair*)nextCptr(objCptr)->value)->car;
@@ -1689,6 +1690,15 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		ByteCodelnt* tmp1=compile(objCptr,tmpEnv,inter,status,evalIm,fix);
 		if(status->status!=0)
 		{
+			RawProc* tmpProc=getHeadRawProc(inter);
+			while(tmpProc!=curproc)
+			{
+				RawProc* prev=tmpProc;
+				tmpProc=tmpProc->next;
+				freeByteCode(prev->proc);
+				free(prev);
+			}
+			getFirstIntpr(inter)->procs=curproc;
 			freeByteCode(popVar);
 			freeByteCode(popRestVar);
 			freeByteCode(setTp);

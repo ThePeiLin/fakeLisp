@@ -2008,6 +2008,29 @@ void writeSymbolTable(SymbolTable* table,FILE* fp)
 		fwrite(table->idl[i]->symbol,strlen(table->idl[i]->symbol)+1,1,fp);
 }
 
+void writeLineNumberTable(LineNumberTable* lnt,FILE* fp)
+{
+	int32_t size=lnt->size;
+	fwrite(&size,sizeof(size),1,fp);
+	int32_t i=0;
+	for(;i<size;i++)
+	{
+		LineNumTabId* idl=lnt->list[i];
+		int32_t size=idl->size;
+		int32_t j=0;
+		fwrite(&idl->id,sizeof(idl->id),1,fp);
+		fwrite(&size,sizeof(size),1,fp);
+		for(;j<size;j++)
+		{
+			LineNumTabNode* n=idl->list[j];
+			fwrite(&n->fid,sizeof(n->fid),1,fp);
+			fwrite(&n->scp,sizeof(n->scp),1,fp);
+			fwrite(&n->cpc,sizeof(n->cpc),1,fp);
+			fwrite(&n->line,sizeof(n->line),1,fp);
+		}
+	}
+}
+
 int isAllSpace(const char* str)
 {
 	for(;*str;str++)

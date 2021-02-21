@@ -123,6 +123,7 @@ int main(int argc,char** argv)
 		int32_t num=0;
 		changeWorkPath(filename);
 		SymbolTable* table=loadSymbolTable(fp);
+		LineNumberTable* lnt=loadLineNumberTable(fp);
 		ByteCode* RawProcess=loadRawproc(fp,&num);
 		ByteCode* mainprocess=loadByteCode(fp);
 		//printByteCode(mainprocess,stdout);
@@ -138,6 +139,7 @@ int main(int argc,char** argv)
 		anotherVM->mainproc->localenv=globEnv;
 		anotherVM->mainproc->code->localenv=globEnv;
 		anotherVM->callback=errorCallBack;
+		anotherVM->lnt=lnt;
 		initGlobEnv(globEnv,anotherVM->heap,table);
 		if(!setjmp(buf))
 		{
@@ -147,6 +149,7 @@ int main(int argc,char** argv)
 			freeVMheap(heap);
 			freeRawProc(RawProcess,num);
 			freeSymbolTable(table);
+			freeLineNumberTable(lnt);
 		}
 		else
 		{
@@ -156,6 +159,7 @@ int main(int argc,char** argv)
 			freeVMheap(heap);
 			freeRawProc(RawProcess,num);
 			freeSymbolTable(table);
+			freeLineNumberTable(lnt);
 			return exitStatus;
 		}
 	}
@@ -378,4 +382,45 @@ SymbolTable* loadSymbolTable(FILE* fp)
 		free(symbol);
 	}
 	return tmp;
+}
+
+LineNumberTable* loadLineNumberTable(FILE* fp)
+{
+	int32_t size=0;
+	int32_t i=0;
+	LineNumberTable* lnt=newLineNumTable();
+	fread(&size,sizeof(int32_t),1,fp);
+	lnt->size=size;
+	lnt->list=(LineNumTabId**)malloc(sizeof(LineNumTabId*)*size);
+	if(!lnt->list)
+		errors("loadLineNumberTable",__FILE__,__LINE__);
+	for(;i<lnt->size;i++)
+	{
+		int32_t j=0;
+		int32_t id=0;
+		int32_t size=0;
+		LineNumTabId* idl=NULL;
+		fread(&id,sizeof(id),1,fp);
+		idl=newLineNumTabId(id);
+		lnt->list[i]=idl;
+		fread(&size,sizeof(size),1,fp);
+		idl->size=size;
+		idl->list=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*size);
+		if(!idl->list)
+			errors("loadLineNumberTable",__FILE__,__LINE__);
+		for(;j<size;j++)
+		{
+			int32_t fid=0;
+			int32_t scp=0;
+			int32_t cpc=0;
+			int32_t line=0;
+			fread(&fid,sizeof(fid),1,fp);
+			fread(&scp,sizeof(scp),1,fp);
+			fread(&cpc,sizeof(cpc),1,fp);
+			fread(&line,sizeof(line),1,fp);
+			LineNumTabNode* n=newLineNumTabNode(fid,scp,cpc,line);
+			idl->list[j]=n;
+		}
+	}
+	return lnt;
 }

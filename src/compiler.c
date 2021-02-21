@@ -241,6 +241,7 @@ void freeAllMacro()
 		free(prev->pattern);
 		freeByteCode(prev->proc);
 		RawProc* tmp=prev->procs;
+		freeLineNumberTable(prev->lnt);
 		while(tmp!=NULL)
 		{
 			RawProc* prev=tmp;
@@ -822,7 +823,7 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 		tmpByteCodelnt->l[0]->cpc+=fix->size;
 		INCREASE_ALL_SCP(tmpByteCodelnt->l+1,tmpByteCodelnt->ls-1,fix->size);
 		addLineNumTabId(tmpByteCodelnt->l,tmpByteCodelnt->ls,0,tmpInter->lnt);
-		tmp=newStringMatchPattern(num,tmParts,tmpByteCodelnt->bc,tmpInter->procs,inter->lnt);
+		tmp=newStringMatchPattern(num,tmParts,tmpByteCodelnt->bc,tmpInter->procs,tmpInter->lnt);
 	}
 	else
 	{
@@ -837,6 +838,7 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 	}
 	destroyCompEnv(tmpCompEnv);
 	destroyCompEnv(tmpGlobCompEnv);
+	free(tmpByteCodelnt);
 	free(tmpInter);
 	freeByteCode(fix);
 	return tmp;
@@ -1599,13 +1601,12 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	int32_t line=objCptr->curline;
 	AST_cptr* tmpCptr=objCptr;
 	AST_pair* objPair=NULL;
-	CompEnv* tmpEnv=curEnv;
+	CompEnv* tmpEnv=newCompEnv(curEnv);
 	ByteCode* popVar=newByteCode(sizeof(char)+sizeof(int32_t)*2);
 	ByteCode* popRestVar=newByteCode(sizeof(char)+sizeof(int32_t)*2);
 	ByteCode* pArg=newByteCode(0);
 	popVar->code[0]=FAKE_POP_VAR;
 	popRestVar->code[0]=FAKE_POP_REST_VAR;
-	tmpEnv=newCompEnv(tmpEnv);
 	objPair=objCptr->value;
 	objCptr=&objPair->car;
 	if(nextCptr(objCptr)->type==PAIR)
@@ -1719,6 +1720,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	pushProc->code[0]=FAKE_PUSH_PROC;
 	*(int32_t*)(pushProc->code+sizeof(char))=pId;
 	addLineNumTabId(codeInRawProc->l,codeInRawProc->ls,pId+1,inter->lnt);
+	freeByteCode(codeInRawProc->bc);
 	free(codeInRawProc);
 	ByteCodelnt* toReturn=newByteCodelnt(pushProc);
 	toReturn->ls=1;
@@ -1726,6 +1728,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	if(!toReturn->l)
 		errors("compileLambda",__FILE__,__LINE__);
 	toReturn->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,pushProc->size,line);
+	destroyCompEnv(tmpEnv);
 	return toReturn;
 }
 
@@ -1836,6 +1839,7 @@ ByteCodelnt* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	chdir(tmpIntpr->prev->curDir);
 	tmpIntpr->glob=NULL;
 	tmpIntpr->table=NULL;
+	tmpIntpr->lnt=NULL;
 	freeIntpr(tmpIntpr);
 	//printByteCode(tmp,stderr);
 	ByteCode* setTp=newByteCode(1);

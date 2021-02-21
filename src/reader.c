@@ -996,6 +996,7 @@ void freeAllStringPattern()
 		StringMatchPattern* prev=cur;
 		cur=cur->next;
 		freeStringArry(prev->parts,prev->num);
+		freeLineNumberTable(prev->lnt);
 		freeByteCode(prev->proc);
 		RawProc* tmp=prev->procs;
 		while(tmp!=NULL)

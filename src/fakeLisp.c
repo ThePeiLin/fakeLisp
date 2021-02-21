@@ -37,7 +37,11 @@ int main(int argc,char** argv)
 		}
 		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
 		if(fp==stdin)
+		{
+			SymTabNode* node=newSymTabNode("stdin");
+			addSymTabNode(node,inter->table);
 			runIntpr(inter);
+		}
 		else
 		{
 #ifdef _WIN32
@@ -69,7 +73,8 @@ int main(int argc,char** argv)
 			VMenv* globEnv=newVMenv(NULL);
 			ByteCode* rawProcList=castRawproc(NULL,inter->procs);
 			FakeVM* anotherVM=newFakeVM(mainByteCode->bc,rawProcList);
-			freeByteCodelnt(mainByteCode);
+			freeByteCode(mainByteCode->bc);
+			free(mainByteCode);
 			anotherVM->argc=argc-1;
 			anotherVM->argv=argv+1;
 			anotherVM->tid=pthread_self();
@@ -172,6 +177,7 @@ void runIntpr(Intpr* inter)
 	anotherVM->mainproc->localenv=globEnv;
 	anotherVM->tid=pthread_self();
 	anotherVM->callback=errorCallBack;
+	anotherVM->lnt=inter->lnt;
 	initGlobEnv(globEnv,anotherVM->heap,inter->table);
 	ByteCode* rawProcList=NULL;
 	char* prev=NULL;

@@ -768,6 +768,7 @@ void freeIntpr(Intpr* inter)
 		free(prev);
 	}
 	if(inter->table)freeSymbolTable(inter->table);
+	if(inter->lnt)freeLineNumberTable(inter->lnt);
 	free(inter);
 }
 

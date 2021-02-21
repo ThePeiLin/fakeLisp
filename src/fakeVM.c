@@ -843,17 +843,34 @@ int runFakeVM(FakeVM* exe)
 		//	printAllStack(exe->stack,stderr,1);
 		if(status!=0)
 		{
-			ByteCode tmpByteCode={tmpCode->size,tmpCode->code};
-			VMstack* stack=exe->stack;
-			printByteCode(&tmpByteCode,stderr);
-			putc('\n',stderr);
-			putc('\n',stderr);
-			fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
-			fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",curproc->cp,stack->bp,codeName[(int)tmpCode->code[curproc->cp]].codeName);
-			printAllStack(stack,stderr,1);
-			printEnv(exe->curproc->localenv,stderr);
-			putc('\n',stderr);
-			int32_t id;
+			//ByteCode tmpByteCode={tmpCode->size,tmpCode->code};
+			//VMstack* stack=exe->stack;
+			//printByteCode(&tmpByteCode,stderr);
+			//putc('\n',stderr);
+			//putc('\n',stderr);
+			//fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
+			//fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",curproc->cp,stack->bp,codeName[(int)tmpCode->code[curproc->cp]].codeName);
+			//printAllStack(stack,stderr,1);
+			//printEnv(exe->curproc->localenv,stderr);
+			//putc('\n',stderr);
+			int32_t sid;
+			int32_t cp;
+			int32_t pid;
+			if(tmpCode->id!=-1)
+			{
+				cp=curproc->cp;
+				pid=tmpCode->id;
+			}
+			else
+			{
+				VMprocess* cur=curproc;
+				while(cur->code->id==-1)
+					cur=cur->prev;
+				cp=cur->cp;
+				pid=cur->code->id;
+			}
+			LineNumTabNode* node=findLineNumTabNode(pid,cp,exe->lnt);
+			fprintf(stderr,"In file \"%s\",line %d\n",exe->table->idl[node->fid]->symbol,node->line);
 			switch(status)
 			{
 				case WRONGARG:
@@ -875,8 +892,8 @@ int runFakeVM(FakeVM* exe)
 					fprintf(stderr,"error:Thread error.\n");
 					break;
 				case SYMUNDEFINE:
-					id=getSymbolIdInByteCode(tmpCode->code+curproc->cp);
-					fprintf(stderr,"%s",exe->table->idl[id]->symbol);
+					sid=getSymbolIdInByteCode(tmpCode->code+curproc->cp);
+					fprintf(stderr,"%s",exe->table->idl[sid]->symbol);
 					fprintf(stderr,":Symbol is undefined.\n");
 					break;
 				case INVOKEERROR:

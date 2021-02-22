@@ -1071,7 +1071,7 @@ void printByteStr(const ByteString* obj,FILE* fp,int mode)
 
 void printAsByteStr(const uint8_t* str,int32_t size,FILE* fp)
 {
-	fputs("@\\",fp);
+	fputs("#b",fp);
 	for(int i=0;i<size;i++)
 	{
 		uint8_t j=str[i];
@@ -2183,12 +2183,13 @@ void codelntCat(ByteCodelnt* f,ByteCodelnt* s)
 		f->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*s->ls);
 		if(!f->l)
 			errors("codelntCat",__FILE__,__LINE__);
-		s->l[s->ls-1]->cpc+=f->bc->size;
+		s->l[0]->cpc+=f->bc->size;
+		INCREASE_ALL_SCP(s->l+1,s->ls-1,f->bc->size);
 		memcpy(f->l,s->l,(s->ls)*sizeof(LineNumTabNode*));
 	}
 	else
 	{
-		increaseScpOfByteCodelnt(s,f->bc->size);
+		INCREASE_ALL_SCP(s->l,s->ls,f->bc->size);
 		if(f->l[f->ls-1]->line==s->l[0]->line&&f->l[f->ls-1]->fid==s->l[0]->fid)
 		{
 			f->l[f->ls-1]->cpc+=s->l[0]->cpc;
@@ -2224,7 +2225,7 @@ void reCodelntCat(ByteCodelnt* f,ByteCodelnt* s)
 	}
 	else
 	{
-		increaseScpOfByteCodelnt(s,f->bc->size);
+		INCREASE_ALL_SCP(s->l,s->ls,f->bc->size);
 		if(f->l[f->ls-1]->line==s->l[0]->line&&f->l[f->ls-1]->fid==s->l[0]->fid)
 		{
 			LineNumTabNode** l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*(f->ls+s->ls-1));
@@ -2251,4 +2252,59 @@ void reCodelntCat(ByteCodelnt* f,ByteCodelnt* s)
 		}
 	}
 	reCodeCat(f->bc,s->bc);
+}
+
+void printByteCodelnt(ByteCodelnt* obj,SymbolTable* table,FILE* fp)
+{
+	ByteCode* tmpCode=obj->bc;
+	int32_t i=0;
+	int32_t j=0;
+	int32_t fid=0;
+	int32_t line=0;
+	while(i<tmpCode->size)
+	{
+		int tmplen=0;
+		fprintf(fp,"%d: %s ",i,codeName[(int)tmpCode->code[i]].codeName);
+		switch(codeName[(int)tmpCode->code[i]].len)
+		{
+			case -3:
+				fprintf(fp,"%d %d",*(int32_t*)(tmpCode->code+i+1),*(int32_t*)(tmpCode->code+i+1+sizeof(int32_t)));
+				i+=9;
+				break;
+			case -2:
+				fprintf(fp,"%d ",*(int32_t*)(tmpCode->code+i+1));
+				printAsByteStr((uint8_t*)(tmpCode->code+i+5),*(int32_t*)(tmpCode->code+i+1),fp);
+				i+=5+*(int32_t*)(tmpCode->code+i+1);
+				break;
+			case -1:
+				tmplen=strlen(tmpCode->code+i+1);
+				fprintf(fp,"%s",tmpCode->code+i+1);
+				i+=tmplen+2;
+				break;
+			case 0:
+				i+=1;
+				break;
+			case 1:
+				printRawChar(tmpCode->code[i+1],fp);
+				i+=2;
+				break;
+			case 4:
+				fprintf(fp,"%d",*(int32_t*)(tmpCode->code+i+1));
+				i+=5;
+				break;
+			case 8:
+				fprintf(fp,"%lf",*(double*)(tmpCode->code+i+1));
+				i+=9;
+				break;
+		}
+		putc('\t',fp);
+		if(obj->l[j]->scp+obj->l[j]->cpc<i)j++;
+		if(obj->l[j]->fid!=fid||obj->l[j]->line!=line)
+		{
+			fid=obj->l[j]->fid;
+			line=obj->l[j]->line;
+			fprintf(fp,"%s:%d:%d",table->idl[obj->l[j]->fid]->symbol,obj->l[j]->line,obj->l[j]->cpc);
+		}
+		putc('\n',fp);
+	}
 }

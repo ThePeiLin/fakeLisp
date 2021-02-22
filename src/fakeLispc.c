@@ -44,6 +44,7 @@ int main(int argc,char** argv)
 			unInitPreprocess();
 			return status;
 		}
+		//printByteCodelnt(mainByteCode,inter->table,stderr);
 		char* outputname=(char*)malloc(sizeof(char)*(strlen(rp)+2));
 		strcpy(outputname,rp);
 		strcat(outputname,"c");

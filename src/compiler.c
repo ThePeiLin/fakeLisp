@@ -1346,7 +1346,7 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		*(int32_t*)(popVar->code+sizeof(char)+sizeof(int32_t))=id;
 		codeCat(tmp1->bc,pushTop);
 		codeCat(tmp1->bc,popVar);
-		tmp1->l[tmp1->ls-1]->cpc+=(pushTop->size+pushTop->size);
+		tmp1->l[tmp1->ls-1]->cpc+=(pushTop->size+popVar->size);
 		if(fir->outer==tmpPair)break;
 		else
 		{

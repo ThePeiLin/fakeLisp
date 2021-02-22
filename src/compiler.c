@@ -1228,7 +1228,12 @@ ByteCodelnt* compileFuncCall(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Erro
 		}
 		else
 		{
-			tmp1=compile(objCptr,curEnv,inter,status,evalIm&1,fix);
+			if(prevCptr(objCptr)==NULL)
+			{
+				tmp1=compile(objCptr,curEnv,inter,status,evalIm&1,fix);
+			}
+			else
+				tmp1=compile(objCptr,curEnv,inter,status,!isLambdaExpression(objCptr),fix);
 			if(status->status!=0)
 			{
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
@@ -1732,10 +1737,8 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				free(prev);
 			}
 			getFirstIntpr(inter)->procs=curproc;
-			freeByteCode(popVar);
-			freeByteCode(popRestVar);
-			freeByteCode(setTp);
 			FREE_ALL_LINE_NUMBER_TABLE(codeInRawProc->l,codeInRawProc->ls);
+			freeByteCode(resTp);
 			freeByteCodelnt(codeInRawProc);
 			destroyCompEnv(tmpEnv);
 			return NULL;

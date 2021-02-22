@@ -927,19 +927,9 @@ int runFakeVM(FakeVM* exe)
 						GC_mark(GlobFakeVMs.VMs[i]);
 					else
 					{
-						void* ret;
-						pthread_join(GlobFakeVMs.VMs[i]->tid,&ret);
-						if(ret!=NULL)
-						{
-							deleteCallChain(GlobFakeVMs.VMs[i]);
-						}
+						pthread_join(GlobFakeVMs.VMs[i]->tid,NULL);
 						free(GlobFakeVMs.VMs[i]);
 						GlobFakeVMs.VMs[i]=NULL;
-						if(ret!=NULL)
-						{
-							int32_t i[2]={(int32_t)status,1};
-							exe->callback(i);
-						}
 					}
 				}
 			}

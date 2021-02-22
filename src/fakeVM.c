@@ -19,7 +19,7 @@
 
 static void sortVMenvList(VMenv*);
 static int32_t getSymbolIdInByteCode(const char*);
-
+static void deleteThreadVMCallChain(FakeVM*);
 extern char* builtInSymbolList[NUMOFBUILTINSYMBOL];
 pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
 FakeVMlist GlobFakeVMs={0,NULL};
@@ -819,14 +819,18 @@ void initGlobEnv(VMenv* obj,VMheap* heap,SymbolTable* table)
 void* ThreadVMFunc(void* p)
 {
 	FakeVM* exe=(FakeVM*)p;
-	runFakeVM(exe);
+	int64_t status=runFakeVM(exe);
 	exe->mark=0;
 	pthread_mutex_destroy(&exe->lock);
 	freeMessage(exe->queueHead);
 	exe->queueHead=NULL;
 	freeVMstack(exe->stack);
 	exe->stack=NULL;
-	return NULL;
+	exe->lnt=NULL;
+	exe->table=NULL;
+	if(status!=0)
+		deleteThreadVMCallChain(exe);
+	return (void*)status;
 }
 
 int runFakeVM(FakeVM* exe)
@@ -904,6 +908,8 @@ int runFakeVM(FakeVM* exe)
 			}
 			if(exe->VMid==-1)
 				return 1;
+			else if(exe->VMid!=0)
+				return status;
 			int i[2]={status,1};
 			exe->callback(i);
 		}
@@ -921,9 +927,19 @@ int runFakeVM(FakeVM* exe)
 						GC_mark(GlobFakeVMs.VMs[i]);
 					else
 					{
-						pthread_join(GlobFakeVMs.VMs[i]->tid,NULL);
+						void* ret;
+						pthread_join(GlobFakeVMs.VMs[i]->tid,&ret);
+						if(ret!=NULL)
+						{
+							deleteCallChain(GlobFakeVMs.VMs[i]);
+						}
 						free(GlobFakeVMs.VMs[i]);
 						GlobFakeVMs.VMs[i]=NULL;
+						if(ret!=NULL)
+						{
+							int32_t i[2]={(int32_t)status,1};
+							exe->callback(i);
+						}
 					}
 				}
 			}
@@ -2499,6 +2515,9 @@ int B_go(FakeVM* exe)
 	if(exe->VMid==-1)
 		return CANTCREATETHREAD;
 	FakeVM* threadVM=newThreadVM(threadProc->u.prc,exe->procs,exe->files,exe->heap,exe->modules);
+	threadVM->callback=exe->callback;
+	threadVM->table=exe->table;
+	threadVM->lnt=exe->lnt;
 	VMstack* threadVMstack=threadVM->stack;
 	VMvalue* prevBp=newVMvalue(IN32,&threadVMstack->bp,exe->heap,1);
 	if(threadVMstack->tp>=threadVMstack->size)
@@ -3146,6 +3165,20 @@ void deleteCallChain(FakeVM* exe)
 {
 	VMprocess* cur=exe->curproc;
 	while(cur->prev)
+	{
+		VMprocess* prev=cur;
+		cur=cur->prev;
+		freeVMenv(prev->localenv);
+		prev->code->refcount-=1;
+		freeVMcode(prev->code);
+		free(prev);
+	}
+}
+
+static void deleteThreadVMCallChain(FakeVM* exe)
+{
+	VMprocess* cur=exe->curproc;
+	while(cur)
 	{
 		VMprocess* prev=cur;
 		cur=cur->prev;

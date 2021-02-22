@@ -7,11 +7,6 @@
 	freeLineNumTabNode((l)[i]);\
 }
 
-#define INCREASE_ALL_SCP(l,ls,s) {int32_t i=0;\
-	for(;i<(ls);i++)\
-	(l)[i]->scp+=(s);\
-}
-
 PreMacro* PreMacroMatch(const AST_cptr*);
 int PreMacroExpand(AST_cptr*,Intpr* inter);
 int addMacro(AST_cptr*,ByteCode*,RawProc*,LineNumberTable*);

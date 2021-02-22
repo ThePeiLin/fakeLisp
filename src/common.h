@@ -3,6 +3,12 @@
 #include"fakedef.h"
 #include<stdint.h>
 
+#define INCREASE_ALL_SCP(l,ls,s) {int32_t i=0;\
+	for(;i<(ls);i++)\
+	(l)[i]->scp+=(s);\
+}
+
+
 int isHexNum(const char*);
 int isOctNum(const char*);
 int isDouble(const char*);
@@ -116,6 +122,7 @@ void freeLineNumTabNode(LineNumTabNode*);
 void freeLineNumberTable(LineNumberTable*);
 
 ByteCodelnt* newByteCodelnt(ByteCode* bc);
+void printByteCodelnt(ByteCodelnt* obj,SymbolTable* table,FILE* fp);
 void freeByteCodelnt(ByteCodelnt*);
 void increaseScpOfByteCodelnt(ByteCodelnt*,int32_t);
 void codelntCat(ByteCodelnt*,ByteCodelnt*);

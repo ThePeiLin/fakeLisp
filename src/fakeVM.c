@@ -2583,8 +2583,14 @@ int B_recv(FakeVM* exe)
 	}
 	VMvalue* tmp=newNilValue(exe->heap);
 	tmp->access=1;
-	while(exe->queueHead==NULL);
+	while(exe->mark&&exe->queueHead==NULL);
 	pthread_mutex_lock(&exe->lock);
+	if(!exe->mark)
+	{
+		stack->tp+=1;
+		proc->cp+=1;
+		return 0;
+	}
 	copyRef(tmp,exe->queueHead->message);
 	ThreadMessage* prev=exe->queueHead;
 	{

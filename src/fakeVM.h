@@ -39,7 +39,7 @@ int B_add(FakeVM*);
 int B_sub(FakeVM*);
 int B_mul(FakeVM*);
 int B_div(FakeVM*);
-int B_mod(FakeVM*);
+int B_rem(FakeVM*);
 int B_atom(FakeVM*);
 int B_null(FakeVM*);
 int B_call_proc(FakeVM*);

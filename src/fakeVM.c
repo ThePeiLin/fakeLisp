@@ -64,7 +64,7 @@ static int (*ByteCodes[])(FakeVM*)=
 	B_sub,
 	B_mul,
 	B_div,
-	B_mod,
+	B_rem,
 	B_atom,
 	B_null,
 	B_type,
@@ -452,7 +452,7 @@ ByteCode P_div=
 	}
 };
 
-ByteCode P_mod=
+ByteCode P_rem=
 {
 	31,
 	(char[])
@@ -1568,7 +1568,7 @@ int B_div(FakeVM* exe)
 	return 0;
 }
 
-int B_mod(FakeVM* exe)
+int B_rem(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
@@ -2314,7 +2314,7 @@ int B_length(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMvalue* objlist=getTopValue(stack);
-	if(objlist->type!=PAIR&&objlist->type!=STR&&objlist->type!=BYTS)return WRONGARG;
+	if(objlist->type!=PAIR&&objlist->type!=STR&&objlist->type!=BYTS&&objlist->type!=CHAN)return WRONGARG;
 	if(objlist->type==PAIR)
 	{
 		int32_t i=0;
@@ -2330,6 +2330,8 @@ int B_length(FakeVM* exe)
 	}
 	else if(objlist->type==BYTS)
 		stack->values[stack->tp-1]=newVMvalue(IN32,&objlist->u.byts->size,exe->heap,1);
+	else if(objlist->type==CHAN)
+		stack->values[stack->tp-1]=newVMvalue(IN32,&objlist->u.chan->size,exe->heap,1);
 	proc->cp+=1;
 	return 0;
 }

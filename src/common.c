@@ -47,7 +47,7 @@ char* builtInSymbolList[NUMOFBUILTINSYMBOL]=
 	"sub",
 	"mul",
 	"div",
-	"mod",
+	"rem",
 	"nth",
 	"length",
 	"appd",

@@ -8,7 +8,7 @@
 #define NUMOFBUILTINSYMBOL 46
 #define MAX_STRING_SIZE 64
 
-typedef enum{NIL=0,IN32,CHR,DBL,SYM,STR,BYTS,PRC,CONT,PAIR,ATM} ValueType;
+typedef enum{NIL=0,IN32,CHR,DBL,SYM,STR,BYTS,PRC,CONT,/*CHAN*/PAIR,ATM} ValueType;
 
 typedef enum
 {
@@ -207,6 +207,14 @@ typedef struct VM_Value
 	struct VM_Value* next;
 }VMvalue;
 
+/*typedef struct Channel
+{
+	int32_t max;
+	int32_t size;
+	struct Thread_Message* queueHead;
+	struct Thread_Message* queueTail;
+}Chan;*/
+
 typedef struct VM_Env_node
 {
 	int32_t id;
@@ -262,10 +270,10 @@ typedef struct
 	FILE** files;
 }Filestack;
 
-typedef struct ThreadMessage
+typedef struct Thread_Message
 {
 	VMvalue* message;
-	struct ThreadMessage* next;
+	struct Thread_Message* next;
 }ThreadMessage;
 
 typedef struct

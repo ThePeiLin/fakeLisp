@@ -462,7 +462,7 @@ ByteCode P_rem=
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
-		FAKE_MOD,
+		FAKE_REM,
 		FAKE_END_PROC
 	}
 };
@@ -762,7 +762,7 @@ void initGlobEnv(VMenv* obj,VMheap* heap,SymbolTable* table)
 		P_sub,
 		P_mul,
 		P_div,
-		P_mod,
+		P_rem,
 		P_nth,
 		P_length,
 		P_appd,

@@ -2550,6 +2550,8 @@ int B_send(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMvalue* ch=getTopValue(stack);
+	if(ch->type!=CHAN)
+		return WRONGARG;
 	VMvalue* message=getValue(stack,stack->tp-2);
 	Chanl* tmpCh=ch->u.chan;
 	pthread_mutex_lock(&tmpCh->lock);
@@ -2578,6 +2580,8 @@ int B_recv(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMvalue* ch=getTopValue(stack);
+	if(ch->type!=CHAN)
+		return WRONGARG;
 	VMvalue* tmp=newNilValue(exe->heap);
 	Chanl* tmpCh=ch->u.chan;
 	tmp->access=1;

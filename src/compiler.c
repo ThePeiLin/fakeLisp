@@ -66,7 +66,6 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 		}
 		else if(i==1)
 		{
-			pthread_mutex_destroy(&tmpVM->lock);
 			deleteCallChain(tmpVM);
 			if(tmpVM->mainproc->code)
 			{
@@ -79,14 +78,12 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 			free(tmpVM->mainproc);
 			freeVMstack(tmpVM->stack);
 			freeFileStack(tmpVM->files);
-			freeMessage(tmpVM->queueHead);
 			free(tmpVM);
 			free(rawProcList);
 			destroyEnv(MacroEnv);
 			MacroEnv=NULL;
 			return 2;
 		}
-		pthread_mutex_destroy(&tmpVM->lock);
 		if(tmpVM->mainproc->code)
 		{
 			tmpGlob->refcount-=1;
@@ -98,7 +95,6 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 		free(tmpVM->mainproc);
 		freeVMstack(tmpVM->stack);
 		freeFileStack(tmpVM->files);
-		freeMessage(tmpVM->queueHead);
 		free(tmpVM);
 		free(rawProcList);
 		destroyEnv(MacroEnv);
@@ -937,6 +933,11 @@ ByteCode* compileAtom(AST_cptr* objCptr)
 			tmp->code[0]=FAKE_PUSH_BYTE;
 			*(int32_t*)(tmp->code+1)=tmpAtm->value.byts.size;
 			memcpy(tmp->code+5,tmpAtm->value.byts.str,tmpAtm->value.byts.size);
+			break;
+		case CHAN:
+			tmp=newByteCode(sizeof(char)+sizeof(int32_t));
+			tmp->code[0]=FAKE_PUSH_CHAN;
+			*(int32_t*)(tmp->code+1)=tmpAtm->value.chan.max;
 			break;
 	}
 	return tmp;

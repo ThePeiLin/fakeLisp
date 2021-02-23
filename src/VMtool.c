@@ -51,6 +51,8 @@ VMvalue* copyValue(VMvalue* obj,VMheap* heap)
 	}
 	else if(obj->type==PRC)
 		tmp=newVMvalue(PRC,copyVMcode(obj->u.prc,heap),heap,1);
+	else if(obj->type==CHAN)
+		tmp=newVMvalue(CHAN,copyChanl(obj->u.chan,heap),heap,1);
 	else if(obj->type==PAIR)
 	{
 		tmp=newVMvalue(PAIR,newVMpair(heap),heap,1);
@@ -93,6 +95,8 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap,int access)
 			tmp->u.byts=pValue;break;
 		case CONT:
 			tmp->u.cont=pValue;break;
+		case CHAN:
+			tmp->u.chan=pValue;break;
 	}
 	return tmp;
 }
@@ -230,6 +234,7 @@ VMvalue* castCptrVMvalue(const AST_cptr* objCptr,VMheap* heap)
 			case BYTS:tmp=newVMvalue(BYTS,newByteString(tmpAtm->value.byts.size,tmpAtm->value.byts.str),heap,1);break;
 			case SYM:
 			case STR:tmp=newVMvalue(tmpAtm->type,newVMstr(tmpAtm->value.str),heap,1);break;
+			case CHAN:tmp=newVMvalue(tmpAtm->type,newChanl(tmpAtm->value.chan.max),heap,1);break;
 		}
 		return tmp;
 	}
@@ -449,6 +454,10 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 					fir->u.byts=sec->u.byts;
 				}
 				break;
+			case CHAN:
+				sec->u.chan->refcount+=1;
+				fir->u.chan=sec->u.chan;
+				break;
 			case NIL:
 				fir->u.all=NULL;
 				break;
@@ -492,6 +501,9 @@ void freeRef(VMvalue* obj)
 				break;
 			case CONT:
 				freeVMcontinuation(obj->u.cont);
+				break;
+			case CHAN:
+				freeChanl(obj->u.chan);
 				break;
 		}
 	}
@@ -668,3 +680,63 @@ void freeVMenvNode(VMenvNode* node)
 	free(node);
 }
 
+
+Chanl* newChanl(int32_t maxSize)
+{
+	Chanl* tmp=(Chanl*)malloc(sizeof(Chanl));
+	if(!tmp)
+		errors("newChanl",__FILE__,__LINE__);
+	tmp->max=maxSize;
+	tmp->size=0;
+	tmp->refcount=0;
+	pthread_mutex_init(&tmp->lock,NULL);
+	tmp->head=NULL;
+	tmp->tail=NULL;
+	return tmp;
+}
+
+void freeChanl(Chanl* ch)
+{
+	if(ch->refcount)
+		ch->refcount-=1;
+	else
+	{
+		pthread_mutex_destroy(&ch->lock);
+		freeMessage(ch->head);
+		free(ch);
+	}
+}
+
+void freeMessage(ThreadMessage* cur)
+{
+	while(cur!=NULL)
+	{
+		ThreadMessage* prev=cur;
+		cur=cur->next;
+		free(prev);
+	}
+}
+
+Chanl* copyChanl(Chanl* ch,VMheap* heap)
+{
+	Chanl* tmpCh=newChanl(ch->max);
+	tmpCh->size=ch->size;
+	ThreadMessage* cur=ch->head;
+	ThreadMessage* prev=NULL;
+	while(cur)
+	{
+		ThreadMessage* tmp=(ThreadMessage*)malloc(sizeof(ThreadMessage));
+		tmp->next=NULL;
+		if(!tmp)
+			errors("copyChanl",__FILE__,__LINE__);
+		if(!tmpCh->head)
+			tmpCh->head=tmp;
+		if(prev)
+			prev->next=tmp;
+		tmp->message=copyValue(cur->message,heap);
+		cur=cur->next;
+		prev=tmp;
+	}
+	tmpCh->tail=prev;
+	return tmpCh;
+}

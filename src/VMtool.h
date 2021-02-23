@@ -42,6 +42,12 @@ VMvalue* castCptrVMvalue(const AST_cptr*,VMheap*);
 ByteString* newByteString(size_t,uint8_t*);
 ByteString* copyByteArry(const ByteString*);
 ByteString* newEmptyByteArry();
+
+Chanl* newChanl(int32_t size);
+void freeChanl(Chanl*);
+Chanl* copyChanl(Chanl*,VMheap*);
+void freeMessage(ThreadMessage*);
+
 uint8_t* copyArry(size_t,uint8_t*);
 uint8_t* createByteString(int32_t);
 VMcode* copyVMcode(VMcode*,VMheap*);

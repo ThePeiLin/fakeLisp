@@ -5,10 +5,10 @@
 #include<stdint.h>
 #include<pthread.h>
 #define THRESHOLD_SIZE 64
-#define NUMOFBUILTINSYMBOL 46
+#define NUMOFBUILTINSYMBOL 45
 #define MAX_STRING_SIZE 64
 
-typedef enum{NIL=0,IN32,CHR,DBL,SYM,STR,BYTS,PRC,CONT,/*CHAN*/PAIR,ATM} ValueType;
+typedef enum{NIL=0,IN32,CHR,DBL,SYM,STR,BYTS,PRC,CONT,CHAN,PAIR,ATM} ValueType;
 
 typedef enum
 {
@@ -61,6 +61,16 @@ typedef struct AST_Pair
 	AST_cptr car,cdr;
 }AST_pair;
 
+typedef struct Channel
+{
+	int32_t max;
+	int32_t size;
+	int32_t refcount;
+	pthread_mutex_t lock;
+	struct Thread_Message* head;
+	struct Thread_Message* tail;
+}Chanl;
+
 typedef struct AST_atom
 {
 	AST_pair* prev;
@@ -72,6 +82,7 @@ typedef struct AST_atom
 		int32_t num;
 		double dbl;
 		ByteString byts;
+		Chanl chan;
 	} value;
 }AST_atom;
 
@@ -201,19 +212,12 @@ typedef struct VM_Value
 		double* dbl;
 		struct VM_Code* prc;
 		struct VM_Continuation* cont;
+		struct Channel* chan;
 		void* all;
 	}u;
 	struct VM_Value* prev;
 	struct VM_Value* next;
 }VMvalue;
-
-/*typedef struct Channel
-{
-	int32_t max;
-	int32_t size;
-	struct Thread_Message* queueHead;
-	struct Thread_Message* queueTail;
-}Chanl;*/
 
 typedef struct VM_Env_node
 {
@@ -283,13 +287,10 @@ typedef struct
 	int argc;
 	char** argv;
 	pthread_t tid;
-	pthread_mutex_t lock;
 	ByteCode* procs;
 	VMprocess* curproc;
 	VMprocess* mainproc;
 	VMstack* stack;
-	ThreadMessage* queueHead;
-	ThreadMessage* queueTail;
 	Filestack* files;
 	struct Symbol_Table* table;
 	struct DLL_s* modules;

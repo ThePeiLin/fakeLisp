@@ -10,6 +10,7 @@ enum opcode
 	FAKE_PUSH_STR,
 	FAKE_PUSH_SYM,
 	FAKE_PUSH_BYTE,
+	FAKE_PUSH_CHAN,
 	FAKE_PUSH_VAR,
 	FAKE_PUSH_CAR,
 	FAKE_PUSH_CDR,
@@ -70,7 +71,6 @@ enum opcode
 	FAKE_GO,
 	FAKE_SEND,
 	FAKE_RECV,
-	FAKE_GETID,
 };
 
 typedef struct
@@ -91,6 +91,7 @@ static codeinfor codeName[]=
 	{"push_str",-1},
 	{"push_sym",-1},
 	{"push_byte",-2},
+	{"push_chan",4},
 	{"push_var",4},
 	{"push_car",0},
 	{"push_cdr",0},
@@ -151,7 +152,6 @@ static codeinfor codeName[]=
 	{"go",0},
 	{"send",0},
 	{"recv",0},
-	{"getid",0},
 };
 #endif
 #endif

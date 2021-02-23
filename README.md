@@ -75,7 +75,7 @@ add
 sub  
 mul  
 div  
-mod  
+rem  
 nth  
 length  
 appd  

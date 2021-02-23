@@ -213,7 +213,7 @@ typedef struct VM_Value
 	int32_t size;
 	struct Thread_Message* queueHead;
 	struct Thread_Message* queueTail;
-}Chan;*/
+}Chanl;*/
 
 typedef struct VM_Env_node
 {

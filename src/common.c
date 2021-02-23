@@ -61,7 +61,6 @@ char* builtInSymbolList[NUMOFBUILTINSYMBOL]=
 	"go",
 	"send",
 	"recv",
-	"getid",
 	"clcc"
 };
 
@@ -616,6 +615,10 @@ void printList(const AST_cptr* objCptr,FILE* out)
 						break;
 					case BYTS:
 						printByteStr(&tmpAtm->value.byts,out,1);
+						break;
+					case CHAN:
+						fputs("#=",out);
+						fprintf(out,"%d",tmpAtm->value.chan.max);
 						break;
 				}
 			}
@@ -1970,6 +1973,33 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 			i+=strlen(tmp)+2;
 			free(tmp);
 		}
+		else if(*(objStr+i)=='#'&&(*(objStr+1+i)=='='))
+		{
+			int curline=(inter)?inter->curline:0;
+			if(root==NULL)objCptr=root=newCptr(curline,objPair);
+			char* tmp=getStringAfterBackslash(objStr+i+2);
+			objCptr->type=ATM;
+			AST_atom* tmpAtm=NULL;
+			if(isNum(tmp)&&!isDouble(tmp))
+			{
+				int maxSize=stringToInt(tmp);
+				tmpAtm=(void*)newAtom(CHAN,NULL,objPair);
+				tmpAtm->value.chan.max=maxSize;
+				tmpAtm->value.chan.size=0;
+				tmpAtm->value.chan.refcount=0;
+				tmpAtm->value.chan.head=NULL;
+				tmpAtm->value.chan.tail=NULL;
+			}
+			else
+			{
+				char* tmp=getStringFromList(objStr+i);
+				tmpAtm=newAtom(SYM,tmp,objPair);
+				free(tmp);
+			}
+			objCptr->value=tmpAtm;
+			i+=strlen(tmp)+2;
+			free(tmp);
+		}
 		else if(*(objStr+i)=='#'&&(/**(objStr+i)&&*/*(objStr+1+i)=='b'))
 		{
 			int curline=(inter)?inter->curline:0;
@@ -1979,6 +2009,7 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 			objCptr->value=(void*)newAtom(BYTS,NULL,objPair);
 			AST_atom* tmpAtm=objCptr->value;
 			int32_t size=strlen(tmp)/2+strlen(tmp)%2;
+			tmpAtm->value.byts.refcount=0;
 			tmpAtm->value.byts.size=size;
 			tmpAtm->value.byts.str=castStrByteStr(tmp);
 			i+=strlen(tmp)+2;

@@ -34,6 +34,7 @@ static int (*ByteCodes[])(FakeVM*)=
 	B_push_str,
 	B_push_sym,
 	B_push_byte,
+	B_push_chan,
 	B_push_var,
 	B_push_car,
 	B_push_cdr,
@@ -94,7 +95,6 @@ static int (*ByteCodes[])(FakeVM*)=
 	B_go,
 	B_send,
 	B_recv,
-	B_getid,
 };
 
 ByteCode P_cons=
@@ -643,22 +643,13 @@ ByteCode P_send=
 
 ByteCode P_recv=
 {
-	3,
+	17,
 	(char[])
 	{
+		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_RECV,
-		FAKE_END_PROC
-	}
-};
-
-ByteCode P_getid=
-{
-	3,
-	(char[])
-	{
-		FAKE_RES_BP,
-		FAKE_GETID,
 		FAKE_END_PROC
 	}
 };
@@ -695,12 +686,9 @@ FakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 	exe->procs=procs;
 	exe->mark=1;
 	exe->stack=newStack(0);
-	exe->queueHead=NULL;
-	exe->queueTail=NULL;
 	exe->files=newFileStack();
 	exe->heap=newVMheap();
 	exe->callback=NULL;
-	pthread_mutex_init(&exe->lock,NULL);
 	FakeVM** ppFakeVM=NULL;
 	int i=0;
 	for(;i<GlobFakeVMs.size;i++)
@@ -738,13 +726,10 @@ FakeVM* newTmpFakeVM(ByteCode* mainproc,ByteCode* procs)
 	exe->argc=0;
 	exe->argv=NULL;
 	exe->stack=newStack(0);
-	exe->queueHead=NULL;
-	exe->queueTail=NULL;
 	exe->files=newFileStack();
 	exe->heap=newVMheap();
 	exe->callback=NULL;
 	exe->VMid=-1;
-	pthread_mutex_init(&exe->lock,NULL);
 	return exe;
 }
 
@@ -791,7 +776,6 @@ void initGlobEnv(VMenv* obj,VMheap* heap,SymbolTable* table)
 		P_go,
 		P_send,
 		P_recv,
-		P_getid,
 		P_clcc
 	};
 	obj->size=NUMOFBUILTINSYMBOL;
@@ -821,9 +805,6 @@ void* ThreadVMFunc(void* p)
 	FakeVM* exe=(FakeVM*)p;
 	int64_t status=runFakeVM(exe);
 	exe->mark=0;
-	pthread_mutex_destroy(&exe->lock);
-	freeMessage(exe->queueHead);
-	exe->queueHead=NULL;
 	freeVMstack(exe->stack);
 	exe->stack=NULL;
 	exe->lnt=NULL;
@@ -1117,6 +1098,26 @@ int B_push_byte(FakeVM* exe)
 	stack->values[stack->tp]=objValue;
 	stack->tp+=1;
 	proc->cp+=5+size;
+	return 0;
+}
+
+int B_push_chan(FakeVM* exe)
+{
+	VMstack* stack=exe->stack;
+	VMprocess* proc=exe->curproc;
+	VMcode* tmpCode=proc->code;
+	int32_t maxSize=*(int32_t*)(tmpCode->code+proc->cp+1);
+	if(stack->tp>=stack->size)
+	{
+		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
+		if(stack->values==NULL)errors("B_push_chan",__FILE__,__LINE__);
+		stack->size+=64;
+	}
+	Chanl* ch=newChanl(maxSize);
+	VMvalue* objValue=newVMvalue(CHAN,ch,exe->heap,1);
+	stack->values[stack->tp]=objValue;
+	stack->tp+=1;
+	proc->cp+=5;
 	return 0;
 }
 
@@ -1634,6 +1635,7 @@ int B_type(FakeVM* exe)
 		"byts",
 		"proc",
 		"cont",
+		"chan",
 		"pair"
 	};
 	VMstack* stack=exe->stack;
@@ -2528,6 +2530,7 @@ int B_go(FakeVM* exe)
 			threadVMstack->size+=64;
 		}
 		VMvalue* tmp=newNilValue(exe->heap);
+		tmp->access=1;
 		copyRef(tmp,threadArg->u.pair->car);
 		threadVMstack->values[threadVMstack->tp]=tmp;
 		threadVMstack->tp+=1;
@@ -2546,25 +2549,24 @@ int B_send(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
-	VMvalue* tid=getTopValue(stack);
+	VMvalue* ch=getTopValue(stack);
 	VMvalue* message=getValue(stack,stack->tp-2);
-	if(tid->type!=IN32)return WRONGARG;
-	if(*tid->u.num>=GlobFakeVMs.size)return THREADERROR;
-	FakeVM* objVM=GlobFakeVMs.VMs[*tid->u.num];
-	if(objVM==NULL||objVM->mark==0)return THREADERROR;
-	pthread_mutex_lock(&objVM->lock);
-	if(objVM->queueTail==NULL)
+	Chanl* tmpCh=ch->u.chan;
+	pthread_mutex_lock(&tmpCh->lock);
+	if(tmpCh->tail==NULL)
 	{
-		objVM->queueHead=newThreadMessage(message,exe->heap);
-		objVM->queueTail=objVM->queueHead;
+		tmpCh->head=newThreadMessage(message,exe->heap);
+		tmpCh->tail=tmpCh->head;
 	}
 	else
 	{
-		ThreadMessage* cur=objVM->queueTail;
+		ThreadMessage* cur=tmpCh->tail;
 		cur->next=newThreadMessage(message,exe->heap);
-		objVM->queueTail=cur->next;
+		tmpCh->tail=cur->next;
 	}
-	pthread_mutex_unlock(&objVM->lock);
+	tmpCh->size+=1;
+	pthread_mutex_unlock(&tmpCh->lock);
+	while(tmpCh->size>tmpCh->max);
 	stack->tp-=1;
 	stackRecycle(exe);
 	proc->cp+=1;
@@ -2575,50 +2577,21 @@ int B_recv(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
-	if(stack->tp>=stack->size)
-	{
-		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-		if(stack->values==NULL)errors("B_recv",__FILE__,__LINE__);
-		stack->size+=64;
-	}
+	VMvalue* ch=getTopValue(stack);
 	VMvalue* tmp=newNilValue(exe->heap);
+	Chanl* tmpCh=ch->u.chan;
 	tmp->access=1;
-	while(exe->mark&&exe->queueHead==NULL);
-	pthread_mutex_lock(&exe->lock);
-	if(!exe->mark)
-	{
-		stack->tp+=1;
-		proc->cp+=1;
-		return 0;
-	}
-	copyRef(tmp,exe->queueHead->message);
-	ThreadMessage* prev=exe->queueHead;
-	{
-		exe->queueHead=prev->next;
-		if(exe->queueHead==NULL)
-			exe->queueTail=NULL;
-	}
+	while(tmpCh->head==NULL);
+	pthread_mutex_lock(&tmpCh->lock);
+	copyRef(tmp,tmpCh->head->message);
+	ThreadMessage* prev=tmpCh->head;
+	tmpCh->head=prev->next;
+	if(tmpCh->head==NULL)
+		tmpCh->tail=NULL;
+	tmpCh->size-=1;
+	pthread_mutex_unlock(&tmpCh->lock);
 	free(prev);
-	pthread_mutex_unlock(&exe->lock);
-	stack->values[stack->tp]=tmp;
-	stack->tp+=1;
-	proc->cp+=1;
-	return 0;
-}
-
-int B_getid(FakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMprocess* proc=exe->curproc;
-	if(stack->tp>=stack->size)
-	{
-		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-		if(stack->values==NULL)errors("B_getid",__FILE__,__LINE__);
-		stack->size+=64;
-	}
-	VMvalue* tmp=newVMvalue(IN32,&exe->VMid,exe->heap,1);
-	stack->values[stack->tp]=tmp;
-	stack->tp+=1;
+	stack->values[stack->tp-1]=tmp;
 	proc->cp+=1;
 	return 0;
 }
@@ -2706,6 +2679,10 @@ void printVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t mode,int8_t is
 		case CONT:
 				fprintf(fp,"#<cont>");
 				break;
+		case CHAN:
+				fputs("#=",fp);
+				fprintf(fp,"%d",objValue->u.chan->max);
+				break;
 		default:fprintf(fp,"Bad value!");break;
 	}
 }
@@ -2752,6 +2729,10 @@ void princVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t isPrevPair)
 				break;
 		case CONT:
 				fprintf(fp,"#<cont>");
+				break;
+		case CHAN:
+				fputs("#=",fp);
+				fprintf(fp,"%d",objValue->u.chan->max);
 				break;
 		default:fprintf(fp,"Bad value!");break;
 	}
@@ -2918,6 +2899,10 @@ void writeRef(VMvalue* fir,VMvalue* sec)
 				fir->u.cont=sec->u.cont;
 				fir->u.cont->refcount+=1;
 				break;
+			case CHAN:
+				fir->u.chan=sec->u.chan;
+				fir->u.chan->refcount+=1;
+				break;
 			case SYM:
 			case STR:
 				if(!fir->access)
@@ -2956,7 +2941,6 @@ void GC_mark(FakeVM* exe)
 {
 	GC_markValueInStack(exe->stack);
 	GC_markValueInCallChain(exe->curproc);
-	GC_markMessage(exe->queueHead);
 }
 
 void GC_markValue(VMvalue* obj)
@@ -2983,6 +2967,12 @@ void GC_markValue(VMvalue* obj)
 			int32_t i=0;
 			for(;i<obj->u.cont->size;i++)
 				GC_markValueInEnv(obj->u.cont->status[i].env);
+		}
+		else if(obj->type==CHAN)
+		{
+			pthread_mutex_lock(&obj->u.chan->lock);
+			GC_markMessage(obj->u.chan->head);
+			pthread_mutex_unlock(&obj->u.chan->lock);
 		}
 	}
 }
@@ -3061,12 +3051,9 @@ FakeVM* newThreadVM(VMcode* main,ByteCode* procs,Filestack* files,VMheap* heap,D
 	exe->modules=d;
 	main->refcount+=1;
 	exe->stack=newStack(0);
-	exe->queueHead=NULL;
-	exe->queueTail=NULL;
 	exe->files=files;
 	exe->heap=heap;
 	exe->callback=NULL;
-	pthread_mutex_init(&exe->lock,NULL);
 	FakeVM** ppFakeVM=NULL;
 	int i=0;
 	for(;i<GlobFakeVMs.size;i++)
@@ -3096,16 +3083,6 @@ void freeVMstack(VMstack* stack)
 	free(stack);
 }
 
-void freeMessage(ThreadMessage* cur)
-{
-	while(cur!=NULL)
-	{
-		ThreadMessage* prev=cur;
-		cur=cur->next;
-		free(prev);
-	}
-}
-
 ThreadMessage* newThreadMessage(VMvalue* val,VMheap* heap)
 {
 	ThreadMessage* tmp=(ThreadMessage*)malloc(sizeof(ThreadMessage));
@@ -3121,14 +3098,12 @@ void freeAllVMs()
 {
 	int i=1;
 	FakeVM* cur=GlobFakeVMs.VMs[0];
-	pthread_mutex_destroy(&cur->lock);
 	if(cur->mainproc->code)
 		freeVMcode(cur->mainproc->code);
 	free(cur->mainproc);
 	freeVMstack(cur->stack);
 	freeFileStack(cur->files);
 	deleteAllDll(cur->modules);
-	freeMessage(cur->queueHead);
 	free(cur);
 	for(;i<GlobFakeVMs.size;i++)
 	{
@@ -3165,7 +3140,6 @@ void deleteCallChain(FakeVM* exe)
 		VMprocess* prev=cur;
 		cur=cur->prev;
 		freeVMenv(prev->localenv);
-		prev->code->refcount-=1;
 		freeVMcode(prev->code);
 		free(prev);
 	}

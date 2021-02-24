@@ -204,6 +204,22 @@ int FAKE_argv(FakeVM* exe,pthread_rwlock_t* pGClock)
 	return 0;
 }
 
+int FAKE_setChanlBufferSize(FakeVM* exe,pthread_rwlock_t* pGClock)
+{
+	VMstack* stack=exe->stack;
+	VMvalue* chan=getArg(stack);
+	VMvalue* size=getArg(stack);
+	if(resBp(exe))
+		return TOOMANYARG;
+	if(size==NULL)
+		return TOOFEWARG;
+	if(size->type!=IN32||chan->type!=CHAN)
+		return WRONGARG;
+	chan->u.chan->max=*size->u.num;
+	SET_RETURN("FAKE_setChanlBufferSize",chan,stack);
+	return 0;
+}
+
 #ifdef __cplusplus
 }
 #endif

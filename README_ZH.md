@@ -127,14 +127,13 @@ appd
 open  
 close  
 read  
-readb  
+getb  
 write  
 princ   
-writeb  
+putb  
 go  
 send  
 recv  
-getid  
 clcc  
 
 可用特殊形式有:  

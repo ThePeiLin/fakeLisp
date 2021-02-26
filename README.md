@@ -82,14 +82,13 @@ appd
 open  
 close  
 read  
-readb  
+getb  
 write  
 princ   
-writeb  
+putb  
 go  
 send  
 recv  
-getid  
 clcc  
 
 Special forms:  

@@ -617,7 +617,7 @@ void printList(const AST_cptr* objCptr,FILE* out)
 						printByteStr(&tmpAtm->value.byts,out,1);
 						break;
 					case CHAN:
-						fputs("#=",out);
+						fputs("#@",out);
 						fprintf(out,"%d",tmpAtm->value.chan.max);
 						break;
 				}
@@ -1973,7 +1973,7 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 			i+=strlen(tmp)+2;
 			free(tmp);
 		}
-		else if(*(objStr+i)=='#'&&(*(objStr+1+i)=='='))
+		else if(*(objStr+i)=='#'&&(*(objStr+1+i)=='@'))
 		{
 			int curline=(inter)?inter->curline:0;
 			if(root==NULL)objCptr=root=newCptr(curline,objPair);

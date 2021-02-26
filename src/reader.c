@@ -784,6 +784,25 @@ int32_t skipAtom(const char* str,const char* keyString)
 			i++;
 			for(;isxdigit(str[i]);i++);
 		}
+		else if(str[i]=='@')
+		{
+			i++;
+			if(str[i]=='0')
+			{
+				i++;
+				if(toupper(str[i])=='X')
+				{
+					i++;
+					for(;isxdigit(str[i]);i++);
+				}
+				else
+				{
+					for(;isdigit(str[i])&&str[i]<='9';i++);
+				}
+			}
+			else
+				for(;isdigit(str[i]);i++);
+		}
 	}
 	else
 	{

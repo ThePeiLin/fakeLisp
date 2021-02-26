@@ -59,7 +59,7 @@
     ((#\+) (ADDM))
     ((#\-) (SUBM))
     ((#\.) (princ (chr (nth mp m)) stdout))
-    ((#\,) (setf (nth mp m) (byt (readb 1 stdin))))
+    ((#\,) (setf (nth mp m) (getb 1 stdin)))
     ((#\[) (JUMPIFFALSE cp))
     ((#\]) (JUMPBACK cp)))
   (if (lt cp (length code))

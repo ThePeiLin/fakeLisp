@@ -2686,7 +2686,7 @@ void printVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t mode,int8_t is
 				fprintf(fp,"#<cont>");
 				break;
 		case CHAN:
-				fputs("#=",fp);
+				fputs("#@",fp);
 				fprintf(fp,"%d",objValue->u.chan->max);
 				break;
 		default:fprintf(fp,"Bad value!");break;
@@ -2737,7 +2737,7 @@ void princVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t isPrevPair)
 				fprintf(fp,"#<cont>");
 				break;
 		case CHAN:
-				fputs("#=",fp);
+				fputs("#@",fp);
 				fprintf(fp,"%d",objValue->u.chan->max);
 				break;
 		default:fprintf(fp,"Bad value!");break;

@@ -276,7 +276,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 				i+=strlen(tmp)+2;
 				free(tmp);
 			}
-			else if(*(objStr+i)=='#'&&(*(objStr+1+i)=='='))
+			else if(*(objStr+i)=='#'&&(*(objStr+1+i)=='@'))
 			{
 				int curline=(inter)?inter->curline:0;
 				if(root==NULL)objCptr=root=newCptr(curline,objPair);

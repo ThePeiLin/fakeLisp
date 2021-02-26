@@ -88,9 +88,9 @@ static int (*ByteCodes[])(FakeVM*)=
 	B_le,
 	B_not,
 	B_read,
-	B_readb,
+	B_getb,
 	B_write,
-	B_writeb,
+	B_putb,
 	B_princ,
 	B_go,
 	B_send,
@@ -561,7 +561,7 @@ ByteCode P_readb=
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
-		FAKE_READB,
+		FAKE_GETB,
 		FAKE_END_PROC
 	}
 };
@@ -591,7 +591,7 @@ ByteCode P_writeb=
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
-		FAKE_WRITEB,
+		FAKE_PUTB,
 		FAKE_END_PROC
 	}
 };
@@ -2420,7 +2420,7 @@ int B_read(FakeVM* exe)
 	return 0;
 }
 
-int B_readb(FakeVM* exe)
+int B_getb(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
@@ -2432,7 +2432,7 @@ int B_readb(FakeVM* exe)
 	if(fp==NULL)return STACKERROR;
 	VMvalue* tmpBary=newVMvalue(BYTS,NULL,exe->heap,1);
 	uint8_t* str=(uint8_t*)malloc(sizeof(uint8_t)*(*size->u.num));
-	if(str==NULL)errors("B_readb",__FILE__,__LINE__);
+	if(str==NULL)errors("B_getb",__FILE__,__LINE__);
 	fread(str,sizeof(uint8_t),*size->u.num,fp);
 	tmpBary->u.byts=newEmptyByteArry();
 	tmpBary->u.byts->size=*size->u.num;
@@ -2462,7 +2462,7 @@ int B_write(FakeVM* exe)
 	return 0;
 }
 
-int B_writeb(FakeVM* exe)
+int B_putb(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;

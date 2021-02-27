@@ -1,4 +1,4 @@
-(define ch #@0)
+(define ch (chanl 0))
 
 (go (lambda (ch)
       (cond ((eqn (recv ch) "I'm your father!")

@@ -2218,7 +2218,7 @@ int B_nth(FakeVM* exe)
 		int i=0;
 		for(;i<*place->u.num;i++)
 		{
-			if(objPair->type==NIL)
+			if(objPair->type!=PAIR)
 			{
 				obj=newNilValue(exe->heap);
 				break;

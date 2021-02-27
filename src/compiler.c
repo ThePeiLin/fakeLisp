@@ -55,6 +55,7 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 		tmpVM->modules=inter->modules;
 		tmpVM->table=inter->table;
 		tmpVM->callback=errorCallBackForPreMacroExpand;
+		tmpVM->lnt=tmp->lnt;
 		AST_cptr* tmpCptr=NULL;
 		int i=runFakeVM(tmpVM);
 		if(!i)
@@ -757,7 +758,8 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 			reCodeCat(fix,tmpByteCodelnt->bc);
 			tmpByteCodelnt->l[0]->cpc+=fix->size;
 			INCREASE_ALL_SCP(tmpByteCodelnt->l+1,tmpByteCodelnt->ls-1,fix->size);
-			addLineNumTabId(tmpByteCodelnt->l,tmpByteCodelnt->ls,0,tmpInter->lnt); addMacro(pattern,tmpByteCodelnt->bc,tmpInter->procs,tmpInter->lnt);
+			addLineNumTabId(tmpByteCodelnt->l,tmpByteCodelnt->ls,0,tmpInter->lnt);
+			addMacro(pattern,tmpByteCodelnt->bc,tmpInter->procs,tmpInter->lnt);
 			deleteCptr(express);
 			free(express);
 			free(args);

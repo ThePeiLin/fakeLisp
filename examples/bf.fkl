@@ -7,12 +7,11 @@
   (setq code "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.")
   (setq code
         (let ((fp (open (nth 1 (argv)) "rb")))
-          (if (eq fp EOF)
+          (if (eq fp nil)
             (begin
               (princ "Faild to open file" stderr)
               (exit 1)))
           (define c (read fp))
-          (close fp)
           (str c))))
 
 (defmacro (ADDMP)

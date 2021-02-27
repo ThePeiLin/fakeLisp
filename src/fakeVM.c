@@ -2367,16 +2367,28 @@ int B_getb(FakeVM* exe)
 	VMvalue* size=getValue(stack,stack->tp-2);
 	if(file->type!=FP||size->type!=IN32)return WRONGARG;
 	FILE* fp=file->u.fp->fp;
-	VMvalue* tmpBary=newVMvalue(BYTS,NULL,exe->heap,1);
 	uint8_t* str=(uint8_t*)malloc(sizeof(uint8_t)*(*size->u.num));
 	if(str==NULL)errors("B_getb",__FILE__,__LINE__);
-	fread(str,sizeof(uint8_t),*size->u.num,fp);
-	tmpBary->u.byts=newEmptyByteArry();
-	tmpBary->u.byts->size=*size->u.num;
-	tmpBary->u.byts->str=str;
+	int32_t realRead=0;
+	realRead=fread(str,sizeof(uint8_t),*size->u.num,fp);
 	stack->tp-=1;
+	if(!realRead)
+	{
+		free(str);
+		stack->values[stack->tp-1]=newNilValue(exe->heap);
+	}
+	else
+	{
+		str=(uint8_t*)realloc(str,sizeof(uint8_t)*realRead);
+		if(!str)
+			errors("B_getb",__FILE__,__LINE__);
+		VMvalue* tmpBary=newVMvalue(BYTS,NULL,exe->heap,1);
+		tmpBary->u.byts=newEmptyByteArry();
+		tmpBary->u.byts->size=*size->u.num;
+		tmpBary->u.byts->str=str;
+		stack->values[stack->tp-1]=tmpBary;
+	}
 	stackRecycle(exe);
-	stack->values[stack->tp-1]=tmpBary;
 	proc->cp+=1;
 	return 0;
 }

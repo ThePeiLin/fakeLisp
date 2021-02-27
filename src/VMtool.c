@@ -28,38 +28,45 @@ VMcode* newVMcode(ByteCode* proc,int32_t id)
 	return tmp;
 }
 
-VMvalue* copyValue(VMvalue* obj,VMheap* heap)
+VMvalue* copyVMvalue(VMvalue* obj,VMheap* heap)
 {
 	VMvalue* tmp=NULL;
-	if(obj->type==NIL)
-		tmp=newNilValue(heap);
-	else if(obj->type==IN32)
-		tmp=newVMvalue(IN32,obj->u.num,heap,1);
-	else if(obj->type==DBL)
-		tmp=newVMvalue(DBL,obj->u.dbl,heap,1);
-	else if(obj->type==CHR)
-		tmp=newVMvalue(CHR,obj->u.chr,heap,1);
-	else if(obj->type==BYTS)
+	switch(obj->type)
 	{
-		ByteString* tmpByteArry=newByteString(obj->u.byts->size,obj->u.byts->str);
-		tmp=newVMvalue(BYTS,tmpByteArry,heap,1);
-	}
-	else if(obj->type==STR||obj->type==SYM)
-	{
-		VMstr* tmpVMstr=newVMstr(obj->u.str->str);
-		tmp=newVMvalue(obj->type,tmpVMstr,heap,1);
-	}
-	else if(obj->type==PRC)
-		tmp=newVMvalue(PRC,copyVMcode(obj->u.prc,heap),heap,1);
-	else if(obj->type==CHAN)
-		tmp=newVMvalue(CHAN,copyChanl(obj->u.chan,heap),heap,1);
-	else if(obj->type==PAIR)
-	{
-		tmp=newVMvalue(PAIR,newVMpair(heap),heap,1);
-		VMvalue* tmpCar=copyValue(obj->u.pair->car,heap);
-		VMvalue* tmpCdr=copyValue(obj->u.pair->cdr,heap);
-		tmp->u.pair->car=tmpCar;
-		tmp->u.pair->cdr=tmpCdr;
+		case NIL:
+			tmp=newNilValue(heap);
+			break;
+		case IN32:
+			tmp=newVMvalue(IN32,obj->u.num,heap,1);
+			break;
+		case DBL:
+			tmp=newVMvalue(DBL,obj->u.dbl,heap,1);
+			break;
+		case CHR:
+			tmp=newVMvalue(CHR,obj->u.chr,heap,1);
+			break;
+		case BYTS:
+			tmp=newVMvalue(BYTS,newByteString(obj->u.byts->size,obj->u.byts->str),heap,1);
+			break;
+		case STR:
+		case SYM:
+			tmp=newVMvalue(obj->type,newVMstr(obj->u.str->str),heap,1);
+			break;
+		case PRC:
+			tmp=newVMvalue(PRC,copyVMcode(obj->u.prc,heap),heap,1);
+			break;
+		case CHAN:
+			tmp=newVMvalue(CHAN,copyChanl(obj->u.chan,heap),heap,1);
+			break;
+		case FP:
+			tmp=newVMvalue(FP,obj->u.fp,heap,1);
+			obj->u.fp->refcount+=1;
+			break;
+		case PAIR:
+			tmp=newVMvalue(PAIR,newVMpair(heap),heap,1);
+			tmp->u.pair->car=copyVMvalue(obj->u.pair->car,heap);
+			tmp->u.pair->cdr=copyVMvalue(obj->u.pair->cdr,heap);
+			break;
 	}
 	return tmp;
 }
@@ -97,6 +104,8 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap,int access)
 			tmp->u.cont=pValue;break;
 		case CHAN:
 			tmp->u.chan=pValue;break;
+		case FP:
+			tmp->u.fp=pValue;break;
 	}
 	return tmp;
 }
@@ -234,7 +243,6 @@ VMvalue* castCptrVMvalue(const AST_cptr* objCptr,VMheap* heap)
 			case BYTS:tmp=newVMvalue(BYTS,newByteString(tmpAtm->value.byts.size,tmpAtm->value.byts.str),heap,1);break;
 			case SYM:
 			case STR:tmp=newVMvalue(tmpAtm->type,newVMstr(tmpAtm->value.str),heap,1);break;
-			case CHAN:tmp=newVMvalue(tmpAtm->type,newChanl(tmpAtm->value.chan.max),heap,1);break;
 		}
 		return tmp;
 	}
@@ -322,7 +330,7 @@ VMenv* copyVMenv(VMenv* objEnv,VMheap* heap)
 	for(;i<objEnv->size;i++)
 	{
 		VMenvNode* node=objEnv->list[i];
-		VMvalue* v=copyValue(node->value,heap);
+		VMvalue* v=copyVMvalue(node->value,heap);
 		VMenvNode* tmp=newVMenvNode(v,node->id);
 		objEnv->list[i]=tmp;
 	}
@@ -390,12 +398,6 @@ VMvalue* getArg(VMstack* stack)
 	return tmp;
 }
 
-FILE* getFile(Filestack* files,int32_t count)
-{
-	if(count>=files->size)return NULL;
-	return files->files[count];
-}
-
 void copyRef(VMvalue* fir,VMvalue* sec)
 {
 	freeRef(fir);
@@ -458,6 +460,10 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 				sec->u.chan->refcount+=1;
 				fir->u.chan=sec->u.chan;
 				break;
+			case FP:
+				sec->u.fp->refcount+=1;
+				fir->u.fp=sec->u.fp;
+				break;
 			case NIL:
 				fir->u.all=NULL;
 				break;
@@ -504,6 +510,9 @@ void freeRef(VMvalue* obj)
 				break;
 			case CHAN:
 				freeChanl(obj->u.chan);
+				break;
+			case FP:
+				freeVMfp(obj->u.fp);
 				break;
 		}
 	}
@@ -733,10 +742,32 @@ Chanl* copyChanl(Chanl* ch,VMheap* heap)
 			tmpCh->head=tmp;
 		if(prev)
 			prev->next=tmp;
-		tmp->message=copyValue(cur->message,heap);
+		tmp->message=copyVMvalue(cur->message,heap);
 		cur=cur->next;
 		prev=tmp;
 	}
 	tmpCh->tail=prev;
 	return tmpCh;
+}
+
+VMfp* newVMfp(FILE* fp)
+{
+	VMfp* tmp=(VMfp*)malloc(sizeof(VMfp));
+	if(!tmp)
+		errors("newVMfp",__FILE__,__LINE__);
+	tmp->refcount=0;
+	tmp->fp=fp;
+	return tmp;
+}
+
+void freeVMfp(VMfp* fp)
+{
+	if(fp->refcount)
+		fp->refcount-=1;
+	else
+	{
+		if(fp->fp!=stdin&&fp->fp!=stdout&&fp->fp!=stderr)
+			fclose(fp->fp);
+		free(fp);
+	}
 }

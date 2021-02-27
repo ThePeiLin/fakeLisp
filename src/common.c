@@ -52,13 +52,13 @@ char* builtInSymbolList[NUMOFBUILTINSYMBOL]=
 	"length",
 	"appd",
 	"open",
-	"close",
 	"read",
 	"getb",
 	"write",
 	"putb",
 	"princ",
 	"go",
+	"chanl",
 	"send",
 	"recv",
 	"clcc"
@@ -615,10 +615,6 @@ void printList(const AST_cptr* objCptr,FILE* out)
 						break;
 					case BYTS:
 						printByteStr(&tmpAtm->value.byts,out,1);
-						break;
-					case CHAN:
-						fputs("#@",out);
-						fprintf(out,"%d",tmpAtm->value.chan.max);
 						break;
 				}
 			}
@@ -1970,33 +1966,6 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 			AST_atom* tmpAtm=objCptr->value;
 			if(tmp[0]!='\\')tmpAtm->value.chr=tmp[0];
 			else tmpAtm->value.chr=stringToChar(tmp+1);
-			i+=strlen(tmp)+2;
-			free(tmp);
-		}
-		else if(*(objStr+i)=='#'&&(*(objStr+1+i)=='@'))
-		{
-			int curline=(inter)?inter->curline:0;
-			if(root==NULL)objCptr=root=newCptr(curline,objPair);
-			char* tmp=getStringAfterBackslash(objStr+i+2);
-			objCptr->type=ATM;
-			AST_atom* tmpAtm=NULL;
-			if(isNum(tmp)&&!isDouble(tmp))
-			{
-				int maxSize=stringToInt(tmp);
-				tmpAtm=(void*)newAtom(CHAN,NULL,objPair);
-				tmpAtm->value.chan.max=maxSize;
-				tmpAtm->value.chan.size=0;
-				tmpAtm->value.chan.refcount=0;
-				tmpAtm->value.chan.head=NULL;
-				tmpAtm->value.chan.tail=NULL;
-			}
-			else
-			{
-				char* tmp=getStringFromList(objStr+i);
-				tmpAtm=newAtom(SYM,tmp,objPair);
-				free(tmp);
-			}
-			objCptr->value=tmpAtm;
 			i+=strlen(tmp)+2;
 			free(tmp);
 		}

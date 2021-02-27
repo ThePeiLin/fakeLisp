@@ -77,7 +77,6 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 			freeVMheap(tmpVM->heap);
 			free(tmpVM->mainproc);
 			freeVMstack(tmpVM->stack);
-			freeFileStack(tmpVM->files);
 			free(tmpVM);
 			free(rawProcList);
 			destroyEnv(MacroEnv);
@@ -94,7 +93,6 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 		freeVMheap(tmpVM->heap);
 		free(tmpVM->mainproc);
 		freeVMstack(tmpVM->stack);
-		freeFileStack(tmpVM->files);
 		free(tmpVM);
 		free(rawProcList);
 		destroyEnv(MacroEnv);
@@ -933,11 +931,6 @@ ByteCode* compileAtom(AST_cptr* objCptr)
 			tmp->code[0]=FAKE_PUSH_BYTE;
 			*(int32_t*)(tmp->code+1)=tmpAtm->value.byts.size;
 			memcpy(tmp->code+5,tmpAtm->value.byts.str,tmpAtm->value.byts.size);
-			break;
-		case CHAN:
-			tmp=newByteCode(sizeof(char)+sizeof(int32_t));
-			tmp->code[0]=FAKE_PUSH_CHAN;
-			*(int32_t*)(tmp->code+1)=tmpAtm->value.chan.max;
 			break;
 	}
 	return tmp;

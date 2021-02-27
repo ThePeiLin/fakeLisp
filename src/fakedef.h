@@ -8,7 +8,7 @@
 #define NUMOFBUILTINSYMBOL 45
 #define MAX_STRING_SIZE 64
 
-typedef enum{NIL=0,IN32,CHR,DBL,SYM,STR,BYTS,PRC,CONT,CHAN,PAIR,ATM} ValueType;
+typedef enum{NIL=0,IN32,CHR,DBL,SYM,STR,BYTS,PRC,CONT,CHAN,FP,PAIR,ATM} ValueType;
 
 typedef enum
 {
@@ -71,6 +71,12 @@ typedef struct Channel
 	struct Thread_Message* tail;
 }Chanl;
 
+typedef struct VM_File
+{
+	int32_t refcount;
+	FILE* fp;
+}VMfp;
+
 typedef struct AST_atom
 {
 	AST_pair* prev;
@@ -82,7 +88,6 @@ typedef struct AST_atom
 		int32_t num;
 		double dbl;
 		ByteString byts;
-		Chanl chan;
 	} value;
 }AST_atom;
 
@@ -213,6 +218,7 @@ typedef struct VM_Value
 		struct VM_Code* prc;
 		struct VM_Continuation* cont;
 		struct Channel* chan;
+		struct VM_File* fp;
 		void* all;
 	}u;
 	struct VM_Value* prev;
@@ -267,13 +273,6 @@ typedef struct
 	int32_t* tpst;
 }VMstack;
 
-typedef struct
-{
-	pthread_mutex_t lock;
-	int32_t size;
-	FILE** files;
-}Filestack;
-
 typedef struct Thread_Message
 {
 	VMvalue* message;
@@ -291,7 +290,6 @@ typedef struct
 	VMprocess* curproc;
 	VMprocess* mainproc;
 	VMstack* stack;
-	Filestack* files;
 	struct Symbol_Table* table;
 	struct DLL_s* modules;
 	struct VM_Heap* heap;

@@ -109,7 +109,6 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 		freeVMheap(tmpVM->heap);
 		free(tmpVM->mainproc);
 		freeVMstack(tmpVM->stack);
-		freeFileStack(tmpVM->files);
 		free(tmpVM);
 		free(rawProcList);
 		destroyEnv(tmpEnv);
@@ -276,34 +275,6 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 				i+=strlen(tmp)+2;
 				free(tmp);
 			}
-			else if(*(objStr+i)=='#'&&(*(objStr+1+i)=='@'))
-			{
-				int curline=(inter)?inter->curline:0;
-				if(root==NULL)objCptr=root=newCptr(curline,objPair);
-				char* tmp=getStringAfterBackslash(objStr+i+2);
-				objCptr->type=ATM;
-				AST_atom* tmpAtm=NULL;
-				if(isNum(tmp)&&!isDouble(tmp))
-				{
-					int maxSize=stringToInt(tmp);
-					tmpAtm=(void*)newAtom(CHAN,NULL,objPair);
-					tmpAtm->value.chan.max=maxSize;
-					tmpAtm->value.chan.size=0;
-					tmpAtm->value.chan.refcount=0;
-					tmpAtm->value.chan.head=NULL;
-					tmpAtm->value.chan.tail=NULL;
-				}
-				else
-				{
-					char* tmp=getStringFromList(objStr+i);
-					tmpAtm=newAtom(SYM,tmp,objPair);
-					free(tmp);
-				}
-				objCptr->value=tmpAtm;
-				i+=strlen(tmp)+2;
-				free(tmp);
-			}
-
 			else if(*(objStr+i)=='#'&&(/**(objStr+i)&&*/*(objStr+1+i)=='b'))
 			{
 				int curline=(inter)?inter->curline:0;
@@ -400,7 +371,12 @@ AST_cptr* castVMvalueToCptr(VMvalue* value,int32_t curline,AST_pair* prev)
 				tmpAtm->value.str=copyStr("#<proc>");
 				break;
 			case CHAN:
-				tmpAtm->value.chan.max=value->u.chan->max;
+				tmpAtm->type=SYM;
+				tmpAtm->value.str=copyStr("#<chan>");
+				break;
+			case FP:
+				tmpAtm->type=SYM;
+				tmpAtm->value.str=copyStr("#<fp>");
 				break;
 		}
 		tmp->value=tmpAtm;

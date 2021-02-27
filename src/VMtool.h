@@ -21,7 +21,7 @@ VMenvNode* addVMenvNode(VMenvNode*,VMenv*);
 VMenvNode* findVMenvNode(int32_t,VMenv*);
 void freeVMenvNode(VMenvNode*);
 VMcode* newVMcode(ByteCode*,int32_t);
-VMvalue* copyValue(VMvalue*,VMheap*);
+VMvalue* copyVMvalue(VMvalue*,VMheap*);
 VMvalue* newVMvalue(ValueType,void*,VMheap*,int);
 VMvalue* newTrueValue(VMheap*);
 VMvalue* newNilValue(VMheap*);
@@ -59,9 +59,11 @@ void freeVMenv(VMenv*);
 void releaseSource(pthread_rwlock_t*);
 void lockSource(pthread_rwlock_t*);
 VMvalue* getArg(VMstack*);
-FILE* getFile(Filestack*,int32_t);
 
 int32_t countCallChain(VMprocess*);
 VMcontinuation* newVMcontinuation(VMstack*,VMprocess*);
 void freeVMcontinuation(VMcontinuation*);
+
+VMfp* newVMfp(FILE*);
+void freeVMfp(VMfp*);
 #endif

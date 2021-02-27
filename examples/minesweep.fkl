@@ -76,7 +76,7 @@
                             (eq yc (1+ line))
                             (eq xc 0)
                             (eq xc (1+ row)))
-                      (setq gMap (setl gMap (ARRY xc yc) (cons 4 10))))
+                      (setl gMap (ARRY xc yc) (cons 4 10)))
                     (loop-xc (1+ xc)))))
            (loop-yc (1+ yc)))))
   (let loop-i ((i 0))
@@ -87,10 +87,10 @@
     (define back (cdr (nth place gMap)))
     (cond ((lt i bombnum)
            (cond ((eq back 0)
-                  (setq gMap (setl gMap
-                                  place
-                                  (cons front
-                                        9)))))
+                  (setl gMap
+                        place
+                        (cons front
+                              9))))
            (loop-i (add i
                         (if (eq back 0) 1 0))))))
   (define (getAroundBombNum gMap x y)
@@ -112,11 +112,10 @@
              (define back (cdr (nth place gMap)))
              (cond ((le xc row)
                     (if (neq back 9)
-                      (setq gMap
-                            (setl gMap
-                                  place
-                                  (cons front
-                                        (getAroundBombNum gMap xc yc)))))
+                      (setl gMap
+                            place
+                            (cons front
+                                  (getAroundBombNum gMap xc yc))))
                     (loop-xc (1+ xc)))))
            (loop-yc (1+ yc)))))
   gMap)
@@ -271,13 +270,12 @@
           ((eq front 2)
            (INC bombnum)
            (if (eq back 9) (INC rbombnum))))
-    (setq gMap
-          (setl gMap
-                place
-                (cons (if (eq front 3)
-                        1
-                        (1+ front))
-                      back))))
+    (setl gMap
+          place
+          (cons (if (eq front 3)
+                  1
+                  (1+ front))
+                back)))
   (define (quit)
     (setq isGameOver 1))
   (define (openBlock)
@@ -289,12 +287,11 @@
     (cond ((eq back 9)
            (setq isGameOver 1))
           ((neq back 0)
-           (setq gMap
-                 (setl gMap
-                       place
-                       (cons 0 back))))
+           (setl gMap
+                 place
+                 (cons 0 back)))
           (1
-           (setq gMap (setl gMap place (cons 0 back)))
+           (setl gMap place (cons 0 back))
            (let loop-tier ((tier 1))
              (cond ((canOpenBlock gMap row line x y tier)
                     (let loop-yt ((yt tier))
@@ -305,10 +302,9 @@
                                              (let ((place (ARRY (sub x xt) (sub y yt))))
                                                (define front (car (nth place gMap)))
                                                (define back (cdr (nth place gMap)))
-                                               (setq gMap
-                                                     (setl gMap
-                                                           place
-                                                           (cons 0 back))))))
+                                               (setl gMap
+                                                     place
+                                                     (cons 0 back)))))
                                       (loop-xt (sub xt (if (or (eq yt tier)
                                                                (eq yt (NEG tier)))
                                                          1
@@ -322,21 +318,24 @@
       (cond ((lt i numOfBlock)
              (let ((back (cdr (nth i gMap)))
                    (front (car (nth i gMap))))
-               (if (neq front 4) (setq gMap (setl gMap i (cons 0 back)))))
+               (if (neq front 4) (setl gMap i (cons 0 back))))
              (loop-i (1+ i))))))
   (printMap gMap row line xl yl bombnum)
   (let loop-ch ((ch (getch)))
-    (cond ((eq ch #\h) (moveLeft))
-          ((eq ch #\k) (moveUp))
-          ((eq ch #\j) (moveDown))
-          ((eq ch #\l) (moveRight))
-          ((eq ch #\a) (setFlag))
-          ((eq ch #\s) (openBlock))
-          ((eq ch #\q) (quit)))
+    (case ch
+      ((#\h) (moveLeft))
+      ((#\k) (moveUp))
+      ((#\j) (moveDown))
+      ((#\l) (moveRight))
+      ((#\a) (setFlag))
+      ((#\s) (openBlock))
+      ((#\q) (quit)))
     (printMap gMap row line xl yl bombnum)
     (cond (isGameOver (openAllBlock)
                       (printMap gMap row line xl yl bombnum)
-                      (print "\033[" (int (div rline 2)) ";" (add rrow 2) "H" "You fail!")
+                      (if (eq ch #\q)
+                        (print "\033[" (int (div rline 2)) ";" (add rrow 2) "H")
+                        (print "\033[" (int (div rline 2)) ";" (add rrow 2) "H" "You fail!"))
                       ))
     (cond ((eq 0 rbombnum)
            (print "\033[" (int (div rline 2)) ";" (add rrow 2) "H" "You win!")

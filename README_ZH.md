@@ -125,13 +125,13 @@ nth
 length  
 appd  
 open  
-close  
 read  
 getb  
 write  
 princ   
 putb  
 go  
+chanl  
 send  
 recv  
 clcc  

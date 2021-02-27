@@ -60,19 +60,9 @@
                   (cons '(1,0) list)))))
 
 (define (setl list place value)
-  (define (getafter list place count)
-    (cond ((le place count) (cdr list))
-          (1 (getafter (cdr list)
-                       place
-                       (1+ count)))))
-  (define (getbefore list place count tmp)
-    (cond ((le place count) tmp)
-          (1 (getbefore (cdr list)
-                        place
-                        (1+ count)
-                        (cons (car list) tmp)))))
-  (appd (resl (getbefore list place 0 nil))
-          (cons value (getafter list place 0))))
+  (setf (nth place list) value)
+  list
+  )
 
 (define (createMap line row bombnum)
   (define rline (add line 2))

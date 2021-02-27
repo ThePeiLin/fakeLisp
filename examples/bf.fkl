@@ -3,6 +3,14 @@
 
 (define code nil)
 
+(define (readCode fp)
+  (str (appd (let loop ((s nil)
+                        (c (getb 1 fp)))
+               (if c
+                 (loop (appd s c) (getb 1 fp))
+                 s))
+             #b00)))
+
 (if (le (length (argv)) 1)
   (setq code "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.")
   (setq code
@@ -11,8 +19,8 @@
             (begin
               (princ "Faild to open file" stderr)
               (exit 1)))
-          (define c (read fp))
-          (str c))))
+          (readCode fp)
+          )))
 
 (defmacro (ADDMP)
   `(begin

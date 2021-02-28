@@ -59,11 +59,6 @@
       (loop-count (1+ count)
                   (cons '(1,0) list)))))
 
-(define (setl list place value)
-  (setf (nth place list) value)
-  list
-  )
-
 (define (createMap line row bombnum)
   (define rline (add line 2))
   (define rrow (add row 2))
@@ -76,7 +71,7 @@
                             (eq yc (1+ line))
                             (eq xc 0)
                             (eq xc (1+ row)))
-                      (setl gMap (ARRY xc yc) (cons 4 10)))
+                      (setf (nth (ARRY xc yc) gMap) (cons 4 10)))
                     (loop-xc (1+ xc)))))
            (loop-yc (1+ yc)))))
   (let loop-i ((i 0))
@@ -87,8 +82,7 @@
     (define back (cdr (nth place gMap)))
     (cond ((lt i bombnum)
            (cond ((eq back 0)
-                  (setl gMap
-                        place
+                  (setf (nth place gMap)
                         (cons front
                               9))))
            (loop-i (add i
@@ -112,8 +106,7 @@
              (define back (cdr (nth place gMap)))
              (cond ((le xc row)
                     (if (neq back 9)
-                      (setl gMap
-                            place
+                      (setf (nth place gMap)
                             (cons front
                                   (getAroundBombNum gMap xc yc))))
                     (loop-xc (1+ xc)))))
@@ -270,8 +263,7 @@
           ((eq front 2)
            (INC bombnum)
            (if (eq back 9) (INC rbombnum))))
-    (setl gMap
-          place
+    (setf (nth place gMap)
           (cons (if (eq front 3)
                   1
                   (1+ front))
@@ -287,11 +279,10 @@
     (cond ((eq back 9)
            (setq isGameOver 1))
           ((neq back 0)
-           (setl gMap
-                 place
+           (setf (nth place gMap)
                  (cons 0 back)))
           (1
-           (setl gMap place (cons 0 back))
+           (setf (nth place gMap) (cons 0 back))
            (let loop-tier ((tier 1))
              (cond ((canOpenBlock gMap row line x y tier)
                     (let loop-yt ((yt tier))
@@ -302,8 +293,7 @@
                                              (let ((place (ARRY (sub x xt) (sub y yt))))
                                                (define front (car (nth place gMap)))
                                                (define back (cdr (nth place gMap)))
-                                               (setl gMap
-                                                     place
+                                               (setf (nth place gMap)
                                                      (cons 0 back)))))
                                       (loop-xt (sub xt (if (or (eq yt tier)
                                                                (eq yt (NEG tier)))
@@ -318,7 +308,7 @@
       (cond ((lt i numOfBlock)
              (let ((back (cdr (nth i gMap)))
                    (front (car (nth i gMap))))
-               (if (neq front 4) (setl gMap i (cons 0 back))))
+               (if (neq front 4) (setf (nth i gMap) (cons 0 back))))
              (loop-i (1+ i))))))
   (printMap gMap row line xl yl bombnum)
   (let loop-ch ((ch (getch)))

@@ -835,10 +835,13 @@ int runFakeVM(FakeVM* exe)
 			int32_t sid;
 			int32_t cp;
 			int32_t pid;
-			if(tmpCode->id!=-1)
+			VMprocess* cur=curproc;
+			if(status==TOOMANYARG||status==TOOFEWARG)
+				cur=cur->prev;
+			if(cur->code->id!=-1)
 			{
-				cp=curproc->cp;
-				pid=tmpCode->id;
+				cp=cur->cp;
+				pid=cur->code->id;
 			}
 			else
 			{

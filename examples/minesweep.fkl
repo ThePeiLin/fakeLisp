@@ -210,8 +210,8 @@
              (cond ((le xp (1+ row))
                     (let ((front (car (nth place gMap)))
                           (back (cdr (nth place gMap))))
-                      (cond ((eq front 0)
-                             (cond ((eq back 0)
+                      (case front
+                        ((0) (cond ((eq back 0)
                                     (print "\033[0m\033["
                                            light
                                            "m."))
@@ -222,20 +222,16 @@
                                    (1 (print "\033[0m\033["
                                              light
                                              "m*"))))
-                            ((eq front 1)
-                             (print "\033[0m\033["
+                        ((1) (print "\033[0m\033["
                                     light
                                     "m="))
-                            ((eq front 2)
-                             (print "\033[0m\033["
+                        ((2) (print "\033[0m\033["
                                     light
                                     "m!"))
-                            ((eq front 3)
-                             (print "\033[0m\033["
+                        ((3) (print "\033[0m\033["
                                     light
                                     "m?"))
-                            ((eq front 4)
-                             (princ "\033[0m\033[44m#"
+                        ((4) (princ "\033[0m\033[44m#"
                                     stdout))))
                     (loop-xp (1+ xp)))))
            (princ "\n" stdout)

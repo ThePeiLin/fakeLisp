@@ -682,7 +682,12 @@ void exError(const AST_cptr* obj,int type,Intpr* inter)
 void printRawChar(char chr,FILE* out)
 {
 	if(isgraph(chr))
-		fprintf(out,"#\\%c",chr);
+	{
+		if(chr=='\\')
+			fprintf(out,"#\\\\\\");
+		else
+			fprintf(out,"#\\%c",chr);
+	}
 	else
 	{
 		uint8_t j=chr;

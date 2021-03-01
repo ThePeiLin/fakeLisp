@@ -1143,9 +1143,12 @@ ByteCode* compileQuote(AST_cptr* objCptr)
 	objCptr=nextCptr(objCptr);
 	switch((int)objCptr->type)
 	{
-		case PAIR:return compilePair(objCptr);
-		case ATM:return compileAtom(objCptr);
-		case NIL:return compileNil();
+		case PAIR:
+			return compilePair(objCptr);
+		case ATM:
+			return compileAtom(objCptr);
+		case NIL:
+			return compileNil();
 	}
 	return NULL;
 }

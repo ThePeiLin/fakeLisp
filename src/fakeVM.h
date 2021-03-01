@@ -101,7 +101,6 @@ void freeVMheap(VMheap*);
 void freeAllVMs();
 void deleteCallChain(FakeVM*);
 void joinAllThread();
-void writeRef(VMvalue*,VMvalue*);
 void GC_mark(FakeVM*);
 void GC_markValue(VMvalue*);
 void GC_markValueInStack(VMstack*);

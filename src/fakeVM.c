@@ -2041,12 +2041,22 @@ int B_cast_to_chr(FakeVM* exe)
 	VMvalue* tmpValue=newVMvalue(CHR,NULL,exe->heap,1);
 	switch(topValue->type)
 	{
-		case IN32:*tmpValue->u.chr=*topValue->u.num;break;
-		case DBL:*tmpValue->u.chr=(int32_t)*topValue->u.dbl;break;
-		case CHR:*tmpValue->u.chr=*topValue->u.chr;break;
+		case IN32:
+			*tmpValue->u.chr=*topValue->u.num;
+			break;
+		case DBL:
+			*tmpValue->u.chr=(int32_t)*topValue->u.dbl;
+			break;
+		case CHR:
+			*tmpValue->u.chr=*topValue->u.chr;
+			break;
 		case STR:
-		case SYM:*tmpValue->u.chr=topValue->u.str->str[0];break;
-		case BYTS:*tmpValue->u.chr=*(char*)topValue->u.byts->str;break;
+		case SYM:
+			*tmpValue->u.chr=topValue->u.str->str[0];
+			break;
+		case BYTS:
+			*tmpValue->u.chr=*(char*)topValue->u.byts->str;
+			break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
 	proc->cp+=1;
@@ -2129,16 +2139,25 @@ int B_cast_to_str(FakeVM* exe)
 	VMvalue* tmpValue=newVMvalue(STR,tmpStr,exe->heap,1);
 	switch(topValue->type)
 	{
-		case IN32:tmpValue->u.str->str=intToString(*topValue->u.num);break;
-		case DBL:tmpValue->u.str->str=doubleToString(*topValue->u.dbl);break;
-		case CHR:tmpValue->u.str->str=(char*)malloc(sizeof(char)*2);
-				 if(tmpValue->u.str->str==NULL)errors("B_cast_to_str",__FILE__,__LINE__);
-				 tmpValue->u.str->str[0]=*topValue->u.chr;
-				 tmpValue->u.str->str[1]='\0';
-				 break;
+		case IN32:
+			tmpValue->u.str->str=intToString(*topValue->u.num);
+			break;
+		case DBL:
+			tmpValue->u.str->str=doubleToString(*topValue->u.dbl);
+			break;
+		case CHR:
+			tmpValue->u.str->str=(char*)malloc(sizeof(char)*2);
+			if(tmpValue->u.str->str==NULL)errors("B_cast_to_str",__FILE__,__LINE__);
+			tmpValue->u.str->str[0]=*topValue->u.chr;
+			tmpValue->u.str->str[1]='\0';
+			break;
 		case STR:
-		case SYM:tmpValue->u.str->str=copyStr(topValue->u.str->str);break;
-		case BYTS:tmpValue->u.str->str=copyStr((char*)topValue->u.byts->str);break;
+		case SYM:
+			tmpValue->u.str->str=copyStr(topValue->u.str->str);
+			break;
+		case BYTS:
+			tmpValue->u.str->str=copyStr((char*)topValue->u.byts->str);
+			break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
 	proc->cp+=1;
@@ -2155,16 +2174,25 @@ int B_cast_to_sym(FakeVM* exe)
 	VMvalue* tmpValue=newVMvalue(SYM,tmpStr,exe->heap,1);
 	switch(topValue->type)
 	{
-		case IN32:tmpValue->u.str->str=intToString((long)*topValue->u.num);break;
-		case DBL:tmpValue->u.str->str=doubleToString(*topValue->u.dbl);break;
-		case CHR:tmpValue->u.str->str=(char*)malloc(sizeof(char)*2);
-				 if(tmpValue->u.str->str==NULL)errors("B_cast_to_sym",__FILE__,__LINE__);
-				 tmpValue->u.str->str[0]=*topValue->u.chr;
-				 tmpValue->u.str->str[1]='\0';
-				 break;
+		case IN32:
+			tmpValue->u.str->str=intToString((long)*topValue->u.num);
+			break;
+		case DBL:
+			tmpValue->u.str->str=doubleToString(*topValue->u.dbl);
+			break;
+		case CHR:
+			tmpValue->u.str->str=(char*)malloc(sizeof(char)*2);
+			if(tmpValue->u.str->str==NULL)errors("B_cast_to_sym",__FILE__,__LINE__);
+			tmpValue->u.str->str[0]=*topValue->u.chr;
+			tmpValue->u.str->str[1]='\0';
+			break;
 		case STR:
-		case SYM:tmpValue->u.str->str=copyStr(topValue->u.str->str);break;
-		case BYTS:tmpValue->u.str->str=copyStr((char*)topValue->u.byts->str);break;
+		case SYM:
+			tmpValue->u.str->str=copyStr(topValue->u.str->str);
+			break;
+		case BYTS:
+			tmpValue->u.str->str=copyStr((char*)topValue->u.byts->str);
+			break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
 	proc->cp+=1;
@@ -2181,26 +2209,31 @@ int B_cast_to_byte(FakeVM* exe)
 	tmpValue->u.byts=newEmptyByteArry();
 	switch(topValue->type)
 	{
-		case IN32:tmpValue->u.byts->size=sizeof(int32_t);
-				 tmpValue->u.byts->str=createByteString(sizeof(int32_t));
-				 *(int32_t*)tmpValue->u.byts->str=*topValue->u.num;
-				 break;
-		case DBL:tmpValue->u.byts->size=sizeof(double);
-				 tmpValue->u.byts->str=createByteString(sizeof(double));
-				 *(double*)tmpValue->u.byts->str=*topValue->u.dbl;
-				 break;
-		case CHR:tmpValue->u.byts->size=sizeof(char);
-				 tmpValue->u.byts->str=createByteString(sizeof(char));
-				 *(char*)tmpValue->u.byts->str=*topValue->u.chr;
-				 break;
+		case IN32:
+			tmpValue->u.byts->size=sizeof(int32_t);
+			tmpValue->u.byts->str=createByteString(sizeof(int32_t));
+			*(int32_t*)tmpValue->u.byts->str=*topValue->u.num;
+			break;
+		case DBL:
+			tmpValue->u.byts->size=sizeof(double);
+			tmpValue->u.byts->str=createByteString(sizeof(double));
+			*(double*)tmpValue->u.byts->str=*topValue->u.dbl;
+			break;
+		case CHR:
+			tmpValue->u.byts->size=sizeof(char);
+			tmpValue->u.byts->str=createByteString(sizeof(char));
+			*(char*)tmpValue->u.byts->str=*topValue->u.chr;
+			break;
 		case STR:
-		case SYM:tmpValue->u.byts->size=strlen(topValue->u.str->str+1);
-				 tmpValue->u.byts->str=(uint8_t*)copyStr(topValue->u.str->str);
-				 break;
-		case BYTS:tmpValue->u.byts->size=topValue->u.byts->size;
-				  tmpValue->u.byts->str=createByteString(topValue->u.byts->size);
-				  memcpy(tmpValue->u.byts->str,topValue->u.byts->str,topValue->u.byts->size);
-				  break;
+		case SYM:
+			tmpValue->u.byts->size=strlen(topValue->u.str->str+1);
+			tmpValue->u.byts->str=(uint8_t*)copyStr(topValue->u.str->str);
+			break;
+		case BYTS:
+			tmpValue->u.byts->size=topValue->u.byts->size;
+			tmpValue->u.byts->str=createByteString(topValue->u.byts->size);
+			memcpy(tmpValue->u.byts->str,topValue->u.byts->str,topValue->u.byts->size);
+			break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
 	proc->cp+=1;
@@ -2580,52 +2613,64 @@ void printVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t mode,int8_t is
 {
 	switch(objValue->type)
 	{
-		case NIL:fprintf(fp,"nil");break;
-		case IN32:fprintf(fp,"%d",*objValue->u.num);break;
-		case DBL:fprintf(fp,"%lf",*objValue->u.dbl);break;
-		case CHR:printRawChar(*objValue->u.chr,fp);break;
-		case SYM:fprintf(fp,"%s",objValue->u.str->str);break;
-		case STR:printRawString(objValue->u.str->str,fp);break;
+		case NIL:
+			fprintf(fp,"nil");
+			break;
+		case IN32:
+			fprintf(fp,"%d",*objValue->u.num);
+			break;
+		case DBL:
+			fprintf(fp,"%lf",*objValue->u.dbl);
+			break;
+		case CHR:
+			printRawChar(*objValue->u.chr,fp);
+			break;
+		case SYM:
+			fprintf(fp,"%s",objValue->u.str->str);
+			break;
+		case STR:
+			printRawString(objValue->u.str->str,fp);
+			break;
 		case PRC:
-				if(mode==1)printProc(objValue->u.prc,fp);
-				else fprintf(fp,"#<proc>");
-				break;
+			if(mode==1)printProc(objValue->u.prc,fp);
+			else fprintf(fp,"#<proc>");
+			break;
 		case PAIR:
-				if(isPrevPair)
-					putc(' ',fp);
-				else
-					putc('(',fp);
-				if(objValue->u.pair->car->type==PAIR&&objValue->u.pair->car->u.pair==begin)
+			if(isPrevPair)
+				putc(' ',fp);
+			else
+				putc('(',fp);
+			if(objValue->u.pair->car->type==PAIR&&objValue->u.pair->car->u.pair==begin)
+				fprintf(fp,"##");
+			else
+			{
+				if(objValue->u.pair->car->type!=NIL||isPrevPair)
+					printVMvalue(objValue->u.pair->car,begin,fp,mode,0);
+			}
+			if(objValue->u.pair->cdr->type!=NIL)
+			{
+				if(objValue->u.pair->cdr->type!=PAIR)
+					putc(',',fp);
+				if(objValue->u.pair->cdr->type==PAIR&&objValue->u.pair->cdr->u.pair==begin)
 					fprintf(fp,"##");
 				else
-				{
-					if(objValue->u.pair->car->type!=NIL||isPrevPair)
-						printVMvalue(objValue->u.pair->car,begin,fp,mode,0);
-				}
-				if(objValue->u.pair->cdr->type!=NIL)
-				{
-					if(objValue->u.pair->cdr->type!=PAIR)
-						putc(',',fp);
-					if(objValue->u.pair->cdr->type==PAIR&&objValue->u.pair->cdr->u.pair==begin)
-						fprintf(fp,"##");
-					else
-						printVMvalue(objValue->u.pair->cdr,begin,fp,mode,1);
-				}
-				if(!isPrevPair)
-					putc(')',fp);
-				break;
+					printVMvalue(objValue->u.pair->cdr,begin,fp,mode,1);
+			}
+			if(!isPrevPair)
+				putc(')',fp);
+			break;
 		case BYTS:
-				printByteStr(objValue->u.byts,fp,1);
-				break;
+			printByteStr(objValue->u.byts,fp,1);
+			break;
 		case CONT:
-				fprintf(fp,"#<cont>");
-				break;
+			fprintf(fp,"#<cont>");
+			break;
 		case CHAN:
-				fprintf(fp,"#<chan>");
-				break;
+			fprintf(fp,"#<chan>");
+			break;
 		case FP:
-				fprintf(fp,"#<fp>");
-				break;
+			fprintf(fp,"#<fp>");
+			break;
 		default:fprintf(fp,"Bad value!");break;
 	}
 }
@@ -2634,51 +2679,63 @@ void princVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t isPrevPair)
 {
 	switch(objValue->type)
 	{
-		case NIL:fprintf(fp,"nil");break;
-		case IN32:fprintf(fp,"%d",*objValue->u.num);break;
-		case DBL:fprintf(fp,"%lf",*objValue->u.dbl);break;
-		case CHR:putc(*objValue->u.chr,fp);break;
-		case SYM:fprintf(fp,"%s",objValue->u.str->str);break;
-		case STR:fprintf(fp,"%s",objValue->u.str->str);break;
+		case NIL:
+			fprintf(fp,"nil");
+			break;
+		case IN32:
+			fprintf(fp,"%d",*objValue->u.num);
+			break;
+		case DBL:
+			fprintf(fp,"%lf",*objValue->u.dbl);
+			break;
+		case CHR:
+			putc(*objValue->u.chr,fp);
+			break;
+		case SYM:
+			fprintf(fp,"%s",objValue->u.str->str);
+			break;
+		case STR:
+			fprintf(fp,"%s",objValue->u.str->str);
+			break;
 		case PRC:
-				fprintf(fp,"#<proc>");
-				break;
+			fprintf(fp,"#<proc>");
+			break;
 		case PAIR:
-				if(isPrevPair)
-					putc(' ',fp);
-				else
-					putc('(',fp);
-				if(objValue->u.pair->car->type==PAIR&&objValue->u.pair->car->u.pair==begin)
+			if(isPrevPair)
+				putc(' ',fp);
+			else
+				putc('(',fp);
+			if(objValue->u.pair->car->type==PAIR&&objValue->u.pair->car->u.pair==begin)
+				fprintf(fp,"##");
+			else
+			{
+				if(objValue->u.pair->car->type!=NIL||isPrevPair)
+					princVMvalue(objValue->u.pair->car,begin,fp,0);
+			}
+			if(objValue->u.pair->cdr->type!=NIL)
+			{
+				if(objValue->u.pair->cdr->type!=PAIR)
+					putc(',',fp);
+				if(objValue->u.pair->cdr->type==PAIR&&objValue->u.pair->cdr->u.pair==begin)
 					fprintf(fp,"##");
 				else
-				{
-					if(objValue->u.pair->car->type!=NIL||isPrevPair)
-						princVMvalue(objValue->u.pair->car,begin,fp,0);
-				}
-				if(objValue->u.pair->cdr->type!=NIL)
-				{
-					if(objValue->u.pair->cdr->type!=PAIR)
-						putc(',',fp);
-					if(objValue->u.pair->cdr->type==PAIR&&objValue->u.pair->cdr->u.pair==begin)
-						fprintf(fp,"##");
-					else
-						princVMvalue(objValue->u.pair->cdr,begin,fp,1);
-				}
-				if(!isPrevPair)
-					putc(')',fp);
-				break;
+					princVMvalue(objValue->u.pair->cdr,begin,fp,1);
+			}
+			if(!isPrevPair)
+				putc(')',fp);
+			break;
 		case BYTS:
-				printByteStr(objValue->u.byts,fp,0);
-				break;
+			printByteStr(objValue->u.byts,fp,0);
+			break;
 		case CONT:
-				fprintf(fp,"#<cont>");
-				break;
+			fprintf(fp,"#<cont>");
+			break;
 		case CHAN:
-				fprintf(fp,"#<chan>");
-				break;
+			fprintf(fp,"#<chan>");
+			break;
 		case FP:
-				fprintf(fp,"#<fp>");
-				break;
+			fprintf(fp,"#<fp>");
+			break;
 		default:fprintf(fp,"Bad value!");break;
 	}
 }
@@ -2814,64 +2871,6 @@ void printProc(VMcode* code,FILE* fp)
 	ByteCode tmp={code->size,code->code};
 	printByteCode(&tmp,fp);
 	fputc('>',fp);
-}
-
-void writeRef(VMvalue* fir,VMvalue* sec)
-{
-	if(fir->type>=IN32&&fir->type<=DBL)
-	{
-		switch(sec->type)
-		{
-			case IN32:*fir->u.num=*sec->u.num;break;
-			case CHR:*fir->u.chr=*sec->u.chr;break;
-			case DBL:*fir->u.dbl=*sec->u.dbl;break;
-		}
-	}
-	else if(fir->type>=SYM&&fir->type<=PAIR)
-	{
-		if(fir->access)freeRef(fir);
-		switch(fir->type)
-		{
-			case PAIR:
-				fir->u.pair=sec->u.pair;
-				fir->u.pair->refcount+=1;
-				break;
-			case PRC:
-				fir->u.prc=sec->u.prc;
-				fir->u.prc->refcount+=1;
-				break;
-			case CONT:
-				fir->u.cont=sec->u.cont;
-				fir->u.cont->refcount+=1;
-				break;
-			case CHAN:
-				fir->u.chan=sec->u.chan;
-				fir->u.chan->refcount+=1;
-				break;
-			case FP:
-				fir->u.fp=sec->u.fp;
-				fir->u.fp->refcount+=1;
-			case SYM:
-			case STR:
-				if(!fir->access)
-					memcpy(fir->u.str->str,sec->u.str->str,(strlen(fir->u.str->str)>strlen(sec->u.str->str))?strlen(sec->u.str->str):strlen(fir->u.str->str));
-				else
-				{
-					fir->u.str=sec->u.str;
-					fir->u.str+=1;
-				}
-				break;
-			case BYTS:
-				if(!fir->access)
-					memcpy(fir->u.byts->str,sec->u.byts->str,(fir->u.byts->size>sec->u.byts->size)?sec->u.byts->size:fir->u.byts->size);
-				else
-				{
-					fir->u.byts=sec->u.byts;
-					fir->u.byts->refcount+=1;
-				}
-				break;
-		}
-	}
 }
 
 VMheap* newVMheap()

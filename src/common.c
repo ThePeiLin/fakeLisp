@@ -229,10 +229,12 @@ AST_atom* newAtom(int type,const char* value,AST_pair* prev)
 		case CHR:
 		case IN32:
 		case DBL:
-			*(int32_t*)(&tmp->value)=0;break;
+			*(int32_t*)(&tmp->value)=0;
+			break;
 		case BYTS:
 			tmp->value.byts.size=0;
-			tmp->value.byts.str=NULL;break;
+			tmp->value.byts.str=NULL;
+			break;
 	}
 	tmp->prev=prev;
 	tmp->type=type;
@@ -515,24 +517,32 @@ char stringToChar(const char* objStr)
 	}
 	else
 	{
-		switch(*(objStr))
+		switch(toupper(*(objStr)))
 		{
 			case 'A':
-			case 'a':ch=0x07;break;
-			case 'b':
-			case 'B':ch=0x08;break;
-			case 't':
-			case 'T':ch=0x09;break;
-			case 'n':
-			case 'N':ch=0x0a;break;
-			case 'v':
-			case 'V':ch=0x0b;break;
-			case 'f':
-			case 'F':ch=0x0c;break;
-			case 'r':
-			case 'R':ch=0x0d;break;
-			case '\\':ch=0x5c;break;
-			default:ch=*(objStr);break;
+				ch=0x07;
+				break;
+			case 'B':
+				ch=0x08;
+				break;
+			case 'T':
+				ch=0x09;
+				break;
+			case 'N':
+				ch=0x0a;
+				break;
+			case 'V':
+				ch=0x0b;
+				break;
+			case 'F':
+				ch=0x0c;
+				break;
+			case 'R':
+				ch=0x0d;
+				break;
+			default:
+				ch=*(objStr);
+				break;
 		}
 	}
 	return ch;
@@ -648,12 +658,24 @@ void exError(const AST_cptr* obj,int type,Intpr* inter)
 	if(obj!=NULL)printList(obj,stderr);
 	switch(type)
 	{
-		case SYMUNDEFINE:fprintf(stderr,":Symbol is undefined.\n");break;
-		case SYNTAXERROR:fprintf(stderr,":Syntax error.\n");break;
-		case INVALIDEXPR:fprintf(stderr,":Invalid expression here.\n");break;
-		case CIRCULARLOAD:fprintf(stderr,":Circular load file.\n");break;
-		case INVALIDPATTERN:fprintf(stderr,":Invalid string match pattern.\n");break;
-		case MACROEXPANDFAILED:fprintf(stderr,":Failed to expand macro.\n");break;
+		case SYMUNDEFINE:
+			fprintf(stderr,":Symbol is undefined.\n");
+			break;
+		case SYNTAXERROR:
+			fprintf(stderr,":Syntax error.\n");
+			break;
+		case INVALIDEXPR:
+			fprintf(stderr,":Invalid expression here.\n");
+			break;
+		case CIRCULARLOAD:
+			fprintf(stderr,":Circular load file.\n");
+			break;
+		case INVALIDPATTERN:
+			fprintf(stderr,":Invalid string match pattern.\n");
+			break;
+		case MACROEXPANDFAILED:
+			fprintf(stderr,":Failed to expand macro.\n");
+			break;
 	}
 }
 
@@ -1533,14 +1555,27 @@ char* castEscapeCharater(const char* str,char end,int32_t* len)
 			{
 				switch(toupper(str[i+1]))
 				{
-					case 'A':ch=0x07;break;
-					case 'B':ch=0x08;break;
-					case 'T':ch=0x09;break;
-					case 'N':ch=0x0a;break;
-					case 'V':ch=0x0b;break;
-					case 'F':ch=0x0c;break;
-					case 'R':ch=0x0d;break;
-					case '\\':ch=0x5c;break;
+					case 'A':
+						ch=0x07;
+						break;
+					case 'B':
+						ch=0x08;
+						break;
+					case 'T':
+						ch=0x09;
+						break;
+					case 'N':
+						ch=0x0a;
+						break;
+					case 'V':
+						ch=0x0b;
+						break;
+					case 'F':
+						ch=0x0c;
+						break;
+					case 'R':
+						ch=0x0d;
+						break;
 					default:ch=str[i+1];break;
 				}
 				i+=2;

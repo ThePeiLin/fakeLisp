@@ -87,10 +87,18 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap,int access)
 	pthread_mutex_unlock(&heap->lock);
 	switch((int)type)
 	{
-		case NIL:tmp->u.all=NULL;break;
-		case CHR:tmp->u.chr=(access)?copyMemory(pValue,sizeof(char)):pValue;break;
-		case IN32:tmp->u.num=(access)?copyMemory(pValue,sizeof(int32_t)):pValue;break;
-		case DBL:tmp->u.dbl=(access)?copyMemory(pValue,sizeof(double)):pValue;break;
+		case NIL:
+			tmp->u.all=NULL;
+			break;
+		case CHR:
+			tmp->u.chr=(access)?copyMemory(pValue,sizeof(char)):pValue;
+			break;
+		case IN32:
+			tmp->u.num=(access)?copyMemory(pValue,sizeof(int32_t)):pValue;
+			break;
+		case DBL:
+			tmp->u.dbl=(access)?copyMemory(pValue,sizeof(double)):pValue;
+			break;
 		case SYM:
 		case STR:
 			tmp->u.str=pValue;break;
@@ -154,14 +162,21 @@ int VMvaluecmp(VMvalue* fir,VMvalue* sec)
 	{
 		switch(fir->type)
 		{
-			case IN32:return *fir->u.num==*sec->u.num;
-			case CHR:return *fir->u.chr==*sec->u.chr;
-			case DBL:return fabs(*fir->u.dbl-*sec->u.dbl)==0;
+			case IN32:
+				return *fir->u.num==*sec->u.num;
+			case CHR:
+				return *fir->u.chr==*sec->u.chr;
+			case DBL:
+				return fabs(*fir->u.dbl-*sec->u.dbl)==0;
 			case STR:
-			case SYM:return !strcmp(fir->u.str->str,sec->u.str->str);
-			case PRC:return fir->u.prc==sec->u.prc;
-			case PAIR:return VMvaluecmp(fir->u.pair->car,sec->u.pair->car)&&VMvaluecmp(fir->u.pair->cdr,sec->u.pair->cdr);
-			case BYTS:return bytsStrEq(fir->u.byts,sec->u.byts);
+			case SYM:
+				return !strcmp(fir->u.str->str,sec->u.str->str);
+			case PRC:
+				return fir->u.prc==sec->u.prc;
+			case PAIR:
+				return VMvaluecmp(fir->u.pair->car,sec->u.pair->car)&&VMvaluecmp(fir->u.pair->cdr,sec->u.pair->cdr);
+			case BYTS:
+				return bytsStrEq(fir->u.byts,sec->u.byts);
 		}
 	}
 	return 0;
@@ -175,10 +190,14 @@ int subVMvaluecmp(VMvalue* fir,VMvalue* sec)
 	{
 		switch(fir->type)
 		{
-			case IN32:return *fir->u.num==*sec->u.num;
-			case CHR:return *fir->u.chr==*sec->u.chr;
-			case DBL:return fabs(*fir->u.dbl-*sec->u.dbl)==0;
-			case SYM:return !strcmp(fir->u.str->str,sec->u.str->str);
+			case IN32:
+				return *fir->u.num==*sec->u.num;
+			case CHR:
+				return *fir->u.chr==*sec->u.chr;
+			case DBL:
+				return fabs(*fir->u.dbl-*sec->u.dbl)==0;
+			case SYM:
+				return !strcmp(fir->u.str->str,sec->u.str->str);
 		}
 	}
 	else if(fir->u.all==sec->u.all)return 1;
@@ -237,12 +256,22 @@ VMvalue* castCptrVMvalue(const AST_cptr* objCptr,VMheap* heap)
 		VMvalue* tmp=NULL;
 		switch((int)tmpAtm->type)
 		{
-			case IN32:tmp=newVMvalue(IN32,&tmpAtm->value.num,heap,1);break;
-			case DBL:tmp=newVMvalue(DBL,&tmpAtm->value.dbl,heap,1);break;
-			case CHR:tmp=newVMvalue(CHR,&tmpAtm->value.chr,heap,1);break;
-			case BYTS:tmp=newVMvalue(BYTS,newByteString(tmpAtm->value.byts.size,tmpAtm->value.byts.str),heap,1);break;
+			case IN32:
+				tmp=newVMvalue(IN32,&tmpAtm->value.num,heap,1);
+				break;
+			case DBL:
+				tmp=newVMvalue(DBL,&tmpAtm->value.dbl,heap,1);
+				break;
+			case CHR:
+				tmp=newVMvalue(CHR,&tmpAtm->value.chr,heap,1);
+				break;
+			case BYTS:
+				tmp=newVMvalue(BYTS,newByteString(tmpAtm->value.byts.size,tmpAtm->value.byts.str),heap,1);
+				break;
 			case SYM:
-			case STR:tmp=newVMvalue(tmpAtm->type,newVMstr(tmpAtm->value.str),heap,1);break;
+			case STR:
+				tmp=newVMvalue(tmpAtm->type,newVMstr(tmpAtm->value.str),heap,1);
+				break;
 		}
 		return tmp;
 	}
@@ -466,6 +495,71 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 				break;
 			case NIL:
 				fir->u.all=NULL;
+				break;
+		}
+	}
+}
+
+void writeRef(VMvalue* fir,VMvalue* sec)
+{
+	if(fir->type>=IN32&&fir->type<=DBL)
+	{
+		switch(sec->type)
+		{
+			case IN32:
+				*fir->u.num=*sec->u.num;
+				break;
+			case CHR:
+				*fir->u.chr=*sec->u.chr;
+				break;
+			case DBL:
+				*fir->u.dbl=*sec->u.dbl;
+				break;
+		}
+	}
+	else if(fir->type>=SYM&&fir->type<=PAIR)
+	{
+		if(fir->access)freeRef(fir);
+		switch(fir->type)
+		{
+			case PAIR:
+				fir->u.pair=sec->u.pair;
+				fir->u.pair->refcount+=1;
+				break;
+			case PRC:
+				fir->u.prc=sec->u.prc;
+				fir->u.prc->refcount+=1;
+				break;
+			case CONT:
+				fir->u.cont=sec->u.cont;
+				fir->u.cont->refcount+=1;
+				break;
+			case CHAN:
+				fir->u.chan=sec->u.chan;
+				fir->u.chan->refcount+=1;
+				break;
+			case FP:
+				fir->u.fp=sec->u.fp;
+				fir->u.fp->refcount+=1;
+				break;
+			case SYM:
+			case STR:
+				if(!fir->access)
+					memcpy(fir->u.str->str,sec->u.str->str,(strlen(fir->u.str->str)>strlen(sec->u.str->str))?strlen(sec->u.str->str):strlen(fir->u.str->str));
+				else
+				{
+					fir->u.str=sec->u.str;
+					fir->u.str+=1;
+				}
+				break;
+			case BYTS:
+				if(!fir->access)
+					memcpy(fir->u.byts->str,sec->u.byts->str,(fir->u.byts->size>sec->u.byts->size)?sec->u.byts->size:fir->u.byts->size);
+				else
+				{
+					fir->u.byts=sec->u.byts;
+					fir->u.byts->refcount+=1;
+				}
 				break;
 		}
 	}

@@ -211,7 +211,7 @@ int FAKE_setChanlBufferSize(FakeVM* exe,pthread_rwlock_t* pGClock)
 	VMvalue* size=getArg(stack);
 	if(resBp(exe))
 		return TOOMANYARG;
-	if(size==NULL)
+	if(size==NULL||chan==NULL)
 		return TOOFEWARG;
 	if(size->type!=IN32||chan->type!=CHAN)
 		return WRONGARG;
@@ -220,6 +220,32 @@ int FAKE_setChanlBufferSize(FakeVM* exe,pthread_rwlock_t* pGClock)
 	return 0;
 }
 
+int FAKE_symbolToValue(FakeVM* exe,pthread_rwlock_t* pGClock)
+{
+	VMstack* stack=exe->stack;
+	VMprocess* proc=exe->curproc;
+	VMvalue* symbol=getArg(stack);
+	if(!symbol)
+		return TOOFEWARG;
+	if(resBp(exe))
+		return TOOFEWARG;
+	if(symbol->type!=SYM)
+		return WRONGARG;
+	int32_t id=findSymbol(symbol->u.str->str,exe->table)->id;
+	VMenv* curEnv=proc->prev->localenv;
+	VMvalue* tmpValue=NULL;
+	VMenvNode* tmp=NULL;
+	while(curEnv&&!tmp)
+	{
+		tmp=findVMenvNode(id,curEnv);
+		curEnv=curEnv->prev;
+	}
+	if(tmp==NULL)
+		return 0;
+	tmpValue=tmp->value;
+	SET_RETURN("FAKE_symbolToValue",tmpValue,stack);
+	return 0;
+}
 #ifdef __cplusplus
 }
 #endif

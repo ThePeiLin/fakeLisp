@@ -35,13 +35,12 @@
 
 (defmacro
   (let* $d,$b)
-  (begin
-    (cond ((or (not (eq (type d) 'pair))
-               (le (length d) 1))
-           `(let ~d ~@b))
-          (1
-           `(let (~(car d))
-              (let* ~(cdr d) ~@b))))))
+  (cond ((or (not (eq (type d) 'pair))
+             (le (length d) 1))
+         `(let ~d ~@b))
+        (1
+         `(let (~(car d))
+            (let* ~(cdr d) ~@b)))))
 (defmacro
   (letrec $d,$b)
   (begin

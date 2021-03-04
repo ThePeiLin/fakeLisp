@@ -298,13 +298,16 @@ char* readSingle(FILE* fp,char** prev)
 			subStr=readAtom(fp);
 			break;
 	}
-	strSize+=strlen(subStr);
-	if(strSize>memSize-1)
+	if(subStr)
 	{
-		tmp=(char*)realloc(tmp,sizeof(char)*(strSize+1));
-		if(!tmp)errors("readSingle",__FILE__,__LINE__);
+		strSize+=strlen(subStr);
+		if(strSize>memSize-1)
+		{
+			tmp=(char*)realloc(tmp,sizeof(char)*(strSize+1));
+			if(!tmp)errors("readSingle",__FILE__,__LINE__);
+		}
+		strcat(tmp,subStr);
 	}
-	strcat(tmp,subStr);
 	memSize=strlen(tmp)+1;
 	tmp=(char*)realloc(tmp,sizeof(char)*memSize);
 	if(!tmp)errors("readSingle",__FILE__,__LINE__);
@@ -388,13 +391,16 @@ char* baseReadSingle(FILE* fp)
 			subStr=readAtom(fp);
 			break;
 	}
-	strSize+=strlen(subStr);
-	if(strSize>memSize-1)
+	if(subStr)
 	{
-		tmp=(char*)realloc(tmp,sizeof(char)*(strSize+1));
-		if(!tmp)errors("readSingle",__FILE__,__LINE__);
+		strSize+=strlen(subStr);
+		if(strSize>memSize-1)
+		{
+			tmp=(char*)realloc(tmp,sizeof(char)*(strSize+1));
+			if(!tmp)errors("readSingle",__FILE__,__LINE__);
+		}
+		strcat(tmp,subStr);
 	}
-	strcat(tmp,subStr);
 	memSize=strlen(tmp)+1;
 	tmp=(char*)realloc(tmp,sizeof(char)*memSize);
 	if(!tmp)errors("readSingle",__FILE__,__LINE__);

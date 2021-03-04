@@ -2036,6 +2036,15 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 		}
 		if(braketsNum<=0&&root!=NULL)break;
 	}
+	if(braketsNum)
+	{
+		if(root)
+		{
+			deleteCptr(root);
+			free(root);
+		}
+		return NULL;
+	}
 	return root;
 }
 

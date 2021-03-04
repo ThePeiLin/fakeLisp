@@ -327,6 +327,13 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 			if(braketsNum<=0&&root!=NULL)break;
 		}
 	}
+	if(braketsNum!=0)
+	{
+		if(root)
+			deleteCptr(root);
+		free(root);
+		return NULL;
+	}
 	return root;
 }
 

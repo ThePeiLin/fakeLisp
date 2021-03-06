@@ -2347,7 +2347,8 @@ void printByteCodelnt(ByteCodelnt* obj,SymbolTable* table,FILE* fp)
 				break;
 		}
 		putc('\t',fp);
-		if(obj->l[j]->scp+obj->l[j]->cpc<i)j++;
+		if(obj->l[j]->scp+obj->l[j]->cpc<i)
+			j++;
 		if(obj->l[j]->fid!=fid||obj->l[j]->line!=line)
 		{
 			fid=obj->l[j]->fid;

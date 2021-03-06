@@ -1783,9 +1783,13 @@ ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	ByteCode* pushnil=newByteCode(sizeof(char));
 	ByteCode* jumpiffalse=newByteCode(sizeof(char)+sizeof(int32_t));
 	ByteCode* jump=newByteCode(sizeof(char)+sizeof(int32_t));
-	ByteCode* pop=newByteCode(sizeof(char));
+	ByteCode* resTp=newByteCode(sizeof(char));
+	ByteCode* setTp=newByteCode(sizeof(char));
+	ByteCode* popTp=newByteCode(sizeof(char));
 	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
-	pop->code[0]=FAKE_POP;
+	setTp->code[0]=FAKE_SET_TP;
+	resTp->code[0]=FAKE_RES_TP;
+	popTp->code[0]=FAKE_POP_TP;
 	pushnil->code[0]=FAKE_PUSH_NIL;
 	jumpiffalse->code[0]=FAKE_JMP_IF_FALSE;
 	jump->code[0]=FAKE_JMP;
@@ -1803,7 +1807,9 @@ ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 				freeByteCodelnt(tmp);
 				freeByteCode(jumpiffalse);
 				freeByteCode(jump);
-				freeByteCode(pop);
+				freeByteCode(resTp);
+				freeByteCode(setTp);
+				freeByteCode(popTp);
 				FREE_ALL_LINE_NUMBER_TABLE(tmpCond->l,tmpCond->ls);
 				freeByteCodelnt(tmpCond);
 				freeByteCode(pushnil);
@@ -1816,16 +1822,16 @@ ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 				tmp1->l[tmp1->ls-1]->cpc+=jumpiffalse->size;
 				if(objCptr->outer->cdr.type==NIL)
 				{
-					codeCat(tmp1->bc,pop);
+					codeCat(tmp1->bc,resTp);
 					codeCat(tmp1->bc,pushnil);
-					tmp1->l[tmp1->ls-1]->cpc+=pop->size+pushnil->size;
+					tmp1->l[tmp1->ls-1]->cpc+=resTp->size+pushnil->size;
 				}
 			}
 			if(prevCptr(objCptr)!=NULL)
 			{
-				reCodeCat(pop,tmp1->bc);
-				tmp1->l[0]->cpc+=pop->size;
-				INCREASE_ALL_SCP(tmp1->l+1,tmp1->ls-1,pop->size);
+				reCodeCat(resTp,tmp1->bc);
+				tmp1->l[0]->cpc+=resTp->size;
+				INCREASE_ALL_SCP(tmp1->l+1,tmp1->ls-1,resTp->size);
 			}
 			reCodelntCat(tmp1,tmpCond);
 			freeByteCodelnt(tmp1);
@@ -1833,9 +1839,9 @@ ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		}
 		if(prevCptr(prevCptr(cond))!=NULL)
 		{
-			reCodeCat(pop,tmpCond->bc);
+			reCodeCat(resTp,tmpCond->bc);
 			tmpCond->l[0]->cpc+=1;
-			INCREASE_ALL_SCP(tmpCond->l+1,tmpCond->ls-1,pop->size);
+			INCREASE_ALL_SCP(tmpCond->l+1,tmpCond->ls-1,resTp->size);
 		}
 		if(nextCptr(cond)!=NULL)
 		{
@@ -1855,8 +1861,15 @@ ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			errors("compileCond",__FILE__,__LINE__);
 		tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,0,objCptr->curline);
 	}
+	reCodeCat(setTp,tmp->bc);
+	tmp->l[0]->cpc+=1;
+	INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,setTp->size);
+	codeCat(tmp->bc,popTp);
+	tmp->l[tmp->ls-1]->cpc+=popTp->size;
 	freeByteCode(pushnil);
-	freeByteCode(pop);
+	freeByteCode(resTp);
+	freeByteCode(setTp);
+	freeByteCode(popTp);
 	freeByteCode(jumpiffalse);
 	freeByteCode(jump);
 	return tmp;

@@ -1471,11 +1471,15 @@ ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 {
 	ByteCode* jumpiffalse=newByteCode(sizeof(char)+sizeof(int32_t));
 	ByteCode* push1=newByteCode(sizeof(char)+sizeof(int32_t));
-	ByteCode* pop=newByteCode(sizeof(char));
+	ByteCode* resTp=newByteCode(sizeof(char));
+	ByteCode* setTp=newByteCode(sizeof(char));
+	ByteCode* popTp=newByteCode(sizeof(char));
 	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
 	jumpiffalse->code[0]=FAKE_JMP_IF_FALSE;
 	push1->code[0]=FAKE_PUSH_INT;
-	pop->code[0]=FAKE_POP;
+	resTp->code[0]=FAKE_RES_TP;
+	setTp->code[0]=FAKE_SET_TP;
+	popTp->code[0]=FAKE_POP_TP;
 	*(int32_t*)(push1->code+sizeof(char))=1;
 	for(objCptr=&((AST_pair*)objCptr->value)->car;nextCptr(objCptr)!=NULL;objCptr=nextCptr(objCptr));
 	for(;prevCptr(objCptr)!=NULL;objCptr=prevCptr(objCptr))
@@ -1483,7 +1487,9 @@ ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 		ByteCodelnt* tmp1=compile(objCptr,curEnv,inter,status,evalIm,fix);
 		if(status->status!=0)
 		{
-			freeByteCode(pop);
+			freeByteCode(resTp);
+			freeByteCode(popTp);
+			freeByteCode(setTp);
 			if(tmp->l)
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 			freeByteCodelnt(tmp);
@@ -1494,9 +1500,9 @@ ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 		*(int32_t*)(jumpiffalse->code+sizeof(char))=tmp->bc->size;
 		codeCat(tmp1->bc,jumpiffalse);
 		tmp1->l[tmp1->ls-1]->cpc+=jumpiffalse->size;
-		reCodeCat(pop,tmp1->bc);
-		tmp1->l[0]->cpc+=pop->size;
-		INCREASE_ALL_SCP(tmp1->l+1,tmp1->ls-1,pop->size);
+		reCodeCat(resTp,tmp1->bc);
+		tmp1->l[0]->cpc+=resTp->size;
+		INCREASE_ALL_SCP(tmp1->l+1,tmp1->ls-1,resTp->size);
 		reCodelntCat(tmp1,tmp);
 		freeByteCodelnt(tmp1);
 	}
@@ -1514,9 +1520,17 @@ ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 		tmp->l[0]->cpc+=push1->size;
 		INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,push1->size);
 	}
-	freeByteCode(pop);
+	reCodeCat(setTp,tmp->bc);
+	tmp->l[0]->cpc+=setTp->size;
+	INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,setTp->size);
+	codeCat(tmp->bc,popTp);
+	tmp->l[tmp->ls-1]->cpc+=popTp->size;
+	freeByteCode(resTp);
+	freeByteCode(popTp);
+	freeByteCode(setTp);
 	freeByteCode(jumpiffalse);
 	freeByteCode(push1);
+	printByteCodelnt(tmp,inter->table,stderr);
 	return tmp;
 }
 
@@ -1862,7 +1876,7 @@ ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,0,objCptr->curline);
 	}
 	reCodeCat(setTp,tmp->bc);
-	tmp->l[0]->cpc+=1;
+	tmp->l[0]->cpc+=setTp->size;
 	INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,setTp->size);
 	codeCat(tmp->bc,popTp);
 	tmp->l[tmp->ls-1]->cpc+=popTp->size;

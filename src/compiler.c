@@ -1530,7 +1530,7 @@ ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	freeByteCode(setTp);
 	freeByteCode(jumpiffalse);
 	freeByteCode(push1);
-	printByteCodelnt(tmp,inter->table,stderr);
+	//printByteCodelnt(tmp,inter->table,stderr);
 	return tmp;
 }
 

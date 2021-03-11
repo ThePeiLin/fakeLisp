@@ -1776,11 +1776,6 @@ int B_jump_if_ture(FakeVM* exe)
 		int32_t where=*(int32_t*)(tmpCode->code+proc->cp+sizeof(char));
 		proc->cp+=where;
 	}
-	else
-	{
-		stack->tp-=1;
-		stackRecycle(exe);
-	}
 	proc->cp+=5;
 	return 0;
 }

@@ -41,7 +41,6 @@ static int (*ByteCodes[])(FakeVM*)=
 	B_push_proc,
 	B_push_mod_proc,
 	B_push_list_arg,
-	B_pop,
 	B_pop_var,
 	B_pop_rest_var,
 	B_pop_car,
@@ -1271,16 +1270,6 @@ int B_push_list_arg(FakeVM* exe)
 		stack->tp+=1;
 		tmpList=tmpList->u.pair->cdr;
 	}
-	proc->cp+=1;
-	return 0;
-}
-
-int B_pop(FakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMprocess* proc=exe->curproc;
-	stack->tp-=1;
-	stackRecycle(exe);
 	proc->cp+=1;
 	return 0;
 }

@@ -28,7 +28,6 @@ int B_push_top(FakeVM*);
 int B_push_proc(FakeVM*);
 int B_push_mod_proc(FakeVM*);
 int B_push_list_arg(FakeVM*);
-int B_pop(FakeVM*);
 int B_pop_var(FakeVM*);
 int B_pop_rest_var(FakeVM*);
 int B_pop_car(FakeVM*);

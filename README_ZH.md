@@ -73,7 +73,7 @@ import的语法为
 (import <模块名>)
 ```
 
-import与load的区别在于import不产生字节码，而且只能加载.dll文件或.so文件，二而load只能加载fakeLisp源代码文件，  
+import与load的区别在于import不产生字节码，而且只能加载.dll文件或.so文件，而load只能加载fakeLisp源代码文件，  
 并且加载好的.dll文件或.so文件中可调用的函数的函数名会被添加到全局环境。（假设btk模块中有可调用的getch函数）  
 ```scheme
 (import btk)

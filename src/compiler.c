@@ -1227,12 +1227,7 @@ ByteCodelnt* compileFuncCall(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Erro
 		}
 		else
 		{
-			if(prevCptr(objCptr)==NULL)
-			{
-				tmp1=compile(objCptr,curEnv,inter,status,evalIm&1,fix);
-			}
-			else
-				tmp1=compile(objCptr,curEnv,inter,status,!isLambdaExpression(objCptr),fix);
+			tmp1=compile(objCptr,curEnv,inter,status,evalIm,fix);
 			if(status->status!=0)
 			{
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);

@@ -42,7 +42,6 @@ int B_rem(FakeVM*);
 int B_atom(FakeVM*);
 int B_null(FakeVM*);
 int B_call_proc(FakeVM*);
-int B_end_proc(FakeVM*);
 int B_set_tp(FakeVM*);
 int B_set_bp(FakeVM*);
 int B_invoke(FakeVM*);

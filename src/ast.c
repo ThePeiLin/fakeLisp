@@ -92,23 +92,19 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 		initGlobEnv(tmpGlobEnv,tmpVM->heap,inter->table);
 		VMcode* tmpVMcode=newVMcode(pattern->proc,0);
 		VMenv* stringPatternEnv=castPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->heap,inter->table);
-		tmpVMcode->localenv=stringPatternEnv;
-		tmpVM->mainproc->code=tmpVMcode;
+		tmpVMcode->localenv=NULL;
+		tmpVM->mainproc=newFakeProcess(tmpVMcode,NULL);
 		tmpVM->mainproc->localenv=stringPatternEnv;
+		tmpVM->curproc=tmpVM->mainproc;
 		tmpVM->modules=inter->modules;
 		tmpVM->table=inter->table;
 		tmpVM->lnt=pattern->lnt;
-		runFakeVM(tmpVM);
-		AST_cptr* tmpCptr=castVMvalueToCptr(tmpVM->stack->values[0],inter->curline,NULL);
-		if(tmpVM->mainproc->code)
-		{
-			tmpGlobEnv->refcount-=1;
-			freeVMenv(tmpGlobEnv);
-			stringPatternEnv->prev=NULL;
-			freeVMcode(tmpVM->mainproc->code);
-		}
+		int status=runFakeVM(tmpVM);
+		AST_cptr* tmpCptr=NULL;
+		if(!status)
+			tmpCptr=castVMvalueToCptr(tmpVM->stack->values[0],inter->curline,NULL);
+		freeVMenv(tmpGlobEnv);
 		freeVMheap(tmpVM->heap);
-		free(tmpVM->mainproc);
 		freeVMstack(tmpVM->stack);
 		free(tmpVM);
 		free(rawProcList);

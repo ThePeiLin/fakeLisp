@@ -48,7 +48,6 @@ static int (*ByteCodes[])(FakeVM*)=
 	B_pop_ref,
 	B_pack_cc,
 	B_call_proc,
-	B_end_proc,
 	B_set_tp,
 	B_set_bp,
 	B_invoke,
@@ -97,7 +96,7 @@ static int (*ByteCodes[])(FakeVM*)=
 
 ByteCode P_cons=
 {
-	33,
+	32,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
@@ -108,78 +107,72 @@ ByteCode P_cons=
 		FAKE_POP_CAR,
 		FAKE_PUSH_VAR,1,0,0,0,
 		FAKE_POP_CDR,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_car=
 {
-	17,
+	16,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_CAR,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_cdr=
 {
-	17,
+	16,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_CDR,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_atom=
 {
-	17,
+	16,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_ATOM,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_null=
 {
-	17,
+	16,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_NULL,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_type=
 {
-	17,
+	16,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_TYPE_OF,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_aply=
 {
-	33,
+	32,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
@@ -190,13 +183,12 @@ ByteCode P_aply=
 		FAKE_PUSH_LIST_ARG,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_INVOKE,
-		FAKE_END_PROC,
 	}
 };
 
 ByteCode P_eq=
 {
-	31,
+	30,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
@@ -205,13 +197,12 @@ ByteCode P_eq=
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
 		FAKE_EQ,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_eqn=
 {
-	31,
+	30,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
@@ -220,13 +211,12 @@ ByteCode P_eqn=
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
 		FAKE_EQN,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_equal=
 {
-	31,
+	30,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
@@ -235,13 +225,12 @@ ByteCode P_equal=
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
 		FAKE_EQUAL,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_gt=
 {
-	31,
+	30,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
@@ -250,13 +239,12 @@ ByteCode P_gt=
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
 		FAKE_GT,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_ge=
 {
-	31,
+	30,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
@@ -265,13 +253,12 @@ ByteCode P_ge=
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
 		FAKE_GE,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_lt=
 {
-	31,
+	30,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
@@ -280,13 +267,12 @@ ByteCode P_lt=
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
 		FAKE_LT,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_le=
 {
-	31,
+	30,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
@@ -295,104 +281,96 @@ ByteCode P_le=
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
 		FAKE_LE,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_not=
 {
-	17,
+	16,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_NOT,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_dbl=
 {
-	17,
+	16,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_CAST_TO_DBL,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_str=
 {
-	17,
+	16,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_CAST_TO_STR,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_sym=
 {
-	17,
+	16,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_CAST_TO_SYM,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_chr=
 {
-	17,
+	16,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_CAST_TO_CHR,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_int=
 {
-	17,
+	16,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_CAST_TO_INT,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_byt=
 {
-	17,
+	16,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_CAST_TO_BYTE,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_add=
 {
-	31,
+	30,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
@@ -401,13 +379,12 @@ ByteCode P_add=
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
 		FAKE_ADD,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_sub=
 {
-	31,
+	30,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
@@ -416,13 +393,12 @@ ByteCode P_sub=
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
 		FAKE_SUB,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_mul=
 {
-	31,
+	30,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
@@ -431,13 +407,12 @@ ByteCode P_mul=
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
 		FAKE_MUL,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_div=
 {
-	31,
+	30,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
@@ -446,13 +421,12 @@ ByteCode P_div=
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
 		FAKE_DIV,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_rem=
 {
-	31,
+	30,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
@@ -461,13 +435,12 @@ ByteCode P_rem=
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
 		FAKE_REM,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_nth=
 {
-	31,
+	30,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
@@ -476,26 +449,24 @@ ByteCode P_nth=
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
 		FAKE_NTH,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_length=
 {
-	17,
+	16,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_LENGTH,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_appd=
 {
-	31,
+	30,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
@@ -504,13 +475,12 @@ ByteCode P_appd=
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
 		FAKE_APPD,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_open=
 {
-	31,
+	30,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
@@ -519,26 +489,24 @@ ByteCode P_open=
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
 		FAKE_OPEN,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_read=
 {
-	17,
+	16,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_READ,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_getb=
 {
-	31,
+	30,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
@@ -547,13 +515,12 @@ ByteCode P_getb=
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
 		FAKE_GETB,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_write=
 {
-	31,
+	30,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
@@ -562,13 +529,12 @@ ByteCode P_write=
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
 		FAKE_WRITE,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_putb=
 {
-	31,
+	30,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
@@ -577,13 +543,12 @@ ByteCode P_putb=
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
 		FAKE_PUTB,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_princ=
 {
-	31,
+	30,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
@@ -592,13 +557,12 @@ ByteCode P_princ=
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
 		FAKE_PRINC,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_go=
 {
-	31,
+	30,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
@@ -607,26 +571,24 @@ ByteCode P_go=
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
 		FAKE_GO,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_chanl=
 {
-	17,
+	16,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_CHANL,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_send=
 {
-	31,
+	30,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
@@ -635,26 +597,24 @@ ByteCode P_send=
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
 		FAKE_SEND,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_recv=
 {
-	17,
+	16,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_RECV,
-		FAKE_END_PROC
 	}
 };
 
 ByteCode P_clcc=
 {
-	33,
+	32,
 	(char[])
 	{
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
@@ -665,7 +625,6 @@ ByteCode P_clcc=
 		FAKE_PUSH_VAR,1,0,0,0,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_INVOKE,
-		FAKE_END_PROC
 	}
 };
 
@@ -675,8 +634,6 @@ FakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 	if(exe==NULL)errors("newFakeVM",__FILE__,__LINE__);
 	if(mainproc!=NULL)
 		exe->mainproc=newFakeProcess(newVMcode(mainproc,0),NULL);
-	else
-		exe->mainproc=newFakeProcess(NULL,NULL);
 	exe->argc=0;
 	exe->argv=NULL;
 	exe->curproc=exe->mainproc;
@@ -714,8 +671,6 @@ FakeVM* newTmpFakeVM(ByteCode* mainproc,ByteCode* procs)
 	if(exe==NULL)errors("newTmpFakeVM",__FILE__,__LINE__);
 	if(mainproc!=NULL)
 		exe->mainproc=newFakeProcess(newVMcode(mainproc,0),NULL);
-	else
-		exe->mainproc=newFakeProcess(NULL,NULL);
 	exe->curproc=exe->mainproc;
 	exe->modules=NULL;
 	exe->procs=procs;
@@ -809,28 +764,28 @@ void* ThreadVMFunc(void* p)
 
 int runFakeVM(FakeVM* exe)
 {
-	while(exe->curproc!=NULL&&exe->curproc->cp!=exe->curproc->code->size)
+	while(exe->curproc!=NULL)
 	{
+		if(exe->curproc->cp>=exe->curproc->code->size)
+		{
+			VMprocess* tmpProc=exe->curproc;
+			VMprocess* prev=exe->curproc->prev;
+			VMcode* tmpCode=tmpProc->code;
+			VMenv* tmpEnv=tmpProc->localenv;
+			exe->curproc=prev;
+			free(tmpProc);
+			freeVMenv(tmpEnv);
+			freeVMcode(tmpCode);
+			continue;
+		}
+
 		pthread_rwlock_rdlock(&GClock);
 		VMprocess* curproc=exe->curproc;
 		VMcode* tmpCode=curproc->code;
 		int32_t cp=curproc->cp;
-	//	fprintf(stderr,"%s\n",codeName[tmpCode->code[curproc->cp]].codeName);
 		int status=ByteCodes[(int)tmpCode->code[cp]](exe);
-		//if(tmpCode->code[cp]==FAKE_RES_TP)
-		//	printAllStack(exe->stack,stderr,1);
 		if(status!=0)
 		{
-			//ByteCode tmpByteCode={tmpCode->size,tmpCode->code};
-			//VMstack* stack=exe->stack;
-			//printByteCode(&tmpByteCode,stderr);
-			//putc('\n',stderr);
-			//putc('\n',stderr);
-			//fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
-			//fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",curproc->cp,stack->bp,codeName[(int)tmpCode->code[curproc->cp]].codeName);
-			//printAllStack(stack,stderr,1);
-			//printEnv(exe->curproc->localenv,stderr);
-			//putc('\n',stderr);
 			int32_t sid;
 			int32_t cp;
 			int32_t pid;
@@ -899,7 +854,6 @@ int runFakeVM(FakeVM* exe)
 			{
 				for(;i<GlobFakeVMs.size;i++)
 				{
-					//fprintf(stderr,"\nValue that be marked:\n");
 					if(GlobFakeVMs.VMs[i]->mark)
 						GC_mark(GlobFakeVMs.VMs[i]);
 					else
@@ -911,18 +865,12 @@ int runFakeVM(FakeVM* exe)
 				}
 			}
 			else GC_mark(exe);
-			//fprintf(stderr,"\n=======\nValue that be sweep:\n");
 			GC_sweep(exe->heap);
-			//fprintf(stderr,"======\n");
 			pthread_mutex_lock(&exe->heap->lock);
 			exe->heap->threshold=exe->heap->size+THRESHOLD_SIZE;
 			pthread_mutex_unlock(&exe->heap->lock);
 			pthread_rwlock_unlock(&GClock);
 		}
-	//	fprintf(stdout,"=========\n");
-	//	fprintf(stderr,"stack->tp=%d\n",exe->stack->tp);
-	//	printAllStack(exe->stack,stderr);
-	//	putc('\n',stderr);
 	}
 	return 0;
 }
@@ -1632,20 +1580,6 @@ int B_call_proc(FakeVM* exe)
 	int retval=((ModFunc)funcAddress)(exe,&GClock);
 	proc->cp+=2+strlen(funcname);
 	return retval;
-}
-
-int B_end_proc(FakeVM* exe)
-{
-	VMprocess* tmpProc=exe->curproc;
-//	fprintf(stdout,"End proc: %p\n",tmpProc->code);
-	VMprocess* prev=exe->curproc->prev;
-	VMcode* tmpCode=tmpProc->code;
-	VMenv* tmpEnv=tmpProc->localenv;
-	exe->curproc=prev;
-	free(tmpProc);
-	freeVMenv(tmpEnv);
-	freeVMcode(tmpCode);
-	return 0;
 }
 
 int B_set_tp(FakeVM* exe)
@@ -2823,7 +2757,7 @@ int isTheLastExpress(const VMprocess* proc,const VMprocess* same)
 		if(code[proc->cp]==FAKE_JMP)
 		{
 			int32_t where=*(int32_t*)(code+proc->cp+1);
-			if((where+proc->cp+5)!=size-1)return 0;
+			if((where+proc->cp+5)!=size)return 0;
 		}
 		else if(proc->cp!=size-1)return 0;
 		if(proc==same)break;
@@ -3028,7 +2962,7 @@ void freeAllVMs()
 {
 	int i=1;
 	FakeVM* cur=GlobFakeVMs.VMs[0];
-	if(cur->mainproc->code)
+	if(cur->mainproc&&cur->mainproc->code)
 		freeVMcode(cur->mainproc->code);
 	free(cur->mainproc);
 	freeVMstack(cur->stack);
@@ -3064,7 +2998,7 @@ void joinAllThread()
 void deleteCallChain(FakeVM* exe)
 {
 	VMprocess* cur=exe->curproc;
-	while(cur->prev)
+	while(cur)
 	{
 		VMprocess* prev=cur;
 		cur=cur->prev;
@@ -3104,9 +3038,6 @@ void createCallChainWithContinuation(FakeVM* vm,VMcontinuation* cc)
 		tmpStack->tp+=1;
 	}
 	deleteCallChain(vm);
-	freeVMcode(vm->mainproc->code);
-	freeVMenv(vm->mainproc->localenv);
-	free(vm->mainproc);
 	VMprocess* curproc=NULL;
 	vm->stack=tmpStack;
 	freeVMstack(stack);

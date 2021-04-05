@@ -49,9 +49,10 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 		initGlobEnv(tmpGlob,tmpVM->heap,inter->table);
 		VMcode* tmpVMcode=newVMcode(tmp->proc,0);
 		VMenv* macroVMenv=castPreEnvToVMenv(MacroEnv,tmpGlob,tmpVM->heap,inter->table);
+		tmpVM->mainproc=newFakeProcess(tmpVMcode,NULL);
 		tmpVM->mainproc->localenv=macroVMenv;
-		tmpVMcode->localenv=macroVMenv;
-		tmpVM->mainproc->code=tmpVMcode;
+		tmpVM->curproc=tmpVM->mainproc;
+		tmpVMcode->localenv=NULL;
 		tmpVM->modules=inter->modules;
 		tmpVM->table=inter->table;
 		tmpVM->callback=errorCallBackForPreMacroExpand;
@@ -68,15 +69,8 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 		else if(i==1)
 		{
 			deleteCallChain(tmpVM);
-			if(tmpVM->mainproc->code)
-			{
-				tmpGlob->refcount-=1;
 				freeVMenv(tmpGlob);
-				macroVMenv->prev=NULL;
-				freeVMcode(tmpVM->mainproc->code);
-			}
 			freeVMheap(tmpVM->heap);
-			free(tmpVM->mainproc);
 			freeVMstack(tmpVM->stack);
 			free(tmpVM);
 			free(rawProcList);
@@ -84,15 +78,9 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 			MacroEnv=NULL;
 			return 2;
 		}
-		if(tmpVM->mainproc->code)
-		{
-			tmpGlob->refcount-=1;
-			freeVMenv(tmpGlob);
-			macroVMenv->prev=NULL;
-			freeVMcode(tmpVM->mainproc->code);
-		}
+
+		freeVMenv(tmpGlob);
 		freeVMheap(tmpVM->heap);
-		free(tmpVM->mainproc);
 		freeVMstack(tmpVM->stack);
 		free(tmpVM);
 		free(rawProcList);
@@ -1766,14 +1754,10 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		freeByteCodelnt(tmp1);
 	}
 	freeByteCode(resTp);
-	ByteCode* endproc=newByteCode(sizeof(char));
-	endproc->code[0]=FAKE_END_PROC;
 	ByteCode* popTp=newByteCode(sizeof(char));
 	popTp->code[0]=FAKE_POP_TP;
 	codeCat(codeInRawProc->bc,popTp);
-	codeCat(codeInRawProc->bc,endproc);
-	codeInRawProc->l[codeInRawProc->ls-1]->cpc+=popTp->size+endproc->size;
-	freeByteCode(endproc);
+	codeInRawProc->l[codeInRawProc->ls-1]->cpc+=popTp->size;
 	freeByteCode(popTp);
 	int32_t pId=addRawProc(codeInRawProc->bc,inter)->count;
 	ByteCode* pushProc=newByteCode(sizeof(char)+sizeof(int32_t));

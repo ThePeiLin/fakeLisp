@@ -1143,12 +1143,8 @@ Intpr* getFirstIntpr(Intpr* inter)
 ByteCode* newDllFuncProc(const char* name)
 {
 	ByteCode* callProc=newByteCode(sizeof(char)+strlen(name)+1);
-	ByteCode* endProc=newByteCode(1);
-	endProc->code[0]=FAKE_END_PROC;
 	callProc->code[0]=FAKE_CALL_PROC;
 	strcpy(callProc->code+sizeof(char),name);
-	codeCat(callProc,endProc);
-	freeByteCode(endProc);
 	return callProc;
 }
 

@@ -79,7 +79,7 @@ int main(int argc,char** argv)
 			anotherVM->argv=argv+1;
 			anotherVM->tid=pthread_self();
 			anotherVM->mainproc->localenv=globEnv;
-			anotherVM->mainproc->code->localenv=globEnv;
+			anotherVM->mainproc->code->localenv=NULL;
 			anotherVM->modules=inter->modules;
 			anotherVM->callback=errorCallBack;
 			anotherVM->table=inter->table;
@@ -96,6 +96,7 @@ int main(int argc,char** argv)
 				anotherVM->modules=NULL;
 				unInitPreprocess();
 				freeVMheap(anotherVM->heap);
+				anotherVM->mainproc=NULL;
 				freeAllVMs();
 			}
 			else
@@ -137,7 +138,7 @@ int main(int argc,char** argv)
 		anotherVM->argv=argv+1;
 		anotherVM->table=table;
 		anotherVM->mainproc->localenv=globEnv;
-		anotherVM->mainproc->code->localenv=globEnv;
+		anotherVM->mainproc->code->localenv=NULL;
 		anotherVM->callback=errorCallBack;
 		anotherVM->lnt=lnt;
 		initGlobEnv(globEnv,anotherVM->heap,table);
@@ -178,7 +179,6 @@ void runIntpr(Intpr* inter)
 	FakeVM* anotherVM=newFakeVM(NULL,NULL);
 	VMenv* globEnv=newVMenv(NULL);
 	anotherVM->table=inter->table;
-	anotherVM->mainproc->localenv=globEnv;
 	anotherVM->tid=pthread_self();
 	anotherVM->callback=errorCallBack;
 	anotherVM->lnt=inter->lnt;
@@ -191,11 +191,8 @@ void runIntpr(Intpr* inter)
 		if(inter->file==stdin)printf(">>>");
 		StringMatchPattern* tmpPattern=NULL;
 		char* list=readInPattern(inter->file,&tmpPattern,&prev);
-		//	printf("%s\n==================\n",list);
 		ErrorStatus status={0,NULL};
 		begin=createTree(list,inter,tmpPattern);
-		//	printList(begin,stderr);
-		//	printf("\n==============\n");
 		int ch=getc(inter->file);
 		if(!begin&&(list&&!(isAllSpace(list)&&ch==EOF)))
 		{
@@ -235,8 +232,6 @@ void runIntpr(Intpr* inter)
 			}
 			else
 			{
-				//	printList(begin,stdout);
-				//	putchar('\n');
 				ByteCode* fix=newByteCode(0);
 				ByteCodelnt* tmpByteCode=compile(begin,inter->glob,inter,&status,!isLambdaExpression(begin),fix);
 				if(status.status!=0)
@@ -255,18 +250,16 @@ void runIntpr(Intpr* inter)
 					tmpByteCode->l[0]->cpc+=fix->size;
 					INCREASE_ALL_SCP(tmpByteCode->l+1,tmpByteCode->ls-1,fix->size);
 					addLineNumTabId(tmpByteCode->l,tmpByteCode->ls,0,inter->lnt);
-					//printByteCode(tmpByteCode,stderr);
 					rawProcList=castRawproc(rawProcList,inter->procs);
 					anotherVM->procs=rawProcList;
 					VMcode* tmp=newVMcode(tmpByteCode->bc,0);
 					freeByteCode(tmpByteCode->bc);
 					free(tmpByteCode);
-					//freeByteCodelnt(tmpByteCode);
 					tmp->localenv=NULL;
-					anotherVM->mainproc->code=tmp;
+					anotherVM->mainproc=newFakeProcess(tmp,NULL);
 					anotherVM->mainproc->localenv=globEnv;
-					anotherVM->mainproc->cp=0;
 					anotherVM->curproc=anotherVM->mainproc;
+					globEnv->refcount+=1;
 					if(!(e=setjmp(buf)))
 					{
 						runFakeVM(anotherVM);
@@ -276,13 +269,7 @@ void runIntpr(Intpr* inter)
 							printf("]=>");
 							printAllStack(stack,stdout,0);
 						}
-						//fprintf(stderr,"======\n");
-						//fprintf(stderr,"stack->tp=%d\n",stack->tp);
-						//printAllStack(stack,stderr);
-						tmp=anotherVM->mainproc->code;
 						stack->tp=0;
-						freeVMcode(tmp);
-						anotherVM->mainproc->code=NULL;
 					}
 					else
 					{
@@ -318,6 +305,7 @@ void runIntpr(Intpr* inter)
 	anotherVM->modules=NULL;
 	unInitPreprocess();
 	freeVMheap(anotherVM->heap);
+	anotherVM->mainproc=NULL;
 	freeAllVMs();
 }
 

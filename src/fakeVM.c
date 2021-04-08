@@ -2963,8 +2963,10 @@ void freeAllVMs()
 	int i=1;
 	FakeVM* cur=GlobFakeVMs.VMs[0];
 	if(cur->mainproc&&cur->mainproc->code)
+	{
 		freeVMcode(cur->mainproc->code);
-	free(cur->mainproc);
+		free(cur->mainproc);
+	}
 	freeVMstack(cur->stack);
 	deleteAllDll(cur->modules);
 	free(cur);
@@ -3006,6 +3008,7 @@ void deleteCallChain(FakeVM* exe)
 		freeVMcode(prev->code);
 		free(prev);
 	}
+	exe->mainproc=NULL;
 }
 
 static void deleteThreadVMCallChain(FakeVM* exe)
@@ -3019,6 +3022,7 @@ static void deleteThreadVMCallChain(FakeVM* exe)
 		freeVMcode(prev->code);
 		free(prev);
 	}
+	exe->mainproc=NULL;
 }
 
 void createCallChainWithContinuation(FakeVM* vm,VMcontinuation* cc)

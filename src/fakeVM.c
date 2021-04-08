@@ -19,7 +19,6 @@
 
 static void sortVMenvList(VMenv*);
 static int32_t getSymbolIdInByteCode(const char*);
-static void deleteThreadVMCallChain(FakeVM*);
 extern char* builtInSymbolList[NUMOFBUILTINSYMBOL];
 pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
 FakeVMlist GlobFakeVMs={0,NULL};
@@ -758,7 +757,7 @@ void* ThreadVMFunc(void* p)
 	exe->lnt=NULL;
 	exe->table=NULL;
 	if(status!=0)
-		deleteThreadVMCallChain(exe);
+		deleteCallChain(exe);
 	return (void*)status;
 }
 
@@ -2437,14 +2436,13 @@ int B_go(FakeVM* exe)
 	stack->tp-=1;
 	if(pthread_create(&threadVM->tid,NULL,ThreadVMFunc,threadVM))
 	{
-		stack->values[stack->tp-1]=newNilValue(exe->heap);
-		deleteThreadVMCallChain(threadVM);
+		deleteCallChain(threadVM);
 		threadVM->mark=0;
 		freeVMstack(threadVM->stack);
 		threadVM->stack=NULL;
 		threadVM->lnt=NULL;
 		threadVM->table=NULL;
-		
+		stack->values[stack->tp-1]=newNilValue(exe->heap);
 	}
 	else
 		stack->values[stack->tp-1]=newVMvalue(IN32,&threadVM->VMid,exe->heap,1);
@@ -3007,20 +3005,6 @@ void joinAllThread()
 }
 
 void deleteCallChain(FakeVM* exe)
-{
-	VMprocess* cur=exe->curproc;
-	while(cur)
-	{
-		VMprocess* prev=cur;
-		cur=cur->prev;
-		freeVMenv(prev->localenv);
-		freeVMcode(prev->code);
-		free(prev);
-	}
-	exe->mainproc=NULL;
-}
-
-static void deleteThreadVMCallChain(FakeVM* exe)
 {
 	VMprocess* cur=exe->curproc;
 	while(cur)

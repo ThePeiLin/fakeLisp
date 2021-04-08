@@ -17,7 +17,7 @@
         (let ((fp (open (nth 1 (argv)) "rb")))
           (if (eq fp nil)
             (begin
-              (princ "Faild to open file" stderr)
+              (princ "Faild to open file.\n" stderr)
               (exit 1)))
           (readCode fp)
           )))

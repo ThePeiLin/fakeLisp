@@ -14,7 +14,9 @@ LINK=-lpthread -ldl
 BTK=btk.so
 endif
 
-
+fakeLisp: $(objectOfFakeLisp) $(objectOfFakeLispc) $(BTK)
+	gcc $(FLAG) -o fakeLisp $(objectOfFakeLisp) $(LINK)
+	gcc $(FLAG) -o fakeLispc $(objectOfFakeLispc) $(LINK)
 reader.o: src/reader.* src/fakedef.h common.o
 	gcc $(FLAG) -c src/reader.c
 ast.o: src/ast.* src/fakedef.h fakeVM.o
@@ -33,9 +35,6 @@ fakeVM.o: src/fakeVM.* src/fakedef.h src/opcode.h VMtool.o reader.o
 	gcc $(FLAG) -c src/fakeVM.c
 fakeLispc.o: src/fakeLispc.* src/fakedef.h
 	gcc $(FLAG) -c src/fakeLispc.c
-fakeLisp: $(objectOfFakeLisp) $(objectOfFakeLispc) $(BTK)
-	gcc $(FLAG) -o fakeLisp $(objectOfFakeLisp) $(LINK)
-	gcc $(FLAG) -o fakeLispc $(objectOfFakeLispc) $(LINK)
 fakeLispc: $(objectOfFakeLispc)
 	gcc $(FLAG) -o fakeLispc $(objectOfFakeLispc) $(LINK)
 

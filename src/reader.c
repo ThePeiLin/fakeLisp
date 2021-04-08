@@ -717,7 +717,7 @@ int32_t skipUntilNext(const char* str,const char* part)
 				if(!strncmp(str+s,part,strlen(part)))
 					break;
 			}
-			s+=skipAtom(str+s,"");
+			s+=skipAtom(str+s,part?part:"");
 		}
 		if(!part||isVar(part))
 			break;

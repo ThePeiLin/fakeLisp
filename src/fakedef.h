@@ -290,6 +290,7 @@ typedef struct
 	VMprocess* curproc;
 	VMprocess* mainproc;
 	VMstack* stack;
+	struct Channel* chan;
 	struct Symbol_Table* table;
 	struct DLL_s* modules;
 	struct VM_Heap* heap;

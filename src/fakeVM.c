@@ -639,6 +639,7 @@ FakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 	exe->modules=NULL;
 	exe->procs=procs;
 	exe->mark=1;
+	exe->chan=NULL;
 	exe->stack=newStack(0);
 	exe->heap=newVMheap();
 	exe->callback=NULL;
@@ -751,13 +752,26 @@ void* ThreadVMFunc(void* p)
 {
 	FakeVM* exe=(FakeVM*)p;
 	int64_t status=runFakeVM(exe);
-	exe->mark=0;
+	Chanl* tmpCh=exe->chan;
+	exe->chan=NULL;
+	if(!status)
+	{
+		pthread_mutex_lock(&tmpCh->lock);
+		if(tmpCh->tail==NULL)
+		{
+			tmpCh->head=newThreadMessage(getTopValue(exe->stack),exe->heap);
+			tmpCh->tail=tmpCh->head;
+		}
+		pthread_mutex_unlock(&tmpCh->lock);
+	}
+	freeChanl(tmpCh);
 	freeVMstack(exe->stack);
 	exe->stack=NULL;
 	exe->lnt=NULL;
 	exe->table=NULL;
 	if(status!=0)
 		deleteCallChain(exe);
+	exe->mark=0;
 	return (void*)status;
 }
 
@@ -845,7 +859,7 @@ int runFakeVM(FakeVM* exe)
 			exe->callback(i);
 		}
 		pthread_rwlock_unlock(&GClock);
-		if(exe->heap->size>exe->heap->threshold)
+		//if(exe->heap->size>exe->heap->threshold)
 		{
 			if(pthread_rwlock_trywrlock(&GClock))continue;
 			int i=0;
@@ -853,13 +867,16 @@ int runFakeVM(FakeVM* exe)
 			{
 				for(;i<GlobFakeVMs.size;i++)
 				{
-					if(GlobFakeVMs.VMs[i]->mark)
-						GC_mark(GlobFakeVMs.VMs[i]);
-					else
+					if(GlobFakeVMs.VMs[i])
 					{
-						pthread_join(GlobFakeVMs.VMs[i]->tid,NULL);
-						free(GlobFakeVMs.VMs[i]);
-						GlobFakeVMs.VMs[i]=NULL;
+						if(GlobFakeVMs.VMs[i]->mark)
+							GC_mark(GlobFakeVMs.VMs[i]);
+						else
+						{
+							pthread_join(GlobFakeVMs.VMs[i]->tid,NULL);
+							free(GlobFakeVMs.VMs[i]);
+							GlobFakeVMs.VMs[i]=NULL;
+						}
 					}
 				}
 			}
@@ -2433,19 +2450,27 @@ int B_go(FakeVM* exe)
 		threadVMstack->tp+=1;
 		threadArg=threadArg->u.pair->cdr;
 	}
+	threadVM->chan->refcount+=1;
+	Chanl* chan=threadVM->chan;
 	stack->tp-=1;
-	if(pthread_create(&threadVM->tid,NULL,ThreadVMFunc,threadVM))
+	int32_t faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMFunc,threadVM);
+	if(faildCode)
 	{
+		threadVM->chan->refcount-=1;
+		freeChanl(threadVM->chan);
 		deleteCallChain(threadVM);
 		threadVM->mark=0;
 		freeVMstack(threadVM->stack);
 		threadVM->stack=NULL;
 		threadVM->lnt=NULL;
 		threadVM->table=NULL;
-		stack->values[stack->tp-1]=newNilValue(exe->heap);
+		stack->values[stack->tp-1]=newVMvalue(IN32,&faildCode,exe->heap,1);
 	}
 	else
-		stack->values[stack->tp-1]=newVMvalue(IN32,&threadVM->VMid,exe->heap,1);
+	{
+		VMvalue* threadChanl=newVMvalue(CHAN,chan,exe->heap,1);
+		stack->values[stack->tp-1]=threadChanl;
+	}
 	proc->cp+=1;
 	return 0;
 }
@@ -2813,6 +2838,12 @@ void GC_mark(FakeVM* exe)
 {
 	GC_markValueInStack(exe->stack);
 	GC_markValueInCallChain(exe->curproc);
+	if(exe->chan)
+	{
+		pthread_mutex_lock(&exe->chan->lock);
+		GC_markMessage(exe->chan->head);
+		pthread_mutex_unlock(&exe->chan->lock);
+	}
 }
 
 void GC_markValue(VMvalue* obj)
@@ -2921,6 +2952,7 @@ FakeVM* newThreadVM(VMcode* main,ByteCode* procs,VMheap* heap,Dlls* d)
 	exe->argc=0;
 	exe->argv=NULL;
 	exe->modules=d;
+	exe->chan=newChanl(1);
 	main->refcount+=1;
 	exe->stack=newStack(0);
 	exe->heap=heap;

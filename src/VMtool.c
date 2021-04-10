@@ -378,7 +378,6 @@ void freeVMcode(VMcode* proc)
 	}
 	else
 		proc->refcount-=1;
-	//printf("Free proc!\n");
 }
 
 void freeVMstr(VMstr* obj)

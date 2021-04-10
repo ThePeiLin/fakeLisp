@@ -779,6 +779,7 @@ int runFakeVM(FakeVM* exe)
 {
 	while(exe->curproc!=NULL)
 	{
+		pthread_rwlock_rdlock(&GClock);
 		if(exe->curproc->cp>=exe->curproc->code->size)
 		{
 			VMprocess* tmpProc=exe->curproc;
@@ -792,7 +793,6 @@ int runFakeVM(FakeVM* exe)
 			continue;
 		}
 
-		pthread_rwlock_rdlock(&GClock);
 		VMprocess* curproc=exe->curproc;
 		VMcode* tmpCode=curproc->code;
 		int32_t cp=curproc->cp;

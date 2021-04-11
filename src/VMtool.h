@@ -56,7 +56,6 @@ void freeMessage(ThreadMessage*);
 uint8_t* copyArry(size_t,uint8_t*);
 uint8_t* createByteString(int32_t);
 VMcode* copyVMcode(VMcode*,VMheap*);
-VMcode* copyVMcodeWithoutEnv(VMcode*);
 VMenv* copyVMenv(VMenv*,VMheap*);
 VMstack* copyStack(VMstack*);
 void freeVMcode(VMcode*);

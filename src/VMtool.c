@@ -394,20 +394,6 @@ VMcode* copyVMcode(VMcode* obj,VMheap* heap)
 	return tmp;
 }
 
-VMcode* copyVMcodeWithoutEnv(VMcode* obj)
-{
-	VMcode* tmp=(VMcode*)malloc(sizeof(VMcode));
-	if(tmp==NULL)errors("copyVMcode",__FILE__,__LINE__);
-	pthread_mutex_init(&tmp->l,NULL);
-	tmp->refcount=0;
-	tmp->size=obj->size;
-	tmp->code=(char*)malloc(sizeof(char)*tmp->size);
-	if(tmp->code==NULL)errors("copyVMcode",__FILE__,__LINE__);
-	memcpy(tmp->code,obj->code,tmp->size);
-	tmp->localenv=(obj->localenv)?newVMenv(obj->localenv->prev):NULL;
-	return tmp;
-}
-
 VMenv* copyVMenv(VMenv* objEnv,VMheap* heap)
 {
 	VMenv* tmp=newVMenv(NULL);

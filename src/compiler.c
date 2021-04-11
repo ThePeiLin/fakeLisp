@@ -82,6 +82,7 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 		freeVMenv(tmpGlob);
 		freeVMheap(tmpVM->heap);
 		freeVMstack(tmpVM->stack);
+		freeVMcode(tmpVMcode);
 		free(tmpVM);
 		free(rawProcList);
 		destroyEnv(MacroEnv);

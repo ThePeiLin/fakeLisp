@@ -106,6 +106,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 		freeVMenv(tmpGlobEnv);
 		freeVMheap(tmpVM->heap);
 		freeVMstack(tmpVM->stack);
+		freeVMcode(tmpVMcode);
 		free(tmpVM);
 		free(rawProcList);
 		destroyEnv(tmpEnv);

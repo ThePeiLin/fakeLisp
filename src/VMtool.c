@@ -5,11 +5,31 @@
 #include<math.h>
 #include<pthread.h>
 
+
+pthread_mutex_t GlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
+
+#define INCREASE_REFCOUNT(TYPE,PV) {\
+	if((PV))\
+	{\
+		pthread_mutex_lock(&GlobalRefcountLock);\
+		((TYPE*)(PV))->refcount+=1;\
+		pthread_mutex_unlock(&GlobalRefcountLock);\
+	}\
+}
+
+#define DECREASE_REFCOUNT(TYPE,PV) {\
+	if((PV))\
+	{\
+		pthread_mutex_lock(&GlobalRefcountLock);\
+		((TYPE*)(PV))->refcount-=1;\
+		pthread_mutex_unlock(&GlobalRefcountLock);\
+	}\
+}
+
 VMcode* newVMcode(ByteCode* proc,int32_t id)
 {
 	VMcode* tmp=(VMcode*)malloc(sizeof(VMcode));
 	if(tmp==NULL)errors("newVMcode",__FILE__,__LINE__);
-	pthread_mutex_init(&tmp->l,NULL);
 	tmp->refcount=0;
 	tmp->localenv=NULL;
 	if(proc!=NULL)
@@ -61,7 +81,7 @@ VMvalue* copyVMvalue(VMvalue* obj,VMheap* heap)
 			break;
 		case FP:
 			tmp=newVMvalue(FP,obj->u.fp,heap,1);
-			obj->u.fp->refcount+=1;
+			increaseVMfpRefcount(obj->u.fp);
 			break;
 		case PAIR:
 			tmp=newVMvalue(PAIR,newVMpair(heap),heap,1);
@@ -217,7 +237,6 @@ VMenv* newVMenv(VMenv* prev)
 {
 	VMenv* tmp=(VMenv*)malloc(sizeof(VMenv));
 	if(tmp==NULL)errors("newVMenv",__FILE__,__LINE__);
-	pthread_mutex_init(&tmp->l,NULL);
 	tmp->size=0;
 	tmp->list=NULL;
 	tmp->prev=prev;
@@ -228,42 +247,82 @@ VMenv* newVMenv(VMenv* prev)
 
 void increaseVMenvRefcount(VMenv* env)
 {
-	if(env!=NULL)
-	{
-		pthread_mutex_lock(&env->l);
-		env->refcount+=1;
-		pthread_mutex_unlock(&env->l);
-	}
+	INCREASE_REFCOUNT(VMenv,env);
 }
 
 void decreaseVMenvRefcount(VMenv* env)
 {
-	if(env!=NULL)
-	{
-		pthread_mutex_lock(&env->l);
-		env->refcount-=1;
-		pthread_mutex_unlock(&env->l);
-	}
+	DECREASE_REFCOUNT(VMenv,env);
 }
 
 void increaseVMcodeRefcount(VMcode* code)
 {
-	if(code!=NULL)
-	{
-		pthread_mutex_lock(&code->l);
-		code->refcount+=1;
-		pthread_mutex_unlock(&code->l);
-	}
+	INCREASE_REFCOUNT(VMcode,code);
 }
 
 void decreaseVMcodeRefcount(VMcode* code)
 {
-	if(code!=NULL)
-	{
-		pthread_mutex_lock(&code->l);
-		code->refcount-=1;
-		pthread_mutex_unlock(&code->l);
-	}
+	DECREASE_REFCOUNT(VMcode,code);
+}
+
+void increaseVMstrRefcount(VMstr* str)
+{
+	INCREASE_REFCOUNT(VMstr,str);
+}
+
+void decreaseVMstrRefcount(VMstr* str)
+{
+	DECREASE_REFCOUNT(VMstr,str);
+}
+
+void increaseVMcontRefcount(VMcontinuation* cont)
+{
+	INCREASE_REFCOUNT(VMcontinuation,cont);
+}
+
+void decreaseVMcontRefcount(VMcontinuation* cont)
+{
+	DECREASE_REFCOUNT(VMcontinuation,cont);
+}
+
+void increaseVMpairRefcount(VMpair* pair)
+{
+	INCREASE_REFCOUNT(VMpair,pair);
+}
+
+void decreaseVMpairRefcount(VMpair* pair)
+{
+	DECREASE_REFCOUNT(VMpair,pair);
+}
+
+void increaseByteStringRefcount(ByteString* byts)
+{
+	INCREASE_REFCOUNT(ByteString,byts);
+}
+
+void decreaseByteStringRefcount(ByteString* byts)
+{
+	DECREASE_REFCOUNT(ByteString,byts);
+}
+
+void increaseVMfpRefcount(VMfp* fp)
+{
+	INCREASE_REFCOUNT(VMfp,fp);
+}
+
+void decreaseVMfpRefcount(VMfp* fp)
+{
+	DECREASE_REFCOUNT(VMfp,fp);
+}
+
+void increaseChanlRefcount(Chanl* chanl)
+{
+	INCREASE_REFCOUNT(Chanl,chanl);
+}
+
+void decreaseChanlRefcount(Chanl* chanl)
+{
+	DECREASE_REFCOUNT(Chanl,chanl);
 }
 
 VMpair* newVMpair(VMheap* heap)
@@ -384,7 +443,6 @@ VMcode* copyVMcode(VMcode* obj,VMheap* heap)
 {
 	VMcode* tmp=(VMcode*)malloc(sizeof(VMcode));
 	if(tmp==NULL)errors("copyVMcode",__FILE__,__LINE__);
-	pthread_mutex_init(&tmp->l,NULL);
 	tmp->refcount=0;
 	tmp->size=obj->size;
 	tmp->code=(char*)malloc(sizeof(char)*tmp->size);
@@ -499,16 +557,16 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 				if(!sec->access)
 				{
 					fir->u.str=newVMstr(sec->u.str->str);
-					fir->u.str->refcount+=1;
+					increaseVMstrRefcount(fir->u.str);
 				}
 				else
 				{
-					sec->u.str->refcount+=1;
+					increaseVMstrRefcount(sec->u.str);
 					fir->u.str=sec->u.str;
 				}
 				break;
 			case PAIR:
-				sec->u.pair->refcount+=1;
+				increaseVMpairRefcount(sec->u.pair);
 				fir->u.pair=sec->u.pair;
 				break;
 			case PRC:
@@ -516,7 +574,7 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 				fir->u.prc=sec->u.prc;
 				break;
 			case CONT:
-				sec->u.cont->refcount+=1;
+				increaseVMcontRefcount(sec->u.cont);
 				fir->u.cont=sec->u.cont;
 				break;
 			case BYTS:
@@ -524,16 +582,16 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 					fir->u.byts=newByteString(sec->u.byts->size,sec->u.byts->str);
 				else
 				{
-					sec->u.byts->refcount+=1;
+					increaseByteStringRefcount(sec->u.byts);
 					fir->u.byts=sec->u.byts;
 				}
 				break;
 			case CHAN:
-				sec->u.chan->refcount+=1;
+				increaseChanlRefcount(sec->u.chan);
 				fir->u.chan=sec->u.chan;
 				break;
 			case FP:
-				sec->u.fp->refcount+=1;
+				increaseVMfpRefcount(sec->u.fp);
 				fir->u.fp=sec->u.fp;
 				break;
 			case NIL:
@@ -567,7 +625,7 @@ void writeRef(VMvalue* fir,VMvalue* sec)
 		{
 			case PAIR:
 				fir->u.pair=sec->u.pair;
-				fir->u.pair->refcount+=1;
+				increaseVMpairRefcount(fir->u.pair);
 				break;
 			case PRC:
 				fir->u.prc=sec->u.prc;
@@ -575,15 +633,15 @@ void writeRef(VMvalue* fir,VMvalue* sec)
 				break;
 			case CONT:
 				fir->u.cont=sec->u.cont;
-				fir->u.cont->refcount+=1;
+				increaseVMcontRefcount(fir->u.cont);
 				break;
 			case CHAN:
 				fir->u.chan=sec->u.chan;
-				fir->u.chan->refcount+=1;
+				increaseChanlRefcount(fir->u.chan);
 				break;
 			case FP:
 				fir->u.fp=sec->u.fp;
-				fir->u.fp->refcount+=1;
+				increaseVMfpRefcount(fir->u.fp);
 				break;
 			case SYM:
 			case STR:
@@ -601,7 +659,7 @@ void writeRef(VMvalue* fir,VMvalue* sec)
 				else
 				{
 					fir->u.byts=sec->u.byts;
-					fir->u.byts->refcount+=1;
+					increaseByteStringRefcount(fir->u.byts);
 				}
 				break;
 		}
@@ -624,12 +682,14 @@ void freeRef(VMvalue* obj)
 						free(obj->u.str->str);
 					free(obj->u.str);
 				}
-				else obj->u.str->refcount-=1;
+				else
+					decreaseVMstrRefcount(obj->u.str);
 				break;
 			case PAIR:
 				if(!obj->u.pair->refcount)
 					free(obj->u.pair);
-				else obj->u.pair->refcount-=1;
+				else
+					decreaseVMpairRefcount(obj->u.pair);
 				break;
 			case PRC:
 				freeVMcode(obj->u.prc);
@@ -640,7 +700,8 @@ void freeRef(VMvalue* obj)
 					if(obj->access)free(obj->u.byts->str);
 					free(obj->u.byts);
 				}
-				else obj->u.byts->refcount-=1;
+				else
+					decreaseByteStringRefcount(obj->u.byts);
 				break;
 			case CONT:
 				freeVMcontinuation(obj->u.cont);
@@ -729,7 +790,7 @@ void freeVMcontinuation(VMcontinuation* cont)
 		free(cont);
 	}
 	else
-		cont->refcount-=1;
+		decreaseVMcontRefcount(cont);
 }
 
 VMstack* copyStack(VMstack* stack)
@@ -832,10 +893,10 @@ Chanl* newChanl(int32_t maxSize)
 	Chanl* tmp=(Chanl*)malloc(sizeof(Chanl));
 	if(!tmp)
 		errors("newChanl",__FILE__,__LINE__);
+	pthread_mutex_init(&tmp->lock,NULL);
 	tmp->max=maxSize;
 	tmp->size=0;
 	tmp->refcount=0;
-	pthread_mutex_init(&tmp->lock,NULL);
 	tmp->head=NULL;
 	tmp->tail=NULL;
 	return tmp;
@@ -844,7 +905,7 @@ Chanl* newChanl(int32_t maxSize)
 void freeChanl(Chanl* ch)
 {
 	if(ch->refcount)
-		ch->refcount-=1;
+		decreaseChanlRefcount(ch);
 	else
 	{
 		pthread_mutex_destroy(&ch->lock);
@@ -900,7 +961,7 @@ VMfp* newVMfp(FILE* fp)
 void freeVMfp(VMfp* fp)
 {
 	if(fp->refcount)
-		fp->refcount-=1;
+		decreaseVMfpRefcount(fp);
 	else
 	{
 		if(fp->fp!=stdin&&fp->fp!=stdout&&fp->fp!=stderr)

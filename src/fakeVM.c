@@ -2515,7 +2515,7 @@ int B_send(FakeVM* exe)
 	}
 	tmpCh->size+=1;
 	pthread_mutex_unlock(&tmpCh->lock);
-	while(tmpCh->size>tmpCh->max);
+	while(tmpCh->max>=0&&tmpCh->size>tmpCh->max);
 	stack->tp-=1;
 	stackRecycle(exe);
 	proc->cp+=1;
@@ -2721,7 +2721,6 @@ VMcode* newBuiltInProc(ByteCode* proc)
 {
 	VMcode* tmp=(VMcode*)malloc(sizeof(VMcode));
 	if(tmp==NULL)errors("newBuiltInProc",__FILE__,__LINE__);
-	pthread_mutex_init(&tmp->l,NULL);
 	tmp->localenv=newVMenv(NULL);
 	tmp->refcount=0;
 	if(proc!=NULL)

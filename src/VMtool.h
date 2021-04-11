@@ -23,6 +23,7 @@ void freeVMenvNode(VMenvNode*);
 VMcode* newVMcode(ByteCode*,int32_t);
 void increaseVMcodeRefcount(VMcode*);
 void decreaseVMcodeRefcount(VMcode*);
+
 VMvalue* copyVMvalue(VMvalue*,VMheap*);
 VMvalue* newVMvalue(ValueType,void*,VMheap*,int);
 VMvalue* newTrueValue(VMheap*);
@@ -37,18 +38,32 @@ void freeRef(VMvalue*);
 int VMvaluecmp(VMvalue*,VMvalue*);
 int subVMvaluecmp(VMvalue*,VMvalue*);
 int numcmp(VMvalue*,VMvalue*);
+
 VMenv* newVMenv(VMenv*);
 void increaseVMenvRefcount(VMenv*);
 void decreaseVMenvRefcount(VMenv*);
+
 VMenv* castPreEnvToVMenv(PreEnv*,VMenv*,VMheap*,SymbolTable*);
 VMpair* newVMpair(VMheap*);
+void increaseVMpairRefcount(VMpair*);
+void decreaseVMpairRefcount(VMpair*);
+
 VMstr* newVMstr(const char*);
+void increaseVMstrRefcount(VMstr*);
+void decreaseVMstrRefcount(VMstr*);
+
 VMvalue* castCptrVMvalue(const AST_cptr*,VMheap*);
 ByteString* newByteString(size_t,uint8_t*);
+void increaseByteStringRefcount(ByteString*);
+void decreaseByteStringRefcount(ByteString*);
+
 ByteString* copyByteArry(const ByteString*);
 ByteString* newEmptyByteArry();
 
 Chanl* newChanl(int32_t size);
+void increaseChanlRefcount(Chanl*);
+void decreaseChanlRefcount(Chanl*);
+
 void freeChanl(Chanl*);
 Chanl* copyChanl(Chanl*,VMheap*);
 void freeMessage(ThreadMessage*);
@@ -66,9 +81,14 @@ void lockSource(pthread_rwlock_t*);
 VMvalue* getArg(VMstack*);
 
 int32_t countCallChain(VMprocess*);
+
 VMcontinuation* newVMcontinuation(VMstack*,VMprocess*);
+void increaseVMcontRefcount(VMcontinuation*);
+void decreaseVMcontRefcount(VMcontinuation*);
 void freeVMcontinuation(VMcontinuation*);
 
 VMfp* newVMfp(FILE*);
+void increaseVMfpRefcount(VMfp*);
+void decreaseVMfpRefcount(VMfp*);
 void freeVMfp(VMfp*);
 #endif

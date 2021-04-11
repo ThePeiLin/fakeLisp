@@ -2723,6 +2723,7 @@ VMcode* newBuiltInProc(ByteCode* proc)
 {
 	VMcode* tmp=(VMcode*)malloc(sizeof(VMcode));
 	if(tmp==NULL)errors("newBuiltInProc",__FILE__,__LINE__);
+	pthread_mutex_init(&tmp->l,NULL);
 	tmp->localenv=newVMenv(NULL);
 	tmp->refcount=0;
 	if(proc!=NULL)
@@ -2746,7 +2747,8 @@ VMprocess* newFakeProcess(VMcode* code,VMprocess* prev)
 	if(tmp==NULL)errors("newFakeProcess",__FILE__,__LINE__);
 	tmp->prev=prev;
 	tmp->cp=0;
-	tmp->code=copyVMcodeWithoutEnv(code);
+	tmp->code=code;
+	increaseVMcodeRefcount(code);
 	return tmp;
 }
 
@@ -2944,12 +2946,12 @@ void GC_sweep(VMheap* heap)
 	}
 }
 
-FakeVM* newThreadVM(VMcode* main,ByteCode* procs,VMheap* heap,Dlls* d)
+FakeVM* newThreadVM(VMcode* mainCode,ByteCode* procs,VMheap* heap,Dlls* d)
 {
 	FakeVM* exe=(FakeVM*)malloc(sizeof(FakeVM));
 	if(exe==NULL)errors("newThreadVM",__FILE__,__LINE__);
-	exe->mainproc=newFakeProcess(main,NULL);
-	exe->mainproc->localenv=newVMenv(main->localenv->prev);
+	exe->mainproc=newFakeProcess(mainCode,NULL);
+	exe->mainproc->localenv=newVMenv(mainCode->localenv->prev);
 	exe->curproc=exe->mainproc;
 	exe->procs=procs;
 	exe->mark=1;
@@ -3080,9 +3082,9 @@ void createCallChainWithContinuation(FakeVM* vm,VMcontinuation* cc)
 		cur->prev=curproc;
 		cur->cp=cc->status[i].cp;
 		cur->localenv=cc->status[i].env;
-		increaseRefcount(cur->localenv);
+		increaseVMenvRefcount(cur->localenv);
 		cur->code=cc->status[i].proc;
-		cur->code->refcount+=1;
+		increaseVMcodeRefcount(cur->code);
 		curproc=cur;
 	}
 	vm->curproc=curproc;

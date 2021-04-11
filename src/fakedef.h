@@ -242,6 +242,7 @@ typedef struct VM_Env
 
 typedef struct VM_Code
 {
+	pthread_mutex_t l;
 	int32_t id;
 	int32_t refcount;
 	VMenv* localenv;

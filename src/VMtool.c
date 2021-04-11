@@ -9,6 +9,7 @@ VMcode* newVMcode(ByteCode* proc,int32_t id)
 {
 	VMcode* tmp=(VMcode*)malloc(sizeof(VMcode));
 	if(tmp==NULL)errors("newVMcode",__FILE__,__LINE__);
+	pthread_mutex_init(&tmp->l,NULL);
 	tmp->refcount=0;
 	tmp->localenv=NULL;
 	if(proc!=NULL)
@@ -220,12 +221,12 @@ VMenv* newVMenv(VMenv* prev)
 	tmp->size=0;
 	tmp->list=NULL;
 	tmp->prev=prev;
-	increaseRefcount(prev);
+	increaseVMenvRefcount(prev);
 	tmp->refcount=0;
 	return tmp;
 }
 
-void increaseRefcount(VMenv* env)
+void increaseVMenvRefcount(VMenv* env)
 {
 	if(env!=NULL)
 	{
@@ -235,13 +236,33 @@ void increaseRefcount(VMenv* env)
 	}
 }
 
-void decreaseRefcount(VMenv* env)
+void decreaseVMenvRefcount(VMenv* env)
 {
 	if(env!=NULL)
 	{
 		pthread_mutex_lock(&env->l);
 		env->refcount-=1;
 		pthread_mutex_unlock(&env->l);
+	}
+}
+
+void increaseVMcodeRefcount(VMcode* code)
+{
+	if(code!=NULL)
+	{
+		pthread_mutex_lock(&code->l);
+		code->refcount+=1;
+		pthread_mutex_unlock(&code->l);
+	}
+}
+
+void decreaseVMcodeRefcount(VMcode* code)
+{
+	if(code!=NULL)
+	{
+		pthread_mutex_lock(&code->l);
+		code->refcount-=1;
+		pthread_mutex_unlock(&code->l);
 	}
 }
 
@@ -363,6 +384,7 @@ VMcode* copyVMcode(VMcode* obj,VMheap* heap)
 {
 	VMcode* tmp=(VMcode*)malloc(sizeof(VMcode));
 	if(tmp==NULL)errors("copyVMcode",__FILE__,__LINE__);
+	pthread_mutex_init(&tmp->l,NULL);
 	tmp->refcount=0;
 	tmp->size=obj->size;
 	tmp->code=(char*)malloc(sizeof(char)*tmp->size);
@@ -376,6 +398,7 @@ VMcode* copyVMcodeWithoutEnv(VMcode* obj)
 {
 	VMcode* tmp=(VMcode*)malloc(sizeof(VMcode));
 	if(tmp==NULL)errors("copyVMcode",__FILE__,__LINE__);
+	pthread_mutex_init(&tmp->l,NULL);
 	tmp->refcount=0;
 	tmp->size=obj->size;
 	tmp->code=(char*)malloc(sizeof(char)*tmp->size);
@@ -412,7 +435,7 @@ void freeVMcode(VMcode* proc)
 		free(proc);
 	}
 	else
-		proc->refcount-=1;
+		decreaseVMcodeRefcount(proc);
 }
 
 void freeVMstr(VMstr* obj)
@@ -437,7 +460,7 @@ void freeVMenv(VMenv* obj)
 		}
 		else
 		{
-			decreaseRefcount(obj);
+			decreaseVMenvRefcount(obj);
 			break;
 		}
 	}
@@ -503,7 +526,7 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 				fir->u.pair=sec->u.pair;
 				break;
 			case PRC:
-				sec->u.prc->refcount+=1;
+				increaseVMcodeRefcount(sec->u.prc);
 				fir->u.prc=sec->u.prc;
 				break;
 			case CONT:
@@ -562,7 +585,7 @@ void writeRef(VMvalue* fir,VMvalue* sec)
 				break;
 			case PRC:
 				fir->u.prc=sec->u.prc;
-				fir->u.prc->refcount+=1;
+				increaseVMcodeRefcount(fir->u.prc);
 				break;
 			case CONT:
 				fir->u.cont=sec->u.cont;
@@ -691,9 +714,9 @@ VMcontinuation* newVMcontinuation(VMstack* stack,VMprocess* curproc)
 	for(;i<size;i++)
 	{
 		status[i].cp=cur->cp;
-		increaseRefcount(cur->localenv);
+		increaseVMenvRefcount(cur->localenv);
 		status[i].env=cur->localenv;
-		cur->code->refcount+=1;
+		increaseVMcodeRefcount(cur->code);
 		status[i].proc=cur->code;
 		cur=cur->prev;
 	}

@@ -763,11 +763,9 @@ void* ThreadVMFunc(void* p)
 	if(!status)
 	{
 		pthread_mutex_lock(&tmpCh->lock);
-		if(tmpCh->tail==NULL)
-		{
-			tmpCh->head=newThreadMessage(getTopValue(exe->stack),exe->heap);
-			tmpCh->tail=tmpCh->head;
-		}
+		freeMessage(tmpCh->head);
+		tmpCh->head=newThreadMessage(getTopValue(exe->stack),exe->heap);
+		tmpCh->tail=tmpCh->head;
 		pthread_mutex_unlock(&tmpCh->lock);
 	}
 	freeChanl(tmpCh);

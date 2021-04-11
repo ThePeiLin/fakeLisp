@@ -631,8 +631,13 @@ FakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 {
 	FakeVM* exe=(FakeVM*)malloc(sizeof(FakeVM));
 	if(exe==NULL)errors("newFakeVM",__FILE__,__LINE__);
+	VMcode* tmpVMcode=NULL;
 	if(mainproc!=NULL)
-		exe->mainproc=newFakeProcess(newVMcode(mainproc,0),NULL);
+	{
+		tmpVMcode=newVMcode(mainproc,0);
+		exe->mainproc=newFakeProcess(tmpVMcode,NULL);
+		freeVMcode(tmpVMcode);
+	}
 	exe->argc=0;
 	exe->argv=NULL;
 	exe->curproc=exe->mainproc;
@@ -677,6 +682,7 @@ FakeVM* newTmpFakeVM(ByteCode* mainproc,ByteCode* procs)
 	exe->mark=1;
 	exe->argc=0;
 	exe->argv=NULL;
+	exe->chan=NULL;
 	exe->stack=newStack(0);
 	exe->heap=newVMheap();
 	exe->callback=NULL;
@@ -1684,7 +1690,6 @@ int B_invoke(FakeVM* exe)
 			prevProc->cp=0;
 		else
 		{
-			tmpCode->refcount+=1;
 			VMprocess* tmpProc=newFakeProcess(tmpCode,proc);
 			tmpProc->localenv=newVMenv(tmpCode->localenv->prev);
 			exe->curproc=tmpProc;
@@ -2741,8 +2746,7 @@ VMprocess* newFakeProcess(VMcode* code,VMprocess* prev)
 	if(tmp==NULL)errors("newFakeProcess",__FILE__,__LINE__);
 	tmp->prev=prev;
 	tmp->cp=0;
-	tmp->code=code;
-//	fprintf(stdout,"New proc: %p\n",code);
+	tmp->code=copyVMcodeWithoutEnv(code);
 	return tmp;
 }
 
@@ -2953,7 +2957,6 @@ FakeVM* newThreadVM(VMcode* main,ByteCode* procs,VMheap* heap,Dlls* d)
 	exe->argv=NULL;
 	exe->modules=d;
 	exe->chan=newChanl(1);
-	main->refcount+=1;
 	exe->stack=newStack(0);
 	exe->heap=heap;
 	exe->callback=NULL;
@@ -3077,7 +3080,7 @@ void createCallChainWithContinuation(FakeVM* vm,VMcontinuation* cc)
 		cur->prev=curproc;
 		cur->cp=cc->status[i].cp;
 		cur->localenv=cc->status[i].env;
-		cur->localenv->refcount+=1;
+		increaseRefcount(cur->localenv);
 		cur->code=cc->status[i].proc;
 		cur->code->refcount+=1;
 		curproc=cur;

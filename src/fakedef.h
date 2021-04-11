@@ -233,6 +233,7 @@ typedef struct VM_Env_node
 
 typedef struct VM_Env
 {
+	pthread_mutex_t l;
 	struct VM_Env* prev;
 	int32_t refcount;
 	int32_t size;

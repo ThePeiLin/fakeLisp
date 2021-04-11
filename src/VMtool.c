@@ -215,12 +215,34 @@ int numcmp(VMvalue* fir,VMvalue* sec)
 VMenv* newVMenv(VMenv* prev)
 {
 	VMenv* tmp=(VMenv*)malloc(sizeof(VMenv));
+	if(tmp==NULL)errors("newVMenv",__FILE__,__LINE__);
+	pthread_mutex_init(&tmp->l,NULL);
 	tmp->size=0;
 	tmp->list=NULL;
 	tmp->prev=prev;
-	if(prev!=NULL)prev->refcount+=1;
+	increaseRefcount(prev);
 	tmp->refcount=0;
 	return tmp;
+}
+
+void increaseRefcount(VMenv* env)
+{
+	if(env!=NULL)
+	{
+		pthread_mutex_lock(&env->l);
+		env->refcount+=1;
+		pthread_mutex_unlock(&env->l);
+	}
+}
+
+void decreaseRefcount(VMenv* env)
+{
+	if(env!=NULL)
+	{
+		pthread_mutex_lock(&env->l);
+		env->refcount-=1;
+		pthread_mutex_unlock(&env->l);
+	}
 }
 
 VMpair* newVMpair(VMheap* heap)
@@ -350,6 +372,19 @@ VMcode* copyVMcode(VMcode* obj,VMheap* heap)
 	return tmp;
 }
 
+VMcode* copyVMcodeWithoutEnv(VMcode* obj)
+{
+	VMcode* tmp=(VMcode*)malloc(sizeof(VMcode));
+	if(tmp==NULL)errors("copyVMcode",__FILE__,__LINE__);
+	tmp->refcount=0;
+	tmp->size=obj->size;
+	tmp->code=(char*)malloc(sizeof(char)*tmp->size);
+	if(tmp->code==NULL)errors("copyVMcode",__FILE__,__LINE__);
+	memcpy(tmp->code,obj->code,tmp->size);
+	tmp->localenv=(obj->localenv)?newVMenv(obj->localenv->prev):NULL;
+	return tmp;
+}
+
 VMenv* copyVMenv(VMenv* objEnv,VMheap* heap)
 {
 	VMenv* tmp=newVMenv(NULL);
@@ -402,7 +437,7 @@ void freeVMenv(VMenv* obj)
 		}
 		else
 		{
-			obj->refcount-=1;
+			decreaseRefcount(obj);
 			break;
 		}
 	}
@@ -656,7 +691,7 @@ VMcontinuation* newVMcontinuation(VMstack* stack,VMprocess* curproc)
 	for(;i<size;i++)
 	{
 		status[i].cp=cur->cp;
-		cur->localenv->refcount+=1;
+		increaseRefcount(cur->localenv);
 		status[i].env=cur->localenv;
 		cur->code->refcount+=1;
 		status[i].proc=cur->code;

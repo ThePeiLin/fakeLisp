@@ -127,7 +127,6 @@ int main(int argc,char** argv)
 		LineNumberTable* lnt=loadLineNumberTable(fp);
 		ByteCode* RawProcess=loadRawproc(fp,&num);
 		ByteCode* mainprocess=loadByteCode(fp);
-		//printByteCode(mainprocess,stdout);
 		FakeVM* anotherVM=newFakeVM(mainprocess,RawProcess);
 		VMheap* heap=anotherVM->heap;
 		freeByteCode(mainprocess);
@@ -146,10 +145,11 @@ int main(int argc,char** argv)
 		{
 			runFakeVM(anotherVM);
 			joinAllThread();
-			freeAllVMs();
 			freeVMheap(heap);
 			freeRawProc(RawProcess,num);
 			freeSymbolTable(table);
+			anotherVM->mainproc=NULL;
+			freeAllVMs();
 			freeLineNumberTable(lnt);
 		}
 		else

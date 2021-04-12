@@ -6,23 +6,30 @@
 #include<pthread.h>
 
 
-pthread_mutex_t GlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t VMenvGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t VMcodeGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t VMstrGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t VMpairGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t VMcontinuationGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t ByteStringGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t VMfpGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t ChanlGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 
 #define INCREASE_REFCOUNT(TYPE,PV) {\
 	if((PV))\
 	{\
-		pthread_mutex_lock(&GlobalRefcountLock);\
+		pthread_mutex_lock(&(TYPE##GlobalRefcountLock));\
 		((TYPE*)(PV))->refcount+=1;\
-		pthread_mutex_unlock(&GlobalRefcountLock);\
+		pthread_mutex_unlock(&(TYPE##GlobalRefcountLock));\
 	}\
 }
 
 #define DECREASE_REFCOUNT(TYPE,PV) {\
 	if((PV))\
 	{\
-		pthread_mutex_lock(&GlobalRefcountLock);\
+		pthread_mutex_lock(&(TYPE##GlobalRefcountLock));\
 		((TYPE*)(PV))->refcount-=1;\
-		pthread_mutex_unlock(&GlobalRefcountLock);\
+		pthread_mutex_unlock(&(TYPE##GlobalRefcountLock));\
 	}\
 }
 

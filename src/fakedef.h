@@ -196,12 +196,6 @@ typedef struct
 	struct VM_Value* cdr;
 }VMpair;
 
-typedef struct
-{
-	int32_t count;
-	char* sym;
-}VMsym;
-
 typedef struct VM_Value
 {
 	unsigned int mark :1;

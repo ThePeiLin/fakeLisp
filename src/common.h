@@ -8,7 +8,6 @@
 	(l)[i]->scp+=(s);\
 }
 
-
 int isHexNum(const char*);
 int isOctNum(const char*);
 int isDouble(const char*);
@@ -61,8 +60,8 @@ void* copyMemory(void*,size_t);
 void replace(AST_cptr*,const AST_cptr*);
 AST_cptr* nextCptr(const AST_cptr*);
 AST_cptr* prevCptr(const AST_cptr*);
-AST_cptr* getLast(const AST_cptr*);
-AST_cptr* getFirst(const AST_cptr*);
+AST_cptr* getLastCptr(const AST_cptr*);
+AST_cptr* getFirstCptr(const AST_cptr*);
 ByteCode* newByteCode(unsigned int);
 void codeCat(ByteCode*,const ByteCode*);
 void reCodeCat(const ByteCode*,ByteCode*);

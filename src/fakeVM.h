@@ -48,7 +48,7 @@ int B_invoke(FakeVM*);
 int B_res_tp(FakeVM*);
 int B_pop_tp(FakeVM*);
 int B_res_bp(FakeVM*);
-int B_open(FakeVM*);
+int B_file(FakeVM*);
 int B_cast_to_chr(FakeVM*);
 int B_cast_to_int(FakeVM*);
 int B_cast_to_dbl(FakeVM*);

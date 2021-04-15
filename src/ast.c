@@ -42,7 +42,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 						return NULL;
 					tmpCptr->type=PAIR;
 					tmpCptr->value=newPair(inter->curline,NULL);
-					replace(getFirst(tmpCptr),tmpCptr2);
+					replace(getFirstCptr(tmpCptr),tmpCptr2);
 					deleteCptr(tmpCptr2);
 					free(tmpCptr2);
 					int i=skipInPattern(parts[j],tmpPattern);

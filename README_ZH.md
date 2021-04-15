@@ -124,7 +124,7 @@ rem
 nth  
 length  
 appd  
-open  
+file  
 read  
 getb  
 write  

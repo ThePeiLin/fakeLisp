@@ -51,7 +51,7 @@ char* builtInSymbolList[NUMOFBUILTINSYMBOL]=
 	"nth",
 	"length",
 	"appd",
-	"open",
+	"file",
 	"read",
 	"getb",
 	"write",
@@ -998,7 +998,7 @@ int iscode(const char* filename)
 	else return !strcmp(filename+i,".fklc");
 }
 
-AST_cptr* getLast(const AST_cptr* objList)
+AST_cptr* getLastCptr(const AST_cptr* objList)
 {
 	AST_pair* objPair=objList->value;
 	AST_cptr* first=&objPair->car;
@@ -1006,7 +1006,7 @@ AST_cptr* getLast(const AST_cptr* objList)
 	return first;
 }
 
-AST_cptr* getFirst(const AST_cptr* objList)
+AST_cptr* getFirstCptr(const AST_cptr* objList)
 {
 	AST_pair* objPair=objList->value;
 	AST_cptr* first=&objPair->car;

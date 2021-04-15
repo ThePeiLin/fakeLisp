@@ -73,7 +73,7 @@ static int (*ByteCodes[])(FakeVM*)=
 	B_nth,
 	B_length,
 	B_appd,
-	B_open,
+	B_file,
 	B_eq,
 	B_eqn,
 	B_equal,
@@ -477,7 +477,7 @@ ByteCode P_appd=
 	}
 };
 
-ByteCode P_open=
+ByteCode P_file=
 {
 	30,
 	(char[])
@@ -487,7 +487,7 @@ ByteCode P_open=
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
-		FAKE_OPEN,
+		FAKE_FILE,
 	}
 };
 
@@ -723,7 +723,7 @@ void initGlobEnv(VMenv* obj,VMheap* heap,SymbolTable* table)
 		P_nth,
 		P_length,
 		P_appd,
-		P_open,
+		P_file,
 		P_read,
 		P_getb,
 		P_write,
@@ -1747,7 +1747,7 @@ int B_jump(FakeVM* exe)
 	return 0;
 }
 
-int B_open(FakeVM* exe)
+int B_file(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;

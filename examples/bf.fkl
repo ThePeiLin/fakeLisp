@@ -14,7 +14,7 @@
 (if (le (length (argv)) 1)
   (setq code "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.")
   (setq code
-        (let ((fp (open (nth 1 (argv)) "rb")))
+        (let ((fp (file (nth 1 (argv)) "rb")))
           (if (eq fp nil)
             (begin
               (princ "Faild to open file.\n" stderr)

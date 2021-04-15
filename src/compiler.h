@@ -43,4 +43,5 @@ ByteCodelnt* compileBegin(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm,Byte
 ByteCodelnt* compileAnd(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm,ByteCode* fix);
 ByteCodelnt* compileOr(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm,ByteCode* fix);
 ByteCodelnt* compileLoad(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm,ByteCode* fix);
+ByteCodelnt* compileProc(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm,ByteCode* fix);
 #endif

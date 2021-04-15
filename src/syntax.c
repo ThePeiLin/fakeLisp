@@ -251,6 +251,20 @@ int isImportExpression(const AST_cptr* objCptr)
 	return 0;
 }
 
+int isProcExpression(const AST_cptr* objCptr)
+{
+	if(objCptr->type==PAIR)
+	{
+		AST_cptr* fir=getFirstCptr(objCptr);
+		if(fir->type!=ATM)
+			return 0;
+		AST_atom* firAtm=fir->value;
+		if(firAtm->type==SYM&&strcmp(firAtm->value.str,"proc"))
+			return 1;
+	}
+	return 0;
+}
+
 KeyWord* hasKeyWord(const AST_cptr* objCptr)
 {
 	AST_atom* tmpAtm=NULL;

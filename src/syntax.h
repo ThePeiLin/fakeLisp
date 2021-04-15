@@ -29,5 +29,6 @@ int isUnqtespExpression(const AST_cptr*);
 int isLoadExpression(const AST_cptr*);
 int isImportExpression(const AST_cptr*);
 int isDefmacroExpression(const AST_cptr*);
+int isProcExpression(const AST_cptr*);
 int isKeyWord(const char*);
 #endif

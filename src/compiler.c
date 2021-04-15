@@ -540,6 +540,7 @@ void initPreprocess()
 	addKeyWord("unquote");
 	addKeyWord("qsquote");
 	addKeyWord("unqtesp");
+	addKeyWord("proc");
 }
 
 void freeAllFunc()
@@ -990,7 +991,7 @@ ByteCode* compilePair(AST_cptr* objCptr)
 
 ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
 {
-	objCptr=nextCptr(getFirst(objCptr));
+	objCptr=nextCptr(getFirstCptr(objCptr));
 	if(objCptr->type==ATM)
 		return compileConst(objCptr,curEnv,inter,status,evalIm,fix);
 	else if(isUnquoteExpression(objCptr))
@@ -1045,7 +1046,7 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 				status->place=objCptr;
 				return NULL;
 			}
-			ByteCodelnt* tmp1=compile(nextCptr(getFirst(objCptr)),curEnv,inter,status,evalIm,fix);
+			ByteCodelnt* tmp1=compile(nextCptr(getFirstCptr(objCptr)),curEnv,inter,status,evalIm,fix);
 			if(status->status!=0)
 			{
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
@@ -1068,7 +1069,7 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 		}
 		else if(objCptr->type==PAIR)
 		{
-			if(!isUnqtespExpression(getFirst(objCptr)))
+			if(!isUnqtespExpression(getFirstCptr(objCptr)))
 			{
 				codeCat(tmp->bc,pushPair);
 				if(!tmp->l)
@@ -1144,7 +1145,7 @@ ByteCode* compileQuote(AST_cptr* objCptr)
 
 ByteCodelnt* compileUnquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
 {
-	objCptr=nextCptr(getFirst(objCptr));
+	objCptr=nextCptr(getFirstCptr(objCptr));
 	return compile(objCptr,curEnv,inter,status,evalIm,fix);
 }
 
@@ -1585,7 +1586,7 @@ ByteCodelnt* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatu
 
 ByteCodelnt* compileBegin(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
 {
-	AST_cptr* firCptr=nextCptr(getFirst(objCptr));
+	AST_cptr* firCptr=nextCptr(getFirstCptr(objCptr));
 	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
 	ByteCode* resTp=newByteCode(1);
 	ByteCode* setTp=newByteCode(1);
@@ -2053,3 +2054,23 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,ByteCode* fix,int* exitstatus)
 	freeByteCode(resTp);
 	return tmp;
 }
+
+ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
+{
+	AST_cptr* fir=getFirstCptr(objCptr);
+	fir=nextCptr(fir);
+	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
+	for(;fir;fir=nextCptr(fir))
+	{
+		if(fir->type!=ATM)
+		{
+			status->place=objCptr;
+			status->status=SYNTAXERROR;
+			freeByteCodelnt(tmp);
+			return NULL;
+		}
+		AST_atom* firAtm=fir->value;
+	}
+	return tmp;
+}
+

@@ -259,7 +259,7 @@ int isProcExpression(const AST_cptr* objCptr)
 		if(fir->type!=ATM)
 			return 0;
 		AST_atom* firAtm=fir->value;
-		if(firAtm->type==SYM&&strcmp(firAtm->value.str,"proc"))
+		if(firAtm->type==SYM&&!strcmp(firAtm->value.str,"proc"))
 			return 1;
 	}
 	return 0;

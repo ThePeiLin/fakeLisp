@@ -270,6 +270,7 @@ void runIntpr(Intpr* inter)
 							printAllStack(stack,stdout,0);
 						}
 						stack->tp=0;
+						freeVMcode(tmp);
 					}
 					else
 					{
@@ -279,7 +280,6 @@ void runIntpr(Intpr* inter)
 						tmp=anotherVM->mainproc->code;
 						tmp->localenv=NULL;
 						freeVMcode(tmp);
-						anotherVM->mainproc->code=NULL;
 						deleteCallChain(anotherVM);
 					}
 				}

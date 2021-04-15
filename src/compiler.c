@@ -1,3 +1,5 @@
+#define USE_CODE_NAME
+
 #include"compiler.h"
 #include"syntax.h"
 #include"common.h"
@@ -29,6 +31,17 @@ static CompEnv* createPatternCompEnv(char**,int32_t,CompEnv*,SymbolTable*);
 static PreFunc* funAndForm=NULL;
 static PreMacro* FirstMacro=NULL;
 static PreEnv* MacroEnv=NULL;
+
+static uint8_t findOpcode(const char* str)
+{
+	uint8_t i=0;
+	for(;i<sizeof(codeName);i++)
+	{
+		if(!strcmp(codeName[i].codeName,str))
+			return i;
+	}
+	return 0;
+}
 
 PreMacro* PreMacroMatch(const AST_cptr* objCptr)
 {
@@ -847,6 +860,7 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 		if(isOrExpression(objCptr))return compileOr(objCptr,curEnv,inter,status,evalIm,fix);
 		if(isLambdaExpression(objCptr))return compileLambda(objCptr,curEnv,inter,status,evalIm,fix);
 		if(isBeginExpression(objCptr)) return compileBegin(objCptr,curEnv,inter,status,evalIm,fix);
+		if(isProcExpression(objCptr)) return compileProc(objCptr,curEnv,inter,status,evalIm,fix);
 		if(isUnqtespExpression(objCptr))
 		{
 			status->status=INVALIDEXPR;
@@ -2055,21 +2069,203 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,ByteCode* fix,int* exitstatus)
 	return tmp;
 }
 
+#define GENERATE_LNT(BYTECODELNT,BYTECODE) {\
+	BYTECODELNT=newByteCodelnt(BYTECODE);\
+	(BYTECODELNT)->ls=1;\
+	(BYTECODELNT)->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));\
+	if((BYTECODELNT)->l==NULL)\
+		errors("compileProc",__FILE__,__LINE__);\
+	(BYTECODELNT)->l[0]=newLineNumTabNode(fid,0,(BYTECODE)->size,fir->curline);\
+}
+
 ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
 {
-	AST_cptr* fir=getFirstCptr(objCptr);
-	fir=nextCptr(fir);
-	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
+	AST_cptr* fir=nextCptr(getFirstCptr(objCptr));
+	ByteCodelnt* tmp=NULL;
+
 	for(;fir;fir=nextCptr(fir))
 	{
 		if(fir->type!=ATM)
 		{
 			status->place=objCptr;
 			status->status=SYNTAXERROR;
-			freeByteCodelnt(tmp);
 			return NULL;
 		}
+	}
+	
+	int32_t fid=findSymbol(inter->filename,inter->table)->id;
+	fir=nextCptr(getFirstCptr(objCptr));
+	tmp=newByteCodelnt(newByteCode(0));
+	while(fir)
+	{
 		AST_atom* firAtm=fir->value;
+		uint8_t opcode=findOpcode(firAtm->value.str);
+		if(codeName[opcode].len!=0&&nextCptr(fir)==NULL)
+		{
+			status->place=objCptr;
+			status->status=SYNTAXERROR;
+			return NULL;
+		}
+
+		ByteCodelnt* tmpByteCodelnt=NULL;
+		switch(codeName[opcode].len)
+		{
+			case -3:
+				{
+					AST_cptr* tmpCptr=nextCptr(fir);
+					AST_atom* tmpAtm=tmpCptr->value;
+					int32_t scope=0;
+					CompEnv* tmpEnv=curEnv;
+					CompDef* tmpDef=NULL;
+
+					if(tmpAtm->type!=SYM)
+					{
+						status->place=objCptr;
+						status->status=SYNTAXERROR;
+						return NULL;
+					}
+
+					while(tmpEnv!=NULL)
+					{
+						tmpDef=findCompDef(tmpAtm->value.str,tmpEnv,inter->table);
+						if(tmpDef!=NULL)break;
+						tmpEnv=tmpEnv->prev;
+						scope++;
+					}
+
+					if(!tmpDef)
+					{
+						status->place=tmpCptr;
+						status->status=SYMUNDEFINE;
+						freeByteCodelnt(tmp);
+						return NULL;
+					}
+
+					ByteCode* tmpByteCode=newByteCode(sizeof(char)+2*sizeof(int32_t));
+					tmpByteCode->code[0]=opcode;
+					*((int32_t*)(tmpByteCode->code+sizeof(char)))=scope;
+					*((int32_t*)(tmpByteCode->code+sizeof(char)+sizeof(int32_t)))=tmpDef->id;
+
+					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
+					fir=nextCptr(tmpCptr);
+				}
+				break;
+			case -2:
+				{
+					AST_cptr* tmpCptr=nextCptr(fir);
+					AST_atom* tmpAtm=tmpCptr->value;
+					if(tmpAtm->type!=BYTS)
+					{
+						status->place=tmpCptr;
+						status->status=SYNTAXERROR;
+						freeByteCodelnt(tmp);
+						return NULL;
+					}
+
+					ByteCode* tmpByteCode=newByteCode(sizeof(char)+sizeof(int32_t)+tmpAtm->value.byts.size);
+					tmpByteCode->code[0]=opcode;
+					*((int32_t*)(tmpByteCode->code+sizeof(char)))=tmpAtm->value.byts.size;
+					memcpy(tmpByteCode->code+sizeof(char)+sizeof(int32_t),tmpAtm->value.byts.str,tmpAtm->value.byts.size);
+
+					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
+					fir=nextCptr(tmpCptr);
+				}
+				break;
+			case -1:
+				{
+					AST_cptr* tmpCptr=nextCptr(fir);
+					AST_atom* tmpAtm=tmpCptr->value;
+					if(tmpAtm->type!=SYM&&tmpAtm->type!=STR)
+					{
+						status->place=tmpCptr;
+						status->status=SYNTAXERROR;
+						freeByteCodelnt(tmp);
+						return NULL;
+					}
+
+					ByteCode* tmpByteCode=newByteCode(sizeof(char)*2+strlen(tmpAtm->value.str));
+					tmpByteCode->code[0]=opcode;
+					strcpy(tmpByteCode->code+sizeof(char),tmpAtm->value.str);
+
+					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
+					fir=nextCptr(tmpCptr);
+				}
+				break;
+			case 0:
+				{
+					ByteCode* tmpByteCode=newByteCode(sizeof(char));
+					tmpByteCode->code[0]=opcode;
+
+					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
+					fir=nextCptr(fir);
+				}
+				break;
+			case 1:
+				{
+					AST_cptr* tmpCptr=nextCptr(fir);
+					AST_atom* tmpAtm=tmpCptr->value;
+					if(tmpAtm->type!=CHR)
+					{
+						status->place=tmpCptr;
+						status->status=SYNTAXERROR;
+						freeByteCodelnt(tmp);
+						return NULL;
+					}
+
+					ByteCode* tmpByteCode=newByteCode(sizeof(char)*2);
+
+					tmpByteCode->code[0]=opcode;
+					tmpByteCode->code[1]=tmpAtm->value.chr;
+					
+					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
+					fir=nextCptr(tmpCptr);
+				}
+				break;
+			case 4:
+				{
+					AST_cptr* tmpCptr=nextCptr(fir);
+					AST_atom* tmpAtm=tmpCptr->value;
+					if(tmpAtm->type!=IN32)
+					{
+						status->place=tmpCptr;
+						status->status=SYNTAXERROR;
+						freeByteCodelnt(tmp);
+						return NULL;
+					}
+
+					ByteCode* tmpByteCode=newByteCode(sizeof(char)+sizeof(int32_t));
+
+					tmpByteCode->code[0]=opcode;
+					*((int32_t*)(tmpByteCode->code+sizeof(char)))=tmpAtm->value.num;
+
+					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
+					fir=nextCptr(tmpCptr);
+				}
+				break;
+			case 8:
+				{
+					AST_cptr* tmpCptr=nextCptr(fir);
+					AST_atom* tmpAtm=tmpCptr->value;
+					if(tmpAtm->type!=DBL)
+					{
+						status->place=tmpCptr;
+						status->status=SYNTAXERROR;
+						freeByteCodelnt(tmp);
+						return NULL;
+					}
+
+					ByteCode* tmpByteCode=newByteCode(sizeof(char)+sizeof(double));
+
+					tmpByteCode->code[0]=opcode;
+					*((int32_t*)(tmpByteCode->code+sizeof(char)))=tmpAtm->value.dbl;
+
+					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
+					fir=nextCptr(tmpCptr);
+				}
+				break;
+		}
+		codelntCat(tmp,tmpByteCodelnt);
+		freeByteCodelnt(tmpByteCodelnt);
 	}
 	return tmp;
 }

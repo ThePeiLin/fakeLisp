@@ -150,6 +150,7 @@ begin
 unquote  
 qsquote  
 unqtesp  
+proc  
 
 预处理指令（不产生字节码）:  
 import  

@@ -106,6 +106,7 @@ begin
 unquote  
 qsquote  
 unqtesp  
+proc  
 
 Preprocesser commands:  
 import  

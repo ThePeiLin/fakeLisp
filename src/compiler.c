@@ -2104,6 +2104,7 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		{
 			status->place=objCptr;
 			status->status=SYNTAXERROR;
+			freeByteCodelnt(tmp);
 			return NULL;
 		}
 
@@ -2122,6 +2123,7 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 					{
 						status->place=objCptr;
 						status->status=SYNTAXERROR;
+						freeByteCodelnt(tmp);
 						return NULL;
 					}
 
@@ -2225,19 +2227,43 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 				{
 					AST_cptr* tmpCptr=nextCptr(fir);
 					AST_atom* tmpAtm=tmpCptr->value;
-					if(tmpAtm->type!=IN32)
+					ByteCode* tmpByteCode=NULL;
+					if(opcode==FAKE_PUSH_VAR)
 					{
-						status->place=tmpCptr;
-						status->status=SYNTAXERROR;
-						freeByteCodelnt(tmp);
-						return NULL;
+						CompEnv* tmpEnv=curEnv;
+						CompDef* tmpDef=NULL;
+						while(tmpEnv!=NULL)
+						{
+							tmpDef=findCompDef(tmpAtm->value.str,tmpEnv,inter->table);
+							if(tmpDef!=NULL)break;
+							tmpEnv=tmpEnv->prev;
+						}
+						if(!tmpDef)
+						{
+							status->place=tmpCptr;
+							status->status=SYMUNDEFINE;
+							freeByteCodelnt(tmp);
+							return NULL;
+						}
+						tmpByteCode=newByteCode(sizeof(char)+sizeof(int32_t));
+						tmpByteCode->code[0]=opcode;
+						*((int32_t*)(tmpByteCode->code+sizeof(char)))=tmpDef->id;
 					}
+					else
+					{
+						if(tmpAtm->type!=IN32)
+						{
+							status->place=tmpCptr;
+							status->status=SYNTAXERROR;
+							freeByteCodelnt(tmp);
+							return NULL;
+						}
 
-					ByteCode* tmpByteCode=newByteCode(sizeof(char)+sizeof(int32_t));
+						tmpByteCode=newByteCode(sizeof(char)+sizeof(int32_t));
 
-					tmpByteCode->code[0]=opcode;
-					*((int32_t*)(tmpByteCode->code+sizeof(char)))=tmpAtm->value.num;
-
+						tmpByteCode->code[0]=opcode;
+						*((int32_t*)(tmpByteCode->code+sizeof(char)))=tmpAtm->value.num;
+					}
 					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
 					fir=nextCptr(tmpCptr);
 				}

@@ -35,7 +35,8 @@ static PreEnv* MacroEnv=NULL;
 static uint8_t findOpcode(const char* str)
 {
 	uint8_t i=0;
-	for(;i<sizeof(codeName);i++)
+	uint32_t size=sizeof(codeName)/sizeof(codeinfor);
+	for(;i<size;i++)
 	{
 		if(!strcmp(codeName[i].codeName,str))
 			return i;
@@ -2100,6 +2101,15 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	{
 		AST_atom* firAtm=fir->value;
 		uint8_t opcode=findOpcode(firAtm->value.str);
+
+		if(opcode==0)
+		{
+			status->place=fir;
+			status->status=SYNTAXERROR;
+			freeByteCodelnt(tmp);
+			return NULL;
+		}
+
 		if(codeName[opcode].len!=0&&nextCptr(fir)==NULL)
 		{
 			status->place=objCptr;

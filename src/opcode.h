@@ -70,13 +70,14 @@ enum opcode
 	FAKE_RECV,
 };
 
+#ifdef USE_CODE_NAME
+
 typedef struct
 {
 	char* codeName;
 	int len;
 }codeinfor;
 
-#ifdef USE_CODE_NAME
 static codeinfor codeName[]=
 {
 	{"dummy",0},

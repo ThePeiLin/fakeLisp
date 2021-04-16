@@ -126,4 +126,10 @@ void freeByteCodelnt(ByteCodelnt*);
 void increaseScpOfByteCodelnt(ByteCodelnt*,int32_t);
 void codelntCat(ByteCodelnt*,ByteCodelnt*);
 void reCodelntCat(ByteCodelnt*,ByteCodelnt*);
+
+ByteCodeLabel* newByteCodeLable(int32_t,const char*);
+ByteCodeLabel* findByteCodeLable(const char*,ByteCodeLabel*);
+void addByteCodeLabel(ByteCodeLabel* obj,ByteCodeLabel** head);
+void freeByteCodeLabel(ByteCodeLabel*);
+void destroyByteCodeLabelChain(ByteCodeLabel* head);
 #endif

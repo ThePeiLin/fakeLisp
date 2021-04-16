@@ -2354,3 +2354,47 @@ void printByteCodelnt(ByteCodelnt* obj,SymbolTable* table,FILE* fp)
 		putc('\n',fp);
 	}
 }
+
+ByteCodeLabel* newByteCodeLable(int32_t place,const char* label)
+{
+	ByteCodeLabel* tmp=(ByteCodeLabel*)malloc(sizeof(ByteCodeLabel));
+	if(!tmp)
+		errors("newByteCodeLable",__FILE__,__LINE__);
+	tmp->place=place;
+	tmp->label=copyStr(label);
+	tmp->next=NULL;
+	return tmp;
+}
+
+ByteCodeLabel* findByteCodeLable(const char* label,ByteCodeLabel* head)
+{
+	while(head)
+	{
+		if(!strcmp(label,head->label))
+			return head;
+		head=head->next;
+	}
+	return NULL;
+}
+
+void addByteCodeLabel(ByteCodeLabel* obj,ByteCodeLabel** head)
+{
+	obj->next=*head;
+	*head=obj;
+}
+
+void freeByteCodeLabel(ByteCodeLabel* obj)
+{
+	free(obj->label);
+	free(obj);
+}
+
+void destroyByteCodeLabelChain(ByteCodeLabel* head)
+{
+	while(head)
+	{
+		ByteCodeLabel* obj=head;
+		head=head->next;
+		freeByteCodeLabel(obj);
+	}
+}

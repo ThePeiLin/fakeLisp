@@ -53,9 +53,9 @@ static int (*ByteCodes[])(FakeVM*)=
 	B_res_tp,
 	B_pop_tp,
 	B_res_bp,
-	B_jump_if_ture,
-	B_jump_if_false,
-	B_jump,
+	B_jmp_if_true,
+	B_jmp_if_false,
+	B_jmp,
 	B_add,
 	B_sub,
 	B_mul,
@@ -1707,7 +1707,7 @@ int B_invoke(FakeVM* exe)
 	return 0;
 }
 
-int B_jump_if_ture(FakeVM* exe)
+int B_jmp_if_true(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
@@ -1722,7 +1722,7 @@ int B_jump_if_ture(FakeVM* exe)
 	return 0;
 }
 
-int B_jump_if_false(FakeVM* exe)
+int B_jmp_if_false(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
@@ -1738,7 +1738,7 @@ int B_jump_if_false(FakeVM* exe)
 	return 0;
 }
 
-int B_jump(FakeVM* exe)
+int B_jmp(FakeVM* exe)
 {
 	VMprocess* proc=exe->curproc;
 	VMcode* tmpCode=proc->code;

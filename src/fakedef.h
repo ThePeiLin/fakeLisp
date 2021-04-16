@@ -33,6 +33,13 @@ typedef struct
 	char* code;
 }ByteCode;
 
+typedef struct ByteCode_Lable
+{
+	char* label;
+	int32_t place;
+	struct ByteCode_Lable* next;
+}ByteCodeLabel;
+
 typedef struct Byte_Code_with_Line_Number_Node
 {
 	int32_t ls;

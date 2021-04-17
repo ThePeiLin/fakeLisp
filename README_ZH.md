@@ -308,8 +308,8 @@ lambda表达式，返回一个参数列表为args，函数体为列表body的过
 按顺序求值并返回最后一个值；  
 ```scheme
 (begin
-(add 1 2)
-(add 2 3)
+  (add 1 2)
+  (add 2 3)
 )
 
 ;=> 5

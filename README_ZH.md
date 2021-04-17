@@ -140,7 +140,8 @@ clcc
 ### define  
 定义符号，如：(define i 1)，定义符号时必须绑定一个值；  
 ```scheme
-(define i 1) 
+(define i 1)
+
 ;=> 1
 ```
 
@@ -148,6 +149,7 @@ clcc
 为符号赋值，符号必须先定义，如：(setq i 8)；  
 ```scheme
 (setq i 8)
+
 ;=> 8
 ```
 
@@ -155,9 +157,11 @@ clcc
 为引用赋值，由于解释器是通过引用传值的，所以可以为任意引用赋值，包括字面量，如:  
 ```scheme
 (setf i 9)  
+
 ;=>9
 
 (setf 1 9) ;合法，但是没有实际效果；  
+
 ;=> 9
 ```
 
@@ -165,9 +169,11 @@ clcc
 引用一个对象，使解释器不对该对象求值，如：  
 ```scheme
 (quote (1 2 3))
+
 ;=> (1 2 3)  
 
 (quote i)
+
 ;=> i  
 ```
 
@@ -175,18 +181,21 @@ clcc
 这个解释器唯一的一个分支跳转结构，if是用cond定义的宏，  
   
 ```scheme
-(cond (p1 e1...)
-      (p2 e2...)
-      ...
-      )
+;(cond (p1 e1...)
+;      (p2 e2...)
+;      ...
+;      )
 
 (cond (1 2))
+
 ;=> 2
 
 (cond (1 2 3))
+
 ;=> 3
 
 (cond (nil 1) (1 2))
+
 ;=> 2
 ```
 如上所示，如果p1为真，则执行e1并跳出cond，否则跳转到p2并求值确定p2是否为真，  
@@ -196,18 +205,23 @@ clcc
 “nil”与“()”并不等价。其关系如下：  
 ```scheme
 ()
+
 ;=> nil
 
 nil
+
 ;=> nil
 
 (quote ())
+
 ;=> ()
 
 (cons () ())
+
 ;=> ()
 
 (cons (quote ()) (quote ()))
+
 ;=> ((),()) ;这个值为真，因为不是空表
 ```
 nil不是一个常量，只是一个绑定空表求值结果的符号，  
@@ -228,12 +242,15 @@ nil不是一个常量，只是一个绑定空表求值结果的符号，
 如：  
 ```scheme
 (and)
+
 ;=> 1
 
 (and 1 2 3)
+
 ;=> 3
 
 (and 1 nil 3)
+
 ;=> nil
 ```
 
@@ -243,15 +260,19 @@ nil不是一个常量，只是一个绑定空表求值结果的符号，
 如：  
 ```scheme
 (or)
+
 ;=> nil
 
 (or 1 2 3)
+
 ;=> 1
 
 (or 3 nil 1)
+
 ;=> 3
 
 (or nil nil nil)
+
 ;=> nil
 ```
 
@@ -261,25 +282,28 @@ lambda表达式，返回一个参数列表为args，函数体为列表body的过
 如：  
 ```scheme
 (define list (lambda ls ls))
+
 ;=> <#proc>
 
 (list 1 2 3 4)
+
 ;=> (1 2 3 4)
 
 (define + (lambda (a,b)
-            (if b (add a (aply + b))
-                  a)
-            ))
+            (cond (b (add a (aply + b)))
+                  (1 a))))
+
 ;=> <#proc>
 
 (+ 1 2 3)
+
 ;=> 6
 ```
 ### load   
 ```scheme
 (load filename)
 ```
-加载文件filename到当前文件；  
+加载文件filename到当前文件，其值为文件filename里的最后一个表达式的值；  
 ### begin  
 按顺序求值并返回最后一个值；  
 ```scheme
@@ -287,6 +311,7 @@ lambda表达式，返回一个参数列表为args，函数体为列表body的过
 (add 1 2)
 (add 2 3)
 )
+
 ;=> 5
 ```
 ### unquote  
@@ -298,21 +323,26 @@ lambda表达式，返回一个参数列表为args，函数体为列表body的过
 准引用，与引用差不多，但是准引用中的被反引用的表达式依旧会被求值;  
 ```scheme
 (qsquote (add 1 2))
+
 ;=> (add 1 2)
 
 (qsquote (unquote (add 1 2)))
+
 ;=> 3
 
 (qsquote (1 2 3 (unquote (add 2 2))))
+
 ;=> (1 2 3 4)
 ```
 ### unqtesp  
 反引用且连接，只能用在准引用中，将表达式的值与准引用的表连接起来
 ```scheme
 (define list (lambda ls ls))
+
 ;=> <#proc>
 
 (qsquote (1 2 3 (unqtesp (list 4 5 6)) 7 8 9))
+
 ;=> (1 2 3 4 5 6 7 8 9)
 ```
 ### proc  
@@ -326,8 +356,8 @@ lambda表达式，返回一个参数列表为args，函数体为列表body的过
 			   pop_car
 			   push_var b
 			   pop_cdr
-			  )
-			 ))
+			  )))
+
 ;=> <#proc>
 
 (define a (lambda (a)

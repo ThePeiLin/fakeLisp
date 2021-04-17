@@ -165,7 +165,7 @@ ByteCode P_type=
 		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
-		FAKE_TYPE_OF,
+		FAKE_TYPE,
 	}
 };
 

@@ -164,10 +164,10 @@ clcc
 ### quote  
 引用一个对象，使解释器不对该对象求值，如：  
 ```scheme
-(quote (1 2 3)) 
+(quote (1 2 3))
 ;=> (1 2 3)  
 
-(quote i) 
+(quote i)
 ;=> i  
 ```
 
@@ -210,7 +210,18 @@ nil
 (cons (quote ()) (quote ()))
 ;=> ((),()) ;这个值为真，因为不是空表
 ```
+nil不是一个常量，只是一个绑定空表求值结果的符号，  
+所以nil可以被重定义，但是空表求值结果仍然显示nil。  
+即：  
+```scheme
+(define nil 2)
 
+;=> 2
+
+()
+
+;=> nil
+```
 ### and  
 (and e1 e2 e3 ...)  
 按顺序求值，若所有表达式为真，则返回最后一个表达式的值，如果有表达式值为假，则停止求值并返回nil；  
@@ -306,6 +317,7 @@ lambda表达式，返回一个参数列表为args，函数体为列表body的过
 ```
 ### proc  
 嵌入字节码，字节码表还在写，而且随时会有变化。  
+且由于没有字节码验证器，直接写字节码有一定的安全风险。  
 ```scheme
 (define cons (lambda (a b)
                (proc
@@ -316,12 +328,35 @@ lambda表达式，返回一个参数列表为args，函数体为列表body的过
                   pop_cdr
                )
              ))
+;=> <#proc>
+
+(define a (lambda (a)
+            (proc
+              set_tp
+              push_var a
+              jmp_if_true t
+              res_tp
+              push_nil
+              jmp u
+              :t
+              res_tp
+              push_int 1
+              :u
+              pop_tp)))
 
 ;=> <#proc>
 
 (cons 1 2)
 
 ;=> (1,2)
+
+(a 1)
+
+;=> 1
+
+(a nil)
+
+;=> nil
 ```
 
 ## 预处理指令（不产生字节码）:  

@@ -320,27 +320,28 @@ lambda表达式，返回一个参数列表为args，函数体为列表body的过
 且由于没有字节码验证器，直接写字节码有一定的安全风险。  
 ```scheme
 (define cons (lambda (a b)
-               (proc
-                  push_pair
-                  push_var a
-                  pop_car
-                  push_var b
-                  pop_cdr
-               )
-             ))
+			  (proc
+			   push_pair
+			   push_var a
+			   pop_car
+			   push_var b
+			   pop_cdr
+			  )
+			 ))
 ;=> <#proc>
 
 (define a (lambda (a)
-            (proc
-              set_tp
-              push_var a
-              jmp_if_true t
-              res_tp
-              push_nil
-              jmp u
-           :t res_tp
-              push_int 1
-           :u pop_tp)))
+		   (proc
+			set_tp
+			push_var a
+			jmp_if_true t
+			res_tp
+			push_nil
+			jmp u
+		 :t res_tp
+			push_int 1
+		 :u pop_tp
+		   )))
 
 ;=> <#proc>
 

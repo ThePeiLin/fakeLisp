@@ -9,7 +9,7 @@ fakeLisp是一个用c言编写的简单的lisp解释器。
        (1 (gle (cdr obj))))))  
 ```
 
-支持宏；  
+## 宏：  
 defmacro的语法比较特殊，为：
 (defmacro <用于匹配的表达式> <用于返回的表达式>)  
 宏没有名字，而是通过匹配表达式来实现表达式的替换，如：  
@@ -89,7 +89,7 @@ import与load的区别在于import不产生字节码，而且只能加载.dll文
 另外，所谓可用函数即函数名有\"FAKE_\"前缀的函数。
 
 ---
-目前可用内置函数及符号有：  
+## 目前可用内置函数及符号有：  
 nil  
 EOF  
 stdin  
@@ -136,28 +136,199 @@ send
 recv  
 clcc  
 
-可用特殊形式有:  
-define  
-setq  
-setf  
-quote  
-cond  
-and  
-or  
-lambda  
-load   
-begin  
-unquote  
-qsquote  
-unqtesp  
-proc  
+## 可用特殊形式有:  
+### define  
+定义符号，如：(define i 1)，定义符号时必须绑定一个值；  
+```scheme
+(define i 1) 
+;=> 1
+```
 
-预处理指令（不产生字节码）:  
+### setq  
+为符号赋值，符号必须先定义，如：(setq i 8)；  
+```scheme
+(setq i 8)
+;=> 8
+```
+
+### setf  
+为引用赋值，由于解释器是通过引用传值的，所以可以为任意引用赋值，包括字面量，如:  
+```scheme
+(setf i 9)  
+;=>9
+
+(setf 1 9) ;合法，但是没有实际效果；  
+;=> 9
+```
+
+## quote  
+引用一个对象，使解释器不对该对象求值，如：  
+```scheme
+(quote (1 2 3)) 
+;=> (1 2 3)  
+
+(quote i) 
+;=> i  
+```
+
+## cond  
+这个解释器唯一的一个分支跳转结构，if是用cond定义的宏，  
+  
+```scheme
+(cond (p1 e1...)
+      (p2 e2...)
+      ...
+      )
+
+(cond (1 2))
+;=> 2
+
+(cond (1 2 3))
+;=> 3
+
+(cond (nil 1) (1 2))
+;=> 2
+```
+如上所示，如果p1为真，则执行e1并跳出cond，否则跳转到p2并求值确定p2是否为真，  
+以此类推直到cond结束。  
+这个解释器并没有boolean类型的值，一般用“1”代表真，“nil”代表假。  
+除了“nil”、“()”以外，其他值均为真。  
+“nil”与“()”并不等价。其关系如下：  
+```scheme
+()
+;=> nil
+
+nil
+;=> nil
+
+(quote ())
+;=> ()
+
+(cons () ())
+;=> ()
+
+(cons (quote ()) (quote ()))
+;=> ((),()) ;这个值为真，因为不是空表
+```
+
+## and  
+(and e1 e2 e3 ...)  
+按顺序求值，若所有表达式为真，则返回最后一个表达式的值，如果有表达式值为假，则停止求值并返回nil；  
+如：  
+```scheme
+(and)
+;=> 1
+
+(and 1 2 3)
+;=> 3
+
+(and 1 nil 3)
+;=> nil
+```
+
+## or  
+(or e1 e2 e3...)  
+按顺序求值，直到有一个表达式值为真，并返回该表达式的值，否则返回nil；  
+如：  
+```scheme
+(or)
+;=> nil
+
+(or 1 2 3)
+;=> 1
+
+(or 3 nil 1)
+;=> 3
+
+(or nil nil nil)
+;=> nil
+```
+
+## lambda  
+(lambda args,body)
+lambda表达式，返回一个参数列表为args，函数体为列表body的过程；  
+如：  
+```scheme
+(define list (lambda ls ls))
+;=> <#proc>
+
+(list 1 2 3 4)
+;=> (1 2 3 4)
+
+(define + (lambda (a,b)
+            (if b (add a (aply + b))
+                  a)
+            ))
+;=> <#proc>
+
+(+ 1 2 3)
+;=> 6
+```
+## load   
+```scheme
+(load filename)
+```
+加载文件filename到当前文件；  
+## begin  
+按顺序求值并返回最后一个值；  
+```scheme
+(begin
+(add 1 2)
+(add 2 3)
+)
+;=> 5
+```
+## unquote  
+```scheme
+(unquote a)
+```
+反引用，表达式与a等价。  
+## qsquote  
+准引用，与引用差不多，但是准引用中的被反引用的表达式依旧会被求值;  
+```scheme
+(qsquote (add 1 2))
+;=> (add 1 2)
+
+(qsquote (unquote (add 1 2)))
+;=> 3
+
+(qsquote (1 2 3 (unquote (add 2 2))))
+;=> (1 2 3 4)
+```
+## unqtesp  
+反引用且连接，只能用在准引用中，将表达式的值与准引用的表连接起来
+```scheme
+(define list (lambda ls ls))
+;=> <#proc>
+
+(qsquote (1 2 3 (unqtesp (list 4 5 6)) 7 8 9))
+;=> (1 2 3 4 5 6 7 8 9)
+```
+## proc  
+嵌入字节码，字节码表还在写，而且随时会有变化。  
+```scheme
+(define cons (lambda (a b)
+               (proc
+                  push_pair
+                  push_var a
+                  pop_car
+                  push_var b
+                  pop_cdr
+               )
+             ))
+
+;=> <#proc>
+
+(cons 1 2)
+
+;=> (1,2)
+```
+
+# 预处理指令（不产生字节码）:  
 import  
 defmacro  
 
-setf可以给任何值赋值，因为setf是修改引用，  
-因此你给一个不是变量的值赋值是没有问题的，只不过没什么用就是了。  
+---
 基于消息的多线程。  
 可以编译整个文件，有尾递归优化。  
 可以愉快地开始写lisp了。  

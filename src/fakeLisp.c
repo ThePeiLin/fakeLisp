@@ -266,7 +266,7 @@ void runIntpr(Intpr* inter)
 						VMstack* stack=anotherVM->stack;
 						if(inter->file==stdin&&stack->tp!=0)
 						{
-							printf("]=>");
+							printf(";=>");
 							printAllStack(stack,stdout,0);
 						}
 						stack->tp=0;

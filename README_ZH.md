@@ -338,11 +338,9 @@ lambda表达式，返回一个参数列表为args，函数体为列表body的过
               res_tp
               push_nil
               jmp u
-              :t
-              res_tp
+           :t res_tp
               push_int 1
-              :u
-              pop_tp)))
+           :u pop_tp)))
 
 ;=> <#proc>
 

@@ -161,7 +161,7 @@ clcc
 ;=> 9
 ```
 
-## quote  
+### quote  
 引用一个对象，使解释器不对该对象求值，如：  
 ```scheme
 (quote (1 2 3)) 
@@ -171,7 +171,7 @@ clcc
 ;=> i  
 ```
 
-## cond  
+### cond  
 这个解释器唯一的一个分支跳转结构，if是用cond定义的宏，  
   
 ```scheme
@@ -211,7 +211,7 @@ nil
 ;=> ((),()) ;这个值为真，因为不是空表
 ```
 
-## and  
+### and  
 (and e1 e2 e3 ...)  
 按顺序求值，若所有表达式为真，则返回最后一个表达式的值，如果有表达式值为假，则停止求值并返回nil；  
 如：  
@@ -226,7 +226,7 @@ nil
 ;=> nil
 ```
 
-## or  
+### or  
 (or e1 e2 e3...)  
 按顺序求值，直到有一个表达式值为真，并返回该表达式的值，否则返回nil；  
 如：  
@@ -244,7 +244,7 @@ nil
 ;=> nil
 ```
 
-## lambda  
+### lambda  
 (lambda args,body)
 lambda表达式，返回一个参数列表为args，函数体为列表body的过程；  
 如：  
@@ -264,12 +264,12 @@ lambda表达式，返回一个参数列表为args，函数体为列表body的过
 (+ 1 2 3)
 ;=> 6
 ```
-## load   
+### load   
 ```scheme
 (load filename)
 ```
 加载文件filename到当前文件；  
-## begin  
+### begin  
 按顺序求值并返回最后一个值；  
 ```scheme
 (begin
@@ -278,12 +278,12 @@ lambda表达式，返回一个参数列表为args，函数体为列表body的过
 )
 ;=> 5
 ```
-## unquote  
+### unquote  
 ```scheme
 (unquote a)
 ```
 反引用，表达式与a等价。  
-## qsquote  
+### qsquote  
 准引用，与引用差不多，但是准引用中的被反引用的表达式依旧会被求值;  
 ```scheme
 (qsquote (add 1 2))
@@ -295,7 +295,7 @@ lambda表达式，返回一个参数列表为args，函数体为列表body的过
 (qsquote (1 2 3 (unquote (add 2 2))))
 ;=> (1 2 3 4)
 ```
-## unqtesp  
+### unqtesp  
 反引用且连接，只能用在准引用中，将表达式的值与准引用的表连接起来
 ```scheme
 (define list (lambda ls ls))
@@ -304,7 +304,7 @@ lambda表达式，返回一个参数列表为args，函数体为列表body的过
 (qsquote (1 2 3 (unqtesp (list 4 5 6)) 7 8 9))
 ;=> (1 2 3 4 5 6 7 8 9)
 ```
-## proc  
+### proc  
 嵌入字节码，字节码表还在写，而且随时会有变化。  
 ```scheme
 (define cons (lambda (a b)
@@ -324,7 +324,7 @@ lambda表达式，返回一个参数列表为args，函数体为列表body的过
 ;=> (1,2)
 ```
 
-# 预处理指令（不产生字节码）:  
+## 预处理指令（不产生字节码）:  
 import  
 defmacro  
 

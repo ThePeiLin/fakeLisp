@@ -45,6 +45,7 @@ static int (*ByteCodes[])(FakeVM*)=
 	B_pop_car,
 	B_pop_cdr,
 	B_pop_ref,
+	B_swap,
 	B_pack_cc,
 	B_call_proc,
 	B_set_tp,
@@ -1381,6 +1382,20 @@ int B_pop_ref(FakeVM* exe)
 		copyRef(objValue,topValue);
 	stack->tp-=1;
 	stackRecycle(exe);
+	proc->cp+=1;
+	return 0;
+}
+
+int B_swap(FakeVM* exe)
+{
+	VMstack* stack=exe->stack;
+	VMprocess* proc=exe->curproc;
+	if(stack->tp<2)
+		return TOOFEWARG;
+	VMvalue* topValue=getTopValue(stack);
+	VMvalue* otherValue=getValue(stack,stack->tp-2);
+	stack->values[stack->tp-1]=otherValue;
+	stack->values[stack->tp-2]=topValue;
 	proc->cp+=1;
 	return 0;
 }

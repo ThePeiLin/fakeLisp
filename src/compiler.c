@@ -2110,6 +2110,13 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			continue;
 		}
 
+		if(firAtm->value.str[0]=='$')
+		{
+			addCompDef(firAtm->value.str+1,curEnv,inter->table);
+			fir=nextCptr(fir);
+			continue;
+		}
+
 		uint8_t opcode=findOpcode(firAtm->value.str);
 
 		if(opcode==0)
@@ -2290,7 +2297,7 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	while(fir)
 	{
 		AST_atom* firAtm=fir->value;
-		if(firAtm->value.str[0]==':')
+		if(firAtm->value.str[0]==':'||firAtm->value.str[0]=='$')
 		{
 			fir=nextCptr(fir);
 			continue;

@@ -339,6 +339,18 @@ lambda表达式，返回一个参数列表为args，函数体为列表body的过
 		   )))
 ;=> <#proc>
 
+(define clcc (lambda (f)
+              (proc
+               $cc
+               pack_cc
+               pop_var cc
+               set_bp
+               push_var cc
+               push_var f
+               invoke
+              )))
+;=> <#proc>
+
 (cons 1 2)
 ;=> (1,2)
 
@@ -347,6 +359,15 @@ lambda表达式，返回一个参数列表为args，函数体为列表body的过
 
 (a nil)
 ;=> nil
+
+(define c nil)
+;=> nil
+
+(add 1 (clcc (lambda (cc) (setq c cc) 9)))
+;=> 10
+
+(c 10)
+;=> 11
 ```
 
 ## 预处理指令（不产生字节码）:  

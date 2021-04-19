@@ -374,6 +374,106 @@ lambda表达式，返回一个参数列表为args，函数体为列表body的过
 import  
 defmacro  
 
+## 关于面向对象  
+lisp系的编程语言大多都有词法闭包，  可以利用词法闭包来实现面向对象的功能，下面的宏实现了一个简单的对象系统：  
+  
+```scheme
+(defmacro (class $name,$body)
+  (begin
+    (define data-list nil)
+    (define pre-method-list nil)
+    (define method-list nil)
+    (define construct-method nil)
+    (define case-list nil)
+
+    (let loop ((c body))
+      (cond (c
+              (letcc break
+                     (define segmentId (car (car c)))
+                     (define segmentData (cdr (car c)))
+                     (if (and (not (eq segmentId 'data))
+                              (not (eq segmentId 'method)))
+                       (break nil))
+                     (case segmentId
+                       (('data) (setf data-list (appd data-list segmentData)))
+                       (('method) (setf pre-method-list (appd pre-method-list segmentData)))))
+              (loop (cdr c)))))
+
+    (let loop ((c data-list))
+      (cond (c (let ((name (car (car c))))
+                 (setf case-list (cons `(((quote ~name)) ~name) case-list)))
+               (loop (cdr c)))))
+
+    (let loop ((c pre-method-list))
+      (cond (c
+              (let ((methodName (car (car c))))
+                (cond ((not (eq methodName name))
+                       (setf method-list (cons `(~methodName (lambda ~@(cdr (car c)))) method-list))
+                       (setf case-list (cons `(((quote ~methodName)) ~methodName) case-list)))
+                      (1
+                       (setf construct-method (cdr (car c))))))
+              (loop (cdr c)))))
+
+    (define local-env (appd data-list method-list))
+    `(begin
+       (define ~name
+         (lambda ~(car construct-method)
+         (letrec ~local-env
+           ~@(cdr construct-method)
+           (lambda (selector)
+             (case selector
+               ~@case-list))))))
+    ))
+
+(class Vec3
+       (data
+         (X 0.0)
+         (Y 0.0)
+         (Z 0.0))
+
+       (method
+         (Vec3 (x y z)
+               (setf X (dbl x))
+               (setf Y (dbl y))
+               (setf Z (dbl z)))
+         (setX (x)
+               (setf X (dbl x)))
+         (setY (y)
+               (setf Y (dbl y)))
+         (setZ (z)
+               (setf Z (dbl z)))))
+;=> <#proc>
+
+(define i (Vec3 1 2 3))
+;=> <#proc>
+
+(i 'X)
+;=> 1.0
+
+(i 'Y)
+;=> 2.0
+
+(i 'Z)
+;=> 3.0
+
+((i 'setX) 9)
+;=> 9.0
+
+((i 'setY) 8)
+;=> 8.0
+
+((i 'setZ) 7)
+;=> 7.0
+
+(i 'X)
+;=> 9.0
+
+(i 'Y)
+;=> 8.0
+
+(i 'Z)
+;=> 7.0
+```
 ---
 基于消息的多线程。  
 可以编译整个文件，有尾递归优化。  

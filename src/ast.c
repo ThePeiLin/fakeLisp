@@ -14,7 +14,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 	int braketsNum=0;
 	AST_cptr* root=NULL;
 	AST_pair* objPair=NULL;
-	AST_cptr* objCptr;
+	AST_cptr* objCptr=NULL;
 	if(pattern)
 	{
 		inter->curline+=countChar(objStr,'\n',skipSpace(objStr));
@@ -230,7 +230,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 				i+=len+1;
 				free(tmpStr);
 			}
-			else if(isdigit(*(objStr+i))||(*(objStr+i)=='-'&&(/**(objStr+i)&&*/isdigit(*(objStr+i+1)))))
+			else if(isdigit(*(objStr+i))||(*(objStr+i)=='-'&&isdigit(*(objStr+i+1)))||(*(objStr+i)=='.'&&isdigit(*(objStr+i+1))))
 			{
 				int curline=(inter)?inter->curline:0;
 				if(root==NULL)objCptr=root=newCptr(curline,objPair);

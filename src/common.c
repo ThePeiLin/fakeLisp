@@ -496,7 +496,7 @@ int isDouble(const char* objStr)
 	int i=(objStr[0]=='-')?1:0;
 	int len=strlen(objStr);
 	for(;i<len;i++)
-		if(objStr[i]=='.')return 1;
+		if(objStr[i]=='.'||(i!=0&&toupper(objStr[i])=='E'&&i<(len-1)))return 1;
 	return 0;
 }
 
@@ -551,6 +551,7 @@ char stringToChar(const char* objStr)
 int isNum(const char* objStr)
 {
 	if(isHexNum(objStr+(objStr[0]=='0')))return 1;
+	if(isDouble(objStr))return 1;
 	if(!isdigit(*objStr)&&*objStr!='-'&&*objStr!='.')return 0;
 	int len=strlen(objStr);
 	int i=(*objStr=='-')?1:0;
@@ -1770,7 +1771,7 @@ SymTabNode* addSymTabNode(SymTabNode* node,SymbolTable* table)
 	{
 		int32_t l=0;
 		int32_t h=table->size-1;
-		int32_t mid;
+		int32_t mid=0;
 		while(l<=h)
 		{
 			mid=l+(h-l)/2;
@@ -1851,7 +1852,7 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 	int braketsNum=0;
 	AST_cptr* root=NULL;
 	AST_pair* objPair=NULL;
-	AST_cptr* objCptr;
+	AST_cptr* objCptr=NULL;
 	while(*(objStr+i)!='\0')
 	{
 		if(*(objStr+i)=='(')
@@ -1967,7 +1968,7 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 			i+=len+1;
 			free(tmpStr);
 		}
-		else if(isdigit(*(objStr+i))||(*(objStr+i)=='-'&&(/**(objStr+i)&&*/isdigit(*(objStr+i+1)))))
+		else if(isdigit(*(objStr+i))||(*(objStr+i)=='-'&&isdigit(*(objStr+i+1)))||(*(objStr+i)=='.'&&isdigit(*(objStr+i+1))))
 		{
 			int curline=(inter)?inter->curline:0;
 			if(root==NULL)objCptr=root=newCptr(curline,objPair);
@@ -2141,7 +2142,7 @@ LineNumTabId* addLineNumTabId(LineNumTabNode** list,int32_t size,int32_t id,Line
 //		}
 		int32_t l=0;
 		int32_t h=table->size-1;
-		int32_t mid;
+		int32_t mid=0;
 		while(l<=h)
 		{
 			mid=l+(h-l)/2;

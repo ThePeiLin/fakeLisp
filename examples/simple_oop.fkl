@@ -1,5 +1,4 @@
-(load examples/macro.fkl)
-(load test.fkl)
+(load macro.fkl)
 
 (defmacro (class $name,$body)
   (begin
@@ -47,6 +46,14 @@
              (case selector
                ~@case-list))))))
     ))
+
+(define print
+  (lambda l
+    (define p-iter
+      (lambda (c)
+        (cond (c (princ (car c) stdout)
+                 (p-iter (cdr c))))))
+    (p-iter l)))
 
 (class Vec3
        (data

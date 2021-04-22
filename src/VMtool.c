@@ -786,6 +786,7 @@ void freeVMcontinuation(VMcontinuation* cont)
 		int32_t size=cont->size;
 		VMstack* stack=cont->stack;
 		VMprocStatus* status=cont->status;
+		free(stack->tpst);
 		free(stack->values);
 		free(stack);
 		for(;i<size;i++)

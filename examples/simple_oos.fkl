@@ -35,6 +35,12 @@
                       (1
                        (setf construct-method (cdr (car c))))))
               (loop (cdr c)))))
+    (setf case-list
+          (appd case-list
+                `((1
+                  (princ "Invalid selector \"" stderr)
+                  (princ selector stderr)
+                  (princ "\"\n" stderr)))))
 
     (define local-env (appd data-list method-list))
     `(begin

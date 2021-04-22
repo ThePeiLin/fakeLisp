@@ -72,8 +72,10 @@
         (map-iter f l nil)))
     (define body (let ((tb (map (lambda (x) (cdr x)) b))
                        (cs (map (lambda (x)
-                                  (cons 'or
-                                        (map (lambda (x) `(equal ~v ~x)) x)))
+                                  (if (eq (type x) 'pair)
+                                    (cons 'or
+                                          (map (lambda (x) `(equal ~v ~x)) x))
+                                    x))
                                 (map (lambda (x) (nth 0 x)) b))))
                    (map (lambda (x)
                           (define r (cons x (car tb)))

@@ -40,12 +40,11 @@
     `(begin
        (define ~name
          (lambda ~(car construct-method)
-         (letrec ~local-env
-           ~@(cdr construct-method)
-           (lambda (selector)
-             (case selector
-               ~@case-list))))))
-    ))
+           (letrec ~local-env
+             ~@(cdr construct-method)
+             (lambda (selector)
+               (case selector
+                 ~@case-list))))))))
 
 (define print
   (lambda l

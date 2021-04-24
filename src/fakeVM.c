@@ -1395,8 +1395,8 @@ int B_pop_env(FakeVM* exe)
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue->type!=PRC)
 		return WRONGARG;
-	VMenv* tmpEnv=topValue->u.prc->localenv;
-	VMenv* prevEnv=NULL;
+	VMenv* prevEnv=topValue->u.prc->localenv;
+	VMenv* tmpEnv=prevEnv->prev;
 	int32_t i=0;
 	int32_t scope=*(int32_t*)(tmpCode->code+proc->cp+1);
 	for(;i<scope&&tmpEnv;i++)

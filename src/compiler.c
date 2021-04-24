@@ -2248,16 +2248,6 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 							return NULL;
 						}
 					}
-					else if(opcode==FAKE_PUSH_INT)
-					{
-						if(tmpAtm->type!=IN32)
-						{
-							status->place=tmpCptr;
-							status->status=SYNTAXERROR;
-							destroyByteCodeLabelChain(head);
-							return NULL;
-						}
-					}
 					else if(opcode==FAKE_JMP||opcode==FAKE_JMP_IF_FALSE||opcode==FAKE_JMP_IF_TRUE)
 					{
 						if(tmpAtm->type!=SYM&&tmpAtm->type!=STR)
@@ -2268,7 +2258,16 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 							return NULL;
 						}
 					}
-
+					else
+					{
+						if(tmpAtm->type!=IN32)
+						{
+							status->place=tmpCptr;
+							status->status=SYNTAXERROR;
+							destroyByteCodeLabelChain(head);
+							return NULL;
+						}
+					}
 					sizeOfByteCode+=sizeof(char)+sizeof(int32_t);
 					fir=nextCptr(tmpCptr);
 				}
@@ -2397,19 +2396,10 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 							if(tmpDef!=NULL)break;
 							tmpEnv=tmpEnv->prev;
 						}
-						
 						tmpByteCode=newByteCode(sizeof(char)+sizeof(int32_t));
 						tmpByteCode->code[0]=opcode;
 						*((int32_t*)(tmpByteCode->code+sizeof(char)))=tmpDef->id;
 					}
-					else if(opcode==FAKE_PUSH_INT)
-					{
-						tmpByteCode=newByteCode(sizeof(char)+sizeof(int32_t));
-
-						tmpByteCode->code[0]=opcode;
-						*((int32_t*)(tmpByteCode->code+sizeof(char)))=tmpAtm->value.num;
-					}
-
 					else if(opcode==FAKE_JMP||opcode==FAKE_JMP_IF_TRUE||opcode==FAKE_JMP_IF_FALSE)
 					{
 						ByteCodeLabel* label=findByteCodeLable(tmpAtm->value.str,head);
@@ -2421,10 +2411,15 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 							destroyByteCodeLabelChain(head);
 							return NULL;
 						}
-
 						tmpByteCode=newByteCode(sizeof(char)+sizeof(int32_t));
 						tmpByteCode->code[0]=opcode;
 						*((int32_t*)(tmpByteCode->code+sizeof(char)))=label->place-tmp->bc->size-5;
+					}
+					else
+					{
+						tmpByteCode=newByteCode(sizeof(char)+sizeof(int32_t));
+						tmpByteCode->code[0]=opcode;
+						*((int32_t*)(tmpByteCode->code+sizeof(char)))=tmpAtm->value.num;
 					}
 					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
 					fir=nextCptr(tmpCptr);

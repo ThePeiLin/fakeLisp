@@ -33,6 +33,7 @@ int B_pop_rest_var(FakeVM*);
 int B_pop_car(FakeVM*);
 int B_pop_cdr(FakeVM*);
 int B_pop_ref(FakeVM*);
+int B_pop_env(FakeVM*);
 int B_swap(FakeVM*);
 int B_pack_cc(FakeVM*);
 int B_add(FakeVM*);

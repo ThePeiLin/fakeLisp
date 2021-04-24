@@ -45,6 +45,7 @@ static int (*ByteCodes[])(FakeVM*)=
 	B_pop_car,
 	B_pop_cdr,
 	B_pop_ref,
+	B_pop_env,
 	B_swap,
 	B_pack_cc,
 	B_call_proc,
@@ -1386,6 +1387,35 @@ int B_pop_ref(FakeVM* exe)
 	return 0;
 }
 
+int B_pop_env(FakeVM* exe)
+{
+	VMstack* stack=exe->stack;
+	VMprocess* proc=exe->curproc;
+	VMcode* tmpCode=proc->code;
+	VMvalue* topValue=getTopValue(stack);
+	if(topValue->type!=PRC)
+		return WRONGARG;
+	VMenv* tmpEnv=topValue->u.prc->localenv;
+	VMenv* prevEnv=NULL;
+	int32_t i=0;
+	int32_t scope=*(int32_t*)(tmpCode->code+proc->cp+1);
+	for(;i<scope&&tmpEnv;i++)
+	{
+		prevEnv=tmpEnv;
+		tmpEnv=tmpEnv->prev;
+	}
+	if(tmpEnv)
+	{
+		prevEnv->prev=tmpEnv->prev;
+		tmpEnv->prev=NULL;
+		freeVMenv(tmpEnv);
+	}
+	else
+		return  STACKERROR;
+	proc->cp+=5;
+	return 0;
+}
+
 int B_swap(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
@@ -1407,7 +1437,7 @@ int B_pack_cc(FakeVM* exe)
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-		if(stack->values==NULL)errors("B_push_int",__FILE__,__LINE__);
+		if(stack->values==NULL)errors("B_pack_cc",__FILE__,__LINE__);
 		stack->size+=64;
 	}
 	VMcontinuation* cc=newVMcontinuation(stack,proc);

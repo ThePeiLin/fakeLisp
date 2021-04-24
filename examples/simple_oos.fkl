@@ -38,9 +38,9 @@
     (setf case-list
           (appd case-list
                 `((1
-                  (princ "Invalid selector \"" stderr)
-                  (princ selector stderr)
-                  (princ "\"\n" stderr)))))
+                   (princ "Invalid selector \"" stderr)
+                   (princ selector stderr)
+                   (princ "\"\n" stderr)))))
 
     (define local-env (appd data-list method-list))
     `(begin
@@ -48,9 +48,10 @@
          (lambda ~(car construct-method)
            (letrec ~local-env
              ~@(cdr construct-method)
-             (lambda (selector)
-               (case selector
-                 ~@case-list))))))))
+             (define this
+               (lambda (selector)
+                 (case selector
+                   ~@case-list)))))))))
 
 (define print
   (lambda l

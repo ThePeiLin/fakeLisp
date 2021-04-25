@@ -4,7 +4,7 @@
 #include<pthread.h>
 
 int runFakeVM(FakeVM*);
-void printVMvalue(VMvalue*,VMpair*,FILE*,int8_t,int8_t);
+void writeVMvalue(VMvalue*,VMpair*,FILE*,int8_t,int8_t);
 void princVMvalue(VMvalue*,VMpair*,FILE*,int8_t);
 void printProc(VMcode*,FILE*);
 FakeVM* newFakeVM(ByteCode*,ByteCode*);
@@ -81,12 +81,11 @@ int B_go(FakeVM*);
 int B_chanl(FakeVM*);
 int B_send(FakeVM*);
 int B_recv(FakeVM*);
-VMstack* newStack(int32_t);
+VMstack* newVMstack(int32_t);
 void freeVMstack(VMstack*);
 void stackRecycle(FakeVM*);
 VMcode* newBuiltInProc(ByteCode*);
 VMprocess* newFakeProcess(VMcode*,VMprocess*);
-void printAllStack(VMstack*,FILE*,int);
 int createNewThread(FakeVM*);
 FakeVMlist* newThreadStack(int32_t);
 ThreadMessage* newThreadMessage(VMvalue*,VMheap*);
@@ -94,7 +93,6 @@ ThreadMessage* newMessage(VMvalue*);
 int sendMessage(ThreadMessage*,FakeVM*);
 VMprocess* hasSameProc(VMcode*,VMprocess*);
 int isTheLastExpress(const VMprocess*,const VMprocess*);
-void printEnv(VMenv*,FILE*);
 VMheap* newVMheap();
 void createCallChainWithContinuation(FakeVM*,VMcontinuation*);
 void freeVMheap(VMheap*);
@@ -110,5 +108,7 @@ void GC_markMessage(ThreadMessage*);
 void GC_sweep(VMheap*);
 void GC_compact(VMheap*);
 
-void fprintValue(VMvalue*,FILE*);
+void DBG_printVMenv(VMenv*,FILE*);
+void DBG_printVMvalue(VMvalue*,FILE*);
+void DBG_printVMstack(VMstack*,FILE*,int);
 #endif

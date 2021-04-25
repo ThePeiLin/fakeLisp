@@ -647,7 +647,7 @@ FakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 	exe->procs=procs;
 	exe->mark=1;
 	exe->chan=NULL;
-	exe->stack=newStack(0);
+	exe->stack=newVMstack(0);
 	exe->heap=newVMheap();
 	exe->callback=NULL;
 	FakeVM** ppFakeVM=NULL;
@@ -685,7 +685,7 @@ FakeVM* newTmpFakeVM(ByteCode* mainproc,ByteCode* procs)
 	exe->argc=0;
 	exe->argv=NULL;
 	exe->chan=NULL;
-	exe->stack=newStack(0);
+	exe->stack=newVMstack(0);
 	exe->heap=newVMheap();
 	exe->callback=NULL;
 	exe->VMid=-1;
@@ -853,7 +853,7 @@ int runFakeVM(FakeVM* exe)
 					break;
 				case INVOKEERROR:
 					fprintf(stderr,"error:Try to invoke \"");
-					fprintValue(exe->stack->values[exe->stack->tp-1],stderr);
+					DBG_printVMvalue(exe->stack->values[exe->stack->tp-1],stderr);
 					fprintf(stderr,"\"\n");
 					break;
 			}
@@ -905,11 +905,11 @@ int B_dummy(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	printByteCode(&tmpByteCode,stderr);
 	putc('\n',stderr);
-	printAllStack(exe->stack,stderr,1);
+	DBG_printVMstack(exe->stack,stderr,1);
 	putc('\n',stderr);
 	fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
 	fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",curproc->cp,stack->bp,codeName[(int)tmpCode->code[curproc->cp]].codeName);
-	printEnv(exe->curproc->localenv,stderr);
+	DBG_printVMenv(exe->curproc->localenv,stderr);
 	putc('\n',stderr);
 	fprintf(stderr,"Wrong byts code!\n");
 	exit(EXIT_FAILURE);
@@ -2422,7 +2422,7 @@ int B_write(FakeVM* exe)
 	stack->tp-=1;
 	stackRecycle(exe);
 	VMpair* tmpPair=(obj->type==PAIR)?obj->u.pair:NULL;
-	printVMvalue(obj,tmpPair,objFile,0,0);
+	writeVMvalue(obj,tmpPair,objFile,0,0);
 	proc->cp+=1;
 	return 0;
 }
@@ -2592,22 +2592,22 @@ int B_recv(FakeVM* exe)
 	return 0;
 }
 
-VMstack* newStack(int32_t size)
+VMstack* newVMstack(int32_t size)
 {
 	VMstack* tmp=(VMstack*)malloc(sizeof(VMstack));
-	if(tmp==NULL)errors("newStack",__FILE__,__LINE__);
+	if(tmp==NULL)errors("newVMstack",__FILE__,__LINE__);
 	tmp->size=size;
 	tmp->tp=0;
 	tmp->bp=0;
 	tmp->values=(VMvalue**)malloc(size*sizeof(VMvalue*));
-	if(tmp->values==NULL)errors("newStack",__FILE__,__LINE__);
+	if(tmp->values==NULL)errors("newVMstack",__FILE__,__LINE__);
 	tmp->tpsi=0;
 	tmp->tptp=0;
 	tmp->tpst=NULL;
 	return tmp;
 }
 
-void printVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t mode,int8_t isPrevPair)
+void writeVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t mode,int8_t isPrevPair)
 {
 	switch(objValue->type)
 	{
@@ -2643,7 +2643,7 @@ void printVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t mode,int8_t is
 			else
 			{
 				if(objValue->u.pair->car->type!=NIL||isPrevPair)
-					printVMvalue(objValue->u.pair->car,begin,fp,mode,0);
+					writeVMvalue(objValue->u.pair->car,begin,fp,mode,0);
 			}
 			if(objValue->u.pair->cdr->type!=NIL)
 			{
@@ -2652,7 +2652,7 @@ void printVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t mode,int8_t is
 				if(objValue->u.pair->cdr->type==PAIR&&objValue->u.pair->cdr->u.pair==begin)
 					fprintf(fp,"##");
 				else
-					printVMvalue(objValue->u.pair->cdr,begin,fp,mode,1);
+					writeVMvalue(objValue->u.pair->cdr,begin,fp,mode,1);
 			}
 			if(!isPrevPair)
 				putc(')',fp);
@@ -2794,7 +2794,7 @@ VMprocess* newFakeProcess(VMcode* code,VMprocess* prev)
 	return tmp;
 }
 
-void printAllStack(VMstack* stack,FILE* fp,int mode)
+void DBG_printVMstack(VMstack* stack,FILE* fp,int mode)
 {
 	if(fp!=stdout)fprintf(fp,"Current stack:\n");
 	if(stack->tp==0)fprintf(fp,"[#EMPTY]\n");
@@ -2808,16 +2808,16 @@ void printAllStack(VMstack* stack,FILE* fp,int mode)
 			if(fp!=stdout)fprintf(fp,"%d:",i);
 			VMvalue* tmp=stack->values[i];
 			VMpair* tmpPair=(tmp->type==PAIR)?tmp->u.pair:NULL;
-			printVMvalue(tmp,tmpPair,fp,0,0);
+			writeVMvalue(tmp,tmpPair,fp,0,0);
 			putc('\n',fp);
 		}
 	}
 }
 
-void fprintValue(VMvalue* v,FILE* fp)
+void DBG_printVMvalue(VMvalue* v,FILE* fp)
 {
 	VMpair* p=(v->type==PAIR)?v->u.pair:NULL;
-	printVMvalue(v,p,fp,0,0);
+	writeVMvalue(v,p,fp,0,0);
 }
 
 VMprocess* hasSameProc(VMcode* objCode,VMprocess* curproc)
@@ -2846,7 +2846,7 @@ int isTheLastExpress(const VMprocess* proc,const VMprocess* same)
 	return 1;
 }
 
-void printEnv(VMenv* curEnv,FILE* fp)
+void DBG_printVMenv(VMenv* curEnv,FILE* fp)
 {
 	if(curEnv->size==0)
 		fprintf(fp,"This ENV is empty!");
@@ -2857,7 +2857,7 @@ void printEnv(VMenv* curEnv,FILE* fp)
 		{
 			VMvalue* tmp=curEnv->list[i]->value;
 			VMpair* tmpPair=(tmp->type==PAIR)?tmp->u.pair:NULL;
-			printVMvalue(tmp,tmpPair,fp,0,0);
+			writeVMvalue(tmp,tmpPair,fp,0,0);
 			putc(' ',fp);
 		}
 	}
@@ -2898,8 +2898,6 @@ void GC_markValue(VMvalue* obj)
 {
 	if(!obj->mark)
 	{
-		//princVMvalue(obj,stderr);
-		//putc('\n',stderr);
 		obj->mark=1;
 		if(obj->type==PAIR)
 		{
@@ -3001,7 +2999,7 @@ FakeVM* newThreadVM(VMcode* mainCode,ByteCode* procs,VMheap* heap,Dlls* d)
 	exe->argv=NULL;
 	exe->modules=d;
 	exe->chan=newChanl(1);
-	exe->stack=newStack(0);
+	exe->stack=newVMstack(0);
 	exe->heap=heap;
 	exe->callback=NULL;
 	FakeVM** ppFakeVM=NULL;

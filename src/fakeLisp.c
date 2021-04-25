@@ -267,7 +267,7 @@ void runIntpr(Intpr* inter)
 						if(inter->file==stdin&&stack->tp!=0)
 						{
 							printf(";=>");
-							printAllStack(stack,stdout,0);
+							DBG_printVMstack(stack,stdout,0);
 						}
 						stack->tp=0;
 						freeVMcode(tmp);

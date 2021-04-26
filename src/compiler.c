@@ -1659,11 +1659,11 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	AST_cptr* tmpCptr=objCptr;
 	AST_pair* objPair=NULL;
 	CompEnv* tmpEnv=newCompEnv(curEnv);
-	ByteCode* popVar=newByteCode(sizeof(char)+sizeof(int32_t)*2);
-	ByteCode* popRestVar=newByteCode(sizeof(char)+sizeof(int32_t)*2);
+	ByteCode* popArg=newByteCode(sizeof(char)+sizeof(int32_t)*2);
+	ByteCode* popRestArg=newByteCode(sizeof(char)+sizeof(int32_t)*2);
 	ByteCode* pArg=newByteCode(0);
-	popVar->code[0]=FAKE_POP_VAR;
-	popRestVar->code[0]=FAKE_POP_REST_VAR;
+	popArg->code[0]=FAKE_POP_ARG;
+	popRestArg->code[0]=FAKE_POP_REST_ARG;
 	objPair=objCptr->value;
 	objCptr=&objPair->car;
 	RawProc* curproc=getHeadRawProc(inter);
@@ -1677,15 +1677,15 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			{
 				status->status=SYNTAXERROR;
 				status->place=tmpCptr;
-				freeByteCode(popVar);
-				freeByteCode(popRestVar);
+				freeByteCode(popArg);
+				freeByteCode(popRestArg);
 				destroyCompEnv(tmpEnv);
 				return NULL;
 			}
 			CompDef* tmpDef=addCompDef(tmpAtm->value.str,tmpEnv,inter->table);
-			*(int32_t*)(popVar->code+sizeof(char))=(int32_t)0;
-			*(int32_t*)(popVar->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
-			codeCat(pArg,popVar);
+			*(int32_t*)(popArg->code+sizeof(char))=(int32_t)0;
+			*(int32_t*)(popArg->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
+			codeCat(pArg,popArg);
 			if(nextCptr(argCptr)==NULL&&argCptr->outer->cdr.type==ATM)
 			{
 				AST_atom* tmpAtom1=(argCptr->outer->cdr.type==ATM)?argCptr->outer->cdr.value:NULL;
@@ -1693,15 +1693,15 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				{
 					status->status=SYNTAXERROR;
 					status->place=tmpCptr;
-					freeByteCode(popVar);
-					freeByteCode(popRestVar);
+					freeByteCode(popArg);
+					freeByteCode(popRestArg);
 					destroyCompEnv(tmpEnv);
 					return NULL;
 				}
 				tmpDef=addCompDef(tmpAtom1->value.str,tmpEnv,inter->table);
-				*(int32_t*)(popRestVar->code+sizeof(char))=(int32_t)0;
-				*(int32_t*)(popRestVar->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
-				codeCat(pArg,popRestVar);
+				*(int32_t*)(popRestArg->code+sizeof(char))=(int32_t)0;
+				*(int32_t*)(popRestArg->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
+				codeCat(pArg,popRestArg);
 			}
 			argCptr=nextCptr(argCptr);
 		}
@@ -1713,18 +1713,18 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		{
 			status->status=SYNTAXERROR;
 			status->place=tmpCptr;
-			freeByteCode(popVar);
-			freeByteCode(popRestVar);
+			freeByteCode(popArg);
+			freeByteCode(popRestArg);
 			destroyCompEnv(tmpEnv);
 			return NULL;
 		}
 		CompDef* tmpDef=addCompDef(tmpAtm->value.str,tmpEnv,inter->table);
-		*(int32_t*)(popRestVar->code+sizeof(char))=(int32_t)0;
-		*(int32_t*)(popRestVar->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
-		codeCat(pArg,popRestVar);
+		*(int32_t*)(popRestArg->code+sizeof(char))=(int32_t)0;
+		*(int32_t*)(popRestArg->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
+		codeCat(pArg,popRestArg);
 	}
-	freeByteCode(popRestVar);
-	freeByteCode(popVar);
+	freeByteCode(popRestArg);
+	freeByteCode(popArg);
 	ByteCode* resBp=newByteCode(sizeof(char));
 	resBp->code[0]=FAKE_RES_BP;
 	ByteCode* setTp=newByteCode(sizeof(char));

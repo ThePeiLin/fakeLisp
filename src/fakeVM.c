@@ -41,7 +41,8 @@ static int (*ByteCodes[])(FakeVM*)=
 	B_push_mod_proc,
 	B_push_list_arg,
 	B_pop_var,
-	B_pop_rest_var,
+	B_pop_arg,
+	B_pop_rest_arg,
 	B_pop_car,
 	B_pop_cdr,
 	B_pop_ref,
@@ -100,8 +101,8 @@ ByteCode P_cons=
 	32,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
-		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_PAIR,
 		FAKE_PUSH_VAR,0,0,0,0,
@@ -116,7 +117,7 @@ ByteCode P_car=
 	16,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_CAR,
@@ -128,7 +129,7 @@ ByteCode P_cdr=
 	16,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_CDR,
@@ -140,7 +141,7 @@ ByteCode P_atom=
 	16,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_ATOM,
@@ -152,7 +153,7 @@ ByteCode P_null=
 	16,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_NULL,
@@ -164,7 +165,7 @@ ByteCode P_type=
 	16,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_TYPE,
@@ -176,8 +177,8 @@ ByteCode P_aply=
 	32,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
-		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_SET_BP,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -192,8 +193,8 @@ ByteCode P_eq=
 	30,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
-		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -206,8 +207,8 @@ ByteCode P_eqn=
 	30,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
-		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -220,8 +221,8 @@ ByteCode P_equal=
 	30,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
-		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -234,8 +235,8 @@ ByteCode P_gt=
 	30,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
-		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -248,8 +249,8 @@ ByteCode P_ge=
 	30,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
-		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -262,8 +263,8 @@ ByteCode P_lt=
 	30,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
-		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -276,8 +277,8 @@ ByteCode P_le=
 	30,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
-		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -290,7 +291,7 @@ ByteCode P_not=
 	16,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_NOT,
@@ -302,7 +303,7 @@ ByteCode P_dbl=
 	16,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_CAST_TO_DBL,
@@ -314,7 +315,7 @@ ByteCode P_str=
 	16,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_CAST_TO_STR,
@@ -326,7 +327,7 @@ ByteCode P_sym=
 	16,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_CAST_TO_SYM,
@@ -338,7 +339,7 @@ ByteCode P_chr=
 	16,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_CAST_TO_CHR,
@@ -350,7 +351,7 @@ ByteCode P_int=
 	16,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_CAST_TO_INT,
@@ -362,7 +363,7 @@ ByteCode P_byt=
 	16,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_CAST_TO_BYTE,
@@ -374,8 +375,8 @@ ByteCode P_add=
 	30,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
-		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -388,8 +389,8 @@ ByteCode P_sub=
 	30,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
-		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -402,8 +403,8 @@ ByteCode P_mul=
 	30,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
-		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -416,8 +417,8 @@ ByteCode P_div=
 	30,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
-		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -430,8 +431,8 @@ ByteCode P_rem=
 	30,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
-		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -444,8 +445,8 @@ ByteCode P_nth=
 	30,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
-		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -458,7 +459,7 @@ ByteCode P_length=
 	16,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_LENGTH,
@@ -470,8 +471,8 @@ ByteCode P_appd=
 	30,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
-		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -484,8 +485,8 @@ ByteCode P_file=
 	30,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
-		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -498,7 +499,7 @@ ByteCode P_read=
 	16,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_READ,
@@ -510,8 +511,8 @@ ByteCode P_getb=
 	30,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
-		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -524,8 +525,8 @@ ByteCode P_write=
 	30,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
-		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -538,8 +539,8 @@ ByteCode P_putb=
 	30,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
-		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -552,8 +553,8 @@ ByteCode P_princ=
 	30,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
-		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -566,8 +567,8 @@ ByteCode P_go=
 	30,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
-		FAKE_POP_REST_VAR,0,0,0,0, 1,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
+		FAKE_POP_REST_ARG,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -580,7 +581,7 @@ ByteCode P_chanl=
 	16,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_CHANL,
@@ -592,8 +593,8 @@ ByteCode P_send=
 	30,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
-		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 1,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_PUSH_VAR,1,0,0,0,
@@ -606,7 +607,7 @@ ByteCode P_recv=
 	16,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PUSH_VAR,0,0,0,0,
 		FAKE_RECV,
@@ -618,7 +619,7 @@ ByteCode P_clcc=
 	32,
 	(char[])
 	{
-		FAKE_POP_VAR,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
 		FAKE_RES_BP,
 		FAKE_PACK_CC,
 		FAKE_POP_VAR,0,0,0,0, 1,0,0,0,
@@ -1249,6 +1250,48 @@ int B_pop_var(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMcode* tmpCode=proc->code;
+	if(!(stack->tp>stack->bp))return STACKERROR;
+	int32_t scopeOfVar=*(int32_t*)(tmpCode->code+proc->cp+1);
+	int32_t idOfVar=*(int32_t*)(tmpCode->code+proc->cp+5);
+	VMenv* curEnv=proc->localenv;
+	VMvalue** pValue=NULL;
+	if(scopeOfVar>=0)
+	{
+		int32_t i=0;
+		for(;i<scopeOfVar;i++)
+			curEnv=curEnv->prev;
+		VMenvNode* tmp=findVMenvNode(idOfVar,curEnv);
+		if(!tmp)
+			tmp=addVMenvNode(newVMenvNode(NULL,idOfVar),curEnv);
+		pValue=&tmp->value;
+	}
+	else
+	{
+		VMenvNode* tmp=NULL;
+		while(curEnv&&!tmp)
+		{
+			tmp=findVMenvNode(idOfVar,curEnv);
+			curEnv=curEnv->prev;
+		}
+		if(tmp==NULL)
+			return SYMUNDEFINE;
+		pValue=&tmp->value;
+	}
+	VMvalue* topValue=getTopValue(stack);
+	*pValue=newNilValue(exe->heap);
+	(*pValue)->access=1;
+	copyRef(*pValue,topValue);
+	stack->tp-=1;
+	stackRecycle(exe);
+	proc->cp+=9;
+	return 0;
+}
+
+int B_pop_arg(FakeVM* exe)
+{
+	VMstack* stack=exe->stack;
+	VMprocess* proc=exe->curproc;
+	VMcode* tmpCode=proc->code;
 	if(!(stack->tp>stack->bp))return TOOFEWARG;
 	int32_t scopeOfVar=*(int32_t*)(tmpCode->code+proc->cp+1);
 	int32_t idOfVar=*(int32_t*)(tmpCode->code+proc->cp+5);
@@ -1286,7 +1329,7 @@ int B_pop_var(FakeVM* exe)
 	return 0;
 }
 
-int B_pop_rest_var(FakeVM* exe)
+int B_pop_rest_arg(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
@@ -3158,9 +3201,26 @@ int32_t getSymbolIdInByteCode(const char* code)
 			return *(int32_t*)(code+sizeof(char));
 			break;
 		case FAKE_POP_VAR:
-		case FAKE_POP_REST_VAR:
+		case FAKE_POP_ARG:
+		case FAKE_POP_REST_ARG:
 			return *(int32_t*)(code+sizeof(char)+sizeof(int32_t));
 			break;
 	}
 	return -1;
+}
+
+static int hasSameVMpair(VMpair* obj,VMpair* begin)
+{
+	if((begin->car->type==PAIR&&begin->car->u.pair==obj)||(begin->cdr->type==PAIR&&begin->cdr->u.pair))
+		return 1;
+	if(begin->car->type==PAIR&&hasSameVMpair(obj,begin->car->u.pair))
+		return 1;
+	if(begin->cdr->type==PAIR&&hasSameVMpair(obj,begin->cdr->u.pair))
+		return 1;
+	return 0;
+}
+
+int isCircularReference(VMpair* begin)
+{
+	return (begin->car->type==PAIR&&hasSameVMpair(begin,begin->car->u.pair))||(begin->cdr->type==PAIR&&hasSameVMpair(begin,begin->cdr->u.pair));
 }

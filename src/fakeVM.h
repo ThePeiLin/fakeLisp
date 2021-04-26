@@ -29,7 +29,8 @@ int B_push_proc(FakeVM*);
 int B_push_mod_proc(FakeVM*);
 int B_push_list_arg(FakeVM*);
 int B_pop_var(FakeVM*);
-int B_pop_rest_var(FakeVM*);
+int B_pop_arg(FakeVM*);
+int B_pop_rest_arg(FakeVM*);
 int B_pop_car(FakeVM*);
 int B_pop_cdr(FakeVM*);
 int B_pop_ref(FakeVM*);
@@ -111,4 +112,6 @@ void GC_compact(VMheap*);
 void DBG_printVMenv(VMenv*,FILE*);
 void DBG_printVMvalue(VMvalue*,FILE*);
 void DBG_printVMstack(VMstack*,FILE*,int);
+
+int isCircularReference(VMpair*);
 #endif

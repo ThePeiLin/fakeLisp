@@ -119,6 +119,4 @@ void GC_compact(VMheap*);
 void DBG_printVMenv(VMenv*,FILE*);
 void DBG_printVMvalue(VMvalue*,FILE*);
 void DBG_printVMstack(VMstack*,FILE*,int);
-
-int isCircularReference(VMpair*,CRL* h);
 #endif

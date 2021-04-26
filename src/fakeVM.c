@@ -44,6 +44,69 @@ static int32_t findCRLcount(VMpair* pair,CRL* h)
 	return -1;
 }
 
+static VMpair* hasSameVMpair(VMpair* begin,VMpair* other,CRL* h)
+{
+	VMpair* tmpPair=NULL;
+	if(findCRLcount(begin,h)!=-1||findCRLcount(other,h)!=-1)
+		return NULL;
+	if(begin==other)
+		return begin;
+
+	if((other->car->type==PAIR&&other->car->u.pair->car->type==PAIR)&&begin->car->type==PAIR)
+		tmpPair=hasSameVMpair(begin->car->u.pair,other->car->u.pair->car->u.pair,h);
+	if(tmpPair)
+		return tmpPair;
+
+	if((other->car->type==PAIR&&other->car->u.pair->cdr->type==PAIR)&&begin->car->type==PAIR)
+		tmpPair=hasSameVMpair(begin->car->u.pair,other->car->u.pair->cdr->u.pair,h);
+	if(tmpPair)return tmpPair;
+
+	if((other->car->type==PAIR&&other->car->u.pair->car->type==PAIR)&&begin->cdr->type==PAIR)
+		tmpPair=hasSameVMpair(begin->cdr->u.pair,other->car->u.pair->car->u.pair,h);
+	if(tmpPair)
+		return tmpPair;
+
+	if((other->car->type==PAIR&&other->car->u.pair->cdr->type==PAIR)&&begin->cdr->type==PAIR)
+		tmpPair=hasSameVMpair(begin->cdr->u.pair,other->car->u.pair->cdr->u.pair,h);
+	if(tmpPair)
+		return tmpPair;
+
+	if((other->cdr->type==PAIR&&other->cdr->u.pair->car->type==PAIR)&&begin->car->type==PAIR)
+		tmpPair=hasSameVMpair(begin->car->u.pair,other->cdr->u.pair->car->u.pair,h);
+	if(tmpPair)
+		return tmpPair;
+
+	if((other->cdr->type==PAIR&&other->cdr->u.pair->cdr->type==PAIR)&&begin->car->type==PAIR)
+		tmpPair=hasSameVMpair(begin->car->u.pair,other->cdr->u.pair->cdr->u.pair,h);
+	if(tmpPair)
+		return tmpPair;
+
+	if((other->cdr->type==PAIR&&other->cdr->u.pair->car->type==PAIR)&&begin->cdr->type==PAIR)
+		tmpPair=hasSameVMpair(begin->cdr->u.pair,other->cdr->u.pair->car->u.pair,h);
+	if(tmpPair)
+		return tmpPair;
+
+	if((other->cdr->type==PAIR&&other->cdr->u.pair->cdr->type==PAIR)&&begin->cdr->type==PAIR)
+		tmpPair=hasSameVMpair(begin->cdr->u.pair,other->cdr->u.pair->cdr->u.pair,h);
+	if(tmpPair)
+		return tmpPair;
+	return NULL;
+}
+
+VMpair* isCircularReference(VMpair* begin,CRL* h)
+{
+	VMpair* tmpPair=NULL;
+	if(begin->car->type==PAIR)
+		tmpPair=hasSameVMpair(begin,begin->car->u.pair,h);
+	if(tmpPair)
+		return tmpPair;
+	if(begin->cdr->type==PAIR)
+		tmpPair=hasSameVMpair(begin,begin->cdr->u.pair,h);
+	if(tmpPair)
+		return tmpPair;
+	return NULL;
+}
+
 static int (*ByteCodes[])(FakeVM*)=
 {
 	B_dummy,
@@ -2686,7 +2749,7 @@ VMstack* newVMstack(int32_t size)
 
 void writeVMvalue(VMvalue* objValue,FILE* fp,int8_t mode,int8_t isPrevPair,CRL** h)
 {
-	uint8_t isCirRef=0;
+	VMpair* cirPair=NULL;
 	int32_t CRLcount=-1;
 	switch(objValue->type)
 	{
@@ -2713,12 +2776,14 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,int8_t mode,int8_t isPrevPair,CRL**
 			else fprintf(fp,"#<proc>");
 			break;
 		case PAIR:
-			isCirRef=isCircularReference(objValue->u.pair,*h);
-			if(isCirRef)
+			cirPair=isCircularReference(objValue->u.pair,*h);
+			if(cirPair&&cirPair==objValue->u.pair)
 			{
 				CRL* crl=newCRL(objValue->u.pair,(*h)?(*h)->count+1:0);
 				crl->next=*h;
 				*h=crl;
+				if(isPrevPair)
+					putc(' ',fp);
 				fprintf(fp,"#%d=(",crl->count);
 			}
 			else
@@ -2750,7 +2815,7 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,int8_t mode,int8_t isPrevPair,CRL**
 				else
 					writeVMvalue(objValue->u.pair->cdr,fp,mode,1,h);
 			}
-			if(isCirRef||!isPrevPair)
+			if((cirPair&&objValue->u.pair==cirPair)||!isPrevPair)
 				putc(')',fp);
 			break;
 		case BYTS:
@@ -2771,7 +2836,7 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,int8_t mode,int8_t isPrevPair,CRL**
 
 void princVMvalue(VMvalue* objValue,FILE* fp,int8_t isPrevPair,CRL** h)
 {
-	uint8_t isCirRef=0;
+	VMpair* cirPair=NULL;
 	int32_t CRLcount=-1;
 	switch(objValue->type)
 	{
@@ -2797,12 +2862,14 @@ void princVMvalue(VMvalue* objValue,FILE* fp,int8_t isPrevPair,CRL** h)
 			fprintf(fp,"#<proc>");
 			break;
 		case PAIR:
-			isCirRef=isCircularReference(objValue->u.pair,*h);
-			if(isCirRef)
+			cirPair=isCircularReference(objValue->u.pair,*h);
+			if(cirPair&&cirPair==objValue->u.pair)
 			{
 				CRL* crl=newCRL(objValue->u.pair,(*h)?(*h)->count+1:0);
 				crl->next=*h;
 				*h=crl;
+				if(isPrevPair)
+					putc(' ',fp);
 				fprintf(fp,"#%d=",crl->count);
 			}
 			else
@@ -2836,7 +2903,7 @@ void princVMvalue(VMvalue* objValue,FILE* fp,int8_t isPrevPair,CRL** h)
 				else
 					princVMvalue(objValue->u.pair->cdr,fp,1,h);
 			}
-			if(!isPrevPair)
+			if((cirPair&&cirPair==objValue->u.pair)||!isPrevPair)
 				putc(')',fp);
 			break;
 		case BYTS:
@@ -3096,8 +3163,6 @@ void GC_sweep(VMheap* heap)
 		if(!cur->mark)
 		{
 			VMvalue* prev=cur;
-			//princVMvalue(cur,stderr);
-			//putc('\n',stderr);
 			if(cur==heap->head)
 				heap->head=cur->next;
 			if(cur->next!=NULL)cur->next->prev=cur->prev;
@@ -3295,20 +3360,4 @@ int32_t getSymbolIdInByteCode(const char* code)
 	return -1;
 }
 
-static int hasSameVMpair(VMpair* obj,VMpair* begin,CRL* h)
-{
-	if(findCRLcount(begin,h)!=-1)
-		return 0;
-	if((begin->car->type==PAIR&&begin->car->u.pair==obj)||(begin->cdr->type==PAIR&&begin->cdr->u.pair==obj))
-		return 1;
-	if(begin->car->type==PAIR&&hasSameVMpair(obj,begin->car->u.pair,h))
-		return 1;
-	if(begin->cdr->type==PAIR&&hasSameVMpair(obj,begin->cdr->u.pair,h))
-		return 1;
-	return 0;
-}
 
-int isCircularReference(VMpair* begin,CRL* h)
-{
-	return (begin->car->type==PAIR&&hasSameVMpair(begin,begin->car->u.pair,h))||(begin->cdr->type==PAIR&&hasSameVMpair(begin,begin->cdr->u.pair,h));
-}

@@ -22,6 +22,28 @@ static int32_t getSymbolIdInByteCode(const char*);
 extern char* builtInSymbolList[NUMOFBUILTINSYMBOL];
 pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
 FakeVMlist GlobFakeVMs={0,NULL};
+
+static CRL* newCRL(VMpair* pair,int32_t count)
+{
+	CRL* tmp=(CRL*)malloc(sizeof(CRL));
+	if(!tmp)
+		errors("newCRL",__FILE__,__LINE__);
+	tmp->pair=pair;
+	tmp->count=count;
+	tmp->next=NULL;
+	return tmp;
+}
+
+static int32_t findCRLcount(VMpair* pair,CRL* h)
+{
+	for(;h;h=h->next)
+	{
+		if(h->pair==pair)
+			return h->count;
+	}
+	return -1;
+}
+
 static int (*ByteCodes[])(FakeVM*)=
 {
 	B_dummy,
@@ -2464,8 +2486,14 @@ int B_write(FakeVM* exe)
 	FILE* objFile=file->u.fp->fp;
 	stack->tp-=1;
 	stackRecycle(exe);
-	VMpair* tmpPair=(obj->type==PAIR)?obj->u.pair:NULL;
-	writeVMvalue(obj,tmpPair,objFile,0,0);
+	CRL* head=NULL;
+	writeVMvalue(obj,objFile,0,0,&head);
+	while(head)
+	{
+		CRL* prev=head;
+		head=head->next;
+		free(prev);
+	}
 	proc->cp+=1;
 	return 0;
 }
@@ -2495,8 +2523,14 @@ int B_princ(FakeVM* exe)
 	FILE* objFile=file->u.fp->fp;
 	stack->tp-=1;
 	stackRecycle(exe);
-	VMpair* tmpPair=(obj->type==PAIR)?obj->u.pair:NULL;
-	princVMvalue(obj,tmpPair,objFile,0);
+	CRL* head=NULL;
+	princVMvalue(obj,objFile,0,&head);
+	while(head)
+	{
+		CRL* prev=head;
+		head=head->next;
+		free(prev);
+	}
 	proc->cp+=1;
 	return 0;
 }
@@ -2650,8 +2684,10 @@ VMstack* newVMstack(int32_t size)
 	return tmp;
 }
 
-void writeVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t mode,int8_t isPrevPair)
+void writeVMvalue(VMvalue* objValue,FILE* fp,int8_t mode,int8_t isPrevPair,CRL** h)
 {
+	uint8_t isCirRef=0;
+	int32_t CRLcount=-1;
 	switch(objValue->type)
 	{
 		case NIL:
@@ -2677,27 +2713,44 @@ void writeVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t mode,int8_t is
 			else fprintf(fp,"#<proc>");
 			break;
 		case PAIR:
-			if(isPrevPair)
-				putc(' ',fp);
+			isCirRef=isCircularReference(objValue->u.pair,*h);
+			if(isCirRef)
+			{
+				CRL* crl=newCRL(objValue->u.pair,(*h)?(*h)->count+1:0);
+				crl->next=*h;
+				*h=crl;
+				fprintf(fp,"#%d=(",crl->count);
+			}
 			else
-				putc('(',fp);
-			if(objValue->u.pair->car->type==PAIR&&objValue->u.pair->car->u.pair==begin)
-				fprintf(fp,"##");
+			{
+				if(isPrevPair)
+					putc(' ',fp);
+				else
+				{
+					putc('(',fp);
+				}
+			}
+			if(objValue->u.pair->car->type==PAIR)
+				CRLcount=findCRLcount(objValue->u.pair->car->u.pair,*h);
+			if(CRLcount!=-1)
+				fprintf(fp,"#%d#",CRLcount);
 			else
 			{
 				if(objValue->u.pair->car->type!=NIL||isPrevPair)
-					writeVMvalue(objValue->u.pair->car,begin,fp,mode,0);
+					writeVMvalue(objValue->u.pair->car,fp,mode,0,h);
 			}
 			if(objValue->u.pair->cdr->type!=NIL)
 			{
 				if(objValue->u.pair->cdr->type!=PAIR)
 					putc(',',fp);
-				if(objValue->u.pair->cdr->type==PAIR&&objValue->u.pair->cdr->u.pair==begin)
-					fprintf(fp,"##");
+				if(objValue->u.pair->cdr->type==PAIR)
+					CRLcount=findCRLcount(objValue->u.pair->cdr->u.pair,*h);
+				if(CRLcount!=-1)
+					fprintf(fp,"#%d#",CRLcount);
 				else
-					writeVMvalue(objValue->u.pair->cdr,begin,fp,mode,1);
+					writeVMvalue(objValue->u.pair->cdr,fp,mode,1,h);
 			}
-			if(!isPrevPair)
+			if(isCirRef||!isPrevPair)
 				putc(')',fp);
 			break;
 		case BYTS:
@@ -2716,8 +2769,10 @@ void writeVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t mode,int8_t is
 	}
 }
 
-void princVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t isPrevPair)
+void princVMvalue(VMvalue* objValue,FILE* fp,int8_t isPrevPair,CRL** h)
 {
+	uint8_t isCirRef=0;
+	int32_t CRLcount=-1;
 	switch(objValue->type)
 	{
 		case NIL:
@@ -2742,25 +2797,44 @@ void princVMvalue(VMvalue* objValue,VMpair* begin,FILE* fp,int8_t isPrevPair)
 			fprintf(fp,"#<proc>");
 			break;
 		case PAIR:
-			if(isPrevPair)
-				putc(' ',fp);
+			isCirRef=isCircularReference(objValue->u.pair,*h);
+			if(isCirRef)
+			{
+				CRL* crl=newCRL(objValue->u.pair,(*h)?(*h)->count+1:0);
+				crl->next=*h;
+				*h=crl;
+				fprintf(fp,"#%d=",crl->count);
+			}
 			else
-				putc('(',fp);
-			if(objValue->u.pair->car->type==PAIR&&objValue->u.pair->car->u.pair==begin)
-				fprintf(fp,"##");
+			{
+				if(isPrevPair)
+					putc(' ',fp);
+				else
+				{
+					putc('(',fp);
+				}
+			}
+			if(objValue->u.pair->car->type==PAIR)
+				CRLcount=findCRLcount(objValue->u.pair->car->u.pair,*h);
+			if(CRLcount!=-1)
+			{
+				fprintf(fp,"#%d#",CRLcount);
+			}
 			else
 			{
 				if(objValue->u.pair->car->type!=NIL||isPrevPair)
-					princVMvalue(objValue->u.pair->car,begin,fp,0);
+					princVMvalue(objValue->u.pair->car,fp,0,h);
 			}
 			if(objValue->u.pair->cdr->type!=NIL)
 			{
 				if(objValue->u.pair->cdr->type!=PAIR)
 					putc(',',fp);
-				if(objValue->u.pair->cdr->type==PAIR&&objValue->u.pair->cdr->u.pair==begin)
-					fprintf(fp,"##");
+				if(objValue->u.pair->cdr->type==PAIR)
+					CRLcount=findCRLcount(objValue->u.pair->cdr->u.pair,*h);
+				if(CRLcount!=-1)
+					fprintf(fp,"#%d#",CRLcount);
 				else
-					princVMvalue(objValue->u.pair->cdr,begin,fp,1);
+					princVMvalue(objValue->u.pair->cdr,fp,1,h);
 			}
 			if(!isPrevPair)
 				putc(')',fp);
@@ -2788,11 +2862,6 @@ void stackRecycle(FakeVM* exe)
 	VMcode* tmpCode=curproc->code;
 	if(stack->size-stack->tp>64)
 	{
-		//	size_t newSize=stack->size-64;
-		//	if(newSize>0)
-		//	{
-		//ByteCode tmpByteCode={tmpCode->size,tmpCode->code};
-		//printByteCode(&tmpByteCode,stderr);
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size-64));
 		if(stack->values==NULL)
 		{
@@ -2801,7 +2870,6 @@ void stackRecycle(FakeVM* exe)
 			errors("stackRecycle",__FILE__,__LINE__);
 		}
 		stack->size-=64;
-		//	}
 	}
 }
 
@@ -2850,8 +2918,14 @@ void DBG_printVMstack(VMstack* stack,FILE* fp,int mode)
 				fputs("->",stderr);
 			if(fp!=stdout)fprintf(fp,"%d:",i);
 			VMvalue* tmp=stack->values[i];
-			VMpair* tmpPair=(tmp->type==PAIR)?tmp->u.pair:NULL;
-			writeVMvalue(tmp,tmpPair,fp,0,0);
+			CRL* head=NULL;
+			writeVMvalue(tmp,fp,0,0,&head);
+			while(head)
+			{
+				CRL* prev=head;
+				head=head->next;
+				free(prev);
+			}
 			putc('\n',fp);
 		}
 	}
@@ -2859,8 +2933,14 @@ void DBG_printVMstack(VMstack* stack,FILE* fp,int mode)
 
 void DBG_printVMvalue(VMvalue* v,FILE* fp)
 {
-	VMpair* p=(v->type==PAIR)?v->u.pair:NULL;
-	writeVMvalue(v,p,fp,0,0);
+	CRL* head=NULL;
+	writeVMvalue(v,fp,0,0,&head);
+	while(head)
+	{
+		CRL* prev=head;
+		head=head->next;
+		free(prev);
+	}
 }
 
 VMprocess* hasSameProc(VMcode* objCode,VMprocess* curproc)
@@ -2899,8 +2979,14 @@ void DBG_printVMenv(VMenv* curEnv,FILE* fp)
 		for(int i=0;i<curEnv->size;i++)
 		{
 			VMvalue* tmp=curEnv->list[i]->value;
-			VMpair* tmpPair=(tmp->type==PAIR)?tmp->u.pair:NULL;
-			writeVMvalue(tmp,tmpPair,fp,0,0);
+			CRL* head=NULL;
+			writeVMvalue(tmp,fp,0,0,&head);
+			while(head)
+			{
+				CRL* prev=head;
+				head=head->next;
+				free(prev);
+			}
 			putc(' ',fp);
 		}
 	}
@@ -3209,18 +3295,20 @@ int32_t getSymbolIdInByteCode(const char* code)
 	return -1;
 }
 
-static int hasSameVMpair(VMpair* obj,VMpair* begin)
+static int hasSameVMpair(VMpair* obj,VMpair* begin,CRL* h)
 {
-	if((begin->car->type==PAIR&&begin->car->u.pair==obj)||(begin->cdr->type==PAIR&&begin->cdr->u.pair))
+	if(findCRLcount(begin,h)!=-1)
+		return 0;
+	if((begin->car->type==PAIR&&begin->car->u.pair==obj)||(begin->cdr->type==PAIR&&begin->cdr->u.pair==obj))
 		return 1;
-	if(begin->car->type==PAIR&&hasSameVMpair(obj,begin->car->u.pair))
+	if(begin->car->type==PAIR&&hasSameVMpair(obj,begin->car->u.pair,h))
 		return 1;
-	if(begin->cdr->type==PAIR&&hasSameVMpair(obj,begin->cdr->u.pair))
+	if(begin->cdr->type==PAIR&&hasSameVMpair(obj,begin->cdr->u.pair,h))
 		return 1;
 	return 0;
 }
 
-int isCircularReference(VMpair* begin)
+int isCircularReference(VMpair* begin,CRL* h)
 {
-	return (begin->car->type==PAIR&&hasSameVMpair(begin,begin->car->u.pair))||(begin->cdr->type==PAIR&&hasSameVMpair(begin,begin->cdr->u.pair));
+	return (begin->car->type==PAIR&&hasSameVMpair(begin,begin->car->u.pair,h))||(begin->cdr->type==PAIR&&hasSameVMpair(begin,begin->cdr->u.pair,h));
 }

@@ -3,9 +3,16 @@
 #include"fakedef.h"
 #include<pthread.h>
 
+typedef struct Cirular_Ref_List
+{
+	VMpair* pair;
+	int32_t count;
+	struct Cirular_Ref_List* next;
+}CRL;
+
 int runFakeVM(FakeVM*);
-void writeVMvalue(VMvalue*,VMpair*,FILE*,int8_t,int8_t);
-void princVMvalue(VMvalue*,VMpair*,FILE*,int8_t);
+void writeVMvalue(VMvalue*,FILE*,int8_t,int8_t,CRL**);
+void princVMvalue(VMvalue*,FILE*,int8_t,CRL**);
 void printProc(VMcode*,FILE*);
 FakeVM* newFakeVM(ByteCode*,ByteCode*);
 FakeVM* newTmpFakeVM(ByteCode*,ByteCode*);
@@ -113,5 +120,5 @@ void DBG_printVMenv(VMenv*,FILE*);
 void DBG_printVMvalue(VMvalue*,FILE*);
 void DBG_printVMstack(VMstack*,FILE*,int);
 
-int isCircularReference(VMpair*);
+int isCircularReference(VMpair*,CRL* h);
 #endif

@@ -107,6 +107,15 @@ VMpair* isCircularReference(VMpair* begin,CRL* h)
 	return NULL;
 }
 
+int8_t isInTheCircle(VMpair* obj,VMpair* begin,VMpair* curPair)
+{
+	if(obj==curPair)
+		return 1;
+	if((curPair->car->type==PAIR&&begin==curPair->car->u.pair)||(curPair->cdr->type==PAIR&&begin==curPair->cdr->u.pair))
+		return 0;
+	return ((curPair->car->type==PAIR)&&isInTheCircle(obj,begin,curPair->car->u.pair))||((curPair->cdr->type==PAIR)&&isInTheCircle(obj,begin,curPair->cdr->u.pair));
+}
+
 static int (*ByteCodes[])(FakeVM*)=
 {
 	B_dummy,
@@ -2750,6 +2759,7 @@ VMstack* newVMstack(int32_t size)
 void writeVMvalue(VMvalue* objValue,FILE* fp,int8_t mode,int8_t isPrevPair,CRL** h)
 {
 	VMpair* cirPair=NULL;
+	int8_t isInCir=0;
 	int32_t CRLcount=-1;
 	switch(objValue->type)
 	{
@@ -2777,7 +2787,9 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,int8_t mode,int8_t isPrevPair,CRL**
 			break;
 		case PAIR:
 			cirPair=isCircularReference(objValue->u.pair,*h);
-			if(cirPair&&cirPair==objValue->u.pair)
+			if(cirPair)
+				isInCir=isInTheCircle(objValue->u.pair,cirPair,cirPair);
+			if(cirPair&&isInCir)
 			{
 				CRL* crl=newCRL(objValue->u.pair,(*h)?(*h)->count+1:0);
 				crl->next=*h;
@@ -2815,7 +2827,7 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,int8_t mode,int8_t isPrevPair,CRL**
 				else
 					writeVMvalue(objValue->u.pair->cdr,fp,mode,1,h);
 			}
-			if((cirPair&&objValue->u.pair==cirPair)||!isPrevPair)
+			if((cirPair&&isInCir)||!isPrevPair)
 				putc(')',fp);
 			break;
 		case BYTS:
@@ -2838,6 +2850,7 @@ void princVMvalue(VMvalue* objValue,FILE* fp,int8_t isPrevPair,CRL** h)
 {
 	VMpair* cirPair=NULL;
 	int32_t CRLcount=-1;
+	int8_t isInCir=0;
 	switch(objValue->type)
 	{
 		case NIL:
@@ -2863,7 +2876,9 @@ void princVMvalue(VMvalue* objValue,FILE* fp,int8_t isPrevPair,CRL** h)
 			break;
 		case PAIR:
 			cirPair=isCircularReference(objValue->u.pair,*h);
-			if(cirPair&&cirPair==objValue->u.pair)
+			if(cirPair)
+				isInCir=isInTheCircle(objValue->u.pair,cirPair,cirPair);
+			if(cirPair&&isInCir)
 			{
 				CRL* crl=newCRL(objValue->u.pair,(*h)?(*h)->count+1:0);
 				crl->next=*h;
@@ -2903,7 +2918,7 @@ void princVMvalue(VMvalue* objValue,FILE* fp,int8_t isPrevPair,CRL** h)
 				else
 					princVMvalue(objValue->u.pair->cdr,fp,1,h);
 			}
-			if((cirPair&&cirPair==objValue->u.pair)||!isPrevPair)
+			if((cirPair&&isInCir)||!isPrevPair)
 				putc(')',fp);
 			break;
 		case BYTS:

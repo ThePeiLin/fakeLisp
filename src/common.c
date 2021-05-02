@@ -2424,7 +2424,6 @@ void pushComStack(void* data,ComStack* stack)
 			errors("pushComStack",__FILE__,__LINE__);
 		stack->data=tmpData;
 		stack->size+=32;
-		fprintf(stderr,"%d\n",stack->size);
 	}
 	stack->data[stack->top]=data;
 	stack->top+=1;

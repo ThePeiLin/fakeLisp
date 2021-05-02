@@ -128,6 +128,7 @@ static int (*ByteCodes[])(FakeVM*)=
 	B_push_sym,
 	B_push_byte,
 	B_push_var,
+	B_push_env_var,
 	B_push_car,
 	B_push_cdr,
 	B_push_top,
@@ -1191,6 +1192,31 @@ int B_push_var(FakeVM* exe)
 	return 0;
 }
 
+int B_push_env_var(FakeVM* exe)
+{
+	VMstack* stack=exe->stack;
+	VMprocess* proc=exe->curproc;
+	VMvalue* topValue=getTopValue(stack);
+	if(topValue->type!=STR&&topValue->type!=SYM)
+		return WRONGARG;
+	SymTabNode* stn=findSymbol(topValue->u.str->str,exe->table);
+	if(stn==NULL)
+		return STACKERROR;
+	int32_t idOfVar=stn->id;
+	VMenv* curEnv=exe->curproc->localenv;
+	VMenvNode* tmp=NULL;
+	while(curEnv&&!tmp)
+	{
+		tmp=findVMenvNode(idOfVar,curEnv);
+		curEnv=curEnv->prev;
+	}
+	if(tmp==NULL)
+		return STACKERROR;
+	stack->values[stack->tp-1]=tmp->value;
+	proc->cp+=1;
+	return 0;
+}
+
 int B_push_car(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
@@ -1199,7 +1225,7 @@ int B_push_car(FakeVM* exe)
 	if(objValue->type!=PAIR&&objValue->type!=STR&&objValue->type!=BYTS)return WRONGARG;
 	if(objValue->type==PAIR)
 	{
-		stack->values[stack->tp-1]=getCar(objValue);
+		stack->values[stack->tp-1]=getVMpairCar(objValue);
 	}
 	else if(objValue->type==STR)
 	{
@@ -1225,7 +1251,7 @@ int B_push_cdr(FakeVM* exe)
 	if(objValue->type!=PAIR&&objValue->type!=STR&&objValue->type!=BYTS)return WRONGARG;
 	if(objValue->type==PAIR)
 	{
-		stack->values[stack->tp-1]=getCdr(objValue);
+		stack->values[stack->tp-1]=getVMpairCdr(objValue);
 	}
 	else if(objValue->type==STR)
 	{
@@ -1715,7 +1741,7 @@ int B_atom(FakeVM* exe)
 		stack->values[stack->tp-1]=newTrueValue(exe->heap);
 	else
 	{
-		if(getCar(topValue)->type==NIL&&getCdr(topValue)->type==NIL)
+		if(getVMpairCar(topValue)->type==NIL&&getVMpairCdr(topValue)->type==NIL)
 			stack->values[stack->tp-1]=newTrueValue(exe->heap);
 		else
 			stack->values[stack->tp-1]=newNilValue(exe->heap);
@@ -1729,7 +1755,7 @@ int B_null(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMvalue* topValue=getTopValue(stack);
-	if(topValue->type==NIL||(topValue->type==PAIR&&(getCar(topValue)->type==NIL&&getCdr(topValue)->type==NIL)))
+	if(topValue->type==NIL||(topValue->type==PAIR&&(getVMpairCar(topValue)->type==NIL&&getVMpairCdr(topValue)->type==NIL)))
 	{
 		stack->values[stack->tp-1]=newTrueValue(exe->heap);
 	}
@@ -1895,7 +1921,7 @@ int B_jmp_if_true(FakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMcode* tmpCode=proc->code;
 	VMvalue* tmpValue=getTopValue(stack);
-	if(!(tmpValue->type==NIL||(tmpValue->type==PAIR&&getCar(tmpValue)->type==NIL&&getCdr(tmpValue)->type==NIL)))
+	if(!(tmpValue->type==NIL||(tmpValue->type==PAIR&&getVMpairCar(tmpValue)->type==NIL&&getVMpairCdr(tmpValue)->type==NIL)))
 	{
 		int32_t where=*(int32_t*)(tmpCode->code+proc->cp+sizeof(char));
 		proc->cp+=where;
@@ -1911,7 +1937,7 @@ int B_jmp_if_false(FakeVM* exe)
 	VMcode* tmpCode=proc->code;
 	VMvalue* tmpValue=getTopValue(stack);
 	stackRecycle(exe);
-	if(tmpValue->type==NIL||(tmpValue->type==PAIR&&getCar(tmpValue)->type==NIL&&getCdr(tmpValue)->type==NIL))
+	if(tmpValue->type==NIL||(tmpValue->type==PAIR&&getVMpairCar(tmpValue)->type==NIL&&getVMpairCdr(tmpValue)->type==NIL))
 	{
 		int32_t where=*(int32_t*)(tmpCode->code+proc->cp+sizeof(char));
 		proc->cp+=where;
@@ -2143,7 +2169,7 @@ int B_not(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMvalue* tmpValue=getTopValue(stack);
-	if(tmpValue->type==NIL||(tmpValue->type==PAIR&&getCar(tmpValue)->type==NIL&&getCdr(tmpValue)->type==NIL))
+	if(tmpValue->type==NIL||(tmpValue->type==PAIR&&getVMpairCar(tmpValue)->type==NIL&&getVMpairCdr(tmpValue)->type==NIL))
 		stack->values[stack->tp-1]=newTrueValue(exe->heap);
 	else
 		stack->values[stack->tp-1]=newNilValue(exe->heap);
@@ -2368,8 +2394,8 @@ int B_nth(FakeVM* exe)
 	if((objlist->type!=PAIR&&objlist->type!=STR&&objlist->type!=BYTS)||place->type!=IN32)return WRONGARG;
 	if(objlist->type==PAIR)
 	{
-		VMvalue* obj=getCar(objlist);
-		VMvalue* objPair=getCdr(objlist);
+		VMvalue* obj=getVMpairCar(objlist);
+		VMvalue* objPair=getVMpairCdr(objlist);
 		int i=0;
 		for(;i<*place->u.num;i++)
 		{
@@ -2378,8 +2404,8 @@ int B_nth(FakeVM* exe)
 				obj=newNilValue(exe->heap);
 				break;
 			}
-			obj=getCar(objPair);
-			objPair=getCdr(objPair);
+			obj=getVMpairCar(objPair);
+			objPair=getVMpairCdr(objPair);
 		}
 		stack->tp-=1;
 		stack->values[stack->tp-1]=obj;
@@ -2414,8 +2440,8 @@ int B_length(FakeVM* exe)
 	if(objlist->type==PAIR)
 	{
 		int32_t i=0;
-		for(VMvalue* tmp=objlist;tmp!=NULL&&tmp->type==PAIR;tmp=getCdr(tmp))
-			if(!(getCar(tmp)->type==NIL&&getCdr(tmp)->type==NIL))
+		for(VMvalue* tmp=objlist;tmp!=NULL&&tmp->type==PAIR;tmp=getVMpairCdr(tmp))
+			if(!(getVMpairCar(tmp)->type==NIL&&getVMpairCdr(tmp)->type==NIL))
 				i++;
 		stack->values[stack->tp-1]=newVMvalue(IN32,&i,exe->heap,1);
 	}
@@ -2443,7 +2469,7 @@ int B_appd(FakeVM* exe)
 	{
 		VMvalue* copyOfsec=copyVMvalue(sec,exe->heap);
 		VMvalue* lastpair=copyOfsec;
-		while(getCdr(lastpair)->type!=NIL)lastpair=getCdr(lastpair);
+		while(getVMpairCdr(lastpair)->type!=NIL)lastpair=getVMpairCdr(lastpair);
 		lastpair->u.pair->cdr=fir;
 		stack->tp-=1;
 		stackRecycle(exe);
@@ -3107,34 +3133,53 @@ void GC_mark(FakeVM* exe)
 
 void GC_markValue(VMvalue* obj)
 {
-	if(!obj->mark)
+	ComStack* stack=newComStack(32);
+	pushComStack(obj,stack);
+	while(!isComStackEmpty(stack))
 	{
-		obj->mark=1;
-		if(obj->type==PAIR)
+		VMvalue* root=popComStack(stack);
+		if(!root->mark)
 		{
-			GC_markValue(getCar(obj));
-			GC_markValue(getCdr(obj));
-		}
-		else if(obj->type==PRC)
-		{
-			VMenv* curEnv=obj->u.prc->localenv;
-			for(;curEnv!=NULL;curEnv=curEnv->prev)
-				GC_markValueInEnv(curEnv);
-		}
-		else if(obj->type==CONT)
-		{
-			GC_markValueInStack(obj->u.cont->stack);
-			int32_t i=0;
-			for(;i<obj->u.cont->size;i++)
-				GC_markValueInEnv(obj->u.cont->status[i].env);
-		}
-		else if(obj->type==CHAN)
-		{
-			pthread_mutex_lock(&obj->u.chan->lock);
-			GC_markMessage(obj->u.chan->head);
-			pthread_mutex_unlock(&obj->u.chan->lock);
+			root->mark=1;
+			if(root->type==PAIR)
+			{
+				pushComStack(getVMpairCar(root),stack);
+				pushComStack(getVMpairCar(root),stack);
+			}
+			else if(root->type==PRC)
+			{
+				VMenv* curEnv=root->u.prc->localenv;
+				for(;curEnv!=NULL;curEnv=curEnv->prev)
+				{
+					uint32_t i=0;
+					for(;i<curEnv->size;i++)
+						pushComStack(curEnv->list[i]->value,stack);
+				}
+			}
+			else if(root->type==CONT)
+			{
+				uint32_t i=0;
+				for(;i<root->u.cont->stack->tp;i++)
+					pushComStack(root->u.cont->stack->values[i],stack);
+				for(i=0;i<root->u.cont->size;i++)
+				{
+					VMenv* env=root->u.cont->status[i].env;
+					uint32_t j=0;
+					for(;j<env->size;j++)
+						pushComStack(env->list[i]->value,stack);
+				}
+			}
+			else if(root->type==CHAN)
+			{
+				pthread_mutex_lock(&root->u.chan->lock);
+				ThreadMessage* head=root->u.chan->head;
+				for(;head;head=head->next)
+					pushComStack(head->message,stack);
+				pthread_mutex_unlock(&root->u.chan->lock);
+			}
 		}
 	}
+	freeComStack(stack);
 }
 
 void GC_markValueInEnv(VMenv* curEnv)

@@ -375,7 +375,6 @@ int deleteCptr(AST_cptr* objCptr)
 			{
 				AST_pair* prev=objPair;
 				objPair=objPair->prev;
-			//	printf("free PAIR\n");
 				free(prev);
 				if(objPair==NULL||prev==tmpPair)break;
 				if(prev==objPair->car.value)
@@ -576,7 +575,7 @@ void freeAtom(AST_atom* objAtm)
 	free(objAtm);
 }
 
-void printList(const AST_cptr* objCptr,FILE* out)
+void printCptr(const AST_cptr* objCptr,FILE* out)
 {
 	if(objCptr==NULL)return;
 	AST_pair* tmpPair=(objCptr->type==PAIR)?objCptr->value:NULL;
@@ -656,7 +655,7 @@ void printList(const AST_cptr* objCptr,FILE* out)
 void exError(const AST_cptr* obj,int type,Intpr* inter)
 {
 	if(inter!=NULL)fprintf(stderr,"In file \"%s\",line %d\n",inter->filename,(obj==NULL)?inter->curline:obj->curline);
-	if(obj!=NULL)printList(obj,stderr);
+	if(obj!=NULL)printCptr(obj,stderr);
 	switch(type)
 	{
 		case SYMUNDEFINE:
@@ -2397,5 +2396,64 @@ void destroyByteCodeLabelChain(ByteCodeLabel* head)
 		ByteCodeLabel* obj=head;
 		head=head->next;
 		freeByteCodeLabel(obj);
+	}
+}
+
+int isComStackEmpty(ComStack* stack)
+{
+	return stack->top==0;
+}
+
+ComStack* newComStack(uint32_t size)
+{
+	ComStack* tmp=(ComStack*)malloc(sizeof(ComStack));
+	if(!tmp)
+		errors("newComStack",__FILE__,__LINE__);
+	tmp->data=(void**)malloc(sizeof(void*)*size);
+	tmp->size=size;
+	tmp->top=0;
+	return tmp;
+}
+
+void pushComStack(void* data,ComStack* stack)
+{
+	if(stack->top==stack->size)
+	{
+		void** tmpData=(void**)realloc(stack->data,(stack->size+32)*sizeof(void*));
+		if(!tmpData)
+			errors("pushComStack",__FILE__,__LINE__);
+		stack->data=tmpData;
+		stack->size+=32;
+		fprintf(stderr,"%d\n",stack->size);
+	}
+	stack->data[stack->top]=data;
+	stack->top+=1;
+}
+
+void* popComStack(ComStack* stack)
+{
+	if(isComStackEmpty(stack))
+		return NULL;
+	stack->top-=1;
+	void* tmp=stack->data[stack->top];
+	recycleComStack(stack);
+	return tmp;
+}
+
+void freeComStack(ComStack* stack)
+{
+	free(stack->data);
+	free(stack);
+}
+
+void recycleComStack(ComStack* stack)
+{
+	if(stack->size-stack->top>32)
+	{
+		void** tmpData=(void**)realloc(stack->data,(stack->size-32)*sizeof(void*));
+		if(!tmpData)
+			errors("recycleComStack",__FILE__,__LINE__);
+		stack->data=tmpData;
+		stack->size-=32;
 	}
 }

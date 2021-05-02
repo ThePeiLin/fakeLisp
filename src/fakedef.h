@@ -27,6 +27,13 @@ typedef enum
 	INVOKEERROR,
 }ErrorType;
 
+typedef struct Com_Stack
+{
+	void** data;
+	uint32_t size;
+	uint32_t top;
+}ComStack;
+
 typedef struct
 {
 	int32_t size;

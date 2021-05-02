@@ -192,7 +192,7 @@ int FAKE_argv(FakeVM* exe,pthread_rwlock_t* pGClock)
 		retval=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap,1);
 		VMvalue* tmp=retval;
 		int32_t i=0;
-		for(;i<exe->argc;i++,tmp=getCdr(tmp))
+		for(;i<exe->argc;i++,tmp=getVMpairCdr(tmp))
 		{
 			tmp->u.pair->car=newVMvalue(STR,newVMstr(exe->argv[i]),exe->heap,1);
 			tmp->u.pair->cdr=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap,1);
@@ -215,33 +215,6 @@ int FAKE_setChanlBufferSize(FakeVM* exe,pthread_rwlock_t* pGClock)
 		return WRONGARG;
 	chan->u.chan->max=*size->u.num;
 	SET_RETURN("FAKE_setChanlBufferSize",chan,stack);
-	return 0;
-}
-
-int FAKE_symbolToValue(FakeVM* exe,pthread_rwlock_t* pGClock)
-{
-	VMstack* stack=exe->stack;
-	VMprocess* proc=exe->curproc;
-	VMvalue* symbol=getArg(stack);
-	if(!symbol)
-		return TOOFEWARG;
-	if(resBp(exe))
-		return TOOFEWARG;
-	if(symbol->type!=SYM)
-		return WRONGARG;
-	int32_t id=findSymbol(symbol->u.str->str,exe->table)->id;
-	VMenv* curEnv=proc->prev->localenv;
-	VMvalue* tmpValue=NULL;
-	VMenvNode* tmp=NULL;
-	while(curEnv&&!tmp)
-	{
-		tmp=findVMenvNode(id,curEnv);
-		curEnv=curEnv->prev;
-	}
-	if(tmp==NULL)
-		return 0;
-	tmpValue=tmp->value;
-	SET_RETURN("FAKE_symbolToValue",tmpValue,stack);
 	return 0;
 }
 #ifdef __cplusplus

@@ -169,13 +169,13 @@ VMvalue* getValue(VMstack* stack,int32_t place)
 	return stack->values[place];
 }
 
-VMvalue* getCar(VMvalue* obj)
+VMvalue* getVMpairCar(VMvalue* obj)
 {
 	if(obj->type!=PAIR)return NULL;
 	else return obj->u.pair->car;
 }
 
-VMvalue* getCdr(VMvalue* obj)
+VMvalue* getVMpairCdr(VMvalue* obj)
 {
 	if(obj->type!=PAIR)return NULL;
 	else return obj->u.pair->cdr;

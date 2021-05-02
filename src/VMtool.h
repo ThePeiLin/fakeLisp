@@ -91,4 +91,7 @@ VMfp* newVMfp(FILE*);
 void increaseVMfpRefcount(VMfp*);
 void decreaseVMfpRefcount(VMfp*);
 void freeVMfp(VMfp*);
+
+
+ThreadMessage* newThreadMessage(VMvalue*,VMheap*);
 #endif

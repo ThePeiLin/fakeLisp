@@ -97,7 +97,6 @@ VMcode* newBuiltInProc(ByteCode*);
 VMprocess* newFakeProcess(VMcode*,VMprocess*);
 int createNewThread(FakeVM*);
 FakeVMlist* newThreadStack(int32_t);
-ThreadMessage* newThreadMessage(VMvalue*,VMheap*);
 ThreadMessage* newMessage(VMvalue*);
 int sendMessage(ThreadMessage*,FakeVM*);
 VMprocess* hasSameProc(VMcode*,VMprocess*);

@@ -58,44 +58,71 @@ VMcode* newVMcode(ByteCode* proc,int32_t id)
 
 VMvalue* copyVMvalue(VMvalue* obj,VMheap* heap)
 {
-	VMvalue* tmp=NULL;
-	switch(obj->type)
+	ComStack* s1=newComStack(32);
+	ComStack* s2=newComStack(32);
+	VMvalue* tmp=newNilValue(heap);
+	pushComStack(obj,s1);
+	pushComStack(tmp,s2);
+	while(!isComStackEmpty(s1))
 	{
-		case NIL:
-			tmp=newNilValue(heap);
-			break;
-		case IN32:
-			tmp=newVMvalue(IN32,obj->u.num,heap,1);
-			break;
-		case DBL:
-			tmp=newVMvalue(DBL,obj->u.dbl,heap,1);
-			break;
-		case CHR:
-			tmp=newVMvalue(CHR,obj->u.chr,heap,1);
-			break;
-		case BYTS:
-			tmp=newVMvalue(BYTS,newByteString(obj->u.byts->size,obj->u.byts->str),heap,1);
-			break;
-		case STR:
-		case SYM:
-			tmp=newVMvalue(obj->type,newVMstr(obj->u.str->str),heap,1);
-			break;
-		case PRC:
-			tmp=newVMvalue(PRC,copyVMcode(obj->u.prc,heap),heap,1);
-			break;
-		case CHAN:
-			tmp=newVMvalue(CHAN,copyChanl(obj->u.chan,heap),heap,1);
-			break;
-		case FP:
-			tmp=newVMvalue(FP,obj->u.fp,heap,1);
-			increaseVMfpRefcount(obj->u.fp);
-			break;
-		case PAIR:
-			tmp=newVMvalue(PAIR,newVMpair(heap),heap,1);
-			tmp->u.pair->car=copyVMvalue(obj->u.pair->car,heap);
-			tmp->u.pair->cdr=copyVMvalue(obj->u.pair->cdr,heap);
-			break;
+		VMvalue* root=popComStack(s1);
+		VMvalue* root1=popComStack(s2);
+		root1->access=1;
+		root1->type=root->type;
+		switch(root->type)
+		{
+			case IN32:
+				root1->u.num=copyMemory(root->u.num,sizeof(int32_t));
+				break;
+			case DBL:
+				root1->u.dbl=copyMemory(root->u.dbl,sizeof(double));
+				break;
+			case CHR:
+				root1->u.chr=copyMemory(root->u.chr,sizeof(char));
+				break;
+			case BYTS:
+				root1->u.byts=newByteString(root->u.byts->size,root->u.byts->str);
+				break;
+			case STR:
+			case SYM:
+				root1->u.str=newVMstr(root->u.str->str);
+				break;
+			case PRC:
+			case FP:
+				copyRef(root1,root);
+				break;
+			case CHAN:
+				{
+					Chanl* objCh=root->u.chan;
+					Chanl* tmpCh=newChanl(objCh->max);
+					ThreadMessage* cur=objCh->head;
+					ThreadMessage* prev=NULL;
+					while(cur)
+					{
+						ThreadMessage* tmp=newThreadMessage(newNilValue(heap),heap);
+						if(!tmpCh->head)
+							tmpCh->head=tmp;
+						if(prev)
+							prev->next=tmp;
+						pushComStack(tmp->message,s2);
+						pushComStack(cur->message,s1);
+						cur=cur->next;
+						prev=tmp;
+					}
+					root1->u.chan=tmpCh;;
+				}
+				break;
+			case PAIR:
+				root1->u.pair=newVMpair(heap);
+				pushComStack(root1->u.pair->car,s2);
+				pushComStack(root1->u.pair->cdr,s2);
+				pushComStack(root->u.pair->car,s1);
+				pushComStack(root->u.pair->cdr,s1);
+				break;
+		}
 	}
+	freeComStack(s1);
+	freeComStack(s2);
 	return tmp;
 }
 
@@ -988,4 +1015,15 @@ void freeVMfp(VMfp* fp)
 			fclose(fp->fp);
 		free(fp);
 	}
+}
+
+ThreadMessage* newThreadMessage(VMvalue* val,VMheap* heap)
+{
+	ThreadMessage* tmp=(ThreadMessage*)malloc(sizeof(ThreadMessage));
+	if(tmp==NULL)errors("newThreadMessage",__FILE__,__LINE__);
+	tmp->message=newNilValue(heap);
+	tmp->message->access=1;
+	copyRef(tmp->message,val);
+	tmp->next=NULL;
+	return tmp;
 }

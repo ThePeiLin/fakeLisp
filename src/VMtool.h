@@ -52,7 +52,7 @@ VMstr* newVMstr(const char*);
 void increaseVMstrRefcount(VMstr*);
 void decreaseVMstrRefcount(VMstr*);
 
-VMvalue* castCptrVMvalue(const AST_cptr*,VMheap*);
+VMvalue* castCptrVMvalue(AST_cptr*,VMheap*);
 ByteString* newByteString(size_t,uint8_t*);
 void increaseByteStringRefcount(ByteString*);
 void decreaseByteStringRefcount(ByteString*);

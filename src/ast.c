@@ -102,7 +102,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 		int status=runFakeVM(tmpVM);
 		AST_cptr* tmpCptr=NULL;
 		if(!status)
-			tmpCptr=castVMvalueToCptr(tmpVM->stack->values[0],inter->curline,NULL);
+			tmpCptr=castVMvalueToCptr(tmpVM->stack->values[0],inter->curline);
 		freeVMenv(tmpGlobEnv);
 		freeVMheap(tmpVM->heap);
 		freeVMstack(tmpVM->stack);
@@ -334,73 +334,80 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 	return root;
 }
 
-AST_cptr* castVMvalueToCptr(VMvalue* value,int32_t curline,AST_pair* prev)
+AST_cptr* castVMvalueToCptr(VMvalue* value,int32_t curline)
 {
-	ValueType cptrType=0;
-	if(value->type==NIL)
-		cptrType=NIL;
-	else if(value->type==PAIR)
-		cptrType=PAIR;
-	else
-		cptrType=ATM;
 	AST_cptr* tmp=newCptr(curline,NULL);
-	tmp->type=cptrType;
-	if(cptrType==ATM)
+	ComStack* s1=newComStack(32);
+	ComStack* s2=newComStack(32);
+	pushComStack(value,s1);
+	pushComStack(tmp,s2);
+	while(!isComStackEmpty(s1))
 	{
-		AST_atom* tmpAtm=newAtom(value->type,NULL,prev);
-		switch(value->type)
+		VMvalue* root=popComStack(s1);
+		AST_cptr* root1=popComStack(s2);
+		ValueType cptrType=0;
+		if(root->type==NIL)
+			cptrType=NIL;
+		else if(root->type==PAIR)
+			cptrType=PAIR;
+		else
+			cptrType=ATM;
+		root1->type=cptrType;
+		if(cptrType==ATM)
 		{
-			case SYM:
-			case STR:
-				tmpAtm->value.str=copyStr(value->u.str->str);
-				break;
-			case IN32:
-				tmpAtm->value.num=*value->u.num;
-				break;
-			case DBL:
-				tmpAtm->value.dbl=*value->u.dbl;
-				break;
-			case CHR:
-				tmpAtm->value.chr=*value->u.chr;
-				break;
-			case BYTS:
-				tmpAtm->value.byts.size=value->u.byts->size;
-				tmpAtm->value.byts.str=copyMemory(value->u.byts->str,value->u.byts->size);
-				break;
-			case PRC:
-				tmpAtm->type=SYM;
-				tmpAtm->value.str=copyStr("#<proc>");
-				break;
-			case CONT:
-				tmpAtm->type=SYM;
-				tmpAtm->value.str=copyStr("#<proc>");
-				break;
-			case CHAN:
-				tmpAtm->type=SYM;
-				tmpAtm->value.str=copyStr("#<chan>");
-				break;
-			case FP:
-				tmpAtm->type=SYM;
-				tmpAtm->value.str=copyStr("#<fp>");
-				break;
+			AST_atom* tmpAtm=newAtom(root->type,NULL,root1->outer);
+			switch(root->type)
+			{
+				case SYM:
+				case STR:
+					tmpAtm->value.str=copyStr(root->u.str->str);
+					break;
+				case IN32:
+					tmpAtm->value.num=*root->u.num;
+					break;
+				case DBL:
+					tmpAtm->value.dbl=*root->u.dbl;
+					break;
+				case CHR:
+					tmpAtm->value.chr=*root->u.chr;
+					break;
+				case BYTS:
+					tmpAtm->value.byts.size=root->u.byts->size;
+					tmpAtm->value.byts.str=copyMemory(root->u.byts->str,root->u.byts->size);
+					break;
+				case PRC:
+					tmpAtm->type=SYM;
+					tmpAtm->value.str=copyStr("#<proc>");
+					break;
+				case CONT:
+					tmpAtm->type=SYM;
+					tmpAtm->value.str=copyStr("#<proc>");
+					break;
+				case CHAN:
+					tmpAtm->type=SYM;
+					tmpAtm->value.str=copyStr("#<chan>");
+					break;
+				case FP:
+					tmpAtm->type=SYM;
+					tmpAtm->value.str=copyStr("#<fp>");
+					break;
+			}
+			root1->value=tmpAtm;
 		}
-		tmp->value=tmpAtm;
+		else if(cptrType==PAIR)
+		{
+			pushComStack(root->u.pair->car,s1);
+			pushComStack(root->u.pair->cdr,s1);
+			AST_pair* tmpPair=newPair(curline,root1->outer);
+			root1->value=tmpPair;
+			tmpPair->car.outer=tmpPair;
+			tmpPair->cdr.outer=tmpPair;
+			pushComStack(&tmpPair->car,s2);
+			pushComStack(&tmpPair->cdr,s2);
+		}
 	}
-	else if(cptrType==PAIR)
-	{
-		AST_pair* tmpPair=newPair(curline,prev);
-		AST_cptr* astCar=castVMvalueToCptr(value->u.pair->car,curline,tmpPair);
-		AST_cptr* astCdr=castVMvalueToCptr(value->u.pair->cdr,curline,tmpPair);
-		tmpPair->car.outer=tmpPair;
-		tmpPair->car.value=astCar->value;
-		tmpPair->car.type=astCar->type;
-		tmpPair->cdr.outer=tmpPair;
-		tmpPair->cdr.value=astCdr->value;
-		tmpPair->cdr.type=astCdr->type;
-		free(astCdr);
-		free(astCar);
-		tmp->value=tmpPair;
-	}
+	freeComStack(s1);
+	freeComStack(s2);
 	return tmp;
 }
 

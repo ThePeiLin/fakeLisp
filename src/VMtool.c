@@ -357,44 +357,56 @@ VMstr* newVMstr(const char* str)
 	return tmp;
 }
 
-VMvalue* castCptrVMvalue(const AST_cptr* objCptr,VMheap* heap)
+VMvalue* castCptrVMvalue(AST_cptr* objCptr,VMheap* heap)
 {
-	if(objCptr->type==ATM)
+	ComStack* s1=newComStack(32);
+	ComStack* s2=newComStack(32);
+	VMvalue* tmp=newNilValue(heap);
+	pushComStack(objCptr,s1);
+	pushComStack(tmp,s2);
+	while(!isComStackEmpty(s1))
 	{
-		AST_atom* tmpAtm=objCptr->value;
-		VMvalue* tmp=NULL;
-		switch((int)tmpAtm->type)
+		AST_cptr* root=popComStack(s1);
+		VMvalue* root1=popComStack(s2);
+		if(root->type==ATM)
 		{
-			case IN32:
-				tmp=newVMvalue(IN32,&tmpAtm->value.num,heap,1);
-				break;
-			case DBL:
-				tmp=newVMvalue(DBL,&tmpAtm->value.dbl,heap,1);
-				break;
-			case CHR:
-				tmp=newVMvalue(CHR,&tmpAtm->value.chr,heap,1);
-				break;
-			case BYTS:
-				tmp=newVMvalue(BYTS,newByteString(tmpAtm->value.byts.size,tmpAtm->value.byts.str),heap,1);
-				break;
-			case SYM:
-			case STR:
-				tmp=newVMvalue(tmpAtm->type,newVMstr(tmpAtm->value.str),heap,1);
-				break;
+			AST_atom* tmpAtm=root->value;
+			root1->type=tmpAtm->type;
+			root1->access=1;
+			switch((int)tmpAtm->type)
+			{
+				case IN32:
+					root1->u.num=copyMemory(&tmpAtm->value,sizeof(int32_t));
+					break;
+				case DBL:
+					root1->u.dbl=copyMemory(&tmpAtm->value.dbl,sizeof(double));
+					break;
+				case CHR:
+					root1->u.chr=copyMemory(&tmpAtm->value.chr,sizeof(char));
+					break;
+				case BYTS:
+					root1->u.byts=newByteString(tmpAtm->value.byts.size,tmpAtm->value.byts.str);
+					break;
+				case SYM:
+				case STR:
+					root1->u.str=newVMstr(tmpAtm->value.str);
+					break;
+			}
 		}
-		return tmp;
+		else if(root->type==PAIR)
+		{
+			AST_pair* objPair=root->value;
+			VMpair* tmpPair=newVMpair(heap);
+			copyRef(root1,newVMvalue(PAIR,tmpPair,heap,1));
+			pushComStack(&objPair->car,s1);
+			pushComStack(&objPair->cdr,s1);
+			pushComStack(tmpPair->car,s2);
+			pushComStack(tmpPair->cdr,s2);
+		}
 	}
-	else if(objCptr->type==PAIR)
-	{
-		AST_pair* objPair=objCptr->value;
-		VMpair* tmpPair=newVMpair(heap);
-		VMvalue* tmp=newVMvalue(PAIR,tmpPair,heap,1);
-		tmp->u.pair->car=castCptrVMvalue(&objPair->car,heap);
-		tmp->u.pair->cdr=castCptrVMvalue(&objPair->cdr,heap);
-		return tmp;
-	}
-	else if(objCptr->type==NIL)return newNilValue(heap);
-	return NULL;
+	freeComStack(s1);
+	freeComStack(s2);
+	return tmp;
 }
 
 ByteString* newByteString(size_t size,uint8_t* str)

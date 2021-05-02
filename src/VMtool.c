@@ -87,6 +87,7 @@ VMvalue* copyVMvalue(VMvalue* obj,VMheap* heap)
 			case SYM:
 				root1->u.str=newVMstr(root->u.str->str);
 				break;
+			case CONT:
 			case PRC:
 			case FP:
 				copyRef(root1,root);
@@ -104,8 +105,8 @@ VMvalue* copyVMvalue(VMvalue* obj,VMheap* heap)
 							tmpCh->head=tmp;
 						if(prev)
 							prev->next=tmp;
-						pushComStack(tmp->message,s2);
 						pushComStack(cur->message,s1);
+						pushComStack(tmp->message,s2);
 						cur=cur->next;
 						prev=tmp;
 					}

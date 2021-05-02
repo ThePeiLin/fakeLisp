@@ -29,6 +29,7 @@ int B_push_sym(FakeVM*);
 int B_push_byte(FakeVM*);
 int B_push_chan(FakeVM*);
 int B_push_var(FakeVM*);
+int B_push_env_var(FakeVM*);
 int B_push_car(FakeVM*);
 int B_push_cdr(FakeVM*);
 int B_push_top(FakeVM*);

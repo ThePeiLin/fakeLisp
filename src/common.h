@@ -28,7 +28,7 @@ uint8_t* castStrByteStr(const char*);
 uint8_t castCharInt(char);
 void errors(const char*,const char*,int);
 void exError(const AST_cptr*,int,Intpr*);
-void printList(const AST_cptr*,FILE*);
+void printCptr(const AST_cptr*,FILE*);
 PreDef* addDefine(const char*,const AST_cptr*,PreEnv*);
 PreDef* findDefine(const char*,const PreEnv*);
 PreDef* newDefines(const char*);
@@ -132,4 +132,11 @@ ByteCodeLabel* findByteCodeLable(const char*,ByteCodeLabel*);
 void addByteCodeLabel(ByteCodeLabel* obj,ByteCodeLabel** head);
 void freeByteCodeLabel(ByteCodeLabel*);
 void destroyByteCodeLabelChain(ByteCodeLabel* head);
+
+ComStack* newComStack(uint32_t size);
+void pushComStack(void* data,ComStack*);
+void* popComStack(ComStack*);
+void freeComStack(ComStack*);
+void recycleComStack(ComStack*);
+int isComStackEmpty(ComStack*);
 #endif

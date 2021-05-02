@@ -2469,7 +2469,7 @@ int B_appd(FakeVM* exe)
 	{
 		VMvalue* copyOfsec=copyVMvalue(sec,exe->heap);
 		VMvalue* lastpair=copyOfsec;
-		while(getVMpairCdr(lastpair)->type!=NIL)lastpair=getVMpairCdr(lastpair);
+		while(getVMpairCdr(lastpair)->type==PAIR)lastpair=getVMpairCdr(lastpair);
 		lastpair->u.pair->cdr=fir;
 		stack->tp-=1;
 		stackRecycle(exe);
@@ -3283,17 +3283,6 @@ void freeVMstack(VMstack* stack)
 	free(stack->tpst);
 	free(stack->values);
 	free(stack);
-}
-
-ThreadMessage* newThreadMessage(VMvalue* val,VMheap* heap)
-{
-	ThreadMessage* tmp=(ThreadMessage*)malloc(sizeof(ThreadMessage));
-	if(tmp==NULL)errors("newThreadMessage",__FILE__,__LINE__);
-	tmp->message=newNilValue(heap);
-	tmp->message->access=1;
-	copyRef(tmp->message,val);
-	tmp->next=NULL;
-	return tmp;
 }
 
 void freeAllVMs()

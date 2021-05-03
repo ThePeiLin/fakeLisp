@@ -961,7 +961,7 @@ int runFakeVM(FakeVM* exe)
 			exe->callback(i);
 		}
 		pthread_rwlock_unlock(&GClock);
-		//if(exe->heap->size>exe->heap->threshold)
+		if(exe->heap->size>exe->heap->threshold)
 		{
 			if(pthread_rwlock_trywrlock(&GClock))continue;
 			int i=0;
@@ -3144,7 +3144,7 @@ void GC_markValue(VMvalue* obj)
 			if(root->type==PAIR)
 			{
 				pushComStack(getVMpairCar(root),stack);
-				pushComStack(getVMpairCar(root),stack);
+				pushComStack(getVMpairCdr(root),stack);
 			}
 			else if(root->type==PRC)
 			{

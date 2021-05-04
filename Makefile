@@ -3,7 +3,7 @@ objectOfFakeLispc=fakeLispc.o common.o syntax.o compiler.o fakeVM.o VMtool.o ast
 ifeq ($(DEBUG),YES)
 FLAG=-g -Wall
 else
-FLAG=-Wall
+FLAG=-O3 -Wall
 endif
 
 ifeq ($(OS),WINDOWS)

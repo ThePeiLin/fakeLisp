@@ -132,11 +132,12 @@ char* intToString(long num)
 int32_t stringToInt(const char* str)
 {
 	int32_t tmp;
-	char* format=NULL;
-	if(isHexNum(str+(str[0]=='0')))format="%lx";
-	else if(isOctNum(str))format="%lo";
-	else format="%ld";
-	sscanf(str,format,&tmp);
+	if(isHexNum(str+(str[0]=='0')))
+		sscanf(str,"%x",&tmp);
+	else if(isOctNum(str))
+		sscanf(str,"%o",&tmp);
+	else
+		sscanf(str,"%d",&tmp);
 	return tmp;
 }
 
@@ -499,20 +500,20 @@ int isDouble(const char* objStr)
 	return 0;
 }
 
-char stringToChar(const char* objStr)
+int stringToChar(const char* objStr)
 {
-	char* format=NULL;
-	char ch=0;
+	int ch=0;
 	if(isNum(objStr))
 	{
 		if(isHexNum(objStr))
 		{
 			objStr++;
-			format="%x";
+			sscanf(objStr,"%x",&ch);
 		}
-		else if(isOctNum(objStr))format="%o";
-		else format="%d";
-		sscanf(objStr,format,&ch);
+		else if(isOctNum(objStr))
+			sscanf(objStr,"%o",&ch);
+		else
+			sscanf(objStr,"%d",&ch);
 	}
 	else
 	{

@@ -653,9 +653,9 @@ ErrorStatus N_import(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 		return status;
 	}
 #ifdef _WIN32
-	char* filetype=".dll";
+	char filetype[]=".dll";
 #else
-	char* filetype=".so";
+	char filetype[]=".so";
 #endif
 	AST_atom* tmpAtom=args[0]->value;
 	char* modname=(char*)malloc(sizeof(char)*(strlen(filetype)+strlen(tmpAtom->value.str)+1));

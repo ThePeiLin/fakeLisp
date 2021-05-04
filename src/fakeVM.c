@@ -1796,7 +1796,7 @@ int B_call_proc(FakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMcode* tmpCode=proc->code;
 	char* funcname=tmpCode->code+proc->cp+1;
-	char* headOfFunc="FAKE_";
+	char headOfFunc[]="FAKE_";
 	char* realfuncName=(char*)malloc(sizeof(char)*(strlen(headOfFunc)+strlen(funcname)+1));
 	if(realfuncName==NULL)errors("B_call_proc",__FILE__,__LINE__);
 	strcpy(realfuncName,headOfFunc);

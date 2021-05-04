@@ -1268,9 +1268,9 @@ Modlist* newModList(const char* libname)
 Dlls* loadAllModules(FILE* fp,Dlls** mods)
 {
 #ifdef _WIN32
-	char* filetype=".dll";
+	char filetype[]=".dll";
 #else
-	char* filetype=".so";
+	char filetype[]=".so";
 #endif
 	int32_t num=0;
 	int i=0;
@@ -1430,11 +1430,11 @@ char* getLastWorkDir(Intpr* inter)
 char* relpath(char* abs,char* relto)
 {
 #ifdef _WIN32
-	char* divstr="\\";
-	char* upperDir="..\\";
+	char divstr[]="\\";
+	char upperDir[]="..\\";
 #else
-	char* divstr="/";
-	char* upperDir="../";
+	char divstr[]="/";
+	char upperDir[]="../";
 #endif
 	char* cabs=copyStr(abs);
 	char* crelto=copyStr(relto);

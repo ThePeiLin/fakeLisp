@@ -90,6 +90,8 @@ chanl
 send  
 recv  
 clcc  
+dll
+dlsym
 
 Special forms:  
 
@@ -109,7 +111,6 @@ unqtesp
 proc  
 
 Preprocesser commands:  
-import  
 defmacro  
 
 ##  Chinese version:  

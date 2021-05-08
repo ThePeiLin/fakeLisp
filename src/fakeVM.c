@@ -1782,6 +1782,8 @@ int B_type(FakeVM* exe)
 		"cont",
 		"chan",
 		"fp",
+		"dll",
+		"dlproc",
 		"pair"
 	};
 	VMstack* stack=exe->stack;

@@ -80,7 +80,6 @@ int main(int argc,char** argv)
 			anotherVM->tid=pthread_self();
 			anotherVM->mainproc->localenv=globEnv;
 			anotherVM->mainproc->code->localenv=NULL;
-			anotherVM->modules=inter->modules;
 			anotherVM->callback=errorCallBack;
 			anotherVM->table=inter->table;
 			anotherVM->lnt=inter->lnt;
@@ -93,7 +92,6 @@ int main(int argc,char** argv)
 				joinAllThread();
 				free(rawProcList);
 				freeIntpr(inter);
-				anotherVM->modules=NULL;
 				unInitPreprocess();
 				freeVMheap(anotherVM->heap);
 				anotherVM->mainproc=NULL;
@@ -105,7 +103,6 @@ int main(int argc,char** argv)
 				joinAllThread();
 				free(rawProcList);
 				freeIntpr(inter);
-				anotherVM->modules=NULL;
 				unInitPreprocess();
 				freeVMheap(anotherVM->heap);
 				freeAllVMs();
@@ -130,7 +127,6 @@ int main(int argc,char** argv)
 		FakeVM* anotherVM=newFakeVM(mainprocess,RawProcess);
 		VMheap* heap=anotherVM->heap;
 		freeByteCode(mainprocess);
-		loadAllModules(fp,&anotherVM->modules);
 		fclose(fp);
 		VMenv* globEnv=newVMenv(NULL);
 		anotherVM->argc=argc-1;
@@ -228,7 +224,6 @@ void runIntpr(Intpr* inter)
 						exit(0);
 					}
 				}
-				anotherVM->modules=inter->modules;
 			}
 			else
 			{
@@ -302,7 +297,6 @@ void runIntpr(Intpr* inter)
 	joinAllThread();
 	free(rawProcList);
 	freeIntpr(inter);
-	anotherVM->modules=NULL;
 	unInitPreprocess();
 	freeVMheap(anotherVM->heap);
 	anotherVM->mainproc=NULL;

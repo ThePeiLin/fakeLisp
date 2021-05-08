@@ -96,7 +96,6 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 		tmpVM->mainproc=newFakeProcess(tmpVMcode,NULL);
 		tmpVM->mainproc->localenv=stringPatternEnv;
 		tmpVM->curproc=tmpVM->mainproc;
-		tmpVM->modules=inter->modules;
 		tmpVM->table=inter->table;
 		tmpVM->lnt=pattern->lnt;
 		int status=runFakeVM(tmpVM);

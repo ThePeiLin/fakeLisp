@@ -169,13 +169,6 @@ typedef struct Raw_Proc
 	struct Raw_Proc* next;
 }RawProc;
 
-typedef struct Mod_List
-{
-	char* name;
-	int32_t count;
-	struct Mod_List* next;
-}Modlist;
-
 typedef struct Interpreter
 {
 	char* filename;
@@ -184,9 +177,6 @@ typedef struct Interpreter
 	int curline;
 	CompEnv* glob;
 	RawProc* procs;
-	struct DLL_s* modules;
-	Modlist* head;
-	Modlist* tail;
 	struct Symbol_Table* table;
 	struct Line_Number_Table* lnt;
 	struct Interpreter* prev;
@@ -304,7 +294,6 @@ typedef struct
 	VMstack* stack;
 	struct Channel* chan;
 	struct Symbol_Table* table;
-	struct DLL_s* modules;
 	struct VM_Heap* heap;
 	struct Line_Number_Table* lnt;
 	void (*callback)(void*);
@@ -330,13 +319,6 @@ typedef HMODULE DllHandle;
 #else
 typedef void* DllHandle;
 #endif
-
-typedef struct DLL_s
-{
-	int32_t count;
-	DllHandle handle;
-	struct DLL_s* next;
-}Dlls;
 
 typedef int (*DllFunc)(FakeVM*,pthread_rwlock_t*);
 

@@ -1,6 +1,9 @@
-(import ../btk)
+(define btk (dll "../btk"))
 
 (load macro.fkl)
+
+(define getch (dlsym btk "getch"))
+(define rand (dlsym btk "rand"))
 
 (defmacro (ARRY $X $Y)
   `(add ~X (mul ~Y rrow)))

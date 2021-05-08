@@ -1,6 +1,8 @@
-(import ../btk)
+(define btk (dll "../btk"))
 
 (load macro.fkl)
+
+(define getch (dlsym btk "getch"))
 
 (define (newTerm)
  (princ "\033[?1049h" stdout))

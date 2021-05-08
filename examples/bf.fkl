@@ -1,5 +1,9 @@
-(import ../btk)
+(define btk (dll "../btk"))
+
 (load macro.fkl)
+
+(define exit (dlsym btk "exit"))
+(define argv (dlsym btk "argv"))
 
 (define code nil)
 

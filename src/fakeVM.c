@@ -2002,7 +2002,11 @@ int B_dlsym(FakeVM* exe)
 	sprintf(realDlFuncName,"%s%s",prefix,symbol->u.str->str);
 	DllFunc funcAddress=getAddress(realDlFuncName,dll->u.dll->handle);
 	if(!funcAddress)
+	{
+		free(realDlFuncName);
 		return INVALIDSYMBOL;
+	}
+	free(realDlFuncName);
 	VMDlproc* dlproc=newVMDlproc(funcAddress,dll->u.dll);
 	stack->values[stack->tp-1]=newVMvalue(DLPROC,dlproc,heap,1);
 	proc->cp+=1;

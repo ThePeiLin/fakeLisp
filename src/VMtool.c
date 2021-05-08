@@ -808,6 +808,12 @@ void freeRef(VMvalue* obj)
 			case FP:
 				freeVMfp(obj->u.fp);
 				break;
+			case DLL:
+				freeVMDll(obj->u.dll);
+				break;
+			case DLPROC:
+				freeVMDlproc(obj->u.dlproc);
+				break;
 		}
 	}
 }
@@ -1101,6 +1107,7 @@ VMDll* newVMDll(const char* dllName)
 	if(!rpath)
 	{
 		perror(dllName);
+		free(realDllName);
 		free(tmp);
 		return NULL;
 	}
@@ -1124,6 +1131,7 @@ VMDll* newVMDll(const char* dllName)
 		LocalFree(lpMsgBuf);
 		fprintf(stderr,"%s\n",szBuf);
 		free(rpath);
+		free(realDllName);
 		free(tmp);
 		return NULL;
 	}
@@ -1133,11 +1141,13 @@ VMDll* newVMDll(const char* dllName)
 	{
 		perror(dlerror());
 		free(rpath);
+		free(realDllName);
 		free(tmp);
 		return NULL;
 	}
 #endif
 	tmp->handle=handle;
+	free(realDllName);
 	free(rpath);
 	return tmp;
 }
@@ -1152,8 +1162,8 @@ void freeVMDll(VMDll* dll)
 		FreeLibrary(dll->handle);
 #else
 		dlclose(dll->handle);
-		free(dll);
 #endif
+		free(dll);
 	}
 }
 

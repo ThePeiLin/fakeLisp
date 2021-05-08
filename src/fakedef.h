@@ -5,10 +5,10 @@
 #include<stdint.h>
 #include<pthread.h>
 #define THRESHOLD_SIZE 64
-#define NUMOFBUILTINSYMBOL 45
+#define NUMOFBUILTINSYMBOL 47
 #define MAX_STRING_SIZE 64
 
-typedef enum{NIL=0,IN32,CHR,DBL,SYM,STR,BYTS,PRC,CONT,CHAN,FP,PAIR,ATM} ValueType;
+typedef enum{NIL=0,IN32,CHR,DBL,SYM,STR,BYTS,PRC,CONT,CHAN,FP,DLL,DLPROC,PAIR,ATM} ValueType;
 
 typedef enum
 {
@@ -25,6 +25,8 @@ typedef enum
 	THREADERROR,
 	MACROEXPANDFAILED,
 	INVOKEERROR,
+	LOADDLLFAILD,
+	INVALIDSYMBOL
 }ErrorType;
 
 typedef struct Com_Stack
@@ -227,6 +229,8 @@ typedef struct VM_Value
 		struct VM_Continuation* cont;
 		struct Channel* chan;
 		struct VM_File* fp;
+		struct VM_Dll* dll;
+		struct VM_Dlproc* dlproc;
 		void* all;
 	}u;
 	struct VM_Value* prev;
@@ -334,7 +338,20 @@ typedef struct DLL_s
 	struct DLL_s* next;
 }Dlls;
 
-typedef int (*ModFunc)(FakeVM*,pthread_rwlock_t*);
+typedef int (*DllFunc)(FakeVM*,pthread_rwlock_t*);
+
+typedef struct VM_Dll
+{
+	int32_t refcount;
+	DllHandle handle;
+}VMDll;
+
+typedef struct VM_Dlproc
+{
+	int32_t refcount;
+	DllFunc func;
+	VMDll* dll;
+}VMDlproc;
 
 typedef struct String_Match_Pattern
 {

@@ -94,4 +94,14 @@ void freeVMfp(VMfp*);
 
 
 ThreadMessage* newThreadMessage(VMvalue*,VMheap*);
+
+VMDll* newVMDll(const char*);
+void increaseVMDllRefcount(VMDll*);
+void decreaseVMDllRefcount(VMDll*);
+void freeVMDll(VMDll*);
+
+VMDlproc* newVMDlproc(DllFunc,VMDll*);
+void increaseVMDlprocRefcount(VMDlproc*);
+void decreaseVMDlprocRefcount(VMDlproc*);
+void freeVMDlproc(VMDlproc*);
 #endif

@@ -172,6 +172,7 @@ static int (*ByteCodes[])(FakeVM*)=
 	B_length,
 	B_appd,
 	B_file,
+	B_dll,
 	B_eq,
 	B_eqn,
 	B_equal,
@@ -185,6 +186,7 @@ static int (*ByteCodes[])(FakeVM*)=
 	B_write,
 	B_putb,
 	B_princ,
+	B_dlsym,
 	B_go,
 	B_chanl,
 	B_send,
@@ -725,6 +727,32 @@ ByteCode P_clcc=
 	}
 };
 
+ByteCode P_dll=
+{
+	16,
+	(char[])
+	{
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_DLL,
+	}
+};
+
+ByteCode P_dlsym=
+{
+	30,
+	(char[])
+	{
+		FAKE_POP_ARG,0,0,0,0, 0,0,0,0,
+		FAKE_POP_ARG,0,0,0,0, 1,0,0,0,
+		FAKE_RES_BP,
+		FAKE_PUSH_VAR,0,0,0,0,
+		FAKE_PUSH_VAR,1,0,0,0,
+		FAKE_DLSYM,
+	}
+};
+
 FakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 {
 	FakeVM* exe=(FakeVM*)malloc(sizeof(FakeVM));
@@ -831,7 +859,9 @@ void initGlobEnv(VMenv* obj,VMheap* heap,SymbolTable* table)
 		P_chanl,
 		P_send,
 		P_recv,
-		P_clcc
+		P_clcc,
+		P_dll,
+		P_dlsym
 	};
 	obj->size=NUMOFBUILTINSYMBOL;
 	obj->list=(VMenvNode**)malloc(sizeof(VMenvNode*)*NUMOFBUILTINSYMBOL);
@@ -1201,7 +1231,7 @@ int B_push_env_var(FakeVM* exe)
 		return WRONGARG;
 	SymTabNode* stn=findSymbol(topValue->u.str->str,exe->table);
 	if(stn==NULL)
-		return STACKERROR;
+		return INVALIDSYMBOL;
 	int32_t idOfVar=stn->id;
 	VMenv* curEnv=exe->curproc->localenv;
 	VMenvNode* tmp=NULL;
@@ -1211,7 +1241,7 @@ int B_push_env_var(FakeVM* exe)
 		curEnv=curEnv->prev;
 	}
 	if(tmp==NULL)
-		return STACKERROR;
+		return INVALIDSYMBOL;
 	stack->values[stack->tp-1]=tmp->value;
 	proc->cp+=1;
 	return 0;
@@ -1574,7 +1604,7 @@ int B_pop_env(FakeVM* exe)
 		freeVMenv(tmpEnv);
 	}
 	else
-		return  STACKERROR;
+		return STACKERROR;
 	proc->cp+=5;
 	return 0;
 }
@@ -1805,7 +1835,7 @@ int B_call_proc(FakeVM* exe)
 	free(realfuncName);
 	if(!funcAddress)
 		return STACKERROR;
-	int retval=((ModFunc)funcAddress)(exe,&GClock);
+	int retval=((DllFunc)funcAddress)(exe,&GClock);
 	proc->cp+=2+strlen(funcname);
 	return retval;
 }
@@ -1887,7 +1917,7 @@ int B_invoke(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMvalue* tmpValue=getTopValue(stack);
-	if(tmpValue->type!=PRC&&tmpValue->type!=CONT)return INVOKEERROR;
+	if(tmpValue->type!=PRC&&tmpValue->type!=CONT&&tmpValue->type!=DLPROC)return INVOKEERROR;
 	if(tmpValue->type==PRC)
 	{
 		VMcode* tmpCode=tmpValue->u.prc;
@@ -1904,13 +1934,21 @@ int B_invoke(FakeVM* exe)
 		stackRecycle(exe);
 		proc->cp+=1;
 	}
-	else
+	else if(tmpValue->type==CONT)
 	{
 		stack->tp-=1;
 		stackRecycle(exe);
 		proc->cp+=1;
 		VMcontinuation* cc=tmpValue->u.cont;
 		createCallChainWithContinuation(exe,cc);
+	}
+	else
+	{
+		stack->tp-=1;
+		stackRecycle(exe);
+		proc->cp+=1;
+		DllFunc dllfunc=tmpValue->u.dlproc->func;
+		dllfunc(exe,&GClock);
 	}
 	return 0;
 }
@@ -1970,6 +2008,46 @@ int B_file(FakeVM* exe)
 		stack->values[stack->tp-1]=newNilValue(heap);
 	else
 		stack->values[stack->tp-1]=newVMvalue(FP,newVMfp(file),heap,1);
+	proc->cp+=1;
+	return 0;
+}
+
+int B_dll(FakeVM* exe)
+{
+	VMstack* stack=exe->stack;
+	VMprocess* proc=exe->curproc;
+	VMheap* heap=exe->heap;
+	VMvalue* dllName=getTopValue(stack);
+	if(dllName->type!=STR&&dllName->type!=SYM)
+		return WRONGARG;
+	VMDll* dll=newVMDll(dllName->u.str->str);
+	if(!dll)
+		return LOADDLLFAILD;
+	stack->values[stack->tp-1]=newVMvalue(DLL,dll,heap,1);
+	proc->cp+=1;
+	return 0;
+}
+
+int B_dlsym(FakeVM* exe)
+{
+	VMstack* stack=exe->stack;
+	VMprocess* proc=exe->curproc;
+	VMheap* heap=exe->heap;
+	VMvalue* symbol=getTopValue(stack);
+	VMvalue* dll=getValue(stack,stack->tp-2);
+	if((symbol->type!=SYM&&symbol->type!=STR)||dll->type!=DLL)
+		return WRONGARG;
+	stack->tp-=1;
+	stackRecycle(exe);
+	char prefix[]="FAKE_";
+	char* realDlFuncName=(char*)malloc(sizeof(char)*(strlen(prefix)+strlen(symbol->u.str->str)+1));
+	if(!realDlFuncName)
+		errors("B_dlsym",__FILE__,__LINE__);
+	DllFunc funcAddress=getAddress(realDlFuncName,dll->u.dll->handle);
+	if(!funcAddress)
+		return INVALIDSYMBOL;
+	VMDlproc* dlproc=newVMDlproc(funcAddress,dll->u.dll);
+	stack->values[stack->tp-1]=newVMvalue(DLPROC,dlproc,heap,1);
 	proc->cp+=1;
 	return 0;
 }
@@ -2868,6 +2946,12 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,int8_t mode,int8_t isPrevPair,CRL**
 		case FP:
 			fprintf(fp,"#<fp>");
 			break;
+		case DLL:
+			fprintf(fp,"<#dll>");
+			break;
+		case DLPROC:
+			fprintf(fp,"<#dlproc>");
+			break;
 		default:fprintf(fp,"Bad value!");break;
 	}
 }
@@ -2958,6 +3042,12 @@ void princVMvalue(VMvalue* objValue,FILE* fp,int8_t isPrevPair,CRL** h)
 			break;
 		case FP:
 			fprintf(fp,"#<fp>");
+			break;
+		case DLL:
+			fprintf(fp,"<#dll>");
+			break;
+		case DLPROC:
+			fprintf(fp,"<#dlproc>");
 			break;
 		default:fprintf(fp,"Bad value!");break;
 	}

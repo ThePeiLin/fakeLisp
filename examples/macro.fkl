@@ -3,6 +3,8 @@
 (defmacro "~(a)" (cons (quote unquote) (cons a nil)))
 (defmacro "~@(a)" (cons (quote unqtesp) (cons a nil)))
 (defmacro "[(,a)]" a)
+(defmacro "#d<(m)" `(dll (quote ~m)))
+(defmacro "#d>(m).(f)" `(dlsym ~m (quote ~f)))
 
 (defmacro
   (let $d,$b)

@@ -133,7 +133,6 @@ static int (*ByteCodes[])(FakeVM*)=
 	B_push_cdr,
 	B_push_top,
 	B_push_proc,
-	B_push_mod_proc,
 	B_push_list_arg,
 	B_pop_var,
 	B_pop_arg,
@@ -144,7 +143,6 @@ static int (*ByteCodes[])(FakeVM*)=
 	B_pop_env,
 	B_swap,
 	B_pack_cc,
-	B_call_proc,
 	B_set_tp,
 	B_set_bp,
 	B_invoke,
@@ -767,7 +765,6 @@ FakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 	exe->argc=0;
 	exe->argv=NULL;
 	exe->curproc=exe->mainproc;
-	exe->modules=NULL;
 	exe->procs=procs;
 	exe->mark=1;
 	exe->chan=NULL;
@@ -803,7 +800,6 @@ FakeVM* newTmpFakeVM(ByteCode* mainproc,ByteCode* procs)
 	if(mainproc!=NULL)
 		exe->mainproc=newFakeProcess(newVMcode(mainproc,0),NULL);
 	exe->curproc=exe->mainproc;
-	exe->modules=NULL;
 	exe->procs=procs;
 	exe->mark=1;
 	exe->argc=0;
@@ -1348,29 +1344,6 @@ int B_push_proc(FakeVM* exe)
 	return 0;
 }
 
-int B_push_mod_proc(FakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMprocess* proc=exe->curproc;
-	VMcode* tmpCode=proc->code;
-	char* funcname=tmpCode->code+proc->cp+1;
-	if(stack->tp>=stack->size)
-	{
-		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-		if(stack->values==NULL)errors("B_push_proc",__FILE__,__LINE__);
-		stack->size+=64;
-	}
-	ByteCode* dllFunc=newDllFuncProc(funcname);
-	VMcode* tmp=newVMcode(dllFunc,-1);
-	tmp->localenv=newVMenv(NULL);
-	VMvalue* tmpVMvalue=newVMvalue(PRC,tmp,exe->heap,1);
-	freeByteCode(dllFunc);
-	stack->values[stack->tp]=tmpVMvalue;
-	stack->tp+=1;
-	proc->cp+=2+strlen(funcname);
-	return 0;
-}
-
 int B_push_list_arg(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
@@ -1821,25 +1794,6 @@ int B_type(FakeVM* exe)
 	return 0;
 }
 
-int B_call_proc(FakeVM* exe)
-{
-	VMprocess* proc=exe->curproc;
-	VMcode* tmpCode=proc->code;
-	char* funcname=tmpCode->code+proc->cp+1;
-	char headOfFunc[]="FAKE_";
-	char* realfuncName=(char*)malloc(sizeof(char)*(strlen(headOfFunc)+strlen(funcname)+1));
-	if(realfuncName==NULL)errors("B_call_proc",__FILE__,__LINE__);
-	strcpy(realfuncName,headOfFunc);
-	strcat(realfuncName,funcname);
-	void* funcAddress=getAddress(realfuncName,exe->modules);
-	free(realfuncName);
-	if(!funcAddress)
-		return STACKERROR;
-	int retval=((DllFunc)funcAddress)(exe,&GClock);
-	proc->cp+=2+strlen(funcname);
-	return retval;
-}
-
 int B_set_tp(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
@@ -2043,6 +1997,7 @@ int B_dlsym(FakeVM* exe)
 	char* realDlFuncName=(char*)malloc(sizeof(char)*(strlen(prefix)+strlen(symbol->u.str->str)+1));
 	if(!realDlFuncName)
 		errors("B_dlsym",__FILE__,__LINE__);
+	sprintf(realDlFuncName,"%s%s",prefix,symbol->u.str->str);
 	DllFunc funcAddress=getAddress(realDlFuncName,dll->u.dll->handle);
 	if(!funcAddress)
 		return INVALIDSYMBOL;
@@ -2721,7 +2676,7 @@ int B_go(FakeVM* exe)
 		return WRONGARG;
 	if(exe->VMid==-1)
 		return CANTCREATETHREAD;
-	FakeVM* threadVM=newThreadVM(threadProc->u.prc,exe->procs,exe->heap,exe->modules);
+	FakeVM* threadVM=newThreadVM(threadProc->u.prc,exe->procs,exe->heap);
 	threadVM->callback=exe->callback;
 	threadVM->table=exe->table;
 	threadVM->lnt=exe->lnt;
@@ -3330,7 +3285,7 @@ void GC_sweep(VMheap* heap)
 	}
 }
 
-FakeVM* newThreadVM(VMcode* mainCode,ByteCode* procs,VMheap* heap,Dlls* d)
+FakeVM* newThreadVM(VMcode* mainCode,ByteCode* procs,VMheap* heap)
 {
 	FakeVM* exe=(FakeVM*)malloc(sizeof(FakeVM));
 	if(exe==NULL)errors("newThreadVM",__FILE__,__LINE__);
@@ -3341,7 +3296,6 @@ FakeVM* newThreadVM(VMcode* mainCode,ByteCode* procs,VMheap* heap,Dlls* d)
 	exe->mark=1;
 	exe->argc=0;
 	exe->argv=NULL;
-	exe->modules=d;
 	exe->chan=newChanl(1);
 	exe->stack=newVMstack(0);
 	exe->heap=heap;
@@ -3385,7 +3339,6 @@ void freeAllVMs()
 		free(cur->mainproc);
 	}
 	freeVMstack(cur->stack);
-	deleteAllDll(cur->modules);
 	free(cur);
 	for(;i<GlobFakeVMs.size;i++)
 	{

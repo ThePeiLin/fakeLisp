@@ -67,7 +67,6 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 		tmpVM->mainproc->localenv=macroVMenv;
 		tmpVM->curproc=tmpVM->mainproc;
 		tmpVMcode->localenv=NULL;
-		tmpVM->modules=inter->modules;
 		tmpVM->table=inter->table;
 		tmpVM->callback=errorCallBackForPreMacroExpand;
 		tmpVM->lnt=tmp->lnt;
@@ -641,62 +640,6 @@ void deleteArg(AST_cptr** args,int num)
 
 ErrorStatus N_import(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 {
-	ErrorStatus status={0,NULL};
-	deleteCptr(objCptr);
-	AST_cptr** args=dealArg(&objCptr->outer->cdr,1);
-	if(args[0]->type!=ATM)
-	{
-		status.status=SYNTAXERROR;
-		status.place=newCptr(0,NULL);
-		replace(status.place,args[0]);
-		deleteArg(args,1);
-		return status;
-	}
-#ifdef _WIN32
-	char filetype[]=".dll";
-#else
-	char filetype[]=".so";
-#endif
-	AST_atom* tmpAtom=args[0]->value;
-	char* modname=(char*)malloc(sizeof(char)*(strlen(filetype)+strlen(tmpAtom->value.str)+1));
-	strcpy(modname,tmpAtom->value.str);
-	strcat(modname,filetype);
-#ifdef _WIN32
-	char* rp=_fullpath(NULL,modname,0);
-#else
-	char* rp=realpath(modname,0);
-#endif
-	if(rp==NULL)
-	{
-		perror(modname);
-		exit(EXIT_FAILURE);
-	}
-	char* rep=relpath(getLastWorkDir(inter),rp);
-	char* rmodname=(char*)malloc(sizeof(char)*(strlen(rep)-strlen(filetype)+1));
-	if(!rmodname)errors("N_import",__FILE__,__LINE__);
-	memcpy(rmodname,rep,strlen(rep)-strlen(filetype));
-	rmodname[strlen(rep)-strlen(filetype)]='\0';
-	if(!ModHasLoad(rmodname,*getpHead(inter)))
-	{
-
-		if(rp==NULL)
-		{
-			perror(rep);
-			exit(EXIT_FAILURE);
-		}
-		Dlls** pDlls=getpDlls(inter);
-		Modlist** pTail=getpTail(inter);
-		Modlist** pHead=getpHead(inter);
-		loadDll(rp,pDlls,rmodname,pTail);
-		if(*pHead==NULL)*pHead=*pTail;
-	}
-	free(rmodname);
-	free(modname);
-	free(rp);
-	free(rep);
-	replace(objCptr,args[0]);
-	deleteArg(args,1);
-	return status;
 }
 
 ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
@@ -748,9 +691,6 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 		tmpInter->curline=inter->curline;
 		tmpInter->glob=tmpGlobCompEnv;
 		tmpInter->table=inter->table;
-		tmpInter->head=inter->head;
-		tmpInter->tail=inter->tail;
-		tmpInter->modules=inter->modules;
 		tmpInter->curDir=inter->curDir;
 		tmpInter->prev=NULL;
 		tmpInter->lnt=newLineNumTable();
@@ -802,9 +742,6 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 	tmpInter->table=inter->table;
 	tmpInter->curline=inter->curline;
 	tmpInter->glob=tmpGlobCompEnv;
-	tmpInter->head=inter->head;
-	tmpInter->tail=inter->tail;
-	tmpInter->modules=inter->modules;
 	tmpInter->curDir=inter->curDir;
 	tmpInter->procs=NULL;
 	tmpInter->prev=NULL;
@@ -1418,36 +1355,7 @@ ByteCodelnt* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 			addSymTabNode(node,inter->table);
 		}
 		id=node->id;
-		void* funcAddress=NULL;
-		if(inter->modules)
-		{
-			char* funcName=(char*)malloc(sizeof(char)*(strlen("FAKE_")+strlen(tmpAtm->value.str)+1));
-			if(!funcName)
-				errors("compileSym",__FILE__,__LINE__);
-			sprintf(funcName,"FAKE_%s",tmpAtm->value.str);
-			funcAddress=getAddress(funcName,*getpDlls(inter));
-			if(funcAddress)
-			{
-				CompEnv* tmpGlob=NULL;
-				while(inter->prev)
-					inter=inter->prev;
-				tmpGlob=inter->glob;
-				addCompDef(tmpAtm->value.str,tmpGlob,inter->table);
-				ByteCode* pushModProc=newByteCode(sizeof(char)+strlen(tmpAtm->value.str)+1);
-				ByteCode* popVar=newByteCode(sizeof(char)+sizeof(int32_t)*2);
-				pushModProc->code[0]=FAKE_PUSH_MOD_PROC;
-				popVar->code[0]=FAKE_POP_VAR;
-				*(int32_t*)(popVar->code+sizeof(char))=(int32_t)0;
-				*(int32_t*)(popVar->code+sizeof(char)+sizeof(int32_t))=id;
-				strcpy(pushModProc->code+sizeof(char),tmpAtm->value.str);
-				codeCat(fix,pushModProc);
-				codeCat(fix,popVar);
-				freeByteCode(pushModProc);
-				freeByteCode(popVar);
-			}
-			free(funcName);
-		}
-		if((!inter->modules||!funcAddress)&&evalIm)
+		if(evalIm)
 		{
 			status->status=SYMUNDEFINE;
 			status->place=objCptr;
@@ -1914,9 +1822,6 @@ ByteCodelnt* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	tmpIntpr->prev=inter;
 	tmpIntpr->procs=NULL;
 	tmpIntpr->glob=curEnv;
-	tmpIntpr->head=NULL;
-	tmpIntpr->tail=NULL;
-	tmpIntpr->modules=NULL;
 	ByteCodelnt* tmp=compileFile(tmpIntpr,evalIm,fix,NULL);
 	chdir(tmpIntpr->prev->curDir);
 	tmpIntpr->glob=NULL;

@@ -98,6 +98,7 @@ ThreadMessage* newThreadMessage(VMvalue*,VMheap*);
 VMDll* newVMDll(const char*);
 void increaseVMDllRefcount(VMDll*);
 void decreaseVMDllRefcount(VMDll*);
+void* getAddress(const char*,DllHandle);
 void freeVMDll(VMDll*);
 
 VMDlproc* newVMDlproc(DllFunc,VMDll*);

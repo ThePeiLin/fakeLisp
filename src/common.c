@@ -757,9 +757,6 @@ Intpr* newIntpr(const char* filename,FILE* file,CompEnv* env,SymbolTable* table,
 	tmp->curline=1;
 	tmp->procs=NULL;
 	tmp->prev=NULL;
-	tmp->modules=NULL;
-	tmp->head=NULL;
-	tmp->tail=NULL;
 	if(table)
 		tmp->table=table;
 	else
@@ -786,8 +783,6 @@ void freeIntpr(Intpr* inter)
 		fclose(inter->file);
 	free(inter->curDir);
 	destroyCompEnv(inter->glob);
-	deleteAllDll(inter->modules);
-	freeModlist(inter->head);
 	RawProc* tmp=inter->procs;
 	while(tmp!=NULL)
 	{
@@ -1143,14 +1138,6 @@ Intpr* getFirstIntpr(Intpr* inter)
 	return inter;
 }
 
-ByteCode* newDllFuncProc(const char* name)
-{
-	ByteCode* callProc=newByteCode(sizeof(char)+strlen(name)+1);
-	callProc->code[0]=FAKE_CALL_PROC;
-	strcpy(callProc->code+sizeof(char),name);
-	return callProc;
-}
-
 AST_cptr* getANSPairCar(const AST_cptr* obj)
 {
 	AST_pair* tmpPair=obj->value;
@@ -1161,145 +1148,6 @@ AST_cptr* getANSPairCdr(const AST_cptr* obj)
 {
 	AST_pair* tmpPair=obj->value;
 	return &tmpPair->cdr;
-}
-
-Dlls* newDll(DllHandle handle)
-{
-	Dlls* tmp=(Dlls*)malloc(sizeof(Dlls));
-	if(tmp==NULL)errors("newDll",__FILE__,__LINE__);
-	tmp->handle=handle;
-	return tmp;
-}
-
-Dlls* loadDll(const char* rpath,Dlls** Dhead,const char* modname,Modlist** tail)
-{
-#ifdef _WIN32
-	DllHandle handle=LoadLibrary(rpath);
-	if(!handle)
-	{
-		TCHAR szBuf[128];
-		LPVOID lpMsgBuf;
-		DWORD dw = GetLastError();
-		FormatMessage (
-				FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
-				NULL,
-				dw,
-				MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
-				(LPTSTR) &lpMsgBuf,
-				0, NULL );
-		wsprintf(szBuf,
-				_T("%s error Message (error code=%d): %s"),
-				_T("CreateDirectory"), dw, lpMsgBuf);
-		LocalFree(lpMsgBuf);
-		fprintf(stderr,"%s\n",szBuf);
-		exit(EXIT_FAILURE);
-	}
-#else
-	DllHandle handle=dlopen(rpath,RTLD_LAZY);
-	if(handle==NULL)
-	{
-		perror(dlerror());
-		exit(EXIT_FAILURE);
-	}
-#endif
-	Dlls* tmp=newDll(handle);
-	tmp->count=(*Dhead)?(*Dhead)->count+1:0;
-	tmp->next=*Dhead;
-	*Dhead=tmp;
-	if(modname!=NULL&&tail!=NULL)
-	{
-		Modlist* tmpL=newModList(modname);
-		tmpL->count=(*tail)?(*tail)->count+1:0;
-		tmpL->next=NULL;
-		if(*tail)(*tail)->next=tmpL;
-		*tail=tmpL;
-	}
-	return tmp;
-}
-
-void* getAddress(const char* funcname,Dlls* head)
-{
-	Dlls* cur=head;
-	void* pfunc=NULL;
-	while(cur!=NULL)
-	{
-#ifdef _WIN32
-		pfunc=GetProcAddress(cur->handle,funcname);
-#else
-		pfunc=dlsym(cur->handle,funcname);
-#endif
-		if(pfunc!=NULL)return pfunc;
-		cur=cur->next;
-	}
-	return NULL;
-}
-
-void deleteAllDll(Dlls* head)
-{
-	Dlls* cur=head;
-	while(cur)
-	{
-		Dlls* prev=cur;
-#ifdef _WIN32
-		FreeLibrary(prev->handle);
-#else
-		dlclose(prev->handle);
-#endif
-		cur=cur->next;
-		free(prev);
-	}
-}
-
-Dlls** getHeadOfMods(Intpr* inter)
-{
-	while(inter->prev!=NULL)
-		inter=inter->prev;
-	return &inter->modules;
-}
-
-Modlist* newModList(const char* libname)
-{
-	Modlist* tmp=(Modlist*)malloc(sizeof(Modlist));
-	if(tmp==NULL)errors("newModList",__FILE__,__LINE__);
-	tmp->name=(char*)malloc(sizeof(char)*(strlen(libname)+1));
-	if(tmp->name==NULL)errors("newModList",__FILE__,__LINE__);
-	strcpy(tmp->name,libname);
-	return tmp;
-}
-
-Dlls* loadAllModules(FILE* fp,Dlls** mods)
-{
-#ifdef _WIN32
-	char filetype[]=".dll";
-#else
-	char filetype[]=".so";
-#endif
-	int32_t num=0;
-	int i=0;
-	fread(&num,sizeof(int32_t),1,fp);
-	for(;i<num;i++)
-	{
-		char* modname=getStringFromFile(fp);
-		char* realModname=(char*)malloc(sizeof(char)*(strlen(modname)+strlen(filetype)+1));
-		if(realModname==NULL)errors("loadAllModules",__FILE__,__LINE__);
-		strcpy(realModname,modname);
-		strcat(realModname,filetype);
-#ifdef _WIN32
-		char* rpath=_fullpath(NULL,realModname,0);
-#else
-		char* rpath=realpath(realModname,0);
-#endif
-		if(rpath==NULL)
-		{
-			perror(rpath);
-			exit(EXIT_FAILURE);
-		}
-		loadDll(rpath,mods,NULL,NULL);
-		free(modname);
-		free(rpath);
-		free(realModname);
-	}
-	return *mods;
 }
 
 void changeWorkPath(const char* filename)
@@ -1361,19 +1209,6 @@ char* getStringFromFile(FILE* file)
 	return tmp;
 }
 
-void writeAllDll(Intpr* inter,FILE* fp)
-{
-	int num=(inter->head==NULL)?0:inter->tail->count+1;
-	fwrite(&num,sizeof(int32_t),1,fp);
-	int i=0;
-	Modlist* cur=inter->head;
-	for(;i<num;i++)
-	{
-		fwrite(cur->name,strlen(cur->name)+1,1,fp);
-		cur=cur->next;
-	}
-}
-
 void freeAllRawProc(RawProc* cur)
 {
 	while(cur!=NULL)
@@ -1389,37 +1224,6 @@ int bytsStrEq(ByteString* fir,ByteString* sec)
 {
 	if(fir->size!=sec->size)return 0;
 	else return !memcmp(fir->str,sec->str,sec->size);
-}
-
-int ModHasLoad(const char* name,Modlist* head)
-{
-	while(head)
-	{
-		if(!strcmp(name,head->name))return 1;
-		head=head->next;
-	}
-	return 0;
-}
-
-Dlls** getpDlls(Intpr* inter)
-{
-	while(inter->prev)
-		inter=inter->prev;
-	return &inter->modules;
-}
-
-Modlist** getpTail(Intpr* inter)
-{
-	while(inter->prev)
-		inter=inter->prev;
-	return &inter->tail;
-}
-
-Modlist** getpHead(Intpr* inter)
-{
-	while(inter->prev)
-		inter=inter->prev;
-	return &inter->head;
 }
 
 char* getLastWorkDir(Intpr* inter)
@@ -1499,17 +1303,6 @@ char** split(char* str,char* divstr,int* length)
 	}
 	*length=count;
 	return strArry;
-}
-
-void freeModlist(Modlist* cur)
-{
-	while(cur)
-	{
-		Modlist* prev=cur;
-		cur=cur->next;
-		free(prev->name);
-		free(prev);
-	}
 }
 
 char* castEscapeCharater(const char* str,char end,int32_t* len)
@@ -1629,9 +1422,6 @@ Intpr* newTmpIntpr(const char* filename,FILE* fp)
 	tmp->curline=1;
 	tmp->procs=NULL;
 	tmp->prev=NULL;
-	tmp->modules=NULL;
-	tmp->head=NULL;
-	tmp->tail=NULL;
 	tmp->glob=NULL;
 	tmp->table=NULL;
 	tmp->lnt=NULL;

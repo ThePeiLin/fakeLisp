@@ -1157,6 +1157,17 @@ void freeVMDll(VMDll* dll)
 	}
 }
 
+void* getAddress(const char* funcname,DllHandle dlhandle)
+{
+	void* pfunc=NULL;
+#ifdef _WIN32
+		pfunc=GetProcAddress(dlhandle,funcname);
+#else
+		pfunc=dlsym(dlhandle,funcname);
+#endif
+	return pfunc;
+}
+
 VMDlproc* newVMDlproc(DllFunc address,VMDll* dll)
 {
 	VMDlproc* tmp=(VMDlproc*)malloc(sizeof(VMDlproc));

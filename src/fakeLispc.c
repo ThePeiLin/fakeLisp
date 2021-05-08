@@ -76,7 +76,6 @@ int main(int argc,char** argv)
 		char* code=mainByteCode->bc->code;
 		fwrite(&sizeOfMain,sizeof(sizeOfMain),1,outfp);
 		fwrite(code,sizeof(char),sizeOfMain,outfp);
-		writeAllDll(inter,outfp);
 		freeByteCode(mainByteCode->bc);
 		free(mainByteCode);
 		free(rawProcList);

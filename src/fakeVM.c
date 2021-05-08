@@ -978,6 +978,12 @@ int runFakeVM(FakeVM* exe)
 					DBG_printVMvalue(exe->stack->values[exe->stack->tp-1],stderr);
 					fprintf(stderr,"\"\n");
 					break;
+				case LOADDLLFAILD:
+					fprintf(stderr,"errors:Faild to load dll:\"%s\"\n",exe->stack->values[exe->stack->tp-1]->u.str->str);
+					break;
+				case INVALIDSYMBOL:
+					fprintf(stderr,"errors:Invalid symbol:\"%s\"\n",exe->stack->values[exe->stack->tp-1]->u.str->str);
+					break;
 			}
 			if(exe->VMid==-1)
 				return 1;
@@ -1497,13 +1503,13 @@ int B_pop_rest_arg(FakeVM* exe)
 		VMvalue* topValue=getTopValue(stack);
 		copyRef(tmp->u.pair->car,topValue);
 		stack->tp-=1;
-		stackRecycle(exe);
 		if(stack->tp>stack->bp)
 			tmp->u.pair->cdr=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap,1);
 		else break;
 		tmp=tmp->u.pair->cdr;
 	}
 	*pValue=obj;
+	stackRecycle(exe);
 	proc->cp+=9;
 	return 0;
 }
@@ -1647,19 +1653,21 @@ int B_sub(FakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* firValue=getValue(stack,stack->tp-1);
 	VMvalue* secValue=getValue(stack,stack->tp-2);
-	stack->tp-=1;
-	stackRecycle(exe);
 	if((firValue->type!=IN32&&firValue->type!=DBL)||(secValue->type!=IN32&&secValue->type!=DBL))return WRONGARG;
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
 		double result=((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num)-((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num);
 		VMvalue* tmpValue=newVMvalue(DBL,&result,exe->heap,1);
+		stack->tp-=1;
+		stackRecycle(exe);
 		stack->values[stack->tp-1]=tmpValue;
 	}
 	else if(firValue->type==IN32&&secValue->type==IN32)
 	{
 		int32_t result=*secValue->u.num-*firValue->u.num;
 		VMvalue* tmpValue=newVMvalue(IN32,&result,exe->heap,1);
+		stack->tp-=1;
+		stackRecycle(exe);
 		stack->values[stack->tp-1]=tmpValue;
 	}
 	proc->cp+=1;
@@ -1672,19 +1680,21 @@ int B_mul(FakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMvalue* firValue=getValue(stack,stack->tp-1);
 	VMvalue* secValue=getValue(stack,stack->tp-2);
-	stack->tp-=1;
-	stackRecycle(exe);
 	if((firValue->type!=IN32&&firValue->type!=DBL)||(secValue->type!=IN32&&secValue->type!=DBL))return WRONGARG;
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
 		double result=((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num)*((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num);
 		VMvalue* tmpValue=newVMvalue(DBL,&result,exe->heap,1);
+		stack->tp-=1;
+		stackRecycle(exe);
 		stack->values[stack->tp-1]=tmpValue;
 	}
 	else if(firValue->type==IN32&&secValue->type==IN32)
 	{
 		int32_t result=*firValue->u.num*(*secValue->u.num);
 		VMvalue* tmpValue=newVMvalue(IN32,&result,exe->heap,1);
+		stack->tp-=1;
+		stackRecycle(exe);
 		stack->values[stack->tp-1]=tmpValue;
 	}
 	proc->cp+=1;
@@ -1698,8 +1708,6 @@ int B_div(FakeVM* exe)
 	VMvalue* firValue=getValue(stack,stack->tp-1);
 	VMvalue* secValue=getValue(stack,stack->tp-2);
 	VMvalue* tmpValue=NULL;
-	stack->tp-=1;
-	stackRecycle(exe);
 	if((firValue->type!=IN32&&firValue->type!=DBL)||(secValue->type!=IN32&&secValue->type!=DBL))return WRONGARG;
 	if((firValue->type==DBL&&fabs(*firValue->u.dbl)==0)||(firValue->type==IN32&&*firValue->u.num==0))
 		tmpValue=newNilValue(exe->heap);
@@ -1708,6 +1716,8 @@ int B_div(FakeVM* exe)
 		double result=((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num)/((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num);
 		tmpValue=newVMvalue(DBL,&result,exe->heap,1);
 	}
+	stack->tp-=1;
+	stackRecycle(exe);
 	stack->values[stack->tp-1]=tmpValue;
 	proc->cp+=1;
 	return 0;
@@ -1720,8 +1730,6 @@ int B_rem(FakeVM* exe)
 	VMvalue* firValue=getValue(stack,stack->tp-1);
 	VMvalue* secValue=getValue(stack,stack->tp-2);
 	VMvalue* tmpValue=NULL;
-	stack->tp-=1;
-	stackRecycle(exe);
 	if((firValue->type!=IN32&&firValue->type!=DBL)||(secValue->type!=IN32&&secValue->type!=DBL))return WRONGARG;
 	if(!(*firValue->u.num))
 		tmpValue=newNilValue(exe->heap);
@@ -1730,6 +1738,8 @@ int B_rem(FakeVM* exe)
 		int32_t result=((int32_t)((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num))%((int32_t)((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num));
 		tmpValue=newVMvalue(IN32,&result,exe->heap,1);
 	}
+	stack->tp-=1;
+	stackRecycle(exe);
 	stack->values[stack->tp-1]=tmpValue;
 	proc->cp+=1;
 	return 0;
@@ -1993,8 +2003,6 @@ int B_dlsym(FakeVM* exe)
 	VMvalue* dll=getValue(stack,stack->tp-2);
 	if((symbol->type!=SYM&&symbol->type!=STR)||dll->type!=DLL)
 		return WRONGARG;
-	stack->tp-=1;
-	stackRecycle(exe);
 	char prefix[]="FAKE_";
 	char* realDlFuncName=(char*)malloc(sizeof(char)*(strlen(prefix)+strlen(symbol->u.str->str)+1));
 	if(!realDlFuncName)
@@ -2008,6 +2016,8 @@ int B_dlsym(FakeVM* exe)
 	}
 	free(realDlFuncName);
 	VMDlproc* dlproc=newVMDlproc(funcAddress,dll->u.dll);
+	stack->tp-=1;
+	stackRecycle(exe);
 	stack->values[stack->tp-1]=newVMvalue(DLPROC,dlproc,heap,1);
 	proc->cp+=1;
 	return 0;

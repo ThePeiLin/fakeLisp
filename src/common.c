@@ -61,7 +61,9 @@ char* builtInSymbolList[NUMOFBUILTINSYMBOL]=
 	"chanl",
 	"send",
 	"recv",
-	"clcc"
+	"clcc",
+	"dll",
+	"dlsym"
 };
 
 char* getStringFromList(const char* str)

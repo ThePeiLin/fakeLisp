@@ -4,6 +4,11 @@
 #include<stdio.h>
 #include<math.h>
 #include<pthread.h>
+#ifndef _WIN32
+#include<dlfcn.h>
+#else
+#include<tchar.h>
+#endif
 
 
 pthread_mutex_t VMenvGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
@@ -14,6 +19,8 @@ pthread_mutex_t VMcontinuationGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t ByteStringGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t VMfpGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t ChanlGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t VMDllGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t VMDlprocGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 
 #define INCREASE_REFCOUNT(TYPE,PV) {\
 	if((PV))\
@@ -90,6 +97,8 @@ VMvalue* copyVMvalue(VMvalue* obj,VMheap* heap)
 			case CONT:
 			case PRC:
 			case FP:
+			case DLL:
+			case DLPROC:
 				copyRef(root1,root);
 				break;
 			case CHAN:
@@ -170,6 +179,10 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap,int access)
 			tmp->u.chan=pValue;break;
 		case FP:
 			tmp->u.fp=pValue;break;
+		case DLL:
+			tmp->u.dll=pValue;break;
+		case DLPROC:
+			tmp->u.dlproc=pValue;break;
 	}
 	return tmp;
 }
@@ -358,6 +371,26 @@ void increaseChanlRefcount(Chanl* chanl)
 void decreaseChanlRefcount(Chanl* chanl)
 {
 	DECREASE_REFCOUNT(Chanl,chanl);
+}
+
+void increaseVMDllRefcount(VMDll* dll)
+{
+	INCREASE_REFCOUNT(VMDll,dll);
+}
+
+void decreaseVMDllRefcount(VMDll* dll)
+{
+	DECREASE_REFCOUNT(VMDll,dll);
+}
+
+void increaseVMDlprocRefcount(VMDlproc* dlproc)
+{
+	INCREASE_REFCOUNT(VMDlproc,dlproc);
+}
+
+void decreaseVMDlprocRefcount(VMDlproc* dlproc)
+{
+	DECREASE_REFCOUNT(VMDlproc,dlproc);
 }
 
 VMpair* newVMpair(VMheap* heap)
@@ -641,6 +674,14 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 				increaseVMfpRefcount(sec->u.fp);
 				fir->u.fp=sec->u.fp;
 				break;
+			case DLL:
+				increaseVMDllRefcount(sec->u.dll);
+				fir->u.dll=sec->u.dll;
+				break;
+			case DLPROC:
+				increaseVMDlprocRefcount(sec->u.dlproc);
+				fir->u.dlproc=sec->u.dlproc;
+				break;
 			case NIL:
 				fir->u.all=NULL;
 				break;
@@ -689,6 +730,14 @@ void writeRef(VMvalue* fir,VMvalue* sec)
 			case FP:
 				fir->u.fp=sec->u.fp;
 				increaseVMfpRefcount(fir->u.fp);
+				break;
+			case DLL:
+				fir->u.dll=sec->u.dll;
+				increaseVMDllRefcount(fir->u.dll);
+				break;
+			case DLPROC:
+				fir->u.dlproc=sec->u.dlproc;
+				increaseVMDlprocRefcount(fir->u.dlproc);
 				break;
 			case SYM:
 			case STR:
@@ -1027,4 +1076,106 @@ ThreadMessage* newThreadMessage(VMvalue* val,VMheap* heap)
 	copyRef(tmp->message,val);
 	tmp->next=NULL;
 	return tmp;
+}
+
+VMDll* newVMDll(const char* dllName)
+{
+	VMDll* tmp=(VMDll*)malloc(sizeof(VMDll));
+	if(!tmp)
+		errors("newVMDll",__FILE__,__LINE__);
+	tmp->refcount=0;
+#ifdef _WIN32
+	char filetype[]=".dll";
+#else
+	char filetype[]=".so";
+#endif
+	char* realDllName=(char*)malloc(sizeof(char)*(strlen(dllName)+strlen(filetype)+1));
+	if(!realDllName)
+		errors("newVMDll",__FILE__,__LINE__);
+	sprintf(realDllName,"%s%s",dllName,filetype);
+#ifdef _WIN32
+	char* rpath=_fullpath(NULL,realDllName,0);
+#else
+	char* rpath=realpath(realDllName,0);
+#endif
+	if(!rpath)
+	{
+		perror(dllName);
+		free(tmp);
+		return NULL;
+	}
+#ifdef _WIN32
+	DllHandl hanld=LoadLibrary(rpath);
+	if(!handle)
+	{
+		TCHAR szBuf[128];
+		LPVOID lpMsgBuf;
+		DWORD dw = GetLastError();
+		FormatMessage (
+				FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+				NULL,
+				dw,
+				MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
+				(LPTSTR) &lpMsgBuf,
+				0, NULL );
+		wsprintf(szBuf,
+				_T("%s error Message (error code=%d): %s"),
+				_T("CreateDirectory"), dw, lpMsgBuf);
+		LocalFree(lpMsgBuf);
+		fprintf(stderr,"%s\n",szBuf);
+		free(rpath);
+		free(tmp);
+		return NULL;
+	}
+#else
+	DllHandle handle=dlopen(rpath,RTLD_LAZY);
+	if(!handle)
+	{
+		perror(dlerror());
+		free(rpath);
+		free(tmp);
+		return NULL;
+	}
+#endif
+	tmp->handle=handle;
+	free(rpath);
+	return tmp;
+}
+
+void freeVMDll(VMDll* dll)
+{
+	if(dll->refcount)
+		decreaseVMDllRefcount(dll);
+	else
+	{
+#ifdef _WIN32
+		FreeLibrary(dll->handle);
+#else
+		dlclose(dll->handle);
+		free(dll);
+#endif
+	}
+}
+
+VMDlproc* newVMDlproc(DllFunc address,VMDll* dll)
+{
+	VMDlproc* tmp=(VMDlproc*)malloc(sizeof(VMDlproc));
+	if(!tmp)
+		errors("newVMDlproc",__FILE__,__LINE__);
+	tmp->refcount=0;
+	tmp->func=address;
+	tmp->dll=dll;
+	increaseVMDllRefcount(dll);
+	return tmp;
+}
+
+void freeVMDlproc(VMDlproc* dlproc)
+{
+	if(dlproc->refcount)
+		decreaseVMDlprocRefcount(dlproc);
+	else
+	{
+		freeVMDll(dlproc->dll);
+		free(dlproc);
+	}
 }

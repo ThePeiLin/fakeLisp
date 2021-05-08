@@ -65,29 +65,6 @@ defmacro的语法比较特殊，为：
 并以该片段为符号绑定该语法分析树。  
 如在表达式 " '(1 2 3) " 中，符号a绑定的语法分析树为 "(1 2 3)" ，最后进行展开并替换源字符串。
 
-## 关于import
-
-import的语法为
-
-```
-(import <模块名>)
-```
-
-import与load的区别在于import不产生字节码，而且只能加载.dll文件或.so文件，而load只能加载fakeLisp源代码文件，  
-并且加载好的.dll文件或.so文件中可调用的函数的函数名会被添加到全局环境。（假设btk模块中有可调用的getch函数）  
-```scheme
-(import btk)
-(setq getch "getch")
-```
-其中，getch是变量，调用getch会调用模块中对应的函数，直到该符号被重定义。
-如下面的代码，  
-```scheme
-(import btk)
-(define getch 9)
-(setq getch 10)
-```
-另外，所谓可用函数即函数名有\"FAKE_\"前缀的函数。
-
 ---
 ## 目前可用内置函数及符号有：  
 nil  
@@ -134,7 +111,9 @@ go
 chanl  
 send  
 recv  
-clcc  
+clcc
+dll
+dlsym  
 
 ## 可用特殊形式有:  
 ### define  
@@ -155,7 +134,7 @@ clcc
 为引用赋值，由于解释器是通过引用传值的，所以可以为任意引用赋值，包括字面量，如:  
 ```scheme
 (setf i 9)  
-;=>9
+;=> 9
 
 (setf 1 9) ;合法，但是没有实际效果；  
 ;=> 9
@@ -371,7 +350,6 @@ lambda表达式，返回一个参数列表为args，函数体为列表body的过
 ```
 
 ## 预处理指令（不产生字节码）:  
-import  
 defmacro  
 
 ## 关于面向对象  

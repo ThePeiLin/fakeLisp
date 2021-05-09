@@ -1112,7 +1112,7 @@ VMDll* newVMDll(const char* dllName)
 		return NULL;
 	}
 #ifdef _WIN32
-	DllHandl hanld=LoadLibrary(rpath);
+	DllHandle handle=LoadLibrary(rpath);
 	if(!handle)
 	{
 		TCHAR szBuf[128];

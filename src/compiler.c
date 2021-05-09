@@ -25,7 +25,6 @@ static void errorCallBackForPreMacroExpand(void* a)
 static int MacroPatternCmp(const AST_cptr*,const AST_cptr*);
 static int fmatcmp(const AST_cptr*,const AST_cptr*);
 static int isVal(const char*);
-static ErrorStatus N_import(AST_cptr*,PreEnv*,Intpr*);
 static ErrorStatus N_defmacro(AST_cptr*,PreEnv*,Intpr*);
 static CompEnv* createPatternCompEnv(char**,int32_t,CompEnv*,SymbolTable*);
 static PreFunc* funAndForm=NULL;
@@ -539,7 +538,6 @@ ErrorStatus eval(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 void initPreprocess()
 {
 	addFunc("defmacro",N_defmacro);
-	addFunc("import",N_import);
 	addKeyWord("define");
 	addKeyWord("setq");
 	addKeyWord("quote");
@@ -636,10 +634,6 @@ void deleteArg(AST_cptr** args,int num)
 		free(args[i]);
 	}
 	free(args);
-}
-
-ErrorStatus N_import(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
-{
 }
 
 ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
@@ -1900,18 +1894,6 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,ByteCode* fix,int* exitstatus)
 		{
 			if(isPreprocess(begin))
 			{
-				if(isImportExpression(begin)&&tmp->bc->size)
-				{
-					exError(begin,INVALIDEXPR,inter);
-					if(exitstatus)*exitstatus=INVALIDEXPR;
-					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-					freeByteCodelnt(tmp);
-					free(list);
-					deleteCptr(begin);
-					free(begin);
-					tmp=NULL;
-					break;
-				}
 				status=eval(begin,NULL,inter);
 				if(status.status!=0)
 				{

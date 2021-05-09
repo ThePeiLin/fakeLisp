@@ -59,7 +59,6 @@ int main(int argc,char** argv)
 		INCREASE_ALL_SCP(mainByteCode->l+1,mainByteCode->ls-1,fix->size);
 		freeByteCode(fix);
 		addLineNumTabId(mainByteCode->l,mainByteCode->ls,0,inter->lnt);
-		//printByteCode(mainByteCode,stderr);
 		writeSymbolTable(inter->table,outfp);
 		writeLineNumberTable(inter->lnt,outfp);
 		int32_t numOfRawproc=(inter->procs==NULL)?0:inter->procs->count+1;

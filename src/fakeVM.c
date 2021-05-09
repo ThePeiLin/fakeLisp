@@ -982,7 +982,7 @@ int runFakeVM(FakeVM* exe)
 					fprintf(stderr,"errors:Faild to load dll:\"%s\"\n",exe->stack->values[exe->stack->tp-1]->u.str->str);
 					break;
 				case INVALIDSYMBOL:
-					fprintf(stderr,"errors:Invalid symbol:\"%s\"\n",exe->stack->values[exe->stack->tp-1]->u.str->str);
+					fprintf(stderr,"errors:Invalid symbol:%s\n",exe->stack->values[exe->stack->tp-1]->u.str->str);
 					break;
 			}
 			if(exe->VMid==-1)

@@ -1630,7 +1630,7 @@ int B_add(FakeVM* exe)
 	if((firValue->type!=IN32&&firValue->type!=DBL)||(secValue->type!=IN32&&secValue->type!=DBL))return WRONGARG;
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
-		double result=((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num)+((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num);
+		double result=((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.in32)+((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.in32);
 		VMvalue* tmpValue=newVMvalue(DBL,&result,exe->heap,1);
 		stack->tp-=1;
 		stackRecycle(exe);
@@ -1638,7 +1638,7 @@ int B_add(FakeVM* exe)
 	}
 	else if(firValue->type==IN32&&secValue->type==IN32)
 	{
-		int32_t result=*firValue->u.num+*secValue->u.num;
+		int32_t result=*firValue->u.in32+*secValue->u.in32;
 		VMvalue* tmpValue=newVMvalue(IN32,&result,exe->heap,1);
 		stack->tp-=1;
 		stackRecycle(exe);
@@ -1657,7 +1657,7 @@ int B_sub(FakeVM* exe)
 	if((firValue->type!=IN32&&firValue->type!=DBL)||(secValue->type!=IN32&&secValue->type!=DBL))return WRONGARG;
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
-		double result=((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num)-((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num);
+		double result=((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.in32)-((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.in32);
 		VMvalue* tmpValue=newVMvalue(DBL,&result,exe->heap,1);
 		stack->tp-=1;
 		stackRecycle(exe);
@@ -1665,7 +1665,7 @@ int B_sub(FakeVM* exe)
 	}
 	else if(firValue->type==IN32&&secValue->type==IN32)
 	{
-		int32_t result=*secValue->u.num-*firValue->u.num;
+		int32_t result=*secValue->u.in32-*firValue->u.in32;
 		VMvalue* tmpValue=newVMvalue(IN32,&result,exe->heap,1);
 		stack->tp-=1;
 		stackRecycle(exe);
@@ -1684,7 +1684,7 @@ int B_mul(FakeVM* exe)
 	if((firValue->type!=IN32&&firValue->type!=DBL)||(secValue->type!=IN32&&secValue->type!=DBL))return WRONGARG;
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
-		double result=((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num)*((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num);
+		double result=((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.in32)*((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.in32);
 		VMvalue* tmpValue=newVMvalue(DBL,&result,exe->heap,1);
 		stack->tp-=1;
 		stackRecycle(exe);
@@ -1692,7 +1692,7 @@ int B_mul(FakeVM* exe)
 	}
 	else if(firValue->type==IN32&&secValue->type==IN32)
 	{
-		int32_t result=*firValue->u.num*(*secValue->u.num);
+		int32_t result=*firValue->u.in32*(*secValue->u.in32);
 		VMvalue* tmpValue=newVMvalue(IN32,&result,exe->heap,1);
 		stack->tp-=1;
 		stackRecycle(exe);
@@ -1710,11 +1710,11 @@ int B_div(FakeVM* exe)
 	VMvalue* secValue=getValue(stack,stack->tp-2);
 	VMvalue* tmpValue=NULL;
 	if((firValue->type!=IN32&&firValue->type!=DBL)||(secValue->type!=IN32&&secValue->type!=DBL))return WRONGARG;
-	if((firValue->type==DBL&&fabs(*firValue->u.dbl)==0)||(firValue->type==IN32&&*firValue->u.num==0))
+	if((firValue->type==DBL&&fabs(*firValue->u.dbl)==0)||(firValue->type==IN32&&*firValue->u.in32==0))
 		tmpValue=newNilValue(exe->heap);
 	else
 	{
-		double result=((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num)/((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num);
+		double result=((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.in32)/((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.in32);
 		tmpValue=newVMvalue(DBL,&result,exe->heap,1);
 	}
 	stack->tp-=1;
@@ -1732,11 +1732,11 @@ int B_rem(FakeVM* exe)
 	VMvalue* secValue=getValue(stack,stack->tp-2);
 	VMvalue* tmpValue=NULL;
 	if((firValue->type!=IN32&&firValue->type!=DBL)||(secValue->type!=IN32&&secValue->type!=DBL))return WRONGARG;
-	if(!(*firValue->u.num))
+	if(!(*firValue->u.in32))
 		tmpValue=newNilValue(exe->heap);
 	else
 	{
-		int32_t result=((int32_t)((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num))%((int32_t)((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num));
+		int32_t result=((int32_t)((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.in32))%((int32_t)((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.in32));
 		tmpValue=newVMvalue(IN32,&result,exe->heap,1);
 	}
 	stack->tp-=1;
@@ -1872,7 +1872,7 @@ int B_res_bp(FakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	if(stack->tp>stack->bp)return TOOMANYARG;
 	VMvalue* prevBp=getTopValue(stack);
-	stack->bp=*prevBp->u.num;
+	stack->bp=*prevBp->u.in32;
 	stack->tp-=1;
 	stackRecycle(exe);
 	proc->cp+=1;
@@ -2049,14 +2049,14 @@ int B_eqn(FakeVM* exe)
 	stackRecycle(exe);
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
-		double result=((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num)-((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num);
+		double result=((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.in32)-((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.in32);
 		if(result==0)
 			stack->values[stack->tp-1]=newTrueValue(exe->heap);
 		else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	}
 	else if(firValue->type==IN32&&secValue->type==IN32)
 	{
-		if(*secValue->u.num==*firValue->u.num)
+		if(*secValue->u.in32==*firValue->u.in32)
 			stack->values[stack->tp-1]=newTrueValue(exe->heap);
 		else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	}
@@ -2096,14 +2096,14 @@ int B_gt(FakeVM* exe)
 	stackRecycle(exe);
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
-		double result=((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num)-((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num);
+		double result=((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.in32)-((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.in32);
 		if(result>0)
 			stack->values[stack->tp-1]=newTrueValue(exe->heap);
 		else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	}
 	else if(firValue->type==IN32&&secValue->type==IN32)
 	{
-		if(*secValue->u.num>*firValue->u.num)
+		if(*secValue->u.in32>*firValue->u.in32)
 			stack->values[stack->tp-1]=newTrueValue(exe->heap);
 		else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	}
@@ -2128,14 +2128,14 @@ int B_ge(FakeVM* exe)
 	stackRecycle(exe);
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
-		double result=((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num)-((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num);
+		double result=((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.in32)-((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.in32);
 		if(result>=0)
 			stack->values[stack->tp-1]=newTrueValue(exe->heap);
 		else stack->values[stack->tp-1]=newTrueValue(exe->heap);
 	}
 	else if(firValue->type==IN32&&secValue->type==IN32)
 	{
-		if(*secValue->u.num>=*firValue->u.num)
+		if(*secValue->u.in32>=*firValue->u.in32)
 			stack->values[stack->tp-1]=newTrueValue(exe->heap);
 		else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	}
@@ -2160,14 +2160,14 @@ int B_lt(FakeVM* exe)
 	stackRecycle(exe);
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
-		double result=((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num)-((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num);
+		double result=((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.in32)-((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.in32);
 		if(result<0)
 			stack->values[stack->tp-1]=newTrueValue(exe->heap);
 		else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	}
 	else if(firValue->type==IN32&&secValue->type==IN32)
 	{
-		if(*secValue->u.num<*firValue->u.num)
+		if(*secValue->u.in32<*firValue->u.in32)
 			stack->values[stack->tp-1]=newTrueValue(exe->heap);
 		else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	}
@@ -2192,14 +2192,14 @@ int B_le(FakeVM* exe)
 	stackRecycle(exe);
 	if(firValue->type==DBL||secValue->type==DBL)
 	{
-		double result=((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.num)-((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.num);
+		double result=((secValue->type==DBL)?*secValue->u.dbl:*secValue->u.in32)-((firValue->type==DBL)?*firValue->u.dbl:*firValue->u.in32);
 		if(result<=0)
 			stack->values[stack->tp-1]=newTrueValue(exe->heap);
 		else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	}
 	else if(firValue->type==IN32&&secValue->type==IN32)
 	{
-		if(*secValue->u.num<=*firValue->u.num)
+		if(*secValue->u.in32<=*firValue->u.in32)
 			stack->values[stack->tp-1]=newTrueValue(exe->heap);
 		else stack->values[stack->tp-1]=newNilValue(exe->heap);
 	}
@@ -2237,7 +2237,7 @@ int B_cast_to_chr(FakeVM* exe)
 	switch(topValue->type)
 	{
 		case IN32:
-			*tmpValue->u.chr=*topValue->u.num;
+			*tmpValue->u.chr=*topValue->u.in32;
 			break;
 		case DBL:
 			*tmpValue->u.chr=(int32_t)*topValue->u.dbl;
@@ -2269,21 +2269,21 @@ int B_cast_to_int(FakeVM* exe)
 	switch(topValue->type)
 	{
 		case IN32:
-			*tmpValue->u.num=*topValue->u.num;
+			*tmpValue->u.in32=*topValue->u.in32;
 			break;
 		case DBL:
-			*tmpValue->u.num=(int32_t)*topValue->u.dbl;
+			*tmpValue->u.in32=(int32_t)*topValue->u.dbl;
 			break;
 		case CHR:
-			*tmpValue->u.num=*topValue->u.chr;
+			*tmpValue->u.in32=*topValue->u.chr;
 			break;
 		case STR:
 		case SYM:
-			*tmpValue->u.num=stringToInt(topValue->u.str->str);
+			*tmpValue->u.in32=stringToInt(topValue->u.str->str);
 			break;
 		case BYTS:
 			memcpy(&m,topValue->u.byts->str,topValue->u.byts->size);
-			*tmpValue->u.num=m;
+			*tmpValue->u.in32=m;
 			break;
 	}
 	stack->values[stack->tp-1]=tmpValue;
@@ -2302,7 +2302,7 @@ int B_cast_to_dbl(FakeVM* exe)
 	switch(topValue->type)
 	{
 		case IN32:
-			*tmpValue->u.dbl=(double)*topValue->u.num;
+			*tmpValue->u.dbl=(double)*topValue->u.in32;
 			break;
 		case DBL:
 			*tmpValue->u.dbl=*topValue->u.dbl;
@@ -2335,7 +2335,7 @@ int B_cast_to_str(FakeVM* exe)
 	switch(topValue->type)
 	{
 		case IN32:
-			tmpValue->u.str->str=intToString(*topValue->u.num);
+			tmpValue->u.str->str=intToString(*topValue->u.in32);
 			break;
 		case DBL:
 			tmpValue->u.str->str=doubleToString(*topValue->u.dbl);
@@ -2370,7 +2370,7 @@ int B_cast_to_sym(FakeVM* exe)
 	switch(topValue->type)
 	{
 		case IN32:
-			tmpValue->u.str->str=intToString((long)*topValue->u.num);
+			tmpValue->u.str->str=intToString((long)*topValue->u.in32);
 			break;
 		case DBL:
 			tmpValue->u.str->str=doubleToString(*topValue->u.dbl);
@@ -2407,7 +2407,7 @@ int B_cast_to_byte(FakeVM* exe)
 		case IN32:
 			tmpValue->u.byts->size=sizeof(int32_t);
 			tmpValue->u.byts->str=createByteString(sizeof(int32_t));
-			*(int32_t*)tmpValue->u.byts->str=*topValue->u.num;
+			*(int32_t*)tmpValue->u.byts->str=*topValue->u.in32;
 			break;
 		case DBL:
 			tmpValue->u.byts->size=sizeof(double);
@@ -2447,7 +2447,7 @@ int B_nth(FakeVM* exe)
 		VMvalue* obj=getVMpairCar(objlist);
 		VMvalue* objPair=getVMpairCdr(objlist);
 		int i=0;
-		for(;i<*place->u.num;i++)
+		for(;i<*place->u.in32;i++)
 		{
 			if(objPair->type!=PAIR)
 			{
@@ -2465,7 +2465,7 @@ int B_nth(FakeVM* exe)
 	{
 		stack->tp-=1;
 		stackRecycle(exe);
-		VMvalue* objChr=newVMvalue(CHR,objlist->u.str->str+*place->u.num,exe->heap,0);
+		VMvalue* objChr=newVMvalue(CHR,objlist->u.str->str+*place->u.in32,exe->heap,0);
 		stack->values[stack->tp-1]=objChr;
 	}
 	else if(objlist->type==BYTS)
@@ -2473,7 +2473,7 @@ int B_nth(FakeVM* exe)
 		stack->tp-=1;
 		stackRecycle(exe);
 		ByteString* tmpByte=newByteString(1,NULL);
-		tmpByte->str=objlist->u.byts->str+*place->u.num;
+		tmpByte->str=objlist->u.byts->str+*place->u.in32;
 		VMvalue* objByte=newVMvalue(BYTS,tmpByte,exe->heap,0);
 		stack->values[stack->tp-1]=objByte;
 	}
@@ -2598,10 +2598,10 @@ int B_getb(FakeVM* exe)
 	VMvalue* size=getValue(stack,stack->tp-2);
 	if(file->type!=FP||size->type!=IN32)return WRONGARG;
 	FILE* fp=file->u.fp->fp;
-	uint8_t* str=(uint8_t*)malloc(sizeof(uint8_t)*(*size->u.num));
+	uint8_t* str=(uint8_t*)malloc(sizeof(uint8_t)*(*size->u.in32));
 	if(str==NULL)errors("B_getb",__FILE__,__LINE__);
 	int32_t realRead=0;
-	realRead=fread(str,sizeof(uint8_t),*size->u.num,fp);
+	realRead=fread(str,sizeof(uint8_t),*size->u.in32,fp);
 	stack->tp-=1;
 	if(!realRead)
 	{
@@ -2615,7 +2615,7 @@ int B_getb(FakeVM* exe)
 			errors("B_getb",__FILE__,__LINE__);
 		VMvalue* tmpBary=newVMvalue(BYTS,NULL,exe->heap,1);
 		tmpBary->u.byts=newEmptyByteArry();
-		tmpBary->u.byts->size=*size->u.num;
+		tmpBary->u.byts->size=*size->u.in32;
 		tmpBary->u.byts->str=str;
 		stack->values[stack->tp-1]=tmpBary;
 	}
@@ -2755,7 +2755,7 @@ int B_chanl(FakeVM* exe)
 	VMvalue* maxSize=getTopValue(stack);
 	if(maxSize->type!=IN32)
 		return WRONGARG;
-	int32_t max=*maxSize->u.num;
+	int32_t max=*maxSize->u.in32;
 	VMvalue* objValue=newVMvalue(CHAN,newChanl(max),exe->heap,1);
 	stack->values[stack->tp-1]=objValue;
 	proc->cp+=1;
@@ -2843,7 +2843,7 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,int8_t mode,int8_t isPrevPair,CRL**
 			fprintf(fp,"nil");
 			break;
 		case IN32:
-			fprintf(fp,"%d",*objValue->u.num);
+			fprintf(fp,"%d",*objValue->u.in32);
 			break;
 		case DBL:
 			fprintf(fp,"%lf",*objValue->u.dbl);
@@ -2939,7 +2939,7 @@ void princVMvalue(VMvalue* objValue,FILE* fp,int8_t isPrevPair,CRL** h)
 			fprintf(fp,"nil");
 			break;
 		case IN32:
-			fprintf(fp,"%d",*objValue->u.num);
+			fprintf(fp,"%d",*objValue->u.in32);
 			break;
 		case DBL:
 			fprintf(fp,"%lf",*objValue->u.dbl);

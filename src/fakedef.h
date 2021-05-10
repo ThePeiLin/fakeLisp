@@ -101,7 +101,7 @@ typedef struct AST_atom
 	{
 		char* str;
 		char chr;
-		int32_t num;
+		int32_t in32;
 		double dbl;
 		ByteString byts;
 	} value;
@@ -213,7 +213,7 @@ typedef struct VM_Value
 		struct VM_Str* str;
 		VMpair* pair;
 		ByteString* byts;
-		int32_t* num;
+		int32_t* in32;
 		double* dbl;
 		struct VM_Code* prc;
 		struct VM_Continuation* cont;

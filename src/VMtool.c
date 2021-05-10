@@ -79,7 +79,7 @@ VMvalue* copyVMvalue(VMvalue* obj,VMheap* heap)
 		switch(root->type)
 		{
 			case IN32:
-				root1->u.num=copyMemory(root->u.num,sizeof(int32_t));
+				root1->u.in32=copyMemory(root->u.in32,sizeof(int32_t));
 				break;
 			case DBL:
 				root1->u.dbl=copyMemory(root->u.dbl,sizeof(double));
@@ -159,7 +159,7 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap,int access)
 			tmp->u.chr=(access)?copyMemory(pValue,sizeof(char)):pValue;
 			break;
 		case IN32:
-			tmp->u.num=(access)?copyMemory(pValue,sizeof(int32_t)):pValue;
+			tmp->u.in32=(access)?copyMemory(pValue,sizeof(int32_t)):pValue;
 			break;
 		case DBL:
 			tmp->u.dbl=(access)?copyMemory(pValue,sizeof(double)):pValue;
@@ -232,7 +232,7 @@ int VMvaluecmp(VMvalue* fir,VMvalue* sec)
 		switch(fir->type)
 		{
 			case IN32:
-				return *fir->u.num==*sec->u.num;
+				return *fir->u.in32==*sec->u.in32;
 			case CHR:
 				return *fir->u.chr==*sec->u.chr;
 			case DBL:
@@ -260,7 +260,7 @@ int subVMvaluecmp(VMvalue* fir,VMvalue* sec)
 		switch(fir->type)
 		{
 			case IN32:
-				return *fir->u.num==*sec->u.num;
+				return *fir->u.in32==*sec->u.in32;
 			case CHR:
 				return *fir->u.chr==*sec->u.chr;
 			case DBL:
@@ -275,8 +275,8 @@ int subVMvaluecmp(VMvalue* fir,VMvalue* sec)
 
 int numcmp(VMvalue* fir,VMvalue* sec)
 {
-	double first=(fir->type==DBL)?*fir->u.dbl:*fir->u.num;
-	double second=(sec->type==DBL)?*sec->u.dbl:*sec->u.num;
+	double first=(fir->type==DBL)?*fir->u.dbl:*fir->u.in32;
+	double second=(sec->type==DBL)?*sec->u.dbl:*sec->u.in32;
 	if(fabs(first-second)==0)return 1;
 	else return 0;
 }
@@ -437,7 +437,7 @@ VMvalue* castCptrVMvalue(AST_cptr* objCptr,VMheap* heap)
 			switch((int)tmpAtm->type)
 			{
 				case IN32:
-					root1->u.num=copyMemory(&tmpAtm->value,sizeof(int32_t));
+					root1->u.in32=copyMemory(&tmpAtm->value,sizeof(int32_t));
 					break;
 				case DBL:
 					root1->u.dbl=copyMemory(&tmpAtm->value.dbl,sizeof(double));
@@ -618,7 +618,7 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 		switch(fir->type)
 		{
 			case IN32:
-				fir->u.num=copyMemory(sec->u.num,sizeof(int32_t));
+				fir->u.in32=copyMemory(sec->u.in32,sizeof(int32_t));
 				break;
 			case DBL:
 				fir->u.dbl=copyMemory(sec->u.dbl,sizeof(double));
@@ -696,7 +696,7 @@ void writeRef(VMvalue* fir,VMvalue* sec)
 		switch(sec->type)
 		{
 			case IN32:
-				*fir->u.num=*sec->u.num;
+				*fir->u.in32=*sec->u.in32;
 				break;
 			case CHR:
 				*fir->u.chr=*sec->u.chr;

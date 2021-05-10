@@ -179,7 +179,7 @@ int MacroPatternCmp(const AST_cptr* first,const AST_cptr* second)
 				if(firAtm->type!=secAtm->type)return 0;
 				if(firAtm->type==SYM&&(!isVal(firAtm->value.str)||!isVal(secAtm->value.str))&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
 				if(firAtm->type==STR&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
-				else if(firAtm->type==IN32&&firAtm->value.num!=secAtm->value.num)return 0;
+				else if(firAtm->type==IN32&&firAtm->value.in32!=secAtm->value.in32)return 0;
 				else if(firAtm->type==DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
 				else if(firAtm->type==CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
 				else if(firAtm->type==BYTS&&!bytsStrEq(&firAtm->value.byts,&secAtm->value.byts))return 0;
@@ -852,7 +852,7 @@ ByteCode* compileAtom(AST_cptr* objCptr)
 		case IN32:
 			tmp=newByteCode(sizeof(char)+sizeof(int32_t));
 			tmp->code[0]=FAKE_PUSH_INT;
-			*(int32_t*)(tmp->code+1)=tmpAtm->value.num;
+			*(int32_t*)(tmp->code+1)=tmpAtm->value.in32;
 			break;
 		case DBL:
 			tmp=newByteCode(sizeof(char)+sizeof(double));
@@ -2306,7 +2306,7 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 					{
 						tmpByteCode=newByteCode(sizeof(char)+sizeof(int32_t));
 						tmpByteCode->code[0]=opcode;
-						*((int32_t*)(tmpByteCode->code+sizeof(char)))=tmpAtm->value.num;
+						*((int32_t*)(tmpByteCode->code+sizeof(char)))=tmpAtm->value.in32;
 					}
 					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
 					fir=nextCptr(tmpCptr);

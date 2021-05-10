@@ -1,7 +1,12 @@
 (load macro.fkl)
 
+(define btk (dll "../btk"))
+(define getch (dlsym btk "getch"))
+
 (let* ((yin ((lambda (cc) (princ #\@ stdout) cc)
              (clcc (lambda (c) c))))
        (yang ((lambda (cc) (princ #\* stdout) cc)
               (clcc (lambda (c) c)))))
-  (yin yang))
+  (if (eq (getch) #\\4) nil
+    (yin yang))
+  )

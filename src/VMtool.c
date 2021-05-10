@@ -45,7 +45,7 @@ VMcode* newVMcode(ByteCode* proc,int32_t id)
 	VMcode* tmp=(VMcode*)malloc(sizeof(VMcode));
 	if(tmp==NULL)errors("newVMcode",__FILE__,__LINE__);
 	tmp->refcount=0;
-	tmp->localenv=NULL;
+	tmp->prevEnv=NULL;
 	if(proc!=NULL)
 	{
 		tmp->id=id;
@@ -528,7 +528,7 @@ VMcode* copyVMcode(VMcode* obj,VMheap* heap)
 	tmp->code=(char*)malloc(sizeof(char)*tmp->size);
 	if(tmp->code==NULL)errors("copyVMcode",__FILE__,__LINE__);
 	memcpy(tmp->code,obj->code,tmp->size);
-	tmp->localenv=copyVMenv(obj->localenv,heap);
+	tmp->prevEnv=copyVMenv(obj->prevEnv,heap);
 	return tmp;
 }
 
@@ -553,8 +553,8 @@ void freeVMcode(VMcode* proc)
 {
 	if(!proc->refcount)
 	{
-		if(proc->localenv)
-			freeVMenv(proc->localenv);
+		if(proc->prevEnv)
+			freeVMenv(proc->prevEnv);
 		free(proc->code);
 		free(proc);
 	}

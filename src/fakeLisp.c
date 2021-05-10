@@ -79,7 +79,7 @@ int main(int argc,char** argv)
 			anotherVM->argv=argv+1;
 			anotherVM->tid=pthread_self();
 			anotherVM->mainproc->localenv=globEnv;
-			anotherVM->mainproc->code->localenv=NULL;
+			anotherVM->mainproc->code->prevEnv=NULL;
 			anotherVM->callback=errorCallBack;
 			anotherVM->table=inter->table;
 			anotherVM->lnt=inter->lnt;
@@ -133,7 +133,7 @@ int main(int argc,char** argv)
 		anotherVM->argv=argv+1;
 		anotherVM->table=table;
 		anotherVM->mainproc->localenv=globEnv;
-		anotherVM->mainproc->code->localenv=NULL;
+		anotherVM->mainproc->code->prevEnv=NULL;
 		anotherVM->callback=errorCallBack;
 		anotherVM->lnt=lnt;
 		initGlobEnv(globEnv,anotherVM->heap,table);
@@ -250,7 +250,7 @@ void runIntpr(Intpr* inter)
 					VMcode* tmp=newVMcode(tmpByteCode->bc,0);
 					freeByteCode(tmpByteCode->bc);
 					free(tmpByteCode);
-					tmp->localenv=NULL;
+					tmp->prevEnv=NULL;
 					anotherVM->mainproc=newFakeProcess(tmp,NULL);
 					anotherVM->mainproc->localenv=globEnv;
 					anotherVM->curproc=anotherVM->mainproc;
@@ -273,7 +273,7 @@ void runIntpr(Intpr* inter)
 						stack->tp=0;
 						stack->bp=0;
 						tmp=anotherVM->mainproc->code;
-						tmp->localenv=NULL;
+						tmp->prevEnv=NULL;
 						freeVMcode(tmp);
 						deleteCallChain(anotherVM);
 					}

@@ -252,7 +252,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 				{
 					tmpAtm=newAtom(IN32,NULL,objPair);
 					int32_t num=stringToInt(tmp);
-					tmpAtm->value.num=num;
+					tmpAtm->value.in32=num;
 				}
 				objCptr->type=ATM;
 				objCptr->value=tmpAtm;
@@ -362,7 +362,7 @@ AST_cptr* castVMvalueToCptr(VMvalue* value,int32_t curline)
 					tmpAtm->value.str=copyStr(root->u.str->str);
 					break;
 				case IN32:
-					tmpAtm->value.num=*root->u.num;
+					tmpAtm->value.in32=*root->u.in32;
 					break;
 				case DBL:
 					tmpAtm->value.dbl=*root->u.dbl;

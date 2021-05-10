@@ -36,7 +36,7 @@ int resBp(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	if(stack->tp>stack->bp)return TOOMANYARG;
 	VMvalue* prevBp=getTopValue(stack);
-	stack->bp=*prevBp->u.num;
+	stack->bp=*prevBp->u.in32;
 	stack->tp-=1;
 	return 0;
 }
@@ -63,7 +63,7 @@ int FAKE_sleep(FakeVM* exe,pthread_rwlock_t* pGClock)
 	if(!second)return TOOFEWARG;
 	if(resBp(exe))return TOOMANYARG;
 	if(second->type!=IN32)return WRONGARG;
-	int32_t s=*second->u.num;
+	int32_t s=*second->u.in32;
 	releaseSource(pGClock);
 	s=sleep(s);
 	if(stack->tp>=stack->size)
@@ -85,7 +85,7 @@ int FAKE_usleep(FakeVM* exe,pthread_rwlock_t* pGClock)
 	if(!second)return TOOFEWARG;
 	if(resBp(exe))return TOOMANYARG;
 	if(second->type!=IN32)return WRONGARG;
-	int32_t s=*second->u.num;
+	int32_t s=*second->u.in32;
 	releaseSource(pGClock);
 #ifdef _WIN32
 		Sleep(s);
@@ -110,7 +110,7 @@ int FAKE_exit(FakeVM* exe,pthread_rwlock_t* pGClock)
 	VMvalue* exitCode=getArg(stack);
 	if(exitCode==NULL)
 		exit(0);
-	int32_t num=*exitCode->u.num;
+	int32_t num=*exitCode->u.in32;
 	exit(num);
 	return 0;
 }
@@ -127,7 +127,7 @@ int FAKE_rand(FakeVM* exe,pthread_rwlock_t* pGClock)
 	VMvalue*  lim=getArg(stack);
 	if(resBp(exe))return TOOMANYARG;
 	if(lim&&lim->type!=IN32)return WRONGARG;
-	int32_t limit=(lim==NULL||*lim->u.num==0)?RAND_MAX:*lim->u.num;
+	int32_t limit=(lim==NULL||*lim->u.in32==0)?RAND_MAX:*lim->u.in32;
 	int32_t result=rand()%limit;
 	VMvalue* toReturn=newVMvalue(IN32,&result,exe->heap,1);
 	SET_RETURN("FAKE_rand",toReturn,stack);
@@ -213,7 +213,7 @@ int FAKE_setChanlBufferSize(FakeVM* exe,pthread_rwlock_t* pGClock)
 		return TOOFEWARG;
 	if(size->type!=IN32||chan->type!=CHAN)
 		return WRONGARG;
-	chan->u.chan->max=*size->u.num;
+	chan->u.chan->max=*size->u.in32;
 	SET_RETURN("FAKE_setChanlBufferSize",chan,stack);
 	return 0;
 }

@@ -281,7 +281,7 @@ int copyCptr(AST_cptr* objCptr,const AST_cptr* copiedCptr)
 			{
 				objAtm=newAtom(coAtm->type,NULL,objPair);
 				if(objAtm->type==DBL)objAtm->value.dbl=coAtm->value.dbl;
-				else if(objAtm->type==IN32)objAtm->value.num=coAtm->value.num;
+				else if(objAtm->type==IN32)objAtm->value.in32=coAtm->value.in32;
 				else if(objAtm->type==CHR)objAtm->value.chr=coAtm->value.chr;
 			}
 			objCptr->value=objAtm;
@@ -425,7 +425,7 @@ int AST_cptrcmp(const AST_cptr* first,const AST_cptr* second)
 				AST_atom* secAtm=second->value;
 				if(firAtm->type!=secAtm->type)return 0;
 				if((firAtm->type==SYM||firAtm->type==STR)&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
-				else if(firAtm->type==IN32&&firAtm->value.num!=secAtm->value.num)return 0;
+				else if(firAtm->type==IN32&&firAtm->value.in32!=secAtm->value.in32)return 0;
 				else if(firAtm->type==DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
 				else if(firAtm->type==CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
 				else if(firAtm->type==BYTS&&!bytsStrEq(&firAtm->value.byts,&secAtm->value.byts))return 0;
@@ -618,7 +618,7 @@ void printCptr(const AST_cptr* objCptr,FILE* out)
 						printRawString(tmpAtm->value.str,out);
 						break;
 					case IN32:
-						fprintf(out,"%d",tmpAtm->value.num);
+						fprintf(out,"%d",tmpAtm->value.in32);
 						break;
 					case DBL:
 						fprintf(out,"%lf",tmpAtm->value.dbl);
@@ -1778,7 +1778,7 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 			{
 				tmpAtm=newAtom(IN32,NULL,objPair);
 				int32_t num=stringToInt(tmp);
-				tmpAtm->value.num=num;
+				tmpAtm->value.in32=num;
 			}
 			objCptr->type=ATM;
 			objCptr->value=tmpAtm;

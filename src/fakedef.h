@@ -245,7 +245,7 @@ typedef struct VM_Code
 {
 	int32_t id;
 	int32_t refcount;
-	VMenv* localenv;
+	VMenv* prevEnv;
 	int32_t size;
 	char* code;
 }VMcode;

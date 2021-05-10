@@ -65,7 +65,7 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 		tmpVM->mainproc=newFakeProcess(tmpVMcode,NULL);
 		tmpVM->mainproc->localenv=macroVMenv;
 		tmpVM->curproc=tmpVM->mainproc;
-		tmpVMcode->localenv=NULL;
+		tmpVMcode->prevEnv=NULL;
 		tmpVM->table=inter->table;
 		tmpVM->callback=errorCallBackForPreMacroExpand;
 		tmpVM->lnt=tmp->lnt;

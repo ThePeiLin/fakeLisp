@@ -1342,7 +1342,8 @@ int B_push_proc(FakeVM* exe)
 		stack->size+=64;
 	}
 	VMcode* code=newVMcode(exe->procs+countOfProc,countOfProc+1);
-	code->localenv=newVMenv(proc->localenv);
+	increaseVMenvRefcount(proc->localenv);
+	code->prevEnv=proc->localenv;
 	VMvalue* objValue=newVMvalue(PRC,code,exe->heap,1);
 	stack->values[stack->tp]=objValue;
 	stack->tp+=1;
@@ -1567,18 +1568,18 @@ int B_pop_env(FakeVM* exe)
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue->type!=PRC)
 		return WRONGARG;
-	VMenv* prevEnv=topValue->u.prc->localenv;
-	VMenv* tmpEnv=prevEnv->prev;
+	VMenv** ppEnv=&topValue->u.prc->prevEnv;
+	VMenv* tmpEnv=*ppEnv;
 	int32_t i=0;
 	int32_t scope=*(int32_t*)(tmpCode->code+proc->cp+1);
 	for(;i<scope&&tmpEnv;i++)
 	{
-		prevEnv=tmpEnv;
-		tmpEnv=tmpEnv->prev;
+		ppEnv=&tmpEnv->prev;
+		tmpEnv=*ppEnv;
 	}
 	if(tmpEnv)
 	{
-		prevEnv->prev=tmpEnv->prev;
+		*ppEnv=tmpEnv->prev;
 		tmpEnv->prev=NULL;
 		freeVMenv(tmpEnv);
 	}
@@ -1893,7 +1894,7 @@ int B_invoke(FakeVM* exe)
 		else
 		{
 			VMprocess* tmpProc=newFakeProcess(tmpCode,proc);
-			tmpProc->localenv=newVMenv(tmpCode->localenv->prev);
+			tmpProc->localenv=newVMenv(tmpCode->prevEnv);
 			exe->curproc=tmpProc;
 		}
 		stack->tp-=1;
@@ -3046,7 +3047,7 @@ VMcode* newBuiltInProc(ByteCode* proc)
 {
 	VMcode* tmp=(VMcode*)malloc(sizeof(VMcode));
 	if(tmp==NULL)errors("newBuiltInProc",__FILE__,__LINE__);
-	tmp->localenv=newVMenv(NULL);
+	tmp->prevEnv=NULL;
 	tmp->refcount=0;
 	if(proc!=NULL)
 	{
@@ -3209,7 +3210,7 @@ void GC_markValue(VMvalue* obj)
 			}
 			else if(root->type==PRC)
 			{
-				VMenv* curEnv=root->u.prc->localenv;
+				VMenv* curEnv=root->u.prc->prevEnv;
 				for(;curEnv!=NULL;curEnv=curEnv->prev)
 				{
 					uint32_t i=0;
@@ -3306,7 +3307,7 @@ FakeVM* newThreadVM(VMcode* mainCode,ByteCode* procs,VMheap* heap)
 	FakeVM* exe=(FakeVM*)malloc(sizeof(FakeVM));
 	if(exe==NULL)errors("newThreadVM",__FILE__,__LINE__);
 	exe->mainproc=newFakeProcess(mainCode,NULL);
-	exe->mainproc->localenv=newVMenv(mainCode->localenv->prev);
+	exe->mainproc->localenv=newVMenv(mainCode->prevEnv);
 	exe->curproc=exe->mainproc;
 	exe->procs=procs;
 	exe->mark=1;

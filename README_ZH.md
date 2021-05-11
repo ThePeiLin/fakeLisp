@@ -391,17 +391,26 @@ lisp系的编程语言大多都有词法闭包，  可以利用词法闭包来�
                       (1
                        (setf construct-method (cdr (car c))))))
               (loop (cdr c)))))
+    (setf case-list
+          (appd case-list
+                `((1
+                   (princ "Invalid selector \"" stderr)
+                   (princ selector stderr)
+                   (princ "\"\n" stderr)))))
 
     (define local-env (appd data-list method-list))
-    `(begin
-       (define ~name
-         (lambda ~(car construct-method)
+    `(define ~name
+       (lambda ~(car construct-method)
          (letrec ~local-env
            ~@(cdr construct-method)
-           (lambda (selector)
-             (case selector
-               ~@case-list))))))
-    ))
+           (define this
+             (lambda (selector)
+               (case selector
+                 ~@case-list)))
+           (proc
+             push_var this
+             pop_env 1
+             ))))))
 
 (class Vec3
        (data

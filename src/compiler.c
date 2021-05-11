@@ -786,7 +786,7 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 		if(isLambdaExpression(objCptr))return compileLambda(objCptr,curEnv,inter,status,evalIm);
 		if(isBeginExpression(objCptr)) return compileBegin(objCptr,curEnv,inter,status,evalIm);
 		if(isProcExpression(objCptr)) return compileProc(objCptr,curEnv,inter,status,evalIm);
-		//if(isImportExpression(objCptr))return compileImport(objCptr,curEnv,inter,status,evalIm);
+		if(isImportExpression(objCptr))return compileImport(objCptr,curEnv,inter,status,evalIm);
 		if(isLibraryExpression(objCptr))return newByteCodelnt(newByteCode(0));
 		if(isUnqtespExpression(objCptr)||isExportExpression(objCptr))
 		{
@@ -2328,3 +2328,130 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	return tmp;
 }
 
+ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+{
+#ifdef _WIN32
+	char divstr[]="\\";
+#else
+	char divstr[]="/";
+#endif
+
+	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
+	chdir(inter->curDir);
+	int ch=0;
+	char* prev=NULL;
+	/* 获取文件路径和文件名
+	 * 然后打开并查找第一个library表达式
+	 */
+	AST_cptr* plib=nextCptr(getFirstCptr(objCptr));
+	for(;plib;plib=nextCptr(plib))
+	{
+		AST_cptr* pPartsOfPath=getFirstCptr(plib);
+		if(!pPartsOfPath)
+		{
+			status->status=SYNTAXERROR;
+			status->place=plib;
+			freeByteCodelnt(tmp);
+			return NULL;
+		}
+		uint32_t count=0;
+		const char** partsOfPath=(const char**)malloc(sizeof(const char*)*0);
+		if(!partsOfPath)
+			errors("compileImport",__FILE__,__LINE__);
+		for(;pPartsOfPath;pPartsOfPath=nextCptr(pPartsOfPath))
+		{
+			if(pPartsOfPath->type!=ATM)
+			{
+				status->status=SYNTAXERROR;
+				status->place=plib;
+				freeByteCodelnt(tmp);
+				return NULL;
+			}
+			AST_atom* tmpAtm=pPartsOfPath->value;
+			if(tmpAtm->type!=STR&&tmpAtm->type!=SYM)
+			{
+				status->status=SYNTAXERROR;
+				status->place=plib;
+				freeByteCodelnt(tmp);
+				return NULL;
+			}
+			count++;
+			partsOfPath=(const char**)realloc(partsOfPath,sizeof(const char*)*count);
+			if(!pPartsOfPath)
+				errors("compileImport",__FILE__,__LINE__);
+			partsOfPath[count-1]=tmpAtm->value.str;
+		}
+		uint32_t totalPathLength=0;
+		uint32_t i=0;
+		for(;i<count;i++)
+			totalPathLength+=strlen(partsOfPath[i]);
+		totalPathLength+=count;
+		char* path=(char*)malloc(sizeof(char)*totalPathLength);
+		if(!path)
+			errors("compileImport",__FILE__,__LINE__);
+		path[0]='\0';
+		for(i=0;i<count;i++)
+		{
+			if(i>0)
+				strcat(path,divstr);
+			strcat(path,partsOfPath[i]);
+		}
+		while((ch=getc(inter->file))!=EOF)
+		{
+			ungetc(ch,inter->file);
+			AST_cptr* begin=NULL;
+			StringMatchPattern* tmpPattern=NULL;
+			char* list=readInPattern(inter->file,&tmpPattern,&prev);
+			if(list==NULL)continue;
+			begin=createTree(list,inter,tmpPattern);
+			int ch=getc(inter->file);
+			if(!begin&&(list&&!(isAllSpace(list)&&ch==EOF)))
+			{
+				fprintf(stderr,"In file \"%s\",line %d\n",inter->filename,inter->curline);
+				if(list&&!isAllSpace(list))
+					fprintf(stderr,"%s:Invalid expression here.\n",list);
+				else
+					fprintf(stderr,"Can't create a valid object.\n");
+				if(list)
+				{
+					free(list);
+					list=NULL;
+				}
+				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+				freeByteCodelnt(tmp);
+				tmp=NULL;
+				break;
+			}
+			else if(!begin&&(isAllSpace(list)||ch==EOF))
+			{
+				if(list)
+					free(list);
+				break;
+			}
+			ungetc(ch,inter->file);
+			if(begin!=NULL)
+			{
+				//查找library并编译library
+				if(isLibraryExpression(begin))
+				{
+				}
+				else
+				{
+					deleteCptr(begin);
+					free(begin);
+				}
+			}
+			else
+			{
+				free(list);
+				list=NULL;
+				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+				freeByteCodelnt(tmp);
+				return NULL;
+			}
+			free(list);
+			list=NULL;
+		}
+	}
+	return tmp;
+}

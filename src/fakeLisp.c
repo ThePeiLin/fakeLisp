@@ -55,19 +55,14 @@ int main(int argc,char** argv)
 			int status;
 			SymTabNode* node=newSymTabNode(filename);
 			addSymTabNode(node,inter->table);
-			ByteCodelnt* mainByteCode=compileFile(inter,1,fix,&status);
+			ByteCodelnt* mainByteCode=compileFile(inter,1,&status);
 			if(mainByteCode==NULL)
 			{
 				free(workpath);
 				freeIntpr(inter);
-				freeByteCode(fix);
 				unInitPreprocess();
 				return status;
 			}
-			reCodeCat(fix,mainByteCode->bc);
-			mainByteCode->l[0]->cpc+=fix->size;
-			INCREASE_ALL_SCP(mainByteCode->l+1,mainByteCode->ls-1,fix->size);
-			freeByteCode(fix);
 			addLineNumTabId(mainByteCode->l,mainByteCode->ls,0,inter->lnt);
 			VMenv* globEnv=newVMenv(NULL);
 			ByteCode* rawProcList=castRawproc(NULL,inter->procs);
@@ -226,7 +221,7 @@ void runIntpr(Intpr* inter)
 			}
 			else
 			{
-				ByteCodelnt* tmpByteCode=compile(begin,inter->glob,inter,&status,!isLambdaExpression(begin),fix);
+				ByteCodelnt* tmpByteCode=compile(begin,inter->glob,inter,&status,!isLambdaExpression(begin));
 				if(status.status!=0)
 				{
 					exError(status.place,status.status,inter);
@@ -239,9 +234,6 @@ void runIntpr(Intpr* inter)
 				}
 				else if(tmpByteCode)
 				{
-					reCodeCat(fix,tmpByteCode->bc);
-					tmpByteCode->l[0]->cpc+=fix->size;
-					INCREASE_ALL_SCP(tmpByteCode->l+1,tmpByteCode->ls-1,fix->size);
 					addLineNumTabId(tmpByteCode->l,tmpByteCode->ls,0,inter->lnt);
 					rawProcList=castRawproc(rawProcList,inter->procs);
 					anotherVM->procs=rawProcList;
@@ -276,7 +268,6 @@ void runIntpr(Intpr* inter)
 						deleteCallChain(anotherVM);
 					}
 				}
-				freeByteCode(fix);
 			}
 			free(list);
 			list=NULL;

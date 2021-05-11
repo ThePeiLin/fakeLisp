@@ -27,19 +27,17 @@ int main(int argc,char** argv)
 #else
 		char* rp=realpath(filename,0);
 #endif
-		//changeWorkPath(filename);
 		initPreprocess();
 		int i;
 		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
 		SymTabNode* node=newSymTabNode(argv[1]);
 		addSymTabNode(node,inter->table);
 		int status;
-		ByteCodelnt* mainByteCode=compileFile(inter,1,fix,&status);
+		ByteCodelnt* mainByteCode=compileFile(inter,1,&status);
 		if(mainByteCode==NULL)
 		{
 			free(rp);
 			freeIntpr(inter);
-			freeByteCode(fix);
 			unInitPreprocess();
 			return status;
 		}
@@ -53,10 +51,6 @@ int main(int argc,char** argv)
 			fprintf(stderr,"%s:Can't create byte code file!",outputname);
 			return 1;
 		}
-		reCodeCat(fix,mainByteCode->bc);
-		mainByteCode->l[0]->cpc+=fix->size;
-		INCREASE_ALL_SCP(mainByteCode->l+1,mainByteCode->ls-1,fix->size);
-		freeByteCode(fix);
 		addLineNumTabId(mainByteCode->l,mainByteCode->ls,0,inter->lnt);
 		writeSymbolTable(inter->table,outfp);
 		writeLineNumberTable(inter->lnt,outfp);

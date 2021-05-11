@@ -111,8 +111,8 @@ go
 chanl  
 send  
 recv  
-clcc
-dll
+clcc  
+dll  
 dlsym  
 
 ## 可用特殊形式有:  

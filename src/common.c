@@ -998,6 +998,8 @@ int iscode(const char* filename)
 
 AST_cptr* getLastCptr(const AST_cptr* objList)
 {
+	if(objList->type!=PAIR)
+		return NULL;
 	AST_pair* objPair=objList->value;
 	AST_cptr* first=&objPair->car;
 	for(;nextCptr(first)!=NULL;first=nextCptr(first));
@@ -1006,6 +1008,8 @@ AST_cptr* getLastCptr(const AST_cptr* objList)
 
 AST_cptr* getFirstCptr(const AST_cptr* objList)
 {
+	if(objList->type!=PAIR)
+		return NULL;
 	AST_pair* objPair=objList->value;
 	AST_cptr* first=&objPair->car;
 	return first;

@@ -688,9 +688,8 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 		tmpInter->curDir=inter->curDir;
 		tmpInter->prev=NULL;
 		tmpInter->lnt=newLineNumTable();
-		ByteCode* fix=newByteCode(0);
 		CompEnv* tmpCompEnv=createMacroCompEnv(pattern,tmpGlobCompEnv,inter->table);
-		ByteCodelnt* tmpByteCodelnt=compile(express,tmpCompEnv,tmpInter,&status,1,fix);
+		ByteCodelnt* tmpByteCodelnt=compile(express,tmpCompEnv,tmpInter,&status,1);
 		if(!status.status)
 		{
 			reCodeCat(fix,tmpByteCodelnt->bc);
@@ -741,8 +740,7 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 	tmpInter->prev=NULL;
 	tmpInter->lnt=newLineNumTable();
 	CompEnv* tmpCompEnv=createPatternCompEnv(parts,num,tmpGlobCompEnv,inter->table);
-	ByteCode* fix=newByteCode(0);
-	ByteCodelnt* tmpByteCodelnt=compile(express,tmpCompEnv,tmpInter,&status,1,fix);
+	ByteCodelnt* tmpByteCodelnt=compile(express,tmpCompEnv,tmpInter,&status,1);
 	if(!status.status)
 	{
 		char** tmParts=(char**)malloc(sizeof(char*)*num);
@@ -775,24 +773,24 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 	return tmp;
 }
 
-ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
+ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
 	for(;;)
 	{
-		if(isLoadExpression(objCptr))return compileLoad(objCptr,curEnv,inter,status,evalIm,fix);
-		if(isConst(objCptr))return compileConst(objCptr,curEnv,inter,status,evalIm,fix);
-		if(isUnquoteExpression(objCptr))return compileUnquote(objCptr,curEnv,inter,status,evalIm,fix);
-		if(isQsquoteExpression(objCptr))return compileQsquote(objCptr,curEnv,inter,status,evalIm,fix);
-		if(isSymbol(objCptr))return compileSym(objCptr,curEnv,inter,status,evalIm,fix);
-		if(isDefExpression(objCptr))return compileDef(objCptr,curEnv,inter,status,evalIm,fix);
-		if(isSetqExpression(objCptr))return compileSetq(objCptr,curEnv,inter,status,evalIm,fix);
-		if(isSetfExpression(objCptr))return compileSetf(objCptr,curEnv,inter,status,evalIm,fix);
-		if(isCondExpression(objCptr))return compileCond(objCptr,curEnv,inter,status,evalIm,fix);
-		if(isAndExpression(objCptr))return compileAnd(objCptr,curEnv,inter,status,evalIm,fix);
-		if(isOrExpression(objCptr))return compileOr(objCptr,curEnv,inter,status,evalIm,fix);
-		if(isLambdaExpression(objCptr))return compileLambda(objCptr,curEnv,inter,status,evalIm,fix);
-		if(isBeginExpression(objCptr)) return compileBegin(objCptr,curEnv,inter,status,evalIm,fix);
-		if(isProcExpression(objCptr)) return compileProc(objCptr,curEnv,inter,status,evalIm,fix);
+		if(isLoadExpression(objCptr))return compileLoad(objCptr,curEnv,inter,status,evalIm);
+		if(isConst(objCptr))return compileConst(objCptr,curEnv,inter,status,evalIm);
+		if(isUnquoteExpression(objCptr))return compileUnquote(objCptr,curEnv,inter,status,evalIm);
+		if(isQsquoteExpression(objCptr))return compileQsquote(objCptr,curEnv,inter,status,evalIm);
+		if(isSymbol(objCptr))return compileSym(objCptr,curEnv,inter,status,evalIm);
+		if(isDefExpression(objCptr))return compileDef(objCptr,curEnv,inter,status,evalIm);
+		if(isSetqExpression(objCptr))return compileSetq(objCptr,curEnv,inter,status,evalIm);
+		if(isSetfExpression(objCptr))return compileSetf(objCptr,curEnv,inter,status,evalIm);
+		if(isCondExpression(objCptr))return compileCond(objCptr,curEnv,inter,status,evalIm);
+		if(isAndExpression(objCptr))return compileAnd(objCptr,curEnv,inter,status,evalIm);
+		if(isOrExpression(objCptr))return compileOr(objCptr,curEnv,inter,status,evalIm);
+		if(isLambdaExpression(objCptr))return compileLambda(objCptr,curEnv,inter,status,evalIm);
+		if(isBeginExpression(objCptr)) return compileBegin(objCptr,curEnv,inter,status,evalIm);
+		if(isProcExpression(objCptr)) return compileProc(objCptr,curEnv,inter,status,evalIm);
 		if(isUnqtespExpression(objCptr))
 		{
 			status->status=INVALIDEXPR;
@@ -814,7 +812,7 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 			status->place=objCptr;
 			return NULL;
 		}
-		else if(isFuncCall(objCptr))return compileFuncCall(objCptr,curEnv,inter,status,evalIm,fix);
+		else if(isFuncCall(objCptr))return compileFuncCall(objCptr,curEnv,inter,status,evalIm);
 	}
 }
 
@@ -935,13 +933,13 @@ ByteCode* compilePair(AST_cptr* objCptr)
 	return tmp;
 }
 
-ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
+ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
 	objCptr=nextCptr(getFirstCptr(objCptr));
 	if(objCptr->type==ATM)
-		return compileConst(objCptr,curEnv,inter,status,evalIm,fix);
+		return compileConst(objCptr,curEnv,inter,status,evalIm);
 	else if(isUnquoteExpression(objCptr))
-		return compileUnquote(objCptr,curEnv,inter,status,evalIm,fix);
+		return compileUnquote(objCptr,curEnv,inter,status,evalIm);
 	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
 	AST_pair* objPair=objCptr->value;
 	AST_pair* tmpPair=objPair;
@@ -957,7 +955,7 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 	{
 		if(isUnquoteExpression(objCptr))
 		{
-			ByteCodelnt* tmp1=compileUnquote(objCptr,curEnv,inter,status,evalIm,fix);
+			ByteCodelnt* tmp1=compileUnquote(objCptr,curEnv,inter,status,evalIm);
 			if(status->status!=0)
 			{
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
@@ -992,7 +990,7 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 				status->place=objCptr;
 				return NULL;
 			}
-			ByteCodelnt* tmp1=compile(nextCptr(getFirstCptr(objCptr)),curEnv,inter,status,evalIm,fix);
+			ByteCodelnt* tmp1=compile(nextCptr(getFirstCptr(objCptr)),curEnv,inter,status,evalIm);
 			if(status->status!=0)
 			{
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
@@ -1035,7 +1033,7 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 		}
 		else if((objCptr->type==ATM||objCptr->type==NIL)&&(!isUnqtespExpression(&objPair->car)))
 		{
-			ByteCodelnt* tmp1=compileConst(objCptr,curEnv,inter,status,evalIm,fix);
+			ByteCodelnt* tmp1=compileConst(objCptr,curEnv,inter,status,evalIm);
 			codeCat(tmp1->bc,(objCptr==&objPair->car)?popToCar:popToCdr);
 			tmp1->l[tmp1->ls-1]->cpc+=(objCptr==&objPair->car)?popToCar->size:popToCdr->size;
 			codelntCat(tmp,tmp1);
@@ -1089,13 +1087,13 @@ ByteCode* compileQuote(AST_cptr* objCptr)
 	return NULL;
 }
 
-ByteCodelnt* compileUnquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
+ByteCodelnt* compileUnquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
 	objCptr=nextCptr(getFirstCptr(objCptr));
-	return compile(objCptr,curEnv,inter,status,evalIm,fix);
+	return compile(objCptr,curEnv,inter,status,evalIm);
 }
 
-ByteCodelnt* compileConst(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
+ByteCodelnt* compileConst(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
 	int32_t line=objCptr->curline;
 	ByteCode* tmp=NULL;
@@ -1114,7 +1112,7 @@ ByteCodelnt* compileConst(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 	return t;
 }
 
-ByteCodelnt* compileFuncCall(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
+ByteCodelnt* compileFuncCall(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
 	AST_cptr* headoflist=NULL;
 	AST_pair* tmpPair=objCptr->value;
@@ -1163,7 +1161,7 @@ ByteCodelnt* compileFuncCall(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Erro
 		}
 		else
 		{
-			tmp1=compile(objCptr,curEnv,inter,status,evalIm,fix);
+			tmp1=compile(objCptr,curEnv,inter,status,evalIm);
 			if(status->status!=0)
 			{
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
@@ -1181,7 +1179,7 @@ ByteCodelnt* compileFuncCall(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Erro
 	return tmp;
 }
 
-ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
+ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
 	AST_pair* tmpPair=tir->value;
 	AST_cptr* fir=NULL;
@@ -1200,8 +1198,8 @@ ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 	}
 	objCptr=tir;
 	tmp1=(isLambdaExpression(objCptr))?
-		compile(objCptr,curEnv,inter,status,0,fix):
-		compile(objCptr,curEnv,inter,status,evalIm,fix);
+		compile(objCptr,curEnv,inter,status,0):
+		compile(objCptr,curEnv,inter,status,evalIm);
 	if(status->status!=0)
 	{
 		freeByteCode(popVar);
@@ -1230,7 +1228,7 @@ ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 	return tmp1;
 }
 
-ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
+ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
 	AST_pair* tmpPair=objCptr->value;
 	AST_cptr* fir=&((AST_pair*)objCptr->value)->car;
@@ -1247,7 +1245,7 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		sec=nextCptr(fir);
 		tir=nextCptr(sec);
 	}
-	tmp1=compile(tir,curEnv,inter,status,evalIm,fix);
+	tmp1=compile(tir,curEnv,inter,status,evalIm);
 	if(status->status!=0)
 	{
 		freeByteCode(popVar);
@@ -1295,15 +1293,15 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	return tmp1;
 }
 
-ByteCodelnt* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
+ByteCodelnt* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
 	AST_cptr* fir=&((AST_pair*)objCptr->value)->car;
 	AST_cptr* sec=nextCptr(fir);
 	AST_cptr* tir=nextCptr(sec);
-	ByteCodelnt* tmp1=compile(sec,curEnv,inter,status,evalIm,fix);
+	ByteCodelnt* tmp1=compile(sec,curEnv,inter,status,evalIm);
 	if(status->status!=0)
 		return NULL;
-	ByteCodelnt* tmp2=compile(tir,curEnv,inter,status,evalIm,fix);
+	ByteCodelnt* tmp2=compile(tir,curEnv,inter,status,evalIm);
 	if(status->status!=0)
 	{
 		FREE_ALL_LINE_NUMBER_TABLE(tmp1->l,tmp1->ls);
@@ -1320,7 +1318,7 @@ ByteCodelnt* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	return tmp1;
 }
 
-ByteCodelnt* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
+ByteCodelnt* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
 	int32_t line=objCptr->curline;
 	if(hasKeyWord(objCptr))
@@ -1369,7 +1367,7 @@ ByteCodelnt* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	return bcl;
 }
 
-ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
+ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
 	ByteCode* jumpiffalse=newByteCode(sizeof(char)+sizeof(int32_t));
 	ByteCode* push1=newByteCode(sizeof(char)+sizeof(int32_t));
@@ -1386,7 +1384,7 @@ ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	for(objCptr=&((AST_pair*)objCptr->value)->car;nextCptr(objCptr)!=NULL;objCptr=nextCptr(objCptr));
 	for(;prevCptr(objCptr)!=NULL;objCptr=prevCptr(objCptr))
 	{
-		ByteCodelnt* tmp1=compile(objCptr,curEnv,inter,status,evalIm,fix);
+		ByteCodelnt* tmp1=compile(objCptr,curEnv,inter,status,evalIm);
 		if(status->status!=0)
 		{
 			freeByteCode(resTp);
@@ -1436,7 +1434,7 @@ ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	return tmp;
 }
 
-ByteCodelnt* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
+ByteCodelnt* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
 	ByteCode* setTp=newByteCode(sizeof(char));
 	ByteCode* popTp=newByteCode(sizeof(char));
@@ -1452,7 +1450,7 @@ ByteCodelnt* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatu
 	for(objCptr=&((AST_pair*)objCptr->value)->car;nextCptr(objCptr)!=NULL;objCptr=nextCptr(objCptr));
 	for(;prevCptr(objCptr)!=NULL;objCptr=prevCptr(objCptr))
 	{
-		ByteCodelnt* tmp1=compile(objCptr,curEnv,inter,status,evalIm,fix);
+		ByteCodelnt* tmp1=compile(objCptr,curEnv,inter,status,evalIm);
 		if(status->status!=0)
 		{
 			freeByteCode(resTp);
@@ -1501,7 +1499,7 @@ ByteCodelnt* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatu
 	return tmp;
 }
 
-ByteCodelnt* compileBegin(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
+ByteCodelnt* compileBegin(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
 	AST_cptr* firCptr=nextCptr(getFirstCptr(objCptr));
 	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
@@ -1513,7 +1511,7 @@ ByteCodelnt* compileBegin(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 	popTp->code[0]=FAKE_POP_TP;
 	while(firCptr)
 	{
-		ByteCodelnt* tmp1=compile(firCptr,curEnv,inter,status,evalIm,fix);
+		ByteCodelnt* tmp1=compile(firCptr,curEnv,inter,status,evalIm);
 		if(status->status!=0)
 		{
 			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
@@ -1555,7 +1553,7 @@ ByteCodelnt* compileBegin(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 	return tmp;
 }
 
-ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
+ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
 	int32_t line=objCptr->curline;
 	AST_cptr* tmpCptr=objCptr;
@@ -1646,7 +1644,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	resTp->code[0]=FAKE_RES_TP;
 	for(;objCptr;objCptr=nextCptr(objCptr))
 	{
-		ByteCodelnt* tmp1=compile(objCptr,tmpEnv,inter,status,evalIm,fix);
+		ByteCodelnt* tmp1=compile(objCptr,tmpEnv,inter,status,evalIm);
 		if(status->status!=0)
 		{
 			RawProc* tmpProc=getHeadRawProc(inter);
@@ -1695,7 +1693,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	return toReturn;
 }
 
-ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
+ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
 	AST_cptr* cond=NULL;
 	ByteCode* pushnil=newByteCode(sizeof(char));
@@ -1718,7 +1716,7 @@ ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		ByteCodelnt* tmpCond=newByteCodelnt(newByteCode(0));
 		while(objCptr!=NULL)
 		{
-			ByteCodelnt* tmp1=compile(objCptr,curEnv,inter,status,evalIm,fix);
+			ByteCodelnt* tmp1=compile(objCptr,curEnv,inter,status,evalIm);
 			if(status->status!=0)
 			{
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
@@ -1793,7 +1791,7 @@ ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	return tmp;
 }
 
-ByteCodelnt* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
+ByteCodelnt* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
 	AST_cptr* fir=&((AST_pair*)objCptr->value)->car;
 	AST_cptr* pFileName=nextCptr(fir);
@@ -1816,7 +1814,7 @@ ByteCodelnt* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	tmpIntpr->prev=inter;
 	tmpIntpr->procs=NULL;
 	tmpIntpr->glob=curEnv;
-	ByteCodelnt* tmp=compileFile(tmpIntpr,evalIm,fix,NULL);
+	ByteCodelnt* tmp=compileFile(tmpIntpr,evalIm,NULL);
 	chdir(tmpIntpr->prev->curDir);
 	tmpIntpr->glob=NULL;
 	tmpIntpr->table=NULL;
@@ -1842,7 +1840,7 @@ ByteCodelnt* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	return tmp;
 }
 
-ByteCodelnt* compileFile(Intpr* inter,int evalIm,ByteCode* fix,int* exitstatus)
+ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 {
 	chdir(inter->curDir);
 	char ch;
@@ -1911,7 +1909,7 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,ByteCode* fix,int* exitstatus)
 			}
 			else
 			{
-				ByteCodelnt* tmpByteCodelnt=compile(begin,inter->glob,inter,&status,!isLambdaExpression(begin),fix);
+				ByteCodelnt* tmpByteCodelnt=compile(begin,inter->glob,inter,&status,!isLambdaExpression(begin));
 				if(!tmpByteCodelnt||status.status!=0)
 				{
 					if(status.status)
@@ -1966,7 +1964,7 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,ByteCode* fix,int* exitstatus)
 	(BYTECODELNT)->l[0]=newLineNumTabNode(fid,0,(BYTECODE)->size,fir->curline);\
 }
 
-ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm,ByteCode* fix)
+ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
 	AST_cptr* fir=nextCptr(getFirstCptr(objCptr));
 	ByteCodelnt* tmp=NULL;

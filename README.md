@@ -90,8 +90,8 @@ chanl
 send  
 recv  
 clcc  
-dll
-dlsym
+dll  
+dlsym  
 
 Special forms:  
 

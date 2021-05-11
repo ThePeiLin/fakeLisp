@@ -552,6 +552,9 @@ void initPreprocess()
 	addKeyWord("qsquote");
 	addKeyWord("unqtesp");
 	addKeyWord("proc");
+	addKeyWord("import");
+	addKeyWord("library");
+	addKeyWord("export");
 }
 
 void freeAllFunc()
@@ -783,7 +786,9 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 		if(isLambdaExpression(objCptr))return compileLambda(objCptr,curEnv,inter,status,evalIm);
 		if(isBeginExpression(objCptr)) return compileBegin(objCptr,curEnv,inter,status,evalIm);
 		if(isProcExpression(objCptr)) return compileProc(objCptr,curEnv,inter,status,evalIm);
-		if(isUnqtespExpression(objCptr))
+		//if(isImportExpression(objCptr))return compileImport(objCptr,curEnv,inter,status,evalIm);
+		if(isLibraryExpression(objCptr))return newByteCodelnt(newByteCode(0));
+		if(isUnqtespExpression(objCptr)||isExportExpression(objCptr))
 		{
 			status->status=INVALIDEXPR;
 			status->place=objCptr;

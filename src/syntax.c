@@ -241,11 +241,40 @@ int isImportExpression(const AST_cptr* objCptr)
 		AST_cptr* fir=&((AST_pair*)objCptr->value)->car;
 		AST_cptr* sec=nextCptr(fir);
 		if(sec==NULL)return 0;
-		if(fir->type!=ATM||sec->type!=ATM)
+		if(fir->type!=ATM)
 			return 0;
 		AST_atom* firAtm=fir->value;
-		AST_atom* secAtm=sec->value;
-		if(firAtm->type==SYM&&!strcmp(firAtm->value.str,"import")&&(secAtm->type==SYM||secAtm->type==STR))
+		if(firAtm->type==SYM&&!strcmp(firAtm->value.str,"import"))
+			return 1;
+	}
+	return 0;
+}
+
+int isLibraryExpression(const AST_cptr* objCptr)
+{
+	if(objCptr->type==PAIR)
+	{
+		AST_cptr* fir=&((AST_pair*)objCptr->value)->car;
+		if(fir->type!=ATM)
+			return 0;
+		AST_atom* firAtm=fir->value;
+		if(firAtm->type==SYM&&!strcmp(firAtm->value.str,"library"))
+			return 1;
+	}
+	return 0;
+}
+
+int isExportExpression(const AST_cptr* objCptr)
+{
+	if(objCptr->type==PAIR)
+	{
+		AST_cptr* fir=&((AST_pair*)objCptr->value)->car;
+		AST_cptr* sec=nextCptr(fir);
+		if(sec==NULL)return 0;
+		if(fir->type!=ATM)
+			return 0;
+		AST_atom* firAtm=fir->value;
+		if(firAtm->type==SYM&&!strcmp(firAtm->value.str,"export"))
 			return 1;
 	}
 	return 0;

@@ -28,6 +28,8 @@ int isQsquoteExpression(const AST_cptr*);
 int isUnqtespExpression(const AST_cptr*);
 int isLoadExpression(const AST_cptr*);
 int isImportExpression(const AST_cptr*);
+int isLibraryExpression(const AST_cptr*);
+int isExportExpression(const AST_cptr*);
 int isDefmacroExpression(const AST_cptr*);
 int isProcExpression(const AST_cptr*);
 int isKeyWord(const char*);

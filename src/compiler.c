@@ -2336,6 +2336,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	char divstr[]="/";
 #endif
 
+	char postfix[]=".fkl";
 	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
 	chdir(inter->curDir);
 	int ch=0;
@@ -2346,6 +2347,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	AST_cptr* plib=nextCptr(getFirstCptr(objCptr));
 	for(;plib;plib=nextCptr(plib))
 	{
+		char* libPrefix=NULL;
 		AST_cptr* pPartsOfPath=getFirstCptr(plib);
 		if(!pPartsOfPath)
 		{
@@ -2364,6 +2366,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			{
 				status->status=SYNTAXERROR;
 				status->place=plib;
+				free(partsOfPath);
 				freeByteCodelnt(tmp);
 				return NULL;
 			}
@@ -2372,8 +2375,42 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			{
 				status->status=SYNTAXERROR;
 				status->place=plib;
+				free(partsOfPath);
 				freeByteCodelnt(tmp);
 				return NULL;
+			}
+			if(!strcmp(tmpAtm->value.str,"prefix"))
+			{
+				AST_cptr* tmpCptr=nextCptr(pPartsOfPath);
+				if(!tmpCptr||tmpCptr->type!=PAIR)
+				{
+					status->status=SYNTAXERROR;
+					status->place=objCptr;
+					free(partsOfPath);
+					freeByteCodelnt(tmp);
+					return NULL;
+				}
+				tmpCptr=nextCptr(tmpCptr);
+				if(!tmpCptr||nextCptr(tmpCptr)||tmpCptr->type!=ATM)
+				{
+					status->status=SYNTAXERROR;
+					status->place=plib;
+					free(partsOfPath);
+					freeByteCodelnt(tmp);
+					return NULL;
+				}
+				AST_atom* prefixAtom=tmpCptr->value;
+				if(prefixAtom->type!=STR&&prefixAtom->type!=SYM)
+				{
+					status->status=SYNTAXERROR;
+					status->place=plib;
+					free(partsOfPath);
+					freeByteCodelnt(tmp);
+					return NULL;
+				}
+				libPrefix=copyStr(prefixAtom->value.str);
+				pPartsOfPath=getFirstCptr(nextCptr(pPartsOfPath));
+				continue;
 			}
 			count++;
 			partsOfPath=(const char**)realloc(partsOfPath,sizeof(const char*)*count);
@@ -2385,7 +2422,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		uint32_t i=0;
 		for(;i<count;i++)
 			totalPathLength+=strlen(partsOfPath[i]);
-		totalPathLength+=count;
+		totalPathLength+=count+strlen(postfix);
 		char* path=(char*)malloc(sizeof(char)*totalPathLength);
 		if(!path)
 			errors("compileImport",__FILE__,__LINE__);
@@ -2396,18 +2433,23 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				strcat(path,divstr);
 			strcat(path,partsOfPath[i]);
 		}
-		while((ch=getc(inter->file))!=EOF)
+		strcat(path,postfix);
+		FILE* fp=fopen(path,"r");
+		if(!fp)
+			errors("compileImport",__FILE__,__LINE__);
+		Intpr* tmpInter=newTmpIntpr(path,fp);
+		while((ch=getc(tmpInter->file))!=EOF)
 		{
-			ungetc(ch,inter->file);
+			ungetc(ch,tmpInter->file);
 			AST_cptr* begin=NULL;
 			StringMatchPattern* tmpPattern=NULL;
-			char* list=readInPattern(inter->file,&tmpPattern,&prev);
+			char* list=readInPattern(tmpInter->file,&tmpPattern,&prev);
 			if(list==NULL)continue;
-			begin=createTree(list,inter,tmpPattern);
-			int ch=getc(inter->file);
+			begin=createTree(list,tmpInter,tmpPattern);
+			int ch=getc(tmpInter->file);
 			if(!begin&&(list&&!(isAllSpace(list)&&ch==EOF)))
 			{
-				fprintf(stderr,"In file \"%s\",line %d\n",inter->filename,inter->curline);
+				fprintf(stderr,"In file \"%s\",line %d\n",tmpInter->filename,tmpInter->curline);
 				if(list&&!isAllSpace(list))
 					fprintf(stderr,"%s:Invalid expression here.\n",list);
 				else
@@ -2428,7 +2470,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 					free(list);
 				break;
 			}
-			ungetc(ch,inter->file);
+			ungetc(ch,tmpInter->file);
 			if(begin!=NULL)
 			{
 				//查找library并编译library

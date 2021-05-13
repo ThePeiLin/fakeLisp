@@ -2348,6 +2348,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	for(;plib;plib=nextCptr(plib))
 	{
 		char* libPrefix=NULL;
+		AST_cptr* pairOfpPartsOfPath=(plib);
 		AST_cptr* pPartsOfPath=getFirstCptr(plib);
 		if(!pPartsOfPath)
 		{
@@ -2409,6 +2410,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 					return NULL;
 				}
 				libPrefix=copyStr(prefixAtom->value.str);
+				pairOfpPartsOfPath=nextCptr(pPartsOfPath);
 				pPartsOfPath=getFirstCptr(nextCptr(pPartsOfPath));
 				continue;
 			}

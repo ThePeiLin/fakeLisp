@@ -6,6 +6,7 @@
 #include<string.h>
 #include<ctype.h>
 
+static void addToTail(AST_cptr*,const AST_cptr*);
 static void addToList(AST_cptr*,const AST_cptr*);
 AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern)
 {
@@ -61,7 +62,15 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 							else
 								break;
 						}
-						addToList(tmpCptr,tmpCptr2);
+						if(parts[j][i+skipSpace(parts[j]+i)]==',')
+						{
+							addToTail(tmpCptr,tmpCptr2);
+							deleteCptr(tmpCptr2);
+							free(tmpCptr2);
+							break;
+						}
+						else
+							addToList(tmpCptr,tmpCptr2);
 						deleteCptr(tmpCptr2);
 						free(tmpCptr2);
 						i+=skipInPattern(parts[j]+i,tmpPattern);
@@ -416,4 +425,10 @@ void addToList(AST_cptr* fir,const AST_cptr* sec)
 	fir->type=PAIR;
 	fir->value=newPair(sec->curline,fir->outer);
 	replace(&((AST_pair*)fir->value)->car,sec);
+}
+
+void addToTail(AST_cptr* fir,const AST_cptr* sec)
+{
+	while(fir->type!=NIL)fir=&((AST_pair*)fir->value)->cdr;
+	replace(fir,sec);
 }

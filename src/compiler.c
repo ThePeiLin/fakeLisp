@@ -2354,6 +2354,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		{
 			status->status=SYNTAXERROR;
 			status->place=plib;
+			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 			freeByteCodelnt(tmp);
 			return NULL;
 		}
@@ -2368,6 +2369,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				status->status=SYNTAXERROR;
 				status->place=plib;
 				free(partsOfPath);
+				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 				freeByteCodelnt(tmp);
 				return NULL;
 			}
@@ -2377,6 +2379,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				status->status=SYNTAXERROR;
 				status->place=plib;
 				free(partsOfPath);
+				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 				freeByteCodelnt(tmp);
 				return NULL;
 			}
@@ -2388,6 +2391,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 					status->status=SYNTAXERROR;
 					status->place=objCptr;
 					free(partsOfPath);
+					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 					freeByteCodelnt(tmp);
 					return NULL;
 				}
@@ -2397,6 +2401,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 					status->status=SYNTAXERROR;
 					status->place=plib;
 					free(partsOfPath);
+					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 					freeByteCodelnt(tmp);
 					return NULL;
 				}
@@ -2406,6 +2411,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 					status->status=SYNTAXERROR;
 					status->place=plib;
 					free(partsOfPath);
+					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 					freeByteCodelnt(tmp);
 					return NULL;
 				}
@@ -2435,11 +2441,30 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				strcat(path,divstr);
 			strcat(path,partsOfPath[i]);
 		}
+		free(partsOfPath);
 		strcat(path,postfix);
 		FILE* fp=fopen(path,"r");
 		if(!fp)
 			errors("compileImport",__FILE__,__LINE__);
-		Intpr* tmpInter=newTmpIntpr(path,fp);
+		if(hasLoadSameFile(path,inter))
+		{
+			status->status=CIRCULARLOAD;
+			status->place=objCptr;
+			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+			freeByteCodelnt(tmp);
+			return NULL;
+		}
+		SymTabNode* node=newSymTabNode(path);
+		addSymTabNode(node,inter->table);
+		Intpr* tmpInter=newIntpr(path,fp,inter->glob,inter->table,inter->lnt);
+		tmpInter->prev=inter;
+		tmpInter->procs=NULL;
+		ByteCode* resTp=newByteCode(1);
+		ByteCode* setTp=newByteCode(1);
+		ByteCode* popTp=newByteCode(1);
+		resTp->code[0]=FAKE_RES_TP;
+		setTp->code[0]=FAKE_SET_TP;
+		popTp->code[0]=FAKE_POP_TP;
 		while((ch=getc(tmpInter->file))!=EOF)
 		{
 			ungetc(ch,tmpInter->file);
@@ -2461,6 +2486,9 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 					free(list);
 					list=NULL;
 				}
+				freeByteCode(resTp);
+				freeByteCode(setTp);
+				freeByteCode(popTp);
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 				freeByteCodelnt(tmp);
 				tmp=NULL;
@@ -2478,24 +2506,99 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				//查找library并编译library
 				if(isLibraryExpression(begin))
 				{
+					AST_cptr* libName=nextCptr(getFirstCptr(begin));
+					if(AST_cptrcmp(libName,pairOfpPartsOfPath))
+					{
+						if(!isExportExpression(nextCptr(libName)))
+						{
+							exError(begin,INVALIDEXPR,tmpInter);
+							deleteCptr(begin);
+							free(begin);
+							free(list);
+							list=NULL;
+							freeByteCode(resTp);
+							freeByteCode(setTp);
+							freeByteCode(popTp);
+							FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+							freeByteCodelnt(tmp);
+							return NULL;
+						}
+						else
+						{
+							AST_cptr* pBody=nextCptr(nextCptr(libName));
+							for(;pBody;pBody=nextCptr(pBody))
+							{
+								ByteCodelnt* otherByteCodelnt=compile(pBody,tmpInter->glob,tmpInter,status,1);
+								if(status->status)
+								{
+									freeByteCode(resTp);
+									freeByteCode(setTp);
+									freeByteCode(popTp);
+									deleteCptr(begin);
+									free(begin);
+									exError(status->place,status->status,tmpInter);
+									FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+									freeByteCodelnt(tmp);
+									return NULL;
+								}
+								if(tmp->bc->size)
+								{
+									reCodeCat(resTp,otherByteCodelnt->bc);
+									otherByteCodelnt->l[0]->cpc+=1;
+									INCREASE_ALL_SCP(otherByteCodelnt->l,otherByteCodelnt->ls-1,resTp->size);
+								}
+								codelntCat(tmp,otherByteCodelnt);
+								freeByteCodelnt(otherByteCodelnt);
+							}
+							reCodeCat(setTp,tmp->bc);
+							if(!tmp->l)
+							{
+								tmp->ls=1;
+								tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
+								if(!tmp->l)
+									errors("compileImport",__FILE__,__LINE__);
+								tmp->l[0]=newLineNumTabNode(findSymbol(tmpInter->filename,tmpInter->table)->id,0,tmp->bc->size,objCptr->curline);
+							}
+							else
+							{
+								tmp->l[0]->cpc+=1;
+								INCREASE_ALL_SCP(tmp->l,tmp->ls-1,setTp->size);
+							}
+							codeCat(tmp->bc,popTp);
+							tmp->l[tmp->ls-1]->cpc+=popTp->size;
+						}
+					}
+					else
+					{
+						deleteCptr(begin);
+						free(begin);
+					}
 				}
-				else
-				{
-					deleteCptr(begin);
-					free(begin);
-				}
+				deleteCptr(begin);
+				free(begin);
 			}
 			else
 			{
 				free(list);
 				list=NULL;
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+				freeByteCode(resTp);
+				freeByteCode(setTp);
+				freeByteCode(popTp);
 				freeByteCodelnt(tmp);
 				return NULL;
 			}
 			free(list);
 			list=NULL;
 		}
+		chdir(tmpInter->prev->curDir);
+		tmpInter->glob=NULL;
+		tmpInter->table=NULL;
+		tmpInter->lnt=NULL;
+		freeIntpr(tmpInter);
+		freeByteCode(resTp);
+		freeByteCode(setTp);
+		freeByteCode(popTp);
 	}
 	return tmp;
 }

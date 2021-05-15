@@ -2540,15 +2540,17 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 									freeByteCode(resTp);
 									freeByteCode(setTp);
 									freeByteCode(popTp);
+									exError(status->place,status->status,tmpInter);
 									deleteCptr(begin);
 									free(begin);
-									exError(status->place,status->status,tmpInter);
 									FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 									freeByteCodelnt(tmp);
 									chdir(tmpInter->prev->curDir);
 									tmpInter->table=NULL;
 									tmpInter->lnt=NULL;
 									freeIntpr(tmpInter);
+									status->status=0;
+									status->place=NULL;
 									return NULL;
 								}
 								if(tmp->bc->size)

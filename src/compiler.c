@@ -2456,7 +2456,8 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		}
 		SymTabNode* node=newSymTabNode(path);
 		addSymTabNode(node,inter->table);
-		Intpr* tmpInter=newIntpr(path,fp,NULL,inter->table,inter->lnt);
+		Intpr* tmpInter=newIntpr(path,fp,newCompEnv(NULL),inter->table,inter->lnt);
+		free(path);
 		tmpInter->prev=inter;
 		tmpInter->procs=NULL;
 		ByteCode* resTp=newByteCode(1);
@@ -2503,6 +2504,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			ungetc(ch,tmpInter->file);
 			if(begin!=NULL)
 			{
+				free(list);
 				//查找library并编译library
 				if(isLibraryExpression(begin))
 				{
@@ -2515,13 +2517,15 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 							exError(begin,INVALIDEXPR,tmpInter);
 							deleteCptr(begin);
 							free(begin);
-							free(list);
-							list=NULL;
 							freeByteCode(resTp);
 							freeByteCode(setTp);
 							freeByteCode(popTp);
 							FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 							freeByteCodelnt(tmp);
+							chdir(tmpInter->prev->curDir);
+							tmpInter->table=NULL;
+							tmpInter->lnt=NULL;
+							freeIntpr(tmpInter);
 							return NULL;
 						}
 						else
@@ -2540,6 +2544,10 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 									exError(status->place,status->status,tmpInter);
 									FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 									freeByteCodelnt(tmp);
+									chdir(tmpInter->prev->curDir);
+									tmpInter->table=NULL;
+									tmpInter->lnt=NULL;
+									freeIntpr(tmpInter);
 									return NULL;
 								}
 								if(tmp->bc->size)
@@ -2577,13 +2585,15 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 								freeByteCode(resTp);
 								freeByteCode(setTp);
 								freeByteCode(popTp);
+								exError(exportCptr,SYNTAXERROR,tmpInter);
 								deleteCptr(begin);
 								free(begin);
-								status->status=SYNTAXERROR;
-								status->place=exportCptr;
-								exError(status->place,status->status,tmpInter);
 								FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 								freeByteCodelnt(tmp);
+								chdir(tmpInter->prev->curDir);
+								tmpInter->table=NULL;
+								tmpInter->lnt=NULL;
+								freeIntpr(tmpInter);
 								return NULL;
 							}
 							AST_atom* pSymbol=pExportSymbols->value;
@@ -2595,13 +2605,15 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 								freeByteCode(resTp);
 								freeByteCode(setTp);
 								freeByteCode(popTp);
+								exError(pExportSymbols,SYMUNDEFINE,tmpInter);
 								deleteCptr(begin);
 								free(begin);
-								status->status=SYMUNDEFINE;
-								status->place=pExportSymbols;
-								exError(status->place,status->status,tmpInter);
 								FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 								freeByteCodelnt(tmp);
+								chdir(tmpInter->prev->curDir);
+								tmpInter->table=NULL;
+								tmpInter->lnt=NULL;
+								freeIntpr(tmpInter);
 								return NULL;
 							}
 							else
@@ -2619,8 +2631,6 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			}
 			else
 			{
-				free(list);
-				list=NULL;
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 				freeByteCode(resTp);
 				freeByteCode(setTp);
@@ -2632,7 +2642,6 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			list=NULL;
 		}
 		chdir(tmpInter->prev->curDir);
-		tmpInter->glob=NULL;
 		tmpInter->table=NULL;
 		tmpInter->lnt=NULL;
 		freeIntpr(tmpInter);

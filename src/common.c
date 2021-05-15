@@ -679,6 +679,9 @@ void exError(const AST_cptr* obj,int type,Intpr* inter)
 		case MACROEXPANDFAILED:
 			fprintf(stderr,":Failed to expand macro.\n");
 			break;
+		case LIBUNDEFINED:
+			fprintf(stderr,":Library undefined.\n");
+			break;
 	}
 }
 

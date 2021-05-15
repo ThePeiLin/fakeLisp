@@ -2490,6 +2490,9 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 					if(prev)
 						free(prev);
 					free(list);
+					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+					freeByteCodelnt(tmp);
+					tmp=NULL;
 					list=NULL;
 				}
 				break;
@@ -2647,14 +2650,18 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			free(list);
 			list=NULL;
 		}
+
 		if(!libByteCodelnt->bc->size)
 		{
-			status->status=LIBUNDEFINED;
-			status->place=pairOfpPartsOfPath;
+			status->status=(tmp)?LIBUNDEFINED:0;
+			status->place=(tmp)?pairOfpPartsOfPath:NULL;
 			FREE_ALL_LINE_NUMBER_TABLE(libByteCodelnt->l,libByteCodelnt->ls);
 			freeByteCodelnt(libByteCodelnt);
-			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-			freeByteCodelnt(tmp);
+			if(tmp)
+			{
+				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+				freeByteCodelnt(tmp);
+			}
 			tmpInter->table=NULL;
 			tmpInter->lnt=NULL;
 			freeIntpr(tmpInter);

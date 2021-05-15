@@ -59,7 +59,8 @@ static VMpair* hasSameVMpair(VMpair* begin,VMpair* other,CRL* h)
 
 	if((other->car->type==PAIR&&other->car->u.pair->cdr->type==PAIR)&&begin->car->type==PAIR)
 		tmpPair=hasSameVMpair(begin->car->u.pair,other->car->u.pair->cdr->u.pair,h);
-	if(tmpPair)return tmpPair;
+	if(tmpPair)
+		return tmpPair;
 
 	if((other->car->type==PAIR&&other->car->u.pair->car->type==PAIR)&&begin->cdr->type==PAIR)
 		tmpPair=hasSameVMpair(begin->cdr->u.pair,other->car->u.pair->car->u.pair,h);

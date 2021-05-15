@@ -2456,7 +2456,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		}
 		SymTabNode* node=newSymTabNode(path);
 		addSymTabNode(node,inter->table);
-		Intpr* tmpInter=newIntpr(path,fp,inter->glob,inter->table,inter->lnt);
+		Intpr* tmpInter=newIntpr(path,fp,NULL,inter->table,inter->lnt);
 		tmpInter->prev=inter;
 		tmpInter->procs=NULL;
 		ByteCode* resTp=newByteCode(1);
@@ -2509,7 +2509,8 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 					AST_cptr* libName=nextCptr(getFirstCptr(begin));
 					if(AST_cptrcmp(libName,pairOfpPartsOfPath))
 					{
-						if(!isExportExpression(nextCptr(libName)))
+						AST_cptr* exportCptr=nextCptr(libName);
+						if(!exportCptr||!isExportExpression(exportCptr))
 						{
 							exError(begin,INVALIDEXPR,tmpInter);
 							deleteCptr(begin);
@@ -2566,6 +2567,45 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 							}
 							codeCat(tmp->bc,popTp);
 							tmp->l[tmp->ls-1]->cpc+=popTp->size;
+						}
+						AST_cptr* pExportSymbols=nextCptr(getFirstCptr(exportCptr));
+						for(;pExportSymbols;pExportSymbols=nextCptr(pExportSymbols))
+						{
+							if(pExportSymbols->type!=ATM
+									||((AST_atom*)pExportSymbols->value)->type!=SYM)
+							{
+								freeByteCode(resTp);
+								freeByteCode(setTp);
+								freeByteCode(popTp);
+								deleteCptr(begin);
+								free(begin);
+								status->status=SYNTAXERROR;
+								status->place=exportCptr;
+								exError(status->place,status->status,tmpInter);
+								FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+								freeByteCodelnt(tmp);
+								return NULL;
+							}
+							AST_atom* pSymbol=pExportSymbols->value;
+							CompDef* tmpDef=findCompDef(pSymbol->value.str
+									,tmpInter->glob
+									,inter->table);
+							if(!tmpDef)
+							{
+								freeByteCode(resTp);
+								freeByteCode(setTp);
+								freeByteCode(popTp);
+								deleteCptr(begin);
+								free(begin);
+								status->status=SYMUNDEFINE;
+								status->place=pExportSymbols;
+								exError(status->place,status->status,tmpInter);
+								FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+								freeByteCodelnt(tmp);
+								return NULL;
+							}
+							else
+								addCompDef(pSymbol->value.str,curEnv,inter->table);
 						}
 					}
 					else

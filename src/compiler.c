@@ -1868,6 +1868,8 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 				fprintf(stderr,"Can't create a valid object.\n");
 			if(list)
 			{
+				if(prev)
+					free(prev);
 				free(list);
 				list=NULL;
 			}
@@ -2484,12 +2486,11 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 					fprintf(stderr,"Can't create a valid object.\n");
 				if(list)
 				{
+					if(prev)
+						free(prev);
 					free(list);
 					list=NULL;
 				}
-				freeByteCode(resTp);
-				freeByteCode(setTp);
-				freeByteCode(popTp);
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 				freeByteCodelnt(tmp);
 				tmp=NULL;

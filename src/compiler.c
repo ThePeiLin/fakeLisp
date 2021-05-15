@@ -2492,11 +2492,6 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 					free(list);
 					list=NULL;
 				}
-				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-				freeByteCodelnt(tmp);
-				FREE_ALL_LINE_NUMBER_TABLE(libByteCodelnt->l,libByteCodelnt->ls);
-				freeByteCodelnt(libByteCodelnt);
-				tmp=NULL;
 				break;
 			}
 			else if(!begin&&(isAllSpace(list)||ch==EOF))

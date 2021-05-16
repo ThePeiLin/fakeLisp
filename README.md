@@ -109,6 +109,7 @@ unquote
 qsquote  
 unqtesp  
 proc  
+import  
 
 Preprocesser commands:  
 defmacro  

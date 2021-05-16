@@ -2338,8 +2338,10 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	char divstr[]="/";
 #endif
 
+	FakeMemMenager* memMenager=newFakeMemMenager(32);
 	char postfix[]=".fkl";
 	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
+	pushFakeMem(tmp,(GenDestructor)freeByteCodelnt,memMenager);
 	chdir(inter->curDir);
 	int ch=0;
 	char* prev=NULL;
@@ -2357,22 +2359,22 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			status->status=SYNTAXERROR;
 			status->place=plib;
 			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-			freeByteCodelnt(tmp);
+			freeFakeMemMenager(memMenager);
 			return NULL;
 		}
 		uint32_t count=0;
 		const char** partsOfPath=(const char**)malloc(sizeof(const char*)*0);
 		if(!partsOfPath)
 			errors("compileImport",__FILE__,__LINE__);
-		for(;pPartsOfPath;pPartsOfPath=nextCptr(pPartsOfPath))
+		pushFakeMem(partsOfPath,free,memMenager);
+		while(pPartsOfPath)
 		{
 			if(pPartsOfPath->type!=ATM)
 			{
 				status->status=SYNTAXERROR;
 				status->place=plib;
-				free(partsOfPath);
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-				freeByteCodelnt(tmp);
+				freeFakeMemMenager(memMenager);
 				return NULL;
 			}
 			AST_atom* tmpAtm=pPartsOfPath->value;
@@ -2380,9 +2382,8 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			{
 				status->status=SYNTAXERROR;
 				status->place=plib;
-				free(partsOfPath);
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-				freeByteCodelnt(tmp);
+				freeFakeMemMenager(memMenager);
 				return NULL;
 			}
 			if(!strcmp(tmpAtm->value.str,"prefix"))
@@ -2392,9 +2393,8 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				{
 					status->status=SYNTAXERROR;
 					status->place=objCptr;
-					free(partsOfPath);
 					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-					freeByteCodelnt(tmp);
+				freeFakeMemMenager(memMenager);
 					return NULL;
 				}
 				tmpCptr=nextCptr(tmpCptr);
@@ -2402,9 +2402,8 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				{
 					status->status=SYNTAXERROR;
 					status->place=plib;
-					free(partsOfPath);
 					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-					freeByteCodelnt(tmp);
+				freeFakeMemMenager(memMenager);
 					return NULL;
 				}
 				AST_atom* prefixAtom=tmpCptr->value;
@@ -2412,21 +2411,22 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				{
 					status->status=SYNTAXERROR;
 					status->place=plib;
-					free(partsOfPath);
 					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-					freeByteCodelnt(tmp);
+					freeFakeMemMenager(memMenager);
 					return NULL;
 				}
 				libPrefix=copyStr(prefixAtom->value.str);
+				pushFakeMem(libPrefix,free,memMenager);
 				pairOfpPartsOfPath=nextCptr(pPartsOfPath);
-				pPartsOfPath=getFirstCptr(nextCptr(pPartsOfPath));
+				pPartsOfPath=getFirstCptr(pairOfpPartsOfPath);
 				continue;
 			}
 			count++;
-			partsOfPath=(const char**)realloc(partsOfPath,sizeof(const char*)*count);
+			partsOfPath=(const char**)reallocFakeMem(partsOfPath,realloc(partsOfPath,sizeof(const char*)*count),memMenager);
 			if(!pPartsOfPath)
 				errors("compileImport",__FILE__,__LINE__);
 			partsOfPath[count-1]=tmpAtm->value.str;
+			pPartsOfPath=nextCptr(pPartsOfPath);
 		}
 		uint32_t totalPathLength=0;
 		uint32_t i=0;
@@ -2443,7 +2443,6 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				strcat(path,divstr);
 			strcat(path,partsOfPath[i]);
 		}
-		free(partsOfPath);
 		strcat(path,postfix);
 		FILE* fp=fopen(path,"r");
 		if(!fp)
@@ -2453,7 +2452,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			status->status=CIRCULARLOAD;
 			status->place=objCptr;
 			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-			freeByteCodelnt(tmp);
+			freeFakeMemMenager(memMenager);
 			return NULL;
 		}
 		SymTabNode* node=newSymTabNode(path);
@@ -2468,7 +2467,11 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		resTp->code[0]=FAKE_RES_TP;
 		setTp->code[0]=FAKE_SET_TP;
 		popTp->code[0]=FAKE_POP_TP;
+		pushFakeMem(resTp,(GenDestructor)freeByteCode,memMenager);
+		pushFakeMem(setTp,(GenDestructor)freeByteCode,memMenager);
+		pushFakeMem(popTp,(GenDestructor)freeByteCode,memMenager);
 		ByteCodelnt* libByteCodelnt=newByteCodelnt(newByteCode(0));
+		pushFakeMem(libByteCodelnt,(GenDestructor)freeByteCodelnt,memMenager);
 		while((ch=getc(tmpInter->file))!=EOF)
 		{
 			ungetc(ch,tmpInter->file);
@@ -2491,7 +2494,8 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 						free(prev);
 					free(list);
 					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-					freeByteCodelnt(tmp);
+					freeFakeMemMenager(memMenager);
+					libByteCodelnt=NULL;
 					tmp=NULL;
 					list=NULL;
 				}
@@ -2499,8 +2503,6 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			}
 			else if(!begin&&(isAllSpace(list)||ch==EOF))
 			{
-				if(list)
-					free(list);
 				break;
 			}
 			ungetc(ch,tmpInter->file);
@@ -2519,17 +2521,16 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 							exError(begin,INVALIDEXPR,tmpInter);
 							deleteCptr(begin);
 							free(begin);
-							freeByteCode(resTp);
-							freeByteCode(setTp);
-							freeByteCode(popTp);
 							FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-							freeByteCodelnt(tmp);
 							FREE_ALL_LINE_NUMBER_TABLE(libByteCodelnt->l,libByteCodelnt->ls);
 							freeByteCodelnt(libByteCodelnt);
 							chdir(tmpInter->prev->curDir);
 							tmpInter->table=NULL;
 							tmpInter->lnt=NULL;
 							freeIntpr(tmpInter);
+							if(libPrefix)
+								free(libPrefix);
+							freeFakeMemMenager(memMenager);
 							return NULL;
 						}
 						else
@@ -2540,22 +2541,20 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 								ByteCodelnt* otherByteCodelnt=compile(pBody,tmpInter->glob,tmpInter,status,1);
 								if(status->status)
 								{
-									freeByteCode(resTp);
-									freeByteCode(setTp);
-									freeByteCode(popTp);
 									exError(status->place,status->status,tmpInter);
 									deleteCptr(begin);
 									free(begin);
 									FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-									freeByteCodelnt(tmp);
 									FREE_ALL_LINE_NUMBER_TABLE(libByteCodelnt->l,libByteCodelnt->ls);
-									freeByteCodelnt(libByteCodelnt);
 									chdir(tmpInter->prev->curDir);
 									tmpInter->table=NULL;
 									tmpInter->lnt=NULL;
 									freeIntpr(tmpInter);
 									status->status=0;
 									status->place=NULL;
+									if(libPrefix)
+										free(libPrefix);
+									freeFakeMemMenager(memMenager);
 									return NULL;
 								}
 								if(libByteCodelnt->bc->size)
@@ -2584,7 +2583,9 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 							codeCat(libByteCodelnt->bc,popTp);
 							libByteCodelnt->l[libByteCodelnt->ls-1]->cpc+=popTp->size;
 							codelntCat(tmp,libByteCodelnt);
+							deleteFakeMem(libByteCodelnt,memMenager);
 							freeByteCodelnt(libByteCodelnt);
+							libByteCodelnt=NULL;
 						}
 						AST_cptr* pExportSymbols=nextCptr(getFirstCptr(exportCptr));
 						for(;pExportSymbols;pExportSymbols=nextCptr(pExportSymbols))
@@ -2592,9 +2593,6 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 							if(pExportSymbols->type!=ATM
 									||((AST_atom*)pExportSymbols->value)->type!=SYM)
 							{
-								freeByteCode(resTp);
-								freeByteCode(setTp);
-								freeByteCode(popTp);
 								exError(exportCptr,SYNTAXERROR,tmpInter);
 								deleteCptr(begin);
 								free(begin);
@@ -2604,6 +2602,9 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 								tmpInter->table=NULL;
 								tmpInter->lnt=NULL;
 								freeIntpr(tmpInter);
+								if(libPrefix)
+									free(libPrefix);
+								freeFakeMemMenager(memMenager);
 								return NULL;
 							}
 							AST_atom* pSymbol=pExportSymbols->value;
@@ -2613,25 +2614,24 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 									,inter->table);
 							if(!tmpDef)
 							{
-								freeByteCode(resTp);
-								freeByteCode(setTp);
-								freeByteCode(popTp);
 								exError(pExportSymbols,SYMUNDEFINE,tmpInter);
 								deleteCptr(begin);
 								free(begin);
 								FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-								freeByteCodelnt(tmp);
 								chdir(tmpInter->prev->curDir);
 								tmpInter->table=NULL;
 								tmpInter->lnt=NULL;
 								freeIntpr(tmpInter);
+								if(libPrefix)
+									free(libPrefix);
+								freeFakeMemMenager(memMenager);
 								return NULL;
 							}
 							else
 								addCompDef(pSymbol->value.str,curEnv,inter->table);
 						}
-					deleteCptr(begin);
-					free(begin);
+						deleteCptr(begin);
+						free(begin);
 						break;
 					}
 				}
@@ -2641,42 +2641,35 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			else
 			{
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-				freeByteCode(resTp);
-				freeByteCode(setTp);
-				freeByteCode(popTp);
-				freeByteCodelnt(tmp);
+				if(libPrefix)
+					free(libPrefix);
+				freeFakeMemMenager(memMenager);
 				return NULL;
 			}
 			free(list);
 			list=NULL;
 		}
 
-		if(!libByteCodelnt->bc->size)
+		if(libByteCodelnt&&!libByteCodelnt->bc->size)
 		{
 			status->status=(tmp)?LIBUNDEFINED:0;
 			status->place=(tmp)?pairOfpPartsOfPath:NULL;
 			FREE_ALL_LINE_NUMBER_TABLE(libByteCodelnt->l,libByteCodelnt->ls);
-			freeByteCodelnt(libByteCodelnt);
-			if(tmp)
-			{
-				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-				freeByteCodelnt(tmp);
-			}
+			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 			tmpInter->table=NULL;
 			tmpInter->lnt=NULL;
 			freeIntpr(tmpInter);
-			freeByteCode(resTp);
-			freeByteCode(setTp);
-			freeByteCode(popTp);
+			if(libPrefix)
+				free(libPrefix);
+			freeFakeMemMenager(memMenager);
 			return NULL;
 		}
 		chdir(tmpInter->prev->curDir);
 		tmpInter->table=NULL;
 		tmpInter->lnt=NULL;
 		freeIntpr(tmpInter);
-		freeByteCode(resTp);
-		freeByteCode(setTp);
-		freeByteCode(popTp);
 	}
+	deleteFakeMem(tmp,memMenager);
+	freeFakeMemMenager(memMenager);
 	return tmp;
 }

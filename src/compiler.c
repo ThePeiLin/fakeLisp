@@ -2434,7 +2434,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				freeFakeMemMenager(memMenager);
 				return NULL;
 			}
-			if(!strcmp(tmpAtm->value.str,"prefix"))
+			if(!strcmp(tmpAtm->value.str,"prefix")&&nextCptr(pPartsOfPath)->type==PAIR)
 			{
 				AST_cptr* tmpCptr=nextCptr(pPartsOfPath);
 				if(!tmpCptr||tmpCptr->type!=PAIR)

@@ -30,12 +30,24 @@ typedef enum
 	LIBUNDEFINED
 }ErrorType;
 
-typedef struct Com_Stack
+typedef void (*GenDestructor)(void*);
+typedef struct
 {
 	void** data;
 	uint32_t size;
 	uint32_t top;
 }ComStack;
+
+typedef struct
+{
+	void (*destructor)(void*);
+	void* block;
+}FakeMem;
+
+typedef struct
+{
+	ComStack* s;
+}FakeMemMenager;
 
 typedef struct
 {

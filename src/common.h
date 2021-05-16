@@ -125,4 +125,13 @@ void* popComStack(ComStack*);
 void freeComStack(ComStack*);
 void recycleComStack(ComStack*);
 int isComStackEmpty(ComStack*);
+
+FakeMem* newFakeMem(void* mem,void (*destructor)(void*));
+void freeFakeMem(FakeMem*);
+
+FakeMemMenager* newFakeMemMenager(size_t size);
+void* reallocFakeMem(void* o_block,void* n_block,FakeMemMenager*);
+void freeFakeMemMenager(FakeMemMenager*);
+void pushFakeMem(void* block,void (*destructor)(void*),FakeMemMenager* memMenager);
+void deleteFakeMem(void* block,FakeMemMenager* memMenager);
 #endif

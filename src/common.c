@@ -2256,3 +2256,79 @@ void recycleComStack(ComStack* stack)
 		stack->size-=32;
 	}
 }
+
+FakeMem* newFakeMem(void* block,void (*destructor)(void*))
+{
+	FakeMem* tmp=(FakeMem*)malloc(sizeof(FakeMem));
+	if(!tmp)
+		errors("newFakeMem",__FILE__,__LINE__);
+	tmp->block=block;
+	tmp->destructor=destructor;
+	return tmp;
+}
+
+void freeFakeMem(FakeMem* mem)
+{
+	void (*f)(void*)=mem->destructor;
+	f(mem->block);
+	free(mem);
+}
+
+FakeMemMenager* newFakeMemMenager(size_t size)
+{
+	FakeMemMenager* tmp=(FakeMemMenager*)malloc(sizeof(FakeMemMenager));
+	if(!tmp)
+		errors("newFakeMemMenager",__FILE__,__LINE__);
+	tmp->s=newComStack(size);
+	return tmp;
+}
+
+void freeFakeMemMenager(FakeMemMenager* memMenager)
+{
+	size_t i=0;
+	ComStack* s=memMenager->s;
+	for(;i<s->top;i++)
+		freeFakeMem(s->data[i]);
+	freeComStack(s);
+	free(memMenager);
+}
+
+void pushFakeMem(void* block,void (*destructor)(void*),FakeMemMenager* memMenager)
+{
+	FakeMem* mem=newFakeMem(block,destructor);
+	pushComStack(mem,memMenager->s);
+}
+
+void* popFakeMem(FakeMemMenager* memMenager)
+{
+	return popComStack(memMenager->s);
+}
+
+void deleteFakeMem(void* block,FakeMemMenager* memMenager)
+{
+	ComStack* s=memMenager->s;
+	s->top-=1;
+	uint32_t i=0;
+	uint32_t j=s->top;
+	for(;i<s->top;i++)
+		if(((FakeMem*)s->data[i])->block==block)
+			break;
+	free(s->data[i]);
+	for(;i<j;i++)
+		s->data[i]=s->data[i+1];
+}
+
+void* reallocFakeMem(void* o_block,void* n_block,FakeMemMenager* memMenager)
+{
+	ComStack* s=memMenager->s;
+	uint32_t i=0;
+	FakeMem* m=NULL;
+	for(;i<s->top;i++)
+		if(((FakeMem*)s->data[i])->block==o_block)
+		{
+			m=s->data[i];
+			break;
+		}
+	m->block=n_block;
+	return n_block;
+}

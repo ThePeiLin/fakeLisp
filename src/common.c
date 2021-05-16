@@ -662,25 +662,25 @@ void exError(const AST_cptr* obj,int type,Intpr* inter)
 	switch(type)
 	{
 		case SYMUNDEFINE:
-			fprintf(stderr,":Symbol is undefined.\n");
+			fprintf(stderr," :Symbol is undefined.\n");
 			break;
 		case SYNTAXERROR:
-			fprintf(stderr,":Syntax error.\n");
+			fprintf(stderr," :Syntax error.\n");
 			break;
 		case INVALIDEXPR:
-			fprintf(stderr,":Invalid expression here.\n");
+			fprintf(stderr," :Invalid expression here.\n");
 			break;
 		case CIRCULARLOAD:
-			fprintf(stderr,":Circular load file.\n");
+			fprintf(stderr," :Circular load file.\n");
 			break;
 		case INVALIDPATTERN:
-			fprintf(stderr,":Invalid string match pattern.\n");
+			fprintf(stderr," :Invalid string match pattern.\n");
 			break;
 		case MACROEXPANDFAILED:
-			fprintf(stderr,":Failed to expand macro.\n");
+			fprintf(stderr," :Failed to expand macro.\n");
 			break;
 		case LIBUNDEFINED:
-			fprintf(stderr,":Library undefined.\n");
+			fprintf(stderr," :Library undefined.\n");
 			break;
 	}
 }
@@ -805,6 +805,9 @@ CompEnv* newCompEnv(CompEnv* prev)
 	if(tmp==NULL)errors("newCompEnv",__FILE__,__LINE__);
 	tmp->prev=prev;
 	tmp->head=NULL;
+	tmp->prefix=NULL;
+	tmp->exp=NULL;
+	tmp->n=0;
 	return tmp;
 }
 

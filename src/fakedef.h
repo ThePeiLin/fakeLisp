@@ -171,6 +171,9 @@ typedef struct Comp_Def
 typedef struct Comp_Env
 {
 	struct Comp_Env* prev;
+	char* prefix;
+	const char** exp;
+	uint32_t n;
 	CompDef* head;
 }CompEnv;
 

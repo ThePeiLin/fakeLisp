@@ -43,6 +43,25 @@ static uint8_t findOpcode(const char* str)
 	return 0;
 }
 
+static int isSymbolShouldBeExport(const char* str,const char** pStr,uint32_t n)
+{
+	uint32_t l=0;
+	uint32_t h=n-1;
+	int32_t mid=0;
+	while(l<=h)
+	{
+		mid=l+(h-l)/2;
+		int resultOfCmp=strcmp(pStr[mid],str);
+		if(resultOfCmp>0)
+			h=mid-1;
+		else if(resultOfCmp<0)
+			l=mid+1;
+		else
+			return 1;
+	}
+	return 0;
+}
+
 PreMacro* PreMacroMatch(const AST_cptr* objCptr)
 {
 	PreMacro* current=FirstMacro;
@@ -1205,8 +1224,19 @@ ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 	}
 	for(;;)
 	{
+		CompDef* tmpDef=NULL;
 		AST_atom* tmpAtm=sec->value;
-		CompDef* tmpDef=addCompDef(tmpAtm->value.str,curEnv,inter->table);
+		if(curEnv->prefix&&isSymbolShouldBeExport(tmpAtm->value.str,curEnv->exp,curEnv->n))
+		{
+			char* symbolWithPrefix=(char*)malloc(sizeof(char)*(strlen(tmpAtm->value.str)+strlen(curEnv->prefix)+1));
+			if(!symbolWithPrefix)
+				errors("compileDef",__FILE__,__LINE__);
+			sprintf(symbolWithPrefix,"%s%s",curEnv->prefix,tmpAtm->value.str);
+			tmpDef=addCompDef(symbolWithPrefix,curEnv,inter->table);
+			free(symbolWithPrefix);
+		}
+		else
+			tmpDef=addCompDef(tmpAtm->value.str,curEnv,inter->table);
 		*(int32_t*)(popVar->code+sizeof(char))=(int32_t)0;
 		*(int32_t*)(popVar->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
 		codeCat(tmp1->bc,pushTop);
@@ -1259,6 +1289,15 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		while(tmpEnv!=NULL)
 		{
 			tmpDef=findCompDef(tmpAtm->value.str,tmpEnv,inter->table);
+			if(tmpEnv->prefix&&!tmpDef)
+			{
+				char* symbolWithPrefix=(char*)malloc(sizeof(char)*(strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1));
+				if(!symbolWithPrefix)
+					errors("compileSetq",__FILE__,__LINE__);
+				sprintf(symbolWithPrefix,"%s%s",tmpEnv->prefix,tmpAtm->value.str);
+				tmpDef=findCompDef(symbolWithPrefix,tmpEnv,inter->table);
+				free(symbolWithPrefix);
+			}
 			if(tmpDef!=NULL)break;
 			tmpEnv=tmpEnv->prev;
 			scope++;
@@ -1333,6 +1372,15 @@ ByteCodelnt* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	while(tmpEnv!=NULL&&tmpDef==NULL)
 	{
 		tmpDef=findCompDef(tmpAtm->value.str,tmpEnv,inter->table);
+		if(tmpEnv->prefix&&!tmpDef)
+		{
+			char* symbolWithPrefix=(char*)malloc(sizeof(char)*(strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1));
+			if(!symbolWithPrefix)
+				errors("compileSym",__FILE__,__LINE__);
+			sprintf(symbolWithPrefix,"%s%s",tmpEnv->prefix,tmpAtm->value.str);
+			tmpDef=findCompDef(symbolWithPrefix,tmpEnv,inter->table);
+			free(symbolWithPrefix);
+		}
 		tmpEnv=tmpEnv->prev;
 	}
 	if(tmpDef==NULL)
@@ -2416,7 +2464,6 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 					return NULL;
 				}
 				libPrefix=copyStr(prefixAtom->value.str);
-				pushFakeMem(libPrefix,free,memMenager);
 				pairOfpPartsOfPath=nextCptr(pPartsOfPath);
 				pPartsOfPath=getFirstCptr(pairOfpPartsOfPath);
 				continue;
@@ -2503,6 +2550,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			}
 			else if(!begin&&(isAllSpace(list)||ch==EOF))
 			{
+				free(list);
 				break;
 			}
 			ungetc(ch,tmpInter->file);
@@ -2514,7 +2562,6 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 					AST_cptr* libName=nextCptr(getFirstCptr(begin));
 					if(AST_cptrcmp(libName,pairOfpPartsOfPath))
 					{
-						free(list);
 						AST_cptr* exportCptr=nextCptr(libName);
 						if(!exportCptr||!isExportExpression(exportCptr))
 						{
@@ -2523,7 +2570,6 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 							free(begin);
 							FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 							FREE_ALL_LINE_NUMBER_TABLE(libByteCodelnt->l,libByteCodelnt->ls);
-							freeByteCodelnt(libByteCodelnt);
 							chdir(tmpInter->prev->curDir);
 							tmpInter->table=NULL;
 							tmpInter->lnt=NULL;
@@ -2531,11 +2577,46 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 							if(libPrefix)
 								free(libPrefix);
 							freeFakeMemMenager(memMenager);
+							free(list);
 							return NULL;
 						}
 						else
 						{
+							const char** exportSymbols=(const char**)malloc(sizeof(const char*)*0);
+							pushFakeMem(exportSymbols,free,memMenager);
+							if(!exportSymbols)
+								errors("compileImport",__FILE__,__LINE__);
+							AST_cptr* pExportSymbols=nextCptr(getFirstCptr(exportCptr));
+							uint32_t num=0;
+							for(;pExportSymbols;pExportSymbols=nextCptr(pExportSymbols))
+							{
+								if(pExportSymbols->type!=ATM
+										||((AST_atom*)pExportSymbols->value)->type!=SYM)
+								{
+									exError(exportCptr,SYNTAXERROR,tmpInter);
+									deleteCptr(begin);
+									free(begin);
+									FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+									chdir(tmpInter->prev->curDir);
+									tmpInter->table=NULL;
+									tmpInter->lnt=NULL;
+									freeIntpr(tmpInter);
+									if(libPrefix)
+										free(libPrefix);
+									freeFakeMemMenager(memMenager);
+									free(list);
+									return NULL;
+								}
+								AST_atom* pSymbol=pExportSymbols->value;
+								num++;
+								exportSymbols=(const char**)reallocFakeMem(exportSymbols,realloc(exportSymbols,sizeof(const char*)*num),memMenager);
+								exportSymbols[num-1]=pSymbol->value.str;
+							}
+							qsort(exportSymbols,num,sizeof(const char*),(int (*)(const void*,const void*))strcmp);
 							AST_cptr* pBody=nextCptr(nextCptr(libName));
+							tmpInter->glob->prefix=libPrefix;
+							tmpInter->glob->exp=exportSymbols;
+							tmpInter->glob->n=num;
 							for(;pBody;pBody=nextCptr(pBody))
 							{
 								ByteCodelnt* otherByteCodelnt=compile(pBody,tmpInter->glob,tmpInter,status,1);
@@ -2555,6 +2636,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 									if(libPrefix)
 										free(libPrefix);
 									freeFakeMemMenager(memMenager);
+									free(list);
 									return NULL;
 								}
 								if(libByteCodelnt->bc->size)
@@ -2605,13 +2687,27 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 								if(libPrefix)
 									free(libPrefix);
 								freeFakeMemMenager(memMenager);
+								free(list);
 								return NULL;
 							}
 							AST_atom* pSymbol=pExportSymbols->value;
-							CompDef* tmpDef=findCompDef(
-									pSymbol->value.str
-									,tmpInter->glob
-									,inter->table);
+							CompDef* tmpDef=NULL;
+							char* symbolWouldExport=NULL;
+							if(libPrefix)
+							{
+								symbolWouldExport=(char*)malloc(sizeof(char)*(strlen(libPrefix)+strlen(pSymbol->value.str)+1));
+								if(!symbolWouldExport)
+									errors("compileImport",__FILE__,__LINE__);
+								sprintf(symbolWouldExport,"%s%s",libPrefix,pSymbol->value.str);
+							}
+							else
+							{
+								symbolWouldExport=(char*)malloc(sizeof(char)*(strlen(pSymbol->value.str)+1));
+								if(!symbolWouldExport)
+									errors("compileImport",__FILE__,__LINE__);
+								strcpy(symbolWouldExport,pSymbol->value.str);
+							}
+							tmpDef=findCompDef(symbolWouldExport,tmpInter->glob,inter->table);
 							if(!tmpDef)
 							{
 								exError(pExportSymbols,SYMUNDEFINE,tmpInter);
@@ -2624,14 +2720,18 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 								freeIntpr(tmpInter);
 								if(libPrefix)
 									free(libPrefix);
+								free(symbolWouldExport);
 								freeFakeMemMenager(memMenager);
+								free(list);
 								return NULL;
 							}
 							else
-								addCompDef(pSymbol->value.str,curEnv,inter->table);
+								addCompDef(symbolWouldExport,curEnv,inter->table);
+							free(symbolWouldExport);
 						}
 						deleteCptr(begin);
 						free(begin);
+						free(list);
 						break;
 					}
 				}
@@ -2668,8 +2768,13 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		tmpInter->table=NULL;
 		tmpInter->lnt=NULL;
 		freeIntpr(tmpInter);
+		if(libPrefix)
+			free(libPrefix);
 	}
-	deleteFakeMem(tmp,memMenager);
-	freeFakeMemMenager(memMenager);
+	if(tmp)
+	{
+		deleteFakeMem(tmp,memMenager);
+		freeFakeMemMenager(memMenager);
+	}
 	return tmp;
 }

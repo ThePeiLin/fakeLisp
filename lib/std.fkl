@@ -1,4 +1,92 @@
-(library (test)
+(defmacro "'(a)" (cons (quote quote) (cons a ())))
+(defmacro "`(a)" (cons (quote qsquote) (cons a ())))
+(defmacro "~(a)" (cons (quote unquote) (cons a ())))
+(defmacro "~@(a)" (cons (quote unqtesp) (cons a ())))
+(defmacro "[(,a)]" a)
+(defmacro
+  (let $d,$b)
+  (begin
+    (define map
+      (lambda (f l)
+        (define map-iter
+          (lambda (f c p)
+            (cond ((null c) (appd p ()))
+                  (1 (map-iter f (cdr c) (appd p (cons (f (car c)) ())))))))
+        (map-iter f l ())))
+    (define args ())
+    (define vals ())
+    (cond ((eq (type d) 'sym)
+           (setq
+             args
+             (map (lambda (sd) (nth 0 sd)) (car b)))
+           (setq
+             vals
+             (map (lambda (sd) (nth 1 sd)) (car b)))
+           `(let () (define ~d (lambda ~args ~@(cdr b))) ~(cons d vals))
+           )
+          (1
+           (setq args
+                 (map (lambda (sd) (nth 0 sd)) d))
+           (setq vals
+                 (map (lambda (sd) (nth 1 sd)) d))
+           `((lambda ~args ~@b) ~@vals)
+           ))))
+
+(defmacro
+  (let* $d,$b)
+  (cond ((or (not (eq (type d) 'pair))
+             (le (length d) 1))
+         `(let ~d ~@b))
+        (1
+         `(let (~(car d))
+            (let* ~(cdr d) ~@b)))))
+(defmacro
+  (letrec $d,$b)
+  (begin
+    (define map
+      (lambda (f l)
+        (define map-iter
+          (lambda (f c p)
+            (cond ((null c) (appd p ()))
+                  (1 (map-iter f (cdr c) (appd p (cons (f (car c)) ())))))))
+        (map-iter f l ())))
+    (define dfs (map (lambda (sd) `(define ~(car sd) ~@(cdr sd))) d))
+    `(let () ~@dfs ~@b)))
+
+(defmacro
+  (letcc $t,$b)
+  `(clcc (lambda (~t) ~@b)))
+
+(defmacro (if $condition $exp1,$exp2)
+  `(cond (~condition ~exp1) ~(cons 1 exp2)))
+
+(defmacro (case $v,$b)
+  (begin
+    (define map
+      (lambda (f l)
+        (define map-iter
+          (lambda (f c p)
+            (cond ((null c) (appd p ()))
+                  (1 (map-iter f (cdr c) (appd p (cons (f (car c)) ())))))))
+        (map-iter f l ())))
+    (define body (let ((tb (map (lambda (x) (cdr x)) b))
+                       (cs (map (lambda (x)
+                                  (if (eq (type x) 'pair)
+                                    (cons 'or
+                                          (map (lambda (x) `(equal ~v ~x)) x))
+                                    x))
+                                (map (lambda (x) (nth 0 x)) b))))
+                   (map (lambda (x)
+                          (define r (cons x (car tb)))
+                          (setq tb (cdr tb))
+                          r)
+                        cs)
+                   ))
+    `(cond,~body)))
+
+(defmacro (define  ($name,$args),$body)
+  `(define ~name (lambda ~args ~@body)))
+(library (lib std)
          (export cons
                  car
                  cdr
@@ -339,25 +427,23 @@
 
          (define map
            (lambda (f,l)
-             (define sub-map
-               (lambda (f l)
-                 (define sub-map-iter
+             (define sub-map (lambda (f l) (define sub-map-iter
                    (lambda (f c p)
-                     (cond ((null c) (appd p nil))
+                     (cond ((null c) (appd p ()))
                            (1 (sub-map-iter f
                                             (cdr c)
                                             (appd p (cons (f (car c))
-                                                          nil)))))))
-                 (sub-map-iter f l nil)))
+                                                          ())))))))
+                 (sub-map-iter f l ())))
              (define map-iter
                (lambda (f l p)
-                 (cond ((null (car l)) (appd p nil))
+                 (cond ((null (car l)) (appd p ()))
                        (1 (map-iter f
                                     (sub-map cdr l)
                                     (appd p (cons (aply f
                                                         (sub-map car l))
-                                                  nil)))))))
-             (map-iter f l nil)))
+                                                  ())))))))
+             (map-iter f l ())))
 
          (define fprint
            (lambda (f,l)

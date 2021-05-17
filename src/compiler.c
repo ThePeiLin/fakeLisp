@@ -45,8 +45,8 @@ static uint8_t findOpcode(const char* str)
 
 static int isSymbolShouldBeExport(const char* str,const char** pStr,uint32_t n)
 {
-	uint32_t l=0;
-	uint32_t h=n-1;
+	int32_t l=0;
+	int32_t h=n-1;
 	int32_t mid=0;
 	while(l<=h)
 	{
@@ -2612,7 +2612,18 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 								exportSymbols=(const char**)reallocFakeMem(exportSymbols,realloc(exportSymbols,sizeof(const char*)*num),memMenager);
 								exportSymbols[num-1]=pSymbol->value.str;
 							}
-							qsort(exportSymbols,num,sizeof(const char*),(int (*)(const void*,const void*))strcmp);
+							uint32_t i=0;
+							for(;i<num;i++)
+							{
+								uint32_t j=i+1;
+								uint32_t min=i;
+								for(;j<num;j++)
+									if(strcmp(exportSymbols[j],exportSymbols[min])<0)
+										min=j;
+								const char* t=exportSymbols[i];
+								exportSymbols[i]=exportSymbols[min];
+								exportSymbols[min]=t;
+							}
 							AST_cptr* pBody=nextCptr(nextCptr(libName));
 							tmpInter->glob->prefix=libPrefix;
 							tmpInter->glob->exp=exportSymbols;

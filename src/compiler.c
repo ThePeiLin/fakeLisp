@@ -31,6 +31,11 @@ static PreFunc* funAndForm=NULL;
 static PreMacro* FirstMacro=NULL;
 static PreEnv* MacroEnv=NULL;
 
+static int cmpString(const void* a,const void* b)
+{
+	return strcmp(*(const char**)a,*(const char**)b);
+}
+
 static uint8_t findOpcode(const char* str)
 {
 	uint8_t i=0;
@@ -2612,18 +2617,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 								exportSymbols=(const char**)reallocFakeMem(exportSymbols,realloc(exportSymbols,sizeof(const char*)*num),memMenager);
 								exportSymbols[num-1]=pSymbol->value.str;
 							}
-							uint32_t i=0;
-							for(;i<num;i++)
-							{
-								uint32_t j=i+1;
-								uint32_t min=i;
-								for(;j<num;j++)
-									if(strcmp(exportSymbols[j],exportSymbols[min])<0)
-										min=j;
-								const char* t=exportSymbols[i];
-								exportSymbols[i]=exportSymbols[min];
-								exportSymbols[min]=t;
-							}
+							mergeSort(exportSymbols,num,sizeof(const char*),cmpString);
 							AST_cptr* pBody=nextCptr(nextCptr(libName));
 							tmpInter->glob->prefix=libPrefix;
 							tmpInter->glob->exp=exportSymbols;

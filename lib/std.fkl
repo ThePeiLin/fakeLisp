@@ -1,0 +1,389 @@
+(library (test)
+         (export cons
+                 car
+                 cdr
+                 atom
+                 null
+                 type
+                 aply
+                 eq
+                 eqn
+                 equal
+                 gt
+                 ge
+                 lt
+                 le
+                 not
+                 dbl
+                 str
+                 sym
+                 chr
+                 int
+                 byt
+                 add
+                 sub
+                 mul
+                 div
+                 rem
+                 nth
+                 length
+                 appd
+                 file
+                 read
+                 getb
+                 write
+                 putb
+                 princ
+                 go
+                 chanl
+                 send
+                 recv
+                 clcc
+                 +
+                 -
+                 *
+                 /
+                 map
+                 fprint
+                 print
+                 fwrite
+                 square
+                 )
+         (define cons (lambda (a b)
+                        (proc
+                          push_pair
+                          push_var a
+                          pop_car
+                          push_var b
+                          pop_cdr
+                          )))
+
+         (define car (lambda (a)
+                       (proc
+                         push_var a
+                         push_car
+                         )))
+
+         (define cdr (lambda (a)
+                       (proc
+                         push_var a
+                         push_cdr
+                         )))
+
+         (define atom (lambda (a)
+                        (proc
+                          push_var a
+                          atom
+                          )))
+
+         (define null (lambda (a)
+                        (proc
+                          push_var a
+                          null
+                          )))
+
+         (define type (lambda (a)
+                        (proc
+                          push_var a
+                          type
+                          )))
+
+         (define aply (lambda (a b)
+                        (proc
+                          set_bp
+                          push_var b
+                          push_list_arg
+                          push_var a
+                          invoke
+                          )))
+
+         (define eq (lambda (a b)
+                      (proc
+                        push_var a
+                        push_var b
+                        eq
+                        )))
+
+         (define eqn (lambda (a b)
+                       (proc
+                         push_var a
+                         push_var b
+                         eqn
+                         )))
+
+         (define equal (lambda (a b)
+                         (proc
+                           push_var a
+                           push_var b
+                           equal
+                           )))
+
+         (define gt (lambda (a b)
+                      (proc
+                        push_var a
+                        push_var b
+                        gt
+                        )))
+
+         (define ge (lambda (a b)
+                      (proc
+                        push_var a
+                        push_var b
+                        ge
+                        )))
+
+         (define lt (lambda (a b)
+                      (proc
+                        push_var a
+                        push_var b
+                        lt
+                        )))
+
+         (define le (lambda (a b)
+                      (proc
+                        push_var a
+                        push_var b
+                        le
+                        )))
+
+         (define not (lambda (a)
+                       (proc
+                         push_var a
+                         not
+                         )))
+
+         (define dbl (lambda (a)
+                       (proc
+                         push_var a
+                         cast_to_dbl
+                         )))
+
+         (define str (lambda (a)
+                       (proc
+                         push_var a
+                         cast_to_str
+                         )))
+
+         (define sym (lambda (a)
+                       (proc
+                         push_var a
+                         cast_to_sym
+                         )))
+
+         (define chr (lambda (a)
+                       (proc
+                         push_var a
+                         cast_to_chr
+                         )))
+
+         (define int (lambda (a)
+                       (proc
+                         push_var a
+                         cast_to_int
+                         )))
+
+         (define byt (lambda (a)
+                       (proc
+                         push_var a
+                         cast_to_byte
+                         )))
+
+         (define add (lambda (a b)
+                       (proc
+                         push_var a
+                         push_var b
+                         add
+                         )))
+
+         (define sub (lambda (a b)
+                       (proc
+                         push_var a
+                         push_var b
+                         sub
+                         )))
+
+         (define mul (lambda (a b)
+                       (proc
+                         push_var a
+                         push_var b
+                         mul
+                         )))
+
+         (define div (lambda (a b)
+                       (proc
+                         push_var a
+                         push_var b
+                         div
+                         )))
+
+         (define rem (lambda (a b)
+                       (proc
+                         push_var a
+                         push_var b
+                         rem
+                         )))
+
+         (define nth (lambda (place ls)
+                       (proc
+                         push_var place
+                         push_var ls
+                         nth
+                         )))
+
+         (define length (lambda (ls)
+                          (proc
+                            push_var ls
+                            length
+                            )))
+
+         (define appd (lambda (a b)
+                        (proc
+                          push_var a
+                          push_var b
+                          appd
+                          )))
+
+         (define file (lambda (name mode)
+                        (proc
+                          push_var name
+                          push_var mode
+                          file
+                          )))
+
+         (define read (lambda (fp)
+                        (proc
+                          push_var fp
+                          read
+                          )))
+
+         (define getb (lambda (size fp)
+                        (proc
+                          push_var size
+                          push_var fp
+                          getb
+                          )))
+
+         (define write (lambda (obj fp)
+                         (proc
+                           push_var obj
+                           push_var fp
+                           write
+                           )))
+
+         (define putb (lambda (byts fp)
+                        (proc
+                          push_var byts
+                          push_var fp
+                          putb
+                          )))
+
+         (define princ (lambda (obj fp)
+                         (proc
+                           push_var obj
+                           push_var fp
+                           princ
+                           )))
+
+         (define go (lambda (f,a)
+                      (proc
+                        push_var f
+                        push_var a
+                        go
+                        )))
+
+         (define chanl (lambda (size)
+                         (proc
+                           push_var size
+                           chanl
+                           )))
+
+         (define send (lambda (obj ch)
+                        (proc
+                          push_var obj
+                          push_var ch
+                          send
+                          )))
+
+         (define recv (lambda (ch)
+                        (proc
+                          push_var ch
+                          recv
+                          )))
+
+         (define clcc (lambda (f)
+                        (proc
+                          $cc
+                          pack_cc
+                          pop_var cc
+                          set_bp
+                          push_var cc
+                          push_var f
+                          invoke
+                          )))
+
+         (define + (lambda (a,b)
+                     (cond (b (add a (aply + b)))
+                           (1 a))))
+
+         (define - (lambda (a,b)
+                     (cond (b (sub a (aply + b)))
+                           (1 (sub 0 a)))))
+
+         (define * (lambda (a,b)
+                     (cond (b (mul a (aply * b)))
+                           (1 a))))
+
+         (define / (lambda (a,b)
+                     (cond (b (div a (aply * b)))
+                           (1 a))))
+
+         (define map
+           (lambda (f,l)
+             (define sub-map
+               (lambda (f l)
+                 (define sub-map-iter
+                   (lambda (f c p)
+                     (cond ((null c) (appd p nil))
+                           (1 (sub-map-iter f
+                                            (cdr c)
+                                            (appd p (cons (f (car c))
+                                                          nil)))))))
+                 (sub-map-iter f l nil)))
+             (define map-iter
+               (lambda (f l p)
+                 (cond ((null (car l)) (appd p nil))
+                       (1 (map-iter f
+                                    (sub-map cdr l)
+                                    (appd p (cons (aply f
+                                                        (sub-map car l))
+                                                  nil)))))))
+             (map-iter f l nil)))
+
+         (define fprint
+           (lambda (f,l)
+             (define p-iter
+               (lambda (c)
+                 (cond (c (princ (car c) f)
+                          (p-iter (cdr c))))))
+             (p-iter l)))
+
+         (define print
+           (lambda l
+             (define p-iter
+               (lambda (c)
+                 (cond (c (princ (car c) stdout)
+                          (p-iter (cdr c))))))
+             (p-iter l)))
+
+         (define fwrite
+           (lambda (f,l)
+             (define w-iter
+               (lambda (c)
+                 (cond (c (write (car c) f)
+                          (w-iter (cdr c))))))
+             (w-iter l)))
+
+         (define square
+           (lambda (x)
+             (mul x x)))
+         )

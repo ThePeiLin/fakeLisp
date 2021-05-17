@@ -261,7 +261,7 @@ lambda表达式，返回一个参数列表为args，函数体为列表body的过
 加载模块用的特殊形式，表达式的值为该模块最后一个表达式的值；  
 编译时编译器查找目标文件中的第一个library表达式，如果library后的第一个表达式与要import的模块所查找的路径不同，则查找文件中的下一个library表达式，  
 如import的模块名为(tool test)，则tool/test.fkl文件中至少要有一个library表达式定义的模块名为(tool test)；  
-即，(import (tool test))须对应(library (tool test) ...)  
+即，(import (tool test))必须对应(library (tool test) ...)  
 并且，export表达式必须紧跟模块名，library表达式中必须有且仅有一个export表达式；  
 ```scheme
 ;test.fkl

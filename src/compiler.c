@@ -733,6 +733,15 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 				FREE_ALL_LINE_NUMBER_TABLE(tmpByteCodelnt->l,tmpByteCodelnt->ls);
 				freeByteCodelnt(tmpByteCodelnt);
 			}
+			freeLineNumberTable(tmpInter->lnt);
+			RawProc* tmp=tmpInter->procs;
+			while(tmp!=NULL)
+			{
+				RawProc* prev=tmp;
+				tmp=tmp->next;
+				freeByteCode(prev->proc);
+				free(prev);
+			}
 			exError(status.place,status.status,inter);
 			deleteArg(args,2);
 			status.place=NULL;
@@ -782,6 +791,7 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 			freeByteCodelnt(tmpByteCodelnt);
 		}
 		exError(status.place,status.status,inter);
+		freeLineNumberTable(tmpInter->lnt);
 		status.place=NULL;
 		status.status=0;
 	}
@@ -2561,6 +2571,21 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			ungetc(ch,tmpInter->file);
 			if(begin!=NULL)
 			{
+				if(isPreprocess(begin))
+				{
+					ErrorStatus t_status=eval(begin,NULL,inter);
+					if(t_status.status!=0)
+					{
+						exError(t_status.place,t_status.status,inter);
+						deleteCptr(t_status.place);
+						FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+						free(list);
+						deleteCptr(begin);
+						free(begin);
+						tmp=NULL;
+						break;
+					}
+				}
 				//查找library并编译library
 				if(isLibraryExpression(begin))
 				{
@@ -2624,34 +2649,43 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 							tmpInter->glob->n=num;
 							for(;pBody;pBody=nextCptr(pBody))
 							{
-								ByteCodelnt* otherByteCodelnt=compile(pBody,tmpInter->glob,tmpInter,status,1);
-								if(status->status)
+								if(isPreprocess(pBody))
 								{
-									exError(status->place,status->status,tmpInter);
-									deleteCptr(begin);
-									free(begin);
-									FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-									FREE_ALL_LINE_NUMBER_TABLE(libByteCodelnt->l,libByteCodelnt->ls);
-									chdir(tmpInter->prev->curDir);
-									tmpInter->table=NULL;
-									tmpInter->lnt=NULL;
-									freeIntpr(tmpInter);
-									status->status=0;
-									status->place=NULL;
-									if(libPrefix)
-										free(libPrefix);
-									freeFakeMemMenager(memMenager);
-									free(list);
-									return NULL;
+										exError(pBody,INVALIDEXPR,tmpInter);
+										FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+										break;
 								}
-								if(libByteCodelnt->bc->size)
+								else
 								{
-									reCodeCat(resTp,otherByteCodelnt->bc);
-									otherByteCodelnt->l[0]->cpc+=1;
-									INCREASE_ALL_SCP(otherByteCodelnt->l,otherByteCodelnt->ls-1,resTp->size);
+									ByteCodelnt* otherByteCodelnt=compile(pBody,tmpInter->glob,tmpInter,status,1);
+									if(status->status)
+									{
+										exError(status->place,status->status,tmpInter);
+										deleteCptr(begin);
+										free(begin);
+										FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+										FREE_ALL_LINE_NUMBER_TABLE(libByteCodelnt->l,libByteCodelnt->ls);
+										chdir(tmpInter->prev->curDir);
+										tmpInter->table=NULL;
+										tmpInter->lnt=NULL;
+										freeIntpr(tmpInter);
+										status->status=0;
+										status->place=NULL;
+										if(libPrefix)
+											free(libPrefix);
+										freeFakeMemMenager(memMenager);
+										free(list);
+										return NULL;
+									}
+									if(libByteCodelnt->bc->size)
+									{
+										reCodeCat(resTp,otherByteCodelnt->bc);
+										otherByteCodelnt->l[0]->cpc+=1;
+										INCREASE_ALL_SCP(otherByteCodelnt->l,otherByteCodelnt->ls-1,resTp->size);
+									}
+									codelntCat(libByteCodelnt,otherByteCodelnt);
+									freeByteCodelnt(otherByteCodelnt);
 								}
-								codelntCat(libByteCodelnt,otherByteCodelnt);
-								freeByteCodelnt(otherByteCodelnt);
 							}
 							reCodeCat(setTp,libByteCodelnt->bc);
 							if(!libByteCodelnt->l)

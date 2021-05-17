@@ -269,8 +269,6 @@ int isExportExpression(const AST_cptr* objCptr)
 	if(objCptr->type==PAIR)
 	{
 		AST_cptr* fir=&((AST_pair*)objCptr->value)->car;
-		AST_cptr* sec=nextCptr(fir);
-		if(sec==NULL)return 0;
 		if(fir->type!=ATM)
 			return 0;
 		AST_atom* firAtm=fir->value;

@@ -8,6 +8,8 @@
 	(l)[i]->scp+=(s);\
 }
 
+#define MIN(a,b) (((a)<(b))?(a):(b))
+
 int isHexNum(const char*);
 int isOctNum(const char*);
 int isDouble(const char*);
@@ -134,4 +136,9 @@ void* reallocFakeMem(void* o_block,void* n_block,FakeMemMenager*);
 void freeFakeMemMenager(FakeMemMenager*);
 void pushFakeMem(void* block,void (*destructor)(void*),FakeMemMenager* memMenager);
 void deleteFakeMem(void* block,FakeMemMenager* memMenager);
+
+void mergeSort(void* base
+		,size_t num
+		,size_t size
+		,int (*cmpf)(const void*,const void*));
 #endif

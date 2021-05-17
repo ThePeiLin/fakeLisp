@@ -17,7 +17,11 @@
 #include<unistd.h>
 #include<time.h>
 
-static void sortVMenvList(VMenv*);
+static int envNodeCmp(const void* a,const void* b)
+{
+	return ((*(VMenvNode**)a)->id-(*(VMenvNode**)b)->id);
+}
+
 static int32_t getSymbolIdInByteCode(const char*);
 extern char* builtInSymbolList[NUMOFBUILTINSYMBOL];
 pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
@@ -876,7 +880,7 @@ void initGlobEnv(VMenv* obj,VMheap* heap,SymbolTable* table)
 		obj->list[i]=newVMenvNode(newVMvalue(PRC,newBuiltInProc(tmp),heap,1),findSymbol(builtInSymbolList[i],table)->id);
 		free(tmp);
 	}
-	sortVMenvList(obj);
+	mergeSort(obj->list,obj->size,sizeof(VMenvNode*),envNodeCmp);
 }
 
 void* ThreadVMFunc(void* p)
@@ -3435,22 +3439,6 @@ void createCallChainWithContinuation(FakeVM* vm,VMcontinuation* cc)
 	while(curproc->prev)
 		curproc=curproc->prev;
 	vm->mainproc=curproc;
-}
-
-void sortVMenvList(VMenv* env)
-{
-	int32_t i=0;
-	for(;i<env->size;i++)
-	{
-		int32_t j=i+1;
-		int32_t min=i;
-		for(;j<env->size;j++)
-			if(env->list[j]->id<env->list[min]->id)
-				min=j;
-		VMenvNode* t=env->list[i];
-		env->list[i]=env->list[min];
-		env->list[min]=t;
-	}
 }
 
 int32_t getSymbolIdInByteCode(const char* code)

@@ -38,6 +38,11 @@ static int cmpString(const void* a,const void* b)
 	return strcmp(*(const char**)a,*(const char**)b);
 }
 
+static int cmpByteCodeLabel(const void* a,const void* b)
+{
+	return strcmp(((const ByteCodeLabel*)a)->label,((const ByteCodeLabel*)b)->label);
+}
+
 static uint8_t findOpcode(const char* str)
 {
 	uint8_t i=0;
@@ -2035,6 +2040,7 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	AST_cptr* fir=nextCptr(getFirstCptr(objCptr));
 	ByteCodelnt* tmp=NULL;
 
+	ComStack* stack=newComStack(32);
 	for(;fir;fir=nextCptr(fir))
 	{
 		if(fir->type!=ATM)
@@ -2050,13 +2056,12 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 
 	int32_t sizeOfByteCode=0;
 
-	ByteCodeLabel* head=NULL;
 	while(fir)
 	{
 		AST_atom* firAtm=fir->value;
 		if(firAtm->value.str[0]==':')
 		{
-			addByteCodeLabel(newByteCodeLable(sizeOfByteCode,firAtm->value.str+1),&head);
+			pushComStack(newByteCodeLable(sizeOfByteCode,firAtm->value.str+1),stack);
 			fir=nextCptr(fir);
 			continue;
 		}
@@ -2074,7 +2079,10 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		{
 			status->place=fir;
 			status->status=SYNTAXERROR;
-			destroyByteCodeLabelChain(head);
+			uint32_t i=0;
+			for(;i<stack->top;i++)
+				freeByteCodeLabel(stack->data[i]);
+			freeComStack(stack);
 			return NULL;
 		}
 
@@ -2082,7 +2090,11 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		{
 			status->place=objCptr;
 			status->status=SYNTAXERROR;
-			destroyByteCodeLabelChain(head);
+			uint32_t i=0;
+			for(;i<stack->top;i++)
+				freeByteCodeLabel(stack->data[i]);
+			freeComStack(stack);
+
 			return NULL;
 		}
 
@@ -2100,7 +2112,10 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 					{
 						status->place=objCptr;
 						status->status=SYNTAXERROR;
-						destroyByteCodeLabelChain(head);
+						uint32_t i=0;
+						for(;i<stack->top;i++)
+							freeByteCodeLabel(stack->data[i]);
+						freeComStack(stack);
 						return NULL;
 					}
 
@@ -2116,7 +2131,10 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 					{
 						status->place=tmpCptr;
 						status->status=SYMUNDEFINE;
-						destroyByteCodeLabelChain(head);
+						uint32_t i=0;
+						for(;i<stack->top;i++)
+							freeByteCodeLabel(stack->data[i]);
+						freeComStack(stack);
 						return NULL;
 					}
 					sizeOfByteCode+=sizeof(char)+2*sizeof(int32_t);
@@ -2131,7 +2149,10 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 					{
 						status->place=tmpCptr;
 						status->status=SYNTAXERROR;
-						destroyByteCodeLabelChain(head);
+						uint32_t i=0;
+						for(;i<stack->top;i++)
+							freeByteCodeLabel(stack->data[i]);
+						freeComStack(stack);
 						return NULL;
 					}
 
@@ -2147,7 +2168,10 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 					{
 						status->place=tmpCptr;
 						status->status=SYNTAXERROR;
-						destroyByteCodeLabelChain(head);
+						uint32_t i=0;
+						for(;i<stack->top;i++)
+							freeByteCodeLabel(stack->data[i]);
+						freeComStack(stack);
 						return NULL;
 					}
 
@@ -2169,7 +2193,10 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 					{
 						status->place=tmpCptr;
 						status->status=SYNTAXERROR;
-						destroyByteCodeLabelChain(head);
+						uint32_t i=0;
+						for(;i<stack->top;i++)
+							freeByteCodeLabel(stack->data[i]);
+						freeComStack(stack);
 						return NULL;
 					}
 
@@ -2195,7 +2222,10 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 						{
 							status->place=tmpCptr;
 							status->status=SYMUNDEFINE;
-							destroyByteCodeLabelChain(head);
+							uint32_t i=0;
+							for(;i<stack->top;i++)
+								freeByteCodeLabel(stack->data[i]);
+							freeComStack(stack);
 							return NULL;
 						}
 					}
@@ -2205,7 +2235,10 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 						{
 							status->place=tmpCptr;
 							status->status=SYNTAXERROR;
-							destroyByteCodeLabelChain(head);
+							uint32_t i=0;
+							for(;i<stack->top;i++)
+								freeByteCodeLabel(stack->data[i]);
+							freeComStack(stack);
 							return NULL;
 						}
 					}
@@ -2215,7 +2248,10 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 						{
 							status->place=tmpCptr;
 							status->status=SYNTAXERROR;
-							destroyByteCodeLabelChain(head);
+							uint32_t i=0;
+							for(;i<stack->top;i++)
+								freeByteCodeLabel(stack->data[i]);
+							freeComStack(stack);
 							return NULL;
 						}
 					}
@@ -2231,7 +2267,10 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 					{
 						status->place=tmpCptr;
 						status->status=SYNTAXERROR;
-						destroyByteCodeLabelChain(head);
+						uint32_t i=0;
+						for(;i<stack->top;i++)
+							freeByteCodeLabel(stack->data[i]);
+						freeComStack(stack);
 						return NULL;
 					}
 
@@ -2242,6 +2281,7 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		}
 	}
 
+	mergeSort(stack->data,stack->top,sizeof(void*),cmpByteCodeLabel);
 	fir=nextCptr(getFirstCptr(objCptr));
 	tmp=newByteCodelnt(newByteCode(0));
 	while(fir)
@@ -2353,13 +2393,16 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 					}
 					else if(opcode==FAKE_JMP||opcode==FAKE_JMP_IF_TRUE||opcode==FAKE_JMP_IF_FALSE)
 					{
-						ByteCodeLabel* label=findByteCodeLable(tmpAtm->value.str,head);
+						ByteCodeLabel* label=findByteCodeLabel(tmpAtm->value.str,stack);
 						if(label==NULL)
 						{
 							status->place=tmpCptr;
 							status->status=SYMUNDEFINE;
 							freeByteCodelnt(tmp);
-							destroyByteCodeLabelChain(head);
+							uint32_t i=0;
+							for(;i<stack->top;i++)
+								freeByteCodeLabel(stack->data[i]);
+							freeComStack(stack);
 							return NULL;
 						}
 						tmpByteCode=newByteCode(sizeof(char)+sizeof(int32_t));
@@ -2394,7 +2437,10 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		codelntCat(tmp,tmpByteCodelnt);
 		freeByteCodelnt(tmpByteCodelnt);
 	}
-	destroyByteCodeLabelChain(head);
+	uint32_t i=0;
+	for(;i<stack->top;i++)
+		freeByteCodeLabel(stack->data[i]);
+	freeComStack(stack);
 	return tmp;
 }
 

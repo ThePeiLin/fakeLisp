@@ -325,7 +325,7 @@ int copyCptr(AST_cptr* objCptr,const AST_cptr* copiedCptr)
 	}
 	return 1;
 }
-void replace(AST_cptr* fir,const AST_cptr* sec)
+void replaceCptr(AST_cptr* fir,const AST_cptr* sec)
 {
 	AST_pair* tmp=fir->outer;
 	AST_cptr tmpCptr={NULL,0,NIL,NULL};
@@ -840,7 +840,7 @@ CompDef* findCompDef(const char* name,CompEnv* curEnv,SymbolTable* table)
 	}
 }
 
-CompDef* addCompDef(const char* name,CompEnv* curEnv,SymbolTable* table)
+CompDef* addCompDef(const char* name,const AST_cptr* objCptr,CompEnv* curEnv,SymbolTable* table)
 {
 	if(curEnv->head==NULL)
 	{
@@ -853,6 +853,9 @@ CompDef* addCompDef(const char* name,CompEnv* curEnv,SymbolTable* table)
 		if(!(curEnv->head=(CompDef*)malloc(sizeof(CompDef))))errors("addCompDef",__FILE__,__LINE__);
 		curEnv->head->next=NULL;
 		curEnv->head->id=node->id;
+		curEnv->head->exp.type=NIL;
+		curEnv->head->exp.value=NULL;
+		copyCptr(&(curEnv->head->exp),objCptr);
 		return curEnv->head;
 	}
 	else
@@ -869,6 +872,9 @@ CompDef* addCompDef(const char* name,CompEnv* curEnv,SymbolTable* table)
 			if(!(curDef=(CompDef*)malloc(sizeof(CompDef))))errors("addCompDef",__FILE__,__LINE__);
 			curDef->id=node->id;
 			curDef->next=curEnv->head;
+			curDef->exp.type=NIL;
+			curDef->exp.value=NULL;
+			copyCptr(&(curDef->exp),objCptr);
 			curEnv->head=curDef;
 		}
 		return curDef;
@@ -966,8 +972,9 @@ ByteCode* copyByteCode(const ByteCode* obj)
 void initCompEnv(CompEnv* curEnv,SymbolTable* table)
 {
 	int i=0;
+	AST_cptr tmp={NULL,0,NIL,NULL};
 	for(i=0;i<NUMOFBUILTINSYMBOL;i++)
-		addCompDef(builtInSymbolList[i],curEnv,table);
+		addCompDef(builtInSymbolList[i],&tmp,curEnv,table);
 }
 
 char* copyStr(const char* str)
@@ -1503,7 +1510,7 @@ PreDef* addDefine(const char* symbol,const AST_cptr* objCptr,PreEnv* curEnv)
 	if(curEnv->symbols==NULL)
 	{
 		curEnv->symbols=newDefines(symbol);
-		replace(&curEnv->symbols->obj,objCptr);
+		replaceCptr(&curEnv->symbols->obj,objCptr);
 		curEnv->symbols->next=NULL;
 		return curEnv->symbols;
 	}
@@ -1515,10 +1522,10 @@ PreDef* addDefine(const char* symbol,const AST_cptr* objCptr,PreEnv* curEnv)
 			curDef=newDefines(symbol);
 			curDef->next=curEnv->symbols;
 			curEnv->symbols=curDef;
-			replace(&curDef->obj,objCptr);
+			replaceCptr(&curDef->obj,objCptr);
 		}
 		else
-			replace(&curDef->obj,objCptr);
+			replaceCptr(&curDef->obj,objCptr);
 		return curDef;
 	}
 }

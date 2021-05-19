@@ -166,6 +166,7 @@ typedef struct Comp_Def
 {
 	int32_t id;
 	struct Comp_Def* next;
+	AST_cptr exp;
 }CompDef;
 
 typedef struct Comp_Env

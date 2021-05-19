@@ -2172,41 +2172,33 @@ ByteCodeLabel* newByteCodeLable(int32_t place,const char* label)
 		errors("newByteCodeLable",__FILE__,__LINE__);
 	tmp->place=place;
 	tmp->label=copyStr(label);
-	tmp->next=NULL;
 	return tmp;
 }
 
-ByteCodeLabel* findByteCodeLable(const char* label,ByteCodeLabel* head)
+ByteCodeLabel* findByteCodeLabel(const char* label,ComStack* s)
 {
-	while(head)
+	int32_t l=0;
+	int32_t h=s->top-1;
+	int32_t mid;
+	while(l<=h)
 	{
-		if(!strcmp(label,head->label))
-			return head;
-		head=head->next;
+		mid=l+(h-l)/2;
+		int cmp=strcmp(((ByteCodeLabel*)s->data[mid])->label,label);
+		if(cmp>0)
+			h=mid-1;
+		else if(cmp<0)
+			l=mid+1;
+		else
+			return (ByteCodeLabel*)s->data[mid];
 	}
 	return NULL;
 }
 
-void addByteCodeLabel(ByteCodeLabel* obj,ByteCodeLabel** head)
-{
-	obj->next=*head;
-	*head=obj;
-}
 
 void freeByteCodeLabel(ByteCodeLabel* obj)
 {
 	free(obj->label);
 	free(obj);
-}
-
-void destroyByteCodeLabelChain(ByteCodeLabel* head)
-{
-	while(head)
-	{
-		ByteCodeLabel* obj=head;
-		head=head->next;
-		freeByteCodeLabel(obj);
-	}
 }
 
 int isComStackEmpty(ComStack* stack)

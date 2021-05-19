@@ -116,10 +116,8 @@ void codelntCat(ByteCodelnt*,ByteCodelnt*);
 void reCodelntCat(ByteCodelnt*,ByteCodelnt*);
 
 ByteCodeLabel* newByteCodeLable(int32_t,const char*);
-ByteCodeLabel* findByteCodeLable(const char*,ByteCodeLabel*);
-void addByteCodeLabel(ByteCodeLabel* obj,ByteCodeLabel** head);
+ByteCodeLabel* findByteCodeLabel(const char*,ComStack*);
 void freeByteCodeLabel(ByteCodeLabel*);
-void destroyByteCodeLabelChain(ByteCodeLabel* head);
 
 ComStack* newComStack(uint32_t size);
 void pushComStack(void* data,ComStack*);

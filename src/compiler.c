@@ -27,9 +27,11 @@ static int fmatcmp(const AST_cptr*,const AST_cptr*);
 static int isVal(const char*);
 static ErrorStatus N_defmacro(AST_cptr*,PreEnv*,Intpr*);
 static CompEnv* createPatternCompEnv(char**,int32_t,CompEnv*,SymbolTable*);
+
 static PreFunc* funAndForm=NULL;
 static PreMacro* FirstMacro=NULL;
 static PreEnv* MacroEnv=NULL;
+static AST_cptr NilCptr={NULL,0,NIL,NULL};
 
 static int cmpString(const void* a,const void* b)
 {
@@ -98,7 +100,7 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 		if(!i)
 		{
 			tmpCptr=castVMvalueToCptr(tmpVM->stack->values[0],objCptr->curline);
-			replace(objCptr,tmpCptr);
+			replaceCptr(objCptr,tmpCptr);
 			deleteCptr(tmpCptr);
 			free(tmpCptr);
 		}
@@ -390,7 +392,7 @@ CompEnv* createMacroCompEnv(const AST_cptr* objCptr,CompEnv* prev,SymbolTable* t
 				{
 					const char* tmpStr=tmpAtm->value.str;
 					if(isVal(tmpStr))
-						addCompDef(tmpStr+1,tmpEnv,table);
+						addCompDef(tmpStr+1,&NilCptr,tmpEnv,table);
 				}
 			}
 			if(objPair!=NULL&&objCptr==&objPair->car)
@@ -470,7 +472,7 @@ int retree(AST_cptr** fir,AST_cptr* sec)
 	while(*fir!=sec)
 	{
 		AST_cptr* preCptr=((*fir)->outer->prev==NULL)?sec:&(*fir)->outer->prev->car;
-		replace(preCptr,*fir);
+		replaceCptr(preCptr,*fir);
 		*fir=preCptr;
 		if(preCptr->outer!=NULL&&preCptr->outer->cdr.type!=NIL)return 0;
 	}
@@ -501,7 +503,7 @@ ErrorStatus eval(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 				if(objDef!=NULL)
 				{
 					reCptr=&objDef->obj;
-					replace(objCptr,reCptr);
+					replaceCptr(objCptr,reCptr);
 					break;
 				}
 				else
@@ -536,7 +538,7 @@ ErrorStatus eval(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 					if(objDef!=NULL)
 					{
 						reCptr=&objDef->obj;
-						replace(objCptr,reCptr);
+						replaceCptr(objCptr,reCptr);
 						continue;
 					}
 					else
@@ -615,7 +617,7 @@ AST_cptr** dealArg(AST_cptr* argCptr,int num)
 		else
 		{
 			args[i]=newCptr(0,NULL);
-			replace(args[i],&((AST_pair*)argCptr->value)->car);
+			replaceCptr(args[i],&((AST_pair*)argCptr->value)->car);
 			deleteCptr(&((AST_pair*)argCptr->value)->car);
 			argCptr=&((AST_pair*)argCptr->value)->cdr;
 		}
@@ -696,7 +698,7 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 		{
 			status.status=SYNTAXERROR;
 			status.place=newCptr(0,NULL);
-			replace(status.place,args[0]);
+			replaceCptr(status.place,args[0]);
 			deleteArg(args,2);
 			return status;
 		}
@@ -856,7 +858,7 @@ CompEnv* createPatternCompEnv(char** parts,int32_t num,CompEnv* prev,SymbolTable
 		if(isVar(parts[i]))
 		{
 			char* varName=getVarName(parts[i]);
-			addCompDef(varName,tmpEnv,table);
+			addCompDef(varName,&NilCptr,tmpEnv,table);
 			free(varName);
 		}
 	return tmpEnv;
@@ -1247,11 +1249,11 @@ ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 			if(!symbolWithPrefix)
 				errors("compileDef",__FILE__,__LINE__);
 			sprintf(symbolWithPrefix,"%s%s",curEnv->prefix,tmpAtm->value.str);
-			tmpDef=addCompDef(symbolWithPrefix,curEnv,inter->table);
+			tmpDef=addCompDef(symbolWithPrefix,objCptr,curEnv,inter->table);
 			free(symbolWithPrefix);
 		}
 		else
-			tmpDef=addCompDef(tmpAtm->value.str,curEnv,inter->table);
+			tmpDef=addCompDef(tmpAtm->value.str,objCptr,curEnv,inter->table);
 		*(int32_t*)(popVar->code+sizeof(char))=(int32_t)0;
 		*(int32_t*)(popVar->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
 		codeCat(tmp1->bc,pushTop);
@@ -1325,7 +1327,10 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			id=node->id;
 		}
 		else
+		{
+			replaceCptr(&tmpDef->exp,objCptr);
 			id=tmpDef->id;
+		}
 		*(int32_t*)(popVar->code+sizeof(char))=scope;
 		*(int32_t*)(popVar->code+sizeof(char)+sizeof(int32_t))=id;
 		codeCat(tmp1->bc,pushTop);
@@ -1642,7 +1647,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				destroyCompEnv(tmpEnv);
 				return NULL;
 			}
-			CompDef* tmpDef=addCompDef(tmpAtm->value.str,tmpEnv,inter->table);
+			CompDef* tmpDef=addCompDef(tmpAtm->value.str,&NilCptr,tmpEnv,inter->table);
 			*(int32_t*)(popArg->code+sizeof(char))=(int32_t)0;
 			*(int32_t*)(popArg->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
 			codeCat(pArg,popArg);
@@ -1658,7 +1663,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 					destroyCompEnv(tmpEnv);
 					return NULL;
 				}
-				tmpDef=addCompDef(tmpAtom1->value.str,tmpEnv,inter->table);
+				tmpDef=addCompDef(tmpAtom1->value.str,&NilCptr,tmpEnv,inter->table);
 				*(int32_t*)(popRestArg->code+sizeof(char))=(int32_t)0;
 				*(int32_t*)(popRestArg->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
 				codeCat(pArg,popRestArg);
@@ -1678,7 +1683,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			destroyCompEnv(tmpEnv);
 			return NULL;
 		}
-		CompDef* tmpDef=addCompDef(tmpAtm->value.str,tmpEnv,inter->table);
+		CompDef* tmpDef=addCompDef(tmpAtm->value.str,&NilCptr,tmpEnv,inter->table);
 		*(int32_t*)(popRestArg->code+sizeof(char))=(int32_t)0;
 		*(int32_t*)(popRestArg->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
 		codeCat(pArg,popRestArg);
@@ -2058,7 +2063,7 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 
 		if(firAtm->value.str[0]=='$')
 		{
-			addCompDef(firAtm->value.str+1,curEnv,inter->table);
+			addCompDef(firAtm->value.str+1,&NilCptr,curEnv,inter->table);
 			fir=nextCptr(fir);
 			continue;
 		}
@@ -2765,7 +2770,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 								return NULL;
 							}
 							else
-								addCompDef(symbolWouldExport,curEnv,inter->table);
+								addCompDef(symbolWouldExport,&NilCptr,curEnv,inter->table);
 							free(symbolWouldExport);
 						}
 						deleteCptr(begin);

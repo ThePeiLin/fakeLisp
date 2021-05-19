@@ -43,7 +43,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 						return NULL;
 					tmpCptr->type=PAIR;
 					tmpCptr->value=newPair(inter->curline,NULL);
-					replace(getFirstCptr(tmpCptr),tmpCptr2);
+					replaceCptr(getFirstCptr(tmpCptr),tmpCptr2);
 					deleteCptr(tmpCptr2);
 					free(tmpCptr2);
 					int i=skipInPattern(parts[j],tmpPattern);
@@ -311,7 +311,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 					if(root==NULL)objCptr=root=tmpCptr;
 					else
 					{
-						replace(objCptr,tmpCptr);
+						replaceCptr(objCptr,tmpCptr);
 						deleteCptr(tmpCptr);
 						free(tmpCptr);
 					}
@@ -424,11 +424,11 @@ void addToList(AST_cptr* fir,const AST_cptr* sec)
 	while(fir->type!=NIL)fir=&((AST_pair*)fir->value)->cdr;
 	fir->type=PAIR;
 	fir->value=newPair(sec->curline,fir->outer);
-	replace(&((AST_pair*)fir->value)->car,sec);
+	replaceCptr(&((AST_pair*)fir->value)->car,sec);
 }
 
 void addToTail(AST_cptr* fir,const AST_cptr* sec)
 {
 	while(fir->type!=NIL)fir=&((AST_pair*)fir->value)->cdr;
-	replace(fir,sec);
+	replaceCptr(fir,sec);
 }

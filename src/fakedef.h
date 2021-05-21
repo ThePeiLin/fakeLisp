@@ -144,7 +144,6 @@ typedef struct Pre_Macro
 	AST_cptr* pattern;
 	struct Line_Number_Table* lnt;
 	ByteCode* proc;
-	struct Raw_Proc* procs;
 	struct Pre_Macro* next;
 }PreMacro;
 
@@ -177,14 +176,6 @@ typedef struct Comp_Env
 	CompDef* head;
 }CompEnv;
 
-typedef struct Raw_Proc
-{
-	int32_t count;
-	ByteCode* proc;
-	struct Raw_Proc* prev;
-	struct Raw_Proc* next;
-}RawProc;
-
 typedef struct Interpreter
 {
 	char* filename;
@@ -192,7 +183,6 @@ typedef struct Interpreter
 	FILE* file;
 	int curline;
 	CompEnv* glob;
-	RawProc* procs;
 	struct Symbol_Table* table;
 	struct Line_Number_Table* lnt;
 	struct Interpreter* prev;
@@ -356,7 +346,6 @@ typedef struct String_Match_Pattern
 	int32_t num;
 	char** parts;
 	ByteCode* proc;
-	struct Raw_Proc* procs;
 	struct Line_Number_Table* lnt;
 	struct String_Match_Pattern* prev;
 	struct String_Match_Pattern* next;

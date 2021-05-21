@@ -1704,12 +1704,12 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	freeByteCode(resBp);
 	freeByteCode(setTp);
 	objCptr=nextCptr(nextCptr(objCptr));
-	ByteCodelnt* codeInRawProc=newByteCodelnt(pArg);
-	codeInRawProc->ls=1;
-	codeInRawProc->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
-	if(!codeInRawProc->l)
+	ByteCodelnt* codeOfLambda=newByteCodelnt(pArg);
+	codeOfLambda->ls=1;
+	codeOfLambda->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
+	if(!codeOfLambda->l)
 		errors("compileLambda",__FILE__,__LINE__);
-	codeInRawProc->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,pArg->size,line);
+	codeOfLambda->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,pArg->size,line);
 	ByteCode* resTp=newByteCode(sizeof(char));
 	resTp->code[0]=FAKE_RES_TP;
 	for(;objCptr;objCptr=nextCptr(objCptr))
@@ -1726,9 +1726,9 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				free(prev);
 			}
 			getFirstIntpr(inter)->procs=curproc;
-			FREE_ALL_LINE_NUMBER_TABLE(codeInRawProc->l,codeInRawProc->ls);
+			FREE_ALL_LINE_NUMBER_TABLE(codeOfLambda->l,codeOfLambda->ls);
 			freeByteCode(resTp);
-			freeByteCodelnt(codeInRawProc);
+			freeByteCodelnt(codeOfLambda);
 			destroyCompEnv(tmpEnv);
 			return NULL;
 		}
@@ -1737,22 +1737,22 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			codeCat(tmp1->bc,resTp);
 			tmp1->l[tmp1->ls-1]->cpc+=resTp->size;
 		}
-		codelntCat(codeInRawProc,tmp1);
+		codelntCat(codeOfLambda,tmp1);
 		freeByteCodelnt(tmp1);
 	}
 	freeByteCode(resTp);
 	ByteCode* popTp=newByteCode(sizeof(char));
 	popTp->code[0]=FAKE_POP_TP;
-	codeCat(codeInRawProc->bc,popTp);
-	codeInRawProc->l[codeInRawProc->ls-1]->cpc+=popTp->size;
+	codeCat(codeOfLambda->bc,popTp);
+	codeOfLambda->l[codeOfLambda->ls-1]->cpc+=popTp->size;
 	freeByteCode(popTp);
-	int32_t pId=addRawProc(codeInRawProc->bc,inter)->count;
+	int32_t pId=addRawProc(codeOfLambda->bc,inter)->count;
 	ByteCode* pushProc=newByteCode(sizeof(char)+sizeof(int32_t));
 	pushProc->code[0]=FAKE_PUSH_PROC;
 	*(int32_t*)(pushProc->code+sizeof(char))=pId;
-	addLineNumTabId(codeInRawProc->l,codeInRawProc->ls,pId+1,inter->lnt);
-	freeByteCode(codeInRawProc->bc);
-	free(codeInRawProc);
+	addLineNumTabId(codeOfLambda->l,codeOfLambda->ls,pId+1,inter->lnt);
+	freeByteCode(codeOfLambda->bc);
+	free(codeOfLambda);
 	ByteCodelnt* toReturn=newByteCodelnt(pushProc);
 	toReturn->ls=1;
 	toReturn->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);

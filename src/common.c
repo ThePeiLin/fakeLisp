@@ -758,7 +758,6 @@ Intpr* newIntpr(const char* filename,FILE* file,CompEnv* env,SymbolTable* table,
 		tmp->curDir=getcwd(NULL,0);
 	tmp->file=file;
 	tmp->curline=1;
-	tmp->procs=NULL;
 	tmp->prev=NULL;
 	if(table)
 		tmp->table=table;
@@ -786,14 +785,6 @@ void freeIntpr(Intpr* inter)
 		fclose(inter->file);
 	free(inter->curDir);
 	destroyCompEnv(inter->glob);
-	RawProc* tmp=inter->procs;
-	while(tmp!=NULL)
-	{
-		RawProc* prev=tmp;
-		tmp=tmp->next;
-		freeByteCode(prev->proc);
-		free(prev);
-	}
 	if(inter->table)freeSymbolTable(inter->table);
 	if(inter->lnt)freeLineNumberTable(inter->lnt);
 	free(inter);
@@ -879,31 +870,6 @@ CompDef* addCompDef(const char* name,const AST_cptr* objCptr,CompEnv* curEnv,Sym
 		}
 		return curDef;
 	}
-}
-
-RawProc* newRawProc(int32_t count)
-{
-	RawProc* tmp=(RawProc*)malloc(sizeof(RawProc));
-	if(tmp==NULL)errors("newRawProc",__FILE__,__LINE__);
-	tmp->count=count;
-	tmp->proc=NULL;
-	tmp->prev=NULL;
-	tmp->next=NULL;
-	return tmp;
-}
-
-RawProc* addRawProc(ByteCode* proc,Intpr* inter)
-{
-	while(inter->prev!=NULL)inter=inter->prev;
-	ByteCode* tmp=newByteCode(proc->size);
-	memcpy(tmp->code,proc->code,proc->size);
-	RawProc* tmpProc=newRawProc((inter->procs==NULL)?0:inter->procs->count+1);
-	tmpProc->proc=tmp;
-	tmpProc->next=inter->procs;
-	if(inter->procs)
-		inter->procs->prev=tmpProc;
-	inter->procs=tmpProc;
-	return tmpProc;
 }
 
 ByteCode* newByteCode(unsigned int size)
@@ -1141,13 +1107,6 @@ int hasLoadSameFile(const char* filename,const Intpr* inter)
 	return 0;
 }
 
-RawProc* getHeadRawProc(const Intpr* inter)
-{
-	while(inter->prev!=NULL)
-		inter=inter->prev;
-	return inter->procs;
-}
-
 Intpr* getFirstIntpr(Intpr* inter)
 {
 	while(inter->prev!=NULL)
@@ -1224,17 +1183,6 @@ char* getStringFromFile(FILE* file)
 	}
 	if(tmp!=NULL)tmp[i]='\0';
 	return tmp;
-}
-
-void freeAllRawProc(RawProc* cur)
-{
-	while(cur!=NULL)
-	{
-		freeByteCode(cur->proc);
-		RawProc* prev=cur;
-		cur=cur->next;
-		free(prev);
-	}
 }
 
 int bytsStrEq(ByteString* fir,ByteString* sec)
@@ -1437,41 +1385,11 @@ Intpr* newTmpIntpr(const char* filename,FILE* fp)
 		tmp->curDir=NULL;
 	tmp->file=fp;
 	tmp->curline=1;
-	tmp->procs=NULL;
 	tmp->prev=NULL;
 	tmp->glob=NULL;
 	tmp->table=NULL;
 	tmp->lnt=NULL;
 	return tmp;
-}
-
-ByteCode* castRawproc(ByteCode* prev,RawProc* procs)
-{
-	if(procs==NULL)return NULL;
-	else
-	{
-		ByteCode* tmp=(ByteCode*)realloc(prev,sizeof(ByteCode)*(procs->count+1));
-		if(tmp==NULL)
-		{
-			fprintf(stderr,"In file \"%s\",line %d\n",__FILE__,__LINE__);
-			errors("castRawproc",__FILE__,__LINE__);
-		}
-		RawProc* curRawproc=procs;
-		while(curRawproc!=NULL)
-		{
-			tmp[curRawproc->count]=*curRawproc->proc;
-			curRawproc=curRawproc->next;
-		}
-		return tmp;
-	}
-}
-
-void freeRawProc(ByteCode* l,int32_t num)
-{
-	int i=0;
-	for(;i<num;i++)
-		free(l[i].code);
-	free(l);
 }
 
 int32_t countChar(const char* str,char c,int32_t len)
@@ -1943,12 +1861,6 @@ LineNumTabId* addLineNumTabId(LineNumTabNode** list,int32_t size,int32_t id,Line
 	}
 	else
 	{
-//		{
-//			fprintf(stderr,"----\n");
-//			int32_t i=0;
-//			for(;i<table->size;i++)
-//				fprintf(stderr,"%d\n",table->list[i]->id);
-//		}
 		int32_t l=0;
 		int32_t h=table->size-1;
 		int32_t mid=0;

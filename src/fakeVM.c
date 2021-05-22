@@ -756,21 +756,20 @@ ByteCode P_dlsym=
 	}
 };
 
-FakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
+FakeVM* newFakeVM(ByteCode* mainproc)
 {
 	FakeVM* exe=(FakeVM*)malloc(sizeof(FakeVM));
 	if(exe==NULL)errors("newFakeVM",__FILE__,__LINE__);
 	VMcode* tmpVMcode=NULL;
 	if(mainproc!=NULL)
 	{
-		tmpVMcode=newVMcode(mainproc,0);
+		tmpVMcode=newVMcode(mainproc->code,mainproc->size,0);
 		exe->mainproc=newFakeProcess(tmpVMcode,NULL);
 		freeVMcode(tmpVMcode);
 	}
 	exe->argc=0;
 	exe->argv=NULL;
 	exe->curproc=exe->mainproc;
-	exe->procs=procs;
 	exe->mark=1;
 	exe->chan=NULL;
 	exe->stack=newVMstack(0);
@@ -798,14 +797,13 @@ FakeVM* newFakeVM(ByteCode* mainproc,ByteCode* procs)
 	return exe;
 }
 
-FakeVM* newTmpFakeVM(ByteCode* mainproc,ByteCode* procs)
+FakeVM* newTmpFakeVM(ByteCode* mainproc)
 {
 	FakeVM* exe=(FakeVM*)malloc(sizeof(FakeVM));
 	if(exe==NULL)errors("newTmpFakeVM",__FILE__,__LINE__);
 	if(mainproc!=NULL)
-		exe->mainproc=newFakeProcess(newVMcode(mainproc,0),NULL);
+		exe->mainproc=newFakeProcess(newVMcode(mainproc->code,mainproc->size,0),NULL);
 	exe->curproc=exe->mainproc;
-	exe->procs=procs;
 	exe->mark=1;
 	exe->argc=0;
 	exe->argv=NULL;
@@ -933,25 +931,8 @@ int runFakeVM(FakeVM* exe)
 		if(status!=0)
 		{
 			int32_t sid;
-			int32_t cp;
-			int32_t pid;
-			VMprocess* cur=curproc;
-			if(status==TOOMANYARG||status==TOOFEWARG)
-				cur=cur->prev;
-			if(cur->code->id!=-1)
-			{
-				cp=cur->cp;
-				pid=cur->code->id;
-			}
-			else
-			{
-				VMprocess* cur=curproc;
-				while(cur->code->id==-1)
-					cur=cur->prev;
-				cp=cur->cp;
-				pid=cur->code->id;
-			}
-			LineNumTabNode* node=findLineNumTabNode(pid,cp,exe->lnt);
+			int32_t cp=curproc->cp+curproc->code->offset;
+			LineNumTabNode* node=findLineNumTabNode(0,cp,exe->lnt);
 			fprintf(stderr,"In file \"%s\",line %d\n",exe->table->idl[node->fid]->symbol,node->line);
 			switch(status)
 			{
@@ -1339,20 +1320,21 @@ int B_push_proc(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMprocess* proc=exe->curproc;
 	VMcode* tmpCode=proc->code;
-	int32_t countOfProc=*(int32_t*)(tmpCode->code+proc->cp+1);
+	int32_t sizeOfProc=*(int32_t*)(tmpCode->code+proc->cp+1);
+	const char* codeStr=tmpCode->code+proc->cp+1+sizeof(int32_t);
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
 		if(stack->values==NULL)errors("B_push_proc",__FILE__,__LINE__);
 		stack->size+=64;
 	}
-	VMcode* code=newVMcode(exe->procs+countOfProc,countOfProc+1);
+	VMcode* code=newVMcode(codeStr,sizeOfProc,proc->cp+1+sizeof(int32_t));
 	increaseVMenvRefcount(proc->localenv);
 	code->prevEnv=proc->localenv;
 	VMvalue* objValue=newVMvalue(PRC,code,exe->heap,1);
 	stack->values[stack->tp]=objValue;
 	stack->tp+=1;
-	proc->cp+=5;
+	proc->cp+=5+sizeOfProc;
 	return 0;
 }
 
@@ -2698,7 +2680,7 @@ int B_go(FakeVM* exe)
 		return WRONGARG;
 	if(exe->VMid==-1)
 		return CANTCREATETHREAD;
-	FakeVM* threadVM=newThreadVM(threadProc->u.prc,exe->procs,exe->heap);
+	FakeVM* threadVM=newThreadVM(threadProc->u.prc,exe->heap);
 	threadVM->callback=exe->callback;
 	threadVM->table=exe->table;
 	threadVM->lnt=exe->lnt;
@@ -3056,13 +3038,13 @@ VMcode* newBuiltInProc(ByteCode* proc)
 	tmp->refcount=0;
 	if(proc!=NULL)
 	{
-		tmp->id=-1;
+		tmp->offset=0;
 		tmp->size=proc->size;
 		tmp->code=proc->code;
 	}
 	else
 	{
-		tmp->id=-1;
+		tmp->offset=0;
 		tmp->size=0;
 		tmp->code=NULL;
 	}
@@ -3307,14 +3289,13 @@ void GC_sweep(VMheap* heap)
 	}
 }
 
-FakeVM* newThreadVM(VMcode* mainCode,ByteCode* procs,VMheap* heap)
+FakeVM* newThreadVM(VMcode* mainCode,VMheap* heap)
 {
 	FakeVM* exe=(FakeVM*)malloc(sizeof(FakeVM));
 	if(exe==NULL)errors("newThreadVM",__FILE__,__LINE__);
 	exe->mainproc=newFakeProcess(mainCode,NULL);
 	exe->mainproc->localenv=newVMenv(mainCode->prevEnv);
 	exe->curproc=exe->mainproc;
-	exe->procs=procs;
 	exe->mark=1;
 	exe->argc=0;
 	exe->argv=NULL;

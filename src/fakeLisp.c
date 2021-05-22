@@ -169,6 +169,7 @@ void runIntpr(Intpr* inter)
 	initGlobEnv(globEnv,anotherVM->heap,inter->table);
 	ByteCode* rawProcList=NULL;
 	char* prev=NULL;
+	int32_t bs=0;
 	for(;e<2;)
 	{
 		AST_cptr* begin=NULL;
@@ -228,11 +229,10 @@ void runIntpr(Intpr* inter)
 				}
 				else if(tmpByteCode)
 				{
-					inter->lnt->list=tmpByteCode->l;
-					inter->lnt->size=tmpByteCode->ls;
-					VMcode* tmp=newVMcode(tmpByteCode->bc->code,tmpByteCode->bc->size,0);
-					freeByteCode(tmpByteCode->bc);
-					free(tmpByteCode);
+					lntCat(inter->lnt,bs,tmpByteCode->l,tmpByteCode->ls);
+					VMcode* tmp=newVMcode(tmpByteCode->bc->code,tmpByteCode->bc->size,bs);
+					bs=tmpByteCode->bc->size;
+					freeByteCodelnt(tmpByteCode);
 					tmp->prevEnv=NULL;
 					anotherVM->mainproc=newFakeProcess(tmp,NULL);
 					anotherVM->mainproc->localenv=globEnv;

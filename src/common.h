@@ -105,6 +105,7 @@ void printByteCodelnt(ByteCodelnt* obj,SymbolTable* table,FILE* fp);
 void freeByteCodelnt(ByteCodelnt*);
 void increaseScpOfByteCodelnt(ByteCodelnt*,int32_t);
 void codelntCat(ByteCodelnt*,ByteCodelnt*);
+void lntCat(LineNumberTable* t,int32_t bs,LineNumTabNode** l2,int32_t s2);
 void reCodelntCat(ByteCodelnt*,ByteCodelnt*);
 
 ByteCodeLabel* newByteCodeLable(int32_t,const char*);

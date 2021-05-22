@@ -95,11 +95,10 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 			else
 				inter->curline+=countChar(parts[j],'\n',-1);
 		}
-		ByteCode* rawProcList=castRawproc(NULL,pattern->procs);
-		FakeVM* tmpVM=newTmpFakeVM(NULL,rawProcList);
+		FakeVM* tmpVM=newTmpFakeVM(NULL);
 		VMenv* tmpGlobEnv=newVMenv(NULL);
 		initGlobEnv(tmpGlobEnv,tmpVM->heap,inter->table);
-		VMcode* tmpVMcode=newVMcode(pattern->proc,0);
+		VMcode* tmpVMcode=newVMcode(pattern->proc->code,pattern->proc->size,0);
 		VMenv* stringPatternEnv=castPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->heap,inter->table);
 		tmpVMcode->prevEnv=NULL;
 		tmpVM->mainproc=newFakeProcess(tmpVMcode,NULL);
@@ -116,7 +115,6 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 		freeVMstack(tmpVM->stack);
 		freeVMcode(tmpVMcode);
 		free(tmpVM);
-		free(rawProcList);
 		destroyEnv(tmpEnv);
 		freeStringArry(parts,num);
 		return tmpCptr;

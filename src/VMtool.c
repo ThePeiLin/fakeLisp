@@ -40,26 +40,17 @@ pthread_mutex_t VMDlprocGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 	}\
 }
 
-VMcode* newVMcode(ByteCode* proc,int32_t id)
+VMcode* newVMcode(const char* code,int32_t size,uint32_t offset)
 {
 	VMcode* tmp=(VMcode*)malloc(sizeof(VMcode));
 	if(tmp==NULL)errors("newVMcode",__FILE__,__LINE__);
 	tmp->refcount=0;
 	tmp->prevEnv=NULL;
-	if(proc!=NULL)
-	{
-		tmp->id=id;
-		tmp->size=proc->size;
-		tmp->code=(char*)malloc(sizeof(char)*(tmp->size));
-		if(tmp->code==NULL)errors("newVMcode",__FILE__,__LINE__);
-		memcpy(tmp->code,proc->code,tmp->size);
-	}
-	else
-	{
-		tmp->id=id;
-		tmp->size=0;
-		tmp->code=NULL;
-	}
+	tmp->offset=offset;
+	tmp->size=size;
+	tmp->code=(char*)malloc(sizeof(char)*size);
+	if(tmp->code==NULL)errors("newVMcode",__FILE__,__LINE__);
+	memcpy(tmp->code,code,size);
 	return tmp;
 }
 

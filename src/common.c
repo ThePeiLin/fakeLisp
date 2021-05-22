@@ -1818,6 +1818,42 @@ void increaseScpOfByteCodelnt(ByteCodelnt* o,int32_t size)
 		o->l[i]->scp+=size;
 }
 
+void lntCat(LineNumberTable* t,int32_t bs,LineNumTabNode** l2,int32_t s2)
+{
+	if(!t->list)
+	{
+		t->size=s2;
+		t->list=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*s2);
+		if(!t->list)
+			errors("lntCat",__FILE__,__LINE__);
+		l2[0]->cpc+=bs;
+		INCREASE_ALL_SCP(l2+1,s2-1,bs);
+		memcpy(t->list,l2,(s2)*sizeof(LineNumTabNode*));
+	}
+	else
+	{
+		INCREASE_ALL_SCP(l2,s2,bs);
+		if(t->list[t->size-1]->line==l2[0]->line&&t->list[t->size-1]->fid==l2[0]->fid)
+		{
+			t->list[t->size-1]->cpc+=l2[0]->cpc;
+			t->list=(LineNumTabNode**)realloc(t->list,sizeof(LineNumTabNode*)*(t->size+s2-1));
+			if(!t->list)
+				errors("lntCat",__FILE__,__LINE__);
+			memcpy(t->list+t->size,l2+1,(s2-1)*sizeof(LineNumTabNode*));
+			t->size+=s2-1;
+			freeLineNumTabNode(l2[0]);
+		}
+		else
+		{
+			t->list=(LineNumTabNode**)realloc(t->list,sizeof(LineNumTabNode*)*(t->size+s2));
+			if(!t->list)
+				errors("lntCat",__FILE__,__LINE__);
+			memcpy(t->list+t->size,l2,(s2)*sizeof(LineNumTabNode*));
+			t->size+=s2;
+		}
+	}
+}
+
 void codelntCat(ByteCodelnt* f,ByteCodelnt* s)
 {
 	if(!f->l)

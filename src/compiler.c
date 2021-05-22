@@ -705,7 +705,8 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 		ByteCodelnt* tmpByteCodelnt=compile(express,tmpCompEnv,tmpInter,&status,1);
 		if(!status.status)
 		{
-			addLineNumTabId(tmpByteCodelnt->l,tmpByteCodelnt->ls,0,tmpInter->lnt);
+			tmpInter->lnt->list=tmpByteCodelnt->l;
+			tmpInter->lnt->size=tmpByteCodelnt->ls;
 			addMacro(pattern,tmpByteCodelnt->bc,tmpInter->lnt);
 			deleteCptr(express);
 			free(express);
@@ -757,7 +758,8 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 		int32_t i=0;
 		for(;i<num;i++)
 			tmParts[i]=copyStr(parts[i]);
-		addLineNumTabId(tmpByteCodelnt->l,tmpByteCodelnt->ls,0,tmpInter->lnt);
+		tmpInter->lnt->list=tmpByteCodelnt->l;
+		tmpInter->lnt->size=tmpByteCodelnt->ls;
 		tmp=newStringMatchPattern(num,tmParts,tmpByteCodelnt->bc,tmpInter->lnt);
 	}
 	else

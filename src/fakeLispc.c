@@ -50,7 +50,8 @@ int main(int argc,char** argv)
 			fprintf(stderr,"%s:Can't create byte code file!",outputname);
 			return 1;
 		}
-		addLineNumTabId(mainByteCode->l,mainByteCode->ls,0,inter->lnt);
+		inter->lnt->list=mainByteCode->l;
+		inter->lnt->size=mainByteCode->ls;
 		writeSymbolTable(inter->table,outfp);
 		writeLineNumberTable(inter->lnt,outfp);
 		int32_t sizeOfMain=mainByteCode->bc->size;

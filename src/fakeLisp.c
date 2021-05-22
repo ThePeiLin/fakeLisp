@@ -63,7 +63,8 @@ int main(int argc,char** argv)
 				unInitPreprocess();
 				return status;
 			}
-			addLineNumTabId(mainByteCode->l,mainByteCode->ls,0,inter->lnt);
+			inter->lnt->size=mainByteCode->ls;
+			inter->lnt->list=mainByteCode->l;
 			VMenv* globEnv=newVMenv(NULL);
 			FakeVM* anotherVM=newFakeVM(mainByteCode->bc);
 			freeByteCode(mainByteCode->bc);
@@ -227,7 +228,8 @@ void runIntpr(Intpr* inter)
 				}
 				else if(tmpByteCode)
 				{
-					addLineNumTabId(tmpByteCode->l,tmpByteCode->ls,0,inter->lnt);
+					inter->lnt->list=tmpByteCode->l;
+					inter->lnt->size=tmpByteCode->ls;
 					VMcode* tmp=newVMcode(tmpByteCode->bc->code,tmpByteCode->bc->size,0);
 					freeByteCode(tmpByteCode->bc);
 					free(tmpByteCode);
@@ -350,39 +352,25 @@ LineNumberTable* loadLineNumberTable(FILE* fp)
 {
 	int32_t size=0;
 	int32_t i=0;
-	LineNumberTable* lnt=newLineNumTable();
 	fread(&size,sizeof(int32_t),1,fp);
-	lnt->size=size;
-	lnt->list=(LineNumTabId**)malloc(sizeof(LineNumTabId*)*size);
-	if(!lnt->list)
+	LineNumTabNode** list=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*size);
+	if(!list)
 		errors("loadLineNumberTable",__FILE__,__LINE__);
-	for(;i<lnt->size;i++)
+	for(;i<size;i++)
 	{
-		int32_t j=0;
-		int32_t id=0;
-		int32_t size=0;
-		LineNumTabId* idl=NULL;
-		fread(&id,sizeof(id),1,fp);
-		idl=newLineNumTabId(id);
-		lnt->list[i]=idl;
-		fread(&size,sizeof(size),1,fp);
-		idl->size=size;
-		idl->list=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*size);
-		if(!idl->list)
-			errors("loadLineNumberTable",__FILE__,__LINE__);
-		for(;j<size;j++)
-		{
-			int32_t fid=0;
-			int32_t scp=0;
-			int32_t cpc=0;
-			int32_t line=0;
-			fread(&fid,sizeof(fid),1,fp);
-			fread(&scp,sizeof(scp),1,fp);
-			fread(&cpc,sizeof(cpc),1,fp);
-			fread(&line,sizeof(line),1,fp);
-			LineNumTabNode* n=newLineNumTabNode(fid,scp,cpc,line);
-			idl->list[j]=n;
-		}
+		int32_t fid=0;
+		int32_t scp=0;
+		int32_t cpc=0;
+		int32_t line=0;
+		fread(&fid,sizeof(fid),1,fp);
+		fread(&scp,sizeof(scp),1,fp);
+		fread(&cpc,sizeof(cpc),1,fp);
+		fread(&line,sizeof(line),1,fp);
+		LineNumTabNode* n=newLineNumTabNode(fid,scp,cpc,line);
+		list[i]=n;
 	}
+	LineNumberTable* lnt=newLineNumTable();
+	lnt->list=list;
+	lnt->size=size;
 	return lnt;
 }

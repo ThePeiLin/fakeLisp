@@ -932,7 +932,7 @@ int runFakeVM(FakeVM* exe)
 		{
 			int32_t sid;
 			int32_t cp=curproc->cp+curproc->code->offset;
-			LineNumTabNode* node=findLineNumTabNode(0,cp,exe->lnt);
+			LineNumTabNode* node=findLineNumTabNode(cp,exe->lnt);
 			fprintf(stderr,"In file \"%s\",line %d\n",exe->table->idl[node->fid]->symbol,node->line);
 			switch(status)
 			{

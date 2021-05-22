@@ -98,7 +98,7 @@ static codeinfor codeName[]=
 	{"push_car",0},
 	{"push_cdr",0},
 	{"push_top",0},
-	{"push_proc",4},
+	{"push_proc",-3},
 	{"push_list_arg",0},
 	{"pop_var",-3},
 	{"pop_arg",-3},

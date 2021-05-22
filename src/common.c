@@ -1788,19 +1788,11 @@ void writeLineNumberTable(LineNumberTable* lnt,FILE* fp)
 	int32_t i=0;
 	for(;i<size;i++)
 	{
-		LineNumTabId* idl=lnt->list[i];
-		int32_t size=idl->size;
-		int32_t j=0;
-		fwrite(&idl->id,sizeof(idl->id),1,fp);
-		fwrite(&size,sizeof(size),1,fp);
-		for(;j<size;j++)
-		{
-			LineNumTabNode* n=idl->list[j];
-			fwrite(&n->fid,sizeof(n->fid),1,fp);
-			fwrite(&n->scp,sizeof(n->scp),1,fp);
-			fwrite(&n->cpc,sizeof(n->cpc),1,fp);
-			fwrite(&n->line,sizeof(n->line),1,fp);
-		}
+		LineNumTabNode* n=lnt->list[i];
+		fwrite(&n->fid,sizeof(n->fid),1,fp);
+		fwrite(&n->scp,sizeof(n->scp),1,fp);
+		fwrite(&n->cpc,sizeof(n->cpc),1,fp);
+		fwrite(&n->line,sizeof(n->line),1,fp);
 	}
 }
 
@@ -1822,17 +1814,6 @@ LineNumberTable* newLineNumTable()
 	return t;
 }
 
-LineNumTabId* newLineNumTabId(int32_t id)
-{
-	LineNumTabId* t=(LineNumTabId*)malloc(sizeof(LineNumTabId));
-	if(!t)
-		errors("newLineNumTabId",__FILE__,__LINE__);
-	t->id=id;
-	t->size=0;
-	t->list=NULL;
-	return t;
-}
-
 LineNumTabNode* newLineNumTabNode(int32_t fid,int32_t scp,int32_t cpc,int32_t line)
 {
 	LineNumTabNode* t=(LineNumTabNode*)malloc(sizeof(LineNumTabNode));
@@ -1845,80 +1826,16 @@ LineNumTabNode* newLineNumTabNode(int32_t fid,int32_t scp,int32_t cpc,int32_t li
 	return t;
 }
 
-LineNumTabId* addLineNumTabId(LineNumTabNode** list,int32_t size,int32_t id,LineNumberTable* table)
-{
-	if(!table->list)
-	{
-		table->size=1;
-		table->list=(LineNumTabId**)malloc(sizeof(LineNumTabId*)*1);
-		if(!table->list)
-			errors("addLineNumTabId",__FILE__,__LINE__);
-		LineNumTabId* i=newLineNumTabId(id);
-		i->size=size;
-		i->list=list;
-		table->list[0]=i;
-		return i;
-	}
-	else
-	{
-		int32_t l=0;
-		int32_t h=table->size-1;
-		int32_t mid=0;
-		while(l<=h)
-		{
-			mid=l+(h-l)/2;
-			if(table->list[mid]->id>=id)
-				h=mid-1;
-			else
-				l=mid+1;
-		}
-		if(table->list[mid]->id==id)
-		{
-			int32_t i=0;
-			LineNumTabId* idl=table->list[mid];
-			for(;i<idl->size;i++)
-				freeLineNumTabNode(idl->list[i]);
-			free(idl->list);
-			idl->size=size;
-			idl->list=list;
-			return idl;
-		}
-		if(table->list[mid]->id<=id)
-			mid++;
-		table->size+=1;
-		int32_t i=table->size-1;
-		table->list=(LineNumTabId**)realloc(table->list,sizeof(LineNumTabId*)*table->size);
-		if(!table->list)
-			errors("addLineNumTabId",__FILE__,__LINE__);
-		for(;i>mid;i--)
-			table->list[i]=table->list[i-1];
-		LineNumTabId* idl=newLineNumTabId(id);
-		idl->size=size;
-		idl->list=list;
-		table->list[mid]=idl;
-		return idl;
-	}
-}
-
 void freeLineNumTabNode(LineNumTabNode* n)
 {
 	free(n);
-}
-
-void freeLineNumTabId(LineNumTabId* idt)
-{
-	int32_t i=0;
-	for(;i<idt->size;i++)
-		freeLineNumTabNode(idt->list[i]);
-	free(idt->list);
-	free(idt);
 }
 
 void freeLineNumberTable(LineNumberTable* t)
 {
 	int32_t i=0;
 	for(;i<t->size;i++)
-		freeLineNumTabId(t->list[i]);
+		freeLineNumTabNode(t->list[i]);
 	free(t->list);
 	free(t);
 }
@@ -1926,11 +1843,12 @@ void freeLineNumberTable(LineNumberTable* t)
 LineNumTabNode* findLineNumTabNode(int32_t id,int32_t cp,LineNumberTable* t)
 {
 	int32_t i=0;
-	LineNumTabId* idt=t->list[id];
-	for(;i<idt->size;i++)
+	uint32_t size=t->size;
+	LineNumTabNode** list=t->list;
+	for(;i<size;i++)
 	{
-		if(idt->list[i]->scp<=cp&&(idt->list[i]->scp+idt->list[i]->cpc)>=cp)
-			return idt->list[i];
+		if(list[i]->scp<=cp&&(list[i]->scp+list[i]->cpc)>=cp)
+			return list[i];
 	}
 	return NULL;
 }

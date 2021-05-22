@@ -82,7 +82,6 @@ int bytsStrEq(ByteString*,ByteString*);
 char** split(char*,char*,int*);
 char* relpath(char*,char*);
 char* getLastWorkDir(Intpr*);
-void freeRawProc(ByteCode*,int32_t);
 
 SymbolTable* newSymbolTable();
 SymTabNode* newSymTabNode(const char*);

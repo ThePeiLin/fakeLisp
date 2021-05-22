@@ -368,15 +368,8 @@ typedef struct VM_Continuation
 typedef struct Line_Number_Table
 {
 	int32_t size;
-	struct Line_Number_Table_Id** list;
-}LineNumberTable;
-
-typedef struct Line_Number_Table_Id
-{
-	int32_t id;
-	int32_t size;
 	struct Line_Number_Table_Node** list;
-}LineNumTabId;
+}LineNumberTable;
 
 typedef struct Line_Number_Table_Node
 {

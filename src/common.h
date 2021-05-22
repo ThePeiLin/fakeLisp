@@ -96,7 +96,7 @@ void writeLineNumberTable(LineNumberTable*,FILE*);
 
 LineNumberTable* newLineNumTable();
 LineNumTabNode* newLineNumTabNode(int32_t fid,int32_t scp,int32_t cpc,int32_t line);
-LineNumTabNode* findLineNumTabNode(int32_t id,int32_t cp,LineNumberTable*);
+LineNumTabNode* findLineNumTabNode(uint32_t cp,LineNumberTable*);
 void freeLineNumTabNode(LineNumTabNode*);
 void freeLineNumberTable(LineNumberTable*);
 

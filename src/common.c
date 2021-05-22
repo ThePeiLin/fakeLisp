@@ -1840,7 +1840,7 @@ void freeLineNumberTable(LineNumberTable* t)
 	free(t);
 }
 
-LineNumTabNode* findLineNumTabNode(int32_t id,int32_t cp,LineNumberTable* t)
+LineNumTabNode* findLineNumTabNode(uint32_t cp,LineNumberTable* t)
 {
 	int32_t i=0;
 	uint32_t size=t->size;

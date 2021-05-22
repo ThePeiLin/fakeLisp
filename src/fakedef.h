@@ -5,7 +5,7 @@
 #include<stdint.h>
 #include<pthread.h>
 #define THRESHOLD_SIZE 64
-#define NUMOFBUILTINSYMBOL 47
+#define NUMOFBUILTINSYMBOL 5
 #define MAX_STRING_SIZE 64
 
 typedef enum{NIL=0,IN32,CHR,DBL,SYM,STR,BYTS,PRC,CONT,CHAN,FP,DLL,DLPROC,PAIR,ATM} ValueType;

@@ -249,7 +249,7 @@ typedef struct VM_Env
 
 typedef struct VM_Code
 {
-	int32_t id;
+	uint32_t offset;
 	int32_t refcount;
 	VMenv* prevEnv;
 	int32_t size;
@@ -294,7 +294,6 @@ typedef struct
 	int argc;
 	char** argv;
 	pthread_t tid;
-	ByteCode* procs;
 	VMprocess* curproc;
 	VMprocess* mainproc;
 	VMstack* stack;

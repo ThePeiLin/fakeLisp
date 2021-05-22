@@ -4,7 +4,7 @@
 #include<stdint.h>
 
 StringMatchPattern* findStringPattern(const char*);
-StringMatchPattern* newStringMatchPattern(int32_t,char**,ByteCode*,RawProc*,LineNumberTable*);
+StringMatchPattern* newStringMatchPattern(int32_t,char**,ByteCode*,LineNumberTable*);
 char** splitPattern(const char*,int32_t*);
 char** splitStringInPattern(const char*,StringMatchPattern*,int32_t*);
 char* readInPattern(FILE*,StringMatchPattern**,char**);

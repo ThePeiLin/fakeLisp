@@ -176,24 +176,23 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev)
 		tmp=exStrCat(tmp,tmpNext,backIndex);
 		free(tmpNext);
 		if(!matchStringPattern(tmp,pattern))
-        {
-            int32_t* splitIndex=matchPartOfPattern(tmp,pattern,&num);
-            StringMatchPattern* pattern=findStringPattern(tmp+splitIndex[num-1]);
-            if(!pattern)
+		{
+			int32_t* splitIndex=matchPartOfPattern(tmp,pattern,&num);
+			StringMatchPattern* pattern=findStringPattern(tmp+splitIndex[num-1]);
+			if(!pattern)
 			{
 				free(splitIndex);
-			    break;
 			}
 			else
 			{
 				if(!matchStringPattern(tmp+splitIndex[num-1],pattern))
 				{
 					free(splitIndex);
-					break;
 				}
 			}
+			break;
 			free(splitIndex);
-        }
+		}
 		tmpNext=readInPattern(fp,NULL,prev);
 		tmp=exStrCat(tmp,tmpNext,strlen(tmp));
 		free(tmpNext);
@@ -938,14 +937,13 @@ int isMustList(const char* str)
 	return 0;
 }
 
-StringMatchPattern* newStringMatchPattern(int32_t num,char** parts,ByteCode* proc,RawProc* procs,LineNumberTable* lnt)
+StringMatchPattern* newStringMatchPattern(int32_t num,char** parts,ByteCode* proc,LineNumberTable* lnt)
 {
 	StringMatchPattern* tmp=(StringMatchPattern*)malloc(sizeof(StringMatchPattern));
 	if(!tmp)errors("newStringMatchPattern",__FILE__,__LINE__);
 	tmp->num=num;
 	tmp->parts=parts;
 	tmp->proc=proc;
-	tmp->procs=procs;
 	tmp->next=NULL;
 	tmp->prev=NULL;
 	tmp->lnt=lnt;
@@ -1004,14 +1002,6 @@ void freeAllStringPattern()
 		freeStringArry(prev->parts,prev->num);
 		freeLineNumberTable(prev->lnt);
 		freeByteCode(prev->proc);
-		RawProc* tmp=prev->procs;
-		while(tmp!=NULL)
-		{
-			RawProc* prev=tmp;
-			tmp=tmp->next;
-			freeByteCode(prev->proc);
-			free(prev);
-		}
 		free(prev);
 	}
 }

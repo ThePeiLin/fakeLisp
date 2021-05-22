@@ -88,10 +88,9 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 	if(tmp!=NULL)
 	{
 		VMenv* tmpGlob=newVMenv(NULL);
-		ByteCode* rawProcList=castRawproc(NULL,tmp->procs);
-		FakeVM* tmpVM=newTmpFakeVM(NULL,rawProcList);
+		FakeVM* tmpVM=newTmpFakeVM(NULL);
 		initGlobEnv(tmpGlob,tmpVM->heap,inter->table);
-		VMcode* tmpVMcode=newVMcode(tmp->proc,0);
+		VMcode* tmpVMcode=newVMcode(tmp->proc->code,tmp->proc->size,0);
 		VMenv* macroVMenv=castPreEnvToVMenv(MacroEnv,tmpGlob,tmpVM->heap,inter->table);
 		tmpVM->mainproc=newFakeProcess(tmpVMcode,NULL);
 		tmpVM->mainproc->localenv=macroVMenv;
@@ -116,7 +115,6 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 			freeVMheap(tmpVM->heap);
 			freeVMstack(tmpVM->stack);
 			free(tmpVM);
-			free(rawProcList);
 			destroyEnv(MacroEnv);
 			MacroEnv=NULL;
 			return 2;
@@ -127,7 +125,6 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 		freeVMstack(tmpVM->stack);
 		freeVMcode(tmpVMcode);
 		free(tmpVM);
-		free(rawProcList);
 		destroyEnv(MacroEnv);
 		MacroEnv=NULL;
 		return 1;
@@ -135,7 +132,7 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 	return 0;
 }
 
-int addMacro(AST_cptr* pattern,ByteCode* proc,RawProc* procs,LineNumberTable* lnt)
+int addMacro(AST_cptr* pattern,ByteCode* proc,LineNumberTable* lnt)
 {
 	if(pattern->type!=PAIR)return SYNTAXERROR;
 	AST_cptr* tmpCptr=NULL;
@@ -158,7 +155,6 @@ int addMacro(AST_cptr* pattern,ByteCode* proc,RawProc* procs,LineNumberTable* ln
 		current->next=FirstMacro;
 		current->pattern=pattern;
 		current->proc=proc;
-		current->procs=procs;
 		current->lnt=lnt;
 		FirstMacro=current;
 	}
@@ -167,17 +163,8 @@ int addMacro(AST_cptr* pattern,ByteCode* proc,RawProc* procs,LineNumberTable* ln
 		deleteCptr(current->pattern);
 		free(current->pattern);
 		freeByteCode(current->proc);
-		RawProc* tmp=current->procs;
-		while(tmp!=NULL)
-		{
-			RawProc* prev=tmp;
-			tmp=tmp->next;
-			freeByteCode(prev->proc);
-			free(prev);
-		}
 		current->pattern=pattern;
 		current->proc=proc;
-		current->procs=procs;
 		current->lnt=lnt;
 	}
 	//printAllKeyWord();
@@ -267,15 +254,7 @@ void freeAllMacro()
 		deleteCptr(prev->pattern);
 		free(prev->pattern);
 		freeByteCode(prev->proc);
-		RawProc* tmp=prev->procs;
 		freeLineNumberTable(prev->lnt);
-		while(tmp!=NULL)
-		{
-			RawProc* prev=tmp;
-			tmp=tmp->next;
-			freeByteCode(prev->proc);
-			free(prev);
-		}
 		free(prev);
 	}
 }
@@ -727,7 +706,7 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 		if(!status.status)
 		{
 			addLineNumTabId(tmpByteCodelnt->l,tmpByteCodelnt->ls,0,tmpInter->lnt);
-			addMacro(pattern,tmpByteCodelnt->bc,tmpInter->procs,tmpInter->lnt);
+			addMacro(pattern,tmpByteCodelnt->bc,tmpInter->lnt);
 			deleteCptr(express);
 			free(express);
 			free(args);
@@ -741,14 +720,6 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 				freeByteCodelnt(tmpByteCodelnt);
 			}
 			freeLineNumberTable(tmpInter->lnt);
-			RawProc* tmp=tmpInter->procs;
-			while(tmp!=NULL)
-			{
-				RawProc* prev=tmp;
-				tmp=tmp->next;
-				freeByteCode(prev->proc);
-				free(prev);
-			}
 			exError(status.place,status.status,inter);
 			deleteArg(args,2);
 			status.place=NULL;
@@ -775,7 +746,6 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 	tmpInter->curline=inter->curline;
 	tmpInter->glob=tmpGlobCompEnv;
 	tmpInter->curDir=inter->curDir;
-	tmpInter->procs=NULL;
 	tmpInter->prev=NULL;
 	tmpInter->lnt=newLineNumTable();
 	CompEnv* tmpCompEnv=createPatternCompEnv(parts,num,tmpGlobCompEnv,inter->table);
@@ -788,7 +758,7 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 		for(;i<num;i++)
 			tmParts[i]=copyStr(parts[i]);
 		addLineNumTabId(tmpByteCodelnt->l,tmpByteCodelnt->ls,0,tmpInter->lnt);
-		tmp=newStringMatchPattern(num,tmParts,tmpByteCodelnt->bc,tmpInter->procs,tmpInter->lnt);
+		tmp=newStringMatchPattern(num,tmParts,tmpByteCodelnt->bc,tmpInter->lnt);
 	}
 	else
 	{
@@ -1636,7 +1606,6 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	popRestArg->code[0]=FAKE_POP_REST_ARG;
 	objPair=objCptr->value;
 	objCptr=&objPair->car;
-	RawProc* curproc=getHeadRawProc(inter);
 	if(nextCptr(objCptr)->type==PAIR)
 	{
 		AST_cptr* argCptr=&((AST_pair*)nextCptr(objCptr)->value)->car;
@@ -1717,15 +1686,6 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		ByteCodelnt* tmp1=compile(objCptr,tmpEnv,inter,status,evalIm);
 		if(status->status!=0)
 		{
-			RawProc* tmpProc=getHeadRawProc(inter);
-			while(tmpProc!=curproc)
-			{
-				RawProc* prev=tmpProc;
-				tmpProc=tmpProc->next;
-				freeByteCode(prev->proc);
-				free(prev);
-			}
-			getFirstIntpr(inter)->procs=curproc;
 			FREE_ALL_LINE_NUMBER_TABLE(codeOfLambda->l,codeOfLambda->ls);
 			freeByteCode(resTp);
 			freeByteCodelnt(codeOfLambda);
@@ -1746,13 +1706,9 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	codeCat(codeOfLambda->bc,popTp);
 	codeOfLambda->l[codeOfLambda->ls-1]->cpc+=popTp->size;
 	freeByteCode(popTp);
-	int32_t pId=addRawProc(codeOfLambda->bc,inter)->count;
 	ByteCode* pushProc=newByteCode(sizeof(char)+sizeof(int32_t));
 	pushProc->code[0]=FAKE_PUSH_PROC;
-	*(int32_t*)(pushProc->code+sizeof(char))=pId;
-	addLineNumTabId(codeOfLambda->l,codeOfLambda->ls,pId+1,inter->lnt);
-	freeByteCode(codeOfLambda->bc);
-	free(codeOfLambda);
+	*(int32_t*)(pushProc->code+sizeof(char))=codeOfLambda->bc->size;
 	ByteCodelnt* toReturn=newByteCodelnt(pushProc);
 	toReturn->ls=1;
 	toReturn->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
@@ -1760,6 +1716,8 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		errors("compileLambda",__FILE__,__LINE__);
 	toReturn->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,pushProc->size,line);
 	destroyCompEnv(tmpEnv);
+	codelntCat(toReturn,codeOfLambda);
+	freeByteCodelnt(codeOfLambda);
 	return toReturn;
 }
 
@@ -1882,7 +1840,6 @@ ByteCodelnt* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	addSymTabNode(node,inter->table);
 	Intpr* tmpIntpr=newIntpr(name->value.str,file,curEnv,inter->table,inter->lnt);
 	tmpIntpr->prev=inter;
-	tmpIntpr->procs=NULL;
 	tmpIntpr->glob=curEnv;
 	ByteCodelnt* tmp=compileFile(tmpIntpr,evalIm,NULL);
 	chdir(tmpIntpr->prev->curDir);
@@ -2573,7 +2530,6 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		Intpr* tmpInter=newIntpr(path,fp,newCompEnv(NULL),inter->table,inter->lnt);
 		free(path);
 		tmpInter->prev=inter;
-		tmpInter->procs=NULL;
 		ByteCode* resTp=newByteCode(1);
 		ByteCode* setTp=newByteCode(1);
 		ByteCode* popTp=newByteCode(1);

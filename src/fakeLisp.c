@@ -65,8 +65,7 @@ int main(int argc,char** argv)
 			}
 			addLineNumTabId(mainByteCode->l,mainByteCode->ls,0,inter->lnt);
 			VMenv* globEnv=newVMenv(NULL);
-			ByteCode* rawProcList=castRawproc(NULL,inter->procs);
-			FakeVM* anotherVM=newFakeVM(mainByteCode->bc,rawProcList);
+			FakeVM* anotherVM=newFakeVM(mainByteCode->bc);
 			freeByteCode(mainByteCode->bc);
 			free(mainByteCode);
 			anotherVM->argc=argc-1;
@@ -84,7 +83,6 @@ int main(int argc,char** argv)
 			{
 				runFakeVM(anotherVM);
 				joinAllThread();
-				free(rawProcList);
 				freeIntpr(inter);
 				unInitPreprocess();
 				freeVMheap(anotherVM->heap);
@@ -95,7 +93,6 @@ int main(int argc,char** argv)
 			{
 				deleteCallChain(anotherVM);
 				joinAllThread();
-				free(rawProcList);
 				freeIntpr(inter);
 				unInitPreprocess();
 				freeVMheap(anotherVM->heap);
@@ -112,13 +109,11 @@ int main(int argc,char** argv)
 			perror(filename);
 			return EXIT_FAILURE;
 		}
-		int32_t num=0;
 		changeWorkPath(filename);
 		SymbolTable* table=loadSymbolTable(fp);
 		LineNumberTable* lnt=loadLineNumberTable(fp);
-		ByteCode* RawProcess=loadRawproc(fp,&num);
 		ByteCode* mainprocess=loadByteCode(fp);
-		FakeVM* anotherVM=newFakeVM(mainprocess,RawProcess);
+		FakeVM* anotherVM=newFakeVM(mainprocess);
 		VMheap* heap=anotherVM->heap;
 		freeByteCode(mainprocess);
 		fclose(fp);
@@ -136,7 +131,6 @@ int main(int argc,char** argv)
 			runFakeVM(anotherVM);
 			joinAllThread();
 			freeVMheap(heap);
-			freeRawProc(RawProcess,num);
 			freeSymbolTable(table);
 			anotherVM->mainproc=NULL;
 			freeAllVMs();
@@ -148,7 +142,6 @@ int main(int argc,char** argv)
 			joinAllThread();
 			freeAllVMs();
 			freeVMheap(heap);
-			freeRawProc(RawProcess,num);
 			freeSymbolTable(table);
 			freeLineNumberTable(lnt);
 			return exitStatus;
@@ -166,7 +159,7 @@ void runIntpr(Intpr* inter)
 {
 	initPreprocess();
 	int e=0;
-	FakeVM* anotherVM=newFakeVM(NULL,NULL);
+	FakeVM* anotherVM=newFakeVM(NULL);
 	VMenv* globEnv=newVMenv(NULL);
 	anotherVM->table=inter->table;
 	anotherVM->tid=pthread_self();
@@ -235,9 +228,7 @@ void runIntpr(Intpr* inter)
 				else if(tmpByteCode)
 				{
 					addLineNumTabId(tmpByteCode->l,tmpByteCode->ls,0,inter->lnt);
-					rawProcList=castRawproc(rawProcList,inter->procs);
-					anotherVM->procs=rawProcList;
-					VMcode* tmp=newVMcode(tmpByteCode->bc,0);
+					VMcode* tmp=newVMcode(tmpByteCode->bc->code,tmpByteCode->bc->size,0);
 					freeByteCode(tmpByteCode->bc);
 					free(tmpByteCode);
 					tmp->prevEnv=NULL;

@@ -28,7 +28,6 @@ int main(int argc,char** argv)
 		char* rp=realpath(filename,0);
 #endif
 		initPreprocess();
-		int i;
 		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
 		SymTabNode* node=newSymTabNode(argv[1]);
 		addSymTabNode(node,inter->table);
@@ -54,23 +53,12 @@ int main(int argc,char** argv)
 		addLineNumTabId(mainByteCode->l,mainByteCode->ls,0,inter->lnt);
 		writeSymbolTable(inter->table,outfp);
 		writeLineNumberTable(inter->lnt,outfp);
-		int32_t numOfRawproc=(inter->procs==NULL)?0:inter->procs->count+1;
-		fwrite(&numOfRawproc,sizeof(numOfRawproc),1,outfp);
-		ByteCode* rawProcList=castRawproc(NULL,inter->procs);
-		for(i=0;i<numOfRawproc;i++)
-		{
-			int32_t size=rawProcList[i].size;
-			char* code=rawProcList[i].code;
-			fwrite(&size,sizeof(size),1,outfp);
-			fwrite(code,sizeof(char),size,outfp);
-		}
 		int32_t sizeOfMain=mainByteCode->bc->size;
 		char* code=mainByteCode->bc->code;
 		fwrite(&sizeOfMain,sizeof(sizeOfMain),1,outfp);
 		fwrite(code,sizeof(char),sizeOfMain,outfp);
 		freeByteCode(mainByteCode->bc);
 		free(mainByteCode);
-		free(rawProcList);
 		fclose(outfp);
 		freeIntpr(inter);
 		unInitPreprocess();

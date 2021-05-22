@@ -2518,7 +2518,14 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		strcat(path,postfix);
 		FILE* fp=fopen(path,"r");
 		if(!fp)
-			errors("compileImport",__FILE__,__LINE__);
+		{
+			fprintf(stderr,"In file \"%s\" line %d\n",__FILE__,__LINE__);
+			perror(path);
+			free(path);
+			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+			freeFakeMemMenager(memMenager);
+			return NULL;
+		}
 		if(hasLoadSameFile(path,inter))
 		{
 			status->status=CIRCULARLOAD;

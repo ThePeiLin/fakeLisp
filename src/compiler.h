@@ -9,7 +9,7 @@
 
 PreMacro* PreMacroMatch(const AST_cptr*);
 int PreMacroExpand(AST_cptr*,Intpr* inter);
-int addMacro(AST_cptr*,ByteCode*,LineNumberTable*);
+int addMacro(AST_cptr*,ByteCodelnt*,LineNumberTable*);
 void freeMacroEnv();
 void freeAllMacro();
 CompEnv* createMacroCompEnv(const AST_cptr*,CompEnv*,SymbolTable*);

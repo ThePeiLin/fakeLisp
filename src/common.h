@@ -37,7 +37,7 @@ PreDef* newDefines(const char*);
 AST_pair* newPair(int,AST_pair*);
 AST_cptr* newCptr(int,AST_pair*);
 AST_atom* newAtom(int type,const char*,AST_pair*);
-CompDef* addCompDef(const char*,const AST_cptr*,CompEnv*,SymbolTable*);
+CompDef* addCompDef(const char*,CompEnv*,SymbolTable*);
 CompEnv* newCompEnv(CompEnv*);
 void destroyCompEnv(CompEnv*);
 CompDef* findCompDef(const char*,CompEnv*,SymbolTable*);

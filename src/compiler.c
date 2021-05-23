@@ -42,20 +42,26 @@ static VMenv* genGlobEnv(CompEnv* cEnv,VMheap* heap,SymbolTable* table)
 	tmpVM->lnt=newLineNumTable();
 	tmpVM->lnt->size=tmpByteCode->ls;
 	tmpVM->lnt->list=tmpByteCode->l;
+	freeVMheap(tmpVM->heap);
+	tmpVM->heap=heap;
 	int i=runFakeVM(tmpVM);
 	if(i==1)
 	{
 		deleteCallChain(tmpVM);
 		freeVMenv(vEnv);
-		freeVMheap(tmpVM->heap);
 		freeVMstack(tmpVM->stack);
+		freeVMcode(tmpVMcode);
 		free(tmpVM);
-		destroyEnv(MacroEnv);
-		MacroEnv=NULL;
 		FREE_ALL_LINE_NUMBER_TABLE(tmpByteCode->l,tmpByteCode->ls);
 		freeByteCodelnt(tmpByteCode);
 		return NULL;
 	}
+	free(tmpVM->lnt);
+	freeVMstack(tmpVM->stack);
+	freeVMcode(tmpVMcode);
+	free(tmpVM);
+	FREE_ALL_LINE_NUMBER_TABLE(tmpByteCode->l,tmpByteCode->ls);
+	freeByteCodelnt(tmpByteCode);
 	return vEnv;
 }
 

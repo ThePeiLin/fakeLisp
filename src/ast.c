@@ -97,18 +97,21 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 		}
 		FakeVM* tmpVM=newTmpFakeVM(NULL);
 		VMenv* tmpGlobEnv=genGlobEnv(inter->glob,tmpVM->heap,inter->table);
-		VMcode* tmpVMcode=newVMcode(pattern->proc->code,pattern->proc->size,0);
+		VMcode* tmpVMcode=newVMcode(pattern->proc->bc->code,pattern->proc->bc->size,0);
 		VMenv* stringPatternEnv=castPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->heap,inter->table);
 		tmpVMcode->prevEnv=NULL;
 		tmpVM->mainproc=newFakeProcess(tmpVMcode,NULL);
 		tmpVM->mainproc->localenv=stringPatternEnv;
 		tmpVM->curproc=tmpVM->mainproc;
 		tmpVM->table=inter->table;
-		tmpVM->lnt=pattern->lnt;
+		tmpVM->lnt=newLineNumTable();
+		tmpVM->lnt->list=pattern->proc->l;
+		tmpVM->lnt->size=pattern->proc->ls;
 		int status=runFakeVM(tmpVM);
 		AST_cptr* tmpCptr=NULL;
 		if(!status)
 			tmpCptr=castVMvalueToCptr(tmpVM->stack->values[0],inter->curline);
+		free(tmpVM->lnt);
 		freeVMenv(tmpGlobEnv);
 		freeVMheap(tmpVM->heap);
 		freeVMstack(tmpVM->stack);

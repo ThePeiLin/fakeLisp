@@ -15,6 +15,11 @@
 #include<tchar.h>
 #endif
 
+#define FREE_ALL_LINE_NUMBER_TABLE(l,s) {int32_t i=0;\
+	for(;i<(s);i++)\
+	freeLineNumTabNode((l)[i]);\
+}
+
 char* builtInSymbolList[NUMOFBUILTINSYMBOL]=
 {
 	"nil",
@@ -768,7 +773,8 @@ void destroyCompEnv(CompEnv* objEnv)
 	{
 		CompDef* prev=tmpDef;
 		tmpDef=tmpDef->next;
-		deleteCptr(&prev->exp);
+		FREE_ALL_LINE_NUMBER_TABLE(prev->proc->l,prev->proc->ls);
+		freeByteCodelnt(prev->proc);
 		free(prev);
 	}
 	free(objEnv);
@@ -790,9 +796,8 @@ CompDef* findCompDef(const char* name,CompEnv* curEnv,SymbolTable* table)
 	}
 }
 
-CompDef* addCompDef(const char* name,const AST_cptr* objCptr,CompEnv* curEnv,SymbolTable* table)
+CompDef* addCompDef(const char* name,CompEnv* curEnv,SymbolTable* table)
 {
-	AST_cptr NilCptr={NULL,0,NIL,NULL};
 	if(curEnv->head==NULL)
 	{
 		SymTabNode* node=findSymbol(name,table);
@@ -804,8 +809,7 @@ CompDef* addCompDef(const char* name,const AST_cptr* objCptr,CompEnv* curEnv,Sym
 		if(!(curEnv->head=(CompDef*)malloc(sizeof(CompDef))))errors("addCompDef",__FILE__,__LINE__);
 		curEnv->head->next=NULL;
 		curEnv->head->id=node->id;
-		curEnv->head->exp=NilCptr;
-		copyCptr(&(curEnv->head->exp),objCptr);
+		curEnv->head->proc=newByteCodelnt(newByteCode(0));
 		return curEnv->head;
 	}
 	else
@@ -822,8 +826,7 @@ CompDef* addCompDef(const char* name,const AST_cptr* objCptr,CompEnv* curEnv,Sym
 			if(!(curDef=(CompDef*)malloc(sizeof(CompDef))))errors("addCompDef",__FILE__,__LINE__);
 			curDef->id=node->id;
 			curDef->next=curEnv->head;
-			curDef->exp=NilCptr;
-			copyCptr(&(curDef->exp),objCptr);
+			curDef->proc=newByteCodelnt(newByteCode(0));
 			curEnv->head=curDef;
 		}
 		return curDef;
@@ -896,9 +899,8 @@ ByteCode* copyByteCode(const ByteCode* obj)
 void initCompEnv(CompEnv* curEnv,SymbolTable* table)
 {
 	int i=0;
-	AST_cptr tmp={NULL,0,NIL,NULL};
 	for(i=0;i<NUMOFBUILTINSYMBOL;i++)
-		addCompDef(builtInSymbolList[i],&tmp,curEnv,table);
+		addCompDef(builtInSymbolList[i],curEnv,table);
 }
 
 char* copyStr(const char* str)

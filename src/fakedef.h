@@ -142,8 +142,7 @@ typedef struct Pre_Env
 typedef struct Pre_Macro
 {
 	AST_cptr* pattern;
-	struct Line_Number_Table* lnt;
-	ByteCode* proc;
+	ByteCodelnt* proc;
 	struct Pre_Macro* next;
 }PreMacro;
 
@@ -164,7 +163,7 @@ typedef struct Comp_Def
 {
 	int32_t id;
 	struct Comp_Def* next;
-	AST_cptr exp;
+	ByteCodelnt* proc;
 }CompDef;
 
 typedef struct Comp_Env
@@ -344,8 +343,7 @@ typedef struct String_Match_Pattern
 {
 	int32_t num;
 	char** parts;
-	ByteCode* proc;
-	struct Line_Number_Table* lnt;
+	ByteCodelnt* proc;
 	struct String_Match_Pattern* prev;
 	struct String_Match_Pattern* next;
 }StringMatchPattern;

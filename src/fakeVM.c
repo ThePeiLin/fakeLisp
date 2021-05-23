@@ -269,6 +269,14 @@ void initGlobEnv(VMenv* obj,VMheap* heap,SymbolTable* table)
 	mergeSort(obj->list,obj->size,sizeof(VMenvNode*),envNodeCmp);
 }
 
+VMenv* genGlobEnv(CompEnv* cEnv,VMheap* heap,SymbolTable* table)
+{
+	VMenv* vEnv=newVMenv(NULL);
+	initGlobEnv(vEnv,heap,table);
+	ByteCodelnt* tmpByteCode=newByteCodelnt(newByteCode(0));
+	return vEnv;
+}
+
 void* ThreadVMFunc(void* p)
 {
 	FakeVM* exe=(FakeVM*)p;

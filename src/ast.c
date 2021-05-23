@@ -96,8 +96,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 				inter->curline+=countChar(parts[j],'\n',-1);
 		}
 		FakeVM* tmpVM=newTmpFakeVM(NULL);
-		VMenv* tmpGlobEnv=newVMenv(NULL);
-		initGlobEnv(tmpGlobEnv,tmpVM->heap,inter->table);
+		VMenv* tmpGlobEnv=genGlobEnv(inter->glob,tmpVM->heap,inter->table);
 		VMcode* tmpVMcode=newVMcode(pattern->proc->code,pattern->proc->size,0);
 		VMenv* stringPatternEnv=castPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->heap,inter->table);
 		tmpVMcode->prevEnv=NULL;

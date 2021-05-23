@@ -155,7 +155,6 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 			return 2;
 		}
 		free(tmpVM->lnt);
-		freeVMenv(tmpGlob);
 		freeVMheap(tmpVM->heap);
 		freeVMstack(tmpVM->stack);
 		freeVMcode(tmpVMcode);
@@ -732,13 +731,11 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 		tmpInter->table=inter->table;
 		tmpInter->curDir=inter->curDir;
 		tmpInter->prev=NULL;
-		tmpInter->lnt=newLineNumTable();
+		tmpInter->lnt=NULL;
 		CompEnv* tmpCompEnv=createMacroCompEnv(pattern,inter->glob,inter->table);
 		ByteCodelnt* tmpByteCodelnt=compile(express,tmpCompEnv,tmpInter,&status,1);
 		if(!status.status)
 		{
-			tmpInter->lnt->list=tmpByteCodelnt->l;
-			tmpInter->lnt->size=tmpByteCodelnt->ls;
 			addMacro(pattern,tmpByteCodelnt,tmpInter->lnt);
 			deleteCptr(express);
 			free(express);
@@ -751,7 +748,6 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 				FREE_ALL_LINE_NUMBER_TABLE(tmpByteCodelnt->l,tmpByteCodelnt->ls);
 				freeByteCodelnt(tmpByteCodelnt);
 			}
-			freeLineNumberTable(tmpInter->lnt);
 			exError(status.place,status.status,inter);
 			deleteArg(args,2);
 			status.place=NULL;

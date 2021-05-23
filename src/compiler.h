@@ -7,11 +7,10 @@
 	freeLineNumTabNode((l)[i]);\
 }
 
-PreMacro* PreMacroMatch(const AST_cptr*);
-int PreMacroExpand(AST_cptr*,Intpr* inter);
-int addMacro(AST_cptr*,ByteCodelnt*,LineNumberTable*);
+PreMacro* PreMacroMatch(const AST_cptr*,PreMacro* head,PreEnv**);
+int PreMacroExpand(AST_cptr*,PreMacro* head,Intpr* inter);
+int addMacro(AST_cptr*,ByteCodelnt*,CompEnv* curEnv);
 void freeMacroEnv();
-void freeAllMacro();
 CompEnv* createMacroCompEnv(const AST_cptr*,CompEnv*,SymbolTable*);
 void addFunc(const char*,ErrorStatus (*)(AST_cptr*,PreEnv*,Intpr*));
 void freeAllFunc();

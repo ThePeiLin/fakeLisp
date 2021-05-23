@@ -133,4 +133,6 @@ void mergeSort(void* base
 		,size_t num
 		,size_t size
 		,int (*cmpf)(const void*,const void*));
+
+void freeAllMacro(PreMacro* head);
 #endif

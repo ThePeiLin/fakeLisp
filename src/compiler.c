@@ -2800,9 +2800,19 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 								return NULL;
 							}
 							else
-								addCompDef(symbolWouldExport,curEnv,inter->table);
+							{
+								CompDef* tmpDef1=addCompDef(symbolWouldExport,curEnv,inter->table);
+								codelntCopyCat(tmpDef1->proc,tmpDef->proc);
+							}
 							free(symbolWouldExport);
 						}
+						PreMacro* headOfMacroOfImportedFile=tmpInter->glob->macro;
+						while(headOfMacroOfImportedFile)
+						{
+							addMacro(headOfMacroOfImportedFile->pattern,headOfMacroOfImportedFile->proc,curEnv);
+							headOfMacroOfImportedFile=headOfMacroOfImportedFile->next;
+						}
+						tmpInter->glob->macro=NULL;
 						deleteCptr(begin);
 						free(begin);
 						free(list);

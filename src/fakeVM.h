@@ -18,7 +18,6 @@ FakeVM* newFakeVM(ByteCode*);
 FakeVM* newTmpFakeVM(ByteCode*);
 FakeVM* newThreadVM(VMcode*,VMheap*);
 void initGlobEnv(VMenv*,VMheap*,SymbolTable*);
-VMenv* genGlobEnv(CompEnv*,VMheap*,SymbolTable*);
 int B_dummy(FakeVM*);
 int B_push_nil(FakeVM*);
 int B_push_pair(FakeVM*);

@@ -13,14 +13,6 @@
 #include<string.h>
 #include<unistd.h>
 #include<math.h>
-#include<setjmp.h>
-
-static jmp_buf buf;
-static void errorCallBackForPreMacroExpand(void* a)
-{
-	int* i=(int*)a;
-	longjmp(buf,i[0]);
-}
 
 static int MacroPatternCmp(const AST_cptr*,const AST_cptr*);
 static int fmatcmp(const AST_cptr*,const AST_cptr*);
@@ -31,6 +23,41 @@ static CompEnv* createPatternCompEnv(char**,int32_t,CompEnv*,SymbolTable*);
 static PreFunc* funAndForm=NULL;
 static PreMacro* FirstMacro=NULL;
 static PreEnv* MacroEnv=NULL;
+
+static VMenv* genGlobEnv(CompEnv* cEnv,VMheap* heap,SymbolTable* table)
+{
+	VMenv* vEnv=newVMenv(NULL);
+	initGlobEnv(vEnv,heap,table);
+	ByteCodelnt* tmpByteCode=newByteCodelnt(newByteCode(0));
+	CompDef* tmpDef=cEnv->head;
+	for(;tmpDef;tmpDef=tmpDef->next)
+		codelntCopyCat(tmpByteCode,tmpDef->proc);
+	FakeVM* tmpVM=newTmpFakeVM(NULL);
+	VMcode* tmpVMcode=newVMcode(tmpByteCode->bc->code,tmpByteCode->bc->size,0);
+	tmpVM->mainproc=newFakeProcess(tmpVMcode,NULL);
+	tmpVM->mainproc->localenv=vEnv;
+	tmpVM->curproc=tmpVM->mainproc;
+	tmpVMcode->prevEnv=NULL;
+	tmpVM->table=table;
+	tmpVM->lnt=newLineNumTable();
+	tmpVM->lnt->size=tmpByteCode->ls;
+	tmpVM->lnt->list=tmpByteCode->l;
+	int i=runFakeVM(tmpVM);
+	if(i==1)
+	{
+		deleteCallChain(tmpVM);
+		freeVMenv(vEnv);
+		freeVMheap(tmpVM->heap);
+		freeVMstack(tmpVM->stack);
+		free(tmpVM);
+		destroyEnv(MacroEnv);
+		MacroEnv=NULL;
+		FREE_ALL_LINE_NUMBER_TABLE(tmpByteCode->l,tmpByteCode->ls);
+		freeByteCodelnt(tmpByteCode);
+		return NULL;
+	}
+	return vEnv;
+}
 
 static int cmpString(const void* a,const void* b)
 {
@@ -88,7 +115,8 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 	{
 		FakeVM* tmpVM=newTmpFakeVM(NULL);
 		VMenv* tmpGlob=genGlobEnv(inter->glob,tmpVM->heap,inter->table);
-		initGlobEnv(tmpGlob,tmpVM->heap,inter->table);
+		if(!tmpGlob)
+			return 2;
 		VMcode* tmpVMcode=newVMcode(tmp->proc->bc->code,tmp->proc->bc->size,0);
 		VMenv* macroVMenv=castPreEnvToVMenv(MacroEnv,tmpGlob,tmpVM->heap,inter->table);
 		tmpVM->mainproc=newFakeProcess(tmpVMcode,NULL);
@@ -96,7 +124,6 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 		tmpVM->curproc=tmpVM->mainproc;
 		tmpVMcode->prevEnv=NULL;
 		tmpVM->table=inter->table;
-		tmpVM->callback=errorCallBackForPreMacroExpand;
 		tmpVM->lnt=newLineNumTable();
 		tmpVM->lnt->size=tmp->proc->ls;
 		tmpVM->lnt->list=tmp->proc->l;
@@ -111,8 +138,9 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 		}
 		else if(i==1)
 		{
+			free(tmpVM->lnt);
 			deleteCallChain(tmpVM);
-				freeVMenv(tmpGlob);
+			freeVMenv(tmpGlob);
 			freeVMheap(tmpVM->heap);
 			freeVMstack(tmpVM->stack);
 			free(tmpVM);
@@ -1241,6 +1269,7 @@ ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 			sec=prevCptr(tir);
 			fir=prevCptr(sec);
 		}
+		codelntCopyCat(tmpDef->proc,tmp1);
 	}
 	freeByteCode(popVar);
 	freeByteCode(pushTop);
@@ -1315,6 +1344,8 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			sec=prevCptr(tir);
 			fir=prevCptr(sec);
 		}
+		if(tmpDef)
+			codelntCopyCat(tmpDef->proc,tmp1);
 	}
 	freeByteCode(pushTop);
 	freeByteCode(popVar);
@@ -1341,6 +1372,31 @@ ByteCodelnt* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	codelntCat(tmp1,tmp2);
 	codeCat(tmp1->bc,popRef);
 	tmp1->l[tmp1->ls-1]->cpc+=popRef->size;
+	if(isSymbol(sec))
+	{
+		AST_atom* tmpAtm=sec->value;
+		CompEnv* tmpEnv=curEnv;
+		CompDef* tmpDef=NULL;
+		while(tmpEnv!=NULL)
+		{
+			tmpDef=findCompDef(tmpAtm->value.str,tmpEnv,inter->table);
+			if(tmpEnv->prefix&&!tmpDef)
+			{
+				char* symbolWithPrefix=(char*)malloc(sizeof(char)*(strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1));
+				if(!symbolWithPrefix)
+					errors("compileSetq",__FILE__,__LINE__);
+				sprintf(symbolWithPrefix,"%s%s",tmpEnv->prefix,tmpAtm->value.str);
+				tmpDef=findCompDef(symbolWithPrefix,tmpEnv,inter->table);
+				free(symbolWithPrefix);
+			}
+			if(tmpDef!=NULL)
+				break;
+			tmpEnv=tmpEnv->prev;
+		}
+		codelntCopyCat(tmpDef->proc,tmp2);
+		codeCat(tmpDef->proc->bc,popRef);
+		tmpDef->proc->l[tmpDef->proc->ls-1]->cpc+=popRef->size;
+	}
 	freeByteCode(popRef);
 	freeByteCodelnt(tmp2);
 	return tmp1;

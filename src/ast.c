@@ -6,8 +6,47 @@
 #include<string.h>
 #include<ctype.h>
 
+#define FREE_ALL_LINE_NUMBER_TABLE(l,s) {int32_t i=0;\
+	for(;i<(s);i++)\
+	freeLineNumTabNode((l)[i]);\
+}
+
 static void addToTail(AST_cptr*,const AST_cptr*);
 static void addToList(AST_cptr*,const AST_cptr*);
+
+static VMenv* genGlobEnv(CompEnv* cEnv,VMheap* heap,SymbolTable* table)
+{
+	VMenv* vEnv=newVMenv(NULL);
+	initGlobEnv(vEnv,heap,table);
+	ByteCodelnt* tmpByteCode=newByteCodelnt(newByteCode(0));
+	CompDef* tmpDef=cEnv->head;
+	for(;tmpDef;tmpDef=tmpDef->next)
+		codelntCopyCat(tmpByteCode,tmpDef->proc);
+	FakeVM* tmpVM=newTmpFakeVM(NULL);
+	VMcode* tmpVMcode=newVMcode(tmpByteCode->bc->code,tmpByteCode->bc->size,0);
+	tmpVM->mainproc=newFakeProcess(tmpVMcode,NULL);
+	tmpVM->mainproc->localenv=vEnv;
+	tmpVM->curproc=tmpVM->mainproc;
+	tmpVMcode->prevEnv=NULL;
+	tmpVM->table=table;
+	tmpVM->lnt=newLineNumTable();
+	tmpVM->lnt->size=tmpByteCode->ls;
+	tmpVM->lnt->list=tmpByteCode->l;
+	int i=runFakeVM(tmpVM);
+	if(i==1)
+	{
+		deleteCallChain(tmpVM);
+		freeVMenv(vEnv);
+		freeVMheap(tmpVM->heap);
+		freeVMstack(tmpVM->stack);
+		free(tmpVM);
+		FREE_ALL_LINE_NUMBER_TABLE(tmpByteCode->l,tmpByteCode->ls);
+		freeByteCodelnt(tmpByteCode);
+		return NULL;
+	}
+	return vEnv;
+}
+
 AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern)
 {
 	if(objStr==NULL)return NULL;
@@ -97,6 +136,15 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 		}
 		FakeVM* tmpVM=newTmpFakeVM(NULL);
 		VMenv* tmpGlobEnv=genGlobEnv(inter->glob,tmpVM->heap,inter->table);
+		if(!tmpGlobEnv)
+		{
+			destroyEnv(tmpEnv);
+			freeVMheap(tmpVM->heap);
+			freeVMstack(tmpVM->stack);
+			freeStringArry(parts,num);
+			free(tmpVM);
+			return NULL;
+		}
 		VMcode* tmpVMcode=newVMcode(pattern->proc->bc->code,pattern->proc->bc->size,0);
 		VMenv* stringPatternEnv=castPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->heap,inter->table);
 		tmpVMcode->prevEnv=NULL;

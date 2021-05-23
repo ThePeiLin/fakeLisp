@@ -15,14 +15,12 @@
 #include<math.h>
 
 static int MacroPatternCmp(const AST_cptr*,const AST_cptr*);
-static int fmatcmp(const AST_cptr*,const AST_cptr*);
+static int fmatcmp(const AST_cptr*,const AST_cptr*,PreEnv**);
 static int isVal(const char*);
 static ErrorStatus N_defmacro(AST_cptr*,PreEnv*,Intpr*);
 static CompEnv* createPatternCompEnv(char**,int32_t,CompEnv*,SymbolTable*);
 
 static PreFunc* funAndForm=NULL;
-static PreMacro* FirstMacro=NULL;
-static PreEnv* MacroEnv=NULL;
 
 static VMenv* genGlobEnv(CompEnv* cEnv,VMheap* heap,SymbolTable* table)
 {
@@ -106,17 +104,18 @@ static int isSymbolShouldBeExport(const char* str,const char** pStr,uint32_t n)
 	return 0;
 }
 
-PreMacro* PreMacroMatch(const AST_cptr* objCptr)
+PreMacro* PreMacroMatch(const AST_cptr* objCptr,PreMacro* head,PreEnv** pmacroEnv)
 {
-	PreMacro* current=FirstMacro;
-	while(current!=NULL&&!fmatcmp(objCptr,current->pattern))
+	PreMacro* current=head;
+	while(current!=NULL&&!fmatcmp(objCptr,current->pattern,pmacroEnv))
 		current=current->next;
 	return current;
 }
 
-int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
+int PreMacroExpand(AST_cptr* objCptr,PreMacro* head,Intpr* inter)
 {
-	PreMacro* tmp=PreMacroMatch(objCptr);
+	PreEnv* macroEnv=NULL;
+	PreMacro* tmp=PreMacroMatch(objCptr,head,&macroEnv);
 	if(tmp!=NULL)
 	{
 		FakeVM* tmpVM=newTmpFakeVM(NULL);
@@ -124,7 +123,8 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 		if(!tmpGlob)
 			return 2;
 		VMcode* tmpVMcode=newVMcode(tmp->proc->bc->code,tmp->proc->bc->size,0);
-		VMenv* macroVMenv=castPreEnvToVMenv(MacroEnv,tmpGlob,tmpVM->heap,inter->table);
+		VMenv* macroVMenv=castPreEnvToVMenv(macroEnv,tmpGlob,tmpVM->heap,inter->table);
+		destroyEnv(macroEnv);
 		tmpVM->mainproc=newFakeProcess(tmpVMcode,NULL);
 		tmpVM->mainproc->localenv=macroVMenv;
 		tmpVM->curproc=tmpVM->mainproc;
@@ -150,8 +150,7 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 			freeVMheap(tmpVM->heap);
 			freeVMstack(tmpVM->stack);
 			free(tmpVM);
-			destroyEnv(MacroEnv);
-			MacroEnv=NULL;
+			macroEnv=NULL;
 			return 2;
 		}
 		free(tmpVM->lnt);
@@ -159,18 +158,17 @@ int PreMacroExpand(AST_cptr* objCptr,Intpr* inter)
 		freeVMstack(tmpVM->stack);
 		freeVMcode(tmpVMcode);
 		free(tmpVM);
-		destroyEnv(MacroEnv);
-		MacroEnv=NULL;
+		macroEnv=NULL;
 		return 1;
 	}
 	return 0;
 }
 
-int addMacro(AST_cptr* pattern,ByteCodelnt* proc,LineNumberTable* lnt)
+int addMacro(AST_cptr* pattern,ByteCodelnt* proc,CompEnv* curEnv)
 {
 	if(pattern->type!=PAIR)return SYNTAXERROR;
 	AST_cptr* tmpCptr=NULL;
-	PreMacro* current=FirstMacro;
+	PreMacro* current=curEnv->macro;
 	while(current!=NULL&&!MacroPatternCmp(pattern,current->pattern))
 		current=current->next;
 	if(current==NULL)
@@ -186,10 +184,10 @@ int addMacro(AST_cptr* pattern,ByteCodelnt* proc,LineNumberTable* lnt)
 			}
 		}
 		if(!(current=(PreMacro*)malloc(sizeof(PreMacro))))errors("addMacro",__FILE__,__LINE__);
-		current->next=FirstMacro;
+		current->next=curEnv->macro;
 		current->pattern=pattern;
 		current->proc=proc;
-		FirstMacro=current;
+		curEnv->macro=current;
 	}
 	else
 	{
@@ -270,31 +268,9 @@ int MacroPatternCmp(const AST_cptr* first,const AST_cptr* second)
 	return 1;
 }
 
-void freeMacroEnv()
+int fmatcmp(const AST_cptr* origin,const AST_cptr* format,PreEnv** pmacroEnv)
 {
-	destroyEnv(MacroEnv);
-	free(MacroEnv);
-	MacroEnv=NULL;
-}
-
-void freeAllMacro()
-{
-	PreMacro* cur=FirstMacro;
-	while(cur!=NULL)
-	{
-		PreMacro* prev=cur;
-		cur=cur->next;
-		deleteCptr(prev->pattern);
-		free(prev->pattern);
-		FREE_ALL_LINE_NUMBER_TABLE(prev->proc->l,prev->proc->ls);
-		freeByteCodelnt(prev->proc);
-		free(prev);
-	}
-}
-
-int fmatcmp(const AST_cptr* origin,const AST_cptr* format)
-{
-	MacroEnv=newEnv(NULL);
+	PreEnv* macroEnv=newEnv(NULL);
 	AST_pair* tmpPair=(format->type==PAIR)?format->value:NULL;
 	AST_pair* forPair=tmpPair;
 	AST_pair* oriPair=(origin->type==PAIR)?origin->value:NULL;
@@ -320,17 +296,17 @@ int fmatcmp(const AST_cptr* origin,const AST_cptr* format)
 						AST_atom* tmpAtm2=origin->value;
 						if(tmpAtm2->type==SYM&&isKeyWord(tmpAtm2->value.str))
 						{
-							destroyEnv(MacroEnv);
-							MacroEnv=NULL;
+							destroyEnv(macroEnv);
+							macroEnv=NULL;
 							return 0;
 						}
 					}
-					addDefine(tmpAtm->value.str+1,origin,MacroEnv);
+					addDefine(tmpAtm->value.str+1,origin,macroEnv);
 				}
 				else if(!AST_cptrcmp(origin,format))
 				{
-					destroyEnv(MacroEnv);
-					MacroEnv=NULL;
+					destroyEnv(macroEnv);
+					macroEnv=NULL;
 					return 0;
 				}
 			}
@@ -345,8 +321,8 @@ int fmatcmp(const AST_cptr* origin,const AST_cptr* format)
 		}
 		else if(origin->type!=format->type)
 		{
-			destroyEnv(MacroEnv);
-			MacroEnv=NULL;
+			destroyEnv(macroEnv);
+			macroEnv=NULL;
 			return 0;
 		}
 		if(forPair!=NULL&&format==&forPair->car)
@@ -375,6 +351,7 @@ int fmatcmp(const AST_cptr* origin,const AST_cptr* format)
 		}
 		if(oriPair==NULL&&forPair==NULL)break;
 	}
+	*pmacroEnv=macroEnv;
 	return 1;
 }
 
@@ -616,9 +593,7 @@ void unInitPreprocess()
 {
 	freeAllStringPattern();
 	freeAllFunc();
-	freeMacroEnv();
 	freeAllKeyWord();
-	freeAllMacro();
 }
 
 AST_cptr** dealArg(AST_cptr* argCptr,int num)
@@ -736,7 +711,7 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 		ByteCodelnt* tmpByteCodelnt=compile(express,tmpCompEnv,tmpInter,&status,1);
 		if(!status.status)
 		{
-			addMacro(pattern,tmpByteCodelnt,tmpInter->lnt);
+			addMacro(pattern,tmpByteCodelnt,tmpInter->glob);
 			deleteCptr(express);
 			free(express);
 			free(args);
@@ -826,7 +801,7 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 			status->place=objCptr;
 			return NULL;
 		}
-		int i=PreMacroExpand(objCptr,inter);
+		int i=PreMacroExpand(objCptr,curEnv->macro,inter);
 		if(i==1)
 			continue;
 		else if(i==2)

@@ -762,6 +762,7 @@ CompEnv* newCompEnv(CompEnv* prev)
 	tmp->prefix=NULL;
 	tmp->exp=NULL;
 	tmp->n=0;
+	tmp->macro=NULL;
 	return tmp;
 }
 
@@ -777,6 +778,7 @@ void destroyCompEnv(CompEnv* objEnv)
 		freeByteCodelnt(prev->proc);
 		free(prev);
 	}
+	freeAllMacro(objEnv->macro);
 	free(objEnv);
 }
 
@@ -2255,3 +2257,20 @@ void mergeSort(void* _base,size_t num,size_t size,int (*cmpf)(const void*,const 
 	}
 	free(base1);
 }
+
+void freeAllMacro(PreMacro* head)
+{
+	PreMacro* cur=head;
+	while(cur!=NULL)
+	{
+		PreMacro* prev=cur;
+		cur=cur->next;
+		deleteCptr(prev->pattern);
+		free(prev->pattern);
+		FREE_ALL_LINE_NUMBER_TABLE(prev->proc->l,prev->proc->ls);
+		freeByteCodelnt(prev->proc);
+		free(prev);
+	}
+}
+
+

@@ -173,6 +173,7 @@ typedef struct Comp_Env
 	const char** exp;
 	uint32_t n;
 	CompDef* head;
+	PreMacro* macro;
 }CompEnv;
 
 typedef struct Interpreter

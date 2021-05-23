@@ -4,6 +4,11 @@
 #include<stdlib.h>
 #include<ctype.h>
 
+#define FREE_ALL_LINE_NUMBER_TABLE(l,s) {int32_t i=0;\
+	for(;i<(s);i++)\
+	freeLineNumTabNode((l)[i]);\
+}
+
 static StringMatchPattern* HeadOfStringPattern=NULL;
 static void skipComment(FILE*);
 static char* readList(FILE*,char**);
@@ -999,7 +1004,8 @@ void freeAllStringPattern()
 		StringMatchPattern* prev=cur;
 		cur=cur->next;
 		freeStringArry(prev->parts,prev->num);
-		freeByteCode(prev->proc);
+		FREE_ALL_LINE_NUMBER_TABLE(prev->proc->l,prev->proc->ls);
+		freeByteCodelnt(prev->proc);
 		free(prev);
 	}
 }

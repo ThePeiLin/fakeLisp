@@ -719,17 +719,15 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 	{
 		AST_cptr* pattern=args[0];
 		AST_cptr* express=args[1];
-		CompEnv* tmpGlobCompEnv=newCompEnv(NULL);
-		initCompEnv(tmpGlobCompEnv,inter->table);
 		Intpr* tmpInter=newTmpIntpr(NULL,NULL);
 		tmpInter->filename=inter->filename;
 		tmpInter->curline=inter->curline;
-		tmpInter->glob=tmpGlobCompEnv;
+		tmpInter->glob=inter->glob;
 		tmpInter->table=inter->table;
 		tmpInter->curDir=inter->curDir;
 		tmpInter->prev=NULL;
 		tmpInter->lnt=newLineNumTable();
-		CompEnv* tmpCompEnv=createMacroCompEnv(pattern,tmpGlobCompEnv,inter->table);
+		CompEnv* tmpCompEnv=createMacroCompEnv(pattern,inter->glob,inter->table);
 		ByteCodelnt* tmpByteCodelnt=compile(express,tmpCompEnv,tmpInter,&status,1);
 		if(!status.status)
 		{
@@ -754,7 +752,6 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 			status.status=0;
 		}
 		destroyCompEnv(tmpCompEnv);
-		destroyCompEnv(tmpGlobCompEnv);
 		objCptr->type=NIL;
 		objCptr->value=NULL;
 		free(tmpInter);
@@ -766,17 +763,15 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 {
 	StringMatchPattern* tmp=NULL;
 	ErrorStatus status={0,NULL};
-	CompEnv* tmpGlobCompEnv=newCompEnv(NULL);
-	initCompEnv(tmpGlobCompEnv,inter->table);
 	Intpr* tmpInter=newTmpIntpr(NULL,NULL);
 	tmpInter->filename=inter->filename;
 	tmpInter->table=inter->table;
 	tmpInter->curline=inter->curline;
-	tmpInter->glob=tmpGlobCompEnv;
+	tmpInter->glob=inter->glob;
 	tmpInter->curDir=inter->curDir;
 	tmpInter->prev=NULL;
-	tmpInter->lnt=newLineNumTable();
-	CompEnv* tmpCompEnv=createPatternCompEnv(parts,num,tmpGlobCompEnv,inter->table);
+	tmpInter->lnt=NULL;
+	CompEnv* tmpCompEnv=createPatternCompEnv(parts,num,inter->glob,inter->table);
 	ByteCodelnt* tmpByteCodelnt=compile(express,tmpCompEnv,tmpInter,&status,1);
 	if(!status.status)
 	{
@@ -785,8 +780,6 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 		int32_t i=0;
 		for(;i<num;i++)
 			tmParts[i]=copyStr(parts[i]);
-		tmpInter->lnt->list=tmpByteCodelnt->l;
-		tmpInter->lnt->size=tmpByteCodelnt->ls;
 		tmp=newStringMatchPattern(num,tmParts,tmpByteCodelnt);
 	}
 	else
@@ -797,12 +790,10 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 			freeByteCodelnt(tmpByteCodelnt);
 		}
 		exError(status.place,status.status,inter);
-		freeLineNumberTable(tmpInter->lnt);
 		status.place=NULL;
 		status.status=0;
 	}
 	destroyCompEnv(tmpCompEnv);
-	destroyCompEnv(tmpGlobCompEnv);
 	free(tmpInter);
 	return tmp;
 }
@@ -1262,6 +1253,7 @@ ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 		codeCat(tmp1->bc,pushTop);
 		codeCat(tmp1->bc,popVar);
 		tmp1->l[tmp1->ls-1]->cpc+=(popVar->size+pushTop->size);
+		codelntCopyCat(tmpDef->proc,tmp1);
 		if(fir->outer==tmpPair)break;
 		else
 		{
@@ -1269,7 +1261,6 @@ ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 			sec=prevCptr(tir);
 			fir=prevCptr(sec);
 		}
-		codelntCopyCat(tmpDef->proc,tmp1);
 	}
 	freeByteCode(popVar);
 	freeByteCode(pushTop);
@@ -1337,6 +1328,8 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		codeCat(tmp1->bc,pushTop);
 		codeCat(tmp1->bc,popVar);
 		tmp1->l[tmp1->ls-1]->cpc+=(pushTop->size+popVar->size);
+		if(tmpDef)
+			codelntCopyCat(tmpDef->proc,tmp1);
 		if(fir->outer==tmpPair)break;
 		else
 		{
@@ -1344,8 +1337,6 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			sec=prevCptr(tir);
 			fir=prevCptr(sec);
 		}
-		if(tmpDef)
-			codelntCopyCat(tmpDef->proc,tmp1);
 	}
 	freeByteCode(pushTop);
 	freeByteCode(popVar);

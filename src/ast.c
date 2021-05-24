@@ -34,6 +34,7 @@ static VMenv* genGlobEnv(CompEnv* cEnv,VMheap* heap,SymbolTable* table)
 	tmpVM->lnt->list=tmpByteCode->l;
 	freeVMheap(tmpVM->heap);
 	tmpVM->heap=heap;
+	increaseVMenvRefcount(vEnv);
 	int i=runFakeVM(tmpVM);
 	if(i==1)
 	{
@@ -168,6 +169,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 		if(!status)
 			tmpCptr=castVMvalueToCptr(tmpVM->stack->values[0],inter->curline);
 		free(tmpVM->lnt);
+		freeVMenv(tmpGlobEnv);
 		freeVMheap(tmpVM->heap);
 		freeVMstack(tmpVM->stack);
 		freeVMcode(tmpVMcode);

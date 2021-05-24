@@ -40,6 +40,7 @@ static VMenv* genGlobEnv(CompEnv* cEnv,VMheap* heap,SymbolTable* table)
 	tmpVM->lnt->list=tmpByteCode->l;
 	freeVMheap(tmpVM->heap);
 	tmpVM->heap=heap;
+	increaseVMenvRefcount(vEnv);
 	int i=runFakeVM(tmpVM);
 	if(i==1)
 	{
@@ -152,6 +153,7 @@ int PreMacroExpand(AST_cptr* objCptr,PreMacro* head,Intpr* inter)
 			return 2;
 		}
 		free(tmpVM->lnt);
+		freeVMenv(tmpGlob);
 		freeVMheap(tmpVM->heap);
 		freeVMstack(tmpVM->stack);
 		freeVMcode(tmpVMcode);

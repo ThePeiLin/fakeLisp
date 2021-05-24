@@ -200,66 +200,49 @@ void runIntpr(Intpr* inter)
 			ungetc(ch,inter->file);
 		if(begin!=NULL)
 		{
-			if(isPreprocess(begin))
+			ByteCodelnt* tmpByteCode=compile(begin,inter->glob,inter,&status,!isLambdaExpression(begin));
+			if(status.status!=0)
 			{
-				status=eval(begin,NULL,inter);
-				if(status.status!=0)
+				exError(status.place,status.status,inter);
+				deleteCptr(status.place);
+				if(inter->file!=stdin)
 				{
-					exError(status.place,status.status,inter);
-					deleteCptr(status.place);
-					if(inter->file!=stdin)
-					{
-						deleteCptr(begin);
-						exit(0);
-					}
+					deleteCptr(begin);
+					exit(0);
 				}
 			}
-			else
+			else if(tmpByteCode)
 			{
-				ByteCodelnt* tmpByteCode=compile(begin,inter->glob,inter,&status,!isLambdaExpression(begin));
-				if(status.status!=0)
+				lntCat(inter->lnt,bs,tmpByteCode->l,tmpByteCode->ls);
+				VMcode* tmp=newVMcode(tmpByteCode->bc->code,tmpByteCode->bc->size,bs);
+				bs=tmpByteCode->bc->size;
+				freeByteCodelnt(tmpByteCode);
+				tmp->prevEnv=NULL;
+				anotherVM->mainproc=newFakeProcess(tmp,NULL);
+				anotherVM->mainproc->localenv=globEnv;
+				anotherVM->curproc=anotherVM->mainproc;
+				globEnv->refcount+=1;
+				if(!(e=setjmp(buf)))
 				{
-					exError(status.place,status.status,inter);
-					deleteCptr(status.place);
-					if(inter->file!=stdin)
+					runFakeVM(anotherVM);
+					VMstack* stack=anotherVM->stack;
+					if(inter->file==stdin&&stack->tp!=0)
 					{
-						deleteCptr(begin);
-						exit(0);
+						printf(";=>");
+						DBG_printVMstack(stack,stdout,0);
 					}
+					stack->tp=0;
+					freeVMcode(tmp);
 				}
-				else if(tmpByteCode)
+				else
 				{
-					lntCat(inter->lnt,bs,tmpByteCode->l,tmpByteCode->ls);
-					VMcode* tmp=newVMcode(tmpByteCode->bc->code,tmpByteCode->bc->size,bs);
-					bs=tmpByteCode->bc->size;
-					freeByteCodelnt(tmpByteCode);
+					VMstack* stack=anotherVM->stack;
+					stack->tp=0;
+					stack->bp=0;
+					tmp=anotherVM->mainproc->code;
 					tmp->prevEnv=NULL;
-					anotherVM->mainproc=newFakeProcess(tmp,NULL);
-					anotherVM->mainproc->localenv=globEnv;
-					anotherVM->curproc=anotherVM->mainproc;
-					globEnv->refcount+=1;
-					if(!(e=setjmp(buf)))
-					{
-						runFakeVM(anotherVM);
-						VMstack* stack=anotherVM->stack;
-						if(inter->file==stdin&&stack->tp!=0)
-						{
-							printf(";=>");
-							DBG_printVMstack(stack,stdout,0);
-						}
-						stack->tp=0;
-						freeVMcode(tmp);
-					}
-					else
-					{
-						VMstack* stack=anotherVM->stack;
-						stack->tp=0;
-						stack->bp=0;
-						tmp=anotherVM->mainproc->code;
-						tmp->prevEnv=NULL;
-						freeVMcode(tmp);
-						deleteCallChain(anotherVM);
-					}
+					freeVMcode(tmp);
+					deleteCallChain(anotherVM);
 				}
 			}
 			free(list);

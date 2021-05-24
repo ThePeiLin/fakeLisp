@@ -188,13 +188,6 @@ typedef struct Interpreter
 	struct Interpreter* prev;
 }Intpr;
 
-typedef struct Pre_Func//function and form
-{
-	char* functionName;
-	ErrorStatus (*function)(AST_cptr*,PreEnv*,struct Interpreter*);
-	struct Pre_Func* next;
-}PreFunc;
-
 typedef struct Key_Word
 {
 	char* word;

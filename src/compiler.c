@@ -2480,43 +2480,34 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 							tmpInter->glob->n=num;
 							for(;pBody;pBody=nextCptr(pBody))
 							{
-								if(isPreprocess(pBody))
+								ByteCodelnt* otherByteCodelnt=compile(pBody,tmpInter->glob,tmpInter,status,1);
+								if(status->status)
 								{
-										exError(pBody,INVALIDEXPR,tmpInter);
-										FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-										break;
+									exError(status->place,status->status,tmpInter);
+									deleteCptr(begin);
+									free(begin);
+									FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+									FREE_ALL_LINE_NUMBER_TABLE(libByteCodelnt->l,libByteCodelnt->ls);
+									chdir(tmpInter->prev->curDir);
+									tmpInter->table=NULL;
+									tmpInter->lnt=NULL;
+									freeIntpr(tmpInter);
+									status->status=0;
+									status->place=NULL;
+									if(libPrefix)
+										free(libPrefix);
+									freeFakeMemMenager(memMenager);
+									free(list);
+									return NULL;
 								}
-								else
+								if(libByteCodelnt->bc->size)
 								{
-									ByteCodelnt* otherByteCodelnt=compile(pBody,tmpInter->glob,tmpInter,status,1);
-									if(status->status)
-									{
-										exError(status->place,status->status,tmpInter);
-										deleteCptr(begin);
-										free(begin);
-										FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-										FREE_ALL_LINE_NUMBER_TABLE(libByteCodelnt->l,libByteCodelnt->ls);
-										chdir(tmpInter->prev->curDir);
-										tmpInter->table=NULL;
-										tmpInter->lnt=NULL;
-										freeIntpr(tmpInter);
-										status->status=0;
-										status->place=NULL;
-										if(libPrefix)
-											free(libPrefix);
-										freeFakeMemMenager(memMenager);
-										free(list);
-										return NULL;
-									}
-									if(libByteCodelnt->bc->size)
-									{
-										reCodeCat(resTp,otherByteCodelnt->bc);
-										otherByteCodelnt->l[0]->cpc+=1;
-										INCREASE_ALL_SCP(otherByteCodelnt->l,otherByteCodelnt->ls-1,resTp->size);
-									}
-									codelntCat(libByteCodelnt,otherByteCodelnt);
-									freeByteCodelnt(otherByteCodelnt);
+									reCodeCat(resTp,otherByteCodelnt->bc);
+									otherByteCodelnt->l[0]->cpc+=1;
+									INCREASE_ALL_SCP(otherByteCodelnt->l,otherByteCodelnt->ls-1,resTp->size);
 								}
+								codelntCat(libByteCodelnt,otherByteCodelnt);
+								freeByteCodelnt(otherByteCodelnt);
 							}
 							reCodeCat(setTp,libByteCodelnt->bc);
 							if(!libByteCodelnt->l)

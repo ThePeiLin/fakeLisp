@@ -27,8 +27,8 @@ int main(int argc,char** argv)
 #else
 		char* rp=realpath(filename,0);
 #endif
-		initPreprocess();
 		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
+		initGlobKeyWord(inter->glob);
 		SymTabNode* node=newSymTabNode(argv[1]);
 		addSymTabNode(node,inter->table);
 		int status;

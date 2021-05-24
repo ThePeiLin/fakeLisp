@@ -17,10 +17,8 @@
 static int MacroPatternCmp(const AST_cptr*,const AST_cptr*);
 static int fmatcmp(const AST_cptr*,const AST_cptr*,PreEnv**);
 static int isVal(const char*);
-static ErrorStatus N_defmacro(AST_cptr*,PreEnv*,Intpr*);
+static ErrorStatus defmacro(AST_cptr*,CompEnv*,Intpr*);
 static CompEnv* createPatternCompEnv(char**,int32_t,CompEnv*,SymbolTable*);
-
-static PreFunc* funAndForm=NULL;
 
 static VMenv* genGlobEnv(CompEnv* cEnv,VMheap* heap,SymbolTable* table)
 {
@@ -420,47 +418,6 @@ int isVal(const char* name)
 	return 0;
 }
 
-void addFunc(const char* name,ErrorStatus (*pFun)(AST_cptr*,PreEnv*,Intpr*))
-{
-	PreFunc* current=funAndForm;
-	PreFunc* prev=NULL;
-	if(current==NULL)
-	{
-		if(!(funAndForm=(PreFunc*)malloc(sizeof(PreFunc))))errors("addFunc",__FILE__,__LINE__);
-		if(!(funAndForm->functionName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors("addFunc",__FILE__,__LINE__);
-		strcpy(funAndForm->functionName,name);
-		funAndForm->function=pFun;
-		funAndForm->next=NULL;
-	}
-	else
-	{
-		while(current!=NULL)
-		{
-			if(!strcmp(current->functionName,name))exit(0);
-			prev=current;
-			current=current->next;
-		}
-		if(!(current=(PreFunc*)malloc(sizeof(PreFunc))))errors("addFunc",__FILE__,__LINE__);
-		if(!(current->functionName=(char*)malloc(sizeof(char)*(strlen(name)+1))))errors("addFunc",__FILE__,__LINE__);
-		strcpy(current->functionName,name);
-		current->function=pFun;
-		current->next=NULL;
-		prev->next=current;
-	}
-}
-
-ErrorStatus (*(findFunc(const char* name)))(AST_cptr*,PreEnv*,Intpr*)
-{
-	PreFunc* current=funAndForm;
-	while(current!=NULL&&strcmp(current->functionName,name))current=current->next;
-	if(current==NULL)
-		return NULL;
-	else
-		return current->function;
-}
-
-
-
 int retree(AST_cptr** fir,AST_cptr* sec)
 {
 	while(*fir!=sec)
@@ -473,91 +430,9 @@ int retree(AST_cptr** fir,AST_cptr* sec)
 	return 1;
 }
 
-
-
-ErrorStatus eval(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
-{
-	ErrorStatus status={0,NULL};
-	if(objCptr==NULL)
-		return status;
-	AST_cptr* tmpCptr=objCptr;
-	while(objCptr->type!=NIL)
-	{
-		if(objCptr->type==ATM)
-		{
-			AST_atom* objAtm=objCptr->value;
-			if(objCptr->outer==NULL||((objCptr->outer->prev!=NULL)&&(objCptr->outer->prev->cdr.value==objCptr->outer)))
-			{
-				if(objAtm->type!=SYM)break;
-				AST_cptr* reCptr=NULL;
-				PreDef* objDef=NULL;
-				PreEnv* tmpEnv=curEnv;
-				while(tmpEnv!=NULL&&!(objDef=findDefine(objAtm->value.str,tmpEnv)))
-					tmpEnv=tmpEnv->prev;
-				if(objDef!=NULL)
-				{
-					reCptr=&objDef->obj;
-					replaceCptr(objCptr,reCptr);
-					break;
-				}
-				else
-				{
-					status.status=SYMUNDEFINE;
-					status.place=objCptr;
-					return status;
-				}
-			}
-			else
-			{
-				if(objAtm->type!=SYM)
-				{
-					status.status=SYNTAXERROR;
-					status.place=objCptr;
-					return status;
-				}
-				ErrorStatus (*pfun)(AST_cptr*,PreEnv*,Intpr*)=NULL;
-				pfun=findFunc(objAtm->value.str);
-				if(pfun!=NULL)
-				{
-					status=pfun(objCptr,curEnv,inter);
-					if(status.status!=0)return status;
-				}
-				else
-				{
-					AST_cptr* reCptr=NULL;
-					PreDef* objDef=NULL;
-					PreEnv* tmpEnv=curEnv;
-					while(tmpEnv!=NULL&&!(objDef=findDefine(objAtm->value.str,tmpEnv)))
-						tmpEnv=tmpEnv->prev;
-					if(objDef!=NULL)
-					{
-						reCptr=&objDef->obj;
-						replaceCptr(objCptr,reCptr);
-						continue;
-					}
-					else
-					{
-						status.status=SYMUNDEFINE;
-						status.place=objCptr;
-						return status;
-					}
-				}
-			}
-		}
-		else if(objCptr->type==PAIR)
-		{
-			if(objCptr->type!=PAIR)continue;
-			objCptr=&(((AST_pair*)objCptr->value)->car);
-			continue;
-		}
-		if(retree(&objCptr,tmpCptr))break;
-	}
-	return status;
-}
-
 void initPreprocess()
 {
-	addFunc("defmacro",N_defmacro);
+	addKeyWord("defmacro");
 	addKeyWord("define");
 	addKeyWord("setq");
 	addKeyWord("quote");
@@ -577,91 +452,28 @@ void initPreprocess()
 	addKeyWord("export");
 }
 
-void freeAllFunc()
-{
-	PreFunc* cur=funAndForm;
-	while(cur!=NULL)
-	{
-		free(cur->functionName);
-		PreFunc* prev=cur;
-		cur=cur->next;
-		free(prev);
-	}
-}
-
 void unInitPreprocess()
 {
 	freeAllStringPattern();
-	freeAllFunc();
 	freeAllKeyWord();
 }
 
 AST_cptr** dealArg(AST_cptr* argCptr,int num)
 {
-	AST_cptr* tmpCptr=(argCptr->type==PAIR)?argCptr:NULL;
 	AST_cptr** args=NULL;
 	if(!(args=(AST_cptr**)malloc(num*sizeof(AST_cptr*))))errors("dealArg",__FILE__,__LINE__);
-	int i;
-	for(i=0;i<num;i++)
-	{
-		if(argCptr->type==NIL||argCptr->type==ATM)
-			args[i]=newCptr(0,NULL);
-		else
-		{
-			args[i]=newCptr(0,NULL);
-			replaceCptr(args[i],&((AST_pair*)argCptr->value)->car);
-			deleteCptr(&((AST_pair*)argCptr->value)->car);
-			argCptr=&((AST_pair*)argCptr->value)->cdr;
-		}
-	}
-	if(tmpCptr!=NULL)
-	{
-		AST_cptr* beDel=newCptr(0,NULL);
-		beDel->type=tmpCptr->type;
-		beDel->value=tmpCptr->value;
-		((AST_pair*)tmpCptr->value)->prev=NULL;
-		tmpCptr->type=argCptr->type;
-		tmpCptr->value=argCptr->value;
-		if(argCptr->type==PAIR)
-			((AST_pair*)argCptr->value)->prev=tmpCptr->outer;
-		else if(argCptr->type==ATM)
-			((AST_atom*)argCptr->value)->prev=tmpCptr->outer;
-		argCptr->type=NIL;
-		argCptr->value=NULL;
-		deleteCptr(beDel);
-		free(beDel);
-	}
+	int i=0;
+	for(;i<num;i++,argCptr=nextCptr(argCptr))
+		args[i]=argCptr;
 	return args;
 }
 
-int coutArg(AST_cptr* argCptr)
-{
-	int num=0;
-	while(argCptr->type==PAIR)
-	{
-		AST_cptr* tmp=&((AST_pair*)argCptr->value)->car;
-		if(tmp->type!=NIL)num++;
-		argCptr=&((AST_pair*)argCptr->value)->cdr;
-	}
-	return num;
-}
-
-void deleteArg(AST_cptr** args,int num)
-{
-	int i;
-	for(i=0;i<num;i++)
-	{
-		deleteCptr(args[i]);
-		free(args[i]);
-	}
-	free(args);
-}
-
-ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
+ErrorStatus defmacro(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 {
 	ErrorStatus status={0,NULL};
-	deleteCptr(objCptr);
-	AST_cptr** args=dealArg(&objCptr->outer->cdr,2);
+	AST_cptr* fir=getFirstCptr(objCptr);
+	AST_cptr* argCptr=nextCptr(fir);
+	AST_cptr** args=dealArg(argCptr,2);
 	if(args[0]->type!=PAIR)
 	{
 		if(args[0]->type!=NIL)
@@ -670,50 +482,48 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 			if(tmpAtom->type!=STR)
 			{
 				exError(args[0],SYNTAXERROR,inter);
-				deleteArg(args,2);
+				free(args);
 				return status;
 			}
 			char* tmpStr=tmpAtom->value.str;
 			if(isInValidStringPattern(tmpStr))
 			{
 				exError(args[0],INVALIDEXPR,inter);
-				deleteArg(args,2);
+				free(args);
 				return status;
 			}
 			int32_t num=0;
 			char** parts=splitPattern(tmpStr,&num);
 			addStringPattern(parts,num,args[1],inter);
 			freeStringArry(parts,num);
-			deleteArg(args,2);
+			free(args);
 		}
 		else
 		{
 			status.status=SYNTAXERROR;
-			status.place=newCptr(0,NULL);
-			replaceCptr(status.place,args[0]);
-			deleteArg(args,2);
+			status.place=args[0];
+			free(args);
 			return status;
 		}
 	}
 	else
 	{
-		AST_cptr* pattern=args[0];
+		AST_cptr* pattern=newCptr(0,NULL);
+		replaceCptr(pattern,args[0]);
 		AST_cptr* express=args[1];
 		Intpr* tmpInter=newTmpIntpr(NULL,NULL);
 		tmpInter->filename=inter->filename;
 		tmpInter->curline=inter->curline;
-		tmpInter->glob=inter->glob;
+		tmpInter->glob=curEnv;
 		tmpInter->table=inter->table;
 		tmpInter->curDir=inter->curDir;
 		tmpInter->prev=NULL;
 		tmpInter->lnt=NULL;
-		CompEnv* tmpCompEnv=createMacroCompEnv(pattern,inter->glob,inter->table);
+		CompEnv* tmpCompEnv=createMacroCompEnv(pattern,curEnv,inter->table);
 		ByteCodelnt* tmpByteCodelnt=compile(express,tmpCompEnv,tmpInter,&status,1);
 		if(!status.status)
 		{
-			addMacro(pattern,tmpByteCodelnt,tmpInter->glob);
-			deleteCptr(express);
-			free(express);
+			addMacro(pattern,tmpByteCodelnt,curEnv);
 			free(args);
 		}
 		else
@@ -724,13 +534,11 @@ ErrorStatus N_defmacro(AST_cptr* objCptr,PreEnv* curEnv,Intpr* inter)
 				freeByteCodelnt(tmpByteCodelnt);
 			}
 			exError(status.place,status.status,inter);
-			deleteArg(args,2);
+			free(args);
 			status.place=NULL;
 			status.status=0;
 		}
 		destroyCompEnv(tmpCompEnv);
-		objCptr->type=NIL;
-		objCptr->value=NULL;
 		free(tmpInter);
 	}
 	return status;
@@ -800,6 +608,27 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 			status->status=INVALIDEXPR;
 			status->place=objCptr;
 			return NULL;
+		}
+		if(isDefmacroExpression(objCptr))
+		{
+			ErrorStatus t=defmacro(objCptr,curEnv,inter);
+			if(t.status)
+			{
+				status->status=t.status;
+				status->place=t.place;
+				return NULL;
+			}
+			ByteCodelnt* tmp=newByteCodelnt(newByteCode(1));
+			tmp->bc->code[0]=FAKE_PUSH_NIL;
+			tmp->ls=1;
+			tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
+			if(!tmp->l)
+				errors("compile",__FILE__,__LINE__);
+			tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id
+					,0
+					,tmp->bc->size
+					,objCptr->curline);
+			return tmp;
 		}
 		int i=PreMacroExpand(objCptr,curEnv->macro,inter);
 		if(i==1)
@@ -1939,52 +1768,32 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 		ungetc(ch,inter->file);
 		if(begin!=NULL)
 		{
-			if(isPreprocess(begin))
+			ByteCodelnt* tmpByteCodelnt=compile(begin,inter->glob,inter,&status,!isLambdaExpression(begin));
+			if(!tmpByteCodelnt||status.status!=0)
 			{
-				status=eval(begin,NULL,inter);
-				if(status.status!=0)
+				if(status.status)
 				{
 					exError(status.place,status.status,inter);
 					if(exitstatus)*exitstatus=status.status;
 					deleteCptr(status.place);
-					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-					freeByteCodelnt(tmp);
-					free(list);
-					deleteCptr(begin);
-					free(begin);
-					tmp=NULL;
-					break;
 				}
+				if(tmpByteCodelnt==NULL&&!status.status&&exitstatus)*exitstatus=MACROEXPANDFAILED;
+				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+				freeByteCodelnt(tmp);
+				free(list);
+				deleteCptr(begin);
+				free(begin);
+				tmp=NULL;
+				break;
 			}
-			else
+			if(tmp->bc->size)
 			{
-				ByteCodelnt* tmpByteCodelnt=compile(begin,inter->glob,inter,&status,!isLambdaExpression(begin));
-				if(!tmpByteCodelnt||status.status!=0)
-				{
-					if(status.status)
-					{
-						exError(status.place,status.status,inter);
-						if(exitstatus)*exitstatus=status.status;
-						deleteCptr(status.place);
-					}
-					if(tmpByteCodelnt==NULL&&!status.status&&exitstatus)*exitstatus=MACROEXPANDFAILED;
-					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-					freeByteCodelnt(tmp);
-					free(list);
-					deleteCptr(begin);
-					free(begin);
-					tmp=NULL;
-					break;
-				}
-				if(tmp->bc->size)
-				{
-					reCodeCat(resTp,tmpByteCodelnt->bc);
-					tmpByteCodelnt->l[0]->cpc+=resTp->size;
-					INCREASE_ALL_SCP(tmpByteCodelnt->l+1,tmpByteCodelnt->ls-1,resTp->size);
-				}
-				codelntCat(tmp,tmpByteCodelnt);
-				freeByteCodelnt(tmpByteCodelnt);
+				reCodeCat(resTp,tmpByteCodelnt->bc);
+				tmpByteCodelnt->l[0]->cpc+=resTp->size;
+				INCREASE_ALL_SCP(tmpByteCodelnt->l+1,tmpByteCodelnt->ls-1,resTp->size);
 			}
+			codelntCat(tmp,tmpByteCodelnt);
+			freeByteCodelnt(tmpByteCodelnt);
 			deleteCptr(begin);
 			free(begin);
 		}
@@ -2606,21 +2415,6 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			ungetc(ch,tmpInter->file);
 			if(begin!=NULL)
 			{
-				if(isPreprocess(begin))
-				{
-					ErrorStatus t_status=eval(begin,NULL,inter);
-					if(t_status.status!=0)
-					{
-						exError(t_status.place,t_status.status,inter);
-						deleteCptr(t_status.place);
-						FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-						free(list);
-						deleteCptr(begin);
-						free(begin);
-						tmp=NULL;
-						break;
-					}
-				}
 				//查找library并编译library
 				if(isLibraryExpression(begin))
 				{

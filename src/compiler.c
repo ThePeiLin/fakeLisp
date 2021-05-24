@@ -15,7 +15,7 @@
 #include<math.h>
 
 static int MacroPatternCmp(const AST_cptr*,const AST_cptr*);
-static int fmatcmp(const AST_cptr*,const AST_cptr*,PreEnv**);
+static int fmatcmp(const AST_cptr*,const AST_cptr*,PreEnv**,CompEnv*);
 static int isVal(const char*);
 static ErrorStatus defmacro(AST_cptr*,CompEnv*,Intpr*);
 static CompEnv* createPatternCompEnv(char**,int32_t,CompEnv*,SymbolTable*);
@@ -103,18 +103,18 @@ static int isSymbolShouldBeExport(const char* str,const char** pStr,uint32_t n)
 	return 0;
 }
 
-PreMacro* PreMacroMatch(const AST_cptr* objCptr,PreMacro* head,PreEnv** pmacroEnv)
+PreMacro* PreMacroMatch(const AST_cptr* objCptr,PreMacro* head,PreEnv** pmacroEnv,CompEnv* curEnv)
 {
 	PreMacro* current=head;
-	while(current!=NULL&&!fmatcmp(objCptr,current->pattern,pmacroEnv))
+	while(current!=NULL&&!fmatcmp(objCptr,current->pattern,pmacroEnv,curEnv))
 		current=current->next;
 	return current;
 }
 
-int PreMacroExpand(AST_cptr* objCptr,PreMacro* head,Intpr* inter)
+int PreMacroExpand(AST_cptr* objCptr,PreMacro* head,CompEnv* curEnv,Intpr* inter)
 {
 	PreEnv* macroEnv=NULL;
-	PreMacro* tmp=PreMacroMatch(objCptr,head,&macroEnv);
+	PreMacro* tmp=PreMacroMatch(objCptr,head,&macroEnv,curEnv);
 	if(tmp!=NULL)
 	{
 		FakeVM* tmpVM=newTmpFakeVM(NULL);
@@ -179,8 +179,8 @@ int addMacro(AST_cptr* pattern,ByteCodelnt* proc,CompEnv* curEnv)
 			{
 				AST_atom* carAtm=tmpCptr->value;
 				AST_atom* cdrAtm=(tmpCptr->outer->cdr.type==ATM)?tmpCptr->outer->cdr.value:NULL;
-				if(carAtm->type==SYM&&!isVal(carAtm->value.str))addKeyWord(carAtm->value.str);
-				if(cdrAtm!=NULL&&cdrAtm->type==SYM&&!isVal(cdrAtm->value.str))addKeyWord(cdrAtm->value.str);
+				if(carAtm->type==SYM&&!isVal(carAtm->value.str))addKeyWord(carAtm->value.str,curEnv);
+				if(cdrAtm!=NULL&&cdrAtm->type==SYM&&!isVal(cdrAtm->value.str))addKeyWord(cdrAtm->value.str,curEnv);
 			}
 		}
 		if(!(current=(PreMacro*)malloc(sizeof(PreMacro))))errors("addMacro",__FILE__,__LINE__);
@@ -268,7 +268,7 @@ int MacroPatternCmp(const AST_cptr* first,const AST_cptr* second)
 	return 1;
 }
 
-int fmatcmp(const AST_cptr* origin,const AST_cptr* format,PreEnv** pmacroEnv)
+int fmatcmp(const AST_cptr* origin,const AST_cptr* format,PreEnv** pmacroEnv,CompEnv* curEnv)
 {
 	PreEnv* macroEnv=newEnv(NULL);
 	AST_pair* tmpPair=(format->type==PAIR)?format->value:NULL;
@@ -294,7 +294,7 @@ int fmatcmp(const AST_cptr* origin,const AST_cptr* format,PreEnv** pmacroEnv)
 					if(origin->type==ATM)
 					{
 						AST_atom* tmpAtm2=origin->value;
-						if(tmpAtm2->type==SYM&&isKeyWord(tmpAtm2->value.str))
+						if(tmpAtm2->type==SYM&&isKeyWord(tmpAtm2->value.str,curEnv))
 						{
 							destroyEnv(macroEnv);
 							macroEnv=NULL;
@@ -432,32 +432,31 @@ int retree(AST_cptr** fir,AST_cptr* sec)
 	return 1;
 }
 
-void initPreprocess()
+void initGlobKeyWord(CompEnv* glob)
 {
-	addKeyWord("defmacro");
-	addKeyWord("define");
-	addKeyWord("setq");
-	addKeyWord("quote");
-	addKeyWord("cond");
-	addKeyWord("and");
-	addKeyWord("or");
-	addKeyWord("lambda");
-	addKeyWord("setf");
-	addKeyWord("load");
-	addKeyWord("begin");
-	addKeyWord("unquote");
-	addKeyWord("qsquote");
-	addKeyWord("unqtesp");
-	addKeyWord("proc");
-	addKeyWord("import");
-	addKeyWord("library");
-	addKeyWord("export");
+	addKeyWord("defmacro",glob);
+	addKeyWord("define",glob);
+	addKeyWord("setq",glob);
+	addKeyWord("quote",glob);
+	addKeyWord("cond",glob);
+	addKeyWord("and",glob);
+	addKeyWord("or",glob);
+	addKeyWord("lambda",glob);
+	addKeyWord("setf",glob);
+	addKeyWord("load",glob);
+	addKeyWord("begin",glob);
+	addKeyWord("unquote",glob);
+	addKeyWord("qsquote",glob);
+	addKeyWord("unqtesp",glob);
+	addKeyWord("proc",glob);
+	addKeyWord("import",glob);
+	addKeyWord("library",glob);
+	addKeyWord("export",glob);
 }
 
 void unInitPreprocess()
 {
 	freeAllStringPattern();
-	freeAllKeyWord();
 }
 
 AST_cptr** dealArg(AST_cptr* argCptr,int num)
@@ -632,7 +631,7 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 					,objCptr->curline);
 			return tmp;
 		}
-		int i=PreMacroExpand(objCptr,curEnv->macro,inter);
+		int i=PreMacroExpand(objCptr,curEnv->macro,curEnv,inter);
 		if(i==1)
 			continue;
 		else if(i==2)
@@ -641,13 +640,13 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 			status->place=objCptr;
 			return NULL;
 		}
-		else if(!isValid(objCptr)||hasKeyWord(objCptr))
+		else if(!isValid(objCptr)||hasKeyWord(objCptr,curEnv))
 		{
 			status->status=SYNTAXERROR;
 			status->place=objCptr;
 			return NULL;
 		}
-		else if(isFuncCall(objCptr))return compileFuncCall(objCptr,curEnv,inter,status,evalIm);
+		else if(isFuncCall(objCptr,curEnv))return compileFuncCall(objCptr,curEnv,inter,status,evalIm);
 	}
 }
 
@@ -978,7 +977,7 @@ ByteCodelnt* compileFuncCall(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Erro
 			for(headoflist=&headoflist->outer->prev->car;prevCptr(headoflist)!=NULL;headoflist=prevCptr(headoflist));
 			continue;
 		}
-		else if(isFuncCall(objCptr))
+		else if(isFuncCall(objCptr,curEnv))
 		{
 			codeCat(tmp->bc,setBp);
 			if(!tmp->l)
@@ -1204,7 +1203,7 @@ ByteCodelnt* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 ByteCodelnt* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
 	int32_t line=objCptr->curline;
-	if(hasKeyWord(objCptr))
+	if(hasKeyWord(objCptr,curEnv))
 	{
 		status->status=SYNTAXERROR;
 		status->place=objCptr;
@@ -2367,6 +2366,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		SymTabNode* node=newSymTabNode(path);
 		addSymTabNode(node,inter->table);
 		Intpr* tmpInter=newIntpr(path,fp,newCompEnv(NULL),inter->table,inter->lnt);
+		initGlobKeyWord(tmpInter->glob);
 		free(path);
 		tmpInter->prev=inter;
 		ByteCode* resTp=newByteCode(1);

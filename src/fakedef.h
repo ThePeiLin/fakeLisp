@@ -174,6 +174,7 @@ typedef struct Comp_Env
 	uint32_t n;
 	CompDef* head;
 	PreMacro* macro;
+	struct Key_Word* keyWords;
 }CompEnv;
 
 typedef struct Interpreter

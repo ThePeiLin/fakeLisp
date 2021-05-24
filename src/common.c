@@ -763,6 +763,7 @@ CompEnv* newCompEnv(CompEnv* prev)
 	tmp->exp=NULL;
 	tmp->n=0;
 	tmp->macro=NULL;
+	tmp->keyWords=NULL;
 	return tmp;
 }
 
@@ -779,6 +780,7 @@ void destroyCompEnv(CompEnv* objEnv)
 		free(prev);
 	}
 	freeAllMacro(objEnv->macro);
+	freeAllKeyWord(objEnv->keyWords);
 	free(objEnv);
 }
 
@@ -2273,4 +2275,14 @@ void freeAllMacro(PreMacro* head)
 	}
 }
 
-
+void freeAllKeyWord(KeyWord* head)
+{
+	KeyWord* cur=head;
+	while(cur!=NULL)
+	{
+		KeyWord* prev=cur;
+		cur=cur->next;
+		free(prev->word);
+		free(prev);
+	}
+}

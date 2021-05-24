@@ -3,8 +3,6 @@
 #include<stdlib.h>
 #include<string.h>
 
-static KeyWord* KeyWords=NULL;
-
 int isPreprocess(const AST_cptr* objCptr)
 {
 	if(isDefmacroExpression(objCptr))return 1;
@@ -195,9 +193,9 @@ int isBeginExpression(const AST_cptr* objCptr)
 	return 0;
 }
 
-int isFuncCall(const AST_cptr* objCptr)
+int isFuncCall(const AST_cptr* objCptr,CompEnv* curEnv)
 {
-	if(objCptr->type==PAIR&&isValid(objCptr)&&!hasKeyWord(objCptr)&&!isNil(objCptr))return 1;
+	if(objCptr->type==PAIR&&isValid(objCptr)&&!hasKeyWord(objCptr,curEnv)&&!isNil(objCptr))return 1;
 	return 0;
 }
 
@@ -292,22 +290,25 @@ int isProcExpression(const AST_cptr* objCptr)
 	return 0;
 }
 
-KeyWord* hasKeyWord(const AST_cptr* objCptr)
+KeyWord* hasKeyWord(const AST_cptr* objCptr,CompEnv* curEnv)
 {
 	AST_atom* tmpAtm=NULL;
 	if(objCptr->type==ATM&&(tmpAtm=objCptr->value)->type==SYM)
 	{
-		KeyWord* tmp=KeyWords;
-		while(tmp!=NULL&&strcmp(tmpAtm->value.str,tmp->word))
-			tmp=tmp->next;
-		return tmp;
+		for(;curEnv;curEnv=curEnv->prev)
+		{
+			KeyWord* tmp=curEnv->keyWords;
+			while(tmp!=NULL&&strcmp(tmpAtm->value.str,tmp->word))
+				tmp=tmp->next;
+			return tmp;
+		}
 	}
 	else if(objCptr->type==PAIR)
 	{
 		KeyWord* tmp=NULL;
 		for(objCptr=&((AST_pair*)objCptr->value)->car;objCptr!=NULL;objCptr=nextCptr(objCptr))
 		{
-			tmp=KeyWords;
+			CompEnv* tmpEnv=curEnv;
 			tmpAtm=(objCptr->type==ATM)?objCptr->value:NULL;
 			AST_atom* cdrAtm=(objCptr->outer->cdr.type==ATM)?objCptr->outer->cdr.value:NULL;
 			if((tmpAtm==NULL||tmpAtm->type!=SYM)&&(cdrAtm==NULL||cdrAtm->type!=SYM))
@@ -315,18 +316,22 @@ KeyWord* hasKeyWord(const AST_cptr* objCptr)
 				tmp=NULL;
 				continue;
 			}
-			while(tmp!=NULL&&tmpAtm!=NULL&&strcmp(tmpAtm->value.str,tmp->word)&&(cdrAtm==NULL||cdrAtm->type!=SYM||(cdrAtm!=NULL&&strcmp(cdrAtm->value.str,tmp->word))))
-				tmp=tmp->next;
-			if(tmp!=NULL)break;
+			for(;tmpEnv;tmpEnv=tmpEnv->prev)
+			{
+				tmp=tmpEnv->keyWords;
+				while(tmp!=NULL&&tmpAtm!=NULL&&strcmp(tmpAtm->value.str,tmp->word)&&(cdrAtm==NULL||cdrAtm->type!=SYM||(cdrAtm!=NULL&&strcmp(cdrAtm->value.str,tmp->word))))
+					tmp=tmp->next;
+				if(tmp!=NULL)break;
+			}
 		}
 		return tmp;
 	}
 	return NULL;
 }
 
-void printAllKeyWord()
+void printAllKeyWord(KeyWord* head)
 {
-	KeyWord* tmp=KeyWords;
+	KeyWord* tmp=head;
 	while(tmp!=NULL)
 	{
 		puts(tmp->word);
@@ -334,11 +339,11 @@ void printAllKeyWord()
 	}
 }
 
-void addKeyWord(const char* objStr)
+void addKeyWord(const char* objStr,CompEnv* curEnv)
 {
 	if(objStr!=NULL)
 	{
-		KeyWord* current=KeyWords;
+		KeyWord* current=curEnv->keyWords;
 		KeyWord* prev=NULL;
 		while(current!=NULL&&strcmp(current->word,objStr)){prev=current;current=current->next;}
 		if(current==NULL)
@@ -348,31 +353,21 @@ void addKeyWord(const char* objStr)
 			if(current==NULL||current->word==NULL)errors("addKeyWord",__FILE__,__LINE__);
 			strcpy(current->word,objStr);
 			if(prev!=NULL)prev->next=current;
-			else KeyWords=current;
+			else
+				curEnv->keyWords=current;
 			current->next=NULL;
 		}
 	}
 }
 
-void freeAllKeyWord()
+int isKeyWord(const char* str,CompEnv* curEnv)
 {
-	KeyWord* cur=KeyWords;
-	while(cur!=NULL)
+	for(;curEnv;curEnv=curEnv->prev)
 	{
-		KeyWord* prev=cur;
-		cur=cur->next;
-		free(prev->word);
-		free(prev);
-	}
-}
-
-int isKeyWord(const char* str)
-{
-	KeyWord* cur=KeyWords;
-	while(cur)
-	{
-		if(!strcmp(str,cur->word))return 1;
-		cur=cur->next;
+		KeyWord* cur=curEnv->keyWords;
+		for(;cur;cur=cur->next)
+			if(!strcmp(str,cur->word))
+				return 1;
 	}
 	return 0;
 }

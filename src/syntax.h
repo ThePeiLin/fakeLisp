@@ -2,10 +2,9 @@
 #define SYNTAX_H
 #include"fakedef.h"
 
-KeyWord* hasKeyWord(const AST_cptr*);
-void addKeyWord(const char*);
+KeyWord* hasKeyWord(const AST_cptr*,CompEnv*);
+void addKeyWord(const char*,CompEnv*);
 void printAllKeyWord();
-void freeAllKeyWord();
 void addSynRule(int (*)(const AST_cptr*));
 int (*checkAST(const AST_cptr*))(const AST_cptr*);
 int isValid(const AST_cptr*);
@@ -18,7 +17,7 @@ int isBeginExpression(const AST_cptr*);
 int isCondExpression(const AST_cptr*);
 int isConst(const AST_cptr*);
 int isNil(const AST_cptr*);
-int isFuncCall(const AST_cptr*);
+int isFuncCall(const AST_cptr*,CompEnv*);
 int isSymbol(const AST_cptr*);
 int isAndExpression(const AST_cptr*);
 int isOrExpression(const AST_cptr*);
@@ -32,5 +31,5 @@ int isLibraryExpression(const AST_cptr*);
 int isExportExpression(const AST_cptr*);
 int isDefmacroExpression(const AST_cptr*);
 int isProcExpression(const AST_cptr*);
-int isKeyWord(const char*);
+int isKeyWord(const char*,CompEnv* curEnv);
 #endif

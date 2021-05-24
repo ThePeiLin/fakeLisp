@@ -36,6 +36,7 @@ int main(int argc,char** argv)
 			return EXIT_FAILURE;
 		}
 		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
+		initGlobKeyWord(inter->glob);
 		if(fp==stdin)
 		{
 			SymTabNode* node=newSymTabNode("stdin");
@@ -51,7 +52,6 @@ int main(int argc,char** argv)
 #endif
 			char* workpath=getDir(rp);
 			free(rp);
-			initPreprocess();
 			int status;
 			SymTabNode* node=newSymTabNode(filename);
 			addSymTabNode(node,inter->table);
@@ -158,7 +158,6 @@ int main(int argc,char** argv)
 
 void runIntpr(Intpr* inter)
 {
-	initPreprocess();
 	int e=0;
 	FakeVM* anotherVM=newFakeVM(NULL);
 	VMenv* globEnv=newVMenv(NULL);

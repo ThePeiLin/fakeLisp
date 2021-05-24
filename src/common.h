@@ -135,4 +135,5 @@ void mergeSort(void* base
 		,int (*cmpf)(const void*,const void*));
 
 void freeAllMacro(PreMacro* head);
+void freeAllKeyWord(KeyWord*);
 #endif

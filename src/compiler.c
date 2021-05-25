@@ -32,8 +32,9 @@ static VMenv* genGlobEnv(CompEnv* cEnv,VMheap* heap,SymbolTable* table)
 	{
 		CompEnv* curEnv=popComStack(stack);
 		vEnv=newVMenv(preEnv);
+		if(!preEnv)
+			initGlobEnv(vEnv,heap,table);
 		preEnv=vEnv;
-		initGlobEnv(vEnv,heap,table);
 		ByteCodelnt* tmpByteCode=curEnv->proc;
 		FakeVM* tmpVM=newTmpFakeVM(NULL);
 		VMcode* tmpVMcode=newVMcode(tmpByteCode->bc->code,tmpByteCode->bc->size,0);
@@ -47,8 +48,7 @@ static VMenv* genGlobEnv(CompEnv* cEnv,VMheap* heap,SymbolTable* table)
 		tmpVM->lnt->list=tmpByteCode->l;
 		freeVMheap(tmpVM->heap);
 		tmpVM->heap=heap;
-		if(isComStackEmpty(stack))
-			increaseVMenvRefcount(vEnv);
+		increaseVMenvRefcount(vEnv);
 		int i=runFakeVM(tmpVM);
 		if(i==1)
 		{
@@ -65,6 +65,9 @@ static VMenv* genGlobEnv(CompEnv* cEnv,VMheap* heap,SymbolTable* table)
 		free(tmpVM);
 	}
 	freeComStack(stack);
+	VMenv* tmpEnv=vEnv->prev;
+	for(;tmpEnv;tmpEnv=tmpEnv->prev)
+		decreaseVMenvRefcount(tmpEnv);
 	return vEnv;
 }
 

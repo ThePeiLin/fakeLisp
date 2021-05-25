@@ -321,7 +321,7 @@ KeyWord* hasKeyWord(const AST_cptr* objCptr,CompEnv* curEnv)
 				tmp=tmpEnv->keyWords;
 				while(tmp!=NULL&&tmpAtm!=NULL&&strcmp(tmpAtm->value.str,tmp->word)&&(cdrAtm==NULL||cdrAtm->type!=SYM||(cdrAtm!=NULL&&strcmp(cdrAtm->value.str,tmp->word))))
 					tmp=tmp->next;
-				if(tmp!=NULL)break;
+				if(tmp!=NULL)return tmp;
 			}
 		}
 		return tmp;

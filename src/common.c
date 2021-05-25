@@ -764,6 +764,7 @@ CompEnv* newCompEnv(CompEnv* prev)
 	tmp->n=0;
 	tmp->macro=NULL;
 	tmp->keyWords=NULL;
+	tmp->proc=newByteCodelnt(newByteCode(0));
 	return tmp;
 }
 
@@ -775,10 +776,10 @@ void destroyCompEnv(CompEnv* objEnv)
 	{
 		CompDef* prev=tmpDef;
 		tmpDef=tmpDef->next;
-		FREE_ALL_LINE_NUMBER_TABLE(prev->proc->l,prev->proc->ls);
-		freeByteCodelnt(prev->proc);
 		free(prev);
 	}
+	FREE_ALL_LINE_NUMBER_TABLE(objEnv->proc->l,objEnv->proc->ls);
+	freeByteCodelnt(objEnv->proc);
 	freeAllMacro(objEnv->macro);
 	freeAllKeyWord(objEnv->keyWords);
 	free(objEnv);
@@ -813,7 +814,6 @@ CompDef* addCompDef(const char* name,CompEnv* curEnv,SymbolTable* table)
 		if(!(curEnv->head=(CompDef*)malloc(sizeof(CompDef))))errors("addCompDef",__FILE__,__LINE__);
 		curEnv->head->next=NULL;
 		curEnv->head->id=node->id;
-		curEnv->head->proc=newByteCodelnt(newByteCode(0));
 		return curEnv->head;
 	}
 	else
@@ -830,7 +830,6 @@ CompDef* addCompDef(const char* name,CompEnv* curEnv,SymbolTable* table)
 			if(!(curDef=(CompDef*)malloc(sizeof(CompDef))))errors("addCompDef",__FILE__,__LINE__);
 			curDef->id=node->id;
 			curDef->next=curEnv->head;
-			curDef->proc=newByteCodelnt(newByteCode(0));
 			curEnv->head=curDef;
 		}
 		return curDef;

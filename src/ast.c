@@ -18,10 +18,7 @@ static VMenv* genGlobEnv(CompEnv* cEnv,VMheap* heap,SymbolTable* table)
 {
 	VMenv* vEnv=newVMenv(NULL);
 	initGlobEnv(vEnv,heap,table);
-	ByteCodelnt* tmpByteCode=newByteCodelnt(newByteCode(0));
-	CompDef* tmpDef=cEnv->head;
-	for(;tmpDef;tmpDef=tmpDef->next)
-		codelntCopyCat(tmpByteCode,tmpDef->proc);
+	ByteCodelnt* tmpByteCode=cEnv->proc;
 	FakeVM* tmpVM=newTmpFakeVM(NULL);
 	VMcode* tmpVMcode=newVMcode(tmpByteCode->bc->code,tmpByteCode->bc->size,0);
 	tmpVM->mainproc=newFakeProcess(tmpVMcode,NULL);
@@ -43,16 +40,12 @@ static VMenv* genGlobEnv(CompEnv* cEnv,VMheap* heap,SymbolTable* table)
 		freeVMstack(tmpVM->stack);
 		freeVMcode(tmpVMcode);
 		free(tmpVM);
-		FREE_ALL_LINE_NUMBER_TABLE(tmpByteCode->l,tmpByteCode->ls);
-		freeByteCodelnt(tmpByteCode);
 		return NULL;
 	}
 	free(tmpVM->lnt);
 	freeVMstack(tmpVM->stack);
 	freeVMcode(tmpVMcode);
 	free(tmpVM);
-	FREE_ALL_LINE_NUMBER_TABLE(tmpByteCode->l,tmpByteCode->ls);
-	freeByteCodelnt(tmpByteCode);
 	return vEnv;
 }
 

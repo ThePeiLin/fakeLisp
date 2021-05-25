@@ -24,10 +24,7 @@ static VMenv* genGlobEnv(CompEnv* cEnv,VMheap* heap,SymbolTable* table)
 {
 	VMenv* vEnv=newVMenv(NULL);
 	initGlobEnv(vEnv,heap,table);
-	ByteCodelnt* tmpByteCode=newByteCodelnt(newByteCode(0));
-	CompDef* tmpDef=cEnv->head;
-	for(;tmpDef;tmpDef=tmpDef->next)
-		codelntCopyCat(tmpByteCode,tmpDef->proc);
+	ByteCodelnt* tmpByteCode=cEnv->proc;
 	FakeVM* tmpVM=newTmpFakeVM(NULL);
 	VMcode* tmpVMcode=newVMcode(tmpByteCode->bc->code,tmpByteCode->bc->size,0);
 	tmpVM->mainproc=newFakeProcess(tmpVMcode,NULL);
@@ -49,16 +46,12 @@ static VMenv* genGlobEnv(CompEnv* cEnv,VMheap* heap,SymbolTable* table)
 		freeVMstack(tmpVM->stack);
 		freeVMcode(tmpVMcode);
 		free(tmpVM);
-		FREE_ALL_LINE_NUMBER_TABLE(tmpByteCode->l,tmpByteCode->ls);
-		freeByteCodelnt(tmpByteCode);
 		return NULL;
 	}
 	free(tmpVM->lnt);
 	freeVMstack(tmpVM->stack);
 	freeVMcode(tmpVMcode);
 	free(tmpVM);
-	FREE_ALL_LINE_NUMBER_TABLE(tmpByteCode->l,tmpByteCode->ls);
-	freeByteCodelnt(tmpByteCode);
 	return vEnv;
 }
 
@@ -1060,7 +1053,7 @@ ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 		codeCat(tmp1->bc,pushTop);
 		codeCat(tmp1->bc,popVar);
 		tmp1->l[tmp1->ls-1]->cpc+=(popVar->size+pushTop->size);
-		codelntCopyCat(tmpDef->proc,tmp1);
+		codelntCopyCat(curEnv->proc,tmp1);
 		if(fir->outer==tmpPair)break;
 		else
 		{
@@ -1136,7 +1129,7 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		codeCat(tmp1->bc,popVar);
 		tmp1->l[tmp1->ls-1]->cpc+=(pushTop->size+popVar->size);
 		if(tmpDef)
-			codelntCopyCat(tmpDef->proc,tmp1);
+			codelntCopyCat(curEnv->proc,tmp1);
 		if(fir->outer==tmpPair)break;
 		else
 		{
@@ -1191,9 +1184,9 @@ ByteCodelnt* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 				break;
 			tmpEnv=tmpEnv->prev;
 		}
-		codelntCopyCat(tmpDef->proc,tmp2);
-		codeCat(tmpDef->proc->bc,popRef);
-		tmpDef->proc->l[tmpDef->proc->ls-1]->cpc+=popRef->size;
+		codelntCopyCat(curEnv->proc,tmp2);
+		codeCat(curEnv->proc->bc,popRef);
+		curEnv->proc->l[curEnv->proc->ls-1]->cpc+=popRef->size;
 	}
 	freeByteCode(popRef);
 	freeByteCodelnt(tmp2);
@@ -2586,18 +2579,16 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 								free(list);
 								return NULL;
 							}
-							else
-							{
-								CompDef* tmpDef1=addCompDef(symbolWouldExport,curEnv,inter->table);
-								codelntCopyCat(tmpDef1->proc,tmpDef->proc);
-							}
 							free(symbolWouldExport);
 						}
+						codelntCopyCat(curEnv->proc,tmpInter->glob->proc);
 						PreMacro* headOfMacroOfImportedFile=tmpInter->glob->macro;
 						while(headOfMacroOfImportedFile)
 						{
-							addMacro(headOfMacroOfImportedFile->pattern,headOfMacroOfImportedFile->proc,curEnv);
+							PreMacro* prev=headOfMacroOfImportedFile;
+							addMacro(prev->pattern,prev->proc,curEnv);
 							headOfMacroOfImportedFile=headOfMacroOfImportedFile->next;
+							free(prev);
 						}
 						tmpInter->glob->macro=NULL;
 						deleteCptr(begin);

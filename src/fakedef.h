@@ -163,7 +163,6 @@ typedef struct Comp_Def
 {
 	int32_t id;
 	struct Comp_Def* next;
-	ByteCodelnt* proc;
 }CompDef;
 
 typedef struct Comp_Env
@@ -174,6 +173,7 @@ typedef struct Comp_Env
 	uint32_t n;
 	CompDef* head;
 	PreMacro* macro;
+	ByteCodelnt* proc;
 	struct Key_Word* keyWords;
 }CompEnv;
 

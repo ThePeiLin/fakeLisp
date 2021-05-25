@@ -345,7 +345,11 @@ void addKeyWord(const char* objStr,CompEnv* curEnv)
 	{
 		KeyWord* current=curEnv->keyWords;
 		KeyWord* prev=NULL;
-		while(current!=NULL&&strcmp(current->word,objStr)){prev=current;current=current->next;}
+		while(current!=NULL&&strcmp(current->word,objStr))
+		{
+			prev=current;
+			current=current->next;
+		}
 		if(current==NULL)
 		{
 			current=(KeyWord*)malloc(sizeof(KeyWord));

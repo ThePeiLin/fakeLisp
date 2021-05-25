@@ -11,8 +11,8 @@ typedef struct Cirular_Ref_List
 }CRL;
 
 int runFakeVM(FakeVM*);
-void writeVMvalue(VMvalue*,FILE*,int8_t,int8_t,CRL**);
-void princVMvalue(VMvalue*,FILE*,int8_t,CRL**);
+void writeVMvalue(VMvalue*,FILE*,int8_t,CRL**);
+void princVMvalue(VMvalue*,FILE*,CRL**);
 void printProc(VMcode*,FILE*);
 FakeVM* newFakeVM(ByteCode*);
 FakeVM* newTmpFakeVM(ByteCode*);

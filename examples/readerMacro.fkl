@@ -1,3 +1,4 @@
+(import (std))
 (defmacro "'(a)" (cons (quote quote) (cons a nil)))
 (defmacro "\\(a).(b)"
   ((lambda ()

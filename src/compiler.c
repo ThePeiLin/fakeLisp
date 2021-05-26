@@ -113,18 +113,22 @@ static int isSymbolShouldBeExport(const char* str,const char** pStr,uint32_t n)
 	return 0;
 }
 
-PreMacro* PreMacroMatch(const AST_cptr* objCptr,PreMacro* head,PreEnv** pmacroEnv,CompEnv* curEnv)
+PreMacro* PreMacroMatch(const AST_cptr* objCptr,PreEnv** pmacroEnv,CompEnv* curEnv)
 {
-	PreMacro* current=head;
-	while(current!=NULL&&!fmatcmp(objCptr,current->pattern,pmacroEnv,curEnv))
-		current=current->next;
-	return current;
+	for(;curEnv;curEnv=curEnv->prev)
+	{
+		PreMacro* current=curEnv->macro;
+		for(;current;current=current->next)
+			if(fmatcmp(objCptr,current->pattern,pmacroEnv,curEnv))
+				return current;
+	}
+	return NULL;
 }
 
-int PreMacroExpand(AST_cptr* objCptr,PreMacro* head,CompEnv* curEnv,Intpr* inter)
+int PreMacroExpand(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 {
 	PreEnv* macroEnv=NULL;
-	PreMacro* tmp=PreMacroMatch(objCptr,head,&macroEnv,curEnv);
+	PreMacro* tmp=PreMacroMatch(objCptr,&macroEnv,curEnv);
 	if(tmp!=NULL)
 	{
 		FakeVM* tmpVM=newTmpFakeVM(NULL);
@@ -641,7 +645,7 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 					,objCptr->curline);
 			return tmp;
 		}
-		int i=PreMacroExpand(objCptr,curEnv->macro,curEnv,inter);
+		int i=PreMacroExpand(objCptr,curEnv,inter);
 		if(i==1)
 			continue;
 		else if(i==2)
@@ -2608,6 +2612,8 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 								free(list);
 								return NULL;
 							}
+							else
+								addCompDef(symbolWouldExport,curEnv,inter->table);
 							free(symbolWouldExport);
 						}
 						codelntCopyCat(curEnv->proc,tmpInter->glob->proc);

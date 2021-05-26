@@ -1163,8 +1163,6 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		codeCat(tmp1->bc,pushTop);
 		codeCat(tmp1->bc,popVar);
 		tmp1->l[tmp1->ls-1]->cpc+=(pushTop->size+popVar->size);
-		if(tmpDef)
-			codelntCopyCat(curEnv->proc,tmp1);
 		if(fir->outer==tmpPair)break;
 		else
 		{
@@ -1219,9 +1217,6 @@ ByteCodelnt* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 				break;
 			tmpEnv=tmpEnv->prev;
 		}
-		codelntCopyCat(curEnv->proc,tmp2);
-		codeCat(curEnv->proc->bc,popRef);
-		curEnv->proc->l[curEnv->proc->ls-1]->cpc+=popRef->size;
 	}
 	freeByteCode(popRef);
 	freeByteCodelnt(tmp2);

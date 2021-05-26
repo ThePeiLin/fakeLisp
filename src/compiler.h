@@ -7,7 +7,7 @@
 	freeLineNumTabNode((l)[i]);\
 }
 
-PreMacro* PreMacroMatch(const AST_cptr*,PreEnv**,CompEnv*);
+PreMacro* PreMacroMatch(const AST_cptr*,PreEnv**,CompEnv*,CompEnv**);
 int PreMacroExpand(AST_cptr*,CompEnv*,Intpr* inter);
 int addMacro(AST_cptr*,ByteCodelnt*,CompEnv* curEnv);
 void freeMacroEnv();

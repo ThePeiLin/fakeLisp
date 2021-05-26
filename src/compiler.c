@@ -53,11 +53,17 @@ static VMenv* genGlobEnv(CompEnv* cEnv,VMheap* heap,SymbolTable* table)
 		int i=runFakeVM(tmpVM);
 		if(i==1)
 		{
+			free(tmpVM->lnt);
 			deleteCallChain(tmpVM);
+			VMenv* tmpEnv=vEnv->prev;
+			for(;tmpEnv;tmpEnv=tmpEnv->prev)
+				decreaseVMenvRefcount(tmpEnv);
 			freeVMenv(vEnv);
 			freeVMstack(tmpVM->stack);
 			freeVMcode(tmpVMcode);
+			freeVMheap(tmpVM->heap);
 			free(tmpVM);
+			freeComStack(stack);
 			return NULL;
 		}
 		free(tmpVM->lnt);
@@ -113,14 +119,17 @@ static int isSymbolShouldBeExport(const char* str,const char** pStr,uint32_t n)
 	return 0;
 }
 
-PreMacro* PreMacroMatch(const AST_cptr* objCptr,PreEnv** pmacroEnv,CompEnv* curEnv)
+PreMacro* PreMacroMatch(const AST_cptr* objCptr,PreEnv** pmacroEnv,CompEnv* curEnv,CompEnv** pCEnv)
 {
 	for(;curEnv;curEnv=curEnv->prev)
 	{
 		PreMacro* current=curEnv->macro;
 		for(;current;current=current->next)
 			if(fmatcmp(objCptr,current->pattern,pmacroEnv,curEnv))
+			{
+				*pCEnv=curEnv;
 				return current;
+			}
 	}
 	return NULL;
 }
@@ -128,13 +137,18 @@ PreMacro* PreMacroMatch(const AST_cptr* objCptr,PreEnv** pmacroEnv,CompEnv* curE
 int PreMacroExpand(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 {
 	PreEnv* macroEnv=NULL;
-	PreMacro* tmp=PreMacroMatch(objCptr,&macroEnv,curEnv);
+	PreMacro* tmp=PreMacroMatch(objCptr,&macroEnv,curEnv,&curEnv);
 	if(tmp!=NULL)
 	{
 		FakeVM* tmpVM=newTmpFakeVM(NULL);
 		VMenv* tmpGlob=genGlobEnv(curEnv,tmpVM->heap,inter->table);
 		if(!tmpGlob)
+		{
+			destroyEnv(macroEnv);
+			freeVMstack(tmpVM->stack);
+			free(tmpVM);
 			return 2;
+		}
 		VMcode* tmpVMcode=newVMcode(tmp->proc->bc->code,tmp->proc->bc->size,0);
 		VMenv* macroVMenv=castPreEnvToVMenv(macroEnv,tmpGlob,tmpVM->heap,inter->table);
 		destroyEnv(macroEnv);

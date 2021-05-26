@@ -1,3 +1,5 @@
+(import (std))
+
 (define p (lambda (n)
  (define w (lambda (a b)
   (cond ((or (eq b 0) (eq b (add a 1))) 0)

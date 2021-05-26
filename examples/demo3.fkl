@@ -1,6 +1,8 @@
-(define btk (dll "../btk"))
+(import (std))
 
 (load macro.fkl)
+
+(define btk (dll "../btk"))
 
 (define getch (dlsym btk "getch"))
 

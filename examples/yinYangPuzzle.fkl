@@ -1,3 +1,4 @@
+(import (std))
 (load macro.fkl)
 
 (define btk (dll "../btk"))

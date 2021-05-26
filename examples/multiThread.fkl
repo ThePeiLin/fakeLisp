@@ -1,3 +1,4 @@
+(import (std))
 (define ch (chanl 0))
 
 (go (lambda (ch)

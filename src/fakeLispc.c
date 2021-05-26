@@ -6,6 +6,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 
+extern char* InterpreterPath;
 int main(int argc,char** argv)
 {
 	if(argc<2)
@@ -14,6 +15,14 @@ int main(int argc,char** argv)
 		return EXIT_FAILURE;
 	}
 	char* filename=argv[1];
+#ifdef WIN32
+	InterpreterPath=_fullpath(NULL,argv[0],0);
+#else
+	InterpreterPath=realpath(argv[0],0);
+#endif
+	char* t=getDir(InterpreterPath);
+	free(InterpreterPath);
+	InterpreterPath=t;
 	FILE* fp=(argc>1)?fopen(argv[1],"r"):stdin;
 	if(fp==NULL)
 	{

@@ -1190,7 +1190,9 @@ ByteCodelnt* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	ByteCodelnt* tmp1=compile(sec,curEnv,inter,status,evalIm);
 	if(status->status!=0)
 		return NULL;
-	ByteCodelnt* tmp2=compile(tir,curEnv,inter,status,evalIm);
+	ByteCodelnt* tmp2=(isLambdaExpression(tir))?
+		compile(tir,curEnv,inter,status,0):
+		compile(tir,curEnv,inter,status,evalIm);
 	if(status->status!=0)
 	{
 		FREE_ALL_LINE_NUMBER_TABLE(tmp1->l,tmp1->ls);

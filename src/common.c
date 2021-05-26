@@ -20,6 +20,7 @@
 	freeLineNumTabNode((l)[i]);\
 }
 
+char* InterpreterPath=NULL;
 char* builtInSymbolList[NUMOFBUILTINSYMBOL]=
 {
 	"nil",

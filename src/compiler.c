@@ -14,6 +14,7 @@
 #include<unistd.h>
 #include<math.h>
 
+extern char* InterpreterPath;
 static int MacroPatternCmp(const AST_cptr*,const AST_cptr*);
 static int fmatcmp(const AST_cptr*,const AST_cptr*,PreEnv**,CompEnv*);
 static int isVal(const char*);
@@ -2357,12 +2358,24 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		FILE* fp=fopen(path,"r");
 		if(!fp)
 		{
-			fprintf(stderr,"In file \"%s\" line %d\n",__FILE__,__LINE__);
-			perror(path);
+			char t[]="/lib/";
+			char* pathWithInterpreterPath=(char*)malloc(sizeof(char)*(strlen(InterpreterPath)+strlen(t)+strlen(path)+1));
+			if(!pathWithInterpreterPath)
+				errors("compileImport",__FILE__,__LINE__);
+			sprintf(pathWithInterpreterPath,"%s%s%s",InterpreterPath,t,path);
+			fp=fopen(pathWithInterpreterPath,"r");
+			if(!fp)
+			{
+				fprintf(stderr,"In file \"%s\" line %d\n",__FILE__,__LINE__);
+				perror(path);
+				free(pathWithInterpreterPath);
+				free(path);
+				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+				freeFakeMemMenager(memMenager);
+				return NULL;
+			}
 			free(path);
-			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-			freeFakeMemMenager(memMenager);
-			return NULL;
+			path=pathWithInterpreterPath;
 		}
 		if(hasLoadSameFile(path,inter))
 		{

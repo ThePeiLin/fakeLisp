@@ -14,6 +14,7 @@
 #include<ctype.h>
 #include<pthread.h>
 #include<setjmp.h>
+
 static jmp_buf buf;
 static int exitStatus=0;
 
@@ -24,15 +25,25 @@ void errorCallBack(void* a)
 	longjmp(buf,i[1]);
 }
 
+extern char* InterpreterPath;
 int main(int argc,char** argv)
 {
 	char* filename=(argc>1)?argv[1]:NULL;
+#ifdef WIN32
+	InterpreterPath=_fullpath(NULL,argv[0],0);
+#else
+	InterpreterPath=realpath(argv[0],0);
+#endif
+	char* t=getDir(InterpreterPath);
+	free(InterpreterPath);
+	InterpreterPath=t;
 	if(argc==1||isscript(filename))
 	{
 		FILE* fp=(argc>1)?fopen(argv[1],"r"):stdin;
 		if(fp==NULL)
 		{
 			perror(filename);
+			free(InterpreterPath);
 			return EXIT_FAILURE;
 		}
 		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
@@ -61,6 +72,7 @@ int main(int argc,char** argv)
 				free(workpath);
 				freeIntpr(inter);
 				unInitPreprocess();
+				free(InterpreterPath);
 				return status;
 			}
 			inter->lnt->size=mainByteCode->ls;
@@ -98,6 +110,7 @@ int main(int argc,char** argv)
 				unInitPreprocess();
 				freeVMheap(anotherVM->heap);
 				freeAllVMs();
+				free(InterpreterPath);
 				return exitStatus;
 			}
 		}
@@ -108,6 +121,7 @@ int main(int argc,char** argv)
 		if(fp==NULL)
 		{
 			perror(filename);
+			free(InterpreterPath);
 			return EXIT_FAILURE;
 		}
 		changeWorkPath(filename);
@@ -145,14 +159,17 @@ int main(int argc,char** argv)
 			freeVMheap(heap);
 			freeSymbolTable(table);
 			freeLineNumberTable(lnt);
+			free(InterpreterPath);
 			return exitStatus;
 		}
 	}
 	else
 	{
 		fprintf(stderr,"%s: It is not a correct file.\n",filename);
+		free(InterpreterPath);
 		return EXIT_FAILURE;
 	}
+	free(InterpreterPath);
 	return exitStatus;
 }
 

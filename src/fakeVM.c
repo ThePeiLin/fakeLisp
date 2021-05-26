@@ -322,25 +322,26 @@ int runFakeVM(FakeVM* exe)
 			int32_t cp=curproc->cp+curproc->code->offset;
 			LineNumTabNode* node=findLineNumTabNode(cp,exe->lnt);
 			fprintf(stderr,"In file \"%s\",line %d\n",exe->table->idl[node->fid]->symbol,node->line);
+			fprintf(stderr,"%s",codeName[(int)tmpCode->code[curproc->cp]].codeName);
 			switch(status)
 			{
 				case WRONGARG:
-					fprintf(stderr,"error:Wrong arguements.\n");
+					fprintf(stderr,":Wrong arguements.\n");
 					break;
 				case STACKERROR:
-					fprintf(stderr,"error:Stack error.\n");
+					fprintf(stderr,":Stack error.\n");
 					break;
 				case TOOMANYARG:
-					fprintf(stderr,"error:Too many arguements.\n");
+					fprintf(stderr,":Too many arguements.\n");
 					break;
 				case TOOFEWARG:
-					fprintf(stderr,"error:Too few arguements.\n");
+					fprintf(stderr,":Too few arguements.\n");
 					break;
 				case CANTCREATETHREAD:
-					fprintf(stderr,"error:Can't create thread.n");
+					fprintf(stderr,":Can't create thread.n");
 					break;
 				case THREADERROR:
-					fprintf(stderr,"error:Thread error.\n");
+					fprintf(stderr,":Thread error.\n");
 					break;
 				case SYMUNDEFINE:
 					sid=getSymbolIdInByteCode(tmpCode->code+curproc->cp);
@@ -348,15 +349,15 @@ int runFakeVM(FakeVM* exe)
 					fprintf(stderr,":Symbol is undefined.\n");
 					break;
 				case INVOKEERROR:
-					fprintf(stderr,"error:Try to invoke \"");
+					fprintf(stderr,":Try to invoke \"");
 					DBG_printVMvalue(exe->stack->values[exe->stack->tp-1],stderr);
 					fprintf(stderr,"\"\n");
 					break;
 				case LOADDLLFAILD:
-					fprintf(stderr,"errors:Faild to load dll:\"%s\"\n",exe->stack->values[exe->stack->tp-1]->u.str->str);
+					fprintf(stderr,":Faild to load dll:\"%s\"\n",exe->stack->values[exe->stack->tp-1]->u.str->str);
 					break;
 				case INVALIDSYMBOL:
-					fprintf(stderr,"errors:Invalid symbol:%s\n",exe->stack->values[exe->stack->tp-1]->u.str->str);
+					fprintf(stderr,":Invalid symbol:%s\n",exe->stack->values[exe->stack->tp-1]->u.str->str);
 					break;
 			}
 			if(exe->VMid==-1)

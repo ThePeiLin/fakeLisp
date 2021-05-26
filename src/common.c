@@ -211,68 +211,6 @@ AST_atom* newAtom(int type,const char* value,AST_pair* prev)
 int copyCptr(AST_cptr* objCptr,const AST_cptr* copiedCptr)
 {
 	if(copiedCptr==NULL||objCptr==NULL)return 0;
-	//ComStack* s1=newComStack(32);
-	//ComStack* s2=newComStack(32);
-	//pushComStack(objCptr,s1);
-	//pushComStack((void*)copiedCptr,s2);
-	//AST_pair* outerPair=NULL;
-	//AST_atom* atom1=NULL;
-	//AST_atom* atom2=NULL;
-	//while(!isComStackEmpty(s2))
-	//{
-	//	AST_cptr* root1=popComStack(s1);
-	//	AST_cptr* root2=popComStack(s2);
-	//	root1->type=root2->type;
-	//	root1->curline=root2->curline;
-	//	switch(root1->type)
-	//	{
-	//		case PAIR:
-	//			outerPair=newPair(0,outerPair);
-	//			root1->value=outerPair;
-	//			pushComStack(getANSPairCar(root1),s1);
-	//			pushComStack(getANSPairCdr(root1),s1);
-	//			pushComStack(getANSPairCar(root2),s2);
-	//			pushComStack(getANSPairCdr(root2),s2);
-	//			break;
-	//		case ATM:
-	//			atom1=NULL;
-	//			atom2=root2->value;
-	//			switch(atom2->type)
-	//			{
-	//				case SYM:
-	//				case STR:
-	//					atom1=newAtom(atom2->type,atom2->value.str,outerPair);
-	//					break;
-	//				case BYTS:
-	//					atom1=newAtom(atom2->type,NULL,outerPair);
-	//					atom1->value.byts.size=atom2->value.byts.size;
-	//					atom1->value.byts.str=copyMemory(atom2->value.byts.str,atom2->value.byts.size);
-	//					break;
-	//				case IN32:
-	//					atom1=newAtom(atom2->type,NULL,outerPair);
-	//					atom1->value.in32=atom2->value.in32;
-	//					break;
-	//				case DBL:
-	//					atom1=newAtom(atom2->type,NULL,outerPair);
-	//					atom1->value.dbl=atom2->value.dbl;
-	//					break;
-	//				case CHR:
-	//					atom1=newAtom(atom2->type,NULL,outerPair);
-	//					atom1->value.chr=atom2->value.chr;
-	//					break;
-	//				default:
-	//					atom1=newAtom(atom2->type,NULL,outerPair);
-	//					break;
-	//			}
-	//			root1->value=atom1;
-	//			break;
-	//		default:
-	//			root1->value=NULL;
-	//			break;
-	//	}
-	//}
-	//freeComStack(s1);
-	//freeComStack(s2);
 	AST_pair* objPair=NULL;
 	AST_pair* copiedPair=NULL;
 	AST_pair* tmpPair=(copiedCptr->type==PAIR)?copiedCptr->value:NULL;

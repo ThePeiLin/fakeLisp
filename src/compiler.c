@@ -1088,7 +1088,8 @@ ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 		codeCat(tmp1->bc,pushTop);
 		codeCat(tmp1->bc,popVar);
 		tmp1->l[tmp1->ls-1]->cpc+=(popVar->size+pushTop->size);
-		codelntCopyCat(curEnv->proc,tmp1);
+		if(isLambdaExpression(objCptr)||isConst(objCptr))
+			codelntCopyCat(curEnv->proc,tmp1);
 		if(fir->outer==tmpPair)break;
 		else
 		{
@@ -1119,7 +1120,10 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		sec=nextCptr(fir);
 		tir=nextCptr(sec);
 	}
-	tmp1=compile(tir,curEnv,inter,status,evalIm);
+	objCptr=tir;
+	tmp1=(isLambdaExpression(objCptr))?
+		compile(objCptr,curEnv,inter,status,0):
+		compile(objCptr,curEnv,inter,status,evalIm);
 	if(status->status!=0)
 	{
 		freeByteCode(popVar);
@@ -1163,6 +1167,8 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		codeCat(tmp1->bc,pushTop);
 		codeCat(tmp1->bc,popVar);
 		tmp1->l[tmp1->ls-1]->cpc+=(pushTop->size+popVar->size);
+		if(tmpDef&&(isConst(objCptr)||isLambdaExpression(objCptr)))
+			codelntCopyCat(curEnv->proc,tmp1);
 		if(fir->outer==tmpPair)break;
 		else
 		{
@@ -1216,6 +1222,12 @@ ByteCodelnt* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			if(tmpDef!=NULL)
 				break;
 			tmpEnv=tmpEnv->prev;
+		}
+		if(isConst(tir)||isLambdaExpression(tir))
+		{
+			codelntCopyCat(curEnv->proc,tmp2);
+			codeCat(curEnv->proc->bc,popRef);
+			curEnv->proc->l[curEnv->proc->ls-1]->cpc+=popRef->size;
 		}
 	}
 	freeByteCode(popRef);

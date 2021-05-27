@@ -49,11 +49,7 @@ int main(int argc,char** argv)
 		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
 		initGlobKeyWord(inter->glob);
 		if(fp==stdin)
-		{
-			SymTabNode* node=newSymTabNode("stdin");
-			addSymTabNode(node,inter->table);
 			runIntpr(inter);
-		}
 		else
 		{
 #ifdef _WIN32
@@ -199,7 +195,7 @@ void runIntpr(Intpr* inter)
 		{
 			fprintf(stderr,"In file \"%s\",line %d\n",inter->filename,inter->curline);
 			if(list&&!isAllSpace(list))
-				fprintf(stderr,"%s:Invalid expression here.\n",list);
+				fprintf(stderr,"%s:Unexpected EOF.\n",list);
 			else
 				fprintf(stderr,"Can't create a valid object.\n");
 			free(list);

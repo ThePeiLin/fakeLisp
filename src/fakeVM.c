@@ -345,7 +345,7 @@ int runFakeVM(FakeVM* exe)
 					break;
 				case SYMUNDEFINE:
 					sid=getSymbolIdInByteCode(tmpCode->code+curproc->cp);
-					fprintf(stderr,"%s",exe->table->idl[sid]->symbol);
+					fprintf(stderr," %s",exe->table->idl[sid]->symbol);
 					fprintf(stderr,":Symbol is undefined.\n");
 					break;
 				case INVOKEERROR:

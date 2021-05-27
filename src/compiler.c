@@ -1781,7 +1781,7 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 		{
 			fprintf(stderr,"In file \"%s\",line %d\n",inter->filename,inter->curline);
 			if(list&&!isAllSpace(list))
-				fprintf(stderr,"%s:Invalid expression here.\n",list);
+				fprintf(stderr,"%s:Unexpected EOF.\n",list);
 			else
 				fprintf(stderr,"Can't create a valid object.\n");
 			if(list)
@@ -2442,7 +2442,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			{
 				fprintf(stderr,"In file \"%s\",line %d\n",tmpInter->filename,tmpInter->curline);
 				if(list&&!isAllSpace(list))
-					fprintf(stderr,"%s:Invalid expression here.\n",list);
+					fprintf(stderr,"%s:Unexpected EOF.\n",list);
 				else
 					fprintf(stderr,"Can't create a valid object.\n");
 				if(list)
@@ -2524,6 +2524,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 							}
 							mergeSort(exportSymbols,num,sizeof(const char*),cmpString);
 							AST_cptr* pBody=nextCptr(nextCptr(libName));
+							initCompEnv(tmpInter->glob,inter->table);
 							tmpInter->glob->prefix=libPrefix;
 							tmpInter->glob->exp=exportSymbols;
 							tmpInter->glob->n=num;
@@ -2696,5 +2697,6 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		deleteFakeMem(tmp,memMenager);
 		freeFakeMemMenager(memMenager);
 	}
+	chdir(inter->curDir);
 	return tmp;
 }

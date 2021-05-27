@@ -398,4 +398,38 @@
            (lambda (x)
              (mul x x)))
 
+         (defmacro "'(a)" (proc
+                            push_pair
+                            push_sym "quote"
+                            pop_car
+                            push_pair
+                            push_var a
+                            pop_car
+                            pop_cdr))
+         (defmacro "`(a)" (proc
+                            push_pair
+                            push_sym "qsquote"
+                            pop_car
+                            push_pair
+                            push_var a
+                            pop_car
+                            pop_cdr))
+         (defmacro "~(a)" (proc
+                            push_pair
+                            push_sym "unquote"
+                            pop_car
+                            push_pair
+                            push_var a
+                            pop_car
+                            pop_cdr))
+         (defmacro "~@(a)" (proc
+                             push_pair
+                             push_sym "unqtesp"
+                             pop_car
+                             push_pair
+                             push_var a
+                             pop_car
+                             pop_cdr))
+         (defmacro "[(,a)]" (proc
+                              push_var a))
          )

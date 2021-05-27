@@ -211,82 +211,75 @@ AST_atom* newAtom(int type,const char* value,AST_pair* prev)
 int copyCptr(AST_cptr* objCptr,const AST_cptr* copiedCptr)
 {
 	if(copiedCptr==NULL||objCptr==NULL)return 0;
-	AST_pair* objPair=NULL;
-	AST_pair* copiedPair=NULL;
-	AST_pair* tmpPair=(copiedCptr->type==PAIR)?copiedCptr->value:NULL;
-	copiedPair=tmpPair;
-	while(1)
+	ComStack* s1=newComStack(32);
+	ComStack* s2=newComStack(32);
+	ComStack* s3=newComStack(32);
+	pushComStack(objCptr,s1);
+	pushComStack((void*)copiedCptr,s2);
+	pushComStack(NULL,s3);
+	AST_pair* outerPair=NULL;
+	AST_atom* atom1=NULL;
+	AST_atom* atom2=NULL;
+	while(!isComStackEmpty(s2))
 	{
-		objCptr->type=copiedCptr->type;
-		objCptr->curline=copiedCptr->curline;
-		if(copiedCptr->type==PAIR)
+		AST_cptr* root1=popComStack(s1);
+		AST_cptr* root2=popComStack(s2);
+		root1->type=root2->type;
+		root1->curline=root2->curline;
+		switch(root1->type)
 		{
-			objPair=newPair(0,objPair);
-			objCptr->value=objPair;
-			copiedPair=copiedCptr->value;
-			copiedCptr=&copiedPair->car;
-			copiedCptr=&copiedPair->car;
-			objCptr=&objPair->car;
-			continue;
+			case PAIR:
+				outerPair=newPair(0,popComStack(s3));
+				root1->value=outerPair;
+				pushComStack(getANSPairCar(root1),s1);
+				pushComStack(getANSPairCdr(root1),s1);
+				pushComStack(getANSPairCar(root2),s2);
+				pushComStack(getANSPairCdr(root2),s2);
+				pushComStack(outerPair,s3);
+				pushComStack(outerPair,s3);
+				break;
+			case ATM:
+				atom1=NULL;
+				atom2=root2->value;
+				outerPair=popComStack(s3);
+				switch(atom2->type)
+				{
+					case SYM:
+					case STR:
+						atom1=newAtom(atom2->type,atom2->value.str,outerPair);
+						break;
+					case BYTS:
+						atom1=newAtom(atom2->type,NULL,outerPair);
+						atom1->value.byts.size=atom2->value.byts.size;
+						atom1->value.byts.str=copyMemory(atom2->value.byts.str,atom2->value.byts.size);
+						break;
+					case IN32:
+						atom1=newAtom(atom2->type,NULL,outerPair);
+						atom1->value.in32=atom2->value.in32;
+						break;
+					case DBL:
+						atom1=newAtom(atom2->type,NULL,outerPair);
+						atom1->value.dbl=atom2->value.dbl;
+						break;
+					case CHR:
+						atom1=newAtom(atom2->type,NULL,outerPair);
+						atom1->value.chr=atom2->value.chr;
+						break;
+					default:
+						atom1=newAtom(atom2->type,NULL,outerPair);
+						break;
+				}
+				root1->value=atom1;
+				break;
+			default:
+				outerPair=popComStack(s3);
+				root1->value=NULL;
+				break;
 		}
-		else if(copiedCptr->type==ATM)
-		{
-			AST_atom* coAtm=copiedCptr->value;
-			AST_atom* objAtm=NULL;
-			if(coAtm->type==SYM||coAtm->type==STR)
-				objAtm=newAtom(coAtm->type,coAtm->value.str,objPair);
-			else if(coAtm->type==BYTS)
-			{
-				objAtm=newAtom(coAtm->type,NULL,objPair);
-				objAtm->value.byts.size=coAtm->value.byts.size;
-				objAtm->value.byts.str=copyMemory(coAtm->value.byts.str,coAtm->value.byts.size);
-			}
-			else
-			{
-				objAtm=newAtom(coAtm->type,NULL,objPair);
-				if(objAtm->type==DBL)objAtm->value.dbl=coAtm->value.dbl;
-				else if(objAtm->type==IN32)objAtm->value.in32=coAtm->value.in32;
-				else if(objAtm->type==CHR)objAtm->value.chr=coAtm->value.chr;
-			}
-			objCptr->value=objAtm;
-			if(copiedCptr==&copiedPair->car)
-			{
-				copiedCptr=&copiedPair->cdr;
-				objCptr=&objPair->cdr;
-				continue;
-			}
-	
-		}
-		else if(copiedCptr->type==NIL)
-		{
-			objCptr->value=NULL;
-			if(copiedCptr==&copiedPair->car)
-			{
-				objCptr=&objPair->cdr;
-				copiedCptr=&copiedPair->cdr;
-				continue;
-			}
-		}
-		if(copiedPair!=NULL&&copiedCptr==&copiedPair->cdr)
-		{
-			AST_pair* coPrev=NULL;
-			if(copiedPair->prev==NULL)break;
-			while(objPair->prev!=NULL&&copiedPair!=NULL&&copiedPair!=tmpPair)
-			{
-				coPrev=copiedPair;
-				copiedPair=copiedPair->prev;
-				objPair=objPair->prev;
-				if(coPrev==copiedPair->car.value)break;
-			}
-			if(copiedPair!=NULL)
-			{
-				copiedCptr=&copiedPair->cdr;
-				objCptr=&objPair->cdr;
-			}
-			if(copiedPair==tmpPair&&copiedCptr->type==objCptr->type)break;
-		}
-		if(copiedPair==NULL)break;
 	}
+	freeComStack(s1);
+	freeComStack(s2);
+	freeComStack(s3);
 	return 1;
 }
 void replaceCptr(AST_cptr* fir,const AST_cptr* sec)

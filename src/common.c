@@ -455,7 +455,16 @@ int isDouble(const char* objStr)
 int stringToChar(const char* objStr)
 {
 	int ch=0;
-	if(isNum(objStr))
+	if(toupper(objStr[0])=='X')
+	{
+		char* tmpStr=(char*)malloc(sizeof(char)*(strlen(objStr)+2));
+		sprintf(tmpStr,"0%s",objStr);
+		if(isHexNum(objStr))
+		{
+			sscanf(tmpStr+2,"%x",&ch);
+		}
+	}
+	else if(isNum(objStr))
 	{
 		if(isHexNum(objStr))
 		{
@@ -502,8 +511,8 @@ int stringToChar(const char* objStr)
 
 int isNum(const char* objStr)
 {
-	if(isHexNum(objStr+(objStr[0]=='0')))return 1;
 	if(!isdigit(*objStr)&&!((*objStr=='-'||*objStr=='.')&&strlen(objStr)>1))return 0;
+	if(isHexNum(objStr+(objStr[0]=='0')))return 1;
 	if(isDouble(objStr))return 1;
 	int len=strlen(objStr);
 	int i=(*objStr=='-')?1:0;

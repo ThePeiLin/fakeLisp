@@ -52,11 +52,8 @@ static VMenv* genGlobEnv(CompEnv* cEnv,VMheap* heap,SymbolTable* table)
 AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern)
 {
 	if(objStr==NULL)return NULL;
-	size_t i=0;
-	int braketsNum=0;
-	AST_cptr* root=NULL;
-	AST_pair* objPair=NULL;
-	AST_cptr* objCptr=NULL;
+	if(isAllSpace(objStr))
+		return NULL;
 	if(pattern)
 	{
 		inter->curline+=countChar(objStr,'\n',skipSpace(objStr));
@@ -173,225 +170,187 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 	}
 	else
 	{
-		while(*(objStr+i)!='\0')
+		StringMatchPattern* pattern=NULL;
+		ComStack* s1=newComStack(32);
+		ComStack* s2=newComStack(32);
+		int32_t i=0;
+		for(;isspace(objStr[i]);i++)
+			if(objStr[i]=='\n')
+				inter->curline+=1;
+		int32_t curline=(inter)?inter->curline:0;
+		AST_cptr* tmp=newCptr(curline,NULL);
+		pushComStack(tmp,s1);
+		int hasComma=1;
+		while(objStr[i]&&!isComStackEmpty(s1))
 		{
-			if(*(objStr+i)=='(')
+			for(;isspace(objStr[i]);i++)
+				if(objStr[i]=='\n')
+					inter->curline+=1;
+			AST_cptr* root=popComStack(s1);
+			if(objStr[i]=='(')
 			{
-				if(i!=0&&*(objStr+i-1)==')')
+				hasComma=0;
+				root->type=PAIR;
+				root->value=newPair(curline,root->outer);
+				if(&root->outer->car==root)
 				{
-					if(objPair!=NULL)
+					//如果root是root所在pair的car部分，
+					//则在对应的pair后追加一个pair为下一个部分准备
+					AST_cptr* tmp=popComStack(s1);
+					if(tmp)
 					{
-						int curline=(inter)?inter->curline:0;
-						AST_pair* tmp=newPair(curline,objPair);
-						objPair->cdr.type=PAIR;
-						objPair->cdr.value=(void*)tmp;
-						objPair=tmp;
-						objCptr=&objPair->car;
+						tmp->type=PAIR;
+						tmp->value=newPair(curline,tmp->outer);
+						pushComStack(getANSPairCdr(tmp),s1);
+						pushComStack(getANSPairCar(tmp),s1);
 					}
 				}
+				pushComStack((void*)s1->top,s2);
+				pushComStack(getANSPairCdr(root),s1);
+				pushComStack(getANSPairCar(root),s1);
 				i++;
-				braketsNum++;
-				if(root==NULL)
-				{
-					int curline=(inter)?inter->curline:0;
-					root=newCptr(curline,objPair);
-					root->type=PAIR;
-					root->value=newPair(curline,NULL);
-					objPair=root->value;
-					objCptr=&objPair->car;
-				}
-				else
-				{
-					int curline=(inter)?inter->curline:0;
-					objPair=newPair(curline,objPair);
-					objCptr->type=PAIR;
-					objCptr->value=(void*)objPair;
-					objCptr=&objPair->car;
-				}
-			//	printCptr(root,stderr);
-			//	putc('\n',stderr);
 			}
-			else if(*(objStr+i)==')')
+			else if(objStr[i]==',')
 			{
-				i++;
-				braketsNum--;
-				AST_pair* prev=NULL;
-				if(objPair==NULL)break;
-				while(objPair->prev!=NULL)
+				if(hasComma)
 				{
-					prev=objPair;
-					objPair=objPair->prev;
-					if(objPair->car.value==prev)break;
+					deleteCptr(tmp);
+					free(tmp);
+					tmp=NULL;
+					break;
 				}
-				if(objPair->car.value==prev)
-					objCptr=&objPair->car;
-				else if(objPair->cdr.value==prev)
-					objCptr=&objPair->cdr;
-			}
-			else if(*(objStr+i)==',')
-			{
-				if(objCptr==&objPair->cdr)
+				else hasComma=1;
+				if(root->outer->prev&&root->outer->prev->cdr.value==root->outer)
 				{
-					if(root)
-						deleteCptr(root);
-					free(root);
-					return NULL;
+					//将为下一个部分准备的pair删除并将该pair的前一个pair的cdr部分入栈
+					s1->top=(long)topComStack(s2);
+					AST_cptr* tmp=&root->outer->prev->cdr;
+					free(tmp->value);
+					tmp->type=NIL;
+					tmp->value=NULL;
+					pushComStack(tmp,s1);
 				}
 				i++;
-				objCptr=&objPair->cdr;
 			}
-			else if(isspace(*(objStr+i)))
+			else if(objStr[i]==')')
 			{
-				int j=0;
-				char* tmpStr=(char*)objStr+i;
-				while(j>(int)-i&&isspace(*(tmpStr+j)))j--;
-				if(*(tmpStr+j)==','||*(tmpStr+j)=='(')
+				hasComma=0;
+				long t=(long)popComStack(s2);
+				AST_cptr* c=s1->data[t];
+				if(s1->top-t>0&&c->outer->prev&&c->outer->prev->cdr.value==c->outer)
 				{
-					j=1;
-					while(isspace(*(tmpStr+j)))j++;
-					i+=j;
-					continue;
+					//如果还有为下一部分准备的pair，则将该pair删除
+					AST_cptr* tmpCptr=s1->data[t];
+					tmpCptr=&tmpCptr->outer->prev->cdr;
+					tmpCptr->type=NIL;
+					free(tmpCptr->value);
+					tmpCptr->value=NULL;
 				}
-				j=0;
-				while(isspace(*(tmpStr+j)))
-				{
-					if(*(tmpStr+j)=='\n')
-					{
-						if(inter)
-							inter->curline+=1;
-					}
-					j++;
-				}
-				if(*(tmpStr+j)==','||*(tmpStr+j)==')')
-				{
-					i+=j;
-					continue;
-				}
-				i+=j;
-				if(objPair!=NULL)
-				{
-					int curline=(inter)?inter->curline:0;
-					AST_pair* tmp=newPair(curline,objPair);
-					objPair->cdr.type=PAIR;
-					objPair->cdr.value=(void*)tmp;
-					objPair=tmp;
-					objCptr=&objPair->car;
-				}
-			}
-			else if(*(objStr+i)=='\"')
-			{
-				int curline=(inter)?inter->curline:0;
-				if(root==NULL)objCptr=root=newCptr(curline,objPair);
-				size_t len=0;
-				char* tmpStr=castEscapeCharater(objStr+i+1,'\"',&len);
-				inter->curline+=countChar(objStr+i,'\n',len);
-				objCptr->type=ATM;
-				objCptr->value=(void*)newAtom(STR,tmpStr,objPair);
-				i+=len+1;
-				free(tmpStr);
-			}
-			else if(isdigit(*(objStr+i))||(*(objStr+i)=='-'&&isdigit(*(objStr+i+1)))||(*(objStr+i)=='.'&&isdigit(*(objStr+i+1))))
-			{
-				int curline=(inter)?inter->curline:0;
-				if(root==NULL)objCptr=root=newCptr(curline,objPair);
-				int32_t len=findKeyString(objStr+i);
-				char* tmp=(char*)malloc(sizeof(char)*(len+1));
-				if(!tmp)
-					errors("createTree",__FILE__,__LINE__);
-				strncpy(tmp,objStr+i,len);
-				tmp[len]='\0';
-				AST_atom* tmpAtm=NULL;
-				if(!isNum(tmp))
-					tmpAtm=newAtom(SYM,tmp,objPair);
-				else if(isDouble(tmp))
-				{
-					tmpAtm=newAtom(DBL,NULL,objPair);
-					double num=stringToDouble(tmp);
-					tmpAtm->value.dbl=num;
-				}
-				else
-				{
-					tmpAtm=newAtom(IN32,NULL,objPair);
-					int32_t num=stringToInt(tmp);
-					tmpAtm->value.in32=num;
-				}
-				objCptr->type=ATM;
-				objCptr->value=tmpAtm;
-				i+=len;
-				free(tmp);
-			}
-			else if(*(objStr+i)=='#'&&(/**(objStr+i)&&*/*(objStr+1+i)=='\\'))
-			{
-				int curline=(inter)?inter->curline:0;
-				if(root==NULL)objCptr=root=newCptr(curline,objPair);
-				char* tmp=getStringAfterBackslash(objStr+i+2);
-				objCptr->type=ATM;
-				objCptr->value=(void*)newAtom(CHR,NULL,objPair);
-				AST_atom* tmpAtm=objCptr->value;
-				if(tmp[0]!='\\')tmpAtm->value.chr=tmp[0];
-				else tmpAtm->value.chr=stringToChar(tmp+1);
-				i+=strlen(tmp)+2;
-				free(tmp);
-			}
-			else if(*(objStr+i)=='#'&&(/**(objStr+i)&&*/*(objStr+1+i)=='b'))
-			{
-				int curline=(inter)?inter->curline:0;
-				if(root==NULL)objCptr=root=newCptr(curline,objPair);
-				char* tmp=getStringAfterBackslash(objStr+i+2);
-				objCptr->type=ATM;
-				objCptr->value=(void*)newAtom(BYTS,NULL,objPair);
-				AST_atom* tmpAtm=objCptr->value;
-				int32_t size=strlen(tmp)/2+strlen(tmp)%2;
-				tmpAtm->value.byts.size=size;
-				tmpAtm->value.byts.str=castStrByteStr(tmp);
-				i+=strlen(tmp)+2;
-				free(tmp);
+				//将栈顶恢复为将pair入栈前的位置
+				s1->top=t;
+				i++;
 			}
 			else
 			{
-				int curline=(inter)?inter->curline:0;
-				StringMatchPattern* tmpPattern=findStringPattern(objStr+i);
-				if(tmpPattern)
+				root->type=ATM;
+				char* str=NULL;
+				if(objStr[i]=='\"')
 				{
-					AST_cptr* tmpCptr=createTree(objStr+i,inter,tmpPattern);
+					size_t len=0;
+					str=castEscapeCharater(objStr+i+1,'\"',&len);
+					inter->curline+=countChar(objStr+i,'\n',len);
+					root->value=newAtom(STR,str,root->outer);
+					i+=len+1;
+					free(str);
+				}
+				else if((pattern=findStringPattern(objStr+i)))
+				{
+					root->type=NIL;
+					AST_cptr* tmpCptr=createTree(objStr+i,inter,pattern);
 					if(tmpCptr==NULL)
 					{
-						deleteCptr(root);
-						free(root);
+						deleteCptr(tmp);
+						free(tmp);
 						return NULL;
 					}
-					if(root==NULL)objCptr=root=tmpCptr;
+					root->type=tmpCptr->type;
+					root->value=tmpCptr->value;
+					if(tmpCptr->type==ATM)
+						((AST_atom*)tmpCptr->value)->prev=root->outer;
 					else
+						((AST_pair*)tmpCptr->value)->prev=root->outer;
+					free(tmpCptr);
+					i+=skipInPattern(objStr+i,pattern);
+				}
+				else if(objStr[i]=='#')
+				{
+					i++;
+					AST_atom* atom=NULL;
+					switch(objStr[i])
 					{
-						replaceCptr(objCptr,tmpCptr);
-						deleteCptr(tmpCptr);
-						free(tmpCptr);
+						case '\\':
+							str=getStringAfterBackslash(objStr+i+1);
+							atom=newAtom(CHR,NULL,root->outer);
+							root->value=atom;
+							atom->value.chr=(str[0]=='\\')?
+								stringToChar(str+1):
+								str[0];
+							i+=strlen(str)+1;
+							break;
+						case 'b':
+							str=getStringAfterBackslash(objStr+i+1);
+							atom=newAtom(BYTS,NULL,root->outer);
+							atom->value.byts.refcount=0;
+							atom->value.byts.size=strlen(str)/2+strlen(str)%2;
+							atom->value.byts.str=castStrByteStr(str);
+							root->value=atom;
+							i+=strlen(str)+1;
+							break;
 					}
-					i+=skipInPattern(objStr+i,tmpPattern);
-					if(!braketsNum)
-						break;
+					free(str);
 				}
 				else
 				{
-					if(root==NULL)objCptr=root=newCptr(curline,objPair);
-					char* tmp=getStringFromList(objStr+i);
-					objCptr->type=ATM;
-					objCptr->value=(void*)newAtom(SYM,tmp,objPair);
-					i+=strlen(tmp);
-					free(tmp);
+					char* str=getStringFromList(objStr+i);
+					if(isNum(str))
+					{
+						AST_atom* atom=NULL;
+						if(isDouble(str))
+						{
+							atom=newAtom(DBL,NULL,root->outer);
+							atom->value.dbl=stringToDouble(str);
+						}
+						else
+						{
+							atom=newAtom(IN32,NULL,root->outer);
+							atom->value.in32=stringToInt(str);
+						}
+						root->value=atom;
+					}
+					else
+						root->value=newAtom(SYM,str,root->outer);
+					i+=strlen(str);
+					free(str);
+				}
+				if(&root->outer->car==root)
+				{
+					//如果root是root所在pair的car部分，
+					//则在对应的pair后追加一个pair为下一个部分准备
+					AST_cptr* tmp=popComStack(s1);
+					if(tmp)
+					{
+						tmp->type=PAIR;
+						tmp->value=newPair(curline,tmp->outer);
+						pushComStack(getANSPairCdr(tmp),s1);
+						pushComStack(getANSPairCar(tmp),s1);
+					}
 				}
 			}
-			if(braketsNum<=0&&root!=NULL)break;
 		}
+		freeComStack(s1);
+		freeComStack(s2);
+		return tmp;
 	}
-	if(braketsNum!=0)
-	{
-		if(root)
-			deleteCptr(root);
-		free(root);
-		return NULL;
-	}
-	return root;
 }
 
 AST_cptr* castVMvalueToCptr(VMvalue* value,int32_t curline)

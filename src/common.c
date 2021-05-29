@@ -1526,7 +1526,7 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 	if(!objStr)
 		return NULL;
 	ComStack* s1=newComStack(32);
-	ComStack* intStack=newComStack(32);
+	ComStack* s2=newComStack(32);
 	int32_t i=0;
 	for(;isspace(objStr[i]);i++)
 		if(objStr[i]=='\n')
@@ -1544,24 +1544,27 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 		{
 			root->type=PAIR;
 			root->value=newPair(curline,root->outer);
-			AST_cptr* tmp=popComStack(s1);
-			if(tmp)
+			if(&root->outer->car==root)
 			{
-				tmp->type=PAIR;
-				tmp->value=newPair(curline,tmp->outer);
-				pushComStack(getANSPairCdr(tmp),s1);
-				pushComStack(getANSPairCar(tmp),s1);
+				AST_cptr* tmp=popComStack(s1);
+				if(tmp)
+				{
+					tmp->type=PAIR;
+					tmp->value=newPair(curline,tmp->outer);
+					pushComStack(getANSPairCdr(tmp),s1);
+					pushComStack(getANSPairCar(tmp),s1);
+				}
 			}
-			pushComStack((void*)s1->top,intStack);
+			pushComStack((void*)s1->top,s2);
 			pushComStack(getANSPairCdr(root),s1);
 			pushComStack(getANSPairCar(root),s1);
 			i++;
 		}
 		else if(objStr[i]==',')
 		{
-			if((s1->top-1)!=(long)topComStack(intStack))
+			if(root->outer->prev&&root->outer->prev->cdr.value==root->outer)
 			{
-				s1->top-=1;
+				s1->top=(long)topComStack(s2);
 				AST_cptr* tmp=&root->outer->prev->cdr;
 				free(tmp->value);
 				tmp->type=NIL;
@@ -1572,7 +1575,7 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 		}
 		else if(objStr[i]==')')
 		{
-			long t=(long)popComStack(intStack);
+			long t=(long)popComStack(s2);
 			AST_cptr* c=s1->data[t];
 			if(s1->top-t>0&&c->outer->prev&&c->outer->prev->cdr.value==c->outer)
 			{
@@ -1591,16 +1594,22 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 			root->type=ATM;
 			root->value=newAtom(SYM,str,root->outer);
 			i+=strlen(str);
-			AST_cptr* tmp=popComStack(s1);
-			if(tmp)
+			free(str);
+			if(&root->outer->car==root)
 			{
-				tmp->type=PAIR;
-				tmp->value=newPair(curline,tmp->outer);
-				pushComStack(getANSPairCdr(tmp),s1);
-				pushComStack(getANSPairCar(tmp),s1);
+				AST_cptr* tmp=popComStack(s1);
+				if(tmp)
+				{
+					tmp->type=PAIR;
+					tmp->value=newPair(curline,tmp->outer);
+					pushComStack(getANSPairCdr(tmp),s1);
+					pushComStack(getANSPairCar(tmp),s1);
+				}
 			}
 		}
 	}
+	freeComStack(s1);
+	freeComStack(s2);
 	return tmp;
 }
 //{

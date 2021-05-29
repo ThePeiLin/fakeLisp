@@ -928,6 +928,11 @@ int isInValidStringPattern(const char* str)
 				return 1;
 			}
 		}
+		else if(parts[i][0]=='$'||parts[i][0]=='#')
+		{
+			freeStringArry(parts,num);
+			return 1;
+		}
 	}
 	freeStringArry(parts,num);
 	return 0;

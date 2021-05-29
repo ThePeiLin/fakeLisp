@@ -693,7 +693,7 @@ int32_t skipUntilNext(const char* str,const char* part)
 		}
 		else if(str[s]=='\"')
 		{
-			int32_t len=0;
+			size_t len=0;
 			char* tmpStr=castEscapeCharater(str+s+1,'\"',&len);
 			s+=len+1;
 			free(tmpStr);
@@ -756,7 +756,7 @@ int32_t skipAtom(const char* str,const char* keyString)
 	i+=skipSpace(str);
 	if(str[i]=='\"')
 	{
-		int32_t len=0;
+		size_t len=0;
 		char* tStr=castEscapeCharater(str+i+1,'\"',&len);
 		free(tStr);
 		i+=len+1;

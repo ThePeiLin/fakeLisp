@@ -17,7 +17,7 @@ int isNum(const char*);
 char* getStringFromList(const char*);
 char* getStringAfterBackslash(const char*);
 int power(int,int);
-char* castEscapeCharater(const char*,char,int32_t*);
+char* castEscapeCharater(const char*,char,size_t*);
 void printRawString(const char*,FILE*);
 void printRawChar(char,FILE*);
 char* doubleToString(double);

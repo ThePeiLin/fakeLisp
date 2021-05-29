@@ -282,7 +282,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 			{
 				int curline=(inter)?inter->curline:0;
 				if(root==NULL)objCptr=root=newCptr(curline,objPair);
-				int32_t len=0;
+				size_t len=0;
 				char* tmpStr=castEscapeCharater(objStr+i+1,'\"',&len);
 				inter->curline+=countChar(objStr+i,'\n',len);
 				objCptr->type=ATM;

@@ -213,11 +213,8 @@ int copyCptr(AST_cptr* objCptr,const AST_cptr* copiedCptr)
 	if(copiedCptr==NULL||objCptr==NULL)return 0;
 	ComStack* s1=newComStack(32);
 	ComStack* s2=newComStack(32);
-	ComStack* s3=newComStack(32);
 	pushComStack(objCptr,s1);
 	pushComStack((void*)copiedCptr,s2);
-	pushComStack(NULL,s3);
-	AST_pair* outerPair=NULL;
 	AST_atom* atom1=NULL;
 	AST_atom* atom2=NULL;
 	while(!isComStackEmpty(s2))
@@ -229,57 +226,51 @@ int copyCptr(AST_cptr* objCptr,const AST_cptr* copiedCptr)
 		switch(root1->type)
 		{
 			case PAIR:
-				outerPair=newPair(0,popComStack(s3));
-				root1->value=outerPair;
+				root1->value=newPair(0,root1->outer);
 				pushComStack(getANSPairCar(root1),s1);
 				pushComStack(getANSPairCdr(root1),s1);
 				pushComStack(getANSPairCar(root2),s2);
 				pushComStack(getANSPairCdr(root2),s2);
-				pushComStack(outerPair,s3);
-				pushComStack(outerPair,s3);
 				break;
 			case ATM:
 				atom1=NULL;
 				atom2=root2->value;
-				outerPair=popComStack(s3);
 				switch(atom2->type)
 				{
 					case SYM:
 					case STR:
-						atom1=newAtom(atom2->type,atom2->value.str,outerPair);
+						atom1=newAtom(atom2->type,atom2->value.str,root1->outer);
 						break;
 					case BYTS:
-						atom1=newAtom(atom2->type,NULL,outerPair);
+						atom1=newAtom(atom2->type,NULL,root1->outer);
 						atom1->value.byts.size=atom2->value.byts.size;
 						atom1->value.byts.str=copyMemory(atom2->value.byts.str,atom2->value.byts.size);
 						break;
 					case IN32:
-						atom1=newAtom(atom2->type,NULL,outerPair);
+						atom1=newAtom(atom2->type,NULL,root1->outer);
 						atom1->value.in32=atom2->value.in32;
 						break;
 					case DBL:
-						atom1=newAtom(atom2->type,NULL,outerPair);
+						atom1=newAtom(atom2->type,NULL,root1->outer);
 						atom1->value.dbl=atom2->value.dbl;
 						break;
 					case CHR:
-						atom1=newAtom(atom2->type,NULL,outerPair);
+						atom1=newAtom(atom2->type,NULL,root1->outer);
 						atom1->value.chr=atom2->value.chr;
 						break;
 					default:
-						atom1=newAtom(atom2->type,NULL,outerPair);
+						atom1=newAtom(atom2->type,NULL,root1->outer);
 						break;
 				}
 				root1->value=atom1;
 				break;
 			default:
-				outerPair=popComStack(s3);
 				root1->value=NULL;
 				break;
 		}
 	}
 	freeComStack(s1);
 	freeComStack(s2);
-	freeComStack(s3);
 	return 1;
 }
 void replaceCptr(AST_cptr* fir,const AST_cptr* sec)
@@ -1535,7 +1526,6 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 	if(!objStr)
 		return NULL;
 	ComStack* s1=newComStack(32);
-	ComStack* s2=newComStack(32);
 	ComStack* intStack=newComStack(32);
 	int32_t i=0;
 	for(;isspace(objStr[i]);i++)
@@ -1544,7 +1534,6 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 	int32_t curline=(inter)?inter->curline:0;
 	AST_cptr* tmp=newCptr(curline,NULL);
 	pushComStack(tmp,s1);
-	pushComStack(NULL,s2);
 	while(objStr[i]&&!isComStackEmpty(s1))
 	{
 		for(;isspace(objStr[i]);i++)
@@ -1554,7 +1543,7 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 		if(objStr[i]=='(')
 		{
 			root->type=PAIR;
-			root->value=newPair(curline,popComStack(s2));
+			root->value=newPair(curline,root->outer);
 			AST_cptr* tmp=popComStack(s1);
 			if(tmp)
 			{
@@ -1562,30 +1551,30 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 				tmp->value=newPair(curline,tmp->outer);
 				pushComStack(getANSPairCdr(tmp),s1);
 				pushComStack(getANSPairCar(tmp),s1);
-				pushComStack(tmp->value,s2);
-				pushComStack(tmp->value,s2);
 			}
 			pushComStack((void*)s1->top,intStack);
 			pushComStack(getANSPairCdr(root),s1);
 			pushComStack(getANSPairCar(root),s1);
-			pushComStack(root->value,s2);
-			pushComStack(root->value,s2);
 			i++;
 		}
 		else if(objStr[i]==',')
 		{
-			s1->top-=1;
-			AST_cptr* tmp=&root->outer->prev->cdr;
-			free(tmp->value);
-			tmp->type=NIL;
-			tmp->value=NULL;
-			pushComStack(tmp,s1);
+			if((s1->top-1)!=(long)topComStack(intStack))
+			{
+				s1->top-=1;
+				AST_cptr* tmp=&root->outer->prev->cdr;
+				free(tmp->value);
+				tmp->type=NIL;
+				tmp->value=NULL;
+				pushComStack(tmp,s1);
+			}
 			i++;
 		}
 		else if(objStr[i]==')')
 		{
-			uintptr_t t=(uintptr_t)popComStack(intStack);
-			if(s1->top-t>0)
+			long t=(long)popComStack(intStack);
+			AST_cptr* c=s1->data[t];
+			if(s1->top-t>0&&c->outer->prev&&c->outer->prev->cdr.value==c->outer)
 			{
 				AST_cptr* tmpCptr=s1->data[t];
 				tmpCptr=&tmpCptr->outer->prev->cdr;
@@ -1600,7 +1589,7 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 		{
 			char* str=getStringFromList(objStr+i);
 			root->type=ATM;
-			root->value=newAtom(SYM,str,popComStack(s2));
+			root->value=newAtom(SYM,str,root->outer);
 			i+=strlen(str);
 			AST_cptr* tmp=popComStack(s1);
 			if(tmp)
@@ -1609,8 +1598,6 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 				tmp->value=newPair(curline,tmp->outer);
 				pushComStack(getANSPairCdr(tmp),s1);
 				pushComStack(getANSPairCar(tmp),s1);
-				pushComStack(tmp->value,s2);
-				pushComStack(tmp->value,s2);
 			}
 		}
 	}

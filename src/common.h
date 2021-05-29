@@ -116,6 +116,7 @@ void freeByteCodeLabel(ByteCodeLabel*);
 ComStack* newComStack(uint32_t size);
 void pushComStack(void* data,ComStack*);
 void* popComStack(ComStack*);
+void* topComStack(ComStack*);
 void freeComStack(ComStack*);
 void recycleComStack(ComStack*);
 int isComStackEmpty(ComStack*);

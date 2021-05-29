@@ -208,6 +208,8 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 					objCptr->value=(void*)objPair;
 					objCptr=&objPair->car;
 				}
+			//	printCptr(root,stderr);
+			//	putc('\n',stderr);
 			}
 			else if(*(objStr+i)==')')
 			{

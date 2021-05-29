@@ -446,7 +446,9 @@ int isDouble(const char* objStr)
 	int i=(objStr[0]=='-')?1:0;
 	int len=strlen(objStr);
 	for(;i<len;i++)
+	{
 		if(objStr[i]=='.'||(i!=0&&toupper(objStr[i])=='E'&&i<(len-1)))return 1;
+	}
 	return 0;
 }
 
@@ -500,9 +502,9 @@ int stringToChar(const char* objStr)
 
 int isNum(const char* objStr)
 {
+	if(!isdigit(*objStr)&&!((*objStr=='-'||*objStr=='.')&&strlen(objStr)>1))return 0;
 	if(isHexNum(objStr+(objStr[0]=='0')))return 1;
 	if(isDouble(objStr))return 1;
-	if(!isdigit(*objStr)&&*objStr!='-'&&*objStr!='.')return 0;
 	int len=strlen(objStr);
 	int i=(*objStr=='-')?1:0;
 	int hasDot=0;
@@ -1219,7 +1221,7 @@ char** split(char* str,char* divstr,int* length)
 	return strArry;
 }
 
-char* castEscapeCharater(const char* str,char end,int32_t* len)
+char* castEscapeCharater(const char* str,char end,size_t* len)
 {
 	int32_t strSize=0;
 	int32_t memSize=MAX_STRING_SIZE;
@@ -1534,6 +1536,7 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 	int32_t curline=(inter)?inter->curline:0;
 	AST_cptr* tmp=newCptr(curline,NULL);
 	pushComStack(tmp,s1);
+	int hasComma=1;
 	while(objStr[i]&&!isComStackEmpty(s1))
 	{
 		for(;isspace(objStr[i]);i++)
@@ -1542,10 +1545,13 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 		AST_cptr* root=popComStack(s1);
 		if(objStr[i]=='(')
 		{
+			hasComma=0;
 			root->type=PAIR;
 			root->value=newPair(curline,root->outer);
 			if(&root->outer->car==root)
 			{
+				//如果root是root所在pair的car部分，
+				//则在对应的pair后追加一个pair为下一个部分准备
 				AST_cptr* tmp=popComStack(s1);
 				if(tmp)
 				{
@@ -1562,8 +1568,16 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 		}
 		else if(objStr[i]==',')
 		{
+			if(hasComma)
+			{
+				deleteCptr(tmp);
+				tmp=NULL;
+				break;
+			}
+			else hasComma=1;
 			if(root->outer->prev&&root->outer->prev->cdr.value==root->outer)
 			{
+				//将为下一个部分准备的pair删除并将该pair的前一个pair的cdr部分入栈
 				s1->top=(long)topComStack(s2);
 				AST_cptr* tmp=&root->outer->prev->cdr;
 				free(tmp->value);
@@ -1575,28 +1589,89 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 		}
 		else if(objStr[i]==')')
 		{
+			hasComma=0;
 			long t=(long)popComStack(s2);
 			AST_cptr* c=s1->data[t];
 			if(s1->top-t>0&&c->outer->prev&&c->outer->prev->cdr.value==c->outer)
 			{
+				//如果还有为下一部分准备的pair，则将该pair删除
 				AST_cptr* tmpCptr=s1->data[t];
 				tmpCptr=&tmpCptr->outer->prev->cdr;
 				tmpCptr->type=NIL;
 				free(tmpCptr->value);
 				tmpCptr->value=NULL;
 			}
+			//将栈顶恢复为将pair入栈前的位置
 			s1->top=t;
 			i++;
 		}
 		else
 		{
-			char* str=getStringFromList(objStr+i);
 			root->type=ATM;
-			root->value=newAtom(SYM,str,root->outer);
-			i+=strlen(str);
-			free(str);
+			char* str=NULL;
+			if(objStr[i]=='\"')
+			{
+				size_t len=0;
+				str=castEscapeCharater(objStr+i+1,'\"',&len);
+				inter->curline+=countChar(objStr+i,'\n',len);
+				root->value=newAtom(STR,str,root->outer);
+				i+=len+1;
+				free(str);
+			}
+			else if(objStr[i]=='#')
+			{
+				i++;
+				AST_atom* atom=NULL;
+				switch(objStr[i])
+				{
+					case '\\':
+						str=getStringAfterBackslash(objStr+i+1);
+						atom=newAtom(CHR,NULL,root->outer);
+						root->value=atom;
+						atom->value.chr=(str[0]=='\\')?
+							stringToChar(str+1):
+							str[0];
+						i+=strlen(str)+1;
+						break;
+					case 'b':
+						str=getStringAfterBackslash(objStr+i+1);
+						atom=newAtom(BYTS,NULL,root->outer);
+						atom->value.byts.refcount=0;
+						atom->value.byts.size=strlen(str)/2+strlen(str)%2;
+						atom->value.byts.str=castStrByteStr(str);
+						root->value=atom;
+						i+=strlen(str)+1;
+						break;
+				}
+				free(str);
+			}
+			else
+			{
+				char* str=getStringFromList(objStr+i);
+				if(isNum(str))
+				{
+					AST_atom* atom=NULL;
+					if(isDouble(str))
+					{
+						atom=newAtom(DBL,NULL,root->outer);
+						atom->value.dbl=stringToDouble(str);
+					}
+					else
+					{
+						atom=newAtom(IN32,NULL,root->outer);
+						atom->value.in32=stringToInt(str);
+					}
+					root->value=atom;
+				}
+				else
+					root->value=newAtom(SYM,str,root->outer);
+				i+=strlen(str);
+				free(str);
+			}
 			if(&root->outer->car==root)
 			{
+				//如果root是root所在pair的car部分，
+				//则在对应的pair后追加一个pair为下一个部分准备
 				AST_cptr* tmp=popComStack(s1);
 				if(tmp)
 				{

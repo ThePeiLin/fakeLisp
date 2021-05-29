@@ -2256,7 +2256,8 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,int8_t mode,CRL** h)
 				if(tmpValue->type==PAIR&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
 					fprintf(fp,"#%d#",CRLcount);
 				else
-					writeVMvalue(tmpValue,fp,mode,h);
+					if(tmpValue->type!=NIL||objValue->u.pair->cdr->type!=NIL)
+						writeVMvalue(tmpValue,fp,mode,h);
 				tmpValue=getVMpairCdr(objValue);
 				if(tmpValue->type>NIL&&tmpValue->type<PAIR)
 				{
@@ -2342,7 +2343,8 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 				if(tmpValue->type==PAIR&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
 					fprintf(fp,"#%d#",CRLcount);
 				else
-					princVMvalue(tmpValue,fp,h);
+					if(tmpValue->type!=NIL||objValue->u.pair->cdr->type!=NIL)
+						princVMvalue(tmpValue,fp,h);
 				tmpValue=getVMpairCdr(objValue);
 				if(tmpValue->type>NIL&&tmpValue->type<PAIR)
 				{

@@ -35,7 +35,7 @@ typedef struct
 {
 	void** data;
 	uint32_t size;
-	uintptr_t top;
+	long int top;
 }ComStack;
 
 typedef struct

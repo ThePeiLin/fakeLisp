@@ -1,5 +1,4 @@
 (import (std))
-(load macro.fkl)
 
 (defmacro (class $name,$body)
   (begin

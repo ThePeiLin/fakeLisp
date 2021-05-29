@@ -502,8 +502,8 @@ int stringToChar(const char* objStr)
 
 int isNum(const char* objStr)
 {
-	if(!isdigit(*objStr)&&!((*objStr=='-'||*objStr=='.')&&strlen(objStr)>1))return 0;
 	if(isHexNum(objStr+(objStr[0]=='0')))return 1;
+	if(!isdigit(*objStr)&&!((*objStr=='-'||*objStr=='.')&&strlen(objStr)>1))return 0;
 	if(isDouble(objStr))return 1;
 	int len=strlen(objStr);
 	int i=(*objStr=='-')?1:0;

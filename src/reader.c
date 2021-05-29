@@ -890,7 +890,7 @@ int isInValidStringPattern(const char* str)
 	StringMatchPattern* pattern=HeadOfStringPattern;
 	int32_t num=0;
 	char** parts=splitPattern(str,&num);
-	if(isVar(parts[0]))
+	if(isVar(parts[0])||parts[0][0]=='$'||parts[0][0]=='#')
 	{
 		freeStringArry(parts,num);
 		return 1;

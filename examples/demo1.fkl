@@ -1,5 +1,4 @@
 (import (std))
-(load macro.fkl)
 (define print princ)
 ;defun宏
 (defmacro

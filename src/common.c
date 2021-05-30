@@ -98,7 +98,7 @@ char* intToString(long num)
 int32_t stringToInt(const char* str)
 {
 	int32_t tmp;
-	if(isHexNum(str+(str[0]=='0')))
+	if(isHexNum(str))
 		sscanf(str,"%x",&tmp);
 	else if(isOctNum(str))
 		sscanf(str,"%o",&tmp);
@@ -450,6 +450,8 @@ int isOctNum(const char* objStr)
 {
 	int i=(*objStr=='-')?1:0;
 	int len=strlen(objStr);
+	if(objStr[i]!='0')
+		return 0;
 	for(;i<len;i++)
 	{
 		if(!isdigit(objStr[i])||objStr[i]>'7')
@@ -474,14 +476,15 @@ int isDouble(const char* objStr)
 int stringToChar(const char* objStr)
 {
 	int ch=0;
-	if(toupper(objStr[0])=='X')
+	if(toupper(objStr[0])=='X'&&isxdigit(objStr[1]))
 	{
 		char* tmpStr=(char*)malloc(sizeof(char)*(strlen(objStr)+2));
 		sprintf(tmpStr,"0%s",objStr);
-		if(isHexNum(objStr))
+		if(isHexNum(tmpStr))
 		{
 			sscanf(tmpStr+2,"%x",&ch);
 		}
+		free(tmpStr);
 	}
 	else if(isNum(objStr))
 	{

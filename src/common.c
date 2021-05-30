@@ -431,25 +431,42 @@ AST_cptr* prevCptr(const AST_cptr* objCptr)
 
 int isHexNum(const char* objStr)
 {
-	if(objStr!=NULL&&strlen(objStr)>2&&objStr[0]=='-'&&toupper(objStr[1])=='X')return 1;
-	if(objStr!=NULL&&strlen(objStr)>1&&toupper(objStr[0])=='X')return 1;
-	return 0;
+	int i=(*objStr=='-')?1:0;
+	int len=strlen(objStr);
+	if(!strncmp(objStr+i,"0x",2)||!strncmp(objStr+i,"0X",2))
+	{
+		for(i+=2;i<len;i++)
+		{
+			if(!isxdigit(objStr[i]))
+				return 0;
+		}
+	}
+	else
+		return 0;
+	return 1;
 }
 
 int isOctNum(const char* objStr)
 {
-	if(objStr!=NULL&&strlen(objStr)>2&&objStr[0]=='-'&&objStr[1]=='0'&&!isalpha(objStr[2]))return 1;
-	if(objStr!=NULL&&strlen(objStr)>1&&objStr[0]=='0'&&!isalpha(objStr[1]))return 1;
-	return 0;
+	int i=(*objStr=='-')?1:0;
+	int len=strlen(objStr);
+	for(;i<len;i++)
+	{
+		if(!isdigit(objStr[i])||objStr[i]>'7')
+			return 0;
+	}
+	return 1;
 }
 
 int isDouble(const char* objStr)
 {
 	int i=(objStr[0]=='-')?1:0;
 	int len=strlen(objStr);
-	for(;i<len;i++)
+	int isHex=(!strncmp(objStr+i,"0x",2)||!strncmp(objStr+i,"0X",2));
+	for(i+=isHex*2;i<len;i++)
 	{
-		if(objStr[i]=='.'||(i!=0&&toupper(objStr[i])=='E'&&i<(len-1)))return 1;
+		if(objStr[i]=='.'||(i!=0&&toupper(objStr[i])==('E'+isHex*('P'-'E'))&&i<(len-1)))
+			return 1;
 	}
 	return 0;
 }
@@ -513,17 +530,62 @@ int stringToChar(const char* objStr)
 
 int isNum(const char* objStr)
 {
-	if(!isdigit(*objStr)&&!((*objStr=='-'||*objStr=='.')&&strlen(objStr)>1))return 0;
-	if(isHexNum(objStr+(objStr[0]=='0')))return 1;
-	if(isDouble(objStr))return 1;
 	int len=strlen(objStr);
 	int i=(*objStr=='-')?1:0;
 	int hasDot=0;
-	for(;i<len;i++)
+	int hasExp=0;
+	if(objStr[0]=='-'&&!isdigit(objStr[1]))
+		return 0;
+	else
 	{
-		hasDot+=(objStr[i]=='.')?1:0;
-		if(objStr[i]=='.'&&hasDot>1)return 0;
-		if(!isxdigit(objStr[i])&&objStr[i]!='.')return 0;
+		if(!strncmp(objStr+i,"0x",2)||!strncmp(objStr+i,"0X",2))
+		{
+			for(i+=2;i<len;i++)
+			{
+				if(objStr[i]=='.')
+				{
+					if(hasDot)
+						return 0;
+					else
+						hasDot=1;
+				}
+				else if(!isxdigit(objStr[i]))
+				{
+					if(toupper(objStr[i])=='P')
+					{
+						if(i<3||hasExp||i>(len-2))
+							return 0;
+						hasExp=1;
+					}
+					else
+						return 0;
+				}
+			}
+		}
+		else
+		{
+			for(;i<len;i++)
+			{
+				if(objStr[i]=='.')
+				{
+					if(hasDot)
+						return 0;
+					else
+						hasDot=1;
+				}
+				else if(!isdigit(objStr[i]))
+				{
+					if(toupper(objStr[i])=='E')
+					{
+						if(i<1||hasExp||i>(len-2))
+							return 0;
+						hasExp=1;
+					}
+					else
+						return 0;
+				}
+			}
+		}
 	}
 	return 1;
 }

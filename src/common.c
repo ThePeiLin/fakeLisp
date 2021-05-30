@@ -154,10 +154,10 @@ AST_pair* newPair(int curline,AST_pair* prev)
 	{
 		tmp->car.outer=tmp;
 		tmp->car.type=NIL;
-		tmp->car.value=NULL;
+		tmp->car.u.all=NULL;
 		tmp->cdr.outer=tmp;
 		tmp->cdr.type=NIL;
-		tmp->cdr.value=NULL;
+		tmp->cdr.u.all=NULL;
 		tmp->prev=prev;
 		tmp->car.curline=curline;
 		tmp->cdr.curline=curline;
@@ -173,7 +173,7 @@ AST_cptr* newCptr(int curline,AST_pair* outer)
 	tmp->outer=outer;
 	tmp->curline=curline;
 	tmp->type=NIL;
-	tmp->value=NULL;
+	tmp->u.all=NULL;
 	return tmp;
 }
 
@@ -226,15 +226,15 @@ int copyCptr(AST_cptr* objCptr,const AST_cptr* copiedCptr)
 		switch(root1->type)
 		{
 			case PAIR:
-				root1->value=newPair(0,root1->outer);
-				pushComStack(getANSPairCar(root1),s1);
-				pushComStack(getANSPairCdr(root1),s1);
-				pushComStack(getANSPairCar(root2),s2);
-				pushComStack(getANSPairCdr(root2),s2);
+				root1->u.pair=newPair(0,root1->outer);
+				pushComStack(getASTPairCar(root1),s1);
+				pushComStack(getASTPairCdr(root1),s1);
+				pushComStack(getASTPairCar(root2),s2);
+				pushComStack(getASTPairCdr(root2),s2);
 				break;
 			case ATM:
 				atom1=NULL;
-				atom2=root2->value;
+				atom2=root2->u.atom;
 				switch(atom2->type)
 				{
 					case SYM:
@@ -262,10 +262,10 @@ int copyCptr(AST_cptr* objCptr,const AST_cptr* copiedCptr)
 						atom1=newAtom(atom2->type,NULL,root1->outer);
 						break;
 				}
-				root1->value=atom1;
+				root1->u.atom=atom1;
 				break;
 			default:
-				root1->value=NULL;
+				root1->u.all=NULL;
 				break;
 		}
 	}
@@ -276,19 +276,21 @@ int copyCptr(AST_cptr* objCptr,const AST_cptr* copiedCptr)
 void replaceCptr(AST_cptr* fir,const AST_cptr* sec)
 {
 	AST_pair* tmp=fir->outer;
-	AST_cptr tmpCptr={NULL,0,NIL,NULL};
+	AST_cptr tmpCptr={NULL,0,NIL,{NULL}};
 	tmpCptr.type=fir->type;
-	tmpCptr.value=fir->value;
+	tmpCptr.u.all=fir->u.all;
 	copyCptr(fir,sec);
 	deleteCptr(&tmpCptr);
-	if(fir->type==PAIR)((AST_pair*)fir->value)->prev=tmp;
-	else if(fir->type==ATM)((AST_atom*)fir->value)->prev=tmp;
+	if(fir->type==PAIR)
+		fir->u.pair->prev=tmp;
+	else if(fir->type==ATM)
+		fir->u.atom->prev=tmp;
 }
 
 int deleteCptr(AST_cptr* objCptr)
 {
 	if(objCptr==NULL)return 0;
-	AST_pair* tmpPair=(objCptr->type==PAIR)?objCptr->value:NULL;
+	AST_pair* tmpPair=(objCptr->type==PAIR)?objCptr->u.pair:NULL;
 	AST_pair* objPair=tmpPair;
 	AST_cptr* tmpCptr=objCptr;
 	while(tmpCptr!=NULL)
@@ -297,22 +299,22 @@ int deleteCptr(AST_cptr* objCptr)
 		{
 			if(objPair!=NULL&&tmpCptr==&objPair->cdr)
 			{
-				objPair=objPair->cdr.value;
+				objPair=objPair->cdr.u.pair;
 				tmpCptr=&objPair->car;
 				continue;
 			}
 			else
 			{
-				objPair=tmpCptr->value;
+				objPair=tmpCptr->u.pair;
 				tmpCptr=&objPair->car;
 				continue;
 			}
 		}
 		else if(tmpCptr->type==ATM)
 		{
-			freeAtom(tmpCptr->value);
+			freeAtom(tmpCptr->u.atom);
 			tmpCptr->type=NIL;
-			tmpCptr->value=NULL;
+			tmpCptr->u.all=NULL;
 			continue;
 		}
 		else if(tmpCptr->type==NIL)
@@ -328,15 +330,15 @@ int deleteCptr(AST_cptr* objCptr)
 				objPair=objPair->prev;
 				free(prev);
 				if(objPair==NULL||prev==tmpPair)break;
-				if(prev==objPair->car.value)
+				if(prev==objPair->car.u.pair)
 				{
 					objPair->car.type=NIL;
-					objPair->car.value=NULL;
+					objPair->car.u.all=NULL;
 				}
-				else if(prev==objPair->cdr.value)
+				else if(prev==objPair->cdr.u.pair)
 				{
 					objPair->cdr.type=NIL;
-					objPair->cdr.value=NULL;
+					objPair->cdr.u.all=NULL;
 				}
 				tmpCptr=&objPair->cdr;
 			}
@@ -344,7 +346,7 @@ int deleteCptr(AST_cptr* objCptr)
 		if(objPair==NULL)break;
 	}
 	objCptr->type=NIL;
-	objCptr->value=NULL;
+	objCptr->u.all=NULL;
 	return 0;
 }
 
@@ -353,14 +355,14 @@ int AST_cptrcmp(const AST_cptr* first,const AST_cptr* second)
 	if(first==NULL&&second==NULL)return 0;
 	AST_pair* firPair=NULL;
 	AST_pair* secPair=NULL;
-	AST_pair* tmpPair=(first->type==PAIR)?first->value:NULL;
+	AST_pair* tmpPair=(first->type==PAIR)?first->u.pair:NULL;
 	while(1)
 	{
 		if(first->type!=second->type)return 0;
 		else if(first->type==PAIR)
 		{
-			firPair=first->value;
-			secPair=second->value;
+			firPair=first->u.pair;
+			secPair=second->u.pair;
 			first=&firPair->car;
 			second=&secPair->car;
 			continue;
@@ -369,8 +371,8 @@ int AST_cptrcmp(const AST_cptr* first,const AST_cptr* second)
 		{
 			if(first->type==ATM)
 			{
-				AST_atom* firAtm=first->value;
-				AST_atom* secAtm=second->value;
+				AST_atom* firAtm=first->u.atom;
+				AST_atom* secAtm=second->u.atom;
 				if(firAtm->type!=secAtm->type)return 0;
 				if((firAtm->type==SYM||firAtm->type==STR)&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
 				else if(firAtm->type==IN32&&firAtm->value.in32!=secAtm->value.in32)return 0;
@@ -399,7 +401,7 @@ int AST_cptrcmp(const AST_cptr* first,const AST_cptr* second)
 				firPrev=firPair;
 				firPair=firPair->prev;
 				secPair=secPair->prev;
-				if(firPrev==firPair->car.value)break;
+				if(firPrev==firPair->car.u.pair)break;
 			}
 			if(firPair!=NULL)
 			{
@@ -416,13 +418,13 @@ int AST_cptrcmp(const AST_cptr* first,const AST_cptr* second)
 AST_cptr* nextCptr(const AST_cptr* objCptr)
 {
 	if(objCptr->outer!=NULL&&objCptr->outer->cdr.type==PAIR)
-		return &((AST_pair*)objCptr->outer->cdr.value)->car;
+		return &objCptr->outer->cdr.u.pair->car;
 	return NULL;
 }
 
 AST_cptr* prevCptr(const AST_cptr* objCptr)
 {
-	if(objCptr->outer!=NULL&&objCptr->outer->prev!=NULL&&objCptr->outer->prev->cdr.value==objCptr->outer)
+	if(objCptr->outer!=NULL&&objCptr->outer->prev!=NULL&&objCptr->outer->prev->cdr.u.pair==objCptr->outer)
 		return &objCptr->outer->prev->car;
 	return NULL;
 }
@@ -540,7 +542,7 @@ void freeAtom(AST_atom* objAtm)
 void printCptr(const AST_cptr* objCptr,FILE* out)
 {
 	if(objCptr==NULL)return;
-	AST_pair* tmpPair=(objCptr->type==PAIR)?objCptr->value:NULL;
+	AST_pair* tmpPair=(objCptr->type==PAIR)?objCptr->u.pair:NULL;
 	AST_pair* objPair=tmpPair;
 	while(objCptr!=NULL)
 	{
@@ -549,13 +551,13 @@ void printCptr(const AST_cptr* objCptr,FILE* out)
 			if(objPair!=NULL&&objCptr==&objPair->cdr)
 			{
 				putc(' ',out);
-				objPair=objPair->cdr.value;
+				objPair=objPair->cdr.u.pair;
 				objCptr=&objPair->car;
 			}
 			else
 			{
 				putc('(',out);
-				objPair=objCptr->value;
+				objPair=objCptr->u.pair;
 				objCptr=&objPair->car;
 				continue;
 			}
@@ -567,7 +569,7 @@ void printCptr(const AST_cptr* objCptr,FILE* out)
 			||(objCptr->outer==NULL&&objCptr->type==NIL))fputs("nil",out);
 			if(objCptr->type!=NIL)
 			{
-				AST_atom* tmpAtm=objCptr->value;
+				AST_atom* tmpAtm=objCptr->u.atom;
 				switch((int)tmpAtm->type)
 				{
 					case SYM:
@@ -605,10 +607,10 @@ void printCptr(const AST_cptr* objCptr,FILE* out)
 			{
 				prev=objPair;
 				objPair=objPair->prev;
-				if(prev==objPair->car.value)break;
+				if(prev==objPair->car.u.pair)break;
 			}
 			if(objPair!=NULL)objCptr=&objPair->cdr;
-			if(objPair==tmpPair&&(prev==objPair->cdr.value||prev==NULL))break;
+			if(objPair==tmpPair&&(prev==objPair->cdr.u.pair||prev==NULL))break;
 		}
 		if(objPair==NULL)break;
 	}
@@ -939,7 +941,7 @@ AST_cptr* getLastCptr(const AST_cptr* objList)
 {
 	if(objList->type!=PAIR)
 		return NULL;
-	AST_pair* objPair=objList->value;
+	AST_pair* objPair=objList->u.pair;
 	AST_cptr* first=&objPair->car;
 	for(;nextCptr(first)!=NULL;first=nextCptr(first));
 	return first;
@@ -949,7 +951,7 @@ AST_cptr* getFirstCptr(const AST_cptr* objList)
 {
 	if(objList->type!=PAIR)
 		return NULL;
-	AST_pair* objPair=objList->value;
+	AST_pair* objPair=objList->u.pair;
 	AST_cptr* first=&objPair->car;
 	return first;
 }
@@ -1074,16 +1076,14 @@ Intpr* getFirstIntpr(Intpr* inter)
 	return inter;
 }
 
-AST_cptr* getANSPairCar(const AST_cptr* obj)
+AST_cptr* getASTPairCar(const AST_cptr* obj)
 {
-	AST_pair* tmpPair=obj->value;
-	return &tmpPair->car;
+	return &obj->u.pair->car;
 }
 
-AST_cptr* getANSPairCdr(const AST_cptr* obj)
+AST_cptr* getASTPairCdr(const AST_cptr* obj)
 {
-	AST_pair* tmpPair=obj->value;
-	return &tmpPair->cdr;
+	return &obj->u.pair->cdr;
 }
 
 void changeWorkPath(const char* filename)
@@ -1415,7 +1415,7 @@ PreDef* newDefines(const char* name)
 	tmp->symbol=(char*)malloc(sizeof(char)*(strlen(name)+1));
 	if(tmp->symbol==NULL)errors("newDefines",__FILE__,__LINE__);
 	strcpy(tmp->symbol,name);
-	tmp->obj=(AST_cptr){NULL,0,NIL,NULL};
+	tmp->obj=(AST_cptr){NULL,0,NIL,{NULL}};
 	tmp->next=NULL;
 	return tmp;
 }
@@ -1556,7 +1556,7 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 		{
 			hasComma=0;
 			root->type=PAIR;
-			root->value=newPair(curline,root->outer);
+			root->u.pair=newPair(curline,root->outer);
 			if(&root->outer->car==root)
 			{
 				//如果root是root所在pair的car部分，
@@ -1565,14 +1565,14 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 				if(tmp)
 				{
 					tmp->type=PAIR;
-					tmp->value=newPair(curline,tmp->outer);
-					pushComStack(getANSPairCdr(tmp),s1);
-					pushComStack(getANSPairCar(tmp),s1);
+					tmp->u.pair=newPair(curline,tmp->outer);
+					pushComStack(getASTPairCdr(tmp),s1);
+					pushComStack(getASTPairCar(tmp),s1);
 				}
 			}
 			pushComStack((void*)s1->top,s2);
-			pushComStack(getANSPairCdr(root),s1);
-			pushComStack(getANSPairCar(root),s1);
+			pushComStack(getASTPairCdr(root),s1);
+			pushComStack(getASTPairCar(root),s1);
 			i++;
 		}
 		else if(objStr[i]==',')
@@ -1585,14 +1585,14 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 				break;
 			}
 			else hasComma=1;
-			if(root->outer->prev&&root->outer->prev->cdr.value==root->outer)
+			if(root->outer->prev&&root->outer->prev->cdr.u.pair==root->outer)
 			{
 				//将为下一个部分准备的pair删除并将该pair的前一个pair的cdr部分入栈
 				s1->top=(long)topComStack(s2);
 				AST_cptr* tmp=&root->outer->prev->cdr;
-				free(tmp->value);
+				free(tmp->u.pair);
 				tmp->type=NIL;
-				tmp->value=NULL;
+				tmp->u.all=NULL;
 				pushComStack(tmp,s1);
 			}
 			i++;
@@ -1602,14 +1602,14 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 			hasComma=0;
 			long t=(long)popComStack(s2);
 			AST_cptr* c=s1->data[t];
-			if(s1->top-t>0&&c->outer->prev&&c->outer->prev->cdr.value==c->outer)
+			if(s1->top-t>0&&c->outer->prev&&c->outer->prev->cdr.u.pair==c->outer)
 			{
 				//如果还有为下一部分准备的pair，则将该pair删除
 				AST_cptr* tmpCptr=s1->data[t];
 				tmpCptr=&tmpCptr->outer->prev->cdr;
 				tmpCptr->type=NIL;
-				free(tmpCptr->value);
-				tmpCptr->value=NULL;
+				free(tmpCptr->u.pair);
+				tmpCptr->u.all=NULL;
 			}
 			//将栈顶恢复为将pair入栈前的位置
 			s1->top=t;
@@ -1624,7 +1624,7 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 				size_t len=0;
 				str=castEscapeCharater(objStr+i+1,'\"',&len);
 				inter->curline+=countChar(objStr+i,'\n',len);
-				root->value=newAtom(STR,str,root->outer);
+				root->u.atom=newAtom(STR,str,root->outer);
 				i+=len+1;
 				free(str);
 			}
@@ -1637,7 +1637,7 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 					case '\\':
 						str=getStringAfterBackslash(objStr+i+1);
 						atom=newAtom(CHR,NULL,root->outer);
-						root->value=atom;
+						root->u.atom=atom;
 						atom->value.chr=(str[0]=='\\')?
 							stringToChar(str+1):
 							str[0];
@@ -1649,7 +1649,7 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 						atom->value.byts.refcount=0;
 						atom->value.byts.size=strlen(str)/2+strlen(str)%2;
 						atom->value.byts.str=castStrByteStr(str);
-						root->value=atom;
+						root->u.atom=atom;
 						i+=strlen(str)+1;
 						break;
 				}
@@ -1671,10 +1671,10 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 						atom=newAtom(IN32,NULL,root->outer);
 						atom->value.in32=stringToInt(str);
 					}
-					root->value=atom;
+					root->u.atom=atom;
 				}
 				else
-					root->value=newAtom(SYM,str,root->outer);
+					root->u.atom=newAtom(SYM,str,root->outer);
 				i+=strlen(str);
 				free(str);
 			}
@@ -1686,9 +1686,9 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 				if(tmp)
 				{
 					tmp->type=PAIR;
-					tmp->value=newPair(curline,tmp->outer);
-					pushComStack(getANSPairCdr(tmp),s1);
-					pushComStack(getANSPairCar(tmp),s1);
+					tmp->u.pair=newPair(curline,tmp->outer);
+					pushComStack(getASTPairCdr(tmp),s1);
+					pushComStack(getASTPairCar(tmp),s1);
 				}
 			}
 		}

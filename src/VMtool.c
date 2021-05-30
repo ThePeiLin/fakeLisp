@@ -422,7 +422,7 @@ VMvalue* castCptrVMvalue(AST_cptr* objCptr,VMheap* heap)
 		VMvalue* root1=popComStack(s2);
 		if(root->type==ATM)
 		{
-			AST_atom* tmpAtm=root->value;
+			AST_atom* tmpAtm=root->u.atom;
 			root1->type=tmpAtm->type;
 			root1->access=1;
 			switch((int)tmpAtm->type)
@@ -447,7 +447,7 @@ VMvalue* castCptrVMvalue(AST_cptr* objCptr,VMheap* heap)
 		}
 		else if(root->type==PAIR)
 		{
-			AST_pair* objPair=root->value;
+			AST_pair* objPair=root->u.pair;
 			VMpair* tmpPair=newVMpair(heap);
 			copyRef(root1,newVMvalue(PAIR,tmpPair,heap,1));
 			pushComStack(&objPair->car,s1);

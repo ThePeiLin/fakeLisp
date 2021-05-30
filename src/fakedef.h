@@ -77,15 +77,20 @@ typedef struct
 
 typedef struct
 {
-	struct AST_Pair* outer;
+	struct AST_pair* outer;
 	int curline;
 	ValueType type;
-	void* value;
+	union
+	{
+		struct AST_atom* atom;
+		struct AST_pair* pair;
+		void* all;
+	}u;
 }AST_cptr;
 
-typedef struct AST_Pair
+typedef struct AST_pair
 {
-	struct AST_Pair* prev;
+	struct AST_pair* prev;
 	AST_cptr car,cdr;
 }AST_pair;
 

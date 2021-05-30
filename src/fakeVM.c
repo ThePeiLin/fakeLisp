@@ -2741,6 +2741,23 @@ void joinAllThread()
 	}
 }
 
+void cancelAllThread()
+{
+	int i=1;
+	for(;i<GlobFakeVMs.size;i++)
+	{
+		FakeVM* cur=GlobFakeVMs.VMs[i];
+		if(cur)
+		{
+			pthread_cancel(cur->tid);
+			pthread_join(cur->tid,NULL);
+			freeChanl(cur->chan);
+			deleteCallChain(cur);
+			freeVMstack(cur->stack);
+		}
+	}
+}
+
 void deleteCallChain(FakeVM* exe)
 {
 	VMprocess* cur=exe->curproc;

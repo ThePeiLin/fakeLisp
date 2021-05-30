@@ -101,7 +101,7 @@ int main(int argc,char** argv)
 			else
 			{
 				deleteCallChain(anotherVM);
-				joinAllThread();
+				cancelAllThread();
 				freeIntpr(inter);
 				unInitPreprocess();
 				freeVMheap(anotherVM->heap);
@@ -150,7 +150,7 @@ int main(int argc,char** argv)
 		else
 		{
 			deleteCallChain(anotherVM);
-			joinAllThread();
+			cancelAllThread();
 			freeAllVMs();
 			freeVMheap(heap);
 			freeSymbolTable(table);

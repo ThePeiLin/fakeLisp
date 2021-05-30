@@ -201,12 +201,12 @@ int addMacro(AST_cptr* pattern,ByteCodelnt* proc,CompEnv* curEnv)
 		current=current->next;
 	if(current==NULL)
 	{
-		for(tmpCptr=&((AST_pair*)pattern->value)->car;tmpCptr!=NULL;tmpCptr=nextCptr(tmpCptr))
+		for(tmpCptr=&pattern->u.pair->car;tmpCptr!=NULL;tmpCptr=nextCptr(tmpCptr))
 		{
 			if(tmpCptr->type==ATM)
 			{
-				AST_atom* carAtm=tmpCptr->value;
-				AST_atom* cdrAtm=(tmpCptr->outer->cdr.type==ATM)?tmpCptr->outer->cdr.value:NULL;
+				AST_atom* carAtm=tmpCptr->u.atom;
+				AST_atom* cdrAtm=(tmpCptr->outer->cdr.type==ATM)?tmpCptr->outer->cdr.u.atom:NULL;
 				if(carAtm->type==SYM&&!isVal(carAtm->value.str))addKeyWord(carAtm->value.str,curEnv);
 				if(cdrAtm!=NULL&&cdrAtm->type==SYM&&!isVal(cdrAtm->value.str))addKeyWord(cdrAtm->value.str,curEnv);
 			}
@@ -235,14 +235,14 @@ int MacroPatternCmp(const AST_cptr* first,const AST_cptr* second)
 	if(first==NULL&&second==NULL)return 0;
 	AST_pair* firPair=NULL;
 	AST_pair* secPair=NULL;
-	AST_pair* tmpPair=(first->type==PAIR)?first->value:NULL;
+	AST_pair* tmpPair=(first->type==PAIR)?first->u.pair:NULL;
 	while(1)
 	{
 		if(first->type!=second->type)return 0;
 		else if(first->type==PAIR)
 		{
-			firPair=first->value;
-			secPair=second->value;
+			firPair=first->u.pair;
+			secPair=second->u.pair;
 			first=&firPair->car;
 			second=&secPair->car;
 			continue;
@@ -251,8 +251,8 @@ int MacroPatternCmp(const AST_cptr* first,const AST_cptr* second)
 		{
 			if(first->type==ATM)
 			{
-				AST_atom* firAtm=first->value;
-				AST_atom* secAtm=second->value;
+				AST_atom* firAtm=first->u.atom;
+				AST_atom* secAtm=second->u.atom;
 				if(firAtm->type!=secAtm->type)return 0;
 				if(firAtm->type==SYM&&(!isVal(firAtm->value.str)||!isVal(secAtm->value.str))&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
 				if(firAtm->type==STR&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
@@ -282,7 +282,7 @@ int MacroPatternCmp(const AST_cptr* first,const AST_cptr* second)
 				firPrev=firPair;
 				firPair=firPair->prev;
 				secPair=secPair->prev;
-				if(firPrev==firPair->car.value)break;
+				if(firPrev==firPair->car.u.pair)break;
 			}
 			if(firPair!=NULL)
 			{
@@ -299,29 +299,29 @@ int MacroPatternCmp(const AST_cptr* first,const AST_cptr* second)
 int fmatcmp(const AST_cptr* origin,const AST_cptr* format,PreEnv** pmacroEnv,CompEnv* curEnv)
 {
 	PreEnv* macroEnv=newEnv(NULL);
-	AST_pair* tmpPair=(format->type==PAIR)?format->value:NULL;
+	AST_pair* tmpPair=(format->type==PAIR)?format->u.pair:NULL;
 	AST_pair* forPair=tmpPair;
-	AST_pair* oriPair=(origin->type==PAIR)?origin->value:NULL;
+	AST_pair* oriPair=(origin->type==PAIR)?origin->u.pair:NULL;
 	while(origin!=NULL)
 	{
 		if(format->type==PAIR&&origin->type==PAIR)
 		{
-			forPair=format->value;
-			oriPair=origin->value;
+			forPair=format->u.pair;
+			oriPair=origin->u.pair;
 			format=&forPair->car;
 			origin=&oriPair->car;
 			continue;
 		}
 		else if(format->type==ATM)
 		{
-			AST_atom* tmpAtm=format->value;
+			AST_atom* tmpAtm=format->u.atom;
 			if(tmpAtm->type==SYM)
 			{
 				if(isVal(tmpAtm->value.str))
 				{
 					if(origin->type==ATM)
 					{
-						AST_atom* tmpAtm2=origin->value;
+						AST_atom* tmpAtm2=origin->u.atom;
 						if(tmpAtm2->type==SYM&&isKeyWord(tmpAtm2->value.str,curEnv))
 						{
 							destroyEnv(macroEnv);
@@ -368,7 +368,7 @@ int fmatcmp(const AST_cptr* origin,const AST_cptr* format,PreEnv** pmacroEnv,Com
 				oriPrev=oriPair;
 				oriPair=oriPair->prev;
 				forPair=forPair->prev;
-				if(oriPrev==oriPair->car.value)break;
+				if(oriPrev==oriPair->car.u.pair)break;
 			}
 			if(oriPair!=NULL)
 			{
@@ -387,7 +387,7 @@ CompEnv* createMacroCompEnv(const AST_cptr* objCptr,CompEnv* prev,SymbolTable* t
 {
 	if(objCptr==NULL)return NULL;
 	CompEnv* tmpEnv=newCompEnv(prev);
-	AST_pair* tmpPair=(objCptr->type==PAIR)?objCptr->value:NULL;
+	AST_pair* tmpPair=(objCptr->type==PAIR)?objCptr->u.pair:NULL;
 	AST_pair* objPair=tmpPair;
 	while(objCptr!=NULL)
 	{
@@ -395,12 +395,12 @@ CompEnv* createMacroCompEnv(const AST_cptr* objCptr,CompEnv* prev,SymbolTable* t
 		{
 			if(objPair!=NULL&&objCptr==&objPair->cdr)
 			{
-				objPair=objPair->cdr.value;
+				objPair=objPair->cdr.u.pair;
 				objCptr=&objPair->car;
 			}
 			else
 			{
-				objPair=objCptr->value;
+				objPair=objCptr->u.pair;
 				objCptr=&objPair->car;
 				continue;
 			}
@@ -409,7 +409,7 @@ CompEnv* createMacroCompEnv(const AST_cptr* objCptr,CompEnv* prev,SymbolTable* t
 		{
 			if(objCptr->type!=NIL)
 			{
-				AST_atom* tmpAtm=objCptr->value;
+				AST_atom* tmpAtm=objCptr->u.atom;
 				if(tmpAtm->type==SYM)
 				{
 					const char* tmpStr=tmpAtm->value.str;
@@ -431,10 +431,10 @@ CompEnv* createMacroCompEnv(const AST_cptr* objCptr,CompEnv* prev,SymbolTable* t
 			{
 				prev=objPair;
 				objPair=objPair->prev;
-				if(prev==objPair->car.value)break;
+				if(prev==objPair->car.u.pair)break;
 			}
 			if(objPair!=NULL)objCptr=&objPair->cdr;
-			if(objPair==tmpPair&&(prev==objPair->cdr.value||prev==NULL))break;
+			if(objPair==tmpPair&&(prev==objPair->cdr.u.pair||prev==NULL))break;
 		}
 		if(objPair==NULL)break;
 	}
@@ -507,7 +507,7 @@ ErrorStatus defmacro(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 	{
 		if(args[0]->type!=NIL)
 		{
-			AST_atom* tmpAtom=args[0]->value;
+			AST_atom* tmpAtom=args[0]->u.atom;
 			if(tmpAtom->type!=STR)
 			{
 				exError(args[0],SYNTAXERROR,inter);
@@ -695,7 +695,7 @@ CompEnv* createPatternCompEnv(char** parts,int32_t num,CompEnv* prev,SymbolTable
 
 ByteCode* compileAtom(AST_cptr* objCptr)
 {
-	AST_atom* tmpAtm=objCptr->value;
+	AST_atom* tmpAtm=objCptr->u.atom;
 	ByteCode* tmp=NULL;
 	switch((int)tmpAtm->type)
 	{
@@ -744,7 +744,7 @@ ByteCode* compileNil()
 ByteCode* compilePair(AST_cptr* objCptr)
 {
 	ByteCode* tmp=newByteCode(0);
-	AST_pair* objPair=objCptr->value;
+	AST_pair* objPair=objCptr->u.pair;
 	AST_pair* tmpPair=objPair;
 	ByteCode* popToCar=newByteCode(1);
 	ByteCode* popToCdr=newByteCode(1);
@@ -757,7 +757,7 @@ ByteCode* compilePair(AST_cptr* objCptr)
 		if(objCptr->type==PAIR)
 		{
 			codeCat(tmp,pushPair);
-			objPair=objCptr->value;
+			objPair=objCptr->u.pair;
 			objCptr=&objPair->car;
 			continue;
 		}
@@ -781,11 +781,11 @@ ByteCode* compilePair(AST_cptr* objCptr)
 			{
 				prev=objPair;
 				objPair=objPair->prev;
-				codeCat(tmp,(prev==objPair->car.value)?popToCar:popToCdr);
-				if(prev==objPair->car.value)break;
+				codeCat(tmp,(prev==objPair->car.u.pair)?popToCar:popToCdr);
+				if(prev==objPair->car.u.pair)break;
 			}
 			if(objPair!=NULL)objCptr=&objPair->cdr;
-			if(objPair==tmpPair&&(prev==objPair->cdr.value||prev==NULL))break;
+			if(objPair==tmpPair&&(prev==objPair->cdr.u.pair||prev==NULL))break;
 		}
 		if(objPair==NULL)break;
 	}
@@ -803,7 +803,7 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 	else if(isUnquoteExpression(objCptr))
 		return compileUnquote(objCptr,curEnv,inter,status,evalIm);
 	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
-	AST_pair* objPair=objCptr->value;
+	AST_pair* objPair=objCptr->u.pair;
 	AST_pair* tmpPair=objPair;
 	ByteCode* appd=newByteCode(1);
 	ByteCode* popToCar=newByteCode(1);
@@ -889,7 +889,7 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 				else
 					tmp->l[tmp->ls-1]->cpc+=pushPair->size;
 			}
-			objPair=objCptr->value;
+			objPair=objCptr->u.pair;
 			objCptr=&objPair->car;
 			continue;
 		}
@@ -916,13 +916,13 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 				objPair=objPair->prev;
 				if(prev!=NULL&&!isUnqtespExpression(&prev->car))
 				{
-					codeCat(tmp->bc,(prev==objPair->car.value)?popToCar:appd);
-					tmp->l[tmp->ls-1]->cpc+=(prev==objPair->car.value)?popToCar->size:appd->size;
+					codeCat(tmp->bc,(prev==objPair->car.u.pair)?popToCar:appd);
+					tmp->l[tmp->ls-1]->cpc+=(prev==objPair->car.u.pair)?popToCar->size:appd->size;
 				}
-				if(prev==objPair->car.value)break;
+				if(prev==objPair->car.u.pair)break;
 			}
 			if(objPair!=NULL)objCptr=&objPair->cdr;
-			if(objPair==tmpPair&&(prev==objPair->cdr.value||prev==NULL))break;
+			if(objPair==tmpPair&&(prev==objPair->cdr.u.pair||prev==NULL))break;
 		}
 		if(objPair==NULL)break;
 	}
@@ -935,7 +935,7 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 
 ByteCode* compileQuote(AST_cptr* objCptr)
 {
-	objCptr=&((AST_pair*)objCptr->value)->car;
+	objCptr=&objCptr->u.pair->car;
 	objCptr=nextCptr(objCptr);
 	switch((int)objCptr->type)
 	{
@@ -977,7 +977,7 @@ ByteCodelnt* compileConst(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 ByteCodelnt* compileFuncCall(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
 	AST_cptr* headoflist=NULL;
-	AST_pair* tmpPair=objCptr->value;
+	AST_pair* tmpPair=objCptr->u.pair;
 	int32_t line=objCptr->curline;
 	ByteCodelnt* tmp1=NULL;
 	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
@@ -1018,7 +1018,7 @@ ByteCodelnt* compileFuncCall(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Erro
 			}
 			else
 				tmp->l[tmp->ls-1]->cpc+=setBp->size;
-			headoflist=&((AST_pair*)objCptr->value)->car;
+			headoflist=&objCptr->u.pair->car;
 			for(objCptr=headoflist;nextCptr(objCptr)!=NULL;objCptr=nextCptr(objCptr));
 		}
 		else
@@ -1043,7 +1043,7 @@ ByteCodelnt* compileFuncCall(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Erro
 
 ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
-	AST_pair* tmpPair=tir->value;
+	AST_pair* tmpPair=tir->u.pair;
 	AST_cptr* fir=NULL;
 	AST_cptr* sec=NULL;
 	AST_cptr* objCptr=NULL;
@@ -1054,7 +1054,7 @@ ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 	pushTop->code[0]=FAKE_PUSH_TOP;
 	while(isDefExpression(tir))
 	{
-		fir=&((AST_pair*)tir->value)->car;
+		fir=&tir->u.pair->car;
 		sec=nextCptr(fir);
 		tir=nextCptr(sec);
 	}
@@ -1071,7 +1071,7 @@ ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 	for(;;)
 	{
 		CompDef* tmpDef=NULL;
-		AST_atom* tmpAtm=sec->value;
+		AST_atom* tmpAtm=sec->u.atom;
 		if(curEnv->prefix&&isSymbolShouldBeExport(tmpAtm->value.str,curEnv->exp,curEnv->n))
 		{
 			char* symbolWithPrefix=(char*)malloc(sizeof(char)*(strlen(tmpAtm->value.str)+strlen(curEnv->prefix)+1));
@@ -1105,8 +1105,8 @@ ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 
 ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
-	AST_pair* tmpPair=objCptr->value;
-	AST_cptr* fir=&((AST_pair*)objCptr->value)->car;
+	AST_pair* tmpPair=objCptr->u.pair;
+	AST_cptr* fir=&objCptr->u.pair->car;
 	AST_cptr* sec=nextCptr(fir);
 	AST_cptr* tir=nextCptr(sec);
 	ByteCodelnt* tmp1=NULL;
@@ -1116,7 +1116,7 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	pushTop->code[0]=FAKE_PUSH_TOP;
 	while(isSetqExpression(tir))
 	{
-		fir=&((AST_pair*)tir->value)->car;
+		fir=&tir->u.pair->car;
 		sec=nextCptr(fir);
 		tir=nextCptr(sec);
 	}
@@ -1134,7 +1134,7 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	{
 		int32_t scope=0;
 		int32_t id=0;
-		AST_atom* tmpAtm=sec->value;
+		AST_atom* tmpAtm=sec->u.atom;
 		CompDef* tmpDef=NULL;
 		CompEnv* tmpEnv=curEnv;
 		while(tmpEnv!=NULL)
@@ -1184,7 +1184,7 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 
 ByteCodelnt* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
-	AST_cptr* fir=&((AST_pair*)objCptr->value)->car;
+	AST_cptr* fir=&objCptr->u.pair->car;
 	AST_cptr* sec=nextCptr(fir);
 	AST_cptr* tir=nextCptr(sec);
 	ByteCodelnt* tmp1=compile(sec,curEnv,inter,status,evalIm);
@@ -1206,7 +1206,7 @@ ByteCodelnt* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	tmp1->l[tmp1->ls-1]->cpc+=popRef->size;
 	if(isSymbol(sec))
 	{
-		AST_atom* tmpAtm=sec->value;
+		AST_atom* tmpAtm=sec->u.atom;
 		CompEnv* tmpEnv=curEnv;
 		CompDef* tmpDef=NULL;
 		while(tmpEnv!=NULL)
@@ -1248,7 +1248,7 @@ ByteCodelnt* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	}
 	ByteCode* pushVar=newByteCode(sizeof(char)+sizeof(int32_t));
 	pushVar->code[0]=FAKE_PUSH_VAR;
-	AST_atom* tmpAtm=objCptr->value;
+	AST_atom* tmpAtm=objCptr->u.atom;
 	CompDef* tmpDef=NULL;
 	CompEnv* tmpEnv=curEnv;
 	int32_t id=0;
@@ -1309,7 +1309,7 @@ ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	setTp->code[0]=FAKE_SET_TP;
 	popTp->code[0]=FAKE_POP_TP;
 	*(int32_t*)(push1->code+sizeof(char))=1;
-	for(objCptr=&((AST_pair*)objCptr->value)->car;nextCptr(objCptr)!=NULL;objCptr=nextCptr(objCptr));
+	for(objCptr=&objCptr->u.pair->car;nextCptr(objCptr)!=NULL;objCptr=nextCptr(objCptr));
 	for(;prevCptr(objCptr)!=NULL;objCptr=prevCptr(objCptr))
 	{
 		ByteCodelnt* tmp1=compile(objCptr,curEnv,inter,status,evalIm);
@@ -1375,7 +1375,7 @@ ByteCodelnt* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatu
 	setTp->code[0]=FAKE_SET_TP;
 	popTp->code[0]=FAKE_POP_TP;
 	resTp->code[0]=FAKE_RES_TP;
-	for(objCptr=&((AST_pair*)objCptr->value)->car;nextCptr(objCptr)!=NULL;objCptr=nextCptr(objCptr));
+	for(objCptr=&objCptr->u.pair->car;nextCptr(objCptr)!=NULL;objCptr=nextCptr(objCptr));
 	for(;prevCptr(objCptr)!=NULL;objCptr=prevCptr(objCptr))
 	{
 		ByteCodelnt* tmp1=compile(objCptr,curEnv,inter,status,evalIm);
@@ -1492,14 +1492,14 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	ByteCode* pArg=newByteCode(0);
 	popArg->code[0]=FAKE_POP_ARG;
 	popRestArg->code[0]=FAKE_POP_REST_ARG;
-	objPair=objCptr->value;
+	objPair=objCptr->u.pair;
 	objCptr=&objPair->car;
 	if(nextCptr(objCptr)->type==PAIR)
 	{
-		AST_cptr* argCptr=&((AST_pair*)nextCptr(objCptr)->value)->car;
+		AST_cptr* argCptr=&nextCptr(objCptr)->u.pair->car;
 		while(argCptr!=NULL&&argCptr->type!=NIL)
 		{
-			AST_atom* tmpAtm=(argCptr->type==ATM)?argCptr->value:NULL;
+			AST_atom* tmpAtm=(argCptr->type==ATM)?argCptr->u.atom:NULL;
 			if(argCptr->type!=ATM||tmpAtm==NULL||tmpAtm->type!=SYM)
 			{
 				status->status=SYNTAXERROR;
@@ -1515,7 +1515,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			codeCat(pArg,popArg);
 			if(nextCptr(argCptr)==NULL&&argCptr->outer->cdr.type==ATM)
 			{
-				AST_atom* tmpAtom1=(argCptr->outer->cdr.type==ATM)?argCptr->outer->cdr.value:NULL;
+				AST_atom* tmpAtom1=(argCptr->outer->cdr.type==ATM)?argCptr->outer->cdr.u.atom:NULL;
 				if(tmpAtom1!=NULL&&tmpAtom1->type!=SYM)
 				{
 					status->status=SYNTAXERROR;
@@ -1535,7 +1535,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	}
 	else if(nextCptr(objCptr)->type==ATM)
 	{
-		AST_atom* tmpAtm=nextCptr(objCptr)->value;
+		AST_atom* tmpAtm=nextCptr(objCptr)->u.atom;
 		if(tmpAtm->type!=SYM)
 		{
 			status->status=SYNTAXERROR;
@@ -1625,10 +1625,10 @@ ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	pushnil->code[0]=FAKE_PUSH_NIL;
 	jumpiffalse->code[0]=FAKE_JMP_IF_FALSE;
 	jump->code[0]=FAKE_JMP;
-	for(cond=&((AST_pair*)objCptr->value)->car;nextCptr(cond)!=NULL;cond=nextCptr(cond));
+	for(cond=&objCptr->u.pair->car;nextCptr(cond)!=NULL;cond=nextCptr(cond));
 	while(prevCptr(cond)!=NULL)
 	{
-		for(objCptr=&((AST_pair*)cond->value)->car;nextCptr(objCptr)!=NULL;objCptr=nextCptr(objCptr));
+		for(objCptr=&cond->u.pair->car;nextCptr(objCptr)!=NULL;objCptr=nextCptr(objCptr));
 		ByteCodelnt* tmpCond=newByteCodelnt(newByteCode(0));
 		while(objCptr!=NULL)
 		{
@@ -1709,9 +1709,9 @@ ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 
 ByteCodelnt* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
-	AST_cptr* fir=&((AST_pair*)objCptr->value)->car;
+	AST_cptr* fir=&objCptr->u.pair->car;
 	AST_cptr* pFileName=nextCptr(fir);
-	AST_atom* name=pFileName->value;
+	AST_atom* name=pFileName->u.atom;
 	if(hasLoadSameFile(name->value.str,inter))
 	{
 		status->status=CIRCULARLOAD;
@@ -1883,7 +1883,7 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 
 	while(fir)
 	{
-		AST_atom* firAtm=fir->value;
+		AST_atom* firAtm=fir->u.atom;
 		if(firAtm->value.str[0]==':')
 		{
 			pushComStack(newByteCodeLable(sizeOfByteCode,firAtm->value.str+1),stack);
@@ -1928,7 +1928,7 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			case -3:
 				{
 					AST_cptr* tmpCptr=nextCptr(fir);
-					AST_atom* tmpAtm=tmpCptr->value;
+					AST_atom* tmpAtm=tmpCptr->u.atom;
 					int32_t scope=0;
 					CompEnv* tmpEnv=curEnv;
 					CompDef* tmpDef=NULL;
@@ -1969,7 +1969,7 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			case -2:
 				{
 					AST_cptr* tmpCptr=nextCptr(fir);
-					AST_atom* tmpAtm=tmpCptr->value;
+					AST_atom* tmpAtm=tmpCptr->u.atom;
 					if(tmpAtm->type!=BYTS)
 					{
 						status->place=tmpCptr;
@@ -1988,7 +1988,7 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			case -1:
 				{
 					AST_cptr* tmpCptr=nextCptr(fir);
-					AST_atom* tmpAtm=tmpCptr->value;
+					AST_atom* tmpAtm=tmpCptr->u.atom;
 					if(tmpAtm->type!=SYM&&tmpAtm->type!=STR)
 					{
 						status->place=tmpCptr;
@@ -2013,7 +2013,7 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			case 1:
 				{
 					AST_cptr* tmpCptr=nextCptr(fir);
-					AST_atom* tmpAtm=tmpCptr->value;
+					AST_atom* tmpAtm=tmpCptr->u.atom;
 					if(tmpAtm->type!=CHR)
 					{
 						status->place=tmpCptr;
@@ -2032,7 +2032,7 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			case 4:
 				{
 					AST_cptr* tmpCptr=nextCptr(fir);
-					AST_atom* tmpAtm=tmpCptr->value;
+					AST_atom* tmpAtm=tmpCptr->u.atom;
 					if(opcode==FAKE_PUSH_VAR)
 					{
 						CompEnv* tmpEnv=curEnv;
@@ -2087,7 +2087,7 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			case 8:
 				{
 					AST_cptr* tmpCptr=nextCptr(fir);
-					AST_atom* tmpAtm=tmpCptr->value;
+					AST_atom* tmpAtm=tmpCptr->u.atom;
 					if(tmpAtm->type!=DBL)
 					{
 						status->place=tmpCptr;
@@ -2111,7 +2111,7 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	tmp=newByteCodelnt(newByteCode(0));
 	while(fir)
 	{
-		AST_atom* firAtm=fir->value;
+		AST_atom* firAtm=fir->u.atom;
 		if(firAtm->value.str[0]==':'||firAtm->value.str[0]=='$')
 		{
 			fir=nextCptr(fir);
@@ -2125,7 +2125,7 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			case -3:
 				{
 					AST_cptr* tmpCptr=nextCptr(fir);
-					AST_atom* tmpAtm=tmpCptr->value;
+					AST_atom* tmpAtm=tmpCptr->u.atom;
 					int32_t scope=0;
 					CompEnv* tmpEnv=curEnv;
 					CompDef* tmpDef=NULL;
@@ -2150,7 +2150,7 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			case -2:
 				{
 					AST_cptr* tmpCptr=nextCptr(fir);
-					AST_atom* tmpAtm=tmpCptr->value;
+					AST_atom* tmpAtm=tmpCptr->u.atom;
 
 					ByteCode* tmpByteCode=newByteCode(sizeof(char)+sizeof(int32_t)+tmpAtm->value.byts.size);
 					tmpByteCode->code[0]=opcode;
@@ -2164,7 +2164,7 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			case -1:
 				{
 					AST_cptr* tmpCptr=nextCptr(fir);
-					AST_atom* tmpAtm=tmpCptr->value;
+					AST_atom* tmpAtm=tmpCptr->u.atom;
 
 					ByteCode* tmpByteCode=newByteCode(sizeof(char)*2+strlen(tmpAtm->value.str));
 					tmpByteCode->code[0]=opcode;
@@ -2186,7 +2186,7 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			case 1:
 				{
 					AST_cptr* tmpCptr=nextCptr(fir);
-					AST_atom* tmpAtm=tmpCptr->value;
+					AST_atom* tmpAtm=tmpCptr->u.atom;
 
 					ByteCode* tmpByteCode=newByteCode(sizeof(char)*2);
 
@@ -2200,7 +2200,7 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			case 4:
 				{
 					AST_cptr* tmpCptr=nextCptr(fir);
-					AST_atom* tmpAtm=tmpCptr->value;
+					AST_atom* tmpAtm=tmpCptr->u.atom;
 					ByteCode* tmpByteCode=NULL;
 					if(opcode==FAKE_PUSH_VAR)
 					{
@@ -2247,7 +2247,7 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			case 8:
 				{
 					AST_cptr* tmpCptr=nextCptr(fir);
-					AST_atom* tmpAtm=tmpCptr->value;
+					AST_atom* tmpAtm=tmpCptr->u.atom;
 
 					ByteCode* tmpByteCode=newByteCode(sizeof(char)+sizeof(double));
 
@@ -2316,7 +2316,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				freeFakeMemMenager(memMenager);
 				return NULL;
 			}
-			AST_atom* tmpAtm=pPartsOfPath->value;
+			AST_atom* tmpAtm=pPartsOfPath->u.atom;
 			if(tmpAtm->type!=STR&&tmpAtm->type!=SYM)
 			{
 				status->status=SYNTAXERROR;
@@ -2345,7 +2345,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				freeFakeMemMenager(memMenager);
 					return NULL;
 				}
-				AST_atom* prefixAtom=tmpCptr->value;
+				AST_atom* prefixAtom=tmpCptr->u.atom;
 				if(prefixAtom->type!=STR&&prefixAtom->type!=SYM)
 				{
 					status->status=SYNTAXERROR;
@@ -2501,7 +2501,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 							for(;pExportSymbols;pExportSymbols=nextCptr(pExportSymbols))
 							{
 								if(pExportSymbols->type!=ATM
-										||((AST_atom*)pExportSymbols->value)->type!=SYM)
+										||pExportSymbols->u.atom->type!=SYM)
 								{
 									exError(exportCptr,SYNTAXERROR,tmpInter);
 									deleteCptr(begin);
@@ -2517,7 +2517,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 									free(list);
 									return NULL;
 								}
-								AST_atom* pSymbol=pExportSymbols->value;
+								AST_atom* pSymbol=pExportSymbols->u.atom;
 								num++;
 								exportSymbols=(const char**)reallocFakeMem(exportSymbols,realloc(exportSymbols,sizeof(const char*)*num),memMenager);
 								exportSymbols[num-1]=pSymbol->value.str;
@@ -2584,7 +2584,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 						for(;pExportSymbols;pExportSymbols=nextCptr(pExportSymbols))
 						{
 							if(pExportSymbols->type!=ATM
-									||((AST_atom*)pExportSymbols->value)->type!=SYM)
+									||pExportSymbols->u.atom->type!=SYM)
 							{
 								exError(exportCptr,SYNTAXERROR,tmpInter);
 								deleteCptr(begin);
@@ -2601,7 +2601,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 								free(list);
 								return NULL;
 							}
-							AST_atom* pSymbol=pExportSymbols->value;
+							AST_atom* pSymbol=pExportSymbols->u.atom;
 							CompDef* tmpDef=NULL;
 							char* symbolWouldExport=NULL;
 							if(libPrefix)

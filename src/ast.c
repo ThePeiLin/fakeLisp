@@ -80,7 +80,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 					if(!tmpCptr2)
 						return NULL;
 					tmpCptr->type=PAIR;
-					tmpCptr->value=newPair(inter->curline,NULL);
+					tmpCptr->u.pair=newPair(inter->curline,NULL);
 					replaceCptr(getFirstCptr(tmpCptr),tmpCptr2);
 					deleteCptr(tmpCptr2);
 					free(tmpCptr2);
@@ -191,7 +191,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 			{
 				hasComma=0;
 				root->type=PAIR;
-				root->value=newPair(curline,root->outer);
+				root->u.pair=newPair(curline,root->outer);
 				if(&root->outer->car==root)
 				{
 					//如果root是root所在pair的car部分，
@@ -200,14 +200,14 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 					if(tmp)
 					{
 						tmp->type=PAIR;
-						tmp->value=newPair(curline,tmp->outer);
-						pushComStack(getANSPairCdr(tmp),s1);
-						pushComStack(getANSPairCar(tmp),s1);
+						tmp->u.pair=newPair(curline,tmp->outer);
+						pushComStack(getASTPairCdr(tmp),s1);
+						pushComStack(getASTPairCar(tmp),s1);
 					}
 				}
 				pushComStack((void*)s1->top,s2);
-				pushComStack(getANSPairCdr(root),s1);
-				pushComStack(getANSPairCar(root),s1);
+				pushComStack(getASTPairCdr(root),s1);
+				pushComStack(getASTPairCar(root),s1);
 				i++;
 			}
 			else if(objStr[i]==',')
@@ -220,14 +220,14 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 					break;
 				}
 				else hasComma=1;
-				if(root->outer->prev&&root->outer->prev->cdr.value==root->outer)
+				if(root->outer->prev&&root->outer->prev->cdr.u.pair==root->outer)
 				{
 					//将为下一个部分准备的pair删除并将该pair的前一个pair的cdr部分入栈
 					s1->top=(long)topComStack(s2);
 					AST_cptr* tmp=&root->outer->prev->cdr;
-					free(tmp->value);
+					free(tmp->u.pair);
 					tmp->type=NIL;
-					tmp->value=NULL;
+					tmp->u.all=NULL;
 					pushComStack(tmp,s1);
 				}
 				i++;
@@ -237,14 +237,14 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 				hasComma=0;
 				long t=(long)popComStack(s2);
 				AST_cptr* c=s1->data[t];
-				if(s1->top-t>0&&c->outer->prev&&c->outer->prev->cdr.value==c->outer)
+				if(s1->top-t>0&&c->outer->prev&&c->outer->prev->cdr.u.pair==c->outer)
 				{
 					//如果还有为下一部分准备的pair，则将该pair删除
 					AST_cptr* tmpCptr=s1->data[t];
 					tmpCptr=&tmpCptr->outer->prev->cdr;
 					tmpCptr->type=NIL;
-					free(tmpCptr->value);
-					tmpCptr->value=NULL;
+					free(tmpCptr->u.pair);
+					tmpCptr->u.all=NULL;
 				}
 				//将栈顶恢复为将pair入栈前的位置
 				s1->top=t;
@@ -259,7 +259,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 					size_t len=0;
 					str=castEscapeCharater(objStr+i+1,'\"',&len);
 					inter->curline+=countChar(objStr+i,'\n',len);
-					root->value=newAtom(STR,str,root->outer);
+					root->u.atom=newAtom(STR,str,root->outer);
 					i+=len+1;
 					free(str);
 				}
@@ -274,11 +274,11 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 						return NULL;
 					}
 					root->type=tmpCptr->type;
-					root->value=tmpCptr->value;
+					root->u.all=tmpCptr->u.all;
 					if(tmpCptr->type==ATM)
-						((AST_atom*)tmpCptr->value)->prev=root->outer;
+						tmpCptr->u.atom->prev=root->outer;
 					else
-						((AST_pair*)tmpCptr->value)->prev=root->outer;
+						tmpCptr->u.pair->prev=root->outer;
 					free(tmpCptr);
 					i+=skipInPattern(objStr+i,pattern);
 				}
@@ -291,7 +291,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 						case '\\':
 							str=getStringAfterBackslash(objStr+i+1);
 							atom=newAtom(CHR,NULL,root->outer);
-							root->value=atom;
+							root->u.atom=atom;
 							atom->value.chr=(str[0]=='\\')?
 								stringToChar(str+1):
 								str[0];
@@ -303,7 +303,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 							atom->value.byts.refcount=0;
 							atom->value.byts.size=strlen(str)/2+strlen(str)%2;
 							atom->value.byts.str=castStrByteStr(str);
-							root->value=atom;
+							root->u.atom=atom;
 							i+=strlen(str)+1;
 							break;
 					}
@@ -325,10 +325,10 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 							atom=newAtom(IN32,NULL,root->outer);
 							atom->value.in32=stringToInt(str);
 						}
-						root->value=atom;
+						root->u.atom=atom;
 					}
 					else
-						root->value=newAtom(SYM,str,root->outer);
+						root->u.atom=newAtom(SYM,str,root->outer);
 					i+=strlen(str);
 					free(str);
 				}
@@ -340,9 +340,9 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 					if(tmp)
 					{
 						tmp->type=PAIR;
-						tmp->value=newPair(curline,tmp->outer);
-						pushComStack(getANSPairCdr(tmp),s1);
-						pushComStack(getANSPairCar(tmp),s1);
+						tmp->u.pair=newPair(curline,tmp->outer);
+						pushComStack(getASTPairCdr(tmp),s1);
+						pushComStack(getASTPairCar(tmp),s1);
 					}
 				}
 			}
@@ -411,14 +411,14 @@ AST_cptr* castVMvalueToCptr(VMvalue* value,int32_t curline)
 					tmpAtm->value.str=copyStr("#<fp>");
 					break;
 			}
-			root1->value=tmpAtm;
+			root1->u.atom=tmpAtm;
 		}
 		else if(cptrType==PAIR)
 		{
 			pushComStack(root->u.pair->car,s1);
 			pushComStack(root->u.pair->cdr,s1);
 			AST_pair* tmpPair=newPair(curline,root1->outer);
-			root1->value=tmpPair;
+			root1->u.pair=tmpPair;
 			tmpPair->car.outer=tmpPair;
 			tmpPair->cdr.outer=tmpPair;
 			pushComStack(&tmpPair->car,s2);
@@ -432,14 +432,14 @@ AST_cptr* castVMvalueToCptr(VMvalue* value,int32_t curline)
 
 void addToList(AST_cptr* fir,const AST_cptr* sec)
 {
-	while(fir->type!=NIL)fir=&((AST_pair*)fir->value)->cdr;
+	while(fir->type!=NIL)fir=&fir->u.pair->cdr;
 	fir->type=PAIR;
-	fir->value=newPair(sec->curline,fir->outer);
-	replaceCptr(&((AST_pair*)fir->value)->car,sec);
+	fir->u.pair=newPair(sec->curline,fir->outer);
+	replaceCptr(&fir->u.pair->car,sec);
 }
 
 void addToTail(AST_cptr* fir,const AST_cptr* sec)
 {
-	while(fir->type!=NIL)fir=&((AST_pair*)fir->value)->cdr;
+	while(fir->type!=NIL)fir=&fir->u.pair->cdr;
 	replaceCptr(fir,sec);
 }

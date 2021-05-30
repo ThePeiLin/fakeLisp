@@ -2,6 +2,34 @@
          (export cons
                  car
                  cdr
+                 caar
+                 cadr
+                 cdar
+                 cddr
+                 caaar
+                 caadr
+                 cadar
+                 caddr
+                 cdaar
+                 cdadr
+                 cddar
+                 cdddr
+                 caaaar
+                 caaadr
+                 caadar
+                 caaddr
+                 cadaar
+                 cadadr
+                 caddar
+                 cadddr
+                 cdaaar
+                 cdaadr
+                 cdadar
+                 cdaddr
+                 cddaar
+                 cddadr
+                 cdddar
+                 cddddr
                  atom
                  null
                  type
@@ -70,6 +98,241 @@
                          push_var a
                          push_cdr
                          )))
+         (define caar (lambda (a)
+                        (proc
+                          push_var a
+                          push_car
+                          push_car
+                          )))
+
+         (define cadr (lambda (a)
+                        (proc
+                          push_var a
+                          push_cdr
+                          push_car
+                          )))
+
+         (define cdar (lambda (a)
+                        (proc
+                          push_var a
+                          push_car
+                          push_cdr
+                          )))
+
+         (define cddr (lambda (a)
+                        (proc
+                          push_var a
+                          push_cdr
+                          push_cdr
+                          )))
+
+         (define caaar (lambda (a)
+                         (proc
+                           push_var a
+                           push_car
+                           push_car
+                           push_car
+                           )))
+
+         (define caadr (lambda (a)
+                         (proc
+                           push_var a
+                           push_cdr
+                           push_car
+                           push_car
+                           )))
+
+         (define cadar (lambda (a)
+                         (proc
+                           push_var a
+                           push_car
+                           push_cdr
+                           push_car
+                           )))
+
+         (define caddr (lambda (a)
+                         (proc
+                           push_var a
+                           push_cdr
+                           push_cdr
+                           push_car
+                           )))
+
+         (define cdaar (lambda (a)
+                         (proc
+                           push_var a
+                           push_car
+                           push_car
+                           push_cdr
+                           )))
+
+         (define cdadr (lambda (a)
+                         (proc
+                           push_var a
+                           push_cdr
+                           push_car
+                           push_cdr
+                           )))
+
+         (define cddar (lambda (a)
+                         (proc
+                           push_var a
+                           push_car
+                           push_cdr
+                           push_cdr
+                           )))
+
+         (define cdddr (lambda (a)
+                         (proc
+                           push_var a
+                           push_cdr
+                           push_cdr
+                           push_cdr
+                           )))
+
+         (define caaaar (lambda (a)
+                          (proc
+                            push_var a
+                            push_car
+                            push_car
+                            push_car
+                            push_car
+                            )))
+
+         (define caaadr (lambda (a)
+                          (proc
+                            push_var a
+                            push_cdr
+                            push_car
+                            push_car
+                            push_car
+                            )))
+
+         (define caadar (lambda (a)
+                          (proc
+                            push_var a
+                            push_car
+                            push_cdr
+                            push_car
+                            push_car
+                            )))
+
+         (define caaddr (lambda (a)
+                          (proc
+                            push_var a
+                            push_cdr
+                            push_cdr
+                            push_car
+                            push_car
+                            )))
+
+         (define cadaar (lambda (a)
+                          (proc
+                            push_var a
+                            push_car
+                            push_car
+                            push_cdr
+                            push_car
+                            )))
+
+         (define cadadr (lambda (a)
+                          (proc
+                            push_var a
+                            push_cdr
+                            push_car
+                            push_cdr
+                            push_car
+                            )))
+
+         (define caddar (lambda (a)
+                          (proc
+                            push_var a
+                            push_car
+                            push_cdr
+                            push_cdr
+                            push_car
+                            )))
+
+         (define cadddr (lambda (a)
+                          (proc
+                            push_var a
+                            push_cdr
+                            push_cdr
+                            push_cdr
+                            push_car
+                            )))
+        
+         (define cdaaar (lambda (a)
+                          (proc
+                            push_var a
+                            push_car
+                            push_car
+                            push_car
+                            push_cdr
+                            )))
+        
+         (define cdaadr (lambda (a)
+                          (proc
+                            push_var a
+                            push_cdr
+                            push_car
+                            push_car
+                            push_cdr
+                            )))
+
+         (define cdadar (lambda (a)
+                          (proc
+                            push_var a
+                            push_car
+                            push_cdr
+                            push_car
+                            push_cdr
+                            )))
+
+         (define cdaddr (lambda (a)
+                          (proc
+                            push_var a
+                            push_cdr
+                            push_cdr
+                            push_car
+                            push_cdr
+                            )))
+        
+         (define cddaar (lambda (a)
+                          (proc
+                            push_var a
+                            push_car
+                            push_car
+                            push_cdr
+                            push_cdr
+                            )))
+        
+         (define cddadr (lambda (a)
+                          (proc
+                            push_var a
+                            push_cdr
+                            push_car
+                            push_cdr
+                            push_cdr
+                            )))
+
+         (define cdddar (lambda (a)
+                          (proc
+                            push_var a
+                            push_car
+                            push_cdr
+                            push_cdr
+                            push_cdr
+                            )))
+
+         (define cddddr (lambda (a)
+                          (proc
+                            push_var a
+                            push_cdr
+                            push_cdr
+                            push_cdr
+                            push_cdr
+                            )))
 
          (define atom (lambda (a)
                         (proc

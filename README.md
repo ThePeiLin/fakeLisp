@@ -49,49 +49,11 @@ With the macro above, you can define the "gle" function just like the expression
 ```
 
 Available built-in functions:
-
-cons  
-car  
-cdr  
-atom  
-null  
-aply  
-type  
-eq  
-equal  
-eqn  
-gt  
-ge  
-lt  
-le  
-not  
-dbl  
-str  
-sym  
-chr  
-int  
-byt  
-add  
-sub  
-mul  
-div  
-rem  
-nth  
-length  
-appd  
-file  
-read  
-getb  
-write  
-princ   
-putb  
-go  
-chanl  
-send  
-recv  
-clcc  
-dll  
-dlsym  
+nil  
+EOF  
+stdin  
+stdout  
+stderr  
 
 Special forms:  
 

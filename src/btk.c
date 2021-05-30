@@ -108,10 +108,17 @@ int FAKE_exit(FakeVM* exe,pthread_rwlock_t* pGClock)
 {
 	VMstack* stack=exe->stack;
 	VMvalue* exitCode=getArg(stack);
+	lockSource(pGClock);
+	int a[2]={0,1};
+	if(exe->VMid==-1)
+		return STACKERROR;
 	if(exitCode==NULL)
-		exit(0);
+		exe->callback(a);
+	if(exitCode->type!=IN32)
+		return WRONGARG;
 	int32_t num=*exitCode->u.in32;
-	exit(num);
+	a[0]=num;
+	exe->callback(a);
 	return 0;
 }
 

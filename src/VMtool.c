@@ -215,31 +215,55 @@ VMvalue* getVMpairCdr(VMvalue* obj)
 
 int VMvaluecmp(VMvalue* fir,VMvalue* sec)
 {
-	if(fir==sec)return 1;
-	if(fir->type!=sec->type)return 0;
-	if(fir->u.all==sec->u.all)return 1;
-	else
+	ComStack* s1=newComStack(32);
+	ComStack* s2=newComStack(32);
+	pushComStack(fir,s1);
+	pushComStack(sec,s2);
+	int r=1;
+	while(!isComStackEmpty(s1))
 	{
-		switch(fir->type)
+		VMvalue* root1=popComStack(s1);
+		VMvalue* root2=popComStack(s2);
+		if((root1==root2)||(root1->type!=root2->type)||(root1->u.all==root2->u.all))
+			r=1;
+		else
 		{
-			case IN32:
-				return *fir->u.in32==*sec->u.in32;
-			case CHR:
-				return *fir->u.chr==*sec->u.chr;
-			case DBL:
-				return fabs(*fir->u.dbl-*sec->u.dbl)==0;
-			case STR:
-			case SYM:
-				return !strcmp(fir->u.str->str,sec->u.str->str);
-			case PRC:
-				return fir->u.prc==sec->u.prc;
-			case PAIR:
-				return VMvaluecmp(fir->u.pair->car,sec->u.pair->car)&&VMvaluecmp(fir->u.pair->cdr,sec->u.pair->cdr);
-			case BYTS:
-				return bytsStrEq(fir->u.byts,sec->u.byts);
+			switch(root1->type)
+			{
+				case IN32:
+					r=(*root1->u.in32==*root2->u.in32);
+					break;
+				case CHR:
+					r=(*root1->u.chr==*root2->u.chr);
+					break;
+				case DBL:
+					r=(fabs(*root1->u.dbl-*root2->u.dbl)==0);
+					break;
+				case STR:
+				case SYM:
+					r=(!strcmp(root1->u.str->str,root2->u.str->str));
+					break;
+				case PRC:
+					r=(root1->u.prc==root2->u.prc);
+					break;
+				case PAIR:
+					r=1;
+					pushComStack(root1->u.pair->car,s1);
+					pushComStack(root1->u.pair->cdr,s1);
+					pushComStack(root2->u.pair->car,s2);
+					pushComStack(root2->u.pair->cdr,s2);
+					break;
+				case BYTS:
+					r=bytsStrEq(root1->u.byts,root2->u.byts);
+					break;
+			}
+			if(!r)
+				break;
 		}
 	}
-	return 0;
+	freeComStack(s1);
+	freeComStack(s2);
+	return r;
 }
 
 int subVMvaluecmp(VMvalue* fir,VMvalue* sec)

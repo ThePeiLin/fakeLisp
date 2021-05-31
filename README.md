@@ -48,7 +48,7 @@ With the macro above, you can define the "gle" function just like the expression
         (1 (gle (cdr obj)))))
 ```
 
-Available built-in functions:
+Available built-in symbols:
 nil  
 EOF  
 stdin  

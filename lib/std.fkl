@@ -30,6 +30,7 @@
                  cddadr
                  cdddar
                  cddddr
+                 list
                  atom
                  null
                  type
@@ -333,6 +334,8 @@
                             push_cdr
                             push_cdr
                             )))
+
+         (define list (lambda ls ls))
 
          (define atom (lambda (a)
                         (proc

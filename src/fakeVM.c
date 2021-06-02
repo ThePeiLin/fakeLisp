@@ -2146,8 +2146,8 @@ int B_send(FakeVM* exe)
 	if(ch->type!=CHAN)
 		return WRONGARG;
 	VMvalue* message=getValue(stack,stack->tp-2);
-	Chanl* tmpCh=ch->u.chan;
-	pthread_mutex_lock(&tmpCh->lock);
+	volatile Chanl* tmpCh=ch->u.chan;
+	pthread_mutex_lock((pthread_mutex_t*)&tmpCh->lock);
 	if(tmpCh->tail==NULL)
 	{
 		tmpCh->head=newThreadMessage(message,exe->heap);
@@ -2160,7 +2160,7 @@ int B_send(FakeVM* exe)
 		tmpCh->tail=cur->next;
 	}
 	tmpCh->num+=1;
-	pthread_mutex_unlock(&tmpCh->lock);
+	pthread_mutex_unlock((pthread_mutex_t*)&tmpCh->lock);
 	while(tmpCh->max>=0&&tmpCh->num>tmpCh->max);
 	stack->tp-=1;
 	stackRecycle(exe);
@@ -2176,18 +2176,18 @@ int B_recv(FakeVM* exe)
 	if(ch->type!=CHAN)
 		return WRONGARG;
 	VMvalue* tmp=newNilValue(exe->heap);
-	Chanl* tmpCh=ch->u.chan;
+	volatile Chanl* tmpCh=ch->u.chan;
 	tmp->access=1;
 	while(tmpCh->head==NULL);
-	pthread_mutex_lock(&tmpCh->lock);
+	pthread_mutex_lock((pthread_mutex_t*)&tmpCh->lock);
 	copyRef(tmp,tmpCh->head->message);
 	ThreadMessage* prev=tmpCh->head;
 	tmpCh->head=prev->next;
 	if(tmpCh->head==NULL)
 		tmpCh->tail=NULL;
 	tmpCh->num-=1;
-	pthread_mutex_unlock(&tmpCh->lock);
 	free(prev);
+	pthread_mutex_unlock((pthread_mutex_t*)&tmpCh->lock);
 	stack->values[stack->tp-1]=tmp;
 	proc->cp+=1;
 	return 0;
@@ -2269,7 +2269,7 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,int8_t mode,CRL** h)
 					fprintf(fp,",#%d#",CRLcount);
 					break;
 				}
-				else
+				else if(tmpValue->type!=NIL)
 					putc(' ',fp);
 			}
 			putc(')',fp);
@@ -2356,7 +2356,7 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 					fprintf(fp,",#%d#",CRLcount);
 					break;
 				}
-				else
+				else if(tmpValue->type!=NIL)
 					putc(' ',fp);
 			}
 			putc(')',fp);

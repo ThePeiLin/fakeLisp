@@ -45,7 +45,7 @@ static VMenv* genGlobEnv(CompEnv* cEnv,VMheap* heap,SymbolTable* table)
 		tmpVMcode->prevEnv=NULL;
 		tmpVM->table=table;
 		tmpVM->lnt=newLineNumTable();
-		tmpVM->lnt->size=tmpByteCode->ls;
+		tmpVM->lnt->num=tmpByteCode->ls;
 		tmpVM->lnt->list=tmpByteCode->l;
 		freeVMheap(tmpVM->heap);
 		tmpVM->heap=heap;
@@ -158,7 +158,7 @@ int PreMacroExpand(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 		tmpVMcode->prevEnv=NULL;
 		tmpVM->table=inter->table;
 		tmpVM->lnt=newLineNumTable();
-		tmpVM->lnt->size=tmp->proc->ls;
+		tmpVM->lnt->num=tmp->proc->ls;
 		tmpVM->lnt->list=tmp->proc->l;
 		AST_cptr* tmpCptr=NULL;
 		int i=runFakeVM(tmpVM);

@@ -34,7 +34,7 @@ typedef void (*GenDestructor)(void*);
 typedef struct
 {
 	void** data;
-	uint32_t size;
+	uint32_t num;
 	long int top;
 }ComStack;
 
@@ -51,7 +51,7 @@ typedef struct
 
 typedef struct
 {
-	int32_t size;
+	uint32_t size;
 	char* code;
 }ByteCode;
 
@@ -70,15 +70,15 @@ typedef struct Byte_Code_with_Line_Number_Node
 
 typedef struct
 {
-	int32_t refcount;
-	int32_t size;
+	uint32_t refcount;
+	uint32_t size;
 	uint8_t* str;
 }ByteString;
 
 typedef struct
 {
 	struct AST_pair* outer;
-	int curline;
+	uint32_t curline;
 	ValueType type;
 	union
 	{
@@ -97,8 +97,8 @@ typedef struct AST_pair
 typedef struct Channel
 {
 	int32_t max;
-	int32_t size;
-	int32_t refcount;
+	uint32_t num;
+	uint32_t refcount;
 	pthread_mutex_t lock;
 	struct Thread_Message* head;
 	struct Thread_Message* tail;
@@ -106,7 +106,7 @@ typedef struct Channel
 
 typedef struct VM_File
 {
-	int32_t refcount;
+	uint32_t refcount;
 	FILE* fp;
 }VMfp;
 
@@ -126,7 +126,7 @@ typedef struct AST_atom
 
 typedef struct
 {
-	int status;
+	ErrorType status;
 	AST_cptr* place;
 }ErrorStatus;
 
@@ -159,14 +159,14 @@ typedef struct Symbol_Table_Node
 
 typedef struct Symbol_Table
 {
-	int32_t size;
+	int32_t num;
 	SymTabNode** list;
 	SymTabNode** idl;
 }SymbolTable;
 
 typedef struct Comp_Def
 {
-	int32_t id;
+	uint32_t id;
 	struct Comp_Def* next;
 }CompDef;
 
@@ -202,7 +202,7 @@ typedef struct Key_Word
 
 typedef struct
 {
-	int32_t refcount;
+	uint32_t refcount;
 	struct VM_Value* car;
 	struct VM_Value* cdr;
 }VMpair;
@@ -234,15 +234,15 @@ typedef struct VM_Value
 
 typedef struct VM_Env_node
 {
-	int32_t id;
+	uint32_t id;
 	VMvalue* value;
 }VMenvNode;
 
 typedef struct VM_Env
 {
 	struct VM_Env* prev;
-	int32_t refcount;
-	int32_t size;
+	uint32_t refcount;
+	uint32_t num;
 	VMenvNode** list;
 }VMenv;
 
@@ -251,13 +251,13 @@ typedef struct VM_Code
 	uint32_t offset;
 	int32_t refcount;
 	VMenv* prevEnv;
-	int32_t size;
+	uint32_t size;
 	char* code;
 }VMcode;
 
 typedef struct VM_Str
 {
-	int32_t refcount;
+	uint32_t refcount;
 	char* str;
 }VMstr;
 
@@ -265,19 +265,19 @@ typedef struct VM_Process
 {
 	struct VM_Process* prev;
 	VMenv* localenv;
-	int32_t cp;
+	uint32_t cp;
 	VMcode* code;
 }VMprocess;
 
 typedef struct
 {
-	int32_t tp;
-	int32_t bp;
-	int32_t size;
+	uint32_t tp;
+	uint32_t bp;
+	uint32_t size;
 	VMvalue** values;
-	int32_t tpsi;
-	int32_t tptp;
-	int32_t* tpst;
+	uint32_t tpsi;
+	uint32_t tptp;
+	uint32_t* tpst;
 }VMstack;
 
 typedef struct Thread_Message
@@ -306,14 +306,14 @@ typedef struct
 typedef struct VM_Heap
 {
 	pthread_mutex_t lock;
-	int32_t size;
-	int32_t threshold;
+	uint32_t num;
+	uint32_t threshold;
 	VMvalue* head;
 }VMheap;
 
 typedef struct
 {
-	int32_t size;
+	uint32_t num;
 	FakeVM** VMs;
 }FakeVMlist;
 
@@ -328,20 +328,20 @@ typedef int (*DllFunc)(FakeVM*,pthread_rwlock_t*);
 
 typedef struct VM_Dll
 {
-	int32_t refcount;
+	uint32_t refcount;
 	DllHandle handle;
 }VMDll;
 
 typedef struct VM_Dlproc
 {
-	int32_t refcount;
+	uint32_t refcount;
 	DllFunc func;
 	VMDll* dll;
 }VMDlproc;
 
 typedef struct String_Match_Pattern
 {
-	int32_t num;
+	uint32_t num;
 	char** parts;
 	ByteCodelnt* proc;
 	struct String_Match_Pattern* prev;
@@ -350,30 +350,30 @@ typedef struct String_Match_Pattern
 
 typedef struct VM_proc_status
 {
-	int32_t cp;
+	uint32_t cp;
 	VMcode* proc;
 	VMenv* env;
 }VMprocStatus;
 
 typedef struct VM_Continuation
 {
-	int32_t refcount;
-	int32_t size;
+	uint32_t refcount;
+	uint32_t num;
 	VMstack* stack;
 	VMprocStatus* status;
 }VMcontinuation;
 
 typedef struct Line_Number_Table
 {
-	int32_t size;
+	uint32_t num;
 	struct Line_Number_Table_Node** list;
 }LineNumberTable;
 
 typedef struct Line_Number_Table_Node
 {
-	int32_t fid;
-	int32_t scp;
-	int32_t cpc;
-	int32_t line;
+	uint32_t fid;
+	uint32_t scp;
+	uint32_t cpc;
+	uint32_t line;
 }LineNumTabNode;
 #endif

@@ -27,7 +27,7 @@ static VMenv* genGlobEnv(CompEnv* cEnv,VMheap* heap,SymbolTable* table)
 	tmpVMcode->prevEnv=NULL;
 	tmpVM->table=table;
 	tmpVM->lnt=newLineNumTable();
-	tmpVM->lnt->size=tmpByteCode->ls;
+	tmpVM->lnt->num=tmpByteCode->ls;
 	tmpVM->lnt->list=tmpByteCode->l;
 	freeVMheap(tmpVM->heap);
 	tmpVM->heap=heap;
@@ -153,7 +153,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 		tmpVM->table=inter->table;
 		tmpVM->lnt=newLineNumTable();
 		tmpVM->lnt->list=pattern->proc->l;
-		tmpVM->lnt->size=pattern->proc->ls;
+		tmpVM->lnt->num=pattern->proc->ls;
 		int status=runFakeVM(tmpVM);
 		AST_cptr* tmpCptr=NULL;
 		if(!status)

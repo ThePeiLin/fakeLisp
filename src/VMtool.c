@@ -139,7 +139,7 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap,int access)
 	pthread_mutex_lock(&heap->lock);
 	if(heap->head!=NULL)heap->head->prev=tmp;
 	heap->head=tmp;
-	heap->size+=1;
+	heap->num+=1;
 	pthread_mutex_unlock(&heap->lock);
 	switch((int)type)
 	{
@@ -300,7 +300,7 @@ VMenv* newVMenv(VMenv* prev)
 {
 	VMenv* tmp=(VMenv*)malloc(sizeof(VMenv));
 	if(tmp==NULL)errors("newVMenv",__FILE__,__LINE__);
-	tmp->size=0;
+	tmp->num=0;
 	tmp->list=NULL;
 	tmp->prev=prev;
 	increaseVMenvRefcount(prev);
@@ -550,10 +550,10 @@ VMcode* copyVMcode(VMcode* obj,VMheap* heap)
 VMenv* copyVMenv(VMenv* objEnv,VMheap* heap)
 {
 	VMenv* tmp=newVMenv(NULL);
-	tmp->list=(VMenvNode**)malloc(sizeof(VMenvNode*)*objEnv->size);
+	tmp->list=(VMenvNode**)malloc(sizeof(VMenvNode*)*objEnv->num);
 	if(tmp->list==NULL)errors("copyVMenv",__FILE__,__LINE__);
 	int i=0;
-	for(;i<objEnv->size;i++)
+	for(;i<objEnv->num;i++)
 	{
 		VMenvNode* node=objEnv->list[i];
 		VMvalue* v=copyVMvalue(node->value,heap);
@@ -592,7 +592,7 @@ void freeVMenv(VMenv* obj)
 			VMenv* prev=obj;
 			obj=obj->prev;
 			int32_t i=0;
-			for(;i<prev->size;i++)
+			for(;i<prev->num;i++)
 				freeVMenvNode(prev->list[i]);
 			free(prev->list);
 			free(prev);
@@ -873,7 +873,7 @@ VMcontinuation* newVMcontinuation(VMstack* stack,VMprocess* curproc)
 	VMprocStatus* status=(VMprocStatus*)malloc(sizeof(VMprocStatus)*size);
 	if(!status)errors("newVMcontinuation",__FILE__,__LINE__);
 	tmp->stack=copyStack(stack);
-	tmp->size=size;
+	tmp->num=size;
 	tmp->refcount=0;
 	for(;i<size;i++)
 	{
@@ -893,7 +893,7 @@ void freeVMcontinuation(VMcontinuation* cont)
 	if(!cont->refcount)
 	{
 		int32_t i=0;
-		int32_t size=cont->size;
+		int32_t size=cont->num;
 		VMstack* stack=cont->stack;
 		VMprocStatus* status=cont->status;
 		free(stack->tpst);
@@ -928,7 +928,7 @@ VMstack* copyStack(VMstack* stack)
 	tmp->tpsi=stack->tpsi;
 	if(tmp->tpsi)
 	{
-		tmp->tpst=(int32_t*)malloc(sizeof(int32_t)*tmp->tpsi);
+		tmp->tpst=(uint32_t*)malloc(sizeof(uint32_t)*tmp->tpsi);
 		if(!tmp->tpst)
 			errors("copyStack",__FILE__,__LINE__);
 		if(tmp->tptp)memcpy(tmp->tpst,stack->tpst,sizeof(int32_t)*(tmp->tptp-1));
@@ -949,7 +949,7 @@ VMenvNode* addVMenvNode(VMenvNode* node,VMenv* env)
 {
 	if(!env->list)
 	{
-		env->size=1;
+		env->num=1;
 		env->list=(VMenvNode**)malloc(sizeof(VMenvNode*)*1);
 		if(!env->list)errors("addVMenvNode",__FILE__,__LINE__);
 		env->list[0]=node;
@@ -957,7 +957,7 @@ VMenvNode* addVMenvNode(VMenvNode* node,VMenv* env)
 	else
 	{
 		int32_t l=0;
-		int32_t h=env->size-1;
+		int32_t h=env->num-1;
 		int32_t mid=0;
 		while(l<=h)
 		{
@@ -969,9 +969,9 @@ VMenvNode* addVMenvNode(VMenvNode* node,VMenv* env)
 		}
 		if(env->list[mid]->id<=node->id)
 			mid++;
-		env->size+=1;
-		int32_t i=env->size-1;
-		env->list=(VMenvNode**)realloc(env->list,sizeof(VMenvNode*)*env->size);
+		env->num+=1;
+		int32_t i=env->num-1;
+		env->list=(VMenvNode**)realloc(env->list,sizeof(VMenvNode*)*env->num);
 		if(!env->list)errors("addVMenvNode",__FILE__,__LINE__);
 		for(;i>mid;i--)
 			env->list[i]=env->list[i-1];
@@ -985,7 +985,7 @@ VMenvNode* findVMenvNode(int32_t id,VMenv* env)
 	if(!env->list)
 		return NULL;
 	int32_t l=0;
-	int32_t h=env->size-1;
+	int32_t h=env->num-1;
 	int32_t mid;
 	while(l<=h)
 	{
@@ -1013,7 +1013,7 @@ Chanl* newChanl(int32_t maxSize)
 		errors("newChanl",__FILE__,__LINE__);
 	pthread_mutex_init(&tmp->lock,NULL);
 	tmp->max=maxSize;
-	tmp->size=0;
+	tmp->num=0;
 	tmp->refcount=0;
 	tmp->head=NULL;
 	tmp->tail=NULL;
@@ -1045,7 +1045,7 @@ void freeMessage(ThreadMessage* cur)
 Chanl* copyChanl(Chanl* ch,VMheap* heap)
 {
 	Chanl* tmpCh=newChanl(ch->max);
-	tmpCh->size=ch->size;
+	tmpCh->num=ch->num;
 	ThreadMessage* cur=ch->head;
 	ThreadMessage* prev=NULL;
 	while(cur)

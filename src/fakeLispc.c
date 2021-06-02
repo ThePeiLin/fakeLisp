@@ -60,7 +60,7 @@ int main(int argc,char** argv)
 			return 1;
 		}
 		inter->lnt->list=mainByteCode->l;
-		inter->lnt->size=mainByteCode->ls;
+		inter->lnt->num=mainByteCode->ls;
 		writeSymbolTable(inter->table,outfp);
 		writeLineNumberTable(inter->lnt,outfp);
 		int32_t sizeOfMain=mainByteCode->bc->size;

@@ -1492,7 +1492,7 @@ SymbolTable* newSymbolTable()
 		errors("newSymbolTable",__FILE__,__LINE__);
 	tmp->list=NULL;
 	tmp->idl=NULL;
-	tmp->size=0;
+	tmp->num=0;
 	return tmp;
 }
 
@@ -1510,8 +1510,8 @@ SymTabNode* addSymTabNode(SymTabNode* node,SymbolTable* table)
 {
 	if(!table->list)
 	{
-		table->size=1;
-		node->id=table->size-1;
+		table->num=1;
+		node->id=table->num-1;
 		table->list=(SymTabNode**)malloc(sizeof(SymTabNode*)*1);
 		if(!table->list)errors("addSymTabNode",__FILE__,__LINE__);
 		table->idl=(SymTabNode**)malloc(sizeof(SymTabNode*)*1);
@@ -1522,7 +1522,7 @@ SymTabNode* addSymTabNode(SymTabNode* node,SymbolTable* table)
 	else
 	{
 		int32_t l=0;
-		int32_t h=table->size-1;
+		int32_t h=table->num-1;
 		int32_t mid=0;
 		while(l<=h)
 		{
@@ -1534,17 +1534,17 @@ SymTabNode* addSymTabNode(SymTabNode* node,SymbolTable* table)
 		}
 		if(strcmp(table->list[mid]->symbol,node->symbol)<=0)
 			mid++;
-		table->size+=1;
-		int32_t i=table->size-1;
-		table->list=(SymTabNode**)realloc(table->list,sizeof(SymTabNode*)*table->size);
+		table->num+=1;
+		int32_t i=table->num-1;
+		table->list=(SymTabNode**)realloc(table->list,sizeof(SymTabNode*)*table->num);
 		if(!table->list)errors("addSymTabNode",__FILE__,__LINE__);
 		for(;i>mid;i--)
 			table->list[i]=table->list[i-1];
 		table->list[mid]=node;
-		node->id=table->size-1;
-		table->idl=(SymTabNode**)realloc(table->idl,sizeof(SymTabNode*)*table->size);
+		node->id=table->num-1;
+		table->idl=(SymTabNode**)realloc(table->idl,sizeof(SymTabNode*)*table->num);
 		if(!table->idl)errors("addSymTabNode",__FILE__,__LINE__);
-		table->idl[table->size-1]=node;
+		table->idl[table->num-1]=node;
 	}
 	return node;
 }
@@ -1558,7 +1558,7 @@ void freeSymTabNode(SymTabNode* node)
 void freeSymbolTable(SymbolTable* table)
 {
 	int32_t i=0;
-	for(;i<table->size;i++)
+	for(;i<table->num;i++)
 		freeSymTabNode(table->list[i]);
 	free(table->list);
 	free(table->idl);
@@ -1570,7 +1570,7 @@ SymTabNode* findSymbol(const char* symbol,SymbolTable* table)
 	if(!table->list)
 		return NULL;
 	int32_t l=0;
-	int32_t h=table->size-1;
+	int32_t h=table->num-1;
 	int32_t mid;
 	while(l<=h)
 	{
@@ -1589,12 +1589,12 @@ SymTabNode* findSymbol(const char* symbol,SymbolTable* table)
 void printSymbolTable(SymbolTable* table,FILE* fp)
 {
 	int32_t i=0;
-	for(;i<table->size;i++)
+	for(;i<table->num;i++)
 	{
 		SymTabNode* cur=table->list[i];
 		printf("symbol:%s id:%d\n",cur->symbol,cur->id);
 	}
-	printf("size:%d\n",table->size);
+	printf("size:%d\n",table->num);
 }
 
 AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
@@ -1765,7 +1765,7 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 
 void writeSymbolTable(SymbolTable* table,FILE* fp)
 {
-	int32_t size=table->size;
+	int32_t size=table->num;
 	fwrite(&size,sizeof(size),1,fp);
 	int32_t i=0;
 	for(;i<size;i++)
@@ -1774,7 +1774,7 @@ void writeSymbolTable(SymbolTable* table,FILE* fp)
 
 void writeLineNumberTable(LineNumberTable* lnt,FILE* fp)
 {
-	int32_t size=lnt->size;
+	int32_t size=lnt->num;
 	fwrite(&size,sizeof(size),1,fp);
 	int32_t i=0;
 	for(;i<size;i++)
@@ -1800,7 +1800,7 @@ LineNumberTable* newLineNumTable()
 	LineNumberTable* t=(LineNumberTable*)malloc(sizeof(LineNumberTable));
 	if(!t)
 		errors("newLineNumTable",__FILE__,__LINE__);
-	t->size=0;
+	t->num=0;
 	t->list=NULL;
 	return t;
 }
@@ -1825,7 +1825,7 @@ void freeLineNumTabNode(LineNumTabNode* n)
 void freeLineNumberTable(LineNumberTable* t)
 {
 	int32_t i=0;
-	for(;i<t->size;i++)
+	for(;i<t->num;i++)
 		freeLineNumTabNode(t->list[i]);
 	free(t->list);
 	free(t);
@@ -1834,7 +1834,7 @@ void freeLineNumberTable(LineNumberTable* t)
 LineNumTabNode* findLineNumTabNode(uint32_t cp,LineNumberTable* t)
 {
 	int32_t i=0;
-	uint32_t size=t->size;
+	uint32_t size=t->num;
 	LineNumTabNode** list=t->list;
 	for(;i<size;i++)
 	{
@@ -1855,7 +1855,7 @@ void lntCat(LineNumberTable* t,int32_t bs,LineNumTabNode** l2,int32_t s2)
 {
 	if(!t->list)
 	{
-		t->size=s2;
+		t->num=s2;
 		t->list=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*s2);
 		if(!t->list)
 			errors("lntCat",__FILE__,__LINE__);
@@ -1866,23 +1866,23 @@ void lntCat(LineNumberTable* t,int32_t bs,LineNumTabNode** l2,int32_t s2)
 	else
 	{
 		INCREASE_ALL_SCP(l2,s2,bs);
-		if(t->list[t->size-1]->line==l2[0]->line&&t->list[t->size-1]->fid==l2[0]->fid)
+		if(t->list[t->num-1]->line==l2[0]->line&&t->list[t->num-1]->fid==l2[0]->fid)
 		{
-			t->list[t->size-1]->cpc+=l2[0]->cpc;
-			t->list=(LineNumTabNode**)realloc(t->list,sizeof(LineNumTabNode*)*(t->size+s2-1));
+			t->list[t->num-1]->cpc+=l2[0]->cpc;
+			t->list=(LineNumTabNode**)realloc(t->list,sizeof(LineNumTabNode*)*(t->num+s2-1));
 			if(!t->list)
 				errors("lntCat",__FILE__,__LINE__);
-			memcpy(t->list+t->size,l2+1,(s2-1)*sizeof(LineNumTabNode*));
-			t->size+=s2-1;
+			memcpy(t->list+t->num,l2+1,(s2-1)*sizeof(LineNumTabNode*));
+			t->num+=s2-1;
 			freeLineNumTabNode(l2[0]);
 		}
 		else
 		{
-			t->list=(LineNumTabNode**)realloc(t->list,sizeof(LineNumTabNode*)*(t->size+s2));
+			t->list=(LineNumTabNode**)realloc(t->list,sizeof(LineNumTabNode*)*(t->num+s2));
 			if(!t->list)
 				errors("lntCat",__FILE__,__LINE__);
-			memcpy(t->list+t->size,l2,(s2)*sizeof(LineNumTabNode*));
-			t->size+=s2;
+			memcpy(t->list+t->num,l2,(s2)*sizeof(LineNumTabNode*));
+			t->num+=s2;
 		}
 	}
 }
@@ -2118,26 +2118,26 @@ int isComStackEmpty(ComStack* stack)
 	return stack->top==0;
 }
 
-ComStack* newComStack(uint32_t size)
+ComStack* newComStack(uint32_t num)
 {
 	ComStack* tmp=(ComStack*)malloc(sizeof(ComStack));
 	if(!tmp)
 		errors("newComStack",__FILE__,__LINE__);
-	tmp->data=(void**)malloc(sizeof(void*)*size);
-	tmp->size=size;
+	tmp->data=(void**)malloc(sizeof(void*)*num);
+	tmp->num=num;
 	tmp->top=0;
 	return tmp;
 }
 
 void pushComStack(void* data,ComStack* stack)
 {
-	if(stack->top==stack->size)
+	if(stack->top==stack->num)
 	{
-		void** tmpData=(void**)realloc(stack->data,(stack->size+32)*sizeof(void*));
+		void** tmpData=(void**)realloc(stack->data,(stack->num+32)*sizeof(void*));
 		if(!tmpData)
 			errors("pushComStack",__FILE__,__LINE__);
 		stack->data=tmpData;
-		stack->size+=32;
+		stack->num+=32;
 	}
 	stack->data[stack->top]=data;
 	stack->top+=1;
@@ -2168,13 +2168,13 @@ void freeComStack(ComStack* stack)
 
 void recycleComStack(ComStack* stack)
 {
-	if(stack->size-stack->top>32)
+	if(stack->num-stack->top>32)
 	{
-		void** tmpData=(void**)realloc(stack->data,(stack->size-32)*sizeof(void*));
+		void** tmpData=(void**)realloc(stack->data,(stack->num-32)*sizeof(void*));
 		if(!tmpData)
 			errors("recycleComStack",__FILE__,__LINE__);
 		stack->data=tmpData;
-		stack->size-=32;
+		stack->num-=32;
 	}
 }
 

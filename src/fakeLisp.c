@@ -71,7 +71,7 @@ int main(int argc,char** argv)
 				free(InterpreterPath);
 				return status;
 			}
-			inter->lnt->size=mainByteCode->ls;
+			inter->lnt->num=mainByteCode->ls;
 			inter->lnt->list=mainByteCode->l;
 			VMenv* globEnv=newVMenv(NULL);
 			FakeVM* anotherVM=newFakeVM(mainByteCode->bc);
@@ -366,6 +366,6 @@ LineNumberTable* loadLineNumberTable(FILE* fp)
 	}
 	LineNumberTable* lnt=newLineNumTable();
 	lnt->list=list;
-	lnt->size=size;
+	lnt->num=size;
 	return lnt;
 }

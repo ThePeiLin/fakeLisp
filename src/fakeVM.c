@@ -217,7 +217,7 @@ FakeVM* newFakeVM(ByteCode* mainproc)
 	exe->callback=NULL;
 	FakeVM** ppFakeVM=NULL;
 	int i=0;
-	for(;i<GlobFakeVMs.size;i++)
+	for(;i<GlobFakeVMs.num;i++)
 		if(GlobFakeVMs.VMs[i]==NULL)
 			ppFakeVM=GlobFakeVMs.VMs+i;
 	if(ppFakeVM!=NULL)
@@ -227,11 +227,11 @@ FakeVM* newFakeVM(ByteCode* mainproc)
 	}
 	else
 	{
-		int32_t size=GlobFakeVMs.size;
+		int32_t size=GlobFakeVMs.num;
 		GlobFakeVMs.VMs=(FakeVM**)realloc(GlobFakeVMs.VMs,sizeof(FakeVM*)*(size+1));
 		if(size!=0&&GlobFakeVMs.VMs==NULL)errors("newFakeVM",__FILE__,__LINE__);
 		GlobFakeVMs.VMs[size]=exe;
-		GlobFakeVMs.size+=1;
+		GlobFakeVMs.num+=1;
 		exe->VMid=size;
 	}
 	return exe;
@@ -257,7 +257,7 @@ FakeVM* newTmpFakeVM(ByteCode* mainproc)
 
 void initGlobEnv(VMenv* obj,VMheap* heap,SymbolTable* table)
 {
-	obj->size=NUMOFBUILTINSYMBOL;
+	obj->num=NUMOFBUILTINSYMBOL;
 	obj->list=(VMenvNode**)malloc(sizeof(VMenvNode*)*NUMOFBUILTINSYMBOL);
 	if(obj->list==NULL)errors("initGlobEnv",__FILE__,__LINE__);
 	int32_t tmpInt=EOF;
@@ -266,7 +266,7 @@ void initGlobEnv(VMenv* obj,VMheap* heap,SymbolTable* table)
 	obj->list[2]=newVMenvNode(newVMvalue(FP,newVMfp(stdin),heap,1),findSymbol(builtInSymbolList[2],table)->id);
 	obj->list[3]=newVMenvNode(newVMvalue(FP,newVMfp(stdout),heap,1),findSymbol(builtInSymbolList[3],table)->id);
 	obj->list[4]=newVMenvNode(newVMvalue(FP,newVMfp(stderr),heap,1),findSymbol(builtInSymbolList[4],table)->id);
-	mergeSort(obj->list,obj->size,sizeof(VMenvNode*),envNodeCmp);
+	mergeSort(obj->list,obj->num,sizeof(VMenvNode*),envNodeCmp);
 }
 
 void* ThreadVMFunc(void* p)
@@ -368,13 +368,13 @@ int runFakeVM(FakeVM* exe)
 			exe->callback(i);
 		}
 		pthread_rwlock_unlock(&GClock);
-		if(exe->heap->size>exe->heap->threshold)
+		if(exe->heap->num>exe->heap->threshold)
 		{
 			if(pthread_rwlock_trywrlock(&GClock))continue;
 			int i=0;
 			if(exe->VMid!=-1)
 			{
-				for(;i<GlobFakeVMs.size;i++)
+				for(;i<GlobFakeVMs.num;i++)
 				{
 					if(GlobFakeVMs.VMs[i])
 					{
@@ -392,7 +392,7 @@ int runFakeVM(FakeVM* exe)
 			else GC_mark(exe);
 			GC_sweep(exe->heap);
 			pthread_mutex_lock(&exe->heap->lock);
-			exe->heap->threshold=exe->heap->size+THRESHOLD_SIZE;
+			exe->heap->threshold=exe->heap->num+THRESHOLD_SIZE;
 			pthread_mutex_unlock(&exe->heap->lock);
 			pthread_rwlock_unlock(&GClock);
 		}
@@ -1189,7 +1189,7 @@ int B_set_tp(FakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	if(stack->tptp>=stack->tpsi)
 	{
-		stack->tpst=(int32_t*)realloc(stack->tpst,sizeof(int32_t)*(stack->tpsi+16));
+		stack->tpst=(uint32_t*)realloc(stack->tpst,sizeof(uint32_t)*(stack->tpsi+16));
 		if(stack->tpst==NULL)errors("B_set_tp",__FILE__,__LINE__);
 		stack->tpsi+=16;
 	}
@@ -1233,7 +1233,7 @@ int B_pop_tp(FakeVM* exe)
 	stack->tptp-=1;
 	if(stack->tpsi-stack->tptp>16)
 	{
-		stack->tpst=(int32_t*)realloc(stack->tpst,sizeof(int32_t)*(stack->tpsi-16));
+		stack->tpst=(uint32_t*)realloc(stack->tpst,sizeof(uint32_t)*(stack->tpsi-16));
 		if(stack->tpst==NULL)
 			errors("B_pop_tp",__FILE__,__LINE__);
 		stack->tpsi-=16;
@@ -1879,7 +1879,7 @@ int B_length(FakeVM* exe)
 	else if(objlist->type==BYTS)
 		stack->values[stack->tp-1]=newVMvalue(IN32,&objlist->u.byts->size,exe->heap,1);
 	else if(objlist->type==CHAN)
-		stack->values[stack->tp-1]=newVMvalue(IN32,&objlist->u.chan->size,exe->heap,1);
+		stack->values[stack->tp-1]=newVMvalue(IN32,&objlist->u.chan->num,exe->heap,1);
 	proc->cp+=1;
 	return 0;
 }
@@ -2159,9 +2159,9 @@ int B_send(FakeVM* exe)
 		cur->next=newThreadMessage(message,exe->heap);
 		tmpCh->tail=cur->next;
 	}
-	tmpCh->size+=1;
+	tmpCh->num+=1;
 	pthread_mutex_unlock(&tmpCh->lock);
-	while(tmpCh->max>=0&&tmpCh->size>tmpCh->max);
+	while(tmpCh->max>=0&&tmpCh->num>tmpCh->max);
 	stack->tp-=1;
 	stackRecycle(exe);
 	proc->cp+=1;
@@ -2185,7 +2185,7 @@ int B_recv(FakeVM* exe)
 	tmpCh->head=prev->next;
 	if(tmpCh->head==NULL)
 		tmpCh->tail=NULL;
-	tmpCh->size-=1;
+	tmpCh->num-=1;
 	pthread_mutex_unlock(&tmpCh->lock);
 	free(prev);
 	stack->values[stack->tp-1]=tmp;
@@ -2499,12 +2499,12 @@ int isTheLastExpress(const VMprocess* proc,const VMprocess* same)
 
 void DBG_printVMenv(VMenv* curEnv,FILE* fp)
 {
-	if(curEnv->size==0)
+	if(curEnv->num==0)
 		fprintf(fp,"This ENV is empty!");
 	else
 	{
 		fprintf(fp,"ENV:");
-		for(int i=0;i<curEnv->size;i++)
+		for(int i=0;i<curEnv->num;i++)
 		{
 			VMvalue* tmp=curEnv->list[i]->value;
 			CRL* head=NULL;
@@ -2532,7 +2532,7 @@ VMheap* newVMheap()
 {
 	VMheap* tmp=(VMheap*)malloc(sizeof(VMheap));
 	if(tmp==NULL)errors("newVMheap",__FILE__,__LINE__);
-	tmp->size=0;
+	tmp->num=0;
 	tmp->threshold=THRESHOLD_SIZE;
 	tmp->head=NULL;
 	pthread_mutex_init(&tmp->lock,NULL);
@@ -2572,7 +2572,7 @@ void GC_markValue(VMvalue* obj)
 				for(;curEnv!=NULL;curEnv=curEnv->prev)
 				{
 					uint32_t i=0;
-					for(;i<curEnv->size;i++)
+					for(;i<curEnv->num;i++)
 						pushComStack(curEnv->list[i]->value,stack);
 				}
 			}
@@ -2581,11 +2581,11 @@ void GC_markValue(VMvalue* obj)
 				uint32_t i=0;
 				for(;i<root->u.cont->stack->tp;i++)
 					pushComStack(root->u.cont->stack->values[i],stack);
-				for(i=0;i<root->u.cont->size;i++)
+				for(i=0;i<root->u.cont->num;i++)
 				{
 					VMenv* env=root->u.cont->status[i].env;
 					uint32_t j=0;
-					for(;j<env->size;j++)
+					for(;j<env->num;j++)
 						pushComStack(env->list[i]->value,stack);
 				}
 			}
@@ -2605,7 +2605,7 @@ void GC_markValue(VMvalue* obj)
 void GC_markValueInEnv(VMenv* curEnv)
 {
 	int32_t i=0;
-	for(;i<curEnv->size;i++)
+	for(;i<curEnv->num;i++)
 		GC_markValue(curEnv->list[i]->value);
 }
 
@@ -2650,7 +2650,7 @@ void GC_sweep(VMheap* heap)
 			freeRef(cur);
 			cur=cur->next;
 			free(prev);
-			heap->size-=1;
+			heap->num-=1;
 		}
 		else
 		{
@@ -2676,7 +2676,7 @@ FakeVM* newThreadVM(VMcode* mainCode,VMheap* heap)
 	exe->callback=NULL;
 	FakeVM** ppFakeVM=NULL;
 	int i=0;
-	for(;i<GlobFakeVMs.size;i++)
+	for(;i<GlobFakeVMs.num;i++)
 		if(GlobFakeVMs.VMs[i]==NULL)
 			ppFakeVM=GlobFakeVMs.VMs+i;
 	if(ppFakeVM!=NULL)
@@ -2686,11 +2686,11 @@ FakeVM* newThreadVM(VMcode* mainCode,VMheap* heap)
 	}
 	else
 	{
-		int32_t size=GlobFakeVMs.size;
+		int32_t size=GlobFakeVMs.num;
 		GlobFakeVMs.VMs=(FakeVM**)realloc(GlobFakeVMs.VMs,sizeof(FakeVM*)*(size+1));
 		if(size!=0&&GlobFakeVMs.VMs==NULL)errors("newThreadVM",__FILE__,__LINE__);
 		GlobFakeVMs.VMs[size]=exe;
-		GlobFakeVMs.size+=1;
+		GlobFakeVMs.num+=1;
 		exe->VMid=size;
 	}
 	return exe;
@@ -2714,7 +2714,7 @@ void freeAllVMs()
 	}
 	freeVMstack(cur->stack);
 	free(cur);
-	for(;i<GlobFakeVMs.size;i++)
+	for(;i<GlobFakeVMs.num;i++)
 	{
 		cur=GlobFakeVMs.VMs[i];
 		if(cur!=NULL)
@@ -2733,7 +2733,7 @@ void freeVMheap(VMheap* h)
 void joinAllThread()
 {
 	int i=1;
-	for(;i<GlobFakeVMs.size;i++)
+	for(;i<GlobFakeVMs.num;i++)
 	{
 		FakeVM* cur=GlobFakeVMs.VMs[i];
 		if(cur)
@@ -2744,7 +2744,7 @@ void joinAllThread()
 void cancelAllThread()
 {
 	int i=1;
-	for(;i<GlobFakeVMs.size;i++)
+	for(;i<GlobFakeVMs.num;i++)
 	{
 		FakeVM* cur=GlobFakeVMs.VMs[i];
 		if(cur)
@@ -2792,7 +2792,7 @@ void createCallChainWithContinuation(FakeVM* vm,VMcontinuation* cc)
 	VMprocess* curproc=NULL;
 	vm->stack=tmpStack;
 	freeVMstack(stack);
-	for(i=cc->size-1;i>=0;i--)
+	for(i=cc->num-1;i>=0;i--)
 	{
 		VMprocess* cur=(VMprocess*)malloc(sizeof(VMprocess));
 		if(!cur)errors("createCallChainWithContinuation",__FILE__,__LINE__);

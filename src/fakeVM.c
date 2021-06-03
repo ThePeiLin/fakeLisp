@@ -277,11 +277,11 @@ void* ThreadVMFunc(void* p)
 	exe->chan=NULL;
 	if(!status)
 	{
-		pthread_mutex_lock(&tmpCh->lock);
+		pthread_rwlock_wrlock(&tmpCh->lock);
 		freeMessage(tmpCh->head);
 		tmpCh->head=newThreadMessage(getTopValue(exe->stack),exe->heap);
 		tmpCh->tail=tmpCh->head;
-		pthread_mutex_unlock(&tmpCh->lock);
+		pthread_rwlock_unlock(&tmpCh->lock);
 	}
 	freeChanl(tmpCh);
 	freeVMstack(exe->stack);
@@ -2147,7 +2147,7 @@ int B_send(FakeVM* exe)
 		return WRONGARG;
 	VMvalue* message=getValue(stack,stack->tp-2);
 	volatile Chanl* tmpCh=ch->u.chan;
-	pthread_mutex_lock((pthread_mutex_t*)&tmpCh->lock);
+	pthread_rwlock_wrlock((pthread_rwlock_t*)&tmpCh->lock);
 	if(tmpCh->tail==NULL)
 	{
 		tmpCh->head=newThreadMessage(message,exe->heap);
@@ -2160,8 +2160,9 @@ int B_send(FakeVM* exe)
 		tmpCh->tail=cur->next;
 	}
 	tmpCh->num+=1;
-	pthread_mutex_unlock((pthread_mutex_t*)&tmpCh->lock);
-	while(tmpCh->max>=0&&tmpCh->num>tmpCh->max);
+	pthread_rwlock_unlock((pthread_rwlock_t*)&tmpCh->lock);
+	while(!pthread_rwlock_rdlock((pthread_rwlock_t*)&tmpCh->lock)&&(tmpCh->max>=0&&tmpCh->num>tmpCh->max)&&!pthread_rwlock_unlock((pthread_rwlock_t*)&tmpCh->lock));
+	pthread_rwlock_unlock((pthread_rwlock_t*)&tmpCh->lock);
 	stack->tp-=1;
 	stackRecycle(exe);
 	proc->cp+=1;
@@ -2178,8 +2179,9 @@ int B_recv(FakeVM* exe)
 	VMvalue* tmp=newNilValue(exe->heap);
 	volatile Chanl* tmpCh=ch->u.chan;
 	tmp->access=1;
-	while(tmpCh->head==NULL);
-	pthread_mutex_lock((pthread_mutex_t*)&tmpCh->lock);
+	while(!pthread_rwlock_rdlock((pthread_rwlock_t*)&tmpCh->lock)&&(tmpCh->head==NULL)&&!pthread_rwlock_unlock((pthread_rwlock_t*)&tmpCh->lock));
+	pthread_rwlock_unlock((pthread_rwlock_t*)&tmpCh->lock);
+	pthread_rwlock_wrlock((pthread_rwlock_t*)&tmpCh->lock);
 	copyRef(tmp,tmpCh->head->message);
 	ThreadMessage* prev=tmpCh->head;
 	tmpCh->head=prev->next;
@@ -2187,7 +2189,7 @@ int B_recv(FakeVM* exe)
 		tmpCh->tail=NULL;
 	tmpCh->num-=1;
 	free(prev);
-	pthread_mutex_unlock((pthread_mutex_t*)&tmpCh->lock);
+	pthread_rwlock_unlock((pthread_rwlock_t*)&tmpCh->lock);
 	stack->values[stack->tp-1]=tmp;
 	proc->cp+=1;
 	return 0;
@@ -2545,9 +2547,9 @@ void GC_mark(FakeVM* exe)
 	GC_markValueInCallChain(exe->curproc);
 	if(exe->chan)
 	{
-		pthread_mutex_lock(&exe->chan->lock);
+		pthread_rwlock_wrlock(&exe->chan->lock);
 		GC_markMessage(exe->chan->head);
-		pthread_mutex_unlock(&exe->chan->lock);
+		pthread_rwlock_unlock(&exe->chan->lock);
 	}
 }
 
@@ -2591,11 +2593,11 @@ void GC_markValue(VMvalue* obj)
 			}
 			else if(root->type==CHAN)
 			{
-				pthread_mutex_lock(&root->u.chan->lock);
+				pthread_rwlock_wrlock(&root->u.chan->lock);
 				ThreadMessage* head=root->u.chan->head;
 				for(;head;head=head->next)
 					pushComStack(head->message,stack);
-				pthread_mutex_unlock(&root->u.chan->lock);
+				pthread_rwlock_unlock(&root->u.chan->lock);
 			}
 		}
 	}

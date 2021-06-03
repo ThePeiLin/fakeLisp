@@ -1011,7 +1011,7 @@ Chanl* newChanl(int32_t maxSize)
 	Chanl* tmp=(Chanl*)malloc(sizeof(Chanl));
 	if(!tmp)
 		errors("newChanl",__FILE__,__LINE__);
-	pthread_mutex_init(&tmp->lock,NULL);
+	pthread_rwlock_init(&tmp->lock,NULL);
 	tmp->max=maxSize;
 	tmp->num=0;
 	tmp->refcount=0;
@@ -1026,7 +1026,7 @@ void freeChanl(Chanl* ch)
 		decreaseChanlRefcount(ch);
 	else
 	{
-		pthread_mutex_destroy(&ch->lock);
+		pthread_rwlock_destroy(&ch->lock);
 		freeMessage(ch->head);
 		free(ch);
 	}

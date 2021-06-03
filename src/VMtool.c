@@ -1013,11 +1013,20 @@ Chanl* newChanl(int32_t maxSize)
 		errors("newChanl",__FILE__,__LINE__);
 	pthread_rwlock_init(&tmp->lock,NULL);
 	tmp->max=maxSize;
-	tmp->num=0;
 	tmp->refcount=0;
 	tmp->head=NULL;
 	tmp->tail=NULL;
 	return tmp;
+}
+
+volatile int32_t getNumChanl(volatile Chanl* ch)
+{
+	pthread_rwlock_rdlock((pthread_rwlock_t*)&ch->lock);
+	uint32_t i=0;
+	volatile ThreadMessage* cur=(volatile ThreadMessage*)*&ch->head;
+	for(;cur;cur=cur->next,i++);
+	pthread_rwlock_unlock((pthread_rwlock_t*)&ch->lock);
+	return i;
 }
 
 void freeChanl(Chanl* ch)
@@ -1045,7 +1054,6 @@ void freeMessage(ThreadMessage* cur)
 Chanl* copyChanl(Chanl* ch,VMheap* heap)
 {
 	Chanl* tmpCh=newChanl(ch->max);
-	tmpCh->num=ch->num;
 	ThreadMessage* cur=ch->head;
 	ThreadMessage* prev=NULL;
 	while(cur)
@@ -1092,10 +1100,10 @@ ThreadMessage* newThreadMessage(VMvalue* val,VMheap* heap)
 {
 	ThreadMessage* tmp=(ThreadMessage*)malloc(sizeof(ThreadMessage));
 	if(tmp==NULL)errors("newThreadMessage",__FILE__,__LINE__);
+	tmp->next=NULL;
 	tmp->message=newNilValue(heap);
 	tmp->message->access=1;
 	copyRef(tmp->message,val);
-	tmp->next=NULL;
 	return tmp;
 }
 

@@ -96,8 +96,7 @@ typedef struct AST_pair
 
 typedef struct Channel
 {
-	int32_t max;
-	uint32_t num;
+	uint32_t max;
 	uint32_t refcount;
 	pthread_rwlock_t lock;
 	struct Thread_Message* head;

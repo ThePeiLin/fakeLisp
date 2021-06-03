@@ -2147,7 +2147,6 @@ int B_send(FakeVM* exe)
 		return WRONGARG;
 	VMvalue* message=getValue(stack,stack->tp-2);
 	volatile Chanl* tmpCh=ch->u.chan;
-	volatile uint32_t* num=&tmpCh->num;
 	pthread_mutex_lock((pthread_mutex_t*)&tmpCh->lock);
 	if(tmpCh->tail==NULL)
 	{
@@ -2162,7 +2161,7 @@ int B_send(FakeVM* exe)
 	}
 	tmpCh->num+=1;
 	pthread_mutex_unlock((pthread_mutex_t*)&tmpCh->lock);
-	while(tmpCh->max>=0&&*num>tmpCh->max);
+	while(tmpCh->max>=0&&tmpCh->num>tmpCh->max);
 	stack->tp-=1;
 	stackRecycle(exe);
 	proc->cp+=1;

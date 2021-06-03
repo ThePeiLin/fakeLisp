@@ -1879,7 +1879,10 @@ int B_length(FakeVM* exe)
 	else if(objlist->type==BYTS)
 		stack->values[stack->tp-1]=newVMvalue(IN32,&objlist->u.byts->size,exe->heap,1);
 	else if(objlist->type==CHAN)
-		stack->values[stack->tp-1]=newVMvalue(IN32,&objlist->u.chan->num,exe->heap,1);
+	{
+		int32_t i=getNumChanl((volatile Chanl*)objlist->u.chan);
+		stack->values[stack->tp-1]=newVMvalue(IN32,&i,exe->heap,1);
+	}
 	proc->cp+=1;
 	return 0;
 }
@@ -2147,7 +2150,6 @@ int B_send(FakeVM* exe)
 		return WRONGARG;
 	VMvalue* message=getValue(stack,stack->tp-2);
 	volatile Chanl* tmpCh=ch->u.chan;
-	volatile uint32_t* pnum=&tmpCh->num;
 	pthread_rwlock_wrlock((pthread_rwlock_t*)&tmpCh->lock);
 	if(tmpCh->tail==NULL)
 	{
@@ -2160,10 +2162,8 @@ int B_send(FakeVM* exe)
 		cur->next=newThreadMessage(message,exe->heap);
 		tmpCh->tail=cur->next;
 	}
-	*pnum+=1;
 	pthread_rwlock_unlock((pthread_rwlock_t*)&tmpCh->lock);
-	while(!pthread_rwlock_rdlock((pthread_rwlock_t*)&tmpCh->lock)&&(tmpCh->max>=0&&*pnum>tmpCh->max)&&!pthread_rwlock_unlock((pthread_rwlock_t*)&tmpCh->lock));
-	pthread_rwlock_unlock((pthread_rwlock_t*)&tmpCh->lock);
+	while(tmpCh->max>0&&getNumChanl(tmpCh)>=tmpCh->max);
 	stack->tp-=1;
 	stackRecycle(exe);
 	proc->cp+=1;
@@ -2181,15 +2181,14 @@ int B_recv(FakeVM* exe)
 	volatile Chanl* tmpCh=ch->u.chan;
 	volatile ThreadMessage** phead=(volatile ThreadMessage**)&tmpCh->head;
 	tmp->access=1;
-	while(!pthread_rwlock_rdlock((pthread_rwlock_t*)&tmpCh->lock)&&(*phead==NULL)&&!pthread_rwlock_unlock((pthread_rwlock_t*)&tmpCh->lock));
-	pthread_rwlock_unlock((pthread_rwlock_t*)&tmpCh->lock);
+	while(!getNumChanl(tmpCh));
 	pthread_rwlock_wrlock((pthread_rwlock_t*)&tmpCh->lock);
 	copyRef(tmp,tmpCh->head->message);
 	ThreadMessage* prev=(ThreadMessage*)*phead;
-	*phead=prev->next;
-	if(tmpCh->head==NULL)
+	*phead=(volatile ThreadMessage*)*&prev->next;
+	if(*phead==NULL)
 		tmpCh->tail=NULL;
-	tmpCh->num-=1;
+	*(volatile ThreadMessage**)&tmpCh->head=*phead;
 	free(prev);
 	pthread_rwlock_unlock((pthread_rwlock_t*)&tmpCh->lock);
 	stack->values[stack->tp-1]=tmp;
@@ -2674,7 +2673,7 @@ FakeVM* newThreadVM(VMcode* mainCode,VMheap* heap)
 	exe->mark=1;
 	exe->argc=0;
 	exe->argv=NULL;
-	exe->chan=newChanl(1);
+	exe->chan=newChanl(0);
 	exe->stack=newVMstack(0);
 	exe->heap=heap;
 	exe->callback=NULL;

@@ -66,6 +66,7 @@ void decreaseChanlRefcount(Chanl*);
 
 void freeChanl(Chanl*);
 Chanl* copyChanl(Chanl*,VMheap*);
+volatile int32_t getNumChanl(volatile Chanl*);
 void freeMessage(ThreadMessage*);
 
 uint8_t* copyArry(size_t,uint8_t*);

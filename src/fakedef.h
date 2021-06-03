@@ -99,7 +99,7 @@ typedef struct Channel
 	int32_t max;
 	uint32_t num;
 	uint32_t refcount;
-	pthread_mutex_t lock;
+	pthread_rwlock_t lock;
 	struct Thread_Message* head;
 	struct Thread_Message* tail;
 }Chanl;

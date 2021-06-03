@@ -422,37 +422,37 @@
          (define dbl (lambda (a)
                        (proc
                          push_var a
-                         cast_to_dbl
+                         dbl
                          )))
 
          (define str (lambda (a)
                        (proc
                          push_var a
-                         cast_to_str
+                         str
                          )))
 
          (define sym (lambda (a)
                        (proc
                          push_var a
-                         cast_to_sym
+                         sym
                          )))
 
          (define chr (lambda (a)
                        (proc
                          push_var a
-                         cast_to_chr
+                         chr
                          )))
 
          (define int (lambda (a)
                        (proc
                          push_var a
-                         cast_to_int
+                         int
                          )))
 
          (define byt (lambda (a)
                        (proc
                          push_var a
-                         cast_to_byte
+                         byte
                          )))
 
          (define add (lambda (a b)

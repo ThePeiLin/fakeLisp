@@ -2147,6 +2147,7 @@ int B_send(FakeVM* exe)
 		return WRONGARG;
 	VMvalue* message=getValue(stack,stack->tp-2);
 	volatile Chanl* tmpCh=ch->u.chan;
+	volatile uint32_t* pnum=&tmpCh->num;
 	pthread_rwlock_wrlock((pthread_rwlock_t*)&tmpCh->lock);
 	if(tmpCh->tail==NULL)
 	{
@@ -2159,9 +2160,9 @@ int B_send(FakeVM* exe)
 		cur->next=newThreadMessage(message,exe->heap);
 		tmpCh->tail=cur->next;
 	}
-	tmpCh->num+=1;
+	*pnum+=1;
 	pthread_rwlock_unlock((pthread_rwlock_t*)&tmpCh->lock);
-	while(!pthread_rwlock_rdlock((pthread_rwlock_t*)&tmpCh->lock)&&(tmpCh->max>=0&&tmpCh->num>tmpCh->max)&&!pthread_rwlock_unlock((pthread_rwlock_t*)&tmpCh->lock));
+	while(!pthread_rwlock_rdlock((pthread_rwlock_t*)&tmpCh->lock)&&(tmpCh->max>=0&&*pnum>tmpCh->max)&&!pthread_rwlock_unlock((pthread_rwlock_t*)&tmpCh->lock));
 	pthread_rwlock_unlock((pthread_rwlock_t*)&tmpCh->lock);
 	stack->tp-=1;
 	stackRecycle(exe);
@@ -2178,13 +2179,14 @@ int B_recv(FakeVM* exe)
 		return WRONGARG;
 	VMvalue* tmp=newNilValue(exe->heap);
 	volatile Chanl* tmpCh=ch->u.chan;
+	volatile ThreadMessage** phead=(volatile ThreadMessage**)&tmpCh->head;
 	tmp->access=1;
-	while(!pthread_rwlock_rdlock((pthread_rwlock_t*)&tmpCh->lock)&&(tmpCh->head==NULL)&&!pthread_rwlock_unlock((pthread_rwlock_t*)&tmpCh->lock));
+	while(!pthread_rwlock_rdlock((pthread_rwlock_t*)&tmpCh->lock)&&(*phead==NULL)&&!pthread_rwlock_unlock((pthread_rwlock_t*)&tmpCh->lock));
 	pthread_rwlock_unlock((pthread_rwlock_t*)&tmpCh->lock);
 	pthread_rwlock_wrlock((pthread_rwlock_t*)&tmpCh->lock);
 	copyRef(tmp,tmpCh->head->message);
-	ThreadMessage* prev=tmpCh->head;
-	tmpCh->head=prev->next;
+	ThreadMessage* prev=(ThreadMessage*)*phead;
+	*phead=prev->next;
 	if(tmpCh->head==NULL)
 		tmpCh->tail=NULL;
 	tmpCh->num-=1;

@@ -2173,7 +2173,6 @@ int B_recv(FakeVM* exe)
 	Chanl* tmpCh=ch->u.chan;
 	RecvT* t=newRecvT(exe,tmpCh);
 	chanlRecv(t,tmpCh);
-	//fprintf(stderr,"VMid:%d:recv\n",exe->VMid);
 	proc->cp+=1;
 	return 0;
 }

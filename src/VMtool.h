@@ -103,10 +103,10 @@ void increaseVMDlprocRefcount(VMDlproc*);
 void decreaseVMDlprocRefcount(VMDlproc*);
 void freeVMDlproc(VMDlproc*);
 
-RecvT* newRecvT(FakeVM*,Chanl*);
+RecvT* newRecvT(FakeVM*);
 void freeRecvT(RecvT*);
 
-SendT* newSendT(VMvalue*,Chanl*);
+SendT* newSendT(VMvalue*);
 void freeSendT(SendT*);
 
 void chanlSend(SendT*,Chanl*);

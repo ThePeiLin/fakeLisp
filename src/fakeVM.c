@@ -280,7 +280,7 @@ void* ThreadVMFunc(void* p)
 		VMvalue* tmp=newNilValue(exe->heap);
 		tmp->access=1;
 		copyRef(tmp,getTopValue(exe->stack));
-		SendT* t=newSendT(tmp,tmpCh);
+		SendT* t=newSendT(tmp);
 		chanlSend(t,tmpCh);
 	}
 	freeChanl(tmpCh);
@@ -2153,7 +2153,7 @@ int B_send(FakeVM* exe)
 	VMvalue* tmp=newNilValue(exe->heap);
 	tmp->access=1;
 	copyRef(tmp,message);
-	SendT* t=newSendT(tmp,tmpCh);
+	SendT* t=newSendT(tmp);
 	chanlSend(t,tmpCh);
 	stack->tp-=1;
 	stackRecycle(exe);
@@ -2169,7 +2169,7 @@ int B_recv(FakeVM* exe)
 	if(ch->type!=CHAN)
 		return WRONGARG;
 	Chanl* tmpCh=ch->u.chan;
-	RecvT* t=newRecvT(exe,tmpCh);
+	RecvT* t=newRecvT(exe);
 	chanlRecv(t,tmpCh);
 	proc->cp+=1;
 	return 0;

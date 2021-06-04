@@ -1032,25 +1032,10 @@ void freeChanl(Chanl* ch)
 		pthread_mutex_destroy(&ch->lock);
 		freeComQueue(ch->messages);
 		QueueNode* head=ch->sendq->head;
-		ch->sendq->head=NULL;
-		ch->sendq->tail=NULL;
-		while(head)
-		{
-			QueueNode* prev=head;
-			head=head->next;
-			freeSendT(prev->data);
-			free(prev);
-		}
-		head=ch->recvq->head;
-		ch->recvq->head=NULL;
-		ch->recvq->tail=NULL;
-		while(head)
-		{
-			QueueNode* prev=head;
-			head=head->next;
-			freeRecvT(prev->data);
-			free(prev);
-		}
+		for(;head;head=head->next)
+			freeSendT(head->data);
+		for(head=ch->recvq->head;head;head=head->next)
+			freeRecvT(head->data);
 		freeComQueue(ch->sendq);
 		freeComQueue(ch->recvq);
 		free(ch);

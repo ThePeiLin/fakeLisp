@@ -119,7 +119,6 @@ typedef struct Channel
 typedef struct
 {
 	pthread_cond_t cond;
-	struct FakeVM* v;
 	struct VM_Value* m;
 	Chanl* c;
 }SendT;

@@ -106,7 +106,7 @@ void freeVMDlproc(VMDlproc*);
 RecvT* newRecvT(FakeVM*,Chanl*);
 void freeRecvT(RecvT*);
 
-SendT* newSendT(FakeVM*,VMvalue*,Chanl*);
+SendT* newSendT(VMvalue*,Chanl*);
 void freeSendT(SendT*);
 
 void chanlSend(SendT*,Chanl*);

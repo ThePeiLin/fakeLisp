@@ -1031,6 +1031,26 @@ void freeChanl(Chanl* ch)
 	{
 		pthread_mutex_destroy(&ch->lock);
 		freeComQueue(ch->messages);
+		QueueNode* head=ch->sendq->head;
+		ch->sendq->head=NULL;
+		ch->sendq->tail=NULL;
+		while(head)
+		{
+			QueueNode* prev=head;
+			head=head->next;
+			freeSendT(prev->data);
+			free(prev);
+		}
+		head=ch->recvq->head;
+		ch->recvq->head=NULL;
+		ch->recvq->tail=NULL;
+		while(head)
+		{
+			QueueNode* prev=head;
+			head=head->next;
+			freeRecvT(prev->data);
+			free(prev);
+		}
 		freeComQueue(ch->sendq);
 		freeComQueue(ch->recvq);
 		free(ch);
@@ -1204,10 +1224,9 @@ void freeRecvT(RecvT* r)
 	free(r);
 }
 
-SendT* newSendT(FakeVM* v,VMvalue* m,Chanl* c)
+SendT* newSendT(VMvalue* m,Chanl* c)
 {
 	SendT* tmp=(SendT*)malloc(sizeof(SendT));
-	tmp->v=v;
 	tmp->c=c;
 	tmp->m=m;
 	pthread_cond_init(&tmp->cond,NULL);
@@ -1237,15 +1256,20 @@ void chanlRecv(RecvT* r,Chanl* ch)
 		if(s)
 			pthread_cond_signal(&s->cond);
 	}
-	pthread_cond_destroy(&r->cond);
-	free(r);
+	freeRecvT(r);
 	pthread_mutex_unlock(&ch->lock);
 }
 
 void chanlSend(SendT*s,Chanl* ch)
 {
 	pthread_mutex_lock(&ch->lock);
-	if(!ch->max)
+	if(lengthComQueue(ch->recvq))
+	{
+		RecvT* r=popComQueue(ch->recvq);
+		if(r)
+			pthread_cond_signal(&r->cond);
+	}
+	if(!ch->max||lengthComQueue(ch->messages)<ch->max-1)
 		pushComQueue(s->m,ch->messages);
 	else
 	{
@@ -1254,25 +1278,9 @@ void chanlSend(SendT*s,Chanl* ch)
 			pushComQueue(s,ch->sendq);
 			if(lengthComQueue(ch->messages)==ch->max-1)
 				pushComQueue(s->m,ch->messages);
-			if(lengthComQueue(ch->recvq))
-			{
-				RecvT* r=popComQueue(ch->recvq);
-				if(r)
-					pthread_cond_signal(&r->cond);
-			}
 			pthread_cond_wait(&s->cond,&ch->lock);
 		}
-		else if(lengthComQueue(ch->messages)<ch->max-1)
-		{
-			if(lengthComQueue(ch->recvq))
-			{
-				RecvT* r=popComQueue(ch->recvq);
-				if(r)
-					pthread_cond_signal(&r->cond);
-			}
-		}
 	}
-	pthread_cond_destroy(&s->cond);
-	free(s);
+	freeSendT(s);
 	pthread_mutex_unlock(&ch->lock);
 }

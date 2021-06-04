@@ -2155,9 +2155,8 @@ int B_send(FakeVM* exe)
 	VMvalue* tmp=newNilValue(exe->heap);
 	tmp->access=1;
 	copyRef(tmp,message);
-	SendT* t=newSendT(exe,tmp,tmpCh);
+	SendT* t=newSendT(tmp,tmpCh);
 	chanlSend(t,tmpCh);
-	//fprintf(stderr,"VMid:%d:send\n",exe->VMid);
 	stack->tp-=1;
 	stackRecycle(exe);
 	proc->cp+=1;

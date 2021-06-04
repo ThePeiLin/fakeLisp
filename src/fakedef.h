@@ -120,14 +120,12 @@ typedef struct
 {
 	pthread_cond_t cond;
 	struct VM_Value* m;
-	Chanl* c;
 }SendT;
 
 typedef struct
 {
 	pthread_cond_t cond;
 	struct FakeVM* v;
-	Chanl* c;
 }RecvT;
 
 typedef struct VM_File

@@ -1194,11 +1194,10 @@ void freeVMDlproc(VMDlproc* dlproc)
 	}
 }
 
-RecvT* newRecvT(FakeVM* v,Chanl* c)
+RecvT* newRecvT(FakeVM* v)
 {
 	RecvT* tmp=(RecvT*)malloc(sizeof(RecvT));
 	tmp->v=v;
-	tmp->c=c;
 	pthread_cond_init(&tmp->cond,NULL);
 	return tmp;
 }
@@ -1209,10 +1208,9 @@ void freeRecvT(RecvT* r)
 	free(r);
 }
 
-SendT* newSendT(VMvalue* m,Chanl* c)
+SendT* newSendT(VMvalue* m)
 {
 	SendT* tmp=(SendT*)malloc(sizeof(SendT));
-	tmp->c=c;
 	tmp->m=m;
 	pthread_cond_init(&tmp->cond,NULL);
 	return tmp;

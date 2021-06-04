@@ -277,15 +277,6 @@ void* ThreadVMFunc(void* p)
 	exe->chan=NULL;
 	if(!status)
 	{
-		pthread_mutex_lock(&tmpCh->lock);
-		freeComQueue(tmpCh->messages);
-		tmpCh->messages=newComQueue();
-		QueueNode* head=tmpCh->sendq->head;
-		for(;head;head=head->next)
-			freeSendT(head->data);
-		freeComQueue(tmpCh->sendq);
-		tmpCh->sendq=newComQueue();
-		pthread_mutex_unlock(&tmpCh->lock);
 		VMvalue* tmp=newNilValue(exe->heap);
 		tmp->access=1;
 		copyRef(tmp,getTopValue(exe->stack));

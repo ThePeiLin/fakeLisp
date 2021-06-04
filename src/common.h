@@ -145,5 +145,7 @@ ComQueue* newComQueue();
 void freeComQueue(ComQueue*);
 int32_t lengthComQueue(ComQueue*);
 void* firstComQueue(ComQueue*);
+void* popComQueue(ComQueue*);
 void pushComQueue(void*,ComQueue*);
+ComQueue* copyComQueue(ComQueue*);
 #endif

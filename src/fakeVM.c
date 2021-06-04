@@ -280,10 +280,17 @@ void* ThreadVMFunc(void* p)
 		pthread_mutex_lock(&tmpCh->lock);
 		freeComQueue(tmpCh->messages);
 		tmpCh->messages=newComQueue();
-		VMvalue* tmp=newNilValue(exe->heap);
-		copyRef(tmp,getTopValue(exe->stack));
-		pushComQueue(tmp,tmpCh->messages);
+		QueueNode* head=tmpCh->sendq->head;
+		for(;head;head=head->next)
+			freeSendT(head->data);
+		freeComQueue(tmpCh->sendq);
+		tmpCh->sendq=newComQueue();
 		pthread_mutex_unlock(&tmpCh->lock);
+		VMvalue* tmp=newNilValue(exe->heap);
+		tmp->access=1;
+		copyRef(tmp,getTopValue(exe->stack));
+		SendT* t=newSendT(tmp,tmpCh);
+		chanlSend(t,tmpCh);
 	}
 	freeChanl(tmpCh);
 	freeVMstack(exe->stack);

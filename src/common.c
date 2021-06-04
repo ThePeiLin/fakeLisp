@@ -2319,3 +2319,76 @@ void freeAllKeyWord(KeyWord* head)
 		free(prev);
 	}
 }
+
+QueueNode* newQueueNode(void* data)
+{
+	QueueNode* tmp=(QueueNode*)malloc(sizeof(QueueNode));
+	if(!tmp)
+		errors("newQueueNode",__FILE__,__LINE__);
+	tmp->data=data;
+	tmp->next=NULL;
+	return tmp;
+}
+
+void freeQueueNode(QueueNode* tmp)
+{
+	free(tmp);
+}
+
+ComQueue* newComQueue()
+{
+	ComQueue* tmp=(ComQueue*)malloc(sizeof(ComQueue));
+	if(!tmp)
+		errors("newComQueue",__FILE__,__LINE__);
+	tmp->head=NULL;
+	tmp->tail=NULL;
+	return tmp;
+}
+
+void freeComQueue(ComQueue* tmp)
+{
+	QueueNode* cur=tmp->head;
+	while(cur)
+	{
+		QueueNode* prev=cur;
+		cur=cur->next;
+		freeQueueNode(prev);
+	}
+	free(tmp);
+}
+
+int32_t lengthComQueue(ComQueue* tmp)
+{
+	QueueNode* cur=tmp->head;
+	int32_t i=0;
+	for(;cur;cur=cur->next,i++);
+	return i;
+}
+
+void* firstComQueue(ComQueue* tmp)
+{
+	QueueNode* head=tmp->head;
+	if(!head)
+		return NULL;
+	void* retval=head->data;
+	tmp->head=head->next;
+	if(!tmp->head)
+		tmp->tail=NULL;
+	freeQueueNode(head);
+	return retval;
+}
+
+void pushComQueue(void* data,ComQueue* tmp)
+{
+	QueueNode* tmpNode=newQueueNode(data);
+	if(!tmp->head)
+	{
+		tmp->head=tmpNode;
+		tmp->tail=tmpNode;
+	}
+	else
+	{
+		tmp->tail->next=tmpNode;
+		tmp->tail=tmpNode;
+	}
+}

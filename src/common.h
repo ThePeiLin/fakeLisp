@@ -137,4 +137,13 @@ void mergeSort(void* base
 
 void freeAllMacro(PreMacro* head);
 void freeAllKeyWord(KeyWord*);
+
+QueueNode* newQueueNode(void*);
+void freeQueueNode(QueueNode*);
+
+ComQueue* newComQueue();
+void freeComQueue(ComQueue*);
+int32_t lengthComQueue(ComQueue*);
+void* firstComQueue(ComQueue*);
+void pushComQueue(void*,ComQueue*);
 #endif

@@ -110,9 +110,26 @@ typedef struct Channel
 {
 	uint32_t max;
 	uint32_t refcount;
-	pthread_rwlock_t lock;
+	pthread_mutex_t lock;
 	ComQueue* messages;
+	ComQueue* sendq;
+	ComQueue* recvq;
 }Chanl;
+
+typedef struct
+{
+	pthread_cond_t cond;
+	struct FakeVM* v;
+	struct VM_Value* m;
+	Chanl* c;
+}SendT;
+
+typedef struct
+{
+	pthread_cond_t cond;
+	struct FakeVM* v;
+	Chanl* c;
+}RecvT;
 
 typedef struct VM_File
 {
@@ -290,7 +307,7 @@ typedef struct
 	uint32_t* tpst;
 }VMstack;
 
-typedef struct
+typedef struct FakeVM
 {
 	unsigned int mark :1;
 	int32_t VMid;

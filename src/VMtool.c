@@ -1005,10 +1005,12 @@ Chanl* newChanl(int32_t maxSize)
 	Chanl* tmp=(Chanl*)malloc(sizeof(Chanl));
 	if(!tmp)
 		errors("newChanl",__FILE__,__LINE__);
-	pthread_rwlock_init(&tmp->lock,NULL);
+	pthread_mutex_init(&tmp->lock,NULL);
 	tmp->max=maxSize;
 	tmp->refcount=0;
 	tmp->messages=newComQueue();
+	tmp->sendq=newComQueue();
+	tmp->recvq=newComQueue();
 	return tmp;
 }
 
@@ -1027,8 +1029,10 @@ void freeChanl(Chanl* ch)
 		decreaseChanlRefcount(ch);
 	else
 	{
-		pthread_rwlock_destroy(&ch->lock);
+		pthread_mutex_destroy(&ch->lock);
 		freeComQueue(ch->messages);
+		freeComQueue(ch->sendq);
+		freeComQueue(ch->recvq);
 		free(ch);
 	}
 }
@@ -1183,4 +1187,92 @@ void freeVMDlproc(VMDlproc* dlproc)
 		freeVMDll(dlproc->dll);
 		free(dlproc);
 	}
+}
+
+RecvT* newRecvT(FakeVM* v,Chanl* c)
+{
+	RecvT* tmp=(RecvT*)malloc(sizeof(RecvT));
+	tmp->v=v;
+	tmp->c=c;
+	pthread_cond_init(&tmp->cond,NULL);
+	return tmp;
+}
+
+void freeRecvT(RecvT* r)
+{
+	pthread_cond_destroy(&r->cond);
+	free(r);
+}
+
+SendT* newSendT(FakeVM* v,VMvalue* m,Chanl* c)
+{
+	SendT* tmp=(SendT*)malloc(sizeof(SendT));
+	tmp->v=v;
+	tmp->c=c;
+	tmp->m=m;
+	pthread_cond_init(&tmp->cond,NULL);
+	return tmp;
+}
+
+void freeSendT(SendT* s)
+{
+	pthread_cond_destroy(&s->cond);
+	free(s);
+}
+
+void chanlRecv(RecvT* r,Chanl* ch)
+{
+	pthread_mutex_lock(&ch->lock);
+	if(!lengthComQueue(ch->messages))
+	{
+		pushComQueue(r,ch->recvq);
+		pthread_cond_wait(&r->cond,&ch->lock);
+	}
+	VMvalue* t=getTopValue(r->v->stack);
+	t->access=1;
+	copyRef(t,popComQueue(ch->messages));
+	if(lengthComQueue(ch->messages)<ch->max)
+	{
+		SendT* s=popComQueue(ch->sendq);
+		if(s)
+			pthread_cond_signal(&s->cond);
+	}
+	pthread_cond_destroy(&r->cond);
+	free(r);
+	pthread_mutex_unlock(&ch->lock);
+}
+
+void chanlSend(SendT*s,Chanl* ch)
+{
+	pthread_mutex_lock(&ch->lock);
+	if(!ch->max)
+		pushComQueue(s->m,ch->messages);
+	else
+	{
+		if(lengthComQueue(ch->messages)>=ch->max-1)
+		{
+			pushComQueue(s,ch->sendq);
+			if(lengthComQueue(ch->messages)==ch->max-1)
+				pushComQueue(s->m,ch->messages);
+			if(lengthComQueue(ch->recvq))
+			{
+				RecvT* r=popComQueue(ch->recvq);
+				if(r)
+					pthread_cond_signal(&r->cond);
+			}
+			pthread_cond_wait(&s->cond,&ch->lock);
+		}
+		else if(lengthComQueue(ch->messages)<ch->max-1)
+		{
+			if(lengthComQueue(ch->recvq))
+			{
+				RecvT* r=popComQueue(ch->recvq);
+				if(r)
+					pthread_cond_signal(&r->cond);
+			}
+		}
+	}
+	pthread_cond_destroy(&s->cond);
+	free(s);
+	pthread_mutex_unlock(&ch->lock);
 }

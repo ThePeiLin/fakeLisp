@@ -102,4 +102,13 @@ VMDlproc* newVMDlproc(DllFunc,VMDll*);
 void increaseVMDlprocRefcount(VMDlproc*);
 void decreaseVMDlprocRefcount(VMDlproc*);
 void freeVMDlproc(VMDlproc*);
+
+RecvT* newRecvT(FakeVM*,Chanl*);
+void freeRecvT(RecvT*);
+
+SendT* newSendT(FakeVM*,VMvalue*,Chanl*);
+void freeSendT(SendT*);
+
+void chanlSend(SendT*,Chanl*);
+void chanlRecv(RecvT*,Chanl*);
 #endif

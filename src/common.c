@@ -2365,7 +2365,7 @@ int32_t lengthComQueue(ComQueue* tmp)
 	return i;
 }
 
-void* firstComQueue(ComQueue* tmp)
+void* popComQueue(ComQueue* tmp)
 {
 	QueueNode* head=tmp->head;
 	if(!head)
@@ -2376,6 +2376,14 @@ void* firstComQueue(ComQueue* tmp)
 		tmp->tail=NULL;
 	freeQueueNode(head);
 	return retval;
+}
+
+void* firstComQueue(ComQueue* tmp)
+{
+	QueueNode* head=tmp->head;
+	if(!head)
+		return NULL;
+	return head->data;
 }
 
 void pushComQueue(void* data,ComQueue* tmp)
@@ -2391,4 +2399,13 @@ void pushComQueue(void* data,ComQueue* tmp)
 		tmp->tail->next=tmpNode;
 		tmp->tail=tmpNode;
 	}
+}
+
+ComQueue* copyComQueue(ComQueue* q)
+{
+	QueueNode* head=q->head;
+	ComQueue* tmp=newComQueue();
+	for(;head;head=head->next)
+		pushComQueue(head->data,tmp);
+	return tmp;
 }

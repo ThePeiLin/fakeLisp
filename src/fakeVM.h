@@ -97,8 +97,6 @@ VMcode* newBuiltInProc(ByteCode*);
 VMprocess* newFakeProcess(VMcode*,VMprocess*);
 int createNewThread(FakeVM*);
 FakeVMlist* newThreadStack(int32_t);
-ThreadMessage* newMessage(VMvalue*);
-int sendMessage(ThreadMessage*,FakeVM*);
 VMprocess* hasSameProc(VMcode*,VMprocess*);
 int isTheLastExpress(const VMprocess*,const VMprocess*);
 VMheap* newVMheap();
@@ -113,7 +111,7 @@ void GC_markValue(VMvalue*);
 void GC_markValueInStack(VMstack*);
 void GC_markValueInEnv(VMenv*);
 void GC_markValueInCallChain(VMprocess*);
-void GC_markMessage(ThreadMessage*);
+void GC_markMessage(QueueNode*);
 void GC_sweep(VMheap*);
 void GC_compact(VMheap*);
 

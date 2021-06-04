@@ -96,19 +96,13 @@ VMvalue* copyVMvalue(VMvalue* obj,VMheap* heap)
 				{
 					Chanl* objCh=root->u.chan;
 					Chanl* tmpCh=newChanl(objCh->max);
-					ThreadMessage* cur=objCh->head;
-					ThreadMessage* prev=NULL;
-					while(cur)
+					QueueNode* cur=objCh->messages->head;
+					for(;cur;cur=cur->next)
 					{
-						ThreadMessage* tmp=newThreadMessage(newNilValue(heap),heap);
-						if(!tmpCh->head)
-							tmpCh->head=tmp;
-						if(prev)
-							prev->next=tmp;
-						pushComStack(cur->message,s1);
-						pushComStack(tmp->message,s2);
-						cur=cur->next;
-						prev=tmp;
+						void* tmp=newNilValue(heap);
+						pushComQueue(tmp,tmpCh->messages);
+						pushComStack(cur->data,s1);
+						pushComStack(tmp,s2);
 					}
 					root1->u.chan=tmpCh;;
 				}
@@ -1014,8 +1008,7 @@ Chanl* newChanl(int32_t maxSize)
 	pthread_rwlock_init(&tmp->lock,NULL);
 	tmp->max=maxSize;
 	tmp->refcount=0;
-	tmp->head=NULL;
-	tmp->tail=NULL;
+	tmp->messages=newComQueue();
 	return tmp;
 }
 
@@ -1023,8 +1016,7 @@ volatile int32_t getNumChanl(volatile Chanl* ch)
 {
 	pthread_rwlock_rdlock((pthread_rwlock_t*)&ch->lock);
 	uint32_t i=0;
-	volatile ThreadMessage* cur=(volatile ThreadMessage*)*&ch->head;
-	for(;cur;cur=cur->next,i++);
+	i=lengthComQueue(ch->messages);
 	pthread_rwlock_unlock((pthread_rwlock_t*)&ch->lock);
 	return i;
 }
@@ -1036,41 +1028,21 @@ void freeChanl(Chanl* ch)
 	else
 	{
 		pthread_rwlock_destroy(&ch->lock);
-		freeMessage(ch->head);
+		freeComQueue(ch->messages);
 		free(ch);
-	}
-}
-
-void freeMessage(ThreadMessage* cur)
-{
-	while(cur!=NULL)
-	{
-		ThreadMessage* prev=cur;
-		cur=cur->next;
-		free(prev);
 	}
 }
 
 Chanl* copyChanl(Chanl* ch,VMheap* heap)
 {
 	Chanl* tmpCh=newChanl(ch->max);
-	ThreadMessage* cur=ch->head;
-	ThreadMessage* prev=NULL;
-	while(cur)
+	QueueNode* cur=ch->messages->head;
+	ComQueue* tmp=newComQueue();
+	for(;cur;cur=cur->next)
 	{
-		ThreadMessage* tmp=(ThreadMessage*)malloc(sizeof(ThreadMessage));
-		tmp->next=NULL;
-		if(!tmp)
-			errors("copyChanl",__FILE__,__LINE__);
-		if(!tmpCh->head)
-			tmpCh->head=tmp;
-		if(prev)
-			prev->next=tmp;
-		tmp->message=copyVMvalue(cur->message,heap);
-		cur=cur->next;
-		prev=tmp;
+		void* message=copyVMvalue(cur->data,heap);
+		pushComQueue(message,tmp);
 	}
-	tmpCh->tail=prev;
 	return tmpCh;
 }
 
@@ -1094,17 +1066,6 @@ void freeVMfp(VMfp* fp)
 			fclose(fp->fp);
 		free(fp);
 	}
-}
-
-ThreadMessage* newThreadMessage(VMvalue* val,VMheap* heap)
-{
-	ThreadMessage* tmp=(ThreadMessage*)malloc(sizeof(ThreadMessage));
-	if(tmp==NULL)errors("newThreadMessage",__FILE__,__LINE__);
-	tmp->next=NULL;
-	tmp->message=newNilValue(heap);
-	tmp->message->access=1;
-	copyRef(tmp->message,val);
-	return tmp;
 }
 
 VMDll* newVMDll(const char* dllName)

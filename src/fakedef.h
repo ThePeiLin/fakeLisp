@@ -38,6 +38,18 @@ typedef struct
 	long int top;
 }ComStack;
 
+typedef struct QueueNode
+{
+	void* data;
+	struct QueueNode* next;
+}QueueNode;
+
+typedef struct
+{
+	QueueNode* head;
+	QueueNode* tail;
+}ComQueue;
+
 typedef struct
 {
 	void (*destructor)(void*);
@@ -99,8 +111,7 @@ typedef struct Channel
 	uint32_t max;
 	uint32_t refcount;
 	pthread_rwlock_t lock;
-	struct Thread_Message* head;
-	struct Thread_Message* tail;
+	ComQueue* messages;
 }Chanl;
 
 typedef struct VM_File
@@ -278,12 +289,6 @@ typedef struct
 	uint32_t tptp;
 	uint32_t* tpst;
 }VMstack;
-
-typedef struct Thread_Message
-{
-	VMvalue* message;
-	struct Thread_Message* next;
-}ThreadMessage;
 
 typedef struct
 {

@@ -2154,6 +2154,7 @@ int B_send(FakeVM* exe)
 	volatile Chanl* tmpCh=ch->u.chan;
 	pthread_rwlock_wrlock((pthread_rwlock_t*)&tmpCh->lock);
 	VMvalue* tmp=newNilValue(exe->heap);
+	tmp->access=1;
 	copyRef(tmp,message);
 	pushComQueue(tmp,tmpCh->messages);
 	pthread_rwlock_unlock((pthread_rwlock_t*)&tmpCh->lock);

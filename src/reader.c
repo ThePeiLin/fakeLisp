@@ -11,16 +11,14 @@
 
 static StringMatchPattern* HeadOfStringPattern=NULL;
 static void skipComment(FILE*);
-static char* readList(FILE*,char**);
+static int32_t skipUntilNextWhenReading(const char* str,const char* part);
+static int32_t countInPatternWhenReading(const char*,StringMatchPattern*);
 static char* readString(FILE*);
-static char* readAtom(FILE*);
-static char* readSpace(FILE*);
-static char* exStrCat(char*,const char*,int32_t);
+static char* strCat(char*,const char*);
 static int32_t matchStringPattern(const char*,StringMatchPattern* pattern);
+static int maybePatternPrefix(const char*);
 static int32_t countStringParts(const char*);
 static int32_t* matchPartOfPattern(const char*,StringMatchPattern*,int32_t*);
-
-static char* baseReadList(FILE*);
 
 char** splitPattern(const char* str,int32_t* num)
 {
@@ -100,353 +98,322 @@ int32_t countStringParts(const char* str)
 
 char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev)
 {
+	size_t len=0;
+	ComStack* s1=newComStack(32);
+	ComStack* s2=newComStack(32);
 	char* tmp=NULL;
 	if(*prev)
 	{
-		tmp=*prev;
+		tmp=(char*)malloc(sizeof(char)*(strlen(*prev)+1));
+		if(!tmp)
+			errors("readInPattern",__FILE__,__LINE__);
+		strcpy(tmp,*prev);
+		free(*prev);
 		*prev=NULL;
+		len=strlen(tmp);
 	}
 	else
-		tmp=readSingle(fp,prev);
-	if(!tmp||!strlen(tmp))
 	{
-		if(tmp)
-			free(tmp);
-		return NULL;
+		tmp=(char*)malloc(sizeof(char)*1);
+		if(!tmp)
+			errors("readInPattern",__FILE__,__LINE__);
+		tmp[0]='\0';
 	}
-	StringMatchPattern* pattern=findStringPattern(tmp+skipSpace(tmp));
-	if(retval!=NULL)
-		*retval=pattern;
-	if(!pattern)
+	size_t i=skipSpace(tmp);
+	if(tmp[i]=='(')
 	{
-		char* spaceString=(char*)malloc(sizeof(char)*(strlen(tmp)+2));
-		if(!spaceString)errors("readInPattern",__FILE__,__LINE__);
-		sprintf(spaceString," %s",tmp);
-		free(tmp);
-		if(spaceString[strlen(spaceString)-1]!=')')
-		{
-			int32_t backIndex=findKeyString(spaceString);
-			if(strlen(spaceString)!=(size_t)backIndex)
-			{
-				*prev=copyStr(spaceString+backIndex);
-				spaceString[backIndex]='\0';
-				spaceString=(char*)realloc(spaceString,sizeof(char)*(strlen(spaceString)+1));
-				if(!spaceString)errors("readInPattern",__FILE__,__LINE__);
-			}
-		}
-		return spaceString;
+		pushComStack(NULL,s1);
+		pushComStack((void*)i,s2);
 	}
+	else if(!strncmp(tmp+i,"#b",2)||!strncmp(tmp+i,"#\\",2))
+	{
+		pushComStack(NULL,s1);
+		pushComStack((void*)i,s2);
+	}
+	else if(maybePatternPrefix(tmp+i))
+	{
+		StringMatchPattern* pattern=findStringPattern(tmp+i);
+		pushComStack(pattern,s1);
+		pushComStack((void*)i,s2);
+	}
+	char chs[2]={'\0'};
+	int ch='\0';
 	for(;;)
 	{
-		int32_t num=0;
-		int32_t backIndex=strlen(tmp);
-		int32_t* splitIndex=matchPartOfPattern(tmp,pattern,&num);
-		if(isVar(pattern->parts[num-1]))
+		ch=getc(fp);
+		chs[0]=ch;
+		if(!isComStackEmpty(s1)&&topComStack(s1)&&tmp[(size_t)topComStack(s2)]=='#')
 		{
-			int32_t tmpbackIndex=splitIndex[num-1];
-			StringMatchPattern* tmpPattern=findStringPattern(tmp+tmpbackIndex);
-			if(tmpPattern)
+			size_t i=(size_t)topComStack(s2);
+			if((!strncmp(tmp+i,"#b",2)&&!isxdigit(ch))||(!strncmp(tmp+i,"#\\",2)&&isspace(ch)))
 			{
-				*prev=copyStr(tmp+tmpbackIndex);
-				backIndex=tmpbackIndex;
+				popComStack(s2);
+				popComStack(s1);
 			}
+		}
+		if(ch=='(')
+		{
+			if(s1->top==0&&len&&!isspace(tmp[len-1]))
+			{
+				*prev=copyStr(chs);
+				break;
+			}
+			tmp=strCat(tmp," ");
+			len++;
+			pushComStack(NULL,s1);
+			pushComStack((void*)len,s2);
+		}
+		else if(ch==')')
+		{
+			if(!isComStackEmpty(s1)&&topComStack(s1)&&tmp[(size_t)topComStack(s2)]!='(')
+				return NULL;
 			else
 			{
-				if(!matchStringPattern(tmp,pattern))
-				{
-					free(splitIndex);
-					char* spaceString=(char*)malloc(sizeof(char)*(strlen(tmp)+2));
-					if(!spaceString)errors("readInPattern",__FILE__,__LINE__);
-					sprintf(spaceString," %s",tmp);
-					free(tmp);
-					return spaceString;
-				}
+				popComStack(s1);
+				popComStack(s2);
 			}
+		}
+		else if((ch=='b'||ch=='\\')&&(!isComStackEmpty(s1)&&!topComStack(s1)&&tmp[(size_t)topComStack(s2)]=='#'))
+		{
+			
+			size_t i=(size_t)popComStack(s2);
+			char* tmp1=copyStr(tmp+i);
+			tmp1=strCat(tmp1,chs);
+			tmp[i]='\0';
+			if(s1->top==1&&i&&!isspace(tmp[i-1]))
+			{
+				*prev=tmp1;
+				break;
+			}
+			tmp=strCat(tmp," ");
+			len++;
+			tmp=strCat(tmp,tmp1);
+			len++;
+			pushComStack((void*)i+1,s2);
+			continue;
+		}
+		else if(ch==',')
+		{
+			tmp=strCat(tmp," ");
+			len++;
+		}
+		else if(ch=='#')
+		{
+			pushComStack(NULL,s1);
+			pushComStack((void*)len,s2);
+		}
+		else if((!isComStackEmpty(s1)&&!topComStack(s1)&&tmp[(size_t)topComStack(s2)]=='#'))
+		{
+			popComStack(s1);
+			popComStack(s2);
+		}
+		if(ch==EOF||(isspace(ch)&&len&&!isspace(tmp[len-1])&&isComStackEmpty(s1)&&isComStackEmpty(s2)))
+		{
+			*prev=copyStr(chs);
+			break;
+		}
+		else if(ch==';')
+		{
+			skipComment(fp);
+			continue;
+		}
+		tmp=strCat(tmp,chs);
+		len++;
+		if(ch=='\"')
+		{
+			char* tmp1=readString(fp);
+			tmp=strCat(tmp,tmp1);
+			len+=strlen(tmp1);
+			continue;
+		}
+		else if(ch==',')
+		{
+			tmp=strCat(tmp," ");
+			len++;
+		}
+		if(!(!isComStackEmpty(s1)&&topComStack(s1)&&tmp[(size_t)topComStack(s2)]=='#')&&maybePatternPrefix(chs))
+			pushComStack((void*)len-1,s2);
+		if(s1->top!=s2->top)
+		{
+			size_t i=(size_t)topComStack(s2);
+			StringMatchPattern* pattern=findStringPattern(tmp+i);
+			if(pattern)
+			{
+				size_t i=(size_t)topComStack(s2);
+				if(s1->top==0&&i&&!isspace(tmp[i-1]))
+				{
+					*prev=copyStr(tmp+i);
+					tmp[i]='\0';
+					break;
+				}
+				else
+					pushComStack(pattern,s1);
+			}
+			else if(!maybePatternPrefix(tmp+(size_t)topComStack(s2)))
+				popComStack(s2);
 		}
 		else
 		{
-			if(!matchStringPattern(tmp,pattern))
+			while(!isComStackEmpty(s1)&&!isComStackEmpty(s2)&&s1->top==s2->top&&topComStack(s1)&&!matchStringPattern(tmp+(size_t)topComStack(s2),topComStack(s1)))
 			{
-				free(splitIndex);
-				break;
+				size_t i=(size_t)topComStack(s2);
+				char* tmp1=copyStr(tmp+i);
+				tmp[i]='\0';
+				tmp=strCat(tmp," ");
+				len++;
+				tmp=strCat(tmp,tmp1);
+				popComStack(s1);
+				popComStack(s2);
 			}
 		}
-		free(splitIndex);
-		char* tmpNext=readInPattern(fp,NULL,prev);
-		if(tmpNext==NULL||isAllSpace(tmpNext))
-		{
-			if(tmpNext)free(tmpNext);
-			break;
-		}
-		tmp=exStrCat(tmp,tmpNext,backIndex);
-		free(tmpNext);
-		if(!matchStringPattern(tmp,pattern))
-		{
-			int32_t* splitIndex=matchPartOfPattern(tmp,pattern,&num);
-			StringMatchPattern* pattern=findStringPattern(tmp+splitIndex[num-1]);
-			if(!pattern)
-			{
-				free(splitIndex);
-			}
-			else
-			{
-				if(!matchStringPattern(tmp+splitIndex[num-1],pattern))
-				{
-					free(splitIndex);
-				}
-			}
-			break;
-			free(splitIndex);
-		}
-		tmpNext=readInPattern(fp,NULL,prev);
-		tmp=exStrCat(tmp,tmpNext,strlen(tmp));
-		free(tmpNext);
 	}
-	if(!isVar(pattern->parts[pattern->num-1]))
-	{
-		int32_t num=0;
-		int32_t* index=matchPartOfPattern(tmp,pattern,&num);
-		char* part=pattern->parts[num-1];
-		int32_t finaleIndex=index[num-1]+strlen(part);
-		if(strlen(tmp+finaleIndex))
-			*prev=copyStr(tmp+finaleIndex);
-		else *prev=NULL;
-		tmp[finaleIndex]='\0';
-		int32_t memsize=strlen(tmp)+1;
-		tmp=(char*)realloc(tmp,memsize*sizeof(char));
-		if(!tmp)errors("readInPattern",__FILE__,__LINE__);
-		free(index);
-	}
-	char* spaceString=(char*)malloc(sizeof(char)*(strlen(tmp)+2));
-	if(!spaceString)errors("readInPattern",__FILE__,__LINE__);
-	sprintf(spaceString," %s",tmp);
-	free(tmp);
-	return spaceString;
+	return tmp;
 }
 
 int32_t matchStringPattern(const char* str,StringMatchPattern* pattern)
 {
-	int32_t num=countInPattern(str,pattern);
+	int32_t num=countInPatternWhenReading(str,pattern);
 	return (pattern->num-num);
-}
-
-char* readSingle(FILE* fp,char** prev)
-{
-	char* tmp=NULL;
-	char* subStr=NULL;
-	int32_t memSize=0;
-	int32_t strSize=0;
-	int ch=getc(fp);
-	if(ch==EOF)
-		return NULL;
-	while(ch!=EOF)
-	{
-		if(isspace(ch))
-		{
-			ungetc(ch,fp);
-			if(!tmp)tmp=readSpace(fp);
-			else
-			{
-				char* tmpStr=readSpace(fp);
-				tmp=(char*)realloc(tmp,sizeof(char)*(strlen(tmp)+strlen(tmpStr)+1));
-				if(!tmp)errors("readSingle",__FILE__,__LINE__);
-				strcat(tmp,tmpStr);
-				free(tmpStr);
-			}
-			strSize=strlen(tmp);
-			memSize=strSize+1;
-		}
-		else if(ch==';')
-			skipComment(fp);
-		else
-		{
-			strSize++;
-			if(strSize>memSize-1)
-			{
-				tmp=(char*)realloc(tmp,sizeof(char)*(memSize+MAX_STRING_SIZE));
-				if(!tmp)errors("readSingle",__FILE__,__LINE__);
-				memSize+=MAX_STRING_SIZE;
-			}
-			if(ch==')')
-			{
-				strSize--;
-				ungetc(ch,fp);
-				break;
-			}
-			tmp[strSize-1]=ch;
-			break;
-		}
-		ch=getc(fp);
-	}
-	if(tmp)
-		tmp[strSize]='\0';
-	switch(ch)
-	{
-		case '(':
-			subStr=readList(fp,prev);
-			break;
-		case '\"':
-			subStr=readString(fp);
-			break;
-		case ')':
-			memSize=strlen(tmp)+1;
-			tmp=(char*)realloc(tmp,sizeof(char)*memSize);
-			if(!tmp)errors("readSingle",__FILE__,__LINE__);
-			char* spaceString=(char*)malloc(sizeof(char)*(strlen(tmp)+2));
-			if(!spaceString)errors("readSingle",__FILE__,__LINE__);
-			sprintf(spaceString," %s",tmp);
-			free(tmp);
-			return spaceString;
-			break;
-		default:
-			subStr=readAtom(fp);
-			break;
-	}
-	if(subStr)
-	{
-		strSize+=strlen(subStr);
-		if(strSize>memSize-1)
-		{
-			tmp=(char*)realloc(tmp,sizeof(char)*(strSize+1));
-			if(!tmp)errors("readSingle",__FILE__,__LINE__);
-		}
-		strcat(tmp,subStr);
-	}
-	memSize=strlen(tmp)+1;
-	tmp=(char*)realloc(tmp,sizeof(char)*memSize);
-	if(!tmp)errors("readSingle",__FILE__,__LINE__);
-	free(subStr);
-	char* spaceString=(char*)malloc(sizeof(char)*(strlen(tmp)+2));
-	if(!spaceString)errors("readSingle",__FILE__,__LINE__);
-	sprintf(spaceString," %s",tmp);
-	free(tmp);
-	return spaceString;
 }
 
 char* baseReadSingle(FILE* fp)
 {
+	size_t len=0;
+	ComStack* s1=newComStack(32);
+	ComStack* s2=newComStack(32);
 	char* tmp=NULL;
-	char* subStr=NULL;
-	int32_t memSize=0;
-	int32_t strSize=0;
-	int ch=getc(fp);
-	if(ch==EOF)
-		return NULL;
-	while(ch!=EOF)
+		tmp=(char*)malloc(sizeof(char)*1);
+		if(!tmp)
+			errors("readInPattern",__FILE__,__LINE__);
+		tmp[0]='\0';
+	size_t i=skipSpace(tmp);
+	if(tmp[i]=='(')
 	{
-		if(isspace(ch))
+		pushComStack(NULL,s1);
+		pushComStack((void*)i,s2);
+	}
+	else if(!strncmp(tmp+i,"#b",2)||!strncmp(tmp+i,"#\\",2))
+	{
+		pushComStack(NULL,s1);
+		pushComStack((void*)i,s2);
+	}
+	else if(maybePatternPrefix(tmp+i))
+	{
+		StringMatchPattern* pattern=findStringPattern(tmp+i);
+		pushComStack(pattern,s1);
+		pushComStack((void*)i,s2);
+	}
+	char chs[2]={'\0'};
+	int ch='\0';
+	for(;;)
+	{
+		ch=getc(fp);
+		chs[0]=ch;
+		if(!isComStackEmpty(s1)&&topComStack(s1)&&tmp[(size_t)topComStack(s2)]=='#')
 		{
-			ungetc(ch,fp);
-			if(!tmp)tmp=readSpace(fp);
-			else
+			size_t i=(size_t)topComStack(s2);
+			if(!strncmp(tmp+i,"#b",2))
 			{
-				char* tmpStr=readSpace(fp);
-				tmp=(char*)realloc(tmp,sizeof(char)*(strlen(tmp)+strlen(tmpStr)+1));
-				if(!tmp)errors("readSingle",__FILE__,__LINE__);
-				strcat(tmp,tmpStr);
-				free(tmpStr);
+				if(!isxdigit(ch))
+				{
+					popComStack(s2);
+					popComStack(s1);
+				}
 			}
-			strSize=strlen(tmp);
-			memSize=strSize+1;
+			else if(!strncmp(tmp+i,"#\\",2))
+			{
+				if(isspace(ch))
+				{
+					popComStack(s1);
+					popComStack(s2);
+				}
+			}
 		}
-		else if(ch==';')
-			skipComment(fp);
-		else
+		if(ch=='(')
 		{
-			strSize++;
-			if(strSize>memSize-1)
+			if(s1->top==0&&len&&!isspace(tmp[len-1]))
 			{
-				tmp=(char*)realloc(tmp,sizeof(char)*(memSize+MAX_STRING_SIZE));
-				if(!tmp)errors("readSingle",__FILE__,__LINE__);
-				memSize+=MAX_STRING_SIZE;
-			}
-			if(ch==')')
-			{
-				strSize--;
-				ungetc(ch,fp);
 				break;
 			}
-			tmp[strSize-1]=ch;
-			break;
+			tmp=strCat(tmp," ");
+			len++;
+			pushComStack(NULL,s1);
+			pushComStack((void*)len,s2);
 		}
-		ch=getc(fp);
-	}
-	if(tmp)
-		tmp[strSize]='\0';
-	switch(ch)
-	{
-		case '(':
-			subStr=baseReadList(fp);
-			break;
-		case '\"':
-			subStr=readString(fp);
-			break;
-		case ')':
-			memSize=strlen(tmp)+1;
-			tmp=(char*)realloc(tmp,sizeof(char)*memSize);
-			if(!tmp)errors("readSingle",__FILE__,__LINE__);
-			char* spaceString=(char*)malloc(sizeof(char)*(strlen(tmp)+2));
-			if(!spaceString)errors("readSingle",__FILE__,__LINE__);
-			sprintf(spaceString," %s",tmp);
-			free(tmp);
-			return spaceString;
-			break;
-		default:
-			subStr=readAtom(fp);
-			break;
-	}
-	if(subStr)
-	{
-		strSize+=strlen(subStr);
-		if(strSize>memSize-1)
+		else if(ch==')')
 		{
-			tmp=(char*)realloc(tmp,sizeof(char)*(strSize+1));
-			if(!tmp)errors("readSingle",__FILE__,__LINE__);
+			if(!isComStackEmpty(s1)&&topComStack(s1)&&tmp[(size_t)topComStack(s2)]!='(')
+				return NULL;
+			else
+			{
+				popComStack(s1);
+				popComStack(s2);
+			}
 		}
-		strcat(tmp,subStr);
+		else if((ch=='b'||ch=='\\')&&(!isComStackEmpty(s1)&&!topComStack(s1)&&tmp[(size_t)topComStack(s2)]=='#'))
+		{
+			
+			size_t i=(size_t)popComStack(s2);
+			char* tmp1=copyStr(tmp+i);
+			tmp1=strCat(tmp1,chs);
+			tmp[i]='\0';
+			if(s1->top==1&&i&&!isspace(tmp[i-1]))
+			{
+				break;
+			}
+			tmp=strCat(tmp," ");
+			len++;
+			tmp=strCat(tmp,tmp1);
+			len++;
+			pushComStack((void*)i+1,s2);
+			continue;
+		}
+		else if(ch==',')
+		{
+			tmp=strCat(tmp," ");
+			len++;
+		}
+		else if(ch=='#')
+		{
+			pushComStack(NULL,s1);
+			pushComStack((void*)len,s2);
+		}
+		else if((!isComStackEmpty(s1)&&!topComStack(s1)&&tmp[(size_t)topComStack(s2)]=='#'))
+		{
+			popComStack(s1);
+			popComStack(s2);
+		}
+		if(ch==EOF||(isspace(ch)&&len&&!isspace(tmp[len-1])&&isComStackEmpty(s1)&&isComStackEmpty(s2)))
+		{
+			break;
+		}
+		else if(ch==';')
+		{
+			skipComment(fp);
+			continue;
+		}
+		tmp=strCat(tmp,chs);
+		len++;
+		if(ch=='\"')
+		{
+			char* tmp1=readString(fp);
+			tmp=strCat(tmp,tmp1);
+			len+=strlen(tmp1);
+			continue;
+		}
+		else if(ch==',')
+		{
+			tmp=strCat(tmp," ");
+			len++;
+		}
 	}
-	memSize=strlen(tmp)+1;
-	tmp=(char*)realloc(tmp,sizeof(char)*memSize);
-	if(!tmp)errors("readSingle",__FILE__,__LINE__);
-	free(subStr);
-	char* spaceString=(char*)malloc(sizeof(char)*(strlen(tmp)+2));
-	if(!spaceString)errors("readSingle",__FILE__,__LINE__);
-	sprintf(spaceString," %s",tmp);
-	free(tmp);
-	return spaceString;
+	return tmp;
 }
 
 void skipComment(FILE* fp)
 {
 	while(getc(fp)!='\n');
 	ungetc('\n',fp);
-}
-
-char* readSpace(FILE* fp)
-{
-	int32_t memSize=MAX_STRING_SIZE;
-	char* tmp=(char*)malloc(sizeof(char)*memSize);
-	if(!tmp)errors("readSpace",__FILE__,__LINE__);
-	int32_t strSize=0;
-	int ch=getc(fp);
-	for(;ch!=EOF&&isspace(ch);ch=getc(fp))
-	{
-		strSize++;
-		if(strSize>memSize-1)
-		{
-			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+MAX_STRING_SIZE));
-			if(!tmp)errors("readSpace",__FILE__,__LINE__);
-			memSize+=MAX_STRING_SIZE;
-		}
-		tmp[strSize-1]=ch;
-	}
-	if(ch!=EOF)
-		ungetc(ch,fp);
-	tmp[strSize]='\0';
-	memSize=strlen(tmp)+1;
-	tmp=(char*)realloc(tmp,sizeof(char)*memSize);
-	if(!tmp)errors("readSpace",__FILE__,__LINE__);
-	return tmp;
 }
 
 char* readString(FILE* fp)
@@ -485,92 +452,6 @@ char* readString(FILE* fp)
 	memSize=strlen(tmp)+1;
 	tmp=(char*)realloc(tmp,sizeof(char)*memSize);
 	if(!tmp)errors("readString",__FILE__,__LINE__);
-	return tmp;
-}
-
-char* readAtom(FILE* fp)
-{
-	int32_t memSize=MAX_STRING_SIZE;
-	char* tmp=(char*)malloc(sizeof(char)*memSize);
-	if(!tmp)errors("readAtom",__FILE__,__LINE__);
-	int32_t strSize=0;
-	int ch=getc(fp);
-	for(;ch!=EOF;ch=getc(fp))
-	{
-		if(isspace(ch)||((strSize-1<0||tmp[strSize-1]!='\\')&&(ch==';'||ch==')'||ch=='('||ch=='\"'||ch==',')))
-		{
-			ungetc(ch,fp);
-			break;
-		}
-		strSize++;
-		if(strSize>memSize-1)
-		{
-			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+MAX_STRING_SIZE));
-			if(!tmp)errors("readAtom",__FILE__,__LINE__);
-			memSize+=MAX_STRING_SIZE;
-		}
-		tmp[strSize-1]=ch;
-	}
-	tmp[strSize]='\0';
-	memSize=strlen(tmp)+1;
-	tmp=(char*)realloc(tmp,sizeof(char)*memSize);
-	if(!tmp)errors("readAtom",__FILE__,__LINE__);
-	return tmp;
-}
-
-char* readList(FILE* fp,char** prev)
-{
-	char* tmp=NULL;
-	int ch=getc(fp);
-	while(ch!=EOF)
-	{
-		if(ch==')')
-		{
-			if(!tmp)
-			{
-				tmp=(char*)malloc(sizeof(char)*3);
-				if(!tmp)errors("readList",__FILE__,__LINE__);
-				strcpy(tmp," )");
-			}
-			else
-			{
-				tmp=(char*)realloc(tmp,sizeof(char)*(strlen(tmp)+3));
-				if(!tmp)errors("readList",__FILE__,__LINE__);
-				strcat(tmp," )");
-			}
-			break;
-		}
-		else if(ch==',')
-		{
-			if(!tmp)
-			{
-				tmp=(char*)malloc(sizeof(char)*3);
-				if(!tmp)errors("readList",__FILE__,__LINE__);
-				strcpy(tmp," ,");
-			}
-			else
-			{
-				tmp=(char*)realloc(tmp,sizeof(char)*(strlen(tmp)+3));
-				if(!tmp)errors("readList",__FILE__,__LINE__);
-				strcat(tmp," ,");
-			}
-		}
-		else
-		{
-			ungetc(ch,fp);
-			if(!tmp)
-				tmp=readInPattern(fp,NULL,prev);
-			else
-			{
-				char* tmpStr=readInPattern(fp,NULL,prev);
-				tmp=(char*)realloc(tmp,sizeof(char)*(strlen(tmp)+strlen(tmpStr)+1));
-				if(!tmp)errors("readList",__FILE__,__LINE__);
-				strcat(tmp,tmpStr);
-				free(tmpStr);
-			}
-		}
-		ch=getc(fp);
-	}
 	return tmp;
 }
 
@@ -640,7 +521,7 @@ int32_t* matchPartOfPattern(const char* str,StringMatchPattern* pattern,int32_t*
 			s+=skipSpace(str+s);
 			splitIndex[i]=s;
 			char* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
-			s+=skipUntilNext(str+s,next);
+			s+=skipUntilNextWhenReading(str+s,next);
 		}
 	}
 	return splitIndex;
@@ -667,7 +548,7 @@ int32_t countInPattern(const char* str,StringMatchPattern* pattern)
 			s+=skipSpace(str+s);
 			if(str[s]==')')break;
 			char* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
-			s+=skipUntilNext(str+s,next);
+			s+=skipUntilNextWhenReading(str+s,next);
 		}
 		s+=skipSpace(str+s);
 		i++;
@@ -675,11 +556,93 @@ int32_t countInPattern(const char* str,StringMatchPattern* pattern)
 	return i;
 }
 
+int32_t countInPatternWhenReading(const char* str,StringMatchPattern* pattern)
+{
+	int32_t i=0;
+	int32_t s=0;
+	int32_t len=strlen(str);
+	while(i<pattern->num)
+	{
+		if(s>=len)break;
+		char* part=pattern->parts[i];
+		if(!isVar(part))
+		{
+			s+=skipSpace(str+s);
+			if(strncmp(str+s,part,strlen(part)))
+				break;
+			s+=strlen(part);
+		}
+		else
+		{
+			s+=skipSpace(str+s);
+			if(str[s]==')')break;
+			char* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
+			s+=skipUntilNextWhenReading(str+s,next);
+		}
+		s+=skipSpace(str+s);
+		i++;
+	}
+	return i;
+}
+
+
 int isVar(const char* part)
 {
 	if(part[0]=='(')
 		return 1;
 	return 0;
+}
+
+int32_t skipUntilNextWhenReading(const char* str,const char* part)
+{
+	int32_t s=0;
+	while(str[s])
+	{
+		if(str[s]=='(')
+		{
+			s+=skipParentheses(str+s);
+		}
+		else if(str[s]=='\"')
+		{
+			size_t len=0;
+			char* tmpStr=castEscapeCharater(str+s+1,'\"',&len);
+			s+=len+1;
+			free(tmpStr);
+		}
+		else if(isspace(str[s]))
+		{
+			s+=skipSpace(str+s);
+			continue;
+		}
+		else if(str[s]==',')
+		{
+			if(part)
+				s++;
+			else
+				break;
+		}
+		else
+		{
+			StringMatchPattern* pattern=findStringPattern(str+s);
+			if(pattern)
+			{
+				s+=skipInPattern(str+s,pattern);
+				s+=skipSpace(str+s);
+				continue;
+			}
+			else if(part&&!isVar(part))
+			{
+				s+=skipAtom(str+s,part);
+				s+=skipSpace(str+s);
+				if(!strncmp(str+s,part,strlen(part)))
+					break;
+			}
+			s+=skipAtom(str+s,part?part:"");
+		}
+		if(!part||isVar(part))
+			break;
+	}
+	return s;
 }
 
 int32_t skipUntilNext(const char* str,const char* part)
@@ -704,7 +667,9 @@ int32_t skipUntilNext(const char* str,const char* part)
 			continue;
 		}
 		else if(str[s]==',')
+		{
 			break;
+		}
 		else
 		{
 			StringMatchPattern* pattern=findStringPattern(str+s);
@@ -799,7 +764,7 @@ int32_t skipAtom(const char* str,const char* keyString)
 	{
 		for(;str[i]!='\0';i++)
 		{
-			if(isspace(str[i])||(keyLen&&!strncmp(str+i,keyString,keyLen)))
+			if(isspace(str[i])||str[i]=='('||str[i]==')'||str[i]==','||!strncmp(str+i,"#b",2)||!strncmp(str+i,"#\\",2)||(keyLen&&!strncmp(str+i,keyString,keyLen)))
 				break;
 		}
 	}
@@ -824,7 +789,7 @@ int32_t skipInPattern(const char* str,StringMatchPattern* pattern)
 			{
 				s+=skipSpace(str+s);
 				char* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
-				s+=skipUntilNext(str+s,next);
+				s+=skipUntilNextWhenReading(str+s,next);
 			}
 		}
 	}
@@ -876,12 +841,12 @@ void freeStringArry(char** ss,int32_t num)
 	free(ss);
 }
 
-char* exStrCat(char* s1,const char* s2,int32_t i)
+char* strCat(char* s1,const char* s2)
 {
-	int32_t len=strlen(s2)+i;
-	s1=(char*)realloc(s1,sizeof(char)*(len+1));
-	if(!s1)errors("exStrCat",__FILE__,__LINE__);
-	strcpy(s1+i,s2);
+	s1=(char*)realloc(s1,sizeof(char)*(strlen(s1)+strlen(s2)+1));
+	if(!s1)
+		errors("strCat",__FILE__,__LINE__);
+	strcat(s1,s2);
 	return s1;
 }
 
@@ -1040,43 +1005,18 @@ int32_t findKeyString(const char* str)
 	return skipAtom(str,"");
 }
 
-char* baseReadList(FILE* fp)
+static int maybePatternPrefix(const char* str)
 {
-	char* tmp=NULL;
-	int ch=getc(fp);
-	while(ch!=EOF)
+	if(!HeadOfStringPattern)
+		return 0;
+	StringMatchPattern* cur=HeadOfStringPattern;
+	str+=skipSpace(str);
+	while(cur)
 	{
-		if(ch==')')
-		{
-			if(!tmp)
-			{
-				tmp=(char*)malloc(sizeof(char)*3);
-				if(!tmp)errors("readList",__FILE__,__LINE__);
-				strcpy(tmp," )");
-			}
-			else
-			{
-				tmp=(char*)realloc(tmp,sizeof(char)*(strlen(tmp)+3));
-				if(!tmp)errors("readList",__FILE__,__LINE__);
-				strcat(tmp," )");
-			}
-			break;
-		}
-		else
-		{
-			ungetc(ch,fp);
-			if(!tmp)
-				tmp=baseReadSingle(fp);
-			else
-			{
-				char* tmpStr=baseReadSingle(fp);
-				tmp=(char*)realloc(tmp,sizeof(char)*(strlen(tmp)+strlen(tmpStr)+1));
-				if(!tmp)errors("readList",__FILE__,__LINE__);
-				strcat(tmp,tmpStr);
-				free(tmpStr);
-			}
-		}
-		ch=getc(fp);
+		char* part=cur->parts[0];
+		if(strlen(str)&&!strncmp(str,part,strlen(str)))
+			return 1;
+		cur=cur->next;
 	}
-	return tmp;
+	return 0;
 }

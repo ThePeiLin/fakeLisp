@@ -1717,6 +1717,12 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 						root->u.atom=atom;
 						i+=strlen(str)+1;
 						break;
+					default:
+						str=getStringFromList(objStr+i-1);
+						atom=newAtom(SYM,str,root->outer);
+						root->u.atom=atom;
+						i+=strlen(str)-1;
+						break;
 				}
 				free(str);
 			}

@@ -267,6 +267,8 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev)
 			}
 		}
 	}
+	freeComStack(s1);
+	freeComStack(s2);
 	return tmp;
 }
 
@@ -407,6 +409,8 @@ char* baseReadSingle(FILE* fp)
 			len++;
 		}
 	}
+	freeComStack(s1);
+	freeComStack(s2);
 	return tmp;
 }
 

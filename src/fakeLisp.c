@@ -190,26 +190,19 @@ void runIntpr(Intpr* inter)
 		char* list=readInPattern(inter->file,&tmpPattern,&prev);
 		ErrorStatus status={0,NULL};
 		begin=createTree(list,inter,tmpPattern);
-		int ch=getc(inter->file);
-		if(!begin&&(list&&!(isAllSpace(list)&&ch==EOF)))
-		{
-			fprintf(stderr,"In file \"%s\",line %d\n",inter->filename,inter->curline);
-			if(list&&!isAllSpace(list))
-				fprintf(stderr,"%s:Unexpected EOF.\n",list);
-			else
-				fprintf(stderr,"Can't create a valid object.\n");
-			free(list);
-			list=NULL;
-			continue;
-		}
-		if(ch==EOF)
-		{
-			if(list)
-				free(list);
+		if(isAllSpace(list))
 			break;
-		}
-		else if(ch!='\n')
-			ungetc(ch,inter->file);
+		//if(!begin&&(list&&!(isAllSpace(list)&&ch==EOF)))
+		//{
+		//	fprintf(stderr,"In file \"%s\",line %d\n",inter->filename,inter->curline);
+		//	if(list&&!isAllSpace(list))
+		//		fprintf(stderr,"%s:Unexpected EOF.\n",list);
+		//	else
+		//		fprintf(stderr,"Can't create a valid object.\n");
+		//	free(list);
+		//	list=NULL;
+		//	continue;
+		//}
 		if(begin!=NULL)
 		{
 			ByteCodelnt* tmpByteCode=compile(begin,inter->glob,inter,&status,!isLambdaExpression(begin));
@@ -267,8 +260,6 @@ void runIntpr(Intpr* inter)
 			if(list!=NULL)
 				free(list);
 		}
-		if(ch=='\n')
-			ungetc(ch,inter->file);
 	}
 	freeVMenv(globEnv);
 	joinAllThread();

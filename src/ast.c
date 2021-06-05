@@ -88,7 +88,12 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 					for(;parts[j][i]!=0;i++)
 					{
 						tmpPattern=findStringPattern(parts[j]+i);
-						AST_cptr* tmpCptr2=createTree(parts[j]+i,inter,tmpPattern);
+						int32_t ti=0;
+						if(parts[j][i+skipSpace(parts[j]+i)]==',')
+						{
+							ti=skipSpace(parts[j]+i)+1;
+						}
+						AST_cptr* tmpCptr2=createTree(parts[j]+i+ti,inter,tmpPattern);
 						if(!tmpCptr2)
 						{
 							if(tmpPattern)
@@ -305,6 +310,12 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 							atom->value.byts.str=castStrByteStr(str);
 							root->u.atom=atom;
 							i+=strlen(str)+1;
+							break;
+						default:
+							str=getStringFromList(objStr+i-1);
+							atom=newAtom(SYM,str,root->outer);
+							root->u.atom=atom;
+							i+=strlen(str)-1;
 							break;
 					}
 					free(str);

@@ -359,6 +359,9 @@ int runFakeVM(FakeVM* exe)
 				case INVALIDSYMBOL:
 					fprintf(stderr,":Invalid symbol:%s\n",exe->stack->values[exe->stack->tp-1]->u.str->str);
 					break;
+				case UNEXPECTEOF:
+					fprintf(stderr,":Unexpect EOF.\n");
+					break;
 			}
 			if(exe->VMid==-1)
 				return 1;
@@ -1952,7 +1955,13 @@ int B_read(FakeVM* exe)
 	VMvalue* file=getTopValue(stack);
 	if(file->type!=FP)return WRONGARG;
 	FILE* tmpFile=file->u.fp->fp;
-	char* tmpString=baseReadSingle(tmpFile);
+	int unexpectEOF=0;
+	char* tmpString=baseReadSingle(tmpFile,&unexpectEOF);
+	if(unexpectEOF)
+	{
+		free(tmpString);
+		return UNEXPECTEOF;
+	}
 	Intpr* tmpIntpr=newTmpIntpr(NULL,tmpFile);
 	AST_cptr* tmpCptr=baseCreateTree(tmpString,tmpIntpr);
 	VMvalue* tmp=NULL;

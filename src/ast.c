@@ -88,12 +88,8 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 					for(;parts[j][i]!=0;i++)
 					{
 						tmpPattern=findStringPattern(parts[j]+i);
-						int32_t ti=0;
-						if(parts[j][i+skipSpace(parts[j]+i)]==',')
-						{
-							ti=skipSpace(parts[j]+i)+1;
-						}
-						AST_cptr* tmpCptr2=createTree(parts[j]+i+ti,inter,tmpPattern);
+						int32_t ti=(parts[j][i+skipSpace(parts[j]+i)]==',');
+						AST_cptr* tmpCptr2=createTree(parts[j]+i+skipSpace(parts[j]+i)+ti,inter,tmpPattern);
 						if(!tmpCptr2)
 						{
 							if(tmpPattern)
@@ -105,7 +101,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 							else
 								break;
 						}
-						if(parts[j][i+skipSpace(parts[j]+i)]==',')
+						if(ti)
 						{
 							addToTail(tmpCptr,tmpCptr2);
 							deleteCptr(tmpCptr2);

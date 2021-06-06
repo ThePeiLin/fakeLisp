@@ -187,22 +187,17 @@ void runIntpr(Intpr* inter)
 		AST_cptr* begin=NULL;
 		if(inter->file==stdin)printf(">>>");
 		StringMatchPattern* tmpPattern=NULL;
-		char* list=readInPattern(inter->file,&tmpPattern,&prev);
+		int unexpectEOF=0;
+		char* list=readInPattern(inter->file,&tmpPattern,&prev,&unexpectEOF);
 		ErrorStatus status={0,NULL};
+		if(unexpectEOF)
+		{
+			fprintf(stderr,"\nIn file \"%s\",line %d\nerror:Unexpect EOF.\n",inter->filename,inter->curline);
+			break;
+		}
 		begin=createTree(list,inter,tmpPattern);
 		if(isAllSpace(list))
 			break;
-		//if(!begin&&(list&&!(isAllSpace(list)&&ch==EOF)))
-		//{
-		//	fprintf(stderr,"In file \"%s\",line %d\n",inter->filename,inter->curline);
-		//	if(list&&!isAllSpace(list))
-		//		fprintf(stderr,"%s:Unexpected EOF.\n",list);
-		//	else
-		//		fprintf(stderr,"Can't create a valid object.\n");
-		//	free(list);
-		//	list=NULL;
-		//	continue;
-		//}
 		if(begin!=NULL)
 		{
 			ByteCodelnt* tmpByteCode=compile(begin,inter->glob,inter,&status,!isLambdaExpression(begin));

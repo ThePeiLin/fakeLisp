@@ -1772,38 +1772,22 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 		ungetc(ch,inter->file);
 		AST_cptr* begin=NULL;
 		StringMatchPattern* tmpPattern=NULL;
-		char* list=readInPattern(inter->file,&tmpPattern,&prev);
+		int unexpectEOF=0;
+		char* list=readInPattern(inter->file,&tmpPattern,&prev,&unexpectEOF);
 		if(list==NULL)continue;
 		ErrorStatus status={0,NULL};
+		if(unexpectEOF)
+		{
+			fprintf(stderr,"\nIn file \"%s\",line %d\nerror:Unexpect EOF.\n",inter->filename,inter->curline);
+			break;
+		}
 		begin=createTree(list,inter,tmpPattern);
-		int ch=getc(inter->file);
-		if(!begin&&(list&&!(isAllSpace(list)&&ch==EOF)))
-		{
-			fprintf(stderr,"In file \"%s\",line %d\n",inter->filename,inter->curline);
-			if(list&&!isAllSpace(list))
-				fprintf(stderr,"%s:Unexpected EOF.\n",list);
-			else
-				fprintf(stderr,"Can't create a valid object.\n");
-			if(list)
-			{
-				if(prev)
-					free(prev);
-				free(list);
-				list=NULL;
-			}
-			if(exitstatus)*exitstatus=INVALIDEXPR;
-			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-			freeByteCodelnt(tmp);
-			tmp=NULL;
-			break;
-		}
-		else if(!begin&&(isAllSpace(list)||ch==EOF))
+		if(isAllSpace(list))
 		{
 			if(list)
 				free(list);
 			break;
 		}
-		ungetc(ch,inter->file);
 		if(begin!=NULL)
 		{
 			ByteCodelnt* tmpByteCodelnt=compile(begin,inter->glob,inter,&status,!isLambdaExpression(begin));
@@ -2434,36 +2418,20 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			ungetc(ch,tmpInter->file);
 			AST_cptr* begin=NULL;
 			StringMatchPattern* tmpPattern=NULL;
-			char* list=readInPattern(tmpInter->file,&tmpPattern,&prev);
+			int unexpectEOF=0;
+			char* list=readInPattern(tmpInter->file,&tmpPattern,&prev,&unexpectEOF);
 			if(list==NULL)continue;
-			begin=createTree(list,tmpInter,tmpPattern);
-			int ch=getc(tmpInter->file);
-			if(!begin&&(list&&!(isAllSpace(list)&&ch==EOF)))
+			if(unexpectEOF)
 			{
-				fprintf(stderr,"In file \"%s\",line %d\n",tmpInter->filename,tmpInter->curline);
-				if(list&&!isAllSpace(list))
-					fprintf(stderr,"%s:Unexpected EOF.\n",list);
-				else
-					fprintf(stderr,"Can't create a valid object.\n");
-				if(list)
-				{
-					if(prev)
-						free(prev);
-					free(list);
-					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-					freeFakeMemMenager(memMenager);
-					libByteCodelnt=NULL;
-					tmp=NULL;
-					list=NULL;
-				}
+				fprintf(stderr,"\nIn file \"%s\",line %d\nerror:Unexpect EOF.\n",inter->filename,inter->curline);
 				break;
 			}
-			else if(!begin&&(isAllSpace(list)||ch==EOF))
+			begin=createTree(list,tmpInter,tmpPattern);
+			if(isAllSpace(list))
 			{
 				free(list);
 				break;
 			}
-			ungetc(ch,tmpInter->file);
 			if(begin!=NULL)
 			{
 				//查找library并编译library

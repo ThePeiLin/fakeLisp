@@ -27,7 +27,8 @@ typedef enum
 	INVOKEERROR,
 	LOADDLLFAILD,
 	INVALIDSYMBOL,
-	LIBUNDEFINED
+	LIBUNDEFINED,
+	UNEXPECTEOF
 }ErrorType;
 
 typedef void (*GenDestructor)(void*);

@@ -96,9 +96,10 @@ int32_t countStringParts(const char* str)
 	return count;
 }
 
-char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev)
+char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev,int* unexpectEOF)
 {
 	size_t len=0;
+	*unexpectEOF=0;
 	ComStack* s1=newComStack(32);
 	ComStack* s2=newComStack(32);
 	char* tmp=NULL;
@@ -142,8 +143,13 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev)
 	{
 		ch=getc(fp);
 		chs[0]=ch;
-		if(!isComStackEmpty(s1)&&topComStack(s1)&&tmp[(size_t)topComStack(s2)]=='#')
+		if(!isComStackEmpty(s1)&&!topComStack(s1)&&tmp[(size_t)topComStack(s2)]=='#')
 		{
+			if(ch==EOF)
+			{
+				*unexpectEOF=1;
+				break;
+			}
 			size_t i=(size_t)topComStack(s2);
 			if((!strncmp(tmp+i,"#b",2)&&!isxdigit(ch))||(!strncmp(tmp+i,"#\\",2)&&isspace(ch)))
 			{
@@ -209,7 +215,10 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev)
 		}
 		if(ch==EOF||(isspace(ch)&&len&&!isspace(tmp[len-1])&&isComStackEmpty(s1)&&isComStackEmpty(s2)))
 		{
-			*prev=copyStr(chs);
+			if(ch==EOF&&s1->top&&s2->top&&s1->top==s2->top)
+				*unexpectEOF=1;
+			else
+				*prev=copyStr(chs);
 			break;
 		}
 		else if(ch==';')
@@ -278,15 +287,16 @@ int32_t matchStringPattern(const char* str,StringMatchPattern* pattern)
 	return (pattern->num-num);
 }
 
-char* baseReadSingle(FILE* fp)
+char* baseReadSingle(FILE* fp,int* unexpectEOF)
 {
 	size_t len=0;
+	*unexpectEOF=0;
 	ComStack* s1=newComStack(32);
 	ComStack* s2=newComStack(32);
 	char* tmp=NULL;
 		tmp=(char*)malloc(sizeof(char)*1);
 		if(!tmp)
-			errors("readInPattern",__FILE__,__LINE__);
+			errors("baseReadSingle",__FILE__,__LINE__);
 		tmp[0]='\0';
 	size_t i=skipSpace(tmp);
 	if(tmp[i]=='(')
@@ -311,24 +321,18 @@ char* baseReadSingle(FILE* fp)
 	{
 		ch=getc(fp);
 		chs[0]=ch;
-		if(!isComStackEmpty(s1)&&topComStack(s1)&&tmp[(size_t)topComStack(s2)]=='#')
+		if(!isComStackEmpty(s1)&&!topComStack(s1)&&tmp[(size_t)topComStack(s2)]=='#')
 		{
-			size_t i=(size_t)topComStack(s2);
-			if(!strncmp(tmp+i,"#b",2))
+			if(ch==EOF)
 			{
-				if(!isxdigit(ch))
-				{
-					popComStack(s2);
-					popComStack(s1);
-				}
+				*unexpectEOF=1;
+				break;
 			}
-			else if(!strncmp(tmp+i,"#\\",2))
+			size_t i=(size_t)topComStack(s2);
+			if((!strncmp(tmp+i,"#b",2)&&!isxdigit(ch))||(!strncmp(tmp+i,"#\\",2)&&isspace(ch)))
 			{
-				if(isspace(ch))
-				{
-					popComStack(s1);
-					popComStack(s2);
-				}
+				popComStack(s2);
+				popComStack(s1);
 			}
 		}
 		if(ch=='(')
@@ -387,6 +391,8 @@ char* baseReadSingle(FILE* fp)
 		}
 		if(ch==EOF||(isspace(ch)&&len&&!isspace(tmp[len-1])&&isComStackEmpty(s1)&&isComStackEmpty(s2)))
 		{
+			if(ch==EOF&&s1->top&&s2->top&&s1->top==s2->top)
+				*unexpectEOF=1;
 			break;
 		}
 		else if(ch==';')

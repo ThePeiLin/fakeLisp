@@ -1757,7 +1757,6 @@ ByteCodelnt* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 {
 	chdir(inter->curDir);
-	char ch;
 	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
 	tmp->ls=1;
 	tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
@@ -1767,9 +1766,8 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 	ByteCode* resTp=newByteCode(1);
 	resTp->code[0]=FAKE_RES_TP;
 	char* prev=NULL;
-	while((ch=getc(inter->file))!=EOF)
+	for(;;)
 	{
-		ungetc(ch,inter->file);
 		AST_cptr* begin=NULL;
 		StringMatchPattern* tmpPattern=NULL;
 		int unexpectEOF=0;
@@ -1778,14 +1776,18 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 		ErrorStatus status={0,NULL};
 		if(unexpectEOF)
 		{
-			fprintf(stderr,"\nIn file \"%s\",line %d\nerror:Unexpect EOF.\n",inter->filename,inter->curline);
+			fprintf(stderr,"%s\nIn file \"%s\",line %d\nerror:Unexpect EOF.\n",list,inter->filename,inter->curline);
+			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+			freeByteCodelnt(tmp);
+			free(list);
+			*exitstatus=UNEXPECTEOF;
+			tmp=NULL;
 			break;
 		}
 		begin=createTree(list,inter,tmpPattern);
 		if(isAllSpace(list))
 		{
-			if(list)
-				free(list);
+			free(list);
 			break;
 		}
 		if(begin!=NULL)
@@ -1831,6 +1833,8 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 		free(list);
 		list=NULL;
 	}
+	if(prev)
+		free(prev);
 	freeByteCode(resTp);
 	return tmp;
 }
@@ -2266,7 +2270,6 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
 	pushFakeMem(tmp,(GenDestructor)freeByteCodelnt,memMenager);
 	chdir(inter->curDir);
-	int ch=0;
 	char* prev=NULL;
 	/* 获取文件路径和文件名
 	 * 然后打开并查找第一个library表达式
@@ -2317,7 +2320,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 					status->status=SYNTAXERROR;
 					status->place=objCptr;
 					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-				freeFakeMemMenager(memMenager);
+					freeFakeMemMenager(memMenager);
 					return NULL;
 				}
 				tmpCptr=nextCptr(tmpCptr);
@@ -2326,7 +2329,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 					status->status=SYNTAXERROR;
 					status->place=plib;
 					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-				freeFakeMemMenager(memMenager);
+					freeFakeMemMenager(memMenager);
 					return NULL;
 				}
 				AST_atom* prefixAtom=tmpCptr->u.atom;
@@ -2413,9 +2416,8 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		pushFakeMem(popTp,(GenDestructor)freeByteCode,memMenager);
 		ByteCodelnt* libByteCodelnt=newByteCodelnt(newByteCode(0));
 		pushFakeMem(libByteCodelnt,(GenDestructor)freeByteCodelnt,memMenager);
-		while((ch=getc(tmpInter->file))!=EOF)
+		for(;;)
 		{
-			ungetc(ch,tmpInter->file);
 			AST_cptr* begin=NULL;
 			StringMatchPattern* tmpPattern=NULL;
 			int unexpectEOF=0;
@@ -2423,7 +2425,8 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			if(list==NULL)continue;
 			if(unexpectEOF)
 			{
-				fprintf(stderr,"\nIn file \"%s\",line %d\nerror:Unexpect EOF.\n",inter->filename,inter->curline);
+				fprintf(stderr,"%s\nIn file \"%s\",line %d\nerror:Unexpect EOF.\n",list,inter->filename,inter->curline);
+				free(list);
 				break;
 			}
 			begin=createTree(list,tmpInter,tmpPattern);
@@ -2437,6 +2440,8 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				//查找library并编译library
 				if(isLibraryExpression(begin))
 				{
+					free(prev);
+					prev=NULL;
 					AST_cptr* libName=nextCptr(getFirstCptr(begin));
 					if(AST_cptrcmp(libName,pairOfpPartsOfPath))
 					{
@@ -2620,7 +2625,6 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 						tmpInter->glob->macro=NULL;
 						deleteCptr(begin);
 						free(begin);
-						free(list);
 						break;
 					}
 				}

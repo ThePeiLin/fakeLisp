@@ -197,7 +197,10 @@ void runIntpr(Intpr* inter)
 		}
 		begin=createTree(list,inter,tmpPattern);
 		if(isAllSpace(list))
+		{
+			free(list);
 			break;
+		}
 		if(begin!=NULL)
 		{
 			ByteCodelnt* tmpByteCode=compile(begin,inter->glob,inter,&status,!isLambdaExpression(begin));

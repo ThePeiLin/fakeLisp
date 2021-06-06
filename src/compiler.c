@@ -631,7 +631,17 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 		if(isBeginExpression(objCptr)) return compileBegin(objCptr,curEnv,inter,status,evalIm);
 		if(isProcExpression(objCptr)) return compileProc(objCptr,curEnv,inter,status,evalIm);
 		if(isImportExpression(objCptr))return compileImport(objCptr,curEnv,inter,status,evalIm);
-		if(isLibraryExpression(objCptr))return newByteCodelnt(newByteCode(0));
+		if(isLibraryExpression(objCptr))
+		{
+			ByteCodelnt* tmp=newByteCodelnt(newByteCode(1));
+			tmp->bc->code[0]=FAKE_PUSH_NIL;
+			tmp->ls=1;
+			tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
+			if(!tmp->l)
+				errors("compile",__FILE__,__LINE__);
+			tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,0,inter->curline);
+			return tmp;
+		}
 		if(isUnqtespExpression(objCptr)||isExportExpression(objCptr))
 		{
 			status->status=INVALIDEXPR;

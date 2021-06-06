@@ -121,17 +121,7 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev,int* unexpe
 		tmp[0]='\0';
 	}
 	size_t i=skipSpace(tmp);
-	if(tmp[i]=='(')
-	{
-		pushComStack(NULL,s1);
-		pushComStack((void*)i,s2);
-	}
-	else if(!strncmp(tmp+i,"#b",2)||!strncmp(tmp+i,"#\\",2))
-	{
-		pushComStack(NULL,s1);
-		pushComStack((void*)i,s2);
-	}
-	else if(maybePatternPrefix(tmp+i))
+	if((tmp[i]=='(')||(!strncmp(tmp+i,"#b",2)||!strncmp(tmp+i,"#\\",2))||(maybePatternPrefix(tmp+i)))
 	{
 		StringMatchPattern* pattern=findStringPattern(tmp+i);
 		pushComStack(pattern,s1);
@@ -172,7 +162,10 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev,int* unexpe
 		else if(ch==')')
 		{
 			if(!isComStackEmpty(s1)&&topComStack(s1)&&tmp[(size_t)topComStack(s2)]!='(')
-				return NULL;
+			{
+				*unexpectEOF=2;
+				break;
+			}
 			else
 			{
 				popComStack(s1);

@@ -1776,7 +1776,16 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 		ErrorStatus status={0,NULL};
 		if(unexpectEOF)
 		{
-			fprintf(stderr,"%s\nIn file \"%s\",line %d\nerror:Unexpect EOF.\n",list,inter->filename,inter->curline);
+			switch(unexpectEOF)
+			{
+				case 1:
+					fprintf(stderr,"\nIn file \"%s\",line %d\nerror:Unexpect EOF.\n",inter->filename,inter->curline);
+					break;
+				case 2:
+					fprintf(stderr,"\nIn file \"%s\",line %d\nerror:Invalid expression.\n",inter->filename,inter->curline);
+					break;
+			}
+
 			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 			freeByteCodelnt(tmp);
 			free(list);
@@ -2425,7 +2434,15 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			if(list==NULL)continue;
 			if(unexpectEOF)
 			{
-				fprintf(stderr,"%s\nIn file \"%s\",line %d\nerror:Unexpect EOF.\n",list,inter->filename,inter->curline);
+				switch(unexpectEOF)
+				{
+					case 1:
+						fprintf(stderr,"\nIn file \"%s\",line %d\nerror:Unexpect EOF.\n",inter->filename,inter->curline);
+						break;
+					case 2:
+						fprintf(stderr,"\nIn file \"%s\",line %d\nerror:Invalid expression.\n",inter->filename,inter->curline);
+						break;
+				}
 				free(list);
 				break;
 			}
@@ -2625,6 +2642,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 						tmpInter->glob->macro=NULL;
 						deleteCptr(begin);
 						free(begin);
+						free(list);
 						break;
 					}
 				}

@@ -192,8 +192,18 @@ void runIntpr(Intpr* inter)
 		ErrorStatus status={0,NULL};
 		if(unexpectEOF)
 		{
-			fprintf(stderr,"\nIn file \"%s\",line %d\nerror:Unexpect EOF.\n",inter->filename,inter->curline);
-			break;
+			switch(unexpectEOF)
+			{
+				case 1:
+					fprintf(stderr,"\nIn file \"%s\",line %d\nerror:Unexpect EOF.\n",inter->filename,inter->curline);
+					break;
+				case 2:
+					fprintf(stderr,"\nIn file \"%s\",line %d\nerror:Invalid expression.\n",inter->filename,inter->curline);
+					break;
+			}
+			free(list);
+			list=NULL;
+			continue;
 		}
 		begin=createTree(list,inter,tmpPattern);
 		if(isAllSpace(list))

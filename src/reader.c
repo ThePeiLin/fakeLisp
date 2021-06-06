@@ -217,7 +217,7 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev,int* unexpe
 		{
 			if(ch==EOF&&s1->top&&s2->top&&s1->top==s2->top)
 				*unexpectEOF=1;
-			else
+			else if(ch!=EOF)
 				*prev=copyStr(chs);
 			break;
 		}
@@ -233,6 +233,7 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev,int* unexpe
 			char* tmp1=readString(fp);
 			tmp=strCat(tmp,tmp1);
 			len+=strlen(tmp1);
+			free(tmp1);
 			continue;
 		}
 		else if(ch==',')
@@ -271,6 +272,7 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev,int* unexpe
 				tmp=strCat(tmp," ");
 				len++;
 				tmp=strCat(tmp,tmp1);
+				free(tmp1);
 				popComStack(s1);
 				popComStack(s2);
 			}

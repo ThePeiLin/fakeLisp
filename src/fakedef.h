@@ -65,7 +65,7 @@ typedef struct
 typedef struct
 {
 	uint32_t size;
-	char* code;
+	uint8_t* code;
 }ByteCode;
 
 typedef struct ByteCode_Lable
@@ -277,7 +277,7 @@ typedef struct VM_Code
 	int32_t refcount;
 	VMenv* prevEnv;
 	uint32_t size;
-	char* code;
+	uint8_t* code;
 }VMcode;
 
 typedef struct VM_Str

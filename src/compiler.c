@@ -712,12 +712,12 @@ ByteCode* compileAtom(AST_cptr* objCptr)
 		case SYM:
 			tmp=newByteCode(sizeof(char)+strlen(tmpAtm->value.str)+1);
 			tmp->code[0]=FAKE_PUSH_SYM;
-			strcpy(tmp->code+1,tmpAtm->value.str);
+			strcpy((char*)tmp->code+1,tmpAtm->value.str);
 			break;
 		case STR:
 			tmp=newByteCode(sizeof(char)+strlen(tmpAtm->value.str)+1);
 			tmp->code[0]=FAKE_PUSH_STR;
-			strcpy(tmp->code+1,tmpAtm->value.str);
+			strcpy((char*)tmp->code+1,tmpAtm->value.str);
 			break;
 		case IN32:
 			tmp=newByteCode(sizeof(char)+sizeof(int32_t));
@@ -2174,7 +2174,7 @@ ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 
 					ByteCode* tmpByteCode=newByteCode(sizeof(char)*2+strlen(tmpAtm->value.str));
 					tmpByteCode->code[0]=opcode;
-					strcpy(tmpByteCode->code+sizeof(char),tmpAtm->value.str);
+					strcpy((char*)tmpByteCode->code+sizeof(char),tmpAtm->value.str);
 
 					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
 					fir=nextCptr(tmpCptr);

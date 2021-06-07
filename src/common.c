@@ -904,7 +904,7 @@ ByteCode* newByteCode(unsigned int size)
 	ByteCode* tmp=NULL;
 	if(!(tmp=(ByteCode*)malloc(sizeof(ByteCode))))errors("newByteCode",__FILE__,__LINE__);
 	tmp->size=size;
-	if(!(tmp->code=(char*)malloc(size*sizeof(char))))errors("newByteCode",__FILE__,__LINE__);
+	if(!(tmp->code=(uint8_t*)malloc(size*sizeof(uint8_t))))errors("newByteCode",__FILE__,__LINE__);
 	int32_t i=0;
 	for(;i<tmp->size;i++)tmp->code[i]=0;
 	return tmp;
@@ -938,7 +938,7 @@ void codeCat(ByteCode* fir,const ByteCode* sec)
 {
 	int32_t size=fir->size;
 	fir->size=sec->size+fir->size;
-	fir->code=(char*)realloc(fir->code,sizeof(char)*fir->size);
+	fir->code=(uint8_t*)realloc(fir->code,sizeof(uint8_t)*fir->size);
 	if(!fir->code&&fir->size)
 		errors("codeCat",__FILE__,__LINE__);
 	memcpy(fir->code+size,sec->code,sec->size);
@@ -947,7 +947,7 @@ void codeCat(ByteCode* fir,const ByteCode* sec)
 void reCodeCat(const ByteCode* fir,ByteCode* sec)
 {
 	int32_t size=fir->size;
-	char* tmp=(char*)malloc(sizeof(char)*(fir->size+sec->size));
+	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*(fir->size+sec->size));
 	if(tmp==NULL)errors("reCodeCat",__FILE__,__LINE__);
 	memcpy(tmp,fir->code,fir->size);
 	memcpy(tmp+size,sec->code,sec->size);
@@ -1040,7 +1040,7 @@ void printByteCode(const ByteCode* tmpCode,FILE* fp)
 				i+=5+*(int32_t*)(tmpCode->code+i+1);
 				break;
 			case -1:
-				tmplen=strlen(tmpCode->code+i+1);
+				tmplen=strlen((char*)tmpCode->code+i+1);
 				fprintf(fp,"%s",tmpCode->code+i+1);
 				i+=tmplen+2;
 				break;
@@ -2050,7 +2050,7 @@ void printByteCodelnt(ByteCodelnt* obj,SymbolTable* table,FILE* fp)
 				i+=5+*(int32_t*)(tmpCode->code+i+1);
 				break;
 			case -1:
-				tmplen=strlen(tmpCode->code+i+1);
+				tmplen=strlen((char*)tmpCode->code+i+1);
 				fprintf(fp,"%s",tmpCode->code+i+1);
 				i+=tmplen+2;
 				break;

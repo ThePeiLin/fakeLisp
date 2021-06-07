@@ -40,7 +40,7 @@ pthread_mutex_t VMDlprocGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 	}\
 }
 
-VMcode* newVMcode(const char* code,int32_t size,uint32_t offset)
+VMcode* newVMcode(const uint8_t* code,int32_t size,uint32_t offset)
 {
 	VMcode* tmp=(VMcode*)malloc(sizeof(VMcode));
 	if(tmp==NULL)errors("newVMcode",__FILE__,__LINE__);
@@ -48,7 +48,7 @@ VMcode* newVMcode(const char* code,int32_t size,uint32_t offset)
 	tmp->prevEnv=NULL;
 	tmp->offset=offset;
 	tmp->size=size;
-	tmp->code=(char*)malloc(sizeof(char)*size);
+	tmp->code=(uint8_t*)malloc(sizeof(uint8_t)*size);
 	if(tmp->code==NULL)errors("newVMcode",__FILE__,__LINE__);
 	memcpy(tmp->code,code,size);
 	return tmp;
@@ -534,7 +534,7 @@ VMcode* copyVMcode(VMcode* obj,VMheap* heap)
 	if(tmp==NULL)errors("copyVMcode",__FILE__,__LINE__);
 	tmp->refcount=0;
 	tmp->size=obj->size;
-	tmp->code=(char*)malloc(sizeof(char)*tmp->size);
+	tmp->code=(uint8_t*)malloc(sizeof(uint8_t)*tmp->size);
 	if(tmp->code==NULL)errors("copyVMcode",__FILE__,__LINE__);
 	memcpy(tmp->code,obj->code,tmp->size);
 	tmp->prevEnv=copyVMenv(obj->prevEnv,heap);

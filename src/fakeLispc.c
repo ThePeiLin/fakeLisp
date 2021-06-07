@@ -64,7 +64,7 @@ int main(int argc,char** argv)
 		writeSymbolTable(inter->table,outfp);
 		writeLineNumberTable(inter->lnt,outfp);
 		int32_t sizeOfMain=mainByteCode->bc->size;
-		char* code=mainByteCode->bc->code;
+		uint8_t* code=mainByteCode->bc->code;
 		fwrite(&sizeOfMain,sizeof(sizeOfMain),1,outfp);
 		fwrite(code,sizeof(char),sizeOfMain,outfp);
 		freeByteCode(mainByteCode->bc);

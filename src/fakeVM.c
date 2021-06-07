@@ -22,7 +22,7 @@ static int envNodeCmp(const void* a,const void* b)
 	return ((*(VMenvNode**)a)->id-(*(VMenvNode**)b)->id);
 }
 
-static int32_t getSymbolIdInByteCode(const char*);
+static int32_t getSymbolIdInByteCode(const uint8_t*);
 extern char* builtInSymbolList[NUMOFBUILTINSYMBOL];
 pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
 FakeVMlist GlobFakeVMs={0,NULL};
@@ -522,7 +522,7 @@ int B_push_str(FakeVM* exe)
 		if(stack->values==NULL)errors("B_push_str",__FILE__,__LINE__);
 		stack->size+=64;
 	}
-	VMstr* tmpStr=newVMstr(tmpCode->code+proc->cp+1);
+	VMstr* tmpStr=newVMstr((char*)tmpCode->code+proc->cp+1);
 	VMvalue* objValue=newVMvalue(STR,tmpStr,exe->heap,1);
 	stack->values[stack->tp]=objValue;
 	stack->tp+=1;
@@ -542,7 +542,7 @@ int B_push_sym(FakeVM* exe)
 		if(stack->values==NULL)errors("B_push_sym",__FILE__,__LINE__);
 		stack->size+=64;
 	}
-	VMstr* tmpStr=newVMstr(tmpCode->code+proc->cp+1);
+	VMstr* tmpStr=newVMstr((char*)tmpCode->code+proc->cp+1);
 	VMvalue* objValue=newVMvalue(SYM,tmpStr,exe->heap,1);
 	stack->values[stack->tp]=objValue;
 	stack->tp+=1;
@@ -713,7 +713,7 @@ int B_push_proc(FakeVM* exe)
 	VMprocess* proc=exe->curproc;
 	VMcode* tmpCode=proc->code;
 	int32_t sizeOfProc=*(int32_t*)(tmpCode->code+proc->cp+1);
-	const char* codeStr=tmpCode->code+proc->cp+1+sizeof(int32_t);
+	const uint8_t* codeStr=tmpCode->code+proc->cp+1+sizeof(int32_t);
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
@@ -1958,11 +1958,11 @@ int B_read(FakeVM* exe)
 	int unexpectEOF=0;
 	char* prev=NULL;
 	char* tmpString=readInPattern(tmpFile,&prev,&unexpectEOF);
+	if(prev)
+		free(prev);
 	if(unexpectEOF)
 	{
 		free(tmpString);
-		if(prev)
-			free(prev);
 		return UNEXPECTEOF;
 	}
 	Intpr* tmpIntpr=newTmpIntpr(NULL,tmpFile);
@@ -2477,7 +2477,7 @@ int isTheLastExpress(const VMprocess* proc,const VMprocess* same)
 	if(same==NULL)return 0;
 	for(;;)
 	{
-		char* code=proc->code->code;
+		uint8_t* code=proc->code->code;
 		int32_t size=proc->code->size;
 		if(code[proc->cp]==FAKE_JMP)
 		{
@@ -2813,7 +2813,7 @@ void createCallChainWithContinuation(FakeVM* vm,VMcontinuation* cc)
 	vm->mainproc=curproc;
 }
 
-int32_t getSymbolIdInByteCode(const char* code)
+int32_t getSymbolIdInByteCode(const uint8_t* code)
 {
 	char op=*code;
 	switch(op)

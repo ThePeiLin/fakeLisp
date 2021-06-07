@@ -278,36 +278,6 @@ void runIntpr(Intpr* inter)
 	freeAllVMs();
 }
 
-ByteCode* loadRawproc(FILE* fp,int32_t* renum)
-{
-	int32_t num=0;
-	int i=0;
-	fread(&num,sizeof(int32_t),1,fp);
-	*renum=num;
-	ByteCode* tmp=(ByteCode*)malloc(sizeof(ByteCode)*num);
-	if(tmp==NULL)
-	{
-		fprintf(stderr,"In file \"%s\",line %d\n",__FILE__,__LINE__);
-		errors("loadRawproc",__FILE__,__LINE__);
-	}
-	for(;i<num;i++)
-	{
-		int32_t size=0;
-		fread(&size,sizeof(int32_t),1,fp);
-		tmp[i].size=size;
-		tmp[i].code=(char*)malloc(sizeof(char)*size);
-		if(tmp[i].code==NULL)
-		{
-			fprintf(stderr,"In file \"%s\",line %d\n",__FILE__,__LINE__);
-			errors("loadRawproc",__FILE__,__LINE__);
-		}
-		int32_t j=0;
-		for(;j<size;j++)
-			tmp[i].code[j]=getc(fp);
-	}
-	return tmp;
-}
-
 ByteCode* loadByteCode(FILE* fp)
 {
 	int32_t size=0;
@@ -317,7 +287,7 @@ ByteCode* loadByteCode(FILE* fp)
 	if(tmp==NULL)
 		errors("loadByteCode",__FILE__,__LINE__);
 	tmp->size=size;
-	tmp->code=(char*)malloc(sizeof(char)*size);
+	tmp->code=(uint8_t*)malloc(sizeof(uint8_t)*size);
 	if(tmp->code==NULL)
 		errors("loadByteCode",__FILE__,__LINE__);
 	for(;i<size;i++)

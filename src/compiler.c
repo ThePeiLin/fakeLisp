@@ -1789,10 +1789,10 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 			switch(unexpectEOF)
 			{
 				case 1:
-					fprintf(stderr,"\nIn file \"%s\",line %d\nerror:Unexpect EOF.\n",inter->filename,inter->curline);
+					fprintf(stderr,"\nIn file \"%s\",line %d\n%s:Unexpect EOF.\n",inter->filename,inter->curline,list);
 					break;
 				case 2:
-					fprintf(stderr,"\nIn file \"%s\",line %d\nerror:Invalid expression.\n",inter->filename,inter->curline);
+					fprintf(stderr,"\nIn file \"%s\",line %d\n%s:Invalid expression.\n",inter->filename,inter->curline,list);
 					break;
 			}
 
@@ -2447,10 +2447,10 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				switch(unexpectEOF)
 				{
 					case 1:
-						fprintf(stderr,"\nIn file \"%s\",line %d\nerror:Unexpect EOF.\n",inter->filename,inter->curline);
+						fprintf(stderr,"\nIn file \"%s\",line %d\n%s:Unexpect EOF.\n",inter->filename,inter->curline,list);
 						break;
 					case 2:
-						fprintf(stderr,"\nIn file \"%s\",line %d\nerror:Invalid expression.\n",inter->filename,inter->curline);
+						fprintf(stderr,"\nIn file \"%s\",line %d\n%s:Invalid expression.\n",inter->filename,inter->curline,list);
 						break;
 				}
 				free(list);

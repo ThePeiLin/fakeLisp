@@ -141,70 +141,96 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev,int* unexpe
 				break;
 			}
 			size_t i=(size_t)topComStack(s2);
-			if((!strncmp(tmp+i,"#b",2)&&!isxdigit(ch))||(!strncmp(tmp+i,"#\\",2)&&isspace(ch)))
+			if((!strncmp(tmp+i,"#b",2)&&!isxdigit(ch))
+					||(!strncmp(tmp+i,"#\\",2)
+						&&(isspace(ch)
+							||(len-i<2&&ch!='\\'&&tmp[i+2]!='\\')
+							||(len-i<3&&!strncmp(tmp+i,"#\\\\",3))
+							||(len-i<7&&((isdigit(tmp[i+3])&&!isdigit(ch))
+								||(toupper(tmp[i+3])=='X'&&!isxdigit(ch)))))))
 			{
 				popComStack(s2);
 				popComStack(s1);
 			}
 		}
-		if(ch=='(')
+		if(isComStackEmpty(s1)||topComStack(s1)||tmp[(size_t)topComStack(s2)]!='#'||strncmp(tmp+(size_t)topComStack(s2),"#\\",2))
 		{
-			if(s1->top==0&&len&&!isspace(tmp[len-1]))
+			if(ch=='(')
 			{
-				*prev=copyStr(chs);
-				break;
+				if(s1->top==0&&len&&!isspace(tmp[len-1]))
+				{
+					*prev=copyStr(chs);
+					break;
+				}
+				tmp=strCat(tmp," ");
+				len++;
+				pushComStack(NULL,s1);
+				pushComStack((void*)len,s2);
 			}
-			tmp=strCat(tmp," ");
-			len++;
-			pushComStack(NULL,s1);
-			pushComStack((void*)len,s2);
-		}
-		else if(ch==')')
-		{
-			if(!isComStackEmpty(s1)&&topComStack(s1)&&tmp[(size_t)topComStack(s2)]!='(')
+			else if(ch==')')
 			{
-				*unexpectEOF=2;
-				break;
+				if(!isComStackEmpty(s1)&&topComStack(s1)&&tmp[(size_t)topComStack(s2)]!='(')
+				{
+					*unexpectEOF=2;
+					break;
+				}
+				else
+				{
+					popComStack(s1);
+					popComStack(s2);
+				}
 			}
-			else
+			else if((ch=='b'||ch=='\\')&&(!isComStackEmpty(s1)&&!topComStack(s1)&&tmp[(size_t)topComStack(s2)]=='#'))
+			{
+				size_t i=(size_t)popComStack(s2);
+				char* tmp1=copyStr(tmp+i);
+				tmp1=strCat(tmp1,chs);
+				tmp[i]='\0';
+				if(s1->top==1&&i&&!isspace(tmp[i-1]))
+				{
+					*prev=tmp1;
+					break;
+				}
+				tmp=strCat(tmp," ");
+				len++;
+				tmp=strCat(tmp,tmp1);
+				len++;
+				free(tmp1);
+				pushComStack((void*)i+1,s2);
+				continue;
+			}
+			else if(ch==',')
+			{
+				tmp=strCat(tmp," ");
+				tmp=strCat(tmp,chs);
+				tmp=strCat(tmp," ");
+				len+=3;
+				continue;
+			}
+			else if(ch=='#')
+			{
+				pushComStack(NULL,s1);
+				pushComStack((void*)len,s2);
+			}
+			else if(ch==';')
+			{
+				skipComment(fp);
+				continue;
+			}
+			else if(ch=='\"')
+			{
+				char* tmp1=readString(fp);
+				tmp=strCat(tmp,chs);
+				tmp=strCat(tmp,tmp1);
+				len+=strlen(tmp1);
+				free(tmp1);
+				continue;
+			}
+			else if((!isComStackEmpty(s1)&&!topComStack(s1)&&tmp[(size_t)topComStack(s2)]=='#'))
 			{
 				popComStack(s1);
 				popComStack(s2);
 			}
-		}
-		else if((ch=='b'||ch=='\\')&&(!isComStackEmpty(s1)&&!topComStack(s1)&&tmp[(size_t)topComStack(s2)]=='#'))
-		{
-			
-			size_t i=(size_t)popComStack(s2);
-			char* tmp1=copyStr(tmp+i);
-			tmp1=strCat(tmp1,chs);
-			tmp[i]='\0';
-			if(s1->top==1&&i&&!isspace(tmp[i-1]))
-			{
-				*prev=tmp1;
-				break;
-			}
-			tmp=strCat(tmp," ");
-			len++;
-			tmp=strCat(tmp,tmp1);
-			len++;
-			pushComStack((void*)i+1,s2);
-			continue;
-		}
-		else if(ch==',')
-		{
-			tmp=strCat(tmp," ");
-			len++;
-		}
-		else if(ch=='#')
-		{
-			pushComStack(NULL,s1);
-			pushComStack((void*)len,s2);
-		}
-		else if((!isComStackEmpty(s1)&&!topComStack(s1)&&tmp[(size_t)topComStack(s2)]=='#'))
-		{
-			popComStack(s1);
-			popComStack(s2);
 		}
 		if(ch==EOF||(isspace(ch)&&len&&!isspace(tmp[len-1])&&isComStackEmpty(s1)&&isComStackEmpty(s2)))
 		{
@@ -214,27 +240,9 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev,int* unexpe
 				*prev=copyStr(chs);
 			break;
 		}
-		else if(ch==';')
-		{
-			skipComment(fp);
-			continue;
-		}
 		tmp=strCat(tmp,chs);
 		len++;
-		if(ch=='\"')
-		{
-			char* tmp1=readString(fp);
-			tmp=strCat(tmp,tmp1);
-			len+=strlen(tmp1);
-			free(tmp1);
-			continue;
-		}
-		else if(ch==',')
-		{
-			tmp=strCat(tmp," ");
-			len++;
-		}
-		if(!(!isComStackEmpty(s1)&&topComStack(s1)&&tmp[(size_t)topComStack(s2)]=='#')&&maybePatternPrefix(chs))
+		if(!(!isComStackEmpty(s1)&&!topComStack(s1)&&tmp[(size_t)topComStack(s2)]=='#')&&maybePatternPrefix(chs))
 			pushComStack((void*)len-1,s2);
 		if(s1->top!=s2->top)
 		{

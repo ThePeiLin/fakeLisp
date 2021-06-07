@@ -1779,9 +1779,8 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 	for(;;)
 	{
 		AST_cptr* begin=NULL;
-		StringMatchPattern* tmpPattern=NULL;
 		int unexpectEOF=0;
-		char* list=readInPattern(inter->file,&tmpPattern,&prev,&unexpectEOF);
+		char* list=readInPattern(inter->file,&prev,&unexpectEOF);
 		if(list==NULL)continue;
 		ErrorStatus status={0,NULL};
 		if(unexpectEOF)
@@ -1803,7 +1802,7 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 			tmp=NULL;
 			break;
 		}
-		begin=createTree(list,inter,tmpPattern);
+		begin=createTree(list,inter,NULL);
 		if(isAllSpace(list))
 		{
 			free(list);
@@ -2438,9 +2437,8 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		for(;;)
 		{
 			AST_cptr* begin=NULL;
-			StringMatchPattern* tmpPattern=NULL;
 			int unexpectEOF=0;
-			char* list=readInPattern(tmpInter->file,&tmpPattern,&prev,&unexpectEOF);
+			char* list=readInPattern(tmpInter->file,&prev,&unexpectEOF);
 			if(list==NULL)continue;
 			if(unexpectEOF)
 			{
@@ -2456,7 +2454,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				free(list);
 				break;
 			}
-			begin=createTree(list,tmpInter,tmpPattern);
+			begin=createTree(list,tmpInter,NULL);
 			if(isAllSpace(list))
 			{
 				free(list);

@@ -96,7 +96,7 @@ int32_t countStringParts(const char* str)
 	return count;
 }
 
-char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev,int* unexpectEOF)
+char* readInPattern(FILE* fp,char** prev,int* unexpectEOF)
 {
 	size_t len=0;
 	*unexpectEOF=0;
@@ -224,7 +224,7 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev,int* unexpe
 				char* tmp1=readString(fp);
 				tmp=strCat(tmp,chs);
 				tmp=strCat(tmp,tmp1);
-				len+=strlen(tmp1);
+				len+=strlen(tmp1)+1;
 				free(tmp1);
 				continue;
 			}
@@ -290,147 +290,6 @@ int32_t matchStringPattern(const char* str,StringMatchPattern* pattern)
 {
 	int32_t num=countInPatternWhenReading(str,pattern);
 	return (pattern->num-num);
-}
-
-char* baseReadSingle(FILE* fp,int* unexpectEOF)
-{
-	size_t len=0;
-	*unexpectEOF=0;
-	ComStack* s1=newComStack(32);
-	ComStack* s2=newComStack(32);
-	char* tmp=NULL;
-		tmp=(char*)malloc(sizeof(char)*1);
-		if(!tmp)
-			errors("baseReadSingle",__FILE__,__LINE__);
-		tmp[0]='\0';
-	size_t i=skipSpace(tmp);
-	if(tmp[i]=='(')
-	{
-		pushComStack(NULL,s1);
-		pushComStack((void*)i,s2);
-	}
-	else if(!strncmp(tmp+i,"#b",2)||!strncmp(tmp+i,"#\\",2))
-	{
-		pushComStack(NULL,s1);
-		pushComStack((void*)i,s2);
-	}
-	else if(maybePatternPrefix(tmp+i))
-	{
-		StringMatchPattern* pattern=findStringPattern(tmp+i);
-		pushComStack(pattern,s1);
-		pushComStack((void*)i,s2);
-	}
-	char chs[2]={'\0'};
-	int ch='\0';
-	for(;;)
-	{
-		ch=getc(fp);
-		chs[0]=ch;
-		if(!isComStackEmpty(s1)&&!topComStack(s1)&&tmp[(size_t)topComStack(s2)]=='#')
-		{
-			if(ch==EOF)
-			{
-				*unexpectEOF=1;
-				break;
-			}
-			size_t i=(size_t)topComStack(s2);
-			if((!strncmp(tmp+i,"#b",2)&&!isxdigit(ch))
-					||(!strncmp(tmp+i,"#\\",2)
-						&&(isspace(ch)
-							||(len-i>2&&ch!='\\'&&tmp[i+2]!='\\')
-							||(len-i>3&&!strncmp(tmp+i,"#\\\\",3))
-							||(len-i>4
-								&&len-i<(6+tmp[i+3]=='0')
-								&&((isdigit(tmp[i+3])&&!isdigit(ch))
-									||(toupper(tmp[i+3])=='X'&&!isxdigit(ch)))))))
-			{
-				popComStack(s2);
-				popComStack(s1);
-			}
-		}
-		if(ch=='(')
-		{
-			if(s1->top==0&&len&&!isspace(tmp[len-1]))
-			{
-				break;
-			}
-			tmp=strCat(tmp," ");
-			len++;
-			pushComStack(NULL,s1);
-			pushComStack((void*)len,s2);
-		}
-		else if(ch==')')
-		{
-			if(!isComStackEmpty(s1)&&topComStack(s1)&&tmp[(size_t)topComStack(s2)]!='(')
-				return NULL;
-			else
-			{
-				popComStack(s1);
-				popComStack(s2);
-			}
-		}
-		else if((ch=='b'||ch=='\\')&&(!isComStackEmpty(s1)&&!topComStack(s1)&&tmp[(size_t)topComStack(s2)]=='#'))
-		{
-			
-			size_t i=(size_t)popComStack(s2);
-			char* tmp1=copyStr(tmp+i);
-			tmp1=strCat(tmp1,chs);
-			tmp[i]='\0';
-			if(s1->top==1&&i&&!isspace(tmp[i-1]))
-			{
-				break;
-			}
-			tmp=strCat(tmp," ");
-			len++;
-			tmp=strCat(tmp,tmp1);
-			len++;
-			pushComStack((void*)i+1,s2);
-			continue;
-		}
-		else if(ch==',')
-		{
-			tmp=strCat(tmp," ");
-			len++;
-		}
-		else if(ch=='#')
-		{
-			pushComStack(NULL,s1);
-			pushComStack((void*)len,s2);
-		}
-		else if((!isComStackEmpty(s1)&&!topComStack(s1)&&tmp[(size_t)topComStack(s2)]=='#'))
-		{
-			popComStack(s1);
-			popComStack(s2);
-		}
-		if(ch==EOF||(isspace(ch)&&len&&!isspace(tmp[len-1])&&isComStackEmpty(s1)&&isComStackEmpty(s2)))
-		{
-			if(ch==EOF&&s1->top&&s2->top&&s1->top==s2->top)
-				*unexpectEOF=1;
-			break;
-		}
-		else if(ch==';')
-		{
-			skipComment(fp);
-			continue;
-		}
-		tmp=strCat(tmp,chs);
-		len++;
-		if(ch=='\"')
-		{
-			char* tmp1=readString(fp);
-			tmp=strCat(tmp,tmp1);
-			len+=strlen(tmp1);
-			continue;
-		}
-		else if(ch==',')
-		{
-			tmp=strCat(tmp," ");
-			len++;
-		}
-	}
-	freeComStack(s1);
-	freeComStack(s2);
-	return tmp;
 }
 
 void skipComment(FILE* fp)

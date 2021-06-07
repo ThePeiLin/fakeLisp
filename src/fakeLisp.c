@@ -186,9 +186,8 @@ void runIntpr(Intpr* inter)
 	{
 		AST_cptr* begin=NULL;
 		if(inter->file==stdin)printf(">>>");
-		StringMatchPattern* tmpPattern=NULL;
 		int unexpectEOF=0;
-		char* list=readInPattern(inter->file,&tmpPattern,&prev,&unexpectEOF);
+		char* list=readInPattern(inter->file,&prev,&unexpectEOF);
 		ErrorStatus status={0,NULL};
 		if(unexpectEOF)
 		{
@@ -205,7 +204,7 @@ void runIntpr(Intpr* inter)
 			list=NULL;
 			continue;
 		}
-		begin=createTree(list,inter,tmpPattern);
+		begin=createTree(list,inter,NULL);
 		if(isAllSpace(list))
 		{
 			free(list);

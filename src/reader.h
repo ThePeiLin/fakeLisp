@@ -7,7 +7,7 @@ StringMatchPattern* findStringPattern(const char*);
 StringMatchPattern* newStringMatchPattern(int32_t,char**,ByteCodelnt*);
 char** splitPattern(const char*,int32_t*);
 char** splitStringInPattern(const char*,StringMatchPattern*,int32_t*);
-char* readInPattern(FILE*,StringMatchPattern**,char**,int*);
+char* readInPattern(FILE*,char**,int*);
 char* getVarName(const char*);
 void printInPattern(char**,StringMatchPattern*,FILE*,int32_t);
 void freeStringArry(char** ss,int32_t num);
@@ -23,5 +23,4 @@ int32_t skipUntilNext(const char* str,const char*);
 int32_t skipParentheses(const char*);
 int32_t skipAtom(const char*,const char*);
 int32_t findKeyString(const char*);
-char* baseReadSingle(FILE*,int*);
 #endif

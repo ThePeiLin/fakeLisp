@@ -144,10 +144,12 @@ char* readInPattern(FILE* fp,StringMatchPattern** retval,char** prev,int* unexpe
 			if((!strncmp(tmp+i,"#b",2)&&!isxdigit(ch))
 					||(!strncmp(tmp+i,"#\\",2)
 						&&(isspace(ch)
-							||(len-i<2&&ch!='\\'&&tmp[i+2]!='\\')
-							||(len-i<3&&!strncmp(tmp+i,"#\\\\",3))
-							||(len-i<7&&((isdigit(tmp[i+3])&&!isdigit(ch))
-								||(toupper(tmp[i+3])=='X'&&!isxdigit(ch)))))))
+							||(len-i>2&&ch!='\\'&&tmp[i+2]!='\\')
+							||(len-i>3&&!strncmp(tmp+i,"#\\\\",3))
+							||(len-i>4
+								&&len-i<(6+tmp[i+3]=='0')
+								&&((isdigit(tmp[i+3])&&!isdigit(ch))
+									||(toupper(tmp[i+3])=='X'&&!isxdigit(ch)))))))
 			{
 				popComStack(s2);
 				popComStack(s1);
@@ -332,7 +334,15 @@ char* baseReadSingle(FILE* fp,int* unexpectEOF)
 				break;
 			}
 			size_t i=(size_t)topComStack(s2);
-			if((!strncmp(tmp+i,"#b",2)&&!isxdigit(ch))||(!strncmp(tmp+i,"#\\",2)&&isspace(ch)))
+			if((!strncmp(tmp+i,"#b",2)&&!isxdigit(ch))
+					||(!strncmp(tmp+i,"#\\",2)
+						&&(isspace(ch)
+							||(len-i>2&&ch!='\\'&&tmp[i+2]!='\\')
+							||(len-i>3&&!strncmp(tmp+i,"#\\\\",3))
+							||(len-i>4
+								&&len-i<(6+tmp[i+3]=='0')
+								&&((isdigit(tmp[i+3])&&!isdigit(ch))
+									||(toupper(tmp[i+3])=='X'&&!isxdigit(ch)))))))
 			{
 				popComStack(s2);
 				popComStack(s1);

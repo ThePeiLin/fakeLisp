@@ -1956,10 +1956,13 @@ int B_read(FakeVM* exe)
 	if(file->type!=FP)return WRONGARG;
 	FILE* tmpFile=file->u.fp->fp;
 	int unexpectEOF=0;
-	char* tmpString=baseReadSingle(tmpFile,&unexpectEOF);
+	char* prev=NULL;
+	char* tmpString=readInPattern(tmpFile,&prev,&unexpectEOF);
 	if(unexpectEOF)
 	{
 		free(tmpString);
+		if(prev)
+			free(prev);
 		return UNEXPECTEOF;
 	}
 	Intpr* tmpIntpr=newTmpIntpr(NULL,tmpFile);

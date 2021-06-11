@@ -10,7 +10,6 @@
 }
 
 static StringMatchPattern* HeadOfStringPattern=NULL;
-static void skipComment(FILE*);
 static int32_t skipUntilNextWhenReading(const char* str,const char* part);
 static int32_t countInPatternWhenReading(const char*,StringMatchPattern*);
 static char* readString(FILE*);
@@ -216,8 +215,8 @@ char* readInPattern(FILE* fp,char** prev,int* unexpectEOF)
 			}
 			else if(ch==';')
 			{
-				skipComment(fp);
-				continue;
+				while(getc(fp)!='\n');
+				chs[0]='\n';
 			}
 			else if(ch=='\"')
 			{
@@ -290,12 +289,6 @@ int32_t matchStringPattern(const char* str,StringMatchPattern* pattern)
 {
 	int32_t num=countInPatternWhenReading(str,pattern);
 	return (pattern->num-num);
-}
-
-void skipComment(FILE* fp)
-{
-	while(getc(fp)!='\n');
-	ungetc('\n',fp);
 }
 
 char* readString(FILE* fp)

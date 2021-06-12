@@ -21,7 +21,7 @@ static int isVal(const char*);
 static ErrorStatus defmacro(AST_cptr*,CompEnv*,Intpr*);
 static CompEnv* createPatternCompEnv(char**,int32_t,CompEnv*,SymbolTable*);
 
-static VMenv* genGlobEnv(CompEnv* cEnv,VMheap* heap,SymbolTable* table)
+static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap,SymbolTable* table)
 {
 	ComStack* stack=newComStack(32);
 	CompEnv* tcEnv=cEnv;
@@ -29,6 +29,7 @@ static VMenv* genGlobEnv(CompEnv* cEnv,VMheap* heap,SymbolTable* table)
 		pushComStack(tcEnv,stack);
 	VMenv* preEnv=NULL;
 	VMenv* vEnv=NULL;
+	uint32_t bs=t->bc->size;
 	while(!isComStackEmpty(stack))
 	{
 		CompEnv* curEnv=popComStack(stack);
@@ -37,16 +38,20 @@ static VMenv* genGlobEnv(CompEnv* cEnv,VMheap* heap,SymbolTable* table)
 			initGlobEnv(vEnv,heap,table);
 		preEnv=vEnv;
 		ByteCodelnt* tmpByteCode=curEnv->proc;
+		codelntCopyCat(t,tmpByteCode);
 		FakeVM* tmpVM=newTmpFakeVM(NULL);
-		VMcode* tmpVMcode=newVMcode(tmpByteCode->bc->code,tmpByteCode->bc->size,0);
+		VMcode* tmpVMcode=newVMcode(bs,tmpByteCode->bc->size);
+		bs+=tmpByteCode->bc->size;
 		tmpVM->mainproc=newFakeProcess(tmpVMcode,NULL);
 		tmpVM->mainproc->localenv=vEnv;
 		tmpVM->curproc=tmpVM->mainproc;
+		tmpVM->code=t->bc->code;
+		tmpVM->size=t->bc->size;
 		tmpVMcode->prevEnv=NULL;
 		tmpVM->table=table;
 		tmpVM->lnt=newLineNumTable();
-		tmpVM->lnt->num=tmpByteCode->ls;
-		tmpVM->lnt->list=tmpByteCode->l;
+		tmpVM->lnt->num=t->ls;
+		tmpVM->lnt->list=t->l;
 		freeVMheap(tmpVM->heap);
 		tmpVM->heap=heap;
 		increaseVMenvRefcount(vEnv);
@@ -137,11 +142,12 @@ PreMacro* PreMacroMatch(const AST_cptr* objCptr,PreEnv** pmacroEnv,CompEnv* curE
 int PreMacroExpand(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 {
 	PreEnv* macroEnv=NULL;
+	ByteCodelnt* t=newByteCodelnt(newByteCode(0));
 	PreMacro* tmp=PreMacroMatch(objCptr,&macroEnv,curEnv,&curEnv);
 	if(tmp!=NULL)
 	{
 		FakeVM* tmpVM=newTmpFakeVM(NULL);
-		VMenv* tmpGlob=genGlobEnv(curEnv,tmpVM->heap,inter->table);
+		VMenv* tmpGlob=genGlobEnv(curEnv,t,tmpVM->heap,inter->table);
 		if(!tmpGlob)
 		{
 			destroyEnv(macroEnv);
@@ -149,17 +155,20 @@ int PreMacroExpand(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 			free(tmpVM);
 			return 2;
 		}
-		VMcode* tmpVMcode=newVMcode(tmp->proc->bc->code,tmp->proc->bc->size,0);
+		VMcode* tmpVMcode=newVMcode(t->bc->size,tmp->proc->bc->size);
+		codelntCopyCat(t,tmp->proc);
 		VMenv* macroVMenv=castPreEnvToVMenv(macroEnv,tmpGlob,tmpVM->heap,inter->table);
 		destroyEnv(macroEnv);
 		tmpVM->mainproc=newFakeProcess(tmpVMcode,NULL);
 		tmpVM->mainproc->localenv=macroVMenv;
+		tmpVM->code=t->bc->code;
+		tmpVM->size=t->bc->size;
 		tmpVM->curproc=tmpVM->mainproc;
 		tmpVMcode->prevEnv=NULL;
 		tmpVM->table=inter->table;
 		tmpVM->lnt=newLineNumTable();
-		tmpVM->lnt->num=tmp->proc->ls;
-		tmpVM->lnt->list=tmp->proc->l;
+		tmpVM->lnt->num=t->ls;
+		tmpVM->lnt->list=t->l;
 		AST_cptr* tmpCptr=NULL;
 		int i=runFakeVM(tmpVM);
 		if(!i)
@@ -171,6 +180,8 @@ int PreMacroExpand(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 		}
 		else if(i==1)
 		{
+			FREE_ALL_LINE_NUMBER_TABLE(t->l,t->ls);
+			freeByteCodelnt(t);
 			free(tmpVM->lnt);
 			deleteCallChain(tmpVM);
 			freeVMenv(tmpGlob);
@@ -180,6 +191,8 @@ int PreMacroExpand(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 			macroEnv=NULL;
 			return 2;
 		}
+		FREE_ALL_LINE_NUMBER_TABLE(t->l,t->ls);
+		freeByteCodelnt(t);
 		free(tmpVM->lnt);
 		freeVMenv(tmpGlob);
 		freeVMheap(tmpVM->heap);
@@ -189,6 +202,7 @@ int PreMacroExpand(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 		macroEnv=NULL;
 		return 1;
 	}
+	freeByteCodelnt(t);
 	return 0;
 }
 

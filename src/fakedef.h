@@ -273,11 +273,10 @@ typedef struct VM_Env
 
 typedef struct VM_Code
 {
-	uint32_t offset;
-	int32_t refcount;
+	uint32_t refcount;
+	uint32_t scp;
+	uint32_t cpc;
 	VMenv* prevEnv;
-	uint32_t size;
-	uint8_t* code;
 }VMcode;
 
 typedef struct VM_Str
@@ -312,6 +311,8 @@ typedef struct FakeVM
 	int argc;
 	char** argv;
 	pthread_t tid;
+	uint8_t* code;
+	uint32_t size;
 	VMprocess* curproc;
 	VMprocess* mainproc;
 	VMstack* stack;

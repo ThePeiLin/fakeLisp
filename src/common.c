@@ -1616,6 +1616,7 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 		for(;isspace(objStr[i]);i++)
 			if(objStr[i]=='\n')
 				inter->curline+=1;
+		curline=inter->curline;
 		AST_cptr* root=popComStack(s1);
 		if(objStr[i]=='(')
 		{

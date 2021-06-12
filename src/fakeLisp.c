@@ -226,8 +226,12 @@ void runIntpr(Intpr* inter)
 			else if(tmpByteCode)
 			{
 				lntCat(inter->lnt,bs,tmpByteCode->l,tmpByteCode->ls);
-				VMcode* tmp=newVMcode(tmpByteCode->bc->code,tmpByteCode->bc->size,bs);
-				bs=tmpByteCode->bc->size;
+				ByteCode byteCodeOfVM={anotherVM->size,anotherVM->code};
+				codeCat(&byteCodeOfVM,tmpByteCode->bc);
+				anotherVM->code=byteCodeOfVM.code;
+				anotherVM->size=byteCodeOfVM.size;
+				VMcode* tmp=newVMcode(bs,tmpByteCode->bc->size);
+				bs+=tmpByteCode->bc->size;
 				freeByteCodelnt(tmpByteCode);
 				tmp->prevEnv=NULL;
 				anotherVM->mainproc=newFakeProcess(tmp,NULL);

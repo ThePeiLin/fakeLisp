@@ -11,9 +11,9 @@ typedef struct Cirular_Ref_List
 }CRL;
 
 int runFakeVM(FakeVM*);
-void writeVMvalue(VMvalue*,FILE*,int8_t,CRL**);
+void writeVMvalue(VMvalue*,FILE*,CRL**);
 void princVMvalue(VMvalue*,FILE*,CRL**);
-void printProc(VMcode*,FILE*);
+void printProc(VMcode*,uint8_t*,FILE*);
 FakeVM* newFakeVM(ByteCode*);
 FakeVM* newTmpFakeVM(ByteCode*);
 FakeVM* newThreadVM(VMcode*,VMheap*);
@@ -93,12 +93,11 @@ int B_recv(FakeVM*);
 VMstack* newVMstack(int32_t);
 void freeVMstack(VMstack*);
 void stackRecycle(FakeVM*);
-VMcode* newBuiltInProc(ByteCode*);
 VMprocess* newFakeProcess(VMcode*,VMprocess*);
 int createNewThread(FakeVM*);
 FakeVMlist* newThreadStack(int32_t);
 VMprocess* hasSameProc(VMcode*,VMprocess*);
-int isTheLastExpress(const VMprocess*,const VMprocess*);
+int isTheLastExpress(const VMprocess*,const VMprocess*,const FakeVM* exe);
 VMheap* newVMheap();
 void createCallChainWithContinuation(FakeVM*,VMcontinuation*);
 void freeVMheap(VMheap*);
@@ -119,4 +118,5 @@ void GC_compact(VMheap*);
 void DBG_printVMenv(VMenv*,FILE*);
 void DBG_printVMvalue(VMvalue*,FILE*);
 void DBG_printVMstack(VMstack*,FILE*,int);
+void DBG_printVMByteCode(uint8_t* code,uint32_t s,uint32_t c,FILE*);
 #endif

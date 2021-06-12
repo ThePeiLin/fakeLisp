@@ -20,7 +20,7 @@ VMenvNode* newVMenvNode(VMvalue*,int32_t);
 VMenvNode* addVMenvNode(VMenvNode*,VMenv*);
 VMenvNode* findVMenvNode(int32_t,VMenv*);
 void freeVMenvNode(VMenvNode*);
-VMcode* newVMcode(const uint8_t* code,int32_t size,uint32_t);
+VMcode* newVMcode(uint32_t scp,uint32_t cpc);
 void increaseVMcodeRefcount(VMcode*);
 void decreaseVMcodeRefcount(VMcode*);
 

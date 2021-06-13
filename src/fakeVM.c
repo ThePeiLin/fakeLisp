@@ -423,7 +423,7 @@ int B_dummy(FakeVM* exe)
 	DBG_printVMstack(exe->stack,stderr,1);
 	putc('\n',stderr);
 	fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
-	fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",curproc->cp,stack->bp,codeName[(uint8_t)exe->code[curproc->cp]].codeName);
+	fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",curproc->cp-curproc->code->scp,stack->bp,codeName[(uint8_t)exe->code[curproc->cp]].codeName);
 	DBG_printVMenv(exe->curproc->localenv,stderr);
 	putc('\n',stderr);
 	fprintf(stderr,"Wrong byts code!\n");
@@ -1265,7 +1265,7 @@ int B_invoke(FakeVM* exe)
 		VMcode* tmpCode=tmpValue->u.prc;
 		VMprocess* prevProc=hasSameProc(tmpCode,proc);
 		if(isTheLastExpress(proc,prevProc,exe)&&prevProc)
-			prevProc->cp=0;
+			prevProc->cp=prevProc->code->scp;
 		else
 		{
 			VMprocess* tmpProc=newFakeProcess(tmpCode,proc);
@@ -1274,7 +1274,8 @@ int B_invoke(FakeVM* exe)
 		}
 		stack->tp-=1;
 		stackRecycle(exe);
-		proc->cp+=1;
+		if(proc!=prevProc)
+			proc->cp+=1;
 	}
 	else if(tmpValue->type==CONT)
 	{
@@ -2456,13 +2457,18 @@ int isTheLastExpress(const VMprocess* proc,const VMprocess* same,const FakeVM* e
 	for(;;)
 	{
 		uint8_t* code=exe->code;
-		int32_t size=proc->code->cpc;
-		if(code[proc->cp]==FAKE_JMP)
+		uint32_t size=proc->code->scp+proc->code->cpc;
+		uint32_t i=proc->cp+1;
+		if(code[i]==FAKE_JMP)
 		{
-			int32_t where=*(int32_t*)(code+proc->cp+1);
-			if((where+proc->cp+5)!=size)return 0;
+			int32_t where=*(int32_t*)(code+i+1);
+			i+=where+5;
 		}
-		else if(proc->cp!=size-1)return 0;
+		for(;i<size;i++)
+		{
+			if(code[i]!=FAKE_POP_TP)
+				return 0;
+		}
 		if(proc==same)break;
 		proc=proc->prev;
 	}

@@ -2453,6 +2453,7 @@ VMprocess* hasSameProc(VMcode* objCode,VMprocess* curproc)
 
 int isTheLastExpress(const VMprocess* proc,const VMprocess* same,const FakeVM* exe)
 {
+	uint32_t j=0;
 	if(same==NULL)return 0;
 	for(;;)
 	{
@@ -2464,6 +2465,7 @@ int isTheLastExpress(const VMprocess* proc,const VMprocess* same,const FakeVM* e
 			int32_t where=*(int32_t*)(code+i+1);
 			i+=where+5;
 		}
+		j=i;
 		for(;i<size;i++)
 		{
 			if(code[i]!=FAKE_POP_TP)
@@ -2471,6 +2473,18 @@ int isTheLastExpress(const VMprocess* proc,const VMprocess* same,const FakeVM* e
 		}
 		if(proc==same)break;
 		proc=proc->prev;
+	}
+	VMstack* stack=exe->stack;
+	for(;j<proc->code->scp+proc->code->cpc;j++)
+	{
+		stack->tptp-=1;
+		if(stack->tpsi-stack->tptp>16)
+		{
+			stack->tpst=(uint32_t*)realloc(stack->tpst,sizeof(uint32_t)*(stack->tpsi-16));
+			if(stack->tpst==NULL)
+				errors("isTheLastExpress",__FILE__,__LINE__);
+			stack->tpsi-=16;
+		}
 	}
 	return 1;
 }

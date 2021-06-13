@@ -1028,7 +1028,7 @@ void printByteCode(const ByteCode* tmpCode,FILE* fp)
 	{
 		int tmplen=0;
 		fprintf(fp,"%d: %s ",i,codeName[(int)tmpCode->code[i]].codeName);
-		switch(codeName[(int)tmpCode->code[i]].len)
+		switch(codeName[tmpCode->code[i]].len)
 		{
 			case -3:
 				fprintf(fp,"%d %d",*(int32_t*)(tmpCode->code+i+1),*(int32_t*)(tmpCode->code+i+1+sizeof(int32_t)));

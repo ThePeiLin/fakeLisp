@@ -1265,17 +1265,19 @@ int B_invoke(FakeVM* exe)
 		VMcode* tmpCode=tmpValue->u.prc;
 		VMprocess* prevProc=hasSameProc(tmpCode,proc);
 		if(isTheLastExpress(proc,prevProc,exe)&&prevProc)
+		{
 			prevProc->cp=prevProc->code->scp;
+			proc->cp+=(proc!=prevProc);
+		}
 		else
 		{
 			VMprocess* tmpProc=newFakeProcess(tmpCode,proc);
 			tmpProc->localenv=newVMenv(tmpCode->prevEnv);
 			exe->curproc=tmpProc;
+			proc->cp+=1;
 		}
 		stack->tp-=1;
 		stackRecycle(exe);
-		if(proc!=prevProc)
-			proc->cp+=1;
 	}
 	else if(tmpValue->type==CONT)
 	{
@@ -2455,26 +2457,27 @@ int isTheLastExpress(const VMprocess* proc,const VMprocess* same,const FakeVM* e
 {
 	uint32_t j=0;
 	if(same==NULL)return 0;
+	uint32_t size=0;
 	for(;;)
 	{
 		uint8_t* code=exe->code;
-		uint32_t size=proc->code->scp+proc->code->cpc;
 		uint32_t i=proc->cp+1;
+		size=proc->code->scp+proc->code->cpc;
 		if(code[i]==FAKE_JMP)
 		{
 			int32_t where=*(int32_t*)(code+i+1);
 			i+=where+5;
 		}
+		j=i;
 		for(;i<size;i++)
 		{
 			if(code[i]!=FAKE_POP_TP)
 				return 0;
-			j++;
 		}
 		if(proc==same)break;
 		proc=proc->prev;
 	}
-	exe->stack->tptp-=j;
+	exe->stack->tptp-=size-j;
 	return 1;
 }
 

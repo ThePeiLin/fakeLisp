@@ -27,6 +27,7 @@ int main(int argc,char** argv)
 	if(fp==NULL)
 	{
 		perror(filename);
+		free(InterpreterPath);
 		return EXIT_FAILURE;
 	}
 	if(argc==1||isscript(filename))
@@ -47,6 +48,7 @@ int main(int argc,char** argv)
 			free(rp);
 			freeIntpr(inter);
 			unInitPreprocess();
+			free(InterpreterPath);
 			return status;
 		}
 		//printByteCodelnt(mainByteCode,inter->table,stderr);
@@ -57,6 +59,7 @@ int main(int argc,char** argv)
 		if(!outfp)
 		{
 			fprintf(stderr,"%s:Can't create byte code file!",outputname);
+			free(InterpreterPath);
 			return 1;
 		}
 		inter->lnt->list=mainByteCode->l;
@@ -79,7 +82,9 @@ int main(int argc,char** argv)
 	{
 		fprintf(stderr,"error: It is not a correct file.\n");
 		fclose(fp);
+		free(InterpreterPath);
 		return EXIT_FAILURE;
 	}
+	free(InterpreterPath);
 	return 0;
 }

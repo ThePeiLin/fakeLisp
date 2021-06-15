@@ -66,7 +66,7 @@ static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap,SymbolTable* 
 			freeVMenv(vEnv);
 			freeVMstack(tmpVM->stack);
 			freeVMproc(tmpVMproc);
-			freeVMheap(tmpVM->heap);
+			freeComStack(tmpVM->rstack);
 			free(tmpVM);
 			freeComStack(stack);
 			return NULL;
@@ -74,6 +74,7 @@ static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap,SymbolTable* 
 		free(tmpVM->lnt);
 		freeVMstack(tmpVM->stack);
 		freeVMproc(tmpVMproc);
+		freeComStack(tmpVM->rstack);
 		free(tmpVM);
 	}
 	freeComStack(stack);
@@ -152,6 +153,8 @@ int PreMacroExpand(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 		{
 			destroyEnv(macroEnv);
 			freeVMstack(tmpVM->stack);
+			freeComStack(tmpVM->rstack);
+			freeVMheap(tmpVM->heap);
 			free(tmpVM);
 			return 2;
 		}
@@ -187,6 +190,8 @@ int PreMacroExpand(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 			freeVMenv(tmpGlob);
 			freeVMheap(tmpVM->heap);
 			freeVMstack(tmpVM->stack);
+			freeVMproc(tmpVMproc);
+			freeComStack(tmpVM->rstack);
 			free(tmpVM);
 			macroEnv=NULL;
 			return 2;
@@ -198,6 +203,7 @@ int PreMacroExpand(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 		freeVMheap(tmpVM->heap);
 		freeVMstack(tmpVM->stack);
 		freeVMproc(tmpVMproc);
+		freeComStack(tmpVM->rstack);
 		free(tmpVM);
 		macroEnv=NULL;
 		return 1;

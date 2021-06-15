@@ -37,16 +37,19 @@ static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap,SymbolTable* 
 	int i=runFakeVM(tmpVM);
 	if(i==1)
 	{
+		free(tmpVM->lnt);
 		deleteCallChain(tmpVM);
 		freeVMenv(vEnv);
 		freeVMstack(tmpVM->stack);
 		freeVMproc(tmpVMproc);
+		freeComStack(tmpVM->rstack);
 		free(tmpVM);
 		return NULL;
 	}
 	free(tmpVM->lnt);
 	freeVMstack(tmpVM->stack);
 	freeVMproc(tmpVMproc);
+	freeComStack(tmpVM->rstack);
 	free(tmpVM);
 	codelntCopyCat(t,tmpByteCode);
 	return vEnv;
@@ -146,6 +149,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 			freeByteCodelnt(t);
 			freeVMheap(tmpVM->heap);
 			freeVMstack(tmpVM->stack);
+			freeComStack(tmpVM->rstack);
 			freeStringArry(parts,num);
 			free(tmpVM);
 			return NULL;
@@ -167,6 +171,20 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 		AST_cptr* tmpCptr=NULL;
 		if(!status)
 			tmpCptr=castVMvalueToCptr(tmpVM->stack->values[0],inter->curline);
+		else if(status==1)
+		{
+			FREE_ALL_LINE_NUMBER_TABLE(t->l,t->ls);
+			freeByteCodelnt(t);
+			free(tmpVM->lnt);
+			deleteCallChain(tmpVM);
+			freeVMenv(tmpGlobEnv);
+			freeVMheap(tmpVM->heap);
+			freeVMstack(tmpVM->stack);
+			freeVMproc(tmpVMproc);
+			freeComStack(tmpVM->rstack);
+			free(tmpVM);
+			return NULL;
+		}
 		FREE_ALL_LINE_NUMBER_TABLE(t->l,t->ls);
 		freeByteCodelnt(t);
 		free(tmpVM->lnt);
@@ -174,6 +192,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 		freeVMheap(tmpVM->heap);
 		freeVMstack(tmpVM->stack);
 		freeVMproc(tmpVMproc);
+		freeComStack(tmpVM->rstack);
 		free(tmpVM);
 		destroyEnv(tmpEnv);
 		freeStringArry(parts,num);

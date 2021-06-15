@@ -300,6 +300,7 @@ void* ThreadVMFunc(void* p)
 	exe->table=NULL;
 	if(status!=0)
 		deleteCallChain(exe);
+	freeComStack(exe->rstack);
 	exe->mark=0;
 	return (void*)status;
 }
@@ -2700,6 +2701,7 @@ void freeAllVMs()
 {
 	int i=1;
 	FakeVM* cur=GlobFakeVMs.VMs[0];
+	freeComStack(cur->rstack);
 	freeVMstack(cur->stack);
 	free(cur->code);
 	free(cur);
@@ -2743,6 +2745,7 @@ void cancelAllThread()
 			freeChanl(cur->chan);
 			deleteCallChain(cur);
 			freeVMstack(cur->stack);
+			freeComStack(cur->rstack);
 		}
 	}
 }

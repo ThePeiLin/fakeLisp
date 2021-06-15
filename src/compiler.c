@@ -40,14 +40,14 @@ static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap,SymbolTable* 
 		ByteCodelnt* tmpByteCode=curEnv->proc;
 		codelntCopyCat(t,tmpByteCode);
 		FakeVM* tmpVM=newTmpFakeVM(NULL);
-		VMproc* tmpVMcode=newVMcode(bs,tmpByteCode->bc->size);
+		VMproc* tmpVMproc=newVMproc(bs,tmpByteCode->bc->size);
 		bs+=tmpByteCode->bc->size;
-		tmpVM->mainrunnable=newVMrunnable(tmpVMcode,NULL);
-		tmpVM->mainrunnable->localenv=vEnv;
-		tmpVM->currunnable=tmpVM->mainrunnable;
+		VMrunnable* mainrunnable=newVMrunnable(tmpVMproc,NULL);
+		mainrunnable->localenv=vEnv;
+		pushComStack(mainrunnable,tmpVM->rstack);
 		tmpVM->code=t->bc->code;
 		tmpVM->size=t->bc->size;
-		tmpVMcode->prevEnv=NULL;
+		tmpVMproc->prevEnv=NULL;
 		tmpVM->table=table;
 		tmpVM->lnt=newLineNumTable();
 		tmpVM->lnt->num=t->ls;
@@ -65,7 +65,7 @@ static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap,SymbolTable* 
 				decreaseVMenvRefcount(tmpEnv);
 			freeVMenv(vEnv);
 			freeVMstack(tmpVM->stack);
-			freeVMcode(tmpVMcode);
+			freeVMproc(tmpVMproc);
 			freeVMheap(tmpVM->heap);
 			free(tmpVM);
 			freeComStack(stack);
@@ -73,7 +73,7 @@ static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap,SymbolTable* 
 		}
 		free(tmpVM->lnt);
 		freeVMstack(tmpVM->stack);
-		freeVMcode(tmpVMcode);
+		freeVMproc(tmpVMproc);
 		free(tmpVM);
 	}
 	freeComStack(stack);
@@ -155,16 +155,16 @@ int PreMacroExpand(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 			free(tmpVM);
 			return 2;
 		}
-		VMproc* tmpVMcode=newVMcode(t->bc->size,tmp->proc->bc->size);
+		VMproc* tmpVMproc=newVMproc(t->bc->size,tmp->proc->bc->size);
 		codelntCopyCat(t,tmp->proc);
 		VMenv* macroVMenv=castPreEnvToVMenv(macroEnv,tmpGlob,tmpVM->heap,inter->table);
 		destroyEnv(macroEnv);
-		tmpVM->mainrunnable=newVMrunnable(tmpVMcode,NULL);
-		tmpVM->mainrunnable->localenv=macroVMenv;
+		VMrunnable* mainrunnable=newVMrunnable(tmpVMproc,NULL);
+		mainrunnable->localenv=macroVMenv;
 		tmpVM->code=t->bc->code;
 		tmpVM->size=t->bc->size;
-		tmpVM->currunnable=tmpVM->mainrunnable;
-		tmpVMcode->prevEnv=NULL;
+		pushComStack(mainrunnable,tmpVM->rstack);
+		tmpVMproc->prevEnv=NULL;
 		tmpVM->table=inter->table;
 		tmpVM->lnt=newLineNumTable();
 		tmpVM->lnt->num=t->ls;
@@ -197,7 +197,7 @@ int PreMacroExpand(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 		freeVMenv(tmpGlob);
 		freeVMheap(tmpVM->heap);
 		freeVMstack(tmpVM->stack);
-		freeVMcode(tmpVMcode);
+		freeVMproc(tmpVMproc);
 		free(tmpVM);
 		macroEnv=NULL;
 		return 1;

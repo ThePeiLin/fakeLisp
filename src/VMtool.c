@@ -12,7 +12,7 @@
 
 
 pthread_mutex_t VMenvGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t VMcodeGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t VMprocGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t VMstrGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t VMpairGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t VMcontinuationGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
@@ -40,9 +40,9 @@ pthread_mutex_t VMDlprocGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 	}\
 }
 
-VMcode* newVMcode(uint32_t scp,uint32_t cpc)
+VMproc* newVMcode(uint32_t scp,uint32_t cpc)
 {
-	VMcode* tmp=(VMcode*)malloc(sizeof(VMcode));
+	VMproc* tmp=(VMproc*)malloc(sizeof(VMproc));
 	if(tmp==NULL)errors("newVMcode",__FILE__,__LINE__);
 	tmp->refcount=0;
 	tmp->prevEnv=NULL;
@@ -309,14 +309,14 @@ void decreaseVMenvRefcount(VMenv* env)
 	DECREASE_REFCOUNT(VMenv,env);
 }
 
-void increaseVMcodeRefcount(VMcode* code)
+void increaseVMcodeRefcount(VMproc* code)
 {
-	INCREASE_REFCOUNT(VMcode,code);
+	INCREASE_REFCOUNT(VMproc,code);
 }
 
-void decreaseVMcodeRefcount(VMcode* code)
+void decreaseVMcodeRefcount(VMproc* code)
 {
-	DECREASE_REFCOUNT(VMcode,code);
+	DECREASE_REFCOUNT(VMproc,code);
 }
 
 void increaseVMstrRefcount(VMstr* str)
@@ -525,9 +525,9 @@ uint8_t* createByteString(int32_t size)
 	return tmp;
 }
 
-VMcode* copyVMcode(VMcode* obj,VMheap* heap)
+VMproc* copyVMcode(VMproc* obj,VMheap* heap)
 {
-	VMcode* tmp=(VMcode*)malloc(sizeof(VMcode));
+	VMproc* tmp=(VMproc*)malloc(sizeof(VMproc));
 	if(tmp==NULL)errors("copyVMcode",__FILE__,__LINE__);
 	tmp->refcount=0;
 	tmp->scp=obj->scp;
@@ -553,7 +553,7 @@ VMenv* copyVMenv(VMenv* objEnv,VMheap* heap)
 	return tmp;
 }
 
-void freeVMcode(VMcode* proc)
+void freeVMcode(VMproc* proc)
 {
 	if(!proc->refcount)
 	{
@@ -840,22 +840,22 @@ VMenv* castPreEnvToVMenv(PreEnv* pe,VMenv* prev,VMheap* heap,SymbolTable* table)
 	return tmp;
 }
 
-int32_t countCallChain(VMprocess* curproc)
+int32_t countCallChain(VMrunnable* currunnable)
 {
 	int32_t i=0;
-	while(curproc)
+	while(currunnable)
 	{
 		i++;
-		curproc=curproc->prev;
+		currunnable=currunnable->prev;
 	}
 	return i;
 }
 
-VMcontinuation* newVMcontinuation(VMstack* stack,VMprocess* curproc)
+VMcontinuation* newVMcontinuation(VMstack* stack,VMrunnable* currunnable)
 {
-	int32_t size=countCallChain(curproc->prev);
+	int32_t size=countCallChain(currunnable->prev);
 	int32_t i=0;
-	VMprocess* cur=curproc->prev;
+	VMrunnable* cur=currunnable->prev;
 	VMcontinuation* tmp=(VMcontinuation*)malloc(sizeof(VMcontinuation));
 	if(!tmp)errors("newVMcontinuation",__FILE__,__LINE__);
 	VMprocStatus* status=(VMprocStatus*)malloc(sizeof(VMprocStatus)*size);

@@ -80,8 +80,8 @@ int main(int argc,char** argv)
 			anotherVM->argc=argc-1;
 			anotherVM->argv=argv+1;
 			anotherVM->tid=pthread_self();
-			anotherVM->mainproc->localenv=globEnv;
-			anotherVM->mainproc->code->prevEnv=NULL;
+			anotherVM->mainrunnable->localenv=globEnv;
+			anotherVM->mainrunnable->code->prevEnv=NULL;
 			anotherVM->callback=errorCallBack;
 			anotherVM->table=inter->table;
 			anotherVM->lnt=inter->lnt;
@@ -95,7 +95,7 @@ int main(int argc,char** argv)
 				freeIntpr(inter);
 				unInitPreprocess();
 				freeVMheap(anotherVM->heap);
-				anotherVM->mainproc=NULL;
+				anotherVM->mainrunnable=NULL;
 				freeAllVMs();
 			}
 			else
@@ -123,17 +123,17 @@ int main(int argc,char** argv)
 		changeWorkPath(filename);
 		SymbolTable* table=loadSymbolTable(fp);
 		LineNumberTable* lnt=loadLineNumberTable(fp);
-		ByteCode* mainprocess=loadByteCode(fp);
-		FakeVM* anotherVM=newFakeVM(mainprocess);
+		ByteCode* mainrunnableess=loadByteCode(fp);
+		FakeVM* anotherVM=newFakeVM(mainrunnableess);
 		VMheap* heap=anotherVM->heap;
-		freeByteCode(mainprocess);
+		freeByteCode(mainrunnableess);
 		fclose(fp);
 		VMenv* globEnv=newVMenv(NULL);
 		anotherVM->argc=argc-1;
 		anotherVM->argv=argv+1;
 		anotherVM->table=table;
-		anotherVM->mainproc->localenv=globEnv;
-		anotherVM->mainproc->code->prevEnv=NULL;
+		anotherVM->mainrunnable->localenv=globEnv;
+		anotherVM->mainrunnable->code->prevEnv=NULL;
 		anotherVM->callback=errorCallBack;
 		anotherVM->lnt=lnt;
 		initGlobEnv(globEnv,anotherVM->heap,table);
@@ -143,7 +143,7 @@ int main(int argc,char** argv)
 			joinAllThread();
 			freeVMheap(heap);
 			freeSymbolTable(table);
-			anotherVM->mainproc=NULL;
+			anotherVM->mainrunnable=NULL;
 			freeAllVMs();
 			freeLineNumberTable(lnt);
 		}
@@ -230,13 +230,13 @@ void runIntpr(Intpr* inter)
 				codeCat(&byteCodeOfVM,tmpByteCode->bc);
 				anotherVM->code=byteCodeOfVM.code;
 				anotherVM->size=byteCodeOfVM.size;
-				VMcode* tmp=newVMcode(bs,tmpByteCode->bc->size);
+				VMproc* tmp=newVMcode(bs,tmpByteCode->bc->size);
 				bs+=tmpByteCode->bc->size;
 				freeByteCodelnt(tmpByteCode);
 				tmp->prevEnv=NULL;
-				anotherVM->mainproc=newFakeProcess(tmp,NULL);
-				anotherVM->mainproc->localenv=globEnv;
-				anotherVM->curproc=anotherVM->mainproc;
+				anotherVM->mainrunnable=newVMrunnable(tmp,NULL);
+				anotherVM->mainrunnable->localenv=globEnv;
+				anotherVM->currunnable=anotherVM->mainrunnable;
 				globEnv->refcount+=1;
 				if(!(e=setjmp(buf)))
 				{
@@ -255,7 +255,7 @@ void runIntpr(Intpr* inter)
 					VMstack* stack=anotherVM->stack;
 					stack->tp=0;
 					stack->bp=0;
-					tmp=anotherVM->mainproc->code;
+					tmp=anotherVM->mainrunnable->code;
 					tmp->prevEnv=NULL;
 					freeVMcode(tmp);
 					deleteCallChain(anotherVM);
@@ -278,7 +278,7 @@ void runIntpr(Intpr* inter)
 	freeIntpr(inter);
 	unInitPreprocess();
 	freeVMheap(anotherVM->heap);
-	anotherVM->mainproc=NULL;
+	anotherVM->mainrunnable=NULL;
 	freeAllVMs();
 }
 

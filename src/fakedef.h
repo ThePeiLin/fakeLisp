@@ -285,9 +285,8 @@ typedef struct VM_Str
 	char* str;
 }VMstr;
 
-typedef struct VM_Process
+typedef struct VMrunnable
 {
-	struct VM_Process* prev;
 	VMenv* localenv;
 	uint32_t cp;
 	VMproc* code;
@@ -313,8 +312,7 @@ typedef struct FakeVM
 	pthread_t tid;
 	uint8_t* code;
 	uint32_t size;
-	VMrunnable* currunnable;
-	VMrunnable* mainrunnable;
+	ComStack* rstack;
 	VMstack* stack;
 	struct Channel* chan;
 	struct Symbol_Table* table;

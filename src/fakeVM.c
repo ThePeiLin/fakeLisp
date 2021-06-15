@@ -200,7 +200,7 @@ FakeVM* newFakeVM(ByteCode* mainCode)
 {
 	FakeVM* exe=(FakeVM*)malloc(sizeof(FakeVM));
 	if(exe==NULL)errors("newFakeVM",__FILE__,__LINE__);
-	VMproc* tmpVMcode=NULL;
+	VMproc* tmpVMproc=NULL;
 	exe->code=NULL;
 	exe->size=0;
 	exe->rstack=newComStack(32);
@@ -208,9 +208,9 @@ FakeVM* newFakeVM(ByteCode* mainCode)
 	{
 		exe->code=copyMemory(mainCode->code,mainCode->size);
 		exe->size=mainCode->size;
-		tmpVMcode=newVMcode(0,mainCode->size);
-		pushComStack(newVMrunnable(tmpVMcode,NULL),exe->rstack);
-		freeVMcode(tmpVMcode);
+		tmpVMproc=newVMproc(0,mainCode->size);
+		pushComStack(newVMrunnable(tmpVMproc,NULL),exe->rstack);
+		freeVMproc(tmpVMproc);
 	}
 	exe->argc=0;
 	exe->argv=NULL;
@@ -252,7 +252,7 @@ FakeVM* newTmpFakeVM(ByteCode* mainCode)
 	{
 		exe->code=copyMemory(mainCode->code,mainCode->size);
 		exe->size=mainCode->size;
-		pushComStack(newVMrunnable(newVMcode(0,mainCode->size),NULL),exe->rstack);
+		pushComStack(newVMrunnable(newVMproc(0,mainCode->size),NULL),exe->rstack);
 	}
 	exe->mark=1;
 	exe->argc=0;
@@ -310,14 +310,14 @@ int runFakeVM(FakeVM* exe)
 	{
 		VMrunnable* currunnable=topComStack(exe->rstack);
 		pthread_rwlock_rdlock(&GClock);
-		if(currunnable->cp>=currunnable->code->cpc+currunnable->code->scp)
+		if(currunnable->cp>=currunnable->proc->cpc+currunnable->proc->scp)
 		{
 			VMrunnable* tmpProc=popComStack(exe->rstack);
-			VMproc* tmpCode=tmpProc->code;
+			VMproc* tmpCode=tmpProc->proc;
 			VMenv* tmpEnv=tmpProc->localenv;
 			free(tmpProc);
 			freeVMenv(tmpEnv);
-			freeVMcode(tmpCode);
+			freeVMproc(tmpCode);
 			continue;
 		}
 
@@ -413,7 +413,7 @@ int runFakeVM(FakeVM* exe)
 int B_dummy(FakeVM* exe)
 {
 	VMrunnable* currunnable=topComStack(exe->rstack);
-	VMproc* tmpCode=currunnable->code;
+	VMproc* tmpCode=currunnable->proc;
 	ByteCode tmpByteCode={tmpCode->cpc,exe->code+tmpCode->scp};
 	VMstack* stack=exe->stack;
 	printByteCode(&tmpByteCode,stderr);
@@ -421,7 +421,7 @@ int B_dummy(FakeVM* exe)
 	DBG_printVMstack(exe->stack,stderr,1);
 	putc('\n',stderr);
 	fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
-	fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",currunnable->cp-currunnable->code->scp,stack->bp,codeName[(uint8_t)exe->code[currunnable->cp]].codeName);
+	fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",currunnable->cp-currunnable->proc->scp,stack->bp,codeName[(uint8_t)exe->code[currunnable->cp]].codeName);
 	DBG_printVMenv(currunnable->localenv,stderr);
 	putc('\n',stderr);
 	fprintf(stderr,"Wrong byts code!\n");
@@ -656,7 +656,7 @@ int B_push_car(FakeVM* exe)
 int B_push_cdr(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* objValue=getTopValue(stack);
 	if(objValue->type!=PAIR&&objValue->type!=STR&&objValue->type!=BYTS)return WRONGARG;
 	if(objValue->type==PAIR)
@@ -693,7 +693,7 @@ int B_push_cdr(FakeVM* exe)
 int B_push_top(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	if(stack->tp==stack->bp)return WRONGARG;
 	if(stack->tp>=stack->size)
 	{
@@ -710,7 +710,7 @@ int B_push_top(FakeVM* exe)
 int B_push_proc(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	int32_t sizeOfProc=*(int32_t*)(exe->code+runnable->cp+1);
 	if(stack->tp>=stack->size)
 	{
@@ -718,7 +718,7 @@ int B_push_proc(FakeVM* exe)
 		if(stack->values==NULL)errors("B_push_proc",__FILE__,__LINE__);
 		stack->size+=64;
 	}
-	VMproc* code=newVMcode(runnable->cp+1+sizeof(int32_t),sizeOfProc);
+	VMproc* code=newVMproc(runnable->cp+1+sizeof(int32_t),sizeOfProc);
 	increaseVMenvRefcount(runnable->localenv);
 	code->prevEnv=runnable->localenv;
 	VMvalue* objValue=newVMvalue(PRC,code,exe->heap,1);
@@ -731,7 +731,7 @@ int B_push_proc(FakeVM* exe)
 int B_push_list_arg(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* tmpList=getTopValue(stack);
 	stack->tp-=1;
 	while(tmpList->type!=NIL)
@@ -755,7 +755,7 @@ int B_push_list_arg(FakeVM* exe)
 int B_pop_var(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	if(!(stack->tp>stack->bp))return STACKERROR;
 	int32_t scopeOfVar=*(int32_t*)(exe->code+runnable->cp+1);
 	uint32_t idOfVar=*(uint32_t*)(exe->code+runnable->cp+5);
@@ -796,7 +796,7 @@ int B_pop_var(FakeVM* exe)
 int B_pop_arg(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	if(!(stack->tp>stack->bp))return TOOFEWARG;
 	int32_t scopeOfVar=*(int32_t*)(exe->code+runnable->cp+1);
 	uint32_t idOfVar=*(uint32_t*)(exe->code+runnable->cp+5);
@@ -837,7 +837,7 @@ int B_pop_arg(FakeVM* exe)
 int B_pop_rest_arg(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	int32_t scopeOfVar=*(int32_t*)(exe->code+runnable->cp+1);
 	uint32_t idOfVar=*(uint32_t*)(exe->code+runnable->cp+5);
 	VMenv* curEnv=runnable->localenv;
@@ -892,7 +892,7 @@ int B_pop_rest_arg(FakeVM* exe)
 int B_pop_car(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* topValue=getTopValue(stack);
 	VMvalue* objValue=getValue(stack,stack->tp-2);
 	if(objValue->type!=PAIR)return WRONGARG;
@@ -906,7 +906,7 @@ int B_pop_car(FakeVM* exe)
 int B_pop_cdr(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* topValue=getTopValue(stack);
 	VMvalue* objValue=getValue(stack,stack->tp-2);
 	if(objValue->type!=PAIR)return WRONGARG;
@@ -920,7 +920,7 @@ int B_pop_cdr(FakeVM* exe)
 int B_pop_ref(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* topValue=getTopValue(stack);
 	VMvalue* objValue=getValue(stack,stack->tp-2);
 	if(objValue->access==0&&objValue->type!=topValue->type)return WRONGARG;
@@ -937,7 +937,7 @@ int B_pop_ref(FakeVM* exe)
 int B_pop_env(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue->type!=PRC)
 		return WRONGARG;
@@ -965,7 +965,7 @@ int B_pop_env(FakeVM* exe)
 int B_swap(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	if(stack->tp<2)
 		return TOOFEWARG;
 	VMvalue* topValue=getTopValue(stack);
@@ -979,14 +979,14 @@ int B_swap(FakeVM* exe)
 int B_pack_cc(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
 		if(stack->values==NULL)errors("B_pack_cc",__FILE__,__LINE__);
 		stack->size+=64;
 	}
-	VMcontinuation* cc=newVMcontinuation(stack,runnable);
+	VMcontinuation* cc=newVMcontinuation(stack,exe->rstack);
 	VMvalue* retval=newVMvalue(CONT,cc,exe->heap,1);
 	stack->values[stack->tp]=retval;
 	stack->tp+=1;
@@ -997,7 +997,7 @@ int B_pack_cc(FakeVM* exe)
 int B_add(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* firValue=getValue(stack,stack->tp-1);
 	VMvalue* secValue=getValue(stack,stack->tp-2);
 	if((firValue->type!=IN32&&firValue->type!=DBL)||(secValue->type!=IN32&&secValue->type!=DBL))return WRONGARG;
@@ -1024,7 +1024,7 @@ int B_add(FakeVM* exe)
 int B_sub(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* firValue=getValue(stack,stack->tp-1);
 	VMvalue* secValue=getValue(stack,stack->tp-2);
 	if((firValue->type!=IN32&&firValue->type!=DBL)||(secValue->type!=IN32&&secValue->type!=DBL))return WRONGARG;
@@ -1051,7 +1051,7 @@ int B_sub(FakeVM* exe)
 int B_mul(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* firValue=getValue(stack,stack->tp-1);
 	VMvalue* secValue=getValue(stack,stack->tp-2);
 	if((firValue->type!=IN32&&firValue->type!=DBL)||(secValue->type!=IN32&&secValue->type!=DBL))return WRONGARG;
@@ -1078,7 +1078,7 @@ int B_mul(FakeVM* exe)
 int B_div(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* firValue=getValue(stack,stack->tp-1);
 	VMvalue* secValue=getValue(stack,stack->tp-2);
 	VMvalue* tmpValue=NULL;
@@ -1100,7 +1100,7 @@ int B_div(FakeVM* exe)
 int B_rem(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* firValue=getValue(stack,stack->tp-1);
 	VMvalue* secValue=getValue(stack,stack->tp-2);
 	VMvalue* tmpValue=NULL;
@@ -1122,7 +1122,7 @@ int B_rem(FakeVM* exe)
 int B_atom(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue->type!=PAIR)
 		stack->values[stack->tp-1]=newTrueValue(exe->heap);
@@ -1140,7 +1140,7 @@ int B_atom(FakeVM* exe)
 int B_null(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue->type==NIL||(topValue->type==PAIR&&(getVMpairCar(topValue)->type==NIL&&getVMpairCdr(topValue)->type==NIL)))
 	{
@@ -1162,7 +1162,7 @@ int B_type(FakeVM* exe)
 		"sym",
 		"str",
 		"byts",
-		"runnable",
+		"proc",
 		"cont",
 		"chan",
 		"fp",
@@ -1172,7 +1172,7 @@ int B_type(FakeVM* exe)
 		"pair"
 	};
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* topValue=getTopValue(stack);
 	int32_t type=topValue->type;
 	VMstr* str=newVMstr(a[type]);
@@ -1184,7 +1184,7 @@ int B_type(FakeVM* exe)
 int B_set_tp(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	if(stack->tptp>=stack->tpsi)
 	{
 		stack->tpst=(uint32_t*)realloc(stack->tpst,sizeof(uint32_t)*(stack->tpsi+16));
@@ -1200,7 +1200,7 @@ int B_set_tp(FakeVM* exe)
 int B_set_bp(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* prevBp=newVMvalue(IN32,&stack->bp,exe->heap,1);
 	if(stack->tp>=stack->size)
 	{
@@ -1218,7 +1218,7 @@ int B_set_bp(FakeVM* exe)
 int B_res_tp(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	stack->tp=(stack->tptp)?stack->tpst[stack->tptp-1]:0;
 	runnable->cp+=1;
 	return 0;
@@ -1227,7 +1227,7 @@ int B_res_tp(FakeVM* exe)
 int B_pop_tp(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	stack->tptp-=1;
 	if(stack->tpsi-stack->tptp>16)
 	{
@@ -1243,7 +1243,7 @@ int B_pop_tp(FakeVM* exe)
 int B_res_bp(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	if(stack->tp>stack->bp)return TOOMANYARG;
 	VMvalue* prevBp=getTopValue(stack);
 	stack->bp=*prevBp->u.in32;
@@ -1256,23 +1256,23 @@ int B_res_bp(FakeVM* exe)
 int B_invoke(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* tmpValue=getTopValue(stack);
 	if(tmpValue->type!=PRC&&tmpValue->type!=CONT&&tmpValue->type!=DLPROC)return INVOKEERROR;
 	if(tmpValue->type==PRC)
 	{
-		VMproc* tmpCode=tmpValue->u.prc;
-		VMrunnable* prevProc=hasSameProc(tmpCode,runnable);
+		VMproc* tmpProc=tmpValue->u.prc;
+		VMrunnable* prevProc=hasSameProc(tmpProc,exe->rstack);
 		if(isTheLastExpress(runnable,prevProc,exe)&&prevProc)
 		{
-			prevProc->cp=prevProc->code->scp;
+			prevProc->cp=prevProc->proc->scp;
 			runnable->cp+=(runnable!=prevProc);
 		}
 		else
 		{
-			VMrunnable* tmpProc=newVMrunnable(tmpCode,runnable);
-			tmpProc->localenv=newVMenv(tmpCode->prevEnv);
-			exe->currunnable=tmpProc;
+			VMrunnable* tmpRunnable=newVMrunnable(tmpProc,runnable);
+			tmpRunnable->localenv=newVMenv(tmpProc->prevEnv);
+			pushComStack(tmpRunnable,exe->rstack);
 			runnable->cp+=1;
 		}
 		stack->tp-=1;
@@ -1300,7 +1300,7 @@ int B_invoke(FakeVM* exe)
 int B_jmp_if_true(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* tmpValue=getTopValue(stack);
 	if(!(tmpValue->type==NIL||(tmpValue->type==PAIR&&getVMpairCar(tmpValue)->type==NIL&&getVMpairCdr(tmpValue)->type==NIL)))
 	{
@@ -1314,7 +1314,7 @@ int B_jmp_if_true(FakeVM* exe)
 int B_jmp_if_false(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* tmpValue=getTopValue(stack);
 	stackRecycle(exe);
 	if(tmpValue->type==NIL||(tmpValue->type==PAIR&&getVMpairCar(tmpValue)->type==NIL&&getVMpairCdr(tmpValue)->type==NIL))
@@ -1328,7 +1328,7 @@ int B_jmp_if_false(FakeVM* exe)
 
 int B_jmp(FakeVM* exe)
 {
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	int32_t where=*(int32_t*)(exe->code+runnable->cp+sizeof(char));
 	runnable->cp+=where+5;
 	return 0;
@@ -1337,7 +1337,7 @@ int B_jmp(FakeVM* exe)
 int B_file(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMheap* heap=exe->heap;
 	VMvalue* mode=getTopValue(stack);
 	VMvalue* filename=getValue(stack,stack->tp-2);
@@ -1356,7 +1356,7 @@ int B_file(FakeVM* exe)
 int B_dll(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMheap* heap=exe->heap;
 	VMvalue* dllName=getTopValue(stack);
 	if(dllName->type!=STR&&dllName->type!=SYM)
@@ -1372,7 +1372,7 @@ int B_dll(FakeVM* exe)
 int B_dlsym(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMheap* heap=exe->heap;
 	VMvalue* symbol=getTopValue(stack);
 	VMvalue* dll=getValue(stack,stack->tp-2);
@@ -1401,7 +1401,7 @@ int B_dlsym(FakeVM* exe)
 int B_eq(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* firValue=getTopValue(stack);
 	VMvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
@@ -1416,7 +1416,7 @@ int B_eq(FakeVM* exe)
 int B_eqn(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* firValue=getTopValue(stack);
 	VMvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
@@ -1448,7 +1448,7 @@ int B_eqn(FakeVM* exe)
 int B_equal(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* firValue=getTopValue(stack);
 	VMvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
@@ -1463,7 +1463,7 @@ int B_equal(FakeVM* exe)
 int B_gt(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* firValue=getTopValue(stack);
 	VMvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
@@ -1495,7 +1495,7 @@ int B_gt(FakeVM* exe)
 int B_ge(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* firValue=getTopValue(stack);
 	VMvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
@@ -1527,7 +1527,7 @@ int B_ge(FakeVM* exe)
 int B_lt(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* firValue=getTopValue(stack);
 	VMvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
@@ -1559,7 +1559,7 @@ int B_lt(FakeVM* exe)
 int B_le(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* firValue=getTopValue(stack);
 	VMvalue* secValue=getValue(stack,stack->tp-2);
 	stack->tp-=1;
@@ -1591,7 +1591,7 @@ int B_le(FakeVM* exe)
 int B_not(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* tmpValue=getTopValue(stack);
 	if(tmpValue->type==NIL||(tmpValue->type==PAIR&&getVMpairCar(tmpValue)->type==NIL&&getVMpairCdr(tmpValue)->type==NIL))
 		stack->values[stack->tp-1]=newTrueValue(exe->heap);
@@ -1604,7 +1604,7 @@ int B_not(FakeVM* exe)
 int B_cast_to_chr(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue->type==PAIR||topValue->type==PRC)return WRONGARG;
 	VMvalue* tmpValue=newVMvalue(CHR,NULL,exe->heap,1);
@@ -1635,7 +1635,7 @@ int B_cast_to_chr(FakeVM* exe)
 int B_cast_to_int(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue->type==PAIR||topValue->type==PRC)return WRONGARG;
 	VMvalue* tmpValue=newVMvalue(IN32,NULL,exe->heap,1);
@@ -1668,7 +1668,7 @@ int B_cast_to_int(FakeVM* exe)
 int B_cast_to_dbl(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue->type==PAIR||topValue->type==PRC)return WRONGARG;
 	VMvalue* tmpValue=newVMvalue(DBL,NULL,exe->heap,1);
@@ -1701,7 +1701,7 @@ int B_cast_to_dbl(FakeVM* exe)
 int B_cast_to_str(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue->type==PAIR||topValue->type==PRC)return WRONGARG;
 	VMstr* tmpStr=newVMstr(NULL);
@@ -1736,7 +1736,7 @@ int B_cast_to_str(FakeVM* exe)
 int B_cast_to_sym(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue->type==PAIR||topValue->type==PRC)return WRONGARG;
 	VMstr* tmpStr=newVMstr(NULL);
@@ -1771,7 +1771,7 @@ int B_cast_to_sym(FakeVM* exe)
 int B_cast_to_byte(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue->type==PAIR||topValue->type==PRC)return WRONGARG;
 	VMvalue* tmpValue=newVMvalue(BYTS,NULL,exe->heap,1);
@@ -1812,7 +1812,7 @@ int B_cast_to_byte(FakeVM* exe)
 int B_nth(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* place=getValue(stack,stack->tp-2);
 	VMvalue* objlist=getTopValue(stack);
 	if((objlist->type!=PAIR&&objlist->type!=STR&&objlist->type!=BYTS)||place->type!=IN32)return WRONGARG;
@@ -1858,7 +1858,7 @@ int B_nth(FakeVM* exe)
 int B_length(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* objlist=getTopValue(stack);
 	if(objlist->type!=PAIR&&objlist->type!=STR&&objlist->type!=BYTS&&objlist->type!=CHAN)return WRONGARG;
 	if(objlist->type==PAIR)
@@ -1888,7 +1888,7 @@ int B_length(FakeVM* exe)
 int B_appd(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* fir=getTopValue(stack);
 	VMvalue* sec=getValue(stack,stack->tp-2);
 	if(sec->type!=NIL&&sec->type!=PAIR&&sec->type!=STR&&sec->type!=BYTS)return WRONGARG;
@@ -1946,7 +1946,7 @@ int B_appd(FakeVM* exe)
 int B_read(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* file=getTopValue(stack);
 	if(file->type!=FP)return WRONGARG;
 	FILE* tmpFile=file->u.fp->fp;
@@ -1979,7 +1979,7 @@ int B_read(FakeVM* exe)
 int B_getb(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* file=getTopValue(stack);
 	VMvalue* size=getValue(stack,stack->tp-2);
 	if(file->type!=FP||size->type!=IN32)return WRONGARG;
@@ -2013,7 +2013,7 @@ int B_getb(FakeVM* exe)
 int B_write(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* file=getTopValue(stack);
 	VMvalue* obj=getValue(stack,stack->tp-2);
 	if(file->type!=FP)return WRONGARG;
@@ -2035,7 +2035,7 @@ int B_write(FakeVM* exe)
 int B_putb(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* file=getTopValue(stack);
 	VMvalue* bt=getValue(stack,stack->tp-2);
 	if(file->type!=FP||bt->type!=BYTS)return WRONGARG;
@@ -2050,7 +2050,7 @@ int B_putb(FakeVM* exe)
 int B_princ(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* file=getTopValue(stack);
 	VMvalue* obj=getValue(stack,stack->tp-2);
 	if(file->type!=FP)return WRONGARG;
@@ -2072,7 +2072,7 @@ int B_princ(FakeVM* exe)
 int B_go(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* threadArg=getTopValue(stack);
 	VMvalue* threadProc=getValue(stack,stack->tp-2);
 	if(threadProc->type!=PRC||(threadArg->type!=PAIR&&threadArg->type!=NIL))
@@ -2139,7 +2139,7 @@ int B_go(FakeVM* exe)
 int B_chanl(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* maxSize=getTopValue(stack);
 	if(maxSize->type!=IN32)
 		return WRONGARG;
@@ -2153,7 +2153,7 @@ int B_chanl(FakeVM* exe)
 int B_send(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* ch=getTopValue(stack);
 	if(ch->type!=CHAN)
 		return WRONGARG;
@@ -2173,7 +2173,7 @@ int B_send(FakeVM* exe)
 int B_recv(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* runnable=exe->currunnable;
+	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* ch=getTopValue(stack);
 	if(ch->type!=CHAN)
 		return WRONGARG;
@@ -2225,7 +2225,7 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 			printRawString(objValue->u.str->str,fp);
 			break;
 		case PRC:
-			fprintf(fp,"#<runnable>");
+			fprintf(fp,"#<proc>");
 			break;
 		case PAIR:
 			cirPair=isCircularReference(objValue->u.pair,*h);
@@ -2312,7 +2312,7 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 			fprintf(fp,"%s",objValue->u.str->str);
 			break;
 		case PRC:
-			fprintf(fp,"#<runnable>");
+			fprintf(fp,"#<proc>");
 			break;
 		case PAIR:
 			cirPair=isCircularReference(objValue->u.pair,*h);
@@ -2376,7 +2376,7 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 void stackRecycle(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
-	VMrunnable* currunnable=exe->currunnable;
+	VMrunnable* currunnable=topComStack(exe->rstack);
 	if(stack->size-stack->tp>64)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size-64));
@@ -2394,10 +2394,9 @@ VMrunnable* newVMrunnable(VMproc* code,VMrunnable* prev)
 {
 	VMrunnable* tmp=(VMrunnable*)malloc(sizeof(VMrunnable));
 	if(tmp==NULL)errors("newVMrunnable",__FILE__,__LINE__);
-	tmp->prev=prev;
 	tmp->cp=code->scp;
-	tmp->code=code;
-	increaseVMcodeRefcount(code);
+	tmp->proc=code;
+	increaseVMprocRefcount(code);
 	return tmp;
 }
 
@@ -2445,23 +2444,29 @@ void DBG_printVMByteCode(uint8_t* code,uint32_t s,uint32_t c,FILE* fp)
 	printByteCode(&t,fp);
 }
 
-VMrunnable* hasSameProc(VMproc* objCode,VMrunnable* currunnable)
+VMrunnable* hasSameProc(VMproc* objProc,ComStack* rstack)
 {
-	while(currunnable!=NULL&&currunnable->code!=objCode)
-		currunnable=currunnable->prev;
-	return currunnable;
+	size_t i=0;
+	for(;i<rstack->top;i++)
+	{
+		VMrunnable* cur=rstack->data[i];
+		if(cur->proc==objProc)
+			return cur;
+	}
+	return NULL;
 }
 
 int isTheLastExpress(const VMrunnable* runnable,const VMrunnable* same,const FakeVM* exe)
 {
 	uint32_t j=0;
+	size_t c=exe->rstack->top;
 	if(same==NULL)return 0;
 	uint32_t size=0;
 	for(;;)
 	{
 		uint8_t* code=exe->code;
 		uint32_t i=runnable->cp+1;
-		size=runnable->code->scp+runnable->code->cpc;
+		size=runnable->proc->scp+runnable->proc->cpc;
 		if(code[i]==FAKE_JMP)
 		{
 			int32_t where=*(int32_t*)(code+i+1);
@@ -2474,7 +2479,8 @@ int isTheLastExpress(const VMrunnable* runnable,const VMrunnable* same,const Fak
 				return 0;
 		}
 		if(runnable==same)break;
-		runnable=runnable->prev;
+		runnable=exe->rstack->data[c-1];
+		c--;
 	}
 	exe->stack->tptp-=size-j;
 	return 1;
@@ -2517,7 +2523,7 @@ VMheap* newVMheap()
 void GC_mark(FakeVM* exe)
 {
 	GC_markValueInStack(exe->stack);
-	GC_markValueInCallChain(exe->currunnable);
+	GC_markValueInCallChain(exe->rstack);
 	if(exe->chan)
 	{
 		pthread_mutex_lock(&exe->chan->lock);
@@ -2593,10 +2599,12 @@ void GC_markValueInEnv(VMenv* curEnv)
 		GC_markValue(curEnv->list[i]->value);
 }
 
-void GC_markValueInCallChain(VMrunnable* cur)
+void GC_markValueInCallChain(ComStack* rstack)
 {
-	for(;cur!=NULL;cur=cur->prev)
+	size_t i=0;
+	for(;i<rstack->top;i++)
 	{
+		VMrunnable* cur=rstack->data[i];
 		VMenv* curEnv=cur->localenv;
 		for(;curEnv!=NULL;curEnv=curEnv->prev)
 			GC_markValueInEnv(curEnv);
@@ -2648,9 +2656,10 @@ FakeVM* newThreadVM(VMproc* mainCode,VMheap* heap)
 {
 	FakeVM* exe=(FakeVM*)malloc(sizeof(FakeVM));
 	if(exe==NULL)errors("newThreadVM",__FILE__,__LINE__);
-	exe->mainrunnable=newVMrunnable(mainCode,NULL);
-	exe->mainrunnable->localenv=newVMenv(mainCode->prevEnv);
-	exe->currunnable=exe->mainrunnable;
+	VMrunnable* t=newVMrunnable(mainCode,NULL);
+	t->localenv=newVMenv(mainCode->prevEnv);
+	exe->rstack=newComStack(32);
+	pushComStack(t,exe->rstack);
 	exe->mark=1;
 	exe->argc=0;
 	exe->argv=NULL;
@@ -2691,11 +2700,6 @@ void freeAllVMs()
 {
 	int i=1;
 	FakeVM* cur=GlobFakeVMs.VMs[0];
-	if(cur->mainrunnable&&cur->mainrunnable->code)
-	{
-		freeVMcode(cur->mainrunnable->code);
-		free(cur->mainrunnable);
-	}
 	freeVMstack(cur->stack);
 	free(cur->code);
 	free(cur);
@@ -2745,16 +2749,13 @@ void cancelAllThread()
 
 void deleteCallChain(FakeVM* exe)
 {
-	VMrunnable* cur=exe->currunnable;
-	while(cur)
+	while(!isComStackEmpty(exe->rstack))
 	{
-		VMrunnable* prev=cur;
-		cur=cur->prev;
-		freeVMenv(prev->localenv);
-		freeVMcode(prev->code);
-		free(prev);
+		VMrunnable* cur=popComStack(exe->rstack);
+		freeVMenv(cur->localenv);
+		freeVMproc(cur->proc);
+		free(cur);
 	}
-	exe->mainrunnable=NULL;
 }
 
 void createCallChainWithContinuation(FakeVM* vm,VMcontinuation* cc)
@@ -2774,25 +2775,19 @@ void createCallChainWithContinuation(FakeVM* vm,VMcontinuation* cc)
 		tmpStack->tp+=1;
 	}
 	deleteCallChain(vm);
-	VMrunnable* currunnable=NULL;
 	vm->stack=tmpStack;
 	freeVMstack(stack);
-	for(i=cc->num-1;i>=0;i--)
+	for(i=0;i<cc->num;i++)
 	{
 		VMrunnable* cur=(VMrunnable*)malloc(sizeof(VMrunnable));
 		if(!cur)errors("createCallChainWithContinuation",__FILE__,__LINE__);
-		cur->prev=currunnable;
 		cur->cp=cc->status[i].cp;
 		cur->localenv=cc->status[i].env;
 		increaseVMenvRefcount(cur->localenv);
-		cur->code=cc->status[i].proc;
-		increaseVMcodeRefcount(cur->code);
-		currunnable=cur;
+		cur->proc=cc->status[i].proc;
+		increaseVMprocRefcount(cur->proc);
+		pushComStack(cur,vm->rstack);
 	}
-	vm->currunnable=currunnable;
-	while(currunnable->prev)
-		currunnable=currunnable->prev;
-	vm->mainrunnable=currunnable;
 }
 
 int32_t getSymbolIdInByteCode(const uint8_t* code)

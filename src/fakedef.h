@@ -289,7 +289,7 @@ typedef struct VMrunnable
 {
 	VMenv* localenv;
 	uint32_t cp;
-	VMproc* code;
+	VMproc* proc;
 }VMrunnable;
 
 typedef struct

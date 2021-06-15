@@ -40,10 +40,10 @@ pthread_mutex_t VMDlprocGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 	}\
 }
 
-VMproc* newVMcode(uint32_t scp,uint32_t cpc)
+VMproc* newVMproc(uint32_t scp,uint32_t cpc)
 {
 	VMproc* tmp=(VMproc*)malloc(sizeof(VMproc));
-	if(tmp==NULL)errors("newVMcode",__FILE__,__LINE__);
+	if(tmp==NULL)errors("newVMproc",__FILE__,__LINE__);
 	tmp->refcount=0;
 	tmp->prevEnv=NULL;
 	tmp->scp=scp;
@@ -309,12 +309,12 @@ void decreaseVMenvRefcount(VMenv* env)
 	DECREASE_REFCOUNT(VMenv,env);
 }
 
-void increaseVMcodeRefcount(VMproc* code)
+void increaseVMprocRefcount(VMproc* code)
 {
 	INCREASE_REFCOUNT(VMproc,code);
 }
 
-void decreaseVMcodeRefcount(VMproc* code)
+void decreaseVMprocRefcount(VMproc* code)
 {
 	DECREASE_REFCOUNT(VMproc,code);
 }
@@ -525,10 +525,10 @@ uint8_t* createByteString(int32_t size)
 	return tmp;
 }
 
-VMproc* copyVMcode(VMproc* obj,VMheap* heap)
+VMproc* copyVMproc(VMproc* obj,VMheap* heap)
 {
 	VMproc* tmp=(VMproc*)malloc(sizeof(VMproc));
-	if(tmp==NULL)errors("copyVMcode",__FILE__,__LINE__);
+	if(tmp==NULL)errors("copyVMproc",__FILE__,__LINE__);
 	tmp->refcount=0;
 	tmp->scp=obj->scp;
 	tmp->cpc=obj->cpc;
@@ -553,7 +553,7 @@ VMenv* copyVMenv(VMenv* objEnv,VMheap* heap)
 	return tmp;
 }
 
-void freeVMcode(VMproc* proc)
+void freeVMproc(VMproc* proc)
 {
 	if(!proc->refcount)
 	{
@@ -562,7 +562,7 @@ void freeVMcode(VMproc* proc)
 		free(proc);
 	}
 	else
-		decreaseVMcodeRefcount(proc);
+		decreaseVMprocRefcount(proc);
 }
 
 void freeVMstr(VMstr* obj)
@@ -653,7 +653,7 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 				fir->u.pair=sec->u.pair;
 				break;
 			case PRC:
-				increaseVMcodeRefcount(sec->u.prc);
+				increaseVMprocRefcount(sec->u.prc);
 				fir->u.prc=sec->u.prc;
 				break;
 			case CONT:
@@ -720,7 +720,7 @@ void writeRef(VMvalue* fir,VMvalue* sec)
 				break;
 			case PRC:
 				fir->u.prc=sec->u.prc;
-				increaseVMcodeRefcount(fir->u.prc);
+				increaseVMprocRefcount(fir->u.prc);
 				break;
 			case CONT:
 				fir->u.cont=sec->u.cont;
@@ -791,7 +791,7 @@ void freeRef(VMvalue* obj)
 					decreaseVMpairRefcount(obj->u.pair);
 				break;
 			case PRC:
-				freeVMcode(obj->u.prc);
+				freeVMproc(obj->u.prc);
 				break;
 			case BYTS:
 				if(!obj->u.byts->refcount)
@@ -840,37 +840,25 @@ VMenv* castPreEnvToVMenv(PreEnv* pe,VMenv* prev,VMheap* heap,SymbolTable* table)
 	return tmp;
 }
 
-int32_t countCallChain(VMrunnable* currunnable)
+VMcontinuation* newVMcontinuation(VMstack* stack,ComStack* rstack)
 {
+	int32_t size=rstack->top;
 	int32_t i=0;
-	while(currunnable)
-	{
-		i++;
-		currunnable=currunnable->prev;
-	}
-	return i;
-}
-
-VMcontinuation* newVMcontinuation(VMstack* stack,VMrunnable* currunnable)
-{
-	int32_t size=countCallChain(currunnable->prev);
-	int32_t i=0;
-	VMrunnable* cur=currunnable->prev;
 	VMcontinuation* tmp=(VMcontinuation*)malloc(sizeof(VMcontinuation));
 	if(!tmp)errors("newVMcontinuation",__FILE__,__LINE__);
 	VMprocStatus* status=(VMprocStatus*)malloc(sizeof(VMprocStatus)*size);
 	if(!status)errors("newVMcontinuation",__FILE__,__LINE__);
 	tmp->stack=copyStack(stack);
-	tmp->num=size;
+	tmp->num=size-1;
 	tmp->refcount=0;
-	for(;i<size;i++)
+	for(;i<size-1;i++)
 	{
+		VMrunnable* cur=rstack->data[i];
 		status[i].cp=cur->cp;
 		increaseVMenvRefcount(cur->localenv);
 		status[i].env=cur->localenv;
-		increaseVMcodeRefcount(cur->code);
-		status[i].proc=cur->code;
-		cur=cur->prev;
+		increaseVMprocRefcount(cur->proc);
+		status[i].proc=cur->proc;
 	}
 	tmp->status=status;
 	return tmp;
@@ -890,7 +878,7 @@ void freeVMcontinuation(VMcontinuation* cont)
 		for(;i<size;i++)
 		{
 			freeVMenv(status[i].env);
-			freeVMcode(status[i].proc);
+			freeVMproc(status[i].proc);
 		}
 		free(status);
 		free(cont);
@@ -919,7 +907,7 @@ VMstack* copyStack(VMstack* stack)
 		tmp->tpst=(uint32_t*)malloc(sizeof(uint32_t)*tmp->tpsi);
 		if(!tmp->tpst)
 			errors("copyStack",__FILE__,__LINE__);
-		if(tmp->tptp)memcpy(tmp->tpst,stack->tpst,sizeof(int32_t)*(tmp->tptp-1));
+		if(tmp->tptp)memcpy(tmp->tpst,stack->tpst,sizeof(int32_t)*(tmp->tptp));
 	}
 	return tmp;
 }

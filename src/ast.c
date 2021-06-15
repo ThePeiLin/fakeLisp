@@ -20,13 +20,13 @@ static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap,SymbolTable* 
 	initGlobEnv(vEnv,heap,table);
 	ByteCodelnt* tmpByteCode=cEnv->proc;
 	FakeVM* tmpVM=newTmpFakeVM(NULL);
-	VMproc* tmpVMcode=newVMcode(0,tmpByteCode->bc->size);
-	tmpVM->mainrunnable=newVMrunnable(tmpVMcode,NULL);
-	tmpVM->mainrunnable->localenv=vEnv;
+	VMproc* tmpVMproc=newVMproc(0,tmpByteCode->bc->size);
+	VMrunnable* mainrunnable=newVMrunnable(tmpVMproc,NULL);
+	mainrunnable->localenv=vEnv;
 	tmpVM->code=tmpByteCode->bc->code;
 	tmpVM->size=tmpByteCode->bc->size;
-	tmpVM->currunnable=tmpVM->mainrunnable;
-	tmpVMcode->prevEnv=NULL;
+	pushComStack(mainrunnable,tmpVM->rstack);
+	tmpVMproc->prevEnv=NULL;
 	tmpVM->table=table;
 	tmpVM->lnt=newLineNumTable();
 	tmpVM->lnt->num=tmpByteCode->ls;
@@ -40,13 +40,13 @@ static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap,SymbolTable* 
 		deleteCallChain(tmpVM);
 		freeVMenv(vEnv);
 		freeVMstack(tmpVM->stack);
-		freeVMcode(tmpVMcode);
+		freeVMproc(tmpVMproc);
 		free(tmpVM);
 		return NULL;
 	}
 	free(tmpVM->lnt);
 	freeVMstack(tmpVM->stack);
-	freeVMcode(tmpVMcode);
+	freeVMproc(tmpVMproc);
 	free(tmpVM);
 	codelntCopyCat(t,tmpByteCode);
 	return vEnv;
@@ -150,15 +150,15 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 			free(tmpVM);
 			return NULL;
 		}
-		VMproc* tmpVMcode=newVMcode(t->bc->size,pattern->proc->bc->size);
+		VMproc* tmpVMproc=newVMproc(t->bc->size,pattern->proc->bc->size);
 		codelntCopyCat(t,pattern->proc);
 		VMenv* stringPatternEnv=castPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->heap,inter->table);
-		tmpVMcode->prevEnv=NULL;
-		tmpVM->mainrunnable=newVMrunnable(tmpVMcode,NULL);
-		tmpVM->mainrunnable->localenv=stringPatternEnv;
+		tmpVMproc->prevEnv=NULL;
+		VMrunnable* mainrunnable=newVMrunnable(tmpVMproc,NULL);
+		mainrunnable->localenv=stringPatternEnv;
 		tmpVM->code=t->bc->code;
 		tmpVM->size=t->bc->size;
-		tmpVM->currunnable=tmpVM->mainrunnable;
+		pushComStack(mainrunnable,tmpVM->rstack);
 		tmpVM->table=inter->table;
 		tmpVM->lnt=newLineNumTable();
 		tmpVM->lnt->list=pattern->proc->l;
@@ -173,7 +173,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 		freeVMenv(tmpGlobEnv);
 		freeVMheap(tmpVM->heap);
 		freeVMstack(tmpVM->stack);
-		freeVMcode(tmpVMcode);
+		freeVMproc(tmpVMproc);
 		free(tmpVM);
 		destroyEnv(tmpEnv);
 		freeStringArry(parts,num);

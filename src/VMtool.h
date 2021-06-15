@@ -20,9 +20,9 @@ VMenvNode* newVMenvNode(VMvalue*,int32_t);
 VMenvNode* addVMenvNode(VMenvNode*,VMenv*);
 VMenvNode* findVMenvNode(int32_t,VMenv*);
 void freeVMenvNode(VMenvNode*);
-VMcode* newVMcode(uint32_t scp,uint32_t cpc);
-void increaseVMcodeRefcount(VMcode*);
-void decreaseVMcodeRefcount(VMcode*);
+VMproc* newVMcode(uint32_t scp,uint32_t cpc);
+void increaseVMcodeRefcount(VMproc*);
+void decreaseVMcodeRefcount(VMproc*);
 
 VMvalue* copyVMvalue(VMvalue*,VMheap*);
 VMvalue* newVMvalue(ValueType,void*,VMheap*,int);
@@ -70,19 +70,19 @@ volatile int32_t getNumChanl(volatile Chanl*);
 
 uint8_t* copyArry(size_t,uint8_t*);
 uint8_t* createByteString(int32_t);
-VMcode* copyVMcode(VMcode*,VMheap*);
+VMproc* copyVMcode(VMproc*,VMheap*);
 VMenv* copyVMenv(VMenv*,VMheap*);
 VMstack* copyStack(VMstack*);
-void freeVMcode(VMcode*);
+void freeVMcode(VMproc*);
 void freeVMstr(VMstr*);
 void freeVMenv(VMenv*);
 void releaseSource(pthread_rwlock_t*);
 void lockSource(pthread_rwlock_t*);
 VMvalue* getArg(VMstack*);
 
-int32_t countCallChain(VMprocess*);
+int32_t countCallChain(VMrunnable*);
 
-VMcontinuation* newVMcontinuation(VMstack*,VMprocess*);
+VMcontinuation* newVMcontinuation(VMstack*,VMrunnable*);
 void increaseVMcontRefcount(VMcontinuation*);
 void decreaseVMcontRefcount(VMcontinuation*);
 void freeVMcontinuation(VMcontinuation*);

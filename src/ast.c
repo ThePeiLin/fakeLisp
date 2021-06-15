@@ -20,12 +20,12 @@ static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap,SymbolTable* 
 	initGlobEnv(vEnv,heap,table);
 	ByteCodelnt* tmpByteCode=cEnv->proc;
 	FakeVM* tmpVM=newTmpFakeVM(NULL);
-	VMcode* tmpVMcode=newVMcode(0,tmpByteCode->bc->size);
-	tmpVM->mainproc=newFakeProcess(tmpVMcode,NULL);
-	tmpVM->mainproc->localenv=vEnv;
+	VMproc* tmpVMcode=newVMcode(0,tmpByteCode->bc->size);
+	tmpVM->mainrunnable=newVMrunnable(tmpVMcode,NULL);
+	tmpVM->mainrunnable->localenv=vEnv;
 	tmpVM->code=tmpByteCode->bc->code;
 	tmpVM->size=tmpByteCode->bc->size;
-	tmpVM->curproc=tmpVM->mainproc;
+	tmpVM->currunnable=tmpVM->mainrunnable;
 	tmpVMcode->prevEnv=NULL;
 	tmpVM->table=table;
 	tmpVM->lnt=newLineNumTable();
@@ -150,15 +150,15 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 			free(tmpVM);
 			return NULL;
 		}
-		VMcode* tmpVMcode=newVMcode(t->bc->size,pattern->proc->bc->size);
+		VMproc* tmpVMcode=newVMcode(t->bc->size,pattern->proc->bc->size);
 		codelntCopyCat(t,pattern->proc);
 		VMenv* stringPatternEnv=castPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->heap,inter->table);
 		tmpVMcode->prevEnv=NULL;
-		tmpVM->mainproc=newFakeProcess(tmpVMcode,NULL);
-		tmpVM->mainproc->localenv=stringPatternEnv;
+		tmpVM->mainrunnable=newVMrunnable(tmpVMcode,NULL);
+		tmpVM->mainrunnable->localenv=stringPatternEnv;
 		tmpVM->code=t->bc->code;
 		tmpVM->size=t->bc->size;
-		tmpVM->curproc=tmpVM->mainproc;
+		tmpVM->currunnable=tmpVM->mainrunnable;
 		tmpVM->table=inter->table;
 		tmpVM->lnt=newLineNumTable();
 		tmpVM->lnt->list=pattern->proc->l;

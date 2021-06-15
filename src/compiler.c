@@ -40,11 +40,11 @@ static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap,SymbolTable* 
 		ByteCodelnt* tmpByteCode=curEnv->proc;
 		codelntCopyCat(t,tmpByteCode);
 		FakeVM* tmpVM=newTmpFakeVM(NULL);
-		VMcode* tmpVMcode=newVMcode(bs,tmpByteCode->bc->size);
+		VMproc* tmpVMcode=newVMcode(bs,tmpByteCode->bc->size);
 		bs+=tmpByteCode->bc->size;
-		tmpVM->mainproc=newFakeProcess(tmpVMcode,NULL);
-		tmpVM->mainproc->localenv=vEnv;
-		tmpVM->curproc=tmpVM->mainproc;
+		tmpVM->mainrunnable=newVMrunnable(tmpVMcode,NULL);
+		tmpVM->mainrunnable->localenv=vEnv;
+		tmpVM->currunnable=tmpVM->mainrunnable;
 		tmpVM->code=t->bc->code;
 		tmpVM->size=t->bc->size;
 		tmpVMcode->prevEnv=NULL;
@@ -155,15 +155,15 @@ int PreMacroExpand(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 			free(tmpVM);
 			return 2;
 		}
-		VMcode* tmpVMcode=newVMcode(t->bc->size,tmp->proc->bc->size);
+		VMproc* tmpVMcode=newVMcode(t->bc->size,tmp->proc->bc->size);
 		codelntCopyCat(t,tmp->proc);
 		VMenv* macroVMenv=castPreEnvToVMenv(macroEnv,tmpGlob,tmpVM->heap,inter->table);
 		destroyEnv(macroEnv);
-		tmpVM->mainproc=newFakeProcess(tmpVMcode,NULL);
-		tmpVM->mainproc->localenv=macroVMenv;
+		tmpVM->mainrunnable=newVMrunnable(tmpVMcode,NULL);
+		tmpVM->mainrunnable->localenv=macroVMenv;
 		tmpVM->code=t->bc->code;
 		tmpVM->size=t->bc->size;
-		tmpVM->curproc=tmpVM->mainproc;
+		tmpVM->currunnable=tmpVM->mainrunnable;
 		tmpVMcode->prevEnv=NULL;
 		tmpVM->table=inter->table;
 		tmpVM->lnt=newLineNumTable();

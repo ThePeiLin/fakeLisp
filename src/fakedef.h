@@ -8,7 +8,7 @@
 #define NUMOFBUILTINSYMBOL 5
 #define MAX_STRING_SIZE 64
 
-typedef enum{NIL=0,IN32,CHR,DBL,SYM,STR,BYTS,PRC,CONT,CHAN,FP,DLL,DLPROC,PAIR,ATM} ValueType;
+typedef enum{NIL=0,IN32,CHR,DBL,SYM,STR,BYTS,PRC,CONT,CHAN,FP,DLL,DLPROC,ERR,PAIR,ATM} ValueType;
 
 typedef enum
 {
@@ -277,7 +277,7 @@ typedef struct VM_Code
 	uint32_t scp;
 	uint32_t cpc;
 	VMenv* prevEnv;
-}VMcode;
+}VMproc;
 
 typedef struct VM_Str
 {
@@ -290,8 +290,8 @@ typedef struct VM_Process
 	struct VM_Process* prev;
 	VMenv* localenv;
 	uint32_t cp;
-	VMcode* code;
-}VMprocess;
+	VMproc* code;
+}VMrunnable;
 
 typedef struct
 {
@@ -313,8 +313,8 @@ typedef struct FakeVM
 	pthread_t tid;
 	uint8_t* code;
 	uint32_t size;
-	VMprocess* curproc;
-	VMprocess* mainproc;
+	VMrunnable* currunnable;
+	VMrunnable* mainrunnable;
 	VMstack* stack;
 	struct Channel* chan;
 	struct Symbol_Table* table;
@@ -371,7 +371,7 @@ typedef struct String_Match_Pattern
 typedef struct VM_proc_status
 {
 	uint32_t cp;
-	VMcode* proc;
+	VMproc* proc;
 	VMenv* env;
 }VMprocStatus;
 

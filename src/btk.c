@@ -240,7 +240,7 @@ int FAKE_isEndOfFile(FakeVM* exe,pthread_rwlock_t* pGClock)
 		t=newTrueValue(exe->heap);
 	else
 		t=newNilValue(exe->heap);
-	SET_RETURN("FAKE_isEndOfFile",fp,stack);
+	SET_RETURN("FAKE_isEndOfFile",t,stack);
 	return 0;
 }
 #ifdef __cplusplus

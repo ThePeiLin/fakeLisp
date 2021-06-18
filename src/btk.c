@@ -224,6 +224,25 @@ int FAKE_setChanlBufferSize(FakeVM* exe,pthread_rwlock_t* pGClock)
 	SET_RETURN("FAKE_setChanlBufferSize",chan,stack);
 	return 0;
 }
+
+int FAKE_isEndOfFile(FakeVM* exe,pthread_rwlock_t* pGClock)
+{
+	VMstack* stack=exe->stack;
+	VMvalue* fp=getArg(stack);
+	VMvalue* t=NULL;
+	if(resBp(exe))
+		return TOOMANYARG;
+	if(fp==NULL)
+		return TOOFEWARG;
+	if(fp->type!=FP)
+		return WRONGARG;
+	if(feof(fp->u.fp->fp))
+		t=newTrueValue(exe->heap);
+	else
+		t=newNilValue(exe->heap);
+	SET_RETURN("FAKE_isEndOfFile",fp,stack);
+	return 0;
+}
 #ifdef __cplusplus
 }
 #endif

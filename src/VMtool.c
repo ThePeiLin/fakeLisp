@@ -18,7 +18,7 @@ pthread_mutex_t VMpairGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t VMcontinuationGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t ByteStringGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t VMfpGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t ChanlGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t VMChanlGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t VMDllGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t VMDlprocGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 
@@ -91,8 +91,8 @@ VMvalue* copyVMvalue(VMvalue* obj,VMheap* heap)
 				break;
 			case CHAN:
 				{
-					Chanl* objCh=root->u.chan;
-					Chanl* tmpCh=newChanl(objCh->max);
+					VMChanl* objCh=root->u.chan;
+					VMChanl* tmpCh=newVMChanl(objCh->max);
 					QueueNode* cur=objCh->messages->head;
 					for(;cur;cur=cur->next)
 					{
@@ -369,14 +369,14 @@ void decreaseVMfpRefcount(VMfp* fp)
 	DECREASE_REFCOUNT(VMfp,fp);
 }
 
-void increaseChanlRefcount(Chanl* chanl)
+void increaseVMChanlRefcount(VMChanl* chanl)
 {
-	INCREASE_REFCOUNT(Chanl,chanl);
+	INCREASE_REFCOUNT(VMChanl,chanl);
 }
 
-void decreaseChanlRefcount(Chanl* chanl)
+void decreaseVMChanlRefcount(VMChanl* chanl)
 {
-	DECREASE_REFCOUNT(Chanl,chanl);
+	DECREASE_REFCOUNT(VMChanl,chanl);
 }
 
 void increaseVMDllRefcount(VMDll* dll)
@@ -670,7 +670,7 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 				}
 				break;
 			case CHAN:
-				increaseChanlRefcount(sec->u.chan);
+				increaseVMChanlRefcount(sec->u.chan);
 				fir->u.chan=sec->u.chan;
 				break;
 			case FP:
@@ -728,7 +728,7 @@ void writeRef(VMvalue* fir,VMvalue* sec)
 				break;
 			case CHAN:
 				fir->u.chan=sec->u.chan;
-				increaseChanlRefcount(fir->u.chan);
+				increaseVMChanlRefcount(fir->u.chan);
 				break;
 			case FP:
 				fir->u.fp=sec->u.fp;
@@ -806,7 +806,7 @@ void freeRef(VMvalue* obj)
 				freeVMcontinuation(obj->u.cont);
 				break;
 			case CHAN:
-				freeChanl(obj->u.chan);
+				freeVMChanl(obj->u.chan);
 				break;
 			case FP:
 				freeVMfp(obj->u.fp);
@@ -982,11 +982,11 @@ void freeVMenvNode(VMenvNode* node)
 }
 
 
-Chanl* newChanl(int32_t maxSize)
+VMChanl* newVMChanl(int32_t maxSize)
 {
-	Chanl* tmp=(Chanl*)malloc(sizeof(Chanl));
+	VMChanl* tmp=(VMChanl*)malloc(sizeof(VMChanl));
 	if(!tmp)
-		errors("newChanl",__FILE__,__LINE__);
+		errors("newVMChanl",__FILE__,__LINE__);
 	pthread_mutex_init(&tmp->lock,NULL);
 	tmp->max=maxSize;
 	tmp->refcount=0;
@@ -996,7 +996,7 @@ Chanl* newChanl(int32_t maxSize)
 	return tmp;
 }
 
-volatile int32_t getNumChanl(volatile Chanl* ch)
+volatile int32_t getNumVMChanl(volatile VMChanl* ch)
 {
 	pthread_rwlock_rdlock((pthread_rwlock_t*)&ch->lock);
 	uint32_t i=0;
@@ -1005,10 +1005,10 @@ volatile int32_t getNumChanl(volatile Chanl* ch)
 	return i;
 }
 
-void freeChanl(Chanl* ch)
+void freeVMChanl(VMChanl* ch)
 {
 	if(ch->refcount)
-		decreaseChanlRefcount(ch);
+		decreaseVMChanlRefcount(ch);
 	else
 	{
 		pthread_mutex_destroy(&ch->lock);
@@ -1024,9 +1024,9 @@ void freeChanl(Chanl* ch)
 	}
 }
 
-Chanl* copyChanl(Chanl* ch,VMheap* heap)
+VMChanl* copyVMChanl(VMChanl* ch,VMheap* heap)
 {
-	Chanl* tmpCh=newChanl(ch->max);
+	VMChanl* tmpCh=newVMChanl(ch->max);
 	QueueNode* cur=ch->messages->head;
 	ComQueue* tmp=newComQueue();
 	for(;cur;cur=cur->next)
@@ -1204,7 +1204,7 @@ void freeSendT(SendT* s)
 	free(s);
 }
 
-void chanlRecv(RecvT* r,Chanl* ch)
+void chanlRecv(RecvT* r,VMChanl* ch)
 {
 	pthread_mutex_lock(&ch->lock);
 	if(!lengthComQueue(ch->messages))
@@ -1225,7 +1225,7 @@ void chanlRecv(RecvT* r,Chanl* ch)
 	pthread_mutex_unlock(&ch->lock);
 }
 
-void chanlSend(SendT*s,Chanl* ch)
+void chanlSend(SendT*s,VMChanl* ch)
 {
 	pthread_mutex_lock(&ch->lock);
 	if(lengthComQueue(ch->recvq))

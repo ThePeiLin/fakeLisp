@@ -68,16 +68,16 @@ typedef struct
 	uint8_t* code;
 }ByteCode;
 
-typedef struct ByteCode_Lable
+typedef struct ByteCodeLabel
 {
 	char* label;
 	int32_t place;
 }ByteCodeLabel;
 
-typedef struct Byte_Code_with_Line_Number_Node
+typedef struct
 {
 	int32_t ls;
-	struct Line_Number_Table_Node** l;
+	struct LineNumberTableNode** l;
 	ByteCode* bc;
 }ByteCodelnt;
 
@@ -107,7 +107,7 @@ typedef struct AST_pair
 	AST_cptr car,cdr;
 }AST_pair;
 
-typedef struct Channel
+typedef struct VMChanl
 {
 	uint32_t max;
 	uint32_t refcount;
@@ -115,12 +115,12 @@ typedef struct Channel
 	ComQueue* messages;
 	ComQueue* sendq;
 	ComQueue* recvq;
-}Chanl;
+}VMChanl;
 
 typedef struct
 {
 	pthread_cond_t cond;
-	struct VM_Value* m;
+	struct VMvalue* m;
 }SendT;
 
 typedef struct
@@ -129,7 +129,7 @@ typedef struct
 	struct FakeVM* v;
 }RecvT;
 
-typedef struct VM_File
+typedef struct VMfp
 {
 	uint32_t refcount;
 	FILE* fp;
@@ -176,13 +176,13 @@ typedef struct Pre_Macro
 	struct Pre_Macro* next;
 }PreMacro;
 
-typedef struct Symbol_Table_Node
+typedef struct SymTabNode
 {
 	char* symbol;
 	int32_t id;
 }SymTabNode;
 
-typedef struct Symbol_Table
+typedef struct SymbolTable
 {
 	int32_t num;
 	SymTabNode** list;
@@ -214,8 +214,8 @@ typedef struct Interpreter
 	FILE* file;
 	int curline;
 	CompEnv* glob;
-	struct Symbol_Table* table;
-	struct Line_Number_Table* lnt;
+	struct SymbolTable* table;
+	struct LineNumberTable* lnt;
 	struct Interpreter* prev;
 }Intpr;
 
@@ -228,11 +228,11 @@ typedef struct Key_Word
 typedef struct
 {
 	uint32_t refcount;
-	struct VM_Value* car;
-	struct VM_Value* cdr;
+	struct VMvalue* car;
+	struct VMvalue* cdr;
 }VMpair;
 
-typedef struct VM_Value
+typedef struct VMvalue
 {
 	unsigned int mark :1;
 	unsigned int access :1;
@@ -240,38 +240,38 @@ typedef struct VM_Value
 	union
 	{
 		char* chr;
-		struct VM_Str* str;
+		struct VMStr* str;
 		VMpair* pair;
 		ByteString* byts;
 		int32_t* in32;
 		double* dbl;
-		struct VM_Code* prc;
-		struct VM_Continuation* cont;
-		struct Channel* chan;
-		struct VM_File* fp;
-		struct VM_Dll* dll;
-		struct VM_Dlproc* dlproc;
+		struct VMproc* prc;
+		struct VMContinuation* cont;
+		struct VMChanl* chan;
+		struct VMfp* fp;
+		struct VMDll* dll;
+		struct VMDlproc* dlproc;
 		void* all;
 	}u;
-	struct VM_Value* prev;
-	struct VM_Value* next;
+	struct VMvalue* prev;
+	struct VMvalue* next;
 }VMvalue;
 
-typedef struct VM_Env_node
+typedef struct VMenvNode
 {
 	uint32_t id;
 	VMvalue* value;
 }VMenvNode;
 
-typedef struct VM_Env
+typedef struct VMenv
 {
-	struct VM_Env* prev;
+	struct VMenv* prev;
 	uint32_t refcount;
 	uint32_t num;
 	VMenvNode** list;
 }VMenv;
 
-typedef struct VM_Code
+typedef struct VMproc
 {
 	uint32_t refcount;
 	uint32_t scp;
@@ -279,7 +279,7 @@ typedef struct VM_Code
 	VMenv* prevEnv;
 }VMproc;
 
-typedef struct VM_Str
+typedef struct VMStr
 {
 	uint32_t refcount;
 	char* str;
@@ -314,14 +314,14 @@ typedef struct FakeVM
 	uint32_t size;
 	ComStack* rstack;
 	VMstack* stack;
-	struct Channel* chan;
-	struct Symbol_Table* table;
-	struct VM_Heap* heap;
-	struct Line_Number_Table* lnt;
+	struct VMChanl* chan;
+	struct SymbolTable* table;
+	struct VMHeap* heap;
+	struct LineNumberTable* lnt;
 	void (*callback)(void*);
 }FakeVM;
 
-typedef struct VM_Heap
+typedef struct VMHeap
 {
 	pthread_mutex_t lock;
 	uint32_t num;
@@ -344,36 +344,42 @@ typedef void* DllHandle;
 
 typedef int (*DllFunc)(FakeVM*,pthread_rwlock_t*);
 
-typedef struct VM_Dll
+typedef struct VMDll
 {
 	uint32_t refcount;
 	DllHandle handle;
 }VMDll;
 
-typedef struct VM_Dlproc
+typedef struct VMDlproc
 {
 	uint32_t refcount;
 	DllFunc func;
 	VMDll* dll;
 }VMDlproc;
 
-typedef struct String_Match_Pattern
+typedef struct StringMatchPattern
 {
 	uint32_t num;
 	char** parts;
 	ByteCodelnt* proc;
-	struct String_Match_Pattern* prev;
-	struct String_Match_Pattern* next;
+	struct StringMatchPattern* prev;
+	struct StringMatchPattern* next;
 }StringMatchPattern;
 
-typedef struct VM_proc_status
+typedef struct VMprocStatus
 {
 	uint32_t cp;
 	VMproc* proc;
 	VMenv* env;
 }VMprocStatus;
 
-typedef struct VM_Continuation
+typedef struct
+{
+	uint32_t refcount;
+	char* sym;
+}VMerror;
+
+typedef struct VMContinuation
 {
 	uint32_t refcount;
 	uint32_t num;
@@ -381,13 +387,13 @@ typedef struct VM_Continuation
 	VMprocStatus* status;
 }VMcontinuation;
 
-typedef struct Line_Number_Table
+typedef struct LineNumberTable
 {
 	uint32_t num;
-	struct Line_Number_Table_Node** list;
+	struct LineNumberTableNode** list;
 }LineNumberTable;
 
-typedef struct Line_Number_Table_Node
+typedef struct LineNumberTableNode
 {
 	uint32_t fid;
 	uint32_t scp;

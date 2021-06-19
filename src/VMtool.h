@@ -60,13 +60,13 @@ void decreaseByteStringRefcount(ByteString*);
 ByteString* copyByteArry(const ByteString*);
 ByteString* newEmptyByteArry();
 
-Chanl* newChanl(int32_t size);
-void increaseChanlRefcount(Chanl*);
-void decreaseChanlRefcount(Chanl*);
+VMChanl* newVMChanl(int32_t size);
+void increaseVMChanlRefcount(VMChanl*);
+void decreaseVMChanlRefcount(VMChanl*);
 
-void freeChanl(Chanl*);
-Chanl* copyChanl(Chanl*,VMheap*);
-volatile int32_t getNumChanl(volatile Chanl*);
+void freeVMChanl(VMChanl*);
+VMChanl* copyVMChanl(VMChanl*,VMheap*);
+volatile int32_t getNumVMChanl(volatile VMChanl*);
 
 uint8_t* copyArry(size_t,uint8_t*);
 uint8_t* createByteString(int32_t);
@@ -107,6 +107,6 @@ void freeRecvT(RecvT*);
 SendT* newSendT(VMvalue*);
 void freeSendT(SendT*);
 
-void chanlSend(SendT*,Chanl*);
-void chanlRecv(RecvT*,Chanl*);
+void chanlSend(SendT*,VMChanl*);
+void chanlRecv(RecvT*,VMChanl*);
 #endif

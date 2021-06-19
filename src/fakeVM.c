@@ -283,7 +283,7 @@ void* ThreadVMFunc(void* p)
 {
 	FakeVM* exe=(FakeVM*)p;
 	int64_t status=runFakeVM(exe);
-	Chanl* tmpCh=exe->chan;
+	VMChanl* tmpCh=exe->chan;
 	exe->chan=NULL;
 	if(!status)
 	{
@@ -293,7 +293,7 @@ void* ThreadVMFunc(void* p)
 		SendT* t=newSendT(tmp);
 		chanlSend(t,tmpCh);
 	}
-	freeChanl(tmpCh);
+	freeVMChanl(tmpCh);
 	freeVMstack(exe->stack);
 	exe->stack=NULL;
 	exe->lnt=NULL;
@@ -1879,7 +1879,7 @@ int B_length(FakeVM* exe)
 		stack->values[stack->tp-1]=newVMvalue(IN32,&objlist->u.byts->size,exe->heap,1);
 	else if(objlist->type==CHAN)
 	{
-		int32_t i=getNumChanl((volatile Chanl*)objlist->u.chan);
+		int32_t i=getNumVMChanl((volatile VMChanl*)objlist->u.chan);
 		stack->values[stack->tp-1]=newVMvalue(IN32,&i,exe->heap,1);
 	}
 	runnable->cp+=1;
@@ -2113,13 +2113,13 @@ int B_go(FakeVM* exe)
 		threadArg=threadArg->u.pair->cdr;
 	}
 	threadVM->chan->refcount+=1;
-	Chanl* chan=threadVM->chan;
+	VMChanl* chan=threadVM->chan;
 	stack->tp-=1;
 	int32_t faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMFunc,threadVM);
 	if(faildCode)
 	{
 		threadVM->chan->refcount-=1;
-		freeChanl(threadVM->chan);
+		freeVMChanl(threadVM->chan);
 		deleteCallChain(threadVM);
 		threadVM->mark=0;
 		freeVMstack(threadVM->stack);
@@ -2130,8 +2130,8 @@ int B_go(FakeVM* exe)
 	}
 	else
 	{
-		VMvalue* threadChanl=newVMvalue(CHAN,chan,exe->heap,1);
-		stack->values[stack->tp-1]=threadChanl;
+		VMvalue* threadVMChanl=newVMvalue(CHAN,chan,exe->heap,1);
+		stack->values[stack->tp-1]=threadVMChanl;
 	}
 	runnable->cp+=1;
 	return 0;
@@ -2145,7 +2145,7 @@ int B_chanl(FakeVM* exe)
 	if(maxSize->type!=IN32)
 		return WRONGARG;
 	int32_t max=*maxSize->u.in32;
-	VMvalue* objValue=newVMvalue(CHAN,newChanl(max),exe->heap,1);
+	VMvalue* objValue=newVMvalue(CHAN,newVMChanl(max),exe->heap,1);
 	stack->values[stack->tp-1]=objValue;
 	runnable->cp+=1;
 	return 0;
@@ -2159,7 +2159,7 @@ int B_send(FakeVM* exe)
 	if(ch->type!=CHAN)
 		return WRONGARG;
 	VMvalue* message=getValue(stack,stack->tp-2);
-	Chanl* tmpCh=ch->u.chan;
+	VMChanl* tmpCh=ch->u.chan;
 	VMvalue* tmp=newNilValue(exe->heap);
 	tmp->access=1;
 	copyRef(tmp,message);
@@ -2178,7 +2178,7 @@ int B_recv(FakeVM* exe)
 	VMvalue* ch=getTopValue(stack);
 	if(ch->type!=CHAN)
 		return WRONGARG;
-	Chanl* tmpCh=ch->u.chan;
+	VMChanl* tmpCh=ch->u.chan;
 	RecvT* t=newRecvT(exe);
 	chanlRecv(t,tmpCh);
 	runnable->cp+=1;
@@ -2664,7 +2664,7 @@ FakeVM* newThreadVM(VMproc* mainCode,VMheap* heap)
 	exe->mark=1;
 	exe->argc=0;
 	exe->argv=NULL;
-	exe->chan=newChanl(0);
+	exe->chan=newVMChanl(0);
 	exe->stack=newVMstack(0);
 	exe->heap=heap;
 	exe->callback=NULL;
@@ -2742,7 +2742,7 @@ void cancelAllThread()
 		{
 			pthread_cancel(cur->tid);
 			pthread_join(cur->tid,NULL);
-			freeChanl(cur->chan);
+			freeVMChanl(cur->chan);
 			deleteCallChain(cur);
 			freeVMstack(cur->stack);
 			freeComStack(cur->rstack);

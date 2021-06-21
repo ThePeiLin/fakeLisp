@@ -251,6 +251,7 @@ typedef struct VMvalue
 		struct VMfp* fp;
 		struct VMDll* dll;
 		struct VMDlproc* dlproc;
+		struct VMerror* err;
 		void* all;
 	}u;
 	struct VMvalue* prev;
@@ -373,10 +374,11 @@ typedef struct VMprocStatus
 	VMenv* env;
 }VMprocStatus;
 
-typedef struct
+typedef struct VMerror
 {
 	uint32_t refcount;
-	char* sym;
+	char* type;
+	char* message;
 }VMerror;
 
 typedef struct VMContinuation

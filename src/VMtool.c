@@ -21,6 +21,7 @@ pthread_mutex_t VMfpGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t VMChanlGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t VMDllGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t VMDlprocGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t VMerrorGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 
 #define INCREASE_REFCOUNT(TYPE,PV) {\
 	if((PV))\
@@ -399,6 +400,16 @@ void decreaseVMDlprocRefcount(VMDlproc* dlproc)
 	DECREASE_REFCOUNT(VMDlproc,dlproc);
 }
 
+void increaseVMerrorRefcount(VMerror* err)
+{
+	INCREASE_REFCOUNT(VMerror,err);
+}
+
+void decreaseVMerrorRefcount(VMerror* err)
+{
+	DECREASE_REFCOUNT(VMerror,err);
+}
+
 VMpair* newVMpair(VMheap* heap)
 {
 	VMpair* tmp=(VMpair*)malloc(sizeof(VMpair));
@@ -685,6 +696,9 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 				increaseVMDlprocRefcount(sec->u.dlproc);
 				fir->u.dlproc=sec->u.dlproc;
 				break;
+			case ERR:
+				increaseVMerrorRefcount(sec->u.err);
+				fir->u.err=sec->u.err;
 			case NIL:
 				fir->u.all=NULL;
 				break;
@@ -761,6 +775,10 @@ void writeRef(VMvalue* fir,VMvalue* sec)
 					increaseByteStringRefcount(fir->u.byts);
 				}
 				break;
+			case ERR:
+				fir->u.err=sec->u.err;
+				increaseVMerrorRefcount(fir->u.err);
+				break;
 		}
 	}
 }
@@ -816,6 +834,9 @@ void freeRef(VMvalue* obj)
 				break;
 			case DLPROC:
 				freeVMDlproc(obj->u.dlproc);
+				break;
+			case ERR:
+				freeVMerror(obj->u.err);
 				break;
 		}
 	}
@@ -1173,6 +1194,29 @@ void freeVMDlproc(VMDlproc* dlproc)
 	{
 		freeVMDll(dlproc->dll);
 		free(dlproc);
+	}
+}
+
+VMerror* newVMerror(const char* type,const char* message)
+{
+	VMerror* t=(VMerror*)malloc(sizeof(VMerror));
+	if(!t)
+		errors("newVMerror",__FILE__,__LINE__);
+	t->refcount=0;
+	t->type=copyStr(type);
+	t->message=copyStr(type);
+	return t;
+}
+
+void freeVMerror(VMerror* err)
+{
+	if(err->refcount)
+		decreaseVMerrorRefcount(err);
+	else
+	{
+		free(err->type);
+		free(err->message);
+		free(err);
 	}
 }
 

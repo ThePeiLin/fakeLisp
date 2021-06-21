@@ -165,12 +165,12 @@ static int (*ByteCodes[])(FakeVM*)=
 	B_atom,
 	B_null,
 	B_type,
-	B_cast_to_chr,
-	B_cast_to_int,
-	B_cast_to_dbl,
-	B_cast_to_str,
-	B_cast_to_sym,
-	B_cast_to_byte,
+	B_chr,
+	B_int,
+	B_dbl,
+	B_str,
+	B_sym,
+	B_byte,
 	B_nth,
 	B_length,
 	B_appd,
@@ -194,6 +194,8 @@ static int (*ByteCodes[])(FakeVM*)=
 	B_chanl,
 	B_send,
 	B_recv,
+	B_error,
+	B_raise
 };
 
 FakeVM* newFakeVM(ByteCode* mainCode)
@@ -732,11 +734,15 @@ int B_push_proc(FakeVM* exe)
 int B_push_list_arg(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
+	ComStack* comStack=newComStack(32);
 	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* tmpList=getTopValue(stack);
 	stack->tp-=1;
-	while(tmpList->type!=NIL)
+	for(;tmpList->type!=NIL;tmpList=getVMpairCdr(tmpList))
+		pushComStack(getVMpairCar(tmpList),comStack);
+	while(!isComStackEmpty(comStack))
 	{
+		VMvalue* t=popComStack(comStack);
 		if(stack->tp>=stack->size)
 		{
 			stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
@@ -744,11 +750,12 @@ int B_push_list_arg(FakeVM* exe)
 			stack->size+=64;
 		}
 		VMvalue* tmp=newNilValue(exe->heap);
-		copyRef(tmp,tmpList->u.pair->car);
+		tmp->access=1;
+		copyRef(tmp,t);
 		stack->values[stack->tp]=tmp;
 		stack->tp+=1;
-		tmpList=tmpList->u.pair->cdr;
 	}
+	freeComStack(comStack);
 	runnable->cp+=1;
 	return 0;
 }
@@ -1602,7 +1609,7 @@ int B_not(FakeVM* exe)
 	return 0;
 }
 
-int B_cast_to_chr(FakeVM* exe)
+int B_chr(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
@@ -1633,7 +1640,7 @@ int B_cast_to_chr(FakeVM* exe)
 	return 0;
 }
 
-int B_cast_to_int(FakeVM* exe)
+int B_int(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
@@ -1666,7 +1673,7 @@ int B_cast_to_int(FakeVM* exe)
 	return 0;
 }
 
-int B_cast_to_dbl(FakeVM* exe)
+int B_dbl(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
@@ -1699,7 +1706,7 @@ int B_cast_to_dbl(FakeVM* exe)
 	return 0;
 }
 
-int B_cast_to_str(FakeVM* exe)
+int B_str(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
@@ -1717,7 +1724,7 @@ int B_cast_to_str(FakeVM* exe)
 			break;
 		case CHR:
 			tmpValue->u.str->str=(char*)malloc(sizeof(char)*2);
-			if(tmpValue->u.str->str==NULL)errors("B_cast_to_str",__FILE__,__LINE__);
+			if(tmpValue->u.str->str==NULL)errors("B_str",__FILE__,__LINE__);
 			tmpValue->u.str->str[0]=*topValue->u.chr;
 			tmpValue->u.str->str[1]='\0';
 			break;
@@ -1734,7 +1741,7 @@ int B_cast_to_str(FakeVM* exe)
 	return 0;
 }
 
-int B_cast_to_sym(FakeVM* exe)
+int B_sym(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
@@ -1752,7 +1759,7 @@ int B_cast_to_sym(FakeVM* exe)
 			break;
 		case CHR:
 			tmpValue->u.str->str=(char*)malloc(sizeof(char)*2);
-			if(tmpValue->u.str->str==NULL)errors("B_cast_to_sym",__FILE__,__LINE__);
+			if(tmpValue->u.str->str==NULL)errors("B_sym",__FILE__,__LINE__);
 			tmpValue->u.str->str[0]=*topValue->u.chr;
 			tmpValue->u.str->str[1]='\0';
 			break;
@@ -1769,7 +1776,7 @@ int B_cast_to_sym(FakeVM* exe)
 	return 0;
 }
 
-int B_cast_to_byte(FakeVM* exe)
+int B_byte(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
@@ -2182,6 +2189,16 @@ int B_recv(FakeVM* exe)
 	RecvT* t=newRecvT(exe);
 	chanlRecv(t,tmpCh);
 	runnable->cp+=1;
+	return 0;
+}
+
+int B_error(FakeVM* exe)
+{
+	return 0;
+}
+
+int B_raise(FakeVM* exe)
+{
 	return 0;
 }
 

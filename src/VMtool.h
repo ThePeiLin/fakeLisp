@@ -101,6 +101,11 @@ void increaseVMDlprocRefcount(VMDlproc*);
 void decreaseVMDlprocRefcount(VMDlproc*);
 void freeVMDlproc(VMDlproc*);
 
+VMerror* newVMerror(const char* type,const char* message);
+void increaseVMerrorRefcount(VMerror*);
+void decreaseVMerrorRefcount(VMerror*);
+void freeVMerror(VMerror*);
+
 RecvT* newRecvT(FakeVM*);
 void freeRecvT(RecvT*);
 

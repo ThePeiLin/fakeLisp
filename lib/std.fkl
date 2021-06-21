@@ -646,11 +646,7 @@
 
          (define print
            (lambda l
-             (define p-iter
-               (lambda (c)
-                 (cond (c (princ (car c) stdout)
-                          (p-iter (cdr c))))))
-             (p-iter l)))
+             (aply fprint (cons stdout l))))
 
          (define fwrite
            (lambda (f,l)

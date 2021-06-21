@@ -1,5 +1,6 @@
 objectOfFakeLisp=fakeLisp.o common.o syntax.o compiler.o fakeVM.o VMtool.o ast.o reader.o
 objectOfFakeLispc=fakeLispc.o common.o syntax.o compiler.o fakeVM.o VMtool.o ast.o reader.o
+exeFile=fakeLisp fakeLispc
 ifeq ($(DEBUG),YES)
 FLAG=-g -Wall
 else
@@ -7,9 +8,12 @@ FLAG=-O3 -Wall
 endif
 
 ifeq ($(OS),WINDOWS)
+exeFile=fakeLisp.exe fakeLispc.exe
+DLLAPPENDFIX= .dll
 LINK=-lpthread
 BTK=btk.dll
 else
+DLLAPPENDFIX= .so
 LINK=-lpthread -ldl
 BTK=btk.so
 endif
@@ -45,8 +49,4 @@ btk.so: src/btk.c VMtool.o common.o
 
 .PHONY: clean
 clean:
-ifeq ($(OS),WINDOWS)
-	del *.o fakeLisp.exe fakeLispc.exe btk.dll
-else
-	rm *.o fakeLisp fakeLispc btk.so
-endif
+	rm *.o $(exeFile) btk$(DLLAPPENDFIX)

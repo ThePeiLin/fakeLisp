@@ -404,12 +404,12 @@ typedef struct LineNumberTableNode
 	uint32_t line;
 }LineNumTabNode;
 
-typedef struct TryBlock
+typedef struct VMTryBlock
 {
-	char* errorSymbol;
+	char* errSymbol;
 	char* ccSymbol;
 	ComStack* hstack;
-}TryBlock;
+}VMTryBlock;
 
 typedef struct VMerrorHandler
 {

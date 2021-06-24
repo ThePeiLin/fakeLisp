@@ -21,7 +21,7 @@ static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap,SymbolTable* 
 	ByteCodelnt* tmpByteCode=cEnv->proc;
 	FakeVM* tmpVM=newTmpFakeVM(NULL);
 	VMproc* tmpVMproc=newVMproc(0,tmpByteCode->bc->size);
-	VMrunnable* mainrunnable=newVMrunnable(tmpVMproc,NULL);
+	VMrunnable* mainrunnable=newVMrunnable(tmpVMproc);
 	mainrunnable->localenv=vEnv;
 	tmpVM->code=tmpByteCode->bc->code;
 	tmpVM->size=tmpByteCode->bc->size;
@@ -158,7 +158,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 		codelntCopyCat(t,pattern->proc);
 		VMenv* stringPatternEnv=castPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->heap,inter->table);
 		tmpVMproc->prevEnv=NULL;
-		VMrunnable* mainrunnable=newVMrunnable(tmpVMproc,NULL);
+		VMrunnable* mainrunnable=newVMrunnable(tmpVMproc);
 		mainrunnable->localenv=stringPatternEnv;
 		tmpVM->code=t->bc->code;
 		tmpVM->size=t->bc->size;

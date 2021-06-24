@@ -74,8 +74,8 @@ enum opcode
 	FAKE_RECV,
 	FAKE_ERROR,
 	FAKE_RAISE,
-	FAKE_PUSH_CATCH,
-	FAKE_POP_CATCH,
+	FAKE_PUSH_TRY,
+	FAKE_POP_TRY,
 };
 
 #ifdef USE_CODE_NAME
@@ -161,8 +161,8 @@ static codeinfor codeName[]=
 	{"recv",0},
 	{"error",0},
 	{"raise",0},
-	{"push_catch",0},
-	{"pop_catch",0},
+	{"push_try",0},
+	{"pop_try",0},
 };
 #endif
 #endif

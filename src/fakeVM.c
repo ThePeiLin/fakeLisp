@@ -17,6 +17,7 @@
 #include<unistd.h>
 #include<time.h>
 
+extern const char* builtInErrorType[15];
 static int envNodeCmp(const void* a,const void* b)
 {
 	return ((*(VMenvNode**)a)->id-(*(VMenvNode**)b)->id);
@@ -26,6 +27,18 @@ static int32_t getSymbolIdInByteCode(const uint8_t*);
 extern char* builtInSymbolList[NUMOFBUILTINSYMBOL];
 pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
 FakeVMlist GlobFakeVMs={0,NULL};
+
+int defaultErrorHandler(FakeVM* exe,VMerror* err)
+{
+	fprintf(stderr,"%s : %s",err->type,err->message);
+	if(exe->VMid==-1)
+		return 1;
+	else if(exe->VMid!=0)
+		return 255;
+	int i[2]={255,1};
+	exe->callback(i);
+	return 0;
+}
 
 static CRL* newCRL(VMpair* pair,int32_t count)
 {
@@ -195,7 +208,9 @@ static int (*ByteCodes[])(FakeVM*)=
 	B_send,
 	B_recv,
 	B_error,
-	B_raise
+	B_raise,
+	B_push_try,
+	B_pop_try,
 };
 
 FakeVM* newFakeVM(ByteCode* mainCode)
@@ -211,7 +226,7 @@ FakeVM* newFakeVM(ByteCode* mainCode)
 		exe->code=copyMemory(mainCode->code,mainCode->size);
 		exe->size=mainCode->size;
 		tmpVMproc=newVMproc(0,mainCode->size);
-		pushComStack(newVMrunnable(tmpVMproc,NULL),exe->rstack);
+		pushComStack(newVMrunnable(tmpVMproc),exe->rstack);
 		freeVMproc(tmpVMproc);
 	}
 	exe->argc=0;
@@ -219,6 +234,7 @@ FakeVM* newFakeVM(ByteCode* mainCode)
 	exe->mark=1;
 	exe->chan=NULL;
 	exe->stack=newVMstack(0);
+	exe->tstack=newComStack(32);
 	exe->heap=newVMheap();
 	exe->callback=NULL;
 	FakeVM** ppFakeVM=NULL;
@@ -254,13 +270,14 @@ FakeVM* newTmpFakeVM(ByteCode* mainCode)
 	{
 		exe->code=copyMemory(mainCode->code,mainCode->size);
 		exe->size=mainCode->size;
-		pushComStack(newVMrunnable(newVMproc(0,mainCode->size),NULL),exe->rstack);
+		pushComStack(newVMrunnable(newVMproc(0,mainCode->size)),exe->rstack);
 	}
 	exe->mark=1;
 	exe->argc=0;
 	exe->argv=NULL;
 	exe->chan=NULL;
 	exe->stack=newVMstack(0);
+	exe->tstack=newComStack(32);
 	exe->heap=newVMheap();
 	exe->callback=NULL;
 	exe->VMid=-1;
@@ -302,6 +319,7 @@ void* ThreadVMFunc(void* p)
 	exe->table=NULL;
 	if(status!=0)
 		deleteCallChain(exe);
+	freeComStack(exe->tstack);
 	freeComStack(exe->rstack);
 	exe->mark=0;
 	return (void*)status;
@@ -1278,7 +1296,7 @@ int B_invoke(FakeVM* exe)
 		}
 		else
 		{
-			VMrunnable* tmpRunnable=newVMrunnable(tmpProc,runnable);
+			VMrunnable* tmpRunnable=newVMrunnable(tmpProc);
 			tmpRunnable->localenv=newVMenv(tmpProc->prevEnv);
 			pushComStack(tmpRunnable,exe->rstack);
 			runnable->cp+=1;
@@ -2194,10 +2212,32 @@ int B_recv(FakeVM* exe)
 
 int B_error(FakeVM* exe)
 {
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* type=getTopValue(stack);
+	VMvalue* message=getValue(stack,stack->tp-2);
+	if(type->type!=SYM||message->type!=STR)
+		return WRONGARG;
+	VMerror* err=newVMerror(type->u.str->str,message->u.str->str);
+	VMvalue* toReturn=newVMvalue(ERR,err,exe->heap,1);
+	stack->tp-=1;
+	stackRecycle(exe);
+	stack->values[stack->tp-1]=toReturn;
+	runnable->cp+=1;
 	return 0;
 }
 
 int B_raise(FakeVM* exe)
+{
+	return 0;
+}
+
+int B_push_try(FakeVM* exe)
+{
+	return 0;
+}
+
+int B_pop_try(FakeVM* exe)
 {
 	return 0;
 }
@@ -2408,7 +2448,7 @@ void stackRecycle(FakeVM* exe)
 	}
 }
 
-VMrunnable* newVMrunnable(VMproc* code,VMrunnable* prev)
+VMrunnable* newVMrunnable(VMproc* code)
 {
 	VMrunnable* tmp=(VMrunnable*)malloc(sizeof(VMrunnable));
 	if(tmp==NULL)errors("newVMrunnable",__FILE__,__LINE__);
@@ -2674,7 +2714,7 @@ FakeVM* newThreadVM(VMproc* mainCode,VMheap* heap)
 {
 	FakeVM* exe=(FakeVM*)malloc(sizeof(FakeVM));
 	if(exe==NULL)errors("newThreadVM",__FILE__,__LINE__);
-	VMrunnable* t=newVMrunnable(mainCode,NULL);
+	VMrunnable* t=newVMrunnable(mainCode);
 	t->localenv=newVMenv(mainCode->prevEnv);
 	exe->rstack=newComStack(32);
 	pushComStack(t,exe->rstack);
@@ -2682,6 +2722,7 @@ FakeVM* newThreadVM(VMproc* mainCode,VMheap* heap)
 	exe->argc=0;
 	exe->argv=NULL;
 	exe->chan=newVMChanl(0);
+	exe->tstack=newComStack(32);
 	exe->stack=newVMstack(0);
 	exe->heap=heap;
 	exe->callback=NULL;
@@ -2718,6 +2759,7 @@ void freeAllVMs()
 {
 	int i=1;
 	FakeVM* cur=GlobFakeVMs.VMs[0];
+	freeComStack(cur->tstack);
 	freeComStack(cur->rstack);
 	freeVMstack(cur->stack);
 	free(cur->code);
@@ -2763,6 +2805,7 @@ void cancelAllThread()
 			deleteCallChain(cur);
 			freeVMstack(cur->stack);
 			freeComStack(cur->rstack);
+			freeComStack(cur->tstack);
 		}
 	}
 }
@@ -2827,4 +2870,41 @@ int32_t getSymbolIdInByteCode(const uint8_t* code)
 	return -1;
 }
 
-
+int raiseVMerror(VMerror* err,FakeVM* exe)
+{
+	if(isComStackEmpty(exe->tstack))
+		return defaultErrorHandler(exe,err);
+	else
+	{
+		while(!isComStackEmpty(exe->tstack))
+		{
+			TryBlock* tb=popComStack(exe->tstack);
+			while(!isComStackEmpty(tb->hstack))
+			{
+				VMerrorHandler* h=popComStack(tb->hstack);
+				if(strcmp(h->type,err->type))
+				{
+					VMcontinuation* cc=newVMcontinuation(exe->stack,exe->rstack);
+					VMrunnable* runnable=topComStack(exe->rstack);
+					VMrunnable* otherRunnable=newVMrunnable(h->proc);
+					otherRunnable->localenv->prev=newVMenv(runnable->localenv);
+					VMenv* curEnv=otherRunnable->localenv;
+					uint32_t idOfError=findSymbol(tb->errorSymbol,exe->table)->id;
+					uint32_t idOfCC=findSymbol(tb->ccSymbol,exe->table)->id;
+					VMenvNode* errorNode=findVMenvNode(idOfError,curEnv);
+					VMenvNode* ccNode=findVMenvNode(idOfCC,curEnv);
+					VMvalue* ccValue=newVMvalue(CONT,cc,exe->heap,1);
+					if(!errorNode)
+						errorNode=addVMenvNode(newVMenvNode(NULL,idOfError),curEnv);
+					if(!ccNode)
+						ccNode=addVMenvNode(newVMenvNode(NULL,idOfCC),curEnv);
+					errorNode->value=newVMvalue(ERR,err,exe->heap,1);
+					ccNode->value=ccValue;
+					pushComStack(otherRunnable,exe->rstack);
+					return 1;
+				}
+			}
+		}
+	}
+	return 255;
+}

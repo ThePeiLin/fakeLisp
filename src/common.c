@@ -20,6 +20,25 @@
 	freeLineNumTabNode((l)[i]);\
 }
 
+const char* builtInErrorType[15]=
+{
+	"dummy",
+	"symbol-undefined",
+	"syntax-error",
+	"invalid-expression",
+	"circular-load",
+	"wrong-types-of-arguements",
+	"too-many-arguements",
+	"too-few-arguements",
+	"cant-create-threads",
+	"macro-expand-error",
+	"invoke-error",
+	"load-dll-faild",
+	"invalid-symbol",
+	"library-undefined",
+	"unexpect-eof"
+};
+
 char* InterpreterPath=NULL;
 char* builtInSymbolList[NUMOFBUILTINSYMBOL]=
 {

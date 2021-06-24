@@ -42,7 +42,7 @@ static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap,SymbolTable* 
 		FakeVM* tmpVM=newTmpFakeVM(NULL);
 		VMproc* tmpVMproc=newVMproc(bs,tmpByteCode->bc->size);
 		bs+=tmpByteCode->bc->size;
-		VMrunnable* mainrunnable=newVMrunnable(tmpVMproc,NULL);
+		VMrunnable* mainrunnable=newVMrunnable(tmpVMproc);
 		mainrunnable->localenv=vEnv;
 		pushComStack(mainrunnable,tmpVM->rstack);
 		tmpVM->code=t->bc->code;
@@ -162,7 +162,7 @@ int PreMacroExpand(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 		codelntCopyCat(t,tmp->proc);
 		VMenv* macroVMenv=castPreEnvToVMenv(macroEnv,tmpGlob,tmpVM->heap,inter->table);
 		destroyEnv(macroEnv);
-		VMrunnable* mainrunnable=newVMrunnable(tmpVMproc,NULL);
+		VMrunnable* mainrunnable=newVMrunnable(tmpVMproc);
 		mainrunnable->localenv=macroVMenv;
 		tmpVM->code=t->bc->code;
 		tmpVM->size=t->bc->size;

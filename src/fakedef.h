@@ -314,6 +314,7 @@ typedef struct FakeVM
 	uint8_t* code;
 	uint32_t size;
 	ComStack* rstack;
+	ComStack* tstack;
 	VMstack* stack;
 	struct VMChanl* chan;
 	struct SymbolTable* table;
@@ -402,4 +403,17 @@ typedef struct LineNumberTableNode
 	uint32_t cpc;
 	uint32_t line;
 }LineNumTabNode;
+
+typedef struct TryBlock
+{
+	char* errorSymbol;
+	char* ccSymbol;
+	ComStack* hstack;
+}TryBlock;
+
+typedef struct VMerrorHandler
+{
+	char* type;
+	VMproc* proc;
+}VMerrorHandler;
 #endif

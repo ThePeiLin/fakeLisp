@@ -234,7 +234,7 @@ void runIntpr(Intpr* inter)
 				bs+=tmpByteCode->bc->size;
 				freeByteCodelnt(tmpByteCode);
 				tmp->prevEnv=NULL;
-				VMrunnable* mainrunnable=newVMrunnable(tmp,NULL);
+				VMrunnable* mainrunnable=newVMrunnable(tmp);
 				mainrunnable->localenv=globEnv;
 				pushComStack(mainrunnable,anotherVM->rstack);
 				globEnv->refcount+=1;

@@ -166,6 +166,8 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap,int access)
 			tmp->u.dll=pValue;break;
 		case DLPROC:
 			tmp->u.dlproc=pValue;break;
+		case ERR:
+			tmp->u.err=pValue;break;
 	}
 	return tmp;
 }
@@ -218,7 +220,7 @@ int VMvaluecmp(VMvalue* fir,VMvalue* sec)
 		VMvalue* root2=popComStack(s2);
 		if((root1==root2)||(root1->type!=root2->type)||(root1->u.all==root2->u.all))
 			r=1;
-		else
+		else if((root1->type>=IN32&&root1->type<=BYTS)||(root1->type==PAIR))
 		{
 			switch(root1->type)
 			{
@@ -235,8 +237,8 @@ int VMvaluecmp(VMvalue* fir,VMvalue* sec)
 				case SYM:
 					r=(!strcmp(root1->u.str->str,root2->u.str->str));
 					break;
-				case PRC:
-					r=(root1->u.prc==root2->u.prc);
+				case BYTS:
+					r=bytsStrEq(root1->u.byts,root2->u.byts);
 					break;
 				case PAIR:
 					r=1;
@@ -245,13 +247,12 @@ int VMvaluecmp(VMvalue* fir,VMvalue* sec)
 					pushComStack(root2->u.pair->car,s2);
 					pushComStack(root2->u.pair->cdr,s2);
 					break;
-				case BYTS:
-					r=bytsStrEq(root1->u.byts,root2->u.byts);
-					break;
 			}
 			if(!r)
 				break;
 		}
+		else
+			r=(root1->u.all==root2->u.all);
 	}
 	freeComStack(s1);
 	freeComStack(s2);

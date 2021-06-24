@@ -288,12 +288,10 @@ ByteCode* loadByteCode(FILE* fp)
 	int32_t i=0;
 	fread(&size,sizeof(int32_t),1,fp);
 	ByteCode* tmp=(ByteCode*)malloc(sizeof(ByteCode));
-	if(tmp==NULL)
-		errors("loadByteCode",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"loadByteCode",__FILE__,__LINE__);
 	tmp->size=size;
 	tmp->code=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	if(tmp->code==NULL)
-		errors("loadByteCode",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp->code,"loadByteCode",__FILE__,__LINE__);
 	for(;i<size;i++)
 		tmp->code[i]=getc(fp);
 	return tmp;
@@ -321,8 +319,7 @@ LineNumberTable* loadLineNumberTable(FILE* fp)
 	int32_t i=0;
 	fread(&size,sizeof(int32_t),1,fp);
 	LineNumTabNode** list=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*size);
-	if(!list)
-		errors("loadLineNumberTable",__FILE__,__LINE__);
+	FAKE_ASSERT(list,"loadLineNumberTable",__FILE__,__LINE__);
 	for(;i<size;i++)
 	{
 		int32_t fid=0;

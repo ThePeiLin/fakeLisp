@@ -9,7 +9,11 @@
 	{\
 		(stack)->values=(VMvalue**)realloc((stack)->values,sizeof(VMvalue*)*((stack)->size+64));\
 		if((stack)->values==NULL)\
-		errors((fn),__FILE__,__LINE__);\
+		{\
+			fprintf(stderr,"In file \"%s\" line %d\n",__FILE__,__LINE__);\
+			perror((fn));\
+			exit(1);\
+		}\
 		(stack)->size+=64;\
 	}\
 	(stack)->values[(stack)->tp]=(v);\

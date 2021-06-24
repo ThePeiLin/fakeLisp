@@ -1294,3 +1294,8 @@ void chanlSend(SendT*s,VMChanl* ch)
 	freeSendT(s);
 	pthread_mutex_unlock(&ch->lock);
 }
+
+VMTryBlock* newVMTryBlock(const char* errSymbol,const char* ccSymbol)
+{
+	VMTryBlock* t=(VMTryBlock*)malloc(sizeof(VMTryBlock));
+}

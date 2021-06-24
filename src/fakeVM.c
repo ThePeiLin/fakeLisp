@@ -2878,7 +2878,7 @@ int raiseVMerror(VMerror* err,FakeVM* exe)
 	{
 		while(!isComStackEmpty(exe->tstack))
 		{
-			TryBlock* tb=popComStack(exe->tstack);
+			VMTryBlock* tb=popComStack(exe->tstack);
 			while(!isComStackEmpty(tb->hstack))
 			{
 				VMerrorHandler* h=popComStack(tb->hstack);

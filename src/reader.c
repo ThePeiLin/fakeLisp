@@ -25,7 +25,7 @@ char** splitPattern(const char* str,int32_t* num)
 	int32_t count=countStringParts(str);
 	*num=count;
 	char** tmp=(char**)malloc(sizeof(char*)*count);
-	if(!tmp)errors("splitPattern",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"splitPattern",__FILE__,__LINE__);
 	count=0;
 	for(;str[i]!='\0';i++)
 	{
@@ -36,7 +36,7 @@ char** splitPattern(const char* str,int32_t* num)
 			int j=i;
 			for(;str[j]!='\0'&&str[j]!=')';j++);
 			char* tmpStr=(char*)malloc(sizeof(char)*(j-i+2));
-			if(!tmpStr)errors("splitPattern",__FILE__,__LINE__);
+			FAKE_ASSERT(tmpStr,"splitPattern",__FILE__,__LINE__);
 			memcpy(tmpStr,str+i,j-i+1);
 			tmpStr[j-i+1]='\0';
 			tmp[count]=tmpStr;
@@ -47,7 +47,7 @@ char** splitPattern(const char* str,int32_t* num)
 		int j=i;
 		for(;str[j]!='\0'&&str[j]!='(';j++);
 		char* tmpStr=(char*)malloc(sizeof(char)*(j-i+1));
-		if(!tmpStr)errors("splitPattern",__FILE__,__LINE__);
+		FAKE_ASSERT(tmpStr,"splitPattern",__FILE__,__LINE__);
 		memcpy(tmpStr,str+i,j-i);
 		tmpStr[j-i]='\0';
 		tmp[count]=tmpStr;
@@ -64,7 +64,7 @@ char* getVarName(const char* str)
 	int j=i;
 	for(;str[i]!='\0'&&str[i]!=')';i++);
 	char* tmp=(char*)malloc(sizeof(char)*(i-j+1));
-	if(!tmp)errors("getVarName",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"getVarName",__FILE__,__LINE__);
 	memcpy(tmp,str+j,i-j);
 	tmp[i-j]='\0';
 	return tmp;
@@ -105,8 +105,7 @@ char* readInPattern(FILE* fp,char** prev,int* unexpectEOF)
 	if(*prev)
 	{
 		tmp=(char*)malloc(sizeof(char)*(strlen(*prev)+1));
-		if(!tmp)
-			errors("readInPattern",__FILE__,__LINE__);
+		FAKE_ASSERT(tmp,"readInPattern",__FILE__,__LINE__);
 		strcpy(tmp,*prev);
 		free(*prev);
 		*prev=NULL;
@@ -115,8 +114,7 @@ char* readInPattern(FILE* fp,char** prev,int* unexpectEOF)
 	else
 	{
 		tmp=(char*)malloc(sizeof(char)*1);
-		if(!tmp)
-			errors("readInPattern",__FILE__,__LINE__);
+		FAKE_ASSERT(tmp,"readInPattern",__FILE__,__LINE__);
 		tmp[0]='\0';
 	}
 	size_t i=skipSpace(tmp);
@@ -295,7 +293,7 @@ char* readString(FILE* fp)
 {
 	int32_t memSize=MAX_STRING_SIZE;
 	char* tmp=(char*)malloc(sizeof(char)*memSize);
-	if(!tmp)errors("readString",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"readString",__FILE__,__LINE__);
 	int32_t strSize=0;
 	int ch=getc(fp);
 	for(;ch!=EOF;ch=getc(fp))
@@ -304,7 +302,7 @@ char* readString(FILE* fp)
 		if(strSize>memSize-1)
 		{
 			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+MAX_STRING_SIZE));
-			if(!tmp)errors("readString",__FILE__,__LINE__);
+			FAKE_ASSERT(tmp,"readString",__FILE__,__LINE__);
 			memSize+=MAX_STRING_SIZE;
 		}
 		tmp[strSize-1]=ch;
@@ -315,7 +313,7 @@ char* readString(FILE* fp)
 			if(strSize>memSize-1)
 			{
 				tmp=(char*)realloc(tmp,sizeof(char)*(memSize+MAX_STRING_SIZE));
-				if(!tmp)errors("readString",__FILE__,__LINE__);
+				FAKE_ASSERT(tmp,"readString",__FILE__,__LINE__);
 				memSize+=MAX_STRING_SIZE;
 			}
 			tmp[strSize-1]=ch;
@@ -326,7 +324,7 @@ char* readString(FILE* fp)
 	tmp[strSize]='\0';
 	memSize=strlen(tmp)+1;
 	tmp=(char*)realloc(tmp,sizeof(char)*memSize);
-	if(!tmp)errors("readString",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"readString",__FILE__,__LINE__);
 	return tmp;
 }
 
@@ -358,14 +356,14 @@ char** splitStringInPattern(const char* str,StringMatchPattern* pattern,int32_t*
 	int i=0;
 	int32_t* s=matchPartOfPattern(str,pattern,num);
 	char** tmp=(char**)malloc(sizeof(char*)*(pattern->num));
-	if(!tmp)errors("splitStringInPattern",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"splitStringInPattern",__FILE__,__LINE__);
 	for(;i<pattern->num;i++)
 		tmp[i]=NULL;
 	for(i=0;i<*num;i++)
 	{
 		int32_t strSize=(i+1<*num)?((size_t)(s[i+1]-s[i])):(size_t)skipInPattern(str,pattern)-s[i];
 		char* tmpStr=(char*)malloc(sizeof(char)*(strSize+1));
-		if(!tmpStr)errors("splitStringInPattern",__FILE__,__LINE__);
+		FAKE_ASSERT(tmpStr,"splitStringInPattern",__FILE__,__LINE__);
 		memcpy(tmpStr,str+s[i],strSize);
 		tmpStr[strSize]='\0';
 		tmp[i]=tmpStr;
@@ -378,7 +376,7 @@ int32_t* matchPartOfPattern(const char* str,StringMatchPattern* pattern,int32_t*
 {
 	*num=countInPattern(str,pattern);
 	int32_t* splitIndex=(int32_t*)malloc(sizeof(int32_t)*(*num));
-	if(!splitIndex)errors("matchPartOfPattern",__FILE__,__LINE__);
+	FAKE_ASSERT(splitIndex,"matchPartOfPattern",__FILE__,__LINE__);
 	int32_t s=0;
 	int32_t i=0;
 	for(;i<*num;i++)
@@ -719,8 +717,7 @@ void freeStringArry(char** ss,int32_t num)
 char* strCat(char* s1,const char* s2)
 {
 	s1=(char*)realloc(s1,sizeof(char)*(strlen(s1)+strlen(s2)+1));
-	if(!s1)
-		errors("strCat",__FILE__,__LINE__);
+	FAKE_ASSERT(s1,"strCat",__FILE__,__LINE__);
 	strcat(s1,s2);
 	return s1;
 }
@@ -790,7 +787,7 @@ int isMustList(const char* str)
 StringMatchPattern* newStringMatchPattern(int32_t num,char** parts,ByteCodelnt* proc)
 {
 	StringMatchPattern* tmp=(StringMatchPattern*)malloc(sizeof(StringMatchPattern));
-	if(!tmp)errors("newStringMatchPattern",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"newStringMatchPattern",__FILE__,__LINE__);
 	tmp->num=num;
 	tmp->parts=parts;
 	tmp->proc=proc;

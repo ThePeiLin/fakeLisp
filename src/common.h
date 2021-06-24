@@ -10,6 +10,15 @@
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
+#define FAKE_ASSERT(exp,str,filepath,cl) \
+{ \
+	if(!(exp)) \
+	{\
+		fprintf(stderr,"In file \"%s\" line %d\n",(filepath),(cl));\
+		perror((str));\
+		exit(1);\
+	}\
+}
 int isHexNum(const char*);
 int isOctNum(const char*);
 int isDouble(const char*);
@@ -28,7 +37,6 @@ int32_t countChar(const char*,char,int32_t);
 int stringToChar(const char*);
 uint8_t* castStrByteStr(const char*);
 uint8_t castCharInt(char);
-void errors(const char*,const char*,int);
 void exError(const AST_cptr*,int,Intpr*);
 void printCptr(const AST_cptr*,FILE*);
 PreDef* addDefine(const char*,const AST_cptr*,PreEnv*);

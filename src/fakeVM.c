@@ -920,7 +920,6 @@ int B_pack_cc(FakeVM* exe)
 	VMcontinuation* cc=newVMcontinuation(stack,exe->rstack);
 	VMvalue* retval=newVMvalue(CONT,cc,exe->heap,1);
 	SET_RETURN("B_pack_cc",retval,stack);
-	stack->tp+=1;
 	runnable->cp+=1;
 	return 0;
 }

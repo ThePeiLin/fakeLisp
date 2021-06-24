@@ -44,7 +44,7 @@ pthread_mutex_t VMerrorGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 VMproc* newVMproc(uint32_t scp,uint32_t cpc)
 {
 	VMproc* tmp=(VMproc*)malloc(sizeof(VMproc));
-	if(tmp==NULL)errors("newVMproc",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"newVMproc",__FILE__,__LINE__);
 	tmp->refcount=0;
 	tmp->prevEnv=NULL;
 	tmp->scp=scp;
@@ -122,7 +122,7 @@ VMvalue* copyVMvalue(VMvalue* obj,VMheap* heap)
 VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap,int access)
 {
 	VMvalue* tmp=(VMvalue*)malloc(sizeof(VMvalue));
-	if(tmp==NULL)errors("newVMvalue",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"newVMvalue",__FILE__,__LINE__);
 	tmp->type=type;
 	tmp->mark=0;
 	tmp->access=access;
@@ -292,7 +292,7 @@ int numcmp(VMvalue* fir,VMvalue* sec)
 VMenv* newVMenv(VMenv* prev)
 {
 	VMenv* tmp=(VMenv*)malloc(sizeof(VMenv));
-	if(tmp==NULL)errors("newVMenv",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"newVMenv",__FILE__,__LINE__);
 	tmp->num=0;
 	tmp->list=NULL;
 	tmp->prev=prev;
@@ -414,7 +414,7 @@ void decreaseVMerrorRefcount(VMerror* err)
 VMpair* newVMpair(VMheap* heap)
 {
 	VMpair* tmp=(VMpair*)malloc(sizeof(VMpair));
-	if(tmp==NULL)errors("newVMpair",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"newVMpair",__FILE__,__LINE__);
 	tmp->refcount=0;
 	tmp->car=newNilValue(heap);
 	tmp->cdr=newNilValue(heap);
@@ -424,13 +424,13 @@ VMpair* newVMpair(VMheap* heap)
 VMstr* newVMstr(const char* str)
 {
 	VMstr* tmp=(VMstr*)malloc(sizeof(VMstr));
-	if(tmp==NULL)errors("newVMstr",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"newVMstr",__FILE__,__LINE__);
 	tmp->refcount=0;
 	tmp->str=NULL;
 	if(str!=NULL)
 	{
 		tmp->str=(char*)malloc(sizeof(char)*(strlen(str)+1));
-		if(tmp->str==NULL)errors("newVMstr",__FILE__,__LINE__);
+		FAKE_ASSERT(tmp->str,"newVMstr",__FILE__,__LINE__);
 		strcpy(tmp->str,str);
 	}
 	return tmp;
@@ -491,7 +491,7 @@ VMvalue* castCptrVMvalue(AST_cptr* objCptr,VMheap* heap)
 ByteString* newByteString(size_t size,uint8_t* str)
 {
 	ByteString* tmp=(ByteString*)malloc(sizeof(ByteString));
-	if(tmp==NULL)errors("newByteString",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"newByteString",__FILE__,__LINE__);
 	tmp->size=size;
 	tmp->refcount=0;
 	if(str!=NULL)
@@ -503,9 +503,9 @@ ByteString* copyByteArry(const ByteString* obj)
 {
 	if(obj==NULL)return NULL;
 	ByteString* tmp=(ByteString*)malloc(sizeof(ByteString));
-	if(tmp==NULL)errors("copyByteArry",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"copyByteArry",__FILE__,__LINE__);
 	uint8_t* tmpArry=(uint8_t*)malloc(tmp->size*sizeof(uint8_t));
-	if(tmpArry==NULL)errors("copyByteArry",__FILE__,__LINE__);
+	FAKE_ASSERT(tmpArry,"copyByteArry",__FILE__,__LINE__);
 	memcpy(tmpArry,obj->str,obj->size);
 	tmp->size=obj->size;
 	tmp->str=tmpArry;
@@ -515,7 +515,7 @@ ByteString* copyByteArry(const ByteString* obj)
 ByteString* newEmptyByteArry()
 {
 	ByteString* tmp=(ByteString*)malloc(sizeof(ByteString));
-	if(tmp==NULL)errors("newEmptyByteArry",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"newEmptyByteArry",__FILE__,__LINE__);
 	tmp->size=0;
 	tmp->refcount=0;
 	tmp->str=NULL;
@@ -525,7 +525,7 @@ ByteString* newEmptyByteArry()
 uint8_t* copyArry(size_t size,uint8_t* str)
 {
 	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	if(tmp==NULL)errors("copyArry",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"copyArry",__FILE__,__LINE__);
 	memcpy(tmp,str,size);
 	return tmp;
 }
@@ -533,14 +533,14 @@ uint8_t* copyArry(size_t size,uint8_t* str)
 uint8_t* createByteString(int32_t size)
 {
 	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	if(tmp==NULL)errors("createByteString",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"createByteString",__FILE__,__LINE__);
 	return tmp;
 }
 
 VMproc* copyVMproc(VMproc* obj,VMheap* heap)
 {
 	VMproc* tmp=(VMproc*)malloc(sizeof(VMproc));
-	if(tmp==NULL)errors("copyVMproc",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"copyVMproc",__FILE__,__LINE__);
 	tmp->refcount=0;
 	tmp->scp=obj->scp;
 	tmp->cpc=obj->cpc;
@@ -552,7 +552,7 @@ VMenv* copyVMenv(VMenv* objEnv,VMheap* heap)
 {
 	VMenv* tmp=newVMenv(NULL);
 	tmp->list=(VMenvNode**)malloc(sizeof(VMenvNode*)*objEnv->num);
-	if(tmp->list==NULL)errors("copyVMenv",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp->list,"copyVMenv",__FILE__,__LINE__);
 	int i=0;
 	for(;i<objEnv->num;i++)
 	{
@@ -867,9 +867,9 @@ VMcontinuation* newVMcontinuation(VMstack* stack,ComStack* rstack)
 	int32_t size=rstack->top;
 	int32_t i=0;
 	VMcontinuation* tmp=(VMcontinuation*)malloc(sizeof(VMcontinuation));
-	if(!tmp)errors("newVMcontinuation",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"newVMcontinuation",__FILE__,__LINE__);
 	VMprocStatus* status=(VMprocStatus*)malloc(sizeof(VMprocStatus)*size);
-	if(!status)errors("newVMcontinuation",__FILE__,__LINE__);
+	FAKE_ASSERT(status,"newVMcontinuation",__FILE__,__LINE__);
 	tmp->stack=copyStack(stack);
 	tmp->num=size-1;
 	tmp->refcount=0;
@@ -913,12 +913,12 @@ VMstack* copyStack(VMstack* stack)
 {
 	int32_t i=0;
 	VMstack* tmp=(VMstack*)malloc(sizeof(VMstack));
-	if(!tmp)errors("copyStack",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"copyStack",__FILE__,__LINE__);
 	tmp->size=stack->size;
 	tmp->tp=stack->tp;
 	tmp->bp=stack->bp;
 	tmp->values=(VMvalue**)malloc(sizeof(VMvalue*)*(tmp->size));
-	if(!tmp->values)errors("copyStack",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp->values,"copyStack",__FILE__,__LINE__);
 	for(;i<stack->tp;i++)
 		tmp->values[i]=stack->values[i];
 	tmp->tptp=stack->tptp;
@@ -927,8 +927,7 @@ VMstack* copyStack(VMstack* stack)
 	if(tmp->tpsi)
 	{
 		tmp->tpst=(uint32_t*)malloc(sizeof(uint32_t)*tmp->tpsi);
-		if(!tmp->tpst)
-			errors("copyStack",__FILE__,__LINE__);
+		FAKE_ASSERT(tmp->tpst,"copyStack",__FILE__,__LINE__);
 		if(tmp->tptp)memcpy(tmp->tpst,stack->tpst,sizeof(int32_t)*(tmp->tptp));
 	}
 	return tmp;
@@ -937,7 +936,7 @@ VMstack* copyStack(VMstack* stack)
 VMenvNode* newVMenvNode(VMvalue* value,int32_t id)
 {
 	VMenvNode* tmp=(VMenvNode*)malloc(sizeof(VMenvNode));
-	if(!tmp)errors("newVMenvNode",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"newVMenvNode",__FILE__,__LINE__);
 	tmp->id=id;
 	tmp->value=value;
 	return tmp;
@@ -949,7 +948,7 @@ VMenvNode* addVMenvNode(VMenvNode* node,VMenv* env)
 	{
 		env->num=1;
 		env->list=(VMenvNode**)malloc(sizeof(VMenvNode*)*1);
-		if(!env->list)errors("addVMenvNode",__FILE__,__LINE__);
+		FAKE_ASSERT(env->list,"addVMenvNode",__FILE__,__LINE__);
 		env->list[0]=node;
 	}
 	else
@@ -970,7 +969,7 @@ VMenvNode* addVMenvNode(VMenvNode* node,VMenv* env)
 		env->num+=1;
 		int32_t i=env->num-1;
 		env->list=(VMenvNode**)realloc(env->list,sizeof(VMenvNode*)*env->num);
-		if(!env->list)errors("addVMenvNode",__FILE__,__LINE__);
+		FAKE_ASSERT(env->list,"addVMenvNode",__FILE__,__LINE__);
 		for(;i>mid;i--)
 			env->list[i]=env->list[i-1];
 		env->list[mid]=node;
@@ -1007,8 +1006,7 @@ void freeVMenvNode(VMenvNode* node)
 VMChanl* newVMChanl(int32_t maxSize)
 {
 	VMChanl* tmp=(VMChanl*)malloc(sizeof(VMChanl));
-	if(!tmp)
-		errors("newVMChanl",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"newVMChanl",__FILE__,__LINE__);
 	pthread_mutex_init(&tmp->lock,NULL);
 	tmp->max=maxSize;
 	tmp->refcount=0;
@@ -1062,8 +1060,7 @@ VMChanl* copyVMChanl(VMChanl* ch,VMheap* heap)
 VMfp* newVMfp(FILE* fp)
 {
 	VMfp* tmp=(VMfp*)malloc(sizeof(VMfp));
-	if(!tmp)
-		errors("newVMfp",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"newVMfp",__FILE__,__LINE__);
 	tmp->refcount=0;
 	tmp->fp=fp;
 	return tmp;
@@ -1084,8 +1081,7 @@ void freeVMfp(VMfp* fp)
 VMDll* newVMDll(const char* dllName)
 {
 	VMDll* tmp=(VMDll*)malloc(sizeof(VMDll));
-	if(!tmp)
-		errors("newVMDll",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"newVMDll",__FILE__,__LINE__);
 	tmp->refcount=0;
 #ifdef _WIN32
 	char filetype[]=".dll";
@@ -1093,8 +1089,7 @@ VMDll* newVMDll(const char* dllName)
 	char filetype[]=".so";
 #endif
 	char* realDllName=(char*)malloc(sizeof(char)*(strlen(dllName)+strlen(filetype)+1));
-	if(!realDllName)
-		errors("newVMDll",__FILE__,__LINE__);
+	FAKE_ASSERT(realDllName,"newVMDll",__FILE__,__LINE__);
 	sprintf(realDllName,"%s%s",dllName,filetype);
 #ifdef _WIN32
 	char* rpath=_fullpath(NULL,realDllName,0);
@@ -1178,8 +1173,7 @@ void* getAddress(const char* funcname,DllHandle dlhandle)
 VMDlproc* newVMDlproc(DllFunc address,VMDll* dll)
 {
 	VMDlproc* tmp=(VMDlproc*)malloc(sizeof(VMDlproc));
-	if(!tmp)
-		errors("newVMDlproc",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"newVMDlproc",__FILE__,__LINE__);
 	tmp->refcount=0;
 	tmp->func=address;
 	tmp->dll=dll;
@@ -1201,8 +1195,7 @@ void freeVMDlproc(VMDlproc* dlproc)
 VMerror* newVMerror(const char* type,const char* message)
 {
 	VMerror* t=(VMerror*)malloc(sizeof(VMerror));
-	if(!t)
-		errors("newVMerror",__FILE__,__LINE__);
+	FAKE_ASSERT(t,"newVMerror",__FILE__,__LINE__);
 	t->refcount=0;
 	t->type=copyStr(type);
 	t->message=copyStr(type);
@@ -1298,4 +1291,5 @@ void chanlSend(SendT*s,VMChanl* ch)
 VMTryBlock* newVMTryBlock(const char* errSymbol,const char* ccSymbol)
 {
 	VMTryBlock* t=(VMTryBlock*)malloc(sizeof(VMTryBlock));
+	return t;
 }

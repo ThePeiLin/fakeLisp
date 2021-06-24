@@ -354,7 +354,7 @@ void addKeyWord(const char* objStr,CompEnv* curEnv)
 		{
 			current=(KeyWord*)malloc(sizeof(KeyWord));
 			current->word=(char*)malloc(sizeof(char)*(strlen(objStr)+1));
-			if(current==NULL||current->word==NULL)errors("addKeyWord",__FILE__,__LINE__);
+			FAKE_ASSERT(current&&current->word,"addKeyWord",__FILE__,__LINE__);
 			strcpy(current->word,objStr);
 			if(prev!=NULL)prev->next=current;
 			else

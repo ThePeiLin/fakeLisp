@@ -231,7 +231,7 @@ int addMacro(AST_cptr* pattern,ByteCodelnt* proc,CompEnv* curEnv)
 				if(cdrAtm!=NULL&&cdrAtm->type==SYM&&!isVal(cdrAtm->value.str))addKeyWord(cdrAtm->value.str,curEnv);
 			}
 		}
-		if(!(current=(PreMacro*)malloc(sizeof(PreMacro))))errors("addMacro",__FILE__,__LINE__);
+		FAKE_ASSERT((current=(PreMacro*)malloc(sizeof(PreMacro))),"addMacro",__FILE__,__LINE__);
 		current->next=curEnv->macro;
 		current->pattern=pattern;
 		current->proc=proc;
@@ -510,7 +510,7 @@ void unInitPreprocess()
 AST_cptr** dealArg(AST_cptr* argCptr,int num)
 {
 	AST_cptr** args=NULL;
-	if(!(args=(AST_cptr**)malloc(num*sizeof(AST_cptr*))))errors("dealArg",__FILE__,__LINE__);
+	FAKE_ASSERT((args=(AST_cptr**)malloc(num*sizeof(AST_cptr*))),"dealArg",__FILE__,__LINE__);
 	int i=0;
 	for(;i<num;i++,argCptr=nextCptr(argCptr))
 		args[i]=argCptr;
@@ -610,7 +610,7 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 	if(!status.status)
 	{
 		char** tmParts=(char**)malloc(sizeof(char*)*num);
-		if(!tmParts)errors("addStringPattern",__FILE__,__LINE__);
+		FAKE_ASSERT(tmParts,"addStringPattern",__FILE__,__LINE__);
 		int32_t i=0;
 		for(;i<num;i++)
 			tmParts[i]=copyStr(parts[i]);
@@ -657,8 +657,7 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 			tmp->bc->code[0]=FAKE_PUSH_NIL;
 			tmp->ls=1;
 			tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
-			if(!tmp->l)
-				errors("compile",__FILE__,__LINE__);
+			FAKE_ASSERT(tmp->l,"compile",__FILE__,__LINE__);
 			tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,0,inter->curline);
 			return tmp;
 		}
@@ -681,8 +680,7 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 			tmp->bc->code[0]=FAKE_PUSH_NIL;
 			tmp->ls=1;
 			tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
-			if(!tmp->l)
-				errors("compile",__FILE__,__LINE__);
+			FAKE_ASSERT(tmp->l,"compile",__FILE__,__LINE__);
 			tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id
 					,0
 					,tmp->bc->size
@@ -911,8 +909,7 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 				if(!tmp->l)
 				{
 					tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
-					if(!tmp->l)
-						errors("compileQsquote",__FILE__,__LINE__);
+					FAKE_ASSERT(tmp->l,"compileQsquote",__FILE__,__LINE__);
 					tmp->ls=1;
 					tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,pushPair->size,objCptr->curline);
 				}
@@ -998,8 +995,7 @@ ByteCodelnt* compileConst(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 	LineNumTabNode* n=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,tmp->size,line);
 	t->ls=1;
 	t->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
-	if(!t->l)
-		errors("compileConst",__FILE__,__LINE__);
+	FAKE_ASSERT(t->l,"compileConst",__FILE__,__LINE__);
 	t->l[0]=n;
 	return t;
 }
@@ -1024,8 +1020,7 @@ ByteCodelnt* compileFuncCall(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Erro
 			{
 				tmp->ls=1;
 				tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
-				if(!tmp->l)
-					errors("compileFuncCall",__FILE__,__LINE__);
+				FAKE_ASSERT(tmp->l,"compileFuncCall",__FILE__,__LINE__);
 				tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,invoke->size,line);
 			}
 			else
@@ -1042,8 +1037,7 @@ ByteCodelnt* compileFuncCall(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Erro
 			{
 				tmp->ls=1;
 				tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
-				if(!tmp->l)
-					errors("compileFuncCall",__FILE__,__LINE__);
+				FAKE_ASSERT(tmp->l,"compileFuncCall",__FILE__,__LINE__);
 				tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,setBp->size,line);
 			}
 			else
@@ -1105,8 +1099,7 @@ ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 		if(curEnv->prefix&&isSymbolShouldBeExport(tmpAtm->value.str,curEnv->exp,curEnv->n))
 		{
 			char* symbolWithPrefix=(char*)malloc(sizeof(char)*(strlen(tmpAtm->value.str)+strlen(curEnv->prefix)+1));
-			if(!symbolWithPrefix)
-				errors("compileDef",__FILE__,__LINE__);
+			FAKE_ASSERT(symbolWithPrefix,"compileDef",__FILE__,__LINE__);
 			sprintf(symbolWithPrefix,"%s%s",curEnv->prefix,tmpAtm->value.str);
 			tmpDef=addCompDef(symbolWithPrefix,curEnv,inter->table);
 			free(symbolWithPrefix);
@@ -1173,8 +1166,7 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			if(tmpEnv->prefix&&!tmpDef)
 			{
 				char* symbolWithPrefix=(char*)malloc(sizeof(char)*(strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1));
-				if(!symbolWithPrefix)
-					errors("compileSetq",__FILE__,__LINE__);
+				FAKE_ASSERT(symbolWithPrefix,"compileSetq",__FILE__,__LINE__);
 				sprintf(symbolWithPrefix,"%s%s",tmpEnv->prefix,tmpAtm->value.str);
 				tmpDef=findCompDef(symbolWithPrefix,tmpEnv,inter->table);
 				free(symbolWithPrefix);
@@ -1245,8 +1237,7 @@ ByteCodelnt* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			if(tmpEnv->prefix&&!tmpDef)
 			{
 				char* symbolWithPrefix=(char*)malloc(sizeof(char)*(strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1));
-				if(!symbolWithPrefix)
-					errors("compileSetq",__FILE__,__LINE__);
+				FAKE_ASSERT(symbolWithPrefix,"compileSetq",__FILE__,__LINE__);
 				sprintf(symbolWithPrefix,"%s%s",tmpEnv->prefix,tmpAtm->value.str);
 				tmpDef=findCompDef(symbolWithPrefix,tmpEnv,inter->table);
 				free(symbolWithPrefix);
@@ -1288,8 +1279,7 @@ ByteCodelnt* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 		if(tmpEnv->prefix&&!tmpDef)
 		{
 			char* symbolWithPrefix=(char*)malloc(sizeof(char)*(strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1));
-			if(!symbolWithPrefix)
-				errors("compileSym",__FILE__,__LINE__);
+			FAKE_ASSERT(symbolWithPrefix,"compileSym",__FILE__,__LINE__);
 			sprintf(symbolWithPrefix,"%s%s",tmpEnv->prefix,tmpAtm->value.str);
 			tmpDef=findCompDef(symbolWithPrefix,tmpEnv,inter->table);
 			free(symbolWithPrefix);
@@ -1319,8 +1309,7 @@ ByteCodelnt* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	ByteCodelnt* bcl=newByteCodelnt(pushVar);
 	bcl->ls=1;
 	bcl->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
-	if(!bcl->l)
-		errors("compileSym",__FILE__,__LINE__);
+	FAKE_ASSERT(bcl->l,"compileSym",__FILE__,__LINE__);
 	bcl->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,pushVar->size,line);
 	return bcl;
 }
@@ -1369,8 +1358,7 @@ ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	{
 		tmp->ls=1;
 		tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
-		if(!tmp->l)
-			errors("compileAnd",__FILE__,__LINE__);
+		FAKE_ASSERT(tmp->l,"compileAnd",__FILE__,__LINE__);
 		tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,tmp->bc->size,objCptr->curline);
 	}
 	else
@@ -1435,8 +1423,7 @@ ByteCodelnt* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatu
 	{
 		tmp->ls=1;
 		tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
-		if(!tmp->l)
-			errors("compileOr",__FILE__,__LINE__);
+		FAKE_ASSERT(tmp->l,"compileOr",__FILE__,__LINE__);
 		tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,tmp->bc->size,objCptr->curline);
 	}
 	else
@@ -1494,8 +1481,7 @@ ByteCodelnt* compileBegin(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 	{
 		tmp->ls=1;
 		tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
-		if(!tmp->l)
-			errors("compileBegin",__FILE__,__LINE__);
+		FAKE_ASSERT(tmp->l,"compileBegin",__FILE__,__LINE__);
 		tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,tmp->bc->size,objCptr->curline);
 	}
 	else
@@ -1594,8 +1580,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	ByteCodelnt* codeOfLambda=newByteCodelnt(pArg);
 	codeOfLambda->ls=1;
 	codeOfLambda->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
-	if(!codeOfLambda->l)
-		errors("compileLambda",__FILE__,__LINE__);
+	FAKE_ASSERT(codeOfLambda->l,"compileLambda",__FILE__,__LINE__);
 	codeOfLambda->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,pArg->size,line);
 	ByteCode* resTp=newByteCode(sizeof(char));
 	resTp->code[0]=FAKE_RES_TP;
@@ -1630,8 +1615,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	ByteCodelnt* toReturn=newByteCodelnt(pushProc);
 	toReturn->ls=1;
 	toReturn->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
-	if(!toReturn->l)
-		errors("compileLambda",__FILE__,__LINE__);
+	FAKE_ASSERT(toReturn->l,"compileLambda",__FILE__,__LINE__);
 	toReturn->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,pushProc->size,line);
 	destroyCompEnv(tmpEnv);
 	codelntCat(toReturn,codeOfLambda);
@@ -1719,8 +1703,7 @@ ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	{
 		tmp->ls=1;
 		tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
-		if(!tmp->l)
-			errors("compileCond",__FILE__,__LINE__);
+		FAKE_ASSERT(tmp->l,"compileCond",__FILE__,__LINE__);
 		tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,0,objCptr->curline);
 	}
 	reCodeCat(setTp,tmp->bc);
@@ -1790,8 +1773,7 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
 	tmp->ls=1;
 	tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
-	if(!tmp->l)
-		errors("compileFile",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp->l,"compileFile",__FILE__,__LINE__);
 	tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,0,1);
 	ByteCode* resTp=newByteCode(1);
 	resTp->code[0]=FAKE_RES_TP;
@@ -1881,8 +1863,7 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 	BYTECODELNT=newByteCodelnt(BYTECODE);\
 	(BYTECODELNT)->ls=1;\
 	(BYTECODELNT)->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));\
-	if((BYTECODELNT)->l==NULL)\
-		errors("compileProc",__FILE__,__LINE__);\
+	FAKE_ASSERT((BYTECODELNT)->l,"compileProc",__FILE__,__LINE__);\
 	(BYTECODELNT)->l[0]=newLineNumTabNode(fid,0,(BYTECODE)->size,fir->curline);\
 }
 
@@ -2328,8 +2309,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		}
 		uint32_t count=0;
 		const char** partsOfPath=(const char**)malloc(sizeof(const char*)*0);
-		if(!partsOfPath)
-			errors("compileImport",__FILE__,__LINE__);
+		FAKE_ASSERT(partsOfPath,"compileImport",__FILE__,__LINE__);
 		pushFakeMem(partsOfPath,free,memMenager);
 		while(pPartsOfPath)
 		{
@@ -2386,8 +2366,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			}
 			count++;
 			partsOfPath=(const char**)reallocFakeMem(partsOfPath,realloc(partsOfPath,sizeof(const char*)*count),memMenager);
-			if(!pPartsOfPath)
-				errors("compileImport",__FILE__,__LINE__);
+			FAKE_ASSERT(pPartsOfPath,"compileImport",__FILE__,__LINE__);
 			partsOfPath[count-1]=tmpAtm->value.str;
 			pPartsOfPath=nextCptr(pPartsOfPath);
 		}
@@ -2397,8 +2376,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			totalPathLength+=strlen(partsOfPath[i]);
 		totalPathLength+=count+strlen(postfix);
 		char* path=(char*)malloc(sizeof(char)*totalPathLength);
-		if(!path)
-			errors("compileImport",__FILE__,__LINE__);
+		FAKE_ASSERT(path,"compileImport",__FILE__,__LINE__);
 		path[0]='\0';
 		for(i=0;i<count;i++)
 		{
@@ -2412,8 +2390,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		{
 			char t[]="/lib/";
 			char* pathWithInterpreterPath=(char*)malloc(sizeof(char)*(strlen(InterpreterPath)+strlen(t)+strlen(path)+1));
-			if(!pathWithInterpreterPath)
-				errors("compileImport",__FILE__,__LINE__);
+			FAKE_ASSERT(pathWithInterpreterPath,"compileImport",__FILE__,__LINE__);
 			sprintf(pathWithInterpreterPath,"%s%s%s",InterpreterPath,t,path);
 			fp=fopen(pathWithInterpreterPath,"r");
 			if(!fp)
@@ -2512,8 +2489,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 						{
 							const char** exportSymbols=(const char**)malloc(sizeof(const char*)*0);
 							pushFakeMem(exportSymbols,free,memMenager);
-							if(!exportSymbols)
-								errors("compileImport",__FILE__,__LINE__);
+							FAKE_ASSERT(exportSymbols,"compileImport",__FILE__,__LINE__);
 							AST_cptr* pExportSymbols=nextCptr(getFirstCptr(exportCptr));
 							uint32_t num=0;
 							for(;pExportSymbols;pExportSymbols=nextCptr(pExportSymbols))
@@ -2582,8 +2558,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 							{
 								libByteCodelnt->ls=1;
 								libByteCodelnt->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
-								if(!libByteCodelnt->l)
-									errors("compileImport",__FILE__,__LINE__);
+								FAKE_ASSERT(libByteCodelnt->l,"compileImport",__FILE__,__LINE__);
 								libByteCodelnt->l[0]=newLineNumTabNode(findSymbol(tmpInter->filename,tmpInter->table)->id,0,libByteCodelnt->bc->size,objCptr->curline);
 							}
 							else
@@ -2625,15 +2600,13 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 							if(libPrefix)
 							{
 								symbolWouldExport=(char*)malloc(sizeof(char)*(strlen(libPrefix)+strlen(pSymbol->value.str)+1));
-								if(!symbolWouldExport)
-									errors("compileImport",__FILE__,__LINE__);
+								FAKE_ASSERT(symbolWouldExport,"compileImport",__FILE__,__LINE__);
 								sprintf(symbolWouldExport,"%s%s",libPrefix,pSymbol->value.str);
 							}
 							else
 							{
 								symbolWouldExport=(char*)malloc(sizeof(char)*(strlen(pSymbol->value.str)+1));
-								if(!symbolWouldExport)
-									errors("compileImport",__FILE__,__LINE__);
+								FAKE_ASSERT(symbolWouldExport,"compileImport",__FILE__,__LINE__);
 								strcpy(symbolWouldExport,pSymbol->value.str);
 							}
 							tmpDef=findCompDef(symbolWouldExport,tmpInter->glob,inter->table);

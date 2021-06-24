@@ -58,7 +58,7 @@ char* getStringFromList(const char* str)
 			&&!isspace(*(str+len))
 			&&(*(str+len)!=',')
 			&&(*(str+len)!=0))len++;
-	if(!(tmp=(char*)malloc(sizeof(char)*(len+1))))errors("getStringFromList",__FILE__,__LINE__);
+	FAKE_ASSERT((tmp=(char*)malloc(sizeof(char)*(len+1))),"getStringFromList",__FILE__,__LINE__);
 	memcpy(tmp,str,len);
 	if(tmp!=NULL)*(tmp+len)='\0';
 	return tmp;
@@ -73,7 +73,7 @@ char* getStringAfterBackslash(const char* str)
 		len++;
 		if(!isalnum(str[len])&&str[len-1]!='\\')break;
 	}
-	if(!(tmp=(char*)malloc(sizeof(char)*(len+1))))errors("getStringAfterBackslash",__FILE__,__LINE__);
+	FAKE_ASSERT((tmp=(char*)malloc(sizeof(char)*(len+1))),"getStringAfterBackslash",__FILE__,__LINE__);
 	memcpy(tmp,str,len);
 	if(tmp!=NULL)*(tmp+len)='\0';
 	return tmp;
@@ -108,7 +108,7 @@ char* intToString(long num)
 	sprintf(numString,"%ld",num);
 	int lenOfNum=strlen(numString)+1;
 	char* tmp=NULL;
-	if(!(tmp=(char*)malloc(lenOfNum*sizeof(char))))errors("intToString",__FILE__,__LINE__);
+	FAKE_ASSERT((tmp=(char*)malloc(lenOfNum*sizeof(char))),"intToString",__FILE__,__LINE__);
 	memcpy(tmp,numString,lenOfNum);;
 	return tmp;
 }
@@ -159,36 +159,26 @@ void printRawString(const char* objStr,FILE* out)
 	putc('\"',out);
 }
 
-void errors(const char* str,const char* filename,int line)
-{
-	fprintf(stderr,"In file \"%s\" line %d\n",filename,line);
-	perror(str);
-	exit(1);
-}
-
 AST_pair* newPair(int curline,AST_pair* prev)
 {
 	AST_pair* tmp;
-	if((tmp=(AST_pair*)malloc(sizeof(AST_pair))))
-	{
-		tmp->car.outer=tmp;
-		tmp->car.type=NIL;
-		tmp->car.u.all=NULL;
-		tmp->cdr.outer=tmp;
-		tmp->cdr.type=NIL;
-		tmp->cdr.u.all=NULL;
-		tmp->prev=prev;
-		tmp->car.curline=curline;
-		tmp->cdr.curline=curline;
-	}
-	else errors("newPair",__FILE__,__LINE__);
+	FAKE_ASSERT((tmp=(AST_pair*)malloc(sizeof(AST_pair))),"newPair",__FILE__,__LINE__);
+	tmp->car.outer=tmp;
+	tmp->car.type=NIL;
+	tmp->car.u.all=NULL;
+	tmp->cdr.outer=tmp;
+	tmp->cdr.type=NIL;
+	tmp->cdr.u.all=NULL;
+	tmp->prev=prev;
+	tmp->car.curline=curline;
+	tmp->cdr.curline=curline;
 	return tmp;
 }
 
 AST_cptr* newCptr(int curline,AST_pair* outer)
 {
 	AST_cptr* tmp=NULL;
-	if(!(tmp=(AST_cptr*)malloc(sizeof(AST_cptr))))errors("newCptr",__FILE__,__LINE__);
+	FAKE_ASSERT((tmp=(AST_cptr*)malloc(sizeof(AST_cptr))),"newCptr",__FILE__,__LINE__);
 	tmp->outer=outer;
 	tmp->curline=curline;
 	tmp->type=NIL;
@@ -199,14 +189,14 @@ AST_cptr* newCptr(int curline,AST_pair* outer)
 AST_atom* newAtom(int type,const char* value,AST_pair* prev)
 {
 	AST_atom* tmp=NULL;
-	if(!(tmp=(AST_atom*)malloc(sizeof(AST_atom))))errors("newAtom",__FILE__,__LINE__);
+	FAKE_ASSERT((tmp=(AST_atom*)malloc(sizeof(AST_atom))),"newAtom",__FILE__,__LINE__);
 	switch(type)
 	{
 		case SYM:
 		case STR:
 			if(value!=NULL)
 			{
-				if(!(tmp->value.str=(char*)malloc(strlen(value)+1)))errors("newAtom",__FILE__,__LINE__);
+				FAKE_ASSERT((tmp->value.str=(char*)malloc(strlen(value)+1)),"newAtom",__FILE__,__LINE__);
 				strcpy(tmp->value.str,value);
 			}
 			else
@@ -751,7 +741,7 @@ void printRawChar(char chr,FILE* out)
 PreEnv* newEnv(PreEnv* prev)
 {
 	PreEnv* curEnv=NULL;
-	if(!(curEnv=(PreEnv*)malloc(sizeof(PreEnv))))errors("newEnv",__FILE__,__LINE__);
+	FAKE_ASSERT((curEnv=(PreEnv*)malloc(sizeof(PreEnv))),"newEnv",__FILE__,__LINE__);
 	if(prev!=NULL)prev->next=curEnv;
 	curEnv->prev=prev;
 	curEnv->next=NULL;
@@ -782,7 +772,7 @@ void destroyEnv(PreEnv* objEnv)
 Intpr* newIntpr(const char* filename,FILE* file,CompEnv* env,SymbolTable* table,LineNumberTable* lnt)
 {
 	Intpr* tmp=NULL;
-	if(!(tmp=(Intpr*)malloc(sizeof(Intpr))))errors("newIntpr",__FILE__,__LINE__);
+	FAKE_ASSERT((tmp=(Intpr*)malloc(sizeof(Intpr))),"newIntpr",__FILE__,__LINE__)
 	tmp->filename=copyStr(filename);
 	if(file!=stdin&&filename!=NULL)
 	{
@@ -838,7 +828,7 @@ void freeIntpr(Intpr* inter)
 CompEnv* newCompEnv(CompEnv* prev)
 {
 	CompEnv* tmp=(CompEnv*)malloc(sizeof(CompEnv));
-	if(tmp==NULL)errors("newCompEnv",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"newComEnv",__FILE__,__LINE__);
 	tmp->prev=prev;
 	tmp->head=NULL;
 	tmp->prefix=NULL;
@@ -893,7 +883,7 @@ CompDef* addCompDef(const char* name,CompEnv* curEnv,SymbolTable* table)
 			node=newSymTabNode(name);
 			addSymTabNode(node,table);
 		}
-		if(!(curEnv->head=(CompDef*)malloc(sizeof(CompDef))))errors("addCompDef",__FILE__,__LINE__);
+		FAKE_ASSERT((curEnv->head=(CompDef*)malloc(sizeof(CompDef))),"addCompDef",__FILE__,__LINE__);
 		curEnv->head->next=NULL;
 		curEnv->head->id=node->id;
 		return curEnv->head;
@@ -909,7 +899,7 @@ CompDef* addCompDef(const char* name,CompEnv* curEnv,SymbolTable* table)
 				node=newSymTabNode(name);
 				addSymTabNode(node,table);
 			}
-			if(!(curDef=(CompDef*)malloc(sizeof(CompDef))))errors("addCompDef",__FILE__,__LINE__);
+			FAKE_ASSERT((curDef=(CompDef*)malloc(sizeof(CompDef))),"addCompDef",__FILE__,__LINE__);
 			curDef->id=node->id;
 			curDef->next=curEnv->head;
 			curEnv->head=curDef;
@@ -921,9 +911,9 @@ CompDef* addCompDef(const char* name,CompEnv* curEnv,SymbolTable* table)
 ByteCode* newByteCode(unsigned int size)
 {
 	ByteCode* tmp=NULL;
-	if(!(tmp=(ByteCode*)malloc(sizeof(ByteCode))))errors("newByteCode",__FILE__,__LINE__);
+	FAKE_ASSERT((tmp=(ByteCode*)malloc(sizeof(ByteCode))),"newByteCode",__FILE__,__LINE__);
 	tmp->size=size;
-	if(!(tmp->code=(uint8_t*)malloc(size*sizeof(uint8_t))))errors("newByteCode",__FILE__,__LINE__);
+	FAKE_ASSERT((tmp->code=(uint8_t*)malloc(size*sizeof(uint8_t))),"newByteCode",__FILE__,__LINE__);
 	int32_t i=0;
 	for(;i<tmp->size;i++)tmp->code[i]=0;
 	return tmp;
@@ -932,7 +922,7 @@ ByteCode* newByteCode(unsigned int size)
 ByteCodelnt* newByteCodelnt(ByteCode* bc)
 {
 	ByteCodelnt* t=(ByteCodelnt*)malloc(sizeof(ByteCodelnt));
-	if(!t)errors("newByteCodelnt",__FILE__,__LINE__);
+	FAKE_ASSERT(t,"newByteCode",__FILE__,__LINE__);
 	t->ls=0;
 	t->l=NULL;
 	t->bc=bc;
@@ -958,8 +948,7 @@ void codeCat(ByteCode* fir,const ByteCode* sec)
 	int32_t size=fir->size;
 	fir->size=sec->size+fir->size;
 	fir->code=(uint8_t*)realloc(fir->code,sizeof(uint8_t)*fir->size);
-	if(!fir->code&&fir->size)
-		errors("codeCat",__FILE__,__LINE__);
+	FAKE_ASSERT(fir->code||!fir->size,"codeCat",__FILE__,__LINE__);
 	memcpy(fir->code+size,sec->code,sec->size);
 }
 
@@ -967,7 +956,7 @@ void reCodeCat(const ByteCode* fir,ByteCode* sec)
 {
 	int32_t size=fir->size;
 	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*(fir->size+sec->size));
-	if(tmp==NULL)errors("reCodeCat",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"reCodeCat",__FILE__,__LINE__);
 	memcpy(tmp,fir->code,fir->size);
 	memcpy(tmp+size,sec->code,sec->size);
 	free(sec->code);
@@ -993,7 +982,7 @@ char* copyStr(const char* str)
 {
 	if(str==NULL)return NULL;
 	char* tmp=(char*)malloc(sizeof(char)*(strlen(str)+1));
-	if(tmp==NULL)errors("copyStr",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"copyStr",__FILE__,__LINE__);
 	strcpy(tmp,str);
 	return tmp;
 
@@ -1099,7 +1088,7 @@ uint8_t* castStrByteStr(const char* str)
 	int len=strlen(str);
 	int32_t size=(len%2)?(len/2+1):len/2;
 	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	if(tmp==NULL)errors("castStrByteStr",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"castStrByteStr",__FILE__,__LINE__);
 	int32_t i=0;
 	int k=0;
 	for(;i<size;i++)
@@ -1136,7 +1125,7 @@ void printAsByteStr(const uint8_t* str,int32_t size,FILE* fp)
 void* copyMemory(void* pm,size_t size)
 {
 	void* tmp=(void*)malloc(size);
-	if(tmp==NULL)errors("copyMemory",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"copyMemory",__FILE__,__LINE__);
 	if(pm!=NULL)
 		memcpy(tmp,pm,size);
 	return tmp;
@@ -1197,7 +1186,7 @@ char* getDir(const char* filename)
 	int i=strlen(filename)-1;
 	for(;filename[i]!=dp;i--);
 	char* tmp=(char*)malloc(sizeof(char)*(i+1));
-	if(tmp==NULL)errors("getDir",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"getDir",__FILE__,__LINE__);
 	tmp[i]='\0';
 	memcpy(tmp,filename,i);
 	return tmp;
@@ -1206,7 +1195,7 @@ char* getDir(const char* filename)
 char* getStringFromFile(FILE* file)
 {
 	char* tmp=(char*)malloc(sizeof(char));
-	if(tmp==NULL)errors("getStringFromFile",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"getStringFromFile",__FILE__,__LINE__);
 	tmp[0]='\0';
 	char* before;
 	int i=0;
@@ -1217,7 +1206,7 @@ char* getStringFromFile(FILE* file)
 		i++;
 		j=i-1;
 		before=tmp;
-		if(!(tmp=(char*)malloc(sizeof(char)*(i+1))))errors("getStringFromFile",__FILE__,__LINE__);
+		FAKE_ASSERT((tmp=(char*)malloc(sizeof(char)*(i+1))),"getStringFromFile",__FILE__,__LINE__);
 		if(before!=NULL)
 		{
 			memcpy(tmp,before,j);
@@ -1301,7 +1290,7 @@ char** split(char* str,char* divstr,int* length)
 	int count=0;
 	char* pNext=NULL;
 	char** strArry=(char**)malloc(0);
-	if(strArry==NULL)errors("split",__FILE__,__LINE__);
+	FAKE_ASSERT(strArry,"split",__FILE__,__LINE__);
 	pNext=strtok(str,divstr);
 	while(pNext!=NULL)
 	{
@@ -1392,7 +1381,7 @@ char* castEscapeCharater(const char* str,char end,size_t* len)
 		if(strSize>memSize-1)
 		{
 			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+MAX_STRING_SIZE));
-			if(!tmp)errors("castKeyStringToNormalString",__FILE__,__LINE__);
+			FAKE_ASSERT(tmp,"castKeyStringToNormalString",__FILE__,__LINE__);
 			memSize+=MAX_STRING_SIZE;
 		}
 		tmp[strSize-1]=ch;
@@ -1400,7 +1389,7 @@ char* castEscapeCharater(const char* str,char end,size_t* len)
 	if(tmp)tmp[strSize]='\0';
 	memSize=strlen(tmp)+1;
 	tmp=(char*)realloc(tmp,memSize*sizeof(char));
-	if(!tmp)errors("castKeyStringToNormalString",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"castKeyStringToNormalString",__FILE__,__LINE__);
 	*len=i+1;
 	return tmp;
 }
@@ -1408,7 +1397,7 @@ char* castEscapeCharater(const char* str,char end,size_t* len)
 Intpr* newTmpIntpr(const char* filename,FILE* fp)
 {
 	Intpr* tmp=NULL;
-	if(!(tmp=(Intpr*)malloc(sizeof(Intpr))))errors("newTmpIntpr",__FILE__,__LINE__);
+	FAKE_ASSERT((tmp=(Intpr*)malloc(sizeof(Intpr))),"newTmpIntpr",__FILE__,__LINE__);
 	tmp->filename=copyStr(filename);
 	if(fp!=stdin&&filename)
 	{
@@ -1495,9 +1484,9 @@ PreDef* addDefine(const char* symbol,const AST_cptr* objCptr,PreEnv* curEnv)
 PreDef* newDefines(const char* name)
 {
 	PreDef* tmp=(PreDef*)malloc(sizeof(PreDef));
-	if(tmp==NULL)errors("newDefines",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"newDefines",__FILE__,__LINE__);
 	tmp->symbol=(char*)malloc(sizeof(char)*(strlen(name)+1));
-	if(tmp->symbol==NULL)errors("newDefines",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp->symbol,"newDefines",__FILE__,__LINE__);
 	strcpy(tmp->symbol,name);
 	tmp->obj=(AST_cptr){NULL,0,NIL,{NULL}};
 	tmp->next=NULL;
@@ -1507,8 +1496,7 @@ PreDef* newDefines(const char* name)
 SymbolTable* newSymbolTable()
 {
 	SymbolTable* tmp=(SymbolTable*)malloc(sizeof(SymbolTable));
-	if(!tmp)
-		errors("newSymbolTable",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"newSymbolTable",__FILE__,__LINE__);
 	tmp->list=NULL;
 	tmp->idl=NULL;
 	tmp->num=0;
@@ -1518,8 +1506,7 @@ SymbolTable* newSymbolTable()
 SymTabNode* newSymTabNode(const char* symbol)
 {
 	SymTabNode* tmp=(SymTabNode*)malloc(sizeof(SymTabNode));
-	if(!tmp)
-		errors("newSymTabNode",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"newSymbolTable",__FILE__,__LINE__);
 	tmp->id=0;
 	tmp->symbol=copyStr(symbol);
 	return tmp;
@@ -1532,9 +1519,9 @@ SymTabNode* addSymTabNode(SymTabNode* node,SymbolTable* table)
 		table->num=1;
 		node->id=table->num-1;
 		table->list=(SymTabNode**)malloc(sizeof(SymTabNode*)*1);
-		if(!table->list)errors("addSymTabNode",__FILE__,__LINE__);
+		FAKE_ASSERT(table->list,"addSymTabNode",__FILE__,__LINE__);
 		table->idl=(SymTabNode**)malloc(sizeof(SymTabNode*)*1);
-		if(!table->idl)errors("addSymTabNode",__FILE__,__LINE__);
+		FAKE_ASSERT(table->idl,"addSymTabNode",__FILE__,__LINE__);
 		table->list[0]=node;
 		table->idl[0]=node;
 	}
@@ -1556,13 +1543,13 @@ SymTabNode* addSymTabNode(SymTabNode* node,SymbolTable* table)
 		table->num+=1;
 		int32_t i=table->num-1;
 		table->list=(SymTabNode**)realloc(table->list,sizeof(SymTabNode*)*table->num);
-		if(!table->list)errors("addSymTabNode",__FILE__,__LINE__);
+		FAKE_ASSERT(table->list,"addSymTabNode",__FILE__,__LINE__);
 		for(;i>mid;i--)
 			table->list[i]=table->list[i-1];
 		table->list[mid]=node;
 		node->id=table->num-1;
 		table->idl=(SymTabNode**)realloc(table->idl,sizeof(SymTabNode*)*table->num);
-		if(!table->idl)errors("addSymTabNode",__FILE__,__LINE__);
+		FAKE_ASSERT(table->idl,"addSymTabNode",__FILE__,__LINE__);
 		table->idl[table->num-1]=node;
 	}
 	return node;
@@ -1824,8 +1811,7 @@ int isAllSpace(const char* str)
 LineNumberTable* newLineNumTable()
 {
 	LineNumberTable* t=(LineNumberTable*)malloc(sizeof(LineNumberTable));
-	if(!t)
-		errors("newLineNumTable",__FILE__,__LINE__);
+	FAKE_ASSERT(t,"newLineNumTable",__FILE__,__LINE__);
 	t->num=0;
 	t->list=NULL;
 	return t;
@@ -1834,8 +1820,7 @@ LineNumberTable* newLineNumTable()
 LineNumTabNode* newLineNumTabNode(int32_t fid,int32_t scp,int32_t cpc,int32_t line)
 {
 	LineNumTabNode* t=(LineNumTabNode*)malloc(sizeof(LineNumTabNode));
-	if(!t)
-		errors("newLineNumNode",__FILE__,__LINE__);
+	FAKE_ASSERT(t,"newLineNumTable",__FILE__,__LINE__);
 	t->fid=fid;
 	t->scp=scp;
 	t->cpc=cpc;
@@ -1883,8 +1868,7 @@ void lntCat(LineNumberTable* t,int32_t bs,LineNumTabNode** l2,int32_t s2)
 	{
 		t->num=s2;
 		t->list=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*s2);
-		if(!t->list)
-			errors("lntCat",__FILE__,__LINE__);
+		FAKE_ASSERT(t->list,"lntCat",__FILE__,__LINE__);
 		l2[0]->cpc+=bs;
 		INCREASE_ALL_SCP(l2+1,s2-1,bs);
 		memcpy(t->list,l2,(s2)*sizeof(LineNumTabNode*));
@@ -1896,8 +1880,7 @@ void lntCat(LineNumberTable* t,int32_t bs,LineNumTabNode** l2,int32_t s2)
 		{
 			t->list[t->num-1]->cpc+=l2[0]->cpc;
 			t->list=(LineNumTabNode**)realloc(t->list,sizeof(LineNumTabNode*)*(t->num+s2-1));
-			if(!t->list)
-				errors("lntCat",__FILE__,__LINE__);
+			FAKE_ASSERT(t->list,"lntCat",__FILE__,__LINE__);
 			memcpy(t->list+t->num,l2+1,(s2-1)*sizeof(LineNumTabNode*));
 			t->num+=s2-1;
 			freeLineNumTabNode(l2[0]);
@@ -1905,8 +1888,7 @@ void lntCat(LineNumberTable* t,int32_t bs,LineNumTabNode** l2,int32_t s2)
 		else
 		{
 			t->list=(LineNumTabNode**)realloc(t->list,sizeof(LineNumTabNode*)*(t->num+s2));
-			if(!t->list)
-				errors("lntCat",__FILE__,__LINE__);
+			FAKE_ASSERT(t->list,"lntCat",__FILE__,__LINE__);
 			memcpy(t->list+t->num,l2,(s2)*sizeof(LineNumTabNode*));
 			t->num+=s2;
 		}
@@ -1919,8 +1901,7 @@ void codelntCat(ByteCodelnt* f,ByteCodelnt* s)
 	{
 		f->ls=s->ls;
 		f->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*s->ls);
-		if(!f->l)
-			errors("codelntCat",__FILE__,__LINE__);
+		FAKE_ASSERT(f->l,"codelntCat",__FILE__,__LINE__);
 		s->l[0]->cpc+=f->bc->size;
 		INCREASE_ALL_SCP(s->l+1,s->ls-1,f->bc->size);
 		memcpy(f->l,s->l,(s->ls)*sizeof(LineNumTabNode*));
@@ -1932,8 +1913,7 @@ void codelntCat(ByteCodelnt* f,ByteCodelnt* s)
 		{
 			f->l[f->ls-1]->cpc+=s->l[0]->cpc;
 			f->l=(LineNumTabNode**)realloc(f->l,sizeof(LineNumTabNode*)*(f->ls+s->ls-1));
-			if(!f->l)
-				errors("codelntCat",__FILE__,__LINE__);
+			FAKE_ASSERT(f->l,"codelntCat",__FILE__,__LINE__);
 			memcpy(f->l+f->ls,s->l+1,(s->ls-1)*sizeof(LineNumTabNode*));
 			f->ls+=s->ls-1;
 			freeLineNumTabNode(s->l[0]);
@@ -1941,8 +1921,7 @@ void codelntCat(ByteCodelnt* f,ByteCodelnt* s)
 		else
 		{
 			f->l=(LineNumTabNode**)realloc(f->l,sizeof(LineNumTabNode*)*(f->ls+s->ls));
-			if(!f->l)
-				errors("codelntCat",__FILE__,__LINE__);
+			FAKE_ASSERT(f->l,"codelntCat",__FILE__,__LINE__);
 			memcpy(f->l+f->ls,s->l,(s->ls)*sizeof(LineNumTabNode*));
 			f->ls+=s->ls;
 		}
@@ -1958,8 +1937,7 @@ void codelntCopyCat(ByteCodelnt* f,const ByteCodelnt* s)
 		{
 			f->ls=s->ls;
 			f->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*s->ls);
-			if(!f->l)
-				errors("codelntCopyCat",__FILE__,__LINE__);
+			FAKE_ASSERT(f->l,"codelntCopyCat",__FILE__,__LINE__);
 			uint32_t i=0;
 			for(;i<f->ls;i++)
 			{
@@ -1973,8 +1951,7 @@ void codelntCopyCat(ByteCodelnt* f,const ByteCodelnt* s)
 		{
 			uint32_t i=0;
 			LineNumTabNode** tl=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*s->ls);
-			if(!tl)
-				errors("codelntCopyCat",__FILE__,__LINE__);
+			FAKE_ASSERT(tl,"codelntCopyCat",__FILE__,__LINE__);
 			for(;i<s->ls;i++)
 			{
 				LineNumTabNode* t=s->l[i];
@@ -1985,8 +1962,7 @@ void codelntCopyCat(ByteCodelnt* f,const ByteCodelnt* s)
 			{
 				f->l[f->ls-1]->cpc+=s->l[0]->cpc;
 				f->l=(LineNumTabNode**)realloc(f->l,sizeof(LineNumTabNode*)*(f->ls+s->ls-1));
-				if(!f->l)
-					errors("codelntCopyCat",__FILE__,__LINE__);
+				FAKE_ASSERT(f->l,"codelntCopyCat",__FILE__,__LINE__);
 				memcpy(f->l+f->ls,tl+1,(s->ls-1)*sizeof(LineNumTabNode*));
 				f->ls+=s->ls-1;
 				freeLineNumTabNode(tl[0]);
@@ -1994,8 +1970,7 @@ void codelntCopyCat(ByteCodelnt* f,const ByteCodelnt* s)
 			else
 			{
 				f->l=(LineNumTabNode**)realloc(f->l,sizeof(LineNumTabNode*)*(f->ls+s->ls));
-				if(!f->l)
-					errors("codelntCopyCat",__FILE__,__LINE__);
+				FAKE_ASSERT(f->l,"codelntCopyCat",__FILE__,__LINE__);
 				memcpy(f->l+f->ls,tl,(s->ls)*sizeof(LineNumTabNode*));
 				f->ls+=s->ls;
 			}
@@ -2011,8 +1986,7 @@ void reCodelntCat(ByteCodelnt* f,ByteCodelnt* s)
 	{
 		s->ls=f->ls;
 		s->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*f->ls);
-		if(!s->l)
-			errors("reCodelntCat",__FILE__,__LINE__);
+		FAKE_ASSERT(s->l,"reCodelntCat",__FILE__,__LINE__);
 		f->l[f->ls-1]->cpc+=s->bc->size;
 		memcpy(s->l,f->l,(f->ls)*sizeof(LineNumTabNode*));
 	}
@@ -2022,8 +1996,7 @@ void reCodelntCat(ByteCodelnt* f,ByteCodelnt* s)
 		if(f->l[f->ls-1]->line==s->l[0]->line&&f->l[f->ls-1]->fid==s->l[0]->fid)
 		{
 			LineNumTabNode** l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*(f->ls+s->ls-1));
-			if(!l)
-				errors("reCodeCat",__FILE__,__LINE__);
+			FAKE_ASSERT(l,"reCodelntCat",__FILE__,__LINE__);
 			f->l[f->ls-1]->cpc+=s->l[0]->cpc;
 			freeLineNumTabNode(s->l[0]);
 			memcpy(l,f->l,(f->ls)*sizeof(LineNumTabNode*));
@@ -2035,8 +2008,7 @@ void reCodelntCat(ByteCodelnt* f,ByteCodelnt* s)
 		else
 		{
 			LineNumTabNode** l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*(f->ls+s->ls));
-			if(!l)
-				errors("reCodeCat",__FILE__,__LINE__);
+			FAKE_ASSERT(l,"reCodeCat",__FILE__,__LINE__);
 			memcpy(l,f->l,(f->ls)*sizeof(LineNumTabNode*));
 			memcpy(l+f->ls,s->l,(s->ls)*sizeof(LineNumTabNode*));
 			free(s->l);
@@ -2106,8 +2078,7 @@ void printByteCodelnt(ByteCodelnt* obj,SymbolTable* table,FILE* fp)
 ByteCodeLabel* newByteCodeLable(int32_t place,const char* label)
 {
 	ByteCodeLabel* tmp=(ByteCodeLabel*)malloc(sizeof(ByteCodeLabel));
-	if(!tmp)
-		errors("newByteCodeLable",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"newByteCodeLable",__FILE__,__LINE__);
 	tmp->place=place;
 	tmp->label=copyStr(label);
 	return tmp;
@@ -2147,8 +2118,7 @@ int isComStackEmpty(ComStack* stack)
 ComStack* newComStack(uint32_t num)
 {
 	ComStack* tmp=(ComStack*)malloc(sizeof(ComStack));
-	if(!tmp)
-		errors("newComStack",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"newComStack",__FILE__,__LINE__);
 	tmp->data=(void**)malloc(sizeof(void*)*num);
 	tmp->num=num;
 	tmp->top=0;
@@ -2160,8 +2130,7 @@ void pushComStack(void* data,ComStack* stack)
 	if(stack->top==stack->num)
 	{
 		void** tmpData=(void**)realloc(stack->data,(stack->num+32)*sizeof(void*));
-		if(!tmpData)
-			errors("pushComStack",__FILE__,__LINE__);
+		FAKE_ASSERT(tmpData,"pushComStack",__FILE__,__LINE__);
 		stack->data=tmpData;
 		stack->num+=32;
 	}
@@ -2197,8 +2166,7 @@ void recycleComStack(ComStack* stack)
 	if(stack->num-stack->top>32)
 	{
 		void** tmpData=(void**)realloc(stack->data,(stack->num-32)*sizeof(void*));
-		if(!tmpData)
-			errors("recycleComStack",__FILE__,__LINE__);
+		FAKE_ASSERT(tmpData,"recycleComStack",__FILE__,__LINE__);
 		stack->data=tmpData;
 		stack->num-=32;
 	}
@@ -2207,8 +2175,7 @@ void recycleComStack(ComStack* stack)
 FakeMem* newFakeMem(void* block,void (*destructor)(void*))
 {
 	FakeMem* tmp=(FakeMem*)malloc(sizeof(FakeMem));
-	if(!tmp)
-		errors("newFakeMem",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"newFakeMem",__FILE__,__LINE__);
 	tmp->block=block;
 	tmp->destructor=destructor;
 	return tmp;
@@ -2224,8 +2191,7 @@ void freeFakeMem(FakeMem* mem)
 FakeMemMenager* newFakeMemMenager(size_t size)
 {
 	FakeMemMenager* tmp=(FakeMemMenager*)malloc(sizeof(FakeMemMenager));
-	if(!tmp)
-		errors("newFakeMemMenager",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"newFakeMemMenager",__FILE__,__LINE__);
 	tmp->s=newComStack(size);
 	return tmp;
 }
@@ -2284,8 +2250,7 @@ void mergeSort(void* _base,size_t num,size_t size,int (*cmpf)(const void*,const 
 {
 	void* base0=_base;
 	void* base1=malloc(size*num);
-	if(!base1)
-		errors("mergeSort",__FILE__,__LINE__);
+	FAKE_ASSERT(base1,"mergeSort",__FILE__,__LINE__);
 	unsigned int seg=1;
 	unsigned int start=0;
 	for(;seg<num;seg+=seg)
@@ -2349,8 +2314,7 @@ void freeAllKeyWord(KeyWord* head)
 QueueNode* newQueueNode(void* data)
 {
 	QueueNode* tmp=(QueueNode*)malloc(sizeof(QueueNode));
-	if(!tmp)
-		errors("newQueueNode",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"newQueueNode",__FILE__,__LINE__);
 	tmp->data=data;
 	tmp->next=NULL;
 	return tmp;
@@ -2364,8 +2328,7 @@ void freeQueueNode(QueueNode* tmp)
 ComQueue* newComQueue()
 {
 	ComQueue* tmp=(ComQueue*)malloc(sizeof(ComQueue));
-	if(!tmp)
-		errors("newComQueue",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"newComQueue",__FILE__,__LINE__);
 	tmp->head=NULL;
 	tmp->tail=NULL;
 	return tmp;

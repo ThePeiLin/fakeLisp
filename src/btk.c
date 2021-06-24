@@ -48,7 +48,7 @@ int FAKE_getch(FakeVM* exe,pthread_rwlock_t* pGClock)
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-		if(stack->values==NULL)errors("FAKE_getch",__FILE__,__LINE__);
+		FAKE_ASSERT(stack->values,"FAKE_getch",__FILE__,__LINE__);
 		stack->size+=64;
 	}
 	char ch=getch();
@@ -69,7 +69,7 @@ int FAKE_sleep(FakeVM* exe,pthread_rwlock_t* pGClock)
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-		if(stack->values==NULL)errors("FAKE_sleep",__FILE__,__LINE__);
+		FAKE_ASSERT(stack->values,"FAKE_sleep",__FILE__,__LINE__);
 		stack->size+=64;
 	}
 	lockSource(pGClock);
@@ -95,7 +95,7 @@ int FAKE_usleep(FakeVM* exe,pthread_rwlock_t* pGClock)
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-		if(stack->values==NULL)errors("FAKE_usleep",__FILE__,__LINE__);
+		FAKE_ASSERT(stack->values,"FAKE_usleep",__FILE__,__LINE__);
 		stack->size+=64;
 	}
 	lockSource(pGClock);
@@ -156,8 +156,7 @@ int FAKE_getTime(FakeVM* exe,pthread_rwlock_t* pGClock)
 	char* year=intToString(tblock->tm_year+1900);
 	int32_t timeLen=strlen(year)+strlen(mon)+strlen(day)+strlen(hour)+strlen(min)+strlen(sec)+5;
 	char* trueTime=(char*)malloc(sizeof(char)*(timeLen+1));
-	if(!trueTime)
-		errors("FAKE_getTime",__FILE__,__LINE__);
+	FAKE_ASSERT(trueTime,"FAKE_getTime",__FILE__,__LINE__);
 	sprintf(trueTime,"%s-%s-%s_%s_%s_%s",year,mon,day,hour,min,sec);
 	free(sec);
 	free(min);

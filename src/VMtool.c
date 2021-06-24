@@ -504,7 +504,7 @@ ByteString* copyByteArry(const ByteString* obj)
 	if(obj==NULL)return NULL;
 	ByteString* tmp=(ByteString*)malloc(sizeof(ByteString));
 	FAKE_ASSERT(tmp,"copyByteArry",__FILE__,__LINE__);
-	uint8_t* tmpArry=(uint8_t*)malloc(tmp->size*sizeof(uint8_t));
+	uint8_t* tmpArry=(uint8_t*)malloc(obj->size*sizeof(uint8_t));
 	FAKE_ASSERT(tmpArry,"copyByteArry",__FILE__,__LINE__);
 	memcpy(tmpArry,obj->str,obj->size);
 	tmp->size=obj->size;

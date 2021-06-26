@@ -118,4 +118,10 @@ void freeSendT(SendT*);
 
 void chanlSend(SendT*,VMChanl*);
 void chanlRecv(RecvT*,VMChanl*);
+
+VMTryBlock* newVMTryBlock(const char* errSymbol);
+void freeVMTryBlock(VMTryBlock* b);
+
+VMerrorHandler* newVMerrorHandler(const char* type,VMproc* proc);
+void freeVMerrorHandler(VMerrorHandler*);
 #endif

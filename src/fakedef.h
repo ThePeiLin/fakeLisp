@@ -407,7 +407,6 @@ typedef struct LineNumberTableNode
 typedef struct VMTryBlock
 {
 	char* errSymbol;
-	char* ccSymbol;
 	ComStack* hstack;
 }VMTryBlock;
 

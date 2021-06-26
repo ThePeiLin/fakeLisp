@@ -1288,8 +1288,35 @@ void chanlSend(SendT*s,VMChanl* ch)
 	pthread_mutex_unlock(&ch->lock);
 }
 
-VMTryBlock* newVMTryBlock(const char* errSymbol,const char* ccSymbol)
+VMTryBlock* newVMTryBlock(const char* errSymbol)
 {
 	VMTryBlock* t=(VMTryBlock*)malloc(sizeof(VMTryBlock));
+	FAKE_ASSERT(t,"newVMTryBlock",__FILE__,__LINE__);
+	t->errSymbol=copyStr(errSymbol);
+	t->hstack=newComStack(32);
 	return t;
+}
+
+void freeVMTryBlock(VMTryBlock* b)
+{
+	free(b->errSymbol);
+	freeComStack(b->hstack);
+	free(b);
+}
+
+VMerrorHandler* newVMerrorHandler(const char* type,VMproc* proc)
+{
+	VMerrorHandler* t=(VMerrorHandler*)malloc(sizeof(VMerrorHandler));
+	FAKE_ASSERT(t,"newVMerrorHandler",__FILE__,__LINE__);
+	t->type=copyStr(type);
+	increaseVMprocRefcount(proc);
+	t->proc=proc;
+	return t;
+}
+
+void freeVMerrorHandler(VMerrorHandler* h)
+{
+	free(h->type);
+	freeVMproc(h->proc);
+	free(h);
 }

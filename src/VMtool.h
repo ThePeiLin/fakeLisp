@@ -124,4 +124,6 @@ void freeVMTryBlock(VMTryBlock* b);
 
 VMerrorHandler* newVMerrorHandler(const char* type,VMproc* proc);
 void freeVMerrorHandler(VMerrorHandler*);
+int raiseVMerror(VMerror* err,FakeVM*);
+VMrunnable* newVMrunnable(VMproc*);
 #endif

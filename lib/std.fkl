@@ -70,6 +70,8 @@
                  clcc
                  dll
                  dlsym
+                 error
+                 raise
                  +
                  -
                  *
@@ -598,6 +600,17 @@
                            push_var sym
                            dlsym)))
 
+         (define error (lambda (type message)
+                         (proc
+                           push_var type
+                           push_var message
+                           error)))
+
+         (define raise (lambda (err)
+                         (proc
+                           push_var err
+                           raise)))
+
          (define + (lambda (a,b)
                      (cond (b (add a (aply + b)))
                            (1 a))))
@@ -713,13 +726,15 @@
                                    (unqtesp (cdr b))))
                                (unquote (cons d vals))))
                     )
-                   (1
+                   ((eq (type d) (quote pair))
                     (setq args
                           (map (lambda (sd) (nth 0 sd)) d))
                     (setq vals
                           (map (lambda (sd) (nth 1 sd)) d))
                     (qsquote ((lambda (unquote args) (unqtesp b)) (unqtesp vals)))
-                    ))))
+                    )
+                   (1 (raise (error (quote syntax-error) "error:Wrong type of object behind key word:let\n")))
+                   )))
 
          (defmacro
            (let* $d,$b)

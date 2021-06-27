@@ -156,4 +156,5 @@ void* firstComQueue(ComQueue*);
 void* popComQueue(ComQueue*);
 void pushComQueue(void*,ComQueue*);
 ComQueue* copyComQueue(ComQueue*);
+char* strCat(char*,const char*);
 #endif

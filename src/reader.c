@@ -13,7 +13,6 @@ static StringMatchPattern* HeadOfStringPattern=NULL;
 static int32_t skipUntilNextWhenReading(const char* str,const char* part);
 static int32_t countInPatternWhenReading(const char*,StringMatchPattern*);
 static char* readString(FILE*);
-static char* strCat(char*,const char*);
 static int32_t matchStringPattern(const char*,StringMatchPattern* pattern);
 static int maybePatternPrefix(const char*);
 static int32_t countStringParts(const char*);
@@ -712,14 +711,6 @@ void freeStringArry(char** ss,int32_t num)
 	for(;i<num;i++)
 		free(ss[i]);
 	free(ss);
-}
-
-char* strCat(char* s1,const char* s2)
-{
-	s1=(char*)realloc(s1,sizeof(char)*(strlen(s1)+strlen(s2)+1));
-	FAKE_ASSERT(s1,"strCat",__FILE__,__LINE__);
-	strcat(s1,s2);
-	return s1;
 }
 
 int isInValidStringPattern(const char* str)

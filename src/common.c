@@ -20,23 +20,27 @@
 	freeLineNumTabNode((l)[i]);\
 }
 
-const char* builtInErrorType[15]=
+const char* builtInErrorType[19]=
 {
 	"dummy",
 	"symbol-undefined",
 	"syntax-error",
 	"invalid-expression",
 	"circular-load",
+	"invalid-pattern",
 	"wrong-types-of-arguements",
+	"stack-error",
 	"too-many-arguements",
 	"too-few-arguements",
 	"cant-create-threads",
+	"thread-error",
 	"macro-expand-error",
 	"invoke-error",
 	"load-dll-faild",
 	"invalid-symbol",
 	"library-undefined",
-	"unexpect-eof"
+	"unexpect-eof",
+	"div-zero-error"
 };
 
 char* InterpreterPath=NULL;
@@ -81,12 +85,12 @@ char* getStringAfterBackslash(const char* str)
 
 char* doubleToString(double num)
 {
-	int i;
-	char numString[sizeof(double)*2+3];
+	char numString[256];
 	sprintf(numString,"%lf",num);
 	int lenOfNum=strlen(numString)+1;
 	char* tmp=(char*)malloc(lenOfNum*sizeof(char));
-	for(i=0;i<lenOfNum;i++)*(tmp+i)=numString[i];
+	FAKE_ASSERT(tmp,"doubleToString",__FILE__,__LINE__);
+	memcpy(tmp,numString,lenOfNum);
 	return tmp;
 }
 
@@ -102,9 +106,7 @@ double stringToDouble(const char* str)
 
 char* intToString(long num)
 {
-	size_t i;
-	char numString[sizeof(long)*2+3];
-	for(i=0;i<sizeof(long)*2+3;i++)numString[i]=0;
+	char numString[256]={0};
 	sprintf(numString,"%ld",num);
 	int lenOfNum=strlen(numString)+1;
 	char* tmp=NULL;
@@ -781,13 +783,14 @@ Intpr* newIntpr(const char* filename,FILE* file,CompEnv* env,SymbolTable* table,
 #else
 		char* rp=realpath(filename,0);
 #endif
-		if(rp==NULL)
+		if(!rp&&!file)
 		{
 			perror(filename);
 			exit(EXIT_FAILURE);
 		}
-		tmp->curDir=getDir(rp);
-		free(rp);
+		tmp->curDir=getDir(rp?rp:filename);
+		if(rp)
+			free(rp);
 	}
 	else
 		tmp->curDir=getcwd(NULL,0);
@@ -2398,3 +2401,13 @@ ComQueue* copyComQueue(ComQueue* q)
 		pushComQueue(head->data,tmp);
 	return tmp;
 }
+
+char* strCat(char* s1,const char* s2)
+{
+	s1=(char*)realloc(s1,sizeof(char)*(strlen(s1)+strlen(s2)+1));
+	FAKE_ASSERT(s1,"strCat",__FILE__,__LINE__);
+	strcat(s1,s2);
+	return s1;
+}
+
+

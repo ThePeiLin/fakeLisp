@@ -88,6 +88,7 @@ VMvalue* copyVMvalue(VMvalue* obj,VMheap* heap)
 			case FP:
 			case DLL:
 			case DLPROC:
+			case ERR:
 				copyRef(root1,root);
 				break;
 			case CHAN:
@@ -700,6 +701,7 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 			case ERR:
 				increaseVMerrorRefcount(sec->u.err);
 				fir->u.err=sec->u.err;
+				break;
 			case NIL:
 				fir->u.all=NULL;
 				break;
@@ -1198,7 +1200,7 @@ VMerror* newVMerror(const char* type,const char* message)
 	FAKE_ASSERT(t,"newVMerror",__FILE__,__LINE__);
 	t->refcount=0;
 	t->type=copyStr(type);
-	t->message=copyStr(type);
+	t->message=copyStr(message);
 	return t;
 }
 

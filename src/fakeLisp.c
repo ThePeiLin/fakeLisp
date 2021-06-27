@@ -252,6 +252,8 @@ void runIntpr(Intpr* inter)
 				}
 				else
 				{
+					if(e>=2&&prev)
+						free(prev);
 					VMstack* stack=anotherVM->stack;
 					stack->tp=0;
 					stack->bp=0;

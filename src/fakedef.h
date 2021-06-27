@@ -4,6 +4,7 @@
 #include<stdlib.h>
 #include<stdint.h>
 #include<pthread.h>
+#include<setjmp.h>
 #define THRESHOLD_SIZE 64
 #define NUMOFBUILTINSYMBOL 5
 #define MAX_STRING_SIZE 64
@@ -28,7 +29,8 @@ typedef enum
 	LOADDLLFAILD,
 	INVALIDSYMBOL,
 	LIBUNDEFINED,
-	UNEXPECTEOF
+	UNEXPECTEOF,
+	DIVZERROERROR
 }ErrorType;
 
 typedef void (*GenDestructor)(void*);

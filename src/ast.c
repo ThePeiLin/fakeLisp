@@ -174,7 +174,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 		AST_cptr* tmpCptr=NULL;
 		if(!status)
 			tmpCptr=castVMvalueToCptr(tmpVM->stack->values[0],inter->curline);
-		else if(status==1)
+		else
 		{
 			FREE_ALL_LINE_NUMBER_TABLE(t->l,t->ls);
 			freeByteCodelnt(t);

@@ -183,7 +183,7 @@ int PreMacroExpand(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 			deleteCptr(tmpCptr);
 			free(tmpCptr);
 		}
-		else if(i==1)
+		else
 		{
 			FREE_ALL_LINE_NUMBER_TABLE(t->l,t->ls);
 			freeByteCodelnt(t);
@@ -2392,10 +2392,10 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		FILE* fp=fopen(path,"r");
 		if(!fp)
 		{
-			char t[]="/lib/";
-			char* pathWithInterpreterPath=(char*)malloc(sizeof(char)*(strlen(InterpreterPath)+strlen(t)+strlen(path)+1));
+			char t[]="lib/";
+			char* pathWithInterpreterPath=(char*)malloc(sizeof(char)*(strlen(InterpreterPath)+strlen(t)+strlen(path)+2));
 			FAKE_ASSERT(pathWithInterpreterPath,"compileImport",__FILE__,__LINE__);
-			sprintf(pathWithInterpreterPath,"%s%s%s",InterpreterPath,t,path);
+			sprintf(pathWithInterpreterPath,"%s/%s%s",InterpreterPath,t,path);
 			fp=fopen(pathWithInterpreterPath,"r");
 			if(!fp)
 			{
@@ -2407,6 +2407,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				freeFakeMemMenager(memMenager);
 				return NULL;
 			}
+			sprintf(pathWithInterpreterPath,"%s%s",t,path);
 			free(path);
 			path=pathWithInterpreterPath;
 		}

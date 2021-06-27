@@ -1311,7 +1311,6 @@ VMerrorHandler* newVMerrorHandler(const char* type,VMproc* proc)
 	VMerrorHandler* t=(VMerrorHandler*)malloc(sizeof(VMerrorHandler));
 	FAKE_ASSERT(t,"newVMerrorHandler",__FILE__,__LINE__);
 	t->type=copyStr(type);
-	increaseVMprocRefcount(proc);
 	t->proc=proc;
 	return t;
 }
@@ -1349,15 +1348,14 @@ int raiseVMerror(VMerror* err,FakeVM* exe)
 					VMstack* stack=exe->stack;
 					stack->tp=(stack->tptp)?stack->tpst[stack->tptp-1]:0;
 					VMrunnable* runnable=topComStack(exe->rstack);
-					VMrunnable* otherRunnable=newVMrunnable(h->proc);
-					otherRunnable->localenv->prev=newVMenv(runnable->localenv);
-					VMenv* curEnv=otherRunnable->localenv;
+					freeVMproc(runnable->proc);
+					runnable->proc=h->proc;
+					VMenv* curEnv=runnable->localenv;
 					uint32_t idOfError=findSymbol(tb->errSymbol,exe->table)->id;
 					VMenvNode* errorNode=findVMenvNode(idOfError,curEnv);
 					if(!errorNode)
 						errorNode=addVMenvNode(newVMenvNode(NULL,idOfError),curEnv);
 					errorNode->value=newVMvalue(ERR,err,exe->heap,1);
-					pushComStack(otherRunnable,exe->rstack);
 					return 1;
 				}
 				freeVMerrorHandler(h);

@@ -14,7 +14,7 @@ LINK=-lpthread
 BTK=btk.dll
 else
 DLLAPPENDFIX= .so
-LINK=-lpthread -ldl
+LINK=-lpthread -ldl -lm
 BTK=btk.so
 endif
 

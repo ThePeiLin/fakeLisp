@@ -1322,3 +1322,59 @@ void freeVMerrorHandler(VMerrorHandler* h)
 	freeVMproc(h->proc);
 	free(h);
 }
+
+int raiseVMerror(VMerror* err,FakeVM* exe)
+{
+	if(isComStackEmpty(exe->tstack))
+	{
+		fprintf(stderr,"%s",err->message);
+		freeVMerror(err);
+		if(exe->VMid==-1)
+			longjmp(exe->buf,255);
+		else if(exe->VMid!=0)
+			longjmp(exe->buf,255);
+		int i[2]={255,1};
+		exe->callback(i);
+	}
+	else
+	{
+		while(!isComStackEmpty(exe->tstack))
+		{
+			VMTryBlock* tb=popComStack(exe->tstack);
+			while(!isComStackEmpty(tb->hstack))
+			{
+				VMerrorHandler* h=popComStack(tb->hstack);
+				if(strcmp(h->type,err->type))
+				{
+					VMstack* stack=exe->stack;
+					stack->tp=(stack->tptp)?stack->tpst[stack->tptp-1]:0;
+					VMrunnable* runnable=topComStack(exe->rstack);
+					VMrunnable* otherRunnable=newVMrunnable(h->proc);
+					otherRunnable->localenv->prev=newVMenv(runnable->localenv);
+					VMenv* curEnv=otherRunnable->localenv;
+					uint32_t idOfError=findSymbol(tb->errSymbol,exe->table)->id;
+					VMenvNode* errorNode=findVMenvNode(idOfError,curEnv);
+					if(!errorNode)
+						errorNode=addVMenvNode(newVMenvNode(NULL,idOfError),curEnv);
+					errorNode->value=newVMvalue(ERR,err,exe->heap,1);
+					pushComStack(otherRunnable,exe->rstack);
+					return 1;
+				}
+				freeVMerrorHandler(h);
+			}
+		}
+	}
+	return 255;
+}
+
+VMrunnable* newVMrunnable(VMproc* code)
+{
+	VMrunnable* tmp=(VMrunnable*)malloc(sizeof(VMrunnable));
+	FAKE_ASSERT(tmp,"newVMrunnable",__FILE__,__LINE__);
+	tmp->cp=code->scp;
+	tmp->proc=code;
+	increaseVMprocRefcount(code);
+	return tmp;
+}
+
+

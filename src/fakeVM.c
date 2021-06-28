@@ -2112,7 +2112,7 @@ void B_push_try(FakeVM* exe)
 	char* errSymbol=(char*)(exe->code+r->cp+(++cpc));
 	VMTryBlock* tb=newVMTryBlock(errSymbol,exe->stack->tp);
 	cpc+=strlen(errSymbol)+1;
-	int32_t handlerNum=*(exe->code+r->cp+cpc);
+	int32_t handlerNum=*(int32_t*)(exe->code+r->cp+cpc);
 	cpc+=sizeof(int32_t);
 	unsigned int i=0;
 	for(;i<handlerNum;i++)

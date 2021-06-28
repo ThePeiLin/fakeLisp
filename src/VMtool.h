@@ -119,7 +119,7 @@ void freeSendT(SendT*);
 void chanlSend(SendT*,VMChanl*);
 void chanlRecv(RecvT*,VMChanl*);
 
-VMTryBlock* newVMTryBlock(const char* errSymbol);
+VMTryBlock* newVMTryBlock(const char* errSymbol,uint32_t tp);
 void freeVMTryBlock(VMTryBlock* b);
 
 VMerrorHandler* newVMerrorHandler(const char* type,VMproc* proc);

@@ -1290,18 +1290,25 @@ void chanlSend(SendT*s,VMChanl* ch)
 	pthread_mutex_unlock(&ch->lock);
 }
 
-VMTryBlock* newVMTryBlock(const char* errSymbol)
+VMTryBlock* newVMTryBlock(const char* errSymbol,uint32_t tp)
 {
 	VMTryBlock* t=(VMTryBlock*)malloc(sizeof(VMTryBlock));
 	FAKE_ASSERT(t,"newVMTryBlock",__FILE__,__LINE__);
 	t->errSymbol=copyStr(errSymbol);
 	t->hstack=newComStack(32);
+	t->tp=tp;
 	return t;
 }
 
 void freeVMTryBlock(VMTryBlock* b)
 {
 	free(b->errSymbol);
+	ComStack* hstack=b->hstack;
+	while(!isComStackEmpty(hstack))
+	{
+		VMerrorHandler* h=popComStack(hstack);
+		freeVMerrorHandler(h);
+	}
 	freeComStack(b->hstack);
 	free(b);
 }
@@ -1339,14 +1346,14 @@ int raiseVMerror(VMerror* err,FakeVM* exe)
 	{
 		while(!isComStackEmpty(exe->tstack))
 		{
-			VMTryBlock* tb=popComStack(exe->tstack);
+			VMTryBlock* tb=topComStack(exe->tstack);
+			VMstack* stack=exe->stack;
+				stack->tp=tb->tp;
 			while(!isComStackEmpty(tb->hstack))
 			{
 				VMerrorHandler* h=popComStack(tb->hstack);
 				if(strcmp(h->type,err->type))
 				{
-					VMstack* stack=exe->stack;
-					stack->tp=(stack->tptp)?stack->tpst[stack->tptp-1]:0;
 					VMrunnable* runnable=topComStack(exe->rstack);
 					freeVMproc(runnable->proc);
 					runnable->proc=h->proc;
@@ -1360,6 +1367,7 @@ int raiseVMerror(VMerror* err,FakeVM* exe)
 				}
 				freeVMerrorHandler(h);
 			}
+			popComStack(exe->tstack);
 		}
 	}
 	return 255;

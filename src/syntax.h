@@ -31,5 +31,7 @@ int isLibraryExpression(const AST_cptr*);
 int isExportExpression(const AST_cptr*);
 int isDefmacroExpression(const AST_cptr*);
 int isProcExpression(const AST_cptr*);
+int isTryExpression(const AST_cptr*);
+int isCatchExpression(const AST_cptr*);
 int isKeyWord(const char*,CompEnv* curEnv);
 #endif

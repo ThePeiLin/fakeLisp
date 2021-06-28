@@ -2774,7 +2774,7 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 		for(;begin;begin=nextCptr(begin))
 		{
 			ByteCodelnt* tmp1=compile(begin,tmpEnv,inter,status,evalIm);
-			if(status)
+			if(status->status)
 			{
 				FREE_ALL_LINE_NUMBER_TABLE(expressionByteCodelnt->l,expressionByteCodelnt->ls);
 				freeByteCodelnt(expressionByteCodelnt);
@@ -2835,7 +2835,7 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	ByteCode* header=newByteCode(sizeOfErrSymbol+sizeof(int32_t)+sizeof(char));
 	header->code[0]=FAKE_PUSH_TRY;
 	memcpy(header->code+sizeof(char),errSymbol,sizeOfErrSymbol);
-	*((int32_t*)header->code+sizeof(char)+sizeOfErrSymbol)=numOfHandlerByteCode;
+	*(int32_t*)(header->code+sizeof(char)+sizeOfErrSymbol)=numOfHandlerByteCode;
 	reCodeCat(header,t->bc);
 	t->l[0]->cpc+=header->size;
 	INCREASE_ALL_SCP(t->l+1,t->ls-1,header->size);

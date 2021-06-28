@@ -411,6 +411,7 @@ typedef struct VMTryBlock
 {
 	char* errSymbol;
 	ComStack* hstack;
+	uint32_t tp;
 }VMTryBlock;
 
 typedef struct VMerrorHandler

@@ -504,6 +504,8 @@ void initGlobKeyWord(CompEnv* glob)
 	addKeyWord("import",glob);
 	addKeyWord("library",glob);
 	addKeyWord("export",glob);
+	addKeyWord("try",glob);
+	addKeyWord("catch",glob);
 }
 
 void unInitPreprocess()
@@ -655,6 +657,7 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 		if(isBeginExpression(objCptr)) return compileBegin(objCptr,curEnv,inter,status,evalIm);
 		if(isProcExpression(objCptr)) return compileProc(objCptr,curEnv,inter,status,evalIm);
 		if(isImportExpression(objCptr))return compileImport(objCptr,curEnv,inter,status,evalIm);
+		if(isTryExpression(objCptr))return compileTry(objCptr,curEnv,inter,status,evalIm);
 		if(isLibraryExpression(objCptr))
 		{
 			ByteCodelnt* tmp=newByteCodelnt(newByteCode(1));
@@ -665,7 +668,7 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 			tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,0,inter->curline);
 			return tmp;
 		}
-		if(isUnqtespExpression(objCptr)||isExportExpression(objCptr))
+		if(isCatchExpression(objCptr)||isUnqtespExpression(objCptr)||isExportExpression(objCptr))
 		{
 			status->status=INVALIDEXPR;
 			status->place=objCptr;
@@ -2695,4 +2698,152 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	}
 	chdir(inter->curDir);
 	return tmp;
+}
+
+ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+{
+	AST_cptr* pExpression=nextCptr(getFirstCptr(objCptr));
+	AST_cptr* pCatchExpression=NULL;
+	if(!pExpression||!(pCatchExpression=nextCptr(pExpression)))
+	{
+		status->status=SYNTAXERROR;
+		status->place=objCptr;
+		return NULL;
+	}
+	ByteCodelnt* expressionByteCodelnt=compile(pExpression,curEnv,inter,status,evalIm);
+	if(status->status)
+		return NULL;
+	else
+	{
+		ByteCode* pushProc=newByteCode(sizeof(char)+sizeof(uint32_t));
+		ByteCode* invoke=newByteCode(1);
+		invoke->code[0]=FAKE_INVOKE;
+		pushProc->code[0]=FAKE_PUSH_PROC;
+		*((uint32_t*)pushProc->code+sizeof(char))=expressionByteCodelnt->bc->size;
+		reCodeCat(pushProc,expressionByteCodelnt->bc);
+		expressionByteCodelnt->l[0]->cpc+=pushProc->size;
+		INCREASE_ALL_SCP(expressionByteCodelnt->l+1,expressionByteCodelnt->ls-1,pushProc->size);
+		codeCat(expressionByteCodelnt->bc,invoke);
+		expressionByteCodelnt->l[expressionByteCodelnt->ls-1]->cpc+=invoke->size;
+		freeByteCode(pushProc);
+		freeByteCode(invoke);
+	}
+	AST_cptr* pErrSymbol=nextCptr(getFirstCptr(pCatchExpression));
+	AST_cptr* pHandlerExpression=NULL;
+	if(!pErrSymbol
+			||pErrSymbol->type!=ATM
+			||pErrSymbol->u.atom->type!=SYM
+			||!(pHandlerExpression=nextCptr(pErrSymbol)))
+	{
+		status->status=SYNTAXERROR;
+		status->place=objCptr;
+		FREE_ALL_LINE_NUMBER_TABLE(expressionByteCodelnt->l,expressionByteCodelnt->ls);
+		freeByteCodelnt(expressionByteCodelnt);
+		return NULL;
+	}
+	char* errSymbol=copyStr(pErrSymbol->u.atom->value.str);
+	ComStack* handlerByteCodelntStack=newComStack(32);
+	for(;pHandlerExpression;pHandlerExpression=nextCptr(pHandlerExpression))
+	{
+		if(pHandlerExpression->type!=PAIR
+				||getFirstCptr(pHandlerExpression)->type!=ATM
+				||getFirstCptr(pHandlerExpression)->u.atom->type!=SYM)
+		{
+			status->status=SYNTAXERROR;
+			status->place=objCptr;
+			FREE_ALL_LINE_NUMBER_TABLE(expressionByteCodelnt->l,expressionByteCodelnt->ls);
+			freeByteCodelnt(expressionByteCodelnt);
+			free(errSymbol);
+			return NULL;
+		}
+		AST_cptr* pErrorType=getFirstCptr(pHandlerExpression);
+		AST_cptr* begin=nextCptr(pErrorType);
+		if(!begin||pErrorType->type!=ATM||pErrorType->u.atom->type!=SYM)
+		{
+			status->status=SYNTAXERROR;
+			status->place=objCptr;
+			FREE_ALL_LINE_NUMBER_TABLE(expressionByteCodelnt->l,expressionByteCodelnt->ls);
+			freeByteCodelnt(expressionByteCodelnt);
+			freeComStack(handlerByteCodelntStack);
+			free(errSymbol);
+			return NULL;
+		}
+		CompEnv* tmpEnv=newCompEnv(curEnv);
+		addCompDef(errSymbol,tmpEnv,inter->table);
+		ByteCodelnt* t=NULL;
+		for(;begin;begin=nextCptr(begin))
+		{
+			ByteCodelnt* tmp1=compile(begin,tmpEnv,inter,status,evalIm);
+			if(status)
+			{
+				FREE_ALL_LINE_NUMBER_TABLE(expressionByteCodelnt->l,expressionByteCodelnt->ls);
+				freeByteCodelnt(expressionByteCodelnt);
+				freeComStack(handlerByteCodelntStack);
+				free(errSymbol);
+				destroyCompEnv(tmpEnv);
+				return NULL;
+			}
+			if(!t)
+				t=tmp1;
+			else
+			{
+				ByteCode* resTp=newByteCode(1);
+				resTp->code[0]=FAKE_RES_TP;
+				reCodeCat(resTp,tmp1->bc);
+				tmp1->l[0]->cpc+=1;
+				INCREASE_ALL_SCP(tmp1->l+1,tmp1->ls-1,resTp->size);
+				freeByteCode(resTp);
+			}
+		}
+		destroyCompEnv(tmpEnv);
+		ByteCode* setTp=newByteCode(1);
+		ByteCode* popTp=newByteCode(1);
+		setTp->code[0]=FAKE_SET_TP;
+		popTp->code[0]=FAKE_POP_TP;
+		reCodeCat(setTp,t->bc);
+		t->l[0]->cpc+=1;
+		INCREASE_ALL_SCP(t->l+1,t->ls-1,setTp->size);
+		codeCat(t->bc,popTp);
+		t->l[t->ls-1]->cpc+=popTp->size;
+		freeByteCode(setTp);
+		freeByteCode(popTp);
+		char* errorType=pErrorType->u.atom->value.str;
+		uint32_t size=strlen(errorType)+1;
+		ByteCode* errorTypeByteCode=newByteCode(size);
+		memcpy(errorTypeByteCode->code,errorType,size);
+		reCodeCat(errorTypeByteCode,t->bc);
+		t->l[0]->cpc+=size;
+		INCREASE_ALL_SCP(t->l+1,t->ls-1,size);
+		freeByteCode(errorTypeByteCode);
+		pushComStack(t,handlerByteCodelntStack);
+	}
+	ByteCodelnt* t=expressionByteCodelnt;
+	size_t numOfHandlerByteCode=handlerByteCodelntStack->top;
+	while(!isComStackEmpty(handlerByteCodelntStack))
+	{
+		ByteCodelnt* tmp=popComStack(handlerByteCodelntStack);
+		size_t offset=t->bc->size;
+		ByteCode* jump=newByteCode(sizeof(char)+sizeof(uint32_t));
+		jump->code[0]=FAKE_JMP;
+		*((int32_t*)jump->code+sizeof(char))=offset;
+		codeCat(tmp->bc,jump);
+		tmp->l[tmp->ls-1]->cpc+=jump->size;
+		reCodelntCat(tmp,t);
+		freeByteCodelnt(tmp);
+	}
+	size_t sizeOfErrSymbol=strlen(errSymbol)+1;
+	ByteCode* header=newByteCode(sizeOfErrSymbol+sizeof(int32_t)+sizeof(char));
+	header->code[0]=FAKE_PUSH_TRY;
+	memcpy(header->code+sizeof(char),errSymbol,sizeOfErrSymbol);
+	*((int32_t*)header->code+sizeof(char)+sizeOfErrSymbol)=numOfHandlerByteCode;
+	reCodeCat(header,t->bc);
+	t->l[0]->cpc+=header->size;
+	INCREASE_ALL_SCP(t->l+1,t->ls-1,header->size);
+	freeByteCode(header);
+	ByteCode* popTry=newByteCode(sizeof(char));
+	popTry->code[0]=FAKE_POP_TRY;
+	codeCat(t->bc,popTry);
+	t->l[t->ls-1]->cpc+=popTry->size;
+	freeByteCode(popTry);
+	return t;
 }

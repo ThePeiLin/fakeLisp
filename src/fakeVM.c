@@ -2108,9 +2108,11 @@ void B_raise(FakeVM* exe)
 void B_push_try(FakeVM* exe)
 {
 	VMrunnable* r=topComStack(exe->rstack);
-	ComStack* hstack=newComStack(32);
 	int32_t cpc=0;
-	int32_t handlerNum=*(exe->code+r->cp+(++cpc));
+	char* errSymbol=(char*)(exe->code+r->cp+(++cpc));
+	VMTryBlock* tb=newVMTryBlock(errSymbol,exe->stack->tp);
+	cpc+=strlen(errSymbol)+1;
+	int32_t handlerNum=*(exe->code+r->cp+cpc);
 	cpc+=sizeof(int32_t);
 	unsigned int i=0;
 	for(;i<handlerNum;i++)
@@ -2121,17 +2123,18 @@ void B_push_try(FakeVM* exe)
 		cpc+=sizeof(int32_t);
 		VMproc* p=newVMproc(r->cp+cpc,pCpc);
 		VMerrorHandler* h=newVMerrorHandler(type,p);
-		pushComStack(h,hstack);
+		pushComStack(h,tb->hstack);
 		cpc+=pCpc;
 	}
-	pushComStack(hstack,exe->tstack);
+	pushComStack(tb,exe->tstack);
 	r->cp+=cpc;
 }
 
 void B_pop_try(FakeVM* exe)
 {
 	VMrunnable* r=topComStack(exe->rstack);
-	popComStack(exe->tstack);
+	VMTryBlock* tb=popComStack(exe->tstack);
+	freeVMTryBlock(tb);
 	r->cp+=1;
 }
 

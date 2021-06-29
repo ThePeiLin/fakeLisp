@@ -18,14 +18,6 @@
 #include<time.h>
 #include<setjmp.h>
 
-#define RAISE_BUILTIN_ERROR(ERRORTYPE,RUNNABLE,EXE) {\
-	char* errorMessage=genErrorMessage((ERRORTYPE),(RUNNABLE),(EXE));\
-	VMerror* err=newVMerror(builtInErrorType[(ERRORTYPE)],errorMessage);\
-	free(errorMessage);\
-	raiseVMerror(err,(EXE));\
-	return;\
-}
-
 extern const char* builtInErrorType[19];
 
 static int envNodeCmp(const void* a,const void* b)
@@ -33,63 +25,9 @@ static int envNodeCmp(const void* a,const void* b)
 	return ((*(VMenvNode**)a)->id-(*(VMenvNode**)b)->id);
 }
 
-static int32_t getSymbolIdInByteCode(const uint8_t*);
 extern char* builtInSymbolList[NUMOFBUILTINSYMBOL];
 pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
 FakeVMlist GlobFakeVMs={0,NULL};
-
-static char* genErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe)
-{
-	int32_t cp=r->cp;
-	LineNumTabNode* node=findLineNumTabNode(cp,exe->lnt);
-	char* filename=exe->table->idl[node->fid]->symbol;
-	char* line=intToString(node->line);
-	char* t=(char*)malloc(sizeof(char)*(strlen("In file \"\",line \n")+strlen(filename)+strlen(line)+1));
-	FAKE_ASSERT(t,"genErrorMessage",__FILE__,__LINE__);
-	sprintf(t,"In file \"%s\",line %s\n",filename,line);
-	free(line);
-	t=strCat(t,"error:");
-	switch(type)
-	{
-		case WRONGARG:
-			t=strCat(t,"Wrong arguement.\n");
-			break;
-		case STACKERROR:
-			t=strCat(t,"Stack error.\n");
-			break;
-		case TOOMANYARG:
-			t=strCat(t,"Too many arguements.\n");
-			break;
-		case TOOFEWARG:
-			t=strCat(t,"Too few arguements.\n");
-			break;
-		case CANTCREATETHREAD:
-			t=strCat(t,"Can't create thread.\n");
-			break;
-		case SYMUNDEFINE:
-			t=strCat(t,"Symbol \"");
-			t=strCat(t,exe->table->idl[getSymbolIdInByteCode(exe->code+r->cp)]->symbol);
-			t=strCat(t,"\" is undefined.\n");
-			break;
-		case INVOKEERROR:
-			t=strCat(t,"Try to invoke an object that isn't procedure,continuation or native procedure.\n");
-			break;
-		case LOADDLLFAILD:
-			t=strCat(t,"Faild to load dll:\"");
-			t=strCat(t,exe->stack->values[exe->stack->tp-1]->u.str->str);
-			t=strCat(t,"\".\n");
-			break;
-		case INVALIDSYMBOL:
-			t=strCat(t,"Invalid symbol:");
-			t=strCat(t,exe->stack->values[exe->stack->tp-1]->u.str->str);
-			t=strCat(t,"\n");
-			break;
-		case DIVZERROERROR:
-			t=strCat(t,"Divided by zero.\n");
-			break;
-	}
-	return t;
-}
 
 static CRL* newCRL(VMpair* pair,int32_t count)
 {
@@ -1198,9 +1136,7 @@ void B_invoke(FakeVM* exe)
 		stackRecycle(exe);
 		runnable->cp+=1;
 		DllFunc dllfunc=tmpValue->u.dlproc->func;
-		ErrorType et=dllfunc(exe,&GClock);
-		if(et)
-			RAISE_BUILTIN_ERROR(et,runnable,exe);
+		dllfunc(exe,&GClock);
 	}
 }
 
@@ -2110,16 +2046,16 @@ void B_push_try(FakeVM* exe)
 	VMrunnable* r=topComStack(exe->rstack);
 	int32_t cpc=0;
 	char* errSymbol=(char*)(exe->code+r->cp+(++cpc));
-	VMTryBlock* tb=newVMTryBlock(errSymbol,exe->stack->tp);
+	VMTryBlock* tb=newVMTryBlock(errSymbol,exe->stack->tp,exe->rstack->top);
 	cpc+=strlen(errSymbol)+1;
 	int32_t handlerNum=*(int32_t*)(exe->code+r->cp+cpc);
 	cpc+=sizeof(int32_t);
 	unsigned int i=0;
 	for(;i<handlerNum;i++)
 	{
-		char* type=(char*)exe->code+r->cp+cpc;
+		char* type=(char*)(exe->code+r->cp+cpc);
 		cpc+=strlen(type)+1;
-		uint32_t pCpc=*(exe->code+r->cp+cpc);
+		uint32_t pCpc=*(int32_t*)(exe->code+r->cp+cpc);
 		cpc+=sizeof(int32_t);
 		VMproc* p=newVMproc(r->cp+cpc,pCpc);
 		VMerrorHandler* h=newVMerrorHandler(type,p);
@@ -2737,21 +2673,4 @@ void createCallChainWithContinuation(FakeVM* vm,VMcontinuation* cc)
 		increaseVMprocRefcount(cur->proc);
 		pushComStack(cur,vm->rstack);
 	}
-}
-
-int32_t getSymbolIdInByteCode(const uint8_t* code)
-{
-	char op=*code;
-	switch(op)
-	{
-		case FAKE_PUSH_VAR:
-			return *(int32_t*)(code+sizeof(char));
-			break;
-		case FAKE_POP_VAR:
-		case FAKE_POP_ARG:
-		case FAKE_POP_REST_ARG:
-			return *(int32_t*)(code+sizeof(char)+sizeof(int32_t));
-			break;
-	}
-	return -1;
 }

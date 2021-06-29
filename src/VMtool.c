@@ -1,5 +1,6 @@
 #include"VMtool.h"
 #include"common.h"
+#include"opcode.h"
 #include<string.h>
 #include<stdio.h>
 #include<math.h>
@@ -1290,13 +1291,14 @@ void chanlSend(SendT*s,VMChanl* ch)
 	pthread_mutex_unlock(&ch->lock);
 }
 
-VMTryBlock* newVMTryBlock(const char* errSymbol,uint32_t tp)
+VMTryBlock* newVMTryBlock(const char* errSymbol,uint32_t tp,long int rtp)
 {
 	VMTryBlock* t=(VMTryBlock*)malloc(sizeof(VMTryBlock));
 	FAKE_ASSERT(t,"newVMTryBlock",__FILE__,__LINE__);
 	t->errSymbol=copyStr(errSymbol);
 	t->hstack=newComStack(32);
 	t->tp=tp;
+	t->rtp=rtp;
 	return t;
 }
 
@@ -1331,45 +1333,50 @@ void freeVMerrorHandler(VMerrorHandler* h)
 
 int raiseVMerror(VMerror* err,FakeVM* exe)
 {
-	if(isComStackEmpty(exe->tstack))
+	while(!isComStackEmpty(exe->tstack))
 	{
-		fprintf(stderr,"%s",err->message);
-		freeVMerror(err);
-		if(exe->VMid==-1)
-			longjmp(exe->buf,255);
-		else if(exe->VMid!=0)
-			longjmp(exe->buf,255);
-		int i[2]={255,1};
-		exe->callback(i);
-	}
-	else
-	{
-		while(!isComStackEmpty(exe->tstack))
+		VMTryBlock* tb=topComStack(exe->tstack);
+		VMstack* stack=exe->stack;
+		stack->tp=tb->tp;
+		while(!isComStackEmpty(tb->hstack))
 		{
-			VMTryBlock* tb=topComStack(exe->tstack);
-			VMstack* stack=exe->stack;
-				stack->tp=tb->tp;
-			while(!isComStackEmpty(tb->hstack))
+			VMerrorHandler* h=popComStack(tb->hstack);
+			if(!strcmp(h->type,err->type))
 			{
-				VMerrorHandler* h=popComStack(tb->hstack);
-				if(strcmp(h->type,err->type))
+				long int increment=exe->rstack->top-tb->rtp;
+				unsigned int i=0;
+				for(;i<increment;i++)
 				{
-					VMrunnable* runnable=topComStack(exe->rstack);
+					VMrunnable* runnable=popComStack(exe->rstack);
 					freeVMproc(runnable->proc);
-					runnable->proc=h->proc;
-					VMenv* curEnv=runnable->localenv;
-					uint32_t idOfError=findSymbol(tb->errSymbol,exe->table)->id;
-					VMenvNode* errorNode=findVMenvNode(idOfError,curEnv);
-					if(!errorNode)
-						errorNode=addVMenvNode(newVMenvNode(NULL,idOfError),curEnv);
-					errorNode->value=newVMvalue(ERR,err,exe->heap,1);
-					return 1;
+					freeVMenv(runnable->localenv);
+					free(runnable);
 				}
+				VMrunnable* prevRunnable=topComStack(exe->rstack);
+				VMrunnable* r=newVMrunnable(h->proc);
+				r->localenv=newVMenv(prevRunnable->localenv);
+				VMenv* curEnv=r->localenv;
+				uint32_t idOfError=findSymbol(tb->errSymbol,exe->table)->id;
+				VMenvNode* errorNode=findVMenvNode(idOfError,curEnv);
+				if(!errorNode)
+					errorNode=addVMenvNode(newVMenvNode(NULL,idOfError),curEnv);
+				errorNode->value=newVMvalue(ERR,err,exe->heap,1);
+				pushComStack(r,exe->rstack);
 				freeVMerrorHandler(h);
+				return 1;
 			}
-			popComStack(exe->tstack);
+			freeVMerrorHandler(h);
 		}
 	}
+	fprintf(stderr,"%s",err->message);
+	freeVMerror(err);
+	if(exe->VMid==-1)
+		longjmp(exe->buf,255);
+	else if(exe->VMid!=0)
+		longjmp(exe->buf,255);
+	int i[2]={255,1};
+	exe->callback(i);
+
 	return 255;
 }
 
@@ -1383,4 +1390,72 @@ VMrunnable* newVMrunnable(VMproc* code)
 	return tmp;
 }
 
+char* genErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe)
+{
+	int32_t cp=r->cp;
+	LineNumTabNode* node=findLineNumTabNode(cp,exe->lnt);
+	char* filename=exe->table->idl[node->fid]->symbol;
+	char* line=intToString(node->line);
+	char* t=(char*)malloc(sizeof(char)*(strlen("In file \"\",line \n")+strlen(filename)+strlen(line)+1));
+	FAKE_ASSERT(t,"genErrorMessage",__FILE__,__LINE__);
+	sprintf(t,"In file \"%s\",line %s\n",filename,line);
+	free(line);
+	t=strCat(t,"error:");
+	switch(type)
+	{
+		case WRONGARG:
+			t=strCat(t,"Wrong arguement.\n");
+			break;
+		case STACKERROR:
+			t=strCat(t,"Stack error.\n");
+			break;
+		case TOOMANYARG:
+			t=strCat(t,"Too many arguements.\n");
+			break;
+		case TOOFEWARG:
+			t=strCat(t,"Too few arguements.\n");
+			break;
+		case CANTCREATETHREAD:
+			t=strCat(t,"Can't create thread.\n");
+			break;
+		case SYMUNDEFINE:
+			t=strCat(t,"Symbol \"");
+			t=strCat(t,exe->table->idl[getSymbolIdInByteCode(exe->code+r->cp)]->symbol);
+			t=strCat(t,"\" is undefined.\n");
+			break;
+		case INVOKEERROR:
+			t=strCat(t,"Try to invoke an object that isn't procedure,continuation or native procedure.\n");
+			break;
+		case LOADDLLFAILD:
+			t=strCat(t,"Faild to load dll:\"");
+			t=strCat(t,exe->stack->values[exe->stack->tp-1]->u.str->str);
+			t=strCat(t,"\".\n");
+			break;
+		case INVALIDSYMBOL:
+			t=strCat(t,"Invalid symbol:");
+			t=strCat(t,exe->stack->values[exe->stack->tp-1]->u.str->str);
+			t=strCat(t,"\n");
+			break;
+		case DIVZERROERROR:
+			t=strCat(t,"Divided by zero.\n");
+			break;
+	}
+	return t;
+}
 
+int32_t getSymbolIdInByteCode(const uint8_t* code)
+{
+	char op=*code;
+	switch(op)
+	{
+		case FAKE_PUSH_VAR:
+			return *(int32_t*)(code+sizeof(char));
+			break;
+		case FAKE_POP_VAR:
+		case FAKE_POP_ARG:
+		case FAKE_POP_REST_ARG:
+			return *(int32_t*)(code+sizeof(char)+sizeof(int32_t));
+			break;
+	}
+	return -1;
+}

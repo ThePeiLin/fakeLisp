@@ -2719,7 +2719,7 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 		ByteCode* invoke=newByteCode(1);
 		invoke->code[0]=FAKE_INVOKE;
 		pushProc->code[0]=FAKE_PUSH_PROC;
-		*((uint32_t*)pushProc->code+sizeof(char))=expressionByteCodelnt->bc->size;
+		*(uint32_t*)(pushProc->code+sizeof(char))=expressionByteCodelnt->bc->size;
 		reCodeCat(pushProc,expressionByteCodelnt->bc);
 		expressionByteCodelnt->l[0]->cpc+=pushProc->size;
 		INCREASE_ALL_SCP(expressionByteCodelnt->l+1,expressionByteCodelnt->ls-1,pushProc->size);
@@ -2809,11 +2809,12 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 		freeByteCode(popTp);
 		char* errorType=pErrorType->u.atom->value.str;
 		uint32_t size=strlen(errorType)+1;
-		ByteCode* errorTypeByteCode=newByteCode(size);
+		ByteCode* errorTypeByteCode=newByteCode(size+sizeof(uint32_t));
 		memcpy(errorTypeByteCode->code,errorType,size);
+		*(uint32_t*)(errorTypeByteCode->code+size)=t->bc->size+sizeof(int32_t)+sizeof(char);
 		reCodeCat(errorTypeByteCode,t->bc);
-		t->l[0]->cpc+=size;
-		INCREASE_ALL_SCP(t->l+1,t->ls-1,size);
+		t->l[0]->cpc+=errorTypeByteCode->size;
+		INCREASE_ALL_SCP(t->l+1,t->ls-1,errorTypeByteCode->size);
 		freeByteCode(errorTypeByteCode);
 		pushComStack(t,handlerByteCodelntStack);
 	}
@@ -2825,12 +2826,14 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 		size_t offset=t->bc->size;
 		ByteCode* jump=newByteCode(sizeof(char)+sizeof(uint32_t));
 		jump->code[0]=FAKE_JMP;
-		*((int32_t*)jump->code+sizeof(char))=offset;
+		*(int32_t*)(jump->code+sizeof(char))=offset;
 		codeCat(tmp->bc,jump);
 		tmp->l[tmp->ls-1]->cpc+=jump->size;
 		reCodelntCat(tmp,t);
 		freeByteCodelnt(tmp);
+		freeByteCode(jump);
 	}
+	freeComStack(handlerByteCodelntStack);
 	size_t sizeOfErrSymbol=strlen(errSymbol)+1;
 	ByteCode* header=newByteCode(sizeOfErrSymbol+sizeof(int32_t)+sizeof(char));
 	header->code[0]=FAKE_PUSH_TRY;
@@ -2845,5 +2848,6 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	codeCat(t->bc,popTry);
 	t->l[t->ls-1]->cpc+=popTry->size;
 	freeByteCode(popTry);
+	free(errSymbol);
 	return t;
 }

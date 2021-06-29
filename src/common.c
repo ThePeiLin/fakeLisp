@@ -2123,6 +2123,7 @@ ComStack* newComStack(uint32_t num)
 	ComStack* tmp=(ComStack*)malloc(sizeof(ComStack));
 	FAKE_ASSERT(tmp,"newComStack",__FILE__,__LINE__);
 	tmp->data=(void**)malloc(sizeof(void*)*num);
+	FAKE_ASSERT(tmp->data,"newComStack",__FILE__,__LINE__);
 	tmp->num=num;
 	tmp->top=0;
 	return tmp;

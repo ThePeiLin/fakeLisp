@@ -1109,6 +1109,7 @@ void B_invoke(FakeVM* exe)
 		VMrunnable* prevProc=hasSameProc(tmpProc,exe->rstack);
 		if(isTheLastExpress(runnable,prevProc,exe)&&prevProc)
 		{
+			fprintf(stderr,"tail call\n");
 			prevProc->cp=prevProc->proc->scp;
 			runnable->cp+=(runnable!=prevProc);
 		}
@@ -2340,12 +2341,13 @@ int isTheLastExpress(const VMrunnable* runnable,const VMrunnable* same,const Fak
 {
 	uint32_t j=0;
 	size_t c=exe->rstack->top;
-	if(same==NULL)return 0;
+	if(same==NULL)
+		return 0;
 	uint32_t size=0;
 	for(;;)
 	{
 		uint8_t* code=exe->code;
-		uint32_t i=runnable->cp+1;
+		uint32_t i=runnable->cp+(code[runnable->cp]==FAKE_INVOKE);
 		size=runnable->proc->scp+runnable->proc->cpc;
 		if(code[i]==FAKE_JMP)
 		{
@@ -2354,11 +2356,10 @@ int isTheLastExpress(const VMrunnable* runnable,const VMrunnable* same,const Fak
 		}
 		j=i;
 		for(;i<size;i++)
-		{
 			if(code[i]!=FAKE_POP_TP)
 				return 0;
-		}
-		if(runnable==same)break;
+		if(runnable==same)
+			break;
 		runnable=exe->rstack->data[c-1];
 		c--;
 	}

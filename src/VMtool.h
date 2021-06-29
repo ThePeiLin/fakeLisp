@@ -20,6 +20,14 @@
 	(stack)->tp+=1;\
 }
 
+#define RAISE_BUILTIN_ERROR(ERRORTYPE,RUNNABLE,EXE) {\
+	char* errorMessage=genErrorMessage((ERRORTYPE),(RUNNABLE),(EXE));\
+	VMerror* err=newVMerror(builtInErrorType[(ERRORTYPE)],errorMessage);\
+	free(errorMessage);\
+	raiseVMerror(err,(EXE));\
+	return;\
+}
+
 VMenvNode* newVMenvNode(VMvalue*,int32_t);
 VMenvNode* addVMenvNode(VMenvNode*,VMenv*);
 VMenvNode* findVMenvNode(int32_t,VMenv*);
@@ -119,11 +127,13 @@ void freeSendT(SendT*);
 void chanlSend(SendT*,VMChanl*);
 void chanlRecv(RecvT*,VMChanl*);
 
-VMTryBlock* newVMTryBlock(const char* errSymbol,uint32_t tp);
+VMTryBlock* newVMTryBlock(const char* errSymbol,uint32_t tp,long int rtp);
 void freeVMTryBlock(VMTryBlock* b);
 
 VMerrorHandler* newVMerrorHandler(const char* type,VMproc* proc);
 void freeVMerrorHandler(VMerrorHandler*);
 int raiseVMerror(VMerror* err,FakeVM*);
 VMrunnable* newVMrunnable(VMproc*);
+char* genErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe);
+int32_t getSymbolIdInByteCode(const uint8_t*);
 #endif

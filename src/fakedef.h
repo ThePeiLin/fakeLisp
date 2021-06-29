@@ -347,7 +347,7 @@ typedef HMODULE DllHandle;
 typedef void* DllHandle;
 #endif
 
-typedef int (*DllFunc)(FakeVM*,pthread_rwlock_t*);
+typedef void (*DllFunc)(FakeVM*,pthread_rwlock_t*);
 
 typedef struct VMDll
 {
@@ -411,6 +411,7 @@ typedef struct VMTryBlock
 {
 	char* errSymbol;
 	ComStack* hstack;
+	long int rtp;
 	uint32_t tp;
 }VMTryBlock;
 

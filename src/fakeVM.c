@@ -1109,7 +1109,6 @@ void B_invoke(FakeVM* exe)
 		VMrunnable* prevProc=hasSameProc(tmpProc,exe->rstack);
 		if(isTheLastExpress(runnable,prevProc,exe)&&prevProc)
 		{
-			fprintf(stderr,"tail call\n");
 			prevProc->cp=prevProc->proc->scp;
 			runnable->cp+=(runnable!=prevProc);
 		}

@@ -374,11 +374,11 @@ caught an error
 ```scheme
 (try <expression1>
   (catch <symbol-that-bind-the-error-occured>
-    (<error-type> <expression2>)
-    (<other-error-type> <expression3>)
+    (<error-type> <expression2> ... <expression3>)
+    (<other-error-type> <expression4> ... <expression5>)
     ...))
 ```
-如果没有发生错误，则表达式的值为\<expression1\>中的值，否则其值为对应错误的处理表达式的值，如\<expression2\>的值或\<expression3\>的值，  
+如果没有发生错误，则表达式的值为\<expression1\>中的值，否则其值为对应错误的处理表达式的值，如\<expression3\>的值或\<expression5\>的值，  
 错误发生的时候，会产生一个错误对象，用符号\<symbol-that-bind-the-error-occured\>绑定；尖括号中的内容为可替代内容。  
 
 ## 预处理指令（不产生字节码）:  

@@ -1041,6 +1041,26 @@ void printByteCode(const ByteCode* tmpCode,FILE* fp)
 		fprintf(fp,"%d: %s ",i,codeName[(int)tmpCode->code[i]].codeName);
 		switch(codeName[tmpCode->code[i]].len)
 		{
+			case -4:
+				{
+					fprintf(fp,"%s ",(char*)(tmpCode->code+(++i)));
+					i+=strlen((char*)(tmpCode->code+i))+1;
+					int32_t handlerNum=*(int32_t*)(tmpCode->code+i);
+					fprintf(fp,"%d\n",handlerNum);
+					i+=sizeof(int32_t);
+					int j=0;
+					for(;j<handlerNum;j++)
+					{
+						char* type=(char*)(tmpCode->code+i);
+						i+=strlen(type)+1;
+						uint32_t pCpc=*(uint32_t*)(tmpCode->code+i);
+						i+=sizeof(uint32_t);
+						fprintf(fp,"%s %d ",type,pCpc);
+						printAsByteStr(tmpCode->code+i,pCpc,fp);
+						i+=pCpc;
+					}
+				}
+				break;
 			case -3:
 				fprintf(fp,"%d %d",*(int32_t*)(tmpCode->code+i+1),*(int32_t*)(tmpCode->code+i+1+sizeof(int32_t)));
 				i+=9;

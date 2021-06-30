@@ -2060,8 +2060,8 @@ void B_push_try(FakeVM* exe)
 	{
 		char* type=(char*)(exe->code+r->cp+cpc);
 		cpc+=strlen(type)+1;
-		uint32_t pCpc=*(int32_t*)(exe->code+r->cp+cpc);
-		cpc+=sizeof(int32_t);
+		uint32_t pCpc=*(uint32_t*)(exe->code+r->cp+cpc);
+		cpc+=sizeof(uint32_t);
 		VMproc* p=newVMproc(r->cp+cpc,pCpc);
 		VMerrorHandler* h=newVMerrorHandler(type,p);
 		pushComStack(h,tb->hstack);
@@ -2177,6 +2177,9 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 		case DLPROC:
 			fprintf(fp,"<#dlproc>");
 			break;
+		case ERR:
+			fprintf(fp,"<#err t:%s m:%s>",objValue->u.err->type,objValue->u.err->message);
+			break;
 		default:fprintf(fp,"Bad value!");break;
 	}
 }
@@ -2263,6 +2266,9 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 			break;
 		case DLPROC:
 			fprintf(fp,"<#dlproc>");
+			break;
+		case ERR:
+			fprintf(fp,"%s",objValue->u.err->message);
 			break;
 		default:fprintf(fp,"Bad value!");break;
 	}

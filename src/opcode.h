@@ -161,7 +161,7 @@ static codeinfor codeName[]=
 	{"recv",0},
 	{"error",0},
 	{"raise",0},
-	{"push_try",0},
+	{"push_try",-4},
 	{"pop_try",0},
 };
 #endif

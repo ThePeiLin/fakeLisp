@@ -871,7 +871,7 @@ VMcontinuation* newVMcontinuation(VMstack* stack,ComStack* rstack)
 	int32_t i=0;
 	VMcontinuation* tmp=(VMcontinuation*)malloc(sizeof(VMcontinuation));
 	FAKE_ASSERT(tmp,"newVMcontinuation",__FILE__,__LINE__);
-	VMprocStatus* status=(VMprocStatus*)malloc(sizeof(VMprocStatus)*size);
+	VMrunnable* status=(VMrunnable*)malloc(sizeof(VMrunnable)*size);
 	FAKE_ASSERT(status,"newVMcontinuation",__FILE__,__LINE__);
 	tmp->stack=copyStack(stack);
 	tmp->num=size-1;
@@ -881,9 +881,10 @@ VMcontinuation* newVMcontinuation(VMstack* stack,ComStack* rstack)
 		VMrunnable* cur=rstack->data[i];
 		status[i].cp=cur->cp;
 		increaseVMenvRefcount(cur->localenv);
-		status[i].env=cur->localenv;
+		status[i].localenv=cur->localenv;
 		increaseVMprocRefcount(cur->proc);
 		status[i].proc=cur->proc;
+		status[i].mark=cur->mark;
 	}
 	tmp->status=status;
 	return tmp;
@@ -896,13 +897,13 @@ void freeVMcontinuation(VMcontinuation* cont)
 		int32_t i=0;
 		int32_t size=cont->num;
 		VMstack* stack=cont->stack;
-		VMprocStatus* status=cont->status;
+		VMrunnable* status=cont->status;
 		free(stack->tpst);
 		free(stack->values);
 		free(stack);
 		for(;i<size;i++)
 		{
-			freeVMenv(status[i].env);
+			freeVMenv(status[i].localenv);
 			freeVMproc(status[i].proc);
 		}
 		free(status);

@@ -372,13 +372,6 @@ typedef struct StringMatchPattern
 	struct StringMatchPattern* next;
 }StringMatchPattern;
 
-typedef struct VMprocStatus
-{
-	uint32_t cp;
-	VMproc* proc;
-	VMenv* env;
-}VMprocStatus;
-
 typedef struct VMerror
 {
 	uint32_t refcount;
@@ -391,7 +384,7 @@ typedef struct VMContinuation
 	uint32_t refcount;
 	uint32_t num;
 	VMstack* stack;
-	VMprocStatus* status;
+	VMrunnable* status;
 }VMcontinuation;
 
 typedef struct LineNumberTable

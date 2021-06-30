@@ -2448,7 +2448,7 @@ void GC_markValue(VMvalue* obj)
 					pushComStack(root->u.cont->stack->values[i],stack);
 				for(i=0;i<root->u.cont->num;i++)
 				{
-					VMenv* env=root->u.cont->status[i].env;
+					VMenv* env=root->u.cont->status[i].localenv;
 					uint32_t j=0;
 					for(;j<env->num;j++)
 						pushComStack(env->list[i]->value,stack);
@@ -2664,10 +2664,11 @@ void createCallChainWithContinuation(FakeVM* vm,VMcontinuation* cc)
 		VMrunnable* cur=(VMrunnable*)malloc(sizeof(VMrunnable));
 		FAKE_ASSERT(cur,"createCallChainWithContinuation",__FILE__,__LINE__);
 		cur->cp=cc->status[i].cp;
-		cur->localenv=cc->status[i].env;
+		cur->localenv=cc->status[i].localenv;
 		increaseVMenvRefcount(cur->localenv);
 		cur->proc=cc->status[i].proc;
 		increaseVMprocRefcount(cur->proc);
+		cur->mark=cc->status[i].mark;
 		pushComStack(cur,vm->rstack);
 	}
 }

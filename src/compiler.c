@@ -2849,6 +2849,5 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	t->l[t->ls-1]->cpc+=popTry->size;
 	freeByteCode(popTry);
 	free(errSymbol);
-	printByteCode(t->bc,stderr);
 	return t;
 }

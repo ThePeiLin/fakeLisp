@@ -1386,6 +1386,7 @@ VMrunnable* newVMrunnable(VMproc* code)
 	FAKE_ASSERT(tmp,"newVMrunnable",__FILE__,__LINE__);
 	tmp->cp=code->scp;
 	tmp->proc=code;
+	tmp->mark=0;
 	increaseVMprocRefcount(code);
 	return tmp;
 }

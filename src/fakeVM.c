@@ -321,13 +321,21 @@ int runFakeVM(FakeVM* exe)
 		pthread_rwlock_rdlock(&GClock);
 		if(currunnable->cp>=currunnable->proc->cpc+currunnable->proc->scp)
 		{
-			VMrunnable* tmpProc=popComStack(exe->rstack);
-			VMproc* tmpCode=tmpProc->proc;
-			VMenv* tmpEnv=tmpProc->localenv;
-			free(tmpProc);
-			freeVMenv(tmpEnv);
-			freeVMproc(tmpCode);
-			continue;
+			if(currunnable->mark)
+			{
+				currunnable->cp=currunnable->proc->scp;
+				currunnable->mark=0;
+			}
+			else
+			{
+				VMrunnable* tmpProc=popComStack(exe->rstack);
+				VMproc* tmpCode=tmpProc->proc;
+				VMenv* tmpEnv=tmpProc->localenv;
+				free(tmpProc);
+				freeVMenv(tmpEnv);
+				freeVMproc(tmpCode);
+				continue;
+			}
 		}
 
 		int32_t cp=currunnable->cp;
@@ -1108,17 +1116,14 @@ void B_invoke(FakeVM* exe)
 		VMproc* tmpProc=tmpValue->u.prc;
 		VMrunnable* prevProc=hasSameProc(tmpProc,exe->rstack);
 		if(isTheLastExpress(runnable,prevProc,exe)&&prevProc)
-		{
-			prevProc->cp=prevProc->proc->scp;
-			runnable->cp+=(runnable!=prevProc);
-		}
+			prevProc->mark=1;
 		else
 		{
 			VMrunnable* tmpRunnable=newVMrunnable(tmpProc);
 			tmpRunnable->localenv=newVMenv(tmpProc->prevEnv);
 			pushComStack(tmpRunnable,exe->rstack);
-			runnable->cp+=1;
 		}
+		runnable->cp+=1;
 		stack->tp-=1;
 		stackRecycle(exe);
 	}
@@ -2338,7 +2343,6 @@ VMrunnable* hasSameProc(VMproc* objProc,ComStack* rstack)
 
 int isTheLastExpress(const VMrunnable* runnable,const VMrunnable* same,const FakeVM* exe)
 {
-	uint32_t j=0;
 	size_t c=exe->rstack->top;
 	if(same==NULL)
 		return 0;
@@ -2348,21 +2352,14 @@ int isTheLastExpress(const VMrunnable* runnable,const VMrunnable* same,const Fak
 		uint8_t* code=exe->code;
 		uint32_t i=runnable->cp+(code[runnable->cp]==FAKE_INVOKE);
 		size=runnable->proc->scp+runnable->proc->cpc;
-		if(code[i]==FAKE_JMP)
-		{
-			int32_t where=*(int32_t*)(code+i+1);
-			i+=where+5;
-		}
-		j=i;
-		for(;i<size;i++)
-			if(code[i]!=FAKE_POP_TP)
+
+		for(;i<size;i+=(code[i]==FAKE_JMP)?*(int32_t*)(code+i+1)+5:1)
+			if(code[i]!=FAKE_POP_TP&&code[i]!=FAKE_POP_TRY&&code[i]!=FAKE_JMP)
 				return 0;
 		if(runnable==same)
 			break;
-		runnable=exe->rstack->data[c-1];
-		c--;
+		runnable=exe->rstack->data[--c];
 	}
-	exe->stack->tptp-=size-j;
 	return 1;
 }
 

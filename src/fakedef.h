@@ -290,6 +290,7 @@ typedef struct VMStr
 
 typedef struct VMrunnable
 {
+	unsigned int mark :1;
 	VMenv* localenv;
 	uint32_t cp;
 	VMproc* proc;

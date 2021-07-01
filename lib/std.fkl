@@ -57,6 +57,7 @@
                  nth
                  length
                  appd
+                 append
                  file
                  read
                  getb
@@ -511,7 +512,11 @@
                           push_var b
                           appd
                           )))
-
+        (define append (lambda b
+                         (define iter (lambda (c r)
+                                        (cond ((null c) r)
+                                              (1 (iter (cdr c) (appd r (car c)))))))
+                         (iter b nil)))
          (define file (lambda (name mode)
                         (proc
                           push_var name

@@ -426,9 +426,8 @@ lisp系的编程语言大多都有词法闭包，  可以利用词法闭包来�
     (setf case-list
           (appd case-list
                 `((1
-                   (princ "Invalid selector \"" stderr)
-                   (princ selector stderr)
-                   (princ "\"\n" stderr)))))
+                   (raise (error 'invalid-selector (append "Invalid selector \"" (str selector) "\"\n")))
+                   ))))
 
     (define local-env (appd data-list method-list))
     `(define ~name

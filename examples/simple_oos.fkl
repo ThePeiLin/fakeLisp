@@ -38,9 +38,8 @@
     (setf case-list
           (appd case-list
                 `((1
-                   (princ "Invalid selector \"" stderr)
-                   (princ selector stderr)
-                   (princ "\"\n" stderr)))))
+                   (raise (error 'invalid-selector (append "Invalid selector \"" (str selector) "\"\n")))
+                   ))))
 
     (define local-env (appd data-list method-list))
     `(define ~name

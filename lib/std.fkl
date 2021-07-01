@@ -78,6 +78,7 @@
                  *
                  /
                  map
+                 foreach
                  fprint
                  print
                  fwrite
@@ -654,6 +655,11 @@
                                                   nil)))))))
              (map-iter f l nil)))
 
+         (define foreach (lambda (f l)
+                            (define iter (lambda (c)
+                              (cond (c (f (car c))
+                                       (iter (cdr c))))))
+                            (iter l)))
          (define fprint
            (lambda (f,l)
              (define p-iter

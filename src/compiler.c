@@ -2811,7 +2811,7 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 		uint32_t size=strlen(errorType)+1;
 		ByteCode* errorTypeByteCode=newByteCode(size+sizeof(uint32_t));
 		memcpy(errorTypeByteCode->code,errorType,size);
-		*(uint32_t*)(errorTypeByteCode->code+size)=t->bc->size+sizeof(int32_t)+sizeof(char);
+		*(uint32_t*)(errorTypeByteCode->code+size)=t->bc->size;
 		reCodeCat(errorTypeByteCode,t->bc);
 		t->l[0]->cpc+=errorTypeByteCode->size;
 		INCREASE_ALL_SCP(t->l+1,t->ls-1,errorTypeByteCode->size);
@@ -2823,15 +2823,8 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	while(!isComStackEmpty(handlerByteCodelntStack))
 	{
 		ByteCodelnt* tmp=popComStack(handlerByteCodelntStack);
-		size_t offset=t->bc->size;
-		ByteCode* jump=newByteCode(sizeof(char)+sizeof(uint32_t));
-		jump->code[0]=FAKE_JMP;
-		*(int32_t*)(jump->code+sizeof(char))=offset;
-		codeCat(tmp->bc,jump);
-		tmp->l[tmp->ls-1]->cpc+=jump->size;
 		reCodelntCat(tmp,t);
 		freeByteCodelnt(tmp);
-		freeByteCode(jump);
 	}
 	freeComStack(handlerByteCodelntStack);
 	size_t sizeOfErrSymbol=strlen(errSymbol)+1;

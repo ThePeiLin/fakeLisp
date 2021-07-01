@@ -1,5 +1,5 @@
 (import (std))
-(defmacro "\\(a).(b)"
+(defmacro "\\(a)->(b)"
   ((lambda ()
      (define list (lambda ls ls))
      (list 'lambda (cons a nil) b))))
@@ -21,7 +21,7 @@ function square (a)
     call mul (a a)
 }
 
-call princ ((\x.(add x 9) 9) stdout)
+call princ ((\x->(add x 9) 9) stdout)
 call princ (#\\n stdout)
 call princ (call list (1 2 3) stdout)
 call princ (#\\n stdout)

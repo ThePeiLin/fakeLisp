@@ -652,9 +652,9 @@
                         (iter1 (cdrAll ls nil) (cons (carAll ls nil) r)))
                        (1 (reverse r)))))
              (define iter
-               (lambda (l p)
-                 (cond (l (iter (cdr l) (cons (aply f (car l)) p)))
-                       (1 (reverse p)))))
+               (lambda (l r)
+                 (cond (l (iter (cdr l) (cons (aply f (car l)) r)))
+                       (1 (reverse r)))))
              (iter (iter1 l nil) nil)))
 
          (define reverse

@@ -83,7 +83,9 @@
                  fprint
                  print
                  fwrite
-                 square)
+                 square
+                 1+
+                 -1+)
          (define cons (lambda (a b)
                         (proc
                           push_pair
@@ -710,6 +712,12 @@
          (define square
            (lambda (x)
              (mul x x)))
+
+         (define 1+ (lambda (a)
+                      (add 1 a)))
+
+         (define -1+ (lambda (a)
+                       (add -1 a)))
 
          (defmacro "'(a)" (proc
                             push_pair

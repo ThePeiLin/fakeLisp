@@ -1007,12 +1007,26 @@ void B_null(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* topValue=getTopValue(stack);
-	if(topValue->type==NIL||(topValue->type==PAIR&&(getVMpairCar(topValue)->type==NIL&&getVMpairCdr(topValue)->type==NIL)))
+	ComStack* st=newComStack(32);
+	pushComStack(topValue,st);
+	int r=1;
+	while(!isComStackEmpty(st))
 	{
-		stack->values[stack->tp-1]=newTrueValue(exe->heap);
+		VMvalue* top=popComStack(st);
+		if(top->type==PAIR)
+		{
+			pushComStack(getVMpairCdr(top),st);
+			pushComStack(getVMpairCar(top),st);
+		}
+		else if(top->type!=NIL)
+		{
+			r=0;
+			break;
+		}
 	}
-	else stack->values[stack->tp-1]=newNilValue(exe->heap);
+	freeComStack(st);
 	runnable->cp+=1;
+	stack->values[stack->tp-1]=r?newTrueValue(exe->heap):newNilValue(exe->heap);
 }
 
 void B_type(FakeVM* exe)

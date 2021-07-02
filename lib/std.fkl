@@ -640,13 +640,11 @@
                (lambda (ls r)
                  (define carAll
                    (lambda (ls r)
-                     (cond (ls
-                             (carAll (cdr ls) (cons (caar ls) r)))
+                     (cond (ls (carAll (cdr ls) (cons (caar ls) r)))
                            (1 (reverse r)))))
                  (define cdrAll
                    (lambda (ls r)
-                     (cond (ls
-                             (cdrAll (cdr ls) (cons (cdar ls) r)))
+                     (cond (ls (cdrAll (cdr ls) (cons (cdar ls) r)))
                            (1 (reverse r)))))
                  (cond ((not (null ls))
                         (iter1 (cdrAll ls nil) (cons (carAll ls nil) r)))

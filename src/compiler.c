@@ -1105,9 +1105,10 @@ ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 		AST_atom* tmpAtm=sec->u.atom;
 		if(curEnv->prefix&&isSymbolShouldBeExport(tmpAtm->value.str,curEnv->exp,curEnv->n))
 		{
-			char* symbolWithPrefix=(char*)malloc(sizeof(char)*(strlen(tmpAtm->value.str)+strlen(curEnv->prefix)+1));
+			size_t len=strlen(tmpAtm->value.str)+strlen(curEnv->prefix)+1;
+			char* symbolWithPrefix=(char*)malloc(sizeof(char)*len);
 			FAKE_ASSERT(symbolWithPrefix,"compileDef",__FILE__,__LINE__);
-			snprintf(symbolWithPrefix,strlen(tmpAtm->value.str)+strlen(curEnv->prefix)+1,"%s%s",curEnv->prefix,tmpAtm->value.str);
+			snprintf(symbolWithPrefix,len,"%s%s",curEnv->prefix,tmpAtm->value.str);
 			tmpDef=addCompDef(symbolWithPrefix,curEnv,inter->table);
 			free(symbolWithPrefix);
 		}
@@ -1172,9 +1173,10 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			tmpDef=findCompDef(tmpAtm->value.str,tmpEnv,inter->table);
 			if(tmpEnv->prefix&&!tmpDef)
 			{
-				char* symbolWithPrefix=(char*)malloc(sizeof(char)*(strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1));
+				size_t len=strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1;
+				char* symbolWithPrefix=(char*)malloc(sizeof(char)*len);
 				FAKE_ASSERT(symbolWithPrefix,"compileSetq",__FILE__,__LINE__);
-				snprintf(symbolWithPrefix,strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1,"%s%s",tmpEnv->prefix,tmpAtm->value.str);
+				snprintf(symbolWithPrefix,len,"%s%s",tmpEnv->prefix,tmpAtm->value.str);
 				tmpDef=findCompDef(symbolWithPrefix,tmpEnv,inter->table);
 				free(symbolWithPrefix);
 			}
@@ -1243,9 +1245,10 @@ ByteCodelnt* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			tmpDef=findCompDef(tmpAtm->value.str,tmpEnv,inter->table);
 			if(tmpEnv->prefix&&!tmpDef)
 			{
-				char* symbolWithPrefix=(char*)malloc(sizeof(char)*(strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1));
+				size_t len=strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1;
+				char* symbolWithPrefix=(char*)malloc(sizeof(char)*len);
 				FAKE_ASSERT(symbolWithPrefix,"compileSetq",__FILE__,__LINE__);
-				snprintf(symbolWithPrefix,strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1,"%s%s",tmpEnv->prefix,tmpAtm->value.str);
+				snprintf(symbolWithPrefix,len,"%s%s",tmpEnv->prefix,tmpAtm->value.str);
 				tmpDef=findCompDef(symbolWithPrefix,tmpEnv,inter->table);
 				free(symbolWithPrefix);
 			}
@@ -1285,9 +1288,10 @@ ByteCodelnt* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 		tmpDef=findCompDef(tmpAtm->value.str,tmpEnv,inter->table);
 		if(tmpEnv->prefix&&!tmpDef)
 		{
-			char* symbolWithPrefix=(char*)malloc(sizeof(char)*(strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1));
+			size_t len=strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1;
+			char* symbolWithPrefix=(char*)malloc(sizeof(char)*len);
 			FAKE_ASSERT(symbolWithPrefix,"compileSym",__FILE__,__LINE__);
-			snprintf(symbolWithPrefix,strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1,"%s%s",tmpEnv->prefix,tmpAtm->value.str);
+			snprintf(symbolWithPrefix,len,"%s%s",tmpEnv->prefix,tmpAtm->value.str);
 			tmpDef=findCompDef(symbolWithPrefix,tmpEnv,inter->table);
 			free(symbolWithPrefix);
 		}
@@ -2396,9 +2400,10 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		if(!fp)
 		{
 			char t[]="lib/";
-			char* pathWithInterpreterPath=(char*)malloc(sizeof(char)*(strlen(InterpreterPath)+strlen(t)+strlen(path)+2));
+			size_t len=strlen(InterpreterPath)+strlen(t)+strlen(path)+2;
+			char* pathWithInterpreterPath=(char*)malloc(sizeof(char)*len);
 			FAKE_ASSERT(pathWithInterpreterPath,"compileImport",__FILE__,__LINE__);
-			snprintf(pathWithInterpreterPath,strlen(InterpreterPath)+strlen(t)+strlen(path)+2,"%s/%s%s",InterpreterPath,t,path);
+			snprintf(pathWithInterpreterPath,len,"%s/%s%s",InterpreterPath,t,path);
 			fp=fopen(pathWithInterpreterPath,"r");
 			if(!fp)
 			{
@@ -2410,7 +2415,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				freeFakeMemMenager(memMenager);
 				return NULL;
 			}
-			snprintf(pathWithInterpreterPath,strlen(InterpreterPath)+strlen(t)+strlen(path)+2,"%s%s",t,path);
+			snprintf(pathWithInterpreterPath,len,"%s%s",t,path);
 			free(path);
 			path=pathWithInterpreterPath;
 		}
@@ -2607,9 +2612,10 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 							char* symbolWouldExport=NULL;
 							if(libPrefix)
 							{
-								symbolWouldExport=(char*)malloc(sizeof(char)*(strlen(libPrefix)+strlen(pSymbol->value.str)+1));
+								size_t len=strlen(libPrefix)+strlen(pSymbol->value.str)+1;
+								symbolWouldExport=(char*)malloc(sizeof(char)*len);
 								FAKE_ASSERT(symbolWouldExport,"compileImport",__FILE__,__LINE__);
-								snprintf(symbolWouldExport,strlen(libPrefix)+strlen(pSymbol->value.str)+1,"%s%s",libPrefix,pSymbol->value.str);
+								snprintf(symbolWouldExport,len,"%s%s",libPrefix,pSymbol->value.str);
 							}
 							else
 							{

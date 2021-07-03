@@ -1126,9 +1126,10 @@ void B_dlsym(FakeVM* exe)
 	if((symbol->type!=SYM&&symbol->type!=STR)||dll->type!=DLL)
 		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
 	char prefix[]="FAKE_";
-	char* realDlFuncName=(char*)malloc(sizeof(char)*(strlen(prefix)+strlen(symbol->u.str->str)+1));
+	size_t len=strlen(prefix)+strlen(symbol->u.str->str)+1;
+	char* realDlFuncName=(char*)malloc(sizeof(char)*len);
 	FAKE_ASSERT(realDlFuncName,"B_dlsym",__FILE__,__LINE__);
-	snprintf(realDlFuncName,strlen(prefix)+strlen(symbol->u.str->str)+1,"%s%s",prefix,symbol->u.str->str);
+	snprintf(realDlFuncName,len,"%s%s",prefix,symbol->u.str->str);
 	DllFunc funcAddress=getAddress(realDlFuncName,dll->u.dll->handle);
 	if(!funcAddress)
 	{

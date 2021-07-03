@@ -143,10 +143,10 @@ void FAKE_getTime(FakeVM* exe,pthread_rwlock_t* pGClock)
 	char* day=intToString(tblock->tm_mday);
 	char* mon=intToString(tblock->tm_mon+1);
 	char* year=intToString(tblock->tm_year+1900);
-	int32_t timeLen=strlen(year)+strlen(mon)+strlen(day)+strlen(hour)+strlen(min)+strlen(sec)+5;
-	char* trueTime=(char*)malloc(sizeof(char)*(timeLen+1));
+	int32_t timeLen=strlen(year)+strlen(mon)+strlen(day)+strlen(hour)+strlen(min)+strlen(sec)+5+1;
+	char* trueTime=(char*)malloc(sizeof(char)*timeLen);
 	FAKE_ASSERT(trueTime,"FAKE_getTime",__FILE__,__LINE__);
-	snprintf(trueTime,(timeLen+1),"%s-%s-%s_%s_%s_%s",year,mon,day,hour,min,sec);
+	snprintf(trueTime,timeLen,"%s-%s-%s_%s_%s_%s",year,mon,day,hour,min,sec);
 	free(sec);
 	free(min);
 	free(hour);

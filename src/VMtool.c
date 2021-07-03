@@ -1187,9 +1187,10 @@ VMDll* newVMDll(const char* dllName)
 #else
 	char filetype[]=".so";
 #endif
-	char* realDllName=(char*)malloc(sizeof(char)*(strlen(dllName)+strlen(filetype)+1));
+	size_t len=strlen(dllName)+strlen(filetype)+1;
+	char* realDllName=(char*)malloc(sizeof(char)*len);
 	FAKE_ASSERT(realDllName,"newVMDll",__FILE__,__LINE__);
-	snprintf(realDllName,strlen(dllName)+strlen(filetype)+1,"%s%s",dllName,filetype);
+	snprintf(realDllName,len,"%s%s",dllName,filetype);
 #ifdef _WIN32
 	char* rpath=_fullpath(NULL,realDllName,0);
 #else
@@ -1497,9 +1498,10 @@ char* genErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe)
 	LineNumTabNode* node=findLineNumTabNode(cp,exe->lnt);
 	char* filename=exe->table->idl[node->fid]->symbol;
 	char* line=intToString(node->line);
-	char* t=(char*)malloc(sizeof(char)*(strlen("In file \"\",line \n")+strlen(filename)+strlen(line)+1));
+	size_t len=strlen("In file \"\",line \n")+strlen(filename)+strlen(line)+1;
+	char* t=(char*)malloc(sizeof(char)*len);
 	FAKE_ASSERT(t,"genErrorMessage",__FILE__,__LINE__);
-	snprintf(t,strlen("In file \"\",line \n")+strlen(filename)+strlen(line)+1,"In file \"%s\",line %s\n",filename,line);
+	snprintf(t,len,"In file \"%s\",line %s\n",filename,line);
 	free(line);
 	t=strCat(t,"error:");
 	switch(type)

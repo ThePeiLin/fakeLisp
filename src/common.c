@@ -495,8 +495,9 @@ int stringToChar(const char* objStr)
 	int ch=0;
 	if(toupper(objStr[0])=='X'&&isxdigit(objStr[1]))
 	{
-		char* tmpStr=(char*)malloc(sizeof(char)*(strlen(objStr)+2));
-		snprintf(tmpStr,strlen(objStr)+2,"0%s",objStr);
+		size_t len=strlen(objStr)+2;
+		char* tmpStr=(char*)malloc(sizeof(char)*len);
+		snprintf(tmpStr,len,"0%s",objStr);
 		if(isHexNum(tmpStr))
 		{
 			sscanf(tmpStr+2,"%x",&ch);

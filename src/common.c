@@ -44,13 +44,19 @@ const char* builtInErrorType[19]=
 };
 
 char* InterpreterPath=NULL;
-char* builtInSymbolList[NUMOFBUILTINSYMBOL]=
+const char* builtInSymbolList[]=
 {
 	"nil",
 	"EOF",
 	"stdin",
 	"stdout",
 	"stderr",
+	"file",
+	"read",
+	"getb",
+	"write",
+	"putb",
+	"princ",
 };
 
 char* getStringFromList(const char* str)
@@ -85,8 +91,8 @@ char* getStringAfterBackslash(const char* str)
 
 char* doubleToString(double num)
 {
-	char numString[256];
-	sprintf(numString,"%lf",num);
+	char numString[256]={0};
+	snprintf(numString,256,"%lf",num);
 	int lenOfNum=strlen(numString)+1;
 	char* tmp=(char*)malloc(lenOfNum*sizeof(char));
 	FAKE_ASSERT(tmp,"doubleToString",__FILE__,__LINE__);
@@ -107,7 +113,7 @@ double stringToDouble(const char* str)
 char* intToString(long num)
 {
 	char numString[256]={0};
-	sprintf(numString,"%ld",num);
+	snprintf(numString,256,"%ld",num);
 	int lenOfNum=strlen(numString)+1;
 	char* tmp=NULL;
 	FAKE_ASSERT((tmp=(char*)malloc(lenOfNum*sizeof(char))),"intToString",__FILE__,__LINE__);
@@ -490,7 +496,7 @@ int stringToChar(const char* objStr)
 	if(toupper(objStr[0])=='X'&&isxdigit(objStr[1]))
 	{
 		char* tmpStr=(char*)malloc(sizeof(char)*(strlen(objStr)+2));
-		sprintf(tmpStr,"0%s",objStr);
+		snprintf(tmpStr,strlen(objStr)+2,"0%s",objStr);
 		if(isHexNum(tmpStr))
 		{
 			sscanf(tmpStr+2,"%x",&ch);

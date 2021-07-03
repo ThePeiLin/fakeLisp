@@ -4,6 +4,7 @@
 #include"reader.h"
 #include"fakeVM.h"
 #include"opcode.h"
+#include"syscall.h"
 #include<string.h>
 #include<math.h>
 #ifdef _WIN32
@@ -25,102 +26,9 @@ static int envNodeCmp(const void* a,const void* b)
 	return ((*(VMenvNode**)a)->id-(*(VMenvNode**)b)->id);
 }
 
-extern char* builtInSymbolList[NUMOFBUILTINSYMBOL];
+extern const char* builtInSymbolList[NUMOFBUILTINSYMBOL];
 pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
 FakeVMlist GlobFakeVMs={0,NULL};
-
-static CRL* newCRL(VMpair* pair,int32_t count)
-{
-	CRL* tmp=(CRL*)malloc(sizeof(CRL));
-	FAKE_ASSERT(tmp,"newCRL",__FILE__,__LINE__);
-	tmp->pair=pair;
-	tmp->count=count;
-	tmp->next=NULL;
-	return tmp;
-}
-
-static int32_t findCRLcount(VMpair* pair,CRL* h)
-{
-	for(;h;h=h->next)
-	{
-		if(h->pair==pair)
-			return h->count;
-	}
-	return -1;
-}
-
-static VMpair* hasSameVMpair(VMpair* begin,VMpair* other,CRL* h)
-{
-	VMpair* tmpPair=NULL;
-	if(findCRLcount(begin,h)!=-1||findCRLcount(other,h)!=-1)
-		return NULL;
-	if(begin==other)
-		return begin;
-
-	if((other->car->type==PAIR&&other->car->u.pair->car->type==PAIR)&&begin->car->type==PAIR)
-		tmpPair=hasSameVMpair(begin->car->u.pair,other->car->u.pair->car->u.pair,h);
-	if(tmpPair)
-		return tmpPair;
-
-	if((other->car->type==PAIR&&other->car->u.pair->cdr->type==PAIR)&&begin->car->type==PAIR)
-		tmpPair=hasSameVMpair(begin->car->u.pair,other->car->u.pair->cdr->u.pair,h);
-	if(tmpPair)
-		return tmpPair;
-
-	if((other->car->type==PAIR&&other->car->u.pair->car->type==PAIR)&&begin->cdr->type==PAIR)
-		tmpPair=hasSameVMpair(begin->cdr->u.pair,other->car->u.pair->car->u.pair,h);
-	if(tmpPair)
-		return tmpPair;
-
-	if((other->car->type==PAIR&&other->car->u.pair->cdr->type==PAIR)&&begin->cdr->type==PAIR)
-		tmpPair=hasSameVMpair(begin->cdr->u.pair,other->car->u.pair->cdr->u.pair,h);
-	if(tmpPair)
-		return tmpPair;
-
-	if((other->cdr->type==PAIR&&other->cdr->u.pair->car->type==PAIR)&&begin->car->type==PAIR)
-		tmpPair=hasSameVMpair(begin->car->u.pair,other->cdr->u.pair->car->u.pair,h);
-	if(tmpPair)
-		return tmpPair;
-
-	if((other->cdr->type==PAIR&&other->cdr->u.pair->cdr->type==PAIR)&&begin->car->type==PAIR)
-		tmpPair=hasSameVMpair(begin->car->u.pair,other->cdr->u.pair->cdr->u.pair,h);
-	if(tmpPair)
-		return tmpPair;
-
-	if((other->cdr->type==PAIR&&other->cdr->u.pair->car->type==PAIR)&&begin->cdr->type==PAIR)
-		tmpPair=hasSameVMpair(begin->cdr->u.pair,other->cdr->u.pair->car->u.pair,h);
-	if(tmpPair)
-		return tmpPair;
-
-	if((other->cdr->type==PAIR&&other->cdr->u.pair->cdr->type==PAIR)&&begin->cdr->type==PAIR)
-		tmpPair=hasSameVMpair(begin->cdr->u.pair,other->cdr->u.pair->cdr->u.pair,h);
-	if(tmpPair)
-		return tmpPair;
-	return NULL;
-}
-
-VMpair* isCircularReference(VMpair* begin,CRL* h)
-{
-	VMpair* tmpPair=NULL;
-	if(begin->car->type==PAIR)
-		tmpPair=hasSameVMpair(begin,begin->car->u.pair,h);
-	if(tmpPair)
-		return tmpPair;
-	if(begin->cdr->type==PAIR)
-		tmpPair=hasSameVMpair(begin,begin->cdr->u.pair,h);
-	if(tmpPair)
-		return tmpPair;
-	return NULL;
-}
-
-int8_t isInTheCircle(VMpair* obj,VMpair* begin,VMpair* curPair)
-{
-	if(obj==curPair)
-		return 1;
-	if((curPair->car->type==PAIR&&begin==curPair->car->u.pair)||(curPair->cdr->type==PAIR&&begin==curPair->cdr->u.pair))
-		return 0;
-	return ((curPair->car->type==PAIR)&&isInTheCircle(obj,begin,curPair->car->u.pair))||((curPair->cdr->type==PAIR)&&isInTheCircle(obj,begin,curPair->cdr->u.pair));
-}
 
 static void (*ByteCodes[])(FakeVM*)=
 {
@@ -175,7 +83,6 @@ static void (*ByteCodes[])(FakeVM*)=
 	B_nth,
 	B_length,
 	B_appd,
-	B_file,
 	B_dll,
 	B_eq,
 	B_eqn,
@@ -185,11 +92,6 @@ static void (*ByteCodes[])(FakeVM*)=
 	B_lt,
 	B_le,
 	B_not,
-	B_read,
-	B_getb,
-	B_write,
-	B_putb,
-	B_princ,
 	B_dlsym,
 	B_go,
 	B_chanl,
@@ -278,11 +180,17 @@ void initGlobEnv(VMenv* obj,VMheap* heap,SymbolTable* table)
 	obj->list=(VMenvNode**)malloc(sizeof(VMenvNode*)*NUMOFBUILTINSYMBOL);
 	FAKE_ASSERT(obj->list,"initGlobEnv",__FILE__,__LINE__);
 	int32_t tmpInt=EOF;
-	obj->list[0]=newVMenvNode(newNilValue(heap),findSymbol(builtInSymbolList[0],table)->id);
-	obj->list[1]=newVMenvNode(newVMvalue(IN32,&tmpInt,heap,1),findSymbol(builtInSymbolList[1],table)->id);
-	obj->list[2]=newVMenvNode(newVMvalue(FP,newVMfp(stdin),heap,1),findSymbol(builtInSymbolList[2],table)->id);
-	obj->list[3]=newVMenvNode(newVMvalue(FP,newVMfp(stdout),heap,1),findSymbol(builtInSymbolList[3],table)->id);
-	obj->list[4]=newVMenvNode(newVMvalue(FP,newVMfp(stderr),heap,1),findSymbol(builtInSymbolList[4],table)->id);
+	obj->list[ 0]=newVMenvNode(newNilValue(heap),findSymbol(builtInSymbolList[0],table)->id);
+	obj->list[ 1]=newVMenvNode(newVMvalue(IN32,&tmpInt,heap,1),findSymbol(builtInSymbolList[1],table)->id);
+	obj->list[ 2]=newVMenvNode(newVMvalue(FP,newVMfp(stdin),heap,1),findSymbol(builtInSymbolList[2],table)->id);
+	obj->list[ 3]=newVMenvNode(newVMvalue(FP,newVMfp(stdout),heap,1),findSymbol(builtInSymbolList[3],table)->id);
+	obj->list[ 4]=newVMenvNode(newVMvalue(FP,newVMfp(stderr),heap,1),findSymbol(builtInSymbolList[4],table)->id);
+	obj->list[ 5]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(SYS_file,NULL),heap,1),findSymbol(builtInSymbolList[5],table)->id);
+	obj->list[ 6]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(SYS_read,NULL),heap,1),findSymbol(builtInSymbolList[6],table)->id);
+	obj->list[ 7]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(SYS_getb,NULL),heap,1),findSymbol(builtInSymbolList[7],table)->id);
+	obj->list[ 8]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(SYS_write,NULL),heap,1),findSymbol(builtInSymbolList[8],table)->id);
+	obj->list[ 9]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(SYS_putb,NULL),heap,1),findSymbol(builtInSymbolList[9],table)->id);
+	obj->list[10]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(SYS_princ,NULL),heap,1),findSymbol(builtInSymbolList[10],table)->id);
 	mergeSort(obj->list,obj->num,sizeof(VMenvNode*),envNodeCmp);
 }
 
@@ -1193,25 +1101,6 @@ void B_jmp(FakeVM* exe)
 	runnable->cp+=where+5;
 }
 
-void B_file(FakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=topComStack(exe->rstack);
-	VMheap* heap=exe->heap;
-	VMvalue* mode=getTopValue(stack);
-	VMvalue* filename=getValue(stack,stack->tp-2);
-	if(filename->type!=STR||mode->type!=STR)
-		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
-	stack->tp-=1;
-	stackRecycle(exe);
-	FILE* file=fopen(filename->u.str->str,mode->u.str->str);
-	if(!file)
-		stack->values[stack->tp-1]=newNilValue(heap);
-	else
-		stack->values[stack->tp-1]=newVMvalue(FP,newVMfp(file),heap,1);
-	runnable->cp+=1;
-}
-
 void B_dll(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
@@ -1239,7 +1128,7 @@ void B_dlsym(FakeVM* exe)
 	char prefix[]="FAKE_";
 	char* realDlFuncName=(char*)malloc(sizeof(char)*(strlen(prefix)+strlen(symbol->u.str->str)+1));
 	FAKE_ASSERT(realDlFuncName,"B_dlsym",__FILE__,__LINE__);
-	sprintf(realDlFuncName,"%s%s",prefix,symbol->u.str->str);
+	snprintf(realDlFuncName,strlen(prefix)+strlen(symbol->u.str->str)+1,"%s%s",prefix,symbol->u.str->str);
 	DllFunc funcAddress=getAddress(realDlFuncName,dll->u.dll->handle);
 	if(!funcAddress)
 	{
@@ -1796,131 +1685,6 @@ void B_appd(FakeVM* exe)
 	runnable->cp+=1;
 }
 
-void B_read(FakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=topComStack(exe->rstack);
-	VMvalue* file=getTopValue(stack);
-	if(file->type!=FP)
-		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
-	FILE* tmpFile=file->u.fp->fp;
-	int unexpectEOF=0;
-	char* prev=NULL;
-	char* tmpString=readInPattern(tmpFile,&prev,&unexpectEOF);
-	if(prev)
-		free(prev);
-	if(unexpectEOF)
-	{
-		free(tmpString);
-		RAISE_BUILTIN_ERROR(UNEXPECTEOF,runnable,exe);
-	}
-	Intpr* tmpIntpr=newTmpIntpr(NULL,tmpFile);
-	AST_cptr* tmpCptr=baseCreateTree(tmpString,tmpIntpr);
-	VMvalue* tmp=NULL;
-	if(tmpCptr==NULL)
-		tmp=newNilValue(exe->heap);
-	else
-		tmp=castCptrVMvalue(tmpCptr,exe->heap);
-	stack->values[stack->tp-1]=tmp;
-	free(tmpIntpr);
-	free(tmpString);
-	deleteCptr(tmpCptr);
-	free(tmpCptr);
-	runnable->cp+=1;
-}
-
-void B_getb(FakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=topComStack(exe->rstack);
-	VMvalue* file=getTopValue(stack);
-	VMvalue* size=getValue(stack,stack->tp-2);
-	if(file->type!=FP||size->type!=IN32)
-		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
-	FILE* fp=file->u.fp->fp;
-	uint8_t* str=(uint8_t*)malloc(sizeof(uint8_t)*(*size->u.in32));
-	FAKE_ASSERT(str,"B_getb",__FILE__,__LINE__);
-	int32_t realRead=0;
-	realRead=fread(str,sizeof(uint8_t),*size->u.in32,fp);
-	stack->tp-=1;
-	if(!realRead)
-	{
-		free(str);
-		stack->values[stack->tp-1]=newNilValue(exe->heap);
-	}
-	else
-	{
-		str=(uint8_t*)realloc(str,sizeof(uint8_t)*realRead);
-		FAKE_ASSERT(str,"B_getb",__FILE__,__LINE__);
-		VMvalue* tmpBary=newVMvalue(BYTS,NULL,exe->heap,1);
-		tmpBary->u.byts=newEmptyByteArry();
-		tmpBary->u.byts->size=*size->u.in32;
-		tmpBary->u.byts->str=str;
-		stack->values[stack->tp-1]=tmpBary;
-	}
-	stackRecycle(exe);
-	runnable->cp+=1;
-}
-
-void B_write(FakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=topComStack(exe->rstack);
-	VMvalue* file=getTopValue(stack);
-	VMvalue* obj=getValue(stack,stack->tp-2);
-	if(file->type!=FP)
-		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
-	FILE* objFile=file->u.fp->fp;
-	stack->tp-=1;
-	stackRecycle(exe);
-	CRL* head=NULL;
-	writeVMvalue(obj,objFile,&head);
-	while(head)
-	{
-		CRL* prev=head;
-		head=head->next;
-		free(prev);
-	}
-	runnable->cp+=1;
-}
-
-void B_putb(FakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=topComStack(exe->rstack);
-	VMvalue* file=getTopValue(stack);
-	VMvalue* bt=getValue(stack,stack->tp-2);
-	if(file->type!=FP||bt->type!=BYTS)
-		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
-	FILE* objFile=file->u.fp->fp;
-	stack->tp-=1;
-	stackRecycle(exe);
-	fwrite(bt->u.byts->str,sizeof(uint8_t),bt->u.byts->size,objFile);
-	runnable->cp+=1;
-}
-
-void B_princ(FakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=topComStack(exe->rstack);
-	VMvalue* file=getTopValue(stack);
-	VMvalue* obj=getValue(stack,stack->tp-2);
-	if(file->type!=FP)
-		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
-	FILE* objFile=file->u.fp->fp;
-	stack->tp-=1;
-	stackRecycle(exe);
-	CRL* head=NULL;
-	princVMvalue(obj,objFile,&head);
-	while(head)
-	{
-		CRL* prev=head;
-		head=head->next;
-		free(prev);
-	}
-	runnable->cp+=1;
-}
-
 void B_go(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
@@ -2106,186 +1870,6 @@ VMstack* newVMstack(int32_t size)
 	tmp->tptp=0;
 	tmp->tpst=NULL;
 	return tmp;
-}
-
-void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
-{
-	VMpair* cirPair=NULL;
-	int8_t isInCir=0;
-	int32_t CRLcount=-1;
-	switch(objValue->type)
-	{
-		case NIL:
-			fprintf(fp,"nil");
-			break;
-		case IN32:
-			fprintf(fp,"%d",*objValue->u.in32);
-			break;
-		case DBL:
-			fprintf(fp,"%lf",*objValue->u.dbl);
-			break;
-		case CHR:
-			printRawChar(*objValue->u.chr,fp);
-			break;
-		case SYM:
-			fprintf(fp,"%s",objValue->u.str->str);
-			break;
-		case STR:
-			printRawString(objValue->u.str->str,fp);
-			break;
-		case PRC:
-			fprintf(fp,"#<proc>");
-			break;
-		case PAIR:
-			cirPair=isCircularReference(objValue->u.pair,*h);
-			if(cirPair)
-				isInCir=isInTheCircle(objValue->u.pair,cirPair,cirPair);
-			if(cirPair&&isInCir)
-			{
-				CRL* crl=newCRL(objValue->u.pair,(*h)?(*h)->count+1:0);
-				crl->next=*h;
-				*h=crl;
-				fprintf(fp,"#%d=(",crl->count);
-			}
-			else
-				putc('(',fp);
-			for(;objValue->type==PAIR;objValue=getVMpairCdr(objValue))
-			{
-				VMvalue* tmpValue=getVMpairCar(objValue);
-				if(tmpValue->type==PAIR&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
-					fprintf(fp,"#%d#",CRLcount);
-				else
-					if(tmpValue->type!=NIL||objValue->u.pair->cdr->type!=NIL)
-						writeVMvalue(tmpValue,fp,h);
-				tmpValue=getVMpairCdr(objValue);
-				if(tmpValue->type>NIL&&tmpValue->type<PAIR)
-				{
-					putc(',',fp);
-					writeVMvalue(tmpValue,fp,h);
-				}
-				else if(tmpValue->type==PAIR&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
-				{
-					fprintf(fp,",#%d#",CRLcount);
-					break;
-				}
-				else if(tmpValue->type!=NIL)
-					putc(' ',fp);
-			}
-			putc(')',fp);
-			break;
-		case BYTS:
-			printByteStr(objValue->u.byts,fp,1);
-			break;
-		case CONT:
-			fprintf(fp,"#<cont>");
-			break;
-		case CHAN:
-			fprintf(fp,"#<chan>");
-			break;
-		case FP:
-			fprintf(fp,"#<fp>");
-			break;
-		case DLL:
-			fprintf(fp,"<#dll>");
-			break;
-		case DLPROC:
-			fprintf(fp,"<#dlproc>");
-			break;
-		case ERR:
-			fprintf(fp,"<#err t:%s m:%s>",objValue->u.err->type,objValue->u.err->message);
-			break;
-		default:fprintf(fp,"Bad value!");break;
-	}
-}
-
-void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
-{
-	VMpair* cirPair=NULL;
-	int32_t CRLcount=-1;
-	int8_t isInCir=0;
-	switch(objValue->type)
-	{
-		case NIL:
-			fprintf(fp,"nil");
-			break;
-		case IN32:
-			fprintf(fp,"%d",*objValue->u.in32);
-			break;
-		case DBL:
-			fprintf(fp,"%lf",*objValue->u.dbl);
-			break;
-		case CHR:
-			putc(*objValue->u.chr,fp);
-			break;
-		case SYM:
-			fprintf(fp,"%s",objValue->u.str->str);
-			break;
-		case STR:
-			fprintf(fp,"%s",objValue->u.str->str);
-			break;
-		case PRC:
-			fprintf(fp,"#<proc>");
-			break;
-		case PAIR:
-			cirPair=isCircularReference(objValue->u.pair,*h);
-			if(cirPair)
-				isInCir=isInTheCircle(objValue->u.pair,cirPair,cirPair);
-			if(cirPair&&isInCir)
-			{
-				CRL* crl=newCRL(objValue->u.pair,(*h)?(*h)->count+1:0);
-				crl->next=*h;
-				*h=crl;
-				fprintf(fp,"#%d=(",crl->count);
-			}
-			else
-				putc('(',fp);
-			for(;objValue->type==PAIR;objValue=getVMpairCdr(objValue))
-			{
-				VMvalue* tmpValue=getVMpairCar(objValue);
-				if(tmpValue->type==PAIR&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
-					fprintf(fp,"#%d#",CRLcount);
-				else
-					if(tmpValue->type!=NIL||objValue->u.pair->cdr->type!=NIL)
-						princVMvalue(tmpValue,fp,h);
-				tmpValue=getVMpairCdr(objValue);
-				if(tmpValue->type>NIL&&tmpValue->type<PAIR)
-				{
-					putc(',',fp);
-					princVMvalue(tmpValue,fp,h);
-				}
-				else if(tmpValue->type==PAIR&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
-				{
-					fprintf(fp,",#%d#",CRLcount);
-					break;
-				}
-				else if(tmpValue->type!=NIL)
-					putc(' ',fp);
-			}
-			putc(')',fp);
-			break;
-		case BYTS:
-			printByteStr(objValue->u.byts,fp,0);
-			break;
-		case CONT:
-			fprintf(fp,"#<cont>");
-			break;
-		case CHAN:
-			fprintf(fp,"#<chan>");
-			break;
-		case FP:
-			fprintf(fp,"#<fp>");
-			break;
-		case DLL:
-			fprintf(fp,"<#dll>");
-			break;
-		case DLPROC:
-			fprintf(fp,"<#dlproc>");
-			break;
-		case ERR:
-			fprintf(fp,"%s",objValue->u.err->message);
-			break;
-		default:fprintf(fp,"Bad value!");break;
-	}
 }
 
 void stackRecycle(FakeVM* exe)

@@ -28,6 +28,15 @@
 	return;\
 }
 
+typedef struct Cirular_Ref_List
+{
+	VMpair* pair;
+	int32_t count;
+	struct Cirular_Ref_List* next;
+}CRL;
+
+void writeVMvalue(VMvalue*,FILE*,CRL**);
+void princVMvalue(VMvalue*,FILE*,CRL**);
 VMenvNode* newVMenvNode(VMvalue*,int32_t);
 VMenvNode* addVMenvNode(VMenvNode*,VMenv*);
 VMenvNode* findVMenvNode(int32_t,VMenv*);
@@ -136,4 +145,5 @@ int raiseVMerror(VMerror* err,FakeVM*);
 VMrunnable* newVMrunnable(VMproc*);
 char* genErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe);
 int32_t getSymbolIdInByteCode(const uint8_t*);
+int resBp(VMstack*);
 #endif

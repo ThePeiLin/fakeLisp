@@ -1107,7 +1107,7 @@ ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 		{
 			char* symbolWithPrefix=(char*)malloc(sizeof(char)*(strlen(tmpAtm->value.str)+strlen(curEnv->prefix)+1));
 			FAKE_ASSERT(symbolWithPrefix,"compileDef",__FILE__,__LINE__);
-			sprintf(symbolWithPrefix,"%s%s",curEnv->prefix,tmpAtm->value.str);
+			snprintf(symbolWithPrefix,strlen(tmpAtm->value.str)+strlen(curEnv->prefix)+1,"%s%s",curEnv->prefix,tmpAtm->value.str);
 			tmpDef=addCompDef(symbolWithPrefix,curEnv,inter->table);
 			free(symbolWithPrefix);
 		}
@@ -1174,7 +1174,7 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			{
 				char* symbolWithPrefix=(char*)malloc(sizeof(char)*(strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1));
 				FAKE_ASSERT(symbolWithPrefix,"compileSetq",__FILE__,__LINE__);
-				sprintf(symbolWithPrefix,"%s%s",tmpEnv->prefix,tmpAtm->value.str);
+				snprintf(symbolWithPrefix,strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1,"%s%s",tmpEnv->prefix,tmpAtm->value.str);
 				tmpDef=findCompDef(symbolWithPrefix,tmpEnv,inter->table);
 				free(symbolWithPrefix);
 			}
@@ -1245,7 +1245,7 @@ ByteCodelnt* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			{
 				char* symbolWithPrefix=(char*)malloc(sizeof(char)*(strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1));
 				FAKE_ASSERT(symbolWithPrefix,"compileSetq",__FILE__,__LINE__);
-				sprintf(symbolWithPrefix,"%s%s",tmpEnv->prefix,tmpAtm->value.str);
+				snprintf(symbolWithPrefix,strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1,"%s%s",tmpEnv->prefix,tmpAtm->value.str);
 				tmpDef=findCompDef(symbolWithPrefix,tmpEnv,inter->table);
 				free(symbolWithPrefix);
 			}
@@ -1287,7 +1287,7 @@ ByteCodelnt* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 		{
 			char* symbolWithPrefix=(char*)malloc(sizeof(char)*(strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1));
 			FAKE_ASSERT(symbolWithPrefix,"compileSym",__FILE__,__LINE__);
-			sprintf(symbolWithPrefix,"%s%s",tmpEnv->prefix,tmpAtm->value.str);
+			snprintf(symbolWithPrefix,strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1,"%s%s",tmpEnv->prefix,tmpAtm->value.str);
 			tmpDef=findCompDef(symbolWithPrefix,tmpEnv,inter->table);
 			free(symbolWithPrefix);
 		}
@@ -2398,7 +2398,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			char t[]="lib/";
 			char* pathWithInterpreterPath=(char*)malloc(sizeof(char)*(strlen(InterpreterPath)+strlen(t)+strlen(path)+2));
 			FAKE_ASSERT(pathWithInterpreterPath,"compileImport",__FILE__,__LINE__);
-			sprintf(pathWithInterpreterPath,"%s/%s%s",InterpreterPath,t,path);
+			snprintf(pathWithInterpreterPath,strlen(InterpreterPath)+strlen(t)+strlen(path)+2,"%s/%s%s",InterpreterPath,t,path);
 			fp=fopen(pathWithInterpreterPath,"r");
 			if(!fp)
 			{
@@ -2410,7 +2410,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				freeFakeMemMenager(memMenager);
 				return NULL;
 			}
-			sprintf(pathWithInterpreterPath,"%s%s",t,path);
+			snprintf(pathWithInterpreterPath,strlen(InterpreterPath)+strlen(t)+strlen(path)+2,"%s%s",t,path);
 			free(path);
 			path=pathWithInterpreterPath;
 		}
@@ -2609,7 +2609,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 							{
 								symbolWouldExport=(char*)malloc(sizeof(char)*(strlen(libPrefix)+strlen(pSymbol->value.str)+1));
 								FAKE_ASSERT(symbolWouldExport,"compileImport",__FILE__,__LINE__);
-								sprintf(symbolWouldExport,"%s%s",libPrefix,pSymbol->value.str);
+								snprintf(symbolWouldExport,strlen(libPrefix)+strlen(pSymbol->value.str)+1,"%s%s",libPrefix,pSymbol->value.str);
 							}
 							else
 							{

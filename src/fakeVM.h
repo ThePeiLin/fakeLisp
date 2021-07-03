@@ -3,16 +3,7 @@
 #include"fakedef.h"
 #include<pthread.h>
 
-typedef struct Cirular_Ref_List
-{
-	VMpair* pair;
-	int32_t count;
-	struct Cirular_Ref_List* next;
-}CRL;
-
 int runFakeVM(FakeVM*);
-void writeVMvalue(VMvalue*,FILE*,CRL**);
-void princVMvalue(VMvalue*,FILE*,CRL**);
 FakeVM* newFakeVM(ByteCode*);
 FakeVM* newTmpFakeVM(ByteCode*);
 FakeVM* newThreadVM(VMproc*,VMheap*);
@@ -56,7 +47,7 @@ void B_invoke(FakeVM*);
 void B_res_tp(FakeVM*);
 void B_pop_tp(FakeVM*);
 void B_res_bp(FakeVM*);
-void B_file(FakeVM*);
+//void B_file(FakeVM*);
 void B_dll(FakeVM*);
 void B_chr(FakeVM*);
 void B_int(FakeVM*);
@@ -79,11 +70,11 @@ void B_not(FakeVM*);
 void B_jmp_if_true(FakeVM*);
 void B_jmp_if_false(FakeVM*);
 void B_jmp(FakeVM*);
-void B_read(FakeVM*);
-void B_getb(FakeVM*);
-void B_write(FakeVM*);
-void B_putb(FakeVM*);
-void B_princ(FakeVM*);
+//void B_read(FakeVM*);
+//void B_getb(FakeVM*);
+//void B_write(FakeVM*);
+//void B_putb(FakeVM*);
+//void B_princ(FakeVM*);
 void B_dlsym(FakeVM*);
 void B_go(FakeVM*);
 void B_chanl(FakeVM*);

@@ -58,12 +58,6 @@
                  length
                  appd
                  append
-                 file
-                 read
-                 getb
-                 write
-                 putb
-                 princ
                  go
                  chanl
                  send
@@ -269,7 +263,7 @@
                             push_cdr
                             push_car
                             )))
-        
+
          (define cdaaar (lambda (a)
                           (proc
                             push_var a
@@ -278,7 +272,7 @@
                             push_car
                             push_cdr
                             )))
-        
+
          (define cdaadr (lambda (a)
                           (proc
                             push_var a
@@ -305,7 +299,7 @@
                             push_car
                             push_cdr
                             )))
-        
+
          (define cddaar (lambda (a)
                           (proc
                             push_var a
@@ -314,7 +308,7 @@
                             push_cdr
                             push_cdr
                             )))
-        
+
          (define cddadr (lambda (a)
                           (proc
                             push_var a
@@ -516,51 +510,11 @@
                           push_var b
                           appd
                           )))
-        (define append (lambda b
-                         (define iter (lambda (c r)
-                                        (cond ((null c) r)
-                                              (1 (iter (cdr c) (appd r (car c)))))))
-                         (iter b nil)))
-         (define file (lambda (name mode)
-                        (proc
-                          push_var name
-                          push_var mode
-                          file
-                          )))
-
-         (define read (lambda (fp)
-                        (proc
-                          push_var fp
-                          read
-                          )))
-
-         (define getb (lambda (size fp)
-                        (proc
-                          push_var size
-                          push_var fp
-                          getb
-                          )))
-
-         (define write (lambda (obj fp)
-                         (proc
-                           push_var obj
-                           push_var fp
-                           write
-                           )))
-
-         (define putb (lambda (byts fp)
-                        (proc
-                          push_var byts
-                          push_var fp
-                          putb
-                          )))
-
-         (define princ (lambda (obj fp)
-                         (proc
-                           push_var obj
-                           push_var fp
-                           princ
-                           )))
+         (define append (lambda b
+                          (define iter (lambda (c r)
+                                         (cond ((null c) r)
+                                               (1 (iter (cdr c) (appd r (car c)))))))
+                          (iter b nil)))
 
          (define go (lambda (f,a)
                       (proc

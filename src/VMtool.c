@@ -11,6 +11,100 @@
 #include<tchar.h>
 #endif
 
+static CRL* newCRL(VMpair* pair,int32_t count)
+{
+	CRL* tmp=(CRL*)malloc(sizeof(CRL));
+	FAKE_ASSERT(tmp,"newCRL",__FILE__,__LINE__);
+	tmp->pair=pair;
+	tmp->count=count;
+	tmp->next=NULL;
+	return tmp;
+}
+
+static int32_t findCRLcount(VMpair* pair,CRL* h)
+{
+	for(;h;h=h->next)
+	{
+		if(h->pair==pair)
+			return h->count;
+	}
+	return -1;
+}
+
+static VMpair* hasSameVMpair(VMpair* begin,VMpair* other,CRL* h)
+{
+	VMpair* tmpPair=NULL;
+	if(findCRLcount(begin,h)!=-1||findCRLcount(other,h)!=-1)
+		return NULL;
+	if(begin==other)
+		return begin;
+
+	if((other->car->type==PAIR&&other->car->u.pair->car->type==PAIR)&&begin->car->type==PAIR)
+		tmpPair=hasSameVMpair(begin->car->u.pair,other->car->u.pair->car->u.pair,h);
+	if(tmpPair)
+		return tmpPair;
+
+	if((other->car->type==PAIR&&other->car->u.pair->cdr->type==PAIR)&&begin->car->type==PAIR)
+		tmpPair=hasSameVMpair(begin->car->u.pair,other->car->u.pair->cdr->u.pair,h);
+	if(tmpPair)
+		return tmpPair;
+
+	if((other->car->type==PAIR&&other->car->u.pair->car->type==PAIR)&&begin->cdr->type==PAIR)
+		tmpPair=hasSameVMpair(begin->cdr->u.pair,other->car->u.pair->car->u.pair,h);
+	if(tmpPair)
+		return tmpPair;
+
+	if((other->car->type==PAIR&&other->car->u.pair->cdr->type==PAIR)&&begin->cdr->type==PAIR)
+		tmpPair=hasSameVMpair(begin->cdr->u.pair,other->car->u.pair->cdr->u.pair,h);
+	if(tmpPair)
+		return tmpPair;
+
+	if((other->cdr->type==PAIR&&other->cdr->u.pair->car->type==PAIR)&&begin->car->type==PAIR)
+		tmpPair=hasSameVMpair(begin->car->u.pair,other->cdr->u.pair->car->u.pair,h);
+	if(tmpPair)
+		return tmpPair;
+
+	if((other->cdr->type==PAIR&&other->cdr->u.pair->cdr->type==PAIR)&&begin->car->type==PAIR)
+		tmpPair=hasSameVMpair(begin->car->u.pair,other->cdr->u.pair->cdr->u.pair,h);
+	if(tmpPair)
+		return tmpPair;
+
+	if((other->cdr->type==PAIR&&other->cdr->u.pair->car->type==PAIR)&&begin->cdr->type==PAIR)
+		tmpPair=hasSameVMpair(begin->cdr->u.pair,other->cdr->u.pair->car->u.pair,h);
+	if(tmpPair)
+		return tmpPair;
+
+	if((other->cdr->type==PAIR&&other->cdr->u.pair->cdr->type==PAIR)&&begin->cdr->type==PAIR)
+		tmpPair=hasSameVMpair(begin->cdr->u.pair,other->cdr->u.pair->cdr->u.pair,h);
+	if(tmpPair)
+		return tmpPair;
+	return NULL;
+}
+
+VMpair* isCircularReference(VMpair* begin,CRL* h)
+{
+	VMpair* tmpPair=NULL;
+	if(begin->car->type==PAIR)
+		tmpPair=hasSameVMpair(begin,begin->car->u.pair,h);
+	if(tmpPair)
+		return tmpPair;
+	if(begin->cdr->type==PAIR)
+		tmpPair=hasSameVMpair(begin,begin->cdr->u.pair,h);
+	if(tmpPair)
+		return tmpPair;
+	return NULL;
+}
+
+int8_t isInTheCircle(VMpair* obj,VMpair* begin,VMpair* curPair)
+{
+	if(obj==curPair)
+		return 1;
+	if((curPair->car->type==PAIR&&begin==curPair->car->u.pair)||(curPair->cdr->type==PAIR&&begin==curPair->cdr->u.pair))
+		return 0;
+	return ((curPair->car->type==PAIR)&&isInTheCircle(obj,begin,curPair->car->u.pair))||((curPair->cdr->type==PAIR)&&isInTheCircle(obj,begin,curPair->cdr->u.pair));
+}
+
+
 
 pthread_mutex_t VMenvGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t VMprocGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
@@ -619,7 +713,8 @@ void lockSource(pthread_rwlock_t* pGClock)
 
 VMvalue* getArg(VMstack* stack)
 {
-	if(!(stack->tp>stack->bp))return NULL;
+	if(!(stack->tp>stack->bp))
+		return NULL;
 	VMvalue* tmp=getTopValue(stack);
 	stack->tp-=1;
 	return tmp;
@@ -1094,7 +1189,7 @@ VMDll* newVMDll(const char* dllName)
 #endif
 	char* realDllName=(char*)malloc(sizeof(char)*(strlen(dllName)+strlen(filetype)+1));
 	FAKE_ASSERT(realDllName,"newVMDll",__FILE__,__LINE__);
-	sprintf(realDllName,"%s%s",dllName,filetype);
+	snprintf(realDllName,strlen(dllName)+strlen(filetype)+1,"%s%s",dllName,filetype);
 #ifdef _WIN32
 	char* rpath=_fullpath(NULL,realDllName,0);
 #else
@@ -1150,16 +1245,19 @@ VMDll* newVMDll(const char* dllName)
 
 void freeVMDll(VMDll* dll)
 {
-	if(dll->refcount)
-		decreaseVMDllRefcount(dll);
-	else
+	if(dll)
 	{
+		if(dll->refcount)
+			decreaseVMDllRefcount(dll);
+		else
+		{
 #ifdef _WIN32
-		FreeLibrary(dll->handle);
+			FreeLibrary(dll->handle);
 #else
-		dlclose(dll->handle);
+			dlclose(dll->handle);
 #endif
-		free(dll);
+			free(dll);
+		}
 	}
 }
 
@@ -1181,7 +1279,8 @@ VMDlproc* newVMDlproc(DllFunc address,VMDll* dll)
 	tmp->refcount=0;
 	tmp->func=address;
 	tmp->dll=dll;
-	increaseVMDllRefcount(dll);
+	if(dll)
+		increaseVMDllRefcount(dll);
 	return tmp;
 }
 
@@ -1400,7 +1499,7 @@ char* genErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe)
 	char* line=intToString(node->line);
 	char* t=(char*)malloc(sizeof(char)*(strlen("In file \"\",line \n")+strlen(filename)+strlen(line)+1));
 	FAKE_ASSERT(t,"genErrorMessage",__FILE__,__LINE__);
-	sprintf(t,"In file \"%s\",line %s\n",filename,line);
+	snprintf(t,strlen("In file \"\",line \n")+strlen(filename)+strlen(line)+1,"In file \"%s\",line %s\n",filename,line);
 	free(line);
 	t=strCat(t,"error:");
 	switch(type)
@@ -1461,3 +1560,195 @@ int32_t getSymbolIdInByteCode(const uint8_t* code)
 	}
 	return -1;
 }
+
+int resBp(VMstack* stack)
+{
+	if(stack->tp>stack->bp)
+		return TOOMANYARG;
+	VMvalue* prevBp=getTopValue(stack);
+	stack->bp=*prevBp->u.in32;
+	stack->tp-=1;
+	return 0;
+}
+
+void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
+{
+	VMpair* cirPair=NULL;
+	int32_t CRLcount=-1;
+	int8_t isInCir=0;
+	switch(objValue->type)
+	{
+		case NIL:
+			fprintf(fp,"nil");
+			break;
+		case IN32:
+			fprintf(fp,"%d",*objValue->u.in32);
+			break;
+		case DBL:
+			fprintf(fp,"%lf",*objValue->u.dbl);
+			break;
+		case CHR:
+			putc(*objValue->u.chr,fp);
+			break;
+		case SYM:
+			fprintf(fp,"%s",objValue->u.str->str);
+			break;
+		case STR:
+			fprintf(fp,"%s",objValue->u.str->str);
+			break;
+		case PRC:
+			fprintf(fp,"#<proc>");
+			break;
+		case PAIR:
+			cirPair=isCircularReference(objValue->u.pair,*h);
+			if(cirPair)
+				isInCir=isInTheCircle(objValue->u.pair,cirPair,cirPair);
+			if(cirPair&&isInCir)
+			{
+				CRL* crl=newCRL(objValue->u.pair,(*h)?(*h)->count+1:0);
+				crl->next=*h;
+				*h=crl;
+				fprintf(fp,"#%d=(",crl->count);
+			}
+			else
+				putc('(',fp);
+			for(;objValue->type==PAIR;objValue=getVMpairCdr(objValue))
+			{
+				VMvalue* tmpValue=getVMpairCar(objValue);
+				if(tmpValue->type==PAIR&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
+					fprintf(fp,"#%d#",CRLcount);
+				else
+					if(tmpValue->type!=NIL||objValue->u.pair->cdr->type!=NIL)
+						princVMvalue(tmpValue,fp,h);
+				tmpValue=getVMpairCdr(objValue);
+				if(tmpValue->type>NIL&&tmpValue->type<PAIR)
+				{
+					putc(',',fp);
+					princVMvalue(tmpValue,fp,h);
+				}
+				else if(tmpValue->type==PAIR&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
+				{
+					fprintf(fp,",#%d#",CRLcount);
+					break;
+				}
+				else if(tmpValue->type!=NIL)
+					putc(' ',fp);
+			}
+			putc(')',fp);
+			break;
+		case BYTS:
+			printByteStr(objValue->u.byts,fp,0);
+			break;
+		case CONT:
+			fprintf(fp,"#<cont>");
+			break;
+		case CHAN:
+			fprintf(fp,"#<chan>");
+			break;
+		case FP:
+			fprintf(fp,"#<fp>");
+			break;
+		case DLL:
+			fprintf(fp,"<#dll>");
+			break;
+		case DLPROC:
+			fprintf(fp,"<#dlproc>");
+			break;
+		case ERR:
+			fprintf(fp,"%s",objValue->u.err->message);
+			break;
+		default:fprintf(fp,"Bad value!");break;
+	}
+}
+
+void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
+{
+	VMpair* cirPair=NULL;
+	int8_t isInCir=0;
+	int32_t CRLcount=-1;
+	switch(objValue->type)
+	{
+		case NIL:
+			fprintf(fp,"nil");
+			break;
+		case IN32:
+			fprintf(fp,"%d",*objValue->u.in32);
+			break;
+		case DBL:
+			fprintf(fp,"%lf",*objValue->u.dbl);
+			break;
+		case CHR:
+			printRawChar(*objValue->u.chr,fp);
+			break;
+		case SYM:
+			fprintf(fp,"%s",objValue->u.str->str);
+			break;
+		case STR:
+			printRawString(objValue->u.str->str,fp);
+			break;
+		case PRC:
+			fprintf(fp,"#<proc>");
+			break;
+		case PAIR:
+			cirPair=isCircularReference(objValue->u.pair,*h);
+			if(cirPair)
+				isInCir=isInTheCircle(objValue->u.pair,cirPair,cirPair);
+			if(cirPair&&isInCir)
+			{
+				CRL* crl=newCRL(objValue->u.pair,(*h)?(*h)->count+1:0);
+				crl->next=*h;
+				*h=crl;
+				fprintf(fp,"#%d=(",crl->count);
+			}
+			else
+				putc('(',fp);
+			for(;objValue->type==PAIR;objValue=getVMpairCdr(objValue))
+			{
+				VMvalue* tmpValue=getVMpairCar(objValue);
+				if(tmpValue->type==PAIR&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
+					fprintf(fp,"#%d#",CRLcount);
+				else
+					if(tmpValue->type!=NIL||objValue->u.pair->cdr->type!=NIL)
+						writeVMvalue(tmpValue,fp,h);
+				tmpValue=getVMpairCdr(objValue);
+				if(tmpValue->type>NIL&&tmpValue->type<PAIR)
+				{
+					putc(',',fp);
+					writeVMvalue(tmpValue,fp,h);
+				}
+				else if(tmpValue->type==PAIR&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
+				{
+					fprintf(fp,",#%d#",CRLcount);
+					break;
+				}
+				else if(tmpValue->type!=NIL)
+					putc(' ',fp);
+			}
+			putc(')',fp);
+			break;
+		case BYTS:
+			printByteStr(objValue->u.byts,fp,1);
+			break;
+		case CONT:
+			fprintf(fp,"#<cont>");
+			break;
+		case CHAN:
+			fprintf(fp,"#<chan>");
+			break;
+		case FP:
+			fprintf(fp,"#<fp>");
+			break;
+		case DLL:
+			fprintf(fp,"<#dll>");
+			break;
+		case DLPROC:
+			fprintf(fp,"<#dlproc>");
+			break;
+		case ERR:
+			fprintf(fp,"<#err t:%s m:%s>",objValue->u.err->type,objValue->u.err->message);
+			break;
+		default:fprintf(fp,"Bad value!");break;
+	}
+}
+
+

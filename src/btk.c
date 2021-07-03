@@ -33,27 +33,11 @@ int getch()
 	return ch;
 }
 #endif
-int resBp(FakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	if(stack->tp>stack->bp)return TOOMANYARG;
-	VMvalue* prevBp=getTopValue(stack);
-	stack->bp=*prevBp->u.in32;
-	stack->tp-=1;
-	return 0;
-}
-
 void FAKE_getch(FakeVM* exe,pthread_rwlock_t* pGClock)
 {
 	VMstack* stack=exe->stack;
-	if(resBp(exe))
+	if(resBp(stack))
 		RAISE_BUILTIN_ERROR(TOOMANYARG,topComStack(exe->rstack),exe);
-	if(stack->tp>=stack->size)
-	{
-		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-		FAKE_ASSERT(stack->values,"FAKE_getch",__FILE__,__LINE__);
-		stack->size+=64;
-	}
 	char ch=getch();
 	SET_RETURN("FAKE_getch",newVMvalue(CHR,&ch,exe->heap,1),stack);
 }
@@ -65,19 +49,13 @@ void FAKE_sleep(FakeVM* exe,pthread_rwlock_t* pGClock)
 	VMvalue* second=getArg(stack);
 	if(!second)
 		RAISE_BUILTIN_ERROR(TOOFEWARG,r,exe);
-	if(resBp(exe))
+	if(resBp(stack))
 		RAISE_BUILTIN_ERROR(TOOMANYARG,r,exe);
 	if(second->type!=IN32)
 		RAISE_BUILTIN_ERROR(WRONGARG,r,exe);
 	int32_t s=*second->u.in32;
 	releaseSource(pGClock);
 	s=sleep(s);
-	if(stack->tp>=stack->size)
-	{
-		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size+64));
-		FAKE_ASSERT(stack->values,"FAKE_sleep",__FILE__,__LINE__);
-		stack->size+=64;
-	}
 	lockSource(pGClock);
 	stack->values[stack->tp]=newVMvalue(IN32,&s,exe->heap,1);
 	stack->tp+=1;
@@ -90,7 +68,7 @@ void FAKE_usleep(FakeVM* exe,pthread_rwlock_t* pGClock)
 	VMrunnable* r=topComStack(exe->rstack);
 	if(!second)
 		RAISE_BUILTIN_ERROR(TOOFEWARG,r,exe);
-	if(resBp(exe))
+	if(resBp(stack))
 		RAISE_BUILTIN_ERROR(TOOMANYARG,r,exe);
 	if(second->type!=IN32)
 		RAISE_BUILTIN_ERROR(WRONGARG,r,exe);
@@ -141,7 +119,7 @@ void FAKE_rand(FakeVM* exe,pthread_rwlock_t* pGClock)
 	VMstack* stack=exe->stack;
 	VMvalue*  lim=getArg(stack);
 	VMrunnable* r=topComStack(exe->rstack);
-	if(resBp(exe))
+	if(resBp(stack))
 		RAISE_BUILTIN_ERROR(TOOMANYARG,r,exe);
 	if(lim&&lim->type!=IN32)
 		RAISE_BUILTIN_ERROR(WRONGARG,r,exe);
@@ -154,7 +132,7 @@ void FAKE_rand(FakeVM* exe,pthread_rwlock_t* pGClock)
 void FAKE_getTime(FakeVM* exe,pthread_rwlock_t* pGClock)
 {
 	VMstack* stack=exe->stack;
-	if(resBp(exe))
+	if(resBp(stack))
 		RAISE_BUILTIN_ERROR(TOOMANYARG,topComStack(exe->rstack),exe);
 	time_t timer=time(NULL);
 	struct tm* tblock=NULL;
@@ -168,7 +146,7 @@ void FAKE_getTime(FakeVM* exe,pthread_rwlock_t* pGClock)
 	int32_t timeLen=strlen(year)+strlen(mon)+strlen(day)+strlen(hour)+strlen(min)+strlen(sec)+5;
 	char* trueTime=(char*)malloc(sizeof(char)*(timeLen+1));
 	FAKE_ASSERT(trueTime,"FAKE_getTime",__FILE__,__LINE__);
-	sprintf(trueTime,"%s-%s-%s_%s_%s_%s",year,mon,day,hour,min,sec);
+	snprintf(trueTime,(timeLen+1),"%s-%s-%s_%s_%s_%s",year,mon,day,hour,min,sec);
 	free(sec);
 	free(min);
 	free(hour);
@@ -188,7 +166,7 @@ void FAKE_removeFile(FakeVM* exe,pthread_rwlock_t* pGClock)
 	VMrunnable* r=topComStack(exe->rstack);
 	if(!name)
 		RAISE_BUILTIN_ERROR(TOOFEWARG,r,exe);
-	if(resBp(exe))
+	if(resBp(stack))
 		RAISE_BUILTIN_ERROR(TOOMANYARG,r,exe);
 	if(name->type!=STR)
 		RAISE_BUILTIN_ERROR(WRONGARG,r,exe);
@@ -201,7 +179,7 @@ void FAKE_argv(FakeVM* exe,pthread_rwlock_t* pGClock)
 {
 	VMstack* stack=exe->stack;
 	VMvalue* retval=NULL;
-	if(resBp(exe))
+	if(resBp(stack))
 		RAISE_BUILTIN_ERROR(TOOMANYARG,topComStack(exe->rstack),exe);
 	retval=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap,1);
 	VMvalue* tmp=retval;
@@ -220,7 +198,7 @@ void FAKE_setVMChanlBufferSize(FakeVM* exe,pthread_rwlock_t* pGClock)
 	VMvalue* chan=getArg(stack);
 	VMvalue* size=getArg(stack);
 	VMrunnable* r=topComStack(exe->rstack);
-	if(resBp(exe))
+	if(resBp(stack))
 		RAISE_BUILTIN_ERROR(TOOMANYARG,r,exe);
 	if(size==NULL||chan==NULL)
 		RAISE_BUILTIN_ERROR(TOOFEWARG,r,exe);
@@ -236,7 +214,7 @@ void FAKE_isEndOfFile(FakeVM* exe,pthread_rwlock_t* pGClock)
 	VMvalue* fp=getArg(stack);
 	VMvalue* t=NULL;
 	VMrunnable* r=topComStack(exe->rstack);
-	if(resBp(exe))
+	if(resBp(stack))
 		RAISE_BUILTIN_ERROR(TOOMANYARG,r,exe);
 	if(fp==NULL)
 		RAISE_BUILTIN_ERROR(TOOFEWARG,r,exe);

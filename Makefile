@@ -1,5 +1,5 @@
-objectOfFakeLisp=fakeLisp.o common.o syntax.o compiler.o fakeVM.o VMtool.o ast.o reader.o
-objectOfFakeLispc=fakeLispc.o common.o syntax.o compiler.o fakeVM.o VMtool.o ast.o reader.o
+objectOfFakeLisp=fakeLisp.o common.o syntax.o compiler.o fakeVM.o VMtool.o ast.o reader.o syscall.o
+objectOfFakeLispc=fakeLispc.o common.o syntax.o compiler.o fakeVM.o VMtool.o ast.o reader.o syscall.o
 exeFile=fakeLisp fakeLispc
 ifeq ($(DEBUG),YES)
 FLAG=-g -Wall
@@ -18,9 +18,13 @@ LINK=-lpthread -ldl -lm
 BTK=btk.so
 endif
 
+CC=gcc
+
 fakeLisp: $(objectOfFakeLisp) $(objectOfFakeLispc) $(BTK)
 	gcc $(FLAG) -o fakeLisp $(objectOfFakeLisp) $(LINK)
 	gcc $(FLAG) -o fakeLispc $(objectOfFakeLispc) $(LINK)
+syscall.o: src/syscall.* src/fakedef.h VMtool.o common.o
+	gcc $(FLAG) -c src/syscall.c
 reader.o: src/reader.* src/fakedef.h common.o
 	gcc $(FLAG) -c src/reader.c
 ast.o: src/ast.* src/fakedef.h fakeVM.o

@@ -1,0 +1,14 @@
+*.o
+*.so
+*.dll
+*.txt
+*.fklc
+*.orig
+new.c
+tags
+vgcore.*
+test*
+fakeLisp
+fakeLispc
+.cache
+compile_commands.json

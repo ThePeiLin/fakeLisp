@@ -4,7 +4,7 @@
 #include"reader.h"
 #include<string.h>
 extern const char* builtInSymbolList[NUMOFBUILTINSYMBOL];
-extern const char* builtInErrorType[19];
+extern const char* builtInErrorType[NUMOFBUILTINERRORTYPE];
 void SYS_file(FakeVM* exe,pthread_rwlock_t* gclock)
 {
 	VMstack* stack=exe->stack;
@@ -21,7 +21,10 @@ void SYS_file(FakeVM* exe,pthread_rwlock_t* gclock)
 	FILE* file=fopen(filename->u.str->str,mode->u.str->str);
 	VMvalue* obj=NULL;
 	if(!file)
-		obj=newNilValue(heap);
+	{
+		SET_RETURN("SYS_file",filename,stack);
+		RAISE_BUILTIN_ERROR(FILEFAILURE,runnable,exe);
+	}
 	else
 		obj=newVMvalue(FP,newVMfp(file),heap,1);
 	SET_RETURN("SYS_file",obj,stack);
@@ -208,4 +211,19 @@ void SYS_dlsym(FakeVM* exe,pthread_rwlock_t* gclock)
 	SET_RETURN("SYS_dlsym",newVMvalue(DLPROC,dlproc,heap,1),stack);
 }
 
-
+void SYS_argv(FakeVM* exe,pthread_rwlock_t* pGClock)
+{
+	VMstack* stack=exe->stack;
+	VMvalue* retval=NULL;
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR(TOOMANYARG,topComStack(exe->rstack),exe);
+	retval=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap,1);
+	VMvalue* tmp=retval;
+	int32_t i=0;
+	for(;i<exe->argc;i++,tmp=getVMpairCdr(tmp))
+	{
+		tmp->u.pair->car=newVMvalue(STR,newVMstr(exe->argv[i]),exe->heap,1);
+		tmp->u.pair->cdr=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap,1);
+	}
+	SET_RETURN("FAKE_argv",retval,stack);
+}

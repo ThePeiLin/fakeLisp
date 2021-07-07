@@ -18,7 +18,7 @@ extern "C"
 #endif
 #ifndef _WIN32
 
-extern const char* builtInErrorType[19];
+extern const char* builtInErrorType[NUMOFBUILTINERRORTYPE];
 
 int getch()
 {
@@ -173,23 +173,6 @@ void FAKE_removeFile(FakeVM* exe,pthread_rwlock_t* pGClock)
 	int32_t i=remove(name->u.str->str);
 	VMvalue* toReturn=newVMvalue(IN32,&i,exe->heap,1);
 	SET_RETURN("FAKE_removeFile",toReturn,stack);
-}
-
-void FAKE_argv(FakeVM* exe,pthread_rwlock_t* pGClock)
-{
-	VMstack* stack=exe->stack;
-	VMvalue* retval=NULL;
-	if(resBp(stack))
-		RAISE_BUILTIN_ERROR(TOOMANYARG,topComStack(exe->rstack),exe);
-	retval=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap,1);
-	VMvalue* tmp=retval;
-	int32_t i=0;
-	for(;i<exe->argc;i++,tmp=getVMpairCdr(tmp))
-	{
-		tmp->u.pair->car=newVMvalue(STR,newVMstr(exe->argv[i]),exe->heap,1);
-		tmp->u.pair->cdr=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap,1);
-	}
-	SET_RETURN("FAKE_argv",retval,stack);
 }
 
 void FAKE_setVMChanlBufferSize(FakeVM* exe,pthread_rwlock_t* pGClock)

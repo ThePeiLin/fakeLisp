@@ -1542,6 +1542,11 @@ char* genErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe)
 		case DIVZERROERROR:
 			t=strCat(t,"Divided by zero.\n");
 			break;
+		case FILEFAILURE:
+			t=strCat(t,"Failed for file:\"");
+			t=strCat(t,exe->stack->values[exe->stack->tp-1]->u.str->str);
+			t=strCat(t,"\".\n");
+			break;
 	}
 	return t;
 }

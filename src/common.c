@@ -20,7 +20,7 @@
 	freeLineNumTabNode((l)[i]);\
 }
 
-const char* builtInErrorType[19]=
+const char* builtInErrorType[NUMOFBUILTINERRORTYPE]=
 {
 	"dummy",
 	"symbol-undefined",
@@ -40,7 +40,8 @@ const char* builtInErrorType[19]=
 	"invalid-symbol",
 	"library-undefined",
 	"unexpect-eof",
-	"div-zero-error"
+	"div-zero-error",
+	"file-failure"
 };
 
 char* InterpreterPath=NULL;
@@ -59,6 +60,7 @@ const char* builtInSymbolList[]=
 	"princ",
 	"dll",
 	"dlsym",
+	"argv",
 };
 
 char* getStringFromList(const char* str)

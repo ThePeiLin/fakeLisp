@@ -500,7 +500,7 @@ void initGlobKeyWord(CompEnv* glob)
 	addKeyWord("unquote",glob);
 	addKeyWord("qsquote",glob);
 	addKeyWord("unqtesp",glob);
-	addKeyWord("proc",glob);
+	addKeyWord("progn",glob);
 	addKeyWord("import",glob);
 	addKeyWord("library",glob);
 	addKeyWord("export",glob);
@@ -655,7 +655,7 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 		if(isOrExpression(objCptr))return compileOr(objCptr,curEnv,inter,status,evalIm);
 		if(isLambdaExpression(objCptr))return compileLambda(objCptr,curEnv,inter,status,evalIm);
 		if(isBeginExpression(objCptr)) return compileBegin(objCptr,curEnv,inter,status,evalIm);
-		if(isProcExpression(objCptr)) return compileProc(objCptr,curEnv,inter,status,evalIm);
+		if(isPrognExpression(objCptr)) return compileProgn(objCptr,curEnv,inter,status,evalIm);
 		if(isImportExpression(objCptr))return compileImport(objCptr,curEnv,inter,status,evalIm);
 		if(isTryExpression(objCptr))return compileTry(objCptr,curEnv,inter,status,evalIm);
 		if(isLibraryExpression(objCptr))
@@ -1874,11 +1874,11 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 	BYTECODELNT=newByteCodelnt(BYTECODE);\
 	(BYTECODELNT)->ls=1;\
 	(BYTECODELNT)->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));\
-	FAKE_ASSERT((BYTECODELNT)->l,"compileProc",__FILE__,__LINE__);\
+	FAKE_ASSERT((BYTECODELNT)->l,"compileProgn",__FILE__,__LINE__);\
 	(BYTECODELNT)->l[0]=newLineNumTabNode(fid,0,(BYTECODE)->size,fir->curline);\
 }
 
-ByteCodelnt* compileProc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+ByteCodelnt* compileProgn(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
 	AST_cptr* fir=nextCptr(getFirstCptr(objCptr));
 	ByteCodelnt* tmp=NULL;

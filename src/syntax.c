@@ -276,7 +276,7 @@ int isExportExpression(const AST_cptr* objCptr)
 	return 0;
 }
 
-int isProcExpression(const AST_cptr* objCptr)
+int isPrognExpression(const AST_cptr* objCptr)
 {
 	if(objCptr->type==PAIR)
 	{
@@ -284,7 +284,7 @@ int isProcExpression(const AST_cptr* objCptr)
 		if(fir->type!=ATM)
 			return 0;
 		AST_atom* firAtm=fir->u.atom;
-		if(firAtm->type==SYM&&!strcmp(firAtm->value.str,"proc"))
+		if(firAtm->type==SYM&&!strcmp(firAtm->value.str,"progn"))
 			return 1;
 	}
 	return 0;

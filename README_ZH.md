@@ -302,12 +302,12 @@ test:y
 (qsquote (1 2 3 (unqtesp (list 4 5 6)) 7 8 9))
 ;=> (1 2 3 4 5 6 7 8 9)
 ```
-### proc  
+### progn  
 嵌入字节码，字节码表还在写，而且随时会有变化。  
 且由于没有字节码验证器，直接写字节码有一定的安全风险。  
 ```scheme
 (define cons (lambda (a b)
-			  (proc
+			  (progn
 			   push_pair
 			   push_var a
 			   pop_car
@@ -317,7 +317,7 @@ test:y
 ;=> <#proc>
 
 (define a (lambda (a)
-		   (proc
+		   (progn
 			set_tp
 			push_var a
 			jmp_if_true t
@@ -331,7 +331,7 @@ test:y
 ;=> <#proc>
 
 (define clcc (lambda (f)
-              (proc
+              (progn
                $cc
                pack_cc
                pop_var cc
@@ -438,7 +438,7 @@ lisp系的编程语言大多都有词法闭包，  可以利用词法闭包来�
              (lambda (selector)
                (case selector
                  ~@case-list)))
-           (proc
+           (progn
              push_var this
              pop_env 1
              ))))))

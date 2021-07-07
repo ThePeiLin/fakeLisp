@@ -83,7 +83,6 @@ static void (*ByteCodes[])(FakeVM*)=
 	B_nth,
 	B_length,
 	B_appd,
-	B_dll,
 	B_eq,
 	B_eqn,
 	B_equal,
@@ -92,7 +91,6 @@ static void (*ByteCodes[])(FakeVM*)=
 	B_lt,
 	B_le,
 	B_not,
-	B_dlsym,
 	B_go,
 	B_chanl,
 	B_send,
@@ -191,6 +189,8 @@ void initGlobEnv(VMenv* obj,VMheap* heap,SymbolTable* table)
 	obj->list[ 8]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(SYS_write,NULL),heap,1),findSymbol(builtInSymbolList[8],table)->id);
 	obj->list[ 9]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(SYS_putb,NULL),heap,1),findSymbol(builtInSymbolList[9],table)->id);
 	obj->list[10]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(SYS_princ,NULL),heap,1),findSymbol(builtInSymbolList[10],table)->id);
+	obj->list[11]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(SYS_dll,NULL),heap,1),findSymbol(builtInSymbolList[11],table)->id);
+	obj->list[12]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(SYS_dlsym,NULL),heap,1),findSymbol(builtInSymbolList[12],table)->id);
 	mergeSort(obj->list,obj->num,sizeof(VMenvNode*),envNodeCmp);
 }
 
@@ -1099,49 +1099,6 @@ void B_jmp(FakeVM* exe)
 	VMrunnable* runnable=topComStack(exe->rstack);
 	int32_t where=*(int32_t*)(exe->code+runnable->cp+sizeof(char));
 	runnable->cp+=where+5;
-}
-
-void B_dll(FakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=topComStack(exe->rstack);
-	VMheap* heap=exe->heap;
-	VMvalue* dllName=getTopValue(stack);
-	if(dllName->type!=STR&&dllName->type!=SYM)
-		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
-	VMDll* dll=newVMDll(dllName->u.str->str);
-	if(!dll)
-		RAISE_BUILTIN_ERROR(LOADDLLFAILD,runnable,exe);
-	stack->values[stack->tp-1]=newVMvalue(DLL,dll,heap,1);
-	runnable->cp+=1;
-}
-
-void B_dlsym(FakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=topComStack(exe->rstack);
-	VMheap* heap=exe->heap;
-	VMvalue* symbol=getTopValue(stack);
-	VMvalue* dll=getValue(stack,stack->tp-2);
-	if((symbol->type!=SYM&&symbol->type!=STR)||dll->type!=DLL)
-		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
-	char prefix[]="FAKE_";
-	size_t len=strlen(prefix)+strlen(symbol->u.str->str)+1;
-	char* realDlFuncName=(char*)malloc(sizeof(char)*len);
-	FAKE_ASSERT(realDlFuncName,"B_dlsym",__FILE__,__LINE__);
-	snprintf(realDlFuncName,len,"%s%s",prefix,symbol->u.str->str);
-	DllFunc funcAddress=getAddress(realDlFuncName,dll->u.dll->handle);
-	if(!funcAddress)
-	{
-		free(realDlFuncName);
-		RAISE_BUILTIN_ERROR(INVALIDSYMBOL,runnable,exe);
-	}
-	free(realDlFuncName);
-	VMDlproc* dlproc=newVMDlproc(funcAddress,dll->u.dll);
-	stack->tp-=1;
-	stackRecycle(exe);
-	stack->values[stack->tp-1]=newVMvalue(DLPROC,dlproc,heap,1);
-	runnable->cp+=1;
 }
 
 void B_eq(FakeVM* exe)

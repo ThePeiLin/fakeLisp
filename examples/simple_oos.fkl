@@ -50,7 +50,7 @@
              (lambda (selector)
                (case selector
                  ~@case-list)))
-           (proc
+           (progn
              push_var this
              pop_env 1
              ))))))

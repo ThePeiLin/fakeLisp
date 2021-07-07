@@ -2,7 +2,7 @@
 #include"syscall.h"
 #include"VMtool.h"
 #include"reader.h"
-
+#include<string.h>
 extern const char* builtInSymbolList[NUMOFBUILTINSYMBOL];
 extern const char* builtInErrorType[19];
 void SYS_file(FakeVM* exe,pthread_rwlock_t* gclock)
@@ -161,3 +161,51 @@ void SYS_princ(FakeVM* exe,pthread_rwlock_t* gclock)
 	}
 	SET_RETURN("SYS_princ",obj,stack);
 }
+
+void SYS_dll(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* dllName=getArg(stack);
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
+	if(!dllName)
+		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
+	if(dllName->type!=STR&&dllName->type!=SYM)
+		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+	VMDll* dll=newVMDll(dllName->u.str->str);
+	if(!dll)
+		RAISE_BUILTIN_ERROR(LOADDLLFAILD,runnable,exe);
+	SET_RETURN("SYS_dll",newVMvalue(DLL,dll,exe->heap,1),stack);
+}
+
+void SYS_dlsym(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMheap* heap=exe->heap;
+	VMvalue* dll=getArg(stack);
+	VMvalue* symbol=getArg(stack);
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
+	if(!dll||!symbol)
+		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
+	if((symbol->type!=SYM&&symbol->type!=STR)||dll->type!=DLL)
+		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+	char prefix[]="FAKE_";
+	size_t len=strlen(prefix)+strlen(symbol->u.str->str)+1;
+	char* realDlFuncName=(char*)malloc(sizeof(char)*len);
+	FAKE_ASSERT(realDlFuncName,"B_dlsym",__FILE__,__LINE__);
+	snprintf(realDlFuncName,len,"%s%s",prefix,symbol->u.str->str);
+	DllFunc funcAddress=getAddress(realDlFuncName,dll->u.dll->handle);
+	if(!funcAddress)
+	{
+		free(realDlFuncName);
+		RAISE_BUILTIN_ERROR(INVALIDSYMBOL,runnable,exe);
+	}
+	free(realDlFuncName);
+	VMDlproc* dlproc=newVMDlproc(funcAddress,dll->u.dll);
+	SET_RETURN("SYS_dlsym",newVMvalue(DLPROC,dlproc,heap,1),stack);
+}
+
+

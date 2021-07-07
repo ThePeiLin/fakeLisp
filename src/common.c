@@ -57,6 +57,8 @@ const char* builtInSymbolList[]=
 	"write",
 	"putb",
 	"princ",
+	"dll",
+	"dlsym",
 };
 
 char* getStringFromList(const char* str)

@@ -81,7 +81,7 @@
                  1+
                  -1+)
          (define cons (lambda (a b)
-                        (proc
+                        (progn
                           push_pair
                           push_var a
                           pop_car
@@ -90,46 +90,46 @@
                           )))
 
          (define car (lambda (a)
-                       (proc
+                       (progn
                          push_var a
                          push_car
                          )))
 
          (define cdr (lambda (a)
-                       (proc
+                       (progn
                          push_var a
                          push_cdr
                          )))
          (define caar (lambda (a)
-                        (proc
+                        (progn
                           push_var a
                           push_car
                           push_car
                           )))
 
          (define cadr (lambda (a)
-                        (proc
+                        (progn
                           push_var a
                           push_cdr
                           push_car
                           )))
 
          (define cdar (lambda (a)
-                        (proc
+                        (progn
                           push_var a
                           push_car
                           push_cdr
                           )))
 
          (define cddr (lambda (a)
-                        (proc
+                        (progn
                           push_var a
                           push_cdr
                           push_cdr
                           )))
 
          (define caaar (lambda (a)
-                         (proc
+                         (progn
                            push_var a
                            push_car
                            push_car
@@ -137,7 +137,7 @@
                            )))
 
          (define caadr (lambda (a)
-                         (proc
+                         (progn
                            push_var a
                            push_cdr
                            push_car
@@ -145,7 +145,7 @@
                            )))
 
          (define cadar (lambda (a)
-                         (proc
+                         (progn
                            push_var a
                            push_car
                            push_cdr
@@ -153,7 +153,7 @@
                            )))
 
          (define caddr (lambda (a)
-                         (proc
+                         (progn
                            push_var a
                            push_cdr
                            push_cdr
@@ -161,7 +161,7 @@
                            )))
 
          (define cdaar (lambda (a)
-                         (proc
+                         (progn
                            push_var a
                            push_car
                            push_car
@@ -169,7 +169,7 @@
                            )))
 
          (define cdadr (lambda (a)
-                         (proc
+                         (progn
                            push_var a
                            push_cdr
                            push_car
@@ -177,7 +177,7 @@
                            )))
 
          (define cddar (lambda (a)
-                         (proc
+                         (progn
                            push_var a
                            push_car
                            push_cdr
@@ -185,7 +185,7 @@
                            )))
 
          (define cdddr (lambda (a)
-                         (proc
+                         (progn
                            push_var a
                            push_cdr
                            push_cdr
@@ -193,7 +193,7 @@
                            )))
 
          (define caaaar (lambda (a)
-                          (proc
+                          (progn
                             push_var a
                             push_car
                             push_car
@@ -202,7 +202,7 @@
                             )))
 
          (define caaadr (lambda (a)
-                          (proc
+                          (progn
                             push_var a
                             push_cdr
                             push_car
@@ -211,7 +211,7 @@
                             )))
 
          (define caadar (lambda (a)
-                          (proc
+                          (progn
                             push_var a
                             push_car
                             push_cdr
@@ -220,7 +220,7 @@
                             )))
 
          (define caaddr (lambda (a)
-                          (proc
+                          (progn
                             push_var a
                             push_cdr
                             push_cdr
@@ -229,7 +229,7 @@
                             )))
 
          (define cadaar (lambda (a)
-                          (proc
+                          (progn
                             push_var a
                             push_car
                             push_car
@@ -238,7 +238,7 @@
                             )))
 
          (define cadadr (lambda (a)
-                          (proc
+                          (progn
                             push_var a
                             push_cdr
                             push_car
@@ -247,7 +247,7 @@
                             )))
 
          (define caddar (lambda (a)
-                          (proc
+                          (progn
                             push_var a
                             push_car
                             push_cdr
@@ -256,7 +256,7 @@
                             )))
 
          (define cadddr (lambda (a)
-                          (proc
+                          (progn
                             push_var a
                             push_cdr
                             push_cdr
@@ -265,7 +265,7 @@
                             )))
 
          (define cdaaar (lambda (a)
-                          (proc
+                          (progn
                             push_var a
                             push_car
                             push_car
@@ -274,7 +274,7 @@
                             )))
 
          (define cdaadr (lambda (a)
-                          (proc
+                          (progn
                             push_var a
                             push_cdr
                             push_car
@@ -283,7 +283,7 @@
                             )))
 
          (define cdadar (lambda (a)
-                          (proc
+                          (progn
                             push_var a
                             push_car
                             push_cdr
@@ -292,7 +292,7 @@
                             )))
 
          (define cdaddr (lambda (a)
-                          (proc
+                          (progn
                             push_var a
                             push_cdr
                             push_cdr
@@ -301,7 +301,7 @@
                             )))
 
          (define cddaar (lambda (a)
-                          (proc
+                          (progn
                             push_var a
                             push_car
                             push_car
@@ -310,7 +310,7 @@
                             )))
 
          (define cddadr (lambda (a)
-                          (proc
+                          (progn
                             push_var a
                             push_cdr
                             push_car
@@ -319,7 +319,7 @@
                             )))
 
          (define cdddar (lambda (a)
-                          (proc
+                          (progn
                             push_var a
                             push_car
                             push_cdr
@@ -328,7 +328,7 @@
                             )))
 
          (define cddddr (lambda (a)
-                          (proc
+                          (progn
                             push_var a
                             push_cdr
                             push_cdr
@@ -339,25 +339,25 @@
          (define list (lambda ls ls))
 
          (define atom (lambda (a)
-                        (proc
+                        (progn
                           push_var a
                           atom
                           )))
 
          (define null (lambda (a)
-                        (proc
+                        (progn
                           push_var a
                           null
                           )))
 
          (define type (lambda (a)
-                        (proc
+                        (progn
                           push_var a
                           type
                           )))
 
          (define aply (lambda (a b)
-                        (proc
+                        (progn
                           set_bp
                           push_var b
                           push_list_arg
@@ -366,146 +366,146 @@
                           )))
 
          (define eq (lambda (a b)
-                      (proc
+                      (progn
                         push_var a
                         push_var b
                         eq
                         )))
 
          (define eqn (lambda (a b)
-                       (proc
+                       (progn
                          push_var a
                          push_var b
                          eqn
                          )))
 
          (define equal (lambda (a b)
-                         (proc
+                         (progn
                            push_var a
                            push_var b
                            equal
                            )))
 
          (define gt (lambda (a b)
-                      (proc
+                      (progn
                         push_var a
                         push_var b
                         gt
                         )))
 
          (define ge (lambda (a b)
-                      (proc
+                      (progn
                         push_var a
                         push_var b
                         ge
                         )))
 
          (define lt (lambda (a b)
-                      (proc
+                      (progn
                         push_var a
                         push_var b
                         lt
                         )))
 
          (define le (lambda (a b)
-                      (proc
+                      (progn
                         push_var a
                         push_var b
                         le
                         )))
 
          (define not (lambda (a)
-                       (proc
+                       (progn
                          push_var a
                          not
                          )))
 
          (define dbl (lambda (a)
-                       (proc
+                       (progn
                          push_var a
                          dbl
                          )))
 
          (define str (lambda (a)
-                       (proc
+                       (progn
                          push_var a
                          str
                          )))
 
          (define sym (lambda (a)
-                       (proc
+                       (progn
                          push_var a
                          sym
                          )))
 
          (define chr (lambda (a)
-                       (proc
+                       (progn
                          push_var a
                          chr
                          )))
 
          (define int (lambda (a)
-                       (proc
+                       (progn
                          push_var a
                          int
                          )))
 
          (define byt (lambda (a)
-                       (proc
+                       (progn
                          push_var a
                          byte
                          )))
 
          (define add (lambda (a b)
-                       (proc
+                       (progn
                          push_var a
                          push_var b
                          add
                          )))
 
          (define sub (lambda (a b)
-                       (proc
+                       (progn
                          push_var a
                          push_var b
                          sub
                          )))
 
          (define mul (lambda (a b)
-                       (proc
+                       (progn
                          push_var a
                          push_var b
                          mul
                          )))
 
          (define div (lambda (a b)
-                       (proc
+                       (progn
                          push_var a
                          push_var b
                          div
                          )))
 
          (define rem (lambda (a b)
-                       (proc
+                       (progn
                          push_var a
                          push_var b
                          rem
                          )))
 
          (define nth (lambda (place ls)
-                       (proc
+                       (progn
                          push_var place
                          push_var ls
                          nth
                          )))
 
          (define length (lambda (ls)
-                          (proc
+                          (progn
                             push_var ls
                             length
                             )))
 
          (define appd (lambda (a b)
-                        (proc
+                        (progn
                           push_var a
                           push_var b
                           appd
@@ -517,33 +517,33 @@
                           (iter b nil)))
 
          (define go (lambda (f,a)
-                      (proc
+                      (progn
                         push_var f
                         push_var a
                         go
                         )))
 
          (define chanl (lambda (size)
-                         (proc
+                         (progn
                            push_var size
                            chanl
                            )))
 
          (define send (lambda (obj ch)
-                        (proc
+                        (progn
                           push_var obj
                           push_var ch
                           send
                           )))
 
          (define recv (lambda (ch)
-                        (proc
+                        (progn
                           push_var ch
                           recv
                           )))
 
          (define clcc (lambda (f)
-                        (proc
+                        (progn
                           $cc
                           pack_cc
                           pop_var cc
@@ -553,24 +553,14 @@
                           invoke
                           )))
 
-         (define dll (lambda (dllName)
-                       (proc
-                         push_var dllName
-                         dll)))
-         (define dlsym (lambda (dl sym)
-                         (proc
-                           push_var dl
-                           push_var sym
-                           dlsym)))
-
          (define error (lambda (type message)
-                         (proc
+                         (progn
                            push_var type
                            push_var message
                            error)))
 
          (define raise (lambda (err)
-                         (proc
+                         (progn
                            push_var err
                            raise)))
 
@@ -673,7 +663,7 @@
          (define -1+ (lambda (a)
                        (add -1 a)))
 
-         (defmacro "'(a)" (proc
+         (defmacro "'(a)" (progn
                             push_pair
                             push_sym "quote"
                             pop_car
@@ -681,7 +671,7 @@
                             push_var a
                             pop_car
                             pop_cdr))
-         (defmacro "`(a)" (proc
+         (defmacro "`(a)" (progn
                             push_pair
                             push_sym "qsquote"
                             pop_car
@@ -689,7 +679,7 @@
                             push_var a
                             pop_car
                             pop_cdr))
-         (defmacro "~(a)" (proc
+         (defmacro "~(a)" (progn
                             push_pair
                             push_sym "unquote"
                             pop_car
@@ -697,7 +687,7 @@
                             push_var a
                             pop_car
                             pop_cdr))
-         (defmacro "~@(a)" (proc
+         (defmacro "~@(a)" (progn
                              push_pair
                              push_sym "unqtesp"
                              pop_car
@@ -705,7 +695,7 @@
                              push_var a
                              pop_car
                              pop_cdr))
-         (defmacro "[(,a)]" (proc
+         (defmacro "[(,a)]" (progn
                               push_var a))
 
          (defmacro

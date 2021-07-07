@@ -90,7 +90,7 @@ void SYS_getb(FakeVM* exe,pthread_rwlock_t* gclock)
 		str=(uint8_t*)realloc(str,sizeof(uint8_t)*realRead);
 		FAKE_ASSERT(str,"B_getb",__FILE__,__LINE__);
 		VMvalue* tmpByts=newVMvalue(BYTS,NULL,exe->heap,1);
-		tmpByts->u.byts=newEmptyByteArry();
+		tmpByts->u.byts=newEmptyByteString();
 		tmpByts->u.byts->size=*size->u.in32;
 		tmpByts->u.byts->str=str;
 		SET_RETURN("SYS_getb",tmpByts,stack);

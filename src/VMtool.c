@@ -595,23 +595,23 @@ ByteString* newByteString(size_t size,uint8_t* str)
 	return tmp;
 }
 
-ByteString* copyByteArry(const ByteString* obj)
+ByteString* copyByteString(const ByteString* obj)
 {
 	if(obj==NULL)return NULL;
 	ByteString* tmp=(ByteString*)malloc(sizeof(ByteString));
-	FAKE_ASSERT(tmp,"copyByteArry",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"copyByteString",__FILE__,__LINE__);
 	uint8_t* tmpArry=(uint8_t*)malloc(obj->size*sizeof(uint8_t));
-	FAKE_ASSERT(tmpArry,"copyByteArry",__FILE__,__LINE__);
+	FAKE_ASSERT(tmpArry,"copyByteString",__FILE__,__LINE__);
 	memcpy(tmpArry,obj->str,obj->size);
 	tmp->size=obj->size;
 	tmp->str=tmpArry;
 	return tmp;
 }
 
-ByteString* newEmptyByteArry()
+ByteString* newEmptyByteString()
 {
 	ByteString* tmp=(ByteString*)malloc(sizeof(ByteString));
-	FAKE_ASSERT(tmp,"newEmptyByteArry",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"newEmptyByteString",__FILE__,__LINE__);
 	tmp->size=0;
 	tmp->refcount=0;
 	tmp->str=NULL;

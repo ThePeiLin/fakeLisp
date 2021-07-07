@@ -78,8 +78,8 @@ ByteString* newByteString(size_t,uint8_t*);
 void increaseByteStringRefcount(ByteString*);
 void decreaseByteStringRefcount(ByteString*);
 
-ByteString* copyByteArry(const ByteString*);
-ByteString* newEmptyByteArry();
+ByteString* copyByteString(const ByteString*);
+ByteString* newEmptyByteString();
 
 VMChanl* newVMChanl(int32_t size);
 void increaseVMChanlRefcount(VMChanl*);

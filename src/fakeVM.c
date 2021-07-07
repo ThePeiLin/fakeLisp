@@ -48,6 +48,7 @@ static void (*ByteCodes[])(FakeVM*)=
 	B_push_top,
 	B_push_proc,
 	B_push_list_arg,
+	B_pop,
 	B_pop_var,
 	B_pop_arg,
 	B_pop_rest_arg,
@@ -539,6 +540,15 @@ void B_push_list_arg(FakeVM* exe)
 		SET_RETURN("B_push_list_arg",tmp,stack);
 	}
 	freeComStack(comStack);
+	runnable->cp+=1;
+}
+
+void B_pop(FakeVM* exe)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	stack->tp-=1;
+	stackRecycle(exe);
 	runnable->cp+=1;
 }
 

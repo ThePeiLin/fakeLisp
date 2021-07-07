@@ -25,6 +25,7 @@ void B_push_cdr(FakeVM*);
 void B_push_top(FakeVM*);
 void B_push_proc(FakeVM*);
 void B_push_list_arg(FakeVM*);
+void B_pop(FakeVM*);
 void B_pop_var(FakeVM*);
 void B_pop_arg(FakeVM*);
 void B_pop_rest_arg(FakeVM*);

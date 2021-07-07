@@ -19,7 +19,7 @@
 #include<time.h>
 #include<setjmp.h>
 
-extern const char* builtInErrorType[19];
+extern const char* builtInErrorType[NUMOFBUILTINERRORTYPE];
 
 static int envNodeCmp(const void* a,const void* b)
 {
@@ -174,23 +174,30 @@ FakeVM* newTmpFakeVM(ByteCode* mainCode)
 
 void initGlobEnv(VMenv* obj,VMheap* heap,SymbolTable* table)
 {
+	DllFunc syscallFunctionList[]=
+	{
+		SYS_file,
+		SYS_read,
+		SYS_getb,
+		SYS_write,
+		SYS_putb,
+		SYS_princ,
+		SYS_dll,
+		SYS_dlsym,
+		SYS_argv,
+	};
 	obj->num=NUMOFBUILTINSYMBOL;
 	obj->list=(VMenvNode**)malloc(sizeof(VMenvNode*)*NUMOFBUILTINSYMBOL);
 	FAKE_ASSERT(obj->list,"initGlobEnv",__FILE__,__LINE__);
 	int32_t tmpInt=EOF;
-	obj->list[ 0]=newVMenvNode(newNilValue(heap),findSymbol(builtInSymbolList[0],table)->id);
-	obj->list[ 1]=newVMenvNode(newVMvalue(IN32,&tmpInt,heap,1),findSymbol(builtInSymbolList[1],table)->id);
-	obj->list[ 2]=newVMenvNode(newVMvalue(FP,newVMfp(stdin),heap,1),findSymbol(builtInSymbolList[2],table)->id);
-	obj->list[ 3]=newVMenvNode(newVMvalue(FP,newVMfp(stdout),heap,1),findSymbol(builtInSymbolList[3],table)->id);
-	obj->list[ 4]=newVMenvNode(newVMvalue(FP,newVMfp(stderr),heap,1),findSymbol(builtInSymbolList[4],table)->id);
-	obj->list[ 5]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(SYS_file,NULL),heap,1),findSymbol(builtInSymbolList[5],table)->id);
-	obj->list[ 6]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(SYS_read,NULL),heap,1),findSymbol(builtInSymbolList[6],table)->id);
-	obj->list[ 7]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(SYS_getb,NULL),heap,1),findSymbol(builtInSymbolList[7],table)->id);
-	obj->list[ 8]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(SYS_write,NULL),heap,1),findSymbol(builtInSymbolList[8],table)->id);
-	obj->list[ 9]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(SYS_putb,NULL),heap,1),findSymbol(builtInSymbolList[9],table)->id);
-	obj->list[10]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(SYS_princ,NULL),heap,1),findSymbol(builtInSymbolList[10],table)->id);
-	obj->list[11]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(SYS_dll,NULL),heap,1),findSymbol(builtInSymbolList[11],table)->id);
-	obj->list[12]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(SYS_dlsym,NULL),heap,1),findSymbol(builtInSymbolList[12],table)->id);
+	obj->list[0]=newVMenvNode(newNilValue(heap),findSymbol(builtInSymbolList[0],table)->id);
+	obj->list[1]=newVMenvNode(newVMvalue(IN32,&tmpInt,heap,1),findSymbol(builtInSymbolList[1],table)->id);
+	obj->list[2]=newVMenvNode(newVMvalue(FP,newVMfp(stdin),heap,1),findSymbol(builtInSymbolList[2],table)->id);
+	obj->list[3]=newVMenvNode(newVMvalue(FP,newVMfp(stdout),heap,1),findSymbol(builtInSymbolList[3],table)->id);
+	obj->list[4]=newVMenvNode(newVMvalue(FP,newVMfp(stderr),heap,1),findSymbol(builtInSymbolList[4],table)->id);
+	size_t i=5;
+	for(;i<NUMOFBUILTINSYMBOL;i++)
+		obj->list[i]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(syscallFunctionList[i-5],NULL),heap,1),findSymbol(builtInSymbolList[i],table)->id);
 	mergeSort(obj->list,obj->num,sizeof(VMenvNode*),envNodeCmp);
 }
 

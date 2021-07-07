@@ -6,9 +6,9 @@
 #include<pthread.h>
 #include<setjmp.h>
 #define THRESHOLD_SIZE 64
-#define NUMOFBUILTINSYMBOL 13
+#define NUMOFBUILTINSYMBOL 14
 #define MAX_STRING_SIZE 64
-
+#define NUMOFBUILTINERRORTYPE 20
 typedef enum{NIL=0,IN32,CHR,DBL,SYM,STR,BYTS,PRC,CONT,CHAN,FP,DLL,DLPROC,ERR,PAIR,ATM} ValueType;
 
 typedef enum
@@ -30,7 +30,8 @@ typedef enum
 	INVALIDSYMBOL,
 	LIBUNDEFINED,
 	UNEXPECTEOF,
-	DIVZERROERROR
+	DIVZERROERROR,
+	FILEFAILURE,
 }ErrorType;
 
 typedef void (*GenDestructor)(void*);

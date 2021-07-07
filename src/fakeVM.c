@@ -373,9 +373,9 @@ void B_push_byte(FakeVM* exe)
 	int32_t size=*(int32_t*)(exe->code+runnable->cp+1);
 	uint8_t* tmp=createByteString(size);
 	memcpy(tmp,exe->code+runnable->cp+5,size);
-	ByteString* tmpArry=newByteString(size,NULL);
-	tmpArry->str=tmp;
-	VMvalue* objValue=newVMvalue(BYTS,tmpArry,exe->heap,1);
+	ByteString* tmpByts=newByteString(size,NULL);
+	tmpByts->str=tmp;
+	VMvalue* objValue=newVMvalue(BYTS,tmpByts,exe->heap,1);
 	SET_RETURN("B_push_byte",objValue,stack);
 	runnable->cp+=5+size;
 }
@@ -1475,7 +1475,7 @@ void B_byte(FakeVM* exe)
 	if(topValue->type==PAIR||topValue->type==PRC)
 		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
 	VMvalue* tmpValue=newVMvalue(BYTS,NULL,exe->heap,1);
-	tmpValue->u.byts=newEmptyByteArry();
+	tmpValue->u.byts=newEmptyByteString();
 	switch(topValue->type)
 	{
 		case IN32:
@@ -1546,9 +1546,9 @@ void B_nth(FakeVM* exe)
 	{
 		stack->tp-=1;
 		stackRecycle(exe);
-		ByteString* tmpByte=newByteString(1,NULL);
-		tmpByte->str=objlist->u.byts->str+*place->u.in32;
-		VMvalue* objByte=newVMvalue(BYTS,tmpByte,exe->heap,0);
+		ByteString* tmpByts=newByteString(1,NULL);
+		tmpByts->str=objlist->u.byts->str+*place->u.in32;
+		VMvalue* objByte=newVMvalue(BYTS,tmpByts,exe->heap,0);
 		stack->values[stack->tp-1]=objByte;
 	}
 	runnable->cp+=1;
@@ -1623,16 +1623,16 @@ void B_appd(FakeVM* exe)
 	{
 		int32_t firSize=fir->u.byts->size;
 		int32_t secSize=sec->u.byts->size;
-		VMvalue* tmpByte=newVMvalue(BYTS,NULL,exe->heap,1);
-		tmpByte->u.byts=newEmptyByteArry();
-		tmpByte->u.byts->size=firSize+secSize;
-		uint8_t* tmpArry=createByteString(firSize+secSize);
-		memcpy(tmpArry,sec->u.byts->str,secSize);
-		memcpy(tmpArry+secSize,fir->u.byts->str,firSize);
-		tmpByte->u.byts->str=tmpArry;
+		VMvalue* tmpByts=newVMvalue(BYTS,NULL,exe->heap,1);
+		tmpByts->u.byts=newEmptyByteString();
+		tmpByts->u.byts->size=firSize+secSize;
+		uint8_t* tmpStr=createByteString(firSize+secSize);
+		memcpy(tmpStr,sec->u.byts->str,secSize);
+		memcpy(tmpStr+secSize,fir->u.byts->str,firSize);
+		tmpByts->u.byts->str=tmpStr;
 		stack->tp-=1;
 		stackRecycle(exe);
-		stack->values[stack->tp-1]=tmpByte;
+		stack->values[stack->tp-1]=tmpByts;
 	}
 	else
 	{

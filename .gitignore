@@ -12,3 +12,4 @@ fakeLisp
 fakeLispc
 .cache
 compile_commands.json
+.vimspector.json

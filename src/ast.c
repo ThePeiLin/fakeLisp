@@ -84,12 +84,17 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 				{
 					StringMatchPattern* tmpPattern=findStringPattern(parts[j]);
 					AST_cptr* tmpCptr=newCptr(inter->curline,NULL);
+					tmpCptr->type=NIL;
+					tmpCptr->u.all=NULL;
 					AST_cptr* tmpCptr2=createTree(parts[j],inter,tmpPattern);
 					if(!tmpCptr2)
-						return NULL;
-					tmpCptr->type=PAIR;
-					tmpCptr->u.pair=newPair(inter->curline,NULL);
-					replaceCptr(getFirstCptr(tmpCptr),tmpCptr2);
+					{
+						freeStringArry(parts,num);
+						destroyEnv(tmpEnv);
+						free(varName);
+						return tmpCptr;
+					}
+					addToList(tmpCptr,tmpCptr2);
 					deleteCptr(tmpCptr2);
 					free(tmpCptr2);
 					int i=skipInPattern(parts[j],tmpPattern);
@@ -324,7 +329,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 					root->u.all=tmpCptr->u.all;
 					if(tmpCptr->type==ATM)
 						tmpCptr->u.atom->prev=root->outer;
-					else
+					else if(tmpCptr->type==PAIR)
 						tmpCptr->u.pair->prev=root->outer;
 					free(tmpCptr);
 					i+=skipInPattern(objStr+i,pattern);

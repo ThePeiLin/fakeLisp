@@ -20,6 +20,13 @@
 	freeLineNumTabNode((l)[i]);\
 }
 
+static int32_t skipSpace(const char* str)
+{
+	int32_t i=0;
+	for(;str[i]!='\0'&&isspace(str[i]);i++);
+	return i;
+}
+
 const char* builtInErrorType[NUMOFBUILTINERRORTYPE]=
 {
 	"dummy",
@@ -1661,9 +1668,6 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 		AST_cptr* root=popComStack(s1);
 		if(objStr[i]=='(')
 		{
-			hasComma=0;
-			root->type=PAIR;
-			root->u.pair=newPair(curline,root->outer);
 			if(&root->outer->car==root)
 			{
 				//如果root是root所在pair的car部分，
@@ -1677,10 +1681,22 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 					pushComStack(getASTPairCar(tmp),s1);
 				}
 			}
-			pushComStack((void*)s1->top,s2);
-			pushComStack(getASTPairCdr(root),s1);
-			pushComStack(getASTPairCar(root),s1);
-			i++;
+			if(objStr[i+skipSpace(objStr+i+1)+1]==')')
+			{
+				root->type=NIL;
+				root->u.all=NULL;
+				i+=skipSpace(objStr+i+1)+2;
+			}
+			else
+			{
+				hasComma=0;
+				root->type=PAIR;
+				root->u.pair=newPair(curline,root->outer);
+				pushComStack((void*)s1->top,s2);
+				pushComStack(getASTPairCdr(root),s1);
+				pushComStack(getASTPairCar(root),s1);
+				i++;
+			}
 		}
 		else if(objStr[i]==',')
 		{

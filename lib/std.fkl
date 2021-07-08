@@ -453,7 +453,7 @@
          (define byt (lambda (a)
                        (progn
                          push_var a
-                         byte
+                         byts
                          )))
 
          (define add (lambda (a b)

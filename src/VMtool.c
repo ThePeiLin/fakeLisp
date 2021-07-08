@@ -1636,8 +1636,7 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 				if(tmpValue->type==PAIR&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
 					fprintf(fp,"#%d#",CRLcount);
 				else
-					if(cirPair||tmpValue->type!=NIL||objValue->u.pair->cdr->type!=NIL)
-						princVMvalue(tmpValue,fp,h);
+					princVMvalue(tmpValue,fp,h);
 				tmpValue=getVMpairCdr(objValue);
 				if(tmpValue->type>NIL&&tmpValue->type<PAIR)
 				{
@@ -1651,7 +1650,6 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 				}
 				else if(tmpValue->type!=NIL)
 					putc(' ',fp);
-				cirPair=objValue->u.pair;
 			}
 			putc(')',fp);
 			break;
@@ -1687,7 +1685,7 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 	switch(objValue->type)
 	{
 		case NIL:
-			fprintf(fp,"nil");
+			fprintf(fp,"()");
 			break;
 		case IN32:
 			fprintf(fp,"%d",*objValue->u.in32);
@@ -1726,8 +1724,7 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 				if(tmpValue->type==PAIR&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
 					fprintf(fp,"#%d#",CRLcount);
 				else
-					if(cirPair||tmpValue->type!=NIL||objValue->u.pair->cdr->type!=NIL)
-						writeVMvalue(tmpValue,fp,h);
+					writeVMvalue(tmpValue,fp,h);
 				tmpValue=getVMpairCdr(objValue);
 				if(tmpValue->type>NIL&&tmpValue->type<PAIR)
 				{
@@ -1741,7 +1738,6 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 				}
 				else if(tmpValue->type!=NIL)
 					putc(' ',fp);
-				cirPair=objValue->u.pair;
 			}
 			putc(')',fp);
 			break;

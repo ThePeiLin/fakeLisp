@@ -283,7 +283,7 @@ int MacroPatternCmp(const AST_cptr* first,const AST_cptr* second)
 				else if(firAtm->type==IN32&&firAtm->value.in32!=secAtm->value.in32)return 0;
 				else if(firAtm->type==DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
 				else if(firAtm->type==CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
-				else if(firAtm->type==BYTS&&!bytsStrEq(&firAtm->value.byts,&secAtm->value.byts))return 0;
+				else if(firAtm->type==BYTS&&!eqByteString(&firAtm->value.byts,&secAtm->value.byts))return 0;
 			}
 			if(firPair!=NULL&&first==&firPair->car)
 			{ first=&firPair->cdr;
@@ -997,7 +997,11 @@ ByteCodelnt* compileConst(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 	if(isNil(objCptr))tmp=compileNil();
 	if(isQuoteExpression(objCptr))tmp=compileQuote(objCptr);
 	if(!tmp)
+	{
+		status->status=INVALIDEXPR;
+		status->place=objCptr;
 		return NULL;
+	}
 	ByteCodelnt* t=newByteCodelnt(tmp);
 	LineNumTabNode* n=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,tmp->size,line);
 	t->ls=1;

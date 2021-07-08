@@ -72,15 +72,17 @@ void decreaseVMpairRefcount(VMpair*);
 VMstr* newVMstr(const char*);
 void increaseVMstrRefcount(VMstr*);
 void decreaseVMstrRefcount(VMstr*);
+VMstr* copyRefVMstr(char* str);
 
 VMvalue* castCptrVMvalue(AST_cptr*,VMheap*);
-ByteString* newByteString(size_t,uint8_t*);
-void increaseByteStringRefcount(ByteString*);
-void decreaseByteStringRefcount(ByteString*);
+VMByts* newVMByts(size_t,uint8_t*);
+void increaseVMByts(VMByts*);
+void decreaseVMByts(VMByts*);
 
-ByteString* copyByteString(const ByteString*);
-ByteString* newEmptyByteString();
-
+VMByts* copyVMByts(const VMByts*);
+VMByts* newEmptyVMByts();
+VMByts* copyRefVMByts(size_t,uint8_t*);
+int eqVMByts(const VMByts*,const VMByts*);
 VMChanl* newVMChanl(int32_t size);
 void increaseVMChanlRefcount(VMChanl*);
 void decreaseVMChanlRefcount(VMChanl*);
@@ -90,7 +92,6 @@ VMChanl* copyVMChanl(VMChanl*,VMheap*);
 volatile int32_t getNumVMChanl(volatile VMChanl*);
 
 uint8_t* copyArry(size_t,uint8_t*);
-uint8_t* createByteString(int32_t);
 VMproc* copyVMproc(VMproc*,VMheap*);
 VMenv* copyVMenv(VMenv*,VMheap*);
 VMstack* copyStack(VMstack*);

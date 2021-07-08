@@ -111,7 +111,7 @@ pthread_mutex_t VMprocGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t VMstrGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t VMpairGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t VMcontinuationGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t ByteStringGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t VMBytsGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t VMfpGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t VMChanlGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t VMDllGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
@@ -172,7 +172,7 @@ VMvalue* copyVMvalue(VMvalue* obj,VMheap* heap)
 				root1->u.chr=copyMemory(root->u.chr,sizeof(char));
 				break;
 			case BYTS:
-				root1->u.byts=newByteString(root->u.byts->size,root->u.byts->str);
+				root1->u.byts=newVMByts(root->u.byts->size,root->u.byts->str);
 				break;
 			case STR:
 			case SYM:
@@ -334,7 +334,7 @@ int VMvaluecmp(VMvalue* fir,VMvalue* sec)
 					r=(!strcmp(root1->u.str->str,root2->u.str->str));
 					break;
 				case BYTS:
-					r=bytsStrEq(root1->u.byts,root2->u.byts);
+					r=eqVMByts(root1->u.byts,root2->u.byts);
 					break;
 				case PAIR:
 					r=1;
@@ -447,14 +447,14 @@ void decreaseVMpairRefcount(VMpair* pair)
 	DECREASE_REFCOUNT(VMpair,pair);
 }
 
-void increaseByteStringRefcount(ByteString* byts)
+void increaseVMByts(VMByts* byts)
 {
-	INCREASE_REFCOUNT(ByteString,byts);
+	INCREASE_REFCOUNT(VMByts,byts);
 }
 
-void decreaseByteStringRefcount(ByteString* byts)
+void decreaseVMByts(VMByts* byts)
 {
-	DECREASE_REFCOUNT(ByteString,byts);
+	DECREASE_REFCOUNT(VMByts,byts);
 }
 
 void increaseVMfpRefcount(VMfp* fp)
@@ -532,6 +532,15 @@ VMstr* newVMstr(const char* str)
 	return tmp;
 }
 
+VMstr* copyRefVMstr(char* str)
+{
+	VMstr* tmp=(VMstr*)malloc(sizeof(VMstr));
+	FAKE_ASSERT(tmp,"newVMstr",__FILE__,__LINE__);
+	tmp->refcount=0;
+	tmp->str=str;
+	return tmp;
+}
+
 VMvalue* castCptrVMvalue(AST_cptr* objCptr,VMheap* heap)
 {
 	ComStack* s1=newComStack(32);
@@ -560,7 +569,7 @@ VMvalue* castCptrVMvalue(AST_cptr* objCptr,VMheap* heap)
 					root1->u.chr=copyMemory(&tmpAtm->value.chr,sizeof(char));
 					break;
 				case BYTS:
-					root1->u.byts=newByteString(tmpAtm->value.byts.size,tmpAtm->value.byts.str);
+					root1->u.byts=newVMByts(tmpAtm->value.byts.size,tmpAtm->value.byts.str);
 					break;
 				case SYM:
 				case STR:
@@ -584,34 +593,43 @@ VMvalue* castCptrVMvalue(AST_cptr* objCptr,VMheap* heap)
 	return tmp;
 }
 
-ByteString* newByteString(size_t size,uint8_t* str)
+VMByts* newVMByts(size_t size,uint8_t* str)
 {
-	ByteString* tmp=(ByteString*)malloc(sizeof(ByteString));
-	FAKE_ASSERT(tmp,"newByteString",__FILE__,__LINE__);
+	VMByts* tmp=(VMByts*)malloc(sizeof(VMByts));
+	FAKE_ASSERT(tmp,"newVMByts",__FILE__,__LINE__);
 	tmp->size=size;
 	tmp->refcount=0;
-	if(str!=NULL)
-		tmp->str=copyArry(size,str);
+	tmp->str=(str==NULL)?NULL:copyArry(size,str);
 	return tmp;
 }
 
-ByteString* copyByteString(const ByteString* obj)
+VMByts* copyVMByts(const VMByts* obj)
 {
 	if(obj==NULL)return NULL;
-	ByteString* tmp=(ByteString*)malloc(sizeof(ByteString));
-	FAKE_ASSERT(tmp,"copyByteString",__FILE__,__LINE__);
+	VMByts* tmp=(VMByts*)malloc(sizeof(VMByts));
+	FAKE_ASSERT(tmp,"copyVMByts",__FILE__,__LINE__);
 	uint8_t* tmpArry=(uint8_t*)malloc(obj->size*sizeof(uint8_t));
-	FAKE_ASSERT(tmpArry,"copyByteString",__FILE__,__LINE__);
+	FAKE_ASSERT(tmpArry,"copyVMByts",__FILE__,__LINE__);
 	memcpy(tmpArry,obj->str,obj->size);
 	tmp->size=obj->size;
 	tmp->str=tmpArry;
 	return tmp;
 }
 
-ByteString* newEmptyByteString()
+VMByts* copyRefVMByts(size_t size,uint8_t* str)
 {
-	ByteString* tmp=(ByteString*)malloc(sizeof(ByteString));
-	FAKE_ASSERT(tmp,"newEmptyByteString",__FILE__,__LINE__);
+	VMByts* tmp=(VMByts*)malloc(sizeof(VMByts));
+	FAKE_ASSERT(tmp,"newVMByts",__FILE__,__LINE__);
+	tmp->size=size;
+	tmp->refcount=0;
+	tmp->str=str;
+	return tmp;
+}
+
+VMByts* newEmptyVMByts()
+{
+	VMByts* tmp=(VMByts*)malloc(sizeof(VMByts));
+	FAKE_ASSERT(tmp,"newEmptyVMByts",__FILE__,__LINE__);
 	tmp->size=0;
 	tmp->refcount=0;
 	tmp->str=NULL;
@@ -623,13 +641,6 @@ uint8_t* copyArry(size_t size,uint8_t* str)
 	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
 	FAKE_ASSERT(tmp,"copyArry",__FILE__,__LINE__);
 	memcpy(tmp,str,size);
-	return tmp;
-}
-
-uint8_t* createByteString(int32_t size)
-{
-	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	FAKE_ASSERT(tmp,"createByteString",__FILE__,__LINE__);
 	return tmp;
 }
 
@@ -771,10 +782,10 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 				break;
 			case BYTS:
 				if(!sec->access)
-					fir->u.byts=newByteString(sec->u.byts->size,sec->u.byts->str);
+					fir->u.byts=newVMByts(sec->u.byts->size,sec->u.byts->str);
 				else
 				{
-					increaseByteStringRefcount(sec->u.byts);
+					increaseVMByts(sec->u.byts);
 					fir->u.byts=sec->u.byts;
 				}
 				break;
@@ -871,7 +882,7 @@ void writeRef(VMvalue* fir,VMvalue* sec)
 				else
 				{
 					fir->u.byts=sec->u.byts;
-					increaseByteStringRefcount(fir->u.byts);
+					increaseVMByts(fir->u.byts);
 				}
 				break;
 			case ERR:
@@ -917,7 +928,7 @@ void freeRef(VMvalue* obj)
 					free(obj->u.byts);
 				}
 				else
-					decreaseByteStringRefcount(obj->u.byts);
+					decreaseVMByts(obj->u.byts);
 				break;
 			case CONT:
 				freeVMcontinuation(obj->u.cont);
@@ -1644,7 +1655,7 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 			putc(')',fp);
 			break;
 		case BYTS:
-			printByteStr(objValue->u.byts,fp,0);
+			printByteStr(objValue->u.byts->size,objValue->u.byts->str,fp,0);
 			break;
 		case CONT:
 			fprintf(fp,"#<cont>");
@@ -1734,7 +1745,7 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 			putc(')',fp);
 			break;
 		case BYTS:
-			printByteStr(objValue->u.byts,fp,1);
+			printByteStr(objValue->u.byts->size,objValue->u.byts->str,fp,1);
 			break;
 		case CONT:
 			fprintf(fp,"#<cont>");
@@ -1758,4 +1769,9 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 	}
 }
 
-
+int eqVMByts(const VMByts* fir,const VMByts* sec)
+{
+	if(fir->size!=sec->size)
+		return 0;
+	return !memcmp(fir->str,sec->str,sec->size);
+}

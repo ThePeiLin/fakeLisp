@@ -336,7 +336,6 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 						case 'b':
 							str=getStringAfterBackslash(objStr+i+1);
 							atom=newAtom(BYTS,NULL,root->outer);
-							atom->value.byts.refcount=0;
 							atom->value.byts.size=strlen(str)/2+strlen(str)%2;
 							atom->value.byts.str=castStrByteStr(str);
 							root->u.atom=atom;

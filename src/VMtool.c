@@ -1636,7 +1636,7 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 				if(tmpValue->type==PAIR&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
 					fprintf(fp,"#%d#",CRLcount);
 				else
-					if(tmpValue->type!=NIL||objValue->u.pair->cdr->type!=NIL)
+					if(cirPair||tmpValue->type!=NIL||objValue->u.pair->cdr->type!=NIL)
 						princVMvalue(tmpValue,fp,h);
 				tmpValue=getVMpairCdr(objValue);
 				if(tmpValue->type>NIL&&tmpValue->type<PAIR)
@@ -1651,6 +1651,7 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 				}
 				else if(tmpValue->type!=NIL)
 					putc(' ',fp);
+				cirPair=objValue->u.pair;
 			}
 			putc(')',fp);
 			break;
@@ -1678,7 +1679,6 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 		default:fprintf(fp,"Bad value!");break;
 	}
 }
-
 void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 {
 	VMpair* cirPair=NULL;
@@ -1726,7 +1726,7 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 				if(tmpValue->type==PAIR&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
 					fprintf(fp,"#%d#",CRLcount);
 				else
-					if(tmpValue->type!=NIL||objValue->u.pair->cdr->type!=NIL)
+					if(cirPair||tmpValue->type!=NIL||objValue->u.pair->cdr->type!=NIL)
 						writeVMvalue(tmpValue,fp,h);
 				tmpValue=getVMpairCdr(objValue);
 				if(tmpValue->type>NIL&&tmpValue->type<PAIR)
@@ -1741,6 +1741,7 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 				}
 				else if(tmpValue->type!=NIL)
 					putc(' ',fp);
+				cirPair=objValue->u.pair;
 			}
 			putc(')',fp);
 			break;

@@ -65,6 +65,21 @@ void SYS_atom(FakeVM* exe,pthread_rwlock_t* gclock)
 		SET_RETURN("SYS_atom",newNilValue(exe->heap),stack);
 }
 
+void SYS_null(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* arg=getArg(stack);
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
+	if(!arg)
+		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
+	if(arg->type==NIL)
+		SET_RETURN("SYS_null",newTrueValue(exe->heap),stack)
+	else
+		SET_RETURN("SYS_null",newNilValue(exe->heap),stack);
+}
+
 void SYS_file(FakeVM* exe,pthread_rwlock_t* gclock)
 {
 	VMstack* stack=exe->stack;

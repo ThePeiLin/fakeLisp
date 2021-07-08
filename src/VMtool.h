@@ -4,6 +4,8 @@
 #include<pthread.h>
 #include<stdint.h>
 
+extern const char*  builtInErrorType[NUMOFBUILTINERRORTYPE];
+
 #define SET_RETURN(fn,v,stack) {\
 	if((stack)->tp>=(stack)->size)\
 	{\

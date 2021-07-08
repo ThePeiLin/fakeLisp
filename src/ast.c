@@ -238,11 +238,13 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 						pushComStack(getASTPairCar(tmp),s1);
 					}
 				}
-				if(objStr[i+skipSpace(objStr+i+1)+1]==')')
+				int j=0;
+				for(;isspace(objStr[i+1+j]);j++);
+				if(objStr[i+j+1]==')')
 				{
 					root->type=NIL;
 					root->u.all=NULL;
-					i+=skipSpace(objStr+i+1)+2;
+					i+=j+2;
 				}
 				else
 				{

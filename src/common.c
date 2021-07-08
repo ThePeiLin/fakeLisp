@@ -399,7 +399,7 @@ int AST_cptrcmp(const AST_cptr* first,const AST_cptr* second)
 				else if(firAtm->type==IN32&&firAtm->value.in32!=secAtm->value.in32)return 0;
 				else if(firAtm->type==DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
 				else if(firAtm->type==CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
-				else if(firAtm->type==BYTS&&!bytsStrEq(&firAtm->value.byts,&secAtm->value.byts))return 0;
+				else if(firAtm->type==BYTS&&!eqByteString(&firAtm->value.byts,&secAtm->value.byts))return 0;
 			}
 			if(firPair!=NULL&&first==&firPair->car)
 			{ first=&firPair->cdr;
@@ -675,7 +675,7 @@ void printCptr(const AST_cptr* objCptr,FILE* out)
 						printRawChar(tmpAtm->value.chr,out);
 						break;
 					case BYTS:
-						printByteStr(&tmpAtm->value.byts,out,1);
+						printByteStr(tmpAtm->value.byts.size,tmpAtm->value.byts.str,out,1);
 						break;
 				}
 			}
@@ -1134,12 +1134,13 @@ uint8_t* castStrByteStr(const char* str)
 	return tmp;
 }
 
-void printByteStr(const ByteString* obj,FILE* fp,int mode)
+void printByteStr(size_t size,const uint8_t* str,FILE* fp,int mode)
 {
 	if(mode)fputs("#b",fp);
-	for(int i=0;i<obj->size;i++)
+	unsigned int i=0;
+	for(;i<size;i++)
 	{
-		uint8_t j=obj->str[i];
+		uint8_t j=str[i];
 		fprintf(fp,"%X",j%16);
 		fprintf(fp,"%X",j/16);
 	}
@@ -1252,10 +1253,10 @@ char* getStringFromFile(FILE* file)
 	return tmp;
 }
 
-int bytsStrEq(ByteString* fir,ByteString* sec)
+int eqByteString(const ByteString* fir,const ByteString* sec)
 {
 	if(fir->size!=sec->size)return 0;
-	else return !memcmp(fir->str,sec->str,sec->size);
+	return !memcmp(fir->str,sec->str,sec->size);
 }
 
 char* getLastWorkDir(Intpr* inter)
@@ -1752,7 +1753,6 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 					case 'b':
 						str=getStringAfterBackslash(objStr+i+1);
 						atom=newAtom(BYTS,NULL,root->outer);
-						atom->value.byts.refcount=0;
 						atom->value.byts.size=strlen(str)/2+strlen(str)%2;
 						atom->value.byts.str=castStrByteStr(str);
 						root->u.atom=atom;
@@ -2440,6 +2440,13 @@ char* strCat(char* s1,const char* s2)
 	FAKE_ASSERT(s1,"strCat",__FILE__,__LINE__);
 	strcat(s1,s2);
 	return s1;
+}
+
+uint8_t* createByteArry(int32_t size)
+{
+	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
+	FAKE_ASSERT(tmp,"createByteArry",__FILE__,__LINE__);
+	return tmp;
 }
 
 

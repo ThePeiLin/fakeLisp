@@ -5,6 +5,63 @@
 #include<string.h>
 extern const char* builtInSymbolList[NUMOFBUILTINSYMBOL];
 extern const char* builtInErrorType[NUMOFBUILTINERRORTYPE];
+
+void SYS_car(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* obj=getArg(stack);
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
+	if(!obj)
+		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
+	switch(obj->type)
+	{
+		case PAIR:
+			SET_RETURN("SYS_car",getVMpairCar(obj),stack);
+			break;
+		case STR:
+			SET_RETURN("SYS_car",newVMvalue(CHR,obj->u.str->str,exe->heap,0),stack);
+			break;
+		case BYTS:
+			SET_RETURN("SYS_byts",newVMvalue(BYTS,copyRefVMByts(1,obj->u.byts->str),exe->heap,0),stack);
+			break;
+		default:
+			RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+			break;
+	}
+}
+
+void SYS_cdr(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* obj=getArg(stack);
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
+	if(!obj)
+		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
+	switch(obj->type)
+	{
+		case PAIR:
+			SET_RETURN("SYS_cdr",getVMpairCdr(obj),stack);
+			break;
+		case STR:
+			SET_RETURN("SYS_cdr",
+					(strlen(obj->u.str->str))
+					?newVMvalue(STR,copyRefVMstr(obj->u.str->str+1),exe->heap,0)
+					:newNilValue(exe->heap),
+					stack);
+			break;
+		case BYTS:
+			SET_RETURN("SYS_cdr",newVMvalue(BYTS,copyRefVMByts(obj->u.byts->size-1,obj->u.byts->str+1),exe->heap,0),stack);
+			break;
+		default:
+			RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+			break;
+	}
+}
+
 void SYS_file(FakeVM* exe,pthread_rwlock_t* gclock)
 {
 	VMstack* stack=exe->stack;
@@ -93,7 +150,7 @@ void SYS_getb(FakeVM* exe,pthread_rwlock_t* gclock)
 		str=(uint8_t*)realloc(str,sizeof(uint8_t)*realRead);
 		FAKE_ASSERT(str,"B_getb",__FILE__,__LINE__);
 		VMvalue* tmpByts=newVMvalue(BYTS,NULL,exe->heap,1);
-		tmpByts->u.byts=newEmptyByteString();
+		tmpByts->u.byts=newEmptyVMByts();
 		tmpByts->u.byts->size=*size->u.in32;
 		tmpByts->u.byts->str=str;
 		SET_RETURN("SYS_getb",tmpByts,stack);

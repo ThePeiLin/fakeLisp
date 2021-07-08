@@ -723,6 +723,8 @@
                           (map (lambda (sd) (nth 1 sd)) d))
                     (qsquote ((lambda (unquote args) (unqtesp b)) (unqtesp vals)))
                     )
+                   ((eq (type d) (quote nil))
+                    (qsquote ((lambda () (unqtesp b)))))
                    (1 (raise (error (quote syntax-error) "error:Wrong type of object behind key word:let\n")))
                    )))
 

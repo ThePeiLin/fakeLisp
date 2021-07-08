@@ -20,13 +20,6 @@
 	freeLineNumTabNode((l)[i]);\
 }
 
-static int32_t skipSpace(const char* str)
-{
-	int32_t i=0;
-	for(;str[i]!='\0'&&isspace(str[i]);i++);
-	return i;
-}
-
 const char* builtInErrorType[NUMOFBUILTINERRORTYPE]=
 {
 	"dummy",
@@ -1681,11 +1674,13 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 					pushComStack(getASTPairCar(tmp),s1);
 				}
 			}
-			if(objStr[i+skipSpace(objStr+i+1)+1]==')')
+			int j=0;
+			for(;isspace(objStr[i+1+j]);j++);
+			if(objStr[i+j+1]==')')
 			{
 				root->type=NIL;
 				root->u.all=NULL;
-				i+=skipSpace(objStr+i+1)+2;
+				i+=j+2;
 			}
 			else
 			{

@@ -225,6 +225,13 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 			AST_cptr* root=popComStack(s1);
 			if(objStr[i]=='(')
 			{
+				if(objStr[i+skipSpace(objStr+i+1)+1]==')')
+				{
+					root->type=NIL;
+					root->u.all=NULL;
+					i+=skipSpace(objStr+i+1)+1;
+					continue;
+				}
 				hasComma=0;
 				root->type=PAIR;
 				root->u.pair=newPair(curline,root->outer);

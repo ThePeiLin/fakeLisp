@@ -51,7 +51,7 @@ enum opcode
 	FAKE_DBL,//
 	FAKE_STR,//
 	FAKE_SYM,//
-	FAKE_BYTE,//
+	FAKE_BYTS,//
 	FAKE_NTH,//
 	FAKE_LENGTH,//
 	FAKE_APPD,
@@ -131,7 +131,7 @@ static codeinfor codeName[]=
 	{"dbl",0}, //
 	{"str",0}, //
 	{"sym",0}, //
-	{"byte",0}, //
+	{"byts",0}, //
 	{"nth",0}, //
 	{"length",0}, //
 	{"appd",0}, //

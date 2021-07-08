@@ -15,21 +15,9 @@ void SYS_car(FakeVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
 	if(!obj)
 		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
-	switch(obj->type)
-	{
-		case PAIR:
-			SET_RETURN("SYS_car",getVMpairCar(obj),stack);
-			break;
-		case STR:
-			SET_RETURN("SYS_car",newVMvalue(CHR,obj->u.str->str,exe->heap,0),stack);
-			break;
-		case BYTS:
-			SET_RETURN("SYS_byts",newVMvalue(BYTS,copyRefVMByts(1,obj->u.byts->str),exe->heap,0),stack);
-			break;
-		default:
-			RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
-			break;
-	}
+	if(obj->type!=PAIR)
+		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+	SET_RETURN("SYS_car",getVMpairCar(obj),stack);
 }
 
 void SYS_cdr(FakeVM* exe,pthread_rwlock_t* gclock)
@@ -41,25 +29,40 @@ void SYS_cdr(FakeVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
 	if(!obj)
 		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
-	switch(obj->type)
-	{
-		case PAIR:
-			SET_RETURN("SYS_cdr",getVMpairCdr(obj),stack);
-			break;
-		case STR:
-			SET_RETURN("SYS_cdr",
-					(strlen(obj->u.str->str))
-					?newVMvalue(STR,copyRefVMstr(obj->u.str->str+1),exe->heap,0)
-					:newNilValue(exe->heap),
-					stack);
-			break;
-		case BYTS:
-			SET_RETURN("SYS_cdr",newVMvalue(BYTS,copyRefVMByts(obj->u.byts->size-1,obj->u.byts->str+1),exe->heap,0),stack);
-			break;
-		default:
-			RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
-			break;
-	}
+	if(obj->type!=PAIR)
+		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+	SET_RETURN("SYS_cdr",getVMpairCdr(obj),stack);
+}
+
+void SYS_cons(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* car=getArg(stack);
+	VMvalue* cdr=getArg(stack);
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
+	if(!car||!cdr)
+		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
+	VMvalue* pair=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap,1);
+	copyRef(getVMpairCar(pair),car);
+	copyRef(getVMpairCdr(pair),cdr);
+	SET_RETURN("SYS_cons",pair,stack);
+}
+
+void SYS_atom(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* arg=getArg(stack);
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
+	if(!arg)
+		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
+	if(arg->type!=PAIR)
+		SET_RETURN("SYS_atom",newTrueValue(exe->heap),stack)
+	else
+		SET_RETURN("SYS_atom",newNilValue(exe->heap),stack);
 }
 
 void SYS_file(FakeVM* exe,pthread_rwlock_t* gclock)

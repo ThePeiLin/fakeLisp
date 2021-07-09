@@ -104,11 +104,6 @@ int isSymbol(const AST_cptr* objCptr)
 int isNil(const AST_cptr* objCptr)
 {
 	if(objCptr->type==NIL)return 1;
-	else if(objCptr->type==PAIR)
-	{
-		AST_pair* tmpPair=objCptr->u.pair;
-		if(tmpPair->car.type==NIL&&tmpPair->cdr.type==NIL)return 1;
-	}
 	return 0;
 }
 

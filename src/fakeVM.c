@@ -1595,7 +1595,7 @@ void B_length(FakeVM* exe)
 		stack->values[stack->tp-1]=newVMvalue(IN32,&objlist->u.byts->size,exe->heap,1);
 	else if(objlist->type==CHAN)
 	{
-		int32_t i=getNumVMChanl((volatile VMChanl*)objlist->u.chan);
+		int32_t i=getNumVMChanl(objlist->u.chan);
 		stack->values[stack->tp-1]=newVMvalue(IN32,&i,exe->heap,1);
 	}
 	runnable->cp+=1;

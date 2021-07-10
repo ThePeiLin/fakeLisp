@@ -52,8 +52,8 @@ enum opcode
 	FAKE_STR,//+
 	FAKE_SYM,//+
 	FAKE_BYTS,//+
-	FAKE_NTH,//
-	FAKE_LENGTH,//
+	FAKE_NTH,//+
+	FAKE_LENGTH,//+
 	FAKE_APPD,
 	FAKE_EQ,//+
 	FAKE_EQN,//+

@@ -1512,7 +1512,7 @@ void B_byte(FakeVM* exe)
 			break;
 		case STR:
 		case SYM:
-			tmpValue->u.byts->size=strlen(topValue->u.str->str+1);
+			tmpValue->u.byts->size=strlen(topValue->u.str->str)+1;
 			tmpValue->u.byts->str=(uint8_t*)copyStr(topValue->u.str->str);
 			break;
 		case BYTS:

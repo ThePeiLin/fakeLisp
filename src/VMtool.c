@@ -1126,7 +1126,7 @@ VMChanl* newVMChanl(int32_t maxSize)
 	return tmp;
 }
 
-volatile int32_t getNumVMChanl(volatile VMChanl* ch)
+int32_t getNumVMChanl(VMChanl* ch)
 {
 	pthread_rwlock_rdlock((pthread_rwlock_t*)&ch->lock);
 	uint32_t i=0;

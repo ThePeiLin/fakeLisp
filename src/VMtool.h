@@ -91,7 +91,7 @@ void decreaseVMChanlRefcount(VMChanl*);
 
 void freeVMChanl(VMChanl*);
 VMChanl* copyVMChanl(VMChanl*,VMheap*);
-volatile int32_t getNumVMChanl(volatile VMChanl*);
+int32_t getNumVMChanl(VMChanl*);
 
 uint8_t* copyArry(size_t,uint8_t*);
 VMproc* copyVMproc(VMproc*,VMheap*);

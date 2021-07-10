@@ -510,6 +510,74 @@ void SYS_type(FakeVM* exe,pthread_rwlock_t* gclock)
 	SET_RETURN("SYS_type",newVMvalue(SYM,newVMstr(a[type]),exe->heap,1),stack);
 }
 
+void SYS_nth(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* place=getArg(stack);
+	VMvalue* objlist=getArg(stack);
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
+	if(!place||!objlist)
+		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
+	if(place->type!=IN32)
+		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+	VMvalue* retval=NULL;
+	int32_t offset=*place->u.in32;
+	switch(objlist->type)
+	{
+		case PAIR:
+			{
+				VMvalue* objPair=objlist;
+				int i=0;
+				for(;i<offset&&objPair->type==PAIR;i++,objPair=getVMpairCdr(objPair));
+				retval=(objPair->type==PAIR)?getVMpairCar(objPair):newNilValue(exe->heap);
+			}
+			break;
+		case STR:
+			retval=newVMvalue(CHR,objlist->u.str->str+offset,exe->heap,0);
+			break;
+		case BYTS:
+			retval=newVMvalue(BYTS,copyRefVMByts(1,objlist->u.byts->str+offset),exe->heap,0);
+			break;
+		default:
+			RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+	}
+	SET_RETURN("SYS_nth",retval,stack);
+}
+
+void SYS_length(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* obj=getArg(stack);
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
+	if(!obj)
+		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
+	int32_t len=0;
+	VMvalue* retval=newVMvalue(IN32,NULL,exe->heap,1);
+	switch(obj->type)
+	{
+		case PAIR:
+			for(;obj->type==PAIR;obj=getVMpairCdr(obj))len++;
+			break;
+		case STR:
+			len=strlen(obj->u.str->str);
+			break;
+		case BYTS:
+			len=obj->u.byts->size;
+			break;
+		case CHAN:
+			len=getNumVMChanl(obj->u.chan);
+			break;
+		default:
+			RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+	}
+	*retval->u.in32=len;
+	SET_RETURN("SYS_length",retval,stack);
+}
+
 void SYS_file(FakeVM* exe,pthread_rwlock_t* gclock)
 {
 	VMstack* stack=exe->stack;

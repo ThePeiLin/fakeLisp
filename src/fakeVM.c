@@ -1089,7 +1089,7 @@ void B_jmp_if_true(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* tmpValue=getTopValue(stack);
-	if(!(tmpValue->type==NIL||(tmpValue->type==PAIR&&getVMpairCar(tmpValue)->type==NIL&&getVMpairCdr(tmpValue)->type==NIL)))
+	if(!(tmpValue->type==NIL))
 	{
 		int32_t where=*(int32_t*)(exe->code+runnable->cp+sizeof(char));
 		runnable->cp+=where;
@@ -1103,7 +1103,7 @@ void B_jmp_if_false(FakeVM* exe)
 	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* tmpValue=getTopValue(stack);
 	stackRecycle(exe);
-	if(tmpValue->type==NIL||(tmpValue->type==PAIR&&getVMpairCar(tmpValue)->type==NIL&&getVMpairCdr(tmpValue)->type==NIL))
+	if(tmpValue->type==NIL)
 	{
 		int32_t where=*(int32_t*)(exe->code+runnable->cp+sizeof(char));
 		runnable->cp+=where;

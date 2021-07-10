@@ -12,8 +12,8 @@ enum opcode
 	FAKE_PUSH_BYTE,
 	FAKE_PUSH_VAR,
 	FAKE_PUSH_ENV_VAR,
-	FAKE_PUSH_CAR,//
-	FAKE_PUSH_CDR,//
+	FAKE_PUSH_CAR,//+
+	FAKE_PUSH_CDR,//+
 	FAKE_PUSH_TOP,
 	FAKE_PUSH_PROC,
 	FAKE_PUSH_LIST_ARG,
@@ -43,8 +43,8 @@ enum opcode
 	FAKE_MUL,//
 	FAKE_DIV,//
 	FAKE_REM,//
-	FAKE_ATOM,//
-	FAKE_NULL,//
+	FAKE_ATOM,//+
+	FAKE_NULL,//+
 	FAKE_TYPE,//
 	FAKE_CHR,//
 	FAKE_INT,//
@@ -55,13 +55,13 @@ enum opcode
 	FAKE_NTH,//
 	FAKE_LENGTH,//
 	FAKE_APPD,
-	FAKE_EQ,//
-	FAKE_EQN,//
-	FAKE_EQUAL,//
-	FAKE_GT,//
-	FAKE_GE,//
-	FAKE_LT,//
-	FAKE_LE,//
+	FAKE_EQ,//+
+	FAKE_EQN,//+
+	FAKE_EQUAL,//+
+	FAKE_GT,//+
+	FAKE_GE,//+
+	FAKE_LT,//+
+	FAKE_LE,//+
 	FAKE_NOT,//
 	FAKE_GO,//
 	FAKE_CHANL,//

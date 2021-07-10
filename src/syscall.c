@@ -80,6 +80,21 @@ void SYS_null(FakeVM* exe,pthread_rwlock_t* gclock)
 		SET_RETURN("SYS_null",newNilValue(exe->heap),stack);
 }
 
+void SYS_not(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* arg=getArg(stack);
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
+	if(!arg)
+		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
+	if(arg->type==NIL)
+		SET_RETURN("SYS_not",newTrueValue(exe->heap),stack)
+	else
+		SET_RETURN("SYS_not",newNilValue(exe->heap),stack);
+}
+
 void SYS_eq(FakeVM* exe,pthread_rwlock_t* gclock)
 {
 	VMstack* stack=exe->stack;
@@ -253,6 +268,246 @@ void SYS_le(FakeVM* exe,pthread_rwlock_t* gclock)
 				,stack)
 	else
 		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+}
+
+void SYS_chr(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* obj=getArg(stack);
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
+	if(!obj)
+		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
+	VMvalue* retval=newVMvalue(CHR,NULL,exe->heap,1);
+	switch(obj->type)
+	{
+		case IN32:
+			*retval->u.chr=*obj->u.in32;
+			break;
+		case DBL:
+			*retval->u.chr=(int32_t)*obj->u.dbl;
+			break;
+		case CHR:
+			*retval->u.chr=*obj->u.chr;
+			break;
+		case STR:
+		case SYM:
+			*retval->u.chr=obj->u.str->str[0];
+			break;
+		case BYTS:
+			*retval->u.chr=obj->u.byts->str[0];
+			break;
+		default:
+			RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+			break;
+	}
+	SET_RETURN("SYS_chr",retval,stack);
+}
+
+void SYS_int(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* obj=getArg(stack);
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
+	if(!obj)
+		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
+	VMvalue* retval=newVMvalue(IN32,NULL,exe->heap,1);
+	switch(obj->type)
+	{
+		case IN32:
+			*retval->u.in32=*obj->u.in32;
+			break;
+		case DBL:
+			*retval->u.in32=(int32_t)*obj->u.dbl;
+			break;
+		case CHR:
+			*retval->u.in32=*obj->u.chr;
+			break;
+		case STR:
+		case SYM:
+			*retval->u.in32=stringToInt(obj->u.str->str);
+			break;
+		case BYTS:
+			memcpy(retval->u.in32,obj->u.byts->str,sizeof(int32_t));
+			break;
+		default:
+			RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+			break;
+	}
+	SET_RETURN("SYS_int",retval,stack);
+}
+
+void SYS_dbl(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* obj=getArg(stack);
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
+	if(!obj)
+		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
+	VMvalue* retval=newVMvalue(DBL,NULL,exe->heap,1);
+	switch(obj->type)
+	{
+		case IN32:
+			*retval->u.dbl=(double)*obj->u.in32;
+			break;
+		case DBL:
+			*retval->u.dbl=*obj->u.dbl;
+			break;
+		case CHR:
+			*retval->u.dbl=(double)(int32_t)*obj->u.chr;
+			break;
+		case STR:
+		case SYM:
+			*retval->u.dbl=stringToDouble(obj->u.str->str);
+			break;
+		case BYTS:
+			memcpy(retval->u.dbl,obj->u.byts->str,sizeof(double));
+			break;
+		default:
+			RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+			break;
+	}
+	SET_RETURN("SYS_dbl",retval,stack);
+}
+
+void SYS_str(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* obj=getArg(stack);
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
+	if(!obj)
+		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
+	VMvalue* retval=newVMvalue(STR,newVMstr(NULL),exe->heap,1);
+	switch(obj->type)
+	{
+		case IN32:
+			retval->u.str->str=intToString(*obj->u.in32);
+			break;
+		case DBL:
+			retval->u.str->str=doubleToString(*obj->u.dbl);
+			break;
+		case CHR:
+			retval->u.str->str=copyStr((char[]){*obj->u.chr,'\0'});
+			break;
+		case STR:
+		case SYM:
+			retval->u.str->str=copyStr(obj->u.str->str);
+			break;
+		case BYTS:
+			retval->u.str->str=copyStr((char*)obj->u.byts->str);
+			break;
+		default:
+			RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+	}
+	SET_RETURN("SYS_str",retval,stack);
+}
+
+void SYS_sym(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* obj=getArg(stack);
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
+	if(!obj)
+		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
+	VMvalue* retval=newVMvalue(STR,newVMstr(NULL),exe->heap,1);
+	switch(obj->type)
+	{
+		case IN32:
+			retval->u.str->str=intToString(*obj->u.in32);
+			break;
+		case DBL:
+			retval->u.str->str=doubleToString(*obj->u.dbl);
+			break;
+		case CHR:
+			retval->u.str->str=copyStr((char[]){*obj->u.chr,'\0'});
+			break;
+		case STR:
+		case SYM:
+			retval->u.str->str=copyStr(obj->u.str->str);
+			break;
+		case BYTS:
+			retval->u.str->str=copyStr((char*)obj->u.byts->str);
+			break;
+		default:
+			RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+	}
+	SET_RETURN("SYS_sym",retval,stack);
+}
+
+void SYS_byts(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* obj=getArg(stack);
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
+	if(!obj)
+		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
+	VMvalue* retval=newVMvalue(BYTS,newEmptyVMByts(),exe->heap,1);
+	switch(obj->type)
+	{
+		case IN32:
+			retval->u.byts->size=sizeof(int32_t);
+			retval->u.byts->str=createByteArry(sizeof(int32_t));
+			*(int32_t*)retval->u.byts->str=*obj->u.in32;
+			break;
+		case DBL:
+			retval->u.byts->size=sizeof(double);
+			retval->u.byts->str=createByteArry(sizeof(double));
+			*(double*)retval->u.byts->str=*obj->u.dbl;
+			break;
+		case STR:
+		case SYM:
+			retval->u.byts->size=strlen(obj->u.str->str)+1;
+			retval->u.byts->str=(uint8_t*)copyStr(obj->u.str->str);
+			break;
+		case BYTS:
+			retval->u.byts->size=obj->u.byts->size;
+			retval->u.byts->str=createByteArry(obj->u.byts->size);
+			memcpy(retval->u.byts->str,obj->u.byts->str,obj->u.byts->size);
+			break;
+		default:
+			RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+	}
+	SET_RETURN("SYS_byts",retval,stack);
+}
+
+void SYS_type(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	char* a[]=
+	{
+		"nil",
+		"int",
+		"chr",
+		"dbl",
+		"sym",
+		"str",
+		"byts",
+		"proc",
+		"cont",
+		"chan",
+		"fp",
+		"dll",
+		"dlproc",
+		"err",
+		"pair"
+	};
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* obj=getArg(stack);
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
+	int32_t type=obj->type;
+	SET_RETURN("SYS_type",newVMvalue(SYM,newVMstr(a[type]),exe->heap,1),stack);
 }
 
 void SYS_file(FakeVM* exe,pthread_rwlock_t* gclock)

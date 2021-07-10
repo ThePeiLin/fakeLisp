@@ -45,13 +45,13 @@ enum opcode
 	FAKE_REM,//
 	FAKE_ATOM,//+
 	FAKE_NULL,//+
-	FAKE_TYPE,//
-	FAKE_CHR,//
-	FAKE_INT,//
-	FAKE_DBL,//
-	FAKE_STR,//
-	FAKE_SYM,//
-	FAKE_BYTS,//
+	FAKE_TYPE,//+
+	FAKE_CHR,//+
+	FAKE_INT,//+
+	FAKE_DBL,//+
+	FAKE_STR,//+
+	FAKE_SYM,//+
+	FAKE_BYTS,//+
 	FAKE_NTH,//
 	FAKE_LENGTH,//
 	FAKE_APPD,
@@ -62,7 +62,7 @@ enum opcode
 	FAKE_GE,//+
 	FAKE_LT,//+
 	FAKE_LE,//+
-	FAKE_NOT,//
+	FAKE_NOT,//+
 	FAKE_GO,//
 	FAKE_CHANL,//
 	FAKE_SEND,//

@@ -6,7 +6,7 @@
 #include<pthread.h>
 #include<setjmp.h>
 #define THRESHOLD_SIZE 64
-#define NUMOFBUILTINSYMBOL 14
+#define NUMOFBUILTINSYMBOL 47
 #define MAX_STRING_SIZE 64
 #define NUMOFBUILTINERRORTYPE 20
 
@@ -332,7 +332,7 @@ typedef struct FakeVM
 	struct VMHeap* heap;
 	struct LineNumberTable* lnt;
 	void (*callback)(void*);
-	jmp_buf buf;
+	jmp_buf* buf;
 }FakeVM;
 
 typedef struct VMHeap

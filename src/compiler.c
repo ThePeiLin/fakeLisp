@@ -847,7 +847,7 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 	popToCar->code[0]=FAKE_POP_CAR;
 	popToCdr->code[0]=FAKE_POP_CDR;
 	pushPair->code[0]=FAKE_PUSH_PAIR;
-	appd->code[0]=FAKE_APPD;
+	appd->code[0]=FAKE_APPEND;
 	while(objCptr!=NULL)
 	{
 		if(isUnquoteExpression(objCptr))

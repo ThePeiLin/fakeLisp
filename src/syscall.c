@@ -2,10 +2,14 @@
 #include"syscall.h"
 #include"VMtool.h"
 #include"reader.h"
+#include"fakeVM.h"
 #include<string.h>
+#include<math.h>
+#include<setjmp.h>
 extern const char* builtInSymbolList[NUMOFBUILTINSYMBOL];
 extern const char* builtInErrorType[NUMOFBUILTINERRORTYPE];
-
+extern FakeVMlist GlobFakeVMs;
+extern void* ThreadVMFunc(void* p);
 void SYS_car(FakeVM* exe,pthread_rwlock_t* gclock)
 {
 	VMstack* stack=exe->stack;
@@ -154,7 +158,189 @@ void SYS_equal(FakeVM* exe,pthread_rwlock_t* gclock)
 			,stack);
 }
 
-void SYS_gt(FakeVM* exe,pthread_rwlock_t* gclock)
+void SYS_add(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* cur=getArg(stack);
+	int32_t ri=0;
+	double rd=0.0;
+	for(;cur;cur=getArg(stack))
+		switch(cur->type)
+		{
+			case IN32:
+				ri+=*cur->u.in32;
+				break;
+			case DBL:
+				rd+=*cur->u.dbl;
+				break;
+			default:
+				RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+		}
+	resBp(stack);
+	if(rd!=0.0)
+	{
+		rd+=ri;
+		SET_RETURN("SYS_add",newVMvalue(DBL,&rd,exe->heap,1),stack);
+	}
+	else
+		SET_RETURN("SYS_add",newVMvalue(IN32,&ri,exe->heap,1),stack)
+}
+
+void SYS_sub(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* prev=getArg(stack);
+	VMvalue* cur=getArg(stack);
+	int32_t ri=0;
+	double rd=0.0;
+	if(!prev)
+		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
+	if(prev->type!=DBL&&prev->type!=IN32)
+		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+	if(!cur)
+	{
+		resBp(stack);
+		if(prev->type==DBL)
+		{
+			rd=-(*prev->u.dbl);
+			SET_RETURN("SYS_sub",newVMvalue(DBL,&rd,exe->heap,1),stack);
+		}
+		else
+		{
+			ri=-(*prev->u.in32);
+			SET_RETURN("SYS_sub",newVMvalue(IN32,&ri,exe->heap,1),stack);
+		}
+	}
+	else
+	{
+		for(;cur;cur=getArg(stack))
+			switch(cur->type)
+			{
+				case IN32:
+					ri+=*cur->u.in32;
+					break;
+				case DBL:
+					rd+=*cur->u.dbl;
+					break;
+				default:
+					RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+					break;
+			}
+		resBp(stack);
+		if(prev->type==DBL||rd!=0.0)
+		{
+			rd=((prev->type==DBL)?*prev->u.dbl:*prev->u.in32)-rd-ri;
+			SET_RETURN("SYS_sub",newVMvalue(DBL,&rd,exe->heap,1),stack);
+		}
+		else
+		{
+			ri=*prev->u.in32-ri;
+			SET_RETURN("SYS_sub",newVMvalue(IN32,&ri,exe->heap,1),stack);
+		}
+	}
+}
+
+void SYS_mul(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* cur=getArg(stack);
+	int32_t ri=1;
+	double rd=1.0;
+	int haveDbl=0;
+	for(;cur;cur=getArg(stack))
+		switch(cur->type)
+		{
+			case IN32:
+				ri*=*cur->u.in32;
+				break;
+			case DBL:
+				haveDbl=1;
+				rd*=*cur->u.dbl;
+				break;
+			default:
+				RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+		}
+	resBp(stack);
+	if(haveDbl)
+	{
+		rd*=ri;
+		SET_RETURN("SYS_add",newVMvalue(DBL,&rd,exe->heap,1),stack);
+	}
+	else
+		SET_RETURN("SYS_add",newVMvalue(IN32,&ri,exe->heap,1),stack)
+}
+
+void SYS_div(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* prev=getArg(stack);
+	VMvalue* cur=getArg(stack);
+	int32_t ri=1;
+	double rd=1.0;
+	if(!prev)
+		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
+	if(prev->type!=DBL&&prev->type!=IN32)
+		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+	if(!cur)
+	{
+		resBp(stack);
+		if(prev->type==DBL)
+		{
+			rd=1/(*prev->u.dbl);
+			SET_RETURN("SYS_sub",newVMvalue(DBL,&rd,exe->heap,1),stack);
+		}
+		else
+		{
+			if(1%(*prev->u.in32))
+			{
+				rd=1.0/(*prev->u.in32);
+				SET_RETURN("SYS_sub",newVMvalue(DBL,&rd,exe->heap,1),stack);
+			}
+			else
+			{
+				ri=1/(*prev->u.in32);
+				SET_RETURN("SYS_sub",newVMvalue(IN32,&ri,exe->heap,1),stack);
+			}
+		}
+	}
+	else
+	{
+		for(;cur;cur=getArg(stack))
+			switch(cur->type)
+			{
+				case IN32:
+					ri*=*cur->u.in32;
+					break;
+				case DBL:
+					rd*=*cur->u.dbl;
+					break;
+				default:
+					RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+					break;
+			}
+		resBp(stack);
+		if(prev->type==DBL||rd!=1.0||(prev->type==IN32&&(*prev->u.in32%ri)))
+		{
+			if(rd==0.0||ri==0)
+				RAISE_BUILTIN_ERROR(DIVZERROERROR,runnable,exe);
+			rd=((double)((prev->type==DBL)?*prev->u.dbl:*prev->u.in32))/rd/ri;
+			SET_RETURN("SYS_div",newVMvalue(DBL,&rd,exe->heap,1),stack);
+		}
+		else
+		{
+			if(ri==0)
+				RAISE_BUILTIN_ERROR(DIVZERROERROR,runnable,exe);
+			ri=*prev->u.in32/ri;
+			SET_RETURN("SYS_div",newVMvalue(IN32,&ri,exe->heap,1),stack);
+		}
+	}
+}
+
+void SYS_rem(FakeVM* exe,pthread_rwlock_t* gclock)
 {
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
@@ -165,109 +351,159 @@ void SYS_gt(FakeVM* exe,pthread_rwlock_t* gclock)
 	if(!fir||!sec)
 		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
 	if(fir->type==DBL||sec->type==DBL)
-		SET_RETURN("SYS_gt",((((fir->type==DBL)?*fir->u.dbl:*fir->u.in32)-((sec->type==DBL)?*sec->u.dbl:*sec->u.in32))>0.0)
-				?newTrueValue(exe->heap)
-				:newNilValue(exe->heap)
-				,stack)
+	{
+		double af=(fir->type==DBL)?*fir->u.dbl:*fir->u.in32;
+		double as=(sec->type==DBL)?*sec->u.dbl:*sec->u.in32;
+		if(as==0.0)
+			RAISE_BUILTIN_ERROR(DIVZERROERROR,runnable,exe);
+		double r=fmod(af,as);
+		SET_RETURN("SYS_rem",newVMvalue(DBL,&r,exe->heap,1),stack);
+	}
 	else if(fir->type==IN32&&sec->type==IN32)
-		SET_RETURN("SYS_gt",(*fir->u.in32>*sec->u.in32)
-				?newTrueValue(exe->heap)
-				:newNilValue(exe->heap)
-				,stack)
-	else if(fir->type==sec->type&&(fir->type==SYM||fir->type==STR))
-		SET_RETURN("SYS_gt",(strcmp(fir->u.str->str,sec->u.str->str)>0)
-				?newTrueValue(exe->heap)
-				:newNilValue(exe->heap)
-				,stack)
+	{
+		if(!(*sec->u.in32))
+			RAISE_BUILTIN_ERROR(DIVZERROERROR,runnable,exe);
+		int32_t r=*fir->u.in32%*sec->u.in32;
+		SET_RETURN("SYS_rem",newVMvalue(IN32,&r,exe->heap,1),stack);
+	}
 	else
 		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+}
+
+void SYS_gt(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	int r=1;
+	VMvalue* cur=getArg(stack);
+	VMvalue* prev=NULL;
+	if(!cur)
+		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
+	for(;cur;cur=getArg(stack))
+	{
+		if(prev)
+		{
+			if(prev->type==DBL||cur->type==DBL)
+				r=((((prev->type==DBL)?*prev->u.dbl:*prev->u.in32)-((cur->type==DBL)?*cur->u.dbl:*cur->u.in32))>0.0);
+			else if(prev->type==IN32&&cur->type==IN32)
+				r=(*prev->u.in32>*cur->u.in32);
+			else if(prev->type==cur->type&&(prev->type==STR))
+				r=(strcmp(prev->u.str->str,cur->u.str->str)>0);
+			else
+				RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+		}
+		if(!r)
+			break;
+		prev=cur;
+	}
+	for(;cur;cur=getArg(stack));
+	resBp(stack);
+	SET_RETURN("SYS_gt",r
+			?newTrueValue(exe->heap)
+			:newNilValue(exe->heap)
+			,stack);
 }
 
 void SYS_ge(FakeVM* exe,pthread_rwlock_t* gclock)
 {
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
-	VMvalue* fir=getArg(stack);
-	VMvalue* sec=getArg(stack);
-	if(resBp(stack))
-		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
-	if(!fir||!sec)
+	int r=1;
+	VMvalue* cur=getArg(stack);
+	VMvalue* prev=NULL;
+	if(!cur)
 		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
-	if(fir->type==DBL||sec->type==DBL)
-		SET_RETURN("SYS_ge",((((fir->type==DBL)?*fir->u.dbl:*fir->u.in32)-((sec->type==DBL)?*sec->u.dbl:*sec->u.in32))>=0.0)
-				?newTrueValue(exe->heap)
-				:newNilValue(exe->heap)
-				,stack)
-	else if(fir->type==IN32&&sec->type==IN32)
-		SET_RETURN("SYS_ge",(*fir->u.in32>=*sec->u.in32)
-				?newTrueValue(exe->heap)
-				:newNilValue(exe->heap)
-				,stack)
-	else if(fir->type==sec->type&&(fir->type==SYM||fir->type==STR))
-		SET_RETURN("SYS_ge",(strcmp(fir->u.str->str,sec->u.str->str)>=0)
-				?newTrueValue(exe->heap)
-				:newNilValue(exe->heap)
-				,stack)
-	else
-		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+	for(;cur;cur=getArg(stack))
+	{
+		if(prev)
+		{
+			if(prev->type==DBL||cur->type==DBL)
+				r=((((prev->type==DBL)?*prev->u.dbl:*prev->u.in32)-((cur->type==DBL)?*cur->u.dbl:*cur->u.in32))>=0.0);
+			else if(prev->type==IN32&&cur->type==IN32)
+				r=(*prev->u.in32>=*cur->u.in32);
+			else if(prev->type==cur->type&&(prev->type==STR))
+				r=(strcmp(prev->u.str->str,cur->u.str->str)>=0);
+			else
+				RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+		}
+		if(!r)
+			break;
+		prev=cur;
+	}
+	for(;cur;cur=getArg(stack));
+	resBp(stack);
+	SET_RETURN("SYS_ge",r
+			?newTrueValue(exe->heap)
+			:newNilValue(exe->heap)
+			,stack);
 }
 
 void SYS_lt(FakeVM* exe,pthread_rwlock_t* gclock)
 {
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
-	VMvalue* fir=getArg(stack);
-	VMvalue* sec=getArg(stack);
-	if(resBp(stack))
-		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
-	if(!fir||!sec)
+	int r=1;
+	VMvalue* cur=getArg(stack);
+	VMvalue* prev=NULL;
+	if(!cur)
 		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
-	if(fir->type==DBL||sec->type==DBL)
-		SET_RETURN("SYS_lt",((((fir->type==DBL)?*fir->u.dbl:*fir->u.in32)-((sec->type==DBL)?*sec->u.dbl:*sec->u.in32))<0.0)
-				?newTrueValue(exe->heap)
-				:newNilValue(exe->heap)
-				,stack)
-	else if(fir->type==IN32&&sec->type==IN32)
-		SET_RETURN("SYS_lt",(*fir->u.in32<*sec->u.in32)
-				?newTrueValue(exe->heap)
-				:newNilValue(exe->heap)
-				,stack)
-	else if(fir->type==sec->type&&(fir->type==SYM||fir->type==STR))
-		SET_RETURN("SYS_lt",(strcmp(fir->u.str->str,sec->u.str->str)<0)
-				?newTrueValue(exe->heap)
-				:newNilValue(exe->heap)
-				,stack)
-	else
-		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+	for(;cur;cur=getArg(stack))
+	{
+		if(prev)
+		{
+			if(prev->type==DBL||cur->type==DBL)
+				r=((((prev->type==DBL)?*prev->u.dbl:*prev->u.in32)-((cur->type==DBL)?*cur->u.dbl:*cur->u.in32))<0.0);
+			else if(prev->type==IN32&&cur->type==IN32)
+				r=(*prev->u.in32<*cur->u.in32);
+			else if(prev->type==cur->type&&(prev->type==STR))
+				r=(strcmp(prev->u.str->str,cur->u.str->str)<0);
+			else
+				RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+		}
+		if(!r)
+			break;
+		prev=cur;
+	}
+	for(;cur;cur=getArg(stack));
+	resBp(stack);
+	SET_RETURN("SYS_lt",r
+			?newTrueValue(exe->heap)
+			:newNilValue(exe->heap)
+			,stack);
 }
 
 void SYS_le(FakeVM* exe,pthread_rwlock_t* gclock)
 {
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
-	VMvalue* fir=getArg(stack);
-	VMvalue* sec=getArg(stack);
-	if(resBp(stack))
-		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
-	if(!fir||!sec)
+	int r=1;
+	VMvalue* cur=getArg(stack);
+	VMvalue* prev=NULL;
+	if(!cur)
 		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
-	if(fir->type==DBL||sec->type==DBL)
-		SET_RETURN("SYS_le",((((fir->type==DBL)?*fir->u.dbl:*fir->u.in32)-((sec->type==DBL)?*sec->u.dbl:*sec->u.in32))<=0.0)
-				?newTrueValue(exe->heap)
-				:newNilValue(exe->heap)
-				,stack)
-	else if(fir->type==IN32&&sec->type==IN32)
-		SET_RETURN("SYS_le",(*fir->u.in32<=*sec->u.in32)
-				?newTrueValue(exe->heap)
-				:newNilValue(exe->heap)
-				,stack)
-	else if(fir->type==sec->type&&(fir->type==SYM||fir->type==STR))
-		SET_RETURN("SYS_le",(strcmp(fir->u.str->str,sec->u.str->str)<=0)
-				?newTrueValue(exe->heap)
-				:newNilValue(exe->heap)
-				,stack)
-	else
-		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+	for(;cur;cur=getArg(stack))
+	{
+		if(prev)
+		{
+			if(prev->type==DBL||cur->type==DBL)
+				r=((((prev->type==DBL)?*prev->u.dbl:*prev->u.in32)-((cur->type==DBL)?*cur->u.dbl:*cur->u.in32))<=0.0);
+			else if(prev->type==IN32&&cur->type==IN32)
+				r=(*prev->u.in32<=*cur->u.in32);
+			else if(prev->type==cur->type&&(prev->type==STR))
+				r=(strcmp(prev->u.str->str,cur->u.str->str)<=0);
+			else
+				RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+		}
+		if(!r)
+			break;
+		prev=cur;
+	}
+	for(;cur;cur=getArg(stack));
+	resBp(stack);
+	SET_RETURN("SYS_le",r
+			?newTrueValue(exe->heap)
+			:newNilValue(exe->heap)
+			,stack);
 }
 
 void SYS_chr(FakeVM* exe,pthread_rwlock_t* gclock)
@@ -331,7 +567,8 @@ void SYS_int(FakeVM* exe,pthread_rwlock_t* gclock)
 			*retval->u.in32=stringToInt(obj->u.str->str);
 			break;
 		case BYTS:
-			memcpy(retval->u.in32,obj->u.byts->str,sizeof(int32_t));
+			*retval->u.in32=0;
+			memcpy(retval->u.in32,obj->u.byts->str,obj->u.byts->size);
 			break;
 		default:
 			RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
@@ -366,7 +603,8 @@ void SYS_dbl(FakeVM* exe,pthread_rwlock_t* gclock)
 			*retval->u.dbl=stringToDouble(obj->u.str->str);
 			break;
 		case BYTS:
-			memcpy(retval->u.dbl,obj->u.byts->str,sizeof(double));
+			*retval->u.dbl=0.0;
+			memcpy(retval->u.dbl,obj->u.byts->str,obj->u.byts->size);
 			break;
 		default:
 			RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
@@ -418,7 +656,7 @@ void SYS_sym(FakeVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
 	if(!obj)
 		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
-	VMvalue* retval=newVMvalue(STR,newVMstr(NULL),exe->heap,1);
+	VMvalue* retval=newVMvalue(SYM,newVMstr(NULL),exe->heap,1);
 	switch(obj->type)
 	{
 		case IN32:
@@ -559,6 +797,8 @@ void SYS_length(FakeVM* exe,pthread_rwlock_t* gclock)
 	VMvalue* retval=newVMvalue(IN32,NULL,exe->heap,1);
 	switch(obj->type)
 	{
+		case NIL:
+			break;
 		case PAIR:
 			for(;obj->type==PAIR;obj=getVMpairCdr(obj))len++;
 			break;
@@ -799,4 +1039,140 @@ void SYS_argv(FakeVM* exe,pthread_rwlock_t* pGClock)
 		tmp->u.pair->cdr=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap,1);
 	}
 	SET_RETURN("FAKE_argv",retval,stack);
+}
+
+void SYS_go(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	if(exe->VMid==-1)
+		RAISE_BUILTIN_ERROR(CANTCREATETHREAD,runnable,exe);
+	VMvalue* threadProc=getArg(stack);
+	if(!threadProc)
+		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
+	if(threadProc->type!=PRC)
+		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+	FakeVM* threadVM=newThreadVM(threadProc->u.prc,exe->heap);
+	threadVM->callback=exe->callback;
+	threadVM->table=exe->table;
+	threadVM->lnt=exe->lnt;
+	threadVM->code=exe->code;
+	threadVM->size=exe->size;
+	threadVM->buf=exe->buf;
+	VMstack* threadVMstack=threadVM->stack;
+	VMvalue* prevBp=newVMvalue(IN32,&threadVMstack->bp,exe->heap,1);
+	SET_RETURN("SYS_go",prevBp,threadVMstack);
+	threadVMstack->bp=threadVMstack->tp;
+	VMvalue* cur=getArg(stack);
+	ComStack* comStack=newComStack(32);
+	for(;cur;cur=getArg(stack))
+	{
+		VMvalue* tmp=newNilValue(exe->heap);
+		tmp->access=1;
+		copyRef(tmp,cur);
+		pushComStack(tmp,comStack);
+	}
+	resBp(stack);
+	while(!isComStackEmpty(comStack))
+	{
+		VMvalue* tmp=popComStack(comStack);
+		SET_RETURN("SYS_go",tmp,threadVMstack);
+	}
+	freeComStack(comStack);
+	increaseVMChanlRefcount(threadVM->chan);
+	VMChanl* chan=threadVM->chan;
+	int32_t faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMFunc,threadVM);
+	if(faildCode)
+	{
+		decreaseVMChanlRefcount(chan);
+		freeVMChanl(chan);
+		deleteCallChain(threadVM);
+		freeVMstack(threadVM->stack);
+		threadVM->stack=NULL;
+		threadVM->lnt=NULL;
+		threadVM->table=NULL;
+		SET_RETURN("SYS_go",newVMvalue(IN32,&faildCode,exe->heap,1),stack);
+	}
+	else
+		SET_RETURN("SYS_go",newVMvalue(CHAN,chan,exe->heap,1),stack);
+}
+
+void SYS_chanl(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* maxSize=getArg(stack);
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
+	if(!maxSize)
+		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
+	if(maxSize->type!=IN32)
+		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+	SET_RETURN("SYS_chanl",newVMvalue(CHAN,newVMChanl(*maxSize->u.in32),exe->heap,1),stack);
+}
+
+void SYS_send(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* message=getArg(stack);
+	VMvalue* ch=getArg(stack);
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
+	if(!message||!ch)
+		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
+	if(ch->type!=CHAN)
+		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+	VMvalue* tmp=newNilValue(exe->heap);
+	tmp->access=1;
+	copyRef(tmp,message);
+	SendT* t=newSendT(tmp);
+	chanlSend(t,ch->u.chan);
+	SET_RETURN("SYS_send",tmp,stack);
+}
+
+void SYS_recv(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* ch=getArg(stack);
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
+	if(!ch)
+		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
+	if(ch->type!=CHAN)
+		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+	RecvT* t=newRecvT(exe);
+	SET_RETURN("SYS_recv",newNilValue(exe->heap),stack);
+	chanlRecv(t,ch->u.chan);
+}
+
+void SYS_error(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* type=getArg(stack);
+	VMvalue* message=getArg(stack);
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
+	if(!type||!message)
+		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
+	if(type->type!=SYM||message->type!=STR)
+		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+	SET_RETURN("SYS_error",newVMvalue(ERR,newVMerror(type->u.str->str,message->u.str->str),exe->heap,1),stack);
+}
+
+void SYS_raise(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* err=getArg(stack);
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
+	if(!err)
+		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
+	if(err->type!=ERR)
+		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+	increaseVMerrorRefcount(err->u.err);
+	raiseVMerror(err->u.err,exe);
 }

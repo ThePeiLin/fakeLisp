@@ -314,7 +314,7 @@ int VMvaluecmp(VMvalue* fir,VMvalue* sec)
 	{
 		VMvalue* root1=popComStack(s1);
 		VMvalue* root2=popComStack(s2);
-		if((root1==root2)||(root1->type!=root2->type)||(root1->u.all==root2->u.all))
+		if((root1==root2)||(root1->u.all==root2->u.all))
 			r=1;
 		else if((root1->type>=IN32&&root1->type<=BYTS)||(root1->type==PAIR))
 		{
@@ -1483,12 +1483,9 @@ int raiseVMerror(VMerror* err,FakeVM* exe)
 	fprintf(stderr,"%s",err->message);
 	freeVMerror(err);
 	if(exe->VMid==-1)
-		longjmp(exe->buf,255);
-	else if(exe->VMid!=0)
-		longjmp(exe->buf,255);
+		longjmp(*exe->buf,255);
 	int i[2]={255,1};
 	exe->callback(i);
-
 	return 255;
 }
 

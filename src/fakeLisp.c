@@ -86,6 +86,7 @@ int main(int argc,char** argv)
 			anotherVM->callback=errorCallBack;
 			anotherVM->table=inter->table;
 			anotherVM->lnt=inter->lnt;
+			anotherVM->buf=&buf;
 			initGlobEnv(globEnv,anotherVM->heap,inter->table);
 			chdir(workpath);
 			free(workpath);
@@ -137,6 +138,7 @@ int main(int argc,char** argv)
 		mainrunnable->proc->prevEnv=NULL;
 		anotherVM->callback=errorCallBack;
 		anotherVM->lnt=lnt;
+		anotherVM->buf=&buf;
 		initGlobEnv(globEnv,anotherVM->heap,table);
 		if(!setjmp(buf))
 		{
@@ -178,6 +180,7 @@ void runIntpr(Intpr* inter)
 	anotherVM->tid=pthread_self();
 	anotherVM->callback=errorCallBack;
 	anotherVM->lnt=inter->lnt;
+	anotherVM->buf=&buf;
 	initGlobEnv(globEnv,anotherVM->heap,inter->table);
 	ByteCode* rawProcList=NULL;
 	char* prev=NULL;

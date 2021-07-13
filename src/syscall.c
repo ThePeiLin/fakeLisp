@@ -1053,12 +1053,10 @@ void SYS_go(FakeVM* exe,pthread_rwlock_t* gclock)
 	if(threadProc->type!=PRC)
 		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
 	FakeVM* threadVM=newThreadVM(threadProc->u.prc,exe->heap);
-	threadVM->callback=exe->callback;
 	threadVM->table=exe->table;
 	threadVM->lnt=exe->lnt;
 	threadVM->code=exe->code;
 	threadVM->size=exe->size;
-	threadVM->buf=exe->buf;
 	VMstack* threadVMstack=threadVM->stack;
 	VMvalue* prevBp=newVMvalue(IN32,&threadVMstack->bp,exe->heap,1);
 	SET_RETURN("SYS_go",prevBp,threadVMstack);

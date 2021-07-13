@@ -332,7 +332,7 @@ typedef struct FakeVM
 	struct VMHeap* heap;
 	struct LineNumberTable* lnt;
 	void (*callback)(void*);
-	jmp_buf* buf;
+	jmp_buf buf;
 }FakeVM;
 
 typedef struct VMHeap

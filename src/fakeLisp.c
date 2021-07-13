@@ -14,7 +14,7 @@
 #include<ctype.h>
 #include<pthread.h>
 #include<setjmp.h>
-
+#include<signal.h>
 static jmp_buf buf;
 static int exitStatus=0;
 
@@ -25,9 +25,17 @@ void errorCallBack(void* a)
 	longjmp(buf,i[1]);
 }
 
+void otherThreadErrorSignalHander(int signum)
+{
+	exitStatus=255;
+	longjmp(buf,1);
+}
+
+
 extern char* InterpreterPath;
 int main(int argc,char** argv)
 {
+	signal(SIGABRT,otherThreadErrorSignalHander);
 	char* filename=(argc>1)?argv[1]:NULL;
 #ifdef WIN32
 	InterpreterPath=_fullpath(NULL,argv[0],0);
@@ -86,15 +94,16 @@ int main(int argc,char** argv)
 			anotherVM->callback=errorCallBack;
 			anotherVM->table=inter->table;
 			anotherVM->lnt=inter->lnt;
-			anotherVM->buf=&buf;
 			initGlobEnv(globEnv,anotherVM->heap,inter->table);
 			chdir(workpath);
 			free(workpath);
+			inter->table=NULL;
+			inter->lnt=NULL;
+			freeIntpr(inter);
 			if(setjmp(buf)==0)
 			{
 				runFakeVM(anotherVM);
 				joinAllThread();
-				freeIntpr(inter);
 				unInitPreprocess();
 				freeVMheap(anotherVM->heap);
 				freeAllVMs();
@@ -103,7 +112,6 @@ int main(int argc,char** argv)
 			{
 				deleteCallChain(anotherVM);
 				cancelAllThread();
-				freeIntpr(inter);
 				unInitPreprocess();
 				freeVMheap(anotherVM->heap);
 				freeAllVMs();
@@ -138,7 +146,6 @@ int main(int argc,char** argv)
 		mainrunnable->proc->prevEnv=NULL;
 		anotherVM->callback=errorCallBack;
 		anotherVM->lnt=lnt;
-		anotherVM->buf=&buf;
 		initGlobEnv(globEnv,anotherVM->heap,table);
 		if(!setjmp(buf))
 		{
@@ -180,7 +187,6 @@ void runIntpr(Intpr* inter)
 	anotherVM->tid=pthread_self();
 	anotherVM->callback=errorCallBack;
 	anotherVM->lnt=inter->lnt;
-	anotherVM->buf=&buf;
 	initGlobEnv(globEnv,anotherVM->heap,inter->table);
 	ByteCode* rawProcList=NULL;
 	char* prev=NULL;

@@ -18,6 +18,15 @@
 #include<unistd.h>
 #include<time.h>
 #include<setjmp.h>
+#include<signal.h>
+
+void threadErrorCallBack(void* a)
+{
+	void** e=(void**)a;
+	int* i=(int*)a;
+	FakeVM* exe=e[0];
+	longjmp(exe->buf,i[(sizeof(void*)*2)/sizeof(int)]);
+}
 
 extern const char* builtInErrorType[NUMOFBUILTINERRORTYPE];
 
@@ -94,7 +103,6 @@ FakeVM* newFakeVM(ByteCode* mainCode)
 	exe->tstack=newComStack(32);
 	exe->heap=newVMheap();
 	exe->callback=NULL;
-	exe->buf=NULL;
 	FakeVM** ppFakeVM=NULL;
 	int i=0;
 	for(;i<GlobFakeVMs.num;i++)
@@ -137,8 +145,7 @@ FakeVM* newTmpFakeVM(ByteCode* mainCode)
 	exe->stack=newVMstack(0);
 	exe->tstack=newComStack(32);
 	exe->heap=newVMheap();
-	exe->callback=NULL;
-	exe->buf=NULL;
+	exe->callback=threadErrorCallBack;
 	exe->VMid=-1;
 	return exe;
 }
@@ -229,6 +236,8 @@ void* ThreadVMFunc(void* p)
 	freeComStack(exe->tstack);
 	freeComStack(exe->rstack);
 	exe->mark=0;
+	if(status==255)
+		exit(255);
 	return (void*)status;
 }
 
@@ -258,6 +267,18 @@ int runFakeVM(FakeVM* exe)
 		}
 
 		int32_t cp=currunnable->cp;
+		int status=setjmp(exe->buf);
+		if(status==1)
+		{
+			pthread_rwlock_unlock(&GClock);
+			return 255;
+		}
+		else if(status==255)
+		{
+			pthread_rwlock_unlock(&GClock);
+			return 1;
+		}
+		pthread_testcancel();
 		ByteCodes[(uint8_t)exe->code[cp]](exe);
 		pthread_rwlock_unlock(&GClock);
 		if(exe->heap->num>exe->heap->threshold)
@@ -1237,8 +1258,7 @@ FakeVM* newThreadVM(VMproc* mainCode,VMheap* heap)
 	exe->tstack=newComStack(32);
 	exe->stack=newVMstack(0);
 	exe->heap=heap;
-	exe->callback=NULL;
-	exe->buf=NULL;
+	exe->callback=threadErrorCallBack;
 	FakeVM** ppFakeVM=NULL;
 	int i=0;
 	for(;i<GlobFakeVMs.num;i++)
@@ -1314,11 +1334,14 @@ void cancelAllThread()
 		{
 			pthread_cancel(cur->tid);
 			pthread_join(cur->tid,NULL);
-			freeVMChanl(cur->chan);
-			deleteCallChain(cur);
-			freeVMstack(cur->stack);
-			freeComStack(cur->rstack);
-			freeComStack(cur->tstack);
+			if(cur->mark)
+			{
+				freeVMChanl(cur->chan);
+				deleteCallChain(cur);
+				freeVMstack(cur->stack);
+				freeComStack(cur->rstack);
+				freeComStack(cur->tstack);
+			}
 		}
 	}
 }

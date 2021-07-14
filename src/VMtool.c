@@ -626,6 +626,15 @@ VMByts* copyRefVMByts(size_t size,uint8_t* str)
 	return tmp;
 }
 
+void VMBytsCat(VMByts* fir,const VMByts* sec)
+{
+	size_t firSize=fir->size;
+	size_t secSize=sec->size;
+	fir->str=(uint8_t*)realloc(fir->str,(firSize+secSize)*sizeof(uint8_t));
+	FAKE_ASSERT(fir->str,"VMBytsCat",__FILE__,__LINE__);
+	fir->size=firSize+secSize;
+	memcpy(fir->str+firSize,sec->str,secSize);
+}
 VMByts* newEmptyVMByts()
 {
 	VMByts* tmp=(VMByts*)malloc(sizeof(VMByts));

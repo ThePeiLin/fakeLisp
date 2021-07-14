@@ -55,6 +55,7 @@ const char* builtInSymbolList[]=
 	"car",
 	"cdr",
 	"cons",
+	"append",
 	"atom",
 	"null",
 	"not",

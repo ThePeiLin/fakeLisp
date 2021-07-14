@@ -20,8 +20,8 @@ static int exitStatus=0;
 void errorCallBack(void* a)
 {
 	int* i=(int*)a;
-	exitStatus=i[0];
-	longjmp(buf,i[1]);
+	exitStatus=255;
+	longjmp(buf,i[(sizeof(void*)*2)/sizeof(int)]);
 }
 
 extern char* InterpreterPath;

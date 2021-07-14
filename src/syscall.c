@@ -54,6 +54,47 @@ void SYS_cons(FakeVM* exe,pthread_rwlock_t* gclock)
 	SET_RETURN("SYS_cons",pair,stack);
 }
 
+void SYS_append(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* retval=newNilValue(exe->heap);
+	VMvalue* cur=getArg(stack);
+	ValueType prevType=retval->type;
+	VMvalue* prev=retval;
+	for(;cur;cur=getArg(stack))
+	{
+		switch(prevType)
+		{
+			case NIL:
+				copyRef(prev,copyVMvalue(cur,exe->heap));
+				break;
+			case PAIR:
+				{
+					for(;prev->type;prev=getVMpairCdr(prev));
+					copyRef(prev,copyVMvalue(cur,exe->heap));
+				}
+				break;
+			case STR:
+				if(cur->type!=STR)
+					RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+				prev->u.str->str=strCat(prev->u.str->str,cur->u.str->str);
+				break;
+			case BYTS:
+				if(cur->type!=BYTS)
+					RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+				VMBytsCat(prev->u.byts,cur->u.byts);
+				break;
+			default:
+				RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+				break;
+		}
+		prevType=prev->type;
+	}
+	resBp(stack);
+	SET_RETURN("SYS_append",retval,stack);
+}
+
 void SYS_atom(FakeVM* exe,pthread_rwlock_t* gclock)
 {
 	VMstack* stack=exe->stack;

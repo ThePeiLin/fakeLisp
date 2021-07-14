@@ -4,6 +4,7 @@
 void SYS_car(FakeVM* exe,pthread_rwlock_t* gclock);
 void SYS_cdr(FakeVM* exe,pthread_rwlock_t* gclock);
 void SYS_cons(FakeVM* exe,pthread_rwlock_t* gclock);
+void SYS_append(FakeVM* exe,pthread_rwlock_t* gclock);
 void SYS_atom(FakeVM* exe,pthread_rwlock_t* gclock);
 void SYS_null(FakeVM* exe,pthread_rwlock_t* gclock);
 void SYS_not(FakeVM* exe,pthread_rwlock_t* gclock);

@@ -6,7 +6,7 @@
 #include<pthread.h>
 #include<setjmp.h>
 #define THRESHOLD_SIZE 64
-#define NUMOFBUILTINSYMBOL 47
+#define NUMOFBUILTINSYMBOL 48
 #define MAX_STRING_SIZE 64
 #define NUMOFBUILTINERRORTYPE 20
 

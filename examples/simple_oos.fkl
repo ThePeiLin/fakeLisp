@@ -17,25 +17,25 @@
                               (not (eq segmentId 'method)))
                        (break nil))
                      (case segmentId
-                       (('data) (setf data-list (append data-list segmentData)))
-                       (('method) (setf pre-method-list (append pre-method-list segmentData)))))
+                       (('data) (setq data-list (append data-list segmentData)))
+                       (('method) (setq pre-method-list (append pre-method-list segmentData)))))
               (loop (cdr c)))))
 
     (let loop ((c data-list))
       (cond (c (let ((name (car (car c))))
-                 (setf case-list (cons `(((quote ~name)) ~name) case-list)))
+                 (setq case-list (cons `(((quote ~name)) ~name) case-list)))
                (loop (cdr c)))))
 
     (let loop ((c pre-method-list))
       (cond (c
               (let ((methodName (car (car c))))
                 (cond ((not (eq methodName name))
-                       (setf method-list (cons `(~methodName (lambda ~@(cdr (car c)))) method-list))
-                       (setf case-list (cons `(((quote ~methodName)) ~methodName) case-list)))
+                       (setq method-list (cons `(~methodName (lambda ~@(cdr (car c)))) method-list))
+                       (setq case-list (cons `(((quote ~methodName)) ~methodName) case-list)))
                       (1
-                       (setf construct-method (cdr (car c))))))
+                       (setq construct-method (cdr (car c))))))
               (loop (cdr c)))))
-    (setf case-list
+    (setq case-list
           (append case-list
                 `((1
                    (raise (error 'invalid-selector (append "error:Invalid selector \"" (str selector) "\"\n")))
@@ -71,15 +71,15 @@
 
        (method
          (Vec3 (x y z)
-               (setf X (dbl x))
-               (setf Y (dbl y))
-               (setf Z (dbl z)))
+               (setq X (dbl x))
+               (setq Y (dbl y))
+               (setq Z (dbl z)))
          (setX (x)
-               (setf X (dbl x)))
+               (setq X (dbl x)))
          (setY (y)
-               (setf Y (dbl y)))
+               (setq Y (dbl y)))
          (setZ (z)
-               (setf Z (dbl z)))))
+               (setq Z (dbl z)))))
 
 
 (define i (Vec3 1 2 3))

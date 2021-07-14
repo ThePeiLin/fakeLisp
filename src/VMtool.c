@@ -1341,6 +1341,7 @@ void freeVMerror(VMerror* err)
 RecvT* newRecvT(FakeVM* v)
 {
 	RecvT* tmp=(RecvT*)malloc(sizeof(RecvT));
+	FAKE_ASSERT(tmp,"newRecvT",__FILE__,__LINE__);
 	tmp->v=v;
 	pthread_cond_init(&tmp->cond,NULL);
 	return tmp;
@@ -1355,6 +1356,7 @@ void freeRecvT(RecvT* r)
 SendT* newSendT(VMvalue* m)
 {
 	SendT* tmp=(SendT*)malloc(sizeof(SendT));
+	FAKE_ASSERT(tmp,"newSendT",__FILE__,__LINE__);
 	tmp->m=m;
 	pthread_cond_init(&tmp->cond,NULL);
 	return tmp;
@@ -1374,9 +1376,7 @@ void chanlRecv(RecvT* r,VMChanl* ch)
 		pushComQueue(r,ch->recvq);
 		pthread_cond_wait(&r->cond,&ch->lock);
 	}
-	VMvalue* t=getTopValue(r->v->stack);
-	t->access=1;
-	copyRef(t,popComQueue(ch->messages));
+	SET_RETURN("chanlRecv",popComQueue(ch->messages),r->v->stack);
 	if(lengthComQueue(ch->messages)<ch->max)
 	{
 		SendT* s=popComQueue(ch->sendq);
@@ -1500,10 +1500,13 @@ VMrunnable* newVMrunnable(VMproc* code)
 {
 	VMrunnable* tmp=(VMrunnable*)malloc(sizeof(VMrunnable));
 	FAKE_ASSERT(tmp,"newVMrunnable",__FILE__,__LINE__);
-	tmp->cp=code->scp;
+	if(code)
+	{
+		tmp->cp=code->scp;
+		increaseVMprocRefcount(code);
+	}
 	tmp->proc=code;
 	tmp->mark=0;
-	increaseVMprocRefcount(code);
 	return tmp;
 }
 

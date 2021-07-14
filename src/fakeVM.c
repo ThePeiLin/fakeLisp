@@ -220,10 +220,19 @@ void* ThreadVMFunc(void* p)
 	exe->chan=NULL;
 	if(!status)
 	{
-		VMvalue* tmp=newNilValue(exe->heap);
-		tmp->access=1;
-		copyRef(tmp,getTopValue(exe->stack));
-		SendT* t=newSendT(tmp);
+		SendT* t=newSendT(getTopValue(exe->stack));
+		chanlSend(t,tmpCh);
+	}
+	else
+	{
+		char* threadErrorMessage=copyStr("error:occur in thread ");
+		char* id=intToString(exe->VMid);
+		threadErrorMessage=strCat(threadErrorMessage,id);
+		threadErrorMessage=strCat(threadErrorMessage,"\n");
+		VMvalue* err=newVMvalue(ERR,newVMerror(builtInErrorType[THREADERROR],threadErrorMessage),exe->heap,1);
+		free(threadErrorMessage);
+		free(id);
+		SendT* t=newSendT(err);
 		chanlSend(t,tmpCh);
 	}
 	freeVMChanl(tmpCh);
@@ -235,6 +244,45 @@ void* ThreadVMFunc(void* p)
 		deleteCallChain(exe);
 	freeComStack(exe->tstack);
 	freeComStack(exe->rstack);
+	exe->mark=0;
+	return (void*)status;
+}
+
+void* ThreadVMDlprocFunc(void* p)
+{
+	void** a=(void**)p;
+	FakeVM* exe=a[0];
+	DllFunc f=a[1];
+	free(p);
+	int64_t status=0;
+	VMChanl* ch=exe->chan;
+	if(!setjmp(exe->buf))
+	{
+		f(exe,&GClock);
+		SendT* t=newSendT(getTopValue(exe->stack));
+		chanlSend(t,ch);
+	}
+	else
+	{
+		char* threadErrorMessage=copyStr("error:occur in thread ");
+		char* id=intToString(exe->VMid);
+		threadErrorMessage=strCat(threadErrorMessage,id);
+		threadErrorMessage=strCat(threadErrorMessage,"\n");
+		VMvalue* err=newVMvalue(ERR,newVMerror(builtInErrorType[THREADERROR],threadErrorMessage),exe->heap,1);
+		free(threadErrorMessage);
+		free(id);
+		SendT* t=newSendT(err);
+		chanlSend(t,ch);
+		status=255;
+	}
+	freeVMChanl(ch);
+	freeVMstack(exe->stack);
+	exe->stack=NULL;
+	exe->lnt=NULL;
+	exe->table=NULL;
+	deleteCallChain(exe);
+	freeComStack(exe->rstack);
+	freeComStack(exe->tstack);
 	exe->mark=0;
 	return (void*)status;
 }
@@ -1214,7 +1262,10 @@ FakeVM* newThreadVM(VMproc* mainCode,VMheap* heap)
 	int i=0;
 	for(;i<GlobFakeVMs.num;i++)
 		if(GlobFakeVMs.VMs[i]==NULL)
+		{
 			ppFakeVM=GlobFakeVMs.VMs+i;
+			break;
+		}
 	if(ppFakeVM!=NULL)
 	{
 		exe->VMid=i;
@@ -1231,6 +1282,49 @@ FakeVM* newThreadVM(VMproc* mainCode,VMheap* heap)
 	}
 	return exe;
 }
+
+FakeVM* newThreadDlprocVM(VMrunnable* r,VMheap* heap)
+{
+	FakeVM* exe=(FakeVM*)malloc(sizeof(FakeVM));
+	FAKE_ASSERT(exe,"newThreadVM",__FILE__,__LINE__);
+	VMrunnable* t=newVMrunnable(NULL);
+	t->cp=r->cp;
+	t->localenv=NULL;
+	exe->rstack=newComStack(32);
+	pushComStack(t,exe->rstack);
+	exe->mark=1;
+	exe->argc=0;
+	exe->argv=NULL;
+	exe->chan=newVMChanl(0);
+	exe->tstack=newComStack(32);
+	exe->stack=newVMstack(0);
+	exe->heap=heap;
+	exe->callback=threadErrorCallBack;
+	FakeVM** ppFakeVM=NULL;
+	int i=0;
+	for(;i<GlobFakeVMs.num;i++)
+		if(GlobFakeVMs.VMs[i]==NULL)
+		{
+			ppFakeVM=GlobFakeVMs.VMs+i;
+			break;
+		}
+	if(ppFakeVM!=NULL)
+	{
+		exe->VMid=i;
+		*ppFakeVM=exe;
+	}
+	else
+	{
+		int32_t size=GlobFakeVMs.num;
+		GlobFakeVMs.VMs=(FakeVM**)realloc(GlobFakeVMs.VMs,sizeof(FakeVM*)*(size+1));
+		FAKE_ASSERT(!size||GlobFakeVMs.VMs,"newThreadVM",__FILE__,__LINE__);
+		GlobFakeVMs.VMs[size]=exe;
+		GlobFakeVMs.num+=1;
+		exe->VMid=size;
+	}
+	return exe;
+}
+
 
 void freeVMstack(VMstack* stack)
 {
@@ -1302,8 +1396,10 @@ void deleteCallChain(FakeVM* exe)
 	while(!isComStackEmpty(exe->rstack))
 	{
 		VMrunnable* cur=popComStack(exe->rstack);
-		freeVMenv(cur->localenv);
-		freeVMproc(cur->proc);
+		if(cur->localenv)
+			freeVMenv(cur->localenv);
+		if(cur->proc)
+			freeVMproc(cur->proc);
 		free(cur);
 	}
 }

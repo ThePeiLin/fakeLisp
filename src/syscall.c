@@ -10,6 +10,7 @@ extern const char* builtInSymbolList[NUMOFBUILTINSYMBOL];
 extern const char* builtInErrorType[NUMOFBUILTINERRORTYPE];
 extern FakeVMlist GlobFakeVMs;
 extern void* ThreadVMFunc(void* p);
+extern void* ThreadVMDlprocFunc(void* p);
 void SYS_car(FakeVM* exe,pthread_rwlock_t* gclock)
 {
 	VMstack* stack=exe->stack;
@@ -1098,9 +1099,9 @@ void SYS_go(FakeVM* exe,pthread_rwlock_t* gclock)
 	VMvalue* threadProc=getArg(stack);
 	if(!threadProc)
 		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
-	if(threadProc->type!=PRC)
+	if(threadProc->type!=PRC&&threadProc->type!=DLPROC)
 		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
-	FakeVM* threadVM=newThreadVM(threadProc->u.prc,exe->heap);
+	FakeVM* threadVM=(threadProc->type==PRC)?newThreadVM(threadProc->u.prc,exe->heap):newThreadDlprocVM(runnable,exe->heap);
 	threadVM->table=exe->table;
 	threadVM->lnt=exe->lnt;
 	threadVM->code=exe->code;
@@ -1127,7 +1128,15 @@ void SYS_go(FakeVM* exe,pthread_rwlock_t* gclock)
 	freeComStack(comStack);
 	increaseVMChanlRefcount(threadVM->chan);
 	VMChanl* chan=threadVM->chan;
-	int32_t faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMFunc,threadVM);
+	int32_t faildCode=0;
+	if(threadProc->type==PRC)
+		faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMFunc,threadVM);
+	else
+	{
+		void* a[2]={threadVM,threadProc->u.dlproc->func};
+		void** p=(void**)copyMemory(a,sizeof(a));
+		faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMDlprocFunc,p);
+	}
 	if(faildCode)
 	{
 		decreaseVMChanlRefcount(chan);
@@ -1169,12 +1178,9 @@ void SYS_send(FakeVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
 	if(ch->type!=CHAN)
 		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
-	VMvalue* tmp=newNilValue(exe->heap);
-	tmp->access=1;
-	copyRef(tmp,message);
-	SendT* t=newSendT(tmp);
+	SendT* t=newSendT(message);
 	chanlSend(t,ch->u.chan);
-	SET_RETURN("SYS_send",tmp,stack);
+	SET_RETURN("SYS_send",message,stack);
 }
 
 void SYS_recv(FakeVM* exe,pthread_rwlock_t* gclock)
@@ -1189,7 +1195,6 @@ void SYS_recv(FakeVM* exe,pthread_rwlock_t* gclock)
 	if(ch->type!=CHAN)
 		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
 	RecvT* t=newRecvT(exe);
-	SET_RETURN("SYS_recv",newNilValue(exe->heap),stack);
 	chanlRecv(t,ch->u.chan);
 }
 

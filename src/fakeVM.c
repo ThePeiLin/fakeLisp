@@ -18,7 +18,6 @@
 #include<unistd.h>
 #include<time.h>
 #include<setjmp.h>
-#include<signal.h>
 
 void threadErrorCallBack(void* a)
 {
@@ -28,6 +27,7 @@ void threadErrorCallBack(void* a)
 	longjmp(exe->buf,i[(sizeof(void*)*2)/sizeof(int)]);
 }
 
+extern char* InterpreterPath;
 extern const char* builtInErrorType[NUMOFBUILTINERRORTYPE];
 
 static int envNodeCmp(const void* a,const void* b)
@@ -236,8 +236,6 @@ void* ThreadVMFunc(void* p)
 	freeComStack(exe->tstack);
 	freeComStack(exe->rstack);
 	exe->mark=0;
-	if(status==255)
-		exit(255);
 	return (void*)status;
 }
 
@@ -278,7 +276,6 @@ int runFakeVM(FakeVM* exe)
 			pthread_rwlock_unlock(&GClock);
 			return 1;
 		}
-		pthread_testcancel();
 		ByteCodes[(uint8_t)exe->code[cp]](exe);
 		pthread_rwlock_unlock(&GClock);
 		if(exe->heap->num>exe->heap->threshold)

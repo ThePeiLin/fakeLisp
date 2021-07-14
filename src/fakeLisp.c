@@ -14,7 +14,6 @@
 #include<ctype.h>
 #include<pthread.h>
 #include<setjmp.h>
-#include<signal.h>
 static jmp_buf buf;
 static int exitStatus=0;
 
@@ -35,7 +34,6 @@ void otherThreadErrorSignalHander(int signum)
 extern char* InterpreterPath;
 int main(int argc,char** argv)
 {
-	signal(SIGABRT,otherThreadErrorSignalHander);
 	char* filename=(argc>1)?argv[1]:NULL;
 #ifdef WIN32
 	InterpreterPath=_fullpath(NULL,argv[0],0);

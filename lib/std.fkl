@@ -1,8 +1,5 @@
 (library (std)
-         (export cons
-                 car
-                 cdr
-                 caar
+         (export caar
                  cadr
                  cdar
                  cddr
@@ -30,47 +27,8 @@
                  cddadr
                  cdddar
                  cddddr
-                 list
-                 atom
-                 null
-                 type
                  aply
-                 eq
-                 eqn
-                 equal
-                 gt
-                 ge
-                 lt
-                 le
-                 not
-                 dbl
-                 str
-                 sym
-                 chr
-                 int
-                 byt
-                 add
-                 sub
-                 mul
-                 div
-                 rem
-                 nth
-                 length
-                 appd
-                 append
-                 go
-                 chanl
-                 send
-                 recv
-                 clcc
-                 dll
-                 dlsym
-                 error
-                 raise
-                 +
-                 -
-                 *
-                 /
+                 list
                  map
                  reverse
                  foreach
@@ -80,467 +38,100 @@
                  square
                  1+
                  -1+)
-         (define cons (lambda (a b)
-                        (progn
-                          push_pair
-                          push_var a
-                          pop_car
-                          push_var b
-                          pop_cdr
-                          )))
-
-         (define car (lambda (a)
-                       (progn
-                         push_var a
-                         push_car
-                         )))
-
-         (define cdr (lambda (a)
-                       (progn
-                         push_var a
-                         push_cdr
-                         )))
          (define caar (lambda (a)
-                        (progn
-                          push_var a
-                          push_car
-                          push_car
-                          )))
+                        (car (car a))))
 
          (define cadr (lambda (a)
-                        (progn
-                          push_var a
-                          push_cdr
-                          push_car
-                          )))
+                        (car (cdr a))))
 
          (define cdar (lambda (a)
-                        (progn
-                          push_var a
-                          push_car
-                          push_cdr
-                          )))
+                        (cdr (car a))))
 
          (define cddr (lambda (a)
-                        (progn
-                          push_var a
-                          push_cdr
-                          push_cdr
-                          )))
+                        (cdr (cdr a))))
 
          (define caaar (lambda (a)
-                         (progn
-                           push_var a
-                           push_car
-                           push_car
-                           push_car
-                           )))
+                         (car (car (car a)))))
 
          (define caadr (lambda (a)
-                         (progn
-                           push_var a
-                           push_cdr
-                           push_car
-                           push_car
-                           )))
+                         (car (car (cdr a)))))
 
          (define cadar (lambda (a)
-                         (progn
-                           push_var a
-                           push_car
-                           push_cdr
-                           push_car
-                           )))
+                         (car (cdr (car a)))))
 
          (define caddr (lambda (a)
-                         (progn
-                           push_var a
-                           push_cdr
-                           push_cdr
-                           push_car
-                           )))
+                         (car (cdr (cdr a)))))
 
          (define cdaar (lambda (a)
-                         (progn
-                           push_var a
-                           push_car
-                           push_car
-                           push_cdr
-                           )))
+                         (cdr (car (car a)))))
 
          (define cdadr (lambda (a)
-                         (progn
-                           push_var a
-                           push_cdr
-                           push_car
-                           push_cdr
-                           )))
+                         (cdr (car (cdr a)))))
 
          (define cddar (lambda (a)
-                         (progn
-                           push_var a
-                           push_car
-                           push_cdr
-                           push_cdr
-                           )))
+                         (cdr (cdr (car )))))
 
          (define cdddr (lambda (a)
-                         (progn
-                           push_var a
-                           push_cdr
-                           push_cdr
-                           push_cdr
-                           )))
+                         (cdr (cdr (cdr a)))))
 
          (define caaaar (lambda (a)
-                          (progn
-                            push_var a
-                            push_car
-                            push_car
-                            push_car
-                            push_car
-                            )))
+                          (car (car (car (car a))))))
 
          (define caaadr (lambda (a)
-                          (progn
-                            push_var a
-                            push_cdr
-                            push_car
-                            push_car
-                            push_car
-                            )))
+                          (car (car (car (cdr a))))))
 
          (define caadar (lambda (a)
-                          (progn
-                            push_var a
-                            push_car
-                            push_cdr
-                            push_car
-                            push_car
-                            )))
+                          (car (car (cdr (car a))))))
 
          (define caaddr (lambda (a)
-                          (progn
-                            push_var a
-                            push_cdr
-                            push_cdr
-                            push_car
-                            push_car
-                            )))
+                          (car (car (cdr (cdr a))))))
 
          (define cadaar (lambda (a)
-                          (progn
-                            push_var a
-                            push_car
-                            push_car
-                            push_cdr
-                            push_car
-                            )))
+                          (car (cdr (car (car a))))))
 
          (define cadadr (lambda (a)
-                          (progn
-                            push_var a
-                            push_cdr
-                            push_car
-                            push_cdr
-                            push_car
-                            )))
+                          (car (cdr (car (cdr a))))))
 
          (define caddar (lambda (a)
-                          (progn
-                            push_var a
-                            push_car
-                            push_cdr
-                            push_cdr
-                            push_car
-                            )))
+                          (car (cdr (cdr (car a))))))
 
          (define cadddr (lambda (a)
-                          (progn
-                            push_var a
-                            push_cdr
-                            push_cdr
-                            push_cdr
-                            push_car
-                            )))
+                          (car (cdr (cdr (cdr a))))))
 
          (define cdaaar (lambda (a)
-                          (progn
-                            push_var a
-                            push_car
-                            push_car
-                            push_car
-                            push_cdr
-                            )))
+                          (cdr (car (car (car a))))))
 
          (define cdaadr (lambda (a)
-                          (progn
-                            push_var a
-                            push_cdr
-                            push_car
-                            push_car
-                            push_cdr
-                            )))
+                          (cdr (car (car (cdr a))))))
 
          (define cdadar (lambda (a)
-                          (progn
-                            push_var a
-                            push_car
-                            push_cdr
-                            push_car
-                            push_cdr
-                            )))
+                          (cdr (car (cdr (car a))))))
 
          (define cdaddr (lambda (a)
-                          (progn
-                            push_var a
-                            push_cdr
-                            push_cdr
-                            push_car
-                            push_cdr
-                            )))
+                          (cdr (car (cdr (cdr a))))))
 
          (define cddaar (lambda (a)
-                          (progn
-                            push_var a
-                            push_car
-                            push_car
-                            push_cdr
-                            push_cdr
-                            )))
+                          (cdr (cdr (car (car a))))))
 
          (define cddadr (lambda (a)
-                          (progn
-                            push_var a
-                            push_cdr
-                            push_car
-                            push_cdr
-                            push_cdr
-                            )))
+                          (cdr (cdr (car (cdr a))))))
 
          (define cdddar (lambda (a)
-                          (progn
-                            push_var a
-                            push_car
-                            push_cdr
-                            push_cdr
-                            push_cdr
-                            )))
+                          (cdr (cdr (cdr (car a))))))
 
          (define cddddr (lambda (a)
-                          (progn
-                            push_var a
-                            push_cdr
-                            push_cdr
-                            push_cdr
-                            push_cdr
-                            )))
+                          (cdr (cdr (cdr (cdr a))))))
 
-         (define list (lambda ls ls))
-
-         (define atom (lambda (a)
-                        (progn
-                          push_var a
-                          atom
-                          )))
-
-         (define null (lambda (a)
-                        (progn
-                          push_var a
-                          null
-                          )))
-
-         (define type (lambda (a)
-                        (progn
-                          push_var a
-                          type
-                          )))
-
-         (define aply (lambda (a b)
+         (define aply (lambda (f l)
                         (progn
                           set_bp
-                          push_var b
+                          push_var l
                           push_list_arg
-                          push_var a
+                          push_var f
                           invoke
                           )))
 
-         (define eq (lambda (a b)
-                      (progn
-                        push_var a
-                        push_var b
-                        eq
-                        )))
-
-         (define eqn (lambda (a b)
-                       (progn
-                         push_var a
-                         push_var b
-                         eqn
-                         )))
-
-         (define equal (lambda (a b)
-                         (progn
-                           push_var a
-                           push_var b
-                           equal
-                           )))
-
-         (define gt (lambda (a b)
-                      (progn
-                        push_var a
-                        push_var b
-                        gt
-                        )))
-
-         (define ge (lambda (a b)
-                      (progn
-                        push_var a
-                        push_var b
-                        ge
-                        )))
-
-         (define lt (lambda (a b)
-                      (progn
-                        push_var a
-                        push_var b
-                        lt
-                        )))
-
-         (define le (lambda (a b)
-                      (progn
-                        push_var a
-                        push_var b
-                        le
-                        )))
-
-         (define not (lambda (a)
-                       (progn
-                         push_var a
-                         not
-                         )))
-
-         (define dbl (lambda (a)
-                       (progn
-                         push_var a
-                         dbl
-                         )))
-
-         (define str (lambda (a)
-                       (progn
-                         push_var a
-                         str
-                         )))
-
-         (define sym (lambda (a)
-                       (progn
-                         push_var a
-                         sym
-                         )))
-
-         (define chr (lambda (a)
-                       (progn
-                         push_var a
-                         chr
-                         )))
-
-         (define int (lambda (a)
-                       (progn
-                         push_var a
-                         int
-                         )))
-
-         (define byt (lambda (a)
-                       (progn
-                         push_var a
-                         byts
-                         )))
-
-         (define add (lambda (a b)
-                       (progn
-                         push_var a
-                         push_var b
-                         add
-                         )))
-
-         (define sub (lambda (a b)
-                       (progn
-                         push_var a
-                         push_var b
-                         sub
-                         )))
-
-         (define mul (lambda (a b)
-                       (progn
-                         push_var a
-                         push_var b
-                         mul
-                         )))
-
-         (define div (lambda (a b)
-                       (progn
-                         push_var a
-                         push_var b
-                         div
-                         )))
-
-         (define rem (lambda (a b)
-                       (progn
-                         push_var a
-                         push_var b
-                         rem
-                         )))
-
-         (define nth (lambda (place ls)
-                       (progn
-                         push_var place
-                         push_var ls
-                         nth
-                         )))
-
-         (define length (lambda (ls)
-                          (progn
-                            push_var ls
-                            length
-                            )))
-
-         (define appd (lambda (a b)
-                        (progn
-                          push_var a
-                          push_var b
-                          appd
-                          )))
-         (define append (lambda b
-                          (define iter (lambda (c r)
-                                         (cond ((null c) r)
-                                               (1 (iter (cdr c) (appd r (car c)))))))
-                          (iter b nil)))
-
-         (define go (lambda (f,a)
-                      (progn
-                        push_var f
-                        push_var a
-                        go
-                        )))
-
-         (define chanl (lambda (size)
-                         (progn
-                           push_var size
-                           chanl
-                           )))
-
-         (define send (lambda (obj ch)
-                        (progn
-                          push_var obj
-                          push_var ch
-                          send
-                          )))
-
-         (define recv (lambda (ch)
-                        (progn
-                          push_var ch
-                          recv
-                          )))
+         (define list (lambda ls ls))
 
          (define clcc (lambda (f)
                         (progn
@@ -553,46 +144,21 @@
                           invoke
                           )))
 
-         (define error (lambda (type message)
-                         (progn
-                           push_var type
-                           push_var message
-                           error)))
-
-         (define raise (lambda (err)
-                         (progn
-                           push_var err
-                           raise)))
-
-         (define + (lambda (a,b)
-                     (cond (b (add a (aply + b)))
-                           (1 a))))
-
-         (define - (lambda (a,b)
-                     (cond (b (sub a (aply + b)))
-                           (1 (sub 0 a)))))
-
-         (define * (lambda (a,b)
-                     (cond (b (mul a (aply * b)))
-                           (1 a))))
-
-         (define / (lambda (a,b)
-                     (cond (b (div a (aply * b)))
-                           (1 a))))
-
          (define map
            (lambda (f,l)
              (define iter1
                (lambda (ls r)
                  (define carAll
                    (lambda (ls r)
-                     (cond (ls (carAll (cdr ls) (cons (caar ls) r)))
+                     (cond ((and ls (car ls) (caar ls))
+                            (carAll (cdr ls) (cons (caar ls) r)))
                            (1 (reverse r)))))
                  (define cdrAll
                    (lambda (ls r)
-                     (cond (ls (cdrAll (cdr ls) (cons (cdar ls) r)))
+                     (cond ((and ls (car ls) (cdar ls))
+                            (cdrAll (cdr ls) (cons (cdar ls) r)))
                            (1 (reverse r)))))
-                 (cond ((not (null ls))
+                 (cond (ls
                         (iter1 (cdrAll ls nil) (cons (carAll ls nil) r)))
                        (1 (reverse r)))))
              (define iter
@@ -616,15 +182,15 @@
                (lambda (ls r)
                  (define carAll
                    (lambda (ls r)
-                     (cond (ls
-                             (carAll (cdr ls) (cons (caar ls) r)))
+                     (cond ((and ls (car ls) (caar ls))
+                            (carAll (cdr ls) (cons (caar ls) r)))
                            (1 (reverse r)))))
                  (define cdrAll
                    (lambda (ls r)
-                     (cond (ls
-                             (cdrAll (cdr ls) (cons (cdar ls) r)))
+                     (cond ((and ls (car ls) (cdar ls))
+                            (cdrAll (cdr ls) (cons (cdar ls) r)))
                            (1 (reverse r)))))
-                 (cond ((not (null ls))
+                 (cond (ls
                         (iter1 (cdrAll ls nil) (cons (carAll ls nil) r)))
                        (1 (reverse r)))))
              (define iter
@@ -655,48 +221,19 @@
 
          (define square
            (lambda (x)
-             (mul x x)))
+             (* x x)))
 
          (define 1+ (lambda (a)
-                      (add 1 a)))
+                      (+ 1 a)))
 
          (define -1+ (lambda (a)
-                       (add -1 a)))
+                       (+ -1 a)))
 
-         (defmacro "'(a)" (progn
-                            push_pair
-                            push_sym "quote"
-                            pop_car
-                            push_pair
-                            push_var a
-                            pop_car
-                            pop_cdr))
-         (defmacro "`(a)" (progn
-                            push_pair
-                            push_sym "qsquote"
-                            pop_car
-                            push_pair
-                            push_var a
-                            pop_car
-                            pop_cdr))
-         (defmacro "~(a)" (progn
-                            push_pair
-                            push_sym "unquote"
-                            pop_car
-                            push_pair
-                            push_var a
-                            pop_car
-                            pop_cdr))
-         (defmacro "~@(a)" (progn
-                             push_pair
-                             push_sym "unqtesp"
-                             pop_car
-                             push_pair
-                             push_var a
-                             pop_car
-                             pop_cdr))
-         (defmacro "[(,a)]" (progn
-                              push_var a))
+         (defmacro "'(a)" (cons (quote quote) (cons a ())))
+         (defmacro "`(a)" (cons (quote qsquote) (cons a ())))
+         (defmacro "~(a)" (cons (quote unquote) (cons a ())))
+         (defmacro "~@(a)" (cons (quote unqtesp) (cons a ())))
+         (defmacro "[(,a)]" a)
 
          (defmacro
            (let $d,$b)
@@ -731,7 +268,7 @@
          (defmacro
            (let* $d,$b)
            (cond ((or (not (eq (type d) (quote pair)))
-                      (le (length d) 1))
+                      (<= (length d) 1))
                   (qsquote (let (unquote d) (unqtesp b))))
                  (1
                   (qsquote (let ((unquote (car d)))

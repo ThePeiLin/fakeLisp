@@ -769,7 +769,7 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 				if(!sec->access)
 				{
 					fir->u.str=newVMstr(sec->u.str->str);
-					increaseVMstrRefcount(fir->u.str);
+					fir->access=1;
 				}
 				else
 				{

@@ -874,54 +874,14 @@ void B_append(FakeVM* exe)
 	VMvalue* sec=getValue(stack,stack->tp-2);
 	if(sec->type!=NIL&&sec->type!=PAIR&&sec->type!=STR&&sec->type!=BYTS)
 		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
-	if(sec->type==PAIR)
-	{
-		VMvalue* copyOfsec=copyVMvalue(sec,exe->heap);
-		VMvalue* lastpair=copyOfsec;
-		while(getVMpairCdr(lastpair)->type==PAIR)lastpair=getVMpairCdr(lastpair);
-		lastpair->u.pair->cdr=fir;
-		stack->tp-=1;
-		stackRecycle(exe);
-		stack->values[stack->tp-1]=copyOfsec;
-	}
-	else if(sec->type==STR)
-	{
-		if(fir->type!=STR)
-			RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
-		int32_t firlen=strlen(fir->u.str->str);
-		int32_t seclen=strlen(sec->u.str->str);
-		char* tmpStr=(char*)malloc(sizeof(char)*(firlen+seclen+1));
-		FAKE_ASSERT(tmpStr,"B_append",__FILE__,__LINE__);
-		strcpy(tmpStr,sec->u.str->str);
-		strcat(tmpStr,fir->u.str->str);
-		VMstr* tmpVMstr=newVMstr(NULL);
-		tmpVMstr->str=tmpStr;
-		VMvalue* tmpValue=newVMvalue(STR,tmpVMstr,exe->heap,1);
-		stack->tp-=1;
-		stackRecycle(exe);
-		stack->values[stack->tp-1]=tmpValue;
-	}
-	else if(sec->type==BYTS)
-	{
-		int32_t firSize=fir->u.byts->size;
-		int32_t secSize=sec->u.byts->size;
-		VMvalue* tmpByts=newVMvalue(BYTS,NULL,exe->heap,1);
-		tmpByts->u.byts=newEmptyVMByts();
-		tmpByts->u.byts->size=firSize+secSize;
-		uint8_t* tmpStr=createByteArry(firSize+secSize);
-		memcpy(tmpStr,sec->u.byts->str,secSize);
-		memcpy(tmpStr+secSize,fir->u.byts->str,firSize);
-		tmpByts->u.byts->str=tmpStr;
-		stack->tp-=1;
-		stackRecycle(exe);
-		stack->values[stack->tp-1]=tmpByts;
-	}
-	else
-	{
-		stack->tp-=1;
-		stackRecycle(exe);
-		stack->values[stack->tp-1]=fir;
-	}
+	if(sec->type!=PAIR)
+		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
+	VMvalue* lastpair=sec;
+	while(getVMpairCdr(lastpair)->type==PAIR)lastpair=getVMpairCdr(lastpair);
+	lastpair->u.pair->cdr=fir;
+	stack->tp-=1;
+	stackRecycle(exe);
+	stack->values[stack->tp-1]=sec;
 	runnable->cp+=1;
 }
 

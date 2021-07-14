@@ -95,14 +95,12 @@ int main(int argc,char** argv)
 			initGlobEnv(globEnv,anotherVM->heap,inter->table);
 			chdir(workpath);
 			free(workpath);
-			inter->table=NULL;
-			inter->lnt=NULL;
-			freeIntpr(inter);
 			if(setjmp(buf)==0)
 			{
 				runFakeVM(anotherVM);
 				joinAllThread();
 				unInitPreprocess();
+				freeIntpr(inter);
 				freeVMheap(anotherVM->heap);
 				freeAllVMs();
 			}
@@ -113,6 +111,7 @@ int main(int argc,char** argv)
 				unInitPreprocess();
 				freeVMheap(anotherVM->heap);
 				freeAllVMs();
+				freeIntpr(inter);
 				free(InterpreterPath);
 				return exitStatus;
 			}

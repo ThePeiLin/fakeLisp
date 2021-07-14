@@ -27,7 +27,6 @@ void threadErrorCallBack(void* a)
 	longjmp(exe->buf,i[(sizeof(void*)*2)/sizeof(int)]);
 }
 
-extern char* InterpreterPath;
 extern const char* builtInErrorType[NUMOFBUILTINERRORTYPE];
 
 static int envNodeCmp(const void* a,const void* b)
@@ -265,16 +264,10 @@ int runFakeVM(FakeVM* exe)
 		}
 
 		int32_t cp=currunnable->cp;
-		int status=setjmp(exe->buf);
-		if(status==1)
+		if(setjmp(exe->buf)==1)
 		{
 			pthread_rwlock_unlock(&GClock);
 			return 255;
-		}
-		else if(status==255)
-		{
-			pthread_rwlock_unlock(&GClock);
-			return 1;
 		}
 		ByteCodes[(uint8_t)exe->code[cp]](exe);
 		pthread_rwlock_unlock(&GClock);

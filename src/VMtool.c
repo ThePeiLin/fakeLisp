@@ -1339,7 +1339,6 @@ RecvT* newRecvT(FakeVM* v)
 
 void freeRecvT(RecvT* r)
 {
-	pthread_cond_signal(&r->cond);
 	pthread_cond_destroy(&r->cond);
 	free(r);
 }
@@ -1354,7 +1353,6 @@ SendT* newSendT(VMvalue* m)
 
 void freeSendT(SendT* s)
 {
-	pthread_cond_signal(&s->cond);
 	pthread_cond_destroy(&s->cond);
 	free(s);
 }

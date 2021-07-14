@@ -92,8 +92,8 @@ int main(int argc,char** argv)
 			{
 				runFakeVM(anotherVM);
 				joinAllThread();
-				unInitPreprocess();
 				freeIntpr(inter);
+				unInitPreprocess();
 				freeVMheap(anotherVM->heap);
 				freeAllVMs();
 			}
@@ -101,10 +101,10 @@ int main(int argc,char** argv)
 			{
 				deleteCallChain(anotherVM);
 				cancelAllThread();
+				freeIntpr(inter);
 				unInitPreprocess();
 				freeVMheap(anotherVM->heap);
 				freeAllVMs();
-				freeIntpr(inter);
 				free(InterpreterPath);
 				return exitStatus;
 			}

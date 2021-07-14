@@ -156,6 +156,7 @@ void initGlobEnv(VMenv* obj,VMheap* heap,SymbolTable* table)
 		SYS_car,
 		SYS_cdr,
 		SYS_cons,
+		SYS_append,
 		SYS_atom,
 		SYS_null,
 		SYS_not,

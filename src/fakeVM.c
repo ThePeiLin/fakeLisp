@@ -256,6 +256,7 @@ void* ThreadVMDlprocFunc(void* p)
 	free(p);
 	int64_t status=0;
 	VMChanl* ch=exe->chan;
+	pthread_rwlock_rdlock(&GClock);
 	if(!setjmp(exe->buf))
 	{
 		f(exe,&GClock);
@@ -275,6 +276,7 @@ void* ThreadVMDlprocFunc(void* p)
 		chanlSend(t,ch);
 		status=255;
 	}
+	pthread_rwlock_unlock(&GClock);
 	freeVMChanl(ch);
 	freeVMstack(exe->stack);
 	exe->stack=NULL;

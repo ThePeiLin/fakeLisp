@@ -24,13 +24,6 @@ void errorCallBack(void* a)
 	longjmp(buf,i[1]);
 }
 
-void otherThreadErrorSignalHander(int signum)
-{
-	exitStatus=255;
-	longjmp(buf,1);
-}
-
-
 extern char* InterpreterPath;
 int main(int argc,char** argv)
 {

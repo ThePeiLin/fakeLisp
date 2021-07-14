@@ -1601,7 +1601,7 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 	switch(objValue->type)
 	{
 		case NIL:
-			fprintf(fp,"nil");
+			fprintf(fp,"()");
 			break;
 		case IN32:
 			fprintf(fp,"%d",*objValue->u.in32);

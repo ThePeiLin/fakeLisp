@@ -18,10 +18,10 @@ function list ls
 }
 function square (a)
 {
-    call mul (a a)
+    call * (a a)
 }
 
-call princ ((\x->(add x 9) 9) stdout)
+call princ ((\x->(+ x 9) 9) stdout)
 call princ (#\\n stdout)
 call princ (call list (1 2 3) stdout)
 call princ (#\\n stdout)

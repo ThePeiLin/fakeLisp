@@ -49,8 +49,8 @@ void SYS_cons(FakeVM* exe,pthread_rwlock_t* gclock)
 	if(!car||!cdr)
 		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
 	VMvalue* pair=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap,1);
-	copyRef(getVMpairCar(pair),car);
-	copyRef(getVMpairCdr(pair),cdr);
+	pair->u.pair->car=car;
+	pair->u.pair->cdr=cdr;
 	SET_RETURN("SYS_cons",pair,stack);
 }
 
@@ -68,6 +68,7 @@ void SYS_append(FakeVM* exe,pthread_rwlock_t* gclock)
 		{
 			case NIL:
 				copyRef(prev,copyVMvalue(cur,exe->heap));
+				prev->access=1;
 				break;
 			case PAIR:
 				{
@@ -744,6 +745,11 @@ void SYS_byts(FakeVM* exe,pthread_rwlock_t* gclock)
 			retval->u.byts->str=createByteArry(sizeof(double));
 			*(double*)retval->u.byts->str=*obj->u.dbl;
 			break;
+		case CHR:
+			retval->u.byts->size=sizeof(char);
+			retval->u.byts->str=createByteArry(sizeof(char));
+			*(char*)retval->u.byts->str=*obj->u.chr;
+			break;
 		case STR:
 		case SYM:
 			retval->u.byts->size=strlen(obj->u.str->str)+1;
@@ -1071,13 +1077,14 @@ void SYS_argv(FakeVM* exe,pthread_rwlock_t* pGClock)
 	VMvalue* retval=NULL;
 	if(resBp(stack))
 		RAISE_BUILTIN_ERROR(TOOMANYARG,topComStack(exe->rstack),exe);
-	retval=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap,1);
+	retval=newNilValue(exe->heap);
 	VMvalue* tmp=retval;
 	int32_t i=0;
 	for(;i<exe->argc;i++,tmp=getVMpairCdr(tmp))
 	{
-		tmp->u.pair->car=newVMvalue(STR,newVMstr(exe->argv[i]),exe->heap,1);
-		tmp->u.pair->cdr=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap,1);
+		VMvalue* cur=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap,1);
+		copyRef(tmp,cur);
+		cur->u.pair->car=newVMvalue(STR,newVMstr(exe->argv[i]),exe->heap,1);
 	}
 	SET_RETURN("FAKE_argv",retval,stack);
 }

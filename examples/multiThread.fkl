@@ -2,7 +2,7 @@
 (define ch (chanl 1))
 
 (go (lambda (ch)
-      (cond ((eqn (recv ch) "I'm your father!")
+      (cond ((= (recv ch) "I'm your father!")
              (princ "Thread#1:Noooooooo!\n" stdout)
              (send nil ch)
              )))

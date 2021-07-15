@@ -250,6 +250,7 @@ typedef struct VMvalue
 	union
 	{
 		char* chr;
+		int32_t sid;
 		struct VMStr* str;
 		VMpair* pair;
 		VMByts* byts;

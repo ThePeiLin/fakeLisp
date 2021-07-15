@@ -158,7 +158,6 @@ VMvalue* copyVMvalue(VMvalue* obj,VMheap* heap)
 	{
 		VMvalue* root=popComStack(s1);
 		VMvalue* root1=popComStack(s2);
-		root1->access=1;
 		root1->type=root->type;
 		switch(root->type)
 		{
@@ -277,7 +276,7 @@ VMvalue* newTrueValue(VMheap* heap)
 
 VMvalue* newNilValue(VMheap* heap)
 {
-	VMvalue* tmp=newVMvalue(NIL,NULL,heap,0);
+	VMvalue* tmp=newVMvalue(NIL,NULL,heap,1);
 	return tmp;
 }
 
@@ -556,7 +555,6 @@ VMvalue* castCptrVMvalue(AST_cptr* objCptr,VMheap* heap)
 		{
 			AST_atom* tmpAtm=root->u.atom;
 			root1->type=tmpAtm->type;
-			root1->access=1;
 			switch((int)tmpAtm->type)
 			{
 				case IN32:

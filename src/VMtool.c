@@ -744,7 +744,6 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 	fir->type=sec->type;
 	if(fir->type<SYM&&fir->type>NIL)
 	{
-		fir->access=1;
 		switch(fir->type)
 		{
 			case IN32:
@@ -765,10 +764,7 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 			case SYM:
 			case STR:
 				if(!sec->access)
-				{
 					fir->u.str=newVMstr(sec->u.str->str);
-					fir->access=1;
-				}
 				else
 				{
 					increaseVMstrRefcount(sec->u.str);

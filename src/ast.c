@@ -455,6 +455,10 @@ AST_cptr* castVMvalueToCptr(VMvalue* value,int32_t curline)
 					tmpAtm->type=SYM;
 					tmpAtm->value.str=copyStr("#<proc>");
 					break;
+				case DLPROC:
+					tmpAtm->type=SYM;
+					tmpAtm->value.str=copyStr("#<dlproc>");
+					break;
 				case CONT:
 					tmpAtm->type=SYM;
 					tmpAtm->value.str=copyStr("#<proc>");
@@ -466,6 +470,10 @@ AST_cptr* castVMvalueToCptr(VMvalue* value,int32_t curline)
 				case FP:
 					tmpAtm->type=SYM;
 					tmpAtm->value.str=copyStr("#<fp>");
+					break;
+				case ERR:
+					tmpAtm->type=SYM;
+					tmpAtm->value.str=copyStr("#<err");
 					break;
 			}
 			root1->u.atom=tmpAtm;

@@ -660,8 +660,7 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 		if(isTryExpression(objCptr))return compileTry(objCptr,curEnv,inter,status,evalIm);
 		if(isLibraryExpression(objCptr))
 		{
-			ByteCodelnt* tmp=newByteCodelnt(newByteCode(1));
-			tmp->bc->code[0]=FAKE_PUSH_NIL;
+			ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
 			tmp->ls=1;
 			tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 			FAKE_ASSERT(tmp->l,"compile",__FILE__,__LINE__);
@@ -683,14 +682,13 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 				status->place=t.place;
 				return NULL;
 			}
-			ByteCodelnt* tmp=newByteCodelnt(newByteCode(1));
-			tmp->bc->code[0]=FAKE_PUSH_NIL;
+			ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
 			tmp->ls=1;
 			tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 			FAKE_ASSERT(tmp->l,"compile",__FILE__,__LINE__);
 			tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id
 					,0
-					,tmp->bc->size
+					,0
 					,objCptr->curline);
 			return tmp;
 		}

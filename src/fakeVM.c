@@ -533,7 +533,6 @@ void B_push_list_arg(FakeVM* exe)
 	{
 		VMvalue* t=popComStack(comStack);
 		VMvalue* tmp=newNilValue(exe->heap);
-		tmp->access=1;
 		copyRef(tmp,t);
 		SET_RETURN("B_push_list_arg",tmp,stack);
 	}
@@ -584,7 +583,6 @@ void B_pop_var(FakeVM* exe)
 	}
 	VMvalue* topValue=getTopValue(stack);
 	*pValue=newNilValue(exe->heap);
-	(*pValue)->access=1;
 	copyRef(*pValue,topValue);
 	stack->tp-=1;
 	stackRecycle(exe);
@@ -625,7 +623,6 @@ void B_pop_arg(FakeVM* exe)
 	}
 	VMvalue* topValue=getTopValue(stack);
 	*pValue=newNilValue(exe->heap);
-	(*pValue)->access=1;
 	copyRef(*pValue,topValue);
 	stack->tp-=1;
 	stackRecycle(exe);
@@ -672,7 +669,6 @@ void B_pop_rest_arg(FakeVM* exe)
 	else obj=newNilValue(exe->heap);
 	while(stack->tp>stack->bp)
 	{
-		tmp->u.pair->car->access=1;
 		VMvalue* topValue=getTopValue(stack);
 		copyRef(tmp->u.pair->car,topValue);
 		stack->tp-=1;

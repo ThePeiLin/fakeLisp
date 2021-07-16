@@ -12,7 +12,7 @@
 #define STATIC_SYMBOL_INIT {0,NULL,NULL}
 
 typedef enum{NIL=0,IN32,CHR,DBL,SYM,STR,BYTS,PRC,CONT,CHAN,FP,DLL,DLPROC,ERR,PAIR,ATM} ValueType;
-
+typedef uint32_t Sid_t;
 typedef enum
 {
 	SYMUNDEFINE=1,
@@ -250,7 +250,7 @@ typedef struct VMvalue
 	union
 	{
 		char* chr;
-		int32_t* sid;
+		Sid_t* sid;
 		struct VMStr* str;
 		VMpair* pair;
 		VMByts* byts;
@@ -383,7 +383,7 @@ typedef struct StringMatchPattern
 typedef struct VMerror
 {
 	uint32_t refcount;
-	char* type;
+	Sid_t type;
 	char* message;
 }VMerror;
 
@@ -419,7 +419,7 @@ typedef struct VMTryBlock
 
 typedef struct VMerrorHandler
 {
-	char* type;
+	Sid_t type;
 	VMproc* proc;
 }VMerrorHandler;
 #endif

@@ -2268,7 +2268,7 @@ ByteCodelnt* compileProgn(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 						tmpByteCode->code[0]=opcode;
 						*((int32_t*)(tmpByteCode->code+sizeof(char)))=tmpDef->id;
 					}
-					if(opcode==FAKE_PUSH_SYM)
+					else if(opcode==FAKE_PUSH_SYM)
 					{
 						tmpByteCode=newByteCode(sizeof(char)+sizeof(Sid_t));
 						tmpByteCode->code[0]=opcode;

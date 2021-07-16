@@ -2065,6 +2065,16 @@ ByteCodelnt* compileProgn(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 					{
 						CompEnv* tmpEnv=curEnv;
 						CompDef* tmpDef=NULL;
+						if(tmpAtm->type!=STR&&tmpAtm->type!=SYM)
+						{
+							status->place=tmpCptr;
+							status->status=SYMUNDEFINE;
+							uint32_t i=0;
+							for(;i<stack->top;i++)
+								freeByteCodeLabel(stack->data[i]);
+							freeComStack(stack);
+							return NULL;
+						}
 						while(tmpEnv!=NULL)
 						{
 							tmpDef=findCompDef(tmpAtm->value.str,tmpEnv);
@@ -2081,6 +2091,20 @@ ByteCodelnt* compileProgn(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 							freeComStack(stack);
 							return NULL;
 						}
+					}
+					else if(opcode==FAKE_PUSH_SYM)
+					{
+						if(tmpAtm->type!=STR&&tmpAtm->type!=SYM)
+						{
+							status->place=tmpCptr;
+							status->status=SYMUNDEFINE;
+							uint32_t i=0;
+							for(;i<stack->top;i++)
+								freeByteCodeLabel(stack->data[i]);
+							freeComStack(stack);
+							return NULL;
+						}
+						addSymbolToGlob(tmpAtm->value.str);
 					}
 					else if(opcode==FAKE_JMP||opcode==FAKE_JMP_IF_FALSE||opcode==FAKE_JMP_IF_TRUE)
 					{
@@ -2243,6 +2267,12 @@ ByteCodelnt* compileProgn(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 						tmpByteCode=newByteCode(sizeof(char)+sizeof(int32_t));
 						tmpByteCode->code[0]=opcode;
 						*((int32_t*)(tmpByteCode->code+sizeof(char)))=tmpDef->id;
+					}
+					if(opcode==FAKE_PUSH_SYM)
+					{
+						tmpByteCode=newByteCode(sizeof(char)+sizeof(Sid_t));
+						tmpByteCode->code[0]=opcode;
+						*(Sid_t*)(tmpByteCode->code+sizeof(char))=addSymbolToGlob(tmpAtm->value.str)->id;
 					}
 					else if(opcode==FAKE_JMP||opcode==FAKE_JMP_IF_TRUE||opcode==FAKE_JMP_IF_FALSE)
 					{

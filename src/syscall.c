@@ -763,31 +763,40 @@ void SYS_byts(FakeVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_type(FakeVM* exe,pthread_rwlock_t* gclock)
 {
-	char* a[]=
+	static int32_t a[15];
+	static int hasInit=0;
+	if(!hasInit)
 	{
-		"nil",
-		"int",
-		"chr",
-		"dbl",
-		"sym",
-		"str",
-		"byts",
-		"proc",
-		"cont",
-		"chan",
-		"fp",
-		"dll",
-		"dlproc",
-		"err",
-		"pair"
-	};
+		hasInit=1;
+		char* b[]=
+		{
+			"nil",
+			"int",
+			"chr",
+			"dbl",
+			"sym",
+			"str",
+			"byts",
+			"proc",
+			"cont",
+			"chan",
+			"fp",
+			"dll",
+			"dlproc",
+			"err",
+			"pair"
+		};
+		int i=0;
+		for(;i<ATM;i++)
+			a[i]=addSymbolToGlob(b[i])->id;
+	}
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* obj=getArg(stack);
 	if(resBp(stack))
 		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
 	int32_t type=obj->type;
-	SET_RETURN("SYS_type",newVMvalue(SYM,newVMstr(a[type]),exe->heap,1),stack);
+	SET_RETURN("SYS_type",newVMvalue(SYM,a+type,exe->heap,1),stack);
 }
 
 void SYS_nth(FakeVM* exe,pthread_rwlock_t* gclock)

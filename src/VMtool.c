@@ -176,7 +176,7 @@ VMvalue* copyVMvalue(VMvalue* obj,VMheap* heap)
 				break;
 			case STR:
 			case SYM:
-				root1->u.str=newVMstr(root->u.str->str);
+				root1->u.sid=copyMemory(root->u.sid,sizeof(int32_t));
 				break;
 			case CONT:
 			case PRC:
@@ -333,7 +333,7 @@ int VMvaluecmp(VMvalue* fir,VMvalue* sec)
 					break;
 				case STR:
 				case SYM:
-					r=(!strcmp(root1->u.str->str,root2->u.str->str));
+					r=(*root1->u.sid==*root2->u.sid);
 					break;
 				case BYTS:
 					r=eqVMByts(root1->u.byts,root2->u.byts);
@@ -372,7 +372,7 @@ int subVMvaluecmp(VMvalue* fir,VMvalue* sec)
 			case DBL:
 				return fabs(*fir->u.dbl-*sec->u.dbl)==0;
 			case SYM:
-				return !strcmp(fir->u.str->str,sec->u.str->str);
+				return *fir->u.sid==*sec->u.sid;
 		}
 	}
 	else if(fir->u.all==sec->u.all)return 1;
@@ -573,6 +573,8 @@ VMvalue* castCptrVMvalue(AST_cptr* objCptr,VMheap* heap)
 					root1->u.byts=newVMByts(tmpAtm->value.byts.size,tmpAtm->value.byts.str);
 					break;
 				case SYM:
+					root1->u.sid=copyMemory(&findSymbolInGlob(tmpAtm->value.str)->id,sizeof(int32_t));
+					break;
 				case STR:
 					root1->u.str=newVMstr(tmpAtm->value.str);
 					break;
@@ -745,10 +747,13 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 {
 	freeRef(fir);
 	fir->type=sec->type;
-	if(fir->type<SYM&&fir->type>NIL)
+	if(fir->type<STR&&fir->type>NIL)
 	{
 		switch(fir->type)
 		{
+			case SYM:
+				fir->u.sid=copyMemory(sec->u.sid,sizeof(int32_t));
+				break;
 			case IN32:
 				fir->u.in32=copyMemory(sec->u.in32,sizeof(int32_t));
 				break;
@@ -760,11 +765,10 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 				break;
 		}
 	}
-	else if(fir->type>=SYM&&fir->type<ATM)
+	else if(fir->type>=STR&&fir->type<ATM)
 	{
 		switch(fir->type)
 		{
-			case SYM:
 			case STR:
 				if(!sec->access)
 					fir->u.str=newVMstr(sec->u.str->str);
@@ -824,10 +828,13 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 
 void writeRef(VMvalue* fir,VMvalue* sec)
 {
-	if(fir->type>=IN32&&fir->type<=DBL)
+	if(fir->type>=IN32&&fir->type<=SYM)
 	{
 		switch(sec->type)
 		{
+			case SYM:
+				*fir->u.sid=*sec->u.sid;
+				break;
 			case IN32:
 				*fir->u.in32=*sec->u.in32;
 				break;
@@ -839,7 +846,7 @@ void writeRef(VMvalue* fir,VMvalue* sec)
 				break;
 		}
 	}
-	else if(fir->type>=SYM&&fir->type<=PAIR)
+	else if(fir->type>=STR&&fir->type<=PAIR)
 	{
 		if(fir->access)freeRef(fir);
 		switch(fir->type)
@@ -872,7 +879,6 @@ void writeRef(VMvalue* fir,VMvalue* sec)
 				fir->u.dlproc=sec->u.dlproc;
 				increaseVMDlprocRefcount(fir->u.dlproc);
 				break;
-			case SYM:
 			case STR:
 				if(!fir->access)
 					memcpy(fir->u.str->str,sec->u.str->str,(strlen(fir->u.str->str)>strlen(sec->u.str->str))?strlen(sec->u.str->str):strlen(fir->u.str->str));
@@ -901,13 +907,12 @@ void writeRef(VMvalue* fir,VMvalue* sec)
 
 void freeRef(VMvalue* obj)
 {
-	if(obj->type<SYM&&obj->type>NIL&&obj->access)
+	if(obj->type<STR&&obj->type>NIL&&obj->access)
 		free(obj->u.all);
-	else if(obj->type>=SYM&&obj->type<ATM)
+	else if(obj->type>=STR&&obj->type<ATM)
 	{
 		switch(obj->type)
 		{
-			case SYM:
 			case STR:
 				if(!obj->u.str->refcount)
 				{
@@ -1613,7 +1618,7 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 			putc(*objValue->u.chr,fp);
 			break;
 		case SYM:
-			fprintf(fp,"%s",objValue->u.str->str);
+			fprintf(fp,"%s",getGlobSymbolWithId(*objValue->u.sid)->symbol);
 			break;
 		case STR:
 			fprintf(fp,"%s",objValue->u.str->str);
@@ -1701,7 +1706,7 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 			printRawChar(*objValue->u.chr,fp);
 			break;
 		case SYM:
-			fprintf(fp,"%s",objValue->u.str->str);
+			fprintf(fp,"%s",getGlobSymbolWithId(*objValue->u.sid)->symbol);
 			break;
 		case STR:
 			printRawString(objValue->u.str->str,fp);

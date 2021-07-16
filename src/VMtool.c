@@ -178,7 +178,7 @@ VMvalue* copyVMvalue(VMvalue* obj,VMheap* heap)
 				root1->u.str=newVMstr(root->u.str->str);
 				break;
 			case SYM:
-				root1->u.sid=copyMemory(root->u.sid,sizeof(int32_t));
+				root1->u.sid=copyMemory(root->u.sid,sizeof(Sid_t));
 				break;
 			case CONT:
 			case PRC:
@@ -246,7 +246,7 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap,int access)
 			tmp->u.dbl=(access)?copyMemory(pValue,sizeof(double)):pValue;
 			break;
 		case SYM:
-			tmp->u.sid=copyMemory(pValue,sizeof(int32_t));
+			tmp->u.sid=copyMemory(pValue,sizeof(Sid_t));
 			break;
 		case STR:
 			tmp->u.str=pValue;break;
@@ -575,7 +575,7 @@ VMvalue* castCptrVMvalue(AST_cptr* objCptr,VMheap* heap)
 					root1->u.byts=newVMByts(tmpAtm->value.byts.size,tmpAtm->value.byts.str);
 					break;
 				case SYM:
-					root1->u.sid=copyMemory(&addSymbolToGlob(tmpAtm->value.str)->id,sizeof(int32_t));
+					root1->u.sid=copyMemory(&addSymbolToGlob(tmpAtm->value.str)->id,sizeof(Sid_t));
 					break;
 				case STR:
 					root1->u.str=newVMstr(tmpAtm->value.str);
@@ -754,7 +754,7 @@ void copyRef(VMvalue* fir,VMvalue* sec)
 		switch(fir->type)
 		{
 			case SYM:
-				fir->u.sid=copyMemory(sec->u.sid,sizeof(int32_t));
+				fir->u.sid=copyMemory(sec->u.sid,sizeof(Sid_t));
 				break;
 			case IN32:
 				fir->u.in32=copyMemory(sec->u.in32,sizeof(int32_t));
@@ -1325,7 +1325,7 @@ VMerror* newVMerror(const char* type,const char* message)
 	VMerror* t=(VMerror*)malloc(sizeof(VMerror));
 	FAKE_ASSERT(t,"newVMerror",__FILE__,__LINE__);
 	t->refcount=0;
-	t->type=copyStr(type);
+	t->type=addSymbolToGlob(type)->id;
 	t->message=copyStr(message);
 	return t;
 }
@@ -1336,7 +1336,6 @@ void freeVMerror(VMerror* err)
 		decreaseVMerrorRefcount(err);
 	else
 	{
-		free(err->type);
 		free(err->message);
 		free(err);
 	}
@@ -1444,14 +1443,13 @@ VMerrorHandler* newVMerrorHandler(const char* type,VMproc* proc)
 {
 	VMerrorHandler* t=(VMerrorHandler*)malloc(sizeof(VMerrorHandler));
 	FAKE_ASSERT(t,"newVMerrorHandler",__FILE__,__LINE__);
-	t->type=copyStr(type);
+	t->type=addSymbolToGlob(type)->id;
 	t->proc=proc;
 	return t;
 }
 
 void freeVMerrorHandler(VMerrorHandler* h)
 {
-	free(h->type);
 	freeVMproc(h->proc);
 	free(h);
 }
@@ -1466,7 +1464,7 @@ int raiseVMerror(VMerror* err,FakeVM* exe)
 		while(!isComStackEmpty(tb->hstack))
 		{
 			VMerrorHandler* h=popComStack(tb->hstack);
-			if(!strcmp(h->type,err->type))
+			if(h->type==err->type)
 			{
 				long int increment=exe->rstack->top-tb->rtp;
 				unsigned int i=0;
@@ -1771,7 +1769,7 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 			fprintf(fp,"<#dlproc>");
 			break;
 		case ERR:
-			fprintf(fp,"<#err t:%s m:%s>",objValue->u.err->type,objValue->u.err->message);
+			fprintf(fp,"<#err t:%s m:%s>",getGlobSymbolWithId(objValue->u.err->type)->symbol,objValue->u.err->message);
 			break;
 		default:fprintf(fp,"Bad value!");break;
 	}

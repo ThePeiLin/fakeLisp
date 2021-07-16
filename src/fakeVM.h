@@ -8,7 +8,7 @@ FakeVM* newFakeVM(ByteCode*);
 FakeVM* newTmpFakeVM(ByteCode*);
 FakeVM* newThreadVM(VMproc*,VMheap*);
 FakeVM* newThreadDlprocVM(VMrunnable* r,VMheap* heap);
-void initGlobEnv(VMenv*,VMheap*,SymbolTable*);
+void initGlobEnv(VMenv*,VMheap*);
 
 void B_dummy(FakeVM*);
 void B_push_nil(FakeVM*);

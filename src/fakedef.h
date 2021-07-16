@@ -9,6 +9,7 @@
 #define NUMOFBUILTINSYMBOL 48
 #define MAX_STRING_SIZE 64
 #define NUMOFBUILTINERRORTYPE 20
+#define STATIC_SYMBOL_INIT {0,NULL,NULL}
 
 typedef enum{NIL=0,IN32,CHR,DBL,SYM,STR,BYTS,PRC,CONT,CHAN,FP,DLL,DLPROC,ERR,PAIR,ATM} ValueType;
 
@@ -217,7 +218,6 @@ typedef struct Interpreter
 	FILE* file;
 	int curline;
 	CompEnv* glob;
-	struct SymbolTable* table;
 	struct LineNumberTable* lnt;
 	struct Interpreter* prev;
 }Intpr;
@@ -329,7 +329,6 @@ typedef struct FakeVM
 	ComStack* tstack;
 	VMstack* stack;
 	struct VMChanl* chan;
-	struct SymbolTable* table;
 	struct VMHeap* heap;
 	struct LineNumberTable* lnt;
 	void (*callback)(void*);

@@ -37,9 +37,9 @@ int main(int argc,char** argv)
 #else
 		char* rp=realpath(filename,0);
 #endif
-		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
+		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL);
 		initGlobKeyWord(inter->glob);
-		addSymbol(argv[1],inter->table);
+		addSymbolToGlob(argv[1]);
 		int status;
 		ByteCodelnt* mainByteCode=compileFile(inter,1,&status);
 		if(mainByteCode==NULL)
@@ -63,7 +63,7 @@ int main(int argc,char** argv)
 		}
 		inter->lnt->list=mainByteCode->l;
 		inter->lnt->num=mainByteCode->ls;
-		writeSymbolTable(inter->table,outfp);
+		writeGlobSymbolTable(outfp);
 		writeLineNumberTable(inter->lnt,outfp);
 		int32_t sizeOfMain=mainByteCode->bc->size;
 		uint8_t* code=mainByteCode->bc->code;

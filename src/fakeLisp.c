@@ -45,8 +45,8 @@ int main(int argc,char** argv)
 			free(InterpreterPath);
 			return EXIT_FAILURE;
 		}
-		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
-		addSymbol(filename,inter->table);
+		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL);
+		addSymbolToGlob(filename);
 		initGlobKeyWord(inter->glob);
 		if(fp==stdin)
 			runIntpr(inter);
@@ -82,9 +82,8 @@ int main(int argc,char** argv)
 			mainrunnable->localenv=globEnv;
 			mainrunnable->proc->prevEnv=NULL;
 			anotherVM->callback=errorCallBack;
-			anotherVM->table=inter->table;
 			anotherVM->lnt=inter->lnt;
-			initGlobEnv(globEnv,anotherVM->heap,inter->table);
+			initGlobEnv(globEnv,anotherVM->heap);
 			chdir(workpath);
 			free(workpath);
 			if(setjmp(buf)==0)
@@ -130,12 +129,11 @@ int main(int argc,char** argv)
 		VMenv* globEnv=newVMenv(NULL);
 		anotherVM->argc=argc-1;
 		anotherVM->argv=argv+1;
-		anotherVM->table=table;
 		mainrunnable->localenv=globEnv;
 		mainrunnable->proc->prevEnv=NULL;
 		anotherVM->callback=errorCallBack;
 		anotherVM->lnt=lnt;
-		initGlobEnv(globEnv,anotherVM->heap,table);
+		initGlobEnv(globEnv,anotherVM->heap);
 		if(!setjmp(buf))
 		{
 			runFakeVM(anotherVM);
@@ -172,11 +170,10 @@ void runIntpr(Intpr* inter)
 	int e=0;
 	FakeVM* anotherVM=newFakeVM(NULL);
 	VMenv* globEnv=newVMenv(NULL);
-	anotherVM->table=inter->table;
 	anotherVM->tid=pthread_self();
 	anotherVM->callback=errorCallBack;
 	anotherVM->lnt=inter->lnt;
-	initGlobEnv(globEnv,anotherVM->heap,inter->table);
+	initGlobEnv(globEnv,anotherVM->heap);
 	ByteCode* rawProcList=NULL;
 	char* prev=NULL;
 	int32_t bs=0;

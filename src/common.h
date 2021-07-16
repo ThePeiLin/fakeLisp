@@ -19,6 +19,7 @@
 		exit(1);\
 	}\
 }
+
 int isHexNum(const char*);
 int isOctNum(const char*);
 int isDouble(const char*);
@@ -45,11 +46,11 @@ PreDef* newDefines(const char*);
 AST_pair* newPair(int,AST_pair*);
 AST_cptr* newCptr(int,AST_pair*);
 AST_atom* newAtom(int type,const char*,AST_pair*);
-CompDef* addCompDef(const char*,CompEnv*,SymbolTable*);
+CompDef* addCompDef(const char*,CompEnv*);
 CompEnv* newCompEnv(CompEnv*);
 void destroyCompEnv(CompEnv*);
-CompDef* findCompDef(const char*,CompEnv*,SymbolTable*);
-Intpr* newIntpr(const char*,FILE*,CompEnv*,SymbolTable*,LineNumberTable*);
+CompDef* findCompDef(const char*,CompEnv*);
+Intpr* newIntpr(const char*,FILE*,CompEnv*,LineNumberTable*);
 Intpr* newTmpIntpr(const char*,FILE*);
 int isscript(const char*);
 int iscode(const char*);
@@ -72,7 +73,7 @@ AST_cptr* getFirstCptr(const AST_cptr*);
 ByteCode* newByteCode(unsigned int);
 void codeCat(ByteCode*,const ByteCode*);
 void reCodeCat(const ByteCode*,ByteCode*);
-void initCompEnv(CompEnv*,SymbolTable*);
+void initCompEnv(CompEnv*);
 ByteCode* copyByteCode(const ByteCode*);
 void freeByteCode(ByteCode*);
 void printByteCode(const ByteCode*,FILE*);
@@ -94,12 +95,16 @@ char* getLastWorkDir(Intpr*);
 SymbolTable* newSymbolTable();
 SymTabNode* newSymTabNode(const char*);
 SymTabNode* addSymbol(const char*,SymbolTable*);
+SymTabNode* addSymbolToGlob(const char*);
 SymTabNode* findSymbol(const char*,SymbolTable*);
+SymTabNode* findSymbolInGlob(const char*);
+SymTabNode* getGlobSymbolWithId(int32_t id);
 void printSymbolTable(SymbolTable*,FILE*);
 void freeSymTabNode(SymTabNode*);
 void freeSymbolTable(SymbolTable*);
 
 void writeSymbolTable(SymbolTable*,FILE*);
+void writeGlobSymbolTable(FILE*);
 void writeLineNumberTable(LineNumberTable*,FILE*);
 
 LineNumberTable* newLineNumTable();

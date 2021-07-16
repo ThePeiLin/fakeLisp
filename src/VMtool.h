@@ -66,7 +66,7 @@ VMenv* newVMenv(VMenv*);
 void increaseVMenvRefcount(VMenv*);
 void decreaseVMenvRefcount(VMenv*);
 
-VMenv* castPreEnvToVMenv(PreEnv*,VMenv*,VMheap*,SymbolTable*);
+VMenv* castPreEnvToVMenv(PreEnv*,VMenv*,VMheap*);
 VMpair* newVMpair(VMheap*);
 void increaseVMpairRefcount(VMpair*);
 void decreaseVMpairRefcount(VMpair*);

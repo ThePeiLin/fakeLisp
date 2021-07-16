@@ -11,6 +11,7 @@
 #include<tchar.h>
 #endif
 
+extern SymbolTable GlobSymbolTable;
 static CRL* newCRL(VMpair* pair,int32_t count)
 {
 	CRL* tmp=(CRL*)malloc(sizeof(CRL));
@@ -957,7 +958,7 @@ void freeRef(VMvalue* obj)
 	}
 }
 
-VMenv* castPreEnvToVMenv(PreEnv* pe,VMenv* prev,VMheap* heap,SymbolTable* table)
+VMenv* castPreEnvToVMenv(PreEnv* pe,VMenv* prev,VMheap* heap)
 {
 	int32_t size=0;
 	PreDef* tmpDef=pe->symbols;
@@ -970,7 +971,7 @@ VMenv* castPreEnvToVMenv(PreEnv* pe,VMenv* prev,VMheap* heap,SymbolTable* table)
 	for(tmpDef=pe->symbols;tmpDef;tmpDef=tmpDef->next)
 	{
 		VMvalue* v=castCptrVMvalue(&tmpDef->obj,heap);
-		VMenvNode* node=newVMenvNode(v,findSymbol(tmpDef->symbol,table)->id);
+		VMenvNode* node=newVMenvNode(v,findSymbolInGlob(tmpDef->symbol)->id);
 		addVMenvNode(node,tmp);
 	}
 	return tmp;
@@ -1473,7 +1474,7 @@ int raiseVMerror(VMerror* err,FakeVM* exe)
 				VMrunnable* r=newVMrunnable(h->proc);
 				r->localenv=newVMenv(prevRunnable->localenv);
 				VMenv* curEnv=r->localenv;
-				uint32_t idOfError=findSymbol(tb->errSymbol,exe->table)->id;
+				uint32_t idOfError=findSymbolInGlob(tb->errSymbol)->id;
 				VMenvNode* errorNode=findVMenvNode(idOfError,curEnv);
 				if(!errorNode)
 					errorNode=addVMenvNode(newVMenvNode(NULL,idOfError),curEnv);
@@ -1510,7 +1511,7 @@ char* genErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe)
 {
 	int32_t cp=r->cp;
 	LineNumTabNode* node=findLineNumTabNode(cp,exe->lnt);
-	char* filename=exe->table->idl[node->fid]->symbol;
+	char* filename=GlobSymbolTable.idl[node->fid]->symbol;
 	char* line=intToString(node->line);
 	size_t len=strlen("In file \"\",line \n")+strlen(filename)+strlen(line)+1;
 	char* t=(char*)malloc(sizeof(char)*len);
@@ -1537,7 +1538,7 @@ char* genErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe)
 			break;
 		case SYMUNDEFINE:
 			t=strCat(t,"Symbol \"");
-			t=strCat(t,exe->table->idl[getSymbolIdInByteCode(exe->code+r->cp)]->symbol);
+			t=strCat(t,GlobSymbolTable.idl[getSymbolIdInByteCode(exe->code+r->cp)]->symbol);
 			t=strCat(t,"\" is undefined.\n");
 			break;
 		case INVOKEERROR:

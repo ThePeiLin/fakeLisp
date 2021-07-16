@@ -97,6 +97,8 @@ const char* builtInSymbolList[]=
 	"raise"
 };
 
+SymbolTable GlobSymbolTable=STATIC_SYMBOL_INIT;
+
 char* getStringFromList(const char* str)
 {
 	char* tmp=NULL;
@@ -816,7 +818,7 @@ void destroyEnv(PreEnv* objEnv)
 	}
 }
 
-Intpr* newIntpr(const char* filename,FILE* file,CompEnv* env,SymbolTable* table,LineNumberTable* lnt)
+Intpr* newIntpr(const char* filename,FILE* file,CompEnv* env,LineNumberTable* lnt)
 {
 	Intpr* tmp=NULL;
 	FAKE_ASSERT((tmp=(Intpr*)malloc(sizeof(Intpr))),"newIntpr",__FILE__,__LINE__)
@@ -842,10 +844,6 @@ Intpr* newIntpr(const char* filename,FILE* file,CompEnv* env,SymbolTable* table,
 	tmp->file=file;
 	tmp->curline=1;
 	tmp->prev=NULL;
-	if(table)
-		tmp->table=table;
-	else
-		tmp->table=newSymbolTable();
 	if(lnt)
 		tmp->lnt=lnt;
 	else
@@ -856,7 +854,7 @@ Intpr* newIntpr(const char* filename,FILE* file,CompEnv* env,SymbolTable* table,
 		return tmp;
 	}
 	tmp->glob=newCompEnv(NULL);
-	initCompEnv(tmp->glob,tmp->table);
+	initCompEnv(tmp->glob);
 	return tmp;
 }
 
@@ -868,7 +866,6 @@ void freeIntpr(Intpr* inter)
 		fclose(inter->file);
 	free(inter->curDir);
 	destroyCompEnv(inter->glob);
-	if(inter->table)freeSymbolTable(inter->table);
 	if(inter->lnt)freeLineNumberTable(inter->lnt);
 	free(inter);
 }
@@ -905,12 +902,12 @@ void destroyCompEnv(CompEnv* objEnv)
 	free(objEnv);
 }
 
-CompDef* findCompDef(const char* name,CompEnv* curEnv,SymbolTable* table)
+CompDef* findCompDef(const char* name,CompEnv* curEnv)
 {
 	if(curEnv->head==NULL)return NULL;
 	else
 	{
-		SymTabNode* node=findSymbol(name,table);
+		SymTabNode* node=findSymbolInGlob(name);
 		if(node==NULL)
 			return NULL;
 		int32_t id=node->id;
@@ -921,11 +918,11 @@ CompDef* findCompDef(const char* name,CompEnv* curEnv,SymbolTable* table)
 	}
 }
 
-CompDef* addCompDef(const char* name,CompEnv* curEnv,SymbolTable* table)
+CompDef* addCompDef(const char* name,CompEnv* curEnv)
 {
 	if(curEnv->head==NULL)
 	{
-		SymTabNode* node=addSymbol(name,table);
+		SymTabNode* node=addSymbolToGlob(name);
 		FAKE_ASSERT((curEnv->head=(CompDef*)malloc(sizeof(CompDef))),"addCompDef",__FILE__,__LINE__);
 		curEnv->head->next=NULL;
 		curEnv->head->id=node->id;
@@ -933,10 +930,10 @@ CompDef* addCompDef(const char* name,CompEnv* curEnv,SymbolTable* table)
 	}
 	else
 	{
-		CompDef* curDef=findCompDef(name,curEnv,table);
+		CompDef* curDef=findCompDef(name,curEnv);
 		if(curDef==NULL)
 		{
-			SymTabNode* node=addSymbol(name,table);
+			SymTabNode* node=addSymbolToGlob(name);
 			FAKE_ASSERT((curDef=(CompDef*)malloc(sizeof(CompDef))),"addCompDef",__FILE__,__LINE__);
 			curDef->id=node->id;
 			curDef->next=curEnv->head;
@@ -1009,11 +1006,11 @@ ByteCode* copyByteCode(const ByteCode* obj)
 	return tmp;
 }
 
-void initCompEnv(CompEnv* curEnv,SymbolTable* table)
+void initCompEnv(CompEnv* curEnv)
 {
 	int i=0;
 	for(i=0;i<NUMOFBUILTINSYMBOL;i++)
-		addCompDef(builtInSymbolList[i],curEnv,table);
+		addCompDef(builtInSymbolList[i],curEnv);
 }
 
 char* copyStr(const char* str)
@@ -1479,7 +1476,6 @@ Intpr* newTmpIntpr(const char* filename,FILE* fp)
 	tmp->curline=1;
 	tmp->prev=NULL;
 	tmp->glob=NULL;
-	tmp->table=NULL;
 	tmp->lnt=NULL;
 	return tmp;
 }
@@ -1620,6 +1616,12 @@ SymTabNode* addSymbol(const char* sym,SymbolTable* table)
 	return node;
 }
 
+SymTabNode* addSymbolToGlob(const char* sym)
+{
+	return addSymbol(sym,&GlobSymbolTable);
+}
+
+
 void freeSymTabNode(SymTabNode* node)
 {
 	free(node->symbol);
@@ -1655,6 +1657,16 @@ SymTabNode* findSymbol(const char* symbol,SymbolTable* table)
 			return table->list[mid];
 	}
 	return NULL;
+}
+
+SymTabNode* findSymbolInGlob(const char* sym)
+{
+	return findSymbol(sym,&GlobSymbolTable);
+}
+
+SymTabNode* getGlobSymbolWithId(int32_t id)
+{
+	return GlobSymbolTable.idl[id];
 }
 
 void printSymbolTable(SymbolTable* table,FILE* fp)
@@ -1858,6 +1870,11 @@ void writeSymbolTable(SymbolTable* table,FILE* fp)
 	int32_t i=0;
 	for(;i<size;i++)
 		fwrite(table->idl[i]->symbol,strlen(table->idl[i]->symbol)+1,1,fp);
+}
+
+void writeGlobSymbolTable(FILE* fp)
+{
+	writeSymbolTable(&GlobSymbolTable,fp);
 }
 
 void writeLineNumberTable(LineNumberTable* lnt,FILE* fp)

@@ -19,9 +19,9 @@ static int MacroPatternCmp(const AST_cptr*,const AST_cptr*);
 static int fmatcmp(const AST_cptr*,const AST_cptr*,PreEnv**,CompEnv*);
 static int isVal(const char*);
 static ErrorStatus defmacro(AST_cptr*,CompEnv*,Intpr*);
-static CompEnv* createPatternCompEnv(char**,int32_t,CompEnv*,SymbolTable*);
+static CompEnv* createPatternCompEnv(char**,int32_t,CompEnv*);
 
-static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap,SymbolTable* table)
+static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap)
 {
 	ComStack* stack=newComStack(32);
 	CompEnv* tcEnv=cEnv;
@@ -35,7 +35,7 @@ static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap,SymbolTable* 
 		CompEnv* curEnv=popComStack(stack);
 		vEnv=newVMenv(preEnv);
 		if(!preEnv)
-			initGlobEnv(vEnv,heap,table);
+			initGlobEnv(vEnv,heap);
 		preEnv=vEnv;
 		ByteCodelnt* tmpByteCode=curEnv->proc;
 		codelntCopyCat(t,tmpByteCode);
@@ -48,7 +48,6 @@ static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap,SymbolTable* 
 		tmpVM->code=t->bc->code;
 		tmpVM->size=t->bc->size;
 		tmpVMproc->prevEnv=NULL;
-		tmpVM->table=table;
 		tmpVM->lnt=newLineNumTable();
 		tmpVM->lnt->num=t->ls;
 		tmpVM->lnt->list=t->l;
@@ -150,7 +149,7 @@ int PreMacroExpand(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 	if(tmp!=NULL)
 	{
 		FakeVM* tmpVM=newTmpFakeVM(NULL);
-		VMenv* tmpGlob=genGlobEnv(curEnv,t,tmpVM->heap,inter->table);
+		VMenv* tmpGlob=genGlobEnv(curEnv,t,tmpVM->heap);
 		if(!tmpGlob)
 		{
 			destroyEnv(macroEnv);
@@ -162,7 +161,7 @@ int PreMacroExpand(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 		}
 		VMproc* tmpVMproc=newVMproc(t->bc->size,tmp->proc->bc->size);
 		codelntCopyCat(t,tmp->proc);
-		VMenv* macroVMenv=castPreEnvToVMenv(macroEnv,tmpGlob,tmpVM->heap,inter->table);
+		VMenv* macroVMenv=castPreEnvToVMenv(macroEnv,tmpGlob,tmpVM->heap);
 		destroyEnv(macroEnv);
 		VMrunnable* mainrunnable=newVMrunnable(tmpVMproc);
 		mainrunnable->localenv=macroVMenv;
@@ -170,7 +169,6 @@ int PreMacroExpand(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 		tmpVM->size=t->bc->size;
 		pushComStack(mainrunnable,tmpVM->rstack);
 		tmpVMproc->prevEnv=NULL;
-		tmpVM->table=inter->table;
 		tmpVM->lnt=newLineNumTable();
 		tmpVM->lnt->num=t->ls;
 		tmpVM->lnt->list=t->l;
@@ -407,7 +405,7 @@ int fmatcmp(const AST_cptr* origin,const AST_cptr* format,PreEnv** pmacroEnv,Com
 	return 1;
 }
 
-CompEnv* createMacroCompEnv(const AST_cptr* objCptr,CompEnv* prev,SymbolTable* table)
+CompEnv* createMacroCompEnv(const AST_cptr* objCptr,CompEnv* prev)
 {
 	if(objCptr==NULL)return NULL;
 	CompEnv* tmpEnv=newCompEnv(prev);
@@ -438,7 +436,7 @@ CompEnv* createMacroCompEnv(const AST_cptr* objCptr,CompEnv* prev,SymbolTable* t
 				{
 					const char* tmpStr=tmpAtm->value.str;
 					if(isVal(tmpStr))
-						addCompDef(tmpStr+1,tmpEnv,table);
+						addCompDef(tmpStr+1,tmpEnv);
 				}
 			}
 			if(objPair!=NULL&&objCptr==&objPair->car)
@@ -570,11 +568,10 @@ ErrorStatus defmacro(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 		tmpInter->filename=inter->filename;
 		tmpInter->curline=inter->curline;
 		tmpInter->glob=curEnv;
-		tmpInter->table=inter->table;
 		tmpInter->curDir=inter->curDir;
 		tmpInter->prev=NULL;
 		tmpInter->lnt=NULL;
-		CompEnv* tmpCompEnv=createMacroCompEnv(pattern,curEnv,inter->table);
+		CompEnv* tmpCompEnv=createMacroCompEnv(pattern,curEnv);
 		ByteCodelnt* tmpByteCodelnt=compile(express,tmpCompEnv,tmpInter,&status,1);
 		if(!status.status)
 		{
@@ -605,13 +602,12 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 	ErrorStatus status={0,NULL};
 	Intpr* tmpInter=newTmpIntpr(NULL,NULL);
 	tmpInter->filename=inter->filename;
-	tmpInter->table=inter->table;
 	tmpInter->curline=inter->curline;
 	tmpInter->glob=inter->glob;
 	tmpInter->curDir=inter->curDir;
 	tmpInter->prev=NULL;
 	tmpInter->lnt=NULL;
-	CompEnv* tmpCompEnv=createPatternCompEnv(parts,num,inter->glob,inter->table);
+	CompEnv* tmpCompEnv=createPatternCompEnv(parts,num,inter->glob);
 	ByteCodelnt* tmpByteCodelnt=compile(express,tmpCompEnv,tmpInter,&status,1);
 	if(!status.status)
 	{
@@ -664,7 +660,7 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 			tmp->ls=1;
 			tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 			FAKE_ASSERT(tmp->l,"compile",__FILE__,__LINE__);
-			tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,0,inter->curline);
+			tmp->l[0]=newLineNumTabNode(findSymbolInGlob(inter->filename)->id,0,0,inter->curline);
 			return tmp;
 		}
 		if(isCatchExpression(objCptr)||isUnqtespExpression(objCptr)||isExportExpression(objCptr))
@@ -686,7 +682,7 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 			tmp->ls=1;
 			tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 			FAKE_ASSERT(tmp->l,"compile",__FILE__,__LINE__);
-			tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id
+			tmp->l[0]=newLineNumTabNode(findSymbolInGlob(inter->filename)->id
 					,0
 					,0
 					,objCptr->curline);
@@ -711,7 +707,7 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 	}
 }
 
-CompEnv* createPatternCompEnv(char** parts,int32_t num,CompEnv* prev,SymbolTable* table)
+CompEnv* createPatternCompEnv(char** parts,int32_t num,CompEnv* prev)
 {
 	if(parts==NULL)return NULL;
 	CompEnv* tmpEnv=newCompEnv(prev);
@@ -720,7 +716,7 @@ CompEnv* createPatternCompEnv(char** parts,int32_t num,CompEnv* prev,SymbolTable
 		if(isVar(parts[i]))
 		{
 			char* varName=getVarName(parts[i]);
-			addCompDef(varName,tmpEnv,table);
+			addCompDef(varName,tmpEnv);
 			free(varName);
 		}
 	return tmpEnv;
@@ -911,7 +907,7 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 					tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 					FAKE_ASSERT(tmp->l,"compileQsquote",__FILE__,__LINE__);
 					tmp->ls=1;
-					tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,pushPair->size,objCptr->curline);
+					tmp->l[0]=newLineNumTabNode(findSymbolInGlob(inter->filename)->id,0,pushPair->size,objCptr->curline);
 				}
 				else
 					tmp->l[tmp->ls-1]->cpc+=pushPair->size;
@@ -960,7 +956,7 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 	return tmp;
 }
 
-ByteCode* compileQuote(AST_cptr* objCptr,SymbolTable* table)
+ByteCode* compileQuote(AST_cptr* objCptr)
 {
 	objCptr=&objCptr->u.pair->car;
 	objCptr=nextCptr(objCptr);
@@ -974,7 +970,7 @@ ByteCode* compileQuote(AST_cptr* objCptr,SymbolTable* table)
 			{
 				ByteCode* tmp=newByteCode(sizeof(char)+sizeof(int32_t));
 				char* sym=objCptr->u.atom->value.str;
-				SymTabNode* node=addSymbol(sym,table);
+				SymTabNode* node=addSymbolToGlob(sym);
 				tmp=newByteCode(sizeof(char)+sizeof(int32_t));
 				tmp->code[0]=FAKE_PUSH_SYM;
 				*(int32_t*)(tmp->code+sizeof(char))=node->id;
@@ -1005,7 +1001,7 @@ ByteCodelnt* compileConst(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 		if(objCptr->u.atom->type==SYM)
 		{
 			char* sym=objCptr->u.atom->value.str;
-			SymTabNode* node=addSymbol(sym,inter->table);
+			SymTabNode* node=addSymbolToGlob(sym);
 			tmp=newByteCode(sizeof(char)+sizeof(int32_t));
 			tmp->code[0]=FAKE_PUSH_SYM;
 			*(int32_t*)(tmp->code+sizeof(char))=node->id;
@@ -1015,7 +1011,7 @@ ByteCodelnt* compileConst(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 			tmp=compileAtom(objCptr);
 	}
 	if(isNil(objCptr))tmp=compileNil();
-	if(isQuoteExpression(objCptr))tmp=compileQuote(objCptr,inter->table);
+	if(isQuoteExpression(objCptr))tmp=compileQuote(objCptr);
 	if(!tmp)
 	{
 		status->status=INVALIDEXPR;
@@ -1023,7 +1019,7 @@ ByteCodelnt* compileConst(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 		return NULL;
 	}
 	ByteCodelnt* t=newByteCodelnt(tmp);
-	LineNumTabNode* n=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,tmp->size,line);
+	LineNumTabNode* n=newLineNumTabNode(findSymbolInGlob(inter->filename)->id,0,tmp->size,line);
 	t->ls=1;
 	t->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
 	FAKE_ASSERT(t->l,"compileConst",__FILE__,__LINE__);
@@ -1052,7 +1048,7 @@ ByteCodelnt* compileFuncCall(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Erro
 				tmp->ls=1;
 				tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 				FAKE_ASSERT(tmp->l,"compileFuncCall",__FILE__,__LINE__);
-				tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,invoke->size,line);
+				tmp->l[0]=newLineNumTabNode(findSymbolInGlob(inter->filename)->id,0,invoke->size,line);
 			}
 			else
 				tmp->l[tmp->ls-1]->cpc+=invoke->size;
@@ -1069,7 +1065,7 @@ ByteCodelnt* compileFuncCall(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Erro
 				tmp->ls=1;
 				tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 				FAKE_ASSERT(tmp->l,"compileFuncCall",__FILE__,__LINE__);
-				tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,setBp->size,line);
+				tmp->l[0]=newLineNumTabNode(findSymbolInGlob(inter->filename)->id,0,setBp->size,line);
 			}
 			else
 				tmp->l[tmp->ls-1]->cpc+=setBp->size;
@@ -1133,11 +1129,11 @@ ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 			char* symbolWithPrefix=(char*)malloc(sizeof(char)*len);
 			FAKE_ASSERT(symbolWithPrefix,"compileDef",__FILE__,__LINE__);
 			snprintf(symbolWithPrefix,len,"%s%s",curEnv->prefix,tmpAtm->value.str);
-			tmpDef=addCompDef(symbolWithPrefix,curEnv,inter->table);
+			tmpDef=addCompDef(symbolWithPrefix,curEnv);
 			free(symbolWithPrefix);
 		}
 		else
-			tmpDef=addCompDef(tmpAtm->value.str,curEnv,inter->table);
+			tmpDef=addCompDef(tmpAtm->value.str,curEnv);
 		*(int32_t*)(popVar->code+sizeof(char))=(int32_t)0;
 		*(int32_t*)(popVar->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
 		codeCat(tmp1->bc,pushTop);
@@ -1194,14 +1190,14 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		CompEnv* tmpEnv=curEnv;
 		while(tmpEnv!=NULL)
 		{
-			tmpDef=findCompDef(tmpAtm->value.str,tmpEnv,inter->table);
+			tmpDef=findCompDef(tmpAtm->value.str,tmpEnv);
 			if(tmpEnv->prefix&&!tmpDef)
 			{
 				size_t len=strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1;
 				char* symbolWithPrefix=(char*)malloc(sizeof(char)*len);
 				FAKE_ASSERT(symbolWithPrefix,"compileSetq",__FILE__,__LINE__);
 				snprintf(symbolWithPrefix,len,"%s%s",tmpEnv->prefix,tmpAtm->value.str);
-				tmpDef=findCompDef(symbolWithPrefix,tmpEnv,inter->table);
+				tmpDef=findCompDef(symbolWithPrefix,tmpEnv);
 				free(symbolWithPrefix);
 			}
 			if(tmpDef!=NULL)break;
@@ -1210,7 +1206,7 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		}
 		if(tmpDef==NULL)
 		{
-			SymTabNode* node=addSymbol(tmpAtm->value.str,inter->table);
+			SymTabNode* node=addSymbolToGlob(tmpAtm->value.str);
 			scope=-1;
 			id=node->id;
 		}
@@ -1265,14 +1261,14 @@ ByteCodelnt* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		CompDef* tmpDef=NULL;
 		while(tmpEnv!=NULL)
 		{
-			tmpDef=findCompDef(tmpAtm->value.str,tmpEnv,inter->table);
+			tmpDef=findCompDef(tmpAtm->value.str,tmpEnv);
 			if(tmpEnv->prefix&&!tmpDef)
 			{
 				size_t len=strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1;
 				char* symbolWithPrefix=(char*)malloc(sizeof(char)*len);
 				FAKE_ASSERT(symbolWithPrefix,"compileSetq",__FILE__,__LINE__);
 				snprintf(symbolWithPrefix,len,"%s%s",tmpEnv->prefix,tmpAtm->value.str);
-				tmpDef=findCompDef(symbolWithPrefix,tmpEnv,inter->table);
+				tmpDef=findCompDef(symbolWithPrefix,tmpEnv);
 				free(symbolWithPrefix);
 			}
 			if(tmpDef!=NULL)
@@ -1308,21 +1304,21 @@ ByteCodelnt* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	int32_t id=0;
 	while(tmpEnv!=NULL&&tmpDef==NULL)
 	{
-		tmpDef=findCompDef(tmpAtm->value.str,tmpEnv,inter->table);
+		tmpDef=findCompDef(tmpAtm->value.str,tmpEnv);
 		if(tmpEnv->prefix&&!tmpDef)
 		{
 			size_t len=strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1;
 			char* symbolWithPrefix=(char*)malloc(sizeof(char)*len);
 			FAKE_ASSERT(symbolWithPrefix,"compileSym",__FILE__,__LINE__);
 			snprintf(symbolWithPrefix,len,"%s%s",tmpEnv->prefix,tmpAtm->value.str);
-			tmpDef=findCompDef(symbolWithPrefix,tmpEnv,inter->table);
+			tmpDef=findCompDef(symbolWithPrefix,tmpEnv);
 			free(symbolWithPrefix);
 		}
 		tmpEnv=tmpEnv->prev;
 	}
 	if(tmpDef==NULL)
 	{
-		SymTabNode* node=addSymbol(tmpAtm->value.str,inter->table);
+		SymTabNode* node=addSymbolToGlob(tmpAtm->value.str);
 		id=node->id;
 		if(evalIm)
 		{
@@ -1339,7 +1335,7 @@ ByteCodelnt* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	bcl->ls=1;
 	bcl->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 	FAKE_ASSERT(bcl->l,"compileSym",__FILE__,__LINE__);
-	bcl->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,pushVar->size,line);
+	bcl->l[0]=newLineNumTabNode(findSymbolInGlob(inter->filename)->id,0,pushVar->size,line);
 	return bcl;
 }
 
@@ -1388,7 +1384,7 @@ ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 		tmp->ls=1;
 		tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
 		FAKE_ASSERT(tmp->l,"compileAnd",__FILE__,__LINE__);
-		tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,tmp->bc->size,objCptr->curline);
+		tmp->l[0]=newLineNumTabNode(findSymbolInGlob(inter->filename)->id,0,tmp->bc->size,objCptr->curline);
 	}
 	else
 	{
@@ -1453,7 +1449,7 @@ ByteCodelnt* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatu
 		tmp->ls=1;
 		tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
 		FAKE_ASSERT(tmp->l,"compileOr",__FILE__,__LINE__);
-		tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,tmp->bc->size,objCptr->curline);
+		tmp->l[0]=newLineNumTabNode(findSymbolInGlob(inter->filename)->id,0,tmp->bc->size,objCptr->curline);
 	}
 	else
 	{
@@ -1511,7 +1507,7 @@ ByteCodelnt* compileBegin(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 		tmp->ls=1;
 		tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 		FAKE_ASSERT(tmp->l,"compileBegin",__FILE__,__LINE__);
-		tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,tmp->bc->size,objCptr->curline);
+		tmp->l[0]=newLineNumTabNode(findSymbolInGlob(inter->filename)->id,0,tmp->bc->size,objCptr->curline);
 	}
 	else
 	{
@@ -1554,7 +1550,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				destroyCompEnv(tmpEnv);
 				return NULL;
 			}
-			CompDef* tmpDef=addCompDef(tmpAtm->value.str,tmpEnv,inter->table);
+			CompDef* tmpDef=addCompDef(tmpAtm->value.str,tmpEnv);
 			*(int32_t*)(popArg->code+sizeof(char))=(int32_t)0;
 			*(int32_t*)(popArg->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
 			codeCat(pArg,popArg);
@@ -1570,7 +1566,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 					destroyCompEnv(tmpEnv);
 					return NULL;
 				}
-				tmpDef=addCompDef(tmpAtom1->value.str,tmpEnv,inter->table);
+				tmpDef=addCompDef(tmpAtom1->value.str,tmpEnv);
 				*(int32_t*)(popRestArg->code+sizeof(char))=(int32_t)0;
 				*(int32_t*)(popRestArg->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
 				codeCat(pArg,popRestArg);
@@ -1590,7 +1586,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			destroyCompEnv(tmpEnv);
 			return NULL;
 		}
-		CompDef* tmpDef=addCompDef(tmpAtm->value.str,tmpEnv,inter->table);
+		CompDef* tmpDef=addCompDef(tmpAtm->value.str,tmpEnv);
 		*(int32_t*)(popRestArg->code+sizeof(char))=(int32_t)0;
 		*(int32_t*)(popRestArg->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
 		codeCat(pArg,popRestArg);
@@ -1610,7 +1606,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	codeOfLambda->ls=1;
 	codeOfLambda->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 	FAKE_ASSERT(codeOfLambda->l,"compileLambda",__FILE__,__LINE__);
-	codeOfLambda->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,pArg->size,line);
+	codeOfLambda->l[0]=newLineNumTabNode(findSymbolInGlob(inter->filename)->id,0,pArg->size,line);
 	ByteCode* resTp=newByteCode(sizeof(char));
 	resTp->code[0]=FAKE_RES_TP;
 	for(;objCptr;objCptr=nextCptr(objCptr))
@@ -1645,7 +1641,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	toReturn->ls=1;
 	toReturn->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 	FAKE_ASSERT(toReturn->l,"compileLambda",__FILE__,__LINE__);
-	toReturn->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,pushProc->size,line);
+	toReturn->l[0]=newLineNumTabNode(findSymbolInGlob(inter->filename)->id,0,pushProc->size,line);
 	destroyCompEnv(tmpEnv);
 	codelntCat(toReturn,codeOfLambda);
 	freeByteCodelnt(codeOfLambda);
@@ -1733,7 +1729,7 @@ ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		tmp->ls=1;
 		tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
 		FAKE_ASSERT(tmp->l,"compileCond",__FILE__,__LINE__);
-		tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,0,objCptr->curline);
+		tmp->l[0]=newLineNumTabNode(findSymbolInGlob(inter->filename)->id,0,0,objCptr->curline);
 	}
 	reCodeCat(setTp,tmp->bc);
 	tmp->l[0]->cpc+=setTp->size;
@@ -1766,14 +1762,13 @@ ByteCodelnt* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		perror(name->value.str);
 		return NULL;
 	}
-	addSymbol(name->value.str,inter->table);
-	Intpr* tmpIntpr=newIntpr(name->value.str,file,curEnv,inter->table,inter->lnt);
+	addSymbolToGlob(name->value.str);
+	Intpr* tmpIntpr=newIntpr(name->value.str,file,curEnv,inter->lnt);
 	tmpIntpr->prev=inter;
 	tmpIntpr->glob=curEnv;
 	ByteCodelnt* tmp=compileFile(tmpIntpr,evalIm,NULL);
 	chdir(tmpIntpr->prev->curDir);
 	tmpIntpr->glob=NULL;
-	tmpIntpr->table=NULL;
 	tmpIntpr->lnt=NULL;
 	freeIntpr(tmpIntpr);
 	//printByteCode(tmp,stderr);
@@ -1802,7 +1797,7 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 	tmp->ls=1;
 	tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 	FAKE_ASSERT(tmp->l,"compileFile",__FILE__,__LINE__);
-	tmp->l[0]=newLineNumTabNode(findSymbol(inter->filename,inter->table)->id,0,0,1);
+	tmp->l[0]=newLineNumTabNode(findSymbolInGlob(inter->filename)->id,0,0,1);
 	ByteCode* resTp=newByteCode(1);
 	resTp->code[0]=FAKE_RES_TP;
 	char* prev=NULL;
@@ -1911,7 +1906,7 @@ ByteCodelnt* compileProgn(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 		}
 	}
 	
-	int32_t fid=findSymbol(inter->filename,inter->table)->id;
+	int32_t fid=findSymbolInGlob(inter->filename)->id;
 	fir=nextCptr(getFirstCptr(objCptr));
 
 	int32_t sizeOfByteCode=0;
@@ -1928,7 +1923,7 @@ ByteCodelnt* compileProgn(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 
 		if(firAtm->value.str[0]=='$')
 		{
-			addCompDef(firAtm->value.str+1,curEnv,inter->table);
+			addCompDef(firAtm->value.str+1,curEnv);
 			fir=nextCptr(fir);
 			continue;
 		}
@@ -1981,7 +1976,7 @@ ByteCodelnt* compileProgn(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 
 					while(tmpEnv!=NULL)
 					{
-						tmpDef=findCompDef(tmpAtm->value.str,tmpEnv,inter->table);
+						tmpDef=findCompDef(tmpAtm->value.str,tmpEnv);
 						if(tmpDef!=NULL)break;
 						tmpEnv=tmpEnv->prev;
 						scope++;
@@ -2074,7 +2069,7 @@ ByteCodelnt* compileProgn(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 						CompDef* tmpDef=NULL;
 						while(tmpEnv!=NULL)
 						{
-							tmpDef=findCompDef(tmpAtm->value.str,tmpEnv,inter->table);
+							tmpDef=findCompDef(tmpAtm->value.str,tmpEnv);
 							if(tmpDef!=NULL)break;
 							tmpEnv=tmpEnv->prev;
 						}
@@ -2167,7 +2162,7 @@ ByteCodelnt* compileProgn(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 
 					while(tmpEnv!=NULL)
 					{
-						tmpDef=findCompDef(tmpAtm->value.str,tmpEnv,inter->table);
+						tmpDef=findCompDef(tmpAtm->value.str,tmpEnv);
 						if(tmpDef!=NULL)break;
 						tmpEnv=tmpEnv->prev;
 						scope++;
@@ -2243,7 +2238,7 @@ ByteCodelnt* compileProgn(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 						CompDef* tmpDef=NULL;
 						while(tmpEnv!=NULL)
 						{
-							tmpDef=findCompDef(tmpAtm->value.str,tmpEnv,inter->table);
+							tmpDef=findCompDef(tmpAtm->value.str,tmpEnv);
 							if(tmpDef!=NULL)break;
 							tmpEnv=tmpEnv->prev;
 						}
@@ -2444,8 +2439,8 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			freeFakeMemMenager(memMenager);
 			return NULL;
 		}
-		addSymbol(path,inter->table);
-		Intpr* tmpInter=newIntpr(path,fp,newCompEnv(NULL),inter->table,inter->lnt);
+		addSymbolToGlob(path);
+		Intpr* tmpInter=newIntpr(path,fp,newCompEnv(NULL),inter->lnt);
 		initGlobKeyWord(tmpInter->glob);
 		free(path);
 		tmpInter->prev=inter;
@@ -2505,7 +2500,6 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 							FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 							FREE_ALL_LINE_NUMBER_TABLE(libByteCodelnt->l,libByteCodelnt->ls);
 							chdir(tmpInter->prev->curDir);
-							tmpInter->table=NULL;
 							tmpInter->lnt=NULL;
 							freeIntpr(tmpInter);
 							if(libPrefix)
@@ -2531,7 +2525,6 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 									free(begin);
 									FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 									chdir(tmpInter->prev->curDir);
-									tmpInter->table=NULL;
 									tmpInter->lnt=NULL;
 									freeIntpr(tmpInter);
 									if(libPrefix)
@@ -2547,7 +2540,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 							}
 							mergeSort(exportSymbols,num,sizeof(const char*),cmpString);
 							AST_cptr* pBody=nextCptr(nextCptr(libName));
-							initCompEnv(tmpInter->glob,inter->table);
+							initCompEnv(tmpInter->glob);
 							tmpInter->glob->prefix=libPrefix;
 							tmpInter->glob->exp=exportSymbols;
 							tmpInter->glob->n=num;
@@ -2562,7 +2555,6 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 									FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 									FREE_ALL_LINE_NUMBER_TABLE(libByteCodelnt->l,libByteCodelnt->ls);
 									chdir(tmpInter->prev->curDir);
-									tmpInter->table=NULL;
 									tmpInter->lnt=NULL;
 									freeIntpr(tmpInter);
 									status->status=0;
@@ -2588,7 +2580,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 								libByteCodelnt->ls=1;
 								libByteCodelnt->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 								FAKE_ASSERT(libByteCodelnt->l,"compileImport",__FILE__,__LINE__);
-								libByteCodelnt->l[0]=newLineNumTabNode(findSymbol(tmpInter->filename,tmpInter->table)->id,0,libByteCodelnt->bc->size,objCptr->curline);
+								libByteCodelnt->l[0]=newLineNumTabNode(findSymbolInGlob(tmpInter->filename)->id,0,libByteCodelnt->bc->size,objCptr->curline);
 							}
 							else
 							{
@@ -2614,7 +2606,6 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 								FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 								freeByteCodelnt(tmp);
 								chdir(tmpInter->prev->curDir);
-								tmpInter->table=NULL;
 								tmpInter->lnt=NULL;
 								freeIntpr(tmpInter);
 								if(libPrefix)
@@ -2639,7 +2630,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 								FAKE_ASSERT(symbolWouldExport,"compileImport",__FILE__,__LINE__);
 								strcpy(symbolWouldExport,pSymbol->value.str);
 							}
-							tmpDef=findCompDef(symbolWouldExport,tmpInter->glob,inter->table);
+							tmpDef=findCompDef(symbolWouldExport,tmpInter->glob);
 							if(!tmpDef)
 							{
 								exError(pExportSymbols,SYMUNDEFINE,tmpInter);
@@ -2647,7 +2638,6 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 								free(begin);
 								FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 								chdir(tmpInter->prev->curDir);
-								tmpInter->table=NULL;
 								tmpInter->lnt=NULL;
 								freeIntpr(tmpInter);
 								if(libPrefix)
@@ -2658,7 +2648,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 								return NULL;
 							}
 							else
-								addCompDef(symbolWouldExport,curEnv,inter->table);
+								addCompDef(symbolWouldExport,curEnv);
 							free(symbolWouldExport);
 						}
 						codelntCopyCat(curEnv->proc,tmpInter->glob->proc);
@@ -2698,7 +2688,6 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			status->place=(tmp)?pairOfpPartsOfPath:NULL;
 			FREE_ALL_LINE_NUMBER_TABLE(libByteCodelnt->l,libByteCodelnt->ls);
 			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-			tmpInter->table=NULL;
 			tmpInter->lnt=NULL;
 			freeIntpr(tmpInter);
 			if(libPrefix)
@@ -2707,7 +2696,6 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			return NULL;
 		}
 		chdir(tmpInter->prev->curDir);
-		tmpInter->table=NULL;
 		tmpInter->lnt=NULL;
 		freeIntpr(tmpInter);
 		if(libPrefix)
@@ -2791,7 +2779,7 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 			return NULL;
 		}
 		CompEnv* tmpEnv=newCompEnv(curEnv);
-		addCompDef(errSymbol,tmpEnv,inter->table);
+		addCompDef(errSymbol,tmpEnv);
 		ByteCodelnt* t=NULL;
 		for(;begin;begin=nextCptr(begin))
 		{

@@ -149,7 +149,7 @@ FakeVM* newTmpFakeVM(ByteCode* mainCode)
 	return exe;
 }
 
-void initGlobEnv(VMenv* obj,VMheap* heap,SymbolTable* table)
+void initGlobEnv(VMenv* obj,VMheap* heap)
 {
 	DllFunc syscallFunctionList[]=
 	{
@@ -201,14 +201,14 @@ void initGlobEnv(VMenv* obj,VMheap* heap,SymbolTable* table)
 	obj->list=(VMenvNode**)malloc(sizeof(VMenvNode*)*NUMOFBUILTINSYMBOL);
 	FAKE_ASSERT(obj->list,"initGlobEnv",__FILE__,__LINE__);
 	int32_t tmpInt=EOF;
-	obj->list[0]=newVMenvNode(newNilValue(heap),findSymbol(builtInSymbolList[0],table)->id);
-	obj->list[1]=newVMenvNode(newVMvalue(IN32,&tmpInt,heap,1),findSymbol(builtInSymbolList[1],table)->id);
-	obj->list[2]=newVMenvNode(newVMvalue(FP,newVMfp(stdin),heap,1),findSymbol(builtInSymbolList[2],table)->id);
-	obj->list[3]=newVMenvNode(newVMvalue(FP,newVMfp(stdout),heap,1),findSymbol(builtInSymbolList[3],table)->id);
-	obj->list[4]=newVMenvNode(newVMvalue(FP,newVMfp(stderr),heap,1),findSymbol(builtInSymbolList[4],table)->id);
+	obj->list[0]=newVMenvNode(newNilValue(heap),findSymbolInGlob(builtInSymbolList[0])->id);
+	obj->list[1]=newVMenvNode(newVMvalue(IN32,&tmpInt,heap,1),findSymbolInGlob(builtInSymbolList[1])->id);
+	obj->list[2]=newVMenvNode(newVMvalue(FP,newVMfp(stdin),heap,1),findSymbolInGlob(builtInSymbolList[2])->id);
+	obj->list[3]=newVMenvNode(newVMvalue(FP,newVMfp(stdout),heap,1),findSymbolInGlob(builtInSymbolList[3])->id);
+	obj->list[4]=newVMenvNode(newVMvalue(FP,newVMfp(stderr),heap,1),findSymbolInGlob(builtInSymbolList[4])->id);
 	size_t i=5;
 	for(;i<NUMOFBUILTINSYMBOL;i++)
-		obj->list[i]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(syscallFunctionList[i-5],NULL),heap,1),findSymbol(builtInSymbolList[i],table)->id);
+		obj->list[i]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(syscallFunctionList[i-5],NULL),heap,1),findSymbolInGlob(builtInSymbolList[i])->id);
 	mergeSort(obj->list,obj->num,sizeof(VMenvNode*),envNodeCmp);
 }
 
@@ -239,7 +239,6 @@ void* ThreadVMFunc(void* p)
 	freeVMstack(exe->stack);
 	exe->stack=NULL;
 	exe->lnt=NULL;
-	exe->table=NULL;
 	if(status!=0)
 		deleteCallChain(exe);
 	freeComStack(exe->tstack);
@@ -281,7 +280,6 @@ void* ThreadVMDlprocFunc(void* p)
 	freeVMstack(exe->stack);
 	exe->stack=NULL;
 	exe->lnt=NULL;
-	exe->table=NULL;
 	deleteCallChain(exe);
 	freeComStack(exe->rstack);
 	freeComStack(exe->tstack);
@@ -479,7 +477,7 @@ void B_push_env_var(FakeVM* exe)
 	{
 		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
 	}
-	SymTabNode* stn=findSymbol(topValue->u.str->str,exe->table);
+	SymTabNode* stn=findSymbolInGlob(topValue->u.str->str);
 	if(stn==NULL)
 		RAISE_BUILTIN_ERROR(INVALIDSYMBOL,runnable,exe);
 	int32_t idOfVar=stn->id;

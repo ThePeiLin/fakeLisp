@@ -14,10 +14,10 @@
 static void addToTail(AST_cptr*,const AST_cptr*);
 static void addToList(AST_cptr*,const AST_cptr*);
 
-static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap,SymbolTable* table)
+static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap)
 {
 	VMenv* vEnv=newVMenv(NULL);
-	initGlobEnv(vEnv,heap,table);
+	initGlobEnv(vEnv,heap);
 	ByteCodelnt* tmpByteCode=cEnv->proc;
 	FakeVM* tmpVM=newTmpFakeVM(NULL);
 	VMproc* tmpVMproc=newVMproc(0,tmpByteCode->bc->size);
@@ -27,7 +27,6 @@ static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap,SymbolTable* 
 	tmpVM->size=tmpByteCode->bc->size;
 	pushComStack(mainrunnable,tmpVM->rstack);
 	tmpVMproc->prevEnv=NULL;
-	tmpVM->table=table;
 	tmpVM->lnt=newLineNumTable();
 	tmpVM->lnt->num=tmpByteCode->ls;
 	tmpVM->lnt->list=tmpByteCode->l;
@@ -149,7 +148,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 		}
 		FakeVM* tmpVM=newTmpFakeVM(NULL);
 		ByteCodelnt* t=newByteCodelnt(newByteCode(0));
-		VMenv* tmpGlobEnv=genGlobEnv(inter->glob,t,tmpVM->heap,inter->table);
+		VMenv* tmpGlobEnv=genGlobEnv(inter->glob,t,tmpVM->heap);
 		if(!tmpGlobEnv)
 		{
 			destroyEnv(tmpEnv);
@@ -164,14 +163,13 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 		}
 		VMproc* tmpVMproc=newVMproc(t->bc->size,pattern->proc->bc->size);
 		codelntCopyCat(t,pattern->proc);
-		VMenv* stringPatternEnv=castPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->heap,inter->table);
+		VMenv* stringPatternEnv=castPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->heap);
 		tmpVMproc->prevEnv=NULL;
 		VMrunnable* mainrunnable=newVMrunnable(tmpVMproc);
 		mainrunnable->localenv=stringPatternEnv;
 		tmpVM->code=t->bc->code;
 		tmpVM->size=t->bc->size;
 		pushComStack(mainrunnable,tmpVM->rstack);
-		tmpVM->table=inter->table;
 		tmpVM->lnt=newLineNumTable();
 		tmpVM->lnt->list=pattern->proc->l;
 		tmpVM->lnt->num=pattern->proc->ls;
@@ -435,6 +433,8 @@ AST_cptr* castVMvalueToCptr(VMvalue* value,int32_t curline)
 			switch(root->type)
 			{
 				case SYM:
+					tmpAtm->value.str=copyStr(getGlobSymbolWithId(*root->u.sid)->symbol);
+					break;
 				case STR:
 					tmpAtm->value.str=copyStr(root->u.str->str);
 					break;

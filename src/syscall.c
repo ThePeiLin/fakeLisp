@@ -570,7 +570,6 @@ void SYS_chr(FakeVM* exe,pthread_rwlock_t* gclock)
 			*retval->u.chr=*obj->u.chr;
 			break;
 		case STR:
-		case SYM:
 			*retval->u.chr=obj->u.str->str[0];
 			break;
 		case BYTS:
@@ -605,7 +604,6 @@ void SYS_int(FakeVM* exe,pthread_rwlock_t* gclock)
 			*retval->u.in32=*obj->u.chr;
 			break;
 		case STR:
-		case SYM:
 			*retval->u.in32=stringToInt(obj->u.str->str);
 			break;
 		case BYTS:
@@ -641,7 +639,6 @@ void SYS_dbl(FakeVM* exe,pthread_rwlock_t* gclock)
 			*retval->u.dbl=(double)(int32_t)*obj->u.chr;
 			break;
 		case STR:
-		case SYM:
 			*retval->u.dbl=stringToDouble(obj->u.str->str);
 			break;
 		case BYTS:
@@ -676,8 +673,10 @@ void SYS_str(FakeVM* exe,pthread_rwlock_t* gclock)
 		case CHR:
 			retval->u.str->str=copyStr((char[]){*obj->u.chr,'\0'});
 			break;
-		case STR:
 		case SYM:
+			retval->u.str->str=copyStr(getGlobSymbolWithId(*obj->u.sid)->symbol);
+			break;
+		case STR:
 			retval->u.str->str=copyStr(obj->u.str->str);
 			break;
 		case BYTS:
@@ -698,24 +697,17 @@ void SYS_sym(FakeVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR(TOOMANYARG,runnable,exe);
 	if(!obj)
 		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
-	VMvalue* retval=newVMvalue(SYM,newVMstr(NULL),exe->heap,1);
+	VMvalue* retval=newVMvalue(SYM,NULL,exe->heap,1);
 	switch(obj->type)
 	{
-		case IN32:
-			retval->u.str->str=intToString(*obj->u.in32);
-			break;
-		case DBL:
-			retval->u.str->str=doubleToString(*obj->u.dbl);
-			break;
 		case CHR:
-			retval->u.str->str=copyStr((char[]){*obj->u.chr,'\0'});
+			*retval->u.sid=addSymbolToGlob(((char[]){*obj->u.chr,'\0'}))->id;
+			break;
+		case SYM:
+			*retval->u.sid=*obj->u.sid;
 			break;
 		case STR:
-		case SYM:
-			retval->u.str->str=copyStr(obj->u.str->str);
-			break;
-		case BYTS:
-			retval->u.str->str=copyStr((char*)obj->u.byts->str);
+			*retval->u.sid=addSymbolToGlob(obj->u.str->str)->id;
 			break;
 		default:
 			RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
@@ -750,8 +742,11 @@ void SYS_byts(FakeVM* exe,pthread_rwlock_t* gclock)
 			retval->u.byts->str=createByteArry(sizeof(char));
 			*(char*)retval->u.byts->str=*obj->u.chr;
 			break;
-		case STR:
 		case SYM:
+			retval->u.byts->size=strlen(getGlobSymbolWithId(*obj->u.sid)->symbol);
+			retval->u.byts->str=(uint8_t*)copyStr(getGlobSymbolWithId(*obj->u.sid)->symbol);
+			break;
+		case STR:
 			retval->u.byts->size=strlen(obj->u.str->str)+1;
 			retval->u.byts->str=(uint8_t*)copyStr(obj->u.str->str);
 			break;
@@ -1101,7 +1096,6 @@ void SYS_go(FakeVM* exe,pthread_rwlock_t* gclock)
 	if(threadProc->type!=PRC&&threadProc->type!=DLPROC)
 		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
 	FakeVM* threadVM=(threadProc->type==PRC)?newThreadVM(threadProc->u.prc,exe->heap):newThreadDlprocVM(runnable,exe->heap);
-	threadVM->table=exe->table;
 	threadVM->lnt=exe->lnt;
 	threadVM->code=exe->code;
 	threadVM->size=exe->size;
@@ -1143,7 +1137,6 @@ void SYS_go(FakeVM* exe,pthread_rwlock_t* gclock)
 		freeVMstack(threadVM->stack);
 		threadVM->stack=NULL;
 		threadVM->lnt=NULL;
-		threadVM->table=NULL;
 		SET_RETURN("SYS_go",newVMvalue(IN32,&faildCode,exe->heap,1),stack);
 	}
 	else

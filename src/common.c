@@ -910,7 +910,7 @@ CompDef* findCompDef(const char* name,CompEnv* curEnv)
 		SymTabNode* node=addSymbolToGlob(name);
 		if(node==NULL)
 			return NULL;
-		int32_t id=node->id;
+		Sid_t id=node->id;
 		CompDef* curDef=curEnv->head;
 		while(curDef&&id!=curDef->id)
 			curDef=curDef->next;
@@ -1115,7 +1115,10 @@ void printByteCode(const ByteCode* tmpCode,FILE* fp)
 				i+=2;
 				break;
 			case 4:
-				fprintf(fp,"%d",*(int32_t*)(tmpCode->code+i+1));
+				if(tmpCode->code[i]==FAKE_PUSH_SYM)
+					fprintf(fp,"%s",getGlobSymbolWithId(*(int32_t*)(tmpCode->code+i+1))->symbol);
+				else
+					fprintf(fp,"%d",*(int32_t*)(tmpCode->code+i+1));
 				i+=5;
 				break;
 			case 8:
@@ -1673,7 +1676,7 @@ SymTabNode* findSymbolInGlob(const char* sym)
 	return findSymbol(sym,&GlobSymbolTable);
 }
 
-SymTabNode* getGlobSymbolWithId(int32_t id)
+SymTabNode* getGlobSymbolWithId(Sid_t id)
 {
 	return GlobSymbolTable.idl[id];
 }
@@ -2120,8 +2123,9 @@ void reCodelntCat(ByteCodelnt* f,ByteCodelnt* s)
 	reCodeCat(f->bc,s->bc);
 }
 
-void printByteCodelnt(ByteCodelnt* obj,SymbolTable* table,FILE* fp)
+void printByteCodelnt(ByteCodelnt* obj,FILE* fp)
 {
+	SymbolTable* table=&GlobSymbolTable;
 	ByteCode* tmpCode=obj->bc;
 	int32_t i=0;
 	int32_t j=0;
@@ -2155,7 +2159,10 @@ void printByteCodelnt(ByteCodelnt* obj,SymbolTable* table,FILE* fp)
 				i+=2;
 				break;
 			case 4:
-				fprintf(fp,"%d",*(int32_t*)(tmpCode->code+i+1));
+				if(tmpCode->code[i]==FAKE_PUSH_SYM)
+					fprintf(fp,"%s",getGlobSymbolWithId(*(int32_t*)(tmpCode->code+i+1))->symbol);
+				else
+					fprintf(fp,"%d",*(int32_t*)(tmpCode->code+i+1));
 				i+=5;
 				break;
 			case 8:

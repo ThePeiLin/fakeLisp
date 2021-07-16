@@ -98,7 +98,7 @@ SymTabNode* addSymbol(const char*,SymbolTable*);
 SymTabNode* addSymbolToGlob(const char*);
 SymTabNode* findSymbol(const char*,SymbolTable*);
 SymTabNode* findSymbolInGlob(const char*);
-SymTabNode* getGlobSymbolWithId(int32_t id);
+SymTabNode* getGlobSymbolWithId(Sid_t id);
 void printSymbolTable(SymbolTable*,FILE*);
 void freeSymTabNode(SymTabNode*);
 void freeSymbolTable(SymbolTable*);
@@ -115,7 +115,7 @@ void freeLineNumTabNode(LineNumTabNode*);
 void freeLineNumberTable(LineNumberTable*);
 
 ByteCodelnt* newByteCodelnt(ByteCode* bc);
-void printByteCodelnt(ByteCodelnt* obj,SymbolTable* table,FILE* fp);
+void printByteCodelnt(ByteCodelnt* obj,FILE* fp);
 void freeByteCodelnt(ByteCodelnt*);
 void increaseScpOfByteCodelnt(ByteCodelnt*,int32_t);
 void codelntCat(ByteCodelnt*,ByteCodelnt*);

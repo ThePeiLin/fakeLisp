@@ -41,7 +41,7 @@ void writeVMvalue(VMvalue*,FILE*,CRL**);
 void princVMvalue(VMvalue*,FILE*,CRL**);
 VMenvNode* newVMenvNode(VMvalue*,int32_t);
 VMenvNode* addVMenvNode(VMenvNode*,VMenv*);
-VMenvNode* findVMenvNode(int32_t,VMenv*);
+VMenvNode* findVMenvNode(Sid_t,VMenv*);
 void freeVMenvNode(VMenvNode*);
 VMproc* newVMproc(uint32_t scp,uint32_t cpc);
 void increaseVMprocRefcount(VMproc*);
@@ -140,10 +140,10 @@ void freeSendT(SendT*);
 void chanlSend(SendT*,VMChanl*);
 void chanlRecv(RecvT*,VMChanl*);
 
-VMTryBlock* newVMTryBlock(const char* errSymbol,uint32_t tp,long int rtp);
+VMTryBlock* newVMTryBlock(Sid_t,uint32_t tp,long int rtp);
 void freeVMTryBlock(VMTryBlock* b);
 
-VMerrorHandler* newVMerrorHandler(const char* type,VMproc* proc);
+VMerrorHandler* newVMerrorHandler(Sid_t type,VMproc* proc);
 void freeVMerrorHandler(VMerrorHandler*);
 int raiseVMerror(VMerror* err,FakeVM*);
 VMrunnable* newVMrunnable(VMproc*);

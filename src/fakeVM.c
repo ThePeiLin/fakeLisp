@@ -932,16 +932,16 @@ void B_push_try(FakeVM* exe)
 {
 	VMrunnable* r=topComStack(exe->rstack);
 	int32_t cpc=0;
-	char* errSymbol=(char*)(exe->code+r->cp+(++cpc));
-	VMTryBlock* tb=newVMTryBlock(errSymbol,exe->stack->tp,exe->rstack->top);
-	cpc+=strlen(errSymbol)+1;
+	Sid_t sid=*(Sid_t*)(exe->code+r->cp+(++cpc));
+	VMTryBlock* tb=newVMTryBlock(sid,exe->stack->tp,exe->rstack->top);
+	cpc+=sizeof(Sid_t);
 	int32_t handlerNum=*(int32_t*)(exe->code+r->cp+cpc);
 	cpc+=sizeof(int32_t);
 	unsigned int i=0;
 	for(;i<handlerNum;i++)
 	{
-		char* type=(char*)(exe->code+r->cp+cpc);
-		cpc+=strlen(type)+1;
+		Sid_t type=*(Sid_t*)(exe->code+r->cp+cpc);
+		cpc+=sizeof(Sid_t);
 		uint32_t pCpc=*(uint32_t*)(exe->code+r->cp+cpc);
 		cpc+=sizeof(uint32_t);
 		VMproc* p=newVMproc(r->cp+cpc,pCpc);

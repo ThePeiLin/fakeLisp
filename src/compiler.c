@@ -2749,7 +2749,8 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 		freeByteCodelnt(expressionByteCodelnt);
 		return NULL;
 	}
-	char* errSymbol=copyStr(pErrSymbol->u.atom->value.str);
+	char* errSymbol=pErrSymbol->u.atom->value.str;
+	Sid_t sid=addSymbolToGlob(errSymbol)->id;
 	ComStack* handlerByteCodelntStack=newComStack(32);
 	for(;pHandlerExpression;pHandlerExpression=nextCptr(pHandlerExpression))
 	{
@@ -2761,7 +2762,6 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 			status->place=objCptr;
 			FREE_ALL_LINE_NUMBER_TABLE(expressionByteCodelnt->l,expressionByteCodelnt->ls);
 			freeByteCodelnt(expressionByteCodelnt);
-			free(errSymbol);
 			return NULL;
 		}
 		AST_cptr* pErrorType=getFirstCptr(pHandlerExpression);
@@ -2773,7 +2773,6 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 			FREE_ALL_LINE_NUMBER_TABLE(expressionByteCodelnt->l,expressionByteCodelnt->ls);
 			freeByteCodelnt(expressionByteCodelnt);
 			freeComStack(handlerByteCodelntStack);
-			free(errSymbol);
 			return NULL;
 		}
 		CompEnv* tmpEnv=newCompEnv(curEnv);
@@ -2787,7 +2786,6 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 				FREE_ALL_LINE_NUMBER_TABLE(expressionByteCodelnt->l,expressionByteCodelnt->ls);
 				freeByteCodelnt(expressionByteCodelnt);
 				freeComStack(handlerByteCodelntStack);
-				free(errSymbol);
 				destroyCompEnv(tmpEnv);
 				return NULL;
 			}
@@ -2816,10 +2814,10 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 		freeByteCode(setTp);
 		freeByteCode(popTp);
 		char* errorType=pErrorType->u.atom->value.str;
-		uint32_t size=strlen(errorType)+1;
-		ByteCode* errorTypeByteCode=newByteCode(size+sizeof(uint32_t));
-		memcpy(errorTypeByteCode->code,errorType,size);
-		*(uint32_t*)(errorTypeByteCode->code+size)=t->bc->size;
+		Sid_t typeid=addSymbolToGlob(errorType)->id;
+		ByteCode* errorTypeByteCode=newByteCode(sizeof(Sid_t)+sizeof(uint32_t));
+		*(Sid_t*)(errorTypeByteCode->code)=typeid;
+		*(uint32_t*)(errorTypeByteCode->code+sizeof(Sid_t))=t->bc->size;
 		reCodeCat(errorTypeByteCode,t->bc);
 		t->l[0]->cpc+=errorTypeByteCode->size;
 		INCREASE_ALL_SCP(t->l+1,t->ls-1,errorTypeByteCode->size);
@@ -2835,11 +2833,10 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 		freeByteCodelnt(tmp);
 	}
 	freeComStack(handlerByteCodelntStack);
-	size_t sizeOfErrSymbol=strlen(errSymbol)+1;
-	ByteCode* header=newByteCode(sizeOfErrSymbol+sizeof(int32_t)+sizeof(char));
+	ByteCode* header=newByteCode(sizeof(Sid_t)+sizeof(int32_t)+sizeof(char));
 	header->code[0]=FAKE_PUSH_TRY;
-	memcpy(header->code+sizeof(char),errSymbol,sizeOfErrSymbol);
-	*(int32_t*)(header->code+sizeof(char)+sizeOfErrSymbol)=numOfHandlerByteCode;
+	*(Sid_t*)(header->code+sizeof(char))=sid;
+	*(int32_t*)(header->code+sizeof(char)+sizeof(Sid_t))=numOfHandlerByteCode;
 	reCodeCat(header,t->bc);
 	t->l[0]->cpc+=header->size;
 	INCREASE_ALL_SCP(t->l+1,t->ls-1,header->size);
@@ -2849,6 +2846,5 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	codeCat(t->bc,popTry);
 	t->l[t->ls-1]->cpc+=popTry->size;
 	freeByteCode(popTry);
-	free(errSymbol);
 	return t;
 }

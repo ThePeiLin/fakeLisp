@@ -332,11 +332,15 @@ void SYS_div(FakeVM* exe,pthread_rwlock_t* gclock)
 		resBp(stack);
 		if(prev->type==DBL)
 		{
+			if(*prev->u.dbl==0.0)
+				RAISE_BUILTIN_ERROR(DIVZERROERROR,runnable,exe);
 			rd=1/(*prev->u.dbl);
 			SET_RETURN("SYS_sub",newVMvalue(DBL,&rd,exe->heap,1),stack);
 		}
 		else
 		{
+			if(*prev->u.in32==0)
+				RAISE_BUILTIN_ERROR(DIVZERROERROR,runnable,exe);
 			if(1%(*prev->u.in32))
 			{
 				rd=1.0/(*prev->u.in32);
@@ -364,6 +368,8 @@ void SYS_div(FakeVM* exe,pthread_rwlock_t* gclock)
 					RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
 					break;
 			}
+		if(ri==0)
+			RAISE_BUILTIN_ERROR(DIVZERROERROR,runnable,exe);
 		resBp(stack);
 		if(prev->type==DBL||rd!=1.0||(prev->type==IN32&&(*prev->u.in32%ri)))
 		{

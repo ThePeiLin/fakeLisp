@@ -1100,7 +1100,7 @@ VMenvNode* addVMenvNode(VMenvNode* node,VMenv* env)
 	return node;
 }
 
-VMenvNode* findVMenvNode(int32_t id,VMenv* env)
+VMenvNode* findVMenvNode(Sid_t id,VMenv* env)
 {
 	if(!env->list)
 		return NULL;
@@ -1415,11 +1415,11 @@ void chanlSend(SendT*s,VMChanl* ch)
 	pthread_mutex_unlock(&ch->lock);
 }
 
-VMTryBlock* newVMTryBlock(const char* errSymbol,uint32_t tp,long int rtp)
+VMTryBlock* newVMTryBlock(Sid_t sid,uint32_t tp,long int rtp)
 {
 	VMTryBlock* t=(VMTryBlock*)malloc(sizeof(VMTryBlock));
 	FAKE_ASSERT(t,"newVMTryBlock",__FILE__,__LINE__);
-	t->errSymbol=copyStr(errSymbol);
+	t->sid=sid;
 	t->hstack=newComStack(32);
 	t->tp=tp;
 	t->rtp=rtp;
@@ -1428,7 +1428,6 @@ VMTryBlock* newVMTryBlock(const char* errSymbol,uint32_t tp,long int rtp)
 
 void freeVMTryBlock(VMTryBlock* b)
 {
-	free(b->errSymbol);
 	ComStack* hstack=b->hstack;
 	while(!isComStackEmpty(hstack))
 	{
@@ -1439,11 +1438,11 @@ void freeVMTryBlock(VMTryBlock* b)
 	free(b);
 }
 
-VMerrorHandler* newVMerrorHandler(const char* type,VMproc* proc)
+VMerrorHandler* newVMerrorHandler(Sid_t type,VMproc* proc)
 {
 	VMerrorHandler* t=(VMerrorHandler*)malloc(sizeof(VMerrorHandler));
 	FAKE_ASSERT(t,"newVMerrorHandler",__FILE__,__LINE__);
-	t->type=addSymbolToGlob(type)->id;
+	t->type=type;
 	t->proc=proc;
 	return t;
 }
@@ -1479,7 +1478,7 @@ int raiseVMerror(VMerror* err,FakeVM* exe)
 				VMrunnable* r=newVMrunnable(h->proc);
 				r->localenv=newVMenv(prevRunnable->localenv);
 				VMenv* curEnv=r->localenv;
-				uint32_t idOfError=addSymbolToGlob(tb->errSymbol)->id;
+				Sid_t idOfError=tb->sid;
 				VMenvNode* errorNode=findVMenvNode(idOfError,curEnv);
 				if(!errorNode)
 					errorNode=addVMenvNode(newVMenvNode(NULL,idOfError),curEnv);

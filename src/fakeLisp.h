@@ -3,6 +3,6 @@
 #include"fakedef.h"
 void runIntpr(Intpr*);
 ByteCode* loadByteCode(FILE*);
-SymbolTable* loadSymbolTable(FILE*);
+void loadSymbolTable(FILE*);
 LineNumberTable* loadLineNumberTable(FILE*);
 #endif

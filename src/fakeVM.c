@@ -201,14 +201,14 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 	obj->list=(VMenvNode**)malloc(sizeof(VMenvNode*)*NUMOFBUILTINSYMBOL);
 	FAKE_ASSERT(obj->list,"initGlobEnv",__FILE__,__LINE__);
 	int32_t tmpInt=EOF;
-	obj->list[0]=newVMenvNode(newNilValue(heap),findSymbolInGlob(builtInSymbolList[0])->id);
-	obj->list[1]=newVMenvNode(newVMvalue(IN32,&tmpInt,heap,1),findSymbolInGlob(builtInSymbolList[1])->id);
-	obj->list[2]=newVMenvNode(newVMvalue(FP,newVMfp(stdin),heap,1),findSymbolInGlob(builtInSymbolList[2])->id);
-	obj->list[3]=newVMenvNode(newVMvalue(FP,newVMfp(stdout),heap,1),findSymbolInGlob(builtInSymbolList[3])->id);
-	obj->list[4]=newVMenvNode(newVMvalue(FP,newVMfp(stderr),heap,1),findSymbolInGlob(builtInSymbolList[4])->id);
+	obj->list[0]=newVMenvNode(newNilValue(heap),addSymbolToGlob(builtInSymbolList[0])->id);
+	obj->list[1]=newVMenvNode(newVMvalue(IN32,&tmpInt,heap,1),addSymbolToGlob(builtInSymbolList[1])->id);
+	obj->list[2]=newVMenvNode(newVMvalue(FP,newVMfp(stdin),heap,1),addSymbolToGlob(builtInSymbolList[2])->id);
+	obj->list[3]=newVMenvNode(newVMvalue(FP,newVMfp(stdout),heap,1),addSymbolToGlob(builtInSymbolList[3])->id);
+	obj->list[4]=newVMenvNode(newVMvalue(FP,newVMfp(stderr),heap,1),addSymbolToGlob(builtInSymbolList[4])->id);
 	size_t i=5;
 	for(;i<NUMOFBUILTINSYMBOL;i++)
-		obj->list[i]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(syscallFunctionList[i-5],NULL),heap,1),findSymbolInGlob(builtInSymbolList[i])->id);
+		obj->list[i]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(syscallFunctionList[i-5],NULL),heap,1),addSymbolToGlob(builtInSymbolList[i])->id);
 	mergeSort(obj->list,obj->num,sizeof(VMenvNode*),envNodeCmp);
 }
 
@@ -477,7 +477,7 @@ void B_push_env_var(FakeVM* exe)
 	{
 		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
 	}
-	SymTabNode* stn=findSymbolInGlob(topValue->u.str->str);
+	SymTabNode* stn=addSymbolToGlob(topValue->u.str->str);
 	if(stn==NULL)
 		RAISE_BUILTIN_ERROR(INVALIDSYMBOL,runnable,exe);
 	int32_t idOfVar=stn->id;

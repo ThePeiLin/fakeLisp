@@ -175,6 +175,8 @@ VMvalue* copyVMvalue(VMvalue* obj,VMheap* heap)
 				root1->u.byts=newVMByts(root->u.byts->size,root->u.byts->str);
 				break;
 			case STR:
+				root1->u.str=newVMstr(root->u.str->str);
+				break;
 			case SYM:
 				root1->u.sid=copyMemory(root->u.sid,sizeof(int32_t));
 				break;
@@ -573,7 +575,7 @@ VMvalue* castCptrVMvalue(AST_cptr* objCptr,VMheap* heap)
 					root1->u.byts=newVMByts(tmpAtm->value.byts.size,tmpAtm->value.byts.str);
 					break;
 				case SYM:
-					root1->u.sid=copyMemory(&findSymbolInGlob(tmpAtm->value.str)->id,sizeof(int32_t));
+					root1->u.sid=copyMemory(&addSymbolToGlob(tmpAtm->value.str)->id,sizeof(int32_t));
 					break;
 				case STR:
 					root1->u.str=newVMstr(tmpAtm->value.str);
@@ -976,7 +978,7 @@ VMenv* castPreEnvToVMenv(PreEnv* pe,VMenv* prev,VMheap* heap)
 	for(tmpDef=pe->symbols;tmpDef;tmpDef=tmpDef->next)
 	{
 		VMvalue* v=castCptrVMvalue(&tmpDef->obj,heap);
-		VMenvNode* node=newVMenvNode(v,findSymbolInGlob(tmpDef->symbol)->id);
+		VMenvNode* node=newVMenvNode(v,addSymbolToGlob(tmpDef->symbol)->id);
 		addVMenvNode(node,tmp);
 	}
 	return tmp;
@@ -1479,7 +1481,7 @@ int raiseVMerror(VMerror* err,FakeVM* exe)
 				VMrunnable* r=newVMrunnable(h->proc);
 				r->localenv=newVMenv(prevRunnable->localenv);
 				VMenv* curEnv=r->localenv;
-				uint32_t idOfError=findSymbolInGlob(tb->errSymbol)->id;
+				uint32_t idOfError=addSymbolToGlob(tb->errSymbol)->id;
 				VMenvNode* errorNode=findVMenvNode(idOfError,curEnv);
 				if(!errorNode)
 					errorNode=addVMenvNode(newVMenvNode(NULL,idOfError),curEnv);

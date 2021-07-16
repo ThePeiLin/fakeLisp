@@ -93,6 +93,7 @@ int main(int argc,char** argv)
 				freeIntpr(inter);
 				unInitPreprocess();
 				freeVMheap(anotherVM->heap);
+				freeGlobSymbolTable();
 				freeAllVMs();
 			}
 			else
@@ -104,6 +105,7 @@ int main(int argc,char** argv)
 				freeVMheap(anotherVM->heap);
 				freeAllVMs();
 				free(InterpreterPath);
+				freeGlobSymbolTable();
 				return exitStatus;
 			}
 		}
@@ -118,7 +120,7 @@ int main(int argc,char** argv)
 			return EXIT_FAILURE;
 		}
 		changeWorkPath(filename);
-		SymbolTable* table=loadSymbolTable(fp);
+		loadSymbolTable(fp);
 		LineNumberTable* lnt=loadLineNumberTable(fp);
 		ByteCode* mainCode=loadByteCode(fp);
 		FakeVM* anotherVM=newFakeVM(mainCode);
@@ -139,7 +141,7 @@ int main(int argc,char** argv)
 			runFakeVM(anotherVM);
 			joinAllThread();
 			freeVMheap(heap);
-			freeSymbolTable(table);
+			freeGlobSymbolTable();
 			freeAllVMs();
 			freeLineNumberTable(lnt);
 		}
@@ -149,7 +151,7 @@ int main(int argc,char** argv)
 			cancelAllThread();
 			freeAllVMs();
 			freeVMheap(heap);
-			freeSymbolTable(table);
+			freeGlobSymbolTable();
 			freeLineNumberTable(lnt);
 			free(InterpreterPath);
 			return exitStatus;
@@ -215,6 +217,7 @@ void runIntpr(Intpr* inter)
 				if(inter->file!=stdin)
 				{
 					deleteCptr(begin);
+					freeGlobSymbolTable();
 					exit(0);
 				}
 			}
@@ -277,6 +280,7 @@ void runIntpr(Intpr* inter)
 	unInitPreprocess();
 	freeVMheap(anotherVM->heap);
 	freeAllVMs();
+	freeGlobSymbolTable();
 }
 
 ByteCode* loadByteCode(FILE* fp)
@@ -294,19 +298,17 @@ ByteCode* loadByteCode(FILE* fp)
 	return tmp;
 }
 
-SymbolTable* loadSymbolTable(FILE* fp)
+void loadSymbolTable(FILE* fp)
 {
 	int32_t size=0;
 	int32_t i=0;
-	SymbolTable* tmp=newSymbolTable();
 	fread(&size,sizeof(int32_t),1,fp);
 	for(;i<size;i++)
 	{
 		char* symbol=getStringFromFile(fp);
-		addSymbol(symbol,tmp);
+		addSymbolToGlob(symbol);
 		free(symbol);
 	}
-	return tmp;
 }
 
 LineNumberTable* loadLineNumberTable(FILE* fp)

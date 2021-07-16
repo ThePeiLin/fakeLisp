@@ -907,7 +907,7 @@ CompDef* findCompDef(const char* name,CompEnv* curEnv)
 	if(curEnv->head==NULL)return NULL;
 	else
 	{
-		SymTabNode* node=findSymbolInGlob(name);
+		SymTabNode* node=addSymbolToGlob(name);
 		if(node==NULL)
 			return NULL;
 		int32_t id=node->id;
@@ -1636,6 +1636,15 @@ void freeSymbolTable(SymbolTable* table)
 	free(table->list);
 	free(table->idl);
 	free(table);
+}
+
+void freeGlobSymbolTable()
+{
+	int32_t i=0;
+	for(;i<GlobSymbolTable.num;i++)
+		freeSymTabNode(GlobSymbolTable.list[i]);
+	free(GlobSymbolTable.list);
+	free(GlobSymbolTable.idl);
 }
 
 SymTabNode* findSymbol(const char* symbol,SymbolTable* table)

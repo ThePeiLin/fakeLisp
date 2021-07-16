@@ -660,7 +660,7 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 			tmp->ls=1;
 			tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 			FAKE_ASSERT(tmp->l,"compile",__FILE__,__LINE__);
-			tmp->l[0]=newLineNumTabNode(findSymbolInGlob(inter->filename)->id,0,0,inter->curline);
+			tmp->l[0]=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,0,inter->curline);
 			return tmp;
 		}
 		if(isCatchExpression(objCptr)||isUnqtespExpression(objCptr)||isExportExpression(objCptr))
@@ -682,7 +682,7 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 			tmp->ls=1;
 			tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 			FAKE_ASSERT(tmp->l,"compile",__FILE__,__LINE__);
-			tmp->l[0]=newLineNumTabNode(findSymbolInGlob(inter->filename)->id
+			tmp->l[0]=newLineNumTabNode(addSymbolToGlob(inter->filename)->id
 					,0
 					,0
 					,objCptr->curline);
@@ -907,7 +907,7 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 					tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 					FAKE_ASSERT(tmp->l,"compileQsquote",__FILE__,__LINE__);
 					tmp->ls=1;
-					tmp->l[0]=newLineNumTabNode(findSymbolInGlob(inter->filename)->id,0,pushPair->size,objCptr->curline);
+					tmp->l[0]=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,pushPair->size,objCptr->curline);
 				}
 				else
 					tmp->l[tmp->ls-1]->cpc+=pushPair->size;
@@ -971,7 +971,6 @@ ByteCode* compileQuote(AST_cptr* objCptr)
 				ByteCode* tmp=newByteCode(sizeof(char)+sizeof(int32_t));
 				char* sym=objCptr->u.atom->value.str;
 				SymTabNode* node=addSymbolToGlob(sym);
-				tmp=newByteCode(sizeof(char)+sizeof(int32_t));
 				tmp->code[0]=FAKE_PUSH_SYM;
 				*(int32_t*)(tmp->code+sizeof(char))=node->id;
 				return tmp;
@@ -1005,7 +1004,6 @@ ByteCodelnt* compileConst(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 			tmp=newByteCode(sizeof(char)+sizeof(int32_t));
 			tmp->code[0]=FAKE_PUSH_SYM;
 			*(int32_t*)(tmp->code+sizeof(char))=node->id;
-			
 		}
 		else
 			tmp=compileAtom(objCptr);
@@ -1019,7 +1017,7 @@ ByteCodelnt* compileConst(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 		return NULL;
 	}
 	ByteCodelnt* t=newByteCodelnt(tmp);
-	LineNumTabNode* n=newLineNumTabNode(findSymbolInGlob(inter->filename)->id,0,tmp->size,line);
+	LineNumTabNode* n=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,tmp->size,line);
 	t->ls=1;
 	t->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
 	FAKE_ASSERT(t->l,"compileConst",__FILE__,__LINE__);
@@ -1048,7 +1046,7 @@ ByteCodelnt* compileFuncCall(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Erro
 				tmp->ls=1;
 				tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 				FAKE_ASSERT(tmp->l,"compileFuncCall",__FILE__,__LINE__);
-				tmp->l[0]=newLineNumTabNode(findSymbolInGlob(inter->filename)->id,0,invoke->size,line);
+				tmp->l[0]=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,invoke->size,line);
 			}
 			else
 				tmp->l[tmp->ls-1]->cpc+=invoke->size;
@@ -1065,7 +1063,7 @@ ByteCodelnt* compileFuncCall(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Erro
 				tmp->ls=1;
 				tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 				FAKE_ASSERT(tmp->l,"compileFuncCall",__FILE__,__LINE__);
-				tmp->l[0]=newLineNumTabNode(findSymbolInGlob(inter->filename)->id,0,setBp->size,line);
+				tmp->l[0]=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,setBp->size,line);
 			}
 			else
 				tmp->l[tmp->ls-1]->cpc+=setBp->size;
@@ -1335,7 +1333,7 @@ ByteCodelnt* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	bcl->ls=1;
 	bcl->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 	FAKE_ASSERT(bcl->l,"compileSym",__FILE__,__LINE__);
-	bcl->l[0]=newLineNumTabNode(findSymbolInGlob(inter->filename)->id,0,pushVar->size,line);
+	bcl->l[0]=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,pushVar->size,line);
 	return bcl;
 }
 
@@ -1384,7 +1382,7 @@ ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 		tmp->ls=1;
 		tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
 		FAKE_ASSERT(tmp->l,"compileAnd",__FILE__,__LINE__);
-		tmp->l[0]=newLineNumTabNode(findSymbolInGlob(inter->filename)->id,0,tmp->bc->size,objCptr->curline);
+		tmp->l[0]=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,tmp->bc->size,objCptr->curline);
 	}
 	else
 	{
@@ -1449,7 +1447,7 @@ ByteCodelnt* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatu
 		tmp->ls=1;
 		tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
 		FAKE_ASSERT(tmp->l,"compileOr",__FILE__,__LINE__);
-		tmp->l[0]=newLineNumTabNode(findSymbolInGlob(inter->filename)->id,0,tmp->bc->size,objCptr->curline);
+		tmp->l[0]=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,tmp->bc->size,objCptr->curline);
 	}
 	else
 	{
@@ -1507,7 +1505,7 @@ ByteCodelnt* compileBegin(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 		tmp->ls=1;
 		tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 		FAKE_ASSERT(tmp->l,"compileBegin",__FILE__,__LINE__);
-		tmp->l[0]=newLineNumTabNode(findSymbolInGlob(inter->filename)->id,0,tmp->bc->size,objCptr->curline);
+		tmp->l[0]=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,tmp->bc->size,objCptr->curline);
 	}
 	else
 	{
@@ -1606,7 +1604,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	codeOfLambda->ls=1;
 	codeOfLambda->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 	FAKE_ASSERT(codeOfLambda->l,"compileLambda",__FILE__,__LINE__);
-	codeOfLambda->l[0]=newLineNumTabNode(findSymbolInGlob(inter->filename)->id,0,pArg->size,line);
+	codeOfLambda->l[0]=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,pArg->size,line);
 	ByteCode* resTp=newByteCode(sizeof(char));
 	resTp->code[0]=FAKE_RES_TP;
 	for(;objCptr;objCptr=nextCptr(objCptr))
@@ -1641,7 +1639,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	toReturn->ls=1;
 	toReturn->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 	FAKE_ASSERT(toReturn->l,"compileLambda",__FILE__,__LINE__);
-	toReturn->l[0]=newLineNumTabNode(findSymbolInGlob(inter->filename)->id,0,pushProc->size,line);
+	toReturn->l[0]=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,pushProc->size,line);
 	destroyCompEnv(tmpEnv);
 	codelntCat(toReturn,codeOfLambda);
 	freeByteCodelnt(codeOfLambda);
@@ -1729,7 +1727,7 @@ ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		tmp->ls=1;
 		tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
 		FAKE_ASSERT(tmp->l,"compileCond",__FILE__,__LINE__);
-		tmp->l[0]=newLineNumTabNode(findSymbolInGlob(inter->filename)->id,0,0,objCptr->curline);
+		tmp->l[0]=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,0,objCptr->curline);
 	}
 	reCodeCat(setTp,tmp->bc);
 	tmp->l[0]->cpc+=setTp->size;
@@ -1797,7 +1795,7 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 	tmp->ls=1;
 	tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 	FAKE_ASSERT(tmp->l,"compileFile",__FILE__,__LINE__);
-	tmp->l[0]=newLineNumTabNode(findSymbolInGlob(inter->filename)->id,0,0,1);
+	tmp->l[0]=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,0,1);
 	ByteCode* resTp=newByteCode(1);
 	resTp->code[0]=FAKE_RES_TP;
 	char* prev=NULL;
@@ -1906,7 +1904,7 @@ ByteCodelnt* compileProgn(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 		}
 	}
 	
-	int32_t fid=findSymbolInGlob(inter->filename)->id;
+	int32_t fid=addSymbolToGlob(inter->filename)->id;
 	fir=nextCptr(getFirstCptr(objCptr));
 
 	int32_t sizeOfByteCode=0;
@@ -2580,7 +2578,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 								libByteCodelnt->ls=1;
 								libByteCodelnt->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 								FAKE_ASSERT(libByteCodelnt->l,"compileImport",__FILE__,__LINE__);
-								libByteCodelnt->l[0]=newLineNumTabNode(findSymbolInGlob(tmpInter->filename)->id,0,libByteCodelnt->bc->size,objCptr->curline);
+								libByteCodelnt->l[0]=newLineNumTabNode(addSymbolToGlob(tmpInter->filename)->id,0,libByteCodelnt->bc->size,objCptr->curline);
 							}
 							else
 							{

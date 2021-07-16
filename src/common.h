@@ -102,6 +102,7 @@ SymTabNode* getGlobSymbolWithId(int32_t id);
 void printSymbolTable(SymbolTable*,FILE*);
 void freeSymTabNode(SymTabNode*);
 void freeSymbolTable(SymbolTable*);
+void freeGlobSymbolTable();
 
 void writeSymbolTable(SymbolTable*,FILE*);
 void writeGlobSymbolTable(FILE*);

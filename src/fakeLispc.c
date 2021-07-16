@@ -39,8 +39,7 @@ int main(int argc,char** argv)
 #endif
 		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
 		initGlobKeyWord(inter->glob);
-		SymTabNode* node=newSymTabNode(argv[1]);
-		addSymTabNode(node,inter->table);
+		addSymbol(argv[1],inter->table);
 		int status;
 		ByteCodelnt* mainByteCode=compileFile(inter,1,&status);
 		if(mainByteCode==NULL)

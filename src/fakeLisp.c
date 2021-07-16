@@ -27,7 +27,7 @@ void errorCallBack(void* a)
 extern char* InterpreterPath;
 int main(int argc,char** argv)
 {
-	char* filename=(argc>1)?argv[1]:NULL;
+	char* filename=(argc>1)?argv[1]:"stdin";
 #ifdef WIN32
 	InterpreterPath=_fullpath(NULL,argv[0],0);
 #else
@@ -46,6 +46,7 @@ int main(int argc,char** argv)
 			return EXIT_FAILURE;
 		}
 		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
+		addSymbol(filename,inter->table);
 		initGlobKeyWord(inter->glob);
 		if(fp==stdin)
 			runIntpr(inter);
@@ -59,8 +60,6 @@ int main(int argc,char** argv)
 			char* workpath=getDir(rp);
 			free(rp);
 			int status;
-			SymTabNode* node=newSymTabNode(filename);
-			addSymTabNode(node,inter->table);
 			ByteCodelnt* mainByteCode=compileFile(inter,1,&status);
 			if(mainByteCode==NULL)
 			{
@@ -307,8 +306,7 @@ SymbolTable* loadSymbolTable(FILE* fp)
 	for(;i<size;i++)
 	{
 		char* symbol=getStringFromFile(fp);
-		SymTabNode* node=newSymTabNode(symbol);
-		addSymTabNode(node,tmp);
+		addSymbol(symbol,tmp);
 		free(symbol);
 	}
 	return tmp;

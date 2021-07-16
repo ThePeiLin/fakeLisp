@@ -243,6 +243,8 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap,int access)
 			tmp->u.dbl=(access)?copyMemory(pValue,sizeof(double)):pValue;
 			break;
 		case SYM:
+			tmp->u.sid=copyMemory(pValue,sizeof(int32_t));
+			break;
 		case STR:
 			tmp->u.str=pValue;break;
 		case PAIR:

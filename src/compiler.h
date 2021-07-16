@@ -23,7 +23,7 @@ ByteCodelnt* compileQsquote(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);
 ByteCodelnt* compileUnquote(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);
 ByteCodelnt* compileUnqtesp(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);
 ByteCodelnt* compileConst(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);
-ByteCode* compileQuote(AST_cptr*);
+ByteCode* compileQuote(AST_cptr*,SymbolTable*);
 ByteCode* compileAtom(AST_cptr*);
 ByteCode* compilePair(AST_cptr*);
 ByteCode* compileNil();

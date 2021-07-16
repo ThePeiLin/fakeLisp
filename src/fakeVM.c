@@ -428,11 +428,10 @@ void B_push_sym(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
-	int len=strlen((char*)(exe->code+runnable->cp+1));
-	VMstr* tmpStr=newVMstr((char*)exe->code+runnable->cp+1);
-	VMvalue* objValue=newVMvalue(SYM,tmpStr,exe->heap,1);
+	int32_t sid=*(int32_t*)(exe->code+runnable->cp+1);
+	VMvalue* objValue=newVMvalue(SYM,&sid,exe->heap,1);
 	SET_RETURN("B_push_sym",objValue,stack);
-	runnable->cp+=2+len;
+	runnable->cp+=5;
 }
 
 void B_push_byte(FakeVM* exe)

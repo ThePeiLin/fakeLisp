@@ -93,7 +93,7 @@ char* getLastWorkDir(Intpr*);
 
 SymbolTable* newSymbolTable();
 SymTabNode* newSymTabNode(const char*);
-SymTabNode* addSymTabNode(SymTabNode*,SymbolTable*);
+SymTabNode* addSymbol(const char*,SymbolTable*);
 SymTabNode* findSymbol(const char*,SymbolTable*);
 void printSymbolTable(SymbolTable*,FILE*);
 void freeSymTabNode(SymTabNode*);

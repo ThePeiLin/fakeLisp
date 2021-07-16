@@ -925,12 +925,7 @@ CompDef* addCompDef(const char* name,CompEnv* curEnv,SymbolTable* table)
 {
 	if(curEnv->head==NULL)
 	{
-		SymTabNode* node=findSymbol(name,table);
-		if(!node)
-		{
-			node=newSymTabNode(name);
-			addSymTabNode(node,table);
-		}
+		SymTabNode* node=addSymbol(name,table);
 		FAKE_ASSERT((curEnv->head=(CompDef*)malloc(sizeof(CompDef))),"addCompDef",__FILE__,__LINE__);
 		curEnv->head->next=NULL;
 		curEnv->head->id=node->id;
@@ -941,12 +936,7 @@ CompDef* addCompDef(const char* name,CompEnv* curEnv,SymbolTable* table)
 		CompDef* curDef=findCompDef(name,curEnv,table);
 		if(curDef==NULL)
 		{
-			SymTabNode* node=findSymbol(name,table);
-			if(!node)
-			{
-				node=newSymTabNode(name);
-				addSymTabNode(node,table);
-			}
+			SymTabNode* node=addSymbol(name,table);
 			FAKE_ASSERT((curDef=(CompDef*)malloc(sizeof(CompDef))),"addCompDef",__FILE__,__LINE__);
 			curDef->id=node->id;
 			curDef->next=curEnv->head;
@@ -1581,16 +1571,18 @@ SymTabNode* newSymTabNode(const char* symbol)
 	return tmp;
 }
 
-SymTabNode* addSymTabNode(SymTabNode* node,SymbolTable* table)
+SymTabNode* addSymbol(const char* sym,SymbolTable* table)
 {
+	SymTabNode* node=NULL;
 	if(!table->list)
 	{
+		node=newSymTabNode(sym);
 		table->num=1;
 		node->id=table->num-1;
 		table->list=(SymTabNode**)malloc(sizeof(SymTabNode*)*1);
-		FAKE_ASSERT(table->list,"addSymTabNode",__FILE__,__LINE__);
+		FAKE_ASSERT(table->list,"addSymbol",__FILE__,__LINE__);
 		table->idl=(SymTabNode**)malloc(sizeof(SymTabNode*)*1);
-		FAKE_ASSERT(table->idl,"addSymTabNode",__FILE__,__LINE__);
+		FAKE_ASSERT(table->idl,"addSymbol",__FILE__,__LINE__);
 		table->list[0]=node;
 		table->idl[0]=node;
 	}
@@ -1602,23 +1594,27 @@ SymTabNode* addSymTabNode(SymTabNode* node,SymbolTable* table)
 		while(l<=h)
 		{
 			mid=l+(h-l)/2;
-			if(strcmp(table->list[mid]->symbol,node->symbol)>=0)
+			int r=strcmp(table->list[mid]->symbol,sym);
+			if(r>0)
 				h=mid-1;
-			else
+			else if(r<0)
 				l=mid+1;
+			else
+				return table->list[mid];
 		}
-		if(strcmp(table->list[mid]->symbol,node->symbol)<=0)
+		if(strcmp(table->list[mid]->symbol,sym)<=0)
 			mid++;
 		table->num+=1;
 		int32_t i=table->num-1;
 		table->list=(SymTabNode**)realloc(table->list,sizeof(SymTabNode*)*table->num);
-		FAKE_ASSERT(table->list,"addSymTabNode",__FILE__,__LINE__);
+		FAKE_ASSERT(table->list,"addSymbol",__FILE__,__LINE__);
+		node=newSymTabNode(sym);
 		for(;i>mid;i--)
 			table->list[i]=table->list[i-1];
 		table->list[mid]=node;
 		node->id=table->num-1;
 		table->idl=(SymTabNode**)realloc(table->idl,sizeof(SymTabNode*)*table->num);
-		FAKE_ASSERT(table->idl,"addSymTabNode",__FILE__,__LINE__);
+		FAKE_ASSERT(table->idl,"addSymbol",__FILE__,__LINE__);
 		table->idl[table->num-1]=node;
 	}
 	return node;

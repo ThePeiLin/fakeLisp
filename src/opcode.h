@@ -56,7 +56,7 @@ static codeinfor codeName[]=
 	{"push_chr",1},
 	{"push_dbl",8},
 	{"push_str",-1},
-	{"push_sym",-1},
+	{"push_sym",4},
 	{"push_byte",-2},
 	{"push_var",4},
 	{"push_env_var",0},

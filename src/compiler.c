@@ -732,11 +732,6 @@ ByteCode* compileAtom(AST_cptr* objCptr)
 	ByteCode* tmp=NULL;
 	switch((int)tmpAtm->type)
 	{
-		case SYM:
-			tmp=newByteCode(sizeof(char)+strlen(tmpAtm->value.str)+1);
-			tmp->code[0]=FAKE_PUSH_SYM;
-			strcpy((char*)tmp->code+1,tmpAtm->value.str);
-			break;
 		case STR:
 			tmp=newByteCode(sizeof(char)+strlen(tmpAtm->value.str)+1);
 			tmp->code[0]=FAKE_PUSH_STR;
@@ -965,7 +960,7 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 	return tmp;
 }
 
-ByteCode* compileQuote(AST_cptr* objCptr)
+ByteCode* compileQuote(AST_cptr* objCptr,SymbolTable* table)
 {
 	objCptr=&objCptr->u.pair->car;
 	objCptr=nextCptr(objCptr);
@@ -973,10 +968,24 @@ ByteCode* compileQuote(AST_cptr* objCptr)
 	{
 		case PAIR:
 			return compilePair(objCptr);
+			break;
 		case ATM:
-			return compileAtom(objCptr);
+			if(objCptr->u.atom->type==SYM)
+			{
+				ByteCode* tmp=newByteCode(sizeof(char)+sizeof(int32_t));
+				char* sym=objCptr->u.atom->value.str;
+				SymTabNode* node=addSymbol(sym,table);
+				tmp=newByteCode(sizeof(char)+sizeof(int32_t));
+				tmp->code[0]=FAKE_PUSH_SYM;
+				*(int32_t*)(tmp->code+sizeof(char))=node->id;
+				return tmp;
+			}
+			else
+				return compileAtom(objCptr);
+			break;
 		case NIL:
 			return compileNil();
+			break;
 	}
 	return NULL;
 }
@@ -991,9 +1000,22 @@ ByteCodelnt* compileConst(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 {
 	int32_t line=objCptr->curline;
 	ByteCode* tmp=NULL;
-	if(objCptr->type==ATM)tmp=compileAtom(objCptr);
+	if(objCptr->type==ATM)
+	{
+		if(objCptr->u.atom->type==SYM)
+		{
+			char* sym=objCptr->u.atom->value.str;
+			SymTabNode* node=addSymbol(sym,inter->table);
+			tmp=newByteCode(sizeof(char)+sizeof(int32_t));
+			tmp->code[0]=FAKE_PUSH_SYM;
+			*(int32_t*)(tmp->code+sizeof(char))=node->id;
+			
+		}
+		else
+			tmp=compileAtom(objCptr);
+	}
 	if(isNil(objCptr))tmp=compileNil();
-	if(isQuoteExpression(objCptr))tmp=compileQuote(objCptr);
+	if(isQuoteExpression(objCptr))tmp=compileQuote(objCptr,inter->table);
 	if(!tmp)
 	{
 		status->status=INVALIDEXPR;
@@ -1188,8 +1210,7 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		}
 		if(tmpDef==NULL)
 		{
-			SymTabNode* node=newSymTabNode(tmpAtm->value.str);
-			addSymTabNode(node,inter->table);
+			SymTabNode* node=addSymbol(tmpAtm->value.str,inter->table);
 			scope=-1;
 			id=node->id;
 		}
@@ -1301,12 +1322,7 @@ ByteCodelnt* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	}
 	if(tmpDef==NULL)
 	{
-		SymTabNode* node=findSymbol(tmpAtm->value.str,inter->table);
-		if(!node)
-		{
-			node=newSymTabNode(tmpAtm->value.str);
-			addSymTabNode(node,inter->table);
-		}
+		SymTabNode* node=addSymbol(tmpAtm->value.str,inter->table);
 		id=node->id;
 		if(evalIm)
 		{
@@ -1750,8 +1766,7 @@ ByteCodelnt* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		perror(name->value.str);
 		return NULL;
 	}
-	SymTabNode* node=newSymTabNode(name->value.str);
-	addSymTabNode(node,inter->table);
+	addSymbol(name->value.str,inter->table);
 	Intpr* tmpIntpr=newIntpr(name->value.str,file,curEnv,inter->table,inter->lnt);
 	tmpIntpr->prev=inter;
 	tmpIntpr->glob=curEnv;
@@ -2429,8 +2444,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			freeFakeMemMenager(memMenager);
 			return NULL;
 		}
-		SymTabNode* node=newSymTabNode(path);
-		addSymTabNode(node,inter->table);
+		addSymbol(path,inter->table);
 		Intpr* tmpInter=newIntpr(path,fp,newCompEnv(NULL),inter->table,inter->lnt);
 		initGlobKeyWord(tmpInter->glob);
 		free(path);

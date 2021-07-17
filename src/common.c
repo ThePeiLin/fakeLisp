@@ -688,7 +688,7 @@ void printCptr(const AST_cptr* objCptr,FILE* out)
 		else if(objCptr->type==ATM||objCptr->type==NIL)
 		{
 			if(objPair!=NULL&&objCptr==&objPair->cdr&&objCptr->type==ATM)putc(',',out);
-			if((objPair!=NULL&&objCptr==&objPair->car&&objCptr->type==NIL&&objPair->prev!=NULL)
+			if((objPair!=NULL&&objCptr==&objPair->car&&objCptr->type==NIL)
 			||(objCptr->outer==NULL&&objCptr->type==NIL))fputs("()",out);
 			if(objCptr->type!=NIL)
 			{

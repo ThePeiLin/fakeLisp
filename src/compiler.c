@@ -2094,10 +2094,10 @@ ByteCodelnt* compileProgn(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 					}
 					else if(opcode==FAKE_PUSH_SYM)
 					{
-						if(tmpAtm->type!=STR&&tmpAtm->type!=SYM)
+						if(tmpAtm->type!=SYM)
 						{
 							status->place=tmpCptr;
-							status->status=SYMUNDEFINE;
+							status->status=SYNTAXERROR;
 							uint32_t i=0;
 							for(;i<stack->top;i++)
 								freeByteCodeLabel(stack->data[i]);

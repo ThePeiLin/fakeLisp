@@ -977,7 +977,7 @@ ByteCode* compileQuote(AST_cptr* objCptr)
 				char* sym=objCptr->u.atom->value.str;
 				SymTabNode* node=addSymbolToGlob(sym);
 				tmp->code[0]=FAKE_PUSH_SYM;
-				*(int32_t*)(tmp->code+sizeof(char))=node->id;
+				*(Sid_t*)(tmp->code+sizeof(char))=node->id;
 				return tmp;
 			}
 			else

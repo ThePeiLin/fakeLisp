@@ -1116,7 +1116,7 @@ void printByteCode(const ByteCode* tmpCode,FILE* fp)
 				break;
 			case 4:
 				if(tmpCode->code[i]==FAKE_PUSH_SYM)
-					fprintf(fp,"%s",getGlobSymbolWithId(*(int32_t*)(tmpCode->code+i+1))->symbol);
+					fprintf(fp,"%s",getGlobSymbolWithId(*(Sid_t*)(tmpCode->code+i+1))->symbol);
 				else
 					fprintf(fp,"%d",*(int32_t*)(tmpCode->code+i+1));
 				i+=5;
@@ -2179,7 +2179,7 @@ void printByteCodelnt(ByteCodelnt* obj,FILE* fp)
 				break;
 			case 4:
 				if(tmpCode->code[i]==FAKE_PUSH_SYM)
-					fprintf(fp,"%s",getGlobSymbolWithId(*(int32_t*)(tmpCode->code+i+1))->symbol);
+					fprintf(fp,"%s",getGlobSymbolWithId(*(Sid_t*)(tmpCode->code+i+1))->symbol);
 				else
 					fprintf(fp,"%d",*(int32_t*)(tmpCode->code+i+1));
 				i+=5;

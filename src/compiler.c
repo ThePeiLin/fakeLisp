@@ -728,6 +728,11 @@ ByteCode* compileAtom(AST_cptr* objCptr)
 	ByteCode* tmp=NULL;
 	switch((int)tmpAtm->type)
 	{
+		case SYM:
+			tmp=newByteCode(sizeof(char)+sizeof(Sid_t));
+			tmp->code[0]=FAKE_PUSH_SYM;
+			*(Sid_t*)(tmp->code+sizeof(char))=addSymbolToGlob(tmpAtm->value.str)->id;
+			break;
 		case STR:
 			tmp=newByteCode(sizeof(char)+strlen(tmpAtm->value.str)+1);
 			tmp->code[0]=FAKE_PUSH_STR;
@@ -995,19 +1000,7 @@ ByteCodelnt* compileConst(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 {
 	int32_t line=objCptr->curline;
 	ByteCode* tmp=NULL;
-	if(objCptr->type==ATM)
-	{
-		if(objCptr->u.atom->type==SYM)
-		{
-			char* sym=objCptr->u.atom->value.str;
-			SymTabNode* node=addSymbolToGlob(sym);
-			tmp=newByteCode(sizeof(char)+sizeof(int32_t));
-			tmp->code[0]=FAKE_PUSH_SYM;
-			*(int32_t*)(tmp->code+sizeof(char))=node->id;
-		}
-		else
-			tmp=compileAtom(objCptr);
-	}
+	if(objCptr->type==ATM)tmp=compileAtom(objCptr);
 	if(isNil(objCptr))tmp=compileNil();
 	if(isQuoteExpression(objCptr))tmp=compileQuote(objCptr);
 	if(!tmp)

@@ -1489,6 +1489,7 @@ int raiseVMerror(VMerror* err,FakeVM* exe)
 			}
 			freeVMerrorHandler(h);
 		}
+		freeVMTryBlock(popComStack(exe->tstack));
 	}
 	fprintf(stderr,"%s",err->message);
 	freeVMerror(err);

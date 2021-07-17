@@ -450,7 +450,7 @@ void B_push_var(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
-	uint32_t idOfVar=*(uint32_t*)(exe->code+runnable->cp+1);
+	Sid_t idOfVar=*(Sid_t*)(exe->code+runnable->cp+1);
 	VMenv* curEnv=runnable->localenv;
 	VMvalue* tmpValue=NULL;
 	VMenvNode* tmp=NULL;
@@ -480,7 +480,7 @@ void B_push_env_var(FakeVM* exe)
 	SymTabNode* stn=addSymbolToGlob(topValue->u.str->str);
 	if(stn==NULL)
 		RAISE_BUILTIN_ERROR(INVALIDSYMBOL,runnable,exe);
-	int32_t idOfVar=stn->id;
+	Sid_t idOfVar=stn->id;
 	VMenv* curEnv=runnable->localenv;
 	VMenvNode* tmp=NULL;
 	while(curEnv&&!tmp)
@@ -553,7 +553,7 @@ void B_pop_var(FakeVM* exe)
 	if(!(stack->tp>stack->bp))
 		RAISE_BUILTIN_ERROR(STACKERROR,runnable,exe);
 	int32_t scopeOfVar=*(int32_t*)(exe->code+runnable->cp+1);
-	uint32_t idOfVar=*(uint32_t*)(exe->code+runnable->cp+5);
+	Sid_t idOfVar=*(Sid_t*)(exe->code+runnable->cp+5);
 	VMenv* curEnv=runnable->localenv;
 	VMvalue** pValue=NULL;
 	if(scopeOfVar>=0)

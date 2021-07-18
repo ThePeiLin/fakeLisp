@@ -132,7 +132,7 @@ char* getStringAfterBackslash(const char* str)
 char* doubleToString(double num)
 {
 	char numString[256]={0};
-	snprintf(numString,256,"%lf",num);
+	sprintf(numString,"%lf",num);
 	int lenOfNum=strlen(numString)+1;
 	char* tmp=(char*)malloc(lenOfNum*sizeof(char));
 	FAKE_ASSERT(tmp,"doubleToString",__FILE__,__LINE__);
@@ -153,7 +153,7 @@ double stringToDouble(const char* str)
 char* intToString(long num)
 {
 	char numString[256]={0};
-	snprintf(numString,256,"%ld",num);
+	sprintf(numString,"%ld",num);
 	int lenOfNum=strlen(numString)+1;
 	char* tmp=NULL;
 	FAKE_ASSERT((tmp=(char*)malloc(lenOfNum*sizeof(char))),"intToString",__FILE__,__LINE__);
@@ -537,7 +537,7 @@ int stringToChar(const char* objStr)
 	{
 		size_t len=strlen(objStr)+2;
 		char* tmpStr=(char*)malloc(sizeof(char)*len);
-		snprintf(tmpStr,len,"0%s",objStr);
+		sprintf(tmpStr,"0%s",objStr);
 		if(isHexNum(tmpStr))
 		{
 			sscanf(tmpStr+2,"%x",&ch);

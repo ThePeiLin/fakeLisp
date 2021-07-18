@@ -1214,7 +1214,7 @@ VMDll* newVMDll(const char* dllName)
 	size_t len=strlen(dllName)+strlen(filetype)+1;
 	char* realDllName=(char*)malloc(sizeof(char)*len);
 	FAKE_ASSERT(realDllName,"newVMDll",__FILE__,__LINE__);
-	snprintf(realDllName,len,"%s%s",dllName,filetype);
+	sprintf(realDllName,"%s%s",dllName,filetype);
 #ifdef _WIN32
 	char* rpath=_fullpath(NULL,realDllName,0);
 #else
@@ -1531,7 +1531,7 @@ char* genErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe)
 	size_t len=strlen("In file \"\",line \n")+strlen(filename)+strlen(line)+1;
 	char* t=(char*)malloc(sizeof(char)*len);
 	FAKE_ASSERT(t,"genErrorMessage",__FILE__,__LINE__);
-	snprintf(t,len,"In file \"%s\",line %s\n",filename,line);
+	sprintf(t,"In file \"%s\",line %s\n",filename,line);
 	free(line);
 	t=strCat(t,"error:");
 	switch(type)

@@ -1069,7 +1069,7 @@ void SYS_dlsym(FakeVM* exe,pthread_rwlock_t* gclock)
 	size_t len=strlen(prefix)+strlen(symbol->u.str->str)+1;
 	char* realDlFuncName=(char*)malloc(sizeof(char)*len);
 	FAKE_ASSERT(realDlFuncName,"B_dlsym",__FILE__,__LINE__);
-	snprintf(realDlFuncName,len,"%s%s",prefix,symbol->u.str->str);
+	sprintf(realDlFuncName,"%s%s",prefix,symbol->u.str->str);
 	DllFunc funcAddress=getAddress(realDlFuncName,dll->u.dll->handle);
 	if(!funcAddress)
 	{

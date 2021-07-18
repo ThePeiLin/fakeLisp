@@ -1216,7 +1216,7 @@ void SYS_error(FakeVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR(TOOFEWARG,runnable,exe);
 	if(type->type!=SYM||message->type!=STR)
 		RAISE_BUILTIN_ERROR(WRONGARG,runnable,exe);
-	SET_RETURN("SYS_error",newVMvalue(ERR,newVMerror(type->u.str->str,message->u.str->str),exe->heap,1),stack);
+	SET_RETURN("SYS_error",newVMvalue(ERR,newVMerrorWithSid(*type->u.sid,message->u.str->str),exe->heap,1),stack);
 }
 
 void SYS_raise(FakeVM* exe,pthread_rwlock_t* gclock)

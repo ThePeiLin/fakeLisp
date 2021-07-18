@@ -1330,6 +1330,16 @@ VMerror* newVMerror(const char* type,const char* message)
 	return t;
 }
 
+VMerror* newVMerrorWithSid(Sid_t type,const char* message)
+{
+	VMerror* t=(VMerror*)malloc(sizeof(VMerror));
+	FAKE_ASSERT(t,"newVMerror",__FILE__,__LINE__);
+	t->refcount=0;
+	t->type=type;
+	t->message=copyStr(message);
+	return t;
+}
+
 void freeVMerror(VMerror* err)
 {
 	if(err->refcount)

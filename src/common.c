@@ -741,7 +741,7 @@ void printCptr(const AST_cptr* objCptr,FILE* out)
 
 void exError(const AST_cptr* obj,int type,Intpr* inter)
 {
-	fprintf(stderr,"error of ");
+	fprintf(stderr,"error of compiling: ");
 	if(obj!=NULL)printCptr(obj,stderr);
 	switch(type)
 	{

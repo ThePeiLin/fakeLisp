@@ -741,32 +741,33 @@ void printCptr(const AST_cptr* objCptr,FILE* out)
 
 void exError(const AST_cptr* obj,int type,Intpr* inter)
 {
-	if(inter!=NULL)fprintf(stderr,"In file \"%s\",line %d\n",inter->filename,(obj==NULL)?inter->curline:obj->curline);
+	fprintf(stderr,"error of ");
 	if(obj!=NULL)printCptr(obj,stderr);
 	switch(type)
 	{
 		case SYMUNDEFINE:
-			fprintf(stderr," :Symbol is undefined.\n");
+			fprintf(stderr,":Symbol is undefined ");
 			break;
 		case SYNTAXERROR:
-			fprintf(stderr," :Syntax error.\n");
+			fprintf(stderr,":Syntax error ");
 			break;
 		case INVALIDEXPR:
-			fprintf(stderr," :Invalid expression here.\n");
+			fprintf(stderr,":Invalid expression here ");
 			break;
 		case CIRCULARLOAD:
-			fprintf(stderr," :Circular load file.\n");
+			fprintf(stderr,":Circular load file ");
 			break;
 		case INVALIDPATTERN:
-			fprintf(stderr," :Invalid string match pattern.\n");
+			fprintf(stderr,":Invalid string match pattern ");
 			break;
 		case MACROEXPANDFAILED:
-			fprintf(stderr," :Failed to expand macro.\n");
+			fprintf(stderr,":Failed to expand macro ");
 			break;
 		case LIBUNDEFINED:
-			fprintf(stderr," :Library undefined.\n");
+			fprintf(stderr,":Library undefined ");
 			break;
 	}
+	if(inter!=NULL)fprintf(stderr,"at line %d of file %s\n",(obj==NULL)?inter->curline:obj->curline,inter->filename);
 }
 
 void printRawChar(char chr,FILE* out)

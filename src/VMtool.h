@@ -22,9 +22,9 @@ extern const char*  builtInErrorType[NUMOFBUILTINERRORTYPE];
 	(stack)->tp+=1;\
 }
 
-#define RAISE_BUILTIN_ERROR(ERRORTYPE,RUNNABLE,EXE) {\
+#define RAISE_BUILTIN_ERROR(WHO,ERRORTYPE,RUNNABLE,EXE) {\
 	char* errorMessage=genErrorMessage((ERRORTYPE),(RUNNABLE),(EXE));\
-	VMerror* err=newVMerror(builtInErrorType[(ERRORTYPE)],errorMessage);\
+	VMerror* err=newVMerror((WHO),builtInErrorType[(ERRORTYPE)],errorMessage);\
 	free(errorMessage);\
 	raiseVMerror(err,(EXE));\
 	return;\
@@ -126,8 +126,8 @@ void increaseVMDlprocRefcount(VMDlproc*);
 void decreaseVMDlprocRefcount(VMDlproc*);
 void freeVMDlproc(VMDlproc*);
 
-VMerror* newVMerror(const char* type,const char* message);
-VMerror* newVMerrorWithSid(Sid_t type,const char* message);
+VMerror* newVMerror(const char* who,const char* type,const char* message);
+VMerror* newVMerrorWithSid(const char* who,Sid_t type,const char* message);
 void increaseVMerrorRefcount(VMerror*);
 void decreaseVMerrorRefcount(VMerror*);
 void freeVMerror(VMerror*);

@@ -1320,20 +1320,22 @@ void freeVMDlproc(VMDlproc* dlproc)
 	}
 }
 
-VMerror* newVMerror(const char* type,const char* message)
+VMerror* newVMerror(const char* who,const char* type,const char* message)
 {
 	VMerror* t=(VMerror*)malloc(sizeof(VMerror));
 	FAKE_ASSERT(t,"newVMerror",__FILE__,__LINE__);
+	t->who=copyStr(who);
 	t->refcount=0;
 	t->type=addSymbolToGlob(type)->id;
 	t->message=copyStr(message);
 	return t;
 }
 
-VMerror* newVMerrorWithSid(Sid_t type,const char* message)
+VMerror* newVMerrorWithSid(const char* who,Sid_t type,const char* message)
 {
 	VMerror* t=(VMerror*)malloc(sizeof(VMerror));
 	FAKE_ASSERT(t,"newVMerror",__FILE__,__LINE__);
+	t->who=copyStr(who);
 	t->refcount=0;
 	t->type=type;
 	t->message=copyStr(message);
@@ -1346,6 +1348,7 @@ void freeVMerror(VMerror* err)
 		decreaseVMerrorRefcount(err);
 	else
 	{
+		free(err->who);
 		free(err->message);
 		free(err);
 	}
@@ -1501,7 +1504,7 @@ int raiseVMerror(VMerror* err,FakeVM* exe)
 		}
 		freeVMTryBlock(popComStack(exe->tstack));
 	}
-	fprintf(stderr,"%s",err->message);
+	fprintf(stderr,"error of %s :%s",err->who,err->message);
 	freeVMerror(err);
 	void* i[3]={exe,(void*)255,(void*)1};
 	exe->callback(i);
@@ -1528,56 +1531,58 @@ char* genErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe)
 	LineNumTabNode* node=findLineNumTabNode(cp,exe->lnt);
 	char* filename=GlobSymbolTable.idl[node->fid]->symbol;
 	char* line=intToString(node->line);
-	size_t len=strlen("In file \"\",line \n")+strlen(filename)+strlen(line)+1;
-	char* t=(char*)malloc(sizeof(char)*len);
-	FAKE_ASSERT(t,"genErrorMessage",__FILE__,__LINE__);
-	sprintf(t,"In file \"%s\",line %s\n",filename,line);
+	size_t len=strlen("at line  of \n")+strlen(filename)+strlen(line)+1;
+	char* lineNumber=(char*)malloc(sizeof(char)*len);
+	FAKE_ASSERT(lineNumber,"genErrorMessage",__FILE__,__LINE__);
+	sprintf(lineNumber,"at line %s of %s\n",line,filename);
 	free(line);
-	t=strCat(t,"error:");
+	char* t=copyStr("");
 	switch(type)
 	{
 		case WRONGARG:
-			t=strCat(t,"Wrong arguement.\n");
+			t=strCat(t,"Wrong arguement ");
 			break;
 		case STACKERROR:
-			t=strCat(t,"Stack error.\n");
+			t=strCat(t,"Stack error ");
 			break;
 		case TOOMANYARG:
-			t=strCat(t,"Too many arguements.\n");
+			t=strCat(t,"Too many arguements ");
 			break;
 		case TOOFEWARG:
-			t=strCat(t,"Too few arguements.\n");
+			t=strCat(t,"Too few arguements ");
 			break;
 		case CANTCREATETHREAD:
 			t=strCat(t,"Can't create thread.\n");
 			break;
 		case SYMUNDEFINE:
-			t=strCat(t,"Symbol \"");
+			t=strCat(t,"Symbol ");
 			t=strCat(t,GlobSymbolTable.idl[getSymbolIdInByteCode(exe->code+r->cp)]->symbol);
-			t=strCat(t,"\" is undefined.\n");
+			t=strCat(t," is undefined ");
 			break;
 		case INVOKEERROR:
 			t=strCat(t,"Try to invoke an object that isn't procedure,continuation or native procedure.\n");
 			break;
 		case LOADDLLFAILD:
-			t=strCat(t,"Faild to load dll:\"");
+			t=strCat(t,"Faild to load dll \"");
 			t=strCat(t,exe->stack->values[exe->stack->tp-1]->u.str->str);
-			t=strCat(t,"\".\n");
+			t=strCat(t,"\" ");
 			break;
 		case INVALIDSYMBOL:
-			t=strCat(t,"Invalid symbol:");
+			t=strCat(t,"Invalid symbol ");
 			t=strCat(t,exe->stack->values[exe->stack->tp-1]->u.str->str);
-			t=strCat(t,"\n");
+			t=strCat(t," ");
 			break;
 		case DIVZERROERROR:
-			t=strCat(t,"Divided by zero.\n");
+			t=strCat(t,"Divided by zero ");
 			break;
 		case FILEFAILURE:
 			t=strCat(t,"Failed for file:\"");
 			t=strCat(t,exe->stack->values[exe->stack->tp-1]->u.str->str);
-			t=strCat(t,"\".\n");
+			t=strCat(t,"\" ");
 			break;
 	}
+	t=strCat(t,lineNumber);
+	free(lineNumber);
 	return t;
 }
 
@@ -1610,6 +1615,9 @@ int resBp(VMstack* stack)
 
 void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 {
+	int access=!h;
+	CRL* head=NULL;
+	if(!h)h=&head;
 	VMpair* cirPair=NULL;
 	int32_t CRLcount=-1;
 	int8_t isInCir=0;
@@ -1695,9 +1703,22 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 			break;
 		default:fprintf(fp,"Bad value!");break;
 	}
+	if(access)
+	{
+		head=*h;
+		while(head)
+		{
+			CRL* prev=head;
+			head=head->next;
+			free(prev);
+		}
+	}
 }
 void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 {
+	int access=!h;
+	CRL* head=NULL;
+	if(!h)h=&head;
 	VMpair* cirPair=NULL;
 	int8_t isInCir=0;
 	int32_t CRLcount=-1;
@@ -1779,9 +1800,19 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 			fprintf(fp,"<#dlproc>");
 			break;
 		case ERR:
-			fprintf(fp,"<#err t:%s m:%s>",getGlobSymbolWithId(objValue->u.err->type)->symbol,objValue->u.err->message);
+			fprintf(fp,"<#err w:%s t:%s m:%s>",objValue->u.err->who,getGlobSymbolWithId(objValue->u.err->type)->symbol,objValue->u.err->message);
 			break;
 		default:fprintf(fp,"Bad value!");break;
+	}
+	if(access)
+	{
+		head=*h;
+		while(head)
+		{
+			CRL* prev=head;
+			head=head->next;
+			free(prev);
+		}
 	}
 }
 

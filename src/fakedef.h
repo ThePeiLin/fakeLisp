@@ -384,6 +384,7 @@ typedef struct VMerror
 {
 	uint32_t refcount;
 	Sid_t type;
+	char* who;
 	char* message;
 }VMerror;
 

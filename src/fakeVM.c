@@ -461,7 +461,7 @@ void B_push_var(FakeVM* exe)
 	}
 	if(tmp==NULL)
 	{
-		RAISE_BUILTIN_ERROR("ByteCode::push_var",SYMUNDEFINE,runnable,exe);
+		RAISE_BUILTIN_ERROR("b.push_var",SYMUNDEFINE,runnable,exe);
 	}
 	tmpValue=tmp->value;
 	SET_RETURN("B_push_var",tmpValue,stack);
@@ -475,11 +475,11 @@ void B_push_env_var(FakeVM* exe)
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue->type!=STR&&topValue->type!=SYM)
 	{
-		RAISE_BUILTIN_ERROR("ByteCode::push_env_var",WRONGARG,runnable,exe);
+		RAISE_BUILTIN_ERROR("b.push_env_var",WRONGARG,runnable,exe);
 	}
 	SymTabNode* stn=addSymbolToGlob(topValue->u.str->str);
 	if(stn==NULL)
-		RAISE_BUILTIN_ERROR("ByteCode::push_env_var",INVALIDSYMBOL,runnable,exe);
+		RAISE_BUILTIN_ERROR("b.push_env_var",INVALIDSYMBOL,runnable,exe);
 	Sid_t idOfVar=stn->id;
 	VMenv* curEnv=runnable->localenv;
 	VMenvNode* tmp=NULL;
@@ -489,7 +489,7 @@ void B_push_env_var(FakeVM* exe)
 		curEnv=curEnv->prev;
 	}
 	if(tmp==NULL)
-		RAISE_BUILTIN_ERROR("ByteCode::push_env_var",INVALIDSYMBOL,runnable,exe);
+		RAISE_BUILTIN_ERROR("b.push_env_var",INVALIDSYMBOL,runnable,exe);
 	stack->values[stack->tp-1]=tmp->value;
 	runnable->cp+=1;
 }
@@ -499,7 +499,7 @@ void B_push_top(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
 	if(stack->tp==stack->bp)
-		RAISE_BUILTIN_ERROR("ByteCode::push_top",STACKERROR,runnable,exe);
+		RAISE_BUILTIN_ERROR("b.push_top",STACKERROR,runnable,exe);
 	SET_RETURN("B_push_top",getTopValue(stack),stack);
 	runnable->cp+=1;
 }
@@ -551,7 +551,7 @@ void B_pop_var(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
 	if(!(stack->tp>stack->bp))
-		RAISE_BUILTIN_ERROR("ByteCode::pop_var",STACKERROR,runnable,exe);
+		RAISE_BUILTIN_ERROR("b.pop_var",STACKERROR,runnable,exe);
 	int32_t scopeOfVar=*(int32_t*)(exe->code+runnable->cp+1);
 	Sid_t idOfVar=*(Sid_t*)(exe->code+runnable->cp+5);
 	VMenv* curEnv=runnable->localenv;
@@ -575,7 +575,7 @@ void B_pop_var(FakeVM* exe)
 			curEnv=curEnv->prev;
 		}
 		if(tmp==NULL)
-			RAISE_BUILTIN_ERROR("ByteCode::pop_var",SYMUNDEFINE,runnable,exe);
+			RAISE_BUILTIN_ERROR("b.pop_var",SYMUNDEFINE,runnable,exe);
 		pValue=&tmp->value;
 	}
 	VMvalue* topValue=getTopValue(stack);
@@ -591,7 +591,7 @@ void B_pop_arg(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
 	if(!(stack->tp>stack->bp))
-		RAISE_BUILTIN_ERROR("ByteCode::pop_arg",TOOFEWARG,runnable,exe);
+		RAISE_BUILTIN_ERROR("b.pop_arg",TOOFEWARG,runnable,exe);
 	int32_t scopeOfVar=*(int32_t*)(exe->code+runnable->cp+1);
 	uint32_t idOfVar=*(uint32_t*)(exe->code+runnable->cp+5);
 	VMenv* curEnv=runnable->localenv;
@@ -615,7 +615,7 @@ void B_pop_arg(FakeVM* exe)
 			curEnv=curEnv->prev;
 		}
 		if(tmp==NULL)
-			RAISE_BUILTIN_ERROR("ByteCode::pop_arg",SYMUNDEFINE,runnable,exe);
+			RAISE_BUILTIN_ERROR("b.pop_arg",SYMUNDEFINE,runnable,exe);
 		pValue=&tmp->value;
 	}
 	VMvalue* topValue=getTopValue(stack);
@@ -653,7 +653,7 @@ void B_pop_rest_arg(FakeVM* exe)
 			curEnv=curEnv->prev;
 		}
 		if(tmp==NULL)
-			RAISE_BUILTIN_ERROR("ByteCode::pop_rest_arg",SYMUNDEFINE,runnable,exe);
+			RAISE_BUILTIN_ERROR("b.pop_rest_arg",SYMUNDEFINE,runnable,exe);
 		pValue=&tmp->value;
 	}
 	VMvalue* obj=NULL;
@@ -686,7 +686,7 @@ void B_pop_car(FakeVM* exe)
 	VMvalue* topValue=getTopValue(stack);
 	VMvalue* objValue=getValue(stack,stack->tp-2);
 	if(objValue->type!=PAIR)
-		RAISE_BUILTIN_ERROR("ByteCode::pop_car",WRONGARG,runnable,exe);
+		RAISE_BUILTIN_ERROR("b.pop_car",WRONGARG,runnable,exe);
 	objValue->u.pair->car=topValue;
 	stack->tp-=1;
 	stackRecycle(exe);
@@ -700,7 +700,7 @@ void B_pop_cdr(FakeVM* exe)
 	VMvalue* topValue=getTopValue(stack);
 	VMvalue* objValue=getValue(stack,stack->tp-2);
 	if(objValue->type!=PAIR)
-		RAISE_BUILTIN_ERROR("ByteCode::pop_cdr",WRONGARG,runnable,exe);
+		RAISE_BUILTIN_ERROR("b.pop_cdr",WRONGARG,runnable,exe);
 	objValue->u.pair->cdr=topValue;
 	stack->tp-=1;
 	stackRecycle(exe);
@@ -714,7 +714,7 @@ void B_pop_ref(FakeVM* exe)
 	VMvalue* topValue=getTopValue(stack);
 	VMvalue* objValue=getValue(stack,stack->tp-2);
 	if(objValue->access==0&&objValue->type!=topValue->type)
-		RAISE_BUILTIN_ERROR("ByteCode::pop_ref",WRONGARG,runnable,exe);
+		RAISE_BUILTIN_ERROR("b.pop_ref",WRONGARG,runnable,exe);
 	if(objValue->type==topValue->type)
 		writeRef(objValue,topValue);
 	else
@@ -730,7 +730,7 @@ void B_pop_env(FakeVM* exe)
 	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* topValue=getTopValue(stack);
 	if(topValue->type!=PRC)
-		RAISE_BUILTIN_ERROR("ByteCode::pop_env",WRONGARG,runnable,exe);
+		RAISE_BUILTIN_ERROR("b.pop_env",WRONGARG,runnable,exe);
 	VMenv** ppEnv=&topValue->u.prc->prevEnv;
 	VMenv* tmpEnv=*ppEnv;
 	int32_t i=0;
@@ -747,7 +747,7 @@ void B_pop_env(FakeVM* exe)
 		freeVMenv(tmpEnv);
 	}
 	else
-		RAISE_BUILTIN_ERROR("ByteCode::pop_env",STACKERROR,runnable,exe);
+		RAISE_BUILTIN_ERROR("b.pop_env",STACKERROR,runnable,exe);
 	runnable->cp+=5;
 }
 
@@ -756,7 +756,7 @@ void B_swap(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
 	if(stack->tp<2)
-		RAISE_BUILTIN_ERROR("ByteCode::swap",TOOFEWARG,runnable,exe);
+		RAISE_BUILTIN_ERROR("b.swap",TOOFEWARG,runnable,exe);
 	VMvalue* topValue=getTopValue(stack);
 	VMvalue* otherValue=getValue(stack,stack->tp-2);
 	stack->values[stack->tp-1]=otherValue;
@@ -826,7 +826,7 @@ void B_res_bp(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
 	if(stack->tp>stack->bp)
-		RAISE_BUILTIN_ERROR("ByteCode::res_bp",TOOMANYARG,runnable,exe);
+		RAISE_BUILTIN_ERROR("b.res_bp",TOOMANYARG,runnable,exe);
 	VMvalue* prevBp=getTopValue(stack);
 	stack->bp=*prevBp->u.in32;
 	stack->tp-=1;
@@ -840,7 +840,7 @@ void B_invoke(FakeVM* exe)
 	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* tmpValue=getTopValue(stack);
 	if(tmpValue->type!=PRC&&tmpValue->type!=CONT&&tmpValue->type!=DLPROC)
-		RAISE_BUILTIN_ERROR("ByteCode::invoke",INVOKEERROR,runnable,exe);
+		RAISE_BUILTIN_ERROR("b.invoke",INVOKEERROR,runnable,exe);
 	if(tmpValue->type==PRC)
 	{
 		VMproc* tmpProc=tmpValue->u.prc;
@@ -916,9 +916,9 @@ void B_append(FakeVM* exe)
 	VMvalue* fir=getTopValue(stack);
 	VMvalue* sec=getValue(stack,stack->tp-2);
 	if(sec->type!=NIL&&sec->type!=PAIR&&sec->type!=STR&&sec->type!=BYTS)
-		RAISE_BUILTIN_ERROR("ByteCode::append",WRONGARG,runnable,exe);
+		RAISE_BUILTIN_ERROR("b.append",WRONGARG,runnable,exe);
 	if(sec->type!=PAIR)
-		RAISE_BUILTIN_ERROR("ByteCode::append",WRONGARG,runnable,exe);
+		RAISE_BUILTIN_ERROR("b.append",WRONGARG,runnable,exe);
 	VMvalue* lastpair=sec;
 	while(getVMpairCdr(lastpair)->type==PAIR)lastpair=getVMpairCdr(lastpair);
 	lastpair->u.pair->cdr=fir;

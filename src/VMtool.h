@@ -44,8 +44,7 @@ extern const char*  builtInErrorType[NUMOFBUILTINERRORTYPE];
 #define GET_IN32(P) ((int32_t)((uintptr_t)(P)>>UNUSEDBITNUM))
 #define GET_CHR(P) ((char)((uintptr_t)(P)>>UNUSEDBITNUM))
 #define GET_SYM(P) ((Sid_t)((uintptr_t)(P)>>UNUSEDBITNUM))
-#define GET_VAL(P) (IS_REF(P)?*(VMvalue**)(GET_PTR(P)):(IS_CHF(P)?MAKE_VM_CHR(*((VMChref*)GET_PTR(P))->obj):(P)))
-#define SET_REF(P,V) do{if(IS_CHF(P))*((VMChref*)GET_PTR(P))->obj=GET_CHR(V); else *(VMvalue**)(P)=(V);}while(0)
+#define SET_REF(p,v) do{VMvalue* P=p;VMvalue* V=v;if(IS_CHF(P))*((VMChref*)GET_PTR(P))->obj=GET_CHR(V); else *(VMvalue**)GET_PTR(P)=(V);}while(0)
 #define IS_PTR(P) (GET_TAG(P)==PTR_TAG)
 #define IS_PAIR(P) (GET_TAG(P)==PTR_TAG&&(P)->type==PAIR)
 #define IS_DBL(P) (GET_TAG(P)==PTR_TAG&&(P)->type==DBL)
@@ -71,6 +70,7 @@ typedef struct Cirular_Ref_List
 	struct Cirular_Ref_List* next;
 }CRL;
 
+VMvalue* GET_VAL(VMvalue* P);
 void writeVMvalue(VMvalue*,FILE*,CRL**);
 void princVMvalue(VMvalue*,FILE*,CRL**);
 VMenvNode* newVMenvNode(VMvalue*,int32_t);
@@ -84,7 +84,7 @@ void decreaseVMprocRefcount(VMproc*);
 VMvalue* copyVMvalue(VMvalue*,VMheap*);
 VMvalue* newVMvalue(ValueType,void*,VMheap*);
 VMvalue* newTrueValue(VMheap*);
-VMvalue* newNilValue(VMheap*);
+VMvalue* newNilValue();
 VMvalue* getTopValue(VMstack*);
 VMvalue* getValue(VMstack*,int32_t);
 VMvalue* getVMpairCar(VMvalue*);

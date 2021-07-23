@@ -1160,8 +1160,8 @@ uint8_t* castStrByteStr(const char* str)
 	int k=0;
 	for(;i<size;i++)
 	{
-		tmp[i]=castCharInt(str[k]);
-		if(str[k+1]!='\0')tmp[i]+=16*castCharInt(str[k+1]);
+		tmp[i]=16*castCharInt(str[k]);
+		if(str[k+1]!='\0')tmp[i]+=castCharInt(str[k+1]);
 		k+=2;
 	}
 	return tmp;
@@ -1174,8 +1174,8 @@ void printByteStr(size_t size,const uint8_t* str,FILE* fp,int mode)
 	for(;i<size;i++)
 	{
 		uint8_t j=str[i];
-		fprintf(fp,"%X",j%16);
 		fprintf(fp,"%X",j/16);
+		fprintf(fp,"%X",j%16);
 	}
 }
 

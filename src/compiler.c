@@ -176,7 +176,7 @@ int PreMacroExpand(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 		int i=runFakeVM(tmpVM);
 		if(!i)
 		{
-			tmpCptr=castVMvalueToCptr(tmpVM->stack->values[0],objCptr->curline);
+			tmpCptr=castVMvalueToCptr(GET_VAL(tmpVM->stack->values[0]),objCptr->curline);
 			replaceCptr(objCptr,tmpCptr);
 			deleteCptr(tmpCptr);
 			free(tmpCptr);

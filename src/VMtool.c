@@ -197,7 +197,7 @@ VMvalue* copyVMvalue(VMvalue* obj,VMheap* heap)
 								QueueNode* cur=objCh->messages->head;
 								for(;cur;cur=cur->next)
 								{
-									void* tmp=newNilValue(heap);
+									void* tmp=VM_NIL;//newNilValue(heap);
 									pushComQueue(tmp,tmpCh->messages);
 									pushComStack(cur->data,s1);
 									pushComStack(tmp,s2);
@@ -335,8 +335,8 @@ int VMvaluecmp(VMvalue* fir,VMvalue* sec)
 	{
 		VMvalue* root1=popComStack(s1);
 		VMvalue* root2=popComStack(s2);
-		if(root1==root2)
-			r=1;
+		if(!IS_PTR(root1)&&!IS_PTR(root2)&&root1!=root2)
+			r=0;
 		else if(GET_TAG(root1)!=GET_TAG(root2))
 			r=0;
 		else if(IS_PTR(root1)&&IS_PTR(root2))
@@ -361,10 +361,13 @@ int VMvaluecmp(VMvalue* fir,VMvalue* sec)
 					pushComStack(root2->u.pair->car,s2);
 					pushComStack(root2->u.pair->cdr,s2);
 					break;
+				default:
+					r=(root1==root2);
+					break;
 			}
-			if(!r)
-				break;
 		}
+		if(!r)
+			break;
 	}
 	freeComStack(s1);
 	freeComStack(s2);
@@ -515,8 +518,8 @@ VMpair* newVMpair(VMheap* heap)
 	VMpair* tmp=(VMpair*)malloc(sizeof(VMpair));
 	FAKE_ASSERT(tmp,"newVMpair",__FILE__,__LINE__);
 	tmp->refcount=0;
-	tmp->car=newNilValue(heap);
-	tmp->cdr=newNilValue(heap);
+	tmp->car=VM_NIL;
+	tmp->cdr=VM_NIL;
 	return tmp;
 }
 
@@ -1616,8 +1619,6 @@ int resBp(VMstack* stack)
 
 void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 {
-	if(IS_REF(objValue))
-		objValue=*(VMvalue**)GET_PTR(objValue);
 	int access=!h;
 	CRL* head=NULL;
 	if(!h)h=&head;
@@ -1673,7 +1674,7 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 							else
 								princVMvalue(tmpValue,fp,h);
 							tmpValue=getVMpairCdr(objValue);
-							if(tmpValue->type>NIL&&tmpValue->type<PAIR)
+							if(tmpValue!=VM_NIL&&!IS_PAIR(tmpValue))
 							{
 								putc(',',fp);
 								princVMvalue(tmpValue,fp,h);
@@ -1683,7 +1684,7 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 								fprintf(fp,",#%d#",CRLcount);
 								break;
 							}
-							else if(tmpValue->type!=NIL)
+							else if(tmpValue!=VM_NIL)
 								putc(' ',fp);
 						}
 						putc(')',fp);
@@ -1727,10 +1728,9 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 		}
 	}
 }
+
 void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 {
-	if(IS_REF(objValue))
-		objValue=*(VMvalue**)GET_PTR(objValue);
 	int access=!h;
 	CRL* head=NULL;
 	if(!h)h=&head;
@@ -1796,7 +1796,7 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 								fprintf(fp,",#%d#",CRLcount);
 								break;
 							}
-							else if(tmpValue->type!=NIL)
+							else if(tmpValue!=VM_NIL)
 								putc(' ',fp);
 						}
 						putc(')',fp);
@@ -1854,4 +1854,9 @@ VMvalue* newVMChref(VMvalue* from,char* obj)
 	tmp->from=from;
 	tmp->obj=obj;
 	return MAKE_VM_CHF(tmp);
+}
+
+VMvalue* GET_VAL(VMvalue* P)
+{
+	return (IS_REF(P)?*(VMvalue**)(GET_PTR(P)):((IS_CHF(P)?MAKE_VM_CHR(*((VMChref*)GET_PTR(P))->obj):(P))));
 }

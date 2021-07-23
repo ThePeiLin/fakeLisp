@@ -66,11 +66,11 @@ void SYS_append(FakeVM* exe,pthread_rwlock_t* gclock)
 	VMvalue** prev=&retval;
 	for(;cur;cur=GET_VAL(popVMstack(stack)))
 	{
-		if(*prev==NIL)
+		if(*prev==VM_NIL)
 			*prev=copyVMvalue(cur,exe->heap);
 		else if(IS_PAIR(*prev))
 		{
-			for(;IS_PAIR(*prev);prev=&(*prev)->u.pair->car);
+			for(;IS_PAIR(*prev);prev=&(*prev)->u.pair->cdr);
 			*prev=copyVMvalue(cur,exe->heap);
 		}
 		else if(IS_STR(*prev))
@@ -178,6 +178,11 @@ void SYS_eqn(FakeVM* exe,pthread_rwlock_t* gclock)
 				?VM_TRUE
 				:VM_NIL
 				,stack);
+	else if(IS_BYTS(fir)&&IS_BYTS(sec))
+		SET_RETURN("SYS_eqn",eqVMByts(fir->u.byts,sec->u.byts)
+				?VM_TRUE
+				:VM_NIL
+				,stack);
 	else
 		RAISE_BUILTIN_ERROR("sys.eqn",WRONGARG,runnable,exe);
 
@@ -263,7 +268,7 @@ void SYS_sub(FakeVM* exe,pthread_rwlock_t* gclock)
 				RAISE_BUILTIN_ERROR("sys.sub",WRONGARG,runnable,exe);
 		}
 		resBp(stack);
-		if(prev->type==DBL||rd!=0.0)
+		if(IS_DBL(prev)||rd!=0.0)
 		{
 			rd=((IS_DBL(prev))?*prev->u.dbl:GET_IN32(prev))-rd-ri;
 			SET_RETURN("SYS_sub",newVMvalue(DBL,&rd,exe->heap),stack);
@@ -354,7 +359,7 @@ void SYS_div(FakeVM* exe,pthread_rwlock_t* gclock)
 		if(ri==0)
 			RAISE_BUILTIN_ERROR("sys.div",DIVZERROERROR,runnable,exe);
 		resBp(stack);
-		if(prev->type==DBL||rd!=1.0||(IS_IN32(prev)&&GET_IN32(prev)%ri))
+		if(IS_DBL(prev)||rd!=1.0||(IS_IN32(prev)&&GET_IN32(prev)%ri))
 		{
 			if(rd==0.0||ri==0)
 				RAISE_BUILTIN_ERROR("sys.div",DIVZERROERROR,runnable,exe);
@@ -770,8 +775,8 @@ void SYS_type(FakeVM* exe,pthread_rwlock_t* gclock)
 		case NIL_TAG:type=NIL;break;
 		case IN32_TAG:type=IN32;break;
 		case SYM_TAG:type=SYM;break;
-		case CHR_TAG:type=SYM;break;
-		case PTR_TAG:type=obj->type;
+		case CHR_TAG:type=CHR;break;
+		case PTR_TAG:type=obj->type;break;
 		default:
 			RAISE_BUILTIN_ERROR("sys.type",WRONGARG,runnable,exe);
 			break;
@@ -798,7 +803,7 @@ void SYS_nth(FakeVM* exe,pthread_rwlock_t* gclock)
 		VMvalue* objPair=objlist;
 		int i=0;
 		for(;i<offset&&IS_PAIR(objPair);i++,objPair=getVMpairCdr(objPair));
-		retval=(IS_PAIR(objPair))?getVMpairCar(objPair):VM_NIL;
+		retval=(IS_PAIR(objPair))?MAKE_VM_REF(&objPair->u.pair->car):VM_NIL;
 	}
 	else if(IS_STR(objlist))
 		retval=offset>=strlen(objlist->u.str->str)?VM_NIL:newVMChref(objlist,objlist->u.str->str+offset);
@@ -1033,7 +1038,7 @@ void SYS_argv(FakeVM* exe,pthread_rwlock_t* pGClock)
 	retval=VM_NIL;
 	VMvalue** tmp=&retval;
 	int32_t i=0;
-	for(;i<exe->argc;i++,tmp=&(*tmp)->u.pair->car)
+	for(;i<exe->argc;i++,tmp=&(*tmp)->u.pair->cdr)
 	{
 		VMvalue* cur=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap);
 		*tmp=cur;

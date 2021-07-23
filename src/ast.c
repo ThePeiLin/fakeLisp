@@ -176,7 +176,7 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 		int status=runFakeVM(tmpVM);
 		AST_cptr* tmpCptr=NULL;
 		if(!status)
-			tmpCptr=castVMvalueToCptr(tmpVM->stack->values[0],inter->curline);
+			tmpCptr=castVMvalueToCptr(GET_VAL(tmpVM->stack->values[0]),inter->curline);
 		else
 		{
 			FREE_ALL_LINE_NUMBER_TABLE(t->l,t->ls);
@@ -429,21 +429,25 @@ AST_cptr* castVMvalueToCptr(VMvalue* value,int32_t curline)
 		root1->type=cptrType;
 		if(cptrType==ATM)
 		{
-			AST_atom* tmpAtm=newAtom(root->type,NULL,root1->outer);
+			AST_atom* tmpAtm=newAtom(SYM,NULL,root1->outer);
 			VMptrTag tag=GET_TAG(root);
 			switch(tag)
 			{
 				case SYM_TAG:
+					tmpAtm->type=SYM;
 					tmpAtm->value.str=copyStr(getGlobSymbolWithId(GET_SYM(root))->symbol);
 					break;
 				case IN32_TAG:
+					tmpAtm->type=IN32;
 					tmpAtm->value.in32=GET_IN32(root);
 					break;
 				case CHR_TAG:
+					tmpAtm->type=CHR;
 					tmpAtm->value.chr=GET_CHR(root);
 					break;
 				case PTR_TAG:
 					{
+						tmpAtm->type=root->type;
 						switch(root->type)
 						{
 							case DBL:
@@ -478,7 +482,7 @@ AST_cptr* castVMvalueToCptr(VMvalue* value,int32_t curline)
 								break;
 							case ERR:
 								tmpAtm->type=SYM;
-								tmpAtm->value.str=copyStr("#<err");
+								tmpAtm->value.str=copyStr("#<err>");
 								break;
 							default:
 								return NULL;

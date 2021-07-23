@@ -6,7 +6,7 @@
 
 extern const char*  builtInErrorType[NUMOFBUILTINERRORTYPE];
 
-#define SET_RETURN(fn,v,stack) {\
+#define SET_RETURN(fn,v,stack) do{\
 	if((stack)->tp>=(stack)->size)\
 	{\
 		(stack)->values=(VMvalue**)realloc((stack)->values,sizeof(VMvalue*)*((stack)->size+64));\
@@ -20,15 +20,49 @@ extern const char*  builtInErrorType[NUMOFBUILTINERRORTYPE];
 	}\
 	(stack)->values[(stack)->tp]=(v);\
 	(stack)->tp+=1;\
-}
+}while(0)
 
-#define RAISE_BUILTIN_ERROR(WHO,ERRORTYPE,RUNNABLE,EXE) {\
+#define RAISE_BUILTIN_ERROR(WHO,ERRORTYPE,RUNNABLE,EXE) do{\
 	char* errorMessage=genErrorMessage((ERRORTYPE),(RUNNABLE),(EXE));\
 	VMerror* err=newVMerror((WHO),builtInErrorType[(ERRORTYPE)],errorMessage);\
 	free(errorMessage);\
 	raiseVMerror(err,(EXE));\
 	return;\
-}
+}while(0)
+
+#define VM_NIL ((VMptr)0x1)
+#define VM_TRUE (MAKE_VM_IN32(1))
+#define VM_EOF ((VMptr)0x7fffffffa)
+#define MAKE_VM_IN32(I) ((VMptr)((((uintptr_t)(I))<<UNUSEDBITNUM)|IN32_TAG))
+#define MAKE_VM_CHR(C) ((VMptr)((((uintptr_t)(C))<<UNUSEDBITNUM)|CHR_TAG))
+#define MAKE_VM_SYM(S) ((VMptr)((((uintptr_t)(S))<<UNUSEDBITNUM)|SYM_TAG))
+#define MAKE_VM_PTR(P) ((VMptr)(((uintptr_t)(P))|PTR_TAG))
+#define MAKE_VM_REF(P) ((VMptr)(((uintptr_t)(P))|REF_TAG))
+#define MAKE_VM_CHF(P) ((VMptr)(((uintptr_t)(P))|CHF_TAG))
+#define GET_TAG(P) ((VMptrTag)(((uintptr_t)(P))&TAG_MASK))
+#define GET_PTR(P) ((VMptr)(((uintptr_t)(P))&PTR_MASK))
+#define GET_IN32(P) ((int32_t)((uintptr_t)(P)>>UNUSEDBITNUM))
+#define GET_CHR(P) ((char)((uintptr_t)(P)>>UNUSEDBITNUM))
+#define GET_SYM(P) ((Sid_t)((uintptr_t)(P)>>UNUSEDBITNUM))
+#define GET_VAL(P) (IS_REF(P)?*(VMvalue**)(GET_PTR(P)):(IS_CHF(P)?MAKE_VM_CHR(*((VMChref*)GET_PTR(P))->obj):(P)))
+#define SET_REF(P,V) do{if(IS_CHF(P))*((VMChref*)GET_PTR(P))->obj=GET_CHR(V); else *(VMvalue**)(P)=(V);}while(0)
+#define IS_PTR(P) (GET_TAG(P)==PTR_TAG)
+#define IS_PAIR(P) (GET_TAG(P)==PTR_TAG&&(P)->type==PAIR)
+#define IS_DBL(P) (GET_TAG(P)==PTR_TAG&&(P)->type==DBL)
+#define IS_STR(P) (GET_TAG(P)==PTR_TAG&&(P)->type==STR)
+#define IS_BYTS(P) (GET_TAG(P)==PTR_TAG&&(P)->type==BYTS)
+#define IS_CHAN(P) (GET_TAG(P)==PTR_TAG&&(P)->type==CHAN)
+#define IS_FP(P) (GET_TAG(P)==PTR_TAG&&(P)->type==FP)
+#define IS_DLL(P) (GET_TAG(P)==PTR_TAG&&(P)->type==DLL)
+#define IS_PRC(P) (GET_TAG(P)==PTR_TAG&&(P)->type==PRC)
+#define IS_DLPROC(P) (GET_TAG(P)==PTR_TAG&&(P)->type==DLPROC)
+#define IS_ERR(P) (GET_TAG(P)==PTR_TAG&&(P)->type==ERR)
+#define IS_IN32(P) (GET_TAG(P)==IN32_TAG)
+#define IS_CHR(P) (GET_TAG(P)==CHR_TAG)
+#define IS_SYM(P) (GET_TAG(P)==SYM_TAG)
+#define IS_REF(P) (GET_TAG(P)==REF_TAG)
+#define IS_CHF(P) (GET_TAG(P)==CHF_TAG)
+#define FREE_CHF(P) (free(GET_PTR(P)))
 
 typedef struct Cirular_Ref_List
 {
@@ -48,16 +82,16 @@ void increaseVMprocRefcount(VMproc*);
 void decreaseVMprocRefcount(VMproc*);
 
 VMvalue* copyVMvalue(VMvalue*,VMheap*);
-VMvalue* newVMvalue(ValueType,void*,VMheap*,int);
+VMvalue* newVMvalue(ValueType,void*,VMheap*);
 VMvalue* newTrueValue(VMheap*);
 VMvalue* newNilValue(VMheap*);
 VMvalue* getTopValue(VMstack*);
 VMvalue* getValue(VMstack*,int32_t);
 VMvalue* getVMpairCar(VMvalue*);
 VMvalue* getVMpairCdr(VMvalue*);
-void copyRef(VMvalue*,VMvalue*);
-void writeRef(VMvalue*,VMvalue*);
-void freeRef(VMvalue*);
+//void copyRef(VMvalue*,VMvalue*);
+//void writeRef(VMvalue*,VMvalue*);
+//void freeRef(VMvalue*);
 int VMvaluecmp(VMvalue*,VMvalue*);
 int subVMvaluecmp(VMvalue*,VMvalue*);
 int numcmp(VMvalue*,VMvalue*);
@@ -103,7 +137,7 @@ void freeVMstr(VMstr*);
 void freeVMenv(VMenv*);
 void releaseSource(pthread_rwlock_t*);
 void lockSource(pthread_rwlock_t*);
-VMvalue* getArg(VMstack*);
+VMvalue* popVMstack(VMstack*);
 
 VMcontinuation* newVMcontinuation(VMstack*,ComStack*);
 void increaseVMcontRefcount(VMcontinuation*);
@@ -151,4 +185,5 @@ VMrunnable* newVMrunnable(VMproc*);
 char* genErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe);
 int32_t getSymbolIdInByteCode(const uint8_t*);
 int resBp(VMstack*);
+VMvalue* newVMChref(VMvalue* from,char* obj);
 #endif

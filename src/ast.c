@@ -420,9 +420,9 @@ AST_cptr* castVMvalueToCptr(VMvalue* value,int32_t curline)
 		VMvalue* root=popComStack(s1);
 		AST_cptr* root1=popComStack(s2);
 		ValueType cptrType=0;
-		if(root->type==NIL)
+		if(root==VM_NIL)
 			cptrType=NIL;
-		else if(root->type==PAIR)
+		else if(IS_PAIR(root))
 			cptrType=PAIR;
 		else
 			cptrType=ATM;
@@ -430,50 +430,63 @@ AST_cptr* castVMvalueToCptr(VMvalue* value,int32_t curline)
 		if(cptrType==ATM)
 		{
 			AST_atom* tmpAtm=newAtom(root->type,NULL,root1->outer);
-			switch(root->type)
+			VMptrTag tag=GET_TAG(root);
+			switch(tag)
 			{
-				case SYM:
-					tmpAtm->value.str=copyStr(getGlobSymbolWithId(*root->u.sid)->symbol);
+				case SYM_TAG:
+					tmpAtm->value.str=copyStr(getGlobSymbolWithId(GET_SYM(root))->symbol);
 					break;
-				case STR:
-					tmpAtm->value.str=copyStr(root->u.str->str);
+				case IN32_TAG:
+					tmpAtm->value.in32=GET_IN32(root);
 					break;
-				case IN32:
-					tmpAtm->value.in32=*root->u.in32;
+				case CHR_TAG:
+					tmpAtm->value.chr=GET_CHR(root);
 					break;
-				case DBL:
-					tmpAtm->value.dbl=*root->u.dbl;
-					break;
-				case CHR:
-					tmpAtm->value.chr=*root->u.chr;
-					break;
-				case BYTS:
-					tmpAtm->value.byts.size=root->u.byts->size;
-					tmpAtm->value.byts.str=copyMemory(root->u.byts->str,root->u.byts->size);
-					break;
-				case PRC:
-					tmpAtm->type=SYM;
-					tmpAtm->value.str=copyStr("#<proc>");
-					break;
-				case DLPROC:
-					tmpAtm->type=SYM;
-					tmpAtm->value.str=copyStr("#<dlproc>");
-					break;
-				case CONT:
-					tmpAtm->type=SYM;
-					tmpAtm->value.str=copyStr("#<proc>");
-					break;
-				case CHAN:
-					tmpAtm->type=SYM;
-					tmpAtm->value.str=copyStr("#<chan>");
-					break;
-				case FP:
-					tmpAtm->type=SYM;
-					tmpAtm->value.str=copyStr("#<fp>");
-					break;
-				case ERR:
-					tmpAtm->type=SYM;
-					tmpAtm->value.str=copyStr("#<err");
+				case PTR_TAG:
+					{
+						switch(root->type)
+						{
+							case DBL:
+								tmpAtm->value.dbl=*root->u.dbl;
+								break;
+							case STR:
+								tmpAtm->value.str=copyStr(root->u.str->str);
+								break;
+							case BYTS:
+								tmpAtm->value.byts.size=root->u.byts->size;
+								tmpAtm->value.byts.str=copyMemory(root->u.byts->str,root->u.byts->size);
+								break;
+							case PRC:
+								tmpAtm->type=SYM;
+								tmpAtm->value.str=copyStr("#<proc>");
+								break;
+							case DLPROC:
+								tmpAtm->type=SYM;
+								tmpAtm->value.str=copyStr("#<dlproc>");
+								break;
+							case CONT:
+								tmpAtm->type=SYM;
+								tmpAtm->value.str=copyStr("#<proc>");
+								break;
+							case CHAN:
+								tmpAtm->type=SYM;
+								tmpAtm->value.str=copyStr("#<chan>");
+								break;
+							case FP:
+								tmpAtm->type=SYM;
+								tmpAtm->value.str=copyStr("#<fp>");
+								break;
+							case ERR:
+								tmpAtm->type=SYM;
+								tmpAtm->value.str=copyStr("#<err");
+								break;
+							default:
+								return NULL;
+								break;
+						}
+					}
+				default:
+					return NULL;
 					break;
 			}
 			root1->u.atom=tmpAtm;

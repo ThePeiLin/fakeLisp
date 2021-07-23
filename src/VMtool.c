@@ -40,42 +40,42 @@ static VMpair* hasSameVMpair(VMpair* begin,VMpair* other,CRL* h)
 	if(begin==other)
 		return begin;
 
-	if((other->car->type==PAIR&&other->car->u.pair->car->type==PAIR)&&begin->car->type==PAIR)
+	if((IS_PAIR(other->car)&&IS_PAIR(other->car->u.pair->car))&&IS_PAIR(begin->car))
 		tmpPair=hasSameVMpair(begin->car->u.pair,other->car->u.pair->car->u.pair,h);
 	if(tmpPair)
 		return tmpPair;
 
-	if((other->car->type==PAIR&&other->car->u.pair->cdr->type==PAIR)&&begin->car->type==PAIR)
+	if((IS_PAIR(other->car)&&IS_PAIR(other->car->u.pair->cdr))&&IS_PAIR(begin->car))
 		tmpPair=hasSameVMpair(begin->car->u.pair,other->car->u.pair->cdr->u.pair,h);
 	if(tmpPair)
 		return tmpPair;
 
-	if((other->car->type==PAIR&&other->car->u.pair->car->type==PAIR)&&begin->cdr->type==PAIR)
+	if((IS_PAIR(other->car)&&IS_PAIR(other->car->u.pair->car))&&IS_PAIR(begin->cdr))
 		tmpPair=hasSameVMpair(begin->cdr->u.pair,other->car->u.pair->car->u.pair,h);
 	if(tmpPair)
 		return tmpPair;
 
-	if((other->car->type==PAIR&&other->car->u.pair->cdr->type==PAIR)&&begin->cdr->type==PAIR)
+	if((IS_PAIR(other->car)&&IS_PAIR(other->car->u.pair->cdr))&&IS_PAIR(begin->cdr))
 		tmpPair=hasSameVMpair(begin->cdr->u.pair,other->car->u.pair->cdr->u.pair,h);
 	if(tmpPair)
 		return tmpPair;
 
-	if((other->cdr->type==PAIR&&other->cdr->u.pair->car->type==PAIR)&&begin->car->type==PAIR)
+	if((IS_PAIR(other->cdr)&&IS_PAIR(other->cdr->u.pair->car))&&IS_PAIR(begin->car))
 		tmpPair=hasSameVMpair(begin->car->u.pair,other->cdr->u.pair->car->u.pair,h);
 	if(tmpPair)
 		return tmpPair;
 
-	if((other->cdr->type==PAIR&&other->cdr->u.pair->cdr->type==PAIR)&&begin->car->type==PAIR)
+	if((IS_PAIR(other->cdr)&&IS_PAIR(other->cdr->u.pair->cdr))&&IS_PAIR(begin->car))
 		tmpPair=hasSameVMpair(begin->car->u.pair,other->cdr->u.pair->cdr->u.pair,h);
 	if(tmpPair)
 		return tmpPair;
 
-	if((other->cdr->type==PAIR&&other->cdr->u.pair->car->type==PAIR)&&begin->cdr->type==PAIR)
+	if((IS_PAIR(other->cdr)&&IS_PAIR(other->cdr->u.pair->car))&&IS_PAIR(begin->cdr))
 		tmpPair=hasSameVMpair(begin->cdr->u.pair,other->cdr->u.pair->car->u.pair,h);
 	if(tmpPair)
 		return tmpPair;
 
-	if((other->cdr->type==PAIR&&other->cdr->u.pair->cdr->type==PAIR)&&begin->cdr->type==PAIR)
+	if((IS_PAIR(other->cdr)&&IS_PAIR(other->cdr->u.pair->cdr))&&IS_PAIR(begin->cdr))
 		tmpPair=hasSameVMpair(begin->cdr->u.pair,other->cdr->u.pair->cdr->u.pair,h);
 	if(tmpPair)
 		return tmpPair;
@@ -85,11 +85,11 @@ static VMpair* hasSameVMpair(VMpair* begin,VMpair* other,CRL* h)
 VMpair* isCircularReference(VMpair* begin,CRL* h)
 {
 	VMpair* tmpPair=NULL;
-	if(begin->car->type==PAIR)
+	if(IS_PAIR(begin->car))
 		tmpPair=hasSameVMpair(begin,begin->car->u.pair,h);
 	if(tmpPair)
 		return tmpPair;
-	if(begin->cdr->type==PAIR)
+	if(IS_PAIR(begin->cdr))
 		tmpPair=hasSameVMpair(begin,begin->cdr->u.pair,h);
 	if(tmpPair)
 		return tmpPair;
@@ -100,9 +100,9 @@ int8_t isInTheCircle(VMpair* obj,VMpair* begin,VMpair* curPair)
 {
 	if(obj==curPair)
 		return 1;
-	if((curPair->car->type==PAIR&&begin==curPair->car->u.pair)||(curPair->cdr->type==PAIR&&begin==curPair->cdr->u.pair))
+	if((IS_PAIR(curPair->car)&&begin==curPair->car->u.pair)||(IS_PAIR(curPair->cdr)&&begin==curPair->cdr->u.pair))
 		return 0;
-	return ((curPair->car->type==PAIR)&&isInTheCircle(obj,begin,curPair->car->u.pair))||((curPair->cdr->type==PAIR)&&isInTheCircle(obj,begin,curPair->cdr->u.pair));
+	return ((IS_PAIR(curPair->car))&&isInTheCircle(obj,begin,curPair->car->u.pair))||((IS_PAIR(curPair->cdr))&&isInTheCircle(obj,begin,curPair->cdr->u.pair));
 }
 
 
@@ -152,63 +152,74 @@ VMvalue* copyVMvalue(VMvalue* obj,VMheap* heap)
 {
 	ComStack* s1=newComStack(32);
 	ComStack* s2=newComStack(32);
-	VMvalue* tmp=newNilValue(heap);
+	VMvalue* tmp=VM_NIL;
 	pushComStack(obj,s1);
-	pushComStack(tmp,s2);
+	pushComStack(&tmp,s2);
 	while(!isComStackEmpty(s1))
 	{
 		VMvalue* root=popComStack(s1);
-		VMvalue* root1=popComStack(s2);
-		root1->type=root->type;
-		switch(root->type)
+		VMptrTag tag=GET_TAG(root);
+		VMvalue** root1=popComStack(s2);
+		switch(tag)
 		{
-			case IN32:
-				root1->u.in32=copyMemory(root->u.in32,sizeof(int32_t));
+			case NIL_TAG:
+			case IN32_TAG:
+			case SYM_TAG:
+			case CHR_TAG:
+				*root1=root;
 				break;
-			case DBL:
-				root1->u.dbl=copyMemory(root->u.dbl,sizeof(double));
-				break;
-			case CHR:
-				root1->u.chr=copyMemory(root->u.chr,sizeof(char));
-				break;
-			case BYTS:
-				root1->u.byts=newVMByts(root->u.byts->size,root->u.byts->str);
-				break;
-			case STR:
-				root1->u.str=newVMstr(root->u.str->str);
-				break;
-			case SYM:
-				root1->u.sid=copyMemory(root->u.sid,sizeof(Sid_t));
-				break;
-			case CONT:
-			case PRC:
-			case FP:
-			case DLL:
-			case DLPROC:
-			case ERR:
-				copyRef(root1,root);
-				break;
-			case CHAN:
+			case PTR_TAG:
 				{
-					VMChanl* objCh=root->u.chan;
-					VMChanl* tmpCh=newVMChanl(objCh->max);
-					QueueNode* cur=objCh->messages->head;
-					for(;cur;cur=cur->next)
+					ValueType type=root->type;
+					switch(type)
 					{
-						void* tmp=newNilValue(heap);
-						pushComQueue(tmp,tmpCh->messages);
-						pushComStack(cur->data,s1);
-						pushComStack(tmp,s2);
+						case DBL:
+							*root1=newVMvalue(DBL,root->u.dbl,heap);
+							break;
+						case BYTS:
+							*root1=newVMvalue(BYTS,newVMByts(root->u.byts->size,root->u.byts->str),heap);
+							break;
+						case STR:
+							*root1=newVMvalue(STR,newVMstr(root->u.str->str),heap);
+							break;
+						case CONT:
+						case PRC:
+						case FP:
+						case DLL:
+						case DLPROC:
+						case ERR:
+							*root1=root;
+							break;
+						case CHAN:
+							{
+								VMChanl* objCh=root->u.chan;
+								VMChanl* tmpCh=newVMChanl(objCh->max);
+								QueueNode* cur=objCh->messages->head;
+								for(;cur;cur=cur->next)
+								{
+									void* tmp=newNilValue(heap);
+									pushComQueue(tmp,tmpCh->messages);
+									pushComStack(cur->data,s1);
+									pushComStack(tmp,s2);
+								}
+								*root1=newVMvalue(CHAN,tmpCh,heap);
+							}
+							break;
+						case PAIR:
+							*root1=newVMvalue(PAIR,newVMpair(heap),heap);
+							pushComStack(&(*root1)->u.pair->car,s2);
+							pushComStack(&(*root1)->u.pair->cdr,s2);
+							pushComStack(root->u.pair->car,s1);
+							pushComStack(root->u.pair->cdr,s1);
+							break;
+						default:
+							break;
 					}
-					root1->u.chan=tmpCh;;
+					*root1=MAKE_VM_PTR(*root1);
 				}
 				break;
-			case PAIR:
-				root1->u.pair=newVMpair(heap);
-				pushComStack(root1->u.pair->car,s2);
-				pushComStack(root1->u.pair->cdr,s2);
-				pushComStack(root->u.pair->car,s1);
-				pushComStack(root->u.pair->cdr,s1);
+			default:
+				return NULL;
 				break;
 		}
 	}
@@ -217,71 +228,79 @@ VMvalue* copyVMvalue(VMvalue* obj,VMheap* heap)
 	return tmp;
 }
 
-VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap,int access)
+VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap)
 {
-	VMvalue* tmp=(VMvalue*)malloc(sizeof(VMvalue));
-	FAKE_ASSERT(tmp,"newVMvalue",__FILE__,__LINE__);
-	tmp->type=type;
-	tmp->mark=0;
-	tmp->access=access;
-	tmp->next=heap->head;
-	tmp->prev=NULL;
-	pthread_mutex_lock(&heap->lock);
-	if(heap->head!=NULL)heap->head->prev=tmp;
-	heap->head=tmp;
-	heap->num+=1;
-	pthread_mutex_unlock(&heap->lock);
 	switch((int)type)
 	{
 		case NIL:
-			tmp->u.all=NULL;
+			return VM_NIL;
 			break;
 		case CHR:
-			tmp->u.chr=(access)?copyMemory(pValue,sizeof(char)):pValue;
+			return MAKE_VM_CHR(pValue);
 			break;
 		case IN32:
-			tmp->u.in32=(access)?copyMemory(pValue,sizeof(int32_t)):pValue;
-			break;
-		case DBL:
-			tmp->u.dbl=(access)?copyMemory(pValue,sizeof(double)):pValue;
+			return MAKE_VM_IN32(pValue);
 			break;
 		case SYM:
-			tmp->u.sid=copyMemory(pValue,sizeof(Sid_t));
+			return MAKE_VM_SYM(pValue);
 			break;
-		case STR:
-			tmp->u.str=pValue;break;
-		case PAIR:
-			tmp->u.pair=pValue;break;
-		case PRC:
-			tmp->u.prc=pValue;break;
-		case BYTS:
-			tmp->u.byts=pValue;break;
-		case CONT:
-			tmp->u.cont=pValue;break;
-		case CHAN:
-			tmp->u.chan=pValue;break;
-		case FP:
-			tmp->u.fp=pValue;break;
-		case DLL:
-			tmp->u.dll=pValue;break;
-		case DLPROC:
-			tmp->u.dlproc=pValue;break;
-		case ERR:
-			tmp->u.err=pValue;break;
+		default:
+			{
+				VMvalue* tmp=(VMvalue*)malloc(sizeof(VMvalue));
+				FAKE_ASSERT(tmp,"newVMvalue",__FILE__,__LINE__);
+				tmp->type=type;
+				tmp->mark=0;
+				tmp->next=heap->head;
+				tmp->prev=NULL;
+				pthread_mutex_lock(&heap->lock);
+				if(heap->head!=NULL)heap->head->prev=tmp;
+				heap->head=tmp;
+				heap->num+=1;
+				pthread_mutex_unlock(&heap->lock);
+				switch(type)
+				{
+					case DBL:
+						tmp->u.dbl=copyMemory(pValue,sizeof(double));
+						break;
+					case STR:
+						tmp->u.str=pValue;break;
+					case PAIR:
+						tmp->u.pair=pValue;break;
+					case PRC:
+						tmp->u.prc=pValue;break;
+					case BYTS:
+						tmp->u.byts=pValue;break;
+					case CONT:
+						tmp->u.cont=pValue;break;
+					case CHAN:
+						tmp->u.chan=pValue;break;
+					case FP:
+						tmp->u.fp=pValue;break;
+					case DLL:
+						tmp->u.dll=pValue;break;
+					case DLPROC:
+						tmp->u.dlproc=pValue;break;
+					case ERR:
+						tmp->u.err=pValue;break;
+					default:
+						return NULL;
+						break;
+				}
+				return MAKE_VM_PTR(tmp);
+			}
+			break;
 	}
-	return tmp;
 }
 
 VMvalue* newTrueValue(VMheap* heap)
 {
-	int32_t i=1;
-	VMvalue* tmp=newVMvalue(IN32,&i,heap,1);
+	VMvalue* tmp=newVMvalue(IN32,(VMptr)1,heap);
 	return tmp;
 }
 
 VMvalue* newNilValue(VMheap* heap)
 {
-	VMvalue* tmp=newVMvalue(NIL,NULL,heap,1);
+	VMvalue* tmp=newVMvalue(NIL,NULL,heap);
 	return tmp;
 }
 
@@ -297,14 +316,12 @@ VMvalue* getValue(VMstack* stack,int32_t place)
 
 VMvalue* getVMpairCar(VMvalue* obj)
 {
-	if(obj->type!=PAIR)return NULL;
-	else return obj->u.pair->car;
+	return obj->u.pair->car;
 }
 
 VMvalue* getVMpairCdr(VMvalue* obj)
 {
-	if(obj->type!=PAIR)return NULL;
-	else return obj->u.pair->cdr;
+	return obj->u.pair->cdr;
 }
 
 int VMvaluecmp(VMvalue* fir,VMvalue* sec)
@@ -318,24 +335,21 @@ int VMvaluecmp(VMvalue* fir,VMvalue* sec)
 	{
 		VMvalue* root1=popComStack(s1);
 		VMvalue* root2=popComStack(s2);
-		if((root1==root2)||(root1->u.all==root2->u.all))
+		if(root1==root2)
 			r=1;
-		else if((root1->type>=IN32&&root1->type<=BYTS)||(root1->type==PAIR))
+		else if(GET_TAG(root1)!=GET_TAG(root2))
+			r=0;
+		else if(IS_PTR(root1)&&IS_PTR(root2))
 		{
+			if(root1->type!=root2->type)
+				r=0;
 			switch(root1->type)
 			{
-				case IN32:
-					r=(*root1->u.in32==*root2->u.in32);
-					break;
-				case CHR:
-					r=(*root1->u.chr==*root2->u.chr);
-					break;
 				case DBL:
 					r=(fabs(*root1->u.dbl-*root2->u.dbl)==0);
 					break;
 				case STR:
-				case SYM:
-					r=(*root1->u.sid==*root2->u.sid);
+					r=!strcmp(root1->u.str->str,root2->u.str->str);
 					break;
 				case BYTS:
 					r=eqVMByts(root1->u.byts,root2->u.byts);
@@ -351,8 +365,6 @@ int VMvaluecmp(VMvalue* fir,VMvalue* sec)
 			if(!r)
 				break;
 		}
-		else
-			r=(root1->u.all==root2->u.all);
 	}
 	freeComStack(s1);
 	freeComStack(s2);
@@ -361,32 +373,19 @@ int VMvaluecmp(VMvalue* fir,VMvalue* sec)
 
 int subVMvaluecmp(VMvalue* fir,VMvalue* sec)
 {
-	if(fir==sec)return 1;
-	else if(fir->type!=sec->type)return 0;
-	else if(fir->type>=IN32&&fir->type<=SYM)
-	{
-		switch(fir->type)
-		{
-			case IN32:
-				return *fir->u.in32==*sec->u.in32;
-			case CHR:
-				return *fir->u.chr==*sec->u.chr;
-			case DBL:
-				return fabs(*fir->u.dbl-*sec->u.dbl)==0;
-			case SYM:
-				return *fir->u.sid==*sec->u.sid;
-		}
-	}
-	else if(fir->u.all==sec->u.all)return 1;
-	return 0;
+	return fir==sec;
 }
 
 int numcmp(VMvalue* fir,VMvalue* sec)
 {
-	double first=(fir->type==DBL)?*fir->u.dbl:*fir->u.in32;
-	double second=(sec->type==DBL)?*sec->u.dbl:*sec->u.in32;
-	if(fabs(first-second)==0)return 1;
-	else return 0;
+	if(GET_TAG(fir)==GET_TAG(sec)&&GET_TAG(fir)==IN32_TAG)
+		return fir==sec;
+	else
+	{
+		double first=(GET_TAG(fir)==IN32_TAG)?GET_IN32(fir):*fir->u.dbl;
+		double second=(GET_TAG(sec)==IN32_TAG)?GET_IN32(sec):*sec->u.dbl;
+		return fabs(first-second)==0;
+	}
 }
 
 VMenv* newVMenv(VMenv* prev)
@@ -549,36 +548,37 @@ VMvalue* castCptrVMvalue(AST_cptr* objCptr,VMheap* heap)
 {
 	ComStack* s1=newComStack(32);
 	ComStack* s2=newComStack(32);
-	VMvalue* tmp=newNilValue(heap);
+	VMvalue* tmp=VM_NIL;
 	pushComStack(objCptr,s1);
-	pushComStack(tmp,s2);
+	pushComStack(&tmp,s2);
 	while(!isComStackEmpty(s1))
 	{
 		AST_cptr* root=popComStack(s1);
-		VMvalue* root1=popComStack(s2);
+		VMvalue** root1=popComStack(s2);
 		if(root->type==ATM)
 		{
 			AST_atom* tmpAtm=root->u.atom;
-			root1->type=tmpAtm->type;
-			switch((int)tmpAtm->type)
+			switch(tmpAtm->type)
 			{
 				case IN32:
-					root1->u.in32=copyMemory(&tmpAtm->value,sizeof(int32_t));
-					break;
-				case DBL:
-					root1->u.dbl=copyMemory(&tmpAtm->value.dbl,sizeof(double));
+					*root1=MAKE_VM_IN32(tmpAtm->value.in32);
 					break;
 				case CHR:
-					root1->u.chr=copyMemory(&tmpAtm->value.chr,sizeof(char));
+					*root1=MAKE_VM_CHR(tmpAtm->value.chr);
+				case SYM:
+					*root1=MAKE_VM_SYM(addSymbolToGlob(tmpAtm->value.str)->id);
+					break;
+				case DBL:
+					*root1=newVMvalue(DBL,&tmpAtm->value.dbl,heap);
 					break;
 				case BYTS:
-					root1->u.byts=newVMByts(tmpAtm->value.byts.size,tmpAtm->value.byts.str);
-					break;
-				case SYM:
-					root1->u.sid=copyMemory(&addSymbolToGlob(tmpAtm->value.str)->id,sizeof(Sid_t));
+					*root1=newVMvalue(BYTS,newVMByts(tmpAtm->value.byts.size,tmpAtm->value.byts.str),heap);
 					break;
 				case STR:
-					root1->u.str=newVMstr(tmpAtm->value.str);
+					*root1=newVMvalue(STR,newVMstr(tmpAtm->value.str),heap);
+					break;
+				default:
+					return NULL;
 					break;
 			}
 		}
@@ -586,11 +586,12 @@ VMvalue* castCptrVMvalue(AST_cptr* objCptr,VMheap* heap)
 		{
 			AST_pair* objPair=root->u.pair;
 			VMpair* tmpPair=newVMpair(heap);
-			copyRef(root1,newVMvalue(PAIR,tmpPair,heap,1));
+			*root1=newVMvalue(PAIR,tmpPair,heap);
 			pushComStack(&objPair->car,s1);
 			pushComStack(&objPair->cdr,s1);
-			pushComStack(tmpPair->car,s2);
-			pushComStack(tmpPair->cdr,s2);
+			pushComStack(&tmpPair->car,s2);
+			pushComStack(&tmpPair->cdr,s2);
+			*root1=MAKE_VM_PTR(*root1);
 		}
 	}
 	freeComStack(s1);
@@ -736,7 +737,7 @@ void lockSource(pthread_rwlock_t* pGClock)
 	pthread_rwlock_rdlock(pGClock);
 }
 
-VMvalue* getArg(VMstack* stack)
+VMvalue* popVMstack(VMstack* stack)
 {
 	if(!(stack->tp>stack->bp))
 		return NULL;
@@ -745,225 +746,225 @@ VMvalue* getArg(VMstack* stack)
 	return tmp;
 }
 
-void copyRef(VMvalue* fir,VMvalue* sec)
-{
-	freeRef(fir);
-	fir->type=sec->type;
-	if(fir->type<STR&&fir->type>NIL)
-	{
-		switch(fir->type)
-		{
-			case SYM:
-				fir->u.sid=copyMemory(sec->u.sid,sizeof(Sid_t));
-				break;
-			case IN32:
-				fir->u.in32=copyMemory(sec->u.in32,sizeof(int32_t));
-				break;
-			case DBL:
-				fir->u.dbl=copyMemory(sec->u.dbl,sizeof(double));
-				break;
-			case CHR:
-				fir->u.chr=copyMemory(sec->u.chr,sizeof(char));
-				break;
-		}
-	}
-	else if(fir->type>=STR&&fir->type<ATM)
-	{
-		switch(fir->type)
-		{
-			case STR:
-				if(!sec->access)
-					fir->u.str=newVMstr(sec->u.str->str);
-				else
-				{
-					increaseVMstrRefcount(sec->u.str);
-					fir->u.str=sec->u.str;
-				}
-				break;
-			case PAIR:
-				increaseVMpairRefcount(sec->u.pair);
-				fir->u.pair=sec->u.pair;
-				break;
-			case PRC:
-				increaseVMprocRefcount(sec->u.prc);
-				fir->u.prc=sec->u.prc;
-				break;
-			case CONT:
-				increaseVMcontRefcount(sec->u.cont);
-				fir->u.cont=sec->u.cont;
-				break;
-			case BYTS:
-				if(!sec->access)
-					fir->u.byts=newVMByts(sec->u.byts->size,sec->u.byts->str);
-				else
-				{
-					increaseVMByts(sec->u.byts);
-					fir->u.byts=sec->u.byts;
-				}
-				break;
-			case CHAN:
-				increaseVMChanlRefcount(sec->u.chan);
-				fir->u.chan=sec->u.chan;
-				break;
-			case FP:
-				increaseVMfpRefcount(sec->u.fp);
-				fir->u.fp=sec->u.fp;
-				break;
-			case DLL:
-				increaseVMDllRefcount(sec->u.dll);
-				fir->u.dll=sec->u.dll;
-				break;
-			case DLPROC:
-				increaseVMDlprocRefcount(sec->u.dlproc);
-				fir->u.dlproc=sec->u.dlproc;
-				break;
-			case ERR:
-				increaseVMerrorRefcount(sec->u.err);
-				fir->u.err=sec->u.err;
-				break;
-			case NIL:
-				fir->u.all=NULL;
-				break;
-		}
-	}
-}
+//void copyRef(VMvalue* fir,VMvalue* sec)
+//{
+//	freeRef(fir);
+//	fir->type=sec->type;
+//	if(fir->type<STR&&fir->type>NIL)
+//	{
+//		switch(fir->type)
+//		{
+//			case SYM:
+//				fir->u.sid=copyMemory(sec->u.sid,sizeof(Sid_t));
+//				break;
+//			case IN32:
+//				fir->u.in32=copyMemory(sec->u.in32,sizeof(int32_t));
+//				break;
+//			case DBL:
+//				fir->u.dbl=copyMemory(sec->u.dbl,sizeof(double));
+//				break;
+//			case CHR:
+//				fir->u.chr=copyMemory(sec->u.chr,sizeof(char));
+//				break;
+//		}
+//	}
+//	else if(fir->type>=STR&&fir->type<ATM)
+//	{
+//		switch(fir->type)
+//		{
+//			case STR:
+//				if(!sec->access)
+//					fir->u.str=newVMstr(sec->u.str->str);
+//				else
+//				{
+//					increaseVMstrRefcount(sec->u.str);
+//					fir->u.str=sec->u.str;
+//				}
+//				break;
+//			case PAIR:
+//				increaseVMpairRefcount(sec->u.pair);
+//				fir->u.pair=sec->u.pair;
+//				break;
+//			case PRC:
+//				increaseVMprocRefcount(sec->u.prc);
+//				fir->u.prc=sec->u.prc;
+//				break;
+//			case CONT:
+//				increaseVMcontRefcount(sec->u.cont);
+//				fir->u.cont=sec->u.cont;
+//				break;
+//			case BYTS:
+//				if(!sec->access)
+//					fir->u.byts=newVMByts(sec->u.byts->size,sec->u.byts->str);
+//				else
+//				{
+//					increaseVMByts(sec->u.byts);
+//					fir->u.byts=sec->u.byts;
+//				}
+//				break;
+//			case CHAN:
+//				increaseVMChanlRefcount(sec->u.chan);
+//				fir->u.chan=sec->u.chan;
+//				break;
+//			case FP:
+//				increaseVMfpRefcount(sec->u.fp);
+//				fir->u.fp=sec->u.fp;
+//				break;
+//			case DLL:
+//				increaseVMDllRefcount(sec->u.dll);
+//				fir->u.dll=sec->u.dll;
+//				break;
+//			case DLPROC:
+//				increaseVMDlprocRefcount(sec->u.dlproc);
+//				fir->u.dlproc=sec->u.dlproc;
+//				break;
+//			case ERR:
+//				increaseVMerrorRefcount(sec->u.err);
+//				fir->u.err=sec->u.err;
+//				break;
+//			case NIL:
+//				fir->u.all=NULL;
+//				break;
+//		}
+//	}
+//}
 
-void writeRef(VMvalue* fir,VMvalue* sec)
-{
-	if(fir->type>=IN32&&fir->type<=SYM)
-	{
-		switch(sec->type)
-		{
-			case SYM:
-				*fir->u.sid=*sec->u.sid;
-				break;
-			case IN32:
-				*fir->u.in32=*sec->u.in32;
-				break;
-			case CHR:
-				*fir->u.chr=*sec->u.chr;
-				break;
-			case DBL:
-				*fir->u.dbl=*sec->u.dbl;
-				break;
-		}
-	}
-	else if(fir->type>=STR&&fir->type<=PAIR)
-	{
-		if(fir->access)freeRef(fir);
-		switch(fir->type)
-		{
-			case PAIR:
-				fir->u.pair=sec->u.pair;
-				increaseVMpairRefcount(fir->u.pair);
-				break;
-			case PRC:
-				fir->u.prc=sec->u.prc;
-				increaseVMprocRefcount(fir->u.prc);
-				break;
-			case CONT:
-				fir->u.cont=sec->u.cont;
-				increaseVMcontRefcount(fir->u.cont);
-				break;
-			case CHAN:
-				fir->u.chan=sec->u.chan;
-				increaseVMChanlRefcount(fir->u.chan);
-				break;
-			case FP:
-				fir->u.fp=sec->u.fp;
-				increaseVMfpRefcount(fir->u.fp);
-				break;
-			case DLL:
-				fir->u.dll=sec->u.dll;
-				increaseVMDllRefcount(fir->u.dll);
-				break;
-			case DLPROC:
-				fir->u.dlproc=sec->u.dlproc;
-				increaseVMDlprocRefcount(fir->u.dlproc);
-				break;
-			case STR:
-				if(!fir->access)
-					memcpy(fir->u.str->str,sec->u.str->str,(strlen(fir->u.str->str)>strlen(sec->u.str->str))?strlen(sec->u.str->str):strlen(fir->u.str->str));
-				else
-				{
-					fir->u.str=sec->u.str;
-					fir->u.str+=1;
-				}
-				break;
-			case BYTS:
-				if(!fir->access)
-					memcpy(fir->u.byts->str,sec->u.byts->str,(fir->u.byts->size>sec->u.byts->size)?sec->u.byts->size:fir->u.byts->size);
-				else
-				{
-					fir->u.byts=sec->u.byts;
-					increaseVMByts(fir->u.byts);
-				}
-				break;
-			case ERR:
-				fir->u.err=sec->u.err;
-				increaseVMerrorRefcount(fir->u.err);
-				break;
-		}
-	}
-}
+//void writeRef(VMvalue* fir,VMvalue* sec)
+//{
+//	if(fir->type>=IN32&&fir->type<=SYM)
+//	{
+//		switch(sec->type)
+//		{
+//			case SYM:
+//				*fir->u.sid=*sec->u.sid;
+//				break;
+//			case IN32:
+//				*fir->u.in32=*sec->u.in32;
+//				break;
+//			case CHR:
+//				*fir->u.chr=*sec->u.chr;
+//				break;
+//			case DBL:
+//				*fir->u.dbl=*sec->u.dbl;
+//				break;
+//		}
+//	}
+//	else if(fir->type>=STR&&fir->type<=PAIR)
+//	{
+//		if(fir->access)freeRef(fir);
+//		switch(fir->type)
+//		{
+//			case PAIR:
+//				fir->u.pair=sec->u.pair;
+//				increaseVMpairRefcount(fir->u.pair);
+//				break;
+//			case PRC:
+//				fir->u.prc=sec->u.prc;
+//				increaseVMprocRefcount(fir->u.prc);
+//				break;
+//			case CONT:
+//				fir->u.cont=sec->u.cont;
+//				increaseVMcontRefcount(fir->u.cont);
+//				break;
+//			case CHAN:
+//				fir->u.chan=sec->u.chan;
+//				increaseVMChanlRefcount(fir->u.chan);
+//				break;
+//			case FP:
+//				fir->u.fp=sec->u.fp;
+//				increaseVMfpRefcount(fir->u.fp);
+//				break;
+//			case DLL:
+//				fir->u.dll=sec->u.dll;
+//				increaseVMDllRefcount(fir->u.dll);
+//				break;
+//			case DLPROC:
+//				fir->u.dlproc=sec->u.dlproc;
+//				increaseVMDlprocRefcount(fir->u.dlproc);
+//				break;
+//			case STR:
+//				if(!fir->access)
+//					memcpy(fir->u.str->str,sec->u.str->str,(strlen(fir->u.str->str)>strlen(sec->u.str->str))?strlen(sec->u.str->str):strlen(fir->u.str->str));
+//				else
+//				{
+//					fir->u.str=sec->u.str;
+//					fir->u.str+=1;
+//				}
+//				break;
+//			case BYTS:
+//				if(!fir->access)
+//					memcpy(fir->u.byts->str,sec->u.byts->str,(fir->u.byts->size>sec->u.byts->size)?sec->u.byts->size:fir->u.byts->size);
+//				else
+//				{
+//					fir->u.byts=sec->u.byts;
+//					increaseVMByts(fir->u.byts);
+//				}
+//				break;
+//			case ERR:
+//				fir->u.err=sec->u.err;
+//				increaseVMerrorRefcount(fir->u.err);
+//				break;
+//		}
+//	}
+//}
 
-void freeRef(VMvalue* obj)
-{
-	if(obj->type<STR&&obj->type>NIL&&obj->access)
-		free(obj->u.all);
-	else if(obj->type>=STR&&obj->type<ATM)
-	{
-		switch(obj->type)
-		{
-			case STR:
-				if(!obj->u.str->refcount)
-				{
-					if(obj->access)
-						free(obj->u.str->str);
-					free(obj->u.str);
-				}
-				else
-					decreaseVMstrRefcount(obj->u.str);
-				break;
-			case PAIR:
-				if(!obj->u.pair->refcount)
-					free(obj->u.pair);
-				else
-					decreaseVMpairRefcount(obj->u.pair);
-				break;
-			case PRC:
-				freeVMproc(obj->u.prc);
-				break;
-			case BYTS:
-				if(!obj->u.byts->refcount)
-				{
-					if(obj->access)free(obj->u.byts->str);
-					free(obj->u.byts);
-				}
-				else
-					decreaseVMByts(obj->u.byts);
-				break;
-			case CONT:
-				freeVMcontinuation(obj->u.cont);
-				break;
-			case CHAN:
-				freeVMChanl(obj->u.chan);
-				break;
-			case FP:
-				freeVMfp(obj->u.fp);
-				break;
-			case DLL:
-				freeVMDll(obj->u.dll);
-				break;
-			case DLPROC:
-				freeVMDlproc(obj->u.dlproc);
-				break;
-			case ERR:
-				freeVMerror(obj->u.err);
-				break;
-		}
-	}
-}
+//void freeRef(VMvalue* obj)
+//{
+//	if(obj->type<STR&&obj->type>NIL&&obj->access)
+//		free(obj->u.all);
+//	else if(obj->type>=STR&&obj->type<ATM)
+//	{
+//		switch(obj->type)
+//		{
+//			case STR:
+//				if(!obj->u.str->refcount)
+//				{
+//					if(obj->access)
+//						free(obj->u.str->str);
+//					free(obj->u.str);
+//				}
+//				else
+//					decreaseVMstrRefcount(obj->u.str);
+//				break;
+//			case PAIR:
+//				if(!obj->u.pair->refcount)
+//					free(obj->u.pair);
+//				else
+//					decreaseVMpairRefcount(obj->u.pair);
+//				break;
+//			case PRC:
+//				freeVMproc(obj->u.prc);
+//				break;
+//			case BYTS:
+//				if(!obj->u.byts->refcount)
+//				{
+//					if(obj->access)free(obj->u.byts->str);
+//					free(obj->u.byts);
+//				}
+//				else
+//					decreaseVMByts(obj->u.byts);
+//				break;
+//			case CONT:
+//				freeVMcontinuation(obj->u.cont);
+//				break;
+//			case CHAN:
+//				freeVMChanl(obj->u.chan);
+//				break;
+//			case FP:
+//				freeVMfp(obj->u.fp);
+//				break;
+//			case DLL:
+//				freeVMDll(obj->u.dll);
+//				break;
+//			case DLPROC:
+//				freeVMDlproc(obj->u.dlproc);
+//				break;
+//			case ERR:
+//				freeVMerror(obj->u.err);
+//				break;
+//		}
+//	}
+//}
 
 VMenv* castPreEnvToVMenv(PreEnv* pe,VMenv* prev,VMheap* heap)
 {
@@ -1495,7 +1496,7 @@ int raiseVMerror(VMerror* err,FakeVM* exe)
 				VMenvNode* errorNode=findVMenvNode(idOfError,curEnv);
 				if(!errorNode)
 					errorNode=addVMenvNode(newVMenvNode(NULL,idOfError),curEnv);
-				errorNode->value=newVMvalue(ERR,err,exe->heap,1);
+				errorNode->value=newVMvalue(ERR,err,exe->heap);
 				pushComStack(r,exe->rstack);
 				freeVMerrorHandler(h);
 				return 1;
@@ -1608,100 +1609,112 @@ int resBp(VMstack* stack)
 	if(stack->tp>stack->bp)
 		return TOOMANYARG;
 	VMvalue* prevBp=getTopValue(stack);
-	stack->bp=*prevBp->u.in32;
+	stack->bp=GET_IN32(prevBp);
 	stack->tp-=1;
 	return 0;
 }
 
 void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 {
+	if(IS_REF(objValue))
+		objValue=*(VMvalue**)GET_PTR(objValue);
 	int access=!h;
 	CRL* head=NULL;
 	if(!h)h=&head;
 	VMpair* cirPair=NULL;
 	int32_t CRLcount=-1;
 	int8_t isInCir=0;
-	switch(objValue->type)
+	VMptrTag tag=GET_TAG(objValue);
+	switch(tag)
 	{
-		case NIL:
+		case NIL_TAG:
 			fprintf(fp,"()");
 			break;
-		case IN32:
-			fprintf(fp,"%d",*objValue->u.in32);
+		case IN32_TAG:
+			fprintf(fp,"%d",GET_IN32(objValue));
 			break;
-		case DBL:
-			fprintf(fp,"%lf",*objValue->u.dbl);
+		case CHR_TAG:
+			putc(GET_CHR(objValue),fp);
 			break;
-		case CHR:
-			putc(*objValue->u.chr,fp);
+		case SYM_TAG:
+			fprintf(fp,"%s",getGlobSymbolWithId(GET_SYM(objValue))->symbol);
 			break;
-		case SYM:
-			fprintf(fp,"%s",getGlobSymbolWithId(*objValue->u.sid)->symbol);
-			break;
-		case STR:
-			fprintf(fp,"%s",objValue->u.str->str);
-			break;
-		case PRC:
-			fprintf(fp,"#<proc>");
-			break;
-		case PAIR:
-			cirPair=isCircularReference(objValue->u.pair,*h);
-			if(cirPair)
-				isInCir=isInTheCircle(objValue->u.pair,cirPair,cirPair);
-			if(cirPair&&isInCir)
+		case PTR_TAG:
 			{
-				CRL* crl=newCRL(objValue->u.pair,(*h)?(*h)->count+1:0);
-				crl->next=*h;
-				*h=crl;
-				fprintf(fp,"#%d=(",crl->count);
-			}
-			else
-				putc('(',fp);
-			for(;objValue->type==PAIR;objValue=getVMpairCdr(objValue))
-			{
-				VMvalue* tmpValue=getVMpairCar(objValue);
-				if(tmpValue->type==PAIR&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
-					fprintf(fp,"#%d#",CRLcount);
-				else
-					princVMvalue(tmpValue,fp,h);
-				tmpValue=getVMpairCdr(objValue);
-				if(tmpValue->type>NIL&&tmpValue->type<PAIR)
+				switch(objValue->type)
 				{
-					putc(',',fp);
-					princVMvalue(tmpValue,fp,h);
+					case DBL:
+						fprintf(fp,"%lf",*objValue->u.dbl);
+						break;
+					case STR:
+						fprintf(fp,"%s",objValue->u.str->str);
+						break;
+					case PRC:
+						fprintf(fp,"#<proc>");
+						break;
+					case PAIR:
+						cirPair=isCircularReference(objValue->u.pair,*h);
+						if(cirPair)
+							isInCir=isInTheCircle(objValue->u.pair,cirPair,cirPair);
+						if(cirPair&&isInCir)
+						{
+							CRL* crl=newCRL(objValue->u.pair,(*h)?(*h)->count+1:0);
+							crl->next=*h;
+							*h=crl;
+							fprintf(fp,"#%d=(",crl->count);
+						}
+						else
+							putc('(',fp);
+						for(;IS_PAIR(objValue);objValue=getVMpairCdr(objValue))
+						{
+							VMvalue* tmpValue=getVMpairCar(objValue);
+							if(IS_PAIR(tmpValue)&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
+								fprintf(fp,"#%d#",CRLcount);
+							else
+								princVMvalue(tmpValue,fp,h);
+							tmpValue=getVMpairCdr(objValue);
+							if(tmpValue->type>NIL&&tmpValue->type<PAIR)
+							{
+								putc(',',fp);
+								princVMvalue(tmpValue,fp,h);
+							}
+							else if(IS_PAIR(tmpValue)&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
+							{
+								fprintf(fp,",#%d#",CRLcount);
+								break;
+							}
+							else if(tmpValue->type!=NIL)
+								putc(' ',fp);
+						}
+						putc(')',fp);
+						break;
+					case BYTS:
+						printByteStr(objValue->u.byts->size,objValue->u.byts->str,fp,0);
+						break;
+					case CONT:
+						fprintf(fp,"#<cont>");
+						break;
+					case CHAN:
+						fprintf(fp,"#<chan>");
+						break;
+					case FP:
+						fprintf(fp,"#<fp>");
+						break;
+					case DLL:
+						fprintf(fp,"<#dll>");
+						break;
+					case DLPROC:
+						fprintf(fp,"<#dlproc>");
+						break;
+					case ERR:
+						fprintf(fp,"%s",objValue->u.err->message);
+						break;
+					default:
+						fprintf(fp,"Bad value!");break;
 				}
-				else if(tmpValue->type==PAIR&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
-				{
-					fprintf(fp,",#%d#",CRLcount);
-					break;
-				}
-				else if(tmpValue->type!=NIL)
-					putc(' ',fp);
 			}
-			putc(')',fp);
+		default:
 			break;
-		case BYTS:
-			printByteStr(objValue->u.byts->size,objValue->u.byts->str,fp,0);
-			break;
-		case CONT:
-			fprintf(fp,"#<cont>");
-			break;
-		case CHAN:
-			fprintf(fp,"#<chan>");
-			break;
-		case FP:
-			fprintf(fp,"#<fp>");
-			break;
-		case DLL:
-			fprintf(fp,"<#dll>");
-			break;
-		case DLPROC:
-			fprintf(fp,"<#dlproc>");
-			break;
-		case ERR:
-			fprintf(fp,"%s",objValue->u.err->message);
-			break;
-		default:fprintf(fp,"Bad value!");break;
 	}
 	if(access)
 	{
@@ -1716,93 +1729,104 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 }
 void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 {
+	if(IS_REF(objValue))
+		objValue=*(VMvalue**)GET_PTR(objValue);
 	int access=!h;
 	CRL* head=NULL;
 	if(!h)h=&head;
 	VMpair* cirPair=NULL;
 	int8_t isInCir=0;
 	int32_t CRLcount=-1;
-	switch(objValue->type)
+	VMptrTag tag=GET_TAG(objValue);
+	switch(tag)
 	{
-		case NIL:
+		case NIL_TAG:
 			fprintf(fp,"()");
 			break;
-		case IN32:
-			fprintf(fp,"%d",*objValue->u.in32);
+		case IN32_TAG:
+			fprintf(fp,"%d",GET_IN32(objValue));
 			break;
-		case DBL:
-			fprintf(fp,"%lf",*objValue->u.dbl);
+		case CHR_TAG:
+			printRawChar(GET_CHR(objValue),fp);
 			break;
-		case CHR:
-			printRawChar(*objValue->u.chr,fp);
+		case SYM_TAG:
+			fprintf(fp,"%s",getGlobSymbolWithId(GET_SYM(objValue))->symbol);
 			break;
-		case SYM:
-			fprintf(fp,"%s",getGlobSymbolWithId(*objValue->u.sid)->symbol);
-			break;
-		case STR:
-			printRawString(objValue->u.str->str,fp);
-			break;
-		case PRC:
-			fprintf(fp,"#<proc>");
-			break;
-		case PAIR:
-			cirPair=isCircularReference(objValue->u.pair,*h);
-			if(cirPair)
-				isInCir=isInTheCircle(objValue->u.pair,cirPair,cirPair);
-			if(cirPair&&isInCir)
+		case PTR_TAG:
 			{
-				CRL* crl=newCRL(objValue->u.pair,(*h)?(*h)->count+1:0);
-				crl->next=*h;
-				*h=crl;
-				fprintf(fp,"#%d=(",crl->count);
-			}
-			else
-				putc('(',fp);
-			for(;objValue->type==PAIR;objValue=getVMpairCdr(objValue))
-			{
-				VMvalue* tmpValue=getVMpairCar(objValue);
-				if(tmpValue->type==PAIR&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
-					fprintf(fp,"#%d#",CRLcount);
-				else
-					writeVMvalue(tmpValue,fp,h);
-				tmpValue=getVMpairCdr(objValue);
-				if(tmpValue->type>NIL&&tmpValue->type<PAIR)
+				switch(objValue->type)
 				{
-					putc(',',fp);
-					writeVMvalue(tmpValue,fp,h);
+					case DBL:
+						fprintf(fp,"%lf",*objValue->u.dbl);
+						break;
+					case STR:
+						printRawString(objValue->u.str->str,fp);
+						break;
+					case PRC:
+						fprintf(fp,"#<proc>");
+						break;
+					case PAIR:
+						cirPair=isCircularReference(objValue->u.pair,*h);
+						if(cirPair)
+							isInCir=isInTheCircle(objValue->u.pair,cirPair,cirPair);
+						if(cirPair&&isInCir)
+						{
+							CRL* crl=newCRL(objValue->u.pair,(*h)?(*h)->count+1:0);
+							crl->next=*h;
+							*h=crl;
+							fprintf(fp,"#%d=(",crl->count);
+						}
+						else
+							putc('(',fp);
+						for(;IS_PAIR(objValue);objValue=getVMpairCdr(objValue))
+						{
+							VMvalue* tmpValue=getVMpairCar(objValue);
+							if(IS_PAIR(tmpValue)&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
+								fprintf(fp,"#%d#",CRLcount);
+							else
+								writeVMvalue(tmpValue,fp,h);
+							tmpValue=getVMpairCdr(objValue);
+							if(tmpValue!=VM_NIL&&!IS_PAIR(tmpValue))
+							{
+								putc(',',fp);
+								writeVMvalue(tmpValue,fp,h);
+							}
+							else if(IS_PAIR(tmpValue)&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
+							{
+								fprintf(fp,",#%d#",CRLcount);
+								break;
+							}
+							else if(tmpValue->type!=NIL)
+								putc(' ',fp);
+						}
+						putc(')',fp);
+						break;
+					case BYTS:
+						printByteStr(objValue->u.byts->size,objValue->u.byts->str,fp,1);
+						break;
+					case CONT:
+						fprintf(fp,"#<cont>");
+						break;
+					case CHAN:
+						fprintf(fp,"#<chan>");
+						break;
+					case FP:
+						fprintf(fp,"#<fp>");
+						break;
+					case DLL:
+						fprintf(fp,"<#dll>");
+						break;
+					case DLPROC:
+						fprintf(fp,"<#dlproc>");
+						break;
+					case ERR:
+						fprintf(fp,"<#err w:%s t:%s m:%s>",objValue->u.err->who,getGlobSymbolWithId(objValue->u.err->type)->symbol,objValue->u.err->message);
+						break;
+					default:fprintf(fp,"Bad value!");break;
 				}
-				else if(tmpValue->type==PAIR&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
-				{
-					fprintf(fp,",#%d#",CRLcount);
-					break;
-				}
-				else if(tmpValue->type!=NIL)
-					putc(' ',fp);
 			}
-			putc(')',fp);
+		default:
 			break;
-		case BYTS:
-			printByteStr(objValue->u.byts->size,objValue->u.byts->str,fp,1);
-			break;
-		case CONT:
-			fprintf(fp,"#<cont>");
-			break;
-		case CHAN:
-			fprintf(fp,"#<chan>");
-			break;
-		case FP:
-			fprintf(fp,"#<fp>");
-			break;
-		case DLL:
-			fprintf(fp,"<#dll>");
-			break;
-		case DLPROC:
-			fprintf(fp,"<#dlproc>");
-			break;
-		case ERR:
-			fprintf(fp,"<#err w:%s t:%s m:%s>",objValue->u.err->who,getGlobSymbolWithId(objValue->u.err->type)->symbol,objValue->u.err->message);
-			break;
-		default:fprintf(fp,"Bad value!");break;
 	}
 	if(access)
 	{
@@ -1821,4 +1845,13 @@ int eqVMByts(const VMByts* fir,const VMByts* sec)
 	if(fir->size!=sec->size)
 		return 0;
 	return !memcmp(fir->str,sec->str,sec->size);
+}
+
+VMvalue* newVMChref(VMvalue* from,char* obj)
+{
+	VMChref* tmp=(VMChref*)malloc(sizeof(VMChref));
+	FAKE_ASSERT(tmp,"newVMChref",__FILE__,__LINE__);
+	tmp->from=from;
+	tmp->obj=obj;
+	return MAKE_VM_CHF(tmp);
 }

@@ -10,6 +10,21 @@
 #define MAX_STRING_SIZE 64
 #define NUMOFBUILTINERRORTYPE 20
 #define STATIC_SYMBOL_INIT {0,NULL,NULL}
+#define UNUSEDBITNUM 3
+#define PTR_MASK ((intptr_t)0xFFFFFFFFFFFFFFF8)
+#define TAG_MASK ((intptr_t)0x7)
+
+typedef struct VMvalue* VMptr;
+typedef enum
+{
+	PTR_TAG=0,
+	NIL_TAG,
+	IN32_TAG,
+	SYM_TAG,
+	CHR_TAG,
+	REF_TAG,
+	CHF_TAG,
+}VMptrTag;
 
 typedef enum{NIL=0,IN32,CHR,DBL,SYM,STR,BYTS,PRC,CONT,CHAN,FP,DLL,DLPROC,ERR,PAIR,ATM} ValueType;
 typedef uint32_t Sid_t;
@@ -228,46 +243,74 @@ typedef struct Key_Word
 	struct Key_Word* next;
 }KeyWord;
 
-typedef struct
+typedef struct VMpair
 {
 	uint32_t refcount;
 	struct VMvalue* car;
 	struct VMvalue* cdr;
 }VMpair;
 
-typedef struct
+typedef struct VMByts
 {
 	uint32_t refcount;
 	size_t size;
 	uint8_t* str;
 }VMByts;
 
+typedef struct VMChref
+{
+	struct VMvalue* from;
+	char* obj;
+}VMChref;
+
 typedef struct VMvalue
 {
 	unsigned int mark :1;
-	unsigned int access :1;
 	unsigned int type :6;
 	union
 	{
-		char* chr;
-		Sid_t* sid;
-		struct VMStr* str;
-		VMpair* pair;
-		VMByts* byts;
-		int32_t* in32;
+		struct VMpair* pair;
 		double* dbl;
+		struct VMstr* str;
+		struct VMByts* byts;
 		struct VMproc* prc;
-		struct VMContinuation* cont;
-		struct VMChanl* chan;
-		struct VMfp* fp;
 		struct VMDll* dll;
 		struct VMDlproc* dlproc;
+		struct VMContinuation* cont;
+		struct VMfp* fp;
+		struct VMChanl* chan;
 		struct VMerror* err;
-		void* all;
 	}u;
 	struct VMvalue* prev;
 	struct VMvalue* next;
 }VMvalue;
+
+//typedef struct VMvalue
+//{
+//	unsigned int mark :1;
+//	unsigned int access :1;
+//	unsigned int type :6;
+//	union
+//	{
+//		char* chr;
+//		Sid_t* sid;
+//		struct VMStr* str;
+//		VMpair* pair;
+//		VMByts* byts;
+//		int32_t* in32;
+//		double* dbl;
+//		struct VMproc* prc;
+//		struct VMContinuation* cont;
+//		struct VMChanl* chan;
+//		struct VMfp* fp;
+//		struct VMDll* dll;
+//		struct VMDlproc* dlproc;
+//		struct VMerror* err;
+//		void* all;
+//	}u;
+//	struct VMvalue* prev;
+//	struct VMvalue* next;
+//}VMvalue;
 
 typedef struct VMenvNode
 {
@@ -291,7 +334,7 @@ typedef struct VMproc
 	VMenv* prevEnv;
 }VMproc;
 
-typedef struct VMStr
+typedef struct VMstr
 {
 	uint32_t refcount;
 	char* str;

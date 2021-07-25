@@ -136,7 +136,7 @@
 
          (define clcc (lambda (f)
                         (progn
-                          $cc
+                          ?cc
                           pack_cc
                           pop_var cc
                           set_bp

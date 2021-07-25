@@ -1917,7 +1917,7 @@ ByteCodelnt* compileProgn(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 			continue;
 		}
 
-		if(firAtm->value.str[0]=='$')
+		if(firAtm->value.str[0]=='?')
 		{
 			addCompDef(firAtm->value.str+1,curEnv);
 			fir=nextCptr(fir);

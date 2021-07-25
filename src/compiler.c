@@ -2162,7 +2162,7 @@ ByteCodelnt* compileProgn(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 	while(fir)
 	{
 		AST_atom* firAtm=fir->u.atom;
-		if(firAtm->value.str[0]==':'||firAtm->value.str[0]=='$')
+		if(firAtm->value.str[0]==':'||firAtm->value.str[0]=='?')
 		{
 			fir=nextCptr(fir);
 			continue;

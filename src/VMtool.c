@@ -108,16 +108,6 @@ int8_t isInTheCircle(VMpair* obj,VMpair* begin,VMpair* curPair)
 
 
 pthread_mutex_t VMenvGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t VMprocGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t VMstrGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t VMpairGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t VMcontinuationGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t VMBytsGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t VMfpGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t VMChanlGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t VMDllGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t VMDlprocGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t VMerrorGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 
 #define INCREASE_REFCOUNT(TYPE,PV) {\
 	if((PV))\

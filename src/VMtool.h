@@ -24,7 +24,7 @@ extern const char*  builtInErrorType[NUMOFBUILTINERRORTYPE];
 
 #define RAISE_BUILTIN_ERROR(WHO,ERRORTYPE,RUNNABLE,EXE) do{\
 	char* errorMessage=genErrorMessage((ERRORTYPE),(RUNNABLE),(EXE));\
-	VMerror* err=newVMerror((WHO),builtInErrorType[(ERRORTYPE)],errorMessage);\
+	VMvalue* err=newVMvalue(ERR,newVMerror((WHO),builtInErrorType[(ERRORTYPE)],errorMessage),(EXE)->heap);\
 	free(errorMessage);\
 	raiseVMerror(err,(EXE));\
 	return;\
@@ -44,7 +44,7 @@ extern const char*  builtInErrorType[NUMOFBUILTINERRORTYPE];
 #define GET_IN32(P) ((int32_t)((uintptr_t)(P)>>UNUSEDBITNUM))
 #define GET_CHR(P) ((char)((uintptr_t)(P)>>UNUSEDBITNUM))
 #define GET_SYM(P) ((Sid_t)((uintptr_t)(P)>>UNUSEDBITNUM))
-#define SET_REF(p,v) do{VMvalue* P=p;VMvalue* V=v;if(IS_CHF(P))*((VMChref*)GET_PTR(P))->obj=GET_CHR(V); else *(VMvalue**)GET_PTR(P)=(V);}while(0)
+#define SET_REF(p,v) do{VMvalue* P=p;VMvalue* V=v;if(IS_CHF(P)){*((VMChref*)GET_PTR(P))->obj=GET_CHR(V);free(GET_PTR(P));} else *(VMvalue**)GET_PTR(P)=(V);}while(0)
 #define IS_PTR(P) (GET_TAG(P)==PTR_TAG)
 #define IS_PAIR(P) (GET_TAG(P)==PTR_TAG&&(P)->type==PAIR)
 #define IS_DBL(P) (GET_TAG(P)==PTR_TAG&&(P)->type==DBL)
@@ -105,10 +105,10 @@ VMpair* newVMpair(VMheap*);
 void increaseVMpairRefcount(VMpair*);
 void decreaseVMpairRefcount(VMpair*);
 
-VMstr* newVMstr(const char*);
-void increaseVMstrRefcount(VMstr*);
-void decreaseVMstrRefcount(VMstr*);
-VMstr* copyRefVMstr(char* str);
+//VMstr* newVMstr(const char*);
+//void increaseVMstrRefcount(VMstr*);
+//void decreaseVMstrRefcount(VMstr*);
+//VMstr* copyRefVMstr(char* str);
 
 VMvalue* castCptrVMvalue(AST_cptr*,VMheap*);
 VMByts* newVMByts(size_t,uint8_t*);
@@ -133,7 +133,7 @@ VMproc* copyVMproc(VMproc*,VMheap*);
 VMenv* copyVMenv(VMenv*,VMheap*);
 VMstack* copyStack(VMstack*);
 void freeVMproc(VMproc*);
-void freeVMstr(VMstr*);
+//void freeVMstr(VMstr*);
 void freeVMenv(VMenv*);
 void releaseSource(pthread_rwlock_t*);
 void lockSource(pthread_rwlock_t*);
@@ -155,7 +155,7 @@ void decreaseVMDllRefcount(VMDll*);
 void* getAddress(const char*,DllHandle);
 void freeVMDll(VMDll*);
 
-VMDlproc* newVMDlproc(DllFunc,VMDll*);
+VMDlproc* newVMDlproc(DllFunc,VMvalue*);
 void increaseVMDlprocRefcount(VMDlproc*);
 void decreaseVMDlprocRefcount(VMDlproc*);
 void freeVMDlproc(VMDlproc*);
@@ -180,7 +180,7 @@ void freeVMTryBlock(VMTryBlock* b);
 
 VMerrorHandler* newVMerrorHandler(Sid_t type,VMproc* proc);
 void freeVMerrorHandler(VMerrorHandler*);
-int raiseVMerror(VMerror* err,FakeVM*);
+int raiseVMerror(VMvalue* err,FakeVM*);
 VMrunnable* newVMrunnable(VMproc*);
 char* genErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe);
 int32_t getSymbolIdInByteCode(const uint8_t*);

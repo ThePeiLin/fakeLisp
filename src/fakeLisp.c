@@ -80,7 +80,6 @@ int main(int argc,char** argv)
 			anotherVM->argv=argv+1;
 			anotherVM->tid=pthread_self();
 			mainrunnable->localenv=globEnv;
-			mainrunnable->proc->prevEnv=NULL;
 			anotherVM->callback=errorCallBack;
 			anotherVM->lnt=inter->lnt;
 			initGlobEnv(globEnv,anotherVM->heap);
@@ -132,7 +131,6 @@ int main(int argc,char** argv)
 		anotherVM->argc=argc-1;
 		anotherVM->argv=argv+1;
 		mainrunnable->localenv=globEnv;
-		mainrunnable->proc->prevEnv=NULL;
 		anotherVM->callback=errorCallBack;
 		anotherVM->lnt=lnt;
 		initGlobEnv(globEnv,anotherVM->heap);
@@ -255,8 +253,6 @@ void runIntpr(Intpr* inter)
 					VMstack* stack=anotherVM->stack;
 					stack->tp=0;
 					stack->bp=0;
-					VMrunnable* mainrunnable=anotherVM->rstack->data[0];
-					tmp=mainrunnable->proc;
 					tmp->prevEnv=NULL;
 					freeVMproc(tmp);
 					deleteCallChain(anotherVM);

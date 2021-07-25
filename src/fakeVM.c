@@ -215,7 +215,7 @@ void* ThreadVMFunc(void* p)
 {
 	FakeVM* exe=(FakeVM*)p;
 	int64_t status=runFakeVM(exe);
-	VMChanl* tmpCh=exe->chan;
+	VMChanl* tmpCh=exe->chan->u.chan;
 	exe->chan=NULL;
 	if(!status)
 	{
@@ -234,7 +234,6 @@ void* ThreadVMFunc(void* p)
 		SendT* t=newSendT(err);
 		chanlSend(t,tmpCh);
 	}
-	freeVMChanl(tmpCh);
 	freeVMstack(exe->stack);
 	exe->stack=NULL;
 	exe->lnt=NULL;
@@ -253,7 +252,7 @@ void* ThreadVMDlprocFunc(void* p)
 	DllFunc f=a[1];
 	free(p);
 	int64_t status=0;
-	VMChanl* ch=exe->chan;
+	VMChanl* ch=exe->chan->u.chan;
 	pthread_rwlock_rdlock(&GClock);
 	if(!setjmp(exe->buf))
 	{
@@ -275,7 +274,6 @@ void* ThreadVMDlprocFunc(void* p)
 		status=255;
 	}
 	pthread_rwlock_unlock(&GClock);
-	freeVMChanl(ch);
 	freeVMstack(exe->stack);
 	exe->stack=NULL;
 	exe->lnt=NULL;
@@ -292,26 +290,19 @@ int runFakeVM(FakeVM* exe)
 	{
 		VMrunnable* currunnable=topComStack(exe->rstack);
 		pthread_rwlock_rdlock(&GClock);
-		if(currunnable->cp>=currunnable->proc->cpc+currunnable->proc->scp)
+		if(currunnable->cp>=currunnable->cpc+currunnable->scp)
 		{
 			if(currunnable->mark)
 			{
-				currunnable->cp=currunnable->proc->scp;
+				currunnable->cp=currunnable->scp;
 				currunnable->mark=0;
 			}
 			else
 			{
-				VMrunnable* tmpProc=popComStack(exe->rstack);
-				VMproc* tmpCode=tmpProc->proc;
-				VMenv* tmpEnv=tmpProc->localenv;
-				if(exe->stack->tp)
-				{
-					VMvalue* r=GET_VAL(getTopValue(exe->stack));
-					exe->stack->values[exe->stack->tp-1]=r;
-				}
-				free(tmpProc);
+				VMrunnable* r=popComStack(exe->rstack);
+				VMenv* tmpEnv=r->localenv;
+				free(r);
 				freeVMenv(tmpEnv);
-				freeVMproc(tmpCode);
 				continue;
 			}
 		}
@@ -359,15 +350,14 @@ int runFakeVM(FakeVM* exe)
 void B_dummy(FakeVM* exe)
 {
 	VMrunnable* currunnable=topComStack(exe->rstack);
-	VMproc* tmpCode=currunnable->proc;
-	ByteCode tmpByteCode={tmpCode->cpc,exe->code+tmpCode->scp};
+	uint32_t scp=currunnable->scp;
 	VMstack* stack=exe->stack;
-	printByteCode(&tmpByteCode,stderr);
+	DBG_printVMByteCode(exe->code,scp,currunnable->cpc,stderr);
 	putc('\n',stderr);
 	DBG_printVMstack(exe->stack,stderr,1);
 	putc('\n',stderr);
 	fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
-	fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",currunnable->cp-currunnable->proc->scp,stack->bp,codeName[(uint8_t)exe->code[currunnable->cp]].codeName);
+	fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",currunnable->cp-scp,stack->bp,codeName[(uint8_t)exe->code[currunnable->cp]].codeName);
 	DBG_printVMenv(currunnable->localenv,stderr);
 	putc('\n',stderr);
 	fprintf(stderr,"Wrong byts code!\n");
@@ -420,7 +410,7 @@ void B_push_str(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
 	int len=strlen((char*)(exe->code+runnable->cp+1));
-	SET_RETURN("B_push_str",newVMvalue(STR,newVMstr((char*)exe->code+runnable->cp+1),exe->heap),stack);
+	SET_RETURN("B_push_str",newVMvalue(STR,copyStr((char*)exe->code+runnable->cp+1),exe->heap),stack);
 	runnable->cp+=2+len;
 }
 
@@ -455,7 +445,7 @@ void B_push_var(FakeVM* exe)
 	}
 	if(tmp==NULL)
 		RAISE_BUILTIN_ERROR("b.push_var",SYMUNDEFINE,runnable,exe);
-	SET_RETURN("B_push_var",MAKE_VM_REF(&tmp->value),stack);
+	SET_RETURN("B_push_var",tmp->value,stack);
 	runnable->cp+=5;
 }
 
@@ -466,7 +456,7 @@ void B_push_env_var(FakeVM* exe)
 	VMvalue* topValue=GET_VAL(getTopValue(stack));
 	if(!IS_STR(topValue)&&!IS_SYM(topValue))
 		RAISE_BUILTIN_ERROR("b.push_env_var",WRONGARG,runnable,exe);
-	SymTabNode* stn=addSymbolToGlob(topValue->u.str->str);
+	SymTabNode* stn=addSymbolToGlob(topValue->u.str);
 	if(stn==NULL)
 		RAISE_BUILTIN_ERROR("b.push_env_var",INVALIDSYMBOL,runnable,exe);
 	Sid_t idOfVar=stn->id;
@@ -479,7 +469,7 @@ void B_push_env_var(FakeVM* exe)
 	}
 	if(tmp==NULL)
 		RAISE_BUILTIN_ERROR("b.push_env_var",INVALIDSYMBOL,runnable,exe);
-	stack->values[stack->tp-1]=MAKE_VM_REF(&tmp->value);
+	stack->values[stack->tp-1]=tmp->value;
 	runnable->cp+=1;
 }
 
@@ -832,7 +822,7 @@ void B_invoke(FakeVM* exe)
 	if(tmpValue->type==PRC)
 	{
 		VMproc* tmpProc=tmpValue->u.prc;
-		VMrunnable* prevProc=hasSameProc(tmpProc,exe->rstack);
+		VMrunnable* prevProc=hasSameProc(tmpProc->scp,exe->rstack);
 		if(isTheLastExpress(runnable,prevProc,exe)&&prevProc)
 			prevProc->mark=1;
 		else
@@ -1011,13 +1001,13 @@ void DBG_printVMByteCode(uint8_t* code,uint32_t s,uint32_t c,FILE* fp)
 	printByteCode(&t,fp);
 }
 
-VMrunnable* hasSameProc(VMproc* objProc,ComStack* rstack)
+VMrunnable* hasSameProc(uint32_t scp,ComStack* rstack)
 {
 	size_t i=0;
 	for(;i<rstack->top;i++)
 	{
 		VMrunnable* cur=rstack->data[i];
-		if(cur->proc==objProc)
+		if(cur->scp==scp)
 			return cur;
 	}
 	return NULL;
@@ -1033,7 +1023,7 @@ int isTheLastExpress(const VMrunnable* runnable,const VMrunnable* same,const Fak
 	{
 		uint8_t* code=exe->code;
 		uint32_t i=runnable->cp+(code[runnable->cp]==FAKE_INVOKE);
-		size=runnable->proc->scp+runnable->proc->cpc;
+		size=runnable->scp+runnable->cpc;
 
 		for(;i<size;i+=(code[i]==FAKE_JMP)?*(int32_t*)(code+i+1)+5:1)
 			if(code[i]!=FAKE_POP_TP&&code[i]!=FAKE_POP_TRY&&code[i]!=FAKE_JMP)
@@ -1077,12 +1067,7 @@ void GC_mark(FakeVM* exe)
 	GC_markValueInStack(exe->stack);
 	GC_markValueInCallChain(exe->rstack);
 	if(exe->chan)
-	{
-		pthread_mutex_lock(&exe->chan->lock);
-		GC_markMessage(exe->chan->messages->head);
-		GC_markSendT(exe->chan->sendq->head);
-		pthread_mutex_unlock(&exe->chan->lock);
-	}
+		GC_markValue(exe->chan);
 }
 
 void GC_markSendT(QueueNode* head)
@@ -1138,6 +1123,10 @@ void GC_markValue(VMvalue* obj)
 				for(head=root->u.chan->sendq->head;head;head=head->next)
 					pushComStack(((SendT*)head->data)->m,stack);
 				pthread_mutex_unlock(&root->u.chan->lock);
+			}
+			else if(root->type==DLPROC&&root->u.dlproc->dll)
+			{
+				pushComStack(root->u.dlproc->dll,stack);
 			}
 		}
 	}
@@ -1198,6 +1187,43 @@ void GC_sweep(VMheap* heap)
 			if(cur->next!=NULL)cur->next->prev=cur->prev;
 			if(cur->prev!=NULL)cur->prev->next=cur->next;
 			cur=cur->next;
+			switch(prev->type)
+			{
+				case STR:
+					free(prev->u.str);
+					break;
+				case DBL:
+					free(prev->u.dbl);
+					break;
+				case PAIR:
+					free(prev->u.pair);
+					break;
+				case PRC:
+					freeVMproc(prev->u.prc);
+					break;
+				case BYTS:
+					free(prev->u.byts->str);
+					free(prev->u.byts);
+					break;
+				case CONT:
+					freeVMcontinuation(prev->u.cont);
+					break;
+				case CHAN:
+					freeVMChanl(prev->u.chan);
+					break;
+				case FP:
+					freeVMfp(prev->u.fp);
+					break;
+				case DLL:
+					freeVMDll(prev->u.dll);
+					break;
+				case DLPROC:
+					freeVMDlproc(prev->u.dlproc);
+					break;
+				case ERR:
+					freeVMerror(prev->u.err);
+					break;
+			}
 			free(prev);
 			heap->num-=1;
 		}
@@ -1220,7 +1246,7 @@ FakeVM* newThreadVM(VMproc* mainCode,VMheap* heap)
 	exe->mark=1;
 	exe->argc=0;
 	exe->argv=NULL;
-	exe->chan=newVMChanl(0);
+	exe->chan=newVMvalue(CHAN,newVMChanl(0),heap);
 	exe->tstack=newComStack(32);
 	exe->stack=newVMstack(0);
 	exe->heap=heap;
@@ -1262,7 +1288,7 @@ FakeVM* newThreadDlprocVM(VMrunnable* r,VMheap* heap)
 	exe->mark=1;
 	exe->argc=0;
 	exe->argv=NULL;
-	exe->chan=newVMChanl(0);
+	exe->chan=newVMvalue(CHAN,newVMChanl(0),heap);
 	exe->tstack=newComStack(32);
 	exe->stack=newVMstack(0);
 	exe->heap=heap;
@@ -1348,7 +1374,6 @@ void cancelAllThread()
 			pthread_join(cur->tid,NULL);
 			if(cur->mark)
 			{
-				freeVMChanl(cur->chan);
 				deleteCallChain(cur);
 				freeVMstack(cur->stack);
 				freeComStack(cur->rstack);
@@ -1365,8 +1390,6 @@ void deleteCallChain(FakeVM* exe)
 		VMrunnable* cur=popComStack(exe->rstack);
 		if(cur->localenv)
 			freeVMenv(cur->localenv);
-		if(cur->proc)
-			freeVMproc(cur->proc);
 		free(cur);
 	}
 }
@@ -1397,8 +1420,8 @@ void createCallChainWithContinuation(FakeVM* vm,VMcontinuation* cc)
 		cur->cp=cc->status[i].cp;
 		cur->localenv=cc->status[i].localenv;
 		increaseVMenvRefcount(cur->localenv);
-		cur->proc=cc->status[i].proc;
-		increaseVMprocRefcount(cur->proc);
+		cur->scp=cc->status[i].scp;
+		cur->cpc=cc->status[i].cpc;
 		cur->mark=cc->status[i].mark;
 		pushComStack(cur,vm->rstack);
 	}

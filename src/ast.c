@@ -424,7 +424,7 @@ AST_cptr* castVMvalueToCptr(VMvalue* value,int32_t curline)
 			cptrType=NIL;
 		else if(IS_PAIR(root))
 			cptrType=PAIR;
-		else
+		else if(!IS_REF(root)&&!IS_CHF(root))
 			cptrType=ATM;
 		root1->type=cptrType;
 		if(cptrType==ATM)
@@ -454,7 +454,7 @@ AST_cptr* castVMvalueToCptr(VMvalue* value,int32_t curline)
 								tmpAtm->value.dbl=*root->u.dbl;
 								break;
 							case STR:
-								tmpAtm->value.str=copyStr(root->u.str->str);
+								tmpAtm->value.str=copyStr(root->u.str);
 								break;
 							case BYTS:
 								tmpAtm->value.byts.size=root->u.byts->size;
@@ -489,6 +489,7 @@ AST_cptr* castVMvalueToCptr(VMvalue* value,int32_t curline)
 								break;
 						}
 					}
+					break;
 				default:
 					return NULL;
 					break;

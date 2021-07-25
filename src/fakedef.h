@@ -271,7 +271,7 @@ typedef struct VMvalue
 	{
 		struct VMpair* pair;
 		double* dbl;
-		struct VMstr* str;
+		char* str;
 		struct VMByts* byts;
 		struct VMproc* prc;
 		struct VMDll* dll;
@@ -334,18 +334,19 @@ typedef struct VMproc
 	VMenv* prevEnv;
 }VMproc;
 
-typedef struct VMstr
-{
-	uint32_t refcount;
-	char* str;
-}VMstr;
+//typedef struct VMstr
+//{
+//	uint32_t refcount;
+//	char* str;
+//}VMstr;
 
 typedef struct VMrunnable
 {
 	unsigned int mark :1;
 	VMenv* localenv;
+	uint32_t scp;
 	uint32_t cp;
-	VMproc* proc;
+	uint32_t cpc;
 }VMrunnable;
 
 typedef struct
@@ -371,7 +372,7 @@ typedef struct FakeVM
 	ComStack* rstack;
 	ComStack* tstack;
 	VMstack* stack;
-	struct VMChanl* chan;
+	struct VMvalue* chan;
 	struct VMHeap* heap;
 	struct LineNumberTable* lnt;
 	void (*callback)(void*);
@@ -411,7 +412,7 @@ typedef struct VMDlproc
 {
 	uint32_t refcount;
 	DllFunc func;
-	VMDll* dll;
+	VMvalue* dll;
 }VMDlproc;
 
 typedef struct StringMatchPattern

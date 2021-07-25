@@ -112,7 +112,7 @@ void FAKE_rand(FakeVM* exe,pthread_rwlock_t* pGClock)
 		RAISE_BUILTIN_ERROR("btk.rand",TOOMANYARG,r,exe);
 	if(lim&&!IS_IN32(lim))
 		RAISE_BUILTIN_ERROR("btk.rand",WRONGARG,r,exe);
-	SET_RETURN("FAKE_rand",MAKE_VM_IN32(rand()%((lim==NULL||GET_IN32(lim))?RAND_MAX:GET_IN32(lim))),stack);
+	SET_RETURN("FAKE_rand",MAKE_VM_IN32(rand()%((lim==NULL||!IS_IN32(lim))?RAND_MAX:GET_IN32(lim))),stack);
 }
 
 void FAKE_getTime(FakeVM* exe,pthread_rwlock_t* pGClock)
@@ -139,10 +139,8 @@ void FAKE_getTime(FakeVM* exe,pthread_rwlock_t* pGClock)
 	free(day);
 	free(mon);
 	free(year);
-	VMstr* tmpStr=newVMstr(trueTime);
-	VMvalue* tmpVMvalue=newVMvalue(STR,tmpStr,exe->heap);
+	VMvalue* tmpVMvalue=newVMvalue(STR,trueTime,exe->heap);
 	SET_RETURN("FAKE_getTime",tmpVMvalue,stack);
-	free(trueTime);
 }
 
 void FAKE_removeFile(FakeVM* exe,pthread_rwlock_t* pGClock)
@@ -156,7 +154,7 @@ void FAKE_removeFile(FakeVM* exe,pthread_rwlock_t* pGClock)
 		RAISE_BUILTIN_ERROR("btk.removeFile",TOOMANYARG,r,exe);
 	if(!IS_STR(name))
 		RAISE_BUILTIN_ERROR("btk.removeFile",WRONGARG,r,exe);
-	SET_RETURN("FAKE_removeFile",MAKE_VM_IN32(remove(name->u.str->str)),stack);
+	SET_RETURN("FAKE_removeFile",MAKE_VM_IN32(remove(name->u.str)),stack);
 }
 
 void FAKE_setVMChanlBufferSize(FakeVM* exe,pthread_rwlock_t* pGClock)

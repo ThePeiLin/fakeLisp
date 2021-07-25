@@ -52,7 +52,7 @@ void freeVMstack(VMstack*);
 void stackRecycle(FakeVM*);
 int createNewThread(FakeVM*);
 FakeVMlist* newThreadStack(int32_t);
-VMrunnable* hasSameProc(VMproc*,ComStack*);
+VMrunnable* hasSameProc(uint32_t,ComStack*);
 int isTheLastExpress(const VMrunnable*,const VMrunnable*,const FakeVM* exe);
 VMheap* newVMheap();
 void createCallChainWithContinuation(FakeVM*,VMcontinuation*);

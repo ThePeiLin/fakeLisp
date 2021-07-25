@@ -465,7 +465,7 @@ CompEnv* createMacroCompEnv(const AST_cptr* objCptr,CompEnv* prev)
 
 int isVal(const char* name)
 {
-	if(name[0]=='$'&&strlen(name)>1)
+	if(name[0]=='?'&&strlen(name)>1)
 		return 1;
 	return 0;
 }
@@ -1227,55 +1227,60 @@ ByteCodelnt* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 {
 	AST_cptr* fir=&objCptr->u.pair->car;
 	AST_cptr* sec=nextCptr(fir);
-	AST_cptr* tir=nextCptr(sec);
-	ByteCodelnt* tmp1=compile(sec,curEnv,inter,status,evalIm);
-	if(status->status!=0)
-		return NULL;
-	ByteCodelnt* tmp2=(isLambdaExpression(tir))?
-		compile(tir,curEnv,inter,status,0):
-		compile(tir,curEnv,inter,status,evalIm);
-	if(status->status!=0)
-	{
-		FREE_ALL_LINE_NUMBER_TABLE(tmp1->l,tmp1->ls);
-		freeByteCodelnt(tmp1);
-		return NULL;
-	}
-	ByteCode* popRef=newByteCode(sizeof(char));
-	popRef->code[0]=FAKE_POP_REF;
-	codelntCat(tmp1,tmp2);
-	codeCat(tmp1->bc,popRef);
-	tmp1->l[tmp1->ls-1]->cpc+=popRef->size;
 	if(isSymbol(sec))
+		return compileSetq(objCptr,curEnv,inter,status,0);
+	else
 	{
-		AST_atom* tmpAtm=sec->u.atom;
-		CompEnv* tmpEnv=curEnv;
-		CompDef* tmpDef=NULL;
-		while(tmpEnv!=NULL)
+		AST_cptr* tir=nextCptr(sec);
+		ByteCodelnt* tmp1=compile(sec,curEnv,inter,status,evalIm);
+		if(status->status!=0)
+			return NULL;
+		ByteCodelnt* tmp2=(isLambdaExpression(tir))?
+			compile(tir,curEnv,inter,status,0):
+			compile(tir,curEnv,inter,status,evalIm);
+		if(status->status!=0)
 		{
-			tmpDef=findCompDef(tmpAtm->value.str,tmpEnv);
-			if(tmpEnv->prefix&&!tmpDef)
+			FREE_ALL_LINE_NUMBER_TABLE(tmp1->l,tmp1->ls);
+			freeByteCodelnt(tmp1);
+			return NULL;
+		}
+		ByteCode* popRef=newByteCode(sizeof(char));
+		popRef->code[0]=FAKE_POP_REF;
+		codelntCat(tmp1,tmp2);
+		codeCat(tmp1->bc,popRef);
+		tmp1->l[tmp1->ls-1]->cpc+=popRef->size;
+		if(isSymbol(sec))
+		{
+			AST_atom* tmpAtm=sec->u.atom;
+			CompEnv* tmpEnv=curEnv;
+			CompDef* tmpDef=NULL;
+			while(tmpEnv!=NULL)
 			{
-				size_t len=strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1;
-				char* symbolWithPrefix=(char*)malloc(sizeof(char)*len);
-				FAKE_ASSERT(symbolWithPrefix,"compileSetq",__FILE__,__LINE__);
-				sprintf(symbolWithPrefix,"%s%s",tmpEnv->prefix,tmpAtm->value.str);
-				tmpDef=findCompDef(symbolWithPrefix,tmpEnv);
-				free(symbolWithPrefix);
+				tmpDef=findCompDef(tmpAtm->value.str,tmpEnv);
+				if(tmpEnv->prefix&&!tmpDef)
+				{
+					size_t len=strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1;
+					char* symbolWithPrefix=(char*)malloc(sizeof(char)*len);
+					FAKE_ASSERT(symbolWithPrefix,"compileSetq",__FILE__,__LINE__);
+					sprintf(symbolWithPrefix,"%s%s",tmpEnv->prefix,tmpAtm->value.str);
+					tmpDef=findCompDef(symbolWithPrefix,tmpEnv);
+					free(symbolWithPrefix);
+				}
+				if(tmpDef!=NULL)
+					break;
+				tmpEnv=tmpEnv->prev;
 			}
-			if(tmpDef!=NULL)
-				break;
-			tmpEnv=tmpEnv->prev;
+			if(isConst(tir)||isLambdaExpression(tir))
+			{
+				codelntCopyCat(curEnv->proc,tmp2);
+				codeCat(curEnv->proc->bc,popRef);
+				curEnv->proc->l[curEnv->proc->ls-1]->cpc+=popRef->size;
+			}
 		}
-		if(isConst(tir)||isLambdaExpression(tir))
-		{
-			codelntCopyCat(curEnv->proc,tmp2);
-			codeCat(curEnv->proc->bc,popRef);
-			curEnv->proc->l[curEnv->proc->ls-1]->cpc+=popRef->size;
-		}
+		freeByteCode(popRef);
+		freeByteCodelnt(tmp2);
+		return tmp1;
 	}
-	freeByteCode(popRef);
-	freeByteCodelnt(tmp2);
-	return tmp1;
 }
 
 ByteCodelnt* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)

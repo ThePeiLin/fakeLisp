@@ -77,7 +77,7 @@ void SYS_append(FakeVM* exe,pthread_rwlock_t* gclock)
 		{
 			if(!IS_PTR(cur))
 				RAISE_BUILTIN_ERROR("sys.append",WRONGARG,runnable,exe);
-			(*prev)->u.str->str=strCat((*prev)->u.str->str,cur->u.str->str);
+			(*prev)->u.str=strCat((*prev)->u.str,cur->u.str);
 		}
 		else if(IS_BYTS(*prev))
 		{
@@ -174,7 +174,7 @@ void SYS_eqn(FakeVM* exe,pthread_rwlock_t* gclock)
 				:VM_NIL
 				,stack);
 	else if(IS_STR(fir)&&IS_STR(sec))
-		SET_RETURN("SYS_eqn",(!strcmp(fir->u.str->str,sec->u.str->str))
+		SET_RETURN("SYS_eqn",(!strcmp(fir->u.str,sec->u.str))
 				?VM_TRUE
 				:VM_NIL
 				,stack);
@@ -422,7 +422,7 @@ void SYS_gt(FakeVM* exe,pthread_rwlock_t* gclock)
 			if((IS_DBL(prev)||IS_IN32(prev))&&(IS_DBL(cur)||IS_IN32(cur)))
 				r=((((IS_DBL(prev))?*prev->u.dbl:GET_IN32(prev))-((IS_DBL(cur))?*cur->u.dbl:GET_IN32(cur)))>0.0);
 			else if(IS_STR(prev)&&IS_STR(cur))
-				r=(strcmp(prev->u.str->str,cur->u.str->str)>0);
+				r=(strcmp(prev->u.str,cur->u.str)>0);
 			else
 				RAISE_BUILTIN_ERROR("sys.gt",WRONGARG,runnable,exe);
 		}
@@ -454,7 +454,7 @@ void SYS_ge(FakeVM* exe,pthread_rwlock_t* gclock)
 			if((IS_DBL(prev)||IS_IN32(prev))&&(IS_DBL(cur)||IS_IN32(cur)))
 				r=((((IS_DBL(prev))?*prev->u.dbl:GET_IN32(prev))-((IS_DBL(cur))?*cur->u.dbl:GET_IN32(cur)))>=0.0);
 			else if(IS_STR(prev)&&IS_STR(cur))
-				r=(strcmp(prev->u.str->str,cur->u.str->str)>=0);
+				r=(strcmp(prev->u.str,cur->u.str)>=0);
 			else
 				RAISE_BUILTIN_ERROR("sys.ge",WRONGARG,runnable,exe);
 		}
@@ -486,7 +486,7 @@ void SYS_lt(FakeVM* exe,pthread_rwlock_t* gclock)
 			if((IS_DBL(prev)||IS_IN32(prev))&&(IS_DBL(cur)||IS_IN32(cur)))
 				r=((((IS_DBL(prev))?*prev->u.dbl:GET_IN32(prev))-((IS_DBL(cur))?*cur->u.dbl:GET_IN32(cur)))<0.0);
 			else if(IS_STR(prev)&&IS_STR(cur))
-				r=(strcmp(prev->u.str->str,cur->u.str->str)<0);
+				r=(strcmp(prev->u.str,cur->u.str)<0);
 			else
 				RAISE_BUILTIN_ERROR("sys.lt",WRONGARG,runnable,exe);
 		}
@@ -518,7 +518,7 @@ void SYS_le(FakeVM* exe,pthread_rwlock_t* gclock)
 			if((IS_DBL(prev)||IS_IN32(prev))&&(IS_DBL(cur)||IS_IN32(cur)))
 				r=((((IS_DBL(prev))?*prev->u.dbl:GET_IN32(prev))-((IS_DBL(cur))?*cur->u.dbl:GET_IN32(cur)))<=0.0);
 			else if(IS_STR(prev)&&IS_STR(cur))
-				r=(strcmp(prev->u.str->str,cur->u.str->str)<=0);
+				r=(strcmp(prev->u.str,cur->u.str)<=0);
 			else
 				RAISE_BUILTIN_ERROR("sys.le",WRONGARG,runnable,exe);
 		}
@@ -550,7 +550,7 @@ void SYS_chr(FakeVM* exe,pthread_rwlock_t* gclock)
 	else if(IS_DBL(obj))
 		SET_RETURN("SYS_chr",MAKE_VM_CHR((int32_t)*obj->u.dbl),stack);
 	else if(IS_STR(obj))
-		SET_RETURN("SYS_chr",MAKE_VM_CHR(obj->u.str->str[0]),stack);
+		SET_RETURN("SYS_chr",MAKE_VM_CHR(obj->u.str[0]),stack);
 	else if(IS_BYTS(obj))
 		SET_RETURN("SYS_chr",MAKE_VM_CHR(obj->u.byts->str[0]),stack);
 	else
@@ -573,7 +573,7 @@ void SYS_int(FakeVM* exe,pthread_rwlock_t* gclock)
 	else if(IS_DBL(obj))
 		SET_RETURN("SYS_int",MAKE_VM_IN32((int32_t)*obj->u.dbl),stack);
 	else if(IS_STR(obj))
-		SET_RETURN("SYS_int",MAKE_VM_IN32(stringToInt(obj->u.str->str)),stack);
+		SET_RETURN("SYS_int",MAKE_VM_IN32(stringToInt(obj->u.str)),stack);
 	else if(IS_BYTS(obj))
 	{
 		uint8_t r[4]={0};
@@ -608,7 +608,7 @@ void SYS_dbl(FakeVM* exe,pthread_rwlock_t* gclock)
 	else if(IS_DBL(obj))
 		*retval->u.dbl=*obj->u.dbl;
 	else if(IS_STR(obj))
-		*retval->u.dbl=stringToDouble(obj->u.str->str);
+		*retval->u.dbl=stringToDouble(obj->u.str);
 	else if(IS_BYTS(obj))
 	{
 		uint8_t r[8]={0};
@@ -640,17 +640,17 @@ void SYS_str(FakeVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.str",TOOMANYARG,runnable,exe);
 	if(!obj)
 		RAISE_BUILTIN_ERROR("sys.str",TOOFEWARG,runnable,exe);
-	VMvalue* retval=newVMvalue(STR,newVMstr(NULL),exe->heap);
+	VMvalue* retval=newVMvalue(STR,NULL,exe->heap);
 	if(IS_IN32(obj))
-		retval->u.str->str=intToString(GET_IN32(obj));
+		retval->u.str=intToString(GET_IN32(obj));
 	else if(IS_DBL(obj))
-		retval->u.str->str=doubleToString(*obj->u.dbl);
+		retval->u.str=doubleToString(*obj->u.dbl);
 	else if(IS_CHR(obj))
-		retval->u.str->str=copyStr((char[]){GET_CHR(obj),'\0'});
+		retval->u.str=copyStr((char[]){GET_CHR(obj),'\0'});
 	else if(IS_SYM(obj))
-		retval->u.str->str=copyStr(getGlobSymbolWithId(GET_SYM(obj))->symbol);
+		retval->u.str=copyStr(getGlobSymbolWithId(GET_SYM(obj))->symbol);
 	else if(IS_STR(obj))
-		retval->u.str->str=copyStr(obj->u.str->str);
+		retval->u.str=copyStr(obj->u.str);
 	else if(IS_BYTS(obj))
 	{
 		size_t s=obj->u.byts->size;
@@ -659,7 +659,7 @@ void SYS_str(FakeVM* exe,pthread_rwlock_t* gclock)
 		FAKE_ASSERT(t,"SYS_str",__FILE__,__LINE__);
 		memcpy(t,obj->u.byts->str,s);
 		t[l-1]='\0';
-		retval->u.str->str=t;
+		retval->u.str=t;
 	}
 	else
 		RAISE_BUILTIN_ERROR("sys.str",WRONGARG,runnable,exe);
@@ -680,7 +680,7 @@ void SYS_sym(FakeVM* exe,pthread_rwlock_t* gclock)
 	else if(IS_SYM(obj))
 		SET_RETURN("SYS_sym",obj,stack);
 	else if(IS_STR(obj))
-		SET_RETURN("SYS_sym",MAKE_VM_SYM(addSymbolToGlob(obj->u.str->str)->id),stack);
+		SET_RETURN("SYS_sym",MAKE_VM_SYM(addSymbolToGlob(obj->u.str)->id),stack);
 	else
 		RAISE_BUILTIN_ERROR("sys.sym",WRONGARG,runnable,exe);
 }
@@ -721,8 +721,8 @@ void SYS_byts(FakeVM* exe,pthread_rwlock_t* gclock)
 	}
 	else if(IS_STR(obj))
 	{
-		retval->u.byts->size=strlen(obj->u.str->str)+1;
-		retval->u.byts->str=(uint8_t*)copyStr(obj->u.str->str);
+		retval->u.byts->size=strlen(obj->u.str)+1;
+		retval->u.byts->str=(uint8_t*)copyStr(obj->u.str);
 	}
 	else if(IS_BYTS(obj))
 	{
@@ -806,7 +806,7 @@ void SYS_nth(FakeVM* exe,pthread_rwlock_t* gclock)
 		retval=(IS_PAIR(objPair))?MAKE_VM_REF(&objPair->u.pair->car):VM_NIL;
 	}
 	else if(IS_STR(objlist))
-		retval=offset>=strlen(objlist->u.str->str)?VM_NIL:newVMChref(objlist,objlist->u.str->str+offset);
+		retval=offset>=strlen(objlist->u.str)?VM_NIL:newVMChref(objlist,objlist->u.str+offset);
 	else if(IS_BYTS(objlist))
 		retval=offset>=objlist->u.byts->size?VM_NIL:newVMChref(objlist,(char*)objlist->u.byts->str+offset);
 	else
@@ -827,7 +827,7 @@ void SYS_length(FakeVM* exe,pthread_rwlock_t* gclock)
 	if(IS_PAIR(obj))
 		for(;IS_PAIR(obj);obj=getVMpairCdr(obj))len++;
 	else if(IS_STR(obj))
-		len=strlen(obj->u.str->str);
+		len=strlen(obj->u.str);
 	else if(IS_BYTS(obj))
 		len=obj->u.byts->size;
 	else if(IS_CHAN(obj))
@@ -850,7 +850,7 @@ void SYS_file(FakeVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.file",TOOFEWARG,runnable,exe);
 	if(!IS_STR(filename)||!IS_STR(mode))
 		RAISE_BUILTIN_ERROR("sys.file",WRONGARG,runnable,exe);
-	FILE* file=fopen(filename->u.str->str,mode->u.str->str);
+	FILE* file=fopen(filename->u.str,mode->u.str);
 	VMvalue* obj=NULL;
 	if(!file)
 	{
@@ -994,7 +994,7 @@ void SYS_dll(FakeVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.dll",TOOFEWARG,runnable,exe);
 	if(!IS_STR(dllName))
 		RAISE_BUILTIN_ERROR("sys.dll",WRONGARG,runnable,exe);
-	VMDll* dll=newVMDll(dllName->u.str->str);
+	VMDll* dll=newVMDll(dllName->u.str);
 	if(!dll)
 		RAISE_BUILTIN_ERROR("sys.dll",LOADDLLFAILD,runnable,exe);
 	SET_RETURN("SYS_dll",newVMvalue(DLL,dll,exe->heap),stack);
@@ -1014,10 +1014,10 @@ void SYS_dlsym(FakeVM* exe,pthread_rwlock_t* gclock)
 	if(!IS_STR(symbol)||!IS_DLL(dll))
 		RAISE_BUILTIN_ERROR("sys.dlsym",WRONGARG,runnable,exe);
 	char prefix[]="FAKE_";
-	size_t len=strlen(prefix)+strlen(symbol->u.str->str)+1;
+	size_t len=strlen(prefix)+strlen(symbol->u.str)+1;
 	char* realDlFuncName=(char*)malloc(sizeof(char)*len);
 	FAKE_ASSERT(realDlFuncName,"B_dlsym",__FILE__,__LINE__);
-	sprintf(realDlFuncName,"%s%s",prefix,symbol->u.str->str);
+	sprintf(realDlFuncName,"%s%s",prefix,symbol->u.str);
 	DllFunc funcAddress=getAddress(realDlFuncName,dll->u.dll->handle);
 	if(!funcAddress)
 	{
@@ -1025,7 +1025,7 @@ void SYS_dlsym(FakeVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.dlsym",INVALIDSYMBOL,runnable,exe);
 	}
 	free(realDlFuncName);
-	VMDlproc* dlproc=newVMDlproc(funcAddress,dll->u.dll);
+	VMDlproc* dlproc=newVMDlproc(funcAddress,dll);
 	SET_RETURN("SYS_dlsym",newVMvalue(DLPROC,dlproc,heap),stack);
 }
 
@@ -1042,7 +1042,7 @@ void SYS_argv(FakeVM* exe,pthread_rwlock_t* pGClock)
 	{
 		VMvalue* cur=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap);
 		*tmp=cur;
-		cur->u.pair->car=newVMvalue(STR,newVMstr(exe->argv[i]),exe->heap);
+		cur->u.pair->car=newVMvalue(STR,copyStr(exe->argv[i]),exe->heap);
 	}
 	SET_RETURN("FAKE_argv",retval,stack);
 }
@@ -1077,8 +1077,7 @@ void SYS_go(FakeVM* exe,pthread_rwlock_t* gclock)
 		SET_RETURN("SYS_go",tmp,threadVMstack);
 	}
 	freeComStack(comStack);
-	increaseVMChanlRefcount(threadVM->chan);
-	VMChanl* chan=threadVM->chan;
+	VMvalue* chan=threadVM->chan;
 	int32_t faildCode=0;
 	if(IS_PRC(threadProc))
 		faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMFunc,threadVM);
@@ -1090,8 +1089,6 @@ void SYS_go(FakeVM* exe,pthread_rwlock_t* gclock)
 	}
 	if(faildCode)
 	{
-		decreaseVMChanlRefcount(chan);
-		freeVMChanl(chan);
 		deleteCallChain(threadVM);
 		freeVMstack(threadVM->stack);
 		threadVM->stack=NULL;
@@ -1099,7 +1096,7 @@ void SYS_go(FakeVM* exe,pthread_rwlock_t* gclock)
 		SET_RETURN("SYS_go",MAKE_VM_IN32(faildCode),stack);
 	}
 	else
-		SET_RETURN("SYS_go",newVMvalue(CHAN,chan,exe->heap),stack);
+		SET_RETURN("SYS_go",chan,stack);
 }
 
 void SYS_chanl(FakeVM* exe,pthread_rwlock_t* gclock)
@@ -1161,7 +1158,7 @@ void SYS_error(FakeVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.error",TOOFEWARG,runnable,exe);
 	if(!IS_SYM(type)||!IS_STR(message)||(!IS_SYM(who)&&!IS_STR(who)))
 		RAISE_BUILTIN_ERROR("sys.error",WRONGARG,runnable,exe);
-	SET_RETURN("SYS_error",newVMvalue(ERR,newVMerrorWithSid((IS_SYM(who))?getGlobSymbolWithId(GET_SYM(who))->symbol:who->u.str->str,GET_SYM(type),message->u.str->str),exe->heap),stack);
+	SET_RETURN("SYS_error",newVMvalue(ERR,newVMerrorWithSid((IS_SYM(who))?getGlobSymbolWithId(GET_SYM(who))->symbol:who->u.str,GET_SYM(type),message->u.str),exe->heap),stack);
 }
 
 void SYS_raise(FakeVM* exe,pthread_rwlock_t* gclock)
@@ -1175,6 +1172,5 @@ void SYS_raise(FakeVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.raise",TOOFEWARG,runnable,exe);
 	if(!IS_ERR(err))
 		RAISE_BUILTIN_ERROR("sys.raise",WRONGARG,runnable,exe);
-	increaseVMerrorRefcount(err->u.err);
-	raiseVMerror(err->u.err,exe);
+	raiseVMerror(err,exe);
 }

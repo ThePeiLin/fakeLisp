@@ -180,7 +180,7 @@ VMvalue* copyVMvalue(VMvalue* obj,VMheap* heap)
 							*root1=newVMvalue(BYTS,newVMByts(root->u.byts->size,root->u.byts->str),heap);
 							break;
 						case STR:
-							*root1=newVMvalue(STR,newVMstr(root->u.str->str),heap);
+							*root1=newVMvalue(STR,copyStr(root->u.str),heap);
 							break;
 						case CONT:
 						case PRC:
@@ -349,7 +349,7 @@ int VMvaluecmp(VMvalue* fir,VMvalue* sec)
 					r=(fabs(*root1->u.dbl-*root2->u.dbl)==0);
 					break;
 				case STR:
-					r=!strcmp(root1->u.str->str,root2->u.str->str);
+					r=!strcmp(root1->u.str,root2->u.str);
 					break;
 				case BYTS:
 					r=eqVMByts(root1->u.byts,root2->u.byts);
@@ -423,15 +423,15 @@ void decreaseVMprocRefcount(VMproc* code)
 	DECREASE_REFCOUNT(VMproc,code);
 }
 
-void increaseVMstrRefcount(VMstr* str)
-{
-	INCREASE_REFCOUNT(VMstr,str);
-}
+//void increaseVMstrRefcount(VMstr* str)
+//{
+//	INCREASE_REFCOUNT(VMstr,str);
+//}
 
-void decreaseVMstrRefcount(VMstr* str)
-{
-	DECREASE_REFCOUNT(VMstr,str);
-}
+//void decreaseVMstrRefcount(VMstr* str)
+//{
+//	DECREASE_REFCOUNT(VMstr,str);
+//}
 
 void increaseVMcontRefcount(VMcontinuation* cont)
 {
@@ -523,29 +523,29 @@ VMpair* newVMpair(VMheap* heap)
 	return tmp;
 }
 
-VMstr* newVMstr(const char* str)
-{
-	VMstr* tmp=(VMstr*)malloc(sizeof(VMstr));
-	FAKE_ASSERT(tmp,"newVMstr",__FILE__,__LINE__);
-	tmp->refcount=0;
-	tmp->str=NULL;
-	if(str!=NULL)
-	{
-		tmp->str=(char*)malloc(sizeof(char)*(strlen(str)+1));
-		FAKE_ASSERT(tmp->str,"newVMstr",__FILE__,__LINE__);
-		strcpy(tmp->str,str);
-	}
-	return tmp;
-}
-
-VMstr* copyRefVMstr(char* str)
-{
-	VMstr* tmp=(VMstr*)malloc(sizeof(VMstr));
-	FAKE_ASSERT(tmp,"newVMstr",__FILE__,__LINE__);
-	tmp->refcount=0;
-	tmp->str=str;
-	return tmp;
-}
+//VMstr* newVMstr(const char* str)
+//{
+//	VMstr* tmp=(VMstr*)malloc(sizeof(VMstr));
+//	FAKE_ASSERT(tmp,"newVMstr",__FILE__,__LINE__);
+//	tmp->refcount=0;
+//	tmp->str=NULL;
+//	if(str!=NULL)
+//	{
+//		tmp->str=(char*)malloc(sizeof(char)*(strlen(str)+1));
+//		FAKE_ASSERT(tmp->str,"newVMstr",__FILE__,__LINE__);
+//		strcpy(tmp->str,str);
+//	}
+//	return tmp;
+//}
+//
+//VMstr* copyRefVMstr(char* str)
+//{
+//	VMstr* tmp=(VMstr*)malloc(sizeof(VMstr));
+//	FAKE_ASSERT(tmp,"newVMstr",__FILE__,__LINE__);
+//	tmp->refcount=0;
+//	tmp->str=str;
+//	return tmp;
+//}
 
 VMvalue* castCptrVMvalue(AST_cptr* objCptr,VMheap* heap)
 {
@@ -568,6 +568,7 @@ VMvalue* castCptrVMvalue(AST_cptr* objCptr,VMheap* heap)
 					break;
 				case CHR:
 					*root1=MAKE_VM_CHR(tmpAtm->value.chr);
+					break;
 				case SYM:
 					*root1=MAKE_VM_SYM(addSymbolToGlob(tmpAtm->value.str)->id);
 					break;
@@ -578,7 +579,7 @@ VMvalue* castCptrVMvalue(AST_cptr* objCptr,VMheap* heap)
 					*root1=newVMvalue(BYTS,newVMByts(tmpAtm->value.byts.size,tmpAtm->value.byts.str),heap);
 					break;
 				case STR:
-					*root1=newVMvalue(STR,newVMstr(tmpAtm->value.str),heap);
+					*root1=newVMvalue(STR,copyStr(tmpAtm->value.str),heap);
 					break;
 				default:
 					return NULL;
@@ -702,11 +703,11 @@ void freeVMproc(VMproc* proc)
 		decreaseVMprocRefcount(proc);
 }
 
-void freeVMstr(VMstr* obj)
-{
-	free(obj->str);
-	free(obj);
-}
+//void freeVMstr(VMstr* obj)
+//{
+//	free(obj->str);
+//	free(obj);
+//}
 
 void freeVMenv(VMenv* obj)
 {
@@ -1005,8 +1006,8 @@ VMcontinuation* newVMcontinuation(VMstack* stack,ComStack* rstack)
 		status[i].cp=cur->cp;
 		increaseVMenvRefcount(cur->localenv);
 		status[i].localenv=cur->localenv;
-		increaseVMprocRefcount(cur->proc);
-		status[i].proc=cur->proc;
+		status[i].cpc=cur->cpc;
+		status[i].scp=cur->scp;
 		status[i].mark=cur->mark;
 	}
 	tmp->status=status;
@@ -1025,10 +1026,7 @@ void freeVMcontinuation(VMcontinuation* cont)
 		free(stack->values);
 		free(stack);
 		for(;i<size;i++)
-		{
 			freeVMenv(status[i].localenv);
-			freeVMproc(status[i].proc);
-		}
 		free(status);
 		free(cont);
 	}
@@ -1301,27 +1299,19 @@ void* getAddress(const char* funcname,DllHandle dlhandle)
 	return pfunc;
 }
 
-VMDlproc* newVMDlproc(DllFunc address,VMDll* dll)
+VMDlproc* newVMDlproc(DllFunc address,VMvalue* dll)
 {
 	VMDlproc* tmp=(VMDlproc*)malloc(sizeof(VMDlproc));
 	FAKE_ASSERT(tmp,"newVMDlproc",__FILE__,__LINE__);
 	tmp->refcount=0;
 	tmp->func=address;
 	tmp->dll=dll;
-	if(dll)
-		increaseVMDllRefcount(dll);
 	return tmp;
 }
 
 void freeVMDlproc(VMDlproc* dlproc)
 {
-	if(dlproc->refcount)
-		decreaseVMDlprocRefcount(dlproc);
-	else
-	{
-		freeVMDll(dlproc->dll);
-		free(dlproc);
-	}
+	free(dlproc);
 }
 
 VMerror* newVMerror(const char* who,const char* type,const char* message)
@@ -1470,8 +1460,9 @@ void freeVMerrorHandler(VMerrorHandler* h)
 	free(h);
 }
 
-int raiseVMerror(VMerror* err,FakeVM* exe)
+int raiseVMerror(VMvalue* ev,FakeVM* exe)
 {
+	VMerror* err=ev->u.err;
 	while(!isComStackEmpty(exe->tstack))
 	{
 		VMTryBlock* tb=topComStack(exe->tstack);
@@ -1487,7 +1478,6 @@ int raiseVMerror(VMerror* err,FakeVM* exe)
 				for(;i<increment;i++)
 				{
 					VMrunnable* runnable=popComStack(exe->rstack);
-					freeVMproc(runnable->proc);
 					freeVMenv(runnable->localenv);
 					free(runnable);
 				}
@@ -1499,7 +1489,7 @@ int raiseVMerror(VMerror* err,FakeVM* exe)
 				VMenvNode* errorNode=findVMenvNode(idOfError,curEnv);
 				if(!errorNode)
 					errorNode=addVMenvNode(newVMenvNode(NULL,idOfError),curEnv);
-				errorNode->value=newVMvalue(ERR,err,exe->heap);
+				errorNode->value=ev;
 				pushComStack(r,exe->rstack);
 				freeVMerrorHandler(h);
 				return 1;
@@ -1509,7 +1499,6 @@ int raiseVMerror(VMerror* err,FakeVM* exe)
 		freeVMTryBlock(popComStack(exe->tstack));
 	}
 	fprintf(stderr,"error of %s :%s",err->who,err->message);
-	freeVMerror(err);
 	void* i[3]={exe,(void*)255,(void*)1};
 	exe->callback(i);
 	return 255;
@@ -1520,11 +1509,9 @@ VMrunnable* newVMrunnable(VMproc* code)
 	VMrunnable* tmp=(VMrunnable*)malloc(sizeof(VMrunnable));
 	FAKE_ASSERT(tmp,"newVMrunnable",__FILE__,__LINE__);
 	if(code)
-	{
 		tmp->cp=code->scp;
-		increaseVMprocRefcount(code);
-	}
-	tmp->proc=code;
+	tmp->scp=code->scp;
+	tmp->cpc=code->cpc;
 	tmp->mark=0;
 	return tmp;
 }
@@ -1568,12 +1555,12 @@ char* genErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe)
 			break;
 		case LOADDLLFAILD:
 			t=strCat(t,"Faild to load dll \"");
-			t=strCat(t,exe->stack->values[exe->stack->tp-1]->u.str->str);
+			t=strCat(t,exe->stack->values[exe->stack->tp-1]->u.str);
 			t=strCat(t,"\" ");
 			break;
 		case INVALIDSYMBOL:
 			t=strCat(t,"Invalid symbol ");
-			t=strCat(t,exe->stack->values[exe->stack->tp-1]->u.str->str);
+			t=strCat(t,exe->stack->values[exe->stack->tp-1]->u.str);
 			t=strCat(t," ");
 			break;
 		case DIVZERROERROR:
@@ -1581,7 +1568,7 @@ char* genErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe)
 			break;
 		case FILEFAILURE:
 			t=strCat(t,"Failed for file:\"");
-			t=strCat(t,exe->stack->values[exe->stack->tp-1]->u.str->str);
+			t=strCat(t,exe->stack->values[exe->stack->tp-1]->u.str);
 			t=strCat(t,"\" ");
 			break;
 	}
@@ -1648,7 +1635,7 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 						fprintf(fp,"%lf",*objValue->u.dbl);
 						break;
 					case STR:
-						fprintf(fp,"%s",objValue->u.str->str);
+						fprintf(fp,"%s",objValue->u.str);
 						break;
 					case PRC:
 						fprintf(fp,"#<proc>");
@@ -1760,7 +1747,7 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 						fprintf(fp,"%lf",*objValue->u.dbl);
 						break;
 					case STR:
-						printRawString(objValue->u.str->str,fp);
+						printRawString(objValue->u.str,fp);
 						break;
 					case PRC:
 						fprintf(fp,"#<proc>");
@@ -1858,5 +1845,14 @@ VMvalue* newVMChref(VMvalue* from,char* obj)
 
 VMvalue* GET_VAL(VMvalue* P)
 {
-	return (IS_REF(P)?*(VMvalue**)(GET_PTR(P)):((IS_CHF(P)?MAKE_VM_CHR(*((VMChref*)GET_PTR(P))->obj):(P))));
+	if(IS_REF(P))
+		return *(VMvalue**)(GET_PTR(P));
+	else if(IS_CHF(P))
+	{
+		P=GET_PTR(P);
+		VMvalue* t=MAKE_VM_CHR(*((VMChref*)P)->obj);
+		free(P);
+		return t;
+	}
+	return P;
 }

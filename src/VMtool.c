@@ -141,7 +141,6 @@ VMproc* newVMproc(uint32_t scp,uint32_t cpc)
 {
 	VMproc* tmp=(VMproc*)malloc(sizeof(VMproc));
 	FAKE_ASSERT(tmp,"newVMproc",__FILE__,__LINE__);
-	tmp->refcount=0;
 	tmp->prevEnv=NULL;
 	tmp->scp=scp;
 	tmp->cpc=cpc;
@@ -413,15 +412,15 @@ void decreaseVMenvRefcount(VMenv* env)
 	DECREASE_REFCOUNT(VMenv,env);
 }
 
-void increaseVMprocRefcount(VMproc* code)
-{
-	INCREASE_REFCOUNT(VMproc,code);
-}
-
-void decreaseVMprocRefcount(VMproc* code)
-{
-	DECREASE_REFCOUNT(VMproc,code);
-}
+//void increaseVMprocRefcount(VMproc* code)
+//{
+//	INCREASE_REFCOUNT(VMproc,code);
+//}
+//
+//void decreaseVMprocRefcount(VMproc* code)
+//{
+//	DECREASE_REFCOUNT(VMproc,code);
+//}
 
 //void increaseVMstrRefcount(VMstr* str)
 //{
@@ -433,91 +432,90 @@ void decreaseVMprocRefcount(VMproc* code)
 //	DECREASE_REFCOUNT(VMstr,str);
 //}
 
-void increaseVMcontRefcount(VMcontinuation* cont)
-{
-	INCREASE_REFCOUNT(VMcontinuation,cont);
-}
-
-void decreaseVMcontRefcount(VMcontinuation* cont)
-{
-	DECREASE_REFCOUNT(VMcontinuation,cont);
-}
-
-void increaseVMpairRefcount(VMpair* pair)
-{
-	INCREASE_REFCOUNT(VMpair,pair);
-}
-
-void decreaseVMpairRefcount(VMpair* pair)
-{
-	DECREASE_REFCOUNT(VMpair,pair);
-}
-
-void increaseVMByts(VMByts* byts)
-{
-	INCREASE_REFCOUNT(VMByts,byts);
-}
-
-void decreaseVMByts(VMByts* byts)
-{
-	DECREASE_REFCOUNT(VMByts,byts);
-}
-
-void increaseVMfpRefcount(VMfp* fp)
-{
-	INCREASE_REFCOUNT(VMfp,fp);
-}
-
-void decreaseVMfpRefcount(VMfp* fp)
-{
-	DECREASE_REFCOUNT(VMfp,fp);
-}
-
-void increaseVMChanlRefcount(VMChanl* chanl)
-{
-	INCREASE_REFCOUNT(VMChanl,chanl);
-}
-
-void decreaseVMChanlRefcount(VMChanl* chanl)
-{
-	DECREASE_REFCOUNT(VMChanl,chanl);
-}
-
-void increaseVMDllRefcount(VMDll* dll)
-{
-	INCREASE_REFCOUNT(VMDll,dll);
-}
-
-void decreaseVMDllRefcount(VMDll* dll)
-{
-	DECREASE_REFCOUNT(VMDll,dll);
-}
-
-void increaseVMDlprocRefcount(VMDlproc* dlproc)
-{
-	INCREASE_REFCOUNT(VMDlproc,dlproc);
-}
-
-void decreaseVMDlprocRefcount(VMDlproc* dlproc)
-{
-	DECREASE_REFCOUNT(VMDlproc,dlproc);
-}
-
-void increaseVMerrorRefcount(VMerror* err)
-{
-	INCREASE_REFCOUNT(VMerror,err);
-}
-
-void decreaseVMerrorRefcount(VMerror* err)
-{
-	DECREASE_REFCOUNT(VMerror,err);
-}
+//void increaseVMcontRefcount(VMcontinuation* cont)
+//{
+//	INCREASE_REFCOUNT(VMcontinuation,cont);
+//}
+//
+//void decreaseVMcontRefcount(VMcontinuation* cont)
+//{
+//	DECREASE_REFCOUNT(VMcontinuation,cont);
+//}
+//
+//void increaseVMpairRefcount(VMpair* pair)
+//{
+//	INCREASE_REFCOUNT(VMpair,pair);
+//}
+//
+//void decreaseVMpairRefcount(VMpair* pair)
+//{
+//	DECREASE_REFCOUNT(VMpair,pair);
+//}
+//
+//void increaseVMByts(VMByts* byts)
+//{
+//	INCREASE_REFCOUNT(VMByts,byts);
+//}
+//
+//void decreaseVMByts(VMByts* byts)
+//{
+//	DECREASE_REFCOUNT(VMByts,byts);
+//}
+//
+//void increaseVMfpRefcount(VMfp* fp)
+//{
+//	INCREASE_REFCOUNT(VMfp,fp);
+//}
+//
+//void decreaseVMfpRefcount(VMfp* fp)
+//{
+//	DECREASE_REFCOUNT(VMfp,fp);
+//}
+//
+//void increaseVMChanlRefcount(VMChanl* chanl)
+//{
+//	INCREASE_REFCOUNT(VMChanl,chanl);
+//}
+//
+//void decreaseVMChanlRefcount(VMChanl* chanl)
+//{
+//	DECREASE_REFCOUNT(VMChanl,chanl);
+//}
+//
+//void increaseVMDllRefcount(VMDll* dll)
+//{
+//	INCREASE_REFCOUNT(VMDll,dll);
+//}
+//
+//void decreaseVMDllRefcount(VMDll* dll)
+//{
+//	DECREASE_REFCOUNT(VMDll,dll);
+//}
+//
+//void increaseVMDlprocRefcount(VMDlproc* dlproc)
+//{
+//	INCREASE_REFCOUNT(VMDlproc,dlproc);
+//}
+//
+//void decreaseVMDlprocRefcount(VMDlproc* dlproc)
+//{
+//	DECREASE_REFCOUNT(VMDlproc,dlproc);
+//}
+//
+//void increaseVMerrorRefcount(VMerror* err)
+//{
+//	INCREASE_REFCOUNT(VMerror,err);
+//}
+//
+//void decreaseVMerrorRefcount(VMerror* err)
+//{
+//	DECREASE_REFCOUNT(VMerror,err);
+//}
 
 VMpair* newVMpair(VMheap* heap)
 {
 	VMpair* tmp=(VMpair*)malloc(sizeof(VMpair));
 	FAKE_ASSERT(tmp,"newVMpair",__FILE__,__LINE__);
-	tmp->refcount=0;
 	tmp->car=VM_NIL;
 	tmp->cdr=VM_NIL;
 	return tmp;
@@ -608,7 +606,6 @@ VMByts* newVMByts(size_t size,uint8_t* str)
 	VMByts* tmp=(VMByts*)malloc(sizeof(VMByts));
 	FAKE_ASSERT(tmp,"newVMByts",__FILE__,__LINE__);
 	tmp->size=size;
-	tmp->refcount=0;
 	tmp->str=(str==NULL)?NULL:copyArry(size,str);
 	return tmp;
 }
@@ -631,7 +628,6 @@ VMByts* copyRefVMByts(size_t size,uint8_t* str)
 	VMByts* tmp=(VMByts*)malloc(sizeof(VMByts));
 	FAKE_ASSERT(tmp,"newVMByts",__FILE__,__LINE__);
 	tmp->size=size;
-	tmp->refcount=0;
 	tmp->str=str;
 	return tmp;
 }
@@ -650,7 +646,6 @@ VMByts* newEmptyVMByts()
 	VMByts* tmp=(VMByts*)malloc(sizeof(VMByts));
 	FAKE_ASSERT(tmp,"newEmptyVMByts",__FILE__,__LINE__);
 	tmp->size=0;
-	tmp->refcount=0;
 	tmp->str=NULL;
 	return tmp;
 }
@@ -667,7 +662,6 @@ VMproc* copyVMproc(VMproc* obj,VMheap* heap)
 {
 	VMproc* tmp=(VMproc*)malloc(sizeof(VMproc));
 	FAKE_ASSERT(tmp,"copyVMproc",__FILE__,__LINE__);
-	tmp->refcount=0;
 	tmp->scp=obj->scp;
 	tmp->cpc=obj->cpc;
 	tmp->prevEnv=copyVMenv(obj->prevEnv,heap);
@@ -693,14 +687,9 @@ VMenv* copyVMenv(VMenv* objEnv,VMheap* heap)
 
 void freeVMproc(VMproc* proc)
 {
-	if(!proc->refcount)
-	{
-		if(proc->prevEnv)
-			freeVMenv(proc->prevEnv);
-		free(proc);
-	}
-	else
-		decreaseVMprocRefcount(proc);
+	if(proc->prevEnv)
+		freeVMenv(proc->prevEnv);
+	free(proc);
 }
 
 //void freeVMstr(VMstr* obj)
@@ -999,7 +988,6 @@ VMcontinuation* newVMcontinuation(VMstack* stack,ComStack* rstack)
 	FAKE_ASSERT(status,"newVMcontinuation",__FILE__,__LINE__);
 	tmp->stack=copyStack(stack);
 	tmp->num=size-1;
-	tmp->refcount=0;
 	for(;i<size-1;i++)
 	{
 		VMrunnable* cur=rstack->data[i];
@@ -1016,22 +1004,17 @@ VMcontinuation* newVMcontinuation(VMstack* stack,ComStack* rstack)
 
 void freeVMcontinuation(VMcontinuation* cont)
 {
-	if(!cont->refcount)
-	{
-		int32_t i=0;
-		int32_t size=cont->num;
-		VMstack* stack=cont->stack;
-		VMrunnable* status=cont->status;
-		free(stack->tpst);
-		free(stack->values);
-		free(stack);
-		for(;i<size;i++)
-			freeVMenv(status[i].localenv);
-		free(status);
-		free(cont);
-	}
-	else
-		decreaseVMcontRefcount(cont);
+	int32_t i=0;
+	int32_t size=cont->num;
+	VMstack* stack=cont->stack;
+	VMrunnable* status=cont->status;
+	free(stack->tpst);
+	free(stack->values);
+	free(stack);
+	for(;i<size;i++)
+		freeVMenv(status[i].localenv);
+	free(status);
+	free(cont);
 }
 
 VMstack* copyStack(VMstack* stack)
@@ -1134,7 +1117,6 @@ VMChanl* newVMChanl(int32_t maxSize)
 	FAKE_ASSERT(tmp,"newVMChanl",__FILE__,__LINE__);
 	pthread_mutex_init(&tmp->lock,NULL);
 	tmp->max=maxSize;
-	tmp->refcount=0;
 	tmp->messages=newComQueue();
 	tmp->sendq=newComQueue();
 	tmp->recvq=newComQueue();
@@ -1152,21 +1134,16 @@ int32_t getNumVMChanl(VMChanl* ch)
 
 void freeVMChanl(VMChanl* ch)
 {
-	if(ch->refcount)
-		decreaseVMChanlRefcount(ch);
-	else
-	{
-		pthread_mutex_destroy(&ch->lock);
-		freeComQueue(ch->messages);
-		QueueNode* head=ch->sendq->head;
-		for(;head;head=head->next)
-			freeSendT(head->data);
-		for(head=ch->recvq->head;head;head=head->next)
-			freeRecvT(head->data);
-		freeComQueue(ch->sendq);
-		freeComQueue(ch->recvq);
-		free(ch);
-	}
+	pthread_mutex_destroy(&ch->lock);
+	freeComQueue(ch->messages);
+	QueueNode* head=ch->sendq->head;
+	for(;head;head=head->next)
+		freeSendT(head->data);
+	for(head=ch->recvq->head;head;head=head->next)
+		freeRecvT(head->data);
+	freeComQueue(ch->sendq);
+	freeComQueue(ch->recvq);
+	free(ch);
 }
 
 VMChanl* copyVMChanl(VMChanl* ch,VMheap* heap)
@@ -1182,32 +1159,22 @@ VMChanl* copyVMChanl(VMChanl* ch,VMheap* heap)
 	return tmpCh;
 }
 
-VMfp* newVMfp(FILE* fp)
+//VMfp* newVMfp(FILE* fp)
+//{
+//	VMfp* tmp=(VMfp*)malloc(sizeof(VMfp));
+//	FAKE_ASSERT(tmp,"newVMfp",__FILE__,__LINE__);
+//	tmp->fp=fp;
+//	return tmp;
+//}
+
+void freeVMfp(FILE* fp)
 {
-	VMfp* tmp=(VMfp*)malloc(sizeof(VMfp));
-	FAKE_ASSERT(tmp,"newVMfp",__FILE__,__LINE__);
-	tmp->refcount=0;
-	tmp->fp=fp;
-	return tmp;
+	if(fp!=stdin&&fp!=stdout&&fp!=stderr)
+		fclose(fp);
 }
 
-void freeVMfp(VMfp* fp)
+DllHandle* newVMDll(const char* dllName)
 {
-	if(fp->refcount)
-		decreaseVMfpRefcount(fp);
-	else
-	{
-		if(fp->fp!=stdin&&fp->fp!=stdout&&fp->fp!=stderr)
-			fclose(fp->fp);
-		free(fp);
-	}
-}
-
-VMDll* newVMDll(const char* dllName)
-{
-	VMDll* tmp=(VMDll*)malloc(sizeof(VMDll));
-	FAKE_ASSERT(tmp,"newVMDll",__FILE__,__LINE__);
-	tmp->refcount=0;
 #ifdef _WIN32
 	char filetype[]=".dll";
 #else
@@ -1226,7 +1193,6 @@ VMDll* newVMDll(const char* dllName)
 	{
 		perror(dllName);
 		free(realDllName);
-		free(tmp);
 		return NULL;
 	}
 #ifdef _WIN32
@@ -1260,31 +1226,23 @@ VMDll* newVMDll(const char* dllName)
 		perror(dlerror());
 		free(rpath);
 		free(realDllName);
-		free(tmp);
 		return NULL;
 	}
 #endif
-	tmp->handle=handle;
 	free(realDllName);
 	free(rpath);
-	return tmp;
+	return handle;
 }
 
-void freeVMDll(VMDll* dll)
+void freeVMDll(DllHandle* dll)
 {
 	if(dll)
 	{
-		if(dll->refcount)
-			decreaseVMDllRefcount(dll);
-		else
-		{
 #ifdef _WIN32
-			FreeLibrary(dll->handle);
+		FreeLibrary(dll);
 #else
-			dlclose(dll->handle);
+		dlclose(dll);
 #endif
-			free(dll);
-		}
 	}
 }
 
@@ -1303,7 +1261,6 @@ VMDlproc* newVMDlproc(DllFunc address,VMvalue* dll)
 {
 	VMDlproc* tmp=(VMDlproc*)malloc(sizeof(VMDlproc));
 	FAKE_ASSERT(tmp,"newVMDlproc",__FILE__,__LINE__);
-	tmp->refcount=0;
 	tmp->func=address;
 	tmp->dll=dll;
 	return tmp;
@@ -1319,7 +1276,6 @@ VMerror* newVMerror(const char* who,const char* type,const char* message)
 	VMerror* t=(VMerror*)malloc(sizeof(VMerror));
 	FAKE_ASSERT(t,"newVMerror",__FILE__,__LINE__);
 	t->who=copyStr(who);
-	t->refcount=0;
 	t->type=addSymbolToGlob(type)->id;
 	t->message=copyStr(message);
 	return t;
@@ -1330,7 +1286,6 @@ VMerror* newVMerrorWithSid(const char* who,Sid_t type,const char* message)
 	VMerror* t=(VMerror*)malloc(sizeof(VMerror));
 	FAKE_ASSERT(t,"newVMerror",__FILE__,__LINE__);
 	t->who=copyStr(who);
-	t->refcount=0;
 	t->type=type;
 	t->message=copyStr(message);
 	return t;
@@ -1338,14 +1293,9 @@ VMerror* newVMerrorWithSid(const char* who,Sid_t type,const char* message)
 
 void freeVMerror(VMerror* err)
 {
-	if(err->refcount)
-		decreaseVMerrorRefcount(err);
-	else
-	{
-		free(err->who);
-		free(err->message);
-		free(err);
-	}
+	free(err->who);
+	free(err->message);
+	free(err);
 }
 
 RecvT* newRecvT(FakeVM* v)

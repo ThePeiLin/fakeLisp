@@ -144,16 +144,16 @@ void increaseVMcontRefcount(VMcontinuation*);
 void decreaseVMcontRefcount(VMcontinuation*);
 void freeVMcontinuation(VMcontinuation*);
 
-VMfp* newVMfp(FILE*);
-void increaseVMfpRefcount(VMfp*);
-void decreaseVMfpRefcount(VMfp*);
-void freeVMfp(VMfp*);
+//VMfp* newVMfp(FILE*);
+//void increaseVMfpRefcount(VMfp*);
+//void decreaseVMfpRefcount(VMfp*);
+void freeVMfp(FILE*);
 
-VMDll* newVMDll(const char*);
-void increaseVMDllRefcount(VMDll*);
-void decreaseVMDllRefcount(VMDll*);
+DllHandle* newVMDll(const char*);
+//void increaseVMDllRefcount(VMDll*);
+//void decreaseVMDllRefcount(VMDll*);
 void* getAddress(const char*,DllHandle);
-void freeVMDll(VMDll*);
+void freeVMDll(DllHandle*);
 
 VMDlproc* newVMDlproc(DllFunc,VMvalue*);
 void increaseVMDlprocRefcount(VMDlproc*);

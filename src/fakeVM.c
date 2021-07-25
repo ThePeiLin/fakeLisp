@@ -202,9 +202,9 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 	FAKE_ASSERT(obj->list,"initGlobEnv",__FILE__,__LINE__);
 	obj->list[0]=newVMenvNode(VM_NIL,addSymbolToGlob(builtInSymbolList[0])->id);
 	obj->list[1]=newVMenvNode(VM_EOF,addSymbolToGlob(builtInSymbolList[1])->id);
-	obj->list[2]=newVMenvNode(newVMvalue(FP,newVMfp(stdin),heap),addSymbolToGlob(builtInSymbolList[2])->id);
-	obj->list[3]=newVMenvNode(newVMvalue(FP,newVMfp(stdout),heap),addSymbolToGlob(builtInSymbolList[3])->id);
-	obj->list[4]=newVMenvNode(newVMvalue(FP,newVMfp(stderr),heap),addSymbolToGlob(builtInSymbolList[4])->id);
+	obj->list[2]=newVMenvNode(newVMvalue(FP,stdin,heap),addSymbolToGlob(builtInSymbolList[2])->id);
+	obj->list[3]=newVMenvNode(newVMvalue(FP,stdout,heap),addSymbolToGlob(builtInSymbolList[3])->id);
+	obj->list[4]=newVMenvNode(newVMvalue(FP,stderr,heap),addSymbolToGlob(builtInSymbolList[4])->id);
 	size_t i=5;
 	for(;i<NUMOFBUILTINSYMBOL;i++)
 		obj->list[i]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(syscallFunctionList[i-5],NULL),heap),addSymbolToGlob(builtInSymbolList[i])->id);

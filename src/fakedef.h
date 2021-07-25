@@ -51,6 +51,13 @@ typedef enum
 	FILEFAILURE,
 }ErrorType;
 
+#ifdef _WIN32
+#include<windows.h>
+typedef HMODULE DllHandle;
+#else
+typedef void* DllHandle;
+#endif
+
 typedef void (*GenDestructor)(void*);
 typedef struct
 {
@@ -129,7 +136,6 @@ typedef struct AST_pair
 typedef struct VMChanl
 {
 	uint32_t max;
-	uint32_t refcount;
 	pthread_mutex_t lock;
 	ComQueue* messages;
 	ComQueue* sendq;
@@ -148,11 +154,10 @@ typedef struct
 	struct FakeVM* v;
 }RecvT;
 
-typedef struct VMfp
-{
-	uint32_t refcount;
-	FILE* fp;
-}VMfp;
+//typedef struct VMfp
+//{
+//	FILE* fp;
+//}VMfp;
 
 typedef struct AST_atom
 {
@@ -245,14 +250,12 @@ typedef struct Key_Word
 
 typedef struct VMpair
 {
-	uint32_t refcount;
 	struct VMvalue* car;
 	struct VMvalue* cdr;
 }VMpair;
 
 typedef struct VMByts
 {
-	uint32_t refcount;
 	size_t size;
 	uint8_t* str;
 }VMByts;
@@ -274,10 +277,10 @@ typedef struct VMvalue
 		char* str;
 		struct VMByts* byts;
 		struct VMproc* prc;
-		struct VMDll* dll;
+		DllHandle dll;
 		struct VMDlproc* dlproc;
 		struct VMContinuation* cont;
-		struct VMfp* fp;
+		FILE* fp;
 		struct VMChanl* chan;
 		struct VMerror* err;
 	}u;
@@ -328,7 +331,6 @@ typedef struct VMenv
 
 typedef struct VMproc
 {
-	uint32_t refcount;
 	uint32_t scp;
 	uint32_t cpc;
 	VMenv* prevEnv;
@@ -393,24 +395,15 @@ typedef struct
 	FakeVM** VMs;
 }FakeVMlist;
 
-#ifdef _WIN32
-#include<windows.h>
-typedef HMODULE DllHandle;
-#else
-typedef void* DllHandle;
-#endif
-
 typedef void (*DllFunc)(FakeVM*,pthread_rwlock_t*);
 
-typedef struct VMDll
-{
-	uint32_t refcount;
-	DllHandle handle;
-}VMDll;
+//typedef struct VMDll
+//{
+//	DllHandle handle;
+//}VMDll;
 
 typedef struct VMDlproc
 {
-	uint32_t refcount;
 	DllFunc func;
 	VMvalue* dll;
 }VMDlproc;
@@ -426,7 +419,6 @@ typedef struct StringMatchPattern
 
 typedef struct VMerror
 {
-	uint32_t refcount;
 	Sid_t type;
 	char* who;
 	char* message;
@@ -434,7 +426,6 @@ typedef struct VMerror
 
 typedef struct VMContinuation
 {
-	uint32_t refcount;
 	uint32_t num;
 	VMstack* stack;
 	VMrunnable* status;

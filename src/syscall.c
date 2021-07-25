@@ -858,7 +858,7 @@ void SYS_file(FakeVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.file",FILEFAILURE,runnable,exe);
 	}
 	else
-		obj=newVMvalue(FP,newVMfp(file),heap);
+		obj=newVMvalue(FP,file,heap);
 	SET_RETURN("SYS_file",obj,stack);
 }
 
@@ -873,7 +873,7 @@ void SYS_read(FakeVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.read",TOOFEWARG,runnable,exe);
 	if(!IS_FP(file))
 		RAISE_BUILTIN_ERROR("sys.read",WRONGARG,runnable,exe);
-	FILE* tmpFile=file->u.fp->fp;
+	FILE* tmpFile=file->u.fp;
 	int unexpectEOF=0;
 	char* prev=NULL;
 	char* tmpString=readInPattern(tmpFile,&prev,&unexpectEOF);
@@ -910,7 +910,7 @@ void SYS_getb(FakeVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.getb",TOOFEWARG,runnable,exe);
 	if(!IS_FP(file)||!IS_IN32(size))
 		RAISE_BUILTIN_ERROR("sys.getb",WRONGARG,runnable,exe);
-	FILE* fp=file->u.fp->fp;
+	FILE* fp=file->u.fp;
 	uint8_t* str=(uint8_t*)malloc(sizeof(uint8_t)*GET_IN32(size));
 	FAKE_ASSERT(str,"B_getb",__FILE__,__LINE__);
 	int32_t realRead=0;
@@ -944,7 +944,7 @@ void SYS_write(FakeVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.write",TOOFEWARG,runnable,exe);
 	if(!IS_FP(file))
 		RAISE_BUILTIN_ERROR("sys.write",WRONGARG,runnable,exe);
-	FILE* objFile=file->u.fp->fp;
+	FILE* objFile=file->u.fp;
 	writeVMvalue(obj,objFile,NULL);
 	SET_RETURN("SYS_write",obj,stack);
 }
@@ -961,7 +961,7 @@ void SYS_putb(FakeVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.putb",TOOFEWARG,runnable,exe);
 	if(!IS_FP(file)||!IS_BYTS(bt))
 		RAISE_BUILTIN_ERROR("sys.putb",WRONGARG,runnable,exe);
-	FILE* objFile=file->u.fp->fp;
+	FILE* objFile=file->u.fp;
 	fwrite(bt->u.byts->str,sizeof(uint8_t),bt->u.byts->size,objFile);
 	SET_RETURN("SYS_putb",bt,stack);
 }
@@ -978,7 +978,7 @@ void SYS_princ(FakeVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.princ",TOOFEWARG,runnable,exe);
 	if(!IS_FP(file))
 		RAISE_BUILTIN_ERROR("sys.princ",WRONGARG,runnable,exe);
-	FILE* objFile=file->u.fp->fp;
+	FILE* objFile=file->u.fp;
 	princVMvalue(obj,objFile,NULL);
 	SET_RETURN("SYS_princ",obj,stack);
 }
@@ -994,7 +994,7 @@ void SYS_dll(FakeVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.dll",TOOFEWARG,runnable,exe);
 	if(!IS_STR(dllName))
 		RAISE_BUILTIN_ERROR("sys.dll",WRONGARG,runnable,exe);
-	VMDll* dll=newVMDll(dllName->u.str);
+	DllHandle* dll=newVMDll(dllName->u.str);
 	if(!dll)
 		RAISE_BUILTIN_ERROR("sys.dll",LOADDLLFAILD,runnable,exe);
 	SET_RETURN("SYS_dll",newVMvalue(DLL,dll,exe->heap),stack);
@@ -1018,7 +1018,7 @@ void SYS_dlsym(FakeVM* exe,pthread_rwlock_t* gclock)
 	char* realDlFuncName=(char*)malloc(sizeof(char)*len);
 	FAKE_ASSERT(realDlFuncName,"B_dlsym",__FILE__,__LINE__);
 	sprintf(realDlFuncName,"%s%s",prefix,symbol->u.str);
-	DllFunc funcAddress=getAddress(realDlFuncName,dll->u.dll->handle);
+	DllFunc funcAddress=getAddress(realDlFuncName,dll->u.dll);
 	if(!funcAddress)
 	{
 		free(realDlFuncName);

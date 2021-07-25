@@ -184,7 +184,7 @@ void FAKE_isEndOfFile(FakeVM* exe,pthread_rwlock_t* pGClock)
 		RAISE_BUILTIN_ERROR("btk.isEndOfFile",TOOFEWARG,r,exe);
 	if(!IS_FP(fp))
 		RAISE_BUILTIN_ERROR("btk.isEndOfFile",WRONGARG,r,exe);
-	SET_RETURN("FAKE_isEndOfFile",feof(fp->u.fp->fp)
+	SET_RETURN("FAKE_isEndOfFile",feof(fp->u.fp)
 			?VM_TRUE
 			:VM_NIL
 			,stack);

@@ -154,11 +154,6 @@ typedef struct
 	struct FakeVM* v;
 }RecvT;
 
-//typedef struct VMfp
-//{
-//	FILE* fp;
-//}VMfp;
-
 typedef struct AST_atom
 {
 	AST_pair* prev;
@@ -288,33 +283,6 @@ typedef struct VMvalue
 	struct VMvalue* next;
 }VMvalue;
 
-//typedef struct VMvalue
-//{
-//	unsigned int mark :1;
-//	unsigned int access :1;
-//	unsigned int type :6;
-//	union
-//	{
-//		char* chr;
-//		Sid_t* sid;
-//		struct VMStr* str;
-//		VMpair* pair;
-//		VMByts* byts;
-//		int32_t* in32;
-//		double* dbl;
-//		struct VMproc* prc;
-//		struct VMContinuation* cont;
-//		struct VMChanl* chan;
-//		struct VMfp* fp;
-//		struct VMDll* dll;
-//		struct VMDlproc* dlproc;
-//		struct VMerror* err;
-//		void* all;
-//	}u;
-//	struct VMvalue* prev;
-//	struct VMvalue* next;
-//}VMvalue;
-
 typedef struct VMenvNode
 {
 	uint32_t id;
@@ -335,12 +303,6 @@ typedef struct VMproc
 	uint32_t cpc;
 	VMenv* prevEnv;
 }VMproc;
-
-//typedef struct VMstr
-//{
-//	uint32_t refcount;
-//	char* str;
-//}VMstr;
 
 typedef struct VMrunnable
 {
@@ -396,11 +358,6 @@ typedef struct
 }FakeVMlist;
 
 typedef void (*DllFunc)(FakeVM*,pthread_rwlock_t*);
-
-//typedef struct VMDll
-//{
-//	DllHandle handle;
-//}VMDll;
 
 typedef struct VMDlproc
 {

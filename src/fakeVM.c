@@ -376,7 +376,7 @@ void B_push_pair(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
-	SET_RETURN("B_push_pair",newVMvalue(PAIR,newVMpair(exe->heap),exe->heap),stack);
+	SET_RETURN("B_push_pair",newVMvalue(PAIR,newVMpair(),exe->heap),stack);
 	runnable->cp+=1;
 
 }
@@ -553,8 +553,7 @@ void B_pop_var(FakeVM* exe)
 		pValue=&tmp->value;
 	}
 	VMvalue* topValue=GET_VAL(getTopValue(stack));
-	*pValue=GET_VAL(topValue);//newNilValue(exe->heap);
-	//copyRef(*pValue,topValue);
+	*pValue=GET_VAL(topValue);
 	stack->tp-=1;
 	stackRecycle(exe);
 	runnable->cp+=9;
@@ -594,8 +593,6 @@ void B_pop_arg(FakeVM* exe)
 	}
 	VMvalue* topValue=GET_VAL(getTopValue(stack));
 	*pValue=GET_VAL(topValue);
-//	*pValue=newNilValue(exe->heap);
-//	copyRef(*pValue,topValue);
 	stack->tp-=1;
 	stackRecycle(exe);
 	runnable->cp+=9;
@@ -635,17 +632,16 @@ void B_pop_rest_arg(FakeVM* exe)
 	VMvalue* tmp=NULL;
 	if(stack->tp>stack->bp)
 	{
-		obj=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap);
+		obj=newVMvalue(PAIR,newVMpair(),exe->heap);
 		tmp=obj;
 	}
 	else obj=VM_NIL;
 	while(stack->tp>stack->bp)
 	{
 		tmp->u.pair->car=GET_VAL(getTopValue(stack));
-		//copyRef(tmp->u.pair->car,topValue);
 		stack->tp-=1;
 		if(stack->tp>stack->bp)
-			tmp->u.pair->cdr=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap);
+			tmp->u.pair->cdr=newVMvalue(PAIR,newVMpair(),exe->heap);
 		else break;
 		tmp=tmp->u.pair->cdr;
 	}
@@ -691,12 +687,6 @@ void B_pop_ref(FakeVM* exe)
 	if(!IS_REF(ref)&&(!IS_CHF(ref)||!IS_CHR(val)))
 		RAISE_BUILTIN_ERROR("b.pop_ref",WRONGARG,runnable,exe);
 	SET_REF(ref,val);
-	//if(objValue->access==0&&objValue->type!=topValue->type)
-	//	RAISE_BUILTIN_ERROR("b.pop_ref",WRONGARG,runnable,exe);
-	//if(objValue->type==topValue->type)
-	//	writeRef(objValue,topValue);
-	//else
-	//	copyRef(objValue,topValue);
 	stack->tp-=1;
 	stack->values[stack->tp-1]=val;
 	stackRecycle(exe);
@@ -898,7 +888,7 @@ void B_append(FakeVM* exe)
 	if(!IS_PAIR(sec))
 		RAISE_BUILTIN_ERROR("b.append",WRONGARG,runnable,exe);
 	VMvalue** lastpair=&sec;
-	while(IS_PAIR(*lastpair))lastpair=&(*lastpair)->u.pair->cdr;//getVMpairCdr(lastpair);
+	while(IS_PAIR(*lastpair))lastpair=&(*lastpair)->u.pair->cdr;
 	*lastpair=fir;
 	stack->tp-=1;
 	stackRecycle(exe);

@@ -89,9 +89,6 @@ VMvalue* getTopValue(VMstack*);
 VMvalue* getValue(VMstack*,int32_t);
 VMvalue* getVMpairCar(VMvalue*);
 VMvalue* getVMpairCdr(VMvalue*);
-//void copyRef(VMvalue*,VMvalue*);
-//void writeRef(VMvalue*,VMvalue*);
-//void freeRef(VMvalue*);
 int VMvaluecmp(VMvalue*,VMvalue*);
 int subVMvaluecmp(VMvalue*,VMvalue*);
 int numcmp(VMvalue*,VMvalue*);
@@ -101,14 +98,9 @@ void increaseVMenvRefcount(VMenv*);
 void decreaseVMenvRefcount(VMenv*);
 
 VMenv* castPreEnvToVMenv(PreEnv*,VMenv*,VMheap*);
-VMpair* newVMpair(VMheap*);
+VMpair* newVMpair(void);
 void increaseVMpairRefcount(VMpair*);
 void decreaseVMpairRefcount(VMpair*);
-
-//VMstr* newVMstr(const char*);
-//void increaseVMstrRefcount(VMstr*);
-//void decreaseVMstrRefcount(VMstr*);
-//VMstr* copyRefVMstr(char* str);
 
 VMvalue* castCptrVMvalue(AST_cptr*,VMheap*);
 VMByts* newVMByts(size_t,uint8_t*);
@@ -133,7 +125,6 @@ VMproc* copyVMproc(VMproc*,VMheap*);
 VMenv* copyVMenv(VMenv*,VMheap*);
 VMstack* copyStack(VMstack*);
 void freeVMproc(VMproc*);
-//void freeVMstr(VMstr*);
 void freeVMenv(VMenv*);
 void releaseSource(pthread_rwlock_t*);
 void lockSource(pthread_rwlock_t*);
@@ -144,14 +135,9 @@ void increaseVMcontRefcount(VMcontinuation*);
 void decreaseVMcontRefcount(VMcontinuation*);
 void freeVMcontinuation(VMcontinuation*);
 
-//VMfp* newVMfp(FILE*);
-//void increaseVMfpRefcount(VMfp*);
-//void decreaseVMfpRefcount(VMfp*);
 void freeVMfp(FILE*);
 
 DllHandle* newVMDll(const char*);
-//void increaseVMDllRefcount(VMDll*);
-//void decreaseVMDllRefcount(VMDll*);
 void* getAddress(const char*,DllHandle);
 void freeVMDll(DllHandle*);
 

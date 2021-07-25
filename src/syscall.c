@@ -49,11 +49,9 @@ void SYS_cons(FakeVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.cons",TOOMANYARG,runnable,exe);
 	if(!car||!cdr)
 		RAISE_BUILTIN_ERROR("sys.cons",TOOFEWARG,runnable,exe);
-	VMvalue* pair=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap);
+	VMvalue* pair=newVMvalue(PAIR,newVMpair(),exe->heap);
 	pair->u.pair->car=car;
 	pair->u.pair->cdr=cdr;
-	//copyRef(getVMpairCar(pair),car);
-	//copyRef(getVMpairCdr(pair),cdr);
 	SET_RETURN("SYS_cons",pair,stack);
 }
 
@@ -61,7 +59,7 @@ void SYS_append(FakeVM* exe,pthread_rwlock_t* gclock)
 {
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
-	VMvalue* retval=VM_NIL;//VM_NIL;
+	VMvalue* retval=VM_NIL;
 	VMvalue* cur=GET_VAL(popVMstack(stack));
 	VMvalue** prev=&retval;
 	for(;cur;cur=GET_VAL(popVMstack(stack)))
@@ -1040,7 +1038,7 @@ void SYS_argv(FakeVM* exe,pthread_rwlock_t* pGClock)
 	int32_t i=0;
 	for(;i<exe->argc;i++,tmp=&(*tmp)->u.pair->cdr)
 	{
-		VMvalue* cur=newVMvalue(PAIR,newVMpair(exe->heap),exe->heap);
+		VMvalue* cur=newVMvalue(PAIR,newVMpair(),exe->heap);
 		*tmp=cur;
 		cur->u.pair->car=newVMvalue(STR,copyStr(exe->argv[i]),exe->heap);
 	}

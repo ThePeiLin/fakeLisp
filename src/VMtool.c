@@ -196,7 +196,7 @@ VMvalue* copyVMvalue(VMvalue* obj,VMheap* heap)
 								QueueNode* cur=objCh->messages->head;
 								for(;cur;cur=cur->next)
 								{
-									void* tmp=VM_NIL;//newNilValue(heap);
+									void* tmp=VM_NIL;
 									pushComQueue(tmp,tmpCh->messages);
 									pushComStack(cur->data,s1);
 									pushComStack(tmp,s2);
@@ -205,7 +205,7 @@ VMvalue* copyVMvalue(VMvalue* obj,VMheap* heap)
 							}
 							break;
 						case PAIR:
-							*root1=newVMvalue(PAIR,newVMpair(heap),heap);
+							*root1=newVMvalue(PAIR,newVMpair(),heap);
 							pushComStack(&(*root1)->u.pair->car,s2);
 							pushComStack(&(*root1)->u.pair->cdr,s2);
 							pushComStack(root->u.pair->car,s1);
@@ -412,107 +412,7 @@ void decreaseVMenvRefcount(VMenv* env)
 	DECREASE_REFCOUNT(VMenv,env);
 }
 
-//void increaseVMprocRefcount(VMproc* code)
-//{
-//	INCREASE_REFCOUNT(VMproc,code);
-//}
-//
-//void decreaseVMprocRefcount(VMproc* code)
-//{
-//	DECREASE_REFCOUNT(VMproc,code);
-//}
-
-//void increaseVMstrRefcount(VMstr* str)
-//{
-//	INCREASE_REFCOUNT(VMstr,str);
-//}
-
-//void decreaseVMstrRefcount(VMstr* str)
-//{
-//	DECREASE_REFCOUNT(VMstr,str);
-//}
-
-//void increaseVMcontRefcount(VMcontinuation* cont)
-//{
-//	INCREASE_REFCOUNT(VMcontinuation,cont);
-//}
-//
-//void decreaseVMcontRefcount(VMcontinuation* cont)
-//{
-//	DECREASE_REFCOUNT(VMcontinuation,cont);
-//}
-//
-//void increaseVMpairRefcount(VMpair* pair)
-//{
-//	INCREASE_REFCOUNT(VMpair,pair);
-//}
-//
-//void decreaseVMpairRefcount(VMpair* pair)
-//{
-//	DECREASE_REFCOUNT(VMpair,pair);
-//}
-//
-//void increaseVMByts(VMByts* byts)
-//{
-//	INCREASE_REFCOUNT(VMByts,byts);
-//}
-//
-//void decreaseVMByts(VMByts* byts)
-//{
-//	DECREASE_REFCOUNT(VMByts,byts);
-//}
-//
-//void increaseVMfpRefcount(VMfp* fp)
-//{
-//	INCREASE_REFCOUNT(VMfp,fp);
-//}
-//
-//void decreaseVMfpRefcount(VMfp* fp)
-//{
-//	DECREASE_REFCOUNT(VMfp,fp);
-//}
-//
-//void increaseVMChanlRefcount(VMChanl* chanl)
-//{
-//	INCREASE_REFCOUNT(VMChanl,chanl);
-//}
-//
-//void decreaseVMChanlRefcount(VMChanl* chanl)
-//{
-//	DECREASE_REFCOUNT(VMChanl,chanl);
-//}
-//
-//void increaseVMDllRefcount(VMDll* dll)
-//{
-//	INCREASE_REFCOUNT(VMDll,dll);
-//}
-//
-//void decreaseVMDllRefcount(VMDll* dll)
-//{
-//	DECREASE_REFCOUNT(VMDll,dll);
-//}
-//
-//void increaseVMDlprocRefcount(VMDlproc* dlproc)
-//{
-//	INCREASE_REFCOUNT(VMDlproc,dlproc);
-//}
-//
-//void decreaseVMDlprocRefcount(VMDlproc* dlproc)
-//{
-//	DECREASE_REFCOUNT(VMDlproc,dlproc);
-//}
-//
-//void increaseVMerrorRefcount(VMerror* err)
-//{
-//	INCREASE_REFCOUNT(VMerror,err);
-//}
-//
-//void decreaseVMerrorRefcount(VMerror* err)
-//{
-//	DECREASE_REFCOUNT(VMerror,err);
-//}
-
-VMpair* newVMpair(VMheap* heap)
+VMpair* newVMpair(void)
 {
 	VMpair* tmp=(VMpair*)malloc(sizeof(VMpair));
 	FAKE_ASSERT(tmp,"newVMpair",__FILE__,__LINE__);
@@ -520,30 +420,6 @@ VMpair* newVMpair(VMheap* heap)
 	tmp->cdr=VM_NIL;
 	return tmp;
 }
-
-//VMstr* newVMstr(const char* str)
-//{
-//	VMstr* tmp=(VMstr*)malloc(sizeof(VMstr));
-//	FAKE_ASSERT(tmp,"newVMstr",__FILE__,__LINE__);
-//	tmp->refcount=0;
-//	tmp->str=NULL;
-//	if(str!=NULL)
-//	{
-//		tmp->str=(char*)malloc(sizeof(char)*(strlen(str)+1));
-//		FAKE_ASSERT(tmp->str,"newVMstr",__FILE__,__LINE__);
-//		strcpy(tmp->str,str);
-//	}
-//	return tmp;
-//}
-//
-//VMstr* copyRefVMstr(char* str)
-//{
-//	VMstr* tmp=(VMstr*)malloc(sizeof(VMstr));
-//	FAKE_ASSERT(tmp,"newVMstr",__FILE__,__LINE__);
-//	tmp->refcount=0;
-//	tmp->str=str;
-//	return tmp;
-//}
 
 VMvalue* castCptrVMvalue(AST_cptr* objCptr,VMheap* heap)
 {
@@ -587,7 +463,7 @@ VMvalue* castCptrVMvalue(AST_cptr* objCptr,VMheap* heap)
 		else if(root->type==PAIR)
 		{
 			AST_pair* objPair=root->u.pair;
-			VMpair* tmpPair=newVMpair(heap);
+			VMpair* tmpPair=newVMpair();
 			*root1=newVMvalue(PAIR,tmpPair,heap);
 			pushComStack(&objPair->car,s1);
 			pushComStack(&objPair->cdr,s1);
@@ -692,12 +568,6 @@ void freeVMproc(VMproc* proc)
 	free(proc);
 }
 
-//void freeVMstr(VMstr* obj)
-//{
-//	free(obj->str);
-//	free(obj);
-//}
-
 void freeVMenv(VMenv* obj)
 {
 	while(obj!=NULL)
@@ -738,226 +608,6 @@ VMvalue* popVMstack(VMstack* stack)
 	stack->tp-=1;
 	return tmp;
 }
-
-//void copyRef(VMvalue* fir,VMvalue* sec)
-//{
-//	freeRef(fir);
-//	fir->type=sec->type;
-//	if(fir->type<STR&&fir->type>NIL)
-//	{
-//		switch(fir->type)
-//		{
-//			case SYM:
-//				fir->u.sid=copyMemory(sec->u.sid,sizeof(Sid_t));
-//				break;
-//			case IN32:
-//				fir->u.in32=copyMemory(sec->u.in32,sizeof(int32_t));
-//				break;
-//			case DBL:
-//				fir->u.dbl=copyMemory(sec->u.dbl,sizeof(double));
-//				break;
-//			case CHR:
-//				fir->u.chr=copyMemory(sec->u.chr,sizeof(char));
-//				break;
-//		}
-//	}
-//	else if(fir->type>=STR&&fir->type<ATM)
-//	{
-//		switch(fir->type)
-//		{
-//			case STR:
-//				if(!sec->access)
-//					fir->u.str=newVMstr(sec->u.str->str);
-//				else
-//				{
-//					increaseVMstrRefcount(sec->u.str);
-//					fir->u.str=sec->u.str;
-//				}
-//				break;
-//			case PAIR:
-//				increaseVMpairRefcount(sec->u.pair);
-//				fir->u.pair=sec->u.pair;
-//				break;
-//			case PRC:
-//				increaseVMprocRefcount(sec->u.prc);
-//				fir->u.prc=sec->u.prc;
-//				break;
-//			case CONT:
-//				increaseVMcontRefcount(sec->u.cont);
-//				fir->u.cont=sec->u.cont;
-//				break;
-//			case BYTS:
-//				if(!sec->access)
-//					fir->u.byts=newVMByts(sec->u.byts->size,sec->u.byts->str);
-//				else
-//				{
-//					increaseVMByts(sec->u.byts);
-//					fir->u.byts=sec->u.byts;
-//				}
-//				break;
-//			case CHAN:
-//				increaseVMChanlRefcount(sec->u.chan);
-//				fir->u.chan=sec->u.chan;
-//				break;
-//			case FP:
-//				increaseVMfpRefcount(sec->u.fp);
-//				fir->u.fp=sec->u.fp;
-//				break;
-//			case DLL:
-//				increaseVMDllRefcount(sec->u.dll);
-//				fir->u.dll=sec->u.dll;
-//				break;
-//			case DLPROC:
-//				increaseVMDlprocRefcount(sec->u.dlproc);
-//				fir->u.dlproc=sec->u.dlproc;
-//				break;
-//			case ERR:
-//				increaseVMerrorRefcount(sec->u.err);
-//				fir->u.err=sec->u.err;
-//				break;
-//			case NIL:
-//				fir->u.all=NULL;
-//				break;
-//		}
-//	}
-//}
-
-//void writeRef(VMvalue* fir,VMvalue* sec)
-//{
-//	if(fir->type>=IN32&&fir->type<=SYM)
-//	{
-//		switch(sec->type)
-//		{
-//			case SYM:
-//				*fir->u.sid=*sec->u.sid;
-//				break;
-//			case IN32:
-//				*fir->u.in32=*sec->u.in32;
-//				break;
-//			case CHR:
-//				*fir->u.chr=*sec->u.chr;
-//				break;
-//			case DBL:
-//				*fir->u.dbl=*sec->u.dbl;
-//				break;
-//		}
-//	}
-//	else if(fir->type>=STR&&fir->type<=PAIR)
-//	{
-//		if(fir->access)freeRef(fir);
-//		switch(fir->type)
-//		{
-//			case PAIR:
-//				fir->u.pair=sec->u.pair;
-//				increaseVMpairRefcount(fir->u.pair);
-//				break;
-//			case PRC:
-//				fir->u.prc=sec->u.prc;
-//				increaseVMprocRefcount(fir->u.prc);
-//				break;
-//			case CONT:
-//				fir->u.cont=sec->u.cont;
-//				increaseVMcontRefcount(fir->u.cont);
-//				break;
-//			case CHAN:
-//				fir->u.chan=sec->u.chan;
-//				increaseVMChanlRefcount(fir->u.chan);
-//				break;
-//			case FP:
-//				fir->u.fp=sec->u.fp;
-//				increaseVMfpRefcount(fir->u.fp);
-//				break;
-//			case DLL:
-//				fir->u.dll=sec->u.dll;
-//				increaseVMDllRefcount(fir->u.dll);
-//				break;
-//			case DLPROC:
-//				fir->u.dlproc=sec->u.dlproc;
-//				increaseVMDlprocRefcount(fir->u.dlproc);
-//				break;
-//			case STR:
-//				if(!fir->access)
-//					memcpy(fir->u.str->str,sec->u.str->str,(strlen(fir->u.str->str)>strlen(sec->u.str->str))?strlen(sec->u.str->str):strlen(fir->u.str->str));
-//				else
-//				{
-//					fir->u.str=sec->u.str;
-//					fir->u.str+=1;
-//				}
-//				break;
-//			case BYTS:
-//				if(!fir->access)
-//					memcpy(fir->u.byts->str,sec->u.byts->str,(fir->u.byts->size>sec->u.byts->size)?sec->u.byts->size:fir->u.byts->size);
-//				else
-//				{
-//					fir->u.byts=sec->u.byts;
-//					increaseVMByts(fir->u.byts);
-//				}
-//				break;
-//			case ERR:
-//				fir->u.err=sec->u.err;
-//				increaseVMerrorRefcount(fir->u.err);
-//				break;
-//		}
-//	}
-//}
-
-//void freeRef(VMvalue* obj)
-//{
-//	if(obj->type<STR&&obj->type>NIL&&obj->access)
-//		free(obj->u.all);
-//	else if(obj->type>=STR&&obj->type<ATM)
-//	{
-//		switch(obj->type)
-//		{
-//			case STR:
-//				if(!obj->u.str->refcount)
-//				{
-//					if(obj->access)
-//						free(obj->u.str->str);
-//					free(obj->u.str);
-//				}
-//				else
-//					decreaseVMstrRefcount(obj->u.str);
-//				break;
-//			case PAIR:
-//				if(!obj->u.pair->refcount)
-//					free(obj->u.pair);
-//				else
-//					decreaseVMpairRefcount(obj->u.pair);
-//				break;
-//			case PRC:
-//				freeVMproc(obj->u.prc);
-//				break;
-//			case BYTS:
-//				if(!obj->u.byts->refcount)
-//				{
-//					if(obj->access)free(obj->u.byts->str);
-//					free(obj->u.byts);
-//				}
-//				else
-//					decreaseVMByts(obj->u.byts);
-//				break;
-//			case CONT:
-//				freeVMcontinuation(obj->u.cont);
-//				break;
-//			case CHAN:
-//				freeVMChanl(obj->u.chan);
-//				break;
-//			case FP:
-//				freeVMfp(obj->u.fp);
-//				break;
-//			case DLL:
-//				freeVMDll(obj->u.dll);
-//				break;
-//			case DLPROC:
-//				freeVMDlproc(obj->u.dlproc);
-//				break;
-//			case ERR:
-//				freeVMerror(obj->u.err);
-//				break;
-//		}
-//	}
-//}
 
 VMenv* castPreEnvToVMenv(PreEnv* pe,VMenv* prev,VMheap* heap)
 {
@@ -1158,14 +808,6 @@ VMChanl* copyVMChanl(VMChanl* ch,VMheap* heap)
 	}
 	return tmpCh;
 }
-
-//VMfp* newVMfp(FILE* fp)
-//{
-//	VMfp* tmp=(VMfp*)malloc(sizeof(VMfp));
-//	FAKE_ASSERT(tmp,"newVMfp",__FILE__,__LINE__);
-//	tmp->fp=fp;
-//	return tmp;
-//}
 
 void freeVMfp(FILE* fp)
 {

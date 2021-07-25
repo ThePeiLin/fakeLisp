@@ -819,13 +819,6 @@ StringMatchPattern* newStringMatchPattern(int32_t num,char** parts,ByteCodelnt* 
 			tmp->prev=cur;
 		}
 	}
-//	StringMatchPattern* cur=HeadOfStringPattern;
-//	fprintf(stderr,"===\n");
-//	while(cur)
-//	{
-//		fprintf(stderr,"%s\n",cur->parts[0]);
-//		cur=cur->next;
-//	}
 	return tmp;
 }
 

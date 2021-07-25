@@ -237,7 +237,7 @@
          (defmacro "[(,a)]" a)
 
          (defmacro
-           (let $d,$b)
+           (let ?d,?b)
            (begin
              (define args nil)
              (define vals nil)
@@ -267,7 +267,7 @@
                    )))
 
          (defmacro
-           (let* $d,$b)
+           (let* ?d,?b)
            (cond ((or (not (eq (type d) (quote pair)))
                       (<= (length d) 1))
                   (qsquote (let (unquote d) (unqtesp b))))
@@ -276,20 +276,20 @@
                              (let* (unquote (cdr d)) (unqtesp b)))))))
 
          (defmacro
-           (letrec $d,$b)
+           (letrec ?d,?b)
            (begin
              (define dfs (map (lambda (sd) (qsquote (define (unquote (car sd)) (unqtesp (cdr sd))))) d))
              (qsquote (let () (unqtesp dfs) (unqtesp b)))))
 
          (defmacro
-           (letcc $t,$b)
+           (letcc ?t,?b)
            (qsquote (clcc (lambda ((unquote t)) (unqtesp b)))))
 
-         (defmacro (if $condition $exp1,$exp2)
+         (defmacro (if ?condition ?exp1,?exp2)
            (qsquote (cond ((unquote condition) (unquote exp1))
                           (unquote (cons 1 exp2)))))
 
-         (defmacro (case $v,$b)
+         (defmacro (case ?v,?b)
            (begin
              (define body (let ((tb (map (lambda (x) (cdr x)) b))
                                 (cs (map (lambda (x)
@@ -306,7 +306,7 @@
                             ))
              (qsquote (cond,(unquote body)))))
 
-         (defmacro (define  ($name,$args),$body)
+         (defmacro (define  (?name,?args),?body)
            (qsquote (define (unquote name)
                       (lambda (unquote args)
                         (unqtesp body)))))

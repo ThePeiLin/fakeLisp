@@ -14,9 +14,9 @@ defmacro的语法比较特殊，为：
 (defmacro <用于匹配的表达式> <用于返回的表达式>)  
 宏没有名字，而是通过匹配表达式来实现表达式的替换，如：  
 ```scheme
-(defmacro (c $a $b) (cons 'cons (cons a (cons b nil))))  
+(defmacro (c ?a ?b) (cons 'cons (cons a (cons b nil))))  
 ```
-这个宏会匹配形如(c $a $b)的表达式，并用(cons 'cons (cons a (cons b nil)))的结果替换原来的表达式，  
+这个宏会匹配形如(c ?a ?b)的表达式，并用(cons 'cons (cons a (cons b nil)))的结果替换原来的表达式，  
 即表达式(c 9 9)会被替换为(cons 9 9).  
 
 匹配过程中，名字带"$"的符号会绑定源表达式中对应的部分，
@@ -25,7 +25,7 @@ defmacro的语法比较特殊，为：
 下面是let宏:  
 ```scheme
 	(defmacro
-	 (let $d,$b)
+	 (let ?d,?b)
 	 (begin
 	  (define map
 	   (lambda (f l)

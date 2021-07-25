@@ -2,7 +2,7 @@
 (define print princ)
 ;defun宏
 (defmacro
-  (defun $name $args,$body)
+  (defun ?name ?args,?body)
   ((lambda ()
      (define list (lambda ls ls))
      (list 'define name (cons 'lambda (cons args body))))))

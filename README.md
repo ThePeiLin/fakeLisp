@@ -34,7 +34,7 @@ Macro can use to simplify some complex expressions and improve the readability o
 Here is compiler macro that use to simplify the process of define a new function.  
 
 ```scheme
-(defmacro (define ($name,$args),$body)
+(defmacro (define (?name,?args),?body)
   ((lambda ()
      (define list (lambda ls ls))
      (list (quote define) name (cons (quote lambda) (cons args body))))))

@@ -50,10 +50,53 @@ With the macro above, you can define the "gle" function just like the expression
 
 Available built-in symbols:
 nil  
-EOF  
 stdin  
 stdout  
 stderr  
+car  
+cdr  
+cons  
+append  
+atom  
+null  
+not  
+eq  
+equal  
+=  
++  
+-  
+*  
+/  
+%  
+\>  
+<  
+>=  
+<=  
+chr
+int  
+dbl  
+str  
+sym  
+byts  
+type  
+nth  
+length  
+clcc  
+file  
+read  
+getb  
+write  
+putb  
+princ  
+dll  
+dlsym  
+argv  
+go  
+chanl  
+send  
+recv  
+error  
+raise  
 
 Special forms:  
 

@@ -618,7 +618,7 @@ VMenv* castPreEnvToVMenv(PreEnv* pe,VMenv* prev,VMheap* heap)
 	return tmp;
 }
 
-VMcontinuation* newVMcontinuation(VMstack* stack,ComStack* rstack)
+VMcontinuation* newVMcontinuation(VMstack* stack,ComStack* rstack,ComStack* tstack)
 {
 	int32_t size=rstack->top;
 	int32_t i=0;
@@ -626,9 +626,12 @@ VMcontinuation* newVMcontinuation(VMstack* stack,ComStack* rstack)
 	FAKE_ASSERT(tmp,"newVMcontinuation",__FILE__,__LINE__);
 	VMrunnable* status=(VMrunnable*)malloc(sizeof(VMrunnable)*size);
 	FAKE_ASSERT(status,"newVMcontinuation",__FILE__,__LINE__);
+	int32_t tbnum=tstack->top;
+	VMTryBlock* tb=(VMTryBlock*)malloc(sizeof(VMTryBlock)*tbnum);
+	FAKE_ASSERT(tb,"newVMcontinuation",__FILE__,__LINE__);
 	tmp->stack=copyStack(stack);
-	tmp->num=size-1;
-	for(;i<size-1;i++)
+	tmp->num=size;
+	for(;i<size;i++)
 	{
 		VMrunnable* cur=rstack->data[i];
 		status[i].cp=cur->cp;
@@ -638,7 +641,27 @@ VMcontinuation* newVMcontinuation(VMstack* stack,ComStack* rstack)
 		status[i].scp=cur->scp;
 		status[i].mark=cur->mark;
 	}
+	tmp->tnum=tbnum;
+	for(i=0;i<tbnum;i++)
+	{
+		VMTryBlock* cur=tstack->data[i];
+		tb[i].sid=cur->sid;
+		ComStack* hstack=cur->hstack;
+		int32_t handlerNum=hstack->top;
+		ComStack* curHstack=newComStack(handlerNum);
+		int32_t j=0;
+		for(;j<handlerNum;j++)
+		{
+			VMerrorHandler* curH=hstack->data[i];
+			VMerrorHandler* h=newVMerrorHandler(curH->type,curH->proc.scp,curH->proc.cpc);
+			pushComStack(h,curHstack);
+		}
+		tb[i].hstack=curHstack;
+		tb[i].rtp=cur->rtp;
+		tb[i].tp=cur->tp;
+	}
 	tmp->status=status;
+	tmp->tb=tb;
 	return tmp;
 }
 
@@ -646,13 +669,26 @@ void freeVMcontinuation(VMcontinuation* cont)
 {
 	int32_t i=0;
 	int32_t size=cont->num;
+	int32_t tbsize=cont->tnum;
 	VMstack* stack=cont->stack;
 	VMrunnable* status=cont->status;
+	VMTryBlock* tb=cont->tb;
 	free(stack->tpst);
 	free(stack->values);
 	free(stack);
 	for(;i<size;i++)
 		freeVMenv(status[i].localenv);
+	for(i=0;i<tbsize;i++)
+	{
+		ComStack* hstack=tb[i].hstack;
+		while(!isComStackEmpty(hstack))
+		{
+			VMerrorHandler* h=popComStack(hstack);
+			freeVMerrorHandler(h);
+		}
+		freeComStack(hstack);
+	}
+	free(tb);
 	free(status);
 	free(cont);
 }
@@ -1027,18 +1063,20 @@ void freeVMTryBlock(VMTryBlock* b)
 	free(b);
 }
 
-VMerrorHandler* newVMerrorHandler(Sid_t type,VMproc* proc)
+VMerrorHandler* newVMerrorHandler(Sid_t type,uint32_t scp,uint32_t cpc)
 {
 	VMerrorHandler* t=(VMerrorHandler*)malloc(sizeof(VMerrorHandler));
 	FAKE_ASSERT(t,"newVMerrorHandler",__FILE__,__LINE__);
 	t->type=type;
-	t->proc=proc;
+	t->proc.prevEnv=NULL;
+	t->proc.scp=scp;
+	t->proc.cpc=cpc;
 	return t;
 }
 
 void freeVMerrorHandler(VMerrorHandler* h)
 {
-	freeVMproc(h->proc);
+	freeVMenv(h->proc.prevEnv);
 	free(h);
 }
 
@@ -1064,7 +1102,7 @@ int raiseVMerror(VMvalue* ev,FakeVM* exe)
 					free(runnable);
 				}
 				VMrunnable* prevRunnable=topComStack(exe->rstack);
-				VMrunnable* r=newVMrunnable(h->proc);
+				VMrunnable* r=newVMrunnable(&h->proc);
 				r->localenv=newVMenv(prevRunnable->localenv);
 				VMenv* curEnv=r->localenv;
 				Sid_t idOfError=tb->sid;

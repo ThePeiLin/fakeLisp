@@ -33,7 +33,6 @@ void B_pop_cdr(FakeVM*);
 void B_pop_ref(FakeVM*);
 void B_pop_env(FakeVM*);
 void B_swap(FakeVM*);
-void B_pack_cc(FakeVM*);
 void B_set_tp(FakeVM*);
 void B_set_bp(FakeVM*);
 void B_invoke(FakeVM*);

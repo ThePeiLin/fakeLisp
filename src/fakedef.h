@@ -6,7 +6,7 @@
 #include<pthread.h>
 #include<setjmp.h>
 #define THRESHOLD_SIZE 64
-#define NUMOFBUILTINSYMBOL 48
+#define NUMOFBUILTINSYMBOL 49
 #define MAX_STRING_SIZE 64
 #define NUMOFBUILTINERRORTYPE 20
 #define STATIC_SYMBOL_INIT {0,NULL,NULL}
@@ -384,8 +384,10 @@ typedef struct VMerror
 typedef struct VMContinuation
 {
 	uint32_t num;
+	uint32_t tnum;
 	VMstack* stack;
 	VMrunnable* status;
+	struct VMTryBlock* tb;
 }VMcontinuation;
 
 typedef struct LineNumberTable
@@ -413,6 +415,6 @@ typedef struct VMTryBlock
 typedef struct VMerrorHandler
 {
 	Sid_t type;
-	VMproc* proc;
+	VMproc proc;
 }VMerrorHandler;
 #endif

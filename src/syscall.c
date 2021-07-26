@@ -1172,3 +1172,43 @@ void SYS_raise(FakeVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.raise",WRONGARG,runnable,exe);
 	raiseVMerror(err,exe);
 }
+
+void SYS_clcc(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* proc=GET_VAL(popVMstack(stack));
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR("sys.clcc",TOOMANYARG,runnable,exe);
+	if(!proc)
+		RAISE_BUILTIN_ERROR("sys.clcc",TOOFEWARG,runnable,exe);
+	if(!IS_PTR(proc)||(proc->type!=PRC&&proc->type!=CONT&&proc->type!=DLPROC))
+		RAISE_BUILTIN_ERROR("sys.clcc",INVOKEERROR,runnable,exe);
+	VMvalue* cc=newVMvalue(CONT,newVMcontinuation(stack,exe->rstack,exe->tstack),exe->heap);
+	SET_RETURN("SYS_clcc",MAKE_VM_IN32(stack->bp),stack);
+	stack->bp=stack->tp;
+	SET_RETURN("SYS_clcc",cc,stack);
+	if(proc->type==PRC)
+	{
+		VMproc* tmpProc=proc->u.prc;
+		VMrunnable* prevProc=hasSameProc(tmpProc->scp,exe->rstack);
+		if(isTheLastExpress(runnable,prevProc,exe)&&prevProc)
+			prevProc->mark=1;
+		else
+		{
+			VMrunnable* tmpRunnable=newVMrunnable(tmpProc);
+			tmpRunnable->localenv=newVMenv(tmpProc->prevEnv);
+			pushComStack(tmpRunnable,exe->rstack);
+		}
+	}
+	else if(proc->type==CONT)
+	{
+		VMcontinuation* cc=proc->u.cont;
+		createCallChainWithContinuation(exe,cc);
+	}
+	else
+	{
+		DllFunc dllfunc=proc->u.dlproc->func;
+		dllfunc(exe,gclock);
+	}
+}

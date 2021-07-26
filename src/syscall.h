@@ -44,4 +44,5 @@ void SYS_send(FakeVM*,pthread_rwlock_t*);
 void SYS_recv(FakeVM*,pthread_rwlock_t*);
 void SYS_error(FakeVM*,pthread_rwlock_t*);
 void SYS_raise(FakeVM*,pthread_rwlock_t*);
+void SYS_clcc(FakeVM*,pthread_rwlock_t*);
 #endif

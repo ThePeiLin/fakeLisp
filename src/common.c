@@ -80,6 +80,7 @@ const char* builtInSymbolList[]=
 	"type",
 	"nth",
 	"length",
+	"clcc",
 	"file",
 	"read",
 	"getb",
@@ -94,7 +95,7 @@ const char* builtInSymbolList[]=
 	"send",
 	"recv",
 	"error",
-	"raise"
+	"raise",
 };
 
 SymbolTable GlobSymbolTable=STATIC_SYMBOL_INIT;

@@ -124,7 +124,7 @@ void releaseSource(pthread_rwlock_t*);
 void lockSource(pthread_rwlock_t*);
 VMvalue* popVMstack(VMstack*);
 
-VMcontinuation* newVMcontinuation(VMstack*,ComStack*);
+VMcontinuation* newVMcontinuation(VMstack*,ComStack*,ComStack*);
 void freeVMcontinuation(VMcontinuation*);
 
 void freeVMfp(FILE*);
@@ -152,7 +152,7 @@ void chanlRecv(RecvT*,VMChanl*);
 VMTryBlock* newVMTryBlock(Sid_t,uint32_t tp,long int rtp);
 void freeVMTryBlock(VMTryBlock* b);
 
-VMerrorHandler* newVMerrorHandler(Sid_t type,VMproc* proc);
+VMerrorHandler* newVMerrorHandler(Sid_t type,uint32_t scp,uint32_t cpc);
 void freeVMerrorHandler(VMerrorHandler*);
 int raiseVMerror(VMvalue* err,FakeVM*);
 VMrunnable* newVMrunnable(VMproc*);

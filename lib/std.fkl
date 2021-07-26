@@ -29,7 +29,6 @@
                  cddddr
                  aply
                  list
-                 clcc
                  map
                  reverse
                  foreach
@@ -133,17 +132,6 @@
                           )))
 
          (define list (lambda ls ls))
-
-         (define clcc (lambda (f)
-                        (progn
-                          ?cc
-                          pack_cc
-                          pop_var cc
-                          set_bp
-                          push_var cc
-                          push_var f
-                          invoke
-                          )))
 
          (define map
            (lambda (f,l)

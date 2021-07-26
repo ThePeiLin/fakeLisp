@@ -63,7 +63,6 @@ static void (*ByteCodes[])(FakeVM*)=
 	B_pop_ref,
 	B_pop_env,
 	B_swap,
-	B_pack_cc,
 	B_set_tp,
 	B_set_bp,
 	B_invoke,
@@ -181,6 +180,7 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 		SYS_type,
 		SYS_nth,
 		SYS_length,
+		SYS_clcc,
 		SYS_file,
 		SYS_read,
 		SYS_getb,
@@ -733,16 +733,6 @@ void B_swap(FakeVM* exe)
 	runnable->cp+=1;
 }
 
-void B_pack_cc(FakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=topComStack(exe->rstack);
-	VMcontinuation* cc=newVMcontinuation(stack,exe->rstack);
-	VMvalue* retval=newVMvalue(CONT,cc,exe->heap);
-	SET_RETURN("B_pack_cc",retval,stack);
-	runnable->cp+=1;
-}
-
 void B_set_tp(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
@@ -912,8 +902,7 @@ void B_push_try(FakeVM* exe)
 		cpc+=sizeof(Sid_t);
 		uint32_t pCpc=*(uint32_t*)(exe->code+r->cp+cpc);
 		cpc+=sizeof(uint32_t);
-		VMproc* p=newVMproc(r->cp+cpc,pCpc);
-		VMerrorHandler* h=newVMerrorHandler(type,p);
+		VMerrorHandler* h=newVMerrorHandler(type,r->cp+cpc,pCpc);
 		pushComStack(h,tb->hstack);
 		cpc+=pCpc;
 	}
@@ -1401,6 +1390,8 @@ void createCallChainWithContinuation(FakeVM* vm,VMcontinuation* cc)
 		tmpStack->tp+=1;
 	}
 	deleteCallChain(vm);
+	while(!isComStackEmpty(vm->tstack))
+		freeVMTryBlock(popComStack(vm->tstack));
 	vm->stack=tmpStack;
 	freeVMstack(stack);
 	for(i=0;i<cc->num;i++)
@@ -1414,5 +1405,20 @@ void createCallChainWithContinuation(FakeVM* vm,VMcontinuation* cc)
 		cur->cpc=cc->status[i].cpc;
 		cur->mark=cc->status[i].mark;
 		pushComStack(cur,vm->rstack);
+	}
+	for(i=0;i<cc->tnum;i++)
+	{
+		VMTryBlock* tmp=&cc->tb[i];
+		VMTryBlock* cur=newVMTryBlock(tmp->sid,tmp->tp,tmp->rtp);
+		int32_t j=0;
+		ComStack* hstack=tmp->hstack;
+		uint32_t handlerNum=hstack->top;
+		for(;j<handlerNum;j++)
+		{
+			VMerrorHandler* tmpH=hstack->data[j];
+			VMerrorHandler* curH=newVMerrorHandler(tmpH->type,tmpH->proc.scp,tmpH->proc.cpc);
+			pushComStack(curH,cur->hstack);
+		}
+		pushComStack(cur,vm->tstack);
 	}
 }

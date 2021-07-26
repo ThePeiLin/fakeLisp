@@ -201,13 +201,12 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 	obj->list=(VMenvNode**)malloc(sizeof(VMenvNode*)*NUMOFBUILTINSYMBOL);
 	FAKE_ASSERT(obj->list,"initGlobEnv",__FILE__,__LINE__);
 	obj->list[0]=newVMenvNode(VM_NIL,addSymbolToGlob(builtInSymbolList[0])->id);
-	obj->list[1]=newVMenvNode(VM_EOF,addSymbolToGlob(builtInSymbolList[1])->id);
-	obj->list[2]=newVMenvNode(newVMvalue(FP,stdin,heap),addSymbolToGlob(builtInSymbolList[2])->id);
-	obj->list[3]=newVMenvNode(newVMvalue(FP,stdout,heap),addSymbolToGlob(builtInSymbolList[3])->id);
-	obj->list[4]=newVMenvNode(newVMvalue(FP,stderr,heap),addSymbolToGlob(builtInSymbolList[4])->id);
-	size_t i=5;
+	obj->list[1]=newVMenvNode(newVMvalue(FP,stdin,heap),addSymbolToGlob(builtInSymbolList[1])->id);
+	obj->list[2]=newVMenvNode(newVMvalue(FP,stdout,heap),addSymbolToGlob(builtInSymbolList[2])->id);
+	obj->list[3]=newVMenvNode(newVMvalue(FP,stderr,heap),addSymbolToGlob(builtInSymbolList[3])->id);
+	size_t i=4;
 	for(;i<NUMOFBUILTINSYMBOL;i++)
-		obj->list[i]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(syscallFunctionList[i-5],NULL),heap),addSymbolToGlob(builtInSymbolList[i])->id);
+		obj->list[i]=newVMenvNode(newVMvalue(DLPROC,newVMDlproc(syscallFunctionList[i-4],NULL),heap),addSymbolToGlob(builtInSymbolList[i])->id);
 	mergeSort(obj->list,obj->num,sizeof(VMenvNode*),envNodeCmp);
 }
 

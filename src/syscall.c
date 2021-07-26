@@ -719,8 +719,8 @@ void SYS_byts(FakeVM* exe,pthread_rwlock_t* gclock)
 	}
 	else if(IS_STR(obj))
 	{
-		retval->u.byts->size=strlen(obj->u.str)+1;
-		retval->u.byts->str=(uint8_t*)copyStr(obj->u.str);
+		retval->u.byts->size=strlen(obj->u.str);
+		retval->u.byts->str=(uint8_t*)copyMemory(obj->u.str,retval->u.byts->size);
 	}
 	else if(IS_BYTS(obj))
 	{

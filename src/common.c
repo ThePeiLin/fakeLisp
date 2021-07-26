@@ -48,7 +48,6 @@ char* InterpreterPath=NULL;
 const char* builtInSymbolList[]=
 {
 	"nil",
-	"EOF",
 	"stdin",
 	"stdout",
 	"stderr",

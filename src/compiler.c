@@ -1343,14 +1343,15 @@ ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	ByteCode* setTp=newByteCode(sizeof(char));
 	ByteCode* popTp=newByteCode(sizeof(char));
 	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
+	ComStack* stack=newComStack(32);
 	jumpiffalse->code[0]=FAKE_JMP_IF_FALSE;
 	push1->code[0]=FAKE_PUSH_INT;
 	resTp->code[0]=FAKE_RES_TP;
 	setTp->code[0]=FAKE_SET_TP;
 	popTp->code[0]=FAKE_POP_TP;
 	*(int32_t*)(push1->code+sizeof(char))=1;
-	for(objCptr=&objCptr->u.pair->car;nextCptr(objCptr)!=NULL;objCptr=nextCptr(objCptr));
-	for(;prevCptr(objCptr)!=NULL;objCptr=prevCptr(objCptr))
+	objCptr=nextCptr(getFirstCptr(objCptr));
+	for(;objCptr!=NULL;objCptr=nextCptr(objCptr))
 	{
 		ByteCodelnt* tmp1=compile(objCptr,curEnv,inter,status,evalIm);
 		if(status->status!=0)
@@ -1363,8 +1364,14 @@ ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 			freeByteCodelnt(tmp);
 			freeByteCode(jumpiffalse);
 			freeByteCode(push1);
+			freeComStack(stack);
 			return NULL;
 		}
+		pushComStack(tmp1,stack);
+	}
+	while(!isComStackEmpty(stack))
+	{
+		ByteCodelnt* tmp1=popComStack(stack);
 		*(int32_t*)(jumpiffalse->code+sizeof(char))=tmp->bc->size;
 		codeCat(tmp1->bc,jumpiffalse);
 		tmp1->l[tmp1->ls-1]->cpc+=jumpiffalse->size;
@@ -1373,6 +1380,7 @@ ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 		INCREASE_ALL_SCP(tmp1->l+1,tmp1->ls-1,resTp->size);
 		reCodelntCat(tmp1,tmp);
 		freeByteCodelnt(tmp1);
+
 	}
 	reCodeCat(push1,tmp->bc);
 	if(!tmp->l)
@@ -1397,6 +1405,7 @@ ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	freeByteCode(setTp);
 	freeByteCode(jumpiffalse);
 	freeByteCode(push1);
+	freeComStack(stack);
 	//printByteCodelnt(tmp,inter->table,stderr);
 	return tmp;
 }
@@ -1409,13 +1418,14 @@ ByteCodelnt* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatu
 	ByteCode* jumpifture=newByteCode(sizeof(char)+sizeof(int32_t));
 	ByteCode* pushnil=newByteCode(sizeof(char));
 	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
+	ComStack* stack=newComStack(32);
 	pushnil->code[0]=FAKE_PUSH_NIL;
 	jumpifture->code[0]=FAKE_JMP_IF_TRUE;
 	setTp->code[0]=FAKE_SET_TP;
 	popTp->code[0]=FAKE_POP_TP;
 	resTp->code[0]=FAKE_RES_TP;
-	for(objCptr=&objCptr->u.pair->car;nextCptr(objCptr)!=NULL;objCptr=nextCptr(objCptr));
-	for(;prevCptr(objCptr)!=NULL;objCptr=prevCptr(objCptr))
+	objCptr=nextCptr(getFirstCptr(objCptr));
+	for(;objCptr!=NULL;objCptr=nextCptr(objCptr))
 	{
 		ByteCodelnt* tmp1=compile(objCptr,curEnv,inter,status,evalIm);
 		if(status->status!=0)
@@ -1428,8 +1438,14 @@ ByteCodelnt* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatu
 			freeByteCodelnt(tmp);
 			freeByteCode(jumpifture);
 			freeByteCode(pushnil);
+			freeComStack(stack);
 			return NULL;
 		}
+		pushComStack(tmp1,stack);
+	}
+	while(!isComStackEmpty(stack))
+	{
+		ByteCodelnt* tmp1=popComStack(stack);
 		*(int32_t*)(jumpifture->code+sizeof(char))=tmp->bc->size;
 		codeCat(tmp1->bc,jumpifture);
 		tmp1->l[tmp1->ls-1]->cpc+=jumpifture->size;
@@ -1462,6 +1478,7 @@ ByteCodelnt* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatu
 	freeByteCode(setTp);
 	freeByteCode(jumpifture);
 	freeByteCode(pushnil);
+	freeComStack(stack);
 	return tmp;
 }
 
@@ -1654,18 +1671,19 @@ ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	ByteCode* setTp=newByteCode(sizeof(char));
 	ByteCode* popTp=newByteCode(sizeof(char));
 	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
+	ComStack* stack1=newComStack(32);
 	setTp->code[0]=FAKE_SET_TP;
 	resTp->code[0]=FAKE_RES_TP;
 	popTp->code[0]=FAKE_POP_TP;
 	pushnil->code[0]=FAKE_PUSH_NIL;
 	jumpiffalse->code[0]=FAKE_JMP_IF_FALSE;
 	jump->code[0]=FAKE_JMP;
-	for(cond=&objCptr->u.pair->car;nextCptr(cond)!=NULL;cond=nextCptr(cond));
-	while(prevCptr(cond)!=NULL)
+	for(cond=nextCptr(getFirstCptr(objCptr));cond!=NULL;cond=nextCptr(cond))
 	{
-		for(objCptr=&cond->u.pair->car;nextCptr(objCptr)!=NULL;objCptr=nextCptr(objCptr));
-		ByteCodelnt* tmpCond=newByteCodelnt(newByteCode(0));
-		while(objCptr!=NULL)
+		objCptr=getFirstCptr(cond);
+		ByteCodelnt* conditionCode=compile(objCptr,curEnv,inter,status,evalIm);
+		ComStack* stack2=newComStack(32);
+		for(objCptr=nextCptr(objCptr);objCptr!=NULL;objCptr=nextCptr(objCptr))
 		{
 			ByteCodelnt* tmp1=compile(objCptr,curEnv,inter,status,evalIm);
 			if(status->status!=0)
@@ -1677,40 +1695,47 @@ ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 				freeByteCode(resTp);
 				freeByteCode(setTp);
 				freeByteCode(popTp);
-				FREE_ALL_LINE_NUMBER_TABLE(tmpCond->l,tmpCond->ls);
-				freeByteCodelnt(tmpCond);
 				freeByteCode(pushnil);
+				freeComStack(stack1);
+				freeComStack(stack2);
+				FREE_ALL_LINE_NUMBER_TABLE(conditionCode->l,conditionCode->ls);
+				freeByteCodelnt(conditionCode);
 				return NULL;
 			}
-			if(prevCptr(objCptr)==NULL)
-			{
-				*(int32_t*)(jumpiffalse->code+sizeof(char))=tmpCond->bc->size+((nextCptr(cond)==NULL)?0:jump->size)+((objCptr->outer->cdr.type==NIL)?pushnil->size:0);
-				codeCat(tmp1->bc,jumpiffalse);
-				tmp1->l[tmp1->ls-1]->cpc+=jumpiffalse->size;
-				if(objCptr->outer->cdr.type==NIL)
-				{
-					codeCat(tmp1->bc,resTp);
-					codeCat(tmp1->bc,pushnil);
-					tmp1->l[tmp1->ls-1]->cpc+=resTp->size+pushnil->size;
-				}
-			}
-			if(prevCptr(objCptr)!=NULL)
-			{
-				reCodeCat(resTp,tmp1->bc);
-				tmp1->l[0]->cpc+=resTp->size;
-				INCREASE_ALL_SCP(tmp1->l+1,tmp1->ls-1,resTp->size);
-			}
+			pushComStack(tmp1,stack2);
+		}
+		ByteCodelnt* tmpCond=newByteCodelnt(newByteCode(0));
+		while(!isComStackEmpty(stack2))
+		{
+			ByteCodelnt* tmp1=popComStack(stack2);
+			reCodeCat(resTp,tmp1->bc);
+			tmp1->l[0]->cpc+=resTp->size;
+			INCREASE_ALL_SCP(tmp1->l+1,tmp1->ls-1,resTp->size);
 			reCodelntCat(tmp1,tmpCond);
 			freeByteCodelnt(tmp1);
-			objCptr=prevCptr(objCptr);
 		}
-		if(prevCptr(prevCptr(cond))!=NULL)
+		freeComStack(stack2);
+		if(tmpCond->bc->size+((nextCptr(cond)==NULL)?0:jump->size))
+		{
+			*(int32_t*)(jumpiffalse->code+sizeof(char))=tmpCond->bc->size+((nextCptr(cond)==NULL)?0:jump->size);
+			codeCat(conditionCode->bc,jumpiffalse);
+			conditionCode->l[conditionCode->ls-1]->cpc+=jumpiffalse->size;
+		}
+		reCodelntCat(conditionCode,tmpCond);
+		freeByteCodelnt(conditionCode);
+		pushComStack(tmpCond,stack1);
+	}
+	uint32_t top=stack1->top-1;
+	while(!isComStackEmpty(stack1))
+	{
+		ByteCodelnt* tmpCond=popComStack(stack1);
+		if(!isComStackEmpty(stack1))
 		{
 			reCodeCat(resTp,tmpCond->bc);
 			tmpCond->l[0]->cpc+=1;
 			INCREASE_ALL_SCP(tmpCond->l+1,tmpCond->ls-1,resTp->size);
 		}
-		if(nextCptr(cond)!=NULL)
+		if(top!=stack1->top)
 		{
 			*(int32_t*)(jump->code+sizeof(char))=tmp->bc->size;
 			codeCat(tmpCond->bc,jump);
@@ -1718,14 +1743,15 @@ ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		}
 		reCodelntCat(tmpCond,tmp);
 		freeByteCodelnt(tmpCond);
-		cond=prevCptr(cond);
 	}
+	freeComStack(stack1);
 	if(!tmp->l)
 	{
+		codeCat(tmp->bc,pushnil);
 		tmp->ls=1;
 		tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
 		FAKE_ASSERT(tmp->l,"compileCond",__FILE__,__LINE__);
-		tmp->l[0]=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,0,objCptr->curline);
+		tmp->l[0]=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,pushnil->size,objCptr->curline);
 	}
 	reCodeCat(setTp,tmp->bc);
 	tmp->l[0]->cpc+=setTp->size;

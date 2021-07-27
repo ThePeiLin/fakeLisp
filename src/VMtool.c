@@ -1163,7 +1163,7 @@ char* genErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe)
 			t=strCat(t,"Too few arguements ");
 			break;
 		case CANTCREATETHREAD:
-			t=strCat(t,"Can't create thread.\n");
+			t=strCat(t,"Can't create thread ");
 			break;
 		case SYMUNDEFINE:
 			t=strCat(t,"Symbol ");
@@ -1171,7 +1171,7 @@ char* genErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe)
 			t=strCat(t," is undefined ");
 			break;
 		case INVOKEERROR:
-			t=strCat(t,"Try to invoke an object that isn't procedure,continuation or native procedure.\n");
+			t=strCat(t,"Try to invoke an object that isn't procedure,continuation or native procedure ");
 			break;
 		case LOADDLLFAILD:
 			t=strCat(t,"Faild to load dll \"");

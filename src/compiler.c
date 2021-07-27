@@ -1337,6 +1337,7 @@ ByteCodelnt* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 
 ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
+	int32_t curline=objCptr->curline;
 	ByteCode* jumpiffalse=newByteCode(sizeof(char)+sizeof(int32_t));
 	ByteCode* push1=newByteCode(sizeof(char)+sizeof(int32_t));
 	ByteCode* resTp=newByteCode(sizeof(char));
@@ -1388,7 +1389,7 @@ ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 		tmp->ls=1;
 		tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
 		FAKE_ASSERT(tmp->l,"compileAnd",__FILE__,__LINE__);
-		tmp->l[0]=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,tmp->bc->size,objCptr->curline);
+		tmp->l[0]=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,tmp->bc->size,curline);
 	}
 	else
 	{
@@ -1412,6 +1413,7 @@ ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 
 ByteCodelnt* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
+	int32_t curline=objCptr->curline;
 	ByteCode* setTp=newByteCode(sizeof(char));
 	ByteCode* popTp=newByteCode(sizeof(char));
 	ByteCode* resTp=newByteCode(sizeof(char));
@@ -1461,7 +1463,7 @@ ByteCodelnt* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatu
 		tmp->ls=1;
 		tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
 		FAKE_ASSERT(tmp->l,"compileOr",__FILE__,__LINE__);
-		tmp->l[0]=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,tmp->bc->size,objCptr->curline);
+		tmp->l[0]=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,tmp->bc->size,curline);
 	}
 	else
 	{

@@ -1180,7 +1180,6 @@ void GC_sweep(VMheap* heap)
 					freeVMproc(prev->u.prc);
 					break;
 				case BYTS:
-					free(prev->u.byts->str);
 					free(prev->u.byts);
 					break;
 				case CONT:

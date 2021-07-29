@@ -81,7 +81,7 @@ void SYS_append(FakeVM* exe,pthread_rwlock_t* gclock)
 		{
 			if(!IS_BYTS(*prev))
 				RAISE_BUILTIN_ERROR("sys.append",WRONGARG,runnable,exe);
-			VMBytsCat((*prev)->u.byts,cur->u.byts);
+			VMBytsCat(&(*prev)->u.byts,cur->u.byts);
 		}
 		else
 			RAISE_BUILTIN_ERROR("sys.append",WRONGARG,runnable,exe);
@@ -695,39 +695,42 @@ void SYS_byts(FakeVM* exe,pthread_rwlock_t* gclock)
 	VMvalue* retval=newVMvalue(BYTS,newEmptyVMByts(),exe->heap);
 	if(IS_IN32(obj))
 	{
+		retval->u.byts=(VMByts*)realloc(retval->u.byts,sizeof(VMByts)+sizeof(int32_t));
+		FAKE_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
 		retval->u.byts->size=sizeof(int32_t);
-		retval->u.byts->str=createByteArry(sizeof(int32_t));
 		*(int32_t*)retval->u.byts->str=GET_IN32(obj);
 	}
 	else if(IS_DBL(obj))
 	{
+		retval->u.byts=(VMByts*)realloc(retval->u.byts,sizeof(VMByts)+sizeof(double));
+		FAKE_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
 		retval->u.byts->size=sizeof(double);
-		retval->u.byts->str=createByteArry(sizeof(double));
 		*(double*)retval->u.byts->str=*obj->u.dbl;
 	}
 	else if(IS_CHR(obj))
 	{
+		retval->u.byts=(VMByts*)realloc(retval->u.byts,sizeof(VMByts)+sizeof(char));
+		FAKE_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
 		retval->u.byts->size=sizeof(char);
-		retval->u.byts->str=createByteArry(sizeof(char));
 		*(char*)retval->u.byts->str=GET_CHR(obj);
 	}
 	else if(IS_SYM(obj))
 	{
 		SymTabNode* n=getGlobSymbolWithId(GET_SYM(obj));
-		retval->u.byts->size=strlen(n->symbol)+1;
-		retval->u.byts->str=(uint8_t*)copyStr(n->symbol);
+		retval->u.byts=(VMByts*)realloc(retval->u.byts,sizeof(VMByts)+strlen(n->symbol));
+		FAKE_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
+		retval->u.byts->size=strlen(n->symbol);
+		memcpy(retval->u.byts->str,n->symbol,retval->u.byts->size);
 	}
 	else if(IS_STR(obj))
 	{
+		retval->u.byts=(VMByts*)realloc(retval->u.byts,sizeof(VMByts)+strlen(obj->u.str)+1);
+		FAKE_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
 		retval->u.byts->size=strlen(obj->u.str);
-		retval->u.byts->str=(uint8_t*)copyMemory(obj->u.str,retval->u.byts->size);
+		memcpy(retval->u.byts->str,obj->u.str,retval->u.byts->size);
 	}
 	else if(IS_BYTS(obj))
-	{
-		retval->u.byts->size=obj->u.byts->size;
-		retval->u.byts->str=createByteArry(obj->u.byts->size);
-		memcpy(retval->u.byts->str,obj->u.byts->str,obj->u.byts->size);
-	}
+		VMBytsCat(&retval->u.byts,obj->u.byts);
 	else
 		RAISE_BUILTIN_ERROR("sys.byts",WRONGARG,runnable,exe);
 	SET_RETURN("SYS_byts",retval,stack);
@@ -923,9 +926,11 @@ void SYS_getb(FakeVM* exe,pthread_rwlock_t* gclock)
 		str=(uint8_t*)realloc(str,sizeof(uint8_t)*realRead);
 		FAKE_ASSERT(str,"B_getb",__FILE__,__LINE__);
 		VMvalue* tmpByts=newVMvalue(BYTS,NULL,exe->heap);
-		tmpByts->u.byts=newEmptyVMByts();
+		tmpByts->u.byts=(VMByts*)malloc(sizeof(VMByts)+GET_IN32(size));
+		FAKE_ASSERT(tmpByts->u.byts,"SYS_getb",__FILE__,__LINE__);
 		tmpByts->u.byts->size=GET_IN32(size);
-		tmpByts->u.byts->str=str;
+		memcpy(tmpByts->u.byts->str,str,GET_IN32(size));
+		free(str);
 		SET_RETURN("SYS_getb",tmpByts,stack);
 	}
 }

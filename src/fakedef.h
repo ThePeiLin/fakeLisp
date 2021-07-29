@@ -252,7 +252,7 @@ typedef struct VMpair
 typedef struct VMByts
 {
 	size_t size;
-	uint8_t* str;
+	uint8_t str[];
 }VMByts;
 
 typedef struct VMChref

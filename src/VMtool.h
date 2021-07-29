@@ -105,8 +105,7 @@ void decreaseVMByts(VMByts*);
 
 VMByts* copyVMByts(const VMByts*);
 VMByts* newEmptyVMByts();
-VMByts* copyRefVMByts(size_t,uint8_t*);
-void VMBytsCat(VMByts*,const VMByts*);
+void VMBytsCat(VMByts**,const VMByts*);
 int eqVMByts(const VMByts*,const VMByts*);
 VMChanl* newVMChanl(int32_t size);
 

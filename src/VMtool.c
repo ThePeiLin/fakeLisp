@@ -469,50 +469,37 @@ VMvalue* castCptrVMvalue(AST_cptr* objCptr,VMheap* heap)
 
 VMByts* newVMByts(size_t size,uint8_t* str)
 {
-	VMByts* tmp=(VMByts*)malloc(sizeof(VMByts));
+	VMByts* tmp=(VMByts*)malloc(sizeof(VMByts)+size);
 	FAKE_ASSERT(tmp,"newVMByts",__FILE__,__LINE__);
 	tmp->size=size;
-	tmp->str=(str==NULL)?NULL:copyArry(size,str);
+	memcpy(tmp->str,str,size);
 	return tmp;
 }
 
 VMByts* copyVMByts(const VMByts* obj)
 {
 	if(obj==NULL)return NULL;
-	VMByts* tmp=(VMByts*)malloc(sizeof(VMByts));
+	VMByts* tmp=(VMByts*)malloc(sizeof(VMByts)+obj->size);
 	FAKE_ASSERT(tmp,"copyVMByts",__FILE__,__LINE__);
-	uint8_t* tmpArry=(uint8_t*)malloc(obj->size*sizeof(uint8_t));
-	FAKE_ASSERT(tmpArry,"copyVMByts",__FILE__,__LINE__);
-	memcpy(tmpArry,obj->str,obj->size);
+	memcpy(tmp->str,obj->str,obj->size);
 	tmp->size=obj->size;
-	tmp->str=tmpArry;
 	return tmp;
 }
 
-VMByts* copyRefVMByts(size_t size,uint8_t* str)
+void VMBytsCat(VMByts** fir,const VMByts* sec)
 {
-	VMByts* tmp=(VMByts*)malloc(sizeof(VMByts));
-	FAKE_ASSERT(tmp,"newVMByts",__FILE__,__LINE__);
-	tmp->size=size;
-	tmp->str=str;
-	return tmp;
-}
-
-void VMBytsCat(VMByts* fir,const VMByts* sec)
-{
-	size_t firSize=fir->size;
+	size_t firSize=(*fir)->size;
 	size_t secSize=sec->size;
-	fir->str=(uint8_t*)realloc(fir->str,(firSize+secSize)*sizeof(uint8_t));
-	FAKE_ASSERT(fir->str,"VMBytsCat",__FILE__,__LINE__);
-	fir->size=firSize+secSize;
-	memcpy(fir->str+firSize,sec->str,secSize);
+	*fir=(VMByts*)realloc(*fir,sizeof(VMByts)+(firSize+secSize)*sizeof(uint8_t));
+	FAKE_ASSERT(*fir,"VMBytsCat",__FILE__,__LINE__);
+	(*fir)->size=firSize+secSize;
+	memcpy((*fir)->str+firSize,sec->str,secSize);
 }
 VMByts* newEmptyVMByts()
 {
 	VMByts* tmp=(VMByts*)malloc(sizeof(VMByts));
 	FAKE_ASSERT(tmp,"newEmptyVMByts",__FILE__,__LINE__);
 	tmp->size=0;
-	tmp->str=NULL;
 	return tmp;
 }
 

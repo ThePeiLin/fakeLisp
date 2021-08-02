@@ -80,23 +80,6 @@ void FAKE_usleep(FakeVM* exe,pthread_rwlock_t* pGClock)
 	stack->tp+=1;
 }
 
-void FAKE_exit(FakeVM* exe,pthread_rwlock_t* pGClock)
-{
-	VMstack* stack=exe->stack;
-	VMvalue* exitCode=GET_VAL(popVMstack(stack));
-	lockSource(pGClock);
-	int a[2]={0,2};
-	VMrunnable* r=topComStack(exe->rstack);
-	if(exe->VMid==-1)
-		RAISE_BUILTIN_ERROR("btk.exit",STACKERROR,r,exe);
-	if(exitCode==NULL)
-		exe->callback(a);
-	if(!IS_IN32(exitCode))
-		RAISE_BUILTIN_ERROR("btk.exit",WRONGARG,r,exe);
-	a[0]=GET_IN32(exitCode);
-	exe->callback(a);
-}
-
 void FAKE_rand(FakeVM* exe,pthread_rwlock_t* pGClock)
 {
 	static int hasSrand=0;

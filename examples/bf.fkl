@@ -1,8 +1,5 @@
 (import (std))
 
-(define btk (dll "../btk"))
-(define exit (dlsym btk "exit"))
-
 (define code nil)
 
 (define (readCode fp)
@@ -16,12 +13,7 @@
   (setq code "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.")
   (setq code
         (let ((fp (file (str (nth 1 (argv))) "rb")))
-          (if (eq fp nil)
-            (begin
-              (princ "Faild to open file.\n" stderr)
-              (exit 1)))
-          (readCode fp)
-          )))
+          (readCode fp))))
 
 (define m #b00)
 

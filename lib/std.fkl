@@ -30,6 +30,8 @@
                  aply
                  list
                  map
+                 andmap
+                 ormap
                  reverse
                  foreach
                  fprint
@@ -154,6 +156,54 @@
                (lambda (l r)
                  (cond (l (iter (cdr l) (cons (aply f (car l)) r)))
                        (1 (reverse r)))))
+             (iter (iter1 l nil) nil)))
+
+         (define andmap
+           (lambda (f,l)
+             (define iter1
+               (lambda (ls r)
+                 (define carAll
+                   (lambda (ls r)
+                     (cond ((and ls (car ls) (caar ls))
+                            (carAll (cdr ls) (cons (caar ls) r)))
+                           (1 (reverse r)))))
+                 (define cdrAll
+                   (lambda (ls r)
+                     (cond ((and ls (car ls) (cdar ls))
+                            (cdrAll (cdr ls) (cons (cdar ls) r)))
+                           (1 (reverse r)))))
+                 (cond (ls
+                        (iter1 (cdrAll ls nil) (cons (carAll ls nil) r)))
+                       (1 (reverse r)))))
+             (define iter
+               (lambda (l r)
+                 (cond ((and l r)
+                        (iter (cdr l) (aply f (car l))))
+                       (1 r))))
+             (iter (iter1 l nil) 1)))
+
+         (define ormap
+           (lambda (f,l)
+             (define iter1
+               (lambda (ls r)
+                 (define carAll
+                   (lambda (ls r)
+                     (cond ((and ls (car ls) (caar ls))
+                            (carAll (cdr ls) (cons (caar ls) r)))
+                           (1 (reverse r)))))
+                 (define cdrAll
+                   (lambda (ls r)
+                     (cond ((and ls (car ls) (cdar ls))
+                            (cdrAll (cdr ls) (cons (cdar ls) r)))
+                           (1 (reverse r)))))
+                 (cond (ls
+                         (iter1 (cdrAll ls nil) (cons (carAll ls nil) r)))
+                       (1 (reverse r)))))
+             (define iter
+               (lambda (l r)
+                 (cond ((and l (not r))
+                        (iter (cdr l) (aply f (car l))))
+                       (1 r))))
              (iter (iter1 l nil) nil)))
 
          (define reverse

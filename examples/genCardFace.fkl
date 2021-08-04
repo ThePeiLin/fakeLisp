@@ -11,18 +11,6 @@
 (defmacro (CHR_P ?O)
   `(eq (type ~O) 'chr))
 
-(define card-def
-  '(creature
-     (name,"史莱姆")
-     (section "史莱姆")
-     (consume,0)
-     (value,1)
-     (effect,
-       (beConsumed (backTo handCard)))
-     (intro,"普通的史莱姆，最常见的那种。")
-     (img,"slime.png")
-     (atk-def 1 1)
-     ))
 
 (define expression-translated '(begin
                                  hubris
@@ -286,6 +274,6 @@
                                ))
     ))
 
-(princ (generte-html-text card-def) (file "test.html" "w"))
+(princ (generte-html-text (read stdin)) (file "test.html" "w"))
 
 

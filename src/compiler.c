@@ -1837,10 +1837,10 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 			switch(unexpectEOF)
 			{
 				case 1:
-					fprintf(stderr,"\nIn file \"%s\",line %d\n%s:Unexpect EOF.\n",inter->filename,inter->curline,list);
+					fprintf(stderr,"error of reader:Unexpect EOF at line %d of %s\n",inter->curline,inter->filename);
 					break;
 				case 2:
-					fprintf(stderr,"\nIn file \"%s\",line %d\n%s:Invalid expression.\n",inter->filename,inter->curline,list);
+					fprintf(stderr,"error of reader:Invalid expression at line %d of %s\n",inter->curline,inter->filename);
 					break;
 			}
 
@@ -2520,10 +2520,10 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				switch(unexpectEOF)
 				{
 					case 1:
-						fprintf(stderr,"\nIn file \"%s\",line %d\n%s:Unexpect EOF.\n",inter->filename,inter->curline,list);
+						fprintf(stderr,"error of reader:Unexpect EOF at line %d of %s\n",inter->curline,inter->filename);
 						break;
 					case 2:
-						fprintf(stderr,"\nIn file \"%s\",line %d\n%s:Invalid expression.\n",inter->filename,inter->curline,list);
+						fprintf(stderr,"error of reader:Invalid expression at line %d of %s\n",inter->curline,inter->filename);
 						break;
 				}
 				free(list);

@@ -56,145 +56,134 @@ static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap)
 	return vEnv;
 }
 
-AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern)
+AST_cptr* expandReaderMacro(const char* objStr,Intpr* inter,StringMatchPattern* pattern)
 {
-	if(objStr==NULL)return NULL;
-	if(isAllSpace(objStr))
-		return NULL;
-	if(pattern)
+	PreEnv* tmpEnv=newEnv(NULL);
+	int num=0;
+	char** parts=splitStringInPattern(objStr,pattern,&num);
+	int j=0;
+	if(pattern->num-num)
 	{
-		inter->curline+=countChar(objStr,'\n',skipSpace(objStr));
-		PreEnv* tmpEnv=newEnv(NULL);
-		int num=0;
-		char** parts=splitStringInPattern(objStr,pattern,&num);
-		int j=0;
-		if(pattern->num-num)
+		freeStringArry(parts,num);
+		destroyEnv(tmpEnv);
+		return NULL;
+	}
+	for(;j<num;j++)
+	{
+		if(isVar(pattern->parts[j]))
 		{
-			freeStringArry(parts,num);
-			destroyEnv(tmpEnv);
-			return NULL;
-		}
-		for(;j<num;j++)
-		{
-			if(isVar(pattern->parts[j]))
+			char* varName=getVarName(pattern->parts[j]);
+			if(isMustList(pattern->parts[j]))
 			{
-				char* varName=getVarName(pattern->parts[j]);
-				if(isMustList(pattern->parts[j]))
+				StringMatchPattern* tmpPattern=findStringPattern(parts[j]);
+				AST_cptr* tmpCptr=newCptr(inter->curline,NULL);
+				tmpCptr->type=NIL;
+				tmpCptr->u.all=NULL;
+				AST_cptr* tmpCptr2=createTree(parts[j],inter,tmpPattern);
+				if(!tmpCptr2)
 				{
-					StringMatchPattern* tmpPattern=findStringPattern(parts[j]);
-					AST_cptr* tmpCptr=newCptr(inter->curline,NULL);
-					tmpCptr->type=NIL;
-					tmpCptr->u.all=NULL;
-					AST_cptr* tmpCptr2=createTree(parts[j],inter,tmpPattern);
+					freeStringArry(parts,num);
+					destroyEnv(tmpEnv);
+					free(varName);
+					return tmpCptr;
+				}
+				addToList(tmpCptr,tmpCptr2);
+				deleteCptr(tmpCptr2);
+				free(tmpCptr2);
+				int i=0;
+				i=skipInPattern(parts[j],tmpPattern);
+				for(;isspace(parts[j][i]);i++)
+					if(parts[j][i]=='\n')
+						inter->curline+=1;
+				while(parts[j][i]!=0)
+				{
+					tmpPattern=findStringPattern(parts[j]+i);
+					int32_t ti=(parts[j][i+skipSpace(parts[j]+i)]==',');
+					AST_cptr* tmpCptr2=createTree(parts[j]+i+skipSpace(parts[j]+i)+ti,inter,tmpPattern);
 					if(!tmpCptr2)
 					{
-						freeStringArry(parts,num);
-						destroyEnv(tmpEnv);
-						free(varName);
-						return tmpCptr;
-					}
-					addToList(tmpCptr,tmpCptr2);
-					deleteCptr(tmpCptr2);
-					free(tmpCptr2);
-					int i=skipInPattern(parts[j],tmpPattern);
-					for(;parts[j][i]!=0;i++)
-					{
-						tmpPattern=findStringPattern(parts[j]+i);
-						int32_t ti=(parts[j][i+skipSpace(parts[j]+i)]==',');
-						AST_cptr* tmpCptr2=createTree(parts[j]+i+skipSpace(parts[j]+i)+ti,inter,tmpPattern);
-						if(!tmpCptr2)
+						if(tmpPattern)
 						{
-							if(tmpPattern)
-							{
-								deleteCptr(tmpCptr);
-								free(tmpCptr);
-								return NULL;
-							}
-							else
-								break;
-						}
-						if(ti)
-						{
-							addToTail(tmpCptr,tmpCptr2);
-							deleteCptr(tmpCptr2);
-							free(tmpCptr2);
-							break;
+							deleteCptr(tmpCptr);
+							free(tmpCptr);
+							return NULL;
 						}
 						else
-							addToList(tmpCptr,tmpCptr2);
-						deleteCptr(tmpCptr2);
-						free(tmpCptr2);
-						i+=skipInPattern(parts[j]+i,tmpPattern);
-						if(parts[j][i]==0)
 							break;
 					}
-					addDefine(varName,tmpCptr,tmpEnv);
-					deleteCptr(tmpCptr);
-					free(tmpCptr);
+					if(ti)
+					{
+						addToTail(tmpCptr,tmpCptr2);
+						deleteCptr(tmpCptr2);
+						free(tmpCptr2);
+						break;
+					}
+					else
+						addToList(tmpCptr,tmpCptr2);
+					deleteCptr(tmpCptr2);
+					free(tmpCptr2);
+					i+=skipInPattern(parts[j]+i,tmpPattern);
+					if(parts[j][i]==0)
+						break;
+					for(;isspace(parts[j][i]);i++)
+						if(parts[j][i]=='\n')
+							inter->curline+=1;
 				}
-				else
-				{
-					StringMatchPattern* tmpPattern=findStringPattern(parts[j]);
-					AST_cptr* tmpCptr=createTree(parts[j],inter,tmpPattern);
-					inter->curline+=countChar(parts[j]+skipInPattern(parts[j],tmpPattern),'\n',-1);
-					addDefine(varName,tmpCptr,tmpEnv);
-					deleteCptr(tmpCptr);
-					free(tmpCptr);
-				}
-				free(varName);
+				addDefine(varName,tmpCptr,tmpEnv);
+				deleteCptr(tmpCptr);
+				free(tmpCptr);
 			}
 			else
-				inter->curline+=countChar(parts[j],'\n',-1);
+			{
+				StringMatchPattern* tmpPattern=findStringPattern(parts[j]);
+				AST_cptr* tmpCptr=createTree(parts[j],inter,tmpPattern);
+				inter->curline+=countChar(parts[j]+skipInPattern(parts[j],tmpPattern),'\n',-1);
+				addDefine(varName,tmpCptr,tmpEnv);
+				deleteCptr(tmpCptr);
+				free(tmpCptr);
+			}
+			free(varName);
 		}
-		FakeVM* tmpVM=newTmpFakeVM(NULL);
-		ByteCodelnt* t=newByteCodelnt(newByteCode(0));
-		VMenv* tmpGlobEnv=genGlobEnv(inter->glob,t,tmpVM->heap);
-		if(!tmpGlobEnv)
-		{
-			destroyEnv(tmpEnv);
-			freeByteCodelnt(t);
-			freeVMheap(tmpVM->heap);
-			freeVMstack(tmpVM->stack);
-			freeComStack(tmpVM->rstack);
-			freeComStack(tmpVM->tstack);
-			freeStringArry(parts,num);
-			free(tmpVM);
-			return NULL;
-		}
-		VMproc* tmpVMproc=newVMproc(t->bc->size,pattern->proc->bc->size);
-		codelntCopyCat(t,pattern->proc);
-		VMenv* stringPatternEnv=castPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->heap);
-		tmpVMproc->prevEnv=NULL;
-		VMrunnable* mainrunnable=newVMrunnable(tmpVMproc);
-		mainrunnable->localenv=stringPatternEnv;
-		tmpVM->code=t->bc->code;
-		tmpVM->size=t->bc->size;
-		pushComStack(mainrunnable,tmpVM->rstack);
-		tmpVM->lnt=newLineNumTable();
-		tmpVM->lnt->list=pattern->proc->l;
-		tmpVM->lnt->num=pattern->proc->ls;
-		int status=runFakeVM(tmpVM);
-		AST_cptr* tmpCptr=NULL;
-		if(!status)
-			tmpCptr=castVMvalueToCptr(GET_VAL(tmpVM->stack->values[0]),inter->curline);
 		else
-		{
-			FREE_ALL_LINE_NUMBER_TABLE(t->l,t->ls);
-			freeByteCodelnt(t);
-			free(tmpVM->lnt);
-			deleteCallChain(tmpVM);
-			freeVMenv(tmpGlobEnv);
-			freeVMheap(tmpVM->heap);
-			freeVMstack(tmpVM->stack);
-			freeVMproc(tmpVMproc);
-			freeComStack(tmpVM->rstack);
-			freeComStack(tmpVM->tstack);
-			free(tmpVM);
-			return NULL;
-		}
+			inter->curline+=countChar(parts[j],'\n',-1);
+	}
+	FakeVM* tmpVM=newTmpFakeVM(NULL);
+	ByteCodelnt* t=newByteCodelnt(newByteCode(0));
+	VMenv* tmpGlobEnv=genGlobEnv(inter->glob,t,tmpVM->heap);
+	if(!tmpGlobEnv)
+	{
+		destroyEnv(tmpEnv);
+		freeByteCodelnt(t);
+		freeVMheap(tmpVM->heap);
+		freeVMstack(tmpVM->stack);
+		freeComStack(tmpVM->rstack);
+		freeComStack(tmpVM->tstack);
+		freeStringArry(parts,num);
+		free(tmpVM);
+		return NULL;
+	}
+	VMproc* tmpVMproc=newVMproc(t->bc->size,pattern->proc->bc->size);
+	codelntCopyCat(t,pattern->proc);
+	VMenv* stringPatternEnv=castPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->heap);
+	tmpVMproc->prevEnv=NULL;
+	VMrunnable* mainrunnable=newVMrunnable(tmpVMproc);
+	mainrunnable->localenv=stringPatternEnv;
+	tmpVM->code=t->bc->code;
+	tmpVM->size=t->bc->size;
+	pushComStack(mainrunnable,tmpVM->rstack);
+	tmpVM->lnt=newLineNumTable();
+	tmpVM->lnt->list=pattern->proc->l;
+	tmpVM->lnt->num=pattern->proc->ls;
+	int status=runFakeVM(tmpVM);
+	AST_cptr* tmpCptr=NULL;
+	if(!status)
+		tmpCptr=castVMvalueToCptr(GET_VAL(tmpVM->stack->values[0]),inter->curline);
+	else
+	{
 		FREE_ALL_LINE_NUMBER_TABLE(t->l,t->ls);
 		freeByteCodelnt(t);
 		free(tmpVM->lnt);
+		deleteCallChain(tmpVM);
 		freeVMenv(tmpGlobEnv);
 		freeVMheap(tmpVM->heap);
 		freeVMstack(tmpVM->stack);
@@ -202,9 +191,32 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 		freeComStack(tmpVM->rstack);
 		freeComStack(tmpVM->tstack);
 		free(tmpVM);
-		destroyEnv(tmpEnv);
-		freeStringArry(parts,num);
-		return tmpCptr;
+		return NULL;
+	}
+	FREE_ALL_LINE_NUMBER_TABLE(t->l,t->ls);
+	freeByteCodelnt(t);
+	free(tmpVM->lnt);
+	freeVMenv(tmpGlobEnv);
+	freeVMheap(tmpVM->heap);
+	freeVMstack(tmpVM->stack);
+	freeVMproc(tmpVMproc);
+	freeComStack(tmpVM->rstack);
+	freeComStack(tmpVM->tstack);
+	free(tmpVM);
+	destroyEnv(tmpEnv);
+	freeStringArry(parts,num);
+	return tmpCptr;
+
+}
+
+AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern)
+{
+	if(objStr==NULL)return NULL;
+	if(isAllSpace(objStr))
+		return NULL;
+	if(pattern)
+	{
+		return expandReaderMacro(objStr,inter,pattern);
 	}
 	else
 	{

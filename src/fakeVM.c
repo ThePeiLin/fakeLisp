@@ -53,7 +53,6 @@ static void (*ByteCodes[])(FakeVM*)=
 	B_push_env_var,
 	B_push_top,
 	B_push_proc,
-	B_push_list_arg,
 	B_pop,
 	B_pop_var,
 	B_pop_arg,
@@ -180,6 +179,7 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 		SYS_type,
 		SYS_nth,
 		SYS_length,
+		SYS_apply,
 		SYS_clcc,
 		SYS_file,
 		SYS_read,
@@ -218,8 +218,10 @@ void* ThreadVMFunc(void* p)
 	exe->chan=NULL;
 	if(!status)
 	{
-		SendT* t=newSendT(GET_VAL(getTopValue(exe->stack)));
-		chanlSend(t,tmpCh);
+		VMstack* stack=exe->stack;
+		VMvalue* v=NULL;
+		while((v=popVMstack(stack)))
+			chanlSend(newSendT(GET_VAL(v)),tmpCh);
 	}
 	else
 	{
@@ -256,8 +258,10 @@ void* ThreadVMDlprocFunc(void* p)
 	if(!setjmp(exe->buf))
 	{
 		f(exe,&GClock);
-		SendT* t=newSendT(GET_VAL(getTopValue(exe->stack)));
-		chanlSend(t,ch);
+		VMstack* stack=exe->stack;
+		VMvalue* v=NULL;
+		while((v=popVMstack(stack)))
+			chanlSend(newSendT(GET_VAL(v)),ch);
 	}
 	else
 	{
@@ -493,21 +497,6 @@ void B_push_proc(FakeVM* exe)
 	VMvalue* objValue=newVMvalue(PRC,code,exe->heap);
 	SET_RETURN("B_push_proc",objValue,stack);
 	runnable->cp+=5+sizeOfProc;
-}
-
-void B_push_list_arg(FakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	ComStack* comStack=newComStack(32);
-	VMrunnable* runnable=topComStack(exe->rstack);
-	VMvalue* tmpList=GET_VAL(getTopValue(stack));
-	stack->tp-=1;
-	for(;tmpList!=VM_NIL;tmpList=getVMpairCdr(tmpList))
-		pushComStack(getVMpairCar(tmpList),comStack);
-	while(!isComStackEmpty(comStack))
-		SET_RETURN("B_push_list_arg",(VMvalue*)popComStack(comStack),stack);
-	freeComStack(comStack);
-	runnable->cp+=1;
 }
 
 void B_pop(FakeVM* exe)

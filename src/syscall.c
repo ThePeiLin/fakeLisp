@@ -1059,9 +1059,9 @@ void SYS_go(FakeVM* exe,pthread_rwlock_t* gclock)
 	VMvalue* threadProc=GET_VAL(popVMstack(stack));
 	if(!threadProc)
 		RAISE_BUILTIN_ERROR("sys.go",TOOFEWARG,runnable,exe);
-	if(!IS_PRC(threadProc)&&!IS_DLPROC(threadProc))
+	if(!IS_PRC(threadProc)&&!IS_DLPROC(threadProc)&&!IS_CONT(threadProc))
 		RAISE_BUILTIN_ERROR("sys.go",WRONGARG,runnable,exe);
-	FakeVM* threadVM=(IS_PRC(threadProc))?newThreadVM(threadProc->u.prc,exe->heap):newThreadDlprocVM(runnable,exe->heap);
+	FakeVM* threadVM=(IS_PRC(threadProc)||IS_CONT(threadProc))?newThreadVM(threadProc->u.prc,exe->heap):newThreadDlprocVM(runnable,exe->heap);
 	threadVM->lnt=exe->lnt;
 	threadVM->code=exe->code;
 	threadVM->size=exe->size;
@@ -1084,6 +1084,11 @@ void SYS_go(FakeVM* exe,pthread_rwlock_t* gclock)
 	int32_t faildCode=0;
 	if(IS_PRC(threadProc))
 		faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMFunc,threadVM);
+	else if(IS_CONT(threadProc))
+	{
+		createCallChainWithContinuation(threadVM,threadProc->u.cont);
+		faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMFunc,threadVM);
+	}
 	else
 	{
 		void* a[2]={threadVM,threadProc->u.dlproc->func};
@@ -1193,6 +1198,81 @@ void SYS_clcc(FakeVM* exe,pthread_rwlock_t* gclock)
 	SET_RETURN("SYS_clcc",MAKE_VM_IN32(stack->bp),stack);
 	stack->bp=stack->tp;
 	SET_RETURN("SYS_clcc",cc,stack);
+	if(proc->type==PRC)
+	{
+		VMproc* tmpProc=proc->u.prc;
+		VMrunnable* prevProc=hasSameProc(tmpProc->scp,exe->rstack);
+		if(isTheLastExpress(runnable,prevProc,exe)&&prevProc)
+			prevProc->mark=1;
+		else
+		{
+			VMrunnable* tmpRunnable=newVMrunnable(tmpProc);
+			tmpRunnable->localenv=newVMenv(tmpProc->prevEnv);
+			pushComStack(tmpRunnable,exe->rstack);
+		}
+	}
+	else if(proc->type==CONT)
+	{
+		VMcontinuation* cc=proc->u.cont;
+		createCallChainWithContinuation(exe,cc);
+	}
+	else
+	{
+		DllFunc dllfunc=proc->u.dlproc->func;
+		dllfunc(exe,gclock);
+	}
+}
+
+void SYS_apply(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* proc=GET_VAL(popVMstack(stack));
+	if(!proc)
+		RAISE_BUILTIN_ERROR("sys.apply",TOOFEWARG,runnable,exe);
+	if(!IS_PTR(proc)||(proc->type!=PRC&&proc->type!=CONT&&proc->type!=DLPROC))
+		RAISE_BUILTIN_ERROR("b.invoke",INVOKEERROR,runnable,exe);
+	ComStack* stack1=newComStack(32);
+	VMvalue* value=NULL;
+	VMvalue* lastList=NULL;
+	while((value=GET_VAL(popVMstack(stack))))
+	{
+		if(!resBp(stack))
+		{
+			lastList=value;
+			break;
+		}
+		pushComStack(value,stack1);
+	}
+	ComStack* stack2=newComStack(32);
+	if(!IS_PAIR(lastList)&&lastList!=VM_NIL)
+	{
+		freeComStack(stack1);
+		freeComStack(stack2);
+		RAISE_BUILTIN_ERROR("sys.apply",WRONGARG,runnable,exe);
+	}
+	for(;IS_PAIR(lastList);lastList=getVMpairCdr(lastList))
+		pushComStack(getVMpairCar(lastList),stack2);
+	if(lastList!=VM_NIL)
+	{
+		freeComStack(stack1);
+		freeComStack(stack2);
+		RAISE_BUILTIN_ERROR("sys.apply",WRONGARG,runnable,exe);
+	}
+	SET_RETURN("SYS_apply",MAKE_VM_IN32(stack->bp),stack);
+	stack->bp=stack->tp;
+	while(!isComStackEmpty(stack2))
+	{
+		VMvalue* t=popComStack(stack2);
+		SET_RETURN("SYS_apply",t,stack);
+	}
+	freeComStack(stack2);
+	while(!isComStackEmpty(stack1))
+	{
+		VMvalue* t=popComStack(stack1);
+		SET_RETURN("SYS_apply",t,stack);
+	}
+	freeComStack(stack1);
 	if(proc->type==PRC)
 	{
 		VMproc* tmpProc=proc->u.prc;

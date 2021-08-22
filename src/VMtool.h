@@ -56,6 +56,7 @@ extern const char*  builtInErrorType[NUMOFBUILTINERRORTYPE];
 #define IS_PRC(P) (GET_TAG(P)==PTR_TAG&&(P)->type==PRC)
 #define IS_DLPROC(P) (GET_TAG(P)==PTR_TAG&&(P)->type==DLPROC)
 #define IS_ERR(P) (GET_TAG(P)==PTR_TAG&&(P)->type==ERR)
+#define IS_CONT(P) (GET_TAG(P)==PTR_TAG&&(P)->type==CONT)
 #define IS_IN32(P) (GET_TAG(P)==IN32_TAG)
 #define IS_CHR(P) (GET_TAG(P)==CHR_TAG)
 #define IS_SYM(P) (GET_TAG(P)==SYM_TAG)

@@ -79,6 +79,7 @@ const char* builtInSymbolList[]=
 	"type",
 	"nth",
 	"length",
+	"apply",
 	"clcc",
 	"file",
 	"read",
@@ -775,7 +776,7 @@ void exError(const AST_cptr* obj,int type,Intpr* inter)
 			fprintf(stderr," undefined ");
 			break;
 	}
-	if(inter!=NULL)fprintf(stderr,"at line %d of file %s\n",(obj==NULL)?inter->curline:obj->curline,inter->filename);
+	if(inter!=NULL)fprintf(stderr," at line %d of file %s\n",(obj==NULL)?inter->curline:obj->curline,inter->filename);
 }
 
 void printRawChar(char chr,FILE* out)

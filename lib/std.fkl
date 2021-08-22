@@ -27,7 +27,6 @@
                  cddadr
                  cdddar
                  cddddr
-                 aply
                  list
                  map
                  andmap
@@ -124,15 +123,6 @@
          (define cddddr (lambda (a)
                           (cdr (cdr (cdr (cdr a))))))
 
-         (define aply (lambda (f l)
-                        (progn
-                          set_bp
-                          push_var l
-                          push_list_arg
-                          push_var f
-                          invoke
-                          )))
-
          (define list (lambda ls ls))
 
          (define map
@@ -154,7 +144,7 @@
                        (1 (reverse r)))))
              (define iter
                (lambda (l r)
-                 (cond (l (iter (cdr l) (cons (aply f (car l)) r)))
+                 (cond (l (iter (cdr l) (cons (apply f (car l)) r)))
                        (1 (reverse r)))))
              (iter (iter1 l nil) nil)))
 
@@ -178,7 +168,7 @@
              (define iter
                (lambda (l r)
                  (cond ((and l r)
-                        (iter (cdr l) (aply f (car l))))
+                        (iter (cdr l) (apply f (car l))))
                        (1 r))))
              (iter (iter1 l nil) 1)))
 
@@ -202,7 +192,7 @@
              (define iter
                (lambda (l r)
                  (cond ((and l (not r))
-                        (iter (cdr l) (aply f (car l))))
+                        (iter (cdr l) (apply f (car l))))
                        (1 r))))
              (iter (iter1 l nil) nil)))
 
@@ -234,7 +224,7 @@
                        (1 (reverse r)))))
              (define iter
                (lambda (c)
-                 (cond (c (aply f (car c))
+                 (cond (c (apply f (car c))
                           (iter (cdr c))))))
              (iter (iter1 l nil))))
 
@@ -248,7 +238,7 @@
 
          (define print
            (lambda l
-             (aply fprint (cons stdout l))))
+             (apply fprint (cons stdout l))))
 
          (define fwrite
            (lambda (f,l)

@@ -867,24 +867,31 @@ void SYS_read(FakeVM* exe,pthread_rwlock_t* gclock)
 {
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
-	VMvalue* file=GET_VAL(popVMstack(stack));
+	VMvalue* stream=GET_VAL(popVMstack(stack));
 	if(resBp(stack))
 		RAISE_BUILTIN_ERROR("sys.read",TOOMANYARG,runnable,exe);
-	if(!file)
+	if(!stream)
 		RAISE_BUILTIN_ERROR("sys.read",TOOFEWARG,runnable,exe);
-	if(!IS_FP(file))
+	if(!IS_FP(stream)&&!IS_STR(stream))
 		RAISE_BUILTIN_ERROR("sys.read",WRONGARG,runnable,exe);
-	FILE* tmpFile=file->u.fp;
-	int unexpectEOF=0;
-	char* prev=NULL;
-	char* tmpString=readInPattern(tmpFile,&prev,&unexpectEOF);
-	if(prev)
-		free(prev);
-	if(unexpectEOF)
+	char* tmpString=NULL;
+	FILE* tmpFile=NULL;
+	if(IS_FP(stream))
 	{
-		free(tmpString);
-		RAISE_BUILTIN_ERROR("sys.read",UNEXPECTEOF,runnable,exe);
+		tmpFile=stream->u.fp;
+		int unexpectEOF=0;
+		char* prev=NULL;
+		tmpString=readInPattern(tmpFile,&prev,&unexpectEOF);
+		if(prev)
+			free(prev);
+		if(unexpectEOF)
+		{
+			free(tmpString);
+			RAISE_BUILTIN_ERROR("sys.read",UNEXPECTEOF,runnable,exe);
+		}
 	}
+	else
+		tmpString=copyStr(stream->u.str);
 	Intpr* tmpIntpr=newTmpIntpr(NULL,tmpFile);
 	AST_cptr* tmpCptr=baseCreateTree(tmpString,tmpIntpr);
 	VMvalue* tmp=NULL;

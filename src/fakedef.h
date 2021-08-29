@@ -210,7 +210,7 @@ typedef struct SymbolTable
 
 typedef struct Comp_Def
 {
-	uint32_t id;
+	Sid_t id;
 	struct Comp_Def* next;
 }CompDef;
 

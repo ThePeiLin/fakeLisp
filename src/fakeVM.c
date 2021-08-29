@@ -553,69 +553,31 @@ void B_pop_arg(FakeVM* exe)
 	VMrunnable* runnable=topComStack(exe->rstack);
 	if(!(stack->tp>stack->bp))
 		RAISE_BUILTIN_ERROR("b.pop_arg",TOOFEWARG,runnable,exe);
-	int32_t scopeOfVar=*(int32_t*)(exe->code+runnable->cp+1);
-	uint32_t idOfVar=*(uint32_t*)(exe->code+runnable->cp+5);
+	int32_t idOfVar=*(int32_t*)(exe->code+runnable->cp+1);
 	VMenv* curEnv=runnable->localenv;
 	VMvalue** pValue=NULL;
-	if(scopeOfVar>=0)
-	{
-		int32_t i=0;
-		for(;i<scopeOfVar;i++)
-			curEnv=curEnv->prev;
-		VMenvNode* tmp=findVMenvNode(idOfVar,curEnv);
-		if(!tmp)
-			tmp=addVMenvNode(newVMenvNode(NULL,idOfVar),curEnv);
-		pValue=&tmp->value;
-	}
-	else
-	{
-		VMenvNode* tmp=NULL;
-		while(curEnv&&!tmp)
-		{
-			tmp=findVMenvNode(idOfVar,curEnv);
-			curEnv=curEnv->prev;
-		}
-		if(tmp==NULL)
-			RAISE_BUILTIN_ERROR("b.pop_arg",SYMUNDEFINE,runnable,exe);
-		pValue=&tmp->value;
-	}
+	VMenvNode* tmp=findVMenvNode(idOfVar,curEnv);
+	if(!tmp)
+		tmp=addVMenvNode(newVMenvNode(NULL,idOfVar),curEnv);
+	pValue=&tmp->value;
 	VMvalue* topValue=GET_VAL(getTopValue(stack));
 	*pValue=GET_VAL(topValue);
 	stack->tp-=1;
 	stackRecycle(exe);
-	runnable->cp+=9;
+	runnable->cp+=5;
 }
 
 void B_pop_rest_arg(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
-	int32_t scopeOfVar=*(int32_t*)(exe->code+runnable->cp+1);
-	uint32_t idOfVar=*(uint32_t*)(exe->code+runnable->cp+5);
+	Sid_t idOfVar=*(Sid_t*)(exe->code+runnable->cp+1);
 	VMenv* curEnv=runnable->localenv;
 	VMvalue** pValue=NULL;
-	if(scopeOfVar>=0)
-	{
-		int32_t i=0;
-		for(;i<scopeOfVar;i++)
-			curEnv=curEnv->prev;
-		VMenvNode* tmp=findVMenvNode(idOfVar,curEnv);
-		if(!tmp)
-			tmp=addVMenvNode(newVMenvNode(NULL,idOfVar),curEnv);
-		pValue=&tmp->value;
-	}
-	else
-	{
-		VMenvNode* tmp=NULL;
-		while(curEnv&&!tmp)
-		{
-			tmp=findVMenvNode(idOfVar,curEnv);
-			curEnv=curEnv->prev;
-		}
-		if(tmp==NULL)
-			RAISE_BUILTIN_ERROR("b.pop_rest_arg",SYMUNDEFINE,runnable,exe);
-		pValue=&tmp->value;
-	}
+	VMenvNode* tmpNode=findVMenvNode(idOfVar,curEnv);
+	if(!tmpNode)
+		tmpNode=addVMenvNode(newVMenvNode(NULL,idOfVar),curEnv);
+	pValue=&tmpNode->value;
 	VMvalue* obj=NULL;
 	VMvalue* tmp=NULL;
 	if(stack->tp>stack->bp)
@@ -635,7 +597,7 @@ void B_pop_rest_arg(FakeVM* exe)
 	}
 	*pValue=obj;
 	stackRecycle(exe);
-	runnable->cp+=9;
+	runnable->cp+=5;
 }
 
 void B_pop_car(FakeVM* exe)

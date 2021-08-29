@@ -1091,7 +1091,7 @@ ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 	AST_cptr* objCptr=NULL;
 	ByteCodelnt* tmp1=NULL;
 	ByteCode* pushTop=newByteCode(sizeof(char));
-	ByteCode* popVar=newByteCode(sizeof(char)+sizeof(int32_t)*2);
+	ByteCode* popVar=newByteCode(sizeof(char)+sizeof(int32_t)+sizeof(Sid_t));
 	popVar->code[0]=FAKE_POP_VAR;
 	pushTop->code[0]=FAKE_PUSH_TOP;
 	while(isDefExpression(tir))
@@ -1126,7 +1126,7 @@ ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 		else
 			tmpDef=addCompDef(tmpAtm->value.str,curEnv);
 		*(int32_t*)(popVar->code+sizeof(char))=(int32_t)0;
-		*(int32_t*)(popVar->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
+		*(Sid_t*)(popVar->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
 		codeCat(tmp1->bc,pushTop);
 		codeCat(tmp1->bc,popVar);
 		tmp1->l[tmp1->ls-1]->cpc+=(popVar->size+pushTop->size);
@@ -1153,7 +1153,7 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	AST_cptr* tir=nextCptr(sec);
 	ByteCodelnt* tmp1=NULL;
 	ByteCode* pushTop=newByteCode(sizeof(char));
-	ByteCode* popVar=newByteCode(sizeof(char)+sizeof(int32_t)*2);
+	ByteCode* popVar=newByteCode(sizeof(char)+sizeof(int32_t)+sizeof(Sid_t));
 	popVar->code[0]=FAKE_POP_VAR;
 	pushTop->code[0]=FAKE_PUSH_TOP;
 	while(isSetqExpression(tir))
@@ -1204,7 +1204,7 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		else
 			id=tmpDef->id;
 		*(int32_t*)(popVar->code+sizeof(char))=scope;
-		*(int32_t*)(popVar->code+sizeof(char)+sizeof(int32_t))=id;
+		*(Sid_t*)(popVar->code+sizeof(char)+sizeof(int32_t))=id;
 		codeCat(tmp1->bc,pushTop);
 		codeCat(tmp1->bc,popVar);
 		tmp1->l[tmp1->ls-1]->cpc+=(pushTop->size+popVar->size);
@@ -1292,7 +1292,7 @@ ByteCodelnt* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 		status->place=objCptr;
 		return NULL;
 	}
-	ByteCode* pushVar=newByteCode(sizeof(char)+sizeof(int32_t));
+	ByteCode* pushVar=newByteCode(sizeof(char)+sizeof(Sid_t));
 	pushVar->code[0]=FAKE_PUSH_VAR;
 	AST_atom* tmpAtm=objCptr->u.atom;
 	CompDef* tmpDef=NULL;
@@ -1326,7 +1326,7 @@ ByteCodelnt* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	}
 	else
 		id=tmpDef->id;
-	*(int32_t*)(pushVar->code+sizeof(char))=id;
+	*(Sid_t*)(pushVar->code+sizeof(char))=id;
 	ByteCodelnt* bcl=newByteCodelnt(pushVar);
 	bcl->ls=1;
 	bcl->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
@@ -1543,8 +1543,8 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	AST_cptr* tmpCptr=objCptr;
 	AST_pair* objPair=NULL;
 	CompEnv* tmpEnv=newCompEnv(curEnv);
-	ByteCode* popArg=newByteCode(sizeof(char)+sizeof(int32_t)*2);
-	ByteCode* popRestArg=newByteCode(sizeof(char)+sizeof(int32_t)*2);
+	ByteCode* popArg=newByteCode(sizeof(char)+sizeof(Sid_t));
+	ByteCode* popRestArg=newByteCode(sizeof(char)+sizeof(Sid_t));
 	ByteCode* pArg=newByteCode(0);
 	popArg->code[0]=FAKE_POP_ARG;
 	popRestArg->code[0]=FAKE_POP_REST_ARG;
@@ -1566,8 +1566,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				return NULL;
 			}
 			CompDef* tmpDef=addCompDef(tmpAtm->value.str,tmpEnv);
-			*(int32_t*)(popArg->code+sizeof(char))=(int32_t)0;
-			*(int32_t*)(popArg->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
+			*(Sid_t*)(popArg->code+sizeof(char))=tmpDef->id;
 			codeCat(pArg,popArg);
 			if(nextCptr(argCptr)==NULL&&argCptr->outer->cdr.type==ATM)
 			{
@@ -1582,8 +1581,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 					return NULL;
 				}
 				tmpDef=addCompDef(tmpAtom1->value.str,tmpEnv);
-				*(int32_t*)(popRestArg->code+sizeof(char))=(int32_t)0;
-				*(int32_t*)(popRestArg->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
+				*(Sid_t*)(popRestArg->code+sizeof(char))=tmpDef->id;
 				codeCat(pArg,popRestArg);
 			}
 			argCptr=nextCptr(argCptr);
@@ -1602,8 +1600,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			return NULL;
 		}
 		CompDef* tmpDef=addCompDef(tmpAtm->value.str,tmpEnv);
-		*(int32_t*)(popRestArg->code+sizeof(char))=(int32_t)0;
-		*(int32_t*)(popRestArg->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
+		*(Sid_t*)(popRestArg->code+sizeof(char))=tmpDef->id;
 		codeCat(pArg,popRestArg);
 	}
 	freeByteCode(popRestArg);

@@ -36,9 +36,7 @@
                  fprint
                  print
                  fwrite
-                 square
-                 1+
-                 -1+)
+                 square)
          (define caar (lambda (a)
                         (car (car a))))
 
@@ -251,12 +249,6 @@
          (define square
            (lambda (x)
              (* x x)))
-
-         (define 1+ (lambda (a)
-                      (+ 1 a)))
-
-         (define -1+ (lambda (a)
-                       (+ -1 a)))
 
          (defmacro "'(a)" (cons (quote quote) (cons a ())))
          (defmacro "`(a)" (cons (quote qsquote) (cons a ())))

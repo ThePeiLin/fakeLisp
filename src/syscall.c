@@ -839,7 +839,7 @@ void SYS_nth(FakeVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.nth",WRONGARG,runnable,exe);
 	VMvalue* retval=NULL;
 	int32_t offset=GET_IN32(place);
-	if(IS_PAIR(objlist))
+	if(objlist==VM_NIL||IS_PAIR(objlist))
 	{
 		VMvalue* objPair=objlist;
 		int i=0;

@@ -865,7 +865,7 @@ void SYS_length(FakeVM* exe,pthread_rwlock_t* gclock)
 	if(!obj)
 		RAISE_BUILTIN_ERROR("sys.length",TOOFEWARG,runnable,exe);
 	int32_t len=0;
-	if(IS_PAIR(obj))
+	if(obj==VM_NIL||IS_PAIR(obj))
 		for(;IS_PAIR(obj);obj=getVMpairCdr(obj))len++;
 	else if(IS_STR(obj))
 		len=strlen(obj->u.str);

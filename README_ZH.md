@@ -404,6 +404,9 @@ stderr
 (length (quote (1 2 3)))
 ;=> 3
 
+(length ())
+;=> 0
+
 (length #b112233)
 ;=> 3
 ```

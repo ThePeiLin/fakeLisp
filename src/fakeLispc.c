@@ -48,6 +48,7 @@ int main(int argc,char** argv)
 			freeIntpr(inter);
 			unInitPreprocess();
 			free(InterpreterPath);
+			freeGlobSymbolTable();
 			return status;
 		}
 		//printByteCodelnt(mainByteCode,inter->table,stderr);

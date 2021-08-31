@@ -585,10 +585,7 @@ ErrorStatus defmacro(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 				FREE_ALL_LINE_NUMBER_TABLE(tmpByteCodelnt->l,tmpByteCodelnt->ls);
 				freeByteCodelnt(tmpByteCodelnt);
 			}
-			exError(status.place,status.status,inter);
 			free(args);
-			status.place=NULL;
-			status.status=0;
 		}
 		destroyCompEnv(tmpCompEnv);
 		free(tmpInter);

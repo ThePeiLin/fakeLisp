@@ -165,7 +165,7 @@
                        (1 (reverse r)))))
              (define iter
                (lambda (l r)
-                 (cond ((and l r)
+                 (cond ((and l (car l) r)
                         (iter (cdr l) (apply f (car l))))
                        (1 r))))
              (iter (iter1 l nil) 1)))
@@ -189,7 +189,7 @@
                        (1 (reverse r)))))
              (define iter
                (lambda (l r)
-                 (cond ((and l (not r))
+                 (cond ((and l (car l) (not r))
                         (iter (cdr l) (apply f (car l))))
                        (1 r))))
              (iter (iter1 l nil) nil)))

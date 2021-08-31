@@ -228,6 +228,26 @@ void SYS_add(FakeVM* exe,pthread_rwlock_t* gclock)
 		SET_RETURN("SYS_add",MAKE_VM_IN32(ri),stack);
 }
 
+void SYS_add_1(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* arg=GET_VAL(popVMstack(stack));
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR("sys.add_1",TOOMANYARG,runnable,exe);
+	if(!arg)
+		RAISE_BUILTIN_ERROR("sys.add_1",TOOFEWARG,runnable,exe);
+	if(!IS_DBL(arg)&&!IS_IN32(arg))
+		RAISE_BUILTIN_ERROR("sys.add_1",WRONGARG,runnable,exe);
+	if(IS_DBL(arg))
+	{
+		double r=*arg->u.dbl+1.0;
+		SET_RETURN("SYS_add_1",newVMvalue(DBL,&r,exe->heap),stack);
+	}
+	else
+		SET_RETURN("SYS_add_1",MAKE_VM_IN32(GET_IN32(arg)+1),stack);
+}
+
 void SYS_sub(FakeVM* exe,pthread_rwlock_t* gclock)
 {
 	VMstack* stack=exe->stack;
@@ -277,6 +297,26 @@ void SYS_sub(FakeVM* exe,pthread_rwlock_t* gclock)
 			SET_RETURN("SYS_sub",MAKE_VM_IN32(ri),stack);
 		}
 	}
+}
+
+void SYS_sub_1(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* arg=GET_VAL(popVMstack(stack));
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR("sys.sub_1",TOOMANYARG,runnable,exe);
+	if(!arg)
+		RAISE_BUILTIN_ERROR("sys.add_1",TOOFEWARG,runnable,exe);
+	if(!IS_DBL(arg)&&!IS_IN32(arg))
+		RAISE_BUILTIN_ERROR("sys.add_1",WRONGARG,runnable,exe);
+	if(IS_DBL(arg))
+	{
+		double r=*arg->u.dbl-1.0;
+		SET_RETURN("SYS_sub_1",newVMvalue(DBL,&r,exe->heap),stack);
+	}
+	else
+		SET_RETURN("SYS_sub_1",MAKE_VM_IN32(GET_IN32(arg)-1),stack);
 }
 
 void SYS_mul(FakeVM* exe,pthread_rwlock_t* gclock)

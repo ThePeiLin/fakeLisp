@@ -1090,7 +1090,7 @@ void GC_markValueInStack(VMstack* stack)
 	{
 		VMvalue* t=stack->values[i];
 		if(IS_CHF(stack->values[i]))
-			GC_markValue(((VMChref*)t)->from);
+			GC_markValue(((VMMemref*)t)->from);
 		else
 			GC_markValue(stack->values[i]);
 	}

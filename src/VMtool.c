@@ -1441,13 +1441,28 @@ int eqVMByts(const VMByts* fir,const VMByts* sec)
 	return !memcmp(fir->str,sec->str,sec->size);
 }
 
-VMvalue* newVMChref(VMvalue* from,char* obj)
+VMvalue* newVMMemref(VMvalue* from,uint8_t* obj,size_t size)
 {
-	VMChref* tmp=(VMChref*)malloc(sizeof(VMChref));
-	FAKE_ASSERT(tmp,"newVMChref",__FILE__,__LINE__);
+	VMMemref* tmp=(VMMemref*)malloc(sizeof(VMMemref));
+	FAKE_ASSERT(tmp,"newVMMemref",__FILE__,__LINE__);
 	tmp->from=from;
 	tmp->obj=obj;
+	tmp->size=size;
 	return MAKE_VM_CHF(tmp);
+}
+
+int setVMMemref(VMMemref* pRef,VMvalue* v)
+{
+	VMptrTag tag=GET_TAG(v);
+	switch(tag)
+	{
+		case CHR_TAG:
+			*pRef->obj=GET_CHR(v);
+			break;
+		case IN32_TAG:
+			return 255;
+	}
+	return 0;
 }
 
 VMvalue* GET_VAL(VMvalue* P)
@@ -1457,7 +1472,7 @@ VMvalue* GET_VAL(VMvalue* P)
 	else if(IS_CHF(P))
 	{
 		P=GET_PTR(P);
-		VMvalue* t=MAKE_VM_CHR(*((VMChref*)P)->obj);
+		VMvalue* t=MAKE_VM_CHR(*((VMMemref*)P)->obj);
 		free(P);
 		return t;
 	}

@@ -20,6 +20,8 @@
 	freeLineNumTabNode((l)[i]);\
 }
 
+size_t TagSizeList[]={8,8,4,4,};
+size_t TypeSizeList[]=
 const char* builtInErrorType[NUMOFBUILTINERRORTYPE]=
 {
 	"dummy",

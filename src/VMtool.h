@@ -44,7 +44,7 @@ extern const char*  builtInErrorType[NUMOFBUILTINERRORTYPE];
 #define GET_IN32(P) ((int32_t)((uintptr_t)(P)>>UNUSEDBITNUM))
 #define GET_CHR(P) ((char)((uintptr_t)(P)>>UNUSEDBITNUM))
 #define GET_SYM(P) ((Sid_t)((uintptr_t)(P)>>UNUSEDBITNUM))
-#define SET_REF(p,v) do{VMvalue* P=p;VMvalue* V=v;if(IS_CHF(P)){*((VMChref*)GET_PTR(P))->obj=GET_CHR(V);free(GET_PTR(P));} else *(VMvalue**)GET_PTR(P)=(V);}while(0)
+#define SET_REF(p,v) do{VMvalue* P=p;VMvalue* V=v;if(IS_CHF(P)){VMMemref* pRef=(VMMemref*)GET_PTR(P);setVMMemref(pRef,V);free(pRef);} else *(VMvalue**)GET_PTR(P)=(V);}while(0)
 #define IS_PTR(P) (GET_TAG(P)==PTR_TAG)
 #define IS_PAIR(P) (GET_TAG(P)==PTR_TAG&&(P)->type==PAIR)
 #define IS_DBL(P) (GET_TAG(P)==PTR_TAG&&(P)->type==DBL)
@@ -159,5 +159,6 @@ VMrunnable* newVMrunnable(VMproc*);
 char* genErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe);
 int32_t getSymbolIdInByteCode(const uint8_t*);
 int resBp(VMstack*);
-VMvalue* newVMChref(VMvalue* from,char* obj);
+VMvalue* newVMMemref(VMvalue* from,uint8_t* obj,size_t size);
+int setVMMemref(VMMemref* pRef,VMvalue* obj);
 #endif

@@ -255,11 +255,12 @@ typedef struct VMByts
 	uint8_t str[];
 }VMByts;
 
-typedef struct VMChref
+typedef struct VMMemref
 {
 	struct VMvalue* from;
-	char* obj;
-}VMChref;
+	uint8_t* obj;
+	size_t size;
+}VMMemref;
 
 typedef struct VMvalue
 {
@@ -417,4 +418,12 @@ typedef struct VMerrorHandler
 	Sid_t type;
 	VMproc proc;
 }VMerrorHandler;
+
+typedef struct VMMemoryLayout
+{
+	Sid_t type;
+	Sid_t* symbols;
+	size_t size;
+	size_t layout[];
+}VMMemoryLayout;
 #endif

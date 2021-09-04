@@ -8,13 +8,14 @@
 #define THRESHOLD_SIZE 64
 #define NUMOFBUILTINSYMBOL 51
 #define MAX_STRING_SIZE 64
-#define NUMOFBUILTINERRORTYPE 20
+#define NUMOFBUILTINERRORTYPE 21
 #define STATIC_SYMBOL_INIT {0,NULL,NULL}
 #define UNUSEDBITNUM 3
 #define PTR_MASK ((intptr_t)0xFFFFFFFFFFFFFFF8)
 #define TAG_MASK ((intptr_t)0x7)
 
 typedef struct VMvalue* VMptr;
+typedef struct VMStructMember VMStructMember;
 typedef enum
 {
 	PTR_TAG=0,
@@ -26,13 +27,45 @@ typedef enum
 	CHF_TAG,
 }VMptrTag;
 
-typedef enum{NIL=0,IN32,CHR,DBL,SYM,STR,BYTS,PRC,CONT,CHAN,FP,DLL,DLPROC,ERR,PAIR,ATM} ValueType;
+typedef enum
+{
+	NATIVE_TYPE_TAG=0,
+	ARRAY_TYPE_TAG,
+	PTR_TYPE_TAG,
+	STRUCT_TYPE_TAG,
+	UNION_TYPE_TAG,
+	BITS_TYPE_TAG,
+	FUNC_TYPE_TAG,
+}DefTypeTag;
+
 typedef uint32_t Sid_t;
+
+typedef union VMTypeUnion
+{
+	void* all;
+	struct VMNativeType* nt;
+	struct VMArrayType* at;
+	struct VMPtrType* pt;
+	struct VMStructType* st;
+}VMTypeUnion;
+
+typedef struct VMDefTypes
+{
+	size_t num;
+	struct
+	{
+		Sid_t name;
+		VMTypeUnion type;
+	}* u;
+}VMDefTypes;
+
+typedef enum{NIL=0,IN32,CHR,DBL,SYM,STR,BYTS,PRC,CONT,CHAN,FP,DLL,DLPROC,ERR,PAIR,ATM} ValueType;
 typedef enum
 {
 	SYMUNDEFINE=1,
 	SYNTAXERROR,
 	INVALIDEXPR,
+	INVALIDTYPEDEF,
 	CIRCULARLOAD,
 	INVALIDPATTERN,
 	WRONGARG,
@@ -235,6 +268,7 @@ typedef struct Interpreter
 	CompEnv* glob;
 	struct LineNumberTable* lnt;
 	struct Interpreter* prev;
+	VMDefTypes* deftypes;
 }Intpr;
 
 typedef struct Key_Word
@@ -342,6 +376,7 @@ typedef struct FakeVM
 	struct LineNumberTable* lnt;
 	void (*callback)(void*);
 	jmp_buf buf;
+	VMDefTypes* deftypes;
 }FakeVM;
 
 typedef struct VMHeap
@@ -419,11 +454,33 @@ typedef struct VMerrorHandler
 	VMproc proc;
 }VMerrorHandler;
 
-typedef struct VMMemoryLayout
+typedef struct VMNativeType
 {
 	Sid_t type;
-	Sid_t* symbols;
-	size_t size;
-	size_t layout[];
-}VMMemoryLayout;
+	uint32_t size;
+}VMNativeType;
+
+typedef struct VMArrayType
+{
+	size_t num;
+	size_t totalSize;
+	VMTypeUnion etype;
+}VMArrayType;
+
+typedef struct VMPtrType
+{
+	VMTypeUnion ptype;
+}VMPtrType;
+
+typedef struct VMStructType
+{
+	Sid_t type;
+	uint32_t num;
+	size_t totalSize;
+	struct VMStructMember
+	{
+		Sid_t memberSymbol;
+		VMTypeUnion type;
+	}layout[];
+}VMStructType;
 #endif

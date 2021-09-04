@@ -20,6 +20,8 @@ static int fmatcmp(const AST_cptr*,const AST_cptr*,PreEnv**,CompEnv*);
 static int isVal(const char*);
 static ErrorStatus defmacro(AST_cptr*,CompEnv*,Intpr*);
 static CompEnv* createPatternCompEnv(char**,int32_t,CompEnv*);
+static VMTypeUnion genDefTypes(AST_cptr*,VMDefTypes* otherTypes,Sid_t* typeName);
+static void addDefTypes(VMDefTypes*,Sid_t typeName,VMTypeUnion);
 
 static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap)
 {
@@ -504,6 +506,7 @@ void initGlobKeyWord(CompEnv* glob)
 	addKeyWord("export",glob);
 	addKeyWord("try",glob);
 	addKeyWord("catch",glob);
+	addKeyWord("deftype",glob);
 }
 
 void unInitPreprocess()
@@ -675,6 +678,27 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 				status->place=t.place;
 				return NULL;
 			}
+			ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
+			tmp->ls=1;
+			tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
+			FAKE_ASSERT(tmp->l,"compile",__FILE__,__LINE__);
+			tmp->l[0]=newLineNumTabNode(addSymbolToGlob(inter->filename)->id
+					,0
+					,0
+					,objCptr->curline);
+			return tmp;
+		}
+		else if(isDeftypeExpression(objCptr))
+		{
+			Sid_t typeName=0;
+			VMTypeUnion type={.all=genDefTypes(objCptr,inter->deftypes,&typeName).all};
+			if(!type.all)
+			{
+				status->status=INVALIDTYPEDEF;
+				status->place=objCptr;
+				return NULL;
+			}
+			addDefTypes(inter->deftypes,typeName,type);
 			ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
 			tmp->ls=1;
 			tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
@@ -2897,4 +2921,8 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	t->l[t->ls-1]->cpc+=popTry->size;
 	freeByteCode(popTry);
 	return t;
+}
+
+VMTypeUnion genDefTypes(AST_cptr* objCptr,VMDefTypes* otherTypes,Sid_t* typeName)
+{
 }

@@ -20,14 +20,13 @@
 	freeLineNumTabNode((l)[i]);\
 }
 
-size_t TagSizeList[]={8,8,4,4,};
-size_t TypeSizeList[]=
 const char* builtInErrorType[NUMOFBUILTINERRORTYPE]=
 {
 	"dummy",
 	"symbol-undefined",
 	"syntax-error",
 	"invalid-expression",
+	"invalid-type-def",
 	"circular-load",
 	"invalid-pattern",
 	"wrong-types-of-arguements",
@@ -760,6 +759,10 @@ void exError(const AST_cptr* obj,int type,Intpr* inter)
 			break;
 		case INVALIDEXPR:
 			fprintf(stderr,":Invalid expression ");
+			if(obj!=NULL)printCptr(obj,stderr);
+			break;
+		case INVALIDTYPEDEF:
+			fprintf(stderr,":Invalid type define ");
 			if(obj!=NULL)printCptr(obj,stderr);
 			break;
 		case CIRCULARLOAD:

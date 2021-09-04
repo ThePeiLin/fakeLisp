@@ -64,6 +64,16 @@ extern const char*  builtInErrorType[NUMOFBUILTINERRORTYPE];
 #define IS_CHF(P) (GET_TAG(P)==CHF_TAG)
 #define FREE_CHF(P) (free(GET_PTR(P)))
 
+#define MAKE_NATIVE_TYPE(P) ((void*)(((uintptr_t)(P))|NATIVE_TYPE_TAG))
+#define MAKE_ARRAY_TYPE(P) ((void*)(((uintptr_t)(P))|ARRAY_TYPE_TAG))
+#define MAKE_PTR_TYPE(P) ((void*)(((uintptr_t)(P))|PTR_TYPE_TAG))
+#define MAKE_STRUCT_TYPE(P) ((void*)(((uintptr_t)(P))|STRUCT_TYPE_TAG))
+#define MAKE_UNION_TYPE(P) ((void*)(((uintptr_t)(P))|UNION_TYPE_TAG))
+#define MAKE_BITS_TYPE(P) ((void*)(((uintptr_t)(P))|BITS_TYPE_TAG))
+#define MAKE_FUNC_TYPE(P) ((void*)(((uintptr_t)(P))|FUNC_TYPE_TAG))
+#define GET_TYPES_PTR(P) ((void*)(((uintptr_t)(P))&PTR_MASK))
+#define GET_TYPES_TAG(P) ((DefTypeTag)(((uintptr_t)(P))&TAG_MASK))
+
 typedef struct Cirular_Ref_List
 {
 	VMpair* pair;
@@ -161,4 +171,14 @@ int32_t getSymbolIdInByteCode(const uint8_t*);
 int resBp(VMstack*);
 VMvalue* newVMMemref(VMvalue* from,uint8_t* obj,size_t size);
 int setVMMemref(VMMemref* pRef,VMvalue* obj);
+
+VMNativeType* newVMNativeType(Sid_t,size_t);
+void freeVMNativeType(VMNativeType*);
+
+VMArrayType* newVMArrayType(VMTypeUnion,size_t);
+void freeVMArrayType(VMArrayType*);
+
+VMStructType* newVMStructType(Sid_t,uint32_t,Sid_t[],VMTypeUnion []);
+void freeVMStructType(VMStructType*);
+size_t getVMTypeSize(VMTypeUnion t);
 #endif

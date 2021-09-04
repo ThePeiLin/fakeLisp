@@ -5,6 +5,7 @@
 #include<stdio.h>
 #include<math.h>
 #include<pthread.h>
+#include<ffi.h>
 #ifndef _WIN32
 #include<dlfcn.h>
 #else
@@ -1459,7 +1460,7 @@ int setVMMemref(VMMemref* pRef,VMvalue* v)
 		case CHR_TAG:
 			*pRef->obj=GET_CHR(v);
 			break;
-		case IN32_TAG:
+		default:
 			return 255;
 	}
 	return 0;
@@ -1477,4 +1478,92 @@ VMvalue* GET_VAL(VMvalue* P)
 		return t;
 	}
 	return P;
+}
+
+VMNativeType* newVMNativeType(Sid_t type,size_t size)
+{
+	VMNativeType* tmp=(VMNativeType*)malloc(sizeof(VMNativeType));
+	FAKE_ASSERT(tmp,"newVMNativeType",__FILE__,__LINE__);
+	tmp->type=type;
+	tmp->size=size;
+	return tmp;
+}
+
+void freeVMNativeType(VMNativeType* obj)
+{
+	free(obj);
+}
+
+size_t getVMTypeSize(VMTypeUnion t)
+{
+	DefTypeTag tag=GET_TYPES_TAG(t.all);
+	t.all=GET_TYPES_PTR(t.all);
+	switch(tag)
+	{
+		case NATIVE_TYPE_TAG:
+			return t.nt->size;
+			break;
+		case ARRAY_TYPE_TAG:
+			return t.at->totalSize;
+			break;
+		case PTR_TYPE_TAG:
+			return sizeof(void*);
+			break;
+		case STRUCT_TYPE_TAG:
+			return t.st->totalSize;
+			break;
+		default:
+			return 0;
+			break;
+	}
+}
+
+VMArrayType* newVMArrayType(VMTypeUnion type,size_t num)
+{
+	VMArrayType* tmp=(VMArrayType*)malloc(sizeof(VMArrayType));
+	FAKE_ASSERT(tmp,"newVMArrayType",__FILE__,__LINE__);
+	tmp->etype=type;
+	tmp->num=num;
+	tmp->totalSize=num*getVMTypeSize(type);
+	return MAKE_ARRAY_TYPE(tmp);
+}
+
+void freeVMArrayType(VMArrayType* obj)
+{
+	free(GET_TYPES_PTR(obj));
+}
+
+VMPtrType* newVMPtrType(VMTypeUnion type)
+{
+	VMPtrType* tmp=(VMPtrType*)malloc(sizeof(VMPtrType));
+	FAKE_ASSERT(tmp,"newVMPtrType",__FILE__,__LINE__);
+	tmp->ptype=type;
+	return MAKE_PTR_TYPE(tmp);
+}
+
+void freeVMPtrType(VMPtrType* obj)
+{
+	free(GET_TYPES_PTR(obj));
+}
+
+VMStructType* newVMStructType(Sid_t type,uint32_t num,Sid_t symbols[],VMTypeUnion memberTypes[])
+{
+	size_t totalSize=0;
+	for(uint32_t i=0;i<num;totalSize+=getVMTypeSize(memberTypes[i]),i++);
+	VMStructType* tmp=(VMStructType*)malloc(sizeof(VMStructType)+sizeof(VMStructMember)*num);
+	FAKE_ASSERT(tmp,"newVMStructType",__FILE__,__LINE__);
+	tmp->type=type;
+	tmp->num=num;
+	tmp->totalSize=totalSize;
+	for(uint32_t i=0;i<num;i++)
+	{
+		tmp->layout[i].memberSymbol=symbols[i];
+		tmp->layout[i].type=memberTypes[i];
+	}
+	return MAKE_STRUCT_TYPE(tmp);
+}
+
+void freeVMStructType(VMStructType* obj)
+{
+	free(GET_TYPES_PTR(obj));
 }

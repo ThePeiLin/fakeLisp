@@ -1567,3 +1567,88 @@ void freeVMStructType(VMStructType* obj)
 {
 	free(GET_TYPES_PTR(obj));
 }
+
+int addDefTypes(VMDefTypes* otherTypes,Sid_t typeName,VMTypeUnion type)
+{
+	if(otherTypes->num==0)
+	{
+		otherTypes->num+=1;
+		VMDefTypesNode* node=(VMDefTypesNode*)malloc(sizeof(VMDefTypesNode));
+		otherTypes->u=(VMDefTypesNode**)malloc(sizeof(VMDefTypesNode*)*1);
+		FAKE_ASSERT(otherTypes->u&&node,"addDefTypes",__FILE__,__LINE__);
+		node->name=typeName;
+		node->type=type;
+		otherTypes->u[0]=node;
+	}
+	else
+	{
+		int64_t l=0;
+		int64_t h=otherTypes->num-1;
+		int64_t mid=0;
+		while(l<=h)
+		{
+			mid=l+(h-l)/2;
+			int64_t r=otherTypes->u[mid]->name-typeName;
+			if(r>0)
+				h=mid-1;
+			else if(r<0)
+				l=mid+1;
+			else
+				return 1;
+		}
+		if((otherTypes->u[mid]->name-typeName)<0)
+			mid++;
+		otherTypes->num+=1;
+		int64_t i=otherTypes->num-1;
+		otherTypes->u=(VMDefTypesNode**)realloc(otherTypes->u,sizeof(VMDefTypesNode*)*otherTypes->num);
+		VMDefTypesNode* node=(VMDefTypesNode*)malloc(sizeof(VMDefTypesNode));
+		FAKE_ASSERT(otherTypes->u&&node,"addDefTypes",__FILE__,__LINE__);
+		node->name=typeName;
+		node->type=type;
+		for(;i>mid;i--)
+			otherTypes->u[i]=otherTypes->u[i-1];
+		otherTypes->u[mid]=node;
+	}
+	return 0;
+}
+
+VMTypeUnion findVMDefTypesNode(Sid_t typeName,VMDefTypes* otherTypes)
+{
+	int64_t l=0;
+	int64_t h=otherTypes->num-1;
+	int64_t mid=0;
+	while(l<=h)
+	{
+		mid=l+(h-l)/2;
+		int64_t r=otherTypes->u[mid]->name-typeName;
+		if(r>0)
+			h=mid-1;
+		else if(r<0)
+			l=mid+1;
+		else
+			return otherTypes->u[mid]->type;
+	}
+	return (VMTypeUnion){.all=NULL};
+}
+
+VMTypeUnion genDefTypes(AST_cptr* objCptr,VMDefTypes* otherTypes,Sid_t* typeName)
+{
+	AST_cptr* fir=nextCptr(getFirstCptr(objCptr));
+	if(fir->type!=ATM||fir->u.atom->type!=SYM)
+		return (VMTypeUnion){.all=NULL};
+	Sid_t typeId=addSymbolToGlob(fir->u.atom->value.str)->id;
+	*typeName=typeId;
+	fir=nextCptr(fir);
+	if(fir->type!=ATM&&fir->type!=PAIR)
+		return (VMTypeUnion){.all=NULL};
+	if(fir->type==ATM)
+	{
+		if(fir->u.atom->type!=SYM)
+			return (VMTypeUnion){.all=NULL};
+		Sid_t objTypeName=addSymbolToGlob(fir->u.atom->value.str)->id;
+		VMTypeUnion tmp=findVMDefTypesNode(objTypeName,otherTypes);
+		return tmp;
+	}
+	else
+		return (VMTypeUnion){.all=NULL};
+}

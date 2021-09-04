@@ -49,14 +49,15 @@ typedef union VMTypeUnion
 	struct VMStructType* st;
 }VMTypeUnion;
 
+typedef struct VMDefTypesNode
+{
+	Sid_t name;
+	VMTypeUnion type;
+}VMDefTypesNode;
 typedef struct VMDefTypes
 {
 	size_t num;
-	struct
-	{
-		Sid_t name;
-		VMTypeUnion type;
-	}* u;
+	VMDefTypesNode** u;
 }VMDefTypes;
 
 typedef enum{NIL=0,IN32,CHR,DBL,SYM,STR,BYTS,PRC,CONT,CHAN,FP,DLL,DLPROC,ERR,PAIR,ATM} ValueType;

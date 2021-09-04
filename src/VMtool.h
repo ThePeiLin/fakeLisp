@@ -172,6 +172,10 @@ int resBp(VMstack*);
 VMvalue* newVMMemref(VMvalue* from,uint8_t* obj,size_t size);
 int setVMMemref(VMMemref* pRef,VMvalue* obj);
 
+VMTypeUnion genDefTypes(AST_cptr*,VMDefTypes* otherTypes,Sid_t* typeName);
+VMTypeUnion findVMDefTypesNode(Sid_t typeId,VMDefTypes* otherTypes);
+int addDefTypes(VMDefTypes*,Sid_t typeName,VMTypeUnion);
+
 VMNativeType* newVMNativeType(Sid_t,size_t);
 void freeVMNativeType(VMNativeType*);
 

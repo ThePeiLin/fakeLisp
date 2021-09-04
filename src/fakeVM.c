@@ -825,7 +825,7 @@ void B_append(FakeVM* exe)
 	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* fir=GET_VAL(getTopValue(stack));
 	VMvalue* sec=GET_VAL(getValue(stack,stack->tp-2));
-	if(sec!=VM_NIL&&!IS_PAIR(sec)&&sec->type!=STR&&sec->type!=BYTS)
+	if(sec!=VM_NIL&&!IS_PAIR(sec))
 		RAISE_BUILTIN_ERROR("b.append",WRONGARG,runnable,exe);
 	if(!IS_PAIR(sec))
 		RAISE_BUILTIN_ERROR("b.append",WRONGARG,runnable,exe);

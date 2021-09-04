@@ -20,8 +20,6 @@ static int fmatcmp(const AST_cptr*,const AST_cptr*,PreEnv**,CompEnv*);
 static int isVal(const char*);
 static ErrorStatus defmacro(AST_cptr*,CompEnv*,Intpr*);
 static CompEnv* createPatternCompEnv(char**,int32_t,CompEnv*);
-static VMTypeUnion genDefTypes(AST_cptr*,VMDefTypes* otherTypes,Sid_t* typeName);
-static void addDefTypes(VMDefTypes*,Sid_t typeName,VMTypeUnion);
 
 static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap)
 {
@@ -698,7 +696,12 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 				status->place=objCptr;
 				return NULL;
 			}
-			addDefTypes(inter->deftypes,typeName,type);
+			if(addDefTypes(inter->deftypes,typeName,type))
+			{
+				status->status=INVALIDTYPEDEF;
+				status->place=objCptr;
+				return NULL;
+			}
 			ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
 			tmp->ls=1;
 			tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
@@ -2921,8 +2924,4 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	t->l[t->ls-1]->cpc+=popTry->size;
 	freeByteCode(popTry);
 	return t;
-}
-
-VMTypeUnion genDefTypes(AST_cptr* objCptr,VMDefTypes* otherTypes,Sid_t* typeName)
-{
 }

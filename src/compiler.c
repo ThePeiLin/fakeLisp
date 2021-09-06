@@ -1321,7 +1321,7 @@ ByteCodelnt* compileAlcf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		status->place=typeCptr;
 		return NULL;
 	}
-	ByteCode* pushMem=newByteCode(sizeof(char)+sizeof(uint8_t));
+	ByteCode* pushMem=newByteCode(sizeof(char)+sizeof(uint32_t));
 	ByteCodelnt* tmp=newByteCodelnt(pushMem);
 	pushMem->code[0]=FAKE_PUSH_MEM;
 	*(uint32_t*)(pushMem->code+sizeof(char))=getVMTypeSize(type);

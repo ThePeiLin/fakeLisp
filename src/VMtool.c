@@ -14,6 +14,21 @@
 
 extern SymbolTable GlobSymbolTable;
 static int isNativeType(Sid_t typeName,VMDefTypes* otherTypes);
+static struct
+{
+	size_t num;
+	VMTypeUnion* ul;
+} GlobTypeUnionList={0,NULL};
+static TypeId_t addToGlobTypeUnionList(VMTypeUnion type)
+{
+	GlobTypeUnionList.num+=1;
+	size_t num=GlobTypeUnionList.num;
+	GlobTypeUnionList.ul=(VMTypeUnion*)realloc(GlobTypeUnionList.ul,sizeof(VMTypeUnion)*num);
+	FAKE_ASSERT(GlobTypeUnionList.ul,"addToGlobTypeUnionList",__FILE__,__LINE__);
+	GlobTypeUnionList.ul[num-1]=type;
+	return num-1;
+}
+
 static CRL* newCRL(VMpair* pair,int32_t count)
 {
 	CRL* tmp=(CRL*)malloc(sizeof(CRL));
@@ -1487,6 +1502,8 @@ VMNativeType* newVMNativeType(Sid_t type,size_t size)
 	FAKE_ASSERT(tmp,"newVMNativeType",__FILE__,__LINE__);
 	tmp->type=type;
 	tmp->size=size;
+	tmp=MAKE_NATIVE_TYPE(tmp);
+	addToGlobTypeUnionList((VMTypeUnion)tmp);
 	return tmp;
 }
 
@@ -1526,7 +1543,9 @@ VMArrayType* newVMArrayType(VMTypeUnion type,size_t num)
 	tmp->etype=type;
 	tmp->num=num;
 	tmp->totalSize=num*getVMTypeSize(type);
-	return MAKE_ARRAY_TYPE(tmp);
+	tmp=MAKE_ARRAY_TYPE(tmp);
+	addToGlobTypeUnionList((VMTypeUnion)tmp);
+	return tmp;
 }
 
 void freeVMArrayType(VMArrayType* obj)
@@ -1539,7 +1558,9 @@ VMPtrType* newVMPtrType(VMTypeUnion type)
 	VMPtrType* tmp=(VMPtrType*)malloc(sizeof(VMPtrType));
 	FAKE_ASSERT(tmp,"newVMPtrType",__FILE__,__LINE__);
 	tmp->ptype=type;
-	return MAKE_PTR_TYPE(tmp);
+	tmp=MAKE_PTR_TYPE(tmp);
+	addToGlobTypeUnionList((VMTypeUnion)tmp);
+	return tmp;
 }
 
 void freeVMPtrType(VMPtrType* obj)
@@ -1684,7 +1705,7 @@ int isNativeType(Sid_t typeName,VMDefTypes* otherTypes)
 
 VMMem* newVMMem(Sid_t type,uint8_t* mem)
 {
-	VMMem* tmp=(VMMem*)malloc(sizeof(VMMem*));
+	VMMem* tmp=(VMMem*)malloc(sizeof(VMMem));
 	FAKE_ASSERT(tmp,"newVMMem",__FILE__,__LINE__);
 	tmp->type=type;
 	tmp->mem=mem;

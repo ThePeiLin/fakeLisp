@@ -506,12 +506,12 @@ void B_push_mem(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMrunnable* r=topComStack(exe->rstack);
-	int32_t size=*(int32_t*)(exe->code+r->cp+1+sizeof(Sid_t));
+	uint32_t size=*(uint32_t*)(exe->code+r->cp+sizeof(char));
 	uint8_t* mem=(uint8_t*)malloc(size);
 	FAKE_ASSERT(mem,"B_push_mem",__FILE__,__LINE__);
 	VMvalue* a=(VMvalue*)newVMMem(0,mem);
 	SET_RETURN("B_push_mem",MAKE_VM_MEM(a),stack);
-	r->cp+=sizeof(char)+sizeof(Sid_t)+sizeof(int32_t);
+	r->cp+=sizeof(char)+sizeof(uint32_t);
 }
 
 void B_pop(FakeVM* exe)

@@ -183,6 +183,9 @@ void freeVMNativeType(VMNativeType*);
 VMArrayType* newVMArrayType(VMTypeUnion,size_t);
 void freeVMArrayType(VMArrayType*);
 
+VMPtrType* newVMPtrType(VMTypeUnion);
+void freeVMPtrType(VMPtrType*);
+
 VMStructType* newVMStructType(Sid_t,uint32_t,Sid_t[],VMTypeUnion []);
 void freeVMStructType(VMStructType*);
 size_t getVMTypeSize(VMTypeUnion t);

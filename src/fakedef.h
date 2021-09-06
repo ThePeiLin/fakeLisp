@@ -40,6 +40,7 @@ typedef enum
 }DefTypeTag;
 
 typedef uint32_t Sid_t;
+typedef size_t TypeId_t;
 
 typedef union VMTypeUnion
 {

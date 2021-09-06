@@ -835,7 +835,7 @@ void destroyEnv(PreEnv* objEnv)
 	}
 }
 
-Intpr* newIntpr(const char* filename,FILE* file,CompEnv* env,LineNumberTable* lnt)
+Intpr* newIntpr(const char* filename,FILE* file,CompEnv* env,LineNumberTable* lnt,VMDefTypes* deftypes)
 {
 	Intpr* tmp=NULL;
 	FAKE_ASSERT((tmp=(Intpr*)malloc(sizeof(Intpr))),"newIntpr",__FILE__,__LINE__)
@@ -870,6 +870,10 @@ Intpr* newIntpr(const char* filename,FILE* file,CompEnv* env,LineNumberTable* ln
 		tmp->glob=env;
 		return tmp;
 	}
+	if(deftypes)
+		tmp->deftypes=deftypes;
+	else
+		tmp->deftypes=newVMDefTypes();
 	tmp->glob=newCompEnv(NULL);
 	initCompEnv(tmp->glob);
 	return tmp;
@@ -1704,9 +1708,14 @@ void printSymbolTable(SymbolTable* table,FILE* fp)
 	for(;i<table->num;i++)
 	{
 		SymTabNode* cur=table->list[i];
-		printf("symbol:%s id:%d\n",cur->symbol,cur->id);
+		fprintf(fp,"symbol:%s id:%d\n",cur->symbol,cur->id);
 	}
-	printf("size:%d\n",table->num);
+	fprintf(fp,"size:%d\n",table->num);
+}
+
+void printGlobSymbolTable(FILE* fp)
+{
+	printSymbolTable(&GlobSymbolTable,fp);
 }
 
 AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
@@ -2559,4 +2568,11 @@ uint8_t* createByteArry(int32_t size)
 	return tmp;
 }
 
-
+VMDefTypes* newVMDefTypes(void)
+{
+	VMDefTypes* tmp=(VMDefTypes*)malloc(sizeof(VMDefTypes));
+	FAKE_ASSERT(tmp,"newVMDefTypes",__FILE__,__LINE__);
+	tmp->num=0;
+	tmp->u=NULL;
+	return tmp;
+}

@@ -53,6 +53,7 @@ static void (*ByteCodes[])(FakeVM*)=
 	B_push_env_var,
 	B_push_top,
 	B_push_proc,
+	B_push_mem,
 	B_pop,
 	B_pop_var,
 	B_pop_arg,
@@ -499,6 +500,18 @@ void B_push_proc(FakeVM* exe)
 	VMvalue* objValue=newVMvalue(PRC,code,exe->heap);
 	SET_RETURN("B_push_proc",objValue,stack);
 	runnable->cp+=5+sizeOfProc;
+}
+
+void B_push_mem(FakeVM* exe)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* r=topComStack(exe->rstack);
+	int32_t size=*(int32_t*)(exe->code+r->cp+1+sizeof(Sid_t));
+	uint8_t* mem=(uint8_t*)malloc(size);
+	FAKE_ASSERT(mem,"B_push_mem",__FILE__,__LINE__);
+	VMvalue* a=(VMvalue*)newVMMem(0,mem);
+	SET_RETURN("B_push_mem",MAKE_VM_MEM(a),stack);
+	r->cp+=sizeof(char)+sizeof(Sid_t)+sizeof(int32_t);
 }
 
 void B_pop(FakeVM* exe)

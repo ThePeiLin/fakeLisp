@@ -37,8 +37,9 @@ int main(int argc,char** argv)
 #else
 		char* rp=realpath(filename,0);
 #endif
-		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL);
+		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
 		initGlobKeyWord(inter->glob);
+		initNativeDefTypes(inter->deftypes);
 		addSymbolToGlob(argv[1]);
 		int status;
 		ByteCodelnt* mainByteCode=compileFile(inter,1,&status);

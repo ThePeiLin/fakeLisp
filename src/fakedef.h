@@ -25,6 +25,7 @@ typedef enum
 	CHR_TAG,
 	REF_TAG,
 	CHF_TAG,
+	MEM_TAG,
 }VMptrTag;
 
 typedef enum
@@ -296,6 +297,12 @@ typedef struct VMMemref
 	uint8_t* obj;
 	size_t size;
 }VMMemref;
+
+typedef struct VMMem
+{
+	size_t type;
+	uint8_t* mem;
+}VMMem;
 
 typedef struct VMvalue
 {

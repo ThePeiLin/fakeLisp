@@ -50,7 +50,7 @@ CompDef* addCompDef(const char*,CompEnv*);
 CompEnv* newCompEnv(CompEnv*);
 void destroyCompEnv(CompEnv*);
 CompDef* findCompDef(const char*,CompEnv*);
-Intpr* newIntpr(const char*,FILE*,CompEnv*,LineNumberTable*);
+Intpr* newIntpr(const char*,FILE*,CompEnv*,LineNumberTable*,VMDefTypes* deftypes);
 Intpr* newTmpIntpr(const char*,FILE*);
 int isscript(const char*);
 int iscode(const char*);
@@ -100,6 +100,7 @@ SymTabNode* findSymbol(const char*,SymbolTable*);
 SymTabNode* findSymbolInGlob(const char*);
 SymTabNode* getGlobSymbolWithId(Sid_t id);
 void printSymbolTable(SymbolTable*,FILE*);
+void printGlobSymbolTable(FILE*);
 void freeSymTabNode(SymTabNode*);
 void freeSymbolTable(SymbolTable*);
 void freeGlobSymbolTable();
@@ -164,4 +165,6 @@ void pushComQueue(void*,ComQueue*);
 ComQueue* copyComQueue(ComQueue*);
 char* strCat(char*,const char*);
 uint8_t* createByteArry(int32_t);
+
+VMDefTypes* newVMDefTypes(void);
 #endif

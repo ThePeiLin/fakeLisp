@@ -13,6 +13,7 @@
 #endif
 
 extern SymbolTable GlobSymbolTable;
+static int isNativeType(Sid_t typeName,VMDefTypes* otherTypes);
 static CRL* newCRL(VMpair* pair,int32_t count)
 {
 	CRL* tmp=(CRL*)malloc(sizeof(CRL));
@@ -1588,7 +1589,7 @@ int addDefTypes(VMDefTypes* otherTypes,Sid_t typeName,VMTypeUnion type)
 		while(l<=h)
 		{
 			mid=l+(h-l)/2;
-			int64_t r=otherTypes->u[mid]->name-typeName;
+			int64_t r=(int64_t)otherTypes->u[mid]->name-(int64_t)typeName;
 			if(r>0)
 				h=mid-1;
 			else if(r<0)
@@ -1596,7 +1597,7 @@ int addDefTypes(VMDefTypes* otherTypes,Sid_t typeName,VMTypeUnion type)
 			else
 				return 1;
 		}
-		if((otherTypes->u[mid]->name-typeName)<0)
+		if((int64_t)otherTypes->u[mid]->name-(int64_t)typeName<0)
 			mid++;
 		otherTypes->num+=1;
 		int64_t i=otherTypes->num-1;
@@ -1620,7 +1621,7 @@ VMTypeUnion findVMDefTypesNode(Sid_t typeName,VMDefTypes* otherTypes)
 	while(l<=h)
 	{
 		mid=l+(h-l)/2;
-		int64_t r=otherTypes->u[mid]->name-typeName;
+		int64_t r=(int64_t)otherTypes->u[mid]->name-(int64_t)typeName;
 		if(r>0)
 			h=mid-1;
 		else if(r<0)
@@ -1637,18 +1638,55 @@ VMTypeUnion genDefTypes(AST_cptr* objCptr,VMDefTypes* otherTypes,Sid_t* typeName
 	if(fir->type!=ATM||fir->u.atom->type!=SYM)
 		return (VMTypeUnion){.all=NULL};
 	Sid_t typeId=addSymbolToGlob(fir->u.atom->value.str)->id;
+	if(isNativeType(typeId,otherTypes))
+		return (VMTypeUnion){.all=NULL};
 	*typeName=typeId;
 	fir=nextCptr(fir);
 	if(fir->type!=ATM&&fir->type!=PAIR)
 		return (VMTypeUnion){.all=NULL};
-	if(fir->type==ATM)
+	return genDefTypesUnion(fir,otherTypes);
+}
+
+VMTypeUnion genDefTypesUnion(AST_cptr* objCptr,VMDefTypes* otherTypes)
+{
+	if(objCptr->type==ATM&&objCptr->u.atom->type==SYM)
+		return findVMDefTypesNode(addSymbolToGlob(objCptr->u.atom->value.str)->id,otherTypes);
+	else if(objCptr->type==PAIR)
 	{
-		if(fir->u.atom->type!=SYM)
+		AST_cptr* compositeDataHead=getFirstCptr(objCptr);
+		if(compositeDataHead->type!=ATM||compositeDataHead->u.atom->type!=SYM)
 			return (VMTypeUnion){.all=NULL};
-		Sid_t objTypeName=addSymbolToGlob(fir->u.atom->value.str)->id;
-		VMTypeUnion tmp=findVMDefTypesNode(objTypeName,otherTypes);
-		return tmp;
+		if(!strcmp(compositeDataHead->u.atom->value.str,"array"))
+		{
+			AST_cptr* numCptr=nextCptr(compositeDataHead);
+			if(!numCptr||numCptr->type!=ATM||numCptr->u.atom->type!=IN32)
+				return (VMTypeUnion){.all=NULL};
+			AST_cptr* typeCptr=nextCptr(numCptr);
+			if(!typeCptr)
+				return (VMTypeUnion){.all=NULL};
+			VMTypeUnion type=genDefTypesUnion(typeCptr,otherTypes);
+			if(!type.all)
+				return type;
+			return (VMTypeUnion){.at=newVMArrayType(type,numCptr->u.atom->value.in32)};
+		}
+		else
+			return (VMTypeUnion){.all=NULL};
 	}
 	else
 		return (VMTypeUnion){.all=NULL};
+}
+
+int isNativeType(Sid_t typeName,VMDefTypes* otherTypes)
+{
+	VMTypeUnion type=findVMDefTypesNode(typeName,otherTypes);
+	return type.all!=NULL&&GET_TYPES_TAG(type.all)==NATIVE_TYPE_TAG;
+}
+
+VMMem* newVMMem(Sid_t type,uint8_t* mem)
+{
+	VMMem* tmp=(VMMem*)malloc(sizeof(VMMem*));
+	FAKE_ASSERT(tmp,"newVMMem",__FILE__,__LINE__);
+	tmp->type=type;
+	tmp->mem=mem;
+	return tmp;
 }

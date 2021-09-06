@@ -39,6 +39,7 @@ extern const char*  builtInErrorType[NUMOFBUILTINERRORTYPE];
 #define MAKE_VM_PTR(P) ((VMptr)(((uintptr_t)(P))|PTR_TAG))
 #define MAKE_VM_REF(P) ((VMptr)(((uintptr_t)(P))|REF_TAG))
 #define MAKE_VM_CHF(P) ((VMptr)(((uintptr_t)(P))|CHF_TAG))
+#define MAKE_VM_MEM(P) ((VMptr)(((uintptr_t)(P))|MEM_TAG))
 #define GET_TAG(P) ((VMptrTag)(((uintptr_t)(P))&TAG_MASK))
 #define GET_PTR(P) ((VMptr)(((uintptr_t)(P))&PTR_MASK))
 #define GET_IN32(P) ((int32_t)((uintptr_t)(P)>>UNUSEDBITNUM))
@@ -185,4 +186,7 @@ void freeVMArrayType(VMArrayType*);
 VMStructType* newVMStructType(Sid_t,uint32_t,Sid_t[],VMTypeUnion []);
 void freeVMStructType(VMStructType*);
 size_t getVMTypeSize(VMTypeUnion t);
+
+VMMem* newVMMem(Sid_t typeId,uint8_t* mem);
+VMTypeUnion genDefTypesUnion(AST_cptr* objCptr,VMDefTypes* otherTypes);
 #endif

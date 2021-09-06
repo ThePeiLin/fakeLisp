@@ -15,6 +15,7 @@ CompEnv* createMacroCompEnv(const AST_cptr*,CompEnv*);
 int retree(AST_cptr**,AST_cptr*);
 void unInitPreprocess();
 void initGlobKeyWord(CompEnv*);
+void initNativeDefTypes(VMDefTypes*);
 StringMatchPattern* addStringPattern(char**,int32_t,AST_cptr*,Intpr*);
 
 ByteCodelnt* compileFile(Intpr*,int evalIm,int*);
@@ -31,6 +32,7 @@ ByteCodelnt* compileFuncCall(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);
 ByteCodelnt* compileDef(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);
 ByteCodelnt* compileSetq(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);
 ByteCodelnt* compileSetf(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);
+ByteCodelnt* compileAlcf(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);
 ByteCodelnt* compileSym(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);
 ByteCodelnt* compileCond(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);
 ByteCodelnt* compileLambda(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);

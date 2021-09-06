@@ -45,9 +45,10 @@ int main(int argc,char** argv)
 			free(InterpreterPath);
 			return EXIT_FAILURE;
 		}
-		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL);
+		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
 		addSymbolToGlob(filename);
 		initGlobKeyWord(inter->glob);
+		initNativeDefTypes(inter->deftypes);
 		if(fp==stdin)
 			runIntpr(inter);
 		else

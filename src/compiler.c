@@ -8,6 +8,7 @@
 #include"VMtool.h"
 #include"fakeVM.h"
 #include"reader.h"
+#include<stddef.h>
 #include<stdlib.h>
 #include<ctype.h>
 #include<string.h>
@@ -505,6 +506,7 @@ void initGlobKeyWord(CompEnv* glob)
 	addKeyWord("try",glob);
 	addKeyWord("catch",glob);
 	addKeyWord("deftype",glob);
+	addKeyWord("alcf",glob);
 }
 
 void unInitPreprocess()
@@ -644,6 +646,7 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 		if(isDefExpression(objCptr))return compileDef(objCptr,curEnv,inter,status,evalIm);
 		if(isSetqExpression(objCptr))return compileSetq(objCptr,curEnv,inter,status,evalIm);
 		if(isSetfExpression(objCptr))return compileSetf(objCptr,curEnv,inter,status,evalIm);
+		if(isAlcfExpression(objCptr))return compileAlcf(objCptr,curEnv,inter,status,evalIm);
 		if(isCondExpression(objCptr))return compileCond(objCptr,curEnv,inter,status,evalIm);
 		if(isAndExpression(objCptr))return compileAnd(objCptr,curEnv,inter,status,evalIm);
 		if(isOrExpression(objCptr))return compileOr(objCptr,curEnv,inter,status,evalIm);
@@ -1307,6 +1310,29 @@ ByteCodelnt* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	}
 }
 
+ByteCodelnt* compileAlcf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+{
+	AST_cptr* fir=getFirstCptr(objCptr);
+	AST_cptr* typeCptr=nextCptr(fir);
+	VMTypeUnion type=genDefTypesUnion(typeCptr,inter->deftypes);
+	if(type.all==NULL)
+	{
+		status->status=INVALIDTYPEDEF;
+		status->place=typeCptr;
+		return NULL;
+	}
+	ByteCode* pushMem=newByteCode(sizeof(char)+sizeof(uint8_t));
+	ByteCodelnt* tmp=newByteCodelnt(pushMem);
+	pushMem->code[0]=FAKE_PUSH_MEM;
+	*(uint32_t*)(pushMem->code+sizeof(char))=getVMTypeSize(type);
+	LineNumTabNode* n=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,pushMem->size,objCptr->curline);
+	tmp->ls=1;
+	tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
+	FAKE_ASSERT(tmp->l,"compileConst",__FILE__,__LINE__);
+	tmp->l[0]=n;
+	return tmp;
+}
+
 ByteCodelnt* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
 	int32_t line=objCptr->curline;
@@ -1808,7 +1834,7 @@ ByteCodelnt* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		return NULL;
 	}
 	addSymbolToGlob(name->value.str);
-	Intpr* tmpIntpr=newIntpr(name->value.str,file,curEnv,inter->lnt);
+	Intpr* tmpIntpr=newIntpr(name->value.str,file,curEnv,inter->lnt,inter->deftypes);
 	tmpIntpr->prev=inter;
 	tmpIntpr->glob=curEnv;
 	ByteCodelnt* tmp=compileFile(tmpIntpr,evalIm,NULL);
@@ -2515,7 +2541,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			return NULL;
 		}
 		addSymbolToGlob(path);
-		Intpr* tmpInter=newIntpr(path,fp,newCompEnv(NULL),inter->lnt);
+		Intpr* tmpInter=newIntpr(path,fp,newCompEnv(NULL),inter->lnt,inter->deftypes);
 		initGlobKeyWord(tmpInter->glob);
 		free(path);
 		tmpInter->prev=inter;
@@ -2924,4 +2950,45 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	t->l[t->ls-1]->cpc+=popTry->size;
 	freeByteCode(popTry);
 	return t;
+}
+
+void initNativeDefTypes(VMDefTypes* otherTypes)
+{
+	struct
+	{
+		char* typeName;
+		size_t size;
+	} nativeTypeList[]=
+	{
+		{"short",sizeof(short)},
+		{"int",sizeof(int)},
+		{"unsigned-short",sizeof(unsigned short)},
+		{"unsigned",sizeof(unsigned)},
+		{"long",sizeof(long)},
+		{"unsigned-long",sizeof(unsigned long)},
+		{"long-long",sizeof(long long)},
+		{"unsigned-long-long",sizeof(unsigned long long)},
+		{"ptrdiff_t",sizeof(ptrdiff_t)},
+		{"size_t",sizeof(size_t)},
+		{"ssize_t",sizeof(ssize_t)},
+		{"char",sizeof(char)},
+		{"wchar_t",sizeof(wchar_t)},
+		{"float",sizeof(float)},
+		{"double",sizeof(double)},
+		{"iptr",sizeof(intptr_t)},
+		{"uptr",sizeof(uintptr_t)},
+	};
+	size_t num=sizeof(nativeTypeList)/(sizeof(char*)+sizeof(size_t));
+	size_t i=0;
+	for(;i<num;i++)
+	{
+		Sid_t typeName=addSymbolToGlob(nativeTypeList[i].typeName)->id;
+		size_t size=nativeTypeList[i].size;
+		VMTypeUnion t={.nt=newVMNativeType(typeName,size)};
+		addDefTypes(otherTypes,typeName,t);
+	}
+	i=0;
+	//for(;i<num;i++)
+	//	fprintf(stderr,"i=%ld typeId=%d\n",i,otherTypes->u[i]->name);
+	//printGlobSymbolTable(stderr);
 }

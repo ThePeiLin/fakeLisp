@@ -75,6 +75,14 @@ int isSetqExpression(const AST_cptr* objCptr)
 	else return 0;
 }
 
+int isAlcfExpression(const AST_cptr* objCptr)
+{
+	objCptr=(isValid(objCptr)&&objCptr->type==PAIR)?&objCptr->u.pair->car:NULL;
+	AST_atom* tmpAtm=(objCptr!=NULL&&objCptr->type==ATM)?objCptr->u.atom:NULL;
+	if(tmpAtm!=NULL&&tmpAtm->type==SYM&&!strcmp(tmpAtm->value.str,"alcf"))return 1;
+	return 0;
+}
+
 int isSetfExpression(const AST_cptr* objCptr)
 {
 	objCptr=(objCptr->type==PAIR)?&objCptr->u.pair->car:NULL;

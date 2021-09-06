@@ -14,6 +14,7 @@
 
 extern SymbolTable GlobSymbolTable;
 static int isNativeType(Sid_t typeName,VMDefTypes* otherTypes);
+
 static struct
 {
 	size_t num;
@@ -26,7 +27,7 @@ static TypeId_t addToGlobTypeUnionList(VMTypeUnion type)
 	GlobTypeUnionList.ul=(VMTypeUnion*)realloc(GlobTypeUnionList.ul,sizeof(VMTypeUnion)*num);
 	FAKE_ASSERT(GlobTypeUnionList.ul,"addToGlobTypeUnionList",__FILE__,__LINE__);
 	GlobTypeUnionList.ul[num-1]=type;
-	return num-1;
+	return num;
 }
 
 static CRL* newCRL(VMpair* pair,int32_t count)
@@ -1496,20 +1497,28 @@ VMvalue* GET_VAL(VMvalue* P)
 	return P;
 }
 
-VMNativeType* newVMNativeType(Sid_t type,size_t size)
+TypeId_t newVMNativeType(Sid_t type,size_t size)
 {
 	VMNativeType* tmp=(VMNativeType*)malloc(sizeof(VMNativeType));
 	FAKE_ASSERT(tmp,"newVMNativeType",__FILE__,__LINE__);
 	tmp->type=type;
 	tmp->size=size;
-	tmp=MAKE_NATIVE_TYPE(tmp);
-	addToGlobTypeUnionList((VMTypeUnion)tmp);
-	return tmp;
+	return addToGlobTypeUnionList((VMTypeUnion)MAKE_NATIVE_TYPE(tmp));
 }
 
 void freeVMNativeType(VMNativeType* obj)
 {
 	free(obj);
+}
+
+VMTypeUnion getVMTypeUnion(TypeId_t t)
+{
+	return GlobTypeUnionList.ul[t-1];
+}
+
+size_t getVMTypeSizeWithTypeId(TypeId_t t)
+{
+	return getVMTypeSize(getVMTypeUnion(t));
 }
 
 size_t getVMTypeSize(VMTypeUnion t)
@@ -1536,16 +1545,35 @@ size_t getVMTypeSize(VMTypeUnion t)
 	}
 }
 
-VMArrayType* newVMArrayType(VMTypeUnion type,size_t num)
+TypeId_t newVMArrayType(TypeId_t type,size_t num)
 {
-	VMArrayType* tmp=(VMArrayType*)malloc(sizeof(VMArrayType));
-	FAKE_ASSERT(tmp,"newVMArrayType",__FILE__,__LINE__);
-	tmp->etype=type;
-	tmp->num=num;
-	tmp->totalSize=num*getVMTypeSize(type);
-	tmp=MAKE_ARRAY_TYPE(tmp);
-	addToGlobTypeUnionList((VMTypeUnion)tmp);
-	return tmp;
+	TypeId_t id=0;
+	size_t i=0;
+	size_t typeNum=GlobTypeUnionList.num;
+	for(;i<typeNum;i++)
+	{
+		VMTypeUnion tmpType=GlobTypeUnionList.ul[i];
+		if(GET_TYPES_TAG(tmpType.all)==ARRAY_TYPE_TAG)
+		{
+			VMArrayType* arrayType=(VMTypeUnion){.at=GET_TYPES_PTR(tmpType.all)}.at;
+			if(arrayType->etype==type&&arrayType->num==num)
+			{
+				id=i+1;
+				break;
+			}
+		}
+	}
+	if(!id)
+	{
+		VMArrayType* tmp=(VMArrayType*)malloc(sizeof(VMArrayType));
+		FAKE_ASSERT(tmp,"newVMArrayType",__FILE__,__LINE__);
+		tmp->etype=type;
+		tmp->num=num;
+		tmp->totalSize=num*getVMTypeSize(getVMTypeUnion(type));
+		return addToGlobTypeUnionList((VMTypeUnion)MAKE_ARRAY_TYPE(tmp));
+	}
+	else
+		return id;
 }
 
 void freeVMArrayType(VMArrayType* obj)
@@ -1553,14 +1581,12 @@ void freeVMArrayType(VMArrayType* obj)
 	free(GET_TYPES_PTR(obj));
 }
 
-VMPtrType* newVMPtrType(VMTypeUnion type)
+TypeId_t newVMPtrType(TypeId_t type)
 {
 	VMPtrType* tmp=(VMPtrType*)malloc(sizeof(VMPtrType));
 	FAKE_ASSERT(tmp,"newVMPtrType",__FILE__,__LINE__);
 	tmp->ptype=type;
-	tmp=MAKE_PTR_TYPE(tmp);
-	addToGlobTypeUnionList((VMTypeUnion)tmp);
-	return tmp;
+	return addToGlobTypeUnionList((VMTypeUnion)MAKE_PTR_TYPE(tmp));
 }
 
 void freeVMPtrType(VMPtrType* obj)
@@ -1568,10 +1594,10 @@ void freeVMPtrType(VMPtrType* obj)
 	free(GET_TYPES_PTR(obj));
 }
 
-VMStructType* newVMStructType(Sid_t type,uint32_t num,Sid_t symbols[],VMTypeUnion memberTypes[])
+TypeId_t newVMStructType(Sid_t type,uint32_t num,Sid_t symbols[],TypeId_t memberTypes[])
 {
 	size_t totalSize=0;
-	for(uint32_t i=0;i<num;totalSize+=getVMTypeSize(memberTypes[i]),i++);
+	for(uint32_t i=0;i<num;totalSize+=getVMTypeSize(getVMTypeUnion(memberTypes[i])),i++);
 	VMStructType* tmp=(VMStructType*)malloc(sizeof(VMStructType)+sizeof(VMStructMember)*num);
 	FAKE_ASSERT(tmp,"newVMStructType",__FILE__,__LINE__);
 	tmp->type=type;
@@ -1582,7 +1608,7 @@ VMStructType* newVMStructType(Sid_t type,uint32_t num,Sid_t symbols[],VMTypeUnio
 		tmp->layout[i].memberSymbol=symbols[i];
 		tmp->layout[i].type=memberTypes[i];
 	}
-	return MAKE_STRUCT_TYPE(tmp);
+	return addToGlobTypeUnionList((VMTypeUnion)MAKE_STRUCT_TYPE(tmp));
 }
 
 void freeVMStructType(VMStructType* obj)
@@ -1590,7 +1616,7 @@ void freeVMStructType(VMStructType* obj)
 	free(GET_TYPES_PTR(obj));
 }
 
-int addDefTypes(VMDefTypes* otherTypes,Sid_t typeName,VMTypeUnion type)
+int addDefTypes(VMDefTypes* otherTypes,Sid_t typeName,TypeId_t type)
 {
 	if(otherTypes->num==0)
 	{
@@ -1634,7 +1660,7 @@ int addDefTypes(VMDefTypes* otherTypes,Sid_t typeName,VMTypeUnion type)
 	return 0;
 }
 
-VMTypeUnion findVMDefTypesNode(Sid_t typeName,VMDefTypes* otherTypes)
+VMDefTypesNode* findVMDefTypesNode(Sid_t typeName,VMDefTypes* otherTypes)
 {
 	int64_t l=0;
 	int64_t h=otherTypes->num-1;
@@ -1648,59 +1674,60 @@ VMTypeUnion findVMDefTypesNode(Sid_t typeName,VMDefTypes* otherTypes)
 		else if(r<0)
 			l=mid+1;
 		else
-			return otherTypes->u[mid]->type;
+			return otherTypes->u[mid];
 	}
-	return (VMTypeUnion){.all=NULL};
+	return NULL;
+	//return (VMTypeUnion){.all=NULL};
 }
 
-VMTypeUnion genDefTypes(AST_cptr* objCptr,VMDefTypes* otherTypes,Sid_t* typeName)
+TypeId_t genDefTypes(AST_cptr* objCptr,VMDefTypes* otherTypes,Sid_t* typeName)
 {
 	AST_cptr* fir=nextCptr(getFirstCptr(objCptr));
 	if(fir->type!=ATM||fir->u.atom->type!=SYM)
-		return (VMTypeUnion){.all=NULL};
+		return 0;
 	Sid_t typeId=addSymbolToGlob(fir->u.atom->value.str)->id;
 	if(isNativeType(typeId,otherTypes))
-		return (VMTypeUnion){.all=NULL};
+		return 0;
 	*typeName=typeId;
 	fir=nextCptr(fir);
 	if(fir->type!=ATM&&fir->type!=PAIR)
-		return (VMTypeUnion){.all=NULL};
+		return 0;
 	return genDefTypesUnion(fir,otherTypes);
 }
 
-VMTypeUnion genDefTypesUnion(AST_cptr* objCptr,VMDefTypes* otherTypes)
+TypeId_t genDefTypesUnion(AST_cptr* objCptr,VMDefTypes* otherTypes)
 {
 	if(objCptr->type==ATM&&objCptr->u.atom->type==SYM)
-		return findVMDefTypesNode(addSymbolToGlob(objCptr->u.atom->value.str)->id,otherTypes);
+		return findVMDefTypesNode(addSymbolToGlob(objCptr->u.atom->value.str)->id,otherTypes)->type;
 	else if(objCptr->type==PAIR)
 	{
 		AST_cptr* compositeDataHead=getFirstCptr(objCptr);
 		if(compositeDataHead->type!=ATM||compositeDataHead->u.atom->type!=SYM)
-			return (VMTypeUnion){.all=NULL};
+			return 0;
 		if(!strcmp(compositeDataHead->u.atom->value.str,"array"))
 		{
 			AST_cptr* numCptr=nextCptr(compositeDataHead);
 			if(!numCptr||numCptr->type!=ATM||numCptr->u.atom->type!=IN32)
-				return (VMTypeUnion){.all=NULL};
+				return 0;
 			AST_cptr* typeCptr=nextCptr(numCptr);
 			if(!typeCptr)
-				return (VMTypeUnion){.all=NULL};
-			VMTypeUnion type=genDefTypesUnion(typeCptr,otherTypes);
-			if(!type.all)
+				return 0;
+			TypeId_t type=genDefTypesUnion(typeCptr,otherTypes);
+			if(!type)
 				return type;
-			return (VMTypeUnion){.at=newVMArrayType(type,numCptr->u.atom->value.in32)};
+			return newVMArrayType(type,numCptr->u.atom->value.in32);
 		}
 		else
-			return (VMTypeUnion){.all=NULL};
+			return 0;
 	}
 	else
-		return (VMTypeUnion){.all=NULL};
+		return 0;
 }
 
 int isNativeType(Sid_t typeName,VMDefTypes* otherTypes)
 {
-	VMTypeUnion type=findVMDefTypesNode(typeName,otherTypes);
-	return type.all!=NULL&&GET_TYPES_TAG(type.all)==NATIVE_TYPE_TAG;
+	VMDefTypesNode* typeNode=findVMDefTypesNode(typeName,otherTypes);
+	return typeNode!=NULL&&GET_TYPES_TAG(getVMTypeUnion(typeNode->type).all)==NATIVE_TYPE_TAG;
 }
 
 VMMem* newVMMem(Sid_t type,uint8_t* mem)

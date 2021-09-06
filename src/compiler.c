@@ -692,8 +692,9 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 		else if(isDeftypeExpression(objCptr))
 		{
 			Sid_t typeName=0;
-			VMTypeUnion type={.all=genDefTypes(objCptr,inter->deftypes,&typeName).all};
-			if(!type.all)
+			TypeId_t type=genDefTypes(objCptr,inter->deftypes,&typeName);
+			//VMTypeUnion type={.all=genDefTypes(objCptr,inter->deftypes,&typeName).all};
+			if(!type)
 			{
 				status->status=INVALIDTYPEDEF;
 				status->place=objCptr;
@@ -1314,8 +1315,8 @@ ByteCodelnt* compileAlcf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 {
 	AST_cptr* fir=getFirstCptr(objCptr);
 	AST_cptr* typeCptr=nextCptr(fir);
-	VMTypeUnion type=genDefTypesUnion(typeCptr,inter->deftypes);
-	if(type.all==NULL)
+	TypeId_t type=genDefTypesUnion(typeCptr,inter->deftypes);
+	if(!type)
 	{
 		status->status=INVALIDTYPEDEF;
 		status->place=typeCptr;
@@ -1324,7 +1325,7 @@ ByteCodelnt* compileAlcf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	ByteCode* pushMem=newByteCode(sizeof(char)+sizeof(uint32_t));
 	ByteCodelnt* tmp=newByteCodelnt(pushMem);
 	pushMem->code[0]=FAKE_PUSH_MEM;
-	*(uint32_t*)(pushMem->code+sizeof(char))=getVMTypeSize(type);
+	*(uint32_t*)(pushMem->code+sizeof(char))=getVMTypeSizeWithTypeId(type);
 	LineNumTabNode* n=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,pushMem->size,objCptr->curline);
 	tmp->ls=1;
 	tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
@@ -2984,7 +2985,8 @@ void initNativeDefTypes(VMDefTypes* otherTypes)
 	{
 		Sid_t typeName=addSymbolToGlob(nativeTypeList[i].typeName)->id;
 		size_t size=nativeTypeList[i].size;
-		VMTypeUnion t={.nt=newVMNativeType(typeName,size)};
+		TypeId_t t=newVMNativeType(typeName,size);
+		//VMTypeUnion t={.nt=newVMNativeType(typeName,size)};
 		addDefTypes(otherTypes,typeName,t);
 	}
 	i=0;

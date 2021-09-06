@@ -173,23 +173,25 @@ int resBp(VMstack*);
 VMvalue* newVMMemref(VMvalue* from,uint8_t* obj,size_t size);
 int setVMMemref(VMMemref* pRef,VMvalue* obj);
 
-VMTypeUnion genDefTypes(AST_cptr*,VMDefTypes* otherTypes,Sid_t* typeName);
-VMTypeUnion findVMDefTypesNode(Sid_t typeId,VMDefTypes* otherTypes);
-int addDefTypes(VMDefTypes*,Sid_t typeName,VMTypeUnion);
+TypeId_t genDefTypes(AST_cptr*,VMDefTypes* otherTypes,Sid_t* typeName);
+VMDefTypesNode* findVMDefTypesNode(Sid_t typeId,VMDefTypes* otherTypes);
+int addDefTypes(VMDefTypes*,Sid_t typeName,TypeId_t);
 
-VMNativeType* newVMNativeType(Sid_t,size_t);
+TypeId_t newVMNativeType(Sid_t,size_t);
 void freeVMNativeType(VMNativeType*);
 
-VMArrayType* newVMArrayType(VMTypeUnion,size_t);
+TypeId_t newVMArrayType(TypeId_t,size_t);
 void freeVMArrayType(VMArrayType*);
 
-VMPtrType* newVMPtrType(VMTypeUnion);
+TypeId_t newVMPtrType(TypeId_t);
 void freeVMPtrType(VMPtrType*);
 
-VMStructType* newVMStructType(Sid_t,uint32_t,Sid_t[],VMTypeUnion []);
+TypeId_t newVMStructType(Sid_t,uint32_t,Sid_t[],TypeId_t []);
 void freeVMStructType(VMStructType*);
 size_t getVMTypeSize(VMTypeUnion t);
+size_t getVMTypeSizeWithTypeId(TypeId_t t);
+VMTypeUnion getVMTypeUnion(TypeId_t);
 
 VMMem* newVMMem(Sid_t typeId,uint8_t* mem);
-VMTypeUnion genDefTypesUnion(AST_cptr* objCptr,VMDefTypes* otherTypes);
+TypeId_t genDefTypesUnion(AST_cptr* objCptr,VMDefTypes* otherTypes);
 #endif

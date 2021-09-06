@@ -54,7 +54,7 @@ typedef union VMTypeUnion
 typedef struct VMDefTypesNode
 {
 	Sid_t name;
-	VMTypeUnion type;
+	TypeId_t type;
 }VMDefTypesNode;
 typedef struct VMDefTypes
 {
@@ -473,12 +473,12 @@ typedef struct VMArrayType
 {
 	size_t num;
 	size_t totalSize;
-	VMTypeUnion etype;
+	TypeId_t etype;
 }VMArrayType;
 
 typedef struct VMPtrType
 {
-	VMTypeUnion ptype;
+	TypeId_t ptype;
 }VMPtrType;
 
 typedef struct VMStructType
@@ -489,7 +489,7 @@ typedef struct VMStructType
 	struct VMStructMember
 	{
 		Sid_t memberSymbol;
-		VMTypeUnion type;
+		TypeId_t type;
 	}layout[];
 }VMStructType;
 #endif

@@ -40,7 +40,7 @@ typedef enum
 }DefTypeTag;
 
 typedef uint32_t Sid_t;
-typedef size_t TypeId_t;
+typedef uint32_t TypeId_t;
 
 typedef union VMTypeUnion
 {
@@ -295,8 +295,8 @@ typedef struct VMByts
 typedef struct VMMemref
 {
 	struct VMvalue* from;
+	TypeId_t type;
 	uint8_t* obj;
-	size_t size;
 }VMMemref;
 
 typedef struct VMMem

@@ -17,7 +17,7 @@ static int isNativeType(Sid_t typeName,VMDefTypes* otherTypes);
 
 static struct
 {
-	size_t num;
+	TypeId_t num;
 	VMTypeUnion* ul;
 } GlobTypeUnionList={0,NULL};
 static TypeId_t addToGlobTypeUnionList(VMTypeUnion type)
@@ -1252,6 +1252,9 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 		case SYM_TAG:
 			fprintf(fp,"%s",getGlobSymbolWithId(GET_SYM(objValue))->symbol);
 			break;
+		case MEM_TAG:
+			fprintf(fp,"<#mem at %p>",((VMMem*)GET_PTR(objValue))->mem);
+			break;
 		case PTR_TAG:
 			{
 				switch(objValue->type)
@@ -1364,6 +1367,9 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 		case SYM_TAG:
 			fprintf(fp,"%s",getGlobSymbolWithId(GET_SYM(objValue))->symbol);
 			break;
+		case MEM_TAG:
+			fprintf(fp,"<#mem at %p>",((VMMem*)GET_PTR(objValue))->mem);
+			break;
 		case PTR_TAG:
 			{
 				switch(objValue->type)
@@ -1459,13 +1465,13 @@ int eqVMByts(const VMByts* fir,const VMByts* sec)
 	return !memcmp(fir->str,sec->str,sec->size);
 }
 
-VMvalue* newVMMemref(VMvalue* from,uint8_t* obj,size_t size)
+VMvalue* newVMMemref(VMvalue* from,uint8_t* obj,TypeId_t type)
 {
 	VMMemref* tmp=(VMMemref*)malloc(sizeof(VMMemref));
 	FAKE_ASSERT(tmp,"newVMMemref",__FILE__,__LINE__);
 	tmp->from=from;
 	tmp->obj=obj;
-	tmp->size=size;
+	tmp->type=type;
 	return MAKE_VM_CHF(tmp);
 }
 

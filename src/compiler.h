@@ -33,6 +33,7 @@ ByteCodelnt* compileDef(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);
 ByteCodelnt* compileSetq(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);
 ByteCodelnt* compileSetf(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);
 ByteCodelnt* compileAlcf(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);
+ByteCodelnt* compileGetf(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);
 ByteCodelnt* compileSym(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);
 ByteCodelnt* compileCond(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);
 ByteCodelnt* compileLambda(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);

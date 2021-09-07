@@ -13,6 +13,7 @@ int isDefExpression(const AST_cptr*);
 int isSetqExpression(const AST_cptr*);
 int isSetfExpression(const AST_cptr*);
 int isAlcfExpression(const AST_cptr*);
+int isGetfExpression(const AST_cptr*);
 int isLambdaExpression(const AST_cptr*);
 int isBeginExpression(const AST_cptr*);
 int isCondExpression(const AST_cptr*);

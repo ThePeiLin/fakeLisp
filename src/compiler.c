@@ -507,6 +507,7 @@ void initGlobKeyWord(CompEnv* glob)
 	addKeyWord("catch",glob);
 	addKeyWord("deftype",glob);
 	addKeyWord("alcf",glob);
+	addKeyWord("getf",glob);
 }
 
 void unInitPreprocess()
@@ -647,6 +648,7 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 		if(isSetqExpression(objCptr))return compileSetq(objCptr,curEnv,inter,status,evalIm);
 		if(isSetfExpression(objCptr))return compileSetf(objCptr,curEnv,inter,status,evalIm);
 		if(isAlcfExpression(objCptr))return compileAlcf(objCptr,curEnv,inter,status,evalIm);
+		if(isGetfExpression(objCptr))return compileGetf(objCptr,curEnv,inter,status,evalIm);
 		if(isCondExpression(objCptr))return compileCond(objCptr,curEnv,inter,status,evalIm);
 		if(isAndExpression(objCptr))return compileAnd(objCptr,curEnv,inter,status,evalIm);
 		if(isOrExpression(objCptr))return compileOr(objCptr,curEnv,inter,status,evalIm);
@@ -1322,16 +1324,51 @@ ByteCodelnt* compileAlcf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		status->place=typeCptr;
 		return NULL;
 	}
-	ByteCode* pushMem=newByteCode(sizeof(char)+sizeof(uint32_t));
+	ByteCode* pushMem=newByteCode(sizeof(char)+sizeof(TypeId_t)+sizeof(uint32_t));
 	ByteCodelnt* tmp=newByteCodelnt(pushMem);
 	pushMem->code[0]=FAKE_PUSH_MEM;
-	*(uint32_t*)(pushMem->code+sizeof(char))=getVMTypeSizeWithTypeId(type);
+	*(TypeId_t*)(pushMem->code+sizeof(char))=type;
+	*(uint32_t*)(pushMem->code+sizeof(char)+sizeof(TypeId_t))=getVMTypeSizeWithTypeId(type);
 	LineNumTabNode* n=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,pushMem->size,objCptr->curline);
 	tmp->ls=1;
 	tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
 	FAKE_ASSERT(tmp->l,"compileConst",__FILE__,__LINE__);
 	tmp->l[0]=n;
 	return tmp;
+}
+
+ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+{
+	AST_cptr* fir=getFirstCptr(objCptr);
+	AST_cptr* expressionCptr=nextCptr(fir);
+	AST_cptr* typeCptr=nextCptr(expressionCptr);
+	AST_cptr* offsetCptr=nextCptr(typeCptr);
+	TypeId_t type=genDefTypesUnion(typeCptr,inter->deftypes);
+	if(!(expressionCptr&&offsetCptr&&type!=-1))
+	{
+		status->status=SYNTAXERROR;
+		status->place=objCptr;
+		return NULL;
+	}
+	ByteCodelnt* expression=compile(expressionCptr,curEnv,inter,status,evalIm);
+	if(status->status)
+		return NULL;
+	ByteCodelnt* offset=compile(offsetCptr,curEnv,inter,status,evalIm);
+	if(status->status)
+	{
+		FREE_ALL_LINE_NUMBER_TABLE(expression->l,expression->ls);
+		freeByteCodelnt(expression);
+		return NULL;
+	}
+	ByteCodelnt* pushRef=newByteCodelnt(newByteCode(sizeof(char)+sizeof(TypeId_t)+sizeof(uint32_t)));
+	pushRef->bc->code[0]=FAKE_PUSH_REF;
+	*(TypeId_t*)(pushRef->bc->code+sizeof(char))=type;
+	*(uint32_t*)(pushRef->bc->code+sizeof(char)+sizeof(TypeId_t))=getVMTypeSizeWithTypeId(type);
+	reCodelntCat(expression,pushRef);
+	freeByteCodelnt(expression);
+	reCodelntCat(offset,pushRef);
+	freeByteCodelnt(offset);
+	return pushRef;
 }
 
 ByteCodelnt* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)

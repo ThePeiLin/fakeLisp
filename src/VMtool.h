@@ -170,10 +170,11 @@ VMrunnable* newVMrunnable(VMproc*);
 char* genErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe);
 int32_t getSymbolIdInByteCode(const uint8_t*);
 int resBp(VMstack*);
-VMvalue* newVMMemref(VMvalue* from,uint8_t* obj,size_t size);
+VMvalue* newVMMemref(VMvalue* from,uint8_t* obj,TypeId_t);
 int setVMMemref(VMMemref* pRef,VMvalue* obj);
 
 TypeId_t genDefTypes(AST_cptr*,VMDefTypes* otherTypes,Sid_t* typeName);
+TypeId_t genDefTypesUnion(AST_cptr* objCptr,VMDefTypes* otherTypes);
 VMDefTypesNode* findVMDefTypesNode(Sid_t typeId,VMDefTypes* otherTypes);
 int addDefTypes(VMDefTypes*,Sid_t typeName,TypeId_t);
 

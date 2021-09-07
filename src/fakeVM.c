@@ -54,6 +54,7 @@ static void (*ByteCodes[])(FakeVM*)=
 	B_push_top,
 	B_push_proc,
 	B_push_mem,
+	B_push_ref,
 	B_pop,
 	B_pop_var,
 	B_pop_arg,
@@ -506,12 +507,31 @@ void B_push_mem(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMrunnable* r=topComStack(exe->rstack);
-	uint32_t size=*(uint32_t*)(exe->code+r->cp+sizeof(char));
+	TypeId_t typeId=*(TypeId_t*)(exe->code+r->cp+sizeof(char));
+	uint32_t size=*(uint32_t*)(exe->code+r->cp+sizeof(char)+sizeof(TypeId_t));
 	uint8_t* mem=(uint8_t*)malloc(size);
 	FAKE_ASSERT(mem,"B_push_mem",__FILE__,__LINE__);
-	VMvalue* a=(VMvalue*)newVMMem(0,mem);
+	VMvalue* a=(VMvalue*)newVMMem(typeId,mem);
 	SET_RETURN("B_push_mem",MAKE_VM_MEM(a),stack);
-	r->cp+=sizeof(char)+sizeof(uint32_t);
+	r->cp+=sizeof(char)+sizeof(TypeId_t)+sizeof(uint32_t);
+}
+
+void B_push_ref(FakeVM* exe)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* r=topComStack(exe->rstack);
+	VMvalue* exp=getTopValue(stack);
+	TypeId_t type=*(TypeId_t*)(exe->code+r->cp+sizeof(char));
+	uint32_t size=*(uint32_t*)(exe->code+r->cp+sizeof(char)+sizeof(TypeId_t));
+	if(GET_TAG(exp)!=MEM_TAG)
+		RAISE_BUILTIN_ERROR("b.push_ref",WRONGARG,r,exe);
+	VMvalue* offset=getValue(stack,stack->tp-2);
+	if(!IS_IN32(offset))
+		RAISE_BUILTIN_ERROR("b.push_ref",WRONGARG,r,exe);
+	VMMem* mem=(VMMem*)GET_PTR(exp);
+	stack->tp-=2;
+	SET_RETURN("B_push_ref",newVMMemref(NULL,mem->mem+GET_IN32(offset)*size,type),stack);
+	r->cp+=sizeof(char)+sizeof(TypeId_t)+sizeof(uint32_t);
 }
 
 void B_pop(FakeVM* exe)

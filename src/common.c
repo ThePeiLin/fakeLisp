@@ -166,15 +166,15 @@ char* intToString(long num)
 }
 
 
-int32_t stringToInt(const char* str)
+int64_t stringToInt(const char* str)
 {
-	int32_t tmp;
+	int64_t tmp;
 	if(isHexNum(str))
-		sscanf(str,"%x",&tmp);
+		sscanf(str,"%lx",&tmp);
 	else if(isOctNum(str))
-		sscanf(str,"%o",&tmp);
+		sscanf(str,"%lo",&tmp);
 	else
-		sscanf(str,"%d",&tmp);
+		sscanf(str,"%ld",&tmp);
 	return tmp;
 }
 
@@ -1143,7 +1143,10 @@ void printByteCode(const ByteCode* tmpCode,FILE* fp)
 				i+=5;
 				break;
 			case 8:
-				fprintf(fp,"%lf",*(double*)(tmpCode->code+i+1));
+				if(tmpCode->code[i]==FAKE_PUSH_IN64)
+					fprintf(fp,"%ld",*(int64_t*)(tmpCode->code+i+1));
+				else
+					fprintf(fp,"%lf",*(double*)(tmpCode->code+i+1));
 				i+=9;
 				break;
 		}

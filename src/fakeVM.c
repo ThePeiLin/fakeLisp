@@ -43,7 +43,8 @@ static void (*ByteCodes[])(FakeVM*)=
 	B_dummy,
 	B_push_nil,
 	B_push_pair,
-	B_push_int,
+	B_push_in32,
+	B_push_in64,
 	B_push_chr,
 	B_push_dbl,
 	B_push_str,
@@ -388,12 +389,20 @@ void B_push_pair(FakeVM* exe)
 
 }
 
-void B_push_int(FakeVM* exe)
+void B_push_in32(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
-	SET_RETURN("B_push_int",MAKE_VM_IN32(*(int32_t*)(exe->code+runnable->cp+1)),stack);
+	SET_RETURN("B_push_in32",MAKE_VM_IN32(*(int32_t*)(exe->code+runnable->cp+1)),stack);
 	runnable->cp+=5;
+}
+
+void B_push_in64(FakeVM* exe)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* r=topComStack(exe->rstack);
+	SET_RETURN("B_push_in32",newVMvalue(IN64,exe->code+r->cp+sizeof(char),exe->heap),stack);
+	r->cp+=sizeof(char)+sizeof(int64_t);
 }
 
 void B_push_chr(FakeVM* exe)
@@ -1158,6 +1167,9 @@ void GC_sweep(VMheap* heap)
 					break;
 				case DBL:
 					free(prev->u.dbl);
+					break;
+				case IN64:
+					free(prev->u.in64);
 					break;
 				case PAIR:
 					free(prev->u.pair);

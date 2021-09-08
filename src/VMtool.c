@@ -34,6 +34,9 @@ static void printUptr     (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%lu",uintptr_t,
 static void printVoidPtr  (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%p",void*,mem,fp);}
 #undef PRINT_MEM_REF
 /*-----------------------*/
+
+/*memory caster list*/
+/*------------------*/
 static TypeId_t LastNativeTypeId=0;
 extern SymbolTable GlobSymbolTable;
 static int isNativeType(Sid_t typeName,VMDefTypes* otherTypes);
@@ -314,6 +317,9 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap)
 					case DBL:
 						tmp->u.dbl=copyMemory(pValue,sizeof(double));
 						break;
+					case IN64:
+						tmp->u.in64=copyMemory(pValue,sizeof(int64_t));
+						break;
 					case STR:
 						tmp->u.str=pValue;break;
 					case PAIR:
@@ -400,6 +406,8 @@ int VMvaluecmp(VMvalue* fir,VMvalue* sec)
 				case DBL:
 					r=(fabs(*root1->u.dbl-*root2->u.dbl)==0);
 					break;
+				case IN64:
+					r=(*root1->u.in64-*root2->u.in64)==0;
 				case STR:
 					r=!strcmp(root1->u.str,root2->u.str);
 					break;
@@ -1317,6 +1325,9 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 					case DBL:
 						fprintf(fp,"%lf",*objValue->u.dbl);
 						break;
+					case IN64:
+						fprintf(fp,"%ld",*objValue->u.in64);
+						break;
 					case STR:
 						fprintf(fp,"%s",objValue->u.str);
 						break;
@@ -1441,6 +1452,9 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 				{
 					case DBL:
 						fprintf(fp,"%lf",*objValue->u.dbl);
+						break;
+					case IN64:
+						fprintf(fp,"%ld",*objValue->u.in64);
 						break;
 					case STR:
 						printRawString(objValue->u.str,fp);

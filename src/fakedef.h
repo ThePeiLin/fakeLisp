@@ -62,7 +62,7 @@ typedef struct VMDefTypes
 	VMDefTypesNode** u;
 }VMDefTypes;
 
-typedef enum{NIL=0,IN32,CHR,DBL,SYM,STR,BYTS,PRC,CONT,CHAN,FP,DLL,DLPROC,ERR,PAIR,ATM} ValueType;
+typedef enum{NIL=0,IN32,CHR,DBL,IN64,SYM,STR,BYTS,PRC,CONT,CHAN,FP,DLL,DLPROC,ERR,PAIR,ATM} ValueType;
 typedef enum
 {
 	SYMUNDEFINE=1,
@@ -199,6 +199,7 @@ typedef struct AST_atom
 		char* str;
 		char chr;
 		int32_t in32;
+		int64_t in64;
 		double dbl;
 		ByteString byts;
 	} value;
@@ -313,6 +314,7 @@ typedef struct VMvalue
 	{
 		struct VMpair* pair;
 		double* dbl;
+		int64_t* in64;
 		char* str;
 		struct VMByts* byts;
 		struct VMproc* prc;

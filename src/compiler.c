@@ -770,8 +770,13 @@ ByteCode* compileAtom(AST_cptr* objCptr)
 			break;
 		case IN32:
 			tmp=newByteCode(sizeof(char)+sizeof(int32_t));
-			tmp->code[0]=FAKE_PUSH_INT;
+			tmp->code[0]=FAKE_PUSH_IN32;
 			*(int32_t*)(tmp->code+1)=tmpAtm->value.in32;
+			break;
+		case IN64:
+			tmp=newByteCode(sizeof(char)+sizeof(int64_t));
+			tmp->code[0]=FAKE_PUSH_IN64;
+			*(int64_t*)(tmp->code+sizeof(char))=tmpAtm->value.in64;
 			break;
 		case DBL:
 			tmp=newByteCode(sizeof(char)+sizeof(double));
@@ -1447,7 +1452,7 @@ ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
 	ComStack* stack=newComStack(32);
 	jumpiffalse->code[0]=FAKE_JMP_IF_FALSE;
-	push1->code[0]=FAKE_PUSH_INT;
+	push1->code[0]=FAKE_PUSH_IN32;
 	resTp->code[0]=FAKE_RES_TP;
 	setTp->code[0]=FAKE_SET_TP;
 	popTp->code[0]=FAKE_POP_TP;
@@ -2264,7 +2269,7 @@ ByteCodelnt* compileProgn(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 				{
 					AST_cptr* tmpCptr=nextCptr(fir);
 					AST_atom* tmpAtm=tmpCptr->u.atom;
-					if(tmpAtm->type!=DBL)
+					if(opcode!=FAKE_PUSH_DBL&&tmpAtm->type!=DBL&&tmpAtm->type!=IN64)
 					{
 						status->place=tmpCptr;
 						status->status=SYNTAXERROR;
@@ -2434,10 +2439,14 @@ ByteCodelnt* compileProgn(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 					ByteCode* tmpByteCode=newByteCode(sizeof(char)+sizeof(double));
 
 					tmpByteCode->code[0]=opcode;
-					*((int32_t*)(tmpByteCode->code+sizeof(char)))=tmpAtm->value.dbl;
+					if(opcode==FAKE_PUSH_DBL)
+						*((double*)(tmpByteCode->code+sizeof(char)))=(tmpAtm->type==DBL)?tmpAtm->value.dbl:tmpAtm->value.in64;
+					else
+						*((int64_t*)(tmpByteCode->code+sizeof(char)))=(tmpAtm->type==DBL)?tmpAtm->value.dbl:tmpAtm->value.in64;
 
 					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
 					fir=nextCptr(tmpCptr);
+
 				}
 				break;
 		}

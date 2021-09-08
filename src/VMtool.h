@@ -63,6 +63,7 @@ extern const char*  builtInErrorType[NUMOFBUILTINERRORTYPE];
 #define IS_SYM(P) (GET_TAG(P)==SYM_TAG)
 #define IS_REF(P) (GET_TAG(P)==REF_TAG)
 #define IS_CHF(P) (GET_TAG(P)==CHF_TAG)
+#define IS_IN64(P) (GET_TAG(P)==PTR_TAG&&(P)->type==IN64)
 #define FREE_CHF(P) (free(GET_PTR(P)))
 
 #define MAKE_NATIVE_TYPE(P) ((void*)(((uintptr_t)(P))|NATIVE_TYPE_TAG))

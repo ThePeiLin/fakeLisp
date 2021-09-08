@@ -33,7 +33,7 @@ void printRawChar(char,FILE*);
 char* doubleToString(double);
 double stringToDouble(const char*);
 char* intToString(long);
-int32_t stringToInt(const char*);
+int64_t stringToInt(const char*);
 int32_t countChar(const char*,char,int32_t);
 int stringToChar(const char*);
 uint8_t* castStrByteStr(const char*);

@@ -390,7 +390,14 @@ AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern
 						else
 						{
 							atom=newAtom(IN32,NULL,root->outer);
-							atom->value.in32=stringToInt(str);
+							int64_t num=stringToInt(str);
+							if(num>=INT32_MAX)
+							{
+								atom->type=IN64;
+								atom->value.in64=num;
+							}
+							else
+								atom->value.in32=num;
 						}
 						root->u.atom=atom;
 					}

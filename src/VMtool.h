@@ -195,4 +195,5 @@ VMTypeUnion getVMTypeUnion(TypeId_t);
 
 VMMem* newVMMem(Sid_t typeId,uint8_t* mem);
 TypeId_t genDefTypesUnion(AST_cptr* objCptr,VMDefTypes* otherTypes);
+void initNativeDefTypes(VMDefTypes* otherTypes);
 #endif

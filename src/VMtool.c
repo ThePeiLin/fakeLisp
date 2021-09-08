@@ -12,8 +12,53 @@
 #include<tchar.h>
 #endif
 
+/*print mem ref func list*/
+#define PRINT_MEM_REF(FMT,TYPE,MEM,FP) fprintf(FP,FMT,*(TYPE*)MEM)
+static void printShortMem (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%d",short,mem,fp);}
+static void printIntMem   (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%d",int,mem,fp);}
+static void printUShortMem(uint8_t* mem,FILE* fp){PRINT_MEM_REF("%u",unsigned short,mem,fp);}
+static void printUIntMem  (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%u",unsigned int,mem,fp);}
+static void printLongMem  (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%ld",long,mem,fp);}
+static void printULongMem (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%lu",unsigned long,mem,fp);}
+static void printLLongMem (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%lld",long long,mem,fp);}
+static void printULLongMem(uint8_t* mem,FILE* fp){PRINT_MEM_REF("%llu",unsigned long long,mem,fp);}
+static void printPtrdiff_t(uint8_t* mem,FILE* fp){PRINT_MEM_REF("%ld",ptrdiff_t,mem,fp);}
+static void printSize_t   (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%zu",size_t,mem,fp);};
+static void printSsize_t  (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%zd",ssize_t,mem,fp);}
+static void printChar     (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%c",char,mem,fp);}
+static void printWchar_t  (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%C",wchar_t,mem,fp);}
+static void printFloat    (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%f",float,mem,fp);}
+static void printDouble   (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%lf",double,mem,fp);}
+static void printIptr     (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%ld",intptr_t,mem,fp);}
+static void printUptr     (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%lu",uintptr_t,mem,fp);}
+static void printVoidPtr  (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%p",void*,mem,fp);}
+#undef PRINT_MEM_REF
+/*-----------------------*/
+static TypeId_t LastNativeTypeId=0;
 extern SymbolTable GlobSymbolTable;
 static int isNativeType(Sid_t typeName,VMDefTypes* otherTypes);
+static TypeId_t CharTypeId=0;
+static void (*PrintMemoryRefFuncList[])(uint8_t*,FILE*)=
+{
+	printShortMem ,
+	printIntMem   ,
+	printUShortMem,
+	printUIntMem  ,
+	printLongMem  ,
+	printULongMem ,
+	printLLongMem ,
+	printULLongMem,
+	printPtrdiff_t,
+	printSize_t   ,
+	printSsize_t  ,
+	printChar     ,
+	printWchar_t  ,
+	printFloat    ,
+	printDouble   ,
+	printIptr     ,
+	printUptr     ,
+	printVoidPtr  ,
+};
 
 static struct
 {
@@ -1255,6 +1300,16 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 		case MEM_TAG:
 			fprintf(fp,"<#mem at %p>",((VMMem*)GET_PTR(objValue))->mem);
 			break;
+		case CHF_TAG:
+			{
+				VMMemref* mref=(VMMemref*)GET_PTR(objValue);
+				TypeId_t type=mref->type;
+				if(type<=LastNativeTypeId)
+					PrintMemoryRefFuncList[type-1](mref->obj,fp);
+				else
+					fprintf(fp,"<#memref at %p>",mref->obj);
+			}
+			break;
 		case PTR_TAG:
 			{
 				switch(objValue->type)
@@ -1369,6 +1424,16 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 			break;
 		case MEM_TAG:
 			fprintf(fp,"<#mem at %p>",((VMMem*)GET_PTR(objValue))->mem);
+			break;
+		case CHF_TAG:
+			{
+				VMMemref* mref=(VMMemref*)GET_PTR(objValue);
+				TypeId_t type=mref->type;
+				if(type<=LastNativeTypeId)
+					PrintMemoryRefFuncList[type-1](mref->obj,fp);
+				else
+					fprintf(fp,"<#memref at %p>",mref->obj);
+			}
 			break;
 		case PTR_TAG:
 			{
@@ -1493,13 +1558,13 @@ VMvalue* GET_VAL(VMvalue* P)
 {
 	if(IS_REF(P))
 		return *(VMvalue**)(GET_PTR(P));
-	else if(IS_CHF(P))
-	{
-		P=GET_PTR(P);
-		VMvalue* t=MAKE_VM_CHR(*((VMMemref*)P)->obj);
-		free(P);
-		return t;
-	}
+	//else if(IS_CHF(P))
+	//{
+	//	P=GET_PTR(P);
+	//	VMvalue* t=MAKE_VM_CHR(*((VMMemref*)P)->obj);
+	//	free(P);
+	//	return t;
+	//}
 	return P;
 }
 
@@ -1743,4 +1808,50 @@ VMMem* newVMMem(Sid_t type,uint8_t* mem)
 	tmp->type=type;
 	tmp->mem=mem;
 	return tmp;
+}
+
+void initNativeDefTypes(VMDefTypes* otherTypes)
+{
+	struct
+	{
+		char* typeName;
+		size_t size;
+	} nativeTypeList[]=
+	{
+		{"short",sizeof(short)},
+		{"int",sizeof(int)},
+		{"unsigned-short",sizeof(unsigned short)},
+		{"unsigned",sizeof(unsigned)},
+		{"long",sizeof(long)},
+		{"unsigned-long",sizeof(unsigned long)},
+		{"long-long",sizeof(long long)},
+		{"unsigned-long-long",sizeof(unsigned long long)},
+		{"ptrdiff_t",sizeof(ptrdiff_t)},
+		{"size_t",sizeof(size_t)},
+		{"ssize_t",sizeof(ssize_t)},
+		{"char",sizeof(char)},
+		{"wchar_t",sizeof(wchar_t)},
+		{"float",sizeof(float)},
+		{"double",sizeof(double)},
+		{"iptr",sizeof(intptr_t)},
+		{"uptr",sizeof(uintptr_t)},
+		{"ptr",sizeof(void*)},
+	};
+	size_t num=sizeof(nativeTypeList)/(sizeof(char*)+sizeof(size_t));
+	size_t i=0;
+	for(;i<num;i++)
+	{
+		Sid_t typeName=addSymbolToGlob(nativeTypeList[i].typeName)->id;
+		size_t size=nativeTypeList[i].size;
+		TypeId_t t=newVMNativeType(typeName,size);
+		if(CharTypeId&&!strcmp("char",nativeTypeList[i].typeName))
+			CharTypeId=t;
+		//VMTypeUnion t={.nt=newVMNativeType(typeName,size)};
+		addDefTypes(otherTypes,typeName,t);
+	}
+	LastNativeTypeId=num;
+	//i=0;
+	//for(;i<num;i++)
+	//	fprintf(stderr,"i=%ld typeId=%d\n",i,otherTypes->u[i]->name);
+	//printGlobSymbolTable(stderr);
 }

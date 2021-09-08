@@ -1350,6 +1350,19 @@ ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		status->place=objCptr;
 		return NULL;
 	}
+	VMTypeUnion typeUnion=getVMTypeUnion(type);
+	DefTypeTag tag=(DefTypeTag)GET_TAG(typeUnion.all);
+	TypeId_t memberType=0;
+	switch(tag)
+	{
+		case ARRAY_TYPE_TAG:
+			memberType=((VMArrayType*)GET_PTR(typeUnion.all))->etype;
+			break;
+		default:
+			status->status=SYNTAXERROR;
+			status->place=objCptr;
+			return NULL;
+	}
 	ByteCodelnt* expression=compile(expressionCptr,curEnv,inter,status,evalIm);
 	if(status->status)
 		return NULL;
@@ -1362,8 +1375,8 @@ ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	}
 	ByteCodelnt* pushRef=newByteCodelnt(newByteCode(sizeof(char)+sizeof(TypeId_t)+sizeof(uint32_t)));
 	pushRef->bc->code[0]=FAKE_PUSH_REF;
-	*(TypeId_t*)(pushRef->bc->code+sizeof(char))=type;
-	*(uint32_t*)(pushRef->bc->code+sizeof(char)+sizeof(TypeId_t))=getVMTypeSizeWithTypeId(type);
+	*(TypeId_t*)(pushRef->bc->code+sizeof(char))=memberType;
+	*(uint32_t*)(pushRef->bc->code+sizeof(char)+sizeof(TypeId_t))=getVMTypeSizeWithTypeId(memberType);
 	reCodelntCat(expression,pushRef);
 	freeByteCodelnt(expression);
 	reCodelntCat(offset,pushRef);
@@ -2988,46 +3001,4 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	t->l[t->ls-1]->cpc+=popTry->size;
 	freeByteCode(popTry);
 	return t;
-}
-
-void initNativeDefTypes(VMDefTypes* otherTypes)
-{
-	struct
-	{
-		char* typeName;
-		size_t size;
-	} nativeTypeList[]=
-	{
-		{"short",sizeof(short)},
-		{"int",sizeof(int)},
-		{"unsigned-short",sizeof(unsigned short)},
-		{"unsigned",sizeof(unsigned)},
-		{"long",sizeof(long)},
-		{"unsigned-long",sizeof(unsigned long)},
-		{"long-long",sizeof(long long)},
-		{"unsigned-long-long",sizeof(unsigned long long)},
-		{"ptrdiff_t",sizeof(ptrdiff_t)},
-		{"size_t",sizeof(size_t)},
-		{"ssize_t",sizeof(ssize_t)},
-		{"char",sizeof(char)},
-		{"wchar_t",sizeof(wchar_t)},
-		{"float",sizeof(float)},
-		{"double",sizeof(double)},
-		{"iptr",sizeof(intptr_t)},
-		{"uptr",sizeof(uintptr_t)},
-	};
-	size_t num=sizeof(nativeTypeList)/(sizeof(char*)+sizeof(size_t));
-	size_t i=0;
-	for(;i<num;i++)
-	{
-		Sid_t typeName=addSymbolToGlob(nativeTypeList[i].typeName)->id;
-		size_t size=nativeTypeList[i].size;
-		TypeId_t t=newVMNativeType(typeName,size);
-		//VMTypeUnion t={.nt=newVMNativeType(typeName,size)};
-		addDefTypes(otherTypes,typeName,t);
-	}
-	i=0;
-	//for(;i<num;i++)
-	//	fprintf(stderr,"i=%ld typeId=%d\n",i,otherTypes->u[i]->name);
-	//printGlobSymbolTable(stderr);
 }

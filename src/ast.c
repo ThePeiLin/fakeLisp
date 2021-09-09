@@ -177,7 +177,7 @@ AST_cptr* expandReaderMacro(const char* objStr,Intpr* inter,StringMatchPattern* 
 	int status=runFakeVM(tmpVM);
 	AST_cptr* tmpCptr=NULL;
 	if(!status)
-		tmpCptr=castVMvalueToCptr(GET_VAL(tmpVM->stack->values[0]),inter->curline);
+		tmpCptr=castVMvalueToCptr(GET_VAL(tmpVM->stack->values[0],tmpVM->heap),inter->curline);
 	else
 	{
 		FREE_ALL_LINE_NUMBER_TABLE(t->l,t->ls);

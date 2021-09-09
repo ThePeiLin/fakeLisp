@@ -32,15 +32,6 @@ static void printDouble   (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%lf",double,mem
 static void printIptr     (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%ld",intptr_t,mem,fp);}
 static void printUptr     (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%lu",uintptr_t,mem,fp);}
 static void printVoidPtr  (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%p",void*,mem,fp);}
-#undef PRINT_MEM_REF
-/*-----------------------*/
-
-/*memory caster list*/
-/*------------------*/
-static TypeId_t LastNativeTypeId=0;
-extern SymbolTable GlobSymbolTable;
-static int isNativeType(Sid_t typeName,VMDefTypes* otherTypes);
-static TypeId_t CharTypeId=0;
 static void (*PrintMemoryRefFuncList[])(uint8_t*,FILE*)=
 {
 	printShortMem ,
@@ -62,7 +53,58 @@ static void (*PrintMemoryRefFuncList[])(uint8_t*,FILE*)=
 	printUptr     ,
 	printVoidPtr  ,
 };
+#undef PRINT_MEM_REF
+/*-----------------------*/
 
+/*memory caster list*/
+#define CAST_TO_IN32(TYPE) return MAKE_VM_IN32(*(TYPE*)mem);
+#define CAST_TO_IN64(TYPE) int64_t t=*(TYPE*)mem;return newVMvalue(IN64,&t,heap);
+static VMvalue* castShortMem (uint8_t* mem,VMheap* heap){CAST_TO_IN32(short)}
+static VMvalue* castIntMem   (uint8_t* mem,VMheap* heap){CAST_TO_IN32(int)}
+static VMvalue* castUShortMem(uint8_t* mem,VMheap* heap){CAST_TO_IN32(unsigned short)}
+static VMvalue* castUintMem  (uint8_t* mem,VMheap* heap){CAST_TO_IN64(unsigned int)}
+static VMvalue* castLongMem  (uint8_t* mem,VMheap* heap){CAST_TO_IN64(long)}
+static VMvalue* castULongMem (uint8_t* mem,VMheap* heap){CAST_TO_IN64(unsigned long)}
+static VMvalue* castLLongMem (uint8_t* mem,VMheap* heap){CAST_TO_IN64(long long)}
+static VMvalue* castULLongMem(uint8_t* mem,VMheap* heap){CAST_TO_IN64(unsigned long long)}
+static VMvalue* castPtrdiff_t(uint8_t* mem,VMheap* heap){CAST_TO_IN64(ptrdiff_t)}
+static VMvalue* castSize_t   (uint8_t* mem,VMheap* heap){CAST_TO_IN64(size_t)}
+static VMvalue* castSsize_t  (uint8_t* mem,VMheap* heap){CAST_TO_IN64(ssize_t)}
+static VMvalue* castChar     (uint8_t* mem,VMheap* heap){return MAKE_VM_CHR(*(char*)mem);}
+static VMvalue* castWchar_t  (uint8_t* mem,VMheap* heap){return MAKE_VM_IN32(*(wchar_t*)mem);}
+static VMvalue* castFloat    (uint8_t* mem,VMheap* heap){double t=*(float*)mem;return newVMvalue(DBL,&t,heap);}
+static VMvalue* castDouble   (uint8_t* mem,VMheap* heap){double t=*(double*)mem;return newVMvalue(DBL,&t,heap);}
+static VMvalue* castIptr     (uint8_t* mem,VMheap* heap){CAST_TO_IN64(intptr_t)}
+static VMvalue* castUptr     (uint8_t* mem,VMheap* heap){CAST_TO_IN64(uintptr_t)}
+static VMvalue* castVoidPtr  (uint8_t* mem,VMheap* heap){return newVMvalue(IN64,mem,heap);}
+#undef CAST_TO_IN32
+#undef CAST_TO_IN64
+static VMvalue*(*MemoryCasterList[])(uint8_t*,VMheap*)=
+{
+	castShortMem ,
+	castIntMem   ,
+	castUShortMem,
+	castUintMem  ,
+	castLongMem  ,
+	castULongMem ,
+	castLLongMem ,
+	castULLongMem,
+	castPtrdiff_t,
+	castSize_t   ,
+	castSsize_t  ,
+	castChar     ,
+	castWchar_t  ,
+	castFloat    ,
+	castDouble   ,
+	castIptr     ,
+	castUptr     ,
+	castVoidPtr  ,
+};
+/*------------------*/
+static TypeId_t LastNativeTypeId=0;
+extern SymbolTable GlobSymbolTable;
+static int isNativeType(Sid_t typeName,VMDefTypes* otherTypes);
+static TypeId_t CharTypeId=0;
 static struct
 {
 	TypeId_t num;
@@ -1313,9 +1355,9 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 				VMMemref* mref=(VMMemref*)GET_PTR(objValue);
 				TypeId_t type=mref->type;
 				if(type<=LastNativeTypeId)
-					PrintMemoryRefFuncList[type-1](mref->obj,fp);
+					PrintMemoryRefFuncList[type-1](mref->mem,fp);
 				else
-					fprintf(fp,"<#memref at %p>",mref->obj);
+					fprintf(fp,"<#memref at %p>",mref->mem);
 			}
 			break;
 		case PTR_TAG:
@@ -1441,9 +1483,9 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 				VMMemref* mref=(VMMemref*)GET_PTR(objValue);
 				TypeId_t type=mref->type;
 				if(type<=LastNativeTypeId)
-					PrintMemoryRefFuncList[type-1](mref->obj,fp);
+					PrintMemoryRefFuncList[type-1](mref->mem,fp);
 				else
-					fprintf(fp,"<#memref at %p>",mref->obj);
+					fprintf(fp,"<#memref at %p>",mref->mem);
 			}
 			break;
 		case PTR_TAG:
@@ -1549,7 +1591,7 @@ VMvalue* newVMMemref(VMvalue* from,uint8_t* obj,TypeId_t type)
 	VMMemref* tmp=(VMMemref*)malloc(sizeof(VMMemref));
 	FAKE_ASSERT(tmp,"newVMMemref",__FILE__,__LINE__);
 	tmp->from=from;
-	tmp->obj=obj;
+	tmp->mem=obj;
 	tmp->type=type;
 	return MAKE_VM_CHF(tmp);
 }
@@ -1560,7 +1602,7 @@ int setVMMemref(VMMemref* pRef,VMvalue* v)
 	switch(tag)
 	{
 		case CHR_TAG:
-			*pRef->obj=GET_CHR(v);
+			*pRef->mem=GET_CHR(v);
 			break;
 		default:
 			return 255;
@@ -1568,17 +1610,17 @@ int setVMMemref(VMMemref* pRef,VMvalue* v)
 	return 0;
 }
 
-VMvalue* GET_VAL(VMvalue* P)
+VMvalue* GET_VAL(VMvalue* P,VMheap* heap)
 {
 	if(IS_REF(P))
 		return *(VMvalue**)(GET_PTR(P));
-	//else if(IS_CHF(P))
-	//{
-	//	P=GET_PTR(P);
-	//	VMvalue* t=MAKE_VM_CHR(*((VMMemref*)P)->obj);
-	//	free(P);
-	//	return t;
-	//}
+	else if(IS_CHF(P))
+	{
+		VMMemref* ref=(VMMemref*)GET_PTR(P);
+		VMvalue* t=MemoryCasterList[ref->type](ref->mem,heap);
+		free(P);
+		return t;
+	}
 	return P;
 }
 

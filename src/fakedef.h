@@ -297,7 +297,7 @@ typedef struct VMMemref
 {
 	struct VMvalue* from;
 	TypeId_t type;
-	uint8_t* obj;
+	uint8_t* mem;
 }VMMemref;
 
 typedef struct VMMem

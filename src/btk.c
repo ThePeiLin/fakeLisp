@@ -45,7 +45,7 @@ void FAKE_sleep(FakeVM* exe,pthread_rwlock_t* pGClock)
 {
 	VMstack* stack=exe->stack;
 	VMrunnable* r=topComStack(exe->rstack);
-	VMvalue* second=GET_VAL(popVMstack(stack));
+	VMvalue* second=GET_VAL(popVMstack(stack),exe->heap);
 	if(!second)
 		RAISE_BUILTIN_ERROR("btk.sleep",TOOFEWARG,r,exe);
 	if(resBp(stack))
@@ -61,7 +61,7 @@ void FAKE_sleep(FakeVM* exe,pthread_rwlock_t* pGClock)
 void FAKE_usleep(FakeVM* exe,pthread_rwlock_t* pGClock)
 {
 	VMstack* stack=exe->stack;
-	VMvalue* second=GET_VAL(popVMstack(stack));
+	VMvalue* second=GET_VAL(popVMstack(stack),exe->heap);
 	VMrunnable* r=topComStack(exe->rstack);
 	if(!second)
 		RAISE_BUILTIN_ERROR("btk.usleep",TOOFEWARG,r,exe);
@@ -89,7 +89,7 @@ void FAKE_rand(FakeVM* exe,pthread_rwlock_t* pGClock)
 		hasSrand=1;
 	}
 	VMstack* stack=exe->stack;
-	VMvalue*  lim=GET_VAL(popVMstack(stack));
+	VMvalue*  lim=GET_VAL(popVMstack(stack),exe->heap);
 	VMrunnable* r=topComStack(exe->rstack);
 	if(resBp(stack))
 		RAISE_BUILTIN_ERROR("btk.rand",TOOMANYARG,r,exe);

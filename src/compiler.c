@@ -1371,7 +1371,7 @@ ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		else if(pathCptr->u.atom->type==IN32||pathCptr->u.atom->type==IN64)
 		{
 			size_t typeSize=getVMTypeSizeWithTypeId(memberType);
-			offset+=typeSize+((pathCptr->u.atom->type==IN32)?pathCptr->u.atom->value.in32:pathCptr->u.atom->value.in64);
+			offset+=typeSize*((pathCptr->u.atom->type==IN32)?pathCptr->u.atom->value.in32:pathCptr->u.atom->value.in64);
 		}
 		else if(!strcmp(pathCptr->u.atom->value.str,"*"))
 		{
@@ -1388,22 +1388,20 @@ ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 					defTypeId=((VMPtrType*)tmpPtr)->ptype;
 					break;
 				default:
-					status->status=INVALIDEXPR;
+					status->status=CANTDEREFERENCE;
 					status->place=pathCptr;
 					if(tmp)
 					{
 						FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 						freeByteCodelnt(tmp);
 					}
-					status->status=SYNTAXERROR;
-					status->place=pathCptr;
+					return NULL;
 					break;
 			}
-			ByteCodelnt* pushDefRef=newByteCodelnt(newByteCode(sizeof(char)+sizeof(ssize_t)+sizeof(TypeId_t)+sizeof(uint32_t)));
+			ByteCodelnt* pushDefRef=newByteCodelnt(newByteCode(sizeof(char)+sizeof(ssize_t)+sizeof(TypeId_t)));
 			pushDefRef->bc->code[0]=FAKE_PUSH_DEF_REF;
 			*(ssize_t*)(pushDefRef->bc->code+sizeof(char))=offset;
 			*(TypeId_t*)(pushDefRef->bc->code+sizeof(char)+sizeof(ssize_t))=defTypeId;
-			*(uint32_t*)(pushDefRef->bc->code+sizeof(char)+sizeof(ssize_t)+sizeof(uint32_t))=getVMTypeSizeWithTypeId(defTypeId);
 			LineNumTabNode* n=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,pushDefRef->bc->size,pathCptr->curline);
 			pushDefRef->ls=1;
 			pushDefRef->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
@@ -1421,12 +1419,11 @@ ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		}
 		else if(!strcmp(pathCptr->u.atom->value.str,"&"))
 		{
-			ByteCodelnt* pushPtrRef=newByteCodelnt(newByteCode(sizeof(char)+sizeof(ssize_t)+sizeof(TypeId_t)+sizeof(uint32_t)));
+			ByteCodelnt* pushPtrRef=newByteCodelnt(newByteCode(sizeof(char)+sizeof(ssize_t)+sizeof(TypeId_t)));
 			pushPtrRef->bc->code[0]=FAKE_PUSH_PTR_REF;
 			TypeId_t ptrId=newVMPtrType(memberType);
 			*(ssize_t*)(pushPtrRef->bc->code+sizeof(char))=offset;
 			*(TypeId_t*)(pushPtrRef->bc->code+sizeof(char)+sizeof(ssize_t))=ptrId;
-			*(uint32_t*)(pushPtrRef->bc->code+sizeof(char)+sizeof(ssize_t)+sizeof(TypeId_t))=getVMTypeSizeWithTypeId(ptrId);
 			LineNumTabNode* n=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,pushPtrRef->bc->size,pathCptr->curline);
 			pushPtrRef->ls=1;
 			pushPtrRef->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
@@ -1451,8 +1448,8 @@ ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 					freeByteCodelnt(tmp);
 				}
-				status->status=SYNTAXERROR;
-				status->place=pathCptr;
+				status->status=NOMEMBERTYPE;
+				status->place=typeCptr;
 				return NULL;
 			}
 			Sid_t curPathNode=addSymbolToGlob(pathCptr->u.atom->value.str)->id;
@@ -1474,15 +1471,13 @@ ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 				memberType=tmpType;
 			else
 			{
-				status->status=INVALIDEXPR;
+				status->status=INVALIDMEMBER;
 				status->place=pathCptr;
 				if(tmp)
 				{
 					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 					freeByteCodelnt(tmp);
 				}
-				status->status=SYNTAXERROR;
-				status->place=pathCptr;
 				return NULL;
 			}
 			AST_cptr* next=nextCptr(pathCptr);
@@ -1511,8 +1506,11 @@ ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	ByteCodelnt* expression=compile(expressionCptr,curEnv,inter,status,evalIm);
 	if(status->status)
 	{
-		FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-		freeByteCodelnt(tmp);
+		if(tmp)
+		{
+			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+			freeByteCodelnt(tmp);
+		}
 		return NULL;
 	}
 	if(!tmp)
@@ -1545,8 +1543,8 @@ ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 				elemType=((VMArrayType*)tmpPtr)->etype;
 				break;
 			default:
-				status->status=INVALIDEXPR;
-				status->place=indexCptr;
+				status->status=CANTGETELEM;
+				status->place=pathCptr;
 				FREE_ALL_LINE_NUMBER_TABLE(index->l,index->ls);
 				freeByteCodelnt(index);
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
@@ -1567,6 +1565,19 @@ ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		freeByteCodelnt(index);
 		codelntCat(tmp,pushIndRef);
 		freeByteCodelnt(pushIndRef);
+	}
+	else
+	{
+		VMTypeUnion typeUnion=getVMTypeUnion(memberType);
+		DefTypeTag tag=GET_TYPES_TAG(typeUnion.all);
+		if(tag!=NATIVE_TYPE_TAG&&tag!=PTR_TYPE_TAG)
+		{
+			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+			freeByteCodelnt(tmp);
+			status->status=NONSCALARTYPE;
+			status->place=nextCptr(typeCptr);
+			return NULL;
+		}
 	}
 	return tmp;
 }

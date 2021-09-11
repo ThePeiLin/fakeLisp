@@ -42,7 +42,12 @@ const char* builtInErrorType[NUMOFBUILTINERRORTYPE]=
 	"library-undefined",
 	"unexpect-eof",
 	"div-zero-error",
-	"file-failure"
+	"file-failure",
+	"cant-dereference",
+	"cant-get-element",
+	"invalid-member-symbol",
+	"no-member-type",
+	"non-scalar-type",
 };
 
 char* InterpreterPath=NULL;
@@ -754,34 +759,56 @@ void exError(const AST_cptr* obj,int type,Intpr* inter)
 			fprintf(stderr," is undefined ");
 			break;
 		case SYNTAXERROR:
-			fprintf(stderr,":Invalid syntax  ");
+			fprintf(stderr,"Invalid syntax  ");
 			if(obj!=NULL)printCptr(obj,stderr);
 			break;
 		case INVALIDEXPR:
-			fprintf(stderr,":Invalid expression ");
+			fprintf(stderr,"Invalid expression ");
 			if(obj!=NULL)printCptr(obj,stderr);
 			break;
 		case INVALIDTYPEDEF:
-			fprintf(stderr,":Invalid type define ");
+			fprintf(stderr,"Invalid type define ");
 			if(obj!=NULL)printCptr(obj,stderr);
 			break;
 		case CIRCULARLOAD:
-			fprintf(stderr,":Circular load file ");
+			fprintf(stderr,"Circular load file ");
 			if(obj!=NULL)printCptr(obj,stderr);
 			break;
 		case INVALIDPATTERN:
-			fprintf(stderr,":Invalid string match pattern ");
+			fprintf(stderr,"Invalid string match pattern ");
 			if(obj!=NULL)printCptr(obj,stderr);
 			break;
 		case MACROEXPANDFAILED:
-			fprintf(stderr,":Failed to expand macro in ");
+			fprintf(stderr,"Failed to expand macro in ");
 			if(obj!=NULL)printCptr(obj,stderr);
 			break;
 		case LIBUNDEFINED:
-			fprintf(stderr,":Library ");
+			fprintf(stderr,"Library ");
 			if(obj!=NULL)printCptr(obj,stderr);
 			fprintf(stderr," undefined ");
 			break;
+		case CANTDEREFERENCE:
+			fprintf(stderr,"cant dereference a non pointer type member ");
+			if(obj!=NULL)printCptr(obj,stderr);
+			break;
+		case CANTGETELEM:
+			fprintf(stderr,"cant get element of a non-array or non-pointer type");
+			if(obj!=NULL){fprintf(stderr," member by path ");printCptr(obj,stderr);};
+			break;
+		case INVALIDMEMBER:
+			fprintf(stderr,"invalid member ");
+			if(obj!=NULL)printCptr(obj,stderr);
+			break;
+		case NOMEMBERTYPE:
+			fprintf(stderr,"cannot get member in a no-member type in ");
+			if(obj!=NULL)printCptr(obj,stderr);
+			break;
+		case NONSCALARTYPE:
+			fprintf(stderr,"get the reference of a non-scalar type member by path ");
+			if(obj!=NULL)printCptr(obj,stderr);
+			fprintf(stderr," is not allowed");
+			break;
+
 	}
 	if(inter!=NULL)fprintf(stderr," at line %d of file %s\n",(obj==NULL)?inter->curline:obj->curline,inter->filename);
 }

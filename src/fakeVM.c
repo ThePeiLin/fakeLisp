@@ -530,10 +530,34 @@ void B_push_mem(FakeVM* exe)
 
 void B_push_ptr_ref(FakeVM* exe)
 {
+	VMstack* stack=exe->stack;
+	VMrunnable* r=topComStack(exe->rstack);
+	ssize_t offset=*(ssize_t*)(exe->code+r->cp+sizeof(char));
+	TypeId_t ptrId=*(TypeId_t*)(exe->code+r->cp+sizeof(char)+sizeof(ssize_t));
+	VMvalue* value=getTopValue(stack);
+	VMMem* mem=(VMMem*)GET_PTR(value);
+	stack->tp-=1;
+	void** t=(void**)malloc(sizeof(void*));
+	FAKE_ASSERT(t,"B_push_ptr_ref",__FILE__,__LINE__);
+	*t=mem->mem+offset;
+	VMMem* retval=newVMMem(ptrId,(uint8_t*)t);
+	SET_RETURN("B_push_ptr_ref",MAKE_VM_MEM(retval),stack);
+	r->cp+=sizeof(char)+sizeof(ssize_t)+sizeof(TypeId_t);
 }
 
 void B_push_def_ref(FakeVM* exe)
 {
+	VMstack* stack=exe->stack;
+	VMrunnable* r=topComStack(exe->rstack);
+	ssize_t offset=*(ssize_t*)(exe->code+r->cp+sizeof(char));
+	TypeId_t typeId=*(TypeId_t*)(exe->code+r->cp+sizeof(char)+sizeof(ssize_t));
+	VMvalue* value=getTopValue(stack);
+	VMMem* mem=(VMMem*)GET_PTR(value);
+	stack->tp-=1;
+	uint8_t** ptr=(uint8_t**)(mem->mem+offset);
+	VMMem* retval=newVMMem(typeId,*ptr);
+	SET_RETURN("B_push_def_ref",MAKE_VM_MEM(retval),stack);
+	r->cp+=sizeof(char)+sizeof(ssize_t)+sizeof(TypeId_t);
 }
 
 void B_push_ind_ref(FakeVM* exe)

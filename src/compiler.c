@@ -1345,48 +1345,230 @@ ByteCodelnt* compileAlcf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
 	AST_cptr* fir=getFirstCptr(objCptr);
-	AST_cptr* expressionCptr=nextCptr(fir);
-	AST_cptr* typeCptr=nextCptr(expressionCptr);
-	AST_cptr* offsetCptr=nextCptr(typeCptr);
+	AST_cptr* typeCptr=nextCptr(fir);
+	AST_cptr* pathCptr=nextCptr(typeCptr);
+	AST_cptr* expressionCptr=nextCptr(pathCptr);
+	AST_cptr* indexCptr=nextCptr(expressionCptr);
 	TypeId_t type=genDefTypesUnion(typeCptr,inter->deftypes);
-	if(!(expressionCptr&&offsetCptr&&type!=-1))
+	if(!(expressionCptr&&type!=0))
 	{
 		status->status=SYNTAXERROR;
 		status->place=objCptr;
 		return NULL;
 	}
 	VMTypeUnion typeUnion=getVMTypeUnion(type);
-	DefTypeTag tag=(DefTypeTag)GET_TAG(typeUnion.all);
-	TypeId_t memberType=0;
-	switch(tag)
+	TypeId_t memberType=type;
+	ssize_t offset=0;
+	ByteCodelnt* tmp=NULL;
+	for(pathCptr=getFirstCptr(pathCptr);pathCptr;pathCptr=nextCptr(pathCptr))
 	{
-		case ARRAY_TYPE_TAG:
-			memberType=((VMArrayType*)GET_PTR(typeUnion.all))->etype;
-			break;
-		default:
+		if(pathCptr->type!=ATM||(pathCptr->u.atom->type!=SYM&&pathCptr->u.atom->type!=IN32&&pathCptr->u.atom->type!=IN64))
+		{
 			status->status=SYNTAXERROR;
-			status->place=objCptr;
+			status->place=pathCptr;
 			return NULL;
+		}
+		else if(pathCptr->u.atom->type==IN32||pathCptr->u.atom->type==IN64)
+		{
+			size_t typeSize=getVMTypeSizeWithTypeId(memberType);
+			offset+=typeSize+((pathCptr->u.atom->type==IN32)?pathCptr->u.atom->value.in32:pathCptr->u.atom->value.in64);
+		}
+		else if(!strcmp(pathCptr->u.atom->value.str,"*"))
+		{
+			VMTypeUnion curTypeUnion=getVMTypeUnion(memberType);
+			void* tmpPtr=GET_TYPES_PTR(curTypeUnion.all);
+			DefTypeTag tag=GET_TYPES_TAG(curTypeUnion.all);
+			TypeId_t defTypeId=0;
+			switch(tag)
+			{
+				case ARRAY_TYPE_TAG:
+					defTypeId=((VMArrayType*)tmpPtr)->etype;
+					break;
+				case PTR_TYPE_TAG:
+					defTypeId=((VMPtrType*)tmpPtr)->ptype;
+					break;
+				default:
+					status->status=INVALIDEXPR;
+					status->place=pathCptr;
+					if(tmp)
+					{
+						FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+						freeByteCodelnt(tmp);
+					}
+					status->status=SYNTAXERROR;
+					status->place=pathCptr;
+					break;
+			}
+			ByteCodelnt* pushDefRef=newByteCodelnt(newByteCode(sizeof(char)+sizeof(ssize_t)+sizeof(TypeId_t)+sizeof(uint32_t)));
+			pushDefRef->bc->code[0]=FAKE_PUSH_DEF_REF;
+			*(ssize_t*)(pushDefRef->bc->code+sizeof(char))=offset;
+			*(TypeId_t*)(pushDefRef->bc->code+sizeof(char)+sizeof(ssize_t))=defTypeId;
+			*(uint32_t*)(pushDefRef->bc->code+sizeof(char)+sizeof(ssize_t)+sizeof(uint32_t))=getVMTypeSizeWithTypeId(defTypeId);
+			LineNumTabNode* n=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,pushDefRef->bc->size,pathCptr->curline);
+			pushDefRef->ls=1;
+			pushDefRef->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
+			FAKE_ASSERT(pushDefRef->l,"compileGetf",__FILE__,__LINE__);
+			pushDefRef->l[0]=n;
+			offset=0;
+			memberType=defTypeId;
+			if(!tmp)
+				tmp=pushDefRef;
+			else
+			{
+				codelntCat(tmp,pushDefRef);
+				freeByteCodelnt(pushDefRef);
+			}
+		}
+		else if(!strcmp(pathCptr->u.atom->value.str,"&"))
+		{
+			ByteCodelnt* pushPtrRef=newByteCodelnt(newByteCode(sizeof(char)+sizeof(ssize_t)+sizeof(TypeId_t)+sizeof(uint32_t)));
+			pushPtrRef->bc->code[0]=FAKE_PUSH_PTR_REF;
+			TypeId_t ptrId=newVMPtrType(memberType);
+			*(ssize_t*)(pushPtrRef->bc->code+sizeof(char))=offset;
+			*(TypeId_t*)(pushPtrRef->bc->code+sizeof(char)+sizeof(ssize_t))=ptrId;
+			*(uint32_t*)(pushPtrRef->bc->code+sizeof(char)+sizeof(ssize_t)+sizeof(TypeId_t))=getVMTypeSizeWithTypeId(ptrId);
+			LineNumTabNode* n=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,pushPtrRef->bc->size,pathCptr->curline);
+			pushPtrRef->ls=1;
+			pushPtrRef->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
+			FAKE_ASSERT(pushPtrRef->l,"compileGetf",__FILE__,__LINE__);
+			pushPtrRef->l[0]=n;
+			offset=0;
+			memberType=ptrId;
+			if(!tmp)
+				tmp=pushPtrRef;
+			else
+			{
+				codelntCat(tmp,pushPtrRef);
+				freeByteCodelnt(pushPtrRef);
+			}
+		}
+		else
+		{
+			if(GET_TYPES_TAG(typeUnion.all)!=STRUCT_TYPE_TAG)
+			{
+				if(tmp)
+				{
+					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+					freeByteCodelnt(tmp);
+				}
+				status->status=SYNTAXERROR;
+				status->place=pathCptr;
+				return NULL;
+			}
+			Sid_t curPathNode=addSymbolToGlob(pathCptr->u.atom->value.str)->id;
+			VMTypeUnion typeUnion=getVMTypeUnion(memberType);
+			VMStructType* structType=GET_TYPES_PTR(typeUnion.st);
+			uint32_t i=0;
+			uint32_t num=structType->num;
+			TypeId_t tmpType=0;
+			for(;i<num;i++)
+			{
+				if(structType->layout[i].memberSymbol==curPathNode)
+				{
+					tmpType=structType->layout[i].type;
+					break;
+				}
+				offset+=getVMTypeSizeWithTypeId(structType->layout[i].type);
+			}
+			if(tmpType)
+				memberType=tmpType;
+			else
+			{
+				status->status=INVALIDEXPR;
+				status->place=pathCptr;
+				if(tmp)
+				{
+					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+					freeByteCodelnt(tmp);
+				}
+				status->status=SYNTAXERROR;
+				status->place=pathCptr;
+				return NULL;
+			}
+			AST_cptr* next=nextCptr(pathCptr);
+			if(!next||(next->type==ATM&&next->u.atom->type==SYM&&(!strcmp(next->u.atom->value.str,"&")||!strcmp(next->u.atom->value.str,"*"))))
+			{
+				ByteCodelnt* pushRef=newByteCodelnt(newByteCode(sizeof(char)+sizeof(ssize_t)+sizeof(TypeId_t)));
+				pushRef->bc->code[0]=FAKE_PUSH_REF;
+				*(ssize_t*)(pushRef->bc->code+sizeof(char))=offset;
+				*(TypeId_t*)(pushRef->bc->code+sizeof(char)+sizeof(ssize_t))=memberType;
+				LineNumTabNode* n=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,pushRef->bc->size,pathCptr->curline);
+				pushRef->ls=1;
+				pushRef->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
+				FAKE_ASSERT(pushRef->l,"compileGetf",__FILE__,__LINE__);
+				pushRef->l[0]=n;
+				if(!tmp)
+					tmp=pushRef;
+				else
+				{
+					codelntCat(tmp,pushRef);
+					freeByteCodelnt(pushRef);
+				}
+				offset=0;
+			}
+		}
 	}
 	ByteCodelnt* expression=compile(expressionCptr,curEnv,inter,status,evalIm);
 	if(status->status)
-		return NULL;
-	ByteCodelnt* offset=compile(offsetCptr,curEnv,inter,status,evalIm);
-	if(status->status)
 	{
-		FREE_ALL_LINE_NUMBER_TABLE(expression->l,expression->ls);
-		freeByteCodelnt(expression);
+		FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+		freeByteCodelnt(tmp);
 		return NULL;
 	}
-	ByteCodelnt* pushRef=newByteCodelnt(newByteCode(sizeof(char)+sizeof(TypeId_t)+sizeof(uint32_t)));
-	pushRef->bc->code[0]=FAKE_PUSH_REF;
-	*(TypeId_t*)(pushRef->bc->code+sizeof(char))=memberType;
-	*(uint32_t*)(pushRef->bc->code+sizeof(char)+sizeof(TypeId_t))=getVMTypeSizeWithTypeId(memberType);
-	reCodelntCat(expression,pushRef);
-	freeByteCodelnt(expression);
-	reCodelntCat(offset,pushRef);
-	freeByteCodelnt(offset);
-	return pushRef;
+	if(!tmp)
+		tmp=expression;
+	else
+	{
+		reCodelntCat(expression,tmp);
+		freeByteCodelnt(expression);
+	}
+	ByteCodelnt* index=NULL;
+	if(indexCptr!=NULL)
+	{
+		index=compile(indexCptr,curEnv,inter,status,evalIm);
+		if(status->status)
+		{
+			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+			freeByteCodelnt(tmp);
+			return NULL;
+		}
+		TypeId_t elemType=0;
+		VMTypeUnion outerType=getVMTypeUnion(memberType);
+		void* tmpPtr=GET_TYPES_PTR(outerType.all);
+		DefTypeTag tag=GET_TYPES_TAG(outerType.all);
+		switch(tag)
+		{
+			case PTR_TYPE_TAG:
+				elemType=((VMPtrType*)tmpPtr)->ptype;
+				break;
+			case ARRAY_TYPE_TAG:
+				elemType=((VMArrayType*)tmpPtr)->etype;
+				break;
+			default:
+				status->status=INVALIDEXPR;
+				status->place=indexCptr;
+				FREE_ALL_LINE_NUMBER_TABLE(index->l,index->ls);
+				freeByteCodelnt(index);
+				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+				freeByteCodelnt(tmp);
+				return NULL;
+				break;
+		}
+		ByteCodelnt* pushIndRef=newByteCodelnt(newByteCode(sizeof(char)+sizeof(TypeId_t)+sizeof(uint32_t)));
+		pushIndRef->bc->code[0]=FAKE_PUSH_IND_REF;
+		*(TypeId_t*)(pushIndRef->bc->code+sizeof(char))=elemType;
+		*(uint32_t*)(pushIndRef->bc->code+sizeof(char)+sizeof(TypeId_t))=getVMTypeSizeWithTypeId(elemType);
+		LineNumTabNode* n=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,pushIndRef->bc->size,indexCptr->curline);
+		pushIndRef->ls=1;
+		pushIndRef->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
+		FAKE_ASSERT(pushIndRef->l,"compileGetf",__FILE__,__LINE__);
+		pushIndRef->l[0]=n;
+		codelntCat(tmp,index);
+		freeByteCodelnt(index);
+		codelntCat(tmp,pushIndRef);
+		freeByteCodelnt(pushIndRef);
+	}
+	return tmp;
 }
 
 ByteCodelnt* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)

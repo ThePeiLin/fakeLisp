@@ -485,7 +485,7 @@ typedef struct VMPtrType
 
 typedef struct VMStructType
 {
-	Sid_t type;
+	int64_t type;
 	uint32_t num;
 	size_t totalSize;
 	struct VMStructMember

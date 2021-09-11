@@ -188,7 +188,7 @@ void freeVMArrayType(VMArrayType*);
 TypeId_t newVMPtrType(TypeId_t);
 void freeVMPtrType(VMPtrType*);
 
-TypeId_t newVMStructType(Sid_t,uint32_t,Sid_t[],TypeId_t []);
+TypeId_t newVMStructType(const char*,uint32_t,Sid_t[],TypeId_t []);
 void freeVMStructType(VMStructType*);
 size_t getVMTypeSize(VMTypeUnion t);
 size_t getVMTypeSizeWithTypeId(TypeId_t t);

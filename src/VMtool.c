@@ -1721,13 +1721,16 @@ void freeVMPtrType(VMPtrType* obj)
 	free(GET_TYPES_PTR(obj));
 }
 
-TypeId_t newVMStructType(Sid_t type,uint32_t num,Sid_t symbols[],TypeId_t memberTypes[])
+TypeId_t newVMStructType(const char* structName,uint32_t num,Sid_t symbols[],TypeId_t memberTypes[])
 {
 	size_t totalSize=0;
 	for(uint32_t i=0;i<num;totalSize+=getVMTypeSize(getVMTypeUnion(memberTypes[i])),i++);
 	VMStructType* tmp=(VMStructType*)malloc(sizeof(VMStructType)+sizeof(VMStructMember)*num);
 	FAKE_ASSERT(tmp,"newVMStructType",__FILE__,__LINE__);
-	tmp->type=type;
+	if(structName)
+		tmp->type=addSymbolToGlob(structName)->id;
+	else
+		tmp->type=-1;
 	tmp->num=num;
 	tmp->totalSize=totalSize;
 	for(uint32_t i=0;i<num;i++)
@@ -1843,6 +1846,70 @@ TypeId_t genDefTypesUnion(AST_cptr* objCptr,VMDefTypes* otherTypes)
 			if(!type)
 				return type;
 			return newVMArrayType(type,numCptr->u.atom->value.in32);
+		}
+		else if(!strcmp(compositeDataHead->u.atom->value.str,"ptr"))
+		{
+			AST_cptr* ptrTypeCptr=nextCptr(compositeDataHead);
+			if(ptrTypeCptr->type==ATM&&ptrTypeCptr->u.atom->type!=SYM)
+				return 0;
+			TypeId_t pType=genDefTypesUnion(ptrTypeCptr,otherTypes);
+			if(!pType)
+				return pType;
+			return newVMPtrType(pType);
+		}
+		else if(!strcmp(compositeDataHead->u.atom->value.str,"struct"))
+		{
+			char* structName=NULL;
+			AST_cptr* structNameCptr=nextCptr(compositeDataHead);
+			uint32_t num=0;
+			AST_cptr* memberCptr=NULL;
+			if(structNameCptr->type==ATM)
+			{
+				if(structNameCptr->u.atom->type==SYM)
+					structName=structNameCptr->u.atom->value.str;
+				else
+					return 0;
+				memberCptr=nextCptr(structNameCptr);
+				structNameCptr=memberCptr;
+			}
+			else
+				memberCptr=structNameCptr;
+			for(;memberCptr;num++,memberCptr=nextCptr(memberCptr));
+			memberCptr=structNameCptr;
+			Sid_t* memberSymbolList=(Sid_t*)malloc(sizeof(Sid_t)*num);
+			TypeId_t* memberTypeList=(TypeId_t*)malloc(sizeof(TypeId_t)*num);
+			FAKE_ASSERT(memberTypeList&&memberCptr,"genDefTypesUnion",__FILE__,__LINE__);
+			uint32_t i=0;
+			for(;memberCptr;i++,memberCptr=nextCptr(memberCptr))
+			{
+				AST_cptr* memberName=getFirstCptr(memberCptr);
+				if(memberName->type!=ATM||memberName->u.atom->type!=SYM)
+				{
+					free(memberTypeList);
+					free(memberSymbolList);
+					return 0;
+				}
+				Sid_t symbol=addSymbolToGlob(memberName->u.atom->value.str)->id;
+				if(nextCptr(nextCptr(memberName)))
+				{
+					free(memberTypeList);
+					free(memberSymbolList);
+					return 0;
+				}
+				TypeId_t type=genDefTypesUnion(nextCptr(memberName),otherTypes);
+				if(!type)
+				{
+					free(memberTypeList);
+					free(memberSymbolList);
+					return 0;
+				}
+				memberSymbolList[i]=symbol;
+				memberTypeList[i]=type;
+			}
+			TypeId_t retval=newVMStructType(structName,num,memberSymbolList,memberTypeList);
+			free(memberSymbolList);
+			free(memberTypeList);
+			return retval;
 		}
 		else
 			return 0;

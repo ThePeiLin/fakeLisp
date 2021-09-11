@@ -55,6 +55,9 @@ static void (*ByteCodes[])(FakeVM*)=
 	B_push_top,
 	B_push_proc,
 	B_push_mem,
+	B_push_ptr_ref,
+	B_push_def_ref,
+	B_push_ind_ref,
 	B_push_ref,
 	B_pop,
 	B_pop_var,
@@ -525,22 +528,46 @@ void B_push_mem(FakeVM* exe)
 	r->cp+=sizeof(char)+sizeof(TypeId_t)+sizeof(uint32_t);
 }
 
+void B_push_ptr_ref(FakeVM* exe)
+{
+}
+
+void B_push_def_ref(FakeVM* exe)
+{
+}
+
+void B_push_ind_ref(FakeVM* exe)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* r=topComStack(exe->rstack);
+	VMvalue* index=getTopValue(stack);
+	VMvalue* exp=getValue(stack,stack->tp-2);
+	TypeId_t type=*(TypeId_t*)(exe->code+r->cp+sizeof(char));
+	uint32_t size=*(uint32_t*)(exe->code+r->cp+sizeof(char)+sizeof(TypeId_t));
+	if(GET_TAG(exp)!=MEM_TAG)
+		RAISE_BUILTIN_ERROR("b.push_ref",WRONGARG,r,exe);
+	if(!IS_IN32(index))
+		RAISE_BUILTIN_ERROR("b.push_ref",WRONGARG,r,exe);
+	VMMem* mem=(VMMem*)GET_PTR(exp);
+	stack->tp-=2;
+	SET_RETURN("B_push_ref",newVMMemref(NULL,mem->mem+GET_IN32(index)*size,type),stack);
+	r->cp+=sizeof(char)+sizeof(TypeId_t)+sizeof(uint32_t);
+}
+
+
 void B_push_ref(FakeVM* exe)
 {
 	VMstack* stack=exe->stack;
 	VMrunnable* r=topComStack(exe->rstack);
 	VMvalue* exp=getTopValue(stack);
-	TypeId_t type=*(TypeId_t*)(exe->code+r->cp+sizeof(char));
-	uint32_t size=*(uint32_t*)(exe->code+r->cp+sizeof(char)+sizeof(TypeId_t));
+	ssize_t offset=*(ssize_t*)(exe->code+r->cp+sizeof(char));
+	TypeId_t type=*(TypeId_t*)(exe->code+r->cp+sizeof(char)+sizeof(ssize_t));
 	if(GET_TAG(exp)!=MEM_TAG)
 		RAISE_BUILTIN_ERROR("b.push_ref",WRONGARG,r,exe);
-	VMvalue* offset=getValue(stack,stack->tp-2);
-	if(!IS_IN32(offset))
-		RAISE_BUILTIN_ERROR("b.push_ref",WRONGARG,r,exe);
 	VMMem* mem=(VMMem*)GET_PTR(exp);
-	stack->tp-=2;
-	SET_RETURN("B_push_ref",newVMMemref(NULL,mem->mem+GET_IN32(offset)*size,type),stack);
-	r->cp+=sizeof(char)+sizeof(TypeId_t)+sizeof(uint32_t);
+	stack->tp-=1;
+	SET_RETURN("B_push_ref",newVMMemref(NULL,mem->mem+offset,type),stack);
+	r->cp+=sizeof(char)+sizeof(ssize_t)+sizeof(TypeId_t);
 }
 
 void B_pop(FakeVM* exe)

@@ -229,7 +229,7 @@ void* ThreadVMFunc(void* p)
 	{
 		VMstack* stack=exe->stack;
 		VMvalue* v=NULL;
-		while((v=popVMstack(stack)))
+		while((v=GET_VAL(popVMstack(stack),exe->heap)))
 			chanlSend(newSendT(v),tmpCh);
 	}
 	else
@@ -269,7 +269,7 @@ void* ThreadVMDlprocFunc(void* p)
 		f(exe,&GClock);
 		VMstack* stack=exe->stack;
 		VMvalue* v=NULL;
-		while((v=popVMstack(stack)))
+		while((v=GET_VAL(popVMstack(stack),exe->heap)))
 			chanlSend(newSendT(v),ch);
 	}
 	else
@@ -737,7 +737,7 @@ void B_pop_ref(FakeVM* exe)
 	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* val=GET_VAL(getTopValue(stack),exe->heap);
 	VMvalue* ref=getValue(stack,stack->tp-2);
-	if(!IS_REF(ref)&&!IS_CHF(ref))
+	if(!IS_REF(ref)&&!IS_CHF(ref)&&!IS_MEM(ref))
 		RAISE_BUILTIN_ERROR("b.pop_ref",WRONGARG,runnable,exe);
 	if(SET_REF(ref,val))
 		RAISE_BUILTIN_ERROR("b.pop_ref",INVALIDASSIGN,runnable,exe);

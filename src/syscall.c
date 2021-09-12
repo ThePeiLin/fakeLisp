@@ -8,6 +8,7 @@
 #include<setjmp.h>
 extern const char* builtInSymbolList[NUMOFBUILTINSYMBOL];
 extern const char* builtInErrorType[NUMOFBUILTINERRORTYPE];
+extern TypeId_t CharTypeId;
 extern FakeVMlist GlobFakeVMs;
 extern void* ThreadVMFunc(void* p);
 extern void* ThreadVMDlprocFunc(void* p);
@@ -167,11 +168,11 @@ void SYS_eqn(FakeVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.eqn",TOOFEWARG,runnable,exe);
 	if((IS_DBL(fir)||IS_IN32(fir)||IS_IN64(fir))&&(IS_DBL(sec)||IS_IN32(sec)||IS_IN64(sec)))
 		SET_RETURN("SYS_eqn",((((IS_DBL(fir))?*fir->u.dbl
-							:((IS_IN32(fir))?GET_IN32(fir)
-								:*fir->u.in64))
-						-((IS_DBL(sec))?*sec->u.dbl
-							:((IS_IN32(sec))?GET_IN32(sec)
+							:((IS_IN32(fir)?GET_IN32(fir)
 								:*fir->u.in64)))
+						-((IS_DBL(sec))?*sec->u.dbl
+							:((IS_IN32(sec)?GET_IN32(sec)
+								:*sec->u.in64))))
 					==0.0)
 				?VM_TRUE
 				:VM_NIL
@@ -242,7 +243,7 @@ void SYS_add(FakeVM* exe,pthread_rwlock_t* gclock)
 	else if(r64!=0)
 	{
 		r64+=ri;
-		SET_RETURN("SYS_add",newVMvalue(IN32,&r64,exe->heap),stack);
+		SET_RETURN("SYS_add",newVMvalue(IN64,&r64,exe->heap),stack);
 	}
 	else
 		SET_RETURN("SYS_add",MAKE_VM_IN32(ri),stack);
@@ -266,7 +267,7 @@ void SYS_add_1(FakeVM* exe,pthread_rwlock_t* gclock)
 	}
 	else if(IS_IN64(arg))
 	{
-		int64_t r=*arg->u.in64+1.0;
+		int64_t r=*arg->u.in64+1;
 		SET_RETURN("SYS_add_1",newVMvalue(IN64,&r,exe->heap),stack);
 	}
 	else
@@ -386,10 +387,10 @@ void SYS_mul(FakeVM* exe,pthread_rwlock_t* gclock)
 	resBp(stack);
 	if(rd!=1.0)
 	{
-		rd*=ri;
+		rd*=ri*r64;
 		SET_RETURN("SYS_mul",newVMvalue(DBL,&rd,exe->heap),stack);
 	}
-	else if(r64!=0)
+	else if(r64!=1)
 	{
 		r64*=ri;
 		SET_RETURN("SYS_mul",newVMvalue(IN64,&r64,exe->heap),stack);
@@ -551,8 +552,8 @@ void SYS_gt(FakeVM* exe,pthread_rwlock_t* gclock)
 								:((IS_IN32(prev))?GET_IN32(prev)
 									:*prev->u.in64))
 							-((IS_DBL(cur))?*cur->u.dbl
-								:((IS_IN64(cur))?GET_IN32(cur)
-									:*prev->u.in64)))
+								:((IS_IN32(cur))?GET_IN32(cur)
+									:*cur->u.in64)))
 						>0.0);
 			else if(IS_STR(prev)&&IS_STR(cur))
 				r=(strcmp(prev->u.str,cur->u.str)>0);
@@ -591,8 +592,8 @@ void SYS_ge(FakeVM* exe,pthread_rwlock_t* gclock)
 								:((IS_IN32(prev))?GET_IN32(prev)
 									:*prev->u.in64))
 							-((IS_DBL(cur))?*cur->u.dbl
-								:((IS_IN64(cur))?GET_IN32(cur)
-									:*prev->u.in64)))
+								:((IS_IN32(cur))?GET_IN32(cur)
+									:*cur->u.in64)))
 						>=0.0);
 			else if(IS_STR(prev)&&IS_STR(cur))
 				r=(strcmp(prev->u.str,cur->u.str)>=0);
@@ -631,8 +632,8 @@ void SYS_lt(FakeVM* exe,pthread_rwlock_t* gclock)
 								:((IS_IN32(prev))?GET_IN32(prev)
 									:*prev->u.in64))
 							-((IS_DBL(cur))?*cur->u.dbl
-								:((IS_IN64(cur))?GET_IN32(cur)
-									:*prev->u.in64)))
+								:((IS_IN32(cur))?GET_IN32(cur)
+									:*cur->u.in64)))
 						<0.0);
 			else if(IS_STR(prev)&&IS_STR(cur))
 				r=(strcmp(prev->u.str,cur->u.str)<0);
@@ -671,8 +672,8 @@ void SYS_le(FakeVM* exe,pthread_rwlock_t* gclock)
 								:((IS_IN32(prev))?GET_IN32(prev)
 									:*prev->u.in64))
 							-((IS_DBL(cur))?*cur->u.dbl
-								:((IS_IN64(cur))?GET_IN32(cur)
-									:*prev->u.in64)))
+								:((IS_IN32(cur))?GET_IN32(cur)
+									:*cur->u.in64)))
 						<=0.0);
 			else if(IS_STR(prev)&&IS_STR(cur))
 				r=(strcmp(prev->u.str,cur->u.str)<=0);
@@ -981,21 +982,21 @@ void SYS_nth(FakeVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.nth",TOOMANYARG,runnable,exe);
 	if(!place||!objlist)
 		RAISE_BUILTIN_ERROR("sys.nth",TOOFEWARG,runnable,exe);
-	if(!IS_IN32(place))
+	if(!IS_IN32(place)&&!IS_IN64(place))
 		RAISE_BUILTIN_ERROR("sys.nth",WRONGARG,runnable,exe);
 	VMvalue* retval=NULL;
-	int32_t offset=GET_IN32(place);
+	ssize_t index=IS_IN32(place)?GET_IN32(place):*place->u.in64;
 	if(objlist==VM_NIL||IS_PAIR(objlist))
 	{
 		VMvalue* objPair=objlist;
 		int i=0;
-		for(;i<offset&&IS_PAIR(objPair);i++,objPair=getVMpairCdr(objPair));
+		for(;i<index&&IS_PAIR(objPair);i++,objPair=getVMpairCdr(objPair));
 		retval=(IS_PAIR(objPair))?MAKE_VM_REF(&objPair->u.pair->car):VM_NIL;
 	}
 	else if(IS_STR(objlist))
-		retval=offset>=strlen(objlist->u.str)?VM_NIL:MAKE_VM_CHF(newVMMem(sizeof(char),(uint8_t*)objlist->u.str+offset));
+		retval=index>=strlen(objlist->u.str)?VM_NIL:MAKE_VM_CHF(newVMMem(CharTypeId,(uint8_t*)objlist->u.str+index));
 	else if(IS_BYTS(objlist))
-		retval=offset>=objlist->u.byts->size?VM_NIL:MAKE_VM_CHF(newVMMem(sizeof(char),objlist->u.byts->str+offset));
+		retval=index>=objlist->u.byts->size?VM_NIL:MAKE_VM_CHF(newVMMem(CharTypeId,objlist->u.byts->str+index));
 	else
 		RAISE_BUILTIN_ERROR("sys.nth",WRONGARG,runnable,exe);
 	SET_RETURN("SYS_nth",retval,stack);

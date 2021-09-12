@@ -156,7 +156,7 @@ static int (*MemorySeterList[])(ARGL)=
 static TypeId_t LastNativeTypeId=0;
 extern SymbolTable GlobSymbolTable;
 static int isNativeType(Sid_t typeName,VMDefTypes* otherTypes);
-static TypeId_t CharTypeId=0;
+TypeId_t CharTypeId=0;
 static struct
 {
 	TypeId_t num;
@@ -2084,7 +2084,7 @@ void initNativeDefTypes(VMDefTypes* otherTypes)
 		Sid_t typeName=addSymbolToGlob(nativeTypeList[i].typeName)->id;
 		size_t size=nativeTypeList[i].size;
 		TypeId_t t=newVMNativeType(typeName,size);
-		if(CharTypeId&&!strcmp("char",nativeTypeList[i].typeName))
+		if(!CharTypeId&&!strcmp("char",nativeTypeList[i].typeName))
 			CharTypeId=t;
 		//VMTypeUnion t={.nt=newVMNativeType(typeName,size)};
 		addDefTypes(otherTypes,typeName,t);

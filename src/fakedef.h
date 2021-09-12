@@ -6,9 +6,9 @@
 #include<pthread.h>
 #include<setjmp.h>
 #define THRESHOLD_SIZE 64
-#define NUMOFBUILTINSYMBOL 51
+#define NUMOFBUILTINSYMBOL 53
 #define MAX_STRING_SIZE 64
-#define NUMOFBUILTINERRORTYPE 26
+#define NUMOFBUILTINERRORTYPE 27
 #define STATIC_SYMBOL_INIT {0,NULL,NULL}
 #define UNUSEDBITNUM 3
 #define PTR_MASK ((intptr_t)0xFFFFFFFFFFFFFFF8)
@@ -90,6 +90,7 @@ typedef enum
 	INVALIDMEMBER,
 	NOMEMBERTYPE,
 	NONSCALARTYPE,
+	INVALIDASSIGN,
 }ErrorType;
 
 #ifdef _WIN32
@@ -298,16 +299,10 @@ typedef struct VMByts
 	uint8_t str[];
 }VMByts;
 
-typedef struct VMMemref
-{
-	struct VMvalue* from;
-	TypeId_t type;
-	uint8_t* mem;
-}VMMemref;
 
 typedef struct VMMem
 {
-	size_t type;
+	TypeId_t type;
 	uint8_t* mem;
 }VMMem;
 

@@ -75,14 +75,6 @@ int isSetqExpression(const AST_cptr* objCptr)
 	else return 0;
 }
 
-int isAlcfExpression(const AST_cptr* objCptr)
-{
-	objCptr=(isValid(objCptr)&&objCptr->type==PAIR)?&objCptr->u.pair->car:NULL;
-	AST_atom* tmpAtm=(objCptr!=NULL&&objCptr->type==ATM)?objCptr->u.atom:NULL;
-	if(tmpAtm!=NULL&&tmpAtm->type==SYM&&!strcmp(tmpAtm->value.str,"alcf"))return 1;
-	return 0;
-}
-
 int isGetfExpression(const AST_cptr* objCptr)
 {
 	objCptr=(isValid(objCptr)&&objCptr->type==PAIR)?&objCptr->u.pair->car:NULL;
@@ -177,7 +169,17 @@ int isQuoteExpression(const AST_cptr* objCptr)
 {
 	objCptr=(isValid(objCptr)&&objCptr->type==PAIR)?&objCptr->u.pair->car:NULL;
 	AST_atom* tmpAtm=(objCptr!=NULL&&objCptr->type==ATM)?objCptr->u.atom:NULL;
-	if(tmpAtm!=NULL&&tmpAtm->type==SYM&&!strcmp(tmpAtm->value.str,"quote"))return 1;
+	if(tmpAtm!=NULL&&tmpAtm->type==SYM&&!strcmp(tmpAtm->value.str,"quote")&&nextCptr(objCptr)&&!nextCptr(nextCptr(objCptr)))
+		return 1;
+	return 0;
+}
+
+int isSzofExpression(const AST_cptr* objCptr)
+{
+	objCptr=(isValid(objCptr)&&objCptr->type==PAIR)?&objCptr->u.pair->car:NULL;
+	AST_atom* tmpAtm=(objCptr!=NULL&&objCptr->type==ATM)?objCptr->u.atom:NULL;
+	if(tmpAtm!=NULL&&tmpAtm->type==SYM&&!strcmp(tmpAtm->value.str,"szof")&&nextCptr(objCptr)&&!nextCptr(nextCptr(objCptr)))
+		return 1;
 	return 0;
 }
 

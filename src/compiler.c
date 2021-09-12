@@ -506,8 +506,8 @@ void initGlobKeyWord(CompEnv* glob)
 	addKeyWord("try",glob);
 	addKeyWord("catch",glob);
 	addKeyWord("deftype",glob);
-	addKeyWord("alcf",glob);
 	addKeyWord("getf",glob);
+	addKeyWord("szof",glob);
 }
 
 void unInitPreprocess()
@@ -647,8 +647,8 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 		if(isDefExpression(objCptr))return compileDef(objCptr,curEnv,inter,status,evalIm);
 		if(isSetqExpression(objCptr))return compileSetq(objCptr,curEnv,inter,status,evalIm);
 		if(isSetfExpression(objCptr))return compileSetf(objCptr,curEnv,inter,status,evalIm);
-		if(isAlcfExpression(objCptr))return compileAlcf(objCptr,curEnv,inter,status,evalIm);
 		if(isGetfExpression(objCptr))return compileGetf(objCptr,curEnv,inter,status,evalIm);
+		if(isSzofExpression(objCptr))return compileSzof(objCptr,curEnv,inter,status,evalIm);
 		if(isCondExpression(objCptr))return compileCond(objCptr,curEnv,inter,status,evalIm);
 		if(isAndExpression(objCptr))return compileAnd(objCptr,curEnv,inter,status,evalIm);
 		if(isOrExpression(objCptr))return compileOr(objCptr,curEnv,inter,status,evalIm);
@@ -1318,30 +1318,6 @@ ByteCodelnt* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	}
 }
 
-ByteCodelnt* compileAlcf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
-{
-	AST_cptr* fir=getFirstCptr(objCptr);
-	AST_cptr* typeCptr=nextCptr(fir);
-	TypeId_t type=genDefTypesUnion(typeCptr,inter->deftypes);
-	if(!type)
-	{
-		status->status=INVALIDTYPEDEF;
-		status->place=typeCptr;
-		return NULL;
-	}
-	ByteCode* pushMem=newByteCode(sizeof(char)+sizeof(TypeId_t)+sizeof(uint32_t));
-	ByteCodelnt* tmp=newByteCodelnt(pushMem);
-	pushMem->code[0]=FAKE_PUSH_MEM;
-	*(TypeId_t*)(pushMem->code+sizeof(char))=type;
-	*(uint32_t*)(pushMem->code+sizeof(char)+sizeof(TypeId_t))=getVMTypeSizeWithTypeId(type);
-	LineNumTabNode* n=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,pushMem->size,objCptr->curline);
-	tmp->ls=1;
-	tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
-	FAKE_ASSERT(tmp->l,"compileConst",__FILE__,__LINE__);
-	tmp->l[0]=n;
-	return tmp;
-}
-
 ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {
 	AST_cptr* fir=getFirstCptr(objCptr);
@@ -1579,6 +1555,38 @@ ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			return NULL;
 		}
 	}
+	return tmp;
+}
+
+ByteCodelnt* compileSzof(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+{
+	AST_cptr* typeCptr=nextCptr(getFirstCptr(objCptr));
+	TypeId_t type=genDefTypesUnion(typeCptr,inter->deftypes);
+	if(!type)
+	{
+		status->status=INVALIDTYPEDEF;
+		status->place=typeCptr;
+		return NULL;
+	}
+	size_t size=getVMTypeSizeWithTypeId(type);
+	ByteCodelnt* tmp=NULL;
+	if(size>INT32_MAX)
+	{
+		tmp=newByteCodelnt(newByteCode(sizeof(char)+sizeof(int64_t)));
+		tmp->bc->code[0]=FAKE_PUSH_IN64;
+		*(int64_t*)(tmp->bc->code+sizeof(char))=(int64_t)size;
+	}
+	else
+	{
+		tmp=newByteCodelnt(newByteCode(sizeof(char)+sizeof(int32_t)));
+		tmp->bc->code[0]=FAKE_PUSH_IN32;
+		*(int64_t*)(tmp->bc->code+sizeof(char))=(int32_t)size;
+	}
+	LineNumTabNode* n=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,tmp->bc->size,objCptr->curline);
+	tmp->ls=1;
+	tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
+	FAKE_ASSERT(tmp->l,"compileSzof",__FILE__,__LINE__);
+	tmp->l[0]=n;
 	return tmp;
 }
 

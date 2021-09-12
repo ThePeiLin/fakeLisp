@@ -14,24 +14,27 @@
 
 /*print mem ref func list*/
 #define PRINT_MEM_REF(FMT,TYPE,MEM,FP) fprintf(FP,FMT,*(TYPE*)MEM)
-static void printShortMem (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%d",short,mem,fp);}
-static void printIntMem   (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%d",int,mem,fp);}
-static void printUShortMem(uint8_t* mem,FILE* fp){PRINT_MEM_REF("%u",unsigned short,mem,fp);}
-static void printUIntMem  (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%u",unsigned int,mem,fp);}
-static void printLongMem  (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%ld",long,mem,fp);}
-static void printULongMem (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%lu",unsigned long,mem,fp);}
-static void printLLongMem (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%lld",long long,mem,fp);}
-static void printULLongMem(uint8_t* mem,FILE* fp){PRINT_MEM_REF("%llu",unsigned long long,mem,fp);}
-static void printPtrdiff_t(uint8_t* mem,FILE* fp){PRINT_MEM_REF("%ld",ptrdiff_t,mem,fp);}
-static void printSize_t   (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%zu",size_t,mem,fp);};
-static void printSsize_t  (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%zd",ssize_t,mem,fp);}
-static void printChar     (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%c",char,mem,fp);}
-static void printWchar_t  (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%C",wchar_t,mem,fp);}
-static void printFloat    (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%f",float,mem,fp);}
-static void printDouble   (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%lf",double,mem,fp);}
-static void printIptr     (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%ld",intptr_t,mem,fp);}
-static void printUptr     (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%lu",uintptr_t,mem,fp);}
-static void printVoidPtr  (uint8_t* mem,FILE* fp){PRINT_MEM_REF("%p",void*,mem,fp);}
+#define ARGL uint8_t* mem,FILE* fp
+static void printShortMem (ARGL){PRINT_MEM_REF("%d",short,mem,fp);}
+static void printIntMem   (ARGL){PRINT_MEM_REF("%d",int,mem,fp);}
+static void printUShortMem(ARGL){PRINT_MEM_REF("%u",unsigned short,mem,fp);}
+static void printUIntMem  (ARGL){PRINT_MEM_REF("%u",unsigned int,mem,fp);}
+static void printLongMem  (ARGL){PRINT_MEM_REF("%ld",long,mem,fp);}
+static void printULongMem (ARGL){PRINT_MEM_REF("%lu",unsigned long,mem,fp);}
+static void printLLongMem (ARGL){PRINT_MEM_REF("%lld",long long,mem,fp);}
+static void printULLongMem(ARGL){PRINT_MEM_REF("%llu",unsigned long long,mem,fp);}
+static void printPtrdiff_t(ARGL){PRINT_MEM_REF("%ld",ptrdiff_t,mem,fp);}
+static void printSize_t   (ARGL){PRINT_MEM_REF("%zu",size_t,mem,fp);};
+static void printSsize_t  (ARGL){PRINT_MEM_REF("%zd",ssize_t,mem,fp);}
+static void printChar     (ARGL){PRINT_MEM_REF("%c",char,mem,fp);}
+static void printWchar_t  (ARGL){PRINT_MEM_REF("%C",wchar_t,mem,fp);}
+static void printFloat    (ARGL){PRINT_MEM_REF("%f",float,mem,fp);}
+static void printDouble   (ARGL){PRINT_MEM_REF("%lf",double,mem,fp);}
+static void printIptr     (ARGL){PRINT_MEM_REF("%ld",intptr_t,mem,fp);}
+static void printUptr     (ARGL){PRINT_MEM_REF("%lu",uintptr_t,mem,fp);}
+static void printVoidPtr  (ARGL){PRINT_MEM_REF("%p",void*,mem,fp);}
+#undef ARGL
+#undef PRINT_MEM_REF
 static void (*PrintMemoryRefFuncList[])(uint8_t*,FILE*)=
 {
 	printShortMem ,
@@ -53,30 +56,31 @@ static void (*PrintMemoryRefFuncList[])(uint8_t*,FILE*)=
 	printUptr     ,
 	printVoidPtr  ,
 };
-#undef PRINT_MEM_REF
 /*-----------------------*/
 
 /*memory caster list*/
 #define CAST_TO_IN32(TYPE) return MAKE_VM_IN32(*(TYPE*)mem);
 #define CAST_TO_IN64(TYPE) int64_t t=*(TYPE*)mem;return newVMvalue(IN64,&t,heap);
-static VMvalue* castShortMem (uint8_t* mem,VMheap* heap){CAST_TO_IN32(short)}
-static VMvalue* castIntMem   (uint8_t* mem,VMheap* heap){CAST_TO_IN32(int)}
-static VMvalue* castUShortMem(uint8_t* mem,VMheap* heap){CAST_TO_IN32(unsigned short)}
-static VMvalue* castUintMem  (uint8_t* mem,VMheap* heap){CAST_TO_IN64(unsigned int)}
-static VMvalue* castLongMem  (uint8_t* mem,VMheap* heap){CAST_TO_IN64(long)}
-static VMvalue* castULongMem (uint8_t* mem,VMheap* heap){CAST_TO_IN64(unsigned long)}
-static VMvalue* castLLongMem (uint8_t* mem,VMheap* heap){CAST_TO_IN64(long long)}
-static VMvalue* castULLongMem(uint8_t* mem,VMheap* heap){CAST_TO_IN64(unsigned long long)}
-static VMvalue* castPtrdiff_t(uint8_t* mem,VMheap* heap){CAST_TO_IN64(ptrdiff_t)}
-static VMvalue* castSize_t   (uint8_t* mem,VMheap* heap){CAST_TO_IN64(size_t)}
-static VMvalue* castSsize_t  (uint8_t* mem,VMheap* heap){CAST_TO_IN64(ssize_t)}
-static VMvalue* castChar     (uint8_t* mem,VMheap* heap){return MAKE_VM_CHR(*(char*)mem);}
-static VMvalue* castWchar_t  (uint8_t* mem,VMheap* heap){return MAKE_VM_IN32(*(wchar_t*)mem);}
-static VMvalue* castFloat    (uint8_t* mem,VMheap* heap){double t=*(float*)mem;return newVMvalue(DBL,&t,heap);}
-static VMvalue* castDouble   (uint8_t* mem,VMheap* heap){double t=*(double*)mem;return newVMvalue(DBL,&t,heap);}
-static VMvalue* castIptr     (uint8_t* mem,VMheap* heap){CAST_TO_IN64(intptr_t)}
-static VMvalue* castUptr     (uint8_t* mem,VMheap* heap){CAST_TO_IN64(uintptr_t)}
-static VMvalue* castVoidPtr  (uint8_t* mem,VMheap* heap){return newVMvalue(IN64,mem,heap);}
+#define ARGL uint8_t* mem,VMheap* heap
+static VMvalue* castShortMem (ARGL){CAST_TO_IN32(short)}
+static VMvalue* castIntMem   (ARGL){CAST_TO_IN32(int)}
+static VMvalue* castUShortMem(ARGL){CAST_TO_IN32(unsigned short)}
+static VMvalue* castUintMem  (ARGL){CAST_TO_IN64(unsigned int)}
+static VMvalue* castLongMem  (ARGL){CAST_TO_IN64(long)}
+static VMvalue* castULongMem (ARGL){CAST_TO_IN64(unsigned long)}
+static VMvalue* castLLongMem (ARGL){CAST_TO_IN64(long long)}
+static VMvalue* castULLongMem(ARGL){CAST_TO_IN64(unsigned long long)}
+static VMvalue* castPtrdiff_t(ARGL){CAST_TO_IN64(ptrdiff_t)}
+static VMvalue* castSize_t   (ARGL){CAST_TO_IN64(size_t)}
+static VMvalue* castSsize_t  (ARGL){CAST_TO_IN64(ssize_t)}
+static VMvalue* castChar     (ARGL){return MAKE_VM_CHR(*(char*)mem);}
+static VMvalue* castWchar_t  (ARGL){return MAKE_VM_IN32(*(wchar_t*)mem);}
+static VMvalue* castFloat    (ARGL){double t=*(float*)mem;return newVMvalue(DBL,&t,heap);}
+static VMvalue* castDouble   (ARGL){double t=*(double*)mem;return newVMvalue(DBL,&t,heap);}
+static VMvalue* castIptr     (ARGL){CAST_TO_IN64(intptr_t)}
+static VMvalue* castUptr     (ARGL){CAST_TO_IN64(uintptr_t)}
+static VMvalue* castVoidPtr  (ARGL){return newVMvalue(IN64,mem,heap);}
+#undef ARGL
 #undef CAST_TO_IN32
 #undef CAST_TO_IN64
 static VMvalue*(*MemoryCasterList[])(uint8_t*,VMheap*)=
@@ -101,6 +105,54 @@ static VMvalue*(*MemoryCasterList[])(uint8_t*,VMheap*)=
 	castVoidPtr  ,
 };
 /*------------------*/
+
+/*Memory setting function list*/
+#define BODY(EXPRESSION,TYPE,VALUE) if(EXPRESSION)return 1;*(TYPE*)mem=(VALUE);return 0;
+#define SET_NUM(TYPE) BODY(!IS_IN32(v)&&!IS_IN64(v),TYPE,IS_IN32(v)?GET_IN32(v):*v->u.in64)
+#define ARGL uint8_t* mem,VMvalue* v
+static int setShortMem (ARGL){SET_NUM(short)}
+static int setIntMem   (ARGL){SET_NUM(int)}
+static int setUShortMem(ARGL){SET_NUM(unsigned short)}
+static int setUintMem  (ARGL){SET_NUM(unsigned int)}
+static int setLongMem  (ARGL){SET_NUM(long)}
+static int setULongMem (ARGL){SET_NUM(unsigned long)}
+static int setLLongMem (ARGL){SET_NUM(long long)}
+static int setULLongMem(ARGL){SET_NUM(unsigned long long)}
+static int setPtrdiff_t(ARGL){SET_NUM(ptrdiff_t)}
+static int setSize_t   (ARGL){SET_NUM(size_t)}
+static int setSsize_t  (ARGL){SET_NUM(ssize_t)}
+static int setChar     (ARGL){BODY(!IS_CHR(v),char,GET_CHR(v))}
+static int setWchar_t  (ARGL){BODY(!IS_CHR(v)&&!IS_IN32(v),wchar_t,IS_IN32(v)?GET_IN32(v):GET_CHR(v))}
+static int setFloat    (ARGL){BODY(!IS_DBL(v)&&!IS_IN32(v)&&IS_IN64(v),float,IS_DBL(v)?*v->u.dbl:(IS_IN32(v)?GET_IN32(v):*v->u.in64))}
+static int setDouble   (ARGL){BODY(!IS_DBL(v)&&!IS_IN32(v)&&IS_IN64(v),double,IS_DBL(v)?*v->u.dbl:(IS_IN32(v)?GET_IN32(v):*v->u.in64))}
+static int setIptr     (ARGL){SET_NUM(intptr_t)}
+static int setUptr     (ARGL){SET_NUM(uintptr_t)}
+static int setVoidPtr  (ARGL){SET_NUM(uintptr_t)}
+#undef SET_NUM
+#undef BODY
+static int (*MemorySeterList[])(ARGL)=
+{
+	setShortMem ,
+	setIntMem   ,
+	setUShortMem,
+	setUintMem  ,
+	setLongMem  ,
+	setULongMem ,
+	setLLongMem ,
+	setULLongMem,
+	setPtrdiff_t,
+	setSize_t   ,
+	setSsize_t  ,
+	setChar     ,
+	setWchar_t  ,
+	setFloat    ,
+	setDouble   ,
+	setIptr     ,
+	setUptr     ,
+	setVoidPtr  ,
+};
+#undef ARGL
+/*------------------*/
 static TypeId_t LastNativeTypeId=0;
 extern SymbolTable GlobSymbolTable;
 static int isNativeType(Sid_t typeName,VMDefTypes* otherTypes);
@@ -110,6 +162,29 @@ static struct
 	TypeId_t num;
 	VMTypeUnion* ul;
 } GlobTypeUnionList={0,NULL};
+
+static void initVMStructTypeId(TypeId_t id,const char* structName,uint32_t num,Sid_t* symbols,TypeId_t* memberTypes)
+{
+	size_t totalSize=0;
+	for(uint32_t i=0;i<num;totalSize+=getVMTypeSize(getVMTypeUnion(memberTypes[i])),i++);
+	VMTypeUnion* pst=&GlobTypeUnionList.ul[id-1];
+	VMStructType* ost=(VMStructType*)GET_TYPES_PTR(pst->st);
+	ost=(VMStructType*)realloc(ost,sizeof(VMStructType)+num*(sizeof(Sid_t)+sizeof(TypeId_t)));
+	FAKE_ASSERT(ost,"initVMStructTypeId",__FILE__,__LINE__);
+	if(structName)
+		ost->type=addSymbolToGlob(structName)->id;
+	else
+		ost->type=-1;
+	ost->num=num;
+	ost->totalSize=totalSize;
+	for(uint32_t i=0;i<num;i++)
+	{
+		ost->layout[i].memberSymbol=symbols[i];
+		ost->layout[i].type=memberTypes[i];
+	}
+	pst->st=MAKE_STRUCT_TYPE(ost);
+}
+
 static TypeId_t addToGlobTypeUnionList(VMTypeUnion type)
 {
 	GlobTypeUnionList.num+=1;
@@ -1291,6 +1366,9 @@ char* genErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe)
 			t=strCat(t,exe->stack->values[exe->stack->tp-1]->u.str);
 			t=strCat(t,"\" ");
 			break;
+		case INVALIDASSIGN:
+			t=strCat(t,"Invalid assign ");
+			break;
 	}
 	t=strCat(t,lineNumber);
 	free(lineNumber);
@@ -1348,16 +1426,16 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 			fprintf(fp,"%s",getGlobSymbolWithId(GET_SYM(objValue))->symbol);
 			break;
 		case MEM_TAG:
-			fprintf(fp,"<#mem at %p>",((VMMem*)GET_PTR(objValue))->mem);
-			break;
 		case CHF_TAG:
 			{
-				VMMemref* mref=(VMMemref*)GET_PTR(objValue);
-				TypeId_t type=mref->type;
-				if(type<=LastNativeTypeId)
-					PrintMemoryRefFuncList[type-1](mref->mem,fp);
+				VMMem* mem=(VMMem*)GET_PTR(objValue);
+				TypeId_t type=mem->type;
+				if(type>0&&type<=LastNativeTypeId)
+					PrintMemoryRefFuncList[type-1](mem->mem,fp);
+				else if(IS_CHF(objValue))
+					fprintf(fp,"<#memref at %p>",mem->mem);
 				else
-					fprintf(fp,"<#memref at %p>",mref->mem);
+					fprintf(fp,"<#mem at %p>",mem->mem);
 			}
 			break;
 		case PTR_TAG:
@@ -1476,16 +1554,16 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 			fprintf(fp,"%s",getGlobSymbolWithId(GET_SYM(objValue))->symbol);
 			break;
 		case MEM_TAG:
-			fprintf(fp,"<#mem at %p>",((VMMem*)GET_PTR(objValue))->mem);
-			break;
 		case CHF_TAG:
 			{
-				VMMemref* mref=(VMMemref*)GET_PTR(objValue);
-				TypeId_t type=mref->type;
-				if(type<=LastNativeTypeId)
-					PrintMemoryRefFuncList[type-1](mref->mem,fp);
+				VMMem* mem=(VMMem*)GET_PTR(objValue);
+				TypeId_t type=mem->type;
+				if(type>0&&type<=LastNativeTypeId)
+					PrintMemoryRefFuncList[type-1](mem->mem,fp);
+				else if(IS_CHF(objValue))
+					fprintf(fp,"<#memref at %p>",mem->mem);
 				else
-					fprintf(fp,"<#memref at %p>",mref->mem);
+					fprintf(fp,"<#mem at %p>",mem->mem);
 			}
 			break;
 		case PTR_TAG:
@@ -1586,42 +1664,43 @@ int eqVMByts(const VMByts* fir,const VMByts* sec)
 	return !memcmp(fir->str,sec->str,sec->size);
 }
 
-VMvalue* newVMMemref(VMvalue* from,uint8_t* obj,TypeId_t type)
-{
-	VMMemref* tmp=(VMMemref*)malloc(sizeof(VMMemref));
-	FAKE_ASSERT(tmp,"newVMMemref",__FILE__,__LINE__);
-	tmp->from=from;
-	tmp->mem=obj;
-	tmp->type=type;
-	return MAKE_VM_CHF(tmp);
-}
-
-int setVMMemref(VMMemref* pRef,VMvalue* v)
-{
-	VMptrTag tag=GET_TAG(v);
-	switch(tag)
-	{
-		case CHR_TAG:
-			*pRef->mem=GET_CHR(v);
-			break;
-		default:
-			return 255;
-	}
-	return 0;
-}
-
 VMvalue* GET_VAL(VMvalue* P,VMheap* heap)
 {
 	if(IS_REF(P))
 		return *(VMvalue**)(GET_PTR(P));
 	else if(IS_CHF(P))
 	{
-		VMMemref* ref=(VMMemref*)GET_PTR(P);
-		VMvalue* t=MemoryCasterList[ref->type](ref->mem,heap);
-		free(P);
-		return t;
+		VMMem* mem=(VMMem*)GET_PTR(P);
+		if(mem->type>0&&mem->type<=LastNativeTypeId)
+		{
+			VMvalue* t=MemoryCasterList[mem->type-1](mem->mem,heap);
+			free(mem);
+			return t;
+		}
 	}
 	return P;
+}
+
+int SET_REF(VMvalue* P,VMvalue* V)
+{
+	if(IS_MEM(P)||IS_CHF(P))
+	{
+		VMMem* mem=(VMMem*)GET_PTR(P);
+		if(mem->type<=0&&mem->type>LastNativeTypeId)
+			return 1;
+		if(MemorySeterList[mem->type-1](mem->mem,V))
+			return 1;
+		if(IS_CHF(P))
+			free(mem);
+		return 0;
+	}
+	else if(IS_REF(P))
+	{
+		*(VMvalue**)GET_PTR(P)=V;
+		return 0;
+	}
+	else
+		return 1;
 }
 
 TypeId_t newVMNativeType(Sid_t type,size_t size)
@@ -1874,41 +1953,79 @@ TypeId_t genDefTypesUnion(AST_cptr* objCptr,VMDefTypes* otherTypes)
 			}
 			else
 				memberCptr=structNameCptr;
+			TypeId_t retval=0;
+			if(memberCptr==NULL&&structName!=NULL)
+			{
+				TypeId_t i=0;
+				uint32_t num=GlobTypeUnionList.num;
+				for(;i<num;i++)
+				{
+					VMTypeUnion typeUnion=GlobTypeUnionList.ul[i];
+					if(GET_TYPES_TAG(typeUnion.all)==STRUCT_TYPE_TAG)
+					{
+						VMStructType* st=(VMStructType*)GET_TYPES_PTR(typeUnion.st);
+						if(st->type==addSymbolToGlob(structName)->id)
+						{
+							retval=i+1;
+							break;
+						}
+					}
+				}
+				if(!retval)
+					return retval;
+			}
+			else if(structName!=NULL)
+				retval=newVMStructType(structName,0,NULL,NULL);
 			for(;memberCptr;num++,memberCptr=nextCptr(memberCptr));
 			memberCptr=structNameCptr;
-			Sid_t* memberSymbolList=(Sid_t*)malloc(sizeof(Sid_t)*num);
-			TypeId_t* memberTypeList=(TypeId_t*)malloc(sizeof(TypeId_t)*num);
-			FAKE_ASSERT(memberTypeList&&memberCptr,"genDefTypesUnion",__FILE__,__LINE__);
-			uint32_t i=0;
-			for(;memberCptr;i++,memberCptr=nextCptr(memberCptr))
+			Sid_t* memberSymbolList=NULL;
+			TypeId_t* memberTypeList=NULL;
+			if(num)
 			{
-				AST_cptr* memberName=getFirstCptr(memberCptr);
-				if(memberName->type!=ATM||memberName->u.atom->type!=SYM)
+				memberSymbolList=(Sid_t*)malloc(sizeof(Sid_t)*num);
+				memberTypeList=(TypeId_t*)malloc(sizeof(TypeId_t)*num);
+				FAKE_ASSERT(memberTypeList&&memberCptr,"genDefTypesUnion",__FILE__,__LINE__);
+				uint32_t i=0;
+				for(;memberCptr;i++,memberCptr=nextCptr(memberCptr))
 				{
-					free(memberTypeList);
-					free(memberSymbolList);
-					return 0;
+					AST_cptr* memberName=getFirstCptr(memberCptr);
+					if(memberName->type!=ATM||memberName->u.atom->type!=SYM)
+					{
+						free(memberTypeList);
+						free(memberSymbolList);
+						return 0;
+					}
+					Sid_t symbol=addSymbolToGlob(memberName->u.atom->value.str)->id;
+					if(nextCptr(nextCptr(memberName)))
+					{
+						free(memberTypeList);
+						free(memberSymbolList);
+						return 0;
+					}
+					TypeId_t type=genDefTypesUnion(nextCptr(memberName),otherTypes);
+					if(!type)
+					{
+						free(memberTypeList);
+						free(memberSymbolList);
+						return 0;
+					}
+					memberSymbolList[i]=symbol;
+					memberTypeList[i]=type;
 				}
-				Sid_t symbol=addSymbolToGlob(memberName->u.atom->value.str)->id;
-				if(nextCptr(nextCptr(memberName)))
-				{
-					free(memberTypeList);
-					free(memberSymbolList);
-					return 0;
-				}
-				TypeId_t type=genDefTypesUnion(nextCptr(memberName),otherTypes);
-				if(!type)
-				{
-					free(memberTypeList);
-					free(memberSymbolList);
-					return 0;
-				}
-				memberSymbolList[i]=symbol;
-				memberTypeList[i]=type;
 			}
-			TypeId_t retval=newVMStructType(structName,num,memberSymbolList,memberTypeList);
-			free(memberSymbolList);
-			free(memberTypeList);
+			if(retval&&num)
+			{
+				initVMStructTypeId(retval,structName,num,memberTypeList,memberTypeList);
+			}
+			else if(!retval)
+			{
+				retval=newVMStructType(structName,num,memberSymbolList,memberTypeList);
+				if(memberTypeList&&memberSymbolList)
+				{
+					free(memberSymbolList);
+					free(memberTypeList);
+				}
+			}
 			return retval;
 		}
 		else
@@ -1924,7 +2041,7 @@ int isNativeType(Sid_t typeName,VMDefTypes* otherTypes)
 	return typeNode!=NULL&&GET_TYPES_TAG(getVMTypeUnion(typeNode->type).all)==NATIVE_TYPE_TAG;
 }
 
-VMMem* newVMMem(Sid_t type,uint8_t* mem)
+VMMem* newVMMem(TypeId_t type,uint8_t* mem)
 {
 	VMMem* tmp=(VMMem*)malloc(sizeof(VMMem));
 	FAKE_ASSERT(tmp,"newVMMem",__FILE__,__LINE__);

@@ -45,7 +45,7 @@ extern const char*  builtInErrorType[NUMOFBUILTINERRORTYPE];
 #define GET_IN32(P) ((int32_t)((uintptr_t)(P)>>UNUSEDBITNUM))
 #define GET_CHR(P) ((char)((uintptr_t)(P)>>UNUSEDBITNUM))
 #define GET_SYM(P) ((Sid_t)((uintptr_t)(P)>>UNUSEDBITNUM))
-#define SET_REF(p,v) do{VMvalue* P=p;VMvalue* V=v;if(IS_CHF(P)){VMMemref* pRef=(VMMemref*)GET_PTR(P);setVMMemref(pRef,V);free(pRef);} else *(VMvalue**)GET_PTR(P)=(V);}while(0)
+//#define SET_REF(p,v) do{VMvalue* P=p;VMvalue* V=v;if(IS_CHF(P)){VMMemref* pRef=(VMMemref*)GET_PTR(P);setVMMemref(pRef,V);free(pRef);} else *(VMvalue**)GET_PTR(P)=(V);}while(0)
 #define IS_PTR(P) (GET_TAG(P)==PTR_TAG)
 #define IS_PAIR(P) (GET_TAG(P)==PTR_TAG&&(P)->type==PAIR)
 #define IS_DBL(P) (GET_TAG(P)==PTR_TAG&&(P)->type==DBL)
@@ -63,6 +63,7 @@ extern const char*  builtInErrorType[NUMOFBUILTINERRORTYPE];
 #define IS_SYM(P) (GET_TAG(P)==SYM_TAG)
 #define IS_REF(P) (GET_TAG(P)==REF_TAG)
 #define IS_CHF(P) (GET_TAG(P)==CHF_TAG)
+#define IS_MEM(P) (GET_TAG(P)==MEM_TAG)
 #define IS_IN64(P) (GET_TAG(P)==PTR_TAG&&(P)->type==IN64)
 #define FREE_CHF(P) (free(GET_PTR(P)))
 
@@ -84,6 +85,7 @@ typedef struct Cirular_Ref_List
 }CRL;
 
 VMvalue* GET_VAL(VMvalue* P,VMheap*);
+int SET_REF(VMvalue* P,VMvalue* V);
 void writeVMvalue(VMvalue*,FILE*,CRL**);
 void princVMvalue(VMvalue*,FILE*,CRL**);
 VMenvNode* newVMenvNode(VMvalue*,int32_t);
@@ -171,8 +173,6 @@ VMrunnable* newVMrunnable(VMproc*);
 char* genErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe);
 int32_t getSymbolIdInByteCode(const uint8_t*);
 int resBp(VMstack*);
-VMvalue* newVMMemref(VMvalue* from,uint8_t* obj,TypeId_t);
-int setVMMemref(VMMemref* pRef,VMvalue* obj);
 
 TypeId_t genDefTypes(AST_cptr*,VMDefTypes* otherTypes,Sid_t* typeName);
 TypeId_t genDefTypesUnion(AST_cptr* objCptr,VMDefTypes* otherTypes);
@@ -194,7 +194,7 @@ size_t getVMTypeSize(VMTypeUnion t);
 size_t getVMTypeSizeWithTypeId(TypeId_t t);
 VMTypeUnion getVMTypeUnion(TypeId_t);
 
-VMMem* newVMMem(Sid_t typeId,uint8_t* mem);
+VMMem* newVMMem(TypeId_t typeId,uint8_t* mem);
 TypeId_t genDefTypesUnion(AST_cptr* objCptr,VMDefTypes* otherTypes);
 void initNativeDefTypes(VMDefTypes* otherTypes);
 #endif

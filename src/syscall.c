@@ -993,9 +993,9 @@ void SYS_nth(FakeVM* exe,pthread_rwlock_t* gclock)
 		retval=(IS_PAIR(objPair))?MAKE_VM_REF(&objPair->u.pair->car):VM_NIL;
 	}
 	else if(IS_STR(objlist))
-		retval=offset>=strlen(objlist->u.str)?VM_NIL:newVMMemref(objlist,(uint8_t*)objlist->u.str+offset,sizeof(char));
+		retval=offset>=strlen(objlist->u.str)?VM_NIL:MAKE_VM_CHF(newVMMem(sizeof(char),(uint8_t*)objlist->u.str+offset));
 	else if(IS_BYTS(objlist))
-		retval=offset>=objlist->u.byts->size?VM_NIL:newVMMemref(objlist,objlist->u.byts->str+offset,sizeof(char));
+		retval=offset>=objlist->u.byts->size?VM_NIL:MAKE_VM_CHF(newVMMem(sizeof(char),objlist->u.byts->str+offset));
 	else
 		RAISE_BUILTIN_ERROR("sys.nth",WRONGARG,runnable,exe);
 	SET_RETURN("SYS_nth",retval,stack);
@@ -1497,4 +1497,40 @@ void SYS_apply(FakeVM* exe,pthread_rwlock_t* gclock)
 		DllFunc dllfunc=proc->u.dlproc->func;
 		dllfunc(exe,gclock);
 	}
+}
+
+void SYS_newf(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* r=topComStack(exe->rstack);
+	VMvalue* vsize=popVMstack(stack);
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR("sys.newf",TOOMANYARG,r,exe);
+	if(!vsize)
+		RAISE_BUILTIN_ERROR("sys.newf",TOOFEWARG,r,exe);
+	if(!IS_IN32(vsize)&&!IS_IN64(vsize))
+		RAISE_BUILTIN_ERROR("sys.newf",WRONGARG,r,exe);
+	size_t size=IS_IN32(vsize)?GET_IN32(vsize):*vsize->u.in64;
+	uint8_t* mem=(uint8_t*)malloc(size);
+	FAKE_ASSERT(mem,"SYS_newf",__FILE__,__LINE__);
+	VMvalue* retval=MAKE_VM_MEM(newVMMem(0,mem));
+	SET_RETURN("SYS_newf",retval,stack);
+}
+
+void SYS_delf(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* r=topComStack(exe->rstack);
+	VMvalue* mem=popVMstack(stack);
+	if(resBp(stack))
+		RAISE_BUILTIN_ERROR("sys.delf",TOOMANYARG,r,exe);
+	if(!mem)
+		RAISE_BUILTIN_ERROR("sys.delf",TOOFEWARG,r,exe);
+	if(!IS_MEM(mem)&&!IS_CHR(mem))
+		RAISE_BUILTIN_ERROR("sys.delf",WRONGARG,r,exe);
+	VMMem* pmem=(VMMem*)GET_PTR(mem);
+	uint8_t* p=pmem->mem;
+	if(IS_MEM(mem))
+		free(pmem);
+	free(p);
 }

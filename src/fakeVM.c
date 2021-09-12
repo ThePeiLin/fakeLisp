@@ -54,7 +54,6 @@ static void (*ByteCodes[])(FakeVM*)=
 	B_push_env_var,
 	B_push_top,
 	B_push_proc,
-	B_push_mem,
 	B_push_ptr_ref,
 	B_push_def_ref,
 	B_push_ind_ref,
@@ -204,6 +203,8 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 		SYS_recv,
 		SYS_error,
 		SYS_raise,
+		SYS_newf,
+		SYS_delf,
 	};
 	obj->num=NUMOFBUILTINSYMBOL;
 	obj->list=(VMenvNode**)malloc(sizeof(VMenvNode*)*NUMOFBUILTINSYMBOL);
@@ -515,18 +516,18 @@ void B_push_proc(FakeVM* exe)
 	runnable->cp+=5+sizeOfProc;
 }
 
-void B_push_mem(FakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMrunnable* r=topComStack(exe->rstack);
-	TypeId_t typeId=*(TypeId_t*)(exe->code+r->cp+sizeof(char));
-	uint32_t size=*(uint32_t*)(exe->code+r->cp+sizeof(char)+sizeof(TypeId_t));
-	uint8_t* mem=(uint8_t*)malloc(size);
-	FAKE_ASSERT(mem,"B_push_mem",__FILE__,__LINE__);
-	VMvalue* a=(VMvalue*)newVMMem(typeId,mem);
-	SET_RETURN("B_push_mem",MAKE_VM_MEM(a),stack);
-	r->cp+=sizeof(char)+sizeof(TypeId_t)+sizeof(uint32_t);
-}
+//void B_push_mem(FakeVM* exe)
+//{
+//	VMstack* stack=exe->stack;
+//	VMrunnable* r=topComStack(exe->rstack);
+//	TypeId_t typeId=*(TypeId_t*)(exe->code+r->cp+sizeof(char));
+//	uint32_t size=*(uint32_t*)(exe->code+r->cp+sizeof(char)+sizeof(TypeId_t));
+//	uint8_t* mem=(uint8_t*)malloc(size);
+//	FAKE_ASSERT(mem,"B_push_mem",__FILE__,__LINE__);
+//	VMvalue* a=(VMvalue*)newVMMem(typeId,mem);
+//	SET_RETURN("B_push_mem",MAKE_VM_MEM(a),stack);
+//	r->cp+=sizeof(char)+sizeof(TypeId_t)+sizeof(uint32_t);
+//}
 
 void B_push_ptr_ref(FakeVM* exe)
 {
@@ -555,8 +556,8 @@ void B_push_def_ref(FakeVM* exe)
 	VMMem* mem=(VMMem*)GET_PTR(value);
 	stack->tp-=1;
 	uint8_t** ptr=(uint8_t**)(mem->mem+offset);
-	VMMem* retval=newVMMem(typeId,*ptr);
-	SET_RETURN("B_push_def_ref",MAKE_VM_MEM(retval),stack);
+	VMvalue* retval=MAKE_VM_CHF(newVMMem(typeId,*ptr));
+	SET_RETURN("B_push_def_ref",retval,stack);
 	r->cp+=sizeof(char)+sizeof(ssize_t)+sizeof(TypeId_t);
 }
 
@@ -568,13 +569,14 @@ void B_push_ind_ref(FakeVM* exe)
 	VMvalue* exp=getValue(stack,stack->tp-2);
 	TypeId_t type=*(TypeId_t*)(exe->code+r->cp+sizeof(char));
 	uint32_t size=*(uint32_t*)(exe->code+r->cp+sizeof(char)+sizeof(TypeId_t));
-	if(GET_TAG(exp)!=MEM_TAG)
-		RAISE_BUILTIN_ERROR("b.push_ref",WRONGARG,r,exe);
+	if(!IS_MEM(exp))
+		RAISE_BUILTIN_ERROR("b.push_ind_ref",WRONGARG,r,exe);
 	if(!IS_IN32(index))
-		RAISE_BUILTIN_ERROR("b.push_ref",WRONGARG,r,exe);
+		RAISE_BUILTIN_ERROR("b.push_ind_ref",WRONGARG,r,exe);
 	VMMem* mem=(VMMem*)GET_PTR(exp);
 	stack->tp-=2;
-	SET_RETURN("B_push_ref",newVMMemref(NULL,mem->mem+GET_IN32(index)*size,type),stack);
+	VMvalue* retval=MAKE_VM_CHF(newVMMem(type,mem->mem+GET_IN32(index)*size));
+	SET_RETURN("B_push_ind_ref",retval,stack);
 	r->cp+=sizeof(char)+sizeof(TypeId_t)+sizeof(uint32_t);
 }
 
@@ -586,11 +588,12 @@ void B_push_ref(FakeVM* exe)
 	VMvalue* exp=getTopValue(stack);
 	ssize_t offset=*(ssize_t*)(exe->code+r->cp+sizeof(char));
 	TypeId_t type=*(TypeId_t*)(exe->code+r->cp+sizeof(char)+sizeof(ssize_t));
-	if(GET_TAG(exp)!=MEM_TAG)
+	if(!IS_MEM(exp)&&!IS_CHF(exp))
 		RAISE_BUILTIN_ERROR("b.push_ref",WRONGARG,r,exe);
 	VMMem* mem=(VMMem*)GET_PTR(exp);
 	stack->tp-=1;
-	SET_RETURN("B_push_ref",newVMMemref(NULL,mem->mem+offset,type),stack);
+	VMMem* retval=newVMMem(type,mem->mem+offset);
+	SET_RETURN("B_push_ref",MAKE_VM_CHF(retval),stack);
 	r->cp+=sizeof(char)+sizeof(ssize_t)+sizeof(TypeId_t);
 }
 
@@ -734,9 +737,10 @@ void B_pop_ref(FakeVM* exe)
 	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* val=GET_VAL(getTopValue(stack),exe->heap);
 	VMvalue* ref=getValue(stack,stack->tp-2);
-	if(!IS_REF(ref)&&(!IS_CHF(ref)||!IS_CHR(val)))
+	if(!IS_REF(ref)&&!IS_CHF(ref))
 		RAISE_BUILTIN_ERROR("b.pop_ref",WRONGARG,runnable,exe);
-	SET_REF(ref,val);
+	if(SET_REF(ref,val))
+		RAISE_BUILTIN_ERROR("b.pop_ref",INVALIDASSIGN,runnable,exe);
 	stack->tp-=1;
 	stack->values[stack->tp-1]=val;
 	stackRecycle(exe);
@@ -1161,12 +1165,6 @@ void GC_markValue(VMvalue* obj)
 				pushComStack(root->u.dlproc->dll,stack);
 			}
 		}
-		else if(GET_TAG(root)==CHF_TAG)
-		{
-			VMMemref* mem=(VMMemref*)GET_PTR(root);
-			if(mem->from)
-				pushComStack(mem->from,stack);
-		}
 	}
 	freeComStack(stack);
 }
@@ -1196,10 +1194,8 @@ void GC_markValueInStack(VMstack* stack)
 	for(;i<stack->tp;i++)
 	{
 		VMvalue* t=stack->values[i];
-		if(IS_CHF(stack->values[i]))
-			GC_markValue(((VMMemref*)t)->from);
-		else
-			GC_markValue(stack->values[i]);
+		if(!IS_CHF(t))
+			GC_markValue(t);
 	}
 }
 

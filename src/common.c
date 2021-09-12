@@ -48,6 +48,7 @@ const char* builtInErrorType[NUMOFBUILTINERRORTYPE]=
 	"invalid-member-symbol",
 	"no-member-type",
 	"non-scalar-type",
+	"invalid-assign",
 };
 
 char* InterpreterPath=NULL;
@@ -104,6 +105,8 @@ const char* builtInSymbolList[]=
 	"recv",
 	"error",
 	"raise",
+	"newf",
+	"delf",
 };
 
 SymbolTable GlobSymbolTable=STATIC_SYMBOL_INIT;
@@ -759,7 +762,7 @@ void exError(const AST_cptr* obj,int type,Intpr* inter)
 			fprintf(stderr," is undefined ");
 			break;
 		case SYNTAXERROR:
-			fprintf(stderr,"Invalid syntax  ");
+			fprintf(stderr,"Invalid syntax ");
 			if(obj!=NULL)printCptr(obj,stderr);
 			break;
 		case INVALIDEXPR:

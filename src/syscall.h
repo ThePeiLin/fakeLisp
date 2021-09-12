@@ -48,4 +48,6 @@ void SYS_error(FakeVM*,pthread_rwlock_t*);
 void SYS_raise(FakeVM*,pthread_rwlock_t*);
 void SYS_clcc(FakeVM*,pthread_rwlock_t*);
 void SYS_apply(FakeVM*,pthread_rwlock_t*);
+void SYS_newf(FakeVM*,pthread_rwlock_t*);
+void SYS_delf(FakeVM*,pthread_rwlock_t*);
 #endif

@@ -25,6 +25,7 @@ void errorCallBack(void* a)
 }
 
 extern char* InterpreterPath;
+extern struct GlobTypeUnionListElem GlobTypeUnionList;
 int main(int argc,char** argv)
 {
 	char* filename=(argc>1)?argv[1]:"stdin";
@@ -123,6 +124,7 @@ int main(int argc,char** argv)
 		changeWorkPath(filename);
 		loadSymbolTable(fp);
 		LineNumberTable* lnt=loadLineNumberTable(fp);
+		loadTypeList(fp);
 		ByteCode* mainCode=loadByteCode(fp);
 		FakeVM* anotherVM=newFakeVM(mainCode);
 		VMheap* heap=anotherVM->heap;

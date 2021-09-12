@@ -387,7 +387,6 @@ typedef struct FakeVM
 	struct LineNumberTable* lnt;
 	void (*callback)(void*);
 	jmp_buf buf;
-	VMDefTypes* deftypes;
 }FakeVM;
 
 typedef struct VMHeap

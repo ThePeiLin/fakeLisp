@@ -1580,7 +1580,7 @@ ByteCodelnt* compileSzof(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	{
 		tmp=newByteCodelnt(newByteCode(sizeof(char)+sizeof(int32_t)));
 		tmp->bc->code[0]=FAKE_PUSH_IN32;
-		*(int64_t*)(tmp->bc->code+sizeof(char))=(int32_t)size;
+		*(int32_t*)(tmp->bc->code+sizeof(char))=(int32_t)size;
 	}
 	LineNumTabNode* n=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,tmp->bc->size,objCptr->curline);
 	tmp->ls=1;

@@ -153,11 +153,11 @@ static int (*MemorySeterList[])(ARGL)=
 };
 #undef ARGL
 /*------------------*/
-static TypeId_t LastNativeTypeId=0;
+TypeId_t LastNativeTypeId=0;
+TypeId_t CharTypeId=0;
 extern SymbolTable GlobSymbolTable;
 static int isNativeType(Sid_t typeName,VMDefTypes* otherTypes);
-TypeId_t CharTypeId=0;
-static struct
+struct GlobTypeUnionListStruct
 {
 	TypeId_t num;
 	VMTypeUnion* ul;
@@ -169,7 +169,7 @@ static void initVMStructTypeId(TypeId_t id,const char* structName,uint32_t num,S
 	for(uint32_t i=0;i<num;totalSize+=getVMTypeSize(getVMTypeUnion(memberTypes[i])),i++);
 	VMTypeUnion* pst=&GlobTypeUnionList.ul[id-1];
 	VMStructType* ost=(VMStructType*)GET_TYPES_PTR(pst->st);
-	ost=(VMStructType*)realloc(ost,sizeof(VMStructType)+num*(sizeof(Sid_t)+sizeof(TypeId_t)));
+	ost=(VMStructType*)realloc(ost,sizeof(VMStructType)+num*sizeof(VMStructMember));
 	FAKE_ASSERT(ost,"initVMStructTypeId",__FILE__,__LINE__);
 	if(structName)
 		ost->type=addSymbolToGlob(structName)->id;
@@ -2094,4 +2094,124 @@ void initNativeDefTypes(VMDefTypes* otherTypes)
 	//for(;i<num;i++)
 	//	fprintf(stderr,"i=%ld typeId=%d\n",i,otherTypes->u[i]->name);
 	//printGlobSymbolTable(stderr);
+}
+
+void writeTypeList(FILE* fp)
+{
+	TypeId_t i=0;
+	TypeId_t num=GlobTypeUnionList.num;
+	VMTypeUnion* ul=GlobTypeUnionList.ul;
+	fwrite(&LastNativeTypeId,sizeof(LastNativeTypeId),1,fp);
+	fwrite(&CharTypeId,sizeof(CharTypeId),1,fp);
+	fwrite(&num,sizeof(num),1,fp);
+	for(;i<num;i++)
+	{
+		VMTypeUnion tu=ul[i];
+		DefTypeTag tag=GET_TYPES_TAG(tu.all);
+		void* p=(void*)GET_TYPES_PTR(tu.all);
+		fwrite(&tag,sizeof(uint8_t),1,fp);
+		switch(tag)
+		{
+			case NATIVE_TYPE_TAG:
+				fwrite(&((VMNativeType*)p)->type,sizeof(((VMNativeType*)p)->type),1,fp);
+				fwrite(&((VMNativeType*)p)->size,sizeof(((VMNativeType*)p)->size),1,fp);
+				break;
+			case ARRAY_TYPE_TAG:
+				fwrite(&((VMArrayType*)p)->etype,sizeof(((VMArrayType*)p)->etype),1,fp);
+				fwrite(&((VMArrayType*)p)->num,sizeof(((VMArrayType*)p)->num),1,fp);
+				break;
+			case PTR_TYPE_TAG:
+				fwrite(&((VMPtrType*)p)->ptype,sizeof(((VMPtrType*)p)->ptype),1,fp);
+				break;
+			case STRUCT_TYPE_TAG:
+				{
+					uint32_t num=((VMStructType*)p)->num;
+					fwrite(&num,sizeof(num),1,fp);
+					fwrite(&((VMStructType*)p)->totalSize,sizeof(((VMStructType*)p)->totalSize),1,fp);
+					VMStructMember* members=((VMStructType*)p)->layout;
+					uint32_t j=0;
+					for(;j<num;j++)
+					{
+						Sid_t memberSymbol=members[i].memberSymbol;
+						TypeId_t memberType=members[i].type;
+						fwrite(&memberSymbol,sizeof(memberSymbol),1,fp);
+						fwrite(&memberType,sizeof(memberType),1,fp);
+					}
+				}
+				break;
+			default:
+				break;
+		}
+	}
+}
+
+void loadTypeList(FILE* fp)
+{
+	TypeId_t i=0;
+	TypeId_t num=0;
+	VMTypeUnion* ul=NULL;
+	fread(&LastNativeTypeId,sizeof(LastNativeTypeId),1,fp);
+	fread(&CharTypeId,sizeof(CharTypeId),1,fp);
+	fread(&num,sizeof(num),1,fp);
+	ul=(VMTypeUnion*)malloc(sizeof(VMTypeUnion)*num);
+	FAKE_ASSERT(ul,"loadTypeList",__FILE__,__LINE__);
+	for(;i<num;i++)
+	{
+		DefTypeTag tag=NATIVE_TYPE_TAG;
+		fread(&tag,sizeof(uint8_t),1,fp);
+		VMTypeUnion tu={.all=NULL};
+		switch(tag)
+		{
+			case NATIVE_TYPE_TAG:
+				{
+					VMNativeType* t=(VMNativeType*)malloc(sizeof(VMNativeType));
+					FAKE_ASSERT(t,"loadTypeList",__FILE__,__LINE__);
+					fread(&t->type,sizeof(t->type),1,fp);
+					fread(&t->size,sizeof(t->size),1,fp);
+					tu.nt=(VMNativeType*)MAKE_NATIVE_TYPE(t);
+				}
+				break;
+			case ARRAY_TYPE_TAG:
+				{
+					VMArrayType* t=(VMArrayType*)malloc(sizeof(VMArrayType));
+					FAKE_ASSERT(t,"loadTypeList",__FILE__,__LINE__);
+					fread(&t->etype,sizeof(t->etype),1,fp);
+					fread(&t->num,sizeof(t->num),1,fp);
+					tu.at=(VMArrayType*)MAKE_ARRAY_TYPE(t);
+				}
+				break;
+			case PTR_TYPE_TAG:
+				{
+					VMPtrType* t=(VMPtrType*)malloc(sizeof(VMPtrType));
+					FAKE_ASSERT(t,"loadTypeList",__FILE__,__LINE__);
+					fread(&t->ptype,sizeof(t->ptype),1,fp);
+					tu.pt=(VMPtrType*)MAKE_PTR_TYPE(t);
+				}
+				break;
+			case STRUCT_TYPE_TAG:
+				{
+					uint32_t num=0;
+					fread(&num,sizeof(num),1,fp);
+					VMStructType* t=(VMStructType*)malloc(sizeof(VMStructType)+sizeof(VMStructMember)*num);
+					FAKE_ASSERT(t,"loadTypeList",__FILE__,__LINE__);
+					t->num=num;
+					fread(&t->totalSize,sizeof(t->totalSize),1,fp);
+					uint32_t j=0;
+					for(;j<num;j++)
+					{
+						Sid_t memberSymbol=0;
+						TypeId_t memberType=0;
+						fread(&memberSymbol,sizeof(memberSymbol),1,fp);
+						fread(&memberType,sizeof(memberType),1,fp);
+						t->layout[j].memberSymbol=memberSymbol;
+						t->layout[j].type=memberType;
+					}
+					tu.st=(VMStructType*)MAKE_STRUCT_TYPE(t);
+				}
+				break;
+			default:
+				break;
+		}
+		ul[i]=tu;
+	}
 }

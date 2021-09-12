@@ -2,6 +2,7 @@
 #include"compiler.h"
 #include"opcode.h"
 #include"syntax.h"
+#include"VMtool.h"
 #include<string.h>
 #include<stdio.h>
 #include<stdlib.h>
@@ -67,6 +68,7 @@ int main(int argc,char** argv)
 		inter->lnt->num=mainByteCode->ls;
 		writeGlobSymbolTable(outfp);
 		writeLineNumberTable(inter->lnt,outfp);
+		writeTypeList(outfp);
 		int32_t sizeOfMain=mainByteCode->bc->size;
 		uint8_t* code=mainByteCode->bc->code;
 		fwrite(&sizeOfMain,sizeof(sizeOfMain),1,outfp);

@@ -475,7 +475,7 @@ void SYS_div(FakeVM* exe,pthread_rwlock_t* gclock)
 		{
 			if(rd==0.0||ri==0)
 				RAISE_BUILTIN_ERROR("sys.div",DIVZERROERROR,runnable,exe);
-			rd=((double)((IS_DBL(prev))?*prev->u.dbl:GET_IN32(prev)))/rd/ri/r64;
+			rd=((double)((IS_DBL(prev))?*prev->u.dbl:(IS_IN32(prev)?GET_IN32(prev):*prev->u.in64)))/rd/ri/r64;
 			SET_RETURN("SYS_div",newVMvalue(DBL,&rd,exe->heap),stack);
 		}
 		else

@@ -796,7 +796,14 @@ void exError(const AST_cptr* obj,int type,Intpr* inter)
 			break;
 		case CANTGETELEM:
 			fprintf(stderr,"cant get element of a non-array or non-pointer type");
-			if(obj!=NULL){fprintf(stderr," member by path ");printCptr(obj,stderr);};
+			if(obj!=NULL)
+			{
+				fprintf(stderr," member by path ");
+				if(obj->type==NIL)
+					fprintf(stderr,"()");
+				else
+					printCptr(obj,stderr);
+			}
 			break;
 		case INVALIDMEMBER:
 			fprintf(stderr,"invalid member ");
@@ -808,7 +815,13 @@ void exError(const AST_cptr* obj,int type,Intpr* inter)
 			break;
 		case NONSCALARTYPE:
 			fprintf(stderr,"get the reference of a non-scalar type member by path ");
-			if(obj!=NULL)printCptr(obj,stderr);
+			if(obj!=NULL)
+			{
+				if(obj->type==NIL)
+					fprintf(stderr,"()");
+				else
+					printCptr(obj,stderr);
+			}
 			fprintf(stderr," is not allowed");
 			break;
 
@@ -918,6 +931,7 @@ void freeIntpr(Intpr* inter)
 	free(inter->curDir);
 	destroyCompEnv(inter->glob);
 	if(inter->lnt)freeLineNumberTable(inter->lnt);
+	if(inter->deftypes)freeDefTypeTable(inter->deftypes);
 	free(inter);
 }
 
@@ -1409,6 +1423,7 @@ char** split(char* str,char* divstr,int* length)
 	{
 		count++;
 		strArry=(char**)realloc(strArry,sizeof(char*)*count);
+		FAKE_ASSERT(strArry,"split",__FILE__,__LINE__);
 		strArry[count-1]=pNext;
 		pNext=strtok(NULL,divstr);
 	}
@@ -2001,6 +2016,16 @@ LineNumTabNode* newLineNumTabNode(int32_t fid,int32_t scp,int32_t cpc,int32_t li
 void freeLineNumTabNode(LineNumTabNode* n)
 {
 	free(n);
+}
+
+void freeDefTypeTable(VMDefTypes* defs)
+{
+	size_t i=0;
+	size_t num=defs->num;
+	for(;i<num;i++)
+		free(defs->u[i]);
+	free(defs->u);
+	free(defs);
 }
 
 void freeLineNumberTable(LineNumberTable* t)

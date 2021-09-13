@@ -35,7 +35,6 @@ typedef enum
 	PTR_TYPE_TAG,
 	STRUCT_TYPE_TAG,
 	UNION_TYPE_TAG,
-	BITS_TYPE_TAG,
 	FUNC_TYPE_TAG,
 }DefTypeTag;
 
@@ -49,6 +48,7 @@ typedef union VMTypeUnion
 	struct VMArrayType* at;
 	struct VMPtrType* pt;
 	struct VMStructType* st;
+	struct VMUnionType* ut;
 }VMTypeUnion;
 
 typedef struct VMDefTypesNode
@@ -493,4 +493,12 @@ typedef struct VMStructType
 		TypeId_t type;
 	}layout[];
 }VMStructType;
+
+typedef struct VMUnionType
+{
+	int64_t type;
+	uint32_t num;
+	size_t maxSize;
+	struct VMStructMember layout[];
+}VMUnionType;
 #endif

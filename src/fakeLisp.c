@@ -70,6 +70,7 @@ int main(int argc,char** argv)
 				unInitPreprocess();
 				free(InterpreterPath);
 				freeGlobSymbolTable();
+				freeGlobTypeList();
 				return status;
 			}
 			inter->lnt->num=mainByteCode->ls;
@@ -96,6 +97,7 @@ int main(int argc,char** argv)
 				unInitPreprocess();
 				freeVMheap(anotherVM->heap);
 				freeGlobSymbolTable();
+				freeGlobTypeList();
 				freeAllVMs();
 			}
 			else
@@ -108,6 +110,7 @@ int main(int argc,char** argv)
 				freeAllVMs();
 				free(InterpreterPath);
 				freeGlobSymbolTable();
+				freeGlobTypeList();
 				return exitStatus;
 			}
 		}
@@ -144,6 +147,7 @@ int main(int argc,char** argv)
 			joinAllThread();
 			freeVMheap(heap);
 			freeGlobSymbolTable();
+			freeGlobTypeList();
 			freeAllVMs();
 			freeLineNumberTable(lnt);
 		}
@@ -154,6 +158,7 @@ int main(int argc,char** argv)
 			freeAllVMs();
 			freeVMheap(heap);
 			freeGlobSymbolTable();
+			freeGlobTypeList();
 			freeLineNumberTable(lnt);
 			free(InterpreterPath);
 			return exitStatus;
@@ -220,6 +225,7 @@ void runIntpr(Intpr* inter)
 				{
 					deleteCptr(begin);
 					freeGlobSymbolTable();
+					freeGlobTypeList();
 					exit(0);
 				}
 			}
@@ -281,6 +287,7 @@ void runIntpr(Intpr* inter)
 	freeVMheap(anotherVM->heap);
 	freeAllVMs();
 	freeGlobSymbolTable();
+	freeGlobTypeList();
 }
 
 ByteCode* loadByteCode(FILE* fp)

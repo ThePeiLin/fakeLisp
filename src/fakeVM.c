@@ -996,6 +996,7 @@ void stackRecycle(FakeVM* exe)
 	if(stack->size-stack->tp>64)
 	{
 		stack->values=(VMvalue**)realloc(stack->values,sizeof(VMvalue*)*(stack->size-64));
+		FAKE_ASSERT(stack->values,"stackRecycle",__FILE__,__LINE__);
 		if(stack->values==NULL)
 		{
 			fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);

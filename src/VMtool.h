@@ -10,6 +10,7 @@ extern const char*  builtInErrorType[NUMOFBUILTINERRORTYPE];
 	if((stack)->tp>=(stack)->size)\
 	{\
 		(stack)->values=(VMvalue**)realloc((stack)->values,sizeof(VMvalue*)*((stack)->size+64));\
+		FAKE_ASSERT((stack)->values,fn,__FILE__,__LINE__);\
 		if((stack)->values==NULL)\
 		{\
 			fprintf(stderr,"In file \"%s\" line %d\n",__FILE__,__LINE__);\
@@ -72,7 +73,6 @@ extern const char*  builtInErrorType[NUMOFBUILTINERRORTYPE];
 #define MAKE_PTR_TYPE(P) ((void*)(((uintptr_t)(P))|PTR_TYPE_TAG))
 #define MAKE_STRUCT_TYPE(P) ((void*)(((uintptr_t)(P))|STRUCT_TYPE_TAG))
 #define MAKE_UNION_TYPE(P) ((void*)(((uintptr_t)(P))|UNION_TYPE_TAG))
-#define MAKE_BITS_TYPE(P) ((void*)(((uintptr_t)(P))|BITS_TYPE_TAG))
 #define MAKE_FUNC_TYPE(P) ((void*)(((uintptr_t)(P))|FUNC_TYPE_TAG))
 #define GET_TYPES_PTR(P) ((void*)(((uintptr_t)(P))&PTR_MASK))
 #define GET_TYPES_TAG(P) ((DefTypeTag)(((uintptr_t)(P))&TAG_MASK))
@@ -190,6 +190,10 @@ void freeVMPtrType(VMPtrType*);
 
 TypeId_t newVMStructType(const char*,uint32_t,Sid_t[],TypeId_t []);
 void freeVMStructType(VMStructType*);
+
+TypeId_t newVMUnionType(const char* structName,uint32_t num,Sid_t symbols[],TypeId_t memberTypes[]);
+void freeVMUnionType(VMUnionType*);
+
 size_t getVMTypeSize(VMTypeUnion t);
 size_t getVMTypeSizeWithTypeId(TypeId_t t);
 VMTypeUnion getVMTypeUnion(TypeId_t);
@@ -199,4 +203,5 @@ TypeId_t genDefTypesUnion(AST_cptr* objCptr,VMDefTypes* otherTypes);
 void initNativeDefTypes(VMDefTypes* otherTypes);
 void writeTypeList(FILE* fp);
 void loadTypeList(FILE* fp);
+void freeGlobTypeList(void);
 #endif

@@ -1417,7 +1417,7 @@ ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		}
 		else
 		{
-			if(GET_TYPES_TAG(typeUnion.all)!=STRUCT_TYPE_TAG)
+			if(GET_TYPES_TAG(typeUnion.all)!=STRUCT_TYPE_TAG&&GET_TYPES_TAG(typeUnion.all)!=UNION_TYPE_TAG)
 			{
 				if(tmp)
 				{
@@ -1430,52 +1430,104 @@ ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			}
 			Sid_t curPathNode=addSymbolToGlob(pathCptr->u.atom->value.str)->id;
 			VMTypeUnion typeUnion=getVMTypeUnion(memberType);
-			VMStructType* structType=GET_TYPES_PTR(typeUnion.st);
-			uint32_t i=0;
-			uint32_t num=structType->num;
-			TypeId_t tmpType=0;
-			for(;i<num;i++)
+			if(GET_TYPES_TAG(typeUnion.all)==STRUCT_TYPE_TAG)
 			{
-				if(structType->layout[i].memberSymbol==curPathNode)
+				VMStructType* structType=GET_TYPES_PTR(typeUnion.st);
+				uint32_t i=0;
+				uint32_t num=structType->num;
+				TypeId_t tmpType=0;
+				for(;i<num;i++)
 				{
-					tmpType=structType->layout[i].type;
-					break;
+					if(structType->layout[i].memberSymbol==curPathNode)
+					{
+						tmpType=structType->layout[i].type;
+						break;
+					}
+					offset+=getVMTypeSizeWithTypeId(structType->layout[i].type);
 				}
-				offset+=getVMTypeSizeWithTypeId(structType->layout[i].type);
-			}
-			if(tmpType)
-				memberType=tmpType;
-			else
-			{
-				status->status=INVALIDMEMBER;
-				status->place=pathCptr;
-				if(tmp)
-				{
-					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
-					freeByteCodelnt(tmp);
-				}
-				return NULL;
-			}
-			AST_cptr* next=nextCptr(pathCptr);
-			if(!next||(next->type==ATM&&next->u.atom->type==SYM&&(!strcmp(next->u.atom->value.str,"&")||!strcmp(next->u.atom->value.str,"*"))))
-			{
-				ByteCodelnt* pushRef=newByteCodelnt(newByteCode(sizeof(char)+sizeof(ssize_t)+sizeof(TypeId_t)));
-				pushRef->bc->code[0]=FAKE_PUSH_REF;
-				*(ssize_t*)(pushRef->bc->code+sizeof(char))=offset;
-				*(TypeId_t*)(pushRef->bc->code+sizeof(char)+sizeof(ssize_t))=memberType;
-				LineNumTabNode* n=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,pushRef->bc->size,pathCptr->curline);
-				pushRef->ls=1;
-				pushRef->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
-				FAKE_ASSERT(pushRef->l,"compileGetf",__FILE__,__LINE__);
-				pushRef->l[0]=n;
-				if(!tmp)
-					tmp=pushRef;
+				if(tmpType)
+					memberType=tmpType;
 				else
 				{
-					codelntCat(tmp,pushRef);
-					freeByteCodelnt(pushRef);
+					status->status=INVALIDMEMBER;
+					status->place=pathCptr;
+					if(tmp)
+					{
+						FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+						freeByteCodelnt(tmp);
+					}
+					return NULL;
 				}
-				offset=0;
+				AST_cptr* next=nextCptr(pathCptr);
+				if(!next||(next->type==ATM&&next->u.atom->type==SYM&&(!strcmp(next->u.atom->value.str,"&")||!strcmp(next->u.atom->value.str,"*"))))
+				{
+					ByteCodelnt* pushRef=newByteCodelnt(newByteCode(sizeof(char)+sizeof(ssize_t)+sizeof(TypeId_t)));
+					pushRef->bc->code[0]=FAKE_PUSH_REF;
+					*(ssize_t*)(pushRef->bc->code+sizeof(char))=offset;
+					*(TypeId_t*)(pushRef->bc->code+sizeof(char)+sizeof(ssize_t))=memberType;
+					LineNumTabNode* n=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,pushRef->bc->size,pathCptr->curline);
+					pushRef->ls=1;
+					pushRef->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
+					FAKE_ASSERT(pushRef->l,"compileGetf",__FILE__,__LINE__);
+					pushRef->l[0]=n;
+					if(!tmp)
+						tmp=pushRef;
+					else
+					{
+						codelntCat(tmp,pushRef);
+						freeByteCodelnt(pushRef);
+					}
+					offset=0;
+				}
+			}
+			else
+			{
+				VMUnionType* unionType=GET_TYPES_PTR(typeUnion.st);
+				uint32_t i=0;
+				uint32_t num=unionType->num;
+				TypeId_t tmpType=0;
+				for(;i<num;i++)
+				{
+					if(unionType->layout[i].memberSymbol==curPathNode)
+					{
+						tmpType=unionType->layout[i].type;
+						break;
+					}
+				}
+				if(tmpType)
+					memberType=tmpType;
+				else
+				{
+					status->status=INVALIDMEMBER;
+					status->place=pathCptr;
+					if(tmp)
+					{
+						FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
+						freeByteCodelnt(tmp);
+					}
+					return NULL;
+				}
+				AST_cptr* next=nextCptr(pathCptr);
+				if(!next||(next->type==ATM&&next->u.atom->type==SYM&&(!strcmp(next->u.atom->value.str,"&")||!strcmp(next->u.atom->value.str,"*"))))
+				{
+					ByteCodelnt* pushRef=newByteCodelnt(newByteCode(sizeof(char)+sizeof(ssize_t)+sizeof(TypeId_t)));
+					pushRef->bc->code[0]=FAKE_PUSH_REF;
+					*(ssize_t*)(pushRef->bc->code+sizeof(char))=offset;
+					*(TypeId_t*)(pushRef->bc->code+sizeof(char)+sizeof(ssize_t))=memberType;
+					LineNumTabNode* n=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,pushRef->bc->size,pathCptr->curline);
+					pushRef->ls=1;
+					pushRef->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
+					FAKE_ASSERT(pushRef->l,"compileGetf",__FILE__,__LINE__);
+					pushRef->l[0]=n;
+					if(!tmp)
+						tmp=pushRef;
+					else
+					{
+						codelntCat(tmp,pushRef);
+						freeByteCodelnt(pushRef);
+					}
+					offset=0;
+				}
 			}
 		}
 	}
@@ -2098,6 +2150,7 @@ ByteCodelnt* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	chdir(tmpIntpr->prev->curDir);
 	tmpIntpr->glob=NULL;
 	tmpIntpr->lnt=NULL;
+	tmpIntpr->deftypes=NULL;
 	freeIntpr(tmpIntpr);
 	//printByteCode(tmp,stderr);
 	ByteCode* setTp=newByteCode(1);
@@ -2863,6 +2916,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 							FREE_ALL_LINE_NUMBER_TABLE(libByteCodelnt->l,libByteCodelnt->ls);
 							chdir(tmpInter->prev->curDir);
 							tmpInter->lnt=NULL;
+							tmpInter->deftypes=NULL;
 							freeIntpr(tmpInter);
 							if(libPrefix)
 								free(libPrefix);
@@ -2888,6 +2942,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 									FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 									chdir(tmpInter->prev->curDir);
 									tmpInter->lnt=NULL;
+									tmpInter->deftypes=NULL;
 									freeIntpr(tmpInter);
 									if(libPrefix)
 										free(libPrefix);
@@ -2898,6 +2953,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 								AST_atom* pSymbol=pExportSymbols->u.atom;
 								num++;
 								exportSymbols=(const char**)reallocFakeMem(exportSymbols,realloc(exportSymbols,sizeof(const char*)*num),memMenager);
+								FAKE_ASSERT(exportSymbols,"compileImport",__FILE__,__LINE__);
 								exportSymbols[num-1]=pSymbol->value.str;
 							}
 							mergeSort(exportSymbols,num,sizeof(const char*),cmpString);
@@ -2918,6 +2974,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 									FREE_ALL_LINE_NUMBER_TABLE(libByteCodelnt->l,libByteCodelnt->ls);
 									chdir(tmpInter->prev->curDir);
 									tmpInter->lnt=NULL;
+									tmpInter->deftypes=NULL;
 									freeIntpr(tmpInter);
 									status->status=0;
 									status->place=NULL;
@@ -2969,6 +3026,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 								freeByteCodelnt(tmp);
 								chdir(tmpInter->prev->curDir);
 								tmpInter->lnt=NULL;
+								tmpInter->deftypes=NULL;
 								freeIntpr(tmpInter);
 								if(libPrefix)
 									free(libPrefix);
@@ -3001,6 +3059,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 								FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 								chdir(tmpInter->prev->curDir);
 								tmpInter->lnt=NULL;
+								tmpInter->deftypes=NULL;
 								freeIntpr(tmpInter);
 								if(libPrefix)
 									free(libPrefix);
@@ -3051,6 +3110,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			FREE_ALL_LINE_NUMBER_TABLE(libByteCodelnt->l,libByteCodelnt->ls);
 			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 			tmpInter->lnt=NULL;
+			tmpInter->deftypes=NULL;
 			freeIntpr(tmpInter);
 			if(libPrefix)
 				free(libPrefix);
@@ -3059,6 +3119,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		}
 		chdir(tmpInter->prev->curDir);
 		tmpInter->lnt=NULL;
+		tmpInter->deftypes=NULL;
 		freeIntpr(tmpInter);
 		if(libPrefix)
 			free(libPrefix);

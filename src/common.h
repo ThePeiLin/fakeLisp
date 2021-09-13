@@ -115,6 +115,7 @@ LineNumTabNode* findLineNumTabNode(uint32_t cp,LineNumberTable*);
 void freeLineNumTabNode(LineNumTabNode*);
 void freeLineNumberTable(LineNumberTable*);
 
+void freeDefTypeTable(VMDefTypes* defs);
 ByteCodelnt* newByteCodelnt(ByteCode* bc);
 void printByteCodelnt(ByteCodelnt* obj,FILE* fp);
 void freeByteCodelnt(ByteCodelnt*);

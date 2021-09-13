@@ -185,6 +185,33 @@ static void initVMStructTypeId(TypeId_t id,const char* structName,uint32_t num,S
 	pst->st=MAKE_STRUCT_TYPE(ost);
 }
 
+static void initVMUnionTypeId(TypeId_t id,const char* unionName,uint32_t num,Sid_t* symbols,TypeId_t* memberTypes)
+{
+	size_t maxSize=0;
+	for(uint32_t i=0;i<num;i++)
+	{
+		size_t curSize=getVMTypeSizeWithTypeId(memberTypes[i]);
+		if(maxSize<curSize)
+			maxSize=curSize;
+	}
+	VMTypeUnion* put=&GlobTypeUnionList.ul[id-1];
+	VMUnionType* out=(VMUnionType*)GET_TYPES_PTR(put->ut);
+	out=(VMUnionType*)realloc(out,sizeof(VMUnionType)+num*sizeof(VMStructMember));
+	FAKE_ASSERT(out,"initVMUnionTypeId",__FILE__,__LINE__);
+	if(unionName)
+		out->type=addSymbolToGlob(unionName)->id;
+	else
+		out->type=-1;
+	out->num=num;
+	out->maxSize=maxSize;
+	for(uint32_t i=0;i<num;i++)
+	{
+		out->layout[i].memberSymbol=symbols[i];
+		out->layout[i].type=memberTypes[i];
+	}
+	put->ut=MAKE_UNION_TYPE(out);
+}
+
 static TypeId_t addToGlobTypeUnionList(VMTypeUnion type)
 {
 	GlobTypeUnionList.num+=1;
@@ -1745,6 +1772,9 @@ size_t getVMTypeSize(VMTypeUnion t)
 		case STRUCT_TYPE_TAG:
 			return t.st->totalSize;
 			break;
+		case UNION_TYPE_TAG:
+			return t.ut->maxSize;
+			break;
 		default:
 			return 0;
 			break;
@@ -1820,6 +1850,36 @@ TypeId_t newVMStructType(const char* structName,uint32_t num,Sid_t symbols[],Typ
 	return addToGlobTypeUnionList((VMTypeUnion)MAKE_STRUCT_TYPE(tmp));
 }
 
+TypeId_t newVMUnionType(const char* unionName,uint32_t num,Sid_t symbols[],TypeId_t memberTypes[])
+{
+	size_t maxSize=0;
+	for(uint32_t i=0;i<num;i++)
+	{
+		size_t curSize=getVMTypeSizeWithTypeId(memberTypes[i]);
+		if(maxSize<curSize)
+			maxSize=curSize;
+	}
+	VMUnionType* tmp=(VMUnionType*)malloc(sizeof(VMUnionType)+sizeof(VMStructMember)*num);
+	FAKE_ASSERT(tmp,"newVMStructType",__FILE__,__LINE__);
+	if(unionName)
+		tmp->type=addSymbolToGlob(unionName)->id;
+	else
+		tmp->type=-1;
+	tmp->num=num;
+	tmp->maxSize=maxSize;
+	for(uint32_t i=0;i<num;i++)
+	{
+		tmp->layout[i].memberSymbol=symbols[i];
+		tmp->layout[i].type=memberTypes[i];
+	}
+	return addToGlobTypeUnionList((VMTypeUnion)MAKE_UNION_TYPE(tmp));
+}
+
+void freeVMUnionType(VMUnionType* obj)
+{
+	free(GET_TYPES_PTR(obj));
+}
+
 void freeVMStructType(VMStructType* obj)
 {
 	free(GET_TYPES_PTR(obj));
@@ -1858,6 +1918,7 @@ int addDefTypes(VMDefTypes* otherTypes,Sid_t typeName,TypeId_t type)
 		otherTypes->num+=1;
 		int64_t i=otherTypes->num-1;
 		otherTypes->u=(VMDefTypesNode**)realloc(otherTypes->u,sizeof(VMDefTypesNode*)*otherTypes->num);
+		FAKE_ASSERT(otherTypes->u,"addDefTypes",__FILE__,__LINE__);
 		VMDefTypesNode* node=(VMDefTypesNode*)malloc(sizeof(VMDefTypesNode));
 		FAKE_ASSERT(otherTypes->u&&node,"addDefTypes",__FILE__,__LINE__);
 		node->name=typeName;
@@ -2028,6 +2089,98 @@ TypeId_t genDefTypesUnion(AST_cptr* objCptr,VMDefTypes* otherTypes)
 			}
 			return retval;
 		}
+		else if(!strcmp(compositeDataHead->u.atom->value.str,"union"))
+		{
+			char* unionName=NULL;
+			AST_cptr* unionNameCptr=nextCptr(compositeDataHead);
+			uint32_t num=0;
+			AST_cptr* memberCptr=NULL;
+			if(unionNameCptr->type==ATM)
+			{
+				if(unionNameCptr->u.atom->type==SYM)
+					unionName=unionNameCptr->u.atom->value.str;
+				else
+					return 0;
+				memberCptr=nextCptr(unionNameCptr);
+				unionNameCptr=memberCptr;
+			}
+			else
+				memberCptr=unionNameCptr;
+			TypeId_t retval=0;
+			if(memberCptr==NULL&&unionName!=NULL)
+			{
+				TypeId_t i=0;
+				uint32_t num=GlobTypeUnionList.num;
+				for(;i<num;i++)
+				{
+					VMTypeUnion typeUnion=GlobTypeUnionList.ul[i];
+					if(GET_TYPES_TAG(typeUnion.all)==UNION_TYPE_TAG)
+					{
+						VMUnionType* ut=(VMUnionType*)GET_TYPES_PTR(typeUnion.st);
+						if(ut->type==addSymbolToGlob(unionName)->id)
+						{
+							retval=i+1;
+							break;
+						}
+					}
+				}
+				if(!retval)
+					return retval;
+			}
+			else if(unionName!=NULL)
+				retval=newVMUnionType(unionName,0,NULL,NULL);
+			for(;memberCptr;num++,memberCptr=nextCptr(memberCptr));
+			memberCptr=unionNameCptr;
+			Sid_t* memberSymbolList=NULL;
+			TypeId_t* memberTypeList=NULL;
+			if(num)
+			{
+				memberSymbolList=(Sid_t*)malloc(sizeof(Sid_t)*num);
+				memberTypeList=(TypeId_t*)malloc(sizeof(TypeId_t)*num);
+				FAKE_ASSERT(memberTypeList&&memberCptr,"genDefTypesUnion",__FILE__,__LINE__);
+				uint32_t i=0;
+				for(;memberCptr;i++,memberCptr=nextCptr(memberCptr))
+				{
+					AST_cptr* memberName=getFirstCptr(memberCptr);
+					if(memberName->type!=ATM||memberName->u.atom->type!=SYM)
+					{
+						free(memberTypeList);
+						free(memberSymbolList);
+						return 0;
+					}
+					Sid_t symbol=addSymbolToGlob(memberName->u.atom->value.str)->id;
+					if(nextCptr(nextCptr(memberName)))
+					{
+						free(memberTypeList);
+						free(memberSymbolList);
+						return 0;
+					}
+					TypeId_t type=genDefTypesUnion(nextCptr(memberName),otherTypes);
+					if(!type)
+					{
+						free(memberTypeList);
+						free(memberSymbolList);
+						return 0;
+					}
+					memberSymbolList[i]=symbol;
+					memberTypeList[i]=type;
+				}
+			}
+			if(retval&&num)
+			{
+				initVMUnionTypeId(retval,unionName,num,memberTypeList,memberTypeList);
+			}
+			else if(!retval)
+			{
+				retval=newVMUnionType(unionName,num,memberSymbolList,memberTypeList);
+				if(memberTypeList&&memberSymbolList)
+				{
+					free(memberSymbolList);
+					free(memberTypeList);
+				}
+			}
+			return retval;
+		}
 		else
 			return 0;
 	}
@@ -2139,6 +2292,22 @@ void writeTypeList(FILE* fp)
 					}
 				}
 				break;
+			case UNION_TYPE_TAG:
+				{
+					uint32_t num=((VMUnionType*)p)->num;
+					fwrite(&num,sizeof(num),1,fp);
+					fwrite(&((VMUnionType*)p)->maxSize,sizeof(((VMUnionType*)p)->maxSize),1,fp);
+					VMStructMember* members=((VMUnionType*)p)->layout;
+					uint32_t j=0;
+					for(;j<num;j++)
+					{
+						Sid_t memberSymbol=members[i].memberSymbol;
+						TypeId_t memberType=members[i].type;
+						fwrite(&memberSymbol,sizeof(memberSymbol),1,fp);
+						fwrite(&memberType,sizeof(memberType),1,fp);
+					}
+				}
+				break;
 			default:
 				break;
 		}
@@ -2209,9 +2378,64 @@ void loadTypeList(FILE* fp)
 					tu.st=(VMStructType*)MAKE_STRUCT_TYPE(t);
 				}
 				break;
+			case UNION_TYPE_TAG:
+				{
+					uint32_t num=0;
+					fread(&num,sizeof(num),1,fp);
+					VMUnionType* t=(VMUnionType*)malloc(sizeof(VMUnionType)+sizeof(VMStructMember)*num);
+					FAKE_ASSERT(t,"loadTypeList",__FILE__,__LINE__);
+					t->num=num;
+					fread(&t->maxSize,sizeof(t->maxSize),1,fp);
+					uint32_t j=0;
+					for(;j<num;j++)
+					{
+						Sid_t memberSymbol=0;
+						TypeId_t memberType=0;
+						fread(&memberSymbol,sizeof(memberSymbol),1,fp);
+						fread(&memberType,sizeof(memberType),1,fp);
+						t->layout[j].memberSymbol=memberSymbol;
+						t->layout[j].type=memberType;
+					}
+					tu.ut=(VMUnionType*)MAKE_STRUCT_TYPE(t);
+				}
 			default:
 				break;
 		}
 		ul[i]=tu;
 	}
+	GlobTypeUnionList.num=num;
+	GlobTypeUnionList.ul=ul;
+}
+
+void freeGlobTypeList()
+{
+	TypeId_t num=GlobTypeUnionList.num;
+	VMTypeUnion* ul=GlobTypeUnionList.ul;
+	TypeId_t i=0;
+	for(;i<num;i++)
+	{
+		VMTypeUnion tu=ul[i];
+		DefTypeTag tag=GET_TYPES_TAG(tu.all);
+		switch(tag)
+		{
+			case NATIVE_TYPE_TAG:
+				freeVMNativeType((VMNativeType*)GET_TYPES_PTR(tu.all));
+				break;
+			case PTR_TYPE_TAG:
+				freeVMPtrType((VMPtrType*)GET_TYPES_PTR(tu.all));
+				break;
+			case ARRAY_TYPE_TAG:
+				freeVMArrayType((VMArrayType*)GET_TYPES_PTR(tu.all));
+				break;
+			case STRUCT_TYPE_TAG:
+				freeVMStructType((VMStructType*)GET_TYPES_PTR(tu.all));
+				break;
+			case UNION_TYPE_TAG:
+				freeVMUnionType((VMUnionType*)GET_TYPES_PTR(tu.all));
+				break;
+			default:
+				break;
+		}
+	}
+	free(ul);
 }

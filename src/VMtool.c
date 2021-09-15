@@ -484,6 +484,8 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap)
 						tmp->u.dlproc=pValue;break;
 					case ERR:
 						tmp->u.err=pValue;break;
+					case CHF:
+						tmp->u.chf=pValue;break;
 					default:
 						return NULL;
 						break;
@@ -1453,7 +1455,6 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 			fprintf(fp,"%s",getGlobSymbolWithId(GET_SYM(objValue))->symbol);
 			break;
 		case MEM_TAG:
-		case CHF_TAG:
 			{
 				VMMem* mem=(VMMem*)GET_PTR(objValue);
 				TypeId_t type=mem->type;
@@ -1477,6 +1478,18 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 						break;
 					case STR:
 						fprintf(fp,"%s",objValue->u.str);
+						break;
+					case CHF:
+						{
+							VMMem* mem=objValue->u.chf;
+							TypeId_t type=mem->type;
+							if(type>0&&type<=LastNativeTypeId)
+								PrintMemoryRefFuncList[type-1](mem->mem,fp);
+							else if(IS_CHF(objValue))
+								fprintf(fp,"<#memref at %p>",mem->mem);
+							else
+								fprintf(fp,"<#mem at %p>",mem->mem);
+						}
 						break;
 					case PRC:
 						fprintf(fp,"#<proc>");
@@ -1581,7 +1594,6 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 			fprintf(fp,"%s",getGlobSymbolWithId(GET_SYM(objValue))->symbol);
 			break;
 		case MEM_TAG:
-		case CHF_TAG:
 			{
 				VMMem* mem=(VMMem*)GET_PTR(objValue);
 				TypeId_t type=mem->type;
@@ -1605,6 +1617,18 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 						break;
 					case STR:
 						printRawString(objValue->u.str,fp);
+						break;
+					case CHF:
+						{
+							VMMem* mem=objValue->u.chf;
+							TypeId_t type=mem->type;
+							if(type>0&&type<=LastNativeTypeId)
+								PrintMemoryRefFuncList[type-1](mem->mem,fp);
+							else if(IS_CHF(objValue))
+								fprintf(fp,"<#memref at %p>",mem->mem);
+							else
+								fprintf(fp,"<#mem at %p>",mem->mem);
+						}
 						break;
 					case PRC:
 						fprintf(fp,"#<proc>");
@@ -1698,13 +1722,15 @@ VMvalue* GET_VAL(VMvalue* P,VMheap* heap)
 	else if(IS_CHF(P))
 	{
 		VMvalue* t=NULL;
-		VMMem* mem=(VMMem*)GET_PTR(P);
-		if(mem->type>0)
+		VMMem* mem=P->u.chf;
+		if(mem->type>0&&mem->type<=LastNativeTypeId)
 		{
-			TypeId_t type=mem->type>LastNativeTypeId?LastNativeTypeId:mem->type;
-			t=MemoryCasterList[type-1](mem->mem,heap);
+			t=MemoryCasterList[mem->type-1](mem->mem,heap);
 		}
-		free(mem);
+		else
+		{
+			t=newVMvalue(IN64,&mem->mem,heap);
+		}
 		return t;
 	}
 	return P;
@@ -1725,8 +1751,6 @@ int SET_REF(VMvalue* P,VMvalue* V)
 		}
 		else if(MemorySeterList[mem->type-1](mem->mem,V))
 			return 1;
-		if(IS_CHF(P))
-			free(mem);
 		return 0;
 	}
 	else if(IS_REF(P))

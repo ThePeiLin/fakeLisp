@@ -38,6 +38,14 @@ typedef enum
 	FUNC_TYPE_TAG,
 }DefTypeTag;
 
+//typedef enum
+//{
+//	BYTE_1,
+//	BYTE_2,
+//	BYTE_4,
+//	BYTE_8,
+//}TypeSizeTag;
+
 typedef uint32_t Sid_t;
 typedef uint32_t TypeId_t;
 
@@ -501,4 +509,11 @@ typedef struct VMUnionType
 	size_t maxSize;
 	struct VMStructMember layout[];
 }VMUnionType;
+
+typedef struct VMFuncType
+{
+	TypeId_t rtype;
+	uint32_t anum;
+	TypeId_t atypes[];
+}VMFuncType;
 #endif

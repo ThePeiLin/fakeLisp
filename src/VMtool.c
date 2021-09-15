@@ -1697,13 +1697,15 @@ VMvalue* GET_VAL(VMvalue* P,VMheap* heap)
 		return *(VMvalue**)(GET_PTR(P));
 	else if(IS_CHF(P))
 	{
+		VMvalue* t=NULL;
 		VMMem* mem=(VMMem*)GET_PTR(P);
-		if(mem->type>0&&mem->type<=LastNativeTypeId)
+		if(mem->type>0)
 		{
-			VMvalue* t=MemoryCasterList[mem->type-1](mem->mem,heap);
-			free(mem);
-			return t;
+			TypeId_t type=mem->type>LastNativeTypeId?LastNativeTypeId:mem->type;
+			t=MemoryCasterList[type-1](mem->mem,heap);
 		}
+		free(mem);
+		return t;
 	}
 	return P;
 }
@@ -1713,9 +1715,15 @@ int SET_REF(VMvalue* P,VMvalue* V)
 	if(IS_MEM(P)||IS_CHF(P))
 	{
 		VMMem* mem=(VMMem*)GET_PTR(P);
-		if(mem->type<=0&&mem->type>LastNativeTypeId)
+		if(mem->type<=0)
 			return 1;
-		if(MemorySeterList[mem->type-1](mem->mem,V))
+		else if(mem->type>LastNativeTypeId)
+		{
+			if(!IS_IN32(V)&&!IS_IN64(V))
+				return 1;
+			mem->mem=(uint8_t*)(IS_IN32(V)?GET_IN32(V):*V->u.in64);
+		}
+		else if(MemorySeterList[mem->type-1](mem->mem,V))
 			return 1;
 		if(IS_CHF(P))
 			free(mem);
@@ -2438,4 +2446,11 @@ void freeGlobTypeList()
 		}
 	}
 	free(ul);
+}
+
+void applyFF(void* func,int argc,ffi_type* rtype,ffi_type** atypes,void* rvalue,void** avalue)
+{
+	ffi_cif cif;
+	ffi_prep_cif(&cif, FFI_DEFAULT_ABI, argc, rtype, atypes);
+	ffi_call(&cif, func, rvalue, avalue);
 }

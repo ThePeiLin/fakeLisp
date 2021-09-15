@@ -538,11 +538,11 @@ void B_push_ptr_ref(FakeVM* exe)
 	VMvalue* value=getTopValue(stack);
 	VMMem* mem=(VMMem*)GET_PTR(value);
 	stack->tp-=1;
-	void** t=(void**)malloc(sizeof(void*));
-	FAKE_ASSERT(t,"B_push_ptr_ref",__FILE__,__LINE__);
-	*t=mem->mem+offset;
+	uint8_t* t=mem->mem+offset;
 	VMMem* retval=newVMMem(ptrId,(uint8_t*)t);
-	SET_RETURN("B_push_ptr_ref",MAKE_VM_MEM(retval),stack);
+	SET_RETURN("B_push_ptr_ref",MAKE_VM_CHF(retval),stack);
+	if(IS_CHF(value))
+		free(mem);
 	r->cp+=sizeof(char)+sizeof(ssize_t)+sizeof(TypeId_t);
 }
 
@@ -555,9 +555,11 @@ void B_push_def_ref(FakeVM* exe)
 	VMvalue* value=getTopValue(stack);
 	VMMem* mem=(VMMem*)GET_PTR(value);
 	stack->tp-=1;
-	uint8_t** ptr=(uint8_t**)(mem->mem+offset);
-	VMvalue* retval=MAKE_VM_CHF(newVMMem(typeId,*ptr));
+	uint8_t* ptr=mem->mem+offset;
+	VMvalue* retval=MAKE_VM_CHF(newVMMem(typeId,ptr));
 	SET_RETURN("B_push_def_ref",retval,stack);
+	if(IS_CHF(value))
+		free(mem);
 	r->cp+=sizeof(char)+sizeof(ssize_t)+sizeof(TypeId_t);
 }
 
@@ -577,6 +579,8 @@ void B_push_ind_ref(FakeVM* exe)
 	stack->tp-=2;
 	VMvalue* retval=MAKE_VM_CHF(newVMMem(type,mem->mem+GET_IN32(index)*size));
 	SET_RETURN("B_push_ind_ref",retval,stack);
+	if(IS_CHF(exp))
+		free(mem);
 	r->cp+=sizeof(char)+sizeof(TypeId_t)+sizeof(uint32_t);
 }
 
@@ -594,6 +598,8 @@ void B_push_ref(FakeVM* exe)
 	stack->tp-=1;
 	VMMem* retval=newVMMem(type,mem->mem+offset);
 	SET_RETURN("B_push_ref",MAKE_VM_CHF(retval),stack);
+	if(IS_CHF(exp))
+		free(mem);
 	r->cp+=sizeof(char)+sizeof(ssize_t)+sizeof(TypeId_t);
 }
 
@@ -1021,6 +1027,8 @@ void DBG_printVMstack(VMstack* stack,FILE* fp,int mode)
 			if(fp!=stdout)fprintf(fp,"%d:",i);
 			VMvalue* tmp=stack->values[i];
 			writeVMvalue(tmp,fp,NULL);
+			if(IS_CHF(tmp))
+				free(GET_PTR(tmp));
 			putc('\n',fp);
 		}
 	}

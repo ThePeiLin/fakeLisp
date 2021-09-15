@@ -1,6 +1,7 @@
 #ifndef VMTOOL_H
 #define VMTOOL_H
 #include"fakedef.h"
+#include<ffi.h>
 #include<pthread.h>
 #include<stdint.h>
 
@@ -204,4 +205,5 @@ void initNativeDefTypes(VMDefTypes* otherTypes);
 void writeTypeList(FILE* fp);
 void loadTypeList(FILE* fp);
 void freeGlobTypeList(void);
+void applyFF(void* func,int argc,ffi_type* rtype,ffi_type** atypes,void* rvalue,void** avalue);
 #endif

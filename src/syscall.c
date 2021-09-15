@@ -729,7 +729,13 @@ void SYS_int(FakeVM* exe,pthread_rwlock_t* gclock)
 	else if(IS_IN32(obj))
 		SET_RETURN("SYS_int",obj,stack);
 	else if(IS_DBL(obj))
-		SET_RETURN("SYS_int",MAKE_VM_IN32((int32_t)*obj->u.dbl),stack);
+	{
+		int64_t r=(int64_t)*obj->u.dbl;
+		if(r>=INT32_MAX||r<=INT32_MIN)
+			SET_RETURN("SYS_int",newVMvalue(IN64,&r,exe->heap),stack);
+		else
+			SET_RETURN("SYS_int",MAKE_VM_IN32((int32_t)r),stack);
+	}
 	else if(IS_STR(obj))
 	{
 		int64_t r=stringToInt(obj->u.str);

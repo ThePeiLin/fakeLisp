@@ -486,6 +486,8 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap)
 						tmp->u.err=pValue;break;
 					case CHF:
 						tmp->u.chf=pValue;break;
+					case MEM:
+						tmp->u.chf=pValue;break;
 					default:
 						return NULL;
 						break;
@@ -1454,18 +1456,6 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 		case SYM_TAG:
 			fprintf(fp,"%s",getGlobSymbolWithId(GET_SYM(objValue))->symbol);
 			break;
-		case MEM_TAG:
-			{
-				VMMem* mem=(VMMem*)GET_PTR(objValue);
-				TypeId_t type=mem->type;
-				if(type>0&&type<=LastNativeTypeId)
-					PrintMemoryRefFuncList[type-1](mem->mem,fp);
-				else if(IS_CHF(objValue))
-					fprintf(fp,"<#memref at %p>",mem->mem);
-				else
-					fprintf(fp,"<#mem at %p>",mem->mem);
-			}
-			break;
 		case PTR_TAG:
 			{
 				switch(objValue->type)
@@ -1479,6 +1469,7 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 					case STR:
 						fprintf(fp,"%s",objValue->u.str);
 						break;
+					case MEM:
 					case CHF:
 						{
 							VMMem* mem=objValue->u.chf;
@@ -1593,18 +1584,6 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 		case SYM_TAG:
 			fprintf(fp,"%s",getGlobSymbolWithId(GET_SYM(objValue))->symbol);
 			break;
-		case MEM_TAG:
-			{
-				VMMem* mem=(VMMem*)GET_PTR(objValue);
-				TypeId_t type=mem->type;
-				if(type>0&&type<=LastNativeTypeId)
-					PrintMemoryRefFuncList[type-1](mem->mem,fp);
-				else if(IS_CHF(objValue))
-					fprintf(fp,"<#memref at %p>",mem->mem);
-				else
-					fprintf(fp,"<#mem at %p>",mem->mem);
-			}
-			break;
 		case PTR_TAG:
 			{
 				switch(objValue->type)
@@ -1618,6 +1597,7 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 					case STR:
 						printRawString(objValue->u.str,fp);
 						break;
+					case MEM:
 					case CHF:
 						{
 							VMMem* mem=objValue->u.chf;

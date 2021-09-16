@@ -41,7 +41,7 @@ extern const char*  builtInErrorType[NUMOFBUILTINERRORTYPE];
 #define MAKE_VM_PTR(P) ((VMptr)(((uintptr_t)(P))|PTR_TAG))
 #define MAKE_VM_REF(P) ((VMptr)(((uintptr_t)(P))|REF_TAG))
 #define MAKE_VM_CHF(P,H) (newVMvalue(CHF,P,H))
-#define MAKE_VM_MEM(P) ((VMptr)(((uintptr_t)(P))|MEM_TAG))
+#define MAKE_VM_MEM(P,H) (newVMvalue(MEM,P,H))
 #define GET_TAG(P) ((VMptrTag)(((uintptr_t)(P))&TAG_MASK))
 #define GET_PTR(P) ((VMptr)(((uintptr_t)(P))&PTR_MASK))
 #define GET_IN32(P) ((int32_t)((uintptr_t)(P)>>UNUSEDBITNUM))
@@ -65,7 +65,7 @@ extern const char*  builtInErrorType[NUMOFBUILTINERRORTYPE];
 #define IS_SYM(P) (GET_TAG(P)==SYM_TAG)
 #define IS_REF(P) (GET_TAG(P)==REF_TAG)
 #define IS_CHF(P) (GET_TAG(P)==PTR_TAG&&(P)->type==CHF)
-#define IS_MEM(P) (GET_TAG(P)==MEM_TAG)
+#define IS_MEM(P) (GET_TAG(P)==PTR_TAG&&(P)->type==MEM)
 #define IS_IN64(P) (GET_TAG(P)==PTR_TAG&&(P)->type==IN64)
 #define FREE_CHF(P) (free(GET_PTR(P)))
 

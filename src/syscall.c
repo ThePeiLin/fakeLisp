@@ -951,6 +951,8 @@ void SYS_type(FakeVM* exe,pthread_rwlock_t* gclock)
 			"dll",
 			"dlproc",
 			"err",
+			"mem",
+			"ref",
 			"pair"
 		};
 		int i=0;
@@ -1520,7 +1522,7 @@ void SYS_newf(FakeVM* exe,pthread_rwlock_t* gclock)
 	size_t size=IS_IN32(vsize)?GET_IN32(vsize):*vsize->u.in64;
 	uint8_t* mem=(uint8_t*)malloc(size);
 	FAKE_ASSERT(mem,"SYS_newf",__FILE__,__LINE__);
-	VMvalue* retval=MAKE_VM_MEM(newVMMem(0,mem));
+	VMvalue* retval=MAKE_VM_MEM(newVMMem(0,mem),exe->heap);
 	SET_RETURN("SYS_newf",retval,stack);
 }
 
@@ -1533,11 +1535,10 @@ void SYS_delf(FakeVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.delf",TOOMANYARG,r,exe);
 	if(!mem)
 		RAISE_BUILTIN_ERROR("sys.delf",TOOFEWARG,r,exe);
-	if(!IS_MEM(mem)&&!IS_CHR(mem))
+	if(!IS_MEM(mem))
 		RAISE_BUILTIN_ERROR("sys.delf",WRONGARG,r,exe);
-	VMMem* pmem=(VMMem*)GET_PTR(mem);
+	VMMem* pmem=mem->u.chf;
 	uint8_t* p=pmem->mem;
-	if(IS_MEM(mem))
-		free(pmem);
 	free(p);
+	pmem->mem=NULL;
 }

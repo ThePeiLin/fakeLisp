@@ -536,7 +536,7 @@ void B_push_ptr_ref(FakeVM* exe)
 	ssize_t offset=*(ssize_t*)(exe->code+r->cp+sizeof(char));
 	TypeId_t ptrId=*(TypeId_t*)(exe->code+r->cp+sizeof(char)+sizeof(ssize_t));
 	VMvalue* value=getTopValue(stack);
-	VMMem* mem=IS_MEM(value)?(VMMem*)GET_PTR(value):value->u.chf;
+	VMMem* mem=value->u.chf;
 	stack->tp-=1;
 	uint8_t* t=mem->mem+offset;
 	VMMem* retval=newVMMem(ptrId,(uint8_t*)t);
@@ -551,7 +551,7 @@ void B_push_def_ref(FakeVM* exe)
 	ssize_t offset=*(ssize_t*)(exe->code+r->cp+sizeof(char));
 	TypeId_t typeId=*(TypeId_t*)(exe->code+r->cp+sizeof(char)+sizeof(ssize_t));
 	VMvalue* value=getTopValue(stack);
-	VMMem* mem=IS_MEM(value)?(VMMem*)GET_PTR(value):value->u.chf;
+	VMMem* mem=value->u.chf;
 	stack->tp-=1;
 	uint8_t* ptr=mem->mem+offset;
 	VMvalue* retval=MAKE_VM_CHF(newVMMem(typeId,ptr),exe->heap);
@@ -567,11 +567,11 @@ void B_push_ind_ref(FakeVM* exe)
 	VMvalue* exp=getValue(stack,stack->tp-2);
 	TypeId_t type=*(TypeId_t*)(exe->code+r->cp+sizeof(char));
 	uint32_t size=*(uint32_t*)(exe->code+r->cp+sizeof(char)+sizeof(TypeId_t));
-	if(!IS_MEM(exp))
+	if(!IS_MEM(exp)&&!IS_CHF(exp))
 		RAISE_BUILTIN_ERROR("b.push_ind_ref",WRONGARG,r,exe);
 	if(!IS_IN32(index))
 		RAISE_BUILTIN_ERROR("b.push_ind_ref",WRONGARG,r,exe);
-	VMMem* mem=IS_MEM(exp)?(VMMem*)GET_PTR(exp):exp->u.chf;
+	VMMem* mem=exp->u.chf;
 	stack->tp-=2;
 	VMvalue* retval=MAKE_VM_CHF(newVMMem(type,mem->mem+GET_IN32(index)*size),exe->heap);
 	SET_RETURN("B_push_ind_ref",retval,stack);
@@ -588,7 +588,7 @@ void B_push_ref(FakeVM* exe)
 	TypeId_t type=*(TypeId_t*)(exe->code+r->cp+sizeof(char)+sizeof(ssize_t));
 	if(!IS_MEM(exp)&&!IS_CHF(exp))
 		RAISE_BUILTIN_ERROR("b.push_ref",WRONGARG,r,exe);
-	VMMem* mem=IS_MEM(exp)?(VMMem*)GET_PTR(exp):exp->u.chf;
+	VMMem* mem=exp->u.chf;
 	stack->tp-=1;
 	VMMem* retval=newVMMem(type,mem->mem+offset);
 	SET_RETURN("B_push_ref",MAKE_VM_CHF(retval,exe->heap),stack);
@@ -1258,6 +1258,7 @@ void GC_sweep(VMheap* heap)
 				case ERR:
 					freeVMerror(prev->u.err);
 					break;
+				case MEM:
 				case CHF:
 					free(prev->u.chf);
 					break;

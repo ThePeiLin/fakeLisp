@@ -24,7 +24,6 @@ typedef enum
 	SYM_TAG,
 	CHR_TAG,
 	REF_TAG,
-	MEM_TAG,
 }VMptrTag;
 
 typedef enum
@@ -69,7 +68,7 @@ typedef struct VMDefTypes
 	VMDefTypesNode** u;
 }VMDefTypes;
 
-typedef enum{NIL=0,IN32,CHR,DBL,IN64,SYM,STR,BYTS,PRC,CONT,CHAN,FP,DLL,DLPROC,ERR,PAIR,ATM,CHF} ValueType;
+typedef enum{NIL=0,IN32,CHR,DBL,IN64,SYM,STR,BYTS,PRC,CONT,CHAN,FP,DLL,DLPROC,ERR,MEM,CHF,PAIR,ATM} ValueType;
 typedef enum
 {
 	SYMUNDEFINE=1,

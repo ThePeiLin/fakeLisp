@@ -30,9 +30,17 @@ static void printChar     (ARGL){PRINT_MEM_REF("%c",char,mem,fp);}
 static void printWchar_t  (ARGL){PRINT_MEM_REF("%C",wchar_t,mem,fp);}
 static void printFloat    (ARGL){PRINT_MEM_REF("%f",float,mem,fp);}
 static void printDouble   (ARGL){PRINT_MEM_REF("%lf",double,mem,fp);}
+static void printInt8_t   (ARGL){PRINT_MEM_REF("%d",int8_t,mem,fp);}
+static void printUint8_t  (ARGL){PRINT_MEM_REF("%u",uint8_t,mem,fp);}
+static void printInt16_t  (ARGL){PRINT_MEM_REF("%d",int16_t,mem,fp);}
+static void printUint16_t (ARGL){PRINT_MEM_REF("%u",uint16_t,mem,fp);}
+static void printInt32_t  (ARGL){PRINT_MEM_REF("%d",int32_t,mem,fp);}
+static void printUint32_t (ARGL){PRINT_MEM_REF("%u",uint32_t,mem,fp);}
+static void printInt64_t  (ARGL){PRINT_MEM_REF("%ld",int64_t,mem,fp);}
+static void printUint64_t (ARGL){PRINT_MEM_REF("%lu",uint64_t,mem,fp);}
 static void printIptr     (ARGL){PRINT_MEM_REF("%ld",intptr_t,mem,fp);}
 static void printUptr     (ARGL){PRINT_MEM_REF("%lu",uintptr_t,mem,fp);}
-static void printVoidPtr  (ARGL){PRINT_MEM_REF("%p",void*,mem,fp);}
+static void printVPtr     (ARGL){PRINT_MEM_REF("%p",void*,mem,fp);}
 #undef ARGL
 #undef PRINT_MEM_REF
 static void (*PrintMemoryRefFuncList[])(uint8_t*,FILE*)=
@@ -52,9 +60,17 @@ static void (*PrintMemoryRefFuncList[])(uint8_t*,FILE*)=
 	printWchar_t  ,
 	printFloat    ,
 	printDouble   ,
-	printIptr     ,
-	printUptr     ,
-	printVoidPtr  ,
+	printInt8_t   ,
+	printUint8_t  ,
+	printInt16_t  ,
+    printUint16_t ,
+    printInt32_t  ,
+    printUint32_t ,
+    printInt64_t  ,
+    printUint64_t ,
+    printIptr     ,
+    printUptr     ,
+    printVPtr     ,
 };
 /*-----------------------*/
 
@@ -77,9 +93,17 @@ static VMvalue* castChar     (ARGL){return MAKE_VM_CHR(*(char*)mem);}
 static VMvalue* castWchar_t  (ARGL){return MAKE_VM_IN32(*(wchar_t*)mem);}
 static VMvalue* castFloat    (ARGL){double t=*(float*)mem;return newVMvalue(DBL,&t,heap);}
 static VMvalue* castDouble   (ARGL){double t=*(double*)mem;return newVMvalue(DBL,&t,heap);}
+static VMvalue* castInt8_t   (ARGL){CAST_TO_IN32(int8_t)}
+static VMvalue* castUint8_t  (ARGL){CAST_TO_IN32(uint8_t)}
+static VMvalue* castInt16_t  (ARGL){CAST_TO_IN32(int16_t)}
+static VMvalue* castUint16_t (ARGL){CAST_TO_IN32(uint16_t)}
+static VMvalue* castInt32_t  (ARGL){CAST_TO_IN32(int32_t)}
+static VMvalue* castUint32_t (ARGL){CAST_TO_IN32(uint32_t)}
+static VMvalue* castInt64_t  (ARGL){CAST_TO_IN64(int64_t)}
+static VMvalue* castUint64_t (ARGL){CAST_TO_IN64(uint64_t)}
 static VMvalue* castIptr     (ARGL){CAST_TO_IN64(intptr_t)}
 static VMvalue* castUptr     (ARGL){CAST_TO_IN64(uintptr_t)}
-static VMvalue* castVoidPtr  (ARGL){return newVMvalue(IN64,mem,heap);}
+static VMvalue* castVPtr     (ARGL){return newVMvalue(IN64,mem,heap);}
 #undef ARGL
 #undef CAST_TO_IN32
 #undef CAST_TO_IN64
@@ -100,9 +124,17 @@ static VMvalue*(*MemoryCasterList[])(uint8_t*,VMheap*)=
 	castWchar_t  ,
 	castFloat    ,
 	castDouble   ,
-	castIptr     ,
-	castUptr     ,
-	castVoidPtr  ,
+	castInt8_t   ,
+	castUint8_t  ,
+	castInt16_t  ,
+    castUint16_t ,
+    castInt32_t  ,
+    castUint32_t ,
+    castInt64_t  ,
+    castUint64_t ,
+    castIptr     ,
+    castUptr     ,
+    castVPtr     ,
 };
 /*------------------*/
 
@@ -125,9 +157,17 @@ static int setChar     (ARGL){BODY(!IS_CHR(v),char,GET_CHR(v))}
 static int setWchar_t  (ARGL){BODY(!IS_CHR(v)&&!IS_IN32(v),wchar_t,IS_IN32(v)?GET_IN32(v):GET_CHR(v))}
 static int setFloat    (ARGL){BODY(!IS_DBL(v)&&!IS_IN32(v)&&IS_IN64(v),float,IS_DBL(v)?*v->u.dbl:(IS_IN32(v)?GET_IN32(v):*v->u.in64))}
 static int setDouble   (ARGL){BODY(!IS_DBL(v)&&!IS_IN32(v)&&IS_IN64(v),double,IS_DBL(v)?*v->u.dbl:(IS_IN32(v)?GET_IN32(v):*v->u.in64))}
+static int setInt8_t   (ARGL){SET_NUM(int8_t)}
+static int setUint8_t  (ARGL){SET_NUM(uint8_t)}
+static int setInt16_t  (ARGL){SET_NUM(int16_t)}
+static int setUint16_t (ARGL){SET_NUM(uint16_t)}
+static int setInt32_t  (ARGL){SET_NUM(int32_t)}
+static int setUint32_t (ARGL){SET_NUM(uint32_t)}
+static int setInt64_t  (ARGL){SET_NUM(int64_t)}
+static int setUint64_t (ARGL){SET_NUM(uint64_t)}
 static int setIptr     (ARGL){SET_NUM(intptr_t)}
 static int setUptr     (ARGL){SET_NUM(uintptr_t)}
-static int setVoidPtr  (ARGL){SET_NUM(uintptr_t)}
+static int setVPtr     (ARGL){SET_NUM(uintptr_t)}
 #undef SET_NUM
 #undef BODY
 static int (*MemorySeterList[])(ARGL)=
@@ -147,9 +187,17 @@ static int (*MemorySeterList[])(ARGL)=
 	setWchar_t  ,
 	setFloat    ,
 	setDouble   ,
-	setIptr     ,
-	setUptr     ,
-	setVoidPtr  ,
+	setInt8_t   ,
+	setUint8_t  ,
+	setInt16_t  ,
+    setUint16_t ,
+    setInt32_t  ,
+    setUint32_t ,
+    setInt64_t  ,
+    setUint64_t ,
+    setIptr     ,
+    setUptr     ,
+    setVPtr     ,
 };
 #undef ARGL
 /*------------------*/
@@ -221,6 +269,312 @@ static TypeId_t addToGlobTypeUnionList(VMTypeUnion type)
 	GlobTypeUnionList.ul[num-1]=type;
 	return num;
 }
+
+/*genTypeId functions list*/
+static TypeId_t genArrayTypeId(AST_cptr* compositeDataHead,VMDefTypes* otherTypes)
+{
+	AST_cptr* numCptr=nextCptr(compositeDataHead);
+	if(!numCptr||numCptr->type!=ATM||numCptr->u.atom->type!=IN32)
+		return 0;
+	AST_cptr* typeCptr=nextCptr(numCptr);
+	if(!typeCptr)
+		return 0;
+	TypeId_t type=genDefTypesUnion(typeCptr,otherTypes);
+	if(!type)
+		return type;
+	if(getCptrCdr(typeCptr)->type!=NIL)
+		return 0;
+	return newVMArrayType(type,numCptr->u.atom->value.in32);
+}
+
+static TypeId_t genPtrTypeId(AST_cptr* compositeDataHead,VMDefTypes* otherTypes)
+{
+	AST_cptr* ptrTypeCptr=nextCptr(compositeDataHead);
+	if(ptrTypeCptr->type==ATM&&ptrTypeCptr->u.atom->type!=SYM)
+		return 0;
+	TypeId_t pType=genDefTypesUnion(ptrTypeCptr,otherTypes);
+	if(!pType)
+		return pType;
+	if(getCptrCdr(ptrTypeCptr)->type!=NIL)
+		return 0;
+	return newVMPtrType(pType);
+}
+
+static int isInPtrDeclare(AST_cptr* compositeDataHead)
+{
+	AST_pair* outerPair=compositeDataHead->outer;
+	AST_pair* outerPrevPair=outerPair->prev;
+	if(outerPrevPair)
+	{
+		AST_cptr* outerTypeHead=prevCptr(&outerPrevPair->car);
+		if(outerTypeHead)
+			return outerTypeHead->type==ATM&&outerTypeHead->u.atom->type==SYM&&!strcmp(outerTypeHead->u.atom->value.str,"ptr");
+	}
+	return 0;
+}
+
+static TypeId_t genStructTypeId(AST_cptr* compositeDataHead,VMDefTypes* otherTypes)
+{
+	char* structName=NULL;
+	AST_cptr* structNameCptr=nextCptr(compositeDataHead);
+	uint32_t num=0;
+	AST_cptr* memberCptr=NULL;
+	if(structNameCptr->type==ATM)
+	{
+		if(structNameCptr->u.atom->type==SYM)
+			structName=structNameCptr->u.atom->value.str;
+		else
+			return 0;
+		memberCptr=nextCptr(structNameCptr);
+		structNameCptr=memberCptr;
+	}
+	else
+		memberCptr=structNameCptr;
+	TypeId_t retval=0;
+	if(memberCptr==NULL&&structName!=NULL)
+	{
+		TypeId_t i=0;
+		uint32_t num=GlobTypeUnionList.num;
+		for(;i<num;i++)
+		{
+			VMTypeUnion typeUnion=GlobTypeUnionList.ul[i];
+			if(GET_TYPES_TAG(typeUnion.all)==STRUCT_TYPE_TAG)
+			{
+				VMStructType* st=(VMStructType*)GET_TYPES_PTR(typeUnion.st);
+				if(st->type==addSymbolToGlob(structName)->id)
+				{
+					retval=i+1;
+					break;
+				}
+			}
+		}
+		if(!retval&&!isInPtrDeclare(compositeDataHead))
+			return retval;
+	}
+	else if(structName!=NULL)
+		retval=newVMStructType(structName,0,NULL,NULL);
+	for(;memberCptr;num++,memberCptr=nextCptr(memberCptr));
+	memberCptr=structNameCptr;
+	Sid_t* memberSymbolList=NULL;
+	TypeId_t* memberTypeList=NULL;
+	if(num)
+	{
+		memberSymbolList=(Sid_t*)malloc(sizeof(Sid_t)*num);
+		memberTypeList=(TypeId_t*)malloc(sizeof(TypeId_t)*num);
+		FAKE_ASSERT(memberTypeList&&memberCptr,"genDefTypesUnion",__FILE__,__LINE__);
+		uint32_t i=0;
+		for(;memberCptr;i++,memberCptr=nextCptr(memberCptr))
+		{
+			AST_cptr* cdr=getCptrCdr(memberCptr);
+			if(cdr->type!=PAIR&&cdr->type!=NIL)
+			{
+				free(memberTypeList);
+				free(memberSymbolList);
+				return 0;
+			}
+			AST_cptr* memberName=getFirstCptr(memberCptr);
+			if(memberName->type!=ATM||memberName->u.atom->type!=SYM)
+			{
+				free(memberTypeList);
+				free(memberSymbolList);
+				return 0;
+			}
+			Sid_t symbol=addSymbolToGlob(memberName->u.atom->value.str)->id;
+			if(nextCptr(nextCptr(memberName)))
+			{
+				free(memberTypeList);
+				free(memberSymbolList);
+				return 0;
+			}
+			TypeId_t type=genDefTypesUnion(nextCptr(memberName),otherTypes);
+			if(!type)
+			{
+				free(memberTypeList);
+				free(memberSymbolList);
+				return 0;
+			}
+			if(getCptrCdr(nextCptr(memberName))->type!=NIL)
+			{
+				free(memberSymbolList);
+				free(memberTypeList);
+				return 0;
+			}
+			memberSymbolList[i]=symbol;
+			memberTypeList[i]=type;
+		}
+	}
+	if(retval&&num)
+	{
+		initVMStructTypeId(retval,structName,num,memberSymbolList,memberTypeList);
+	}
+	else if(!retval)
+	{
+		retval=newVMStructType(structName,num,memberSymbolList,memberTypeList);
+		if(memberTypeList&&memberSymbolList)
+		{
+			free(memberSymbolList);
+			free(memberTypeList);
+		}
+	}
+	return retval;
+}
+
+static TypeId_t genUnionTypeId(AST_cptr* compositeDataHead,VMDefTypes* otherTypes)
+{
+	char* unionName=NULL;
+	AST_cptr* unionNameCptr=nextCptr(compositeDataHead);
+	uint32_t num=0;
+	AST_cptr* memberCptr=NULL;
+	if(unionNameCptr->type==ATM)
+	{
+		if(unionNameCptr->u.atom->type==SYM)
+			unionName=unionNameCptr->u.atom->value.str;
+		else
+			return 0;
+		memberCptr=nextCptr(unionNameCptr);
+		unionNameCptr=memberCptr;
+	}
+	else
+		memberCptr=unionNameCptr;
+	TypeId_t retval=0;
+	if(memberCptr==NULL&&unionName!=NULL)
+	{
+		TypeId_t i=0;
+		uint32_t num=GlobTypeUnionList.num;
+		for(;i<num;i++)
+		{
+			VMTypeUnion typeUnion=GlobTypeUnionList.ul[i];
+			if(GET_TYPES_TAG(typeUnion.all)==UNION_TYPE_TAG)
+			{
+				VMUnionType* ut=(VMUnionType*)GET_TYPES_PTR(typeUnion.st);
+				if(ut->type==addSymbolToGlob(unionName)->id)
+				{
+					retval=i+1;
+					break;
+				}
+			}
+		}
+		if(!retval)
+			return retval;
+	}
+	else if(unionName!=NULL)
+		retval=newVMUnionType(unionName,0,NULL,NULL);
+	for(;memberCptr;num++,memberCptr=nextCptr(memberCptr));
+	memberCptr=unionNameCptr;
+	Sid_t* memberSymbolList=NULL;
+	TypeId_t* memberTypeList=NULL;
+	if(num)
+	{
+		memberSymbolList=(Sid_t*)malloc(sizeof(Sid_t)*num);
+		memberTypeList=(TypeId_t*)malloc(sizeof(TypeId_t)*num);
+		FAKE_ASSERT(memberTypeList&&memberCptr,"genDefTypesUnion",__FILE__,__LINE__);
+		uint32_t i=0;
+		for(;memberCptr;i++,memberCptr=nextCptr(memberCptr))
+		{
+			AST_cptr* cdr=getCptrCdr(memberCptr);
+			if(cdr->type!=PAIR&&cdr->type!=NIL)
+			{
+				free(memberTypeList);
+				free(memberSymbolList);
+				return 0;
+			}
+			AST_cptr* memberName=getFirstCptr(memberCptr);
+			if(memberName->type!=ATM||memberName->u.atom->type!=SYM)
+			{
+				free(memberTypeList);
+				free(memberSymbolList);
+				return 0;
+			}
+			Sid_t symbol=addSymbolToGlob(memberName->u.atom->value.str)->id;
+			if(nextCptr(nextCptr(memberName)))
+			{
+				free(memberTypeList);
+				free(memberSymbolList);
+				return 0;
+			}
+			TypeId_t type=genDefTypesUnion(nextCptr(memberName),otherTypes);
+			if(!type)
+			{
+				free(memberTypeList);
+				free(memberSymbolList);
+				return 0;
+			}
+			if(getCptrCdr(nextCptr(memberName))->type!=NIL)
+			{
+				free(memberSymbolList);
+				free(memberTypeList);
+				return 0;
+			}
+			memberSymbolList[i]=symbol;
+			memberTypeList[i]=type;
+		}
+	}
+	if(retval&&num)
+	{
+		initVMUnionTypeId(retval,unionName,num,memberTypeList,memberTypeList);
+	}
+	else if(!retval)
+	{
+		retval=newVMUnionType(unionName,num,memberSymbolList,memberTypeList);
+		if(memberTypeList&&memberSymbolList)
+		{
+			free(memberSymbolList);
+			free(memberTypeList);
+		}
+	}
+	return retval;
+}
+
+static TypeId_t genFuncTypeId(AST_cptr* compositeDataHead,VMDefTypes* otherTypes)
+{
+	TypeId_t rtype=0;
+	AST_cptr* argCptr=nextCptr(compositeDataHead);
+	if(!argCptr||argCptr->type!=PAIR)
+		return 0;
+	AST_cptr* rtypeCptr=nextCptr(argCptr);
+	if(rtypeCptr)
+	{
+		TypeId_t tmp=genDefTypesUnion(rtypeCptr,otherTypes);
+		if(!tmp)
+			return 0;
+		VMTypeUnion tu=getVMTypeUnion(tmp);
+		if(GET_TYPES_TAG(tu.all)!=NATIVE_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=PTR_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=ARRAY_TYPE_TAG)
+			return 0;
+		rtype=tmp;
+	}
+	uint32_t i=0;
+	AST_cptr* firArgCptr=getFirstCptr(argCptr);
+	for(;firArgCptr;firArgCptr=nextCptr(firArgCptr),i++);
+	TypeId_t* atypes=(TypeId_t*)malloc(sizeof(TypeId_t)*i);
+	FAKE_ASSERT(atypes,"genDefTypesUnion",__FILE__,__LINE__);
+	for(i=0,firArgCptr=getFirstCptr(argCptr);firArgCptr;firArgCptr=nextCptr(firArgCptr),i++)
+	{
+		TypeId_t tmp=genDefTypesUnion(firArgCptr,otherTypes);
+		if(!tmp)
+		{
+			free(atypes);
+			return 0;
+		}
+		VMTypeUnion tu=getVMTypeUnion(tmp);
+		if(GET_TYPES_TAG(tu.all)!=NATIVE_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=PTR_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=ARRAY_TYPE_TAG)
+		{
+			free(atypes);
+			return 0;
+		}
+		AST_cptr* cdr=getCptrCdr(firArgCptr);
+		if(!tmp||(cdr->type!=PAIR&&cdr->type!=NIL))
+		{
+			free(atypes);
+			return 0;
+		}
+		atypes[i]=tmp;
+	}
+	TypeId_t retval=newVMFuncType(rtype,i,atypes);
+	free(atypes);
+	return retval;
+}
+
+/*------------------------*/
 
 static CRL* newCRL(VMpair* pair,int32_t count)
 {
@@ -482,6 +836,8 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap)
 						tmp->u.dll=pValue;break;
 					case DLPROC:
 						tmp->u.dlproc=pValue;break;
+					case FLPROC:
+						tmp->u.flproc=pValue;break;
 					case ERR:
 						tmp->u.err=pValue;break;
 					case CHF:
@@ -1145,6 +1501,21 @@ void freeVMDlproc(VMDlproc* dlproc)
 	free(dlproc);
 }
 
+VMFlproc* newVMFlproc(TypeId_t type,void* func,VMvalue* dll)
+{
+	VMFlproc* tmp=(VMFlproc*)malloc(sizeof(VMFlproc));
+	FAKE_ASSERT(tmp,"newVMDlproc",__FILE__,__LINE__);
+	tmp->type=type;
+	tmp->func=func;
+	tmp->dll=dll;
+	return tmp;
+}
+
+void freeVMFlproc(VMFlproc* t)
+{
+	free(t);
+}
+
 VMerror* newVMerror(const char* who,const char* type,const char* message)
 {
 	VMerror* t=(VMerror*)malloc(sizeof(VMerror));
@@ -1400,6 +1771,9 @@ char* genErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe)
 		case INVALIDASSIGN:
 			t=strCat(t,"Invalid assign ");
 			break;
+		case INVALIDACCESS:
+			t=strCat(t,"Invalid access ");
+			break;
 	}
 	t=strCat(t,lineNumber);
 	free(lineNumber);
@@ -1539,6 +1913,9 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 					case DLPROC:
 						fprintf(fp,"<#dlproc>");
 						break;
+					case FLPROC:
+						fprintf(fp,"<#flproc>");
+						break;
 					case ERR:
 						fprintf(fp,"%s",objValue->u.err->message);
 						break;
@@ -1667,6 +2044,9 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 					case DLPROC:
 						fprintf(fp,"<#dlproc>");
 						break;
+					case FLPROC:
+						fprintf(fp,"<#flproc>");
+						break;
 					case ERR:
 						fprintf(fp,"<#err w:%s t:%s m:%s>",objValue->u.err->who,getGlobSymbolWithId(objValue->u.err->type)->symbol,objValue->u.err->message);
 						break;
@@ -1697,21 +2077,25 @@ int eqVMByts(const VMByts* fir,const VMByts* sec)
 
 VMvalue* GET_VAL(VMvalue* P,VMheap* heap)
 {
-	if(IS_REF(P))
-		return *(VMvalue**)(GET_PTR(P));
-	else if(IS_CHF(P))
+	if(P)
 	{
-		VMvalue* t=NULL;
-		VMMem* mem=P->u.chf;
-		if(mem->type>0&&mem->type<=LastNativeTypeId)
+		if(IS_REF(P))
+			return *(VMvalue**)(GET_PTR(P));
+		else if(IS_CHF(P))
 		{
-			t=MemoryCasterList[mem->type-1](mem->mem,heap);
+			VMvalue* t=NULL;
+			VMMem* mem=P->u.chf;
+			if(mem->type>0&&mem->type<=LastNativeTypeId)
+			{
+				t=MemoryCasterList[mem->type-1](mem->mem,heap);
+			}
+			else
+			{
+				t=newVMvalue(IN64,&mem->mem,heap);
+			}
+			return t;
 		}
-		else
-		{
-			t=newVMvalue(IN64,&mem->mem,heap);
-		}
-		return t;
+		return P;
 	}
 	return P;
 }
@@ -1720,7 +2104,7 @@ int SET_REF(VMvalue* P,VMvalue* V)
 {
 	if(IS_MEM(P)||IS_CHF(P))
 	{
-		VMMem* mem=(VMMem*)GET_PTR(P);
+		VMMem* mem=P->u.chf;
 		if(mem->type<=0)
 			return 1;
 		else if(mem->type>LastNativeTypeId)
@@ -1787,6 +2171,9 @@ size_t getVMTypeSize(VMTypeUnion t)
 		case UNION_TYPE_TAG:
 			return t.ut->maxSize;
 			break;
+		case FUNC_TYPE_TAG:
+			return sizeof(void*);
+			break;
 		default:
 			return 0;
 			break;
@@ -1831,10 +2218,30 @@ void freeVMArrayType(VMArrayType* obj)
 
 TypeId_t newVMPtrType(TypeId_t type)
 {
-	VMPtrType* tmp=(VMPtrType*)malloc(sizeof(VMPtrType));
-	FAKE_ASSERT(tmp,"newVMPtrType",__FILE__,__LINE__);
-	tmp->ptype=type;
-	return addToGlobTypeUnionList((VMTypeUnion)MAKE_PTR_TYPE(tmp));
+	TypeId_t id=0;
+	size_t i=0;
+	size_t typeNum=GlobTypeUnionList.num;
+	for(;i<typeNum;i++)
+	{
+		VMTypeUnion tmpType=GlobTypeUnionList.ul[i];
+		if(GET_TYPES_TAG(tmpType.all)==PTR_TYPE_TAG)
+		{
+			VMPtrType* ptrType=(VMTypeUnion){.pt=GET_TYPES_PTR(tmpType.all)}.pt;
+			if(ptrType->ptype==type)
+			{
+				id=i+1;
+				break;
+			}
+		}
+	}
+	if(!id)
+	{
+		VMPtrType* tmp=(VMPtrType*)malloc(sizeof(VMPtrType));
+		FAKE_ASSERT(tmp,"newVMPtrType",__FILE__,__LINE__);
+		tmp->ptype=type;
+		return addToGlobTypeUnionList((VMTypeUnion)MAKE_PTR_TYPE(tmp));
+	}
+	return id;
 }
 
 void freeVMPtrType(VMPtrType* obj)
@@ -1844,22 +2251,46 @@ void freeVMPtrType(VMPtrType* obj)
 
 TypeId_t newVMStructType(const char* structName,uint32_t num,Sid_t symbols[],TypeId_t memberTypes[])
 {
-	size_t totalSize=0;
-	for(uint32_t i=0;i<num;totalSize+=getVMTypeSize(getVMTypeUnion(memberTypes[i])),i++);
-	VMStructType* tmp=(VMStructType*)malloc(sizeof(VMStructType)+sizeof(VMStructMember)*num);
-	FAKE_ASSERT(tmp,"newVMStructType",__FILE__,__LINE__);
+	TypeId_t id=0;
 	if(structName)
-		tmp->type=addSymbolToGlob(structName)->id;
-	else
-		tmp->type=-1;
-	tmp->num=num;
-	tmp->totalSize=totalSize;
-	for(uint32_t i=0;i<num;i++)
 	{
-		tmp->layout[i].memberSymbol=symbols[i];
-		tmp->layout[i].type=memberTypes[i];
+		size_t i=0;
+		size_t num=GlobTypeUnionList.num;
+		Sid_t stype=addSymbolToGlob(structName)->id;
+		for(;i<num;i++)
+		{
+			VMTypeUnion tmpType=GlobTypeUnionList.ul[i];
+			if(GET_TYPES_TAG(tmpType.all)==STRUCT_TYPE_TAG)
+			{
+				VMStructType* structType=(VMTypeUnion){.st=GET_TYPES_PTR(tmpType.all)}.st;
+				if(structType->type==stype)
+				{
+					id=i+1;
+					break;
+				}
+			}
+		}
 	}
-	return addToGlobTypeUnionList((VMTypeUnion)MAKE_STRUCT_TYPE(tmp));
+	if(!id)
+	{
+		size_t totalSize=0;
+		for(uint32_t i=0;i<num;totalSize+=getVMTypeSize(getVMTypeUnion(memberTypes[i])),i++);
+		VMStructType* tmp=(VMStructType*)malloc(sizeof(VMStructType)+sizeof(VMStructMember)*num);
+		FAKE_ASSERT(tmp,"newVMStructType",__FILE__,__LINE__);
+		if(structName)
+			tmp->type=addSymbolToGlob(structName)->id;
+		else
+			tmp->type=-1;
+		tmp->num=num;
+		tmp->totalSize=totalSize;
+		for(uint32_t i=0;i<num;i++)
+		{
+			tmp->layout[i].memberSymbol=symbols[i];
+			tmp->layout[i].type=memberTypes[i];
+		}
+		return addToGlobTypeUnionList((VMTypeUnion)MAKE_STRUCT_TYPE(tmp));
+	}
+	return id;
 }
 
 TypeId_t newVMUnionType(const char* unionName,uint32_t num,Sid_t symbols[],TypeId_t memberTypes[])
@@ -1893,6 +2324,43 @@ void freeVMUnionType(VMUnionType* obj)
 }
 
 void freeVMStructType(VMStructType* obj)
+{
+	free(GET_TYPES_PTR(obj));
+}
+
+TypeId_t newVMFuncType(TypeId_t rtype,uint32_t anum,TypeId_t atypes[])
+{
+	TypeId_t id=0;
+	size_t i=0;
+	size_t typeNum=GlobTypeUnionList.num;
+	for(;i<typeNum;i++)
+	{
+		VMTypeUnion tmpType=GlobTypeUnionList.ul[i];
+		if(GET_TYPES_TAG(tmpType.all)==FUNC_TYPE_TAG)
+		{
+			VMFuncType* funcType=(VMTypeUnion){.ft=GET_TYPES_PTR(tmpType.all)}.ft;
+			if(funcType->rtype==rtype&&funcType->anum==anum&&!memcmp(funcType->atypes,atypes,sizeof(TypeId_t)*anum))
+			{
+				id=i+1;
+				break;
+			}
+		}
+	}
+	if(!id)
+	{
+		VMFuncType* tmp=(VMFuncType*)malloc(sizeof(VMFuncType)+sizeof(TypeId_t)*anum);
+		FAKE_ASSERT(tmp,"newVMFuncType",__FILE__,__LINE__);
+		tmp->rtype=rtype;
+		tmp->anum=anum;
+		uint32_t i=0;
+		for(;i<anum;i++)
+			tmp->atypes[i]=atypes[i];
+		return addToGlobTypeUnionList((VMTypeUnion)MAKE_FUNC_TYPE(tmp));
+	}
+	return id;
+}
+
+void freeVMFuncType(VMFuncType* obj)
 {
 	free(GET_TYPES_PTR(obj));
 }
@@ -1980,219 +2448,28 @@ TypeId_t genDefTypes(AST_cptr* objCptr,VMDefTypes* otherTypes,Sid_t* typeName)
 TypeId_t genDefTypesUnion(AST_cptr* objCptr,VMDefTypes* otherTypes)
 {
 	if(objCptr->type==ATM&&objCptr->u.atom->type==SYM)
-		return findVMDefTypesNode(addSymbolToGlob(objCptr->u.atom->value.str)->id,otherTypes)->type;
+	{
+		VMDefTypesNode* n=findVMDefTypesNode(addSymbolToGlob(objCptr->u.atom->value.str)->id,otherTypes);
+		if(!n)
+			return 0;
+		else
+			return n->type;
+	}
 	else if(objCptr->type==PAIR)
 	{
 		AST_cptr* compositeDataHead=getFirstCptr(objCptr);
 		if(compositeDataHead->type!=ATM||compositeDataHead->u.atom->type!=SYM)
 			return 0;
 		if(!strcmp(compositeDataHead->u.atom->value.str,"array"))
-		{
-			AST_cptr* numCptr=nextCptr(compositeDataHead);
-			if(!numCptr||numCptr->type!=ATM||numCptr->u.atom->type!=IN32)
-				return 0;
-			AST_cptr* typeCptr=nextCptr(numCptr);
-			if(!typeCptr)
-				return 0;
-			TypeId_t type=genDefTypesUnion(typeCptr,otherTypes);
-			if(!type)
-				return type;
-			return newVMArrayType(type,numCptr->u.atom->value.in32);
-		}
+			return genArrayTypeId(compositeDataHead,otherTypes);
 		else if(!strcmp(compositeDataHead->u.atom->value.str,"ptr"))
-		{
-			AST_cptr* ptrTypeCptr=nextCptr(compositeDataHead);
-			if(ptrTypeCptr->type==ATM&&ptrTypeCptr->u.atom->type!=SYM)
-				return 0;
-			TypeId_t pType=genDefTypesUnion(ptrTypeCptr,otherTypes);
-			if(!pType)
-				return pType;
-			return newVMPtrType(pType);
-		}
+			return genPtrTypeId(compositeDataHead,otherTypes);
 		else if(!strcmp(compositeDataHead->u.atom->value.str,"struct"))
-		{
-			char* structName=NULL;
-			AST_cptr* structNameCptr=nextCptr(compositeDataHead);
-			uint32_t num=0;
-			AST_cptr* memberCptr=NULL;
-			if(structNameCptr->type==ATM)
-			{
-				if(structNameCptr->u.atom->type==SYM)
-					structName=structNameCptr->u.atom->value.str;
-				else
-					return 0;
-				memberCptr=nextCptr(structNameCptr);
-				structNameCptr=memberCptr;
-			}
-			else
-				memberCptr=structNameCptr;
-			TypeId_t retval=0;
-			if(memberCptr==NULL&&structName!=NULL)
-			{
-				TypeId_t i=0;
-				uint32_t num=GlobTypeUnionList.num;
-				for(;i<num;i++)
-				{
-					VMTypeUnion typeUnion=GlobTypeUnionList.ul[i];
-					if(GET_TYPES_TAG(typeUnion.all)==STRUCT_TYPE_TAG)
-					{
-						VMStructType* st=(VMStructType*)GET_TYPES_PTR(typeUnion.st);
-						if(st->type==addSymbolToGlob(structName)->id)
-						{
-							retval=i+1;
-							break;
-						}
-					}
-				}
-				if(!retval)
-					return retval;
-			}
-			else if(structName!=NULL)
-				retval=newVMStructType(structName,0,NULL,NULL);
-			for(;memberCptr;num++,memberCptr=nextCptr(memberCptr));
-			memberCptr=structNameCptr;
-			Sid_t* memberSymbolList=NULL;
-			TypeId_t* memberTypeList=NULL;
-			if(num)
-			{
-				memberSymbolList=(Sid_t*)malloc(sizeof(Sid_t)*num);
-				memberTypeList=(TypeId_t*)malloc(sizeof(TypeId_t)*num);
-				FAKE_ASSERT(memberTypeList&&memberCptr,"genDefTypesUnion",__FILE__,__LINE__);
-				uint32_t i=0;
-				for(;memberCptr;i++,memberCptr=nextCptr(memberCptr))
-				{
-					AST_cptr* memberName=getFirstCptr(memberCptr);
-					if(memberName->type!=ATM||memberName->u.atom->type!=SYM)
-					{
-						free(memberTypeList);
-						free(memberSymbolList);
-						return 0;
-					}
-					Sid_t symbol=addSymbolToGlob(memberName->u.atom->value.str)->id;
-					if(nextCptr(nextCptr(memberName)))
-					{
-						free(memberTypeList);
-						free(memberSymbolList);
-						return 0;
-					}
-					TypeId_t type=genDefTypesUnion(nextCptr(memberName),otherTypes);
-					if(!type)
-					{
-						free(memberTypeList);
-						free(memberSymbolList);
-						return 0;
-					}
-					memberSymbolList[i]=symbol;
-					memberTypeList[i]=type;
-				}
-			}
-			if(retval&&num)
-			{
-				initVMStructTypeId(retval,structName,num,memberTypeList,memberTypeList);
-			}
-			else if(!retval)
-			{
-				retval=newVMStructType(structName,num,memberSymbolList,memberTypeList);
-				if(memberTypeList&&memberSymbolList)
-				{
-					free(memberSymbolList);
-					free(memberTypeList);
-				}
-			}
-			return retval;
-		}
+			return genStructTypeId(compositeDataHead,otherTypes);
 		else if(!strcmp(compositeDataHead->u.atom->value.str,"union"))
-		{
-			char* unionName=NULL;
-			AST_cptr* unionNameCptr=nextCptr(compositeDataHead);
-			uint32_t num=0;
-			AST_cptr* memberCptr=NULL;
-			if(unionNameCptr->type==ATM)
-			{
-				if(unionNameCptr->u.atom->type==SYM)
-					unionName=unionNameCptr->u.atom->value.str;
-				else
-					return 0;
-				memberCptr=nextCptr(unionNameCptr);
-				unionNameCptr=memberCptr;
-			}
-			else
-				memberCptr=unionNameCptr;
-			TypeId_t retval=0;
-			if(memberCptr==NULL&&unionName!=NULL)
-			{
-				TypeId_t i=0;
-				uint32_t num=GlobTypeUnionList.num;
-				for(;i<num;i++)
-				{
-					VMTypeUnion typeUnion=GlobTypeUnionList.ul[i];
-					if(GET_TYPES_TAG(typeUnion.all)==UNION_TYPE_TAG)
-					{
-						VMUnionType* ut=(VMUnionType*)GET_TYPES_PTR(typeUnion.st);
-						if(ut->type==addSymbolToGlob(unionName)->id)
-						{
-							retval=i+1;
-							break;
-						}
-					}
-				}
-				if(!retval)
-					return retval;
-			}
-			else if(unionName!=NULL)
-				retval=newVMUnionType(unionName,0,NULL,NULL);
-			for(;memberCptr;num++,memberCptr=nextCptr(memberCptr));
-			memberCptr=unionNameCptr;
-			Sid_t* memberSymbolList=NULL;
-			TypeId_t* memberTypeList=NULL;
-			if(num)
-			{
-				memberSymbolList=(Sid_t*)malloc(sizeof(Sid_t)*num);
-				memberTypeList=(TypeId_t*)malloc(sizeof(TypeId_t)*num);
-				FAKE_ASSERT(memberTypeList&&memberCptr,"genDefTypesUnion",__FILE__,__LINE__);
-				uint32_t i=0;
-				for(;memberCptr;i++,memberCptr=nextCptr(memberCptr))
-				{
-					AST_cptr* memberName=getFirstCptr(memberCptr);
-					if(memberName->type!=ATM||memberName->u.atom->type!=SYM)
-					{
-						free(memberTypeList);
-						free(memberSymbolList);
-						return 0;
-					}
-					Sid_t symbol=addSymbolToGlob(memberName->u.atom->value.str)->id;
-					if(nextCptr(nextCptr(memberName)))
-					{
-						free(memberTypeList);
-						free(memberSymbolList);
-						return 0;
-					}
-					TypeId_t type=genDefTypesUnion(nextCptr(memberName),otherTypes);
-					if(!type)
-					{
-						free(memberTypeList);
-						free(memberSymbolList);
-						return 0;
-					}
-					memberSymbolList[i]=symbol;
-					memberTypeList[i]=type;
-				}
-			}
-			if(retval&&num)
-			{
-				initVMUnionTypeId(retval,unionName,num,memberTypeList,memberTypeList);
-			}
-			else if(!retval)
-			{
-				retval=newVMUnionType(unionName,num,memberSymbolList,memberTypeList);
-				if(memberTypeList&&memberSymbolList)
-				{
-					free(memberSymbolList);
-					free(memberTypeList);
-				}
-			}
-			return retval;
-		}
+			return genUnionTypeId(compositeDataHead,otherTypes);
+		else if(!strcmp(compositeDataHead->u.atom->value.str,"function"))
+			return genFuncTypeId(compositeDataHead,otherTypes);
 		else
 			return 0;
 	}
@@ -2231,16 +2508,24 @@ void initNativeDefTypes(VMDefTypes* otherTypes)
 		{"unsigned-long",sizeof(unsigned long)},
 		{"long-long",sizeof(long long)},
 		{"unsigned-long-long",sizeof(unsigned long long)},
-		{"ptrdiff_t",sizeof(ptrdiff_t)},
+		{"ptrdiff",sizeof(ptrdiff_t)},
 		{"size_t",sizeof(size_t)},
 		{"ssize_t",sizeof(ssize_t)},
 		{"char",sizeof(char)},
 		{"wchar_t",sizeof(wchar_t)},
 		{"float",sizeof(float)},
 		{"double",sizeof(double)},
+		{"int8_t",sizeof(int8_t)},
+		{"uint8_t",sizeof(uint8_t)},
+		{"int16_t",sizeof(int16_t)},
+		{"uint16_t",sizeof(uint16_t)},
+		{"int32_t",sizeof(int32_t)},
+		{"uint32_t",sizeof(uint32_t)},
+		{"int64_t",sizeof(int64_t)},
+		{"uint64_t",sizeof(uint64_t)},
 		{"iptr",sizeof(intptr_t)},
 		{"uptr",sizeof(uintptr_t)},
-		{"ptr",sizeof(void*)},
+		{"vptr",sizeof(void*)},
 	};
 	size_t num=sizeof(nativeTypeList)/(sizeof(char*)+sizeof(size_t));
 	size_t i=0;
@@ -2294,14 +2579,7 @@ void writeTypeList(FILE* fp)
 					fwrite(&num,sizeof(num),1,fp);
 					fwrite(&((VMStructType*)p)->totalSize,sizeof(((VMStructType*)p)->totalSize),1,fp);
 					VMStructMember* members=((VMStructType*)p)->layout;
-					uint32_t j=0;
-					for(;j<num;j++)
-					{
-						Sid_t memberSymbol=members[i].memberSymbol;
-						TypeId_t memberType=members[i].type;
-						fwrite(&memberSymbol,sizeof(memberSymbol),1,fp);
-						fwrite(&memberType,sizeof(memberType),1,fp);
-					}
+					fwrite(members,sizeof(VMStructMember),num,fp);
 				}
 				break;
 			case UNION_TYPE_TAG:
@@ -2310,14 +2588,17 @@ void writeTypeList(FILE* fp)
 					fwrite(&num,sizeof(num),1,fp);
 					fwrite(&((VMUnionType*)p)->maxSize,sizeof(((VMUnionType*)p)->maxSize),1,fp);
 					VMStructMember* members=((VMUnionType*)p)->layout;
-					uint32_t j=0;
-					for(;j<num;j++)
-					{
-						Sid_t memberSymbol=members[i].memberSymbol;
-						TypeId_t memberType=members[i].type;
-						fwrite(&memberSymbol,sizeof(memberSymbol),1,fp);
-						fwrite(&memberType,sizeof(memberType),1,fp);
-					}
+					fwrite(members,sizeof(VMStructMember),num,fp);
+				}
+				break;
+			case FUNC_TYPE_TAG:
+				{
+					VMFuncType* ft=(VMFuncType*)p;
+					fwrite(&ft->rtype,sizeof(ft->rtype),1,fp);
+					uint32_t anum=ft->anum;
+					fwrite(&anum,sizeof(anum),1,fp);
+					TypeId_t* atypes=ft->atypes;
+					fwrite(atypes,sizeof(*atypes),anum,fp);
 				}
 				break;
 			default:
@@ -2377,16 +2658,7 @@ void loadTypeList(FILE* fp)
 					FAKE_ASSERT(t,"loadTypeList",__FILE__,__LINE__);
 					t->num=num;
 					fread(&t->totalSize,sizeof(t->totalSize),1,fp);
-					uint32_t j=0;
-					for(;j<num;j++)
-					{
-						Sid_t memberSymbol=0;
-						TypeId_t memberType=0;
-						fread(&memberSymbol,sizeof(memberSymbol),1,fp);
-						fread(&memberType,sizeof(memberType),1,fp);
-						t->layout[j].memberSymbol=memberSymbol;
-						t->layout[j].type=memberType;
-					}
+					fread(t->layout,sizeof(VMStructMember),num,fp);
 					tu.st=(VMStructType*)MAKE_STRUCT_TYPE(t);
 				}
 				break;
@@ -2398,18 +2670,23 @@ void loadTypeList(FILE* fp)
 					FAKE_ASSERT(t,"loadTypeList",__FILE__,__LINE__);
 					t->num=num;
 					fread(&t->maxSize,sizeof(t->maxSize),1,fp);
-					uint32_t j=0;
-					for(;j<num;j++)
-					{
-						Sid_t memberSymbol=0;
-						TypeId_t memberType=0;
-						fread(&memberSymbol,sizeof(memberSymbol),1,fp);
-						fread(&memberType,sizeof(memberType),1,fp);
-						t->layout[j].memberSymbol=memberSymbol;
-						t->layout[j].type=memberType;
-					}
-					tu.ut=(VMUnionType*)MAKE_STRUCT_TYPE(t);
+					fread(t->layout,sizeof(VMStructMember),num,fp);
+					tu.ut=(VMUnionType*)MAKE_UNION_TYPE(t);
 				}
+			case FUNC_TYPE_TAG:
+				{
+					TypeId_t rtype=0;
+					fread(&rtype,sizeof(rtype),1,fp);
+					uint32_t anum=0;
+					fread(&anum,sizeof(anum),1,fp);
+					VMFuncType* t=(VMFuncType*)malloc(sizeof(VMUnionType)+sizeof(TypeId_t)*anum);
+					FAKE_ASSERT(t,"loadTypeList",__FILE__,__LINE__);
+					t->rtype=rtype;
+					t->anum=anum;
+					fread(t->atypes,sizeof(TypeId_t),anum,fp);
+					tu.ft=t;
+				}
+				break;
 			default:
 				break;
 		}
@@ -2445,16 +2722,12 @@ void freeGlobTypeList()
 			case UNION_TYPE_TAG:
 				freeVMUnionType((VMUnionType*)GET_TYPES_PTR(tu.all));
 				break;
+			case FUNC_TYPE_TAG:
+				freeVMFuncType((VMFuncType*)GET_TYPES_PTR(tu.all));
+				break;
 			default:
 				break;
 		}
 	}
 	free(ul);
-}
-
-void applyFF(void* func,int argc,ffi_type* rtype,ffi_type** atypes,void* rvalue,void** avalue)
-{
-	ffi_cif cif;
-	ffi_prep_cif(&cif, FFI_DEFAULT_ABI, argc, rtype, atypes);
-	ffi_call(&cif, func, rvalue, avalue);
 }

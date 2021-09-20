@@ -24,6 +24,7 @@ void B_push_var(FakeVM*);
 void B_push_env_var(FakeVM*);
 void B_push_top(FakeVM*);
 void B_push_proc(FakeVM*);
+void B_push_fproc(FakeVM*);
 void B_push_ptr_ref(FakeVM*);
 void B_push_def_ref(FakeVM*);
 void B_push_ind_ref(FakeVM*);

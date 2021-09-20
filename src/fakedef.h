@@ -8,7 +8,7 @@
 #define THRESHOLD_SIZE 64
 #define NUMOFBUILTINSYMBOL 53
 #define MAX_STRING_SIZE 64
-#define NUMOFBUILTINERRORTYPE 27
+#define NUMOFBUILTINERRORTYPE 28
 #define STATIC_SYMBOL_INIT {0,NULL,NULL}
 #define UNUSEDBITNUM 3
 #define PTR_MASK ((intptr_t)0xFFFFFFFFFFFFFFF8)
@@ -55,6 +55,7 @@ typedef union VMTypeUnion
 	struct VMPtrType* pt;
 	struct VMStructType* st;
 	struct VMUnionType* ut;
+	struct VMFuncType* ft;
 }VMTypeUnion;
 
 typedef struct VMDefTypesNode
@@ -68,7 +69,7 @@ typedef struct VMDefTypes
 	VMDefTypesNode** u;
 }VMDefTypes;
 
-typedef enum{NIL=0,IN32,CHR,DBL,IN64,SYM,STR,BYTS,PRC,CONT,CHAN,FP,DLL,DLPROC,ERR,MEM,CHF,PAIR,ATM} ValueType;
+typedef enum{NIL=0,IN32,CHR,DBL,IN64,SYM,STR,BYTS,PRC,CONT,CHAN,FP,DLL,DLPROC,FLPROC,ERR,MEM,CHF,PAIR,ATM} ValueType;
 typedef enum
 {
 	SYMUNDEFINE=1,
@@ -97,6 +98,7 @@ typedef enum
 	NOMEMBERTYPE,
 	NONSCALARTYPE,
 	INVALIDASSIGN,
+	INVALIDACCESS,
 }ErrorType;
 
 #ifdef _WIN32
@@ -327,6 +329,7 @@ typedef struct VMvalue
 		struct VMproc* prc;
 		DllHandle dll;
 		struct VMDlproc* dlproc;
+		struct VMFlproc* flproc;
 		struct VMContinuation* cont;
 		FILE* fp;
 		struct VMChanl* chan;
@@ -417,6 +420,13 @@ typedef struct VMDlproc
 	DllFunc func;
 	VMvalue* dll;
 }VMDlproc;
+
+typedef struct VMFlproc
+{
+	void* func;
+	TypeId_t type;
+	VMvalue* dll;
+}VMFlproc;
 
 typedef struct StringMatchPattern
 {

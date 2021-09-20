@@ -1,5 +1,5 @@
-objectOfFakeLisp=fakeLisp.o common.o syntax.o compiler.o fakeVM.o VMtool.o ast.o reader.o syscall.o
-objectOfFakeLispc=fakeLispc.o common.o syntax.o compiler.o fakeVM.o VMtool.o ast.o reader.o syscall.o
+objectOfFakeLisp=fakeLisp.o common.o syntax.o compiler.o fakeVM.o VMtool.o ast.o reader.o syscall.o fakeFFI.o
+objectOfFakeLispc=fakeLispc.o common.o syntax.o compiler.o fakeVM.o VMtool.o ast.o reader.o syscall.o fakeFFI.o
 exeFile=fakeLisp fakeLispc
 ifeq ($(DEBUG),YES)
 FLAG=-g -Wall
@@ -41,6 +41,8 @@ VMtool.o: src/VMtool.* src/fakedef.h common.o
 	gcc $(FLAG) -c src/VMtool.c
 fakeVM.o: src/fakeVM.* src/fakedef.h src/opcode.h VMtool.o reader.o
 	gcc $(FLAG) -c src/fakeVM.c
+fakeFFI.o: src/fakeFFI.* src/fakedef.h src/fakeFFI.*
+	gcc $(FLAG) -c src/fakeFFI.c
 fakeLispc.o: src/fakeLispc.* src/fakedef.h
 	gcc $(FLAG) -c src/fakeLispc.c
 fakeLispc: $(objectOfFakeLispc)

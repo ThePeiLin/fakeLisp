@@ -1,7 +1,6 @@
 #ifndef VMTOOL_H
 #define VMTOOL_H
 #include"fakedef.h"
-#include<ffi.h>
 #include<pthread.h>
 #include<stdint.h>
 
@@ -58,6 +57,7 @@ extern const char*  builtInErrorType[NUMOFBUILTINERRORTYPE];
 #define IS_DLL(P) (GET_TAG(P)==PTR_TAG&&(P)->type==DLL)
 #define IS_PRC(P) (GET_TAG(P)==PTR_TAG&&(P)->type==PRC)
 #define IS_DLPROC(P) (GET_TAG(P)==PTR_TAG&&(P)->type==DLPROC)
+#define IS_FLPROC(P) (GET_TAG(P)==PTR_TAG&&(P)->type==FLPROC)
 #define IS_ERR(P) (GET_TAG(P)==PTR_TAG&&(P)->type==ERR)
 #define IS_CONT(P) (GET_TAG(P)==PTR_TAG&&(P)->type==CONT)
 #define IS_IN32(P) (GET_TAG(P)==IN32_TAG)
@@ -151,6 +151,9 @@ void freeVMDll(DllHandle*);
 VMDlproc* newVMDlproc(DllFunc,VMvalue*);
 void freeVMDlproc(VMDlproc*);
 
+VMFlproc* newVMFlproc(TypeId_t type,void* func,VMvalue* dll);
+void freeVMFlproc(VMFlproc*);
+
 VMerror* newVMerror(const char* who,const char* type,const char* message);
 VMerror* newVMerrorWithSid(const char* who,Sid_t type,const char* message);
 void freeVMerror(VMerror*);
@@ -195,6 +198,10 @@ void freeVMStructType(VMStructType*);
 TypeId_t newVMUnionType(const char* structName,uint32_t num,Sid_t symbols[],TypeId_t memberTypes[]);
 void freeVMUnionType(VMUnionType*);
 
+TypeId_t newVMFuncType(TypeId_t rtype,uint32_t anum,TypeId_t atypes[]);
+TypeId_t findSameFuncType(TypeId_t,uint32_t anum,TypeId_t atypes[]);
+void freeVMFuncType(VMFuncType*);
+
 size_t getVMTypeSize(VMTypeUnion t);
 size_t getVMTypeSizeWithTypeId(TypeId_t t);
 VMTypeUnion getVMTypeUnion(TypeId_t);
@@ -205,5 +212,4 @@ void initNativeDefTypes(VMDefTypes* otherTypes);
 void writeTypeList(FILE* fp);
 void loadTypeList(FILE* fp);
 void freeGlobTypeList(void);
-void applyFF(void* func,int argc,ffi_type* rtype,ffi_type** atypes,void* rvalue,void** avalue);
 #endif

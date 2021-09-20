@@ -220,13 +220,12 @@ void SYS_add(FakeVM* exe,pthread_rwlock_t* gclock)
 	VMrunnable* runnable=topComStack(exe->rstack);
 	VMheap* heap=exe->heap;
 	VMvalue* cur=GET_VAL(popVMstack(stack),heap);
-	int32_t ri=0;
 	int64_t r64=0;
 	double rd=0.0;
 	for(;cur;cur=GET_VAL(popVMstack(stack),heap))
 	{
 		if(IS_IN32(cur))
-			ri+=GET_IN32(cur);
+			r64+=GET_IN32(cur);
 		else if(IS_DBL(cur))
 			rd+=*cur->u.dbl;
 		else if(IS_IN64(cur))
@@ -237,16 +236,16 @@ void SYS_add(FakeVM* exe,pthread_rwlock_t* gclock)
 	resBp(stack);
 	if(rd!=0.0)
 	{
-		rd+=ri+r64;
+		rd+=r64;
 		SET_RETURN("SYS_add",newVMvalue(DBL,&rd,exe->heap),stack);
 	}
-	else if(r64!=0)
-	{
-		r64+=ri;
-		SET_RETURN("SYS_add",newVMvalue(IN64,&r64,exe->heap),stack);
-	}
 	else
-		SET_RETURN("SYS_add",MAKE_VM_IN32(ri),stack);
+	{
+		if(r64>=INT32_MAX||r64<=INT32_MIN)
+			SET_RETURN("SYS_add",newVMvalue(IN64,&r64,exe->heap),stack);
+		else
+			SET_RETURN("SYS_add",MAKE_VM_IN32(r64),stack);
+	}
 }
 
 void SYS_add_1(FakeVM* exe,pthread_rwlock_t* gclock)
@@ -281,7 +280,6 @@ void SYS_sub(FakeVM* exe,pthread_rwlock_t* gclock)
 	VMheap* heap=exe->heap;
 	VMvalue* prev=GET_VAL(popVMstack(stack),heap);
 	VMvalue* cur=GET_VAL(popVMstack(stack),heap);
-	int32_t ri=0;
 	double rd=0.0;
 	int64_t r64=0;
 	if(!prev)
@@ -298,8 +296,8 @@ void SYS_sub(FakeVM* exe,pthread_rwlock_t* gclock)
 		}
 		else if(IS_IN32(prev))
 		{
-			ri=-GET_IN32(prev);
-			SET_RETURN("SYS_sub",MAKE_VM_IN32(ri),stack);
+			r64=-GET_IN32(prev);
+			SET_RETURN("SYS_sub",MAKE_VM_IN32(r64),stack);
 		}
 		else
 		{
@@ -312,7 +310,7 @@ void SYS_sub(FakeVM* exe,pthread_rwlock_t* gclock)
 		for(;cur;cur=GET_VAL(popVMstack(stack),heap))
 		{
 			if(IS_IN32(cur))
-				ri+=GET_IN32(cur);
+				r64+=GET_IN32(cur);
 			else if(IS_DBL(cur))
 				rd+=*cur->u.dbl;
 			else if(IS_IN64(cur))
@@ -323,18 +321,16 @@ void SYS_sub(FakeVM* exe,pthread_rwlock_t* gclock)
 		resBp(stack);
 		if(IS_DBL(prev)||rd!=0.0)
 		{
-			rd=((IS_DBL(prev))?*prev->u.dbl:((IS_IN64(prev))?*prev->u.in64:GET_IN32(prev)))-rd-ri-r64;
+			rd=((IS_DBL(prev))?*prev->u.dbl:((IS_IN64(prev))?*prev->u.in64:GET_IN32(prev)))-rd-r64;
 			SET_RETURN("SYS_sub",newVMvalue(DBL,&rd,exe->heap),stack);
-		}
-		else if(r64!=0)
-		{
-			r64=(IS_IN64(prev))?*prev->u.in64:GET_IN32(prev)-ri-r64;
-			SET_RETURN("SYS_sub",newVMvalue(IN64,&r64,exe->heap),stack);
 		}
 		else
 		{
-			ri=GET_IN32(prev)-ri;
-			SET_RETURN("SYS_sub",MAKE_VM_IN32(ri),stack);
+			r64=(IS_IN64(prev))?*prev->u.in64:GET_IN32(prev)-r64;
+			if(r64>=INT32_MAX||r64<=INT32_MIN)
+				SET_RETURN("SYS_sub",newVMvalue(IN64,&r64,exe->heap),stack);
+			else
+				SET_RETURN("SYS_sub",MAKE_VM_IN32(r64),stack);
 		}
 	}
 }
@@ -370,13 +366,12 @@ void SYS_mul(FakeVM* exe,pthread_rwlock_t* gclock)
 	VMrunnable* runnable=topComStack(exe->rstack);
 	VMheap* heap=exe->heap;
 	VMvalue* cur=GET_VAL(popVMstack(stack),heap);
-	int32_t ri=1;
 	double rd=1.0;
 	int64_t r64=1;
 	for(;cur;cur=GET_VAL(popVMstack(stack),heap))
 	{
 		if(IS_IN32(cur))
-			ri*=GET_IN32(cur);
+			r64*=GET_IN32(cur);
 		else if(IS_DBL(cur))
 			rd*=*cur->u.dbl;
 		else if(IS_IN64(cur))
@@ -387,16 +382,16 @@ void SYS_mul(FakeVM* exe,pthread_rwlock_t* gclock)
 	resBp(stack);
 	if(rd!=1.0)
 	{
-		rd*=ri*r64;
+		rd*=r64;
 		SET_RETURN("SYS_mul",newVMvalue(DBL,&rd,exe->heap),stack);
 	}
-	else if(r64!=1)
-	{
-		r64*=ri;
-		SET_RETURN("SYS_mul",newVMvalue(IN64,&r64,exe->heap),stack);
-	}
 	else
-		SET_RETURN("SYS_mul",MAKE_VM_IN32(ri),stack);
+	{
+		if(r64>=INT32_MAX||r64<=INT32_MIN)
+			SET_RETURN("SYS_mul",newVMvalue(IN64,&r64,exe->heap),stack);
+		else
+			SET_RETURN("SYS_mul",MAKE_VM_IN32(r64),stack);
+	}
 }
 
 void SYS_div(FakeVM* exe,pthread_rwlock_t* gclock)
@@ -406,7 +401,6 @@ void SYS_div(FakeVM* exe,pthread_rwlock_t* gclock)
 	VMheap* heap=exe->heap;
 	VMvalue* prev=GET_VAL(popVMstack(stack),heap);
 	VMvalue* cur=GET_VAL(popVMstack(stack),heap);
-	int32_t ri=1;
 	int64_t r64=1;
 	double rd=1.0;
 	if(!prev)
@@ -449,10 +443,7 @@ void SYS_div(FakeVM* exe,pthread_rwlock_t* gclock)
 				SET_RETURN("SYS_div",newVMvalue(DBL,&rd,exe->heap),stack);
 			}
 			else
-			{
-				ri=1/GET_IN32(prev);
-				SET_RETURN("SYS_div",MAKE_VM_IN32(ri),stack);
-			}
+				SET_RETURN("SYS_div",MAKE_VM_IN32(1),stack);
 		}
 	}
 	else
@@ -460,7 +451,7 @@ void SYS_div(FakeVM* exe,pthread_rwlock_t* gclock)
 		for(;cur;cur=GET_VAL(popVMstack(stack),heap))
 		{
 			if(IS_IN32(cur))
-				ri*=GET_IN32(cur);
+				r64*=GET_IN32(cur);
 			else if(IS_DBL(cur))
 				rd*=*cur->u.dbl;
 			else if(IS_IN64(cur))
@@ -468,29 +459,32 @@ void SYS_div(FakeVM* exe,pthread_rwlock_t* gclock)
 			else
 				RAISE_BUILTIN_ERROR("sys.div",WRONGARG,runnable,exe);
 		}
-		if((ri+r64)==0)
+		if((r64)==0)
 			RAISE_BUILTIN_ERROR("sys.div",DIVZERROERROR,runnable,exe);
 		resBp(stack);
-		if(IS_DBL(prev)||rd!=1.0||(IS_IN32(prev)&&GET_IN32(prev)%(ri+r64))||(IS_IN64(prev)&&*prev->u.in64%(ri+r64)))
+		if(IS_DBL(prev)||rd!=1.0||(IS_IN32(prev)&&GET_IN32(prev)%(r64))||(IS_IN64(prev)&&*prev->u.in64%(r64)))
 		{
-			if(rd==0.0||ri==0)
+			if(rd==0.0||r64==0)
 				RAISE_BUILTIN_ERROR("sys.div",DIVZERROERROR,runnable,exe);
-			rd=((double)((IS_DBL(prev))?*prev->u.dbl:(IS_IN32(prev)?GET_IN32(prev):*prev->u.in64)))/rd/ri/r64;
+			rd=((double)((IS_DBL(prev))?*prev->u.dbl:(IS_IN32(prev)?GET_IN32(prev):*prev->u.in64)))/rd/r64;
 			SET_RETURN("SYS_div",newVMvalue(DBL,&rd,exe->heap),stack);
 		}
 		else
 		{
-			if(ri+r64==0)
+			if(r64==0)
 				RAISE_BUILTIN_ERROR("sys.div",DIVZERROERROR,runnable,exe);
 			if(r64!=1)
 			{
-				r64=(IS_IN32(prev)?GET_IN32(prev):*prev->u.in64)/ri/r64;
+				r64=(IS_IN32(prev)?GET_IN32(prev):*prev->u.in64)/r64;
 				SET_RETURN("SYS_div",newVMvalue(IN64,&r64,exe->heap),stack);
 			}
 			else
 			{
-				ri=GET_IN32(prev)/ri;
-				SET_RETURN("SYS_div",MAKE_VM_IN32(ri),stack);
+				r64=GET_IN32(prev)/r64;
+				if(r64>=INT32_MAX||r64<=INT32_MIN)
+					SET_RETURN("SYS_div",newVMvalue(IN64,&r64,exe->heap),stack);
+				else
+					SET_RETURN("SYS_div",MAKE_VM_IN32(r64),stack);
 			}
 		}
 	}
@@ -950,6 +944,7 @@ void SYS_type(FakeVM* exe,pthread_rwlock_t* gclock)
 			"fp",
 			"dll",
 			"dlproc",
+			"flproc",
 			"err",
 			"mem",
 			"ref",

@@ -5,6 +5,7 @@
 #include"fakeVM.h"
 #include"opcode.h"
 #include"syscall.h"
+#include"fakeFFI.h"
 #include<string.h>
 #include<math.h>
 #ifdef _WIN32
@@ -28,7 +29,7 @@ void threadErrorCallBack(void* a)
 }
 
 extern const char* builtInErrorType[NUMOFBUILTINERRORTYPE];
-
+extern TypeId_t LastNativeTypeId;
 static int envNodeCmp(const void* a,const void* b)
 {
 	return ((*(VMenvNode**)a)->id-(*(VMenvNode**)b)->id);
@@ -36,6 +37,157 @@ static int envNodeCmp(const void* a,const void* b)
 
 extern const char* builtInSymbolList[NUMOFBUILTINSYMBOL];
 pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
+
+/*void ptr to VMvalue caster*/
+#define ARGL intptr_t p,VMheap* heap
+#define CAST_TO_IN32 return MAKE_VM_IN32(p);
+#define CAST_TO_IN64 return newVMvalue(IN64,&p,heap);
+VMvalue* castShortVp    (ARGL){CAST_TO_IN32}
+VMvalue* castIntVp      (ARGL){CAST_TO_IN32}
+VMvalue* castUShortVp   (ARGL){CAST_TO_IN32}
+VMvalue* castUintVp     (ARGL){CAST_TO_IN32}
+VMvalue* castLongVp     (ARGL){CAST_TO_IN64}
+VMvalue* castULongVp    (ARGL){CAST_TO_IN64}
+VMvalue* castLLongVp    (ARGL){CAST_TO_IN64}
+VMvalue* castULLongVp   (ARGL){CAST_TO_IN64}
+VMvalue* castPtrdiff_tVp(ARGL){CAST_TO_IN64}
+VMvalue* castSize_tVp   (ARGL){CAST_TO_IN64}
+VMvalue* castSsize_tVp  (ARGL){CAST_TO_IN64}
+VMvalue* castCharVp     (ARGL){return MAKE_VM_CHR(p);}
+VMvalue* castWchar_tVp  (ARGL){CAST_TO_IN32}
+VMvalue* castFloatVp    (ARGL){return newVMvalue(DBL,&p,heap);}
+VMvalue* castDoubleVp   (ARGL){return newVMvalue(DBL,&p,heap);}
+VMvalue* castInt8_tVp   (ARGL){CAST_TO_IN32}
+VMvalue* castUint8_tVp  (ARGL){CAST_TO_IN32}
+VMvalue* castInt16_tVp  (ARGL){CAST_TO_IN32}
+VMvalue* castUint16_tVp (ARGL){CAST_TO_IN32}
+VMvalue* castInt32_t    (ARGL){CAST_TO_IN32}
+VMvalue* castUint32_tVp (ARGL){CAST_TO_IN32}
+VMvalue* castInt64_tVp  (ARGL){CAST_TO_IN64}
+VMvalue* castUint64_tVp (ARGL){CAST_TO_IN64}
+VMvalue* castIptrVp     (ARGL){CAST_TO_IN64}
+VMvalue* castUptrVp     (ARGL){CAST_TO_IN64}
+VMvalue* castVptrVp     (ARGL){CAST_TO_IN64}
+#undef CAST_TO_IN32
+#undef CAST_TO_IN64
+static VMvalue* (*castVptrToVMvalueFunctionsList[])(ARGL)=
+{
+	castShortVp    ,
+	castIntVp      ,
+	castUShortVp   ,
+	castUintVp     ,
+	castLongVp     ,
+	castULongVp    ,
+	castLLongVp    ,
+	castULLongVp   ,
+	castPtrdiff_tVp,
+	castSize_tVp   ,
+	castSsize_tVp  ,
+	castCharVp     ,
+	castWchar_tVp  ,
+	castFloatVp    ,
+	castDoubleVp   ,
+	castInt8_tVp   ,
+	castUint8_tVp  ,
+	castInt16_tVp  ,
+	castUint16_tVp ,
+	castInt32_t    ,
+	castUint32_tVp ,
+	castInt64_tVp  ,
+	castUint64_tVp ,
+	castIptrVp     ,
+	castUptrVp     ,
+	castVptrVp     ,
+};
+#undef ARGL
+/*--------------------------*/
+
+/*procedure invoke functions*/
+static void invokeNativeProcdure(FakeVM* exe,VMproc* tmpProc,VMrunnable* runnable)
+{
+	VMrunnable* prevProc=hasSameProc(tmpProc->scp,exe->rstack);
+	if(isTheLastExpress(runnable,prevProc,exe)&&prevProc)
+		prevProc->mark=1;
+	else
+	{
+		VMrunnable* tmpRunnable=newVMrunnable(tmpProc);
+		tmpRunnable->localenv=newVMenv(tmpProc->prevEnv);
+		pushComStack(tmpRunnable,exe->rstack);
+	}
+}
+
+static void invokeContinuation(FakeVM* exe,VMcontinuation* cc)
+{
+	createCallChainWithContinuation(exe,cc);
+}
+
+static void invokeDlProc(FakeVM* exe,VMDlproc* dlproc)
+{
+	DllFunc dllfunc=dlproc->func;
+	dllfunc(exe,&GClock);
+}
+
+static void invokeFlproc(FakeVM* exe,VMFlproc* flproc)
+{
+	TypeId_t type=flproc->type;
+	VMstack* stack=exe->stack;
+	VMrunnable* curR=topComStack(exe->rstack);
+	void* func=flproc->func;
+	VMFuncType* ft=(VMFuncType*)GET_TYPES_PTR(getVMTypeUnion(type).all);
+	uint32_t anum=ft->anum;
+	TypeId_t* atypes=ft->atypes;
+	ffi_type** ffiAtypes=(ffi_type**)malloc(sizeof(ffi_type*)*anum);
+	FAKE_ASSERT(ffiAtypes,"invokeFlproc",__FILE__,__LINE__);
+	uint32_t i=0;
+	for(;i<anum;i++)
+	{
+		if(atypes[i]>LastNativeTypeId)
+			ffiAtypes[i]=getFfiType(LastNativeTypeId);
+		else
+			ffiAtypes[i]=getFfiType(atypes[i]);
+	}
+	TypeId_t rtype=ft->rtype;
+	ffi_type* ffiRtype=NULL;
+	if(rtype>LastNativeTypeId)
+		ffiRtype=getFfiType(LastNativeTypeId);
+	else
+		ffiRtype=getFfiType(rtype);
+	VMvalue** args=(VMvalue**)malloc(sizeof(VMvalue*)*anum);
+	FAKE_ASSERT(args,"invokeFlproc",__FILE__,__LINE__);
+	for(i=0;i<anum;i++)
+	{
+		VMvalue* v=popVMstack(stack);
+		if(v==NULL)
+		{
+			free(args);
+			free(ffiAtypes);
+			RAISE_BUILTIN_ERROR("b.invoke",TOOFEWARG,curR,exe);
+		}
+		if(IS_REF(v))
+			v=*(VMvalue**)v;
+		args[i]=v;
+	}
+	if(resBp(stack))
+	{
+		free(args);
+		free(ffiAtypes);
+		RAISE_BUILTIN_ERROR("b.invoke",TOOMANYARG,curR,exe);
+	}
+	void** pArgs=(void**)malloc(sizeof(void*)*anum);
+	FAKE_ASSERT(pArgs,"invokeFlproc",__FILE__,__LINE__);
+	for(i=0;i<anum;i++)
+		castValueToVptr(atypes[i],args[i],&pArgs[i]);
+	intptr_t retval=0x0;
+	applyFF(func,anum,ffiRtype,ffiAtypes,&retval,pArgs);
+	if(rtype!=0)
+	{
+		TypeId_t t=(rtype>LastNativeTypeId)?LastNativeTypeId:rtype;
+		SET_RETURN("B_invoke",castVptrToVMvalueFunctionsList[t-1](retval,exe->heap),stack);
+	}
+}
+
+/*--------------------------*/
+
 FakeVMlist GlobFakeVMs={0,NULL};
 
 static void (*ByteCodes[])(FakeVM*)=
@@ -54,6 +206,7 @@ static void (*ByteCodes[])(FakeVM*)=
 	B_push_env_var,
 	B_push_top,
 	B_push_proc,
+	B_push_fproc,
 	B_push_ptr_ref,
 	B_push_def_ref,
 	B_push_ind_ref,
@@ -516,18 +669,23 @@ void B_push_proc(FakeVM* exe)
 	runnable->cp+=5+sizeOfProc;
 }
 
-//void B_push_mem(FakeVM* exe)
-//{
-//	VMstack* stack=exe->stack;
-//	VMrunnable* r=topComStack(exe->rstack);
-//	TypeId_t typeId=*(TypeId_t*)(exe->code+r->cp+sizeof(char));
-//	uint32_t size=*(uint32_t*)(exe->code+r->cp+sizeof(char)+sizeof(TypeId_t));
-//	uint8_t* mem=(uint8_t*)malloc(size);
-//	FAKE_ASSERT(mem,"B_push_mem",__FILE__,__LINE__);
-//	VMvalue* a=(VMvalue*)newVMMem(typeId,mem);
-//	SET_RETURN("B_push_mem",MAKE_VM_MEM(a),stack);
-//	r->cp+=sizeof(char)+sizeof(TypeId_t)+sizeof(uint32_t);
-//}
+void B_push_fproc(FakeVM* exe)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* runnable=topComStack(exe->rstack);
+	TypeId_t type=*(TypeId_t*)(exe->code+runnable->cp+1);
+	VMheap* heap=exe->heap;
+	VMvalue* sym=GET_VAL(popVMstack(stack),heap);
+	VMvalue* dll=GET_VAL(popVMstack(stack),heap);
+	if((!IS_SYM(sym)&&!IS_STR(sym))||(!IS_DLL(dll)))
+		RAISE_BUILTIN_ERROR("b.push_fproc",WRONGARG,runnable,exe);
+	char* str=IS_SYM(sym)?getGlobSymbolWithId(GET_SYM(sym))->symbol:sym->u.str;
+	void* address=getAddress(str,dll->u.dll);
+	if(!address)
+		RAISE_BUILTIN_ERROR("b.push_fproc",INVALIDSYMBOL,runnable,exe);
+	SET_RETURN("B_push_fproc",newVMvalue(FLPROC,newVMFlproc(type,address,dll),heap),stack);
+	runnable->cp+=5;
+}
 
 void B_push_ptr_ref(FakeVM* exe)
 {
@@ -537,6 +695,8 @@ void B_push_ptr_ref(FakeVM* exe)
 	TypeId_t ptrId=*(TypeId_t*)(exe->code+r->cp+sizeof(char)+sizeof(ssize_t));
 	VMvalue* value=getTopValue(stack);
 	VMMem* mem=value->u.chf;
+	if(!mem->mem)
+		RAISE_BUILTIN_ERROR("b.push_ptr_ref",INVALIDACCESS,r,exe);
 	stack->tp-=1;
 	uint8_t* t=mem->mem+offset;
 	VMMem* retval=newVMMem(ptrId,(uint8_t*)t);
@@ -552,6 +712,8 @@ void B_push_def_ref(FakeVM* exe)
 	TypeId_t typeId=*(TypeId_t*)(exe->code+r->cp+sizeof(char)+sizeof(ssize_t));
 	VMvalue* value=getTopValue(stack);
 	VMMem* mem=value->u.chf;
+	if(!mem->mem)
+		RAISE_BUILTIN_ERROR("b.push_def_ref",INVALIDACCESS,r,exe);
 	stack->tp-=1;
 	uint8_t* ptr=mem->mem+offset;
 	VMvalue* retval=MAKE_VM_CHF(newVMMem(typeId,ptr),exe->heap);
@@ -572,6 +734,8 @@ void B_push_ind_ref(FakeVM* exe)
 	if(!IS_IN32(index))
 		RAISE_BUILTIN_ERROR("b.push_ind_ref",WRONGARG,r,exe);
 	VMMem* mem=exp->u.chf;
+	if(!mem->mem)
+		RAISE_BUILTIN_ERROR("b.push_ind_ref",INVALIDACCESS,r,exe);
 	stack->tp-=2;
 	VMvalue* retval=MAKE_VM_CHF(newVMMem(type,mem->mem+GET_IN32(index)*size),exe->heap);
 	SET_RETURN("B_push_ind_ref",retval,stack);
@@ -589,6 +753,8 @@ void B_push_ref(FakeVM* exe)
 	if(!IS_MEM(exp)&&!IS_CHF(exp))
 		RAISE_BUILTIN_ERROR("b.push_ref",WRONGARG,r,exe);
 	VMMem* mem=exp->u.chf;
+	if(!mem->mem)
+		RAISE_BUILTIN_ERROR("b.push_ref",INVALIDACCESS,r,exe);
 	stack->tp-=1;
 	VMMem* retval=newVMMem(type,mem->mem+offset);
 	SET_RETURN("B_push_ref",MAKE_VM_CHF(retval,exe->heap),stack);
@@ -850,39 +1016,27 @@ void B_invoke(FakeVM* exe)
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
 	VMvalue* tmpValue=GET_VAL(getTopValue(stack),exe->heap);
-	if(!IS_PTR(tmpValue)||(tmpValue->type!=PRC&&tmpValue->type!=CONT&&tmpValue->type!=DLPROC))
+	if(!IS_PTR(tmpValue)||(tmpValue->type!=PRC&&tmpValue->type!=CONT&&tmpValue->type!=DLPROC&&tmpValue->type!=FLPROC))
 		RAISE_BUILTIN_ERROR("b.invoke",INVOKEERROR,runnable,exe);
-	if(tmpValue->type==PRC)
+	stack->tp-=1;
+	stackRecycle(exe);
+	runnable->cp+=1;
+	switch(tmpValue->type)
 	{
-		VMproc* tmpProc=tmpValue->u.prc;
-		VMrunnable* prevProc=hasSameProc(tmpProc->scp,exe->rstack);
-		if(isTheLastExpress(runnable,prevProc,exe)&&prevProc)
-			prevProc->mark=1;
-		else
-		{
-			VMrunnable* tmpRunnable=newVMrunnable(tmpProc);
-			tmpRunnable->localenv=newVMenv(tmpProc->prevEnv);
-			pushComStack(tmpRunnable,exe->rstack);
-		}
-		runnable->cp+=1;
-		stack->tp-=1;
-		stackRecycle(exe);
-	}
-	else if(tmpValue->type==CONT)
-	{
-		stack->tp-=1;
-		stackRecycle(exe);
-		runnable->cp+=1;
-		VMcontinuation* cc=tmpValue->u.cont;
-		createCallChainWithContinuation(exe,cc);
-	}
-	else
-	{
-		stack->tp-=1;
-		stackRecycle(exe);
-		runnable->cp+=1;
-		DllFunc dllfunc=tmpValue->u.dlproc->func;
-		dllfunc(exe,&GClock);
+		case PRC:
+			invokeNativeProcdure(exe,tmpValue->u.prc,runnable);
+			break;
+		case CONT:
+			invokeContinuation(exe,tmpValue->u.cont);
+			break;
+		case DLPROC:
+			invokeDlProc(exe,tmpValue->u.dlproc);
+			break;
+		case FLPROC:
+			invokeFlproc(exe,tmpValue->u.flproc);
+			break;
+		default:
+			break;
 	}
 }
 

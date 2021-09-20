@@ -49,6 +49,7 @@ const char* builtInErrorType[NUMOFBUILTINERRORTYPE]=
 	"no-member-type",
 	"non-scalar-type",
 	"invalid-assign",
+	"invalid-access",
 };
 
 char* InterpreterPath=NULL;
@@ -1187,11 +1188,23 @@ void printByteCode(const ByteCode* tmpCode,FILE* fp)
 				i+=5;
 				break;
 			case 8:
-				if(tmpCode->code[i]==FAKE_PUSH_IN64)
-					fprintf(fp,"%ld",*(int64_t*)(tmpCode->code+i+1));
-				else
-					fprintf(fp,"%lf",*(double*)(tmpCode->code+i+1));
+				switch(tmpCode->code[i])
+				{
+					case FAKE_PUSH_DBL:
+						fprintf(fp,"%lf",*(double*)(tmpCode->code+i+1));
+						break;
+					case FAKE_PUSH_IN64:
+						fprintf(fp,"%ld",*(int64_t*)(tmpCode->code+i+1));
+						break;
+					case FAKE_PUSH_IND_REF:
+						fprintf(fp,"%d %u",*(TypeId_t*)(tmpCode->code+i+1),*(uint32_t*)(tmpCode->code+i+1+sizeof(TypeId_t)));
+						break;
+				}
 				i+=9;
+				break;
+			case 12:
+				fprintf(fp,"%ld %d",*(ssize_t*)(tmpCode->code+i+1),*(TypeId_t*)(tmpCode->code+i+1+sizeof(ssize_t)));
+				i+=13;
 				break;
 		}
 		putc('\n',fp);
@@ -1284,6 +1297,20 @@ AST_cptr* getASTPairCar(const AST_cptr* obj)
 AST_cptr* getASTPairCdr(const AST_cptr* obj)
 {
 	return &obj->u.pair->cdr;
+}
+
+AST_cptr* getCptrCar(const AST_cptr* obj)
+{
+	if(obj&&obj->outer!=NULL)
+		return &obj->outer->car;
+	return NULL;
+}
+
+AST_cptr* getCptrCdr(const AST_cptr* obj)
+{
+	if(obj&&obj->outer!=NULL)
+		return &obj->outer->cdr;
+	return NULL;
 }
 
 void changeWorkPath(const char* filename)
@@ -2276,8 +2303,26 @@ void printByteCodelnt(ByteCodelnt* obj,FILE* fp)
 				i+=5;
 				break;
 			case 8:
-				fprintf(fp,"%lf",*(double*)(tmpCode->code+i+1));
+				switch(tmpCode->code[i])
+				{
+					case FAKE_PUSH_DBL:
+						fprintf(fp,"%lf",*(double*)(tmpCode->code+i+1));
+						break;
+					case FAKE_PUSH_IN64:
+						fprintf(fp,"%ld",*(int64_t*)(tmpCode->code+i+1));
+						break;
+					case FAKE_PUSH_IND_REF:
+						fprintf(fp,"%d %u",*(TypeId_t*)(tmpCode->code+i+1),*(uint32_t*)(tmpCode->code+i+1+sizeof(TypeId_t)));
+						break;
+					case FAKE_PUSH_FPROC:
+						fprintf(fp,"%d %u",*(TypeId_t*)(tmpCode->code+i+1),*(Sid_t*)(tmpCode->code+i+1+sizeof(TypeId_t)));
+						break;
+				}
 				i+=9;
+				break;
+			case 12:
+				fprintf(fp,"%ld %d",*(ssize_t*)(tmpCode->code+i+1),*(TypeId_t*)(tmpCode->code+i+1+sizeof(ssize_t)));
+				i+=13;
 				break;
 		}
 		if(obj->l[j]->scp+obj->l[j]->cpc<i)

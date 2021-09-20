@@ -83,6 +83,8 @@ int hasLoadSameFile(const char*,const Intpr*);
 Intpr* getFirstIntpr(Intpr*);
 AST_cptr* getASTPairCar(const AST_cptr*);
 AST_cptr* getASTPairCdr(const AST_cptr*);
+AST_cptr* getCptrCar(const AST_cptr*);
+AST_cptr* getCptrCdr(const AST_cptr*);
 AST_cptr* baseCreateTree(const char*,Intpr*);
 void changeWorkPath(const char*);
 char* getDir(const char*);

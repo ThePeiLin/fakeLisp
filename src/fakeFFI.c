@@ -208,10 +208,10 @@ static double (*castToDoubleFunctionsList[])(ARGL)=
 	*p=t;\
 	return 0;
 
-#define CAST_TO_FLOAT(TYPE) if(!IS_IN32(v)&&!IS_IN64(v)&&!IS_CHR(v)&&!IS_DBL(v)&&!IS_MEM(v))return 1;\
+#define CAST_TO_FLOAT(TYPE) if(!IS_IN32(v)&&!IS_IN64(v)&&!IS_CHR(v)&&!IS_DBL(v)&&!IS_MEM(v)&&!IS_CHF(v))return 1;\
 	TYPE* t=(TYPE*)malloc(sizeof(TYPE));\
 	FAKE_ASSERT(t,"VMvalue_pointer_caster",__FILE__,__LINE__);\
-	if(!IS_MEM(v))\
+	if(!IS_MEM(v)&&!IS_CHF(v))\
 		*t=IS_IN32(v)?GET_IN32(v):(IS_IN64(v)?*v->u.in64:(IS_DBL(v)?*v->u.dbl:GET_CHR(v)));\
 	else\
 		*t=castToDoubleFunctionsList[v->u.chf->type-1](v->u.chf->mem);\

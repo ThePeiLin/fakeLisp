@@ -31,6 +31,8 @@ void threadErrorCallBack(void* a)
 extern const char* builtInErrorType[NUMOFBUILTINERRORTYPE];
 extern TypeId_t LastNativeTypeId;
 extern TypeId_t StringTypeId;
+extern TypeId_t FILEpTypeId;
+static jmp_buf popRefBuf;
 static int envNodeCmp(const void* a,const void* b)
 {
 	return ((*(VMenvNode**)a)->id-(*(VMenvNode**)b)->id);
@@ -104,7 +106,7 @@ static VMvalue* (*castVptrToVMvalueFunctionsList[])(ARGL)=
 /*--------------------------*/
 
 /*procedure invoke functions*/
-static void invokeNativeProcdure(FakeVM* exe,VMproc* tmpProc,VMrunnable* runnable)
+void invokeNativeProcdure(FakeVM* exe,VMproc* tmpProc,VMrunnable* runnable)
 {
 	VMrunnable* prevProc=hasSameProc(tmpProc->scp,exe->rstack);
 	if(isTheLastExpress(runnable,prevProc,exe)&&prevProc)
@@ -117,18 +119,18 @@ static void invokeNativeProcdure(FakeVM* exe,VMproc* tmpProc,VMrunnable* runnabl
 	}
 }
 
-static void invokeContinuation(FakeVM* exe,VMcontinuation* cc)
+void invokeContinuation(FakeVM* exe,VMcontinuation* cc)
 {
 	createCallChainWithContinuation(exe,cc);
 }
 
-static void invokeDlProc(FakeVM* exe,VMDlproc* dlproc)
+void invokeDlProc(FakeVM* exe,VMDlproc* dlproc)
 {
 	DllFunc dllfunc=dlproc->func;
 	dllfunc(exe,&GClock);
 }
 
-static void invokeFlproc(FakeVM* exe,VMFlproc* flproc)
+void invokeFlproc(FakeVM* exe,VMFlproc* flproc)
 {
 	TypeId_t type=flproc->type;
 	VMstack* stack=exe->stack;
@@ -190,6 +192,10 @@ static void invokeFlproc(FakeVM* exe,VMFlproc* flproc)
 	{
 		if(rtype==StringTypeId)
 			SET_RETURN("B_invoke",newVMvalue(STR,(void*)retval,exe->heap),stack);
+		else if(isFunctionTypeId(rtype))
+			SET_RETURN("B_invoke",newVMvalue(FLPROC,newVMFlproc(rtype,(void*)retval,flproc->dll),exe->heap),stack);
+		else if(rtype==FILEpTypeId)
+			SET_RETURN("B_invoke",newVMvalue(FP,(void*)retval,exe->heap),stack);
 		else
 		{
 			TypeId_t t=(rtype>LastNativeTypeId)?LastNativeTypeId:rtype;

@@ -204,6 +204,7 @@ static int (*MemorySeterList[])(ARGL)=
 TypeId_t LastNativeTypeId=0;
 TypeId_t CharTypeId=0;
 TypeId_t StringTypeId=0;
+TypeId_t FILEpTypeId=0;
 extern SymbolTable GlobSymbolTable;
 static int isNativeType(Sid_t typeName,VMDefTypes* otherTypes);
 struct GlobTypeUnionListStruct
@@ -539,7 +540,7 @@ static TypeId_t genFuncTypeId(AST_cptr* compositeDataHead,VMDefTypes* otherTypes
 		if(!tmp)
 			return 0;
 		VMTypeUnion tu=getVMTypeUnion(tmp);
-		if(GET_TYPES_TAG(tu.all)!=NATIVE_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=PTR_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=ARRAY_TYPE_TAG)
+		if(GET_TYPES_TAG(tu.all)!=NATIVE_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=PTR_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=ARRAY_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=FUNC_TYPE_TAG)
 			return 0;
 		rtype=tmp;
 	}
@@ -2092,7 +2093,7 @@ VMvalue* GET_VAL(VMvalue* P,VMheap* heap)
 			}
 			else
 			{
-				t=newVMvalue(IN64,&mem->mem,heap);
+				t=P;
 			}
 			return t;
 		}
@@ -2540,9 +2541,12 @@ void initNativeDefTypes(VMDefTypes* otherTypes)
 		//VMTypeUnion t={.nt=newVMNativeType(typeName,size)};
 		addDefTypes(otherTypes,typeName,t);
 	}
-	Sid_t stringTypeName=addSymbolToGlob("string")->id;
-	StringTypeId=newVMNativeType(stringTypeName,sizeof(char*));
-	addDefTypes(otherTypes,stringTypeName,StringTypeId);
+	Sid_t otherTypeName=addSymbolToGlob("string")->id;
+	StringTypeId=newVMNativeType(otherTypeName,sizeof(char*));
+	addDefTypes(otherTypes,otherTypeName,StringTypeId);
+	otherTypeName=addSymbolToGlob("FILE*")->id;
+	FILEpTypeId=newVMNativeType(otherTypeName,sizeof(FILE*));
+	addDefTypes(otherTypes,otherTypeName,FILEpTypeId);
 	LastNativeTypeId=num;
 	//i=0;
 	//for(;i<num;i++)

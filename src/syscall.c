@@ -6,6 +6,12 @@
 #include<string.h>
 #include<math.h>
 #include<setjmp.h>
+
+extern void invokeNativeProcdure(FakeVM*,VMproc*,VMrunnable*);
+extern void invokeContinuation(FakeVM*,VMcontinuation*);
+extern void invokeDlProc(FakeVM*,VMDlproc*);
+extern void invokeFlproc(FakeVM*,VMFlproc*);
+
 extern const char* builtInSymbolList[NUMOFBUILTINSYMBOL];
 extern const char* builtInErrorType[NUMOFBUILTINERRORTYPE];
 extern TypeId_t CharTypeId;
@@ -1200,7 +1206,10 @@ void SYS_dll(FakeVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.dll",WRONGARG,runnable,exe);
 	DllHandle* dll=newVMDll(dllName->u.str);
 	if(!dll)
+	{
+		SET_RETURN("SYS_dll",dllName,stack);
 		RAISE_BUILTIN_ERROR("sys.dll",LOADDLLFAILD,runnable,exe);
+	}
 	SET_RETURN("SYS_dll",newVMvalue(DLL,dll,exe->heap),stack);
 }
 
@@ -1435,7 +1444,7 @@ void SYS_apply(FakeVM* exe,pthread_rwlock_t* gclock)
 	VMvalue* proc=GET_VAL(popVMstack(stack),heap);
 	if(!proc)
 		RAISE_BUILTIN_ERROR("sys.apply",TOOFEWARG,runnable,exe);
-	if(!IS_PTR(proc)||(proc->type!=PRC&&proc->type!=CONT&&proc->type!=DLPROC))
+	if(!IS_PTR(proc)||(proc->type!=PRC&&proc->type!=CONT&&proc->type!=DLPROC&&proc->type!=FLPROC))
 		RAISE_BUILTIN_ERROR("b.invoke",INVOKEERROR,runnable,exe);
 	ComStack* stack1=newComStack(32);
 	VMvalue* value=NULL;
@@ -1478,28 +1487,21 @@ void SYS_apply(FakeVM* exe,pthread_rwlock_t* gclock)
 		SET_RETURN("SYS_apply",t,stack);
 	}
 	freeComStack(stack1);
-	if(proc->type==PRC)
+	switch(proc->type)
 	{
-		VMproc* tmpProc=proc->u.prc;
-		VMrunnable* prevProc=hasSameProc(tmpProc->scp,exe->rstack);
-		if(isTheLastExpress(runnable,prevProc,exe)&&prevProc)
-			prevProc->mark=1;
-		else
-		{
-			VMrunnable* tmpRunnable=newVMrunnable(tmpProc);
-			tmpRunnable->localenv=newVMenv(tmpProc->prevEnv);
-			pushComStack(tmpRunnable,exe->rstack);
-		}
-	}
-	else if(proc->type==CONT)
-	{
-		VMcontinuation* cc=proc->u.cont;
-		createCallChainWithContinuation(exe,cc);
-	}
-	else
-	{
-		DllFunc dllfunc=proc->u.dlproc->func;
-		dllfunc(exe,gclock);
+		case PRC:
+			invokeNativeProcdure(exe,proc->u.prc,runnable);
+			break;
+		case CONT:
+			invokeContinuation(exe,proc->u.cont);
+			break;
+		case DLPROC:
+			invokeDlProc(exe,proc->u.dlproc);
+			break;
+		case FLPROC:
+			invokeFlproc(exe,proc->u.flproc);
+		default:
+			break;
 	}
 }
 

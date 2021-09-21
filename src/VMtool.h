@@ -212,4 +212,11 @@ void initNativeDefTypes(VMDefTypes* otherTypes);
 void writeTypeList(FILE* fp);
 void loadTypeList(FILE* fp);
 void freeGlobTypeList(void);
+
+int isNativeTypeId(TypeId_t);
+int isArrayTypeId(TypeId_t);
+int isPtrTypeId(TypeId_t);
+int isStructTypeId(TypeId_t);
+int isUnionTypeId(TypeId_t);
+int isFunctionTypeId(TypeId_t);
 #endif

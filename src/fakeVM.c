@@ -30,6 +30,7 @@ void threadErrorCallBack(void* a)
 
 extern const char* builtInErrorType[NUMOFBUILTINERRORTYPE];
 extern TypeId_t LastNativeTypeId;
+extern TypeId_t StringTypeId;
 static int envNodeCmp(const void* a,const void* b)
 {
 	return ((*(VMenvNode**)a)->id-(*(VMenvNode**)b)->id);
@@ -39,7 +40,7 @@ extern const char* builtInSymbolList[NUMOFBUILTINSYMBOL];
 pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
 
 /*void ptr to VMvalue caster*/
-#define ARGL intptr_t p,VMheap* heap
+#define ARGL uintptr_t p,VMheap* heap
 #define CAST_TO_IN32 return MAKE_VM_IN32(p);
 #define CAST_TO_IN64 return newVMvalue(IN64,&p,heap);
 VMvalue* castShortVp    (ARGL){CAST_TO_IN32}
@@ -67,7 +68,7 @@ VMvalue* castInt64_tVp  (ARGL){CAST_TO_IN64}
 VMvalue* castUint64_tVp (ARGL){CAST_TO_IN64}
 VMvalue* castIptrVp     (ARGL){CAST_TO_IN64}
 VMvalue* castUptrVp     (ARGL){CAST_TO_IN64}
-VMvalue* castVptrVp     (ARGL){CAST_TO_IN64}
+VMvalue* castVptrVp     (ARGL){return newVMvalue(MEM,newVMMem(0,(uint8_t*)p),heap);}
 #undef CAST_TO_IN32
 #undef CAST_TO_IN64
 static VMvalue* (*castVptrToVMvalueFunctionsList[])(ARGL)=
@@ -161,7 +162,7 @@ static void invokeFlproc(FakeVM* exe,VMFlproc* flproc)
 		{
 			free(args);
 			free(ffiAtypes);
-			RAISE_BUILTIN_ERROR("b.invoke",TOOFEWARG,curR,exe);
+			RAISE_BUILTIN_ERROR("flproc",TOOFEWARG,curR,exe);
 		}
 		if(IS_REF(v))
 			v=*(VMvalue**)v;
@@ -171,19 +172,35 @@ static void invokeFlproc(FakeVM* exe,VMFlproc* flproc)
 	{
 		free(args);
 		free(ffiAtypes);
-		RAISE_BUILTIN_ERROR("b.invoke",TOOMANYARG,curR,exe);
+		RAISE_BUILTIN_ERROR("flproc",TOOMANYARG,curR,exe);
 	}
 	void** pArgs=(void**)malloc(sizeof(void*)*anum);
 	FAKE_ASSERT(pArgs,"invokeFlproc",__FILE__,__LINE__);
 	for(i=0;i<anum;i++)
-		castValueToVptr(atypes[i],args[i],&pArgs[i]);
-	intptr_t retval=0x0;
+		if(castValueToVptr(atypes[i],args[i],&pArgs[i]))
+		{
+			free(ffiAtypes);
+			free(args);
+			free(pArgs);
+			RAISE_BUILTIN_ERROR("flproc",WRONGARG,curR,exe);
+		}
+	uintptr_t retval=0x0;
 	applyFF(func,anum,ffiRtype,ffiAtypes,&retval,pArgs);
 	if(rtype!=0)
 	{
-		TypeId_t t=(rtype>LastNativeTypeId)?LastNativeTypeId:rtype;
-		SET_RETURN("B_invoke",castVptrToVMvalueFunctionsList[t-1](retval,exe->heap),stack);
+		if(rtype==StringTypeId)
+			SET_RETURN("B_invoke",newVMvalue(STR,(void*)retval,exe->heap),stack);
+		else
+		{
+			TypeId_t t=(rtype>LastNativeTypeId)?LastNativeTypeId:rtype;
+			SET_RETURN("B_invoke",castVptrToVMvalueFunctionsList[t-1](retval,exe->heap),stack);
+		}
 	}
+	for(i=0;i<anum;i++)
+		free(pArgs[i]);
+	free(pArgs);
+	free(ffiAtypes);
+	free(args);
 }
 
 /*--------------------------*/
@@ -1317,6 +1334,10 @@ void GC_markValue(VMvalue* obj)
 			{
 				pushComStack(root->u.dlproc->dll,stack);
 			}
+			else if(root->type==FLPROC&&root->u.flproc->dll)
+			{
+				pushComStack(root->u.flproc->dll,stack);
+			}
 		}
 	}
 	freeComStack(stack);
@@ -1408,6 +1429,9 @@ void GC_sweep(VMheap* heap)
 					break;
 				case DLPROC:
 					freeVMDlproc(prev->u.dlproc);
+					break;
+				case FLPROC:
+					freeVMFlproc(prev->u.flproc);
 					break;
 				case ERR:
 					freeVMerror(prev->u.err);

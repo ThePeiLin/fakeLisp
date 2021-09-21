@@ -19,7 +19,7 @@ static ffi_type* NativeFFITypeList[]=
 	&ffi_type_slong,//ptrdiff_t
 	&ffi_type_ulong,//size_t
 	&ffi_type_slong,//ssize_t
-	&ffi_type_schar,
+	&ffi_type_schar,//char
 	&ffi_type_sint32,//wchar_t
 	&ffi_type_float,
 	&ffi_type_double,
@@ -219,51 +219,7 @@ static double (*castToDoubleFunctionsList[])(ARGL)=
 	return 0;
 
 static int castShortValue    (ARGL){CAST_TO_INT(short)}
-static int castIntValue      (ARGL){
-	int* t=(int*)malloc(sizeof(int));
-	FAKE_ASSERT(t,"VMvalue_pointer_caster",__FILE__,__LINE__);
-	if(!IS_MEM(v)&&!IS_CHF(v))
-	{
-		VMptrTag tag=GET_TAG(v);
-		switch(tag)
-		{
-			case NIL_TAG:
-				*t=(int)0x0;
-				break;
-			case IN32_TAG:
-				*t=(int)GET_IN32(v);
-				break;
-			case CHR_TAG:
-				*t=(int)GET_CHR(v);
-				break;
-			case SYM_TAG:
-				*t=(int)GET_SYM(v);
-				break;
-			case PTR_TAG:
-				{
-					switch(v->type)
-					{
-						case DBL:
-							*t=(int)*v->u.dbl;
-							break;
-						case IN64:
-							*t=(int)*v->u.in64;
-							break;
-						default:
-							return 1;
-							break;
-					}
-				}
-			default:
-				return 1;
-				break;
-		}
-	}
-	else
-		*t=castToInt64FunctionsList[v->u.chf->type-1](v->u.chf->mem);
-	*p=t;
-	return 0;
-}
+static int castIntValue      (ARGL){CAST_TO_INT(int)}
 static int castUShortValue   (ARGL){CAST_TO_INT(unsigned short)}
 static int castUintValue     (ARGL){CAST_TO_INT(unsigned int)}
 static int castLongValue     (ARGL){CAST_TO_INT(long)}
@@ -376,7 +332,20 @@ ffi_type* getFfiType(TypeId_t type)
 
 int castValueToVptr(TypeId_t type,VMvalue* v,void** p)
 {
-	if(type==0||type>LastNativeTypeId)
+	if(isFunctionTypeId(type))
+	{
+		if(v->u.flproc->type!=type)
+			return 1;
+		else
+		{
+			void** t=(void*)malloc(sizeof(void*));
+			FAKE_ASSERT(p,"castValueToVptr",__FILE__,__LINE__);
+			*t=v->u.flproc->func;
+			*p=t;
+		}
+		return 0;
+	}
+	else if(type==0||type>LastNativeTypeId)
 		type=LastNativeTypeId;
 	return castValueToVptrFunctionsList[type-1](v,p);
 }

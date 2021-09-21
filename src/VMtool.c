@@ -203,6 +203,7 @@ static int (*MemorySeterList[])(ARGL)=
 /*------------------*/
 TypeId_t LastNativeTypeId=0;
 TypeId_t CharTypeId=0;
+TypeId_t StringTypeId=0;
 extern SymbolTable GlobSymbolTable;
 static int isNativeType(Sid_t typeName,VMDefTypes* otherTypes);
 struct GlobTypeUnionListStruct
@@ -556,7 +557,7 @@ static TypeId_t genFuncTypeId(AST_cptr* compositeDataHead,VMDefTypes* otherTypes
 			return 0;
 		}
 		VMTypeUnion tu=getVMTypeUnion(tmp);
-		if(GET_TYPES_TAG(tu.all)!=NATIVE_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=PTR_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=ARRAY_TYPE_TAG)
+		if(GET_TYPES_TAG(tu.all)!=NATIVE_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=PTR_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=ARRAY_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=FUNC_TYPE_TAG)
 		{
 			free(atypes);
 			return 0;
@@ -2539,6 +2540,9 @@ void initNativeDefTypes(VMDefTypes* otherTypes)
 		//VMTypeUnion t={.nt=newVMNativeType(typeName,size)};
 		addDefTypes(otherTypes,typeName,t);
 	}
+	Sid_t stringTypeName=addSymbolToGlob("string")->id;
+	StringTypeId=newVMNativeType(stringTypeName,sizeof(char*));
+	addDefTypes(otherTypes,stringTypeName,StringTypeId);
 	LastNativeTypeId=num;
 	//i=0;
 	//for(;i<num;i++)
@@ -2730,4 +2734,40 @@ void freeGlobTypeList()
 		}
 	}
 	free(ul);
+}
+
+int isNativeTypeId(TypeId_t type)
+{
+	VMTypeUnion tu=getVMTypeUnion(type);
+	return GET_TYPES_TAG(tu.all)==NATIVE_TYPE_TAG;
+}
+
+int isArrayTypeId(TypeId_t type)
+{
+	VMTypeUnion tu=getVMTypeUnion(type);
+	return GET_TYPES_TAG(tu.all)==ARRAY_TYPE_TAG;
+}
+
+int isPtrTypeId(TypeId_t type)
+{
+	VMTypeUnion tu=getVMTypeUnion(type);
+	return GET_TYPES_TAG(tu.all)==PTR_TYPE_TAG;
+}
+
+int isStructTypeId(TypeId_t type)
+{
+	VMTypeUnion tu=getVMTypeUnion(type);
+	return GET_TYPES_TAG(tu.all)==STRUCT_TYPE_TAG;
+}
+
+int isUnionTypeId(TypeId_t type)
+{
+	VMTypeUnion tu=getVMTypeUnion(type);
+	return GET_TYPES_TAG(tu.all)==UNION_TYPE_TAG;
+}
+
+int isFunctionTypeId(TypeId_t type)
+{
+	VMTypeUnion tu=getVMTypeUnion(type);
+	return GET_TYPES_TAG(tu.all)==FUNC_TYPE_TAG;
 }

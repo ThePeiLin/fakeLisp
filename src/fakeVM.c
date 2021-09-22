@@ -32,7 +32,6 @@ extern const char* builtInErrorType[NUMOFBUILTINERRORTYPE];
 extern TypeId_t LastNativeTypeId;
 extern TypeId_t StringTypeId;
 extern TypeId_t FILEpTypeId;
-static jmp_buf popRefBuf;
 static int envNodeCmp(const void* a,const void* b)
 {
 	return ((*(VMenvNode**)a)->id-(*(VMenvNode**)b)->id);

@@ -97,6 +97,8 @@ send
 recv  
 error  
 raise  
+newf  
+delf  
 
 Special forms:  
 
@@ -115,8 +117,11 @@ qsquote
 unqtesp  
 proc  
 import  
+getf  
+szof  
 
 Preprocesser commands:  
+deftype  
 defmacro  
 
 ##  Chinese version:  

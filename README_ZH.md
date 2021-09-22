@@ -457,6 +457,11 @@ dlsym的第一个参数为动态库，第二个参数为要查找的函数名，
 ### raise
 参数为一个错误对象，该函数会使解释器发生错误对象对应的错误来终止程序的运行或触发错误处理的表达式。  
 
+### newf
+参数为内存的大小，申请一块大小为参数所指定的字节数的内存。
+
+### delf
+参数为一块内存，释放内存。
 ---
 
 
@@ -754,9 +759,61 @@ caught an error
 如果没有发生错误，则表达式的值为\<expression1\>中的值，否则其值为对应错误的处理表达式的值，如\<expression3\>的值或\<expression5\>的值，  
 错误发生的时候，会产生一个错误对象，用符号\<symbol-that-bind-the-error-occured\>绑定；尖括号中的内容为可替代内容。  
 
+### szof
+格式为：  
+```scheme
+(szof <type>)
+```
+返回<type>的大小。  
+
+### getf
+格式为：  
+```scheme
+(getf <type> <path> <exp> <index(可选)>)
+```
+
+按照path返回一个内存的引用。
+比如：  
+```
+(deftype Vec3
+  (struct
+    (x float)
+    (y float)
+    (z float)))
+
+(define v1 (newf (szof Vec3)))
+(setf (getf Vec3 (x) v1) 1.0)
+(getf Vec3 (x) v1)
+```
+path中的“&”表示取地址，“*”表示解引用。  
+type部分如果是函数类型，则path部分必须为字符串或符号，exp部分必须为一个已经加载的动态库，返回一个外部函数的引用。  
+
 ## 预处理指令（不产生字节码）:  
 defmacro  
 
+### deftype
+给一个类型加一个别名，只支持原始数据类型，数组，指针，结构体，联合体。  
+示例如下：
+```scheme
+(define LNode
+   (struct LNode
+     (data int)
+     (next (ptr (struct LNode)))))
+
+(define fiUnion
+  (union
+    (f float)
+    (i int)))
+
+(function (int int) int)
+;         ~~~~~~~~~  ^
+;             ^      |
+;             |  函数返回值
+;          参数列表
+
+(deftype Mtx4 (array 16 float))
+
+```
 ## 关于面向对象  
 lisp系的编程语言大多都有词法闭包，  可以利用词法闭包来实现面向对象的功能，下面的宏实现了一个简单的对象系统：  
   

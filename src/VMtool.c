@@ -531,7 +531,7 @@ static TypeId_t genFuncTypeId(AST_cptr* compositeDataHead,VMDefTypes* otherTypes
 {
 	TypeId_t rtype=0;
 	AST_cptr* argCptr=nextCptr(compositeDataHead);
-	if(!argCptr||argCptr->type!=PAIR)
+	if(!argCptr||(argCptr->type!=PAIR&&argCptr->type!=NIL))
 		return 0;
 	AST_cptr* rtypeCptr=nextCptr(argCptr);
 	if(rtypeCptr)

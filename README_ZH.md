@@ -708,18 +708,6 @@ test:y
 		   )))
 ;=> <#proc>
 
-(define clcc (lambda (f)
-              (progn
-               $cc
-               pack_cc
-               pop_var cc
-               set_bp
-               push_var cc
-               push_var f
-               invoke
-              )))
-;=> <#proc>
-
 (cons 1 2)
 ;=> (1,2)
 
@@ -788,6 +776,7 @@ caught an error
 path中的“\&”表示取地址，“\*”表示解引用。  
 type部分如果是函数类型，则path部分必须为字符串或符号，exp部分必须为一个已经加载的动态库，返回一个外部函数的引用。  
 只能取原始类型，数组，指针，外部函数的引用，引用结构体联合体将会导致编译错误。  
+这些引用都是不安全的。  
 
 ## 预处理指令（不产生字节码）:  
 defmacro  

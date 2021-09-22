@@ -929,12 +929,12 @@ void SYS_byts(FakeVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_type(FakeVM* exe,pthread_rwlock_t* gclock)
 {
-	static int32_t a[16];
+	static Sid_t a[19];
 	static int hasInit=0;
 	if(!hasInit)
 	{
 		hasInit=1;
-		char* b[]=
+		const char* b[]=
 		{
 			"nil",
 			"in32",

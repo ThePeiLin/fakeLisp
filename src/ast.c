@@ -503,6 +503,14 @@ AST_cptr* castVMvalueToCptr(VMvalue* value,int32_t curline)
 								tmpAtm->type=SYM;
 								tmpAtm->value.str=copyStr("#<err>");
 								break;
+							case MEM:
+								tmpAtm->type=SYM;
+								tmpAtm->value.str=copyStr("#<mem>");
+								break;
+							case CHF:
+								tmpAtm->type=SYM;
+								tmpAtm->value.str=copyStr("#<ref>");
+								break;
 							default:
 								return NULL;
 								break;

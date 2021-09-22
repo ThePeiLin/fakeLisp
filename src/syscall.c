@@ -18,6 +18,7 @@ extern TypeId_t CharTypeId;
 extern FakeVMlist GlobFakeVMs;
 extern void* ThreadVMFunc(void* p);
 extern void* ThreadVMDlprocFunc(void* p);
+extern void* ThreadVMFlprocFunc(void* p);
 void SYS_car(FakeVM* exe,pthread_rwlock_t* gclock)
 {
 	VMstack* stack=exe->stack;
@@ -1270,7 +1271,7 @@ void SYS_go(FakeVM* exe,pthread_rwlock_t* gclock)
 	VMvalue* threadProc=GET_VAL(popVMstack(stack),heap);
 	if(!threadProc)
 		RAISE_BUILTIN_ERROR("sys.go",TOOFEWARG,runnable,exe);
-	if(!IS_PRC(threadProc)&&!IS_DLPROC(threadProc)&&!IS_CONT(threadProc))
+	if(!IS_PRC(threadProc)&&!IS_DLPROC(threadProc)&&!IS_CONT(threadProc)&&!IS_FLPROC(threadProc))
 		RAISE_BUILTIN_ERROR("sys.go",WRONGARG,runnable,exe);
 	FakeVM* threadVM=(IS_PRC(threadProc)||IS_CONT(threadProc))?newThreadVM(threadProc->u.prc,exe->heap):newThreadDlprocVM(runnable,exe->heap);
 	threadVM->lnt=exe->lnt;
@@ -1300,11 +1301,17 @@ void SYS_go(FakeVM* exe,pthread_rwlock_t* gclock)
 		createCallChainWithContinuation(threadVM,threadProc->u.cont);
 		faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMFunc,threadVM);
 	}
-	else
+	else if(IS_DLPROC(threadProc))
 	{
 		void* a[2]={threadVM,threadProc->u.dlproc->func};
 		void** p=(void**)copyMemory(a,sizeof(a));
 		faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMDlprocFunc,p);
+	}
+	else
+	{
+		void* a[2]={threadVM,threadProc->u.flproc};
+		void** p=(void**)copyMemory(a,sizeof(a));
+		faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMFlprocFunc,p);
 	}
 	if(faildCode)
 	{

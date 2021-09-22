@@ -190,15 +190,15 @@ void invokeFlproc(FakeVM* exe,VMFlproc* flproc)
 	if(rtype!=0)
 	{
 		if(rtype==StringTypeId)
-			SET_RETURN("B_invoke",newVMvalue(STR,(void*)retval,exe->heap),stack);
+			SET_RETURN("invokeFlproc",newVMvalue(STR,(void*)retval,exe->heap),stack);
 		else if(isFunctionTypeId(rtype))
-			SET_RETURN("B_invoke",newVMvalue(FLPROC,newVMFlproc(rtype,(void*)retval,flproc->dll),exe->heap),stack);
+			SET_RETURN("invokeFlproc",newVMvalue(FLPROC,newVMFlproc(rtype,(void*)retval,flproc->dll),exe->heap),stack);
 		else if(rtype==FILEpTypeId)
-			SET_RETURN("B_invoke",newVMvalue(FP,(void*)retval,exe->heap),stack);
+			SET_RETURN("invokeFlproc",newVMvalue(FP,(void*)retval,exe->heap),stack);
 		else
 		{
 			TypeId_t t=(rtype>LastNativeTypeId)?LastNativeTypeId:rtype;
-			SET_RETURN("B_invoke",castVptrToVMvalueFunctionsList[t-1](retval,exe->heap),stack);
+			SET_RETURN("invokeFlproc",castVptrToVMvalueFunctionsList[t-1](retval,exe->heap),stack);
 		}
 	}
 	for(i=0;i<anum;i++)
@@ -442,6 +442,47 @@ void* ThreadVMDlprocFunc(void* p)
 	if(!setjmp(exe->buf))
 	{
 		f(exe,&GClock);
+		VMstack* stack=exe->stack;
+		VMvalue* v=NULL;
+		while((v=GET_VAL(popVMstack(stack),exe->heap)))
+			chanlSend(newSendT(v),ch);
+	}
+	else
+	{
+		char* threadErrorMessage=copyStr("error:occur in thread ");
+		char* id=intToString(exe->VMid);
+		threadErrorMessage=strCat(threadErrorMessage,id);
+		threadErrorMessage=strCat(threadErrorMessage,"\n");
+		VMvalue* err=newVMvalue(ERR,newVMerror(NULL,builtInErrorType[THREADERROR],threadErrorMessage),exe->heap);
+		free(threadErrorMessage);
+		free(id);
+		SendT* t=newSendT(err);
+		chanlSend(t,ch);
+		status=255;
+	}
+	pthread_rwlock_unlock(&GClock);
+	freeVMstack(exe->stack);
+	exe->stack=NULL;
+	exe->lnt=NULL;
+	deleteCallChain(exe);
+	freeComStack(exe->rstack);
+	freeComStack(exe->tstack);
+	exe->mark=0;
+	return (void*)status;
+}
+
+void* ThreadVMFlprocFunc(void* p)
+{
+	void** a=(void**)p;
+	FakeVM* exe=a[0];
+	VMFlproc* f=a[1];
+	free(p);
+	int64_t status=0;
+	VMChanl* ch=exe->chan->u.chan;
+	pthread_rwlock_rdlock(&GClock);
+	if(!setjmp(exe->buf))
+	{
+		invokeFlproc(exe,f);
 		VMstack* stack=exe->stack;
 		VMvalue* v=NULL;
 		while((v=GET_VAL(popVMstack(stack),exe->heap)))

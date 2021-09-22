@@ -1708,9 +1708,11 @@ VMrunnable* newVMrunnable(VMproc* code)
 	VMrunnable* tmp=(VMrunnable*)malloc(sizeof(VMrunnable));
 	FAKE_ASSERT(tmp,"newVMrunnable",__FILE__,__LINE__);
 	if(code)
+	{
 		tmp->cp=code->scp;
-	tmp->scp=code->scp;
-	tmp->cpc=code->cpc;
+		tmp->scp=code->scp;
+		tmp->cpc=code->cpc;
+	}
 	tmp->mark=0;
 	return tmp;
 }

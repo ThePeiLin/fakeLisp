@@ -1,5 +1,5 @@
 ;(define i (quote (lambda (x) (cond ((not (eq 0 x)) (print "Hello,world!\n") (i (sub x 1)))))))
 ;这个解释器之前没有编译字节码的功能，也没有复合过程，
 ;而是直接将列表作为表达式来解释，并且只有print这一个输出函数
-(define i (lambda (x) (cond ((not (eq 0 x)) (princ "Hello,world!\n" stdout) (i (-1+ x))))))
+(define i (lambda (x) (cond ((not (eq 0 x)) (princ "Hello,world!\n") (i (-1+ x))))))
 (i 3)

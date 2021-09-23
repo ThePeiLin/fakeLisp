@@ -366,7 +366,7 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 		SYS_file,
 		SYS_read,
 		SYS_getb,
-		SYS_write,
+		SYS_prin1,
 		SYS_putb,
 		SYS_princ,
 		SYS_dll,
@@ -1235,7 +1235,7 @@ void DBG_printVMstack(VMstack* stack,FILE* fp,int mode)
 				fputs("->",stderr);
 			if(fp!=stdout)fprintf(fp,"%d:",i);
 			VMvalue* tmp=stack->values[i];
-			writeVMvalue(tmp,fp,NULL);
+			prin1VMvalue(tmp,fp,NULL);
 			putc('\n',fp);
 		}
 	}
@@ -1243,7 +1243,7 @@ void DBG_printVMstack(VMstack* stack,FILE* fp,int mode)
 
 void DBG_printVMvalue(VMvalue* v,FILE* fp)
 {
-	writeVMvalue(v,fp,NULL);
+	prin1VMvalue(v,fp,NULL);
 }
 
 void DBG_printVMByteCode(uint8_t* code,uint32_t s,uint32_t c,FILE* fp)
@@ -1296,7 +1296,7 @@ void DBG_printVMenv(VMenv* curEnv,FILE* fp)
 		for(int i=0;i<curEnv->num;i++)
 		{
 			VMvalue* tmp=curEnv->list[i]->value;
-			writeVMvalue(tmp,fp,NULL);
+			prin1VMvalue(tmp,fp,NULL);
 			putc(' ',fp);
 		}
 	}

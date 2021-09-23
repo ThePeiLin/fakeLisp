@@ -87,7 +87,7 @@ typedef struct Cirular_Ref_List
 
 VMvalue* GET_VAL(VMvalue* P,VMheap*);
 int SET_REF(VMvalue* P,VMvalue* V);
-void writeVMvalue(VMvalue*,FILE*,CRL**);
+void prin1VMvalue(VMvalue*,FILE*,CRL**);
 void princVMvalue(VMvalue*,FILE*,CRL**);
 VMenvNode* newVMenvNode(VMvalue*,int32_t);
 VMenvNode* addVMenvNode(VMenvNode*,VMenv*);

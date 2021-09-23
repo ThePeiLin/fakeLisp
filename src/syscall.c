@@ -1067,15 +1067,13 @@ void SYS_read(FakeVM* exe,pthread_rwlock_t* gclock)
 	VMvalue* stream=GET_VAL(popVMstack(stack),exe->heap);
 	if(resBp(stack))
 		RAISE_BUILTIN_ERROR("sys.read",TOOMANYARG,runnable,exe);
-	if(!stream)
-		RAISE_BUILTIN_ERROR("sys.read",TOOFEWARG,runnable,exe);
-	if(!IS_FP(stream)&&!IS_STR(stream))
+	if(stream&&!IS_FP(stream)&&!IS_STR(stream))
 		RAISE_BUILTIN_ERROR("sys.read",WRONGARG,runnable,exe);
 	char* tmpString=NULL;
 	FILE* tmpFile=NULL;
-	if(IS_FP(stream))
+	if(!stream||IS_FP(stream))
 	{
-		tmpFile=stream->u.fp;
+		tmpFile=stream?stream->u.fp:stdin;
 		int unexpectEOF=0;
 		char* prev=NULL;
 		tmpString=readInPattern(tmpFile,&prev,&unexpectEOF);
@@ -1140,7 +1138,7 @@ void SYS_getb(FakeVM* exe,pthread_rwlock_t* gclock)
 	}
 }
 
-void SYS_write(FakeVM* exe,pthread_rwlock_t* gclock)
+void SYS_prin1(FakeVM* exe,pthread_rwlock_t* gclock)
 {
 	VMstack* stack=exe->stack;
 	VMrunnable* runnable=topComStack(exe->rstack);
@@ -1148,14 +1146,14 @@ void SYS_write(FakeVM* exe,pthread_rwlock_t* gclock)
 	VMvalue* obj=GET_VAL(popVMstack(stack),heap);
 	VMvalue* file=GET_VAL(popVMstack(stack),heap);
 	if(resBp(stack))
-		RAISE_BUILTIN_ERROR("sys.write",TOOMANYARG,runnable,exe);
-	if(!file||!obj)
-		RAISE_BUILTIN_ERROR("sys.write",TOOFEWARG,runnable,exe);
-	if(!IS_FP(file))
-		RAISE_BUILTIN_ERROR("sys.write",WRONGARG,runnable,exe);
-	FILE* objFile=file->u.fp;
-	writeVMvalue(obj,objFile,NULL);
-	SET_RETURN("SYS_write",obj,stack);
+		RAISE_BUILTIN_ERROR("sys.prin1",TOOMANYARG,runnable,exe);
+	if(!obj)
+		RAISE_BUILTIN_ERROR("sys.prin1",TOOFEWARG,runnable,exe);
+	if(file&&!IS_FP(file))
+		RAISE_BUILTIN_ERROR("sys.prin1",WRONGARG,runnable,exe);
+	FILE* objFile=file?file->u.fp:stdout;
+	prin1VMvalue(obj,objFile,NULL);
+	SET_RETURN("SYS_prin1",obj,stack);
 }
 
 void SYS_putb(FakeVM* exe,pthread_rwlock_t* gclock)
@@ -1185,11 +1183,11 @@ void SYS_princ(FakeVM* exe,pthread_rwlock_t* gclock)
 	VMvalue* file=GET_VAL(popVMstack(stack),heap);
 	if(resBp(stack))
 		RAISE_BUILTIN_ERROR("sys.princ",TOOMANYARG,runnable,exe);
-	if(!file||!obj)
+	if(!obj)
 		RAISE_BUILTIN_ERROR("sys.princ",TOOFEWARG,runnable,exe);
-	if(!IS_FP(file))
+	if(file&&!IS_FP(file))
 		RAISE_BUILTIN_ERROR("sys.princ",WRONGARG,runnable,exe);
-	FILE* objFile=file->u.fp;
+	FILE* objFile=file?file->u.fp:stdout;
 	princVMvalue(obj,objFile,NULL);
 	SET_RETURN("SYS_princ",obj,stack);
 }

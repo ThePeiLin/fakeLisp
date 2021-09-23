@@ -28,8 +28,8 @@
                       (cons (car tmplist) tmp))))))
 (define (print,ls)
   (let printList ((tls ls))
-    (cond ((null (cdr tls)) (princ (car tls) stdout))
-          (1 (princ (car tls) stdout) (printList (cdr tls))))))
+    (cond ((null (cdr tls)) (princ (car tls)))
+          (1 (princ (car tls)) (printList (cdr tls))))))
 
 (define (fprint fp,ls)
   (let iter ((tls ls))
@@ -41,10 +41,10 @@
     (cond ((null (cdr tls)) (princ (car tls) file))
           (1 (princ (car tls) file) (printList (cdr tls))))))
 (define (newTerm)
-  (princ "\033[?1049h" stdout))
+  (princ "\033[?1049h"))
 
 (define (delTerm)
-  (princ "\033[?1049l" stdout))
+  (princ "\033[?1049l"))
 
 (define (createEmptyList size)
   (let loop-count ((count 1) (list '((1,0))))
@@ -190,9 +190,9 @@
     (define yb (1+ (int (/ rline 2))))
     (define xb (+ rrow 2))
     (print "\033[0m\033[" yb ";" xb "H")
-    (princ "\033[K" stdout)
+    (princ "\033[K")
     (print "mines:" bombNum))
-  (princ "\033[1;1H" stdout)
+  (princ "\033[1;1H")
   (let loop-yp ((yp 0))
     (cond ((<= yp (1+ line))
            (let loop-xp ((xp 0))
@@ -226,9 +226,9 @@
                                     light
                                     "m?"))
                         ((4) (princ "\033[0m\033[44m#"
-                                    stdout))))
+                                   ))))
                     (loop-xp (1+ xp)))))
-           (princ "\n" stdout)
+           (princ "\n")
            (loop-yp (1+ yp)))))
   (printBombNum))
 
@@ -323,12 +323,12 @@
     (if (and (not isGameOver) (neq ch #\\4)) (loop-ch (getch)))))
 
 (newTerm)
-(princ "Input line and row\n" stdout)
+(princ "Input line and row\n")
 (define line (read stdin))
 (define row (read stdin))
-(princ "Input bomb number\n" stdout)
+(princ "Input bomb number\n")
 (define bombNum (read stdin))
-(princ "\033[2J" stdout)
+(princ "\033[2J")
 (define gMap (createMap line row bombNum))
 (main gMap line row bombNum)
 (define rline (+ line 2))

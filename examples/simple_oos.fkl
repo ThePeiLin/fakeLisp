@@ -59,7 +59,7 @@
   (lambda l
     (define p-iter
       (lambda (c)
-        (cond (c (princ (car c) stdout)
+        (cond (c (princ (car c))
                  (p-iter (cdr c))))))
     (p-iter l)))
 

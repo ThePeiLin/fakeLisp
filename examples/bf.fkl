@@ -32,7 +32,7 @@
              (setf (nth mp m) (chr (1+ (int c))))))
     ((#\-) (let ((c (chr (nth mp m))))
              (setf (nth mp m) (chr (-1+ (int c))))))
-    ((#\.) (princ (chr (nth mp m)) stdout))
+    ((#\.) (princ (chr (nth mp m))))
     ((#\,) (setf (nth mp m) (chr (getb 1 stdin))))
     ((#\[) (let ((c (int (nth mp m))))
              (if (eq c 0)

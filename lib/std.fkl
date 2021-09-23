@@ -242,7 +242,7 @@
            (lambda (f,l)
              (define w-iter
                (lambda (c)
-                 (cond (c (write (car c) f)
+                 (cond (c (prin1 (car c) f)
                           (w-iter (cdr c))))))
              (w-iter l)))
 

@@ -1942,7 +1942,7 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 	}
 }
 
-void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
+void prin1VMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 {
 	int access=!h;
 	CRL* head=NULL;
@@ -2013,12 +2013,12 @@ void writeVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 							if(IS_PAIR(tmpValue)&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
 								fprintf(fp,"#%d#",CRLcount);
 							else
-								writeVMvalue(tmpValue,fp,h);
+								prin1VMvalue(tmpValue,fp,h);
 							tmpValue=getVMpairCdr(objValue);
 							if(tmpValue!=VM_NIL&&!IS_PAIR(tmpValue))
 							{
 								putc(',',fp);
-								writeVMvalue(tmpValue,fp,h);
+								prin1VMvalue(tmpValue,fp,h);
 							}
 							else if(IS_PAIR(tmpValue)&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
 							{

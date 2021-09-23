@@ -10,13 +10,13 @@
                     (w (-1+ a) b))))))
     (define x
       (lambda (n a)
-        (princ (w n a) stdout)
-        (princ #\\x20 stdout)
+        (princ (w n a))
+        (princ #\\x20)
         (cond ((not (eq n a)) (x n (1+ a))))))
     (define p-iter
       (lambda (count)
         (x count 1)
-        (princ #\\n stdout)
+        (princ #\\n)
         (cond ((< count n) (p-iter (1+ count)))
               (1 ()))))
     (p-iter 1)))

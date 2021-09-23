@@ -94,7 +94,7 @@ const char* builtInSymbolList[]=
 	"file",
 	"read",
 	"getb",
-	"write",
+	"prin1",
 	"putb",
 	"princ",
 	"dll",

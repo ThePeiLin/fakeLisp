@@ -543,7 +543,7 @@ ErrorStatus defmacro(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 				return status;
 			}
 			char* tmpStr=tmpAtom->value.str;
-			if(isInValidStringPattern(tmpStr))
+			if(!isReDefStringPattern(tmpStr)&&isInValidStringPattern(tmpStr))
 			{
 				exError(args[0],INVALIDEXPR,inter);
 				free(args);
@@ -551,7 +551,10 @@ ErrorStatus defmacro(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 			}
 			int32_t num=0;
 			char** parts=splitPattern(tmpStr,&num);
-			addStringPattern(parts,num,args[1],inter);
+			if(isReDefStringPattern(tmpStr))
+				addReDefStringPattern(parts,num,args[1],inter);
+			else
+				addStringPattern(parts,num,args[1],inter);
 			freeStringArry(parts,num);
 			free(args);
 		}
@@ -618,6 +621,48 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 		for(;i<num;i++)
 			tmParts[i]=copyStr(parts[i]);
 		tmp=newStringMatchPattern(num,tmParts,tmpByteCodelnt);
+	}
+	else
+	{
+		if(tmpByteCodelnt)
+		{
+			FREE_ALL_LINE_NUMBER_TABLE(tmpByteCodelnt->l,tmpByteCodelnt->ls);
+			freeByteCodelnt(tmpByteCodelnt);
+		}
+		exError(status.place,status.status,inter);
+		status.place=NULL;
+		status.status=0;
+	}
+	destroyCompEnv(tmpCompEnv);
+	free(tmpInter);
+	return tmp;
+}
+
+StringMatchPattern* addReDefStringPattern(char** parts,int32_t num,AST_cptr* express,Intpr* inter)
+{
+	StringMatchPattern* tmp=findStringPattern(parts[0]);
+	ErrorStatus status={0,NULL};
+	Intpr* tmpInter=newTmpIntpr(NULL,NULL);
+	tmpInter->filename=inter->filename;
+	tmpInter->curline=inter->curline;
+	tmpInter->glob=inter->glob;
+	tmpInter->curDir=inter->curDir;
+	tmpInter->prev=NULL;
+	tmpInter->lnt=NULL;
+	CompEnv* tmpCompEnv=createPatternCompEnv(parts,num,inter->glob);
+	ByteCodelnt* tmpByteCodelnt=compile(express,tmpCompEnv,tmpInter,&status,1);
+	if(!status.status)
+	{
+		char** tmParts=(char**)malloc(sizeof(char*)*num);
+		FAKE_ASSERT(tmParts,"addStringPattern",__FILE__,__LINE__);
+		int32_t i=0;
+		for(;i<num;i++)
+			tmParts[i]=copyStr(parts[i]);
+		freeStringArry(tmp->parts,num);
+		FREE_ALL_LINE_NUMBER_TABLE(tmp->proc->l,tmp->proc->ls);
+		freeByteCodelnt(tmp->proc);
+		tmp->parts=tmParts;
+		tmp->proc=tmpByteCodelnt;
 	}
 	else
 	{

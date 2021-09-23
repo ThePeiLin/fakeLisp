@@ -14,6 +14,7 @@ void freeStringArry(char** ss,int32_t num);
 void freeAllStringPattern();
 void freeStringPattern(StringMatchPattern*);
 int isInValidStringPattern(const char*);
+int isReDefStringPattern(const char*);
 int isVar(const char*);
 int isMustList(const char*);
 int32_t skipInPattern(const char*,StringMatchPattern*);

@@ -766,6 +766,53 @@ int isInValidStringPattern(const char* str)
 	return 0;
 }
 
+int isReDefStringPattern(const char* str)
+{
+	StringMatchPattern* pattern=HeadOfStringPattern;
+	int32_t num=0;
+	if(pattern)
+	{
+		char** parts=splitPattern(str,&num);
+		while(pattern->prev)
+			pattern=pattern->prev;
+		while(pattern)
+		{
+			int r=1;
+			if(!strcmp(parts[0],pattern->parts[0]))
+			{
+				if(pattern->num!=num)
+					r=0;
+				else
+				{
+					int32_t i=0;
+					for(;i<num;i++)
+					{
+						if(isVar(pattern->parts[i])&&isVar(parts[i]))
+							continue;
+						else if(isVar(pattern->parts[i])||isVar(parts[i]))
+						{
+							r=0;
+							break;
+						}
+						else if(strcmp(parts[i],pattern->parts[i]))
+						{
+							r=0;
+							break;
+						}
+					}
+				}
+				freeStringArry(parts,num);
+				return r;
+			}
+			pattern=pattern->next;
+		}
+		freeStringArry(parts,num);
+		return 0;
+	}
+	else
+		return 0;
+}
+
 int isMustList(const char* str)
 {
 	if(!isVar(str))

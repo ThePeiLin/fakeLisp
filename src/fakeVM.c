@@ -1235,6 +1235,8 @@ void DBG_printVMstack(VMstack* stack,FILE* fp,int mode)
 				fputs("->",stderr);
 			if(fp!=stdout)fprintf(fp,"%d:",i);
 			VMvalue* tmp=stack->values[i];
+			if(IS_REF(tmp))
+				tmp=*(VMvalue**)GET_PTR(tmp);
 			prin1VMvalue(tmp,fp,NULL);
 			putc('\n',fp);
 		}

@@ -108,25 +108,6 @@ static uint8_t findOpcode(const char* str)
 	return 0;
 }
 
-static int isSymbolShouldBeExport(const char* str,const char** pStr,uint32_t n)
-{
-	int32_t l=0;
-	int32_t h=n-1;
-	int32_t mid=0;
-	while(l<=h)
-	{
-		mid=l+(h-l)/2;
-		int resultOfCmp=strcmp(pStr[mid],str);
-		if(resultOfCmp>0)
-			h=mid-1;
-		else if(resultOfCmp<0)
-			l=mid+1;
-		else
-			return 1;
-	}
-	return 0;
-}
-
 PreMacro* PreMacroMatch(const AST_cptr* objCptr,PreEnv** pmacroEnv,CompEnv* curEnv,CompEnv** pCEnv)
 {
 	for(;curEnv;curEnv=curEnv->prev)
@@ -1199,12 +1180,12 @@ ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 		AST_atom* tmpAtm=sec->u.atom;
 		if(curEnv->prev&&isSymbolShouldBeExport(tmpAtm->value.str,curEnv->prev->exp,curEnv->prev->n))
 		{
-			if(curEnv->prefix)
+			if(curEnv->prev->prefix)
 			{
-				size_t len=strlen(tmpAtm->value.str)+strlen(curEnv->prefix)+1;
+				size_t len=strlen(tmpAtm->value.str)+strlen(curEnv->prev->prefix)+1;
 				char* symbolWithPrefix=(char*)malloc(sizeof(char)*len);
 				FAKE_ASSERT(symbolWithPrefix,"compileDef",__FILE__,__LINE__);
-				sprintf(symbolWithPrefix,"%s%s",curEnv->prefix,tmpAtm->value.str);
+				sprintf(symbolWithPrefix,"%s%s",curEnv->prev->prefix,tmpAtm->value.str);
 				tmpDef=addCompDef(symbolWithPrefix,curEnv->prev);
 				free(symbolWithPrefix);
 			}
@@ -1232,15 +1213,22 @@ ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 				*(Sid_t*)(popVar->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
 				codeCat(tmp1Copy->bc,pushTop);
 				codeCat(tmp1Copy->bc,popVar);
-				tmp1Copy->l[tmp1Copy->ls-1]->cpc+=(popVar->size+pushTop->size);
+				codeCat(tmp1Copy->bc,pushTop);
+				*(int32_t*)(popVar->code+sizeof(char))=(int32_t)0;
+				*(Sid_t*)(popVar->code+sizeof(char)+sizeof(int32_t))=addCompDef(tmpAtm->value.str,curEnv)->id;
+				codeCat(tmp1->bc,pushTop);
+				codeCat(tmp1->bc,popVar);
+				tmp1->l[tmp1->ls-1]->cpc+=(popVar->size+pushTop->size);
+				codeCat(tmp1Copy->bc,popVar);
+				tmp1Copy->l[tmp1Copy->ls-1]->cpc+=(popVar->size*2+pushTop->size*2);
 				codelntCopyCat(curEnv->prev->proc,tmp1Copy);
 				freeByteCode(popVar);
+				FREE_ALL_LINE_NUMBER_TABLE(tmp1Copy->l,tmp1Copy->ls);
+				freeByteCodelnt(tmp1Copy);
 			}
 			else
 				codelntCopyCat(curEnv->proc,tmp1);
 		}
-		FREE_ALL_LINE_NUMBER_TABLE(tmp1Copy->l,tmp1Copy->ls);
-		freeByteCodelnt(tmp1Copy);
 		if(fir->outer==tmpPair)
 			break;
 		else
@@ -1318,8 +1306,43 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		codeCat(tmp1->bc,pushTop);
 		codeCat(tmp1->bc,popVar);
 		tmp1->l[tmp1->ls-1]->cpc+=(pushTop->size+popVar->size);
-		if(tmpDef&&(isConst(objCptr)||isLambdaExpression(objCptr)))
-			codelntCopyCat(curEnv->proc,tmp1);
+		if(!scope&&tmpDef&&(isConst(objCptr)||isLambdaExpression(objCptr)))
+		{
+			ByteCodelnt* tmp1Copy=copyByteCodelnt(tmp1);
+			if(tmpEnv->prev&&tmpEnv->prev->exp&&tmpEnv->prefix)
+			{
+				ByteCode* popVar=newByteCode(sizeof(char)+sizeof(int32_t)+sizeof(Sid_t));
+				popVar->code[0]=FAKE_POP_VAR;
+				*(int32_t*)(popVar->code+sizeof(char))=scope;
+				char* symbolWithPrefix=copyStr(tmpEnv->prev->prefix);
+				symbolWithPrefix=strCat(symbolWithPrefix,tmpAtm->value.str);
+				*(Sid_t*)(popVar->code+sizeof(char)+sizeof(int32_t))=findCompDef(symbolWithPrefix,tmpEnv->prev)->id;
+				free(symbolWithPrefix);
+				codeCat(tmp1Copy->bc,pushTop);
+				codeCat(tmp1Copy->bc,popVar);
+				tmp1Copy->l[tmp1Copy->ls-1]->cpc+=(pushTop->size+popVar->size);
+				freeByteCode(popVar);
+			}
+			codelntCopyCat(tmpEnv->prev->proc,tmp1Copy);
+			FREE_ALL_LINE_NUMBER_TABLE(tmp1Copy->l,tmp1Copy->ls);
+			freeByteCodelnt(tmp1Copy);
+		}
+		if(tmpEnv->prev&&tmpEnv->prev->exp&&scope!=-1)
+		{
+			*(int32_t*)(popVar->code+sizeof(char))=scope+1;
+			if(tmpEnv->prev->prefix)
+			{
+				char* symbolWithPrefix=copyStr(tmpEnv->prev->prefix);
+				symbolWithPrefix=strCat(symbolWithPrefix,tmpAtm->value.str);
+				*(Sid_t*)(popVar->code+sizeof(char)+sizeof(int32_t))=findCompDef(symbolWithPrefix,tmpEnv->prev)->id;
+				free(symbolWithPrefix);
+			}
+			else
+				*(Sid_t*)(popVar->code+sizeof(char)+sizeof(int32_t))=findCompDef(tmpAtm->value.str,tmpEnv->prev)->id;
+			codeCat(tmp1->bc,pushTop);
+			codeCat(tmp1->bc,popVar);
+			tmp1->l[tmp1->ls-1]->cpc+=(pushTop->size+popVar->size);
+		}
 		if(fir->outer==tmpPair)break;
 		else
 		{
@@ -1359,34 +1382,6 @@ ByteCodelnt* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		codelntCat(tmp1,tmp2);
 		codeCat(tmp1->bc,popRef);
 		tmp1->l[tmp1->ls-1]->cpc+=popRef->size;
-		if(isSymbol(sec))
-		{
-			AST_atom* tmpAtm=sec->u.atom;
-			CompEnv* tmpEnv=curEnv;
-			CompDef* tmpDef=NULL;
-			while(tmpEnv!=NULL)
-			{
-				tmpDef=findCompDef(tmpAtm->value.str,tmpEnv);
-				if(tmpEnv->prefix&&!tmpDef)
-				{
-					size_t len=strlen(tmpEnv->prefix)+strlen(tmpAtm->value.str)+1;
-					char* symbolWithPrefix=(char*)malloc(sizeof(char)*len);
-					FAKE_ASSERT(symbolWithPrefix,"compileSetq",__FILE__,__LINE__);
-					sprintf(symbolWithPrefix,"%s%s",tmpEnv->prefix,tmpAtm->value.str);
-					tmpDef=findCompDef(symbolWithPrefix,tmpEnv);
-					free(symbolWithPrefix);
-				}
-				if(tmpDef!=NULL)
-					break;
-				tmpEnv=tmpEnv->prev;
-			}
-			if(isConst(tir)||isLambdaExpression(tir))
-			{
-				codelntCopyCat(curEnv->proc,tmp2);
-				codeCat(curEnv->proc->bc,popRef);
-				curEnv->proc->l[curEnv->proc->ls-1]->cpc+=popRef->size;
-			}
-		}
 		freeByteCode(popRef);
 		freeByteCodelnt(tmp2);
 		return tmp1;

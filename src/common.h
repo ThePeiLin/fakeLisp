@@ -76,6 +76,7 @@ void reCodeCat(const ByteCode*,ByteCode*);
 void initCompEnv(CompEnv*);
 ByteCode* copyByteCode(const ByteCode*);
 ByteCodelnt* copyByteCodelnt(const ByteCodelnt*);
+int isSymbolShouldBeExport(const char* str,const char** pStr,uint32_t n);
 void freeByteCode(ByteCode*);
 void printByteCode(const ByteCode*,FILE*);
 void printByteStr(size_t size,const uint8_t* str,FILE*,int);

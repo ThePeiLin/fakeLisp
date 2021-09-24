@@ -968,6 +968,25 @@ void destroyCompEnv(CompEnv* objEnv)
 	free(objEnv);
 }
 
+int isSymbolShouldBeExport(const char* str,const char** pStr,uint32_t n)
+{
+	int32_t l=0;
+	int32_t h=n-1;
+	int32_t mid=0;
+	while(l<=h)
+	{
+		mid=l+(h-l)/2;
+		int resultOfCmp=strcmp(pStr[mid],str);
+		if(resultOfCmp>0)
+			h=mid-1;
+		else if(resultOfCmp<0)
+			l=mid+1;
+		else
+			return 1;
+	}
+	return 0;
+}
+
 CompDef* findCompDef(const char* name,CompEnv* curEnv)
 {
 	if(curEnv->head==NULL)return NULL;

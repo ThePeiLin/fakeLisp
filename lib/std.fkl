@@ -138,13 +138,22 @@
                             (cdrAll (cdr ls) (cons (cdar ls) r)))
                            (1 (reverse r)))))
                  (cond (ls
-                        (iter1 (cdrAll ls nil) (cons (carAll ls nil) r)))
+                         (iter1 (cdrAll ls nil) (cons (carAll ls nil) r)))
                        (1 (reverse r)))))
              (define iter
                (lambda (l r)
                  (cond (l (iter (cdr l) (cons (apply f (car l)) r)))
                        (1 (reverse r)))))
              (iter (iter1 l nil) nil)))
+
+         (define reverse
+           (lambda (ls)
+             (define iter
+               (lambda (c r)
+                 (cond (c
+                         (iter (cdr c) (cons (car c) r)))
+                       (1 r))))
+             (iter ls nil)))
 
          (define andmap
            (lambda (f,l)
@@ -161,7 +170,7 @@
                             (cdrAll (cdr ls) (cons (cdar ls) r)))
                            (1 (reverse r)))))
                  (cond (ls
-                        (iter1 (cdrAll ls nil) (cons (carAll ls nil) r)))
+                         (iter1 (cdrAll ls nil) (cons (carAll ls nil) r)))
                        (1 (reverse r)))))
              (define iter
                (lambda (l r)
@@ -194,15 +203,6 @@
                        (1 r))))
              (iter (iter1 l nil) nil)))
 
-         (define reverse
-           (lambda (ls)
-             (define iter
-               (lambda (c r)
-                 (cond (c
-                         (iter (cdr c) (cons (car c) r)))
-                       (1 r))))
-             (iter ls nil)))
-
          (define foreach
            (lambda (f,l)
              (define iter1
@@ -218,7 +218,7 @@
                             (cdrAll (cdr ls) (cons (cdar ls) r)))
                            (1 (reverse r)))))
                  (cond (ls
-                        (iter1 (cdrAll ls nil) (cons (carAll ls nil) r)))
+                         (iter1 (cdrAll ls nil) (cons (carAll ls nil) r)))
                        (1 (reverse r)))))
              (define iter
                (lambda (c)

@@ -1223,12 +1223,12 @@ ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 				tmp1Copy->l[tmp1Copy->ls-1]->cpc+=(popVar->size*2+pushTop->size*2);
 				codelntCopyCat(curEnv->prev->proc,tmp1Copy);
 				freeByteCode(popVar);
-				FREE_ALL_LINE_NUMBER_TABLE(tmp1Copy->l,tmp1Copy->ls);
-				freeByteCodelnt(tmp1Copy);
 			}
 			else
 				codelntCopyCat(curEnv->proc,tmp1);
 		}
+		FREE_ALL_LINE_NUMBER_TABLE(tmp1Copy->l,tmp1Copy->ls);
+		freeByteCodelnt(tmp1Copy);
 		if(fir->outer==tmpPair)
 			break;
 		else
@@ -1322,8 +1322,10 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 				codeCat(tmp1Copy->bc,popVar);
 				tmp1Copy->l[tmp1Copy->ls-1]->cpc+=(pushTop->size+popVar->size);
 				freeByteCode(popVar);
+				codelntCopyCat(tmpEnv->prev->proc,tmp1Copy);
 			}
-			codelntCopyCat(tmpEnv->prev->proc,tmp1Copy);
+			else
+				codelntCopyCat(curEnv->proc,tmp1Copy);
 			FREE_ALL_LINE_NUMBER_TABLE(tmp1Copy->l,tmp1Copy->ls);
 			freeByteCodelnt(tmp1Copy);
 		}

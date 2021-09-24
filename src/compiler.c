@@ -1329,7 +1329,7 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			FREE_ALL_LINE_NUMBER_TABLE(tmp1Copy->l,tmp1Copy->ls);
 			freeByteCodelnt(tmp1Copy);
 		}
-		if(tmpEnv->prev&&tmpEnv->prev->exp&&scope!=-1)
+		if(tmpEnv->prev&&tmpEnv->prev->exp&&scope!=-1&&isSymbolShouldBeExport(tmpAtm->value.str,tmpEnv->prev->exp,tmpEnv->prev->n))
 		{
 			*(int32_t*)(popVar->code+sizeof(char))=scope+1;
 			if(tmpEnv->prev->prefix)

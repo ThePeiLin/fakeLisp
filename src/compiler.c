@@ -3238,7 +3238,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 								addCompDef(symbolWouldExport,curEnv);
 							free(symbolWouldExport);
 						}
-						codelntCopyCat(curEnv->proc,tmpInter->glob->proc);
+						codelntCopyCat(curEnv->proc,tmp);
 						PreMacro* headOfMacroOfImportedFile=tmpCurEnv->macro;
 						while(headOfMacroOfImportedFile)
 						{

@@ -925,9 +925,12 @@ Intpr* newIntpr(const char* filename,FILE* file,CompEnv* env,LineNumberTable* ln
 
 void freeAllMacroThenDestroyCompEnv(CompEnv* env)
 {
-	freeAllMacro(env->macro);
-	env->macro=NULL;
-	destroyCompEnv(env);
+	if(env)
+	{
+		freeAllMacro(env->macro);
+		env->macro=NULL;
+		destroyCompEnv(env);
+	}
 }
 
 void freeIntpr(Intpr* inter)

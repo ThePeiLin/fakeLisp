@@ -555,11 +555,11 @@ ErrorStatus defmacro(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 		Intpr* tmpInter=newTmpIntpr(NULL,NULL);
 		tmpInter->filename=inter->filename;
 		tmpInter->curline=inter->curline;
-		tmpInter->glob=curEnv;
+		tmpInter->glob=(curEnv->prev&&curEnv->prev->exp)?curEnv->prev:curEnv;
 		tmpInter->curDir=inter->curDir;
 		tmpInter->prev=NULL;
 		tmpInter->lnt=NULL;
-		CompEnv* tmpCompEnv=createMacroCompEnv(pattern,curEnv);
+		CompEnv* tmpCompEnv=createMacroCompEnv(pattern,tmpInter->glob);
 		ByteCodelnt* tmpByteCodelnt=compile(express,tmpCompEnv,tmpInter,&status,1);
 		if(!status.status)
 		{

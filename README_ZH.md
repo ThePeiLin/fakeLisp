@@ -633,7 +633,11 @@ lambda表达式，返回一个参数列表为args，函数体为列表body的过
 (library (test)
   (export (x y))
   (define x 2)
-  (define y 1))
+  (define y 1)
+  (define c 9)
+  (defmacro (c ?a);由于被导出的符号于未被导出的符号所在的作用域不同，宏于被导出的符号处在同一作用域
+    `(+ ~c ~a))   ;因此，宏无法使用未被导出的符号，因此这个宏是非法的
+)
 
 (import (test test1))  ;;加载相对路径为test/test1.fkl的文件
 (import (test))  ;;加载相对路径为test.fkl的文件

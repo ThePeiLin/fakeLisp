@@ -582,7 +582,10 @@ ErrorStatus defmacro(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 		ByteCodelnt* tmpByteCodelnt=compile(express,tmpCompEnv,tmpInter,&status,1);
 		if(!status.status)
 		{
-			addMacro(pattern,tmpByteCodelnt,curEnv);
+			if(curEnv->prev&&curEnv->prev->exp)
+				addMacro(pattern,tmpByteCodelnt,curEnv->prev);
+			else
+				addMacro(pattern,tmpByteCodelnt,curEnv);
 			free(args);
 		}
 		else
@@ -1194,25 +1197,52 @@ ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 	{
 		CompDef* tmpDef=NULL;
 		AST_atom* tmpAtm=sec->u.atom;
-		if(curEnv->prefix&&isSymbolShouldBeExport(tmpAtm->value.str,curEnv->exp,curEnv->n))
+		if(curEnv->prev&&isSymbolShouldBeExport(tmpAtm->value.str,curEnv->prev->exp,curEnv->prev->n))
 		{
-			size_t len=strlen(tmpAtm->value.str)+strlen(curEnv->prefix)+1;
-			char* symbolWithPrefix=(char*)malloc(sizeof(char)*len);
-			FAKE_ASSERT(symbolWithPrefix,"compileDef",__FILE__,__LINE__);
-			sprintf(symbolWithPrefix,"%s%s",curEnv->prefix,tmpAtm->value.str);
-			tmpDef=addCompDef(symbolWithPrefix,curEnv);
-			free(symbolWithPrefix);
+			if(curEnv->prefix)
+			{
+				size_t len=strlen(tmpAtm->value.str)+strlen(curEnv->prefix)+1;
+				char* symbolWithPrefix=(char*)malloc(sizeof(char)*len);
+				FAKE_ASSERT(symbolWithPrefix,"compileDef",__FILE__,__LINE__);
+				sprintf(symbolWithPrefix,"%s%s",curEnv->prefix,tmpAtm->value.str);
+				tmpDef=addCompDef(symbolWithPrefix,curEnv->prev);
+				free(symbolWithPrefix);
+			}
+			else
+				tmpDef=addCompDef(tmpAtm->value.str,curEnv->prev);
+			*(int32_t*)(popVar->code+sizeof(char))=(int32_t)1;
 		}
 		else
+		{
+			*(int32_t*)(popVar->code+sizeof(char))=(int32_t)0;
 			tmpDef=addCompDef(tmpAtm->value.str,curEnv);
-		*(int32_t*)(popVar->code+sizeof(char))=(int32_t)0;
+		}
 		*(Sid_t*)(popVar->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
+		ByteCodelnt* tmp1Copy=copyByteCodelnt(tmp1);
 		codeCat(tmp1->bc,pushTop);
 		codeCat(tmp1->bc,popVar);
 		tmp1->l[tmp1->ls-1]->cpc+=(popVar->size+pushTop->size);
 		if(isLambdaExpression(objCptr)||isConst(objCptr))
-			codelntCopyCat(curEnv->proc,tmp1);
-		if(fir->outer==tmpPair)break;
+		{
+			if(curEnv->prev&&isSymbolShouldBeExport(tmpAtm->value.str,curEnv->prev->exp,curEnv->prev->n))
+			{
+				ByteCode* popVar=newByteCode(sizeof(char)+sizeof(int32_t)+sizeof(int32_t));
+				popVar->code[0]=FAKE_POP_VAR;
+				*(int32_t*)(popVar->code+sizeof(char))=(int32_t)0;
+				*(Sid_t*)(popVar->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
+				codeCat(tmp1Copy->bc,pushTop);
+				codeCat(tmp1Copy->bc,popVar);
+				tmp1Copy->l[tmp1Copy->ls-1]->cpc+=(popVar->size+pushTop->size);
+				codelntCopyCat(curEnv->prev->proc,tmp1Copy);
+				freeByteCode(popVar);
+			}
+			else
+				codelntCopyCat(curEnv->proc,tmp1);
+		}
+		FREE_ALL_LINE_NUMBER_TABLE(tmp1Copy->l,tmp1Copy->ls);
+		freeByteCodelnt(tmp1Copy);
+		if(fir->outer==tmpPair)
+			break;
 		else
 		{
 			tir=&fir->outer->prev->car;
@@ -3044,9 +3074,10 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 							tmpInter->glob->prefix=libPrefix;
 							tmpInter->glob->exp=exportSymbols;
 							tmpInter->glob->n=num;
+							CompEnv* tmpCurEnv=newCompEnv(tmpInter->glob);
 							for(;pBody;pBody=nextCptr(pBody))
 							{
-								ByteCodelnt* otherByteCodelnt=compile(pBody,tmpInter->glob,tmpInter,status,1);
+								ByteCodelnt* otherByteCodelnt=compile(pBody,tmpCurEnv,tmpInter,status,1);
 								if(status->status)
 								{
 									exError(status->place,status->status,tmpInter);
@@ -3075,6 +3106,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 								codelntCat(libByteCodelnt,otherByteCodelnt);
 								freeByteCodelnt(otherByteCodelnt);
 							}
+							destroyCompEnv(tmpCurEnv);
 							reCodeCat(setTp,libByteCodelnt->bc);
 							if(!libByteCodelnt->l)
 							{
@@ -3094,6 +3126,17 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 							deleteFakeMem(libByteCodelnt,memMenager);
 							freeByteCodelnt(libByteCodelnt);
 							libByteCodelnt=NULL;
+							ByteCode* pushProc=newByteCode(sizeof(char)+sizeof(int32_t));
+							pushProc->code[0]=FAKE_PUSH_PROC;
+							*(int32_t*)(pushProc->code+sizeof(char))=tmp->bc->size;
+							reCodeCat(pushProc,tmp->bc);
+							INCREASE_ALL_SCP(tmp->l,tmp->ls-1,pushProc->size);
+							freeByteCode(pushProc);
+							ByteCode* invoke=newByteCode(sizeof(char));
+							invoke->code[0]=FAKE_INVOKE;
+							codeCat(tmp->bc,invoke);
+							tmp->l[tmp->ls-1]->cpc+=invoke->size;
+							freeByteCode(invoke);
 						}
 						AST_cptr* pExportSymbols=nextCptr(getFirstCptr(exportCptr));
 						for(;pExportSymbols;pExportSymbols=nextCptr(pExportSymbols))

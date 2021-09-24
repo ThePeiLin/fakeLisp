@@ -909,15 +909,15 @@ Intpr* newIntpr(const char* filename,FILE* file,CompEnv* env,LineNumberTable* ln
 		tmp->lnt=lnt;
 	else
 		tmp->lnt=newLineNumTable();
+	if(deftypes)
+		tmp->deftypes=deftypes;
+	else
+		tmp->deftypes=newVMDefTypes();
 	if(env)
 	{
 		tmp->glob=env;
 		return tmp;
 	}
-	if(deftypes)
-		tmp->deftypes=deftypes;
-	else
-		tmp->deftypes=newVMDefTypes();
 	tmp->glob=newCompEnv(NULL);
 	initCompEnv(tmp->glob);
 	return tmp;
@@ -1069,6 +1069,22 @@ ByteCode* copyByteCode(const ByteCode* obj)
 {
 	ByteCode* tmp=newByteCode(obj->size);
 	memcpy(tmp->code,obj->code,obj->size);
+	return tmp;
+}
+
+ByteCodelnt* copyByteCodelnt(const ByteCodelnt* obj)
+{
+	ByteCodelnt* tmp=newByteCodelnt(copyByteCode(obj->bc));
+	tmp->ls=obj->ls;
+	tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*obj->ls);
+	FAKE_ASSERT(tmp->l,"copyByteCodelnt",__FILE__,__LINE__);
+	int32_t i=0;
+	for(;i<obj->ls;i++)
+	{
+		LineNumTabNode* t=obj->l[i];
+		LineNumTabNode* node=newLineNumTabNode(t->fid,t->scp,t->cpc,t->line);
+		tmp->l[i]=node;
+	}
 	return tmp;
 }
 

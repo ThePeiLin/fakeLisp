@@ -923,6 +923,13 @@ Intpr* newIntpr(const char* filename,FILE* file,CompEnv* env,LineNumberTable* ln
 	return tmp;
 }
 
+void freeAllMacroThenDestroyCompEnv(CompEnv* env)
+{
+	freeAllMacro(env->macro);
+	env->macro=NULL;
+	destroyCompEnv(env);
+}
+
 void freeIntpr(Intpr* inter)
 {
 	if(inter->filename)
@@ -930,7 +937,7 @@ void freeIntpr(Intpr* inter)
 	if(inter->file!=stdin)
 		fclose(inter->file);
 	free(inter->curDir);
-	destroyCompEnv(inter->glob);
+	freeAllMacroThenDestroyCompEnv(inter->glob);
 	if(inter->lnt)freeLineNumberTable(inter->lnt);
 	if(inter->deftypes)freeDefTypeTable(inter->deftypes);
 	free(inter);
@@ -941,6 +948,8 @@ CompEnv* newCompEnv(CompEnv* prev)
 	CompEnv* tmp=(CompEnv*)malloc(sizeof(CompEnv));
 	FAKE_ASSERT(tmp,"newComEnv",__FILE__,__LINE__);
 	tmp->prev=prev;
+	if(prev)
+		prev->refcount+=1;
 	tmp->head=NULL;
 	tmp->prefix=NULL;
 	tmp->exp=NULL;
@@ -948,24 +957,38 @@ CompEnv* newCompEnv(CompEnv* prev)
 	tmp->macro=NULL;
 	tmp->keyWords=NULL;
 	tmp->proc=newByteCodelnt(newByteCode(0));
+	tmp->refcount=0;
 	return tmp;
 }
 
 void destroyCompEnv(CompEnv* objEnv)
 {
 	if(objEnv==NULL)return;
-	CompDef* tmpDef=objEnv->head;
-	while(tmpDef!=NULL)
+	while(objEnv)
 	{
-		CompDef* prev=tmpDef;
-		tmpDef=tmpDef->next;
-		free(prev);
+		if(!objEnv->refcount)
+		{
+			CompEnv* curEnv=objEnv;
+			objEnv=objEnv->prev;
+			CompDef* tmpDef=curEnv->head;
+			while(tmpDef!=NULL)
+			{
+				CompDef* prev=tmpDef;
+				tmpDef=tmpDef->next;
+				free(prev);
+			}
+			FREE_ALL_LINE_NUMBER_TABLE(curEnv->proc->l,curEnv->proc->ls);
+			freeByteCodelnt(curEnv->proc);
+			freeAllMacro(curEnv->macro);
+			freeAllKeyWord(curEnv->keyWords);
+			free(curEnv);
+		}
+		else
+		{
+			objEnv->refcount-=1;
+			break;
+		}
 	}
-	FREE_ALL_LINE_NUMBER_TABLE(objEnv->proc->l,objEnv->proc->ls);
-	freeByteCodelnt(objEnv->proc);
-	freeAllMacro(objEnv->macro);
-	freeAllKeyWord(objEnv->keyWords);
-	free(objEnv);
 }
 
 int isSymbolShouldBeExport(const char* str,const char** pStr,uint32_t n)
@@ -2592,6 +2615,7 @@ void freeAllMacro(PreMacro* head)
 		cur=cur->next;
 		deleteCptr(prev->pattern);
 		free(prev->pattern);
+		destroyCompEnv(prev->macroEnv);
 		FREE_ALL_LINE_NUMBER_TABLE(prev->proc->l,prev->proc->ls);
 		freeByteCodelnt(prev->proc);
 		free(prev);

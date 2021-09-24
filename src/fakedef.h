@@ -244,6 +244,7 @@ typedef struct Pre_Macro
 	AST_cptr* pattern;
 	ByteCodelnt* proc;
 	struct Pre_Macro* next;
+	struct Comp_Env* macroEnv;
 }PreMacro;
 
 typedef struct SymTabNode
@@ -274,6 +275,7 @@ typedef struct Comp_Env
 	CompDef* head;
 	PreMacro* macro;
 	ByteCodelnt* proc;
+	uint32_t refcount;
 	struct Key_Word* keyWords;
 }CompEnv;
 

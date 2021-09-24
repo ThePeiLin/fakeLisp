@@ -48,6 +48,7 @@ AST_cptr* newCptr(int,AST_pair*);
 AST_atom* newAtom(int type,const char*,AST_pair*);
 CompDef* addCompDef(const char*,CompEnv*);
 CompEnv* newCompEnv(CompEnv*);
+void freeAllMacroThenDestroyCompEnv(CompEnv* env);
 void destroyCompEnv(CompEnv*);
 CompDef* findCompDef(const char*,CompEnv*);
 Intpr* newIntpr(const char*,FILE*,CompEnv*,LineNumberTable*,VMDefTypes* deftypes);

@@ -19,6 +19,7 @@ extern char* InterpreterPath;
 static int MacroPatternCmp(const AST_cptr*,const AST_cptr*);
 static int fmatcmp(const AST_cptr*,const AST_cptr*,PreEnv**,CompEnv*);
 static int isVal(const char*);
+static int addDefinedMacro(PreMacro* macro,CompEnv* curEnv);
 static ErrorStatus defmacro(AST_cptr*,CompEnv*,Intpr*);
 static CompEnv* createPatternCompEnv(char**,int32_t,CompEnv*);
 
@@ -131,7 +132,7 @@ int PreMacroExpand(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 	if(tmp!=NULL)
 	{
 		FakeVM* tmpVM=newTmpFakeVM(NULL);
-		VMenv* tmpGlob=genGlobEnv(curEnv,t,tmpVM->heap);
+		VMenv* tmpGlob=genGlobEnv(tmp->macroEnv,t,tmpVM->heap);
 		if(!tmpGlob)
 		{
 			destroyEnv(macroEnv);
@@ -196,6 +197,46 @@ int PreMacroExpand(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 	return 0;
 }
 
+static int addDefinedMacro(PreMacro* macro,CompEnv* curEnv)
+{
+	AST_cptr* tmpCptr=NULL;
+	PreMacro* current=curEnv->macro;
+	AST_cptr* pattern=macro->pattern;
+	while(current!=NULL&&!MacroPatternCmp(macro->pattern,current->pattern))
+		current=current->next;
+	if(current==NULL)
+	{
+		for(tmpCptr=&pattern->u.pair->car;tmpCptr!=NULL;tmpCptr=nextCptr(tmpCptr))
+		{
+			if(tmpCptr->type==ATM)
+			{
+				AST_atom* carAtm=tmpCptr->u.atom;
+				AST_atom* cdrAtm=(tmpCptr->outer->cdr.type==ATM)?tmpCptr->outer->cdr.u.atom:NULL;
+				if(carAtm->type==SYM&&!isVal(carAtm->value.str))addKeyWord(carAtm->value.str,curEnv);
+				if(cdrAtm!=NULL&&cdrAtm->type==SYM&&!isVal(cdrAtm->value.str))addKeyWord(cdrAtm->value.str,curEnv);
+			}
+		}
+		PreMacro* current=(PreMacro*)malloc(sizeof(PreMacro));
+		FAKE_ASSERT(current,"addDefinedMacro",__FILE__,__LINE__);
+		current->next=curEnv->macro;
+		current->pattern=pattern;
+		current->proc=macro->proc;
+		current->macroEnv=macro->macroEnv;
+		curEnv->macro=current;
+	}
+	else
+	{
+		deleteCptr(current->pattern);
+		destroyCompEnv(current->macroEnv);
+		FREE_ALL_LINE_NUMBER_TABLE(current->proc->l,current->proc->ls);
+		freeByteCodelnt(current->proc);
+		current->pattern=macro->pattern;
+		current->proc=macro->proc;
+		current->macroEnv=macro->macroEnv;
+	}
+	return 0;
+}
+
 int addMacro(AST_cptr* pattern,ByteCodelnt* proc,CompEnv* curEnv)
 {
 	if(pattern->type!=PAIR)return SYNTAXERROR;
@@ -219,6 +260,8 @@ int addMacro(AST_cptr* pattern,ByteCodelnt* proc,CompEnv* curEnv)
 		current->next=curEnv->macro;
 		current->pattern=pattern;
 		current->proc=proc;
+		current->macroEnv=curEnv;
+		curEnv->refcount+=1;
 		curEnv->macro=current;
 	}
 	else
@@ -555,7 +598,7 @@ ErrorStatus defmacro(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 		Intpr* tmpInter=newTmpIntpr(NULL,NULL);
 		tmpInter->filename=inter->filename;
 		tmpInter->curline=inter->curline;
-		tmpInter->glob=(curEnv->prev&&curEnv->prev->exp)?curEnv->prev:curEnv;
+		tmpInter->glob=/*(curEnv->prev&&curEnv->prev->exp)?curEnv->prev:*/curEnv;
 		tmpInter->curDir=inter->curDir;
 		tmpInter->prev=NULL;
 		tmpInter->lnt=NULL;
@@ -563,10 +606,7 @@ ErrorStatus defmacro(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 		ByteCodelnt* tmpByteCodelnt=compile(express,tmpCompEnv,tmpInter,&status,1);
 		if(!status.status)
 		{
-			if(curEnv->prev&&curEnv->prev->exp)
-				addMacro(pattern,tmpByteCodelnt,curEnv->prev);
-			else
-				addMacro(pattern,tmpByteCodelnt,curEnv);
+			addMacro(pattern,tmpByteCodelnt,curEnv);
 			free(args);
 		}
 		else
@@ -617,7 +657,7 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 		status.place=NULL;
 		status.status=0;
 	}
-	destroyCompEnv(tmpCompEnv);
+	freeAllMacroThenDestroyCompEnv(tmpCompEnv);
 	free(tmpInter);
 	return tmp;
 }
@@ -659,7 +699,7 @@ StringMatchPattern* addReDefStringPattern(char** parts,int32_t num,AST_cptr* exp
 		status.place=NULL;
 		status.status=0;
 	}
-	destroyCompEnv(tmpCompEnv);
+	freeAllMacroThenDestroyCompEnv(tmpCompEnv);
 	free(tmpInter);
 	return tmp;
 }
@@ -1213,15 +1253,21 @@ ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 				*(Sid_t*)(popVar->code+sizeof(char)+sizeof(int32_t))=tmpDef->id;
 				codeCat(tmp1Copy->bc,pushTop);
 				codeCat(tmp1Copy->bc,popVar);
+				tmp1Copy->l[tmp1Copy->ls-1]->cpc+=(popVar->size+pushTop->size);
+				codelntCopyCat(curEnv->prev->proc,tmp1Copy);
+				FREE_ALL_LINE_NUMBER_TABLE(tmp1Copy->l,tmp1Copy->ls);
+				freeByteCodelnt(tmp1Copy);
+				tmp1Copy=copyByteCodelnt(tmp1);
 				codeCat(tmp1Copy->bc,pushTop);
 				*(int32_t*)(popVar->code+sizeof(char))=(int32_t)0;
 				*(Sid_t*)(popVar->code+sizeof(char)+sizeof(int32_t))=addCompDef(tmpAtm->value.str,curEnv)->id;
+				codeCat(tmp1Copy->bc,popVar);
 				codeCat(tmp1->bc,pushTop);
 				codeCat(tmp1->bc,popVar);
 				tmp1->l[tmp1->ls-1]->cpc+=(popVar->size+pushTop->size);
 				codeCat(tmp1Copy->bc,popVar);
-				tmp1Copy->l[tmp1Copy->ls-1]->cpc+=(popVar->size*2+pushTop->size*2);
-				codelntCopyCat(curEnv->prev->proc,tmp1Copy);
+				tmp1Copy->l[tmp1Copy->ls-1]->cpc+=(popVar->size+pushTop->size);
+				codelntCopyCat(curEnv->proc,tmp1Copy);
 				freeByteCode(popVar);
 			}
 			else
@@ -1303,17 +1349,18 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			id=tmpDef->id;
 		*(int32_t*)(popVar->code+sizeof(char))=scope;
 		*(Sid_t*)(popVar->code+sizeof(char)+sizeof(int32_t))=id;
+		ByteCodelnt* tmp1Copy=copyByteCodelnt(tmp1);
 		codeCat(tmp1->bc,pushTop);
 		codeCat(tmp1->bc,popVar);
 		tmp1->l[tmp1->ls-1]->cpc+=(pushTop->size+popVar->size);
 		if(!scope&&tmpDef&&(isConst(objCptr)||isLambdaExpression(objCptr)))
 		{
-			ByteCodelnt* tmp1Copy=copyByteCodelnt(tmp1);
-			if(tmpEnv->prev&&tmpEnv->prev->exp&&tmpEnv->prefix)
+			codelntCopyCat(curEnv->proc,tmp1);
+			if(tmpEnv->prev&&tmpEnv->prev->exp&&tmpEnv->prev->prefix)
 			{
 				ByteCode* popVar=newByteCode(sizeof(char)+sizeof(int32_t)+sizeof(Sid_t));
 				popVar->code[0]=FAKE_POP_VAR;
-				*(int32_t*)(popVar->code+sizeof(char))=scope;
+				*(int32_t*)(popVar->code+sizeof(char))=scope+1;
 				char* symbolWithPrefix=copyStr(tmpEnv->prev->prefix);
 				symbolWithPrefix=strCat(symbolWithPrefix,tmpAtm->value.str);
 				*(Sid_t*)(popVar->code+sizeof(char)+sizeof(int32_t))=findCompDef(symbolWithPrefix,tmpEnv->prev)->id;
@@ -1322,13 +1369,11 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 				codeCat(tmp1Copy->bc,popVar);
 				tmp1Copy->l[tmp1Copy->ls-1]->cpc+=(pushTop->size+popVar->size);
 				freeByteCode(popVar);
-				codelntCopyCat(tmpEnv->prev->proc,tmp1Copy);
+				codelntCopyCat(tmpEnv->proc,tmp1Copy);
 			}
-			else
-				codelntCopyCat(curEnv->proc,tmp1Copy);
-			FREE_ALL_LINE_NUMBER_TABLE(tmp1Copy->l,tmp1Copy->ls);
-			freeByteCodelnt(tmp1Copy);
 		}
+		FREE_ALL_LINE_NUMBER_TABLE(tmp1Copy->l,tmp1Copy->ls);
+		freeByteCodelnt(tmp1Copy);
 		if(tmpEnv->prev&&tmpEnv->prev->exp&&scope!=-1&&isSymbolShouldBeExport(tmpAtm->value.str,tmpEnv->prev->exp,tmpEnv->prev->n))
 		{
 			*(int32_t*)(popVar->code+sizeof(char))=scope+1;
@@ -2030,7 +2075,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				status->place=tmpCptr;
 				freeByteCode(popArg);
 				freeByteCode(popRestArg);
-				destroyCompEnv(tmpEnv);
+				freeAllMacroThenDestroyCompEnv(tmpEnv);
 				return NULL;
 			}
 			CompDef* tmpDef=addCompDef(tmpAtm->value.str,tmpEnv);
@@ -2045,7 +2090,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 					status->place=tmpCptr;
 					freeByteCode(popArg);
 					freeByteCode(popRestArg);
-					destroyCompEnv(tmpEnv);
+					freeAllMacroThenDestroyCompEnv(tmpEnv);
 					return NULL;
 				}
 				tmpDef=addCompDef(tmpAtom1->value.str,tmpEnv);
@@ -2064,7 +2109,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			status->place=tmpCptr;
 			freeByteCode(popArg);
 			freeByteCode(popRestArg);
-			destroyCompEnv(tmpEnv);
+			freeAllMacroThenDestroyCompEnv(tmpEnv);
 			return NULL;
 		}
 		CompDef* tmpDef=addCompDef(tmpAtm->value.str,tmpEnv);
@@ -2097,7 +2142,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			FREE_ALL_LINE_NUMBER_TABLE(codeOfLambda->l,codeOfLambda->ls);
 			freeByteCode(resTp);
 			freeByteCodelnt(codeOfLambda);
-			destroyCompEnv(tmpEnv);
+			freeAllMacroThenDestroyCompEnv(tmpEnv);
 			return NULL;
 		}
 		if(nextCptr(objCptr)!=NULL)
@@ -2122,7 +2167,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	toReturn->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
 	FAKE_ASSERT(toReturn->l,"compileLambda",__FILE__,__LINE__);
 	toReturn->l[0]=newLineNumTabNode(addSymbolToGlob(inter->filename)->id,0,pushProc->size,line);
-	destroyCompEnv(tmpEnv);
+	freeAllMacroThenDestroyCompEnv(tmpEnv);
 	codelntCat(toReturn,codeOfLambda);
 	freeByteCodelnt(codeOfLambda);
 	return toReturn;
@@ -3015,6 +3060,7 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 					AST_cptr* libName=nextCptr(getFirstCptr(begin));
 					if(AST_cptrcmp(libName,pairOfpPartsOfPath))
 					{
+						CompEnv* tmpCurEnv=newCompEnv(tmpInter->glob);
 						AST_cptr* exportCptr=nextCptr(libName);
 						if(!exportCptr||!isExportExpression(exportCptr))
 						{
@@ -3071,7 +3117,6 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 							tmpInter->glob->prefix=libPrefix;
 							tmpInter->glob->exp=exportSymbols;
 							tmpInter->glob->n=num;
-							CompEnv* tmpCurEnv=newCompEnv(tmpInter->glob);
 							for(;pBody;pBody=nextCptr(pBody))
 							{
 								ByteCodelnt* otherByteCodelnt=compile(pBody,tmpCurEnv,tmpInter,status,1);
@@ -3103,7 +3148,6 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 								codelntCat(libByteCodelnt,otherByteCodelnt);
 								freeByteCodelnt(otherByteCodelnt);
 							}
-							destroyCompEnv(tmpCurEnv);
 							reCodeCat(setTp,libByteCodelnt->bc);
 							if(!libByteCodelnt->l)
 							{
@@ -3195,15 +3239,17 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 							free(symbolWouldExport);
 						}
 						codelntCopyCat(curEnv->proc,tmpInter->glob->proc);
-						PreMacro* headOfMacroOfImportedFile=tmpInter->glob->macro;
+						PreMacro* headOfMacroOfImportedFile=tmpCurEnv->macro;
 						while(headOfMacroOfImportedFile)
 						{
+							addDefinedMacro(headOfMacroOfImportedFile,curEnv);
 							PreMacro* prev=headOfMacroOfImportedFile;
-							addMacro(prev->pattern,prev->proc,curEnv);
 							headOfMacroOfImportedFile=headOfMacroOfImportedFile->next;
 							free(prev);
 						}
+						destroyCompEnv(tmpCurEnv);
 						tmpInter->glob->macro=NULL;
+						tmpCurEnv->macro=NULL;
 						deleteCptr(begin);
 						free(begin);
 						free(list);
@@ -3333,7 +3379,7 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 				FREE_ALL_LINE_NUMBER_TABLE(expressionByteCodelnt->l,expressionByteCodelnt->ls);
 				freeByteCodelnt(expressionByteCodelnt);
 				freeComStack(handlerByteCodelntStack);
-				destroyCompEnv(tmpEnv);
+				freeAllMacroThenDestroyCompEnv(tmpEnv);
 				return NULL;
 			}
 			if(!t)
@@ -3348,7 +3394,7 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 				freeByteCode(resTp);
 			}
 		}
-		destroyCompEnv(tmpEnv);
+		freeAllMacroThenDestroyCompEnv(tmpEnv);
 		ByteCode* setTp=newByteCode(1);
 		ByteCode* popTp=newByteCode(1);
 		setTp->code[0]=FAKE_SET_TP;

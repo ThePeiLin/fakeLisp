@@ -11,14 +11,14 @@
     (let loop ((c body))
       (cond (c
               (letcc break
-                     (define segmentId (car (car c)))
-                     (define segmentData (cdr (car c)))
-                     (if (and (not (eq segmentId 'data))
-                              (not (eq segmentId 'method)))
+                     (define segment-id (car (car c)))
+                     (define segment-data (cdr (car c)))
+                     (if (and (not (eq segment-id 'data))
+                              (not (eq segment-id 'method)))
                        (break nil))
-                     (case segmentId
-                       (('data) (setf data-list (append data-list segmentData)))
-                       (('method) (setf pre-method-list (append pre-method-list segmentData)))))
+                     (case segment-id
+                       (('data) (setf data-list (append data-list segment-data)))
+                       (('method) (setf pre-method-list (append pre-method-list segment-data)))))
               (loop (cdr c)))))
 
     (let loop ((c data-list))
@@ -28,10 +28,10 @@
 
     (let loop ((c pre-method-list))
       (cond (c
-              (let ((methodName (car (car c))))
-                (cond ((not (eq methodName name))
-                       (setf method-list (cons `(~methodName (lambda ~@(cdr (car c)))) method-list))
-                       (setf case-list (cons `(((quote ~methodName)) ~methodName) case-list)))
+              (let ((method-name (car (car c))))
+                (cond ((not (eq method-name name))
+                       (setf method-list (cons `(~method-name (lambda ~@(cdr (car c)))) method-list))
+                       (setf case-list (cons `(((quote ~method-name)) ~method-name) case-list)))
                       (1
                        (setf construct-method (cdr (car c))))))
               (loop (cdr c)))))
@@ -74,11 +74,11 @@
                (setq X (dbl x))
                (setq Y (dbl y))
                (setq Z (dbl z)))
-         (setX (x)
+         (set-X (x)
                (setq X (dbl x)))
-         (setY (y)
+         (set-Y (y)
                (setq Y (dbl y)))
-         (setZ (z)
+         (set-Z (z)
                (setq Z (dbl z)))))
 
 
@@ -89,9 +89,9 @@
        " Z:" (i 'Z)
        #\\n)
 
-((i 'setX) 9)
-((i 'setY) 8)
-((i 'setZ) 7)
+((i 'set-X) 9)
+((i 'set-Y) 8)
+((i 'set-Z) 7)
 
 (print " X:" (i 'X)
        " Y:" (i 'Y)

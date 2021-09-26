@@ -2,7 +2,7 @@
 
 (define code nil)
 
-(define (readCode fp)
+(define (read-code fp)
   (str (append (let loop ((s nil)
                         (c (getb 1 fp)))
                (if c
@@ -13,7 +13,7 @@
   (setq code "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.")
   (setq code
         (let ((fp (file (str (nth 1 (argv))) "rb")))
-          (readCode fp))))
+          (read-code fp))))
 
 (define m #b00)
 

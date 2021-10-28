@@ -50,10 +50,7 @@
              (lambda (selector)
                (case selector
                  ~@case-list)))
-           (progn
-             push_var this
-             pop_env 1
-             ))))))
+           )))))
 
 (define print
   (lambda l

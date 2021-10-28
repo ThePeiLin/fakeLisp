@@ -1,5 +1,3 @@
-#define USE_CODE_NAME
-
 #include"compiler.h"
 #include"syntax.h"
 #include"common.h"
@@ -92,22 +90,22 @@ static int cmpString(const void* a,const void* b)
 	return strcmp(*(const char**)a,*(const char**)b);
 }
 
-static int cmpByteCodeLabel(const void* a,const void* b)
-{
-	return strcmp(((const ByteCodeLabel*)a)->label,((const ByteCodeLabel*)b)->label);
-}
-
-static uint8_t findOpcode(const char* str)
-{
-	uint8_t i=0;
-	uint32_t size=sizeof(codeName)/sizeof(codeinfor);
-	for(;i<size;i++)
-	{
-		if(!strcmp(codeName[i].codeName,str))
-			return i;
-	}
-	return 0;
-}
+//static int cmpByteCodeLabel(const void* a,const void* b)
+//{
+//	return strcmp(((const ByteCodeLabel*)a)->label,((const ByteCodeLabel*)b)->label);
+//}
+//
+//static uint8_t findOpcode(const char* str)
+//{
+//	uint8_t i=0;
+//	uint32_t size=sizeof(codeName)/sizeof(codeinfor);
+//	for(;i<size;i++)
+//	{
+//		if(!strcmp(codeName[i].codeName,str))
+//			return i;
+//	}
+//	return 0;
+//}
 
 PreMacro* PreMacroMatch(const AST_cptr* objCptr,PreEnv** pmacroEnv,CompEnv* curEnv,CompEnv** pCEnv)
 {
@@ -523,7 +521,7 @@ void initGlobKeyWord(CompEnv* glob)
 	addKeyWord("unquote",glob);
 	addKeyWord("qsquote",glob);
 	addKeyWord("unqtesp",glob);
-	addKeyWord("progn",glob);
+	//addKeyWord("progn",glob);
 	addKeyWord("import",glob);
 	addKeyWord("library",glob);
 	addKeyWord("export",glob);
@@ -723,7 +721,7 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 		if(isOrExpression(objCptr))return compileOr(objCptr,curEnv,inter,status,evalIm);
 		if(isLambdaExpression(objCptr))return compileLambda(objCptr,curEnv,inter,status,evalIm);
 		if(isBeginExpression(objCptr)) return compileBegin(objCptr,curEnv,inter,status,evalIm);
-		if(isPrognExpression(objCptr)) return compileProgn(objCptr,curEnv,inter,status,evalIm);
+		//if(isPrognExpression(objCptr)) return compileProgn(objCptr,curEnv,inter,status,evalIm);
 		if(isImportExpression(objCptr))return compileImport(objCptr,curEnv,inter,status,evalIm);
 		if(isTryExpression(objCptr))return compileTry(objCptr,curEnv,inter,status,evalIm);
 		if(isLibraryExpression(objCptr))
@@ -2417,6 +2415,7 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 	return tmp;
 }
 
+/*
 #define GENERATE_LNT(BYTECODELNT,BYTECODE) {\
 	BYTECODELNT=newByteCodelnt(BYTECODE);\
 	(BYTECODELNT)->ls=1;\
@@ -2424,449 +2423,450 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 	FAKE_ASSERT((BYTECODELNT)->l,"compileProgn",__FILE__,__LINE__);\
 	(BYTECODELNT)->l[0]=newLineNumTabNode(fid,0,(BYTECODE)->size,fir->curline);\
 }
+*/
 
-ByteCodelnt* compileProgn(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
-{
-	AST_cptr* fir=nextCptr(getFirstCptr(objCptr));
-	ByteCodelnt* tmp=NULL;
-
-	ComStack* stack=newComStack(32);
-	for(;fir;fir=nextCptr(fir))
-	{
-		if(fir->type!=ATM)
-		{
-			status->place=objCptr;
-			status->status=SYNTAXERROR;
-			return NULL;
-		}
-	}
-	
-	int32_t fid=addSymbolToGlob(inter->filename)->id;
-	fir=nextCptr(getFirstCptr(objCptr));
-
-	int32_t sizeOfByteCode=0;
-
-	while(fir)
-	{
-		AST_atom* firAtm=fir->u.atom;
-		if(firAtm->value.str[0]==':')
-		{
-			pushComStack(newByteCodeLable(sizeOfByteCode,firAtm->value.str+1),stack);
-			fir=nextCptr(fir);
-			continue;
-		}
-
-		if(firAtm->value.str[0]=='?')
-		{
-			addCompDef(firAtm->value.str+1,curEnv);
-			fir=nextCptr(fir);
-			continue;
-		}
-
-		uint8_t opcode=findOpcode(firAtm->value.str);
-
-		if(opcode==0)
-		{
-			status->place=fir;
-			status->status=SYNTAXERROR;
-			uint32_t i=0;
-			for(;i<stack->top;i++)
-				freeByteCodeLabel(stack->data[i]);
-			freeComStack(stack);
-			return NULL;
-		}
-
-		if(codeName[opcode].len!=0&&nextCptr(fir)==NULL)
-		{
-			status->place=objCptr;
-			status->status=SYNTAXERROR;
-			uint32_t i=0;
-			for(;i<stack->top;i++)
-				freeByteCodeLabel(stack->data[i]);
-			freeComStack(stack);
-
-			return NULL;
-		}
-
-		switch(codeName[opcode].len)
-		{
-			case -3:
-				{
-					AST_cptr* tmpCptr=nextCptr(fir);
-					AST_atom* tmpAtm=tmpCptr->u.atom;
-					int32_t scope=0;
-					CompEnv* tmpEnv=curEnv;
-					CompDef* tmpDef=NULL;
-
-					if(tmpAtm->type!=SYM)
-					{
-						status->place=objCptr;
-						status->status=SYNTAXERROR;
-						uint32_t i=0;
-						for(;i<stack->top;i++)
-							freeByteCodeLabel(stack->data[i]);
-						freeComStack(stack);
-						return NULL;
-					}
-
-					while(tmpEnv!=NULL)
-					{
-						tmpDef=findCompDef(tmpAtm->value.str,tmpEnv);
-						if(tmpDef!=NULL)break;
-						tmpEnv=tmpEnv->prev;
-						scope++;
-					}
-
-					if(!tmpDef)
-					{
-						status->place=tmpCptr;
-						status->status=SYMUNDEFINE;
-						uint32_t i=0;
-						for(;i<stack->top;i++)
-							freeByteCodeLabel(stack->data[i]);
-						freeComStack(stack);
-						return NULL;
-					}
-					sizeOfByteCode+=sizeof(char)+2*sizeof(int32_t);
-					fir=nextCptr(tmpCptr);
-				}
-				break;
-			case -2:
-				{
-					AST_cptr* tmpCptr=nextCptr(fir);
-					AST_atom* tmpAtm=tmpCptr->u.atom;
-					if(tmpAtm->type!=BYTS)
-					{
-						status->place=tmpCptr;
-						status->status=SYNTAXERROR;
-						uint32_t i=0;
-						for(;i<stack->top;i++)
-							freeByteCodeLabel(stack->data[i]);
-						freeComStack(stack);
-						return NULL;
-					}
-
-					sizeOfByteCode+=sizeof(char)+sizeof(int32_t)+tmpAtm->value.byts.size;
-					fir=nextCptr(tmpCptr);
-				}
-				break;
-			case -1:
-				{
-					AST_cptr* tmpCptr=nextCptr(fir);
-					AST_atom* tmpAtm=tmpCptr->u.atom;
-					if(tmpAtm->type!=SYM&&tmpAtm->type!=STR)
-					{
-						status->place=tmpCptr;
-						status->status=SYNTAXERROR;
-						uint32_t i=0;
-						for(;i<stack->top;i++)
-							freeByteCodeLabel(stack->data[i]);
-						freeComStack(stack);
-						return NULL;
-					}
-
-					sizeOfByteCode+=sizeof(char)*2+strlen(tmpAtm->value.str);
-					fir=nextCptr(tmpCptr);
-				}
-				break;
-			case 0:
-				{
-					sizeOfByteCode+=sizeof(char);
-					fir=nextCptr(fir);
-				}
-				break;
-			case 1:
-				{
-					AST_cptr* tmpCptr=nextCptr(fir);
-					AST_atom* tmpAtm=tmpCptr->u.atom;
-					if(tmpAtm->type!=CHR)
-					{
-						status->place=tmpCptr;
-						status->status=SYNTAXERROR;
-						uint32_t i=0;
-						for(;i<stack->top;i++)
-							freeByteCodeLabel(stack->data[i]);
-						freeComStack(stack);
-						return NULL;
-					}
-
-					sizeOfByteCode+=sizeof(char)*2;
-					fir=nextCptr(tmpCptr);
-				}
-				break;
-			case 4:
-				{
-					AST_cptr* tmpCptr=nextCptr(fir);
-					AST_atom* tmpAtm=tmpCptr->u.atom;
-					if(opcode==FAKE_PUSH_VAR)
-					{
-						CompEnv* tmpEnv=curEnv;
-						CompDef* tmpDef=NULL;
-						if(tmpAtm->type!=STR&&tmpAtm->type!=SYM)
-						{
-							status->place=tmpCptr;
-							status->status=SYMUNDEFINE;
-							uint32_t i=0;
-							for(;i<stack->top;i++)
-								freeByteCodeLabel(stack->data[i]);
-							freeComStack(stack);
-							return NULL;
-						}
-						while(tmpEnv!=NULL)
-						{
-							tmpDef=findCompDef(tmpAtm->value.str,tmpEnv);
-							if(tmpDef!=NULL)break;
-							tmpEnv=tmpEnv->prev;
-						}
-						if(!tmpDef)
-						{
-							status->place=tmpCptr;
-							status->status=SYMUNDEFINE;
-							uint32_t i=0;
-							for(;i<stack->top;i++)
-								freeByteCodeLabel(stack->data[i]);
-							freeComStack(stack);
-							return NULL;
-						}
-					}
-					else if(opcode==FAKE_PUSH_SYM)
-					{
-						if(tmpAtm->type!=SYM)
-						{
-							status->place=tmpCptr;
-							status->status=SYNTAXERROR;
-							uint32_t i=0;
-							for(;i<stack->top;i++)
-								freeByteCodeLabel(stack->data[i]);
-							freeComStack(stack);
-							return NULL;
-						}
-						addSymbolToGlob(tmpAtm->value.str);
-					}
-					else if(opcode==FAKE_JMP||opcode==FAKE_JMP_IF_FALSE||opcode==FAKE_JMP_IF_TRUE)
-					{
-						if(tmpAtm->type!=SYM&&tmpAtm->type!=STR)
-						{
-							status->place=tmpCptr;
-							status->status=SYNTAXERROR;
-							uint32_t i=0;
-							for(;i<stack->top;i++)
-								freeByteCodeLabel(stack->data[i]);
-							freeComStack(stack);
-							return NULL;
-						}
-					}
-					else
-					{
-						if(tmpAtm->type!=IN32)
-						{
-							status->place=tmpCptr;
-							status->status=SYNTAXERROR;
-							uint32_t i=0;
-							for(;i<stack->top;i++)
-								freeByteCodeLabel(stack->data[i]);
-							freeComStack(stack);
-							return NULL;
-						}
-					}
-					sizeOfByteCode+=sizeof(char)+sizeof(int32_t);
-					fir=nextCptr(tmpCptr);
-				}
-				break;
-			case 8:
-				{
-					AST_cptr* tmpCptr=nextCptr(fir);
-					AST_atom* tmpAtm=tmpCptr->u.atom;
-					if(opcode!=FAKE_PUSH_DBL&&tmpAtm->type!=DBL&&tmpAtm->type!=IN64)
-					{
-						status->place=tmpCptr;
-						status->status=SYNTAXERROR;
-						uint32_t i=0;
-						for(;i<stack->top;i++)
-							freeByteCodeLabel(stack->data[i]);
-						freeComStack(stack);
-						return NULL;
-					}
-
-					sizeOfByteCode+=sizeof(char)+sizeof(double);
-					fir=nextCptr(tmpCptr);
-				}
-				break;
-		}
-	}
-
-	mergeSort(stack->data,stack->top,sizeof(void*),cmpByteCodeLabel);
-	fir=nextCptr(getFirstCptr(objCptr));
-	tmp=newByteCodelnt(newByteCode(0));
-	while(fir)
-	{
-		AST_atom* firAtm=fir->u.atom;
-		if(firAtm->value.str[0]==':'||firAtm->value.str[0]=='?')
-		{
-			fir=nextCptr(fir);
-			continue;
-		}
-		uint8_t opcode=findOpcode(firAtm->value.str);
-
-		ByteCodelnt* tmpByteCodelnt=NULL;
-		switch(codeName[opcode].len)
-		{
-			case -3:
-				{
-					AST_cptr* tmpCptr=nextCptr(fir);
-					AST_atom* tmpAtm=tmpCptr->u.atom;
-					int32_t scope=0;
-					CompEnv* tmpEnv=curEnv;
-					CompDef* tmpDef=NULL;
-
-					while(tmpEnv!=NULL)
-					{
-						tmpDef=findCompDef(tmpAtm->value.str,tmpEnv);
-						if(tmpDef!=NULL)break;
-						tmpEnv=tmpEnv->prev;
-						scope++;
-					}
-
-					ByteCode* tmpByteCode=newByteCode(sizeof(char)+2*sizeof(int32_t));
-					tmpByteCode->code[0]=opcode;
-					*((int32_t*)(tmpByteCode->code+sizeof(char)))=scope;
-					*((int32_t*)(tmpByteCode->code+sizeof(char)+sizeof(int32_t)))=tmpDef->id;
-
-					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
-					fir=nextCptr(tmpCptr);
-				}
-				break;
-			case -2:
-				{
-					AST_cptr* tmpCptr=nextCptr(fir);
-					AST_atom* tmpAtm=tmpCptr->u.atom;
-
-					ByteCode* tmpByteCode=newByteCode(sizeof(char)+sizeof(int32_t)+tmpAtm->value.byts.size);
-					tmpByteCode->code[0]=opcode;
-					*((int32_t*)(tmpByteCode->code+sizeof(char)))=tmpAtm->value.byts.size;
-					memcpy(tmpByteCode->code+sizeof(char)+sizeof(int32_t),tmpAtm->value.byts.str,tmpAtm->value.byts.size);
-
-					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
-					fir=nextCptr(tmpCptr);
-				}
-				break;
-			case -1:
-				{
-					AST_cptr* tmpCptr=nextCptr(fir);
-					AST_atom* tmpAtm=tmpCptr->u.atom;
-
-					ByteCode* tmpByteCode=newByteCode(sizeof(char)*2+strlen(tmpAtm->value.str));
-					tmpByteCode->code[0]=opcode;
-					strcpy((char*)tmpByteCode->code+sizeof(char),tmpAtm->value.str);
-
-					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
-					fir=nextCptr(tmpCptr);
-				}
-				break;
-			case 0:
-				{
-					ByteCode* tmpByteCode=newByteCode(sizeof(char));
-					tmpByteCode->code[0]=opcode;
-
-					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
-					fir=nextCptr(fir);
-				}
-				break;
-			case 1:
-				{
-					AST_cptr* tmpCptr=nextCptr(fir);
-					AST_atom* tmpAtm=tmpCptr->u.atom;
-
-					ByteCode* tmpByteCode=newByteCode(sizeof(char)*2);
-
-					tmpByteCode->code[0]=opcode;
-					tmpByteCode->code[1]=tmpAtm->value.chr;
-					
-					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
-					fir=nextCptr(tmpCptr);
-				}
-				break;
-			case 4:
-				{
-					AST_cptr* tmpCptr=nextCptr(fir);
-					AST_atom* tmpAtm=tmpCptr->u.atom;
-					ByteCode* tmpByteCode=NULL;
-					if(opcode==FAKE_PUSH_VAR)
-					{
-						CompEnv* tmpEnv=curEnv;
-						CompDef* tmpDef=NULL;
-						while(tmpEnv!=NULL)
-						{
-							tmpDef=findCompDef(tmpAtm->value.str,tmpEnv);
-							if(tmpDef!=NULL)break;
-							tmpEnv=tmpEnv->prev;
-						}
-						tmpByteCode=newByteCode(sizeof(char)+sizeof(int32_t));
-						tmpByteCode->code[0]=opcode;
-						*((int32_t*)(tmpByteCode->code+sizeof(char)))=tmpDef->id;
-					}
-					else if(opcode==FAKE_PUSH_SYM)
-					{
-						tmpByteCode=newByteCode(sizeof(char)+sizeof(Sid_t));
-						tmpByteCode->code[0]=opcode;
-						*(Sid_t*)(tmpByteCode->code+sizeof(char))=addSymbolToGlob(tmpAtm->value.str)->id;
-					}
-					else if(opcode==FAKE_JMP||opcode==FAKE_JMP_IF_TRUE||opcode==FAKE_JMP_IF_FALSE)
-					{
-						ByteCodeLabel* label=findByteCodeLabel(tmpAtm->value.str,stack);
-						if(label==NULL)
-						{
-							status->place=tmpCptr;
-							status->status=SYMUNDEFINE;
-							freeByteCodelnt(tmp);
-							uint32_t i=0;
-							for(;i<stack->top;i++)
-								freeByteCodeLabel(stack->data[i]);
-							freeComStack(stack);
-							return NULL;
-						}
-						tmpByteCode=newByteCode(sizeof(char)+sizeof(int32_t));
-						tmpByteCode->code[0]=opcode;
-						*((int32_t*)(tmpByteCode->code+sizeof(char)))=label->place-tmp->bc->size-5;
-					}
-					else
-					{
-						tmpByteCode=newByteCode(sizeof(char)+sizeof(int32_t));
-						tmpByteCode->code[0]=opcode;
-						*((int32_t*)(tmpByteCode->code+sizeof(char)))=tmpAtm->value.in32;
-					}
-					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
-					fir=nextCptr(tmpCptr);
-				}
-				break;
-			case 8:
-				{
-					AST_cptr* tmpCptr=nextCptr(fir);
-					AST_atom* tmpAtm=tmpCptr->u.atom;
-
-					ByteCode* tmpByteCode=newByteCode(sizeof(char)+sizeof(double));
-
-					tmpByteCode->code[0]=opcode;
-					if(opcode==FAKE_PUSH_DBL)
-						*((double*)(tmpByteCode->code+sizeof(char)))=(tmpAtm->type==DBL)?tmpAtm->value.dbl:tmpAtm->value.in64;
-					else
-						*((int64_t*)(tmpByteCode->code+sizeof(char)))=(tmpAtm->type==DBL)?tmpAtm->value.dbl:tmpAtm->value.in64;
-
-					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
-					fir=nextCptr(tmpCptr);
-
-				}
-				break;
-		}
-		codelntCat(tmp,tmpByteCodelnt);
-		freeByteCodelnt(tmpByteCodelnt);
-	}
-	uint32_t i=0;
-	for(;i<stack->top;i++)
-		freeByteCodeLabel(stack->data[i]);
-	freeComStack(stack);
-	return tmp;
-}
+//ByteCodelnt* compileProgn(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+//{
+//	AST_cptr* fir=nextCptr(getFirstCptr(objCptr));
+//	ByteCodelnt* tmp=NULL;
+//
+//	ComStack* stack=newComStack(32);
+//	for(;fir;fir=nextCptr(fir))
+//	{
+//		if(fir->type!=ATM)
+//		{
+//			status->place=objCptr;
+//			status->status=SYNTAXERROR;
+//			return NULL;
+//		}
+//	}
+//
+//	int32_t fid=addSymbolToGlob(inter->filename)->id;
+//	fir=nextCptr(getFirstCptr(objCptr));
+//
+//	int32_t sizeOfByteCode=0;
+//
+//	while(fir)
+//	{
+//		AST_atom* firAtm=fir->u.atom;
+//		if(firAtm->value.str[0]==':')
+//		{
+//			pushComStack(newByteCodeLable(sizeOfByteCode,firAtm->value.str+1),stack);
+//			fir=nextCptr(fir);
+//			continue;
+//		}
+//
+//		if(firAtm->value.str[0]=='?')
+//		{
+//			addCompDef(firAtm->value.str+1,curEnv);
+//			fir=nextCptr(fir);
+//			continue;
+//		}
+//
+//		uint8_t opcode=findOpcode(firAtm->value.str);
+//
+//		if(opcode==0)
+//		{
+//			status->place=fir;
+//			status->status=SYNTAXERROR;
+//			uint32_t i=0;
+//			for(;i<stack->top;i++)
+//				freeByteCodeLabel(stack->data[i]);
+//			freeComStack(stack);
+//			return NULL;
+//		}
+//
+//		if(codeName[opcode].len!=0&&nextCptr(fir)==NULL)
+//		{
+//			status->place=objCptr;
+//			status->status=SYNTAXERROR;
+//			uint32_t i=0;
+//			for(;i<stack->top;i++)
+//				freeByteCodeLabel(stack->data[i]);
+//			freeComStack(stack);
+//
+//			return NULL;
+//		}
+//
+//		switch(codeName[opcode].len)
+//		{
+//			case -3:
+//				{
+//					AST_cptr* tmpCptr=nextCptr(fir);
+//					AST_atom* tmpAtm=tmpCptr->u.atom;
+//					int32_t scope=0;
+//					CompEnv* tmpEnv=curEnv;
+//					CompDef* tmpDef=NULL;
+//
+//					if(tmpAtm->type!=SYM)
+//					{
+//						status->place=objCptr;
+//						status->status=SYNTAXERROR;
+//						uint32_t i=0;
+//						for(;i<stack->top;i++)
+//							freeByteCodeLabel(stack->data[i]);
+//						freeComStack(stack);
+//						return NULL;
+//					}
+//
+//					while(tmpEnv!=NULL)
+//					{
+//						tmpDef=findCompDef(tmpAtm->value.str,tmpEnv);
+//						if(tmpDef!=NULL)break;
+//						tmpEnv=tmpEnv->prev;
+//						scope++;
+//					}
+//
+//					if(!tmpDef)
+//					{
+//						status->place=tmpCptr;
+//						status->status=SYMUNDEFINE;
+//						uint32_t i=0;
+//						for(;i<stack->top;i++)
+//							freeByteCodeLabel(stack->data[i]);
+//						freeComStack(stack);
+//						return NULL;
+//					}
+//					sizeOfByteCode+=sizeof(char)+2*sizeof(int32_t);
+//					fir=nextCptr(tmpCptr);
+//				}
+//				break;
+//			case -2:
+//				{
+//					AST_cptr* tmpCptr=nextCptr(fir);
+//					AST_atom* tmpAtm=tmpCptr->u.atom;
+//					if(tmpAtm->type!=BYTS)
+//					{
+//						status->place=tmpCptr;
+//						status->status=SYNTAXERROR;
+//						uint32_t i=0;
+//						for(;i<stack->top;i++)
+//							freeByteCodeLabel(stack->data[i]);
+//						freeComStack(stack);
+//						return NULL;
+//					}
+//
+//					sizeOfByteCode+=sizeof(char)+sizeof(int32_t)+tmpAtm->value.byts.size;
+//					fir=nextCptr(tmpCptr);
+//				}
+//				break;
+//			case -1:
+//				{
+//					AST_cptr* tmpCptr=nextCptr(fir);
+//					AST_atom* tmpAtm=tmpCptr->u.atom;
+//					if(tmpAtm->type!=SYM&&tmpAtm->type!=STR)
+//					{
+//						status->place=tmpCptr;
+//						status->status=SYNTAXERROR;
+//						uint32_t i=0;
+//						for(;i<stack->top;i++)
+//							freeByteCodeLabel(stack->data[i]);
+//						freeComStack(stack);
+//						return NULL;
+//					}
+//
+//					sizeOfByteCode+=sizeof(char)*2+strlen(tmpAtm->value.str);
+//					fir=nextCptr(tmpCptr);
+//				}
+//				break;
+//			case 0:
+//				{
+//					sizeOfByteCode+=sizeof(char);
+//					fir=nextCptr(fir);
+//				}
+//				break;
+//			case 1:
+//				{
+//					AST_cptr* tmpCptr=nextCptr(fir);
+//					AST_atom* tmpAtm=tmpCptr->u.atom;
+//					if(tmpAtm->type!=CHR)
+//					{
+//						status->place=tmpCptr;
+//						status->status=SYNTAXERROR;
+//						uint32_t i=0;
+//						for(;i<stack->top;i++)
+//							freeByteCodeLabel(stack->data[i]);
+//						freeComStack(stack);
+//						return NULL;
+//					}
+//
+//					sizeOfByteCode+=sizeof(char)*2;
+//					fir=nextCptr(tmpCptr);
+//				}
+//				break;
+//			case 4:
+//				{
+//					AST_cptr* tmpCptr=nextCptr(fir);
+//					AST_atom* tmpAtm=tmpCptr->u.atom;
+//					if(opcode==FAKE_PUSH_VAR)
+//					{
+//						CompEnv* tmpEnv=curEnv;
+//						CompDef* tmpDef=NULL;
+//						if(tmpAtm->type!=STR&&tmpAtm->type!=SYM)
+//						{
+//							status->place=tmpCptr;
+//							status->status=SYMUNDEFINE;
+//							uint32_t i=0;
+//							for(;i<stack->top;i++)
+//								freeByteCodeLabel(stack->data[i]);
+//							freeComStack(stack);
+//							return NULL;
+//						}
+//						while(tmpEnv!=NULL)
+//						{
+//							tmpDef=findCompDef(tmpAtm->value.str,tmpEnv);
+//							if(tmpDef!=NULL)break;
+//							tmpEnv=tmpEnv->prev;
+//						}
+//						if(!tmpDef)
+//						{
+//							status->place=tmpCptr;
+//							status->status=SYMUNDEFINE;
+//							uint32_t i=0;
+//							for(;i<stack->top;i++)
+//								freeByteCodeLabel(stack->data[i]);
+//							freeComStack(stack);
+//							return NULL;
+//						}
+//					}
+//					else if(opcode==FAKE_PUSH_SYM)
+//					{
+//						if(tmpAtm->type!=SYM)
+//						{
+//							status->place=tmpCptr;
+//							status->status=SYNTAXERROR;
+//							uint32_t i=0;
+//							for(;i<stack->top;i++)
+//								freeByteCodeLabel(stack->data[i]);
+//							freeComStack(stack);
+//							return NULL;
+//						}
+//						addSymbolToGlob(tmpAtm->value.str);
+//					}
+//					else if(opcode==FAKE_JMP||opcode==FAKE_JMP_IF_FALSE||opcode==FAKE_JMP_IF_TRUE)
+//					{
+//						if(tmpAtm->type!=SYM&&tmpAtm->type!=STR)
+//						{
+//							status->place=tmpCptr;
+//							status->status=SYNTAXERROR;
+//							uint32_t i=0;
+//							for(;i<stack->top;i++)
+//								freeByteCodeLabel(stack->data[i]);
+//							freeComStack(stack);
+//							return NULL;
+//						}
+//					}
+//					else
+//					{
+//						if(tmpAtm->type!=IN32)
+//						{
+//							status->place=tmpCptr;
+//							status->status=SYNTAXERROR;
+//							uint32_t i=0;
+//							for(;i<stack->top;i++)
+//								freeByteCodeLabel(stack->data[i]);
+//							freeComStack(stack);
+//							return NULL;
+//						}
+//					}
+//					sizeOfByteCode+=sizeof(char)+sizeof(int32_t);
+//					fir=nextCptr(tmpCptr);
+//				}
+//				break;
+//			case 8:
+//				{
+//					AST_cptr* tmpCptr=nextCptr(fir);
+//					AST_atom* tmpAtm=tmpCptr->u.atom;
+//					if(opcode!=FAKE_PUSH_DBL&&tmpAtm->type!=DBL&&tmpAtm->type!=IN64)
+//					{
+//						status->place=tmpCptr;
+//						status->status=SYNTAXERROR;
+//						uint32_t i=0;
+//						for(;i<stack->top;i++)
+//							freeByteCodeLabel(stack->data[i]);
+//						freeComStack(stack);
+//						return NULL;
+//					}
+//
+//					sizeOfByteCode+=sizeof(char)+sizeof(double);
+//					fir=nextCptr(tmpCptr);
+//				}
+//				break;
+//		}
+//	}
+//
+//	mergeSort(stack->data,stack->top,sizeof(void*),cmpByteCodeLabel);
+//	fir=nextCptr(getFirstCptr(objCptr));
+//	tmp=newByteCodelnt(newByteCode(0));
+//	while(fir)
+//	{
+//		AST_atom* firAtm=fir->u.atom;
+//		if(firAtm->value.str[0]==':'||firAtm->value.str[0]=='?')
+//		{
+//			fir=nextCptr(fir);
+//			continue;
+//		}
+//		uint8_t opcode=findOpcode(firAtm->value.str);
+//
+//		ByteCodelnt* tmpByteCodelnt=NULL;
+//		switch(codeName[opcode].len)
+//		{
+//			case -3:
+//				{
+//					AST_cptr* tmpCptr=nextCptr(fir);
+//					AST_atom* tmpAtm=tmpCptr->u.atom;
+//					int32_t scope=0;
+//					CompEnv* tmpEnv=curEnv;
+//					CompDef* tmpDef=NULL;
+//
+//					while(tmpEnv!=NULL)
+//					{
+//						tmpDef=findCompDef(tmpAtm->value.str,tmpEnv);
+//						if(tmpDef!=NULL)break;
+//						tmpEnv=tmpEnv->prev;
+//						scope++;
+//					}
+//
+//					ByteCode* tmpByteCode=newByteCode(sizeof(char)+2*sizeof(int32_t));
+//					tmpByteCode->code[0]=opcode;
+//					*((int32_t*)(tmpByteCode->code+sizeof(char)))=scope;
+//					*((int32_t*)(tmpByteCode->code+sizeof(char)+sizeof(int32_t)))=tmpDef->id;
+//
+//					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
+//					fir=nextCptr(tmpCptr);
+//				}
+//				break;
+//			case -2:
+//				{
+//					AST_cptr* tmpCptr=nextCptr(fir);
+//					AST_atom* tmpAtm=tmpCptr->u.atom;
+//
+//					ByteCode* tmpByteCode=newByteCode(sizeof(char)+sizeof(int32_t)+tmpAtm->value.byts.size);
+//					tmpByteCode->code[0]=opcode;
+//					*((int32_t*)(tmpByteCode->code+sizeof(char)))=tmpAtm->value.byts.size;
+//					memcpy(tmpByteCode->code+sizeof(char)+sizeof(int32_t),tmpAtm->value.byts.str,tmpAtm->value.byts.size);
+//
+//					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
+//					fir=nextCptr(tmpCptr);
+//				}
+//				break;
+//			case -1:
+//				{
+//					AST_cptr* tmpCptr=nextCptr(fir);
+//					AST_atom* tmpAtm=tmpCptr->u.atom;
+//
+//					ByteCode* tmpByteCode=newByteCode(sizeof(char)*2+strlen(tmpAtm->value.str));
+//					tmpByteCode->code[0]=opcode;
+//					strcpy((char*)tmpByteCode->code+sizeof(char),tmpAtm->value.str);
+//
+//					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
+//					fir=nextCptr(tmpCptr);
+//				}
+//				break;
+//			case 0:
+//				{
+//					ByteCode* tmpByteCode=newByteCode(sizeof(char));
+//					tmpByteCode->code[0]=opcode;
+//
+//					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
+//					fir=nextCptr(fir);
+//				}
+//				break;
+//			case 1:
+//				{
+//					AST_cptr* tmpCptr=nextCptr(fir);
+//					AST_atom* tmpAtm=tmpCptr->u.atom;
+//
+//					ByteCode* tmpByteCode=newByteCode(sizeof(char)*2);
+//
+//					tmpByteCode->code[0]=opcode;
+//					tmpByteCode->code[1]=tmpAtm->value.chr;
+//
+//					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
+//					fir=nextCptr(tmpCptr);
+//				}
+//				break;
+//			case 4:
+//				{
+//					AST_cptr* tmpCptr=nextCptr(fir);
+//					AST_atom* tmpAtm=tmpCptr->u.atom;
+//					ByteCode* tmpByteCode=NULL;
+//					if(opcode==FAKE_PUSH_VAR)
+//					{
+//						CompEnv* tmpEnv=curEnv;
+//						CompDef* tmpDef=NULL;
+//						while(tmpEnv!=NULL)
+//						{
+//							tmpDef=findCompDef(tmpAtm->value.str,tmpEnv);
+//							if(tmpDef!=NULL)break;
+//							tmpEnv=tmpEnv->prev;
+//						}
+//						tmpByteCode=newByteCode(sizeof(char)+sizeof(int32_t));
+//						tmpByteCode->code[0]=opcode;
+//						*((int32_t*)(tmpByteCode->code+sizeof(char)))=tmpDef->id;
+//					}
+//					else if(opcode==FAKE_PUSH_SYM)
+//					{
+//						tmpByteCode=newByteCode(sizeof(char)+sizeof(Sid_t));
+//						tmpByteCode->code[0]=opcode;
+//						*(Sid_t*)(tmpByteCode->code+sizeof(char))=addSymbolToGlob(tmpAtm->value.str)->id;
+//					}
+//					else if(opcode==FAKE_JMP||opcode==FAKE_JMP_IF_TRUE||opcode==FAKE_JMP_IF_FALSE)
+//					{
+//						ByteCodeLabel* label=findByteCodeLabel(tmpAtm->value.str,stack);
+//						if(label==NULL)
+//						{
+//							status->place=tmpCptr;
+//							status->status=SYMUNDEFINE;
+//							freeByteCodelnt(tmp);
+//							uint32_t i=0;
+//							for(;i<stack->top;i++)
+//								freeByteCodeLabel(stack->data[i]);
+//							freeComStack(stack);
+//							return NULL;
+//						}
+//						tmpByteCode=newByteCode(sizeof(char)+sizeof(int32_t));
+//						tmpByteCode->code[0]=opcode;
+//						*((int32_t*)(tmpByteCode->code+sizeof(char)))=label->place-tmp->bc->size-5;
+//					}
+//					else
+//					{
+//						tmpByteCode=newByteCode(sizeof(char)+sizeof(int32_t));
+//						tmpByteCode->code[0]=opcode;
+//						*((int32_t*)(tmpByteCode->code+sizeof(char)))=tmpAtm->value.in32;
+//					}
+//					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
+//					fir=nextCptr(tmpCptr);
+//				}
+//				break;
+//			case 8:
+//				{
+//					AST_cptr* tmpCptr=nextCptr(fir);
+//					AST_atom* tmpAtm=tmpCptr->u.atom;
+//
+//					ByteCode* tmpByteCode=newByteCode(sizeof(char)+sizeof(double));
+//
+//					tmpByteCode->code[0]=opcode;
+//					if(opcode==FAKE_PUSH_DBL)
+//						*((double*)(tmpByteCode->code+sizeof(char)))=(tmpAtm->type==DBL)?tmpAtm->value.dbl:tmpAtm->value.in64;
+//					else
+//						*((int64_t*)(tmpByteCode->code+sizeof(char)))=(tmpAtm->type==DBL)?tmpAtm->value.dbl:tmpAtm->value.in64;
+//
+//					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
+//					fir=nextCptr(tmpCptr);
+//
+//				}
+//				break;
+//		}
+//		codelntCat(tmp,tmpByteCodelnt);
+//		freeByteCodelnt(tmpByteCodelnt);
+//	}
+//	uint32_t i=0;
+//	for(;i<stack->top;i++)
+//		freeByteCodeLabel(stack->data[i]);
+//	freeComStack(stack);
+//	return tmp;
+//}
 
 ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
 {

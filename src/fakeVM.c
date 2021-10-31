@@ -685,29 +685,29 @@ void B_push_var(FakeVM* exe)
 	runnable->cp+=5;
 }
 
-void B_push_env_var(FakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=topComStack(exe->rstack);
-	VMvalue* topValue=GET_VAL(getTopValue(stack),exe->heap);
-	if(!IS_STR(topValue)&&!IS_SYM(topValue))
-		RAISE_BUILTIN_ERROR("b.push_env_var",WRONGARG,runnable,exe);
-	SymTabNode* stn=addSymbolToGlob(topValue->u.str);
-	if(stn==NULL)
-		RAISE_BUILTIN_ERROR("b.push_env_var",INVALIDSYMBOL,runnable,exe);
-	Sid_t idOfVar=stn->id;
-	VMenv* curEnv=runnable->localenv;
-	VMenvNode* tmp=NULL;
-	while(curEnv&&!tmp)
-	{
-		tmp=findVMenvNode(idOfVar,curEnv);
-		curEnv=curEnv->prev;
-	}
-	if(tmp==NULL)
-		RAISE_BUILTIN_ERROR("b.push_env_var",INVALIDSYMBOL,runnable,exe);
-	stack->values[stack->tp-1]=tmp->value;
-	runnable->cp+=1;
-}
+//void B_push_env_var(FakeVM* exe)
+//{
+//	VMstack* stack=exe->stack;
+//	VMrunnable* runnable=topComStack(exe->rstack);
+//	VMvalue* topValue=GET_VAL(getTopValue(stack),exe->heap);
+//	if(!IS_STR(topValue)&&!IS_SYM(topValue))
+//		RAISE_BUILTIN_ERROR("b.push_env_var",WRONGARG,runnable,exe);
+//	SymTabNode* stn=addSymbolToGlob(topValue->u.str);
+//	if(stn==NULL)
+//		RAISE_BUILTIN_ERROR("b.push_env_var",INVALIDSYMBOL,runnable,exe);
+//	Sid_t idOfVar=stn->id;
+//	VMenv* curEnv=runnable->localenv;
+//	VMenvNode* tmp=NULL;
+//	while(curEnv&&!tmp)
+//	{
+//		tmp=findVMenvNode(idOfVar,curEnv);
+//		curEnv=curEnv->prev;
+//	}
+//	if(tmp==NULL)
+//		RAISE_BUILTIN_ERROR("b.push_env_var",INVALIDSYMBOL,runnable,exe);
+//	stack->values[stack->tp-1]=tmp->value;
+//	runnable->cp+=1;
+//}
 
 void B_push_top(FakeVM* exe)
 {
@@ -974,46 +974,46 @@ void B_pop_ref(FakeVM* exe)
 	runnable->cp+=1;
 }
 
-void B_pop_env(FakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=topComStack(exe->rstack);
-	VMvalue* topValue=GET_VAL(getTopValue(stack),exe->heap);
-	if(!IS_PRC(topValue))
-		RAISE_BUILTIN_ERROR("b.pop_env",WRONGARG,runnable,exe);
-	VMenv** ppEnv=&topValue->u.prc->prevEnv;
-	VMenv* tmpEnv=*ppEnv;
-	int32_t i=0;
-	int32_t scope=*(int32_t*)(exe->code+runnable->cp+1);
-	for(;i<scope&&tmpEnv;i++)
-	{
-		ppEnv=&tmpEnv->prev;
-		tmpEnv=*ppEnv;
-	}
-	if(tmpEnv)
-	{
-		*ppEnv=tmpEnv->prev;
-		tmpEnv->prev=NULL;
-		freeVMenv(tmpEnv);
-	}
-	else
-		RAISE_BUILTIN_ERROR("b.pop_env",STACKERROR,runnable,exe);
-	runnable->cp+=5;
-}
-
-void B_swap(FakeVM* exe)
-{
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=topComStack(exe->rstack);
-	VMheap* heap=exe->heap;
-	if(stack->tp<2)
-		RAISE_BUILTIN_ERROR("b.swap",TOOFEWARG,runnable,exe);
-	VMvalue* topValue=GET_VAL(getTopValue(stack),heap);
-	VMvalue* otherValue=GET_VAL(getValue(stack,stack->tp-2),heap);
-	stack->values[stack->tp-1]=GET_VAL(otherValue,heap);
-	stack->values[stack->tp-2]=GET_VAL(topValue,heap);
-	runnable->cp+=1;
-}
+//void B_pop_env(FakeVM* exe)
+//{
+//	VMstack* stack=exe->stack;
+//	VMrunnable* runnable=topComStack(exe->rstack);
+//	VMvalue* topValue=GET_VAL(getTopValue(stack),exe->heap);
+//	if(!IS_PRC(topValue))
+//		RAISE_BUILTIN_ERROR("b.pop_env",WRONGARG,runnable,exe);
+//	VMenv** ppEnv=&topValue->u.prc->prevEnv;
+//	VMenv* tmpEnv=*ppEnv;
+//	int32_t i=0;
+//	int32_t scope=*(int32_t*)(exe->code+runnable->cp+1);
+//	for(;i<scope&&tmpEnv;i++)
+//	{
+//		ppEnv=&tmpEnv->prev;
+//		tmpEnv=*ppEnv;
+//	}
+//	if(tmpEnv)
+//	{
+//		*ppEnv=tmpEnv->prev;
+//		tmpEnv->prev=NULL;
+//		freeVMenv(tmpEnv);
+//	}
+//	else
+//		RAISE_BUILTIN_ERROR("b.pop_env",STACKERROR,runnable,exe);
+//	runnable->cp+=5;
+//}
+//
+//void B_swap(FakeVM* exe)
+//{
+//	VMstack* stack=exe->stack;
+//	VMrunnable* runnable=topComStack(exe->rstack);
+//	VMheap* heap=exe->heap;
+//	if(stack->tp<2)
+//		RAISE_BUILTIN_ERROR("b.swap",TOOFEWARG,runnable,exe);
+//	VMvalue* topValue=GET_VAL(getTopValue(stack),heap);
+//	VMvalue* otherValue=GET_VAL(getValue(stack,stack->tp-2),heap);
+//	stack->values[stack->tp-1]=GET_VAL(otherValue,heap);
+//	stack->values[stack->tp-2]=GET_VAL(topValue,heap);
+//	runnable->cp+=1;
+//}
 
 void B_set_tp(FakeVM* exe)
 {

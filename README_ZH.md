@@ -80,7 +80,7 @@ defmacro的语法比较特殊，为：
 'a ;合法
 ```
 ## 可以内置读取器宏有：  
-### \'
+
 ```
 '<some-thing>;=>(quote <some-thing>)
 `<some-thing>;=>(qsquote <some-thing>)

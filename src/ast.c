@@ -148,65 +148,78 @@ AST_cptr* expandReaderMacro(const char* objStr,Intpr* inter,StringMatchPattern* 
 			inter->curline+=countChar(parts[j],'\n',-1);
 	}
 	FakeVM* tmpVM=newTmpFakeVM(NULL);
-	ByteCodelnt* t=newByteCodelnt(newByteCode(0));
-	VMenv* tmpGlobEnv=genGlobEnv(inter->glob,t,tmpVM->heap);
-	if(!tmpGlobEnv)
-	{
-		destroyEnv(tmpEnv);
-		freeByteCodelnt(t);
-		freeVMheap(tmpVM->heap);
-		freeVMstack(tmpVM->stack);
-		freeComStack(tmpVM->rstack);
-		freeComStack(tmpVM->tstack);
-		freeStringArry(parts,num);
-		free(tmpVM);
-		return NULL;
-	}
-	VMproc* tmpVMproc=newVMproc(t->bc->size,pattern->proc->bc->size);
-	codelntCopyCat(t,pattern->proc);
-	VMenv* stringPatternEnv=castPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->heap);
-	tmpVMproc->prevEnv=NULL;
-	VMrunnable* mainrunnable=newVMrunnable(tmpVMproc);
-	mainrunnable->localenv=stringPatternEnv;
-	tmpVM->code=t->bc->code;
-	tmpVM->size=t->bc->size;
-	pushComStack(mainrunnable,tmpVM->rstack);
-	tmpVM->lnt=newLineNumTable();
-	tmpVM->lnt->list=pattern->proc->l;
-	tmpVM->lnt->num=pattern->proc->ls;
-	int status=runFakeVM(tmpVM);
 	AST_cptr* tmpCptr=NULL;
-	if(!status)
-		tmpCptr=castVMvalueToCptr(GET_VAL(tmpVM->stack->values[0],tmpVM->heap),inter->curline);
-	else
+	if(pattern->type==BYTS)
 	{
+		ByteCodelnt* t=newByteCodelnt(newByteCode(0));
+		VMenv* tmpGlobEnv=genGlobEnv(inter->glob,t,tmpVM->heap);
+		if(!tmpGlobEnv)
+		{
+			destroyEnv(tmpEnv);
+			freeByteCodelnt(t);
+			freeVMheap(tmpVM->heap);
+			freeVMstack(tmpVM->stack);
+			freeComStack(tmpVM->rstack);
+			freeComStack(tmpVM->tstack);
+			freeStringArry(parts,num);
+			free(tmpVM);
+			return NULL;
+		}
+		VMproc* tmpVMproc=newVMproc(t->bc->size,pattern->u.bProc->bc->size);
+		codelntCopyCat(t,pattern->u.bProc);
+		VMenv* stringPatternEnv=castPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->heap);
+		tmpVMproc->prevEnv=NULL;
+		VMrunnable* mainrunnable=newVMrunnable(tmpVMproc);
+		mainrunnable->localenv=stringPatternEnv;
+		tmpVM->code=t->bc->code;
+		tmpVM->size=t->bc->size;
+		pushComStack(mainrunnable,tmpVM->rstack);
+		tmpVM->lnt=newLineNumTable();
+		tmpVM->lnt->list=pattern->u.bProc->l;
+		tmpVM->lnt->num=pattern->u.bProc->ls;
+		int status=runFakeVM(tmpVM);
+		if(!status)
+			tmpCptr=castVMvalueToCptr(GET_VAL(tmpVM->stack->values[0],tmpVM->heap),inter->curline);
+		else
+		{
+			FREE_ALL_LINE_NUMBER_TABLE(t->l,t->ls);
+			freeByteCodelnt(t);
+			free(tmpVM->lnt);
+			deleteCallChain(tmpVM);
+			freeVMenv(tmpGlobEnv);
+			freeVMheap(tmpVM->heap);
+			freeVMstack(tmpVM->stack);
+			freeVMproc(tmpVMproc);
+			freeComStack(tmpVM->rstack);
+			freeComStack(tmpVM->tstack);
+			free(tmpVM);
+			return NULL;
+		}
 		FREE_ALL_LINE_NUMBER_TABLE(t->l,t->ls);
 		freeByteCodelnt(t);
 		free(tmpVM->lnt);
-		deleteCallChain(tmpVM);
 		freeVMenv(tmpGlobEnv);
-		freeVMheap(tmpVM->heap);
-		freeVMstack(tmpVM->stack);
 		freeVMproc(tmpVMproc);
-		freeComStack(tmpVM->rstack);
-		freeComStack(tmpVM->tstack);
-		free(tmpVM);
-		return NULL;
 	}
-	FREE_ALL_LINE_NUMBER_TABLE(t->l,t->ls);
-	freeByteCodelnt(t);
-	free(tmpVM->lnt);
-	freeVMenv(tmpGlobEnv);
+	else if(pattern->type==FLPROC)
+	{
+		VMenv* stringPatternEnv=castPreEnvToVMenv(tmpEnv,NULL,tmpVM->heap);
+		VMrunnable* mainrunnable=newVMrunnable(NULL);
+		mainrunnable->localenv=stringPatternEnv;
+		pushComStack(mainrunnable,tmpVM->rstack);
+		pattern->u.fProc(tmpVM);
+		tmpCptr=castVMvalueToCptr(GET_VAL(tmpVM->stack->values[0],tmpVM->heap),inter->curline);
+		free(mainrunnable);
+		freeVMenv(stringPatternEnv);
+	}
 	freeVMheap(tmpVM->heap);
 	freeVMstack(tmpVM->stack);
-	freeVMproc(tmpVMproc);
 	freeComStack(tmpVM->rstack);
 	freeComStack(tmpVM->tstack);
 	free(tmpVM);
 	destroyEnv(tmpEnv);
 	freeStringArry(parts,num);
 	return tmpCptr;
-
 }
 
 AST_cptr* createTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern)

@@ -20,6 +20,10 @@ static int isVal(const char*);
 static int addDefinedMacro(PreMacro* macro,CompEnv* curEnv);
 static ErrorStatus defmacro(AST_cptr*,CompEnv*,Intpr*);
 static CompEnv* createPatternCompEnv(char**,int32_t,CompEnv*);
+extern void READER_MACRO_quote(FakeVM* exe);
+extern void READER_MACRO_qsquote(FakeVM* exe);
+extern void READER_MACRO_unquote(FakeVM* exe);
+extern void READER_MACRO_unqtesp(FakeVM* exe);
 
 static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap)
 {
@@ -660,6 +664,22 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 	return tmp;
 }
 
+StringMatchPattern* addBuiltInStringPattern(const char* str,void(*fproc)(FakeVM* exe))
+{
+	int32_t num=0;
+	char** parts=splitPattern(str,&num);
+	StringMatchPattern* tmp=newFStringMatchPattern(num,parts,fproc);
+	return tmp;
+}
+
+void initBuiltInStringPattern(void)
+{
+	addBuiltInStringPattern("'(a)",READER_MACRO_quote);
+	addBuiltInStringPattern("`(a)",READER_MACRO_qsquote);
+	addBuiltInStringPattern("~(a)",READER_MACRO_unquote);
+	addBuiltInStringPattern("~@(a)",READER_MACRO_unqtesp);
+}
+
 StringMatchPattern* addReDefStringPattern(char** parts,int32_t num,AST_cptr* express,Intpr* inter)
 {
 	StringMatchPattern* tmp=findStringPattern(parts[0]);
@@ -681,10 +701,10 @@ StringMatchPattern* addReDefStringPattern(char** parts,int32_t num,AST_cptr* exp
 		for(;i<num;i++)
 			tmParts[i]=copyStr(parts[i]);
 		freeStringArry(tmp->parts,num);
-		FREE_ALL_LINE_NUMBER_TABLE(tmp->proc->l,tmp->proc->ls);
-		freeByteCodelnt(tmp->proc);
+		FREE_ALL_LINE_NUMBER_TABLE(tmp->u.bProc->l,tmp->u.bProc->ls);
+		freeByteCodelnt(tmp->u.bProc);
 		tmp->parts=tmParts;
-		tmp->proc=tmpByteCodelnt;
+		tmp->u.bProc=tmpByteCodelnt;
 	}
 	else
 	{

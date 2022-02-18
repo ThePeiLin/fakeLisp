@@ -79,6 +79,14 @@ defmacro的语法比较特殊，为：
 
 'a ;合法
 ```
+## 可以内置读取器宏有：  
+### \'
+```
+'<some-thing>;=>(quote <some-thing>)
+`<some-thing>;=>(qsquote <some-thing>)
+~<some-thing>;=>(unquote <some-thing>)
+~@<some-thing>;=>(unqtesp <some-thing>)
+```
 
 编译器宏如果在一个局部环境中定义，则它的作用域只在定义这个宏的环境中。  
 如：
@@ -689,7 +697,7 @@ test:y
 ### try
 错误（异常）处理特殊形式，示例如下：
 ```scheme
-(try (div 1 0)
+(try (/ 1 0)
   (catch e
     (div-zero-error (princ "caught an error\n"))))
 caught an error

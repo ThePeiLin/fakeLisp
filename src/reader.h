@@ -5,6 +5,7 @@
 
 StringMatchPattern* findStringPattern(const char*);
 StringMatchPattern* newStringMatchPattern(int32_t,char**,ByteCodelnt*);
+StringMatchPattern* newFStringMatchPattern(int32_t num,char** parts,void(*fproc)(FakeVM* exe));
 char** splitPattern(const char*,int32_t*);
 char** splitStringInPattern(const char*,StringMatchPattern*,int32_t*);
 char* readInPattern(FILE*,char**,int*);

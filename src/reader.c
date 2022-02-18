@@ -1,5 +1,6 @@
 #include"reader.h"
 #include"common.h"
+#include"VMtool.h"
 #include<string.h>
 #include<stdlib.h>
 #include<ctype.h>
@@ -822,13 +823,62 @@ int isMustList(const char* str)
 	return 0;
 }
 
+StringMatchPattern* newFStringMatchPattern(int32_t num,char** parts,void(*fproc)(FakeVM* exe))
+{
+	StringMatchPattern* tmp=(StringMatchPattern*)malloc(sizeof(StringMatchPattern));
+	FAKE_ASSERT(tmp,"newFStringMatchPattern",__FILE__,__LINE__);
+	tmp->type=FLPROC;
+	tmp->num=num;
+	tmp->parts=parts;
+	tmp->u.fProc=fproc;
+	tmp->next=NULL;
+	tmp->prev=NULL;
+	if(!HeadOfStringPattern)
+		HeadOfStringPattern=tmp;
+	else
+	{
+		StringMatchPattern* cur=HeadOfStringPattern;
+		while(cur)
+		{
+			int32_t fir=strlen(tmp->parts[0]);
+			int32_t sec=strlen(cur->parts[0]);
+			if(fir>sec)
+			{
+				if(!cur->prev)
+				{
+					tmp->next=HeadOfStringPattern;
+					HeadOfStringPattern->prev=tmp;
+					HeadOfStringPattern=tmp;
+				}
+				else
+				{
+					cur->prev->next=tmp;
+					tmp->prev=cur->prev;
+					cur->prev=tmp;
+					tmp->next=cur;
+				}
+				break;
+			}
+			cur=cur->next;
+		}
+		if(!cur)
+		{
+			for(cur=HeadOfStringPattern;cur->next;cur=cur->next);
+			cur->next=tmp;
+			tmp->prev=cur;
+		}
+	}
+	return tmp;
+}
+
 StringMatchPattern* newStringMatchPattern(int32_t num,char** parts,ByteCodelnt* proc)
 {
 	StringMatchPattern* tmp=(StringMatchPattern*)malloc(sizeof(StringMatchPattern));
 	FAKE_ASSERT(tmp,"newStringMatchPattern",__FILE__,__LINE__);
+	tmp->type=BYTS;
 	tmp->num=num;
 	tmp->parts=parts;
-	tmp->proc=proc;
+	tmp->u.bProc=proc;
 	tmp->next=NULL;
 	tmp->prev=NULL;
 	if(!HeadOfStringPattern)
@@ -877,8 +927,11 @@ void freeAllStringPattern()
 		StringMatchPattern* prev=cur;
 		cur=cur->next;
 		freeStringArry(prev->parts,prev->num);
-		FREE_ALL_LINE_NUMBER_TABLE(prev->proc->l,prev->proc->ls);
-		freeByteCodelnt(prev->proc);
+		if(prev->type==BYTS)
+		{
+			FREE_ALL_LINE_NUMBER_TABLE(prev->u.bProc->l,prev->u.bProc->ls);
+			freeByteCodelnt(prev->u.bProc);
+		}
 		free(prev);
 	}
 }
@@ -922,4 +975,36 @@ static int maybePatternPrefix(const char* str)
 		cur=cur->next;
 	}
 	return 0;
+}
+
+VMvalue* singleArgPattern(FakeVM* exe,const char* var,const char* str)
+{
+	VMrunnable* runnable=topComStack(exe->rstack);
+	VMvalue* sym=MAKE_VM_SYM(addSymbolToGlob(str)->id);
+	VMvalue* varA=findVMenvNode(addSymbolToGlob(var)->id,runnable->localenv)->value;
+	VMvalue* pair=newVMvalue(PAIR,newVMpair(),exe->heap);
+	pair->u.pair->car=sym;
+	pair->u.pair->cdr=newVMvalue(PAIR,newVMpair(),exe->heap);
+	pair->u.pair->cdr->u.pair->car=varA;
+	return pair;
+}
+
+void READER_MACRO_quote(FakeVM* exe)
+{
+	SET_RETURN("READER_MACRO_quote",singleArgPattern(exe,"a","quote"),exe->stack);
+}
+
+void READER_MACRO_qsquote(FakeVM* exe)
+{
+	SET_RETURN("READER_MACRO_qsquote",singleArgPattern(exe,"a","qsquote"),exe->stack);
+}
+
+void READER_MACRO_unquote(FakeVM* exe)
+{
+	SET_RETURN("READER_MACRO_unquote",singleArgPattern(exe,"a","unquote"),exe->stack);
+}
+
+void READER_MACRO_unqtesp(FakeVM* exe)
+{
+	SET_RETURN("READER_MACRO_unqtesp",singleArgPattern(exe,"a","unqtesp"),exe->stack);
 }

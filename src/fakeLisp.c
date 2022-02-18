@@ -50,6 +50,7 @@ int main(int argc,char** argv)
 		addSymbolToGlob(filename);
 		initGlobKeyWord(inter->glob);
 		initNativeDefTypes(inter->deftypes);
+		initBuiltInStringPattern();
 		if(fp==stdin)
 			runIntpr(inter);
 		else

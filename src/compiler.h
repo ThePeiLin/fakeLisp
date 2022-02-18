@@ -18,6 +18,7 @@ void initGlobKeyWord(CompEnv*);
 void initNativeDefTypes(VMDefTypes*);
 StringMatchPattern* addStringPattern(char**,int32_t,AST_cptr*,Intpr*);
 StringMatchPattern* addReDefStringPattern(char**,int32_t,AST_cptr*,Intpr*);
+void initBuiltInStringPattern(void);
 
 ByteCodelnt* compileFile(Intpr*,int evalIm,int*);
 ByteCodelnt* compile(AST_cptr*,CompEnv*,Intpr*,ErrorStatus*,int evalIm);

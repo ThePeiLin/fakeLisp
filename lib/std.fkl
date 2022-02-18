@@ -222,10 +222,6 @@
            (lambda (x)
              (* x x)))
 
-         (defmacro "'(a)" (cons (quote quote) (cons a ())))
-         (defmacro "`(a)" (cons (quote qsquote) (cons a ())))
-         (defmacro "~(a)" (cons (quote unquote) (cons a ())))
-         (defmacro "~@(a)" (cons (quote unqtesp) (cons a ())))
          (defmacro "[(,a)]" a)
 
          (defmacro

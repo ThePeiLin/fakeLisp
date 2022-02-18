@@ -434,7 +434,11 @@ typedef struct StringMatchPattern
 {
 	uint32_t num;
 	char** parts;
-	ByteCodelnt* proc;
+	ValueType type;
+	union{
+		void (*fProc)(FakeVM*);
+		ByteCodelnt* bProc;
+	}u;
 	struct StringMatchPattern* prev;
 	struct StringMatchPattern* next;
 }StringMatchPattern;

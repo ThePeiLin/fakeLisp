@@ -36,7 +36,7 @@ int isPrognExpression(const AST_cptr*);
 int isTryExpression(const AST_cptr*);
 int isCatchExpression(const AST_cptr*);
 int isKeyWord(const char*,CompEnv* curEnv);
-int isLfdlExpression(const char*,CompEnv* curEnv);
 int isDeftypeExpression(const AST_cptr*);
 int isGetfExpression(const AST_cptr*);
+int isLfdlExpression(const AST_cptr*);
 #endif

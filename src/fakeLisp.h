@@ -1,6 +1,6 @@
 #ifndef FAKELISP_H
 #define FAKELISP_H
-#include"fakedef.h"
+#include<fakeLisp/fakedef.h>
 void runIntpr(Intpr*);
 ByteCode* loadByteCode(FILE*);
 void loadSymbolTable(FILE*);

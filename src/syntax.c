@@ -437,3 +437,19 @@ int isCatchExpression(const AST_cptr* objCptr)
 	}
 	return 0;
 }
+
+int isLfdlExpression(const AST_cptr* objCptr)
+{
+	objCptr=(objCptr->type==PAIR)?&objCptr->u.pair->car:NULL;
+	if(objCptr!=NULL&&nextCptr(objCptr)!=NULL&&nextCptr(nextCptr(objCptr))!=NULL)
+	{
+		if(objCptr->type!=ATM||nextCptr(objCptr)->type==NIL)return 0;
+		else
+		{
+			AST_atom* tmpAtm=objCptr->u.atom;
+			if(tmpAtm->type!=SYM||strcmp(tmpAtm->value.str,"lfdl"))return 0;
+		}
+		return 1;
+	}
+	return 0;
+}

@@ -177,8 +177,8 @@ AST_cptr* expandReaderMacro(const char* objStr,Intpr* inter,StringMatchPattern* 
 		tmpVM->lnt=newLineNumTable();
 		tmpVM->lnt->list=pattern->u.bProc->l;
 		tmpVM->lnt->num=pattern->u.bProc->ls;
-		int status=runFakeVM(tmpVM);
-		if(!status)
+		int state=runFakeVM(tmpVM);
+		if(!state)
 			tmpCptr=castVMvalueToCptr(GET_VAL(tmpVM->stack->values[0],tmpVM->heap),inter->curline);
 		else
 		{

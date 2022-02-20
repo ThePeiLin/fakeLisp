@@ -1188,8 +1188,8 @@ VMcontinuation* newVMcontinuation(VMstack* stack,ComStack* rstack,ComStack* tsta
 	int32_t i=0;
 	VMcontinuation* tmp=(VMcontinuation*)malloc(sizeof(VMcontinuation));
 	FAKE_ASSERT(tmp,"newVMcontinuation",__FILE__,__LINE__);
-	VMrunnable* status=(VMrunnable*)malloc(sizeof(VMrunnable)*size);
-	FAKE_ASSERT(status,"newVMcontinuation",__FILE__,__LINE__);
+	VMrunnable* state=(VMrunnable*)malloc(sizeof(VMrunnable)*size);
+	FAKE_ASSERT(state,"newVMcontinuation",__FILE__,__LINE__);
 	int32_t tbnum=tstack->top;
 	VMTryBlock* tb=(VMTryBlock*)malloc(sizeof(VMTryBlock)*tbnum);
 	FAKE_ASSERT(tb,"newVMcontinuation",__FILE__,__LINE__);
@@ -1198,12 +1198,12 @@ VMcontinuation* newVMcontinuation(VMstack* stack,ComStack* rstack,ComStack* tsta
 	for(;i<size;i++)
 	{
 		VMrunnable* cur=rstack->data[i];
-		status[i].cp=cur->cp;
+		state[i].cp=cur->cp;
 		increaseVMenvRefcount(cur->localenv);
-		status[i].localenv=cur->localenv;
-		status[i].cpc=cur->cpc;
-		status[i].scp=cur->scp;
-		status[i].mark=cur->mark;
+		state[i].localenv=cur->localenv;
+		state[i].cpc=cur->cpc;
+		state[i].scp=cur->scp;
+		state[i].mark=cur->mark;
 	}
 	tmp->tnum=tbnum;
 	for(i=0;i<tbnum;i++)
@@ -1224,7 +1224,7 @@ VMcontinuation* newVMcontinuation(VMstack* stack,ComStack* rstack,ComStack* tsta
 		tb[i].rtp=cur->rtp;
 		tb[i].tp=cur->tp;
 	}
-	tmp->status=status;
+	tmp->state=state;
 	tmp->tb=tb;
 	return tmp;
 }
@@ -1235,13 +1235,13 @@ void freeVMcontinuation(VMcontinuation* cont)
 	int32_t size=cont->num;
 	int32_t tbsize=cont->tnum;
 	VMstack* stack=cont->stack;
-	VMrunnable* status=cont->status;
+	VMrunnable* state=cont->state;
 	VMTryBlock* tb=cont->tb;
 	free(stack->tpst);
 	free(stack->values);
 	free(stack);
 	for(;i<size;i++)
-		freeVMenv(status[i].localenv);
+		freeVMenv(state[i].localenv);
 	for(i=0;i<tbsize;i++)
 	{
 		ComStack* hstack=tb[i].hstack;
@@ -1253,7 +1253,7 @@ void freeVMcontinuation(VMcontinuation* cont)
 		freeComStack(hstack);
 	}
 	free(tb);
-	free(status);
+	free(state);
 	free(cont);
 }
 

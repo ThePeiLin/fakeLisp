@@ -18,7 +18,7 @@ static int MacroPatternCmp(const AST_cptr*,const AST_cptr*);
 static int fmatcmp(const AST_cptr*,const AST_cptr*,PreEnv**,CompEnv*);
 static int isVal(const char*);
 static int addDefinedMacro(PreMacro* macro,CompEnv* curEnv);
-static ErrorStatus defmacro(AST_cptr*,CompEnv*,Intpr*);
+static ErrorState defmacro(AST_cptr*,CompEnv*,Intpr*);
 static CompEnv* createPatternCompEnv(char**,int32_t,CompEnv*);
 extern void READER_MACRO_quote(FakeVM* exe);
 extern void READER_MACRO_qsquote(FakeVM* exe);
@@ -551,9 +551,9 @@ AST_cptr** dealArg(AST_cptr* argCptr,int num)
 	return args;
 }
 
-ErrorStatus defmacro(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
+ErrorState defmacro(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 {
-	ErrorStatus status={0,NULL};
+	ErrorState state={0,NULL};
 	AST_cptr* fir=getFirstCptr(objCptr);
 	AST_cptr* argCptr=nextCptr(fir);
 	AST_cptr** args=dealArg(argCptr,2);
@@ -566,14 +566,14 @@ ErrorStatus defmacro(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 			{
 				exError(args[0],SYNTAXERROR,inter);
 				free(args);
-				return status;
+				return state;
 			}
 			char* tmpStr=tmpAtom->value.str;
 			if(!isReDefStringPattern(tmpStr)&&isInValidStringPattern(tmpStr))
 			{
 				exError(args[0],INVALIDEXPR,inter);
 				free(args);
-				return status;
+				return state;
 			}
 			int32_t num=0;
 			char** parts=splitPattern(tmpStr,&num);
@@ -586,10 +586,10 @@ ErrorStatus defmacro(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 		}
 		else
 		{
-			status.status=SYNTAXERROR;
-			status.place=args[0];
+			state.state=SYNTAXERROR;
+			state.place=args[0];
 			free(args);
-			return status;
+			return state;
 		}
 	}
 	else
@@ -605,8 +605,8 @@ ErrorStatus defmacro(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 		tmpInter->prev=NULL;
 		tmpInter->lnt=NULL;
 		CompEnv* tmpCompEnv=createMacroCompEnv(pattern,tmpInter->glob);
-		ByteCodelnt* tmpByteCodelnt=compile(express,tmpCompEnv,tmpInter,&status,1);
-		if(!status.status)
+		ByteCodelnt* tmpByteCodelnt=compile(express,tmpCompEnv,tmpInter,&state,1);
+		if(!state.state)
 		{
 			addMacro(pattern,tmpByteCodelnt,curEnv);
 			free(args);
@@ -623,13 +623,13 @@ ErrorStatus defmacro(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter)
 		destroyCompEnv(tmpCompEnv);
 		free(tmpInter);
 	}
-	return status;
+	return state;
 }
 
 StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,Intpr* inter)
 {
 	StringMatchPattern* tmp=NULL;
-	ErrorStatus status={0,NULL};
+	ErrorState state={0,NULL};
 	Intpr* tmpInter=newTmpIntpr(NULL,NULL);
 	tmpInter->filename=inter->filename;
 	tmpInter->curline=inter->curline;
@@ -638,8 +638,8 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 	tmpInter->prev=NULL;
 	tmpInter->lnt=NULL;
 	CompEnv* tmpCompEnv=createPatternCompEnv(parts,num,inter->glob);
-	ByteCodelnt* tmpByteCodelnt=compile(express,tmpCompEnv,tmpInter,&status,1);
-	if(!status.status)
+	ByteCodelnt* tmpByteCodelnt=compile(express,tmpCompEnv,tmpInter,&state,1);
+	if(!state.state)
 	{
 		char** tmParts=(char**)malloc(sizeof(char*)*num);
 		FAKE_ASSERT(tmParts,"addStringPattern",__FILE__,__LINE__);
@@ -655,9 +655,9 @@ StringMatchPattern* addStringPattern(char** parts,int32_t num,AST_cptr* express,
 			FREE_ALL_LINE_NUMBER_TABLE(tmpByteCodelnt->l,tmpByteCodelnt->ls);
 			freeByteCodelnt(tmpByteCodelnt);
 		}
-		exError(status.place,status.status,inter);
-		status.place=NULL;
-		status.status=0;
+		exError(state.place,state.state,inter);
+		state.place=NULL;
+		state.state=0;
 	}
 	freeAllMacroThenDestroyCompEnv(tmpCompEnv);
 	free(tmpInter);
@@ -683,7 +683,7 @@ void initBuiltInStringPattern(void)
 StringMatchPattern* addReDefStringPattern(char** parts,int32_t num,AST_cptr* express,Intpr* inter)
 {
 	StringMatchPattern* tmp=findStringPattern(parts[0]);
-	ErrorStatus status={0,NULL};
+	ErrorState state={0,NULL};
 	Intpr* tmpInter=newTmpIntpr(NULL,NULL);
 	tmpInter->filename=inter->filename;
 	tmpInter->curline=inter->curline;
@@ -692,8 +692,8 @@ StringMatchPattern* addReDefStringPattern(char** parts,int32_t num,AST_cptr* exp
 	tmpInter->prev=NULL;
 	tmpInter->lnt=NULL;
 	CompEnv* tmpCompEnv=createPatternCompEnv(parts,num,inter->glob);
-	ByteCodelnt* tmpByteCodelnt=compile(express,tmpCompEnv,tmpInter,&status,1);
-	if(!status.status)
+	ByteCodelnt* tmpByteCodelnt=compile(express,tmpCompEnv,tmpInter,&state,1);
+	if(!state.state)
 	{
 		char** tmParts=(char**)malloc(sizeof(char*)*num);
 		FAKE_ASSERT(tmParts,"addStringPattern",__FILE__,__LINE__);
@@ -713,37 +713,37 @@ StringMatchPattern* addReDefStringPattern(char** parts,int32_t num,AST_cptr* exp
 			FREE_ALL_LINE_NUMBER_TABLE(tmpByteCodelnt->l,tmpByteCodelnt->ls);
 			freeByteCodelnt(tmpByteCodelnt);
 		}
-		exError(status.place,status.status,inter);
-		status.place=NULL;
-		status.status=0;
+		exError(state.place,state.state,inter);
+		state.place=NULL;
+		state.state=0;
 	}
 	freeAllMacroThenDestroyCompEnv(tmpCompEnv);
 	free(tmpInter);
 	return tmp;
 }
 
-ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorState* state,int evalIm)
 {
 	for(;;)
 	{
-		if(isLoadExpression(objCptr))return compileLoad(objCptr,curEnv,inter,status,evalIm);
-		if(isConst(objCptr))return compileConst(objCptr,curEnv,inter,status,evalIm);
-		if(isUnquoteExpression(objCptr))return compileUnquote(objCptr,curEnv,inter,status,evalIm);
-		if(isQsquoteExpression(objCptr))return compileQsquote(objCptr,curEnv,inter,status,evalIm);
-		if(isSymbol(objCptr))return compileSym(objCptr,curEnv,inter,status,evalIm);
-		if(isDefExpression(objCptr))return compileDef(objCptr,curEnv,inter,status,evalIm);
-		if(isSetqExpression(objCptr))return compileSetq(objCptr,curEnv,inter,status,evalIm);
-		if(isSetfExpression(objCptr))return compileSetf(objCptr,curEnv,inter,status,evalIm);
-		if(isGetfExpression(objCptr))return compileGetf(objCptr,curEnv,inter,status,evalIm);
-		if(isSzofExpression(objCptr))return compileSzof(objCptr,curEnv,inter,status,evalIm);
-		if(isCondExpression(objCptr))return compileCond(objCptr,curEnv,inter,status,evalIm);
-		if(isAndExpression(objCptr))return compileAnd(objCptr,curEnv,inter,status,evalIm);
-		if(isOrExpression(objCptr))return compileOr(objCptr,curEnv,inter,status,evalIm);
-		if(isLambdaExpression(objCptr))return compileLambda(objCptr,curEnv,inter,status,evalIm);
-		if(isBeginExpression(objCptr)) return compileBegin(objCptr,curEnv,inter,status,evalIm);
-		//if(isPrognExpression(objCptr)) return compileProgn(objCptr,curEnv,inter,status,evalIm);
-		if(isImportExpression(objCptr))return compileImport(objCptr,curEnv,inter,status,evalIm);
-		if(isTryExpression(objCptr))return compileTry(objCptr,curEnv,inter,status,evalIm);
+		if(isLoadExpression(objCptr))return compileLoad(objCptr,curEnv,inter,state,evalIm);
+		if(isConst(objCptr))return compileConst(objCptr,curEnv,inter,state,evalIm);
+		if(isUnquoteExpression(objCptr))return compileUnquote(objCptr,curEnv,inter,state,evalIm);
+		if(isQsquoteExpression(objCptr))return compileQsquote(objCptr,curEnv,inter,state,evalIm);
+		if(isSymbol(objCptr))return compileSym(objCptr,curEnv,inter,state,evalIm);
+		if(isDefExpression(objCptr))return compileDef(objCptr,curEnv,inter,state,evalIm);
+		if(isSetqExpression(objCptr))return compileSetq(objCptr,curEnv,inter,state,evalIm);
+		if(isSetfExpression(objCptr))return compileSetf(objCptr,curEnv,inter,state,evalIm);
+		if(isGetfExpression(objCptr))return compileGetf(objCptr,curEnv,inter,state,evalIm);
+		if(isSzofExpression(objCptr))return compileSzof(objCptr,curEnv,inter,state,evalIm);
+		if(isCondExpression(objCptr))return compileCond(objCptr,curEnv,inter,state,evalIm);
+		if(isAndExpression(objCptr))return compileAnd(objCptr,curEnv,inter,state,evalIm);
+		if(isOrExpression(objCptr))return compileOr(objCptr,curEnv,inter,state,evalIm);
+		if(isLambdaExpression(objCptr))return compileLambda(objCptr,curEnv,inter,state,evalIm);
+		if(isBeginExpression(objCptr)) return compileBegin(objCptr,curEnv,inter,state,evalIm);
+		//if(isPrognExpression(objCptr)) return compileProgn(objCptr,curEnv,inter,state,evalIm);
+		if(isImportExpression(objCptr))return compileImport(objCptr,curEnv,inter,state,evalIm);
+		if(isTryExpression(objCptr))return compileTry(objCptr,curEnv,inter,state,evalIm);
 		if(isLibraryExpression(objCptr))
 		{
 			ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
@@ -755,17 +755,17 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 		}
 		if(isCatchExpression(objCptr)||isUnqtespExpression(objCptr)||isExportExpression(objCptr))
 		{
-			status->status=INVALIDEXPR;
-			status->place=objCptr;
+			state->state=INVALIDEXPR;
+			state->place=objCptr;
 			return NULL;
 		}
 		if(isDefmacroExpression(objCptr))
 		{
-			ErrorStatus t=defmacro(objCptr,curEnv,inter);
-			if(t.status)
+			ErrorState t=defmacro(objCptr,curEnv,inter);
+			if(t.state)
 			{
-				status->status=t.status;
-				status->place=t.place;
+				state->state=t.state;
+				state->place=t.place;
 				return NULL;
 			}
 			ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
@@ -785,14 +785,14 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 			//VMTypeUnion type={.all=genDefTypes(objCptr,inter->deftypes,&typeName).all};
 			if(!type)
 			{
-				status->status=INVALIDTYPEDEF;
-				status->place=objCptr;
+				state->state=INVALIDTYPEDEF;
+				state->place=objCptr;
 				return NULL;
 			}
 			if(addDefTypes(inter->deftypes,typeName,type))
 			{
-				status->status=INVALIDTYPEDEF;
-				status->place=objCptr;
+				state->state=INVALIDTYPEDEF;
+				state->place=objCptr;
 				return NULL;
 			}
 			ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
@@ -810,17 +810,17 @@ ByteCodelnt* compile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus*
 			continue;
 		else if(i==2)
 		{
-			status->status=MACROEXPANDFAILED;
-			status->place=objCptr;
+			state->state=MACROEXPANDFAILED;
+			state->place=objCptr;
 			return NULL;
 		}
 		else if(!isValid(objCptr)||hasKeyWord(objCptr,curEnv))
 		{
-			status->status=SYNTAXERROR;
-			status->place=objCptr;
+			state->state=SYNTAXERROR;
+			state->place=objCptr;
 			return NULL;
 		}
-		else if(isFuncCall(objCptr,curEnv))return compileFuncCall(objCptr,curEnv,inter,status,evalIm);
+		else if(isFuncCall(objCptr,curEnv))return compileFuncCall(objCptr,curEnv,inter,state,evalIm);
 	}
 }
 
@@ -946,13 +946,13 @@ ByteCode* compilePair(AST_cptr* objCptr)
 	return tmp;
 }
 
-ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorState* state,int evalIm)
 {
 	objCptr=nextCptr(getFirstCptr(objCptr));
 	if(objCptr->type==ATM)
-		return compileConst(objCptr,curEnv,inter,status,evalIm);
+		return compileConst(objCptr,curEnv,inter,state,evalIm);
 	else if(isUnquoteExpression(objCptr))
-		return compileUnquote(objCptr,curEnv,inter,status,evalIm);
+		return compileUnquote(objCptr,curEnv,inter,state,evalIm);
 	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
 	AST_pair* objPair=objCptr->u.pair;
 	AST_pair* tmpPair=objPair;
@@ -968,8 +968,8 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 	{
 		if(isUnquoteExpression(objCptr))
 		{
-			ByteCodelnt* tmp1=compileUnquote(objCptr,curEnv,inter,status,evalIm);
-			if(status->status!=0)
+			ByteCodelnt* tmp1=compileUnquote(objCptr,curEnv,inter,state,evalIm);
+			if(state->state!=0)
 			{
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 				freeByteCodelnt(tmp);
@@ -999,12 +999,12 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 				freeByteCode(appd);
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 				freeByteCodelnt(tmp);
-				status->status=INVALIDEXPR;
-				status->place=objCptr;
+				state->state=INVALIDEXPR;
+				state->place=objCptr;
 				return NULL;
 			}
-			ByteCodelnt* tmp1=compile(nextCptr(getFirstCptr(objCptr)),curEnv,inter,status,evalIm);
-			if(status->status!=0)
+			ByteCodelnt* tmp1=compile(nextCptr(getFirstCptr(objCptr)),curEnv,inter,state,evalIm);
+			if(state->state!=0)
 			{
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 				freeByteCodelnt(tmp);
@@ -1045,7 +1045,7 @@ ByteCodelnt* compileQsquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 		}
 		else if((objCptr->type==ATM||objCptr->type==NIL)&&(!isUnqtespExpression(&objPair->car)))
 		{
-			ByteCodelnt* tmp1=compileConst(objCptr,curEnv,inter,status,evalIm);
+			ByteCodelnt* tmp1=compileConst(objCptr,curEnv,inter,state,evalIm);
 			codeCat(tmp1->bc,(objCptr==&objPair->car)?popToCar:popToCdr);
 			tmp1->l[tmp1->ls-1]->cpc+=(objCptr==&objPair->car)?popToCar->size:popToCdr->size;
 			codelntCat(tmp,tmp1);
@@ -1112,13 +1112,13 @@ ByteCode* compileQuote(AST_cptr* objCptr)
 	return NULL;
 }
 
-ByteCodelnt* compileUnquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+ByteCodelnt* compileUnquote(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorState* state,int evalIm)
 {
 	objCptr=nextCptr(getFirstCptr(objCptr));
-	return compile(objCptr,curEnv,inter,status,evalIm);
+	return compile(objCptr,curEnv,inter,state,evalIm);
 }
 
-ByteCodelnt* compileConst(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+ByteCodelnt* compileConst(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorState* state,int evalIm)
 {
 	int32_t line=objCptr->curline;
 	ByteCode* tmp=NULL;
@@ -1127,8 +1127,8 @@ ByteCodelnt* compileConst(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 	if(isQuoteExpression(objCptr))tmp=compileQuote(objCptr);
 	if(!tmp)
 	{
-		status->status=INVALIDEXPR;
-		status->place=objCptr;
+		state->state=INVALIDEXPR;
+		state->place=objCptr;
 		return NULL;
 	}
 	ByteCodelnt* t=newByteCodelnt(tmp);
@@ -1140,7 +1140,7 @@ ByteCodelnt* compileConst(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 	return t;
 }
 
-ByteCodelnt* compileFuncCall(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+ByteCodelnt* compileFuncCall(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorState* state,int evalIm)
 {
 	AST_cptr* headoflist=NULL;
 	AST_pair* tmpPair=objCptr->u.pair;
@@ -1187,8 +1187,8 @@ ByteCodelnt* compileFuncCall(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Erro
 		}
 		else
 		{
-			tmp1=compile(objCptr,curEnv,inter,status,evalIm);
-			if(status->status!=0)
+			tmp1=compile(objCptr,curEnv,inter,state,evalIm);
+			if(state->state!=0)
 			{
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 				freeByteCodelnt(tmp);
@@ -1205,7 +1205,7 @@ ByteCodelnt* compileFuncCall(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Erro
 	return tmp;
 }
 
-ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorState* state,int evalIm)
 {
 	AST_pair* tmpPair=tir->u.pair;
 	AST_cptr* fir=NULL;
@@ -1224,9 +1224,9 @@ ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 	}
 	objCptr=tir;
 	tmp1=(isLambdaExpression(objCptr))?
-		compile(objCptr,curEnv,inter,status,0):
-		compile(objCptr,curEnv,inter,status,evalIm);
-	if(status->status!=0)
+		compile(objCptr,curEnv,inter,state,0):
+		compile(objCptr,curEnv,inter,state,evalIm);
+	if(state->state!=0)
 	{
 		freeByteCode(popVar);
 		freeByteCode(pushTop);
@@ -1307,7 +1307,7 @@ ByteCodelnt* compileDef(AST_cptr* tir,CompEnv* curEnv,Intpr* inter,ErrorStatus* 
 	return tmp1;
 }
 
-ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorState* state,int evalIm)
 {
 	AST_pair* tmpPair=objCptr->u.pair;
 	AST_cptr* fir=&objCptr->u.pair->car;
@@ -1326,9 +1326,9 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	}
 	objCptr=tir;
 	tmp1=(isLambdaExpression(objCptr))?
-		compile(objCptr,curEnv,inter,status,0):
-		compile(objCptr,curEnv,inter,status,evalIm);
-	if(status->status!=0)
+		compile(objCptr,curEnv,inter,state,0):
+		compile(objCptr,curEnv,inter,state,evalIm);
+	if(state->state!=0)
 	{
 		freeByteCode(popVar);
 		freeByteCode(pushTop);
@@ -1421,22 +1421,22 @@ ByteCodelnt* compileSetq(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	return tmp1;
 }
 
-ByteCodelnt* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+ByteCodelnt* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorState* state,int evalIm)
 {
 	AST_cptr* fir=&objCptr->u.pair->car;
 	AST_cptr* sec=nextCptr(fir);
 	if(isSymbol(sec))
-		return compileSetq(objCptr,curEnv,inter,status,0);
+		return compileSetq(objCptr,curEnv,inter,state,0);
 	else
 	{
 		AST_cptr* tir=nextCptr(sec);
-		ByteCodelnt* tmp1=compile(sec,curEnv,inter,status,evalIm);
-		if(status->status!=0)
+		ByteCodelnt* tmp1=compile(sec,curEnv,inter,state,evalIm);
+		if(state->state!=0)
 			return NULL;
 		ByteCodelnt* tmp2=(isLambdaExpression(tir))?
-			compile(tir,curEnv,inter,status,0):
-			compile(tir,curEnv,inter,status,evalIm);
-		if(status->status!=0)
+			compile(tir,curEnv,inter,state,0):
+			compile(tir,curEnv,inter,state,evalIm);
+		if(state->state!=0)
 		{
 			FREE_ALL_LINE_NUMBER_TABLE(tmp1->l,tmp1->ls);
 			freeByteCodelnt(tmp1);
@@ -1453,7 +1453,7 @@ ByteCodelnt* compileSetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	}
 }
 
-ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorState* state,int evalIm)
 {
 	AST_cptr* fir=getFirstCptr(objCptr);
 	AST_cptr* typeCptr=nextCptr(fir);
@@ -1463,8 +1463,8 @@ ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	TypeId_t type=genDefTypesUnion(typeCptr,inter->deftypes);
 	if(!(expressionCptr&&type!=0))
 	{
-		status->status=SYNTAXERROR;
-		status->place=objCptr;
+		state->state=SYNTAXERROR;
+		state->place=objCptr;
 		return NULL;
 	}
 	VMTypeUnion typeUnion=getVMTypeUnion(type);
@@ -1477,8 +1477,8 @@ ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		{
 			if(pathCptr->type!=ATM||(pathCptr->u.atom->type!=SYM&&pathCptr->u.atom->type!=IN32&&pathCptr->u.atom->type!=IN64))
 			{
-				status->status=SYNTAXERROR;
-				status->place=pathCptr;
+				state->state=SYNTAXERROR;
+				state->place=pathCptr;
 				return NULL;
 			}
 			else if(pathCptr->u.atom->type==IN32||pathCptr->u.atom->type==IN64)
@@ -1501,8 +1501,8 @@ ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 						defTypeId=((VMPtrType*)tmpPtr)->ptype;
 						break;
 					default:
-						status->status=CANTDEREFERENCE;
-						status->place=pathCptr;
+						state->state=CANTDEREFERENCE;
+						state->place=pathCptr;
 						if(tmp)
 						{
 							FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
@@ -1561,8 +1561,8 @@ ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 						FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 						freeByteCodelnt(tmp);
 					}
-					status->status=NOMEMBERTYPE;
-					status->place=typeCptr;
+					state->state=NOMEMBERTYPE;
+					state->place=typeCptr;
 					return NULL;
 				}
 				Sid_t curPathNode=addSymbolToGlob(pathCptr->u.atom->value.str)->id;
@@ -1586,8 +1586,8 @@ ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 						memberType=tmpType;
 					else
 					{
-						status->status=INVALIDMEMBER;
-						status->place=pathCptr;
+						state->state=INVALIDMEMBER;
+						state->place=pathCptr;
 						if(tmp)
 						{
 							FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
@@ -1635,8 +1635,8 @@ ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 						memberType=tmpType;
 					else
 					{
-						status->status=INVALIDMEMBER;
-						status->place=pathCptr;
+						state->state=INVALIDMEMBER;
+						state->place=pathCptr;
 						if(tmp)
 						{
 							FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
@@ -1668,8 +1668,8 @@ ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 				}
 			}
 		}
-		ByteCodelnt* expression=compile(expressionCptr,curEnv,inter,status,evalIm);
-		if(status->status)
+		ByteCodelnt* expression=compile(expressionCptr,curEnv,inter,state,evalIm);
+		if(state->state)
 		{
 			if(tmp)
 			{
@@ -1688,8 +1688,8 @@ ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		ByteCodelnt* index=NULL;
 		if(indexCptr!=NULL)
 		{
-			index=compile(indexCptr,curEnv,inter,status,evalIm);
-			if(status->status)
+			index=compile(indexCptr,curEnv,inter,state,evalIm);
+			if(state->state)
 			{
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 				freeByteCodelnt(tmp);
@@ -1708,8 +1708,8 @@ ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 					elemType=((VMArrayType*)tmpPtr)->etype;
 					break;
 				default:
-					status->status=CANTGETELEM;
-					status->place=pathCptr;
+					state->state=CANTGETELEM;
+					state->place=pathCptr;
 					FREE_ALL_LINE_NUMBER_TABLE(index->l,index->ls);
 					freeByteCodelnt(index);
 					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
@@ -1739,8 +1739,8 @@ ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 			{
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 				freeByteCodelnt(tmp);
-				status->status=NONSCALARTYPE;
-				status->place=nextCptr(typeCptr);
+				state->state=NONSCALARTYPE;
+				state->place=nextCptr(typeCptr);
 				return NULL;
 			}
 		}
@@ -1752,15 +1752,15 @@ ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 		AST_cptr* dllCptr=nextCptr(nameCptr);
 		if(!(nameCptr&&dllCptr))
 		{
-			status->status=SYNTAXERROR;
-			status->place=objCptr;
+			state->state=SYNTAXERROR;
+			state->place=objCptr;
 			return NULL;
 		}
-		ByteCodelnt* name=compile(nameCptr,curEnv,inter,status,evalIm);
-		if(status->status)
+		ByteCodelnt* name=compile(nameCptr,curEnv,inter,state,evalIm);
+		if(state->state)
 			return NULL;
-		ByteCodelnt* dll=compile(dllCptr,curEnv,inter,status,evalIm);
-		if(status->status)
+		ByteCodelnt* dll=compile(dllCptr,curEnv,inter,state,evalIm);
+		if(state->state)
 		{
 			FREE_ALL_LINE_NUMBER_TABLE(name->l,name->ls);
 			freeByteCodelnt(name);
@@ -1782,14 +1782,14 @@ ByteCodelnt* compileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	}
 }
 
-ByteCodelnt* compileSzof(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+ByteCodelnt* compileSzof(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorState* state,int evalIm)
 {
 	AST_cptr* typeCptr=nextCptr(getFirstCptr(objCptr));
 	TypeId_t type=genDefTypesUnion(typeCptr,inter->deftypes);
 	if(!type)
 	{
-		status->status=INVALIDTYPEDEF;
-		status->place=typeCptr;
+		state->state=INVALIDTYPEDEF;
+		state->place=typeCptr;
 		return NULL;
 	}
 	size_t size=getVMTypeSizeWithTypeId(type);
@@ -1814,13 +1814,13 @@ ByteCodelnt* compileSzof(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	return tmp;
 }
 
-ByteCodelnt* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+ByteCodelnt* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorState* state,int evalIm)
 {
 	int32_t line=objCptr->curline;
 	if(hasKeyWord(objCptr,curEnv))
 	{
-		status->status=SYNTAXERROR;
-		status->place=objCptr;
+		state->state=SYNTAXERROR;
+		state->place=objCptr;
 		return NULL;
 	}
 	ByteCode* pushVar=newByteCode(sizeof(char)+sizeof(Sid_t));
@@ -1849,8 +1849,8 @@ ByteCodelnt* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 		id=node->id;
 		if(evalIm)
 		{
-			status->status=SYMUNDEFINE;
-			status->place=objCptr;
+			state->state=SYMUNDEFINE;
+			state->place=objCptr;
 			freeByteCode(pushVar);
 			return NULL;
 		}
@@ -1866,7 +1866,7 @@ ByteCodelnt* compileSym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	return bcl;
 }
 
-ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorState* state,int evalIm)
 {
 	int32_t curline=objCptr->curline;
 	ByteCode* jumpiffalse=newByteCode(sizeof(char)+sizeof(int32_t));
@@ -1885,8 +1885,8 @@ ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	objCptr=nextCptr(getFirstCptr(objCptr));
 	for(;objCptr!=NULL;objCptr=nextCptr(objCptr))
 	{
-		ByteCodelnt* tmp1=compile(objCptr,curEnv,inter,status,evalIm);
-		if(status->status!=0)
+		ByteCodelnt* tmp1=compile(objCptr,curEnv,inter,state,evalIm);
+		if(state->state!=0)
 		{
 			freeByteCode(resTp);
 			freeByteCode(popTp);
@@ -1942,7 +1942,7 @@ ByteCodelnt* compileAnd(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 	return tmp;
 }
 
-ByteCodelnt* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+ByteCodelnt* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorState* state,int evalIm)
 {
 	int32_t curline=objCptr->curline;
 	ByteCode* setTp=newByteCode(sizeof(char));
@@ -1960,8 +1960,8 @@ ByteCodelnt* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatu
 	objCptr=nextCptr(getFirstCptr(objCptr));
 	for(;objCptr!=NULL;objCptr=nextCptr(objCptr))
 	{
-		ByteCodelnt* tmp1=compile(objCptr,curEnv,inter,status,evalIm);
-		if(status->status!=0)
+		ByteCodelnt* tmp1=compile(objCptr,curEnv,inter,state,evalIm);
+		if(state->state!=0)
 		{
 			freeByteCode(resTp);
 			freeByteCode(popTp);
@@ -2015,7 +2015,7 @@ ByteCodelnt* compileOr(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatu
 	return tmp;
 }
 
-ByteCodelnt* compileBegin(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+ByteCodelnt* compileBegin(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorState* state,int evalIm)
 {
 	AST_cptr* firCptr=nextCptr(getFirstCptr(objCptr));
 	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
@@ -2027,8 +2027,8 @@ ByteCodelnt* compileBegin(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 	popTp->code[0]=FAKE_POP_TP;
 	while(firCptr)
 	{
-		ByteCodelnt* tmp1=compile(firCptr,curEnv,inter,status,evalIm);
-		if(status->status!=0)
+		ByteCodelnt* tmp1=compile(firCptr,curEnv,inter,state,evalIm);
+		if(state->state!=0)
 		{
 			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 			freeByteCodelnt(tmp);
@@ -2068,7 +2068,7 @@ ByteCodelnt* compileBegin(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSt
 	return tmp;
 }
 
-ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorState* state,int evalIm)
 {
 	int32_t line=objCptr->curline;
 	AST_cptr* tmpCptr=objCptr;
@@ -2089,8 +2089,8 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			AST_atom* tmpAtm=(argCptr->type==ATM)?argCptr->u.atom:NULL;
 			if(argCptr->type!=ATM||tmpAtm==NULL||tmpAtm->type!=SYM)
 			{
-				status->status=SYNTAXERROR;
-				status->place=tmpCptr;
+				state->state=SYNTAXERROR;
+				state->place=tmpCptr;
 				freeByteCode(popArg);
 				freeByteCode(popRestArg);
 				freeAllMacroThenDestroyCompEnv(tmpEnv);
@@ -2104,8 +2104,8 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				AST_atom* tmpAtom1=(argCptr->outer->cdr.type==ATM)?argCptr->outer->cdr.u.atom:NULL;
 				if(tmpAtom1!=NULL&&tmpAtom1->type!=SYM)
 				{
-					status->status=SYNTAXERROR;
-					status->place=tmpCptr;
+					state->state=SYNTAXERROR;
+					state->place=tmpCptr;
 					freeByteCode(popArg);
 					freeByteCode(popRestArg);
 					freeAllMacroThenDestroyCompEnv(tmpEnv);
@@ -2123,8 +2123,8 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		AST_atom* tmpAtm=nextCptr(objCptr)->u.atom;
 		if(tmpAtm->type!=SYM)
 		{
-			status->status=SYNTAXERROR;
-			status->place=tmpCptr;
+			state->state=SYNTAXERROR;
+			state->place=tmpCptr;
 			freeByteCode(popArg);
 			freeByteCode(popRestArg);
 			freeAllMacroThenDestroyCompEnv(tmpEnv);
@@ -2154,8 +2154,8 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	resTp->code[0]=FAKE_RES_TP;
 	for(;objCptr;objCptr=nextCptr(objCptr))
 	{
-		ByteCodelnt* tmp1=compile(objCptr,tmpEnv,inter,status,evalIm);
-		if(status->status!=0)
+		ByteCodelnt* tmp1=compile(objCptr,tmpEnv,inter,state,evalIm);
+		if(state->state!=0)
 		{
 			FREE_ALL_LINE_NUMBER_TABLE(codeOfLambda->l,codeOfLambda->ls);
 			freeByteCode(resTp);
@@ -2191,7 +2191,7 @@ ByteCodelnt* compileLambda(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	return toReturn;
 }
 
-ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorState* state,int evalIm)
 {
 	AST_cptr* cond=NULL;
 	ByteCode* pushnil=newByteCode(sizeof(char));
@@ -2211,12 +2211,12 @@ ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	for(cond=nextCptr(getFirstCptr(objCptr));cond!=NULL;cond=nextCptr(cond))
 	{
 		objCptr=getFirstCptr(cond);
-		ByteCodelnt* conditionCode=compile(objCptr,curEnv,inter,status,evalIm);
+		ByteCodelnt* conditionCode=compile(objCptr,curEnv,inter,state,evalIm);
 		ComStack* stack2=newComStack(32);
 		for(objCptr=nextCptr(objCptr);objCptr!=NULL;objCptr=nextCptr(objCptr))
 		{
-			ByteCodelnt* tmp1=compile(objCptr,curEnv,inter,status,evalIm);
-			if(status->status!=0)
+			ByteCodelnt* tmp1=compile(objCptr,curEnv,inter,state,evalIm);
+			if(state->state!=0)
 			{
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 				freeByteCodelnt(tmp);
@@ -2297,15 +2297,15 @@ ByteCodelnt* compileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	return tmp;
 }
 
-ByteCodelnt* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+ByteCodelnt* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorState* state,int evalIm)
 {
 	AST_cptr* fir=&objCptr->u.pair->car;
 	AST_cptr* pFileName=nextCptr(fir);
 	AST_atom* name=pFileName->u.atom;
 	if(hasLoadSameFile(name->value.str,inter))
 	{
-		status->status=CIRCULARLOAD;
-		status->place=pFileName;
+		state->state=CIRCULARLOAD;
+		state->place=pFileName;
 		return NULL;
 	}
 	FILE* file=fopen(name->value.str,"r");
@@ -2343,7 +2343,7 @@ ByteCodelnt* compileLoad(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorSta
 	return tmp;
 }
 
-ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
+ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstate)
 {
 	chdir(inter->curDir);
 	ByteCodelnt* tmp=newByteCodelnt(newByteCode(0));
@@ -2360,7 +2360,7 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 		int unexpectEOF=0;
 		char* list=readInPattern(inter->file,&prev,&unexpectEOF);
 		if(list==NULL)continue;
-		ErrorStatus status={0,NULL};
+		ErrorState state={0,NULL};
 		if(unexpectEOF)
 		{
 			switch(unexpectEOF)
@@ -2376,7 +2376,7 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 			freeByteCodelnt(tmp);
 			free(list);
-			*exitstatus=UNEXPECTEOF;
+			*exitstate=UNEXPECTEOF;
 			tmp=NULL;
 			break;
 		}
@@ -2388,16 +2388,16 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 		}
 		if(begin!=NULL)
 		{
-			ByteCodelnt* tmpByteCodelnt=compile(begin,inter->glob,inter,&status,!isLambdaExpression(begin));
-			if(!tmpByteCodelnt||status.status!=0)
+			ByteCodelnt* tmpByteCodelnt=compile(begin,inter->glob,inter,&state,!isLambdaExpression(begin));
+			if(!tmpByteCodelnt||state.state!=0)
 			{
-				if(status.status)
+				if(state.state)
 				{
-					exError(status.place,status.status,inter);
-					if(exitstatus)*exitstatus=status.status;
-					deleteCptr(status.place);
+					exError(state.place,state.state,inter);
+					if(exitstate)*exitstate=state.state;
+					deleteCptr(state.place);
 				}
-				if(tmpByteCodelnt==NULL&&!status.status&&exitstatus)*exitstatus=MACROEXPANDFAILED;
+				if(tmpByteCodelnt==NULL&&!state.state&&exitstate)*exitstate=MACROEXPANDFAILED;
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 				freeByteCodelnt(tmp);
 				free(list);
@@ -2445,7 +2445,7 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 }
 */
 
-//ByteCodelnt* compileProgn(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+//ByteCodelnt* compileProgn(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorState* state,int evalIm)
 //{
 //	AST_cptr* fir=nextCptr(getFirstCptr(objCptr));
 //	ByteCodelnt* tmp=NULL;
@@ -2455,8 +2455,8 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 //	{
 //		if(fir->type!=ATM)
 //		{
-//			status->place=objCptr;
-//			status->status=SYNTAXERROR;
+//			state->place=objCptr;
+//			state->state=SYNTAXERROR;
 //			return NULL;
 //		}
 //	}
@@ -2487,8 +2487,8 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 //
 //		if(opcode==0)
 //		{
-//			status->place=fir;
-//			status->status=SYNTAXERROR;
+//			state->place=fir;
+//			state->state=SYNTAXERROR;
 //			uint32_t i=0;
 //			for(;i<stack->top;i++)
 //				freeByteCodeLabel(stack->data[i]);
@@ -2498,8 +2498,8 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 //
 //		if(codeName[opcode].len!=0&&nextCptr(fir)==NULL)
 //		{
-//			status->place=objCptr;
-//			status->status=SYNTAXERROR;
+//			state->place=objCptr;
+//			state->state=SYNTAXERROR;
 //			uint32_t i=0;
 //			for(;i<stack->top;i++)
 //				freeByteCodeLabel(stack->data[i]);
@@ -2520,8 +2520,8 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 //
 //					if(tmpAtm->type!=SYM)
 //					{
-//						status->place=objCptr;
-//						status->status=SYNTAXERROR;
+//						state->place=objCptr;
+//						state->state=SYNTAXERROR;
 //						uint32_t i=0;
 //						for(;i<stack->top;i++)
 //							freeByteCodeLabel(stack->data[i]);
@@ -2539,8 +2539,8 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 //
 //					if(!tmpDef)
 //					{
-//						status->place=tmpCptr;
-//						status->status=SYMUNDEFINE;
+//						state->place=tmpCptr;
+//						state->state=SYMUNDEFINE;
 //						uint32_t i=0;
 //						for(;i<stack->top;i++)
 //							freeByteCodeLabel(stack->data[i]);
@@ -2557,8 +2557,8 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 //					AST_atom* tmpAtm=tmpCptr->u.atom;
 //					if(tmpAtm->type!=BYTS)
 //					{
-//						status->place=tmpCptr;
-//						status->status=SYNTAXERROR;
+//						state->place=tmpCptr;
+//						state->state=SYNTAXERROR;
 //						uint32_t i=0;
 //						for(;i<stack->top;i++)
 //							freeByteCodeLabel(stack->data[i]);
@@ -2576,8 +2576,8 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 //					AST_atom* tmpAtm=tmpCptr->u.atom;
 //					if(tmpAtm->type!=SYM&&tmpAtm->type!=STR)
 //					{
-//						status->place=tmpCptr;
-//						status->status=SYNTAXERROR;
+//						state->place=tmpCptr;
+//						state->state=SYNTAXERROR;
 //						uint32_t i=0;
 //						for(;i<stack->top;i++)
 //							freeByteCodeLabel(stack->data[i]);
@@ -2601,8 +2601,8 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 //					AST_atom* tmpAtm=tmpCptr->u.atom;
 //					if(tmpAtm->type!=CHR)
 //					{
-//						status->place=tmpCptr;
-//						status->status=SYNTAXERROR;
+//						state->place=tmpCptr;
+//						state->state=SYNTAXERROR;
 //						uint32_t i=0;
 //						for(;i<stack->top;i++)
 //							freeByteCodeLabel(stack->data[i]);
@@ -2624,8 +2624,8 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 //						CompDef* tmpDef=NULL;
 //						if(tmpAtm->type!=STR&&tmpAtm->type!=SYM)
 //						{
-//							status->place=tmpCptr;
-//							status->status=SYMUNDEFINE;
+//							state->place=tmpCptr;
+//							state->state=SYMUNDEFINE;
 //							uint32_t i=0;
 //							for(;i<stack->top;i++)
 //								freeByteCodeLabel(stack->data[i]);
@@ -2640,8 +2640,8 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 //						}
 //						if(!tmpDef)
 //						{
-//							status->place=tmpCptr;
-//							status->status=SYMUNDEFINE;
+//							state->place=tmpCptr;
+//							state->state=SYMUNDEFINE;
 //							uint32_t i=0;
 //							for(;i<stack->top;i++)
 //								freeByteCodeLabel(stack->data[i]);
@@ -2653,8 +2653,8 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 //					{
 //						if(tmpAtm->type!=SYM)
 //						{
-//							status->place=tmpCptr;
-//							status->status=SYNTAXERROR;
+//							state->place=tmpCptr;
+//							state->state=SYNTAXERROR;
 //							uint32_t i=0;
 //							for(;i<stack->top;i++)
 //								freeByteCodeLabel(stack->data[i]);
@@ -2667,8 +2667,8 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 //					{
 //						if(tmpAtm->type!=SYM&&tmpAtm->type!=STR)
 //						{
-//							status->place=tmpCptr;
-//							status->status=SYNTAXERROR;
+//							state->place=tmpCptr;
+//							state->state=SYNTAXERROR;
 //							uint32_t i=0;
 //							for(;i<stack->top;i++)
 //								freeByteCodeLabel(stack->data[i]);
@@ -2680,8 +2680,8 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 //					{
 //						if(tmpAtm->type!=IN32)
 //						{
-//							status->place=tmpCptr;
-//							status->status=SYNTAXERROR;
+//							state->place=tmpCptr;
+//							state->state=SYNTAXERROR;
 //							uint32_t i=0;
 //							for(;i<stack->top;i++)
 //								freeByteCodeLabel(stack->data[i]);
@@ -2699,8 +2699,8 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 //					AST_atom* tmpAtm=tmpCptr->u.atom;
 //					if(opcode!=FAKE_PUSH_DBL&&tmpAtm->type!=DBL&&tmpAtm->type!=IN64)
 //					{
-//						status->place=tmpCptr;
-//						status->status=SYNTAXERROR;
+//						state->place=tmpCptr;
+//						state->state=SYNTAXERROR;
 //						uint32_t i=0;
 //						for(;i<stack->top;i++)
 //							freeByteCodeLabel(stack->data[i]);
@@ -2836,8 +2836,8 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 //						ByteCodeLabel* label=findByteCodeLabel(tmpAtm->value.str,stack);
 //						if(label==NULL)
 //						{
-//							status->place=tmpCptr;
-//							status->status=SYMUNDEFINE;
+//							state->place=tmpCptr;
+//							state->state=SYMUNDEFINE;
 //							freeByteCodelnt(tmp);
 //							uint32_t i=0;
 //							for(;i<stack->top;i++)
@@ -2888,7 +2888,7 @@ ByteCodelnt* compileFile(Intpr* inter,int evalIm,int* exitstatus)
 //	return tmp;
 //}
 
-ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorState* state,int evalIm)
 {
 #ifdef _WIN32
 	char divstr[]="\\";
@@ -2913,8 +2913,8 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		AST_cptr* pPartsOfPath=getFirstCptr(plib);
 		if(!pPartsOfPath)
 		{
-			status->status=SYNTAXERROR;
-			status->place=plib;
+			state->state=SYNTAXERROR;
+			state->place=plib;
 			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 			freeFakeMemMenager(memMenager);
 			return NULL;
@@ -2927,8 +2927,8 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		{
 			if(pPartsOfPath->type!=ATM)
 			{
-				status->status=SYNTAXERROR;
-				status->place=plib;
+				state->state=SYNTAXERROR;
+				state->place=plib;
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 				freeFakeMemMenager(memMenager);
 				return NULL;
@@ -2936,8 +2936,8 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 			AST_atom* tmpAtm=pPartsOfPath->u.atom;
 			if(tmpAtm->type!=STR&&tmpAtm->type!=SYM)
 			{
-				status->status=SYNTAXERROR;
-				status->place=plib;
+				state->state=SYNTAXERROR;
+				state->place=plib;
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 				freeFakeMemMenager(memMenager);
 				return NULL;
@@ -2947,8 +2947,8 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				AST_cptr* tmpCptr=nextCptr(pPartsOfPath);
 				if(!tmpCptr||tmpCptr->type!=PAIR)
 				{
-					status->status=SYNTAXERROR;
-					status->place=objCptr;
+					state->state=SYNTAXERROR;
+					state->place=objCptr;
 					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 					freeFakeMemMenager(memMenager);
 					return NULL;
@@ -2956,8 +2956,8 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				tmpCptr=nextCptr(tmpCptr);
 				if(!tmpCptr||nextCptr(tmpCptr)||tmpCptr->type!=ATM)
 				{
-					status->status=SYNTAXERROR;
-					status->place=plib;
+					state->state=SYNTAXERROR;
+					state->place=plib;
 					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 					freeFakeMemMenager(memMenager);
 					return NULL;
@@ -2965,8 +2965,8 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 				AST_atom* prefixAtom=tmpCptr->u.atom;
 				if(prefixAtom->type!=STR&&prefixAtom->type!=SYM)
 				{
-					status->status=SYNTAXERROR;
-					status->place=plib;
+					state->state=SYNTAXERROR;
+					state->place=plib;
 					FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 					freeFakeMemMenager(memMenager);
 					return NULL;
@@ -3022,8 +3022,8 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 		}
 		if(hasLoadSameFile(path,inter))
 		{
-			status->status=CIRCULARLOAD;
-			status->place=objCptr;
+			state->state=CIRCULARLOAD;
+			state->place=objCptr;
 			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 			freeFakeMemMenager(memMenager);
 			return NULL;
@@ -3139,10 +3139,10 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 							tmpInter->glob->n=num;
 							for(;pBody;pBody=nextCptr(pBody))
 							{
-								ByteCodelnt* otherByteCodelnt=compile(pBody,tmpCurEnv,tmpInter,status,1);
-								if(status->status)
+								ByteCodelnt* otherByteCodelnt=compile(pBody,tmpCurEnv,tmpInter,state,1);
+								if(state->state)
 								{
-									exError(status->place,status->status,tmpInter);
+									exError(state->place,state->state,tmpInter);
 									deleteCptr(begin);
 									free(begin);
 									FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
@@ -3151,8 +3151,8 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 									tmpInter->lnt=NULL;
 									tmpInter->deftypes=NULL;
 									freeIntpr(tmpInter);
-									status->status=0;
-									status->place=NULL;
+									state->state=0;
+									state->place=NULL;
 									if(libPrefix)
 										free(libPrefix);
 									freeFakeMemMenager(memMenager);
@@ -3293,8 +3293,8 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 
 		if(libByteCodelnt&&!libByteCodelnt->bc->size)
 		{
-			status->status=(tmp)?LIBUNDEFINED:0;
-			status->place=(tmp)?pairOfpPartsOfPath:NULL;
+			state->state=(tmp)?LIBUNDEFINED:0;
+			state->place=(tmp)?pairOfpPartsOfPath:NULL;
 			FREE_ALL_LINE_NUMBER_TABLE(libByteCodelnt->l,libByteCodelnt->ls);
 			FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 			tmpInter->lnt=NULL;
@@ -3321,18 +3321,18 @@ ByteCodelnt* compileImport(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorS
 	return tmp;
 }
 
-ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStatus* status,int evalIm)
+ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorState* state,int evalIm)
 {
 	AST_cptr* pExpression=nextCptr(getFirstCptr(objCptr));
 	AST_cptr* pCatchExpression=NULL;
 	if(!pExpression||!(pCatchExpression=nextCptr(pExpression)))
 	{
-		status->status=SYNTAXERROR;
-		status->place=objCptr;
+		state->state=SYNTAXERROR;
+		state->place=objCptr;
 		return NULL;
 	}
-	ByteCodelnt* expressionByteCodelnt=compile(pExpression,curEnv,inter,status,evalIm);
-	if(status->status)
+	ByteCodelnt* expressionByteCodelnt=compile(pExpression,curEnv,inter,state,evalIm);
+	if(state->state)
 		return NULL;
 	else
 	{
@@ -3356,8 +3356,8 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 			||pErrSymbol->u.atom->type!=SYM
 			||!(pHandlerExpression=nextCptr(pErrSymbol)))
 	{
-		status->status=SYNTAXERROR;
-		status->place=objCptr;
+		state->state=SYNTAXERROR;
+		state->place=objCptr;
 		FREE_ALL_LINE_NUMBER_TABLE(expressionByteCodelnt->l,expressionByteCodelnt->ls);
 		freeByteCodelnt(expressionByteCodelnt);
 		return NULL;
@@ -3371,8 +3371,8 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 				||getFirstCptr(pHandlerExpression)->type!=ATM
 				||getFirstCptr(pHandlerExpression)->u.atom->type!=SYM)
 		{
-			status->status=SYNTAXERROR;
-			status->place=objCptr;
+			state->state=SYNTAXERROR;
+			state->place=objCptr;
 			FREE_ALL_LINE_NUMBER_TABLE(expressionByteCodelnt->l,expressionByteCodelnt->ls);
 			freeByteCodelnt(expressionByteCodelnt);
 			return NULL;
@@ -3381,8 +3381,8 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 		AST_cptr* begin=nextCptr(pErrorType);
 		if(!begin||pErrorType->type!=ATM||pErrorType->u.atom->type!=SYM)
 		{
-			status->status=SYNTAXERROR;
-			status->place=objCptr;
+			state->state=SYNTAXERROR;
+			state->place=objCptr;
 			FREE_ALL_LINE_NUMBER_TABLE(expressionByteCodelnt->l,expressionByteCodelnt->ls);
 			freeByteCodelnt(expressionByteCodelnt);
 			freeComStack(handlerByteCodelntStack);
@@ -3393,8 +3393,8 @@ ByteCodelnt* compileTry(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 		ByteCodelnt* t=NULL;
 		for(;begin;begin=nextCptr(begin))
 		{
-			ByteCodelnt* tmp1=compile(begin,tmpEnv,inter,status,evalIm);
-			if(status->status)
+			ByteCodelnt* tmp1=compile(begin,tmpEnv,inter,state,evalIm);
+			if(state->state)
 			{
 				FREE_ALL_LINE_NUMBER_TABLE(expressionByteCodelnt->l,expressionByteCodelnt->ls);
 				freeByteCodelnt(expressionByteCodelnt);

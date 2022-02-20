@@ -397,10 +397,10 @@ void initGlobEnv(VMenv* obj,VMheap* heap)
 void* ThreadVMFunc(void* p)
 {
 	FakeVM* exe=(FakeVM*)p;
-	int64_t status=runFakeVM(exe);
+	int64_t state=runFakeVM(exe);
 	VMChanl* tmpCh=exe->chan->u.chan;
 	exe->chan=NULL;
-	if(!status)
+	if(!state)
 	{
 		VMstack* stack=exe->stack;
 		VMvalue* v=NULL;
@@ -422,12 +422,12 @@ void* ThreadVMFunc(void* p)
 	freeVMstack(exe->stack);
 	exe->stack=NULL;
 	exe->lnt=NULL;
-	if(status!=0)
+	if(state!=0)
 		deleteCallChain(exe);
 	freeComStack(exe->tstack);
 	freeComStack(exe->rstack);
 	exe->mark=0;
-	return (void*)status;
+	return (void*)state;
 }
 
 void* ThreadVMDlprocFunc(void* p)
@@ -436,7 +436,7 @@ void* ThreadVMDlprocFunc(void* p)
 	FakeVM* exe=a[0];
 	DllFunc f=a[1];
 	free(p);
-	int64_t status=0;
+	int64_t state=0;
 	VMChanl* ch=exe->chan->u.chan;
 	pthread_rwlock_rdlock(&GClock);
 	if(!setjmp(exe->buf))
@@ -458,7 +458,7 @@ void* ThreadVMDlprocFunc(void* p)
 		free(id);
 		SendT* t=newSendT(err);
 		chanlSend(t,ch);
-		status=255;
+		state=255;
 	}
 	pthread_rwlock_unlock(&GClock);
 	freeVMstack(exe->stack);
@@ -468,7 +468,7 @@ void* ThreadVMDlprocFunc(void* p)
 	freeComStack(exe->rstack);
 	freeComStack(exe->tstack);
 	exe->mark=0;
-	return (void*)status;
+	return (void*)state;
 }
 
 void* ThreadVMFlprocFunc(void* p)
@@ -477,7 +477,7 @@ void* ThreadVMFlprocFunc(void* p)
 	FakeVM* exe=a[0];
 	VMFlproc* f=a[1];
 	free(p);
-	int64_t status=0;
+	int64_t state=0;
 	VMChanl* ch=exe->chan->u.chan;
 	pthread_rwlock_rdlock(&GClock);
 	if(!setjmp(exe->buf))
@@ -499,7 +499,7 @@ void* ThreadVMFlprocFunc(void* p)
 		free(id);
 		SendT* t=newSendT(err);
 		chanlSend(t,ch);
-		status=255;
+		state=255;
 	}
 	pthread_rwlock_unlock(&GClock);
 	freeVMstack(exe->stack);
@@ -509,7 +509,7 @@ void* ThreadVMFlprocFunc(void* p)
 	freeComStack(exe->rstack);
 	freeComStack(exe->tstack);
 	exe->mark=0;
-	return (void*)status;
+	return (void*)state;
 }
 
 int runFakeVM(FakeVM* exe)
@@ -1362,7 +1362,7 @@ void GC_markValue(VMvalue* obj)
 					pushComStack(root->u.cont->stack->values[i],stack);
 				for(i=0;i<root->u.cont->num;i++)
 				{
-					VMenv* env=root->u.cont->status[i].localenv;
+					VMenv* env=root->u.cont->state[i].localenv;
 					uint32_t j=0;
 					for(;j<env->num;j++)
 						pushComStack(env->list[i]->value,stack);
@@ -1684,12 +1684,12 @@ void createCallChainWithContinuation(FakeVM* vm,VMcontinuation* cc)
 	{
 		VMrunnable* cur=(VMrunnable*)malloc(sizeof(VMrunnable));
 		FAKE_ASSERT(cur,"createCallChainWithContinuation",__FILE__,__LINE__);
-		cur->cp=cc->status[i].cp;
-		cur->localenv=cc->status[i].localenv;
+		cur->cp=cc->state[i].cp;
+		cur->localenv=cc->state[i].localenv;
 		increaseVMenvRefcount(cur->localenv);
-		cur->scp=cc->status[i].scp;
-		cur->cpc=cc->status[i].cpc;
-		cur->mark=cc->status[i].mark;
+		cur->scp=cc->state[i].scp;
+		cur->cpc=cc->state[i].cpc;
+		cur->mark=cc->state[i].mark;
 		pushComStack(cur,vm->rstack);
 	}
 	for(i=0;i<cc->tnum;i++)

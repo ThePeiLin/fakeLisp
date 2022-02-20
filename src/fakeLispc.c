@@ -42,8 +42,8 @@ int main(int argc,char** argv)
 		initGlobKeyWord(inter->glob);
 		initNativeDefTypes(inter->deftypes);
 		addSymbolToGlob(argv[1]);
-		int status;
-		ByteCodelnt* mainByteCode=compileFile(inter,1,&status);
+		int state;
+		ByteCodelnt* mainByteCode=compileFile(inter,1,&state);
 		if(mainByteCode==NULL)
 		{
 			free(rp);
@@ -51,7 +51,7 @@ int main(int argc,char** argv)
 			unInitPreprocess();
 			free(InterpreterPath);
 			freeGlobSymbolTable();
-			return status;
+			return state;
 		}
 		//printByteCodelnt(mainByteCode,inter->table,stderr);
 		char* outputname=(char*)malloc(sizeof(char)*(strlen(rp)+2));

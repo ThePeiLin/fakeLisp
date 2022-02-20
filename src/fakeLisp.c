@@ -15,12 +15,12 @@
 #include<pthread.h>
 #include<setjmp.h>
 static jmp_buf buf;
-static int exitStatus=0;
+static int exitState=0;
 
 void errorCallBack(void* a)
 {
 	int* i=(int*)a;
-	exitStatus=255;
+	exitState=255;
 	longjmp(buf,i[(sizeof(void*)*2)/sizeof(int)]);
 }
 
@@ -62,8 +62,8 @@ int main(int argc,char** argv)
 #endif
 			char* workpath=getDir(rp);
 			free(rp);
-			int status;
-			ByteCodelnt* mainByteCode=compileFile(inter,1,&status);
+			int state;
+			ByteCodelnt* mainByteCode=compileFile(inter,1,&state);
 			if(mainByteCode==NULL)
 			{
 				free(workpath);
@@ -72,7 +72,7 @@ int main(int argc,char** argv)
 				free(InterpreterPath);
 				freeGlobSymbolTable();
 				freeGlobTypeList();
-				return status;
+				return state;
 			}
 			inter->lnt->num=mainByteCode->ls;
 			inter->lnt->list=mainByteCode->l;
@@ -112,7 +112,7 @@ int main(int argc,char** argv)
 				free(InterpreterPath);
 				freeGlobSymbolTable();
 				freeGlobTypeList();
-				return exitStatus;
+				return exitState;
 			}
 		}
 	}
@@ -162,7 +162,7 @@ int main(int argc,char** argv)
 			freeGlobTypeList();
 			freeLineNumberTable(lnt);
 			free(InterpreterPath);
-			return exitStatus;
+			return exitState;
 		}
 	}
 	else
@@ -172,7 +172,7 @@ int main(int argc,char** argv)
 		return EXIT_FAILURE;
 	}
 	free(InterpreterPath);
-	return exitStatus;
+	return exitState;
 }
 
 void runIntpr(Intpr* inter)
@@ -193,7 +193,7 @@ void runIntpr(Intpr* inter)
 		if(inter->file==stdin)printf(">>>");
 		int unexpectEOF=0;
 		char* list=readInPattern(inter->file,&prev,&unexpectEOF);
-		ErrorStatus status={0,NULL};
+		ErrorState state={0,NULL};
 		if(unexpectEOF)
 		{
 			switch(unexpectEOF)
@@ -217,11 +217,11 @@ void runIntpr(Intpr* inter)
 		}
 		if(begin!=NULL)
 		{
-			ByteCodelnt* tmpByteCode=compile(begin,inter->glob,inter,&status,!isLambdaExpression(begin));
-			if(status.status!=0)
+			ByteCodelnt* tmpByteCode=compile(begin,inter->glob,inter,&state,!isLambdaExpression(begin));
+			if(state.state!=0)
 			{
-				exError(status.place,status.status,inter);
-				deleteCptr(status.place);
+				exError(state.place,state.state,inter);
+				deleteCptr(state.place);
 				if(inter->file!=stdin)
 				{
 					deleteCptr(begin);

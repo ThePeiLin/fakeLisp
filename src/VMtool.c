@@ -1,6 +1,6 @@
-#include"VMtool.h"
-#include"common.h"
-#include"opcode.h"
+#include<fakeLisp/VMtool.h>
+#include<fakeLisp/common.h>
+#include<fakeLisp/opcode.h>
 #include<string.h>
 #include<stdio.h>
 #include<math.h>
@@ -1456,6 +1456,7 @@ DllHandle* newVMDll(const char* dllName)
 	if(!handle)
 	{
 		perror(dlerror());
+		putc('\n',stderr);
 		free(rpath);
 		free(realDllName);
 		return NULL;

@@ -1,5 +1,5 @@
-#include"common.h"
-#include"VMtool.h"
+#include<fakeLisp/common.h>
+#include<fakeLisp/VMtool.h>
 #include<stdio.h>
 #include<pthread.h>
 #ifdef _WIN32

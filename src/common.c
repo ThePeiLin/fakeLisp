@@ -1,6 +1,6 @@
 #define USE_CODE_NAME
-#include"common.h"
-#include"opcode.h"
+#include<fakeLisp/common.h>
+#include<fakeLisp/opcode.h>
 #include<stdlib.h>
 #include<stdio.h>
 #include<string.h>

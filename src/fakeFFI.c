@@ -1,6 +1,6 @@
-#include"fakeFFI.h"
-#include"common.h"
-#include"VMtool.h"
+#include<fakeLisp/fakeFFI.h>
+#include<fakeLisp/common.h>
+#include<fakeLisp/VMtool.h>
 #include<stddef.h>
 #include<pthread.h>
 extern TypeId_t LastNativeTypeId;

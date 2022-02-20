@@ -1,11 +1,11 @@
 #define USE_CODE_NAME
-#include"common.h"
-#include"VMtool.h"
-#include"reader.h"
-#include"fakeVM.h"
-#include"opcode.h"
-#include"syscall.h"
-#include"fakeFFI.h"
+#include<fakeLisp/common.h>
+#include<fakeLisp/VMtool.h>
+#include<fakeLisp/reader.h>
+#include<fakeLisp/fakeVM.h>
+#include<fakeLisp/opcode.h>
+#include<fakeLisp/syscall.h>
+#include<fakeLisp/fakeFFI.h>
 #include<string.h>
 #include<math.h>
 #ifdef _WIN32

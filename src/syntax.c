@@ -1,5 +1,5 @@
-#include"syntax.h"
-#include"common.h"
+#include<fakeLisp/syntax.h>
+#include<fakeLisp/common.h>
 #include<stdlib.h>
 #include<string.h>
 

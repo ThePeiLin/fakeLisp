@@ -23,35 +23,35 @@ CC=gcc
 fakeLisp: $(objectOfFakeLisp) $(objectOfFakeLispc) $(BTK)
 	gcc $(FLAG) -o fakeLisp $(objectOfFakeLisp) $(LINK)
 	gcc $(FLAG) -o fakeLispc $(objectOfFakeLispc) $(LINK)
-syscall.o: src/syscall.* src/fakedef.h VMtool.o common.o
-	gcc $(FLAG) -c src/syscall.c
-reader.o: src/reader.* src/fakedef.h common.o
-	gcc $(FLAG) -c src/reader.c
-ast.o: src/ast.* src/fakedef.h fakeVM.o
-	gcc $(FLAG) -c src/ast.c
-common.o: src/common.* src/fakedef.h src/opcode.h
-	gcc $(FLAG) -c src/common.c
-syntax.o: src/syntax.* src/fakedef.h common.o
-	gcc $(FLAG) -c src/syntax.c
-fakeLisp.o: src/fakeLisp.* src/fakedef.h
-	gcc $(FLAG) -c src/fakeLisp.c
-compiler.o: src/compiler.* src/opcode.h src/fakedef.h ast.o
-	gcc $(FLAG) -c src/compiler.c
-VMtool.o: src/VMtool.* src/fakedef.h common.o
-	gcc $(FLAG) -c src/VMtool.c
-fakeVM.o: src/fakeVM.* src/fakedef.h src/opcode.h VMtool.o reader.o
-	gcc $(FLAG) -c src/fakeVM.c
-fakeFFI.o: src/fakeFFI.* src/fakedef.h src/fakeFFI.*
-	gcc $(FLAG) -c src/fakeFFI.c
-fakeLispc.o: src/fakeLispc.* src/fakedef.h
-	gcc $(FLAG) -c src/fakeLispc.c
+syscall.o: src/syscall.* include/fakeLisp/fakedef.h VMtool.o common.o
+	gcc $(FLAG) -c src/syscall.c -Iinclude/
+reader.o: src/reader.* include/fakeLisp/fakedef.h common.o
+	gcc $(FLAG) -c src/reader.c -Iinclude/
+ast.o: src/ast.* include/fakeLisp/fakedef.h fakeVM.o
+	gcc $(FLAG) -c src/ast.c -Iinclude/
+common.o: src/common.* include/fakeLisp/fakedef.h include/fakeLisp/opcode.h
+	gcc $(FLAG) -c src/common.c -Iinclude/
+syntax.o: src/syntax.* include/fakeLisp/fakedef.h common.o
+	gcc $(FLAG) -c src/syntax.c -Iinclude/
+fakeLisp.o: src/fakeLisp.* include/fakeLisp/fakedef.h
+	gcc $(FLAG) -c src/fakeLisp.c -Iinclude/
+compiler.o: src/compiler.* include/fakeLisp/opcode.h include/fakeLisp/fakedef.h ast.o
+	gcc $(FLAG) -c src/compiler.c -Iinclude/
+VMtool.o: src/VMtool.* include/fakeLisp/fakedef.h common.o
+	gcc $(FLAG) -c src/VMtool.c -Iinclude/
+fakeVM.o: src/fakeVM.* include/fakeLisp/fakedef.h include/fakeLisp/opcode.h VMtool.o reader.o
+	gcc $(FLAG) -c src/fakeVM.c -Iinclude/
+fakeFFI.o: src/fakeFFI.* include/fakeLisp/fakedef.h src/fakeFFI.*
+	gcc $(FLAG) -c src/fakeFFI.c -Iinclude/
+fakeLispc.o: src/fakeLispc.* include/fakeLisp/fakedef.h
+	gcc $(FLAG) -c src/fakeLispc.c -Iinclude/
 fakeLispc: $(objectOfFakeLispc)
 	gcc $(FLAG) -o fakeLispc $(objectOfFakeLispc) $(LINK)
 
 btk.dll: src/btk.c src/VMtool.* src/common.*
-	gcc -fPIC -shared $(FLAG) -o btk.dll src/btk.c src/VMtool.c src/common.c
+	gcc -fPIC -shared $(FLAG) -o btk.dll src/btk.c src/VMtool.c src/common.c -Iinclude/
 btk.so: src/btk.c VMtool.o common.o
-	gcc -fPIC -shared $(FLAG) -o btk.so src/btk.c src/VMtool.c src/common.c
+	gcc -fPIC -shared $(FLAG) -o btk.so src/btk.c src/VMtool.c src/common.c -Iinclude/
 
 .PHONY: clean
 clean:

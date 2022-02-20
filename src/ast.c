@@ -1,8 +1,8 @@
-#include"ast.h"
-#include"common.h"
-#include"reader.h"
-#include"VMtool.h"
-#include"fakeVM.h"
+#include<fakeLisp/ast.h>
+#include<fakeLisp/common.h>
+#include<fakeLisp/reader.h>
+#include<fakeLisp/VMtool.h>
+#include<fakeLisp/fakeVM.h>
 #include<string.h>
 #include<ctype.h>
 

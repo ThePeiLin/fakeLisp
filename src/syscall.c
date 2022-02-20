@@ -1,8 +1,8 @@
-#include"common.h"
-#include"syscall.h"
-#include"VMtool.h"
-#include"reader.h"
-#include"fakeVM.h"
+#include<fakeLisp/common.h>
+#include<fakeLisp/syscall.h>
+#include<fakeLisp/VMtool.h>
+#include<fakeLisp/reader.h>
+#include<fakeLisp/fakeVM.h>
 #include<string.h>
 #include<math.h>
 #include<setjmp.h>

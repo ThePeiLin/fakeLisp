@@ -1,8 +1,8 @@
-#include"common.h"
-#include"compiler.h"
-#include"opcode.h"
-#include"syntax.h"
-#include"VMtool.h"
+#include<fakeLisp/common.h>
+#include<fakeLisp/compiler.h>
+#include<fakeLisp/opcode.h>
+#include<fakeLisp/syntax.h>
+#include<fakeLisp/VMtool.h>
 #include<string.h>
 #include<stdio.h>
 #include<stdlib.h>

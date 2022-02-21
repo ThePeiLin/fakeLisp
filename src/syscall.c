@@ -1,5 +1,5 @@
 #include<fakeLisp/common.h>
-#include<fakeLisp/syscall.h>
+#include<fakeLisp/fakedef.h>
 #include<fakeLisp/VMtool.h>
 #include<fakeLisp/reader.h>
 #include<fakeLisp/fakeVM.h>

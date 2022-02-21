@@ -211,6 +211,47 @@ void invokeFlproc(FakeVM* exe,VMFlproc* flproc)
 /*--------------------------*/
 
 FakeVMlist GlobFakeVMs={0,NULL};
+static void B_dummy(FakeVM*);
+static void B_push_nil(FakeVM*);
+static void B_push_pair(FakeVM*);
+static void B_push_in32(FakeVM*);
+static void B_push_in64(FakeVM*);
+static void B_push_chr(FakeVM*);
+static void B_push_dbl(FakeVM*);
+static void B_push_str(FakeVM*);
+static void B_push_sym(FakeVM*);
+static void B_push_byte(FakeVM*);
+static void B_push_var(FakeVM*);
+//static void B_push_env_var(FakeVM*);
+static void B_push_top(FakeVM*);
+static void B_push_proc(FakeVM*);
+static void B_push_fproc(FakeVM*);
+static void B_push_ptr_ref(FakeVM*);
+static void B_push_def_ref(FakeVM*);
+static void B_push_ind_ref(FakeVM*);
+static void B_push_ref(FakeVM*);
+static void B_pop(FakeVM*);
+static void B_pop_var(FakeVM*);
+static void B_pop_arg(FakeVM*);
+static void B_pop_rest_arg(FakeVM*);
+static void B_pop_car(FakeVM*);
+static void B_pop_cdr(FakeVM*);
+static void B_pop_ref(FakeVM*);
+//static void B_pop_env(FakeVM*);
+//static void B_swap(FakeVM*);
+static void B_set_tp(FakeVM*);
+static void B_set_bp(FakeVM*);
+static void B_invoke(FakeVM*);
+static void B_res_tp(FakeVM*);
+static void B_pop_tp(FakeVM*);
+static void B_res_bp(FakeVM*);
+static void B_append(FakeVM*);
+static void B_jmp_if_true(FakeVM*);
+static void B_jmp_if_false(FakeVM*);
+static void B_jmp(FakeVM*);
+static void B_push_try(FakeVM*);
+static void B_pop_try(FakeVM*);
+
 
 static void (*ByteCodes[])(FakeVM*)=
 {
@@ -326,6 +367,56 @@ FakeVM* newTmpFakeVM(ByteCode* mainCode)
 	exe->VMid=-1;
 	return exe;
 }
+
+extern void SYS_car(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_cdr(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_cons(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_append(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_atom(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_null(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_not(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_eq(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_equal(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_eqn(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_add(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_add_1(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_sub(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_sub_1(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_mul(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_div(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_rem(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_gt(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_ge(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_lt(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_le(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_chr(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_int(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_dbl(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_str(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_sym(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_byts(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_type(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_nth(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_length(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_file(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_read(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_getb(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_prin1(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_putb(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_princ(FakeVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_dll(FakeVM*,pthread_rwlock_t*);
+extern void SYS_dlsym(FakeVM*,pthread_rwlock_t*);
+extern void SYS_argv(FakeVM*,pthread_rwlock_t*);
+extern void SYS_go(FakeVM*,pthread_rwlock_t*);
+extern void SYS_chanl(FakeVM*,pthread_rwlock_t*);
+extern void SYS_send(FakeVM*,pthread_rwlock_t*);
+extern void SYS_recv(FakeVM*,pthread_rwlock_t*);
+extern void SYS_error(FakeVM*,pthread_rwlock_t*);
+extern void SYS_raise(FakeVM*,pthread_rwlock_t*);
+extern void SYS_clcc(FakeVM*,pthread_rwlock_t*);
+extern void SYS_apply(FakeVM*,pthread_rwlock_t*);
+extern void SYS_newf(FakeVM*,pthread_rwlock_t*);
+extern void SYS_delf(FakeVM*,pthread_rwlock_t*);
 
 void initGlobEnv(VMenv* obj,VMheap* heap)
 {

@@ -34,10 +34,10 @@ int main(int argc,char** argv)
 #else
 	InterpreterPath=realpath(argv[0],0);
 #endif
-	char* t=getDir(InterpreterPath);
+	char* t=fklGetDir(InterpreterPath);
 	free(InterpreterPath);
 	InterpreterPath=t;
-	if(argc==1||isscript(filename))
+	if(argc==1||fklIsscript(filename))
 	{
 		FILE* fp=(argc>1)?fopen(argv[1],"r"):stdin;
 		if(fp==NULL)
@@ -46,11 +46,11 @@ int main(int argc,char** argv)
 			free(InterpreterPath);
 			return EXIT_FAILURE;
 		}
-		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
-		addSymbolToGlob(filename);
-		initGlobKeyWord(inter->glob);
-		initNativeDefTypes(inter->deftypes);
-		initBuiltInStringPattern();
+		Intpr* inter=fklNewIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
+		fklAddSymbolToGlob(filename);
+		fklInitGlobKeyWord(inter->glob);
+		fklInitNativeDefTypes(inter->deftypes);
+		fklInitBuiltInStringPattern();
 		if(fp==stdin)
 			runIntpr(inter);
 		else
@@ -60,25 +60,25 @@ int main(int argc,char** argv)
 #else
 			char* rp=realpath(filename,0);
 #endif
-			char* workpath=getDir(rp);
+			char* workpath=fklGetDir(rp);
 			free(rp);
 			int state;
-			ByteCodelnt* mainByteCode=compileFile(inter,1,&state);
+			ByteCodelnt* mainByteCode=fklCompileFile(inter,1,&state);
 			if(mainByteCode==NULL)
 			{
 				free(workpath);
-				freeIntpr(inter);
-				unInitPreprocess();
+				fklFreeIntpr(inter);
+				fklUnInitPreprocess();
 				free(InterpreterPath);
-				freeGlobSymbolTable();
-				freeGlobTypeList();
+				fklFreeGlobSymbolTable();
+				fklFreeGlobTypeList();
 				return state;
 			}
 			inter->lnt->num=mainByteCode->ls;
 			inter->lnt->list=mainByteCode->l;
-			VMenv* globEnv=newVMenv(NULL);
-			FakeVM* anotherVM=newFakeVM(mainByteCode->bc);
-			freeByteCode(mainByteCode->bc);
+			VMenv* globEnv=fklNewVMenv(NULL);
+			FakeVM* anotherVM=fklNewFakeVM(mainByteCode->bc);
+			fklFreeByteCode(mainByteCode->bc);
 			free(mainByteCode);
 			VMrunnable* mainrunnable=anotherVM->rstack->data[0];
 			anotherVM->argc=argc-1;
@@ -87,36 +87,36 @@ int main(int argc,char** argv)
 			mainrunnable->localenv=globEnv;
 			anotherVM->callback=errorCallBack;
 			anotherVM->lnt=inter->lnt;
-			initGlobEnv(globEnv,anotherVM->heap);
+			fklInitGlobEnv(globEnv,anotherVM->heap);
 			chdir(workpath);
 			free(workpath);
 			if(setjmp(buf)==0)
 			{
-				runFakeVM(anotherVM);
-				joinAllThread();
-				freeIntpr(inter);
-				unInitPreprocess();
-				freeVMheap(anotherVM->heap);
-				freeGlobSymbolTable();
-				freeGlobTypeList();
-				freeAllVMs();
+				fklRunFakeVM(anotherVM);
+				fklJoinAllThread();
+				fklFreeIntpr(inter);
+				fklUnInitPreprocess();
+				fklFreeVMheap(anotherVM->heap);
+				fklFreeGlobSymbolTable();
+				fklFreeGlobTypeList();
+				fklFreeAllVMs();
 			}
 			else
 			{
-				deleteCallChain(anotherVM);
-				cancelAllThread();
-				freeIntpr(inter);
-				unInitPreprocess();
-				freeVMheap(anotherVM->heap);
-				freeAllVMs();
+				fklDeleteCallChain(anotherVM);
+				fklCancelAllThread();
+				fklFreeIntpr(inter);
+				fklUnInitPreprocess();
+				fklFreeVMheap(anotherVM->heap);
+				fklFreeAllVMs();
 				free(InterpreterPath);
-				freeGlobSymbolTable();
-				freeGlobTypeList();
+				fklFreeGlobSymbolTable();
+				fklFreeGlobTypeList();
 				return exitState;
 			}
 		}
 	}
-	else if(iscode(filename))
+	else if(fklIscode(filename))
 	{
 		FILE* fp=fopen(argv[1],"rb");
 		if(fp==NULL)
@@ -125,42 +125,42 @@ int main(int argc,char** argv)
 			free(InterpreterPath);
 			return EXIT_FAILURE;
 		}
-		changeWorkPath(filename);
+		fklChangeWorkPath(filename);
 		loadSymbolTable(fp);
 		LineNumberTable* lnt=loadLineNumberTable(fp);
-		loadTypeList(fp);
+		fklLoadTypeList(fp);
 		ByteCode* mainCode=loadByteCode(fp);
-		FakeVM* anotherVM=newFakeVM(mainCode);
+		FakeVM* anotherVM=fklNewFakeVM(mainCode);
 		VMheap* heap=anotherVM->heap;
-		freeByteCode(mainCode);
+		fklFreeByteCode(mainCode);
 		fclose(fp);
 		VMrunnable* mainrunnable=anotherVM->rstack->data[0];
-		VMenv* globEnv=newVMenv(NULL);
+		VMenv* globEnv=fklNewVMenv(NULL);
 		anotherVM->argc=argc-1;
 		anotherVM->argv=argv+1;
 		mainrunnable->localenv=globEnv;
 		anotherVM->callback=errorCallBack;
 		anotherVM->lnt=lnt;
-		initGlobEnv(globEnv,anotherVM->heap);
+		fklInitGlobEnv(globEnv,anotherVM->heap);
 		if(!setjmp(buf))
 		{
-			runFakeVM(anotherVM);
-			joinAllThread();
-			freeVMheap(heap);
-			freeGlobSymbolTable();
-			freeGlobTypeList();
-			freeAllVMs();
-			freeLineNumberTable(lnt);
+			fklRunFakeVM(anotherVM);
+			fklJoinAllThread();
+			fklFreeVMheap(heap);
+			fklFreeGlobSymbolTable();
+			fklFreeGlobTypeList();
+			fklFreeAllVMs();
+			fklFreeLineNumberTable(lnt);
 		}
 		else
 		{
-			deleteCallChain(anotherVM);
-			cancelAllThread();
-			freeAllVMs();
-			freeVMheap(heap);
-			freeGlobSymbolTable();
-			freeGlobTypeList();
-			freeLineNumberTable(lnt);
+			fklDeleteCallChain(anotherVM);
+			fklCancelAllThread();
+			fklFreeAllVMs();
+			fklFreeVMheap(heap);
+			fklFreeGlobSymbolTable();
+			fklFreeGlobTypeList();
+			fklFreeLineNumberTable(lnt);
 			free(InterpreterPath);
 			return exitState;
 		}
@@ -178,12 +178,12 @@ int main(int argc,char** argv)
 void runIntpr(Intpr* inter)
 {
 	int e=0;
-	FakeVM* anotherVM=newFakeVM(NULL);
-	VMenv* globEnv=newVMenv(NULL);
+	FakeVM* anotherVM=fklNewFakeVM(NULL);
+	VMenv* globEnv=fklNewVMenv(NULL);
 	anotherVM->tid=pthread_self();
 	anotherVM->callback=errorCallBack;
 	anotherVM->lnt=inter->lnt;
-	initGlobEnv(globEnv,anotherVM->heap);
+	fklInitGlobEnv(globEnv,anotherVM->heap);
 	ByteCode* rawProcList=NULL;
 	char* prev=NULL;
 	int32_t bs=0;
@@ -192,7 +192,7 @@ void runIntpr(Intpr* inter)
 		AST_cptr* begin=NULL;
 		if(inter->file==stdin)printf(">>>");
 		int unexpectEOF=0;
-		char* list=readInPattern(inter->file,&prev,&unexpectEOF);
+		char* list=fklReadInPattern(inter->file,&prev,&unexpectEOF);
 		ErrorState state={0,NULL};
 		if(unexpectEOF)
 		{
@@ -209,53 +209,53 @@ void runIntpr(Intpr* inter)
 			list=NULL;
 			continue;
 		}
-		begin=createTree(list,inter,NULL);
-		if(isAllSpace(list))
+		begin=fklCreateTree(list,inter,NULL);
+		if(fklIsAllSpace(list))
 		{
 			free(list);
 			break;
 		}
 		if(begin!=NULL)
 		{
-			ByteCodelnt* tmpByteCode=compile(begin,inter->glob,inter,&state,!isLambdaExpression(begin));
+			ByteCodelnt* tmpByteCode=fklCompile(begin,inter->glob,inter,&state,!fklIsLambdaExpression(begin));
 			if(state.state!=0)
 			{
-				exError(state.place,state.state,inter);
-				deleteCptr(state.place);
+				fklExError(state.place,state.state,inter);
+				fklDeleteCptr(state.place);
 				if(inter->file!=stdin)
 				{
-					deleteCptr(begin);
-					freeGlobSymbolTable();
-					freeGlobTypeList();
+					fklDeleteCptr(begin);
+					fklFreeGlobSymbolTable();
+					fklFreeGlobTypeList();
 					exit(0);
 				}
 			}
 			else if(tmpByteCode)
 			{
-				lntCat(inter->lnt,bs,tmpByteCode->l,tmpByteCode->ls);
+				fklLntCat(inter->lnt,bs,tmpByteCode->l,tmpByteCode->ls);
 				ByteCode byteCodeOfVM={anotherVM->size,anotherVM->code};
-				codeCat(&byteCodeOfVM,tmpByteCode->bc);
+				fklCodeCat(&byteCodeOfVM,tmpByteCode->bc);
 				anotherVM->code=byteCodeOfVM.code;
 				anotherVM->size=byteCodeOfVM.size;
-				VMproc* tmp=newVMproc(bs,tmpByteCode->bc->size);
+				VMproc* tmp=fklNewVMproc(bs,tmpByteCode->bc->size);
 				bs+=tmpByteCode->bc->size;
-				freeByteCodelnt(tmpByteCode);
+				fklFreeByteCodelnt(tmpByteCode);
 				tmp->prevEnv=NULL;
-				VMrunnable* mainrunnable=newVMrunnable(tmp);
+				VMrunnable* mainrunnable=fklNewVMrunnable(tmp);
 				mainrunnable->localenv=globEnv;
-				pushComStack(mainrunnable,anotherVM->rstack);
+				fklPushComStack(mainrunnable,anotherVM->rstack);
 				globEnv->refcount+=1;
 				if(!(e=setjmp(buf)))
 				{
-					runFakeVM(anotherVM);
+					fklRunFakeVM(anotherVM);
 					VMstack* stack=anotherVM->stack;
 					if(inter->file==stdin&&stack->tp!=0)
 					{
 						printf(";=>");
-						DBG_printVMstack(stack,stdout,0);
+						fklDBG_printVMstack(stack,stdout,0);
 					}
 					stack->tp=0;
-					freeVMproc(tmp);
+					fklFreeVMproc(tmp);
 				}
 				else
 				{
@@ -265,13 +265,13 @@ void runIntpr(Intpr* inter)
 					stack->tp=0;
 					stack->bp=0;
 					tmp->prevEnv=NULL;
-					freeVMproc(tmp);
-					deleteCallChain(anotherVM);
+					fklFreeVMproc(tmp);
+					fklDeleteCallChain(anotherVM);
 				}
 			}
 			free(list);
 			list=NULL;
-			deleteCptr(begin);
+			fklDeleteCptr(begin);
 			free(begin);
 		}
 		else
@@ -280,15 +280,15 @@ void runIntpr(Intpr* inter)
 				free(list);
 		}
 	}
-	freeVMenv(globEnv);
-	joinAllThread();
+	fklFreeVMenv(globEnv);
+	fklJoinAllThread();
 	free(rawProcList);
-	freeIntpr(inter);
-	unInitPreprocess();
-	freeVMheap(anotherVM->heap);
-	freeAllVMs();
-	freeGlobSymbolTable();
-	freeGlobTypeList();
+	fklFreeIntpr(inter);
+	fklUnInitPreprocess();
+	fklFreeVMheap(anotherVM->heap);
+	fklFreeAllVMs();
+	fklFreeGlobSymbolTable();
+	fklFreeGlobTypeList();
 }
 
 ByteCode* loadByteCode(FILE* fp)
@@ -313,8 +313,8 @@ void loadSymbolTable(FILE* fp)
 	fread(&size,sizeof(int32_t),1,fp);
 	for(;i<size;i++)
 	{
-		char* symbol=getStringFromFile(fp);
-		addSymbolToGlob(symbol);
+		char* symbol=fklGetStringFromFile(fp);
+		fklAddSymbolToGlob(symbol);
 		free(symbol);
 	}
 }
@@ -336,10 +336,10 @@ LineNumberTable* loadLineNumberTable(FILE* fp)
 		fread(&scp,sizeof(scp),1,fp);
 		fread(&cpc,sizeof(cpc),1,fp);
 		fread(&line,sizeof(line),1,fp);
-		LineNumTabNode* n=newLineNumTabNode(fid,scp,cpc,line);
+		LineNumTabNode* n=fklNewLineNumTabNode(fid,scp,cpc,line);
 		list[i]=n;
 	}
-	LineNumberTable* lnt=newLineNumTable();
+	LineNumberTable* lnt=fklNewLineNumTable();
 	lnt->list=list;
 	lnt->num=size;
 	return lnt;

@@ -3,26 +3,26 @@
 #include"fakedef.h"
 #include<stdint.h>
 
-StringMatchPattern* findStringPattern(const char*);
-StringMatchPattern* newStringMatchPattern(int32_t,char**,ByteCodelnt*);
-StringMatchPattern* newFStringMatchPattern(int32_t num,char** parts,void(*fproc)(FakeVM* exe));
-char** splitPattern(const char*,int32_t*);
-char** splitStringInPattern(const char*,StringMatchPattern*,int32_t*);
-char* readInPattern(FILE*,char**,int*);
-char* getVarName(const char*);
-void printInPattern(char**,StringMatchPattern*,FILE*,int32_t);
-void freeStringArry(char** ss,int32_t num);
-void freeAllStringPattern();
-void freeStringPattern(StringMatchPattern*);
-int isInValidStringPattern(const char*);
-int isReDefStringPattern(const char*);
-int isVar(const char*);
-int isMustList(const char*);
-int32_t skipInPattern(const char*,StringMatchPattern*);
-int32_t skipSpace(const char*);
-int32_t countInPattern(const char* str,StringMatchPattern*);
-int32_t skipUntilNext(const char* str,const char*);
-int32_t skipParentheses(const char*);
-int32_t skipAtom(const char*,const char*);
-int32_t findKeyString(const char*);
+StringMatchPattern* fklFindStringPattern(const char*);
+StringMatchPattern* fklNewStringMatchPattern(int32_t,char**,ByteCodelnt*);
+StringMatchPattern* fklNewFStringMatchPattern(int32_t num,char** parts,void(*fproc)(FakeVM* exe));
+char** fklSplitPattern(const char*,int32_t*);
+char** fklSplitStringInPattern(const char*,StringMatchPattern*,int32_t*);
+char* fklReadInPattern(FILE*,char**,int*);
+char* fklGetVarName(const char*);
+void fklPrintInPattern(char**,StringMatchPattern*,FILE*,int32_t);
+void fklFreeStringArry(char** ss,int32_t num);
+void fklFreeAllStringPattern();
+void fklFreeStringPattern(StringMatchPattern*);
+int fklIsInValidStringPattern(const char*);
+int fklIsReDefStringPattern(const char*);
+int fklIsVar(const char*);
+int fklIsMustList(const char*);
+int32_t fklSkipInPattern(const char*,StringMatchPattern*);
+int32_t fklSkipSpace(const char*);
+int32_t fklCountInPattern(const char* str,StringMatchPattern*);
+int32_t fklSkipUntilNext(const char* str,const char*);
+int32_t fklSkipParentheses(const char*);
+int32_t fklSkipAtom(const char*,const char*);
+int32_t fklFindKeyString(const char*);
 #endif

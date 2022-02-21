@@ -76,7 +76,7 @@ static void (*PrintMemoryRefFuncList[])(uint8_t*,FILE*)=
 
 /*memory caster list*/
 #define CAST_TO_IN32(TYPE) return MAKE_VM_IN32(*(TYPE*)mem);
-#define CAST_TO_IN64(TYPE) int64_t t=*(TYPE*)mem;return newVMvalue(IN64,&t,heap);
+#define CAST_TO_IN64(TYPE) int64_t t=*(TYPE*)mem;return fklNewVMvalue(IN64,&t,heap);
 #define ARGL uint8_t* mem,VMheap* heap
 static VMvalue* castShortMem (ARGL){CAST_TO_IN32(short)}
 static VMvalue* castIntMem   (ARGL){CAST_TO_IN32(int)}
@@ -91,8 +91,8 @@ static VMvalue* castSize_t   (ARGL){CAST_TO_IN64(size_t)}
 static VMvalue* castSsize_t  (ARGL){CAST_TO_IN64(ssize_t)}
 static VMvalue* castChar     (ARGL){return MAKE_VM_CHR(*(char*)mem);}
 static VMvalue* castWchar_t  (ARGL){return MAKE_VM_IN32(*(wchar_t*)mem);}
-static VMvalue* castFloat    (ARGL){double t=*(float*)mem;return newVMvalue(DBL,&t,heap);}
-static VMvalue* castDouble   (ARGL){double t=*(double*)mem;return newVMvalue(DBL,&t,heap);}
+static VMvalue* castFloat    (ARGL){double t=*(float*)mem;return fklNewVMvalue(DBL,&t,heap);}
+static VMvalue* castDouble   (ARGL){double t=*(double*)mem;return fklNewVMvalue(DBL,&t,heap);}
 static VMvalue* castInt8_t   (ARGL){CAST_TO_IN32(int8_t)}
 static VMvalue* castUint8_t  (ARGL){CAST_TO_IN32(uint8_t)}
 static VMvalue* castInt16_t  (ARGL){CAST_TO_IN32(int16_t)}
@@ -103,7 +103,7 @@ static VMvalue* castInt64_t  (ARGL){CAST_TO_IN64(int64_t)}
 static VMvalue* castUint64_t (ARGL){CAST_TO_IN64(uint64_t)}
 static VMvalue* castIptr     (ARGL){CAST_TO_IN64(intptr_t)}
 static VMvalue* castUptr     (ARGL){CAST_TO_IN64(uintptr_t)}
-static VMvalue* castVPtr     (ARGL){return newVMvalue(IN64,mem,heap);}
+static VMvalue* castVPtr     (ARGL){return fklNewVMvalue(IN64,mem,heap);}
 #undef ARGL
 #undef CAST_TO_IN32
 #undef CAST_TO_IN64
@@ -216,13 +216,13 @@ struct GlobTypeUnionListStruct
 static void initVMStructTypeId(TypeId_t id,const char* structName,uint32_t num,Sid_t* symbols,TypeId_t* memberTypes)
 {
 	size_t totalSize=0;
-	for(uint32_t i=0;i<num;totalSize+=getVMTypeSize(getVMTypeUnion(memberTypes[i])),i++);
+	for(uint32_t i=0;i<num;totalSize+=fklGetVMTypeSize(fklGetVMTypeUnion(memberTypes[i])),i++);
 	VMTypeUnion* pst=&GlobTypeUnionList.ul[id-1];
 	VMStructType* ost=(VMStructType*)GET_TYPES_PTR(pst->st);
 	ost=(VMStructType*)realloc(ost,sizeof(VMStructType)+num*sizeof(VMStructMember));
 	FAKE_ASSERT(ost,"initVMStructTypeId",__FILE__,__LINE__);
 	if(structName)
-		ost->type=addSymbolToGlob(structName)->id;
+		ost->type=fklAddSymbolToGlob(structName)->id;
 	else
 		ost->type=-1;
 	ost->num=num;
@@ -240,7 +240,7 @@ static void initVMUnionTypeId(TypeId_t id,const char* unionName,uint32_t num,Sid
 	size_t maxSize=0;
 	for(uint32_t i=0;i<num;i++)
 	{
-		size_t curSize=getVMTypeSizeWithTypeId(memberTypes[i]);
+		size_t curSize=fklGetVMTypeSizeWithTypeId(memberTypes[i]);
 		if(maxSize<curSize)
 			maxSize=curSize;
 	}
@@ -249,7 +249,7 @@ static void initVMUnionTypeId(TypeId_t id,const char* unionName,uint32_t num,Sid
 	out=(VMUnionType*)realloc(out,sizeof(VMUnionType)+num*sizeof(VMStructMember));
 	FAKE_ASSERT(out,"initVMUnionTypeId",__FILE__,__LINE__);
 	if(unionName)
-		out->type=addSymbolToGlob(unionName)->id;
+		out->type=fklAddSymbolToGlob(unionName)->id;
 	else
 		out->type=-1;
 	out->num=num;
@@ -275,31 +275,31 @@ static TypeId_t addToGlobTypeUnionList(VMTypeUnion type)
 /*genTypeId functions list*/
 static TypeId_t genArrayTypeId(AST_cptr* compositeDataHead,VMDefTypes* otherTypes)
 {
-	AST_cptr* numCptr=nextCptr(compositeDataHead);
+	AST_cptr* numCptr=fklNextCptr(compositeDataHead);
 	if(!numCptr||numCptr->type!=ATM||numCptr->u.atom->type!=IN32)
 		return 0;
-	AST_cptr* typeCptr=nextCptr(numCptr);
+	AST_cptr* typeCptr=fklNextCptr(numCptr);
 	if(!typeCptr)
 		return 0;
-	TypeId_t type=genDefTypesUnion(typeCptr,otherTypes);
+	TypeId_t type=fklGenDefTypesUnion(typeCptr,otherTypes);
 	if(!type)
 		return type;
-	if(getCptrCdr(typeCptr)->type!=NIL)
+	if(fklGetCptrCdr(typeCptr)->type!=NIL)
 		return 0;
-	return newVMArrayType(type,numCptr->u.atom->value.in32);
+	return fklNewVMArrayType(type,numCptr->u.atom->value.in32);
 }
 
 static TypeId_t genPtrTypeId(AST_cptr* compositeDataHead,VMDefTypes* otherTypes)
 {
-	AST_cptr* ptrTypeCptr=nextCptr(compositeDataHead);
+	AST_cptr* ptrTypeCptr=fklNextCptr(compositeDataHead);
 	if(ptrTypeCptr->type==ATM&&ptrTypeCptr->u.atom->type!=SYM)
 		return 0;
-	TypeId_t pType=genDefTypesUnion(ptrTypeCptr,otherTypes);
+	TypeId_t pType=fklGenDefTypesUnion(ptrTypeCptr,otherTypes);
 	if(!pType)
 		return pType;
-	if(getCptrCdr(ptrTypeCptr)->type!=NIL)
+	if(fklGetCptrCdr(ptrTypeCptr)->type!=NIL)
 		return 0;
-	return newVMPtrType(pType);
+	return fklNewVMPtrType(pType);
 }
 
 static int isInPtrDeclare(AST_cptr* compositeDataHead)
@@ -308,7 +308,7 @@ static int isInPtrDeclare(AST_cptr* compositeDataHead)
 	AST_pair* outerPrevPair=outerPair->prev;
 	if(outerPrevPair)
 	{
-		AST_cptr* outerTypeHead=prevCptr(&outerPrevPair->car);
+		AST_cptr* outerTypeHead=fklPrevCptr(&outerPrevPair->car);
 		if(outerTypeHead)
 			return outerTypeHead->type==ATM&&outerTypeHead->u.atom->type==SYM&&!strcmp(outerTypeHead->u.atom->value.str,"ptr");
 	}
@@ -318,7 +318,7 @@ static int isInPtrDeclare(AST_cptr* compositeDataHead)
 static TypeId_t genStructTypeId(AST_cptr* compositeDataHead,VMDefTypes* otherTypes)
 {
 	char* structName=NULL;
-	AST_cptr* structNameCptr=nextCptr(compositeDataHead);
+	AST_cptr* structNameCptr=fklNextCptr(compositeDataHead);
 	uint32_t num=0;
 	AST_cptr* memberCptr=NULL;
 	if(structNameCptr->type==ATM)
@@ -327,7 +327,7 @@ static TypeId_t genStructTypeId(AST_cptr* compositeDataHead,VMDefTypes* otherTyp
 			structName=structNameCptr->u.atom->value.str;
 		else
 			return 0;
-		memberCptr=nextCptr(structNameCptr);
+		memberCptr=fklNextCptr(structNameCptr);
 		structNameCptr=memberCptr;
 	}
 	else
@@ -343,7 +343,7 @@ static TypeId_t genStructTypeId(AST_cptr* compositeDataHead,VMDefTypes* otherTyp
 			if(GET_TYPES_TAG(typeUnion.all)==STRUCT_TYPE_TAG)
 			{
 				VMStructType* st=(VMStructType*)GET_TYPES_PTR(typeUnion.st);
-				if(st->type==addSymbolToGlob(structName)->id)
+				if(st->type==fklAddSymbolToGlob(structName)->id)
 				{
 					retval=i+1;
 					break;
@@ -354,8 +354,8 @@ static TypeId_t genStructTypeId(AST_cptr* compositeDataHead,VMDefTypes* otherTyp
 			return retval;
 	}
 	else if(structName!=NULL)
-		retval=newVMStructType(structName,0,NULL,NULL);
-	for(;memberCptr;num++,memberCptr=nextCptr(memberCptr));
+		retval=fklNewVMStructType(structName,0,NULL,NULL);
+	for(;memberCptr;num++,memberCptr=fklNextCptr(memberCptr));
 	memberCptr=structNameCptr;
 	Sid_t* memberSymbolList=NULL;
 	TypeId_t* memberTypeList=NULL;
@@ -363,39 +363,39 @@ static TypeId_t genStructTypeId(AST_cptr* compositeDataHead,VMDefTypes* otherTyp
 	{
 		memberSymbolList=(Sid_t*)malloc(sizeof(Sid_t)*num);
 		memberTypeList=(TypeId_t*)malloc(sizeof(TypeId_t)*num);
-		FAKE_ASSERT(memberTypeList&&memberCptr,"genDefTypesUnion",__FILE__,__LINE__);
+		FAKE_ASSERT(memberTypeList&&memberCptr,"fklGenDefTypesUnion",__FILE__,__LINE__);
 		uint32_t i=0;
-		for(;memberCptr;i++,memberCptr=nextCptr(memberCptr))
+		for(;memberCptr;i++,memberCptr=fklNextCptr(memberCptr))
 		{
-			AST_cptr* cdr=getCptrCdr(memberCptr);
+			AST_cptr* cdr=fklGetCptrCdr(memberCptr);
 			if(cdr->type!=PAIR&&cdr->type!=NIL)
 			{
 				free(memberTypeList);
 				free(memberSymbolList);
 				return 0;
 			}
-			AST_cptr* memberName=getFirstCptr(memberCptr);
+			AST_cptr* memberName=fklGetFirstCptr(memberCptr);
 			if(memberName->type!=ATM||memberName->u.atom->type!=SYM)
 			{
 				free(memberTypeList);
 				free(memberSymbolList);
 				return 0;
 			}
-			Sid_t symbol=addSymbolToGlob(memberName->u.atom->value.str)->id;
-			if(nextCptr(nextCptr(memberName)))
+			Sid_t symbol=fklAddSymbolToGlob(memberName->u.atom->value.str)->id;
+			if(fklNextCptr(fklNextCptr(memberName)))
 			{
 				free(memberTypeList);
 				free(memberSymbolList);
 				return 0;
 			}
-			TypeId_t type=genDefTypesUnion(nextCptr(memberName),otherTypes);
+			TypeId_t type=fklGenDefTypesUnion(fklNextCptr(memberName),otherTypes);
 			if(!type)
 			{
 				free(memberTypeList);
 				free(memberSymbolList);
 				return 0;
 			}
-			if(getCptrCdr(nextCptr(memberName))->type!=NIL)
+			if(fklGetCptrCdr(fklNextCptr(memberName))->type!=NIL)
 			{
 				free(memberSymbolList);
 				free(memberTypeList);
@@ -411,7 +411,7 @@ static TypeId_t genStructTypeId(AST_cptr* compositeDataHead,VMDefTypes* otherTyp
 	}
 	else if(!retval)
 	{
-		retval=newVMStructType(structName,num,memberSymbolList,memberTypeList);
+		retval=fklNewVMStructType(structName,num,memberSymbolList,memberTypeList);
 		if(memberTypeList&&memberSymbolList)
 		{
 			free(memberSymbolList);
@@ -424,7 +424,7 @@ static TypeId_t genStructTypeId(AST_cptr* compositeDataHead,VMDefTypes* otherTyp
 static TypeId_t genUnionTypeId(AST_cptr* compositeDataHead,VMDefTypes* otherTypes)
 {
 	char* unionName=NULL;
-	AST_cptr* unionNameCptr=nextCptr(compositeDataHead);
+	AST_cptr* unionNameCptr=fklNextCptr(compositeDataHead);
 	uint32_t num=0;
 	AST_cptr* memberCptr=NULL;
 	if(unionNameCptr->type==ATM)
@@ -433,7 +433,7 @@ static TypeId_t genUnionTypeId(AST_cptr* compositeDataHead,VMDefTypes* otherType
 			unionName=unionNameCptr->u.atom->value.str;
 		else
 			return 0;
-		memberCptr=nextCptr(unionNameCptr);
+		memberCptr=fklNextCptr(unionNameCptr);
 		unionNameCptr=memberCptr;
 	}
 	else
@@ -449,7 +449,7 @@ static TypeId_t genUnionTypeId(AST_cptr* compositeDataHead,VMDefTypes* otherType
 			if(GET_TYPES_TAG(typeUnion.all)==UNION_TYPE_TAG)
 			{
 				VMUnionType* ut=(VMUnionType*)GET_TYPES_PTR(typeUnion.st);
-				if(ut->type==addSymbolToGlob(unionName)->id)
+				if(ut->type==fklAddSymbolToGlob(unionName)->id)
 				{
 					retval=i+1;
 					break;
@@ -460,8 +460,8 @@ static TypeId_t genUnionTypeId(AST_cptr* compositeDataHead,VMDefTypes* otherType
 			return retval;
 	}
 	else if(unionName!=NULL)
-		retval=newVMUnionType(unionName,0,NULL,NULL);
-	for(;memberCptr;num++,memberCptr=nextCptr(memberCptr));
+		retval=fklNewVMUnionType(unionName,0,NULL,NULL);
+	for(;memberCptr;num++,memberCptr=fklNextCptr(memberCptr));
 	memberCptr=unionNameCptr;
 	Sid_t* memberSymbolList=NULL;
 	TypeId_t* memberTypeList=NULL;
@@ -469,39 +469,39 @@ static TypeId_t genUnionTypeId(AST_cptr* compositeDataHead,VMDefTypes* otherType
 	{
 		memberSymbolList=(Sid_t*)malloc(sizeof(Sid_t)*num);
 		memberTypeList=(TypeId_t*)malloc(sizeof(TypeId_t)*num);
-		FAKE_ASSERT(memberTypeList&&memberCptr,"genDefTypesUnion",__FILE__,__LINE__);
+		FAKE_ASSERT(memberTypeList&&memberCptr,"fklGenDefTypesUnion",__FILE__,__LINE__);
 		uint32_t i=0;
-		for(;memberCptr;i++,memberCptr=nextCptr(memberCptr))
+		for(;memberCptr;i++,memberCptr=fklNextCptr(memberCptr))
 		{
-			AST_cptr* cdr=getCptrCdr(memberCptr);
+			AST_cptr* cdr=fklGetCptrCdr(memberCptr);
 			if(cdr->type!=PAIR&&cdr->type!=NIL)
 			{
 				free(memberTypeList);
 				free(memberSymbolList);
 				return 0;
 			}
-			AST_cptr* memberName=getFirstCptr(memberCptr);
+			AST_cptr* memberName=fklGetFirstCptr(memberCptr);
 			if(memberName->type!=ATM||memberName->u.atom->type!=SYM)
 			{
 				free(memberTypeList);
 				free(memberSymbolList);
 				return 0;
 			}
-			Sid_t symbol=addSymbolToGlob(memberName->u.atom->value.str)->id;
-			if(nextCptr(nextCptr(memberName)))
+			Sid_t symbol=fklAddSymbolToGlob(memberName->u.atom->value.str)->id;
+			if(fklNextCptr(fklNextCptr(memberName)))
 			{
 				free(memberTypeList);
 				free(memberSymbolList);
 				return 0;
 			}
-			TypeId_t type=genDefTypesUnion(nextCptr(memberName),otherTypes);
+			TypeId_t type=fklGenDefTypesUnion(fklNextCptr(memberName),otherTypes);
 			if(!type)
 			{
 				free(memberTypeList);
 				free(memberSymbolList);
 				return 0;
 			}
-			if(getCptrCdr(nextCptr(memberName))->type!=NIL)
+			if(fklGetCptrCdr(fklNextCptr(memberName))->type!=NIL)
 			{
 				free(memberSymbolList);
 				free(memberTypeList);
@@ -517,7 +517,7 @@ static TypeId_t genUnionTypeId(AST_cptr* compositeDataHead,VMDefTypes* otherType
 	}
 	else if(!retval)
 	{
-		retval=newVMUnionType(unionName,num,memberSymbolList,memberTypeList);
+		retval=fklNewVMUnionType(unionName,num,memberSymbolList,memberTypeList);
 		if(memberTypeList&&memberSymbolList)
 		{
 			free(memberSymbolList);
@@ -530,40 +530,40 @@ static TypeId_t genUnionTypeId(AST_cptr* compositeDataHead,VMDefTypes* otherType
 static TypeId_t genFuncTypeId(AST_cptr* compositeDataHead,VMDefTypes* otherTypes)
 {
 	TypeId_t rtype=0;
-	AST_cptr* argCptr=nextCptr(compositeDataHead);
+	AST_cptr* argCptr=fklNextCptr(compositeDataHead);
 	if(!argCptr||(argCptr->type!=PAIR&&argCptr->type!=NIL))
 		return 0;
-	AST_cptr* rtypeCptr=nextCptr(argCptr);
+	AST_cptr* rtypeCptr=fklNextCptr(argCptr);
 	if(rtypeCptr)
 	{
-		TypeId_t tmp=genDefTypesUnion(rtypeCptr,otherTypes);
+		TypeId_t tmp=fklGenDefTypesUnion(rtypeCptr,otherTypes);
 		if(!tmp)
 			return 0;
-		VMTypeUnion tu=getVMTypeUnion(tmp);
+		VMTypeUnion tu=fklGetVMTypeUnion(tmp);
 		if(GET_TYPES_TAG(tu.all)!=NATIVE_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=PTR_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=ARRAY_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=FUNC_TYPE_TAG)
 			return 0;
 		rtype=tmp;
 	}
 	uint32_t i=0;
-	AST_cptr* firArgCptr=getFirstCptr(argCptr);
-	for(;firArgCptr;firArgCptr=nextCptr(firArgCptr),i++);
+	AST_cptr* firArgCptr=fklGetFirstCptr(argCptr);
+	for(;firArgCptr;firArgCptr=fklNextCptr(firArgCptr),i++);
 	TypeId_t* atypes=(TypeId_t*)malloc(sizeof(TypeId_t)*i);
-	FAKE_ASSERT(atypes,"genDefTypesUnion",__FILE__,__LINE__);
-	for(i=0,firArgCptr=getFirstCptr(argCptr);firArgCptr;firArgCptr=nextCptr(firArgCptr),i++)
+	FAKE_ASSERT(atypes,"fklGenDefTypesUnion",__FILE__,__LINE__);
+	for(i=0,firArgCptr=fklGetFirstCptr(argCptr);firArgCptr;firArgCptr=fklNextCptr(firArgCptr),i++)
 	{
-		TypeId_t tmp=genDefTypesUnion(firArgCptr,otherTypes);
+		TypeId_t tmp=fklGenDefTypesUnion(firArgCptr,otherTypes);
 		if(!tmp)
 		{
 			free(atypes);
 			return 0;
 		}
-		VMTypeUnion tu=getVMTypeUnion(tmp);
+		VMTypeUnion tu=fklGetVMTypeUnion(tmp);
 		if(GET_TYPES_TAG(tu.all)!=NATIVE_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=PTR_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=ARRAY_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=FUNC_TYPE_TAG)
 		{
 			free(atypes);
 			return 0;
 		}
-		AST_cptr* cdr=getCptrCdr(firArgCptr);
+		AST_cptr* cdr=fklGetCptrCdr(firArgCptr);
 		if(!tmp||(cdr->type!=PAIR&&cdr->type!=NIL))
 		{
 			free(atypes);
@@ -571,7 +571,7 @@ static TypeId_t genFuncTypeId(AST_cptr* compositeDataHead,VMDefTypes* otherTypes
 		}
 		atypes[i]=tmp;
 	}
-	TypeId_t retval=newVMFuncType(rtype,i,atypes);
+	TypeId_t retval=fklNewVMFuncType(rtype,i,atypes);
 	free(atypes);
 	return retval;
 }
@@ -693,28 +693,28 @@ pthread_mutex_t VMenvGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 	}\
 }
 
-VMproc* newVMproc(uint32_t scp,uint32_t cpc)
+VMproc* fklNewVMproc(uint32_t scp,uint32_t cpc)
 {
 	VMproc* tmp=(VMproc*)malloc(sizeof(VMproc));
-	FAKE_ASSERT(tmp,"newVMproc",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklNewVMproc",__FILE__,__LINE__);
 	tmp->prevEnv=NULL;
 	tmp->scp=scp;
 	tmp->cpc=cpc;
 	return tmp;
 }
 
-VMvalue* copyVMvalue(VMvalue* obj,VMheap* heap)
+VMvalue* fklCopyVMvalue(VMvalue* obj,VMheap* heap)
 {
-	ComStack* s1=newComStack(32);
-	ComStack* s2=newComStack(32);
+	ComStack* s1=fklNewComStack(32);
+	ComStack* s2=fklNewComStack(32);
 	VMvalue* tmp=VM_NIL;
-	pushComStack(obj,s1);
-	pushComStack(&tmp,s2);
-	while(!isComStackEmpty(s1))
+	fklPushComStack(obj,s1);
+	fklPushComStack(&tmp,s2);
+	while(!fklIsComStackEmpty(s1))
 	{
-		VMvalue* root=popComStack(s1);
+		VMvalue* root=fklPopComStack(s1);
 		VMptrTag tag=GET_TAG(root);
-		VMvalue** root1=popComStack(s2);
+		VMvalue** root1=fklPopComStack(s2);
 		switch(tag)
 		{
 			case NIL_TAG:
@@ -729,13 +729,13 @@ VMvalue* copyVMvalue(VMvalue* obj,VMheap* heap)
 					switch(type)
 					{
 						case DBL:
-							*root1=newVMvalue(DBL,root->u.dbl,heap);
+							*root1=fklNewVMvalue(DBL,root->u.dbl,heap);
 							break;
 						case BYTS:
-							*root1=newVMvalue(BYTS,newVMByts(root->u.byts->size,root->u.byts->str),heap);
+							*root1=fklNewVMvalue(BYTS,fklNewVMByts(root->u.byts->size,root->u.byts->str),heap);
 							break;
 						case STR:
-							*root1=newVMvalue(STR,copyStr(root->u.str),heap);
+							*root1=fklNewVMvalue(STR,fklCopyStr(root->u.str),heap);
 							break;
 						case CONT:
 						case PRC:
@@ -748,24 +748,24 @@ VMvalue* copyVMvalue(VMvalue* obj,VMheap* heap)
 						case CHAN:
 							{
 								VMChanl* objCh=root->u.chan;
-								VMChanl* tmpCh=newVMChanl(objCh->max);
+								VMChanl* tmpCh=fklNewVMChanl(objCh->max);
 								QueueNode* cur=objCh->messages->head;
 								for(;cur;cur=cur->next)
 								{
 									void* tmp=VM_NIL;
-									pushComQueue(tmp,tmpCh->messages);
-									pushComStack(cur->data,s1);
-									pushComStack(tmp,s2);
+									fklPushComQueue(tmp,tmpCh->messages);
+									fklPushComStack(cur->data,s1);
+									fklPushComStack(tmp,s2);
 								}
-								*root1=newVMvalue(CHAN,tmpCh,heap);
+								*root1=fklNewVMvalue(CHAN,tmpCh,heap);
 							}
 							break;
 						case PAIR:
-							*root1=newVMvalue(PAIR,newVMpair(),heap);
-							pushComStack(&(*root1)->u.pair->car,s2);
-							pushComStack(&(*root1)->u.pair->cdr,s2);
-							pushComStack(root->u.pair->car,s1);
-							pushComStack(root->u.pair->cdr,s1);
+							*root1=fklNewVMvalue(PAIR,fklNewVMpair(),heap);
+							fklPushComStack(&(*root1)->u.pair->car,s2);
+							fklPushComStack(&(*root1)->u.pair->cdr,s2);
+							fklPushComStack(root->u.pair->car,s1);
+							fklPushComStack(root->u.pair->cdr,s1);
 							break;
 						default:
 							break;
@@ -778,12 +778,12 @@ VMvalue* copyVMvalue(VMvalue* obj,VMheap* heap)
 				break;
 		}
 	}
-	freeComStack(s1);
-	freeComStack(s2);
+	fklFreeComStack(s1);
+	fklFreeComStack(s2);
 	return tmp;
 }
 
-VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap)
+VMvalue* fklNewVMvalue(ValueType type,void* pValue,VMheap* heap)
 {
 	switch((int)type)
 	{
@@ -802,7 +802,7 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap)
 		default:
 			{
 				VMvalue* tmp=(VMvalue*)malloc(sizeof(VMvalue));
-				FAKE_ASSERT(tmp,"newVMvalue",__FILE__,__LINE__);
+				FAKE_ASSERT(tmp,"fklNewVMvalue",__FILE__,__LINE__);
 				tmp->type=type;
 				tmp->mark=0;
 				tmp->next=heap->head;
@@ -815,10 +815,10 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap)
 				switch(type)
 				{
 					case DBL:
-						tmp->u.dbl=copyMemory(pValue,sizeof(double));
+						tmp->u.dbl=fklCopyMemory(pValue,sizeof(double));
 						break;
 					case IN64:
-						tmp->u.in64=copyMemory(pValue,sizeof(int64_t));
+						tmp->u.in64=fklCopyMemory(pValue,sizeof(int64_t));
 						break;
 					case STR:
 						tmp->u.str=pValue;break;
@@ -856,49 +856,49 @@ VMvalue* newVMvalue(ValueType type,void* pValue,VMheap* heap)
 	}
 }
 
-VMvalue* newTrueValue(VMheap* heap)
+VMvalue* fklNewTrueValue(VMheap* heap)
 {
-	VMvalue* tmp=newVMvalue(IN32,(VMptr)1,heap);
+	VMvalue* tmp=fklNewVMvalue(IN32,(VMptr)1,heap);
 	return tmp;
 }
 
-VMvalue* newNilValue(VMheap* heap)
+VMvalue* fklNewNilValue(VMheap* heap)
 {
-	VMvalue* tmp=newVMvalue(NIL,NULL,heap);
+	VMvalue* tmp=fklNewVMvalue(NIL,NULL,heap);
 	return tmp;
 }
 
-VMvalue* getTopValue(VMstack* stack)
+VMvalue* fklGetTopValue(VMstack* stack)
 {
 	return stack->values[stack->tp-1];
 }
 
-VMvalue* getValue(VMstack* stack,int32_t place)
+VMvalue* fklGetValue(VMstack* stack,int32_t place)
 {
 	return stack->values[place];
 }
 
-VMvalue* getVMpairCar(VMvalue* obj)
+VMvalue* fklGetVMpairCar(VMvalue* obj)
 {
 	return obj->u.pair->car;
 }
 
-VMvalue* getVMpairCdr(VMvalue* obj)
+VMvalue* fklGetVMpairCdr(VMvalue* obj)
 {
 	return obj->u.pair->cdr;
 }
 
-int VMvaluecmp(VMvalue* fir,VMvalue* sec)
+int fklVMvaluecmp(VMvalue* fir,VMvalue* sec)
 {
-	ComStack* s1=newComStack(32);
-	ComStack* s2=newComStack(32);
-	pushComStack(fir,s1);
-	pushComStack(sec,s2);
+	ComStack* s1=fklNewComStack(32);
+	ComStack* s2=fklNewComStack(32);
+	fklPushComStack(fir,s1);
+	fklPushComStack(sec,s2);
 	int r=1;
-	while(!isComStackEmpty(s1))
+	while(!fklIsComStackEmpty(s1))
 	{
-		VMvalue* root1=popComStack(s1);
-		VMvalue* root2=popComStack(s2);
+		VMvalue* root1=fklPopComStack(s1);
+		VMvalue* root2=fklPopComStack(s2);
 		if(!IS_PTR(root1)&&!IS_PTR(root2)&&root1!=root2)
 			r=0;
 		else if(GET_TAG(root1)!=GET_TAG(root2))
@@ -918,14 +918,14 @@ int VMvaluecmp(VMvalue* fir,VMvalue* sec)
 					r=!strcmp(root1->u.str,root2->u.str);
 					break;
 				case BYTS:
-					r=eqVMByts(root1->u.byts,root2->u.byts);
+					r=fklEqVMByts(root1->u.byts,root2->u.byts);
 					break;
 				case PAIR:
 					r=1;
-					pushComStack(root1->u.pair->car,s1);
-					pushComStack(root1->u.pair->cdr,s1);
-					pushComStack(root2->u.pair->car,s2);
-					pushComStack(root2->u.pair->cdr,s2);
+					fklPushComStack(root1->u.pair->car,s1);
+					fklPushComStack(root1->u.pair->cdr,s1);
+					fklPushComStack(root2->u.pair->car,s2);
+					fklPushComStack(root2->u.pair->cdr,s2);
 					break;
 				default:
 					r=(root1==root2);
@@ -935,17 +935,17 @@ int VMvaluecmp(VMvalue* fir,VMvalue* sec)
 		if(!r)
 			break;
 	}
-	freeComStack(s1);
-	freeComStack(s2);
+	fklFreeComStack(s1);
+	fklFreeComStack(s2);
 	return r;
 }
 
-int subVMvaluecmp(VMvalue* fir,VMvalue* sec)
+int subfklVMvaluecmp(VMvalue* fir,VMvalue* sec)
 {
 	return fir==sec;
 }
 
-int numcmp(VMvalue* fir,VMvalue* sec)
+int fklNumcmp(VMvalue* fir,VMvalue* sec)
 {
 	if(GET_TAG(fir)==GET_TAG(sec)&&GET_TAG(fir)==IN32_TAG)
 		return fir==sec;
@@ -957,48 +957,48 @@ int numcmp(VMvalue* fir,VMvalue* sec)
 	}
 }
 
-VMenv* newVMenv(VMenv* prev)
+VMenv* fklNewVMenv(VMenv* prev)
 {
 	VMenv* tmp=(VMenv*)malloc(sizeof(VMenv));
-	FAKE_ASSERT(tmp,"newVMenv",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklNewVMenv",__FILE__,__LINE__);
 	tmp->num=0;
 	tmp->list=NULL;
 	tmp->prev=prev;
-	increaseVMenvRefcount(prev);
+	fklIncreaseVMenvRefcount(prev);
 	tmp->refcount=0;
 	return tmp;
 }
 
-void increaseVMenvRefcount(VMenv* env)
+void fklIncreaseVMenvRefcount(VMenv* env)
 {
 	INCREASE_REFCOUNT(VMenv,env);
 }
 
-void decreaseVMenvRefcount(VMenv* env)
+void fklDecreaseVMenvRefcount(VMenv* env)
 {
 	DECREASE_REFCOUNT(VMenv,env);
 }
 
-VMpair* newVMpair(void)
+VMpair* fklNewVMpair(void)
 {
 	VMpair* tmp=(VMpair*)malloc(sizeof(VMpair));
-	FAKE_ASSERT(tmp,"newVMpair",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklNewVMpair",__FILE__,__LINE__);
 	tmp->car=VM_NIL;
 	tmp->cdr=VM_NIL;
 	return tmp;
 }
 
-VMvalue* castCptrVMvalue(AST_cptr* objCptr,VMheap* heap)
+VMvalue* fklCastCptrVMvalue(AST_cptr* objCptr,VMheap* heap)
 {
-	ComStack* s1=newComStack(32);
-	ComStack* s2=newComStack(32);
+	ComStack* s1=fklNewComStack(32);
+	ComStack* s2=fklNewComStack(32);
 	VMvalue* tmp=VM_NIL;
-	pushComStack(objCptr,s1);
-	pushComStack(&tmp,s2);
-	while(!isComStackEmpty(s1))
+	fklPushComStack(objCptr,s1);
+	fklPushComStack(&tmp,s2);
+	while(!fklIsComStackEmpty(s1))
 	{
-		AST_cptr* root=popComStack(s1);
-		VMvalue** root1=popComStack(s2);
+		AST_cptr* root=fklPopComStack(s1);
+		VMvalue** root1=fklPopComStack(s2);
 		if(root->type==ATM)
 		{
 			AST_atom* tmpAtm=root->u.atom;
@@ -1011,16 +1011,16 @@ VMvalue* castCptrVMvalue(AST_cptr* objCptr,VMheap* heap)
 					*root1=MAKE_VM_CHR(tmpAtm->value.chr);
 					break;
 				case SYM:
-					*root1=MAKE_VM_SYM(addSymbolToGlob(tmpAtm->value.str)->id);
+					*root1=MAKE_VM_SYM(fklAddSymbolToGlob(tmpAtm->value.str)->id);
 					break;
 				case DBL:
-					*root1=newVMvalue(DBL,&tmpAtm->value.dbl,heap);
+					*root1=fklNewVMvalue(DBL,&tmpAtm->value.dbl,heap);
 					break;
 				case BYTS:
-					*root1=newVMvalue(BYTS,newVMByts(tmpAtm->value.byts.size,tmpAtm->value.byts.str),heap);
+					*root1=fklNewVMvalue(BYTS,fklNewVMByts(tmpAtm->value.byts.size,tmpAtm->value.byts.str),heap);
 					break;
 				case STR:
-					*root1=newVMvalue(STR,copyStr(tmpAtm->value.str),heap);
+					*root1=fklNewVMvalue(STR,fklCopyStr(tmpAtm->value.str),heap);
 					break;
 				default:
 					return NULL;
@@ -1030,99 +1030,99 @@ VMvalue* castCptrVMvalue(AST_cptr* objCptr,VMheap* heap)
 		else if(root->type==PAIR)
 		{
 			AST_pair* objPair=root->u.pair;
-			VMpair* tmpPair=newVMpair();
-			*root1=newVMvalue(PAIR,tmpPair,heap);
-			pushComStack(&objPair->car,s1);
-			pushComStack(&objPair->cdr,s1);
-			pushComStack(&tmpPair->car,s2);
-			pushComStack(&tmpPair->cdr,s2);
+			VMpair* tmpPair=fklNewVMpair();
+			*root1=fklNewVMvalue(PAIR,tmpPair,heap);
+			fklPushComStack(&objPair->car,s1);
+			fklPushComStack(&objPair->cdr,s1);
+			fklPushComStack(&tmpPair->car,s2);
+			fklPushComStack(&tmpPair->cdr,s2);
 			*root1=MAKE_VM_PTR(*root1);
 		}
 	}
-	freeComStack(s1);
-	freeComStack(s2);
+	fklFreeComStack(s1);
+	fklFreeComStack(s2);
 	return tmp;
 }
 
-VMByts* newVMByts(size_t size,uint8_t* str)
+VMByts* fklNewVMByts(size_t size,uint8_t* str)
 {
 	VMByts* tmp=(VMByts*)malloc(sizeof(VMByts)+size);
-	FAKE_ASSERT(tmp,"newVMByts",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklNewVMByts",__FILE__,__LINE__);
 	tmp->size=size;
 	memcpy(tmp->str,str,size);
 	return tmp;
 }
 
-VMByts* copyVMByts(const VMByts* obj)
+VMByts* fklCopyVMByts(const VMByts* obj)
 {
 	if(obj==NULL)return NULL;
 	VMByts* tmp=(VMByts*)malloc(sizeof(VMByts)+obj->size);
-	FAKE_ASSERT(tmp,"copyVMByts",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklCopyVMByts",__FILE__,__LINE__);
 	memcpy(tmp->str,obj->str,obj->size);
 	tmp->size=obj->size;
 	return tmp;
 }
 
-void VMBytsCat(VMByts** fir,const VMByts* sec)
+void fklVMBytsCat(VMByts** fir,const VMByts* sec)
 {
 	size_t firSize=(*fir)->size;
 	size_t secSize=sec->size;
 	*fir=(VMByts*)realloc(*fir,sizeof(VMByts)+(firSize+secSize)*sizeof(uint8_t));
-	FAKE_ASSERT(*fir,"VMBytsCat",__FILE__,__LINE__);
+	FAKE_ASSERT(*fir,"fklVMBytsCat",__FILE__,__LINE__);
 	(*fir)->size=firSize+secSize;
 	memcpy((*fir)->str+firSize,sec->str,secSize);
 }
-VMByts* newEmptyVMByts()
+VMByts* fklNewEmptyVMByts()
 {
 	VMByts* tmp=(VMByts*)malloc(sizeof(VMByts));
-	FAKE_ASSERT(tmp,"newEmptyVMByts",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklNewEmptyVMByts",__FILE__,__LINE__);
 	tmp->size=0;
 	return tmp;
 }
 
-uint8_t* copyArry(size_t size,uint8_t* str)
+uint8_t* fklCopyArry(size_t size,uint8_t* str)
 {
 	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	FAKE_ASSERT(tmp,"copyArry",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklCopyArry",__FILE__,__LINE__);
 	memcpy(tmp,str,size);
 	return tmp;
 }
 
-VMproc* copyVMproc(VMproc* obj,VMheap* heap)
+VMproc* fklCopyVMproc(VMproc* obj,VMheap* heap)
 {
 	VMproc* tmp=(VMproc*)malloc(sizeof(VMproc));
-	FAKE_ASSERT(tmp,"copyVMproc",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklCopyVMproc",__FILE__,__LINE__);
 	tmp->scp=obj->scp;
 	tmp->cpc=obj->cpc;
-	tmp->prevEnv=copyVMenv(obj->prevEnv,heap);
+	tmp->prevEnv=fklCopyVMenv(obj->prevEnv,heap);
 	return tmp;
 }
 
-VMenv* copyVMenv(VMenv* objEnv,VMheap* heap)
+VMenv* fklCopyVMenv(VMenv* objEnv,VMheap* heap)
 {
-	VMenv* tmp=newVMenv(NULL);
+	VMenv* tmp=fklNewVMenv(NULL);
 	tmp->list=(VMenvNode**)malloc(sizeof(VMenvNode*)*objEnv->num);
-	FAKE_ASSERT(tmp->list,"copyVMenv",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp->list,"fklCopyVMenv",__FILE__,__LINE__);
 	int i=0;
 	for(;i<objEnv->num;i++)
 	{
 		VMenvNode* node=objEnv->list[i];
-		VMvalue* v=copyVMvalue(node->value,heap);
-		VMenvNode* tmp=newVMenvNode(v,node->id);
+		VMvalue* v=fklCopyVMvalue(node->value,heap);
+		VMenvNode* tmp=fklNewVMenvNode(v,node->id);
 		objEnv->list[i]=tmp;
 	}
-	tmp->prev=(objEnv->prev->refcount==0)?copyVMenv(objEnv->prev,heap):objEnv->prev;
+	tmp->prev=(objEnv->prev->refcount==0)?fklCopyVMenv(objEnv->prev,heap):objEnv->prev;
 	return tmp;
 }
 
-void freeVMproc(VMproc* proc)
+void fklFreeVMproc(VMproc* proc)
 {
 	if(proc->prevEnv)
-		freeVMenv(proc->prevEnv);
+		fklFreeVMenv(proc->prevEnv);
 	free(proc);
 }
 
-void freeVMenv(VMenv* obj)
+void fklFreeVMenv(VMenv* obj)
 {
 	while(obj!=NULL)
 	{
@@ -1132,38 +1132,38 @@ void freeVMenv(VMenv* obj)
 			obj=obj->prev;
 			int32_t i=0;
 			for(;i<prev->num;i++)
-				freeVMenvNode(prev->list[i]);
+				fklFreeVMenvNode(prev->list[i]);
 			free(prev->list);
 			free(prev);
 		}
 		else
 		{
-			decreaseVMenvRefcount(obj);
+			fklDecreaseVMenvRefcount(obj);
 			break;
 		}
 	}
 }
 
-void releaseSource(pthread_rwlock_t* pGClock)
+void fklReleaseSource(pthread_rwlock_t* pGClock)
 {
 	pthread_rwlock_unlock(pGClock);
 }
 
-void lockSource(pthread_rwlock_t* pGClock)
+void fklLockSource(pthread_rwlock_t* pGClock)
 {
 	pthread_rwlock_rdlock(pGClock);
 }
 
-VMvalue* popVMstack(VMstack* stack)
+VMvalue* fklPopVMstack(VMstack* stack)
 {
 	if(!(stack->tp>stack->bp))
 		return NULL;
-	VMvalue* tmp=getTopValue(stack);
+	VMvalue* tmp=fklGetTopValue(stack);
 	stack->tp-=1;
 	return tmp;
 }
 
-VMenv* castPreEnvToVMenv(PreEnv* pe,VMenv* prev,VMheap* heap)
+VMenv* fklCastPreEnvToVMenv(PreEnv* pe,VMenv* prev,VMheap* heap)
 {
 	int32_t size=0;
 	PreDef* tmpDef=pe->symbols;
@@ -1172,34 +1172,34 @@ VMenv* castPreEnvToVMenv(PreEnv* pe,VMenv* prev,VMheap* heap)
 		size++;
 		tmpDef=tmpDef->next;
 	}
-	VMenv* tmp=newVMenv(prev);
+	VMenv* tmp=fklNewVMenv(prev);
 	for(tmpDef=pe->symbols;tmpDef;tmpDef=tmpDef->next)
 	{
-		VMvalue* v=castCptrVMvalue(&tmpDef->obj,heap);
-		VMenvNode* node=newVMenvNode(v,addSymbolToGlob(tmpDef->symbol)->id);
-		addVMenvNode(node,tmp);
+		VMvalue* v=fklCastCptrVMvalue(&tmpDef->obj,heap);
+		VMenvNode* node=fklNewVMenvNode(v,fklAddSymbolToGlob(tmpDef->symbol)->id);
+		fklAddVMenvNode(node,tmp);
 	}
 	return tmp;
 }
 
-VMcontinuation* newVMcontinuation(VMstack* stack,ComStack* rstack,ComStack* tstack)
+VMcontinuation* fklNewVMcontinuation(VMstack* stack,ComStack* rstack,ComStack* tstack)
 {
 	int32_t size=rstack->top;
 	int32_t i=0;
 	VMcontinuation* tmp=(VMcontinuation*)malloc(sizeof(VMcontinuation));
-	FAKE_ASSERT(tmp,"newVMcontinuation",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklNewVMcontinuation",__FILE__,__LINE__);
 	VMrunnable* state=(VMrunnable*)malloc(sizeof(VMrunnable)*size);
-	FAKE_ASSERT(state,"newVMcontinuation",__FILE__,__LINE__);
+	FAKE_ASSERT(state,"fklNewVMcontinuation",__FILE__,__LINE__);
 	int32_t tbnum=tstack->top;
 	VMTryBlock* tb=(VMTryBlock*)malloc(sizeof(VMTryBlock)*tbnum);
-	FAKE_ASSERT(tb,"newVMcontinuation",__FILE__,__LINE__);
-	tmp->stack=copyStack(stack);
+	FAKE_ASSERT(tb,"fklNewVMcontinuation",__FILE__,__LINE__);
+	tmp->stack=fklCopyStack(stack);
 	tmp->num=size;
 	for(;i<size;i++)
 	{
 		VMrunnable* cur=rstack->data[i];
 		state[i].cp=cur->cp;
-		increaseVMenvRefcount(cur->localenv);
+		fklIncreaseVMenvRefcount(cur->localenv);
 		state[i].localenv=cur->localenv;
 		state[i].cpc=cur->cpc;
 		state[i].scp=cur->scp;
@@ -1212,13 +1212,13 @@ VMcontinuation* newVMcontinuation(VMstack* stack,ComStack* rstack,ComStack* tsta
 		tb[i].sid=cur->sid;
 		ComStack* hstack=cur->hstack;
 		int32_t handlerNum=hstack->top;
-		ComStack* curHstack=newComStack(handlerNum);
+		ComStack* curHstack=fklNewComStack(handlerNum);
 		int32_t j=0;
 		for(;j<handlerNum;j++)
 		{
 			VMerrorHandler* curH=hstack->data[i];
-			VMerrorHandler* h=newVMerrorHandler(curH->type,curH->proc.scp,curH->proc.cpc);
-			pushComStack(h,curHstack);
+			VMerrorHandler* h=fklNewVMerrorHandler(curH->type,curH->proc.scp,curH->proc.cpc);
+			fklPushComStack(h,curHstack);
 		}
 		tb[i].hstack=curHstack;
 		tb[i].rtp=cur->rtp;
@@ -1229,7 +1229,7 @@ VMcontinuation* newVMcontinuation(VMstack* stack,ComStack* rstack,ComStack* tsta
 	return tmp;
 }
 
-void freeVMcontinuation(VMcontinuation* cont)
+void fklFreeVMcontinuation(VMcontinuation* cont)
 {
 	int32_t i=0;
 	int32_t size=cont->num;
@@ -1241,32 +1241,32 @@ void freeVMcontinuation(VMcontinuation* cont)
 	free(stack->values);
 	free(stack);
 	for(;i<size;i++)
-		freeVMenv(state[i].localenv);
+		fklFreeVMenv(state[i].localenv);
 	for(i=0;i<tbsize;i++)
 	{
 		ComStack* hstack=tb[i].hstack;
-		while(!isComStackEmpty(hstack))
+		while(!fklIsComStackEmpty(hstack))
 		{
-			VMerrorHandler* h=popComStack(hstack);
-			freeVMerrorHandler(h);
+			VMerrorHandler* h=fklPopComStack(hstack);
+			fklFreeVMerrorHandler(h);
 		}
-		freeComStack(hstack);
+		fklFreeComStack(hstack);
 	}
 	free(tb);
 	free(state);
 	free(cont);
 }
 
-VMstack* copyStack(VMstack* stack)
+VMstack* fklCopyStack(VMstack* stack)
 {
 	int32_t i=0;
 	VMstack* tmp=(VMstack*)malloc(sizeof(VMstack));
-	FAKE_ASSERT(tmp,"copyStack",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklCopyStack",__FILE__,__LINE__);
 	tmp->size=stack->size;
 	tmp->tp=stack->tp;
 	tmp->bp=stack->bp;
 	tmp->values=(VMvalue**)malloc(sizeof(VMvalue*)*(tmp->size));
-	FAKE_ASSERT(tmp->values,"copyStack",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp->values,"fklCopyStack",__FILE__,__LINE__);
 	for(;i<stack->tp;i++)
 		tmp->values[i]=stack->values[i];
 	tmp->tptp=stack->tptp;
@@ -1275,28 +1275,28 @@ VMstack* copyStack(VMstack* stack)
 	if(tmp->tpsi)
 	{
 		tmp->tpst=(uint32_t*)malloc(sizeof(uint32_t)*tmp->tpsi);
-		FAKE_ASSERT(tmp->tpst,"copyStack",__FILE__,__LINE__);
+		FAKE_ASSERT(tmp->tpst,"fklCopyStack",__FILE__,__LINE__);
 		if(tmp->tptp)memcpy(tmp->tpst,stack->tpst,sizeof(int32_t)*(tmp->tptp));
 	}
 	return tmp;
 }
 
-VMenvNode* newVMenvNode(VMvalue* value,int32_t id)
+VMenvNode* fklNewVMenvNode(VMvalue* value,int32_t id)
 {
 	VMenvNode* tmp=(VMenvNode*)malloc(sizeof(VMenvNode));
-	FAKE_ASSERT(tmp,"newVMenvNode",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklNewVMenvNode",__FILE__,__LINE__);
 	tmp->id=id;
 	tmp->value=value;
 	return tmp;
 }
 
-VMenvNode* addVMenvNode(VMenvNode* node,VMenv* env)
+VMenvNode* fklAddVMenvNode(VMenvNode* node,VMenv* env)
 {
 	if(!env->list)
 	{
 		env->num=1;
 		env->list=(VMenvNode**)malloc(sizeof(VMenvNode*)*1);
-		FAKE_ASSERT(env->list,"addVMenvNode",__FILE__,__LINE__);
+		FAKE_ASSERT(env->list,"fklAddVMenvNode",__FILE__,__LINE__);
 		env->list[0]=node;
 	}
 	else
@@ -1317,7 +1317,7 @@ VMenvNode* addVMenvNode(VMenvNode* node,VMenv* env)
 		env->num+=1;
 		int32_t i=env->num-1;
 		env->list=(VMenvNode**)realloc(env->list,sizeof(VMenvNode*)*env->num);
-		FAKE_ASSERT(env->list,"addVMenvNode",__FILE__,__LINE__);
+		FAKE_ASSERT(env->list,"fklAddVMenvNode",__FILE__,__LINE__);
 		for(;i>mid;i--)
 			env->list[i]=env->list[i-1];
 		env->list[mid]=node;
@@ -1325,7 +1325,7 @@ VMenvNode* addVMenvNode(VMenvNode* node,VMenv* env)
 	return node;
 }
 
-VMenvNode* findVMenvNode(Sid_t id,VMenv* env)
+VMenvNode* fklFindVMenvNode(Sid_t id,VMenv* env)
 {
 	if(!env->list)
 		return NULL;
@@ -1345,67 +1345,67 @@ VMenvNode* findVMenvNode(Sid_t id,VMenv* env)
 	return NULL;
 }
 
-void freeVMenvNode(VMenvNode* node)
+void fklFreeVMenvNode(VMenvNode* node)
 {
 	free(node);
 }
 
 
-VMChanl* newVMChanl(int32_t maxSize)
+VMChanl* fklNewVMChanl(int32_t maxSize)
 {
 	VMChanl* tmp=(VMChanl*)malloc(sizeof(VMChanl));
-	FAKE_ASSERT(tmp,"newVMChanl",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklNewVMChanl",__FILE__,__LINE__);
 	pthread_mutex_init(&tmp->lock,NULL);
 	tmp->max=maxSize;
-	tmp->messages=newComQueue();
-	tmp->sendq=newComQueue();
-	tmp->recvq=newComQueue();
+	tmp->messages=fklNewComQueue();
+	tmp->sendq=fklNewComQueue();
+	tmp->recvq=fklNewComQueue();
 	return tmp;
 }
 
-int32_t getNumVMChanl(VMChanl* ch)
+int32_t fklGetNumVMChanl(VMChanl* ch)
 {
 	pthread_rwlock_rdlock((pthread_rwlock_t*)&ch->lock);
 	uint32_t i=0;
-	i=lengthComQueue(ch->messages);
+	i=fklLengthComQueue(ch->messages);
 	pthread_rwlock_unlock((pthread_rwlock_t*)&ch->lock);
 	return i;
 }
 
-void freeVMChanl(VMChanl* ch)
+void fklFreeVMChanl(VMChanl* ch)
 {
 	pthread_mutex_destroy(&ch->lock);
-	freeComQueue(ch->messages);
+	fklFreeComQueue(ch->messages);
 	QueueNode* head=ch->sendq->head;
 	for(;head;head=head->next)
-		freeSendT(head->data);
+		fklFreeSendT(head->data);
 	for(head=ch->recvq->head;head;head=head->next)
-		freeRecvT(head->data);
-	freeComQueue(ch->sendq);
-	freeComQueue(ch->recvq);
+		fklFreeRecvT(head->data);
+	fklFreeComQueue(ch->sendq);
+	fklFreeComQueue(ch->recvq);
 	free(ch);
 }
 
-VMChanl* copyVMChanl(VMChanl* ch,VMheap* heap)
+VMChanl* fklCopyVMChanl(VMChanl* ch,VMheap* heap)
 {
-	VMChanl* tmpCh=newVMChanl(ch->max);
+	VMChanl* tmpCh=fklNewVMChanl(ch->max);
 	QueueNode* cur=ch->messages->head;
-	ComQueue* tmp=newComQueue();
+	ComQueue* tmp=fklNewComQueue();
 	for(;cur;cur=cur->next)
 	{
-		void* message=copyVMvalue(cur->data,heap);
-		pushComQueue(message,tmp);
+		void* message=fklCopyVMvalue(cur->data,heap);
+		fklPushComQueue(message,tmp);
 	}
 	return tmpCh;
 }
 
-void freeVMfp(FILE* fp)
+void fklFreeVMfp(FILE* fp)
 {
 	if(fp!=stdin&&fp!=stdout&&fp!=stderr)
 		fclose(fp);
 }
 
-DllHandle* newVMDll(const char* dllName)
+DllHandle* fklNewVMDll(const char* dllName)
 {
 #ifdef _WIN32
 	char filetype[]=".dll";
@@ -1414,7 +1414,7 @@ DllHandle* newVMDll(const char* dllName)
 #endif
 	size_t len=strlen(dllName)+strlen(filetype)+1;
 	char* realDllName=(char*)malloc(sizeof(char)*len);
-	FAKE_ASSERT(realDllName,"newVMDll",__FILE__,__LINE__);
+	FAKE_ASSERT(realDllName,"fklNewVMDll",__FILE__,__LINE__);
 	sprintf(realDllName,"%s%s",dllName,filetype);
 #ifdef _WIN32
 	char* rpath=_fullpath(NULL,realDllName,0);
@@ -1467,7 +1467,7 @@ DllHandle* newVMDll(const char* dllName)
 	return handle;
 }
 
-void freeVMDll(DllHandle* dll)
+void fklFreeVMDll(DllHandle* dll)
 {
 	if(dll)
 	{
@@ -1479,7 +1479,7 @@ void freeVMDll(DllHandle* dll)
 	}
 }
 
-void* getAddress(const char* funcname,DllHandle dlhandle)
+void* fklGetAddress(const char* funcname,DllHandle dlhandle)
 {
 	void* pfunc=NULL;
 #ifdef _WIN32
@@ -1490,163 +1490,163 @@ void* getAddress(const char* funcname,DllHandle dlhandle)
 	return pfunc;
 }
 
-VMDlproc* newVMDlproc(DllFunc address,VMvalue* dll)
+VMDlproc* fklNewVMDlproc(DllFunc address,VMvalue* dll)
 {
 	VMDlproc* tmp=(VMDlproc*)malloc(sizeof(VMDlproc));
-	FAKE_ASSERT(tmp,"newVMDlproc",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklNewVMDlproc",__FILE__,__LINE__);
 	tmp->func=address;
 	tmp->dll=dll;
 	return tmp;
 }
 
-void freeVMDlproc(VMDlproc* dlproc)
+void fklFreeVMDlproc(VMDlproc* dlproc)
 {
 	free(dlproc);
 }
 
-VMFlproc* newVMFlproc(TypeId_t type,void* func,VMvalue* dll)
+VMFlproc* fklNewVMFlproc(TypeId_t type,void* func,VMvalue* dll)
 {
 	VMFlproc* tmp=(VMFlproc*)malloc(sizeof(VMFlproc));
-	FAKE_ASSERT(tmp,"newVMDlproc",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklNewVMDlproc",__FILE__,__LINE__);
 	tmp->type=type;
 	tmp->func=func;
 	tmp->dll=dll;
 	return tmp;
 }
 
-void freeVMFlproc(VMFlproc* t)
+void fklFreeVMFlproc(VMFlproc* t)
 {
 	free(t);
 }
 
-VMerror* newVMerror(const char* who,const char* type,const char* message)
+VMerror* fklNewVMerror(const char* who,const char* type,const char* message)
 {
 	VMerror* t=(VMerror*)malloc(sizeof(VMerror));
-	FAKE_ASSERT(t,"newVMerror",__FILE__,__LINE__);
-	t->who=copyStr(who);
-	t->type=addSymbolToGlob(type)->id;
-	t->message=copyStr(message);
+	FAKE_ASSERT(t,"fklNewVMerror",__FILE__,__LINE__);
+	t->who=fklCopyStr(who);
+	t->type=fklAddSymbolToGlob(type)->id;
+	t->message=fklCopyStr(message);
 	return t;
 }
 
-VMerror* newVMerrorWithSid(const char* who,Sid_t type,const char* message)
+VMerror* fklNewVMerrorWithSid(const char* who,Sid_t type,const char* message)
 {
 	VMerror* t=(VMerror*)malloc(sizeof(VMerror));
-	FAKE_ASSERT(t,"newVMerror",__FILE__,__LINE__);
-	t->who=copyStr(who);
+	FAKE_ASSERT(t,"fklNewVMerror",__FILE__,__LINE__);
+	t->who=fklCopyStr(who);
 	t->type=type;
-	t->message=copyStr(message);
+	t->message=fklCopyStr(message);
 	return t;
 }
 
-void freeVMerror(VMerror* err)
+void fklFreeVMerror(VMerror* err)
 {
 	free(err->who);
 	free(err->message);
 	free(err);
 }
 
-RecvT* newRecvT(FakeVM* v)
+RecvT* fklNewRecvT(FakeVM* v)
 {
 	RecvT* tmp=(RecvT*)malloc(sizeof(RecvT));
-	FAKE_ASSERT(tmp,"newRecvT",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklNewRecvT",__FILE__,__LINE__);
 	tmp->v=v;
 	pthread_cond_init(&tmp->cond,NULL);
 	return tmp;
 }
 
-void freeRecvT(RecvT* r)
+void fklFreeRecvT(RecvT* r)
 {
 	pthread_cond_destroy(&r->cond);
 	free(r);
 }
 
-SendT* newSendT(VMvalue* m)
+SendT* fklNewSendT(VMvalue* m)
 {
 	SendT* tmp=(SendT*)malloc(sizeof(SendT));
-	FAKE_ASSERT(tmp,"newSendT",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklNewSendT",__FILE__,__LINE__);
 	tmp->m=m;
 	pthread_cond_init(&tmp->cond,NULL);
 	return tmp;
 }
 
-void freeSendT(SendT* s)
+void fklFreeSendT(SendT* s)
 {
 	pthread_cond_destroy(&s->cond);
 	free(s);
 }
 
-void chanlRecv(RecvT* r,VMChanl* ch)
+void fklChanlRecv(RecvT* r,VMChanl* ch)
 {
 	pthread_mutex_lock(&ch->lock);
-	if(!lengthComQueue(ch->messages))
+	if(!fklLengthComQueue(ch->messages))
 	{
-		pushComQueue(r,ch->recvq);
+		fklPushComQueue(r,ch->recvq);
 		pthread_cond_wait(&r->cond,&ch->lock);
 	}
-	SET_RETURN("chanlRecv",popComQueue(ch->messages),r->v->stack);
-	if(lengthComQueue(ch->messages)<ch->max)
+	SET_RETURN("fklChanlRecv",fklPopComQueue(ch->messages),r->v->stack);
+	if(fklLengthComQueue(ch->messages)<ch->max)
 	{
-		SendT* s=popComQueue(ch->sendq);
+		SendT* s=fklPopComQueue(ch->sendq);
 		if(s)
 			pthread_cond_signal(&s->cond);
 	}
-	freeRecvT(r);
+	fklFreeRecvT(r);
 	pthread_mutex_unlock(&ch->lock);
 }
 
-void chanlSend(SendT*s,VMChanl* ch)
+void fklChanlSend(SendT*s,VMChanl* ch)
 {
 	pthread_mutex_lock(&ch->lock);
-	if(lengthComQueue(ch->recvq))
+	if(fklLengthComQueue(ch->recvq))
 	{
-		RecvT* r=popComQueue(ch->recvq);
+		RecvT* r=fklPopComQueue(ch->recvq);
 		if(r)
 			pthread_cond_signal(&r->cond);
 	}
-	if(!ch->max||lengthComQueue(ch->messages)<ch->max-1)
-		pushComQueue(s->m,ch->messages);
+	if(!ch->max||fklLengthComQueue(ch->messages)<ch->max-1)
+		fklPushComQueue(s->m,ch->messages);
 	else
 	{
-		if(lengthComQueue(ch->messages)>=ch->max-1)
+		if(fklLengthComQueue(ch->messages)>=ch->max-1)
 		{
-			pushComQueue(s,ch->sendq);
-			if(lengthComQueue(ch->messages)==ch->max-1)
-				pushComQueue(s->m,ch->messages);
+			fklPushComQueue(s,ch->sendq);
+			if(fklLengthComQueue(ch->messages)==ch->max-1)
+				fklPushComQueue(s->m,ch->messages);
 			pthread_cond_wait(&s->cond,&ch->lock);
 		}
 	}
-	freeSendT(s);
+	fklFreeSendT(s);
 	pthread_mutex_unlock(&ch->lock);
 }
 
-VMTryBlock* newVMTryBlock(Sid_t sid,uint32_t tp,long int rtp)
+VMTryBlock* fklNewVMTryBlock(Sid_t sid,uint32_t tp,long int rtp)
 {
 	VMTryBlock* t=(VMTryBlock*)malloc(sizeof(VMTryBlock));
-	FAKE_ASSERT(t,"newVMTryBlock",__FILE__,__LINE__);
+	FAKE_ASSERT(t,"fklNewVMTryBlock",__FILE__,__LINE__);
 	t->sid=sid;
-	t->hstack=newComStack(32);
+	t->hstack=fklNewComStack(32);
 	t->tp=tp;
 	t->rtp=rtp;
 	return t;
 }
 
-void freeVMTryBlock(VMTryBlock* b)
+void fklFreeVMTryBlock(VMTryBlock* b)
 {
 	ComStack* hstack=b->hstack;
-	while(!isComStackEmpty(hstack))
+	while(!fklIsComStackEmpty(hstack))
 	{
-		VMerrorHandler* h=popComStack(hstack);
-		freeVMerrorHandler(h);
+		VMerrorHandler* h=fklPopComStack(hstack);
+		fklFreeVMerrorHandler(h);
 	}
-	freeComStack(b->hstack);
+	fklFreeComStack(b->hstack);
 	free(b);
 }
 
-VMerrorHandler* newVMerrorHandler(Sid_t type,uint32_t scp,uint32_t cpc)
+VMerrorHandler* fklNewVMerrorHandler(Sid_t type,uint32_t scp,uint32_t cpc)
 {
 	VMerrorHandler* t=(VMerrorHandler*)malloc(sizeof(VMerrorHandler));
-	FAKE_ASSERT(t,"newVMerrorHandler",__FILE__,__LINE__);
+	FAKE_ASSERT(t,"fklNewVMerrorHandler",__FILE__,__LINE__);
 	t->type=type;
 	t->proc.prevEnv=NULL;
 	t->proc.scp=scp;
@@ -1654,49 +1654,49 @@ VMerrorHandler* newVMerrorHandler(Sid_t type,uint32_t scp,uint32_t cpc)
 	return t;
 }
 
-void freeVMerrorHandler(VMerrorHandler* h)
+void fklFreeVMerrorHandler(VMerrorHandler* h)
 {
-	freeVMenv(h->proc.prevEnv);
+	fklFreeVMenv(h->proc.prevEnv);
 	free(h);
 }
 
-int raiseVMerror(VMvalue* ev,FakeVM* exe)
+int fklRaiseVMerror(VMvalue* ev,FakeVM* exe)
 {
 	VMerror* err=ev->u.err;
-	while(!isComStackEmpty(exe->tstack))
+	while(!fklIsComStackEmpty(exe->tstack))
 	{
-		VMTryBlock* tb=topComStack(exe->tstack);
+		VMTryBlock* tb=fklTopComStack(exe->tstack);
 		VMstack* stack=exe->stack;
 		stack->tp=tb->tp;
-		while(!isComStackEmpty(tb->hstack))
+		while(!fklIsComStackEmpty(tb->hstack))
 		{
-			VMerrorHandler* h=popComStack(tb->hstack);
+			VMerrorHandler* h=fklPopComStack(tb->hstack);
 			if(h->type==err->type)
 			{
 				long int increment=exe->rstack->top-tb->rtp;
 				unsigned int i=0;
 				for(;i<increment;i++)
 				{
-					VMrunnable* runnable=popComStack(exe->rstack);
-					freeVMenv(runnable->localenv);
+					VMrunnable* runnable=fklPopComStack(exe->rstack);
+					fklFreeVMenv(runnable->localenv);
 					free(runnable);
 				}
-				VMrunnable* prevRunnable=topComStack(exe->rstack);
-				VMrunnable* r=newVMrunnable(&h->proc);
-				r->localenv=newVMenv(prevRunnable->localenv);
+				VMrunnable* prevRunnable=fklTopComStack(exe->rstack);
+				VMrunnable* r=fklNewVMrunnable(&h->proc);
+				r->localenv=fklNewVMenv(prevRunnable->localenv);
 				VMenv* curEnv=r->localenv;
 				Sid_t idOfError=tb->sid;
-				VMenvNode* errorNode=findVMenvNode(idOfError,curEnv);
+				VMenvNode* errorNode=fklFindVMenvNode(idOfError,curEnv);
 				if(!errorNode)
-					errorNode=addVMenvNode(newVMenvNode(NULL,idOfError),curEnv);
+					errorNode=fklAddVMenvNode(fklNewVMenvNode(NULL,idOfError),curEnv);
 				errorNode->value=ev;
-				pushComStack(r,exe->rstack);
-				freeVMerrorHandler(h);
+				fklPushComStack(r,exe->rstack);
+				fklFreeVMerrorHandler(h);
 				return 1;
 			}
-			freeVMerrorHandler(h);
+			fklFreeVMerrorHandler(h);
 		}
-		freeVMTryBlock(popComStack(exe->tstack));
+		fklFreeVMTryBlock(fklPopComStack(exe->tstack));
 	}
 	fprintf(stderr,"error of %s :%s",err->who,err->message);
 	void* i[3]={exe,(void*)255,(void*)1};
@@ -1704,10 +1704,10 @@ int raiseVMerror(VMvalue* ev,FakeVM* exe)
 	return 255;
 }
 
-VMrunnable* newVMrunnable(VMproc* code)
+VMrunnable* fklNewVMrunnable(VMproc* code)
 {
 	VMrunnable* tmp=(VMrunnable*)malloc(sizeof(VMrunnable));
-	FAKE_ASSERT(tmp,"newVMrunnable",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklNewVMrunnable",__FILE__,__LINE__);
 	if(code)
 	{
 		tmp->cp=code->scp;
@@ -1718,74 +1718,74 @@ VMrunnable* newVMrunnable(VMproc* code)
 	return tmp;
 }
 
-char* genErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe)
+char* fklGenErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe)
 {
 	int32_t cp=r->cp;
-	LineNumTabNode* node=findLineNumTabNode(cp,exe->lnt);
+	LineNumTabNode* node=fklFindLineNumTabNode(cp,exe->lnt);
 	char* filename=GlobSymbolTable.idl[node->fid]->symbol;
-	char* line=intToString(node->line);
+	char* line=fklIntToString(node->line);
 	size_t len=strlen("at line  of \n")+strlen(filename)+strlen(line)+1;
 	char* lineNumber=(char*)malloc(sizeof(char)*len);
-	FAKE_ASSERT(lineNumber,"genErrorMessage",__FILE__,__LINE__);
+	FAKE_ASSERT(lineNumber,"fklGenErrorMessage",__FILE__,__LINE__);
 	sprintf(lineNumber,"at line %s of %s\n",line,filename);
 	free(line);
-	char* t=copyStr("");
+	char* t=fklCopyStr("");
 	switch(type)
 	{
 		case WRONGARG:
-			t=strCat(t,"Wrong arguement ");
+			t=fklStrCat(t,"Wrong arguement ");
 			break;
 		case STACKERROR:
-			t=strCat(t,"Stack error ");
+			t=fklStrCat(t,"Stack error ");
 			break;
 		case TOOMANYARG:
-			t=strCat(t,"Too many arguements ");
+			t=fklStrCat(t,"Too many arguements ");
 			break;
 		case TOOFEWARG:
-			t=strCat(t,"Too few arguements ");
+			t=fklStrCat(t,"Too few arguements ");
 			break;
 		case CANTCREATETHREAD:
-			t=strCat(t,"Can't create thread ");
+			t=fklStrCat(t,"Can't create thread ");
 			break;
 		case SYMUNDEFINE:
-			t=strCat(t,"Symbol ");
-			t=strCat(t,GlobSymbolTable.idl[getSymbolIdInByteCode(exe->code+r->cp)]->symbol);
-			t=strCat(t," is undefined ");
+			t=fklStrCat(t,"Symbol ");
+			t=fklStrCat(t,GlobSymbolTable.idl[fklGetSymbolIdInByteCode(exe->code+r->cp)]->symbol);
+			t=fklStrCat(t," is undefined ");
 			break;
 		case INVOKEERROR:
-			t=strCat(t,"Try to invoke an object that isn't procedure,continuation or native procedure ");
+			t=fklStrCat(t,"Try to invoke an object that isn't procedure,continuation or native procedure ");
 			break;
 		case LOADDLLFAILD:
-			t=strCat(t,"Faild to load dll \"");
-			t=strCat(t,exe->stack->values[exe->stack->tp-1]->u.str);
-			t=strCat(t,"\" ");
+			t=fklStrCat(t,"Faild to load dll \"");
+			t=fklStrCat(t,exe->stack->values[exe->stack->tp-1]->u.str);
+			t=fklStrCat(t,"\" ");
 			break;
 		case INVALIDSYMBOL:
-			t=strCat(t,"Invalid symbol ");
-			t=strCat(t,exe->stack->values[exe->stack->tp-1]->u.str);
-			t=strCat(t," ");
+			t=fklStrCat(t,"Invalid symbol ");
+			t=fklStrCat(t,exe->stack->values[exe->stack->tp-1]->u.str);
+			t=fklStrCat(t," ");
 			break;
 		case DIVZERROERROR:
-			t=strCat(t,"Divided by zero ");
+			t=fklStrCat(t,"Divided by zero ");
 			break;
 		case FILEFAILURE:
-			t=strCat(t,"Failed for file:\"");
-			t=strCat(t,exe->stack->values[exe->stack->tp-1]->u.str);
-			t=strCat(t,"\" ");
+			t=fklStrCat(t,"Failed for file:\"");
+			t=fklStrCat(t,exe->stack->values[exe->stack->tp-1]->u.str);
+			t=fklStrCat(t,"\" ");
 			break;
 		case INVALIDASSIGN:
-			t=strCat(t,"Invalid assign ");
+			t=fklStrCat(t,"Invalid assign ");
 			break;
 		case INVALIDACCESS:
-			t=strCat(t,"Invalid access ");
+			t=fklStrCat(t,"Invalid access ");
 			break;
 	}
-	t=strCat(t,lineNumber);
+	t=fklStrCat(t,lineNumber);
 	free(lineNumber);
 	return t;
 }
 
-int32_t getSymbolIdInByteCode(const uint8_t* code)
+int32_t fklGetSymbolIdInByteCode(const uint8_t* code)
 {
 	char op=*code;
 	switch(op)
@@ -1802,17 +1802,17 @@ int32_t getSymbolIdInByteCode(const uint8_t* code)
 	return -1;
 }
 
-int resBp(VMstack* stack)
+int fklResBp(VMstack* stack)
 {
 	if(stack->tp>stack->bp)
 		return TOOMANYARG;
-	VMvalue* prevBp=getTopValue(stack);
+	VMvalue* prevBp=fklGetTopValue(stack);
 	stack->bp=GET_IN32(prevBp);
 	stack->tp-=1;
 	return 0;
 }
 
-void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
+void fklPrincVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 {
 	int access=!h;
 	CRL* head=NULL;
@@ -1833,7 +1833,7 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 			putc(GET_CHR(objValue),fp);
 			break;
 		case SYM_TAG:
-			fprintf(fp,"%s",getGlobSymbolWithId(GET_SYM(objValue))->symbol);
+			fprintf(fp,"%s",fklGetGlobSymbolWithId(GET_SYM(objValue))->symbol);
 			break;
 		case PTR_TAG:
 			{
@@ -1877,18 +1877,18 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 						}
 						else
 							putc('(',fp);
-						for(;IS_PAIR(objValue);objValue=getVMpairCdr(objValue))
+						for(;IS_PAIR(objValue);objValue=fklGetVMpairCdr(objValue))
 						{
-							VMvalue* tmpValue=getVMpairCar(objValue);
+							VMvalue* tmpValue=fklGetVMpairCar(objValue);
 							if(IS_PAIR(tmpValue)&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
 								fprintf(fp,"#%d#",CRLcount);
 							else
-								princVMvalue(tmpValue,fp,h);
-							tmpValue=getVMpairCdr(objValue);
+								fklPrincVMvalue(tmpValue,fp,h);
+							tmpValue=fklGetVMpairCdr(objValue);
 							if(tmpValue!=VM_NIL&&!IS_PAIR(tmpValue))
 							{
 								putc(',',fp);
-								princVMvalue(tmpValue,fp,h);
+								fklPrincVMvalue(tmpValue,fp,h);
 							}
 							else if(IS_PAIR(tmpValue)&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
 							{
@@ -1901,7 +1901,7 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 						putc(')',fp);
 						break;
 					case BYTS:
-						printByteStr(objValue->u.byts->size,objValue->u.byts->str,fp,0);
+						fklPrintByteStr(objValue->u.byts->size,objValue->u.byts->str,fp,0);
 						break;
 					case CONT:
 						fprintf(fp,"#<cont>");
@@ -1943,7 +1943,7 @@ void princVMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 	}
 }
 
-void prin1VMvalue(VMvalue* objValue,FILE* fp,CRL** h)
+void fklPrin1VMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 {
 	int access=!h;
 	CRL* head=NULL;
@@ -1961,10 +1961,10 @@ void prin1VMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 			fprintf(fp,"%d",GET_IN32(objValue));
 			break;
 		case CHR_TAG:
-			printRawChar(GET_CHR(objValue),fp);
+			fklPrintRawChar(GET_CHR(objValue),fp);
 			break;
 		case SYM_TAG:
-			fprintf(fp,"%s",getGlobSymbolWithId(GET_SYM(objValue))->symbol);
+			fprintf(fp,"%s",fklGetGlobSymbolWithId(GET_SYM(objValue))->symbol);
 			break;
 		case PTR_TAG:
 			{
@@ -1977,7 +1977,7 @@ void prin1VMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 						fprintf(fp,"%ld",*objValue->u.in64);
 						break;
 					case STR:
-						printRawString(objValue->u.str,fp);
+						fklPrintRawString(objValue->u.str,fp);
 						break;
 					case MEM:
 					case CHF:
@@ -2008,18 +2008,18 @@ void prin1VMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 						}
 						else
 							putc('(',fp);
-						for(;IS_PAIR(objValue);objValue=getVMpairCdr(objValue))
+						for(;IS_PAIR(objValue);objValue=fklGetVMpairCdr(objValue))
 						{
-							VMvalue* tmpValue=getVMpairCar(objValue);
+							VMvalue* tmpValue=fklGetVMpairCar(objValue);
 							if(IS_PAIR(tmpValue)&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
 								fprintf(fp,"#%d#",CRLcount);
 							else
-								prin1VMvalue(tmpValue,fp,h);
-							tmpValue=getVMpairCdr(objValue);
+								fklPrin1VMvalue(tmpValue,fp,h);
+							tmpValue=fklGetVMpairCdr(objValue);
 							if(tmpValue!=VM_NIL&&!IS_PAIR(tmpValue))
 							{
 								putc(',',fp);
-								prin1VMvalue(tmpValue,fp,h);
+								fklPrin1VMvalue(tmpValue,fp,h);
 							}
 							else if(IS_PAIR(tmpValue)&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
 							{
@@ -2032,7 +2032,7 @@ void prin1VMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 						putc(')',fp);
 						break;
 					case BYTS:
-						printByteStr(objValue->u.byts->size,objValue->u.byts->str,fp,1);
+						fklPrintByteStr(objValue->u.byts->size,objValue->u.byts->str,fp,1);
 						break;
 					case CONT:
 						fprintf(fp,"#<cont>");
@@ -2053,7 +2053,7 @@ void prin1VMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 						fprintf(fp,"<#flproc>");
 						break;
 					case ERR:
-						fprintf(fp,"<#err w:%s t:%s m:%s>",objValue->u.err->who,getGlobSymbolWithId(objValue->u.err->type)->symbol,objValue->u.err->message);
+						fprintf(fp,"<#err w:%s t:%s m:%s>",objValue->u.err->who,fklGetGlobSymbolWithId(objValue->u.err->type)->symbol,objValue->u.err->message);
 						break;
 					default:fprintf(fp,"Bad value!");break;
 				}
@@ -2073,14 +2073,14 @@ void prin1VMvalue(VMvalue* objValue,FILE* fp,CRL** h)
 	}
 }
 
-int eqVMByts(const VMByts* fir,const VMByts* sec)
+int fklEqVMByts(const VMByts* fir,const VMByts* sec)
 {
 	if(fir->size!=sec->size)
 		return 0;
 	return !memcmp(fir->str,sec->str,sec->size);
 }
 
-VMvalue* GET_VAL(VMvalue* P,VMheap* heap)
+VMvalue* fklGET_VAL(VMvalue* P,VMheap* heap)
 {
 	if(P)
 	{
@@ -2105,7 +2105,7 @@ VMvalue* GET_VAL(VMvalue* P,VMheap* heap)
 	return P;
 }
 
-int SET_REF(VMvalue* P,VMvalue* V)
+int fklSET_REF(VMvalue* P,VMvalue* V)
 {
 	if(IS_MEM(P)||IS_CHF(P))
 	{
@@ -2131,31 +2131,31 @@ int SET_REF(VMvalue* P,VMvalue* V)
 		return 1;
 }
 
-TypeId_t newVMNativeType(Sid_t type,size_t size)
+TypeId_t fklNewVMNativeType(Sid_t type,size_t size)
 {
 	VMNativeType* tmp=(VMNativeType*)malloc(sizeof(VMNativeType));
-	FAKE_ASSERT(tmp,"newVMNativeType",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklNewVMNativeType",__FILE__,__LINE__);
 	tmp->type=type;
 	tmp->size=size;
 	return addToGlobTypeUnionList((VMTypeUnion)MAKE_NATIVE_TYPE(tmp));
 }
 
-void freeVMNativeType(VMNativeType* obj)
+void fklFreeVMNativeType(VMNativeType* obj)
 {
 	free(obj);
 }
 
-VMTypeUnion getVMTypeUnion(TypeId_t t)
+VMTypeUnion fklGetVMTypeUnion(TypeId_t t)
 {
 	return GlobTypeUnionList.ul[t-1];
 }
 
-size_t getVMTypeSizeWithTypeId(TypeId_t t)
+size_t fklGetVMTypeSizeWithTypeId(TypeId_t t)
 {
-	return getVMTypeSize(getVMTypeUnion(t));
+	return fklGetVMTypeSize(fklGetVMTypeUnion(t));
 }
 
-size_t getVMTypeSize(VMTypeUnion t)
+size_t fklGetVMTypeSize(VMTypeUnion t)
 {
 	DefTypeTag tag=GET_TYPES_TAG(t.all);
 	t.all=GET_TYPES_PTR(t.all);
@@ -2185,7 +2185,7 @@ size_t getVMTypeSize(VMTypeUnion t)
 	}
 }
 
-TypeId_t newVMArrayType(TypeId_t type,size_t num)
+TypeId_t fklNewVMArrayType(TypeId_t type,size_t num)
 {
 	TypeId_t id=0;
 	size_t i=0;
@@ -2206,22 +2206,22 @@ TypeId_t newVMArrayType(TypeId_t type,size_t num)
 	if(!id)
 	{
 		VMArrayType* tmp=(VMArrayType*)malloc(sizeof(VMArrayType));
-		FAKE_ASSERT(tmp,"newVMArrayType",__FILE__,__LINE__);
+		FAKE_ASSERT(tmp,"fklNewVMArrayType",__FILE__,__LINE__);
 		tmp->etype=type;
 		tmp->num=num;
-		tmp->totalSize=num*getVMTypeSize(getVMTypeUnion(type));
+		tmp->totalSize=num*fklGetVMTypeSize(fklGetVMTypeUnion(type));
 		return addToGlobTypeUnionList((VMTypeUnion)MAKE_ARRAY_TYPE(tmp));
 	}
 	else
 		return id;
 }
 
-void freeVMArrayType(VMArrayType* obj)
+void fklFreeVMArrayType(VMArrayType* obj)
 {
 	free(GET_TYPES_PTR(obj));
 }
 
-TypeId_t newVMPtrType(TypeId_t type)
+TypeId_t fklNewVMPtrType(TypeId_t type)
 {
 	TypeId_t id=0;
 	size_t i=0;
@@ -2242,26 +2242,26 @@ TypeId_t newVMPtrType(TypeId_t type)
 	if(!id)
 	{
 		VMPtrType* tmp=(VMPtrType*)malloc(sizeof(VMPtrType));
-		FAKE_ASSERT(tmp,"newVMPtrType",__FILE__,__LINE__);
+		FAKE_ASSERT(tmp,"fklNewVMPtrType",__FILE__,__LINE__);
 		tmp->ptype=type;
 		return addToGlobTypeUnionList((VMTypeUnion)MAKE_PTR_TYPE(tmp));
 	}
 	return id;
 }
 
-void freeVMPtrType(VMPtrType* obj)
+void fklFreeVMPtrType(VMPtrType* obj)
 {
 	free(GET_TYPES_PTR(obj));
 }
 
-TypeId_t newVMStructType(const char* structName,uint32_t num,Sid_t symbols[],TypeId_t memberTypes[])
+TypeId_t fklNewVMStructType(const char* structName,uint32_t num,Sid_t symbols[],TypeId_t memberTypes[])
 {
 	TypeId_t id=0;
 	if(structName)
 	{
 		size_t i=0;
 		size_t num=GlobTypeUnionList.num;
-		Sid_t stype=addSymbolToGlob(structName)->id;
+		Sid_t stype=fklAddSymbolToGlob(structName)->id;
 		for(;i<num;i++)
 		{
 			VMTypeUnion tmpType=GlobTypeUnionList.ul[i];
@@ -2279,11 +2279,11 @@ TypeId_t newVMStructType(const char* structName,uint32_t num,Sid_t symbols[],Typ
 	if(!id)
 	{
 		size_t totalSize=0;
-		for(uint32_t i=0;i<num;totalSize+=getVMTypeSize(getVMTypeUnion(memberTypes[i])),i++);
+		for(uint32_t i=0;i<num;totalSize+=fklGetVMTypeSize(fklGetVMTypeUnion(memberTypes[i])),i++);
 		VMStructType* tmp=(VMStructType*)malloc(sizeof(VMStructType)+sizeof(VMStructMember)*num);
-		FAKE_ASSERT(tmp,"newVMStructType",__FILE__,__LINE__);
+		FAKE_ASSERT(tmp,"fklNewVMStructType",__FILE__,__LINE__);
 		if(structName)
-			tmp->type=addSymbolToGlob(structName)->id;
+			tmp->type=fklAddSymbolToGlob(structName)->id;
 		else
 			tmp->type=-1;
 		tmp->num=num;
@@ -2298,19 +2298,19 @@ TypeId_t newVMStructType(const char* structName,uint32_t num,Sid_t symbols[],Typ
 	return id;
 }
 
-TypeId_t newVMUnionType(const char* unionName,uint32_t num,Sid_t symbols[],TypeId_t memberTypes[])
+TypeId_t fklNewVMUnionType(const char* unionName,uint32_t num,Sid_t symbols[],TypeId_t memberTypes[])
 {
 	size_t maxSize=0;
 	for(uint32_t i=0;i<num;i++)
 	{
-		size_t curSize=getVMTypeSizeWithTypeId(memberTypes[i]);
+		size_t curSize=fklGetVMTypeSizeWithTypeId(memberTypes[i]);
 		if(maxSize<curSize)
 			maxSize=curSize;
 	}
 	VMUnionType* tmp=(VMUnionType*)malloc(sizeof(VMUnionType)+sizeof(VMStructMember)*num);
-	FAKE_ASSERT(tmp,"newVMStructType",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklNewVMStructType",__FILE__,__LINE__);
 	if(unionName)
-		tmp->type=addSymbolToGlob(unionName)->id;
+		tmp->type=fklAddSymbolToGlob(unionName)->id;
 	else
 		tmp->type=-1;
 	tmp->num=num;
@@ -2323,17 +2323,17 @@ TypeId_t newVMUnionType(const char* unionName,uint32_t num,Sid_t symbols[],TypeI
 	return addToGlobTypeUnionList((VMTypeUnion)MAKE_UNION_TYPE(tmp));
 }
 
-void freeVMUnionType(VMUnionType* obj)
+void fklFreeVMUnionType(VMUnionType* obj)
 {
 	free(GET_TYPES_PTR(obj));
 }
 
-void freeVMStructType(VMStructType* obj)
+void fklFreeVMStructType(VMStructType* obj)
 {
 	free(GET_TYPES_PTR(obj));
 }
 
-TypeId_t newVMFuncType(TypeId_t rtype,uint32_t anum,TypeId_t atypes[])
+TypeId_t fklNewVMFuncType(TypeId_t rtype,uint32_t anum,TypeId_t atypes[])
 {
 	TypeId_t id=0;
 	size_t i=0;
@@ -2354,7 +2354,7 @@ TypeId_t newVMFuncType(TypeId_t rtype,uint32_t anum,TypeId_t atypes[])
 	if(!id)
 	{
 		VMFuncType* tmp=(VMFuncType*)malloc(sizeof(VMFuncType)+sizeof(TypeId_t)*anum);
-		FAKE_ASSERT(tmp,"newVMFuncType",__FILE__,__LINE__);
+		FAKE_ASSERT(tmp,"fklNewVMFuncType",__FILE__,__LINE__);
 		tmp->rtype=rtype;
 		tmp->anum=anum;
 		uint32_t i=0;
@@ -2365,19 +2365,19 @@ TypeId_t newVMFuncType(TypeId_t rtype,uint32_t anum,TypeId_t atypes[])
 	return id;
 }
 
-void freeVMFuncType(VMFuncType* obj)
+void fklFreeVMFuncType(VMFuncType* obj)
 {
 	free(GET_TYPES_PTR(obj));
 }
 
-int addDefTypes(VMDefTypes* otherTypes,Sid_t typeName,TypeId_t type)
+int fklAddDefTypes(VMDefTypes* otherTypes,Sid_t typeName,TypeId_t type)
 {
 	if(otherTypes->num==0)
 	{
 		otherTypes->num+=1;
 		VMDefTypesNode* node=(VMDefTypesNode*)malloc(sizeof(VMDefTypesNode));
 		otherTypes->u=(VMDefTypesNode**)malloc(sizeof(VMDefTypesNode*)*1);
-		FAKE_ASSERT(otherTypes->u&&node,"addDefTypes",__FILE__,__LINE__);
+		FAKE_ASSERT(otherTypes->u&&node,"fklAddDefTypes",__FILE__,__LINE__);
 		node->name=typeName;
 		node->type=type;
 		otherTypes->u[0]=node;
@@ -2403,9 +2403,9 @@ int addDefTypes(VMDefTypes* otherTypes,Sid_t typeName,TypeId_t type)
 		otherTypes->num+=1;
 		int64_t i=otherTypes->num-1;
 		otherTypes->u=(VMDefTypesNode**)realloc(otherTypes->u,sizeof(VMDefTypesNode*)*otherTypes->num);
-		FAKE_ASSERT(otherTypes->u,"addDefTypes",__FILE__,__LINE__);
+		FAKE_ASSERT(otherTypes->u,"fklAddDefTypes",__FILE__,__LINE__);
 		VMDefTypesNode* node=(VMDefTypesNode*)malloc(sizeof(VMDefTypesNode));
-		FAKE_ASSERT(otherTypes->u&&node,"addDefTypes",__FILE__,__LINE__);
+		FAKE_ASSERT(otherTypes->u&&node,"fklAddDefTypes",__FILE__,__LINE__);
 		node->name=typeName;
 		node->type=type;
 		for(;i>mid;i--)
@@ -2415,7 +2415,7 @@ int addDefTypes(VMDefTypes* otherTypes,Sid_t typeName,TypeId_t type)
 	return 0;
 }
 
-VMDefTypesNode* findVMDefTypesNode(Sid_t typeName,VMDefTypes* otherTypes)
+VMDefTypesNode* fklFindVMDefTypesNode(Sid_t typeName,VMDefTypes* otherTypes)
 {
 	int64_t l=0;
 	int64_t h=otherTypes->num-1;
@@ -2435,26 +2435,26 @@ VMDefTypesNode* findVMDefTypesNode(Sid_t typeName,VMDefTypes* otherTypes)
 	//return (VMTypeUnion){.all=NULL};
 }
 
-TypeId_t genDefTypes(AST_cptr* objCptr,VMDefTypes* otherTypes,Sid_t* typeName)
+TypeId_t fklGenDefTypes(AST_cptr* objCptr,VMDefTypes* otherTypes,Sid_t* typeName)
 {
-	AST_cptr* fir=nextCptr(getFirstCptr(objCptr));
+	AST_cptr* fir=fklNextCptr(fklGetFirstCptr(objCptr));
 	if(fir->type!=ATM||fir->u.atom->type!=SYM)
 		return 0;
-	Sid_t typeId=addSymbolToGlob(fir->u.atom->value.str)->id;
+	Sid_t typeId=fklAddSymbolToGlob(fir->u.atom->value.str)->id;
 	if(isNativeType(typeId,otherTypes))
 		return 0;
 	*typeName=typeId;
-	fir=nextCptr(fir);
+	fir=fklNextCptr(fir);
 	if(fir->type!=ATM&&fir->type!=PAIR)
 		return 0;
-	return genDefTypesUnion(fir,otherTypes);
+	return fklGenDefTypesUnion(fir,otherTypes);
 }
 
-TypeId_t genDefTypesUnion(AST_cptr* objCptr,VMDefTypes* otherTypes)
+TypeId_t fklGenDefTypesUnion(AST_cptr* objCptr,VMDefTypes* otherTypes)
 {
 	if(objCptr->type==ATM&&objCptr->u.atom->type==SYM)
 	{
-		VMDefTypesNode* n=findVMDefTypesNode(addSymbolToGlob(objCptr->u.atom->value.str)->id,otherTypes);
+		VMDefTypesNode* n=fklFindVMDefTypesNode(fklAddSymbolToGlob(objCptr->u.atom->value.str)->id,otherTypes);
 		if(!n)
 			return 0;
 		else
@@ -2462,7 +2462,7 @@ TypeId_t genDefTypesUnion(AST_cptr* objCptr,VMDefTypes* otherTypes)
 	}
 	else if(objCptr->type==PAIR)
 	{
-		AST_cptr* compositeDataHead=getFirstCptr(objCptr);
+		AST_cptr* compositeDataHead=fklGetFirstCptr(objCptr);
 		if(compositeDataHead->type!=ATM||compositeDataHead->u.atom->type!=SYM)
 			return 0;
 		if(!strcmp(compositeDataHead->u.atom->value.str,"array"))
@@ -2484,20 +2484,20 @@ TypeId_t genDefTypesUnion(AST_cptr* objCptr,VMDefTypes* otherTypes)
 
 int isNativeType(Sid_t typeName,VMDefTypes* otherTypes)
 {
-	VMDefTypesNode* typeNode=findVMDefTypesNode(typeName,otherTypes);
-	return typeNode!=NULL&&GET_TYPES_TAG(getVMTypeUnion(typeNode->type).all)==NATIVE_TYPE_TAG;
+	VMDefTypesNode* typeNode=fklFindVMDefTypesNode(typeName,otherTypes);
+	return typeNode!=NULL&&GET_TYPES_TAG(fklGetVMTypeUnion(typeNode->type).all)==NATIVE_TYPE_TAG;
 }
 
-VMMem* newVMMem(TypeId_t type,uint8_t* mem)
+VMMem* fklNewVMMem(TypeId_t type,uint8_t* mem)
 {
 	VMMem* tmp=(VMMem*)malloc(sizeof(VMMem));
-	FAKE_ASSERT(tmp,"newVMMem",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklNewVMMem",__FILE__,__LINE__);
 	tmp->type=type;
 	tmp->mem=mem;
 	return tmp;
 }
 
-void initNativeDefTypes(VMDefTypes* otherTypes)
+void fklInitNativeDefTypes(VMDefTypes* otherTypes)
 {
 	struct
 	{
@@ -2536,28 +2536,28 @@ void initNativeDefTypes(VMDefTypes* otherTypes)
 	size_t i=0;
 	for(;i<num;i++)
 	{
-		Sid_t typeName=addSymbolToGlob(nativeTypeList[i].typeName)->id;
+		Sid_t typeName=fklAddSymbolToGlob(nativeTypeList[i].typeName)->id;
 		size_t size=nativeTypeList[i].size;
-		TypeId_t t=newVMNativeType(typeName,size);
+		TypeId_t t=fklNewVMNativeType(typeName,size);
 		if(!CharTypeId&&!strcmp("char",nativeTypeList[i].typeName))
 			CharTypeId=t;
-		//VMTypeUnion t={.nt=newVMNativeType(typeName,size)};
-		addDefTypes(otherTypes,typeName,t);
+		//VMTypeUnion t={.nt=fklNewVMNativeType(typeName,size)};
+		fklAddDefTypes(otherTypes,typeName,t);
 	}
-	Sid_t otherTypeName=addSymbolToGlob("string")->id;
-	StringTypeId=newVMNativeType(otherTypeName,sizeof(char*));
-	addDefTypes(otherTypes,otherTypeName,StringTypeId);
-	otherTypeName=addSymbolToGlob("FILE*")->id;
-	FILEpTypeId=newVMNativeType(otherTypeName,sizeof(FILE*));
-	addDefTypes(otherTypes,otherTypeName,FILEpTypeId);
+	Sid_t otherTypeName=fklAddSymbolToGlob("string")->id;
+	StringTypeId=fklNewVMNativeType(otherTypeName,sizeof(char*));
+	fklAddDefTypes(otherTypes,otherTypeName,StringTypeId);
+	otherTypeName=fklAddSymbolToGlob("FILE*")->id;
+	FILEpTypeId=fklNewVMNativeType(otherTypeName,sizeof(FILE*));
+	fklAddDefTypes(otherTypes,otherTypeName,FILEpTypeId);
 	LastNativeTypeId=num;
 	//i=0;
 	//for(;i<num;i++)
 	//	fprintf(stderr,"i=%ld typeId=%d\n",i,otherTypes->u[i]->name);
-	//printGlobSymbolTable(stderr);
+	//fklPrintGlobSymbolTable(stderr);
 }
 
-void writeTypeList(FILE* fp)
+void fklWriteTypeList(FILE* fp)
 {
 	TypeId_t i=0;
 	TypeId_t num=GlobTypeUnionList.num;
@@ -2618,7 +2618,7 @@ void writeTypeList(FILE* fp)
 	}
 }
 
-void loadTypeList(FILE* fp)
+void fklLoadTypeList(FILE* fp)
 {
 	TypeId_t i=0;
 	TypeId_t num=0;
@@ -2627,7 +2627,7 @@ void loadTypeList(FILE* fp)
 	fread(&CharTypeId,sizeof(CharTypeId),1,fp);
 	fread(&num,sizeof(num),1,fp);
 	ul=(VMTypeUnion*)malloc(sizeof(VMTypeUnion)*num);
-	FAKE_ASSERT(ul,"loadTypeList",__FILE__,__LINE__);
+	FAKE_ASSERT(ul,"fklLoadTypeList",__FILE__,__LINE__);
 	for(;i<num;i++)
 	{
 		DefTypeTag tag=NATIVE_TYPE_TAG;
@@ -2638,7 +2638,7 @@ void loadTypeList(FILE* fp)
 			case NATIVE_TYPE_TAG:
 				{
 					VMNativeType* t=(VMNativeType*)malloc(sizeof(VMNativeType));
-					FAKE_ASSERT(t,"loadTypeList",__FILE__,__LINE__);
+					FAKE_ASSERT(t,"fklLoadTypeList",__FILE__,__LINE__);
 					fread(&t->type,sizeof(t->type),1,fp);
 					fread(&t->size,sizeof(t->size),1,fp);
 					tu.nt=(VMNativeType*)MAKE_NATIVE_TYPE(t);
@@ -2647,7 +2647,7 @@ void loadTypeList(FILE* fp)
 			case ARRAY_TYPE_TAG:
 				{
 					VMArrayType* t=(VMArrayType*)malloc(sizeof(VMArrayType));
-					FAKE_ASSERT(t,"loadTypeList",__FILE__,__LINE__);
+					FAKE_ASSERT(t,"fklLoadTypeList",__FILE__,__LINE__);
 					fread(&t->etype,sizeof(t->etype),1,fp);
 					fread(&t->num,sizeof(t->num),1,fp);
 					tu.at=(VMArrayType*)MAKE_ARRAY_TYPE(t);
@@ -2656,7 +2656,7 @@ void loadTypeList(FILE* fp)
 			case PTR_TYPE_TAG:
 				{
 					VMPtrType* t=(VMPtrType*)malloc(sizeof(VMPtrType));
-					FAKE_ASSERT(t,"loadTypeList",__FILE__,__LINE__);
+					FAKE_ASSERT(t,"fklLoadTypeList",__FILE__,__LINE__);
 					fread(&t->ptype,sizeof(t->ptype),1,fp);
 					tu.pt=(VMPtrType*)MAKE_PTR_TYPE(t);
 				}
@@ -2666,7 +2666,7 @@ void loadTypeList(FILE* fp)
 					uint32_t num=0;
 					fread(&num,sizeof(num),1,fp);
 					VMStructType* t=(VMStructType*)malloc(sizeof(VMStructType)+sizeof(VMStructMember)*num);
-					FAKE_ASSERT(t,"loadTypeList",__FILE__,__LINE__);
+					FAKE_ASSERT(t,"fklLoadTypeList",__FILE__,__LINE__);
 					t->num=num;
 					fread(&t->totalSize,sizeof(t->totalSize),1,fp);
 					fread(t->layout,sizeof(VMStructMember),num,fp);
@@ -2678,7 +2678,7 @@ void loadTypeList(FILE* fp)
 					uint32_t num=0;
 					fread(&num,sizeof(num),1,fp);
 					VMUnionType* t=(VMUnionType*)malloc(sizeof(VMUnionType)+sizeof(VMStructMember)*num);
-					FAKE_ASSERT(t,"loadTypeList",__FILE__,__LINE__);
+					FAKE_ASSERT(t,"fklLoadTypeList",__FILE__,__LINE__);
 					t->num=num;
 					fread(&t->maxSize,sizeof(t->maxSize),1,fp);
 					fread(t->layout,sizeof(VMStructMember),num,fp);
@@ -2691,7 +2691,7 @@ void loadTypeList(FILE* fp)
 					uint32_t anum=0;
 					fread(&anum,sizeof(anum),1,fp);
 					VMFuncType* t=(VMFuncType*)malloc(sizeof(VMUnionType)+sizeof(TypeId_t)*anum);
-					FAKE_ASSERT(t,"loadTypeList",__FILE__,__LINE__);
+					FAKE_ASSERT(t,"fklLoadTypeList",__FILE__,__LINE__);
 					t->rtype=rtype;
 					t->anum=anum;
 					fread(t->atypes,sizeof(TypeId_t),anum,fp);
@@ -2707,7 +2707,7 @@ void loadTypeList(FILE* fp)
 	GlobTypeUnionList.ul=ul;
 }
 
-void freeGlobTypeList()
+void fklFreeGlobTypeList()
 {
 	TypeId_t num=GlobTypeUnionList.num;
 	VMTypeUnion* ul=GlobTypeUnionList.ul;
@@ -2719,22 +2719,22 @@ void freeGlobTypeList()
 		switch(tag)
 		{
 			case NATIVE_TYPE_TAG:
-				freeVMNativeType((VMNativeType*)GET_TYPES_PTR(tu.all));
+				fklFreeVMNativeType((VMNativeType*)GET_TYPES_PTR(tu.all));
 				break;
 			case PTR_TYPE_TAG:
-				freeVMPtrType((VMPtrType*)GET_TYPES_PTR(tu.all));
+				fklFreeVMPtrType((VMPtrType*)GET_TYPES_PTR(tu.all));
 				break;
 			case ARRAY_TYPE_TAG:
-				freeVMArrayType((VMArrayType*)GET_TYPES_PTR(tu.all));
+				fklFreeVMArrayType((VMArrayType*)GET_TYPES_PTR(tu.all));
 				break;
 			case STRUCT_TYPE_TAG:
-				freeVMStructType((VMStructType*)GET_TYPES_PTR(tu.all));
+				fklFreeVMStructType((VMStructType*)GET_TYPES_PTR(tu.all));
 				break;
 			case UNION_TYPE_TAG:
-				freeVMUnionType((VMUnionType*)GET_TYPES_PTR(tu.all));
+				fklFreeVMUnionType((VMUnionType*)GET_TYPES_PTR(tu.all));
 				break;
 			case FUNC_TYPE_TAG:
-				freeVMFuncType((VMFuncType*)GET_TYPES_PTR(tu.all));
+				fklFreeVMFuncType((VMFuncType*)GET_TYPES_PTR(tu.all));
 				break;
 			default:
 				break;
@@ -2743,38 +2743,38 @@ void freeGlobTypeList()
 	free(ul);
 }
 
-int isNativeTypeId(TypeId_t type)
+int fklIsNativeTypeId(TypeId_t type)
 {
-	VMTypeUnion tu=getVMTypeUnion(type);
+	VMTypeUnion tu=fklGetVMTypeUnion(type);
 	return GET_TYPES_TAG(tu.all)==NATIVE_TYPE_TAG;
 }
 
-int isArrayTypeId(TypeId_t type)
+int fklIsArrayTypeId(TypeId_t type)
 {
-	VMTypeUnion tu=getVMTypeUnion(type);
+	VMTypeUnion tu=fklGetVMTypeUnion(type);
 	return GET_TYPES_TAG(tu.all)==ARRAY_TYPE_TAG;
 }
 
-int isPtrTypeId(TypeId_t type)
+int fklIsPtrTypeId(TypeId_t type)
 {
-	VMTypeUnion tu=getVMTypeUnion(type);
+	VMTypeUnion tu=fklGetVMTypeUnion(type);
 	return GET_TYPES_TAG(tu.all)==PTR_TYPE_TAG;
 }
 
-int isStructTypeId(TypeId_t type)
+int fklIsStructTypeId(TypeId_t type)
 {
-	VMTypeUnion tu=getVMTypeUnion(type);
+	VMTypeUnion tu=fklGetVMTypeUnion(type);
 	return GET_TYPES_TAG(tu.all)==STRUCT_TYPE_TAG;
 }
 
-int isUnionTypeId(TypeId_t type)
+int fklIsUnionTypeId(TypeId_t type)
 {
-	VMTypeUnion tu=getVMTypeUnion(type);
+	VMTypeUnion tu=fklGetVMTypeUnion(type);
 	return GET_TYPES_TAG(tu.all)==UNION_TYPE_TAG;
 }
 
-int isFunctionTypeId(TypeId_t type)
+int fklIsFunctionTypeId(TypeId_t type)
 {
-	VMTypeUnion tu=getVMTypeUnion(type);
+	VMTypeUnion tu=fklGetVMTypeUnion(type);
 	return GET_TYPES_TAG(tu.all)==FUNC_TYPE_TAG;
 }

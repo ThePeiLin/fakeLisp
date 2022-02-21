@@ -21,7 +21,7 @@ int main(int argc,char** argv)
 #else
 	InterpreterPath=realpath(argv[0],0);
 #endif
-	char* t=getDir(InterpreterPath);
+	char* t=fklGetDir(InterpreterPath);
 	free(InterpreterPath);
 	InterpreterPath=t;
 	FILE* fp=(argc>1)?fopen(argv[1],"r"):stdin;
@@ -31,29 +31,29 @@ int main(int argc,char** argv)
 		free(InterpreterPath);
 		return EXIT_FAILURE;
 	}
-	if(argc==1||isscript(filename))
+	if(argc==1||fklIsscript(filename))
 	{
 #ifdef _WIN32
 		char* rp=_fullpath(NULL,filename,0);
 #else
 		char* rp=realpath(filename,0);
 #endif
-		Intpr* inter=newIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
-		initGlobKeyWord(inter->glob);
-		initNativeDefTypes(inter->deftypes);
-		addSymbolToGlob(argv[1]);
+		Intpr* inter=fklNewIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
+		fklInitGlobKeyWord(inter->glob);
+		fklInitNativeDefTypes(inter->deftypes);
+		fklAddSymbolToGlob(argv[1]);
 		int state;
-		ByteCodelnt* mainByteCode=compileFile(inter,1,&state);
+		ByteCodelnt* mainByteCode=fklCompileFile(inter,1,&state);
 		if(mainByteCode==NULL)
 		{
 			free(rp);
-			freeIntpr(inter);
-			unInitPreprocess();
+			fklFreeIntpr(inter);
+			fklUnInitPreprocess();
 			free(InterpreterPath);
-			freeGlobSymbolTable();
+			fklFreeGlobSymbolTable();
 			return state;
 		}
-		//printByteCodelnt(mainByteCode,inter->table,stderr);
+		//fklPrintByteCodelnt(mainByteCode,inter->table,stderr);
 		char* outputname=(char*)malloc(sizeof(char)*(strlen(rp)+2));
 		strcpy(outputname,rp);
 		strcat(outputname,"c");
@@ -66,18 +66,18 @@ int main(int argc,char** argv)
 		}
 		inter->lnt->list=mainByteCode->l;
 		inter->lnt->num=mainByteCode->ls;
-		writeGlobSymbolTable(outfp);
-		writeLineNumberTable(inter->lnt,outfp);
-		writeTypeList(outfp);
+		fklWriteGlobSymbolTable(outfp);
+		fklWriteLineNumberTable(inter->lnt,outfp);
+		fklWriteTypeList(outfp);
 		int32_t sizeOfMain=mainByteCode->bc->size;
 		uint8_t* code=mainByteCode->bc->code;
 		fwrite(&sizeOfMain,sizeof(sizeOfMain),1,outfp);
 		fwrite(code,sizeof(char),sizeOfMain,outfp);
-		freeByteCode(mainByteCode->bc);
+		fklFreeByteCode(mainByteCode->bc);
 		free(mainByteCode);
 		fclose(outfp);
-		freeIntpr(inter);
-		unInitPreprocess();
+		fklFreeIntpr(inter);
+		fklUnInitPreprocess();
 		free(outputname);
 		free(rp);
 	}

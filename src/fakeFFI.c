@@ -280,7 +280,7 @@ static int castVptrValue     (ARGL)
 
 #undef CAST_TO_FLOAT
 #undef CAST_TO_INT
-static int (*castValueToVptrFunctionsList[])(ARGL)=
+static int (*fklCastValueToVptrFunctionsList[])(ARGL)=
 {
 	castShortValue    ,
 	castIntValue      ,
@@ -313,7 +313,7 @@ static int (*castValueToVptrFunctionsList[])(ARGL)=
 #undef ARGL
 /*---------------------------------*/
 
-void applyFF(void* func,int argc,ffi_type* rtype,ffi_type** atypes,void* rvalue,void** avalue)
+void fklApplyFF(void* func,int argc,ffi_type* rtype,ffi_type** atypes,void* rvalue,void** avalue)
 {
 	ffi_cif cif;
 	pthread_mutex_lock(&GPrepCifLock);
@@ -323,23 +323,23 @@ void applyFF(void* func,int argc,ffi_type* rtype,ffi_type** atypes,void* rvalue,
 		ffi_call(&cif, func, rvalue, avalue);
 }
 
-ffi_type* getFfiType(TypeId_t type)
+ffi_type* fklGetFfiType(TypeId_t type)
 {
 	if(type>LastNativeTypeId)
 		type=LastNativeTypeId;
 	return NativeFFITypeList[type];
 }
 
-int castValueToVptr(TypeId_t type,VMvalue* v,void** p)
+int fklCastValueToVptr(TypeId_t type,VMvalue* v,void** p)
 {
-	if(isFunctionTypeId(type))
+	if(fklIsFunctionTypeId(type))
 	{
 		if(v->u.flproc->type!=type)
 			return 1;
 		else
 		{
 			void** t=(void*)malloc(sizeof(void*));
-			FAKE_ASSERT(p,"castValueToVptr",__FILE__,__LINE__);
+			FAKE_ASSERT(p,"fklCastValueToVptr",__FILE__,__LINE__);
 			*t=v->u.flproc->func;
 			*p=t;
 		}
@@ -347,5 +347,5 @@ int castValueToVptr(TypeId_t type,VMvalue* v,void** p)
 	}
 	else if(type==0||type>LastNativeTypeId)
 		type=LastNativeTypeId;
-	return castValueToVptrFunctionsList[type-1](v,p);
+	return fklCastValueToVptrFunctionsList[type-1](v,p);
 }

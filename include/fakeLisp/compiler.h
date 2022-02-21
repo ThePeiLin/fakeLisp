@@ -4,46 +4,46 @@
 
 #define FREE_ALL_LINE_NUMBER_TABLE(l,s) {int32_t i=0;\
 	for(;i<(s);i++)\
-	freeLineNumTabNode((l)[i]);\
+	fklFreeLineNumTabNode((l)[i]);\
 }
 
-PreMacro* PreMacroMatch(const AST_cptr*,PreEnv**,CompEnv*,CompEnv**);
-int PreMacroExpand(AST_cptr*,CompEnv*,Intpr* inter);
-int addMacro(AST_cptr*,ByteCodelnt*,CompEnv* curEnv);
-void freeMacroEnv();
-CompEnv* createMacroCompEnv(const AST_cptr*,CompEnv*);
-int retree(AST_cptr**,AST_cptr*);
-void unInitPreprocess();
-void initGlobKeyWord(CompEnv*);
-void initNativeDefTypes(VMDefTypes*);
-StringMatchPattern* addStringPattern(char**,int32_t,AST_cptr*,Intpr*);
-StringMatchPattern* addReDefStringPattern(char**,int32_t,AST_cptr*,Intpr*);
-void initBuiltInStringPattern(void);
+PreMacro* fklPreMacroMatch(const AST_cptr*,PreEnv**,CompEnv*,CompEnv**);
+int fklPreMacroExpand(AST_cptr*,CompEnv*,Intpr* inter);
+int fklAddMacro(AST_cptr*,ByteCodelnt*,CompEnv* curEnv);
+void fklFreeMacroEnv();
+CompEnv* fklCreateMacroCompEnv(const AST_cptr*,CompEnv*);
+int fklRetree(AST_cptr**,AST_cptr*);
+void fklUnInitPreprocess();
+void fklInitGlobKeyWord(CompEnv*);
+void fklInitNativeDefTypes(VMDefTypes*);
+StringMatchPattern* fklAddStringPattern(char**,int32_t,AST_cptr*,Intpr*);
+StringMatchPattern* fklAddReDefStringPattern(char**,int32_t,AST_cptr*,Intpr*);
+void fklInitBuiltInStringPattern(void);
 
-ByteCodelnt* compileFile(Intpr*,int evalIm,int*);
-ByteCodelnt* compile(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
-ByteCodelnt* compileQsquote(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
-ByteCodelnt* compileUnquote(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
-ByteCodelnt* compileUnqtesp(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
-ByteCodelnt* compileConst(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
-ByteCode* compileQuote(AST_cptr*);
-ByteCode* compileAtom(AST_cptr*);
-ByteCode* compilePair(AST_cptr*);
-ByteCode* compileNil();
-ByteCodelnt* compileFuncCall(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
-ByteCodelnt* compileDef(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
-ByteCodelnt* compileSetq(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
-ByteCodelnt* compileSetf(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
-ByteCodelnt* compileGetf(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
-ByteCodelnt* compileSzof(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
-ByteCodelnt* compileSym(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
-ByteCodelnt* compileCond(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
-ByteCodelnt* compileLambda(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
-ByteCodelnt* compileBegin(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
-ByteCodelnt* compileAnd(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
-ByteCodelnt* compileOr(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
-ByteCodelnt* compileLoad(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
-ByteCodelnt* compileProgn(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
-ByteCodelnt* compileImport(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
-ByteCodelnt* compileTry(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
+ByteCodelnt* fklCompileFile(Intpr*,int evalIm,int*);
+ByteCodelnt* fklCompile(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
+ByteCodelnt* fklCompileQsquote(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
+ByteCodelnt* fklCompileUnquote(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
+ByteCodelnt* fklCompileUnqtesp(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
+ByteCodelnt* fklCompileConst(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
+ByteCode* fklCompileQuote(AST_cptr*);
+ByteCode* fklCompileAtom(AST_cptr*);
+ByteCode* fklCompilePair(AST_cptr*);
+ByteCode* fklCompileNil();
+ByteCodelnt* fklCompileFuncCall(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
+ByteCodelnt* fklCompileDef(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
+ByteCodelnt* fklCompileSetq(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
+ByteCodelnt* fklCompileSetf(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
+ByteCodelnt* fklCompileGetf(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
+ByteCodelnt* fklCompileSzof(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
+ByteCodelnt* fklCompileSym(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
+ByteCodelnt* fklCompileCond(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
+ByteCodelnt* fklCompileLambda(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
+ByteCodelnt* fklCompileBegin(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
+ByteCodelnt* fklCompileAnd(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
+ByteCodelnt* fklCompileOr(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
+ByteCodelnt* fklCompileLoad(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
+ByteCodelnt* fklCompileProgn(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
+ByteCodelnt* fklCompileImport(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
+ByteCodelnt* fklCompileTry(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
 #endif

@@ -17,7 +17,7 @@
 
 #define FREE_ALL_LINE_NUMBER_TABLE(l,s) {int32_t i=0;\
 	for(;i<(s);i++)\
-	freeLineNumTabNode((l)[i]);\
+	fklFreeLineNumTabNode((l)[i]);\
 }
 
 const char* builtInErrorType[NUMOFBUILTINERRORTYPE]=
@@ -112,7 +112,7 @@ const char* builtInSymbolList[]=
 
 SymbolTable GlobSymbolTable=STATIC_SYMBOL_INIT;
 
-char* getStringFromList(const char* str)
+char* fklGetStringFromList(const char* str)
 {
 	char* tmp=NULL;
 	int len=0;
@@ -121,13 +121,13 @@ char* getStringFromList(const char* str)
 			&&!isspace(*(str+len))
 			&&(*(str+len)!=',')
 			&&(*(str+len)!=0))len++;
-	FAKE_ASSERT((tmp=(char*)malloc(sizeof(char)*(len+1))),"getStringFromList",__FILE__,__LINE__);
+	FAKE_ASSERT((tmp=(char*)malloc(sizeof(char)*(len+1))),"fklGetStringFromList",__FILE__,__LINE__);
 	memcpy(tmp,str,len);
 	if(tmp!=NULL)*(tmp+len)='\0';
 	return tmp;
 }
 
-char* getStringAfterBackslash(const char* str)
+char* fklGetStringAfterBackslash(const char* str)
 {
 	char* tmp=NULL;
 	int len=0;
@@ -136,25 +136,25 @@ char* getStringAfterBackslash(const char* str)
 		len++;
 		if(!isalnum(str[len])&&str[len-1]!='\\')break;
 	}
-	FAKE_ASSERT((tmp=(char*)malloc(sizeof(char)*(len+1))),"getStringAfterBackslash",__FILE__,__LINE__);
+	FAKE_ASSERT((tmp=(char*)malloc(sizeof(char)*(len+1))),"fklGetStringAfterBackslash",__FILE__,__LINE__);
 	memcpy(tmp,str,len);
 	if(tmp!=NULL)*(tmp+len)='\0';
 	return tmp;
 }
 
-char* doubleToString(double num)
+char* fklDoubleToString(double num)
 {
 	char numString[256]={0};
 	sprintf(numString,"%lf",num);
 	int lenOfNum=strlen(numString)+1;
 	char* tmp=(char*)malloc(lenOfNum*sizeof(char));
-	FAKE_ASSERT(tmp,"doubleToString",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklDoubleToString",__FILE__,__LINE__);
 	memcpy(tmp,numString,lenOfNum);
 	return tmp;
 }
 
 
-double stringToDouble(const char* str)
+double fklStringToDouble(const char* str)
 {
 	double tmp;
 	sscanf(str,"%lf",&tmp);
@@ -163,24 +163,24 @@ double stringToDouble(const char* str)
 
 
 
-char* intToString(long num)
+char* fklIntToString(long num)
 {
 	char numString[256]={0};
 	sprintf(numString,"%ld",num);
 	int lenOfNum=strlen(numString)+1;
 	char* tmp=NULL;
-	FAKE_ASSERT((tmp=(char*)malloc(lenOfNum*sizeof(char))),"intToString",__FILE__,__LINE__);
+	FAKE_ASSERT((tmp=(char*)malloc(lenOfNum*sizeof(char))),"fklIntToString",__FILE__,__LINE__);
 	memcpy(tmp,numString,lenOfNum);;
 	return tmp;
 }
 
 
-int64_t stringToInt(const char* str)
+int64_t fklStringToInt(const char* str)
 {
 	int64_t tmp;
-	if(isHexNum(str))
+	if(fklIsHexNum(str))
 		sscanf(str,"%lx",&tmp);
-	else if(isOctNum(str))
+	else if(fklIsOctNum(str))
 		sscanf(str,"%lo",&tmp);
 	else
 		sscanf(str,"%ld",&tmp);
@@ -188,7 +188,7 @@ int64_t stringToInt(const char* str)
 }
 
 
-int power(int first,int second)
+int fklPower(int first,int second)
 {
 	int i;
 	int result=1;
@@ -196,7 +196,7 @@ int power(int first,int second)
 	return result;
 }
 
-void printRawString(const char* objStr,FILE* out)
+void fklPrintRawString(const char* objStr,FILE* out)
 {
 	const char* tmpStr=objStr;
 	int len=strlen(objStr);
@@ -220,10 +220,10 @@ void printRawString(const char* objStr,FILE* out)
 	putc('\"',out);
 }
 
-AST_pair* newPair(int curline,AST_pair* prev)
+AST_pair* fklNewPair(int curline,AST_pair* prev)
 {
 	AST_pair* tmp;
-	FAKE_ASSERT((tmp=(AST_pair*)malloc(sizeof(AST_pair))),"newPair",__FILE__,__LINE__);
+	FAKE_ASSERT((tmp=(AST_pair*)malloc(sizeof(AST_pair))),"fklNewPair",__FILE__,__LINE__);
 	tmp->car.outer=tmp;
 	tmp->car.type=NIL;
 	tmp->car.u.all=NULL;
@@ -236,10 +236,10 @@ AST_pair* newPair(int curline,AST_pair* prev)
 	return tmp;
 }
 
-AST_cptr* newCptr(int curline,AST_pair* outer)
+AST_cptr* fklNewCptr(int curline,AST_pair* outer)
 {
 	AST_cptr* tmp=NULL;
-	FAKE_ASSERT((tmp=(AST_cptr*)malloc(sizeof(AST_cptr))),"newCptr",__FILE__,__LINE__);
+	FAKE_ASSERT((tmp=(AST_cptr*)malloc(sizeof(AST_cptr))),"fklNewCptr",__FILE__,__LINE__);
 	tmp->outer=outer;
 	tmp->curline=curline;
 	tmp->type=NIL;
@@ -247,17 +247,17 @@ AST_cptr* newCptr(int curline,AST_pair* outer)
 	return tmp;
 }
 
-AST_atom* newAtom(int type,const char* value,AST_pair* prev)
+AST_atom* fklNewAtom(int type,const char* value,AST_pair* prev)
 {
 	AST_atom* tmp=NULL;
-	FAKE_ASSERT((tmp=(AST_atom*)malloc(sizeof(AST_atom))),"newAtom",__FILE__,__LINE__);
+	FAKE_ASSERT((tmp=(AST_atom*)malloc(sizeof(AST_atom))),"fklNewAtom",__FILE__,__LINE__);
 	switch(type)
 	{
 		case SYM:
 		case STR:
 			if(value!=NULL)
 			{
-				FAKE_ASSERT((tmp->value.str=(char*)malloc(strlen(value)+1)),"newAtom",__FILE__,__LINE__);
+				FAKE_ASSERT((tmp->value.str=(char*)malloc(strlen(value)+1)),"fklNewAtom",__FILE__,__LINE__);
 				strcpy(tmp->value.str,value);
 			}
 			else
@@ -278,29 +278,29 @@ AST_atom* newAtom(int type,const char* value,AST_pair* prev)
 	return tmp;
 }
 
-int copyCptr(AST_cptr* objCptr,const AST_cptr* copiedCptr)
+int fklCopyCptr(AST_cptr* objCptr,const AST_cptr* copiedCptr)
 {
 	if(copiedCptr==NULL||objCptr==NULL)return 0;
-	ComStack* s1=newComStack(32);
-	ComStack* s2=newComStack(32);
-	pushComStack(objCptr,s1);
-	pushComStack((void*)copiedCptr,s2);
+	ComStack* s1=fklNewComStack(32);
+	ComStack* s2=fklNewComStack(32);
+	fklPushComStack(objCptr,s1);
+	fklPushComStack((void*)copiedCptr,s2);
 	AST_atom* atom1=NULL;
 	AST_atom* atom2=NULL;
-	while(!isComStackEmpty(s2))
+	while(!fklIsComStackEmpty(s2))
 	{
-		AST_cptr* root1=popComStack(s1);
-		AST_cptr* root2=popComStack(s2);
+		AST_cptr* root1=fklPopComStack(s1);
+		AST_cptr* root2=fklPopComStack(s2);
 		root1->type=root2->type;
 		root1->curline=root2->curline;
 		switch(root1->type)
 		{
 			case PAIR:
-				root1->u.pair=newPair(0,root1->outer);
-				pushComStack(getASTPairCar(root1),s1);
-				pushComStack(getASTPairCdr(root1),s1);
-				pushComStack(getASTPairCar(root2),s2);
-				pushComStack(getASTPairCdr(root2),s2);
+				root1->u.pair=fklNewPair(0,root1->outer);
+				fklPushComStack(fklGetASTPairCar(root1),s1);
+				fklPushComStack(fklGetASTPairCdr(root1),s1);
+				fklPushComStack(fklGetASTPairCar(root2),s2);
+				fklPushComStack(fklGetASTPairCdr(root2),s2);
 				break;
 			case ATM:
 				atom1=NULL;
@@ -309,27 +309,27 @@ int copyCptr(AST_cptr* objCptr,const AST_cptr* copiedCptr)
 				{
 					case SYM:
 					case STR:
-						atom1=newAtom(atom2->type,atom2->value.str,root1->outer);
+						atom1=fklNewAtom(atom2->type,atom2->value.str,root1->outer);
 						break;
 					case BYTS:
-						atom1=newAtom(atom2->type,NULL,root1->outer);
+						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
 						atom1->value.byts.size=atom2->value.byts.size;
-						atom1->value.byts.str=copyMemory(atom2->value.byts.str,atom2->value.byts.size);
+						atom1->value.byts.str=fklCopyMemory(atom2->value.byts.str,atom2->value.byts.size);
 						break;
 					case IN32:
-						atom1=newAtom(atom2->type,NULL,root1->outer);
+						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
 						atom1->value.in32=atom2->value.in32;
 						break;
 					case DBL:
-						atom1=newAtom(atom2->type,NULL,root1->outer);
+						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
 						atom1->value.dbl=atom2->value.dbl;
 						break;
 					case CHR:
-						atom1=newAtom(atom2->type,NULL,root1->outer);
+						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
 						atom1->value.chr=atom2->value.chr;
 						break;
 					default:
-						atom1=newAtom(atom2->type,NULL,root1->outer);
+						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
 						break;
 				}
 				root1->u.atom=atom1;
@@ -339,25 +339,25 @@ int copyCptr(AST_cptr* objCptr,const AST_cptr* copiedCptr)
 				break;
 		}
 	}
-	freeComStack(s1);
-	freeComStack(s2);
+	fklFreeComStack(s1);
+	fklFreeComStack(s2);
 	return 1;
 }
-void replaceCptr(AST_cptr* fir,const AST_cptr* sec)
+void fklReplaceCptr(AST_cptr* fir,const AST_cptr* sec)
 {
 	AST_pair* tmp=fir->outer;
 	AST_cptr tmpCptr={NULL,0,NIL,{NULL}};
 	tmpCptr.type=fir->type;
 	tmpCptr.u.all=fir->u.all;
-	copyCptr(fir,sec);
-	deleteCptr(&tmpCptr);
+	fklCopyCptr(fir,sec);
+	fklDeleteCptr(&tmpCptr);
 	if(fir->type==PAIR)
 		fir->u.pair->prev=tmp;
 	else if(fir->type==ATM)
 		fir->u.atom->prev=tmp;
 }
 
-int deleteCptr(AST_cptr* objCptr)
+int fklDeleteCptr(AST_cptr* objCptr)
 {
 	if(objCptr==NULL)return 0;
 	AST_pair* tmpPair=(objCptr->type==PAIR)?objCptr->u.pair:NULL;
@@ -382,7 +382,7 @@ int deleteCptr(AST_cptr* objCptr)
 		}
 		else if(tmpCptr->type==ATM)
 		{
-			freeAtom(tmpCptr->u.atom);
+			fklFreeAtom(tmpCptr->u.atom);
 			tmpCptr->type=NIL;
 			tmpCptr->u.all=NULL;
 			continue;
@@ -420,7 +420,7 @@ int deleteCptr(AST_cptr* objCptr)
 	return 0;
 }
 
-int AST_cptrcmp(const AST_cptr* first,const AST_cptr* second)
+int fklAST_cptrcmp(const AST_cptr* first,const AST_cptr* second)
 {
 	if(first==NULL&&second==NULL)return 0;
 	AST_pair* firPair=NULL;
@@ -448,7 +448,7 @@ int AST_cptrcmp(const AST_cptr* first,const AST_cptr* second)
 				else if(firAtm->type==IN32&&firAtm->value.in32!=secAtm->value.in32)return 0;
 				else if(firAtm->type==DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
 				else if(firAtm->type==CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
-				else if(firAtm->type==BYTS&&!eqByteString(&firAtm->value.byts,&secAtm->value.byts))return 0;
+				else if(firAtm->type==BYTS&&!fklEqByteString(&firAtm->value.byts,&secAtm->value.byts))return 0;
 			}
 			if(firPair!=NULL&&first==&firPair->car)
 			{ first=&firPair->cdr;
@@ -485,21 +485,21 @@ int AST_cptrcmp(const AST_cptr* first,const AST_cptr* second)
 	return 1;
 }
 
-AST_cptr* nextCptr(const AST_cptr* objCptr)
+AST_cptr* fklNextCptr(const AST_cptr* objCptr)
 {
 	if(objCptr->outer!=NULL&&objCptr->outer->cdr.type==PAIR)
 		return &objCptr->outer->cdr.u.pair->car;
 	return NULL;
 }
 
-AST_cptr* prevCptr(const AST_cptr* objCptr)
+AST_cptr* fklPrevCptr(const AST_cptr* objCptr)
 {
 	if(objCptr->outer!=NULL&&objCptr->outer->prev!=NULL&&objCptr->outer->prev->cdr.u.pair==objCptr->outer)
 		return &objCptr->outer->prev->car;
 	return NULL;
 }
 
-int isHexNum(const char* objStr)
+int fklIsHexNum(const char* objStr)
 {
 	int i=(*objStr=='-')?1:0;
 	int len=strlen(objStr);
@@ -516,7 +516,7 @@ int isHexNum(const char* objStr)
 	return 1;
 }
 
-int isOctNum(const char* objStr)
+int fklIsOctNum(const char* objStr)
 {
 	int i=(*objStr=='-')?1:0;
 	int len=strlen(objStr);
@@ -530,7 +530,7 @@ int isOctNum(const char* objStr)
 	return 1;
 }
 
-int isDouble(const char* objStr)
+int fklIsDouble(const char* objStr)
 {
 	int i=(objStr[0]=='-')?1:0;
 	int len=strlen(objStr);
@@ -543,7 +543,7 @@ int isDouble(const char* objStr)
 	return 0;
 }
 
-int stringToChar(const char* objStr)
+int fklStringToChar(const char* objStr)
 {
 	int ch=0;
 	if(toupper(objStr[0])=='X'&&isxdigit(objStr[1]))
@@ -551,20 +551,20 @@ int stringToChar(const char* objStr)
 		size_t len=strlen(objStr)+2;
 		char* tmpStr=(char*)malloc(sizeof(char)*len);
 		sprintf(tmpStr,"0%s",objStr);
-		if(isHexNum(tmpStr))
+		if(fklIsHexNum(tmpStr))
 		{
 			sscanf(tmpStr+2,"%x",&ch);
 		}
 		free(tmpStr);
 	}
-	else if(isNum(objStr))
+	else if(fklIsNum(objStr))
 	{
-		if(isHexNum(objStr))
+		if(fklIsHexNum(objStr))
 		{
 			objStr++;
 			sscanf(objStr,"%x",&ch);
 		}
-		else if(isOctNum(objStr))
+		else if(fklIsOctNum(objStr))
 			sscanf(objStr,"%o",&ch);
 		else
 			sscanf(objStr,"%d",&ch);
@@ -602,7 +602,7 @@ int stringToChar(const char* objStr)
 	return ch;
 }
 
-int isNum(const char* objStr)
+int fklIsNum(const char* objStr)
 {
 	int len=strlen(objStr);
 	int i=(*objStr=='-')?1:0;
@@ -664,7 +664,7 @@ int isNum(const char* objStr)
 	return 1;
 }
 
-void freeAtom(AST_atom* objAtm)
+void fklFreeAtom(AST_atom* objAtm)
 {
 	if(objAtm->type==SYM||objAtm->type==STR)free(objAtm->value.str);
 	else if(objAtm->type==BYTS)
@@ -675,7 +675,7 @@ void freeAtom(AST_atom* objAtm)
 	free(objAtm);
 }
 
-void printCptr(const AST_cptr* objCptr,FILE* out)
+void fklPrintCptr(const AST_cptr* objCptr,FILE* out)
 {
 	if(objCptr==NULL)return;
 	AST_pair* tmpPair=(objCptr->type==PAIR)?objCptr->u.pair:NULL;
@@ -712,7 +712,7 @@ void printCptr(const AST_cptr* objCptr,FILE* out)
 						fprintf(out,"%s",tmpAtm->value.str);
 						break;
 					case STR:
-						printRawString(tmpAtm->value.str,out);
+						fklPrintRawString(tmpAtm->value.str,out);
 						break;
 					case IN32:
 						fprintf(out,"%d",tmpAtm->value.in32);
@@ -721,10 +721,10 @@ void printCptr(const AST_cptr* objCptr,FILE* out)
 						fprintf(out,"%lf",tmpAtm->value.dbl);
 						break;
 					case CHR:
-						printRawChar(tmpAtm->value.chr,out);
+						fklPrintRawChar(tmpAtm->value.chr,out);
 						break;
 					case BYTS:
-						printByteStr(tmpAtm->value.byts.size,tmpAtm->value.byts.str,out,1);
+						fklPrintByteStr(tmpAtm->value.byts.size,tmpAtm->value.byts.str,out,1);
 						break;
 				}
 			}
@@ -752,48 +752,48 @@ void printCptr(const AST_cptr* objCptr,FILE* out)
 	}
 }
 
-void exError(const AST_cptr* obj,int type,Intpr* inter)
+void fklExError(const AST_cptr* obj,int type,Intpr* inter)
 {
 	fprintf(stderr,"error of compiling: ");
 	switch(type)
 	{
 		case SYMUNDEFINE:
 			fprintf(stderr,"Symbol ");
-			if(obj!=NULL)printCptr(obj,stderr);
+			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			fprintf(stderr," is undefined ");
 			break;
 		case SYNTAXERROR:
 			fprintf(stderr,"Invalid syntax ");
-			if(obj!=NULL)printCptr(obj,stderr);
+			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
 		case INVALIDEXPR:
 			fprintf(stderr,"Invalid expression ");
-			if(obj!=NULL)printCptr(obj,stderr);
+			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
 		case INVALIDTYPEDEF:
 			fprintf(stderr,"Invalid type define ");
-			if(obj!=NULL)printCptr(obj,stderr);
+			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
 		case CIRCULARLOAD:
 			fprintf(stderr,"Circular load file ");
-			if(obj!=NULL)printCptr(obj,stderr);
+			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
 		case INVALIDPATTERN:
 			fprintf(stderr,"Invalid string match pattern ");
-			if(obj!=NULL)printCptr(obj,stderr);
+			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
 		case MACROEXPANDFAILED:
 			fprintf(stderr,"Failed to expand macro in ");
-			if(obj!=NULL)printCptr(obj,stderr);
+			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
 		case LIBUNDEFINED:
 			fprintf(stderr,"Library ");
-			if(obj!=NULL)printCptr(obj,stderr);
+			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			fprintf(stderr," undefined ");
 			break;
 		case CANTDEREFERENCE:
 			fprintf(stderr,"cant dereference a non pointer type member ");
-			if(obj!=NULL)printCptr(obj,stderr);
+			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
 		case CANTGETELEM:
 			fprintf(stderr,"cant get element of a non-array or non-pointer type");
@@ -803,16 +803,16 @@ void exError(const AST_cptr* obj,int type,Intpr* inter)
 				if(obj->type==NIL)
 					fprintf(stderr,"()");
 				else
-					printCptr(obj,stderr);
+					fklPrintCptr(obj,stderr);
 			}
 			break;
 		case INVALIDMEMBER:
 			fprintf(stderr,"invalid member ");
-			if(obj!=NULL)printCptr(obj,stderr);
+			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
 		case NOMEMBERTYPE:
 			fprintf(stderr,"cannot get member in a no-member type in ");
-			if(obj!=NULL)printCptr(obj,stderr);
+			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
 		case NONSCALARTYPE:
 			fprintf(stderr,"get the reference of a non-scalar type member by path ");
@@ -821,7 +821,7 @@ void exError(const AST_cptr* obj,int type,Intpr* inter)
 				if(obj->type==NIL)
 					fprintf(stderr,"()");
 				else
-					printCptr(obj,stderr);
+					fklPrintCptr(obj,stderr);
 			}
 			fprintf(stderr," is not allowed");
 			break;
@@ -830,7 +830,7 @@ void exError(const AST_cptr* obj,int type,Intpr* inter)
 	if(inter!=NULL)fprintf(stderr," at line %d of file %s\n",(obj==NULL)?inter->curline:obj->curline,inter->filename);
 }
 
-void printRawChar(char chr,FILE* out)
+void fklPrintRawChar(char chr,FILE* out)
 {
 	if(isgraph(chr))
 	{
@@ -848,10 +848,10 @@ void printRawChar(char chr,FILE* out)
 	}
 }
 
-PreEnv* newEnv(PreEnv* prev)
+PreEnv* fklNewEnv(PreEnv* prev)
 {
 	PreEnv* curEnv=NULL;
-	FAKE_ASSERT((curEnv=(PreEnv*)malloc(sizeof(PreEnv))),"newEnv",__FILE__,__LINE__);
+	FAKE_ASSERT((curEnv=(PreEnv*)malloc(sizeof(PreEnv))),"fklNewEnv",__FILE__,__LINE__);
 	if(prev!=NULL)prev->next=curEnv;
 	curEnv->prev=prev;
 	curEnv->next=NULL;
@@ -859,7 +859,7 @@ PreEnv* newEnv(PreEnv* prev)
 	return curEnv;
 }
 
-void destroyEnv(PreEnv* objEnv)
+void fklDestroyEnv(PreEnv* objEnv)
 {
 	if(objEnv==NULL)return;
 	while(objEnv!=NULL)
@@ -868,7 +868,7 @@ void destroyEnv(PreEnv* objEnv)
 		while(delsym!=NULL)
 		{
 			free(delsym->symbol);
-			deleteCptr(&delsym->obj);
+			fklDeleteCptr(&delsym->obj);
 			PreDef* prev=delsym;
 			delsym=delsym->next;
 			free(prev);
@@ -879,11 +879,11 @@ void destroyEnv(PreEnv* objEnv)
 	}
 }
 
-Intpr* newIntpr(const char* filename,FILE* file,CompEnv* env,LineNumberTable* lnt,VMDefTypes* deftypes)
+Intpr* fklNewIntpr(const char* filename,FILE* file,CompEnv* env,LineNumberTable* lnt,VMDefTypes* deftypes)
 {
 	Intpr* tmp=NULL;
-	FAKE_ASSERT((tmp=(Intpr*)malloc(sizeof(Intpr))),"newIntpr",__FILE__,__LINE__)
-	tmp->filename=copyStr(filename);
+	FAKE_ASSERT((tmp=(Intpr*)malloc(sizeof(Intpr))),"fklNewIntpr",__FILE__,__LINE__)
+	tmp->filename=fklCopyStr(filename);
 	if(file!=stdin&&filename!=NULL)
 	{
 #ifdef _WIN32
@@ -896,7 +896,7 @@ Intpr* newIntpr(const char* filename,FILE* file,CompEnv* env,LineNumberTable* ln
 			perror(filename);
 			exit(EXIT_FAILURE);
 		}
-		tmp->curDir=getDir(rp?rp:filename);
+		tmp->curDir=fklGetDir(rp?rp:filename);
 		if(rp)
 			free(rp);
 	}
@@ -908,45 +908,45 @@ Intpr* newIntpr(const char* filename,FILE* file,CompEnv* env,LineNumberTable* ln
 	if(lnt)
 		tmp->lnt=lnt;
 	else
-		tmp->lnt=newLineNumTable();
+		tmp->lnt=fklNewLineNumTable();
 	if(deftypes)
 		tmp->deftypes=deftypes;
 	else
-		tmp->deftypes=newVMDefTypes();
+		tmp->deftypes=fklNewVMDefTypes();
 	if(env)
 	{
 		tmp->glob=env;
 		return tmp;
 	}
-	tmp->glob=newCompEnv(NULL);
-	initCompEnv(tmp->glob);
+	tmp->glob=fklNewCompEnv(NULL);
+	fklInitCompEnv(tmp->glob);
 	return tmp;
 }
 
-void freeAllMacroThenDestroyCompEnv(CompEnv* env)
+void fklFreeAllMacroThenDestroyCompEnv(CompEnv* env)
 {
 	if(env)
 	{
-		freeAllMacro(env->macro);
+		fklFreeAllMacro(env->macro);
 		env->macro=NULL;
-		destroyCompEnv(env);
+		fklDestroyCompEnv(env);
 	}
 }
 
-void freeIntpr(Intpr* inter)
+void fklFreeIntpr(Intpr* inter)
 {
 	if(inter->filename)
 		free(inter->filename);
 	if(inter->file!=stdin)
 		fclose(inter->file);
 	free(inter->curDir);
-	freeAllMacroThenDestroyCompEnv(inter->glob);
-	if(inter->lnt)freeLineNumberTable(inter->lnt);
-	if(inter->deftypes)freeDefTypeTable(inter->deftypes);
+	fklFreeAllMacroThenDestroyCompEnv(inter->glob);
+	if(inter->lnt)fklFreeLineNumberTable(inter->lnt);
+	if(inter->deftypes)fklFreeDefTypeTable(inter->deftypes);
 	free(inter);
 }
 
-CompEnv* newCompEnv(CompEnv* prev)
+CompEnv* fklNewCompEnv(CompEnv* prev)
 {
 	CompEnv* tmp=(CompEnv*)malloc(sizeof(CompEnv));
 	FAKE_ASSERT(tmp,"newComEnv",__FILE__,__LINE__);
@@ -959,12 +959,12 @@ CompEnv* newCompEnv(CompEnv* prev)
 	tmp->n=0;
 	tmp->macro=NULL;
 	tmp->keyWords=NULL;
-	tmp->proc=newByteCodelnt(newByteCode(0));
+	tmp->proc=fklNewByteCodelnt(fklNewByteCode(0));
 	tmp->refcount=0;
 	return tmp;
 }
 
-void destroyCompEnv(CompEnv* objEnv)
+void fklDestroyCompEnv(CompEnv* objEnv)
 {
 	if(objEnv==NULL)return;
 	while(objEnv)
@@ -981,9 +981,9 @@ void destroyCompEnv(CompEnv* objEnv)
 				free(prev);
 			}
 			FREE_ALL_LINE_NUMBER_TABLE(curEnv->proc->l,curEnv->proc->ls);
-			freeByteCodelnt(curEnv->proc);
-			freeAllMacro(curEnv->macro);
-			freeAllKeyWord(curEnv->keyWords);
+			fklFreeByteCodelnt(curEnv->proc);
+			fklFreeAllMacro(curEnv->macro);
+			fklFreeAllKeyWord(curEnv->keyWords);
 			free(curEnv);
 		}
 		else
@@ -994,7 +994,7 @@ void destroyCompEnv(CompEnv* objEnv)
 	}
 }
 
-int isSymbolShouldBeExport(const char* str,const char** pStr,uint32_t n)
+int fklIsSymbolShouldBeExport(const char* str,const char** pStr,uint32_t n)
 {
 	int32_t l=0;
 	int32_t h=n-1;
@@ -1013,12 +1013,12 @@ int isSymbolShouldBeExport(const char* str,const char** pStr,uint32_t n)
 	return 0;
 }
 
-CompDef* findCompDef(const char* name,CompEnv* curEnv)
+CompDef* fklFindCompDef(const char* name,CompEnv* curEnv)
 {
 	if(curEnv->head==NULL)return NULL;
 	else
 	{
-		SymTabNode* node=addSymbolToGlob(name);
+		SymTabNode* node=fklAddSymbolToGlob(name);
 		if(node==NULL)
 			return NULL;
 		Sid_t id=node->id;
@@ -1029,23 +1029,23 @@ CompDef* findCompDef(const char* name,CompEnv* curEnv)
 	}
 }
 
-CompDef* addCompDef(const char* name,CompEnv* curEnv)
+CompDef* fklAddCompDef(const char* name,CompEnv* curEnv)
 {
 	if(curEnv->head==NULL)
 	{
-		SymTabNode* node=addSymbolToGlob(name);
-		FAKE_ASSERT((curEnv->head=(CompDef*)malloc(sizeof(CompDef))),"addCompDef",__FILE__,__LINE__);
+		SymTabNode* node=fklAddSymbolToGlob(name);
+		FAKE_ASSERT((curEnv->head=(CompDef*)malloc(sizeof(CompDef))),"fklAddCompDef",__FILE__,__LINE__);
 		curEnv->head->next=NULL;
 		curEnv->head->id=node->id;
 		return curEnv->head;
 	}
 	else
 	{
-		CompDef* curDef=findCompDef(name,curEnv);
+		CompDef* curDef=fklFindCompDef(name,curEnv);
 		if(curDef==NULL)
 		{
-			SymTabNode* node=addSymbolToGlob(name);
-			FAKE_ASSERT((curDef=(CompDef*)malloc(sizeof(CompDef))),"addCompDef",__FILE__,__LINE__);
+			SymTabNode* node=fklAddSymbolToGlob(name);
+			FAKE_ASSERT((curDef=(CompDef*)malloc(sizeof(CompDef))),"fklAddCompDef",__FILE__,__LINE__);
 			curDef->id=node->id;
 			curDef->next=curEnv->head;
 			curEnv->head=curDef;
@@ -1054,55 +1054,55 @@ CompDef* addCompDef(const char* name,CompEnv* curEnv)
 	}
 }
 
-ByteCode* newByteCode(unsigned int size)
+ByteCode* fklNewByteCode(unsigned int size)
 {
 	ByteCode* tmp=NULL;
-	FAKE_ASSERT((tmp=(ByteCode*)malloc(sizeof(ByteCode))),"newByteCode",__FILE__,__LINE__);
+	FAKE_ASSERT((tmp=(ByteCode*)malloc(sizeof(ByteCode))),"fklNewByteCode",__FILE__,__LINE__);
 	tmp->size=size;
-	FAKE_ASSERT((tmp->code=(uint8_t*)malloc(size*sizeof(uint8_t))),"newByteCode",__FILE__,__LINE__);
+	FAKE_ASSERT((tmp->code=(uint8_t*)malloc(size*sizeof(uint8_t))),"fklNewByteCode",__FILE__,__LINE__);
 	int32_t i=0;
 	for(;i<tmp->size;i++)tmp->code[i]=0;
 	return tmp;
 }
 
-ByteCodelnt* newByteCodelnt(ByteCode* bc)
+ByteCodelnt* fklNewByteCodelnt(ByteCode* bc)
 {
 	ByteCodelnt* t=(ByteCodelnt*)malloc(sizeof(ByteCodelnt));
-	FAKE_ASSERT(t,"newByteCode",__FILE__,__LINE__);
+	FAKE_ASSERT(t,"fklNewByteCode",__FILE__,__LINE__);
 	t->ls=0;
 	t->l=NULL;
 	t->bc=bc;
 	return t;
 }
 
-void freeByteCodelnt(ByteCodelnt* t)
+void fklFreeByteCodelnt(ByteCodelnt* t)
 {
-	freeByteCode(t->bc);
+	fklFreeByteCode(t->bc);
 	if(t->l)
 		free(t->l);
 	free(t);
 }
 
-void freeByteCode(ByteCode* obj)
+void fklFreeByteCode(ByteCode* obj)
 {
 	free(obj->code);
 	free(obj);
 }
 
-void codeCat(ByteCode* fir,const ByteCode* sec)
+void fklCodeCat(ByteCode* fir,const ByteCode* sec)
 {
 	int32_t size=fir->size;
 	fir->size=sec->size+fir->size;
 	fir->code=(uint8_t*)realloc(fir->code,sizeof(uint8_t)*fir->size);
-	FAKE_ASSERT(fir->code||!fir->size,"codeCat",__FILE__,__LINE__);
+	FAKE_ASSERT(fir->code||!fir->size,"fklCodeCat",__FILE__,__LINE__);
 	memcpy(fir->code+size,sec->code,sec->size);
 }
 
-void reCodeCat(const ByteCode* fir,ByteCode* sec)
+void fklReCodeCat(const ByteCode* fir,ByteCode* sec)
 {
 	int32_t size=fir->size;
 	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*(fir->size+sec->size));
-	FAKE_ASSERT(tmp,"reCodeCat",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklReCodeCat",__FILE__,__LINE__);
 	memcpy(tmp,fir->code,fir->size);
 	memcpy(tmp+size,sec->code,sec->size);
 	free(sec->code);
@@ -1110,41 +1110,41 @@ void reCodeCat(const ByteCode* fir,ByteCode* sec)
 	sec->size=fir->size+sec->size;
 }
 
-ByteCode* copyByteCode(const ByteCode* obj)
+ByteCode* fklCopyByteCode(const ByteCode* obj)
 {
-	ByteCode* tmp=newByteCode(obj->size);
+	ByteCode* tmp=fklNewByteCode(obj->size);
 	memcpy(tmp->code,obj->code,obj->size);
 	return tmp;
 }
 
-ByteCodelnt* copyByteCodelnt(const ByteCodelnt* obj)
+ByteCodelnt* fklCopyByteCodelnt(const ByteCodelnt* obj)
 {
-	ByteCodelnt* tmp=newByteCodelnt(copyByteCode(obj->bc));
+	ByteCodelnt* tmp=fklNewByteCodelnt(fklCopyByteCode(obj->bc));
 	tmp->ls=obj->ls;
 	tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*obj->ls);
-	FAKE_ASSERT(tmp->l,"copyByteCodelnt",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp->l,"fklCopyByteCodelnt",__FILE__,__LINE__);
 	int32_t i=0;
 	for(;i<obj->ls;i++)
 	{
 		LineNumTabNode* t=obj->l[i];
-		LineNumTabNode* node=newLineNumTabNode(t->fid,t->scp,t->cpc,t->line);
+		LineNumTabNode* node=fklNewLineNumTabNode(t->fid,t->scp,t->cpc,t->line);
 		tmp->l[i]=node;
 	}
 	return tmp;
 }
 
-void initCompEnv(CompEnv* curEnv)
+void fklInitCompEnv(CompEnv* curEnv)
 {
 	int i=0;
 	for(i=0;i<NUMOFBUILTINSYMBOL;i++)
-		addCompDef(builtInSymbolList[i],curEnv);
+		fklAddCompDef(builtInSymbolList[i],curEnv);
 }
 
-char* copyStr(const char* str)
+char* fklCopyStr(const char* str)
 {
 	if(str==NULL)return NULL;
 	char* tmp=(char*)malloc(sizeof(char)*(strlen(str)+1));
-	FAKE_ASSERT(tmp,"copyStr",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklCopyStr",__FILE__,__LINE__);
 	strcpy(tmp,str);
 	return tmp;
 
@@ -1152,7 +1152,7 @@ char* copyStr(const char* str)
 
 
 
-int isscript(const char* filename)
+int fklIsscript(const char* filename)
 {
 	int i;
 	int len=strlen(filename);
@@ -1162,7 +1162,7 @@ int isscript(const char* filename)
 	else return !strcmp(filename+i,".fkl");
 }
 
-int iscode(const char* filename)
+int fklIscode(const char* filename)
 {
 	int i;
 	int len=strlen(filename);
@@ -1172,17 +1172,17 @@ int iscode(const char* filename)
 	else return !strcmp(filename+i,".fklc");
 }
 
-AST_cptr* getLastCptr(const AST_cptr* objList)
+AST_cptr* fklGetLastCptr(const AST_cptr* objList)
 {
 	if(objList->type!=PAIR)
 		return NULL;
 	AST_pair* objPair=objList->u.pair;
 	AST_cptr* first=&objPair->car;
-	for(;nextCptr(first)!=NULL;first=nextCptr(first));
+	for(;fklNextCptr(first)!=NULL;first=fklNextCptr(first));
 	return first;
 }
 
-AST_cptr* getFirstCptr(const AST_cptr* objList)
+AST_cptr* fklGetFirstCptr(const AST_cptr* objList)
 {
 	if(objList->type!=PAIR)
 		return NULL;
@@ -1191,7 +1191,7 @@ AST_cptr* getFirstCptr(const AST_cptr* objList)
 	return first;
 }
 
-void printByteCode(const ByteCode* tmpCode,FILE* fp)
+void fklPrintByteCode(const ByteCode* tmpCode,FILE* fp)
 {
 	int32_t i=0;
 	while(i<tmpCode->size)
@@ -1202,7 +1202,7 @@ void printByteCode(const ByteCode* tmpCode,FILE* fp)
 		{
 			case -4:
 				{
-					fprintf(fp,"%s ",findSymbolInGlob((char*)(tmpCode->code+(++i)))->symbol);
+					fprintf(fp,"%s ",fklFindSymbolInGlob((char*)(tmpCode->code+(++i)))->symbol);
 					i+=sizeof(Sid_t);
 					int32_t handlerNum=*(int32_t*)(tmpCode->code+i);
 					fprintf(fp,"%d\n",handlerNum);
@@ -1214,8 +1214,8 @@ void printByteCode(const ByteCode* tmpCode,FILE* fp)
 						i+=sizeof(Sid_t);
 						uint32_t pCpc=*(uint32_t*)(tmpCode->code+i);
 						i+=sizeof(uint32_t);
-						fprintf(fp,"%s %d ",getGlobSymbolWithId(type)->symbol,pCpc);
-						printAsByteStr(tmpCode->code+i,pCpc,fp);
+						fprintf(fp,"%s %d ",fklGetGlobSymbolWithId(type)->symbol,pCpc);
+						fklPrintAsByteStr(tmpCode->code+i,pCpc,fp);
 						i+=pCpc;
 					}
 				}
@@ -1226,7 +1226,7 @@ void printByteCode(const ByteCode* tmpCode,FILE* fp)
 				break;
 			case -2:
 				fprintf(fp,"%d ",*(int32_t*)(tmpCode->code+i+1));
-				printAsByteStr((uint8_t*)(tmpCode->code+i+5),*(int32_t*)(tmpCode->code+i+1),fp);
+				fklPrintAsByteStr((uint8_t*)(tmpCode->code+i+5),*(int32_t*)(tmpCode->code+i+1),fp);
 				i+=5+*(int32_t*)(tmpCode->code+i+1);
 				break;
 			case -1:
@@ -1238,12 +1238,12 @@ void printByteCode(const ByteCode* tmpCode,FILE* fp)
 				i+=1;
 				break;
 			case 1:
-				printRawChar(tmpCode->code[i+1],fp);
+				fklPrintRawChar(tmpCode->code[i+1],fp);
 				i+=2;
 				break;
 			case 4:
 				if(tmpCode->code[i]==FAKE_PUSH_SYM)
-					fprintf(fp,"%s",getGlobSymbolWithId(*(Sid_t*)(tmpCode->code+i+1))->symbol);
+					fprintf(fp,"%s",fklGetGlobSymbolWithId(*(Sid_t*)(tmpCode->code+i+1))->symbol);
 				else
 					fprintf(fp,"%d",*(int32_t*)(tmpCode->code+i+1));
 				i+=5;
@@ -1272,7 +1272,7 @@ void printByteCode(const ByteCode* tmpCode,FILE* fp)
 	}
 }
 
-uint8_t castCharInt(char ch)
+uint8_t fklCastCharInt(char ch)
 {
 	if(isdigit(ch))return ch-'0';
 	else if(isxdigit(ch))
@@ -1283,24 +1283,24 @@ uint8_t castCharInt(char ch)
 	return 0;
 }
 
-uint8_t* castStrByteStr(const char* str)
+uint8_t* fklCastStrByteStr(const char* str)
 {
 	int len=strlen(str);
 	int32_t size=(len%2)?(len/2+1):len/2;
 	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	FAKE_ASSERT(tmp,"castStrByteStr",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklCastStrByteStr",__FILE__,__LINE__);
 	int32_t i=0;
 	int k=0;
 	for(;i<size;i++)
 	{
-		tmp[i]=16*castCharInt(str[k]);
-		if(str[k+1]!='\0')tmp[i]+=castCharInt(str[k+1]);
+		tmp[i]=16*fklCastCharInt(str[k]);
+		if(str[k+1]!='\0')tmp[i]+=fklCastCharInt(str[k+1]);
 		k+=2;
 	}
 	return tmp;
 }
 
-void printByteStr(size_t size,const uint8_t* str,FILE* fp,int mode)
+void fklPrintByteStr(size_t size,const uint8_t* str,FILE* fp,int mode)
 {
 	if(mode)fputs("#b",fp);
 	unsigned int i=0;
@@ -1312,7 +1312,7 @@ void printByteStr(size_t size,const uint8_t* str,FILE* fp,int mode)
 	}
 }
 
-void printAsByteStr(const uint8_t* str,int32_t size,FILE* fp)
+void fklPrintAsByteStr(const uint8_t* str,int32_t size,FILE* fp)
 {
 	fputs("#b",fp);
 	for(int i=0;i<size;i++)
@@ -1323,16 +1323,16 @@ void printAsByteStr(const uint8_t* str,int32_t size,FILE* fp)
 	}
 }
 
-void* copyMemory(void* pm,size_t size)
+void* fklCopyMemory(void* pm,size_t size)
 {
 	void* tmp=(void*)malloc(size);
-	FAKE_ASSERT(tmp,"copyMemory",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklCopyMemory",__FILE__,__LINE__);
 	if(pm!=NULL)
 		memcpy(tmp,pm,size);
 	return tmp;
 }
 
-int hasLoadSameFile(const char* filename,const Intpr* inter)
+int fklHasLoadSameFile(const char* filename,const Intpr* inter)
 {
 	while(inter!=NULL)
 	{
@@ -1343,45 +1343,45 @@ int hasLoadSameFile(const char* filename,const Intpr* inter)
 	return 0;
 }
 
-Intpr* getFirstIntpr(Intpr* inter)
+Intpr* fklGetFirstIntpr(Intpr* inter)
 {
 	while(inter->prev!=NULL)
 		inter=inter->prev;
 	return inter;
 }
 
-AST_cptr* getASTPairCar(const AST_cptr* obj)
+AST_cptr* fklGetASTPairCar(const AST_cptr* obj)
 {
 	return &obj->u.pair->car;
 }
 
-AST_cptr* getASTPairCdr(const AST_cptr* obj)
+AST_cptr* fklGetASTPairCdr(const AST_cptr* obj)
 {
 	return &obj->u.pair->cdr;
 }
 
-AST_cptr* getCptrCar(const AST_cptr* obj)
+AST_cptr* fklGetCptrCar(const AST_cptr* obj)
 {
 	if(obj&&obj->outer!=NULL)
 		return &obj->outer->car;
 	return NULL;
 }
 
-AST_cptr* getCptrCdr(const AST_cptr* obj)
+AST_cptr* fklGetCptrCdr(const AST_cptr* obj)
 {
 	if(obj&&obj->outer!=NULL)
 		return &obj->outer->cdr;
 	return NULL;
 }
 
-void changeWorkPath(const char* filename)
+void fklChangeWorkPath(const char* filename)
 {
 #ifdef _WIN32
 	char* p=_fullpath(NULL,filename,0);
 #else
 	char* p=realpath(filename,NULL);
 #endif
-	char* wp=getDir(p);
+	char* wp=fklGetDir(p);
 	if(chdir(wp))
 	{
 		perror(wp);
@@ -1391,7 +1391,7 @@ void changeWorkPath(const char* filename)
 	free(wp);
 }
 
-char* getDir(const char* filename)
+char* fklGetDir(const char* filename)
 {
 #ifdef _WIN32
 	char dp='\\';
@@ -1401,16 +1401,16 @@ char* getDir(const char* filename)
 	int i=strlen(filename)-1;
 	for(;filename[i]!=dp;i--);
 	char* tmp=(char*)malloc(sizeof(char)*(i+1));
-	FAKE_ASSERT(tmp,"getDir",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklGetDir",__FILE__,__LINE__);
 	tmp[i]='\0';
 	memcpy(tmp,filename,i);
 	return tmp;
 }
 
-char* getStringFromFile(FILE* file)
+char* fklGetStringFromFile(FILE* file)
 {
 	char* tmp=(char*)malloc(sizeof(char));
-	FAKE_ASSERT(tmp,"getStringFromFile",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklGetStringFromFile",__FILE__,__LINE__);
 	tmp[0]='\0';
 	char* before;
 	int i=0;
@@ -1421,7 +1421,7 @@ char* getStringFromFile(FILE* file)
 		i++;
 		j=i-1;
 		before=tmp;
-		FAKE_ASSERT((tmp=(char*)malloc(sizeof(char)*(i+1))),"getStringFromFile",__FILE__,__LINE__);
+		FAKE_ASSERT((tmp=(char*)malloc(sizeof(char)*(i+1))),"fklGetStringFromFile",__FILE__,__LINE__);
 		if(before!=NULL)
 		{
 			memcpy(tmp,before,j);
@@ -1433,20 +1433,20 @@ char* getStringFromFile(FILE* file)
 	return tmp;
 }
 
-int eqByteString(const ByteString* fir,const ByteString* sec)
+int fklEqByteString(const ByteString* fir,const ByteString* sec)
 {
 	if(fir->size!=sec->size)return 0;
 	return !memcmp(fir->str,sec->str,sec->size);
 }
 
-char* getLastWorkDir(Intpr* inter)
+char* fklGetLastWorkDir(Intpr* inter)
 {
 	while(inter->prev!=NULL)
 		inter=inter->prev;
 	return inter->curDir;
 }
 
-char* relpath(char* abs,char* relto)
+char* fklRelpath(char* abs,char* relto)
 {
 #ifdef _WIN32
 	char divstr[]="\\";
@@ -1455,12 +1455,12 @@ char* relpath(char* abs,char* relto)
 	char divstr[]="/";
 	char upperDir[]="../";
 #endif
-	char* cabs=copyStr(abs);
-	char* crelto=copyStr(relto);
+	char* cabs=fklCopyStr(abs);
+	char* crelto=fklCopyStr(relto);
 	int lengthOfAbs=0;
 	int lengthOfRelto=0;
-	char** absDirs=split(cabs,divstr,&lengthOfAbs);
-	char** reltoDirs=split(crelto,divstr,&lengthOfRelto);
+	char** absDirs=fklSplit(cabs,divstr,&lengthOfAbs);
+	char** reltoDirs=fklSplit(crelto,divstr,&lengthOfRelto);
 	int length=(lengthOfAbs<lengthOfRelto)?lengthOfAbs:lengthOfRelto;
 	int lastCommonRoot=-1;
 	int index;
@@ -1492,7 +1492,7 @@ char* relpath(char* abs,char* relto)
 	}
 	if(reltoDirs!=NULL)
 		strcat(rp,reltoDirs[lengthOfRelto-1]);
-	char* trp=copyStr(rp);
+	char* trp=fklCopyStr(rp);
 	free(cabs);
 	free(crelto);
 	free(absDirs);
@@ -1500,18 +1500,18 @@ char* relpath(char* abs,char* relto)
 	return trp;
 }
 
-char** split(char* str,char* divstr,int* length)
+char** fklSplit(char* str,char* divstr,int* length)
 {
 	int count=0;
 	char* pNext=NULL;
 	char** strArry=(char**)malloc(0);
-	FAKE_ASSERT(strArry,"split",__FILE__,__LINE__);
+	FAKE_ASSERT(strArry,"fklSplit",__FILE__,__LINE__);
 	pNext=strtok(str,divstr);
 	while(pNext!=NULL)
 	{
 		count++;
 		strArry=(char**)realloc(strArry,sizeof(char*)*count);
-		FAKE_ASSERT(strArry,"split",__FILE__,__LINE__);
+		FAKE_ASSERT(strArry,"fklSplit",__FILE__,__LINE__);
 		strArry[count-1]=pNext;
 		pNext=strtok(NULL,divstr);
 	}
@@ -1519,7 +1519,7 @@ char** split(char* str,char* divstr,int* length)
 	return strArry;
 }
 
-char* castEscapeCharater(const char* str,char end,size_t* len)
+char* fklCastEscapeCharater(const char* str,char end,size_t* len)
 {
 	int32_t strSize=0;
 	int32_t memSize=MAX_STRING_SIZE;
@@ -1610,11 +1610,11 @@ char* castEscapeCharater(const char* str,char end,size_t* len)
 	return tmp;
 }
 
-Intpr* newTmpIntpr(const char* filename,FILE* fp)
+Intpr* fklNewTmpIntpr(const char* filename,FILE* fp)
 {
 	Intpr* tmp=NULL;
-	FAKE_ASSERT((tmp=(Intpr*)malloc(sizeof(Intpr))),"newTmpIntpr",__FILE__,__LINE__);
-	tmp->filename=copyStr(filename);
+	FAKE_ASSERT((tmp=(Intpr*)malloc(sizeof(Intpr))),"fklNewTmpIntpr",__FILE__,__LINE__);
+	tmp->filename=fklCopyStr(filename);
 	if(fp!=stdin&&filename)
 	{
 #ifdef _WIN32
@@ -1627,7 +1627,7 @@ Intpr* newTmpIntpr(const char* filename,FILE* fp)
 			perror(filename);
 			exit(EXIT_FAILURE);
 		}
-		tmp->curDir=getDir(rp);
+		tmp->curDir=fklGetDir(rp);
 		free(rp);
 	}
 	else
@@ -1640,7 +1640,7 @@ Intpr* newTmpIntpr(const char* filename,FILE* fp)
 	return tmp;
 }
 
-int32_t countChar(const char* str,char c,int32_t len)
+int32_t fklCountChar(const char* str,char c,int32_t len)
 {
 	int32_t num=0;
 	int32_t i=0;
@@ -1659,7 +1659,7 @@ int32_t countChar(const char* str,char c,int32_t len)
 	return num;
 }
 
-PreDef* findDefine(const char* name,const PreEnv* curEnv)
+PreDef* fklFindDefine(const char* name,const PreEnv* curEnv)
 {
 	if(curEnv->symbols==NULL)return NULL;
 	else
@@ -1671,74 +1671,74 @@ PreDef* findDefine(const char* name,const PreEnv* curEnv)
 	}
 }
 
-PreDef* addDefine(const char* symbol,const AST_cptr* objCptr,PreEnv* curEnv)
+PreDef* fklAddDefine(const char* symbol,const AST_cptr* objCptr,PreEnv* curEnv)
 {
 	if(curEnv->symbols==NULL)
 	{
-		curEnv->symbols=newDefines(symbol);
-		replaceCptr(&curEnv->symbols->obj,objCptr);
+		curEnv->symbols=fklNewDefines(symbol);
+		fklReplaceCptr(&curEnv->symbols->obj,objCptr);
 		curEnv->symbols->next=NULL;
 		return curEnv->symbols;
 	}
 	else
 	{
-		PreDef* curDef=findDefine(symbol,curEnv);
+		PreDef* curDef=fklFindDefine(symbol,curEnv);
 		if(curDef==NULL)
 		{
-			curDef=newDefines(symbol);
+			curDef=fklNewDefines(symbol);
 			curDef->next=curEnv->symbols;
 			curEnv->symbols=curDef;
-			replaceCptr(&curDef->obj,objCptr);
+			fklReplaceCptr(&curDef->obj,objCptr);
 		}
 		else
-			replaceCptr(&curDef->obj,objCptr);
+			fklReplaceCptr(&curDef->obj,objCptr);
 		return curDef;
 	}
 }
 
-PreDef* newDefines(const char* name)
+PreDef* fklNewDefines(const char* name)
 {
 	PreDef* tmp=(PreDef*)malloc(sizeof(PreDef));
-	FAKE_ASSERT(tmp,"newDefines",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklNewDefines",__FILE__,__LINE__);
 	tmp->symbol=(char*)malloc(sizeof(char)*(strlen(name)+1));
-	FAKE_ASSERT(tmp->symbol,"newDefines",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp->symbol,"fklNewDefines",__FILE__,__LINE__);
 	strcpy(tmp->symbol,name);
 	tmp->obj=(AST_cptr){NULL,0,NIL,{NULL}};
 	tmp->next=NULL;
 	return tmp;
 }
 
-SymbolTable* newSymbolTable()
+SymbolTable* fklNewSymbolTable()
 {
 	SymbolTable* tmp=(SymbolTable*)malloc(sizeof(SymbolTable));
-	FAKE_ASSERT(tmp,"newSymbolTable",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklNewSymbolTable",__FILE__,__LINE__);
 	tmp->list=NULL;
 	tmp->idl=NULL;
 	tmp->num=0;
 	return tmp;
 }
 
-SymTabNode* newSymTabNode(const char* symbol)
+SymTabNode* fklNewSymTabNode(const char* symbol)
 {
 	SymTabNode* tmp=(SymTabNode*)malloc(sizeof(SymTabNode));
-	FAKE_ASSERT(tmp,"newSymbolTable",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklNewSymbolTable",__FILE__,__LINE__);
 	tmp->id=0;
-	tmp->symbol=copyStr(symbol);
+	tmp->symbol=fklCopyStr(symbol);
 	return tmp;
 }
 
-SymTabNode* addSymbol(const char* sym,SymbolTable* table)
+SymTabNode* fklAddSymbol(const char* sym,SymbolTable* table)
 {
 	SymTabNode* node=NULL;
 	if(!table->list)
 	{
-		node=newSymTabNode(sym);
+		node=fklNewSymTabNode(sym);
 		table->num=1;
 		node->id=table->num-1;
 		table->list=(SymTabNode**)malloc(sizeof(SymTabNode*)*1);
-		FAKE_ASSERT(table->list,"addSymbol",__FILE__,__LINE__);
+		FAKE_ASSERT(table->list,"fklAddSymbol",__FILE__,__LINE__);
 		table->idl=(SymTabNode**)malloc(sizeof(SymTabNode*)*1);
-		FAKE_ASSERT(table->idl,"addSymbol",__FILE__,__LINE__);
+		FAKE_ASSERT(table->idl,"fklAddSymbol",__FILE__,__LINE__);
 		table->list[0]=node;
 		table->idl[0]=node;
 	}
@@ -1763,51 +1763,51 @@ SymTabNode* addSymbol(const char* sym,SymbolTable* table)
 		table->num+=1;
 		int32_t i=table->num-1;
 		table->list=(SymTabNode**)realloc(table->list,sizeof(SymTabNode*)*table->num);
-		FAKE_ASSERT(table->list,"addSymbol",__FILE__,__LINE__);
-		node=newSymTabNode(sym);
+		FAKE_ASSERT(table->list,"fklAddSymbol",__FILE__,__LINE__);
+		node=fklNewSymTabNode(sym);
 		for(;i>mid;i--)
 			table->list[i]=table->list[i-1];
 		table->list[mid]=node;
 		node->id=table->num-1;
 		table->idl=(SymTabNode**)realloc(table->idl,sizeof(SymTabNode*)*table->num);
-		FAKE_ASSERT(table->idl,"addSymbol",__FILE__,__LINE__);
+		FAKE_ASSERT(table->idl,"fklAddSymbol",__FILE__,__LINE__);
 		table->idl[table->num-1]=node;
 	}
 	return node;
 }
 
-SymTabNode* addSymbolToGlob(const char* sym)
+SymTabNode* fklAddSymbolToGlob(const char* sym)
 {
-	return addSymbol(sym,&GlobSymbolTable);
+	return fklAddSymbol(sym,&GlobSymbolTable);
 }
 
 
-void freeSymTabNode(SymTabNode* node)
+void fklFreeSymTabNode(SymTabNode* node)
 {
 	free(node->symbol);
 	free(node);
 }
 
-void freeSymbolTable(SymbolTable* table)
+void fklFreeSymbolTable(SymbolTable* table)
 {
 	int32_t i=0;
 	for(;i<table->num;i++)
-		freeSymTabNode(table->list[i]);
+		fklFreeSymTabNode(table->list[i]);
 	free(table->list);
 	free(table->idl);
 	free(table);
 }
 
-void freeGlobSymbolTable()
+void fklFreeGlobSymbolTable()
 {
 	int32_t i=0;
 	for(;i<GlobSymbolTable.num;i++)
-		freeSymTabNode(GlobSymbolTable.list[i]);
+		fklFreeSymTabNode(GlobSymbolTable.list[i]);
 	free(GlobSymbolTable.list);
 	free(GlobSymbolTable.idl);
 }
 
-SymTabNode* findSymbol(const char* symbol,SymbolTable* table)
+SymTabNode* fklFindSymbol(const char* symbol,SymbolTable* table)
 {
 	if(!table->list)
 		return NULL;
@@ -1828,17 +1828,17 @@ SymTabNode* findSymbol(const char* symbol,SymbolTable* table)
 	return NULL;
 }
 
-SymTabNode* findSymbolInGlob(const char* sym)
+SymTabNode* fklFindSymbolInGlob(const char* sym)
 {
-	return findSymbol(sym,&GlobSymbolTable);
+	return fklFindSymbol(sym,&GlobSymbolTable);
 }
 
-SymTabNode* getGlobSymbolWithId(Sid_t id)
+SymTabNode* fklGetGlobSymbolWithId(Sid_t id)
 {
 	return GlobSymbolTable.idl[id];
 }
 
-void printSymbolTable(SymbolTable* table,FILE* fp)
+void fklPrintSymbolTable(SymbolTable* table,FILE* fp)
 {
 	int32_t i=0;
 	for(;i<table->num;i++)
@@ -1849,45 +1849,45 @@ void printSymbolTable(SymbolTable* table,FILE* fp)
 	fprintf(fp,"size:%d\n",table->num);
 }
 
-void printGlobSymbolTable(FILE* fp)
+void fklPrintGlobSymbolTable(FILE* fp)
 {
-	printSymbolTable(&GlobSymbolTable,fp);
+	fklPrintSymbolTable(&GlobSymbolTable,fp);
 }
 
-AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
+AST_cptr* fklBaseCreateTree(const char* objStr,Intpr* inter)
 {
 	if(!objStr)
 		return NULL;
-	ComStack* s1=newComStack(32);
-	ComStack* s2=newComStack(32);
+	ComStack* s1=fklNewComStack(32);
+	ComStack* s2=fklNewComStack(32);
 	int32_t i=0;
 	for(;isspace(objStr[i]);i++)
 		if(objStr[i]=='\n')
 			inter->curline+=1;
 	int32_t curline=(inter)?inter->curline:0;
-	AST_cptr* tmp=newCptr(curline,NULL);
-	pushComStack(tmp,s1);
+	AST_cptr* tmp=fklNewCptr(curline,NULL);
+	fklPushComStack(tmp,s1);
 	int hasComma=1;
-	while(objStr[i]&&!isComStackEmpty(s1))
+	while(objStr[i]&&!fklIsComStackEmpty(s1))
 	{
 		for(;isspace(objStr[i]);i++)
 			if(objStr[i]=='\n')
 				inter->curline+=1;
 		curline=inter->curline;
-		AST_cptr* root=popComStack(s1);
+		AST_cptr* root=fklPopComStack(s1);
 		if(objStr[i]=='(')
 		{
 			if(&root->outer->car==root)
 			{
 				//如果root是root所在pair的car部分，
 				//则在对应的pair后追加一个pair为下一个部分准备
-				AST_cptr* tmp=popComStack(s1);
+				AST_cptr* tmp=fklPopComStack(s1);
 				if(tmp)
 				{
 					tmp->type=PAIR;
-					tmp->u.pair=newPair(curline,tmp->outer);
-					pushComStack(getASTPairCdr(tmp),s1);
-					pushComStack(getASTPairCar(tmp),s1);
+					tmp->u.pair=fklNewPair(curline,tmp->outer);
+					fklPushComStack(fklGetASTPairCdr(tmp),s1);
+					fklPushComStack(fklGetASTPairCar(tmp),s1);
 				}
 			}
 			int j=0;
@@ -1902,10 +1902,10 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 			{
 				hasComma=0;
 				root->type=PAIR;
-				root->u.pair=newPair(curline,root->outer);
-				pushComStack((void*)s1->top,s2);
-				pushComStack(getASTPairCdr(root),s1);
-				pushComStack(getASTPairCar(root),s1);
+				root->u.pair=fklNewPair(curline,root->outer);
+				fklPushComStack((void*)s1->top,s2);
+				fklPushComStack(fklGetASTPairCdr(root),s1);
+				fklPushComStack(fklGetASTPairCar(root),s1);
 				i++;
 			}
 		}
@@ -1913,7 +1913,7 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 		{
 			if(hasComma)
 			{
-				deleteCptr(tmp);
+				fklDeleteCptr(tmp);
 				free(tmp);
 				tmp=NULL;
 				break;
@@ -1922,19 +1922,19 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 			if(root->outer->prev&&root->outer->prev->cdr.u.pair==root->outer)
 			{
 				//将为下一个部分准备的pair删除并将该pair的前一个pair的cdr部分入栈
-				s1->top=(long)topComStack(s2);
+				s1->top=(long)fklTopComStack(s2);
 				AST_cptr* tmp=&root->outer->prev->cdr;
 				free(tmp->u.pair);
 				tmp->type=NIL;
 				tmp->u.all=NULL;
-				pushComStack(tmp,s1);
+				fklPushComStack(tmp,s1);
 			}
 			i++;
 		}
 		else if(objStr[i]==')')
 		{
 			hasComma=0;
-			long t=(long)popComStack(s2);
+			long t=(long)fklPopComStack(s2);
 			AST_cptr* c=s1->data[t];
 			if(s1->top-t>0&&c->outer->prev&&c->outer->prev->cdr.u.pair==c->outer)
 			{
@@ -1956,9 +1956,9 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 			if(objStr[i]=='\"')
 			{
 				size_t len=0;
-				str=castEscapeCharater(objStr+i+1,'\"',&len);
-				inter->curline+=countChar(objStr+i,'\n',len);
-				root->u.atom=newAtom(STR,str,root->outer);
+				str=fklCastEscapeCharater(objStr+i+1,'\"',&len);
+				inter->curline+=fklCountChar(objStr+i,'\n',len);
+				root->u.atom=fklNewAtom(STR,str,root->outer);
 				i+=len+1;
 				free(str);
 			}
@@ -1969,25 +1969,25 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 				switch(objStr[i])
 				{
 					case '\\':
-						str=getStringAfterBackslash(objStr+i+1);
-						atom=newAtom(CHR,NULL,root->outer);
+						str=fklGetStringAfterBackslash(objStr+i+1);
+						atom=fklNewAtom(CHR,NULL,root->outer);
 						root->u.atom=atom;
 						atom->value.chr=(str[0]=='\\')?
-							stringToChar(str+1):
+							fklStringToChar(str+1):
 							str[0];
 						i+=strlen(str)+1;
 						break;
 					case 'b':
-						str=getStringAfterBackslash(objStr+i+1);
-						atom=newAtom(BYTS,NULL,root->outer);
+						str=fklGetStringAfterBackslash(objStr+i+1);
+						atom=fklNewAtom(BYTS,NULL,root->outer);
 						atom->value.byts.size=strlen(str)/2+strlen(str)%2;
-						atom->value.byts.str=castStrByteStr(str);
+						atom->value.byts.str=fklCastStrByteStr(str);
 						root->u.atom=atom;
 						i+=strlen(str)+1;
 						break;
 					default:
-						str=getStringFromList(objStr+i-1);
-						atom=newAtom(SYM,str,root->outer);
+						str=fklGetStringFromList(objStr+i-1);
+						atom=fklNewAtom(SYM,str,root->outer);
 						root->u.atom=atom;
 						i+=strlen(str)-1;
 						break;
@@ -1996,19 +1996,19 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 			}
 			else
 			{
-				char* str=getStringFromList(objStr+i);
-				if(isNum(str))
+				char* str=fklGetStringFromList(objStr+i);
+				if(fklIsNum(str))
 				{
 					AST_atom* atom=NULL;
-					if(isDouble(str))
+					if(fklIsDouble(str))
 					{
-						atom=newAtom(DBL,NULL,root->outer);
-						atom->value.dbl=stringToDouble(str);
+						atom=fklNewAtom(DBL,NULL,root->outer);
+						atom->value.dbl=fklStringToDouble(str);
 					}
 					else
 					{
-						atom=newAtom(IN32,NULL,root->outer);
-						int64_t num=stringToInt(str);
+						atom=fklNewAtom(IN32,NULL,root->outer);
+						int64_t num=fklStringToInt(str);
 						if(num>=INT32_MAX||num<=INT32_MIN)
 						{
 							atom->type=IN64;
@@ -2020,7 +2020,7 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 					root->u.atom=atom;
 				}
 				else
-					root->u.atom=newAtom(SYM,str,root->outer);
+					root->u.atom=fklNewAtom(SYM,str,root->outer);
 				i+=strlen(str);
 				free(str);
 			}
@@ -2028,23 +2028,23 @@ AST_cptr* baseCreateTree(const char* objStr,Intpr* inter)
 			{
 				//如果root是root所在pair的car部分，
 				//则在对应的pair后追加一个pair为下一个部分准备
-				AST_cptr* tmp=popComStack(s1);
+				AST_cptr* tmp=fklPopComStack(s1);
 				if(tmp)
 				{
 					tmp->type=PAIR;
-					tmp->u.pair=newPair(curline,tmp->outer);
-					pushComStack(getASTPairCdr(tmp),s1);
-					pushComStack(getASTPairCar(tmp),s1);
+					tmp->u.pair=fklNewPair(curline,tmp->outer);
+					fklPushComStack(fklGetASTPairCdr(tmp),s1);
+					fklPushComStack(fklGetASTPairCar(tmp),s1);
 				}
 			}
 		}
 	}
-	freeComStack(s1);
-	freeComStack(s2);
+	fklFreeComStack(s1);
+	fklFreeComStack(s2);
 	return tmp;
 }
 
-void writeSymbolTable(SymbolTable* table,FILE* fp)
+void fklWriteSymbolTable(SymbolTable* table,FILE* fp)
 {
 	int32_t size=table->num;
 	fwrite(&size,sizeof(size),1,fp);
@@ -2053,12 +2053,12 @@ void writeSymbolTable(SymbolTable* table,FILE* fp)
 		fwrite(table->idl[i]->symbol,strlen(table->idl[i]->symbol)+1,1,fp);
 }
 
-void writeGlobSymbolTable(FILE* fp)
+void fklWriteGlobSymbolTable(FILE* fp)
 {
-	writeSymbolTable(&GlobSymbolTable,fp);
+	fklWriteSymbolTable(&GlobSymbolTable,fp);
 }
 
-void writeLineNumberTable(LineNumberTable* lnt,FILE* fp)
+void fklWriteLineNumberTable(LineNumberTable* lnt,FILE* fp)
 {
 	int32_t size=lnt->num;
 	fwrite(&size,sizeof(size),1,fp);
@@ -2073,7 +2073,7 @@ void writeLineNumberTable(LineNumberTable* lnt,FILE* fp)
 	}
 }
 
-int isAllSpace(const char* str)
+int fklIsAllSpace(const char* str)
 {
 	for(;*str;str++)
 		if(!isspace(*str))
@@ -2081,19 +2081,19 @@ int isAllSpace(const char* str)
 	return 1;
 }
 
-LineNumberTable* newLineNumTable()
+LineNumberTable* fklNewLineNumTable()
 {
 	LineNumberTable* t=(LineNumberTable*)malloc(sizeof(LineNumberTable));
-	FAKE_ASSERT(t,"newLineNumTable",__FILE__,__LINE__);
+	FAKE_ASSERT(t,"fklNewLineNumTable",__FILE__,__LINE__);
 	t->num=0;
 	t->list=NULL;
 	return t;
 }
 
-LineNumTabNode* newLineNumTabNode(int32_t fid,int32_t scp,int32_t cpc,int32_t line)
+LineNumTabNode* fklNewLineNumTabNode(int32_t fid,int32_t scp,int32_t cpc,int32_t line)
 {
 	LineNumTabNode* t=(LineNumTabNode*)malloc(sizeof(LineNumTabNode));
-	FAKE_ASSERT(t,"newLineNumTable",__FILE__,__LINE__);
+	FAKE_ASSERT(t,"fklNewLineNumTable",__FILE__,__LINE__);
 	t->fid=fid;
 	t->scp=scp;
 	t->cpc=cpc;
@@ -2101,12 +2101,12 @@ LineNumTabNode* newLineNumTabNode(int32_t fid,int32_t scp,int32_t cpc,int32_t li
 	return t;
 }
 
-void freeLineNumTabNode(LineNumTabNode* n)
+void fklFreeLineNumTabNode(LineNumTabNode* n)
 {
 	free(n);
 }
 
-void freeDefTypeTable(VMDefTypes* defs)
+void fklFreeDefTypeTable(VMDefTypes* defs)
 {
 	size_t i=0;
 	size_t num=defs->num;
@@ -2116,16 +2116,16 @@ void freeDefTypeTable(VMDefTypes* defs)
 	free(defs);
 }
 
-void freeLineNumberTable(LineNumberTable* t)
+void fklFreeLineNumberTable(LineNumberTable* t)
 {
 	int32_t i=0;
 	for(;i<t->num;i++)
-		freeLineNumTabNode(t->list[i]);
+		fklFreeLineNumTabNode(t->list[i]);
 	free(t->list);
 	free(t);
 }
 
-LineNumTabNode* findLineNumTabNode(uint32_t cp,LineNumberTable* t)
+LineNumTabNode* fklFindLineNumTabNode(uint32_t cp,LineNumberTable* t)
 {
 	int32_t i=0;
 	uint32_t size=t->num;
@@ -2138,20 +2138,20 @@ LineNumTabNode* findLineNumTabNode(uint32_t cp,LineNumberTable* t)
 	return NULL;
 }
 
-void increaseScpOfByteCodelnt(ByteCodelnt* o,int32_t size)
+void fklIncreaseScpOfByteCodelnt(ByteCodelnt* o,int32_t size)
 {
 	int32_t i=0;
 	for(;i<o->ls;i++)
 		o->l[i]->scp+=size;
 }
 
-void lntCat(LineNumberTable* t,int32_t bs,LineNumTabNode** l2,int32_t s2)
+void fklLntCat(LineNumberTable* t,int32_t bs,LineNumTabNode** l2,int32_t s2)
 {
 	if(!t->list)
 	{
 		t->num=s2;
 		t->list=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*s2);
-		FAKE_ASSERT(t->list,"lntCat",__FILE__,__LINE__);
+		FAKE_ASSERT(t->list,"fklLntCat",__FILE__,__LINE__);
 		l2[0]->cpc+=bs;
 		INCREASE_ALL_SCP(l2+1,s2-1,bs);
 		memcpy(t->list,l2,(s2)*sizeof(LineNumTabNode*));
@@ -2163,28 +2163,28 @@ void lntCat(LineNumberTable* t,int32_t bs,LineNumTabNode** l2,int32_t s2)
 		{
 			t->list[t->num-1]->cpc+=l2[0]->cpc;
 			t->list=(LineNumTabNode**)realloc(t->list,sizeof(LineNumTabNode*)*(t->num+s2-1));
-			FAKE_ASSERT(t->list,"lntCat",__FILE__,__LINE__);
+			FAKE_ASSERT(t->list,"fklLntCat",__FILE__,__LINE__);
 			memcpy(t->list+t->num,l2+1,(s2-1)*sizeof(LineNumTabNode*));
 			t->num+=s2-1;
-			freeLineNumTabNode(l2[0]);
+			fklFreeLineNumTabNode(l2[0]);
 		}
 		else
 		{
 			t->list=(LineNumTabNode**)realloc(t->list,sizeof(LineNumTabNode*)*(t->num+s2));
-			FAKE_ASSERT(t->list,"lntCat",__FILE__,__LINE__);
+			FAKE_ASSERT(t->list,"fklLntCat",__FILE__,__LINE__);
 			memcpy(t->list+t->num,l2,(s2)*sizeof(LineNumTabNode*));
 			t->num+=s2;
 		}
 	}
 }
 
-void codelntCat(ByteCodelnt* f,ByteCodelnt* s)
+void fklCodefklLntCat(ByteCodelnt* f,ByteCodelnt* s)
 {
 	if(!f->l)
 	{
 		f->ls=s->ls;
 		f->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*s->ls);
-		FAKE_ASSERT(f->l,"codelntCat",__FILE__,__LINE__);
+		FAKE_ASSERT(f->l,"fklCodefklLntCat",__FILE__,__LINE__);
 		s->l[0]->cpc+=f->bc->size;
 		INCREASE_ALL_SCP(s->l+1,s->ls-1,f->bc->size);
 		memcpy(f->l,s->l,(s->ls)*sizeof(LineNumTabNode*));
@@ -2196,23 +2196,23 @@ void codelntCat(ByteCodelnt* f,ByteCodelnt* s)
 		{
 			f->l[f->ls-1]->cpc+=s->l[0]->cpc;
 			f->l=(LineNumTabNode**)realloc(f->l,sizeof(LineNumTabNode*)*(f->ls+s->ls-1));
-			FAKE_ASSERT(f->l,"codelntCat",__FILE__,__LINE__);
+			FAKE_ASSERT(f->l,"fklCodefklLntCat",__FILE__,__LINE__);
 			memcpy(f->l+f->ls,s->l+1,(s->ls-1)*sizeof(LineNumTabNode*));
 			f->ls+=s->ls-1;
-			freeLineNumTabNode(s->l[0]);
+			fklFreeLineNumTabNode(s->l[0]);
 		}
 		else
 		{
 			f->l=(LineNumTabNode**)realloc(f->l,sizeof(LineNumTabNode*)*(f->ls+s->ls));
-			FAKE_ASSERT(f->l,"codelntCat",__FILE__,__LINE__);
+			FAKE_ASSERT(f->l,"fklCodefklLntCat",__FILE__,__LINE__);
 			memcpy(f->l+f->ls,s->l,(s->ls)*sizeof(LineNumTabNode*));
 			f->ls+=s->ls;
 		}
 	}
-	codeCat(f->bc,s->bc);
+	fklCodeCat(f->bc,s->bc);
 }
 
-void codelntCopyCat(ByteCodelnt* f,const ByteCodelnt* s)
+void fklCodelntCopyCat(ByteCodelnt* f,const ByteCodelnt* s)
 {
 	if(s->ls)
 	{
@@ -2220,12 +2220,12 @@ void codelntCopyCat(ByteCodelnt* f,const ByteCodelnt* s)
 		{
 			f->ls=s->ls;
 			f->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*s->ls);
-			FAKE_ASSERT(f->l,"codelntCopyCat",__FILE__,__LINE__);
+			FAKE_ASSERT(f->l,"fklCodelntCopyCat",__FILE__,__LINE__);
 			uint32_t i=0;
 			for(;i<f->ls;i++)
 			{
 				LineNumTabNode* t=s->l[i];
-				f->l[i]=newLineNumTabNode(t->fid,t->scp,t->cpc,t->line);
+				f->l[i]=fklNewLineNumTabNode(t->fid,t->scp,t->cpc,t->line);
 			}
 			f->l[0]->cpc+=f->bc->size;
 			INCREASE_ALL_SCP(f->l+1,f->ls-1,f->bc->size);
@@ -2234,42 +2234,42 @@ void codelntCopyCat(ByteCodelnt* f,const ByteCodelnt* s)
 		{
 			uint32_t i=0;
 			LineNumTabNode** tl=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*s->ls);
-			FAKE_ASSERT(tl,"codelntCopyCat",__FILE__,__LINE__);
+			FAKE_ASSERT(tl,"fklCodelntCopyCat",__FILE__,__LINE__);
 			for(;i<s->ls;i++)
 			{
 				LineNumTabNode* t=s->l[i];
-				tl[i]=newLineNumTabNode(t->fid,t->scp,t->cpc,t->line);
+				tl[i]=fklNewLineNumTabNode(t->fid,t->scp,t->cpc,t->line);
 			}
 			INCREASE_ALL_SCP(tl,s->ls,f->bc->size);
 			if(f->l[f->ls-1]->line==s->l[0]->line&&f->l[f->ls-1]->fid==s->l[0]->fid)
 			{
 				f->l[f->ls-1]->cpc+=s->l[0]->cpc;
 				f->l=(LineNumTabNode**)realloc(f->l,sizeof(LineNumTabNode*)*(f->ls+s->ls-1));
-				FAKE_ASSERT(f->l,"codelntCopyCat",__FILE__,__LINE__);
+				FAKE_ASSERT(f->l,"fklCodelntCopyCat",__FILE__,__LINE__);
 				memcpy(f->l+f->ls,tl+1,(s->ls-1)*sizeof(LineNumTabNode*));
 				f->ls+=s->ls-1;
-				freeLineNumTabNode(tl[0]);
+				fklFreeLineNumTabNode(tl[0]);
 			}
 			else
 			{
 				f->l=(LineNumTabNode**)realloc(f->l,sizeof(LineNumTabNode*)*(f->ls+s->ls));
-				FAKE_ASSERT(f->l,"codelntCopyCat",__FILE__,__LINE__);
+				FAKE_ASSERT(f->l,"fklCodelntCopyCat",__FILE__,__LINE__);
 				memcpy(f->l+f->ls,tl,(s->ls)*sizeof(LineNumTabNode*));
 				f->ls+=s->ls;
 			}
 			free(tl);
 		}
 	}
-	codeCat(f->bc,s->bc);
+	fklCodeCat(f->bc,s->bc);
 }
 
-void reCodelntCat(ByteCodelnt* f,ByteCodelnt* s)
+void reCodefklLntCat(ByteCodelnt* f,ByteCodelnt* s)
 {
 	if(!s->l)
 	{
 		s->ls=f->ls;
 		s->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*f->ls);
-		FAKE_ASSERT(s->l,"reCodelntCat",__FILE__,__LINE__);
+		FAKE_ASSERT(s->l,"reCodefklLntCat",__FILE__,__LINE__);
 		f->l[f->ls-1]->cpc+=s->bc->size;
 		memcpy(s->l,f->l,(f->ls)*sizeof(LineNumTabNode*));
 	}
@@ -2279,9 +2279,9 @@ void reCodelntCat(ByteCodelnt* f,ByteCodelnt* s)
 		if(f->l[f->ls-1]->line==s->l[0]->line&&f->l[f->ls-1]->fid==s->l[0]->fid)
 		{
 			LineNumTabNode** l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*(f->ls+s->ls-1));
-			FAKE_ASSERT(l,"reCodelntCat",__FILE__,__LINE__);
+			FAKE_ASSERT(l,"reCodefklLntCat",__FILE__,__LINE__);
 			f->l[f->ls-1]->cpc+=s->l[0]->cpc;
-			freeLineNumTabNode(s->l[0]);
+			fklFreeLineNumTabNode(s->l[0]);
 			memcpy(l,f->l,(f->ls)*sizeof(LineNumTabNode*));
 			memcpy(l+f->ls,s->l+1,(s->ls-1)*sizeof(LineNumTabNode*));
 			free(s->l);
@@ -2291,7 +2291,7 @@ void reCodelntCat(ByteCodelnt* f,ByteCodelnt* s)
 		else
 		{
 			LineNumTabNode** l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*(f->ls+s->ls));
-			FAKE_ASSERT(l,"reCodeCat",__FILE__,__LINE__);
+			FAKE_ASSERT(l,"fklReCodeCat",__FILE__,__LINE__);
 			memcpy(l,f->l,(f->ls)*sizeof(LineNumTabNode*));
 			memcpy(l+f->ls,s->l,(s->ls)*sizeof(LineNumTabNode*));
 			free(s->l);
@@ -2299,10 +2299,10 @@ void reCodelntCat(ByteCodelnt* f,ByteCodelnt* s)
 			s->ls+=f->ls;
 		}
 	}
-	reCodeCat(f->bc,s->bc);
+	fklReCodeCat(f->bc,s->bc);
 }
 
-void printByteCodelnt(ByteCodelnt* obj,FILE* fp)
+void fklPrintByteCodelnt(ByteCodelnt* obj,FILE* fp)
 {
 	SymbolTable* table=&GlobSymbolTable;
 	ByteCode* tmpCode=obj->bc;
@@ -2318,7 +2318,7 @@ void printByteCodelnt(ByteCodelnt* obj,FILE* fp)
 		{
 			case -4:
 				{
-					fprintf(fp,"%s ",findSymbolInGlob((char*)(tmpCode->code+(++i)))->symbol);
+					fprintf(fp,"%s ",fklFindSymbolInGlob((char*)(tmpCode->code+(++i)))->symbol);
 					i+=sizeof(Sid_t);
 					int32_t handlerNum=*(int32_t*)(tmpCode->code+i);
 					fprintf(fp,"%d\n",handlerNum);
@@ -2330,8 +2330,8 @@ void printByteCodelnt(ByteCodelnt* obj,FILE* fp)
 						i+=sizeof(Sid_t);
 						uint32_t pCpc=*(uint32_t*)(tmpCode->code+i);
 						i+=sizeof(uint32_t);
-						fprintf(fp,"%s %d ",getGlobSymbolWithId(type)->symbol,pCpc);
-						printAsByteStr(tmpCode->code+i,pCpc,fp);
+						fprintf(fp,"%s %d ",fklGetGlobSymbolWithId(type)->symbol,pCpc);
+						fklPrintAsByteStr(tmpCode->code+i,pCpc,fp);
 						i+=pCpc;
 					}
 				}
@@ -2341,7 +2341,7 @@ void printByteCodelnt(ByteCodelnt* obj,FILE* fp)
 				break;
 			case -2:
 				fprintf(fp,"%d ",*(int32_t*)(tmpCode->code+i+1));
-				printAsByteStr((uint8_t*)(tmpCode->code+i+5),*(int32_t*)(tmpCode->code+i+1),fp);
+				fklPrintAsByteStr((uint8_t*)(tmpCode->code+i+5),*(int32_t*)(tmpCode->code+i+1),fp);
 				i+=5+*(int32_t*)(tmpCode->code+i+1);
 				break;
 			case -1:
@@ -2353,12 +2353,12 @@ void printByteCodelnt(ByteCodelnt* obj,FILE* fp)
 				i+=1;
 				break;
 			case 1:
-				printRawChar(tmpCode->code[i+1],fp);
+				fklPrintRawChar(tmpCode->code[i+1],fp);
 				i+=2;
 				break;
 			case 4:
 				if(tmpCode->code[i]==FAKE_PUSH_SYM)
-					fprintf(fp,"%s",getGlobSymbolWithId(*(Sid_t*)(tmpCode->code+i+1))->symbol);
+					fprintf(fp,"%s",fklGetGlobSymbolWithId(*(Sid_t*)(tmpCode->code+i+1))->symbol);
 				else
 					fprintf(fp,"%d",*(int32_t*)(tmpCode->code+i+1));
 				i+=5;
@@ -2399,16 +2399,16 @@ void printByteCodelnt(ByteCodelnt* obj,FILE* fp)
 	}
 }
 
-ByteCodeLabel* newByteCodeLable(int32_t place,const char* label)
+ByteCodeLabel* fklNewByteCodeLable(int32_t place,const char* label)
 {
 	ByteCodeLabel* tmp=(ByteCodeLabel*)malloc(sizeof(ByteCodeLabel));
-	FAKE_ASSERT(tmp,"newByteCodeLable",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklNewByteCodeLable",__FILE__,__LINE__);
 	tmp->place=place;
-	tmp->label=copyStr(label);
+	tmp->label=fklCopyStr(label);
 	return tmp;
 }
 
-ByteCodeLabel* findByteCodeLabel(const char* label,ComStack* s)
+ByteCodeLabel* fklFindByteCodeLabel(const char* label,ComStack* s)
 {
 	int32_t l=0;
 	int32_t h=s->top-1;
@@ -2428,34 +2428,34 @@ ByteCodeLabel* findByteCodeLabel(const char* label,ComStack* s)
 }
 
 
-void freeByteCodeLabel(ByteCodeLabel* obj)
+void fklFreeByteCodeLabel(ByteCodeLabel* obj)
 {
 	free(obj->label);
 	free(obj);
 }
 
-int isComStackEmpty(ComStack* stack)
+int fklIsComStackEmpty(ComStack* stack)
 {
 	return stack->top==0;
 }
 
-ComStack* newComStack(uint32_t num)
+ComStack* fklNewComStack(uint32_t num)
 {
 	ComStack* tmp=(ComStack*)malloc(sizeof(ComStack));
-	FAKE_ASSERT(tmp,"newComStack",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklNewComStack",__FILE__,__LINE__);
 	tmp->data=(void**)malloc(sizeof(void*)*num);
-	FAKE_ASSERT(tmp->data,"newComStack",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp->data,"fklNewComStack",__FILE__,__LINE__);
 	tmp->num=num;
 	tmp->top=0;
 	return tmp;
 }
 
-void pushComStack(void* data,ComStack* stack)
+void fklPushComStack(void* data,ComStack* stack)
 {
 	if(stack->top==stack->num)
 	{
 		void** tmpData=(void**)realloc(stack->data,(stack->num+32)*sizeof(void*));
-		FAKE_ASSERT(tmpData,"pushComStack",__FILE__,__LINE__);
+		FAKE_ASSERT(tmpData,"fklPushComStack",__FILE__,__LINE__);
 		stack->data=tmpData;
 		stack->num+=32;
 	}
@@ -2463,86 +2463,86 @@ void pushComStack(void* data,ComStack* stack)
 	stack->top+=1;
 }
 
-void* popComStack(ComStack* stack)
+void* fklPopComStack(ComStack* stack)
 {
-	if(isComStackEmpty(stack))
+	if(fklIsComStackEmpty(stack))
 		return NULL;
 	stack->top-=1;
 	void* tmp=stack->data[stack->top];
-	recycleComStack(stack);
+	fklRecycleComStack(stack);
 	return tmp;
 }
 
-void* topComStack(ComStack* stack)
+void* fklTopComStack(ComStack* stack)
 {
-	if(isComStackEmpty(stack))
+	if(fklIsComStackEmpty(stack))
 		return NULL;
 	return stack->data[stack->top-1];
 }
 
-void freeComStack(ComStack* stack)
+void fklFreeComStack(ComStack* stack)
 {
 	free(stack->data);
 	free(stack);
 }
 
-void recycleComStack(ComStack* stack)
+void fklRecycleComStack(ComStack* stack)
 {
 	if(stack->num-stack->top>32)
 	{
 		void** tmpData=(void**)realloc(stack->data,(stack->num-32)*sizeof(void*));
-		FAKE_ASSERT(tmpData,"recycleComStack",__FILE__,__LINE__);
+		FAKE_ASSERT(tmpData,"fklRecycleComStack",__FILE__,__LINE__);
 		stack->data=tmpData;
 		stack->num-=32;
 	}
 }
 
-FakeMem* newFakeMem(void* block,void (*destructor)(void*))
+FakeMem* fklNewFakeMem(void* block,void (*destructor)(void*))
 {
 	FakeMem* tmp=(FakeMem*)malloc(sizeof(FakeMem));
-	FAKE_ASSERT(tmp,"newFakeMem",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklNewFakeMem",__FILE__,__LINE__);
 	tmp->block=block;
 	tmp->destructor=destructor;
 	return tmp;
 }
 
-void freeFakeMem(FakeMem* mem)
+void fklFreeFakeMem(FakeMem* mem)
 {
 	void (*f)(void*)=mem->destructor;
 	f(mem->block);
 	free(mem);
 }
 
-FakeMemMenager* newFakeMemMenager(size_t size)
+FakeMemMenager* fklNewFakeMemMenager(size_t size)
 {
 	FakeMemMenager* tmp=(FakeMemMenager*)malloc(sizeof(FakeMemMenager));
-	FAKE_ASSERT(tmp,"newFakeMemMenager",__FILE__,__LINE__);
-	tmp->s=newComStack(size);
+	FAKE_ASSERT(tmp,"fklNewFakeMemMenager",__FILE__,__LINE__);
+	tmp->s=fklNewComStack(size);
 	return tmp;
 }
 
-void freeFakeMemMenager(FakeMemMenager* memMenager)
+void fklFreeFakeMemMenager(FakeMemMenager* memMenager)
 {
 	size_t i=0;
 	ComStack* s=memMenager->s;
 	for(;i<s->top;i++)
-		freeFakeMem(s->data[i]);
-	freeComStack(s);
+		fklFreeFakeMem(s->data[i]);
+	fklFreeComStack(s);
 	free(memMenager);
 }
 
-void pushFakeMem(void* block,void (*destructor)(void*),FakeMemMenager* memMenager)
+void fklPushFakeMem(void* block,void (*destructor)(void*),FakeMemMenager* memMenager)
 {
-	FakeMem* mem=newFakeMem(block,destructor);
-	pushComStack(mem,memMenager->s);
+	FakeMem* mem=fklNewFakeMem(block,destructor);
+	fklPushComStack(mem,memMenager->s);
 }
 
 void* popFakeMem(FakeMemMenager* memMenager)
 {
-	return popComStack(memMenager->s);
+	return fklPopComStack(memMenager->s);
 }
 
-void deleteFakeMem(void* block,FakeMemMenager* memMenager)
+void fklDeleteFakeMem(void* block,FakeMemMenager* memMenager)
 {
 	ComStack* s=memMenager->s;
 	s->top-=1;
@@ -2556,7 +2556,7 @@ void deleteFakeMem(void* block,FakeMemMenager* memMenager)
 		s->data[i]=s->data[i+1];
 }
 
-void* reallocFakeMem(void* o_block,void* n_block,FakeMemMenager* memMenager)
+void* fklReallocFakeMem(void* o_block,void* n_block,FakeMemMenager* memMenager)
 {
 	ComStack* s=memMenager->s;
 	uint32_t i=0;
@@ -2609,23 +2609,23 @@ void mergeSort(void* _base,size_t num,size_t size,int (*cmpf)(const void*,const 
 	free(base1);
 }
 
-void freeAllMacro(PreMacro* head)
+void fklFreeAllMacro(PreMacro* head)
 {
 	PreMacro* cur=head;
 	while(cur!=NULL)
 	{
 		PreMacro* prev=cur;
 		cur=cur->next;
-		deleteCptr(prev->pattern);
+		fklDeleteCptr(prev->pattern);
 		free(prev->pattern);
-		destroyCompEnv(prev->macroEnv);
+		fklDestroyCompEnv(prev->macroEnv);
 		FREE_ALL_LINE_NUMBER_TABLE(prev->proc->l,prev->proc->ls);
-		freeByteCodelnt(prev->proc);
+		fklFreeByteCodelnt(prev->proc);
 		free(prev);
 	}
 }
 
-void freeAllKeyWord(KeyWord* head)
+void fklFreeAllKeyWord(KeyWord* head)
 {
 	KeyWord* cur=head;
 	while(cur!=NULL)
@@ -2637,42 +2637,42 @@ void freeAllKeyWord(KeyWord* head)
 	}
 }
 
-QueueNode* newQueueNode(void* data)
+QueueNode* fklNewQueueNode(void* data)
 {
 	QueueNode* tmp=(QueueNode*)malloc(sizeof(QueueNode));
-	FAKE_ASSERT(tmp,"newQueueNode",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklNewQueueNode",__FILE__,__LINE__);
 	tmp->data=data;
 	tmp->next=NULL;
 	return tmp;
 }
 
-void freeQueueNode(QueueNode* tmp)
+void fklFreeQueueNode(QueueNode* tmp)
 {
 	free(tmp);
 }
 
-ComQueue* newComQueue()
+ComQueue* fklNewComQueue()
 {
 	ComQueue* tmp=(ComQueue*)malloc(sizeof(ComQueue));
-	FAKE_ASSERT(tmp,"newComQueue",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklNewComQueue",__FILE__,__LINE__);
 	tmp->head=NULL;
 	tmp->tail=NULL;
 	return tmp;
 }
 
-void freeComQueue(ComQueue* tmp)
+void fklFreeComQueue(ComQueue* tmp)
 {
 	QueueNode* cur=tmp->head;
 	while(cur)
 	{
 		QueueNode* prev=cur;
 		cur=cur->next;
-		freeQueueNode(prev);
+		fklFreeQueueNode(prev);
 	}
 	free(tmp);
 }
 
-int32_t lengthComQueue(ComQueue* tmp)
+int32_t fklLengthComQueue(ComQueue* tmp)
 {
 	QueueNode* cur=tmp->head;
 	int32_t i=0;
@@ -2680,7 +2680,7 @@ int32_t lengthComQueue(ComQueue* tmp)
 	return i;
 }
 
-void* popComQueue(ComQueue* tmp)
+void* fklPopComQueue(ComQueue* tmp)
 {
 	QueueNode* head=tmp->head;
 	if(!head)
@@ -2689,11 +2689,11 @@ void* popComQueue(ComQueue* tmp)
 	tmp->head=head->next;
 	if(!tmp->head)
 		tmp->tail=NULL;
-	freeQueueNode(head);
+	fklFreeQueueNode(head);
 	return retval;
 }
 
-void* firstComQueue(ComQueue* tmp)
+void* fklFirstComQueue(ComQueue* tmp)
 {
 	QueueNode* head=tmp->head;
 	if(!head)
@@ -2701,9 +2701,9 @@ void* firstComQueue(ComQueue* tmp)
 	return head->data;
 }
 
-void pushComQueue(void* data,ComQueue* tmp)
+void fklPushComQueue(void* data,ComQueue* tmp)
 {
-	QueueNode* tmpNode=newQueueNode(data);
+	QueueNode* tmpNode=fklNewQueueNode(data);
 	if(!tmp->head)
 	{
 		tmp->head=tmpNode;
@@ -2716,34 +2716,34 @@ void pushComQueue(void* data,ComQueue* tmp)
 	}
 }
 
-ComQueue* copyComQueue(ComQueue* q)
+ComQueue* fklCopyComQueue(ComQueue* q)
 {
 	QueueNode* head=q->head;
-	ComQueue* tmp=newComQueue();
+	ComQueue* tmp=fklNewComQueue();
 	for(;head;head=head->next)
-		pushComQueue(head->data,tmp);
+		fklPushComQueue(head->data,tmp);
 	return tmp;
 }
 
-char* strCat(char* s1,const char* s2)
+char* fklStrCat(char* s1,const char* s2)
 {
 	s1=(char*)realloc(s1,sizeof(char)*(strlen(s1)+strlen(s2)+1));
-	FAKE_ASSERT(s1,"strCat",__FILE__,__LINE__);
+	FAKE_ASSERT(s1,"fklStrCat",__FILE__,__LINE__);
 	strcat(s1,s2);
 	return s1;
 }
 
-uint8_t* createByteArry(int32_t size)
+uint8_t* fklCreateByteArry(int32_t size)
 {
 	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	FAKE_ASSERT(tmp,"createByteArry",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklCreateByteArry",__FILE__,__LINE__);
 	return tmp;
 }
 
-VMDefTypes* newVMDefTypes(void)
+VMDefTypes* fklNewVMDefTypes(void)
 {
 	VMDefTypes* tmp=(VMDefTypes*)malloc(sizeof(VMDefTypes));
-	FAKE_ASSERT(tmp,"newVMDefTypes",__FILE__,__LINE__);
+	FAKE_ASSERT(tmp,"fklNewVMDefTypes",__FILE__,__LINE__);
 	tmp->num=0;
 	tmp->u=NULL;
 	return tmp;

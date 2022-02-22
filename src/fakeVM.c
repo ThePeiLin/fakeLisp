@@ -4,7 +4,6 @@
 #include<fakeLisp/reader.h>
 #include<fakeLisp/fakeVM.h>
 #include<fakeLisp/opcode.h>
-#include<fakeLisp/syscall.h>
 #include<fakeLisp/fakeFFI.h>
 #include<string.h>
 #include<math.h>

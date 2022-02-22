@@ -2131,11 +2131,12 @@ int fklSET_REF(VMvalue* P,VMvalue* V)
 		return 1;
 }
 
-TypeId_t fklNewVMNativeType(Sid_t type,size_t size)
+TypeId_t fklNewVMNativeType(Sid_t type,size_t size,size_t align)
 {
 	VMNativeType* tmp=(VMNativeType*)malloc(sizeof(VMNativeType));
 	FAKE_ASSERT(tmp,"fklNewVMNativeType",__FILE__,__LINE__);
 	tmp->type=type;
+	tmp->align=align;
 	tmp->size=size;
 	return addToGlobTypeUnionList((VMTypeUnion)MAKE_NATIVE_TYPE(tmp));
 }
@@ -2185,6 +2186,36 @@ size_t fklGetVMTypeSize(VMTypeUnion t)
 	}
 }
 
+size_t fklGetVMTypeAlign(VMTypeUnion t)
+{
+	DefTypeTag tag=GET_TYPES_TAG(t.all);
+	t.all=GET_TYPES_PTR(t.all);
+	switch(tag)
+	{
+		case NATIVE_TYPE_TAG:
+			return t.nt->align;
+			break;
+		case ARRAY_TYPE_TAG:
+			return t.at->align;
+			break;
+		case PTR_TYPE_TAG:
+			return sizeof(void*);
+			break;
+		case STRUCT_TYPE_TAG:
+			return t.st->align;
+			break;
+		case UNION_TYPE_TAG:
+			return t.ut->align;
+			break;
+		case FUNC_TYPE_TAG:
+			return sizeof(void*);
+			break;
+		default:
+			return 0;
+			break;
+	}
+}
+
 TypeId_t fklNewVMArrayType(TypeId_t type,size_t num)
 {
 	TypeId_t id=0;
@@ -2210,6 +2241,7 @@ TypeId_t fklNewVMArrayType(TypeId_t type,size_t num)
 		tmp->etype=type;
 		tmp->num=num;
 		tmp->totalSize=num*fklGetVMTypeSize(fklGetVMTypeUnion(type));
+		tmp->align=fklGetVMTypeAlign(fklGetVMTypeUnion(type));
 		return addToGlobTypeUnionList((VMTypeUnion)MAKE_ARRAY_TYPE(tmp));
 	}
 	else
@@ -2279,7 +2311,22 @@ TypeId_t fklNewVMStructType(const char* structName,uint32_t num,Sid_t symbols[],
 	if(!id)
 	{
 		size_t totalSize=0;
-		for(uint32_t i=0;i<num;totalSize+=fklGetVMTypeSize(fklGetVMTypeUnion(memberTypes[i])),i++);
+		size_t maxSize=0;
+		size_t structAlign=0;
+		for(uint32_t i=0;i<num;i++)
+		{
+			VMTypeUnion tu=fklGetVMTypeUnion(memberTypes[i]);
+			size_t align=fklGetVMTypeAlign(tu);
+			size_t size=fklGetVMTypeSize(tu);
+			totalSize+=(totalSize%align)?align-totalSize%align:0;
+			totalSize+=size;
+			if(maxSize<size)
+			{
+				maxSize=size;
+				structAlign=align;
+			}
+		}
+		totalSize+=(totalSize%maxSize)?maxSize-totalSize%maxSize:0;
 		VMStructType* tmp=(VMStructType*)malloc(sizeof(VMStructType)+sizeof(VMStructMember)*num);
 		FAKE_ASSERT(tmp,"fklNewVMStructType",__FILE__,__LINE__);
 		if(structName)
@@ -2288,6 +2335,7 @@ TypeId_t fklNewVMStructType(const char* structName,uint32_t num,Sid_t symbols[],
 			tmp->type=-1;
 		tmp->num=num;
 		tmp->totalSize=totalSize;
+		tmp->align=structAlign;
 		for(uint32_t i=0;i<num;i++)
 		{
 			tmp->layout[i].memberSymbol=symbols[i];
@@ -2301,11 +2349,15 @@ TypeId_t fklNewVMStructType(const char* structName,uint32_t num,Sid_t symbols[],
 TypeId_t fklNewVMUnionType(const char* unionName,uint32_t num,Sid_t symbols[],TypeId_t memberTypes[])
 {
 	size_t maxSize=0;
+	size_t align=0;
 	for(uint32_t i=0;i<num;i++)
 	{
 		size_t curSize=fklGetVMTypeSizeWithTypeId(memberTypes[i]);
 		if(maxSize<curSize)
+		{
 			maxSize=curSize;
+			align=fklGetVMTypeAlign(fklGetVMTypeUnion(memberTypes[i]));
+		}
 	}
 	VMUnionType* tmp=(VMUnionType*)malloc(sizeof(VMUnionType)+sizeof(VMStructMember)*num);
 	FAKE_ASSERT(tmp,"fklNewVMStructType",__FILE__,__LINE__);
@@ -2315,6 +2367,7 @@ TypeId_t fklNewVMUnionType(const char* unionName,uint32_t num,Sid_t symbols[],Ty
 		tmp->type=-1;
 	tmp->num=num;
 	tmp->maxSize=maxSize;
+	tmp->align=align;
 	for(uint32_t i=0;i<num;i++)
 	{
 		tmp->layout[i].memberSymbol=symbols[i];
@@ -2538,17 +2591,17 @@ void fklInitNativeDefTypes(VMDefTypes* otherTypes)
 	{
 		Sid_t typeName=fklAddSymbolToGlob(nativeTypeList[i].typeName)->id;
 		size_t size=nativeTypeList[i].size;
-		TypeId_t t=fklNewVMNativeType(typeName,size);
+		TypeId_t t=fklNewVMNativeType(typeName,size,size);
 		if(!CharTypeId&&!strcmp("char",nativeTypeList[i].typeName))
 			CharTypeId=t;
 		//VMTypeUnion t={.nt=fklNewVMNativeType(typeName,size)};
 		fklAddDefTypes(otherTypes,typeName,t);
 	}
 	Sid_t otherTypeName=fklAddSymbolToGlob("string")->id;
-	StringTypeId=fklNewVMNativeType(otherTypeName,sizeof(char*));
+	StringTypeId=fklNewVMNativeType(otherTypeName,sizeof(char*),sizeof(char*));
 	fklAddDefTypes(otherTypes,otherTypeName,StringTypeId);
 	otherTypeName=fklAddSymbolToGlob("FILE*")->id;
-	FILEpTypeId=fklNewVMNativeType(otherTypeName,sizeof(FILE*));
+	FILEpTypeId=fklNewVMNativeType(otherTypeName,sizeof(FILE*),sizeof(FILE*));
 	fklAddDefTypes(otherTypes,otherTypeName,FILEpTypeId);
 	LastNativeTypeId=num;
 	//i=0;

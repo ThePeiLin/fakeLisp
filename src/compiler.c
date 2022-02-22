@@ -1575,6 +1575,9 @@ ByteCodelnt* fklCompileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 					TypeId_t tmpType=0;
 					for(;i<num;i++)
 					{
+						size_t align=fklGetVMTypeAlign(fklGetVMTypeUnion(structType->layout[i].type));
+						if(offset%align)
+							offset+=align-offset%align;
 						if(structType->layout[i].memberSymbol==curPathNode)
 						{
 							tmpType=structType->layout[i].type;

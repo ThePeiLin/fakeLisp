@@ -183,7 +183,7 @@ TypeId_t fklGenDefTypesUnion(AST_cptr* objCptr,VMDefTypes* otherTypes);
 VMDefTypesNode* fklFindVMDefTypesNode(Sid_t typeId,VMDefTypes* otherTypes);
 int fklAddDefTypes(VMDefTypes*,Sid_t typeName,TypeId_t);
 
-TypeId_t fklNewVMNativeType(Sid_t,size_t);
+TypeId_t fklNewVMNativeType(Sid_t,size_t,size_t);
 void fklFreeVMNativeType(VMNativeType*);
 
 TypeId_t fklNewVMArrayType(TypeId_t,size_t);
@@ -203,6 +203,7 @@ TypeId_t fklFindSameFuncType(TypeId_t,uint32_t anum,TypeId_t atypes[]);
 void fklFreeVMFuncType(VMFuncType*);
 
 size_t fklGetVMTypeSize(VMTypeUnion t);
+size_t fklGetVMTypeAlign(VMTypeUnion t);
 size_t fklGetVMTypeSizeWithTypeId(TypeId_t t);
 VMTypeUnion fklGetVMTypeUnion(TypeId_t);
 

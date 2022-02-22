@@ -2,6 +2,7 @@
 *.so
 *.dll
 log.txt
+include/fakeLisp/syscall.h
 *.fklc
 *.orig
 new.c
@@ -9,8 +10,6 @@ tags
 vgcore.*
 test*
 .cache
-fakeLisp
-fakeLispc
 compile_commands.json
 .vimspector.json
 build/

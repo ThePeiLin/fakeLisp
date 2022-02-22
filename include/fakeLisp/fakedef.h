@@ -490,6 +490,7 @@ typedef struct VMerrorHandler
 typedef struct VMNativeType
 {
 	Sid_t type;
+	uint32_t align;
 	uint32_t size;
 }VMNativeType;
 
@@ -497,6 +498,7 @@ typedef struct VMArrayType
 {
 	size_t num;
 	size_t totalSize;
+	uint32_t align;
 	TypeId_t etype;
 }VMArrayType;
 
@@ -510,6 +512,7 @@ typedef struct VMStructType
 	int64_t type;
 	uint32_t num;
 	size_t totalSize;
+	uint32_t align;
 	struct VMStructMember
 	{
 		Sid_t memberSymbol;
@@ -522,6 +525,7 @@ typedef struct VMUnionType
 	int64_t type;
 	uint32_t num;
 	size_t maxSize;
+	uint32_t align;
 	struct VMStructMember layout[];
 }VMUnionType;
 

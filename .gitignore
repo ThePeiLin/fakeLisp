@@ -1,8 +1,12 @@
 *
 !/include/
 !/include/**/
-!/examples/*.fkl
+!/examples/
+!/examples/**/
+!/lib/
+!/lib/**/
 !CMakeLists.txt
 !/src/
 !/src/**/
 !Makefile
+*.fklc

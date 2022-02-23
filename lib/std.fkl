@@ -229,60 +229,63 @@
            (begin
              (define args nil)
              (define vals nil)
-             (cond ((eq (type d) (quote sym))
+             (cond ((eq (type d) 'sym)
                     (setq
                       args
                       (map (lambda (sd) (nth 0 sd)) (car b)))
                     (setq
                       vals
                       (map (lambda (sd) (nth 1 sd)) (car b)))
-                    (qsquote (let ()
-                               (define (unquote d)
-                                 (lambda (unquote args)
-                                   (unqtesp (cdr b))))
-                               (unquote (cons d vals))))
-                    )
-                   ((eq (type d) (quote pair))
+                    `(let ()
+                       (define ~d
+                         (lambda ~args
+                           ~@(cdr b)))
+                       (~d ~@vals)))
+                   ((eq (type d) 'pair)
                     (setq args
                           (map (lambda (sd) (nth 0 sd)) d))
                     (setq vals
                           (map (lambda (sd) (nth 1 sd)) d))
-                    (qsquote ((lambda (unquote args) (unqtesp b)) (unqtesp vals)))
-                    )
-                   ((eq (type d) (quote nil))
-                    (qsquote ((lambda () (unqtesp b)))))
-                   (1 (raise (error "expanding-macro-let" (quote syntax-error) "error:Wrong type of object behind key word:let\n")))
-                   )))
+                    `((lambda ~args ~@b) ~@vals))
+                   ((eq (type d) 'nil)
+                    `((lambda () ~@b)))
+                   (1 (raise (error "expanding-macro-let" 'syntax-error "error:Wrong type of object behind key word:let\n"))))))
 
          (defmacro
            (let* ?d,?b)
-           (cond ((or (not (eq (type d) (quote pair)))
+           (cond ((or (not (eq (type d) 'pair))
                       (<= (length d) 1))
-                  (qsquote (let (unquote d) (unqtesp b))))
+                  `(let ~d ~@b))
                  (1
-                  (qsquote (let ((unquote (car d)))
-                             (let* (unquote (cdr d)) (unqtesp b)))))))
+                  `(let (~(car d))
+                     (let* ~(cdr d)
+                       ~@b)))))
 
          (defmacro
            (letrec ?d,?b)
            (begin
              (define dfs (map (lambda (sd) (qsquote (define (unquote (car sd)) (unqtesp (cdr sd))))) d))
-             (qsquote (let () (unqtesp dfs) (unqtesp b)))))
+             `(let () ~@dfs ~@b)))
 
          (defmacro
            (letcc ?t,?b)
-           (qsquote (clcc (lambda ((unquote t)) (unqtesp b)))))
+           `(clcc (lambda (~t) ~@b)))
 
          (defmacro (if ?condition ?exp1,?exp2)
-           (qsquote (cond ((unquote condition) (unquote exp1))
-                          (unquote (cons 1 exp2)))))
+             `(cond (~condition ~exp1)
+                    (1 ~@exp2)))
+
+         (defmacro (when ?pred,?expressions)
+           `(if ~pred
+              (begin
+                ~@expressions)))
 
          (defmacro (case ?v,?b)
            (begin
              (define body (let ((tb (map (lambda (x) (cdr x)) b))
                                 (cs (map (lambda (x)
-                                           (if (eq (type x) (quote pair))
-                                             (cons (quote or)
+                                           (if (eq (type x) 'pair)
+                                             (cons 'or
                                                    (map (lambda (x) (qsquote (equal (unquote v) (unquote x)))) x))
                                              x))
                                          (map (lambda (x) (nth 0 x)) b))))
@@ -290,12 +293,10 @@
                                    (define r (cons x (car tb)))
                                    (setq tb (cdr tb))
                                    r)
-                                 cs)
-                            ))
-             (qsquote (cond,(unquote body)))))
+                                 cs)))
+             `(cond,~body)))
 
          (defmacro (define  (?name,?args),?body)
-           (qsquote (define (unquote name)
-                      (lambda (unquote args)
-                        (unqtesp body)))))
-         )
+           `(define ~name
+              (lambda ~args
+                ~@body))))

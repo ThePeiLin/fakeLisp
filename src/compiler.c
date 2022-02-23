@@ -2257,8 +2257,11 @@ ByteCodelnt* fklCompileCond(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 				fklFreeByteCode(pushnil);
 				fklFreeComStack(stack1);
 				fklFreeComStack(stack2);
-				FREE_ALL_LINE_NUMBER_TABLE(conditionCode->l,conditionCode->ls);
-				fklFreeByteCodelnt(conditionCode);
+				if(conditionCode)
+				{
+					FREE_ALL_LINE_NUMBER_TABLE(conditionCode->l,conditionCode->ls);
+					fklFreeByteCodelnt(conditionCode);
+				}
 				return NULL;
 			}
 			fklPushComStack(tmp1,stack2);

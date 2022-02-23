@@ -534,7 +534,7 @@ void fklInitGlobKeyWord(CompEnv* glob)
 	fklAddKeyWord("deftype",glob);
 	fklAddKeyWord("getf",glob);
 	fklAddKeyWord("szof",glob);
-	fklAddKeyWord("fproc",glob);
+	fklAddKeyWord("flsym",glob);
 }
 
 void fklUnInitPreprocess()
@@ -745,7 +745,7 @@ ByteCodelnt* fklCompile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 		//if(fklIsPrognExpression(objCptr)) return fklCompileProgn(objCptr,curEnv,inter,state,evalIm);
 		if(fklIsImportExpression(objCptr))return fklCompileImport(objCptr,curEnv,inter,state,evalIm);
 		if(fklIsTryExpression(objCptr))return fklCompileTry(objCptr,curEnv,inter,state,evalIm);
-		if(fklIsFprocExpression(objCptr))return fklCompileFproc(objCptr,curEnv,inter,state,evalIm);
+		if(fklIsFlsymExpression(objCptr))return fklCompileFlsym(objCptr,curEnv,inter,state,evalIm);
 		if(fklIsLibraryExpression(objCptr))
 		{
 			ByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
@@ -1759,7 +1759,7 @@ ByteCodelnt* fklCompileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 	}
 }
 
-ByteCodelnt* fklCompileFproc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorState* state,int evalIm)
+ByteCodelnt* fklCompileFlsym(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorState* state,int evalIm)
 {
 	AST_cptr* fir=fklGetFirstCptr(objCptr);
 	AST_cptr* typeCptr=fklNextCptr(fir);

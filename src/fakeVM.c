@@ -19,6 +19,7 @@
 #include<time.h>
 #include<setjmp.h>
 
+pthread_mutex_t GlobSharedObjsMutex=PTHREAD_MUTEX_INITIALIZER;
 FklSharedObjNode* GlobSharedObjs=NULL;
 
 void threadErrorCallBack(void* a)
@@ -1840,5 +1841,24 @@ void fklCreateCallChainWithContinuation(FakeVM* vm,VMcontinuation* cc)
 			fklPushComStack(curH,cur->hstack);
 		}
 		fklPushComStack(cur,vm->tstack);
+	}
+}
+
+void fklFreeAllSharedObj(void)
+{
+	FklSharedObjNode* head=GlobSharedObjs;
+	pthread_mutex_lock(&GlobSharedObjsMutex);
+	GlobSharedObjs=NULL;
+	pthread_mutex_unlock(&GlobSharedObjsMutex);
+	while(head)
+	{
+		FklSharedObjNode* prev=head;
+		head=head->next;
+#ifdef _WIN32
+		FreeLibrary(prev->dll);
+#else
+		dlclose(prev->dll);
+#endif
+		free(prev);
 	}
 }

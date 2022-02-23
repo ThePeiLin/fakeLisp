@@ -12,6 +12,7 @@ extern void invokeNativeProcdure(FakeVM*,VMproc*,VMrunnable*);
 extern void invokeContinuation(FakeVM*,VMcontinuation*);
 extern void invokeDlProc(FakeVM*,VMDlproc*);
 extern void invokeFlproc(FakeVM*,VMFlproc*);
+extern pthread_mutex_t GlobSharedObjsMutex;
 extern FklSharedObjNode* GlobSharedObjs;
 extern const char* builtInSymbolList[NUMOFBUILTINSYMBOL];
 extern const char* builtInErrorType[NUMOFBUILTINERRORTYPE];
@@ -1009,8 +1010,8 @@ void SYS_type(FakeVM* exe,pthread_rwlock_t* gclock)
 			"chan",
 			"fp",
 			"dll",
-			"dproc",
-			"fproc",
+			"dlproc",
+			"flproc",
 			"err",
 			"mem",
 			"ref",
@@ -1647,6 +1648,8 @@ void SYS_lfdl(FakeVM* exe,pthread_rwlock_t* gclock)
 	FklSharedObjNode* node=(FklSharedObjNode*)malloc(sizeof(FklSharedObjNode));
 	FAKE_ASSERT(node,"B_load_shared_obj",__FILE__,__LINE__);
 	node->dll=handle;
+	pthread_mutex_lock(&GlobSharedObjsMutex);
 	node->next=GlobSharedObjs;
 	GlobSharedObjs=node;
+	pthread_mutex_unlock(&GlobSharedObjsMutex);
 }

@@ -64,6 +64,7 @@ int main(int argc,char** argv)
 			free(rp);
 			int state;
 			ByteCodelnt* mainByteCode=fklCompileFile(inter,1,&state);
+			fklFreeAllSharedObj();
 			if(mainByteCode==NULL)
 			{
 				free(workpath);
@@ -100,6 +101,7 @@ int main(int argc,char** argv)
 				fklFreeGlobSymbolTable();
 				fklFreeGlobTypeList();
 				fklFreeAllVMs();
+				fklFreeAllSharedObj();
 			}
 			else
 			{
@@ -109,6 +111,7 @@ int main(int argc,char** argv)
 				fklUnInitPreprocess();
 				fklFreeVMheap(anotherVM->heap);
 				fklFreeAllVMs();
+				fklFreeAllSharedObj();
 				free(InterpreterPath);
 				fklFreeGlobSymbolTable();
 				fklFreeGlobTypeList();
@@ -150,6 +153,7 @@ int main(int argc,char** argv)
 			fklFreeGlobSymbolTable();
 			fklFreeGlobTypeList();
 			fklFreeAllVMs();
+			fklFreeAllSharedObj();
 			fklFreeLineNumberTable(lnt);
 		}
 		else
@@ -157,6 +161,7 @@ int main(int argc,char** argv)
 			fklDeleteCallChain(anotherVM);
 			fklCancelAllThread();
 			fklFreeAllVMs();
+			fklFreeAllSharedObj();
 			fklFreeVMheap(heap);
 			fklFreeGlobSymbolTable();
 			fklFreeGlobTypeList();
@@ -287,6 +292,7 @@ void runIntpr(Intpr* inter)
 	fklUnInitPreprocess();
 	fklFreeVMheap(anotherVM->heap);
 	fklFreeAllVMs();
+	fklFreeAllSharedObj();
 	fklFreeGlobSymbolTable();
 	fklFreeGlobTypeList();
 }

@@ -44,4 +44,5 @@ void fklDBG_printVMenv(VMenv*,FILE*);
 void fklDBG_printVMvalue(VMvalue*,FILE*);
 void fklDBG_printVMstack(VMstack*,FILE*,int);
 void fklDBG_printVMByteCode(uint8_t* code,uint32_t s,uint32_t c,FILE*);
+void fklFreeAllSharedObj(void);
 #endif

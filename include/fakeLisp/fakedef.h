@@ -243,6 +243,7 @@ typedef struct Pre_Macro
 {
 	AST_cptr* pattern;
 	ByteCodelnt* proc;
+	VMDefTypes* deftypes;
 	struct Pre_Macro* next;
 	struct Comp_Env* macroEnv;
 }PreMacro;

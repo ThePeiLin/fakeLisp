@@ -39,5 +39,5 @@ int fklIsCatchExpression(const AST_cptr*);
 int fklIsKeyWord(const char*,CompEnv* curEnv);
 int fklIsDeftypeExpression(const AST_cptr*);
 int fklIsGetfExpression(const AST_cptr*);
-int fklIsFprocExpression(const AST_cptr*);
+int fklIsFlsymExpression(const AST_cptr*);
 #endif

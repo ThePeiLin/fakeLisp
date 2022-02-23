@@ -1,5 +1,6 @@
 #include<fakeLisp/common.h>
 #include<fakeLisp/compiler.h>
+#include<fakeLisp/fakeVM.h>
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/syntax.h>
 #include<fakeLisp/VMtool.h>
@@ -89,5 +90,6 @@ int main(int argc,char** argv)
 		return EXIT_FAILURE;
 	}
 	free(InterpreterPath);
+	fklFreeAllSharedObj();
 	return 0;
 }

@@ -454,7 +454,7 @@ int fklIsCatchExpression(const AST_cptr* objCptr)
 	return 0;
 }
 
-int fklIsFprocExpression(const AST_cptr* objCptr)
+int fklIsFlsymExpression(const AST_cptr* objCptr)
 {
-	return fklIsAnyExpression("fproc",objCptr);
+	return fklIsAnyExpression("flsym",objCptr);
 }

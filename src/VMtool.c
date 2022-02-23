@@ -2523,6 +2523,8 @@ TypeId_t fklGenDefTypes(AST_cptr* objCptr,VMDefTypes* otherTypes,Sid_t* typeName
 
 TypeId_t fklGenDefTypesUnion(AST_cptr* objCptr,VMDefTypes* otherTypes)
 {
+	if(!otherTypes)
+		return 0;
 	if(objCptr->type==ATM&&objCptr->u.atom->type==SYM)
 	{
 		VMDefTypesNode* n=fklFindVMDefTypesNode(fklAddSymbolToGlob(objCptr->u.atom->value.str)->id,otherTypes);

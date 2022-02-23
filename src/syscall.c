@@ -1607,6 +1607,8 @@ void SYS_delf(FakeVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_lfdl(FakeVM* exe,pthread_rwlock_t* gclock)
 {
+	if(exe->VMid==-1)
+		return;
 	VMstack* stack=exe->stack;
 	VMrunnable* r=fklTopComStack(exe->rstack);
 	VMvalue* vpath=fklPopVMstack(stack);

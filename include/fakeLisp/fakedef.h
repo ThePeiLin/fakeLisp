@@ -6,7 +6,7 @@
 #include<pthread.h>
 #include<setjmp.h>
 #define THRESHOLD_SIZE 64
-#define NUMOFBUILTINSYMBOL 53
+#define NUMOFBUILTINSYMBOL 54
 #define MAX_STRING_SIZE 64
 #define NUMOFBUILTINERRORTYPE 28
 #define STATIC_SYMBOL_INIT {0,NULL,NULL}
@@ -427,7 +427,6 @@ typedef struct VMFlproc
 {
 	void* func;
 	TypeId_t type;
-	VMvalue* dll;
 }VMFlproc;
 
 typedef struct StringMatchPattern

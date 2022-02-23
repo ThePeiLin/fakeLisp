@@ -3,6 +3,12 @@
 #include"fakedef.h"
 #include<pthread.h>
 
+typedef struct FklSharedObjNode
+{
+	DllHandle dll;
+	struct FklSharedObjNode* next;
+}FklSharedObjNode;
+
 int fklRunFakeVM(FakeVM*);
 FakeVM* fklNewFakeVM(ByteCode*);
 FakeVM* fklNewTmpFakeVM(ByteCode*);

@@ -534,6 +534,7 @@ void fklInitGlobKeyWord(CompEnv* glob)
 	fklAddKeyWord("deftype",glob);
 	fklAddKeyWord("getf",glob);
 	fklAddKeyWord("szof",glob);
+	fklAddKeyWord("fproc",glob);
 }
 
 void fklUnInitPreprocess()
@@ -744,6 +745,7 @@ ByteCodelnt* fklCompile(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorStat
 		//if(fklIsPrognExpression(objCptr)) return fklCompileProgn(objCptr,curEnv,inter,state,evalIm);
 		if(fklIsImportExpression(objCptr))return fklCompileImport(objCptr,curEnv,inter,state,evalIm);
 		if(fklIsTryExpression(objCptr))return fklCompileTry(objCptr,curEnv,inter,state,evalIm);
+		if(fklIsFprocExpression(objCptr))return fklCompileFproc(objCptr,curEnv,inter,state,evalIm);
 		if(fklIsLibraryExpression(objCptr))
 		{
 			ByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
@@ -1751,40 +1753,64 @@ ByteCodelnt* fklCompileGetf(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,Error
 	}
 	else
 	{
-		AST_cptr* nameCptr=fklNextCptr(typeCptr);
-		AST_cptr* dllCptr=fklNextCptr(nameCptr);
-		if(!(nameCptr&&dllCptr))
-		{
-			state->state=SYNTAXERROR;
-			state->place=objCptr;
-			return NULL;
-		}
-		ByteCodelnt* name=fklCompile(nameCptr,curEnv,inter,state,evalIm);
-		if(state->state)
-			return NULL;
-		ByteCodelnt* dll=fklCompile(dllCptr,curEnv,inter,state,evalIm);
-		if(state->state)
-		{
-			FREE_ALL_LINE_NUMBER_TABLE(name->l,name->ls);
-			fklFreeByteCodelnt(name);
-			return NULL;
-		}
-		ByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(sizeof(char)+sizeof(TypeId_t)));
-		tmp->bc->code[0]=FAKE_PUSH_FPROC;
-		*(TypeId_t*)(tmp->bc->code+sizeof(char))=type;
-		LineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,tmp->bc->size,objCptr->curline);
-		tmp->ls=1;
-		tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
-		FAKE_ASSERT(tmp->l,"fklCompileGetf",__FILE__,__LINE__);
-		tmp->l[0]=n;
-		reCodefklLntCat(name,tmp);
-		reCodefklLntCat(dll,tmp);
-		fklFreeByteCodelnt(name);
-		fklFreeByteCodelnt(dll);
-		return tmp;
+		state->state=SYNTAXERROR;
+		state->place=objCptr;
+		return NULL;
 	}
 }
 
+ByteCodelnt* fklCompileFproc(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorState* state,int evalIm)
+{
+	AST_cptr* fir=fklGetFirstCptr(objCptr);
+	AST_cptr* typeCptr=fklNextCptr(fir);
+	TypeId_t type=fklGenDefTypesUnion(typeCptr,inter->deftypes);
+	if(!type)
+	{
+		state->state=SYNTAXERROR;
+		state->place=objCptr;
+		return NULL;
+	}
+	VMTypeUnion typeUnion=fklGetVMTypeUnion(type);
+	if(GET_TYPES_TAG(typeUnion.all)!=FUNC_TYPE_TAG)
+	{
+		state->state=SYNTAXERROR;
+		state->place=objCptr;
+		return NULL;
+	}
+	AST_cptr* nameCptr=fklNextCptr(typeCptr);
+	if(fklNextCptr(nameCptr)!=NULL)
+	{
+		state->state=SYNTAXERROR;
+		state->place=objCptr;
+		return NULL;
+	}
+	if(!nameCptr)
+	{
+		state->state=SYNTAXERROR;
+		state->place=objCptr;
+		return NULL;
+	}
+	ByteCodelnt* name=fklCompile(nameCptr,curEnv,inter,state,evalIm);
+	if(state->state)
+		return NULL;
+	if(state->state)
+	{
+		FREE_ALL_LINE_NUMBER_TABLE(name->l,name->ls);
+		fklFreeByteCodelnt(name);
+		return NULL;
+	}
+	ByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(sizeof(char)+sizeof(TypeId_t)));
+	tmp->bc->code[0]=FAKE_PUSH_FPROC;
+	*(TypeId_t*)(tmp->bc->code+sizeof(char))=type;
+	LineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,tmp->bc->size,objCptr->curline);
+	tmp->ls=1;
+	tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
+	FAKE_ASSERT(tmp->l,"fklCompileGetf",__FILE__,__LINE__);
+	tmp->l[0]=n;
+	reCodefklLntCat(name,tmp);
+	fklFreeByteCodelnt(name);
+	return tmp;
+}
 ByteCodelnt* fklCompileSzof(AST_cptr* objCptr,CompEnv* curEnv,Intpr* inter,ErrorState* state,int evalIm)
 {
 	AST_cptr* typeCptr=fklNextCptr(fklGetFirstCptr(objCptr));

@@ -1448,7 +1448,6 @@ DllHandle* fklNewVMDll(const char* dllName)
 		fprintf(stderr,"%s\n",szBuf);
 		free(rpath);
 		free(realDllName);
-		free(tmp);
 		return NULL;
 	}
 #else
@@ -1504,13 +1503,12 @@ void fklFreeVMDlproc(VMDlproc* dlproc)
 	free(dlproc);
 }
 
-VMFlproc* fklNewVMFlproc(TypeId_t type,void* func,VMvalue* dll)
+VMFlproc* fklNewVMFlproc(TypeId_t type,void* func)
 {
 	VMFlproc* tmp=(VMFlproc*)malloc(sizeof(VMFlproc));
 	FAKE_ASSERT(tmp,"fklNewVMDlproc",__FILE__,__LINE__);
 	tmp->type=type;
 	tmp->func=func;
-	tmp->dll=dll;
 	return tmp;
 }
 
@@ -1716,6 +1714,26 @@ VMrunnable* fklNewVMrunnable(VMproc* code)
 	}
 	tmp->mark=0;
 	return tmp;
+}
+
+char* fklGenInvalidSymbolErrorMessage(const char* str,VMrunnable* r,FakeVM* exe)
+{
+	int32_t cp=r->cp;
+	LineNumTabNode* node=fklFindLineNumTabNode(cp,exe->lnt);
+	char* filename=GlobSymbolTable.idl[node->fid]->symbol;
+	char* line=fklIntToString(node->line);
+	size_t len=strlen("at line  of \n")+strlen(filename)+strlen(line)+1;
+	char* lineNumber=(char*)malloc(sizeof(char)*len);
+	FAKE_ASSERT(lineNumber,"fklGenErrorMessage",__FILE__,__LINE__);
+	sprintf(lineNumber,"at line %s of %s\n",line,filename);
+	free(line);
+	char* t=fklCopyStr("");
+	t=fklStrCat(t,"Invalid symbol ");
+	t=fklStrCat(t,str);
+	t=fklStrCat(t," ");
+	t=fklStrCat(t,lineNumber);
+	free(lineNumber);
+	return t;
 }
 
 char* fklGenErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe)

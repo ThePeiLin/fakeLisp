@@ -31,6 +31,14 @@ extern const char*  builtInErrorType[NUMOFBUILTINERRORTYPE];
 	return;\
 }while(0)
 
+#define RAISE_BUILTIN_INVALIDSYMBOL_ERROR(WHO,STR,RUNNABLE,EXE) do{\
+	char* errorMessage=fklGenInvalidSymbolErrorMessage((STR),(RUNNABLE),(EXE));\
+	VMvalue* err=fklNewVMvalue(ERR,fklNewVMerror((WHO),"invalid-symbol",errorMessage),(EXE)->heap);\
+	free(errorMessage);\
+	fklRaiseVMerror(err,(EXE));\
+	return;\
+}while(0)
+
 #define VM_NIL ((VMptr)0x1)
 #define VM_TRUE (MAKE_VM_IN32(1))
 #define VM_EOF ((VMptr)0x7fffffffa)
@@ -151,7 +159,7 @@ void fklFreeVMDll(DllHandle*);
 VMDlproc* fklNewVMDlproc(DllFunc,VMvalue*);
 void fklFreeVMDlproc(VMDlproc*);
 
-VMFlproc* fklNewVMFlproc(TypeId_t type,void* func,VMvalue* dll);
+VMFlproc* fklNewVMFlproc(TypeId_t type,void* func);
 void fklFreeVMFlproc(VMFlproc*);
 
 VMerror* fklNewVMerror(const char* who,const char* type,const char* message);
@@ -175,6 +183,7 @@ void fklFreeVMerrorHandler(VMerrorHandler*);
 int fklRaiseVMerror(VMvalue* err,FakeVM*);
 VMrunnable* fklNewVMrunnable(VMproc*);
 char* fklGenErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe);
+char* fklGenInvalidSymbolErrorMessage(const char* str,VMrunnable* r,FakeVM* exe);
 int32_t fklGetSymbolIdInByteCode(const uint8_t*);
 int fklResBp(VMstack*);
 

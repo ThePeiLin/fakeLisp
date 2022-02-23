@@ -406,6 +406,22 @@ int fklIsKeyWord(const char* str,CompEnv* curEnv)
 	return 0;
 }
 
+int fklIsAnyExpression(const char* str,const AST_cptr* objCptr)
+{
+	objCptr=(objCptr->type==PAIR)?&objCptr->u.pair->car:NULL;
+	if(objCptr!=NULL&&fklNextCptr(objCptr)!=NULL&&fklNextCptr(fklNextCptr(objCptr))!=NULL)
+	{
+		if(objCptr->type!=ATM||fklNextCptr(objCptr)->type==NIL)return 0;
+		else
+		{
+			AST_atom* tmpAtm=objCptr->u.atom;
+			if(tmpAtm->type!=SYM||strcmp(tmpAtm->value.str,str))return 0;
+		}
+		return 1;
+	}
+	return 0;
+}
+
 int fklIsTryExpression(const AST_cptr* objCptr)
 {
 	objCptr=(objCptr->type==PAIR)?&objCptr->u.pair->car:NULL;
@@ -438,18 +454,7 @@ int fklIsCatchExpression(const AST_cptr* objCptr)
 	return 0;
 }
 
-int fklIsLfdlExpression(const AST_cptr* objCptr)
+int fklIsFprocExpression(const AST_cptr* objCptr)
 {
-	objCptr=(objCptr->type==PAIR)?&objCptr->u.pair->car:NULL;
-	if(objCptr!=NULL&&fklNextCptr(objCptr)!=NULL&&fklNextCptr(fklNextCptr(objCptr))!=NULL)
-	{
-		if(objCptr->type!=ATM||fklNextCptr(objCptr)->type==NIL)return 0;
-		else
-		{
-			AST_atom* tmpAtm=objCptr->u.atom;
-			if(tmpAtm->type!=SYM||strcmp(tmpAtm->value.str,"lfdl"))return 0;
-		}
-		return 1;
-	}
-	return 0;
+	return fklIsAnyExpression("fproc",objCptr);
 }

@@ -1,5 +1,8 @@
 *
-!include/fakeLisp/*.h
-!examples/*.fkl
+!/include/
+!/include/**/
+!/examples/*.fkl
 !CMakeLists.txt
-!src/*.c
+!/src/
+!/src/**/
+!Makefile

@@ -46,4 +46,5 @@ ByteCodelnt* fklCompileLoad(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
 ByteCodelnt* fklCompileProgn(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
 ByteCodelnt* fklCompileImport(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
 ByteCodelnt* fklCompileTry(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
+ByteCodelnt* fklCompileFproc(AST_cptr*,CompEnv*,Intpr*,ErrorState*,int evalIm);
 #endif

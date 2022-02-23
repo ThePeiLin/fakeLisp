@@ -108,6 +108,7 @@ const char* builtInSymbolList[]=
 	"raise",
 	"newf",
 	"delf",
+	"lfdl",
 };
 
 SymbolTable GlobSymbolTable=STATIC_SYMBOL_INIT;

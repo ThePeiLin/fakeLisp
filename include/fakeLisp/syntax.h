@@ -9,6 +9,7 @@ void fklAddSynRule(int (*)(const AST_cptr*));
 int (*checkAST(const AST_cptr*))(const AST_cptr*);
 int fklIsValid(const AST_cptr*);
 int fklIsPreprocess(const AST_cptr*);
+int fklIsAnyExpression(const char* str,const AST_cptr* objCptr);
 int fklIsDefExpression(const AST_cptr*);
 int fklIsSetqExpression(const AST_cptr*);
 int fklIsSetfExpression(const AST_cptr*);
@@ -38,5 +39,5 @@ int fklIsCatchExpression(const AST_cptr*);
 int fklIsKeyWord(const char*,CompEnv* curEnv);
 int fklIsDeftypeExpression(const AST_cptr*);
 int fklIsGetfExpression(const AST_cptr*);
-int fklIsLfdlExpression(const AST_cptr*);
+int fklIsFprocExpression(const AST_cptr*);
 #endif

@@ -6,12 +6,13 @@
 #include<string.h>
 #include<math.h>
 #include<setjmp.h>
+#include<dlfcn.h>
 
 extern void invokeNativeProcdure(FakeVM*,VMproc*,VMrunnable*);
 extern void invokeContinuation(FakeVM*,VMcontinuation*);
 extern void invokeDlProc(FakeVM*,VMDlproc*);
 extern void invokeFlproc(FakeVM*,VMFlproc*);
-
+extern FklSharedObjNode* GlobSharedObjs;
 extern const char* builtInSymbolList[NUMOFBUILTINSYMBOL];
 extern const char* builtInErrorType[NUMOFBUILTINERRORTYPE];
 extern TypeId_t CharTypeId;
@@ -71,6 +72,7 @@ void SYS_clcc(FakeVM*,pthread_rwlock_t*);
 void SYS_apply(FakeVM*,pthread_rwlock_t*);
 void SYS_newf(FakeVM*,pthread_rwlock_t*);
 void SYS_delf(FakeVM*,pthread_rwlock_t*);
+void SYS_lfdl(FakeVM*,pthread_rwlock_t*);
 
 //end
 
@@ -1007,8 +1009,8 @@ void SYS_type(FakeVM* exe,pthread_rwlock_t* gclock)
 			"chan",
 			"fp",
 			"dll",
-			"dlproc",
-			"flproc",
+			"dproc",
+			"fproc",
 			"err",
 			"mem",
 			"ref",
@@ -1600,4 +1602,51 @@ void SYS_delf(FakeVM* exe,pthread_rwlock_t* gclock)
 	uint8_t* p=pmem->mem;
 	free(p);
 	pmem->mem=NULL;
+}
+
+void SYS_lfdl(FakeVM* exe,pthread_rwlock_t* gclock)
+{
+	VMstack* stack=exe->stack;
+	VMrunnable* r=fklTopComStack(exe->rstack);
+	VMvalue* vpath=fklPopVMstack(stack);
+	if(fklResBp(stack))
+		RAISE_BUILTIN_ERROR("sys.lfdl",TOOMANYARG,r,exe);
+	if(!vpath)
+		RAISE_BUILTIN_ERROR("sys.lfdl",TOOFEWARG,r,exe);
+	if(!IS_STR(vpath))
+		RAISE_BUILTIN_ERROR("sys.lfdl",WRONGARG,r,exe);
+	const char* path=vpath->u.str;
+#ifdef _WIN32
+	DllHandle handle=LoadLibrary(path);
+	if(!handle)
+	{
+		TCHAR szBuf[128];
+		LPVOID lpMsgBuf;
+		DWORD dw = GetLastError();
+		FormatMessage (
+				FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+				NULL,
+				dw,
+				MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
+				(LPTSTR) &lpMsgBuf,
+				0, NULL );
+		wsprintf(szBuf,
+				_T("%s error Message (error code=%d): %s"),
+				_T("CreateDirectory"), dw, lpMsgBuf);
+		LocalFree(lpMsgBuf);
+		fprintf(stderr,"%s\n",szBuf);
+	}
+#else
+	DllHandle handle=dlopen(path,RTLD_LAZY);
+	if(!handle)
+	{
+		perror(dlerror());
+		putc('\n',stderr);
+	}
+#endif
+	FklSharedObjNode* node=(FklSharedObjNode*)malloc(sizeof(FklSharedObjNode));
+	FAKE_ASSERT(node,"B_load_shared_obj",__FILE__,__LINE__);
+	node->dll=handle;
+	node->next=GlobSharedObjs;
+	GlobSharedObjs=node;
 }

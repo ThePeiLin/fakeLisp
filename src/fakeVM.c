@@ -19,6 +19,8 @@
 #include<time.h>
 #include<setjmp.h>
 
+FklSharedObjNode* GlobSharedObjs=NULL;
+
 void threadErrorCallBack(void* a)
 {
 	void** e=(void**)a;
@@ -191,7 +193,7 @@ void invokeFlproc(FakeVM* exe,VMFlproc* flproc)
 		if(rtype==StringTypeId)
 			SET_RETURN("invokeFlproc",fklNewVMvalue(STR,(void*)retval,exe->heap),stack);
 		else if(fklIsFunctionTypeId(rtype))
-			SET_RETURN("invokeFlproc",fklNewVMvalue(FLPROC,fklNewVMFlproc(rtype,(void*)retval,flproc->dll),exe->heap),stack);
+			SET_RETURN("invokeFlproc",fklNewVMvalue(FLPROC,fklNewVMFlproc(rtype,(void*)retval),exe->heap),stack);
 		else if(rtype==FILEpTypeId)
 			SET_RETURN("invokeFlproc",fklNewVMvalue(FP,(void*)retval,exe->heap),stack);
 		else
@@ -244,12 +246,12 @@ static void B_invoke(FakeVM*);
 static void B_res_tp(FakeVM*);
 static void B_pop_tp(FakeVM*);
 static void B_res_bp(FakeVM*);
-static void B_append(FakeVM*);
 static void B_jmp_if_true(FakeVM*);
 static void B_jmp_if_false(FakeVM*);
 static void B_jmp(FakeVM*);
 static void B_push_try(FakeVM*);
 static void B_pop_try(FakeVM*);
+static void B_append(FakeVM*);
 
 
 static void (*ByteCodes[])(FakeVM*)=
@@ -416,6 +418,7 @@ extern void SYS_clcc(FakeVM*,pthread_rwlock_t*);
 extern void SYS_apply(FakeVM*,pthread_rwlock_t*);
 extern void SYS_newf(FakeVM*,pthread_rwlock_t*);
 extern void SYS_delf(FakeVM*,pthread_rwlock_t*);
+extern void SYS_lfdl(FakeVM*,pthread_rwlock_t*);
 
 void fklInitGlobEnv(VMenv* obj,VMheap* heap)
 {
@@ -470,6 +473,7 @@ void fklInitGlobEnv(VMenv* obj,VMheap* heap)
 		SYS_raise,
 		SYS_newf,
 		SYS_delf,
+		SYS_lfdl,
 	};
 	obj->num=NUMOFBUILTINSYMBOL;
 	obj->list=(VMenvNode**)malloc(sizeof(VMenvNode*)*NUMOFBUILTINSYMBOL);
@@ -829,14 +833,17 @@ void B_push_fproc(FakeVM* exe)
 	TypeId_t type=*(TypeId_t*)(exe->code+runnable->cp+1);
 	VMheap* heap=exe->heap;
 	VMvalue* sym=fklGET_VAL(fklPopVMstack(stack),heap);
-	VMvalue* dll=fklGET_VAL(fklPopVMstack(stack),heap);
-	if((!IS_SYM(sym)&&!IS_STR(sym))||(!IS_DLL(dll)))
+	//VMvalue* dll=fklGET_VAL(fklPopVMstack(stack),heap);
+	if((!IS_SYM(sym)&&!IS_STR(sym)))//||(!IS_DLL(dll)))
 		RAISE_BUILTIN_ERROR("b.push_fproc",WRONGARG,runnable,exe);
 	char* str=IS_SYM(sym)?fklGetGlobSymbolWithId(GET_SYM(sym))->symbol:sym->u.str;
-	void* address=fklGetAddress(str,dll->u.dll);
+	FklSharedObjNode* head=GlobSharedObjs;
+	void* address=NULL;
+	for(;head;head=head->next)
+		address=fklGetAddress(str,head->dll);
 	if(!address)
-		RAISE_BUILTIN_ERROR("b.push_fproc",INVALIDSYMBOL,runnable,exe);
-	SET_RETURN("B_push_fproc",fklNewVMvalue(FLPROC,fklNewVMFlproc(type,address,dll),heap),stack);
+		RAISE_BUILTIN_INVALIDSYMBOL_ERROR("b.push_fproc",str,runnable,exe);
+	SET_RETURN("B_push_fproc",fklNewVMvalue(FLPROC,fklNewVMFlproc(type,address),heap),stack);
 	runnable->cp+=5;
 }
 
@@ -1279,6 +1286,47 @@ void B_pop_try(FakeVM* exe)
 	r->cp+=1;
 }
 
+void B_load_shared_obj(FakeVM* exe)
+{
+	VMrunnable* r=fklTopComStack(exe->rstack);
+	unsigned int len=strlen((char*)(exe->code+r->cp+1));
+	char* str=fklCopyStr((char*)(exe->code+r->cp+1));
+#ifdef _WIN32
+	DllHandle handle=LoadLibrary(str);
+	if(!handle)
+	{
+		TCHAR szBuf[128];
+		LPVOID lpMsgBuf;
+		DWORD dw = GetLastError();
+		FormatMessage (
+				FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+				NULL,
+				dw,
+				MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
+				(LPTSTR) &lpMsgBuf,
+				0, NULL );
+		wsprintf(szBuf,
+				_T("%s error Message (error code=%d): %s"),
+				_T("CreateDirectory"), dw, lpMsgBuf);
+		LocalFree(lpMsgBuf);
+		fprintf(stderr,"%s\n",szBuf);
+	}
+#else
+	DllHandle handle=dlopen(str,RTLD_LAZY);
+	if(!handle)
+	{
+		perror(dlerror());
+		putc('\n',stderr);
+	}
+#endif
+	FklSharedObjNode* node=(FklSharedObjNode*)malloc(sizeof(FklSharedObjNode));
+	FAKE_ASSERT(node,"B_load_shared_obj",__FILE__,__LINE__);
+	node->dll=handle;
+	node->next=GlobSharedObjs;
+	GlobSharedObjs=node;
+	r->cp+=2+len;
+}
+
 VMstack* fklNewVMstack(int32_t size)
 {
 	VMstack* tmp=(VMstack*)malloc(sizeof(VMstack));
@@ -1471,10 +1519,6 @@ void fklfklGC_markValue(VMvalue* obj)
 			else if(root->type==DLPROC&&root->u.dlproc->dll)
 			{
 				fklPushComStack(root->u.dlproc->dll,stack);
-			}
-			else if(root->type==FLPROC&&root->u.flproc->dll)
-			{
-				fklPushComStack(root->u.flproc->dll,stack);
 			}
 		}
 	}

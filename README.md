@@ -99,6 +99,7 @@ error
 raise  
 newf  
 delf  
+lfdl  
 
 Special forms:  
 
@@ -119,6 +120,7 @@ proc
 import  
 getf  
 szof  
+flsym  
 
 Preprocesser commands:  
 deftype  

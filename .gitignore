@@ -10,3 +10,5 @@
 !/src/**/
 !Makefile
 *.fklc
+!README.md
+!README_ZH.md

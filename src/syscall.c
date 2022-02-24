@@ -1607,13 +1607,13 @@ void SYS_delf(FakeVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_lfdl(FakeVM* exe,pthread_rwlock_t* gclock)
 {
-	if(exe->VMid==-1)
-		return;
 	VMstack* stack=exe->stack;
 	VMrunnable* r=fklTopComStack(exe->rstack);
 	VMvalue* vpath=fklPopVMstack(stack);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.lfdl",TOOMANYARG,r,exe);
+	if(exe->VMid==-1)
+		return;
 	if(!vpath)
 		RAISE_BUILTIN_ERROR("sys.lfdl",TOOFEWARG,r,exe);
 	if(!IS_STR(vpath))

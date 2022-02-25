@@ -303,7 +303,7 @@ int fklCopyCptr(FklAstCptr* objCptr,const FklAstCptr* copiedCptr)
 				fklPushComStack(fklGetASTPairCar(root2),s2);
 				fklPushComStack(fklGetASTPairCdr(root2),s2);
 				break;
-			case ATM:
+			case FKL_ATM:
 				atom1=NULL;
 				atom2=root2->u.atom;
 				switch(atom2->type)
@@ -354,7 +354,7 @@ void fklReplaceCptr(FklAstCptr* fir,const FklAstCptr* sec)
 	fklDeleteCptr(&tmpCptr);
 	if(fir->type==FKL_PAIR)
 		fir->u.pair->prev=tmp;
-	else if(fir->type==ATM)
+	else if(fir->type==FKL_ATM)
 		fir->u.atom->prev=tmp;
 }
 
@@ -381,7 +381,7 @@ int fklDeleteCptr(FklAstCptr* objCptr)
 				continue;
 			}
 		}
-		else if(tmpCptr->type==ATM)
+		else if(tmpCptr->type==FKL_ATM)
 		{
 			fklFreeAtom(tmpCptr->u.atom);
 			tmpCptr->type=NIL;
@@ -438,9 +438,9 @@ int fklFklAstCptrcmp(const FklAstCptr* first,const FklAstCptr* second)
 			second=&secPair->car;
 			continue;
 		}
-		else if(first->type==ATM||first->type==NIL)
+		else if(first->type==FKL_ATM||first->type==NIL)
 		{
-			if(first->type==ATM)
+			if(first->type==FKL_ATM)
 			{
 				FklAstAtom* firAtm=first->u.atom;
 				FklAstAtom* secAtm=second->u.atom;
@@ -699,9 +699,9 @@ void fklPrintCptr(const FklAstCptr* objCptr,FILE* out)
 				continue;
 			}
 		}
-		else if(objCptr->type==ATM||objCptr->type==NIL)
+		else if(objCptr->type==FKL_ATM||objCptr->type==NIL)
 		{
-			if(objPair!=NULL&&objCptr==&objPair->cdr&&objCptr->type==ATM)putc(',',out);
+			if(objPair!=NULL&&objCptr==&objPair->cdr&&objCptr->type==FKL_ATM)putc(',',out);
 			if((objPair!=NULL&&objCptr==&objPair->car&&objCptr->type==NIL)
 			||(objCptr->outer==NULL&&objCptr->type==NIL))fputs("()",out);
 			if(objCptr->type!=NIL)
@@ -1952,7 +1952,7 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklIntpr* inter)
 		}
 		else
 		{
-			root->type=ATM;
+			root->type=FKL_ATM;
 			char* str=NULL;
 			if(objStr[i]=='\"')
 			{

@@ -1021,7 +1021,7 @@ void SYS_type(FklVM* exe,pthread_rwlock_t* gclock)
 			"pair"
 		};
 		int i=0;
-		for(;i<ATM;i++)
+		for(;i<FKL_ATM;i++)
 			a[i]=fklAddSymbolToGlob(b[i])->id;
 	}
 	FklVMstack* stack=exe->stack;

@@ -327,7 +327,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklIntpr* inter,FklStringMatchPatte
 			}
 			else
 			{
-				root->type=ATM;
+				root->type=FKL_ATM;
 				char* str=NULL;
 				if(objStr[i]=='\"')
 				{
@@ -350,7 +350,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklIntpr* inter,FklStringMatchPatte
 					}
 					root->type=tmpCptr->type;
 					root->u.all=tmpCptr->u.all;
-					if(tmpCptr->type==ATM)
+					if(tmpCptr->type==FKL_ATM)
 						tmpCptr->u.atom->prev=root->outer;
 					else if(tmpCptr->type==FKL_PAIR)
 						tmpCptr->u.pair->prev=root->outer;
@@ -457,9 +457,9 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 		else if(IS_PAIR(root))
 			cptrType=FKL_PAIR;
 		else if(!IS_REF(root)&&!IS_CHF(root))
-			cptrType=ATM;
+			cptrType=FKL_ATM;
 		root1->type=cptrType;
-		if(cptrType==ATM)
+		if(cptrType==FKL_ATM)
 		{
 			FklAstAtom* tmpAtm=fklNewAtom(FKL_SYM,NULL,root1->outer);
 			FklVMptrTag tag=GET_TAG(root);

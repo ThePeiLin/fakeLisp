@@ -909,7 +909,7 @@ void SYS_str(FklVM* exe,pthread_rwlock_t* gclock)
 		size_t s=obj->u.byts->size;
 		size_t l=(obj->u.byts->str[s-1])?s+1:s;
 		char* t=(char*)malloc(sizeof(char)*l);
-		FAKE_ASSERT(t,"SYS_str",__FILE__,__LINE__);
+		FKL_ASSERT(t,"SYS_str",__FILE__,__LINE__);
 		memcpy(t,obj->u.byts->str,s);
 		t[l-1]='\0';
 		retval->u.str=t;
@@ -951,21 +951,21 @@ void SYS_byts(FklVM* exe,pthread_rwlock_t* gclock)
 	if(IS_I32(obj))
 	{
 		retval->u.byts=(FklVMByts*)realloc(retval->u.byts,sizeof(FklVMByts)+sizeof(int32_t));
-		FAKE_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
+		FKL_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
 		retval->u.byts->size=sizeof(int32_t);
 		*(int32_t*)retval->u.byts->str=GET_I32(obj);
 	}
 	else if(IS_DBL(obj))
 	{
 		retval->u.byts=(FklVMByts*)realloc(retval->u.byts,sizeof(FklVMByts)+sizeof(double));
-		FAKE_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
+		FKL_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
 		retval->u.byts->size=sizeof(double);
 		*(double*)retval->u.byts->str=*obj->u.dbl;
 	}
 	else if(IS_CHR(obj))
 	{
 		retval->u.byts=(FklVMByts*)realloc(retval->u.byts,sizeof(FklVMByts)+sizeof(char));
-		FAKE_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
+		FKL_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
 		retval->u.byts->size=sizeof(char);
 		*(char*)retval->u.byts->str=GET_CHR(obj);
 	}
@@ -973,14 +973,14 @@ void SYS_byts(FklVM* exe,pthread_rwlock_t* gclock)
 	{
 		FklSymTabNode* n=fklGetGlobSymbolWithId(GET_SYM(obj));
 		retval->u.byts=(FklVMByts*)realloc(retval->u.byts,sizeof(FklVMByts)+strlen(n->symbol));
-		FAKE_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
+		FKL_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
 		retval->u.byts->size=strlen(n->symbol);
 		memcpy(retval->u.byts->str,n->symbol,retval->u.byts->size);
 	}
 	else if(IS_STR(obj))
 	{
 		retval->u.byts=(FklVMByts*)realloc(retval->u.byts,sizeof(FklVMByts)+strlen(obj->u.str)+1);
-		FAKE_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
+		FKL_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
 		retval->u.byts->size=strlen(obj->u.str);
 		memcpy(retval->u.byts->str,obj->u.str,retval->u.byts->size);
 	}
@@ -1179,7 +1179,7 @@ void SYS_getb(FklVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.getb",FKL_WRONGARG,runnable,exe);
 	FILE* fp=file->u.fp;
 	uint8_t* str=(uint8_t*)malloc(sizeof(uint8_t)*GET_I32(size));
-	FAKE_ASSERT(str,"B_getb",__FILE__,__LINE__);
+	FKL_ASSERT(str,"B_getb",__FILE__,__LINE__);
 	int32_t realRead=0;
 	realRead=fread(str,sizeof(uint8_t),GET_I32(size),fp);
 	if(!realRead)
@@ -1190,10 +1190,10 @@ void SYS_getb(FklVM* exe,pthread_rwlock_t* gclock)
 	else
 	{
 		str=(uint8_t*)realloc(str,sizeof(uint8_t)*realRead);
-		FAKE_ASSERT(str,"B_getb",__FILE__,__LINE__);
+		FKL_ASSERT(str,"B_getb",__FILE__,__LINE__);
 		FklVMvalue* tmpByts=fklNewVMvalue(FKL_BYTS,NULL,exe->heap);
 		tmpByts->u.byts=(FklVMByts*)malloc(sizeof(FklVMByts)+GET_I32(size));
-		FAKE_ASSERT(tmpByts->u.byts,"SYS_getb",__FILE__,__LINE__);
+		FKL_ASSERT(tmpByts->u.byts,"SYS_getb",__FILE__,__LINE__);
 		tmpByts->u.byts->size=GET_I32(size);
 		memcpy(tmpByts->u.byts->str,str,GET_I32(size));
 		free(str);
@@ -1291,7 +1291,7 @@ void SYS_dlsym(FklVM* exe,pthread_rwlock_t* gclock)
 	char prefix[]="FAKE_";
 	size_t len=strlen(prefix)+strlen(symbol->u.str)+1;
 	char* realDlFuncName=(char*)malloc(sizeof(char)*len);
-	FAKE_ASSERT(realDlFuncName,"B_dlsym",__FILE__,__LINE__);
+	FKL_ASSERT(realDlFuncName,"B_dlsym",__FILE__,__LINE__);
 	sprintf(realDlFuncName,"%s%s",prefix,symbol->u.str);
 	FklDllFunc funcAddress=fklGetAddress(realDlFuncName,dll->u.dll);
 	if(!funcAddress)
@@ -1586,7 +1586,7 @@ void SYS_newf(FklVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.newf",FKL_WRONGARG,r,exe);
 	size_t size=IS_I32(vsize)?GET_I32(vsize):*vsize->u.i64;
 	uint8_t* mem=(uint8_t*)malloc(size);
-	FAKE_ASSERT(mem,"SYS_newf",__FILE__,__LINE__);
+	FKL_ASSERT(mem,"SYS_newf",__FILE__,__LINE__);
 	FklVMvalue* retval=MAKE_VM_MEM(fklNewVMMem(0,mem),exe->heap);
 	SET_RETURN("SYS_newf",retval,stack);
 }
@@ -1651,7 +1651,7 @@ void SYS_lfdl(FklVM* exe,pthread_rwlock_t* gclock)
 	}
 #endif
 	FklSharedObjNode* node=(FklSharedObjNode*)malloc(sizeof(FklSharedObjNode));
-	FAKE_ASSERT(node,"B_load_shared_obj",__FILE__,__LINE__);
+	FKL_ASSERT(node,"B_load_shared_obj",__FILE__,__LINE__);
 	node->dll=handle;
 	pthread_mutex_lock(&GlobSharedObjsMutex);
 	node->next=GlobSharedObjs;

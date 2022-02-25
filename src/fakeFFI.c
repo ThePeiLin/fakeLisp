@@ -165,7 +165,7 @@ static double (*castToDoubleFunctionsList[])(ARGL)=
 /*ffi_type pointer caster functions*/
 #define ARGL FklVMvalue* v,void** p
 #define CAST_TO_INT(TYPE) TYPE* t=(TYPE*)malloc(sizeof(TYPE));\
-	FAKE_ASSERT(t,"VMvalue_pointer_caster",__FILE__,__LINE__);\
+	FKL_ASSERT(t,"VMvalue_pointer_caster",__FILE__,__LINE__);\
 	if(!IS_MEM(v)&&!IS_CHF(v))\
 	{\
 		FklVMptrTag tag=GET_TAG(v);\
@@ -210,7 +210,7 @@ static double (*castToDoubleFunctionsList[])(ARGL)=
 
 #define CAST_TO_FLOAT(TYPE) if(!IS_I32(v)&&!IS_I64(v)&&!IS_CHR(v)&&!IS_DBL(v)&&!IS_MEM(v)&&!IS_CHF(v))return 1;\
 	TYPE* t=(TYPE*)malloc(sizeof(TYPE));\
-	FAKE_ASSERT(t,"VMvalue_pointer_caster",__FILE__,__LINE__);\
+	FKL_ASSERT(t,"VMvalue_pointer_caster",__FILE__,__LINE__);\
 	if(!IS_MEM(v)&&!IS_CHF(v))\
 		*t=IS_I32(v)?GET_I32(v):(IS_I64(v)?*v->u.i64:(IS_DBL(v)?*v->u.dbl:GET_CHR(v)));\
 	else\
@@ -246,7 +246,7 @@ static int castUptrValue     (ARGL){CAST_TO_INT(uintptr_t)}
 static int castVptrValue     (ARGL)
 {
 	void** t=(void**)malloc(sizeof(void*));
-	FAKE_ASSERT(t,"VMvalue_pointer_caster",__FILE__,__LINE__);
+	FKL_ASSERT(t,"VMvalue_pointer_caster",__FILE__,__LINE__);
 	if(!IS_MEM(v)&&!IS_CHF(v))
 	{
 		if(v==VM_NIL)
@@ -318,7 +318,7 @@ void fklPrepFFIcif(ffi_cif* cif,int argc,ffi_type** atypes,ffi_type* rtype)
 	pthread_mutex_lock(&GPrepCifLock);
 	ffi_status r=ffi_prep_cif(cif,FFI_DEFAULT_ABI,argc,rtype,atypes);
 	pthread_mutex_unlock(&GPrepCifLock);
-	FAKE_ASSERT(r==FFI_OK,"fklPrepFFIcif",__FILE__,__LINE__);
+	FKL_ASSERT(r==FFI_OK,"fklPrepFFIcif",__FILE__,__LINE__);
 }
 
 void fklApplyFF(void* func,int argc,ffi_type* rtype,ffi_type** atypes,void* rvalue,void** avalue)
@@ -352,7 +352,7 @@ int fklCastValueToVptr(FklTypeId_t type,FklVMvalue* v,void** p)
 		else
 		{
 			void** t=(void*)malloc(sizeof(void*));
-			FAKE_ASSERT(p,"fklCastValueToVptr",__FILE__,__LINE__);
+			FKL_ASSERT(p,"fklCastValueToVptr",__FILE__,__LINE__);
 			*t=v->u.flproc->func;
 			*p=t;
 		}

@@ -115,7 +115,7 @@ void FAKE_getTime(FklVM* exe,pthread_rwlock_t* pGClock)
 	char* year=fklIntToString(tblock->tm_year+1900);
 	int32_t timeLen=strlen(year)+strlen(mon)+strlen(day)+strlen(hour)+strlen(min)+strlen(sec)+5+1;
 	char* trueTime=(char*)malloc(sizeof(char)*timeLen);
-	FAKE_ASSERT(trueTime,"FAKE_getTime",__FILE__,__LINE__);
+	FKL_ASSERT(trueTime,"FAKE_getTime",__FILE__,__LINE__);
 	sprintf(trueTime,"%s-%s-%s_%s_%s_%s",year,mon,day,hour,min,sec);
 	free(sec);
 	free(min);

@@ -384,7 +384,7 @@ void fklAddKeyWord(const char* objStr,FklCompEnv* curEnv)
 		{
 			current=(FklKeyWord*)malloc(sizeof(FklKeyWord));
 			current->word=(char*)malloc(sizeof(char)*(strlen(objStr)+1));
-			FAKE_ASSERT(current&&current->word,"fklAddKeyWord",__FILE__,__LINE__);
+			FKL_ASSERT(current&&current->word,"fklAddKeyWord",__FILE__,__LINE__);
 			strcpy(current->word,objStr);
 			if(prev!=NULL)prev->next=current;
 			else

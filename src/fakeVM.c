@@ -143,7 +143,7 @@ void invokeFlproc(FklVM* exe,FklVMFlproc* flproc)
 	uint32_t i=0;
 	FklTypeId_t rtype=ft->rtype;
 	FklVMvalue** args=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*anum);
-	FAKE_ASSERT(args,"invokeFlproc",__FILE__,__LINE__);
+	FKL_ASSERT(args,"invokeFlproc",__FILE__,__LINE__);
 	for(i=0;i<anum;i++)
 	{
 		FklVMvalue* v=fklPopVMstack(stack);
@@ -162,7 +162,7 @@ void invokeFlproc(FklVM* exe,FklVMFlproc* flproc)
 		RAISE_BUILTIN_ERROR("flproc",FKL_TOOMANYARG,curR,exe);
 	}
 	void** pArgs=(void**)malloc(sizeof(void*)*anum);
-	FAKE_ASSERT(pArgs,"invokeFlproc",__FILE__,__LINE__);
+	FKL_ASSERT(pArgs,"invokeFlproc",__FILE__,__LINE__);
 	for(i=0;i<anum;i++)
 		if(fklCastValueToVptr(atypes[i],args[i],&pArgs[i]))
 		{
@@ -284,7 +284,7 @@ static void (*ByteCodes[])(FklVM*)=
 FklVM* fklNewVM(FklByteCode* mainCode)
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
-	FAKE_ASSERT(exe,"fklNewVM",__FILE__,__LINE__);
+	FKL_ASSERT(exe,"fklNewVM",__FILE__,__LINE__);
 	FklVMproc* tmpVMproc=NULL;
 	exe->code=NULL;
 	exe->size=0;
@@ -319,7 +319,7 @@ FklVM* fklNewVM(FklByteCode* mainCode)
 	{
 		int32_t size=GlobVMs.num;
 		GlobVMs.VMs=(FklVM**)realloc(GlobVMs.VMs,sizeof(FklVM*)*(size+1));
-		FAKE_ASSERT(!size||GlobVMs.VMs,"fklNewVM",__FILE__,__LINE__);
+		FKL_ASSERT(!size||GlobVMs.VMs,"fklNewVM",__FILE__,__LINE__);
 		GlobVMs.VMs[size]=exe;
 		GlobVMs.num+=1;
 		exe->VMid=size;
@@ -330,7 +330,7 @@ FklVM* fklNewVM(FklByteCode* mainCode)
 FklVM* fklNewTmpVM(FklByteCode* mainCode)
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
-	FAKE_ASSERT(exe,"fklNewTmpVM",__FILE__,__LINE__);
+	FKL_ASSERT(exe,"fklNewTmpVM",__FILE__,__LINE__);
 	exe->code=NULL;
 	exe->size=0;
 	exe->rstack=fklNewComStack(32);
@@ -460,7 +460,7 @@ void fklInitGlobEnv(FklVMenv* obj,VMheap* heap)
 	};
 	obj->num=NUM_OF_BUILT_IN_SYMBOL;
 	obj->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*NUM_OF_BUILT_IN_SYMBOL);
-	FAKE_ASSERT(obj->list,"fklInitGlobEnv",__FILE__,__LINE__);
+	FKL_ASSERT(obj->list,"fklInitGlobEnv",__FILE__,__LINE__);
 	obj->list[0]=fklNewVMenvNode(VM_NIL,fklAddSymbolToGlob(builtInSymbolList[0])->id);
 	obj->list[1]=fklNewVMenvNode(fklNewVMvalue(FKL_FP,stdin,heap),fklAddSymbolToGlob(builtInSymbolList[1])->id);
 	obj->list[2]=fklNewVMenvNode(fklNewVMvalue(FKL_FP,stdout,heap),fklAddSymbolToGlob(builtInSymbolList[2])->id);
@@ -1102,7 +1102,7 @@ void B_set_tp(FklVM* exe)
 	if(stack->tptp>=stack->tpsi)
 	{
 		stack->tpst=(uint32_t*)realloc(stack->tpst,sizeof(uint32_t)*(stack->tpsi+16));
-		FAKE_ASSERT(stack->tpst,"B_set_tp",__FILE__,__LINE__);
+		FKL_ASSERT(stack->tpst,"B_set_tp",__FILE__,__LINE__);
 		stack->tpsi+=16;
 	}
 	stack->tpst[stack->tptp]=stack->tp;
@@ -1135,7 +1135,7 @@ void B_pop_tp(FklVM* exe)
 	if(stack->tpsi-stack->tptp>16)
 	{
 		stack->tpst=(uint32_t*)realloc(stack->tpst,sizeof(uint32_t)*(stack->tpsi-16));
-		FAKE_ASSERT(stack->tpst,"B_pop_tp",__FILE__,__LINE__);
+		FKL_ASSERT(stack->tpst,"B_pop_tp",__FILE__,__LINE__);
 		stack->tpsi-=16;
 	}
 	runnable->cp+=1;
@@ -1303,7 +1303,7 @@ void B_load_shared_obj(FklVM* exe)
 	}
 #endif
 	FklSharedObjNode* node=(FklSharedObjNode*)malloc(sizeof(FklSharedObjNode));
-	FAKE_ASSERT(node,"B_load_shared_obj",__FILE__,__LINE__);
+	FKL_ASSERT(node,"B_load_shared_obj",__FILE__,__LINE__);
 	node->dll=handle;
 	node->next=GlobSharedObjs;
 	GlobSharedObjs=node;
@@ -1313,12 +1313,12 @@ void B_load_shared_obj(FklVM* exe)
 FklVMstack* fklNewVMstack(int32_t size)
 {
 	FklVMstack* tmp=(FklVMstack*)malloc(sizeof(FklVMstack));
-	FAKE_ASSERT(tmp,"fklNewVMstack",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklNewVMstack",__FILE__,__LINE__);
 	tmp->size=size;
 	tmp->tp=0;
 	tmp->bp=0;
 	tmp->values=(FklVMvalue**)malloc(size*sizeof(FklVMvalue*));
-	FAKE_ASSERT(tmp->values,"fklNewVMstack",__FILE__,__LINE__);
+	FKL_ASSERT(tmp->values,"fklNewVMstack",__FILE__,__LINE__);
 	tmp->tpsi=0;
 	tmp->tptp=0;
 	tmp->tpst=NULL;
@@ -1332,12 +1332,12 @@ void fklStackRecycle(FklVM* exe)
 	if(stack->size-stack->tp>64)
 	{
 		stack->values=(FklVMvalue**)realloc(stack->values,sizeof(FklVMvalue*)*(stack->size-64));
-		FAKE_ASSERT(stack->values,"fklStackRecycle",__FILE__,__LINE__);
+		FKL_ASSERT(stack->values,"fklStackRecycle",__FILE__,__LINE__);
 		if(stack->values==NULL)
 		{
 			fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
 			fprintf(stderr,"cp=%d\n%s\n",currunnable->cp,codeName[(uint8_t)exe->code[currunnable->cp]].codeName);
-			FAKE_ASSERT(stack->values,"fklStackRecycle",__FILE__,__LINE__);
+			FKL_ASSERT(stack->values,"fklStackRecycle",__FILE__,__LINE__);
 		}
 		stack->size-=64;
 	}
@@ -1396,11 +1396,11 @@ int fklIsTheLastExpress(const FklVMrunnable* runnable,const FklVMrunnable* same,
 	for(;;)
 	{
 		uint8_t* code=exe->code;
-		uint32_t i=runnable->cp+(code[runnable->cp]==FAKE_INVOKE);
+		uint32_t i=runnable->cp+(code[runnable->cp]==FKL_INVOKE);
 		size=runnable->scp+runnable->cpc;
 
-		for(;i<size;i+=(code[i]==FAKE_JMP)?*(int32_t*)(code+i+1)+5:1)
-			if(code[i]!=FAKE_POP_TP&&code[i]!=FAKE_POP_TRY&&code[i]!=FAKE_JMP)
+		for(;i<size;i+=(code[i]==FKL_JMP)?*(int32_t*)(code+i+1)+5:1)
+			if(code[i]!=FKL_POP_TP&&code[i]!=FKL_POP_TRY&&code[i]!=FKL_JMP)
 				return 0;
 		if(runnable==same)
 			break;
@@ -1428,7 +1428,7 @@ void fklDBG_printVMenv(FklVMenv* curEnv,FILE* fp)
 VMheap* fklNewVMheap()
 {
 	VMheap* tmp=(VMheap*)malloc(sizeof(VMheap));
-	FAKE_ASSERT(tmp,"fklNewVMheap",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklNewVMheap",__FILE__,__LINE__);
 	tmp->num=0;
 	tmp->threshold=THRESHOLD_SIZE;
 	tmp->head=NULL;
@@ -1620,7 +1620,7 @@ void fklGC_sweep(VMheap* heap)
 FklVM* fklNewThreadVM(FklVMproc* mainCode,VMheap* heap)
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
-	FAKE_ASSERT(exe,"fklNewThreadVM",__FILE__,__LINE__);
+	FKL_ASSERT(exe,"fklNewThreadVM",__FILE__,__LINE__);
 	FklVMrunnable* t=fklNewVMrunnable(mainCode);
 	t->localenv=fklNewVMenv(mainCode->prevEnv);
 	exe->rstack=fklNewComStack(32);
@@ -1650,7 +1650,7 @@ FklVM* fklNewThreadVM(FklVMproc* mainCode,VMheap* heap)
 	{
 		int32_t size=GlobVMs.num;
 		GlobVMs.VMs=(FklVM**)realloc(GlobVMs.VMs,sizeof(FklVM*)*(size+1));
-		FAKE_ASSERT(!size||GlobVMs.VMs,"fklNewThreadVM",__FILE__,__LINE__);
+		FKL_ASSERT(!size||GlobVMs.VMs,"fklNewThreadVM",__FILE__,__LINE__);
 		GlobVMs.VMs[size]=exe;
 		GlobVMs.num+=1;
 		exe->VMid=size;
@@ -1661,7 +1661,7 @@ FklVM* fklNewThreadVM(FklVMproc* mainCode,VMheap* heap)
 FklVM* fklNewThreadDlprocVM(FklVMrunnable* r,VMheap* heap)
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
-	FAKE_ASSERT(exe,"fklNewThreadVM",__FILE__,__LINE__);
+	FKL_ASSERT(exe,"fklNewThreadVM",__FILE__,__LINE__);
 	FklVMrunnable* t=fklNewVMrunnable(NULL);
 	t->cp=r->cp;
 	t->localenv=NULL;
@@ -1692,7 +1692,7 @@ FklVM* fklNewThreadDlprocVM(FklVMrunnable* r,VMheap* heap)
 	{
 		int32_t size=GlobVMs.num;
 		GlobVMs.VMs=(FklVM**)realloc(GlobVMs.VMs,sizeof(FklVM*)*(size+1));
-		FAKE_ASSERT(!size||GlobVMs.VMs,"fklNewThreadVM",__FILE__,__LINE__);
+		FKL_ASSERT(!size||GlobVMs.VMs,"fklNewThreadVM",__FILE__,__LINE__);
 		GlobVMs.VMs[size]=exe;
 		GlobVMs.num+=1;
 		exe->VMid=size;
@@ -1786,7 +1786,7 @@ void fklCreateCallChainWithContinuation(FklVM* vm,VMcontinuation* cc)
 		if(tmpStack->tp>=tmpStack->size)
 		{
 			tmpStack->values=(FklVMvalue**)realloc(tmpStack->values,sizeof(FklVMvalue*)*(tmpStack->size+64));
-			FAKE_ASSERT(tmpStack->values,"fklCreateCallChainWithContinuation",__FILE__,__LINE__);
+			FKL_ASSERT(tmpStack->values,"fklCreateCallChainWithContinuation",__FILE__,__LINE__);
 			tmpStack->size+=64;
 		}
 		tmpStack->values[tmpStack->tp]=stack->values[i];
@@ -1800,7 +1800,7 @@ void fklCreateCallChainWithContinuation(FklVM* vm,VMcontinuation* cc)
 	for(i=0;i<cc->num;i++)
 	{
 		FklVMrunnable* cur=(FklVMrunnable*)malloc(sizeof(FklVMrunnable));
-		FAKE_ASSERT(cur,"fklCreateCallChainWithContinuation",__FILE__,__LINE__);
+		FKL_ASSERT(cur,"fklCreateCallChainWithContinuation",__FILE__,__LINE__);
 		cur->cp=cc->state[i].cp;
 		cur->localenv=cc->state[i].localenv;
 		fklIncreaseVMenvRefcount(cur->localenv);

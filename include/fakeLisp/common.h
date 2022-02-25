@@ -3,14 +3,14 @@
 #include"fakedef.h"
 #include<stdint.h>
 
-#define INCREASE_ALL_SCP(l,ls,s) {int32_t i=0;\
+#define FKL_INCREASE_ALL_SCP(l,ls,s) {int32_t i=0;\
 	for(;i<(ls);i++)\
 	(l)[i]->scp+=(s);\
 }
 
-#define MIN(a,b) (((a)<(b))?(a):(b))
+#define FKL_MIN(a,b) (((a)<(b))?(a):(b))
 
-#define FAKE_ASSERT(exp,str,filepath,cl) \
+#define FKL_ASSERT(exp,str,filepath,cl) \
 { \
 	if(!(exp)) \
 	{\

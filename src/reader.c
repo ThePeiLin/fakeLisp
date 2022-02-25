@@ -6,7 +6,7 @@
 #include<stdlib.h>
 #include<ctype.h>
 
-#define FREE_ALL_LINE_NUMBER_TABLE(l,s) {int32_t i=0;\
+#define FKL_FREE_ALL_LINE_NUMBER_TABLE(l,s) {int32_t i=0;\
 	for(;i<(s);i++)\
 	fklFreeLineNumTabNode((l)[i]);\
 }
@@ -26,7 +26,7 @@ char** fklSplitPattern(const char* str,int32_t* num)
 	int32_t count=countStringParts(str);
 	*num=count;
 	char** tmp=(char**)malloc(sizeof(char*)*count);
-	FAKE_ASSERT(tmp,"fklSplitPattern",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklSplitPattern",__FILE__,__LINE__);
 	count=0;
 	for(;str[i]!='\0';i++)
 	{
@@ -37,7 +37,7 @@ char** fklSplitPattern(const char* str,int32_t* num)
 			int j=i;
 			for(;str[j]!='\0'&&str[j]!=')';j++);
 			char* tmpStr=(char*)malloc(sizeof(char)*(j-i+2));
-			FAKE_ASSERT(tmpStr,"fklSplitPattern",__FILE__,__LINE__);
+			FKL_ASSERT(tmpStr,"fklSplitPattern",__FILE__,__LINE__);
 			memcpy(tmpStr,str+i,j-i+1);
 			tmpStr[j-i+1]='\0';
 			tmp[count]=tmpStr;
@@ -48,7 +48,7 @@ char** fklSplitPattern(const char* str,int32_t* num)
 		int j=i;
 		for(;str[j]!='\0'&&str[j]!='(';j++);
 		char* tmpStr=(char*)malloc(sizeof(char)*(j-i+1));
-		FAKE_ASSERT(tmpStr,"fklSplitPattern",__FILE__,__LINE__);
+		FKL_ASSERT(tmpStr,"fklSplitPattern",__FILE__,__LINE__);
 		memcpy(tmpStr,str+i,j-i);
 		tmpStr[j-i]='\0';
 		tmp[count]=tmpStr;
@@ -65,7 +65,7 @@ char* fklGetVarName(const char* str)
 	int j=i;
 	for(;str[i]!='\0'&&str[i]!=')';i++);
 	char* tmp=(char*)malloc(sizeof(char)*(i-j+1));
-	FAKE_ASSERT(tmp,"fklGetVarName",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklGetVarName",__FILE__,__LINE__);
 	memcpy(tmp,str+j,i-j);
 	tmp[i-j]='\0';
 	return tmp;
@@ -106,7 +106,7 @@ char* fklReadInPattern(FILE* fp,char** prev,int* unexpectEOF)
 	if(*prev)
 	{
 		tmp=(char*)malloc(sizeof(char)*(strlen(*prev)+1));
-		FAKE_ASSERT(tmp,"fklReadInPattern",__FILE__,__LINE__);
+		FKL_ASSERT(tmp,"fklReadInPattern",__FILE__,__LINE__);
 		strcpy(tmp,*prev);
 		free(*prev);
 		*prev=NULL;
@@ -115,7 +115,7 @@ char* fklReadInPattern(FILE* fp,char** prev,int* unexpectEOF)
 	else
 	{
 		tmp=(char*)malloc(sizeof(char)*1);
-		FAKE_ASSERT(tmp,"fklReadInPattern",__FILE__,__LINE__);
+		FKL_ASSERT(tmp,"fklReadInPattern",__FILE__,__LINE__);
 		tmp[0]='\0';
 	}
 	size_t i=fklSkipSpace(tmp);
@@ -294,7 +294,7 @@ char* readString(FILE* fp)
 {
 	int32_t memSize=MAX_STRING_SIZE;
 	char* tmp=(char*)malloc(sizeof(char)*memSize);
-	FAKE_ASSERT(tmp,"readString",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"readString",__FILE__,__LINE__);
 	int32_t strSize=0;
 	int ch=getc(fp);
 	for(;ch!=EOF;ch=getc(fp))
@@ -303,7 +303,7 @@ char* readString(FILE* fp)
 		if(strSize>memSize-1)
 		{
 			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+MAX_STRING_SIZE));
-			FAKE_ASSERT(tmp,"readString",__FILE__,__LINE__);
+			FKL_ASSERT(tmp,"readString",__FILE__,__LINE__);
 			memSize+=MAX_STRING_SIZE;
 		}
 		tmp[strSize-1]=ch;
@@ -314,7 +314,7 @@ char* readString(FILE* fp)
 			if(strSize>memSize-1)
 			{
 				tmp=(char*)realloc(tmp,sizeof(char)*(memSize+MAX_STRING_SIZE));
-				FAKE_ASSERT(tmp,"readString",__FILE__,__LINE__);
+				FKL_ASSERT(tmp,"readString",__FILE__,__LINE__);
 				memSize+=MAX_STRING_SIZE;
 			}
 			tmp[strSize-1]=ch;
@@ -325,7 +325,7 @@ char* readString(FILE* fp)
 	tmp[strSize]='\0';
 	memSize=strlen(tmp)+1;
 	tmp=(char*)realloc(tmp,sizeof(char)*memSize);
-	FAKE_ASSERT(tmp,"readString",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"readString",__FILE__,__LINE__);
 	return tmp;
 }
 
@@ -357,14 +357,14 @@ char** fklSplitStringInPattern(const char* str,FklStringMatchPattern* pattern,in
 	int i=0;
 	int32_t* s=matchPartOfPattern(str,pattern,num);
 	char** tmp=(char**)malloc(sizeof(char*)*(pattern->num));
-	FAKE_ASSERT(tmp,"fklSplitStringInPattern",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklSplitStringInPattern",__FILE__,__LINE__);
 	for(;i<pattern->num;i++)
 		tmp[i]=NULL;
 	for(i=0;i<*num;i++)
 	{
 		int32_t strSize=(i+1<*num)?((size_t)(s[i+1]-s[i])):(size_t)fklSkipInPattern(str,pattern)-s[i];
 		char* tmpStr=(char*)malloc(sizeof(char)*(strSize+1));
-		FAKE_ASSERT(tmpStr,"fklSplitStringInPattern",__FILE__,__LINE__);
+		FKL_ASSERT(tmpStr,"fklSplitStringInPattern",__FILE__,__LINE__);
 		memcpy(tmpStr,str+s[i],strSize);
 		tmpStr[strSize]='\0';
 		tmp[i]=tmpStr;
@@ -377,7 +377,7 @@ int32_t* matchPartOfPattern(const char* str,FklStringMatchPattern* pattern,int32
 {
 	*num=fklCountInPattern(str,pattern);
 	int32_t* fklSplitIndex=(int32_t*)malloc(sizeof(int32_t)*(*num));
-	FAKE_ASSERT(fklSplitIndex,"matchPartOfPattern",__FILE__,__LINE__);
+	FKL_ASSERT(fklSplitIndex,"matchPartOfPattern",__FILE__,__LINE__);
 	int32_t s=0;
 	int32_t i=0;
 	for(;i<*num;i++)
@@ -827,7 +827,7 @@ int fklIsMustList(const char* str)
 FklStringMatchPattern* fklNewFStringMatchPattern(int32_t num,char** parts,void(*fproc)(FklVM* exe))
 {
 	FklStringMatchPattern* tmp=(FklStringMatchPattern*)malloc(sizeof(FklStringMatchPattern));
-	FAKE_ASSERT(tmp,"fklNewFStringMatchPattern",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklNewFStringMatchPattern",__FILE__,__LINE__);
 	tmp->type=FKL_FLPROC;
 	tmp->num=num;
 	tmp->parts=parts;
@@ -875,7 +875,7 @@ FklStringMatchPattern* fklNewFStringMatchPattern(int32_t num,char** parts,void(*
 FklStringMatchPattern* fklNewStringMatchPattern(int32_t num,char** parts,FklByteCodelnt* proc)
 {
 	FklStringMatchPattern* tmp=(FklStringMatchPattern*)malloc(sizeof(FklStringMatchPattern));
-	FAKE_ASSERT(tmp,"fklNewStringMatchPattern",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklNewStringMatchPattern",__FILE__,__LINE__);
 	tmp->type=FKL_BYTS;
 	tmp->num=num;
 	tmp->parts=parts;
@@ -930,7 +930,7 @@ void fklFreeAllStringPattern()
 		fklFreeStringArry(prev->parts,prev->num);
 		if(prev->type==FKL_BYTS)
 		{
-			FREE_ALL_LINE_NUMBER_TABLE(prev->u.bProc->l,prev->u.bProc->ls);
+			FKL_FREE_ALL_LINE_NUMBER_TABLE(prev->u.bProc->l,prev->u.bProc->ls);
 			fklFreeByteCodelnt(prev->u.bProc);
 		}
 		free(prev);

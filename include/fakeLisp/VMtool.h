@@ -12,7 +12,7 @@
 	if((stack)->tp>=(stack)->size)\
 	{\
 		(stack)->values=(FklVMvalue**)realloc((stack)->values,sizeof(FklVMvalue*)*((stack)->size+64));\
-		FAKE_ASSERT((stack)->values,fn,__FILE__,__LINE__);\
+		FKL_ASSERT((stack)->values,fn,__FILE__,__LINE__);\
 		if((stack)->values==NULL)\
 		{\
 			fprintf(stderr,"In file \"%s\" line %d\n",__FILE__,__LINE__);\

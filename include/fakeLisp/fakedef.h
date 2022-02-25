@@ -63,7 +63,27 @@ typedef struct FklVMDefTypes
 	FklVMDefTypesNode** u;
 }FklVMDefTypes;
 
-typedef enum{NIL=0,IN32,CHR,DBL,IN64,SYM,STR,BYTS,PRC,CONT,CHAN,FP,DLL,DLPROC,FLPROC,ERR,MEM,CHF,PAIR,ATM} FklValueType;
+typedef enum{NIL=0,
+	IN32,
+	CHR,
+	DBL,
+	IN64,
+	SYM,
+	STR,
+	BYTS,
+	PRC,
+	CONT,
+	CHAN,
+	FP,
+	DLL,
+	DLPROC,
+	FLPROC,
+	ERR,
+	MEM,
+	CHF,
+	PAIR,
+	ATM,
+}FklValueType;
 typedef enum
 {
 	SYMUNDEFINE=1,

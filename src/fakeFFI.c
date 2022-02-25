@@ -261,7 +261,7 @@ static int castVptrValue     (ARGL)
 				case FKL_BYTS:
 					*t=v->u.byts->str;
 					break;
-				case FP:
+				case FKL_FP:
 					*t=v->u.fp;
 					break;
 				default:

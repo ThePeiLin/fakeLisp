@@ -179,7 +179,7 @@ void invokeFlproc(FklVM* exe,FklVMFlproc* flproc)
 		else if(fklIsFunctionTypeId(rtype))
 			SET_RETURN("invokeFlproc",fklNewVMvalue(FLPROC,fklNewVMFlproc(rtype,(void*)retval),exe->heap),stack);
 		else if(rtype==FILEpTypeId)
-			SET_RETURN("invokeFlproc",fklNewVMvalue(FP,(void*)retval,exe->heap),stack);
+			SET_RETURN("invokeFlproc",fklNewVMvalue(FKL_FP,(void*)retval,exe->heap),stack);
 		else
 		{
 			FklTypeId_t t=(rtype>LastNativeTypeId)?LastNativeTypeId:rtype;
@@ -462,9 +462,9 @@ void fklInitGlobEnv(FklVMenv* obj,VMheap* heap)
 	obj->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*NUM_OF_BUILT_IN_SYMBOL);
 	FAKE_ASSERT(obj->list,"fklInitGlobEnv",__FILE__,__LINE__);
 	obj->list[0]=fklNewVMenvNode(VM_NIL,fklAddSymbolToGlob(builtInSymbolList[0])->id);
-	obj->list[1]=fklNewVMenvNode(fklNewVMvalue(FP,stdin,heap),fklAddSymbolToGlob(builtInSymbolList[1])->id);
-	obj->list[2]=fklNewVMenvNode(fklNewVMvalue(FP,stdout,heap),fklAddSymbolToGlob(builtInSymbolList[2])->id);
-	obj->list[3]=fklNewVMenvNode(fklNewVMvalue(FP,stderr,heap),fklAddSymbolToGlob(builtInSymbolList[3])->id);
+	obj->list[1]=fklNewVMenvNode(fklNewVMvalue(FKL_FP,stdin,heap),fklAddSymbolToGlob(builtInSymbolList[1])->id);
+	obj->list[2]=fklNewVMenvNode(fklNewVMvalue(FKL_FP,stdout,heap),fklAddSymbolToGlob(builtInSymbolList[2])->id);
+	obj->list[3]=fklNewVMenvNode(fklNewVMvalue(FKL_FP,stderr,heap),fklAddSymbolToGlob(builtInSymbolList[3])->id);
 	size_t i=4;
 	for(;i<NUM_OF_BUILT_IN_SYMBOL;i++)
 		obj->list[i]=fklNewVMenvNode(fklNewVMvalue(DLPROC,fklNewVMDlproc(syscallFunctionList[i-4],NULL),heap),fklAddSymbolToGlob(builtInSymbolList[i])->id);
@@ -1586,7 +1586,7 @@ void fklGC_sweep(VMheap* heap)
 				case FKL_CHAN:
 					fklFreeVMChanl(prev->u.chan);
 					break;
-				case FP:
+				case FKL_FP:
 					fklFreeVMfp(prev->u.fp);
 					break;
 				case DLL:

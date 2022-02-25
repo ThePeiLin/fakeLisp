@@ -1119,7 +1119,7 @@ void SYS_file(FklVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.file",FILEFAILURE,runnable,exe);
 	}
 	else
-		obj=fklNewVMvalue(FP,file,heap);
+		obj=fklNewVMvalue(FKL_FP,file,heap);
 	SET_RETURN("SYS_file",obj,stack);
 }
 

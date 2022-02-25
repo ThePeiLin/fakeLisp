@@ -741,7 +741,7 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,VMheap* heap)
 							break;
 						case FKL_CONT:
 						case FKL_PRC:
-						case FP:
+						case FKL_FP:
 						case DLL:
 						case DLPROC:
 						case ERR:
@@ -834,7 +834,7 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,VMheap* heap)
 						tmp->u.cont=pValue;break;
 					case FKL_CHAN:
 						tmp->u.chan=pValue;break;
-					case FP:
+					case FKL_FP:
 						tmp->u.fp=pValue;break;
 					case DLL:
 						tmp->u.dll=pValue;break;
@@ -1953,7 +1953,7 @@ void fklPrincVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 					case FKL_CHAN:
 						fprintf(fp,"#<chan>");
 						break;
-					case FP:
+					case FKL_FP:
 						fprintf(fp,"#<fp>");
 						break;
 					case DLL:
@@ -2084,7 +2084,7 @@ void fklPrin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 					case FKL_CHAN:
 						fprintf(fp,"#<chan>");
 						break;
-					case FP:
+					case FKL_FP:
 						fprintf(fp,"#<fp>");
 						break;
 					case DLL:

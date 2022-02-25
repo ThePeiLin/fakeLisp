@@ -266,7 +266,7 @@ FklAstAtom* fklNewAtom(int type,const char* value,FklAstPair* prev)
 			break;
 		case FKL_CHR:
 		case FKL_I32:
-		case DBL:
+		case FKL_DBL:
 			*(int32_t*)(&tmp->value)=0;
 			break;
 		case BYTS:
@@ -321,7 +321,7 @@ int fklCopyCptr(FklAstCptr* objCptr,const FklAstCptr* copiedCptr)
 						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
 						atom1->value.i32=atom2->value.i32;
 						break;
-					case DBL:
+					case FKL_DBL:
 						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
 						atom1->value.dbl=atom2->value.dbl;
 						break;
@@ -447,7 +447,7 @@ int fklFklAstCptrcmp(const FklAstCptr* first,const FklAstCptr* second)
 				if(firAtm->type!=secAtm->type)return 0;
 				if((firAtm->type==SYM||firAtm->type==FKL_STR)&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
 				else if(firAtm->type==FKL_I32&&firAtm->value.i32!=secAtm->value.i32)return 0;
-				else if(firAtm->type==DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
+				else if(firAtm->type==FKL_DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
 				else if(firAtm->type==FKL_CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
 				else if(firAtm->type==BYTS&&!fklEqByteString(&firAtm->value.byts,&secAtm->value.byts))return 0;
 			}
@@ -718,7 +718,7 @@ void fklPrintCptr(const FklAstCptr* objCptr,FILE* out)
 					case FKL_I32:
 						fprintf(out,"%d",tmpAtm->value.i32);
 						break;
-					case DBL:
+					case FKL_DBL:
 						fprintf(out,"%lf",tmpAtm->value.dbl);
 						break;
 					case FKL_CHR:
@@ -2003,7 +2003,7 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklIntpr* inter)
 					FklAstAtom* atom=NULL;
 					if(fklIsDouble(str))
 					{
-						atom=fklNewAtom(DBL,NULL,root->outer);
+						atom=fklNewAtom(FKL_DBL,NULL,root->outer);
 						atom->value.dbl=fklStringToDouble(str);
 					}
 					else

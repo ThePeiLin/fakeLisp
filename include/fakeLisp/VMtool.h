@@ -59,7 +59,7 @@
 //#define fklSET_REF(p,v) do{FklVMvalue* P=p;FklVMvalue* V=v;if(IS_CHF(P)){VMMemref* pRef=(VMMemref*)GET_PTR(P);setVMMemref(pRef,V);free(pRef);} else *(FklVMvalue**)GET_PTR(P)=(V);}while(0)
 #define IS_PTR(P) (GET_TAG(P)==PTR_TAG)
 #define IS_PAIR(P) (GET_TAG(P)==PTR_TAG&&(P)->type==PAIR)
-#define IS_DBL(P) (GET_TAG(P)==PTR_TAG&&(P)->type==DBL)
+#define IS_DBL(P) (GET_TAG(P)==PTR_TAG&&(P)->type==FKL_DBL)
 #define IS_STR(P) (GET_TAG(P)==PTR_TAG&&(P)->type==FKL_STR)
 #define IS_BYTS(P) (GET_TAG(P)==PTR_TAG&&(P)->type==BYTS)
 #define IS_CHAN(P) (GET_TAG(P)==PTR_TAG&&(P)->type==CHAN)

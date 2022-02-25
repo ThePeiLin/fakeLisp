@@ -66,7 +66,7 @@ typedef struct FklVMDefTypes
 typedef enum{NIL=0,
 	FKL_I32,
 	FKL_CHR,
-	DBL,
+	FKL_DBL,
 	FKL_I64,
 	SYM,
 	FKL_STR,

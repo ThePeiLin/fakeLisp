@@ -397,7 +397,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklIntpr* inter,FklStringMatchPatte
 						FklAstAtom* atom=NULL;
 						if(fklIsDouble(str))
 						{
-							atom=fklNewAtom(DBL,NULL,root->outer);
+							atom=fklNewAtom(FKL_DBL,NULL,root->outer);
 							atom->value.dbl=fklStringToDouble(str);
 						}
 						else
@@ -482,7 +482,7 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 						tmpAtm->type=root->type;
 						switch(root->type)
 						{
-							case DBL:
+							case FKL_DBL:
 								tmpAtm->value.dbl=*root->u.dbl;
 								break;
 							case FKL_STR:

@@ -187,7 +187,7 @@ static double (*castToDoubleFunctionsList[])(ARGL)=
 				{\
 					switch(v->type)\
 					{\
-						case DBL:\
+						case FKL_DBL:\
 							*t=(TYPE)*v->u.dbl;\
 							break;\
 						case FKL_I64:\

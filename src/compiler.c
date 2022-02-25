@@ -306,7 +306,7 @@ int MacroPatternCmp(const FklAstCptr* first,const FklAstCptr* second)
 				if(firAtm->type==SYM&&(!isVal(firAtm->value.str)||!isVal(secAtm->value.str))&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
 				if(firAtm->type==FKL_STR&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
 				else if(firAtm->type==FKL_I32&&firAtm->value.i32!=secAtm->value.i32)return 0;
-				else if(firAtm->type==DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
+				else if(firAtm->type==FKL_DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
 				else if(firAtm->type==FKL_CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
 				else if(firAtm->type==BYTS&&!fklEqByteString(&firAtm->value.byts,&secAtm->value.byts))return 0;
 			}
@@ -867,7 +867,7 @@ FklByteCode* fklCompileAtom(FklAstCptr* objCptr)
 			tmp->code[0]=FAKE_PUSH_I64;
 			*(int64_t*)(tmp->code+sizeof(char))=tmpAtm->value.i64;
 			break;
-		case DBL:
+		case FKL_DBL:
 			tmp=fklNewByteCode(sizeof(char)+sizeof(double));
 			tmp->code[0]=FAKE_PUSH_DBL;
 			*(double*)(tmp->code+1)=tmpAtm->value.dbl;
@@ -2729,7 +2729,7 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 //				{
 //					FklAstCptr* tmpCptr=fklNextCptr(fir);
 //					FklAstAtom* tmpAtm=tmpCptr->u.atom;
-//					if(opcode!=FAKE_PUSH_DBL&&tmpAtm->type!=DBL&&tmpAtm->type!=FKL_I64)
+//					if(opcode!=FAKE_PUSH_DBL&&tmpAtm->type!=FKL_DBL&&tmpAtm->type!=FKL_I64)
 //					{
 //						state->place=tmpCptr;
 //						state->state=SYNTAXERROR;
@@ -2900,9 +2900,9 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 //
 //					tmpByteCode->code[0]=opcode;
 //					if(opcode==FAKE_PUSH_DBL)
-//						*((double*)(tmpByteCode->code+sizeof(char)))=(tmpAtm->type==DBL)?tmpAtm->value.dbl:tmpAtm->value.i64;
+//						*((double*)(tmpByteCode->code+sizeof(char)))=(tmpAtm->type==FKL_DBL)?tmpAtm->value.dbl:tmpAtm->value.i64;
 //					else
-//						*((int64_t*)(tmpByteCode->code+sizeof(char)))=(tmpAtm->type==DBL)?tmpAtm->value.dbl:tmpAtm->value.i64;
+//						*((int64_t*)(tmpByteCode->code+sizeof(char)))=(tmpAtm->type==FKL_DBL)?tmpAtm->value.dbl:tmpAtm->value.i64;
 //
 //					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
 //					fir=fklNextCptr(tmpCptr);

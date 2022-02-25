@@ -60,8 +60,8 @@ FklVMvalue* castSize_tVp   (ARGL){CAST_TO_I64}
 FklVMvalue* castSsize_tVp  (ARGL){CAST_TO_I64}
 FklVMvalue* castCharVp     (ARGL){return MAKE_VM_CHR(p);}
 FklVMvalue* castWchar_tVp  (ARGL){CAST_TO_I32}
-FklVMvalue* castFloatVp    (ARGL){return fklNewVMvalue(DBL,&p,heap);}
-FklVMvalue* castDoubleVp   (ARGL){return fklNewVMvalue(DBL,&p,heap);}
+FklVMvalue* castFloatVp    (ARGL){return fklNewVMvalue(FKL_DBL,&p,heap);}
+FklVMvalue* castDoubleVp   (ARGL){return fklNewVMvalue(FKL_DBL,&p,heap);}
 FklVMvalue* castInt8_tVp   (ARGL){CAST_TO_I32}
 FklVMvalue* castUint8_tVp  (ARGL){CAST_TO_I32}
 FklVMvalue* castInt16_tVp  (ARGL){CAST_TO_I32}
@@ -714,7 +714,7 @@ void B_push_dbl(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
-	SET_RETURN("B_push_dbl",fklNewVMvalue(DBL,exe->code+runnable->cp+1,exe->heap),stack);
+	SET_RETURN("B_push_dbl",fklNewVMvalue(FKL_DBL,exe->code+runnable->cp+1,exe->heap),stack);
 	runnable->cp+=9;
 }
 
@@ -1565,7 +1565,7 @@ void fklGC_sweep(VMheap* heap)
 				case FKL_STR:
 					free(prev->u.str);
 					break;
-				case DBL:
+				case FKL_DBL:
 					free(prev->u.dbl);
 					break;
 				case FKL_I64:

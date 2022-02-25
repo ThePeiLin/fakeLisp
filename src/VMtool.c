@@ -93,8 +93,8 @@ static FklVMvalue* castSize_t   (ARGL){CAST_TO_I64(size_t)}
 static FklVMvalue* castSsize_t  (ARGL){CAST_TO_I64(ssize_t)}
 static FklVMvalue* castChar     (ARGL){return MAKE_VM_CHR(*(char*)mem);}
 static FklVMvalue* castWchar_t  (ARGL){return MAKE_VM_I32(*(wchar_t*)mem);}
-static FklVMvalue* castFloat    (ARGL){double t=*(float*)mem;return fklNewVMvalue(DBL,&t,heap);}
-static FklVMvalue* castDouble   (ARGL){double t=*(double*)mem;return fklNewVMvalue(DBL,&t,heap);}
+static FklVMvalue* castFloat    (ARGL){double t=*(float*)mem;return fklNewVMvalue(FKL_DBL,&t,heap);}
+static FklVMvalue* castDouble   (ARGL){double t=*(double*)mem;return fklNewVMvalue(FKL_DBL,&t,heap);}
 static FklVMvalue* castInt8_t   (ARGL){CAST_TO_I32(int8_t)}
 static FklVMvalue* castUint8_t  (ARGL){CAST_TO_I32(uint8_t)}
 static FklVMvalue* castInt16_t  (ARGL){CAST_TO_I32(int16_t)}
@@ -730,8 +730,8 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,VMheap* heap)
 					FklValueType type=root->type;
 					switch(type)
 					{
-						case DBL:
-							*root1=fklNewVMvalue(DBL,root->u.dbl,heap);
+						case FKL_DBL:
+							*root1=fklNewVMvalue(FKL_DBL,root->u.dbl,heap);
 							break;
 						case BYTS:
 							*root1=fklNewVMvalue(BYTS,fklNewVMByts(root->u.byts->size,root->u.byts->str),heap);
@@ -816,7 +816,7 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,VMheap* heap)
 				pthread_mutex_unlock(&heap->lock);
 				switch(type)
 				{
-					case DBL:
+					case FKL_DBL:
 						tmp->u.dbl=fklCopyMemory(pValue,sizeof(double));
 						break;
 					case FKL_I64:
@@ -911,7 +911,7 @@ int fklVMvaluecmp(FklVMvalue* fir,FklVMvalue* sec)
 				r=0;
 			switch(root1->type)
 			{
-				case DBL:
+				case FKL_DBL:
 					r=(fabs(*root1->u.dbl-*root2->u.dbl)==0);
 					break;
 				case FKL_I64:
@@ -1015,8 +1015,8 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,VMheap* heap)
 				case SYM:
 					*root1=MAKE_VM_SYM(fklAddSymbolToGlob(tmpAtm->value.str)->id);
 					break;
-				case DBL:
-					*root1=fklNewVMvalue(DBL,&tmpAtm->value.dbl,heap);
+				case FKL_DBL:
+					*root1=fklNewVMvalue(FKL_DBL,&tmpAtm->value.dbl,heap);
 					break;
 				case BYTS:
 					*root1=fklNewVMvalue(BYTS,fklNewVMByts(tmpAtm->value.byts.size,tmpAtm->value.byts.str),heap);
@@ -1883,7 +1883,7 @@ void fklPrincVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 			{
 				switch(objValue->type)
 				{
-					case DBL:
+					case FKL_DBL:
 						fprintf(fp,"%lf",*objValue->u.dbl);
 						break;
 					case FKL_I64:
@@ -2014,7 +2014,7 @@ void fklPrin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 			{
 				switch(objValue->type)
 				{
-					case DBL:
+					case FKL_DBL:
 						fprintf(fp,"%lf",*objValue->u.dbl);
 						break;
 					case FKL_I64:

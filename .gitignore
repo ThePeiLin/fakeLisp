@@ -7,7 +7,7 @@
 !/lib/**/
 !CMakeLists.txt
 !/src/
-!/src/**/
+!/src/*
 !Makefile
 *.fklc
 !README.md

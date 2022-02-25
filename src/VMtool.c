@@ -342,7 +342,7 @@ static FklTypeId_t genStructTypeId(FklAstCptr* compositeDataHead,FklVMDefTypes* 
 		for(;i<num;i++)
 		{
 			FklVMTypeUnion typeUnion=GlobTypeUnionList.ul[i];
-			if(GET_TYPES_TAG(typeUnion.all)==STRUCT_TYPE_TAG)
+			if(GET_TYPES_TAG(typeUnion.all)==FKL_STRUCT_TYPE_TAG)
 			{
 				FklVMStructType* st=(FklVMStructType*)GET_TYPES_PTR(typeUnion.st);
 				if(st->type==fklAddSymbolToGlob(structName)->id)
@@ -736,8 +736,8 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,VMheap* heap)
 						case BYTS:
 							*root1=fklNewVMvalue(BYTS,fklNewVMByts(root->u.byts->size,root->u.byts->str),heap);
 							break;
-						case STR:
-							*root1=fklNewVMvalue(STR,fklCopyStr(root->u.str),heap);
+						case FKL_STR:
+							*root1=fklNewVMvalue(FKL_STR,fklCopyStr(root->u.str),heap);
 							break;
 						case CONT:
 						case PRC:
@@ -822,7 +822,7 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,VMheap* heap)
 					case FKL_I64:
 						tmp->u.i64=fklCopyMemory(pValue,sizeof(int64_t));
 						break;
-					case STR:
+					case FKL_STR:
 						tmp->u.str=pValue;break;
 					case PAIR:
 						tmp->u.pair=pValue;break;
@@ -916,7 +916,7 @@ int fklVMvaluecmp(FklVMvalue* fir,FklVMvalue* sec)
 					break;
 				case FKL_I64:
 					r=(*root1->u.i64-*root2->u.i64)==0;
-				case STR:
+				case FKL_STR:
 					r=!strcmp(root1->u.str,root2->u.str);
 					break;
 				case BYTS:
@@ -1021,8 +1021,8 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,VMheap* heap)
 				case BYTS:
 					*root1=fklNewVMvalue(BYTS,fklNewVMByts(tmpAtm->value.byts.size,tmpAtm->value.byts.str),heap);
 					break;
-				case STR:
-					*root1=fklNewVMvalue(STR,fklCopyStr(tmpAtm->value.str),heap);
+				case FKL_STR:
+					*root1=fklNewVMvalue(FKL_STR,fklCopyStr(tmpAtm->value.str),heap);
 					break;
 				default:
 					return NULL;
@@ -1889,7 +1889,7 @@ void fklPrincVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 					case FKL_I64:
 						fprintf(fp,"%ld",*objValue->u.i64);
 						break;
-					case STR:
+					case FKL_STR:
 						fprintf(fp,"%s",objValue->u.str);
 						break;
 					case MEM:
@@ -2020,7 +2020,7 @@ void fklPrin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 					case FKL_I64:
 						fprintf(fp,"%ld",*objValue->u.i64);
 						break;
-					case STR:
+					case FKL_STR:
 						fklPrintRawString(objValue->u.str,fp);
 						break;
 					case MEM:
@@ -2215,7 +2215,7 @@ size_t fklGetVMTypeSize(FklVMTypeUnion t)
 		case PTR_TYPE_TAG:
 			return sizeof(void*);
 			break;
-		case STRUCT_TYPE_TAG:
+		case FKL_STRUCT_TYPE_TAG:
 			return t.st->totalSize;
 			break;
 		case UNION_TYPE_TAG:
@@ -2245,7 +2245,7 @@ size_t fklGetVMTypeAlign(FklVMTypeUnion t)
 		case PTR_TYPE_TAG:
 			return sizeof(void*);
 			break;
-		case STRUCT_TYPE_TAG:
+		case FKL_STRUCT_TYPE_TAG:
 			return t.st->align;
 			break;
 		case UNION_TYPE_TAG:
@@ -2341,7 +2341,7 @@ FklTypeId_t fklNewVMStructType(const char* structName,uint32_t num,FklSid_t symb
 		for(;i<num;i++)
 		{
 			FklVMTypeUnion tmpType=GlobTypeUnionList.ul[i];
-			if(GET_TYPES_TAG(tmpType.all)==STRUCT_TYPE_TAG)
+			if(GET_TYPES_TAG(tmpType.all)==FKL_STRUCT_TYPE_TAG)
 			{
 				FklVMStructType* structType=(FklVMTypeUnion){.st=GET_TYPES_PTR(tmpType.all)}.st;
 				if(structType->type==stype)
@@ -2683,7 +2683,7 @@ void fklWriteTypeList(FILE* fp)
 			case PTR_TYPE_TAG:
 				fwrite(&((FklVMPtrType*)p)->ptype,sizeof(((FklVMPtrType*)p)->ptype),1,fp);
 				break;
-			case STRUCT_TYPE_TAG:
+			case FKL_STRUCT_TYPE_TAG:
 				{
 					uint32_t num=((FklVMStructType*)p)->num;
 					fwrite(&num,sizeof(num),1,fp);
@@ -2760,7 +2760,7 @@ void fklLoadTypeList(FILE* fp)
 					tu.pt=(FklVMPtrType*)MAKE_PTR_TYPE(t);
 				}
 				break;
-			case STRUCT_TYPE_TAG:
+			case FKL_STRUCT_TYPE_TAG:
 				{
 					uint32_t num=0;
 					fread(&num,sizeof(num),1,fp);
@@ -2826,7 +2826,7 @@ void fklFreeGlobTypeList()
 			case ARRAY_TYPE_TAG:
 				fklFreeVMArrayType((FklVMArrayType*)GET_TYPES_PTR(tu.all));
 				break;
-			case STRUCT_TYPE_TAG:
+			case FKL_STRUCT_TYPE_TAG:
 				fklFreeVMStructType((FklVMStructType*)GET_TYPES_PTR(tu.all));
 				break;
 			case UNION_TYPE_TAG:
@@ -2863,7 +2863,7 @@ int fklIsPtrTypeId(FklTypeId_t type)
 int fklIsStructTypeId(FklTypeId_t type)
 {
 	FklVMTypeUnion tu=fklGetVMTypeUnion(type);
-	return GET_TYPES_TAG(tu.all)==STRUCT_TYPE_TAG;
+	return GET_TYPES_TAG(tu.all)==FKL_STRUCT_TYPE_TAG;
 }
 
 int fklIsUnionTypeId(FklTypeId_t type)

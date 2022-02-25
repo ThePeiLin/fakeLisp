@@ -256,7 +256,7 @@ int fklIsLoadExpression(const FklAstCptr* objCptr)
 			return 0;
 		FklAstAtom* firAtm=fir->u.atom;
 		FklAstAtom* secAtm=sec->u.atom;
-		if(firAtm->type==SYM&&!strcmp(firAtm->value.str,"load")&&(secAtm->type==SYM||secAtm->type==STR))
+		if(firAtm->type==SYM&&!strcmp(firAtm->value.str,"load")&&(secAtm->type==SYM||secAtm->type==FKL_STR))
 			return 1;
 	}
 	return 0;

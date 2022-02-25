@@ -123,7 +123,7 @@ void FAKE_getTime(FklVM* exe,pthread_rwlock_t* pGClock)
 	free(day);
 	free(mon);
 	free(year);
-	FklVMvalue* tmpVMvalue=fklNewVMvalue(STR,trueTime,exe->heap);
+	FklVMvalue* tmpVMvalue=fklNewVMvalue(FKL_STR,trueTime,exe->heap);
 	SET_RETURN("FAKE_getTime",tmpVMvalue,stack);
 }
 

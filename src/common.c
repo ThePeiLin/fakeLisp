@@ -255,7 +255,7 @@ FklAstAtom* fklNewAtom(int type,const char* value,FklAstPair* prev)
 	switch(type)
 	{
 		case SYM:
-		case STR:
+		case FKL_STR:
 			if(value!=NULL)
 			{
 				FAKE_ASSERT((tmp->value.str=(char*)malloc(strlen(value)+1)),"fklNewAtom",__FILE__,__LINE__);
@@ -309,7 +309,7 @@ int fklCopyCptr(FklAstCptr* objCptr,const FklAstCptr* copiedCptr)
 				switch(atom2->type)
 				{
 					case SYM:
-					case STR:
+					case FKL_STR:
 						atom1=fklNewAtom(atom2->type,atom2->value.str,root1->outer);
 						break;
 					case BYTS:
@@ -445,7 +445,7 @@ int fklFklAstCptrcmp(const FklAstCptr* first,const FklAstCptr* second)
 				FklAstAtom* firAtm=first->u.atom;
 				FklAstAtom* secAtm=second->u.atom;
 				if(firAtm->type!=secAtm->type)return 0;
-				if((firAtm->type==SYM||firAtm->type==STR)&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
+				if((firAtm->type==SYM||firAtm->type==FKL_STR)&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
 				else if(firAtm->type==FKL_I32&&firAtm->value.i32!=secAtm->value.i32)return 0;
 				else if(firAtm->type==DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
 				else if(firAtm->type==CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
@@ -667,7 +667,7 @@ int fklIsNum(const char* objStr)
 
 void fklFreeAtom(FklAstAtom* objAtm)
 {
-	if(objAtm->type==SYM||objAtm->type==STR)free(objAtm->value.str);
+	if(objAtm->type==SYM||objAtm->type==FKL_STR)free(objAtm->value.str);
 	else if(objAtm->type==BYTS)
 	{
 		objAtm->value.byts.size=0;
@@ -712,7 +712,7 @@ void fklPrintCptr(const FklAstCptr* objCptr,FILE* out)
 					case SYM:
 						fprintf(out,"%s",tmpAtm->value.str);
 						break;
-					case STR:
+					case FKL_STR:
 						fklPrintRawString(tmpAtm->value.str,out);
 						break;
 					case FKL_I32:
@@ -1959,7 +1959,7 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklIntpr* inter)
 				size_t len=0;
 				str=fklCastEscapeCharater(objStr+i+1,'\"',&len);
 				inter->curline+=fklCountChar(objStr+i,'\n',len);
-				root->u.atom=fklNewAtom(STR,str,root->outer);
+				root->u.atom=fklNewAtom(FKL_STR,str,root->outer);
 				i+=len+1;
 				free(str);
 			}

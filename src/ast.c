@@ -334,7 +334,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklIntpr* inter,FklStringMatchPatte
 					size_t len=0;
 					str=fklCastEscapeCharater(objStr+i+1,'\"',&len);
 					inter->curline+=fklCountChar(objStr+i,'\n',len);
-					root->u.atom=fklNewAtom(STR,str,root->outer);
+					root->u.atom=fklNewAtom(FKL_STR,str,root->outer);
 					i+=len+1;
 					free(str);
 				}
@@ -485,7 +485,7 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 							case DBL:
 								tmpAtm->value.dbl=*root->u.dbl;
 								break;
-							case STR:
+							case FKL_STR:
 								tmpAtm->value.str=fklCopyStr(root->u.str);
 								break;
 							case BYTS:

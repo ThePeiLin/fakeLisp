@@ -255,7 +255,7 @@ static int castVptrValue     (ARGL)
 		{
 			switch(v->type)
 			{
-				case STR:
+				case FKL_STR:
 					*t=v->u.str;
 					break;
 				case BYTS:

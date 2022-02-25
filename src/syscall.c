@@ -893,7 +893,7 @@ void SYS_str(FklVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.str",TOOMANYARG,runnable,exe);
 	if(!obj)
 		RAISE_BUILTIN_ERROR("sys.str",TOOFEWARG,runnable,exe);
-	FklVMvalue* retval=fklNewVMvalue(STR,NULL,exe->heap);
+	FklVMvalue* retval=fklNewVMvalue(FKL_STR,NULL,exe->heap);
 	if(IS_I32(obj))
 		retval->u.str=fklIntToString(GET_I32(obj));
 	else if(IS_DBL(obj))
@@ -1317,7 +1317,7 @@ void SYS_argv(FklVM* exe,pthread_rwlock_t* pGClock)
 	{
 		FklVMvalue* cur=fklNewVMvalue(PAIR,fklNewVMpair(),exe->heap);
 		*tmp=cur;
-		cur->u.pair->car=fklNewVMvalue(STR,fklCopyStr(exe->argv[i]),exe->heap);
+		cur->u.pair->car=fklNewVMvalue(FKL_STR,fklCopyStr(exe->argv[i]),exe->heap);
 	}
 	SET_RETURN("FAKE_argv",retval,stack);
 }

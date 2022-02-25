@@ -175,7 +175,7 @@ void invokeFlproc(FklVM* exe,FklVMFlproc* flproc)
 	if(rtype!=0)
 	{
 		if(rtype==StringTypeId)
-			SET_RETURN("invokeFlproc",fklNewVMvalue(STR,(void*)retval,exe->heap),stack);
+			SET_RETURN("invokeFlproc",fklNewVMvalue(FKL_STR,(void*)retval,exe->heap),stack);
 		else if(fklIsFunctionTypeId(rtype))
 			SET_RETURN("invokeFlproc",fklNewVMvalue(FLPROC,fklNewVMFlproc(rtype,(void*)retval),exe->heap),stack);
 		else if(rtype==FILEpTypeId)
@@ -723,7 +723,7 @@ void B_push_str(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	int len=strlen((char*)(exe->code+runnable->cp+1));
-	SET_RETURN("B_push_str",fklNewVMvalue(STR,fklCopyStr((char*)exe->code+runnable->cp+1),exe->heap),stack);
+	SET_RETURN("B_push_str",fklNewVMvalue(FKL_STR,fklCopyStr((char*)exe->code+runnable->cp+1),exe->heap),stack);
 	runnable->cp+=2+len;
 }
 
@@ -1562,7 +1562,7 @@ void fklGC_sweep(VMheap* heap)
 			cur=cur->next;
 			switch(prev->type)
 			{
-				case STR:
+				case FKL_STR:
 					free(prev->u.str);
 					break;
 				case DBL:

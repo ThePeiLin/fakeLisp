@@ -304,7 +304,7 @@ int MacroPatternCmp(const FklAstCptr* first,const FklAstCptr* second)
 				FklAstAtom* secAtm=second->u.atom;
 				if(firAtm->type!=secAtm->type)return 0;
 				if(firAtm->type==SYM&&(!isVal(firAtm->value.str)||!isVal(secAtm->value.str))&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
-				if(firAtm->type==STR&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
+				if(firAtm->type==FKL_STR&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
 				else if(firAtm->type==FKL_I32&&firAtm->value.i32!=secAtm->value.i32)return 0;
 				else if(firAtm->type==DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
 				else if(firAtm->type==CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
@@ -563,7 +563,7 @@ FklErrorState defmacro(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter)
 		if(args[0]->type!=NIL)
 		{
 			FklAstAtom* tmpAtom=args[0]->u.atom;
-			if(tmpAtom->type!=STR)
+			if(tmpAtom->type!=FKL_STR)
 			{
 				fklExError(args[0],SYNTAXERROR,inter);
 				free(args);
@@ -852,7 +852,7 @@ FklByteCode* fklCompileAtom(FklAstCptr* objCptr)
 			tmp->code[0]=FAKE_PUSH_SYM;
 			*(FklSid_t*)(tmp->code+sizeof(char))=fklAddSymbolToGlob(tmpAtm->value.str)->id;
 			break;
-		case STR:
+		case FKL_STR:
 			tmp=fklNewByteCode(sizeof(char)+strlen(tmpAtm->value.str)+1);
 			tmp->code[0]=FAKE_PUSH_STR;
 			strcpy((char*)tmp->code+1,tmpAtm->value.str);
@@ -1556,7 +1556,7 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 			}
 			else
 			{
-				if(GET_TYPES_TAG(typeUnion.all)!=STRUCT_TYPE_TAG&&GET_TYPES_TAG(typeUnion.all)!=UNION_TYPE_TAG)
+				if(GET_TYPES_TAG(typeUnion.all)!=FKL_STRUCT_TYPE_TAG&&GET_TYPES_TAG(typeUnion.all)!=UNION_TYPE_TAG)
 				{
 					if(tmp)
 					{
@@ -1569,7 +1569,7 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 				}
 				FklSid_t curPathNode=fklAddSymbolToGlob(pathCptr->u.atom->value.str)->id;
 				FklVMTypeUnion typeUnion=fklGetVMTypeUnion(memberType);
-				if(GET_TYPES_TAG(typeUnion.all)==STRUCT_TYPE_TAG)
+				if(GET_TYPES_TAG(typeUnion.all)==FKL_STRUCT_TYPE_TAG)
 				{
 					FklVMStructType* structType=GET_TYPES_PTR(typeUnion.st);
 					uint32_t i=0;
@@ -2606,7 +2606,7 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 //				{
 //					FklAstCptr* tmpCptr=fklNextCptr(fir);
 //					FklAstAtom* tmpAtm=tmpCptr->u.atom;
-//					if(tmpAtm->type!=SYM&&tmpAtm->type!=STR)
+//					if(tmpAtm->type!=SYM&&tmpAtm->type!=FKL_STR)
 //					{
 //						state->place=tmpCptr;
 //						state->state=SYNTAXERROR;
@@ -2654,7 +2654,7 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 //					{
 //						FklCompEnv* tmpEnv=curEnv;
 //						FklCompDef* tmpDef=NULL;
-//						if(tmpAtm->type!=STR&&tmpAtm->type!=SYM)
+//						if(tmpAtm->type!=FKL_STR&&tmpAtm->type!=SYM)
 //						{
 //							state->place=tmpCptr;
 //							state->state=SYMUNDEFINE;
@@ -2697,7 +2697,7 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 //					}
 //					else if(opcode==FAKE_JMP||opcode==FAKE_JMP_IF_FALSE||opcode==FAKE_JMP_IF_TRUE)
 //					{
-//						if(tmpAtm->type!=SYM&&tmpAtm->type!=STR)
+//						if(tmpAtm->type!=SYM&&tmpAtm->type!=FKL_STR)
 //						{
 //							state->place=tmpCptr;
 //							state->state=SYNTAXERROR;
@@ -2966,7 +2966,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr
 				return NULL;
 			}
 			FklAstAtom* tmpAtm=pPartsOfPath->u.atom;
-			if(tmpAtm->type!=STR&&tmpAtm->type!=SYM)
+			if(tmpAtm->type!=FKL_STR&&tmpAtm->type!=SYM)
 			{
 				state->state=SYNTAXERROR;
 				state->place=plib;
@@ -2995,7 +2995,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr
 					return NULL;
 				}
 				FklAstAtom* prefixAtom=tmpCptr->u.atom;
-				if(prefixAtom->type!=STR&&prefixAtom->type!=SYM)
+				if(prefixAtom->type!=FKL_STR&&prefixAtom->type!=SYM)
 				{
 					state->state=SYNTAXERROR;
 					state->place=plib;

@@ -406,8 +406,8 @@ FklAstCptr* fklCreateTree(const char* objStr,FklIntpr* inter,FklStringMatchPatte
 							int64_t num=fklStringToInt(str);
 							if(num>INT32_MAX||num<INT32_MIN)
 							{
-								atom->type=IN64;
-								atom->value.in64=num;
+								atom->type=FKL_I64;
+								atom->value.i64=num;
 							}
 							else
 								atom->value.i32=num;

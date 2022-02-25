@@ -67,7 +67,7 @@ typedef enum{NIL=0,
 	FKL_I32,
 	CHR,
 	DBL,
-	IN64,
+	FKL_I64,
 	SYM,
 	STR,
 	BYTS,
@@ -227,7 +227,7 @@ typedef struct FklAstAtom
 		char* str;
 		char chr;
 		int32_t i32;
-		int64_t in64;
+		int64_t i64;
 		double dbl;
 		FklByteString byts;
 	} value;
@@ -339,7 +339,7 @@ typedef struct FklVMvalue
 	{
 		struct FklVMpair* pair;
 		double* dbl;
-		int64_t* in64;
+		int64_t* i64;
 		char* str;
 		struct FklVMMem* chf;
 		struct FklVMByts* byts;

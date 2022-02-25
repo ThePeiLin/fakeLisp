@@ -78,19 +78,19 @@ static void (*PrintMemoryRefFuncList[])(uint8_t*,FILE*)=
 
 /*memory caster list*/
 #define CAST_TO_I32(TYPE) return MAKE_VM_I32(*(TYPE*)mem);
-#define CAST_TO_IN64(TYPE) int64_t t=*(TYPE*)mem;return fklNewVMvalue(IN64,&t,heap);
+#define CAST_TO_I64(TYPE) int64_t t=*(TYPE*)mem;return fklNewVMvalue(FKL_I64,&t,heap);
 #define ARGL uint8_t* mem,VMheap* heap
 static FklVMvalue* castShortMem (ARGL){CAST_TO_I32(short)}
 static FklVMvalue* castIntMem   (ARGL){CAST_TO_I32(int)}
 static FklVMvalue* castUShortMem(ARGL){CAST_TO_I32(unsigned short)}
-static FklVMvalue* castUintMem  (ARGL){CAST_TO_IN64(unsigned int)}
-static FklVMvalue* castLongMem  (ARGL){CAST_TO_IN64(long)}
-static FklVMvalue* castULongMem (ARGL){CAST_TO_IN64(unsigned long)}
-static FklVMvalue* castLLongMem (ARGL){CAST_TO_IN64(long long)}
-static FklVMvalue* castULLongMem(ARGL){CAST_TO_IN64(unsigned long long)}
-static FklVMvalue* castPtrdiff_t(ARGL){CAST_TO_IN64(ptrdiff_t)}
-static FklVMvalue* castSize_t   (ARGL){CAST_TO_IN64(size_t)}
-static FklVMvalue* castSsize_t  (ARGL){CAST_TO_IN64(ssize_t)}
+static FklVMvalue* castUintMem  (ARGL){CAST_TO_I64(unsigned int)}
+static FklVMvalue* castLongMem  (ARGL){CAST_TO_I64(long)}
+static FklVMvalue* castULongMem (ARGL){CAST_TO_I64(unsigned long)}
+static FklVMvalue* castLLongMem (ARGL){CAST_TO_I64(long long)}
+static FklVMvalue* castULLongMem(ARGL){CAST_TO_I64(unsigned long long)}
+static FklVMvalue* castPtrdiff_t(ARGL){CAST_TO_I64(ptrdiff_t)}
+static FklVMvalue* castSize_t   (ARGL){CAST_TO_I64(size_t)}
+static FklVMvalue* castSsize_t  (ARGL){CAST_TO_I64(ssize_t)}
 static FklVMvalue* castChar     (ARGL){return MAKE_VM_CHR(*(char*)mem);}
 static FklVMvalue* castWchar_t  (ARGL){return MAKE_VM_I32(*(wchar_t*)mem);}
 static FklVMvalue* castFloat    (ARGL){double t=*(float*)mem;return fklNewVMvalue(DBL,&t,heap);}
@@ -101,14 +101,14 @@ static FklVMvalue* castInt16_t  (ARGL){CAST_TO_I32(int16_t)}
 static FklVMvalue* castUint16_t (ARGL){CAST_TO_I32(uint16_t)}
 static FklVMvalue* castInt32_t  (ARGL){CAST_TO_I32(int32_t)}
 static FklVMvalue* castUint32_t (ARGL){CAST_TO_I32(uint32_t)}
-static FklVMvalue* castInt64_t  (ARGL){CAST_TO_IN64(int64_t)}
-static FklVMvalue* castUint64_t (ARGL){CAST_TO_IN64(uint64_t)}
-static FklVMvalue* castIptr     (ARGL){CAST_TO_IN64(intptr_t)}
-static FklVMvalue* castUptr     (ARGL){CAST_TO_IN64(uintptr_t)}
-static FklVMvalue* castVPtr     (ARGL){return fklNewVMvalue(IN64,mem,heap);}
+static FklVMvalue* castInt64_t  (ARGL){CAST_TO_I64(int64_t)}
+static FklVMvalue* castUint64_t (ARGL){CAST_TO_I64(uint64_t)}
+static FklVMvalue* castIptr     (ARGL){CAST_TO_I64(intptr_t)}
+static FklVMvalue* castUptr     (ARGL){CAST_TO_I64(uintptr_t)}
+static FklVMvalue* castVPtr     (ARGL){return fklNewVMvalue(FKL_I64,mem,heap);}
 #undef ARGL
 #undef CAST_TO_I32
-#undef CAST_TO_IN64
+#undef CAST_TO_I64
 static FklVMvalue*(*MemoryCasterList[])(uint8_t*,VMheap*)=
 {
 	castShortMem ,
@@ -142,7 +142,7 @@ static FklVMvalue*(*MemoryCasterList[])(uint8_t*,VMheap*)=
 
 /*Memory setting function list*/
 #define BODY(EXPRESSION,TYPE,VALUE) if(EXPRESSION)return 1;*(TYPE*)mem=(VALUE);return 0;
-#define SET_NUM(TYPE) BODY(!IS_I32(v)&&!IS_IN64(v),TYPE,IS_I32(v)?GET_I32(v):*v->u.in64)
+#define SET_NUM(TYPE) BODY(!IS_I32(v)&&!IS_I64(v),TYPE,IS_I32(v)?GET_I32(v):*v->u.i64)
 #define ARGL uint8_t* mem,FklVMvalue* v
 static int setShortMem (ARGL){SET_NUM(short)}
 static int setIntMem   (ARGL){SET_NUM(int)}
@@ -157,8 +157,8 @@ static int setSize_t   (ARGL){SET_NUM(size_t)}
 static int setSsize_t  (ARGL){SET_NUM(ssize_t)}
 static int setChar     (ARGL){BODY(!IS_CHR(v),char,GET_CHR(v))}
 static int setWchar_t  (ARGL){BODY(!IS_CHR(v)&&!IS_I32(v),wchar_t,IS_I32(v)?GET_I32(v):GET_CHR(v))}
-static int setFloat    (ARGL){BODY(!IS_DBL(v)&&!IS_I32(v)&&IS_IN64(v),float,IS_DBL(v)?*v->u.dbl:(IS_I32(v)?GET_I32(v):*v->u.in64))}
-static int setDouble   (ARGL){BODY(!IS_DBL(v)&&!IS_I32(v)&&IS_IN64(v),double,IS_DBL(v)?*v->u.dbl:(IS_I32(v)?GET_I32(v):*v->u.in64))}
+static int setFloat    (ARGL){BODY(!IS_DBL(v)&&!IS_I32(v)&&IS_I64(v),float,IS_DBL(v)?*v->u.dbl:(IS_I32(v)?GET_I32(v):*v->u.i64))}
+static int setDouble   (ARGL){BODY(!IS_DBL(v)&&!IS_I32(v)&&IS_I64(v),double,IS_DBL(v)?*v->u.dbl:(IS_I32(v)?GET_I32(v):*v->u.i64))}
 static int setInt8_t   (ARGL){SET_NUM(int8_t)}
 static int setUint8_t  (ARGL){SET_NUM(uint8_t)}
 static int setInt16_t  (ARGL){SET_NUM(int16_t)}
@@ -819,8 +819,8 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,VMheap* heap)
 					case DBL:
 						tmp->u.dbl=fklCopyMemory(pValue,sizeof(double));
 						break;
-					case IN64:
-						tmp->u.in64=fklCopyMemory(pValue,sizeof(int64_t));
+					case FKL_I64:
+						tmp->u.i64=fklCopyMemory(pValue,sizeof(int64_t));
 						break;
 					case STR:
 						tmp->u.str=pValue;break;
@@ -914,8 +914,8 @@ int fklVMvaluecmp(FklVMvalue* fir,FklVMvalue* sec)
 				case DBL:
 					r=(fabs(*root1->u.dbl-*root2->u.dbl)==0);
 					break;
-				case IN64:
-					r=(*root1->u.in64-*root2->u.in64)==0;
+				case FKL_I64:
+					r=(*root1->u.i64-*root2->u.i64)==0;
 				case STR:
 					r=!strcmp(root1->u.str,root2->u.str);
 					break;
@@ -1886,8 +1886,8 @@ void fklPrincVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 					case DBL:
 						fprintf(fp,"%lf",*objValue->u.dbl);
 						break;
-					case IN64:
-						fprintf(fp,"%ld",*objValue->u.in64);
+					case FKL_I64:
+						fprintf(fp,"%ld",*objValue->u.i64);
 						break;
 					case STR:
 						fprintf(fp,"%s",objValue->u.str);
@@ -2017,8 +2017,8 @@ void fklPrin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 					case DBL:
 						fprintf(fp,"%lf",*objValue->u.dbl);
 						break;
-					case IN64:
-						fprintf(fp,"%ld",*objValue->u.in64);
+					case FKL_I64:
+						fprintf(fp,"%ld",*objValue->u.i64);
 						break;
 					case STR:
 						fklPrintRawString(objValue->u.str,fp);
@@ -2158,9 +2158,9 @@ int fklSET_REF(FklVMvalue* P,FklVMvalue* V)
 			return 1;
 		else if(mem->type>LastNativeTypeId)
 		{
-			if(!IS_I32(V)&&!IS_IN64(V))
+			if(!IS_I32(V)&&!IS_I64(V))
 				return 1;
-			mem->mem=(uint8_t*)(IS_I32(V)?GET_I32(V):*V->u.in64);
+			mem->mem=(uint8_t*)(IS_I32(V)?GET_I32(V):*V->u.i64);
 		}
 		else if(MemorySeterList[mem->type-1](mem->mem,V))
 			return 1;

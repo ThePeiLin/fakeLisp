@@ -1255,7 +1255,7 @@ void fklPrintByteCode(const FklByteCode* tmpCode,FILE* fp)
 					case FAKE_PUSH_DBL:
 						fprintf(fp,"%lf",*(double*)(tmpCode->code+i+1));
 						break;
-					case FAKE_PUSH_IN64:
+					case FAKE_PUSH_I64:
 						fprintf(fp,"%ld",*(int64_t*)(tmpCode->code+i+1));
 						break;
 					case FAKE_PUSH_IND_REF:
@@ -2012,8 +2012,8 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklIntpr* inter)
 						int64_t num=fklStringToInt(str);
 						if(num>=INT32_MAX||num<=INT32_MIN)
 						{
-							atom->type=IN64;
-							atom->value.in64=num;
+							atom->type=FKL_I64;
+							atom->value.i64=num;
 						}
 						else
 							atom->value.i32=num;
@@ -2370,7 +2370,7 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp)
 					case FAKE_PUSH_DBL:
 						fprintf(fp,"%lf",*(double*)(tmpCode->code+i+1));
 						break;
-					case FAKE_PUSH_IN64:
+					case FAKE_PUSH_I64:
 						fprintf(fp,"%ld",*(int64_t*)(tmpCode->code+i+1));
 						break;
 					case FAKE_PUSH_IND_REF:

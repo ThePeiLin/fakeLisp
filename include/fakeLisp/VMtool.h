@@ -76,7 +76,7 @@
 #define IS_REF(P) (GET_TAG(P)==REF_TAG)
 #define IS_CHF(P) (GET_TAG(P)==PTR_TAG&&(P)->type==CHF)
 #define IS_MEM(P) (GET_TAG(P)==PTR_TAG&&(P)->type==MEM)
-#define IS_IN64(P) (GET_TAG(P)==PTR_TAG&&(P)->type==IN64)
+#define IS_I64(P) (GET_TAG(P)==PTR_TAG&&(P)->type==FKL_I64)
 #define FREE_CHF(P) (free(GET_PTR(P)))
 
 #define MAKE_NATIVE_TYPE(P) ((void*)(((uintptr_t)(P))|NATIVE_TYPE_TAG))

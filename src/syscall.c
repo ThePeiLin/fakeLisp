@@ -1512,7 +1512,7 @@ void SYS_apply(FklVM* exe,pthread_rwlock_t* gclock)
 	FklVMvalue* proc=fklGET_VAL(fklPopVMstack(stack),heap);
 	if(!proc)
 		RAISE_BUILTIN_ERROR("sys.apply",TOOFEWARG,runnable,exe);
-	if(!IS_PTR(proc)||(proc->type!=FKL_PRC&&proc->type!=FKL_CONT&&proc->type!=FKL_DLPROC&&proc->type!=FLPROC))
+	if(!IS_PTR(proc)||(proc->type!=FKL_PRC&&proc->type!=FKL_CONT&&proc->type!=FKL_DLPROC&&proc->type!=FKL_FLPROC))
 		RAISE_BUILTIN_ERROR("b.invoke",INVOKEERROR,runnable,exe);
 	FklComStack* stack1=fklNewComStack(32);
 	FklVMvalue* value=NULL;
@@ -1566,7 +1566,7 @@ void SYS_apply(FklVM* exe,pthread_rwlock_t* gclock)
 		case FKL_DLPROC:
 			invokeDlProc(exe,proc->u.dlproc);
 			break;
-		case FLPROC:
+		case FKL_FLPROC:
 			invokeFlproc(exe,proc->u.flproc);
 		default:
 			break;

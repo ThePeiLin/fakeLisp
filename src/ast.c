@@ -201,7 +201,7 @@ FklAstCptr* expandReaderMacro(const char* objStr,FklIntpr* inter,FklStringMatchP
 		fklFreeVMenv(tmpGlobEnv);
 		fklFreeVMproc(tmpVMproc);
 	}
-	else if(pattern->type==FLPROC)
+	else if(pattern->type==FKL_FLPROC)
 	{
 		FklVMenv* stringPatternEnv=fklCastPreEnvToVMenv(tmpEnv,NULL,tmpVM->heap);
 		FklVMrunnable* mainrunnable=fklNewVMrunnable(NULL);

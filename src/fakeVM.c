@@ -177,7 +177,7 @@ void invokeFlproc(FklVM* exe,FklVMFlproc* flproc)
 		if(rtype==StringTypeId)
 			SET_RETURN("invokeFlproc",fklNewVMvalue(FKL_STR,(void*)retval,exe->heap),stack);
 		else if(fklIsFunctionTypeId(rtype))
-			SET_RETURN("invokeFlproc",fklNewVMvalue(FLPROC,fklNewVMFlproc(rtype,(void*)retval),exe->heap),stack);
+			SET_RETURN("invokeFlproc",fklNewVMvalue(FKL_FLPROC,fklNewVMFlproc(rtype,(void*)retval),exe->heap),stack);
 		else if(rtype==FILEpTypeId)
 			SET_RETURN("invokeFlproc",fklNewVMvalue(FKL_FP,(void*)retval,exe->heap),stack);
 		else
@@ -826,7 +826,7 @@ void B_push_fproc(FklVM* exe)
 		address=fklGetAddress(str,head->dll);
 	if(!address)
 		RAISE_BUILTIN_INVALIDSYMBOL_ERROR("b.push_fproc",str,runnable,exe);
-	SET_RETURN("B_push_fproc",fklNewVMvalue(FLPROC,fklNewVMFlproc(type,address),heap),stack);
+	SET_RETURN("B_push_fproc",fklNewVMvalue(FKL_FLPROC,fklNewVMFlproc(type,address),heap),stack);
 	runnable->cp+=5;
 }
 
@@ -1159,7 +1159,7 @@ void B_invoke(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	FklVMvalue* tmpValue=fklGET_VAL(fklGetTopValue(stack),exe->heap);
-	if(!IS_PTR(tmpValue)||(tmpValue->type!=FKL_PRC&&tmpValue->type!=FKL_CONT&&tmpValue->type!=FKL_DLPROC&&tmpValue->type!=FLPROC))
+	if(!IS_PTR(tmpValue)||(tmpValue->type!=FKL_PRC&&tmpValue->type!=FKL_CONT&&tmpValue->type!=FKL_DLPROC&&tmpValue->type!=FKL_FLPROC))
 		RAISE_BUILTIN_ERROR("b.invoke",INVOKEERROR,runnable,exe);
 	stack->tp-=1;
 	fklStackRecycle(exe);
@@ -1175,7 +1175,7 @@ void B_invoke(FklVM* exe)
 		case FKL_DLPROC:
 			invokeDlProc(exe,tmpValue->u.dlproc);
 			break;
-		case FLPROC:
+		case FKL_FLPROC:
 			invokeFlproc(exe,tmpValue->u.flproc);
 			break;
 		default:
@@ -1595,7 +1595,7 @@ void fklGC_sweep(VMheap* heap)
 				case FKL_DLPROC:
 					fklFreeVMDlproc(prev->u.dlproc);
 					break;
-				case FLPROC:
+				case FKL_FLPROC:
 					fklFreeVMFlproc(prev->u.flproc);
 					break;
 				case ERR:

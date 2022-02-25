@@ -828,7 +828,7 @@ FklStringMatchPattern* fklNewFStringMatchPattern(int32_t num,char** parts,void(*
 {
 	FklStringMatchPattern* tmp=(FklStringMatchPattern*)malloc(sizeof(FklStringMatchPattern));
 	FAKE_ASSERT(tmp,"fklNewFStringMatchPattern",__FILE__,__LINE__);
-	tmp->type=FLPROC;
+	tmp->type=FKL_FLPROC;
 	tmp->num=num;
 	tmp->parts=parts;
 	tmp->u.fProc=fproc;

@@ -1457,7 +1457,7 @@ void fklfklGC_markValue(FklVMvalue* obj)
 	while(!fklIsComStackEmpty(stack))
 	{
 		FklVMvalue* root=fklPopComStack(stack);
-		root=GET_TAG(root)==REF_TAG?*((FklVMvalue**)GET_PTR(root)):root;
+		root=GET_TAG(root)==FKL_REF_TAG?*((FklVMvalue**)GET_PTR(root)):root;
 		if(GET_TAG(root)==FKL_PTR_TAG&&!root->mark)
 		{
 			root->mark=1;

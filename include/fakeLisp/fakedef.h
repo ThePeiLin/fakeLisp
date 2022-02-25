@@ -16,7 +16,7 @@ typedef enum
 	FKL_I32_TAG,
 	FKL_SYM_TAG,
 	FKL_CHR_TAG,
-	REF_TAG,
+	FKL_REF_TAG,
 }FklVMptrTag;
 
 typedef enum

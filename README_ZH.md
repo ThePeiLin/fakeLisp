@@ -91,7 +91,7 @@ defmacro的语法比较特殊，为：
 ```scheme
 ;假定let宏已经在上文定义
 (let ()
-  (defmacro (q $a)
+  (defmacro (q ?a)
     (cons (quote quote)
           (cons a nil)))
   (q a)) ;合法
@@ -786,7 +786,7 @@ defmacro
 lisp系的编程语言大多都有词法闭包，  可以利用词法闭包来实现面向对象的功能，下面的宏实现了一个简单的对象系统：  
   
 ```scheme
-(defmacro (class $name,$body)
+(defmacro (class ?name,?body)
   (begin
     (define data-list nil)
     (define pre-method-list nil)

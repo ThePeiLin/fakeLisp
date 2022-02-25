@@ -296,7 +296,7 @@ int MacroPatternCmp(const FklAstCptr* first,const FklAstCptr* second)
 			second=&secPair->car;
 			continue;
 		}
-		else if(first->type==FKL_ATM||first->type==NIL)
+		else if(first->type==FKL_ATM||first->type==FKL_NIL)
 		{
 			if(first->type==FKL_ATM)
 			{
@@ -454,9 +454,9 @@ FklCompEnv* fklCreateMacroCompEnv(const FklAstCptr* objCptr,FklCompEnv* prev)
 				continue;
 			}
 		}
-		else if(objCptr->type==FKL_ATM||objCptr->type==NIL)
+		else if(objCptr->type==FKL_ATM||objCptr->type==FKL_NIL)
 		{
-			if(objCptr->type!=NIL)
+			if(objCptr->type!=FKL_NIL)
 			{
 				FklAstAtom* tmpAtm=objCptr->u.atom;
 				if(tmpAtm->type==FKL_SYM)
@@ -504,7 +504,7 @@ int fklRetree(FklAstCptr** fir,FklAstCptr* sec)
 		FklAstCptr* preCptr=((*fir)->outer->prev==NULL)?sec:&(*fir)->outer->prev->car;
 		fklReplaceCptr(preCptr,*fir);
 		*fir=preCptr;
-		if(preCptr->outer!=NULL&&preCptr->outer->cdr.type!=NIL)return 0;
+		if(preCptr->outer!=NULL&&preCptr->outer->cdr.type!=FKL_NIL)return 0;
 	}
 	return 1;
 }
@@ -560,7 +560,7 @@ FklErrorState defmacro(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter)
 	FklAstCptr** args=dealArg(argCptr,2);
 	if(args[0]->type!=FKL_PAIR)
 	{
-		if(args[0]->type!=NIL)
+		if(args[0]->type!=FKL_NIL)
 		{
 			FklAstAtom* tmpAtom=args[0]->u.atom;
 			if(tmpAtom->type!=FKL_STR)
@@ -914,7 +914,7 @@ FklByteCode* fklCompilePair(FklAstCptr* objCptr)
 			objCptr=&objPair->car;
 			continue;
 		}
-		else if(objCptr->type==FKL_ATM||objCptr->type==NIL)
+		else if(objCptr->type==FKL_ATM||objCptr->type==FKL_NIL)
 		{
 			FklByteCode* tmp1=(objCptr->type==FKL_ATM)?fklCompileAtom(objCptr):fklCompileNil();
 			fklCodeCat(tmp1,(objCptr==&objPair->car)?popToCar:popToCdr);
@@ -1045,7 +1045,7 @@ FklByteCodelnt* fklCompileQsquote(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntp
 			objCptr=&objPair->car;
 			continue;
 		}
-		else if((objCptr->type==FKL_ATM||objCptr->type==NIL)&&(!fklIsUnqtespExpression(&objPair->car)))
+		else if((objCptr->type==FKL_ATM||objCptr->type==FKL_NIL)&&(!fklIsUnqtespExpression(&objPair->car)))
 		{
 			FklByteCodelnt* tmp1=fklCompileConst(objCptr,curEnv,inter,state,evalIm);
 			fklCodeCat(tmp1->bc,(objCptr==&objPair->car)?popToCar:popToCdr);
@@ -1107,7 +1107,7 @@ FklByteCode* fklCompileQuote(FklAstCptr* objCptr)
 			else
 				return fklCompileAtom(objCptr);
 			break;
-		case NIL:
+		case FKL_NIL:
 			return fklCompileNil();
 			break;
 	}
@@ -2113,7 +2113,7 @@ FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr
 	if(fklNextCptr(objCptr)->type==FKL_PAIR)
 	{
 		FklAstCptr* argCptr=&fklNextCptr(objCptr)->u.pair->car;
-		while(argCptr!=NULL&&argCptr->type!=NIL)
+		while(argCptr!=NULL&&argCptr->type!=FKL_NIL)
 		{
 			FklAstAtom* tmpAtm=(argCptr->type==FKL_ATM)?argCptr->u.atom:NULL;
 			if(argCptr->type!=FKL_ATM||tmpAtm==NULL||tmpAtm->type!=FKL_SYM)

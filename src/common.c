@@ -226,10 +226,10 @@ FklAstPair* fklNewPair(int curline,FklAstPair* prev)
 	FklAstPair* tmp;
 	FAKE_ASSERT((tmp=(FklAstPair*)malloc(sizeof(FklAstPair))),"fklNewPair",__FILE__,__LINE__);
 	tmp->car.outer=tmp;
-	tmp->car.type=NIL;
+	tmp->car.type=FKL_NIL;
 	tmp->car.u.all=NULL;
 	tmp->cdr.outer=tmp;
-	tmp->cdr.type=NIL;
+	tmp->cdr.type=FKL_NIL;
 	tmp->cdr.u.all=NULL;
 	tmp->prev=prev;
 	tmp->car.curline=curline;
@@ -243,7 +243,7 @@ FklAstCptr* fklNewCptr(int curline,FklAstPair* outer)
 	FAKE_ASSERT((tmp=(FklAstCptr*)malloc(sizeof(FklAstCptr))),"fklNewCptr",__FILE__,__LINE__);
 	tmp->outer=outer;
 	tmp->curline=curline;
-	tmp->type=NIL;
+	tmp->type=FKL_NIL;
 	tmp->u.all=NULL;
 	return tmp;
 }
@@ -347,7 +347,7 @@ int fklCopyCptr(FklAstCptr* objCptr,const FklAstCptr* copiedCptr)
 void fklReplaceCptr(FklAstCptr* fir,const FklAstCptr* sec)
 {
 	FklAstPair* tmp=fir->outer;
-	FklAstCptr tmpCptr={NULL,0,NIL,{NULL}};
+	FklAstCptr tmpCptr={NULL,0,FKL_NIL,{NULL}};
 	tmpCptr.type=fir->type;
 	tmpCptr.u.all=fir->u.all;
 	fklCopyCptr(fir,sec);
@@ -384,11 +384,11 @@ int fklDeleteCptr(FklAstCptr* objCptr)
 		else if(tmpCptr->type==FKL_ATM)
 		{
 			fklFreeAtom(tmpCptr->u.atom);
-			tmpCptr->type=NIL;
+			tmpCptr->type=FKL_NIL;
 			tmpCptr->u.all=NULL;
 			continue;
 		}
-		else if(tmpCptr->type==NIL)
+		else if(tmpCptr->type==FKL_NIL)
 		{
 			if(objPair!=NULL&&tmpCptr==&objPair->car)
 			{
@@ -403,12 +403,12 @@ int fklDeleteCptr(FklAstCptr* objCptr)
 				if(objPair==NULL||prev==tmpPair)break;
 				if(prev==objPair->car.u.pair)
 				{
-					objPair->car.type=NIL;
+					objPair->car.type=FKL_NIL;
 					objPair->car.u.all=NULL;
 				}
 				else if(prev==objPair->cdr.u.pair)
 				{
-					objPair->cdr.type=NIL;
+					objPair->cdr.type=FKL_NIL;
 					objPair->cdr.u.all=NULL;
 				}
 				tmpCptr=&objPair->cdr;
@@ -416,7 +416,7 @@ int fklDeleteCptr(FklAstCptr* objCptr)
 		}
 		if(objPair==NULL)break;
 	}
-	objCptr->type=NIL;
+	objCptr->type=FKL_NIL;
 	objCptr->u.all=NULL;
 	return 0;
 }
@@ -438,7 +438,7 @@ int fklFklAstCptrcmp(const FklAstCptr* first,const FklAstCptr* second)
 			second=&secPair->car;
 			continue;
 		}
-		else if(first->type==FKL_ATM||first->type==NIL)
+		else if(first->type==FKL_ATM||first->type==FKL_NIL)
 		{
 			if(first->type==FKL_ATM)
 			{
@@ -699,12 +699,12 @@ void fklPrintCptr(const FklAstCptr* objCptr,FILE* out)
 				continue;
 			}
 		}
-		else if(objCptr->type==FKL_ATM||objCptr->type==NIL)
+		else if(objCptr->type==FKL_ATM||objCptr->type==FKL_NIL)
 		{
 			if(objPair!=NULL&&objCptr==&objPair->cdr&&objCptr->type==FKL_ATM)putc(',',out);
-			if((objPair!=NULL&&objCptr==&objPair->car&&objCptr->type==NIL)
-			||(objCptr->outer==NULL&&objCptr->type==NIL))fputs("()",out);
-			if(objCptr->type!=NIL)
+			if((objPair!=NULL&&objCptr==&objPair->car&&objCptr->type==FKL_NIL)
+			||(objCptr->outer==NULL&&objCptr->type==FKL_NIL))fputs("()",out);
+			if(objCptr->type!=FKL_NIL)
 			{
 				FklAstAtom* tmpAtm=objCptr->u.atom;
 				switch((int)tmpAtm->type)
@@ -801,7 +801,7 @@ void fklExError(const FklAstCptr* obj,int type,FklIntpr* inter)
 			if(obj!=NULL)
 			{
 				fprintf(stderr," member by path ");
-				if(obj->type==NIL)
+				if(obj->type==FKL_NIL)
 					fprintf(stderr,"()");
 				else
 					fklPrintCptr(obj,stderr);
@@ -819,7 +819,7 @@ void fklExError(const FklAstCptr* obj,int type,FklIntpr* inter)
 			fprintf(stderr,"get the reference of a non-scalar type member by path ");
 			if(obj!=NULL)
 			{
-				if(obj->type==NIL)
+				if(obj->type==FKL_NIL)
 					fprintf(stderr,"()");
 				else
 					fklPrintCptr(obj,stderr);
@@ -1704,7 +1704,7 @@ FklPreDef* fklNewDefines(const char* name)
 	tmp->symbol=(char*)malloc(sizeof(char)*(strlen(name)+1));
 	FAKE_ASSERT(tmp->symbol,"fklNewDefines",__FILE__,__LINE__);
 	strcpy(tmp->symbol,name);
-	tmp->obj=(FklAstCptr){NULL,0,NIL,{NULL}};
+	tmp->obj=(FklAstCptr){NULL,0,FKL_NIL,{NULL}};
 	tmp->next=NULL;
 	return tmp;
 }
@@ -1895,7 +1895,7 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklIntpr* inter)
 			for(;isspace(objStr[i+1+j]);j++);
 			if(objStr[i+j+1]==')')
 			{
-				root->type=NIL;
+				root->type=FKL_NIL;
 				root->u.all=NULL;
 				i+=j+2;
 			}
@@ -1926,7 +1926,7 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklIntpr* inter)
 				s1->top=(long)fklTopComStack(s2);
 				FklAstCptr* tmp=&root->outer->prev->cdr;
 				free(tmp->u.pair);
-				tmp->type=NIL;
+				tmp->type=FKL_NIL;
 				tmp->u.all=NULL;
 				fklPushComStack(tmp,s1);
 			}
@@ -1942,7 +1942,7 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklIntpr* inter)
 				//如果还有为下一部分准备的pair，则将该pair删除
 				FklAstCptr* tmpCptr=s1->data[t];
 				tmpCptr=&tmpCptr->outer->prev->cdr;
-				tmpCptr->type=NIL;
+				tmpCptr->type=FKL_NIL;
 				free(tmpCptr->u.pair);
 				tmpCptr->u.all=NULL;
 			}

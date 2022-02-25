@@ -171,7 +171,7 @@ static double (*castToDoubleFunctionsList[])(ARGL)=
 		FklVMptrTag tag=GET_TAG(v);\
 		switch(tag)\
 		{\
-			case NIL_TAG:\
+			case FKL_NIL_TAG:\
 				*t=(TYPE)0x0;\
 				break;\
 			case FKL_I32_TAG:\

@@ -286,7 +286,7 @@ static FklTypeId_t genArrayTypeId(FklAstCptr* compositeDataHead,FklVMDefTypes* o
 	FklTypeId_t type=fklGenDefTypesUnion(typeCptr,otherTypes);
 	if(!type)
 		return type;
-	if(fklGetCptrCdr(typeCptr)->type!=NIL)
+	if(fklGetCptrCdr(typeCptr)->type!=FKL_NIL)
 		return 0;
 	return fklNewVMArrayType(type,numCptr->u.atom->value.i32);
 }
@@ -299,7 +299,7 @@ static FklTypeId_t genPtrTypeId(FklAstCptr* compositeDataHead,FklVMDefTypes* oth
 	FklTypeId_t pType=fklGenDefTypesUnion(ptrTypeCptr,otherTypes);
 	if(!pType)
 		return pType;
-	if(fklGetCptrCdr(ptrTypeCptr)->type!=NIL)
+	if(fklGetCptrCdr(ptrTypeCptr)->type!=FKL_NIL)
 		return 0;
 	return fklNewVMPtrType(pType);
 }
@@ -370,7 +370,7 @@ static FklTypeId_t genStructTypeId(FklAstCptr* compositeDataHead,FklVMDefTypes* 
 		for(;memberCptr;i++,memberCptr=fklNextCptr(memberCptr))
 		{
 			FklAstCptr* cdr=fklGetCptrCdr(memberCptr);
-			if(cdr->type!=FKL_PAIR&&cdr->type!=NIL)
+			if(cdr->type!=FKL_PAIR&&cdr->type!=FKL_NIL)
 			{
 				free(memberTypeList);
 				free(memberSymbolList);
@@ -397,7 +397,7 @@ static FklTypeId_t genStructTypeId(FklAstCptr* compositeDataHead,FklVMDefTypes* 
 				free(memberSymbolList);
 				return 0;
 			}
-			if(fklGetCptrCdr(fklNextCptr(memberName))->type!=NIL)
+			if(fklGetCptrCdr(fklNextCptr(memberName))->type!=FKL_NIL)
 			{
 				free(memberSymbolList);
 				free(memberTypeList);
@@ -476,7 +476,7 @@ static FklTypeId_t genUnionTypeId(FklAstCptr* compositeDataHead,FklVMDefTypes* o
 		for(;memberCptr;i++,memberCptr=fklNextCptr(memberCptr))
 		{
 			FklAstCptr* cdr=fklGetCptrCdr(memberCptr);
-			if(cdr->type!=FKL_PAIR&&cdr->type!=NIL)
+			if(cdr->type!=FKL_PAIR&&cdr->type!=FKL_NIL)
 			{
 				free(memberTypeList);
 				free(memberSymbolList);
@@ -503,7 +503,7 @@ static FklTypeId_t genUnionTypeId(FklAstCptr* compositeDataHead,FklVMDefTypes* o
 				free(memberSymbolList);
 				return 0;
 			}
-			if(fklGetCptrCdr(fklNextCptr(memberName))->type!=NIL)
+			if(fklGetCptrCdr(fklNextCptr(memberName))->type!=FKL_NIL)
 			{
 				free(memberSymbolList);
 				free(memberTypeList);
@@ -533,7 +533,7 @@ static FklTypeId_t genFuncTypeId(FklAstCptr* compositeDataHead,FklVMDefTypes* ot
 {
 	FklTypeId_t rtype=0;
 	FklAstCptr* argCptr=fklNextCptr(compositeDataHead);
-	if(!argCptr||(argCptr->type!=FKL_PAIR&&argCptr->type!=NIL))
+	if(!argCptr||(argCptr->type!=FKL_PAIR&&argCptr->type!=FKL_NIL))
 		return 0;
 	FklAstCptr* rtypeCptr=fklNextCptr(argCptr);
 	if(rtypeCptr)
@@ -566,7 +566,7 @@ static FklTypeId_t genFuncTypeId(FklAstCptr* compositeDataHead,FklVMDefTypes* ot
 			return 0;
 		}
 		FklAstCptr* cdr=fklGetCptrCdr(firArgCptr);
-		if(!tmp||(cdr->type!=FKL_PAIR&&cdr->type!=NIL))
+		if(!tmp||(cdr->type!=FKL_PAIR&&cdr->type!=FKL_NIL))
 		{
 			free(atypes);
 			return 0;
@@ -719,7 +719,7 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,VMheap* heap)
 		FklVMvalue** root1=fklPopComStack(s2);
 		switch(tag)
 		{
-			case NIL_TAG:
+			case FKL_NIL_TAG:
 			case FKL_I32_TAG:
 			case FKL_SYM_TAG:
 			case FKL_CHR_TAG:
@@ -789,7 +789,7 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,VMheap* heap)
 {
 	switch((int)type)
 	{
-		case NIL:
+		case FKL_NIL:
 			return VM_NIL;
 			break;
 		case FKL_CHR:
@@ -866,7 +866,7 @@ FklVMvalue* fklNewTrueValue(VMheap* heap)
 
 FklVMvalue* fklNewNilValue(VMheap* heap)
 {
-	FklVMvalue* tmp=fklNewVMvalue(NIL,NULL,heap);
+	FklVMvalue* tmp=fklNewVMvalue(FKL_NIL,NULL,heap);
 	return tmp;
 }
 
@@ -1867,7 +1867,7 @@ void fklPrincVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 	FklVMptrTag tag=GET_TAG(objValue);
 	switch(tag)
 	{
-		case NIL_TAG:
+		case FKL_NIL_TAG:
 			fprintf(fp,"()");
 			break;
 		case FKL_I32_TAG:
@@ -1998,7 +1998,7 @@ void fklPrin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 	FklVMptrTag tag=GET_TAG(objValue);
 	switch(tag)
 	{
-		case NIL_TAG:
+		case FKL_NIL_TAG:
 			fprintf(fp,"()");
 			break;
 		case FKL_I32_TAG:

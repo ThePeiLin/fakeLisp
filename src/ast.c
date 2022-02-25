@@ -77,7 +77,7 @@ FklAstCptr* expandReaderMacro(const char* objStr,FklIntpr* inter,FklStringMatchP
 			{
 				FklStringMatchPattern* tmpPattern=fklFindStringPattern(parts[j]);
 				FklAstCptr* tmpCptr=fklNewCptr(inter->curline,NULL);
-				tmpCptr->type=NIL;
+				tmpCptr->type=FKL_NIL;
 				tmpCptr->u.all=NULL;
 				FklAstCptr* tmpCptr2=fklCreateTree(parts[j],inter,tmpPattern);
 				if(!tmpCptr2)
@@ -270,7 +270,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklIntpr* inter,FklStringMatchPatte
 				for(;isspace(objStr[i+1+j]);j++);
 				if(objStr[i+j+1]==')')
 				{
-					root->type=NIL;
+					root->type=FKL_NIL;
 					root->u.all=NULL;
 					i+=j+2;
 				}
@@ -301,7 +301,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklIntpr* inter,FklStringMatchPatte
 					s1->top=(long)fklTopComStack(s2);
 					FklAstCptr* tmp=&root->outer->prev->cdr;
 					free(tmp->u.pair);
-					tmp->type=NIL;
+					tmp->type=FKL_NIL;
 					tmp->u.all=NULL;
 					fklPushComStack(tmp,s1);
 				}
@@ -317,7 +317,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklIntpr* inter,FklStringMatchPatte
 					//如果还有为下一部分准备的pair，则将该pair删除
 					FklAstCptr* tmpCptr=s1->data[t];
 					tmpCptr=&tmpCptr->outer->prev->cdr;
-					tmpCptr->type=NIL;
+					tmpCptr->type=FKL_NIL;
 					free(tmpCptr->u.pair);
 					tmpCptr->u.all=NULL;
 				}
@@ -340,7 +340,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklIntpr* inter,FklStringMatchPatte
 				}
 				else if((pattern=fklFindStringPattern(objStr+i)))
 				{
-					root->type=NIL;
+					root->type=FKL_NIL;
 					FklAstCptr* tmpCptr=fklCreateTree(objStr+i,inter,pattern);
 					if(tmpCptr==NULL)
 					{
@@ -453,7 +453,7 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 		FklAstCptr* root1=fklPopComStack(s2);
 		FklValueType cptrType=0;
 		if(root==VM_NIL)
-			cptrType=NIL;
+			cptrType=FKL_NIL;
 		else if(IS_PAIR(root))
 			cptrType=FKL_PAIR;
 		else if(!IS_REF(root)&&!IS_CHF(root))
@@ -555,7 +555,7 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 
 void addToList(FklAstCptr* fir,const FklAstCptr* sec)
 {
-	while(fir->type!=NIL)fir=&fir->u.pair->cdr;
+	while(fir->type!=FKL_NIL)fir=&fir->u.pair->cdr;
 	fir->type=FKL_PAIR;
 	fir->u.pair=fklNewPair(sec->curline,fir->outer);
 	fklReplaceCptr(&fir->u.pair->car,sec);
@@ -563,6 +563,6 @@ void addToList(FklAstCptr* fir,const FklAstCptr* sec)
 
 void addToTail(FklAstCptr* fir,const FklAstCptr* sec)
 {
-	while(fir->type!=NIL)fir=&fir->u.pair->cdr;
+	while(fir->type!=FKL_NIL)fir=&fir->u.pair->cdr;
 	fklReplaceCptr(fir,sec);
 }

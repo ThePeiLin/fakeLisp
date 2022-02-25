@@ -14,7 +14,7 @@ int fklIsDefmacroExpression(const FklAstCptr* objCptr)
 	objCptr=(objCptr->type==FKL_PAIR)?&objCptr->u.pair->car:NULL;
 	if(objCptr!=NULL&&fklNextCptr(objCptr)!=NULL&&fklNextCptr(fklNextCptr(objCptr))!=NULL)
 	{
-		if(objCptr->type!=FKL_ATM||fklNextCptr(objCptr)->type==NIL)return 0;
+		if(objCptr->type!=FKL_ATM||fklNextCptr(objCptr)->type==FKL_NIL)return 0;
 		else
 		{
 			FklAstAtom* tmpAtm=objCptr->u.atom;
@@ -30,7 +30,7 @@ int fklIsDeftypeExpression(const FklAstCptr* objCptr)
 	objCptr=(objCptr->type==FKL_PAIR)?&objCptr->u.pair->car:NULL;
 	if(objCptr!=NULL&&fklNextCptr(objCptr)!=NULL&&fklNextCptr(fklNextCptr(objCptr))!=NULL)
 	{
-		if(objCptr->type!=FKL_ATM||fklNextCptr(objCptr)->type==NIL)return 0;
+		if(objCptr->type!=FKL_ATM||fklNextCptr(objCptr)->type==FKL_NIL)return 0;
 		else
 		{
 			FklAstAtom* tmpAtm=objCptr->u.atom;
@@ -128,7 +128,7 @@ int fklIsSymbol(const FklAstCptr* objCptr)
 
 int fklIsNil(const FklAstCptr* objCptr)
 {
-	if(objCptr->type==NIL)return 1;
+	if(objCptr->type==FKL_NIL)return 1;
 	return 0;
 }
 
@@ -137,7 +137,7 @@ int fklIsConst(const FklAstCptr* objCptr)
 	if(fklIsNil(objCptr))return 1;
 	FklAstAtom* tmpAtm=(objCptr->type==FKL_ATM)?objCptr->u.atom:NULL;
 	if(tmpAtm!=NULL&&tmpAtm->type!=FKL_SYM)return 1;
-	if(objCptr->type==FKL_PAIR&&(fklIsQuoteExpression(objCptr)||(objCptr->u.pair->car.type==NIL&&objCptr->u.pair->car.type==NIL&&fklIsValid(objCptr))))return 1;
+	if(objCptr->type==FKL_PAIR&&(fklIsQuoteExpression(objCptr)||(objCptr->u.pair->car.type==FKL_NIL&&objCptr->u.pair->car.type==FKL_NIL&&fklIsValid(objCptr))))return 1;
 	return 0;
 }
 
@@ -240,7 +240,7 @@ int fklIsValid(const FklAstCptr* objCptr)
 			fklPrevCptr=objCptr;
 			objCptr=fklNextCptr(objCptr);
 		}
-		if(fklPrevCptr->outer->cdr.type!=NIL)return 0;
+		if(fklPrevCptr->outer->cdr.type!=FKL_NIL)return 0;
 	}
 	return 1;
 }
@@ -411,7 +411,7 @@ int fklIsAnyExpression(const char* str,const FklAstCptr* objCptr)
 	objCptr=(objCptr->type==FKL_PAIR)?&objCptr->u.pair->car:NULL;
 	if(objCptr!=NULL&&fklNextCptr(objCptr)!=NULL&&fklNextCptr(fklNextCptr(objCptr))!=NULL)
 	{
-		if(objCptr->type!=FKL_ATM||fklNextCptr(objCptr)->type==NIL)return 0;
+		if(objCptr->type!=FKL_ATM||fklNextCptr(objCptr)->type==FKL_NIL)return 0;
 		else
 		{
 			FklAstAtom* tmpAtm=objCptr->u.atom;
@@ -427,7 +427,7 @@ int fklIsTryExpression(const FklAstCptr* objCptr)
 	objCptr=(objCptr->type==FKL_PAIR)?&objCptr->u.pair->car:NULL;
 	if(objCptr!=NULL&&fklNextCptr(objCptr)!=NULL&&fklNextCptr(fklNextCptr(objCptr))!=NULL)
 	{
-		if(objCptr->type!=FKL_ATM||fklNextCptr(objCptr)->type==NIL)return 0;
+		if(objCptr->type!=FKL_ATM||fklNextCptr(objCptr)->type==FKL_NIL)return 0;
 		else
 		{
 			FklAstAtom* tmpAtm=objCptr->u.atom;
@@ -443,7 +443,7 @@ int fklIsCatchExpression(const FklAstCptr* objCptr)
 	objCptr=(objCptr->type==FKL_PAIR)?&objCptr->u.pair->car:NULL;
 	if(objCptr!=NULL&&fklNextCptr(objCptr)!=NULL&&fklNextCptr(fklNextCptr(objCptr))!=NULL)
 	{
-		if(objCptr->type!=FKL_ATM||fklNextCptr(objCptr)->type==NIL)return 0;
+		if(objCptr->type!=FKL_ATM||fklNextCptr(objCptr)->type==FKL_NIL)return 0;
 		else
 		{
 			FklAstAtom* tmpAtm=objCptr->u.atom;

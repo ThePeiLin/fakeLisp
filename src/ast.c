@@ -149,7 +149,7 @@ FklAstCptr* expandReaderMacro(const char* objStr,FklIntpr* inter,FklStringMatchP
 	}
 	FklVM* tmpVM=fklNewTmpVM(NULL);
 	FklAstCptr* tmpCptr=NULL;
-	if(pattern->type==BYTS)
+	if(pattern->type==FKL_BYTS)
 	{
 		FklByteCodelnt* t=fklNewByteCodelnt(fklNewByteCode(0));
 		FklVMenv* tmpGlobEnv=genGlobEnv(inter->glob,t,tmpVM->heap);
@@ -374,7 +374,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklIntpr* inter,FklStringMatchPatte
 							break;
 						case 'b':
 							str=fklGetStringAfterBackslash(objStr+i+1);
-							atom=fklNewAtom(BYTS,NULL,root->outer);
+							atom=fklNewAtom(FKL_BYTS,NULL,root->outer);
 							atom->value.byts.size=strlen(str)/2+strlen(str)%2;
 							atom->value.byts.str=fklCastStrByteStr(str);
 							root->u.atom=atom;
@@ -488,7 +488,7 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 							case FKL_STR:
 								tmpAtm->value.str=fklCopyStr(root->u.str);
 								break;
-							case BYTS:
+							case FKL_BYTS:
 								tmpAtm->value.byts.size=root->u.byts->size;
 								tmpAtm->value.byts.str=fklCopyMemory(root->u.byts->str,root->u.byts->size);
 								break;

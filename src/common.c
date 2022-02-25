@@ -269,7 +269,7 @@ FklAstAtom* fklNewAtom(int type,const char* value,FklAstPair* prev)
 		case FKL_DBL:
 			*(int32_t*)(&tmp->value)=0;
 			break;
-		case BYTS:
+		case FKL_BYTS:
 			tmp->value.byts.size=0;
 			tmp->value.byts.str=NULL;
 			break;
@@ -312,7 +312,7 @@ int fklCopyCptr(FklAstCptr* objCptr,const FklAstCptr* copiedCptr)
 					case FKL_STR:
 						atom1=fklNewAtom(atom2->type,atom2->value.str,root1->outer);
 						break;
-					case BYTS:
+					case FKL_BYTS:
 						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
 						atom1->value.byts.size=atom2->value.byts.size;
 						atom1->value.byts.str=fklCopyMemory(atom2->value.byts.str,atom2->value.byts.size);
@@ -449,7 +449,7 @@ int fklFklAstCptrcmp(const FklAstCptr* first,const FklAstCptr* second)
 				else if(firAtm->type==FKL_I32&&firAtm->value.i32!=secAtm->value.i32)return 0;
 				else if(firAtm->type==FKL_DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
 				else if(firAtm->type==FKL_CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
-				else if(firAtm->type==BYTS&&!fklEqByteString(&firAtm->value.byts,&secAtm->value.byts))return 0;
+				else if(firAtm->type==FKL_BYTS&&!fklEqByteString(&firAtm->value.byts,&secAtm->value.byts))return 0;
 			}
 			if(firPair!=NULL&&first==&firPair->car)
 			{ first=&firPair->cdr;
@@ -668,7 +668,7 @@ int fklIsNum(const char* objStr)
 void fklFreeAtom(FklAstAtom* objAtm)
 {
 	if(objAtm->type==FKL_SYM||objAtm->type==FKL_STR)free(objAtm->value.str);
-	else if(objAtm->type==BYTS)
+	else if(objAtm->type==FKL_BYTS)
 	{
 		objAtm->value.byts.size=0;
 		free(objAtm->value.byts.str);
@@ -724,7 +724,7 @@ void fklPrintCptr(const FklAstCptr* objCptr,FILE* out)
 					case FKL_CHR:
 						fklPrintRawChar(tmpAtm->value.chr,out);
 						break;
-					case BYTS:
+					case FKL_BYTS:
 						fklPrintByteStr(tmpAtm->value.byts.size,tmpAtm->value.byts.str,out,1);
 						break;
 				}
@@ -1980,7 +1980,7 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklIntpr* inter)
 						break;
 					case 'b':
 						str=fklGetStringAfterBackslash(objStr+i+1);
-						atom=fklNewAtom(BYTS,NULL,root->outer);
+						atom=fklNewAtom(FKL_BYTS,NULL,root->outer);
 						atom->value.byts.size=strlen(str)/2+strlen(str)%2;
 						atom->value.byts.str=fklCastStrByteStr(str);
 						root->u.atom=atom;

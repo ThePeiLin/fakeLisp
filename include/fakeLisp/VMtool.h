@@ -61,7 +61,7 @@
 #define IS_PAIR(P) (GET_TAG(P)==PTR_TAG&&(P)->type==PAIR)
 #define IS_DBL(P) (GET_TAG(P)==PTR_TAG&&(P)->type==FKL_DBL)
 #define IS_STR(P) (GET_TAG(P)==PTR_TAG&&(P)->type==FKL_STR)
-#define IS_BYTS(P) (GET_TAG(P)==PTR_TAG&&(P)->type==BYTS)
+#define IS_BYTS(P) (GET_TAG(P)==PTR_TAG&&(P)->type==FKL_BYTS)
 #define IS_CHAN(P) (GET_TAG(P)==PTR_TAG&&(P)->type==CHAN)
 #define IS_FP(P) (GET_TAG(P)==PTR_TAG&&(P)->type==FP)
 #define IS_DLL(P) (GET_TAG(P)==PTR_TAG&&(P)->type==DLL)

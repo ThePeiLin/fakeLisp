@@ -947,7 +947,7 @@ void SYS_byts(FklVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.byts",TOOMANYARG,runnable,exe);
 	if(!obj)
 		RAISE_BUILTIN_ERROR("sys.byts",TOOFEWARG,runnable,exe);
-	FklVMvalue* retval=fklNewVMvalue(BYTS,fklNewEmptyVMByts(),exe->heap);
+	FklVMvalue* retval=fklNewVMvalue(FKL_BYTS,fklNewEmptyVMByts(),exe->heap);
 	if(IS_I32(obj))
 	{
 		retval->u.byts=(FklVMByts*)realloc(retval->u.byts,sizeof(FklVMByts)+sizeof(int32_t));
@@ -1191,7 +1191,7 @@ void SYS_getb(FklVM* exe,pthread_rwlock_t* gclock)
 	{
 		str=(uint8_t*)realloc(str,sizeof(uint8_t)*realRead);
 		FAKE_ASSERT(str,"B_getb",__FILE__,__LINE__);
-		FklVMvalue* tmpByts=fklNewVMvalue(BYTS,NULL,exe->heap);
+		FklVMvalue* tmpByts=fklNewVMvalue(FKL_BYTS,NULL,exe->heap);
 		tmpByts->u.byts=(FklVMByts*)malloc(sizeof(FklVMByts)+GET_I32(size));
 		FAKE_ASSERT(tmpByts->u.byts,"SYS_getb",__FILE__,__LINE__);
 		tmpByts->u.byts->size=GET_I32(size);

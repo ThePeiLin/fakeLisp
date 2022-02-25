@@ -308,7 +308,7 @@ int MacroPatternCmp(const FklAstCptr* first,const FklAstCptr* second)
 				else if(firAtm->type==FKL_I32&&firAtm->value.i32!=secAtm->value.i32)return 0;
 				else if(firAtm->type==FKL_DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
 				else if(firAtm->type==FKL_CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
-				else if(firAtm->type==BYTS&&!fklEqByteString(&firAtm->value.byts,&secAtm->value.byts))return 0;
+				else if(firAtm->type==FKL_BYTS&&!fklEqByteString(&firAtm->value.byts,&secAtm->value.byts))return 0;
 			}
 			if(firPair!=NULL&&first==&firPair->car)
 			{ first=&firPair->cdr;
@@ -877,7 +877,7 @@ FklByteCode* fklCompileAtom(FklAstCptr* objCptr)
 			tmp->code[0]=FAKE_PUSH_CHR;
 			tmp->code[1]=tmpAtm->value.chr;
 			break;
-		case BYTS:
+		case FKL_BYTS:
 			tmp=fklNewByteCode(sizeof(char)+sizeof(int32_t)+tmpAtm->value.byts.size);
 			tmp->code[0]=FAKE_PUSH_BYTE;
 			*(int32_t*)(tmp->code+1)=tmpAtm->value.byts.size;
@@ -2587,7 +2587,7 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 //				{
 //					FklAstCptr* tmpCptr=fklNextCptr(fir);
 //					FklAstAtom* tmpAtm=tmpCptr->u.atom;
-//					if(tmpAtm->type!=BYTS)
+//					if(tmpAtm->type!=FKL_BYTS)
 //					{
 //						state->place=tmpCptr;
 //						state->state=SYNTAXERROR;

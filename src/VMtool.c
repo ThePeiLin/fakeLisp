@@ -733,8 +733,8 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,VMheap* heap)
 						case FKL_DBL:
 							*root1=fklNewVMvalue(FKL_DBL,root->u.dbl,heap);
 							break;
-						case BYTS:
-							*root1=fklNewVMvalue(BYTS,fklNewVMByts(root->u.byts->size,root->u.byts->str),heap);
+						case FKL_BYTS:
+							*root1=fklNewVMvalue(FKL_BYTS,fklNewVMByts(root->u.byts->size,root->u.byts->str),heap);
 							break;
 						case FKL_STR:
 							*root1=fklNewVMvalue(FKL_STR,fklCopyStr(root->u.str),heap);
@@ -828,7 +828,7 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,VMheap* heap)
 						tmp->u.pair=pValue;break;
 					case PRC:
 						tmp->u.prc=pValue;break;
-					case BYTS:
+					case FKL_BYTS:
 						tmp->u.byts=pValue;break;
 					case CONT:
 						tmp->u.cont=pValue;break;
@@ -919,7 +919,7 @@ int fklVMvaluecmp(FklVMvalue* fir,FklVMvalue* sec)
 				case FKL_STR:
 					r=!strcmp(root1->u.str,root2->u.str);
 					break;
-				case BYTS:
+				case FKL_BYTS:
 					r=fklEqVMByts(root1->u.byts,root2->u.byts);
 					break;
 				case PAIR:
@@ -1018,8 +1018,8 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,VMheap* heap)
 				case FKL_DBL:
 					*root1=fklNewVMvalue(FKL_DBL,&tmpAtm->value.dbl,heap);
 					break;
-				case BYTS:
-					*root1=fklNewVMvalue(BYTS,fklNewVMByts(tmpAtm->value.byts.size,tmpAtm->value.byts.str),heap);
+				case FKL_BYTS:
+					*root1=fklNewVMvalue(FKL_BYTS,fklNewVMByts(tmpAtm->value.byts.size,tmpAtm->value.byts.str),heap);
 					break;
 				case FKL_STR:
 					*root1=fklNewVMvalue(FKL_STR,fklCopyStr(tmpAtm->value.str),heap);
@@ -1944,7 +1944,7 @@ void fklPrincVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 						}
 						putc(')',fp);
 						break;
-					case BYTS:
+					case FKL_BYTS:
 						fklPrintByteStr(objValue->u.byts->size,objValue->u.byts->str,fp,0);
 						break;
 					case CONT:
@@ -2075,7 +2075,7 @@ void fklPrin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 						}
 						putc(')',fp);
 						break;
-					case BYTS:
+					case FKL_BYTS:
 						fklPrintByteStr(objValue->u.byts->size,objValue->u.byts->str,fp,1);
 						break;
 					case CONT:

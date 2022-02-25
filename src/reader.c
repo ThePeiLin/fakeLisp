@@ -876,7 +876,7 @@ FklStringMatchPattern* fklNewStringMatchPattern(int32_t num,char** parts,FklByte
 {
 	FklStringMatchPattern* tmp=(FklStringMatchPattern*)malloc(sizeof(FklStringMatchPattern));
 	FAKE_ASSERT(tmp,"fklNewStringMatchPattern",__FILE__,__LINE__);
-	tmp->type=BYTS;
+	tmp->type=FKL_BYTS;
 	tmp->num=num;
 	tmp->parts=parts;
 	tmp->u.bProc=proc;
@@ -928,7 +928,7 @@ void fklFreeAllStringPattern()
 		FklStringMatchPattern* prev=cur;
 		cur=cur->next;
 		fklFreeStringArry(prev->parts,prev->num);
-		if(prev->type==BYTS)
+		if(prev->type==FKL_BYTS)
 		{
 			FREE_ALL_LINE_NUMBER_TABLE(prev->u.bProc->l,prev->u.bProc->ls);
 			fklFreeByteCodelnt(prev->u.bProc);

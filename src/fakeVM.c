@@ -740,7 +740,7 @@ void B_push_byte(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	int32_t size=*(int32_t*)(exe->code+runnable->cp+1);
-	SET_RETURN("B_push_byte",fklNewVMvalue(BYTS,fklNewVMByts(*(int32_t*)(exe->code+runnable->cp+1),exe->code+runnable->cp+5),exe->heap),stack);
+	SET_RETURN("B_push_byte",fklNewVMvalue(FKL_BYTS,fklNewVMByts(*(int32_t*)(exe->code+runnable->cp+1),exe->code+runnable->cp+5),exe->heap),stack);
 	runnable->cp+=5+size;
 }
 
@@ -1577,7 +1577,7 @@ void fklGC_sweep(VMheap* heap)
 				case PRC:
 					fklFreeVMproc(prev->u.prc);
 					break;
-				case BYTS:
+				case FKL_BYTS:
 					free(prev->u.byts);
 					break;
 				case CONT:

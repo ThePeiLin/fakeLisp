@@ -53,8 +53,7 @@ defmacro的语法比较特殊，为：
 		 (map (lambda (sd) (nth 0 sd)) d))
 		(setq vals
 		 (map (lambda (sd) (nth 1 sd)) d))
-		(cons (cons (quote lambda) (cons args b)) vals)
-	   ))))  
+		(cons (cons (quote lambda) (cons args b)) vals)))))
 ```
 如果用于匹配的表达式是字符串，则这个宏会在建立语法分析树时展开。
 下面是用宏实现的quote的语法糖：
@@ -74,8 +73,7 @@ defmacro的语法比较特殊，为：
   (defmacro "'(a)"
     (cons (quote quote)
           (cons a nil)))
-  'a ;不合法
-  )
+  'a) ;不合法
 
 'a ;合法
 ```
@@ -96,8 +94,7 @@ defmacro的语法比较特殊，为：
   (defmacro (q $a)
     (cons (quote quote)
           (cons a nil)))
-  (q a) ;合法
-  )
+  (q a)) ;合法
 (q a) ;不合法
 ```
 
@@ -534,8 +531,7 @@ i
 ```scheme
 ;(cond (p1 e1...)
 ;      (p2 e2...)
-;      ...
-;      )
+;      ...)
 
 (cond (1 2))
 ;=> 2
@@ -828,8 +824,7 @@ lisp系的编程语言大多都有词法闭包，  可以利用词法闭包来�
     (setf case-list
           (appd case-list
                 `((1
-                   (raise (error 'invalid-selector (append "error:Invalid selector \"" (str selector) "\"\n")))
-                   ))))
+                   (raise (error 'invalid-selector (append "error:Invalid selector \"" (str selector) "\"\n")))))))
 
     (define local-env (appd data-list method-list))
     `(define ~name
@@ -839,8 +834,7 @@ lisp系的编程语言大多都有词法闭包，  可以利用词法闭包来�
            (define this
              (lambda (selector)
                (case selector
-                 ~@case-list)))
-           )))))
+                 ~@case-list))))))))
 
 (class Vec3
        (data

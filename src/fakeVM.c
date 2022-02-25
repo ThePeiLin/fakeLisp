@@ -136,26 +136,11 @@ void invokeFlproc(FakeVM* exe,VMFlproc* flproc)
 	TypeId_t type=flproc->type;
 	VMstack* stack=exe->stack;
 	VMrunnable* curR=fklTopComStack(exe->rstack);
-	void* func=flproc->func;
 	VMFuncType* ft=(VMFuncType*)GET_TYPES_PTR(fklGetVMTypeUnion(type).all);
 	uint32_t anum=ft->anum;
 	TypeId_t* atypes=ft->atypes;
-	ffi_type** ffiAtypes=(ffi_type**)malloc(sizeof(ffi_type*)*anum);
-	FAKE_ASSERT(ffiAtypes,"invokeFlproc",__FILE__,__LINE__);
 	uint32_t i=0;
-	for(;i<anum;i++)
-	{
-		if(atypes[i]>LastNativeTypeId)
-			ffiAtypes[i]=fklGetFfiType(LastNativeTypeId);
-		else
-			ffiAtypes[i]=fklGetFfiType(atypes[i]);
-	}
 	TypeId_t rtype=ft->rtype;
-	ffi_type* ffiRtype=NULL;
-	if(rtype>LastNativeTypeId)
-		ffiRtype=fklGetFfiType(LastNativeTypeId);
-	else
-		ffiRtype=fklGetFfiType(rtype);
 	VMvalue** args=(VMvalue**)malloc(sizeof(VMvalue*)*anum);
 	FAKE_ASSERT(args,"invokeFlproc",__FILE__,__LINE__);
 	for(i=0;i<anum;i++)
@@ -164,7 +149,6 @@ void invokeFlproc(FakeVM* exe,VMFlproc* flproc)
 		if(v==NULL)
 		{
 			free(args);
-			free(ffiAtypes);
 			RAISE_BUILTIN_ERROR("flproc",TOOFEWARG,curR,exe);
 		}
 		if(IS_REF(v))
@@ -174,7 +158,6 @@ void invokeFlproc(FakeVM* exe,VMFlproc* flproc)
 	if(fklResBp(stack))
 	{
 		free(args);
-		free(ffiAtypes);
 		RAISE_BUILTIN_ERROR("flproc",TOOMANYARG,curR,exe);
 	}
 	void** pArgs=(void**)malloc(sizeof(void*)*anum);
@@ -182,13 +165,12 @@ void invokeFlproc(FakeVM* exe,VMFlproc* flproc)
 	for(i=0;i<anum;i++)
 		if(fklCastValueToVptr(atypes[i],args[i],&pArgs[i]))
 		{
-			free(ffiAtypes);
 			free(args);
 			free(pArgs);
 			RAISE_BUILTIN_ERROR("flproc",WRONGARG,curR,exe);
 		}
 	uintptr_t retval=0x0;
-	fklApplyFF(func,anum,ffiRtype,ffiAtypes,&retval,pArgs);
+	fklApplyFlproc(flproc,&retval,pArgs);
 	if(rtype!=0)
 	{
 		if(rtype==StringTypeId)
@@ -206,7 +188,6 @@ void invokeFlproc(FakeVM* exe,VMFlproc* flproc)
 	for(i=0;i<anum;i++)
 		free(pArgs[i]);
 	free(pArgs);
-	free(ffiAtypes);
 	free(args);
 }
 

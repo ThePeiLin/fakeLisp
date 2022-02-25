@@ -38,8 +38,7 @@
     (setq case-list
           (append case-list
                 `((1
-                   (raise (error 'passing-member-symbol 'invalid-selector (append "error:Invalid selector \"" (str selector) "\"\n")))
-                   ))))
+                   (raise (error 'passing-member-symbol 'invalid-selector (append "error:Invalid selector \"" (str selector) "\"\n")))))))
 
     (define local-env (append data-list method-list))
     `(define ~name
@@ -49,8 +48,7 @@
            (define this
              (lambda (selector)
                (case selector
-                 ~@case-list)))
-           )))))
+                 ~@case-list))))))))
 
 (define print
   (lambda l

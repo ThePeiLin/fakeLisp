@@ -225,8 +225,7 @@
                         ((3) (print "\033[0m\033["
                                     light
                                     "m?"))
-                        ((4) (princ "\033[0m\033[44m#"
-                                   ))))
+                        ((4) (princ "\033[0m\033[44m#"))))
                     (loop-xp (1+ xp)))))
            (princ "\n")
            (loop-yp (1+ yp)))))
@@ -290,8 +289,7 @@
                                                        1
                                                        (* tier 2)))))))
                              (loop-yt (-1+ yt)))))
-                    (loop-tier (+ tier (if (have-unopened-block g-map row line x y tier) 0 1)))))))
-          ))
+                    (loop-tier (+ tier (if (have-unopened-block g-map row line x y tier) 0 1)))))))))
   (define (open-all-block)
     (define num-of-block (* (+ line 2) (+ row 2)))
     (let loop-i ((i 0))
@@ -315,8 +313,7 @@
                       (print-map g-map row line xl yl bombnum)
                       (if (eq ch #\q)
                         (print "\033[" (int (/ rline 2)) ";" (+ rrow 2) "H")
-                        (print "\033[" (int (/ rline 2)) ";" (+ rrow 2) "H" "You fail!"))
-                      ))
+                        (print "\033[" (int (/ rline 2)) ";" (+ rrow 2) "H" "You fail!"))))
     (cond ((eq 0 rbombnum)
            (print "\033[" (int (/ rline 2)) ";" (+ rrow 2) "H" "You win!")
            (setq is-game-over 1)))

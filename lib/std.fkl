@@ -247,7 +247,7 @@
                     (setq vals
                           (map (lambda (sd) (nth 1 sd)) d))
                     `((lambda ~args ~@b) ~@vals))
-                   ((eq (type d) 'nil)
+                   ((null d)
                     `((lambda () ~@b)))
                    (1 (raise (error "expanding-macro-let" 'syntax-error "error:Wrong type of object behind key word:let\n"))))))
 

@@ -1,4 +1,5 @@
 #include<fakeLisp/VMtool.h>
+#include<fakeLisp/fakeFFI.h>
 #include<fakeLisp/common.h>
 #include<fakeLisp/opcode.h>
 #include<string.h>
@@ -1509,11 +1510,33 @@ VMFlproc* fklNewVMFlproc(TypeId_t type,void* func)
 	FAKE_ASSERT(tmp,"fklNewVMDlproc",__FILE__,__LINE__);
 	tmp->type=type;
 	tmp->func=func;
+	VMFuncType* ft=(VMFuncType*)GET_TYPES_PTR(fklGetVMTypeUnion(type).all);
+	uint32_t anum=ft->anum;
+	TypeId_t* atypes=ft->atypes;
+	ffi_type** ffiAtypes=(ffi_type**)malloc(sizeof(ffi_type*)*anum);
+	FAKE_ASSERT(ffiAtypes,"invokeFlproc",__FILE__,__LINE__);
+	uint32_t i=0;
+	for(;i<anum;i++)
+	{
+		if(atypes[i]>LastNativeTypeId)
+			ffiAtypes[i]=fklGetFfiType(LastNativeTypeId);
+		else
+			ffiAtypes[i]=fklGetFfiType(atypes[i]);
+	}
+	TypeId_t rtype=ft->rtype;
+	ffi_type* ffiRtype=NULL;
+	if(rtype>LastNativeTypeId)
+		ffiRtype=fklGetFfiType(LastNativeTypeId);
+	else
+		ffiRtype=fklGetFfiType(rtype);
+	fklPrepFFIcif(&tmp->cif,anum,ffiAtypes,ffiRtype);
+	tmp->atypes=ffiAtypes;
 	return tmp;
 }
 
 void fklFreeVMFlproc(VMFlproc* t)
 {
+	free(t->atypes);
 	free(t);
 }
 

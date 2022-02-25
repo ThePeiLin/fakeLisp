@@ -4,6 +4,7 @@
 #include<stdlib.h>
 #include<stdint.h>
 #include<pthread.h>
+#include<ffi.h>
 #include<setjmp.h>
 #define THRESHOLD_SIZE 64
 #define NUMOFBUILTINSYMBOL 54
@@ -427,6 +428,8 @@ typedef struct VMDlproc
 typedef struct VMFlproc
 {
 	void* func;
+	ffi_cif cif;
+	ffi_type** atypes;
 	TypeId_t type;
 }VMFlproc;
 

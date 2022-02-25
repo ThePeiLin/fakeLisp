@@ -313,14 +313,27 @@ static int (*fklCastValueToVptrFunctionsList[])(ARGL)=
 #undef ARGL
 /*---------------------------------*/
 
+void fklPrepFFIcif(ffi_cif* cif,int argc,ffi_type** atypes,ffi_type* rtype)
+{
+	pthread_mutex_lock(&GPrepCifLock);
+	ffi_status r=ffi_prep_cif(cif,FFI_DEFAULT_ABI,argc,rtype,atypes);
+	pthread_mutex_unlock(&GPrepCifLock);
+	FAKE_ASSERT(r==FFI_OK,"fklPrepFFIcif",__FILE__,__LINE__);
+}
+
 void fklApplyFF(void* func,int argc,ffi_type* rtype,ffi_type** atypes,void* rvalue,void** avalue)
 {
 	ffi_cif cif;
 	pthread_mutex_lock(&GPrepCifLock);
-	int r=ffi_prep_cif(&cif, FFI_DEFAULT_ABI, argc, rtype, atypes);
+	int r=ffi_prep_cif(&cif,FFI_DEFAULT_ABI,argc,rtype,atypes);
 	pthread_mutex_unlock(&GPrepCifLock);
 	if(r==FFI_OK)
 		ffi_call(&cif, func, rvalue, avalue);
+}
+
+void fklApplyFlproc(VMFlproc* f,void* rvalue,void** avalue)
+{
+	ffi_call(&f->cif,f->func,rvalue,avalue);
 }
 
 ffi_type* fklGetFfiType(TypeId_t type)

@@ -540,11 +540,11 @@ void SYS_div(FakeVM* exe,pthread_rwlock_t* gclock)
 		{
 			if(r64==0)
 				RAISE_BUILTIN_ERROR("sys.div",DIVZERROERROR,runnable,exe);
-			if(r64!=1)
-			{
-				r64=(IS_IN32(prev)?GET_IN32(prev):*prev->u.in64)/r64;
-				SET_RETURN("SYS_div",fklNewVMvalue(IN64,&r64,exe->heap),stack);
-			}
+			//if(r64!=1)
+			//{
+			//	r64=(IS_IN32(prev)?GET_IN32(prev):*prev->u.in64)/r64;
+			//	SET_RETURN("SYS_div",fklNewVMvalue(IN64,&r64,exe->heap),stack);
+			//}
 			else
 			{
 				r64=GET_IN32(prev)/r64;
@@ -789,6 +789,8 @@ void SYS_int(FakeVM* exe,pthread_rwlock_t* gclock)
 		SET_RETURN("SYS_int",MAKE_VM_IN32(GET_CHR(obj)),stack);
 	else if(IS_IN32(obj))
 		SET_RETURN("SYS_int",obj,stack);
+	else if(IS_IN64(obj))
+		SET_RETURN("SYS_int",fklNewVMvalue(IN64,obj->u.in64,exe->heap),stack);
 	else if(IS_DBL(obj))
 	{
 		int64_t r=(int64_t)*obj->u.dbl;

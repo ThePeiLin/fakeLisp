@@ -65,7 +65,7 @@
 #define IS_CHAN(P) (GET_TAG(P)==PTR_TAG&&(P)->type==CHAN)
 #define IS_FP(P) (GET_TAG(P)==PTR_TAG&&(P)->type==FP)
 #define IS_DLL(P) (GET_TAG(P)==PTR_TAG&&(P)->type==DLL)
-#define IS_PRC(P) (GET_TAG(P)==PTR_TAG&&(P)->type==PRC)
+#define IS_PRC(P) (GET_TAG(P)==PTR_TAG&&(P)->type==FKL_PRC)
 #define IS_DLPROC(P) (GET_TAG(P)==PTR_TAG&&(P)->type==DLPROC)
 #define IS_FLPROC(P) (GET_TAG(P)==PTR_TAG&&(P)->type==FLPROC)
 #define IS_ERR(P) (GET_TAG(P)==PTR_TAG&&(P)->type==ERR)

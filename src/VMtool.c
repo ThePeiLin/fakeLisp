@@ -740,7 +740,7 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,VMheap* heap)
 							*root1=fklNewVMvalue(FKL_STR,fklCopyStr(root->u.str),heap);
 							break;
 						case CONT:
-						case PRC:
+						case FKL_PRC:
 						case FP:
 						case DLL:
 						case DLPROC:
@@ -826,7 +826,7 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,VMheap* heap)
 						tmp->u.str=pValue;break;
 					case PAIR:
 						tmp->u.pair=pValue;break;
-					case PRC:
+					case FKL_PRC:
 						tmp->u.prc=pValue;break;
 					case FKL_BYTS:
 						tmp->u.byts=pValue;break;
@@ -1905,7 +1905,7 @@ void fklPrincVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 								fprintf(fp,"<#mem at %p>",mem->mem);
 						}
 						break;
-					case PRC:
+					case FKL_PRC:
 						fprintf(fp,"#<proc>");
 						break;
 					case PAIR:
@@ -2036,7 +2036,7 @@ void fklPrin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 								fprintf(fp,"<#mem at %p>",mem->mem);
 						}
 						break;
-					case PRC:
+					case FKL_PRC:
 						fprintf(fp,"#<proc>");
 						break;
 					case PAIR:

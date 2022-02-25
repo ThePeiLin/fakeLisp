@@ -492,7 +492,7 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 								tmpAtm->value.byts.size=root->u.byts->size;
 								tmpAtm->value.byts.str=fklCopyMemory(root->u.byts->str,root->u.byts->size);
 								break;
-							case PRC:
+							case FKL_PRC:
 								tmpAtm->type=FKL_SYM;
 								tmpAtm->value.str=fklCopyStr("#<proc>");
 								break;

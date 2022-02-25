@@ -804,7 +804,7 @@ void B_push_proc(FklVM* exe)
 	FklVMproc* code=fklNewVMproc(runnable->cp+1+sizeof(int32_t),sizeOfProc);
 	fklIncreaseVMenvRefcount(runnable->localenv);
 	code->prevEnv=runnable->localenv;
-	FklVMvalue* objValue=fklNewVMvalue(PRC,code,exe->heap);
+	FklVMvalue* objValue=fklNewVMvalue(FKL_PRC,code,exe->heap);
 	SET_RETURN("B_push_proc",objValue,stack);
 	runnable->cp+=5+sizeOfProc;
 }
@@ -1159,14 +1159,14 @@ void B_invoke(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	FklVMvalue* tmpValue=fklGET_VAL(fklGetTopValue(stack),exe->heap);
-	if(!IS_PTR(tmpValue)||(tmpValue->type!=PRC&&tmpValue->type!=CONT&&tmpValue->type!=DLPROC&&tmpValue->type!=FLPROC))
+	if(!IS_PTR(tmpValue)||(tmpValue->type!=FKL_PRC&&tmpValue->type!=CONT&&tmpValue->type!=DLPROC&&tmpValue->type!=FLPROC))
 		RAISE_BUILTIN_ERROR("b.invoke",INVOKEERROR,runnable,exe);
 	stack->tp-=1;
 	fklStackRecycle(exe);
 	runnable->cp+=1;
 	switch(tmpValue->type)
 	{
-		case PRC:
+		case FKL_PRC:
 			invokeNativeProcdure(exe,tmpValue->u.prc,runnable);
 			break;
 		case CONT:
@@ -1466,7 +1466,7 @@ void fklfklGC_markValue(FklVMvalue* obj)
 				fklPushComStack(fklGetVMpairCar(root),stack);
 				fklPushComStack(fklGetVMpairCdr(root),stack);
 			}
-			else if(root->type==PRC)
+			else if(root->type==FKL_PRC)
 			{
 				FklVMenv* curEnv=root->u.prc->prevEnv;
 				for(;curEnv!=NULL;curEnv=curEnv->prev)
@@ -1574,7 +1574,7 @@ void fklGC_sweep(VMheap* heap)
 				case PAIR:
 					free(prev->u.pair);
 					break;
-				case PRC:
+				case FKL_PRC:
 					fklFreeVMproc(prev->u.prc);
 					break;
 				case FKL_BYTS:

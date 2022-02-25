@@ -1489,7 +1489,7 @@ void fklfklGC_markValue(FklVMvalue* obj)
 						fklPushComStack(env->list[i]->value,stack);
 				}
 			}
-			else if(root->type==CHAN)
+			else if(root->type==FKL_CHAN)
 			{
 				pthread_mutex_lock(&root->u.chan->lock);
 				FklQueueNode* head=root->u.chan->messages->head;
@@ -1583,7 +1583,7 @@ void fklGC_sweep(VMheap* heap)
 				case FKL_CONT:
 					fklFreeVMcontinuation(prev->u.cont);
 					break;
-				case CHAN:
+				case FKL_CHAN:
 					fklFreeVMChanl(prev->u.chan);
 					break;
 				case FP:
@@ -1628,7 +1628,7 @@ FklVM* fklNewThreadVM(FklVMproc* mainCode,VMheap* heap)
 	exe->mark=1;
 	exe->argc=0;
 	exe->argv=NULL;
-	exe->chan=fklNewVMvalue(CHAN,fklNewVMChanl(0),heap);
+	exe->chan=fklNewVMvalue(FKL_CHAN,fklNewVMChanl(0),heap);
 	exe->tstack=fklNewComStack(32);
 	exe->stack=fklNewVMstack(0);
 	exe->heap=heap;
@@ -1670,7 +1670,7 @@ FklVM* fklNewThreadDlprocVM(FklVMrunnable* r,VMheap* heap)
 	exe->mark=1;
 	exe->argc=0;
 	exe->argv=NULL;
-	exe->chan=fklNewVMvalue(CHAN,fklNewVMChanl(0),heap);
+	exe->chan=fklNewVMvalue(FKL_CHAN,fklNewVMChanl(0),heap);
 	exe->tstack=fklNewComStack(32);
 	exe->stack=fklNewVMstack(0);
 	exe->heap=heap;

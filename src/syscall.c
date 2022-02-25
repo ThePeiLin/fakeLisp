@@ -1397,7 +1397,7 @@ void SYS_chanl(FklVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.chanl",TOOFEWARG,runnable,exe);
 	if(!IS_I32(maxSize))
 		RAISE_BUILTIN_ERROR("sys.chanl",WRONGARG,runnable,exe);
-	SET_RETURN("SYS_chanl",fklNewVMvalue(CHAN,fklNewVMChanl(GET_I32(maxSize)),exe->heap),stack);
+	SET_RETURN("SYS_chanl",fklNewVMvalue(FKL_CHAN,fklNewVMChanl(GET_I32(maxSize)),exe->heap),stack);
 }
 
 void SYS_send(FklVM* exe,pthread_rwlock_t* gclock)

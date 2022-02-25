@@ -747,7 +747,7 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,VMheap* heap)
 						case ERR:
 							*root1=root;
 							break;
-						case CHAN:
+						case FKL_CHAN:
 							{
 								FklVMChanl* objCh=root->u.chan;
 								FklVMChanl* tmpCh=fklNewVMChanl(objCh->max);
@@ -759,7 +759,7 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,VMheap* heap)
 									fklPushComStack(cur->data,s1);
 									fklPushComStack(tmp,s2);
 								}
-								*root1=fklNewVMvalue(CHAN,tmpCh,heap);
+								*root1=fklNewVMvalue(FKL_CHAN,tmpCh,heap);
 							}
 							break;
 						case PAIR:
@@ -832,7 +832,7 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,VMheap* heap)
 						tmp->u.byts=pValue;break;
 					case FKL_CONT:
 						tmp->u.cont=pValue;break;
-					case CHAN:
+					case FKL_CHAN:
 						tmp->u.chan=pValue;break;
 					case FP:
 						tmp->u.fp=pValue;break;
@@ -1950,7 +1950,7 @@ void fklPrincVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 					case FKL_CONT:
 						fprintf(fp,"#<cont>");
 						break;
-					case CHAN:
+					case FKL_CHAN:
 						fprintf(fp,"#<chan>");
 						break;
 					case FP:
@@ -2081,7 +2081,7 @@ void fklPrin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 					case FKL_CONT:
 						fprintf(fp,"#<cont>");
 						break;
-					case CHAN:
+					case FKL_CHAN:
 						fprintf(fp,"#<chan>");
 						break;
 					case FP:

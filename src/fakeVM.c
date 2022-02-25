@@ -467,7 +467,7 @@ void fklInitGlobEnv(FklVMenv* obj,VMheap* heap)
 	obj->list[3]=fklNewVMenvNode(fklNewVMvalue(FKL_FP,stderr,heap),fklAddSymbolToGlob(builtInSymbolList[3])->id);
 	size_t i=4;
 	for(;i<NUM_OF_BUILT_IN_SYMBOL;i++)
-		obj->list[i]=fklNewVMenvNode(fklNewVMvalue(DLPROC,fklNewVMDlproc(syscallFunctionList[i-4],NULL),heap),fklAddSymbolToGlob(builtInSymbolList[i])->id);
+		obj->list[i]=fklNewVMenvNode(fklNewVMvalue(FKL_DLPROC,fklNewVMDlproc(syscallFunctionList[i-4],NULL),heap),fklAddSymbolToGlob(builtInSymbolList[i])->id);
 	mergeSort(obj->list,obj->num,sizeof(FklVMenvNode*),envNodeCmp);
 }
 
@@ -1159,7 +1159,7 @@ void B_invoke(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	FklVMvalue* tmpValue=fklGET_VAL(fklGetTopValue(stack),exe->heap);
-	if(!IS_PTR(tmpValue)||(tmpValue->type!=FKL_PRC&&tmpValue->type!=FKL_CONT&&tmpValue->type!=DLPROC&&tmpValue->type!=FLPROC))
+	if(!IS_PTR(tmpValue)||(tmpValue->type!=FKL_PRC&&tmpValue->type!=FKL_CONT&&tmpValue->type!=FKL_DLPROC&&tmpValue->type!=FLPROC))
 		RAISE_BUILTIN_ERROR("b.invoke",INVOKEERROR,runnable,exe);
 	stack->tp-=1;
 	fklStackRecycle(exe);
@@ -1172,7 +1172,7 @@ void B_invoke(FklVM* exe)
 		case FKL_CONT:
 			invokeContinuation(exe,tmpValue->u.cont);
 			break;
-		case DLPROC:
+		case FKL_DLPROC:
 			invokeDlProc(exe,tmpValue->u.dlproc);
 			break;
 		case FLPROC:
@@ -1499,7 +1499,7 @@ void fklfklGC_markValue(FklVMvalue* obj)
 					fklPushComStack(((FklSendT*)head->data)->m,stack);
 				pthread_mutex_unlock(&root->u.chan->lock);
 			}
-			else if(root->type==DLPROC&&root->u.dlproc->dll)
+			else if(root->type==FKL_DLPROC&&root->u.dlproc->dll)
 			{
 				fklPushComStack(root->u.dlproc->dll,stack);
 			}
@@ -1592,7 +1592,7 @@ void fklGC_sweep(VMheap* heap)
 				case FKL_DLL:
 					fklFreeVMDll(prev->u.dll);
 					break;
-				case DLPROC:
+				case FKL_DLPROC:
 					fklFreeVMDlproc(prev->u.dlproc);
 					break;
 				case FLPROC:

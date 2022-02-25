@@ -1301,7 +1301,7 @@ void SYS_dlsym(FklVM* exe,pthread_rwlock_t* gclock)
 	}
 	free(realDlFuncName);
 	FklVMDlproc* dlproc=fklNewVMDlproc(funcAddress,dll);
-	SET_RETURN("SYS_dlsym",fklNewVMvalue(DLPROC,dlproc,heap),stack);
+	SET_RETURN("SYS_dlsym",fklNewVMvalue(FKL_DLPROC,dlproc,heap),stack);
 }
 
 void SYS_argv(FklVM* exe,pthread_rwlock_t* pGClock)
@@ -1473,7 +1473,7 @@ void SYS_clcc(FklVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.clcc",TOOMANYARG,runnable,exe);
 	if(!proc)
 		RAISE_BUILTIN_ERROR("sys.clcc",TOOFEWARG,runnable,exe);
-	if(!IS_PTR(proc)||(proc->type!=FKL_PRC&&proc->type!=FKL_CONT&&proc->type!=DLPROC))
+	if(!IS_PTR(proc)||(proc->type!=FKL_PRC&&proc->type!=FKL_CONT&&proc->type!=FKL_DLPROC))
 		RAISE_BUILTIN_ERROR("sys.clcc",INVOKEERROR,runnable,exe);
 	FklVMvalue* cc=fklNewVMvalue(FKL_CONT,fklNewVMcontinuation(stack,exe->rstack,exe->tstack),exe->heap);
 	SET_RETURN("SYS_clcc",MAKE_VM_I32(stack->bp),stack);
@@ -1512,7 +1512,7 @@ void SYS_apply(FklVM* exe,pthread_rwlock_t* gclock)
 	FklVMvalue* proc=fklGET_VAL(fklPopVMstack(stack),heap);
 	if(!proc)
 		RAISE_BUILTIN_ERROR("sys.apply",TOOFEWARG,runnable,exe);
-	if(!IS_PTR(proc)||(proc->type!=FKL_PRC&&proc->type!=FKL_CONT&&proc->type!=DLPROC&&proc->type!=FLPROC))
+	if(!IS_PTR(proc)||(proc->type!=FKL_PRC&&proc->type!=FKL_CONT&&proc->type!=FKL_DLPROC&&proc->type!=FLPROC))
 		RAISE_BUILTIN_ERROR("b.invoke",INVOKEERROR,runnable,exe);
 	FklComStack* stack1=fklNewComStack(32);
 	FklVMvalue* value=NULL;
@@ -1563,7 +1563,7 @@ void SYS_apply(FklVM* exe,pthread_rwlock_t* gclock)
 		case FKL_CONT:
 			invokeContinuation(exe,proc->u.cont);
 			break;
-		case DLPROC:
+		case FKL_DLPROC:
 			invokeDlProc(exe,proc->u.dlproc);
 			break;
 		case FLPROC:

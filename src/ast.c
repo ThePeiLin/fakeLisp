@@ -500,7 +500,7 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 								tmpAtm->type=FKL_SYM;
 								tmpAtm->value.str=fklCopyStr("#<dlproc>");
 								break;
-							case CONT:
+							case FKL_CONT:
 								tmpAtm->type=FKL_SYM;
 								tmpAtm->value.str=fklCopyStr("#<proc>");
 								break;

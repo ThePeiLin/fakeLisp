@@ -69,7 +69,7 @@
 #define IS_DLPROC(P) (GET_TAG(P)==PTR_TAG&&(P)->type==DLPROC)
 #define IS_FLPROC(P) (GET_TAG(P)==PTR_TAG&&(P)->type==FLPROC)
 #define IS_ERR(P) (GET_TAG(P)==PTR_TAG&&(P)->type==ERR)
-#define IS_CONT(P) (GET_TAG(P)==PTR_TAG&&(P)->type==CONT)
+#define IS_CONT(P) (GET_TAG(P)==PTR_TAG&&(P)->type==FKL_CONT)
 #define IS_I32(P) (GET_TAG(P)==FKL_I32_TAG)
 #define IS_CHR(P) (GET_TAG(P)==FKL_CHR_TAG)
 #define IS_SYM(P) (GET_TAG(P)==FKL_SYM_TAG)

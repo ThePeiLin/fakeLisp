@@ -1473,9 +1473,9 @@ void SYS_clcc(FklVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.clcc",TOOMANYARG,runnable,exe);
 	if(!proc)
 		RAISE_BUILTIN_ERROR("sys.clcc",TOOFEWARG,runnable,exe);
-	if(!IS_PTR(proc)||(proc->type!=FKL_PRC&&proc->type!=CONT&&proc->type!=DLPROC))
+	if(!IS_PTR(proc)||(proc->type!=FKL_PRC&&proc->type!=FKL_CONT&&proc->type!=DLPROC))
 		RAISE_BUILTIN_ERROR("sys.clcc",INVOKEERROR,runnable,exe);
-	FklVMvalue* cc=fklNewVMvalue(CONT,fklNewVMcontinuation(stack,exe->rstack,exe->tstack),exe->heap);
+	FklVMvalue* cc=fklNewVMvalue(FKL_CONT,fklNewVMcontinuation(stack,exe->rstack,exe->tstack),exe->heap);
 	SET_RETURN("SYS_clcc",MAKE_VM_I32(stack->bp),stack);
 	stack->bp=stack->tp;
 	SET_RETURN("SYS_clcc",cc,stack);
@@ -1492,7 +1492,7 @@ void SYS_clcc(FklVM* exe,pthread_rwlock_t* gclock)
 			fklPushComStack(tmpRunnable,exe->rstack);
 		}
 	}
-	else if(proc->type==CONT)
+	else if(proc->type==FKL_CONT)
 	{
 		VMcontinuation* cc=proc->u.cont;
 		fklCreateCallChainWithContinuation(exe,cc);
@@ -1512,7 +1512,7 @@ void SYS_apply(FklVM* exe,pthread_rwlock_t* gclock)
 	FklVMvalue* proc=fklGET_VAL(fklPopVMstack(stack),heap);
 	if(!proc)
 		RAISE_BUILTIN_ERROR("sys.apply",TOOFEWARG,runnable,exe);
-	if(!IS_PTR(proc)||(proc->type!=FKL_PRC&&proc->type!=CONT&&proc->type!=DLPROC&&proc->type!=FLPROC))
+	if(!IS_PTR(proc)||(proc->type!=FKL_PRC&&proc->type!=FKL_CONT&&proc->type!=DLPROC&&proc->type!=FLPROC))
 		RAISE_BUILTIN_ERROR("b.invoke",INVOKEERROR,runnable,exe);
 	FklComStack* stack1=fklNewComStack(32);
 	FklVMvalue* value=NULL;
@@ -1560,7 +1560,7 @@ void SYS_apply(FklVM* exe,pthread_rwlock_t* gclock)
 		case FKL_PRC:
 			invokeNativeProcdure(exe,proc->u.prc,runnable);
 			break;
-		case CONT:
+		case FKL_CONT:
 			invokeContinuation(exe,proc->u.cont);
 			break;
 		case DLPROC:

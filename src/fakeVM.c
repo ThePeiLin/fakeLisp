@@ -1159,7 +1159,7 @@ void B_invoke(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	FklVMvalue* tmpValue=fklGET_VAL(fklGetTopValue(stack),exe->heap);
-	if(!IS_PTR(tmpValue)||(tmpValue->type!=FKL_PRC&&tmpValue->type!=CONT&&tmpValue->type!=DLPROC&&tmpValue->type!=FLPROC))
+	if(!IS_PTR(tmpValue)||(tmpValue->type!=FKL_PRC&&tmpValue->type!=FKL_CONT&&tmpValue->type!=DLPROC&&tmpValue->type!=FLPROC))
 		RAISE_BUILTIN_ERROR("b.invoke",INVOKEERROR,runnable,exe);
 	stack->tp-=1;
 	fklStackRecycle(exe);
@@ -1169,7 +1169,7 @@ void B_invoke(FklVM* exe)
 		case FKL_PRC:
 			invokeNativeProcdure(exe,tmpValue->u.prc,runnable);
 			break;
-		case CONT:
+		case FKL_CONT:
 			invokeContinuation(exe,tmpValue->u.cont);
 			break;
 		case DLPROC:
@@ -1476,7 +1476,7 @@ void fklfklGC_markValue(FklVMvalue* obj)
 						fklPushComStack(curEnv->list[i]->value,stack);
 				}
 			}
-			else if(root->type==CONT)
+			else if(root->type==FKL_CONT)
 			{
 				uint32_t i=0;
 				for(;i<root->u.cont->stack->tp;i++)
@@ -1580,7 +1580,7 @@ void fklGC_sweep(VMheap* heap)
 				case FKL_BYTS:
 					free(prev->u.byts);
 					break;
-				case CONT:
+				case FKL_CONT:
 					fklFreeVMcontinuation(prev->u.cont);
 					break;
 				case CHAN:

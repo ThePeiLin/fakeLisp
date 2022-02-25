@@ -1776,51 +1776,51 @@ char* fklGenErrorMessage(unsigned int type,FklVMrunnable* r,FklVM* exe)
 	char* t=fklCopyStr("");
 	switch(type)
 	{
-		case WRONGARG:
+		case FKL_WRONGARG:
 			t=fklStrCat(t,"Wrong arguement ");
 			break;
-		case STACKERROR:
+		case FKL_STACKERROR:
 			t=fklStrCat(t,"Stack error ");
 			break;
-		case TOOMANYARG:
+		case FKL_TOOMANYARG:
 			t=fklStrCat(t,"Too many arguements ");
 			break;
-		case TOOFEWARG:
+		case FKL_TOOFEWARG:
 			t=fklStrCat(t,"Too few arguements ");
 			break;
-		case CANTCREATETHREAD:
+		case FKL_CANTCREATETHREAD:
 			t=fklStrCat(t,"Can't create thread ");
 			break;
-		case SYMUNDEFINE:
+		case FKL_SYMUNDEFINE:
 			t=fklStrCat(t,"Symbol ");
 			t=fklStrCat(t,GlobSymbolTable.idl[fklGetSymbolIdInByteCode(exe->code+r->cp)]->symbol);
 			t=fklStrCat(t," is undefined ");
 			break;
-		case INVOKEERROR:
+		case FKL_INVOKEERROR:
 			t=fklStrCat(t,"Try to invoke an object that isn't procedure,continuation or native procedure ");
 			break;
-		case LOADDLLFAILD:
+		case FKL_LOADDLLFAILD:
 			t=fklStrCat(t,"Faild to load dll \"");
 			t=fklStrCat(t,exe->stack->values[exe->stack->tp-1]->u.str);
 			t=fklStrCat(t,"\" ");
 			break;
-		case INVALIDSYMBOL:
+		case FKL_INVALIDSYMBOL:
 			t=fklStrCat(t,"Invalid symbol ");
 			t=fklStrCat(t,exe->stack->values[exe->stack->tp-1]->u.str);
 			t=fklStrCat(t," ");
 			break;
-		case DIVZERROERROR:
+		case FKL_DIVZERROERROR:
 			t=fklStrCat(t,"Divided by zero ");
 			break;
-		case FILEFAILURE:
+		case FKL_FILEFAILURE:
 			t=fklStrCat(t,"Failed for file:\"");
 			t=fklStrCat(t,exe->stack->values[exe->stack->tp-1]->u.str);
 			t=fklStrCat(t,"\" ");
 			break;
-		case INVALIDASSIGN:
+		case FKL_INVALIDASSIGN:
 			t=fklStrCat(t,"Invalid assign ");
 			break;
-		case INVALIDACCESS:
+		case FKL_INVALIDACCESS:
 			t=fklStrCat(t,"Invalid access ");
 			break;
 	}
@@ -1849,7 +1849,7 @@ int32_t fklGetSymbolIdInByteCode(const uint8_t* code)
 int fklResBp(FklVMstack* stack)
 {
 	if(stack->tp>stack->bp)
-		return TOOMANYARG;
+		return FKL_TOOMANYARG;
 	FklVMvalue* prevBp=fklGetTopValue(stack);
 	stack->bp=GET_I32(prevBp);
 	stack->tp-=1;

@@ -758,45 +758,45 @@ void fklExError(const FklAstCptr* obj,int type,FklIntpr* inter)
 	fprintf(stderr,"error of compiling: ");
 	switch(type)
 	{
-		case SYMUNDEFINE:
+		case FKL_SYMUNDEFINE:
 			fprintf(stderr,"Symbol ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			fprintf(stderr," is undefined ");
 			break;
-		case SYNTAXERROR:
+		case FKL_SYNTAXERROR:
 			fprintf(stderr,"Invalid syntax ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
-		case INVALIDEXPR:
+		case FKL_INVALIDEXPR:
 			fprintf(stderr,"Invalid expression ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
-		case INVALIDTYPEDEF:
+		case FKL_INVALIDTYPEDEF:
 			fprintf(stderr,"Invalid type define ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
-		case CIRCULARLOAD:
+		case FKL_CIRCULARLOAD:
 			fprintf(stderr,"Circular load file ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
-		case INVALIDPATTERN:
+		case FKL_INVALIDPATTERN:
 			fprintf(stderr,"Invalid string match pattern ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
-		case MACROEXPANDFAILED:
+		case FKL_MACROEXPANDFAILED:
 			fprintf(stderr,"Failed to expand macro in ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
-		case LIBUNDEFINED:
+		case FKL_LIBUNDEFINED:
 			fprintf(stderr,"Library ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			fprintf(stderr," undefined ");
 			break;
-		case CANTDEREFERENCE:
+		case FKL_CANTDEREFERENCE:
 			fprintf(stderr,"cant dereference a non pointer type member ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
-		case CANTGETELEM:
+		case FKL_CANTGETELEM:
 			fprintf(stderr,"cant get element of a non-array or non-pointer type");
 			if(obj!=NULL)
 			{
@@ -807,15 +807,15 @@ void fklExError(const FklAstCptr* obj,int type,FklIntpr* inter)
 					fklPrintCptr(obj,stderr);
 			}
 			break;
-		case INVALIDMEMBER:
+		case FKL_INVALIDMEMBER:
 			fprintf(stderr,"invalid member ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
-		case NOMEMBERTYPE:
+		case FKL_NOMEMBERTYPE:
 			fprintf(stderr,"cannot get member in a no-member type in ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
-		case NONSCALARTYPE:
+		case FKL_NONSCALARTYPE:
 			fprintf(stderr,"get the reference of a non-scalar type member by path ");
 			if(obj!=NULL)
 			{

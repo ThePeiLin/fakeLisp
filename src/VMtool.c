@@ -542,7 +542,7 @@ static FklTypeId_t genFuncTypeId(FklAstCptr* compositeDataHead,FklVMDefTypes* ot
 		if(!tmp)
 			return 0;
 		FklVMTypeUnion tu=fklGetVMTypeUnion(tmp);
-		if(GET_TYPES_TAG(tu.all)!=FKL_NATIVE_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=PTR_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=ARRAY_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=FUNC_TYPE_TAG)
+		if(GET_TYPES_TAG(tu.all)!=FKL_NATIVE_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=PTR_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=FKL_ARRAY_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=FUNC_TYPE_TAG)
 			return 0;
 		rtype=tmp;
 	}
@@ -560,7 +560,7 @@ static FklTypeId_t genFuncTypeId(FklAstCptr* compositeDataHead,FklVMDefTypes* ot
 			return 0;
 		}
 		FklVMTypeUnion tu=fklGetVMTypeUnion(tmp);
-		if(GET_TYPES_TAG(tu.all)!=FKL_NATIVE_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=PTR_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=ARRAY_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=FUNC_TYPE_TAG)
+		if(GET_TYPES_TAG(tu.all)!=FKL_NATIVE_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=PTR_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=FKL_ARRAY_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=FUNC_TYPE_TAG)
 		{
 			free(atypes);
 			return 0;
@@ -2209,7 +2209,7 @@ size_t fklGetVMTypeSize(FklVMTypeUnion t)
 		case FKL_NATIVE_TYPE_TAG:
 			return t.nt->size;
 			break;
-		case ARRAY_TYPE_TAG:
+		case FKL_ARRAY_TYPE_TAG:
 			return t.at->totalSize;
 			break;
 		case PTR_TYPE_TAG:
@@ -2239,7 +2239,7 @@ size_t fklGetVMTypeAlign(FklVMTypeUnion t)
 		case FKL_NATIVE_TYPE_TAG:
 			return t.nt->align;
 			break;
-		case ARRAY_TYPE_TAG:
+		case FKL_ARRAY_TYPE_TAG:
 			return t.at->align;
 			break;
 		case PTR_TYPE_TAG:
@@ -2268,7 +2268,7 @@ FklTypeId_t fklNewVMArrayType(FklTypeId_t type,size_t num)
 	for(;i<typeNum;i++)
 	{
 		FklVMTypeUnion tmpType=GlobTypeUnionList.ul[i];
-		if(GET_TYPES_TAG(tmpType.all)==ARRAY_TYPE_TAG)
+		if(GET_TYPES_TAG(tmpType.all)==FKL_ARRAY_TYPE_TAG)
 		{
 			FklVMArrayType* arrayType=(FklVMTypeUnion){.at=GET_TYPES_PTR(tmpType.all)}.at;
 			if(arrayType->etype==type&&arrayType->num==num)
@@ -2676,7 +2676,7 @@ void fklWriteTypeList(FILE* fp)
 				fwrite(&((FklVMNativeType*)p)->type,sizeof(((FklVMNativeType*)p)->type),1,fp);
 				fwrite(&((FklVMNativeType*)p)->size,sizeof(((FklVMNativeType*)p)->size),1,fp);
 				break;
-			case ARRAY_TYPE_TAG:
+			case FKL_ARRAY_TYPE_TAG:
 				fwrite(&((FklVMArrayType*)p)->etype,sizeof(((FklVMArrayType*)p)->etype),1,fp);
 				fwrite(&((FklVMArrayType*)p)->num,sizeof(((FklVMArrayType*)p)->num),1,fp);
 				break;
@@ -2743,7 +2743,7 @@ void fklLoadTypeList(FILE* fp)
 					tu.nt=(FklVMNativeType*)MAKE_NATIVE_TYPE(t);
 				}
 				break;
-			case ARRAY_TYPE_TAG:
+			case FKL_ARRAY_TYPE_TAG:
 				{
 					FklVMArrayType* t=(FklVMArrayType*)malloc(sizeof(FklVMArrayType));
 					FAKE_ASSERT(t,"fklLoadTypeList",__FILE__,__LINE__);
@@ -2823,7 +2823,7 @@ void fklFreeGlobTypeList()
 			case PTR_TYPE_TAG:
 				fklFreeVMPtrType((FklVMPtrType*)GET_TYPES_PTR(tu.all));
 				break;
-			case ARRAY_TYPE_TAG:
+			case FKL_ARRAY_TYPE_TAG:
 				fklFreeVMArrayType((FklVMArrayType*)GET_TYPES_PTR(tu.all));
 				break;
 			case FKL_STRUCT_TYPE_TAG:
@@ -2851,7 +2851,7 @@ int fklIsNativeTypeId(FklTypeId_t type)
 int fklIsArrayTypeId(FklTypeId_t type)
 {
 	FklVMTypeUnion tu=fklGetVMTypeUnion(type);
-	return GET_TYPES_TAG(tu.all)==ARRAY_TYPE_TAG;
+	return GET_TYPES_TAG(tu.all)==FKL_ARRAY_TYPE_TAG;
 }
 
 int fklIsPtrTypeId(FklTypeId_t type)

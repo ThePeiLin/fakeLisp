@@ -80,7 +80,7 @@
 #define FREE_CHF(P) (free(GET_PTR(P)))
 
 #define MAKE_NATIVE_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_NATIVE_TYPE_TAG))
-#define MAKE_ARRAY_TYPE(P) ((void*)(((uintptr_t)(P))|ARRAY_TYPE_TAG))
+#define MAKE_ARRAY_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_ARRAY_TYPE_TAG))
 #define MAKE_PTR_TYPE(P) ((void*)(((uintptr_t)(P))|PTR_TYPE_TAG))
 #define MAKE_STRUCT_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_STRUCT_TYPE_TAG))
 #define MAKE_UNION_TYPE(P) ((void*)(((uintptr_t)(P))|UNION_TYPE_TAG))

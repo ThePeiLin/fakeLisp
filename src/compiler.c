@@ -1496,7 +1496,7 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 				FklTypeId_t defTypeId=0;
 				switch(tag)
 				{
-					case ARRAY_TYPE_TAG:
+					case FKL_ARRAY_TYPE_TAG:
 						defTypeId=((FklVMArrayType*)tmpPtr)->etype;
 						break;
 					case PTR_TYPE_TAG:
@@ -1709,7 +1709,7 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 				case PTR_TYPE_TAG:
 					elemType=((FklVMPtrType*)tmpPtr)->ptype;
 					break;
-				case ARRAY_TYPE_TAG:
+				case FKL_ARRAY_TYPE_TAG:
 					elemType=((FklVMArrayType*)tmpPtr)->etype;
 					break;
 				default:
@@ -1740,7 +1740,7 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 		{
 			FklVMTypeUnion typeUnion=fklGetVMTypeUnion(memberType);
 			FklDefTypeTag tag=GET_TYPES_TAG(typeUnion.all);
-			if(tag!=FKL_NATIVE_TYPE_TAG&&tag!=PTR_TYPE_TAG&&tag!=ARRAY_TYPE_TAG&&tag!=FUNC_TYPE_TAG)
+			if(tag!=FKL_NATIVE_TYPE_TAG&&tag!=PTR_TYPE_TAG&&tag!=FKL_ARRAY_TYPE_TAG&&tag!=FUNC_TYPE_TAG)
 			{
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 				fklFreeByteCodelnt(tmp);

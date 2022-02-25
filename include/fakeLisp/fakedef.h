@@ -21,7 +21,7 @@ typedef enum
 
 typedef enum
 {
-	NATIVE_TYPE_TAG=0,
+	FKL_NATIVE_TYPE_TAG=0,
 	ARRAY_TYPE_TAG,
 	PTR_TYPE_TAG,
 	FKL_STRUCT_TYPE_TAG,

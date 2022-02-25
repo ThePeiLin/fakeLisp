@@ -1740,7 +1740,7 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 		{
 			FklVMTypeUnion typeUnion=fklGetVMTypeUnion(memberType);
 			FklDefTypeTag tag=GET_TYPES_TAG(typeUnion.all);
-			if(tag!=NATIVE_TYPE_TAG&&tag!=PTR_TYPE_TAG&&tag!=ARRAY_TYPE_TAG&&tag!=FUNC_TYPE_TAG)
+			if(tag!=FKL_NATIVE_TYPE_TAG&&tag!=PTR_TYPE_TAG&&tag!=ARRAY_TYPE_TAG&&tag!=FUNC_TYPE_TAG)
 			{
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 				fklFreeByteCodelnt(tmp);

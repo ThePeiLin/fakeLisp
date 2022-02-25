@@ -15,7 +15,7 @@ typedef enum
 	NIL_TAG,
 	FKL_I32_TAG,
 	SYM_TAG,
-	CHR_TAG,
+	FKL_CHR_TAG,
 	REF_TAG,
 }FklVMptrTag;
 
@@ -65,7 +65,7 @@ typedef struct FklVMDefTypes
 
 typedef enum{NIL=0,
 	FKL_I32,
-	CHR,
+	FKL_CHR,
 	DBL,
 	FKL_I64,
 	SYM,

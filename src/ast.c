@@ -365,7 +365,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklIntpr* inter,FklStringMatchPatte
 					{
 						case '\\':
 							str=fklGetStringAfterBackslash(objStr+i+1);
-							atom=fklNewAtom(CHR,NULL,root->outer);
+							atom=fklNewAtom(FKL_CHR,NULL,root->outer);
 							root->u.atom=atom;
 							atom->value.chr=(str[0]=='\\')?
 								fklStringToChar(str+1):
@@ -473,8 +473,8 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 					tmpAtm->type=FKL_I32;
 					tmpAtm->value.i32=GET_I32(root);
 					break;
-				case CHR_TAG:
-					tmpAtm->type=CHR;
+				case FKL_CHR_TAG:
+					tmpAtm->type=FKL_CHR;
 					tmpAtm->value.chr=GET_CHR(root);
 					break;
 				case PTR_TAG:

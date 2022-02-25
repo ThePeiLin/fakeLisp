@@ -177,7 +177,7 @@ static double (*castToDoubleFunctionsList[])(ARGL)=
 			case FKL_I32_TAG:\
 				*t=(TYPE)GET_I32(v);\
 					break;\
-			case CHR_TAG:\
+			case FKL_CHR_TAG:\
 				*t=(TYPE)GET_CHR(v);\
 				break;\
 			case SYM_TAG:\

@@ -722,7 +722,7 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,VMheap* heap)
 			case NIL_TAG:
 			case FKL_I32_TAG:
 			case SYM_TAG:
-			case CHR_TAG:
+			case FKL_CHR_TAG:
 				*root1=root;
 				break;
 			case PTR_TAG:
@@ -792,7 +792,7 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,VMheap* heap)
 		case NIL:
 			return VM_NIL;
 			break;
-		case CHR:
+		case FKL_CHR:
 			return MAKE_VM_CHR(pValue);
 			break;
 		case FKL_I32:
@@ -1009,7 +1009,7 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,VMheap* heap)
 				case FKL_I32:
 					*root1=MAKE_VM_I32(tmpAtm->value.i32);
 					break;
-				case CHR:
+				case FKL_CHR:
 					*root1=MAKE_VM_CHR(tmpAtm->value.chr);
 					break;
 				case SYM:
@@ -1873,7 +1873,7 @@ void fklPrincVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 		case FKL_I32_TAG:
 			fprintf(fp,"%d",GET_I32(objValue));
 			break;
-		case CHR_TAG:
+		case FKL_CHR_TAG:
 			putc(GET_CHR(objValue),fp);
 			break;
 		case SYM_TAG:
@@ -2004,7 +2004,7 @@ void fklPrin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 		case FKL_I32_TAG:
 			fprintf(fp,"%d",GET_I32(objValue));
 			break;
-		case CHR_TAG:
+		case FKL_CHR_TAG:
 			fklPrintRawChar(GET_CHR(objValue),fp);
 			break;
 		case SYM_TAG:

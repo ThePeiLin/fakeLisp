@@ -3293,6 +3293,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr
 						}
 						fklCodelntCopyCat(curEnv->proc,tmp);
 						FklPreMacro* headOfMacroOfImportedFile=tmpCurEnv->macro;
+						tmpCurEnv->macro=NULL;
 						while(headOfMacroOfImportedFile)
 						{
 							fklAddDefinedMacro(headOfMacroOfImportedFile,curEnv);
@@ -3302,7 +3303,6 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr
 						}
 						fklDestroyCompEnv(tmpCurEnv);
 						tmpInter->glob->macro=NULL;
-						tmpCurEnv->macro=NULL;
 						fklDeleteCptr(begin);
 						free(begin);
 						free(list);

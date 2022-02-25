@@ -15,7 +15,7 @@
 #else
 #include<tchar.h>
 #endif
-#define FKL_FREE_ALL_LINE_NUMBER_TABLE(l,s) {int32_t i=0;\
+#define FREE_ALL_LINE_NUMBER_TABLE(l,s) {int32_t i=0;\
 	for(;i<(s);i++)\
 	fklFreeLineNumTabNode((l)[i]);\
 }
@@ -981,7 +981,7 @@ void fklDestroyCompEnv(FklCompEnv* objEnv)
 				tmpDef=tmpDef->next;
 				free(prev);
 			}
-			FKL_FREE_ALL_LINE_NUMBER_TABLE(curEnv->proc->l,curEnv->proc->ls);
+			FREE_ALL_LINE_NUMBER_TABLE(curEnv->proc->l,curEnv->proc->ls);
 			fklFreeByteCodelnt(curEnv->proc);
 			fklFreeAllMacro(curEnv->macro);
 			fklFreeAllKeyWord(curEnv->keyWords);
@@ -2154,12 +2154,12 @@ void fklLntCat(LineNumberTable* t,int32_t bs,LineNumTabNode** l2,int32_t s2)
 		t->list=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*s2);
 		FKL_ASSERT(t->list,"fklLntCat",__FILE__,__LINE__);
 		l2[0]->cpc+=bs;
-		FKL_INCREASE_ALL_SCP(l2+1,s2-1,bs);
+		INCREASE_ALL_SCP(l2+1,s2-1,bs);
 		memcpy(t->list,l2,(s2)*sizeof(LineNumTabNode*));
 	}
 	else
 	{
-		FKL_INCREASE_ALL_SCP(l2,s2,bs);
+		INCREASE_ALL_SCP(l2,s2,bs);
 		if(t->list[t->num-1]->line==l2[0]->line&&t->list[t->num-1]->fid==l2[0]->fid)
 		{
 			t->list[t->num-1]->cpc+=l2[0]->cpc;
@@ -2187,12 +2187,12 @@ void fklCodefklLntCat(FklByteCodelnt* f,FklByteCodelnt* s)
 		f->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*s->ls);
 		FKL_ASSERT(f->l,"fklCodefklLntCat",__FILE__,__LINE__);
 		s->l[0]->cpc+=f->bc->size;
-		FKL_INCREASE_ALL_SCP(s->l+1,s->ls-1,f->bc->size);
+		INCREASE_ALL_SCP(s->l+1,s->ls-1,f->bc->size);
 		memcpy(f->l,s->l,(s->ls)*sizeof(LineNumTabNode*));
 	}
 	else
 	{
-		FKL_INCREASE_ALL_SCP(s->l,s->ls,f->bc->size);
+		INCREASE_ALL_SCP(s->l,s->ls,f->bc->size);
 		if(f->l[f->ls-1]->line==s->l[0]->line&&f->l[f->ls-1]->fid==s->l[0]->fid)
 		{
 			f->l[f->ls-1]->cpc+=s->l[0]->cpc;
@@ -2229,7 +2229,7 @@ void fklCodelntCopyCat(FklByteCodelnt* f,const FklByteCodelnt* s)
 				f->l[i]=fklNewLineNumTabNode(t->fid,t->scp,t->cpc,t->line);
 			}
 			f->l[0]->cpc+=f->bc->size;
-			FKL_INCREASE_ALL_SCP(f->l+1,f->ls-1,f->bc->size);
+			INCREASE_ALL_SCP(f->l+1,f->ls-1,f->bc->size);
 		}
 		else
 		{
@@ -2241,7 +2241,7 @@ void fklCodelntCopyCat(FklByteCodelnt* f,const FklByteCodelnt* s)
 				LineNumTabNode* t=s->l[i];
 				tl[i]=fklNewLineNumTabNode(t->fid,t->scp,t->cpc,t->line);
 			}
-			FKL_INCREASE_ALL_SCP(tl,s->ls,f->bc->size);
+			INCREASE_ALL_SCP(tl,s->ls,f->bc->size);
 			if(f->l[f->ls-1]->line==s->l[0]->line&&f->l[f->ls-1]->fid==s->l[0]->fid)
 			{
 				f->l[f->ls-1]->cpc+=s->l[0]->cpc;
@@ -2276,7 +2276,7 @@ void reCodefklLntCat(FklByteCodelnt* f,FklByteCodelnt* s)
 	}
 	else
 	{
-		FKL_INCREASE_ALL_SCP(s->l,s->ls,f->bc->size);
+		INCREASE_ALL_SCP(s->l,s->ls,f->bc->size);
 		if(f->l[f->ls-1]->line==s->l[0]->line&&f->l[f->ls-1]->fid==s->l[0]->fid)
 		{
 			LineNumTabNode** l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*(f->ls+s->ls-1));
@@ -2620,7 +2620,7 @@ void fklFreeAllMacro(FklPreMacro* head)
 		fklDeleteCptr(prev->pattern);
 		free(prev->pattern);
 		fklDestroyCompEnv(prev->macroEnv);
-		FKL_FREE_ALL_LINE_NUMBER_TABLE(prev->proc->l,prev->proc->ls);
+		FREE_ALL_LINE_NUMBER_TABLE(prev->proc->l,prev->proc->ls);
 		fklFreeByteCodelnt(prev->proc);
 		free(prev);
 	}

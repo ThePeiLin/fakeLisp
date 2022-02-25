@@ -7,6 +7,7 @@
 #include<fakeLisp/fakeVM.h>
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/ast.h>
+#include"utils.h"
 #include<stdio.h>
 #include<stdlib.h>
 #include<unistd.h>

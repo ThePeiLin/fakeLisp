@@ -2,11 +2,6 @@
 #define COMPILER_H
 #include"fakedef.h"
 
-#define FKL_FREE_ALL_LINE_NUMBER_TABLE(l,s) {int32_t i=0;\
-	for(;i<(s);i++)\
-	fklFreeLineNumTabNode((l)[i]);\
-}
-
 FklPreMacro* fklPreMacroMatch(const FklAstCptr*,FklPreEnv**,FklCompEnv*,FklCompEnv**);
 int fklPreMacroExpand(FklAstCptr*,FklCompEnv*,FklIntpr* inter);
 int fklAddMacro(FklAstCptr*,FklByteCodelnt*,FklCompEnv* curEnv);

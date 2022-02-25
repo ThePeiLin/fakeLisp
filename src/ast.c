@@ -3,10 +3,11 @@
 #include<fakeLisp/reader.h>
 #include<fakeLisp/VMtool.h>
 #include<fakeLisp/fakeVM.h>
+#include"utils.h"
 #include<string.h>
 #include<ctype.h>
 
-#define FKL_FREE_ALL_LINE_NUMBER_TABLE(l,s) {int32_t i=0;\
+#define FREE_ALL_LINE_NUMBER_TABLE(l,s) {int32_t i=0;\
 	for(;i<(s);i++)\
 	fklFreeLineNumTabNode((l)[i]);\
 }
@@ -182,7 +183,7 @@ FklAstCptr* expandReaderMacro(const char* objStr,FklIntpr* inter,FklStringMatchP
 			tmpCptr=fklCastVMvalueToCptr(fklGET_VAL(tmpVM->stack->values[0],tmpVM->heap),inter->curline);
 		else
 		{
-			FKL_FREE_ALL_LINE_NUMBER_TABLE(t->l,t->ls);
+			FREE_ALL_LINE_NUMBER_TABLE(t->l,t->ls);
 			fklFreeByteCodelnt(t);
 			free(tmpVM->lnt);
 			fklDeleteCallChain(tmpVM);
@@ -195,7 +196,7 @@ FklAstCptr* expandReaderMacro(const char* objStr,FklIntpr* inter,FklStringMatchP
 			free(tmpVM);
 			return NULL;
 		}
-		FKL_FREE_ALL_LINE_NUMBER_TABLE(t->l,t->ls);
+		FREE_ALL_LINE_NUMBER_TABLE(t->l,t->ls);
 		fklFreeByteCodelnt(t);
 		free(tmpVM->lnt);
 		fklFreeVMenv(tmpGlobEnv);

@@ -221,10 +221,10 @@ void fklPrintRawString(const char* objStr,FILE* out)
 	putc('\"',out);
 }
 
-AST_pair* fklNewPair(int curline,AST_pair* prev)
+FklAstPair* fklNewPair(int curline,FklAstPair* prev)
 {
-	AST_pair* tmp;
-	FAKE_ASSERT((tmp=(AST_pair*)malloc(sizeof(AST_pair))),"fklNewPair",__FILE__,__LINE__);
+	FklAstPair* tmp;
+	FAKE_ASSERT((tmp=(FklAstPair*)malloc(sizeof(FklAstPair))),"fklNewPair",__FILE__,__LINE__);
 	tmp->car.outer=tmp;
 	tmp->car.type=NIL;
 	tmp->car.u.all=NULL;
@@ -237,10 +237,10 @@ AST_pair* fklNewPair(int curline,AST_pair* prev)
 	return tmp;
 }
 
-AST_cptr* fklNewCptr(int curline,AST_pair* outer)
+FklAstCptr* fklNewCptr(int curline,FklAstPair* outer)
 {
-	AST_cptr* tmp=NULL;
-	FAKE_ASSERT((tmp=(AST_cptr*)malloc(sizeof(AST_cptr))),"fklNewCptr",__FILE__,__LINE__);
+	FklAstCptr* tmp=NULL;
+	FAKE_ASSERT((tmp=(FklAstCptr*)malloc(sizeof(FklAstCptr))),"fklNewCptr",__FILE__,__LINE__);
 	tmp->outer=outer;
 	tmp->curline=curline;
 	tmp->type=NIL;
@@ -248,10 +248,10 @@ AST_cptr* fklNewCptr(int curline,AST_pair* outer)
 	return tmp;
 }
 
-AST_atom* fklNewAtom(int type,const char* value,AST_pair* prev)
+FklAstAtom* fklNewAtom(int type,const char* value,FklAstPair* prev)
 {
-	AST_atom* tmp=NULL;
-	FAKE_ASSERT((tmp=(AST_atom*)malloc(sizeof(AST_atom))),"fklNewAtom",__FILE__,__LINE__);
+	FklAstAtom* tmp=NULL;
+	FAKE_ASSERT((tmp=(FklAstAtom*)malloc(sizeof(FklAstAtom))),"fklNewAtom",__FILE__,__LINE__);
 	switch(type)
 	{
 		case SYM:
@@ -279,19 +279,19 @@ AST_atom* fklNewAtom(int type,const char* value,AST_pair* prev)
 	return tmp;
 }
 
-int fklCopyCptr(AST_cptr* objCptr,const AST_cptr* copiedCptr)
+int fklCopyCptr(FklAstCptr* objCptr,const FklAstCptr* copiedCptr)
 {
 	if(copiedCptr==NULL||objCptr==NULL)return 0;
 	ComStack* s1=fklNewComStack(32);
 	ComStack* s2=fklNewComStack(32);
 	fklPushComStack(objCptr,s1);
 	fklPushComStack((void*)copiedCptr,s2);
-	AST_atom* atom1=NULL;
-	AST_atom* atom2=NULL;
+	FklAstAtom* atom1=NULL;
+	FklAstAtom* atom2=NULL;
 	while(!fklIsComStackEmpty(s2))
 	{
-		AST_cptr* root1=fklPopComStack(s1);
-		AST_cptr* root2=fklPopComStack(s2);
+		FklAstCptr* root1=fklPopComStack(s1);
+		FklAstCptr* root2=fklPopComStack(s2);
 		root1->type=root2->type;
 		root1->curline=root2->curline;
 		switch(root1->type)
@@ -344,10 +344,10 @@ int fklCopyCptr(AST_cptr* objCptr,const AST_cptr* copiedCptr)
 	fklFreeComStack(s2);
 	return 1;
 }
-void fklReplaceCptr(AST_cptr* fir,const AST_cptr* sec)
+void fklReplaceCptr(FklAstCptr* fir,const FklAstCptr* sec)
 {
-	AST_pair* tmp=fir->outer;
-	AST_cptr tmpCptr={NULL,0,NIL,{NULL}};
+	FklAstPair* tmp=fir->outer;
+	FklAstCptr tmpCptr={NULL,0,NIL,{NULL}};
 	tmpCptr.type=fir->type;
 	tmpCptr.u.all=fir->u.all;
 	fklCopyCptr(fir,sec);
@@ -358,12 +358,12 @@ void fklReplaceCptr(AST_cptr* fir,const AST_cptr* sec)
 		fir->u.atom->prev=tmp;
 }
 
-int fklDeleteCptr(AST_cptr* objCptr)
+int fklDeleteCptr(FklAstCptr* objCptr)
 {
 	if(objCptr==NULL)return 0;
-	AST_pair* tmpPair=(objCptr->type==PAIR)?objCptr->u.pair:NULL;
-	AST_pair* objPair=tmpPair;
-	AST_cptr* tmpCptr=objCptr;
+	FklAstPair* tmpPair=(objCptr->type==PAIR)?objCptr->u.pair:NULL;
+	FklAstPair* objPair=tmpPair;
+	FklAstCptr* tmpCptr=objCptr;
 	while(tmpCptr!=NULL)
 	{
 		if(tmpCptr->type==PAIR)
@@ -397,7 +397,7 @@ int fklDeleteCptr(AST_cptr* objCptr)
 			}
 			else if(objPair!=NULL&&tmpCptr==&objPair->cdr)
 			{
-				AST_pair* prev=objPair;
+				FklAstPair* prev=objPair;
 				objPair=objPair->prev;
 				free(prev);
 				if(objPair==NULL||prev==tmpPair)break;
@@ -421,12 +421,12 @@ int fklDeleteCptr(AST_cptr* objCptr)
 	return 0;
 }
 
-int fklAST_cptrcmp(const AST_cptr* first,const AST_cptr* second)
+int fklFklAstCptrcmp(const FklAstCptr* first,const FklAstCptr* second)
 {
 	if(first==NULL&&second==NULL)return 0;
-	AST_pair* firPair=NULL;
-	AST_pair* secPair=NULL;
-	AST_pair* tmpPair=(first->type==PAIR)?first->u.pair:NULL;
+	FklAstPair* firPair=NULL;
+	FklAstPair* secPair=NULL;
+	FklAstPair* tmpPair=(first->type==PAIR)?first->u.pair:NULL;
 	while(1)
 	{
 		if(first->type!=second->type)return 0;
@@ -442,8 +442,8 @@ int fklAST_cptrcmp(const AST_cptr* first,const AST_cptr* second)
 		{
 			if(first->type==ATM)
 			{
-				AST_atom* firAtm=first->u.atom;
-				AST_atom* secAtm=second->u.atom;
+				FklAstAtom* firAtm=first->u.atom;
+				FklAstAtom* secAtm=second->u.atom;
 				if(firAtm->type!=secAtm->type)return 0;
 				if((firAtm->type==SYM||firAtm->type==STR)&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
 				else if(firAtm->type==IN32&&firAtm->value.in32!=secAtm->value.in32)return 0;
@@ -465,7 +465,7 @@ int fklAST_cptrcmp(const AST_cptr* first,const AST_cptr* second)
 		}
 		else if(firPair!=NULL&&first==&firPair->cdr)
 		{
-			AST_pair* firPrev=NULL;
+			FklAstPair* firPrev=NULL;
 			if(firPair->prev==NULL)break;
 			while(firPair->prev!=NULL&&firPair!=tmpPair)
 			{
@@ -486,14 +486,14 @@ int fklAST_cptrcmp(const AST_cptr* first,const AST_cptr* second)
 	return 1;
 }
 
-AST_cptr* fklNextCptr(const AST_cptr* objCptr)
+FklAstCptr* fklNextCptr(const FklAstCptr* objCptr)
 {
 	if(objCptr->outer!=NULL&&objCptr->outer->cdr.type==PAIR)
 		return &objCptr->outer->cdr.u.pair->car;
 	return NULL;
 }
 
-AST_cptr* fklPrevCptr(const AST_cptr* objCptr)
+FklAstCptr* fklPrevCptr(const FklAstCptr* objCptr)
 {
 	if(objCptr->outer!=NULL&&objCptr->outer->prev!=NULL&&objCptr->outer->prev->cdr.u.pair==objCptr->outer)
 		return &objCptr->outer->prev->car;
@@ -665,7 +665,7 @@ int fklIsNum(const char* objStr)
 	return 1;
 }
 
-void fklFreeAtom(AST_atom* objAtm)
+void fklFreeAtom(FklAstAtom* objAtm)
 {
 	if(objAtm->type==SYM||objAtm->type==STR)free(objAtm->value.str);
 	else if(objAtm->type==BYTS)
@@ -676,11 +676,11 @@ void fklFreeAtom(AST_atom* objAtm)
 	free(objAtm);
 }
 
-void fklPrintCptr(const AST_cptr* objCptr,FILE* out)
+void fklPrintCptr(const FklAstCptr* objCptr,FILE* out)
 {
 	if(objCptr==NULL)return;
-	AST_pair* tmpPair=(objCptr->type==PAIR)?objCptr->u.pair:NULL;
-	AST_pair* objPair=tmpPair;
+	FklAstPair* tmpPair=(objCptr->type==PAIR)?objCptr->u.pair:NULL;
+	FklAstPair* objPair=tmpPair;
 	while(objCptr!=NULL)
 	{
 		if(objCptr->type==PAIR)
@@ -706,7 +706,7 @@ void fklPrintCptr(const AST_cptr* objCptr,FILE* out)
 			||(objCptr->outer==NULL&&objCptr->type==NIL))fputs("()",out);
 			if(objCptr->type!=NIL)
 			{
-				AST_atom* tmpAtm=objCptr->u.atom;
+				FklAstAtom* tmpAtm=objCptr->u.atom;
 				switch((int)tmpAtm->type)
 				{
 					case SYM:
@@ -738,7 +738,7 @@ void fklPrintCptr(const AST_cptr* objCptr,FILE* out)
 		if(objPair!=NULL&&objCptr==&objPair->cdr)
 		{
 			putc(')',out);
-			AST_pair* prev=NULL;
+			FklAstPair* prev=NULL;
 			if(objPair->prev==NULL)break;
 			while(objPair->prev!=NULL&&objPair!=tmpPair)
 			{
@@ -753,7 +753,7 @@ void fklPrintCptr(const AST_cptr* objCptr,FILE* out)
 	}
 }
 
-void fklExError(const AST_cptr* obj,int type,Intpr* inter)
+void fklExError(const FklAstCptr* obj,int type,Intpr* inter)
 {
 	fprintf(stderr,"error of compiling: ");
 	switch(type)
@@ -1173,22 +1173,22 @@ int fklIscode(const char* filename)
 	else return !strcmp(filename+i,".fklc");
 }
 
-AST_cptr* fklGetLastCptr(const AST_cptr* objList)
+FklAstCptr* fklGetLastCptr(const FklAstCptr* objList)
 {
 	if(objList->type!=PAIR)
 		return NULL;
-	AST_pair* objPair=objList->u.pair;
-	AST_cptr* first=&objPair->car;
+	FklAstPair* objPair=objList->u.pair;
+	FklAstCptr* first=&objPair->car;
 	for(;fklNextCptr(first)!=NULL;first=fklNextCptr(first));
 	return first;
 }
 
-AST_cptr* fklGetFirstCptr(const AST_cptr* objList)
+FklAstCptr* fklGetFirstCptr(const FklAstCptr* objList)
 {
 	if(objList->type!=PAIR)
 		return NULL;
-	AST_pair* objPair=objList->u.pair;
-	AST_cptr* first=&objPair->car;
+	FklAstPair* objPair=objList->u.pair;
+	FklAstCptr* first=&objPair->car;
 	return first;
 }
 
@@ -1351,24 +1351,24 @@ Intpr* fklGetFirstIntpr(Intpr* inter)
 	return inter;
 }
 
-AST_cptr* fklGetASTPairCar(const AST_cptr* obj)
+FklAstCptr* fklGetASTPairCar(const FklAstCptr* obj)
 {
 	return &obj->u.pair->car;
 }
 
-AST_cptr* fklGetASTPairCdr(const AST_cptr* obj)
+FklAstCptr* fklGetASTPairCdr(const FklAstCptr* obj)
 {
 	return &obj->u.pair->cdr;
 }
 
-AST_cptr* fklGetCptrCar(const AST_cptr* obj)
+FklAstCptr* fklGetCptrCar(const FklAstCptr* obj)
 {
 	if(obj&&obj->outer!=NULL)
 		return &obj->outer->car;
 	return NULL;
 }
 
-AST_cptr* fklGetCptrCdr(const AST_cptr* obj)
+FklAstCptr* fklGetCptrCdr(const FklAstCptr* obj)
 {
 	if(obj&&obj->outer!=NULL)
 		return &obj->outer->cdr;
@@ -1672,7 +1672,7 @@ PreDef* fklFindDefine(const char* name,const PreEnv* curEnv)
 	}
 }
 
-PreDef* fklAddDefine(const char* symbol,const AST_cptr* objCptr,PreEnv* curEnv)
+PreDef* fklAddDefine(const char* symbol,const FklAstCptr* objCptr,PreEnv* curEnv)
 {
 	if(curEnv->symbols==NULL)
 	{
@@ -1704,7 +1704,7 @@ PreDef* fklNewDefines(const char* name)
 	tmp->symbol=(char*)malloc(sizeof(char)*(strlen(name)+1));
 	FAKE_ASSERT(tmp->symbol,"fklNewDefines",__FILE__,__LINE__);
 	strcpy(tmp->symbol,name);
-	tmp->obj=(AST_cptr){NULL,0,NIL,{NULL}};
+	tmp->obj=(FklAstCptr){NULL,0,NIL,{NULL}};
 	tmp->next=NULL;
 	return tmp;
 }
@@ -1855,7 +1855,7 @@ void fklPrintGlobSymbolTable(FILE* fp)
 	fklPrintSymbolTable(&GlobSymbolTable,fp);
 }
 
-AST_cptr* fklBaseCreateTree(const char* objStr,Intpr* inter)
+FklAstCptr* fklBaseCreateTree(const char* objStr,Intpr* inter)
 {
 	if(!objStr)
 		return NULL;
@@ -1866,7 +1866,7 @@ AST_cptr* fklBaseCreateTree(const char* objStr,Intpr* inter)
 		if(objStr[i]=='\n')
 			inter->curline+=1;
 	int32_t curline=(inter)?inter->curline:0;
-	AST_cptr* tmp=fklNewCptr(curline,NULL);
+	FklAstCptr* tmp=fklNewCptr(curline,NULL);
 	fklPushComStack(tmp,s1);
 	int hasComma=1;
 	while(objStr[i]&&!fklIsComStackEmpty(s1))
@@ -1875,14 +1875,14 @@ AST_cptr* fklBaseCreateTree(const char* objStr,Intpr* inter)
 			if(objStr[i]=='\n')
 				inter->curline+=1;
 		curline=inter->curline;
-		AST_cptr* root=fklPopComStack(s1);
+		FklAstCptr* root=fklPopComStack(s1);
 		if(objStr[i]=='(')
 		{
 			if(&root->outer->car==root)
 			{
 				//如果root是root所在pair的car部分，
 				//则在对应的pair后追加一个pair为下一个部分准备
-				AST_cptr* tmp=fklPopComStack(s1);
+				FklAstCptr* tmp=fklPopComStack(s1);
 				if(tmp)
 				{
 					tmp->type=PAIR;
@@ -1924,7 +1924,7 @@ AST_cptr* fklBaseCreateTree(const char* objStr,Intpr* inter)
 			{
 				//将为下一个部分准备的pair删除并将该pair的前一个pair的cdr部分入栈
 				s1->top=(long)fklTopComStack(s2);
-				AST_cptr* tmp=&root->outer->prev->cdr;
+				FklAstCptr* tmp=&root->outer->prev->cdr;
 				free(tmp->u.pair);
 				tmp->type=NIL;
 				tmp->u.all=NULL;
@@ -1936,11 +1936,11 @@ AST_cptr* fklBaseCreateTree(const char* objStr,Intpr* inter)
 		{
 			hasComma=0;
 			long t=(long)fklPopComStack(s2);
-			AST_cptr* c=s1->data[t];
+			FklAstCptr* c=s1->data[t];
 			if(s1->top-t>0&&c->outer->prev&&c->outer->prev->cdr.u.pair==c->outer)
 			{
 				//如果还有为下一部分准备的pair，则将该pair删除
-				AST_cptr* tmpCptr=s1->data[t];
+				FklAstCptr* tmpCptr=s1->data[t];
 				tmpCptr=&tmpCptr->outer->prev->cdr;
 				tmpCptr->type=NIL;
 				free(tmpCptr->u.pair);
@@ -1966,7 +1966,7 @@ AST_cptr* fklBaseCreateTree(const char* objStr,Intpr* inter)
 			else if(objStr[i]=='#')
 			{
 				i++;
-				AST_atom* atom=NULL;
+				FklAstAtom* atom=NULL;
 				switch(objStr[i])
 				{
 					case '\\':
@@ -2000,7 +2000,7 @@ AST_cptr* fklBaseCreateTree(const char* objStr,Intpr* inter)
 				char* str=fklGetStringFromList(objStr+i);
 				if(fklIsNum(str))
 				{
-					AST_atom* atom=NULL;
+					FklAstAtom* atom=NULL;
 					if(fklIsDouble(str))
 					{
 						atom=fklNewAtom(DBL,NULL,root->outer);
@@ -2029,7 +2029,7 @@ AST_cptr* fklBaseCreateTree(const char* objStr,Intpr* inter)
 			{
 				//如果root是root所在pair的car部分，
 				//则在对应的pair后追加一个pair为下一个部分准备
-				AST_cptr* tmp=fklPopComStack(s1);
+				FklAstCptr* tmp=fklPopComStack(s1);
 				if(tmp)
 				{
 					tmp->type=PAIR;
@@ -2498,72 +2498,72 @@ void fklRecycleComStack(ComStack* stack)
 	}
 }
 
-FakeMem* fklNewFakeMem(void* block,void (*destructor)(void*))
+FklMem* fklNewMem(void* block,void (*destructor)(void*))
 {
-	FakeMem* tmp=(FakeMem*)malloc(sizeof(FakeMem));
-	FAKE_ASSERT(tmp,"fklNewFakeMem",__FILE__,__LINE__);
+	FklMem* tmp=(FklMem*)malloc(sizeof(FklMem));
+	FAKE_ASSERT(tmp,"fklNewMem",__FILE__,__LINE__);
 	tmp->block=block;
 	tmp->destructor=destructor;
 	return tmp;
 }
 
-void fklFreeFakeMem(FakeMem* mem)
+void fklFreeMem(FklMem* mem)
 {
 	void (*f)(void*)=mem->destructor;
 	f(mem->block);
 	free(mem);
 }
 
-FakeMemMenager* fklNewFakeMemMenager(size_t size)
+FklMemMenager* fklNewMemMenager(size_t size)
 {
-	FakeMemMenager* tmp=(FakeMemMenager*)malloc(sizeof(FakeMemMenager));
-	FAKE_ASSERT(tmp,"fklNewFakeMemMenager",__FILE__,__LINE__);
+	FklMemMenager* tmp=(FklMemMenager*)malloc(sizeof(FklMemMenager));
+	FAKE_ASSERT(tmp,"fklNewMemMenager",__FILE__,__LINE__);
 	tmp->s=fklNewComStack(size);
 	return tmp;
 }
 
-void fklFreeFakeMemMenager(FakeMemMenager* memMenager)
+void fklFreeMemMenager(FklMemMenager* memMenager)
 {
 	size_t i=0;
 	ComStack* s=memMenager->s;
 	for(;i<s->top;i++)
-		fklFreeFakeMem(s->data[i]);
+		fklFreeMem(s->data[i]);
 	fklFreeComStack(s);
 	free(memMenager);
 }
 
-void fklPushFakeMem(void* block,void (*destructor)(void*),FakeMemMenager* memMenager)
+void fklPushMem(void* block,void (*destructor)(void*),FklMemMenager* memMenager)
 {
-	FakeMem* mem=fklNewFakeMem(block,destructor);
+	FklMem* mem=fklNewMem(block,destructor);
 	fklPushComStack(mem,memMenager->s);
 }
 
-void* popFakeMem(FakeMemMenager* memMenager)
+void* popMem(FklMemMenager* memMenager)
 {
 	return fklPopComStack(memMenager->s);
 }
 
-void fklDeleteFakeMem(void* block,FakeMemMenager* memMenager)
+void fklDeleteMem(void* block,FklMemMenager* memMenager)
 {
 	ComStack* s=memMenager->s;
 	s->top-=1;
 	uint32_t i=0;
 	uint32_t j=s->top;
 	for(;i<s->top;i++)
-		if(((FakeMem*)s->data[i])->block==block)
+		if(((FklMem*)s->data[i])->block==block)
 			break;
 	free(s->data[i]);
 	for(;i<j;i++)
 		s->data[i]=s->data[i+1];
 }
 
-void* fklReallocFakeMem(void* o_block,void* n_block,FakeMemMenager* memMenager)
+void* fklReallocMem(void* o_block,void* n_block,FklMemMenager* memMenager)
 {
 	ComStack* s=memMenager->s;
 	uint32_t i=0;
-	FakeMem* m=NULL;
+	FklMem* m=NULL;
 	for(;i<s->top;i++)
-		if(((FakeMem*)s->data[i])->block==o_block)
+		if(((FklMem*)s->data[i])->block==o_block)
 		{
 			m=s->data[i];
 			break;

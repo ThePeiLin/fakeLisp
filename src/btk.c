@@ -33,7 +33,7 @@ int getch()
 	return ch;
 }
 #endif
-void FAKE_getch(FakeVM* exe,pthread_rwlock_t* pGClock)
+void FAKE_getch(FklVM* exe,pthread_rwlock_t* pGClock)
 {
 	VMstack* stack=exe->stack;
 	if(fklResBp(stack))
@@ -41,7 +41,7 @@ void FAKE_getch(FakeVM* exe,pthread_rwlock_t* pGClock)
 	SET_RETURN("FAKE_getch",MAKE_VM_CHR(getch()),stack);
 }
 
-void FAKE_sleep(FakeVM* exe,pthread_rwlock_t* pGClock)
+void FAKE_sleep(FklVM* exe,pthread_rwlock_t* pGClock)
 {
 	VMstack* stack=exe->stack;
 	VMrunnable* r=fklTopComStack(exe->rstack);
@@ -58,7 +58,7 @@ void FAKE_sleep(FakeVM* exe,pthread_rwlock_t* pGClock)
 	stack->tp+=1;
 }
 
-void FAKE_usleep(FakeVM* exe,pthread_rwlock_t* pGClock)
+void FAKE_usleep(FklVM* exe,pthread_rwlock_t* pGClock)
 {
 	VMstack* stack=exe->stack;
 	VMvalue* second=fklGET_VAL(fklPopVMstack(stack),exe->heap);
@@ -80,7 +80,7 @@ void FAKE_usleep(FakeVM* exe,pthread_rwlock_t* pGClock)
 	stack->tp+=1;
 }
 
-void FAKE_rand(FakeVM* exe,pthread_rwlock_t* pGClock)
+void FAKE_rand(FklVM* exe,pthread_rwlock_t* pGClock)
 {
 	static int hasSrand=0;
 	if(!hasSrand)
@@ -98,7 +98,7 @@ void FAKE_rand(FakeVM* exe,pthread_rwlock_t* pGClock)
 	SET_RETURN("FAKE_rand",MAKE_VM_IN32(rand()%((lim==NULL||!IS_IN32(lim))?RAND_MAX:GET_IN32(lim))),stack);
 }
 
-void FAKE_getTime(FakeVM* exe,pthread_rwlock_t* pGClock)
+void FAKE_getTime(FklVM* exe,pthread_rwlock_t* pGClock)
 {
 	VMstack* stack=exe->stack;
 	if(fklResBp(stack))
@@ -126,7 +126,7 @@ void FAKE_getTime(FakeVM* exe,pthread_rwlock_t* pGClock)
 	SET_RETURN("FAKE_getTime",tmpVMvalue,stack);
 }
 
-void FAKE_removeFile(FakeVM* exe,pthread_rwlock_t* pGClock)
+void FAKE_removeFile(FklVM* exe,pthread_rwlock_t* pGClock)
 {
 	VMstack* stack=exe->stack;
 	VMvalue* name=fklPopVMstack(stack);
@@ -140,7 +140,7 @@ void FAKE_removeFile(FakeVM* exe,pthread_rwlock_t* pGClock)
 	SET_RETURN("FAKE_removeFile",MAKE_VM_IN32(remove(name->u.str)),stack);
 }
 
-void FAKE_setVMChanlBufferSize(FakeVM* exe,pthread_rwlock_t* pGClock)
+void FAKE_setVMChanlBufferSize(FklVM* exe,pthread_rwlock_t* pGClock)
 {
 	VMstack* stack=exe->stack;
 	VMvalue* chan=fklPopVMstack(stack);
@@ -156,7 +156,7 @@ void FAKE_setVMChanlBufferSize(FakeVM* exe,pthread_rwlock_t* pGClock)
 	SET_RETURN("FAKE_setVMChanlBufferSize",chan,stack);
 }
 
-void FAKE_isEndOfFile(FakeVM* exe,pthread_rwlock_t* pGClock)
+void FAKE_isEndOfFile(FklVM* exe,pthread_rwlock_t* pGClock)
 {
 	VMstack* stack=exe->stack;
 	VMvalue* fp=fklPopVMstack(stack);

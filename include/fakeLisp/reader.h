@@ -5,7 +5,7 @@
 
 StringMatchPattern* fklFindStringPattern(const char*);
 StringMatchPattern* fklNewStringMatchPattern(int32_t,char**,ByteCodelnt*);
-StringMatchPattern* fklNewFStringMatchPattern(int32_t num,char** parts,void(*fproc)(FakeVM* exe));
+StringMatchPattern* fklNewFStringMatchPattern(int32_t num,char** parts,void(*fproc)(FklVM* exe));
 char** fklSplitPattern(const char*,int32_t*);
 char** fklSplitStringInPattern(const char*,StringMatchPattern*,int32_t*);
 char* fklReadInPattern(FILE*,char**,int*);

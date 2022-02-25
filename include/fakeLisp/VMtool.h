@@ -122,7 +122,7 @@ void fklDecreaseVMenvRefcount(VMenv*);
 VMenv* fklCastPreEnvToVMenv(PreEnv*,VMenv*,VMheap*);
 VMpair* fklNewVMpair(void);
 
-VMvalue* fklCastCptrVMvalue(AST_cptr*,VMheap*);
+VMvalue* fklCastCptrVMvalue(FklAstCptr*,VMheap*);
 VMByts* fklNewVMByts(size_t,uint8_t*);
 void fklIncreaseVMByts(VMByts*);
 void fklDecreaseVMByts(VMByts*);
@@ -166,7 +166,7 @@ VMerror* fklNewVMerror(const char* who,const char* type,const char* message);
 VMerror* fklNewVMerrorWithSid(const char* who,Sid_t type,const char* message);
 void fklFreeVMerror(VMerror*);
 
-RecvT* fklNewRecvT(FakeVM*);
+RecvT* fklNewRecvT(FklVM*);
 void fklFreeRecvT(RecvT*);
 
 SendT* fklNewSendT(VMvalue*);
@@ -180,15 +180,15 @@ void fklFreeVMTryBlock(VMTryBlock* b);
 
 VMerrorHandler* fklNewVMerrorHandler(Sid_t type,uint32_t scp,uint32_t cpc);
 void fklFreeVMerrorHandler(VMerrorHandler*);
-int fklRaiseVMerror(VMvalue* err,FakeVM*);
+int fklRaiseVMerror(VMvalue* err,FklVM*);
 VMrunnable* fklNewVMrunnable(VMproc*);
-char* fklGenErrorMessage(unsigned int type,VMrunnable* r,FakeVM* exe);
-char* fklGenInvalidSymbolErrorMessage(const char* str,VMrunnable* r,FakeVM* exe);
+char* fklGenErrorMessage(unsigned int type,VMrunnable* r,FklVM* exe);
+char* fklGenInvalidSymbolErrorMessage(const char* str,VMrunnable* r,FklVM* exe);
 int32_t fklGetSymbolIdInByteCode(const uint8_t*);
 int fklResBp(VMstack*);
 
-TypeId_t fklGenDefTypes(AST_cptr*,VMDefTypes* otherTypes,Sid_t* typeName);
-TypeId_t fklGenDefTypesUnion(AST_cptr* objCptr,VMDefTypes* otherTypes);
+TypeId_t fklGenDefTypes(FklAstCptr*,VMDefTypes* otherTypes,Sid_t* typeName);
+TypeId_t fklGenDefTypesUnion(FklAstCptr* objCptr,VMDefTypes* otherTypes);
 VMDefTypesNode* fklFindVMDefTypesNode(Sid_t typeId,VMDefTypes* otherTypes);
 int fklAddDefTypes(VMDefTypes*,Sid_t typeName,TypeId_t);
 
@@ -217,7 +217,7 @@ size_t fklGetVMTypeSizeWithTypeId(TypeId_t t);
 VMTypeUnion fklGetVMTypeUnion(TypeId_t);
 
 VMMem* fklNewVMMem(TypeId_t typeId,uint8_t* mem);
-TypeId_t fklGenDefTypesUnion(AST_cptr* objCptr,VMDefTypes* otherTypes);
+TypeId_t fklGenDefTypesUnion(FklAstCptr* objCptr,VMDefTypes* otherTypes);
 void fklInitNativeDefTypes(VMDefTypes* otherTypes);
 void fklWriteTypeList(FILE* fp);
 void fklLoadTypeList(FILE* fp);

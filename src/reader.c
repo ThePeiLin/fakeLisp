@@ -823,7 +823,7 @@ int fklIsMustList(const char* str)
 	return 0;
 }
 
-StringMatchPattern* fklNewFStringMatchPattern(int32_t num,char** parts,void(*fproc)(FakeVM* exe))
+StringMatchPattern* fklNewFStringMatchPattern(int32_t num,char** parts,void(*fproc)(FklVM* exe))
 {
 	StringMatchPattern* tmp=(StringMatchPattern*)malloc(sizeof(StringMatchPattern));
 	FAKE_ASSERT(tmp,"fklNewFStringMatchPattern",__FILE__,__LINE__);
@@ -977,7 +977,7 @@ static int maybePatternPrefix(const char* str)
 	return 0;
 }
 
-VMvalue* singleArgPattern(FakeVM* exe,const char* var,const char* str)
+VMvalue* singleArgPattern(FklVM* exe,const char* var,const char* str)
 {
 	VMrunnable* runnable=fklTopComStack(exe->rstack);
 	VMvalue* sym=MAKE_VM_SYM(fklAddSymbolToGlob(str)->id);
@@ -989,22 +989,22 @@ VMvalue* singleArgPattern(FakeVM* exe,const char* var,const char* str)
 	return pair;
 }
 
-void READER_MACRO_quote(FakeVM* exe)
+void READER_MACRO_quote(FklVM* exe)
 {
 	SET_RETURN("READER_MACRO_quote",singleArgPattern(exe,"a","quote"),exe->stack);
 }
 
-void READER_MACRO_qsquote(FakeVM* exe)
+void READER_MACRO_qsquote(FklVM* exe)
 {
 	SET_RETURN("READER_MACRO_qsquote",singleArgPattern(exe,"a","qsquote"),exe->stack);
 }
 
-void READER_MACRO_unquote(FakeVM* exe)
+void READER_MACRO_unquote(FklVM* exe)
 {
 	SET_RETURN("READER_MACRO_unquote",singleArgPattern(exe,"a","unquote"),exe->stack);
 }
 
-void READER_MACRO_unqtesp(FakeVM* exe)
+void READER_MACRO_unqtesp(FklVM* exe)
 {
 	SET_RETURN("READER_MACRO_unqtesp",singleArgPattern(exe,"a","unqtesp"),exe->stack);
 }

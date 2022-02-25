@@ -11,15 +11,15 @@
 	fklFreeLineNumTabNode((l)[i]);\
 }
 
-static void addToTail(AST_cptr*,const AST_cptr*);
-static void addToList(AST_cptr*,const AST_cptr*);
+static void addToTail(FklAstCptr*,const FklAstCptr*);
+static void addToList(FklAstCptr*,const FklAstCptr*);
 
 static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap)
 {
 	VMenv* vEnv=fklNewVMenv(NULL);
 	fklInitGlobEnv(vEnv,heap);
 	ByteCodelnt* tmpByteCode=cEnv->proc;
-	FakeVM* tmpVM=fklNewTmpFakeVM(NULL);
+	FklVM* tmpVM=fklNewTmpVM(NULL);
 	VMproc* tmpVMproc=fklNewVMproc(0,tmpByteCode->bc->size);
 	VMrunnable* mainrunnable=fklNewVMrunnable(tmpVMproc);
 	mainrunnable->localenv=vEnv;
@@ -33,7 +33,7 @@ static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap)
 	fklFreeVMheap(tmpVM->heap);
 	tmpVM->heap=heap;
 	fklIncreaseVMenvRefcount(vEnv);
-	int i=fklRunFakeVM(tmpVM);
+	int i=fklRunVM(tmpVM);
 	if(i==1)
 	{
 		free(tmpVM->lnt);
@@ -56,7 +56,7 @@ static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap)
 	return vEnv;
 }
 
-AST_cptr* expandReaderMacro(const char* objStr,Intpr* inter,StringMatchPattern* pattern)
+FklAstCptr* expandReaderMacro(const char* objStr,Intpr* inter,StringMatchPattern* pattern)
 {
 	PreEnv* tmpEnv=fklNewEnv(NULL);
 	int num=0;
@@ -76,10 +76,10 @@ AST_cptr* expandReaderMacro(const char* objStr,Intpr* inter,StringMatchPattern* 
 			if(fklIsMustList(pattern->parts[j]))
 			{
 				StringMatchPattern* tmpPattern=fklFindStringPattern(parts[j]);
-				AST_cptr* tmpCptr=fklNewCptr(inter->curline,NULL);
+				FklAstCptr* tmpCptr=fklNewCptr(inter->curline,NULL);
 				tmpCptr->type=NIL;
 				tmpCptr->u.all=NULL;
-				AST_cptr* tmpCptr2=fklCreateTree(parts[j],inter,tmpPattern);
+				FklAstCptr* tmpCptr2=fklCreateTree(parts[j],inter,tmpPattern);
 				if(!tmpCptr2)
 				{
 					fklFreeStringArry(parts,num);
@@ -99,7 +99,7 @@ AST_cptr* expandReaderMacro(const char* objStr,Intpr* inter,StringMatchPattern* 
 				{
 					tmpPattern=fklFindStringPattern(parts[j]+i);
 					int32_t ti=(parts[j][i+fklSkipSpace(parts[j]+i)]==',');
-					AST_cptr* tmpCptr2=fklCreateTree(parts[j]+i+fklSkipSpace(parts[j]+i)+ti,inter,tmpPattern);
+					FklAstCptr* tmpCptr2=fklCreateTree(parts[j]+i+fklSkipSpace(parts[j]+i)+ti,inter,tmpPattern);
 					if(!tmpCptr2)
 					{
 						if(tmpPattern)
@@ -136,7 +136,7 @@ AST_cptr* expandReaderMacro(const char* objStr,Intpr* inter,StringMatchPattern* 
 			else
 			{
 				StringMatchPattern* tmpPattern=fklFindStringPattern(parts[j]);
-				AST_cptr* tmpCptr=fklCreateTree(parts[j],inter,tmpPattern);
+				FklAstCptr* tmpCptr=fklCreateTree(parts[j],inter,tmpPattern);
 				inter->curline+=fklCountChar(parts[j]+fklSkipInPattern(parts[j],tmpPattern),'\n',-1);
 				fklAddDefine(varName,tmpCptr,tmpEnv);
 				fklDeleteCptr(tmpCptr);
@@ -147,8 +147,8 @@ AST_cptr* expandReaderMacro(const char* objStr,Intpr* inter,StringMatchPattern* 
 		else
 			inter->curline+=fklCountChar(parts[j],'\n',-1);
 	}
-	FakeVM* tmpVM=fklNewTmpFakeVM(NULL);
-	AST_cptr* tmpCptr=NULL;
+	FklVM* tmpVM=fklNewTmpVM(NULL);
+	FklAstCptr* tmpCptr=NULL;
 	if(pattern->type==BYTS)
 	{
 		ByteCodelnt* t=fklNewByteCodelnt(fklNewByteCode(0));
@@ -177,7 +177,7 @@ AST_cptr* expandReaderMacro(const char* objStr,Intpr* inter,StringMatchPattern* 
 		tmpVM->lnt=fklNewLineNumTable();
 		tmpVM->lnt->list=pattern->u.bProc->l;
 		tmpVM->lnt->num=pattern->u.bProc->ls;
-		int state=fklRunFakeVM(tmpVM);
+		int state=fklRunVM(tmpVM);
 		if(!state)
 			tmpCptr=fklCastVMvalueToCptr(fklGET_VAL(tmpVM->stack->values[0],tmpVM->heap),inter->curline);
 		else
@@ -222,7 +222,7 @@ AST_cptr* expandReaderMacro(const char* objStr,Intpr* inter,StringMatchPattern* 
 	return tmpCptr;
 }
 
-AST_cptr* fklCreateTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern)
+FklAstCptr* fklCreateTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern)
 {
 	if(objStr==NULL)return NULL;
 	if(fklIsAllSpace(objStr))
@@ -241,7 +241,7 @@ AST_cptr* fklCreateTree(const char* objStr,Intpr* inter,StringMatchPattern* patt
 			if(objStr[i]=='\n')
 				inter->curline+=1;
 		int32_t curline=(inter)?inter->curline:0;
-		AST_cptr* tmp=fklNewCptr(curline,NULL);
+		FklAstCptr* tmp=fklNewCptr(curline,NULL);
 		fklPushComStack(tmp,s1);
 		int hasComma=1;
 		while(objStr[i]&&!fklIsComStackEmpty(s1))
@@ -250,14 +250,14 @@ AST_cptr* fklCreateTree(const char* objStr,Intpr* inter,StringMatchPattern* patt
 				if(objStr[i]=='\n')
 					inter->curline+=1;
 			curline=inter->curline;
-			AST_cptr* root=fklPopComStack(s1);
+			FklAstCptr* root=fklPopComStack(s1);
 			if(objStr[i]=='(')
 			{
 				if(&root->outer->car==root)
 				{
 					//如果root是root所在pair的car部分，
 					//则在对应的pair后追加一个pair为下一个部分准备
-					AST_cptr* tmp=fklPopComStack(s1);
+					FklAstCptr* tmp=fklPopComStack(s1);
 					if(tmp)
 					{
 						tmp->type=PAIR;
@@ -299,7 +299,7 @@ AST_cptr* fklCreateTree(const char* objStr,Intpr* inter,StringMatchPattern* patt
 				{
 					//将为下一个部分准备的pair删除并将该pair的前一个pair的cdr部分入栈
 					s1->top=(long)fklTopComStack(s2);
-					AST_cptr* tmp=&root->outer->prev->cdr;
+					FklAstCptr* tmp=&root->outer->prev->cdr;
 					free(tmp->u.pair);
 					tmp->type=NIL;
 					tmp->u.all=NULL;
@@ -311,11 +311,11 @@ AST_cptr* fklCreateTree(const char* objStr,Intpr* inter,StringMatchPattern* patt
 			{
 				hasComma=0;
 				long t=(long)fklPopComStack(s2);
-				AST_cptr* c=s1->data[t];
+				FklAstCptr* c=s1->data[t];
 				if(s1->top-t>0&&c->outer->prev&&c->outer->prev->cdr.u.pair==c->outer)
 				{
 					//如果还有为下一部分准备的pair，则将该pair删除
-					AST_cptr* tmpCptr=s1->data[t];
+					FklAstCptr* tmpCptr=s1->data[t];
 					tmpCptr=&tmpCptr->outer->prev->cdr;
 					tmpCptr->type=NIL;
 					free(tmpCptr->u.pair);
@@ -341,7 +341,7 @@ AST_cptr* fklCreateTree(const char* objStr,Intpr* inter,StringMatchPattern* patt
 				else if((pattern=fklFindStringPattern(objStr+i)))
 				{
 					root->type=NIL;
-					AST_cptr* tmpCptr=fklCreateTree(objStr+i,inter,pattern);
+					FklAstCptr* tmpCptr=fklCreateTree(objStr+i,inter,pattern);
 					if(tmpCptr==NULL)
 					{
 						fklDeleteCptr(tmp);
@@ -360,7 +360,7 @@ AST_cptr* fklCreateTree(const char* objStr,Intpr* inter,StringMatchPattern* patt
 				else if(objStr[i]=='#')
 				{
 					i++;
-					AST_atom* atom=NULL;
+					FklAstAtom* atom=NULL;
 					switch(objStr[i])
 					{
 						case '\\':
@@ -394,7 +394,7 @@ AST_cptr* fklCreateTree(const char* objStr,Intpr* inter,StringMatchPattern* patt
 					char* str=fklGetStringFromList(objStr+i);
 					if(fklIsNum(str))
 					{
-						AST_atom* atom=NULL;
+						FklAstAtom* atom=NULL;
 						if(fklIsDouble(str))
 						{
 							atom=fklNewAtom(DBL,NULL,root->outer);
@@ -423,7 +423,7 @@ AST_cptr* fklCreateTree(const char* objStr,Intpr* inter,StringMatchPattern* patt
 				{
 					//如果root是root所在pair的car部分，
 					//则在对应的pair后追加一个pair为下一个部分准备
-					AST_cptr* tmp=fklPopComStack(s1);
+					FklAstCptr* tmp=fklPopComStack(s1);
 					if(tmp)
 					{
 						tmp->type=PAIR;
@@ -440,9 +440,9 @@ AST_cptr* fklCreateTree(const char* objStr,Intpr* inter,StringMatchPattern* patt
 	}
 }
 
-AST_cptr* fklCastVMvalueToCptr(VMvalue* value,int32_t curline)
+FklAstCptr* fklCastVMvalueToCptr(VMvalue* value,int32_t curline)
 {
-	AST_cptr* tmp=fklNewCptr(curline,NULL);
+	FklAstCptr* tmp=fklNewCptr(curline,NULL);
 	ComStack* s1=fklNewComStack(32);
 	ComStack* s2=fklNewComStack(32);
 	fklPushComStack(value,s1);
@@ -450,7 +450,7 @@ AST_cptr* fklCastVMvalueToCptr(VMvalue* value,int32_t curline)
 	while(!fklIsComStackEmpty(s1))
 	{
 		VMvalue* root=fklPopComStack(s1);
-		AST_cptr* root1=fklPopComStack(s2);
+		FklAstCptr* root1=fklPopComStack(s2);
 		ValueType cptrType=0;
 		if(root==VM_NIL)
 			cptrType=NIL;
@@ -461,7 +461,7 @@ AST_cptr* fklCastVMvalueToCptr(VMvalue* value,int32_t curline)
 		root1->type=cptrType;
 		if(cptrType==ATM)
 		{
-			AST_atom* tmpAtm=fklNewAtom(SYM,NULL,root1->outer);
+			FklAstAtom* tmpAtm=fklNewAtom(SYM,NULL,root1->outer);
 			VMptrTag tag=GET_TAG(root);
 			switch(tag)
 			{
@@ -540,7 +540,7 @@ AST_cptr* fklCastVMvalueToCptr(VMvalue* value,int32_t curline)
 		{
 			fklPushComStack(root->u.pair->car,s1);
 			fklPushComStack(root->u.pair->cdr,s1);
-			AST_pair* tmpPair=fklNewPair(curline,root1->outer);
+			FklAstPair* tmpPair=fklNewPair(curline,root1->outer);
 			root1->u.pair=tmpPair;
 			tmpPair->car.outer=tmpPair;
 			tmpPair->cdr.outer=tmpPair;
@@ -553,7 +553,7 @@ AST_cptr* fklCastVMvalueToCptr(VMvalue* value,int32_t curline)
 	return tmp;
 }
 
-void addToList(AST_cptr* fir,const AST_cptr* sec)
+void addToList(FklAstCptr* fir,const FklAstCptr* sec)
 {
 	while(fir->type!=NIL)fir=&fir->u.pair->cdr;
 	fir->type=PAIR;
@@ -561,7 +561,7 @@ void addToList(AST_cptr* fir,const AST_cptr* sec)
 	fklReplaceCptr(&fir->u.pair->car,sec);
 }
 
-void addToTail(AST_cptr* fir,const AST_cptr* sec)
+void addToTail(FklAstCptr* fir,const FklAstCptr* sec)
 {
 	while(fir->type!=NIL)fir=&fir->u.pair->cdr;
 	fklReplaceCptr(fir,sec);

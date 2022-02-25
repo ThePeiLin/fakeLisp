@@ -78,7 +78,7 @@ int main(int argc,char** argv)
 			inter->lnt->num=mainByteCode->ls;
 			inter->lnt->list=mainByteCode->l;
 			VMenv* globEnv=fklNewVMenv(NULL);
-			FakeVM* anotherVM=fklNewFakeVM(mainByteCode->bc);
+			FklVM* anotherVM=fklNewVM(mainByteCode->bc);
 			fklFreeByteCode(mainByteCode->bc);
 			free(mainByteCode);
 			VMrunnable* mainrunnable=anotherVM->rstack->data[0];
@@ -93,7 +93,7 @@ int main(int argc,char** argv)
 			free(workpath);
 			if(setjmp(buf)==0)
 			{
-				fklRunFakeVM(anotherVM);
+				fklRunVM(anotherVM);
 				fklJoinAllThread();
 				fklFreeIntpr(inter);
 				fklUnInitPreprocess();
@@ -133,7 +133,7 @@ int main(int argc,char** argv)
 		LineNumberTable* lnt=loadLineNumberTable(fp);
 		fklLoadTypeList(fp);
 		ByteCode* mainCode=loadByteCode(fp);
-		FakeVM* anotherVM=fklNewFakeVM(mainCode);
+		FklVM* anotherVM=fklNewVM(mainCode);
 		VMheap* heap=anotherVM->heap;
 		fklFreeByteCode(mainCode);
 		fclose(fp);
@@ -147,7 +147,7 @@ int main(int argc,char** argv)
 		fklInitGlobEnv(globEnv,anotherVM->heap);
 		if(!setjmp(buf))
 		{
-			fklRunFakeVM(anotherVM);
+			fklRunVM(anotherVM);
 			fklJoinAllThread();
 			fklFreeVMheap(heap);
 			fklFreeGlobSymbolTable();
@@ -183,7 +183,7 @@ int main(int argc,char** argv)
 void runIntpr(Intpr* inter)
 {
 	int e=0;
-	FakeVM* anotherVM=fklNewFakeVM(NULL);
+	FklVM* anotherVM=fklNewVM(NULL);
 	VMenv* globEnv=fklNewVMenv(NULL);
 	anotherVM->tid=pthread_self();
 	anotherVM->callback=errorCallBack;
@@ -194,7 +194,7 @@ void runIntpr(Intpr* inter)
 	int32_t bs=0;
 	for(;e<2;)
 	{
-		AST_cptr* begin=NULL;
+		FklAstCptr* begin=NULL;
 		if(inter->file==stdin)printf(">>>");
 		int unexpectEOF=0;
 		char* list=fklReadInPattern(inter->file,&prev,&unexpectEOF);
@@ -252,7 +252,7 @@ void runIntpr(Intpr* inter)
 				globEnv->refcount+=1;
 				if(!(e=setjmp(buf)))
 				{
-					fklRunFakeVM(anotherVM);
+					fklRunVM(anotherVM);
 					VMstack* stack=anotherVM->stack;
 					if(inter->file==stdin&&stack->tp!=0)
 					{

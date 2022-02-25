@@ -6,7 +6,7 @@
 #include<pthread.h>
 #include<ffi.h>
 #include<setjmp.h>
-#define THRESHOLD_SIZE 64
+#define FKL_THRESHOLD_SIZE 64
 #define NUMOFBUILTINSYMBOL 54
 #define MAX_STRING_SIZE 64
 #define NUMOFBUILTINERRORTYPE 28
@@ -64,6 +64,7 @@ typedef struct VMDefTypesNode
 	Sid_t name;
 	TypeId_t type;
 }VMDefTypesNode;
+
 typedef struct VMDefTypes
 {
 	size_t num;
@@ -133,12 +134,12 @@ typedef struct
 {
 	void (*destructor)(void*);
 	void* block;
-}FakeMem;
+}FklMem;
 
 typedef struct
 {
 	ComStack* s;
-}FakeMemMenager;
+}FklMemMenager;
 
 typedef struct
 {
@@ -167,22 +168,22 @@ typedef struct
 
 typedef struct
 {
-	struct AST_pair* outer;
+	struct FklAstPair* outer;
 	uint32_t curline;
 	ValueType type;
 	union
 	{
-		struct AST_atom* atom;
-		struct AST_pair* pair;
+		struct FklAstAtom* atom;
+		struct FklAstPair* pair;
 		void* all;
 	}u;
-}AST_cptr;
+}FklAstCptr;
 
-typedef struct AST_pair
+typedef struct FklAstPair
 {
-	struct AST_pair* prev;
-	AST_cptr car,cdr;
-}AST_pair;
+	struct FklAstPair* prev;
+	FklAstCptr car,cdr;
+}FklAstPair;
 
 typedef struct VMChanl
 {
@@ -202,12 +203,12 @@ typedef struct
 typedef struct
 {
 	pthread_cond_t cond;
-	struct FakeVM* v;
+	struct FklVM* v;
 }RecvT;
 
-typedef struct AST_atom
+typedef struct FklAstAtom
 {
-	AST_pair* prev;
+	FklAstPair* prev;
 	ValueType type;
 	union
 	{
@@ -218,35 +219,35 @@ typedef struct AST_atom
 		double dbl;
 		ByteString byts;
 	} value;
-}AST_atom;
+}FklAstAtom;
 
 typedef struct
 {
 	ErrorType state;
-	AST_cptr* place;
+	FklAstCptr* place;
 }ErrorState;
 
-typedef struct Pre_Def
+typedef struct PreDef
 {
 	char* symbol;
-	AST_cptr obj;//node or symbol or val
-	struct Pre_Def* next;
+	FklAstCptr obj;//node or symbol or val
+	struct PreDef* next;
 }PreDef;
 
-typedef struct Pre_Env
+typedef struct PreEnv
 {
-	struct Pre_Env* prev;
+	struct PreEnv* prev;
 	PreDef* symbols;
-	struct Pre_Env* next;
+	struct PreEnv* next;
 }PreEnv;
 
-typedef struct Pre_Macro
+typedef struct PreMacro
 {
-	AST_cptr* pattern;
+	FklAstCptr* pattern;
 	ByteCodelnt* proc;
 	VMDefTypes* deftypes;
-	struct Pre_Macro* next;
-	struct Comp_Env* macroEnv;
+	struct PreMacro* next;
+	struct CompEnv* macroEnv;
 }PreMacro;
 
 typedef struct SymTabNode
@@ -262,15 +263,15 @@ typedef struct SymbolTable
 	SymTabNode** idl;
 }SymbolTable;
 
-typedef struct Comp_Def
+typedef struct CompDef
 {
 	Sid_t id;
-	struct Comp_Def* next;
+	struct CompDef* next;
 }CompDef;
 
-typedef struct Comp_Env
+typedef struct CompEnv
 {
-	struct Comp_Env* prev;
+	struct CompEnv* prev;
 	char* prefix;
 	const char** exp;
 	uint32_t n;
@@ -278,7 +279,7 @@ typedef struct Comp_Env
 	PreMacro* macro;
 	ByteCodelnt* proc;
 	uint32_t refcount;
-	struct Key_Word* keyWords;
+	struct KeyWord* keyWords;
 }CompEnv;
 
 typedef struct Interpreter
@@ -293,10 +294,10 @@ typedef struct Interpreter
 	VMDefTypes* deftypes;
 }Intpr;
 
-typedef struct Key_Word
+typedef struct KeyWord
 {
 	char* word;
-	struct Key_Word* next;
+	struct KeyWord* next;
 }KeyWord;
 
 typedef struct VMpair
@@ -384,7 +385,7 @@ typedef struct
 	uint32_t* tpst;
 }VMstack;
 
-typedef struct FakeVM
+typedef struct FklVM
 {
 	unsigned int mark :1;
 	int32_t VMid;
@@ -401,7 +402,7 @@ typedef struct FakeVM
 	struct LineNumberTable* lnt;
 	void (*callback)(void*);
 	jmp_buf buf;
-}FakeVM;
+}FklVM;
 
 typedef struct VMHeap
 {
@@ -414,10 +415,10 @@ typedef struct VMHeap
 typedef struct
 {
 	uint32_t num;
-	FakeVM** VMs;
-}FakeVMlist;
+	FklVM** VMs;
+}FklVMlist;
 
-typedef void (*DllFunc)(FakeVM*,pthread_rwlock_t*);
+typedef void (*DllFunc)(FklVM*,pthread_rwlock_t*);
 
 typedef struct VMDlproc
 {
@@ -439,7 +440,7 @@ typedef struct StringMatchPattern
 	char** parts;
 	ValueType type;
 	union{
-		void (*fProc)(FakeVM*);
+		void (*fProc)(FklVM*);
 		ByteCodelnt* bProc;
 	}u;
 	struct StringMatchPattern* prev;

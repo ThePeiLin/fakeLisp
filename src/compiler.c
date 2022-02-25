@@ -241,7 +241,7 @@ static int fklAddDefinedMacro(FklPreMacro* macro,FklCompEnv* curEnv)
 
 int fklAddMacro(FklAstCptr* pattern,FklByteCodelnt* proc,FklCompEnv* curEnv)
 {
-	if(pattern->type!=PAIR)return SYNTAXERROR;
+	if(pattern->type!=FKL_PAIR)return SYNTAXERROR;
 	FklAstCptr* tmpCptr=NULL;
 	FklPreMacro* current=curEnv->macro;
 	while(current!=NULL&&!MacroPatternCmp(pattern,current->pattern))
@@ -284,11 +284,11 @@ int MacroPatternCmp(const FklAstCptr* first,const FklAstCptr* second)
 	if(first==NULL&&second==NULL)return 0;
 	FklAstPair* firPair=NULL;
 	FklAstPair* secPair=NULL;
-	FklAstPair* tmpPair=(first->type==PAIR)?first->u.pair:NULL;
+	FklAstPair* tmpPair=(first->type==FKL_PAIR)?first->u.pair:NULL;
 	while(1)
 	{
 		if(first->type!=second->type)return 0;
-		else if(first->type==PAIR)
+		else if(first->type==FKL_PAIR)
 		{
 			firPair=first->u.pair;
 			secPair=second->u.pair;
@@ -348,12 +348,12 @@ int MacroPatternCmp(const FklAstCptr* first,const FklAstCptr* second)
 int fmatcmp(const FklAstCptr* origin,const FklAstCptr* format,FklPreEnv** pmacroEnv,FklCompEnv* curEnv)
 {
 	FklPreEnv* macroEnv=fklNewEnv(NULL);
-	FklAstPair* tmpPair=(format->type==PAIR)?format->u.pair:NULL;
+	FklAstPair* tmpPair=(format->type==FKL_PAIR)?format->u.pair:NULL;
 	FklAstPair* forPair=tmpPair;
-	FklAstPair* oriPair=(origin->type==PAIR)?origin->u.pair:NULL;
+	FklAstPair* oriPair=(origin->type==FKL_PAIR)?origin->u.pair:NULL;
 	while(origin!=NULL)
 	{
-		if(format->type==PAIR&&origin->type==PAIR)
+		if(format->type==FKL_PAIR&&origin->type==FKL_PAIR)
 		{
 			forPair=format->u.pair;
 			oriPair=origin->u.pair;
@@ -436,11 +436,11 @@ FklCompEnv* fklCreateMacroCompEnv(const FklAstCptr* objCptr,FklCompEnv* prev)
 {
 	if(objCptr==NULL)return NULL;
 	FklCompEnv* tmpEnv=fklNewCompEnv(prev);
-	FklAstPair* tmpPair=(objCptr->type==PAIR)?objCptr->u.pair:NULL;
+	FklAstPair* tmpPair=(objCptr->type==FKL_PAIR)?objCptr->u.pair:NULL;
 	FklAstPair* objPair=tmpPair;
 	while(objCptr!=NULL)
 	{
-		if(objCptr->type==PAIR)
+		if(objCptr->type==FKL_PAIR)
 		{
 			if(objPair!=NULL&&objCptr==&objPair->cdr)
 			{
@@ -558,7 +558,7 @@ FklErrorState defmacro(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter)
 	FklAstCptr* fir=fklGetFirstCptr(objCptr);
 	FklAstCptr* argCptr=fklNextCptr(fir);
 	FklAstCptr** args=dealArg(argCptr,2);
-	if(args[0]->type!=PAIR)
+	if(args[0]->type!=FKL_PAIR)
 	{
 		if(args[0]->type!=NIL)
 		{
@@ -907,7 +907,7 @@ FklByteCode* fklCompilePair(FklAstCptr* objCptr)
 	pushPair->code[0]=FAKE_PUSH_PAIR;
 	while(objCptr!=NULL)
 	{
-		if(objCptr->type==PAIR)
+		if(objCptr->type==FKL_PAIR)
 		{
 			fklCodeCat(tmp,pushPair);
 			objPair=objCptr->u.pair;
@@ -1026,7 +1026,7 @@ FklByteCodelnt* fklCompileQsquote(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntp
 				continue;
 			}
 		}
-		else if(objCptr->type==PAIR)
+		else if(objCptr->type==FKL_PAIR)
 		{
 			if(!fklIsUnqtespExpression(fklGetFirstCptr(objCptr)))
 			{
@@ -1091,7 +1091,7 @@ FklByteCode* fklCompileQuote(FklAstCptr* objCptr)
 	objCptr=fklNextCptr(objCptr);
 	switch((int)objCptr->type)
 	{
-		case PAIR:
+		case FKL_PAIR:
 			return fklCompilePair(objCptr);
 			break;
 		case ATM:
@@ -2110,7 +2110,7 @@ FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr
 	popRestArg->code[0]=FAKE_POP_REST_ARG;
 	objPair=objCptr->u.pair;
 	objCptr=&objPair->car;
-	if(fklNextCptr(objCptr)->type==PAIR)
+	if(fklNextCptr(objCptr)->type==FKL_PAIR)
 	{
 		FklAstCptr* argCptr=&fklNextCptr(objCptr)->u.pair->car;
 		while(argCptr!=NULL&&argCptr->type!=NIL)
@@ -2974,10 +2974,10 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr
 				fklFreeMemMenager(memMenager);
 				return NULL;
 			}
-			if(!strcmp(tmpAtm->value.str,"prefix")&&fklNextCptr(pPartsOfPath)->type==PAIR)
+			if(!strcmp(tmpAtm->value.str,"prefix")&&fklNextCptr(pPartsOfPath)->type==FKL_PAIR)
 			{
 				FklAstCptr* tmpCptr=fklNextCptr(pPartsOfPath);
-				if(!tmpCptr||tmpCptr->type!=PAIR)
+				if(!tmpCptr||tmpCptr->type!=FKL_PAIR)
 				{
 					state->state=SYNTAXERROR;
 					state->place=objCptr;
@@ -3399,7 +3399,7 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* i
 	FklComStack* handlerByteCodelntStack=fklNewComStack(32);
 	for(;pHandlerExpression;pHandlerExpression=fklNextCptr(pHandlerExpression))
 	{
-		if(pHandlerExpression->type!=PAIR
+		if(pHandlerExpression->type!=FKL_PAIR
 				||fklGetFirstCptr(pHandlerExpression)->type!=ATM
 				||fklGetFirstCptr(pHandlerExpression)->u.atom->type!=FKL_SYM)
 		{

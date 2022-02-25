@@ -81,7 +81,7 @@ typedef enum{NIL=0,
 	FKL_ERR,
 	FKL_MEM,
 	FKL_CHF,
-	PAIR,
+	FKL_PAIR,
 	ATM,
 }FklValueType;
 typedef enum

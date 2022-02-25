@@ -370,7 +370,7 @@ static FklTypeId_t genStructTypeId(FklAstCptr* compositeDataHead,FklVMDefTypes* 
 		for(;memberCptr;i++,memberCptr=fklNextCptr(memberCptr))
 		{
 			FklAstCptr* cdr=fklGetCptrCdr(memberCptr);
-			if(cdr->type!=PAIR&&cdr->type!=NIL)
+			if(cdr->type!=FKL_PAIR&&cdr->type!=NIL)
 			{
 				free(memberTypeList);
 				free(memberSymbolList);
@@ -476,7 +476,7 @@ static FklTypeId_t genUnionTypeId(FklAstCptr* compositeDataHead,FklVMDefTypes* o
 		for(;memberCptr;i++,memberCptr=fklNextCptr(memberCptr))
 		{
 			FklAstCptr* cdr=fklGetCptrCdr(memberCptr);
-			if(cdr->type!=PAIR&&cdr->type!=NIL)
+			if(cdr->type!=FKL_PAIR&&cdr->type!=NIL)
 			{
 				free(memberTypeList);
 				free(memberSymbolList);
@@ -533,7 +533,7 @@ static FklTypeId_t genFuncTypeId(FklAstCptr* compositeDataHead,FklVMDefTypes* ot
 {
 	FklTypeId_t rtype=0;
 	FklAstCptr* argCptr=fklNextCptr(compositeDataHead);
-	if(!argCptr||(argCptr->type!=PAIR&&argCptr->type!=NIL))
+	if(!argCptr||(argCptr->type!=FKL_PAIR&&argCptr->type!=NIL))
 		return 0;
 	FklAstCptr* rtypeCptr=fklNextCptr(argCptr);
 	if(rtypeCptr)
@@ -566,7 +566,7 @@ static FklTypeId_t genFuncTypeId(FklAstCptr* compositeDataHead,FklVMDefTypes* ot
 			return 0;
 		}
 		FklAstCptr* cdr=fklGetCptrCdr(firArgCptr);
-		if(!tmp||(cdr->type!=PAIR&&cdr->type!=NIL))
+		if(!tmp||(cdr->type!=FKL_PAIR&&cdr->type!=NIL))
 		{
 			free(atypes);
 			return 0;
@@ -762,8 +762,8 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,VMheap* heap)
 								*root1=fklNewVMvalue(FKL_CHAN,tmpCh,heap);
 							}
 							break;
-						case PAIR:
-							*root1=fklNewVMvalue(PAIR,fklNewVMpair(),heap);
+						case FKL_PAIR:
+							*root1=fklNewVMvalue(FKL_PAIR,fklNewVMpair(),heap);
 							fklPushComStack(&(*root1)->u.pair->car,s2);
 							fklPushComStack(&(*root1)->u.pair->cdr,s2);
 							fklPushComStack(root->u.pair->car,s1);
@@ -824,7 +824,7 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,VMheap* heap)
 						break;
 					case FKL_STR:
 						tmp->u.str=pValue;break;
-					case PAIR:
+					case FKL_PAIR:
 						tmp->u.pair=pValue;break;
 					case FKL_PRC:
 						tmp->u.prc=pValue;break;
@@ -922,7 +922,7 @@ int fklVMvaluecmp(FklVMvalue* fir,FklVMvalue* sec)
 				case FKL_BYTS:
 					r=fklEqVMByts(root1->u.byts,root2->u.byts);
 					break;
-				case PAIR:
+				case FKL_PAIR:
 					r=1;
 					fklPushComStack(root1->u.pair->car,s1);
 					fklPushComStack(root1->u.pair->cdr,s1);
@@ -1029,11 +1029,11 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,VMheap* heap)
 					break;
 			}
 		}
-		else if(root->type==PAIR)
+		else if(root->type==FKL_PAIR)
 		{
 			FklAstPair* objPair=root->u.pair;
 			FklVMpair* tmpPair=fklNewVMpair();
-			*root1=fklNewVMvalue(PAIR,tmpPair,heap);
+			*root1=fklNewVMvalue(FKL_PAIR,tmpPair,heap);
 			fklPushComStack(&objPair->car,s1);
 			fklPushComStack(&objPair->cdr,s1);
 			fklPushComStack(&tmpPair->car,s2);
@@ -1908,7 +1908,7 @@ void fklPrincVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 					case FKL_PRC:
 						fprintf(fp,"#<proc>");
 						break;
-					case PAIR:
+					case FKL_PAIR:
 						cirPair=isCircularReference(objValue->u.pair,*h);
 						if(cirPair)
 							isInCir=isInTheCircle(objValue->u.pair,cirPair,cirPair);
@@ -2039,7 +2039,7 @@ void fklPrin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 					case FKL_PRC:
 						fprintf(fp,"#<proc>");
 						break;
-					case PAIR:
+					case FKL_PAIR:
 						cirPair=isCircularReference(objValue->u.pair,*h);
 						if(cirPair)
 							isInCir=isInTheCircle(objValue->u.pair,cirPair,cirPair);
@@ -2542,7 +2542,7 @@ FklTypeId_t fklGenDefTypes(FklAstCptr* objCptr,FklVMDefTypes* otherTypes,FklSid_
 		return 0;
 	*typeName=typeId;
 	fir=fklNextCptr(fir);
-	if(fir->type!=ATM&&fir->type!=PAIR)
+	if(fir->type!=ATM&&fir->type!=FKL_PAIR)
 		return 0;
 	return fklGenDefTypesUnion(fir,otherTypes);
 }
@@ -2559,7 +2559,7 @@ FklTypeId_t fklGenDefTypesUnion(FklAstCptr* objCptr,FklVMDefTypes* otherTypes)
 		else
 			return n->type;
 	}
-	else if(objCptr->type==PAIR)
+	else if(objCptr->type==FKL_PAIR)
 	{
 		FklAstCptr* compositeDataHead=fklGetFirstCptr(objCptr);
 		if(compositeDataHead->type!=ATM||compositeDataHead->u.atom->type!=FKL_SYM)

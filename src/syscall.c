@@ -119,7 +119,7 @@ void SYS_cons(FklVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.cons",TOOMANYARG,runnable,exe);
 	if(!car||!cdr)
 		RAISE_BUILTIN_ERROR("sys.cons",TOOFEWARG,runnable,exe);
-	FklVMvalue* pair=fklNewVMvalue(PAIR,fklNewVMpair(),exe->heap);
+	FklVMvalue* pair=fklNewVMvalue(FKL_PAIR,fklNewVMpair(),exe->heap);
 	pair->u.pair->car=car;
 	pair->u.pair->cdr=cdr;
 	SET_RETURN("SYS_cons",pair,stack);
@@ -1315,7 +1315,7 @@ void SYS_argv(FklVM* exe,pthread_rwlock_t* pGClock)
 	int32_t i=0;
 	for(;i<exe->argc;i++,tmp=&(*tmp)->u.pair->cdr)
 	{
-		FklVMvalue* cur=fklNewVMvalue(PAIR,fklNewVMpair(),exe->heap);
+		FklVMvalue* cur=fklNewVMvalue(FKL_PAIR,fklNewVMpair(),exe->heap);
 		*tmp=cur;
 		cur->u.pair->car=fklNewVMvalue(FKL_STR,fklCopyStr(exe->argv[i]),exe->heap);
 	}

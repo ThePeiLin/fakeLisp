@@ -260,7 +260,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklIntpr* inter,FklStringMatchPatte
 					FklAstCptr* tmp=fklPopComStack(s1);
 					if(tmp)
 					{
-						tmp->type=PAIR;
+						tmp->type=FKL_PAIR;
 						tmp->u.pair=fklNewPair(curline,tmp->outer);
 						fklPushComStack(fklGetASTPairCdr(tmp),s1);
 						fklPushComStack(fklGetASTPairCar(tmp),s1);
@@ -277,7 +277,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklIntpr* inter,FklStringMatchPatte
 				else
 				{
 					hasComma=0;
-					root->type=PAIR;
+					root->type=FKL_PAIR;
 					root->u.pair=fklNewPair(curline,root->outer);
 					fklPushComStack((void*)s1->top,s2);
 					fklPushComStack(fklGetASTPairCdr(root),s1);
@@ -352,7 +352,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklIntpr* inter,FklStringMatchPatte
 					root->u.all=tmpCptr->u.all;
 					if(tmpCptr->type==ATM)
 						tmpCptr->u.atom->prev=root->outer;
-					else if(tmpCptr->type==PAIR)
+					else if(tmpCptr->type==FKL_PAIR)
 						tmpCptr->u.pair->prev=root->outer;
 					free(tmpCptr);
 					i+=fklSkipInPattern(objStr+i,pattern);
@@ -426,7 +426,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklIntpr* inter,FklStringMatchPatte
 					FklAstCptr* tmp=fklPopComStack(s1);
 					if(tmp)
 					{
-						tmp->type=PAIR;
+						tmp->type=FKL_PAIR;
 						tmp->u.pair=fklNewPair(curline,tmp->outer);
 						fklPushComStack(fklGetASTPairCdr(tmp),s1);
 						fklPushComStack(fklGetASTPairCar(tmp),s1);
@@ -455,7 +455,7 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 		if(root==VM_NIL)
 			cptrType=NIL;
 		else if(IS_PAIR(root))
-			cptrType=PAIR;
+			cptrType=FKL_PAIR;
 		else if(!IS_REF(root)&&!IS_CHF(root))
 			cptrType=ATM;
 		root1->type=cptrType;
@@ -536,7 +536,7 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 			}
 			root1->u.atom=tmpAtm;
 		}
-		else if(cptrType==PAIR)
+		else if(cptrType==FKL_PAIR)
 		{
 			fklPushComStack(root->u.pair->car,s1);
 			fklPushComStack(root->u.pair->cdr,s1);
@@ -556,7 +556,7 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 void addToList(FklAstCptr* fir,const FklAstCptr* sec)
 {
 	while(fir->type!=NIL)fir=&fir->u.pair->cdr;
-	fir->type=PAIR;
+	fir->type=FKL_PAIR;
 	fir->u.pair=fklNewPair(sec->curline,fir->outer);
 	fklReplaceCptr(&fir->u.pair->car,sec);
 }

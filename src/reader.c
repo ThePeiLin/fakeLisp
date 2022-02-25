@@ -983,9 +983,9 @@ FklVMvalue* singleArgPattern(FklVM* exe,const char* var,const char* str)
 	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	FklVMvalue* sym=MAKE_VM_SYM(fklAddSymbolToGlob(str)->id);
 	FklVMvalue* varA=fklFindVMenvNode(fklAddSymbolToGlob(var)->id,runnable->localenv)->value;
-	FklVMvalue* pair=fklNewVMvalue(PAIR,fklNewVMpair(),exe->heap);
+	FklVMvalue* pair=fklNewVMvalue(FKL_PAIR,fklNewVMpair(),exe->heap);
 	pair->u.pair->car=sym;
-	pair->u.pair->cdr=fklNewVMvalue(PAIR,fklNewVMpair(),exe->heap);
+	pair->u.pair->cdr=fklNewVMvalue(FKL_PAIR,fklNewVMpair(),exe->heap);
 	pair->u.pair->cdr->u.pair->car=varA;
 	return pair;
 }

@@ -681,7 +681,7 @@ void B_push_pair(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
-	SET_RETURN("B_push_pair",fklNewVMvalue(PAIR,fklNewVMpair(),exe->heap),stack);
+	SET_RETURN("B_push_pair",fklNewVMvalue(FKL_PAIR,fklNewVMpair(),exe->heap),stack);
 	runnable->cp+=1;
 
 }
@@ -990,7 +990,7 @@ void B_pop_rest_arg(FklVM* exe)
 	FklVMvalue* tmp=NULL;
 	if(stack->tp>stack->bp)
 	{
-		obj=fklNewVMvalue(PAIR,fklNewVMpair(),exe->heap);
+		obj=fklNewVMvalue(FKL_PAIR,fklNewVMpair(),exe->heap);
 		tmp=obj;
 	}
 	else obj=VM_NIL;
@@ -999,7 +999,7 @@ void B_pop_rest_arg(FklVM* exe)
 		tmp->u.pair->car=fklGET_VAL(fklGetTopValue(stack),heap);
 		stack->tp-=1;
 		if(stack->tp>stack->bp)
-			tmp->u.pair->cdr=fklNewVMvalue(PAIR,fklNewVMpair(),heap);
+			tmp->u.pair->cdr=fklNewVMvalue(FKL_PAIR,fklNewVMpair(),heap);
 		else break;
 		tmp=tmp->u.pair->cdr;
 	}
@@ -1461,7 +1461,7 @@ void fklfklGC_markValue(FklVMvalue* obj)
 		if(GET_TAG(root)==PTR_TAG&&!root->mark)
 		{
 			root->mark=1;
-			if(root->type==PAIR)
+			if(root->type==FKL_PAIR)
 			{
 				fklPushComStack(fklGetVMpairCar(root),stack);
 				fklPushComStack(fklGetVMpairCdr(root),stack);
@@ -1571,7 +1571,7 @@ void fklGC_sweep(VMheap* heap)
 				case FKL_I64:
 					free(prev->u.i64);
 					break;
-				case PAIR:
+				case FKL_PAIR:
 					free(prev->u.pair);
 					break;
 				case FKL_PRC:

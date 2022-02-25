@@ -3,7 +3,7 @@
 #include<fakeLisp/VMtool.h>
 #include<stddef.h>
 #include<pthread.h>
-extern TypeId_t LastNativeTypeId;
+extern FklTypeId_t LastNativeTypeId;
 static pthread_mutex_t GPrepCifLock=PTHREAD_MUTEX_INITIALIZER;
 static ffi_type* NativeFFITypeList[]=
 {
@@ -163,12 +163,12 @@ static double (*castToDoubleFunctionsList[])(ARGL)=
 /*----------------------*/
 
 /*ffi_type pointer caster functions*/
-#define ARGL VMvalue* v,void** p
+#define ARGL FklVMvalue* v,void** p
 #define CAST_TO_INT(TYPE) TYPE* t=(TYPE*)malloc(sizeof(TYPE));\
 	FAKE_ASSERT(t,"VMvalue_pointer_caster",__FILE__,__LINE__);\
 	if(!IS_MEM(v)&&!IS_CHF(v))\
 	{\
-		VMptrTag tag=GET_TAG(v);\
+		FklVMptrTag tag=GET_TAG(v);\
 		switch(tag)\
 		{\
 			case NIL_TAG:\
@@ -331,19 +331,19 @@ void fklApplyFF(void* func,int argc,ffi_type* rtype,ffi_type** atypes,void* rval
 		ffi_call(&cif, func, rvalue, avalue);
 }
 
-void fklApplyFlproc(VMFlproc* f,void* rvalue,void** avalue)
+void fklApplyFlproc(FklVMFlproc* f,void* rvalue,void** avalue)
 {
 	ffi_call(&f->cif,f->func,rvalue,avalue);
 }
 
-ffi_type* fklGetFfiType(TypeId_t type)
+ffi_type* fklGetFfiType(FklTypeId_t type)
 {
 	if(type>LastNativeTypeId)
 		type=LastNativeTypeId;
 	return NativeFFITypeList[type];
 }
 
-int fklCastValueToVptr(TypeId_t type,VMvalue* v,void** p)
+int fklCastValueToVptr(FklTypeId_t type,FklVMvalue* v,void** p)
 {
 	if(fklIsFunctionTypeId(type))
 	{

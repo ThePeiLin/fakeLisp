@@ -10,19 +10,19 @@ typedef struct FklSharedObjNode
 }FklSharedObjNode;
 
 int fklRunVM(FklVM*);
-FklVM* fklNewVM(ByteCode*);
-FklVM* fklNewTmpVM(ByteCode*);
-FklVM* fklNewThreadVM(VMproc*,VMheap*);
-FklVM* fklNewThreadDlprocVM(VMrunnable* r,VMheap* heap);
-void fklInitGlobEnv(VMenv*,VMheap*);
+FklVM* fklNewVM(FklByteCode*);
+FklVM* fklNewTmpVM(FklByteCode*);
+FklVM* fklNewThreadVM(FklVMproc*,VMheap*);
+FklVM* fklNewThreadDlprocVM(FklVMrunnable* r,VMheap* heap);
+void fklInitGlobEnv(FklVMenv*,VMheap*);
 
-VMstack* fklNewVMstack(int32_t);
-void fklFreeVMstack(VMstack*);
+FklVMstack* fklNewVMstack(int32_t);
+void fklFreeVMstack(FklVMstack*);
 void fklStackRecycle(FklVM*);
 int fklCreateNewThread(FklVM*);
 FklVMlist* fklNewThreadStack(int32_t);
-VMrunnable* fklHasSameProc(uint32_t,ComStack*);
-int fklIsTheLastExpress(const VMrunnable*,const VMrunnable*,const FklVM* exe);
+FklVMrunnable* fklHasSameProc(uint32_t,FklComStack*);
+int fklIsTheLastExpress(const FklVMrunnable*,const FklVMrunnable*,const FklVM* exe);
 VMheap* fklNewVMheap();
 void fklCreateCallChainWithContinuation(FklVM*,VMcontinuation*);
 void fklFreeVMheap(VMheap*);
@@ -31,18 +31,18 @@ void fklDeleteCallChain(FklVM*);
 void fklJoinAllThread();
 void fklCancelAllThread();
 void fklGC_mark(FklVM*);
-void fklfklGC_markValue(VMvalue*);
-void fklfklfklGC_markValueInStack(VMstack*);
-void fklfklfklGC_markValueInEnv(VMenv*);
-void fklfklfklGC_markValueInCallChain(ComStack*);
-void fklfklGC_markMessage(QueueNode*);
-void fklfklGC_markSendT(QueueNode*);
+void fklfklGC_markValue(FklVMvalue*);
+void fklfklfklGC_markValueInStack(FklVMstack*);
+void fklfklfklGC_markValueInEnv(FklVMenv*);
+void fklfklfklGC_markValueInCallChain(FklComStack*);
+void fklfklGC_markMessage(FklQueueNode*);
+void fklfklGC_markSendT(FklQueueNode*);
 void fklGC_sweep(VMheap*);
 void fklGC_compact(VMheap*);
 
-void fklDBG_printVMenv(VMenv*,FILE*);
-void fklDBG_printVMvalue(VMvalue*,FILE*);
-void fklDBG_printVMstack(VMstack*,FILE*,int);
+void fklDBG_printVMenv(FklVMenv*,FILE*);
+void fklDBG_printVMvalue(FklVMvalue*,FILE*);
+void fklDBG_printVMstack(FklVMstack*,FILE*,int);
 void fklDBG_printVMByteCode(uint8_t* code,uint32_t s,uint32_t c,FILE*);
 void fklFreeAllSharedObj(void);
 #endif

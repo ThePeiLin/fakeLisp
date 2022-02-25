@@ -2,8 +2,8 @@
 #define SYNTAX_H
 #include"fakedef.h"
 
-KeyWord* fklHasKeyWord(const FklAstCptr*,CompEnv*);
-void fklAddKeyWord(const char*,CompEnv*);
+FklKeyWord* fklHasKeyWord(const FklAstCptr*,FklCompEnv*);
+void fklAddKeyWord(const char*,FklCompEnv*);
 void fklPrintAllKeyWord();
 void fklAddSynRule(int (*)(const FklAstCptr*));
 int (*checkAST(const FklAstCptr*))(const FklAstCptr*);
@@ -20,7 +20,7 @@ int fklIsBeginExpression(const FklAstCptr*);
 int fklIsCondExpression(const FklAstCptr*);
 int fklIsConst(const FklAstCptr*);
 int fklIsNil(const FklAstCptr*);
-int fklIsFuncCall(const FklAstCptr*,CompEnv*);
+int fklIsFuncCall(const FklAstCptr*,FklCompEnv*);
 int fklIsSymbol(const FklAstCptr*);
 int fklIsAndExpression(const FklAstCptr*);
 int fklIsOrExpression(const FklAstCptr*);
@@ -36,7 +36,7 @@ int fklIsDefmacroExpression(const FklAstCptr*);
 int fklIsPrognExpression(const FklAstCptr*);
 int fklIsTryExpression(const FklAstCptr*);
 int fklIsCatchExpression(const FklAstCptr*);
-int fklIsKeyWord(const char*,CompEnv* curEnv);
+int fklIsKeyWord(const char*,FklCompEnv* curEnv);
 int fklIsDeftypeExpression(const FklAstCptr*);
 int fklIsGetfExpression(const FklAstCptr*);
 int fklIsFlsymExpression(const FklAstCptr*);

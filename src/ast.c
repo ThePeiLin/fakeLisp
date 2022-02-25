@@ -14,14 +14,14 @@
 static void addToTail(FklAstCptr*,const FklAstCptr*);
 static void addToList(FklAstCptr*,const FklAstCptr*);
 
-static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap)
+static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,VMheap* heap)
 {
-	VMenv* vEnv=fklNewVMenv(NULL);
+	FklVMenv* vEnv=fklNewVMenv(NULL);
 	fklInitGlobEnv(vEnv,heap);
-	ByteCodelnt* tmpByteCode=cEnv->proc;
+	FklByteCodelnt* tmpByteCode=cEnv->proc;
 	FklVM* tmpVM=fklNewTmpVM(NULL);
-	VMproc* tmpVMproc=fklNewVMproc(0,tmpByteCode->bc->size);
-	VMrunnable* mainrunnable=fklNewVMrunnable(tmpVMproc);
+	FklVMproc* tmpVMproc=fklNewVMproc(0,tmpByteCode->bc->size);
+	FklVMrunnable* mainrunnable=fklNewVMrunnable(tmpVMproc);
 	mainrunnable->localenv=vEnv;
 	tmpVM->code=tmpByteCode->bc->code;
 	tmpVM->size=tmpByteCode->bc->size;
@@ -56,9 +56,9 @@ static VMenv* genGlobEnv(CompEnv* cEnv,ByteCodelnt* t,VMheap* heap)
 	return vEnv;
 }
 
-FklAstCptr* expandReaderMacro(const char* objStr,Intpr* inter,StringMatchPattern* pattern)
+FklAstCptr* expandReaderMacro(const char* objStr,FklIntpr* inter,FklStringMatchPattern* pattern)
 {
-	PreEnv* tmpEnv=fklNewEnv(NULL);
+	FklPreEnv* tmpEnv=fklNewEnv(NULL);
 	int num=0;
 	char** parts=fklSplitStringInPattern(objStr,pattern,&num);
 	int j=0;
@@ -75,7 +75,7 @@ FklAstCptr* expandReaderMacro(const char* objStr,Intpr* inter,StringMatchPattern
 			char* varName=fklGetVarName(pattern->parts[j]);
 			if(fklIsMustList(pattern->parts[j]))
 			{
-				StringMatchPattern* tmpPattern=fklFindStringPattern(parts[j]);
+				FklStringMatchPattern* tmpPattern=fklFindStringPattern(parts[j]);
 				FklAstCptr* tmpCptr=fklNewCptr(inter->curline,NULL);
 				tmpCptr->type=NIL;
 				tmpCptr->u.all=NULL;
@@ -135,7 +135,7 @@ FklAstCptr* expandReaderMacro(const char* objStr,Intpr* inter,StringMatchPattern
 			}
 			else
 			{
-				StringMatchPattern* tmpPattern=fklFindStringPattern(parts[j]);
+				FklStringMatchPattern* tmpPattern=fklFindStringPattern(parts[j]);
 				FklAstCptr* tmpCptr=fklCreateTree(parts[j],inter,tmpPattern);
 				inter->curline+=fklCountChar(parts[j]+fklSkipInPattern(parts[j],tmpPattern),'\n',-1);
 				fklAddDefine(varName,tmpCptr,tmpEnv);
@@ -151,8 +151,8 @@ FklAstCptr* expandReaderMacro(const char* objStr,Intpr* inter,StringMatchPattern
 	FklAstCptr* tmpCptr=NULL;
 	if(pattern->type==BYTS)
 	{
-		ByteCodelnt* t=fklNewByteCodelnt(fklNewByteCode(0));
-		VMenv* tmpGlobEnv=genGlobEnv(inter->glob,t,tmpVM->heap);
+		FklByteCodelnt* t=fklNewByteCodelnt(fklNewByteCode(0));
+		FklVMenv* tmpGlobEnv=genGlobEnv(inter->glob,t,tmpVM->heap);
 		if(!tmpGlobEnv)
 		{
 			fklDestroyEnv(tmpEnv);
@@ -165,11 +165,11 @@ FklAstCptr* expandReaderMacro(const char* objStr,Intpr* inter,StringMatchPattern
 			free(tmpVM);
 			return NULL;
 		}
-		VMproc* tmpVMproc=fklNewVMproc(t->bc->size,pattern->u.bProc->bc->size);
+		FklVMproc* tmpVMproc=fklNewVMproc(t->bc->size,pattern->u.bProc->bc->size);
 		fklCodelntCopyCat(t,pattern->u.bProc);
-		VMenv* stringPatternEnv=fklCastPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->heap);
+		FklVMenv* stringPatternEnv=fklCastPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->heap);
 		tmpVMproc->prevEnv=NULL;
-		VMrunnable* mainrunnable=fklNewVMrunnable(tmpVMproc);
+		FklVMrunnable* mainrunnable=fklNewVMrunnable(tmpVMproc);
 		mainrunnable->localenv=stringPatternEnv;
 		tmpVM->code=t->bc->code;
 		tmpVM->size=t->bc->size;
@@ -203,8 +203,8 @@ FklAstCptr* expandReaderMacro(const char* objStr,Intpr* inter,StringMatchPattern
 	}
 	else if(pattern->type==FLPROC)
 	{
-		VMenv* stringPatternEnv=fklCastPreEnvToVMenv(tmpEnv,NULL,tmpVM->heap);
-		VMrunnable* mainrunnable=fklNewVMrunnable(NULL);
+		FklVMenv* stringPatternEnv=fklCastPreEnvToVMenv(tmpEnv,NULL,tmpVM->heap);
+		FklVMrunnable* mainrunnable=fklNewVMrunnable(NULL);
 		mainrunnable->localenv=stringPatternEnv;
 		fklPushComStack(mainrunnable,tmpVM->rstack);
 		pattern->u.fProc(tmpVM);
@@ -222,7 +222,7 @@ FklAstCptr* expandReaderMacro(const char* objStr,Intpr* inter,StringMatchPattern
 	return tmpCptr;
 }
 
-FklAstCptr* fklCreateTree(const char* objStr,Intpr* inter,StringMatchPattern* pattern)
+FklAstCptr* fklCreateTree(const char* objStr,FklIntpr* inter,FklStringMatchPattern* pattern)
 {
 	if(objStr==NULL)return NULL;
 	if(fklIsAllSpace(objStr))
@@ -233,9 +233,9 @@ FklAstCptr* fklCreateTree(const char* objStr,Intpr* inter,StringMatchPattern* pa
 	}
 	else
 	{
-		StringMatchPattern* pattern=NULL;
-		ComStack* s1=fklNewComStack(32);
-		ComStack* s2=fklNewComStack(32);
+		FklStringMatchPattern* pattern=NULL;
+		FklComStack* s1=fklNewComStack(32);
+		FklComStack* s2=fklNewComStack(32);
 		int32_t i=0;
 		for(;isspace(objStr[i]);i++)
 			if(objStr[i]=='\n')
@@ -440,18 +440,18 @@ FklAstCptr* fklCreateTree(const char* objStr,Intpr* inter,StringMatchPattern* pa
 	}
 }
 
-FklAstCptr* fklCastVMvalueToCptr(VMvalue* value,int32_t curline)
+FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 {
 	FklAstCptr* tmp=fklNewCptr(curline,NULL);
-	ComStack* s1=fklNewComStack(32);
-	ComStack* s2=fklNewComStack(32);
+	FklComStack* s1=fklNewComStack(32);
+	FklComStack* s2=fklNewComStack(32);
 	fklPushComStack(value,s1);
 	fklPushComStack(tmp,s2);
 	while(!fklIsComStackEmpty(s1))
 	{
-		VMvalue* root=fklPopComStack(s1);
+		FklVMvalue* root=fklPopComStack(s1);
 		FklAstCptr* root1=fklPopComStack(s2);
-		ValueType cptrType=0;
+		FklValueType cptrType=0;
 		if(root==VM_NIL)
 			cptrType=NIL;
 		else if(IS_PAIR(root))
@@ -462,7 +462,7 @@ FklAstCptr* fklCastVMvalueToCptr(VMvalue* value,int32_t curline)
 		if(cptrType==ATM)
 		{
 			FklAstAtom* tmpAtm=fklNewAtom(SYM,NULL,root1->outer);
-			VMptrTag tag=GET_TAG(root);
+			FklVMptrTag tag=GET_TAG(root);
 			switch(tag)
 			{
 				case SYM_TAG:

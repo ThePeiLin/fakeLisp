@@ -6,17 +6,9 @@
 #include<pthread.h>
 #include<ffi.h>
 #include<setjmp.h>
-#define FKL_THRESHOLD_SIZE 64
-#define NUMOFBUILTINSYMBOL 54
-#define MAX_STRING_SIZE 64
-#define NUMOFBUILTINERRORTYPE 28
-#define STATIC_SYMBOL_INIT {0,NULL,NULL}
-#define UNUSEDBITNUM 3
-#define PTR_MASK ((intptr_t)0xFFFFFFFFFFFFFFF8)
-#define TAG_MASK ((intptr_t)0x7)
 
-typedef struct VMvalue* VMptr;
-typedef struct VMStructMember VMStructMember;
+typedef struct FklVMvalue* FklVMptr;
+typedef struct FklVMStructMember FklVMStructMember;
 typedef enum
 {
 	PTR_TAG=0,
@@ -25,7 +17,7 @@ typedef enum
 	SYM_TAG,
 	CHR_TAG,
 	REF_TAG,
-}VMptrTag;
+}FklVMptrTag;
 
 typedef enum
 {
@@ -35,7 +27,7 @@ typedef enum
 	STRUCT_TYPE_TAG,
 	UNION_TYPE_TAG,
 	FUNC_TYPE_TAG,
-}DefTypeTag;
+}FklDefTypeTag;
 
 //typedef enum
 //{
@@ -45,33 +37,33 @@ typedef enum
 //	BYTE_8,
 //}TypeSizeTag;
 
-typedef uint32_t Sid_t;
-typedef uint32_t TypeId_t;
+typedef uint32_t FklSid_t;
+typedef uint32_t FklTypeId_t;
 
-typedef union VMTypeUnion
+typedef union FklVMTypeUnion
 {
 	void* all;
-	struct VMNativeType* nt;
-	struct VMArrayType* at;
-	struct VMPtrType* pt;
-	struct VMStructType* st;
-	struct VMUnionType* ut;
-	struct VMFuncType* ft;
-}VMTypeUnion;
+	struct FklVMNativeType* nt;
+	struct FklVMArrayType* at;
+	struct FklVMPtrType* pt;
+	struct FklVMStructType* st;
+	struct FklVMUnionType* ut;
+	struct FklVMFuncType* ft;
+}FklVMTypeUnion;
 
-typedef struct VMDefTypesNode
+typedef struct FklVMDefTypesNode
 {
-	Sid_t name;
-	TypeId_t type;
-}VMDefTypesNode;
+	FklSid_t name;
+	FklTypeId_t type;
+}FklVMDefTypesNode;
 
-typedef struct VMDefTypes
+typedef struct FklVMDefTypes
 {
 	size_t num;
-	VMDefTypesNode** u;
-}VMDefTypes;
+	FklVMDefTypesNode** u;
+}FklVMDefTypes;
 
-typedef enum{NIL=0,IN32,CHR,DBL,IN64,SYM,STR,BYTS,PRC,CONT,CHAN,FP,DLL,DLPROC,FLPROC,ERR,MEM,CHF,PAIR,ATM} ValueType;
+typedef enum{NIL=0,IN32,CHR,DBL,IN64,SYM,STR,BYTS,PRC,CONT,CHAN,FP,DLL,DLPROC,FLPROC,ERR,MEM,CHF,PAIR,ATM} FklValueType;
 typedef enum
 {
 	SYMUNDEFINE=1,
@@ -101,7 +93,7 @@ typedef enum
 	NONSCALARTYPE,
 	INVALIDASSIGN,
 	INVALIDACCESS,
-}ErrorType;
+}FklErrorType;
 
 #ifdef _WIN32
 #include<windows.h>
@@ -110,25 +102,25 @@ typedef HMODULE DllHandle;
 typedef void* DllHandle;
 #endif
 
-typedef void (*GenDestructor)(void*);
+typedef void (*FklGenDestructor)(void*);
 typedef struct
 {
 	void** data;
 	uint32_t num;
 	long int top;
-}ComStack;
+}FklComStack;
 
-typedef struct QueueNode
+typedef struct FklQueueNode
 {
 	void* data;
-	struct QueueNode* next;
-}QueueNode;
+	struct FklQueueNode* next;
+}FklQueueNode;
 
 typedef struct
 {
-	QueueNode* head;
-	QueueNode* tail;
-}ComQueue;
+	FklQueueNode* head;
+	FklQueueNode* tail;
+}FklComQueue;
 
 typedef struct
 {
@@ -138,39 +130,39 @@ typedef struct
 
 typedef struct
 {
-	ComStack* s;
+	FklComStack* s;
 }FklMemMenager;
 
 typedef struct
 {
 	uint32_t size;
 	uint8_t* code;
-}ByteCode;
+}FklByteCode;
 
-typedef struct ByteCodeLabel
+typedef struct FklByteCodeLabel
 {
 	char* label;
 	int32_t place;
-}ByteCodeLabel;
+}FklByteCodeLabel;
 
 typedef struct
 {
 	int32_t ls;
-	struct LineNumberTableNode** l;
-	ByteCode* bc;
-}ByteCodelnt;
+	struct FklLineNumberTableNode** l;
+	FklByteCode* bc;
+}FklByteCodelnt;
 
 typedef struct
 {
 	uint32_t size;
 	uint8_t* str;
-}ByteString;
+}FklByteString;
 
 typedef struct
 {
 	struct FklAstPair* outer;
 	uint32_t curline;
-	ValueType type;
+	FklValueType type;
 	union
 	{
 		struct FklAstAtom* atom;
@@ -185,31 +177,31 @@ typedef struct FklAstPair
 	FklAstCptr car,cdr;
 }FklAstPair;
 
-typedef struct VMChanl
+typedef struct FklVMChanl
 {
 	uint32_t max;
 	pthread_mutex_t lock;
-	ComQueue* messages;
-	ComQueue* sendq;
-	ComQueue* recvq;
-}VMChanl;
+	FklComQueue* messages;
+	FklComQueue* sendq;
+	FklComQueue* recvq;
+}FklVMChanl;
 
 typedef struct
 {
 	pthread_cond_t cond;
-	struct VMvalue* m;
-}SendT;
+	struct FklVMvalue* m;
+}FklSendT;
 
 typedef struct
 {
 	pthread_cond_t cond;
 	struct FklVM* v;
-}RecvT;
+}FklRecvT;
 
 typedef struct FklAstAtom
 {
 	FklAstPair* prev;
-	ValueType type;
+	FklValueType type;
 	union
 	{
 		char* str;
@@ -217,173 +209,173 @@ typedef struct FklAstAtom
 		int32_t in32;
 		int64_t in64;
 		double dbl;
-		ByteString byts;
+		FklByteString byts;
 	} value;
 }FklAstAtom;
 
 typedef struct
 {
-	ErrorType state;
+	FklErrorType state;
 	FklAstCptr* place;
-}ErrorState;
+}FklErrorState;
 
-typedef struct PreDef
+typedef struct FklPreDef
 {
 	char* symbol;
 	FklAstCptr obj;//node or symbol or val
-	struct PreDef* next;
-}PreDef;
+	struct FklPreDef* next;
+}FklPreDef;
 
-typedef struct PreEnv
+typedef struct FklPreEnv
 {
-	struct PreEnv* prev;
-	PreDef* symbols;
-	struct PreEnv* next;
-}PreEnv;
+	struct FklPreEnv* prev;
+	FklPreDef* symbols;
+	struct FklPreEnv* next;
+}FklPreEnv;
 
-typedef struct PreMacro
+typedef struct FklPreMacro
 {
 	FklAstCptr* pattern;
-	ByteCodelnt* proc;
-	VMDefTypes* deftypes;
-	struct PreMacro* next;
-	struct CompEnv* macroEnv;
-}PreMacro;
+	FklByteCodelnt* proc;
+	FklVMDefTypes* deftypes;
+	struct FklPreMacro* next;
+	struct FklCompEnv* macroEnv;
+}FklPreMacro;
 
-typedef struct SymTabNode
+typedef struct FklSymTabNode
 {
 	char* symbol;
 	int32_t id;
-}SymTabNode;
+}FklSymTabNode;
 
-typedef struct SymbolTable
+typedef struct FklSymbolTable
 {
 	int32_t num;
-	SymTabNode** list;
-	SymTabNode** idl;
-}SymbolTable;
+	FklSymTabNode** list;
+	FklSymTabNode** idl;
+}FklSymbolTable;
 
-typedef struct CompDef
+typedef struct FklCompDef
 {
-	Sid_t id;
-	struct CompDef* next;
-}CompDef;
+	FklSid_t id;
+	struct FklCompDef* next;
+}FklCompDef;
 
-typedef struct CompEnv
+typedef struct FklCompEnv
 {
-	struct CompEnv* prev;
+	struct FklCompEnv* prev;
 	char* prefix;
 	const char** exp;
 	uint32_t n;
-	CompDef* head;
-	PreMacro* macro;
-	ByteCodelnt* proc;
+	FklCompDef* head;
+	FklPreMacro* macro;
+	FklByteCodelnt* proc;
 	uint32_t refcount;
-	struct KeyWord* keyWords;
-}CompEnv;
+	struct FklKeyWord* keyWords;
+}FklCompEnv;
 
-typedef struct Interpreter
+typedef struct FklInterpreter
 {
 	char* filename;
 	char* curDir;
 	FILE* file;
 	int curline;
-	CompEnv* glob;
+	FklCompEnv* glob;
 	struct LineNumberTable* lnt;
-	struct Interpreter* prev;
-	VMDefTypes* deftypes;
-}Intpr;
+	struct FklInterpreter* prev;
+	FklVMDefTypes* deftypes;
+}FklIntpr;
 
-typedef struct KeyWord
+typedef struct FklKeyWord
 {
 	char* word;
-	struct KeyWord* next;
-}KeyWord;
+	struct FklKeyWord* next;
+}FklKeyWord;
 
-typedef struct VMpair
+typedef struct FklVMpair
 {
-	struct VMvalue* car;
-	struct VMvalue* cdr;
-}VMpair;
+	struct FklVMvalue* car;
+	struct FklVMvalue* cdr;
+}FklVMpair;
 
-typedef struct VMByts
+typedef struct FklVMByts
 {
 	size_t size;
 	uint8_t str[];
-}VMByts;
+}FklVMByts;
 
 
-typedef struct VMMem
+typedef struct FklVMMem
 {
-	TypeId_t type;
+	FklTypeId_t type;
 	uint8_t* mem;
-}VMMem;
+}FklVMMem;
 
-typedef struct VMvalue
+typedef struct FklVMvalue
 {
 	unsigned int mark :1;
 	unsigned int type :6;
 	union
 	{
-		struct VMpair* pair;
+		struct FklVMpair* pair;
 		double* dbl;
 		int64_t* in64;
 		char* str;
-		struct VMMem* chf;
-		struct VMByts* byts;
-		struct VMproc* prc;
+		struct FklVMMem* chf;
+		struct FklVMByts* byts;
+		struct FklVMproc* prc;
 		DllHandle dll;
-		struct VMDlproc* dlproc;
-		struct VMFlproc* flproc;
-		struct VMContinuation* cont;
+		struct FklVMDlproc* dlproc;
+		struct FklVMFlproc* flproc;
+		struct FklVMContinuation* cont;
 		FILE* fp;
-		struct VMChanl* chan;
-		struct VMerror* err;
+		struct FklVMChanl* chan;
+		struct FklVMerror* err;
 	}u;
-	struct VMvalue* prev;
-	struct VMvalue* next;
-}VMvalue;
+	struct FklVMvalue* prev;
+	struct FklVMvalue* next;
+}FklVMvalue;
 
-typedef struct VMenvNode
+typedef struct FklVMenvNode
 {
 	uint32_t id;
-	VMvalue* value;
-}VMenvNode;
+	FklVMvalue* value;
+}FklVMenvNode;
 
-typedef struct VMenv
+typedef struct FklVMenv
 {
-	struct VMenv* prev;
+	struct FklVMenv* prev;
 	uint32_t refcount;
 	uint32_t num;
-	VMenvNode** list;
-}VMenv;
+	FklVMenvNode** list;
+}FklVMenv;
 
-typedef struct VMproc
+typedef struct FklVMproc
 {
 	uint32_t scp;
 	uint32_t cpc;
-	VMenv* prevEnv;
-}VMproc;
+	FklVMenv* prevEnv;
+}FklVMproc;
 
-typedef struct VMrunnable
+typedef struct FklVMrunnable
 {
 	unsigned int mark :1;
-	VMenv* localenv;
+	FklVMenv* localenv;
 	uint32_t scp;
 	uint32_t cp;
 	uint32_t cpc;
-}VMrunnable;
+}FklVMrunnable;
 
 typedef struct
 {
 	uint32_t tp;
 	uint32_t bp;
 	uint32_t size;
-	VMvalue** values;
+	FklVMvalue** values;
 	uint32_t tpsi;
 	uint32_t tptp;
 	uint32_t* tpst;
-}VMstack;
+}FklVMstack;
 
 typedef struct FklVM
 {
@@ -394,22 +386,22 @@ typedef struct FklVM
 	pthread_t tid;
 	uint8_t* code;
 	uint32_t size;
-	ComStack* rstack;
-	ComStack* tstack;
-	VMstack* stack;
-	struct VMvalue* chan;
-	struct VMHeap* heap;
+	FklComStack* rstack;
+	FklComStack* tstack;
+	FklVMstack* stack;
+	struct FklVMvalue* chan;
+	struct FklVMHeap* heap;
 	struct LineNumberTable* lnt;
 	void (*callback)(void*);
 	jmp_buf buf;
 }FklVM;
 
-typedef struct VMHeap
+typedef struct FklVMHeap
 {
 	pthread_mutex_t lock;
 	uint32_t num;
 	uint32_t threshold;
-	VMvalue* head;
+	FklVMvalue* head;
 }VMheap;
 
 typedef struct
@@ -418,58 +410,58 @@ typedef struct
 	FklVM** VMs;
 }FklVMlist;
 
-typedef void (*DllFunc)(FklVM*,pthread_rwlock_t*);
+typedef void (*FklDllFunc)(FklVM*,pthread_rwlock_t*);
 
-typedef struct VMDlproc
+typedef struct FklVMDlproc
 {
-	DllFunc func;
-	VMvalue* dll;
-}VMDlproc;
+	FklDllFunc func;
+	FklVMvalue* dll;
+}FklVMDlproc;
 
-typedef struct VMFlproc
+typedef struct FklVMFlproc
 {
 	void* func;
 	ffi_cif cif;
 	ffi_type** atypes;
-	TypeId_t type;
-}VMFlproc;
+	FklTypeId_t type;
+}FklVMFlproc;
 
-typedef struct StringMatchPattern
+typedef struct FklStringMatchPattern
 {
 	uint32_t num;
 	char** parts;
-	ValueType type;
+	FklValueType type;
 	union{
 		void (*fProc)(FklVM*);
-		ByteCodelnt* bProc;
+		FklByteCodelnt* bProc;
 	}u;
-	struct StringMatchPattern* prev;
-	struct StringMatchPattern* next;
-}StringMatchPattern;
+	struct FklStringMatchPattern* prev;
+	struct FklStringMatchPattern* next;
+}FklStringMatchPattern;
 
-typedef struct VMerror
+typedef struct FklVMerror
 {
-	Sid_t type;
+	FklSid_t type;
 	char* who;
 	char* message;
-}VMerror;
+}FklVMerror;
 
-typedef struct VMContinuation
+typedef struct FklVMContinuation
 {
 	uint32_t num;
 	uint32_t tnum;
-	VMstack* stack;
-	VMrunnable* state;
-	struct VMTryBlock* tb;
+	FklVMstack* stack;
+	FklVMrunnable* state;
+	struct FklVMTryBlock* tb;
 }VMcontinuation;
 
 typedef struct LineNumberTable
 {
 	uint32_t num;
-	struct LineNumberTableNode** list;
+	struct FklLineNumberTableNode** list;
 }LineNumberTable;
 
-typedef struct LineNumberTableNode
+typedef struct FklLineNumberTableNode
 {
 	uint32_t fid;
 	uint32_t scp;
@@ -477,66 +469,66 @@ typedef struct LineNumberTableNode
 	uint32_t line;
 }LineNumTabNode;
 
-typedef struct VMTryBlock
+typedef struct FklVMTryBlock
 {
-	Sid_t sid;
-	ComStack* hstack;
+	FklSid_t sid;
+	FklComStack* hstack;
 	long int rtp;
 	uint32_t tp;
-}VMTryBlock;
+}FklVMTryBlock;
 
-typedef struct VMerrorHandler
+typedef struct FklVMerrorHandler
 {
-	Sid_t type;
-	VMproc proc;
-}VMerrorHandler;
+	FklSid_t type;
+	FklVMproc proc;
+}FklVMerrorHandler;
 
-typedef struct VMNativeType
+typedef struct FklVMNativeType
 {
-	Sid_t type;
+	FklSid_t type;
 	uint32_t align;
 	uint32_t size;
-}VMNativeType;
+}FklVMNativeType;
 
-typedef struct VMArrayType
+typedef struct FklVMArrayType
 {
 	size_t num;
 	size_t totalSize;
 	uint32_t align;
-	TypeId_t etype;
-}VMArrayType;
+	FklTypeId_t etype;
+}FklVMArrayType;
 
-typedef struct VMPtrType
+typedef struct FklVMPtrType
 {
-	TypeId_t ptype;
-}VMPtrType;
+	FklTypeId_t ptype;
+}FklVMPtrType;
 
-typedef struct VMStructType
+typedef struct FklVMStructType
 {
 	int64_t type;
 	uint32_t num;
 	size_t totalSize;
 	uint32_t align;
-	struct VMStructMember
+	struct FklVMStructMember
 	{
-		Sid_t memberSymbol;
-		TypeId_t type;
+		FklSid_t memberSymbol;
+		FklTypeId_t type;
 	}layout[];
-}VMStructType;
+}FklVMStructType;
 
-typedef struct VMUnionType
+typedef struct FklVMUnionType
 {
 	int64_t type;
 	uint32_t num;
 	size_t maxSize;
 	uint32_t align;
-	struct VMStructMember layout[];
-}VMUnionType;
+	struct FklVMStructMember layout[];
+}FklVMUnionType;
 
-typedef struct VMFuncType
+typedef struct FklVMFuncType
 {
-	TypeId_t rtype;
+	FklTypeId_t rtype;
 	uint32_t anum;
-	TypeId_t atypes[];
-}VMFuncType;
+	FklTypeId_t atypes[];
+}FklVMFuncType;
 #endif

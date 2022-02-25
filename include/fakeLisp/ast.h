@@ -2,6 +2,6 @@
 #define AST_H
 #include"fakedef.h"
 #include<stdint.h>
-FklAstCptr* fklCastVMvalueToCptr(VMvalue*,int32_t);
-FklAstCptr* fklCreateTree(const char*,Intpr*,StringMatchPattern*);
+FklAstCptr* fklCastVMvalueToCptr(FklVMvalue*,int32_t);
+FklAstCptr* fklCreateTree(const char*,FklIntpr*,FklStringMatchPattern*);
 #endif

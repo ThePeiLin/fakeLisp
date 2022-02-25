@@ -223,7 +223,7 @@ int fklIsBeginExpression(const FklAstCptr* objCptr)
 	return 0;
 }
 
-int fklIsFuncCall(const FklAstCptr* objCptr,CompEnv* curEnv)
+int fklIsFuncCall(const FklAstCptr* objCptr,FklCompEnv* curEnv)
 {
 	if(objCptr->type==PAIR&&fklIsValid(objCptr)&&!fklHasKeyWord(objCptr,curEnv)&&!fklIsNil(objCptr))return 1;
 	return 0;
@@ -320,14 +320,14 @@ int fklIsPrognExpression(const FklAstCptr* objCptr)
 	return 0;
 }
 
-KeyWord* fklHasKeyWord(const FklAstCptr* objCptr,CompEnv* curEnv)
+FklKeyWord* fklHasKeyWord(const FklAstCptr* objCptr,FklCompEnv* curEnv)
 {
 	FklAstAtom* tmpAtm=NULL;
 	if(objCptr->type==ATM&&(tmpAtm=objCptr->u.atom)->type==SYM)
 	{
 		for(;curEnv;curEnv=curEnv->prev)
 		{
-			KeyWord* tmp=curEnv->keyWords;
+			FklKeyWord* tmp=curEnv->keyWords;
 			while(tmp!=NULL&&strcmp(tmpAtm->value.str,tmp->word))
 				tmp=tmp->next;
 			return tmp;
@@ -335,10 +335,10 @@ KeyWord* fklHasKeyWord(const FklAstCptr* objCptr,CompEnv* curEnv)
 	}
 	else if(objCptr->type==PAIR)
 	{
-		KeyWord* tmp=NULL;
+		FklKeyWord* tmp=NULL;
 		for(objCptr=&objCptr->u.pair->car;objCptr!=NULL;objCptr=fklNextCptr(objCptr))
 		{
-			CompEnv* tmpEnv=curEnv;
+			FklCompEnv* tmpEnv=curEnv;
 			tmpAtm=(objCptr->type==ATM)?objCptr->u.atom:NULL;
 			FklAstAtom* cdrAtm=(objCptr->outer->cdr.type==ATM)?objCptr->outer->cdr.u.atom:NULL;
 			if((tmpAtm==NULL||tmpAtm->type!=SYM)&&(cdrAtm==NULL||cdrAtm->type!=SYM))
@@ -359,9 +359,9 @@ KeyWord* fklHasKeyWord(const FklAstCptr* objCptr,CompEnv* curEnv)
 	return NULL;
 }
 
-void fklPrintAllKeyWord(KeyWord* head)
+void fklPrintAllKeyWord(FklKeyWord* head)
 {
-	KeyWord* tmp=head;
+	FklKeyWord* tmp=head;
 	while(tmp!=NULL)
 	{
 		puts(tmp->word);
@@ -369,12 +369,12 @@ void fklPrintAllKeyWord(KeyWord* head)
 	}
 }
 
-void fklAddKeyWord(const char* objStr,CompEnv* curEnv)
+void fklAddKeyWord(const char* objStr,FklCompEnv* curEnv)
 {
 	if(objStr!=NULL)
 	{
-		KeyWord* current=curEnv->keyWords;
-		KeyWord* prev=NULL;
+		FklKeyWord* current=curEnv->keyWords;
+		FklKeyWord* prev=NULL;
 		while(current!=NULL&&strcmp(current->word,objStr))
 		{
 			prev=current;
@@ -382,7 +382,7 @@ void fklAddKeyWord(const char* objStr,CompEnv* curEnv)
 		}
 		if(current==NULL)
 		{
-			current=(KeyWord*)malloc(sizeof(KeyWord));
+			current=(FklKeyWord*)malloc(sizeof(FklKeyWord));
 			current->word=(char*)malloc(sizeof(char)*(strlen(objStr)+1));
 			FAKE_ASSERT(current&&current->word,"fklAddKeyWord",__FILE__,__LINE__);
 			strcpy(current->word,objStr);
@@ -394,11 +394,11 @@ void fklAddKeyWord(const char* objStr,CompEnv* curEnv)
 	}
 }
 
-int fklIsKeyWord(const char* str,CompEnv* curEnv)
+int fklIsKeyWord(const char* str,FklCompEnv* curEnv)
 {
 	for(;curEnv;curEnv=curEnv->prev)
 	{
-		KeyWord* cur=curEnv->keyWords;
+		FklKeyWord* cur=curEnv->keyWords;
 		for(;cur;cur=cur->next)
 			if(!strcmp(str,cur->word))
 				return 1;

@@ -4,12 +4,14 @@
 #include<pthread.h>
 #include<stdint.h>
 
-extern const char*  builtInErrorType[NUMOFBUILTINERRORTYPE];
+#define UNUSEDBITNUM 3
+#define PTR_MASK ((intptr_t)0xFFFFFFFFFFFFFFF8)
+#define TAG_MASK ((intptr_t)0x7)
 
 #define SET_RETURN(fn,v,stack) do{\
 	if((stack)->tp>=(stack)->size)\
 	{\
-		(stack)->values=(VMvalue**)realloc((stack)->values,sizeof(VMvalue*)*((stack)->size+64));\
+		(stack)->values=(FklVMvalue**)realloc((stack)->values,sizeof(FklVMvalue*)*((stack)->size+64));\
 		FAKE_ASSERT((stack)->values,fn,__FILE__,__LINE__);\
 		if((stack)->values==NULL)\
 		{\
@@ -25,7 +27,7 @@ extern const char*  builtInErrorType[NUMOFBUILTINERRORTYPE];
 
 #define RAISE_BUILTIN_ERROR(WHO,ERRORTYPE,RUNNABLE,EXE) do{\
 	char* errorMessage=fklGenErrorMessage((ERRORTYPE),(RUNNABLE),(EXE));\
-	VMvalue* err=fklNewVMvalue(ERR,fklNewVMerror((WHO),builtInErrorType[(ERRORTYPE)],errorMessage),(EXE)->heap);\
+	FklVMvalue* err=fklNewVMvalue(ERR,fklNewVMerror((WHO),builtInErrorType[(ERRORTYPE)],errorMessage),(EXE)->heap);\
 	free(errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
 	return;\
@@ -33,28 +35,28 @@ extern const char*  builtInErrorType[NUMOFBUILTINERRORTYPE];
 
 #define RAISE_BUILTIN_INVALIDSYMBOL_ERROR(WHO,STR,RUNNABLE,EXE) do{\
 	char* errorMessage=fklGenInvalidSymbolErrorMessage((STR),(RUNNABLE),(EXE));\
-	VMvalue* err=fklNewVMvalue(ERR,fklNewVMerror((WHO),"invalid-symbol",errorMessage),(EXE)->heap);\
+	FklVMvalue* err=fklNewVMvalue(ERR,fklNewVMerror((WHO),"invalid-symbol",errorMessage),(EXE)->heap);\
 	free(errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
 	return;\
 }while(0)
 
-#define VM_NIL ((VMptr)0x1)
+#define VM_NIL ((FklVMptr)0x1)
 #define VM_TRUE (MAKE_VM_IN32(1))
-#define VM_EOF ((VMptr)0x7fffffffa)
-#define MAKE_VM_IN32(I) ((VMptr)((((uintptr_t)(I))<<UNUSEDBITNUM)|IN32_TAG))
-#define MAKE_VM_CHR(C) ((VMptr)((((uintptr_t)(C))<<UNUSEDBITNUM)|CHR_TAG))
-#define MAKE_VM_SYM(S) ((VMptr)((((uintptr_t)(S))<<UNUSEDBITNUM)|SYM_TAG))
-#define MAKE_VM_PTR(P) ((VMptr)(((uintptr_t)(P))|PTR_TAG))
-#define MAKE_VM_REF(P) ((VMptr)(((uintptr_t)(P))|REF_TAG))
+#define VM_EOF ((FklVMptr)0x7fffffffa)
+#define MAKE_VM_IN32(I) ((FklVMptr)((((uintptr_t)(I))<<UNUSEDBITNUM)|IN32_TAG))
+#define MAKE_VM_CHR(C) ((FklVMptr)((((uintptr_t)(C))<<UNUSEDBITNUM)|CHR_TAG))
+#define MAKE_VM_SYM(S) ((FklVMptr)((((uintptr_t)(S))<<UNUSEDBITNUM)|SYM_TAG))
+#define MAKE_VM_PTR(P) ((FklVMptr)(((uintptr_t)(P))|PTR_TAG))
+#define MAKE_VM_REF(P) ((FklVMptr)(((uintptr_t)(P))|REF_TAG))
 #define MAKE_VM_CHF(P,H) (fklNewVMvalue(CHF,P,H))
 #define MAKE_VM_MEM(P,H) (fklNewVMvalue(MEM,P,H))
-#define GET_TAG(P) ((VMptrTag)(((uintptr_t)(P))&TAG_MASK))
-#define GET_PTR(P) ((VMptr)(((uintptr_t)(P))&PTR_MASK))
+#define GET_TAG(P) ((FklVMptrTag)(((uintptr_t)(P))&TAG_MASK))
+#define GET_PTR(P) ((FklVMptr)(((uintptr_t)(P))&PTR_MASK))
 #define GET_IN32(P) ((int32_t)((uintptr_t)(P)>>UNUSEDBITNUM))
 #define GET_CHR(P) ((char)((uintptr_t)(P)>>UNUSEDBITNUM))
-#define GET_SYM(P) ((Sid_t)((uintptr_t)(P)>>UNUSEDBITNUM))
-//#define fklSET_REF(p,v) do{VMvalue* P=p;VMvalue* V=v;if(IS_CHF(P)){VMMemref* pRef=(VMMemref*)GET_PTR(P);setVMMemref(pRef,V);free(pRef);} else *(VMvalue**)GET_PTR(P)=(V);}while(0)
+#define GET_SYM(P) ((FklSid_t)((uintptr_t)(P)>>UNUSEDBITNUM))
+//#define fklSET_REF(p,v) do{FklVMvalue* P=p;FklVMvalue* V=v;if(IS_CHF(P)){VMMemref* pRef=(VMMemref*)GET_PTR(P);setVMMemref(pRef,V);free(pRef);} else *(FklVMvalue**)GET_PTR(P)=(V);}while(0)
 #define IS_PTR(P) (GET_TAG(P)==PTR_TAG)
 #define IS_PAIR(P) (GET_TAG(P)==PTR_TAG&&(P)->type==PAIR)
 #define IS_DBL(P) (GET_TAG(P)==PTR_TAG&&(P)->type==DBL)
@@ -84,70 +86,70 @@ extern const char*  builtInErrorType[NUMOFBUILTINERRORTYPE];
 #define MAKE_UNION_TYPE(P) ((void*)(((uintptr_t)(P))|UNION_TYPE_TAG))
 #define MAKE_FUNC_TYPE(P) ((void*)(((uintptr_t)(P))|FUNC_TYPE_TAG))
 #define GET_TYPES_PTR(P) ((void*)(((uintptr_t)(P))&PTR_MASK))
-#define GET_TYPES_TAG(P) ((DefTypeTag)(((uintptr_t)(P))&TAG_MASK))
+#define GET_TYPES_TAG(P) ((FklDefTypeTag)(((uintptr_t)(P))&TAG_MASK))
 
 typedef struct Cirular_Ref_List
 {
-	VMpair* pair;
+	FklVMpair* pair;
 	int32_t count;
 	struct Cirular_Ref_List* next;
 }CRL;
 
-VMvalue* fklGET_VAL(VMvalue* P,VMheap*);
-int fklSET_REF(VMvalue* P,VMvalue* V);
-void fklPrin1VMvalue(VMvalue*,FILE*,CRL**);
-void fklPrincVMvalue(VMvalue*,FILE*,CRL**);
-VMenvNode* fklNewVMenvNode(VMvalue*,int32_t);
-VMenvNode* fklAddVMenvNode(VMenvNode*,VMenv*);
-VMenvNode* fklFindVMenvNode(Sid_t,VMenv*);
-void fklFreeVMenvNode(VMenvNode*);
-VMproc* fklNewVMproc(uint32_t scp,uint32_t cpc);
+FklVMvalue* fklGET_VAL(FklVMvalue* P,VMheap*);
+int fklSET_REF(FklVMvalue* P,FklVMvalue* V);
+void fklPrin1VMvalue(FklVMvalue*,FILE*,CRL**);
+void fklPrincVMvalue(FklVMvalue*,FILE*,CRL**);
+FklVMenvNode* fklNewVMenvNode(FklVMvalue*,int32_t);
+FklVMenvNode* fklAddVMenvNode(FklVMenvNode*,FklVMenv*);
+FklVMenvNode* fklFindVMenvNode(FklSid_t,FklVMenv*);
+void fklFreeVMenvNode(FklVMenvNode*);
+FklVMproc* fklNewVMproc(uint32_t scp,uint32_t cpc);
 
-VMvalue* fklCopyVMvalue(VMvalue*,VMheap*);
-VMvalue* fklNewVMvalue(ValueType,void*,VMheap*);
-VMvalue* fklNewTrueValue(VMheap*);
-VMvalue* fklNewNilValue();
-VMvalue* fklGetTopValue(VMstack*);
-VMvalue* fklGetValue(VMstack*,int32_t);
-VMvalue* fklGetVMpairCar(VMvalue*);
-VMvalue* fklGetVMpairCdr(VMvalue*);
-int fklVMvaluecmp(VMvalue*,VMvalue*);
-int subfklVMvaluecmp(VMvalue*,VMvalue*);
-int fklNumcmp(VMvalue*,VMvalue*);
+FklVMvalue* fklCopyVMvalue(FklVMvalue*,VMheap*);
+FklVMvalue* fklNewVMvalue(FklValueType,void*,VMheap*);
+FklVMvalue* fklNewTrueValue(VMheap*);
+FklVMvalue* fklNewNilValue();
+FklVMvalue* fklGetTopValue(FklVMstack*);
+FklVMvalue* fklGetValue(FklVMstack*,int32_t);
+FklVMvalue* fklGetVMpairCar(FklVMvalue*);
+FklVMvalue* fklGetVMpairCdr(FklVMvalue*);
+int fklVMvaluecmp(FklVMvalue*,FklVMvalue*);
+int subfklVMvaluecmp(FklVMvalue*,FklVMvalue*);
+int fklNumcmp(FklVMvalue*,FklVMvalue*);
 
-VMenv* fklNewVMenv(VMenv*);
-void fklIncreaseVMenvRefcount(VMenv*);
-void fklDecreaseVMenvRefcount(VMenv*);
+FklVMenv* fklNewVMenv(FklVMenv*);
+void fklIncreaseVMenvRefcount(FklVMenv*);
+void fklDecreaseVMenvRefcount(FklVMenv*);
 
-VMenv* fklCastPreEnvToVMenv(PreEnv*,VMenv*,VMheap*);
-VMpair* fklNewVMpair(void);
+FklVMenv* fklCastPreEnvToVMenv(FklPreEnv*,FklVMenv*,VMheap*);
+FklVMpair* fklNewVMpair(void);
 
-VMvalue* fklCastCptrVMvalue(FklAstCptr*,VMheap*);
-VMByts* fklNewVMByts(size_t,uint8_t*);
-void fklIncreaseVMByts(VMByts*);
-void fklDecreaseVMByts(VMByts*);
+FklVMvalue* fklCastCptrVMvalue(FklAstCptr*,VMheap*);
+FklVMByts* fklNewVMByts(size_t,uint8_t*);
+void fklIncreaseVMByts(FklVMByts*);
+void fklDecreaseVMByts(FklVMByts*);
 
-VMByts* fklCopyVMByts(const VMByts*);
-VMByts* fklNewEmptyVMByts();
-void fklVMBytsCat(VMByts**,const VMByts*);
-int fklEqVMByts(const VMByts*,const VMByts*);
-VMChanl* fklNewVMChanl(int32_t size);
+FklVMByts* fklCopyVMByts(const FklVMByts*);
+FklVMByts* fklNewEmptyVMByts();
+void fklVMBytsCat(FklVMByts**,const FklVMByts*);
+int fklEqVMByts(const FklVMByts*,const FklVMByts*);
+FklVMChanl* fklNewVMChanl(int32_t size);
 
-void fklFreeVMChanl(VMChanl*);
-VMChanl* fklCopyVMChanl(VMChanl*,VMheap*);
-int32_t fklGetNumVMChanl(VMChanl*);
+void fklFreeVMChanl(FklVMChanl*);
+FklVMChanl* fklCopyVMChanl(FklVMChanl*,VMheap*);
+int32_t fklGetNumVMChanl(FklVMChanl*);
 
 uint8_t* fklCopyArry(size_t,uint8_t*);
-VMproc* fklCopyVMproc(VMproc*,VMheap*);
-VMenv* fklCopyVMenv(VMenv*,VMheap*);
-VMstack* fklCopyStack(VMstack*);
-void fklFreeVMproc(VMproc*);
-void fklFreeVMenv(VMenv*);
+FklVMproc* fklCopyVMproc(FklVMproc*,VMheap*);
+FklVMenv* fklCopyVMenv(FklVMenv*,VMheap*);
+FklVMstack* fklCopyStack(FklVMstack*);
+void fklFreeVMproc(FklVMproc*);
+void fklFreeVMenv(FklVMenv*);
 void fklReleaseSource(pthread_rwlock_t*);
 void fklLockSource(pthread_rwlock_t*);
-VMvalue* fklPopVMstack(VMstack*);
+FklVMvalue* fklPopVMstack(FklVMstack*);
 
-VMcontinuation* fklNewVMcontinuation(VMstack*,ComStack*,ComStack*);
+VMcontinuation* fklNewVMcontinuation(FklVMstack*,FklComStack*,FklComStack*);
 void fklFreeVMcontinuation(VMcontinuation*);
 
 void fklFreeVMfp(FILE*);
@@ -156,77 +158,77 @@ DllHandle* fklNewVMDll(const char*);
 void* fklGetAddress(const char*,DllHandle);
 void fklFreeVMDll(DllHandle*);
 
-VMDlproc* fklNewVMDlproc(DllFunc,VMvalue*);
-void fklFreeVMDlproc(VMDlproc*);
+FklVMDlproc* fklNewVMDlproc(FklDllFunc,FklVMvalue*);
+void fklFreeVMDlproc(FklVMDlproc*);
 
-VMFlproc* fklNewVMFlproc(TypeId_t type,void* func);
-void fklFreeVMFlproc(VMFlproc*);
+FklVMFlproc* fklNewVMFlproc(FklTypeId_t type,void* func);
+void fklFreeVMFlproc(FklVMFlproc*);
 
-VMerror* fklNewVMerror(const char* who,const char* type,const char* message);
-VMerror* fklNewVMerrorWithSid(const char* who,Sid_t type,const char* message);
-void fklFreeVMerror(VMerror*);
+FklVMerror* fklNewVMerror(const char* who,const char* type,const char* message);
+FklVMerror* fklNewVMerrorWithSid(const char* who,FklSid_t type,const char* message);
+void fklFreeVMerror(FklVMerror*);
 
-RecvT* fklNewRecvT(FklVM*);
-void fklFreeRecvT(RecvT*);
+FklRecvT* fklNewRecvT(FklVM*);
+void fklFreeRecvT(FklRecvT*);
 
-SendT* fklNewSendT(VMvalue*);
-void fklFreeSendT(SendT*);
+FklSendT* fklNewSendT(FklVMvalue*);
+void fklFreeSendT(FklSendT*);
 
-void fklChanlSend(SendT*,VMChanl*);
-void fklChanlRecv(RecvT*,VMChanl*);
+void fklChanlSend(FklSendT*,FklVMChanl*);
+void fklChanlRecv(FklRecvT*,FklVMChanl*);
 
-VMTryBlock* fklNewVMTryBlock(Sid_t,uint32_t tp,long int rtp);
-void fklFreeVMTryBlock(VMTryBlock* b);
+FklVMTryBlock* fklNewVMTryBlock(FklSid_t,uint32_t tp,long int rtp);
+void fklFreeVMTryBlock(FklVMTryBlock* b);
 
-VMerrorHandler* fklNewVMerrorHandler(Sid_t type,uint32_t scp,uint32_t cpc);
-void fklFreeVMerrorHandler(VMerrorHandler*);
-int fklRaiseVMerror(VMvalue* err,FklVM*);
-VMrunnable* fklNewVMrunnable(VMproc*);
-char* fklGenErrorMessage(unsigned int type,VMrunnable* r,FklVM* exe);
-char* fklGenInvalidSymbolErrorMessage(const char* str,VMrunnable* r,FklVM* exe);
+FklVMerrorHandler* fklNewVMerrorHandler(FklSid_t type,uint32_t scp,uint32_t cpc);
+void fklFreeVMerrorHandler(FklVMerrorHandler*);
+int fklRaiseVMerror(FklVMvalue* err,FklVM*);
+FklVMrunnable* fklNewVMrunnable(FklVMproc*);
+char* fklGenErrorMessage(unsigned int type,FklVMrunnable* r,FklVM* exe);
+char* fklGenInvalidSymbolErrorMessage(const char* str,FklVMrunnable* r,FklVM* exe);
 int32_t fklGetSymbolIdInByteCode(const uint8_t*);
-int fklResBp(VMstack*);
+int fklResBp(FklVMstack*);
 
-TypeId_t fklGenDefTypes(FklAstCptr*,VMDefTypes* otherTypes,Sid_t* typeName);
-TypeId_t fklGenDefTypesUnion(FklAstCptr* objCptr,VMDefTypes* otherTypes);
-VMDefTypesNode* fklFindVMDefTypesNode(Sid_t typeId,VMDefTypes* otherTypes);
-int fklAddDefTypes(VMDefTypes*,Sid_t typeName,TypeId_t);
+FklTypeId_t fklGenDefTypes(FklAstCptr*,FklVMDefTypes* otherTypes,FklSid_t* typeName);
+FklTypeId_t fklGenDefTypesUnion(FklAstCptr* objCptr,FklVMDefTypes* otherTypes);
+FklVMDefTypesNode* fklFindVMDefTypesNode(FklSid_t typeId,FklVMDefTypes* otherTypes);
+int fklAddDefTypes(FklVMDefTypes*,FklSid_t typeName,FklTypeId_t);
 
-TypeId_t fklNewVMNativeType(Sid_t,size_t,size_t);
-void fklFreeVMNativeType(VMNativeType*);
+FklTypeId_t fklNewVMNativeType(FklSid_t,size_t,size_t);
+void fklFreeVMNativeType(FklVMNativeType*);
 
-TypeId_t fklNewVMArrayType(TypeId_t,size_t);
-void fklFreeVMArrayType(VMArrayType*);
+FklTypeId_t fklNewVMArrayType(FklTypeId_t,size_t);
+void fklFreeVMArrayType(FklVMArrayType*);
 
-TypeId_t fklNewVMPtrType(TypeId_t);
-void fklFreeVMPtrType(VMPtrType*);
+FklTypeId_t fklNewVMPtrType(FklTypeId_t);
+void fklFreeVMPtrType(FklVMPtrType*);
 
-TypeId_t fklNewVMStructType(const char*,uint32_t,Sid_t[],TypeId_t []);
-void fklFreeVMStructType(VMStructType*);
+FklTypeId_t fklNewVMStructType(const char*,uint32_t,FklSid_t[],FklTypeId_t []);
+void fklFreeVMStructType(FklVMStructType*);
 
-TypeId_t fklNewVMUnionType(const char* structName,uint32_t num,Sid_t symbols[],TypeId_t memberTypes[]);
-void fklFreeVMUnionType(VMUnionType*);
+FklTypeId_t fklNewVMUnionType(const char* structName,uint32_t num,FklSid_t symbols[],FklTypeId_t memberTypes[]);
+void fklFreeVMUnionType(FklVMUnionType*);
 
-TypeId_t fklNewVMFuncType(TypeId_t rtype,uint32_t anum,TypeId_t atypes[]);
-TypeId_t fklFindSameFuncType(TypeId_t,uint32_t anum,TypeId_t atypes[]);
-void fklFreeVMFuncType(VMFuncType*);
+FklTypeId_t fklNewVMFuncType(FklTypeId_t rtype,uint32_t anum,FklTypeId_t atypes[]);
+FklTypeId_t fklFindSameFuncType(FklTypeId_t,uint32_t anum,FklTypeId_t atypes[]);
+void fklFreeVMFuncType(FklVMFuncType*);
 
-size_t fklGetVMTypeSize(VMTypeUnion t);
-size_t fklGetVMTypeAlign(VMTypeUnion t);
-size_t fklGetVMTypeSizeWithTypeId(TypeId_t t);
-VMTypeUnion fklGetVMTypeUnion(TypeId_t);
+size_t fklGetVMTypeSize(FklVMTypeUnion t);
+size_t fklGetVMTypeAlign(FklVMTypeUnion t);
+size_t fklGetVMTypeSizeWithTypeId(FklTypeId_t t);
+FklVMTypeUnion fklGetVMTypeUnion(FklTypeId_t);
 
-VMMem* fklNewVMMem(TypeId_t typeId,uint8_t* mem);
-TypeId_t fklGenDefTypesUnion(FklAstCptr* objCptr,VMDefTypes* otherTypes);
-void fklInitNativeDefTypes(VMDefTypes* otherTypes);
+FklVMMem* fklNewVMMem(FklTypeId_t typeId,uint8_t* mem);
+FklTypeId_t fklGenDefTypesUnion(FklAstCptr* objCptr,FklVMDefTypes* otherTypes);
+void fklInitNativeDefTypes(FklVMDefTypes* otherTypes);
 void fklWriteTypeList(FILE* fp);
 void fklLoadTypeList(FILE* fp);
 void fklFreeGlobTypeList(void);
 
-int fklIsNativeTypeId(TypeId_t);
-int fklIsArrayTypeId(TypeId_t);
-int fklIsPtrTypeId(TypeId_t);
-int fklIsStructTypeId(TypeId_t);
-int fklIsUnionTypeId(TypeId_t);
-int fklIsFunctionTypeId(TypeId_t);
+int fklIsNativeTypeId(FklTypeId_t);
+int fklIsArrayTypeId(FklTypeId_t);
+int fklIsPtrTypeId(FklTypeId_t);
+int fklIsStructTypeId(FklTypeId_t);
+int fklIsUnionTypeId(FklTypeId_t);
+int fklIsFunctionTypeId(FklTypeId_t);
 #endif

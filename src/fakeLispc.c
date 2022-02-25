@@ -39,12 +39,12 @@ int main(int argc,char** argv)
 #else
 		char* rp=realpath(filename,0);
 #endif
-		Intpr* inter=fklNewIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
+		FklIntpr* inter=fklNewIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
 		fklInitGlobKeyWord(inter->glob);
 		fklInitNativeDefTypes(inter->deftypes);
 		fklAddSymbolToGlob(argv[1]);
 		int state;
-		ByteCodelnt* mainByteCode=fklCompileFile(inter,1,&state);
+		FklByteCodelnt* mainByteCode=fklCompileFile(inter,1,&state);
 		if(mainByteCode==NULL)
 		{
 			free(rp);

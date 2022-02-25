@@ -3,20 +3,21 @@
 #include<fakeLisp/VMtool.h>
 #include<fakeLisp/reader.h>
 #include<fakeLisp/fakeVM.h>
+#include"utils.h"
 #include<string.h>
 #include<math.h>
 #include<setjmp.h>
 #include<dlfcn.h>
 
-extern void invokeNativeProcdure(FklVM*,VMproc*,VMrunnable*);
+extern void invokeNativeProcdure(FklVM*,FklVMproc*,FklVMrunnable*);
 extern void invokeContinuation(FklVM*,VMcontinuation*);
-extern void invokeDlProc(FklVM*,VMDlproc*);
-extern void invokeFlproc(FklVM*,VMFlproc*);
+extern void invokeDlProc(FklVM*,FklVMDlproc*);
+extern void invokeFlproc(FklVM*,FklVMFlproc*);
 extern pthread_mutex_t GlobSharedObjsMutex;
 extern FklSharedObjNode* GlobSharedObjs;
-extern const char* builtInSymbolList[NUMOFBUILTINSYMBOL];
-extern const char* builtInErrorType[NUMOFBUILTINERRORTYPE];
-extern TypeId_t CharTypeId;
+extern const char* builtInSymbolList[NUM_OF_BUILT_IN_SYMBOL];
+extern const char* builtInErrorType[NUM_OF_BUILT_IN_ERROR_TYPE];
+extern FklTypeId_t CharTypeId;
 extern FklVMlist GlobVMs;
 extern void* ThreadVMFunc(void* p);
 extern void* ThreadVMDlprocFunc(void* p);
@@ -81,9 +82,9 @@ void SYS_lfdl(FklVM*,pthread_rwlock_t*);
 
 void SYS_car(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
-	VMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.car",TOOMANYARG,runnable,exe);
 	if(!obj)
@@ -95,9 +96,9 @@ void SYS_car(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_cdr(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
-	VMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.cdr",TOOMANYARG,runnable,exe);
 	if(!obj)
@@ -109,16 +110,16 @@ void SYS_cdr(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_cons(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	VMheap* heap=exe->heap;
-	VMvalue* car=fklGET_VAL(fklPopVMstack(stack),heap);
-	VMvalue* cdr=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* car=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* cdr=fklGET_VAL(fklPopVMstack(stack),heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.cons",TOOMANYARG,runnable,exe);
 	if(!car||!cdr)
 		RAISE_BUILTIN_ERROR("sys.cons",TOOFEWARG,runnable,exe);
-	VMvalue* pair=fklNewVMvalue(PAIR,fklNewVMpair(),exe->heap);
+	FklVMvalue* pair=fklNewVMvalue(PAIR,fklNewVMpair(),exe->heap);
 	pair->u.pair->car=car;
 	pair->u.pair->cdr=cdr;
 	SET_RETURN("SYS_cons",pair,stack);
@@ -126,12 +127,12 @@ void SYS_cons(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_append(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
-	VMvalue* retval=VM_NIL;
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMvalue* retval=VM_NIL;
 	VMheap* heap=exe->heap;
-	VMvalue* cur=fklGET_VAL(fklPopVMstack(stack),heap);
-	VMvalue** prev=&retval;
+	FklVMvalue* cur=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue** prev=&retval;
 	for(;cur;cur=fklGET_VAL(fklPopVMstack(stack),heap))
 	{
 		if(*prev==VM_NIL)
@@ -162,9 +163,9 @@ void SYS_append(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_atom(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
-	VMvalue* arg=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMvalue* arg=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.atom",TOOMANYARG,runnable,exe);
 	if(!arg)
@@ -177,9 +178,9 @@ void SYS_atom(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_null(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
-	VMvalue* arg=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMvalue* arg=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.null",TOOMANYARG,runnable,exe);
 	if(!arg)
@@ -192,9 +193,9 @@ void SYS_null(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_not(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
-	VMvalue* arg=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMvalue* arg=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.not",TOOMANYARG,runnable,exe);
 	if(!arg)
@@ -207,11 +208,11 @@ void SYS_not(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_eq(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	VMheap* heap=exe->heap;
-	VMvalue* fir=fklGET_VAL(fklPopVMstack(stack),heap);
-	VMvalue* sec=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* fir=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* sec=fklGET_VAL(fklPopVMstack(stack),heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.eq",TOOMANYARG,runnable,exe);
 	if(!fir||!sec)
@@ -224,11 +225,11 @@ void SYS_eq(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_eqn(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	VMheap* heap=exe->heap;
-	VMvalue* fir=fklGET_VAL(fklPopVMstack(stack),heap);
-	VMvalue* sec=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* fir=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* sec=fklGET_VAL(fklPopVMstack(stack),heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.eqn",TOOMANYARG,runnable,exe);
 	if(!fir||!sec)
@@ -266,11 +267,11 @@ void SYS_eqn(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_equal(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	VMheap* heap=exe->heap;
-	VMvalue* fir=fklGET_VAL(fklPopVMstack(stack),heap);
-	VMvalue* sec=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* fir=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* sec=fklGET_VAL(fklPopVMstack(stack),heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.equal",TOOMANYARG,runnable,exe);
 	if(!fir||!sec)
@@ -283,10 +284,10 @@ void SYS_equal(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_add(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	VMheap* heap=exe->heap;
-	VMvalue* cur=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* cur=fklGET_VAL(fklPopVMstack(stack),heap);
 	int64_t r64=0;
 	double rd=0.0;
 	for(;cur;cur=fklGET_VAL(fklPopVMstack(stack),heap))
@@ -317,9 +318,9 @@ void SYS_add(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_add_1(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
-	VMvalue* arg=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMvalue* arg=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.add_1",TOOMANYARG,runnable,exe);
 	if(!arg)
@@ -342,11 +343,11 @@ void SYS_add_1(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_sub(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	VMheap* heap=exe->heap;
-	VMvalue* prev=fklGET_VAL(fklPopVMstack(stack),heap);
-	VMvalue* cur=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* prev=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* cur=fklGET_VAL(fklPopVMstack(stack),heap);
 	double rd=0.0;
 	int64_t r64=0;
 	if(!prev)
@@ -404,9 +405,9 @@ void SYS_sub(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_sub_1(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
-	VMvalue* arg=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMvalue* arg=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.sub_1",TOOMANYARG,runnable,exe);
 	if(!arg)
@@ -429,10 +430,10 @@ void SYS_sub_1(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_mul(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	VMheap* heap=exe->heap;
-	VMvalue* cur=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* cur=fklGET_VAL(fklPopVMstack(stack),heap);
 	double rd=1.0;
 	int64_t r64=1;
 	for(;cur;cur=fklGET_VAL(fklPopVMstack(stack),heap))
@@ -463,11 +464,11 @@ void SYS_mul(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_div(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	VMheap* heap=exe->heap;
-	VMvalue* prev=fklGET_VAL(fklPopVMstack(stack),heap);
-	VMvalue* cur=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* prev=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* cur=fklGET_VAL(fklPopVMstack(stack),heap);
 	int64_t r64=1;
 	double rd=1.0;
 	if(!prev)
@@ -559,11 +560,11 @@ void SYS_div(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_rem(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	VMheap* heap=exe->heap;
-	VMvalue* fir=fklGET_VAL(fklPopVMstack(stack),heap);
-	VMvalue* sec=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* fir=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* sec=fklGET_VAL(fklPopVMstack(stack),heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.rem",TOOMANYARG,runnable,exe);
 	if(!fir||!sec)
@@ -595,12 +596,12 @@ void SYS_rem(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_gt(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	int r=1;
 	VMheap* heap=exe->heap;
-	VMvalue* cur=fklGET_VAL(fklPopVMstack(stack),heap);
-	VMvalue* prev=NULL;
+	FklVMvalue* cur=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* prev=NULL;
 	if(!cur)
 		RAISE_BUILTIN_ERROR("sys.gt",TOOFEWARG,runnable,exe);
 	for(;cur;cur=fklGET_VAL(fklPopVMstack(stack),heap))
@@ -635,12 +636,12 @@ void SYS_gt(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_ge(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	int r=1;
 	VMheap* heap=exe->heap;
-	VMvalue* cur=fklGET_VAL(fklPopVMstack(stack),heap);
-	VMvalue* prev=NULL;
+	FklVMvalue* cur=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* prev=NULL;
 	if(!cur)
 		RAISE_BUILTIN_ERROR("sys.ge",TOOFEWARG,runnable,exe);
 	for(;cur;cur=fklGET_VAL(fklPopVMstack(stack),heap))
@@ -675,12 +676,12 @@ void SYS_ge(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_lt(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	int r=1;
 	VMheap* heap=exe->heap;
-	VMvalue* cur=fklGET_VAL(fklPopVMstack(stack),heap);
-	VMvalue* prev=NULL;
+	FklVMvalue* cur=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* prev=NULL;
 	if(!cur)
 		RAISE_BUILTIN_ERROR("sys.lt",TOOFEWARG,runnable,exe);
 	for(;cur;cur=fklGET_VAL(fklPopVMstack(stack),heap))
@@ -715,12 +716,12 @@ void SYS_lt(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_le(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	int r=1;
 	VMheap* heap=exe->heap;
-	VMvalue* cur=fklGET_VAL(fklPopVMstack(stack),heap);
-	VMvalue* prev=NULL;
+	FklVMvalue* cur=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* prev=NULL;
 	if(!cur)
 		RAISE_BUILTIN_ERROR("sys.le",TOOFEWARG,runnable,exe);
 	for(;cur;cur=fklGET_VAL(fklPopVMstack(stack),heap))
@@ -755,9 +756,9 @@ void SYS_le(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_chr(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
-	VMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.chr",TOOMANYARG,runnable,exe);
 	if(!obj)
@@ -778,9 +779,9 @@ void SYS_chr(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_int(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
-	VMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.int",TOOMANYARG,runnable,exe);
 	if(!obj)
@@ -845,14 +846,14 @@ void SYS_int(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_dbl(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
-	VMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.dbl",TOOMANYARG,runnable,exe);
 	if(!obj)
 		RAISE_BUILTIN_ERROR("sys.dbl",TOOFEWARG,runnable,exe);
-	VMvalue* retval=fklNewVMvalue(DBL,NULL,exe->heap);
+	FklVMvalue* retval=fklNewVMvalue(DBL,NULL,exe->heap);
 	if(IS_CHR(obj))
 		*retval->u.dbl=(double)GET_CHR(obj);
 	else if(IS_IN32(obj))
@@ -885,14 +886,14 @@ void SYS_dbl(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_str(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
-	VMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.str",TOOMANYARG,runnable,exe);
 	if(!obj)
 		RAISE_BUILTIN_ERROR("sys.str",TOOFEWARG,runnable,exe);
-	VMvalue* retval=fklNewVMvalue(STR,NULL,exe->heap);
+	FklVMvalue* retval=fklNewVMvalue(STR,NULL,exe->heap);
 	if(IS_IN32(obj))
 		retval->u.str=fklIntToString(GET_IN32(obj));
 	else if(IS_DBL(obj))
@@ -920,9 +921,9 @@ void SYS_str(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_sym(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
-	VMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.sym",TOOMANYARG,runnable,exe);
 	if(!obj)
@@ -939,46 +940,46 @@ void SYS_sym(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_byts(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
-	VMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.byts",TOOMANYARG,runnable,exe);
 	if(!obj)
 		RAISE_BUILTIN_ERROR("sys.byts",TOOFEWARG,runnable,exe);
-	VMvalue* retval=fklNewVMvalue(BYTS,fklNewEmptyVMByts(),exe->heap);
+	FklVMvalue* retval=fklNewVMvalue(BYTS,fklNewEmptyVMByts(),exe->heap);
 	if(IS_IN32(obj))
 	{
-		retval->u.byts=(VMByts*)realloc(retval->u.byts,sizeof(VMByts)+sizeof(int32_t));
+		retval->u.byts=(FklVMByts*)realloc(retval->u.byts,sizeof(FklVMByts)+sizeof(int32_t));
 		FAKE_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
 		retval->u.byts->size=sizeof(int32_t);
 		*(int32_t*)retval->u.byts->str=GET_IN32(obj);
 	}
 	else if(IS_DBL(obj))
 	{
-		retval->u.byts=(VMByts*)realloc(retval->u.byts,sizeof(VMByts)+sizeof(double));
+		retval->u.byts=(FklVMByts*)realloc(retval->u.byts,sizeof(FklVMByts)+sizeof(double));
 		FAKE_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
 		retval->u.byts->size=sizeof(double);
 		*(double*)retval->u.byts->str=*obj->u.dbl;
 	}
 	else if(IS_CHR(obj))
 	{
-		retval->u.byts=(VMByts*)realloc(retval->u.byts,sizeof(VMByts)+sizeof(char));
+		retval->u.byts=(FklVMByts*)realloc(retval->u.byts,sizeof(FklVMByts)+sizeof(char));
 		FAKE_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
 		retval->u.byts->size=sizeof(char);
 		*(char*)retval->u.byts->str=GET_CHR(obj);
 	}
 	else if(IS_SYM(obj))
 	{
-		SymTabNode* n=fklGetGlobSymbolWithId(GET_SYM(obj));
-		retval->u.byts=(VMByts*)realloc(retval->u.byts,sizeof(VMByts)+strlen(n->symbol));
+		FklSymTabNode* n=fklGetGlobSymbolWithId(GET_SYM(obj));
+		retval->u.byts=(FklVMByts*)realloc(retval->u.byts,sizeof(FklVMByts)+strlen(n->symbol));
 		FAKE_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
 		retval->u.byts->size=strlen(n->symbol);
 		memcpy(retval->u.byts->str,n->symbol,retval->u.byts->size);
 	}
 	else if(IS_STR(obj))
 	{
-		retval->u.byts=(VMByts*)realloc(retval->u.byts,sizeof(VMByts)+strlen(obj->u.str)+1);
+		retval->u.byts=(FklVMByts*)realloc(retval->u.byts,sizeof(FklVMByts)+strlen(obj->u.str)+1);
 		FAKE_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
 		retval->u.byts->size=strlen(obj->u.str);
 		memcpy(retval->u.byts->str,obj->u.str,retval->u.byts->size);
@@ -992,7 +993,7 @@ void SYS_byts(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_type(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	static Sid_t a[19];
+	static FklSid_t a[19];
 	static int hasInit=0;
 	if(!hasInit)
 	{
@@ -1023,9 +1024,9 @@ void SYS_type(FklVM* exe,pthread_rwlock_t* gclock)
 		for(;i<ATM;i++)
 			a[i]=fklAddSymbolToGlob(b[i])->id;
 	}
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
-	VMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.type",TOOMANYARG,runnable,exe);
 	size_t type=0;
@@ -1045,22 +1046,22 @@ void SYS_type(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_nth(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	VMheap* heap=exe->heap;
-	VMvalue* place=fklGET_VAL(fklPopVMstack(stack),heap);
-	VMvalue* objlist=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* place=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* objlist=fklGET_VAL(fklPopVMstack(stack),heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.nth",TOOMANYARG,runnable,exe);
 	if(!place||!objlist)
 		RAISE_BUILTIN_ERROR("sys.nth",TOOFEWARG,runnable,exe);
 	if(!IS_IN32(place)&&!IS_IN64(place))
 		RAISE_BUILTIN_ERROR("sys.nth",WRONGARG,runnable,exe);
-	VMvalue* retval=NULL;
+	FklVMvalue* retval=NULL;
 	ssize_t index=IS_IN32(place)?GET_IN32(place):*place->u.in64;
 	if(objlist==VM_NIL||IS_PAIR(objlist))
 	{
-		VMvalue* objPair=objlist;
+		FklVMvalue* objPair=objlist;
 		int i=0;
 		for(;i<index&&IS_PAIR(objPair);i++,objPair=fklGetVMpairCdr(objPair));
 		retval=(IS_PAIR(objPair))?MAKE_VM_REF(&objPair->u.pair->car):VM_NIL;
@@ -1076,9 +1077,9 @@ void SYS_nth(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_length(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
-	VMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.length",TOOMANYARG,runnable,exe);
 	if(!obj)
@@ -1099,11 +1100,11 @@ void SYS_length(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_file(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	VMheap* heap=exe->heap;
-	VMvalue* filename=fklGET_VAL(fklPopVMstack(stack),exe->heap);
-	VMvalue* mode=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	FklVMvalue* filename=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	FklVMvalue* mode=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.file",TOOMANYARG,runnable,exe);
 	if(!mode||!filename)
@@ -1111,7 +1112,7 @@ void SYS_file(FklVM* exe,pthread_rwlock_t* gclock)
 	if(!IS_STR(filename)||!IS_STR(mode))
 		RAISE_BUILTIN_ERROR("sys.file",WRONGARG,runnable,exe);
 	FILE* file=fopen(filename->u.str,mode->u.str);
-	VMvalue* obj=NULL;
+	FklVMvalue* obj=NULL;
 	if(!file)
 	{
 		SET_RETURN("SYS_file",filename,stack);
@@ -1124,9 +1125,9 @@ void SYS_file(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_read(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
-	VMvalue* stream=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMvalue* stream=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.read",TOOMANYARG,runnable,exe);
 	if(stream&&!IS_FP(stream)&&!IS_STR(stream))
@@ -1149,9 +1150,9 @@ void SYS_read(FklVM* exe,pthread_rwlock_t* gclock)
 	}
 	else
 		tmpString=fklCopyStr(stream->u.str);
-	Intpr* tmpIntpr=fklNewTmpIntpr(NULL,tmpFile);
+	FklIntpr* tmpIntpr=fklNewTmpIntpr(NULL,tmpFile);
 	FklAstCptr* tmpCptr=fklBaseCreateTree(tmpString,tmpIntpr);
-	VMvalue* tmp=NULL;
+	FklVMvalue* tmp=NULL;
 	if(tmpCptr==NULL)
 		tmp=VM_NIL;
 	else
@@ -1165,11 +1166,11 @@ void SYS_read(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_getb(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	VMheap* heap=exe->heap;
-	VMvalue* size=fklGET_VAL(fklPopVMstack(stack),heap);
-	VMvalue* file=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* size=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* file=fklGET_VAL(fklPopVMstack(stack),heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.getb",TOOMANYARG,runnable,exe);
 	if(!file||!size)
@@ -1190,8 +1191,8 @@ void SYS_getb(FklVM* exe,pthread_rwlock_t* gclock)
 	{
 		str=(uint8_t*)realloc(str,sizeof(uint8_t)*realRead);
 		FAKE_ASSERT(str,"B_getb",__FILE__,__LINE__);
-		VMvalue* tmpByts=fklNewVMvalue(BYTS,NULL,exe->heap);
-		tmpByts->u.byts=(VMByts*)malloc(sizeof(VMByts)+GET_IN32(size));
+		FklVMvalue* tmpByts=fklNewVMvalue(BYTS,NULL,exe->heap);
+		tmpByts->u.byts=(FklVMByts*)malloc(sizeof(FklVMByts)+GET_IN32(size));
 		FAKE_ASSERT(tmpByts->u.byts,"SYS_getb",__FILE__,__LINE__);
 		tmpByts->u.byts->size=GET_IN32(size);
 		memcpy(tmpByts->u.byts->str,str,GET_IN32(size));
@@ -1202,11 +1203,11 @@ void SYS_getb(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_prin1(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	VMheap* heap=exe->heap;
-	VMvalue* obj=fklGET_VAL(fklPopVMstack(stack),heap);
-	VMvalue* file=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* obj=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* file=fklGET_VAL(fklPopVMstack(stack),heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.prin1",TOOMANYARG,runnable,exe);
 	if(!obj)
@@ -1220,11 +1221,11 @@ void SYS_prin1(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_putb(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	VMheap* heap=exe->heap;
-	VMvalue* bt=fklGET_VAL(fklPopVMstack(stack),heap);
-	VMvalue* file=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* bt=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* file=fklGET_VAL(fklPopVMstack(stack),heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.putb",TOOMANYARG,runnable,exe);
 	if(!file||!bt)
@@ -1238,11 +1239,11 @@ void SYS_putb(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_princ(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	VMheap* heap=exe->heap;
-	VMvalue* obj=fklGET_VAL(fklPopVMstack(stack),heap);
-	VMvalue* file=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* obj=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* file=fklGET_VAL(fklPopVMstack(stack),heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.princ",TOOMANYARG,runnable,exe);
 	if(!obj)
@@ -1256,9 +1257,9 @@ void SYS_princ(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_dll(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
-	VMvalue* dllName=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMvalue* dllName=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.dll",TOOMANYARG,runnable,exe);
 	if(!dllName)
@@ -1276,11 +1277,11 @@ void SYS_dll(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_dlsym(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	VMheap* heap=exe->heap;
-	VMvalue* dll=fklGET_VAL(fklPopVMstack(stack),heap);
-	VMvalue* symbol=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* dll=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* symbol=fklGET_VAL(fklPopVMstack(stack),heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.dlsym",TOOMANYARG,runnable,exe);
 	if(!dll||!symbol)
@@ -1292,29 +1293,29 @@ void SYS_dlsym(FklVM* exe,pthread_rwlock_t* gclock)
 	char* realDlFuncName=(char*)malloc(sizeof(char)*len);
 	FAKE_ASSERT(realDlFuncName,"B_dlsym",__FILE__,__LINE__);
 	sprintf(realDlFuncName,"%s%s",prefix,symbol->u.str);
-	DllFunc funcAddress=fklGetAddress(realDlFuncName,dll->u.dll);
+	FklDllFunc funcAddress=fklGetAddress(realDlFuncName,dll->u.dll);
 	if(!funcAddress)
 	{
 		free(realDlFuncName);
 		RAISE_BUILTIN_ERROR("sys.dlsym",INVALIDSYMBOL,runnable,exe);
 	}
 	free(realDlFuncName);
-	VMDlproc* dlproc=fklNewVMDlproc(funcAddress,dll);
+	FklVMDlproc* dlproc=fklNewVMDlproc(funcAddress,dll);
 	SET_RETURN("SYS_dlsym",fklNewVMvalue(DLPROC,dlproc,heap),stack);
 }
 
 void SYS_argv(FklVM* exe,pthread_rwlock_t* pGClock)
 {
-	VMstack* stack=exe->stack;
-	VMvalue* retval=NULL;
+	FklVMstack* stack=exe->stack;
+	FklVMvalue* retval=NULL;
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.argv",TOOMANYARG,fklTopComStack(exe->rstack),exe);
 	retval=VM_NIL;
-	VMvalue** tmp=&retval;
+	FklVMvalue** tmp=&retval;
 	int32_t i=0;
 	for(;i<exe->argc;i++,tmp=&(*tmp)->u.pair->cdr)
 	{
-		VMvalue* cur=fklNewVMvalue(PAIR,fklNewVMpair(),exe->heap);
+		FklVMvalue* cur=fklNewVMvalue(PAIR,fklNewVMpair(),exe->heap);
 		*tmp=cur;
 		cur->u.pair->car=fklNewVMvalue(STR,fklCopyStr(exe->argv[i]),exe->heap);
 	}
@@ -1323,12 +1324,12 @@ void SYS_argv(FklVM* exe,pthread_rwlock_t* pGClock)
 
 void SYS_go(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	VMheap* heap=exe->heap;
 	if(exe->VMid==-1)
 		RAISE_BUILTIN_ERROR("sys.go",CANTCREATETHREAD,runnable,exe);
-	VMvalue* threadProc=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* threadProc=fklGET_VAL(fklPopVMstack(stack),heap);
 	if(!threadProc)
 		RAISE_BUILTIN_ERROR("sys.go",TOOFEWARG,runnable,exe);
 	if(!IS_PRC(threadProc)&&!IS_DLPROC(threadProc)&&!IS_CONT(threadProc)&&!IS_FLPROC(threadProc))
@@ -1337,22 +1338,22 @@ void SYS_go(FklVM* exe,pthread_rwlock_t* gclock)
 	threadVM->lnt=exe->lnt;
 	threadVM->code=exe->code;
 	threadVM->size=exe->size;
-	VMstack* threadVMstack=threadVM->stack;
-	VMvalue* prevBp=MAKE_VM_IN32(threadVMstack->bp);
+	FklVMstack* threadVMstack=threadVM->stack;
+	FklVMvalue* prevBp=MAKE_VM_IN32(threadVMstack->bp);
 	SET_RETURN("SYS_go",prevBp,threadVMstack);
 	threadVMstack->bp=threadVMstack->tp;
-	VMvalue* cur=fklGET_VAL(fklPopVMstack(stack),heap);
-	ComStack* comStack=fklNewComStack(32);
+	FklVMvalue* cur=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklComStack* comStack=fklNewComStack(32);
 	for(;cur;cur=fklGET_VAL(fklPopVMstack(stack),heap))
 		fklPushComStack(cur,comStack);
 	fklResBp(stack);
 	while(!fklIsComStackEmpty(comStack))
 	{
-		VMvalue* tmp=fklPopComStack(comStack);
+		FklVMvalue* tmp=fklPopComStack(comStack);
 		SET_RETURN("SYS_go",tmp,threadVMstack);
 	}
 	fklFreeComStack(comStack);
-	VMvalue* chan=threadVM->chan;
+	FklVMvalue* chan=threadVM->chan;
 	int32_t faildCode=0;
 	if(IS_PRC(threadProc))
 		faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMFunc,threadVM);
@@ -1387,9 +1388,9 @@ void SYS_go(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_chanl(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
-	VMvalue* maxSize=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMvalue* maxSize=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.chanl",TOOMANYARG,runnable,exe);
 	if(!maxSize)
@@ -1401,45 +1402,45 @@ void SYS_chanl(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_send(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	VMheap* heap=exe->heap;
-	VMvalue* message=fklGET_VAL(fklPopVMstack(stack),heap);
-	VMvalue* ch=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* message=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* ch=fklGET_VAL(fklPopVMstack(stack),heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.send",TOOMANYARG,runnable,exe);
 	if(!message||!ch)
 		RAISE_BUILTIN_ERROR("sys.send",TOOFEWARG,runnable,exe);
 	if(!IS_CHAN(ch))
 		RAISE_BUILTIN_ERROR("sys.send",WRONGARG,runnable,exe);
-	SendT* t=fklNewSendT(message);
+	FklSendT* t=fklNewSendT(message);
 	fklChanlSend(t,ch->u.chan);
 	SET_RETURN("SYS_send",message,stack);
 }
 
 void SYS_recv(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
-	VMvalue* ch=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMvalue* ch=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.recv",TOOMANYARG,runnable,exe);
 	if(!ch)
 		RAISE_BUILTIN_ERROR("sys.recv",TOOFEWARG,runnable,exe);
 	if(!IS_CHAN(ch))
 		RAISE_BUILTIN_ERROR("sys.recv",WRONGARG,runnable,exe);
-	RecvT* t=fklNewRecvT(exe);
+	FklRecvT* t=fklNewRecvT(exe);
 	fklChanlRecv(t,ch->u.chan);
 }
 
 void SYS_error(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	VMheap* heap=exe->heap;
-	VMvalue* who=fklGET_VAL(fklPopVMstack(stack),heap);
-	VMvalue* type=fklGET_VAL(fklPopVMstack(stack),heap);
-	VMvalue* message=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* who=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* type=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* message=fklGET_VAL(fklPopVMstack(stack),heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.error",TOOMANYARG,runnable,exe);
 	if(!type||!message)
@@ -1451,9 +1452,9 @@ void SYS_error(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_raise(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
-	VMvalue* err=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMvalue* err=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.raise",TOOMANYARG,runnable,exe);
 	if(!err)
@@ -1465,28 +1466,28 @@ void SYS_raise(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_clcc(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
-	VMvalue* proc=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMvalue* proc=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.clcc",TOOMANYARG,runnable,exe);
 	if(!proc)
 		RAISE_BUILTIN_ERROR("sys.clcc",TOOFEWARG,runnable,exe);
 	if(!IS_PTR(proc)||(proc->type!=PRC&&proc->type!=CONT&&proc->type!=DLPROC))
 		RAISE_BUILTIN_ERROR("sys.clcc",INVOKEERROR,runnable,exe);
-	VMvalue* cc=fklNewVMvalue(CONT,fklNewVMcontinuation(stack,exe->rstack,exe->tstack),exe->heap);
+	FklVMvalue* cc=fklNewVMvalue(CONT,fklNewVMcontinuation(stack,exe->rstack,exe->tstack),exe->heap);
 	SET_RETURN("SYS_clcc",MAKE_VM_IN32(stack->bp),stack);
 	stack->bp=stack->tp;
 	SET_RETURN("SYS_clcc",cc,stack);
 	if(proc->type==PRC)
 	{
-		VMproc* tmpProc=proc->u.prc;
-		VMrunnable* prevProc=fklHasSameProc(tmpProc->scp,exe->rstack);
+		FklVMproc* tmpProc=proc->u.prc;
+		FklVMrunnable* prevProc=fklHasSameProc(tmpProc->scp,exe->rstack);
 		if(fklIsTheLastExpress(runnable,prevProc,exe)&&prevProc)
 			prevProc->mark=1;
 		else
 		{
-			VMrunnable* tmpRunnable=fklNewVMrunnable(tmpProc);
+			FklVMrunnable* tmpRunnable=fklNewVMrunnable(tmpProc);
 			tmpRunnable->localenv=fklNewVMenv(tmpProc->prevEnv);
 			fklPushComStack(tmpRunnable,exe->rstack);
 		}
@@ -1498,24 +1499,24 @@ void SYS_clcc(FklVM* exe,pthread_rwlock_t* gclock)
 	}
 	else
 	{
-		DllFunc dllfunc=proc->u.dlproc->func;
+		FklDllFunc dllfunc=proc->u.dlproc->func;
 		dllfunc(exe,gclock);
 	}
 }
 
 void SYS_apply(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
 	VMheap* heap=exe->heap;
-	VMvalue* proc=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* proc=fklGET_VAL(fklPopVMstack(stack),heap);
 	if(!proc)
 		RAISE_BUILTIN_ERROR("sys.apply",TOOFEWARG,runnable,exe);
 	if(!IS_PTR(proc)||(proc->type!=PRC&&proc->type!=CONT&&proc->type!=DLPROC&&proc->type!=FLPROC))
 		RAISE_BUILTIN_ERROR("b.invoke",INVOKEERROR,runnable,exe);
-	ComStack* stack1=fklNewComStack(32);
-	VMvalue* value=NULL;
-	VMvalue* lastList=NULL;
+	FklComStack* stack1=fklNewComStack(32);
+	FklVMvalue* value=NULL;
+	FklVMvalue* lastList=NULL;
 	while((value=fklGET_VAL(fklPopVMstack(stack),heap)))
 	{
 		if(!fklResBp(stack))
@@ -1525,7 +1526,7 @@ void SYS_apply(FklVM* exe,pthread_rwlock_t* gclock)
 		}
 		fklPushComStack(value,stack1);
 	}
-	ComStack* stack2=fklNewComStack(32);
+	FklComStack* stack2=fklNewComStack(32);
 	if(!IS_PAIR(lastList)&&lastList!=VM_NIL)
 	{
 		fklFreeComStack(stack1);
@@ -1544,13 +1545,13 @@ void SYS_apply(FklVM* exe,pthread_rwlock_t* gclock)
 	stack->bp=stack->tp;
 	while(!fklIsComStackEmpty(stack2))
 	{
-		VMvalue* t=fklPopComStack(stack2);
+		FklVMvalue* t=fklPopComStack(stack2);
 		SET_RETURN("SYS_apply",t,stack);
 	}
 	fklFreeComStack(stack2);
 	while(!fklIsComStackEmpty(stack1))
 	{
-		VMvalue* t=fklPopComStack(stack1);
+		FklVMvalue* t=fklPopComStack(stack1);
 		SET_RETURN("SYS_apply",t,stack);
 	}
 	fklFreeComStack(stack1);
@@ -1574,9 +1575,9 @@ void SYS_apply(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_newf(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* r=fklTopComStack(exe->rstack);
-	VMvalue* vsize=fklPopVMstack(stack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* r=fklTopComStack(exe->rstack);
+	FklVMvalue* vsize=fklPopVMstack(stack);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.newf",TOOMANYARG,r,exe);
 	if(!vsize)
@@ -1586,22 +1587,22 @@ void SYS_newf(FklVM* exe,pthread_rwlock_t* gclock)
 	size_t size=IS_IN32(vsize)?GET_IN32(vsize):*vsize->u.in64;
 	uint8_t* mem=(uint8_t*)malloc(size);
 	FAKE_ASSERT(mem,"SYS_newf",__FILE__,__LINE__);
-	VMvalue* retval=MAKE_VM_MEM(fklNewVMMem(0,mem),exe->heap);
+	FklVMvalue* retval=MAKE_VM_MEM(fklNewVMMem(0,mem),exe->heap);
 	SET_RETURN("SYS_newf",retval,stack);
 }
 
 void SYS_delf(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* r=fklTopComStack(exe->rstack);
-	VMvalue* mem=fklPopVMstack(stack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* r=fklTopComStack(exe->rstack);
+	FklVMvalue* mem=fklPopVMstack(stack);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.delf",TOOMANYARG,r,exe);
 	if(!mem)
 		RAISE_BUILTIN_ERROR("sys.delf",TOOFEWARG,r,exe);
 	if(!IS_MEM(mem))
 		RAISE_BUILTIN_ERROR("sys.delf",WRONGARG,r,exe);
-	VMMem* pmem=mem->u.chf;
+	FklVMMem* pmem=mem->u.chf;
 	uint8_t* p=pmem->mem;
 	free(p);
 	pmem->mem=NULL;
@@ -1609,9 +1610,9 @@ void SYS_delf(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_lfdl(FklVM* exe,pthread_rwlock_t* gclock)
 {
-	VMstack* stack=exe->stack;
-	VMrunnable* r=fklTopComStack(exe->rstack);
-	VMvalue* vpath=fklPopVMstack(stack);
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* r=fklTopComStack(exe->rstack);
+	FklVMvalue* vpath=fklPopVMstack(stack);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.lfdl",TOOMANYARG,r,exe);
 	if(exe->VMid==-1)

@@ -118,9 +118,9 @@ typedef enum
 
 #ifdef _WIN32
 #include<windows.h>
-typedef HMODULE DllHandle;
+typedef HMODULE FklDllHandle;
 #else
-typedef void* DllHandle;
+typedef void* FklDllHandle;
 #endif
 
 typedef void (*FklGenDestructor)(void*);
@@ -345,7 +345,7 @@ typedef struct FklVMvalue
 		struct FklVMMem* chf;
 		struct FklVMByts* byts;
 		struct FklVMproc* prc;
-		DllHandle dll;
+		FklDllHandle dll;
 		struct FklVMDlproc* dlproc;
 		struct FklVMFlproc* flproc;
 		struct FklVMContinuation* cont;

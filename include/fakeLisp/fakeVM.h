@@ -5,7 +5,7 @@
 
 typedef struct FklSharedObjNode
 {
-	DllHandle dll;
+	FklDllHandle dll;
 	struct FklSharedObjNode* next;
 }FklSharedObjNode;
 

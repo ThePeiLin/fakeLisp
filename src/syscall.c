@@ -1266,7 +1266,7 @@ void SYS_dll(FklVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.dll",TOOFEWARG,runnable,exe);
 	if(!IS_STR(dllName))
 		RAISE_BUILTIN_ERROR("sys.dll",WRONGARG,runnable,exe);
-	DllHandle* dll=fklNewVMDll(dllName->u.str);
+	FklDllHandle* dll=fklNewVMDll(dllName->u.str);
 	if(!dll)
 	{
 		SET_RETURN("SYS_dll",dllName,stack);
@@ -1623,7 +1623,7 @@ void SYS_lfdl(FklVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.lfdl",WRONGARG,r,exe);
 	const char* path=vpath->u.str;
 #ifdef _WIN32
-	DllHandle handle=LoadLibrary(path);
+	FklDllHandle handle=LoadLibrary(path);
 	if(!handle)
 	{
 		TCHAR szBuf[128];
@@ -1643,7 +1643,7 @@ void SYS_lfdl(FklVM* exe,pthread_rwlock_t* gclock)
 		fprintf(stderr,"%s\n",szBuf);
 	}
 #else
-	DllHandle handle=dlopen(path,RTLD_LAZY);
+	FklDllHandle handle=dlopen(path,RTLD_LAZY);
 	if(!handle)
 	{
 		perror(dlerror());

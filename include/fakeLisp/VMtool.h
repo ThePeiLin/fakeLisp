@@ -154,9 +154,9 @@ void fklFreeVMcontinuation(VMcontinuation*);
 
 void fklFreeVMfp(FILE*);
 
-DllHandle* fklNewVMDll(const char*);
-void* fklGetAddress(const char*,DllHandle);
-void fklFreeVMDll(DllHandle*);
+FklDllHandle* fklNewVMDll(const char*);
+void* fklGetAddress(const char*,FklDllHandle);
+void fklFreeVMDll(FklDllHandle*);
 
 FklVMDlproc* fklNewVMDlproc(FklDllFunc,FklVMvalue*);
 void fklFreeVMDlproc(FklVMDlproc*);

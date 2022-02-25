@@ -1407,7 +1407,7 @@ void fklFreeVMfp(FILE* fp)
 		fclose(fp);
 }
 
-DllHandle* fklNewVMDll(const char* dllName)
+FklDllHandle* fklNewVMDll(const char* dllName)
 {
 #ifdef _WIN32
 	char filetype[]=".dll";
@@ -1430,7 +1430,7 @@ DllHandle* fklNewVMDll(const char* dllName)
 		return NULL;
 	}
 #ifdef _WIN32
-	DllHandle handle=LoadLibrary(rpath);
+	FklDllHandle handle=LoadLibrary(rpath);
 	if(!handle)
 	{
 		TCHAR szBuf[128];
@@ -1453,7 +1453,7 @@ DllHandle* fklNewVMDll(const char* dllName)
 		return NULL;
 	}
 #else
-	DllHandle handle=dlopen(rpath,RTLD_LAZY);
+	FklDllHandle handle=dlopen(rpath,RTLD_LAZY);
 	if(!handle)
 	{
 		perror(dlerror());
@@ -1468,7 +1468,7 @@ DllHandle* fklNewVMDll(const char* dllName)
 	return handle;
 }
 
-void fklFreeVMDll(DllHandle* dll)
+void fklFreeVMDll(FklDllHandle* dll)
 {
 	if(dll)
 	{
@@ -1480,7 +1480,7 @@ void fklFreeVMDll(DllHandle* dll)
 	}
 }
 
-void* fklGetAddress(const char* funcname,DllHandle dlhandle)
+void* fklGetAddress(const char* funcname,FklDllHandle dlhandle)
 {
 	void* pfunc=NULL;
 #ifdef _WIN32

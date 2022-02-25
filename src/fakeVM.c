@@ -1275,7 +1275,7 @@ void B_load_shared_obj(FklVM* exe)
 	unsigned int len=strlen((char*)(exe->code+r->cp+1));
 	char* str=fklCopyStr((char*)(exe->code+r->cp+1));
 #ifdef _WIN32
-	DllHandle handle=LoadLibrary(str);
+	FklDllHandle handle=LoadLibrary(str);
 	if(!handle)
 	{
 		TCHAR szBuf[128];
@@ -1295,7 +1295,7 @@ void B_load_shared_obj(FklVM* exe)
 		fprintf(stderr,"%s\n",szBuf);
 	}
 #else
-	DllHandle handle=dlopen(str,RTLD_LAZY);
+	FklDllHandle handle=dlopen(str,RTLD_LAZY);
 	if(!handle)
 	{
 		perror(dlerror());

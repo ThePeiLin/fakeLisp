@@ -404,7 +404,7 @@ AST_cptr* fklCreateTree(const char* objStr,Intpr* inter,StringMatchPattern* patt
 						{
 							atom=fklNewAtom(IN32,NULL,root->outer);
 							int64_t num=fklStringToInt(str);
-							if(num>=INT32_MAX||num<=INT32_MIN)
+							if(num>INT32_MAX||num<INT32_MIN)
 							{
 								atom->type=IN64;
 								atom->value.in64=num;

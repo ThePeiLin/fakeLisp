@@ -308,7 +308,7 @@ void SYS_add(FakeVM* exe,pthread_rwlock_t* gclock)
 	}
 	else
 	{
-		if(r64>=INT32_MAX||r64<=INT32_MIN)
+		if(r64>INT32_MAX||r64<INT32_MIN)
 			SET_RETURN("SYS_add",fklNewVMvalue(IN64,&r64,exe->heap),stack);
 		else
 			SET_RETURN("SYS_add",MAKE_VM_IN32(r64),stack);
@@ -394,7 +394,7 @@ void SYS_sub(FakeVM* exe,pthread_rwlock_t* gclock)
 		else
 		{
 			r64=(IS_IN64(prev))?*prev->u.in64:GET_IN32(prev)-r64;
-			if(r64>=INT32_MAX||r64<=INT32_MIN)
+			if(r64>INT32_MAX||r64<INT32_MIN)
 				SET_RETURN("SYS_sub",fklNewVMvalue(IN64,&r64,exe->heap),stack);
 			else
 				SET_RETURN("SYS_sub",MAKE_VM_IN32(r64),stack);
@@ -454,7 +454,7 @@ void SYS_mul(FakeVM* exe,pthread_rwlock_t* gclock)
 	}
 	else
 	{
-		if(r64>=INT32_MAX||r64<=INT32_MIN)
+		if(r64>INT32_MAX||r64<INT32_MIN)
 			SET_RETURN("SYS_mul",fklNewVMvalue(IN64,&r64,exe->heap),stack);
 		else
 			SET_RETURN("SYS_mul",MAKE_VM_IN32(r64),stack);
@@ -548,7 +548,7 @@ void SYS_div(FakeVM* exe,pthread_rwlock_t* gclock)
 			else
 			{
 				r64=GET_IN32(prev)/r64;
-				if(r64>=INT32_MAX||r64<=INT32_MIN)
+				if(r64>INT32_MAX||r64<INT32_MIN)
 					SET_RETURN("SYS_div",fklNewVMvalue(IN64,&r64,exe->heap),stack);
 				else
 					SET_RETURN("SYS_div",MAKE_VM_IN32(r64),stack);
@@ -794,7 +794,7 @@ void SYS_int(FakeVM* exe,pthread_rwlock_t* gclock)
 	else if(IS_DBL(obj))
 	{
 		int64_t r=(int64_t)*obj->u.dbl;
-		if(r>=INT32_MAX||r<=INT32_MIN)
+		if(r>INT32_MAX||r<INT32_MIN)
 			SET_RETURN("SYS_int",fklNewVMvalue(IN64,&r,exe->heap),stack);
 		else
 			SET_RETURN("SYS_int",MAKE_VM_IN32((int32_t)r),stack);
@@ -802,7 +802,7 @@ void SYS_int(FakeVM* exe,pthread_rwlock_t* gclock)
 	else if(IS_STR(obj))
 	{
 		int64_t r=fklStringToInt(obj->u.str);
-		if(r>=INT32_MAX)
+		if(r>INT32_MAX||r<INT32_MIN)
 			SET_RETURN("SYS_int",fklNewVMvalue(IN64,&r,exe->heap),stack);
 		else
 			SET_RETURN("SYS_int",MAKE_VM_IN32(r),stack);

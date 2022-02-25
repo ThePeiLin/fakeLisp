@@ -844,7 +844,7 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,VMheap* heap)
 						tmp->u.flproc=pValue;break;
 					case FKL_ERR:
 						tmp->u.err=pValue;break;
-					case CHF:
+					case FKL_CHF:
 						tmp->u.chf=pValue;break;
 					case FKL_MEM:
 						tmp->u.chf=pValue;break;
@@ -1893,7 +1893,7 @@ void fklPrincVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 						fprintf(fp,"%s",objValue->u.str);
 						break;
 					case FKL_MEM:
-					case CHF:
+					case FKL_CHF:
 						{
 							FklVMMem* mem=objValue->u.chf;
 							FklTypeId_t type=mem->type;
@@ -2024,7 +2024,7 @@ void fklPrin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 						fklPrintRawString(objValue->u.str,fp);
 						break;
 					case FKL_MEM:
-					case CHF:
+					case FKL_CHF:
 						{
 							FklVMMem* mem=objValue->u.chf;
 							FklTypeId_t type=mem->type;

@@ -80,7 +80,7 @@ typedef enum{NIL=0,
 	FKL_FLPROC,
 	FKL_ERR,
 	FKL_MEM,
-	CHF,
+	FKL_CHF,
 	PAIR,
 	ATM,
 }FklValueType;

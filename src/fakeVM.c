@@ -1602,7 +1602,7 @@ void fklGC_sweep(VMheap* heap)
 					fklFreeVMerror(prev->u.err);
 					break;
 				case FKL_MEM:
-				case CHF:
+				case FKL_CHF:
 					free(prev->u.chf);
 					break;
 			}

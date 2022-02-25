@@ -520,7 +520,7 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 								tmpAtm->type=FKL_SYM;
 								tmpAtm->value.str=fklCopyStr("#<mem>");
 								break;
-							case CHF:
+							case FKL_CHF:
 								tmpAtm->type=FKL_SYM;
 								tmpAtm->value.str=fklCopyStr("#<ref>");
 								break;

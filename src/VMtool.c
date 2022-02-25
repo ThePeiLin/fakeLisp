@@ -744,7 +744,7 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,VMheap* heap)
 						case FKL_FP:
 						case FKL_DLL:
 						case FKL_DLPROC:
-						case ERR:
+						case FKL_ERR:
 							*root1=root;
 							break;
 						case FKL_CHAN:
@@ -842,7 +842,7 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,VMheap* heap)
 						tmp->u.dlproc=pValue;break;
 					case FKL_FLPROC:
 						tmp->u.flproc=pValue;break;
-					case ERR:
+					case FKL_ERR:
 						tmp->u.err=pValue;break;
 					case CHF:
 						tmp->u.chf=pValue;break;
@@ -1965,7 +1965,7 @@ void fklPrincVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 					case FKL_FLPROC:
 						fprintf(fp,"<#flproc>");
 						break;
-					case ERR:
+					case FKL_ERR:
 						fprintf(fp,"%s",objValue->u.err->message);
 						break;
 					default:
@@ -2096,7 +2096,7 @@ void fklPrin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 					case FKL_FLPROC:
 						fprintf(fp,"<#flproc>");
 						break;
-					case ERR:
+					case FKL_ERR:
 						fprintf(fp,"<#err w:%s t:%s m:%s>",objValue->u.err->who,fklGetGlobSymbolWithId(objValue->u.err->type)->symbol,objValue->u.err->message);
 						break;
 					default:fprintf(fp,"Bad value!");break;

@@ -490,7 +490,7 @@ void* ThreadVMFunc(void* p)
 		char* id=fklIntToString(exe->VMid);
 		threadErrorMessage=fklStrCat(threadErrorMessage,id);
 		threadErrorMessage=fklStrCat(threadErrorMessage,"\n");
-		FklVMvalue* err=fklNewVMvalue(ERR,fklNewVMerror(NULL,builtInErrorType[THREADERROR],threadErrorMessage),exe->heap);
+		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerror(NULL,builtInErrorType[THREADERROR],threadErrorMessage),exe->heap);
 		free(threadErrorMessage);
 		free(id);
 		FklSendT* t=fklNewSendT(err);
@@ -530,7 +530,7 @@ void* ThreadVMDlprocFunc(void* p)
 		char* id=fklIntToString(exe->VMid);
 		threadErrorMessage=fklStrCat(threadErrorMessage,id);
 		threadErrorMessage=fklStrCat(threadErrorMessage,"\n");
-		FklVMvalue* err=fklNewVMvalue(ERR,fklNewVMerror(NULL,builtInErrorType[THREADERROR],threadErrorMessage),exe->heap);
+		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerror(NULL,builtInErrorType[THREADERROR],threadErrorMessage),exe->heap);
 		free(threadErrorMessage);
 		free(id);
 		FklSendT* t=fklNewSendT(err);
@@ -571,7 +571,7 @@ void* ThreadVMFlprocFunc(void* p)
 		char* id=fklIntToString(exe->VMid);
 		threadErrorMessage=fklStrCat(threadErrorMessage,id);
 		threadErrorMessage=fklStrCat(threadErrorMessage,"\n");
-		FklVMvalue* err=fklNewVMvalue(ERR,fklNewVMerror(NULL,builtInErrorType[THREADERROR],threadErrorMessage),exe->heap);
+		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerror(NULL,builtInErrorType[THREADERROR],threadErrorMessage),exe->heap);
 		free(threadErrorMessage);
 		free(id);
 		FklSendT* t=fklNewSendT(err);
@@ -1598,7 +1598,7 @@ void fklGC_sweep(VMheap* heap)
 				case FKL_FLPROC:
 					fklFreeVMFlproc(prev->u.flproc);
 					break;
-				case ERR:
+				case FKL_ERR:
 					fklFreeVMerror(prev->u.err);
 					break;
 				case MEM:

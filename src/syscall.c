@@ -1447,7 +1447,7 @@ void SYS_error(FklVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.error",TOOFEWARG,runnable,exe);
 	if(!IS_SYM(type)||!IS_STR(message)||(!IS_SYM(who)&&!IS_STR(who)))
 		RAISE_BUILTIN_ERROR("sys.error",WRONGARG,runnable,exe);
-	SET_RETURN("SYS_error",fklNewVMvalue(ERR,fklNewVMerrorWithSid((IS_SYM(who))?fklGetGlobSymbolWithId(GET_SYM(who))->symbol:who->u.str,GET_SYM(type),message->u.str),exe->heap),stack);
+	SET_RETURN("SYS_error",fklNewVMvalue(FKL_ERR,fklNewVMerrorWithSid((IS_SYM(who))?fklGetGlobSymbolWithId(GET_SYM(who))->symbol:who->u.str,GET_SYM(type),message->u.str),exe->heap),stack);
 }
 
 void SYS_raise(FklVM* exe,pthread_rwlock_t* gclock)

@@ -27,7 +27,7 @@
 
 #define RAISE_BUILTIN_ERROR(WHO,ERRORTYPE,RUNNABLE,EXE) do{\
 	char* errorMessage=fklGenErrorMessage((ERRORTYPE),(RUNNABLE),(EXE));\
-	FklVMvalue* err=fklNewVMvalue(ERR,fklNewVMerror((WHO),builtInErrorType[(ERRORTYPE)],errorMessage),(EXE)->heap);\
+	FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerror((WHO),builtInErrorType[(ERRORTYPE)],errorMessage),(EXE)->heap);\
 	free(errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
 	return;\
@@ -35,7 +35,7 @@
 
 #define RAISE_BUILTIN_INVALIDSYMBOL_ERROR(WHO,STR,RUNNABLE,EXE) do{\
 	char* errorMessage=fklGenInvalidSymbolErrorMessage((STR),(RUNNABLE),(EXE));\
-	FklVMvalue* err=fklNewVMvalue(ERR,fklNewVMerror((WHO),"invalid-symbol",errorMessage),(EXE)->heap);\
+	FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerror((WHO),"invalid-symbol",errorMessage),(EXE)->heap);\
 	free(errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
 	return;\
@@ -68,7 +68,7 @@
 #define IS_PRC(P) (GET_TAG(P)==PTR_TAG&&(P)->type==FKL_PRC)
 #define IS_DLPROC(P) (GET_TAG(P)==PTR_TAG&&(P)->type==FKL_DLPROC)
 #define IS_FLPROC(P) (GET_TAG(P)==PTR_TAG&&(P)->type==FKL_FLPROC)
-#define IS_ERR(P) (GET_TAG(P)==PTR_TAG&&(P)->type==ERR)
+#define IS_ERR(P) (GET_TAG(P)==PTR_TAG&&(P)->type==FKL_ERR)
 #define IS_CONT(P) (GET_TAG(P)==PTR_TAG&&(P)->type==FKL_CONT)
 #define IS_I32(P) (GET_TAG(P)==FKL_I32_TAG)
 #define IS_CHR(P) (GET_TAG(P)==FKL_CHR_TAG)

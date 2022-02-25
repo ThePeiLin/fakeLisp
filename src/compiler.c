@@ -1470,7 +1470,7 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 		return NULL;
 	}
 	FklVMTypeUnion typeUnion=fklGetVMTypeUnion(type);
-	if(GET_TYPES_TAG(typeUnion.all)!=FUNC_TYPE_TAG)
+	if(GET_TYPES_TAG(typeUnion.all)!=FKL_FUNC_TYPE_TAG)
 	{
 		FklTypeId_t memberType=type;
 		ssize_t offset=0;
@@ -1740,7 +1740,7 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 		{
 			FklVMTypeUnion typeUnion=fklGetVMTypeUnion(memberType);
 			FklDefTypeTag tag=GET_TYPES_TAG(typeUnion.all);
-			if(tag!=FKL_NATIVE_TYPE_TAG&&tag!=FKL_PTR_TYPE_TAG&&tag!=FKL_ARRAY_TYPE_TAG&&tag!=FUNC_TYPE_TAG)
+			if(tag!=FKL_NATIVE_TYPE_TAG&&tag!=FKL_PTR_TYPE_TAG&&tag!=FKL_ARRAY_TYPE_TAG&&tag!=FKL_FUNC_TYPE_TAG)
 			{
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 				fklFreeByteCodelnt(tmp);
@@ -1771,7 +1771,7 @@ FklByteCodelnt* fklCompileFlsym(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr*
 		return NULL;
 	}
 	FklVMTypeUnion typeUnion=fklGetVMTypeUnion(type);
-	if(GET_TYPES_TAG(typeUnion.all)!=FUNC_TYPE_TAG)
+	if(GET_TYPES_TAG(typeUnion.all)!=FKL_FUNC_TYPE_TAG)
 	{
 		state->state=SYNTAXERROR;
 		state->place=objCptr;

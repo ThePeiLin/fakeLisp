@@ -84,7 +84,7 @@
 #define MAKE_PTR_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_PTR_TYPE_TAG))
 #define MAKE_STRUCT_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_STRUCT_TYPE_TAG))
 #define MAKE_UNION_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_UNION_TYPE_TAG))
-#define MAKE_FUNC_TYPE(P) ((void*)(((uintptr_t)(P))|FUNC_TYPE_TAG))
+#define MAKE_FUNC_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_FUNC_TYPE_TAG))
 #define GET_TYPES_PTR(P) ((void*)(((uintptr_t)(P))&PTR_MASK))
 #define GET_TYPES_TAG(P) ((FklDefTypeTag)(((uintptr_t)(P))&TAG_MASK))
 

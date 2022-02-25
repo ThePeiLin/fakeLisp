@@ -4,7 +4,7 @@ enum opcode
 {
 	FAKE_PUSH_NIL=1,
 	FAKE_PUSH_PAIR,//it push an empty pair,
-	FAKE_PUSH_IN32,
+	FAKE_PUSH_I32,
 	FAKE_PUSH_IN64,
 	FAKE_PUSH_CHR,
 	FAKE_PUSH_DBL,
@@ -56,7 +56,7 @@ static codeinfor codeName[]=
 	{"dummy",0},
 	{"push_nil",0},
 	{"push_pair",0},
-	{"push_in32",4},
+	{"push_i32",4},
 	{"push_in64",8},
 	{"push_chr",1},
 	{"push_dbl",8},

@@ -51,10 +51,10 @@ void FAKE_sleep(FklVM* exe,pthread_rwlock_t* pGClock)
 		RAISE_BUILTIN_ERROR("btk.sleep",TOOFEWARG,r,exe);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("btk.sleep",TOOMANYARG,r,exe);
-	if(!IS_IN32(second))
+	if(!IS_I32(second))
 		RAISE_BUILTIN_ERROR("btk.sleep",WRONGARG,r,exe);
 	fklReleaseSource(pGClock);
-	SET_RETURN("FAKE_sleep",MAKE_VM_IN32(sleep(GET_IN32(second))),stack);
+	SET_RETURN("FAKE_sleep",MAKE_VM_I32(sleep(GET_I32(second))),stack);
 	fklLockSource(pGClock);
 	stack->tp+=1;
 }
@@ -68,13 +68,13 @@ void FAKE_usleep(FklVM* exe,pthread_rwlock_t* pGClock)
 		RAISE_BUILTIN_ERROR("btk.usleep",TOOFEWARG,r,exe);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("btk.usleep",TOOMANYARG,r,exe);
-	if(!IS_IN32(second))
+	if(!IS_I32(second))
 		RAISE_BUILTIN_ERROR("btk.usleep",WRONGARG,r,exe);
 	fklReleaseSource(pGClock);
 #ifdef _WIN32
-		Sleep(GET_IN32(second));
+		Sleep(GET_I32(second));
 #else
-		usleep(GET_IN32(second));
+		usleep(GET_I32(second));
 #endif
 	fklLockSource(pGClock);
 	SET_RETURN("FAKE_usleep",second,stack);
@@ -94,9 +94,9 @@ void FAKE_rand(FklVM* exe,pthread_rwlock_t* pGClock)
 	FklVMrunnable* r=fklTopComStack(exe->rstack);
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("btk.rand",TOOMANYARG,r,exe);
-	if(lim&&!IS_IN32(lim))
+	if(lim&&!IS_I32(lim))
 		RAISE_BUILTIN_ERROR("btk.rand",WRONGARG,r,exe);
-	SET_RETURN("FAKE_rand",MAKE_VM_IN32(rand()%((lim==NULL||!IS_IN32(lim))?RAND_MAX:GET_IN32(lim))),stack);
+	SET_RETURN("FAKE_rand",MAKE_VM_I32(rand()%((lim==NULL||!IS_I32(lim))?RAND_MAX:GET_I32(lim))),stack);
 }
 
 void FAKE_getTime(FklVM* exe,pthread_rwlock_t* pGClock)
@@ -138,7 +138,7 @@ void FAKE_removeFile(FklVM* exe,pthread_rwlock_t* pGClock)
 		RAISE_BUILTIN_ERROR("btk.removeFile",TOOMANYARG,r,exe);
 	if(!IS_STR(name))
 		RAISE_BUILTIN_ERROR("btk.removeFile",WRONGARG,r,exe);
-	SET_RETURN("FAKE_removeFile",MAKE_VM_IN32(remove(name->u.str)),stack);
+	SET_RETURN("FAKE_removeFile",MAKE_VM_I32(remove(name->u.str)),stack);
 }
 
 void FAKE_setVMChanlBufferSize(FklVM* exe,pthread_rwlock_t* pGClock)
@@ -151,9 +151,9 @@ void FAKE_setVMChanlBufferSize(FklVM* exe,pthread_rwlock_t* pGClock)
 		RAISE_BUILTIN_ERROR("btk.setVMChanlBufferSize",TOOMANYARG,r,exe);
 	if(size==NULL||chan==NULL)
 		RAISE_BUILTIN_ERROR("btk.setVMChanlBufferSize",TOOFEWARG,r,exe);
-	if(!IS_IN32(size)||!IS_CHAN(chan))
+	if(!IS_I32(size)||!IS_CHAN(chan))
 		RAISE_BUILTIN_ERROR("btk.setVMChanlBufferSize",WRONGARG,r,exe);
-	chan->u.chan->max=GET_IN32(size);
+	chan->u.chan->max=GET_I32(size);
 	SET_RETURN("FAKE_setVMChanlBufferSize",chan,stack);
 }
 

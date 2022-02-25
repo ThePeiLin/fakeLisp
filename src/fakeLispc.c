@@ -17,7 +17,7 @@ int main(int argc,char** argv)
 		return EXIT_FAILURE;
 	}
 	char* filename=argv[1];
-#ifdef WIN32
+#ifdef WFKL_I32
 	InterpreterPath=_fullpath(NULL,argv[0],0);
 #else
 	InterpreterPath=realpath(argv[0],0);

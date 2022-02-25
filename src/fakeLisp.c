@@ -29,7 +29,7 @@ extern struct GlobTypeUnionListElem GlobTypeUnionList;
 int main(int argc,char** argv)
 {
 	char* filename=(argc>1)?argv[1]:"stdin";
-#ifdef WIN32
+#ifdef WFKL_I32
 	InterpreterPath=_fullpath(NULL,argv[0],0);
 #else
 	InterpreterPath=realpath(argv[0],0);

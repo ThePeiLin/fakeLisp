@@ -402,7 +402,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklIntpr* inter,FklStringMatchPatte
 						}
 						else
 						{
-							atom=fklNewAtom(IN32,NULL,root->outer);
+							atom=fklNewAtom(FKL_I32,NULL,root->outer);
 							int64_t num=fklStringToInt(str);
 							if(num>INT32_MAX||num<INT32_MIN)
 							{
@@ -410,7 +410,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklIntpr* inter,FklStringMatchPatte
 								atom->value.in64=num;
 							}
 							else
-								atom->value.in32=num;
+								atom->value.i32=num;
 						}
 						root->u.atom=atom;
 					}
@@ -469,9 +469,9 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 					tmpAtm->type=SYM;
 					tmpAtm->value.str=fklCopyStr(fklGetGlobSymbolWithId(GET_SYM(root))->symbol);
 					break;
-				case IN32_TAG:
-					tmpAtm->type=IN32;
-					tmpAtm->value.in32=GET_IN32(root);
+				case FKL_I32_TAG:
+					tmpAtm->type=FKL_I32;
+					tmpAtm->value.i32=GET_I32(root);
 					break;
 				case CHR_TAG:
 					tmpAtm->type=CHR;

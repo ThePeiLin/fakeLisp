@@ -265,7 +265,7 @@ FklAstAtom* fklNewAtom(int type,const char* value,FklAstPair* prev)
 				tmp->value.str=NULL;
 			break;
 		case CHR:
-		case IN32:
+		case FKL_I32:
 		case DBL:
 			*(int32_t*)(&tmp->value)=0;
 			break;
@@ -317,9 +317,9 @@ int fklCopyCptr(FklAstCptr* objCptr,const FklAstCptr* copiedCptr)
 						atom1->value.byts.size=atom2->value.byts.size;
 						atom1->value.byts.str=fklCopyMemory(atom2->value.byts.str,atom2->value.byts.size);
 						break;
-					case IN32:
+					case FKL_I32:
 						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
-						atom1->value.in32=atom2->value.in32;
+						atom1->value.i32=atom2->value.i32;
 						break;
 					case DBL:
 						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
@@ -446,7 +446,7 @@ int fklFklAstCptrcmp(const FklAstCptr* first,const FklAstCptr* second)
 				FklAstAtom* secAtm=second->u.atom;
 				if(firAtm->type!=secAtm->type)return 0;
 				if((firAtm->type==SYM||firAtm->type==STR)&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
-				else if(firAtm->type==IN32&&firAtm->value.in32!=secAtm->value.in32)return 0;
+				else if(firAtm->type==FKL_I32&&firAtm->value.i32!=secAtm->value.i32)return 0;
 				else if(firAtm->type==DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
 				else if(firAtm->type==CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
 				else if(firAtm->type==BYTS&&!fklEqByteString(&firAtm->value.byts,&secAtm->value.byts))return 0;
@@ -715,8 +715,8 @@ void fklPrintCptr(const FklAstCptr* objCptr,FILE* out)
 					case STR:
 						fklPrintRawString(tmpAtm->value.str,out);
 						break;
-					case IN32:
-						fprintf(out,"%d",tmpAtm->value.in32);
+					case FKL_I32:
+						fprintf(out,"%d",tmpAtm->value.i32);
 						break;
 					case DBL:
 						fprintf(out,"%lf",tmpAtm->value.dbl);
@@ -2008,7 +2008,7 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklIntpr* inter)
 					}
 					else
 					{
-						atom=fklNewAtom(IN32,NULL,root->outer);
+						atom=fklNewAtom(FKL_I32,NULL,root->outer);
 						int64_t num=fklStringToInt(str);
 						if(num>=INT32_MAX||num<=INT32_MIN)
 						{
@@ -2016,7 +2016,7 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklIntpr* inter)
 							atom->value.in64=num;
 						}
 						else
-							atom->value.in32=num;
+							atom->value.i32=num;
 					}
 					root->u.atom=atom;
 				}

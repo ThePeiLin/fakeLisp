@@ -13,7 +13,7 @@ typedef enum
 {
 	PTR_TAG=0,
 	NIL_TAG,
-	IN32_TAG,
+	FKL_I32_TAG,
 	SYM_TAG,
 	CHR_TAG,
 	REF_TAG,
@@ -64,7 +64,7 @@ typedef struct FklVMDefTypes
 }FklVMDefTypes;
 
 typedef enum{NIL=0,
-	IN32,
+	FKL_I32,
 	CHR,
 	DBL,
 	IN64,
@@ -226,7 +226,7 @@ typedef struct FklAstAtom
 	{
 		char* str;
 		char chr;
-		int32_t in32;
+		int32_t i32;
 		int64_t in64;
 		double dbl;
 		FklByteString byts;

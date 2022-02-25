@@ -45,12 +45,12 @@ pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
 
 /*void ptr to FklVMvalue caster*/
 #define ARGL uintptr_t p,VMheap* heap
-#define CAST_TO_IN32 return MAKE_VM_IN32(p);
+#define CAST_TO_I32 return MAKE_VM_I32(p);
 #define CAST_TO_IN64 return fklNewVMvalue(IN64,&p,heap);
-FklVMvalue* castShortVp    (ARGL){CAST_TO_IN32}
-FklVMvalue* castIntVp      (ARGL){CAST_TO_IN32}
-FklVMvalue* castUShortVp   (ARGL){CAST_TO_IN32}
-FklVMvalue* castUintVp     (ARGL){CAST_TO_IN32}
+FklVMvalue* castShortVp    (ARGL){CAST_TO_I32}
+FklVMvalue* castIntVp      (ARGL){CAST_TO_I32}
+FklVMvalue* castUShortVp   (ARGL){CAST_TO_I32}
+FklVMvalue* castUintVp     (ARGL){CAST_TO_I32}
 FklVMvalue* castLongVp     (ARGL){CAST_TO_IN64}
 FklVMvalue* castULongVp    (ARGL){CAST_TO_IN64}
 FklVMvalue* castLLongVp    (ARGL){CAST_TO_IN64}
@@ -59,21 +59,21 @@ FklVMvalue* castPtrdiff_tVp(ARGL){CAST_TO_IN64}
 FklVMvalue* castSize_tVp   (ARGL){CAST_TO_IN64}
 FklVMvalue* castSsize_tVp  (ARGL){CAST_TO_IN64}
 FklVMvalue* castCharVp     (ARGL){return MAKE_VM_CHR(p);}
-FklVMvalue* castWchar_tVp  (ARGL){CAST_TO_IN32}
+FklVMvalue* castWchar_tVp  (ARGL){CAST_TO_I32}
 FklVMvalue* castFloatVp    (ARGL){return fklNewVMvalue(DBL,&p,heap);}
 FklVMvalue* castDoubleVp   (ARGL){return fklNewVMvalue(DBL,&p,heap);}
-FklVMvalue* castInt8_tVp   (ARGL){CAST_TO_IN32}
-FklVMvalue* castUint8_tVp  (ARGL){CAST_TO_IN32}
-FklVMvalue* castInt16_tVp  (ARGL){CAST_TO_IN32}
-FklVMvalue* castUint16_tVp (ARGL){CAST_TO_IN32}
-FklVMvalue* castInt32_t    (ARGL){CAST_TO_IN32}
-FklVMvalue* castUint32_tVp (ARGL){CAST_TO_IN32}
+FklVMvalue* castInt8_tVp   (ARGL){CAST_TO_I32}
+FklVMvalue* castUint8_tVp  (ARGL){CAST_TO_I32}
+FklVMvalue* castInt16_tVp  (ARGL){CAST_TO_I32}
+FklVMvalue* castUint16_tVp (ARGL){CAST_TO_I32}
+FklVMvalue* castInt32_t    (ARGL){CAST_TO_I32}
+FklVMvalue* castUint32_tVp (ARGL){CAST_TO_I32}
 FklVMvalue* castInt64_tVp  (ARGL){CAST_TO_IN64}
 FklVMvalue* castUint64_tVp (ARGL){CAST_TO_IN64}
 FklVMvalue* castIptrVp     (ARGL){CAST_TO_IN64}
 FklVMvalue* castUptrVp     (ARGL){CAST_TO_IN64}
 FklVMvalue* castVptrVp     (ARGL){return fklNewVMvalue(MEM,fklNewVMMem(0,(uint8_t*)p),heap);}
-#undef CAST_TO_IN32
+#undef CAST_TO_I32
 #undef CAST_TO_IN64
 static FklVMvalue* (*castVptrToVMvalueFunctionsList[])(ARGL)=
 {
@@ -198,7 +198,7 @@ FklVMlist GlobVMs={0,NULL};
 static void B_dummy(FklVM*);
 static void B_push_nil(FklVM*);
 static void B_push_pair(FklVM*);
-static void B_push_in32(FklVM*);
+static void B_push_i32(FklVM*);
 static void B_push_in64(FklVM*);
 static void B_push_chr(FklVM*);
 static void B_push_dbl(FklVM*);
@@ -242,7 +242,7 @@ static void (*ByteCodes[])(FklVM*)=
 	B_dummy,
 	B_push_nil,
 	B_push_pair,
-	B_push_in32,
+	B_push_i32,
 	B_push_in64,
 	B_push_chr,
 	B_push_dbl,
@@ -686,11 +686,11 @@ void B_push_pair(FklVM* exe)
 
 }
 
-void B_push_in32(FklVM* exe)
+void B_push_i32(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
-	SET_RETURN("B_push_in32",MAKE_VM_IN32(*(int32_t*)(exe->code+runnable->cp+1)),stack);
+	SET_RETURN("B_push_i32",MAKE_VM_I32(*(int32_t*)(exe->code+runnable->cp+1)),stack);
 	runnable->cp+=5;
 }
 
@@ -698,7 +698,7 @@ void B_push_in64(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* r=fklTopComStack(exe->rstack);
-	SET_RETURN("B_push_in32",fklNewVMvalue(IN64,exe->code+r->cp+sizeof(char),exe->heap),stack);
+	SET_RETURN("B_push_i32",fklNewVMvalue(IN64,exe->code+r->cp+sizeof(char),exe->heap),stack);
 	r->cp+=sizeof(char)+sizeof(int64_t);
 }
 
@@ -874,13 +874,13 @@ void B_push_ind_ref(FklVM* exe)
 	uint32_t size=*(uint32_t*)(exe->code+r->cp+sizeof(char)+sizeof(FklTypeId_t));
 	if(!IS_MEM(exp)&&!IS_CHF(exp))
 		RAISE_BUILTIN_ERROR("b.push_ind_ref",WRONGARG,r,exe);
-	if(!IS_IN32(index))
+	if(!IS_I32(index))
 		RAISE_BUILTIN_ERROR("b.push_ind_ref",WRONGARG,r,exe);
 	FklVMMem* mem=exp->u.chf;
 	if(!mem->mem)
 		RAISE_BUILTIN_ERROR("b.push_ind_ref",INVALIDACCESS,r,exe);
 	stack->tp-=2;
-	FklVMvalue* retval=MAKE_VM_CHF(fklNewVMMem(type,mem->mem+GET_IN32(index)*size),exe->heap);
+	FklVMvalue* retval=MAKE_VM_CHF(fklNewVMMem(type,mem->mem+GET_I32(index)*size),exe->heap);
 	SET_RETURN("B_push_ind_ref",retval,stack);
 	r->cp+=sizeof(char)+sizeof(FklTypeId_t)+sizeof(uint32_t);
 }
@@ -1114,7 +1114,7 @@ void B_set_bp(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
-	SET_RETURN("B_set_bp",MAKE_VM_IN32(stack->bp),stack);
+	SET_RETURN("B_set_bp",MAKE_VM_I32(stack->bp),stack);
 	stack->bp=stack->tp;
 	runnable->cp+=1;
 }
@@ -1148,7 +1148,7 @@ void B_res_bp(FklVM* exe)
 	if(stack->tp>stack->bp)
 		RAISE_BUILTIN_ERROR("b.res_bp",TOOMANYARG,runnable,exe);
 	FklVMvalue* prevBp=fklGetTopValue(stack);
-	stack->bp=GET_IN32(prevBp);
+	stack->bp=GET_I32(prevBp);
 	stack->tp-=1;
 	fklStackRecycle(exe);
 	runnable->cp+=1;

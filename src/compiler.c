@@ -305,7 +305,7 @@ int MacroPatternCmp(const FklAstCptr* first,const FklAstCptr* second)
 				if(firAtm->type!=secAtm->type)return 0;
 				if(firAtm->type==SYM&&(!isVal(firAtm->value.str)||!isVal(secAtm->value.str))&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
 				if(firAtm->type==STR&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
-				else if(firAtm->type==IN32&&firAtm->value.in32!=secAtm->value.in32)return 0;
+				else if(firAtm->type==FKL_I32&&firAtm->value.i32!=secAtm->value.i32)return 0;
 				else if(firAtm->type==DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
 				else if(firAtm->type==CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
 				else if(firAtm->type==BYTS&&!fklEqByteString(&firAtm->value.byts,&secAtm->value.byts))return 0;
@@ -857,10 +857,10 @@ FklByteCode* fklCompileAtom(FklAstCptr* objCptr)
 			tmp->code[0]=FAKE_PUSH_STR;
 			strcpy((char*)tmp->code+1,tmpAtm->value.str);
 			break;
-		case IN32:
+		case FKL_I32:
 			tmp=fklNewByteCode(sizeof(char)+sizeof(int32_t));
-			tmp->code[0]=FAKE_PUSH_IN32;
-			*(int32_t*)(tmp->code+1)=tmpAtm->value.in32;
+			tmp->code[0]=FAKE_PUSH_I32;
+			*(int32_t*)(tmp->code+1)=tmpAtm->value.i32;
 			break;
 		case IN64:
 			tmp=fklNewByteCode(sizeof(char)+sizeof(int64_t));
@@ -1477,16 +1477,16 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 		FklByteCodelnt* tmp=NULL;
 		for(pathCptr=fklGetFirstCptr(pathCptr);pathCptr;pathCptr=fklNextCptr(pathCptr))
 		{
-			if(pathCptr->type!=ATM||(pathCptr->u.atom->type!=SYM&&pathCptr->u.atom->type!=IN32&&pathCptr->u.atom->type!=IN64))
+			if(pathCptr->type!=ATM||(pathCptr->u.atom->type!=SYM&&pathCptr->u.atom->type!=FKL_I32&&pathCptr->u.atom->type!=IN64))
 			{
 				state->state=SYNTAXERROR;
 				state->place=pathCptr;
 				return NULL;
 			}
-			else if(pathCptr->u.atom->type==IN32||pathCptr->u.atom->type==IN64)
+			else if(pathCptr->u.atom->type==FKL_I32||pathCptr->u.atom->type==IN64)
 			{
 				size_t typeSize=fklGetVMTypeSizeWithTypeId(memberType);
-				offset+=typeSize*((pathCptr->u.atom->type==IN32)?pathCptr->u.atom->value.in32:pathCptr->u.atom->value.in64);
+				offset+=typeSize*((pathCptr->u.atom->type==FKL_I32)?pathCptr->u.atom->value.i32:pathCptr->u.atom->value.in64);
 			}
 			else if(!strcmp(pathCptr->u.atom->value.str,"*"))
 			{
@@ -1832,7 +1832,7 @@ FklByteCodelnt* fklCompileSzof(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 	else
 	{
 		tmp=fklNewByteCodelnt(fklNewByteCode(sizeof(char)+sizeof(int32_t)));
-		tmp->bc->code[0]=FAKE_PUSH_IN32;
+		tmp->bc->code[0]=FAKE_PUSH_I32;
 		*(int32_t*)(tmp->bc->code+sizeof(char))=(int32_t)size;
 	}
 	LineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,tmp->bc->size,objCptr->curline);
@@ -1906,7 +1906,7 @@ FklByteCodelnt* fklCompileAnd(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* i
 	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
 	FklComStack* stack=fklNewComStack(32);
 	jumpiffalse->code[0]=FAKE_JMP_IF_FALSE;
-	push1->code[0]=FAKE_PUSH_IN32;
+	push1->code[0]=FAKE_PUSH_I32;
 	resTp->code[0]=FAKE_RES_TP;
 	setTp->code[0]=FAKE_SET_TP;
 	popTp->code[0]=FAKE_POP_TP;
@@ -2710,7 +2710,7 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 //					}
 //					else
 //					{
-//						if(tmpAtm->type!=IN32)
+//						if(tmpAtm->type!=FKL_I32)
 //						{
 //							state->place=tmpCptr;
 //							state->state=SYNTAXERROR;
@@ -2885,7 +2885,7 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 //					{
 //						tmpByteCode=fklNewByteCode(sizeof(char)+sizeof(int32_t));
 //						tmpByteCode->code[0]=opcode;
-//						*((int32_t*)(tmpByteCode->code+sizeof(char)))=tmpAtm->value.in32;
+//						*((int32_t*)(tmpByteCode->code+sizeof(char)))=tmpAtm->value.i32;
 //					}
 //					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
 //					fir=fklNextCptr(tmpCptr);

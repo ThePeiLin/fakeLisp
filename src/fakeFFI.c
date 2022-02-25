@@ -180,7 +180,7 @@ static double (*castToDoubleFunctionsList[])(ARGL)=
 			case FKL_CHR_TAG:\
 				*t=(TYPE)GET_CHR(v);\
 				break;\
-			case SYM_TAG:\
+			case FKL_SYM_TAG:\
 				*t=(TYPE)GET_SYM(v);\
 				break;\
 			case PTR_TAG:\

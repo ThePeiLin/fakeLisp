@@ -254,7 +254,7 @@ FklAstAtom* fklNewAtom(int type,const char* value,FklAstPair* prev)
 	FAKE_ASSERT((tmp=(FklAstAtom*)malloc(sizeof(FklAstAtom))),"fklNewAtom",__FILE__,__LINE__);
 	switch(type)
 	{
-		case SYM:
+		case FKL_SYM:
 		case FKL_STR:
 			if(value!=NULL)
 			{
@@ -308,7 +308,7 @@ int fklCopyCptr(FklAstCptr* objCptr,const FklAstCptr* copiedCptr)
 				atom2=root2->u.atom;
 				switch(atom2->type)
 				{
-					case SYM:
+					case FKL_SYM:
 					case FKL_STR:
 						atom1=fklNewAtom(atom2->type,atom2->value.str,root1->outer);
 						break;
@@ -445,7 +445,7 @@ int fklFklAstCptrcmp(const FklAstCptr* first,const FklAstCptr* second)
 				FklAstAtom* firAtm=first->u.atom;
 				FklAstAtom* secAtm=second->u.atom;
 				if(firAtm->type!=secAtm->type)return 0;
-				if((firAtm->type==SYM||firAtm->type==FKL_STR)&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
+				if((firAtm->type==FKL_SYM||firAtm->type==FKL_STR)&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
 				else if(firAtm->type==FKL_I32&&firAtm->value.i32!=secAtm->value.i32)return 0;
 				else if(firAtm->type==FKL_DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
 				else if(firAtm->type==FKL_CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
@@ -667,7 +667,7 @@ int fklIsNum(const char* objStr)
 
 void fklFreeAtom(FklAstAtom* objAtm)
 {
-	if(objAtm->type==SYM||objAtm->type==FKL_STR)free(objAtm->value.str);
+	if(objAtm->type==FKL_SYM||objAtm->type==FKL_STR)free(objAtm->value.str);
 	else if(objAtm->type==BYTS)
 	{
 		objAtm->value.byts.size=0;
@@ -709,7 +709,7 @@ void fklPrintCptr(const FklAstCptr* objCptr,FILE* out)
 				FklAstAtom* tmpAtm=objCptr->u.atom;
 				switch((int)tmpAtm->type)
 				{
-					case SYM:
+					case FKL_SYM:
 						fprintf(out,"%s",tmpAtm->value.str);
 						break;
 					case FKL_STR:
@@ -1988,7 +1988,7 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklIntpr* inter)
 						break;
 					default:
 						str=fklGetStringFromList(objStr+i-1);
-						atom=fklNewAtom(SYM,str,root->outer);
+						atom=fklNewAtom(FKL_SYM,str,root->outer);
 						root->u.atom=atom;
 						i+=strlen(str)-1;
 						break;
@@ -2021,7 +2021,7 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklIntpr* inter)
 					root->u.atom=atom;
 				}
 				else
-					root->u.atom=fklNewAtom(SYM,str,root->outer);
+					root->u.atom=fklNewAtom(FKL_SYM,str,root->outer);
 				i+=strlen(str);
 				free(str);
 			}

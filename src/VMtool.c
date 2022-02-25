@@ -294,7 +294,7 @@ static FklTypeId_t genArrayTypeId(FklAstCptr* compositeDataHead,FklVMDefTypes* o
 static FklTypeId_t genPtrTypeId(FklAstCptr* compositeDataHead,FklVMDefTypes* otherTypes)
 {
 	FklAstCptr* ptrTypeCptr=fklNextCptr(compositeDataHead);
-	if(ptrTypeCptr->type==ATM&&ptrTypeCptr->u.atom->type!=SYM)
+	if(ptrTypeCptr->type==ATM&&ptrTypeCptr->u.atom->type!=FKL_SYM)
 		return 0;
 	FklTypeId_t pType=fklGenDefTypesUnion(ptrTypeCptr,otherTypes);
 	if(!pType)
@@ -312,7 +312,7 @@ static int isInPtrDeclare(FklAstCptr* compositeDataHead)
 	{
 		FklAstCptr* outerTypeHead=fklPrevCptr(&outerPrevPair->car);
 		if(outerTypeHead)
-			return outerTypeHead->type==ATM&&outerTypeHead->u.atom->type==SYM&&!strcmp(outerTypeHead->u.atom->value.str,"ptr");
+			return outerTypeHead->type==ATM&&outerTypeHead->u.atom->type==FKL_SYM&&!strcmp(outerTypeHead->u.atom->value.str,"ptr");
 	}
 	return 0;
 }
@@ -325,7 +325,7 @@ static FklTypeId_t genStructTypeId(FklAstCptr* compositeDataHead,FklVMDefTypes* 
 	FklAstCptr* memberCptr=NULL;
 	if(structNameCptr->type==ATM)
 	{
-		if(structNameCptr->u.atom->type==SYM)
+		if(structNameCptr->u.atom->type==FKL_SYM)
 			structName=structNameCptr->u.atom->value.str;
 		else
 			return 0;
@@ -377,7 +377,7 @@ static FklTypeId_t genStructTypeId(FklAstCptr* compositeDataHead,FklVMDefTypes* 
 				return 0;
 			}
 			FklAstCptr* memberName=fklGetFirstCptr(memberCptr);
-			if(memberName->type!=ATM||memberName->u.atom->type!=SYM)
+			if(memberName->type!=ATM||memberName->u.atom->type!=FKL_SYM)
 			{
 				free(memberTypeList);
 				free(memberSymbolList);
@@ -431,7 +431,7 @@ static FklTypeId_t genUnionTypeId(FklAstCptr* compositeDataHead,FklVMDefTypes* o
 	FklAstCptr* memberCptr=NULL;
 	if(unionNameCptr->type==ATM)
 	{
-		if(unionNameCptr->u.atom->type==SYM)
+		if(unionNameCptr->u.atom->type==FKL_SYM)
 			unionName=unionNameCptr->u.atom->value.str;
 		else
 			return 0;
@@ -483,7 +483,7 @@ static FklTypeId_t genUnionTypeId(FklAstCptr* compositeDataHead,FklVMDefTypes* o
 				return 0;
 			}
 			FklAstCptr* memberName=fklGetFirstCptr(memberCptr);
-			if(memberName->type!=ATM||memberName->u.atom->type!=SYM)
+			if(memberName->type!=ATM||memberName->u.atom->type!=FKL_SYM)
 			{
 				free(memberTypeList);
 				free(memberSymbolList);
@@ -721,7 +721,7 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,VMheap* heap)
 		{
 			case NIL_TAG:
 			case FKL_I32_TAG:
-			case SYM_TAG:
+			case FKL_SYM_TAG:
 			case FKL_CHR_TAG:
 				*root1=root;
 				break;
@@ -798,7 +798,7 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,VMheap* heap)
 		case FKL_I32:
 			return MAKE_VM_I32(pValue);
 			break;
-		case SYM:
+		case FKL_SYM:
 			return MAKE_VM_SYM(pValue);
 			break;
 		default:
@@ -1012,7 +1012,7 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,VMheap* heap)
 				case FKL_CHR:
 					*root1=MAKE_VM_CHR(tmpAtm->value.chr);
 					break;
-				case SYM:
+				case FKL_SYM:
 					*root1=MAKE_VM_SYM(fklAddSymbolToGlob(tmpAtm->value.str)->id);
 					break;
 				case FKL_DBL:
@@ -1876,7 +1876,7 @@ void fklPrincVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 		case FKL_CHR_TAG:
 			putc(GET_CHR(objValue),fp);
 			break;
-		case SYM_TAG:
+		case FKL_SYM_TAG:
 			fprintf(fp,"%s",fklGetGlobSymbolWithId(GET_SYM(objValue))->symbol);
 			break;
 		case PTR_TAG:
@@ -2007,7 +2007,7 @@ void fklPrin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 		case FKL_CHR_TAG:
 			fklPrintRawChar(GET_CHR(objValue),fp);
 			break;
-		case SYM_TAG:
+		case FKL_SYM_TAG:
 			fprintf(fp,"%s",fklGetGlobSymbolWithId(GET_SYM(objValue))->symbol);
 			break;
 		case PTR_TAG:
@@ -2535,7 +2535,7 @@ FklVMDefTypesNode* fklFindVMDefTypesNode(FklSid_t typeName,FklVMDefTypes* otherT
 FklTypeId_t fklGenDefTypes(FklAstCptr* objCptr,FklVMDefTypes* otherTypes,FklSid_t* typeName)
 {
 	FklAstCptr* fir=fklNextCptr(fklGetFirstCptr(objCptr));
-	if(fir->type!=ATM||fir->u.atom->type!=SYM)
+	if(fir->type!=ATM||fir->u.atom->type!=FKL_SYM)
 		return 0;
 	FklSid_t typeId=fklAddSymbolToGlob(fir->u.atom->value.str)->id;
 	if(isNativeType(typeId,otherTypes))
@@ -2551,7 +2551,7 @@ FklTypeId_t fklGenDefTypesUnion(FklAstCptr* objCptr,FklVMDefTypes* otherTypes)
 {
 	if(!otherTypes)
 		return 0;
-	if(objCptr->type==ATM&&objCptr->u.atom->type==SYM)
+	if(objCptr->type==ATM&&objCptr->u.atom->type==FKL_SYM)
 	{
 		FklVMDefTypesNode* n=fklFindVMDefTypesNode(fklAddSymbolToGlob(objCptr->u.atom->value.str)->id,otherTypes);
 		if(!n)
@@ -2562,7 +2562,7 @@ FklTypeId_t fklGenDefTypesUnion(FklAstCptr* objCptr,FklVMDefTypes* otherTypes)
 	else if(objCptr->type==PAIR)
 	{
 		FklAstCptr* compositeDataHead=fklGetFirstCptr(objCptr);
-		if(compositeDataHead->type!=ATM||compositeDataHead->u.atom->type!=SYM)
+		if(compositeDataHead->type!=ATM||compositeDataHead->u.atom->type!=FKL_SYM)
 			return 0;
 		if(!strcmp(compositeDataHead->u.atom->value.str,"array"))
 			return genArrayTypeId(compositeDataHead,otherTypes);

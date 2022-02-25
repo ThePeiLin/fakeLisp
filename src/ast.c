@@ -382,7 +382,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklIntpr* inter,FklStringMatchPatte
 							break;
 						default:
 							str=fklGetStringFromList(objStr+i-1);
-							atom=fklNewAtom(SYM,str,root->outer);
+							atom=fklNewAtom(FKL_SYM,str,root->outer);
 							root->u.atom=atom;
 							i+=strlen(str)-1;
 							break;
@@ -415,7 +415,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklIntpr* inter,FklStringMatchPatte
 						root->u.atom=atom;
 					}
 					else
-						root->u.atom=fklNewAtom(SYM,str,root->outer);
+						root->u.atom=fklNewAtom(FKL_SYM,str,root->outer);
 					i+=strlen(str);
 					free(str);
 				}
@@ -461,12 +461,12 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 		root1->type=cptrType;
 		if(cptrType==ATM)
 		{
-			FklAstAtom* tmpAtm=fklNewAtom(SYM,NULL,root1->outer);
+			FklAstAtom* tmpAtm=fklNewAtom(FKL_SYM,NULL,root1->outer);
 			FklVMptrTag tag=GET_TAG(root);
 			switch(tag)
 			{
-				case SYM_TAG:
-					tmpAtm->type=SYM;
+				case FKL_SYM_TAG:
+					tmpAtm->type=FKL_SYM;
 					tmpAtm->value.str=fklCopyStr(fklGetGlobSymbolWithId(GET_SYM(root))->symbol);
 					break;
 				case FKL_I32_TAG:
@@ -493,35 +493,35 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 								tmpAtm->value.byts.str=fklCopyMemory(root->u.byts->str,root->u.byts->size);
 								break;
 							case PRC:
-								tmpAtm->type=SYM;
+								tmpAtm->type=FKL_SYM;
 								tmpAtm->value.str=fklCopyStr("#<proc>");
 								break;
 							case DLPROC:
-								tmpAtm->type=SYM;
+								tmpAtm->type=FKL_SYM;
 								tmpAtm->value.str=fklCopyStr("#<dlproc>");
 								break;
 							case CONT:
-								tmpAtm->type=SYM;
+								tmpAtm->type=FKL_SYM;
 								tmpAtm->value.str=fklCopyStr("#<proc>");
 								break;
 							case CHAN:
-								tmpAtm->type=SYM;
+								tmpAtm->type=FKL_SYM;
 								tmpAtm->value.str=fklCopyStr("#<chan>");
 								break;
 							case FP:
-								tmpAtm->type=SYM;
+								tmpAtm->type=FKL_SYM;
 								tmpAtm->value.str=fklCopyStr("#<fp>");
 								break;
 							case ERR:
-								tmpAtm->type=SYM;
+								tmpAtm->type=FKL_SYM;
 								tmpAtm->value.str=fklCopyStr("#<err>");
 								break;
 							case MEM:
-								tmpAtm->type=SYM;
+								tmpAtm->type=FKL_SYM;
 								tmpAtm->value.str=fklCopyStr("#<mem>");
 								break;
 							case CHF:
-								tmpAtm->type=SYM;
+								tmpAtm->type=FKL_SYM;
 								tmpAtm->value.str=fklCopyStr("#<ref>");
 								break;
 							default:

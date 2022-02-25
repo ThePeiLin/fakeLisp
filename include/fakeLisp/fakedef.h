@@ -11,7 +11,7 @@ typedef struct FklVMvalue* FklVMptr;
 typedef struct FklVMStructMember FklVMStructMember;
 typedef enum
 {
-	PTR_TAG=0,
+	FKL_PTR_TAG=0,
 	FKL_NIL_TAG,
 	FKL_I32_TAG,
 	FKL_SYM_TAG,

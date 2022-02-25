@@ -725,7 +725,7 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,VMheap* heap)
 			case FKL_CHR_TAG:
 				*root1=root;
 				break;
-			case PTR_TAG:
+			case FKL_PTR_TAG:
 				{
 					FklValueType type=root->type;
 					switch(type)
@@ -1879,7 +1879,7 @@ void fklPrincVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 		case FKL_SYM_TAG:
 			fprintf(fp,"%s",fklGetGlobSymbolWithId(GET_SYM(objValue))->symbol);
 			break;
-		case PTR_TAG:
+		case FKL_PTR_TAG:
 			{
 				switch(objValue->type)
 				{
@@ -2010,7 +2010,7 @@ void fklPrin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 		case FKL_SYM_TAG:
 			fprintf(fp,"%s",fklGetGlobSymbolWithId(GET_SYM(objValue))->symbol);
 			break;
-		case PTR_TAG:
+		case FKL_PTR_TAG:
 			{
 				switch(objValue->type)
 				{

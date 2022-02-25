@@ -1458,7 +1458,7 @@ void fklfklGC_markValue(FklVMvalue* obj)
 	{
 		FklVMvalue* root=fklPopComStack(stack);
 		root=GET_TAG(root)==REF_TAG?*((FklVMvalue**)GET_PTR(root)):root;
-		if(GET_TAG(root)==PTR_TAG&&!root->mark)
+		if(GET_TAG(root)==FKL_PTR_TAG&&!root->mark)
 		{
 			root->mark=1;
 			if(root->type==FKL_PAIR)
@@ -1552,7 +1552,7 @@ void fklGC_sweep(VMheap* heap)
 	FklVMvalue* cur=heap->head;
 	while(cur!=NULL)
 	{
-		if(GET_TAG(cur)==PTR_TAG&&!cur->mark)
+		if(GET_TAG(cur)==FKL_PTR_TAG&&!cur->mark)
 		{
 			FklVMvalue* prev=cur;
 			if(cur==heap->head)

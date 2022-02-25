@@ -477,7 +477,7 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 					tmpAtm->type=FKL_CHR;
 					tmpAtm->value.chr=GET_CHR(root);
 					break;
-				case PTR_TAG:
+				case FKL_PTR_TAG:
 					{
 						tmpAtm->type=root->type;
 						switch(root->type)

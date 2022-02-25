@@ -1036,7 +1036,7 @@ void SYS_type(FklVM* exe,pthread_rwlock_t* gclock)
 		case FKL_I32_TAG:type=FKL_I32;break;
 		case FKL_SYM_TAG:type=FKL_SYM;break;
 		case FKL_CHR_TAG:type=FKL_CHR;break;
-		case PTR_TAG:type=obj->type;break;
+		case FKL_PTR_TAG:type=obj->type;break;
 		default:
 			RAISE_BUILTIN_ERROR("sys.type",WRONGARG,runnable,exe);
 			break;

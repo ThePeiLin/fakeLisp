@@ -183,7 +183,7 @@ static double (*castToDoubleFunctionsList[])(ARGL)=
 			case FKL_SYM_TAG:\
 				*t=(TYPE)GET_SYM(v);\
 				break;\
-			case PTR_TAG:\
+			case FKL_PTR_TAG:\
 				{\
 					switch(v->type)\
 					{\

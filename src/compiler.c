@@ -1556,7 +1556,7 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 			}
 			else
 			{
-				if(GET_TYPES_TAG(typeUnion.all)!=FKL_STRUCT_TYPE_TAG&&GET_TYPES_TAG(typeUnion.all)!=UNION_TYPE_TAG)
+				if(GET_TYPES_TAG(typeUnion.all)!=FKL_STRUCT_TYPE_TAG&&GET_TYPES_TAG(typeUnion.all)!=FKL_UNION_TYPE_TAG)
 				{
 					if(tmp)
 					{

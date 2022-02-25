@@ -448,7 +448,7 @@ static FklTypeId_t genUnionTypeId(FklAstCptr* compositeDataHead,FklVMDefTypes* o
 		for(;i<num;i++)
 		{
 			FklVMTypeUnion typeUnion=GlobTypeUnionList.ul[i];
-			if(GET_TYPES_TAG(typeUnion.all)==UNION_TYPE_TAG)
+			if(GET_TYPES_TAG(typeUnion.all)==FKL_UNION_TYPE_TAG)
 			{
 				FklVMUnionType* ut=(FklVMUnionType*)GET_TYPES_PTR(typeUnion.st);
 				if(ut->type==fklAddSymbolToGlob(unionName)->id)
@@ -2218,7 +2218,7 @@ size_t fklGetVMTypeSize(FklVMTypeUnion t)
 		case FKL_STRUCT_TYPE_TAG:
 			return t.st->totalSize;
 			break;
-		case UNION_TYPE_TAG:
+		case FKL_UNION_TYPE_TAG:
 			return t.ut->maxSize;
 			break;
 		case FUNC_TYPE_TAG:
@@ -2248,7 +2248,7 @@ size_t fklGetVMTypeAlign(FklVMTypeUnion t)
 		case FKL_STRUCT_TYPE_TAG:
 			return t.st->align;
 			break;
-		case UNION_TYPE_TAG:
+		case FKL_UNION_TYPE_TAG:
 			return t.ut->align;
 			break;
 		case FUNC_TYPE_TAG:
@@ -2692,7 +2692,7 @@ void fklWriteTypeList(FILE* fp)
 					fwrite(members,sizeof(FklVMStructMember),num,fp);
 				}
 				break;
-			case UNION_TYPE_TAG:
+			case FKL_UNION_TYPE_TAG:
 				{
 					uint32_t num=((FklVMUnionType*)p)->num;
 					fwrite(&num,sizeof(num),1,fp);
@@ -2772,7 +2772,7 @@ void fklLoadTypeList(FILE* fp)
 					tu.st=(FklVMStructType*)MAKE_STRUCT_TYPE(t);
 				}
 				break;
-			case UNION_TYPE_TAG:
+			case FKL_UNION_TYPE_TAG:
 				{
 					uint32_t num=0;
 					fread(&num,sizeof(num),1,fp);
@@ -2829,7 +2829,7 @@ void fklFreeGlobTypeList()
 			case FKL_STRUCT_TYPE_TAG:
 				fklFreeVMStructType((FklVMStructType*)GET_TYPES_PTR(tu.all));
 				break;
-			case UNION_TYPE_TAG:
+			case FKL_UNION_TYPE_TAG:
 				fklFreeVMUnionType((FklVMUnionType*)GET_TYPES_PTR(tu.all));
 				break;
 			case FUNC_TYPE_TAG:
@@ -2869,7 +2869,7 @@ int fklIsStructTypeId(FklTypeId_t type)
 int fklIsUnionTypeId(FklTypeId_t type)
 {
 	FklVMTypeUnion tu=fklGetVMTypeUnion(type);
-	return GET_TYPES_TAG(tu.all)==UNION_TYPE_TAG;
+	return GET_TYPES_TAG(tu.all)==FKL_UNION_TYPE_TAG;
 }
 
 int fklIsFunctionTypeId(FklTypeId_t type)

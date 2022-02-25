@@ -1272,7 +1272,7 @@ void SYS_dll(FklVM* exe,pthread_rwlock_t* gclock)
 		SET_RETURN("SYS_dll",dllName,stack);
 		RAISE_BUILTIN_ERROR("sys.dll",LOADDLLFAILD,runnable,exe);
 	}
-	SET_RETURN("SYS_dll",fklNewVMvalue(DLL,dll,exe->heap),stack);
+	SET_RETURN("SYS_dll",fklNewVMvalue(FKL_DLL,dll,exe->heap),stack);
 }
 
 void SYS_dlsym(FklVM* exe,pthread_rwlock_t* gclock)

@@ -1589,7 +1589,7 @@ void fklGC_sweep(VMheap* heap)
 				case FKL_FP:
 					fklFreeVMfp(prev->u.fp);
 					break;
-				case DLL:
+				case FKL_DLL:
 					fklFreeVMDll(prev->u.dll);
 					break;
 				case DLPROC:

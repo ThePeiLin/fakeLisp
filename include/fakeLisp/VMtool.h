@@ -50,7 +50,7 @@
 #define MAKE_VM_PTR(P) ((FklVMptr)(((uintptr_t)(P))|PTR_TAG))
 #define MAKE_VM_REF(P) ((FklVMptr)(((uintptr_t)(P))|REF_TAG))
 #define MAKE_VM_CHF(P,H) (fklNewVMvalue(CHF,P,H))
-#define MAKE_VM_MEM(P,H) (fklNewVMvalue(MEM,P,H))
+#define MAKE_VM_MEM(P,H) (fklNewVMvalue(FKL_MEM,P,H))
 #define GET_TAG(P) ((FklVMptrTag)(((uintptr_t)(P))&TAG_MASK))
 #define GET_PTR(P) ((FklVMptr)(((uintptr_t)(P))&PTR_MASK))
 #define GET_I32(P) ((int32_t)((uintptr_t)(P)>>UNUSEDBITNUM))
@@ -75,7 +75,7 @@
 #define IS_SYM(P) (GET_TAG(P)==FKL_SYM_TAG)
 #define IS_REF(P) (GET_TAG(P)==REF_TAG)
 #define IS_CHF(P) (GET_TAG(P)==PTR_TAG&&(P)->type==CHF)
-#define IS_MEM(P) (GET_TAG(P)==PTR_TAG&&(P)->type==MEM)
+#define IS_MEM(P) (GET_TAG(P)==PTR_TAG&&(P)->type==FKL_MEM)
 #define IS_I64(P) (GET_TAG(P)==PTR_TAG&&(P)->type==FKL_I64)
 #define FREE_CHF(P) (free(GET_PTR(P)))
 

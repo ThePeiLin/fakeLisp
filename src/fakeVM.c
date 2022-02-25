@@ -72,7 +72,7 @@ FklVMvalue* castInt64_tVp  (ARGL){CAST_TO_I64}
 FklVMvalue* castUint64_tVp (ARGL){CAST_TO_I64}
 FklVMvalue* castIptrVp     (ARGL){CAST_TO_I64}
 FklVMvalue* castUptrVp     (ARGL){CAST_TO_I64}
-FklVMvalue* castVptrVp     (ARGL){return fklNewVMvalue(MEM,fklNewVMMem(0,(uint8_t*)p),heap);}
+FklVMvalue* castVptrVp     (ARGL){return fklNewVMvalue(FKL_MEM,fklNewVMMem(0,(uint8_t*)p),heap);}
 #undef CAST_TO_I32
 #undef CAST_TO_I64
 static FklVMvalue* (*castVptrToVMvalueFunctionsList[])(ARGL)=
@@ -1601,7 +1601,7 @@ void fklGC_sweep(VMheap* heap)
 				case FKL_ERR:
 					fklFreeVMerror(prev->u.err);
 					break;
-				case MEM:
+				case FKL_MEM:
 				case CHF:
 					free(prev->u.chf);
 					break;

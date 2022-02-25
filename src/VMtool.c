@@ -15,7 +15,7 @@
 #endif
 
 /*print mem ref func list*/
-#define PRINT_MEM_REF(FMT,TYPE,MEM,FP) fprintf(FP,FMT,*(TYPE*)MEM)
+#define PRINT_MEM_REF(FMT,TYPE,MEM,FP) fprintf(FP,FMT,*(TYPE*)(MEM))
 #define ARGL uint8_t* mem,FILE* fp
 static void printShortMem (ARGL){PRINT_MEM_REF("%d",short,mem,fp);}
 static void printIntMem   (ARGL){PRINT_MEM_REF("%d",int,mem,fp);}
@@ -846,7 +846,7 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,VMheap* heap)
 						tmp->u.err=pValue;break;
 					case CHF:
 						tmp->u.chf=pValue;break;
-					case MEM:
+					case FKL_MEM:
 						tmp->u.chf=pValue;break;
 					default:
 						return NULL;
@@ -1892,7 +1892,7 @@ void fklPrincVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 					case FKL_STR:
 						fprintf(fp,"%s",objValue->u.str);
 						break;
-					case MEM:
+					case FKL_MEM:
 					case CHF:
 						{
 							FklVMMem* mem=objValue->u.chf;
@@ -2023,7 +2023,7 @@ void fklPrin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 					case FKL_STR:
 						fklPrintRawString(objValue->u.str,fp);
 						break;
-					case MEM:
+					case FKL_MEM:
 					case CHF:
 						{
 							FklVMMem* mem=objValue->u.chf;

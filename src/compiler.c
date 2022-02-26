@@ -3173,7 +3173,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr
 							for(;pBody;pBody=fklNextCptr(pBody))
 							{
 								FklByteCodelnt* otherByteCodelnt=fklCompile(pBody,tmpCurEnv,tmpInter,state,1);
-								if(state->state)
+								if(state->state||!otherByteCodelnt)
 								{
 									fklExError(state->place,state->state,tmpInter);
 									fklDeleteCptr(begin);

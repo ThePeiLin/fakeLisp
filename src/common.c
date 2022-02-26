@@ -606,7 +606,7 @@ int fklStringToChar(const char* objStr)
 int fklIsNum(const char* objStr)
 {
 	int len=strlen(objStr);
-	int i=(*objStr=='-')?1:0;
+	int i=(*objStr=='-'||*objStr=='+')?1:0;
 	int hasDot=0;
 	int hasExp=0;
 	if(objStr[0]=='-'&&!isdigit(objStr[1]))

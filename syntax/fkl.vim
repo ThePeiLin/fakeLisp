@@ -17,9 +17,10 @@ syn match fklByts /#b[0-9a-fA-F]*\>/
 syn match fklChr /#\\.[^ `'\t\n\[\]()]*/
 syn match fklChr /#\\x[0-9a-fA-F]\+/
 syn match fklNumber /[+\-]\?[1-9]\+\.\?[0-9]*e\?[0-9]*\>/
+syn match fklZero /0\>/
 syn match fklHexNumber /[+\-]\?0[xX][0-9a-fA-F]\+\.\?[0-9a-fA-F]*p\?[0-9a-fA-F]*\>/
 syn match fklOctNumber /[+\-]\?0[0-7]\+\>/
-syn match fklOctNumberError /[+\-]\?0[89]*\>/
+syn match fklOctNumberError /[+\-]\?0[89]\+\>/
 
 
 syn match fklComment /;.*$/ contains=@Spell
@@ -127,6 +128,7 @@ hi def link fklBuiltInSymbol Constant
 hi def link fklFunction Function
 hi def link fklIdentifier Normal
 hi def link fklNumber Number
+hi def link fklZero Number
 hi def link fklHexNumber Number
 hi def link fklOctNumber Number
 hi def link fklByts Number

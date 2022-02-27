@@ -955,8 +955,10 @@ int fklNumcmp(FklVMvalue* fir,FklVMvalue* sec)
 		return fir==sec;
 	else
 	{
-		double first=(GET_TAG(fir)==FKL_I32_TAG)?GET_I32(fir):fir->u.dbl;
-		double second=(GET_TAG(sec)==FKL_I32_TAG)?GET_I32(sec):sec->u.dbl;
+		double first=(GET_TAG(fir)==FKL_I32_TAG)?GET_I32(fir)
+			:((IS_I64(fir))?fir->u.i64:fir->u.dbl);
+		double second=(GET_TAG(sec)==FKL_I32_TAG)?GET_I32(sec)
+			:((IS_I64(sec))?sec->u.i64:sec->u.dbl);
 		return fabs(first-second)==0;
 	}
 }

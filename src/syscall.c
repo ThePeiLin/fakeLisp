@@ -482,7 +482,7 @@ void SYS_div(FklVM* exe,pthread_rwlock_t* gclock)
 		{
 			if(prev->u.dbl==0.0)
 				RAISE_BUILTIN_ERROR("sys.div",FKL_DIVZERROERROR,runnable,exe);
-			rd=1/(prev->u.dbl);
+			rd=1/prev->u.dbl;
 			SET_RETURN("SYS_sub",fklNewVMvalue(FKL_DBL,&rd,exe->heap),stack);
 		}
 		else if(IS_I64(prev))

@@ -614,6 +614,9 @@ nil不是一个常量，只是一个绑定空表的符号，
 lambda表达式，返回一个参数列表为args，函数体为列表body的过程；  
 如：  
 ```scheme
+(define add (lambda (a b) (+ a b)))
+;=><#proc>
+
 (define list (lambda ls ls))
 ;=> <#proc>
 
@@ -621,7 +624,7 @@ lambda表达式，返回一个参数列表为args，函数体为列表body的过
 ;=> (1 2 3 4)
 
 (define + (lambda (a,b)
-            (cond (b (add a (aply + b)))
+            (cond (b (add a (apply + b)))
                   (1 a))))
 ;=> <#proc>
 

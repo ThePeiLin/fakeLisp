@@ -609,7 +609,7 @@ int fklIsNum(const char* objStr)
 	int i=(*objStr=='-'||*objStr=='+')?1:0;
 	int hasDot=0;
 	int hasExp=0;
-	if(objStr[0]=='-'&&!isdigit(objStr[1]))
+	if(i&&!isdigit(objStr[1]))
 		return 0;
 	else
 	{

@@ -3175,7 +3175,8 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr
 								FklByteCodelnt* otherByteCodelnt=fklCompile(pBody,tmpCurEnv,tmpInter,state,1);
 								if(state->state||!otherByteCodelnt)
 								{
-									fklExError(state->place,state->state,tmpInter);
+									if(otherByteCodelnt!=NULL)
+										fklExError(state->place,state->state,tmpInter);
 									fklDeleteCptr(begin);
 									free(begin);
 									FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);

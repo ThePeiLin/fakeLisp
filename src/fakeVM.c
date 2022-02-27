@@ -1565,12 +1565,6 @@ void fklGC_sweep(VMheap* heap)
 				case FKL_STR:
 					free(prev->u.str);
 					break;
-				case FKL_DBL:
-					free(prev->u.dbl);
-					break;
-				case FKL_I64:
-					free(prev->u.i64);
-					break;
 				case FKL_PAIR:
 					free(prev->u.pair);
 					break;

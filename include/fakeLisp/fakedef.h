@@ -339,8 +339,8 @@ typedef struct FklVMvalue
 	union
 	{
 		struct FklVMpair* pair;
-		double* dbl;
-		int64_t* i64;
+		double dbl;
+		int64_t i64;
 		char* str;
 		struct FklVMMem* chf;
 		struct FklVMByts* byts;

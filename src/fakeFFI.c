@@ -189,10 +189,10 @@ static double (*castToDoubleFunctionsList[])(ARGL)=
 					switch(v->type)\
 					{\
 						case FKL_DBL:\
-							*t=(TYPE)*v->u.dbl;\
+							*t=(TYPE)v->u.dbl;\
 							break;\
 						case FKL_I64:\
-							*t=(TYPE)*v->u.i64;\
+							*t=(TYPE)v->u.i64;\
 							break;\
 						default:\
 							return 1;\
@@ -213,7 +213,7 @@ static double (*castToDoubleFunctionsList[])(ARGL)=
 	TYPE* t=(TYPE*)malloc(sizeof(TYPE));\
 	FKL_ASSERT(t,"VMvalue_pointer_caster",__FILE__,__LINE__);\
 	if(!IS_MEM(v)&&!IS_CHF(v))\
-		*t=IS_I32(v)?GET_I32(v):(IS_I64(v)?*v->u.i64:(IS_DBL(v)?*v->u.dbl:GET_CHR(v)));\
+		*t=IS_I32(v)?GET_I32(v):(IS_I64(v)?v->u.i64:(IS_DBL(v)?v->u.dbl:GET_CHR(v)));\
 	else\
 		*t=castToDoubleFunctionsList[v->u.chf->type-1](v->u.chf->mem);\
 	*p=t;\

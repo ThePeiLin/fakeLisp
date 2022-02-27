@@ -484,7 +484,10 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 						switch(root->type)
 						{
 							case FKL_DBL:
-								tmpAtm->value.dbl=*root->u.dbl;
+								tmpAtm->value.dbl=root->u.dbl;
+								break;
+							case FKL_I64:
+								tmpAtm->value.i64=root->u.i64;
 								break;
 							case FKL_STR:
 								tmpAtm->value.str=fklCopyStr(root->u.str);

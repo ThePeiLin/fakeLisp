@@ -1811,6 +1811,7 @@ void fklCreateCallChainWithContinuation(FklVM* vm,VMcontinuation* cc)
 		fklIncreaseVMenvRefcount(cur->localenv);
 		cur->scp=cc->state[i].scp;
 		cur->cpc=cc->state[i].cpc;
+		cur->sid=cc->state[i].sid;
 		cur->mark=cc->state[i].mark;
 		fklPushComStack(cur,vm->rstack);
 	}

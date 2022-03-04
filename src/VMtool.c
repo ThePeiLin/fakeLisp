@@ -1210,6 +1210,7 @@ VMcontinuation* fklNewVMcontinuation(FklVMstack* stack,FklComStack* rstack,FklCo
 		state[i].localenv=cur->localenv;
 		state[i].cpc=cur->cpc;
 		state[i].scp=cur->scp;
+		state[i].sid=cur->sid;
 		state[i].mark=cur->mark;
 	}
 	tmp->tnum=tbnum;

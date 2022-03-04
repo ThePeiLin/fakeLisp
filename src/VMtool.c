@@ -702,6 +702,7 @@ FklVMproc* fklNewVMproc(uint32_t scp,uint32_t cpc)
 	tmp->prevEnv=NULL;
 	tmp->scp=scp;
 	tmp->cpc=cpc;
+	tmp->sid=0;
 	return tmp;
 }
 
@@ -1501,6 +1502,7 @@ FklVMDlproc* fklNewVMDlproc(FklDllFunc address,FklVMvalue* dll)
 	FKL_ASSERT(tmp,"fklNewVMDlproc",__FILE__,__LINE__);
 	tmp->func=address;
 	tmp->dll=dll;
+	tmp->sid=0;
 	return tmp;
 }
 
@@ -1536,6 +1538,7 @@ FklVMFlproc* fklNewVMFlproc(FklTypeId_t type,void* func)
 		ffiRtype=fklGetFfiType(rtype);
 	fklPrepFFIcif(&tmp->cif,anum,ffiAtypes,ffiRtype);
 	tmp->atypes=ffiAtypes;
+	tmp->sid=0;
 	return tmp;
 }
 
@@ -1736,11 +1739,16 @@ FklVMrunnable* fklNewVMrunnable(FklVMproc* code)
 {
 	FklVMrunnable* tmp=(FklVMrunnable*)malloc(sizeof(FklVMrunnable));
 	FKL_ASSERT(tmp,"fklNewVMrunnable",__FILE__,__LINE__);
+	tmp->sid=0;
+	tmp->cp=0;
+	tmp->scp=0;
+	tmp->cpc=0;
 	if(code)
 	{
 		tmp->cp=code->scp;
 		tmp->scp=code->scp;
 		tmp->cpc=code->cpc;
+		tmp->sid=code->sid;
 	}
 	tmp->mark=0;
 	return tmp;
@@ -1750,11 +1758,11 @@ char* fklGenInvalidSymbolErrorMessage(const char* str,FklVMrunnable* r,FklVM* ex
 {
 	int32_t cp=r->cp;
 	LineNumTabNode* node=fklFindLineNumTabNode(cp,exe->lnt);
-	char* filename=GlobSymbolTable.idl[node->fid]->symbol;
+	char* filename=fklGetGlobSymbolWithId(node->fid)->symbol;
 	char* line=fklIntToString(node->line);
 	size_t len=strlen("at line  of \n")+strlen(filename)+strlen(line)+1;
 	char* lineNumber=(char*)malloc(sizeof(char)*len);
-	FKL_ASSERT(lineNumber,"fklGenErrorMessage",__FILE__,__LINE__);
+	FKL_ASSERT(lineNumber,"fklGenInvalidSymbolErrorMessag",__FILE__,__LINE__);
 	sprintf(lineNumber,"at line %s of %s\n",line,filename);
 	free(line);
 	char* t=fklCopyStr("");
@@ -1763,6 +1771,33 @@ char* fklGenInvalidSymbolErrorMessage(const char* str,FklVMrunnable* r,FklVM* ex
 	t=fklStrCat(t," ");
 	t=fklStrCat(t,lineNumber);
 	free(lineNumber);
+	for(uint32_t i=exe->rstack->top;i;i--)
+	{
+		FklVMrunnable* r=exe->rstack->data[i-1];
+		if(r->sid!=0)
+		{
+			t=fklStrCat(t,"at proc:");
+			t=fklStrCat(t,fklGetGlobSymbolWithId(r->sid)->symbol);
+		}
+		else
+		{
+			if(i>1)
+				t=fklStrCat(t,"at <lambda>");
+			else
+				t=fklStrCat(t,"at <top>");
+		}
+		LineNumTabNode* node=fklFindLineNumTabNode(r->cp,exe->lnt);
+		char* filename=fklGetGlobSymbolWithId(node->fid)->symbol;
+		char* line=fklIntToString(node->line);
+		size_t len=strlen("(:)\n")+strlen(filename)+strlen(line)+1;
+		char* lineNumber=(char*)malloc(sizeof(char)*len);
+		FKL_ASSERT(lineNumber,"fklGenErrorMessage",__FILE__,__LINE__);
+		sprintf(lineNumber,"(%s:%s)\n",line,filename);
+		free(line);
+		t=fklStrCat(t,lineNumber);
+		free(lineNumber);
+	}
+
 	return t;
 }
 
@@ -1770,7 +1805,7 @@ char* fklGenErrorMessage(unsigned int type,FklVMrunnable* r,FklVM* exe)
 {
 	int32_t cp=r->cp;
 	LineNumTabNode* node=fklFindLineNumTabNode(cp,exe->lnt);
-	char* filename=GlobSymbolTable.idl[node->fid]->symbol;
+	char* filename=fklGetGlobSymbolWithId(node->fid)->symbol;
 	char* line=fklIntToString(node->line);
 	size_t len=strlen("at line  of \n")+strlen(filename)+strlen(line)+1;
 	char* lineNumber=(char*)malloc(sizeof(char)*len);
@@ -1797,7 +1832,7 @@ char* fklGenErrorMessage(unsigned int type,FklVMrunnable* r,FklVM* exe)
 			break;
 		case FKL_SYMUNDEFINE:
 			t=fklStrCat(t,"Symbol ");
-			t=fklStrCat(t,GlobSymbolTable.idl[fklGetSymbolIdInByteCode(exe->code+r->cp)]->symbol);
+			t=fklStrCat(t,fklGetGlobSymbolWithId(fklGetSymbolIdInByteCode(exe->code+r->cp))->symbol);
 			t=fklStrCat(t," is undefined ");
 			break;
 		case FKL_INVOKEERROR:
@@ -1830,6 +1865,32 @@ char* fklGenErrorMessage(unsigned int type,FklVMrunnable* r,FklVM* exe)
 	}
 	t=fklStrCat(t,lineNumber);
 	free(lineNumber);
+	for(uint32_t i=exe->rstack->top;i;i--)
+	{
+		FklVMrunnable* r=exe->rstack->data[i-1];
+		if(r->sid!=0)
+		{
+			t=fklStrCat(t,"at proc:");
+			t=fklStrCat(t,fklGetGlobSymbolWithId(r->sid)->symbol);
+		}
+		else
+		{
+			if(i>1)
+				t=fklStrCat(t,"at <lambda>");
+			else
+				t=fklStrCat(t,"at <top>");
+		}
+		LineNumTabNode* node=fklFindLineNumTabNode(r->cp,exe->lnt);
+		char* filename=fklGetGlobSymbolWithId(node->fid)->symbol;
+		char* line=fklIntToString(node->line);
+		size_t len=strlen("(:)\n")+strlen(filename)+strlen(line)+1;
+		char* lineNumber=(char*)malloc(sizeof(char)*len);
+		FKL_ASSERT(lineNumber,"fklGenErrorMessage",__FILE__,__LINE__);
+		sprintf(lineNumber,"(%s:%s)\n",line,filename);
+		free(line);
+		t=fklStrCat(t,lineNumber);
+		free(lineNumber);
+	}
 	return t;
 }
 
@@ -1910,8 +1971,10 @@ void fklPrincVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 						}
 						break;
 					case FKL_PRC:
-						fprintf(fp,"#<proc>");
-						break;
+						if(objValue->u.prc->sid)
+							fprintf(fp,"<#proc: %s>",fklGetGlobSymbolWithId(objValue->u.prc->sid)->symbol);
+						else
+							fprintf(fp,"#<proc>");
 					case FKL_PAIR:
 						cirPair=isCircularReference(objValue->u.pair,*h);
 						if(cirPair)
@@ -1964,10 +2027,16 @@ void fklPrincVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 						fprintf(fp,"<#dll>");
 						break;
 					case FKL_DLPROC:
-						fprintf(fp,"<#dlproc>");
+						if(objValue->u.dlproc->sid)
+							fprintf(fp,"<#dlproc: %s>",fklGetGlobSymbolWithId(objValue->u.dlproc->sid)->symbol);
+						else
+							fprintf(fp,"<#dlproc>");
 						break;
 					case FKL_FLPROC:
-						fprintf(fp,"<#flproc>");
+						if(objValue->u.flproc->sid)
+							fprintf(fp,"<#flproc: %s>",fklGetGlobSymbolWithId(objValue->u.flproc->sid)->symbol);
+						else
+							fprintf(fp,"<#flproc>");
 						break;
 					case FKL_ERR:
 						fprintf(fp,"%s",objValue->u.err->message);
@@ -2041,7 +2110,10 @@ void fklPrin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 						}
 						break;
 					case FKL_PRC:
-						fprintf(fp,"#<proc>");
+						if(objValue->u.prc->sid)
+							fprintf(fp,"<#proc: %s>",fklGetGlobSymbolWithId(objValue->u.prc->sid)->symbol);
+						else
+							fprintf(fp,"#<proc>");
 						break;
 					case FKL_PAIR:
 						cirPair=isCircularReference(objValue->u.pair,*h);
@@ -2095,10 +2167,16 @@ void fklPrin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 						fprintf(fp,"<#dll>");
 						break;
 					case FKL_DLPROC:
-						fprintf(fp,"<#dlproc>");
+						if(objValue->u.dlproc->sid)
+							fprintf(fp,"<#dlproc: %s>",fklGetGlobSymbolWithId(objValue->u.dlproc->sid)->symbol);
+						else
+							fprintf(fp,"<#dlproc>");
 						break;
 					case FKL_FLPROC:
-						fprintf(fp,"<#flproc>");
+						if(objValue->u.flproc->sid)
+							fprintf(fp,"<#flproc: %s>",fklGetGlobSymbolWithId(objValue->u.flproc->sid)->symbol);
+						else
+							fprintf(fp,"<#flproc>");
 						break;
 					case FKL_ERR:
 						fprintf(fp,"<#err w:%s t:%s m:%s>",objValue->u.err->who,fklGetGlobSymbolWithId(objValue->u.err->type)->symbol,objValue->u.err->message);

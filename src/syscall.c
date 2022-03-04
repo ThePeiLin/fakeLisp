@@ -1288,7 +1288,7 @@ void SYS_dlsym(FklVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.dlsym",FKL_TOOFEWARG,runnable,exe);
 	if(!IS_STR(symbol)||!IS_DLL(dll))
 		RAISE_BUILTIN_ERROR("sys.dlsym",FKL_WRONGARG,runnable,exe);
-	char prefix[]="FAKE_";
+	char prefix[]="FKL_";
 	size_t len=strlen(prefix)+strlen(symbol->u.str)+1;
 	char* realDlFuncName=(char*)malloc(sizeof(char)*len);
 	FKL_ASSERT(realDlFuncName,"B_dlsym",__FILE__,__LINE__);
@@ -1319,7 +1319,7 @@ void SYS_argv(FklVM* exe,pthread_rwlock_t* pGClock)
 		*tmp=cur;
 		cur->u.pair->car=fklNewVMvalue(FKL_STR,fklCopyStr(exe->argv[i]),exe->heap);
 	}
-	SET_RETURN("FAKE_argv",retval,stack);
+	SET_RETURN("SYS_argv",retval,stack);
 }
 
 void SYS_go(FklVM* exe,pthread_rwlock_t* gclock)

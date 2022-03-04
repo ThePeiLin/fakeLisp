@@ -375,6 +375,7 @@ typedef struct FklVMproc
 {
 	uint32_t scp;
 	uint32_t cpc;
+	FklSid_t sid;
 	FklVMenv* prevEnv;
 }FklVMproc;
 
@@ -385,6 +386,7 @@ typedef struct FklVMrunnable
 	uint32_t scp;
 	uint32_t cp;
 	uint32_t cpc;
+	FklSid_t sid;
 }FklVMrunnable;
 
 typedef struct
@@ -437,6 +439,7 @@ typedef struct FklVMDlproc
 {
 	FklDllFunc func;
 	FklVMvalue* dll;
+	FklSid_t sid;
 }FklVMDlproc;
 
 typedef struct FklVMFlproc
@@ -445,6 +448,7 @@ typedef struct FklVMFlproc
 	ffi_cif cif;
 	ffi_type** atypes;
 	FklTypeId_t type;
+	FklSid_t sid;
 }FklVMFlproc;
 
 typedef struct FklStringMatchPattern
@@ -484,7 +488,7 @@ typedef struct LineNumberTable
 
 typedef struct FklLineNumberTableNode
 {
-	uint32_t fid;
+	FklSid_t fid;
 	uint32_t scp;
 	uint32_t cpc;
 	uint32_t line;

@@ -1735,7 +1735,7 @@ FklSymTabNode* fklAddSymbol(const char* sym,FklSymbolTable* table)
 	{
 		node=fklNewSymTabNode(sym);
 		table->num=1;
-		node->id=table->num-1;
+		node->id=table->num;
 		table->list=(FklSymTabNode**)malloc(sizeof(FklSymTabNode*)*1);
 		FKL_ASSERT(table->list,"fklAddSymbol",__FILE__,__LINE__);
 		table->idl=(FklSymTabNode**)malloc(sizeof(FklSymTabNode*)*1);
@@ -1769,7 +1769,7 @@ FklSymTabNode* fklAddSymbol(const char* sym,FklSymbolTable* table)
 		for(;i>mid;i--)
 			table->list[i]=table->list[i-1];
 		table->list[mid]=node;
-		node->id=table->num-1;
+		node->id=table->num;
 		table->idl=(FklSymTabNode**)realloc(table->idl,sizeof(FklSymTabNode*)*table->num);
 		FKL_ASSERT(table->idl,"fklAddSymbol",__FILE__,__LINE__);
 		table->idl[table->num-1]=node;
@@ -1836,7 +1836,9 @@ FklSymTabNode* fklFindSymbolInGlob(const char* sym)
 
 FklSymTabNode* fklGetGlobSymbolWithId(FklSid_t id)
 {
-	return GlobSymbolTable.idl[id];
+	if(id==0)
+		return NULL;
+	return GlobSymbolTable.idl[id-1];
 }
 
 void fklPrintSymbolTable(FklSymbolTable* table,FILE* fp)
@@ -1845,7 +1847,7 @@ void fklPrintSymbolTable(FklSymbolTable* table,FILE* fp)
 	for(;i<table->num;i++)
 	{
 		FklSymTabNode* cur=table->list[i];
-		fprintf(fp,"symbol:%s id:%d\n",cur->symbol,cur->id);
+		fprintf(fp,"symbol:%s id:%d\n",cur->symbol,cur->id+1);
 	}
 	fprintf(fp,"size:%d\n",table->num);
 }
@@ -2091,7 +2093,7 @@ LineNumberTable* fklNewLineNumTable()
 	return t;
 }
 
-LineNumTabNode* fklNewLineNumTabNode(int32_t fid,int32_t scp,int32_t cpc,int32_t line)
+LineNumTabNode* fklNewLineNumTabNode(FklSid_t fid,int32_t scp,int32_t cpc,int32_t line)
 {
 	LineNumTabNode* t=(LineNumTabNode*)malloc(sizeof(LineNumTabNode));
 	FKL_ASSERT(t,"fklNewLineNumTable",__FILE__,__LINE__);

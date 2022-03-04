@@ -410,9 +410,9 @@ int fklIsKeyWord(const char* str,FklCompEnv* curEnv)
 int fklIsAnyExpression(const char* str,const FklAstCptr* objCptr)
 {
 	objCptr=(objCptr->type==FKL_PAIR)?&objCptr->u.pair->car:NULL;
-	if(objCptr!=NULL&&fklNextCptr(objCptr)!=NULL&&fklNextCptr(fklNextCptr(objCptr))!=NULL)
+	if(objCptr!=NULL)
 	{
-		if(objCptr->type!=FKL_ATM||fklNextCptr(objCptr)->type==FKL_NIL)return 0;
+		if(objCptr->type!=FKL_ATM)return 0;
 		else
 		{
 			FklAstAtom* tmpAtm=objCptr->u.atom;

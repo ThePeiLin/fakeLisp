@@ -728,26 +728,35 @@ FklByteCodelnt* fklCompile(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inte
 {
 	for(;;)
 	{
-		if(fklIsLoadExpression(objCptr))return fklCompileLoad(objCptr,curEnv,inter,state,evalIm);
+		int i=fklPreMacroExpand(objCptr,curEnv,inter);
+		if(i==1)
+			continue;
+		else if(i==2)
+		{
+			state->state=FKL_MACROEXPANDFAILED;
+			state->place=objCptr;
+			return NULL;
+		}
+		if(fklIsAnyExpression("load",objCptr))return fklCompileLoad(objCptr,curEnv,inter,state,evalIm);
 		if(fklIsConst(objCptr))return fklCompileConst(objCptr,curEnv,inter,state,evalIm);
-		if(fklIsUnquoteExpression(objCptr))return fklCompileUnquote(objCptr,curEnv,inter,state,evalIm);
-		if(fklIsQsquoteExpression(objCptr))return fklCompileQsquote(objCptr,curEnv,inter,state,evalIm);
+		if(fklIsAnyExpression("unquote",objCptr))return fklCompileUnquote(objCptr,curEnv,inter,state,evalIm);
+		if(fklIsAnyExpression("qsquote",objCptr))return fklCompileQsquote(objCptr,curEnv,inter,state,evalIm);
 		if(fklIsSymbol(objCptr))return fklCompileSym(objCptr,curEnv,inter,state,evalIm);
-		if(fklIsDefExpression(objCptr))return fklCompileDef(objCptr,curEnv,inter,state,evalIm);
-		if(fklIsSetqExpression(objCptr))return fklCompileSetq(objCptr,curEnv,inter,state,evalIm);
-		if(fklIsSetfExpression(objCptr))return fklCompileSetf(objCptr,curEnv,inter,state,evalIm);
-		if(fklIsGetfExpression(objCptr))return fklCompileGetf(objCptr,curEnv,inter,state,evalIm);
-		if(fklIsSzofExpression(objCptr))return fklCompileSzof(objCptr,curEnv,inter,state,evalIm);
-		if(fklIsCondExpression(objCptr))return fklCompileCond(objCptr,curEnv,inter,state,evalIm);
-		if(fklIsAndExpression(objCptr))return fklCompileAnd(objCptr,curEnv,inter,state,evalIm);
-		if(fklIsOrExpression(objCptr))return fklCompileOr(objCptr,curEnv,inter,state,evalIm);
-		if(fklIsLambdaExpression(objCptr))return fklCompileLambda(objCptr,curEnv,inter,state,evalIm);
-		if(fklIsBeginExpression(objCptr)) return fklCompileBegin(objCptr,curEnv,inter,state,evalIm);
+		if(fklIsAnyExpression("define",objCptr))return fklCompileDef(objCptr,curEnv,inter,state,evalIm);
+		if(fklIsAnyExpression("setq",objCptr))return fklCompileSetq(objCptr,curEnv,inter,state,evalIm);
+		if(fklIsAnyExpression("setf",objCptr))return fklCompileSetf(objCptr,curEnv,inter,state,evalIm);
+		if(fklIsAnyExpression("getf",objCptr))return fklCompileGetf(objCptr,curEnv,inter,state,evalIm);
+		if(fklIsAnyExpression("szof",objCptr))return fklCompileSzof(objCptr,curEnv,inter,state,evalIm);
+		if(fklIsAnyExpression("cond",objCptr))return fklCompileCond(objCptr,curEnv,inter,state,evalIm);
+		if(fklIsAnyExpression("and",objCptr))return fklCompileAnd(objCptr,curEnv,inter,state,evalIm);
+		if(fklIsAnyExpression("or",objCptr))return fklCompileOr(objCptr,curEnv,inter,state,evalIm);
+		if(fklIsAnyExpression("lambda",objCptr))return fklCompileLambda(objCptr,curEnv,inter,state,evalIm);
+		if(fklIsAnyExpression("begin",objCptr)) return fklCompileBegin(objCptr,curEnv,inter,state,evalIm);
 		//if(fklIsPrognExpression(objCptr)) return fklCompileProgn(objCptr,curEnv,inter,state,evalIm);
-		if(fklIsImportExpression(objCptr))return fklCompileImport(objCptr,curEnv,inter,state,evalIm);
-		if(fklIsTryExpression(objCptr))return fklCompileTry(objCptr,curEnv,inter,state,evalIm);
-		if(fklIsFlsymExpression(objCptr))return fklCompileFlsym(objCptr,curEnv,inter,state,evalIm);
-		if(fklIsLibraryExpression(objCptr))
+		if(fklIsAnyExpression("import",objCptr))return fklCompileImport(objCptr,curEnv,inter,state,evalIm);
+		if(fklIsAnyExpression("try",objCptr))return fklCompileTry(objCptr,curEnv,inter,state,evalIm);
+		if(fklIsAnyExpression("flsym",objCptr))return fklCompileFlsym(objCptr,curEnv,inter,state,evalIm);
+		if(fklIsAnyExpression("library",objCptr))
 		{
 			FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
 			tmp->ls=1;
@@ -756,13 +765,13 @@ FklByteCodelnt* fklCompile(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inte
 			tmp->l[0]=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,0,inter->curline);
 			return tmp;
 		}
-		if(fklIsCatchExpression(objCptr)||fklIsUnqtespExpression(objCptr)||fklIsExportExpression(objCptr))
+		if(fklIsAnyExpression("catch",objCptr)||fklIsAnyExpression("unqtesp",objCptr)||fklIsAnyExpression("export",objCptr))
 		{
 			state->state=FKL_INVALIDEXPR;
 			state->place=objCptr;
 			return NULL;
 		}
-		if(fklIsDefmacroExpression(objCptr))
+		if(fklIsAnyExpression("defmacro",objCptr))
 		{
 			FklErrorState t=defmacro(objCptr,curEnv,inter);
 			if(t.state)
@@ -781,7 +790,7 @@ FklByteCodelnt* fklCompile(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inte
 					,objCptr->curline);
 			return tmp;
 		}
-		else if(fklIsDeftypeExpression(objCptr))
+		else if(fklIsAnyExpression("deftype",objCptr))
 		{
 			FklSid_t typeName=0;
 			FklTypeId_t type=fklGenDefTypes(objCptr,inter->deftypes,&typeName);
@@ -808,16 +817,7 @@ FklByteCodelnt* fklCompile(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inte
 					,objCptr->curline);
 			return tmp;
 		}
-		int i=fklPreMacroExpand(objCptr,curEnv,inter);
-		if(i==1)
-			continue;
-		else if(i==2)
-		{
-			state->state=FKL_MACROEXPANDFAILED;
-			state->place=objCptr;
-			return NULL;
-		}
-		else if(!fklIsValid(objCptr)||fklHasKeyWord(objCptr,curEnv))
+		if(!fklIsValid(objCptr)||fklHasKeyWord(objCptr,curEnv))
 		{
 			state->state=FKL_SYNTAXERROR;
 			state->place=objCptr;

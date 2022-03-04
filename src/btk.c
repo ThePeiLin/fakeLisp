@@ -34,15 +34,15 @@ int getch()
 	return ch;
 }
 #endif
-void FAKE_getch(FklVM* exe,pthread_rwlock_t* pGClock)
+void FKL_getch(FklVM* exe,pthread_rwlock_t* pGClock)
 {
 	FklVMstack* stack=exe->stack;
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("btk.getch",FKL_TOOMANYARG,fklTopComStack(exe->rstack),exe);
-	SET_RETURN("FAKE_getch",MAKE_VM_CHR(getch()),stack);
+	SET_RETURN("FKL_getch",MAKE_VM_CHR(getch()),stack);
 }
 
-void FAKE_sleep(FklVM* exe,pthread_rwlock_t* pGClock)
+void FKL_sleep(FklVM* exe,pthread_rwlock_t* pGClock)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* r=fklTopComStack(exe->rstack);
@@ -54,12 +54,12 @@ void FAKE_sleep(FklVM* exe,pthread_rwlock_t* pGClock)
 	if(!IS_I32(second))
 		RAISE_BUILTIN_ERROR("btk.sleep",FKL_WRONGARG,r,exe);
 	fklReleaseSource(pGClock);
-	SET_RETURN("FAKE_sleep",MAKE_VM_I32(sleep(GET_I32(second))),stack);
+	SET_RETURN("FKL_sleep",MAKE_VM_I32(sleep(GET_I32(second))),stack);
 	fklLockSource(pGClock);
 	stack->tp+=1;
 }
 
-void FAKE_usleep(FklVM* exe,pthread_rwlock_t* pGClock)
+void FKL_usleep(FklVM* exe,pthread_rwlock_t* pGClock)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMvalue* second=fklGET_VAL(fklPopVMstack(stack),exe->heap);
@@ -77,11 +77,11 @@ void FAKE_usleep(FklVM* exe,pthread_rwlock_t* pGClock)
 		usleep(GET_I32(second));
 #endif
 	fklLockSource(pGClock);
-	SET_RETURN("FAKE_usleep",second,stack);
+	SET_RETURN("FKL_usleep",second,stack);
 	stack->tp+=1;
 }
 
-void FAKE_rand(FklVM* exe,pthread_rwlock_t* pGClock)
+void FKL_rand(FklVM* exe,pthread_rwlock_t* pGClock)
 {
 	static int hasSrand=0;
 	if(!hasSrand)
@@ -96,10 +96,10 @@ void FAKE_rand(FklVM* exe,pthread_rwlock_t* pGClock)
 		RAISE_BUILTIN_ERROR("btk.rand",FKL_TOOMANYARG,r,exe);
 	if(lim&&!IS_I32(lim))
 		RAISE_BUILTIN_ERROR("btk.rand",FKL_WRONGARG,r,exe);
-	SET_RETURN("FAKE_rand",MAKE_VM_I32(rand()%((lim==NULL||!IS_I32(lim))?RAND_MAX:GET_I32(lim))),stack);
+	SET_RETURN("FKL_rand",MAKE_VM_I32(rand()%((lim==NULL||!IS_I32(lim))?RAND_MAX:GET_I32(lim))),stack);
 }
 
-void FAKE_getTime(FklVM* exe,pthread_rwlock_t* pGClock)
+void FKL_getTime(FklVM* exe,pthread_rwlock_t* pGClock)
 {
 	FklVMstack* stack=exe->stack;
 	if(fklResBp(stack))
@@ -115,7 +115,7 @@ void FAKE_getTime(FklVM* exe,pthread_rwlock_t* pGClock)
 	char* year=fklIntToString(tblock->tm_year+1900);
 	int32_t timeLen=strlen(year)+strlen(mon)+strlen(day)+strlen(hour)+strlen(min)+strlen(sec)+5+1;
 	char* trueTime=(char*)malloc(sizeof(char)*timeLen);
-	FKL_ASSERT(trueTime,"FAKE_getTime",__FILE__,__LINE__);
+	FKL_ASSERT(trueTime,"FKL_getTime",__FILE__,__LINE__);
 	sprintf(trueTime,"%s-%s-%s_%s_%s_%s",year,mon,day,hour,min,sec);
 	free(sec);
 	free(min);
@@ -124,10 +124,10 @@ void FAKE_getTime(FklVM* exe,pthread_rwlock_t* pGClock)
 	free(mon);
 	free(year);
 	FklVMvalue* tmpVMvalue=fklNewVMvalue(FKL_STR,trueTime,exe->heap);
-	SET_RETURN("FAKE_getTime",tmpVMvalue,stack);
+	SET_RETURN("FKL_getTime",tmpVMvalue,stack);
 }
 
-void FAKE_removeFile(FklVM* exe,pthread_rwlock_t* pGClock)
+void FKL_removeFile(FklVM* exe,pthread_rwlock_t* pGClock)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMvalue* name=fklPopVMstack(stack);
@@ -138,10 +138,10 @@ void FAKE_removeFile(FklVM* exe,pthread_rwlock_t* pGClock)
 		RAISE_BUILTIN_ERROR("btk.removeFile",FKL_TOOMANYARG,r,exe);
 	if(!IS_STR(name))
 		RAISE_BUILTIN_ERROR("btk.removeFile",FKL_WRONGARG,r,exe);
-	SET_RETURN("FAKE_removeFile",MAKE_VM_I32(remove(name->u.str)),stack);
+	SET_RETURN("FKL_removeFile",MAKE_VM_I32(remove(name->u.str)),stack);
 }
 
-void FAKE_setVMChanlBufferSize(FklVM* exe,pthread_rwlock_t* pGClock)
+void FKL_setVMChanlBufferSize(FklVM* exe,pthread_rwlock_t* pGClock)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMvalue* chan=fklPopVMstack(stack);
@@ -154,10 +154,10 @@ void FAKE_setVMChanlBufferSize(FklVM* exe,pthread_rwlock_t* pGClock)
 	if(!IS_I32(size)||!IS_CHAN(chan))
 		RAISE_BUILTIN_ERROR("btk.setVMChanlBufferSize",FKL_WRONGARG,r,exe);
 	chan->u.chan->max=GET_I32(size);
-	SET_RETURN("FAKE_setVMChanlBufferSize",chan,stack);
+	SET_RETURN("FKL_setVMChanlBufferSize",chan,stack);
 }
 
-void FAKE_isEndOfFile(FklVM* exe,pthread_rwlock_t* pGClock)
+void FKL_isEndOfFile(FklVM* exe,pthread_rwlock_t* pGClock)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMvalue* fp=fklPopVMstack(stack);
@@ -168,7 +168,7 @@ void FAKE_isEndOfFile(FklVM* exe,pthread_rwlock_t* pGClock)
 		RAISE_BUILTIN_ERROR("btk.isEndOfFile",FKL_TOOFEWARG,r,exe);
 	if(!IS_FP(fp))
 		RAISE_BUILTIN_ERROR("btk.isEndOfFile",FKL_WRONGARG,r,exe);
-	SET_RETURN("FAKE_isEndOfFile",feof(fp->u.fp)
+	SET_RETURN("FKL_isEndOfFile",feof(fp->u.fp)
 			?VM_TRUE
 			:VM_NIL
 			,stack);

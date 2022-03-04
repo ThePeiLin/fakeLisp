@@ -98,7 +98,7 @@ void fklWriteGlobSymbolTable(FILE*);
 void fklWriteLineNumberTable(LineNumberTable*,FILE*);
 
 LineNumberTable* fklNewLineNumTable();
-LineNumTabNode* fklNewLineNumTabNode(int32_t fid,int32_t scp,int32_t cpc,int32_t line);
+LineNumTabNode* fklNewLineNumTabNode(FklSid_t fid,int32_t scp,int32_t cpc,int32_t line);
 LineNumTabNode* fklFindLineNumTabNode(uint32_t cp,LineNumberTable*);
 void fklFreeLineNumTabNode(LineNumTabNode*);
 void fklFreeLineNumberTable(LineNumberTable*);

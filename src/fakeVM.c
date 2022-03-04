@@ -467,7 +467,12 @@ void fklInitGlobEnv(FklVMenv* obj,VMheap* heap)
 	obj->list[3]=fklNewVMenvNode(fklNewVMvalue(FKL_FP,stderr,heap),fklAddSymbolToGlob(builtInSymbolList[3])->id);
 	size_t i=4;
 	for(;i<NUM_OF_BUILT_IN_SYMBOL;i++)
-		obj->list[i]=fklNewVMenvNode(fklNewVMvalue(FKL_DLPROC,fklNewVMDlproc(syscallFunctionList[i-4],NULL),heap),fklAddSymbolToGlob(builtInSymbolList[i])->id);
+	{
+		FklVMDlproc* proc=fklNewVMDlproc(syscallFunctionList[i-4],NULL);
+		FklSymTabNode* node=fklAddSymbolToGlob(builtInSymbolList[i]);
+		proc->sid=node->id;
+		obj->list[i]=fklNewVMenvNode(fklNewVMvalue(FKL_DLPROC,proc,heap),node->id);
+	}
 	mergeSort(obj->list,obj->num,sizeof(FklVMenvNode*),envNodeCmp);
 }
 
@@ -948,6 +953,12 @@ void B_pop_var(FklVM* exe)
 	}
 	FklVMvalue* topValue=fklGET_VAL(fklGetTopValue(stack),heap);
 	*pValue=fklGET_VAL(topValue,heap);
+	if(IS_PRC(*pValue)&&(*pValue)->u.prc->sid==0)
+		(*pValue)->u.prc->sid=idOfVar;
+	if(IS_DLPROC(*pValue)&&(*pValue)->u.dlproc->sid==0)
+		(*pValue)->u.dlproc->sid=idOfVar;
+	if(IS_FLPROC(*pValue)&&(*pValue)->u.flproc->sid==0)
+		(*pValue)->u.flproc->sid=idOfVar;
 	stack->tp-=1;
 	fklStackRecycle(exe);
 	runnable->cp+=9;

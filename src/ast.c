@@ -1,7 +1,8 @@
 #include<fakeLisp/ast.h>
 #include<fakeLisp/bytecode.h>
 #include<fakeLisp/vm.h>
-#include"utils.h"
+#include<fakeLisp/utils.h>
+#include<fakeLisp/compiler.h>
 #include<string.h>
 #include<ctype.h>
 

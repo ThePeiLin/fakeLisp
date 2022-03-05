@@ -234,35 +234,6 @@ typedef struct FklAstAtom
 	} value;
 }FklAstAtom;
 
-typedef struct
-{
-	FklErrorType state;
-	FklAstCptr* place;
-}FklErrorState;
-
-typedef struct FklPreDef
-{
-	char* symbol;
-	FklAstCptr obj;//node or symbol or val
-	struct FklPreDef* next;
-}FklPreDef;
-
-typedef struct FklPreEnv
-{
-	struct FklPreEnv* prev;
-	FklPreDef* symbols;
-	struct FklPreEnv* next;
-}FklPreEnv;
-
-typedef struct FklPreMacro
-{
-	FklAstCptr* pattern;
-	FklByteCodelnt* proc;
-	FklVMDefTypes* deftypes;
-	struct FklPreMacro* next;
-	struct FklCompEnv* macroEnv;
-}FklPreMacro;
-
 typedef struct FklSymTabNode
 {
 	char* symbol;
@@ -275,43 +246,6 @@ typedef struct FklSymbolTable
 	FklSymTabNode** list;
 	FklSymTabNode** idl;
 }FklSymbolTable;
-
-typedef struct FklCompDef
-{
-	FklSid_t id;
-	struct FklCompDef* next;
-}FklCompDef;
-
-typedef struct FklCompEnv
-{
-	struct FklCompEnv* prev;
-	char* prefix;
-	const char** exp;
-	uint32_t n;
-	FklCompDef* head;
-	FklPreMacro* macro;
-	FklByteCodelnt* proc;
-	uint32_t refcount;
-	struct FklKeyWord* keyWords;
-}FklCompEnv;
-
-typedef struct FklInterpreter
-{
-	char* filename;
-	char* curDir;
-	FILE* file;
-	int curline;
-	FklCompEnv* glob;
-	struct LineNumberTable* lnt;
-	struct FklInterpreter* prev;
-	FklVMDefTypes* deftypes;
-}FklIntpr;
-
-typedef struct FklKeyWord
-{
-	char* word;
-	struct FklKeyWord* next;
-}FklKeyWord;
 
 typedef struct FklVMpair
 {

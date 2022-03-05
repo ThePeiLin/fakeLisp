@@ -1,7 +1,22 @@
-#ifndef READER_H
-#define READER_H
-#include"fakedef.h"
+#ifndef FKL_READER_H
+#define FKL_READER_H
+#include"ast.h"
+#include"bytecode.h"
+#include"vm.h"
 #include<stdint.h>
+typedef struct FklStringMatchPattern
+{
+	uint32_t num;
+	char** parts;
+	FklValueType type;
+	union{
+		void (*fProc)(FklVM*);
+		FklByteCodelnt* bProc;
+	}u;
+	struct FklStringMatchPattern* prev;
+	struct FklStringMatchPattern* next;
+}FklStringMatchPattern;
+
 
 FklStringMatchPattern* fklFindStringPattern(const char*);
 FklStringMatchPattern* fklNewStringMatchPattern(int32_t,char**,FklByteCodelnt*);

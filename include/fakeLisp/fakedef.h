@@ -385,19 +385,6 @@ typedef struct FklVMFlproc
 	FklSid_t sid;
 }FklVMFlproc;
 
-typedef struct FklStringMatchPattern
-{
-	uint32_t num;
-	char** parts;
-	FklValueType type;
-	union{
-		void (*fProc)(FklVM*);
-		FklByteCodelnt* bProc;
-	}u;
-	struct FklStringMatchPattern* prev;
-	struct FklStringMatchPattern* next;
-}FklStringMatchPattern;
-
 typedef struct FklVMerror
 {
 	FklSid_t type;

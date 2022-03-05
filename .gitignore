@@ -1,6 +1,6 @@
 *
 !/include/
-!/include/**/
+!/include/fakeLisp/*.h
 !/examples/
 !/examples/**/
 !/lib/

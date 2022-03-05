@@ -19,16 +19,6 @@ typedef enum
 	FKL_REF_TAG,
 }FklVMptrTag;
 
-typedef enum
-{
-	FKL_NATIVE_TYPE_TAG=0,
-	FKL_ARRAY_TYPE_TAG,
-	FKL_PTR_TYPE_TAG,
-	FKL_STRUCT_TYPE_TAG,
-	FKL_UNION_TYPE_TAG,
-	FKL_FUNC_TYPE_TAG,
-}FklDefTypeTag;
-
 //typedef enum
 //{
 //	BYTE_1,

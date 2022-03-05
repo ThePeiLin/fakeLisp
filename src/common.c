@@ -1649,16 +1649,6 @@ void fklFreeLineNumTabNode(LineNumTabNode* n)
 	free(n);
 }
 
-void fklFreeDefTypeTable(FklVMDefTypes* defs)
-{
-	size_t i=0;
-	size_t num=defs->num;
-	for(;i<num;i++)
-		free(defs->u[i]);
-	free(defs->u);
-	free(defs);
-}
-
 void fklFreeLineNumberTable(LineNumberTable* t)
 {
 	int32_t i=0;
@@ -2283,11 +2273,4 @@ uint8_t* fklCreateByteArry(int32_t size)
 	return tmp;
 }
 
-FklVMDefTypes* fklNewVMDefTypes(void)
-{
-	FklVMDefTypes* tmp=(FklVMDefTypes*)malloc(sizeof(FklVMDefTypes));
-	FKL_ASSERT(tmp,"fklNewVMDefTypes",__FILE__,__LINE__);
-	tmp->num=0;
-	tmp->u=NULL;
-	return tmp;
-}
+

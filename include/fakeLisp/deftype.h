@@ -90,9 +90,10 @@ typedef struct FklDefFuncType
 
 FklDefTypes* fklNewDefTypes(void);
 void fklFreeDefTypeTable(FklDefTypes* defs);
+
 FklTypeId_t fklGenDefTypes(FklAstCptr*,FklDefTypes* otherTypes,FklSid_t* typeName);
 FklTypeId_t fklGenDefTypesUnion(FklAstCptr* objCptr,FklDefTypes* otherTypes);
-FklDefTypesNode* fklFindVMDefTypesNode(FklSid_t typeId,FklDefTypes* otherTypes);
+FklDefTypesNode* fklFindDefTypesNode(FklSid_t typeId,FklDefTypes* otherTypes);
 int fklAddDefTypes(FklDefTypes*,FklSid_t typeName,FklTypeId_t);
 FklTypeId_t fklGenDefTypesUnion(FklAstCptr* objCptr,FklDefTypes* otherTypes);
 void fklInitNativeDefTypes(FklDefTypes* otherTypes);

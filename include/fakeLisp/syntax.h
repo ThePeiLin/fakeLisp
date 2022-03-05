@@ -1,6 +1,7 @@
 #ifndef SYNTAX_H
 #define SYNTAX_H
-#include"fakedef.h"
+#include"compiler.h"
+#include"ast.h"
 
 FklKeyWord* fklHasKeyWord(const FklAstCptr*,FklCompEnv*);
 void fklAddKeyWord(const char*,FklCompEnv*);

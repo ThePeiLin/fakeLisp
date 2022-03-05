@@ -1,5 +1,8 @@
 #ifndef FKL_SRC_UTILS_H
 #define FKL_SRC_UTILS_H
+#include<stdint.h>
+#include<stddef.h>
+#include<stdio.h>
 #define THRESHOLD_SIZE 64
 #define NUM_OF_BUILT_IN_SYMBOL 54
 #define MAX_STRING_SIZE 64
@@ -79,7 +82,7 @@
 #define GET_I32(P) ((int32_t)((uintptr_t)(P)>>UNUSEDBITNUM))
 #define GET_CHR(P) ((char)((uintptr_t)(P)>>UNUSEDBITNUM))
 #define GET_SYM(P) ((FklSid_t)((uintptr_t)(P)>>UNUSEDBITNUM))
-//#define fklSET_REF(p,v) do{FklVMvalue* P=p;FklVMvalue* V=v;if(IS_CHF(P)){VMMemref* pRef=(VMMemref*)GET_PTR(P);setVMMemref(pRef,V);free(pRef);} else *(FklVMvalue**)GET_PTR(P)=(V);}while(0)
+//#define fklSET_REF(p,v) do{FklVMvalue* P=p;FklVMvalue* V=v;if(IS_CHF(P)){VMmemref* pRef=(VMmemref*)GET_PTR(P);setVMmemref(pRef,V);free(pRef);} else *(FklVMvalue**)GET_PTR(P)=(V);}while(0)
 #define IS_PTR(P) (GET_TAG(P)==FKL_PTR_TAG)
 #define IS_PAIR(P) (GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_PAIR)
 #define IS_DBL(P) (GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_DBL)
@@ -111,4 +114,44 @@
 #define GET_TYPES_PTR(P) ((void*)(((uintptr_t)(P))&PTR_MASK))
 #define GET_TYPES_TAG(P) ((FklDefTypeTag)(((uintptr_t)(P))&TAG_MASK))
 
+int fklIsHexNum(const char*);
+int fklIsOctNum(const char*);
+int fklIsDouble(const char*);
+int fklIsNum(const char*);
+char* fklGetStringFromList(const char*);
+char* fklGetStringAfterBackslash(const char*);
+int fklPower(int,int);
+char* fklCastEscapeCharater(const char*,char,size_t*);
+void fklPrintRawString(const char*,FILE*);
+void fklPrintRawChar(char,FILE*);
+char* fklDoubleToString(double);
+double fklStringToDouble(const char*);
+char* fklIntToString(long);
+int64_t fklStringToInt(const char*);
+int32_t fklCountChar(const char*,char,int32_t);
+int fklStringToChar(const char*);
+uint8_t* fklCastStrByteStr(const char*);
+uint8_t fklCastCharInt(char);
+int fklIsscript(const char*);
+int fklIscode(const char*);
+int fklIsAllSpace(const char*);
+char* fklCopyStr(const char*);
+void* fklCopyMemory(void*,size_t);
+int fklIsSymbolShouldBeExport(const char* str,const char** pStr,uint32_t n);
+void fklPrintByteStr(size_t size,const uint8_t* str,FILE*,int);
+void fklPrintAsByteStr(const uint8_t*,int32_t,FILE*);
+void fklChangeWorkPath(const char*);
+char* fklGetDir(const char*);
+char* fklGetStringFromFile(FILE*);
+char** fklSplit(char*,char*,int*);
+char* fklRelpath(char*,char*);
+
+
+void mergeSort(void* base
+		,size_t num
+		,size_t size
+		,int (*cmpf)(const void*,const void*));
+
+char* fklStrCat(char*,const char*);
+uint8_t* fklCreateByteArry(int32_t);
 #endif

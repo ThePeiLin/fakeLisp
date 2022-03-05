@@ -731,7 +731,7 @@ FklByteCodelnt* fklCompile(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inte
 		if(fklIsLoadExpression(objCptr))return fklCompileLoad(objCptr,curEnv,inter,state,evalIm);
 		if(fklIsConst(objCptr))return fklCompileConst(objCptr,curEnv,inter,state,evalIm);
 		if(fklIsUnquoteExpression(objCptr))return fklCompileUnquote(objCptr,curEnv,inter,state,evalIm);
-		if(fklIsQuoteExpression(objCptr))return fklCompileQsquote(objCptr,curEnv,inter,state,evalIm);
+		if(fklIsQsquoteExpression(objCptr))return fklCompileQsquote(objCptr,curEnv,inter,state,evalIm);
 		if(fklIsSymbol(objCptr))return fklCompileSym(objCptr,curEnv,inter,state,evalIm);
 		if(fklIsDefExpression(objCptr))return fklCompileDef(objCptr,curEnv,inter,state,evalIm);
 		if(fklIsSetqExpression(objCptr))return fklCompileSetq(objCptr,curEnv,inter,state,evalIm);
@@ -747,7 +747,7 @@ FklByteCodelnt* fklCompile(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inte
 		if(fklIsImportExpression(objCptr))return fklCompileImport(objCptr,curEnv,inter,state,evalIm);
 		if(fklIsTryExpression(objCptr))return fklCompileTry(objCptr,curEnv,inter,state,evalIm);
 		if(fklIsFlsymExpression(objCptr))return fklCompileFlsym(objCptr,curEnv,inter,state,evalIm);
-		if(fklIsLambdaExpression(objCptr))
+		if(fklIsLibraryExpression(objCptr))
 		{
 			FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
 			tmp->ls=1;

@@ -105,46 +105,5 @@ char* fklGenInvalidSymbolErrorMessage(const char* str,FklVMrunnable* r,FklVM* ex
 int32_t fklGetSymbolIdInByteCode(const uint8_t*);
 int fklResBp(FklVMstack*);
 
-FklTypeId_t fklGenDefTypes(FklAstCptr*,FklVMDefTypes* otherTypes,FklSid_t* typeName);
-FklTypeId_t fklGenDefTypesUnion(FklAstCptr* objCptr,FklVMDefTypes* otherTypes);
-FklVMDefTypesNode* fklFindVMDefTypesNode(FklSid_t typeId,FklVMDefTypes* otherTypes);
-int fklAddDefTypes(FklVMDefTypes*,FklSid_t typeName,FklTypeId_t);
-
-FklTypeId_t fklNewVMNativeType(FklSid_t,size_t,size_t);
-void fklFreeVMNativeType(FklVMNativeType*);
-
-FklTypeId_t fklNewVMArrayType(FklTypeId_t,size_t);
-void fklFreeVMArrayType(FklVMArrayType*);
-
-FklTypeId_t fklNewVMPtrType(FklTypeId_t);
-void fklFreeVMPtrType(FklVMPtrType*);
-
-FklTypeId_t fklNewVMStructType(const char*,uint32_t,FklSid_t[],FklTypeId_t []);
-void fklFreeVMStructType(FklVMStructType*);
-
-FklTypeId_t fklNewVMUnionType(const char* structName,uint32_t num,FklSid_t symbols[],FklTypeId_t memberTypes[]);
-void fklFreeVMUnionType(FklVMUnionType*);
-
-FklTypeId_t fklNewVMFuncType(FklTypeId_t rtype,uint32_t anum,FklTypeId_t atypes[]);
-FklTypeId_t fklFindSameFuncType(FklTypeId_t,uint32_t anum,FklTypeId_t atypes[]);
-void fklFreeVMFuncType(FklVMFuncType*);
-
-size_t fklGetVMTypeSize(FklVMTypeUnion t);
-size_t fklGetVMTypeAlign(FklVMTypeUnion t);
-size_t fklGetVMTypeSizeWithTypeId(FklTypeId_t t);
-FklVMTypeUnion fklGetVMTypeUnion(FklTypeId_t);
-
 FklVMMem* fklNewVMMem(FklTypeId_t typeId,uint8_t* mem);
-FklTypeId_t fklGenDefTypesUnion(FklAstCptr* objCptr,FklVMDefTypes* otherTypes);
-void fklInitNativeDefTypes(FklVMDefTypes* otherTypes);
-void fklWriteTypeList(FILE* fp);
-void fklLoadTypeList(FILE* fp);
-void fklFreeGlobTypeList(void);
-
-int fklIsNativeTypeId(FklTypeId_t);
-int fklIsArrayTypeId(FklTypeId_t);
-int fklIsPtrTypeId(FklTypeId_t);
-int fklIsStructTypeId(FklTypeId_t);
-int fklIsUnionTypeId(FklTypeId_t);
-int fklIsFunctionTypeId(FklTypeId_t);
 #endif

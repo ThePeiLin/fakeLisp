@@ -444,11 +444,6 @@ typedef struct FklVMArrayType
 	FklTypeId_t etype;
 }FklVMArrayType;
 
-typedef struct FklVMPtrType
-{
-	FklTypeId_t ptype;
-}FklVMPtrType;
-
 typedef struct FklVMStructType
 {
 	int64_t type;

@@ -1,6 +1,7 @@
 #ifndef FKL_DEFTYPE_H
 #define FKL_DEFTYPE_H
 #include"symbol.h"
+#include"ast.h"
 #include<stddef.h>
 
 typedef uint32_t FklTypeId_t;
@@ -35,7 +36,7 @@ typedef union FklTypeUnion
 	struct FklDefStructType* st;
 	struct FklDefUnionType* ut;
 	struct FklDefFuncType* ft;
-}FklTypeUnion;
+}FklDefTypeUnion;
 
 typedef struct FklDefStructMember FklDefStructMember;
 typedef struct FklDefNativeType
@@ -52,6 +53,11 @@ typedef struct FklDefArrayType
 	uint32_t align;
 	FklTypeId_t etype;
 }FklDefArrayType;
+
+typedef struct FklDefPtrType
+{
+	FklTypeId_t ptype;
+}FklDefPtrType;
 
 typedef struct FklDefStructType
 {
@@ -84,4 +90,46 @@ typedef struct FklDefFuncType
 
 FklDefTypes* fklNewDefTypes(void);
 void fklFreeDefTypeTable(FklDefTypes* defs);
+FklTypeId_t fklGenDefTypes(FklAstCptr*,FklDefTypes* otherTypes,FklSid_t* typeName);
+FklTypeId_t fklGenDefTypesUnion(FklAstCptr* objCptr,FklDefTypes* otherTypes);
+FklDefTypesNode* fklFindVMDefTypesNode(FklSid_t typeId,FklDefTypes* otherTypes);
+int fklAddDefTypes(FklDefTypes*,FklSid_t typeName,FklTypeId_t);
+FklTypeId_t fklGenDefTypesUnion(FklAstCptr* objCptr,FklDefTypes* otherTypes);
+void fklInitNativeDefTypes(FklDefTypes* otherTypes);
+
+void fklWriteTypeList(FILE* fp);
+void fklLoadTypeList(FILE* fp);
+void fklFreeGlobTypeList(void);
+
+int fklIsNativeTypeId(FklTypeId_t);
+int fklIsArrayTypeId(FklTypeId_t);
+int fklIsPtrTypeId(FklTypeId_t);
+int fklIsStructTypeId(FklTypeId_t);
+int fklIsUnionTypeId(FklTypeId_t);
+int fklIsFunctionTypeId(FklTypeId_t);
+
+FklTypeId_t fklNewVMNativeType(FklSid_t,size_t,size_t);
+void fklFreeVMNativeType(FklDefNativeType*);
+
+FklTypeId_t fklNewVMArrayType(FklTypeId_t,size_t);
+void fklFreeVMArrayType(FklDefArrayType*);
+
+FklTypeId_t fklNewVMPtrType(FklTypeId_t);
+void fklFreeVMPtrType(FklDefPtrType*);
+
+FklTypeId_t fklNewVMStructType(const char*,uint32_t,FklSid_t[],FklTypeId_t []);
+void fklFreeVMStructType(FklDefStructType*);
+
+FklTypeId_t fklNewVMUnionType(const char* structName,uint32_t num,FklSid_t symbols[],FklTypeId_t memberTypes[]);
+void fklFreeVMUnionType(FklDefUnionType*);
+
+FklTypeId_t fklNewVMFuncType(FklTypeId_t rtype,uint32_t anum,FklTypeId_t atypes[]);
+FklTypeId_t fklFindSameFuncType(FklTypeId_t,uint32_t anum,FklTypeId_t atypes[]);
+void fklFreeVMFuncType(FklDefFuncType*);
+
+size_t fklGetVMTypeSize(FklDefTypeUnion t);
+size_t fklGetVMTypeAlign(FklDefTypeUnion t);
+size_t fklGetVMTypeSizeWithTypeId(FklTypeId_t t);
+FklDefTypeUnion fklGetVMTypeUnion(FklTypeId_t);
+
 #endif

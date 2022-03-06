@@ -1,7 +1,10 @@
-#include<fakeLisp/common.h>
-#include<fakeLisp/VMtool.h>
-#include"utils.h"
+#include<fakeLisp/vm.h>
+#include<fakeLisp/vmutils.h>
+#include<fakeLisp/vmrun.h>
+#include<fakeLisp/vmvalue.h>
+#include<fakeLisp/utils.h>
 #include<stdio.h>
+#include<stdlib.h>
 #include<pthread.h>
 #ifdef _WIN32
 #include<conio.h>

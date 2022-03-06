@@ -1060,8 +1060,9 @@ void fklFreeGlobTypeList()
 
 int fklIsNativeTypeId(FklTypeId_t type)
 {
-	FklDefTypeUnion tu=fklGetVMTypeUnion(type);
-	return GET_TYPES_TAG(tu.all)==FKL_DEF_NATIVE_TYPE_TAG;
+	return type>0&&type<=LastNativeTypeId;
+	//FklDefTypeUnion tu=fklGetVMTypeUnion(type);
+	//return GET_TYPES_TAG(tu.all)==FKL_DEF_NATIVE_TYPE_TAG;
 }
 
 int fklIsArrayTypeId(FklTypeId_t type)

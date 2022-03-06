@@ -2,6 +2,18 @@
 #define FKL_VMVALUE_H
 #include"vm.h"
 
+FklVMenvNode* fklNewVMenvNode(FklVMvalue*,int32_t);
+FklVMenvNode* fklAddVMenvNode(FklVMenvNode*,FklVMenv*);
+FklVMenvNode* fklFindVMenvNode(FklSid_t,FklVMenv*);
+void fklFreeVMenvNode(FklVMenvNode*);
+
+
+FklVMenv* fklNewVMenv(FklVMenv*);
+void fklIncreaseVMenvRefcount(FklVMenv*);
+void fklDecreaseVMenvRefcount(FklVMenv*);
+void fklFreeVMenv(FklVMenv*);
+FklVMenv* fklCopyVMenv(FklVMenv*,FklVMheap*);
+
 FklVMproc* fklNewVMproc(uint32_t scp,uint32_t cpc);
 
 FklVMvalue* fklCopyVMvalue(FklVMvalue*,FklVMheap*);
@@ -20,18 +32,18 @@ FklVMpair* fklNewVMpair(void);
 
 FklVMvalue* fklCastCptrVMvalue(FklAstCptr*,FklVMheap*);
 FklVMbyts* fklNewVMbyts(size_t,uint8_t*);
-void fklIncreaseVMbyts(FklVMbyts*);
-void fklDecreaseVMbyts(FklVMbyts*);
+//void fklIncreaseVMbyts(FklVMbyts*);
+//void fklDecreaseVMbyts(FklVMbyts*);
 
 FklVMbyts* fklCopyVMbyts(const FklVMbyts*);
 FklVMbyts* fklNewEmptyVMbyts();
 void fklVMbytsCat(FklVMbyts**,const FklVMbyts*);
 int fklEqVMbyts(const FklVMbyts*,const FklVMbyts*);
-FklVMchanl* fklNewVMChanl(int32_t size);
+FklVMchanl* fklNewVMchanl(int32_t size);
 
-void fklFreeVMChanl(FklVMchanl*);
-FklVMchanl* fklCopyVMChanl(FklVMchanl*,FklVMheap*);
-int32_t fklGetNumVMChanl(FklVMchanl*);
+void fklFreeVMchanl(FklVMchanl*);
+FklVMchanl* fklCopyVMchanl(FklVMchanl*,FklVMheap*);
+int32_t fklGetNumVMchanl(FklVMchanl*);
 
 FklVMproc* fklCopyVMproc(FklVMproc*,FklVMheap*);
 void fklFreeVMproc(FklVMproc*);
@@ -64,6 +76,4 @@ void fklFreeVMsend(FklVMsend*);
 
 void fklChanlSend(FklVMsend*,FklVMchanl*);
 void fklChanlRecv(FklVMrecv*,FklVMchanl*);
-
-
 #endif

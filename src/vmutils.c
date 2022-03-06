@@ -1,7 +1,7 @@
-#include<fakeLisp/VMtool.h>
+#include<fakeLisp/vmutils.h>
+#include<fakeLisp/utils.h>
 #include<fakeLisp/fakeFFI.h>
 #include<fakeLisp/opcode.h>
-#include"utils.h"
 #include<string.h>
 #include<stdio.h>
 #include<math.h>

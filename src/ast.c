@@ -1065,5 +1065,3 @@ FklAstCptr* fklGetCptrCdr(const FklAstCptr* obj)
 		return &obj->outer->cdr;
 	return NULL;
 }
-
-

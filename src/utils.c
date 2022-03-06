@@ -634,25 +634,6 @@ int fklIscode(const char* filename)
 	else return !strcmp(filename+i,".fklc");
 }
 
-FklAstCptr* fklGetLastCptr(const FklAstCptr* objList)
-{
-	if(objList->type!=FKL_PAIR)
-		return NULL;
-	FklAstPair* objPair=objList->u.pair;
-	FklAstCptr* first=&objPair->car;
-	for(;fklNextCptr(first)!=NULL;first=fklNextCptr(first));
-	return first;
-}
-
-FklAstCptr* fklGetFirstCptr(const FklAstCptr* objList)
-{
-	if(objList->type!=FKL_PAIR)
-		return NULL;
-	FklAstPair* objPair=objList->u.pair;
-	FklAstCptr* first=&objPair->car;
-	return first;
-}
-
 uint8_t fklCastCharInt(char ch)
 {
 	if(isdigit(ch))return ch-'0';
@@ -731,30 +712,6 @@ FklInterpreter* fklGetFirstIntpr(FklInterpreter* inter)
 	return inter;
 }
 
-FklAstCptr* fklGetASTPairCar(const FklAstCptr* obj)
-{
-	return &obj->u.pair->car;
-}
-
-FklAstCptr* fklGetASTPairCdr(const FklAstCptr* obj)
-{
-	return &obj->u.pair->cdr;
-}
-
-FklAstCptr* fklGetCptrCar(const FklAstCptr* obj)
-{
-	if(obj&&obj->outer!=NULL)
-		return &obj->outer->car;
-	return NULL;
-}
-
-FklAstCptr* fklGetCptrCdr(const FklAstCptr* obj)
-{
-	if(obj&&obj->outer!=NULL)
-		return &obj->outer->cdr;
-	return NULL;
-}
-
 void fklChangeWorkPath(const char* filename)
 {
 #ifdef _WIN32
@@ -812,12 +769,6 @@ char* fklGetStringFromFile(FILE* file)
 	}
 	if(tmp!=NULL)tmp[i]='\0';
 	return tmp;
-}
-
-int fklEqByteString(const FklByteString* fir,const FklByteString* sec)
-{
-	if(fir->size!=sec->size)return 0;
-	return !memcmp(fir->str,sec->str,sec->size);
 }
 
 char* fklGetLastWorkDir(FklInterpreter* inter)

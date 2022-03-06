@@ -72,22 +72,19 @@ typedef struct FklKeyWord
 }FklKeyWord;
 
 void fklExError(const FklAstCptr*,int,FklInterpreter*);
-void fklPrintCptr(const FklAstCptr*,FILE*);
 FklPreDef* fklAddDefine(const char*,const FklAstCptr*,FklPreEnv*);
 FklPreDef* fklFindDefine(const char*,const FklPreEnv*);
 FklPreDef* fklNewDefines(const char*);
 
 FklCompDef* fklAddCompDef(const char*,FklCompEnv*);
 FklCompEnv* fklNewCompEnv(FklCompEnv*);
+void fklDestroyCompEnv(FklCompEnv* objEnv);
 void fklFreeAllMacroThenDestroyCompEnv(FklCompEnv* env);
-void fklDestroyCompEnv(FklCompEnv*);
 FklCompDef* fklFindCompDef(const char*,FklCompEnv*);
 FklInterpreter* fklNewIntpr(const char*,FILE*,FklCompEnv*,LineNumberTable*,FklDefTypes* deftypes);
 FklInterpreter* fklNewTmpIntpr(const char*,FILE*);
 
 void fklFreeIntpr(FklInterpreter*);
-void fklFreeAtom(FklAstAtom*);
-int fklDestoryCptr(FklAstCptr*);
 FklPreEnv* fklNewEnv(FklPreEnv*);
 void fklDestroyEnv(FklPreEnv*);
 
@@ -95,8 +92,6 @@ void fklInitCompEnv(FklCompEnv*);
 
 int fklHasLoadSameFile(const char*,const FklInterpreter*);
 FklInterpreter* fklGetFirstIntpr(FklInterpreter*);
-
-FklAstCptr* fklBaseCreateTree(const char*,FklInterpreter*);
 
 char* fklGetLastWorkDir(FklInterpreter*);
 

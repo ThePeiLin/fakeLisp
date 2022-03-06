@@ -50,7 +50,7 @@ void fklFreeByteCodelnt(FklByteCodelnt*);
 void fklIncreaseScpOfByteCodelnt(FklByteCodelnt*,int32_t);
 void fklCodeLntCat(FklByteCodelnt*,FklByteCodelnt*);
 void fklCodelntCopyCat(FklByteCodelnt*,const FklByteCodelnt*);
-void reCodefklLntCat(FklByteCodelnt*,FklByteCodelnt*);
+void fklReCodeLntCat(FklByteCodelnt*,FklByteCodelnt*);
 
 FklByteCodeLabel* fklNewByteCodeLable(int32_t,const char*);
 FklByteCodeLabel* fklFindByteCodeLabel(const char*,FklPtrStack*);

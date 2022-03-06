@@ -146,7 +146,6 @@ char* fklGetStringFromFile(FILE*);
 char** fklSplit(char*,char*,int*);
 char* fklRelpath(char*,char*);
 
-
 void mergeSort(void* base
 		,size_t num
 		,size_t size

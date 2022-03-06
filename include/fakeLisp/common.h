@@ -92,16 +92,16 @@ void fklLntCat(LineNumberTable* t,int32_t bs,LineNumTabNode** l2,int32_t s2);
 void reCodefklLntCat(FklByteCodelnt*,FklByteCodelnt*);
 
 FklByteCodeLabel* fklNewByteCodeLable(int32_t,const char*);
-FklByteCodeLabel* fklFindByteCodeLabel(const char*,FklComStack*);
+FklByteCodeLabel* fklFindByteCodeLabel(const char*,FklPtrStack*);
 void fklFreeByteCodeLabel(FklByteCodeLabel*);
 
-FklComStack* fklNewComStack(uint32_t size);
-void fklPushComStack(void* data,FklComStack*);
-void* fklPopComStack(FklComStack*);
-void* fklTopComStack(FklComStack*);
-void fklFreeComStack(FklComStack*);
-void fklRecycleComStack(FklComStack*);
-int fklIsComStackEmpty(FklComStack*);
+FklPtrStack* fklNewPtrStack(uint32_t size);
+void fklPushPtrStack(void* data,FklPtrStack*);
+void* fklPopPtrStack(FklPtrStack*);
+void* fklTopPtrStack(FklPtrStack*);
+void fklFreePtrStack(FklPtrStack*);
+void fklRecyclePtrStack(FklPtrStack*);
+int fklIsPtrStackEmpty(FklPtrStack*);
 
 FklMem* fklNewMem(void* mem,void (*destructor)(void*));
 void fklFreeMem(FklMem*);
@@ -120,13 +120,13 @@ void mergeSort(void* base
 FklQueueNode* fklNewQueueNode(void*);
 void fklFreeQueueNode(FklQueueNode*);
 
-FklComQueue* fklNewComQueue();
-void fklFreeComQueue(FklComQueue*);
-int32_t fklLengthComQueue(FklComQueue*);
-void* fklFirstComQueue(FklComQueue*);
-void* fklPopComQueue(FklComQueue*);
-void fklPushComQueue(void*,FklComQueue*);
-FklComQueue* fklCopyComQueue(FklComQueue*);
+FklPtrQueue* fklNewPtrQueue();
+void fklFreePtrQueue(FklPtrQueue*);
+int32_t fklLengthPtrQueue(FklPtrQueue*);
+void* fklFirstPtrQueue(FklPtrQueue*);
+void* fklPopPtrQueue(FklPtrQueue*);
+void fklPushPtrQueue(void*,FklPtrQueue*);
+FklPtrQueue* fklCopyPtrQueue(FklPtrQueue*);
 char* fklStrCat(char*,const char*);
 uint8_t* fklCreateByteArry(int32_t);
 

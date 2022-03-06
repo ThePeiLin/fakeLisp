@@ -119,7 +119,7 @@ typedef struct
 	void** data;
 	uint32_t num;
 	long int top;
-}FklComStack;
+}FklPtrStack;
 
 typedef struct FklQueueNode
 {
@@ -131,7 +131,7 @@ typedef struct
 {
 	FklQueueNode* head;
 	FklQueueNode* tail;
-}FklComQueue;
+}FklPtrQueue;
 
 typedef struct
 {
@@ -141,7 +141,7 @@ typedef struct
 
 typedef struct
 {
-	FklComStack* s;
+	FklPtrStack* s;
 }FklMemMenager;
 
 typedef struct
@@ -192,9 +192,9 @@ typedef struct FklVMChanl
 {
 	uint32_t max;
 	pthread_mutex_t lock;
-	FklComQueue* messages;
-	FklComQueue* sendq;
-	FklComQueue* recvq;
+	FklPtrQueue* messages;
+	FklPtrQueue* sendq;
+	FklPtrQueue* recvq;
 }FklVMChanl;
 
 typedef struct
@@ -333,8 +333,8 @@ typedef struct FklVM
 	pthread_t tid;
 	uint8_t* code;
 	uint32_t size;
-	FklComStack* rstack;
-	FklComStack* tstack;
+	FklPtrStack* rstack;
+	FklPtrStack* tstack;
 	FklVMstack* stack;
 	struct FklVMvalue* chan;
 	struct FklVMHeap* heap;
@@ -408,7 +408,7 @@ typedef struct FklLineNumberTableNode
 typedef struct FklVMTryBlock
 {
 	FklSid_t sid;
-	FklComStack* hstack;
+	FklPtrStack* hstack;
 	long int rtp;
 	uint32_t tp;
 }FklVMTryBlock;

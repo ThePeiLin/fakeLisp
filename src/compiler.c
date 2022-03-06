@@ -28,16 +28,16 @@ extern void READER_MACRO_unqtesp(FklVM* exe);
 
 static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,VMheap* heap)
 {
-	FklComStack* stack=fklNewComStack(32);
+	FklPtrStack* stack=fklNewPtrStack(32);
 	FklCompEnv* tcEnv=cEnv;
 	for(;tcEnv;tcEnv=tcEnv->prev)
-		fklPushComStack(tcEnv,stack);
+		fklPushPtrStack(tcEnv,stack);
 	FklVMenv* preEnv=NULL;
 	FklVMenv* vEnv=NULL;
 	uint32_t bs=t->bc->size;
-	while(!fklIsComStackEmpty(stack))
+	while(!fklIsPtrStackEmpty(stack))
 	{
-		FklCompEnv* curEnv=fklPopComStack(stack);
+		FklCompEnv* curEnv=fklPopPtrStack(stack);
 		vEnv=fklNewVMenv(preEnv);
 		if(!preEnv)
 			fklInitGlobEnv(vEnv,heap);
@@ -49,7 +49,7 @@ static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,VMheap* heap)
 		bs+=tmpByteCode->bc->size;
 		FklVMrunnable* mainrunnable=fklNewVMrunnable(tmpVMproc);
 		mainrunnable->localenv=vEnv;
-		fklPushComStack(mainrunnable,tmpVM->rstack);
+		fklPushPtrStack(mainrunnable,tmpVM->rstack);
 		tmpVM->code=t->bc->code;
 		tmpVM->size=t->bc->size;
 		tmpVMproc->prevEnv=NULL;
@@ -70,20 +70,20 @@ static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,VMheap* heap)
 			fklFreeVMenv(vEnv);
 			fklFreeVMstack(tmpVM->stack);
 			fklFreeVMproc(tmpVMproc);
-			fklFreeComStack(tmpVM->rstack);
-			fklFreeComStack(tmpVM->tstack);
+			fklFreePtrStack(tmpVM->rstack);
+			fklFreePtrStack(tmpVM->tstack);
 			free(tmpVM);
-			fklFreeComStack(stack);
+			fklFreePtrStack(stack);
 			return NULL;
 		}
 		free(tmpVM->lnt);
 		fklFreeVMstack(tmpVM->stack);
 		fklFreeVMproc(tmpVMproc);
-		fklFreeComStack(tmpVM->rstack);
-		fklFreeComStack(tmpVM->tstack);
+		fklFreePtrStack(tmpVM->rstack);
+		fklFreePtrStack(tmpVM->tstack);
 		free(tmpVM);
 	}
-	fklFreeComStack(stack);
+	fklFreePtrStack(stack);
 	FklVMenv* tmpEnv=vEnv->prev;
 	for(;tmpEnv;tmpEnv=tmpEnv->prev)
 		fklDecreaseVMenvRefcount(tmpEnv);
@@ -140,7 +140,7 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter)
 		{
 			fklDestroyEnv(macroEnv);
 			fklFreeVMstack(tmpVM->stack);
-			fklFreeComStack(tmpVM->rstack);
+			fklFreePtrStack(tmpVM->rstack);
 			fklFreeVMheap(tmpVM->heap);
 			free(tmpVM);
 			return 2;
@@ -153,7 +153,7 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter)
 		mainrunnable->localenv=macroVMenv;
 		tmpVM->code=t->bc->code;
 		tmpVM->size=t->bc->size;
-		fklPushComStack(mainrunnable,tmpVM->rstack);
+		fklPushPtrStack(mainrunnable,tmpVM->rstack);
 		tmpVMproc->prevEnv=NULL;
 		tmpVM->lnt=fklNewLineNumTable();
 		tmpVM->lnt->num=t->ls;
@@ -177,8 +177,8 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter)
 			fklFreeVMheap(tmpVM->heap);
 			fklFreeVMstack(tmpVM->stack);
 			fklFreeVMproc(tmpVMproc);
-			fklFreeComStack(tmpVM->rstack);
-			fklFreeComStack(tmpVM->tstack);
+			fklFreePtrStack(tmpVM->rstack);
+			fklFreePtrStack(tmpVM->tstack);
 			free(tmpVM);
 			macroEnv=NULL;
 			return 2;
@@ -190,8 +190,8 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter)
 		fklFreeVMheap(tmpVM->heap);
 		fklFreeVMstack(tmpVM->stack);
 		fklFreeVMproc(tmpVMproc);
-		fklFreeComStack(tmpVM->rstack);
-		fklFreeComStack(tmpVM->tstack);
+		fklFreePtrStack(tmpVM->rstack);
+		fklFreePtrStack(tmpVM->tstack);
 		free(tmpVM);
 		macroEnv=NULL;
 		return 1;
@@ -1905,7 +1905,7 @@ FklByteCodelnt* fklCompileAnd(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* i
 	FklByteCode* setTp=fklNewByteCode(sizeof(char));
 	FklByteCode* popTp=fklNewByteCode(sizeof(char));
 	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
-	FklComStack* stack=fklNewComStack(32);
+	FklPtrStack* stack=fklNewPtrStack(32);
 	jumpiffalse->code[0]=FKL_JMP_IF_FALSE;
 	push1->code[0]=FKL_PUSH_I32;
 	resTp->code[0]=FKL_RES_TP;
@@ -1926,14 +1926,14 @@ FklByteCodelnt* fklCompileAnd(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* i
 			fklFreeByteCodelnt(tmp);
 			fklFreeByteCode(jumpiffalse);
 			fklFreeByteCode(push1);
-			fklFreeComStack(stack);
+			fklFreePtrStack(stack);
 			return NULL;
 		}
-		fklPushComStack(tmp1,stack);
+		fklPushPtrStack(tmp1,stack);
 	}
-	while(!fklIsComStackEmpty(stack))
+	while(!fklIsPtrStackEmpty(stack))
 	{
-		FklByteCodelnt* tmp1=fklPopComStack(stack);
+		FklByteCodelnt* tmp1=fklPopPtrStack(stack);
 		*(int32_t*)(jumpiffalse->code+sizeof(char))=tmp->bc->size;
 		fklCodeCat(tmp1->bc,jumpiffalse);
 		tmp1->l[tmp1->ls-1]->cpc+=jumpiffalse->size;
@@ -1967,7 +1967,7 @@ FklByteCodelnt* fklCompileAnd(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* i
 	fklFreeByteCode(setTp);
 	fklFreeByteCode(jumpiffalse);
 	fklFreeByteCode(push1);
-	fklFreeComStack(stack);
+	fklFreePtrStack(stack);
 	//fklPrintByteCodelnt(tmp,inter->table,stderr);
 	return tmp;
 }
@@ -1981,7 +1981,7 @@ FklByteCodelnt* fklCompileOr(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* in
 	FklByteCode* jumpifture=fklNewByteCode(sizeof(char)+sizeof(int32_t));
 	FklByteCode* pushnil=fklNewByteCode(sizeof(char));
 	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
-	FklComStack* stack=fklNewComStack(32);
+	FklPtrStack* stack=fklNewPtrStack(32);
 	pushnil->code[0]=FKL_PUSH_NIL;
 	jumpifture->code[0]=FKL_JMP_IF_TRUE;
 	setTp->code[0]=FKL_SET_TP;
@@ -2001,14 +2001,14 @@ FklByteCodelnt* fklCompileOr(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* in
 			fklFreeByteCodelnt(tmp);
 			fklFreeByteCode(jumpifture);
 			fklFreeByteCode(pushnil);
-			fklFreeComStack(stack);
+			fklFreePtrStack(stack);
 			return NULL;
 		}
-		fklPushComStack(tmp1,stack);
+		fklPushPtrStack(tmp1,stack);
 	}
-	while(!fklIsComStackEmpty(stack))
+	while(!fklIsPtrStackEmpty(stack))
 	{
-		FklByteCodelnt* tmp1=fklPopComStack(stack);
+		FklByteCodelnt* tmp1=fklPopPtrStack(stack);
 		*(int32_t*)(jumpifture->code+sizeof(char))=tmp->bc->size;
 		fklCodeCat(tmp1->bc,jumpifture);
 		tmp1->l[tmp1->ls-1]->cpc+=jumpifture->size;
@@ -2041,7 +2041,7 @@ FklByteCodelnt* fklCompileOr(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* in
 	fklFreeByteCode(setTp);
 	fklFreeByteCode(jumpifture);
 	fklFreeByteCode(pushnil);
-	fklFreeComStack(stack);
+	fklFreePtrStack(stack);
 	return tmp;
 }
 
@@ -2231,7 +2231,7 @@ FklByteCodelnt* fklCompileCond(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 	FklByteCode* setTp=fklNewByteCode(sizeof(char));
 	FklByteCode* popTp=fklNewByteCode(sizeof(char));
 	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
-	FklComStack* stack1=fklNewComStack(32);
+	FklPtrStack* stack1=fklNewPtrStack(32);
 	setTp->code[0]=FKL_SET_TP;
 	resTp->code[0]=FKL_RES_TP;
 	popTp->code[0]=FKL_POP_TP;
@@ -2242,7 +2242,7 @@ FklByteCodelnt* fklCompileCond(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 	{
 		objCptr=fklGetFirstCptr(cond);
 		FklByteCodelnt* conditionCode=fklCompile(objCptr,curEnv,inter,state,evalIm);
-		FklComStack* stack2=fklNewComStack(32);
+		FklPtrStack* stack2=fklNewPtrStack(32);
 		for(objCptr=fklNextCptr(objCptr);objCptr!=NULL;objCptr=fklNextCptr(objCptr))
 		{
 			FklByteCodelnt* tmp1=fklCompile(objCptr,curEnv,inter,state,evalIm);
@@ -2256,8 +2256,8 @@ FklByteCodelnt* fklCompileCond(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 				fklFreeByteCode(setTp);
 				fklFreeByteCode(popTp);
 				fklFreeByteCode(pushnil);
-				fklFreeComStack(stack1);
-				fklFreeComStack(stack2);
+				fklFreePtrStack(stack1);
+				fklFreePtrStack(stack2);
 				if(conditionCode)
 				{
 					FREE_ALL_LINE_NUMBER_TABLE(conditionCode->l,conditionCode->ls);
@@ -2265,19 +2265,19 @@ FklByteCodelnt* fklCompileCond(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 				}
 				return NULL;
 			}
-			fklPushComStack(tmp1,stack2);
+			fklPushPtrStack(tmp1,stack2);
 		}
 		FklByteCodelnt* tmpCond=fklNewByteCodelnt(fklNewByteCode(0));
-		while(!fklIsComStackEmpty(stack2))
+		while(!fklIsPtrStackEmpty(stack2))
 		{
-			FklByteCodelnt* tmp1=fklPopComStack(stack2);
+			FklByteCodelnt* tmp1=fklPopPtrStack(stack2);
 			fklReCodeCat(resTp,tmp1->bc);
 			tmp1->l[0]->cpc+=resTp->size;
 			INCREASE_ALL_SCP(tmp1->l+1,tmp1->ls-1,resTp->size);
 			reCodefklLntCat(tmp1,tmpCond);
 			fklFreeByteCodelnt(tmp1);
 		}
-		fklFreeComStack(stack2);
+		fklFreePtrStack(stack2);
 		if(tmpCond->bc->size+((fklNextCptr(cond)==NULL)?0:jump->size))
 		{
 			*(int32_t*)(jumpiffalse->code+sizeof(char))=tmpCond->bc->size+((fklNextCptr(cond)==NULL)?0:jump->size);
@@ -2286,13 +2286,13 @@ FklByteCodelnt* fklCompileCond(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 		}
 		reCodefklLntCat(conditionCode,tmpCond);
 		fklFreeByteCodelnt(conditionCode);
-		fklPushComStack(tmpCond,stack1);
+		fklPushPtrStack(tmpCond,stack1);
 	}
 	uint32_t top=stack1->top-1;
-	while(!fklIsComStackEmpty(stack1))
+	while(!fklIsPtrStackEmpty(stack1))
 	{
-		FklByteCodelnt* tmpCond=fklPopComStack(stack1);
-		if(!fklIsComStackEmpty(stack1))
+		FklByteCodelnt* tmpCond=fklPopPtrStack(stack1);
+		if(!fklIsPtrStackEmpty(stack1))
 		{
 			fklReCodeCat(resTp,tmpCond->bc);
 			tmpCond->l[0]->cpc+=1;
@@ -2307,7 +2307,7 @@ FklByteCodelnt* fklCompileCond(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 		reCodefklLntCat(tmpCond,tmp);
 		fklFreeByteCodelnt(tmpCond);
 	}
-	fklFreeComStack(stack1);
+	fklFreePtrStack(stack1);
 	if(!tmp->l)
 	{
 		fklCodeCat(tmp->bc,pushnil);
@@ -2483,7 +2483,7 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 //	FklAstCptr* fir=fklNextCptr(fklGetFirstCptr(objCptr));
 //	FklByteCodelnt* tmp=NULL;
 //
-//	FklComStack* stack=fklNewComStack(32);
+//	FklPtrStack* stack=fklNewPtrStack(32);
 //	for(;fir;fir=fklNextCptr(fir))
 //	{
 //		if(fir->type!=FKL_ATM)
@@ -2504,7 +2504,7 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 //		FklAstAtom* firAtm=fir->u.atom;
 //		if(firAtm->value.str[0]==':')
 //		{
-//			fklPushComStack(fklNewByteCodeLable(sizeOfByteCode,firAtm->value.str+1),stack);
+//			fklPushPtrStack(fklNewByteCodeLable(sizeOfByteCode,firAtm->value.str+1),stack);
 //			fir=fklNextCptr(fir);
 //			continue;
 //		}
@@ -2525,7 +2525,7 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 //			uint32_t i=0;
 //			for(;i<stack->top;i++)
 //				fklFreeByteCodeLabel(stack->data[i]);
-//			fklFreeComStack(stack);
+//			fklFreePtrStack(stack);
 //			return NULL;
 //		}
 //
@@ -2536,7 +2536,7 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 //			uint32_t i=0;
 //			for(;i<stack->top;i++)
 //				fklFreeByteCodeLabel(stack->data[i]);
-//			fklFreeComStack(stack);
+//			fklFreePtrStack(stack);
 //
 //			return NULL;
 //		}
@@ -2558,7 +2558,7 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 //						uint32_t i=0;
 //						for(;i<stack->top;i++)
 //							fklFreeByteCodeLabel(stack->data[i]);
-//						fklFreeComStack(stack);
+//						fklFreePtrStack(stack);
 //						return NULL;
 //					}
 //
@@ -2577,7 +2577,7 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 //						uint32_t i=0;
 //						for(;i<stack->top;i++)
 //							fklFreeByteCodeLabel(stack->data[i]);
-//						fklFreeComStack(stack);
+//						fklFreePtrStack(stack);
 //						return NULL;
 //					}
 //					sizeOfByteCode+=sizeof(char)+2*sizeof(int32_t);
@@ -2595,7 +2595,7 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 //						uint32_t i=0;
 //						for(;i<stack->top;i++)
 //							fklFreeByteCodeLabel(stack->data[i]);
-//						fklFreeComStack(stack);
+//						fklFreePtrStack(stack);
 //						return NULL;
 //					}
 //
@@ -2614,7 +2614,7 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 //						uint32_t i=0;
 //						for(;i<stack->top;i++)
 //							fklFreeByteCodeLabel(stack->data[i]);
-//						fklFreeComStack(stack);
+//						fklFreePtrStack(stack);
 //						return NULL;
 //					}
 //
@@ -2639,7 +2639,7 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 //						uint32_t i=0;
 //						for(;i<stack->top;i++)
 //							fklFreeByteCodeLabel(stack->data[i]);
-//						fklFreeComStack(stack);
+//						fklFreePtrStack(stack);
 //						return NULL;
 //					}
 //
@@ -2662,7 +2662,7 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 //							uint32_t i=0;
 //							for(;i<stack->top;i++)
 //								fklFreeByteCodeLabel(stack->data[i]);
-//							fklFreeComStack(stack);
+//							fklFreePtrStack(stack);
 //							return NULL;
 //						}
 //						while(tmpEnv!=NULL)
@@ -2678,7 +2678,7 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 //							uint32_t i=0;
 //							for(;i<stack->top;i++)
 //								fklFreeByteCodeLabel(stack->data[i]);
-//							fklFreeComStack(stack);
+//							fklFreePtrStack(stack);
 //							return NULL;
 //						}
 //					}
@@ -2691,7 +2691,7 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 //							uint32_t i=0;
 //							for(;i<stack->top;i++)
 //								fklFreeByteCodeLabel(stack->data[i]);
-//							fklFreeComStack(stack);
+//							fklFreePtrStack(stack);
 //							return NULL;
 //						}
 //						fklAddSymbolToGlob(tmpAtm->value.str);
@@ -2705,7 +2705,7 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 //							uint32_t i=0;
 //							for(;i<stack->top;i++)
 //								fklFreeByteCodeLabel(stack->data[i]);
-//							fklFreeComStack(stack);
+//							fklFreePtrStack(stack);
 //							return NULL;
 //						}
 //					}
@@ -2718,7 +2718,7 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 //							uint32_t i=0;
 //							for(;i<stack->top;i++)
 //								fklFreeByteCodeLabel(stack->data[i]);
-//							fklFreeComStack(stack);
+//							fklFreePtrStack(stack);
 //							return NULL;
 //						}
 //					}
@@ -2737,7 +2737,7 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 //						uint32_t i=0;
 //						for(;i<stack->top;i++)
 //							fklFreeByteCodeLabel(stack->data[i]);
-//						fklFreeComStack(stack);
+//						fklFreePtrStack(stack);
 //						return NULL;
 //					}
 //
@@ -2875,7 +2875,7 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 //							uint32_t i=0;
 //							for(;i<stack->top;i++)
 //								fklFreeByteCodeLabel(stack->data[i]);
-//							fklFreeComStack(stack);
+//							fklFreePtrStack(stack);
 //							return NULL;
 //						}
 //						tmpByteCode=fklNewByteCode(sizeof(char)+sizeof(int32_t));
@@ -2917,7 +2917,7 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 //	uint32_t i=0;
 //	for(;i<stack->top;i++)
 //		fklFreeByteCodeLabel(stack->data[i]);
-//	fklFreeComStack(stack);
+//	fklFreePtrStack(stack);
 //	return tmp;
 //}
 
@@ -3398,7 +3398,7 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* i
 	}
 	char* errSymbol=pErrSymbol->u.atom->value.str;
 	FklSid_t sid=fklAddSymbolToGlob(errSymbol)->id;
-	FklComStack* handlerByteCodelntStack=fklNewComStack(32);
+	FklPtrStack* handlerByteCodelntStack=fklNewPtrStack(32);
 	for(;pHandlerExpression;pHandlerExpression=fklNextCptr(pHandlerExpression))
 	{
 		if(pHandlerExpression->type!=FKL_PAIR
@@ -3419,7 +3419,7 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* i
 			state->place=objCptr;
 			FREE_ALL_LINE_NUMBER_TABLE(expressionByteCodelnt->l,expressionByteCodelnt->ls);
 			fklFreeByteCodelnt(expressionByteCodelnt);
-			fklFreeComStack(handlerByteCodelntStack);
+			fklFreePtrStack(handlerByteCodelntStack);
 			return NULL;
 		}
 		FklCompEnv* tmpEnv=fklNewCompEnv(curEnv);
@@ -3432,7 +3432,7 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* i
 			{
 				FREE_ALL_LINE_NUMBER_TABLE(expressionByteCodelnt->l,expressionByteCodelnt->ls);
 				fklFreeByteCodelnt(expressionByteCodelnt);
-				fklFreeComStack(handlerByteCodelntStack);
+				fklFreePtrStack(handlerByteCodelntStack);
 				fklFreeAllMacroThenDestroyCompEnv(tmpEnv);
 				return NULL;
 			}
@@ -3469,17 +3469,17 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* i
 		t->l[0]->cpc+=errorTypeByteCode->size;
 		INCREASE_ALL_SCP(t->l+1,t->ls-1,errorTypeByteCode->size);
 		fklFreeByteCode(errorTypeByteCode);
-		fklPushComStack(t,handlerByteCodelntStack);
+		fklPushPtrStack(t,handlerByteCodelntStack);
 	}
 	FklByteCodelnt* t=expressionByteCodelnt;
 	size_t numOfHandlerByteCode=handlerByteCodelntStack->top;
-	while(!fklIsComStackEmpty(handlerByteCodelntStack))
+	while(!fklIsPtrStackEmpty(handlerByteCodelntStack))
 	{
-		FklByteCodelnt* tmp=fklPopComStack(handlerByteCodelntStack);
+		FklByteCodelnt* tmp=fklPopPtrStack(handlerByteCodelntStack);
 		reCodefklLntCat(tmp,t);
 		fklFreeByteCodelnt(tmp);
 	}
-	fklFreeComStack(handlerByteCodelntStack);
+	fklFreePtrStack(handlerByteCodelntStack);
 	FklByteCode* header=fklNewByteCode(sizeof(FklSid_t)+sizeof(int32_t)+sizeof(char));
 	header->code[0]=FKL_PUSH_TRY;
 	*(FklSid_t*)(header->code+sizeof(char))=sid;

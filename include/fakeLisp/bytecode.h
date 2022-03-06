@@ -63,4 +63,5 @@ void fklFreeLineNumTabNode(LineNumTabNode*);
 void fklFreeLineNumberTable(LineNumberTable*);
 void fklLntCat(LineNumberTable* t,int32_t bs,LineNumTabNode** l2,int32_t s2);
 void fklWriteLineNumberTable(LineNumberTable*,FILE*);
+void fklDBG_printByteCode(uint8_t* code,uint32_t s,uint32_t c,FILE*);
 #endif

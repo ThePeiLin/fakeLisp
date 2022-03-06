@@ -1401,36 +1401,36 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklIntpr* inter)
 {
 	if(!objStr)
 		return NULL;
-	FklComStack* s1=fklNewComStack(32);
-	FklComStack* s2=fklNewComStack(32);
+	FklPtrStack* s1=fklNewPtrStack(32);
+	FklPtrStack* s2=fklNewPtrStack(32);
 	int32_t i=0;
 	for(;isspace(objStr[i]);i++)
 		if(objStr[i]=='\n')
 			inter->curline+=1;
 	int32_t curline=(inter)?inter->curline:0;
 	FklAstCptr* tmp=fklNewCptr(curline,NULL);
-	fklPushComStack(tmp,s1);
+	fklPushPtrStack(tmp,s1);
 	int hasComma=1;
-	while(objStr[i]&&!fklIsComStackEmpty(s1))
+	while(objStr[i]&&!fklIsPtrStackEmpty(s1))
 	{
 		for(;isspace(objStr[i]);i++)
 			if(objStr[i]=='\n')
 				inter->curline+=1;
 		curline=inter->curline;
-		FklAstCptr* root=fklPopComStack(s1);
+		FklAstCptr* root=fklPopPtrStack(s1);
 		if(objStr[i]=='(')
 		{
 			if(&root->outer->car==root)
 			{
 				//如果root是root所在pair的car部分，
 				//则在对应的pair后追加一个pair为下一个部分准备
-				FklAstCptr* tmp=fklPopComStack(s1);
+				FklAstCptr* tmp=fklPopPtrStack(s1);
 				if(tmp)
 				{
 					tmp->type=FKL_PAIR;
 					tmp->u.pair=fklNewPair(curline,tmp->outer);
-					fklPushComStack(fklGetASTPairCdr(tmp),s1);
-					fklPushComStack(fklGetASTPairCar(tmp),s1);
+					fklPushPtrStack(fklGetASTPairCdr(tmp),s1);
+					fklPushPtrStack(fklGetASTPairCar(tmp),s1);
 				}
 			}
 			int j=0;
@@ -1446,9 +1446,9 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklIntpr* inter)
 				hasComma=0;
 				root->type=FKL_PAIR;
 				root->u.pair=fklNewPair(curline,root->outer);
-				fklPushComStack((void*)s1->top,s2);
-				fklPushComStack(fklGetASTPairCdr(root),s1);
-				fklPushComStack(fklGetASTPairCar(root),s1);
+				fklPushPtrStack((void*)s1->top,s2);
+				fklPushPtrStack(fklGetASTPairCdr(root),s1);
+				fklPushPtrStack(fklGetASTPairCar(root),s1);
 				i++;
 			}
 		}
@@ -1465,19 +1465,19 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklIntpr* inter)
 			if(root->outer->prev&&root->outer->prev->cdr.u.pair==root->outer)
 			{
 				//将为下一个部分准备的pair删除并将该pair的前一个pair的cdr部分入栈
-				s1->top=(long)fklTopComStack(s2);
+				s1->top=(long)fklTopPtrStack(s2);
 				FklAstCptr* tmp=&root->outer->prev->cdr;
 				free(tmp->u.pair);
 				tmp->type=FKL_NIL;
 				tmp->u.all=NULL;
-				fklPushComStack(tmp,s1);
+				fklPushPtrStack(tmp,s1);
 			}
 			i++;
 		}
 		else if(objStr[i]==')')
 		{
 			hasComma=0;
-			long t=(long)fklPopComStack(s2);
+			long t=(long)fklPopPtrStack(s2);
 			FklAstCptr* c=s1->data[t];
 			if(s1->top-t>0&&c->outer->prev&&c->outer->prev->cdr.u.pair==c->outer)
 			{
@@ -1571,19 +1571,19 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklIntpr* inter)
 			{
 				//如果root是root所在pair的car部分，
 				//则在对应的pair后追加一个pair为下一个部分准备
-				FklAstCptr* tmp=fklPopComStack(s1);
+				FklAstCptr* tmp=fklPopPtrStack(s1);
 				if(tmp)
 				{
 					tmp->type=FKL_PAIR;
 					tmp->u.pair=fklNewPair(curline,tmp->outer);
-					fklPushComStack(fklGetASTPairCdr(tmp),s1);
-					fklPushComStack(fklGetASTPairCar(tmp),s1);
+					fklPushPtrStack(fklGetASTPairCdr(tmp),s1);
+					fklPushPtrStack(fklGetASTPairCar(tmp),s1);
 				}
 			}
 		}
 	}
-	fklFreeComStack(s1);
-	fklFreeComStack(s2);
+	fklFreePtrStack(s1);
+	fklFreePtrStack(s2);
 	return tmp;
 }
 
@@ -1941,7 +1941,7 @@ FklByteCodeLabel* fklNewByteCodeLable(int32_t place,const char* label)
 	return tmp;
 }
 
-FklByteCodeLabel* fklFindByteCodeLabel(const char* label,FklComStack* s)
+FklByteCodeLabel* fklFindByteCodeLabel(const char* label,FklPtrStack* s)
 {
 	int32_t l=0;
 	int32_t h=s->top-1;
@@ -1967,28 +1967,28 @@ void fklFreeByteCodeLabel(FklByteCodeLabel* obj)
 	free(obj);
 }
 
-int fklIsComStackEmpty(FklComStack* stack)
+int fklIsPtrStackEmpty(FklPtrStack* stack)
 {
 	return stack->top==0;
 }
 
-FklComStack* fklNewComStack(uint32_t num)
+FklPtrStack* fklNewPtrStack(uint32_t num)
 {
-	FklComStack* tmp=(FklComStack*)malloc(sizeof(FklComStack));
-	FKL_ASSERT(tmp,"fklNewComStack",__FILE__,__LINE__);
+	FklPtrStack* tmp=(FklPtrStack*)malloc(sizeof(FklPtrStack));
+	FKL_ASSERT(tmp,"fklNewPtrStack",__FILE__,__LINE__);
 	tmp->data=(void**)malloc(sizeof(void*)*num);
-	FKL_ASSERT(tmp->data,"fklNewComStack",__FILE__,__LINE__);
+	FKL_ASSERT(tmp->data,"fklNewPtrStack",__FILE__,__LINE__);
 	tmp->num=num;
 	tmp->top=0;
 	return tmp;
 }
 
-void fklPushComStack(void* data,FklComStack* stack)
+void fklPushPtrStack(void* data,FklPtrStack* stack)
 {
 	if(stack->top==stack->num)
 	{
 		void** tmpData=(void**)realloc(stack->data,(stack->num+32)*sizeof(void*));
-		FKL_ASSERT(tmpData,"fklPushComStack",__FILE__,__LINE__);
+		FKL_ASSERT(tmpData,"fklPushPtrStack",__FILE__,__LINE__);
 		stack->data=tmpData;
 		stack->num+=32;
 	}
@@ -1996,35 +1996,35 @@ void fklPushComStack(void* data,FklComStack* stack)
 	stack->top+=1;
 }
 
-void* fklPopComStack(FklComStack* stack)
+void* fklPopPtrStack(FklPtrStack* stack)
 {
-	if(fklIsComStackEmpty(stack))
+	if(fklIsPtrStackEmpty(stack))
 		return NULL;
 	stack->top-=1;
 	void* tmp=stack->data[stack->top];
-	fklRecycleComStack(stack);
+	fklRecyclePtrStack(stack);
 	return tmp;
 }
 
-void* fklTopComStack(FklComStack* stack)
+void* fklTopPtrStack(FklPtrStack* stack)
 {
-	if(fklIsComStackEmpty(stack))
+	if(fklIsPtrStackEmpty(stack))
 		return NULL;
 	return stack->data[stack->top-1];
 }
 
-void fklFreeComStack(FklComStack* stack)
+void fklFreePtrStack(FklPtrStack* stack)
 {
 	free(stack->data);
 	free(stack);
 }
 
-void fklRecycleComStack(FklComStack* stack)
+void fklRecyclePtrStack(FklPtrStack* stack)
 {
 	if(stack->num-stack->top>32)
 	{
 		void** tmpData=(void**)realloc(stack->data,(stack->num-32)*sizeof(void*));
-		FKL_ASSERT(tmpData,"fklRecycleComStack",__FILE__,__LINE__);
+		FKL_ASSERT(tmpData,"fklRecyclePtrStack",__FILE__,__LINE__);
 		stack->data=tmpData;
 		stack->num-=32;
 	}
@@ -2050,34 +2050,34 @@ FklMemMenager* fklNewMemMenager(size_t size)
 {
 	FklMemMenager* tmp=(FklMemMenager*)malloc(sizeof(FklMemMenager));
 	FKL_ASSERT(tmp,"fklNewMemMenager",__FILE__,__LINE__);
-	tmp->s=fklNewComStack(size);
+	tmp->s=fklNewPtrStack(size);
 	return tmp;
 }
 
 void fklFreeMemMenager(FklMemMenager* memMenager)
 {
 	size_t i=0;
-	FklComStack* s=memMenager->s;
+	FklPtrStack* s=memMenager->s;
 	for(;i<s->top;i++)
 		fklFreeMem(s->data[i]);
-	fklFreeComStack(s);
+	fklFreePtrStack(s);
 	free(memMenager);
 }
 
 void fklPushMem(void* block,void (*destructor)(void*),FklMemMenager* memMenager)
 {
 	FklMem* mem=fklNewMem(block,destructor);
-	fklPushComStack(mem,memMenager->s);
+	fklPushPtrStack(mem,memMenager->s);
 }
 
 void* popMem(FklMemMenager* memMenager)
 {
-	return fklPopComStack(memMenager->s);
+	return fklPopPtrStack(memMenager->s);
 }
 
 void fklDeleteMem(void* block,FklMemMenager* memMenager)
 {
-	FklComStack* s=memMenager->s;
+	FklPtrStack* s=memMenager->s;
 	s->top-=1;
 	uint32_t i=0;
 	uint32_t j=s->top;
@@ -2091,7 +2091,7 @@ void fklDeleteMem(void* block,FklMemMenager* memMenager)
 
 void* fklReallocMem(void* o_block,void* n_block,FklMemMenager* memMenager)
 {
-	FklComStack* s=memMenager->s;
+	FklPtrStack* s=memMenager->s;
 	uint32_t i=0;
 	FklMem* m=NULL;
 	for(;i<s->top;i++)
@@ -2184,16 +2184,16 @@ void fklFreeQueueNode(FklQueueNode* tmp)
 	free(tmp);
 }
 
-FklComQueue* fklNewComQueue()
+FklPtrQueue* fklNewPtrQueue()
 {
-	FklComQueue* tmp=(FklComQueue*)malloc(sizeof(FklComQueue));
-	FKL_ASSERT(tmp,"fklNewComQueue",__FILE__,__LINE__);
+	FklPtrQueue* tmp=(FklPtrQueue*)malloc(sizeof(FklPtrQueue));
+	FKL_ASSERT(tmp,"fklNewPtrQueue",__FILE__,__LINE__);
 	tmp->head=NULL;
 	tmp->tail=NULL;
 	return tmp;
 }
 
-void fklFreeComQueue(FklComQueue* tmp)
+void fklFreePtrQueue(FklPtrQueue* tmp)
 {
 	FklQueueNode* cur=tmp->head;
 	while(cur)
@@ -2205,7 +2205,7 @@ void fklFreeComQueue(FklComQueue* tmp)
 	free(tmp);
 }
 
-int32_t fklLengthComQueue(FklComQueue* tmp)
+int32_t fklLengthPtrQueue(FklPtrQueue* tmp)
 {
 	FklQueueNode* cur=tmp->head;
 	int32_t i=0;
@@ -2213,7 +2213,7 @@ int32_t fklLengthComQueue(FklComQueue* tmp)
 	return i;
 }
 
-void* fklPopComQueue(FklComQueue* tmp)
+void* fklPopPtrQueue(FklPtrQueue* tmp)
 {
 	FklQueueNode* head=tmp->head;
 	if(!head)
@@ -2226,7 +2226,7 @@ void* fklPopComQueue(FklComQueue* tmp)
 	return retval;
 }
 
-void* fklFirstComQueue(FklComQueue* tmp)
+void* fklFirstPtrQueue(FklPtrQueue* tmp)
 {
 	FklQueueNode* head=tmp->head;
 	if(!head)
@@ -2234,7 +2234,7 @@ void* fklFirstComQueue(FklComQueue* tmp)
 	return head->data;
 }
 
-void fklPushComQueue(void* data,FklComQueue* tmp)
+void fklPushPtrQueue(void* data,FklPtrQueue* tmp)
 {
 	FklQueueNode* tmpNode=fklNewQueueNode(data);
 	if(!tmp->head)
@@ -2249,12 +2249,12 @@ void fklPushComQueue(void* data,FklComQueue* tmp)
 	}
 }
 
-FklComQueue* fklCopyComQueue(FklComQueue* q)
+FklPtrQueue* fklCopyPtrQueue(FklPtrQueue* q)
 {
 	FklQueueNode* head=q->head;
-	FklComQueue* tmp=fklNewComQueue();
+	FklPtrQueue* tmp=fklNewPtrQueue();
 	for(;head;head=head->next)
-		fklPushComQueue(head->data,tmp);
+		fklPushPtrQueue(head->data,tmp);
 	return tmp;
 }
 

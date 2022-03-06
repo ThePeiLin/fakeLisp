@@ -249,7 +249,7 @@ void runIntpr(FklIntpr* inter)
 				tmp->prevEnv=NULL;
 				FklVMrunnable* mainrunnable=fklNewVMrunnable(tmp);
 				mainrunnable->localenv=globEnv;
-				fklPushComStack(mainrunnable,anotherVM->rstack);
+				fklPushPtrStack(mainrunnable,anotherVM->rstack);
 				globEnv->refcount+=1;
 				if(!(e=setjmp(buf)))
 				{

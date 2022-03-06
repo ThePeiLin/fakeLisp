@@ -65,7 +65,7 @@ void fklReleaseSource(pthread_rwlock_t*);
 void fklLockSource(pthread_rwlock_t*);
 FklVMvalue* fklPopVMstack(FklVMstack*);
 
-VMcontinuation* fklNewVMcontinuation(FklVMstack*,FklComStack*,FklComStack*);
+VMcontinuation* fklNewVMcontinuation(FklVMstack*,FklPtrStack*,FklPtrStack*);
 void fklFreeVMcontinuation(VMcontinuation*);
 
 void fklFreeVMfp(FILE*);

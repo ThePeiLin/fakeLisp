@@ -100,8 +100,8 @@ char* fklReadInPattern(FILE* fp,char** prev,int* unexpectEOF)
 {
 	size_t len=0;
 	*unexpectEOF=0;
-	FklComStack* s1=fklNewComStack(32);
-	FklComStack* s2=fklNewComStack(32);
+	FklPtrStack* s1=fklNewPtrStack(32);
+	FklPtrStack* s2=fklNewPtrStack(32);
 	char* tmp=NULL;
 	if(*prev)
 	{
@@ -122,8 +122,8 @@ char* fklReadInPattern(FILE* fp,char** prev,int* unexpectEOF)
 	if((tmp[i]=='(')||(!strncmp(tmp+i,"#b",2)||!strncmp(tmp+i,"#\\",2))||(maybePatternPrefix(tmp+i)))
 	{
 		FklStringMatchPattern* pattern=fklFindStringPattern(tmp+i);
-		fklPushComStack(pattern,s1);
-		fklPushComStack((void*)i,s2);
+		fklPushPtrStack(pattern,s1);
+		fklPushPtrStack((void*)i,s2);
 	}
 	char chs[2]={'\0'};
 	int ch='\0';
@@ -131,14 +131,14 @@ char* fklReadInPattern(FILE* fp,char** prev,int* unexpectEOF)
 	{
 		ch=getc(fp);
 		chs[0]=ch;
-		if(!fklIsComStackEmpty(s1)&&!fklTopComStack(s1)&&tmp[(size_t)fklTopComStack(s2)]=='#')
+		if(!fklIsPtrStackEmpty(s1)&&!fklTopPtrStack(s1)&&tmp[(size_t)fklTopPtrStack(s2)]=='#')
 		{
 			if(ch==EOF)
 			{
 				*unexpectEOF=1;
 				break;
 			}
-			size_t i=(size_t)fklTopComStack(s2);
+			size_t i=(size_t)fklTopPtrStack(s2);
 			if((!strncmp(tmp+i,"#b",2)&&!isxdigit(ch))
 					||(!strncmp(tmp+i,"#\\",2)
 						&&(isspace(ch)
@@ -149,11 +149,11 @@ char* fklReadInPattern(FILE* fp,char** prev,int* unexpectEOF)
 								&&((isdigit(tmp[i+3])&&!isdigit(ch))
 									||(toupper(tmp[i+3])=='X'&&!isxdigit(ch)))))))
 			{
-				fklPopComStack(s2);
-				fklPopComStack(s1);
+				fklPopPtrStack(s2);
+				fklPopPtrStack(s1);
 			}
 		}
-		if(fklIsComStackEmpty(s1)||fklTopComStack(s1)||tmp[(size_t)fklTopComStack(s2)]!='#'||strncmp(tmp+(size_t)fklTopComStack(s2),"#\\",2))
+		if(fklIsPtrStackEmpty(s1)||fklTopPtrStack(s1)||tmp[(size_t)fklTopPtrStack(s2)]!='#'||strncmp(tmp+(size_t)fklTopPtrStack(s2),"#\\",2))
 		{
 			if(ch=='(')
 			{
@@ -164,25 +164,25 @@ char* fklReadInPattern(FILE* fp,char** prev,int* unexpectEOF)
 				}
 				tmp=fklStrCat(tmp," ");
 				len++;
-				fklPushComStack(NULL,s1);
-				fklPushComStack((void*)len,s2);
+				fklPushPtrStack(NULL,s1);
+				fklPushPtrStack((void*)len,s2);
 			}
 			else if(ch==')')
 			{
-				if(!fklIsComStackEmpty(s1)&&fklTopComStack(s1)&&tmp[(size_t)fklTopComStack(s2)]!='(')
+				if(!fklIsPtrStackEmpty(s1)&&fklTopPtrStack(s1)&&tmp[(size_t)fklTopPtrStack(s2)]!='(')
 				{
 					*unexpectEOF=2;
 					break;
 				}
 				else
 				{
-					fklPopComStack(s1);
-					fklPopComStack(s2);
+					fklPopPtrStack(s1);
+					fklPopPtrStack(s2);
 				}
 			}
-			else if((ch=='b'||ch=='\\')&&(!fklIsComStackEmpty(s1)&&!fklTopComStack(s1)&&tmp[(size_t)fklTopComStack(s2)]=='#'))
+			else if((ch=='b'||ch=='\\')&&(!fklIsPtrStackEmpty(s1)&&!fklTopPtrStack(s1)&&tmp[(size_t)fklTopPtrStack(s2)]=='#'))
 			{
-				size_t i=(size_t)fklPopComStack(s2);
+				size_t i=(size_t)fklPopPtrStack(s2);
 				char* tmp1=fklCopyStr(tmp+i);
 				tmp1=fklStrCat(tmp1,chs);
 				tmp[i]='\0';
@@ -196,7 +196,7 @@ char* fklReadInPattern(FILE* fp,char** prev,int* unexpectEOF)
 				tmp=fklStrCat(tmp,tmp1);
 				len++;
 				free(tmp1);
-				fklPushComStack((void*)i+1,s2);
+				fklPushPtrStack((void*)i+1,s2);
 				continue;
 			}
 			else if(ch==',')
@@ -209,8 +209,8 @@ char* fklReadInPattern(FILE* fp,char** prev,int* unexpectEOF)
 			}
 			else if(ch=='#')
 			{
-				fklPushComStack(NULL,s1);
-				fklPushComStack((void*)len,s2);
+				fklPushPtrStack(NULL,s1);
+				fklPushPtrStack((void*)len,s2);
 			}
 			else if(ch==';')
 			{
@@ -226,13 +226,13 @@ char* fklReadInPattern(FILE* fp,char** prev,int* unexpectEOF)
 				free(tmp1);
 				continue;
 			}
-			else if((!fklIsComStackEmpty(s1)&&!fklTopComStack(s1)&&tmp[(size_t)fklTopComStack(s2)]=='#'))
+			else if((!fklIsPtrStackEmpty(s1)&&!fklTopPtrStack(s1)&&tmp[(size_t)fklTopPtrStack(s2)]=='#'))
 			{
-				fklPopComStack(s1);
-				fklPopComStack(s2);
+				fklPopPtrStack(s1);
+				fklPopPtrStack(s2);
 			}
 		}
-		if(ch==EOF||(isspace(ch)&&len&&!isspace(tmp[len-1])&&fklIsComStackEmpty(s1)&&fklIsComStackEmpty(s2)))
+		if(ch==EOF||(isspace(ch)&&len&&!isspace(tmp[len-1])&&fklIsPtrStackEmpty(s1)&&fklIsPtrStackEmpty(s2)))
 		{
 			if(ch==EOF&&s1->top&&s2->top&&s1->top==s2->top)
 				*unexpectEOF=1;
@@ -242,15 +242,15 @@ char* fklReadInPattern(FILE* fp,char** prev,int* unexpectEOF)
 		}
 		tmp=fklStrCat(tmp,chs);
 		len++;
-		if(!(!fklIsComStackEmpty(s1)&&!fklTopComStack(s1)&&tmp[(size_t)fklTopComStack(s2)]=='#')&&maybePatternPrefix(chs))
-			fklPushComStack((void*)len-1,s2);
+		if(!(!fklIsPtrStackEmpty(s1)&&!fklTopPtrStack(s1)&&tmp[(size_t)fklTopPtrStack(s2)]=='#')&&maybePatternPrefix(chs))
+			fklPushPtrStack((void*)len-1,s2);
 		if(s1->top!=s2->top)
 		{
-			size_t i=(size_t)fklTopComStack(s2);
+			size_t i=(size_t)fklTopPtrStack(s2);
 			FklStringMatchPattern* pattern=fklFindStringPattern(tmp+i);
 			if(pattern)
 			{
-				size_t i=(size_t)fklTopComStack(s2);
+				size_t i=(size_t)fklTopPtrStack(s2);
 				if(s1->top==0&&i&&!isspace(tmp[i-1]))
 				{
 					*prev=fklCopyStr(tmp+i);
@@ -258,29 +258,29 @@ char* fklReadInPattern(FILE* fp,char** prev,int* unexpectEOF)
 					break;
 				}
 				else
-					fklPushComStack(pattern,s1);
+					fklPushPtrStack(pattern,s1);
 			}
-			else if(!maybePatternPrefix(tmp+(size_t)fklTopComStack(s2)))
-				fklPopComStack(s2);
+			else if(!maybePatternPrefix(tmp+(size_t)fklTopPtrStack(s2)))
+				fklPopPtrStack(s2);
 		}
 		else
 		{
-			while(!fklIsComStackEmpty(s1)&&!fklIsComStackEmpty(s2)&&s1->top==s2->top&&fklTopComStack(s1)&&!matchStringPattern(tmp+(size_t)fklTopComStack(s2),fklTopComStack(s1)))
+			while(!fklIsPtrStackEmpty(s1)&&!fklIsPtrStackEmpty(s2)&&s1->top==s2->top&&fklTopPtrStack(s1)&&!matchStringPattern(tmp+(size_t)fklTopPtrStack(s2),fklTopPtrStack(s1)))
 			{
-				size_t i=(size_t)fklTopComStack(s2);
+				size_t i=(size_t)fklTopPtrStack(s2);
 				char* tmp1=fklCopyStr(tmp+i);
 				tmp[i]='\0';
 				tmp=fklStrCat(tmp," ");
 				len++;
 				tmp=fklStrCat(tmp,tmp1);
 				free(tmp1);
-				fklPopComStack(s1);
-				fklPopComStack(s2);
+				fklPopPtrStack(s1);
+				fklPopPtrStack(s2);
 			}
 		}
 	}
-	fklFreeComStack(s1);
-	fklFreeComStack(s2);
+	fklFreePtrStack(s1);
+	fklFreePtrStack(s2);
 	return tmp;
 }
 
@@ -980,7 +980,7 @@ static int maybePatternPrefix(const char* str)
 
 FklVMvalue* singleArgPattern(FklVM* exe,const char* var,const char* str)
 {
-	FklVMrunnable* runnable=fklTopComStack(exe->rstack);
+	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMvalue* sym=MAKE_VM_SYM(fklAddSymbolToGlob(str)->id);
 	FklVMvalue* varA=fklFindVMenvNode(fklAddSymbolToGlob(var)->id,runnable->localenv)->value;
 	FklVMvalue* pair=fklNewVMvalue(FKL_PAIR,fklNewVMpair(),exe->heap);

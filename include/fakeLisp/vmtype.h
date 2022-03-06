@@ -9,4 +9,6 @@ ffi_type* fklGetFfiType(FklTypeId_t typeId);
 void fklPrepFFIcif(ffi_cif* cif,int argc,ffi_type** atypes,ffi_type* rtype);
 void fklApplyFlproc(FklVMflproc* f,void* rvalue,void** avalue);
 int fklCastValueToVptr(FklTypeId_t,FklVMvalue* v,void** p);
+
+FklVMmem* fklNewVMmem(FklTypeId_t typeId,uint8_t* mem);
 #endif

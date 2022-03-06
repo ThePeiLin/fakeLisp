@@ -1,15 +1,7 @@
 #ifndef FKL_VMVALUE_H
 #define FKL_VMVALUE_H
 #include"vm.h"
-struct Cirular_Ref_List;
-FklVMvalue* fklGET_VAL(FklVMvalue* P,FklVMheap*);
-int fklSET_REF(FklVMvalue* P,FklVMvalue* V);
-void fklPrin1VMvalue(FklVMvalue*,FILE*,struct Cirular_Ref_List**);
-void fklPrincVMvalue(FklVMvalue*,FILE*,struct Cirular_Ref_List**);
-FklVMenvNode* fklNewVMenvNode(FklVMvalue*,int32_t);
-FklVMenvNode* fklAddVMenvNode(FklVMenvNode*,FklVMenv*);
-FklVMenvNode* fklFindVMenvNode(FklSid_t,FklVMenv*);
-void fklFreeVMenvNode(FklVMenvNode*);
+
 FklVMproc* fklNewVMproc(uint32_t scp,uint32_t cpc);
 
 FklVMvalue* fklCopyVMvalue(FklVMvalue*,FklVMheap*);
@@ -56,8 +48,8 @@ void fklFreeVMdll(FklVMdllHandle*);
 FklVMdlproc* fklNewVMdlproc(FklVMdllFunc,FklVMvalue*);
 void fklFreeVMdlproc(FklVMdlproc*);
 
-FklVMflproc* fklNewVMFlproc(FklTypeId_t type,void* func);
-void fklFreeVMFlproc(FklVMflproc*);
+FklVMflproc* fklNewVMflproc(FklTypeId_t type,void* func);
+void fklFreeVMflproc(FklVMflproc*);
 
 FklVMerror* fklNewVMerror(const char* who,const char* type,const char* message);
 FklVMerror* fklNewVMerrorWithSid(const char* who,FklSid_t type,const char* message);

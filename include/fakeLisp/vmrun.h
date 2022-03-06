@@ -37,4 +37,15 @@ void fklDBG_printVMvalue(FklVMvalue*,FILE*);
 void fklDBG_printVMstack(FklVMstack*,FILE*,int);
 void fklFreeAllSharedObj(void);
 
+FklVMvalue* fklGET_VAL(FklVMvalue* P,FklVMheap*);
+int fklSET_REF(FklVMvalue* P,FklVMvalue* V);
+struct Cirular_Ref_List;
+void fklPrin1VMvalue(FklVMvalue*,FILE*,struct Cirular_Ref_List**);
+void fklPrincVMvalue(FklVMvalue*,FILE*,struct Cirular_Ref_List**);
+
+FklVMenvNode* fklNewVMenvNode(FklVMvalue*,int32_t);
+FklVMenvNode* fklAddVMenvNode(FklVMenvNode*,FklVMenv*);
+FklVMenvNode* fklFindVMenvNode(FklSid_t,FklVMenv*);
+void fklFreeVMenvNode(FklVMenvNode*);
+
 #endif

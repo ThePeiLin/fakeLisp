@@ -1,7 +1,7 @@
-#include<fakeLisp/fakeFFI.h>
-#include<fakeLisp/common.h>
-#include<fakeLisp/VMtool.h>
-#include"utils.h"
+#include<fakeLisp/vmtype.h>
+#include<fakeLisp/utils.h>
+#include<fakeLisp/vmvalue.h>
+#include<stdlib.h>
 #include<stddef.h>
 #include<pthread.h>
 extern FklTypeId_t LastNativeTypeId;
@@ -314,6 +314,196 @@ static int (*fklCastValueToVptrFunctionsList[])(ARGL)=
 #undef ARGL
 /*---------------------------------*/
 
+/*print mem ref func list*/
+#define PRINT_MEM_REF(FMT,TYPE,MEM,FP) fprintf(FP,FMT,*(TYPE*)(MEM))
+#define ARGL uint8_t* mem,FILE* fp
+static void printShortMem (ARGL){PRINT_MEM_REF("%d",short,mem,fp);}
+static void printIntMem   (ARGL){PRINT_MEM_REF("%d",int,mem,fp);}
+static void printUShortMem(ARGL){PRINT_MEM_REF("%u",unsigned short,mem,fp);}
+static void printUIntMem  (ARGL){PRINT_MEM_REF("%u",unsigned int,mem,fp);}
+static void printLongMem  (ARGL){PRINT_MEM_REF("%ld",long,mem,fp);}
+static void printULongMem (ARGL){PRINT_MEM_REF("%lu",unsigned long,mem,fp);}
+static void printLLongMem (ARGL){PRINT_MEM_REF("%lld",long long,mem,fp);}
+static void printULLongMem(ARGL){PRINT_MEM_REF("%llu",unsigned long long,mem,fp);}
+static void printPtrdiff_t(ARGL){PRINT_MEM_REF("%ld",ptrdiff_t,mem,fp);}
+static void printSize_t   (ARGL){PRINT_MEM_REF("%zu",size_t,mem,fp);};
+static void printSsize_t  (ARGL){PRINT_MEM_REF("%zd",ssize_t,mem,fp);}
+static void printChar     (ARGL){PRINT_MEM_REF("%c",char,mem,fp);}
+static void printWchar_t  (ARGL){PRINT_MEM_REF("%C",wchar_t,mem,fp);}
+static void printFloat    (ARGL){PRINT_MEM_REF("%f",float,mem,fp);}
+static void printDouble   (ARGL){PRINT_MEM_REF("%lf",double,mem,fp);}
+static void printInt8_t   (ARGL){PRINT_MEM_REF("%d",int8_t,mem,fp);}
+static void printUint8_t  (ARGL){PRINT_MEM_REF("%u",uint8_t,mem,fp);}
+static void printInt16_t  (ARGL){PRINT_MEM_REF("%d",int16_t,mem,fp);}
+static void printUint16_t (ARGL){PRINT_MEM_REF("%u",uint16_t,mem,fp);}
+static void printInt32_t  (ARGL){PRINT_MEM_REF("%d",int32_t,mem,fp);}
+static void printUint32_t (ARGL){PRINT_MEM_REF("%u",uint32_t,mem,fp);}
+static void printInt64_t  (ARGL){PRINT_MEM_REF("%ld",int64_t,mem,fp);}
+static void printUint64_t (ARGL){PRINT_MEM_REF("%lu",uint64_t,mem,fp);}
+static void printIptr     (ARGL){PRINT_MEM_REF("%ld",intptr_t,mem,fp);}
+static void printUptr     (ARGL){PRINT_MEM_REF("%lu",uintptr_t,mem,fp);}
+static void printVPtr     (ARGL){PRINT_MEM_REF("%p",void*,mem,fp);}
+#undef ARGL
+#undef PRINT_MEM_REF
+static void (*PrintMemoryRefFuncList[])(uint8_t*,FILE*)=
+{
+	printShortMem ,
+	printIntMem   ,
+	printUShortMem,
+	printUIntMem  ,
+	printLongMem  ,
+	printULongMem ,
+	printLLongMem ,
+	printULLongMem,
+	printPtrdiff_t,
+	printSize_t   ,
+	printSsize_t  ,
+	printChar     ,
+	printWchar_t  ,
+	printFloat    ,
+	printDouble   ,
+	printInt8_t   ,
+	printUint8_t  ,
+	printInt16_t  ,
+    printUint16_t ,
+    printInt32_t  ,
+    printUint32_t ,
+    printInt64_t  ,
+    printUint64_t ,
+    printIptr     ,
+    printUptr     ,
+    printVPtr     ,
+};
+/*-----------------------*/
+
+/*memory caster list*/
+#define CAST_TO_I32(TYPE) return MAKE_VM_I32(*(TYPE*)mem);
+#define CAST_TO_I64(TYPE) int64_t t=*(TYPE*)mem;return fklNewVMvalue(FKL_I64,&t,heap);
+#define ARGL uint8_t* mem,FklVMheap* heap
+static FklVMvalue* castShortMem (ARGL){CAST_TO_I32(short)}
+static FklVMvalue* castIntMem   (ARGL){CAST_TO_I32(int)}
+static FklVMvalue* castUShortMem(ARGL){CAST_TO_I32(unsigned short)}
+static FklVMvalue* castUintMem  (ARGL){CAST_TO_I64(unsigned int)}
+static FklVMvalue* castLongMem  (ARGL){CAST_TO_I64(long)}
+static FklVMvalue* castULongMem (ARGL){CAST_TO_I64(unsigned long)}
+static FklVMvalue* castLLongMem (ARGL){CAST_TO_I64(long long)}
+static FklVMvalue* castULLongMem(ARGL){CAST_TO_I64(unsigned long long)}
+static FklVMvalue* castPtrdiff_t(ARGL){CAST_TO_I64(ptrdiff_t)}
+static FklVMvalue* castSize_t   (ARGL){CAST_TO_I64(size_t)}
+static FklVMvalue* castSsize_t  (ARGL){CAST_TO_I64(ssize_t)}
+static FklVMvalue* castChar     (ARGL){return MAKE_VM_CHR(*(char*)mem);}
+static FklVMvalue* castWchar_t  (ARGL){return MAKE_VM_I32(*(wchar_t*)mem);}
+static FklVMvalue* castFloat    (ARGL){double t=*(float*)mem;return fklNewVMvalue(FKL_DBL,&t,heap);}
+static FklVMvalue* castDouble   (ARGL){double t=*(double*)mem;return fklNewVMvalue(FKL_DBL,&t,heap);}
+static FklVMvalue* castInt8_t   (ARGL){CAST_TO_I32(int8_t)}
+static FklVMvalue* castUint8_t  (ARGL){CAST_TO_I32(uint8_t)}
+static FklVMvalue* castInt16_t  (ARGL){CAST_TO_I32(int16_t)}
+static FklVMvalue* castUint16_t (ARGL){CAST_TO_I32(uint16_t)}
+static FklVMvalue* castInt32_t  (ARGL){CAST_TO_I32(int32_t)}
+static FklVMvalue* castUint32_t (ARGL){CAST_TO_I32(uint32_t)}
+static FklVMvalue* castInt64_t  (ARGL){CAST_TO_I64(int64_t)}
+static FklVMvalue* castUint64_t (ARGL){CAST_TO_I64(uint64_t)}
+static FklVMvalue* castIptr     (ARGL){CAST_TO_I64(intptr_t)}
+static FklVMvalue* castUptr     (ARGL){CAST_TO_I64(uintptr_t)}
+static FklVMvalue* castVPtr     (ARGL){return fklNewVMvalue(FKL_I64,mem,heap);}
+#undef ARGL
+#undef CAST_TO_I32
+#undef CAST_TO_I64
+static FklVMvalue*(*MemoryCasterList[])(uint8_t*,FklVMheap*)=
+{
+	castShortMem ,
+	castIntMem   ,
+	castUShortMem,
+	castUintMem  ,
+	castLongMem  ,
+	castULongMem ,
+	castLLongMem ,
+	castULLongMem,
+	castPtrdiff_t,
+	castSize_t   ,
+	castSsize_t  ,
+	castChar     ,
+	castWchar_t  ,
+	castFloat    ,
+	castDouble   ,
+	castInt8_t   ,
+	castUint8_t  ,
+	castInt16_t  ,
+    castUint16_t ,
+    castInt32_t  ,
+    castUint32_t ,
+    castInt64_t  ,
+    castUint64_t ,
+    castIptr     ,
+    castUptr     ,
+    castVPtr     ,
+};
+/*------------------*/
+
+/*Memory setting function list*/
+#define BODY(EXPRESSION,TYPE,VALUE) if(EXPRESSION)return 1;*(TYPE*)mem=(VALUE);return 0;
+#define SET_NUM(TYPE) BODY(!IS_I32(v)&&!IS_I64(v),TYPE,IS_I32(v)?GET_I32(v):v->u.i64)
+#define ARGL uint8_t* mem,FklVMvalue* v
+static int setShortMem (ARGL){SET_NUM(short)}
+static int setIntMem   (ARGL){SET_NUM(int)}
+static int setUShortMem(ARGL){SET_NUM(unsigned short)}
+static int setUintMem  (ARGL){SET_NUM(unsigned int)}
+static int setLongMem  (ARGL){SET_NUM(long)}
+static int setULongMem (ARGL){SET_NUM(unsigned long)}
+static int setLLongMem (ARGL){SET_NUM(long long)}
+static int setULLongMem(ARGL){SET_NUM(unsigned long long)}
+static int setPtrdiff_t(ARGL){SET_NUM(ptrdiff_t)}
+static int setSize_t   (ARGL){SET_NUM(size_t)}
+static int setSsize_t  (ARGL){SET_NUM(ssize_t)}
+static int setChar     (ARGL){BODY(!IS_CHR(v),char,GET_CHR(v))}
+static int setWchar_t  (ARGL){BODY(!IS_CHR(v)&&!IS_I32(v),wchar_t,IS_I32(v)?GET_I32(v):GET_CHR(v))}
+static int setFloat    (ARGL){BODY(!IS_DBL(v)&&!IS_I32(v)&&IS_I64(v),float,IS_DBL(v)?v->u.dbl:(IS_I32(v)?GET_I32(v):v->u.i64))}
+static int setDouble   (ARGL){BODY(!IS_DBL(v)&&!IS_I32(v)&&IS_I64(v),double,IS_DBL(v)?v->u.dbl:(IS_I32(v)?GET_I32(v):v->u.i64))}
+static int setInt8_t   (ARGL){SET_NUM(int8_t)}
+static int setUint8_t  (ARGL){SET_NUM(uint8_t)}
+static int setInt16_t  (ARGL){SET_NUM(int16_t)}
+static int setUint16_t (ARGL){SET_NUM(uint16_t)}
+static int setInt32_t  (ARGL){SET_NUM(int32_t)}
+static int setUint32_t (ARGL){SET_NUM(uint32_t)}
+static int setInt64_t  (ARGL){SET_NUM(int64_t)}
+static int setUint64_t (ARGL){SET_NUM(uint64_t)}
+static int setIptr     (ARGL){SET_NUM(intptr_t)}
+static int setUptr     (ARGL){SET_NUM(uintptr_t)}
+static int setVPtr     (ARGL){SET_NUM(uintptr_t)}
+#undef SET_NUM
+#undef BODY
+static int (*MemorySeterList[])(ARGL)=
+{
+	setShortMem ,
+	setIntMem   ,
+	setUShortMem,
+	setUintMem  ,
+	setLongMem  ,
+	setULongMem ,
+	setLLongMem ,
+	setULLongMem,
+	setPtrdiff_t,
+	setSize_t   ,
+	setSsize_t  ,
+	setChar     ,
+	setWchar_t  ,
+	setFloat    ,
+	setDouble   ,
+	setInt8_t   ,
+	setUint8_t  ,
+	setInt16_t  ,
+    setUint16_t ,
+    setInt32_t  ,
+    setUint32_t ,
+    setInt64_t  ,
+    setUint64_t ,
+    setIptr     ,
+    setUptr     ,
+    setVPtr     ,
+};
+#undef ARGL
+/*------------------*/
+
 void fklPrepFFIcif(ffi_cif* cif,int argc,ffi_type** atypes,ffi_type* rtype)
 {
 	pthread_mutex_lock(&GPrepCifLock);
@@ -332,7 +522,7 @@ void fklApplyFF(void* func,int argc,ffi_type* rtype,ffi_type** atypes,void* rval
 		ffi_call(&cif, func, rvalue, avalue);
 }
 
-void fklApplyFlproc(FklVMFlproc* f,void* rvalue,void** avalue)
+void fklApplyFlproc(FklVMflproc* f,void* rvalue,void** avalue)
 {
 	ffi_call(&f->cif,f->func,rvalue,avalue);
 }
@@ -362,4 +552,19 @@ int fklCastValueToVptr(FklTypeId_t type,FklVMvalue* v,void** p)
 	else if(type==0||type>LastNativeTypeId)
 		type=LastNativeTypeId;
 	return fklCastValueToVptrFunctionsList[type-1](v,p);
+}
+
+void fklPrintMemoryRef(FklTypeId_t type,FklVMmem* mem,FILE* fp)
+{
+	PrintMemoryRefFuncList[type-1](mem->mem,fp);
+}
+
+FklVMvalue* fklMemoryCast(FklTypeId_t type,FklVMmem* mem,FklVMheap* heap)
+{
+	return MemoryCasterList[type-1](mem->mem,heap);
+}
+
+int FklMemorySet(FklTypeId_t type,FklVMmem* mem,FklVMvalue* v)
+{
+	return MemorySeterList[type-1](mem->mem,v);
 }

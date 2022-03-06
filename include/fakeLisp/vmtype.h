@@ -11,4 +11,7 @@ void fklApplyFlproc(FklVMflproc* f,void* rvalue,void** avalue);
 int fklCastValueToVptr(FklTypeId_t,FklVMvalue* v,void** p);
 
 FklVMmem* fklNewVMmem(FklTypeId_t typeId,uint8_t* mem);
+void fklPrintMemoryRef(FklTypeId_t,FklVMmem*,FILE*);
+FklVMvalue* fklMemoryCast(FklTypeId_t,FklVMmem*,FklVMheap*);
+int fklMemorySet(FklTypeId_t id,FklVMmem*,FklVMvalue* v);
 #endif

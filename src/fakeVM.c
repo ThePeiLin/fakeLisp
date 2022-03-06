@@ -1380,12 +1380,6 @@ void fklDBG_printVMvalue(FklVMvalue* v,FILE* fp)
 	fklPrin1VMvalue(v,fp,NULL);
 }
 
-void fklDBG_printVMByteCode(uint8_t* code,uint32_t s,uint32_t c,FILE* fp)
-{
-	FklByteCode t={c,code+s};
-	fklPrintByteCode(&t,fp);
-}
-
 FklVMrunnable* fklHasSameProc(uint32_t scp,FklPtrStack* rstack)
 {
 	size_t i=0;

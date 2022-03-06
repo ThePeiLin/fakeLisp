@@ -1,9 +1,6 @@
-#include<fakeLisp/common.h>
 #include<fakeLisp/compiler.h>
-#include<fakeLisp/fakeVM.h>
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/syntax.h>
-#include<fakeLisp/VMtool.h>
 #include<string.h>
 #include<stdio.h>
 #include<stdlib.h>

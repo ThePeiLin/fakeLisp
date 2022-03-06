@@ -71,5 +71,4 @@ void* fklFirstPtrQueue(FklPtrQueue*);
 void* fklPopPtrQueue(FklPtrQueue*);
 void fklPushPtrQueue(void*,FklPtrQueue*);
 FklPtrQueue* fklCopyPtrQueue(FklPtrQueue*);
-
 #endif

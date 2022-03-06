@@ -20,6 +20,7 @@ FklMemMenager* fklNewMemMenager(size_t size);
 void* fklReallocMem(void* o_block,void* n_block,FklMemMenager*);
 void fklFreeMemMenager(FklMemMenager*);
 void fklPushMem(void* block,void (*destructor)(void*),FklMemMenager* memMenager);
+void* fklPopMem(FklMemMenager*);
 void fklDeleteMem(void* block,FklMemMenager* memMenager);
 
 #endif

@@ -273,62 +273,6 @@ FklVMpair* fklNewVMpair(void)
 	return tmp;
 }
 
-FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
-{
-	FklPtrStack* s1=fklNewPtrStack(32);
-	FklPtrStack* s2=fklNewPtrStack(32);
-	FklVMvalue* tmp=VM_NIL;
-	fklPushPtrStack(objCptr,s1);
-	fklPushPtrStack(&tmp,s2);
-	while(!fklIsPtrStackEmpty(s1))
-	{
-		FklAstCptr* root=fklPopPtrStack(s1);
-		FklVMvalue** root1=fklPopPtrStack(s2);
-		if(root->type==FKL_ATM)
-		{
-			FklAstAtom* tmpAtm=root->u.atom;
-			switch(tmpAtm->type)
-			{
-				case FKL_I32:
-					*root1=MAKE_VM_I32(tmpAtm->value.i32);
-					break;
-				case FKL_CHR:
-					*root1=MAKE_VM_CHR(tmpAtm->value.chr);
-					break;
-				case FKL_SYM:
-					*root1=MAKE_VM_SYM(fklAddSymbolToGlob(tmpAtm->value.str)->id);
-					break;
-				case FKL_DBL:
-					*root1=fklNewVMvalue(FKL_DBL,&tmpAtm->value.dbl,heap);
-					break;
-				case FKL_BYTS:
-					*root1=fklNewVMvalue(FKL_BYTS,fklNewVMbyts(tmpAtm->value.byts.size,tmpAtm->value.byts.str),heap);
-					break;
-				case FKL_STR:
-					*root1=fklNewVMvalue(FKL_STR,fklCopyStr(tmpAtm->value.str),heap);
-					break;
-				default:
-					return NULL;
-					break;
-			}
-		}
-		else if(root->type==FKL_PAIR)
-		{
-			FklAstPair* objPair=root->u.pair;
-			FklVMpair* tmpPair=fklNewVMpair();
-			*root1=fklNewVMvalue(FKL_PAIR,tmpPair,heap);
-			fklPushPtrStack(&objPair->car,s1);
-			fklPushPtrStack(&objPair->cdr,s1);
-			fklPushPtrStack(&tmpPair->car,s2);
-			fklPushPtrStack(&tmpPair->cdr,s2);
-			*root1=MAKE_VM_PTR(*root1);
-		}
-	}
-	fklFreePtrStack(s1);
-	fklFreePtrStack(s2);
-	return tmp;
-}
-
 FklVMbyts* fklNewVMbyts(size_t size,uint8_t* str)
 {
 	FklVMbyts* tmp=(FklVMbyts*)malloc(sizeof(FklVMbyts)+size);

@@ -1,7 +1,8 @@
 #ifndef FAKELISP_H
 #define FAKELISP_H
-#include<fakeLisp/fakedef.h>
-void runIntpr(FklIntpr*);
+#include<fakeLisp/bytecode.h>
+#include<fakeLisp/compiler.h>
+void runIntpr(FklInterpreter*);
 FklByteCode* loadByteCode(FILE*);
 void loadSymbolTable(FILE*);
 LineNumberTable* loadLineNumberTable(FILE*);

@@ -1,10 +1,9 @@
 #include"fakeLisp.h"
 #include<fakeLisp/reader.h>
-#include<fakeLisp/common.h>
-#include<fakeLisp/VMtool.h>
 #include<fakeLisp/syntax.h>
 #include<fakeLisp/compiler.h>
-#include<fakeLisp/fakeVM.h>
+#include<fakeLisp/utils.h>
+#include<fakeLisp/vmutils.h>
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/ast.h>
 #include"utils.h"

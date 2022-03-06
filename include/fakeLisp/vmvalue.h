@@ -30,7 +30,6 @@ int fklNumcmp(FklVMvalue*,FklVMvalue*);
 
 FklVMpair* fklNewVMpair(void);
 
-FklVMvalue* fklCastCptrVMvalue(FklAstCptr*,FklVMheap*);
 FklVMbyts* fklNewVMbyts(size_t,uint8_t*);
 //void fklIncreaseVMbyts(FklVMbyts*);
 //void fklDecreaseVMbyts(FklVMbyts*);

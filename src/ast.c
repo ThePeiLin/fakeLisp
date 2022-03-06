@@ -1,9 +1,15 @@
 #include<fakeLisp/ast.h>
 #include<fakeLisp/bytecode.h>
 #include<fakeLisp/vm.h>
+#include<fakeLisp/vmvalue.h>
+#include<fakeLisp/vmrun.h>
+#include<fakeLisp/vmutils.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/compiler.h>
+#include<fakeLisp/reader.h>
 #include<string.h>
+#include<stdlib.h>
+#include<math.h>
 #include<ctype.h>
 
 #define FREE_ALL_LINE_NUMBER_TABLE(l,s) {int32_t i=0;\
@@ -14,7 +20,7 @@
 static void addToTail(FklAstCptr*,const FklAstCptr*);
 static void addToList(FklAstCptr*,const FklAstCptr*);
 
-static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,VMheap* heap)
+static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
 {
 	FklVMenv* vEnv=fklNewVMenv(NULL);
 	fklInitGlobEnv(vEnv,heap);
@@ -56,7 +62,7 @@ static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,VMheap* heap)
 	return vEnv;
 }
 
-FklAstCptr* expandReaderMacro(const char* objStr,FklIntpr* inter,FklStringMatchPattern* pattern)
+FklAstCptr* expandReaderMacro(const char* objStr,FklInterpreter* inter,FklStringMatchPattern* pattern)
 {
 	FklPreEnv* tmpEnv=fklNewEnv(NULL);
 	int num=0;
@@ -222,7 +228,7 @@ FklAstCptr* expandReaderMacro(const char* objStr,FklIntpr* inter,FklStringMatchP
 	return tmpCptr;
 }
 
-FklAstCptr* fklCreateTree(const char* objStr,FklIntpr* inter,FklStringMatchPattern* pattern)
+FklAstCptr* fklCreateTree(const char* objStr,FklInterpreter* inter,FklStringMatchPattern* pattern)
 {
 	if(objStr==NULL)return NULL;
 	if(fklIsAllSpace(objStr))
@@ -440,122 +446,6 @@ FklAstCptr* fklCreateTree(const char* objStr,FklIntpr* inter,FklStringMatchPatte
 	}
 }
 
-FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
-{
-	FklAstCptr* tmp=fklNewCptr(curline,NULL);
-	FklPtrStack* s1=fklNewPtrStack(32);
-	FklPtrStack* s2=fklNewPtrStack(32);
-	fklPushPtrStack(value,s1);
-	fklPushPtrStack(tmp,s2);
-	while(!fklIsPtrStackEmpty(s1))
-	{
-		FklVMvalue* root=fklPopPtrStack(s1);
-		FklAstCptr* root1=fklPopPtrStack(s2);
-		FklValueType cptrType=0;
-		if(root==VM_NIL)
-			cptrType=FKL_NIL;
-		else if(IS_PAIR(root))
-			cptrType=FKL_PAIR;
-		else if(!IS_REF(root)&&!IS_CHF(root))
-			cptrType=FKL_ATM;
-		root1->type=cptrType;
-		if(cptrType==FKL_ATM)
-		{
-			FklAstAtom* tmpAtm=fklNewAtom(FKL_SYM,NULL,root1->outer);
-			FklVMptrTag tag=GET_TAG(root);
-			switch(tag)
-			{
-				case FKL_SYM_TAG:
-					tmpAtm->type=FKL_SYM;
-					tmpAtm->value.str=fklCopyStr(fklGetGlobSymbolWithId(GET_SYM(root))->symbol);
-					break;
-				case FKL_I32_TAG:
-					tmpAtm->type=FKL_I32;
-					tmpAtm->value.i32=GET_I32(root);
-					break;
-				case FKL_CHR_TAG:
-					tmpAtm->type=FKL_CHR;
-					tmpAtm->value.chr=GET_CHR(root);
-					break;
-				case FKL_PTR_TAG:
-					{
-						tmpAtm->type=root->type;
-						switch(root->type)
-						{
-							case FKL_DBL:
-								tmpAtm->value.dbl=root->u.dbl;
-								break;
-							case FKL_I64:
-								tmpAtm->value.i64=root->u.i64;
-								break;
-							case FKL_STR:
-								tmpAtm->value.str=fklCopyStr(root->u.str);
-								break;
-							case FKL_BYTS:
-								tmpAtm->value.byts.size=root->u.byts->size;
-								tmpAtm->value.byts.str=fklCopyMemory(root->u.byts->str,root->u.byts->size);
-								break;
-							case FKL_PRC:
-								tmpAtm->type=FKL_SYM;
-								tmpAtm->value.str=fklCopyStr("#<proc>");
-								break;
-							case FKL_DLPROC:
-								tmpAtm->type=FKL_SYM;
-								tmpAtm->value.str=fklCopyStr("#<dlproc>");
-								break;
-							case FKL_CONT:
-								tmpAtm->type=FKL_SYM;
-								tmpAtm->value.str=fklCopyStr("#<proc>");
-								break;
-							case FKL_CHAN:
-								tmpAtm->type=FKL_SYM;
-								tmpAtm->value.str=fklCopyStr("#<chan>");
-								break;
-							case FKL_FP:
-								tmpAtm->type=FKL_SYM;
-								tmpAtm->value.str=fklCopyStr("#<fp>");
-								break;
-							case FKL_ERR:
-								tmpAtm->type=FKL_SYM;
-								tmpAtm->value.str=fklCopyStr("#<err>");
-								break;
-							case FKL_MEM:
-								tmpAtm->type=FKL_SYM;
-								tmpAtm->value.str=fklCopyStr("#<mem>");
-								break;
-							case FKL_CHF:
-								tmpAtm->type=FKL_SYM;
-								tmpAtm->value.str=fklCopyStr("#<ref>");
-								break;
-							default:
-								return NULL;
-								break;
-						}
-					}
-					break;
-				default:
-					return NULL;
-					break;
-			}
-			root1->u.atom=tmpAtm;
-		}
-		else if(cptrType==FKL_PAIR)
-		{
-			fklPushPtrStack(root->u.pair->car,s1);
-			fklPushPtrStack(root->u.pair->cdr,s1);
-			FklAstPair* tmpPair=fklNewPair(curline,root1->outer);
-			root1->u.pair=tmpPair;
-			tmpPair->car.outer=tmpPair;
-			tmpPair->cdr.outer=tmpPair;
-			fklPushPtrStack(&tmpPair->car,s2);
-			fklPushPtrStack(&tmpPair->cdr,s2);
-		}
-	}
-	fklFreePtrStack(s1);
-	fklFreePtrStack(s2);
-	return tmp;
-}
-
 void addToList(FklAstCptr* fir,const FklAstCptr* sec)
 {
 	while(fir->type!=FKL_NIL)fir=&fir->u.pair->cdr;
@@ -576,7 +466,7 @@ int fklEqByteString(const FklByteString* fir,const FklByteString* sec)
 	return !memcmp(fir->str,sec->str,sec->size);
 }
 
-FklAstCptr* fklBaseCreateTree(const char* objStr,FklIntpr* inter)
+FklAstCptr* fklBaseCreateTree(const char* objStr,FklInterpreter* inter)
 {
 	if(!objStr)
 		return NULL;

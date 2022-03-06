@@ -6,6 +6,7 @@
 FklVMvalue* fklGetTopValue(FklVMstack* stack);
 FklVMvalue* fklGetValue(FklVMstack* stack,int32_t place);
 FklVMenv* fklCastPreEnvToVMenv(FklPreEnv*,FklVMenv*,FklVMheap*);
+FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline);
 
 uint8_t* fklCopyArry(size_t,uint8_t*);
 FklVMstack* fklCopyStack(FklVMstack*);

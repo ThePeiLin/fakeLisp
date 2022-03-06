@@ -1,6 +1,4 @@
 #include<fakeLisp/reader.h>
-#include<fakeLisp/common.h>
-#include<fakeLisp/VMtool.h>
 #include"utils.h"
 #include<string.h>
 #include<stdlib.h>

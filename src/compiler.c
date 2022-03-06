@@ -1,11 +1,14 @@
 #include<fakeLisp/compiler.h>
 #include<fakeLisp/syntax.h>
-#include<fakeLisp/common.h>
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/ast.h>
-#include<fakeLisp/VMtool.h>
-#include<fakeLisp/fakeVM.h>
+#include<fakeLisp/vm.h>
+#include<fakeLisp/vmutils.h>
+#include<fakeLisp/vmrun.h>
+#include<fakeLisp/vmvalue.h>
+#include<fakeLisp/utils.h>
 #include<fakeLisp/reader.h>
+#include<fakeLisp/mem.h>
 #include"utils.h"
 #include<stddef.h>
 #include<stdlib.h>
@@ -19,14 +22,14 @@ static int MacroPatternCmp(const FklAstCptr*,const FklAstCptr*);
 static int fmatcmp(const FklAstCptr*,const FklAstCptr*,FklPreEnv**,FklCompEnv*);
 static int isVal(const char*);
 static int fklAddDefinedMacro(FklPreMacro* macro,FklCompEnv* curEnv);
-static FklErrorState defmacro(FklAstCptr*,FklCompEnv*,FklIntpr*);
+static FklErrorState defmacro(FklAstCptr*,FklCompEnv*,FklInterpreter*);
 static FklCompEnv* createPatternCompEnv(char**,int32_t,FklCompEnv*);
 extern void READER_MACRO_quote(FklVM* exe);
 extern void READER_MACRO_qsquote(FklVM* exe);
 extern void READER_MACRO_unquote(FklVM* exe);
 extern void READER_MACRO_unqtesp(FklVM* exe);
 
-static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,VMheap* heap)
+static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
 {
 	FklPtrStack* stack=fklNewPtrStack(32);
 	FklCompEnv* tcEnv=cEnv;
@@ -127,7 +130,7 @@ FklPreMacro* fklPreMacroMatch(const FklAstCptr* objCptr,FklPreEnv** pmacroEnv,Fk
 	return NULL;
 }
 
-int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter)
+int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter)
 {
 	FklPreEnv* macroEnv=NULL;
 	FklByteCodelnt* t=fklNewByteCodelnt(fklNewByteCode(0));
@@ -381,7 +384,7 @@ int fmatcmp(const FklAstCptr* origin,const FklAstCptr* format,FklPreEnv** pmacro
 					}
 					fklAddDefine(tmpAtm->value.str+1,origin,macroEnv);
 				}
-				else if(!fklFklAstCptrcmp(origin,format))
+				else if(!fklCptrcmp(origin,format))
 				{
 					fklDestroyEnv(macroEnv);
 					macroEnv=NULL;
@@ -553,7 +556,7 @@ FklAstCptr** dealArg(FklAstCptr* argCptr,int num)
 	return args;
 }
 
-FklErrorState defmacro(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter)
+FklErrorState defmacro(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter)
 {
 	FklErrorState state={0,NULL};
 	FklAstCptr* fir=fklGetFirstCptr(objCptr);
@@ -599,7 +602,7 @@ FklErrorState defmacro(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter)
 		FklAstCptr* pattern=fklNewCptr(0,NULL);
 		fklReplaceCptr(pattern,args[0]);
 		FklAstCptr* express=args[1];
-		FklIntpr* tmpInter=fklNewTmpIntpr(NULL,NULL);
+		FklInterpreter* tmpInter=fklNewTmpIntpr(NULL,NULL);
 		tmpInter->filename=inter->filename;
 		tmpInter->curline=inter->curline;
 		tmpInter->glob=/*(curEnv->prev&&curEnv->prev->exp)?curEnv->prev:*/curEnv;
@@ -628,11 +631,11 @@ FklErrorState defmacro(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter)
 	return state;
 }
 
-FklStringMatchPattern* fklAddStringPattern(char** parts,int32_t num,FklAstCptr* express,FklIntpr* inter)
+FklStringMatchPattern* fklAddStringPattern(char** parts,int32_t num,FklAstCptr* express,FklInterpreter* inter)
 {
 	FklStringMatchPattern* tmp=NULL;
 	FklErrorState state={0,NULL};
-	FklIntpr* tmpInter=fklNewTmpIntpr(NULL,NULL);
+	FklInterpreter* tmpInter=fklNewTmpIntpr(NULL,NULL);
 	tmpInter->filename=inter->filename;
 	tmpInter->curline=inter->curline;
 	tmpInter->glob=inter->glob;
@@ -682,11 +685,11 @@ void fklInitBuiltInStringPattern(void)
 	addBuiltInStringPattern("~@(a)",READER_MACRO_unqtesp);
 }
 
-FklStringMatchPattern* fklAddReDefStringPattern(char** parts,int32_t num,FklAstCptr* express,FklIntpr* inter)
+FklStringMatchPattern* fklAddReDefStringPattern(char** parts,int32_t num,FklAstCptr* express,FklInterpreter* inter)
 {
 	FklStringMatchPattern* tmp=fklFindStringPattern(parts[0]);
 	FklErrorState state={0,NULL};
-	FklIntpr* tmpInter=fklNewTmpIntpr(NULL,NULL);
+	FklInterpreter* tmpInter=fklNewTmpIntpr(NULL,NULL);
 	tmpInter->filename=inter->filename;
 	tmpInter->curline=inter->curline;
 	tmpInter->glob=inter->glob;
@@ -724,7 +727,7 @@ FklStringMatchPattern* fklAddReDefStringPattern(char** parts,int32_t num,FklAstC
 	return tmp;
 }
 
-FklByteCodelnt* fklCompile(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter,FklErrorState* state,int evalIm)
+FklByteCodelnt* fklCompile(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state,int evalIm)
 {
 	for(;;)
 	{
@@ -785,7 +788,7 @@ FklByteCodelnt* fklCompile(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inte
 		{
 			FklSid_t typeName=0;
 			FklTypeId_t type=fklGenDefTypes(objCptr,inter->deftypes,&typeName);
-			//FklVMTypeUnion type={.all=fklGenDefTypes(objCptr,inter->deftypes,&typeName).all};
+			//FklDefTypeUnion type={.all=fklGenDefTypes(objCptr,inter->deftypes,&typeName).all};
 			if(!type)
 			{
 				state->state=FKL_INVALIDTYPEDEF;
@@ -949,7 +952,7 @@ FklByteCode* fklCompilePair(FklAstCptr* objCptr)
 	return tmp;
 }
 
-FklByteCodelnt* fklCompileQsquote(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter,FklErrorState* state,int evalIm)
+FklByteCodelnt* fklCompileQsquote(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state,int evalIm)
 {
 	objCptr=fklNextCptr(fklGetFirstCptr(objCptr));
 	if(objCptr->type==FKL_ATM)
@@ -1115,13 +1118,13 @@ FklByteCode* fklCompileQuote(FklAstCptr* objCptr)
 	return NULL;
 }
 
-FklByteCodelnt* fklCompileUnquote(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter,FklErrorState* state,int evalIm)
+FklByteCodelnt* fklCompileUnquote(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state,int evalIm)
 {
 	objCptr=fklNextCptr(fklGetFirstCptr(objCptr));
 	return fklCompile(objCptr,curEnv,inter,state,evalIm);
 }
 
-FklByteCodelnt* fklCompileConst(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter,FklErrorState* state,int evalIm)
+FklByteCodelnt* fklCompileConst(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state,int evalIm)
 {
 	int32_t line=objCptr->curline;
 	FklByteCode* tmp=NULL;
@@ -1143,7 +1146,7 @@ FklByteCodelnt* fklCompileConst(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr*
 	return t;
 }
 
-FklByteCodelnt* fklCompileFuncCall(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter,FklErrorState* state,int evalIm)
+FklByteCodelnt* fklCompileFuncCall(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state,int evalIm)
 {
 	FklAstCptr* headoflist=NULL;
 	FklAstPair* tmpPair=objCptr->u.pair;
@@ -1208,7 +1211,7 @@ FklByteCodelnt* fklCompileFuncCall(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInt
 	return tmp;
 }
 
-FklByteCodelnt* fklCompileDef(FklAstCptr* tir,FklCompEnv* curEnv,FklIntpr* inter,FklErrorState* state,int evalIm)
+FklByteCodelnt* fklCompileDef(FklAstCptr* tir,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state,int evalIm)
 {
 	FklAstPair* tmpPair=tir->u.pair;
 	FklAstCptr* fir=NULL;
@@ -1310,7 +1313,7 @@ FklByteCodelnt* fklCompileDef(FklAstCptr* tir,FklCompEnv* curEnv,FklIntpr* inter
 	return tmp1;
 }
 
-FklByteCodelnt* fklCompileSetq(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter,FklErrorState* state,int evalIm)
+FklByteCodelnt* fklCompileSetq(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state,int evalIm)
 {
 	FklAstPair* tmpPair=objCptr->u.pair;
 	FklAstCptr* fir=&objCptr->u.pair->car;
@@ -1424,7 +1427,7 @@ FklByteCodelnt* fklCompileSetq(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 	return tmp1;
 }
 
-FklByteCodelnt* fklCompileSetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter,FklErrorState* state,int evalIm)
+FklByteCodelnt* fklCompileSetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state,int evalIm)
 {
 	FklAstCptr* fir=&objCptr->u.pair->car;
 	FklAstCptr* sec=fklNextCptr(fir);
@@ -1456,7 +1459,7 @@ FklByteCodelnt* fklCompileSetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 	}
 }
 
-FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter,FklErrorState* state,int evalIm)
+FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state,int evalIm)
 {
 	FklAstCptr* fir=fklGetFirstCptr(objCptr);
 	FklAstCptr* typeCptr=fklNextCptr(fir);
@@ -1470,8 +1473,8 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 		state->place=objCptr;
 		return NULL;
 	}
-	FklVMTypeUnion typeUnion=fklGetVMTypeUnion(type);
-	if(GET_TYPES_TAG(typeUnion.all)!=FKL_FUNC_TYPE_TAG)
+	FklDefTypeUnion typeUnion=fklGetVMTypeUnion(type);
+	if(GET_TYPES_TAG(typeUnion.all)!=FKL_DEF_FUNC_TYPE_TAG)
 	{
 		FklTypeId_t memberType=type;
 		ssize_t offset=0;
@@ -1491,17 +1494,17 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 			}
 			else if(!strcmp(pathCptr->u.atom->value.str,"*"))
 			{
-				FklVMTypeUnion curTypeUnion=fklGetVMTypeUnion(memberType);
+				FklDefTypeUnion curTypeUnion=fklGetVMTypeUnion(memberType);
 				void* tmpPtr=GET_TYPES_PTR(curTypeUnion.all);
 				FklDefTypeTag tag=GET_TYPES_TAG(curTypeUnion.all);
 				FklTypeId_t defTypeId=0;
 				switch(tag)
 				{
-					case FKL_ARRAY_TYPE_TAG:
-						defTypeId=((FklVMArrayType*)tmpPtr)->etype;
+					case FKL_DEF_ARRAY_TYPE_TAG:
+						defTypeId=((FklDefArrayType*)tmpPtr)->etype;
 						break;
-					case FKL_PTR_TYPE_TAG:
-						defTypeId=((FklVMPtrType*)tmpPtr)->ptype;
+					case FKL_DEF_PTR_TYPE_TAG:
+						defTypeId=((FklDefPtrType*)tmpPtr)->ptype;
 						break;
 					default:
 						state->state=FKL_CANTDEREFERENCE;
@@ -1557,7 +1560,7 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 			}
 			else
 			{
-				if(GET_TYPES_TAG(typeUnion.all)!=FKL_STRUCT_TYPE_TAG&&GET_TYPES_TAG(typeUnion.all)!=FKL_UNION_TYPE_TAG)
+				if(GET_TYPES_TAG(typeUnion.all)!=FKL_DEF_STRUCT_TYPE_TAG&&GET_TYPES_TAG(typeUnion.all)!=FKL_DEF_UNION_TYPE_TAG)
 				{
 					if(tmp)
 					{
@@ -1569,10 +1572,10 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 					return NULL;
 				}
 				FklSid_t curPathNode=fklAddSymbolToGlob(pathCptr->u.atom->value.str)->id;
-				FklVMTypeUnion typeUnion=fklGetVMTypeUnion(memberType);
-				if(GET_TYPES_TAG(typeUnion.all)==FKL_STRUCT_TYPE_TAG)
+				FklDefTypeUnion typeUnion=fklGetVMTypeUnion(memberType);
+				if(GET_TYPES_TAG(typeUnion.all)==FKL_DEF_STRUCT_TYPE_TAG)
 				{
-					FklVMStructType* structType=GET_TYPES_PTR(typeUnion.st);
+					FklDefStructType* structType=GET_TYPES_PTR(typeUnion.st);
 					uint32_t i=0;
 					uint32_t num=structType->num;
 					FklTypeId_t tmpType=0;
@@ -1625,7 +1628,7 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 				}
 				else
 				{
-					FklVMUnionType* unionType=GET_TYPES_PTR(typeUnion.st);
+					FklDefUnionType* unionType=GET_TYPES_PTR(typeUnion.st);
 					uint32_t i=0;
 					uint32_t num=unionType->num;
 					FklTypeId_t tmpType=0;
@@ -1702,16 +1705,16 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 				return NULL;
 			}
 			FklTypeId_t elemType=0;
-			FklVMTypeUnion outerType=fklGetVMTypeUnion(memberType);
+			FklDefTypeUnion outerType=fklGetVMTypeUnion(memberType);
 			void* tmpPtr=GET_TYPES_PTR(outerType.all);
 			FklDefTypeTag tag=GET_TYPES_TAG(outerType.all);
 			switch(tag)
 			{
-				case FKL_PTR_TYPE_TAG:
-					elemType=((FklVMPtrType*)tmpPtr)->ptype;
+				case FKL_DEF_PTR_TYPE_TAG:
+					elemType=((FklDefPtrType*)tmpPtr)->ptype;
 					break;
-				case FKL_ARRAY_TYPE_TAG:
-					elemType=((FklVMArrayType*)tmpPtr)->etype;
+				case FKL_DEF_ARRAY_TYPE_TAG:
+					elemType=((FklDefArrayType*)tmpPtr)->etype;
 					break;
 				default:
 					state->state=FKL_CANTGETELEM;
@@ -1739,9 +1742,9 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 		}
 		else
 		{
-			FklVMTypeUnion typeUnion=fklGetVMTypeUnion(memberType);
+			FklDefTypeUnion typeUnion=fklGetVMTypeUnion(memberType);
 			FklDefTypeTag tag=GET_TYPES_TAG(typeUnion.all);
-			if(tag!=FKL_NATIVE_TYPE_TAG&&tag!=FKL_PTR_TYPE_TAG&&tag!=FKL_ARRAY_TYPE_TAG&&tag!=FKL_FUNC_TYPE_TAG)
+			if(tag!=FKL_DEF_NATIVE_TYPE_TAG&&tag!=FKL_DEF_PTR_TYPE_TAG&&tag!=FKL_DEF_ARRAY_TYPE_TAG&&tag!=FKL_DEF_FUNC_TYPE_TAG)
 			{
 				FREE_ALL_LINE_NUMBER_TABLE(tmp->l,tmp->ls);
 				fklFreeByteCodelnt(tmp);
@@ -1760,7 +1763,7 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 	}
 }
 
-FklByteCodelnt* fklCompileFlsym(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter,FklErrorState* state,int evalIm)
+FklByteCodelnt* fklCompileFlsym(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state,int evalIm)
 {
 	FklAstCptr* fir=fklGetFirstCptr(objCptr);
 	FklAstCptr* typeCptr=fklNextCptr(fir);
@@ -1771,8 +1774,8 @@ FklByteCodelnt* fklCompileFlsym(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr*
 		state->place=objCptr;
 		return NULL;
 	}
-	FklVMTypeUnion typeUnion=fklGetVMTypeUnion(type);
-	if(GET_TYPES_TAG(typeUnion.all)!=FKL_FUNC_TYPE_TAG)
+	FklDefTypeUnion typeUnion=fklGetVMTypeUnion(type);
+	if(GET_TYPES_TAG(typeUnion.all)!=FKL_DEF_FUNC_TYPE_TAG)
 	{
 		state->state=FKL_SYNTAXERROR;
 		state->place=objCptr;
@@ -1812,7 +1815,7 @@ FklByteCodelnt* fklCompileFlsym(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr*
 	fklFreeByteCodelnt(name);
 	return tmp;
 }
-FklByteCodelnt* fklCompileSzof(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter,FklErrorState* state,int evalIm)
+FklByteCodelnt* fklCompileSzof(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state,int evalIm)
 {
 	FklAstCptr* typeCptr=fklNextCptr(fklGetFirstCptr(objCptr));
 	FklTypeId_t type=fklGenDefTypesUnion(typeCptr,inter->deftypes);
@@ -1844,7 +1847,7 @@ FklByteCodelnt* fklCompileSzof(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 	return tmp;
 }
 
-FklByteCodelnt* fklCompileSym(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter,FklErrorState* state,int evalIm)
+FklByteCodelnt* fklCompileSym(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state,int evalIm)
 {
 	int32_t line=objCptr->curline;
 	if(fklHasKeyWord(objCptr,curEnv))
@@ -1896,7 +1899,7 @@ FklByteCodelnt* fklCompileSym(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* i
 	return bcl;
 }
 
-FklByteCodelnt* fklCompileAnd(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter,FklErrorState* state,int evalIm)
+FklByteCodelnt* fklCompileAnd(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state,int evalIm)
 {
 	int32_t curline=objCptr->curline;
 	FklByteCode* jumpiffalse=fklNewByteCode(sizeof(char)+sizeof(int32_t));
@@ -1972,7 +1975,7 @@ FklByteCodelnt* fklCompileAnd(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* i
 	return tmp;
 }
 
-FklByteCodelnt* fklCompileOr(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter,FklErrorState* state,int evalIm)
+FklByteCodelnt* fklCompileOr(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state,int evalIm)
 {
 	int32_t curline=objCptr->curline;
 	FklByteCode* setTp=fklNewByteCode(sizeof(char));
@@ -2045,7 +2048,7 @@ FklByteCodelnt* fklCompileOr(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* in
 	return tmp;
 }
 
-FklByteCodelnt* fklCompileBegin(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter,FklErrorState* state,int evalIm)
+FklByteCodelnt* fklCompileBegin(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state,int evalIm)
 {
 	FklAstCptr* firCptr=fklNextCptr(fklGetFirstCptr(objCptr));
 	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
@@ -2098,7 +2101,7 @@ FklByteCodelnt* fklCompileBegin(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr*
 	return tmp;
 }
 
-FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter,FklErrorState* state,int evalIm)
+FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state,int evalIm)
 {
 	int32_t line=objCptr->curline;
 	FklAstCptr* tmpCptr=objCptr;
@@ -2221,7 +2224,7 @@ FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr
 	return toReturn;
 }
 
-FklByteCodelnt* fklCompileCond(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter,FklErrorState* state,int evalIm)
+FklByteCodelnt* fklCompileCond(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state,int evalIm)
 {
 	FklAstCptr* cond=NULL;
 	FklByteCode* pushnil=fklNewByteCode(sizeof(char));
@@ -2330,7 +2333,7 @@ FklByteCodelnt* fklCompileCond(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 	return tmp;
 }
 
-FklByteCodelnt* fklCompileLoad(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter,FklErrorState* state,int evalIm)
+FklByteCodelnt* fklCompileLoad(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state,int evalIm)
 {
 	FklAstCptr* fir=&objCptr->u.pair->car;
 	FklAstCptr* pFileName=fklNextCptr(fir);
@@ -2348,7 +2351,7 @@ FklByteCodelnt* fklCompileLoad(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 		return NULL;
 	}
 	fklAddSymbolToGlob(name->value.str);
-	FklIntpr* tmpIntpr=fklNewIntpr(name->value.str,file,curEnv,inter->lnt,inter->deftypes);
+	FklInterpreter* tmpIntpr=fklNewIntpr(name->value.str,file,curEnv,inter->lnt,inter->deftypes);
 	tmpIntpr->prev=inter;
 	tmpIntpr->glob=curEnv;
 	FklByteCodelnt* tmp=fklCompileFile(tmpIntpr,evalIm,NULL);
@@ -2376,7 +2379,7 @@ FklByteCodelnt* fklCompileLoad(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* 
 	return tmp;
 }
 
-FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
+FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int evalIm,int* exitstate)
 {
 	chdir(inter->curDir);
 	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
@@ -2478,7 +2481,7 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 }
 */
 
-//FklByteCodelnt* fklCompileProgn(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter,FklErrorState* state,int evalIm)
+//FklByteCodelnt* fklCompileProgn(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state,int evalIm)
 //{
 //	FklAstCptr* fir=fklNextCptr(fklGetFirstCptr(objCptr));
 //	FklByteCodelnt* tmp=NULL;
@@ -2921,7 +2924,7 @@ FklByteCodelnt* fklCompileFile(FklIntpr* inter,int evalIm,int* exitstate)
 //	return tmp;
 //}
 
-FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter,FklErrorState* state,int evalIm)
+FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state,int evalIm)
 {
 #ifdef _WIN32
 	char divstr[]="\\";
@@ -3062,7 +3065,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr
 			return NULL;
 		}
 		fklAddSymbolToGlob(path);
-		FklIntpr* tmpInter=fklNewIntpr(path,fp,fklNewCompEnv(NULL),inter->lnt,inter->deftypes);
+		FklInterpreter* tmpInter=fklNewIntpr(path,fp,fklNewCompEnv(NULL),inter->lnt,inter->deftypes);
 		fklInitGlobKeyWord(tmpInter->glob);
 		free(path);
 		tmpInter->prev=inter;
@@ -3111,7 +3114,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr
 					free(prev);
 					prev=NULL;
 					FklAstCptr* libName=fklNextCptr(fklGetFirstCptr(begin));
-					if(fklFklAstCptrcmp(libName,pairOfpPartsOfPath))
+					if(fklCptrcmp(libName,pairOfpPartsOfPath))
 					{
 						FklCompEnv* tmpCurEnv=fklNewCompEnv(tmpInter->glob);
 						FklAstCptr* exportCptr=fklNextCptr(libName);
@@ -3355,7 +3358,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr
 	return tmp;
 }
 
-FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklIntpr* inter,FklErrorState* state,int evalIm)
+FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state,int evalIm)
 {
 	FklAstCptr* pExpression=fklNextCptr(fklGetFirstCptr(objCptr));
 	FklAstCptr* pCatchExpression=NULL;

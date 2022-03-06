@@ -4,8 +4,10 @@
 #include<fakeLisp/compiler.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/vmutils.h>
+#include<fakeLisp/vmvalue.h>
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/ast.h>
+#include<fakeLisp/vmrun.h>
 #include"utils.h"
 #include<stdio.h>
 #include<stdlib.h>
@@ -46,7 +48,7 @@ int main(int argc,char** argv)
 			free(InterpreterPath);
 			return EXIT_FAILURE;
 		}
-		FklIntpr* inter=fklNewIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
+		FklInterpreter* inter=fklNewIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
 		fklAddSymbolToGlob(filename);
 		fklInitGlobKeyWord(inter->glob);
 		fklInitNativeDefTypes(inter->deftypes);
@@ -134,7 +136,7 @@ int main(int argc,char** argv)
 		fklLoadTypeList(fp);
 		FklByteCode* mainCode=loadByteCode(fp);
 		FklVM* anotherVM=fklNewVM(mainCode);
-		VMheap* heap=anotherVM->heap;
+		FklVMheap* heap=anotherVM->heap;
 		fklFreeByteCode(mainCode);
 		fclose(fp);
 		FklVMrunnable* mainrunnable=anotherVM->rstack->data[0];
@@ -180,7 +182,7 @@ int main(int argc,char** argv)
 	return exitState;
 }
 
-void runIntpr(FklIntpr* inter)
+void runIntpr(FklInterpreter* inter)
 {
 	int e=0;
 	FklVM* anotherVM=fklNewVM(NULL);

@@ -1,6 +1,4 @@
 #define USE_CODE_NAME
-#include<fakeLisp/common.h>
-#include<fakeLisp/VMtool.h>
 #include<fakeLisp/reader.h>
 #include<fakeLisp/fakeVM.h>
 #include<fakeLisp/opcode.h>

@@ -2,9 +2,11 @@
 #include<fakeLisp/symbol.h>
 #include<fakeLisp/basicADT.h>
 #include<fakeLisp/vmvalue.h>
-#include<fakeLisp/utils.h>
+#include<fakeLisp/vmtype.h>
 #include<fakeLisp/vmrun.h>
 #include<fakeLisp/vmutils.h>
+#include<fakeLisp/utils.h>
+#include<stdlib.h>
 #include<string.h>
 #include<math.h>
 #include<setjmp.h>
@@ -20,9 +22,9 @@ extern const char* builtInSymbolList[NUM_OF_BUILT_IN_SYMBOL];
 extern const char* builtInErrorType[NUM_OF_BUILT_IN_ERROR_TYPE];
 extern FklTypeId_t CharTypeId;
 extern FklVMlist GlobVMs;
-extern void* ThreadVMFunc(void* p);
-extern void* ThreadVMDlprocFunc(void* p);
-extern void* ThreadVMFlprocFunc(void* p);
+extern void* ThreadVMfunc(void* p);
+extern void* ThreadVMdlprocFunc(void* p);
+extern void* ThreadVMflprocFunc(void* p);
 
 //syscalls
 
@@ -153,7 +155,7 @@ void SYS_append(FklVM* exe,pthread_rwlock_t* gclock)
 		{
 			if(!IS_BYTS(*prev))
 				RAISE_BUILTIN_ERROR("sys.append",FKL_WRONGARG,runnable,exe);
-			fklVMBytsCat(&(*prev)->u.byts,cur->u.byts);
+			fklVMbytsCat(&(*prev)->u.byts,cur->u.byts);
 		}
 		else
 			RAISE_BUILTIN_ERROR("sys.append",FKL_WRONGARG,runnable,exe);
@@ -257,7 +259,7 @@ void SYS_eqn(FklVM* exe,pthread_rwlock_t* gclock)
 				:VM_NIL
 				,stack);
 	else if(IS_BYTS(fir)&&IS_BYTS(sec))
-		SET_RETURN("SYS_eqn",fklEqVMByts(fir->u.byts,sec->u.byts)
+		SET_RETURN("SYS_eqn",fklEqVMbyts(fir->u.byts,sec->u.byts)
 				?VM_TRUE
 				:VM_NIL
 				,stack);
@@ -948,7 +950,7 @@ void SYS_byts(FklVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.byts",FKL_TOOMANYARG,runnable,exe);
 	if(!obj)
 		RAISE_BUILTIN_ERROR("sys.byts",FKL_TOOFEWARG,runnable,exe);
-	FklVMvalue* retval=fklNewVMvalue(FKL_BYTS,fklNewEmptyVMByts(),exe->heap);
+	FklVMvalue* retval=fklNewVMvalue(FKL_BYTS,fklNewEmptyVMbyts(),exe->heap);
 	if(IS_I32(obj))
 	{
 		retval->u.byts=(FklVMbyts*)realloc(retval->u.byts,sizeof(FklVMbyts)+sizeof(int32_t));
@@ -986,7 +988,7 @@ void SYS_byts(FklVM* exe,pthread_rwlock_t* gclock)
 		memcpy(retval->u.byts->str,obj->u.str,retval->u.byts->size);
 	}
 	else if(IS_BYTS(obj))
-		fklVMBytsCat(&retval->u.byts,obj->u.byts);
+		fklVMbytsCat(&retval->u.byts,obj->u.byts);
 	else
 		RAISE_BUILTIN_ERROR("sys.byts",FKL_WRONGARG,runnable,exe);
 	SET_RETURN("SYS_byts",retval,stack);
@@ -1093,7 +1095,7 @@ void SYS_length(FklVM* exe,pthread_rwlock_t* gclock)
 	else if(IS_BYTS(obj))
 		len=obj->u.byts->size;
 	else if(IS_CHAN(obj))
-		len=fklGetNumVMChanl(obj->u.chan);
+		len=fklGetNumVMchanl(obj->u.chan);
 	else
 		RAISE_BUILTIN_ERROR("sys.length",FKL_WRONGARG,runnable,exe);
 	SET_RETURN("SYS_length",MAKE_VM_I32(len),stack);
@@ -1267,7 +1269,7 @@ void SYS_dll(FklVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.dll",FKL_TOOFEWARG,runnable,exe);
 	if(!IS_STR(dllName))
 		RAISE_BUILTIN_ERROR("sys.dll",FKL_WRONGARG,runnable,exe);
-	FklVMdllHandle* dll=fklNewVMDll(dllName->u.str);
+	FklVMdllHandle* dll=fklNewVMdll(dllName->u.str);
 	if(!dll)
 	{
 		SET_RETURN("SYS_dll",dllName,stack);
@@ -1301,7 +1303,7 @@ void SYS_dlsym(FklVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.dlsym",FKL_INVALIDSYMBOL,runnable,exe);
 	}
 	free(realDlFuncName);
-	FklVMdlproc* dlproc=fklNewVMDlproc(funcAddress,dll);
+	FklVMdlproc* dlproc=fklNewVMdlproc(funcAddress,dll);
 	SET_RETURN("SYS_dlsym",fklNewVMvalue(FKL_DLPROC,dlproc,heap),stack);
 }
 
@@ -1357,23 +1359,23 @@ void SYS_go(FklVM* exe,pthread_rwlock_t* gclock)
 	FklVMvalue* chan=threadVM->chan;
 	int32_t faildCode=0;
 	if(IS_PRC(threadProc))
-		faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMFunc,threadVM);
+		faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMfunc,threadVM);
 	else if(IS_CONT(threadProc))
 	{
 		fklCreateCallChainWithContinuation(threadVM,threadProc->u.cont);
-		faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMFunc,threadVM);
+		faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMfunc,threadVM);
 	}
 	else if(IS_DLPROC(threadProc))
 	{
 		void* a[2]={threadVM,threadProc->u.dlproc->func};
 		void** p=(void**)fklCopyMemory(a,sizeof(a));
-		faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMDlprocFunc,p);
+		faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMdlprocFunc,p);
 	}
 	else
 	{
 		void* a[2]={threadVM,threadProc->u.flproc};
 		void** p=(void**)fklCopyMemory(a,sizeof(a));
-		faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMFlprocFunc,p);
+		faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMflprocFunc,p);
 	}
 	if(faildCode)
 	{
@@ -1398,7 +1400,7 @@ void SYS_chanl(FklVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.chanl",FKL_TOOFEWARG,runnable,exe);
 	if(!IS_I32(maxSize))
 		RAISE_BUILTIN_ERROR("sys.chanl",FKL_WRONGARG,runnable,exe);
-	SET_RETURN("SYS_chanl",fklNewVMvalue(FKL_CHAN,fklNewVMChanl(GET_I32(maxSize)),exe->heap),stack);
+	SET_RETURN("SYS_chanl",fklNewVMvalue(FKL_CHAN,fklNewVMchanl(GET_I32(maxSize)),exe->heap),stack);
 }
 
 void SYS_send(FklVM* exe,pthread_rwlock_t* gclock)
@@ -1414,7 +1416,7 @@ void SYS_send(FklVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.send",FKL_TOOFEWARG,runnable,exe);
 	if(!IS_CHAN(ch))
 		RAISE_BUILTIN_ERROR("sys.send",FKL_WRONGARG,runnable,exe);
-	FklVMsend* t=fklNewSendT(message);
+	FklVMsend* t=fklNewVMsend(message);
 	fklChanlSend(t,ch->u.chan);
 	SET_RETURN("SYS_send",message,stack);
 }
@@ -1430,7 +1432,7 @@ void SYS_recv(FklVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.recv",FKL_TOOFEWARG,runnable,exe);
 	if(!IS_CHAN(ch))
 		RAISE_BUILTIN_ERROR("sys.recv",FKL_WRONGARG,runnable,exe);
-	FklVMrecv* t=fklNewRecvT(exe);
+	FklVMrecv* t=fklNewVMrecv(exe);
 	fklChanlRecv(t,ch->u.chan);
 }
 

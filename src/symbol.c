@@ -5,7 +5,7 @@
 #include<stdlib.h>
 #include<string.h>
 
-static const char* builtInErrorType[NUM_OF_BUILT_IN_ERROR_TYPE]=
+const char* builtInErrorType[NUM_OF_BUILT_IN_ERROR_TYPE]=
 {
 	"dummy",
 	"symbol-undefined",
@@ -37,7 +37,7 @@ static const char* builtInErrorType[NUM_OF_BUILT_IN_ERROR_TYPE]=
 	"invalid-access",
 };
 
-static const char* builtInSymbolList[]=
+const char* builtInSymbolList[]=
 {
 	"nil",
 	"stdin",
@@ -96,21 +96,6 @@ static const char* builtInSymbolList[]=
 };
 
 FklSymbolTable GlobSymbolTable=STATIC_SYMBOL_INIT;
-
-char* fklGetStringFromList(const char* str)
-{
-	char* tmp=NULL;
-	int len=0;
-	while((*(str+len)!='(')
-			&&(*(str+len)!=')')
-			&&!isspace(*(str+len))
-			&&(*(str+len)!=',')
-			&&(*(str+len)!=0))len++;
-	FKL_ASSERT((tmp=(char*)malloc(sizeof(char)*(len+1))),"fklGetStringFromList",__FILE__,__LINE__);
-	memcpy(tmp,str,len);
-	if(tmp!=NULL)*(tmp+len)='\0';
-	return tmp;
-}
 
 FklSymbolTable* fklNewSymbolTable()
 {

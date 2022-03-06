@@ -16,7 +16,7 @@
 #include<unistd.h>
 #include<math.h>
 
-extern char* InterpreterPath;
+char* InterpreterPath=NULL;
 static int MacroPatternCmp(const FklAstCptr*,const FklAstCptr*);
 static int fmatcmp(const FklAstCptr*,const FklAstCptr*,FklPreEnv**,FklCompEnv*);
 static int isVal(const char*);
@@ -3871,6 +3871,36 @@ void fklFreeAllKeyWord(FklKeyWord* head)
 		free(prev->word);
 		free(prev);
 	}
+}
+
+FklInterpreter* fklNewTmpIntpr(const char* filename,FILE* fp)
+{
+	FklInterpreter* tmp=NULL;
+	FKL_ASSERT((tmp=(FklInterpreter*)malloc(sizeof(FklInterpreter))),"fklNewTmpIntpr",__FILE__,__LINE__);
+	tmp->filename=fklCopyStr(filename);
+	if(fp!=stdin&&filename)
+	{
+#ifdef _WIN32
+		char* rp=_fullpath(NULL,filename,0);
+#else
+		char* rp=realpath(filename,0);
+#endif
+		if(rp==NULL)
+		{
+			perror(filename);
+			exit(EXIT_FAILURE);
+		}
+		tmp->curDir=fklGetDir(rp);
+		free(rp);
+	}
+	else
+		tmp->curDir=NULL;
+	tmp->file=fp;
+	tmp->curline=1;
+	tmp->prev=NULL;
+	tmp->glob=NULL;
+	tmp->lnt=NULL;
+	return tmp;
 }
 
 

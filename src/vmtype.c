@@ -565,7 +565,18 @@ FklVMvalue* fklMemoryCast(FklTypeId_t type,FklVMmem* mem,FklVMheap* heap)
 	return MemoryCasterList[type-1](mem->mem,heap);
 }
 
-int FklMemorySet(FklTypeId_t type,FklVMmem* mem,FklVMvalue* v)
+int fklMemorySet(FklTypeId_t type,FklVMmem* mem,FklVMvalue* v)
 {
 	return MemorySeterList[type-1](mem->mem,v);
 }
+
+FklVMmem* fklNewVMmem(FklTypeId_t type,uint8_t* mem)
+{
+	FklVMmem* tmp=(FklVMmem*)malloc(sizeof(FklVMmem));
+	FKL_ASSERT(tmp,"fklNewVMMem",__FILE__,__LINE__);
+	tmp->type=type;
+	tmp->mem=mem;
+	return tmp;
+}
+
+

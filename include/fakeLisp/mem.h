@@ -1,5 +1,6 @@
 #ifndef FKL_MEM_H
 #define FKL_MEM_H
+#include"basicADT.h"
 #include<stddef.h>
 typedef void (*FklGenDestructor)(void*);
 typedef struct
@@ -10,7 +11,7 @@ typedef struct
 
 typedef struct
 {
-	struct FklPtrStack* s;
+	FklPtrStack* s;
 }FklMemMenager;
 
 FklMem* fklNewMem(void* mem,void (*destructor)(void*));

@@ -789,15 +789,6 @@ int fklSET_REF(FklVMvalue* P,FklVMvalue* V)
 		return 1;
 }
 
-FklVMmem* fklNewVMMem(FklTypeId_t type,uint8_t* mem)
-{
-	FklVMmem* tmp=(FklVMmem*)malloc(sizeof(FklVMmem));
-	FKL_ASSERT(tmp,"fklNewVMMem",__FILE__,__LINE__);
-	tmp->type=type;
-	tmp->mem=mem;
-	return tmp;
-}
-
 FklVMvalue* fklGetTopValue(FklVMstack* stack)
 {
 	return stack->values[stack->tp-1];

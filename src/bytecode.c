@@ -354,13 +354,13 @@ void fklCodelntCopyCat(FklByteCodelnt* f,const FklByteCodelnt* s)
 	fklCodeCat(f->bc,s->bc);
 }
 
-void reCodefklLntCat(FklByteCodelnt* f,FklByteCodelnt* s)
+void fklReCodeLntCat(FklByteCodelnt* f,FklByteCodelnt* s)
 {
 	if(!s->l)
 	{
 		s->ls=f->ls;
 		s->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*f->ls);
-		FKL_ASSERT(s->l,"reCodefklLntCat",__FILE__,__LINE__);
+		FKL_ASSERT(s->l,"fklReCodeLntCat",__FILE__,__LINE__);
 		f->l[f->ls-1]->cpc+=s->bc->size;
 		memcpy(s->l,f->l,(f->ls)*sizeof(LineNumTabNode*));
 	}
@@ -370,7 +370,7 @@ void reCodefklLntCat(FklByteCodelnt* f,FklByteCodelnt* s)
 		if(f->l[f->ls-1]->line==s->l[0]->line&&f->l[f->ls-1]->fid==s->l[0]->fid)
 		{
 			LineNumTabNode** l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*(f->ls+s->ls-1));
-			FKL_ASSERT(l,"reCodefklLntCat",__FILE__,__LINE__);
+			FKL_ASSERT(l,"fklReCodeLntCat",__FILE__,__LINE__);
 			f->l[f->ls-1]->cpc+=s->l[0]->cpc;
 			fklFreeLineNumTabNode(s->l[0]);
 			memcpy(l,f->l,(f->ls)*sizeof(LineNumTabNode*));

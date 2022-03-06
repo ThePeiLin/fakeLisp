@@ -1,6 +1,6 @@
 #include<fakeLisp/mem.h>
-#include<fakeLisp/basicADT.h>
 #include<fakeLisp/utils.h>
+#include<stdlib.h>
 FklMem* fklNewMem(void* block,void (*destructor)(void*))
 {
 	FklMem* tmp=(FklMem*)malloc(sizeof(FklMem));

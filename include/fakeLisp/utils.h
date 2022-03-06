@@ -3,6 +3,7 @@
 #include<stdint.h>
 #include<stddef.h>
 #include<stdio.h>
+#include<stdlib.h>
 #define THRESHOLD_SIZE 64
 #define NUM_OF_BUILT_IN_SYMBOL 54
 #define MAX_STRING_SIZE 64

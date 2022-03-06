@@ -13,8 +13,8 @@ FklVMstack* fklCopyStack(FklVMstack*);
 void fklReleaseSource(pthread_rwlock_t*);
 void fklLockSource(pthread_rwlock_t*);
 FklVMvalue* fklPopVMstack(FklVMstack*);
-FklVMtryBlock* fklNewVMTryBlock(FklSid_t,uint32_t tp,long int rtp);
-void fklFreeVMTryBlock(FklVMtryBlock* b);
+FklVMtryBlock* fklNewVMtryBlock(FklSid_t,uint32_t tp,long int rtp);
+void fklFreeVMtryBlock(FklVMtryBlock* b);
 
 FklVMerrorHandler* fklNewVMerrorHandler(FklSid_t type,uint32_t scp,uint32_t cpc);
 void fklFreeVMerrorHandler(FklVMerrorHandler*);

@@ -75,4 +75,6 @@ void fklFreeVMsend(FklVMsend*);
 
 void fklChanlSend(FklVMsend*,FklVMchanl*);
 void fklChanlRecv(FklVMrecv*,FklVMchanl*);
+
+FklVMvalue* fklCastCptrVMvalue(FklAstCptr*,FklVMheap*);
 #endif

@@ -1,6 +1,8 @@
 #include<fakeLisp/compiler.h>
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/syntax.h>
+#include<fakeLisp/utils.h>
+#include<fakeLisp/vmrun.h>
 #include<string.h>
 #include<stdio.h>
 #include<stdlib.h>
@@ -36,7 +38,7 @@ int main(int argc,char** argv)
 #else
 		char* rp=realpath(filename,0);
 #endif
-		FklIntpr* inter=fklNewIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
+		FklInterpreter* inter=fklNewIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
 		fklInitGlobKeyWord(inter->glob);
 		fklInitNativeDefTypes(inter->deftypes);
 		fklAddSymbolToGlob(argv[1]);

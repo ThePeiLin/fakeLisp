@@ -1,6 +1,8 @@
 *
-!/include/
-!/include/fakeLisp/*.h
+!include/
+!/include/**/
+!/include/fakeLisp/
+!/include/fakeLisp/*
 !/examples/
 !/examples/**/
 !/lib/

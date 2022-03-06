@@ -1,6 +1,5 @@
 #include<fakeLisp/VMtool.h>
 #include<fakeLisp/fakeFFI.h>
-#include<fakeLisp/common.h>
 #include<fakeLisp/opcode.h>
 #include"utils.h"
 #include<string.h>
@@ -13,6 +12,14 @@
 #else
 #include<tchar.h>
 #endif
+
+typedef struct Cirular_Ref_List
+{
+	FklVMpair* pair;
+	int32_t count;
+	struct Cirular_Ref_List* next;
+}CRL;
+
 
 /*print mem ref func list*/
 #define PRINT_MEM_REF(FMT,TYPE,MEM,FP) fprintf(FP,FMT,*(TYPE*)(MEM))

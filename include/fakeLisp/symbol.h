@@ -3,6 +3,38 @@
 #include<stdint.h>
 #include<stdio.h>
 typedef uint32_t FklSid_t;
+
+typedef enum
+{
+	FKL_SYMUNDEFINE=1,
+	FKL_SYNTAXERROR,
+	FKL_INVALIDEXPR,
+	FKL_INVALIDTYPEDEF,
+	FKL_CIRCULARLOAD,
+	FKL_INVALIDPATTERN,
+	FKL_WRONGARG,
+	FKL_STACKERROR,
+	FKL_TOOMANYARG,
+	FKL_TOOFEWARG,
+	FKL_CANTCREATETHREAD,
+	FKL_THREADERROR,
+	FKL_MACROEXPANDFAILED,
+	FKL_INVOKEERROR,
+	FKL_LOADDLLFAILD,
+	FKL_INVALIDSYMBOL,
+	FKL_LIBUNDEFINED,
+	FKL_UNEXPECTEOF,
+	FKL_DIVZERROERROR,
+	FKL_FILEFAILURE,
+	FKL_CANTDEREFERENCE,
+	FKL_CANTGETELEM,
+	FKL_INVALIDMEMBER,
+	FKL_NOMEMBERTYPE,
+	FKL_NONSCALARTYPE,
+	FKL_INVALIDASSIGN,
+	FKL_INVALIDACCESS,
+}FklErrorType;
+
 typedef struct FklSymTabNode
 {
 	char* symbol;
@@ -17,7 +49,8 @@ typedef struct FklSymbolTable
 }FklSymbolTable;
 
 const char** fklGetBuiltInSymbolList(void);
-const char** fklGetBuiltInErrorType(void);
+const char* fklGetBuiltInSymbol(FklErrorType);
+const char* fklGetBuiltInErrorType(FklErrorType);
 FklSymbolTable* fklNewSymbolTable();
 FklSymTabNode* fklNewSymTabNode(const char*);
 FklSymTabNode* fklAddSymbol(const char*,FklSymbolTable*);

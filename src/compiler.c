@@ -30,7 +30,7 @@ extern void READER_MACRO_unqtesp(FklVM* exe);
 
 static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
 {
-	FklPtrStack* stack=fklNewPtrStack(32);
+	FklPtrStack* stack=fklNewPtrStack(32,16);
 	FklCompEnv* tcEnv=cEnv;
 	for(;tcEnv;tcEnv=tcEnv->prev)
 		fklPushPtrStack(tcEnv,stack);
@@ -1907,7 +1907,7 @@ FklByteCodelnt* fklCompileAnd(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 	FklByteCode* setTp=fklNewByteCode(sizeof(char));
 	FklByteCode* popTp=fklNewByteCode(sizeof(char));
 	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
-	FklPtrStack* stack=fklNewPtrStack(32);
+	FklPtrStack* stack=fklNewPtrStack(32,16);
 	jumpiffalse->code[0]=FKL_JMP_IF_FALSE;
 	push1->code[0]=FKL_PUSH_I32;
 	resTp->code[0]=FKL_RES_TP;
@@ -1983,7 +1983,7 @@ FklByteCodelnt* fklCompileOr(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpret
 	FklByteCode* jumpifture=fklNewByteCode(sizeof(char)+sizeof(int32_t));
 	FklByteCode* pushnil=fklNewByteCode(sizeof(char));
 	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
-	FklPtrStack* stack=fklNewPtrStack(32);
+	FklPtrStack* stack=fklNewPtrStack(32,16);
 	pushnil->code[0]=FKL_PUSH_NIL;
 	jumpifture->code[0]=FKL_JMP_IF_TRUE;
 	setTp->code[0]=FKL_SET_TP;
@@ -2233,7 +2233,7 @@ FklByteCodelnt* fklCompileCond(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 	FklByteCode* setTp=fklNewByteCode(sizeof(char));
 	FklByteCode* popTp=fklNewByteCode(sizeof(char));
 	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
-	FklPtrStack* stack1=fklNewPtrStack(32);
+	FklPtrStack* stack1=fklNewPtrStack(32,16);
 	setTp->code[0]=FKL_SET_TP;
 	resTp->code[0]=FKL_RES_TP;
 	popTp->code[0]=FKL_POP_TP;
@@ -2244,7 +2244,7 @@ FklByteCodelnt* fklCompileCond(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 	{
 		objCptr=fklGetFirstCptr(cond);
 		FklByteCodelnt* conditionCode=fklCompile(objCptr,curEnv,inter,state,evalIm);
-		FklPtrStack* stack2=fklNewPtrStack(32);
+		FklPtrStack* stack2=fklNewPtrStack(32,16);
 		for(objCptr=fklNextCptr(objCptr);objCptr!=NULL;objCptr=fklNextCptr(objCptr))
 		{
 			FklByteCodelnt* tmp1=fklCompile(objCptr,curEnv,inter,state,evalIm);
@@ -3400,7 +3400,7 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 	}
 	char* errSymbol=pErrSymbol->u.atom->value.str;
 	FklSid_t sid=fklAddSymbolToGlob(errSymbol)->id;
-	FklPtrStack* handlerByteCodelntStack=fklNewPtrStack(32);
+	FklPtrStack* handlerByteCodelntStack=fklNewPtrStack(32,16);
 	for(;pHandlerExpression;pHandlerExpression=fklNextCptr(pHandlerExpression))
 	{
 		if(pHandlerExpression->type!=FKL_PAIR
@@ -3902,5 +3902,3 @@ FklInterpreter* fklNewTmpIntpr(const char* filename,FILE* fp)
 	tmp->lnt=NULL;
 	return tmp;
 }
-
-

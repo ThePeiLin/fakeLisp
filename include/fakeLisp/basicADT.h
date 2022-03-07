@@ -2,46 +2,15 @@
 #define FKL_BASIC_ADT_H
 #include<stdint.h>
 
-typedef enum
-{
-	FKL_SYMUNDEFINE=1,
-	FKL_SYNTAXERROR,
-	FKL_INVALIDEXPR,
-	FKL_INVALIDTYPEDEF,
-	FKL_CIRCULARLOAD,
-	FKL_INVALIDPATTERN,
-	FKL_WRONGARG,
-	FKL_STACKERROR,
-	FKL_TOOMANYARG,
-	FKL_TOOFEWARG,
-	FKL_CANTCREATETHREAD,
-	FKL_THREADERROR,
-	FKL_MACROEXPANDFAILED,
-	FKL_INVOKEERROR,
-	FKL_LOADDLLFAILD,
-	FKL_INVALIDSYMBOL,
-	FKL_LIBUNDEFINED,
-	FKL_UNEXPECTEOF,
-	FKL_DIVZERROERROR,
-	FKL_FILEFAILURE,
-	FKL_CANTDEREFERENCE,
-	FKL_CANTGETELEM,
-	FKL_INVALIDMEMBER,
-	FKL_NOMEMBERTYPE,
-	FKL_NONSCALARTYPE,
-	FKL_INVALIDASSIGN,
-	FKL_INVALIDACCESS,
-}FklErrorType;
-
-
 typedef struct
 {
-	void** data;
-	uint32_t num;
-	long int top;
+	void** base;
+	uint32_t size;
+	uint32_t top;
+	uint32_t inc;
 }FklPtrStack;
 
-FklPtrStack* fklNewPtrStack(uint32_t size);
+FklPtrStack* fklNewPtrStack(uint32_t size,uint32_t inc);
 void fklPushPtrStack(void* data,FklPtrStack*);
 void* fklPopPtrStack(FklPtrStack*);
 void* fklTopPtrStack(FklPtrStack*);
@@ -71,4 +40,20 @@ void* fklFirstPtrQueue(FklPtrQueue*);
 void* fklPopPtrQueue(FklPtrQueue*);
 void fklPushPtrQueue(void*,FklPtrQueue*);
 FklPtrQueue* fklCopyPtrQueue(FklPtrQueue*);
+
+typedef struct
+{
+	int64_t* base;
+	uint32_t size;
+	uint32_t top;
+	uint32_t inc;
+}FklIntStack;
+
+FklIntStack* fklNewIntStack(uint32_t size,uint32_t inc);
+void fklPushIntStack(int64_t e,FklIntStack*);
+int64_t fklPopIntStack(FklIntStack*);
+int64_t fklTopIntStack(FklIntStack*);
+void fklFreeIntStack(FklIntStack*);
+void fklRecycleIntStack(FklIntStack*);
+int fklIsIntStackEmpty(FklIntStack*);
 #endif

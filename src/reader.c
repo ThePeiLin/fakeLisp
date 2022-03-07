@@ -99,8 +99,8 @@ char* fklReadInPattern(FILE* fp,char** prev,int* unexpectEOF)
 {
 	size_t len=0;
 	*unexpectEOF=0;
-	FklPtrStack* s1=fklNewPtrStack(32);
-	FklPtrStack* s2=fklNewPtrStack(32);
+	FklPtrStack* s1=fklNewPtrStack(32,16);
+	FklPtrStack* s2=fklNewPtrStack(32,16);
 	char* tmp=NULL;
 	if(*prev)
 	{

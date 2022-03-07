@@ -240,8 +240,8 @@ FklAstCptr* fklCreateTree(const char* objStr,FklInterpreter* inter,FklStringMatc
 	else
 	{
 		FklStringMatchPattern* pattern=NULL;
-		FklPtrStack* s1=fklNewPtrStack(32);
-		FklPtrStack* s2=fklNewPtrStack(32);
+		FklPtrStack* s1=fklNewPtrStack(32,16);
+		FklIntStack* s2=fklNewIntStack(32,16);
 		int32_t i=0;
 		for(;isspace(objStr[i]);i++)
 			if(objStr[i]=='\n')
@@ -285,7 +285,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklInterpreter* inter,FklStringMatc
 					hasComma=0;
 					root->type=FKL_PAIR;
 					root->u.pair=fklNewPair(curline,root->outer);
-					fklPushPtrStack((void*)s1->top,s2);
+					fklPushIntStack(s1->top,s2);
 					fklPushPtrStack(fklGetASTPairCdr(root),s1);
 					fklPushPtrStack(fklGetASTPairCar(root),s1);
 					i++;
@@ -304,7 +304,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklInterpreter* inter,FklStringMatc
 				if(root->outer->prev&&root->outer->prev->cdr.u.pair==root->outer)
 				{
 					//将为下一个部分准备的pair删除并将该pair的前一个pair的cdr部分入栈
-					s1->top=(long)fklTopPtrStack(s2);
+					s1->top=fklTopIntStack(s2);
 					FklAstCptr* tmp=&root->outer->prev->cdr;
 					free(tmp->u.pair);
 					tmp->type=FKL_NIL;
@@ -316,12 +316,12 @@ FklAstCptr* fklCreateTree(const char* objStr,FklInterpreter* inter,FklStringMatc
 			else if(objStr[i]==')')
 			{
 				hasComma=0;
-				long t=(long)fklPopPtrStack(s2);
-				FklAstCptr* c=s1->data[t];
+				int64_t t=fklPopIntStack(s2);
+				FklAstCptr* c=s1->base[t];
 				if(s1->top-t>0&&c->outer->prev&&c->outer->prev->cdr.u.pair==c->outer)
 				{
 					//如果还有为下一部分准备的pair，则将该pair删除
-					FklAstCptr* tmpCptr=s1->data[t];
+					FklAstCptr* tmpCptr=s1->base[t];
 					tmpCptr=&tmpCptr->outer->prev->cdr;
 					tmpCptr->type=FKL_NIL;
 					free(tmpCptr->u.pair);
@@ -441,7 +441,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklInterpreter* inter,FklStringMatc
 			}
 		}
 		fklFreePtrStack(s1);
-		fklFreePtrStack(s2);
+		fklFreeIntStack(s2);
 		return tmp;
 	}
 }
@@ -470,8 +470,8 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklInterpreter* inter)
 {
 	if(!objStr)
 		return NULL;
-	FklPtrStack* s1=fklNewPtrStack(32);
-	FklPtrStack* s2=fklNewPtrStack(32);
+	FklPtrStack* s1=fklNewPtrStack(32,16);
+	FklIntStack* s2=fklNewIntStack(32,16);
 	int32_t i=0;
 	for(;isspace(objStr[i]);i++)
 		if(objStr[i]=='\n')
@@ -515,7 +515,7 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklInterpreter* inter)
 				hasComma=0;
 				root->type=FKL_PAIR;
 				root->u.pair=fklNewPair(curline,root->outer);
-				fklPushPtrStack((void*)s1->top,s2);
+				fklPushIntStack(s1->top,s2);
 				fklPushPtrStack(fklGetASTPairCdr(root),s1);
 				fklPushPtrStack(fklGetASTPairCar(root),s1);
 				i++;
@@ -534,7 +534,7 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklInterpreter* inter)
 			if(root->outer->prev&&root->outer->prev->cdr.u.pair==root->outer)
 			{
 				//将为下一个部分准备的pair删除并将该pair的前一个pair的cdr部分入栈
-				s1->top=(long)fklTopPtrStack(s2);
+				s1->top=fklTopIntStack(s2);
 				FklAstCptr* tmp=&root->outer->prev->cdr;
 				free(tmp->u.pair);
 				tmp->type=FKL_NIL;
@@ -546,12 +546,12 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklInterpreter* inter)
 		else if(objStr[i]==')')
 		{
 			hasComma=0;
-			long t=(long)fklPopPtrStack(s2);
-			FklAstCptr* c=s1->data[t];
+			long t=fklPopIntStack(s2);
+			FklAstCptr* c=s1->base[t];
 			if(s1->top-t>0&&c->outer->prev&&c->outer->prev->cdr.u.pair==c->outer)
 			{
 				//如果还有为下一部分准备的pair，则将该pair删除
-				FklAstCptr* tmpCptr=s1->data[t];
+				FklAstCptr* tmpCptr=s1->base[t];
 				tmpCptr=&tmpCptr->outer->prev->cdr;
 				tmpCptr->type=FKL_NIL;
 				free(tmpCptr->u.pair);
@@ -652,7 +652,7 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklInterpreter* inter)
 		}
 	}
 	fklFreePtrStack(s1);
-	fklFreePtrStack(s2);
+	fklFreeIntStack(s2);
 	return tmp;
 }
 
@@ -805,8 +805,8 @@ FklAstAtom* fklNewAtom(int type,const char* value,FklAstPair* prev)
 int fklCopyCptr(FklAstCptr* objCptr,const FklAstCptr* copiedCptr)
 {
 	if(copiedCptr==NULL||objCptr==NULL)return 0;
-	FklPtrStack* s1=fklNewPtrStack(32);
-	FklPtrStack* s2=fklNewPtrStack(32);
+	FklPtrStack* s1=fklNewPtrStack(32,16);
+	FklPtrStack* s2=fklNewPtrStack(32,16);
 	fklPushPtrStack(objCptr,s1);
 	fklPushPtrStack((void*)copiedCptr,s2);
 	FklAstAtom* atom1=NULL;

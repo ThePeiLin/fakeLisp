@@ -83,7 +83,7 @@ int main(int argc,char** argv)
 			FklVM* anotherVM=fklNewVM(mainByteCode->bc);
 			fklFreeByteCode(mainByteCode->bc);
 			free(mainByteCode);
-			FklVMrunnable* mainrunnable=anotherVM->rstack->data[0];
+			FklVMrunnable* mainrunnable=anotherVM->rstack->base[0];
 			anotherVM->argc=argc-1;
 			anotherVM->argv=argv+1;
 			anotherVM->tid=pthread_self();
@@ -139,7 +139,7 @@ int main(int argc,char** argv)
 		FklVMheap* heap=anotherVM->heap;
 		fklFreeByteCode(mainCode);
 		fclose(fp);
-		FklVMrunnable* mainrunnable=anotherVM->rstack->data[0];
+		FklVMrunnable* mainrunnable=anotherVM->rstack->base[0];
 		FklVMenv* globEnv=fklNewVMenv(NULL);
 		anotherVM->argc=argc-1;
 		anotherVM->argv=argv+1;

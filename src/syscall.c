@@ -18,8 +18,6 @@ extern void invokeDlProc(FklVM*,FklVMdlproc*);
 extern void invokeFlproc(FklVM*,FklVMflproc*);
 extern pthread_mutex_t GlobSharedObjsMutex;
 extern FklSharedObjNode* GlobSharedObjs;
-extern const char* builtInSymbolList[NUM_OF_BUILT_IN_SYMBOL];
-extern const char* builtInErrorType[NUM_OF_BUILT_IN_ERROR_TYPE];
 extern FklTypeId_t CharTypeId;
 extern FklVMlist GlobVMs;
 extern void* ThreadVMfunc(void* p);
@@ -1346,7 +1344,7 @@ void SYS_go(FklVM* exe,pthread_rwlock_t* gclock)
 	SET_RETURN("SYS_go",prevBp,threadVMstack);
 	threadVMstack->bp=threadVMstack->tp;
 	FklVMvalue* cur=fklGET_VAL(fklPopVMstack(stack),heap);
-	FklPtrStack* comStack=fklNewPtrStack(32);
+	FklPtrStack* comStack=fklNewPtrStack(32,16);
 	for(;cur;cur=fklGET_VAL(fklPopVMstack(stack),heap))
 		fklPushPtrStack(cur,comStack);
 	fklResBp(stack);
@@ -1517,7 +1515,7 @@ void SYS_apply(FklVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.apply",FKL_TOOFEWARG,runnable,exe);
 	if(!IS_PTR(proc)||(proc->type!=FKL_PRC&&proc->type!=FKL_CONT&&proc->type!=FKL_DLPROC&&proc->type!=FKL_FLPROC))
 		RAISE_BUILTIN_ERROR("b.invoke",FKL_INVOKEERROR,runnable,exe);
-	FklPtrStack* stack1=fklNewPtrStack(32);
+	FklPtrStack* stack1=fklNewPtrStack(32,16);
 	FklVMvalue* value=NULL;
 	FklVMvalue* lastList=NULL;
 	while((value=fklGET_VAL(fklPopVMstack(stack),heap)))
@@ -1529,7 +1527,7 @@ void SYS_apply(FklVM* exe,pthread_rwlock_t* gclock)
 		}
 		fklPushPtrStack(value,stack1);
 	}
-	FklPtrStack* stack2=fklNewPtrStack(32);
+	FklPtrStack* stack2=fklNewPtrStack(32,16);
 	if(!IS_PAIR(lastList)&&lastList!=VM_NIL)
 	{
 		fklFreePtrStack(stack1);

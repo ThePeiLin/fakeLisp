@@ -21,7 +21,7 @@ FklMemMenager* fklNewMemMenager(size_t size)
 {
 	FklMemMenager* tmp=(FklMemMenager*)malloc(sizeof(FklMemMenager));
 	FKL_ASSERT(tmp,"fklNewMemMenager",__FILE__,__LINE__);
-	tmp->s=fklNewPtrStack(size);
+	tmp->s=fklNewPtrStack(size,size/2);
 	return tmp;
 }
 
@@ -30,7 +30,7 @@ void fklFreeMemMenager(FklMemMenager* memMenager)
 	size_t i=0;
 	FklPtrStack* s=memMenager->s;
 	for(;i<s->top;i++)
-		fklFreeMem(s->data[i]);
+		fklFreeMem(s->base[i]);
 	fklFreePtrStack(s);
 	free(memMenager);
 }
@@ -53,11 +53,11 @@ void fklDeleteMem(void* block,FklMemMenager* memMenager)
 	uint32_t i=0;
 	uint32_t j=s->top;
 	for(;i<s->top;i++)
-		if(((FklMem*)s->data[i])->block==block)
+		if(((FklMem*)s->base[i])->block==block)
 			break;
-	free(s->data[i]);
+	free(s->base[i]);
 	for(;i<j;i++)
-		s->data[i]=s->data[i+1];
+		s->base[i]=s->base[i+1];
 }
 
 void* fklReallocMem(void* o_block,void* n_block,FklMemMenager* memMenager)
@@ -66,9 +66,9 @@ void* fklReallocMem(void* o_block,void* n_block,FklMemMenager* memMenager)
 	uint32_t i=0;
 	FklMem* m=NULL;
 	for(;i<s->top;i++)
-		if(((FklMem*)s->data[i])->block==o_block)
+		if(((FklMem*)s->base[i])->block==o_block)
 		{
-			m=s->data[i];
+			m=s->base[i];
 			break;
 		}
 	m->block=n_block;

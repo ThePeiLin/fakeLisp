@@ -193,7 +193,7 @@ FklVMtryBlock* fklNewVMtryBlock(FklSid_t sid,uint32_t tp,long int rtp)
 	FklVMtryBlock* t=(FklVMtryBlock*)malloc(sizeof(FklVMtryBlock));
 	FKL_ASSERT(t,"fklNewVMtryBlock",__FILE__,__LINE__);
 	t->sid=sid;
-	t->hstack=fklNewPtrStack(32);
+	t->hstack=fklNewPtrStack(32,16);
 	t->tp=tp;
 	t->rtp=rtp;
 	return t;
@@ -312,7 +312,7 @@ char* fklGenInvalidSymbolErrorMessage(const char* str,FklVMrunnable* r,FklVM* ex
 	free(lineNumber);
 	for(uint32_t i=exe->rstack->top;i;i--)
 	{
-		FklVMrunnable* r=exe->rstack->data[i-1];
+		FklVMrunnable* r=exe->rstack->base[i-1];
 		if(r->sid!=0)
 		{
 			t=fklStrCat(t,"at proc:");
@@ -406,7 +406,7 @@ char* fklGenErrorMessage(unsigned int type,FklVMrunnable* r,FklVM* exe)
 	free(lineNumber);
 	for(uint32_t i=exe->rstack->top;i;i--)
 	{
-		FklVMrunnable* r=exe->rstack->data[i-1];
+		FklVMrunnable* r=exe->rstack->base[i-1];
 		if(r->sid!=0)
 		{
 			t=fklStrCat(t,"at proc:");
@@ -814,7 +814,7 @@ VMcontinuation* fklNewVMcontinuation(FklVMstack* stack,FklPtrStack* rstack,FklPt
 	tmp->num=size;
 	for(;i<size;i++)
 	{
-		FklVMrunnable* cur=rstack->data[i];
+		FklVMrunnable* cur=rstack->base[i];
 		state[i].cp=cur->cp;
 		fklIncreaseVMenvRefcount(cur->localenv);
 		state[i].localenv=cur->localenv;
@@ -826,15 +826,15 @@ VMcontinuation* fklNewVMcontinuation(FklVMstack* stack,FklPtrStack* rstack,FklPt
 	tmp->tnum=tbnum;
 	for(i=0;i<tbnum;i++)
 	{
-		FklVMtryBlock* cur=tstack->data[i];
+		FklVMtryBlock* cur=tstack->base[i];
 		tb[i].sid=cur->sid;
 		FklPtrStack* hstack=cur->hstack;
 		int32_t handlerNum=hstack->top;
-		FklPtrStack* curHstack=fklNewPtrStack(handlerNum);
+		FklPtrStack* curHstack=fklNewPtrStack(handlerNum,handlerNum/2);
 		int32_t j=0;
 		for(;j<handlerNum;j++)
 		{
-			FklVMerrorHandler* curH=hstack->data[i];
+			FklVMerrorHandler* curH=hstack->base[i];
 			FklVMerrorHandler* h=fklNewVMerrorHandler(curH->type,curH->proc.scp,curH->proc.cpc);
 			fklPushPtrStack(h,curHstack);
 		}
@@ -878,8 +878,8 @@ void fklFreeVMcontinuation(VMcontinuation* cont)
 FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 {
 	FklAstCptr* tmp=fklNewCptr(curline,NULL);
-	FklPtrStack* s1=fklNewPtrStack(32);
-	FklPtrStack* s2=fklNewPtrStack(32);
+	FklPtrStack* s1=fklNewPtrStack(32,16);
+	FklPtrStack* s2=fklNewPtrStack(32,16);
 	fklPushPtrStack(value,s1);
 	fklPushPtrStack(tmp,s2);
 	while(!fklIsPtrStackEmpty(s1))

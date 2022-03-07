@@ -18,8 +18,8 @@ FklVMproc* fklNewVMproc(uint32_t scp,uint32_t cpc)
 
 FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVMheap* heap)
 {
-	FklPtrStack* s1=fklNewPtrStack(32);
-	FklPtrStack* s2=fklNewPtrStack(32);
+	FklPtrStack* s1=fklNewPtrStack(32,16);
+	FklPtrStack* s2=fklNewPtrStack(32,16);
 	FklVMvalue* tmp=VM_NIL;
 	fklPushPtrStack(obj,s1);
 	fklPushPtrStack(&tmp,s2);
@@ -195,8 +195,8 @@ FklVMvalue* fklGetVMpairCdr(FklVMvalue* obj)
 
 int fklVMvaluecmp(FklVMvalue* fir,FklVMvalue* sec)
 {
-	FklPtrStack* s1=fklNewPtrStack(32);
-	FklPtrStack* s2=fklNewPtrStack(32);
+	FklPtrStack* s1=fklNewPtrStack(32,16);
+	FklPtrStack* s2=fklNewPtrStack(32,16);
 	fklPushPtrStack(fir,s1);
 	fklPushPtrStack(sec,s2);
 	int r=1;
@@ -768,8 +768,8 @@ void fklFreeVMenvNode(FklVMenvNode* node)
 
 FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 {
-	FklPtrStack* s1=fklNewPtrStack(32);
-	FklPtrStack* s2=fklNewPtrStack(32);
+	FklPtrStack* s1=fklNewPtrStack(32,16);
+	FklPtrStack* s2=fklNewPtrStack(32,16);
 	FklVMvalue* tmp=VM_NIL;
 	fklPushPtrStack(objCptr,s1);
 	fklPushPtrStack(&tmp,s2);

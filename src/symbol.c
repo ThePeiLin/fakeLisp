@@ -5,7 +5,7 @@
 #include<stdlib.h>
 #include<string.h>
 
-const char* builtInErrorType[NUM_OF_BUILT_IN_ERROR_TYPE]=
+static const char* builtInErrorType[NUM_OF_BUILT_IN_ERROR_TYPE]=
 {
 	"dummy",
 	"symbol-undefined",
@@ -37,7 +37,7 @@ const char* builtInErrorType[NUM_OF_BUILT_IN_ERROR_TYPE]=
 	"invalid-access",
 };
 
-const char* builtInSymbolList[]=
+static const char* builtInSymbolList[]=
 {
 	"nil",
 	"stdin",
@@ -264,7 +264,12 @@ const char** fklGetBuiltInSymbolList(void)
 	return builtInSymbolList;
 }
 
-const char** fklGetBuiltInErrorType(void)
+const char* fklGetBuiltInSymbol(FklErrorType type)
 {
-	return builtInErrorType;
+	return builtInSymbolList[type];
+}
+
+const char* fklGetBuiltInErrorType(FklErrorType type)
+{
+	return builtInErrorType[type];
 }

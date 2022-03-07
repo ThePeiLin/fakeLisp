@@ -32,7 +32,6 @@ void threadErrorCallBack(void* a)
 	longjmp(exe->buf,i[(sizeof(void*)*2)/sizeof(int)]);
 }
 
-extern const char* builtInErrorType[NUM_OF_BUILT_IN_ERROR_TYPE];
 extern FklTypeId_t LastNativeTypeId;
 extern FklTypeId_t StringTypeId;
 extern FklTypeId_t FILEpTypeId;
@@ -41,7 +40,6 @@ static int envNodeCmp(const void* a,const void* b)
 	return ((*(FklVMenvNode**)a)->id-(*(FklVMenvNode**)b)->id);
 }
 
-extern const char* builtInSymbolList[NUM_OF_BUILT_IN_SYMBOL];
 pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
 
 /*void ptr to FklVMvalue caster*/
@@ -289,7 +287,7 @@ FklVM* fklNewVM(FklByteCode* mainCode)
 	FklVMproc* tmpVMproc=NULL;
 	exe->code=NULL;
 	exe->size=0;
-	exe->rstack=fklNewPtrStack(32);
+	exe->rstack=fklNewPtrStack(32,16);
 	if(mainCode!=NULL)
 	{
 		exe->code=fklCopyMemory(mainCode->code,mainCode->size);
@@ -303,7 +301,7 @@ FklVM* fklNewVM(FklByteCode* mainCode)
 	exe->mark=1;
 	exe->chan=NULL;
 	exe->stack=fklNewVMstack(0);
-	exe->tstack=fklNewPtrStack(32);
+	exe->tstack=fklNewPtrStack(32,16);
 	exe->heap=fklNewVMheap();
 	exe->callback=NULL;
 	FklVM** ppVM=NULL;
@@ -334,7 +332,7 @@ FklVM* fklNewTmpVM(FklByteCode* mainCode)
 	FKL_ASSERT(exe,"fklNewTmpVM",__FILE__,__LINE__);
 	exe->code=NULL;
 	exe->size=0;
-	exe->rstack=fklNewPtrStack(32);
+	exe->rstack=fklNewPtrStack(32,16);
 	if(mainCode!=NULL)
 	{
 		exe->code=fklCopyMemory(mainCode->code,mainCode->size);
@@ -346,7 +344,7 @@ FklVM* fklNewTmpVM(FklByteCode* mainCode)
 	exe->argv=NULL;
 	exe->chan=NULL;
 	exe->stack=fklNewVMstack(0);
-	exe->tstack=fklNewPtrStack(32);
+	exe->tstack=fklNewPtrStack(32,16);
 	exe->heap=fklNewVMheap();
 	exe->callback=threadErrorCallBack;
 	exe->VMid=-1;
@@ -462,15 +460,15 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 	obj->num=NUM_OF_BUILT_IN_SYMBOL;
 	obj->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*NUM_OF_BUILT_IN_SYMBOL);
 	FKL_ASSERT(obj->list,"fklInitGlobEnv",__FILE__,__LINE__);
-	obj->list[0]=fklNewVMenvNode(VM_NIL,fklAddSymbolToGlob(builtInSymbolList[0])->id);
-	obj->list[1]=fklNewVMenvNode(fklNewVMvalue(FKL_FP,stdin,heap),fklAddSymbolToGlob(builtInSymbolList[1])->id);
-	obj->list[2]=fklNewVMenvNode(fklNewVMvalue(FKL_FP,stdout,heap),fklAddSymbolToGlob(builtInSymbolList[2])->id);
-	obj->list[3]=fklNewVMenvNode(fklNewVMvalue(FKL_FP,stderr,heap),fklAddSymbolToGlob(builtInSymbolList[3])->id);
+	obj->list[0]=fklNewVMenvNode(VM_NIL,fklAddSymbolToGlob(fklGetBuiltInSymbol(0))->id);
+	obj->list[1]=fklNewVMenvNode(fklNewVMvalue(FKL_FP,stdin,heap),fklAddSymbolToGlob(fklGetBuiltInSymbol(1))->id);
+	obj->list[2]=fklNewVMenvNode(fklNewVMvalue(FKL_FP,stdout,heap),fklAddSymbolToGlob(fklGetBuiltInSymbol(2))->id);
+	obj->list[3]=fklNewVMenvNode(fklNewVMvalue(FKL_FP,stderr,heap),fklAddSymbolToGlob(fklGetBuiltInSymbol(3))->id);
 	size_t i=4;
 	for(;i<NUM_OF_BUILT_IN_SYMBOL;i++)
 	{
 		FklVMdlproc* proc=fklNewVMdlproc(syscallFunctionList[i-4],NULL);
-		FklSymTabNode* node=fklAddSymbolToGlob(builtInSymbolList[i]);
+		FklSymTabNode* node=fklAddSymbolToGlob(fklGetBuiltInSymbol(i));
 		proc->sid=node->id;
 		obj->list[i]=fklNewVMenvNode(fklNewVMvalue(FKL_DLPROC,proc,heap),node->id);
 	}
@@ -496,7 +494,7 @@ void* ThreadVMfunc(void* p)
 		char* id=fklIntToString(exe->VMid);
 		threadErrorMessage=fklStrCat(threadErrorMessage,id);
 		threadErrorMessage=fklStrCat(threadErrorMessage,"\n");
-		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerror(NULL,builtInErrorType[FKL_THREADERROR],threadErrorMessage),exe->heap);
+		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerror(NULL,fklGetBuiltInErrorType(FKL_THREADERROR),threadErrorMessage),exe->heap);
 		free(threadErrorMessage);
 		free(id);
 		FklVMsend* t=fklNewVMsend(err);
@@ -536,7 +534,7 @@ void* ThreadVMdlprocFunc(void* p)
 		char* id=fklIntToString(exe->VMid);
 		threadErrorMessage=fklStrCat(threadErrorMessage,id);
 		threadErrorMessage=fklStrCat(threadErrorMessage,"\n");
-		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerror(NULL,builtInErrorType[FKL_THREADERROR],threadErrorMessage),exe->heap);
+		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerror(NULL,fklGetBuiltInErrorType(FKL_THREADERROR),threadErrorMessage),exe->heap);
 		free(threadErrorMessage);
 		free(id);
 		FklVMsend* t=fklNewVMsend(err);
@@ -577,7 +575,7 @@ void* ThreadVMflprocFunc(void* p)
 		char* id=fklIntToString(exe->VMid);
 		threadErrorMessage=fklStrCat(threadErrorMessage,id);
 		threadErrorMessage=fklStrCat(threadErrorMessage,"\n");
-		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerror(NULL,builtInErrorType[FKL_THREADERROR],threadErrorMessage),exe->heap);
+		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerror(NULL,fklGetBuiltInErrorType(FKL_THREADERROR),threadErrorMessage),exe->heap);
 		free(threadErrorMessage);
 		free(id);
 		FklVMsend* t=fklNewVMsend(err);
@@ -1386,7 +1384,7 @@ FklVMrunnable* fklHasSameProc(uint32_t scp,FklPtrStack* rstack)
 	size_t i=0;
 	for(;i<rstack->top;i++)
 	{
-		FklVMrunnable* cur=rstack->data[i];
+		FklVMrunnable* cur=rstack->base[i];
 		if(cur->scp==scp)
 			return cur;
 	}
@@ -1410,7 +1408,7 @@ int fklIsTheLastExpress(const FklVMrunnable* runnable,const FklVMrunnable* same,
 				return 0;
 		if(runnable==same)
 			break;
-		runnable=exe->rstack->data[--c];
+		runnable=exe->rstack->base[--c];
 	}
 	return 1;
 }
@@ -1458,7 +1456,7 @@ void fklGC_markSendT(FklQueueNode* head)
 
 void fklGC_markValue(FklVMvalue* obj)
 {
-	FklPtrStack* stack=fklNewPtrStack(32);
+	FklPtrStack* stack=fklNewPtrStack(32,16);
 	fklPushPtrStack(obj,stack);
 	while(!fklIsPtrStackEmpty(stack))
 	{
@@ -1526,7 +1524,7 @@ void fklGC_markValueInCallChain(FklPtrStack* rstack)
 	size_t i=0;
 	for(;i<rstack->top;i++)
 	{
-		FklVMrunnable* cur=rstack->data[i];
+		FklVMrunnable* cur=rstack->base[i];
 		FklVMenv* curEnv=cur->localenv;
 		for(;curEnv!=NULL;curEnv=curEnv->prev)
 			fklGC_markValueInEnv(curEnv);
@@ -1623,13 +1621,13 @@ FklVM* fklNewThreadVM(FklVMproc* mainCode,FklVMheap* heap)
 	FKL_ASSERT(exe,"fklNewThreadVM",__FILE__,__LINE__);
 	FklVMrunnable* t=fklNewVMrunnable(mainCode);
 	t->localenv=fklNewVMenv(mainCode->prevEnv);
-	exe->rstack=fklNewPtrStack(32);
+	exe->rstack=fklNewPtrStack(32,16);
 	fklPushPtrStack(t,exe->rstack);
 	exe->mark=1;
 	exe->argc=0;
 	exe->argv=NULL;
 	exe->chan=fklNewVMvalue(FKL_CHAN,fklNewVMchanl(0),heap);
-	exe->tstack=fklNewPtrStack(32);
+	exe->tstack=fklNewPtrStack(32,16);
 	exe->stack=fklNewVMstack(0);
 	exe->heap=heap;
 	exe->callback=threadErrorCallBack;
@@ -1665,13 +1663,13 @@ FklVM* fklNewThreadDlprocVM(FklVMrunnable* r,FklVMheap* heap)
 	FklVMrunnable* t=fklNewVMrunnable(NULL);
 	t->cp=r->cp;
 	t->localenv=NULL;
-	exe->rstack=fklNewPtrStack(32);
+	exe->rstack=fklNewPtrStack(32,16);
 	fklPushPtrStack(t,exe->rstack);
 	exe->mark=1;
 	exe->argc=0;
 	exe->argv=NULL;
 	exe->chan=fklNewVMvalue(FKL_CHAN,fklNewVMchanl(0),heap);
-	exe->tstack=fklNewPtrStack(32);
+	exe->tstack=fklNewPtrStack(32,16);
 	exe->stack=fklNewVMstack(0);
 	exe->heap=heap;
 	exe->callback=threadErrorCallBack;
@@ -1819,7 +1817,7 @@ void fklCreateCallChainWithContinuation(FklVM* vm,VMcontinuation* cc)
 		uint32_t handlerNum=hstack->top;
 		for(;j<handlerNum;j++)
 		{
-			FklVMerrorHandler* tmpH=hstack->data[j];
+			FklVMerrorHandler* tmpH=hstack->base[j];
 			FklVMerrorHandler* curH=fklNewVMerrorHandler(tmpH->type,tmpH->proc.scp,tmpH->proc.cpc);
 			fklPushPtrStack(curH,cur->hstack);
 		}

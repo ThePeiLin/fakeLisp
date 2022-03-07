@@ -410,13 +410,13 @@ FklByteCodeLabel* fklFindByteCodeLabel(const char* label,FklPtrStack* s)
 	while(l<=h)
 	{
 		mid=l+(h-l)/2;
-		int cmp=strcmp(((FklByteCodeLabel*)s->data[mid])->label,label);
+		int cmp=strcmp(((FklByteCodeLabel*)s->base[mid])->label,label);
 		if(cmp>0)
 			h=mid-1;
 		else if(cmp<0)
 			l=mid+1;
 		else
-			return (FklByteCodeLabel*)s->data[mid];
+			return (FklByteCodeLabel*)s->base[mid];
 	}
 	return NULL;
 }

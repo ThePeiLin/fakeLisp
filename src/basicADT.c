@@ -6,27 +6,28 @@ int fklIsPtrStackEmpty(FklPtrStack* stack)
 	return stack->top==0;
 }
 
-FklPtrStack* fklNewPtrStack(uint32_t num)
+FklPtrStack* fklNewPtrStack(uint32_t size,uint32_t inc)
 {
 	FklPtrStack* tmp=(FklPtrStack*)malloc(sizeof(FklPtrStack));
 	FKL_ASSERT(tmp,"fklNewPtrStack",__FILE__,__LINE__);
-	tmp->data=(void**)malloc(sizeof(void*)*num);
-	FKL_ASSERT(tmp->data,"fklNewPtrStack",__FILE__,__LINE__);
-	tmp->num=num;
+	tmp->base=(void**)malloc(sizeof(void*)*size);
+	FKL_ASSERT(tmp->base,"fklNewPtrStack",__FILE__,__LINE__);
+	tmp->size=size;
+	tmp->inc=inc;
 	tmp->top=0;
 	return tmp;
 }
 
 void fklPushPtrStack(void* data,FklPtrStack* stack)
 {
-	if(stack->top==stack->num)
+	if(stack->top==stack->size)
 	{
-		void** tmpData=(void**)realloc(stack->data,(stack->num+32)*sizeof(void*));
+		void** tmpData=(void**)realloc(stack->base,(stack->size+stack->inc)*sizeof(void*));
 		FKL_ASSERT(tmpData,"fklPushPtrStack",__FILE__,__LINE__);
-		stack->data=tmpData;
-		stack->num+=32;
+		stack->base=tmpData;
+		stack->size+=stack->inc;
 	}
-	stack->data[stack->top]=data;
+	stack->base[stack->top]=data;
 	stack->top+=1;
 }
 
@@ -35,7 +36,7 @@ void* fklPopPtrStack(FklPtrStack* stack)
 	if(fklIsPtrStackEmpty(stack))
 		return NULL;
 	stack->top-=1;
-	void* tmp=stack->data[stack->top];
+	void* tmp=stack->base[stack->top];
 	fklRecyclePtrStack(stack);
 	return tmp;
 }
@@ -44,23 +45,23 @@ void* fklTopPtrStack(FklPtrStack* stack)
 {
 	if(fklIsPtrStackEmpty(stack))
 		return NULL;
-	return stack->data[stack->top-1];
+	return stack->base[stack->top-1];
 }
 
 void fklFreePtrStack(FklPtrStack* stack)
 {
-	free(stack->data);
+	free(stack->base);
 	free(stack);
 }
 
 void fklRecyclePtrStack(FklPtrStack* stack)
 {
-	if(stack->num-stack->top>32)
+	if(stack->size-stack->top>stack->inc)
 	{
-		void** tmpData=(void**)realloc(stack->data,(stack->num-32)*sizeof(void*));
+		void** tmpData=(void**)realloc(stack->base,(stack->size-stack->inc)*sizeof(void*));
 		FKL_ASSERT(tmpData,"fklRecyclePtrStack",__FILE__,__LINE__);
-		stack->data=tmpData;
-		stack->num-=32;
+		stack->base=tmpData;
+		stack->size-=stack->inc;
 	}
 }
 
@@ -150,6 +151,70 @@ FklPtrQueue* fklCopyPtrQueue(FklPtrQueue* q)
 	for(;head;head=head->next)
 		fklPushPtrQueue(head->data,tmp);
 	return tmp;
+}
+
+int fklIsIntStackEmpty(FklIntStack* stack)
+{
+	return stack->top==0;
+}
+
+FklIntStack* fklNewIntStack(uint32_t size,uint32_t inc)
+{
+	FklIntStack* tmp=(FklIntStack*)malloc(sizeof(FklIntStack));
+	FKL_ASSERT(tmp,"fklNewPtrStack",__FILE__,__LINE__);
+	tmp->base=(int64_t*)malloc(sizeof(int64_t)*size);
+	FKL_ASSERT(tmp->base,"fklNewPtrStack",__FILE__,__LINE__);
+	tmp->size=size;
+	tmp->inc=inc;
+	tmp->top=0;
+	return tmp;
+}
+
+void fklPushIntStack(int64_t data,FklIntStack* stack)
+{
+	if(stack->top==stack->size)
+	{
+		int64_t* tmpData=(int64_t*)realloc(stack->base,(stack->size+stack->inc)*sizeof(int64_t));
+		FKL_ASSERT(tmpData,"fklPushPtrStack",__FILE__,__LINE__);
+		stack->base=tmpData;
+		stack->size+=stack->inc;
+	}
+	stack->base[stack->top]=data;
+	stack->top+=1;
+}
+
+int64_t fklPopIntStack(FklIntStack* stack)
+{
+	if(fklIsIntStackEmpty(stack))
+		return 0;
+	stack->top-=1;
+	int64_t tmp=stack->base[stack->top];
+	fklRecycleIntStack(stack);
+	return tmp;
+}
+
+int64_t fklTopIntStack(FklIntStack* stack)
+{
+	if(fklIsIntStackEmpty(stack))
+		return 0;
+	return stack->base[stack->top-1];
+}
+
+void fklFreeIntStack(FklIntStack* stack)
+{
+	free(stack->base);
+	free(stack);
+}
+
+void fklRecycleIntStack(FklIntStack* stack)
+{
+	if(stack->size-stack->top>stack->inc)
+	{
+		int64_t* tmpData=(int64_t*)realloc(stack->base,(stack->size-stack->inc)*sizeof(int64_t));
+		FKL_ASSERT(tmpData,"fklRecyclePtrStack",__FILE__,__LINE__);
+		stack->base=tmpData;
+		stack->size-=stack->inc;
+	}
 }
 
 

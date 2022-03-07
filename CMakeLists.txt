@@ -9,7 +9,7 @@ include_directories("${PROJECT_SOURCE_DIR}/include")
 set(SOURCE "src/*.c" "src/*.h")
 file(GLOB INTERPRETER_SOURCE "src/*.c")
 file(GLOB COMPILER_SOURCE "src/*.c")
-file(GLOB BTK_SOURCE "src/btk.c" "src/common.c" "src/VMtool.c")
+file(GLOB BTK_SOURCE "src/btk.c" "src/deftype.c" "src/syscall.c" "src/basicADT.c" "src/utils.c" "src/vmrun.c" "src/vmtype.c" "src/vmutils.c" "src/vmvalue.c")
 list(REMOVE_ITEM INTERPRETER_SOURCE
 	"${PROJECT_SOURCE_DIR}/src/fakeLispc.c"
 	"${PROJECT_SOURCE_DIR}/src/btk.c")
@@ -28,6 +28,8 @@ target_link_libraries(${COMPILER_TARGET_NAME} ${LINK_TARGET})
 target_link_libraries(${BTK_TARGET_NAME} ${LINK_TARGET})
 add_custom_target(COPY_STD_FKL ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/lib ${CMAKE_BINARY_DIR}/lib)
+add_custom_target(COPY_EXAMPLES ALL
+	COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/examples/ ${CMAKE_BINARY_DIR}/examples/)
 if(${DEBUG})
 	target_compile_options(${BTK_TARGET_NAME} PRIVATE
 		$<$<CXX_COMPILER_ID:MSVC>:/DEBUG /W4>

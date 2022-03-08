@@ -26,7 +26,6 @@ void errorCallBack(void* a)
 	longjmp(buf,i[(sizeof(void*)*2)/sizeof(int)]);
 }
 
-extern struct GlobTypeUnionListElem GlobTypeUnionList;
 int main(int argc,char** argv)
 {
 	char* filename=(argc>1)?argv[1]:"stdin";

@@ -22,8 +22,6 @@ extern "C"
 #endif
 #ifndef _WIN32
 
-extern const char* builtInErrorType[NUM_OF_BUILT_IN_ERROR_TYPE];
-
 int getch()
 {
 	struct termios oldt,newt;

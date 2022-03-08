@@ -32,9 +32,6 @@ void threadErrorCallBack(void* a)
 	longjmp(exe->buf,i[(sizeof(void*)*2)/sizeof(int)]);
 }
 
-extern FklTypeId_t LastNativeTypeId;
-extern FklTypeId_t StringTypeId;
-extern FklTypeId_t FILEpTypeId;
 static int envNodeCmp(const void* a,const void* b)
 {
 	return ((*(FklVMenvNode**)a)->id-(*(FklVMenvNode**)b)->id);
@@ -173,15 +170,15 @@ void invokeFlproc(FklVM* exe,FklVMflproc* flproc)
 	fklApplyFlproc(flproc,&retval,pArgs);
 	if(rtype!=0)
 	{
-		if(rtype==StringTypeId)
+		if(rtype==fklGetStringTypeId())
 			SET_RETURN("invokeFlproc",fklNewVMvalue(FKL_STR,(void*)retval,exe->heap),stack);
 		else if(fklIsFunctionTypeId(rtype))
 			SET_RETURN("invokeFlproc",fklNewVMvalue(FKL_FLPROC,fklNewVMflproc(rtype,(void*)retval),exe->heap),stack);
-		else if(rtype==FILEpTypeId)
+		else if(rtype==fklGetFILEpTypeId())
 			SET_RETURN("invokeFlproc",fklNewVMvalue(FKL_FP,(void*)retval,exe->heap),stack);
 		else
 		{
-			FklTypeId_t t=(rtype>LastNativeTypeId)?LastNativeTypeId:rtype;
+			FklTypeId_t t=(rtype>fklGetLastNativeTypeId())?fklGetLastNativeTypeId():rtype;
 			SET_RETURN("invokeFlproc",castVptrToVMvalueFunctionsList[t-1](retval,exe->heap),stack);
 		}
 	}

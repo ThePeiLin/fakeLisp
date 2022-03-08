@@ -5,7 +5,6 @@
 #include<stddef.h>
 #include<pthread.h>
 
-extern FklTypeId_t LastNativeTypeId;
 static pthread_mutex_t GPrepCifLock=PTHREAD_MUTEX_INITIALIZER;
 static ffi_type* NativeFFITypeList[]=
 {
@@ -530,8 +529,8 @@ void fklApplyFlproc(FklVMflproc* f,void* rvalue,void** avalue)
 
 ffi_type* fklGetFfiType(FklTypeId_t type)
 {
-	if(type>LastNativeTypeId)
-		type=LastNativeTypeId;
+	if(type>fklGetLastNativeTypeId())
+		type=fklGetLastNativeTypeId();
 	return NativeFFITypeList[type];
 }
 
@@ -550,8 +549,8 @@ int fklCastValueToVptr(FklTypeId_t type,FklVMvalue* v,void** p)
 		}
 		return 0;
 	}
-	else if(type==0||type>LastNativeTypeId)
-		type=LastNativeTypeId;
+	else if(type==0||type>fklGetLastNativeTypeId())
+		type=fklGetLastNativeTypeId();;
 	return fklCastValueToVptrFunctionsList[type-1](v,p);
 }
 

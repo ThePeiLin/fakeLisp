@@ -24,7 +24,6 @@ typedef struct Cirular_Ref_List
 }CRL;
 
 
-extern FklSymbolTable GlobSymbolTable;
 static CRL* newCRL(FklVMpair* pair,int32_t count)
 {
 	CRL* tmp=(CRL*)malloc(sizeof(CRL));
@@ -227,8 +226,6 @@ void fklFreeVMerrorHandler(FklVMerrorHandler* h)
 	fklFreeVMenv(h->proc.prevEnv);
 	free(h);
 }
-
-extern const char*  builtInErrorType[NUM_OF_BUILT_IN_ERROR_TYPE];
 
 int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 {

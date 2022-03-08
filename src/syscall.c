@@ -18,7 +18,6 @@ extern void invokeDlProc(FklVM*,FklVMdlproc*);
 extern void invokeFlproc(FklVM*,FklVMflproc*);
 extern pthread_mutex_t GlobSharedObjsMutex;
 extern FklSharedObjNode* GlobSharedObjs;
-extern FklTypeId_t CharTypeId;
 extern FklVMlist GlobVMs;
 extern void* ThreadVMfunc(void* p);
 extern void* ThreadVMdlprocFunc(void* p);
@@ -1068,9 +1067,9 @@ void SYS_nth(FklVM* exe,pthread_rwlock_t* gclock)
 		retval=(IS_PAIR(objPair))?MAKE_VM_REF(&objPair->u.pair->car):VM_NIL;
 	}
 	else if(IS_STR(objlist))
-		retval=index>=strlen(objlist->u.str)?VM_NIL:MAKE_VM_CHF(fklNewVMmem(CharTypeId,(uint8_t*)objlist->u.str+index),heap);
+		retval=index>=strlen(objlist->u.str)?VM_NIL:MAKE_VM_CHF(fklNewVMmem(fklGetCharTypeId(),(uint8_t*)objlist->u.str+index),heap);
 	else if(IS_BYTS(objlist))
-		retval=index>=objlist->u.byts->size?VM_NIL:MAKE_VM_CHF(fklNewVMmem(CharTypeId,objlist->u.byts->str+index),heap);
+		retval=index>=objlist->u.byts->size?VM_NIL:MAKE_VM_CHF(fklNewVMmem(fklGetCharTypeId(),objlist->u.byts->str+index),heap);
 	else
 		RAISE_BUILTIN_ERROR("sys.nth",FKL_WRONGARG,runnable,exe);
 	SET_RETURN("SYS_nth",retval,stack);

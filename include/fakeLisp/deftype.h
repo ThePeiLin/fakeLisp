@@ -88,6 +88,11 @@ typedef struct FklDefFuncType
 	FklTypeId_t atypes[];
 }FklDefFuncType;
 
+FklTypeId_t fklGetLastNativeTypeId(void);
+FklTypeId_t fklGetCharTypeId(void);
+FklTypeId_t fklGetStringTypeId(void);
+FklTypeId_t fklGetFILEpTypeId(void);
+
 FklDefTypes* fklNewDefTypes(void);
 void fklFreeDefTypeTable(FklDefTypes* defs);
 

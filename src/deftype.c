@@ -3,10 +3,10 @@
 #include<string.h>
 #include<stdlib.h>
 
-FklTypeId_t LastNativeTypeId=0;
-FklTypeId_t CharTypeId=0;
-FklTypeId_t StringTypeId=0;
-FklTypeId_t FILEpTypeId=0;
+static FklTypeId_t LastNativeTypeId=0;
+static FklTypeId_t CharTypeId=0;
+static FklTypeId_t StringTypeId=0;
+static FklTypeId_t FILEpTypeId=0;
 
 static int isNativeType(FklSid_t typeName,FklDefTypes* otherTypes);
 struct GlobTypeUnionListStruct
@@ -1093,4 +1093,24 @@ int fklIsFunctionTypeId(FklTypeId_t type)
 {
 	FklDefTypeUnion tu=fklGetVMTypeUnion(type);
 	return GET_TYPES_TAG(tu.all)==FKL_DEF_FUNC_TYPE_TAG;
+}
+
+FklTypeId_t fklGetLastNativeTypeId(void)
+{
+	return LastNativeTypeId;
+}
+
+FklTypeId_t fklGetCharTypeId(void)
+{
+	return CharTypeId=0;
+}
+
+FklTypeId_t fklGetStringTypeId(void)
+{
+	return StringTypeId;
+}
+
+FklTypeId_t fklGetFILEpTypeId(void)
+{
+	return FILEpTypeId;
 }

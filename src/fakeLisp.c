@@ -26,26 +26,26 @@ void errorCallBack(void* a)
 	longjmp(buf,i[(sizeof(void*)*2)/sizeof(int)]);
 }
 
-extern char* InterpreterPath;
 extern struct GlobTypeUnionListElem GlobTypeUnionList;
 int main(int argc,char** argv)
 {
 	char* filename=(argc>1)?argv[1]:"stdin";
 #ifdef WFKL_I32
-	InterpreterPath=_fullpath(NULL,argv[0],0);
+	char* intprPath=_fullpath(NULL,argv[0],0);
 #else
-	InterpreterPath=realpath(argv[0],0);
+	char* intprPath=realpath(argv[0],0);
 #endif
-	char* t=fklGetDir(InterpreterPath);
-	free(InterpreterPath);
-	InterpreterPath=t;
+	char* t=fklGetDir(intprPath);
+	free(intprPath);
+	fklSetInterpreterPath(t);
+	free(t);
 	if(argc==1||fklIsscript(filename))
 	{
 		FILE* fp=(argc>1)?fopen(argv[1],"r"):stdin;
 		if(fp==NULL)
 		{
 			perror(filename);
-			free(InterpreterPath);
+			fklFreeInterpeterPath();
 			return EXIT_FAILURE;
 		}
 		FklInterpreter* inter=fklNewIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
@@ -72,9 +72,9 @@ int main(int argc,char** argv)
 				free(workpath);
 				fklFreeIntpr(inter);
 				fklUnInitPreprocess();
-				free(InterpreterPath);
 				fklFreeGlobSymbolTable();
 				fklFreeGlobTypeList();
+				fklFreeInterpeterPath();
 				return state;
 			}
 			inter->lnt->num=mainByteCode->ls;
@@ -114,7 +114,7 @@ int main(int argc,char** argv)
 				fklFreeVMheap(anotherVM->heap);
 				fklFreeAllVMs();
 				fklFreeAllSharedObj();
-				free(InterpreterPath);
+				fklFreeInterpeterPath();
 				fklFreeGlobSymbolTable();
 				fklFreeGlobTypeList();
 				return exitState;
@@ -127,7 +127,7 @@ int main(int argc,char** argv)
 		if(fp==NULL)
 		{
 			perror(filename);
-			free(InterpreterPath);
+			fklFreeInterpeterPath();
 			return EXIT_FAILURE;
 		}
 		fklChangeWorkPath(filename);
@@ -168,17 +168,17 @@ int main(int argc,char** argv)
 			fklFreeGlobSymbolTable();
 			fklFreeGlobTypeList();
 			fklFreeLineNumberTable(lnt);
-			free(InterpreterPath);
+			fklFreeInterpeterPath();
 			return exitState;
 		}
 	}
 	else
 	{
 		fprintf(stderr,"%s: It is not a correct file.\n",filename);
-		free(InterpreterPath);
+		fklFreeInterpeterPath();
 		return EXIT_FAILURE;
 	}
-	free(InterpreterPath);
+	fklFreeInterpeterPath();
 	return exitState;
 }
 

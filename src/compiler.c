@@ -16,7 +16,7 @@
 #include<unistd.h>
 #include<math.h>
 
-char* InterpreterPath=NULL;
+static char* InterpreterPath=NULL;
 static int MacroPatternCmp(const FklAstCptr*,const FklAstCptr*);
 static int fmatcmp(const FklAstCptr*,const FklAstCptr*,FklPreEnv**,FklCompEnv*);
 static int isVal(const char*);
@@ -3901,4 +3901,14 @@ FklInterpreter* fklNewTmpIntpr(const char* filename,FILE* fp)
 	tmp->glob=NULL;
 	tmp->lnt=NULL;
 	return tmp;
+}
+
+void fklSetInterpreterPath(const char* path)
+{
+	InterpreterPath=fklCopyStr(path);
+}
+
+void fklFreeInterpeterPath(void)
+{
+	free(InterpreterPath);
 }

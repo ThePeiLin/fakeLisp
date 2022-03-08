@@ -1102,7 +1102,7 @@ FklTypeId_t fklGetLastNativeTypeId(void)
 
 FklTypeId_t fklGetCharTypeId(void)
 {
-	return CharTypeId=0;
+	return CharTypeId;
 }
 
 FklTypeId_t fklGetStringTypeId(void)

@@ -1065,3 +1065,22 @@ FklAstCptr* fklGetCptrCdr(const FklAstCptr* obj)
 		return &obj->outer->cdr;
 	return NULL;
 }
+
+int fklIsListCptr(const FklAstCptr* list)
+{
+	FklAstCptr* last=NULL;
+	for(last=(list->type==FKL_PAIR)?&list->u.pair->car:NULL
+			;fklGetCptrCdr(last)->type==FKL_PAIR
+			;last=fklNextCptr(last));
+	return fklGetCptrCdr(last)->type!=FKL_ATM;
+}
+
+unsigned int fklLengthListCptr(const FklAstCptr* list)
+{
+	unsigned int n=0;
+	for(FklAstCptr* fir=(list->type==FKL_PAIR)?&list->u.pair->car:NULL
+			;fir
+			;fir=fklNextCptr(fir))
+		n++;
+	return n;
+}

@@ -746,13 +746,9 @@ FklVMvalue* fklGET_VAL(FklVMvalue* P,FklVMheap* heap)
 			FklVMvalue* t=NULL;
 			FklVMmem* mem=P->u.chf;
 			if(fklIsNativeTypeId(mem->type))
-			{
 				t=fklMemoryCast(mem->type,mem,heap);
-			}
 			else
-			{
 				t=P;
-			}
 			return t;
 		}
 		return P;

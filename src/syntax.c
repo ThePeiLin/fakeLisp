@@ -15,11 +15,8 @@ int fklIsDefmacroExpression(const FklAstCptr* objCptr)
 	if(objCptr!=NULL&&fklNextCptr(objCptr)!=NULL&&fklNextCptr(fklNextCptr(objCptr))!=NULL)
 	{
 		if(objCptr->type!=FKL_ATM||fklNextCptr(objCptr)->type==FKL_NIL)return 0;
-		else
-		{
-			FklAstAtom* tmpAtm=objCptr->u.atom;
-			if(tmpAtm->type!=FKL_SYM||strcmp(tmpAtm->value.str,"defmacro"))return 0;
-		}
+		FklAstAtom* tmpAtm=objCptr->u.atom;
+		if(tmpAtm->type!=FKL_SYM||strcmp(tmpAtm->value.str,"defmacro"))return 0;
 		return 1;
 	}
 	return 0;
@@ -27,15 +24,15 @@ int fklIsDefmacroExpression(const FklAstCptr* objCptr)
 
 int fklIsDeftypeExpression(const FklAstCptr* objCptr)
 {
-	objCptr=(objCptr->type==FKL_PAIR)?&objCptr->u.pair->car:NULL;
-	if(objCptr!=NULL&&fklNextCptr(objCptr)!=NULL&&fklNextCptr(fklNextCptr(objCptr))!=NULL)
+	FklAstCptr* fir=(objCptr->type==FKL_PAIR)?&objCptr->u.pair->car:NULL;
+	if(fir&&fklIsListCptr(objCptr)&&fklLengthListCptr(objCptr)==3)
 	{
-		if(objCptr->type!=FKL_ATM||fklNextCptr(objCptr)->type==FKL_NIL)return 0;
-		else
-		{
-			FklAstAtom* tmpAtm=objCptr->u.atom;
-			if(tmpAtm->type!=FKL_SYM||strcmp(tmpAtm->value.str,"deftype"))return 0;
-		}
+		if(fir->type!=FKL_ATM||fklNextCptr(fir)->type!=FKL_ATM)return 0;
+		FklAstAtom* tmpAtm=fir->u.atom;
+		FklAstAtom* second=fklNextCptr(fir)->u.atom;
+		if(tmpAtm->type!=FKL_SYM
+				||second->type!=FKL_SYM
+				||strcmp(tmpAtm->value.str,"deftype"))return 0;
 		return 1;
 	}
 	return 0;
@@ -43,16 +40,13 @@ int fklIsDeftypeExpression(const FklAstCptr* objCptr)
 
 int fklIsDefExpression(const FklAstCptr* objCptr)
 {
-	objCptr=(objCptr->type==FKL_PAIR)?&objCptr->u.pair->car:NULL;
-	if(objCptr!=NULL&&fklNextCptr(objCptr)!=NULL&&fklNextCptr(fklNextCptr(objCptr))!=NULL)
+	FklAstCptr* fir=(objCptr->type==FKL_PAIR)?&objCptr->u.pair->car:NULL;
+	if(fir&&fklIsListCptr(objCptr)&&fklLengthListCptr(objCptr)==3)
 	{
-		if(objCptr->type!=FKL_ATM||fklNextCptr(objCptr)->type!=FKL_ATM)return 0;
-		else
-		{
-			FklAstAtom* first=objCptr->u.atom;
-			FklAstAtom* second=fklNextCptr(objCptr)->u.atom;
-			if(first->type!=FKL_SYM||second->type!=FKL_SYM||strcmp(first->value.str,"define"))return 0;
-		}
+		if(fir->type!=FKL_ATM||fklNextCptr(fir)->type!=FKL_ATM)return 0;
+		FklAstAtom* first=fir->u.atom;
+		FklAstAtom* second=fklNextCptr(fir)->u.atom;
+		if(first->type!=FKL_SYM||second->type!=FKL_SYM||strcmp(first->value.str,"define"))return 0;
 		return 1;
 	}
 	else return 0;
@@ -60,16 +54,13 @@ int fklIsDefExpression(const FklAstCptr* objCptr)
 
 int fklIsSetqExpression(const FklAstCptr* objCptr)
 {
-	objCptr=(objCptr->type==FKL_PAIR)?&objCptr->u.pair->car:NULL;
-	if(objCptr!=NULL&&fklNextCptr(objCptr)!=NULL&&fklNextCptr(fklNextCptr(objCptr))!=NULL)
+	FklAstCptr* fir=(objCptr->type==FKL_PAIR)?&objCptr->u.pair->car:NULL;
+	if(fir&&fklIsListCptr(objCptr)&&fklLengthListCptr(objCptr)==3)
 	{
-		if(objCptr->type!=FKL_ATM||fklNextCptr(objCptr)->type!=FKL_ATM)return 0;
-		else
-		{
-			FklAstAtom* first=objCptr->u.atom;
-			FklAstAtom* second=fklNextCptr(objCptr)->u.atom;
-			if(first->type!=FKL_SYM||second->type!=FKL_SYM||strcmp(first->value.str,"setq"))return 0;
-		}
+		if(fir->type!=FKL_ATM||fklNextCptr(fir)->type!=FKL_ATM)return 0;
+		FklAstAtom* first=fir->u.atom;
+		FklAstAtom* second=fklNextCptr(fir)->u.atom;
+		if(first->type!=FKL_SYM||second->type!=FKL_SYM||strcmp(first->value.str,"setq"))return 0;
 		return 1;
 	}
 	else return 0;
@@ -77,24 +68,28 @@ int fklIsSetqExpression(const FklAstCptr* objCptr)
 
 int fklIsGetfExpression(const FklAstCptr* objCptr)
 {
-	objCptr=(fklIsValid(objCptr)&&objCptr->type==FKL_PAIR)?&objCptr->u.pair->car:NULL;
-	FklAstAtom* tmpAtm=(objCptr!=NULL&&objCptr->type==FKL_ATM)?objCptr->u.atom:NULL;
-	if(tmpAtm!=NULL&&tmpAtm->type==FKL_SYM&&!strcmp(tmpAtm->value.str,"getf"))return 1;
+	FklAstCptr* fir=(objCptr->type==FKL_PAIR)?&objCptr->u.pair->car:NULL;
+	if(fir&&fklIsListCptr(objCptr)&&fklLengthListCptr(objCptr)==4)
+	{
+		if(fir->type!=FKL_ATM)
+			return 0;
+		FklAstAtom* first=fir->u.atom;
+		if(first->type!=FKL_SYM||strcmp(first->value.str,"getf"))return 0;
+		return 1;
+	}
 	return 0;
 }
 
 
 int fklIsSetfExpression(const FklAstCptr* objCptr)
 {
-	objCptr=(objCptr->type==FKL_PAIR)?&objCptr->u.pair->car:NULL;
-	if(objCptr!=NULL&&fklNextCptr(objCptr)!=NULL&&fklNextCptr(fklNextCptr(objCptr))!=NULL)
+	FklAstCptr* fir=(objCptr->type==FKL_PAIR)?&objCptr->u.pair->car:NULL;
+	if(fir&&fklIsListCptr(objCptr)&&fklLengthListCptr(objCptr)==3)
 	{
-		if(objCptr->type!=FKL_ATM)return 0;
-		else
-		{
-			FklAstAtom* first=objCptr->u.atom;
-			if(first->type!=FKL_SYM||strcmp(first->value.str,"setf"))return 0;
-		}
+		if(fir->type!=FKL_ATM)
+			return 0;
+		FklAstAtom* first=fir->u.atom;
+		if(first->type!=FKL_SYM||strcmp(first->value.str,"setf"))return 0;
 		return 1;
 	}
 	else return 0;
@@ -440,6 +435,7 @@ int fklIsTryExpression(const FklAstCptr* objCptr)
 
 int fklIsCatchExpression(const FklAstCptr* objCptr)
 {
+	if(!fklIsValid(objCptr))return 0;
 	objCptr=(objCptr->type==FKL_PAIR)?&objCptr->u.pair->car:NULL;
 	if(objCptr!=NULL&&fklNextCptr(objCptr)!=NULL&&fklNextCptr(fklNextCptr(objCptr))!=NULL)
 	{
@@ -456,5 +452,12 @@ int fklIsCatchExpression(const FklAstCptr* objCptr)
 
 int fklIsFlsymExpression(const FklAstCptr* objCptr)
 {
-	return fklIsAnyExpression("flsym",objCptr);
+	if(fklLengthListCptr(objCptr)!=2)return 0;
+	objCptr=(fklIsValid(objCptr)&&objCptr->type==FKL_PAIR)?&objCptr->u.pair->car:NULL;
+	FklAstAtom* tmpAtm=(objCptr!=NULL&&objCptr->type==FKL_ATM)?objCptr->u.atom:NULL;
+	FklAstCptr* sec=fklNextCptr(objCptr);
+	FklAstAtom* second=sec->type==FKL_ATM?sec->u.atom:NULL;
+	if(tmpAtm!=NULL&&tmpAtm->type==FKL_SYM&&!strcmp(tmpAtm->value.str,"flsym")&&second->type==FKL_STR)
+		return 1;
+	return 0;
 }

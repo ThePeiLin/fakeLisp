@@ -455,7 +455,7 @@ int fklResBp(FklVMstack* stack)
 	return 0;
 }
 
-void fklPrincVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
+static void princVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 {
 	int access=!h;
 	CRL* head=NULL;
@@ -528,12 +528,12 @@ void fklPrincVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 							if(IS_PAIR(tmpValue)&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
 								fprintf(fp,"#%d#",CRLcount);
 							else
-								fklPrincVMvalue(tmpValue,fp,h);
+								princVMvalue(tmpValue,fp,h);
 							tmpValue=fklGetVMpairCdr(objValue);
 							if(tmpValue!=VM_NIL&&!IS_PAIR(tmpValue))
 							{
 								putc(',',fp);
-								fklPrincVMvalue(tmpValue,fp,h);
+								princVMvalue(tmpValue,fp,h);
 							}
 							else if(IS_PAIR(tmpValue)&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
 							{
@@ -594,7 +594,13 @@ void fklPrincVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 	}
 }
 
-void fklPrin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
+
+void fklPrincVMvalue(FklVMvalue* objValue,FILE* fp)
+{
+	princVMvalue(objValue,fp,NULL);
+}
+
+static void prin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 {
 	int access=!h;
 	CRL* head=NULL;
@@ -668,12 +674,12 @@ void fklPrin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 							if(IS_PAIR(tmpValue)&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
 								fprintf(fp,"#%d#",CRLcount);
 							else
-								fklPrin1VMvalue(tmpValue,fp,h);
+								prin1VMvalue(tmpValue,fp,h);
 							tmpValue=fklGetVMpairCdr(objValue);
 							if(tmpValue!=VM_NIL&&!IS_PAIR(tmpValue))
 							{
 								putc(',',fp);
-								fklPrin1VMvalue(tmpValue,fp,h);
+								prin1VMvalue(tmpValue,fp,h);
 							}
 							else if(IS_PAIR(tmpValue)&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
 							{
@@ -731,6 +737,11 @@ void fklPrin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 			free(prev);
 		}
 	}
+}
+
+void fklPrin1VMvalue(FklVMvalue* objValue,FILE* fp)
+{
+	prin1VMvalue(objValue,fp,NULL);
 }
 
 FklVMvalue* fklGET_VAL(FklVMvalue* P,FklVMheap* heap)

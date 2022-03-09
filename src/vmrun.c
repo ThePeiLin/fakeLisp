@@ -1362,7 +1362,7 @@ void fklDBG_printVMstack(FklVMstack* stack,FILE* fp,int mode)
 			FklVMvalue* tmp=stack->values[i];
 			if(IS_REF(tmp))
 				tmp=*(FklVMvalue**)GET_PTR(tmp);
-			fklPrin1VMvalue(tmp,fp,NULL);
+			fklPrin1VMvalue(tmp,fp);
 			putc('\n',fp);
 		}
 	}
@@ -1370,7 +1370,7 @@ void fklDBG_printVMstack(FklVMstack* stack,FILE* fp,int mode)
 
 void fklDBG_printVMvalue(FklVMvalue* v,FILE* fp)
 {
-	fklPrin1VMvalue(v,fp,NULL);
+	fklPrin1VMvalue(v,fp);
 }
 
 FklVMrunnable* fklHasSameProc(uint32_t scp,FklPtrStack* rstack)
@@ -1417,7 +1417,7 @@ void fklDBG_printVMenv(FklVMenv* curEnv,FILE* fp)
 		for(int i=0;i<curEnv->num;i++)
 		{
 			FklVMvalue* tmp=curEnv->list[i]->value;
-			fklPrin1VMvalue(tmp,fp,NULL);
+			fklPrin1VMvalue(tmp,fp);
 			putc(' ',fp);
 		}
 	}

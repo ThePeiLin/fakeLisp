@@ -3,9 +3,6 @@
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/ast.h>
 #include<fakeLisp/vm.h>
-#include<fakeLisp/vmutils.h>
-#include<fakeLisp/vmrun.h>
-#include<fakeLisp/vmvalue.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/reader.h>
 #include<fakeLisp/mem.h>

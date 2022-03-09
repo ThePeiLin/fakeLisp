@@ -268,9 +268,8 @@ void fklFreeAllSharedObj(void);
 
 FklVMvalue* fklGET_VAL(FklVMvalue* P,FklVMheap*);
 int fklSET_REF(FklVMvalue* P,FklVMvalue* V);
-struct Cirular_Ref_List;
-void fklPrin1VMvalue(FklVMvalue*,FILE*,struct Cirular_Ref_List**);
-void fklPrincVMvalue(FklVMvalue*,FILE*,struct Cirular_Ref_List**);
+void fklPrin1VMvalue(FklVMvalue*,FILE*);
+void fklPrincVMvalue(FklVMvalue*,FILE*);
 
 //
 

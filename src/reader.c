@@ -1,6 +1,5 @@
 #include<fakeLisp/reader.h>
 #include<fakeLisp/utils.h>
-#include<fakeLisp/vmvalue.h>
 #include<string.h>
 #include<stdlib.h>
 #include<ctype.h>

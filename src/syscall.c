@@ -1,10 +1,7 @@
 #include<fakeLisp/reader.h>
 #include<fakeLisp/symbol.h>
 #include<fakeLisp/basicADT.h>
-#include<fakeLisp/vmvalue.h>
-#include<fakeLisp/vmtype.h>
-#include<fakeLisp/vmrun.h>
-#include<fakeLisp/vmutils.h>
+#include<fakeLisp/vm.h>
 #include<fakeLisp/utils.h>
 #include<stdlib.h>
 #include<string.h>
@@ -1215,7 +1212,7 @@ void SYS_prin1(FklVM* exe,pthread_rwlock_t* gclock)
 	if(file&&!IS_FP(file))
 		RAISE_BUILTIN_ERROR("sys.prin1",FKL_WRONGARG,runnable,exe);
 	FILE* objFile=file?file->u.fp:stdout;
-	fklPrin1VMvalue(obj,objFile,NULL);
+	fklPrin1VMvalue(obj,objFile);
 	SET_RETURN("SYS_prin1",obj,stack);
 }
 
@@ -1251,7 +1248,7 @@ void SYS_princ(FklVM* exe,pthread_rwlock_t* gclock)
 	if(file&&!IS_FP(file))
 		RAISE_BUILTIN_ERROR("sys.princ",FKL_WRONGARG,runnable,exe);
 	FILE* objFile=file?file->u.fp:stdout;
-	fklPrincVMvalue(obj,objFile,NULL);
+	fklPrincVMvalue(obj,objFile);
 	SET_RETURN("SYS_princ",obj,stack);
 }
 

@@ -2,7 +2,7 @@
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/syntax.h>
 #include<fakeLisp/utils.h>
-#include<fakeLisp/vmrun.h>
+#include<fakeLisp/vm.h>
 #include<string.h>
 #include<stdio.h>
 #include<stdlib.h>

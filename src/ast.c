@@ -1,9 +1,6 @@
 #include<fakeLisp/ast.h>
 #include<fakeLisp/bytecode.h>
 #include<fakeLisp/vm.h>
-#include<fakeLisp/vmvalue.h>
-#include<fakeLisp/vmrun.h>
-#include<fakeLisp/vmutils.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/compiler.h>
 #include<fakeLisp/reader.h>

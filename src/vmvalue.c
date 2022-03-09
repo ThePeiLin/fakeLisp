@@ -25,7 +25,7 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVMheap* heap)
 	while(!fklIsPtrStackEmpty(s1))
 	{
 		FklVMvalue* root=fklPopPtrStack(s1);
-		FklVMptrTag tag=GET_TAG(root);
+		FklVMptrTag tag=FKL_GET_TAG(root);
 		FklVMvalue** root1=fklPopPtrStack(s2);
 		switch(tag)
 		{
@@ -82,7 +82,7 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVMheap* heap)
 						default:
 							break;
 					}
-					*root1=MAKE_VM_PTR(*root1);
+					*root1=FKL_MAKE_VM_PTR(*root1);
 				}
 				break;
 			default:
@@ -103,13 +103,13 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 			return FKL_VM_NIL;
 			break;
 		case FKL_CHR:
-			return MAKE_VM_CHR(pValue);
+			return FKL_MAKE_VM_CHR(pValue);
 			break;
 		case FKL_I32:
-			return MAKE_VM_I32(pValue);
+			return FKL_MAKE_VM_I32(pValue);
 			break;
 		case FKL_SYM:
-			return MAKE_VM_SYM(pValue);
+			return FKL_MAKE_VM_SYM(pValue);
 			break;
 		default:
 			{
@@ -164,7 +164,7 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 						return NULL;
 						break;
 				}
-				return MAKE_VM_PTR(tmp);
+				return FKL_MAKE_VM_PTR(tmp);
 			}
 			break;
 	}
@@ -203,11 +203,11 @@ int fklVMvaluecmp(FklVMvalue* fir,FklVMvalue* sec)
 	{
 		FklVMvalue* root1=fklPopPtrStack(s1);
 		FklVMvalue* root2=fklPopPtrStack(s2);
-		if(!IS_PTR(root1)&&!IS_PTR(root2)&&root1!=root2)
+		if(!FKL_IS_PTR(root1)&&!FKL_IS_PTR(root2)&&root1!=root2)
 			r=0;
-		else if(GET_TAG(root1)!=GET_TAG(root2))
+		else if(FKL_GET_TAG(root1)!=FKL_GET_TAG(root2))
 			r=0;
-		else if(IS_PTR(root1)&&IS_PTR(root2))
+		else if(FKL_IS_PTR(root1)&&FKL_IS_PTR(root2))
 		{
 			if(root1->type!=root2->type)
 				r=0;
@@ -251,14 +251,14 @@ int subfklVMvaluecmp(FklVMvalue* fir,FklVMvalue* sec)
 
 int fklNumcmp(FklVMvalue* fir,FklVMvalue* sec)
 {
-	if(GET_TAG(fir)==GET_TAG(sec)&&GET_TAG(fir)==FKL_I32_TAG)
+	if(FKL_GET_TAG(fir)==FKL_GET_TAG(sec)&&FKL_GET_TAG(fir)==FKL_I32_TAG)
 		return fir==sec;
 	else
 	{
-		double first=(GET_TAG(fir)==FKL_I32_TAG)?GET_I32(fir)
-			:((IS_I64(fir))?fir->u.i64:fir->u.dbl);
-		double second=(GET_TAG(sec)==FKL_I32_TAG)?GET_I32(sec)
-			:((IS_I64(sec))?sec->u.i64:sec->u.dbl);
+		double first=(FKL_GET_TAG(fir)==FKL_I32_TAG)?FKL_GET_I32(fir)
+			:((FKL_IS_I64(fir))?fir->u.i64:fir->u.dbl);
+		double second=(FKL_GET_TAG(sec)==FKL_I32_TAG)?FKL_GET_I32(sec)
+			:((FKL_IS_I64(sec))?sec->u.i64:sec->u.dbl);
 		return fabs(first-second)==0;
 	}
 }
@@ -491,7 +491,7 @@ FklVMflproc* fklNewVMflproc(FklTypeId_t type,void* func)
 	FKL_ASSERT(tmp,"fklNewVMDlproc",__FILE__,__LINE__);
 	tmp->type=type;
 	tmp->func=func;
-	FklDefFuncType* ft=(FklDefFuncType*)GET_TYPES_PTR(fklGetVMTypeUnion(type).all);
+	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklGetVMTypeUnion(type).all);
 	uint32_t anum=ft->anum;
 	FklTypeId_t* atypes=ft->atypes;
 	ffi_type** ffiAtypes=(ffi_type**)malloc(sizeof(ffi_type*)*anum);
@@ -579,7 +579,7 @@ void fklChanlRecv(FklVMrecv* r,FklVMchanl* ch)
 		fklPushPtrQueue(r,ch->recvq);
 		pthread_cond_wait(&r->cond,&ch->lock);
 	}
-	SET_RETURN("fklChanlRecv",fklPopPtrQueue(ch->messages),r->v->stack);
+	FKL_SET_RETURN("fklChanlRecv",fklPopPtrQueue(ch->messages),r->v->stack);
 	if(fklLengthPtrQueue(ch->messages)<ch->max)
 	{
 		FklVMsend* s=fklPopPtrQueue(ch->sendq);
@@ -782,13 +782,13 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 			switch(tmpAtm->type)
 			{
 				case FKL_I32:
-					*root1=MAKE_VM_I32(tmpAtm->value.i32);
+					*root1=FKL_MAKE_VM_I32(tmpAtm->value.i32);
 					break;
 				case FKL_CHR:
-					*root1=MAKE_VM_CHR(tmpAtm->value.chr);
+					*root1=FKL_MAKE_VM_CHR(tmpAtm->value.chr);
 					break;
 				case FKL_SYM:
-					*root1=MAKE_VM_SYM(fklAddSymbolToGlob(tmpAtm->value.str)->id);
+					*root1=FKL_MAKE_VM_SYM(fklAddSymbolToGlob(tmpAtm->value.str)->id);
 					break;
 				case FKL_DBL:
 					*root1=fklNewVMvalue(FKL_DBL,&tmpAtm->value.dbl,heap);
@@ -813,7 +813,7 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 			fklPushPtrStack(&objPair->cdr,s1);
 			fklPushPtrStack(&tmpPair->car,s2);
 			fklPushPtrStack(&tmpPair->cdr,s2);
-			*root1=MAKE_VM_PTR(*root1);
+			*root1=FKL_MAKE_VM_PTR(*root1);
 		}
 	}
 	fklFreePtrStack(s1);

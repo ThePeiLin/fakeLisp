@@ -38,7 +38,7 @@ pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
 
 /*void ptr to FklVMvalue caster*/
 #define ARGL uintptr_t p,FklVMheap* heap
-#define CAST_TO_I32 return MAKE_VM_I32(p);
+#define CAST_TO_I32 return FKL_MAKE_VM_I32(p);
 #define CAST_TO_I64 return fklNewVMvalue(FKL_I64,&p,heap);
 FklVMvalue* castShortVp    (ARGL){CAST_TO_I32}
 FklVMvalue* castIntVp      (ARGL){CAST_TO_I32}
@@ -51,7 +51,7 @@ FklVMvalue* castULLongVp   (ARGL){CAST_TO_I64}
 FklVMvalue* castPtrdiff_tVp(ARGL){CAST_TO_I64}
 FklVMvalue* castSize_tVp   (ARGL){CAST_TO_I64}
 FklVMvalue* castSsize_tVp  (ARGL){CAST_TO_I64}
-FklVMvalue* castCharVp     (ARGL){return MAKE_VM_CHR(p);}
+FklVMvalue* castCharVp     (ARGL){return FKL_MAKE_VM_CHR(p);}
 FklVMvalue* castWchar_tVp  (ARGL){CAST_TO_I32}
 FklVMvalue* castFloatVp    (ARGL){return fklNewVMvalue(FKL_DBL,&p,heap);}
 FklVMvalue* castDoubleVp   (ARGL){return fklNewVMvalue(FKL_DBL,&p,heap);}
@@ -130,7 +130,7 @@ void invokeFlproc(FklVM* exe,FklVMflproc* flproc)
 	FklTypeId_t type=flproc->type;
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* curR=fklTopPtrStack(exe->rstack);
-	FklDefFuncType* ft=(FklDefFuncType*)GET_TYPES_PTR(fklGetVMTypeUnion(type).all);
+	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklGetVMTypeUnion(type).all);
 	uint32_t anum=ft->anum;
 	FklTypeId_t* atypes=ft->atypes;
 	uint32_t i=0;
@@ -143,16 +143,16 @@ void invokeFlproc(FklVM* exe,FklVMflproc* flproc)
 		if(v==NULL)
 		{
 			free(args);
-			RAISE_BUILTIN_ERROR("flproc",FKL_TOOFEWARG,curR,exe);
+			FKL_RAISE_BUILTIN_ERROR("flproc",FKL_TOOFEWARG,curR,exe);
 		}
-		if(IS_REF(v))
+		if(FKL_IS_REF(v))
 			v=*(FklVMvalue**)v;
 		args[i]=v;
 	}
 	if(fklResBp(stack))
 	{
 		free(args);
-		RAISE_BUILTIN_ERROR("flproc",FKL_TOOMANYARG,curR,exe);
+		FKL_RAISE_BUILTIN_ERROR("flproc",FKL_TOOMANYARG,curR,exe);
 	}
 	void** pArgs=(void**)malloc(sizeof(void*)*anum);
 	FKL_ASSERT(pArgs,"invokeFlproc",__FILE__,__LINE__);
@@ -161,22 +161,22 @@ void invokeFlproc(FklVM* exe,FklVMflproc* flproc)
 		{
 			free(args);
 			free(pArgs);
-			RAISE_BUILTIN_ERROR("flproc",FKL_WRONGARG,curR,exe);
+			FKL_RAISE_BUILTIN_ERROR("flproc",FKL_WRONGARG,curR,exe);
 		}
 	uintptr_t retval=0x0;
 	fklApplyFlproc(flproc,&retval,pArgs);
 	if(rtype!=0)
 	{
 		if(rtype==fklGetStringTypeId())
-			SET_RETURN("invokeFlproc",fklNewVMvalue(FKL_STR,(void*)retval,exe->heap),stack);
+			FKL_SET_RETURN("invokeFlproc",fklNewVMvalue(FKL_STR,(void*)retval,exe->heap),stack);
 		else if(fklIsFunctionTypeId(rtype))
-			SET_RETURN("invokeFlproc",fklNewVMvalue(FKL_FLPROC,fklNewVMflproc(rtype,(void*)retval),exe->heap),stack);
+			FKL_SET_RETURN("invokeFlproc",fklNewVMvalue(FKL_FLPROC,fklNewVMflproc(rtype,(void*)retval),exe->heap),stack);
 		else if(rtype==fklGetFILEpTypeId())
-			SET_RETURN("invokeFlproc",fklNewVMvalue(FKL_FP,(void*)retval,exe->heap),stack);
+			FKL_SET_RETURN("invokeFlproc",fklNewVMvalue(FKL_FP,(void*)retval,exe->heap),stack);
 		else
 		{
 			FklTypeId_t t=(rtype>fklGetLastNativeTypeId())?fklGetLastNativeTypeId():rtype;
-			SET_RETURN("invokeFlproc",castVptrToVMvalueFunctionsList[t-1](retval,exe->heap),stack);
+			FKL_SET_RETURN("invokeFlproc",castVptrToVMvalueFunctionsList[t-1](retval,exe->heap),stack);
 		}
 	}
 	for(i=0;i<anum;i++)
@@ -671,7 +671,7 @@ void B_push_nil(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	SET_RETURN("B_push_nil",FKL_VM_NIL,stack);
+	FKL_SET_RETURN("B_push_nil",FKL_VM_NIL,stack);
 	runnable->cp+=1;
 }
 
@@ -679,7 +679,7 @@ void B_push_pair(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	SET_RETURN("B_push_pair",fklNewVMvalue(FKL_PAIR,fklNewVMpair(),exe->heap),stack);
+	FKL_SET_RETURN("B_push_pair",fklNewVMvalue(FKL_PAIR,fklNewVMpair(),exe->heap),stack);
 	runnable->cp+=1;
 
 }
@@ -688,7 +688,7 @@ void B_push_i32(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	SET_RETURN("B_push_i32",MAKE_VM_I32(*(int32_t*)(exe->code+runnable->cp+1)),stack);
+	FKL_SET_RETURN("B_push_i32",FKL_MAKE_VM_I32(*(int32_t*)(exe->code+runnable->cp+1)),stack);
 	runnable->cp+=5;
 }
 
@@ -696,7 +696,7 @@ void B_push_i64(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
-	SET_RETURN("B_push_i32",fklNewVMvalue(FKL_I64,exe->code+r->cp+sizeof(char),exe->heap),stack);
+	FKL_SET_RETURN("B_push_i32",fklNewVMvalue(FKL_I64,exe->code+r->cp+sizeof(char),exe->heap),stack);
 	r->cp+=sizeof(char)+sizeof(int64_t);
 }
 
@@ -704,7 +704,7 @@ void B_push_chr(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	SET_RETURN("B_push_chr",MAKE_VM_CHR(*(char*)(exe->code+runnable->cp+1)),stack);
+	FKL_SET_RETURN("B_push_chr",FKL_MAKE_VM_CHR(*(char*)(exe->code+runnable->cp+1)),stack);
 	runnable->cp+=2;
 }
 
@@ -712,7 +712,7 @@ void B_push_dbl(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	SET_RETURN("B_push_dbl",fklNewVMvalue(FKL_DBL,exe->code+runnable->cp+1,exe->heap),stack);
+	FKL_SET_RETURN("B_push_dbl",fklNewVMvalue(FKL_DBL,exe->code+runnable->cp+1,exe->heap),stack);
 	runnable->cp+=9;
 }
 
@@ -721,7 +721,7 @@ void B_push_str(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	int len=strlen((char*)(exe->code+runnable->cp+1));
-	SET_RETURN("B_push_str",fklNewVMvalue(FKL_STR,fklCopyStr((char*)exe->code+runnable->cp+1),exe->heap),stack);
+	FKL_SET_RETURN("B_push_str",fklNewVMvalue(FKL_STR,fklCopyStr((char*)exe->code+runnable->cp+1),exe->heap),stack);
 	runnable->cp+=2+len;
 }
 
@@ -729,7 +729,7 @@ void B_push_sym(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	SET_RETURN("B_push_sym",MAKE_VM_SYM(*(FklSid_t*)(exe->code+runnable->cp+1)),stack);
+	FKL_SET_RETURN("B_push_sym",FKL_MAKE_VM_SYM(*(FklSid_t*)(exe->code+runnable->cp+1)),stack);
 	runnable->cp+=5;
 }
 
@@ -738,7 +738,7 @@ void B_push_byte(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	int32_t size=*(int32_t*)(exe->code+runnable->cp+1);
-	SET_RETURN("B_push_byte",fklNewVMvalue(FKL_BYTS,fklNewVMbyts(*(int32_t*)(exe->code+runnable->cp+1),exe->code+runnable->cp+5),exe->heap),stack);
+	FKL_SET_RETURN("B_push_byte",fklNewVMvalue(FKL_BYTS,fklNewVMbyts(*(int32_t*)(exe->code+runnable->cp+1),exe->code+runnable->cp+5),exe->heap),stack);
 	runnable->cp+=5+size;
 }
 
@@ -755,8 +755,8 @@ void B_push_var(FklVM* exe)
 		curEnv=curEnv->prev;
 	}
 	if(tmp==NULL)
-		RAISE_BUILTIN_ERROR("b.push_var",FKL_SYMUNDEFINE,runnable,exe);
-	SET_RETURN("B_push_var",tmp->value,stack);
+		FKL_RAISE_BUILTIN_ERROR("b.push_var",FKL_SYMUNDEFINE,runnable,exe);
+	FKL_SET_RETURN("B_push_var",tmp->value,stack);
 	runnable->cp+=5;
 }
 
@@ -765,11 +765,11 @@ void B_push_var(FklVM* exe)
 //	FklVMstack* stack=exe->stack;
 //	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 //	FklVMvalue* topValue=fklGET_VAL(fklGetTopValue(stack),exe->heap);
-//	if(!IS_STR(topValue)&&!IS_SYM(topValue))
-//		RAISE_BUILTIN_ERROR("b.push_env_var",FKL_WRONGARG,runnable,exe);
+//	if(!FKL_IS_STR(topValue)&&!FKL_IS_SYM(topValue))
+//		FKL_RAISE_BUILTIN_ERROR("b.push_env_var",FKL_WRONGARG,runnable,exe);
 //	FklSymTabNode* stn=fklAddSymbolToGlob(topValue->u.str);
 //	if(stn==NULL)
-//		RAISE_BUILTIN_ERROR("b.push_env_var",FKL_INVALIDSYMBOL,runnable,exe);
+//		FKL_RAISE_BUILTIN_ERROR("b.push_env_var",FKL_INVALIDSYMBOL,runnable,exe);
 //	FklSid_t idOfVar=stn->id;
 //	FklVMenv* curEnv=runnable->localenv;
 //	FklVMenvNode* tmp=NULL;
@@ -779,7 +779,7 @@ void B_push_var(FklVM* exe)
 //		curEnv=curEnv->prev;
 //	}
 //	if(tmp==NULL)
-//		RAISE_BUILTIN_ERROR("b.push_env_var",FKL_INVALIDSYMBOL,runnable,exe);
+//		FKL_RAISE_BUILTIN_ERROR("b.push_env_var",FKL_INVALIDSYMBOL,runnable,exe);
 //	stack->values[stack->tp-1]=tmp->value;
 //	runnable->cp+=1;
 //}
@@ -789,8 +789,8 @@ void B_push_top(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	if(stack->tp==stack->bp)
-		RAISE_BUILTIN_ERROR("b.push_top",FKL_STACKERROR,runnable,exe);
-	SET_RETURN("B_push_top",fklGET_VAL(fklGetTopValue(stack),exe->heap),stack);
+		FKL_RAISE_BUILTIN_ERROR("b.push_top",FKL_STACKERROR,runnable,exe);
+	FKL_SET_RETURN("B_push_top",fklGET_VAL(fklGetTopValue(stack),exe->heap),stack);
 	runnable->cp+=1;
 }
 
@@ -803,7 +803,7 @@ void B_push_proc(FklVM* exe)
 	fklIncreaseVMenvRefcount(runnable->localenv);
 	code->prevEnv=runnable->localenv;
 	FklVMvalue* objValue=fklNewVMvalue(FKL_PRC,code,exe->heap);
-	SET_RETURN("B_push_proc",objValue,stack);
+	FKL_SET_RETURN("B_push_proc",objValue,stack);
 	runnable->cp+=5+sizeOfProc;
 }
 
@@ -815,16 +815,16 @@ void B_push_fproc(FklVM* exe)
 	FklVMheap* heap=exe->heap;
 	FklVMvalue* sym=fklGET_VAL(fklPopVMstack(stack),heap);
 	//FklVMvalue* dll=fklGET_VAL(fklPopVMstack(stack),heap);
-	if((!IS_SYM(sym)&&!IS_STR(sym)))//||(!IS_DLL(dll)))
-		RAISE_BUILTIN_ERROR("b.push_fproc",FKL_WRONGARG,runnable,exe);
-	char* str=IS_SYM(sym)?fklGetGlobSymbolWithId(GET_SYM(sym))->symbol:sym->u.str;
+	if((!FKL_IS_SYM(sym)&&!FKL_IS_STR(sym)))//||(!FKL_IS_DLL(dll)))
+		FKL_RAISE_BUILTIN_ERROR("b.push_fproc",FKL_WRONGARG,runnable,exe);
+	char* str=FKL_IS_SYM(sym)?fklGetGlobSymbolWithId(FKL_GET_SYM(sym))->symbol:sym->u.str;
 	FklSharedObjNode* head=GlobSharedObjs;
 	void* address=NULL;
 	for(;head;head=head->next)
 		address=fklGetAddress(str,head->dll);
 	if(!address)
-		RAISE_BUILTIN_INVALIDSYMBOL_ERROR("b.push_fproc",str,runnable,exe);
-	SET_RETURN("B_push_fproc",fklNewVMvalue(FKL_FLPROC,fklNewVMflproc(type,address),heap),stack);
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR("b.push_fproc",str,runnable,exe);
+	FKL_SET_RETURN("B_push_fproc",fklNewVMvalue(FKL_FLPROC,fklNewVMflproc(type,address),heap),stack);
 	runnable->cp+=5;
 }
 
@@ -837,11 +837,11 @@ void B_push_ptr_ref(FklVM* exe)
 	FklVMvalue* value=fklGetTopValue(stack);
 	FklVMmem* mem=value->u.chf;
 	if(!mem->mem)
-		RAISE_BUILTIN_ERROR("b.push_ptr_ref",FKL_INVALIDACCESS,r,exe);
+		FKL_RAISE_BUILTIN_ERROR("b.push_ptr_ref",FKL_INVALIDACCESS,r,exe);
 	stack->tp-=1;
 	uint8_t* t=mem->mem+offset;
 	FklVMmem* retval=fklNewVMmem(ptrId,(uint8_t*)t);
-	SET_RETURN("B_push_ptr_ref",MAKE_VM_CHF(retval,exe->heap),stack);
+	FKL_SET_RETURN("B_push_ptr_ref",FKL_MAKE_VM_CHF(retval,exe->heap),stack);
 	r->cp+=sizeof(char)+sizeof(ssize_t)+sizeof(FklTypeId_t);
 }
 
@@ -854,11 +854,11 @@ void B_push_def_ref(FklVM* exe)
 	FklVMvalue* value=fklGetTopValue(stack);
 	FklVMmem* mem=value->u.chf;
 	if(!mem->mem)
-		RAISE_BUILTIN_ERROR("b.push_def_ref",FKL_INVALIDACCESS,r,exe);
+		FKL_RAISE_BUILTIN_ERROR("b.push_def_ref",FKL_INVALIDACCESS,r,exe);
 	stack->tp-=1;
 	uint8_t* ptr=mem->mem+offset;
-	FklVMvalue* retval=MAKE_VM_CHF(fklNewVMmem(typeId,ptr),exe->heap);
-	SET_RETURN("B_push_def_ref",retval,stack);
+	FklVMvalue* retval=FKL_MAKE_VM_CHF(fklNewVMmem(typeId,ptr),exe->heap);
+	FKL_SET_RETURN("B_push_def_ref",retval,stack);
 	r->cp+=sizeof(char)+sizeof(ssize_t)+sizeof(FklTypeId_t);
 }
 
@@ -870,16 +870,16 @@ void B_push_ind_ref(FklVM* exe)
 	FklVMvalue* exp=fklGetValue(stack,stack->tp-2);
 	FklTypeId_t type=*(FklTypeId_t*)(exe->code+r->cp+sizeof(char));
 	uint32_t size=*(uint32_t*)(exe->code+r->cp+sizeof(char)+sizeof(FklTypeId_t));
-	if(!IS_MEM(exp)&&!IS_CHF(exp))
-		RAISE_BUILTIN_ERROR("b.push_ind_ref",FKL_WRONGARG,r,exe);
-	if(!IS_I32(index))
-		RAISE_BUILTIN_ERROR("b.push_ind_ref",FKL_WRONGARG,r,exe);
+	if(!FKL_IS_MEM(exp)&&!IS_CHF(exp))
+		FKL_RAISE_BUILTIN_ERROR("b.push_ind_ref",FKL_WRONGARG,r,exe);
+	if(!FKL_IS_I32(index))
+		FKL_RAISE_BUILTIN_ERROR("b.push_ind_ref",FKL_WRONGARG,r,exe);
 	FklVMmem* mem=exp->u.chf;
 	if(!mem->mem)
-		RAISE_BUILTIN_ERROR("b.push_ind_ref",FKL_INVALIDACCESS,r,exe);
+		FKL_RAISE_BUILTIN_ERROR("b.push_ind_ref",FKL_INVALIDACCESS,r,exe);
 	stack->tp-=2;
-	FklVMvalue* retval=MAKE_VM_CHF(fklNewVMmem(type,mem->mem+GET_I32(index)*size),exe->heap);
-	SET_RETURN("B_push_ind_ref",retval,stack);
+	FklVMvalue* retval=FKL_MAKE_VM_CHF(fklNewVMmem(type,mem->mem+FKL_GET_I32(index)*size),exe->heap);
+	FKL_SET_RETURN("B_push_ind_ref",retval,stack);
 	r->cp+=sizeof(char)+sizeof(FklTypeId_t)+sizeof(uint32_t);
 }
 
@@ -891,14 +891,14 @@ void B_push_ref(FklVM* exe)
 	FklVMvalue* exp=fklGetTopValue(stack);
 	ssize_t offset=*(ssize_t*)(exe->code+r->cp+sizeof(char));
 	FklTypeId_t type=*(FklTypeId_t*)(exe->code+r->cp+sizeof(char)+sizeof(ssize_t));
-	if(!IS_MEM(exp)&&!IS_CHF(exp))
-		RAISE_BUILTIN_ERROR("b.push_ref",FKL_WRONGARG,r,exe);
+	if(!FKL_IS_MEM(exp)&&!IS_CHF(exp))
+		FKL_RAISE_BUILTIN_ERROR("b.push_ref",FKL_WRONGARG,r,exe);
 	FklVMmem* mem=exp->u.chf;
 	if(!mem->mem)
-		RAISE_BUILTIN_ERROR("b.push_ref",FKL_INVALIDACCESS,r,exe);
+		FKL_RAISE_BUILTIN_ERROR("b.push_ref",FKL_INVALIDACCESS,r,exe);
 	stack->tp-=1;
 	FklVMmem* retval=fklNewVMmem(type,mem->mem+offset);
-	SET_RETURN("B_push_ref",MAKE_VM_CHF(retval,exe->heap),stack);
+	FKL_SET_RETURN("B_push_ref",FKL_MAKE_VM_CHF(retval,exe->heap),stack);
 	r->cp+=sizeof(char)+sizeof(ssize_t)+sizeof(FklTypeId_t);
 }
 
@@ -917,7 +917,7 @@ void B_pop_var(FklVM* exe)
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMheap* heap=exe->heap;
 	if(!(stack->tp>stack->bp))
-		RAISE_BUILTIN_ERROR("b.pop_var",FKL_STACKERROR,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("b.pop_var",FKL_STACKERROR,runnable,exe);
 	int32_t scopeOfVar=*(int32_t*)(exe->code+runnable->cp+1);
 	FklSid_t idOfVar=*(FklSid_t*)(exe->code+runnable->cp+5);
 	FklVMenv* curEnv=runnable->localenv;
@@ -941,16 +941,16 @@ void B_pop_var(FklVM* exe)
 			curEnv=curEnv->prev;
 		}
 		if(tmp==NULL)
-			RAISE_BUILTIN_ERROR("b.pop_var",FKL_SYMUNDEFINE,runnable,exe);
+			FKL_RAISE_BUILTIN_ERROR("b.pop_var",FKL_SYMUNDEFINE,runnable,exe);
 		pValue=&tmp->value;
 	}
 	FklVMvalue* topValue=fklGET_VAL(fklGetTopValue(stack),heap);
 	*pValue=fklGET_VAL(topValue,heap);
-	if(IS_PRC(*pValue)&&(*pValue)->u.prc->sid==0)
+	if(FKL_IS_PRC(*pValue)&&(*pValue)->u.prc->sid==0)
 		(*pValue)->u.prc->sid=idOfVar;
-	if(IS_DLPROC(*pValue)&&(*pValue)->u.dlproc->sid==0)
+	if(FKL_IS_DLPROC(*pValue)&&(*pValue)->u.dlproc->sid==0)
 		(*pValue)->u.dlproc->sid=idOfVar;
-	if(IS_FLPROC(*pValue)&&(*pValue)->u.flproc->sid==0)
+	if(FKL_IS_FLPROC(*pValue)&&(*pValue)->u.flproc->sid==0)
 		(*pValue)->u.flproc->sid=idOfVar;
 	stack->tp-=1;
 	fklStackRecycle(exe);
@@ -963,7 +963,7 @@ void B_pop_arg(FklVM* exe)
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMheap* heap=exe->heap;
 	if(!(stack->tp>stack->bp))
-		RAISE_BUILTIN_ERROR("b.pop_arg",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("b.pop_arg",FKL_TOOFEWARG,runnable,exe);
 	int32_t idOfVar=*(int32_t*)(exe->code+runnable->cp+1);
 	FklVMenv* curEnv=runnable->localenv;
 	FklVMvalue** pValue=NULL;
@@ -1019,8 +1019,8 @@ void B_pop_car(FklVM* exe)
 	FklVMheap* heap=exe->heap;
 	FklVMvalue* topValue=fklGET_VAL(fklGetTopValue(stack),heap);
 	FklVMvalue* objValue=fklGET_VAL(fklGetValue(stack,stack->tp-2),heap);
-	if(!IS_PAIR(objValue))
-		RAISE_BUILTIN_ERROR("b.pop_car",FKL_WRONGARG,runnable,exe);
+	if(!FKL_IS_PAIR(objValue))
+		FKL_RAISE_BUILTIN_ERROR("b.pop_car",FKL_WRONGARG,runnable,exe);
 	objValue->u.pair->car=fklGET_VAL(topValue,heap);
 	stack->tp-=1;
 	fklStackRecycle(exe);
@@ -1034,8 +1034,8 @@ void B_pop_cdr(FklVM* exe)
 	FklVMheap* heap=exe->heap;
 	FklVMvalue* topValue=fklGET_VAL(fklGetTopValue(stack),heap);
 	FklVMvalue* objValue=fklGET_VAL(fklGetValue(stack,stack->tp-2),heap);
-	if(!IS_PAIR(objValue))
-		RAISE_BUILTIN_ERROR("b.pop_cdr",FKL_WRONGARG,runnable,exe);
+	if(!FKL_IS_PAIR(objValue))
+		FKL_RAISE_BUILTIN_ERROR("b.pop_cdr",FKL_WRONGARG,runnable,exe);
 	objValue->u.pair->cdr=fklGET_VAL(topValue,heap);
 	stack->tp-=1;
 	fklStackRecycle(exe);
@@ -1048,10 +1048,10 @@ void B_pop_ref(FklVM* exe)
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMvalue* val=fklGET_VAL(fklGetTopValue(stack),exe->heap);
 	FklVMvalue* ref=fklGetValue(stack,stack->tp-2);
-	if(!IS_REF(ref)&&!IS_CHF(ref)&&!IS_MEM(ref))
-		RAISE_BUILTIN_ERROR("b.pop_ref",FKL_WRONGARG,runnable,exe);
+	if(!FKL_IS_REF(ref)&&!IS_CHF(ref)&&!FKL_IS_MEM(ref))
+		FKL_RAISE_BUILTIN_ERROR("b.pop_ref",FKL_WRONGARG,runnable,exe);
 	if(fklSET_REF(ref,val))
-		RAISE_BUILTIN_ERROR("b.pop_ref",FKL_INVALIDASSIGN,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("b.pop_ref",FKL_INVALIDASSIGN,runnable,exe);
 	stack->tp-=1;
 	stack->values[stack->tp-1]=val;
 	fklStackRecycle(exe);
@@ -1063,8 +1063,8 @@ void B_pop_ref(FklVM* exe)
 //	FklVMstack* stack=exe->stack;
 //	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 //	FklVMvalue* topValue=fklGET_VAL(fklGetTopValue(stack),exe->heap);
-//	if(!IS_PRC(topValue))
-//		RAISE_BUILTIN_ERROR("b.pop_env",FKL_WRONGARG,runnable,exe);
+//	if(!FKL_IS_PRC(topValue))
+//		FKL_RAISE_BUILTIN_ERROR("b.pop_env",FKL_WRONGARG,runnable,exe);
 //	FklVMenv** ppEnv=&topValue->u.prc->prevEnv;
 //	FklVMenv* tmpEnv=*ppEnv;
 //	int32_t i=0;
@@ -1081,7 +1081,7 @@ void B_pop_ref(FklVM* exe)
 //		fklFreeVMenv(tmpEnv);
 //	}
 //	else
-//		RAISE_BUILTIN_ERROR("b.pop_env",FKL_STACKERROR,runnable,exe);
+//		FKL_RAISE_BUILTIN_ERROR("b.pop_env",FKL_STACKERROR,runnable,exe);
 //	runnable->cp+=5;
 //}
 //
@@ -1091,7 +1091,7 @@ void B_pop_ref(FklVM* exe)
 //	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 //	FklVMheap* heap=exe->heap;
 //	if(stack->tp<2)
-//		RAISE_BUILTIN_ERROR("b.swap",FKL_TOOFEWARG,runnable,exe);
+//		FKL_RAISE_BUILTIN_ERROR("b.swap",FKL_TOOFEWARG,runnable,exe);
 //	FklVMvalue* topValue=fklGET_VAL(fklGetTopValue(stack),heap);
 //	FklVMvalue* otherValue=fklGET_VAL(fklGetValue(stack,stack->tp-2),heap);
 //	stack->values[stack->tp-1]=fklGET_VAL(otherValue,heap);
@@ -1118,7 +1118,7 @@ void B_set_bp(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	SET_RETURN("B_set_bp",MAKE_VM_I32(stack->bp),stack);
+	FKL_SET_RETURN("B_set_bp",FKL_MAKE_VM_I32(stack->bp),stack);
 	stack->bp=stack->tp;
 	runnable->cp+=1;
 }
@@ -1150,9 +1150,9 @@ void B_res_bp(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	if(stack->tp>stack->bp)
-		RAISE_BUILTIN_ERROR("b.res_bp",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("b.res_bp",FKL_TOOMANYARG,runnable,exe);
 	FklVMvalue* prevBp=fklGetTopValue(stack);
-	stack->bp=GET_I32(prevBp);
+	stack->bp=FKL_GET_I32(prevBp);
 	stack->tp-=1;
 	fklStackRecycle(exe);
 	runnable->cp+=1;
@@ -1163,8 +1163,8 @@ void B_invoke(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMvalue* tmpValue=fklGET_VAL(fklGetTopValue(stack),exe->heap);
-	if(!IS_PTR(tmpValue)||(tmpValue->type!=FKL_PRC&&tmpValue->type!=FKL_CONT&&tmpValue->type!=FKL_DLPROC&&tmpValue->type!=FKL_FLPROC))
-		RAISE_BUILTIN_ERROR("b.invoke",FKL_INVOKEERROR,runnable,exe);
+	if(!FKL_IS_PTR(tmpValue)||(tmpValue->type!=FKL_PRC&&tmpValue->type!=FKL_CONT&&tmpValue->type!=FKL_DLPROC&&tmpValue->type!=FKL_FLPROC))
+		FKL_RAISE_BUILTIN_ERROR("b.invoke",FKL_INVOKEERROR,runnable,exe);
 	stack->tp-=1;
 	fklStackRecycle(exe);
 	runnable->cp+=1;
@@ -1228,12 +1228,12 @@ void B_append(FklVM* exe)
 	FklVMheap* heap=exe->heap;
 	FklVMvalue* fir=fklGET_VAL(fklGetTopValue(stack),heap);
 	FklVMvalue* sec=fklGET_VAL(fklGetValue(stack,stack->tp-2),heap);
-	if(sec!=FKL_VM_NIL&&!IS_PAIR(sec))
-		RAISE_BUILTIN_ERROR("b.append",FKL_WRONGARG,runnable,exe);
-	if(!IS_PAIR(sec))
-		RAISE_BUILTIN_ERROR("b.append",FKL_WRONGARG,runnable,exe);
+	if(sec!=FKL_VM_NIL&&!FKL_IS_PAIR(sec))
+		FKL_RAISE_BUILTIN_ERROR("b.append",FKL_WRONGARG,runnable,exe);
+	if(!FKL_IS_PAIR(sec))
+		FKL_RAISE_BUILTIN_ERROR("b.append",FKL_WRONGARG,runnable,exe);
 	FklVMvalue** lastpair=&sec;
-	while(IS_PAIR(*lastpair))lastpair=&(*lastpair)->u.pair->cdr;
+	while(FKL_IS_PAIR(*lastpair))lastpair=&(*lastpair)->u.pair->cdr;
 	*lastpair=fir;
 	stack->tp-=1;
 	fklStackRecycle(exe);
@@ -1360,8 +1360,8 @@ void fklDBG_printVMstack(FklVMstack* stack,FILE* fp,int mode)
 				fputs("->",stderr);
 			if(fp!=stdout)fprintf(fp,"%d:",i);
 			FklVMvalue* tmp=stack->values[i];
-			if(IS_REF(tmp))
-				tmp=*(FklVMvalue**)GET_PTR(tmp);
+			if(FKL_IS_REF(tmp))
+				tmp=*(FklVMvalue**)FKL_GET_PTR(tmp);
 			fklPrin1VMvalue(tmp,fp);
 			putc('\n',fp);
 		}
@@ -1455,8 +1455,8 @@ void fklGC_markValue(FklVMvalue* obj)
 	while(!fklIsPtrStackEmpty(stack))
 	{
 		FklVMvalue* root=fklPopPtrStack(stack);
-		root=GET_TAG(root)==FKL_REF_TAG?*((FklVMvalue**)GET_PTR(root)):root;
-		if(GET_TAG(root)==FKL_PTR_TAG&&!root->mark)
+		root=FKL_GET_TAG(root)==FKL_REF_TAG?*((FklVMvalue**)FKL_GET_PTR(root)):root;
+		if(FKL_GET_TAG(root)==FKL_PTR_TAG&&!root->mark)
 		{
 			root->mark=1;
 			if(root->type==FKL_PAIR)
@@ -1550,7 +1550,7 @@ void fklGC_sweep(FklVMheap* heap)
 	FklVMvalue* cur=heap->head;
 	while(cur!=NULL)
 	{
-		if(GET_TAG(cur)==FKL_PTR_TAG&&!cur->mark)
+		if(FKL_GET_TAG(cur)==FKL_PTR_TAG&&!cur->mark)
 		{
 			FklVMvalue* prev=cur;
 			if(cur==heap->head)

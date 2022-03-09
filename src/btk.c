@@ -36,8 +36,8 @@ void FKL_getch(FklVM* exe,pthread_rwlock_t* pGClock)
 {
 	FklVMstack* stack=exe->stack;
 	if(fklResBp(stack))
-		RAISE_BUILTIN_ERROR("btk.getch",FKL_TOOMANYARG,fklTopPtrStack(exe->rstack),exe);
-	SET_RETURN("FKL_getch",MAKE_VM_CHR(getch()),stack);
+		FKL_RAISE_BUILTIN_ERROR("btk.getch",FKL_TOOMANYARG,fklTopPtrStack(exe->rstack),exe);
+	FKL_SET_RETURN("FKL_getch",FKL_MAKE_VM_CHR(getch()),stack);
 }
 
 void FKL_sleep(FklVM* exe,pthread_rwlock_t* pGClock)
@@ -46,13 +46,13 @@ void FKL_sleep(FklVM* exe,pthread_rwlock_t* pGClock)
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
 	FklVMvalue* second=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(!second)
-		RAISE_BUILTIN_ERROR("btk.sleep",FKL_TOOFEWARG,r,exe);
+		FKL_RAISE_BUILTIN_ERROR("btk.sleep",FKL_TOOFEWARG,r,exe);
 	if(fklResBp(stack))
-		RAISE_BUILTIN_ERROR("btk.sleep",FKL_TOOMANYARG,r,exe);
-	if(!IS_I32(second))
-		RAISE_BUILTIN_ERROR("btk.sleep",FKL_WRONGARG,r,exe);
+		FKL_RAISE_BUILTIN_ERROR("btk.sleep",FKL_TOOMANYARG,r,exe);
+	if(!FKL_IS_I32(second))
+		FKL_RAISE_BUILTIN_ERROR("btk.sleep",FKL_WRONGARG,r,exe);
 	fklReleaseSource(pGClock);
-	SET_RETURN("FKL_sleep",MAKE_VM_I32(sleep(GET_I32(second))),stack);
+	FKL_SET_RETURN("FKL_sleep",FKL_MAKE_VM_I32(sleep(FKL_GET_I32(second))),stack);
 	fklLockSource(pGClock);
 	stack->tp+=1;
 }
@@ -63,19 +63,19 @@ void FKL_usleep(FklVM* exe,pthread_rwlock_t* pGClock)
 	FklVMvalue* second=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
 	if(!second)
-		RAISE_BUILTIN_ERROR("btk.usleep",FKL_TOOFEWARG,r,exe);
+		FKL_RAISE_BUILTIN_ERROR("btk.usleep",FKL_TOOFEWARG,r,exe);
 	if(fklResBp(stack))
-		RAISE_BUILTIN_ERROR("btk.usleep",FKL_TOOMANYARG,r,exe);
-	if(!IS_I32(second))
-		RAISE_BUILTIN_ERROR("btk.usleep",FKL_WRONGARG,r,exe);
+		FKL_RAISE_BUILTIN_ERROR("btk.usleep",FKL_TOOMANYARG,r,exe);
+	if(!FKL_IS_I32(second))
+		FKL_RAISE_BUILTIN_ERROR("btk.usleep",FKL_WRONGARG,r,exe);
 	fklReleaseSource(pGClock);
 #ifdef _WIN32
-		Sleep(GET_I32(second));
+		Sleep(FKL_GET_I32(second));
 #else
-		usleep(GET_I32(second));
+		usleep(FKL_GET_I32(second));
 #endif
 	fklLockSource(pGClock);
-	SET_RETURN("FKL_usleep",second,stack);
+	FKL_SET_RETURN("FKL_usleep",second,stack);
 	stack->tp+=1;
 }
 
@@ -91,17 +91,17 @@ void FKL_rand(FklVM* exe,pthread_rwlock_t* pGClock)
 	FklVMvalue*  lim=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
 	if(fklResBp(stack))
-		RAISE_BUILTIN_ERROR("btk.rand",FKL_TOOMANYARG,r,exe);
-	if(lim&&!IS_I32(lim))
-		RAISE_BUILTIN_ERROR("btk.rand",FKL_WRONGARG,r,exe);
-	SET_RETURN("FKL_rand",MAKE_VM_I32(rand()%((lim==NULL||!IS_I32(lim))?RAND_MAX:GET_I32(lim))),stack);
+		FKL_RAISE_BUILTIN_ERROR("btk.rand",FKL_TOOMANYARG,r,exe);
+	if(lim&&!FKL_IS_I32(lim))
+		FKL_RAISE_BUILTIN_ERROR("btk.rand",FKL_WRONGARG,r,exe);
+	FKL_SET_RETURN("FKL_rand",FKL_MAKE_VM_I32(rand()%((lim==NULL||!FKL_IS_I32(lim))?RAND_MAX:FKL_GET_I32(lim))),stack);
 }
 
 void FKL_getTime(FklVM* exe,pthread_rwlock_t* pGClock)
 {
 	FklVMstack* stack=exe->stack;
 	if(fklResBp(stack))
-		RAISE_BUILTIN_ERROR("btk.getTime",FKL_TOOMANYARG,fklTopPtrStack(exe->rstack),exe);
+		FKL_RAISE_BUILTIN_ERROR("btk.getTime",FKL_TOOMANYARG,fklTopPtrStack(exe->rstack),exe);
 	time_t timer=time(NULL);
 	struct tm* tblock=NULL;
 	tblock=localtime(&timer);
@@ -122,7 +122,7 @@ void FKL_getTime(FklVM* exe,pthread_rwlock_t* pGClock)
 	free(mon);
 	free(year);
 	FklVMvalue* tmpVMvalue=fklNewVMvalue(FKL_STR,trueTime,exe->heap);
-	SET_RETURN("FKL_getTime",tmpVMvalue,stack);
+	FKL_SET_RETURN("FKL_getTime",tmpVMvalue,stack);
 }
 
 void FKL_removeFile(FklVM* exe,pthread_rwlock_t* pGClock)
@@ -131,12 +131,12 @@ void FKL_removeFile(FklVM* exe,pthread_rwlock_t* pGClock)
 	FklVMvalue* name=fklPopVMstack(stack);
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
 	if(!name)
-		RAISE_BUILTIN_ERROR("btk.removeFile",FKL_TOOFEWARG,r,exe);
+		FKL_RAISE_BUILTIN_ERROR("btk.removeFile",FKL_TOOFEWARG,r,exe);
 	if(fklResBp(stack))
-		RAISE_BUILTIN_ERROR("btk.removeFile",FKL_TOOMANYARG,r,exe);
-	if(!IS_STR(name))
-		RAISE_BUILTIN_ERROR("btk.removeFile",FKL_WRONGARG,r,exe);
-	SET_RETURN("FKL_removeFile",MAKE_VM_I32(remove(name->u.str)),stack);
+		FKL_RAISE_BUILTIN_ERROR("btk.removeFile",FKL_TOOMANYARG,r,exe);
+	if(!FKL_IS_STR(name))
+		FKL_RAISE_BUILTIN_ERROR("btk.removeFile",FKL_WRONGARG,r,exe);
+	FKL_SET_RETURN("FKL_removeFile",FKL_MAKE_VM_I32(remove(name->u.str)),stack);
 }
 
 void FKL_setVMChanlBufferSize(FklVM* exe,pthread_rwlock_t* pGClock)
@@ -146,13 +146,13 @@ void FKL_setVMChanlBufferSize(FklVM* exe,pthread_rwlock_t* pGClock)
 	FklVMvalue* size=fklPopVMstack(stack);
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
 	if(fklResBp(stack))
-		RAISE_BUILTIN_ERROR("btk.setVMChanlBufferSize",FKL_TOOMANYARG,r,exe);
+		FKL_RAISE_BUILTIN_ERROR("btk.setVMChanlBufferSize",FKL_TOOMANYARG,r,exe);
 	if(size==NULL||chan==NULL)
-		RAISE_BUILTIN_ERROR("btk.setVMChanlBufferSize",FKL_TOOFEWARG,r,exe);
-	if(!IS_I32(size)||!IS_CHAN(chan))
-		RAISE_BUILTIN_ERROR("btk.setVMChanlBufferSize",FKL_WRONGARG,r,exe);
-	chan->u.chan->max=GET_I32(size);
-	SET_RETURN("FKL_setVMChanlBufferSize",chan,stack);
+		FKL_RAISE_BUILTIN_ERROR("btk.setVMChanlBufferSize",FKL_TOOFEWARG,r,exe);
+	if(!FKL_IS_I32(size)||!FKL_IS_CHAN(chan))
+		FKL_RAISE_BUILTIN_ERROR("btk.setVMChanlBufferSize",FKL_WRONGARG,r,exe);
+	chan->u.chan->max=FKL_GET_I32(size);
+	FKL_SET_RETURN("FKL_setVMChanlBufferSize",chan,stack);
 }
 
 void FKL_isEndOfFile(FklVM* exe,pthread_rwlock_t* pGClock)
@@ -161,12 +161,12 @@ void FKL_isEndOfFile(FklVM* exe,pthread_rwlock_t* pGClock)
 	FklVMvalue* fp=fklPopVMstack(stack);
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
 	if(fklResBp(stack))
-		RAISE_BUILTIN_ERROR("btk.isEndOfFile",FKL_TOOMANYARG,r,exe);
+		FKL_RAISE_BUILTIN_ERROR("btk.isEndOfFile",FKL_TOOMANYARG,r,exe);
 	if(fp==NULL)
-		RAISE_BUILTIN_ERROR("btk.isEndOfFile",FKL_TOOFEWARG,r,exe);
-	if(!IS_FP(fp))
-		RAISE_BUILTIN_ERROR("btk.isEndOfFile",FKL_WRONGARG,r,exe);
-	SET_RETURN("FKL_isEndOfFile",feof(fp->u.fp)
+		FKL_RAISE_BUILTIN_ERROR("btk.isEndOfFile",FKL_TOOFEWARG,r,exe);
+	if(!FKL_IS_FP(fp))
+		FKL_RAISE_BUILTIN_ERROR("btk.isEndOfFile",FKL_WRONGARG,r,exe);
+	FKL_SET_RETURN("FKL_isEndOfFile",feof(fp->u.fp)
 			?FKL_VM_TRUE
 			:FKL_VM_NIL
 			,stack);

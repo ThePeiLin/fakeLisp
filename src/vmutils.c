@@ -50,42 +50,42 @@ static FklVMpair* hasSameVMpair(FklVMpair* begin,FklVMpair* other,CRL* h)
 	if(begin==other)
 		return begin;
 
-	if((IS_PAIR(other->car)&&IS_PAIR(other->car->u.pair->car))&&IS_PAIR(begin->car))
+	if((FKL_IS_PAIR(other->car)&&FKL_IS_PAIR(other->car->u.pair->car))&&FKL_IS_PAIR(begin->car))
 		tmpPair=hasSameVMpair(begin->car->u.pair,other->car->u.pair->car->u.pair,h);
 	if(tmpPair)
 		return tmpPair;
 
-	if((IS_PAIR(other->car)&&IS_PAIR(other->car->u.pair->cdr))&&IS_PAIR(begin->car))
+	if((FKL_IS_PAIR(other->car)&&FKL_IS_PAIR(other->car->u.pair->cdr))&&FKL_IS_PAIR(begin->car))
 		tmpPair=hasSameVMpair(begin->car->u.pair,other->car->u.pair->cdr->u.pair,h);
 	if(tmpPair)
 		return tmpPair;
 
-	if((IS_PAIR(other->car)&&IS_PAIR(other->car->u.pair->car))&&IS_PAIR(begin->cdr))
+	if((FKL_IS_PAIR(other->car)&&FKL_IS_PAIR(other->car->u.pair->car))&&FKL_IS_PAIR(begin->cdr))
 		tmpPair=hasSameVMpair(begin->cdr->u.pair,other->car->u.pair->car->u.pair,h);
 	if(tmpPair)
 		return tmpPair;
 
-	if((IS_PAIR(other->car)&&IS_PAIR(other->car->u.pair->cdr))&&IS_PAIR(begin->cdr))
+	if((FKL_IS_PAIR(other->car)&&FKL_IS_PAIR(other->car->u.pair->cdr))&&FKL_IS_PAIR(begin->cdr))
 		tmpPair=hasSameVMpair(begin->cdr->u.pair,other->car->u.pair->cdr->u.pair,h);
 	if(tmpPair)
 		return tmpPair;
 
-	if((IS_PAIR(other->cdr)&&IS_PAIR(other->cdr->u.pair->car))&&IS_PAIR(begin->car))
+	if((FKL_IS_PAIR(other->cdr)&&FKL_IS_PAIR(other->cdr->u.pair->car))&&FKL_IS_PAIR(begin->car))
 		tmpPair=hasSameVMpair(begin->car->u.pair,other->cdr->u.pair->car->u.pair,h);
 	if(tmpPair)
 		return tmpPair;
 
-	if((IS_PAIR(other->cdr)&&IS_PAIR(other->cdr->u.pair->cdr))&&IS_PAIR(begin->car))
+	if((FKL_IS_PAIR(other->cdr)&&FKL_IS_PAIR(other->cdr->u.pair->cdr))&&FKL_IS_PAIR(begin->car))
 		tmpPair=hasSameVMpair(begin->car->u.pair,other->cdr->u.pair->cdr->u.pair,h);
 	if(tmpPair)
 		return tmpPair;
 
-	if((IS_PAIR(other->cdr)&&IS_PAIR(other->cdr->u.pair->car))&&IS_PAIR(begin->cdr))
+	if((FKL_IS_PAIR(other->cdr)&&FKL_IS_PAIR(other->cdr->u.pair->car))&&FKL_IS_PAIR(begin->cdr))
 		tmpPair=hasSameVMpair(begin->cdr->u.pair,other->cdr->u.pair->car->u.pair,h);
 	if(tmpPair)
 		return tmpPair;
 
-	if((IS_PAIR(other->cdr)&&IS_PAIR(other->cdr->u.pair->cdr))&&IS_PAIR(begin->cdr))
+	if((FKL_IS_PAIR(other->cdr)&&FKL_IS_PAIR(other->cdr->u.pair->cdr))&&FKL_IS_PAIR(begin->cdr))
 		tmpPair=hasSameVMpair(begin->cdr->u.pair,other->cdr->u.pair->cdr->u.pair,h);
 	if(tmpPair)
 		return tmpPair;
@@ -95,11 +95,11 @@ static FklVMpair* hasSameVMpair(FklVMpair* begin,FklVMpair* other,CRL* h)
 FklVMpair* isCircularReference(FklVMpair* begin,CRL* h)
 {
 	FklVMpair* tmpPair=NULL;
-	if(IS_PAIR(begin->car))
+	if(FKL_IS_PAIR(begin->car))
 		tmpPair=hasSameVMpair(begin,begin->car->u.pair,h);
 	if(tmpPair)
 		return tmpPair;
-	if(IS_PAIR(begin->cdr))
+	if(FKL_IS_PAIR(begin->cdr))
 		tmpPair=hasSameVMpair(begin,begin->cdr->u.pair,h);
 	if(tmpPair)
 		return tmpPair;
@@ -110,9 +110,9 @@ int8_t isInTheCircle(FklVMpair* obj,FklVMpair* begin,FklVMpair* curPair)
 {
 	if(obj==curPair)
 		return 1;
-	if((IS_PAIR(curPair->car)&&begin==curPair->car->u.pair)||(IS_PAIR(curPair->cdr)&&begin==curPair->cdr->u.pair))
+	if((FKL_IS_PAIR(curPair->car)&&begin==curPair->car->u.pair)||(FKL_IS_PAIR(curPair->cdr)&&begin==curPair->cdr->u.pair))
 		return 0;
-	return ((IS_PAIR(curPair->car))&&isInTheCircle(obj,begin,curPair->car->u.pair))||((IS_PAIR(curPair->cdr))&&isInTheCircle(obj,begin,curPair->cdr->u.pair));
+	return ((FKL_IS_PAIR(curPair->car))&&isInTheCircle(obj,begin,curPair->car->u.pair))||((FKL_IS_PAIR(curPair->cdr))&&isInTheCircle(obj,begin,curPair->cdr->u.pair));
 }
 
 uint8_t* fklCopyArry(size_t size,uint8_t* str)
@@ -450,7 +450,7 @@ int fklResBp(FklVMstack* stack)
 	if(stack->tp>stack->bp)
 		return FKL_TOOMANYARG;
 	FklVMvalue* prevBp=fklGetTopValue(stack);
-	stack->bp=GET_I32(prevBp);
+	stack->bp=FKL_GET_I32(prevBp);
 	stack->tp-=1;
 	return 0;
 }
@@ -463,20 +463,20 @@ static void princVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 	FklVMpair* cirPair=NULL;
 	int32_t CRLcount=-1;
 	int8_t isInCir=0;
-	FklVMptrTag tag=GET_TAG(objValue);
+	FklVMptrTag tag=FKL_GET_TAG(objValue);
 	switch(tag)
 	{
 		case FKL_NIL_TAG:
 			fprintf(fp,"()");
 			break;
 		case FKL_I32_TAG:
-			fprintf(fp,"%d",GET_I32(objValue));
+			fprintf(fp,"%d",FKL_GET_I32(objValue));
 			break;
 		case FKL_CHR_TAG:
-			putc(GET_CHR(objValue),fp);
+			putc(FKL_GET_CHR(objValue),fp);
 			break;
 		case FKL_SYM_TAG:
-			fprintf(fp,"%s",fklGetGlobSymbolWithId(GET_SYM(objValue))->symbol);
+			fprintf(fp,"%s",fklGetGlobSymbolWithId(FKL_GET_SYM(objValue))->symbol);
 			break;
 		case FKL_PTR_TAG:
 			{
@@ -522,20 +522,20 @@ static void princVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 						}
 						else
 							putc('(',fp);
-						for(;IS_PAIR(objValue);objValue=fklGetVMpairCdr(objValue))
+						for(;FKL_IS_PAIR(objValue);objValue=fklGetVMpairCdr(objValue))
 						{
 							FklVMvalue* tmpValue=fklGetVMpairCar(objValue);
-							if(IS_PAIR(tmpValue)&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
+							if(FKL_IS_PAIR(tmpValue)&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
 								fprintf(fp,"#%d#",CRLcount);
 							else
 								princVMvalue(tmpValue,fp,h);
 							tmpValue=fklGetVMpairCdr(objValue);
-							if(tmpValue!=FKL_VM_NIL&&!IS_PAIR(tmpValue))
+							if(tmpValue!=FKL_VM_NIL&&!FKL_IS_PAIR(tmpValue))
 							{
 								putc(',',fp);
 								princVMvalue(tmpValue,fp,h);
 							}
-							else if(IS_PAIR(tmpValue)&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
+							else if(FKL_IS_PAIR(tmpValue)&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
 							{
 								fprintf(fp,",#%d#",CRLcount);
 								break;
@@ -608,20 +608,20 @@ static void prin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 	FklVMpair* cirPair=NULL;
 	int8_t isInCir=0;
 	int32_t CRLcount=-1;
-	FklVMptrTag tag=GET_TAG(objValue);
+	FklVMptrTag tag=FKL_GET_TAG(objValue);
 	switch(tag)
 	{
 		case FKL_NIL_TAG:
 			fprintf(fp,"()");
 			break;
 		case FKL_I32_TAG:
-			fprintf(fp,"%d",GET_I32(objValue));
+			fprintf(fp,"%d",FKL_GET_I32(objValue));
 			break;
 		case FKL_CHR_TAG:
-			fklPrintRawChar(GET_CHR(objValue),fp);
+			fklPrintRawChar(FKL_GET_CHR(objValue),fp);
 			break;
 		case FKL_SYM_TAG:
-			fprintf(fp,"%s",fklGetGlobSymbolWithId(GET_SYM(objValue))->symbol);
+			fprintf(fp,"%s",fklGetGlobSymbolWithId(FKL_GET_SYM(objValue))->symbol);
 			break;
 		case FKL_PTR_TAG:
 			{
@@ -668,20 +668,20 @@ static void prin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 						}
 						else
 							putc('(',fp);
-						for(;IS_PAIR(objValue);objValue=fklGetVMpairCdr(objValue))
+						for(;FKL_IS_PAIR(objValue);objValue=fklGetVMpairCdr(objValue))
 						{
 							FklVMvalue* tmpValue=fklGetVMpairCar(objValue);
-							if(IS_PAIR(tmpValue)&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
+							if(FKL_IS_PAIR(tmpValue)&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
 								fprintf(fp,"#%d#",CRLcount);
 							else
 								prin1VMvalue(tmpValue,fp,h);
 							tmpValue=fklGetVMpairCdr(objValue);
-							if(tmpValue!=FKL_VM_NIL&&!IS_PAIR(tmpValue))
+							if(tmpValue!=FKL_VM_NIL&&!FKL_IS_PAIR(tmpValue))
 							{
 								putc(',',fp);
 								prin1VMvalue(tmpValue,fp,h);
 							}
-							else if(IS_PAIR(tmpValue)&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
+							else if(FKL_IS_PAIR(tmpValue)&&(CRLcount=findCRLcount(tmpValue->u.pair,*h))!=-1)
 							{
 								fprintf(fp,",#%d#",CRLcount);
 								break;
@@ -748,8 +748,8 @@ FklVMvalue* fklGET_VAL(FklVMvalue* P,FklVMheap* heap)
 {
 	if(P)
 	{
-		if(IS_REF(P))
-			return *(FklVMvalue**)(GET_PTR(P));
+		if(FKL_IS_REF(P))
+			return *(FklVMvalue**)(FKL_GET_PTR(P));
 		else if(IS_CHF(P))
 		{
 			FklVMvalue* t=NULL;
@@ -767,24 +767,24 @@ FklVMvalue* fklGET_VAL(FklVMvalue* P,FklVMheap* heap)
 
 int fklSET_REF(FklVMvalue* P,FklVMvalue* V)
 {
-	if(IS_MEM(P)||IS_CHF(P))
+	if(FKL_IS_MEM(P)||IS_CHF(P))
 	{
 		FklVMmem* mem=P->u.chf;
 		if(mem->type<=0)
 			return 1;
 		else if(!fklIsNativeTypeId(mem->type))
 		{
-			if(!IS_I32(V)&&!IS_I64(V))
+			if(!FKL_IS_I32(V)&&!FKL_IS_I64(V))
 				return 1;
-			mem->mem=(uint8_t*)(IS_I32(V)?GET_I32(V):V->u.i64);
+			mem->mem=(uint8_t*)(FKL_IS_I32(V)?FKL_GET_I32(V):V->u.i64);
 		}
 		else if(fklMemorySet(mem->type,mem,V))
 			return 1;
 		return 0;
 	}
-	else if(IS_REF(P))
+	else if(FKL_IS_REF(P))
 	{
-		*(FklVMvalue**)GET_PTR(P)=V;
+		*(FklVMvalue**)FKL_GET_PTR(P)=V;
 		return 0;
 	}
 	else
@@ -891,28 +891,28 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 		FklValueType cptrType=0;
 		if(root==FKL_VM_NIL)
 			cptrType=FKL_NIL;
-		else if(IS_PAIR(root))
+		else if(FKL_IS_PAIR(root))
 			cptrType=FKL_PAIR;
-		else if(!IS_REF(root)&&!IS_CHF(root))
+		else if(!FKL_IS_REF(root)&&!IS_CHF(root))
 			cptrType=FKL_ATM;
 		root1->type=cptrType;
 		if(cptrType==FKL_ATM)
 		{
 			FklAstAtom* tmpAtm=fklNewAtom(FKL_SYM,NULL,root1->outer);
-			FklVMptrTag tag=GET_TAG(root);
+			FklVMptrTag tag=FKL_GET_TAG(root);
 			switch(tag)
 			{
 				case FKL_SYM_TAG:
 					tmpAtm->type=FKL_SYM;
-					tmpAtm->value.str=fklCopyStr(fklGetGlobSymbolWithId(GET_SYM(root))->symbol);
+					tmpAtm->value.str=fklCopyStr(fklGetGlobSymbolWithId(FKL_GET_SYM(root))->symbol);
 					break;
 				case FKL_I32_TAG:
 					tmpAtm->type=FKL_I32;
-					tmpAtm->value.i32=GET_I32(root);
+					tmpAtm->value.i32=FKL_GET_I32(root);
 					break;
 				case FKL_CHR_TAG:
 					tmpAtm->type=FKL_CHR;
-					tmpAtm->value.chr=GET_CHR(root);
+					tmpAtm->value.chr=FKL_GET_CHR(root);
 					break;
 				case FKL_PTR_TAG:
 					{

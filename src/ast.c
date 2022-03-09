@@ -9,7 +9,7 @@
 #include<math.h>
 #include<ctype.h>
 
-#define FREE_ALL_LINE_NUMBER_TABLE(l,s) {int32_t i=0;\
+#define FKL_FREE_ALL_LINE_NUMBER_TABLE(l,s) {int32_t i=0;\
 	for(;i<(s);i++)\
 	fklFreeLineNumTabNode((l)[i]);\
 }
@@ -185,7 +185,7 @@ FklAstCptr* expandReaderMacro(const char* objStr,FklInterpreter* inter,FklString
 			tmpCptr=fklCastVMvalueToCptr(fklGET_VAL(tmpVM->stack->values[0],tmpVM->heap),inter->curline);
 		else
 		{
-			FREE_ALL_LINE_NUMBER_TABLE(t->l,t->ls);
+			FKL_FREE_ALL_LINE_NUMBER_TABLE(t->l,t->ls);
 			fklFreeByteCodelnt(t);
 			free(tmpVM->lnt);
 			fklDeleteCallChain(tmpVM);
@@ -198,7 +198,7 @@ FklAstCptr* expandReaderMacro(const char* objStr,FklInterpreter* inter,FklString
 			free(tmpVM);
 			return NULL;
 		}
-		FREE_ALL_LINE_NUMBER_TABLE(t->l,t->ls);
+		FKL_FREE_ALL_LINE_NUMBER_TABLE(t->l,t->ls);
 		fklFreeByteCodelnt(t);
 		free(tmpVM->lnt);
 		fklFreeVMenv(tmpGlobEnv);

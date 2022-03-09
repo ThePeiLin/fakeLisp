@@ -13,7 +13,7 @@
 #define FKL_PTR_MASK ((intptr_t)0xFFFFFFFFFFFFFFF8)
 #define FKL_TAG_MASK ((intptr_t)0x7)
 
-#define INCREASE_ALL_SCP(l,ls,s) {int32_t i=0;\
+#define FKL_INCREASE_ALL_SCP(l,ls,s) {int32_t i=0;\
 	for(;i<(ls);i++)\
 	(l)[i]->scp+=(s);\
 }
@@ -30,12 +30,12 @@
 	}\
 }
 
-#define FREE_ALL_LINE_NUMBER_TABLE(l,s) {int32_t i=0;\
+#define FKL_FREE_ALL_LINE_NUMBER_TABLE(l,s) {int32_t i=0;\
 	for(;i<(s);i++)\
 	fklFreeLineNumTabNode((l)[i]);\
 }
 
-#define SET_RETURN(fn,v,stack) do{\
+#define FKL_SET_RETURN(fn,v,stack) do{\
 	if((stack)->tp>=(stack)->size)\
 	{\
 		(stack)->values=(FklVMvalue**)realloc((stack)->values,sizeof(FklVMvalue*)*((stack)->size+64));\
@@ -52,7 +52,7 @@
 	(stack)->tp+=1;\
 }while(0)
 
-#define RAISE_BUILTIN_ERROR(WHO,ERRORTYPE,RUNNABLE,EXE) do{\
+#define FKL_RAISE_BUILTIN_ERROR(WHO,ERRORTYPE,RUNNABLE,EXE) do{\
 	char* errorMessage=fklGenErrorMessage((ERRORTYPE),(RUNNABLE),(EXE));\
 	FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerror((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE)->heap);\
 	free(errorMessage);\
@@ -60,7 +60,7 @@
 	return;\
 }while(0)
 
-#define RAISE_BUILTIN_INVALIDSYMBOL_ERROR(WHO,STR,RUNNABLE,EXE) do{\
+#define FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR(WHO,STR,RUNNABLE,EXE) do{\
 	char* errorMessage=fklGenInvalidSymbolErrorMessage((STR),(RUNNABLE),(EXE));\
 	FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerror((WHO),"invalid-symbol",errorMessage),(EXE)->heap);\
 	free(errorMessage);\
@@ -69,51 +69,51 @@
 }while(0)
 
 #define FKL_VM_NIL ((FklVMptr)0x1)
-#define FKL_VM_TRUE (MAKE_VM_I32(1))
+#define FKL_VM_TRUE (FKL_MAKE_VM_I32(1))
 #define FKL_VM_EOF ((FklVMptr)0x7fffffffa)
-#define MAKE_VM_I32(I) ((FklVMptr)((((uintptr_t)(I))<<FKL_UNUSEDBITNUM)|FKL_I32_TAG))
-#define MAKE_VM_CHR(C) ((FklVMptr)((((uintptr_t)(C))<<FKL_UNUSEDBITNUM)|FKL_CHR_TAG))
-#define MAKE_VM_SYM(S) ((FklVMptr)((((uintptr_t)(S))<<FKL_UNUSEDBITNUM)|FKL_SYM_TAG))
-#define MAKE_VM_PTR(P) ((FklVMptr)(((uintptr_t)(P))|FKL_PTR_TAG))
-#define MAKE_VM_REF(P) ((FklVMptr)(((uintptr_t)(P))|FKL_REF_TAG))
-#define MAKE_VM_CHF(P,H) (fklNewVMvalue(FKL_CHF,P,H))
-#define MAKE_VM_MEM(P,H) (fklNewVMvalue(FKL_MEM,P,H))
-#define GET_TAG(P) ((FklVMptrTag)(((uintptr_t)(P))&FKL_TAG_MASK))
-#define GET_PTR(P) ((FklVMptr)(((uintptr_t)(P))&FKL_PTR_MASK))
-#define GET_I32(P) ((int32_t)((uintptr_t)(P)>>FKL_UNUSEDBITNUM))
-#define GET_CHR(P) ((char)((uintptr_t)(P)>>FKL_UNUSEDBITNUM))
-#define GET_SYM(P) ((FklSid_t)((uintptr_t)(P)>>FKL_UNUSEDBITNUM))
-//#define fklSET_REF(p,v) do{FklVMvalue* P=p;FklVMvalue* V=v;if(IS_CHF(P)){VMmemref* pRef=(VMmemref*)GET_PTR(P);setVMmemref(pRef,V);free(pRef);} else *(FklVMvalue**)GET_PTR(P)=(V);}while(0)
-#define IS_PTR(P) (GET_TAG(P)==FKL_PTR_TAG)
-#define IS_PAIR(P) (GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_PAIR)
-#define IS_DBL(P) (GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_DBL)
-#define IS_STR(P) (GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_STR)
-#define IS_BYTS(P) (GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_BYTS)
-#define IS_CHAN(P) (GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_CHAN)
-#define IS_FP(P) (GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_FP)
-#define IS_DLL(P) (GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_DLL)
-#define IS_PRC(P) (GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_PRC)
-#define IS_DLPROC(P) (GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_DLPROC)
-#define IS_FLPROC(P) (GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_FLPROC)
-#define IS_ERR(P) (GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_ERR)
-#define IS_CONT(P) (GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_CONT)
-#define IS_I32(P) (GET_TAG(P)==FKL_I32_TAG)
-#define IS_CHR(P) (GET_TAG(P)==FKL_CHR_TAG)
-#define IS_SYM(P) (GET_TAG(P)==FKL_SYM_TAG)
-#define IS_REF(P) (GET_TAG(P)==FKL_REF_TAG)
-#define IS_CHF(P) (GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_CHF)
-#define IS_MEM(P) (GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_MEM)
-#define IS_I64(P) (GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_I64)
-#define FREE_CHF(P) (free(GET_PTR(P)))
+#define FKL_MAKE_VM_I32(I) ((FklVMptr)((((uintptr_t)(I))<<FKL_UNUSEDBITNUM)|FKL_I32_TAG))
+#define FKL_MAKE_VM_CHR(C) ((FklVMptr)((((uintptr_t)(C))<<FKL_UNUSEDBITNUM)|FKL_CHR_TAG))
+#define FKL_MAKE_VM_SYM(S) ((FklVMptr)((((uintptr_t)(S))<<FKL_UNUSEDBITNUM)|FKL_SYM_TAG))
+#define FKL_MAKE_VM_PTR(P) ((FklVMptr)(((uintptr_t)(P))|FKL_PTR_TAG))
+#define FKL_MAKE_VM_REF(P) ((FklVMptr)(((uintptr_t)(P))|FKL_REF_TAG))
+#define FKL_MAKE_VM_CHF(P,H) (fklNewVMvalue(FKL_CHF,P,H))
+#define FKL_MAKE_VM_MEM(P,H) (fklNewVMvalue(FKL_MEM,P,H))
+#define FKL_GET_TAG(P) ((FklVMptrTag)(((uintptr_t)(P))&FKL_TAG_MASK))
+#define FKL_GET_PTR(P) ((FklVMptr)(((uintptr_t)(P))&FKL_PTR_MASK))
+#define FKL_GET_I32(P) ((int32_t)((uintptr_t)(P)>>FKL_UNUSEDBITNUM))
+#define FKL_GET_CHR(P) ((char)((uintptr_t)(P)>>FKL_UNUSEDBITNUM))
+#define FKL_GET_SYM(P) ((FklSid_t)((uintptr_t)(P)>>FKL_UNUSEDBITNUM))
+//#define fklSET_REF(p,v) do{FklVMvalue* P=p;FklVMvalue* V=v;if(IS_CHF(P)){VMmemref* pRef=(VMmemref*)FKL_GET_PTR(P);setVMmemref(pRef,V);free(pRef);} else *(FklVMvalue**)FKL_GET_PTR(P)=(V);}while(0)
+#define FKL_IS_PTR(P) (FKL_GET_TAG(P)==FKL_PTR_TAG)
+#define FKL_IS_PAIR(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_PAIR)
+#define FKL_IS_DBL(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_DBL)
+#define FKL_IS_STR(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_STR)
+#define FKL_IS_BYTS(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_BYTS)
+#define FKL_IS_CHAN(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_CHAN)
+#define FKL_IS_FP(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_FP)
+#define FKL_IS_DLL(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_DLL)
+#define FKL_IS_PRC(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_PRC)
+#define FKL_IS_DLPROC(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_DLPROC)
+#define FKL_IS_FLPROC(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_FLPROC)
+#define FKL_IS_ERR(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_ERR)
+#define FKL_IS_CONT(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_CONT)
+#define FKL_IS_I32(P) (FKL_GET_TAG(P)==FKL_I32_TAG)
+#define FKL_IS_CHR(P) (FKL_GET_TAG(P)==FKL_CHR_TAG)
+#define FKL_IS_SYM(P) (FKL_GET_TAG(P)==FKL_SYM_TAG)
+#define FKL_IS_REF(P) (FKL_GET_TAG(P)==FKL_REF_TAG)
+#define IS_CHF(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_CHF)
+#define FKL_IS_MEM(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_MEM)
+#define FKL_IS_I64(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_I64)
+#define FKL_FREE_CHF(P) (free(FKL_GET_PTR(P)))
 
-#define MAKE_NATIVE_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_DEF_NATIVE_TYPE_TAG))
-#define MAKE_ARRAY_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_DEF_ARRAY_TYPE_TAG))
-#define MAKE_PTR_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_DEF_PTR_TYPE_TAG))
-#define MAKE_STRUCT_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_DEF_STRUCT_TYPE_TAG))
-#define MAKE_UNION_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_DEF_UNION_TYPE_TAG))
-#define MAKE_FUNC_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_DEF_FUNC_TYPE_TAG))
-#define GET_TYPES_PTR(P) ((void*)(((uintptr_t)(P))&FKL_PTR_MASK))
-#define GET_TYPES_TAG(P) ((FklDefTypeTag)(((uintptr_t)(P))&FKL_TAG_MASK))
+#define FKL_MAKE_NATIVE_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_DEF_NATIVE_TYPE_TAG))
+#define FKL_MAKE_ARRAY_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_DEF_ARRAY_TYPE_TAG))
+#define FKL_MAKE_PTR_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_DEF_PTR_TYPE_TAG))
+#define FKL_MAKE_STRUCT_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_DEF_STRUCT_TYPE_TAG))
+#define FKL_MAKE_UNION_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_DEF_UNION_TYPE_TAG))
+#define FKL_MAKE_FUNC_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_DEF_FUNC_TYPE_TAG))
+#define FKL_GET_TYPES_PTR(P) ((void*)(((uintptr_t)(P))&FKL_PTR_MASK))
+#define FKL_GET_TYPES_TAG(P) ((FklDefTypeTag)(((uintptr_t)(P))&FKL_TAG_MASK))
 
 int fklIsHexNum(const char*);
 int fklIsOctNum(const char*);

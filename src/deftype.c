@@ -20,7 +20,7 @@ static void initVMStructTypeId(FklTypeId_t id,const char* structName,uint32_t nu
 	size_t totalSize=0;
 	for(uint32_t i=0;i<num;totalSize+=fklGetVMTypeSize(fklGetVMTypeUnion(memberTypes[i])),i++);
 	FklDefTypeUnion* pst=&GlobTypeUnionList.ul[id-1];
-	FklDefStructType* ost=(FklDefStructType*)GET_TYPES_PTR(pst->st);
+	FklDefStructType* ost=(FklDefStructType*)FKL_GET_TYPES_PTR(pst->st);
 	ost=(FklDefStructType*)realloc(ost,sizeof(FklDefStructType)+num*sizeof(FklDefStructMember));
 	FKL_ASSERT(ost,"initVMStructTypeId",__FILE__,__LINE__);
 	if(structName)
@@ -34,7 +34,7 @@ static void initVMStructTypeId(FklTypeId_t id,const char* structName,uint32_t nu
 		ost->layout[i].memberSymbol=symbols[i];
 		ost->layout[i].type=memberTypes[i];
 	}
-	pst->st=MAKE_STRUCT_TYPE(ost);
+	pst->st=FKL_MAKE_STRUCT_TYPE(ost);
 }
 
 static void initVMUnionTypeId(FklTypeId_t id,const char* unionName,uint32_t num,FklSid_t* symbols,FklTypeId_t* memberTypes)
@@ -47,7 +47,7 @@ static void initVMUnionTypeId(FklTypeId_t id,const char* unionName,uint32_t num,
 			maxSize=curSize;
 	}
 	FklDefTypeUnion* put=&GlobTypeUnionList.ul[id-1];
-	FklDefUnionType* out=(FklDefUnionType*)GET_TYPES_PTR(put->ut);
+	FklDefUnionType* out=(FklDefUnionType*)FKL_GET_TYPES_PTR(put->ut);
 	out=(FklDefUnionType*)realloc(out,sizeof(FklDefUnionType)+num*sizeof(FklDefStructMember));
 	FKL_ASSERT(out,"initVMUnionTypeId",__FILE__,__LINE__);
 	if(unionName)
@@ -61,7 +61,7 @@ static void initVMUnionTypeId(FklTypeId_t id,const char* unionName,uint32_t num,
 		out->layout[i].memberSymbol=symbols[i];
 		out->layout[i].type=memberTypes[i];
 	}
-	put->ut=MAKE_UNION_TYPE(out);
+	put->ut=FKL_MAKE_UNION_TYPE(out);
 }
 
 static FklTypeId_t addToGlobTypeUnionList(FklDefTypeUnion type)
@@ -142,9 +142,9 @@ static FklTypeId_t genStructTypeId(FklAstCptr* compositeDataHead,FklDefTypes* ot
 		for(;i<num;i++)
 		{
 			FklDefTypeUnion typeUnion=GlobTypeUnionList.ul[i];
-			if(GET_TYPES_TAG(typeUnion.all)==FKL_DEF_STRUCT_TYPE_TAG)
+			if(FKL_GET_TYPES_TAG(typeUnion.all)==FKL_DEF_STRUCT_TYPE_TAG)
 			{
-				FklDefStructType* st=(FklDefStructType*)GET_TYPES_PTR(typeUnion.st);
+				FklDefStructType* st=(FklDefStructType*)FKL_GET_TYPES_PTR(typeUnion.st);
 				if(st->type==fklAddSymbolToGlob(structName)->id)
 				{
 					retval=i+1;
@@ -248,9 +248,9 @@ static FklTypeId_t genUnionTypeId(FklAstCptr* compositeDataHead,FklDefTypes* oth
 		for(;i<num;i++)
 		{
 			FklDefTypeUnion typeUnion=GlobTypeUnionList.ul[i];
-			if(GET_TYPES_TAG(typeUnion.all)==FKL_DEF_UNION_TYPE_TAG)
+			if(FKL_GET_TYPES_TAG(typeUnion.all)==FKL_DEF_UNION_TYPE_TAG)
 			{
-				FklDefUnionType* ut=(FklDefUnionType*)GET_TYPES_PTR(typeUnion.st);
+				FklDefUnionType* ut=(FklDefUnionType*)FKL_GET_TYPES_PTR(typeUnion.st);
 				if(ut->type==fklAddSymbolToGlob(unionName)->id)
 				{
 					retval=i+1;
@@ -342,7 +342,7 @@ static FklTypeId_t genFuncTypeId(FklAstCptr* compositeDataHead,FklDefTypes* othe
 		if(!tmp)
 			return 0;
 		FklDefTypeUnion tu=fklGetVMTypeUnion(tmp);
-		if(GET_TYPES_TAG(tu.all)!=FKL_DEF_NATIVE_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=FKL_DEF_PTR_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=FKL_DEF_ARRAY_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=FKL_DEF_FUNC_TYPE_TAG)
+		if(FKL_GET_TYPES_TAG(tu.all)!=FKL_DEF_NATIVE_TYPE_TAG&&FKL_GET_TYPES_TAG(tu.all)!=FKL_DEF_PTR_TYPE_TAG&&FKL_GET_TYPES_TAG(tu.all)!=FKL_DEF_ARRAY_TYPE_TAG&&FKL_GET_TYPES_TAG(tu.all)!=FKL_DEF_FUNC_TYPE_TAG)
 			return 0;
 		rtype=tmp;
 	}
@@ -360,7 +360,7 @@ static FklTypeId_t genFuncTypeId(FklAstCptr* compositeDataHead,FklDefTypes* othe
 			return 0;
 		}
 		FklDefTypeUnion tu=fklGetVMTypeUnion(tmp);
-		if(GET_TYPES_TAG(tu.all)!=FKL_DEF_NATIVE_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=FKL_DEF_PTR_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=FKL_DEF_ARRAY_TYPE_TAG&&GET_TYPES_TAG(tu.all)!=FKL_DEF_FUNC_TYPE_TAG)
+		if(FKL_GET_TYPES_TAG(tu.all)!=FKL_DEF_NATIVE_TYPE_TAG&&FKL_GET_TYPES_TAG(tu.all)!=FKL_DEF_PTR_TYPE_TAG&&FKL_GET_TYPES_TAG(tu.all)!=FKL_DEF_ARRAY_TYPE_TAG&&FKL_GET_TYPES_TAG(tu.all)!=FKL_DEF_FUNC_TYPE_TAG)
 		{
 			free(atypes);
 			return 0;
@@ -456,7 +456,7 @@ FklTypeId_t fklNewVMNativeType(FklSid_t type,size_t size,size_t align)
 	tmp->type=type;
 	tmp->align=align;
 	tmp->size=size;
-	return addToGlobTypeUnionList((FklDefTypeUnion)MAKE_NATIVE_TYPE(tmp));
+	return addToGlobTypeUnionList((FklDefTypeUnion)FKL_MAKE_NATIVE_TYPE(tmp));
 }
 
 void fklFreeVMNativeType(FklDefNativeType* obj)
@@ -476,8 +476,8 @@ size_t fklGetVMTypeSizeWithTypeId(FklTypeId_t t)
 
 size_t fklGetVMTypeSize(FklDefTypeUnion t)
 {
-	FklDefTypeTag tag=GET_TYPES_TAG(t.all);
-	t.all=GET_TYPES_PTR(t.all);
+	FklDefTypeTag tag=FKL_GET_TYPES_TAG(t.all);
+	t.all=FKL_GET_TYPES_PTR(t.all);
 	switch(tag)
 	{
 		case FKL_DEF_NATIVE_TYPE_TAG:
@@ -506,8 +506,8 @@ size_t fklGetVMTypeSize(FklDefTypeUnion t)
 
 size_t fklGetVMTypeAlign(FklDefTypeUnion t)
 {
-	FklDefTypeTag tag=GET_TYPES_TAG(t.all);
-	t.all=GET_TYPES_PTR(t.all);
+	FklDefTypeTag tag=FKL_GET_TYPES_TAG(t.all);
+	t.all=FKL_GET_TYPES_PTR(t.all);
 	switch(tag)
 	{
 		case FKL_DEF_NATIVE_TYPE_TAG:
@@ -542,9 +542,9 @@ FklTypeId_t fklNewVMArrayType(FklTypeId_t type,size_t num)
 	for(;i<typeNum;i++)
 	{
 		FklDefTypeUnion tmpType=GlobTypeUnionList.ul[i];
-		if(GET_TYPES_TAG(tmpType.all)==FKL_DEF_ARRAY_TYPE_TAG)
+		if(FKL_GET_TYPES_TAG(tmpType.all)==FKL_DEF_ARRAY_TYPE_TAG)
 		{
-			FklDefArrayType* arrayType=(FklDefTypeUnion){.at=GET_TYPES_PTR(tmpType.all)}.at;
+			FklDefArrayType* arrayType=(FklDefTypeUnion){.at=FKL_GET_TYPES_PTR(tmpType.all)}.at;
 			if(arrayType->etype==type&&arrayType->num==num)
 			{
 				id=i+1;
@@ -560,7 +560,7 @@ FklTypeId_t fklNewVMArrayType(FklTypeId_t type,size_t num)
 		tmp->num=num;
 		tmp->totalSize=num*fklGetVMTypeSize(fklGetVMTypeUnion(type));
 		tmp->align=fklGetVMTypeAlign(fklGetVMTypeUnion(type));
-		return addToGlobTypeUnionList((FklDefTypeUnion)MAKE_ARRAY_TYPE(tmp));
+		return addToGlobTypeUnionList((FklDefTypeUnion)FKL_MAKE_ARRAY_TYPE(tmp));
 	}
 	else
 		return id;
@@ -568,7 +568,7 @@ FklTypeId_t fklNewVMArrayType(FklTypeId_t type,size_t num)
 
 void fklFreeVMArrayType(FklDefArrayType* obj)
 {
-	free(GET_TYPES_PTR(obj));
+	free(FKL_GET_TYPES_PTR(obj));
 }
 
 FklTypeId_t fklNewVMPtrType(FklTypeId_t type)
@@ -579,9 +579,9 @@ FklTypeId_t fklNewVMPtrType(FklTypeId_t type)
 	for(;i<typeNum;i++)
 	{
 		FklDefTypeUnion tmpType=GlobTypeUnionList.ul[i];
-		if(GET_TYPES_TAG(tmpType.all)==FKL_DEF_PTR_TYPE_TAG)
+		if(FKL_GET_TYPES_TAG(tmpType.all)==FKL_DEF_PTR_TYPE_TAG)
 		{
-			FklDefPtrType* ptrType=(FklDefTypeUnion){.pt=GET_TYPES_PTR(tmpType.all)}.pt;
+			FklDefPtrType* ptrType=(FklDefTypeUnion){.pt=FKL_GET_TYPES_PTR(tmpType.all)}.pt;
 			if(ptrType->ptype==type)
 			{
 				id=i+1;
@@ -594,14 +594,14 @@ FklTypeId_t fklNewVMPtrType(FklTypeId_t type)
 		FklDefPtrType* tmp=(FklDefPtrType*)malloc(sizeof(FklDefPtrType));
 		FKL_ASSERT(tmp,"fklNewVMPtrType",__FILE__,__LINE__);
 		tmp->ptype=type;
-		return addToGlobTypeUnionList((FklDefTypeUnion)MAKE_PTR_TYPE(tmp));
+		return addToGlobTypeUnionList((FklDefTypeUnion)FKL_MAKE_PTR_TYPE(tmp));
 	}
 	return id;
 }
 
 void fklFreeVMPtrType(FklDefPtrType* obj)
 {
-	free(GET_TYPES_PTR(obj));
+	free(FKL_GET_TYPES_PTR(obj));
 }
 
 FklTypeId_t fklNewVMStructType(const char* structName,uint32_t num,FklSid_t symbols[],FklTypeId_t memberTypes[])
@@ -615,9 +615,9 @@ FklTypeId_t fklNewVMStructType(const char* structName,uint32_t num,FklSid_t symb
 		for(;i<num;i++)
 		{
 			FklDefTypeUnion tmpType=GlobTypeUnionList.ul[i];
-			if(GET_TYPES_TAG(tmpType.all)==FKL_DEF_STRUCT_TYPE_TAG)
+			if(FKL_GET_TYPES_TAG(tmpType.all)==FKL_DEF_STRUCT_TYPE_TAG)
 			{
-				FklDefStructType* structType=(FklDefTypeUnion){.st=GET_TYPES_PTR(tmpType.all)}.st;
+				FklDefStructType* structType=(FklDefTypeUnion){.st=FKL_GET_TYPES_PTR(tmpType.all)}.st;
 				if(structType->type==stype)
 				{
 					id=i+1;
@@ -659,7 +659,7 @@ FklTypeId_t fklNewVMStructType(const char* structName,uint32_t num,FklSid_t symb
 			tmp->layout[i].memberSymbol=symbols[i];
 			tmp->layout[i].type=memberTypes[i];
 		}
-		return addToGlobTypeUnionList((FklDefTypeUnion)MAKE_STRUCT_TYPE(tmp));
+		return addToGlobTypeUnionList((FklDefTypeUnion)FKL_MAKE_STRUCT_TYPE(tmp));
 	}
 	return id;
 }
@@ -691,17 +691,17 @@ FklTypeId_t fklNewVMUnionType(const char* unionName,uint32_t num,FklSid_t symbol
 		tmp->layout[i].memberSymbol=symbols[i];
 		tmp->layout[i].type=memberTypes[i];
 	}
-	return addToGlobTypeUnionList((FklDefTypeUnion)MAKE_UNION_TYPE(tmp));
+	return addToGlobTypeUnionList((FklDefTypeUnion)FKL_MAKE_UNION_TYPE(tmp));
 }
 
 void fklFreeVMUnionType(FklDefUnionType* obj)
 {
-	free(GET_TYPES_PTR(obj));
+	free(FKL_GET_TYPES_PTR(obj));
 }
 
 void fklFreeVMStructType(FklDefStructType* obj)
 {
-	free(GET_TYPES_PTR(obj));
+	free(FKL_GET_TYPES_PTR(obj));
 }
 
 FklTypeId_t fklNewVMFuncType(FklTypeId_t rtype,uint32_t anum,FklTypeId_t atypes[])
@@ -712,9 +712,9 @@ FklTypeId_t fklNewVMFuncType(FklTypeId_t rtype,uint32_t anum,FklTypeId_t atypes[
 	for(;i<typeNum;i++)
 	{
 		FklDefTypeUnion tmpType=GlobTypeUnionList.ul[i];
-		if(GET_TYPES_TAG(tmpType.all)==FKL_DEF_FUNC_TYPE_TAG)
+		if(FKL_GET_TYPES_TAG(tmpType.all)==FKL_DEF_FUNC_TYPE_TAG)
 		{
-			FklDefFuncType* funcType=(FklDefTypeUnion){.ft=GET_TYPES_PTR(tmpType.all)}.ft;
+			FklDefFuncType* funcType=(FklDefTypeUnion){.ft=FKL_GET_TYPES_PTR(tmpType.all)}.ft;
 			if(funcType->rtype==rtype&&funcType->anum==anum&&!memcmp(funcType->atypes,atypes,sizeof(FklTypeId_t)*anum))
 			{
 				id=i+1;
@@ -731,14 +731,14 @@ FklTypeId_t fklNewVMFuncType(FklTypeId_t rtype,uint32_t anum,FklTypeId_t atypes[
 		uint32_t i=0;
 		for(;i<anum;i++)
 			tmp->atypes[i]=atypes[i];
-		return addToGlobTypeUnionList((FklDefTypeUnion)MAKE_FUNC_TYPE(tmp));
+		return addToGlobTypeUnionList((FklDefTypeUnion)FKL_MAKE_FUNC_TYPE(tmp));
 	}
 	return id;
 }
 
 void fklFreeVMFuncType(FklDefFuncType* obj)
 {
-	free(GET_TYPES_PTR(obj));
+	free(FKL_GET_TYPES_PTR(obj));
 }
 
 int fklAddDefTypes(FklDefTypes* otherTypes,FklSid_t typeName,FklTypeId_t type)
@@ -809,7 +809,7 @@ FklDefTypesNode* fklFindDefTypesNode(FklSid_t typeName,FklDefTypes* otherTypes)
 int isNativeType(FklSid_t typeName,FklDefTypes* otherTypes)
 {
 	FklDefTypesNode* typeNode=fklFindDefTypesNode(typeName,otherTypes);
-	return typeNode!=NULL&&GET_TYPES_TAG(fklGetVMTypeUnion(typeNode->type).all)==FKL_DEF_NATIVE_TYPE_TAG;
+	return typeNode!=NULL&&FKL_GET_TYPES_TAG(fklGetVMTypeUnion(typeNode->type).all)==FKL_DEF_NATIVE_TYPE_TAG;
 }
 
 void fklInitNativeDefTypes(FklDefTypes* otherTypes)
@@ -883,8 +883,8 @@ void fklWriteTypeList(FILE* fp)
 	for(;i<num;i++)
 	{
 		FklDefTypeUnion tu=ul[i];
-		FklDefTypeTag tag=GET_TYPES_TAG(tu.all);
-		void* p=(void*)GET_TYPES_PTR(tu.all);
+		FklDefTypeTag tag=FKL_GET_TYPES_TAG(tu.all);
+		void* p=(void*)FKL_GET_TYPES_PTR(tu.all);
 		fwrite(&tag,sizeof(uint8_t),1,fp);
 		switch(tag)
 		{
@@ -956,7 +956,7 @@ void fklLoadTypeList(FILE* fp)
 					FKL_ASSERT(t,"fklLoadTypeList",__FILE__,__LINE__);
 					fread(&t->type,sizeof(t->type),1,fp);
 					fread(&t->size,sizeof(t->size),1,fp);
-					tu.nt=(FklDefNativeType*)MAKE_NATIVE_TYPE(t);
+					tu.nt=(FklDefNativeType*)FKL_MAKE_NATIVE_TYPE(t);
 				}
 				break;
 			case FKL_DEF_ARRAY_TYPE_TAG:
@@ -965,7 +965,7 @@ void fklLoadTypeList(FILE* fp)
 					FKL_ASSERT(t,"fklLoadTypeList",__FILE__,__LINE__);
 					fread(&t->etype,sizeof(t->etype),1,fp);
 					fread(&t->num,sizeof(t->num),1,fp);
-					tu.at=(FklDefArrayType*)MAKE_ARRAY_TYPE(t);
+					tu.at=(FklDefArrayType*)FKL_MAKE_ARRAY_TYPE(t);
 				}
 				break;
 			case FKL_DEF_PTR_TYPE_TAG:
@@ -973,7 +973,7 @@ void fklLoadTypeList(FILE* fp)
 					FklDefPtrType* t=(FklDefPtrType*)malloc(sizeof(FklDefPtrType));
 					FKL_ASSERT(t,"fklLoadTypeList",__FILE__,__LINE__);
 					fread(&t->ptype,sizeof(t->ptype),1,fp);
-					tu.pt=(FklDefPtrType*)MAKE_PTR_TYPE(t);
+					tu.pt=(FklDefPtrType*)FKL_MAKE_PTR_TYPE(t);
 				}
 				break;
 			case FKL_DEF_STRUCT_TYPE_TAG:
@@ -985,7 +985,7 @@ void fklLoadTypeList(FILE* fp)
 					t->num=num;
 					fread(&t->totalSize,sizeof(t->totalSize),1,fp);
 					fread(t->layout,sizeof(FklDefStructMember),num,fp);
-					tu.st=(FklDefStructType*)MAKE_STRUCT_TYPE(t);
+					tu.st=(FklDefStructType*)FKL_MAKE_STRUCT_TYPE(t);
 				}
 				break;
 			case FKL_DEF_UNION_TYPE_TAG:
@@ -997,7 +997,7 @@ void fklLoadTypeList(FILE* fp)
 					t->num=num;
 					fread(&t->maxSize,sizeof(t->maxSize),1,fp);
 					fread(t->layout,sizeof(FklDefStructMember),num,fp);
-					tu.ut=(FklDefUnionType*)MAKE_UNION_TYPE(t);
+					tu.ut=(FklDefUnionType*)FKL_MAKE_UNION_TYPE(t);
 				}
 			case FKL_DEF_FUNC_TYPE_TAG:
 				{
@@ -1030,26 +1030,26 @@ void fklFreeGlobTypeList()
 	for(;i<num;i++)
 	{
 		FklDefTypeUnion tu=ul[i];
-		FklDefTypeTag tag=GET_TYPES_TAG(tu.all);
+		FklDefTypeTag tag=FKL_GET_TYPES_TAG(tu.all);
 		switch(tag)
 		{
 			case FKL_DEF_NATIVE_TYPE_TAG:
-				fklFreeVMNativeType((FklDefNativeType*)GET_TYPES_PTR(tu.all));
+				fklFreeVMNativeType((FklDefNativeType*)FKL_GET_TYPES_PTR(tu.all));
 				break;
 			case FKL_DEF_PTR_TYPE_TAG:
-				fklFreeVMPtrType((FklDefPtrType*)GET_TYPES_PTR(tu.all));
+				fklFreeVMPtrType((FklDefPtrType*)FKL_GET_TYPES_PTR(tu.all));
 				break;
 			case FKL_DEF_ARRAY_TYPE_TAG:
-				fklFreeVMArrayType((FklDefArrayType*)GET_TYPES_PTR(tu.all));
+				fklFreeVMArrayType((FklDefArrayType*)FKL_GET_TYPES_PTR(tu.all));
 				break;
 			case FKL_DEF_STRUCT_TYPE_TAG:
-				fklFreeVMStructType((FklDefStructType*)GET_TYPES_PTR(tu.all));
+				fklFreeVMStructType((FklDefStructType*)FKL_GET_TYPES_PTR(tu.all));
 				break;
 			case FKL_DEF_UNION_TYPE_TAG:
-				fklFreeVMUnionType((FklDefUnionType*)GET_TYPES_PTR(tu.all));
+				fklFreeVMUnionType((FklDefUnionType*)FKL_GET_TYPES_PTR(tu.all));
 				break;
 			case FKL_DEF_FUNC_TYPE_TAG:
-				fklFreeVMFuncType((FklDefFuncType*)GET_TYPES_PTR(tu.all));
+				fklFreeVMFuncType((FklDefFuncType*)FKL_GET_TYPES_PTR(tu.all));
 				break;
 			default:
 				break;
@@ -1062,37 +1062,37 @@ int fklIsNativeTypeId(FklTypeId_t type)
 {
 	return type>0&&type<=LastNativeTypeId;
 	//FklDefTypeUnion tu=fklGetVMTypeUnion(type);
-	//return GET_TYPES_TAG(tu.all)==FKL_DEF_NATIVE_TYPE_TAG;
+	//return FKL_GET_TYPES_TAG(tu.all)==FKL_DEF_NATIVE_TYPE_TAG;
 }
 
 int fklIsArrayTypeId(FklTypeId_t type)
 {
 	FklDefTypeUnion tu=fklGetVMTypeUnion(type);
-	return GET_TYPES_TAG(tu.all)==FKL_DEF_ARRAY_TYPE_TAG;
+	return FKL_GET_TYPES_TAG(tu.all)==FKL_DEF_ARRAY_TYPE_TAG;
 }
 
 int fklIsPtrTypeId(FklTypeId_t type)
 {
 	FklDefTypeUnion tu=fklGetVMTypeUnion(type);
-	return GET_TYPES_TAG(tu.all)==FKL_DEF_PTR_TYPE_TAG;
+	return FKL_GET_TYPES_TAG(tu.all)==FKL_DEF_PTR_TYPE_TAG;
 }
 
 int fklIsStructTypeId(FklTypeId_t type)
 {
 	FklDefTypeUnion tu=fklGetVMTypeUnion(type);
-	return GET_TYPES_TAG(tu.all)==FKL_DEF_STRUCT_TYPE_TAG;
+	return FKL_GET_TYPES_TAG(tu.all)==FKL_DEF_STRUCT_TYPE_TAG;
 }
 
 int fklIsUnionTypeId(FklTypeId_t type)
 {
 	FklDefTypeUnion tu=fklGetVMTypeUnion(type);
-	return GET_TYPES_TAG(tu.all)==FKL_DEF_UNION_TYPE_TAG;
+	return FKL_GET_TYPES_TAG(tu.all)==FKL_DEF_UNION_TYPE_TAG;
 }
 
 int fklIsFunctionTypeId(FklTypeId_t type)
 {
 	FklDefTypeUnion tu=fklGetVMTypeUnion(type);
-	return GET_TYPES_TAG(tu.all)==FKL_DEF_FUNC_TYPE_TAG;
+	return FKL_GET_TYPES_TAG(tu.all)==FKL_DEF_FUNC_TYPE_TAG;
 }
 
 FklTypeId_t fklGetLastNativeTypeId(void)

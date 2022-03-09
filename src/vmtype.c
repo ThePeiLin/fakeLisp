@@ -166,22 +166,22 @@ static double (*castToDoubleFunctionsList[])(ARGL)=
 #define ARGL FklVMvalue* v,void** p
 #define CAST_TO_INT(TYPE) TYPE* t=(TYPE*)malloc(sizeof(TYPE));\
 	FKL_ASSERT(t,"VMvalue_pointer_caster",__FILE__,__LINE__);\
-	if(!IS_MEM(v)&&!IS_CHF(v))\
+	if(!FKL_IS_MEM(v)&&!IS_CHF(v))\
 	{\
-		FklVMptrTag tag=GET_TAG(v);\
+		FklVMptrTag tag=FKL_GET_TAG(v);\
 		switch(tag)\
 		{\
 			case FKL_NIL_TAG:\
 				*t=(TYPE)0x0;\
 				break;\
 			case FKL_I32_TAG:\
-				*t=(TYPE)GET_I32(v);\
+				*t=(TYPE)FKL_GET_I32(v);\
 					break;\
 			case FKL_CHR_TAG:\
-				*t=(TYPE)GET_CHR(v);\
+				*t=(TYPE)FKL_GET_CHR(v);\
 				break;\
 			case FKL_SYM_TAG:\
-				*t=(TYPE)GET_SYM(v);\
+				*t=(TYPE)FKL_GET_SYM(v);\
 				break;\
 			case FKL_PTR_TAG:\
 				{\
@@ -208,11 +208,11 @@ static double (*castToDoubleFunctionsList[])(ARGL)=
 	*p=t;\
 	return 0;
 
-#define CAST_TO_FLOAT(TYPE) if(!IS_I32(v)&&!IS_I64(v)&&!IS_CHR(v)&&!IS_DBL(v)&&!IS_MEM(v)&&!IS_CHF(v))return 1;\
+#define CAST_TO_FLOAT(TYPE) if(!FKL_IS_I32(v)&&!FKL_IS_I64(v)&&!FKL_IS_CHR(v)&&!FKL_IS_DBL(v)&&!FKL_IS_MEM(v)&&!IS_CHF(v))return 1;\
 	TYPE* t=(TYPE*)malloc(sizeof(TYPE));\
 	FKL_ASSERT(t,"VMvalue_pointer_caster",__FILE__,__LINE__);\
-	if(!IS_MEM(v)&&!IS_CHF(v))\
-		*t=IS_I32(v)?GET_I32(v):(IS_I64(v)?v->u.i64:(IS_DBL(v)?v->u.dbl:GET_CHR(v)));\
+	if(!FKL_IS_MEM(v)&&!IS_CHF(v))\
+		*t=FKL_IS_I32(v)?FKL_GET_I32(v):(FKL_IS_I64(v)?v->u.i64:(FKL_IS_DBL(v)?v->u.dbl:FKL_GET_CHR(v)));\
 	else\
 		*t=castToDoubleFunctionsList[v->u.chf->type-1](v->u.chf->mem);\
 	*p=t;\
@@ -247,11 +247,11 @@ static int castVptrValue     (ARGL)
 {
 	void** t=(void**)malloc(sizeof(void*));
 	FKL_ASSERT(t,"VMvalue_pointer_caster",__FILE__,__LINE__);
-	if(!IS_MEM(v)&&!IS_CHF(v))
+	if(!FKL_IS_MEM(v)&&!IS_CHF(v))
 	{
 		if(v==FKL_VM_NIL)
 			*t=NULL;
-		else if(IS_PTR(v))
+		else if(FKL_IS_PTR(v))
 		{
 			switch(v->type)
 			{
@@ -376,7 +376,7 @@ static void (*PrintMemoryRefFuncList[])(uint8_t*,FILE*)=
 /*-----------------------*/
 
 /*memory caster list*/
-#define CAST_TO_I32(TYPE) return MAKE_VM_I32(*(TYPE*)mem);
+#define CAST_TO_I32(TYPE) return FKL_MAKE_VM_I32(*(TYPE*)mem);
 #define CAST_TO_I64(TYPE) int64_t t=*(TYPE*)mem;return fklNewVMvalue(FKL_I64,&t,heap);
 #define ARGL uint8_t* mem,FklVMheap* heap
 static FklVMvalue* castShortMem (ARGL){CAST_TO_I32(short)}
@@ -390,8 +390,8 @@ static FklVMvalue* castULLongMem(ARGL){CAST_TO_I64(unsigned long long)}
 static FklVMvalue* castPtrdiff_t(ARGL){CAST_TO_I64(ptrdiff_t)}
 static FklVMvalue* castSize_t   (ARGL){CAST_TO_I64(size_t)}
 static FklVMvalue* castSsize_t  (ARGL){CAST_TO_I64(ssize_t)}
-static FklVMvalue* castChar     (ARGL){return MAKE_VM_CHR(*(char*)mem);}
-static FklVMvalue* castWchar_t  (ARGL){return MAKE_VM_I32(*(wchar_t*)mem);}
+static FklVMvalue* castChar     (ARGL){return FKL_MAKE_VM_CHR(*(char*)mem);}
+static FklVMvalue* castWchar_t  (ARGL){return FKL_MAKE_VM_I32(*(wchar_t*)mem);}
 static FklVMvalue* castFloat    (ARGL){double t=*(float*)mem;return fklNewVMvalue(FKL_DBL,&t,heap);}
 static FklVMvalue* castDouble   (ARGL){double t=*(double*)mem;return fklNewVMvalue(FKL_DBL,&t,heap);}
 static FklVMvalue* castInt8_t   (ARGL){CAST_TO_I32(int8_t)}
@@ -441,7 +441,7 @@ static FklVMvalue*(*MemoryCasterList[])(uint8_t*,FklVMheap*)=
 
 /*Memory setting function list*/
 #define BODY(EXPRESSION,TYPE,VALUE) if(EXPRESSION)return 1;*(TYPE*)mem=(VALUE);return 0;
-#define SET_NUM(TYPE) BODY(!IS_I32(v)&&!IS_I64(v),TYPE,IS_I32(v)?GET_I32(v):v->u.i64)
+#define SET_NUM(TYPE) BODY(!FKL_IS_I32(v)&&!FKL_IS_I64(v),TYPE,FKL_IS_I32(v)?FKL_GET_I32(v):v->u.i64)
 #define ARGL uint8_t* mem,FklVMvalue* v
 static int setShortMem (ARGL){SET_NUM(short)}
 static int setIntMem   (ARGL){SET_NUM(int)}
@@ -454,10 +454,10 @@ static int setULLongMem(ARGL){SET_NUM(unsigned long long)}
 static int setPtrdiff_t(ARGL){SET_NUM(ptrdiff_t)}
 static int setSize_t   (ARGL){SET_NUM(size_t)}
 static int setSsize_t  (ARGL){SET_NUM(ssize_t)}
-static int setChar     (ARGL){BODY(!IS_CHR(v),char,GET_CHR(v))}
-static int setWchar_t  (ARGL){BODY(!IS_CHR(v)&&!IS_I32(v),wchar_t,IS_I32(v)?GET_I32(v):GET_CHR(v))}
-static int setFloat    (ARGL){BODY(!IS_DBL(v)&&!IS_I32(v)&&IS_I64(v),float,IS_DBL(v)?v->u.dbl:(IS_I32(v)?GET_I32(v):v->u.i64))}
-static int setDouble   (ARGL){BODY(!IS_DBL(v)&&!IS_I32(v)&&IS_I64(v),double,IS_DBL(v)?v->u.dbl:(IS_I32(v)?GET_I32(v):v->u.i64))}
+static int setChar     (ARGL){BODY(!FKL_IS_CHR(v),char,FKL_GET_CHR(v))}
+static int setWchar_t  (ARGL){BODY(!FKL_IS_CHR(v)&&!FKL_IS_I32(v),wchar_t,FKL_IS_I32(v)?FKL_GET_I32(v):FKL_GET_CHR(v))}
+static int setFloat    (ARGL){BODY(!FKL_IS_DBL(v)&&!FKL_IS_I32(v)&&FKL_IS_I64(v),float,FKL_IS_DBL(v)?v->u.dbl:(FKL_IS_I32(v)?FKL_GET_I32(v):v->u.i64))}
+static int setDouble   (ARGL){BODY(!FKL_IS_DBL(v)&&!FKL_IS_I32(v)&&FKL_IS_I64(v),double,FKL_IS_DBL(v)?v->u.dbl:(FKL_IS_I32(v)?FKL_GET_I32(v):v->u.i64))}
 static int setInt8_t   (ARGL){SET_NUM(int8_t)}
 static int setUint8_t  (ARGL){SET_NUM(uint8_t)}
 static int setInt16_t  (ARGL){SET_NUM(int16_t)}

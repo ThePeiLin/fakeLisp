@@ -557,7 +557,7 @@ char** fklSplit(char* str,char* divstr,int* length)
 char* fklCastEscapeCharater(const char* str,char end,size_t* len)
 {
 	int32_t strSize=0;
-	int32_t memSize=MAX_STRING_SIZE;
+	int32_t memSize=FKL_MAX_STRING_SIZE;
 	int32_t i=0;
 	char* tmp=(char*)malloc(sizeof(char)*memSize);
 	while(str[i]!=end)
@@ -631,9 +631,9 @@ char* fklCastEscapeCharater(const char* str,char end,size_t* len)
 		strSize++;
 		if(strSize>memSize-1)
 		{
-			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+MAX_STRING_SIZE));
+			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+FKL_MAX_STRING_SIZE));
 			FKL_ASSERT(tmp,"castKeyStringToNormalString",__FILE__,__LINE__);
-			memSize+=MAX_STRING_SIZE;
+			memSize+=FKL_MAX_STRING_SIZE;
 		}
 		tmp[strSize-1]=ch;
 	}

@@ -290,7 +290,7 @@ int32_t matchStringPattern(const char* str,FklStringMatchPattern* pattern)
 
 char* readString(FILE* fp)
 {
-	int32_t memSize=MAX_STRING_SIZE;
+	int32_t memSize=FKL_MAX_STRING_SIZE;
 	char* tmp=(char*)malloc(sizeof(char)*memSize);
 	FKL_ASSERT(tmp,"readString",__FILE__,__LINE__);
 	int32_t strSize=0;
@@ -300,9 +300,9 @@ char* readString(FILE* fp)
 		strSize++;
 		if(strSize>memSize-1)
 		{
-			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+MAX_STRING_SIZE));
+			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+FKL_MAX_STRING_SIZE));
 			FKL_ASSERT(tmp,"readString",__FILE__,__LINE__);
-			memSize+=MAX_STRING_SIZE;
+			memSize+=FKL_MAX_STRING_SIZE;
 		}
 		tmp[strSize-1]=ch;
 		if(ch=='\\')
@@ -311,9 +311,9 @@ char* readString(FILE* fp)
 			strSize++;
 			if(strSize>memSize-1)
 			{
-				tmp=(char*)realloc(tmp,sizeof(char)*(memSize+MAX_STRING_SIZE));
+				tmp=(char*)realloc(tmp,sizeof(char)*(memSize+FKL_MAX_STRING_SIZE));
 				FKL_ASSERT(tmp,"readString",__FILE__,__LINE__);
-				memSize+=MAX_STRING_SIZE;
+				memSize+=FKL_MAX_STRING_SIZE;
 			}
 			tmp[strSize-1]=ch;
 		}

@@ -5,7 +5,7 @@
 #include<stdlib.h>
 #include<string.h>
 
-static const char* builtInErrorType[NUM_OF_BUILT_IN_ERROR_TYPE]=
+static const char* builtInErrorType[FKL_NUM_OF_BUILT_IN_ERROR_TYPE]=
 {
 	"dummy",
 	"symbol-undefined",
@@ -95,7 +95,7 @@ static const char* builtInSymbolList[]=
 	"lfdl",
 };
 
-FklSymbolTable GlobSymbolTable=STATIC_SYMBOL_INIT;
+FklSymbolTable GlobSymbolTable=FKL_STATIC_SYMBOL_INIT;
 
 FklSymbolTable* fklNewSymbolTable()
 {

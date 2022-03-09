@@ -3669,7 +3669,7 @@ void fklInitCompEnv(FklCompEnv* curEnv)
 {
 	int i=0;
 	const char** builtInSymbolList=fklGetBuiltInSymbolList();
-	for(i=0;i<NUM_OF_BUILT_IN_SYMBOL;i++)
+	for(i=0;i<FKL_NUM_OF_BUILT_IN_SYMBOL;i++)
 		fklAddCompDef(builtInSymbolList[i],curEnv);
 }
 

@@ -19,7 +19,7 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVMheap* heap)
 {
 	FklPtrStack* s1=fklNewPtrStack(32,16);
 	FklPtrStack* s2=fklNewPtrStack(32,16);
-	FklVMvalue* tmp=VM_NIL;
+	FklVMvalue* tmp=FKL_VM_NIL;
 	fklPushPtrStack(obj,s1);
 	fklPushPtrStack(&tmp,s2);
 	while(!fklIsPtrStackEmpty(s1))
@@ -64,7 +64,7 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVMheap* heap)
 								FklQueueNode* cur=objCh->messages->head;
 								for(;cur;cur=cur->next)
 								{
-									void* tmp=VM_NIL;
+									void* tmp=FKL_VM_NIL;
 									fklPushPtrQueue(tmp,tmpCh->messages);
 									fklPushPtrStack(cur->data,s1);
 									fklPushPtrStack(tmp,s2);
@@ -100,7 +100,7 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 	switch((int)type)
 	{
 		case FKL_NIL:
-			return VM_NIL;
+			return FKL_VM_NIL;
 			break;
 		case FKL_CHR:
 			return MAKE_VM_CHR(pValue);
@@ -267,8 +267,8 @@ FklVMpair* fklNewVMpair(void)
 {
 	FklVMpair* tmp=(FklVMpair*)malloc(sizeof(FklVMpair));
 	FKL_ASSERT(tmp,"fklNewVMpair",__FILE__,__LINE__);
-	tmp->car=VM_NIL;
-	tmp->cdr=VM_NIL;
+	tmp->car=FKL_VM_NIL;
+	tmp->cdr=FKL_VM_NIL;
 	return tmp;
 }
 
@@ -769,7 +769,7 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 {
 	FklPtrStack* s1=fklNewPtrStack(32,16);
 	FklPtrStack* s2=fklNewPtrStack(32,16);
-	FklVMvalue* tmp=VM_NIL;
+	FklVMvalue* tmp=FKL_VM_NIL;
 	fklPushPtrStack(objCptr,s1);
 	fklPushPtrStack(&tmp,s2);
 	while(!fklIsPtrStackEmpty(s1))

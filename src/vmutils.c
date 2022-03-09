@@ -530,7 +530,7 @@ static void princVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 							else
 								princVMvalue(tmpValue,fp,h);
 							tmpValue=fklGetVMpairCdr(objValue);
-							if(tmpValue!=VM_NIL&&!IS_PAIR(tmpValue))
+							if(tmpValue!=FKL_VM_NIL&&!IS_PAIR(tmpValue))
 							{
 								putc(',',fp);
 								princVMvalue(tmpValue,fp,h);
@@ -540,7 +540,7 @@ static void princVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 								fprintf(fp,",#%d#",CRLcount);
 								break;
 							}
-							else if(tmpValue!=VM_NIL)
+							else if(tmpValue!=FKL_VM_NIL)
 								putc(' ',fp);
 						}
 						putc(')',fp);
@@ -676,7 +676,7 @@ static void prin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 							else
 								prin1VMvalue(tmpValue,fp,h);
 							tmpValue=fklGetVMpairCdr(objValue);
-							if(tmpValue!=VM_NIL&&!IS_PAIR(tmpValue))
+							if(tmpValue!=FKL_VM_NIL&&!IS_PAIR(tmpValue))
 							{
 								putc(',',fp);
 								prin1VMvalue(tmpValue,fp,h);
@@ -686,7 +686,7 @@ static void prin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 								fprintf(fp,",#%d#",CRLcount);
 								break;
 							}
-							else if(tmpValue!=VM_NIL)
+							else if(tmpValue!=FKL_VM_NIL)
 								putc(' ',fp);
 						}
 						putc(')',fp);
@@ -889,7 +889,7 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 		FklVMvalue* root=fklPopPtrStack(s1);
 		FklAstCptr* root1=fklPopPtrStack(s2);
 		FklValueType cptrType=0;
-		if(root==VM_NIL)
+		if(root==FKL_VM_NIL)
 			cptrType=FKL_NIL;
 		else if(IS_PAIR(root))
 			cptrType=FKL_PAIR;

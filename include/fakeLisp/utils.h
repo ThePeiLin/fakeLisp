@@ -4,14 +4,14 @@
 #include<stddef.h>
 #include<stdio.h>
 #include<stdlib.h>
-#define THRESHOLD_SIZE 64
-#define NUM_OF_BUILT_IN_SYMBOL 54
-#define MAX_STRING_SIZE 64
-#define NUM_OF_BUILT_IN_ERROR_TYPE 28
-#define STATIC_SYMBOL_INIT {0,NULL,NULL}
-#define UNUSEDBITNUM 3
-#define PTR_MASK ((intptr_t)0xFFFFFFFFFFFFFFF8)
-#define TAG_MASK ((intptr_t)0x7)
+#define FKL_THRESHOLD_SIZE 64
+#define FKL_NUM_OF_BUILT_IN_SYMBOL 54
+#define FKL_MAX_STRING_SIZE 64
+#define FKL_NUM_OF_BUILT_IN_ERROR_TYPE 28
+#define FKL_STATIC_SYMBOL_INIT {0,NULL,NULL}
+#define FKL_UNUSEDBITNUM 3
+#define FKL_PTR_MASK ((intptr_t)0xFFFFFFFFFFFFFFF8)
+#define FKL_TAG_MASK ((intptr_t)0x7)
 
 #define INCREASE_ALL_SCP(l,ls,s) {int32_t i=0;\
 	for(;i<(ls);i++)\
@@ -68,21 +68,21 @@
 	return;\
 }while(0)
 
-#define VM_NIL ((FklVMptr)0x1)
-#define VM_TRUE (MAKE_VM_I32(1))
-#define VM_EOF ((FklVMptr)0x7fffffffa)
-#define MAKE_VM_I32(I) ((FklVMptr)((((uintptr_t)(I))<<UNUSEDBITNUM)|FKL_I32_TAG))
-#define MAKE_VM_CHR(C) ((FklVMptr)((((uintptr_t)(C))<<UNUSEDBITNUM)|FKL_CHR_TAG))
-#define MAKE_VM_SYM(S) ((FklVMptr)((((uintptr_t)(S))<<UNUSEDBITNUM)|FKL_SYM_TAG))
+#define FKL_VM_NIL ((FklVMptr)0x1)
+#define FKL_VM_TRUE (MAKE_VM_I32(1))
+#define FKL_VM_EOF ((FklVMptr)0x7fffffffa)
+#define MAKE_VM_I32(I) ((FklVMptr)((((uintptr_t)(I))<<FKL_UNUSEDBITNUM)|FKL_I32_TAG))
+#define MAKE_VM_CHR(C) ((FklVMptr)((((uintptr_t)(C))<<FKL_UNUSEDBITNUM)|FKL_CHR_TAG))
+#define MAKE_VM_SYM(S) ((FklVMptr)((((uintptr_t)(S))<<FKL_UNUSEDBITNUM)|FKL_SYM_TAG))
 #define MAKE_VM_PTR(P) ((FklVMptr)(((uintptr_t)(P))|FKL_PTR_TAG))
 #define MAKE_VM_REF(P) ((FklVMptr)(((uintptr_t)(P))|FKL_REF_TAG))
 #define MAKE_VM_CHF(P,H) (fklNewVMvalue(FKL_CHF,P,H))
 #define MAKE_VM_MEM(P,H) (fklNewVMvalue(FKL_MEM,P,H))
-#define GET_TAG(P) ((FklVMptrTag)(((uintptr_t)(P))&TAG_MASK))
-#define GET_PTR(P) ((FklVMptr)(((uintptr_t)(P))&PTR_MASK))
-#define GET_I32(P) ((int32_t)((uintptr_t)(P)>>UNUSEDBITNUM))
-#define GET_CHR(P) ((char)((uintptr_t)(P)>>UNUSEDBITNUM))
-#define GET_SYM(P) ((FklSid_t)((uintptr_t)(P)>>UNUSEDBITNUM))
+#define GET_TAG(P) ((FklVMptrTag)(((uintptr_t)(P))&FKL_TAG_MASK))
+#define GET_PTR(P) ((FklVMptr)(((uintptr_t)(P))&FKL_PTR_MASK))
+#define GET_I32(P) ((int32_t)((uintptr_t)(P)>>FKL_UNUSEDBITNUM))
+#define GET_CHR(P) ((char)((uintptr_t)(P)>>FKL_UNUSEDBITNUM))
+#define GET_SYM(P) ((FklSid_t)((uintptr_t)(P)>>FKL_UNUSEDBITNUM))
 //#define fklSET_REF(p,v) do{FklVMvalue* P=p;FklVMvalue* V=v;if(IS_CHF(P)){VMmemref* pRef=(VMmemref*)GET_PTR(P);setVMmemref(pRef,V);free(pRef);} else *(FklVMvalue**)GET_PTR(P)=(V);}while(0)
 #define IS_PTR(P) (GET_TAG(P)==FKL_PTR_TAG)
 #define IS_PAIR(P) (GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_PAIR)
@@ -112,8 +112,8 @@
 #define MAKE_STRUCT_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_DEF_STRUCT_TYPE_TAG))
 #define MAKE_UNION_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_DEF_UNION_TYPE_TAG))
 #define MAKE_FUNC_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_DEF_FUNC_TYPE_TAG))
-#define GET_TYPES_PTR(P) ((void*)(((uintptr_t)(P))&PTR_MASK))
-#define GET_TYPES_TAG(P) ((FklDefTypeTag)(((uintptr_t)(P))&TAG_MASK))
+#define GET_TYPES_PTR(P) ((void*)(((uintptr_t)(P))&FKL_PTR_MASK))
+#define GET_TYPES_TAG(P) ((FklDefTypeTag)(((uintptr_t)(P))&FKL_TAG_MASK))
 
 int fklIsHexNum(const char*);
 int fklIsOctNum(const char*);

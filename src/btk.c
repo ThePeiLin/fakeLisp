@@ -167,8 +167,8 @@ void FKL_isEndOfFile(FklVM* exe,pthread_rwlock_t* pGClock)
 	if(!IS_FP(fp))
 		RAISE_BUILTIN_ERROR("btk.isEndOfFile",FKL_WRONGARG,r,exe);
 	SET_RETURN("FKL_isEndOfFile",feof(fp->u.fp)
-			?VM_TRUE
-			:VM_NIL
+			?FKL_VM_TRUE
+			:FKL_VM_NIL
 			,stack);
 }
 #ifdef __cplusplus

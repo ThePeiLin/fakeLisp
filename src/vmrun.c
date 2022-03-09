@@ -451,15 +451,15 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_delf,
 		SYS_lfdl,
 	};
-	obj->num=NUM_OF_BUILT_IN_SYMBOL;
-	obj->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*NUM_OF_BUILT_IN_SYMBOL);
+	obj->num=FKL_NUM_OF_BUILT_IN_SYMBOL;
+	obj->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*FKL_NUM_OF_BUILT_IN_SYMBOL);
 	FKL_ASSERT(obj->list,"fklInitGlobEnv",__FILE__,__LINE__);
-	obj->list[0]=fklNewVMenvNode(VM_NIL,fklAddSymbolToGlob(fklGetBuiltInSymbol(0))->id);
+	obj->list[0]=fklNewVMenvNode(FKL_VM_NIL,fklAddSymbolToGlob(fklGetBuiltInSymbol(0))->id);
 	obj->list[1]=fklNewVMenvNode(fklNewVMvalue(FKL_FP,stdin,heap),fklAddSymbolToGlob(fklGetBuiltInSymbol(1))->id);
 	obj->list[2]=fklNewVMenvNode(fklNewVMvalue(FKL_FP,stdout,heap),fklAddSymbolToGlob(fklGetBuiltInSymbol(2))->id);
 	obj->list[3]=fklNewVMenvNode(fklNewVMvalue(FKL_FP,stderr,heap),fklAddSymbolToGlob(fklGetBuiltInSymbol(3))->id);
 	size_t i=4;
-	for(;i<NUM_OF_BUILT_IN_SYMBOL;i++)
+	for(;i<FKL_NUM_OF_BUILT_IN_SYMBOL;i++)
 	{
 		FklVMdlproc* proc=fklNewVMdlproc(syscallFunctionList[i-4],NULL);
 		FklSymTabNode* node=fklAddSymbolToGlob(fklGetBuiltInSymbol(i));
@@ -642,7 +642,7 @@ int fklRunVM(FklVM* exe)
 			else fklGC_mark(exe);
 			fklGC_sweep(exe->heap);
 			pthread_mutex_lock(&exe->heap->lock);
-			exe->heap->threshold=exe->heap->num+THRESHOLD_SIZE;
+			exe->heap->threshold=exe->heap->num+FKL_THRESHOLD_SIZE;
 			pthread_mutex_unlock(&exe->heap->lock);
 			pthread_rwlock_unlock(&GClock);
 		}
@@ -671,7 +671,7 @@ void B_push_nil(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	SET_RETURN("B_push_nil",VM_NIL,stack);
+	SET_RETURN("B_push_nil",FKL_VM_NIL,stack);
 	runnable->cp+=1;
 }
 
@@ -997,7 +997,7 @@ void B_pop_rest_arg(FklVM* exe)
 		obj=fklNewVMvalue(FKL_PAIR,fklNewVMpair(),exe->heap);
 		tmp=obj;
 	}
-	else obj=VM_NIL;
+	else obj=FKL_VM_NIL;
 	while(stack->tp>stack->bp)
 	{
 		tmp->u.pair->car=fklGET_VAL(fklGetTopValue(stack),heap);
@@ -1192,7 +1192,7 @@ void B_jmp_if_true(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMvalue* tmpValue=fklGET_VAL(fklGetTopValue(stack),exe->heap);
-	if(tmpValue!=VM_NIL)
+	if(tmpValue!=FKL_VM_NIL)
 	{
 		int32_t where=*(int32_t*)(exe->code+runnable->cp+sizeof(char));
 		runnable->cp+=where;
@@ -1206,7 +1206,7 @@ void B_jmp_if_false(FklVM* exe)
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMvalue* tmpValue=fklGET_VAL(fklGetTopValue(stack),exe->heap);
 	fklStackRecycle(exe);
-	if(tmpValue==VM_NIL)
+	if(tmpValue==FKL_VM_NIL)
 	{
 		int32_t where=*(int32_t*)(exe->code+runnable->cp+sizeof(char));
 		runnable->cp+=where;
@@ -1228,7 +1228,7 @@ void B_append(FklVM* exe)
 	FklVMheap* heap=exe->heap;
 	FklVMvalue* fir=fklGET_VAL(fklGetTopValue(stack),heap);
 	FklVMvalue* sec=fklGET_VAL(fklGetValue(stack,stack->tp-2),heap);
-	if(sec!=VM_NIL&&!IS_PAIR(sec))
+	if(sec!=FKL_VM_NIL&&!IS_PAIR(sec))
 		RAISE_BUILTIN_ERROR("b.append",FKL_WRONGARG,runnable,exe);
 	if(!IS_PAIR(sec))
 		RAISE_BUILTIN_ERROR("b.append",FKL_WRONGARG,runnable,exe);
@@ -1428,7 +1428,7 @@ FklVMheap* fklNewVMheap()
 	FklVMheap* tmp=(FklVMheap*)malloc(sizeof(FklVMheap));
 	FKL_ASSERT(tmp,"fklNewVMheap",__FILE__,__LINE__);
 	tmp->num=0;
-	tmp->threshold=THRESHOLD_SIZE;
+	tmp->threshold=FKL_THRESHOLD_SIZE;
 	tmp->head=NULL;
 	pthread_mutex_init(&tmp->lock,NULL);
 	return tmp;

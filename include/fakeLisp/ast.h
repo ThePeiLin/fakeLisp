@@ -1,5 +1,5 @@
-#ifndef AST_H
-#define AST_H
+#ifndef FKL_AST_H
+#define FKL_AST_H
 #include"symbol.h"
 #include<stdint.h>
 

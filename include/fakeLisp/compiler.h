@@ -1,5 +1,5 @@
-#ifndef COMPILER_H
-#define COMPILER_H
+#ifndef FKL_COMPILER_H
+#define FKL_COMPILER_H
 #include"symbol.h"
 #include"basicADT.h"
 #include"ast.h"

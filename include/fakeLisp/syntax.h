@@ -1,5 +1,5 @@
-#ifndef SYNTAX_H
-#define SYNTAX_H
+#ifndef FK_SYNTAX_H
+#define FK_SYNTAX_H
 #include"compiler.h"
 #include"ast.h"
 

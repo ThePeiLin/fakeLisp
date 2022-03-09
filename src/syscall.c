@@ -126,13 +126,13 @@ void SYS_append(FklVM* exe,pthread_rwlock_t* gclock)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	FklVMvalue* retval=VM_NIL;
+	FklVMvalue* retval=FKL_VM_NIL;
 	FklVMheap* heap=exe->heap;
 	FklVMvalue* cur=fklGET_VAL(fklPopVMstack(stack),heap);
 	FklVMvalue** prev=&retval;
 	for(;cur;cur=fklGET_VAL(fklPopVMstack(stack),heap))
 	{
-		if(*prev==VM_NIL)
+		if(*prev==FKL_VM_NIL)
 			*prev=fklCopyVMvalue(cur,exe->heap);
 		else if(IS_PAIR(*prev))
 		{
@@ -168,9 +168,9 @@ void SYS_atom(FklVM* exe,pthread_rwlock_t* gclock)
 	if(!arg)
 		RAISE_BUILTIN_ERROR("sys.atom",FKL_TOOFEWARG,runnable,exe);
 	if(!IS_PAIR(arg))
-		SET_RETURN("SYS_atom",VM_TRUE,stack);
+		SET_RETURN("SYS_atom",FKL_VM_TRUE,stack);
 	else
-		SET_RETURN("SYS_atom",VM_NIL,stack);
+		SET_RETURN("SYS_atom",FKL_VM_NIL,stack);
 }
 
 void SYS_null(FklVM* exe,pthread_rwlock_t* gclock)
@@ -182,10 +182,10 @@ void SYS_null(FklVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.null",FKL_TOOMANYARG,runnable,exe);
 	if(!arg)
 		RAISE_BUILTIN_ERROR("sys.null",FKL_TOOFEWARG,runnable,exe);
-	if(arg==VM_NIL)
-		SET_RETURN("SYS_null",VM_TRUE,stack);
+	if(arg==FKL_VM_NIL)
+		SET_RETURN("SYS_null",FKL_VM_TRUE,stack);
 	else
-		SET_RETURN("SYS_null",VM_NIL,stack);
+		SET_RETURN("SYS_null",FKL_VM_NIL,stack);
 }
 
 void SYS_not(FklVM* exe,pthread_rwlock_t* gclock)
@@ -197,10 +197,10 @@ void SYS_not(FklVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.not",FKL_TOOMANYARG,runnable,exe);
 	if(!arg)
 		RAISE_BUILTIN_ERROR("sys.not",FKL_TOOFEWARG,runnable,exe);
-	if(arg==VM_NIL)
-		SET_RETURN("SYS_not",VM_TRUE,stack);
+	if(arg==FKL_VM_NIL)
+		SET_RETURN("SYS_not",FKL_VM_TRUE,stack);
 	else
-		SET_RETURN("SYS_not",VM_NIL,stack);
+		SET_RETURN("SYS_not",FKL_VM_NIL,stack);
 }
 
 void SYS_eq(FklVM* exe,pthread_rwlock_t* gclock)
@@ -215,8 +215,8 @@ void SYS_eq(FklVM* exe,pthread_rwlock_t* gclock)
 	if(!fir||!sec)
 		RAISE_BUILTIN_ERROR("sys.eq",FKL_TOOFEWARG,runnable,exe);
 	SET_RETURN("SYS_eq",fir==sec
-			?VM_TRUE
-			:VM_NIL
+			?FKL_VM_TRUE
+			:FKL_VM_NIL
 			,stack);
 }
 
@@ -239,23 +239,23 @@ void SYS_eqn(FklVM* exe,pthread_rwlock_t* gclock)
 							:((IS_I32(sec)?GET_I32(sec)
 								:sec->u.i64))))
 					==0.0)
-				?VM_TRUE
-				:VM_NIL
+				?FKL_VM_TRUE
+				:FKL_VM_NIL
 				,stack);
 	else if(IS_SYM(fir)&&IS_SYM(sec))
 		SET_RETURN("SYS_eqn",fir==sec
-				?VM_TRUE
-				:VM_NIL
+				?FKL_VM_TRUE
+				:FKL_VM_NIL
 				,stack);
 	else if(IS_STR(fir)&&IS_STR(sec))
 		SET_RETURN("SYS_eqn",(!strcmp(fir->u.str,sec->u.str))
-				?VM_TRUE
-				:VM_NIL
+				?FKL_VM_TRUE
+				:FKL_VM_NIL
 				,stack);
 	else if(IS_BYTS(fir)&&IS_BYTS(sec))
 		SET_RETURN("SYS_eqn",fklEqVMbyts(fir->u.byts,sec->u.byts)
-				?VM_TRUE
-				:VM_NIL
+				?FKL_VM_TRUE
+				:FKL_VM_NIL
 				,stack);
 	else
 		RAISE_BUILTIN_ERROR("sys.eqn",FKL_WRONGARG,runnable,exe);
@@ -274,8 +274,8 @@ void SYS_equal(FklVM* exe,pthread_rwlock_t* gclock)
 	if(!fir||!sec)
 		RAISE_BUILTIN_ERROR("sys.equal",FKL_TOOFEWARG,runnable,exe);
 	SET_RETURN("SYS_equal",(fklVMvaluecmp(fir,sec))
-			?VM_TRUE
-			:VM_NIL
+			?FKL_VM_TRUE
+			:FKL_VM_NIL
 			,stack);
 }
 
@@ -626,8 +626,8 @@ void SYS_gt(FklVM* exe,pthread_rwlock_t* gclock)
 	for(;cur;cur=fklGET_VAL(fklPopVMstack(stack),heap));
 	fklResBp(stack);
 	SET_RETURN("SYS_gt",r
-			?VM_TRUE
-			:VM_NIL
+			?FKL_VM_TRUE
+			:FKL_VM_NIL
 			,stack);
 }
 
@@ -666,8 +666,8 @@ void SYS_ge(FklVM* exe,pthread_rwlock_t* gclock)
 	for(;cur;cur=fklGET_VAL(fklPopVMstack(stack),heap));
 	fklResBp(stack);
 	SET_RETURN("SYS_ge",r
-			?VM_TRUE
-			:VM_NIL
+			?FKL_VM_TRUE
+			:FKL_VM_NIL
 			,stack);
 }
 
@@ -706,8 +706,8 @@ void SYS_lt(FklVM* exe,pthread_rwlock_t* gclock)
 	for(;cur;cur=fklGET_VAL(fklPopVMstack(stack),heap));
 	fklResBp(stack);
 	SET_RETURN("SYS_lt",r
-			?VM_TRUE
-			:VM_NIL
+			?FKL_VM_TRUE
+			:FKL_VM_NIL
 			,stack);
 }
 
@@ -746,8 +746,8 @@ void SYS_le(FklVM* exe,pthread_rwlock_t* gclock)
 	for(;cur;cur=fklGET_VAL(fklPopVMstack(stack),heap));
 	fklResBp(stack);
 	SET_RETURN("SYS_le",r
-			?VM_TRUE
-			:VM_NIL
+			?FKL_VM_TRUE
+			:FKL_VM_NIL
 			,stack);
 }
 
@@ -1056,17 +1056,17 @@ void SYS_nth(FklVM* exe,pthread_rwlock_t* gclock)
 		RAISE_BUILTIN_ERROR("sys.nth",FKL_WRONGARG,runnable,exe);
 	FklVMvalue* retval=NULL;
 	ssize_t index=IS_I32(place)?GET_I32(place):place->u.i64;
-	if(objlist==VM_NIL||IS_PAIR(objlist))
+	if(objlist==FKL_VM_NIL||IS_PAIR(objlist))
 	{
 		FklVMvalue* objPair=objlist;
 		int i=0;
 		for(;i<index&&IS_PAIR(objPair);i++,objPair=fklGetVMpairCdr(objPair));
-		retval=(IS_PAIR(objPair))?MAKE_VM_REF(&objPair->u.pair->car):VM_NIL;
+		retval=(IS_PAIR(objPair))?MAKE_VM_REF(&objPair->u.pair->car):FKL_VM_NIL;
 	}
 	else if(IS_STR(objlist))
-		retval=index>=strlen(objlist->u.str)?VM_NIL:MAKE_VM_CHF(fklNewVMmem(fklGetCharTypeId(),(uint8_t*)objlist->u.str+index),heap);
+		retval=index>=strlen(objlist->u.str)?FKL_VM_NIL:MAKE_VM_CHF(fklNewVMmem(fklGetCharTypeId(),(uint8_t*)objlist->u.str+index),heap);
 	else if(IS_BYTS(objlist))
-		retval=index>=objlist->u.byts->size?VM_NIL:MAKE_VM_CHF(fklNewVMmem(fklGetCharTypeId(),objlist->u.byts->str+index),heap);
+		retval=index>=objlist->u.byts->size?FKL_VM_NIL:MAKE_VM_CHF(fklNewVMmem(fklGetCharTypeId(),objlist->u.byts->str+index),heap);
 	else
 		RAISE_BUILTIN_ERROR("sys.nth",FKL_WRONGARG,runnable,exe);
 	SET_RETURN("SYS_nth",retval,stack);
@@ -1082,7 +1082,7 @@ void SYS_length(FklVM* exe,pthread_rwlock_t* gclock)
 	if(!obj)
 		RAISE_BUILTIN_ERROR("sys.length",FKL_TOOFEWARG,runnable,exe);
 	int32_t len=0;
-	if(obj==VM_NIL||IS_PAIR(obj))
+	if(obj==FKL_VM_NIL||IS_PAIR(obj))
 		for(;IS_PAIR(obj);obj=fklGetVMpairCdr(obj))len++;
 	else if(IS_STR(obj))
 		len=strlen(obj->u.str);
@@ -1151,7 +1151,7 @@ void SYS_read(FklVM* exe,pthread_rwlock_t* gclock)
 	FklAstCptr* tmpCptr=fklBaseCreateTree(tmpString,tmpIntpr);
 	FklVMvalue* tmp=NULL;
 	if(tmpCptr==NULL)
-		tmp=VM_NIL;
+		tmp=FKL_VM_NIL;
 	else
 		tmp=fklCastCptrVMvalue(tmpCptr,exe->heap);
 	SET_RETURN("SYS_read",tmp,stack);
@@ -1182,7 +1182,7 @@ void SYS_getb(FklVM* exe,pthread_rwlock_t* gclock)
 	if(!realRead)
 	{
 		free(str);
-		SET_RETURN("SYS_getb",VM_NIL,stack);
+		SET_RETURN("SYS_getb",FKL_VM_NIL,stack);
 	}
 	else
 	{
@@ -1307,7 +1307,7 @@ void SYS_argv(FklVM* exe,pthread_rwlock_t* pGClock)
 	FklVMvalue* retval=NULL;
 	if(fklResBp(stack))
 		RAISE_BUILTIN_ERROR("sys.argv",FKL_TOOMANYARG,fklTopPtrStack(exe->rstack),exe);
-	retval=VM_NIL;
+	retval=FKL_VM_NIL;
 	FklVMvalue** tmp=&retval;
 	int32_t i=0;
 	for(;i<exe->argc;i++,tmp=&(*tmp)->u.pair->cdr)
@@ -1524,7 +1524,7 @@ void SYS_apply(FklVM* exe,pthread_rwlock_t* gclock)
 		fklPushPtrStack(value,stack1);
 	}
 	FklPtrStack* stack2=fklNewPtrStack(32,16);
-	if(!IS_PAIR(lastList)&&lastList!=VM_NIL)
+	if(!IS_PAIR(lastList)&&lastList!=FKL_VM_NIL)
 	{
 		fklFreePtrStack(stack1);
 		fklFreePtrStack(stack2);
@@ -1532,7 +1532,7 @@ void SYS_apply(FklVM* exe,pthread_rwlock_t* gclock)
 	}
 	for(;IS_PAIR(lastList);lastList=fklGetVMpairCdr(lastList))
 		fklPushPtrStack(fklGetVMpairCar(lastList),stack2);
-	if(lastList!=VM_NIL)
+	if(lastList!=FKL_VM_NIL)
 	{
 		fklFreePtrStack(stack1);
 		fklFreePtrStack(stack2);

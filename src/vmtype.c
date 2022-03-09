@@ -249,7 +249,7 @@ static int castVptrValue     (ARGL)
 	FKL_ASSERT(t,"VMvalue_pointer_caster",__FILE__,__LINE__);
 	if(!IS_MEM(v)&&!IS_CHF(v))
 	{
-		if(v==VM_NIL)
+		if(v==FKL_VM_NIL)
 			*t=NULL;
 		else if(IS_PTR(v))
 		{

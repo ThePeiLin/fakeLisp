@@ -1,5 +1,5 @@
-#ifndef OPCODE_H
-#define OPCODE_H
+#ifndef FKL_OPCODE_H
+#define FKL_OPCODE_H
 enum opcode
 {
 	FKL_PUSH_NIL=1,

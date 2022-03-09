@@ -1,6 +1,5 @@
-#include<fakeLisp/vmtype.h>
+#include<fakeLisp/vm.h>
 #include<fakeLisp/utils.h>
-#include<fakeLisp/vmvalue.h>
 #include<stdlib.h>
 #include<stddef.h>
 #include<pthread.h>

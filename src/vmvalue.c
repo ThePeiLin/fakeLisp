@@ -1,5 +1,4 @@
-#include<fakeLisp/vmvalue.h>
-#include<fakeLisp/vmtype.h>
+#include<fakeLisp/vm.h>
 #include<fakeLisp/utils.h>
 #include<stdlib.h>
 #include<math.h>

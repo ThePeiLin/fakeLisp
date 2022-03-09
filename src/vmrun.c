@@ -1,9 +1,6 @@
 #define USE_CODE_NAME
 #include<fakeLisp/reader.h>
-#include<fakeLisp/vmvalue.h>
-#include<fakeLisp/vmrun.h>
-#include<fakeLisp/vmtype.h>
-#include<fakeLisp/vmutils.h>
+#include<fakeLisp/vm.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/bytecode.h>

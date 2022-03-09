@@ -4,6 +4,7 @@
 #include"basicADT.h"
 #include"deftype.h"
 #include"bytecode.h"
+#include"compiler.h"
 #include<stdio.h>
 #include<stdint.h>
 #include<pthread.h>
@@ -227,4 +228,170 @@ typedef struct FklSharedObjNode
 	struct FklSharedObjNode* next;
 }FklSharedObjNode;
 
+//vmrun
+
+int fklRunVM(FklVM*);
+FklVM* fklNewVM(FklByteCode*);
+FklVM* fklNewTmpVM(FklByteCode*);
+FklVM* fklNewThreadVM(FklVMproc*,FklVMheap*);
+FklVM* fklNewThreadDlprocVM(FklVMrunnable* r,FklVMheap* heap);
+void fklInitGlobEnv(FklVMenv*,FklVMheap*);
+
+FklVMstack* fklNewVMstack(int32_t);
+void fklFreeVMstack(FklVMstack*);
+void fklStackRecycle(FklVM*);
+int fklCreateNewThread(FklVM*);
+FklVMlist* fklNewThreadStack(int32_t);
+FklVMrunnable* fklHasSameProc(uint32_t,FklPtrStack*);
+int fklIsTheLastExpress(const FklVMrunnable*,const FklVMrunnable*,const FklVM* exe);
+FklVMheap* fklNewVMheap();
+void fklCreateCallChainWithContinuation(FklVM*,VMcontinuation*);
+void fklFreeVMheap(FklVMheap*);
+void fklFreeAllVMs();
+void fklDeleteCallChain(FklVM*);
+void fklJoinAllThread();
+void fklCancelAllThread();
+void fklGC_mark(FklVM*);
+void fklGC_markValue(FklVMvalue*);
+void fklGC_markValueInStack(FklVMstack*);
+void fklGC_markValueInEnv(FklVMenv*);
+void fklGC_markValueInCallChain(FklPtrStack*);
+void fklGC_markMessage(FklQueueNode*);
+void fklGC_markSendT(FklQueueNode*);
+void fklGC_sweep(FklVMheap*);
+void fklGC_compact(FklVMheap*);
+
+void fklDBG_printVMenv(FklVMenv*,FILE*);
+void fklDBG_printVMvalue(FklVMvalue*,FILE*);
+void fklDBG_printVMstack(FklVMstack*,FILE*,int);
+void fklFreeAllSharedObj(void);
+
+FklVMvalue* fklGET_VAL(FklVMvalue* P,FklVMheap*);
+int fklSET_REF(FklVMvalue* P,FklVMvalue* V);
+struct Cirular_Ref_List;
+void fklPrin1VMvalue(FklVMvalue*,FILE*,struct Cirular_Ref_List**);
+void fklPrincVMvalue(FklVMvalue*,FILE*,struct Cirular_Ref_List**);
+
+//
+
+//vmtype
+
+void fklApplyFF(void* func,int argc,ffi_type* rtype,ffi_type** atypes,void* rvalue,void** avalue);
+
+ffi_type* fklGetFfiType(FklTypeId_t typeId);
+void fklPrepFFIcif(ffi_cif* cif,int argc,ffi_type** atypes,ffi_type* rtype);
+void fklApplyFlproc(FklVMflproc* f,void* rvalue,void** avalue);
+int fklCastValueToVptr(FklTypeId_t,FklVMvalue* v,void** p);
+
+FklVMmem* fklNewVMmem(FklTypeId_t typeId,uint8_t* mem);
+void fklPrintMemoryRef(FklTypeId_t,FklVMmem*,FILE*);
+FklVMvalue* fklMemoryCast(FklTypeId_t,FklVMmem*,FklVMheap*);
+int fklMemorySet(FklTypeId_t id,FklVMmem*,FklVMvalue* v);
+
+
+//
+
+
+//vmutils
+FklVMvalue* fklGetTopValue(FklVMstack* stack);
+FklVMvalue* fklGetValue(FklVMstack* stack,int32_t place);
+FklVMenv* fklCastPreEnvToVMenv(FklPreEnv*,FklVMenv*,FklVMheap*);
+FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline);
+
+uint8_t* fklCopyArry(size_t,uint8_t*);
+FklVMstack* fklCopyStack(FklVMstack*);
+void fklReleaseSource(pthread_rwlock_t*);
+void fklLockSource(pthread_rwlock_t*);
+FklVMvalue* fklPopVMstack(FklVMstack*);
+FklVMtryBlock* fklNewVMtryBlock(FklSid_t,uint32_t tp,long int rtp);
+void fklFreeVMtryBlock(FklVMtryBlock* b);
+
+FklVMerrorHandler* fklNewVMerrorHandler(FklSid_t type,uint32_t scp,uint32_t cpc);
+void fklFreeVMerrorHandler(FklVMerrorHandler*);
+int fklRaiseVMerror(FklVMvalue* err,FklVM*);
+FklVMrunnable* fklNewVMrunnable(FklVMproc*);
+char* fklGenErrorMessage(unsigned int type,FklVMrunnable* r,FklVM* exe);
+char* fklGenInvalidSymbolErrorMessage(const char* str,FklVMrunnable* r,FklVM* exe);
+int32_t fklGetSymbolIdInByteCode(const uint8_t*);
+int fklResBp(FklVMstack*);
+
+VMcontinuation* fklNewVMcontinuation(FklVMstack* stack,FklPtrStack* rstack,FklPtrStack* tstack);
+void fklFreeVMcontinuation(VMcontinuation* cont);
+
+
+FklVMenvNode* fklNewVMenvNode(FklVMvalue*,int32_t);
+FklVMenvNode* fklAddVMenvNode(FklVMenvNode*,FklVMenv*);
+FklVMenvNode* fklFindVMenvNode(FklSid_t,FklVMenv*);
+void fklFreeVMenvNode(FklVMenvNode*);
+
+
+FklVMenv* fklNewVMenv(FklVMenv*);
+void fklIncreaseVMenvRefcount(FklVMenv*);
+void fklDecreaseVMenvRefcount(FklVMenv*);
+void fklFreeVMenv(FklVMenv*);
+FklVMenv* fklCopyVMenv(FklVMenv*,FklVMheap*);
+
+FklVMproc* fklNewVMproc(uint32_t scp,uint32_t cpc);
+
+FklVMvalue* fklCopyVMvalue(FklVMvalue*,FklVMheap*);
+FklVMvalue* fklNewVMvalue(FklValueType,void*,FklVMheap*);
+FklVMvalue* fklNewTrueValue(FklVMheap*);
+FklVMvalue* fklNewNilValue();
+FklVMvalue* fklGetTopValue(FklVMstack*);
+FklVMvalue* fklGetValue(FklVMstack*,int32_t);
+FklVMvalue* fklGetVMpairCar(FklVMvalue*);
+FklVMvalue* fklGetVMpairCdr(FklVMvalue*);
+int fklVMvaluecmp(FklVMvalue*,FklVMvalue*);
+int subfklVMvaluecmp(FklVMvalue*,FklVMvalue*);
+int fklNumcmp(FklVMvalue*,FklVMvalue*);
+
+FklVMpair* fklNewVMpair(void);
+
+FklVMbyts* fklNewVMbyts(size_t,uint8_t*);
+//void fklIncreaseVMbyts(FklVMbyts*);
+//void fklDecreaseVMbyts(FklVMbyts*);
+
+FklVMbyts* fklCopyVMbyts(const FklVMbyts*);
+FklVMbyts* fklNewEmptyVMbyts();
+void fklVMbytsCat(FklVMbyts**,const FklVMbyts*);
+int fklEqVMbyts(const FklVMbyts*,const FklVMbyts*);
+FklVMchanl* fklNewVMchanl(int32_t size);
+
+void fklFreeVMchanl(FklVMchanl*);
+FklVMchanl* fklCopyVMchanl(FklVMchanl*,FklVMheap*);
+int32_t fklGetNumVMchanl(FklVMchanl*);
+
+FklVMproc* fklCopyVMproc(FklVMproc*,FklVMheap*);
+void fklFreeVMproc(FklVMproc*);
+
+VMcontinuation* fklNewVMcontinuation(FklVMstack*,FklPtrStack*,FklPtrStack*);
+void fklFreeVMcontinuation(VMcontinuation*);
+
+void fklFreeVMfp(FILE*);
+
+FklVMdllHandle* fklNewVMdll(const char*);
+void* fklGetAddress(const char*,FklVMdllHandle);
+void fklFreeVMdll(FklVMdllHandle*);
+
+FklVMdlproc* fklNewVMdlproc(FklVMdllFunc,FklVMvalue*);
+void fklFreeVMdlproc(FklVMdlproc*);
+
+FklVMflproc* fklNewVMflproc(FklTypeId_t type,void* func);
+void fklFreeVMflproc(FklVMflproc*);
+
+FklVMerror* fklNewVMerror(const char* who,const char* type,const char* message);
+FklVMerror* fklNewVMerrorWithSid(const char* who,FklSid_t type,const char* message);
+void fklFreeVMerror(FklVMerror*);
+
+
+FklVMrecv* fklNewVMrecv(FklVM*);
+void fklFreeVMrecv(FklVMrecv*);
+
+FklVMsend* fklNewVMsend(FklVMvalue*);
+void fklFreeVMsend(FklVMsend*);
+
+void fklChanlSend(FklVMsend*,FklVMchanl*);
+void fklChanlRecv(FklVMrecv*,FklVMchanl*);
+
+FklVMvalue* fklCastCptrVMvalue(FklAstCptr*,FklVMheap*);
 #endif

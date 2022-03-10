@@ -4,11 +4,6 @@
 #include<stdlib.h>
 #include<ctype.h>
 
-#define FKL_FREE_ALL_LINE_NUMBER_TABLE(l,s) {int32_t i=0;\
-	for(;i<(s);i++)\
-	fklFreeLineNumTabNode((l)[i]);\
-}
-
 static FklStringMatchPattern* HeadOfStringPattern=NULL;
 static int32_t fklSkipUntilNextWhenReading(const char* str,const char* part);
 static int32_t fklCountInPatternWhenReading(const char*,FklStringMatchPattern*);
@@ -927,10 +922,7 @@ void fklFreeAllStringPattern()
 		cur=cur->next;
 		fklFreeStringArry(prev->parts,prev->num);
 		if(prev->type==FKL_BYTS)
-		{
-			FKL_FREE_ALL_LINE_NUMBER_TABLE(prev->u.bProc->l,prev->u.bProc->ls);
-			fklFreeByteCodelnt(prev->u.bProc);
-		}
+			fklFreeByteCodeAndLnt(prev->u.bProc);
 		free(prev);
 	}
 }

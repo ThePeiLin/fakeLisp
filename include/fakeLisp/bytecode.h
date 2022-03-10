@@ -47,6 +47,7 @@ void fklPrintByteCode(const FklByteCode*,FILE*);
 FklByteCodelnt* fklNewByteCodelnt(FklByteCode* bc);
 void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp);
 void fklFreeByteCodelnt(FklByteCodelnt*);
+void fklFreeByteCodeAndLnt(FklByteCodelnt*);
 void fklIncreaseScpOfByteCodelnt(FklByteCodelnt*,int32_t);
 void fklCodeLntCat(FklByteCodelnt*,FklByteCodelnt*);
 void fklCodelntCopyCat(FklByteCodelnt*,const FklByteCodelnt*);

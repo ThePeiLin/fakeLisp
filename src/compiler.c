@@ -98,18 +98,6 @@ static int cmpString(const void* a,const void* b)
 //{
 //	return strcmp(((const FklByteCodeLabel*)a)->label,((const FklByteCodeLabel*)b)->label);
 //}
-//
-//static uint8_t findOpcode(const char* str)
-//{
-//	uint8_t i=0;
-//	uint32_t size=sizeof(codeName)/sizeof(codeinfor);
-//	for(;i<size;i++)
-//	{
-//		if(!strcmp(codeName[i].codeName,str))
-//			return i;
-//	}
-//	return 0;
-//}
 
 FklPreMacro* fklPreMacroMatch(const FklAstCptr* objCptr,FklPreEnv** pmacroEnv,FklCompEnv* curEnv,FklCompEnv** pCEnv)
 {
@@ -561,14 +549,14 @@ FklErrorState defmacro(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* in
 			FklAstAtom* tmpAtom=args[0]->u.atom;
 			if(tmpAtom->type!=FKL_STR)
 			{
-				fklExError(args[0],FKL_SYNTAXERROR,inter);
+				fklPrintCompileError(args[0],FKL_SYNTAXERROR,inter);
 				free(args);
 				return state;
 			}
 			char* tmpStr=tmpAtom->value.str;
 			if(!fklIsReDefStringPattern(tmpStr)&&fklIsInValidStringPattern(tmpStr))
 			{
-				fklExError(args[0],FKL_INVALIDEXPR,inter);
+				fklPrintCompileError(args[0],FKL_INVALIDEXPR,inter);
 				free(args);
 				return state;
 			}
@@ -646,7 +634,7 @@ FklStringMatchPattern* fklAddStringPattern(char** parts,int32_t num,FklAstCptr* 
 	{
 		if(tmpByteCodelnt)
 			fklFreeByteCodeAndLnt(tmpByteCodelnt);
-		fklExError(state.place,state.state,inter);
+		fklPrintCompileError(state.place,state.state,inter);
 		state.place=NULL;
 		state.state=0;
 	}
@@ -700,7 +688,7 @@ FklStringMatchPattern* fklAddReDefStringPattern(char** parts,int32_t num,FklAstC
 	{
 		if(tmpByteCodelnt)
 			fklFreeByteCodeAndLnt(tmpByteCodelnt);
-		fklExError(state.place,state.state,inter);
+		fklPrintCompileError(state.place,state.state,inter);
 		state.place=NULL;
 		state.state=0;
 	}
@@ -2374,7 +2362,7 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int evalIm,int* exitstate)
 			{
 				if(state.state)
 				{
-					fklExError(state.place,state.state,inter);
+					fklPrintCompileError(state.place,state.state,inter);
 					if(exitstate)*exitstate=state.state;
 					fklDeleteCptr(state.place);
 				}
@@ -3055,7 +3043,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 						FklAstCptr* exportCptr=fklNextCptr(libName);
 						if(!exportCptr||!fklIsExportExpression(exportCptr))
 						{
-							fklExError(begin,FKL_INVALIDEXPR,tmpInter);
+							fklPrintCompileError(begin,FKL_INVALIDEXPR,tmpInter);
 							fklDeleteCptr(begin);
 							free(begin);
 							chdir(tmpInter->prev->curDir);
@@ -3080,7 +3068,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 								if(pExportSymbols->type!=FKL_ATM
 										||pExportSymbols->u.atom->type!=FKL_SYM)
 								{
-									fklExError(exportCptr,FKL_SYNTAXERROR,tmpInter);
+									fklPrintCompileError(exportCptr,FKL_SYNTAXERROR,tmpInter);
 									fklDeleteCptr(begin);
 									free(begin);
 									chdir(tmpInter->prev->curDir);
@@ -3111,7 +3099,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 								if(state->state||!otherByteCodelnt)
 								{
 									if(otherByteCodelnt!=NULL)
-										fklExError(state->place,state->state,tmpInter);
+										fklPrintCompileError(state->place,state->state,tmpInter);
 									fklDeleteCptr(begin);
 									free(begin);
 									chdir(tmpInter->prev->curDir);
@@ -3172,7 +3160,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 							if(pExportSymbols->type!=FKL_ATM
 									||pExportSymbols->u.atom->type!=FKL_SYM)
 							{
-								fklExError(exportCptr,FKL_SYNTAXERROR,tmpInter);
+								fklPrintCompileError(exportCptr,FKL_SYNTAXERROR,tmpInter);
 								fklDeleteCptr(begin);
 								free(begin);
 								fklFreeByteCodelnt(tmp);
@@ -3205,7 +3193,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 							tmpDef=fklFindCompDef(symbolWouldExport,tmpInter->glob);
 							if(!tmpDef)
 							{
-								fklExError(pExportSymbols,FKL_SYMUNDEFINE,tmpInter);
+								fklPrintCompileError(pExportSymbols,FKL_SYMUNDEFINE,tmpInter);
 								fklDeleteCptr(begin);
 								free(begin);
 								chdir(tmpInter->prev->curDir);
@@ -3420,7 +3408,7 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 	return t;
 }
 
-void fklExError(const FklAstCptr* obj,int type,FklInterpreter* inter)
+void fklPrintCompileError(const FklAstCptr* obj,int type,FklInterpreter* inter)
 {
 	fprintf(stderr,"error of compiling: ");
 	switch(type)

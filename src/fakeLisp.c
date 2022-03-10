@@ -227,7 +227,7 @@ void runIntpr(FklInterpreter* inter)
 			FklByteCodelnt* tmpByteCode=fklCompile(begin,inter->glob,inter,&state,!fklIsLambdaExpression(begin));
 			if(state.state!=0)
 			{
-				fklExError(state.place,state.state,inter);
+				fklPrintCompileError(state.place,state.state,inter);
 				fklDeleteCptr(state.place);
 				if(inter->file!=stdin)
 				{

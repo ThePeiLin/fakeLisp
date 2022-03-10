@@ -1,4 +1,3 @@
-#define USE_CODE_NAME
 #include<fakeLisp/reader.h>
 #include<fakeLisp/vm.h>
 #include<fakeLisp/utils.h>
@@ -660,7 +659,7 @@ void B_dummy(FklVM* exe)
 	fklDBG_printVMstack(exe->stack,stderr,1);
 	putc('\n',stderr);
 	fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
-	fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",currunnable->cp-scp,stack->bp,codeName[(uint8_t)exe->code[currunnable->cp]].codeName);
+	fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",currunnable->cp-scp,stack->bp,fklGetOpcodeName((FklOpcode)(exe->code[currunnable->cp])));
 	fklDBG_printVMenv(currunnable->localenv,stderr);
 	putc('\n',stderr);
 	fprintf(stderr,"Wrong byts code!\n");
@@ -1340,7 +1339,7 @@ void fklStackRecycle(FklVM* exe)
 		if(stack->values==NULL)
 		{
 			fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
-			fprintf(stderr,"cp=%d\n%s\n",currunnable->cp,codeName[(uint8_t)exe->code[currunnable->cp]].codeName);
+			fprintf(stderr,"cp=%d\n%s\n",currunnable->cp,fklGetOpcodeName((FklOpcode)(exe->code[currunnable->cp])));
 			FKL_ASSERT(stack->values,"fklStackRecycle",__FILE__,__LINE__);
 		}
 		stack->size-=64;

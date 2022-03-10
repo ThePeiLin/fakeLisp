@@ -1,4 +1,3 @@
-#define USE_CODE_NAME
 #include<fakeLisp/bytecode.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/opcode.h>
@@ -102,8 +101,8 @@ void fklPrintByteCode(const FklByteCode* tmpCode,FILE* fp)
 	while(i<tmpCode->size)
 	{
 		int tmplen=0;
-		fprintf(fp,"%d: %s ",i,codeName[(int)tmpCode->code[i]].codeName);
-		switch(codeName[tmpCode->code[i]].len)
+		fprintf(fp,"%d: %s ",i,fklGetOpcodeName((FklOpcode)(tmpCode->code[i])));
+		switch(fklGetOpcodeArgLen((FklOpcode)(tmpCode->code[i])))
 		{
 			case -4:
 				{
@@ -187,8 +186,8 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp)
 	while(i<tmpCode->size)
 	{
 		int tmplen=0;
-		fprintf(fp,"%d: %s ",i,codeName[(int)tmpCode->code[i]].codeName);
-		switch(codeName[(int)tmpCode->code[i]].len)
+		fprintf(fp,"%d: %s ",i,fklGetOpcodeName((FklOpcode)(tmpCode->code[i])));
+		switch(fklGetOpcodeArgLen((FklOpcode)(tmpCode->code[i])))
 		{
 			case -4:
 				{

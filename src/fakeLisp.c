@@ -1,4 +1,3 @@
-#include"fakeLisp.h"
 #include<fakeLisp/reader.h>
 #include<fakeLisp/syntax.h>
 #include<fakeLisp/compiler.h>
@@ -13,6 +12,11 @@
 #include<ctype.h>
 #include<pthread.h>
 #include<setjmp.h>
+
+void runIntpr(FklInterpreter*);
+FklByteCode* loadByteCode(FILE*);
+void loadSymbolTable(FILE*);
+LineNumberTable* loadLineNumberTable(FILE*);
 static jmp_buf buf;
 static int exitState=0;
 

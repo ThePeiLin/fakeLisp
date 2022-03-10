@@ -15,10 +15,6 @@
 #else
 #include<tchar.h>
 #endif
-#define FKL_FREE_ALL_LINE_NUMBER_TABLE(l,s) {int32_t i=0;\
-	for(;i<(s);i++)\
-	fklFreeLineNumTabNode((l)[i]);\
-}
 
 char* fklGetStringFromList(const char* str)
 {

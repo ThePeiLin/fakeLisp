@@ -4,28 +4,38 @@ set(CMAKE_C_STANDARD 11)
 set(INTERPRETER_TARGET_NAME fakeLisp)
 set(COMPILER_TARGET_NAME fakeLispc)
 set(BTK_TARGET_NAME btk)
+set(LIBFKL_TARGET_NAME fkl)
 project(${INTERPRETER_TARGET_NAME})
 include_directories("${PROJECT_SOURCE_DIR}/include")
-set(SOURCE "src/*.c" "src/*.h")
-file(GLOB INTERPRETER_SOURCE "src/*.c")
-file(GLOB COMPILER_SOURCE "src/*.c")
-file(GLOB BTK_SOURCE "src/btk.c" "src/deftype.c" "src/syscall.c" "src/basicADT.c" "src/utils.c" "src/vmrun.c" "src/vmtype.c" "src/vmutils.c" "src/vmvalue.c")
-list(REMOVE_ITEM INTERPRETER_SOURCE
-	"${PROJECT_SOURCE_DIR}/src/fakeLispc.c"
-	"${PROJECT_SOURCE_DIR}/src/btk.c")
-list(REMOVE_ITEM COMPILER_SOURCE
-	"${PROJECT_SOURCE_DIR}/src/fakeLisp.c"
-	"${PROJECT_SOURCE_DIR}/src/btk.c")
+
+file(GLOB INTERPRETER_SOURCE "src/fakeLisp.c")
+
+file(GLOB COMPILER_SOURCE "src/fakeLispc.c")
+
+file(GLOB BTK_SOURCE "src/btk.c")
 add_library(${BTK_TARGET_NAME}
-    SHARED
+	MODULE
 	${BTK_SOURCE})
 set_target_properties(${BTK_TARGET_NAME} PROPERTIES PREFIX "")
+
+file(GLOB LIBFKL_SOURCE "src/*.c")
+list(REMOVE_ITEM LIBFKL_SOURCE
+	"${PROJECT_SOURCE_DIR}/src/fakeLisp.c"
+	"${PROJECT_SOURCE_DIR}/src/fakeLispc.c")
+add_library(${LIBFKL_TARGET_NAME}
+	STATIC
+	${LIBFKL_SOURCE})
+set_property(TARGET ${LIBFKL_TARGET_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 set(LINK_TARGET m pthread dl ffi)
+
 add_executable(${INTERPRETER_TARGET_NAME} ${INTERPRETER_SOURCE})
 add_executable(${COMPILER_TARGET_NAME} ${COMPILER_SOURCE})
-target_link_libraries(${INTERPRETER_TARGET_NAME} ${LINK_TARGET})
-target_link_libraries(${COMPILER_TARGET_NAME} ${LINK_TARGET})
-target_link_libraries(${BTK_TARGET_NAME} ${LINK_TARGET})
+
+target_link_libraries(${LIBFKL_TARGET_NAME} ${LINK_TARGET})
+target_link_libraries(${INTERPRETER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
+target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
+target_link_libraries(${BTK_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 add_custom_target(COPY_STD_FKL ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/lib ${CMAKE_BINARY_DIR}/lib)
 add_custom_target(COPY_EXAMPLES ALL

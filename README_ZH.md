@@ -14,18 +14,18 @@ defmacro的语法比较特殊，为：
 (defmacro <用于匹配的表达式> <用于返回的表达式>)  
 宏没有名字，而是通过匹配表达式来实现表达式的替换，如：  
 ```scheme
-(defmacro (c ?a ?b) (cons 'cons (cons a (cons b nil))))  
+(defmacro (c a b) (cons 'cons (cons a (cons b nil))))  
 ```
-这个宏会匹配形如(c ?a ?b)的表达式，并用(cons 'cons (cons a (cons b nil)))的结果替换原来的表达式，  
+这个宏会匹配形如(c a b)的表达式，并用(cons 'cons (cons a (cons b nil)))的结果替换原来的表达式，  
 即表达式(c 9 9)会被替换为(cons 9 9).  
 
-匹配过程中，名字带"?"的符号会绑定源表达式中对应的部分，
+匹配过程中，匹配模式的第一个符号为关键字，其余符号均会绑定源表达式中对应的部分，
 如a绑定9，b绑定9。
 
 下面是let宏:  
 ```scheme
 	(defmacro
-	 (let ?d,?b)
+	 (let d,b)
 	 (begin
 	  (define map
 	   (lambda (f l)
@@ -91,7 +91,7 @@ defmacro的语法比较特殊，为：
 ```scheme
 ;假定let宏已经在上文定义
 (let ()
-  (defmacro (q ?a)
+  (defmacro (q a)
     (cons (quote quote)
           (cons a nil)))
   (q a)) ;合法
@@ -650,7 +650,7 @@ lambda表达式，返回一个参数列表为args，函数体为列表body的过
   (define x 2)
   (define y 1)
   (define c 9)
-  (defmacro (c ?a)
+  (defmacro (c a)
     `(+ ~c ~a))
 )
 
@@ -789,7 +789,7 @@ defmacro
 lisp系的编程语言大多都有词法闭包，  可以利用词法闭包来实现面向对象的功能，下面的宏实现了一个简单的对象系统：  
   
 ```scheme
-(defmacro (class ?name,?body)
+(defmacro (class name,body)
   (begin
     (define data-list nil)
     (define pre-method-list nil)

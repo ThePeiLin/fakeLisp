@@ -1,10 +1,13 @@
 cmake_minimum_required(VERSION 3.18)
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
+set(CMAKE_BUILD_TYPE DEBUG)
 set(CMAKE_C_STANDARD 11)
+
 set(INTERPRETER_TARGET_NAME fakeLisp)
 set(COMPILER_TARGET_NAME fakeLispc)
 set(BTK_TARGET_NAME btk)
 set(LIBFKL_TARGET_NAME fkl)
+
 project(${INTERPRETER_TARGET_NAME})
 include_directories("${PROJECT_SOURCE_DIR}/include")
 
@@ -50,6 +53,9 @@ if(${CMAKE_BUILD_TYPE} STREQUAL "DEBUG")
     target_compile_options(${INTERPRETER_TARGET_NAME} PRIVATE
 		$<$<CXX_COMPILER_ID:MSVC>:/DEBUG /W4>
 		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-g -Wall>)
+	target_compile_options(${LIBFKL_TARGET_NAME} PRIVATE
+		$<$<CXX_COMPILER_ID:MSVC>:/DEBUG /W4>
+		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-g -Wall>)
 else()
 	target_compile_options(${BTK_TARGET_NAME} PRIVATE
 		$<$<CXX_COMPILER_ID:MSVC>:/W4>
@@ -58,6 +64,9 @@ else()
 		$<$<CXX_COMPILER_ID:MSVC>:/W4>
 		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall>)
     target_compile_options(${INTERPRETER_TARGET_NAME} PRIVATE
+		$<$<CXX_COMPILER_ID:MSVC>:/W4>
+		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall>)
+	target_compile_options(${LIBFKL_TARGET_NAME} PRIVATE
 		$<$<CXX_COMPILER_ID:MSVC>:/W4>
 		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall>)
 endif()

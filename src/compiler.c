@@ -16,7 +16,6 @@
 static char* InterpreterPath=NULL;
 static int MacroPatternCmp(const FklAstCptr*,const FklAstCptr*);
 static int fmatcmp(const FklAstCptr*,const FklAstCptr*,FklPreEnv**,FklCompEnv*);
-static int isVal(const char*);
 static int fklAddDefinedMacro(FklPreMacro* macro,FklCompEnv* curEnv);
 static FklErrorState defmacro(FklAstCptr*,FklCompEnv*,FklInterpreter*);
 static FklCompEnv* createPatternCompEnv(char**,int32_t,FklCompEnv*);
@@ -166,16 +165,18 @@ static int fklAddDefinedMacro(FklPreMacro* macro,FklCompEnv* curEnv)
 		current=current->next;
 	if(current==NULL)
 	{
-		for(tmpCptr=&pattern->u.pair->car;tmpCptr!=NULL;tmpCptr=fklNextCptr(tmpCptr))
-		{
-			if(tmpCptr->type==FKL_ATM)
-			{
-				FklAstAtom* carAtm=tmpCptr->u.atom;
-				FklAstAtom* cdrAtm=(tmpCptr->outer->cdr.type==FKL_ATM)?tmpCptr->outer->cdr.u.atom:NULL;
-				if(carAtm->type==FKL_SYM&&!isVal(carAtm->value.str))fklAddKeyWord(carAtm->value.str,curEnv);
-				if(cdrAtm!=NULL&&cdrAtm->type==FKL_SYM&&!isVal(cdrAtm->value.str))fklAddKeyWord(cdrAtm->value.str,curEnv);
-			}
-		}
+		tmpCptr=&pattern->u.pair->car;
+		fklAddKeyWord(tmpCptr->u.atom->value.str,curEnv);
+		//for(tmpCptr=&pattern->u.pair->car;tmpCptr!=NULL;tmpCptr=fklNextCptr(tmpCptr))
+		//{
+		//	if(tmpCptr->type==FKL_ATM)
+		//	{
+		//		FklAstAtom* carAtm=tmpCptr->u.atom;
+		//		FklAstAtom* cdrAtm=(tmpCptr->outer->cdr.type==FKL_ATM)?tmpCptr->outer->cdr.u.atom:NULL;
+		//		if(carAtm->type==FKL_SYM&&!isVal(carAtm->value.str))fklAddKeyWord(carAtm->value.str,curEnv);
+		//		if(cdrAtm!=NULL&&cdrAtm->type==FKL_SYM&&!isVal(cdrAtm->value.str))fklAddKeyWord(cdrAtm->value.str,curEnv);
+		//	}
+		//}
 		FklPreMacro* current=(FklPreMacro*)malloc(sizeof(FklPreMacro));
 		FKL_ASSERT(current,"fklAddDefinedMacro",__FILE__,__LINE__);
 		current->next=curEnv->macro;
@@ -205,16 +206,18 @@ int fklAddMacro(FklAstCptr* pattern,FklByteCodelnt* proc,FklCompEnv* curEnv)
 		current=current->next;
 	if(current==NULL)
 	{
-		for(tmpCptr=&pattern->u.pair->car;tmpCptr!=NULL;tmpCptr=fklNextCptr(tmpCptr))
-		{
-			if(tmpCptr->type==FKL_ATM)
-			{
-				FklAstAtom* carAtm=tmpCptr->u.atom;
-				FklAstAtom* cdrAtm=(tmpCptr->outer->cdr.type==FKL_ATM)?tmpCptr->outer->cdr.u.atom:NULL;
-				if(carAtm->type==FKL_SYM&&!isVal(carAtm->value.str))fklAddKeyWord(carAtm->value.str,curEnv);
-				if(cdrAtm!=NULL&&cdrAtm->type==FKL_SYM&&!isVal(cdrAtm->value.str))fklAddKeyWord(cdrAtm->value.str,curEnv);
-			}
-		}
+		tmpCptr=&pattern->u.pair->car;
+		fklAddKeyWord(tmpCptr->u.atom->value.str,curEnv);
+//		for(tmpCptr=&pattern->u.pair->car;tmpCptr!=NULL;tmpCptr=fklNextCptr(tmpCptr))
+//		{
+//			if(tmpCptr->type==FKL_ATM)
+//			{
+//				FklAstAtom* carAtm=tmpCptr->u.atom;
+//				FklAstAtom* cdrAtm=(tmpCptr->outer->cdr.type==FKL_ATM)?tmpCptr->outer->cdr.u.atom:NULL;
+//				if(carAtm->type==FKL_SYM&&!isVal(carAtm->value.str))fklAddKeyWord(carAtm->value.str,curEnv);
+//				if(cdrAtm!=NULL&&cdrAtm->type==FKL_SYM&&!isVal(cdrAtm->value.str))fklAddKeyWord(cdrAtm->value.str,curEnv);
+//			}
+//		}
 		FKL_ASSERT((current=(FklPreMacro*)malloc(sizeof(FklPreMacro))),"fklAddMacro",__FILE__,__LINE__);
 		current->next=curEnv->macro;
 		current->pattern=pattern;
@@ -259,7 +262,7 @@ int MacroPatternCmp(const FklAstCptr* first,const FklAstCptr* second)
 				FklAstAtom* firAtm=first->u.atom;
 				FklAstAtom* secAtm=second->u.atom;
 				if(firAtm->type!=secAtm->type)return 0;
-				if(firAtm->type==FKL_SYM&&(!isVal(firAtm->value.str)||!isVal(secAtm->value.str))&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
+				if(firAtm->type==FKL_SYM)return 0;
 				if(firAtm->type==FKL_STR&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
 				else if(firAtm->type==FKL_I32&&firAtm->value.i32!=secAtm->value.i32)return 0;
 				else if(firAtm->type==FKL_DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
@@ -303,10 +306,16 @@ int MacroPatternCmp(const FklAstCptr* first,const FklAstCptr* second)
 
 int fmatcmp(const FklAstCptr* origin,const FklAstCptr* format,FklPreEnv** pmacroEnv,FklCompEnv* curEnv)
 {
-	FklPreEnv* macroEnv=fklNewEnv(NULL);
 	FklAstPair* tmpPair=(format->type==FKL_PAIR)?format->u.pair:NULL;
 	FklAstPair* forPair=tmpPair;
 	FklAstPair* oriPair=(origin->type==FKL_PAIR)?origin->u.pair:NULL;
+	if(tmpPair->car.type!=oriPair->car.type)
+		return 0;
+	if(strcmp(tmpPair->car.u.atom->value.str,oriPair->car.u.atom->value.str))
+		return 0;
+	format=&forPair->cdr;
+	origin=&oriPair->cdr;
+	FklPreEnv* macroEnv=fklNewEnv(NULL);
 	while(origin!=NULL)
 	{
 		if(format->type==FKL_PAIR&&origin->type==FKL_PAIR)
@@ -321,28 +330,7 @@ int fmatcmp(const FklAstCptr* origin,const FklAstCptr* format,FklPreEnv** pmacro
 		{
 			FklAstAtom* tmpAtm=format->u.atom;
 			if(tmpAtm->type==FKL_SYM)
-			{
-				if(isVal(tmpAtm->value.str))
-				{
-					if(origin->type==FKL_ATM)
-					{
-						FklAstAtom* tmpAtm2=origin->u.atom;
-						if(tmpAtm2->type==FKL_SYM&&fklIsKeyWord(tmpAtm2->value.str,curEnv))
-						{
-							fklDestroyEnv(macroEnv);
-							macroEnv=NULL;
-							return 0;
-						}
-					}
-					fklAddDefine(tmpAtm->value.str+1,origin,macroEnv);
-				}
-				else if(!fklCptrcmp(origin,format))
-				{
-					fklDestroyEnv(macroEnv);
-					macroEnv=NULL;
-					return 0;
-				}
-			}
+				fklAddDefine(tmpAtm->value.str,origin,macroEnv);
 			forPair=format->outer;
 			oriPair=origin->outer;
 			if(forPair!=NULL&&format==&forPair->car)
@@ -418,8 +406,7 @@ FklCompEnv* fklCreateMacroCompEnv(const FklAstCptr* objCptr,FklCompEnv* prev)
 				if(tmpAtm->type==FKL_SYM)
 				{
 					const char* tmpStr=tmpAtm->value.str;
-					if(isVal(tmpStr))
-						fklAddCompDef(tmpStr+1,tmpEnv);
+					fklAddCompDef(tmpStr,tmpEnv);
 				}
 			}
 			if(objPair!=NULL&&objCptr==&objPair->car)
@@ -444,13 +431,6 @@ FklCompEnv* fklCreateMacroCompEnv(const FklAstCptr* objCptr,FklCompEnv* prev)
 		if(objPair==NULL)break;
 	}
 	return tmpEnv;
-}
-
-int isVal(const char* name)
-{
-	if(name[0]=='?'&&strlen(name)>1)
-		return 1;
-	return 0;
 }
 
 int fklRetree(FklAstCptr** fir,FklAstCptr* sec)
@@ -551,6 +531,14 @@ FklErrorState defmacro(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* in
 	}
 	else
 	{
+		FklAstCptr* head=fklGetFirstCptr(args[0]);
+		if(head->type!=FKL_ATM||head->u.atom->type!=FKL_SYM)
+		{
+			state.state=FKL_INVALIDPATTERN;
+			state.place=args[0];
+			free(args);
+			return state;
+		}
 		FklAstCptr* pattern=fklNewCptr(0,NULL);
 		fklReplaceCptr(pattern,args[0]);
 		FklAstCptr* express=args[1];
@@ -561,7 +549,7 @@ FklErrorState defmacro(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* in
 		tmpInter->curDir=inter->curDir;
 		tmpInter->prev=NULL;
 		tmpInter->lnt=NULL;
-		FklCompEnv* tmpCompEnv=fklCreateMacroCompEnv(pattern,tmpInter->glob);
+		FklCompEnv* tmpCompEnv=fklCreateMacroCompEnv(&pattern->u.pair->cdr,tmpInter->glob);
 		FklByteCodelnt* tmpByteCodelnt=fklCompile(express,tmpCompEnv,tmpInter,&state,1);
 		if(!state.state)
 		{
@@ -688,7 +676,6 @@ FklByteCodelnt* fklCompile(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter
 		if(fklIsOrExpression(objCptr))return fklCompileOr(objCptr,curEnv,inter,state,evalIm);
 		if(fklIsLambdaExpression(objCptr))return fklCompileLambda(objCptr,curEnv,inter,state,evalIm);
 		if(fklIsBeginExpression(objCptr)) return fklCompileBegin(objCptr,curEnv,inter,state,evalIm);
-		//if(fklIsPrognExpression(objCptr)) return fklCompileProgn(objCptr,curEnv,inter,state,evalIm);
 		if(fklIsImportExpression(objCptr))return fklCompileImport(objCptr,curEnv,inter,state,evalIm);
 		if(fklIsTryExpression(objCptr))return fklCompileTry(objCptr,curEnv,inter,state,evalIm);
 		if(fklIsFlsymExpression(objCptr))return fklCompileFlsym(objCptr,curEnv,inter,state,evalIm);
@@ -2374,459 +2361,6 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int evalIm,int* exitstate)
 	return tmp;
 }
 
-/*
-#define GENERATE_LNT(BYTECODELNT,BYTECODE) {\
-	BYTECODELNT=fklNewByteCodelnt(BYTECODE);\
-	(BYTECODELNT)->ls=1;\
-	(BYTECODELNT)->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));\
-	FKL_ASSERT((BYTECODELNT)->l,"fklCompileProgn",__FILE__,__LINE__);\
-	(BYTECODELNT)->l[0]=fklNewLineNumTabNode(fid,0,(BYTECODE)->size,fir->curline);\
-}
-*/
-
-//FklByteCodelnt* fklCompileProgn(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state,int evalIm)
-//{
-//	FklAstCptr* fir=fklNextCptr(fklGetFirstCptr(objCptr));
-//	FklByteCodelnt* tmp=NULL;
-//
-//	FklPtrStack* stack=fklNewPtrStack(32);
-//	for(;fir;fir=fklNextCptr(fir))
-//	{
-//		if(fir->type!=FKL_ATM)
-//		{
-//			state->place=objCptr;
-//			state->state=FKL_SYNTAXERROR;
-//			return NULL;
-//		}
-//	}
-//
-//	int32_t fid=fklAddSymbolToGlob(inter->filename)->id;
-//	fir=fklNextCptr(fklGetFirstCptr(objCptr));
-//
-//	int32_t sizeOfByteCode=0;
-//
-//	while(fir)
-//	{
-//		FklAstAtom* firAtm=fir->u.atom;
-//		if(firAtm->value.str[0]==':')
-//		{
-//			fklPushPtrStack(fklNewByteCodeLable(sizeOfByteCode,firAtm->value.str+1),stack);
-//			fir=fklNextCptr(fir);
-//			continue;
-//		}
-//
-//		if(firAtm->value.str[0]=='?')
-//		{
-//			fklAddCompDef(firAtm->value.str+1,curEnv);
-//			fir=fklNextCptr(fir);
-//			continue;
-//		}
-//
-//		uint8_t opcode=findOpcode(firAtm->value.str);
-//
-//		if(opcode==0)
-//		{
-//			state->place=fir;
-//			state->state=FKL_SYNTAXERROR;
-//			uint32_t i=0;
-//			for(;i<stack->top;i++)
-//				fklFreeByteCodeLabel(stack->data[i]);
-//			fklFreePtrStack(stack);
-//			return NULL;
-//		}
-//
-//		if(codeName[opcode].len!=0&&fklNextCptr(fir)==NULL)
-//		{
-//			state->place=objCptr;
-//			state->state=FKL_SYNTAXERROR;
-//			uint32_t i=0;
-//			for(;i<stack->top;i++)
-//				fklFreeByteCodeLabel(stack->data[i]);
-//			fklFreePtrStack(stack);
-//
-//			return NULL;
-//		}
-//
-//		switch(codeName[opcode].len)
-//		{
-//			case -3:
-//				{
-//					FklAstCptr* tmpCptr=fklNextCptr(fir);
-//					FklAstAtom* tmpAtm=tmpCptr->u.atom;
-//					int32_t scope=0;
-//					FklCompEnv* tmpEnv=curEnv;
-//					FklCompDef* tmpDef=NULL;
-//
-//					if(tmpAtm->type!=FKL_SYM)
-//					{
-//						state->place=objCptr;
-//						state->state=FKL_SYNTAXERROR;
-//						uint32_t i=0;
-//						for(;i<stack->top;i++)
-//							fklFreeByteCodeLabel(stack->data[i]);
-//						fklFreePtrStack(stack);
-//						return NULL;
-//					}
-//
-//					while(tmpEnv!=NULL)
-//					{
-//						tmpDef=fklFindCompDef(tmpAtm->value.str,tmpEnv);
-//						if(tmpDef!=NULL)break;
-//						tmpEnv=tmpEnv->prev;
-//						scope++;
-//					}
-//
-//					if(!tmpDef)
-//					{
-//						state->place=tmpCptr;
-//						state->state=FKL_SYMUNDEFINE;
-//						uint32_t i=0;
-//						for(;i<stack->top;i++)
-//							fklFreeByteCodeLabel(stack->data[i]);
-//						fklFreePtrStack(stack);
-//						return NULL;
-//					}
-//					sizeOfByteCode+=sizeof(char)+2*sizeof(int32_t);
-//					fir=fklNextCptr(tmpCptr);
-//				}
-//				break;
-//			case -2:
-//				{
-//					FklAstCptr* tmpCptr=fklNextCptr(fir);
-//					FklAstAtom* tmpAtm=tmpCptr->u.atom;
-//					if(tmpAtm->type!=FKL_BYTS)
-//					{
-//						state->place=tmpCptr;
-//						state->state=FKL_SYNTAXERROR;
-//						uint32_t i=0;
-//						for(;i<stack->top;i++)
-//							fklFreeByteCodeLabel(stack->data[i]);
-//						fklFreePtrStack(stack);
-//						return NULL;
-//					}
-//
-//					sizeOfByteCode+=sizeof(char)+sizeof(int32_t)+tmpAtm->value.byts.size;
-//					fir=fklNextCptr(tmpCptr);
-//				}
-//				break;
-//			case -1:
-//				{
-//					FklAstCptr* tmpCptr=fklNextCptr(fir);
-//					FklAstAtom* tmpAtm=tmpCptr->u.atom;
-//					if(tmpAtm->type!=FKL_SYM&&tmpAtm->type!=FKL_STR)
-//					{
-//						state->place=tmpCptr;
-//						state->state=FKL_SYNTAXERROR;
-//						uint32_t i=0;
-//						for(;i<stack->top;i++)
-//							fklFreeByteCodeLabel(stack->data[i]);
-//						fklFreePtrStack(stack);
-//						return NULL;
-//					}
-//
-//					sizeOfByteCode+=sizeof(char)*2+strlen(tmpAtm->value.str);
-//					fir=fklNextCptr(tmpCptr);
-//				}
-//				break;
-//			case 0:
-//				{
-//					sizeOfByteCode+=sizeof(char);
-//					fir=fklNextCptr(fir);
-//				}
-//				break;
-//			case 1:
-//				{
-//					FklAstCptr* tmpCptr=fklNextCptr(fir);
-//					FklAstAtom* tmpAtm=tmpCptr->u.atom;
-//					if(tmpAtm->type!=FKL_CHR)
-//					{
-//						state->place=tmpCptr;
-//						state->state=FKL_SYNTAXERROR;
-//						uint32_t i=0;
-//						for(;i<stack->top;i++)
-//							fklFreeByteCodeLabel(stack->data[i]);
-//						fklFreePtrStack(stack);
-//						return NULL;
-//					}
-//
-//					sizeOfByteCode+=sizeof(char)*2;
-//					fir=fklNextCptr(tmpCptr);
-//				}
-//				break;
-//			case 4:
-//				{
-//					FklAstCptr* tmpCptr=fklNextCptr(fir);
-//					FklAstAtom* tmpAtm=tmpCptr->u.atom;
-//					if(opcode==FKL_PUSH_VAR)
-//					{
-//						FklCompEnv* tmpEnv=curEnv;
-//						FklCompDef* tmpDef=NULL;
-//						if(tmpAtm->type!=FKL_STR&&tmpAtm->type!=FKL_SYM)
-//						{
-//							state->place=tmpCptr;
-//							state->state=FKL_SYMUNDEFINE;
-//							uint32_t i=0;
-//							for(;i<stack->top;i++)
-//								fklFreeByteCodeLabel(stack->data[i]);
-//							fklFreePtrStack(stack);
-//							return NULL;
-//						}
-//						while(tmpEnv!=NULL)
-//						{
-//							tmpDef=fklFindCompDef(tmpAtm->value.str,tmpEnv);
-//							if(tmpDef!=NULL)break;
-//							tmpEnv=tmpEnv->prev;
-//						}
-//						if(!tmpDef)
-//						{
-//							state->place=tmpCptr;
-//							state->state=FKL_SYMUNDEFINE;
-//							uint32_t i=0;
-//							for(;i<stack->top;i++)
-//								fklFreeByteCodeLabel(stack->data[i]);
-//							fklFreePtrStack(stack);
-//							return NULL;
-//						}
-//					}
-//					else if(opcode==FKL_PUSH_SYM)
-//					{
-//						if(tmpAtm->type!=FKL_SYM)
-//						{
-//							state->place=tmpCptr;
-//							state->state=FKL_SYNTAXERROR;
-//							uint32_t i=0;
-//							for(;i<stack->top;i++)
-//								fklFreeByteCodeLabel(stack->data[i]);
-//							fklFreePtrStack(stack);
-//							return NULL;
-//						}
-//						fklAddSymbolToGlob(tmpAtm->value.str);
-//					}
-//					else if(opcode==FKL_JMP||opcode==FKL_JMP_IF_FALSE||opcode==FKL_FAKE_JMP_IF_TRUE)
-//					{
-//						if(tmpAtm->type!=FKL_SYM&&tmpAtm->type!=FKL_STR)
-//						{
-//							state->place=tmpCptr;
-//							state->state=FKL_SYNTAXERROR;
-//							uint32_t i=0;
-//							for(;i<stack->top;i++)
-//								fklFreeByteCodeLabel(stack->data[i]);
-//							fklFreePtrStack(stack);
-//							return NULL;
-//						}
-//					}
-//					else
-//					{
-//						if(tmpAtm->type!=FKL_I32)
-//						{
-//							state->place=tmpCptr;
-//							state->state=FKL_SYNTAXERROR;
-//							uint32_t i=0;
-//							for(;i<stack->top;i++)
-//								fklFreeByteCodeLabel(stack->data[i]);
-//							fklFreePtrStack(stack);
-//							return NULL;
-//						}
-//					}
-//					sizeOfByteCode+=sizeof(char)+sizeof(int32_t);
-//					fir=fklNextCptr(tmpCptr);
-//				}
-//				break;
-//			case 8:
-//				{
-//					FklAstCptr* tmpCptr=fklNextCptr(fir);
-//					FklAstAtom* tmpAtm=tmpCptr->u.atom;
-//					if(opcode!=FKL_PUSH_DBL&&tmpAtm->type!=FKL_DBL&&tmpAtm->type!=FKL_I64)
-//					{
-//						state->place=tmpCptr;
-//						state->state=FKL_SYNTAXERROR;
-//						uint32_t i=0;
-//						for(;i<stack->top;i++)
-//							fklFreeByteCodeLabel(stack->data[i]);
-//						fklFreePtrStack(stack);
-//						return NULL;
-//					}
-//
-//					sizeOfByteCode+=sizeof(char)+sizeof(double);
-//					fir=fklNextCptr(tmpCptr);
-//				}
-//				break;
-//		}
-//	}
-//
-//	mergeSort(stack->data,stack->top,sizeof(void*),cmpByteCodeLabel);
-//	fir=fklNextCptr(fklGetFirstCptr(objCptr));
-//	tmp=fklNewByteCodelnt(fklNewByteCode(0));
-//	while(fir)
-//	{
-//		FklAstAtom* firAtm=fir->u.atom;
-//		if(firAtm->value.str[0]==':'||firAtm->value.str[0]=='?')
-//		{
-//			fir=fklNextCptr(fir);
-//			continue;
-//		}
-//		uint8_t opcode=findOpcode(firAtm->value.str);
-//
-//		FklByteCodelnt* tmpByteCodelnt=NULL;
-//		switch(codeName[opcode].len)
-//		{
-//			case -3:
-//				{
-//					FklAstCptr* tmpCptr=fklNextCptr(fir);
-//					FklAstAtom* tmpAtm=tmpCptr->u.atom;
-//					int32_t scope=0;
-//					FklCompEnv* tmpEnv=curEnv;
-//					FklCompDef* tmpDef=NULL;
-//
-//					while(tmpEnv!=NULL)
-//					{
-//						tmpDef=fklFindCompDef(tmpAtm->value.str,tmpEnv);
-//						if(tmpDef!=NULL)break;
-//						tmpEnv=tmpEnv->prev;
-//						scope++;
-//					}
-//
-//					FklByteCode* tmpByteCode=fklNewByteCode(sizeof(char)+2*sizeof(int32_t));
-//					tmpByteCode->code[0]=opcode;
-//					*((int32_t*)(tmpByteCode->code+sizeof(char)))=scope;
-//					*((int32_t*)(tmpByteCode->code+sizeof(char)+sizeof(int32_t)))=tmpDef->id;
-//
-//					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
-//					fir=fklNextCptr(tmpCptr);
-//				}
-//				break;
-//			case -2:
-//				{
-//					FklAstCptr* tmpCptr=fklNextCptr(fir);
-//					FklAstAtom* tmpAtm=tmpCptr->u.atom;
-//
-//					FklByteCode* tmpByteCode=fklNewByteCode(sizeof(char)+sizeof(int32_t)+tmpAtm->value.byts.size);
-//					tmpByteCode->code[0]=opcode;
-//					*((int32_t*)(tmpByteCode->code+sizeof(char)))=tmpAtm->value.byts.size;
-//					memcpy(tmpByteCode->code+sizeof(char)+sizeof(int32_t),tmpAtm->value.byts.str,tmpAtm->value.byts.size);
-//
-//					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
-//					fir=fklNextCptr(tmpCptr);
-//				}
-//				break;
-//			case -1:
-//				{
-//					FklAstCptr* tmpCptr=fklNextCptr(fir);
-//					FklAstAtom* tmpAtm=tmpCptr->u.atom;
-//
-//					FklByteCode* tmpByteCode=fklNewByteCode(sizeof(char)*2+strlen(tmpAtm->value.str));
-//					tmpByteCode->code[0]=opcode;
-//					strcpy((char*)tmpByteCode->code+sizeof(char),tmpAtm->value.str);
-//
-//					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
-//					fir=fklNextCptr(tmpCptr);
-//				}
-//				break;
-//			case 0:
-//				{
-//					FklByteCode* tmpByteCode=fklNewByteCode(sizeof(char));
-//					tmpByteCode->code[0]=opcode;
-//
-//					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
-//					fir=fklNextCptr(fir);
-//				}
-//				break;
-//			case 1:
-//				{
-//					FklAstCptr* tmpCptr=fklNextCptr(fir);
-//					FklAstAtom* tmpAtm=tmpCptr->u.atom;
-//
-//					FklByteCode* tmpByteCode=fklNewByteCode(sizeof(char)*2);
-//
-//					tmpByteCode->code[0]=opcode;
-//					tmpByteCode->code[1]=tmpAtm->value.chr;
-//
-//					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
-//					fir=fklNextCptr(tmpCptr);
-//				}
-//				break;
-//			case 4:
-//				{
-//					FklAstCptr* tmpCptr=fklNextCptr(fir);
-//					FklAstAtom* tmpAtm=tmpCptr->u.atom;
-//					FklByteCode* tmpByteCode=NULL;
-//					if(opcode==FKL_PUSH_VAR)
-//					{
-//						FklCompEnv* tmpEnv=curEnv;
-//						FklCompDef* tmpDef=NULL;
-//						while(tmpEnv!=NULL)
-//						{
-//							tmpDef=fklFindCompDef(tmpAtm->value.str,tmpEnv);
-//							if(tmpDef!=NULL)break;
-//							tmpEnv=tmpEnv->prev;
-//						}
-//						tmpByteCode=fklNewByteCode(sizeof(char)+sizeof(int32_t));
-//						tmpByteCode->code[0]=opcode;
-//						*((int32_t*)(tmpByteCode->code+sizeof(char)))=tmpDef->id;
-//					}
-//					else if(opcode==FKL_PUSH_SYM)
-//					{
-//						tmpByteCode=fklNewByteCode(sizeof(char)+sizeof(FklSid_t));
-//						tmpByteCode->code[0]=opcode;
-//						*(FklSid_t*)(tmpByteCode->code+sizeof(char))=fklAddSymbolToGlob(tmpAtm->value.str)->id;
-//					}
-//					else if(opcode==FKL_JMP||opcode==FKL_JMP_IF_TRUE||opcode==FKL_FAKE_JMP_IF_FALSE)
-//					{
-//						FklByteCodeLabel* label=fklFindByteCodeLabel(tmpAtm->value.str,stack);
-//						if(label==NULL)
-//						{
-//							state->place=tmpCptr;
-//							state->state=FKL_SYMUNDEFINE;
-//							fklFreeByteCodelnt(tmp);
-//							uint32_t i=0;
-//							for(;i<stack->top;i++)
-//								fklFreeByteCodeLabel(stack->data[i]);
-//							fklFreePtrStack(stack);
-//							return NULL;
-//						}
-//						tmpByteCode=fklNewByteCode(sizeof(char)+sizeof(int32_t));
-//						tmpByteCode->code[0]=opcode;
-//						*((int32_t*)(tmpByteCode->code+sizeof(char)))=label->place-tmp->bc->size-5;
-//					}
-//					else
-//					{
-//						tmpByteCode=fklNewByteCode(sizeof(char)+sizeof(int32_t));
-//						tmpByteCode->code[0]=opcode;
-//						*((int32_t*)(tmpByteCode->code+sizeof(char)))=tmpAtm->value.i32;
-//					}
-//					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
-//					fir=fklNextCptr(tmpCptr);
-//				}
-//				break;
-//			case 8:
-//				{
-//					FklAstCptr* tmpCptr=fklNextCptr(fir);
-//					FklAstAtom* tmpAtm=tmpCptr->u.atom;
-//
-//					FklByteCode* tmpByteCode=fklNewByteCode(sizeof(char)+sizeof(double));
-//
-//					tmpByteCode->code[0]=opcode;
-//					if(opcode==FKL_PUSH_DBL)
-//						*((double*)(tmpByteCode->code+sizeof(char)))=(tmpAtm->type==FKL_DBL)?tmpAtm->value.dbl:tmpAtm->value.i64;
-//					else
-//						*((int64_t*)(tmpByteCode->code+sizeof(char)))=(tmpAtm->type==FKL_DBL)?tmpAtm->value.dbl:tmpAtm->value.i64;
-//
-//					GENERATE_LNT(tmpByteCodelnt,tmpByteCode);
-//					fir=fklNextCptr(tmpCptr);
-//
-//				}
-//				break;
-//		}
-//		fklCodeLntCat(tmp,tmpByteCodelnt);
-//		fklFreeByteCodelnt(tmpByteCodelnt);
-//	}
-//	uint32_t i=0;
-//	for(;i<stack->top;i++)
-//		fklFreeByteCodeLabel(stack->data[i]);
-//	fklFreePtrStack(stack);
-//	return tmp;
-//}
-
 FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state,int evalIm)
 {
 #ifdef _WIN32
@@ -3070,8 +2604,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 								FklByteCodelnt* otherByteCodelnt=fklCompile(pBody,tmpCurEnv,tmpInter,state,1);
 								if(state->state||!otherByteCodelnt)
 								{
-									if(otherByteCodelnt!=NULL)
-										fklPrintCompileError(state->place,state->state,tmpInter);
+									fklPrintCompileError(state->place,state->state,tmpInter);
 									fklDeleteCptr(begin);
 									free(begin);
 									chdir(tmpInter->prev->curDir);
@@ -3086,14 +2619,17 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 									free(list);
 									return NULL;
 								}
-								if(libByteCodelnt->bc->size)
+								if(libByteCodelnt->bc->size&&otherByteCodelnt)
 								{
 									fklReCodeCat(resTp,otherByteCodelnt->bc);
 									otherByteCodelnt->l[0]->cpc+=1;
 									FKL_INCREASE_ALL_SCP(otherByteCodelnt->l,otherByteCodelnt->ls-1,resTp->size);
 								}
-								fklCodeLntCat(libByteCodelnt,otherByteCodelnt);
-								fklFreeByteCodelnt(otherByteCodelnt);
+								if(otherByteCodelnt)
+								{
+									fklCodeLntCat(libByteCodelnt,otherByteCodelnt);
+									fklFreeByteCodelnt(otherByteCodelnt);
+								}
 							}
 							fklReCodeCat(setTp,libByteCodelnt->bc);
 							if(!libByteCodelnt->l)

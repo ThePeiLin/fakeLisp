@@ -993,4 +993,35 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 	return tmp;
 }
 
+void fklInitVMRunningResource(FklVM* vm,FklVMenv* vEnv,FklVMheap* heap,FklByteCodelnt* code,uint32_t start,uint32_t size)
+{
+	if(!vEnv->prev)
+		fklInitGlobEnv(vEnv,heap);
+	FklVMproc proc={
+		.scp=start,
+		.cpc=size,
+		.sid=0,
+		.prevEnv=NULL,
+	};
+	FklVMrunnable* mainrunnable=fklNewVMrunnable(&proc);
+	mainrunnable->localenv=vEnv;
+	vm->code=code->bc->code;
+	vm->size=code->bc->size;
+	fklPushPtrStack(mainrunnable,vm->rstack);
+	vm->lnt=fklNewLineNumTable();
+	vm->lnt->num=code->ls;
+	vm->lnt->list=code->l;
+	fklFreeVMheap(vm->heap);
+	vm->heap=heap;
+	fklIncreaseVMenvRefcount(vEnv);
+}
 
+void fklUnInitVMRunningResource(FklVM* vm)
+{
+	free(vm->lnt);
+	fklDeleteCallChain(vm);
+	fklFreeVMstack(vm->stack);
+	fklFreePtrStack(vm->rstack);
+	fklFreePtrStack(vm->tstack);
+	free(vm);
+}

@@ -37,55 +37,27 @@ static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
 	while(!fklIsPtrStackEmpty(stack))
 	{
 		FklCompEnv* curEnv=fklPopPtrStack(stack);
-		vEnv=fklNewVMenv(preEnv);
-		if(!preEnv)
-			fklInitGlobEnv(vEnv,heap);
-		preEnv=vEnv;
-		FklByteCodelnt* tmpByteCode=curEnv->proc;
-		fklCodelntCopyCat(t,tmpByteCode);
 		FklVM* tmpVM=fklNewTmpVM(NULL);
-		FklVMproc* tmpVMproc=fklNewVMproc(bs,tmpByteCode->bc->size);
-		bs+=tmpByteCode->bc->size;
-		FklVMrunnable* mainrunnable=fklNewVMrunnable(tmpVMproc);
-		mainrunnable->localenv=vEnv;
-		fklPushPtrStack(mainrunnable,tmpVM->rstack);
-		tmpVM->code=t->bc->code;
-		tmpVM->size=t->bc->size;
-		tmpVMproc->prevEnv=NULL;
-		tmpVM->lnt=fklNewLineNumTable();
-		tmpVM->lnt->num=t->ls;
-		tmpVM->lnt->list=t->l;
-		fklFreeVMheap(tmpVM->heap);
-		tmpVM->heap=heap;
-		fklIncreaseVMenvRefcount(vEnv);
+		vEnv=fklNewVMenv(preEnv);
+		preEnv=vEnv;
+		fklCodelntCopyCat(t,curEnv->proc);
+		fklInitVMRunningResource(tmpVM,vEnv,heap,t,bs,curEnv->proc->bc->size);
+		bs+=curEnv->proc->bc->size;
 		int i=fklRunVM(tmpVM);
 		if(i==1)
 		{
-			free(tmpVM->lnt);
-			fklDeleteCallChain(tmpVM);
-			FklVMenv* tmpEnv=vEnv->prev;
-			for(;tmpEnv;tmpEnv=tmpEnv->prev)
-				fklDecreaseVMenvRefcount(tmpEnv);
+			for(FklVMenv* prev=vEnv->prev;prev;prev=prev->prev)
+				fklDecreaseVMenvRefcount(prev);
 			fklFreeVMenv(vEnv);
-			fklFreeVMstack(tmpVM->stack);
-			fklFreeVMproc(tmpVMproc);
-			fklFreePtrStack(tmpVM->rstack);
-			fklFreePtrStack(tmpVM->tstack);
-			free(tmpVM);
+			fklUnInitVMRunningResource(tmpVM);
 			fklFreePtrStack(stack);
 			return NULL;
 		}
-		free(tmpVM->lnt);
-		fklFreeVMstack(tmpVM->stack);
-		fklFreeVMproc(tmpVMproc);
-		fklFreePtrStack(tmpVM->rstack);
-		fklFreePtrStack(tmpVM->tstack);
-		free(tmpVM);
+		fklUnInitVMRunningResource(tmpVM);
 	}
 	fklFreePtrStack(stack);
-	FklVMenv* tmpEnv=vEnv->prev;
-	for(;tmpEnv;tmpEnv=tmpEnv->prev)
-		fklDecreaseVMenvRefcount(tmpEnv);
+	for(FklVMenv* prev=vEnv->prev;prev;prev=prev->prev)
+		fklDecreaseVMenvRefcount(prev);
 	return vEnv;
 }
 

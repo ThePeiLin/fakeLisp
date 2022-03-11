@@ -31,7 +31,8 @@ void fklFreeByteCodeAndLnt(FklByteCodelnt* t)
 	fklFreeByteCode(t->bc);
 	if(t->l)
 	{
-		FKL_FREE_ALL_LINE_NUMBER_TABLE(t->l,t->ls);
+		for(uint32_t i=0;i<(t->ls);i++)
+			fklFreeLineNumTabNode((t->l)[i]);
 		free(t->l);
 	}
 	free(t);

@@ -40,7 +40,7 @@ add_custom_target(COPY_STD_FKL ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/lib ${CMAKE_BINARY_DIR}/lib)
 add_custom_target(COPY_EXAMPLES ALL
 	COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/examples/ ${CMAKE_BINARY_DIR}/examples/)
-if(${DEBUG})
+if(${CMAKE_BUILD_TYPE} STREQUAL "DEBUG")
 	target_compile_options(${BTK_TARGET_NAME} PRIVATE
 		$<$<CXX_COMPILER_ID:MSVC>:/DEBUG /W4>
 		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-g -Wall>)

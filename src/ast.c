@@ -14,43 +14,18 @@ static void addToList(FklAstCptr*,const FklAstCptr*);
 
 static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
 {
-	FklVMenv* vEnv=fklNewVMenv(NULL);
-	fklInitGlobEnv(vEnv,heap);
-	FklByteCodelnt* tmpByteCode=cEnv->proc;
 	FklVM* tmpVM=fklNewTmpVM(NULL);
-	FklVMproc* tmpVMproc=fklNewVMproc(0,tmpByteCode->bc->size);
-	FklVMrunnable* mainrunnable=fklNewVMrunnable(tmpVMproc);
-	mainrunnable->localenv=vEnv;
-	tmpVM->code=tmpByteCode->bc->code;
-	tmpVM->size=tmpByteCode->bc->size;
-	fklPushPtrStack(mainrunnable,tmpVM->rstack);
-	tmpVMproc->prevEnv=NULL;
-	tmpVM->lnt=fklNewLineNumTable();
-	tmpVM->lnt->num=tmpByteCode->ls;
-	tmpVM->lnt->list=tmpByteCode->l;
-	fklFreeVMheap(tmpVM->heap);
-	tmpVM->heap=heap;
-	fklIncreaseVMenvRefcount(vEnv);
+	FklVMenv* vEnv=fklNewVMenv(NULL);
+	fklInitVMRunningResource(tmpVM,vEnv,heap,cEnv->proc,0,cEnv->proc->bc->size);
 	int i=fklRunVM(tmpVM);
 	if(i==1)
 	{
-		free(tmpVM->lnt);
-		fklDeleteCallChain(tmpVM);
 		fklFreeVMenv(vEnv);
-		fklFreeVMstack(tmpVM->stack);
-		fklFreeVMproc(tmpVMproc);
-		fklFreePtrStack(tmpVM->rstack);
-		fklFreePtrStack(tmpVM->tstack);
-		free(tmpVM);
+		fklUnInitVMRunningResource(tmpVM);
 		return NULL;
 	}
-	free(tmpVM->lnt);
-	fklFreeVMstack(tmpVM->stack);
-	fklFreeVMproc(tmpVMproc);
-	fklFreePtrStack(tmpVM->rstack);
-	fklFreePtrStack(tmpVM->tstack);
-	free(tmpVM);
-	fklCodelntCopyCat(t,tmpByteCode);
+	fklUnInitVMRunningResource(tmpVM);
+	fklCodelntCopyCat(t,cEnv->proc);
 	return vEnv;
 }
 

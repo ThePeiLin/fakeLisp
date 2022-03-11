@@ -292,6 +292,10 @@ int fklMemorySet(FklTypeId_t id,FklVMmem*,FklVMvalue* v);
 
 
 //vmutils
+
+void fklInitVMRunningResource(FklVM*,FklVMenv*,FklVMheap* heap,FklByteCodelnt*,uint32_t,uint32_t);
+void fklUnInitVMRunningResource(FklVM*);
+
 FklVMvalue* fklGetTopValue(FklVMstack* stack);
 FklVMvalue* fklGetValue(FklVMstack* stack,int32_t place);
 FklVMenv* fklCastPreEnvToVMenv(FklPreEnv*,FklVMenv*,FklVMheap*);

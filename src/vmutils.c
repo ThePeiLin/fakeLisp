@@ -123,16 +123,6 @@ uint8_t* fklCopyArry(size_t size,uint8_t* str)
 	return tmp;
 }
 
-void fklReleaseSource(pthread_rwlock_t* pGClock)
-{
-	pthread_rwlock_unlock(pGClock);
-}
-
-void fklLockSource(pthread_rwlock_t* pGClock)
-{
-	pthread_rwlock_rdlock(pGClock);
-}
-
 FklVMvalue* fklPopVMstack(FklVMstack* stack)
 {
 	if(!(stack->tp>stack->bp))

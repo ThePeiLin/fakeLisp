@@ -303,8 +303,8 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline);
 
 uint8_t* fklCopyArry(size_t,uint8_t*);
 FklVMstack* fklCopyStack(FklVMstack*);
-void fklReleaseSource(pthread_rwlock_t*);
-void fklLockSource(pthread_rwlock_t*);
+void fklReleaseGC();
+void fklLockGC();
 FklVMvalue* fklPopVMstack(FklVMstack*);
 FklVMtryBlock* fklNewVMtryBlock(FklSid_t,uint32_t tp,long int rtp);
 void fklFreeVMtryBlock(FklVMtryBlock* b);

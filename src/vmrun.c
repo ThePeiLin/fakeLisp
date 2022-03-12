@@ -1836,3 +1836,15 @@ void fklFreeAllSharedObj(void)
 		free(prev);
 	}
 }
+
+void fklReleaseGC()
+{
+	pthread_rwlock_unlock(&GClock);
+}
+
+void fklLockGC()
+{
+	pthread_rwlock_rdlock(&GClock);
+}
+
+

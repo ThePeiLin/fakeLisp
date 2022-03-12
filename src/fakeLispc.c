@@ -41,6 +41,7 @@ int main(int argc,char** argv)
 		FklInterpreter* inter=fklNewIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
 		fklInitGlobKeyWord(inter->glob);
 		fklInitNativeDefTypes(inter->deftypes);
+		fklInitBuiltInStringPattern();
 		fklAddSymbolToGlob(argv[1]);
 		int state;
 		FklByteCodelnt* mainByteCode=fklCompileFile(inter,1,&state);
@@ -50,9 +51,12 @@ int main(int argc,char** argv)
 			fklFreeIntpr(inter);
 			fklUnInitPreprocess();
 			fklFreeInterpeterPath();
+			fklFreeAllSharedObj();
 			fklFreeGlobSymbolTable();
+			fklFreeGlobTypeList();
 			return state;
 		}
+		fklPrintUndefinedSymbol(mainByteCode);
 		//fklPrintByteCodelnt(mainByteCode,inter->table,stderr);
 		char* outputname=(char*)malloc(sizeof(char)*(strlen(rp)+2));
 		strcpy(outputname,rp);
@@ -62,7 +66,13 @@ int main(int argc,char** argv)
 		{
 			fprintf(stderr,"%s:Can't create byte code file!",outputname);
 			fklFreeInterpeterPath();
-			return 1;
+			fklFreeIntpr(inter);
+			fklUnInitPreprocess();
+			fklFreeInterpeterPath();
+			fklFreeAllSharedObj();
+			fklFreeGlobSymbolTable();
+			fklFreeGlobTypeList();
+			return EXIT_FAILURE;
 		}
 		inter->lnt->list=mainByteCode->l;
 		inter->lnt->num=mainByteCode->ls;
@@ -78,6 +88,10 @@ int main(int argc,char** argv)
 		fclose(outfp);
 		fklFreeIntpr(inter);
 		fklUnInitPreprocess();
+		fklFreeInterpeterPath();
+		fklFreeAllSharedObj();
+		fklFreeGlobSymbolTable();
+		fklFreeGlobTypeList();
 		free(outputname);
 		free(rp);
 	}
@@ -88,7 +102,5 @@ int main(int argc,char** argv)
 		fklFreeInterpeterPath();
 		return EXIT_FAILURE;
 	}
-	fklFreeInterpeterPath();
-	fklFreeAllSharedObj();
 	return 0;
 }

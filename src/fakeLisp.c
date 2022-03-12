@@ -16,7 +16,7 @@
 void runIntpr(FklInterpreter*);
 FklByteCode* loadByteCode(FILE*);
 void loadSymbolTable(FILE*);
-LineNumberTable* loadLineNumberTable(FILE*);
+FklLineNumberTable* loadLineNumberTable(FILE*);
 static jmp_buf buf;
 static int exitState=0;
 
@@ -132,7 +132,7 @@ int main(int argc,char** argv)
 		}
 		fklChangeWorkPath(filename);
 		loadSymbolTable(fp);
-		LineNumberTable* lnt=loadLineNumberTable(fp);
+		FklLineNumberTable* lnt=loadLineNumberTable(fp);
 		fklLoadTypeList(fp);
 		FklByteCode* mainCode=loadByteCode(fp);
 		FklVM* anotherVM=fklNewVM(mainCode);
@@ -327,12 +327,12 @@ void loadSymbolTable(FILE* fp)
 	}
 }
 
-LineNumberTable* loadLineNumberTable(FILE* fp)
+FklLineNumberTable* loadLineNumberTable(FILE* fp)
 {
 	int32_t size=0;
 	int32_t i=0;
 	fread(&size,sizeof(int32_t),1,fp);
-	LineNumTabNode** list=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*size);
+	FklLineNumTabNode** list=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*size);
 	FKL_ASSERT(list,"loadLineNumberTable",__FILE__,__LINE__);
 	for(;i<size;i++)
 	{
@@ -344,10 +344,10 @@ LineNumberTable* loadLineNumberTable(FILE* fp)
 		fread(&scp,sizeof(scp),1,fp);
 		fread(&cpc,sizeof(cpc),1,fp);
 		fread(&line,sizeof(line),1,fp);
-		LineNumTabNode* n=fklNewLineNumTabNode(fid,scp,cpc,line);
+		FklLineNumTabNode* n=fklNewLineNumTabNode(fid,scp,cpc,line);
 		list[i]=n;
 	}
-	LineNumberTable* lnt=fklNewLineNumTable();
+	FklLineNumberTable* lnt=fklNewLineNumTable();
 	lnt->list=list;
 	lnt->num=size;
 	return lnt;

@@ -2,7 +2,7 @@
 (define print princ)
 ;defun宏
 (defmacro
-  (defun ?name ?args,?body)
+  (defun name args,body)
   ((lambda ()
      (define list (lambda ls ls))
      (list 'define name (cons 'lambda (cons args body))))))
@@ -17,8 +17,8 @@
             (cond ((null (cdr objlist)) (car objlist))
                   (1 (gle (cdr objlist))))))
 (define fact (lambda (n)
-            (cond ((le n 1) n)
-                  (1 (mul n (fact (sub n 1)))))))
+            (cond ((<= n 1) n)
+                  (1 (* n (fact (- n 1)))))))
 (defun ael (objlist object)
   (defun tmpfun (objlist tmp)
     (if (null (cdr objlist))

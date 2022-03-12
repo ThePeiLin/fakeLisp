@@ -4,14 +4,14 @@
 (define getch (dlsym btk "getch"))
 (define rand (dlsym btk "rand"))
 
-(defmacro (ARRY ?X ?Y)
+(defmacro (ARRY X Y)
   `(+ ~X (* ~Y rrow)))
 
-(defmacro (INC ?SYM)
+(defmacro (INC SYM)
   `(setq ~SYM (1+ ~SYM)))
-(defmacro (DEC ?SYM)
+(defmacro (DEC SYM)
   `(setq ~SYM (-1+ ~SYM)))
-(defmacro (NEG ?VALUE)
+(defmacro (NEG VALUE)
   `(- 0 ~VALUE))
 
 (define (neq a b) (not (equal a b)))

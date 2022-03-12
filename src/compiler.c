@@ -33,30 +33,33 @@ static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
 	FklVMenv* preEnv=NULL;
 	FklVMenv* vEnv=NULL;
 	uint32_t bs=t->bc->size;
+	FklVMenv* top=NULL;
 	while(!fklIsPtrStackEmpty(stack))
 	{
 		FklCompEnv* curEnv=fklPopPtrStack(stack);
-		FklVM* tmpVM=fklNewTmpVM(NULL);
-		vEnv=fklNewVMenv(preEnv);
-		preEnv=vEnv;
-		fklCodelntCopyCat(t,curEnv->proc);
-		fklInitVMRunningResource(tmpVM,vEnv,heap,t,bs,curEnv->proc->bc->size);
-		bs+=curEnv->proc->bc->size;
-		int i=fklRunVM(tmpVM);
-		if(i==1)
+		if(curEnv->proc->bc->size)
 		{
-			for(FklVMenv* prev=vEnv->prev;prev;prev=prev->prev)
-				fklDecreaseVMenvRefcount(prev);
-			fklFreeVMenv(vEnv);
+			FklVM* tmpVM=fklNewTmpVM(NULL);
+			vEnv=fklNewVMenv(preEnv);
+			if(preEnv==NULL)
+				top=vEnv;
+			preEnv=vEnv;
+			fklCodelntCopyCat(t,curEnv->proc);
+			fklInitVMRunningResource(tmpVM,vEnv,heap,t,bs,curEnv->proc->bc->size);
+			bs+=curEnv->proc->bc->size;
+			int i=fklRunVM(tmpVM);
+			if(i==1)
+			{
+				fklFreeVMenv(top);
+				fklUnInitVMRunningResource(tmpVM);
+				fklFreePtrStack(stack);
+				return NULL;
+			}
 			fklUnInitVMRunningResource(tmpVM);
-			fklFreePtrStack(stack);
-			return NULL;
 		}
-		fklUnInitVMRunningResource(tmpVM);
 	}
+	fklFreeVMenv(top);
 	fklFreePtrStack(stack);
-	for(FklVMenv* prev=vEnv->prev;prev;prev=prev->prev)
-		fklDecreaseVMenvRefcount(prev);
 	return vEnv;
 }
 
@@ -661,7 +664,7 @@ FklByteCodelnt* fklCompile(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter
 		{
 			FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
 			tmp->ls=1;
-			tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
+			tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 			FKL_ASSERT(tmp->l,"fklCompile",__FILE__,__LINE__);
 			tmp->l[0]=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,0,inter->curline);
 			return tmp;
@@ -683,7 +686,7 @@ FklByteCodelnt* fklCompile(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter
 			}
 			FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
 			tmp->ls=1;
-			tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
+			tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 			FKL_ASSERT(tmp->l,"fklCompile",__FILE__,__LINE__);
 			tmp->l[0]=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id
 					,0
@@ -710,7 +713,7 @@ FklByteCodelnt* fklCompile(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter
 			}
 			FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
 			tmp->ls=1;
-			tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
+			tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 			FKL_ASSERT(tmp->l,"fklCompile",__FILE__,__LINE__);
 			tmp->l[0]=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id
 					,0
@@ -941,7 +944,7 @@ FklByteCodelnt* fklCompileQsquote(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInte
 				fklCodeCat(tmp->bc,pushPair);
 				if(!tmp->l)
 				{
-					tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
+					tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 					FKL_ASSERT(tmp->l,"fklCompileQsquote",__FILE__,__LINE__);
 					tmp->ls=1;
 					tmp->l[0]=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,pushPair->size,objCptr->curline);
@@ -1042,9 +1045,9 @@ FklByteCodelnt* fklCompileConst(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterp
 		return NULL;
 	}
 	FklByteCodelnt* t=fklNewByteCodelnt(tmp);
-	LineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,tmp->size,line);
+	FklLineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,tmp->size,line);
 	t->ls=1;
-	t->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
+	t->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
 	FKL_ASSERT(t->l,"fklCompileConst",__FILE__,__LINE__);
 	t->l[0]=n;
 	return t;
@@ -1069,7 +1072,7 @@ FklByteCodelnt* fklCompileFuncCall(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInt
 			if(!tmp->l)
 			{
 				tmp->ls=1;
-				tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
+				tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 				FKL_ASSERT(tmp->l,"fklCompileFuncCall",__FILE__,__LINE__);
 				tmp->l[0]=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,invoke->size,line);
 			}
@@ -1086,7 +1089,7 @@ FklByteCodelnt* fklCompileFuncCall(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInt
 			if(!tmp->l)
 			{
 				tmp->ls=1;
-				tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
+				tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 				FKL_ASSERT(tmp->l,"fklCompileFuncCall",__FILE__,__LINE__);
 				tmp->l[0]=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,setBp->size,line);
 			}
@@ -1417,9 +1420,9 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 				pushDefRef->bc->code[0]=FKL_PUSH_DEF_REF;
 				*(ssize_t*)(pushDefRef->bc->code+sizeof(char))=offset;
 				*(FklTypeId_t*)(pushDefRef->bc->code+sizeof(char)+sizeof(ssize_t))=defTypeId;
-				LineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,pushDefRef->bc->size,pathCptr->curline);
+				FklLineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,pushDefRef->bc->size,pathCptr->curline);
 				pushDefRef->ls=1;
-				pushDefRef->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
+				pushDefRef->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
 				FKL_ASSERT(pushDefRef->l,"fklCompileGetf",__FILE__,__LINE__);
 				pushDefRef->l[0]=n;
 				offset=0;
@@ -1439,9 +1442,9 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 				FklTypeId_t ptrId=fklNewVMPtrType(memberType);
 				*(ssize_t*)(pushPtrRef->bc->code+sizeof(char))=offset;
 				*(FklTypeId_t*)(pushPtrRef->bc->code+sizeof(char)+sizeof(ssize_t))=ptrId;
-				LineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,pushPtrRef->bc->size,pathCptr->curline);
+				FklLineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,pushPtrRef->bc->size,pathCptr->curline);
 				pushPtrRef->ls=1;
-				pushPtrRef->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
+				pushPtrRef->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
 				FKL_ASSERT(pushPtrRef->l,"fklCompileGetf",__FILE__,__LINE__);
 				pushPtrRef->l[0]=n;
 				offset=0;
@@ -1501,9 +1504,9 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 						pushRef->bc->code[0]=FKL_PUSH_REF;
 						*(ssize_t*)(pushRef->bc->code+sizeof(char))=offset;
 						*(FklTypeId_t*)(pushRef->bc->code+sizeof(char)+sizeof(ssize_t))=memberType;
-						LineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,pushRef->bc->size,pathCptr->curline);
+						FklLineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,pushRef->bc->size,pathCptr->curline);
 						pushRef->ls=1;
-						pushRef->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
+						pushRef->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
 						FKL_ASSERT(pushRef->l,"fklCompileGetf",__FILE__,__LINE__);
 						pushRef->l[0]=n;
 						if(!tmp)
@@ -1547,9 +1550,9 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 						pushRef->bc->code[0]=FKL_PUSH_REF;
 						*(ssize_t*)(pushRef->bc->code+sizeof(char))=offset;
 						*(FklTypeId_t*)(pushRef->bc->code+sizeof(char)+sizeof(ssize_t))=memberType;
-						LineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,pushRef->bc->size,pathCptr->curline);
+						FklLineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,pushRef->bc->size,pathCptr->curline);
 						pushRef->ls=1;
-						pushRef->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
+						pushRef->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
 						FKL_ASSERT(pushRef->l,"fklCompileGetf",__FILE__,__LINE__);
 						pushRef->l[0]=n;
 						if(!tmp)
@@ -1611,9 +1614,9 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 			pushIndRef->bc->code[0]=FKL_PUSH_IND_REF;
 			*(FklTypeId_t*)(pushIndRef->bc->code+sizeof(char))=elemType;
 			*(uint32_t*)(pushIndRef->bc->code+sizeof(char)+sizeof(FklTypeId_t))=fklGetVMTypeSizeWithTypeId(elemType);
-			LineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,pushIndRef->bc->size,indexCptr->curline);
+			FklLineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,pushIndRef->bc->size,indexCptr->curline);
 			pushIndRef->ls=1;
-			pushIndRef->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
+			pushIndRef->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
 			FKL_ASSERT(pushIndRef->l,"fklCompileGetf",__FILE__,__LINE__);
 			pushIndRef->l[0]=n;
 			fklCodeLntCat(tmp,index);
@@ -1685,9 +1688,9 @@ FklByteCodelnt* fklCompileFlsym(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterp
 	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(sizeof(char)+sizeof(FklTypeId_t)));
 	tmp->bc->code[0]=FKL_PUSH_FPROC;
 	*(FklTypeId_t*)(tmp->bc->code+sizeof(char))=type;
-	LineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,tmp->bc->size,objCptr->curline);
+	FklLineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,tmp->bc->size,objCptr->curline);
 	tmp->ls=1;
-	tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
+	tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
 	FKL_ASSERT(tmp->l,"fklCompileGetf",__FILE__,__LINE__);
 	tmp->l[0]=n;
 	fklReCodeLntCat(name,tmp);
@@ -1718,9 +1721,9 @@ FklByteCodelnt* fklCompileSzof(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 		tmp->bc->code[0]=FKL_PUSH_I32;
 		*(int32_t*)(tmp->bc->code+sizeof(char))=(int32_t)size;
 	}
-	LineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,tmp->bc->size,objCptr->curline);
+	FklLineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,tmp->bc->size,objCptr->curline);
 	tmp->ls=1;
-	tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
+	tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
 	FKL_ASSERT(tmp->l,"fklCompileSzof",__FILE__,__LINE__);
 	tmp->l[0]=n;
 	return tmp;
@@ -1772,7 +1775,7 @@ FklByteCodelnt* fklCompileSym(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 	*(FklSid_t*)(pushVar->code+sizeof(char))=id;
 	FklByteCodelnt* bcl=fklNewByteCodelnt(pushVar);
 	bcl->ls=1;
-	bcl->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
+	bcl->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 	FKL_ASSERT(bcl->l,"fklCompileSym",__FILE__,__LINE__);
 	bcl->l[0]=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,pushVar->size,line);
 	return bcl;
@@ -1828,7 +1831,7 @@ FklByteCodelnt* fklCompileAnd(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 	if(!tmp->l)
 	{
 		tmp->ls=1;
-		tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
+		tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
 		FKL_ASSERT(tmp->l,"fklCompileAnd",__FILE__,__LINE__);
 		tmp->l[0]=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,tmp->bc->size,curline);
 	}
@@ -1900,7 +1903,7 @@ FklByteCodelnt* fklCompileOr(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpret
 	if(!tmp->l)
 	{
 		tmp->ls=1;
-		tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
+		tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
 		FKL_ASSERT(tmp->l,"fklCompileOr",__FILE__,__LINE__);
 		tmp->l[0]=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,tmp->bc->size,curline);
 	}
@@ -1958,7 +1961,7 @@ FklByteCodelnt* fklCompileBegin(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterp
 	if(!tmp->l)
 	{
 		tmp->ls=1;
-		tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
+		tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 		FKL_ASSERT(tmp->l,"fklCompileBegin",__FILE__,__LINE__);
 		tmp->l[0]=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,tmp->bc->size,objCptr->curline);
 	}
@@ -2054,7 +2057,7 @@ FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 	objCptr=fklNextCptr(fklNextCptr(objCptr));
 	FklByteCodelnt* codeOfLambda=fklNewByteCodelnt(pArg);
 	codeOfLambda->ls=1;
-	codeOfLambda->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
+	codeOfLambda->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 	FKL_ASSERT(codeOfLambda->l,"fklCompileLambda",__FILE__,__LINE__);
 	codeOfLambda->l[0]=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,pArg->size,line);
 	FklByteCode* resTp=fklNewByteCode(sizeof(char));
@@ -2085,10 +2088,10 @@ FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 	fklFreeByteCode(popTp);
 	FklByteCode* pushProc=fklNewByteCode(sizeof(char)+sizeof(int32_t));
 	pushProc->code[0]=FKL_PUSH_PROC;
-	*(int32_t*)(pushProc->code+sizeof(char))=codeOfLambda->bc->size;
+	*(uint32_t*)(pushProc->code+sizeof(char))=codeOfLambda->bc->size;
 	FklByteCodelnt* toReturn=fklNewByteCodelnt(pushProc);
 	toReturn->ls=1;
-	toReturn->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
+	toReturn->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 	FKL_ASSERT(toReturn->l,"fklCompileLambda",__FILE__,__LINE__);
 	toReturn->l[0]=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,pushProc->size,line);
 	fklFreeAllMacroThenDestroyCompEnv(tmpEnv);
@@ -2186,7 +2189,7 @@ FklByteCodelnt* fklCompileCond(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 	{
 		fklCodeCat(tmp->bc,pushnil);
 		tmp->ls=1;
-		tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*));
+		tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
 		FKL_ASSERT(tmp->l,"fklCompileCond",__FILE__,__LINE__);
 		tmp->l[0]=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,pushnil->size,objCptr->curline);
 	}
@@ -2255,7 +2258,7 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int evalIm,int* exitstate)
 	chdir(inter->curDir);
 	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
 	tmp->ls=1;
-	tmp->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
+	tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 	FKL_ASSERT(tmp->l,"fklCompileFile",__FILE__,__LINE__);
 	tmp->l[0]=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,0,1);
 	FklByteCode* resTp=fklNewByteCode(1);
@@ -2613,7 +2616,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 							if(!libByteCodelnt->l)
 							{
 								libByteCodelnt->ls=1;
-								libByteCodelnt->l=(LineNumTabNode**)malloc(sizeof(LineNumTabNode*)*1);
+								libByteCodelnt->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 								FKL_ASSERT(libByteCodelnt->l,"fklCompileImport",__FILE__,__LINE__);
 								libByteCodelnt->l[0]=fklNewLineNumTabNode(fklAddSymbolToGlob(tmpInter->filename)->id,0,libByteCodelnt->bc->size,objCptr->curline);
 							}
@@ -3046,6 +3049,41 @@ FklCompDef* fklAddCompDef(const char* name,FklCompEnv* curEnv)
 	}
 }
 
+FklCompDef* fklFindCompDefBySid(FklSid_t id,FklCompEnv* curEnv)
+{
+	if(curEnv->head==NULL)return NULL;
+	else
+	{
+		FklCompDef* curDef=curEnv->head;
+		while(curDef&&id!=curDef->id)
+			curDef=curDef->next;
+		return curDef;
+	}
+}
+
+FklCompDef* fklAddCompDefBySid(FklSid_t id,FklCompEnv* curEnv)
+{
+	if(curEnv->head==NULL)
+	{
+		FKL_ASSERT((curEnv->head=(FklCompDef*)malloc(sizeof(FklCompDef))),"fklAddCompDef",__FILE__,__LINE__);
+		curEnv->head->next=NULL;
+		curEnv->head->id=id;
+		return curEnv->head;
+	}
+	else
+	{
+		FklCompDef* curDef=fklFindCompDefBySid(id,curEnv);
+		if(curDef==NULL)
+		{
+			FKL_ASSERT((curDef=(FklCompDef*)malloc(sizeof(FklCompDef))),"fklAddCompDef",__FILE__,__LINE__);
+			curDef->id=id;
+			curDef->next=curEnv->head;
+			curEnv->head=curDef;
+		}
+		return curDef;
+	}
+}
+
 FklCompEnv* fklNewCompEnv(FklCompEnv* prev)
 {
 	FklCompEnv* tmp=(FklCompEnv*)malloc(sizeof(FklCompEnv));
@@ -3129,7 +3167,7 @@ FklCompDef* fklFindCompDef(const char* name,FklCompEnv* curEnv)
 	}
 }
 
-FklInterpreter* fklNewIntpr(const char* filename,FILE* file,FklCompEnv* env,LineNumberTable* lnt,FklDefTypes* deftypes)
+FklInterpreter* fklNewIntpr(const char* filename,FILE* file,FklCompEnv* env,FklLineNumberTable* lnt,FklDefTypes* deftypes)
 {
 	FklInterpreter* tmp=NULL;
 	FKL_ASSERT((tmp=(FklInterpreter*)malloc(sizeof(FklInterpreter))),"fklNewIntpr",__FILE__,__LINE__)
@@ -3305,4 +3343,148 @@ void fklSetInterpreterPath(const char* path)
 void fklFreeInterpeterPath(void)
 {
 	free(InterpreterPath);
+}
+
+void fklPrintUndefinedSymbol(FklByteCodelnt* code)
+{
+	FklUintStack* cpcstack=fklNewUintStack(32,16);
+	FklUintStack* scpstack=fklNewUintStack(32,16);
+	FklPtrStack* envstack=fklNewPtrStack(32,16);
+	FklByteCode* bc=code->bc;
+	fklPushUintStack(0,cpcstack);
+	fklPushUintStack(bc->size,scpstack);
+	FklCompEnv* globEnv=fklNewCompEnv(NULL);
+	fklInitCompEnv(globEnv);
+	fklPushPtrStack(globEnv,envstack);
+	while((!fklIsUintStackEmpty(cpcstack))&&(!fklIsUintStackEmpty(scpstack)))
+	{
+		uint64_t i=fklPopUintStack(cpcstack);
+		uint64_t end=i+fklPopUintStack(scpstack);
+		FklCompEnv* curEnv=fklPopPtrStack(envstack);
+		while(i<end)
+		{
+			int tmplen=0;
+			FklOpcode opcode=(FklOpcode)(bc->code[i]);
+			switch(fklGetOpcodeArgLen(opcode))
+			{
+				case -4:
+					{
+						i+=sizeof(FklSid_t);
+						int32_t handlerNum=*(int32_t*)(bc->code+i);
+						i+=sizeof(int32_t);
+						int j=0;
+						for(;j<handlerNum;j++)
+						{
+							i+=sizeof(FklSid_t);
+							uint32_t pCpc=*(uint32_t*)(bc->code+i);
+							i+=sizeof(uint32_t);
+							i+=pCpc;
+						}
+					}
+					break;
+				case -3:
+					{
+						int32_t scope=0;
+						FklSid_t id=0;
+						memcpy(&scope,bc->code+i+sizeof(char),sizeof(int32_t));
+						memcpy(&id,bc->code+i+sizeof(char)+sizeof(int32_t),sizeof(FklSid_t));
+						if(scope==0)
+							fklAddCompDefBySid(id,curEnv);
+						else if(scope==-1)
+						{
+							FklCompDef* def=NULL;
+							for(FklCompEnv* e=curEnv;e;e=e->prev)
+							{
+								def=fklFindCompDefBySid(id,e);
+								if(def)
+									break;
+							}
+							if(!def)
+							{
+								FklLineNumberTable table={.list=code->l,.num=code->ls};
+								FklLineNumTabNode* node=fklFindLineNumTabNode(i,&table);
+								fprintf(stderr,"warnnig of compiling:symbol \"%s\" is undefined at line %d of %s\n"
+										,fklGetGlobSymbolWithId(id)->symbol
+										,node->line
+										,fklGetGlobSymbolWithId(node->fid)->symbol);
+							}
+						}
+					}
+					i+=9;
+					break;
+				case -2:
+					fklPushUintStack(i+5,cpcstack);
+					{
+						uint32_t size=0;
+						memcpy(&size,bc->code+i+sizeof(char),sizeof(uint32_t));
+						fklPushUintStack(size,scpstack);
+						FklCompEnv* nextEnv=fklNewCompEnv(curEnv);
+						fklPushPtrStack(nextEnv,envstack);
+					}
+					i+=5+*(uint32_t*)(bc->code+i+sizeof(char));
+					break;
+				case -1:
+					tmplen=strlen((char*)bc->code+i+1);
+					i+=tmplen+2;
+					break;
+				case 0:
+					i+=1;
+					break;
+				case 1:
+					i+=2;
+					break;
+				case 4:
+					{
+						FklSid_t id=0;
+						if(opcode==FKL_POP_ARG||opcode==FKL_POP_REST_ARG)
+						{
+							memcpy(&id,bc->code+i+sizeof(char),sizeof(FklSid_t));
+							fklAddCompDefBySid(id,curEnv);
+						}
+						else if(opcode==FKL_PUSH_VAR)
+						{
+							memcpy(&id,bc->code+i+sizeof(char),sizeof(FklSid_t));
+							FklCompDef* def=NULL;
+							for(FklCompEnv* e=curEnv;e;e=e->prev)
+							{
+								def=fklFindCompDefBySid(id,e);
+								if(def)
+									break;
+							}
+							if(!def)
+							{
+								FklLineNumberTable table={.list=code->l,.num=code->ls};
+								FklLineNumTabNode* node=fklFindLineNumTabNode(i,&table);
+								fprintf(stderr,"warnnig of compiling:symbol \"%s\" is undefined at line %d of %s\n"
+										,fklGetGlobSymbolWithId(id)->symbol
+										,node->line
+										,fklGetGlobSymbolWithId(node->fid)->symbol);
+							}
+						}
+					}
+					i+=5;
+					break;
+				case 8:
+					switch(opcode)
+					{
+						case FKL_PUSH_DBL:
+							break;
+						case FKL_PUSH_I64:
+							break;
+						case FKL_PUSH_IND_REF:
+							break;
+						default:break;
+					}
+					i+=9;
+					break;
+				case 12:
+					i+=13;
+					break;
+			}
+		}
+		fklDestroyCompEnv(curEnv);
+	}
+	fklFreeUintStack(cpcstack);
+	fklFreeUintStack(scpstack);
+	fklFreePtrStack(envstack);
 }

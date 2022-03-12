@@ -281,7 +281,7 @@ FklVMrunnable* fklNewVMrunnable(FklVMproc* code)
 char* fklGenInvalidSymbolErrorMessage(const char* str,FklVMrunnable* r,FklVM* exe)
 {
 	int32_t cp=r->cp;
-	LineNumTabNode* node=fklFindLineNumTabNode(cp,exe->lnt);
+	FklLineNumTabNode* node=fklFindLineNumTabNode(cp,exe->lnt);
 	char* filename=fklGetGlobSymbolWithId(node->fid)->symbol;
 	char* line=fklIntToString(node->line);
 	size_t len=strlen("at line  of \n")+strlen(filename)+strlen(line)+1;
@@ -310,7 +310,7 @@ char* fklGenInvalidSymbolErrorMessage(const char* str,FklVMrunnable* r,FklVM* ex
 			else
 				t=fklStrCat(t,"at <top>");
 		}
-		LineNumTabNode* node=fklFindLineNumTabNode(r->cp,exe->lnt);
+		FklLineNumTabNode* node=fklFindLineNumTabNode(r->cp,exe->lnt);
 		char* filename=fklGetGlobSymbolWithId(node->fid)->symbol;
 		char* line=fklIntToString(node->line);
 		size_t len=strlen("(:)\n")+strlen(filename)+strlen(line)+1;
@@ -328,7 +328,7 @@ char* fklGenInvalidSymbolErrorMessage(const char* str,FklVMrunnable* r,FklVM* ex
 char* fklGenErrorMessage(unsigned int type,FklVMrunnable* r,FklVM* exe)
 {
 	int32_t cp=r->cp;
-	LineNumTabNode* node=fklFindLineNumTabNode(cp,exe->lnt);
+	FklLineNumTabNode* node=fklFindLineNumTabNode(cp,exe->lnt);
 	char* filename=fklGetGlobSymbolWithId(node->fid)->symbol;
 	char* line=fklIntToString(node->line);
 	size_t len=strlen("at line  of \n")+strlen(filename)+strlen(line)+1;
@@ -404,7 +404,7 @@ char* fklGenErrorMessage(unsigned int type,FklVMrunnable* r,FklVM* exe)
 			else
 				t=fklStrCat(t,"at <top>");
 		}
-		LineNumTabNode* node=fklFindLineNumTabNode(r->cp,exe->lnt);
+		FklLineNumTabNode* node=fklFindLineNumTabNode(r->cp,exe->lnt);
 		char* filename=fklGetGlobSymbolWithId(node->fid)->symbol;
 		char* line=fklIntToString(node->line);
 		size_t len=strlen("(:)\n")+strlen(filename)+strlen(line)+1;

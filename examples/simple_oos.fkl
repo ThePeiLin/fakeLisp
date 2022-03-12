@@ -1,6 +1,6 @@
 (import (std))
 
-(defmacro (class ?name,?body)
+(defmacro (class name,body)
   (begin
     (define data-list nil)
     (define pre-method-list nil)

@@ -60,7 +60,7 @@ typedef struct FklInterpreter
 	FILE* file;
 	int curline;
 	FklCompEnv* glob;
-	struct LineNumberTable* lnt;
+	struct FklLineNumberTable* lnt;
 	struct FklInterpreter* prev;
 	FklDefTypes* deftypes;
 }FklInterpreter;
@@ -83,7 +83,7 @@ FklCompEnv* fklNewCompEnv(FklCompEnv*);
 void fklDestroyCompEnv(FklCompEnv* objEnv);
 void fklFreeAllMacroThenDestroyCompEnv(FklCompEnv* env);
 FklCompDef* fklFindCompDef(const char*,FklCompEnv*);
-FklInterpreter* fklNewIntpr(const char*,FILE*,FklCompEnv*,LineNumberTable*,FklDefTypes* deftypes);
+FklInterpreter* fklNewIntpr(const char*,FILE*,FklCompEnv*,FklLineNumberTable*,FklDefTypes* deftypes);
 FklInterpreter* fklNewTmpIntpr(const char*,FILE*);
 
 void fklFreeIntpr(FklInterpreter*);
@@ -140,4 +140,7 @@ FklByteCodelnt* fklCompileProgn(FklAstCptr*,FklCompEnv*,FklInterpreter*,FklError
 FklByteCodelnt* fklCompileImport(FklAstCptr*,FklCompEnv*,FklInterpreter*,FklErrorState*,int evalIm);
 FklByteCodelnt* fklCompileTry(FklAstCptr*,FklCompEnv*,FklInterpreter*,FklErrorState*,int evalIm);
 FklByteCodelnt* fklCompileFlsym(FklAstCptr*,FklCompEnv*,FklInterpreter*,FklErrorState*,int evalIm);
+
+void fklPrintUndefinedSymbol(FklByteCodelnt* code);
+
 #endif

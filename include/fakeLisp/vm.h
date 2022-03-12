@@ -150,7 +150,7 @@ typedef struct FklVM
 	FklVMstack* stack;
 	struct FklVMvalue* chan;
 	struct FklVMheap* heap;
-	struct LineNumberTable* lnt;
+	struct FklLineNumberTable* lnt;
 	void (*callback)(void*);
 	jmp_buf buf;
 }FklVM;

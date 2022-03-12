@@ -56,4 +56,21 @@ int64_t fklTopIntStack(FklIntStack*);
 void fklFreeIntStack(FklIntStack*);
 void fklRecycleIntStack(FklIntStack*);
 int fklIsIntStackEmpty(FklIntStack*);
+
+typedef struct
+{
+	uint64_t* base;
+	uint32_t size;
+	uint32_t top;
+	uint32_t inc;
+}FklUintStack;
+
+FklUintStack* fklNewUintStack(uint32_t size,uint32_t inc);
+void fklPushUintStack(uint64_t e,FklUintStack*);
+uint64_t fklPopUintStack(FklUintStack*);
+uint64_t fklTopUintStack(FklUintStack*);
+void fklFreeUintStack(FklUintStack*);
+void fklRecycleUintStack(FklUintStack*);
+int fklIsUintStackEmpty(FklUintStack*);
+
 #endif

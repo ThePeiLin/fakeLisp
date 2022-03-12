@@ -217,4 +217,68 @@ void fklRecycleIntStack(FklIntStack* stack)
 	}
 }
 
+int fklIsUintStackEmpty(FklUintStack* stack)
+{
+	return stack->top==0;
+}
+
+FklUintStack* fklNewUintStack(uint32_t size,uint32_t inc)
+{
+	FklUintStack* tmp=(FklUintStack*)malloc(sizeof(FklUintStack));
+	FKL_ASSERT(tmp,"fklNewPtrStack",__FILE__,__LINE__);
+	tmp->base=(uint64_t*)malloc(sizeof(uint64_t)*size);
+	FKL_ASSERT(tmp->base,"fklNewPtrStack",__FILE__,__LINE__);
+	tmp->size=size;
+	tmp->inc=inc;
+	tmp->top=0;
+	return tmp;
+}
+
+void fklPushUintStack(uint64_t data,FklUintStack* stack)
+{
+	if(stack->top==stack->size)
+	{
+		uint64_t* tmpData=(uint64_t*)realloc(stack->base,(stack->size+stack->inc)*sizeof(uint64_t));
+		FKL_ASSERT(tmpData,"fklPushPtrStack",__FILE__,__LINE__);
+		stack->base=tmpData;
+		stack->size+=stack->inc;
+	}
+	stack->base[stack->top]=data;
+	stack->top+=1;
+}
+
+uint64_t fklPopUintStack(FklUintStack* stack)
+{
+	if(fklIsUintStackEmpty(stack))
+		return 0;
+	stack->top-=1;
+	uint64_t tmp=stack->base[stack->top];
+	fklRecycleUintStack(stack);
+	return tmp;
+}
+
+uint64_t fklTopUintStack(FklUintStack* stack)
+{
+	if(fklIsUintStackEmpty(stack))
+		return 0;
+	return stack->base[stack->top-1];
+}
+
+void fklFreeUintStack(FklUintStack* stack)
+{
+	free(stack->base);
+	free(stack);
+}
+
+void fklRecycleUintStack(FklUintStack* stack)
+{
+	if(stack->size-stack->top>stack->inc)
+	{
+		uint64_t* tmpData=(uint64_t*)realloc(stack->base,(stack->size-stack->inc)*sizeof(uint64_t));
+		FKL_ASSERT(tmpData,"fklRecyclePtrStack",__FILE__,__LINE__);
+		stack->base=tmpData;
+		stack->size-=stack->inc;
+	}
+}
+
 

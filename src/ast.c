@@ -138,39 +138,25 @@ FklAstCptr* expandReaderMacro(const char* objStr,FklInterpreter* inter,FklString
 			free(tmpVM);
 			return NULL;
 		}
-		FklVMproc* tmpVMproc=fklNewVMproc(t->bc->size,pattern->u.bProc->bc->size);
-		fklCodelntCopyCat(t,pattern->u.bProc);
 		FklVMenv* stringPatternEnv=fklCastPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->heap);
-		tmpVMproc->prevEnv=NULL;
-		FklVMrunnable* mainrunnable=fklNewVMrunnable(tmpVMproc);
-		mainrunnable->localenv=stringPatternEnv;
-		tmpVM->code=t->bc->code;
-		tmpVM->size=t->bc->size;
-		fklPushPtrStack(mainrunnable,tmpVM->rstack);
-		tmpVM->lnt=fklNewLineNumTable();
-		tmpVM->lnt->list=pattern->u.bProc->l;
-		tmpVM->lnt->num=pattern->u.bProc->ls;
+		uint32_t start=t->bc->size;
+		fklCodelntCopyCat(t,pattern->u.bProc);
+		fklInitVMRunningResource(tmpVM,stringPatternEnv,tmpVM->heap,t,start,pattern->u.bProc->bc->size);
 		int state=fklRunVM(tmpVM);
 		if(!state)
 			tmpCptr=fklCastVMvalueToCptr(fklGET_VAL(tmpVM->stack->values[0],tmpVM->heap),inter->curline);
 		else
 		{
 			fklFreeByteCodeAndLnt(t);
-			free(tmpVM->lnt);
-			fklDeleteCallChain(tmpVM);
-			fklFreeVMenv(tmpGlobEnv);
 			fklFreeVMheap(tmpVM->heap);
-			fklFreeVMstack(tmpVM->stack);
-			fklFreeVMproc(tmpVMproc);
-			fklFreePtrStack(tmpVM->rstack);
-			fklFreePtrStack(tmpVM->tstack);
-			free(tmpVM);
+			fklUnInitVMRunningResource(tmpVM);
+			fklFreeVMenv(tmpGlobEnv);
 			return NULL;
 		}
 		fklFreeByteCodeAndLnt(t);
-		free(tmpVM->lnt);
+		fklFreeVMheap(tmpVM->heap);
+		fklUnInitVMRunningResource(tmpVM);
 		fklFreeVMenv(tmpGlobEnv);
-		fklFreeVMproc(tmpVMproc);
 	}
 	else if(pattern->type==FKL_FLPROC)
 	{
@@ -182,12 +168,12 @@ FklAstCptr* expandReaderMacro(const char* objStr,FklInterpreter* inter,FklString
 		tmpCptr=fklCastVMvalueToCptr(fklGET_VAL(tmpVM->stack->values[0],tmpVM->heap),inter->curline);
 		free(mainrunnable);
 		fklFreeVMenv(stringPatternEnv);
+		fklFreeVMheap(tmpVM->heap);
+		fklFreeVMstack(tmpVM->stack);
+		fklFreePtrStack(tmpVM->rstack);
+		fklFreePtrStack(tmpVM->tstack);
+		free(tmpVM);
 	}
-	fklFreeVMheap(tmpVM->heap);
-	fklFreeVMstack(tmpVM->stack);
-	fklFreePtrStack(tmpVM->rstack);
-	fklFreePtrStack(tmpVM->tstack);
-	free(tmpVM);
 	fklDestroyEnv(tmpEnv);
 	fklFreeStringArry(parts,num);
 	return tmpCptr;

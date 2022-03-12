@@ -103,19 +103,12 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 			free(tmpVM);
 			return 2;
 		}
-		FklVMproc* tmpVMproc=fklNewVMproc(t->bc->size,tmp->proc->bc->size);
-		fklCodelntCopyCat(t,tmp->proc);
 		FklVMenv* macroVMenv=fklCastPreEnvToVMenv(macroEnv,tmpGlob,tmpVM->heap);
 		fklDestroyEnv(macroEnv);
-		FklVMrunnable* mainrunnable=fklNewVMrunnable(tmpVMproc);
-		mainrunnable->localenv=macroVMenv;
-		tmpVM->code=t->bc->code;
-		tmpVM->size=t->bc->size;
-		fklPushPtrStack(mainrunnable,tmpVM->rstack);
-		tmpVMproc->prevEnv=NULL;
-		tmpVM->lnt=fklNewLineNumTable();
-		tmpVM->lnt->num=t->ls;
-		tmpVM->lnt->list=t->l;
+		macroEnv=NULL;
+		uint32_t start=t->bc->size;
+		fklCodelntCopyCat(t,tmp->proc);
+		fklInitVMRunningResource(tmpVM,macroVMenv,tmpVM->heap,t,start,tmp->proc->bc->size);
 		FklAstCptr* tmpCptr=NULL;
 		int i=fklRunVM(tmpVM);
 		if(!i)
@@ -128,31 +121,16 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 		else
 		{
 			fklFreeByteCodeAndLnt(t);
-			free(tmpVM->lnt);
-			fklDeleteCallChain(tmpVM);
-			fklFreeVMenv(tmpGlob);
 			fklFreeVMheap(tmpVM->heap);
-			fklFreeVMstack(tmpVM->stack);
-			fklFreeVMproc(tmpVMproc);
-			fklFreePtrStack(tmpVM->rstack);
-			fklFreePtrStack(tmpVM->tstack);
-			free(tmpVM);
-			macroEnv=NULL;
+			fklUnInitVMRunningResource(tmpVM);
 			return 2;
 		}
 		fklFreeByteCodeAndLnt(t);
-		free(tmpVM->lnt);
-		fklFreeVMenv(tmpGlob);
 		fklFreeVMheap(tmpVM->heap);
-		fklFreeVMstack(tmpVM->stack);
-		fklFreeVMproc(tmpVMproc);
-		fklFreePtrStack(tmpVM->rstack);
-		fklFreePtrStack(tmpVM->tstack);
-		free(tmpVM);
-		macroEnv=NULL;
+		fklUnInitVMRunningResource(tmpVM);
 		return 1;
 	}
-	fklFreeByteCodelnt(t);
+	fklFreeByteCodeAndLnt(t);
 	return 0;
 }
 

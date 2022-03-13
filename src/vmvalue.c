@@ -32,7 +32,7 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVMheap* heap)
 			case FKL_NIL_TAG:
 			case FKL_I32_TAG:
 			case FKL_SYM_TAG:
-			case FKL_CHR_TAG:
+			case FKL_I8_TAG:
 				*root1=root;
 				break;
 			case FKL_PTR_TAG:
@@ -40,8 +40,8 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVMheap* heap)
 					FklValueType type=root->type;
 					switch(type)
 					{
-						case FKL_DBL:
-							*root1=fklNewVMvalue(FKL_DBL,&root->u.f64,heap);
+						case FKL_F64:
+							*root1=fklNewVMvalue(FKL_F64,&root->u.f64,heap);
 							break;
 						case FKL_BYTS:
 							*root1=fklNewVMvalue(FKL_BYTS,fklNewVMbyts(root->u.byts->size,root->u.byts->str),heap);
@@ -130,8 +130,8 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 		case FKL_NIL:
 			return FKL_VM_NIL;
 			break;
-		case FKL_CHR:
-			return FKL_MAKE_VM_CHR(pValue);
+		case FKL_I8:
+			return FKL_MAKE_VM_I8(pValue);
 			break;
 		case FKL_I32:
 			return FKL_MAKE_VM_I32(pValue);
@@ -154,7 +154,7 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 				pthread_mutex_unlock(&heap->lock);
 				switch(type)
 				{
-					case FKL_DBL:
+					case FKL_F64:
 						if(pValue)
 							tmp->u.f64=getF64FromByteCode(pValue);
 						break;
@@ -241,7 +241,7 @@ int fklVMvaluecmp(FklVMvalue* fir,FklVMvalue* sec)
 				r=0;
 			switch(root1->type)
 			{
-				case FKL_DBL:
+				case FKL_F64:
 					r=(fabs(root1->u.f64-root2->u.f64)==0);
 					break;
 				case FKL_I64:
@@ -816,14 +816,14 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 				case FKL_I32:
 					*root1=FKL_MAKE_VM_I32(tmpAtm->value.i32);
 					break;
-				case FKL_CHR:
-					*root1=FKL_MAKE_VM_CHR(tmpAtm->value.chr);
+				case FKL_I8:
+					*root1=FKL_MAKE_VM_I8(tmpAtm->value.i8);
 					break;
 				case FKL_SYM:
 					*root1=FKL_MAKE_VM_SYM(fklAddSymbolToGlob(tmpAtm->value.str)->id);
 					break;
-				case FKL_DBL:
-					*root1=fklNewVMvalue(FKL_DBL,&tmpAtm->value.f64,heap);
+				case FKL_F64:
+					*root1=fklNewVMvalue(FKL_F64,&tmpAtm->value.f64,heap);
 					break;
 				case FKL_BYTS:
 					*root1=fklNewVMvalue(FKL_BYTS,fklNewVMbyts(tmpAtm->value.byts.size,tmpAtm->value.byts.str),heap);

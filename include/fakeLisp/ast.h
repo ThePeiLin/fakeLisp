@@ -9,8 +9,8 @@ extern "C" {
 typedef enum{
 	FKL_NIL=0,
 	FKL_I32,
-	FKL_CHR,
-	FKL_DBL,
+	FKL_I8,
+	FKL_F64,
 	FKL_I64,
 	FKL_SYM,
 	FKL_STR,
@@ -62,7 +62,7 @@ typedef struct FklAstAtom
 	union
 	{
 		char* str;
-		char chr;
+		char i8;
 		int32_t i32;
 		int64_t i64;
 		double f64;

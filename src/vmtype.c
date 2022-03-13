@@ -177,7 +177,7 @@ static double (*castToDoubleFunctionsList[])(ARGL)=
 			case FKL_I32_TAG:\
 				*t=(TYPE)FKL_GET_I32(v);\
 					break;\
-			case FKL_CHR_TAG:\
+			case FKL_I8_TAG:\
 				*t=(TYPE)FKL_GET_CHR(v);\
 				break;\
 			case FKL_SYM_TAG:\
@@ -187,7 +187,7 @@ static double (*castToDoubleFunctionsList[])(ARGL)=
 				{\
 					switch(v->type)\
 					{\
-						case FKL_DBL:\
+						case FKL_F64:\
 							*t=(TYPE)v->u.f64;\
 							break;\
 						case FKL_I64:\
@@ -208,11 +208,11 @@ static double (*castToDoubleFunctionsList[])(ARGL)=
 	*p=t;\
 	return 0;
 
-#define CAST_TO_FLOAT(TYPE) if(!FKL_IS_I32(v)&&!FKL_IS_I64(v)&&!FKL_IS_CHR(v)&&!FKL_IS_DBL(v)&&!FKL_IS_MEM(v)&&!IS_CHF(v))return 1;\
+#define CAST_TO_FLOAT(TYPE) if(!FKL_IS_I32(v)&&!FKL_IS_I64(v)&&!FKL_IS_I8(v)&&!FKL_IS_F64(v)&&!FKL_IS_MEM(v)&&!IS_CHF(v))return 1;\
 	TYPE* t=(TYPE*)malloc(sizeof(TYPE));\
 	FKL_ASSERT(t,"VMvalue_pointer_caster",__FILE__,__LINE__);\
 	if(!FKL_IS_MEM(v)&&!IS_CHF(v))\
-		*t=FKL_IS_I32(v)?FKL_GET_I32(v):(FKL_IS_I64(v)?v->u.i64:(FKL_IS_DBL(v)?v->u.f64:FKL_GET_CHR(v)));\
+		*t=FKL_IS_I32(v)?FKL_GET_I32(v):(FKL_IS_I64(v)?v->u.i64:(FKL_IS_F64(v)?v->u.f64:FKL_GET_CHR(v)));\
 	else\
 		*t=castToDoubleFunctionsList[v->u.chf->type-1](v->u.chf->mem);\
 	*p=t;\
@@ -390,10 +390,10 @@ static FklVMvalue* castULLongMem(ARGL){CAST_TO_I64(unsigned long long)}
 static FklVMvalue* castPtrdiff_t(ARGL){CAST_TO_I64(ptrdiff_t)}
 static FklVMvalue* castSize_t   (ARGL){CAST_TO_I64(size_t)}
 static FklVMvalue* castSsize_t  (ARGL){CAST_TO_I64(ssize_t)}
-static FklVMvalue* castChar     (ARGL){return FKL_MAKE_VM_CHR(*(char*)mem);}
+static FklVMvalue* castChar     (ARGL){return FKL_MAKE_VM_I8(*(char*)mem);}
 static FklVMvalue* castWchar_t  (ARGL){return FKL_MAKE_VM_I32(*(wchar_t*)mem);}
-static FklVMvalue* castFloat    (ARGL){double t=*(float*)mem;return fklNewVMvalue(FKL_DBL,&t,heap);}
-static FklVMvalue* castDouble   (ARGL){double t=*(double*)mem;return fklNewVMvalue(FKL_DBL,&t,heap);}
+static FklVMvalue* castFloat    (ARGL){double t=*(float*)mem;return fklNewVMvalue(FKL_F64,&t,heap);}
+static FklVMvalue* castDouble   (ARGL){double t=*(double*)mem;return fklNewVMvalue(FKL_F64,&t,heap);}
 static FklVMvalue* castInt8_t   (ARGL){CAST_TO_I32(int8_t)}
 static FklVMvalue* castUint8_t  (ARGL){CAST_TO_I32(uint8_t)}
 static FklVMvalue* castInt16_t  (ARGL){CAST_TO_I32(int16_t)}
@@ -454,10 +454,10 @@ static int setULLongMem(ARGL){SET_NUM(unsigned long long)}
 static int setPtrdiff_t(ARGL){SET_NUM(ptrdiff_t)}
 static int setSize_t   (ARGL){SET_NUM(size_t)}
 static int setSsize_t  (ARGL){SET_NUM(ssize_t)}
-static int setChar     (ARGL){BODY(!FKL_IS_CHR(v),char,FKL_GET_CHR(v))}
-static int setWchar_t  (ARGL){BODY(!FKL_IS_CHR(v)&&!FKL_IS_I32(v),wchar_t,FKL_IS_I32(v)?FKL_GET_I32(v):FKL_GET_CHR(v))}
-static int setFloat    (ARGL){BODY(!FKL_IS_DBL(v)&&!FKL_IS_I32(v)&&FKL_IS_I64(v),float,FKL_IS_DBL(v)?v->u.f64:(FKL_IS_I32(v)?FKL_GET_I32(v):v->u.i64))}
-static int setDouble   (ARGL){BODY(!FKL_IS_DBL(v)&&!FKL_IS_I32(v)&&FKL_IS_I64(v),double,FKL_IS_DBL(v)?v->u.f64:(FKL_IS_I32(v)?FKL_GET_I32(v):v->u.i64))}
+static int setChar     (ARGL){BODY(!FKL_IS_I8(v),char,FKL_GET_CHR(v))}
+static int setWchar_t  (ARGL){BODY(!FKL_IS_I8(v)&&!FKL_IS_I32(v),wchar_t,FKL_IS_I32(v)?FKL_GET_I32(v):FKL_GET_CHR(v))}
+static int setFloat    (ARGL){BODY(!FKL_IS_F64(v)&&!FKL_IS_I32(v)&&FKL_IS_I64(v),float,FKL_IS_F64(v)?v->u.f64:(FKL_IS_I32(v)?FKL_GET_I32(v):v->u.i64))}
+static int setDouble   (ARGL){BODY(!FKL_IS_F64(v)&&!FKL_IS_I32(v)&&FKL_IS_I64(v),double,FKL_IS_F64(v)?v->u.f64:(FKL_IS_I32(v)?FKL_GET_I32(v):v->u.i64))}
 static int setInt8_t   (ARGL){SET_NUM(int8_t)}
 static int setUint8_t  (ARGL){SET_NUM(uint8_t)}
 static int setInt16_t  (ARGL){SET_NUM(int16_t)}

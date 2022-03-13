@@ -22,7 +22,7 @@ typedef enum
 	FKL_NIL_TAG,
 	FKL_I32_TAG,
 	FKL_SYM_TAG,
-	FKL_CHR_TAG,
+	FKL_I8_TAG,
 	FKL_REF_TAG,
 }FklVMptrTag;
 

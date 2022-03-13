@@ -50,10 +50,10 @@ FklVMvalue* castULLongVp   (ARGL){CAST_TO_I64}
 FklVMvalue* castPtrdiff_tVp(ARGL){CAST_TO_I64}
 FklVMvalue* castSize_tVp   (ARGL){CAST_TO_I64}
 FklVMvalue* castSsize_tVp  (ARGL){CAST_TO_I64}
-FklVMvalue* castCharVp     (ARGL){return FKL_MAKE_VM_CHR(p);}
+FklVMvalue* castCharVp     (ARGL){return FKL_MAKE_VM_I8(p);}
 FklVMvalue* castWchar_tVp  (ARGL){CAST_TO_I32}
-FklVMvalue* castFloatVp    (ARGL){return fklNewVMvalue(FKL_DBL,&p,heap);}
-FklVMvalue* castDoubleVp   (ARGL){return fklNewVMvalue(FKL_DBL,&p,heap);}
+FklVMvalue* castFloatVp    (ARGL){return fklNewVMvalue(FKL_F64,&p,heap);}
+FklVMvalue* castDoubleVp   (ARGL){return fklNewVMvalue(FKL_F64,&p,heap);}
 FklVMvalue* castInt8_tVp   (ARGL){CAST_TO_I32}
 FklVMvalue* castUint8_tVp  (ARGL){CAST_TO_I32}
 FklVMvalue* castInt16_tVp  (ARGL){CAST_TO_I32}
@@ -365,7 +365,7 @@ extern void SYS_gt(FklVM* exe,pthread_rwlock_t* gclock);
 extern void SYS_ge(FklVM* exe,pthread_rwlock_t* gclock);
 extern void SYS_lt(FklVM* exe,pthread_rwlock_t* gclock);
 extern void SYS_le(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_chr(FklVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_i8(FklVM* exe,pthread_rwlock_t* gclock);
 extern void SYS_int(FklVM* exe,pthread_rwlock_t* gclock);
 extern void SYS_f64(FklVM* exe,pthread_rwlock_t* gclock);
 extern void SYS_str(FklVM* exe,pthread_rwlock_t* gclock);
@@ -420,7 +420,7 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_ge,
 		SYS_lt,
 		SYS_le,
-		SYS_chr,
+		SYS_i8,
 		SYS_int,
 		SYS_f64,
 		SYS_str,
@@ -738,7 +738,7 @@ void B_push_chr(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	FKL_SET_RETURN("B_push_chr",FKL_MAKE_VM_CHR(*(char*)(exe->code+runnable->cp+1)),stack);
+	FKL_SET_RETURN("B_push_chr",FKL_MAKE_VM_I8(*(char*)(exe->code+runnable->cp+1)),stack);
 	runnable->cp+=2;
 }
 
@@ -746,7 +746,7 @@ void B_push_f64(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	FKL_SET_RETURN("B_push_f64",fklNewVMvalue(FKL_DBL,exe->code+runnable->cp+sizeof(char),exe->heap),stack);
+	FKL_SET_RETURN("B_push_f64",fklNewVMvalue(FKL_F64,exe->code+runnable->cp+sizeof(char),exe->heap),stack);
 	runnable->cp+=9;
 }
 

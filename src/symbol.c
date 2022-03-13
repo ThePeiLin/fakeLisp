@@ -66,7 +66,7 @@ static const char* builtInSymbolList[]=
 	"<=",
 	"chr",
 	"int",
-	"dbl",
+	"f64",
 	"str",
 	"sym",
 	"byts",

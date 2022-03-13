@@ -473,7 +473,7 @@ static void princVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 				switch(objValue->type)
 				{
 					case FKL_DBL:
-						fprintf(fp,"%lf",objValue->u.dbl);
+						fprintf(fp,"%lf",objValue->u.f64);
 						break;
 					case FKL_I64:
 						fprintf(fp,"%ld",objValue->u.i64);
@@ -618,7 +618,7 @@ static void prin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 				switch(objValue->type)
 				{
 					case FKL_DBL:
-						fprintf(fp,"%lf",objValue->u.dbl);
+						fprintf(fp,"%lf",objValue->u.f64);
 						break;
 					case FKL_I64:
 						fprintf(fp,"%ld",objValue->u.i64);
@@ -910,7 +910,7 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 						switch(root->type)
 						{
 							case FKL_DBL:
-								tmpAtm->value.dbl=root->u.dbl;
+								tmpAtm->value.f64=root->u.f64;
 								break;
 							case FKL_I64:
 								tmpAtm->value.i64=root->u.i64;

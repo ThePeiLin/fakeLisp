@@ -65,7 +65,7 @@ typedef struct FklAstAtom
 		char chr;
 		int32_t i32;
 		int64_t i64;
-		double dbl;
+		double f64;
 		FklByteString byts;
 	} value;
 }FklAstAtom;

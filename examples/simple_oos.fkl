@@ -66,15 +66,15 @@
 
        (method
          (Vec3 (x y z)
-               (setq X (dbl x))
-               (setq Y (dbl y))
-               (setq Z (dbl z)))
+               (setq X (f64 x))
+               (setq Y (f64 y))
+               (setq Z (f64 z)))
          (set-X (x)
-               (setq X (dbl x)))
+               (setq X (f64 x)))
          (set-Y (y)
-               (setq Y (dbl y)))
+               (setq Y (f64 y)))
          (set-Z (z)
-               (setq Z (dbl z)))))
+               (setq Z (f64 z)))))
 
 
 (define i (Vec3 1 2 3))

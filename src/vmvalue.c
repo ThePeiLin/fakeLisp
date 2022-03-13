@@ -41,7 +41,7 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVMheap* heap)
 					switch(type)
 					{
 						case FKL_DBL:
-							*root1=fklNewVMvalue(FKL_DBL,&root->u.dbl,heap);
+							*root1=fklNewVMvalue(FKL_DBL,&root->u.f64,heap);
 							break;
 						case FKL_BYTS:
 							*root1=fklNewVMvalue(FKL_BYTS,fklNewVMbyts(root->u.byts->size,root->u.byts->str),heap);
@@ -128,7 +128,7 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 				{
 					case FKL_DBL:
 						if(pValue)
-							tmp->u.dbl=*(double*)pValue;
+							tmp->u.f64=*(double*)pValue;
 						break;
 					case FKL_I64:
 						if(pValue)
@@ -214,7 +214,7 @@ int fklVMvaluecmp(FklVMvalue* fir,FklVMvalue* sec)
 			switch(root1->type)
 			{
 				case FKL_DBL:
-					r=(fabs(root1->u.dbl-root2->u.dbl)==0);
+					r=(fabs(root1->u.f64-root2->u.f64)==0);
 					break;
 				case FKL_I64:
 					r=(root1->u.i64-root2->u.i64)==0;
@@ -256,9 +256,9 @@ int fklNumcmp(FklVMvalue* fir,FklVMvalue* sec)
 	else
 	{
 		double first=(FKL_GET_TAG(fir)==FKL_I32_TAG)?FKL_GET_I32(fir)
-			:((FKL_IS_I64(fir))?fir->u.i64:fir->u.dbl);
+			:((FKL_IS_I64(fir))?fir->u.i64:fir->u.f64);
 		double second=(FKL_GET_TAG(sec)==FKL_I32_TAG)?FKL_GET_I32(sec)
-			:((FKL_IS_I64(sec))?sec->u.i64:sec->u.dbl);
+			:((FKL_IS_I64(sec))?sec->u.i64:sec->u.f64);
 		return fabs(first-second)==0;
 	}
 }
@@ -795,7 +795,7 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 					*root1=FKL_MAKE_VM_SYM(fklAddSymbolToGlob(tmpAtm->value.str)->id);
 					break;
 				case FKL_DBL:
-					*root1=fklNewVMvalue(FKL_DBL,&tmpAtm->value.dbl,heap);
+					*root1=fklNewVMvalue(FKL_DBL,&tmpAtm->value.f64,heap);
 					break;
 				case FKL_BYTS:
 					*root1=fklNewVMvalue(FKL_BYTS,fklNewVMbyts(tmpAtm->value.byts.size,tmpAtm->value.byts.str),heap);

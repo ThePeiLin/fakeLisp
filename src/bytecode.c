@@ -156,7 +156,7 @@ void fklPrintByteCode(const FklByteCode* tmpCode,FILE* fp)
 			case 8:
 				switch(tmpCode->code[i])
 				{
-					case FKL_PUSH_DBL:
+					case FKL_PUSH_F64:
 						fprintf(fp,"%lf",*(double*)(tmpCode->code+i+1));
 						break;
 					case FKL_PUSH_I64:
@@ -240,7 +240,7 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp)
 			case 8:
 				switch(tmpCode->code[i])
 				{
-					case FKL_PUSH_DBL:
+					case FKL_PUSH_F64:
 						fprintf(fp,"%lf",*(double*)(tmpCode->code+i+1));
 						break;
 					case FKL_PUSH_I64:

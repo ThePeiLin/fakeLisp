@@ -353,7 +353,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklInterpreter* inter,FklStringMatc
 						if(fklIsDouble(str))
 						{
 							atom=fklNewAtom(FKL_DBL,NULL,root->outer);
-							atom->value.dbl=fklStringToDouble(str);
+							atom->value.f64=fklStringToDouble(str);
 						}
 						else
 						{
@@ -564,7 +564,7 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklInterpreter* inter)
 					if(fklIsDouble(str))
 					{
 						atom=fklNewAtom(FKL_DBL,NULL,root->outer);
-						atom->value.dbl=fklStringToDouble(str);
+						atom->value.f64=fklStringToDouble(str);
 					}
 					else
 					{
@@ -648,7 +648,7 @@ void fklPrintCptr(const FklAstCptr* objCptr,FILE* out)
 						fprintf(out,"%d",tmpAtm->value.i32);
 						break;
 					case FKL_DBL:
-						fprintf(out,"%lf",tmpAtm->value.dbl);
+						fprintf(out,"%lf",tmpAtm->value.f64);
 						break;
 					case FKL_CHR:
 						fklPrintRawChar(tmpAtm->value.chr,out);
@@ -795,7 +795,7 @@ int fklCopyCptr(FklAstCptr* objCptr,const FklAstCptr* copiedCptr)
 						break;
 					case FKL_DBL:
 						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
-						atom1->value.dbl=atom2->value.dbl;
+						atom1->value.f64=atom2->value.f64;
 						break;
 					case FKL_CHR:
 						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
@@ -919,7 +919,7 @@ int fklCptrcmp(const FklAstCptr* first,const FklAstCptr* second)
 				if(firAtm->type!=secAtm->type)return 0;
 				if((firAtm->type==FKL_SYM||firAtm->type==FKL_STR)&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
 				else if(firAtm->type==FKL_I32&&firAtm->value.i32!=secAtm->value.i32)return 0;
-				else if(firAtm->type==FKL_DBL&&fabs(firAtm->value.dbl-secAtm->value.dbl)!=0)return 0;
+				else if(firAtm->type==FKL_DBL&&fabs(firAtm->value.f64-secAtm->value.f64)!=0)return 0;
 				else if(firAtm->type==FKL_CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
 				else if(firAtm->type==FKL_BYTS&&!fklEqByteString(&firAtm->value.byts,&secAtm->value.byts))return 0;
 			}

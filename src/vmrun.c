@@ -196,7 +196,7 @@ static void B_push_chr(FklVM*);
 static void B_push_dbl(FklVM*);
 static void B_push_str(FklVM*);
 static void B_push_sym(FklVM*);
-static void B_push_byte(FklVM*);
+static void B_push_byts(FklVM*);
 static void B_push_var(FklVM*);
 //static void B_push_env_var(FklVM*);
 static void B_push_top(FklVM*);
@@ -240,7 +240,7 @@ static void (*ByteCodes[])(FklVM*)=
 	B_push_dbl,
 	B_push_str,
 	B_push_sym,
-	B_push_byte,
+	B_push_byts,
 	B_push_var,
 //	B_push_env_var,
 	B_push_top,
@@ -367,7 +367,7 @@ extern void SYS_lt(FklVM* exe,pthread_rwlock_t* gclock);
 extern void SYS_le(FklVM* exe,pthread_rwlock_t* gclock);
 extern void SYS_chr(FklVM* exe,pthread_rwlock_t* gclock);
 extern void SYS_int(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_dbl(FklVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_f64(FklVM* exe,pthread_rwlock_t* gclock);
 extern void SYS_str(FklVM* exe,pthread_rwlock_t* gclock);
 extern void SYS_sym(FklVM* exe,pthread_rwlock_t* gclock);
 extern void SYS_byts(FklVM* exe,pthread_rwlock_t* gclock);
@@ -422,7 +422,7 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_le,
 		SYS_chr,
 		SYS_int,
-		SYS_dbl,
+		SYS_f64,
 		SYS_str,
 		SYS_sym,
 		SYS_byts,
@@ -732,12 +732,12 @@ void B_push_sym(FklVM* exe)
 	runnable->cp+=5;
 }
 
-void B_push_byte(FklVM* exe)
+void B_push_byts(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	int32_t size=*(int32_t*)(exe->code+runnable->cp+1);
-	FKL_SET_RETURN("B_push_byte",fklNewVMvalue(FKL_BYTS,fklNewVMbyts(*(int32_t*)(exe->code+runnable->cp+1),exe->code+runnable->cp+5),exe->heap),stack);
+	FKL_SET_RETURN("B_push_byts",fklNewVMvalue(FKL_BYTS,fklNewVMbyts(*(int32_t*)(exe->code+runnable->cp+1),exe->code+runnable->cp+5),exe->heap),stack);
 	runnable->cp+=5+size;
 }
 

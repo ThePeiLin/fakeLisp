@@ -79,7 +79,7 @@ typedef struct FklVMvalue
 	union
 	{
 		struct FklVMpair* pair;
-		double dbl;
+		double f64;
 		int64_t i64;
 		char* str;
 		struct FklVMmem* chf;

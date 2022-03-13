@@ -95,6 +95,34 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVMheap* heap)
 	return tmp;
 }
 
+static inline double getF64FromByteCode(uint8_t* code)
+{
+	double i=0;
+	((uint8_t*)&i)[0]=code[0];
+	((uint8_t*)&i)[1]=code[1];
+	((uint8_t*)&i)[2]=code[2];
+	((uint8_t*)&i)[3]=code[3];
+	((uint8_t*)&i)[4]=code[4];
+	((uint8_t*)&i)[5]=code[5];
+	((uint8_t*)&i)[6]=code[6];
+	((uint8_t*)&i)[7]=code[7];
+	return i;
+}
+
+static inline int64_t getI64FromByteCode(uint8_t* code)
+{
+	int64_t i=0;
+	((uint8_t*)&i)[0]=code[0];
+	((uint8_t*)&i)[1]=code[1];
+	((uint8_t*)&i)[2]=code[2];
+	((uint8_t*)&i)[3]=code[3];
+	((uint8_t*)&i)[4]=code[4];
+	((uint8_t*)&i)[5]=code[5];
+	((uint8_t*)&i)[6]=code[6];
+	((uint8_t*)&i)[7]=code[7];
+	return i;
+}
+
 FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 {
 	switch((int)type)
@@ -128,11 +156,11 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 				{
 					case FKL_DBL:
 						if(pValue)
-							tmp->u.f64=*(double*)pValue;
+							tmp->u.f64=getF64FromByteCode(pValue);
 						break;
 					case FKL_I64:
 						if(pValue)
-							tmp->u.i64=*(int64_t*)pValue;
+							tmp->u.i64=getI64FromByteCode(pValue);
 						break;
 					case FKL_STR:
 						tmp->u.str=pValue;break;

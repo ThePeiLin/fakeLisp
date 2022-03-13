@@ -58,24 +58,44 @@ static int cmpString(const void* a,const void* b)
 	return strcmp(*(const char**)a,*(const char**)b);
 }
 
-static void setI32ToByteCode(uint8_t* code,int32_t i)
+static inline void setI32ToByteCode(uint8_t* code,int32_t i)
 {
-	memcpy(code,&i,sizeof(int32_t));
+	code[0]=((uint8_t*)&i)[0];
+	code[1]=((uint8_t*)&i)[1];
+	code[2]=((uint8_t*)&i)[2];
+	code[3]=((uint8_t*)&i)[3];
 }
 
-static void setU32ToByteCode(uint8_t* code,uint32_t i)
+static inline void setU32ToByteCode(uint8_t* code,uint32_t i)
 {
-	memcpy(code,&i,sizeof(uint32_t));
+	code[0]=((uint8_t*)&i)[0];
+	code[1]=((uint8_t*)&i)[1];
+	code[2]=((uint8_t*)&i)[2];
+	code[3]=((uint8_t*)&i)[3];
 }
 
-static void setI64ToByteCode(uint8_t* code,int64_t i)
+static inline void setI64ToByteCode(uint8_t* code,int64_t i)
 {
-	memcpy(code,&i,sizeof(int64_t));
+	code[0]=((uint8_t*)&i)[0];
+	code[1]=((uint8_t*)&i)[1];
+	code[2]=((uint8_t*)&i)[2];
+	code[3]=((uint8_t*)&i)[3];
+	code[4]=((uint8_t*)&i)[4];
+	code[5]=((uint8_t*)&i)[5];
+	code[6]=((uint8_t*)&i)[6];
+	code[7]=((uint8_t*)&i)[7];
 }
 
-static void setF64ToByteCode(uint8_t* code,double i)
+static inline void setF64ToByteCode(uint8_t* code,double i)
 {
-	memcpy(code,&i,sizeof(double));
+	code[0]=((uint8_t*)&i)[0];
+	code[1]=((uint8_t*)&i)[1];
+	code[2]=((uint8_t*)&i)[2];
+	code[3]=((uint8_t*)&i)[3];
+	code[4]=((uint8_t*)&i)[4];
+	code[5]=((uint8_t*)&i)[5];
+	code[6]=((uint8_t*)&i)[6];
+	code[7]=((uint8_t*)&i)[7];
 }
 
 //static int cmpByteCodeLabel(const void* a,const void* b)
@@ -2880,7 +2900,7 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 	FklByteCode* header=fklNewByteCode(sizeof(FklSid_t)+sizeof(int32_t)+sizeof(char));
 	header->code[0]=FKL_PUSH_TRY;
 	setU32ToByteCode(header->code+sizeof(char),sid);
-	setI32ToByteCode(header->code+sizeof(char)+sizeof(FklSid_t),numOfHandlerByteCode);
+	setU32ToByteCode(header->code+sizeof(char)+sizeof(FklSid_t),numOfHandlerByteCode);
 	fklReCodeCat(header,t->bc);
 	t->l[0]->cpc+=header->size;
 	FKL_INCREASE_ALL_SCP(t->l+1,t->ls-1,header->size);

@@ -193,7 +193,7 @@ static void B_push_pair(FklVM*);
 static void B_push_i32(FklVM*);
 static void B_push_i64(FklVM*);
 static void B_push_chr(FklVM*);
-static void B_push_dbl(FklVM*);
+static void B_push_f64(FklVM*);
 static void B_push_str(FklVM*);
 static void B_push_sym(FklVM*);
 static void B_push_byts(FklVM*);
@@ -237,7 +237,7 @@ static void (*ByteCodes[])(FklVM*)=
 	B_push_i32,
 	B_push_i64,
 	B_push_chr,
-	B_push_dbl,
+	B_push_f64,
 	B_push_str,
 	B_push_sym,
 	B_push_byts,
@@ -683,11 +683,45 @@ void B_push_pair(FklVM* exe)
 
 }
 
+static inline int32_t getI32FromByteCode(uint8_t* code)
+{
+	int32_t i=0;
+	((uint8_t*)&i)[0]=code[0];
+	((uint8_t*)&i)[1]=code[1];
+	((uint8_t*)&i)[2]=code[2];
+	((uint8_t*)&i)[3]=code[3];
+	return i;
+}
+
+static inline uint32_t getU32FromByteCode(uint8_t* code)
+{
+	uint32_t i=0;
+	((uint8_t*)&i)[0]=code[0];
+	((uint8_t*)&i)[1]=code[1];
+	((uint8_t*)&i)[2]=code[2];
+	((uint8_t*)&i)[3]=code[3];
+	return i;
+}
+
+static inline int64_t getI64FromByteCode(uint8_t* code)
+{
+	int64_t i=0;
+	((uint8_t*)&i)[0]=code[0];
+	((uint8_t*)&i)[1]=code[1];
+	((uint8_t*)&i)[2]=code[2];
+	((uint8_t*)&i)[3]=code[3];
+	((uint8_t*)&i)[4]=code[4];
+	((uint8_t*)&i)[5]=code[5];
+	((uint8_t*)&i)[6]=code[6];
+	((uint8_t*)&i)[7]=code[7];
+	return i;
+}
+
 void B_push_i32(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	FKL_SET_RETURN("B_push_i32",FKL_MAKE_VM_I32(*(int32_t*)(exe->code+runnable->cp+1)),stack);
+	FKL_SET_RETURN("B_push_i32",FKL_MAKE_VM_I32(getI32FromByteCode(exe->code+runnable->cp+sizeof(char))),stack);
 	runnable->cp+=5;
 }
 
@@ -695,7 +729,8 @@ void B_push_i64(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
-	FKL_SET_RETURN("B_push_i32",fklNewVMvalue(FKL_I64,exe->code+r->cp+sizeof(char),exe->heap),stack);
+	int64_t i=getI64FromByteCode(exe->code+r->cp+sizeof(char));
+	FKL_SET_RETURN("B_push_i64",fklNewVMvalue(FKL_I64,&i,exe->heap),stack);
 	r->cp+=sizeof(char)+sizeof(int64_t);
 }
 
@@ -707,11 +742,11 @@ void B_push_chr(FklVM* exe)
 	runnable->cp+=2;
 }
 
-void B_push_dbl(FklVM* exe)
+void B_push_f64(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	FKL_SET_RETURN("B_push_dbl",fklNewVMvalue(FKL_DBL,exe->code+runnable->cp+1,exe->heap),stack);
+	FKL_SET_RETURN("B_push_f64",fklNewVMvalue(FKL_DBL,exe->code+runnable->cp+sizeof(char),exe->heap),stack);
 	runnable->cp+=9;
 }
 
@@ -728,7 +763,7 @@ void B_push_sym(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	FKL_SET_RETURN("B_push_sym",FKL_MAKE_VM_SYM(*(FklSid_t*)(exe->code+runnable->cp+1)),stack);
+	FKL_SET_RETURN("B_push_sym",FKL_MAKE_VM_SYM(getU32FromByteCode(exe->code+runnable->cp+1)),stack);
 	runnable->cp+=5;
 }
 
@@ -736,8 +771,8 @@ void B_push_byts(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	int32_t size=*(int32_t*)(exe->code+runnable->cp+1);
-	FKL_SET_RETURN("B_push_byts",fklNewVMvalue(FKL_BYTS,fklNewVMbyts(*(int32_t*)(exe->code+runnable->cp+1),exe->code+runnable->cp+5),exe->heap),stack);
+	uint32_t size=getU32FromByteCode(exe->code+runnable->cp+1);
+	FKL_SET_RETURN("B_push_byts",fklNewVMvalue(FKL_BYTS,fklNewVMbyts(size,exe->code+runnable->cp+5),exe->heap),stack);
 	runnable->cp+=5+size;
 }
 
@@ -745,7 +780,7 @@ void B_push_var(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	FklSid_t idOfVar=*(FklSid_t*)(exe->code+runnable->cp+1);
+	FklSid_t idOfVar=getU32FromByteCode(exe->code+runnable->cp+1);
 	FklVMenv* curEnv=runnable->localenv;
 	FklVMenvNode* tmp=NULL;
 	while(curEnv&&!tmp)
@@ -797,7 +832,7 @@ void B_push_proc(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	int32_t sizeOfProc=*(int32_t*)(exe->code+runnable->cp+1);
+	uint32_t sizeOfProc=getU32FromByteCode(exe->code+runnable->cp+1);
 	FklVMproc* code=fklNewVMproc(runnable->cp+1+sizeof(int32_t),sizeOfProc);
 	fklIncreaseVMenvRefcount(runnable->localenv);
 	code->prevEnv=runnable->localenv;
@@ -810,11 +845,10 @@ void B_push_fproc(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	FklTypeId_t type=*(FklTypeId_t*)(exe->code+runnable->cp+1);
+	FklTypeId_t type=getU32FromByteCode(exe->code+runnable->cp+1);
 	FklVMheap* heap=exe->heap;
 	FklVMvalue* sym=fklGET_VAL(fklPopVMstack(stack),heap);
-	//FklVMvalue* dll=fklGET_VAL(fklPopVMstack(stack),heap);
-	if((!FKL_IS_SYM(sym)&&!FKL_IS_STR(sym)))//||(!FKL_IS_DLL(dll)))
+	if((!FKL_IS_SYM(sym)&&!FKL_IS_STR(sym)))
 		FKL_RAISE_BUILTIN_ERROR("b.push_fproc",FKL_WRONGARG,runnable,exe);
 	char* str=FKL_IS_SYM(sym)?fklGetGlobSymbolWithId(FKL_GET_SYM(sym))->symbol:sym->u.str;
 	FklSharedObjNode* head=GlobSharedObjs;
@@ -831,8 +865,8 @@ void B_push_ptr_ref(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
-	ssize_t offset=*(ssize_t*)(exe->code+r->cp+sizeof(char));
-	FklTypeId_t ptrId=*(FklTypeId_t*)(exe->code+r->cp+sizeof(char)+sizeof(ssize_t));
+	ssize_t offset=getI64FromByteCode(exe->code+r->cp+sizeof(char));
+	FklTypeId_t ptrId=getU32FromByteCode(exe->code+r->cp+sizeof(char)+sizeof(ssize_t));
 	FklVMvalue* value=fklGetTopValue(stack);
 	FklVMmem* mem=value->u.chf;
 	if(!mem->mem)
@@ -848,8 +882,8 @@ void B_push_def_ref(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
-	ssize_t offset=*(ssize_t*)(exe->code+r->cp+sizeof(char));
-	FklTypeId_t typeId=*(FklTypeId_t*)(exe->code+r->cp+sizeof(char)+sizeof(ssize_t));
+	ssize_t offset=getI64FromByteCode(exe->code+r->cp+sizeof(char));
+	FklTypeId_t typeId=getU32FromByteCode(exe->code+r->cp+sizeof(char)+sizeof(ssize_t));
 	FklVMvalue* value=fklGetTopValue(stack);
 	FklVMmem* mem=value->u.chf;
 	if(!mem->mem)
@@ -867,8 +901,8 @@ void B_push_ind_ref(FklVM* exe)
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
 	FklVMvalue* index=fklGetTopValue(stack);
 	FklVMvalue* exp=fklGetValue(stack,stack->tp-2);
-	FklTypeId_t type=*(FklTypeId_t*)(exe->code+r->cp+sizeof(char));
-	uint32_t size=*(uint32_t*)(exe->code+r->cp+sizeof(char)+sizeof(FklTypeId_t));
+	FklTypeId_t type=getU32FromByteCode(exe->code+r->cp+sizeof(char));
+	uint32_t size=getU32FromByteCode(exe->code+r->cp+sizeof(char)+sizeof(FklTypeId_t));
 	if(!FKL_IS_MEM(exp)&&!IS_CHF(exp))
 		FKL_RAISE_BUILTIN_ERROR("b.push_ind_ref",FKL_WRONGARG,r,exe);
 	if(!FKL_IS_I32(index))
@@ -888,7 +922,7 @@ void B_push_ref(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
 	FklVMvalue* exp=fklGetTopValue(stack);
-	ssize_t offset=*(ssize_t*)(exe->code+r->cp+sizeof(char));
+	ssize_t offset=getI64FromByteCode(exe->code+r->cp+sizeof(char));
 	FklTypeId_t type=*(FklTypeId_t*)(exe->code+r->cp+sizeof(char)+sizeof(ssize_t));
 	if(!FKL_IS_MEM(exp)&&!IS_CHF(exp))
 		FKL_RAISE_BUILTIN_ERROR("b.push_ref",FKL_WRONGARG,r,exe);
@@ -917,8 +951,8 @@ void B_pop_var(FklVM* exe)
 	FklVMheap* heap=exe->heap;
 	if(!(stack->tp>stack->bp))
 		FKL_RAISE_BUILTIN_ERROR("b.pop_var",FKL_STACKERROR,runnable,exe);
-	int32_t scopeOfVar=*(int32_t*)(exe->code+runnable->cp+1);
-	FklSid_t idOfVar=*(FklSid_t*)(exe->code+runnable->cp+5);
+	int32_t scopeOfVar=getI32FromByteCode(exe->code+runnable->cp+sizeof(char));
+	FklSid_t idOfVar=getU32FromByteCode(exe->code+runnable->cp+sizeof(char)+sizeof(int32_t));
 	FklVMenv* curEnv=runnable->localenv;
 	FklVMvalue** pValue=NULL;
 	if(scopeOfVar>=0)
@@ -963,7 +997,7 @@ void B_pop_arg(FklVM* exe)
 	FklVMheap* heap=exe->heap;
 	if(!(stack->tp>stack->bp))
 		FKL_RAISE_BUILTIN_ERROR("b.pop_arg",FKL_TOOFEWARG,runnable,exe);
-	int32_t idOfVar=*(int32_t*)(exe->code+runnable->cp+1);
+	FklSid_t idOfVar=getU32FromByteCode(exe->code+runnable->cp+1);
 	FklVMenv* curEnv=runnable->localenv;
 	FklVMvalue** pValue=NULL;
 	FklVMenvNode* tmp=fklFindVMenvNode(idOfVar,curEnv);
@@ -982,7 +1016,7 @@ void B_pop_rest_arg(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMheap* heap=exe->heap;
-	FklSid_t idOfVar=*(FklSid_t*)(exe->code+runnable->cp+1);
+	FklSid_t idOfVar=getU32FromByteCode(exe->code+runnable->cp+1);
 	FklVMenv* curEnv=runnable->localenv;
 	FklVMvalue** pValue=NULL;
 	FklVMenvNode* tmpNode=fklFindVMenvNode(idOfVar,curEnv);
@@ -1193,7 +1227,7 @@ void B_jmp_if_true(FklVM* exe)
 	FklVMvalue* tmpValue=fklGET_VAL(fklGetTopValue(stack),exe->heap);
 	if(tmpValue!=FKL_VM_NIL)
 	{
-		int32_t where=*(int32_t*)(exe->code+runnable->cp+sizeof(char));
+		int32_t where=getI32FromByteCode(exe->code+runnable->cp+sizeof(char));
 		runnable->cp+=where;
 	}
 	runnable->cp+=5;
@@ -1207,7 +1241,7 @@ void B_jmp_if_false(FklVM* exe)
 	fklStackRecycle(exe);
 	if(tmpValue==FKL_VM_NIL)
 	{
-		int32_t where=*(int32_t*)(exe->code+runnable->cp+sizeof(char));
+		int32_t where=getI32FromByteCode(exe->code+runnable->cp+sizeof(char));
 		runnable->cp+=where;
 	}
 	runnable->cp+=5;
@@ -1216,7 +1250,7 @@ void B_jmp_if_false(FklVM* exe)
 void B_jmp(FklVM* exe)
 {
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	int32_t where=*(int32_t*)(exe->code+runnable->cp+sizeof(char));
+	int32_t where=getI32FromByteCode(exe->code+runnable->cp+sizeof(char));
 	runnable->cp+=where+5;
 }
 
@@ -1244,17 +1278,17 @@ void B_push_try(FklVM* exe)
 {
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
 	int32_t cpc=0;
-	FklSid_t sid=*(FklSid_t*)(exe->code+r->cp+(++cpc));
+	FklSid_t sid=getU32FromByteCode(exe->code+r->cp+(++cpc));
 	FklVMtryBlock* tb=fklNewVMtryBlock(sid,exe->stack->tp,exe->rstack->top);
 	cpc+=sizeof(FklSid_t);
-	int32_t handlerNum=*(int32_t*)(exe->code+r->cp+cpc);
-	cpc+=sizeof(int32_t);
+	uint32_t handlerNum=getU32FromByteCode(exe->code+r->cp+cpc);
+	cpc+=sizeof(uint32_t);
 	unsigned int i=0;
 	for(;i<handlerNum;i++)
 	{
-		FklSid_t type=*(FklSid_t*)(exe->code+r->cp+cpc);
+		FklSid_t type=getU32FromByteCode(exe->code+r->cp+cpc);
 		cpc+=sizeof(FklSid_t);
-		uint32_t pCpc=*(uint32_t*)(exe->code+r->cp+cpc);
+		uint32_t pCpc=getU32FromByteCode(exe->code+r->cp+cpc);
 		cpc+=sizeof(uint32_t);
 		FklVMerrorHandler* h=fklNewVMerrorHandler(type,r->cp+cpc,pCpc);
 		fklPushPtrStack(h,tb->hstack);

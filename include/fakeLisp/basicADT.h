@@ -2,6 +2,10 @@
 #define FKL_BASIC_ADT_H
 #include<stdint.h>
 
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 typedef struct
 {
 	void** base;
@@ -73,4 +77,7 @@ void fklFreeUintStack(FklUintStack*);
 void fklRecycleUintStack(FklUintStack*);
 int fklIsUintStackEmpty(FklUintStack*);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

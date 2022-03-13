@@ -4,6 +4,11 @@
 #include"basicADT.h"
 #include<stdint.h>
 #include<stdio.h>
+
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 typedef struct
 {
 	uint32_t size;
@@ -65,4 +70,9 @@ void fklFreeLineNumberTable(FklLineNumberTable*);
 void fklLntCat(FklLineNumberTable* t,int32_t bs,FklLineNumTabNode** l2,int32_t s2);
 void fklWriteLineNumberTable(FklLineNumberTable*,FILE*);
 void fklDBG_printByteCode(uint8_t* code,uint32_t s,uint32_t c,FILE*);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

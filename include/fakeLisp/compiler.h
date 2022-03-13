@@ -5,6 +5,11 @@
 #include"ast.h"
 #include"deftype.h"
 #include"bytecode.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct
 {
 	FklErrorType state;
@@ -142,5 +147,10 @@ FklByteCodelnt* fklCompileTry(FklAstCptr*,FklCompEnv*,FklInterpreter*,FklErrorSt
 FklByteCodelnt* fklCompileFlsym(FklAstCptr*,FklCompEnv*,FklInterpreter*,FklErrorState*,int evalIm);
 
 void fklPrintUndefinedSymbol(FklByteCodelnt* code);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

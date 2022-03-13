@@ -4,6 +4,11 @@
 #include<stddef.h>
 #include<stdio.h>
 #include<stdlib.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define FKL_THRESHOLD_SIZE 64
 #define FKL_NUM_OF_BUILT_IN_SYMBOL 54
 #define FKL_MAX_STRING_SIZE 64
@@ -149,4 +154,9 @@ void mergeSort(void* base
 
 char* fklStrCat(char*,const char*);
 uint8_t* fklCreateByteArry(int32_t);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

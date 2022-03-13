@@ -2,6 +2,9 @@
 #define FKL_AST_H
 #include"symbol.h"
 #include<stdint.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef enum{
 	FKL_NIL=0,
@@ -96,4 +99,7 @@ FklAstCptr* fklGetASTPairCdr(const FklAstCptr*);
 FklAstCptr* fklGetCptrCar(const FklAstCptr*);
 FklAstCptr* fklGetCptrCdr(const FklAstCptr*);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

@@ -2,6 +2,11 @@
 #define FKL_MEM_H
 #include"basicADT.h"
 #include<stddef.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef void (*FklGenDestructor)(void*);
 typedef struct
 {
@@ -23,5 +28,9 @@ void fklFreeMemMenager(FklMemMenager*);
 void fklPushMem(void* block,void (*destructor)(void*),FklMemMenager* memMenager);
 void* fklPopMem(FklMemMenager*);
 void fklDeleteMem(void* block,FklMemMenager* memMenager);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

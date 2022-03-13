@@ -1,5 +1,10 @@
 #ifndef FKL_OPCODE_H
 #define FKL_OPCODE_H
+
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 typedef enum
 {
 	FKL_PUSH_NIL=1,
@@ -47,4 +52,9 @@ typedef enum
 const char* fklGetOpcodeName(FklOpcode);
 int fklGetOpcodeArgLen(FklOpcode);
 FklOpcode fklFindOpcode(const char*);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

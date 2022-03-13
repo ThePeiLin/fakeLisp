@@ -3,6 +3,10 @@
 #include"compiler.h"
 #include"ast.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 FklKeyWord* fklHasKeyWord(const FklAstCptr*,FklCompEnv*);
 void fklAddKeyWord(const char*,FklCompEnv*);
 void fklPrintAllKeyWord();
@@ -41,4 +45,9 @@ int fklIsKeyWord(const char*,FklCompEnv* curEnv);
 int fklIsDeftypeExpression(const FklAstCptr*);
 int fklIsGetfExpression(const FklAstCptr*);
 int fklIsFlsymExpression(const FklAstCptr*);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

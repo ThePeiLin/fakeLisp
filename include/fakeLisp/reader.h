@@ -4,6 +4,11 @@
 #include"bytecode.h"
 #include"vm.h"
 #include<stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct FklStringMatchPattern
 {
 	uint32_t num;
@@ -41,5 +46,9 @@ int32_t fklSkipParentheses(const char*);
 int32_t fklSkipAtom(const char*,const char*);
 int32_t fklFindKeyString(const char*);
 void fklInitBuiltInStringPattern(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

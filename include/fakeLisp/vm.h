@@ -11,6 +11,10 @@
 #include<ffi.h>
 #include<setjmp.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct FklVMvalue* FklVMptr;
 typedef enum
 {
@@ -397,4 +401,9 @@ void fklChanlSend(FklVMsend*,FklVMchanl*);
 void fklChanlRecv(FklVMrecv*,FklVMchanl*);
 
 FklVMvalue* fklCastCptrVMvalue(FklAstCptr*,FklVMheap*);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

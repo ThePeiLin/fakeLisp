@@ -2,6 +2,11 @@
 #define FKL_SYMBOL_H
 #include<stdint.h>
 #include<stdio.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef uint32_t FklSid_t;
 
 typedef enum
@@ -67,5 +72,8 @@ void fklFreeGlobSymbolTable();
 void fklWriteSymbolTable(FklSymbolTable*,FILE*);
 void fklWriteGlobSymbolTable(FILE*);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

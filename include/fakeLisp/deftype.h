@@ -4,6 +4,10 @@
 #include"ast.h"
 #include<stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef uint32_t FklTypeId_t;
 typedef enum
 {
@@ -137,5 +141,9 @@ size_t fklGetVMTypeSize(FklDefTypeUnion t);
 size_t fklGetVMTypeAlign(FklDefTypeUnion t);
 size_t fklGetVMTypeSizeWithTypeId(FklTypeId_t t);
 FklDefTypeUnion fklGetVMTypeUnion(FklTypeId_t);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -71,7 +71,7 @@ int main(int argc,char** argv)
 			{
 				free(workpath);
 				fklFreeIntpr(inter);
-				fklUnInitPreprocess();
+				fklUninitPreprocess();
 				fklFreeGlobSymbolTable();
 				fklFreeGlobTypeList();
 				fklFreeInterpeterPath();
@@ -98,7 +98,7 @@ int main(int argc,char** argv)
 				fklRunVM(anotherVM);
 				fklJoinAllThread();
 				fklFreeIntpr(inter);
-				fklUnInitPreprocess();
+				fklUninitPreprocess();
 				fklFreeVMheap(anotherVM->heap);
 				fklFreeGlobSymbolTable();
 				fklFreeGlobTypeList();
@@ -110,7 +110,7 @@ int main(int argc,char** argv)
 				fklDeleteCallChain(anotherVM);
 				fklCancelAllThread();
 				fklFreeIntpr(inter);
-				fklUnInitPreprocess();
+				fklUninitPreprocess();
 				fklFreeVMheap(anotherVM->heap);
 				fklFreeAllVMs();
 				fklFreeAllSharedObj();
@@ -291,7 +291,7 @@ void runIntpr(FklInterpreter* inter)
 	fklJoinAllThread();
 	free(rawProcList);
 	fklFreeIntpr(inter);
-	fklUnInitPreprocess();
+	fklUninitPreprocess();
 	fklFreeVMheap(anotherVM->heap);
 	fklFreeAllVMs();
 	fklFreeAllSharedObj();

@@ -40,4 +40,6 @@ int32_t fklSkipUntilNext(const char* str,const char*);
 int32_t fklSkipParentheses(const char*);
 int32_t fklSkipAtom(const char*,const char*);
 int32_t fklFindKeyString(const char*);
+void fklInitBuiltInStringPattern(void);
+
 #endif

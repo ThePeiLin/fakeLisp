@@ -986,10 +986,7 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 void fklInitVMRunningResource(FklVM* vm,FklVMenv* vEnv,FklVMheap* heap,FklByteCodelnt* code,uint32_t start,uint32_t size)
 {
 	if(!vEnv->prev)
-	{
-		fklIncreaseVMenvRefcount(vEnv);
 		fklInitGlobEnv(vEnv,heap);
-	}
 	FklVMproc proc={
 		.scp=start,
 		.cpc=size,
@@ -1011,7 +1008,7 @@ void fklInitVMRunningResource(FklVM* vm,FklVMenv* vEnv,FklVMheap* heap,FklByteCo
 	}
 }
 
-void fklUnInitVMRunningResource(FklVM* vm)
+void fklUninitVMRunningResource(FklVM* vm)
 {
 	free(vm->lnt);
 	fklDeleteCallChain(vm);

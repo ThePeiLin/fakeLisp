@@ -19,11 +19,6 @@ static int fmatcmp(const FklAstCptr*,const FklAstCptr*,FklPreEnv**,FklCompEnv*);
 static int fklAddDefinedMacro(FklPreMacro* macro,FklCompEnv* curEnv);
 static FklErrorState defmacro(FklAstCptr*,FklCompEnv*,FklInterpreter*);
 static FklCompEnv* createPatternCompEnv(char**,int32_t,FklCompEnv*);
-extern void READER_MACRO_quote(FklVM* exe);
-extern void READER_MACRO_qsquote(FklVM* exe);
-extern void READER_MACRO_unquote(FklVM* exe);
-extern void READER_MACRO_unqtesp(FklVM* exe);
-
 static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
 {
 	FklPtrStack* stack=fklNewPtrStack(32,16);
@@ -33,7 +28,6 @@ static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
 	FklVMenv* preEnv=NULL;
 	FklVMenv* vEnv=NULL;
 	uint32_t bs=t->bc->size;
-	FklVMenv* top=NULL;
 	while(!fklIsPtrStackEmpty(stack))
 	{
 		FklCompEnv* curEnv=fklPopPtrStack(stack);
@@ -41,8 +35,6 @@ static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
 		{
 			FklVM* tmpVM=fklNewTmpVM(NULL);
 			vEnv=fklNewVMenv(preEnv);
-			if(preEnv==NULL)
-				top=vEnv;
 			preEnv=vEnv;
 			fklCodelntCopyCat(t,curEnv->proc);
 			fklInitVMRunningResource(tmpVM,vEnv,heap,t,bs,curEnv->proc->bc->size);
@@ -50,15 +42,13 @@ static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
 			int i=fklRunVM(tmpVM);
 			if(i==1)
 			{
-				fklFreeVMenv(top);
-				fklUnInitVMRunningResource(tmpVM);
+				fklUninitVMRunningResource(tmpVM);
 				fklFreePtrStack(stack);
 				return NULL;
 			}
-			fklUnInitVMRunningResource(tmpVM);
+			fklUninitVMRunningResource(tmpVM);
 		}
 	}
-	fklFreeVMenv(top);
 	fklFreePtrStack(stack);
 	return vEnv;
 }
@@ -125,12 +115,12 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 		{
 			fklFreeByteCodeAndLnt(t);
 			fklFreeVMheap(tmpVM->heap);
-			fklUnInitVMRunningResource(tmpVM);
+			fklUninitVMRunningResource(tmpVM);
 			return 2;
 		}
 		fklFreeByteCodeAndLnt(t);
 		fklFreeVMheap(tmpVM->heap);
-		fklUnInitVMRunningResource(tmpVM);
+		fklUninitVMRunningResource(tmpVM);
 		return 1;
 	}
 	fklFreeByteCodeAndLnt(t);
@@ -454,7 +444,7 @@ void fklInitGlobKeyWord(FklCompEnv* glob)
 	fklAddKeyWord("flsym",glob);
 }
 
-void fklUnInitPreprocess()
+void fklUninitPreprocess()
 {
 	fklFreeAllStringPattern();
 }
@@ -582,22 +572,6 @@ FklStringMatchPattern* fklAddStringPattern(char** parts,int32_t num,FklAstCptr* 
 	fklFreeAllMacroThenDestroyCompEnv(tmpCompEnv);
 	free(tmpInter);
 	return tmp;
-}
-
-FklStringMatchPattern* addBuiltInStringPattern(const char* str,void(*fproc)(FklVM* exe))
-{
-	int32_t num=0;
-	char** parts=fklSplitPattern(str,&num);
-	FklStringMatchPattern* tmp=fklNewFStringMatchPattern(num,parts,fproc);
-	return tmp;
-}
-
-void fklInitBuiltInStringPattern(void)
-{
-	addBuiltInStringPattern("'(a)",READER_MACRO_quote);
-	addBuiltInStringPattern("`(a)",READER_MACRO_qsquote);
-	addBuiltInStringPattern("~(a)",READER_MACRO_unquote);
-	addBuiltInStringPattern("~@(a)",READER_MACRO_unqtesp);
 }
 
 FklStringMatchPattern* fklAddReDefStringPattern(char** parts,int32_t num,FklAstCptr* express,FklInterpreter* inter)

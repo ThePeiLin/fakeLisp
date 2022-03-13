@@ -999,3 +999,20 @@ void READER_MACRO_unqtesp(FklVM* exe)
 {
 	FKL_SET_RETURN("READER_MACRO_unqtesp",singleArgPattern(exe,"a","unqtesp"),exe->stack);
 }
+
+FklStringMatchPattern* addBuiltInStringPattern(const char* str,void(*fproc)(FklVM* exe))
+{
+	int32_t num=0;
+	char** parts=fklSplitPattern(str,&num);
+	FklStringMatchPattern* tmp=fklNewFStringMatchPattern(num,parts,fproc);
+	return tmp;
+}
+
+
+void fklInitBuiltInStringPattern(void)
+{
+	addBuiltInStringPattern("'(a)",READER_MACRO_quote);
+	addBuiltInStringPattern("`(a)",READER_MACRO_qsquote);
+	addBuiltInStringPattern("~(a)",READER_MACRO_unquote);
+	addBuiltInStringPattern("~@(a)",READER_MACRO_unqtesp);
+}

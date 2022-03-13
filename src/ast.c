@@ -21,10 +21,10 @@ static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
 	if(i==1)
 	{
 		fklFreeVMenv(vEnv);
-		fklUnInitVMRunningResource(tmpVM);
+		fklUninitVMRunningResource(tmpVM);
 		return NULL;
 	}
-	fklUnInitVMRunningResource(tmpVM);
+	fklUninitVMRunningResource(tmpVM);
 	fklCodelntCopyCat(t,cEnv->proc);
 	return vEnv;
 }
@@ -149,14 +149,12 @@ FklAstCptr* expandReaderMacro(const char* objStr,FklInterpreter* inter,FklString
 		{
 			fklFreeByteCodeAndLnt(t);
 			fklFreeVMheap(tmpVM->heap);
-			fklUnInitVMRunningResource(tmpVM);
-			fklFreeVMenv(tmpGlobEnv);
+			fklUninitVMRunningResource(tmpVM);
 			return NULL;
 		}
 		fklFreeByteCodeAndLnt(t);
 		fklFreeVMheap(tmpVM->heap);
-		fklUnInitVMRunningResource(tmpVM);
-		fklFreeVMenv(tmpGlobEnv);
+		fklUninitVMRunningResource(tmpVM);
 	}
 	else if(pattern->type==FKL_FLPROC)
 	{

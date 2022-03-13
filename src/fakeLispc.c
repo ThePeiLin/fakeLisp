@@ -49,7 +49,7 @@ int main(int argc,char** argv)
 		{
 			free(rp);
 			fklFreeIntpr(inter);
-			fklUnInitPreprocess();
+			fklUninitPreprocess();
 			fklFreeInterpeterPath();
 			fklFreeAllSharedObj();
 			fklFreeGlobSymbolTable();
@@ -67,7 +67,7 @@ int main(int argc,char** argv)
 			fprintf(stderr,"%s:Can't create byte code file!",outputname);
 			fklFreeInterpeterPath();
 			fklFreeIntpr(inter);
-			fklUnInitPreprocess();
+			fklUninitPreprocess();
 			fklFreeInterpeterPath();
 			fklFreeAllSharedObj();
 			fklFreeGlobSymbolTable();
@@ -87,7 +87,7 @@ int main(int argc,char** argv)
 		free(mainByteCode);
 		fclose(outfp);
 		fklFreeIntpr(inter);
-		fklUnInitPreprocess();
+		fklUninitPreprocess();
 		fklFreeInterpeterPath();
 		fklFreeAllSharedObj();
 		fklFreeGlobSymbolTable();

@@ -1837,14 +1837,18 @@ void fklFreeAllSharedObj(void)
 	}
 }
 
-void fklReleaseGC()
+void fklReleaseGC(pthread_rwlock_t* pGClock)
 {
-	pthread_rwlock_unlock(&GClock);
+	if(!pGClock)
+		pGClock=&GClock;
+	pthread_rwlock_unlock(pGClock);
 }
 
-void fklLockGC()
+void fklLockGC(pthread_rwlock_t* pGClock)
 {
-	pthread_rwlock_rdlock(&GClock);
+	if(!pGClock)
+		pGClock=&GClock;
+	pthread_rwlock_rdlock(pGClock);
 }
 
 

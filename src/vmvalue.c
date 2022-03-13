@@ -577,9 +577,9 @@ void fklChanlRecv(FklVMrecv* r,FklVMchanl* ch)
 	if(!fklLengthPtrQueue(ch->messages))
 	{
 		fklPushPtrQueue(r,ch->recvq);
-		fklReleaseGC();
+		fklReleaseGC(NULL);
 		pthread_cond_wait(&r->cond,&ch->lock);
-		fklLockGC();
+		fklLockGC(NULL);
 	}
 	FKL_SET_RETURN("fklChanlRecv",fklPopPtrQueue(ch->messages),r->v->stack);
 	if(fklLengthPtrQueue(ch->messages)<ch->max)
@@ -610,9 +610,9 @@ void fklChanlSend(FklVMsend*s,FklVMchanl* ch)
 			fklPushPtrQueue(s,ch->sendq);
 			if(fklLengthPtrQueue(ch->messages)==ch->max-1)
 				fklPushPtrQueue(s->m,ch->messages);
-			fklReleaseGC();
+			fklReleaseGC(NULL);
 			pthread_cond_wait(&s->cond,&ch->lock);
-			fklLockGC();
+			fklLockGC(NULL);
 		}
 	}
 	fklFreeVMsend(s);

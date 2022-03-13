@@ -397,8 +397,8 @@ void fklFreeVMrecv(FklVMrecv*);
 FklVMsend* fklNewVMsend(FklVMvalue*);
 void fklFreeVMsend(FklVMsend*);
 
-void fklChanlSend(FklVMsend*,FklVMchanl*);
-void fklChanlRecv(FklVMrecv*,FklVMchanl*);
+void fklChanlSend(FklVMsend*,FklVMchanl*,pthread_rwlock_t* pGClock);
+void fklChanlRecv(FklVMrecv*,FklVMchanl*,pthread_rwlock_t* pGClock);
 
 FklVMvalue* fklCastCptrVMvalue(FklAstCptr*,FklVMheap*);
 

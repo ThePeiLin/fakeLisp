@@ -1411,7 +1411,7 @@ void SYS_send(FklVM* exe,pthread_rwlock_t* gclock)
 	if(!FKL_IS_CHAN(ch))
 		FKL_RAISE_BUILTIN_ERROR("sys.send",FKL_WRONGARG,runnable,exe);
 	FklVMsend* t=fklNewVMsend(message);
-	fklChanlSend(t,ch->u.chan);
+	fklChanlSend(t,ch->u.chan,gclock);
 	FKL_SET_RETURN("SYS_send",message,stack);
 }
 
@@ -1427,7 +1427,7 @@ void SYS_recv(FklVM* exe,pthread_rwlock_t* gclock)
 	if(!FKL_IS_CHAN(ch))
 		FKL_RAISE_BUILTIN_ERROR("sys.recv",FKL_WRONGARG,runnable,exe);
 	FklVMrecv* t=fklNewVMrecv(exe);
-	fklChanlRecv(t,ch->u.chan);
+	fklChanlRecv(t,ch->u.chan,gclock);
 }
 
 void SYS_error(FklVM* exe,pthread_rwlock_t* gclock)

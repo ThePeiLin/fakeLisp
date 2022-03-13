@@ -479,7 +479,7 @@ void* ThreadVMfunc(void* p)
 		FklVMstack* stack=exe->stack;
 		FklVMvalue* v=NULL;
 		while((v=fklGET_VAL(fklPopVMstack(stack),exe->heap)))
-			fklChanlSend(fklNewVMsend(v),tmpCh);
+			fklChanlSend(fklNewVMsend(v),tmpCh,&GClock);
 	}
 	else
 	{
@@ -491,7 +491,7 @@ void* ThreadVMfunc(void* p)
 		free(threadErrorMessage);
 		free(id);
 		FklVMsend* t=fklNewVMsend(err);
-		fklChanlSend(t,tmpCh);
+		fklChanlSend(t,tmpCh,&GClock);
 	}
 	fklFreeVMstack(exe->stack);
 	exe->stack=NULL;
@@ -519,7 +519,7 @@ void* ThreadVMdlprocFunc(void* p)
 		FklVMstack* stack=exe->stack;
 		FklVMvalue* v=NULL;
 		while((v=fklGET_VAL(fklPopVMstack(stack),exe->heap)))
-			fklChanlSend(fklNewVMsend(v),ch);
+			fklChanlSend(fklNewVMsend(v),ch,&GClock);
 	}
 	else
 	{
@@ -531,7 +531,7 @@ void* ThreadVMdlprocFunc(void* p)
 		free(threadErrorMessage);
 		free(id);
 		FklVMsend* t=fklNewVMsend(err);
-		fklChanlSend(t,ch);
+		fklChanlSend(t,ch,&GClock);
 		state=255;
 	}
 	pthread_rwlock_unlock(&GClock);
@@ -560,7 +560,7 @@ void* ThreadVMflprocFunc(void* p)
 		FklVMstack* stack=exe->stack;
 		FklVMvalue* v=NULL;
 		while((v=fklGET_VAL(fklPopVMstack(stack),exe->heap)))
-			fklChanlSend(fklNewVMsend(v),ch);
+			fklChanlSend(fklNewVMsend(v),ch,&GClock);
 	}
 	else
 	{
@@ -572,7 +572,7 @@ void* ThreadVMflprocFunc(void* p)
 		free(threadErrorMessage);
 		free(id);
 		FklVMsend* t=fklNewVMsend(err);
-		fklChanlSend(t,ch);
+		fklChanlSend(t,ch,&GClock);
 		state=255;
 	}
 	pthread_rwlock_unlock(&GClock);

@@ -395,6 +395,8 @@ extern void SYS_newf(FklVM*,pthread_rwlock_t*);
 extern void SYS_delf(FklVM*,pthread_rwlock_t*);
 extern void SYS_lfdl(FklVM*,pthread_rwlock_t*);
 extern void SYS_reverse(FklVM*,pthread_rwlock_t*);
+extern void SYS_i32(FklVM*,pthread_rwlock_t*);
+extern void SYS_i64(FklVM*,pthread_rwlock_t*);
 
 void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 {
@@ -451,6 +453,8 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_delf,
 		SYS_lfdl,
 		SYS_reverse,
+		SYS_i32,
+		SYS_i64,
 	};
 	obj->num=FKL_NUM_OF_BUILT_IN_SYMBOL;
 	obj->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*FKL_NUM_OF_BUILT_IN_SYMBOL);

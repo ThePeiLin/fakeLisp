@@ -454,6 +454,8 @@ int fklIsFlsymExpression(const FklAstCptr* objCptr)
 {
 	if(fklLengthListCptr(objCptr)!=2)return 0;
 	objCptr=(fklIsValid(objCptr)&&objCptr->type==FKL_PAIR)?&objCptr->u.pair->car:NULL;
+	if(!objCptr)
+		return 0;
 	FklAstAtom* tmpAtm=(objCptr!=NULL&&objCptr->type==FKL_ATM)?objCptr->u.atom:NULL;
 	FklAstCptr* sec=fklNextCptr(objCptr);
 	FklAstAtom* second=sec->type==FKL_ATM?sec->u.atom:NULL;

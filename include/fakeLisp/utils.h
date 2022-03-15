@@ -80,7 +80,7 @@ extern "C" {
 #define FKL_GET_TAG(P) ((FklVMptrTag)(((uintptr_t)(P))&FKL_TAG_MASK))
 #define FKL_GET_PTR(P) ((FklVMptr)(((uintptr_t)(P))&FKL_PTR_MASK))
 #define FKL_GET_I32(P) ((int32_t)((uintptr_t)(P)>>FKL_UNUSEDBITNUM))
-#define FKL_GET_CHR(P) ((char)((uintptr_t)(P)>>FKL_UNUSEDBITNUM))
+#define FKL_GET_I8(P) ((char)((uintptr_t)(P)>>FKL_UNUSEDBITNUM))
 #define FKL_GET_SYM(P) ((FklSid_t)((uintptr_t)(P)>>FKL_UNUSEDBITNUM))
 //#define fklSET_REF(p,v) do{FklVMvalue* P=p;FklVMvalue* V=v;if(IS_CHF(P)){VMmemref* pRef=(VMmemref*)FKL_GET_PTR(P);setVMmemref(pRef,V);free(pRef);} else *(FklVMvalue**)FKL_GET_PTR(P)=(V);}while(0)
 #define FKL_IS_PTR(P) (FKL_GET_TAG(P)==FKL_PTR_TAG)

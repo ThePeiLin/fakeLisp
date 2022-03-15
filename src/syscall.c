@@ -784,7 +784,7 @@ void SYS_int(FklVM* exe,pthread_rwlock_t* gclock)
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR("sys.int",FKL_TOOFEWARG,runnable,exe);
 	if(FKL_IS_I8(obj))
-		FKL_SET_RETURN("SYS_int",FKL_MAKE_VM_I32(FKL_GET_CHR(obj)),stack);
+		FKL_SET_RETURN("SYS_int",FKL_MAKE_VM_I32(FKL_GET_I8(obj)),stack);
 	else if(FKL_IS_I32(obj))
 		FKL_SET_RETURN("SYS_int",obj,stack);
 	else if(FKL_IS_I64(obj))
@@ -841,6 +841,97 @@ void SYS_int(FklVM* exe,pthread_rwlock_t* gclock)
 		FKL_RAISE_BUILTIN_ERROR("sys.int",FKL_WRONGARG,runnable,exe);
 }
 
+void SYS_i32(FklVM* exe,pthread_rwlock_t* gclock)
+{
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
+	FklVMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	if(fklResBp(stack))
+		FKL_RAISE_BUILTIN_ERROR("sys.i32",FKL_TOOMANYARG,runnable,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR("sys.i32",FKL_TOOFEWARG,runnable,exe);
+	if(FKL_IS_I8(obj))
+		FKL_SET_RETURN("SYS_i32",FKL_MAKE_VM_I32(FKL_GET_I8(obj)),stack);
+	else if(FKL_IS_I32(obj))
+		FKL_SET_RETURN("SYS_i32",obj,stack);
+	else if(FKL_IS_I64(obj))
+		FKL_SET_RETURN("SYS_i32",FKL_MAKE_VM_I32((int32_t)obj->u.i64),stack);
+	else if(FKL_IS_F64(obj))
+		FKL_SET_RETURN("SYS_i32",FKL_MAKE_VM_I32((int32_t)obj->u.f64),stack);
+	else if(FKL_IS_STR(obj))
+	{
+		int64_t r=fklStringToInt(obj->u.str);
+		FKL_SET_RETURN("SYS_i32",FKL_MAKE_VM_I32((int32_t)r),stack);
+	}
+	else if(FKL_IS_BYTS(obj))
+	{
+		size_t s=obj->u.byts->size;
+		uint8_t r[4]={0};
+		switch(s)
+		{
+			case 4:r[3]=obj->u.byts->str[3];
+			case 3:r[2]=obj->u.byts->str[2];
+			case 2:r[1]=obj->u.byts->str[1];
+			case 1:r[0]=obj->u.byts->str[0];
+		}
+		FKL_SET_RETURN("SYS_i32",FKL_MAKE_VM_I32(*(int32_t*)r),stack);
+	}
+	else
+		FKL_RAISE_BUILTIN_ERROR("sys.int",FKL_WRONGARG,runnable,exe);
+}
+
+void SYS_i64(FklVM* exe,pthread_rwlock_t* gclock)
+{
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
+	FklVMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	if(fklResBp(stack))
+		FKL_RAISE_BUILTIN_ERROR("sys.int",FKL_TOOMANYARG,runnable,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR("sys.int",FKL_TOOFEWARG,runnable,exe);
+	if(FKL_IS_I8(obj))
+	{
+		int8_t r=FKL_GET_I8(obj);
+		FKL_SET_RETURN("SYS_i64",fklNewVMvalue(FKL_I64,&r,exe->heap),stack);
+	}
+	else if(FKL_IS_I32(obj))
+	{
+		int32_t r=FKL_GET_I32(obj);
+		FKL_SET_RETURN("SYS_i64",fklNewVMvalue(FKL_I64,&r,exe->heap),stack);
+	}
+	else if(FKL_IS_I64(obj))
+		FKL_SET_RETURN("SYS_i64",fklNewVMvalue(FKL_I64,&obj->u.i64,exe->heap),stack);
+	else if(FKL_IS_F64(obj))
+	{
+		int64_t r=(int64_t)obj->u.f64;
+		FKL_SET_RETURN("SYS_i64",fklNewVMvalue(FKL_I64,&r,exe->heap),stack);
+	}
+	else if(FKL_IS_STR(obj))
+	{
+		int64_t r=fklStringToInt(obj->u.str);
+		FKL_SET_RETURN("SYS_i64",fklNewVMvalue(FKL_I64,&r,exe->heap),stack);
+	}
+	else if(FKL_IS_BYTS(obj))
+	{
+		size_t s=obj->u.byts->size;
+		uint8_t r[8]={0};
+		switch(s>8?8:s)
+		{
+			case 8:r[7]=obj->u.byts->str[8];
+			case 7:r[6]=obj->u.byts->str[6];
+			case 6:r[5]=obj->u.byts->str[5];
+			case 5:r[4]=obj->u.byts->str[4];
+			case 4:r[3]=obj->u.byts->str[3];
+			case 3:r[2]=obj->u.byts->str[2];
+			case 2:r[1]=obj->u.byts->str[1];
+			case 1:r[0]=obj->u.byts->str[0];
+		}
+		FKL_SET_RETURN("SYS_i64",fklNewVMvalue(FKL_I64,r,exe->heap),stack);
+	}
+	else
+		FKL_RAISE_BUILTIN_ERROR("sys.int",FKL_WRONGARG,runnable,exe);
+}
+
 void SYS_f64(FklVM* exe,pthread_rwlock_t* gclock)
 {
 	FklVMstack* stack=exe->stack;
@@ -852,7 +943,7 @@ void SYS_f64(FklVM* exe,pthread_rwlock_t* gclock)
 		FKL_RAISE_BUILTIN_ERROR("sys.f64",FKL_TOOFEWARG,runnable,exe);
 	FklVMvalue* retval=fklNewVMvalue(FKL_F64,NULL,exe->heap);
 	if(FKL_IS_I8(obj))
-		retval->u.f64=(double)FKL_GET_CHR(obj);
+		retval->u.f64=(double)FKL_GET_I8(obj);
 	else if(FKL_IS_I32(obj))
 		retval->u.f64=(double)FKL_GET_I32(obj);
 	else if(FKL_IS_F64(obj))
@@ -896,7 +987,7 @@ void SYS_str(FklVM* exe,pthread_rwlock_t* gclock)
 	else if(FKL_IS_F64(obj))
 		retval->u.str=fklDoubleToString(obj->u.f64);
 	else if(FKL_IS_I8(obj))
-		retval->u.str=fklCopyStr((char[]){FKL_GET_CHR(obj),'\0'});
+		retval->u.str=fklCopyStr((char[]){FKL_GET_I8(obj),'\0'});
 	else if(FKL_IS_SYM(obj))
 		retval->u.str=fklCopyStr(fklGetGlobSymbolWithId(FKL_GET_SYM(obj))->symbol);
 	else if(FKL_IS_STR(obj))
@@ -926,7 +1017,7 @@ void SYS_sym(FklVM* exe,pthread_rwlock_t* gclock)
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR("sys.sym",FKL_TOOFEWARG,runnable,exe);
 	if(FKL_IS_I8(obj))
-		FKL_SET_RETURN("SYS_sym",FKL_MAKE_VM_SYM(fklAddSymbolToGlob(((char[]){FKL_GET_CHR(obj),'\0'}))->id),stack);
+		FKL_SET_RETURN("SYS_sym",FKL_MAKE_VM_SYM(fklAddSymbolToGlob(((char[]){FKL_GET_I8(obj),'\0'}))->id),stack);
 	else if(FKL_IS_SYM(obj))
 		FKL_SET_RETURN("SYS_sym",obj,stack);
 	else if(FKL_IS_STR(obj))
@@ -964,7 +1055,7 @@ void SYS_byts(FklVM* exe,pthread_rwlock_t* gclock)
 		retval->u.byts=(FklVMbyts*)realloc(retval->u.byts,sizeof(FklVMbyts)+sizeof(char));
 		FKL_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
 		retval->u.byts->size=sizeof(char);
-		*(char*)retval->u.byts->str=FKL_GET_CHR(obj);
+		*(char*)retval->u.byts->str=FKL_GET_I8(obj);
 	}
 	else if(FKL_IS_SYM(obj))
 	{

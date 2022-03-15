@@ -31,7 +31,6 @@
                  map
                  andmap
                  ormap
-                 reverse
                  foreach
                  fprint
                  print

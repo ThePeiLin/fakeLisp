@@ -886,9 +886,9 @@ void SYS_i64(FklVM* exe,pthread_rwlock_t* gclock)
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
-		FKL_RAISE_BUILTIN_ERROR("sys.int",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.i64",FKL_TOOMANYARG,runnable,exe);
 	if(!obj)
-		FKL_RAISE_BUILTIN_ERROR("sys.int",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.i64",FKL_TOOFEWARG,runnable,exe);
 	if(FKL_IS_I8(obj))
 	{
 		int8_t r=FKL_GET_I8(obj);
@@ -929,7 +929,7 @@ void SYS_i64(FklVM* exe,pthread_rwlock_t* gclock)
 		FKL_SET_RETURN("SYS_i64",fklNewVMvalue(FKL_I64,r,exe->heap),stack);
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR("sys.int",FKL_WRONGARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.i64",FKL_WRONGARG,runnable,exe);
 }
 
 void SYS_f64(FklVM* exe,pthread_rwlock_t* gclock)

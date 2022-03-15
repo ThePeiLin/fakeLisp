@@ -147,7 +147,7 @@ void SYS_append(FklVM* exe,pthread_rwlock_t* gclock)
 		}
 		else if(FKL_IS_BYTS(*prev))
 		{
-			if(!FKL_IS_BYTS(*prev))
+			if(!FKL_IS_BYTS(cur))
 				FKL_RAISE_BUILTIN_ERROR("sys.append",FKL_WRONGARG,runnable,exe);
 			fklVMbytsCat(&(*prev)->u.byts,cur->u.byts);
 		}
@@ -1411,7 +1411,9 @@ void SYS_send(FklVM* exe,pthread_rwlock_t* gclock)
 	if(!FKL_IS_CHAN(ch))
 		FKL_RAISE_BUILTIN_ERROR("sys.send",FKL_WRONGARG,runnable,exe);
 	FklVMsend* t=fklNewVMsend(message);
+	FKL_SET_RETURN("SYS_send",ch,stack);
 	fklChanlSend(t,ch->u.chan,gclock);
+	fklPopVMstack(stack);
 	FKL_SET_RETURN("SYS_send",message,stack);
 }
 
@@ -1426,8 +1428,12 @@ void SYS_recv(FklVM* exe,pthread_rwlock_t* gclock)
 		FKL_RAISE_BUILTIN_ERROR("sys.recv",FKL_TOOFEWARG,runnable,exe);
 	if(!FKL_IS_CHAN(ch))
 		FKL_RAISE_BUILTIN_ERROR("sys.recv",FKL_WRONGARG,runnable,exe);
-	FklVMrecv* t=fklNewVMrecv(exe);
+	FklVMrecv* t=fklNewVMrecv();
+	FKL_SET_RETURN("SYS_recv",ch,stack);
 	fklChanlRecv(t,ch->u.chan,gclock);
+	fklPopVMstack(stack);
+	FKL_SET_RETURN("SYS_recv",t->v,stack);
+	fklFreeVMrecv(t);
 }
 
 void SYS_error(FklVM* exe,pthread_rwlock_t* gclock)
@@ -1654,4 +1660,30 @@ void SYS_lfdl(FklVM* exe,pthread_rwlock_t* gclock)
 	node->next=GlobSharedObjs;
 	GlobSharedObjs=node;
 	pthread_mutex_unlock(&GlobSharedObjsMutex);
+}
+
+void SYS_reverse(FklVM* exe,pthread_rwlock_t* gclock)
+{
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
+	FklVMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	if(fklResBp(stack))
+		FKL_RAISE_BUILTIN_ERROR("sys.reverse",FKL_TOOMANYARG,runnable,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR("sys.reverse",FKL_TOOFEWARG,runnable,exe);
+	if(!FKL_IS_PAIR(obj)&&obj!=FKL_VM_NIL)
+		FKL_RAISE_BUILTIN_ERROR("sys.reverse",FKL_WRONGARG,runnable,exe);
+	FklVMvalue* retval=FKL_VM_NIL;
+	if(obj!=FKL_VM_NIL)
+	{
+		FklVMheap* heap=exe->heap;
+		for(FklVMvalue* cdr=obj;cdr!=FKL_VM_NIL;cdr=fklGetVMpairCdr(cdr))
+		{
+			FklVMvalue* pair=fklNewVMvalue(FKL_PAIR,fklNewVMpair(),heap);
+			pair->u.pair->cdr=retval;
+			pair->u.pair->car=fklGetVMpairCar(cdr);
+			retval=pair;
+		}
+	}
+	FKL_SET_RETURN("SYS_reverse",retval,stack);
 }

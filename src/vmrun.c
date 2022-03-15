@@ -394,6 +394,7 @@ extern void SYS_apply(FklVM*,pthread_rwlock_t*);
 extern void SYS_newf(FklVM*,pthread_rwlock_t*);
 extern void SYS_delf(FklVM*,pthread_rwlock_t*);
 extern void SYS_lfdl(FklVM*,pthread_rwlock_t*);
+extern void SYS_reverse(FklVM*,pthread_rwlock_t*);
 
 void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 {
@@ -449,6 +450,7 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_newf,
 		SYS_delf,
 		SYS_lfdl,
+		SYS_reverse,
 	};
 	obj->num=FKL_NUM_OF_BUILT_IN_SYMBOL;
 	obj->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*FKL_NUM_OF_BUILT_IN_SYMBOL);

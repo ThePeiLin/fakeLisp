@@ -148,15 +148,6 @@
                        (1 (reverse r)))))
              (iter (iter1 l nil) nil)))
 
-         (define reverse
-           (lambda (ls)
-             (define iter
-               (lambda (c r)
-                 (cond (c
-                         (iter (cdr c) (cons (car c) r)))
-                       (1 r))))
-             (iter ls nil)))
-
          (define andmap
            (lambda (f,l)
              (define iter1

@@ -51,7 +51,7 @@ typedef struct
 typedef struct
 {
 	pthread_cond_t cond;
-	struct FklVM* v;
+	struct FklVMvalue* v;
 }FklVMrecv;
 
 typedef struct FklVMpair
@@ -391,7 +391,7 @@ FklVMerror* fklNewVMerrorWithSid(const char* who,FklSid_t type,const char* messa
 void fklFreeVMerror(FklVMerror*);
 
 
-FklVMrecv* fklNewVMrecv(FklVM*);
+FklVMrecv* fklNewVMrecv(void);
 void fklFreeVMrecv(FklVMrecv*);
 
 FklVMsend* fklNewVMsend(FklVMvalue*);

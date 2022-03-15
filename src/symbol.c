@@ -93,6 +93,7 @@ static const char* builtInSymbolList[]=
 	"newf",
 	"delf",
 	"lfdl",
+	"reverse",
 };
 
 FklSymbolTable GlobSymbolTable=FKL_STATIC_SYMBOL_INIT;

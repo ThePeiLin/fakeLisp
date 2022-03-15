@@ -13,7 +13,7 @@
 #include<pthread.h>
 #include<setjmp.h>
 
-void runIntpr(FklInterpreter*);
+void runRepl(FklInterpreter*);
 FklByteCode* loadByteCode(FILE*);
 void loadSymbolTable(FILE*);
 FklLineNumberTable* loadLineNumberTable(FILE*);
@@ -54,7 +54,7 @@ int main(int argc,char** argv)
 		fklInitNativeDefTypes(inter->deftypes);
 		fklInitBuiltInStringPattern();
 		if(fp==stdin)
-			runIntpr(inter);
+			runRepl(inter);
 		else
 		{
 #ifdef _WIN32
@@ -182,7 +182,7 @@ int main(int argc,char** argv)
 	return exitState;
 }
 
-void runIntpr(FklInterpreter* inter)
+void runRepl(FklInterpreter* inter)
 {
 	int e=0;
 	FklVM* anotherVM=fklNewVM(NULL);

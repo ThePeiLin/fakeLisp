@@ -3419,7 +3419,7 @@ void fklPrintUndefinedSymbol(FklByteCodelnt* code)
 							{
 								FklLineNumberTable table={.list=code->l,.num=code->ls};
 								FklLineNumTabNode* node=fklFindLineNumTabNode(i,&table);
-								fprintf(stderr,"warnnig of compiling:symbol \"%s\" is undefined at line %d of %s\n"
+								fprintf(stderr,"warning of compiling:symbol \"%s\" is undefined at line %d of %s\n"
 										,fklGetGlobSymbolWithId(id)->symbol
 										,node->line
 										,fklGetGlobSymbolWithId(node->fid)->symbol);

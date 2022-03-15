@@ -438,7 +438,7 @@ int32_t fklGetSymbolIdInByteCode(const uint8_t* code)
 int fklResBp(FklVMstack* stack)
 {
 	if(stack->tp>stack->bp)
-		return FKL_TOOMANYARG;
+		return stack->tp-stack->bp;
 	FklVMvalue* prevBp=fklGetTopValue(stack);
 	stack->bp=FKL_GET_I32(prevBp);
 	stack->tp-=1;

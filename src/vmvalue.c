@@ -569,11 +569,11 @@ void fklFreeVMerror(FklVMerror* err)
 	free(err);
 }
 
-FklVMrecv* fklNewVMrecv(FklVM* v)
+FklVMrecv* fklNewVMrecv(void)
 {
 	FklVMrecv* tmp=(FklVMrecv*)malloc(sizeof(FklVMrecv));
 	FKL_ASSERT(tmp,"fklNewVMrecv",__FILE__,__LINE__);
-	tmp->v=v;
+	tmp->v=NULL;
 	pthread_cond_init(&tmp->cond,NULL);
 	return tmp;
 }
@@ -609,14 +609,13 @@ void fklChanlRecv(FklVMrecv* r,FklVMchanl* ch,pthread_rwlock_t* pGClock)
 		pthread_cond_wait(&r->cond,&ch->lock);
 		fklLockGC(pGClock);
 	}
-	FKL_SET_RETURN("fklChanlRecv",fklPopPtrQueue(ch->messages),r->v->stack);
+	r->v=fklPopPtrQueue(ch->messages);
 	if(fklLengthPtrQueue(ch->messages)<ch->max)
 	{
 		FklVMsend* s=fklPopPtrQueue(ch->sendq);
 		if(s)
 			pthread_cond_signal(&s->cond);
 	}
-	fklFreeVMrecv(r);
 	pthread_mutex_unlock(&ch->lock);
 }
 

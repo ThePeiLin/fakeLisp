@@ -72,9 +72,11 @@ equal
 <  
 \>=  
 <=  
-chr  
+i8  
 int  
-dbl  
+i32  
+i64  
+f64  
 str  
 sym  
 byts  
@@ -100,6 +102,7 @@ raise
 newf  
 delf  
 lfdl  
+reverse  
 
 Special forms:  
 

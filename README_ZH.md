@@ -344,16 +344,22 @@ stderr
 ### <=
 若前一个参数均小于等于后一个参数，则返回真，否则返回假  
 
-### chr int dbl str sym byts
+### i8 int i32 i64 f64 str sym byts
 返回用参数创建的对象  
 ```scheme
-(chr #b61)
+(i8 #b61)
 ;=> #\a
 
 (int #\a)
 ;=> 61
 
-(dbl 15)
+(i32 #\a)
+;=> 61
+
+(i64 #\a)
+;=> 61
+
+(f64 15)
 ;=> 15.0
 
 (str 11)
@@ -370,7 +376,7 @@ stderr
 返回参数的类型，如
 ```scheme
 (type #\a)
-;=> chr
+;=> i8
 
 (type list)
 ;=> proc
@@ -379,10 +385,10 @@ stderr
 ;=> dlproc
 
 (type 1)
-;=> int
+;=> i32 ;;也有可能是i64
 
 (type 1.0)
-;=> dbl
+;=> f64
 
 (type "sss")
 ;=> str

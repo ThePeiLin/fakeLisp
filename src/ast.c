@@ -191,6 +191,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklInterpreter* inter,FklStringMatc
 		FklStringMatchPattern* pattern=NULL;
 		FklPtrStack* s1=fklNewPtrStack(32,16);
 		FklIntStack* s2=fklNewIntStack(32,16);
+		FklIntStack* hasNextPartStack=fklNewIntStack(32,16);
 		int32_t i=0;
 		for(;isspace(objStr[i]);i++)
 			if(objStr[i]=='\n')
@@ -199,6 +200,8 @@ FklAstCptr* fklCreateTree(const char* objStr,FklInterpreter* inter,FklStringMatc
 		FklAstCptr* tmp=fklNewCptr(curline,NULL);
 		fklPushPtrStack(tmp,s1);
 		int hasComma=1;
+		int hasNextPart=0;
+		fklPushIntStack(hasNextPart,hasNextPartStack);
 		while(objStr[i]&&!fklIsPtrStackEmpty(s1))
 		{
 			for(;isspace(objStr[i]);i++)
@@ -219,6 +222,8 @@ FklAstCptr* fklCreateTree(const char* objStr,FklInterpreter* inter,FklStringMatc
 						tmp->u.pair=fklNewPair(curline,tmp->outer);
 						fklPushPtrStack(fklGetASTPairCdr(tmp),s1);
 						fklPushPtrStack(fklGetASTPairCar(tmp),s1);
+						fklPushIntStack(hasNextPart,hasNextPartStack);
+						hasNextPart=1;
 					}
 				}
 				int j=0;
@@ -250,7 +255,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklInterpreter* inter,FklStringMatc
 					break;
 				}
 				else hasComma=1;
-				if(root->outer->prev&&root->outer->prev->cdr.u.pair==root->outer)
+				if(hasNextPart&&root->outer->prev&&root->outer->prev->cdr.u.pair==root->outer)
 				{
 					//将为下一个部分准备的pair删除并将该pair的前一个pair的cdr部分入栈
 					s1->top=fklTopIntStack(s2);
@@ -259,6 +264,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklInterpreter* inter,FklStringMatc
 					tmp->type=FKL_NIL;
 					tmp->u.all=NULL;
 					fklPushPtrStack(tmp,s1);
+					hasNextPart=0;
 				}
 				i++;
 			}
@@ -276,6 +282,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklInterpreter* inter,FklStringMatc
 					free(tmpCptr->u.pair);
 					tmpCptr->u.all=NULL;
 				}
+				hasNextPart=fklPopIntStack(hasNextPartStack);
 				//将栈顶恢复为将pair入栈前的位置
 				s1->top=t;
 				i++;
@@ -374,6 +381,7 @@ FklAstCptr* fklCreateTree(const char* objStr,FklInterpreter* inter,FklStringMatc
 					i+=strlen(str);
 					free(str);
 				}
+				hasNextPart=0;
 				if(&root->outer->car==root)
 				{
 					//如果root是root所在pair的car部分，
@@ -385,12 +393,14 @@ FklAstCptr* fklCreateTree(const char* objStr,FklInterpreter* inter,FklStringMatc
 						tmp->u.pair=fklNewPair(curline,tmp->outer);
 						fklPushPtrStack(fklGetASTPairCdr(tmp),s1);
 						fklPushPtrStack(fklGetASTPairCar(tmp),s1);
+						hasNextPart=1;
 					}
 				}
 			}
 		}
 		fklFreePtrStack(s1);
 		fklFreeIntStack(s2);
+		fklFreeIntStack(hasNextPartStack);
 		return tmp;
 	}
 }
@@ -421,6 +431,7 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklInterpreter* inter)
 		return NULL;
 	FklPtrStack* s1=fklNewPtrStack(32,16);
 	FklIntStack* s2=fklNewIntStack(32,16);
+	FklIntStack* hasNextPartStack=fklNewIntStack(32,16);
 	int32_t i=0;
 	for(;isspace(objStr[i]);i++)
 		if(objStr[i]=='\n')
@@ -429,6 +440,8 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklInterpreter* inter)
 	FklAstCptr* tmp=fklNewCptr(curline,NULL);
 	fklPushPtrStack(tmp,s1);
 	int hasComma=1;
+	int hasNextPart=0;
+	fklPushIntStack(hasNextPart,hasNextPartStack);
 	while(objStr[i]&&!fklIsPtrStackEmpty(s1))
 	{
 		for(;isspace(objStr[i]);i++)
@@ -449,6 +462,8 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklInterpreter* inter)
 					tmp->u.pair=fklNewPair(curline,tmp->outer);
 					fklPushPtrStack(fklGetASTPairCdr(tmp),s1);
 					fklPushPtrStack(fklGetASTPairCar(tmp),s1);
+					fklPushIntStack(hasNextPart,hasNextPartStack);
+					hasNextPart=1;
 				}
 			}
 			int j=0;
@@ -480,7 +495,7 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklInterpreter* inter)
 				break;
 			}
 			else hasComma=1;
-			if(root->outer->prev&&root->outer->prev->cdr.u.pair==root->outer)
+			if(hasNextPart&&root->outer->prev&&root->outer->prev->cdr.u.pair==root->outer)
 			{
 				//将为下一个部分准备的pair删除并将该pair的前一个pair的cdr部分入栈
 				s1->top=fklTopIntStack(s2);
@@ -489,6 +504,7 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklInterpreter* inter)
 				tmp->type=FKL_NIL;
 				tmp->u.all=NULL;
 				fklPushPtrStack(tmp,s1);
+				hasNextPart=0;
 			}
 			i++;
 		}
@@ -506,6 +522,7 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklInterpreter* inter)
 				free(tmpCptr->u.pair);
 				tmpCptr->u.all=NULL;
 			}
+			hasNextPart=fklPopIntStack(hasNextPartStack);
 			//将栈顶恢复为将pair入栈前的位置
 			s1->top=t;
 			i++;
@@ -585,6 +602,7 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklInterpreter* inter)
 				i+=strlen(str);
 				free(str);
 			}
+			hasNextPart=0;
 			if(&root->outer->car==root)
 			{
 				//如果root是root所在pair的car部分，
@@ -596,12 +614,14 @@ FklAstCptr* fklBaseCreateTree(const char* objStr,FklInterpreter* inter)
 					tmp->u.pair=fklNewPair(curline,tmp->outer);
 					fklPushPtrStack(fklGetASTPairCdr(tmp),s1);
 					fklPushPtrStack(fklGetASTPairCar(tmp),s1);
+					hasNextPart=1;
 				}
 			}
 		}
 	}
 	fklFreePtrStack(s1);
 	fklFreeIntStack(s2);
+	fklFreeIntStack(hasNextPartStack);
 	return tmp;
 }
 

@@ -84,7 +84,7 @@ typedef struct FklVMvalue
 		char* str;
 		struct FklVMmem* chf;
 		struct FklVMbyts* byts;
-		struct FklVMproc* prc;
+		struct FklVMproc* proc;
 		FklVMdllHandle dll;
 		struct FklVMdlproc* dlproc;
 		struct FklVMflproc* flproc;

@@ -91,7 +91,7 @@ extern "C" {
 #define FKL_IS_CHAN(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_CHAN)
 #define FKL_IS_FP(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_FP)
 #define FKL_IS_DLL(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_DLL)
-#define FKL_IS_PRC(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_PRC)
+#define FKL_IS_PROC(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_PROC)
 #define FKL_IS_DLPROC(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_DLPROC)
 #define FKL_IS_FLPROC(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_FLPROC)
 #define FKL_IS_ERR(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_ERR)

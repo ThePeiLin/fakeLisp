@@ -494,9 +494,9 @@ static void princVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 								fprintf(fp,"<#mem at %p>",mem->mem);
 						}
 						break;
-					case FKL_PRC:
-						if(objValue->u.prc->sid)
-							fprintf(fp,"<#proc: %s>",fklGetGlobSymbolWithId(objValue->u.prc->sid)->symbol);
+					case FKL_PROC:
+						if(objValue->u.proc->sid)
+							fprintf(fp,"<#proc: %s>",fklGetGlobSymbolWithId(objValue->u.proc->sid)->symbol);
 						else
 							fprintf(fp,"#<proc>");
 					case FKL_PAIR:
@@ -639,9 +639,9 @@ static void prin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 								fprintf(fp,"<#mem at %p>",mem->mem);
 						}
 						break;
-					case FKL_PRC:
-						if(objValue->u.prc->sid)
-							fprintf(fp,"<#proc: %s>",fklGetGlobSymbolWithId(objValue->u.prc->sid)->symbol);
+					case FKL_PROC:
+						if(objValue->u.proc->sid)
+							fprintf(fp,"<#proc: %s>",fklGetGlobSymbolWithId(objValue->u.proc->sid)->symbol);
 						else
 							fprintf(fp,"#<proc>");
 						break;
@@ -922,7 +922,7 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 								tmpAtm->value.byts.size=root->u.byts->size;
 								tmpAtm->value.byts.str=fklCopyMemory(root->u.byts->str,root->u.byts->size);
 								break;
-							case FKL_PRC:
+							case FKL_PROC:
 								tmpAtm->type=FKL_SYM;
 								tmpAtm->value.str=fklCopyStr("#<proc>");
 								break;

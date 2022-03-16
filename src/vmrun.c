@@ -842,7 +842,7 @@ void B_push_proc(FklVM* exe)
 	FklVMproc* code=fklNewVMproc(runnable->cp+1+sizeof(int32_t),sizeOfProc);
 	fklIncreaseVMenvRefcount(runnable->localenv);
 	code->prevEnv=runnable->localenv;
-	FklVMvalue* objValue=fklNewVMvalue(FKL_PRC,code,exe->heap);
+	FklVMvalue* objValue=fklNewVMvalue(FKL_PROC,code,exe->heap);
 	FKL_SET_RETURN("B_push_proc",objValue,stack);
 	runnable->cp+=5+sizeOfProc;
 }
@@ -985,8 +985,8 @@ void B_pop_var(FklVM* exe)
 	}
 	FklVMvalue* topValue=fklGET_VAL(fklGetTopValue(stack),heap);
 	*pValue=fklGET_VAL(topValue,heap);
-	if(FKL_IS_PRC(*pValue)&&(*pValue)->u.prc->sid==0)
-		(*pValue)->u.prc->sid=idOfVar;
+	if(FKL_IS_PROC(*pValue)&&(*pValue)->u.proc->sid==0)
+		(*pValue)->u.proc->sid=idOfVar;
 	if(FKL_IS_DLPROC(*pValue)&&(*pValue)->u.dlproc->sid==0)
 		(*pValue)->u.dlproc->sid=idOfVar;
 	if(FKL_IS_FLPROC(*pValue)&&(*pValue)->u.flproc->sid==0)
@@ -1102,9 +1102,9 @@ void B_pop_ref(FklVM* exe)
 //	FklVMstack* stack=exe->stack;
 //	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 //	FklVMvalue* topValue=fklGET_VAL(fklGetTopValue(stack),exe->heap);
-//	if(!FKL_IS_PRC(topValue))
+//	if(!FKL_IS_PROC(topValue))
 //		FKL_RAISE_BUILTIN_ERROR("b.pop_env",FKL_WRONGARG,runnable,exe);
-//	FklVMenv** ppEnv=&topValue->u.prc->prevEnv;
+//	FklVMenv** ppEnv=&topValue->u.proc->prevEnv;
 //	FklVMenv* tmpEnv=*ppEnv;
 //	int32_t i=0;
 //	int32_t scope=*(int32_t*)(exe->code+runnable->cp+1);
@@ -1202,15 +1202,15 @@ void B_invoke(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMvalue* tmpValue=fklGET_VAL(fklGetTopValue(stack),exe->heap);
-	if(!FKL_IS_PTR(tmpValue)||(tmpValue->type!=FKL_PRC&&tmpValue->type!=FKL_CONT&&tmpValue->type!=FKL_DLPROC&&tmpValue->type!=FKL_FLPROC))
+	if(!FKL_IS_PTR(tmpValue)||(tmpValue->type!=FKL_PROC&&tmpValue->type!=FKL_CONT&&tmpValue->type!=FKL_DLPROC&&tmpValue->type!=FKL_FLPROC))
 		FKL_RAISE_BUILTIN_ERROR("b.invoke",FKL_INVOKEERROR,runnable,exe);
 	stack->tp-=1;
 	fklStackRecycle(exe);
 	runnable->cp+=1;
 	switch(tmpValue->type)
 	{
-		case FKL_PRC:
-			invokeNativeProcdure(exe,tmpValue->u.prc,runnable);
+		case FKL_PROC:
+			invokeNativeProcdure(exe,tmpValue->u.proc,runnable);
 			break;
 		case FKL_CONT:
 			invokeContinuation(exe,tmpValue->u.cont);
@@ -1503,9 +1503,9 @@ void fklGC_markValue(FklVMvalue* obj)
 				fklPushPtrStack(fklGetVMpairCar(root),stack);
 				fklPushPtrStack(fklGetVMpairCdr(root),stack);
 			}
-			else if(root->type==FKL_PRC)
+			else if(root->type==FKL_PROC)
 			{
-				FklVMenv* curEnv=root->u.prc->prevEnv;
+				FklVMenv* curEnv=root->u.proc->prevEnv;
 				for(;curEnv!=NULL;curEnv=curEnv->prev)
 				{
 					uint32_t i=0;
@@ -1605,8 +1605,8 @@ void fklGC_sweep(FklVMheap* heap)
 				case FKL_PAIR:
 					free(prev->u.pair);
 					break;
-				case FKL_PRC:
-					fklFreeVMproc(prev->u.prc);
+				case FKL_PROC:
+					fklFreeVMproc(prev->u.proc);
 					break;
 				case FKL_BYTS:
 					free(prev->u.byts);

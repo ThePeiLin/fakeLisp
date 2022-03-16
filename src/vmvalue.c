@@ -50,7 +50,7 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVMheap* heap)
 							*root1=fklNewVMvalue(FKL_STR,fklCopyStr(root->u.str),heap);
 							break;
 						case FKL_CONT:
-						case FKL_PRC:
+						case FKL_PROC:
 						case FKL_FP:
 						case FKL_DLL:
 						case FKL_DLPROC:
@@ -166,8 +166,8 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 						tmp->u.str=pValue;break;
 					case FKL_PAIR:
 						tmp->u.pair=pValue;break;
-					case FKL_PRC:
-						tmp->u.prc=pValue;break;
+					case FKL_PROC:
+						tmp->u.proc=pValue;break;
 					case FKL_BYTS:
 						tmp->u.byts=pValue;break;
 					case FKL_CONT:

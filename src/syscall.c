@@ -787,6 +787,8 @@ void SYS_int(FklVM* exe,pthread_rwlock_t* gclock)
 		FKL_SET_RETURN("SYS_int",FKL_MAKE_VM_I32(FKL_GET_I8(obj)),stack);
 	else if(FKL_IS_I32(obj))
 		FKL_SET_RETURN("SYS_int",obj,stack);
+	else if(FKL_IS_SYM(obj))
+		FKL_SET_RETURN("SYS_int",FKL_MAKE_VM_I32(FKL_GET_SYM(obj)),stack);
 	else if(FKL_IS_I64(obj))
 		FKL_SET_RETURN("SYS_int",fklNewVMvalue(FKL_I64,&obj->u.i64,exe->heap),stack);
 	else if(FKL_IS_F64(obj))
@@ -854,6 +856,8 @@ void SYS_i32(FklVM* exe,pthread_rwlock_t* gclock)
 		FKL_SET_RETURN("SYS_i32",FKL_MAKE_VM_I32(FKL_GET_I8(obj)),stack);
 	else if(FKL_IS_I32(obj))
 		FKL_SET_RETURN("SYS_i32",obj,stack);
+	else if(FKL_IS_SYM(obj))
+		FKL_SET_RETURN("SYS_i32",FKL_MAKE_VM_I32(FKL_GET_SYM(obj)),stack);
 	else if(FKL_IS_I64(obj))
 		FKL_SET_RETURN("SYS_i32",FKL_MAKE_VM_I32((int32_t)obj->u.i64),stack);
 	else if(FKL_IS_F64(obj))
@@ -877,7 +881,7 @@ void SYS_i32(FklVM* exe,pthread_rwlock_t* gclock)
 		FKL_SET_RETURN("SYS_i32",FKL_MAKE_VM_I32(*(int32_t*)r),stack);
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR("sys.int",FKL_WRONGARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.i32",FKL_WRONGARG,runnable,exe);
 }
 
 void SYS_i64(FklVM* exe,pthread_rwlock_t* gclock)
@@ -897,6 +901,11 @@ void SYS_i64(FklVM* exe,pthread_rwlock_t* gclock)
 	else if(FKL_IS_I32(obj))
 	{
 		int32_t r=FKL_GET_I32(obj);
+		FKL_SET_RETURN("SYS_i64",fklNewVMvalue(FKL_I64,&r,exe->heap),stack);
+	}
+	else if(FKL_IS_SYM(obj))
+	{
+		int64_t r=FKL_GET_SYM(obj);
 		FKL_SET_RETURN("SYS_i64",fklNewVMvalue(FKL_I64,&r,exe->heap),stack);
 	}
 	else if(FKL_IS_I64(obj))
@@ -1059,11 +1068,15 @@ void SYS_byts(FklVM* exe,pthread_rwlock_t* gclock)
 	}
 	else if(FKL_IS_SYM(obj))
 	{
-		FklSymTabNode* n=fklGetGlobSymbolWithId(FKL_GET_SYM(obj));
-		retval->u.byts=(FklVMbyts*)realloc(retval->u.byts,sizeof(FklVMbyts)+strlen(n->symbol));
-		FKL_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
-		retval->u.byts->size=strlen(n->symbol);
-		memcpy(retval->u.byts->str,n->symbol,retval->u.byts->size);
+		retval->u.byts=(FklVMbyts*)realloc(retval->u.byts,sizeof(FklVMbyts)+sizeof(FklSid_t));
+		retval->u.byts->size=sizeof(FklSid_t);
+		FklSid_t sid=FKL_GET_SYM(obj);
+		memcpy(retval->u.byts->str,&sid,sizeof(FklSid_t));
+		//FklSymTabNode* n=fklGetGlobSymbolWithId(FKL_GET_SYM(obj));
+		//retval->u.byts=(FklVMbyts*)realloc(retval->u.byts,sizeof(FklVMbyts)+strlen(n->symbol));
+		//FKL_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
+		//retval->u.byts->size=strlen(n->symbol);
+		//memcpy(retval->u.byts->str,n->symbol,retval->u.byts->size);
 	}
 	else if(FKL_IS_STR(obj))
 	{
@@ -1420,9 +1433,9 @@ void SYS_go(FklVM* exe,pthread_rwlock_t* gclock)
 	FklVMvalue* threadProc=fklGET_VAL(fklPopVMstack(stack),heap);
 	if(!threadProc)
 		FKL_RAISE_BUILTIN_ERROR("sys.go",FKL_TOOFEWARG,runnable,exe);
-	if(!FKL_IS_PRC(threadProc)&&!FKL_IS_DLPROC(threadProc)&&!FKL_IS_CONT(threadProc)&&!FKL_IS_FLPROC(threadProc))
+	if(!FKL_IS_PROC(threadProc)&&!FKL_IS_DLPROC(threadProc)&&!FKL_IS_CONT(threadProc)&&!FKL_IS_FLPROC(threadProc))
 		FKL_RAISE_BUILTIN_ERROR("sys.go",FKL_WRONGARG,runnable,exe);
-	FklVM* threadVM=(FKL_IS_PRC(threadProc)||FKL_IS_CONT(threadProc))?fklNewThreadVM(threadProc->u.prc,exe->heap):fklNewThreadDlprocVM(runnable,exe->heap);
+	FklVM* threadVM=(FKL_IS_PROC(threadProc)||FKL_IS_CONT(threadProc))?fklNewThreadVM(threadProc->u.proc,exe->heap):fklNewThreadDlprocVM(runnable,exe->heap);
 	threadVM->lnt=exe->lnt;
 	threadVM->code=exe->code;
 	threadVM->size=exe->size;
@@ -1443,7 +1456,7 @@ void SYS_go(FklVM* exe,pthread_rwlock_t* gclock)
 	fklFreePtrStack(comStack);
 	FklVMvalue* chan=threadVM->chan;
 	int32_t faildCode=0;
-	if(FKL_IS_PRC(threadProc))
+	if(FKL_IS_PROC(threadProc))
 		faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMfunc,threadVM);
 	else if(FKL_IS_CONT(threadProc))
 	{
@@ -1567,15 +1580,15 @@ void SYS_clcc(FklVM* exe,pthread_rwlock_t* gclock)
 		FKL_RAISE_BUILTIN_ERROR("sys.clcc",FKL_TOOMANYARG,runnable,exe);
 	if(!proc)
 		FKL_RAISE_BUILTIN_ERROR("sys.clcc",FKL_TOOFEWARG,runnable,exe);
-	if(!FKL_IS_PTR(proc)||(proc->type!=FKL_PRC&&proc->type!=FKL_CONT&&proc->type!=FKL_DLPROC))
+	if(!FKL_IS_PTR(proc)||(proc->type!=FKL_PROC&&proc->type!=FKL_CONT&&proc->type!=FKL_DLPROC))
 		FKL_RAISE_BUILTIN_ERROR("sys.clcc",FKL_INVOKEERROR,runnable,exe);
 	FklVMvalue* cc=fklNewVMvalue(FKL_CONT,fklNewVMcontinuation(stack,exe->rstack,exe->tstack),exe->heap);
 	FKL_SET_RETURN("SYS_clcc",FKL_MAKE_VM_I32(stack->bp),stack);
 	stack->bp=stack->tp;
 	FKL_SET_RETURN("SYS_clcc",cc,stack);
-	if(proc->type==FKL_PRC)
+	if(proc->type==FKL_PROC)
 	{
-		FklVMproc* tmpProc=proc->u.prc;
+		FklVMproc* tmpProc=proc->u.proc;
 		FklVMrunnable* prevProc=fklHasSameProc(tmpProc->scp,exe->rstack);
 		if(fklIsTheLastExpress(runnable,prevProc,exe)&&prevProc)
 			prevProc->mark=1;
@@ -1606,7 +1619,7 @@ void SYS_apply(FklVM* exe,pthread_rwlock_t* gclock)
 	FklVMvalue* proc=fklGET_VAL(fklPopVMstack(stack),heap);
 	if(!proc)
 		FKL_RAISE_BUILTIN_ERROR("sys.apply",FKL_TOOFEWARG,runnable,exe);
-	if(!FKL_IS_PTR(proc)||(proc->type!=FKL_PRC&&proc->type!=FKL_CONT&&proc->type!=FKL_DLPROC&&proc->type!=FKL_FLPROC))
+	if(!FKL_IS_PTR(proc)||(proc->type!=FKL_PROC&&proc->type!=FKL_CONT&&proc->type!=FKL_DLPROC&&proc->type!=FKL_FLPROC))
 		FKL_RAISE_BUILTIN_ERROR("b.invoke",FKL_INVOKEERROR,runnable,exe);
 	FklPtrStack* stack1=fklNewPtrStack(32,16);
 	FklVMvalue* value=NULL;
@@ -1651,8 +1664,8 @@ void SYS_apply(FklVM* exe,pthread_rwlock_t* gclock)
 	fklFreePtrStack(stack1);
 	switch(proc->type)
 	{
-		case FKL_PRC:
-			invokeNativeProcdure(exe,proc->u.prc,runnable);
+		case FKL_PROC:
+			invokeNativeProcdure(exe,proc->u.proc,runnable);
 			break;
 		case FKL_CONT:
 			invokeContinuation(exe,proc->u.cont);

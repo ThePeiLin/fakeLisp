@@ -409,7 +409,7 @@ void fklPrintAsByteStr(const uint8_t* str,int32_t size,FILE* fp)
 	}
 }
 
-void* fklCopyMemory(void* pm,size_t size)
+void* fklCopyMemory(const void* pm,size_t size)
 {
 	void* tmp=(void*)malloc(size);
 	FKL_ASSERT(tmp,"fklCopyMemory",__FILE__,__LINE__);

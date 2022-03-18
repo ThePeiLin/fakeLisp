@@ -136,7 +136,7 @@ int fklIsscript(const char*);
 int fklIscode(const char*);
 int fklIsAllSpace(const char*);
 char* fklCopyStr(const char*);
-void* fklCopyMemory(void*,size_t);
+void* fklCopyMemory(const void*,size_t);
 int fklIsSymbolShouldBeExport(const char* str,const char** pStr,uint32_t n);
 void fklPrintByteStr(size_t size,const uint8_t* str,FILE*,int);
 void fklPrintAsByteStr(const uint8_t*,int32_t,FILE*);

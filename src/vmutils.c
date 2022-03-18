@@ -386,6 +386,9 @@ char* fklGenErrorMessage(unsigned int type,FklVMrunnable* r,FklVM* exe)
 		case FKL_INVALIDACCESS:
 			t=fklStrCat(t,"Invalid access ");
 			break;
+		case FKL_UNEXPECTEOF:
+			t=fklStrCat(t,"Unexpected eof ");
+			break;
 	}
 	t=fklStrCat(t,lineNumber);
 	free(lineNumber);

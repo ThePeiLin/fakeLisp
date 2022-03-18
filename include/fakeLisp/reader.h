@@ -38,12 +38,12 @@ int fklIsInValidStringPattern(const char*);
 int fklIsReDefStringPattern(const char*);
 int fklIsVar(const char*);
 int fklIsMustList(const char*);
-int32_t fklSkipInPattern(const char*,FklStringMatchPattern*);
-int32_t fklSkipSpace(const char*);
+size_t fklSkipInPattern(const char*,FklStringMatchPattern*);
+size_t fklSkipSpace(const char*);
 int32_t fklCountInPattern(const char* str,FklStringMatchPattern*);
-int32_t fklSkipUntilNext(const char* str,const char*);
-int32_t fklSkipParentheses(const char*);
-int32_t fklSkipAtom(const char*,const char*);
+size_t fklSkipUntilNext(const char* str,const char*);
+size_t fklSkipParentheses(const char*);
+size_t fklSkipAtom(const char*,const char*);
 int32_t fklFindKeyString(const char*);
 void fklInitBuiltInStringPattern(void);
 

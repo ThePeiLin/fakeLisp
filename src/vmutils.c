@@ -988,7 +988,7 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 
 void fklInitVMRunningResource(FklVM* vm,FklVMenv* vEnv,FklVMheap* heap,FklByteCodelnt* code,uint32_t start,uint32_t size)
 {
-	if(!vEnv->prev)
+	if(!vEnv->prev&&vEnv->num==0)
 		fklInitGlobEnv(vEnv,heap);
 	FklVMproc proc={
 		.scp=start,

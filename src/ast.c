@@ -14,18 +14,22 @@ static void addToList(FklAstCptr*,const FklAstCptr*);
 
 static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
 {
-	FklVM* tmpVM=fklNewTmpVM(NULL);
 	FklVMenv* vEnv=fklNewVMenv(NULL);
-	fklInitVMRunningResource(tmpVM,vEnv,heap,cEnv->proc,0,cEnv->proc->bc->size);
-	int i=fklRunVM(tmpVM);
-	if(i==1)
+	fklInitGlobEnv(vEnv,heap);
+	if(cEnv->proc->bc->size)
 	{
-		fklFreeVMenv(vEnv);
+		FklVM* tmpVM=fklNewTmpVM(NULL);
+		fklInitVMRunningResource(tmpVM,vEnv,heap,cEnv->proc,0,cEnv->proc->bc->size);
+		int i=fklRunVM(tmpVM);
+		if(i==1)
+		{
+			fklFreeVMenv(vEnv);
+			fklUninitVMRunningResource(tmpVM);
+			return NULL;
+		}
+		fklCodelntCopyCat(t,cEnv->proc);
 		fklUninitVMRunningResource(tmpVM);
-		return NULL;
 	}
-	fklUninitVMRunningResource(tmpVM);
-	fklCodelntCopyCat(t,cEnv->proc);
 	return vEnv;
 }
 
@@ -147,11 +151,15 @@ FklAstCptr* expandReaderMacro(const char* objStr,FklInterpreter* inter,FklString
 			tmpCptr=fklCastVMvalueToCptr(fklGET_VAL(tmpVM->stack->values[0],tmpVM->heap),inter->curline);
 		else
 		{
+			if(!inter->glob->proc->bc->size)
+				fklFreeVMenv(tmpGlobEnv);
 			fklFreeByteCodeAndLnt(t);
 			fklFreeVMheap(tmpVM->heap);
 			fklUninitVMRunningResource(tmpVM);
 			return NULL;
 		}
+		if(!inter->glob->proc->bc->size)
+			fklFreeVMenv(tmpGlobEnv);
 		fklFreeByteCodeAndLnt(t);
 		fklFreeVMheap(tmpVM->heap);
 		fklUninitVMRunningResource(tmpVM);

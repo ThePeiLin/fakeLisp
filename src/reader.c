@@ -1064,13 +1064,14 @@ char* readStringUntilBlank(FILE* fp)
 }
 
 
-int isFinish(const char* str,char** next)
+int isFinish(const char* str,char** next,FklPtrStack* tokenStack)
 {
 	return 0;
 }
 
-char** fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF)
+FklPtrStack* fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF)
 {
+	FklPtrStack* tokenStack=fklNewPtrStack(32,16);
 	char* tmp=NULL;
 	size_t len=0;
 	if(*prev)
@@ -1094,7 +1095,7 @@ char** fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF)
 		tmp=fklStrCat(tmp,next);
 		len=strlen(tmp);
 		free(next);
-		if(isFinish(tmp,&next))
+		if(isFinish(tmp,&next,tokenStack))
 		{
 			*prev=fklCopyStr(next);
 			*next='\0';
@@ -1105,5 +1106,5 @@ char** fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF)
 			break;
 		}
 	}
-	return tmp;
+	return tokenStack;
 }

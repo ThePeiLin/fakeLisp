@@ -89,25 +89,42 @@ MatchState* newMatchState(FklStringMatchPattern* pattern,uint32_t index)
 	return state;
 }
 
-#define BUILT_RESERVE_STR_NUM (6)
+#define BUILT_IN_SEPARATOR_STR_NUM (6)
+#define PARENTHESE_0 ((void*)0)
+#define PARENTHESE_1 ((void*)1)
 
-static const char* reserveStrSet[]=
+static const char* separatorStrSet[]=
 {
-	"(",")",",","#\\","#b","\""
+	"(",",","#\\","#b","\"","["
 };
 
 MatchState* searchReverseStringChar(const char* part,FklPtrStack* stack)
 {
+	MatchState* topState=fklTopPtrStack(stack);
 	for(size_t i=0;i<2;i++)
 		if(part[0]=='(')
-			return newMatchState(NULL,0);
+			return newMatchState(PARENTHESE_0,0);
 		else if(part[0]==')')
-			return newMatchState(NULL,1);
+		{
+			if(topState&&topState->pattern==PARENTHESE_0&&topState->index==0)
+				return newMatchState(PARENTHESE_0,1);
+			else
+				return NULL;
+		}
+	for(size_t i=0;i<2;i++)
+		if(part[0]=='[')
+			return newMatchState(PARENTHESE_1,0);
+		else if(part[0]==']')
+		{
+			if(topState&&topState->pattern==PARENTHESE_1&&topState->index==0)
+				return newMatchState(PARENTHESE_1,1);
+			else
+				return NULL;
+		}
 	FklStringMatchPattern* pattern=fklFindStringPattern(part);
 	if(pattern)
 		return newMatchState(pattern,0);
-	MatchState* topState=fklTopPtrStack(stack);
-	if(topState&&topState->pattern)
+	if(topState&&topState->pattern!=PARENTHESE_0&&topState->pattern!=PARENTHESE_1)
 	{
 		char* nextReverseChar=fklGetNthReverseCharOfStringMatchPattern(topState->pattern,topState->index+1);
 		if(topState->pattern!=NULL&&nextReverseChar&&!strncmp(nextReverseChar,part,strlen(nextReverseChar)))
@@ -118,8 +135,8 @@ MatchState* searchReverseStringChar(const char* part,FklPtrStack* stack)
 
 int isBuiltInReserveStr(const char* part)
 {
-	for(uint32_t i=0;i<BUILT_RESERVE_STR_NUM;i++)
-		if(!strncmp(part,reserveStrSet[i],strlen(reserveStrSet[i])))
+	for(uint32_t i=0;i<BUILT_IN_SEPARATOR_STR_NUM;i++)
+		if(!strncmp(part,separatorStrSet[i],strlen(separatorStrSet[i])))
 			return 1;
 	return 0;
 }
@@ -127,7 +144,7 @@ int isBuiltInReserveStr(const char* part)
 size_t getSymbolLen(const char* part,FklPtrStack* stack)
 {
 	size_t i=0;
-	for(;part[i]!='\0'&&!isBuiltInReserveStr(part+i)&&!searchReverseStringChar(part+i,stack);i+=(part[i]=='\\')?2:1);
+	for(;part[i]!='\0'&&!isBuiltInReserveStr(part+i)&&!searchReverseStringChar(part+i,stack);i++);
 	return i;
 }
 
@@ -142,33 +159,41 @@ FklPtrStack* spiltStringPartsIntoToken(char** parts,uint32_t inum)
 			MatchState* state=searchReverseStringChar(parts[i]+j,matchStateStack);
 			if(state)
 			{
-				if(state->pattern==NULL&&state->index==0)
+				if(state->pattern==PARENTHESE_0||state->pattern==PARENTHESE_1)
 				{
-					fklPushPtrStack(newToken(FKL_TOKEN_RESERVE_STR,"(",strlen("(")),retvalStack);
-					fklPushPtrStack(state,matchStateStack);
-					j++;
-				}
-				else if(state->pattern==NULL&&state->index==1)
-				{
-					fklPushPtrStack(newToken(FKL_TOKEN_RESERVE_STR,")",strlen(")")),retvalStack);
-					free(fklPopPtrStack(matchStateStack));
-					j++;
+					if(state->index==0)
+					{
+						const char* parenthese=state->pattern==(void*)0?"(":"[";
+						fklPushPtrStack(newToken(FKL_TOKEN_RESERVE_STR,parenthese,strlen(parenthese)),retvalStack);
+						fklPushPtrStack(state,matchStateStack);
+						j++;
+						continue;
+					}
+					else if(state->index==1)
+					{
+						const char* parenthese=state->pattern==(void*)0?")":"]";
+						MatchState* prevState=fklTopPtrStack(matchStateStack);
+						fklPushPtrStack(newToken(FKL_TOKEN_RESERVE_STR,parenthese,strlen(parenthese)),retvalStack);
+						free(prevState);
+						fklPopPtrStack(matchStateStack);
+						j++;
+						continue;
+					}
 				}
 				else if(state->index<state->pattern->reserveCharNum-1)
 				{
-					if(state->index)
-						free(fklPopPtrStack(matchStateStack));
 					char* reserveStr=fklGetNthReverseCharOfStringMatchPattern(state->pattern,state->index);
 					size_t len=strlen(reserveStr);
 					fklPushPtrStack(state,matchStateStack);
 					fklPushPtrStack(newToken(FKL_TOKEN_RESERVE_STR,reserveStr,len),retvalStack);
 					j+=len;
+					if(state->index)
+						free(fklPopPtrStack(matchStateStack));
+					continue;
 				}
 				else
 					free(state);
 			}
-			if(parts[i][j]=='\0')
-				continue;
 			if(parts[i][j]==',')
 			{
 				fklPushPtrStack(newToken(FKL_TOKEN_RESERVE_STR,",",strlen(",")),retvalStack);

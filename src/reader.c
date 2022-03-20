@@ -322,9 +322,9 @@ char* readString(FILE* fp)
 	return tmp;
 }
 
-int32_t fklSkipSpace(const char* str)
+size_t fklSkipSpace(const char* str)
 {
-	int32_t i=0;
+	size_t i=0;
 	for(;str[i]!='\0'&&isspace(str[i]);i++);
 	return i;
 }
@@ -512,7 +512,7 @@ int32_t fklSkipUntilNextWhenReading(const char* str,const char* part)
 	return s;
 }
 
-int32_t fklSkipUntilNext(const char* str,const char* part)
+size_t fklSkipUntilNext(const char* str,const char* part)
 {
 	int32_t s=0;
 	while(str[s])
@@ -561,7 +561,7 @@ int32_t fklSkipUntilNext(const char* str,const char* part)
 	return s;
 }
 
-int32_t fklSkipParentheses(const char* str)
+size_t fklSkipParentheses(const char* str)
 {
 	int parentheses=0;
 	int mark=0;
@@ -581,7 +581,7 @@ int32_t fklSkipParentheses(const char* str)
 	return i;
 }
 
-int32_t fklSkipAtom(const char* str,const char* keyString)
+size_t fklSkipAtom(const char* str,const char* keyString)
 {
 	int32_t keyLen=strlen(keyString);
 	int32_t i=0;
@@ -638,7 +638,7 @@ int32_t fklSkipAtom(const char* str,const char* keyString)
 	return i;
 }
 
-int32_t fklSkipInPattern(const char* str,FklStringMatchPattern* pattern)
+size_t fklSkipInPattern(const char* str,FklStringMatchPattern* pattern)
 {
 	int32_t i=0;
 	int32_t s=0;
@@ -817,6 +817,15 @@ int fklIsMustList(const char* str)
 	return 0;
 }
 
+static uint32_t countReverseCharNum(uint32_t num,char** parts)
+{
+	uint32_t retval=0;
+	for(uint32_t i=0;i<num;i++)
+		if(!fklIsVar(parts[i]))
+			retval++;
+	return retval;
+}
+
 FklStringMatchPattern* fklNewFStringMatchPattern(int32_t num,char** parts,void(*fproc)(FklVM* exe))
 {
 	FklStringMatchPattern* tmp=(FklStringMatchPattern*)malloc(sizeof(FklStringMatchPattern));
@@ -824,6 +833,7 @@ FklStringMatchPattern* fklNewFStringMatchPattern(int32_t num,char** parts,void(*
 	tmp->type=FKL_FLPROC;
 	tmp->num=num;
 	tmp->parts=parts;
+	tmp->reserveCharNum=countReverseCharNum(num,parts);
 	tmp->u.fProc=fproc;
 	tmp->next=NULL;
 	tmp->prev=NULL;
@@ -865,12 +875,21 @@ FklStringMatchPattern* fklNewFStringMatchPattern(int32_t num,char** parts,void(*
 	return tmp;
 }
 
+char* fklGetNthReverseCharOfStringMatchPattern(FklStringMatchPattern* pattern,uint32_t nth)
+{
+	uint32_t i=0;
+	uint32_t j=0;
+	for(;i<pattern->num&&j<nth+1;i++,j+=!fklIsVar(pattern->parts[i]));
+	return (j==nth)?pattern->parts[i]:NULL;
+}
+
 FklStringMatchPattern* fklNewStringMatchPattern(int32_t num,char** parts,FklByteCodelnt* proc)
 {
 	FklStringMatchPattern* tmp=(FklStringMatchPattern*)malloc(sizeof(FklStringMatchPattern));
 	FKL_ASSERT(tmp,"fklNewStringMatchPattern",__FILE__,__LINE__);
 	tmp->type=FKL_BYTS;
 	tmp->num=num;
+	tmp->reserveCharNum=countReverseCharNum(num,parts);
 	tmp->parts=parts;
 	tmp->u.bProc=proc;
 	tmp->next=NULL;
@@ -1015,4 +1034,76 @@ void fklInitBuiltInStringPattern(void)
 	addBuiltInStringPattern("`(a)",READER_MACRO_qsquote);
 	addBuiltInStringPattern("~(a)",READER_MACRO_unquote);
 	addBuiltInStringPattern("~@(a)",READER_MACRO_unqtesp);
+}
+
+char* readStringUntilBlank(FILE* fp)
+{
+	int32_t memSize=FKL_MAX_STRING_SIZE;
+	char* tmp=(char*)malloc(sizeof(char)*memSize);
+	FKL_ASSERT(tmp,"readString",__FILE__,__LINE__);
+	int32_t strSize=0;
+	int ch=getc(fp);
+	for(;ch!=EOF;ch=getc(fp))
+	{
+		strSize++;
+		if(strSize>memSize-1)
+		{
+			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+FKL_MAX_STRING_SIZE));
+			FKL_ASSERT(tmp,"readString",__FILE__,__LINE__);
+			memSize+=FKL_MAX_STRING_SIZE;
+		}
+		tmp[strSize-1]=ch;
+		if(isblank(ch))
+			break;
+	}
+	tmp[strSize]='\0';
+	memSize=strlen(tmp)+1;
+	tmp=(char*)realloc(tmp,sizeof(char)*memSize);
+	FKL_ASSERT(tmp,"readString",__FILE__,__LINE__);
+	return tmp;
+}
+
+
+int isFinish(const char* str,char** next)
+{
+	return 0;
+}
+
+char** fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF)
+{
+	char* tmp=NULL;
+	size_t len=0;
+	if(*prev)
+	{
+		tmp=(char*)malloc(sizeof(char)*(strlen(*prev)+1));
+		FKL_ASSERT(tmp,"fklReadInPattern",__FILE__,__LINE__);
+		strcpy(tmp,*prev);
+		free(*prev);
+		*prev=NULL;
+		len=strlen(tmp);
+	}
+	else
+	{
+		tmp=(char*)malloc(sizeof(char)*1);
+		FKL_ASSERT(tmp,"fklReadInPattern",__FILE__,__LINE__);
+		tmp[0]='\0';
+	}
+	for(;;)
+	{
+		char* next=readStringUntilBlank(fp);
+		tmp=fklStrCat(tmp,next);
+		len=strlen(tmp);
+		free(next);
+		if(isFinish(tmp,&next))
+		{
+			*prev=fklCopyStr(next);
+			*next='\0';
+			len=strlen(tmp);
+			char* rt=(char*)realloc(tmp,sizeof(char)*(len+1));
+			FKL_ASSERT(rt,"fklReadInStringPattern",__FILE__,__LINE__);
+			tmp=rt;
+			break;
+		}
+	}
+	return tmp;
 }

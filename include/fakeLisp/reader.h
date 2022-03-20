@@ -12,6 +12,7 @@ extern "C" {
 typedef struct FklStringMatchPattern
 {
 	uint32_t num;
+	uint32_t reserveCharNum;
 	char** parts;
 	FklValueType type;
 	union{
@@ -26,6 +27,7 @@ typedef struct FklStringMatchPattern
 FklStringMatchPattern* fklFindStringPattern(const char*);
 FklStringMatchPattern* fklNewStringMatchPattern(int32_t,char**,FklByteCodelnt*);
 FklStringMatchPattern* fklNewFStringMatchPattern(int32_t num,char** parts,void(*fproc)(FklVM* exe));
+char* fklGetNthReverseCharOfStringMatchPattern(FklStringMatchPattern* pattern,uint32_t nth);
 char** fklSplitPattern(const char*,int32_t*);
 char** fklSplitStringInPattern(const char*,FklStringMatchPattern*,int32_t*);
 char* fklReadInPattern(FILE*,char**,int*);

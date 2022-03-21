@@ -116,7 +116,7 @@ void fklPrintRawString(const char* objStr,FILE* out)
 		else
 		{
 			uint8_t j=*tmpStr;
-			fprintf(out,"\\0x");
+			fprintf(out,"\\x");
 			fprintf(out,"%X",j/16);
 			fprintf(out,"%X",j%16);
 		}
@@ -583,10 +583,13 @@ char* fklCastEscapeCharater(const char* str,char end,size_t* len)
 			}
 			else if(toupper(str[i+1])=='X')
 			{
-				int len=0;
-				while(isxdigit(str[i+2+len])&&len<2)len++;
-				sscanf(str+i+1,"%4x",&ch);
-				i+=len+2;
+				//int len=0;
+				char* backSlashStr=fklGetStringAfterBackslash(str+i);
+				ch=fklStringToChar(backSlashStr+1);
+				//while(isxdigit(str[i+2+len])&&len<2)len++;
+				//sscanf(str+i+1,"%4x",&ch);
+				i+=strlen(backSlashStr);
+				free(backSlashStr);
 			}
 			else if(str[i+1]=='\n')
 			{

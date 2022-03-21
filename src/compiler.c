@@ -881,6 +881,7 @@ FklByteCode* fklCompilePair(FklAstCptr* objCptr)
 FklByteCodelnt* fklCompileQsquote(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state,int evalIm)
 {
 	objCptr=fklNextCptr(fklGetFirstCptr(objCptr));
+	FklAstCptr* top=objCptr;
 	if(objCptr->type==FKL_ATM)
 		return fklCompileConst(objCptr,curEnv,inter,state,evalIm);
 	else if(fklIsUnquoteExpression(objCptr))
@@ -922,7 +923,7 @@ FklByteCodelnt* fklCompileQsquote(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInte
 		}
 		else if(fklIsUnqtespExpression(objCptr))
 		{
-			if(objCptr==&objPair->cdr)
+			if(objCptr==&objPair->cdr||objCptr==top)
 			{
 				fklFreeByteCode(popToCar);
 				fklFreeByteCode(popToCdr);

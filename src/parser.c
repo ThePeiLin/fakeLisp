@@ -64,11 +64,12 @@ char** spiltStringByBlank(const char* str,uint32_t* num)
 	fklFreeUintStack(sizeStack);
 	return retval;
 }
-FklToken* newToken(FklTokenType type,const char* str,size_t len)
+FklToken* newToken(FklTokenType type,const char* str,size_t len,uint32_t line)
 {
 	FklToken* token=(FklToken*)malloc(sizeof(FklToken));
 	FKL_ASSERT(token,"newToken",__FILE__,__LINE__);
 	token->type=type;
+	token->line=line;
 	token->value=fklCopyMemory(str,len+1);
 	token->value[len]='\0';
 	return token;
@@ -148,7 +149,7 @@ size_t getSymbolLen(const char* part,FklPtrStack* stack)
 	return i;
 }
 
-FklPtrStack* spiltStringPartsIntoToken(char** parts,uint32_t inum)
+FklPtrStack* spiltStringPartsIntoToken(char** parts,uint32_t inum,uint32_t line)
 {
 	FklPtrStack* retvalStack=fklNewPtrStack(32,16);
 	FklPtrStack* matchStateStack=fklNewPtrStack(32,16);
@@ -164,7 +165,7 @@ FklPtrStack* spiltStringPartsIntoToken(char** parts,uint32_t inum)
 					if(state->index==0)
 					{
 						const char* parenthese=state->pattern==(void*)0?"(":"[";
-						fklPushPtrStack(newToken(FKL_TOKEN_RESERVE_STR,parenthese,strlen(parenthese)),retvalStack);
+						fklPushPtrStack(newToken(FKL_TOKEN_RESERVE_STR,parenthese,strlen(parenthese),line),retvalStack);
 						fklPushPtrStack(state,matchStateStack);
 						j++;
 						continue;
@@ -173,7 +174,7 @@ FklPtrStack* spiltStringPartsIntoToken(char** parts,uint32_t inum)
 					{
 						const char* parenthese=state->pattern==(void*)0?")":"]";
 						MatchState* prevState=fklTopPtrStack(matchStateStack);
-						fklPushPtrStack(newToken(FKL_TOKEN_RESERVE_STR,parenthese,strlen(parenthese)),retvalStack);
+						fklPushPtrStack(newToken(FKL_TOKEN_RESERVE_STR,parenthese,strlen(parenthese),line),retvalStack);
 						free(prevState);
 						fklPopPtrStack(matchStateStack);
 						j++;
@@ -185,7 +186,7 @@ FklPtrStack* spiltStringPartsIntoToken(char** parts,uint32_t inum)
 					char* reserveStr=fklGetNthReverseCharOfStringMatchPattern(state->pattern,state->index);
 					size_t len=strlen(reserveStr);
 					fklPushPtrStack(state,matchStateStack);
-					fklPushPtrStack(newToken(FKL_TOKEN_RESERVE_STR,reserveStr,len),retvalStack);
+					fklPushPtrStack(newToken(FKL_TOKEN_RESERVE_STR,reserveStr,len,line),retvalStack);
 					j+=len;
 					if(state->index)
 						free(fklPopPtrStack(matchStateStack));
@@ -196,13 +197,13 @@ FklPtrStack* spiltStringPartsIntoToken(char** parts,uint32_t inum)
 			}
 			if(parts[i][j]==',')
 			{
-				fklPushPtrStack(newToken(FKL_TOKEN_RESERVE_STR,",",strlen(",")),retvalStack);
+				fklPushPtrStack(newToken(FKL_TOKEN_RESERVE_STR,",",strlen(","),line),retvalStack);
 				j++;
 			}
 			else if(parts[i][j]=='\"')
 			{
 				size_t len=skipUntilSpace(parts[i]+j);
-				fklPushPtrStack(newToken(FKL_TOKEN_STRING,parts[i]+j,len),retvalStack);
+				fklPushPtrStack(newToken(FKL_TOKEN_STRING,parts[i]+j,len,line),retvalStack);
 				j+=len;
 			}
 			else if(!strncmp(parts[i]+j,"#\\",strlen("#\\")))
@@ -210,7 +211,7 @@ FklPtrStack* spiltStringPartsIntoToken(char** parts,uint32_t inum)
 				size_t len=getSymbolLen(parts[i]+j+2,matchStateStack);
 				char* symbol=fklCopyMemory(parts[i]+j,len+1+2);
 				symbol[len+2]='\0';
-				fklPushPtrStack(newToken(FKL_TOKEN_CHAR,symbol,len+2),retvalStack);
+				fklPushPtrStack(newToken(FKL_TOKEN_CHAR,symbol,len+2,line),retvalStack);
 				j+=len+2;
 			}
 			else if(!strncmp(parts[i]+j,"#b",strlen("#b")))
@@ -218,7 +219,7 @@ FklPtrStack* spiltStringPartsIntoToken(char** parts,uint32_t inum)
 				size_t len=getSymbolLen(parts[i]+j+2,matchStateStack);
 				char* symbol=fklCopyMemory(parts[i]+j,len+1+2);
 				symbol[len+2]='\0';
-				fklPushPtrStack(newToken(FKL_TOKEN_BYTS,symbol,len+2),retvalStack);
+				fklPushPtrStack(newToken(FKL_TOKEN_BYTS,symbol,len+2,line),retvalStack);
 				j+=len+2;
 			}
 			else
@@ -229,7 +230,7 @@ FklPtrStack* spiltStringPartsIntoToken(char** parts,uint32_t inum)
 				FklTokenType type=FKL_TOKEN_SYMBOL;
 				if(fklIsNum(symbol))
 					type=FKL_TOKEN_NUM;
-				fklPushPtrStack(newToken(type,symbol,len),retvalStack);
+				fklPushPtrStack(newToken(type,symbol,len,line),retvalStack);
 				j+=len;
 			}
 		}
@@ -253,6 +254,6 @@ void fklPrintToken(FklPtrStack* tokenStack)
 	for(uint32_t i=0;i<tokenStack->top;i++)
 	{
 		FklToken* token=tokenStack->base[i];
-		fprintf(stderr,"%s:%s\n",tokenTypeName[token->type],token->value);
+		fprintf(stderr,"%d,%s:%s\n",token->line,tokenTypeName[token->type],token->value);
 	}
 }

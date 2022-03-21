@@ -1036,7 +1036,7 @@ void fklInitBuiltInStringPattern(void)
 	addBuiltInStringPattern("~@(a)",READER_MACRO_unqtesp);
 }
 
-char* readStringUntilBlank(FILE* fp)
+char* fklReadLine(FILE* fp)
 {
 	int32_t memSize=FKL_MAX_STRING_SIZE;
 	char* tmp=(char*)malloc(sizeof(char)*memSize);
@@ -1053,7 +1053,7 @@ char* readStringUntilBlank(FILE* fp)
 			memSize+=FKL_MAX_STRING_SIZE;
 		}
 		tmp[strSize-1]=ch;
-		if(isblank(ch))
+		if(ch=='\n')
 			break;
 	}
 	tmp[strSize]='\0';
@@ -1091,7 +1091,7 @@ FklPtrStack* fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF)
 	}
 	for(;;)
 	{
-		char* next=readStringUntilBlank(fp);
+		char* next=fklReadLine(fp);
 		tmp=fklStrCat(tmp,next);
 		len=strlen(tmp);
 		free(next);

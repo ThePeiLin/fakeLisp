@@ -16,7 +16,8 @@ typedef struct
 {
 	FklTokenType type;
 	char* value;
+	uint32_t line;
 }FklToken;
 
-FklPtrStack* spiltStringPartsIntoToken(char** parts,uint32_t inum);
+FklPtrStack* spiltStringPartsIntoToken(char** parts,uint32_t inum,uint32_t line);
 #endif

@@ -1396,7 +1396,7 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 	if(FKL_GET_TYPES_TAG(typeUnion.all)!=FKL_DEF_FUNC_TYPE_TAG)
 	{
 		FklTypeId_t memberType=type;
-		ssize_t offset=0;
+		int64_t offset=0;
 		FklByteCodelnt* tmp=NULL;
 		for(pathCptr=fklGetFirstCptr(pathCptr);pathCptr;pathCptr=fklNextCptr(pathCptr))
 		{
@@ -1433,10 +1433,10 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 						return NULL;
 						break;
 				}
-				FklByteCodelnt* pushDefRef=fklNewByteCodelnt(fklNewByteCode(sizeof(char)+sizeof(ssize_t)+sizeof(FklTypeId_t)));
+				FklByteCodelnt* pushDefRef=fklNewByteCodelnt(fklNewByteCode(sizeof(char)+sizeof(int64_t)+sizeof(FklTypeId_t)));
 				pushDefRef->bc->code[0]=FKL_PUSH_DEF_REF;
 				setI64ToByteCode(pushDefRef->bc->code+sizeof(char),offset);
-				setU32ToByteCode(pushDefRef->bc->code+sizeof(char)+sizeof(ssize_t),defTypeId);
+				setU32ToByteCode(pushDefRef->bc->code+sizeof(char)+sizeof(int64_t),defTypeId);
 				FklLineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,pushDefRef->bc->size,pathCptr->curline);
 				pushDefRef->ls=1;
 				pushDefRef->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
@@ -1454,11 +1454,11 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 			}
 			else if(!strcmp(pathCptr->u.atom->value.str,"&"))
 			{
-				FklByteCodelnt* pushPtrRef=fklNewByteCodelnt(fklNewByteCode(sizeof(char)+sizeof(ssize_t)+sizeof(FklTypeId_t)));
+				FklByteCodelnt* pushPtrRef=fklNewByteCodelnt(fklNewByteCode(sizeof(char)+sizeof(int64_t)+sizeof(FklTypeId_t)));
 				pushPtrRef->bc->code[0]=FKL_PUSH_PTR_REF;
 				FklTypeId_t ptrId=fklNewVMPtrType(memberType);
 				setI64ToByteCode(pushPtrRef->bc->code+sizeof(char),offset);
-				setU32ToByteCode(pushPtrRef->bc->code+sizeof(char)+sizeof(ssize_t),ptrId);
+				setU32ToByteCode(pushPtrRef->bc->code+sizeof(char)+sizeof(int64_t),ptrId);
 				FklLineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,pushPtrRef->bc->size,pathCptr->curline);
 				pushPtrRef->ls=1;
 				pushPtrRef->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
@@ -1517,10 +1517,10 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 					FklAstCptr* next=fklNextCptr(pathCptr);
 					if(!next||(next->type==FKL_ATM&&next->u.atom->type==FKL_SYM&&(!strcmp(next->u.atom->value.str,"&")||!strcmp(next->u.atom->value.str,"*"))))
 					{
-						FklByteCodelnt* pushRef=fklNewByteCodelnt(fklNewByteCode(sizeof(char)+sizeof(ssize_t)+sizeof(FklTypeId_t)));
+						FklByteCodelnt* pushRef=fklNewByteCodelnt(fklNewByteCode(sizeof(char)+sizeof(int64_t)+sizeof(FklTypeId_t)));
 						pushRef->bc->code[0]=FKL_PUSH_REF;
 						setI64ToByteCode(pushRef->bc->code+sizeof(char),offset);
-						setU32ToByteCode(pushRef->bc->code+sizeof(char)+sizeof(ssize_t),memberType);
+						setU32ToByteCode(pushRef->bc->code+sizeof(char)+sizeof(int64_t),memberType);
 						FklLineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,pushRef->bc->size,pathCptr->curline);
 						pushRef->ls=1;
 						pushRef->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
@@ -1563,10 +1563,10 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 					FklAstCptr* next=fklNextCptr(pathCptr);
 					if(!next||(next->type==FKL_ATM&&next->u.atom->type==FKL_SYM&&(!strcmp(next->u.atom->value.str,"&")||!strcmp(next->u.atom->value.str,"*"))))
 					{
-						FklByteCodelnt* pushRef=fklNewByteCodelnt(fklNewByteCode(sizeof(char)+sizeof(ssize_t)+sizeof(FklTypeId_t)));
+						FklByteCodelnt* pushRef=fklNewByteCodelnt(fklNewByteCode(sizeof(char)+sizeof(int64_t)+sizeof(FklTypeId_t)));
 						pushRef->bc->code[0]=FKL_PUSH_REF;
 						setI64ToByteCode(pushRef->bc->code+sizeof(char),offset);
-						setU32ToByteCode(pushRef->bc->code+sizeof(char)+sizeof(ssize_t),memberType);
+						setU32ToByteCode(pushRef->bc->code+sizeof(char)+sizeof(int64_t),memberType);
 						FklLineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,pushRef->bc->size,pathCptr->curline);
 						pushRef->ls=1;
 						pushRef->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));

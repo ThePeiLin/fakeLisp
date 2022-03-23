@@ -71,6 +71,10 @@ void fklLntCat(FklLineNumberTable* t,int32_t bs,FklLineNumTabNode** l2,int32_t s
 void fklWriteLineNumberTable(FklLineNumberTable*,FILE*);
 void fklDBG_printByteCode(uint8_t* code,uint32_t s,uint32_t c,FILE*);
 
+int32_t fklGetI32FromByteCode(uint8_t* code);
+uint32_t fklGetU32FromByteCode(uint8_t* code);
+int64_t fklGetI64FromByteCode(uint8_t* code);
+double fklGetF64FromByteCode(uint8_t* code);
 #ifdef __cplusplus
 }
 #endif

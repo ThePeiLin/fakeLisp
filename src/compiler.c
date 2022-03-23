@@ -3386,14 +3386,14 @@ void fklPrintUndefinedSymbol(FklByteCodelnt* code)
 			{
 				case -4:
 					{
-						i+=sizeof(FklSid_t);
-						int32_t handlerNum=*(int32_t*)(bc->code+i);
+						i+=sizeof(FklSid_t)+sizeof(char);
+						int32_t handlerNum=fklGetI32FromByteCode(bc->code+i);
 						i+=sizeof(int32_t);
 						int j=0;
 						for(;j<handlerNum;j++)
 						{
 							i+=sizeof(FklSid_t);
-							uint32_t pCpc=*(uint32_t*)(bc->code+i);
+							uint32_t pCpc=fklGetU32FromByteCode(bc->code+i);
 							i+=sizeof(uint32_t);
 							i+=pCpc;
 						}
@@ -3401,10 +3401,8 @@ void fklPrintUndefinedSymbol(FklByteCodelnt* code)
 					break;
 				case -3:
 					{
-						int32_t scope=0;
-						FklSid_t id=0;
-						memcpy(&scope,bc->code+i+sizeof(char),sizeof(int32_t));
-						memcpy(&id,bc->code+i+sizeof(char)+sizeof(int32_t),sizeof(FklSid_t));
+						int32_t scope=fklGetI32FromByteCode(bc->code+i+sizeof(char));
+						FklSid_t id=fklGetU32FromByteCode(bc->code+i+sizeof(char)+sizeof(int32_t));
 						if(scope==0)
 							fklAddCompDefBySid(id,curEnv);
 						else if(scope==-1)
@@ -3427,28 +3425,26 @@ void fklPrintUndefinedSymbol(FklByteCodelnt* code)
 							}
 						}
 					}
-					i+=9;
+					i+=sizeof(char)+sizeof(int32_t)+sizeof(FklSid_t);
 					break;
 				case -2:
-					fklPushUintStack(i+5,cpcstack);
+					fklPushUintStack(i+sizeof(char)+sizeof(uint32_t),cpcstack);
 					{
-						uint32_t size=0;
-						memcpy(&size,bc->code+i+sizeof(char),sizeof(uint32_t));
-						fklPushUintStack(size,scpstack);
+						fklPushUintStack(fklGetU32FromByteCode(bc->code+i+sizeof(char)),scpstack);
 						FklCompEnv* nextEnv=fklNewCompEnv(curEnv);
 						fklPushPtrStack(nextEnv,envstack);
 					}
-					i+=5+*(uint32_t*)(bc->code+i+sizeof(char));
+					i+=sizeof(char)+sizeof(uint32_t)+fklGetU32FromByteCode(bc->code+i+sizeof(char));
 					break;
 				case -1:
 					tmplen=strlen((char*)bc->code+i+1);
-					i+=tmplen+2;
+					i+=sizeof(char)+tmplen+1;
 					break;
 				case 0:
-					i+=1;
+					i+=sizeof(char);
 					break;
 				case 1:
-					i+=2;
+					i+=sizeof(char)+sizeof(char);
 					break;
 				case 4:
 					{
@@ -3479,7 +3475,7 @@ void fklPrintUndefinedSymbol(FklByteCodelnt* code)
 							}
 						}
 					}
-					i+=5;
+					i+=sizeof(char)+sizeof(int32_t);
 					break;
 				case 8:
 					switch(opcode)
@@ -3492,10 +3488,10 @@ void fklPrintUndefinedSymbol(FklByteCodelnt* code)
 							break;
 						default:break;
 					}
-					i+=9;
+					i+=sizeof(char)+sizeof(int64_t);
 					break;
 				case 12:
-					i+=13;
+					i+=sizeof(char)+sizeof(int64_t)+sizeof(uint32_t);
 					break;
 			}
 		}

@@ -96,97 +96,107 @@ FklByteCodelnt* fklCopyByteCodelnt(const FklByteCodelnt* obj)
 	return tmp;
 }
 
+static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode,uint32_t i,FILE* fp)
+{
+	uint32_t r=0;
+	int tmplen=0;
+	fprintf(fp,"%d: %s ",i,fklGetOpcodeName((FklOpcode)(tmpCode->code[i])));
+	switch(fklGetOpcodeArgLen((FklOpcode)(tmpCode->code[i])))
+	{
+		case -4:
+			{
+				fprintf(fp,"%s ",fklFindSymbolInGlob((char*)(tmpCode->code+(++i)))->symbol);
+				i+=sizeof(FklSid_t);
+				int32_t handlerNum=fklGetI32FromByteCode(tmpCode->code+i);
+				fprintf(fp,"%d\n",handlerNum);
+				i+=sizeof(int32_t);
+				int j=0;
+				r+=sizeof(FklSid_t)+sizeof(int32_t);
+				for(;j<handlerNum;j++)
+				{
+					FklSid_t type=fklGetU32FromByteCode(tmpCode->code+i);
+					i+=sizeof(FklSid_t);
+					uint32_t pCpc=fklGetU32FromByteCode(tmpCode->code+i);
+					i+=sizeof(uint32_t);
+					r+=sizeof(FklSid_t)+sizeof(int32_t);
+					fprintf(fp,"%s %d ",fklGetGlobSymbolWithId(type)->symbol,pCpc);
+					fklPrintAsByteStr(tmpCode->code+i,pCpc,fp);
+					i+=pCpc;
+					r+=pCpc;
+				}
+			}
+			break;
+		case -3:
+			fprintf(fp,"%d %u"
+					,fklGetI32FromByteCode(tmpCode->code+i+sizeof(char))
+					,fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)+sizeof(int32_t)));
+			r+=sizeof(char)+sizeof(int32_t)+sizeof(uint32_t);
+			break;
+		case -2:
+			fprintf(fp,"%u ",fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)));
+			fklPrintAsByteStr((uint8_t*)(tmpCode->code+i+sizeof(char)+sizeof(uint32_t)),fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)),fp);
+			r+=sizeof(char)+sizeof(uint32_t)+fklGetU32FromByteCode(tmpCode->code+i+sizeof(char));
+			break;
+		case -1:
+			tmplen=strlen((char*)tmpCode->code+i+sizeof(char));
+			fprintf(fp,"%s",tmpCode->code+i+sizeof(char));
+			r+=sizeof(char)+tmplen+1;
+			break;
+		case 0:
+			r+=sizeof(char);
+			break;
+		case 1:
+			fklPrintRawChar(tmpCode->code[i+1],fp);
+			r+=sizeof(char)+sizeof(char);
+			break;
+		case 4:
+			if(tmpCode->code[i]==FKL_PUSH_SYM)
+				fprintf(fp,"%s",fklGetGlobSymbolWithId(fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)))->symbol);
+			else
+				fprintf(fp,"%d"
+						,fklGetI32FromByteCode(tmpCode->code+i+sizeof(char)));
+			r+=sizeof(char)+sizeof(int32_t);
+			break;
+		case 8:
+			switch(tmpCode->code[i])
+			{
+				case FKL_PUSH_F64:
+					fprintf(fp,"%lf"
+							,fklGetF64FromByteCode(tmpCode->code+i+sizeof(char)));
+					break;
+				case FKL_PUSH_I64:
+					fprintf(fp,"%ld"
+							,fklGetI64FromByteCode(tmpCode->code+i+sizeof(char)));
+					break;
+				case FKL_PUSH_IND_REF:
+					fprintf(fp,"%u %u"
+							,fklGetU32FromByteCode(tmpCode->code+i+sizeof(char))
+							,fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)+sizeof(FklTypeId_t)));
+					break;
+				case FKL_PUSH_FPROC:
+					fprintf(fp,"%u %u"
+							,fklGetU32FromByteCode(tmpCode->code+i+sizeof(char))
+							,fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)+sizeof(FklTypeId_t)));
+					break;
+			}
+			r+=sizeof(char)+sizeof(int64_t);
+			break;
+		case 12:
+			fprintf(fp,"%ld %u"
+					,fklGetI64FromByteCode(tmpCode->code+i+sizeof(char))
+					,fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)+sizeof(int64_t)));
+			r+=sizeof(char)+sizeof(int64_t)+sizeof(uint32_t);
+			break;
+	}
+	return r;
+}
+
 void fklPrintByteCode(const FklByteCode* tmpCode,FILE* fp)
 {
-	int32_t i=0;
+	uint32_t i=0;
 	while(i<tmpCode->size)
 	{
-		int tmplen=0;
-		fprintf(fp,"%d: %s ",i,fklGetOpcodeName((FklOpcode)(tmpCode->code[i])));
-		switch(fklGetOpcodeArgLen((FklOpcode)(tmpCode->code[i])))
-		{
-			case -4:
-				{
-					fprintf(fp,"%s ",fklFindSymbolInGlob((char*)(tmpCode->code+(++i)))->symbol);
-					i+=sizeof(FklSid_t);
-					int32_t handlerNum=fklGetI32FromByteCode(tmpCode->code+i);
-					fprintf(fp,"%d\n",handlerNum);
-					i+=sizeof(int32_t);
-					int j=0;
-					for(;j<handlerNum;j++)
-					{
-						FklSid_t type=fklGetU32FromByteCode(tmpCode->code+i);
-						i+=sizeof(FklSid_t);
-						uint32_t pCpc=fklGetU32FromByteCode(tmpCode->code+i);
-						i+=sizeof(uint32_t);
-						fprintf(fp,"%s %d ",fklGetGlobSymbolWithId(type)->symbol,pCpc);
-						fklPrintAsByteStr(tmpCode->code+i,pCpc,fp);
-						i+=pCpc;
-					}
-				}
-				break;
-			case -3:
-				fprintf(fp,"%d %u"
-						,fklGetI32FromByteCode(tmpCode->code+i+sizeof(char))
-						,fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)+sizeof(int32_t)));
-				i+=sizeof(char)+sizeof(int32_t)+sizeof(uint32_t);
-				break;
-			case -2:
-				fprintf(fp,"%u ",fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)));
-				fklPrintAsByteStr((uint8_t*)(tmpCode->code+i+sizeof(char)+sizeof(uint32_t)),fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)),fp);
-				i+=sizeof(char)+sizeof(uint32_t)+fklGetU32FromByteCode(tmpCode->code+i+sizeof(char));
-				break;
-			case -1:
-				tmplen=strlen((char*)tmpCode->code+i+sizeof(char));
-				fprintf(fp,"%s",tmpCode->code+i+sizeof(char));
-				i+=sizeof(char)+tmplen+1;
-				break;
-			case 0:
-				i+=sizeof(char);
-				break;
-			case 1:
-				fklPrintRawChar(tmpCode->code[i+1],fp);
-				i+=sizeof(char)+sizeof(char);
-				break;
-			case 4:
-				if(tmpCode->code[i]==FKL_PUSH_SYM)
-					fprintf(fp,"%s",fklGetGlobSymbolWithId(fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)))->symbol);
-				else
-					fprintf(fp,"%d"
-							,fklGetI32FromByteCode(tmpCode->code+i+sizeof(char)));
-				i+=sizeof(char)+sizeof(int32_t);
-				break;
-			case 8:
-				switch(tmpCode->code[i])
-				{
-					case FKL_PUSH_F64:
-						fprintf(fp,"%lf"
-								,fklGetF64FromByteCode(tmpCode->code+i+sizeof(char)));
-						break;
-					case FKL_PUSH_I64:
-						fprintf(fp,"%ld"
-								,fklGetI64FromByteCode(tmpCode->code+i+sizeof(char)));
-						break;
-					case FKL_PUSH_IND_REF:
-						fprintf(fp,"%u %u"
-								,fklGetU32FromByteCode(tmpCode->code+i+sizeof(char))
-								,fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)+sizeof(FklTypeId_t)));
-						break;
-					case FKL_PUSH_FPROC:
-						fprintf(fp,"%u %u"
-								,fklGetU32FromByteCode(tmpCode->code+i+sizeof(char))
-								,fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)+sizeof(FklTypeId_t)));
-						break;
-				}
-				i+=sizeof(char)+sizeof(int64_t);
-				break;
-			case 12:
-				fprintf(fp,"%ld %u"
-						,fklGetI64FromByteCode(tmpCode->code+i+sizeof(char))
-						,fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)+sizeof(ssize_t)));
-				i+=sizeof(char)+sizeof(int64_t)+sizeof(uint32_t);
-				break;
-		}
+		i+=printSingleByteCode(tmpCode,i,fp);
 		putc('\n',fp);
 	}
 }
@@ -200,92 +210,7 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp)
 	int32_t line=0;
 	while(i<tmpCode->size)
 	{
-		int tmplen=0;
-		fprintf(fp,"%d: %s ",i,fklGetOpcodeName((FklOpcode)(tmpCode->code[i])));
-		switch(fklGetOpcodeArgLen((FklOpcode)(tmpCode->code[i])))
-		{
-			case -4:
-				{
-					fprintf(fp,"%s ",fklFindSymbolInGlob((char*)(tmpCode->code+(++i)))->symbol);
-					i+=sizeof(FklSid_t);
-					int32_t handlerNum=fklGetI32FromByteCode(tmpCode->code+i);
-					fprintf(fp,"%d\n",handlerNum);
-					i+=sizeof(int32_t);
-					int j=0;
-					for(;j<handlerNum;j++)
-					{
-						FklSid_t type=fklGetU32FromByteCode(tmpCode->code+i);
-						i+=sizeof(FklSid_t);
-						uint32_t pCpc=fklGetU32FromByteCode(tmpCode->code+i);
-						i+=sizeof(uint32_t);
-						fprintf(fp,"%s %d ",fklGetGlobSymbolWithId(type)->symbol,pCpc);
-						fklPrintAsByteStr(tmpCode->code+i,pCpc,fp);
-						i+=pCpc;
-					}
-				}
-				break;
-			case -3:
-				fprintf(fp,"%d %u"
-						,fklGetI32FromByteCode(tmpCode->code+i+sizeof(char))
-						,fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)+sizeof(int32_t)));
-				i+=sizeof(char)+sizeof(int32_t)+sizeof(uint32_t);
-				break;
-			case -2:
-				fprintf(fp,"%u ",fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)));
-				fklPrintAsByteStr((uint8_t*)(tmpCode->code+i+sizeof(char)+sizeof(uint32_t)),fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)),fp);
-				i+=sizeof(char)+sizeof(uint32_t)+fklGetU32FromByteCode(tmpCode->code+i+sizeof(char));
-				break;
-			case -1:
-				tmplen=strlen((char*)tmpCode->code+i+sizeof(char));
-				fprintf(fp,"%s",tmpCode->code+i+sizeof(char));
-				i+=sizeof(char)+tmplen+1;
-				break;
-			case 0:
-				i+=sizeof(char);
-				break;
-			case 1:
-				fklPrintRawChar(tmpCode->code[i+1],fp);
-				i+=sizeof(char)+sizeof(char);
-				break;
-			case 4:
-				if(tmpCode->code[i]==FKL_PUSH_SYM)
-					fprintf(fp,"%s",fklGetGlobSymbolWithId(fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)))->symbol);
-				else
-					fprintf(fp,"%d"
-							,fklGetI32FromByteCode(tmpCode->code+i+sizeof(char)));
-				i+=sizeof(char)+sizeof(int32_t);
-				break;
-			case 8:
-				switch(tmpCode->code[i])
-				{
-					case FKL_PUSH_F64:
-						fprintf(fp,"%lf"
-								,fklGetF64FromByteCode(tmpCode->code+i+sizeof(char)));
-						break;
-					case FKL_PUSH_I64:
-						fprintf(fp,"%ld"
-								,fklGetI64FromByteCode(tmpCode->code+i+sizeof(char)));
-						break;
-					case FKL_PUSH_IND_REF:
-						fprintf(fp,"%u %u"
-								,fklGetU32FromByteCode(tmpCode->code+i+sizeof(char))
-								,fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)+sizeof(FklTypeId_t)));
-						break;
-					case FKL_PUSH_FPROC:
-						fprintf(fp,"%u %u"
-								,fklGetU32FromByteCode(tmpCode->code+i+sizeof(char))
-								,fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)+sizeof(FklTypeId_t)));
-						break;
-				}
-				i+=sizeof(char)+sizeof(int64_t);
-				break;
-			case 12:
-				fprintf(fp,"%ld %u"
-						,fklGetI64FromByteCode(tmpCode->code+i+sizeof(char))
-						,fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)+sizeof(ssize_t)));
-				i+=sizeof(char)+sizeof(int64_t)+sizeof(uint32_t);
-				break;
-		}
+		i+=printSingleByteCode(tmpCode,i,fp);
 		if(obj->l[j]->scp+obj->l[j]->cpc<i)
 			j++;
 		putc('\t',fp);

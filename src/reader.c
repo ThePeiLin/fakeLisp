@@ -1077,7 +1077,7 @@ FklPtrStack* fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF)
 	if(*prev)
 	{
 		tmp=(char*)malloc(sizeof(char)*(strlen(*prev)+1));
-		FKL_ASSERT(tmp,"fklReadInPattern",__FILE__,__LINE__);
+		FKL_ASSERT(tmp,"fklReadInStringPattern",__FILE__,__LINE__);
 		strcpy(tmp,*prev);
 		free(*prev);
 		*prev=NULL;
@@ -1086,7 +1086,7 @@ FklPtrStack* fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF)
 	else
 	{
 		tmp=(char*)malloc(sizeof(char)*1);
-		FKL_ASSERT(tmp,"fklReadInPattern",__FILE__,__LINE__);
+		FKL_ASSERT(tmp,"fklReadInStringPattern",__FILE__,__LINE__);
 		tmp[0]='\0';
 	}
 	for(;;)

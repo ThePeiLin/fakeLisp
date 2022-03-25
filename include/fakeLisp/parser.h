@@ -1,6 +1,7 @@
 #ifndef FKL_PARSER_H
 #define FKL_PARSER_H
 #include<stddef.h>
+#include<stdio.h>
 #include"basicADT.h"
 typedef enum
 {
@@ -19,5 +20,6 @@ typedef struct
 	uint32_t line;
 }FklToken;
 
-FklPtrStack* spiltStringPartsIntoToken(char** parts,uint32_t inum,uint32_t line);
+FklPtrStack* fklSpiltStringPartsIntoToken(char** parts,uint32_t inum,uint32_t line);
+void fklPrintToken(FklPtrStack*,FILE* fp);
 #endif

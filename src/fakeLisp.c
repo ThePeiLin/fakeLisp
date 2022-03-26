@@ -62,6 +62,7 @@ int main(int argc,char** argv)
 #else
 			char* rp=realpath(filename,0);
 #endif
+			char* pWorkPath=getcwd(NULL,0);
 			char* workpath=fklGetDir(rp);
 			free(rp);
 			int state;
@@ -91,8 +92,9 @@ int main(int argc,char** argv)
 			anotherVM->callback=errorCallBack;
 			anotherVM->lnt=inter->lnt;
 			fklInitGlobEnv(globEnv,anotherVM->heap);
-			chdir(workpath);
+			chdir(pWorkPath);
 			free(workpath);
+			free(pWorkPath);
 			if(setjmp(buf)==0)
 			{
 				fklRunVM(anotherVM);
@@ -130,7 +132,6 @@ int main(int argc,char** argv)
 			fklFreeInterpeterPath();
 			return EXIT_FAILURE;
 		}
-		fklChangeWorkPath(filename);
 		loadSymbolTable(fp);
 		FklLineNumberTable* lnt=loadLineNumberTable(fp);
 		fklLoadTypeList(fp);

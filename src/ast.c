@@ -4,6 +4,7 @@
 #include<fakeLisp/utils.h>
 #include<fakeLisp/compiler.h>
 #include<fakeLisp/reader.h>
+#include<fakeLisp/parser.h>
 #include<string.h>
 #include<stdlib.h>
 #include<math.h>
@@ -1060,3 +1061,93 @@ unsigned int fklLengthListCptr(const FklAstCptr* list)
 		n++;
 	return n;
 }
+
+static FklAstAtom* createChar(const char* oStr,FklAstPair* prev)
+{
+	char* str=fklGetStringAfterBackslash(oStr+2);
+	FklAstAtom* r=fklNewAtom(FKL_I8,NULL,prev);
+	r->value.i8=(str[0]=='\\')?
+		fklStringToChar(str+1):
+		str[0];
+	free(str);
+	return r;
+}
+
+static FklAstAtom* createNum(const char* oStr,FklAstPair* prev)
+{
+	FklAstAtom* r=NULL;
+	if(fklIsDouble(oStr))
+	{
+		r=fklNewAtom(FKL_F64,NULL,prev);
+		r->value.f64=fklStringToDouble(oStr);
+	}
+	else
+	{
+		r=fklNewAtom(FKL_I32,NULL,prev);
+		int64_t num=fklStringToInt(oStr);
+		if(num>INT64_MAX||num<INT64_MIN)
+		{
+			r->type=FKL_I64;
+			r->value.i64=num;
+		}
+		else
+			r->value.i32=num;
+
+	}
+	return r;
+}
+
+static FklAstAtom* createByts(const char* oStr,FklAstPair* prev)
+{
+	char* str=fklGetStringAfterBackslash(oStr+2);
+	FklAstAtom* r=fklNewAtom(FKL_BYTS,NULL,prev);
+	r->value.byts.size=strlen(str)/2+strlen(str)%2;
+	r->value.byts.str=fklCastStrByteStr(str);
+	free(str);
+	return r;
+}
+
+static FklAstAtom* createString(const char* oStr,FklAstPair* prev)
+{
+	size_t len=0;
+	char* str=fklCastEscapeCharater(oStr+1,'\"',&len);
+	FklAstAtom* r=fklNewAtom(FKL_STR,str,prev);
+	free(str);
+	return r;
+}
+
+static FklAstAtom* createSymbol(const char* oStr,FklAstPair* prev)
+{
+	return fklNewAtom(FKL_SYM,oStr,prev);
+}
+
+static FklAstAtom* (* const atomCreators[])(const char* str,FklAstPair* prev)=
+{
+	createChar, //char
+	createNum, //num
+	createByts, //byts
+	createString,
+	createSymbol, //symbol
+};
+
+FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack)
+{
+	if(fklIsPtrStackEmpty(tokenStack))
+		return NULL;
+	FklAstCptr* root=fklNewCptr(0,NULL);
+	root->type=FKL_NIL;
+	root->u.all=NULL;
+	root->outer=NULL;
+	while(!fklIsPtrStackEmpty(tokenStack))
+	{
+		FklToken* token=fklPopPtrStack(tokenStack);
+		if(token->type>FKL_TOKEN_RESERVE_STR&&token->type<FKL_TOKEN_COMMENT)
+		{
+			root->type=FKL_ATM;
+			root->curline=token->line;
+			root->u.atom=atomCreators[token->type-1](token->value,root->outer);
+		}
+	}
+	return root;
+}
+

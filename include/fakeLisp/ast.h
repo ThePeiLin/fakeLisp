@@ -2,6 +2,7 @@
 #define FKL_AST_H
 #include"symbol.h"
 #include<stdint.h>
+#include"basicADT.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -83,7 +84,6 @@ void fklFreeAtom(FklAstAtom*);
 
 int fklEqByteString(const FklByteString*,const FklByteString*);
 
-int fklDestoryCptr(FklAstCptr*);
 int fklCptrcmp(const FklAstCptr*,const FklAstCptr*);
 int fklDeleteCptr(FklAstCptr*);
 int fklCopyCptr(FklAstCptr*,const FklAstCptr*);
@@ -99,6 +99,7 @@ FklAstCptr* fklGetASTPairCdr(const FklAstCptr*);
 FklAstCptr* fklGetCptrCar(const FklAstCptr*);
 FklAstCptr* fklGetCptrCdr(const FklAstCptr*);
 
+FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack);
 #ifdef __cplusplus
 }
 #endif

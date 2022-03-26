@@ -230,6 +230,8 @@ int fklStringToChar(const char* objStr)
 int fklIsNum(const char* objStr)
 {
 	int len=strlen(objStr);
+	if(!len)
+		return 0;
 	int i=(*objStr=='-'||*objStr=='+')?1:0;
 	int hasDot=0;
 	int hasExp=0;

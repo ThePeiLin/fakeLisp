@@ -3,6 +3,11 @@
 #include<stddef.h>
 #include<stdio.h>
 #include"basicADT.h"
+
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 typedef enum
 {
 	FKL_TOKEN_RESERVE_STR,
@@ -11,6 +16,7 @@ typedef enum
 	FKL_TOKEN_BYTS,
 	FKL_TOKEN_STRING,
 	FKL_TOKEN_SYMBOL,
+	FKL_TOKEN_COMMENT,
 }FklTokenType;
 
 typedef struct
@@ -20,6 +26,14 @@ typedef struct
 	uint32_t line;
 }FklToken;
 
-FklPtrStack* fklSpiltStringPartsIntoToken(char** parts,uint32_t inum,uint32_t line);
+int fklSpiltStringPartsIntoToken(char** parts
+		,uint32_t inum
+		,uint32_t line
+		,FklPtrStack* retvalStack);
 void fklPrintToken(FklPtrStack*,FILE* fp);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

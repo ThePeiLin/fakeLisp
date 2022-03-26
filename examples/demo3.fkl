@@ -1,6 +1,6 @@
 (import (std))
 
-(define btk (dll "../btk"))
+(define btk (dll "btk"))
 
 (define getch (dlsym btk "getch"))
 

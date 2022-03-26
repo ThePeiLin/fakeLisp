@@ -12,8 +12,10 @@
 (if (<= (length (argv)) 1)
   (setq code "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.")
   (setq code
-        (let ((fp (file (str (nth 1 (argv))) "rb")))
-          (read-code fp))))
+        (let* ((fp (fopen (str (nth 1 (argv))) "rb"))
+               (code (read-code fp)))
+          (fclose fp)
+          code)))
 
 (define m #b00)
 

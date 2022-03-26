@@ -410,7 +410,7 @@ void fklFreeVMproc(FklVMproc* proc)
 
 void fklFreeVMfp(FILE* fp)
 {
-	if(fp!=stdin&&fp!=stdout&&fp!=stderr)
+	if(fp!=NULL&&fp!=stdin&&fp!=stdout&&fp!=stderr)
 		fclose(fp);
 }
 

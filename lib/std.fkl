@@ -259,7 +259,7 @@
 
          (defmacro
            (letcc t,b)
-           `(clcc (lambda (~t) ~@b)))
+           `(call/cc (lambda (~t) ~@b)))
 
          (defmacro (if condition exp1,exp2)
              `(cond (~condition ~exp1)

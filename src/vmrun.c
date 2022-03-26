@@ -374,7 +374,7 @@ extern void SYS_byts(FklVM* exe,pthread_rwlock_t* gclock);
 extern void SYS_type(FklVM* exe,pthread_rwlock_t* gclock);
 extern void SYS_nth(FklVM* exe,pthread_rwlock_t* gclock);
 extern void SYS_length(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_file(FklVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_fopen(FklVM* exe,pthread_rwlock_t* gclock);
 extern void SYS_read(FklVM* exe,pthread_rwlock_t* gclock);
 extern void SYS_getb(FklVM* exe,pthread_rwlock_t* gclock);
 extern void SYS_prin1(FklVM* exe,pthread_rwlock_t* gclock);
@@ -389,7 +389,7 @@ extern void SYS_send(FklVM*,pthread_rwlock_t*);
 extern void SYS_recv(FklVM*,pthread_rwlock_t*);
 extern void SYS_error(FklVM*,pthread_rwlock_t*);
 extern void SYS_raise(FklVM*,pthread_rwlock_t*);
-extern void SYS_clcc(FklVM*,pthread_rwlock_t*);
+extern void SYS_call_cc(FklVM*,pthread_rwlock_t*);
 extern void SYS_apply(FklVM*,pthread_rwlock_t*);
 extern void SYS_newf(FklVM*,pthread_rwlock_t*);
 extern void SYS_delf(FklVM*,pthread_rwlock_t*);
@@ -397,6 +397,7 @@ extern void SYS_lfdl(FklVM*,pthread_rwlock_t*);
 extern void SYS_reverse(FklVM*,pthread_rwlock_t*);
 extern void SYS_i32(FklVM*,pthread_rwlock_t*);
 extern void SYS_i64(FklVM*,pthread_rwlock_t*);
+extern void SYS_fclose(FklVM*,pthread_rwlock_t*);
 
 void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 {
@@ -433,8 +434,8 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_nth,
 		SYS_length,
 		SYS_apply,
-		SYS_clcc,
-		SYS_file,
+		SYS_call_cc,
+		SYS_fopen,
 		SYS_read,
 		SYS_getb,
 		SYS_prin1,
@@ -455,6 +456,7 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_reverse,
 		SYS_i32,
 		SYS_i64,
+		SYS_fclose,
 	};
 	obj->num=FKL_NUM_OF_BUILT_IN_SYMBOL;
 	obj->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*FKL_NUM_OF_BUILT_IN_SYMBOL);

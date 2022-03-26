@@ -74,8 +74,8 @@ static const char* builtInSymbolList[]=
 	"nth",
 	"length",
 	"apply",
-	"clcc",
-	"file",
+	"call/cc",
+	"fopen",
 	"read",
 	"getb",
 	"prin1",
@@ -96,6 +96,7 @@ static const char* builtInSymbolList[]=
 	"reverse",
 	"i32",
 	"i64",
+	"fclose",
 };
 
 FklSymbolTable GlobSymbolTable=FKL_STATIC_SYMBOL_INIT;

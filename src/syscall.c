@@ -67,7 +67,7 @@ void SYS_send(FklVM*,pthread_rwlock_t*);
 void SYS_recv(FklVM*,pthread_rwlock_t*);
 void SYS_error(FklVM*,pthread_rwlock_t*);
 void SYS_raise(FklVM*,pthread_rwlock_t*);
-void SYS_clcc(FklVM*,pthread_rwlock_t*);
+void SYS_call_cc(FklVM*,pthread_rwlock_t*);
 void SYS_apply(FklVM*,pthread_rwlock_t*);
 void SYS_newf(FklVM*,pthread_rwlock_t*);
 void SYS_delf(FklVM*,pthread_rwlock_t*);
@@ -1199,7 +1199,7 @@ void SYS_length(FklVM* exe,pthread_rwlock_t* gclock)
 	FKL_SET_RETURN("SYS_length",FKL_MAKE_VM_I32(len),stack);
 }
 
-void SYS_file(FklVM* exe,pthread_rwlock_t* gclock)
+void SYS_fopen(FklVM* exe,pthread_rwlock_t* gclock)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
@@ -1207,21 +1207,38 @@ void SYS_file(FklVM* exe,pthread_rwlock_t* gclock)
 	FklVMvalue* filename=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	FklVMvalue* mode=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
-		FKL_RAISE_BUILTIN_ERROR("sys.file",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.fopen",FKL_TOOMANYARG,runnable,exe);
 	if(!mode||!filename)
-		FKL_RAISE_BUILTIN_ERROR("sys.file",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.fopen",FKL_TOOFEWARG,runnable,exe);
 	if(!FKL_IS_STR(filename)||!FKL_IS_STR(mode))
-		FKL_RAISE_BUILTIN_ERROR("sys.file",FKL_WRONGARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.fopen",FKL_WRONGARG,runnable,exe);
 	FILE* file=fopen(filename->u.str,mode->u.str);
 	FklVMvalue* obj=NULL;
 	if(!file)
 	{
-		FKL_SET_RETURN("SYS_file",filename,stack);
-		FKL_RAISE_BUILTIN_ERROR("sys.file",FKL_FILEFAILURE,runnable,exe);
+		FKL_SET_RETURN("SYS_fopen",filename,stack);
+		FKL_RAISE_BUILTIN_ERROR("sys.fopen",FKL_FILEFAILURE,runnable,exe);
 	}
 	else
 		obj=fklNewVMvalue(FKL_FP,file,heap);
-	FKL_SET_RETURN("SYS_file",obj,stack);
+	FKL_SET_RETURN("SYS_fopen",obj,stack);
+}
+
+void SYS_fclose(FklVM* exe,pthread_rwlock_t* gclock)
+{
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
+	FklVMvalue* fp=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	if(fklResBp(stack))
+		FKL_RAISE_BUILTIN_ERROR("sys.fclose",FKL_TOOFEWARG,runnable,exe);
+	if(!fp)
+		FKL_RAISE_BUILTIN_ERROR("sys.fclose",FKL_TOOFEWARG,runnable,exe);
+	if(!FKL_IS_FP(fp))
+		FKL_RAISE_BUILTIN_ERROR("sys.fclose",FKL_WRONGARG,runnable,exe);
+	if(fp->u.fp==NULL||fp->u.fp==stderr||fp->u.fp==stdin||fp->u.fp==stdout||fclose(fp->u.fp)==EOF)
+		FKL_RAISE_BUILTIN_ERROR("sys.fclose",FKL_INVALIDACCESS,runnable,exe);
+	fp->u.fp=NULL;
+	FKL_SET_RETURN("SYS_fclose",FKL_VM_NIL,stack);
 }
 
 void SYS_read(FklVM* exe,pthread_rwlock_t* gclock)
@@ -1571,21 +1588,21 @@ void SYS_raise(FklVM* exe,pthread_rwlock_t* gclock)
 	fklRaiseVMerror(err,exe);
 }
 
-void SYS_clcc(FklVM* exe,pthread_rwlock_t* gclock)
+void SYS_call_cc(FklVM* exe,pthread_rwlock_t* gclock)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMvalue* proc=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
-		FKL_RAISE_BUILTIN_ERROR("sys.clcc",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.call/cc",FKL_TOOMANYARG,runnable,exe);
 	if(!proc)
-		FKL_RAISE_BUILTIN_ERROR("sys.clcc",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.call/cc",FKL_TOOFEWARG,runnable,exe);
 	if(!FKL_IS_PTR(proc)||(proc->type!=FKL_PROC&&proc->type!=FKL_CONT&&proc->type!=FKL_DLPROC))
-		FKL_RAISE_BUILTIN_ERROR("sys.clcc",FKL_INVOKEERROR,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.call/cc",FKL_INVOKEERROR,runnable,exe);
 	FklVMvalue* cc=fklNewVMvalue(FKL_CONT,fklNewVMcontinuation(stack,exe->rstack,exe->tstack),exe->heap);
-	FKL_SET_RETURN("SYS_clcc",FKL_MAKE_VM_I32(stack->bp),stack);
+	FKL_SET_RETURN("SYS_call_cc",FKL_MAKE_VM_I32(stack->bp),stack);
 	stack->bp=stack->tp;
-	FKL_SET_RETURN("SYS_clcc",cc,stack);
+	FKL_SET_RETURN("SYS_call_cc",cc,stack);
 	if(proc->type==FKL_PROC)
 	{
 		FklVMproc* tmpProc=proc->u.proc;

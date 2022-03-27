@@ -31,11 +31,16 @@ static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
 	while(!fklIsPtrStackEmpty(stack))
 	{
 		FklCompEnv* curEnv=fklPopPtrStack(stack);
+		vEnv=fklNewVMenv(preEnv);
+		if(!preEnv)
+			fklInitGlobEnv(vEnv,heap);
+		else
+			fklDecreaseVMenvRefcount(preEnv);
+		preEnv=vEnv;
 		if(curEnv->proc->bc->size)
 		{
 			FklVM* tmpVM=fklNewTmpVM(NULL);
-			vEnv=fklNewVMenv(preEnv);
-			preEnv=vEnv;
+			fklIncreaseVMenvRefcount(vEnv);
 			fklCodelntCopyCat(t,curEnv->proc);
 			fklInitVMRunningResource(tmpVM,vEnv,heap,t,bs,curEnv->proc->bc->size);
 			bs+=curEnv->proc->bc->size;
@@ -132,7 +137,9 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 			fklDestroyEnv(macroEnv);
 			fklFreeVMstack(tmpVM->stack);
 			fklFreePtrStack(tmpVM->rstack);
+			fklFreePtrStack(tmpVM->tstack);
 			fklFreeVMheap(tmpVM->heap);
+			fklFreeByteCodeAndLnt(t);
 			free(tmpVM);
 			return 2;
 		}
@@ -153,11 +160,13 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 		}
 		else
 		{
+			fklFreeVMenv(tmpGlob);
 			fklFreeByteCodeAndLnt(t);
 			fklFreeVMheap(tmpVM->heap);
 			fklUninitVMRunningResource(tmpVM);
 			return 2;
 		}
+		fklFreeVMenv(tmpGlob);
 		fklFreeByteCodeAndLnt(t);
 		fklFreeVMheap(tmpVM->heap);
 		fklUninitVMRunningResource(tmpVM);

@@ -10,8 +10,40 @@
 #include<math.h>
 #include<ctype.h>
 
-static void addToTail(FklAstCptr*,const FklAstCptr*);
-static void addToList(FklAstCptr*,const FklAstCptr*);
+static void copyAndAddToTail(FklAstCptr* fir,const FklAstCptr* sec)
+{
+	while(fir->type!=FKL_NIL)fir=&fir->u.pair->cdr;
+	fklReplaceCptr(fir,sec);
+}
+
+static void copyAndAddToList(FklAstCptr* fir,const FklAstCptr* sec)
+{
+	while(fir->type!=FKL_NIL)fir=&fir->u.pair->cdr;
+	fir->type=FKL_PAIR;
+	fir->u.pair=fklNewPair(sec->curline,fir->outer);
+	fklReplaceCptr(&fir->u.pair->car,sec);
+}
+
+//static void addToTail(FklAstCptr* fir,const FklAstCptr* sec)
+//{
+//	while(fir->type!=FKL_NIL)fir=&fir->u.pair->cdr;
+//	FklAstPair* tmp=fir->outer;
+//	*fir=*sec;
+//	fir->outer=tmp;
+//	if(fir->type==FKL_PAIR)
+//		fir->u.pair->prev=tmp;
+//	else if(fir->type==FKL_ATM)
+//		fir->u.atom->prev=tmp;
+//}
+//
+//static void addToList(FklAstCptr* fir,const FklAstCptr* sec)
+//{
+//	while(fir->type!=FKL_NIL)fir=&fir->u.pair->cdr;
+//	fir->type=FKL_PAIR;
+//	fir->u.pair=fklNewPair(sec->curline,fir->outer);
+//	fir->u.pair->car=*sec;
+//	fir->u.pair->car.outer=fir->u.pair;
+//}
 
 static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
 {
@@ -66,7 +98,7 @@ FklAstCptr* expandReaderMacro(const char* objStr,FklInterpreter* inter,FklString
 					free(varName);
 					return tmpCptr;
 				}
-				addToList(tmpCptr,tmpCptr2);
+				copyAndAddToList(tmpCptr,tmpCptr2);
 				fklDeleteCptr(tmpCptr2);
 				free(tmpCptr2);
 				int i=0;
@@ -92,13 +124,13 @@ FklAstCptr* expandReaderMacro(const char* objStr,FklInterpreter* inter,FklString
 					}
 					if(ti)
 					{
-						addToTail(tmpCptr,tmpCptr2);
+						copyAndAddToTail(tmpCptr,tmpCptr2);
 						fklDeleteCptr(tmpCptr2);
 						free(tmpCptr2);
 						break;
 					}
 					else
-						addToList(tmpCptr,tmpCptr2);
+						copyAndAddToList(tmpCptr,tmpCptr2);
 					fklDeleteCptr(tmpCptr2);
 					free(tmpCptr2);
 					i+=fklSkipInPattern(parts[j]+i,tmpPattern);
@@ -158,6 +190,10 @@ FklAstCptr* expandReaderMacro(const char* objStr,FklInterpreter* inter,FklString
 			fklFreeVMheap(tmpVM->heap);
 			fklUninitVMRunningResource(tmpVM);
 			return NULL;
+		}
+		if(!tmpCptr)
+		{
+			fprintf(stderr,"error of compiling:Circular reference occur in expanding reader macro at line %d of %s\n",inter->curline,inter->filename);
 		}
 		fklFreeVMenv(tmpGlobEnv);
 		fklFreeByteCodeAndLnt(t);
@@ -411,20 +447,6 @@ FklAstCptr* fklCreateTree(const char* objStr,FklInterpreter* inter,FklStringMatc
 		fklFreeIntStack(hasNextPartStack);
 		return tmp;
 	}
-}
-
-void addToList(FklAstCptr* fir,const FklAstCptr* sec)
-{
-	while(fir->type!=FKL_NIL)fir=&fir->u.pair->cdr;
-	fir->type=FKL_PAIR;
-	fir->u.pair=fklNewPair(sec->curline,fir->outer);
-	fklReplaceCptr(&fir->u.pair->car,sec);
-}
-
-void addToTail(FklAstCptr* fir,const FklAstCptr* sec)
-{
-	while(fir->type!=FKL_NIL)fir=&fir->u.pair->cdr;
-	fklReplaceCptr(fir,sec);
 }
 
 int fklEqByteString(const FklByteString* fir,const FklByteString* sec)
@@ -1130,22 +1152,48 @@ static FklAstAtom* (* const atomCreators[])(const char* str,FklAstPair* prev)=
 	createSymbol, //symbol
 };
 
+typedef struct
+{
+	FklStringMatchPattern* pattern;
+	uint32_t cindex;
+}MatchState;
+
+static MatchState* newMatchState(FklStringMatchPattern* pattern,uint32_t cindex)
+{
+	MatchState* state=(MatchState*)malloc(sizeof(MatchState));
+	FKL_ASSERT(state,"newMatchState",__FILE__,__LINE__);
+	state->pattern=pattern;
+	state->cindex=cindex;
+	return state;
+}
+
+static void freeMatchState(MatchState* state)
+{
+	free(state);
+}
+
 FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack)
 {
 	if(fklIsPtrStackEmpty(tokenStack))
 		return NULL;
 	FklAstCptr* root=fklNewCptr(0,NULL);
+	FklPtrStack* matchStateStack=fklNewPtrStack(32,16);
+	FklPtrStack* cptrStack=fklNewPtrStack(32,16);
+	fklPushPtrStack(root,cptrStack);
 	root->type=FKL_NIL;
 	root->u.all=NULL;
-	root->outer=NULL;
+	FklAstCptr* cur=root;
 	while(!fklIsPtrStackEmpty(tokenStack))
 	{
 		FklToken* token=fklPopPtrStack(tokenStack);
 		if(token->type>FKL_TOKEN_RESERVE_STR&&token->type<FKL_TOKEN_COMMENT)
 		{
-			root->type=FKL_ATM;
-			root->curline=token->line;
-			root->u.atom=atomCreators[token->type-1](token->value,root->outer);
+			cur->type=FKL_ATM;
+			cur->curline=token->line;
+			cur->u.atom=atomCreators[token->type-1](token->value,cur->outer);
+		}
+		else if(token->type==FKL_TOKEN_RESERVE_STR)
+		{
 		}
 	}
 	return root;

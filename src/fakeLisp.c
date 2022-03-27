@@ -76,6 +76,7 @@ int main(int argc,char** argv)
 				fklFreeGlobSymbolTable();
 				fklFreeGlobTypeList();
 				fklFreeInterpeterPath();
+				free(pWorkPath);
 				return state;
 			}
 			inter->lnt->num=mainByteCode->ls;

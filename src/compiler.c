@@ -273,7 +273,7 @@ int MacroPatternCmp(const FklAstCptr* first,const FklAstCptr* second)
 	FklAstPair* firPair=NULL;
 	FklAstPair* secPair=NULL;
 	FklAstPair* tmpPair=(first->type==FKL_PAIR)?first->u.pair:NULL;
-	while(1)
+	for(;;)
 	{
 		if(first->type!=second->type)return 0;
 		else if(first->type==FKL_PAIR)

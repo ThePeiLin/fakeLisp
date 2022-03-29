@@ -24,6 +24,7 @@ FklStringMatchPattern* fklFindStringPattern(const char*);
 FklStringMatchPattern* fklNewStringMatchPattern(int32_t,char**,FklByteCodelnt*);
 FklStringMatchPattern* fklNewFStringMatchPattern(int32_t num,char** parts,void(*fproc)(FklVM* exe));
 char* fklGetNthReverseCharOfStringMatchPattern(FklStringMatchPattern* pattern,uint32_t nth);
+char* fklGetNthPartOfStringMatchPattern(FklStringMatchPattern* pattern,uint32_t nth);
 char** fklSplitPattern(const char*,int32_t*);
 char** fklSplitStringInPattern(const char*,FklStringMatchPattern*,int32_t*);
 void fklFreeAllStringPattern();

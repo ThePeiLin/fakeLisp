@@ -949,7 +949,7 @@ int fklCptrcmp(const FklAstCptr* first,const FklAstCptr* second)
 	FklAstPair* firPair=NULL;
 	FklAstPair* secPair=NULL;
 	FklAstPair* tmpPair=(first->type==FKL_PAIR)?first->u.pair:NULL;
-	while(1)
+	for(;;)
 	{
 		if(first->type!=second->type)return 0;
 		else if(first->type==FKL_PAIR)
@@ -974,7 +974,8 @@ int fklCptrcmp(const FklAstCptr* first,const FklAstCptr* second)
 				else if(firAtm->type==FKL_BYTS&&!fklEqByteString(&firAtm->value.byts,&secAtm->value.byts))return 0;
 			}
 			if(firPair!=NULL&&first==&firPair->car)
-			{ first=&firPair->cdr;
+			{
+				first=&firPair->cdr;
 				second=&secPair->cdr;
 				continue;
 			}
@@ -1155,14 +1156,16 @@ static FklAstAtom* (* const atomCreators[])(const char* str,FklAstPair* prev)=
 typedef struct
 {
 	FklStringMatchPattern* pattern;
+	uint32_t line;
 	uint32_t cindex;
 }MatchState;
 
-static MatchState* newMatchState(FklStringMatchPattern* pattern,uint32_t cindex)
+static MatchState* newMatchState(FklStringMatchPattern* pattern,uint32_t line,uint32_t cindex)
 {
 	MatchState* state=(MatchState*)malloc(sizeof(MatchState));
 	FKL_ASSERT(state,"newMatchState",__FILE__,__LINE__);
 	state->pattern=pattern;
+	state->line=line;
 	state->cindex=cindex;
 	return state;
 }
@@ -1172,30 +1175,148 @@ static void freeMatchState(MatchState* state)
 	free(state);
 }
 
+#define PARENTHESE_0 ((void*)0)
+#define PARENTHESE_1 ((void*)1)
+#define QUOTE ((void*)2)
+#define QSQUOTE ((void*)3)
+#define UNQUOTE ((void*)4)
+#define UNQTESP ((void*)5)
+#define DOTTED ((void*)6)
+
+static int isLeftParenthese(const char* str)
+{
+	return strlen(str)==1&&(str[0]=='('||str[0]=='[');
+}
+
+static int isRightParenthese(const char* str)
+{
+	return strlen(str)==1&&(str[0]==')'||str[0]==']');
+}
+
+static int isBuiltSinglePattern(FklStringMatchPattern* pattern)
+{
+	return pattern==QUOTE
+		||pattern==QSQUOTE
+		||pattern==UNQUOTE
+		||pattern==UNQTESP
+		||pattern==DOTTED
+		;
+}
+
+static int isBuiltSingleStr(const char* str)
+{
+	return (strlen(str)==1&&(str[0]=='\''
+				||str[0]=='`'
+				||str[0]=='~'
+				||str[0]==','))
+		||!strcmp(str,"~@");
+}
+
 FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack)
 {
 	if(fklIsPtrStackEmpty(tokenStack))
 		return NULL;
-	FklAstCptr* root=fklNewCptr(0,NULL);
 	FklPtrStack* matchStateStack=fklNewPtrStack(32,16);
+	FklPtrStack* stackStack=fklNewPtrStack(32,16);
 	FklPtrStack* cptrStack=fklNewPtrStack(32,16);
-	fklPushPtrStack(root,cptrStack);
-	root->type=FKL_NIL;
-	root->u.all=NULL;
-	FklAstCptr* cur=root;
-	while(!fklIsPtrStackEmpty(tokenStack))
+	fklPushPtrStack(cptrStack,stackStack);
+	for(uint32_t i=0;i<tokenStack->top;i++)
 	{
-		FklToken* token=fklPopPtrStack(tokenStack);
+		FklToken* token=tokenStack->base[i];
+		FklPtrStack* cStack=fklTopPtrStack(stackStack);
 		if(token->type>FKL_TOKEN_RESERVE_STR&&token->type<FKL_TOKEN_COMMENT)
 		{
+			FklAstCptr* cur=fklNewCptr(token->line,NULL);
 			cur->type=FKL_ATM;
 			cur->curline=token->line;
 			cur->u.atom=atomCreators[token->type-1](token->value,cur->outer);
+			fklPushPtrStack(cur,cStack);
 		}
 		else if(token->type==FKL_TOKEN_RESERVE_STR)
 		{
+			if(isLeftParenthese(token->value))
+			{
+				FklStringMatchPattern* pattern=token->value[0]=='('?PARENTHESE_0:PARENTHESE_1;
+				MatchState* state=newMatchState(pattern,token->line,0);
+				fklPushPtrStack(state,matchStateStack);
+				cStack=fklNewPtrStack(32,16);
+				fklPushPtrStack(cStack,stackStack);
+				continue;
+			}
+			else if(isRightParenthese(token->value))
+			{
+				fklPopPtrStack(stackStack);
+				MatchState* cState=fklPopPtrStack(matchStateStack);
+				FklAstCptr* v=fklNewCptr(cState->line,NULL);
+				for(uint32_t i=0;i<cStack->top;i++)
+				{
+					FklAstCptr* c=cStack->base[i];
+					copyAndAddToList(v,c);
+					fklDeleteCptr(c);
+					free(c);
+				}
+				fklFreePtrStack(cStack);
+				cStack=fklTopPtrStack(stackStack);
+				fklPushPtrStack(v,cStack);
+				freeMatchState(cState);
+			}
+			else if(isBuiltSingleStr(token->value))
+			{
+				FklStringMatchPattern* pattern=token->value[0]=='\''?
+					QUOTE:
+					token->value[0]=='`'?
+					QSQUOTE:
+					token->value[0]==','?
+					DOTTED:
+					token->value[0]=='~'?
+					(strlen(token->value)==1?
+					 UNQUOTE:
+					 token->value[1]=='@'?
+					 UNQTESP:NULL):
+					NULL;
+				MatchState* state=newMatchState(pattern,token->line,0);
+				fklPushPtrStack(state,matchStateStack);
+				cStack=fklNewPtrStack(1,1);
+				fklPushPtrStack(cStack,stackStack);
+				continue;
+			}
+		}
+		for(MatchState* state=fklTopPtrStack(matchStateStack);
+				state&&isBuiltSinglePattern(state->pattern);
+				state=fklTopPtrStack(matchStateStack))
+		{
+			if(isBuiltSinglePattern(state->pattern))
+			{
+				fklPopPtrStack(stackStack);
+				MatchState* cState=fklPopPtrStack(matchStateStack);
+				FklAstCptr* v=fklNewCptr(token->line,NULL);
+				FklAstCptr* prefix=fklNewCptr(token->line,NULL);
+				FklAstCptr* postfix=fklPopPtrStack(cStack);
+				cStack=fklTopPtrStack(stackStack);
+				FklStringMatchPattern* pattern=cState->pattern;
+				const char* prefixValue=pattern==QUOTE?
+					"quote":
+					pattern==QSQUOTE?
+					"qsquote":
+					pattern==UNQUOTE?
+					"unquote":
+					pattern==UNQTESP?
+					"unqtesp":
+					NULL;
+				fklPushPtrStack(v,cStack);
+				prefix->type=FKL_ATM;
+				prefix->u.atom=fklNewAtom(FKL_SYM,prefixValue,v->outer);
+				copyAndAddToList(v,prefix);
+				copyAndAddToList(v,postfix);
+				fklDeleteCptr(prefix);
+				fklDeleteCptr(postfix);
+			}
 		}
 	}
-	return root;
+	FklAstCptr* retval=fklTopPtrStack(cptrStack);
+	fklFreePtrStack(matchStateStack);
+	fklFreePtrStack(stackStack);
+	fklFreePtrStack(cptrStack);
+	return retval;
 }
 

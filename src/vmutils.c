@@ -92,7 +92,7 @@ static FklVMpair* hasSameVMpair(FklVMpair* begin,FklVMpair* other,CRL* h)
 	return NULL;
 }
 
-FklVMpair* isCircularReference(FklVMpair* begin,CRL* h)
+static FklVMpair* isCircularReference(FklVMpair* begin,CRL* h)
 {
 	FklVMpair* tmpPair=NULL;
 	if(FKL_IS_PAIR(begin->car))
@@ -104,6 +104,12 @@ FklVMpair* isCircularReference(FklVMpair* begin,CRL* h)
 	if(tmpPair)
 		return tmpPair;
 	return NULL;
+}
+
+FklVMpair* fklIsCircularReference(FklVMpair* begin)
+{
+	FklVMpair* r=isCircularReference(begin,NULL);
+	return r;
 }
 
 int8_t isInTheCircle(FklVMpair* obj,FklVMpair* begin,FklVMpair* curPair)
@@ -872,6 +878,9 @@ void fklFreeVMcontinuation(VMcontinuation* cont)
 
 FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 {
+	CRL* head=NULL;
+	int8_t isInCir=0;
+	FklVMpair* cirPair=NULL;
 	FklAstCptr* tmp=fklNewCptr(curline,NULL);
 	FklPtrStack* s1=fklNewPtrStack(32,16);
 	FklPtrStack* s2=fklNewPtrStack(32,16);
@@ -885,7 +894,22 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 		if(root==FKL_VM_NIL)
 			cptrType=FKL_NIL;
 		else if(FKL_IS_PAIR(root))
+		{
+			cirPair=isCircularReference(root->u.pair,head);
+			if(cirPair)
+				isInCir=isInTheCircle(root->u.pair,cirPair,cirPair);
+			if(cirPair&&isInCir)
+			{
+				CRL* crl=newCRL(root->u.pair,head?head->count+1:0);
+				crl->next=head;
+				head=crl;
+				fklDeleteCptr(tmp);
+				free(tmp);
+				tmp=NULL;
+				break;
+			}
 			cptrType=FKL_PAIR;
+		}
 		else if(!FKL_IS_REF(root)&&!IS_CHF(root))
 			cptrType=FKL_ATM;
 		root1->type=cptrType;
@@ -983,6 +1007,12 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 	}
 	fklFreePtrStack(s1);
 	fklFreePtrStack(s2);
+	while(head)
+	{
+		CRL* prev=head;
+		head=head->next;
+		free(prev);
+	}
 	return tmp;
 }
 

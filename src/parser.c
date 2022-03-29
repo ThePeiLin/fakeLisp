@@ -153,16 +153,14 @@ static int isBuiltInParenthese(FklStringMatchPattern* pattern)
 static MatchState* searchReverseStringChar(const char* part,FklPtrStack* stack)
 {
 	MatchState* topState=fklTopPtrStack(stack);
-	if(topState
+	for(uint32_t i=stack->top;topState
+			&&i>0
 			&&!isBuiltInParenthese(topState->pattern)
 			&&(isBuiltInSingleStrPattern(topState->pattern)
-				||fklIsVar(fklGetNthPartOfStringMatchPattern(topState->pattern,topState->index))))
-	{
-		MatchState* tmp=fklPopPtrStack(stack);
-		MatchState* second=fklTopPtrStack(stack);
-		topState=second;
-		fklPushPtrStack(tmp,stack);
-	}
+				||(fklIsVar(fklGetNthPartOfStringMatchPattern(topState->pattern,topState->index))
+					&&topState->index==topState->pattern->num-1));
+			i--)
+		topState=stack->base[i-1];
 	if(topState&&!isBuiltInPattern(topState->pattern))
 	{
 		char* nextPart=fklGetNthPartOfStringMatchPattern(topState->pattern,topState->index+1);

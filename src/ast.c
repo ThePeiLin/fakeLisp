@@ -10,18 +10,24 @@
 #include<math.h>
 #include<ctype.h>
 
-static void copyAndAddToTail(FklAstCptr* fir,const FklAstCptr* sec)
+static int copyAndAddToTail(FklAstCptr* fir,const FklAstCptr* sec)
 {
-	while(fir->type!=FKL_NIL)fir=&fir->u.pair->cdr;
+	while(fir->type==FKL_PAIR)fir=&fir->u.pair->cdr;
+	if(fir->type!=FKL_NIL)
+		return 1;
 	fklReplaceCptr(fir,sec);
+	return 0;
 }
 
-static void copyAndAddToList(FklAstCptr* fir,const FklAstCptr* sec)
+static int copyAndAddToList(FklAstCptr* fir,const FklAstCptr* sec)
 {
-	while(fir->type!=FKL_NIL)fir=&fir->u.pair->cdr;
+	while(fir->type==FKL_PAIR)fir=&fir->u.pair->cdr;
+	if(fir->type!=FKL_NIL)
+		return 1;
 	fir->type=FKL_PAIR;
 	fir->u.pair=fklNewPair(sec->curline,fir->outer);
 	fklReplaceCptr(&fir->u.pair->car,sec);
+	return 0;
 }
 
 //static void addToTail(FklAstCptr* fir,const FklAstCptr* sec)
@@ -682,7 +688,7 @@ void fklPrintCptr(const FklAstCptr* objCptr,FILE* out)
 		{
 			if(objPair!=NULL&&objCptr==&objPair->cdr&&objCptr->type==FKL_ATM)putc(',',out);
 			if((objPair!=NULL&&objCptr==&objPair->car&&objCptr->type==FKL_NIL)
-			||(objCptr->outer==NULL&&objCptr->type==FKL_NIL))fputs("()",out);
+					||(objCptr->outer==NULL&&objCptr->type==FKL_NIL))fputs("()",out);
 			if(objCptr->type!=FKL_NIL)
 			{
 				FklAstAtom* tmpAtm=objCptr->u.atom;
@@ -1183,6 +1189,27 @@ static void freeMatchState(MatchState* state)
 #define UNQTESP ((void*)5)
 #define DOTTED ((void*)6)
 
+typedef enum
+{
+	AST_CAR,
+	AST_CDR,
+}AstPlace;
+
+typedef struct
+{
+	AstPlace place;
+	FklAstCptr* cptr;
+}AstElem;
+
+AstElem* newAstElem(AstPlace place,FklAstCptr* cptr)
+{
+	AstElem* t=(AstElem*)malloc(sizeof(AstElem));
+	FKL_ASSERT(t,"newAstElem",__FILE__,__LINE__);
+	t->place=place;
+	t->cptr=cptr;
+	return t;
+}
+
 static int isLeftParenthese(const char* str)
 {
 	return strlen(str)==1&&(str[0]=='('||str[0]=='[');
@@ -1218,8 +1245,8 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack)
 		return NULL;
 	FklPtrStack* matchStateStack=fklNewPtrStack(32,16);
 	FklPtrStack* stackStack=fklNewPtrStack(32,16);
-	FklPtrStack* cptrStack=fklNewPtrStack(32,16);
-	fklPushPtrStack(cptrStack,stackStack);
+	FklPtrStack* elemStack=fklNewPtrStack(32,16);
+	fklPushPtrStack(elemStack,stackStack);
 	for(uint32_t i=0;i<tokenStack->top;i++)
 	{
 		FklToken* token=tokenStack->base[i];
@@ -1230,7 +1257,8 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack)
 			cur->type=FKL_ATM;
 			cur->curline=token->line;
 			cur->u.atom=atomCreators[token->type-1](token->value,cur->outer);
-			fklPushPtrStack(cur,cStack);
+			AstElem* elem=newAstElem(AST_CAR,cur);
+			fklPushPtrStack(elem,cStack);
 		}
 		else if(token->type==FKL_TOKEN_RESERVE_STR)
 		{
@@ -1247,18 +1275,53 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack)
 			{
 				fklPopPtrStack(stackStack);
 				MatchState* cState=fklPopPtrStack(matchStateStack);
-				FklAstCptr* v=fklNewCptr(cState->line,NULL);
-				for(uint32_t i=0;i<cStack->top;i++)
+				AstElem* v=newAstElem(AST_CAR,fklNewCptr(cState->line,NULL));
+				int r=0;
+				uint32_t i=0;
+				for(;i<cStack->top;i++)
 				{
-					FklAstCptr* c=cStack->base[i];
-					copyAndAddToList(v,c);
-					fklDeleteCptr(c);
+					AstElem* c=cStack->base[i];
+					if(!r)
+					{
+						if(c->place==AST_CAR)
+							r=copyAndAddToList(v->cptr,c->cptr);
+						else
+							r=copyAndAddToTail(v->cptr,c->cptr);
+					}
+					fklDeleteCptr(c->cptr);
+					free(c->cptr);
 					free(c);
 				}
 				fklFreePtrStack(cStack);
 				cStack=fklTopPtrStack(stackStack);
-				fklPushPtrStack(v,cStack);
+				if(!r)
+					fklPushPtrStack(v,cStack);
 				freeMatchState(cState);
+				if(r)
+				{
+					fklDeleteCptr(v->cptr);
+					free(v->cptr);
+					free(v);
+					while(!fklIsPtrStackEmpty(stackStack))
+					{
+						FklPtrStack* cStack=fklPopPtrStack(stackStack);
+						while(!fklIsPtrStackEmpty(cStack))
+						{
+							FklAstCptr* cptr=fklPopPtrStack(cStack);
+							fklDeleteCptr(cptr);
+							free(cptr);
+						}
+						fklFreePtrStack(cStack);
+					}
+					fklFreePtrStack(stackStack);
+					while(!fklIsPtrStackEmpty(matchStateStack))
+					{
+						MatchState* state=fklPopPtrStack(matchStateStack);
+						free(state);
+					}
+					fklFreePtrStack(matchStateStack);
+					return NULL;
+				}
 			}
 			else if(isBuiltSingleStr(token->value))
 			{
@@ -1289,34 +1352,48 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack)
 			{
 				fklPopPtrStack(stackStack);
 				MatchState* cState=fklPopPtrStack(matchStateStack);
-				FklAstCptr* v=fklNewCptr(token->line,NULL);
-				FklAstCptr* prefix=fklNewCptr(token->line,NULL);
-				FklAstCptr* postfix=fklPopPtrStack(cStack);
+				AstElem* postfix=fklPopPtrStack(cStack);
+				fklFreePtrStack(cStack);
 				cStack=fklTopPtrStack(stackStack);
-				FklStringMatchPattern* pattern=cState->pattern;
-				const char* prefixValue=pattern==QUOTE?
-					"quote":
-					pattern==QSQUOTE?
-					"qsquote":
-					pattern==UNQUOTE?
-					"unquote":
-					pattern==UNQTESP?
-					"unqtesp":
-					NULL;
-				fklPushPtrStack(v,cStack);
-				prefix->type=FKL_ATM;
-				prefix->u.atom=fklNewAtom(FKL_SYM,prefixValue,v->outer);
-				copyAndAddToList(v,prefix);
-				copyAndAddToList(v,postfix);
-				fklDeleteCptr(prefix);
-				fklDeleteCptr(postfix);
+				if(state->pattern==DOTTED)
+				{
+					postfix->place=AST_CDR;
+					fklPushPtrStack(postfix,cStack);
+				}
+				else
+				{
+					AstElem* v=newAstElem(AST_CAR,fklNewCptr(token->line,NULL));
+					FklAstCptr* prefix=fklNewCptr(token->line,NULL);
+					FklStringMatchPattern* pattern=cState->pattern;
+					const char* prefixValue=pattern==QUOTE?
+						"quote":
+						pattern==QSQUOTE?
+						"qsquote":
+						pattern==UNQUOTE?
+						"unquote":
+						pattern==UNQTESP?
+						"unqtesp":
+						NULL;
+					fklPushPtrStack(v,cStack);
+					prefix->type=FKL_ATM;
+					prefix->u.atom=fklNewAtom(FKL_SYM,prefixValue,v->cptr->outer);
+					copyAndAddToList(v->cptr,prefix);
+					copyAndAddToList(v->cptr,postfix->cptr);
+					fklDeleteCptr(prefix);
+					free(prefix);
+					fklDeleteCptr(postfix->cptr);
+					free(postfix->cptr);
+					free(postfix);
+				}
+				freeMatchState(cState);
 			}
 		}
 	}
-	FklAstCptr* retval=fklTopPtrStack(cptrStack);
+	AstElem* retvalElem=fklTopPtrStack(elemStack);
+	FklAstCptr* retval=retvalElem->cptr;
+	free(retvalElem);
 	fklFreePtrStack(matchStateStack);
 	fklFreePtrStack(stackStack);
-	fklFreePtrStack(cptrStack);
+	fklFreePtrStack(elemStack);
 	return retval;
 }
-

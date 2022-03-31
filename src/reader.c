@@ -1,5 +1,6 @@
 #include<fakeLisp/reader.h>
 #include<fakeLisp/utils.h>
+#include<fakeLisp/parser.h>
 #include<string.h>
 #include<stdlib.h>
 #include<ctype.h>
@@ -270,15 +271,19 @@ int32_t fklCountInPatternWhenReading(const char* str,FklStringMatchPattern* patt
 	return i;
 }
 
-char* fklReadLine(FILE* fp)
+char* fklReadLine(FILE* fp,int* eof)
 {
 	int32_t memSize=FKL_MAX_STRING_SIZE;
 	char* tmp=(char*)malloc(sizeof(char)*memSize);
 	FKL_ASSERT(tmp,"readString",__FILE__,__LINE__);
 	int32_t strSize=0;
 	int ch=getc(fp);
-	for(;ch!=EOF;ch=getc(fp))
+	if(ch==EOF)
+		*eof=1;
+	for(;;)
 	{
+		if(ch==EOF)
+			break;
 		strSize++;
 		if(strSize>memSize-1)
 		{
@@ -289,6 +294,7 @@ char* fklReadLine(FILE* fp)
 		tmp[strSize-1]=ch;
 		if(ch=='\n')
 			break;
+		ch=getc(fp);
 	}
 	tmp[strSize]='\0';
 	memSize=strlen(tmp)+1;
@@ -297,17 +303,11 @@ char* fklReadLine(FILE* fp)
 	return tmp;
 }
 
-
-int isFinish(const char* str,char** next,FklPtrStack* tokenStack)
+char* fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF)
 {
-	return 0;
-}
-
-FklPtrStack* fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF)
-{
-	FklPtrStack* tokenStack=fklNewPtrStack(32,16);
 	char* tmp=NULL;
 	size_t len=0;
+	*unexpectEOF=0;
 	if(*prev)
 	{
 		tmp=(char*)malloc(sizeof(char)*(strlen(*prev)+1));
@@ -325,20 +325,36 @@ FklPtrStack* fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF)
 	}
 	for(;;)
 	{
-		char* next=fklReadLine(fp);
-		tmp=fklStrCat(tmp,next);
+		int eof=0;
+		char* next=fklReadLine(fp,&eof);
 		len=strlen(tmp);
+		tmp=fklStrCat(tmp,next);
 		free(next);
-		if(isFinish(tmp,&next,tokenStack))
+		char* strs[]={tmp};
+		uint32_t i=0,j=0;
+		if(fklSplitStringPartsIntoToken(strs,1,0,NULL,&i,&j))
 		{
-			*prev=fklCopyStr(next);
-			*next='\0';
+			size_t nextLen=strlen(tmp+j);
+			if(nextLen)
+			{
+				tmp[j+nextLen-1]='\0';
+				*prev=fklCopyStr(tmp+j);
+			}
+			tmp[j]='\0';
 			len=strlen(tmp);
 			char* rt=(char*)realloc(tmp,sizeof(char)*(len+1));
 			FKL_ASSERT(rt,"fklReadInStringPattern",__FILE__,__LINE__);
 			tmp=rt;
+			if(!fklIsAllSpace(tmp)||eof)
+				break;
+		}
+		else if(eof)
+		{
+			*unexpectEOF=1;
+			free(tmp);
+			tmp=NULL;
 			break;
 		}
 	}
-	return tokenStack;
+	return tmp;
 }

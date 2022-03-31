@@ -26,12 +26,16 @@ typedef struct
 	uint32_t line;
 }FklToken;
 
-int fklSpiltStringPartsIntoToken(char** parts
+int fklSplitStringPartsIntoToken(char** parts
 		,uint32_t inum
 		,uint32_t line
-		,FklPtrStack* retvalStack);
+		,FklPtrStack* retvalStack
+		,uint32_t* pi
+		,uint32_t* pj);
 void fklPrintToken(FklPtrStack*,FILE* fp);
 
+FklToken* fklNewToken(FklTokenType type,const char* str,size_t len,uint32_t line);
+void fklFreeToken(FklToken* token);
 #ifdef __cplusplus
 }
 #endif

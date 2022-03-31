@@ -2,6 +2,7 @@
 #include<fakeLisp/syntax.h>
 #include<fakeLisp/compiler.h>
 #include<fakeLisp/utils.h>
+#include<fakeLisp/parser.h>
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/ast.h>
 #include<fakeLisp/vm.h>
@@ -194,14 +195,18 @@ void runRepl(FklInterpreter* inter)
 	anotherVM->lnt=inter->lnt;
 	fklInitGlobEnv(globEnv,anotherVM->heap);
 	FklByteCode* rawProcList=NULL;
+	FklPtrStack* tokenStack=fklNewPtrStack(32,16);
 	char* prev=NULL;
 	int32_t bs=0;
 	for(;e<2;)
 	{
 		FklAstCptr* begin=NULL;
 		if(inter->file==stdin)printf(">>>");
+		if(prev)
+			printf("%s",prev);
 		int unexpectEOF=0;
-		char* list=fklReadInPattern(inter->file,&prev,&unexpectEOF);
+		char* list=fklReadInStringPattern(inter->file,&prev,&unexpectEOF);
+		char* parts[]={list};
 		FklErrorState state={0,NULL};
 		if(unexpectEOF)
 		{
@@ -218,7 +223,12 @@ void runRepl(FklInterpreter* inter)
 			list=NULL;
 			continue;
 		}
-		begin=fklCreateTree(list,inter,NULL);
+		fklSplitStringPartsIntoToken(parts,1,inter->curline,tokenStack,NULL,NULL);
+		begin=fklCreateAstWithTokens(tokenStack);
+		inter->curline+=fklCountChar(list,'\n',-1);
+		while(!fklIsPtrStackEmpty(tokenStack))
+			fklFreeToken(fklPopPtrStack(tokenStack));
+		//begin=fklCreateTree(list,inter,NULL);
 		if(fklIsAllSpace(list))
 		{
 			free(list);
@@ -291,6 +301,7 @@ void runRepl(FklInterpreter* inter)
 	}
 	fklFreeVMenv(globEnv);
 	fklJoinAllThread();
+	fklFreePtrStack(tokenStack);
 	free(rawProcList);
 	fklFreeIntpr(inter);
 	fklUninitPreprocess();

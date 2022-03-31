@@ -2940,7 +2940,7 @@ void fklPrintCompileError(const FklAstCptr* obj,int type,FklInterpreter* inter)
 		case FKL_SYMUNDEFINE:
 			fprintf(stderr,"Symbol ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
-			fprintf(stderr," is undefined ");
+			fprintf(stderr," is undefined");
 			break;
 		case FKL_SYNTAXERROR:
 			fprintf(stderr,"Invalid syntax ");
@@ -2969,7 +2969,7 @@ void fklPrintCompileError(const FklAstCptr* obj,int type,FklInterpreter* inter)
 		case FKL_LIBUNDEFINED:
 			fprintf(stderr,"Library ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
-			fprintf(stderr," undefined ");
+			fprintf(stderr," undefined");
 			break;
 		case FKL_CANTDEREFERENCE:
 			fprintf(stderr,"cant dereference a non pointer type member ");

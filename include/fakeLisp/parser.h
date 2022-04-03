@@ -36,6 +36,7 @@ void fklPrintToken(FklPtrStack*,FILE* fp);
 
 FklToken* fklNewToken(FklTokenType type,const char* str,size_t len,uint32_t line);
 void fklFreeToken(FklToken* token);
+int fklIsAllComment(FklPtrStack*);
 #ifdef __cplusplus
 }
 #endif

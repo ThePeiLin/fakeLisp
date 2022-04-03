@@ -332,7 +332,8 @@ char* fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF)
 		free(next);
 		char* strs[]={tmp};
 		uint32_t i=0,j=0;
-		if(fklSplitStringPartsIntoToken(strs,1,0,NULL,&i,&j))
+		int r=fklSplitStringPartsIntoToken(strs,1,0,NULL,&i,&j);
+		if(r==0)
 		{
 			size_t nextLen=strlen(tmp+j);
 			if(nextLen)
@@ -348,9 +349,16 @@ char* fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF)
 			if(!fklIsAllSpace(tmp)||eof)
 				break;
 		}
-		else if(eof)
+		else if(r==1&&eof)
 		{
 			*unexpectEOF=1;
+			free(tmp);
+			tmp=NULL;
+			break;
+		}
+		else if(r==2)
+		{
+			*unexpectEOF=2;
 			free(tmp);
 			tmp=NULL;
 			break;

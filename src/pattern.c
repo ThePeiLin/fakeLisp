@@ -183,7 +183,7 @@ char* fklGetNthReverseCharOfStringMatchPattern(FklStringMatchPattern* pattern,ui
 
 char* fklGetNthPartOfStringMatchPattern(FklStringMatchPattern* pattern,uint32_t nth)
 {
-	if(nth>=pattern->num)
+	if(nth>=pattern->num||nth<0)
 		return NULL;
 	return pattern->parts[nth];
 }

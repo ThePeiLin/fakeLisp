@@ -16,6 +16,8 @@ size_t skipString(const char* str)
 {
 	size_t i=1;
 	for(;str[i]!='\0'&&(str[i-1]=='\\'||str[i]!='\"');i++);
+	if(str[i]=='\"')
+		i++;
 	return i;
 }
 
@@ -172,8 +174,13 @@ static MatchState* searchReverseStringCharMatchState(const char* part,FklPtrStac
 	{
 		char* nextPart=fklGetNthPartOfStringMatchPattern(topState->pattern,topState->index);
 		uint32_t i=0;
-		for(;nextPart&&fklIsVar(nextPart);i++)
+		for(;;)
+		{
 			nextPart=fklGetNthPartOfStringMatchPattern(topState->pattern,topState->index+i);
+			if(!(nextPart&&fklIsVar(nextPart)&&fklIsMustList(nextPart)))
+				break;
+			i++;
+		}
 		//char* nextPart=fklGetNthPartOfStringMatchPattern(topState->pattern,topState->index+1);
 		if(topState->pattern!=NULL&&nextPart&&!fklIsVar(nextPart)&&!strncmp(nextPart,part,strlen(nextPart)))
 		{
@@ -329,7 +336,7 @@ static uint32_t skipSpaceAndCountLine(const char* str,uint32_t* cline)
 
 int fklSplitStringPartsIntoToken(char** parts,uint32_t inum,uint32_t line,FklPtrStack* retvalStack,uint32_t* pi,uint32_t* pj)
 {
-	int done=1;
+	int done=0;
 	FklPtrStack* matchStateStack=fklNewPtrStack(32,16);
 	uint32_t i=0;
 	for(;i<inum;i++)
@@ -398,12 +405,10 @@ int fklSplitStringPartsIntoToken(char** parts,uint32_t inum,uint32_t line,FklPtr
 					if(state->index<state->pattern->num)
 						continue;
 				}
-				else
-					freeMatchState(state);
 			}
 			else if(parts[i][j]=='\"')
 			{
-				size_t sumLen=skipUntilSpace(parts[i]+j);
+				size_t sumLen=skipString(parts[i]+j);
 				size_t lastLen=sumLen;
 				char* str=fklCopyMemory(parts[i]+j,sumLen+1);
 				str[sumLen]='\0';
@@ -428,16 +433,20 @@ int fklSplitStringPartsIntoToken(char** parts,uint32_t inum,uint32_t line,FklPtr
 				line+=fklCountChar(str,'\n',-1);
 				free(str);
 				j+=lastLen;
-				done&=complete;
+				done|=!complete;
 			}
 			else if(!strncmp(parts[i]+j,"#\\",strlen("#\\")))
 			{
-				size_t len=getSymbolLen(parts[i]+j+2,matchStateStack);
-				char* symbol=fklCopyMemory(parts[i]+j,len+1+2);
+				//size_t len=getSymbolLen(parts[i]+j+2,matchStateStack);
+				char* symbol=fklGetStringAfterBackslash(parts[i]+j+2);
+				size_t len=strlen(symbol);
+				free(symbol);
+				symbol=fklCopyMemory(parts[i]+j,len+1+2);
 				symbol[len+2]='\0';
 				if(retvalStack)
 					fklPushPtrStack(fklNewToken(FKL_TOKEN_CHAR,symbol,len+2,line),retvalStack);
 				j+=len+2;
+				//j+=strlen(symbol)+2;
 			}
 			else if(!strncmp(parts[i]+j,"#b",strlen("#b")))
 			{
@@ -463,15 +472,25 @@ int fklSplitStringPartsIntoToken(char** parts,uint32_t inum,uint32_t line,FklPtr
 			else
 			{
 				size_t len=getSymbolLen(parts[i]+j,matchStateStack);
-				char* symbol=fklCopyMemory(parts[i]+j,len+1);
-				symbol[len]='\0';
-				FklTokenType type=FKL_TOKEN_SYMBOL;
-				if(fklIsNum(symbol))
-					type=FKL_TOKEN_NUM;
-				if(retvalStack)
-					fklPushPtrStack(fklNewToken(type,symbol,len,line),retvalStack);
-				j+=len;
-				free(symbol);
+				if(len)
+				{
+					char* symbol=fklCopyMemory(parts[i]+j,len+1);
+					symbol[len]='\0';
+					FklTokenType type=FKL_TOKEN_SYMBOL;
+					if(fklIsNum(symbol))
+						type=FKL_TOKEN_NUM;
+					if(retvalStack)
+						fklPushPtrStack(fklNewToken(type,symbol,len,line),retvalStack);
+					j+=len;
+					free(symbol);
+				}
+				else
+				{
+					while(!fklIsPtrStackEmpty(matchStateStack))
+						freeMatchState(fklPopPtrStack(matchStateStack));
+					fklFreePtrStack(matchStateStack);
+					return 2;
+				}
 			}
 			for(MatchState* topState=fklTopPtrStack(matchStateStack);
 					topState
@@ -500,7 +519,7 @@ int fklSplitStringPartsIntoToken(char** parts,uint32_t inum,uint32_t line,FklPtr
 			break;
 	}
 	if(pi)*pi=i;
-	done&=fklIsPtrStackEmpty(matchStateStack);
+	done|=!fklIsPtrStackEmpty(matchStateStack);
 	while(!fklIsPtrStackEmpty(matchStateStack))
 		freeMatchState(fklPopPtrStack(matchStateStack));
 	fklFreePtrStack(matchStateStack);
@@ -524,4 +543,17 @@ void fklPrintToken(FklPtrStack* tokenStack,FILE* fp)
 		FklToken* token=tokenStack->base[i];
 		fprintf(fp,"%d,%s:%s\n",token->line,tokenTypeName[token->type],token->value);
 	}
+}
+
+int fklIsAllComment(FklPtrStack* tokenStack)
+{
+	if(fklIsPtrStackEmpty(tokenStack))
+		return 0;
+	for(uint32_t i=0;i<tokenStack->top;i++)
+	{
+		FklToken* token=tokenStack->base[i];
+		if(token->type!=FKL_TOKEN_COMMENT)
+			return 0;
+	}
+	return 1;
 }

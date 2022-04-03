@@ -2,6 +2,7 @@
 #include<fakeLisp/syntax.h>
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/ast.h>
+#include<fakeLisp/parser.h>
 #include<fakeLisp/vm.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/reader.h>
@@ -2299,12 +2300,14 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int evalIm,int* exitstate)
 	FklByteCode* resTp=fklNewByteCode(1);
 	resTp->code[0]=FKL_RES_TP;
 	char* prev=NULL;
+	FklPtrStack* tokenStack=fklNewPtrStack(32,16);
 	for(;;)
 	{
 		FklAstCptr* begin=NULL;
 		int unexpectEOF=0;
-		char* list=fklReadInPattern(inter->file,&prev,&unexpectEOF);
+		char* list=fklReadInStringPattern(inter->file,&prev,&unexpectEOF);
 		if(list==NULL)continue;
+		char* parts[]={list};
 		FklErrorState state={0,NULL};
 		if(unexpectEOF)
 		{
@@ -2324,7 +2327,20 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int evalIm,int* exitstate)
 			tmp=NULL;
 			break;
 		}
-		begin=fklCreateTree(list,inter,NULL);
+		fklSplitStringPartsIntoToken(parts,1,inter->curline,tokenStack,NULL,NULL);
+		begin=fklCreateAstWithTokens(tokenStack,inter);
+		inter->curline+=fklCountChar(list,'\n',-1);
+		if(fklIsAllComment(tokenStack))
+		{
+			while(!fklIsPtrStackEmpty(tokenStack))
+				fklFreeToken(fklPopPtrStack(tokenStack));
+			free(list);
+			list=NULL;
+			continue;
+		}
+		//begin=fklCreateTree(list,inter,NULL);
+		while(!fklIsPtrStackEmpty(tokenStack))
+			fklFreeToken(fklPopPtrStack(tokenStack));
 		if(fklIsAllSpace(list))
 		{
 			free(list);
@@ -2366,6 +2382,7 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int evalIm,int* exitstate)
 			list=NULL;
 			fklFreeByteCodeAndLnt(tmp);
 			fklFreeByteCode(resTp);
+			fklFreePtrStack(tokenStack);
 			return NULL;
 		}
 		free(list);
@@ -2374,6 +2391,7 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int evalIm,int* exitstate)
 	if(prev)
 		free(prev);
 	fklFreeByteCode(resTp);
+	fklFreePtrStack(tokenStack);
 	return tmp;
 }
 
@@ -2525,11 +2543,12 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 		fklPushMem(popTp,(FklGenDestructor)fklFreeByteCode,memMenager);
 		FklByteCodelnt* libByteCodelnt=fklNewByteCodelnt(fklNewByteCode(0));
 		fklPushMem(libByteCodelnt,(FklGenDestructor)fklFreeByteCodeAndLnt,memMenager);
+		FklPtrStack* tokenStack=fklNewPtrStack(32,16);
 		for(;;)
 		{
 			FklAstCptr* begin=NULL;
 			int unexpectEOF=0;
-			char* list=fklReadInPattern(tmpInter->file,&prev,&unexpectEOF);
+			char* list=fklReadInStringPattern(tmpInter->file,&prev,&unexpectEOF);
 			if(list==NULL)continue;
 			if(unexpectEOF)
 			{
@@ -2545,7 +2564,21 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 				free(list);
 				break;
 			}
-			begin=fklCreateTree(list,tmpInter,NULL);
+			char* parts[]={list};
+			fklSplitStringPartsIntoToken(parts,1,tmpInter->curline,tokenStack,NULL,NULL);
+			begin=fklCreateAstWithTokens(tokenStack,tmpInter);
+			tmpInter->curline+=fklCountChar(list,'\n',-1);
+			if(fklIsAllComment(tokenStack))
+			{
+				while(!fklIsPtrStackEmpty(tokenStack))
+					fklFreeToken(fklPopPtrStack(tokenStack));
+				free(list);
+				list=NULL;
+				continue;
+			}
+			//begin=fklCreateTree(list,tmpInter,NULL);
+			while(!fklIsPtrStackEmpty(tokenStack))
+				fklFreeToken(fklPopPtrStack(tokenStack));
 			if(fklIsAllSpace(list))
 			{
 				free(list);
@@ -2576,6 +2609,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 								free(libPrefix);
 							fklFreeMemMenager(memMenager);
 							free(list);
+							fklFreePtrStack(tokenStack);
 							return NULL;
 						}
 						else
@@ -2601,6 +2635,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 										free(libPrefix);
 									fklFreeMemMenager(memMenager);
 									free(list);
+									fklFreePtrStack(tokenStack);
 									return NULL;
 								}
 								FklAstAtom* pSymbol=pExportSymbols->u.atom;
@@ -2633,6 +2668,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 										free(libPrefix);
 									fklFreeMemMenager(memMenager);
 									free(list);
+									fklFreePtrStack(tokenStack);
 									return NULL;
 								}
 								if(libByteCodelnt->bc->size&&otherByteCodelnt)
@@ -2696,6 +2732,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 									free(libPrefix);
 								fklFreeMemMenager(memMenager);
 								free(list);
+								fklFreePtrStack(tokenStack);
 								return NULL;
 							}
 							FklAstAtom* pSymbol=pExportSymbols->u.atom;
@@ -2729,6 +2766,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 								free(symbolWouldExport);
 								fklFreeMemMenager(memMenager);
 								free(list);
+								fklFreePtrStack(tokenStack);
 								return NULL;
 							}
 							else
@@ -2761,6 +2799,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 				if(libPrefix)
 					free(libPrefix);
 				fklFreeMemMenager(memMenager);
+				fklFreePtrStack(tokenStack);
 				return NULL;
 			}
 			free(list);
@@ -2777,12 +2816,14 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 			if(libPrefix)
 				free(libPrefix);
 			fklFreeMemMenager(memMenager);
+			fklFreePtrStack(tokenStack);
 			return NULL;
 		}
 		chdir(tmpInter->prev->curDir);
 		tmpInter->lnt=NULL;
 		tmpInter->deftypes=NULL;
 		fklFreeIntpr(tmpInter);
+		fklFreePtrStack(tokenStack);
 		if(libPrefix)
 			free(libPrefix);
 	}

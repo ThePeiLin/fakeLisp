@@ -53,7 +53,7 @@ int main(int argc,char** argv)
 		fklAddSymbolToGlob(filename);
 		fklInitGlobKeyWord(inter->glob);
 		fklInitNativeDefTypes(inter->deftypes);
-		fklInitBuiltInStringPattern();
+		//fklInitBuiltInStringPattern();
 		if(fp==stdin)
 			runRepl(inter);
 		else

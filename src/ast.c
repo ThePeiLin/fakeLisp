@@ -1249,7 +1249,7 @@ static MatchState* searchReverseStringCharMatchState(const char* str,FklPtrStack
 {
 	MatchState* top=fklTopPtrStack(matchStateStack);
 	uint32_t i=0;
-	for(;top&&!isBuiltInSingleStrPattern(top->pattern)&&!isBuiltInParenthese(top->pattern)&&top->cindex+i<top->pattern->num;i++)
+	for(;top&&!isBuiltInSingleStrPattern(top->pattern)&&!isBuiltInParenthese(top->pattern)&&top->cindex+i<top->pattern->num;)
 	{
 		const char* cpart=fklGetNthPartOfStringMatchPattern(top->pattern,top->cindex+i);
 		if(!fklIsVar(cpart)&&!strcmp(str,cpart))
@@ -1257,6 +1257,7 @@ static MatchState* searchReverseStringCharMatchState(const char* str,FklPtrStack
 			top->cindex+=i;
 			return top;
 		}
+		i++;
 	}
 	return NULL;
 }
@@ -1366,7 +1367,65 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,FklInterpreter* inter
 			FklStringMatchPattern* pattern=fklFindStringPattern(token->value);
 			if(state)
 			{
+				FklStringMatchPattern* pattern=state->pattern;
+				const char* part=fklGetNthPartOfStringMatchPattern(pattern,state->cindex-1);
+				if(part&&fklIsVar(part)&&fklIsMustList(part))
+				{
+					fklPopPtrStack(stackStack);
+					AstElem* v=newAstElem(AST_CAR,fklNewCptr(state->line,NULL));
+					int r=0;
+					uint32_t i=0;
+					for(;i<cStack->top;i++)
+					{
+						AstElem* c=cStack->base[i];
+						if(!r)
+						{
+							if(c->place==AST_CAR)
+								r=copyAndAddToList(v->cptr,c->cptr);
+							else
+								r=copyAndAddToTail(v->cptr,c->cptr);
+						}
+						fklDeleteCptr(c->cptr);
+						free(c->cptr);
+						free(c);
+					}
+					fklFreePtrStack(cStack);
+					cStack=fklTopPtrStack(stackStack);
+					if(!r)
+						fklPushPtrStack(v,cStack);
+					if(r)
+					{
+						fklDeleteCptr(v->cptr);
+						free(v->cptr);
+						free(v);
+						while(!fklIsPtrStackEmpty(stackStack))
+						{
+							FklPtrStack* cStack=fklPopPtrStack(stackStack);
+							while(!fklIsPtrStackEmpty(cStack))
+							{
+								FklAstCptr* cptr=fklPopPtrStack(cStack);
+								fklDeleteCptr(cptr);
+								free(cptr);
+							}
+							fklFreePtrStack(cStack);
+						}
+						fklFreePtrStack(stackStack);
+						while(!fklIsPtrStackEmpty(matchStateStack))
+						{
+							MatchState* state=fklPopPtrStack(matchStateStack);
+							free(state);
+						}
+						fklFreePtrStack(matchStateStack);
+						return NULL;
+					}
+				}
 				state->cindex+=1;
+				part=fklGetNthPartOfStringMatchPattern(pattern,state->cindex);
+				if(part&&fklIsVar(part)&&fklIsMustList(part))
+				{
+					cStack=fklNewPtrStack(32,16);
+					fklPushPtrStack(cStack,stackStack);
+				}
 				if(state->cindex<state->pattern->num)
 					continue;
 			}
@@ -1376,6 +1435,12 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,FklInterpreter* inter
 				fklPushPtrStack(state,matchStateStack);
 				cStack=fklNewPtrStack(32,16);
 				fklPushPtrStack(cStack,stackStack);
+				const char* part=fklGetNthPartOfStringMatchPattern(pattern,state->cindex);
+				if(fklIsVar(part)&&fklIsMustList(part))
+				{
+					cStack=fklNewPtrStack(32,16);
+					fklPushPtrStack(cStack,stackStack);
+				}
 				continue;
 			}
 			else if(isLeftParenthese(token->value))
@@ -1507,7 +1572,15 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,FklInterpreter* inter
 			{
 				const char* cpart=fklGetNthPartOfStringMatchPattern(state->pattern,state->cindex);
 				if(cpart&&fklIsVar(cpart)&&!fklIsMustList(cpart))
+				{
 					state->cindex++;
+					cpart=fklGetNthPartOfStringMatchPattern(state->pattern,state->cindex);
+					if(cpart&&fklIsVar(cpart)&&fklIsMustList(cpart))
+					{
+						cStack=fklNewPtrStack(32,16);
+						fklPushPtrStack(cStack,stackStack);
+					}
+				}
 				if(state->cindex>=state->pattern->num)
 				{
 					fklPopPtrStack(stackStack);

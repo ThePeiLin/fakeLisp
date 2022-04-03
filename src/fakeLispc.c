@@ -41,7 +41,7 @@ int main(int argc,char** argv)
 		FklInterpreter* inter=fklNewIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
 		fklInitGlobKeyWord(inter->glob);
 		fklInitNativeDefTypes(inter->deftypes);
-		fklInitBuiltInStringPattern();
+		//fklInitBuiltInStringPattern();
 		fklAddSymbolToGlob(argv[1]);
 		int state;
 		FklByteCodelnt* mainByteCode=fklCompileFile(inter,1,&state);

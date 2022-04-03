@@ -2327,14 +2327,6 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int evalIm,int* exitstate)
 		}
 		begin=fklCreateAstWithTokens(tokenStack,inter);
 		inter->curline+=fklCountChar(list,'\n',-1);
-		if(fklIsAllComment(tokenStack))
-		{
-			while(!fklIsPtrStackEmpty(tokenStack))
-				fklFreeToken(fklPopPtrStack(tokenStack));
-			free(list);
-			list=NULL;
-			continue;
-		}
 		//begin=fklCreateTree(list,inter,NULL);
 		while(!fklIsPtrStackEmpty(tokenStack))
 			fklFreeToken(fklPopPtrStack(tokenStack));
@@ -2563,14 +2555,6 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 			}
 			begin=fklCreateAstWithTokens(tokenStack,tmpInter);
 			tmpInter->curline+=fklCountChar(list,'\n',-1);
-			if(fklIsAllComment(tokenStack))
-			{
-				while(!fklIsPtrStackEmpty(tokenStack))
-					fklFreeToken(fklPopPtrStack(tokenStack));
-				free(list);
-				list=NULL;
-				continue;
-			}
 			//begin=fklCreateTree(list,tmpInter,NULL);
 			while(!fklIsPtrStackEmpty(tokenStack))
 				fklFreeToken(fklPopPtrStack(tokenStack));

@@ -225,15 +225,24 @@ static MatchState* searchReverseStringCharMatchState(const char* part,FklPtrStac
 	return NULL;
 }
 
+static int hasReverseStringNext(MatchState* state)
+{
+	FklStringMatchPattern* pattern=state->pattern;
+	for(uint32_t j=0;state->index+j<pattern->num;j++)
+	{
+		if(!fklIsVar(fklGetNthPartOfStringMatchPattern(pattern,state->index+j)))
+			return 1;
+	}
+	return 0;
+}
+
 static const char* searchReverseStringChar(const char* part,FklPtrStack* stack)
 {
 	MatchState* topState=fklTopPtrStack(stack);
 	for(uint32_t i=stack->top;topState
 			&&!isBuiltInParenthese(topState->pattern)
 			&&(isBuiltInSingleStrPattern(topState->pattern)
-				||(fklIsVar(fklGetNthPartOfStringMatchPattern(topState->pattern,topState->index))
-					&&(topState->index==topState->pattern->num-1
-						||fklIsVar(fklGetNthPartOfStringMatchPattern(topState->pattern,topState->index+1)))));
+				||!hasReverseStringNext(topState));
 			i--)
 		topState=i==0?NULL:stack->base[i-1];
 	if(topState&&!isBuiltInPattern(topState->pattern))
@@ -386,7 +395,8 @@ int fklSplitStringPartsIntoToken(char** parts,uint32_t inum,uint32_t line,FklPtr
 					if(retvalStack)
 						fklPushPtrStack(fklNewToken(FKL_TOKEN_RESERVE_STR,curPart,len,line),retvalStack);
 					j+=len;
-					continue;
+					if(state->index<state->pattern->num)
+						continue;
 				}
 				else
 					freeMatchState(state);

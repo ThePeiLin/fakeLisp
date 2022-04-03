@@ -224,7 +224,7 @@ void runRepl(FklInterpreter* inter)
 			continue;
 		}
 		fklSplitStringPartsIntoToken(parts,1,inter->curline,tokenStack,NULL,NULL);
-		begin=fklCreateAstWithTokens(tokenStack);
+		begin=fklCreateAstWithTokens(tokenStack,inter);
 		inter->curline+=fklCountChar(list,'\n',-1);
 		while(!fklIsPtrStackEmpty(tokenStack))
 			fklFreeToken(fklPopPtrStack(tokenStack));

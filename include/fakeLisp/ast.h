@@ -99,7 +99,7 @@ FklAstCptr* fklGetASTPairCdr(const FklAstCptr*);
 FklAstCptr* fklGetCptrCar(const FklAstCptr*);
 FklAstCptr* fklGetCptrCdr(const FklAstCptr*);
 
-FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack);
+FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,FklInterpreter* globEnv);
 #ifdef __cplusplus
 }
 #endif

@@ -212,8 +212,6 @@
            (lambda (x)
              (* x x)))
 
-         (defmacro "[(,a)]" a)
-
          (defmacro
            (let d,b)
            (begin

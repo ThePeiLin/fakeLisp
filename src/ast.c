@@ -73,7 +73,7 @@ static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
 	return vEnv;
 }
 
-FklAstCptr* expandReaderMacro(const char* objStr,FklInterpreter* inter,FklStringMatchPattern* pattern)
+static FklAstCptr* expandReaderMacro(const char* objStr,FklInterpreter* inter,FklStringMatchPattern* pattern)
 {
 	FklPreEnv* tmpEnv=fklNewEnv(NULL);
 	int num=0;
@@ -1210,6 +1210,22 @@ AstElem* newAstElem(AstPlace place,FklAstCptr* cptr)
 	return t;
 }
 
+static int isBuiltInSingleStrPattern(FklStringMatchPattern* pattern)
+{
+	return pattern==QUOTE
+		||pattern==QSQUOTE
+		||pattern==UNQUOTE
+		||pattern==UNQTESP
+		||pattern==DOTTED
+		;
+}
+
+static int isBuiltInParenthese(FklStringMatchPattern* pattern)
+{
+	return pattern==PARENTHESE_0
+		||pattern==PARENTHESE_1;
+}
+
 static int isLeftParenthese(const char* str)
 {
 	return strlen(str)==1&&(str[0]=='('||str[0]=='[');
@@ -1218,16 +1234,6 @@ static int isLeftParenthese(const char* str)
 static int isRightParenthese(const char* str)
 {
 	return strlen(str)==1&&(str[0]==')'||str[0]==']');
-}
-
-static int isBuiltSinglePattern(FklStringMatchPattern* pattern)
-{
-	return pattern==QUOTE
-		||pattern==QSQUOTE
-		||pattern==UNQUOTE
-		||pattern==UNQTESP
-		||pattern==DOTTED
-		;
 }
 
 static int isBuiltSingleStr(const char* str)
@@ -1239,7 +1245,101 @@ static int isBuiltSingleStr(const char* str)
 		||!strcmp(str,"~@");
 }
 
-FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack)
+static MatchState* searchReverseStringCharMatchState(const char* str,FklPtrStack* matchStateStack)
+{
+	MatchState* top=fklTopPtrStack(matchStateStack);
+	uint32_t i=0;
+	for(;top&&!isBuiltInSingleStrPattern(top->pattern)&&!isBuiltInParenthese(top->pattern)&&top->cindex+i<top->pattern->num;i++)
+	{
+		const char* cpart=fklGetNthPartOfStringMatchPattern(top->pattern,top->cindex+i);
+		if(!fklIsVar(cpart)&&!strcmp(str,cpart))
+		{
+			top->cindex+=i;
+			return top;
+		}
+	}
+	return NULL;
+}
+
+static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern,FklInterpreter* inter,FklPtrStack* treeStack,uint32_t curline)
+{
+	FklPreEnv* tmpEnv=fklNewEnv(NULL);
+	for(uint32_t j=0;j<treeStack->top;)
+	{
+		for(uint32_t i=0;i<pattern->num;i++)
+		{
+			if(fklIsVar(pattern->parts[i]))
+			{
+				char* varName=fklGetVarName(pattern->parts[i]);
+				AstElem* elem=treeStack->base[j];
+				fklAddDefine(varName,elem->cptr,tmpEnv);
+				free(varName);
+				j++;
+			}
+		}
+	}
+	FklVM* tmpVM=fklNewTmpVM(NULL);
+	FklAstCptr* retval=NULL;
+	if(pattern->type==FKL_BYTS)
+	{
+		FklByteCodelnt* t=fklNewByteCodelnt(fklNewByteCode(0));
+		FklVMenv* tmpGlobEnv=genGlobEnv(inter->glob,t,tmpVM->heap);
+		if(!tmpGlobEnv)
+		{
+			fklDestroyEnv(tmpEnv);
+			fklFreeByteCodelnt(t);
+			fklFreeVMheap(tmpVM->heap);
+			fklFreeVMstack(tmpVM->stack);
+			fklFreePtrStack(tmpVM->rstack);
+			fklFreePtrStack(tmpVM->tstack);
+			free(tmpVM);
+			return NULL;
+		}
+		FklVMenv* stringPatternEnv=fklCastPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->heap);
+		uint32_t start=t->bc->size;
+		fklCodelntCopyCat(t,pattern->u.bProc);
+		fklInitVMRunningResource(tmpVM,stringPatternEnv,tmpVM->heap,t,start,pattern->u.bProc->bc->size);
+		int state=fklRunVM(tmpVM);
+		if(!state)
+			retval=fklCastVMvalueToCptr(fklGET_VAL(tmpVM->stack->values[0],tmpVM->heap),curline);
+		else
+		{
+			fklFreeVMenv(tmpGlobEnv);
+			fklFreeByteCodeAndLnt(t);
+			fklFreeVMheap(tmpVM->heap);
+			fklUninitVMRunningResource(tmpVM);
+			return NULL;
+		}
+		if(!retval)
+		{
+			fprintf(stderr,"error of compiling:Circular reference occur in expanding reader macro at line %d of %s\n",curline,inter->filename);
+		}
+		fklFreeVMenv(tmpGlobEnv);
+		fklFreeByteCodeAndLnt(t);
+		fklFreeVMheap(tmpVM->heap);
+		fklUninitVMRunningResource(tmpVM);
+	}
+	else if(pattern->type==FKL_FLPROC)
+	{
+		FklVMenv* stringPatternEnv=fklCastPreEnvToVMenv(tmpEnv,NULL,tmpVM->heap);
+		FklVMrunnable* mainrunnable=fklNewVMrunnable(NULL);
+		mainrunnable->localenv=stringPatternEnv;
+		fklPushPtrStack(mainrunnable,tmpVM->rstack);
+		pattern->u.fProc(tmpVM);
+		retval=fklCastVMvalueToCptr(fklGET_VAL(tmpVM->stack->values[0],tmpVM->heap),curline);
+		free(mainrunnable);
+		fklFreeVMenv(stringPatternEnv);
+		fklFreeVMheap(tmpVM->heap);
+		fklFreeVMstack(tmpVM->stack);
+		fklFreePtrStack(tmpVM->rstack);
+		fklFreePtrStack(tmpVM->tstack);
+		free(tmpVM);
+	}
+	fklDestroyEnv(tmpEnv);
+	return retval;
+}
+
+FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,FklInterpreter* inter)
 {
 	if(fklIsPtrStackEmpty(tokenStack))
 		return NULL;
@@ -1262,7 +1362,23 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack)
 		}
 		else if(token->type==FKL_TOKEN_RESERVE_STR)
 		{
-			if(isLeftParenthese(token->value))
+			MatchState* state=searchReverseStringCharMatchState(token->value,matchStateStack);
+			FklStringMatchPattern* pattern=fklFindStringPattern(token->value);
+			if(state)
+			{
+				state->cindex+=1;
+				if(state->cindex<state->pattern->num)
+					continue;
+			}
+			else if(pattern)
+			{
+				MatchState* state=newMatchState(pattern,token->line,1);
+				fklPushPtrStack(state,matchStateStack);
+				cStack=fklNewPtrStack(32,16);
+				fklPushPtrStack(cStack,stackStack);
+				continue;
+			}
+			else if(isLeftParenthese(token->value))
 			{
 				FklStringMatchPattern* pattern=token->value[0]=='('?PARENTHESE_0:PARENTHESE_1;
 				MatchState* state=newMatchState(pattern,token->line,0);
@@ -1345,10 +1461,10 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack)
 			}
 		}
 		for(MatchState* state=fklTopPtrStack(matchStateStack);
-				state&&isBuiltSinglePattern(state->pattern);
+				state&&(isBuiltInSingleStrPattern(state->pattern)||!isBuiltInParenthese(state->pattern));
 				state=fklTopPtrStack(matchStateStack))
 		{
-			if(isBuiltSinglePattern(state->pattern))
+			if(isBuiltInSingleStrPattern(state->pattern))
 			{
 				fklPopPtrStack(stackStack);
 				MatchState* cState=fklPopPtrStack(matchStateStack);
@@ -1387,10 +1503,34 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack)
 				}
 				freeMatchState(cState);
 			}
+			else
+			{
+				const char* cpart=fklGetNthPartOfStringMatchPattern(state->pattern,state->cindex);
+				if(cpart&&fklIsVar(cpart)&&!fklIsMustList(cpart))
+					state->cindex++;
+				if(state->cindex>=state->pattern->num)
+				{
+					fklPopPtrStack(stackStack);
+					FklAstCptr* r=expandReaderMacroWithTreeStack(state->pattern,inter,cStack,state->line);
+					freeMatchState(fklPopPtrStack(matchStateStack));
+					for(uint32_t i=0;i<cStack->top;i++)
+					{
+						AstElem* elem=cStack->base[i];
+						fklDeleteCptr(elem->cptr);
+						free(elem->cptr);
+						free(elem);
+					}
+					fklFreePtrStack(cStack);
+					cStack=fklTopPtrStack(stackStack);
+					fklPushPtrStack(newAstElem(AST_CAR,r),cStack);
+				}
+				else
+					break;
+			}
 		}
 	}
 	AstElem* retvalElem=fklTopPtrStack(elemStack);
-	FklAstCptr* retval=retvalElem->cptr;
+	FklAstCptr* retval=(retvalElem)?retvalElem->cptr:NULL;
 	free(retvalElem);
 	fklFreePtrStack(matchStateStack);
 	fklFreePtrStack(stackStack);

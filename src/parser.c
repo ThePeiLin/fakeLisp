@@ -423,12 +423,19 @@ int fklSplitStringPartsIntoToken(char** parts,uint32_t inum,uint32_t line,FklPtr
 					lastLen=sumLen-lastLen;
 				}
 				str[sumLen]='\0';
-				if(complete)
-					fklPushPtrStack(fklNewToken(FKL_TOKEN_STRING,str,sumLen,line),retvalStack);
-				line+=fklCountChar(str,'\n',-1);
-				free(str);
-				j+=lastLen;
 				done|=!complete;
+				if(complete)
+				{
+					fklPushPtrStack(fklNewToken(FKL_TOKEN_STRING,str,sumLen,line),retvalStack);
+					line+=fklCountChar(str,'\n',-1);
+					j+=lastLen;
+					free(str);
+				}
+				else
+				{
+					free(str);
+					break;
+				}
 			}
 			else if(!strncmp(parts[i]+j,"#\\",strlen("#\\")))
 			{

@@ -326,16 +326,18 @@ char* fklReadInStringPattern(FILE* fp,char** prev,uint32_t curline,int* unexpect
 		FKL_ASSERT(tmp,"fklReadInStringPattern",__FILE__,__LINE__);
 		tmp[0]='\0';
 	}
+	uint32_t cpost=0;
 	for(;;)
 	{
 		int eof=0;
 		char* next=read(fp,&eof);
 		len=strlen(tmp);
 		tmp=fklStrCat(tmp,next);
-		char* strs[]={tmp+len};
+		char* strs[]={tmp+cpost};
 		free(next);
 		uint32_t i=0,j=0;
 		int r=fklSplitStringPartsIntoToken(strs,1,curline,retval,matchStateStack,&i,&j);
+		cpost+=j;
 		if(r==0)
 		{
 			size_t nextLen=strlen(tmp+len+j);

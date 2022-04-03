@@ -2,6 +2,7 @@
 #include<fakeLisp/symbol.h>
 #include<fakeLisp/basicADT.h>
 #include<fakeLisp/vm.h>
+#include<fakeLisp/parser.h>
 #include<fakeLisp/utils.h>
 #include<stdlib.h>
 #include<string.h>
@@ -1257,7 +1258,7 @@ void SYS_read(FklVM* exe,pthread_rwlock_t* gclock)
 		tmpFile=stream?stream->u.fp:stdin;
 		int unexpectEOF=0;
 		char* prev=NULL;
-		tmpString=fklReadInPattern(tmpFile,&prev,&unexpectEOF);
+		tmpString=fklReadInStringPattern(tmpFile,&prev,&unexpectEOF);
 		if(prev)
 			free(prev);
 		if(unexpectEOF)
@@ -1269,12 +1270,19 @@ void SYS_read(FklVM* exe,pthread_rwlock_t* gclock)
 	else
 		tmpString=fklCopyStr(stream->u.str);
 	FklInterpreter* tmpIntpr=fklNewTmpIntpr(NULL,tmpFile);
-	FklAstCptr* tmpCptr=fklBaseCreateTree(tmpString,tmpIntpr);
+	FklPtrStack* tokenStack=fklNewPtrStack(32,16);
+	char* parts[]={tmpString};
+	fklSplitStringPartsIntoToken(parts,1,0,tokenStack,NULL,NULL);
+	FklAstCptr* tmpCptr=fklCreateAstWithTokens(tokenStack,tmpIntpr);
+	//FklAstCptr* tmpCptr=fklBaseCreateTree(tmpString,tmpIntpr);
 	FklVMvalue* tmp=NULL;
 	if(tmpCptr==NULL)
 		tmp=FKL_VM_NIL;
 	else
 		tmp=fklCastCptrVMvalue(tmpCptr,exe->heap);
+	while(!fklIsPtrStackEmpty(tokenStack))
+		fklFreeToken(fklPopPtrStack(tokenStack));
+	fklFreePtrStack(tokenStack);
 	FKL_SET_RETURN("SYS_read",tmp,stack);
 	free(tmpIntpr);
 	free(tmpString);

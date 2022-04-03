@@ -30,6 +30,7 @@ int fklSplitStringPartsIntoToken(char** parts
 		,uint32_t inum
 		,uint32_t line
 		,FklPtrStack* retvalStack
+		,FklPtrStack* matchStateStack
 		,uint32_t* pi
 		,uint32_t* pj);
 void fklPrintToken(FklPtrStack*,FILE* fp);

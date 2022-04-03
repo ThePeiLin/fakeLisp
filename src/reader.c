@@ -308,6 +308,7 @@ char* fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF,FklPtrStack* 
 	char* tmp=NULL;
 	size_t len=0;
 	*unexpectEOF=0;
+	FklPtrStack* matchStateStack=fklNewPtrStack(32,16);
 	if(!read)
 		read=fklReadLine;
 	if(*prev)
@@ -331,19 +332,19 @@ char* fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF,FklPtrStack* 
 		char* next=read(fp,&eof);
 		len=strlen(tmp);
 		tmp=fklStrCat(tmp,next);
+		char* strs[]={tmp+len};
 		free(next);
-		char* strs[]={tmp};
 		uint32_t i=0,j=0;
-		int r=fklSplitStringPartsIntoToken(strs,1,0,retval,&i,&j);
+		int r=fklSplitStringPartsIntoToken(strs,1,0,retval,matchStateStack,&i,&j);
 		if(r==0)
 		{
-			size_t nextLen=strlen(tmp+j);
+			size_t nextLen=strlen(tmp+len+j);
 			if(nextLen)
 			{
-				tmp[j+nextLen-1]='\0';
-				*prev=fklCopyStr(tmp+j);
+				tmp[j+len+nextLen-1]='\0';
+				*prev=fklCopyStr(tmp+len+j);
 			}
-			tmp[j]='\0';
+			tmp[len+j]='\0';
 			len=strlen(tmp);
 			char* rt=(char*)realloc(tmp,sizeof(char)*(len+1));
 			FKL_ASSERT(rt,"fklReadInStringPattern",__FILE__,__LINE__);
@@ -355,6 +356,8 @@ char* fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF,FklPtrStack* 
 		{
 			while(!fklIsPtrStackEmpty(retval))
 				fklFreeToken(fklPopPtrStack(retval));
+			while(!fklIsPtrStackEmpty(matchStateStack))
+				free(fklPopPtrStack(matchStateStack));
 			*unexpectEOF=1;
 			free(tmp);
 			tmp=NULL;
@@ -364,13 +367,14 @@ char* fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF,FklPtrStack* 
 		{
 			while(!fklIsPtrStackEmpty(retval))
 				fklFreeToken(fklPopPtrStack(retval));
+			while(!fklIsPtrStackEmpty(matchStateStack))
+				free(fklPopPtrStack(matchStateStack));
 			*unexpectEOF=2;
 			free(tmp);
 			tmp=NULL;
 			break;
 		}
-		while(!fklIsPtrStackEmpty(retval))
-			fklFreeToken(fklPopPtrStack(retval));
 	}
+	fklFreePtrStack(matchStateStack);
 	return tmp;
 }

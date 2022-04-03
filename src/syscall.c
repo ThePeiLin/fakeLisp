@@ -1305,7 +1305,11 @@ void SYS_read(FklVM* exe,pthread_rwlock_t* gclock)
 	{
 		tmpString=fklCopyStr(stream->u.str);
 		char* parts[]={tmpString};
-		fklSplitStringPartsIntoToken(parts,1,0,tokenStack,NULL,NULL);
+		FklPtrStack* matchStateStack=fklNewPtrStack(32,16);
+		fklSplitStringPartsIntoToken(parts,1,0,tokenStack,matchStateStack,NULL,NULL);
+		while(!fklIsPtrStackEmpty(matchStateStack))
+			free(fklPopPtrStack(matchStateStack));
+		fklFreePtrStack(matchStateStack);
 	}
 	FklInterpreter* tmpIntpr=fklNewTmpIntpr(NULL,tmpFile);
 	FklAstCptr* tmpCptr=fklCreateAstWithTokens(tokenStack,tmpIntpr);

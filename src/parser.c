@@ -334,10 +334,9 @@ static uint32_t skipSpaceAndCountLine(const char* str,uint32_t* cline)
 	return j;
 }
 
-int fklSplitStringPartsIntoToken(char** parts,uint32_t inum,uint32_t line,FklPtrStack* retvalStack,uint32_t* pi,uint32_t* pj)
+int fklSplitStringPartsIntoToken(char** parts,uint32_t inum,uint32_t line,FklPtrStack* retvalStack,FklPtrStack* matchStateStack,uint32_t* pi,uint32_t* pj)
 {
 	int done=0;
-	FklPtrStack* matchStateStack=fklNewPtrStack(32,16);
 	uint32_t i=0;
 	for(;i<inum;i++)
 	{
@@ -513,9 +512,6 @@ int fklSplitStringPartsIntoToken(char** parts,uint32_t inum,uint32_t line,FklPtr
 	}
 	if(pi)*pi=i;
 	done|=!fklIsPtrStackEmpty(matchStateStack);
-	while(!fklIsPtrStackEmpty(matchStateStack))
-		freeMatchState(fklPopPtrStack(matchStateStack));
-	fklFreePtrStack(matchStateStack);
 	return done;
 }
 

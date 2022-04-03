@@ -1257,6 +1257,12 @@ static char* readUntilBlank(FILE* fp,int* eof)
 		if(ch==EOF)
 			break;
 		strSize++;
+		if(ch==';')
+		{
+			while(ch!='\n')
+				ch=getc(fp);
+			continue;
+		}
 		if(strSize>memSize-1)
 		{
 			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+FKL_MAX_STRING_SIZE));

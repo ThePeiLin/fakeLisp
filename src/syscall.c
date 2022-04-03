@@ -1253,12 +1253,13 @@ void SYS_read(FklVM* exe,pthread_rwlock_t* gclock)
 		FKL_RAISE_BUILTIN_ERROR("sys.read",FKL_WRONGARG,runnable,exe);
 	char* tmpString=NULL;
 	FILE* tmpFile=NULL;
+	FklPtrStack* tokenStack=fklNewPtrStack(32,16);
 	if(!stream||FKL_IS_FP(stream))
 	{
 		tmpFile=stream?stream->u.fp:stdin;
 		int unexpectEOF=0;
 		char* prev=NULL;
-		tmpString=fklReadInStringPattern(tmpFile,&prev,&unexpectEOF);
+		tmpString=fklReadInStringPattern(tmpFile,&prev,&unexpectEOF,tokenStack);
 		if(prev)
 			free(prev);
 		if(unexpectEOF)
@@ -1268,11 +1269,12 @@ void SYS_read(FklVM* exe,pthread_rwlock_t* gclock)
 		}
 	}
 	else
+	{
 		tmpString=fklCopyStr(stream->u.str);
+		char* parts[]={tmpString};
+		fklSplitStringPartsIntoToken(parts,1,0,tokenStack,NULL,NULL);
+	}
 	FklInterpreter* tmpIntpr=fklNewTmpIntpr(NULL,tmpFile);
-	FklPtrStack* tokenStack=fklNewPtrStack(32,16);
-	char* parts[]={tmpString};
-	fklSplitStringPartsIntoToken(parts,1,0,tokenStack,NULL,NULL);
 	FklAstCptr* tmpCptr=fklCreateAstWithTokens(tokenStack,tmpIntpr);
 	//FklAstCptr* tmpCptr=fklBaseCreateTree(tmpString,tmpIntpr);
 	FklVMvalue* tmp=NULL;

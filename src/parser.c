@@ -355,8 +355,7 @@ int fklSplitStringPartsIntoToken(char** parts,uint32_t inum,uint32_t line,FklPtr
 					if(state->index==0)
 					{
 						const char* parenthese=state->pattern==(void*)0?"(":"[";
-						if(retvalStack)
-							fklPushPtrStack(fklNewToken(FKL_TOKEN_RESERVE_STR,parenthese,strlen(parenthese),line),retvalStack);
+						fklPushPtrStack(fklNewToken(FKL_TOKEN_RESERVE_STR,parenthese,strlen(parenthese),line),retvalStack);
 						fklPushPtrStack(state,matchStateStack);
 						j++;
 						continue;
@@ -365,8 +364,7 @@ int fklSplitStringPartsIntoToken(char** parts,uint32_t inum,uint32_t line,FklPtr
 					{
 						const char* parenthese=state->pattern==(void*)0?")":"]";
 						MatchState* prevState=fklTopPtrStack(matchStateStack);
-						if(retvalStack)
-							fklPushPtrStack(fklNewToken(FKL_TOKEN_RESERVE_STR,parenthese,strlen(parenthese),line),retvalStack);
+						fklPushPtrStack(fklNewToken(FKL_TOKEN_RESERVE_STR,parenthese,strlen(parenthese),line),retvalStack);
 						freeMatchState(prevState);
 						fklPopPtrStack(matchStateStack);
 						freeMatchState(state);
@@ -386,8 +384,7 @@ int fklSplitStringPartsIntoToken(char** parts,uint32_t inum,uint32_t line,FklPtr
 						state->pattern==DOTTED?
 						",":
 						NULL;
-					if(retvalStack)
-						fklPushPtrStack(fklNewToken(FKL_TOKEN_RESERVE_STR,str,strlen(str),line),retvalStack);
+					fklPushPtrStack(fklNewToken(FKL_TOKEN_RESERVE_STR,str,strlen(str),line),retvalStack);
 					fklPushPtrStack(state,matchStateStack);
 					j+=strlen(str);
 					continue;
@@ -399,8 +396,7 @@ int fklSplitStringPartsIntoToken(char** parts,uint32_t inum,uint32_t line,FklPtr
 					state->index++;
 					if(state->index-1==0)
 						fklPushPtrStack(state,matchStateStack);
-					if(retvalStack)
-						fklPushPtrStack(fklNewToken(FKL_TOKEN_RESERVE_STR,curPart,len,line),retvalStack);
+					fklPushPtrStack(fklNewToken(FKL_TOKEN_RESERVE_STR,curPart,len,line),retvalStack);
 					j+=len;
 					if(state->index<state->pattern->num)
 						continue;
@@ -428,7 +424,7 @@ int fklSplitStringPartsIntoToken(char** parts,uint32_t inum,uint32_t line,FklPtr
 					lastLen=sumLen-lastLen;
 				}
 				str[sumLen]='\0';
-				if(retvalStack)
+				if(complete)
 					fklPushPtrStack(fklNewToken(FKL_TOKEN_STRING,str,sumLen,line),retvalStack);
 				line+=fklCountChar(str,'\n',-1);
 				free(str);
@@ -443,8 +439,7 @@ int fklSplitStringPartsIntoToken(char** parts,uint32_t inum,uint32_t line,FklPtr
 				free(symbol);
 				symbol=fklCopyMemory(parts[i]+j,len+1+2);
 				symbol[len+2]='\0';
-				if(retvalStack)
-					fklPushPtrStack(fklNewToken(FKL_TOKEN_CHAR,symbol,len+2,line),retvalStack);
+				fklPushPtrStack(fklNewToken(FKL_TOKEN_CHAR,symbol,len+2,line),retvalStack);
 				j+=len+2;
 				//j+=strlen(symbol)+2;
 			}
@@ -453,8 +448,7 @@ int fklSplitStringPartsIntoToken(char** parts,uint32_t inum,uint32_t line,FklPtr
 				size_t len=getSymbolLen(parts[i]+j+2,matchStateStack);
 				char* symbol=fklCopyMemory(parts[i]+j,len+1+2);
 				symbol[len+2]='\0';
-				if(retvalStack)
-					fklPushPtrStack(fklNewToken(FKL_TOKEN_BYTS,symbol,len+2,line),retvalStack);
+				fklPushPtrStack(fklNewToken(FKL_TOKEN_BYTS,symbol,len+2,line),retvalStack);
 				j+=len+2;
 			}
 			else if(parts[i][j]==';')
@@ -463,8 +457,7 @@ int fklSplitStringPartsIntoToken(char** parts,uint32_t inum,uint32_t line,FklPtr
 				for(;parts[i][j+len]!='\0'&&parts[i][j+len]!='\n';len++);
 				char* str=fklCopyMemory(parts[i]+j,len+1);
 				str[len]='\0';
-				if(retvalStack)
-					fklPushPtrStack(fklNewToken(FKL_TOKEN_COMMENT,str,len,line),retvalStack);
+				fklPushPtrStack(fklNewToken(FKL_TOKEN_COMMENT,str,len,line),retvalStack);
 				j+=len;
 				free(str);
 				continue;
@@ -479,8 +472,7 @@ int fklSplitStringPartsIntoToken(char** parts,uint32_t inum,uint32_t line,FklPtr
 					FklTokenType type=FKL_TOKEN_SYMBOL;
 					if(fklIsNum(symbol))
 						type=FKL_TOKEN_NUM;
-					if(retvalStack)
-						fklPushPtrStack(fklNewToken(type,symbol,len,line),retvalStack);
+					fklPushPtrStack(fklNewToken(type,symbol,len,line),retvalStack);
 					j+=len;
 					free(symbol);
 				}

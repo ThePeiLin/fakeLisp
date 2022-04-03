@@ -2305,9 +2305,8 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int evalIm,int* exitstate)
 	{
 		FklAstCptr* begin=NULL;
 		int unexpectEOF=0;
-		char* list=fklReadInStringPattern(inter->file,&prev,&unexpectEOF);
+		char* list=fklReadInStringPattern(inter->file,&prev,&unexpectEOF,tokenStack);
 		if(list==NULL)continue;
-		char* parts[]={list};
 		FklErrorState state={0,NULL};
 		if(unexpectEOF)
 		{
@@ -2327,7 +2326,6 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int evalIm,int* exitstate)
 			tmp=NULL;
 			break;
 		}
-		fklSplitStringPartsIntoToken(parts,1,inter->curline,tokenStack,NULL,NULL);
 		begin=fklCreateAstWithTokens(tokenStack,inter);
 		inter->curline+=fklCountChar(list,'\n',-1);
 		if(fklIsAllComment(tokenStack))
@@ -2548,7 +2546,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 		{
 			FklAstCptr* begin=NULL;
 			int unexpectEOF=0;
-			char* list=fklReadInStringPattern(tmpInter->file,&prev,&unexpectEOF);
+			char* list=fklReadInStringPattern(tmpInter->file,&prev,&unexpectEOF,tokenStack);
 			if(list==NULL)continue;
 			if(unexpectEOF)
 			{
@@ -2564,8 +2562,6 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 				free(list);
 				break;
 			}
-			char* parts[]={list};
-			fklSplitStringPartsIntoToken(parts,1,tmpInter->curline,tokenStack,NULL,NULL);
 			begin=fklCreateAstWithTokens(tokenStack,tmpInter);
 			tmpInter->curline+=fklCountChar(list,'\n',-1);
 			if(fklIsAllComment(tokenStack))

@@ -303,7 +303,7 @@ char* fklReadLine(FILE* fp,int* eof)
 	return tmp;
 }
 
-char* fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF)
+char* fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF,FklPtrStack* retval)
 {
 	char* tmp=NULL;
 	size_t len=0;
@@ -332,7 +332,7 @@ char* fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF)
 		free(next);
 		char* strs[]={tmp};
 		uint32_t i=0,j=0;
-		int r=fklSplitStringPartsIntoToken(strs,1,0,NULL,&i,&j);
+		int r=fklSplitStringPartsIntoToken(strs,1,0,retval,&i,&j);
 		if(r==0)
 		{
 			size_t nextLen=strlen(tmp+j);
@@ -346,11 +346,13 @@ char* fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF)
 			char* rt=(char*)realloc(tmp,sizeof(char)*(len+1));
 			FKL_ASSERT(rt,"fklReadInStringPattern",__FILE__,__LINE__);
 			tmp=rt;
-			if(!fklIsAllSpace(tmp)||eof)
+			if((!fklIsAllSpace(tmp)&&!fklIsAllComment(retval))||eof)
 				break;
 		}
 		else if(r==1&&eof)
 		{
+			while(!fklIsPtrStackEmpty(retval))
+				fklFreeToken(fklPopPtrStack(retval));
 			*unexpectEOF=1;
 			free(tmp);
 			tmp=NULL;
@@ -358,11 +360,15 @@ char* fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF)
 		}
 		else if(r==2)
 		{
+			while(!fklIsPtrStackEmpty(retval))
+				fklFreeToken(fklPopPtrStack(retval));
 			*unexpectEOF=2;
 			free(tmp);
 			tmp=NULL;
 			break;
 		}
+		while(!fklIsPtrStackEmpty(retval))
+			fklFreeToken(fklPopPtrStack(retval));
 	}
 	return tmp;
 }

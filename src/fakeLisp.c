@@ -205,8 +205,7 @@ void runRepl(FklInterpreter* inter)
 		if(prev)
 			printf("%s",prev);
 		int unexpectEOF=0;
-		char* list=fklReadInStringPattern(inter->file,&prev,&unexpectEOF);
-		char* parts[]={list};
+		char* list=fklReadInStringPattern(inter->file,&prev,&unexpectEOF,tokenStack);
 		FklErrorState state={0,NULL};
 		if(unexpectEOF)
 		{
@@ -223,7 +222,6 @@ void runRepl(FklInterpreter* inter)
 			list=NULL;
 			continue;
 		}
-		fklSplitStringPartsIntoToken(parts,1,inter->curline,tokenStack,NULL,NULL);
 		begin=fklCreateAstWithTokens(tokenStack,inter);
 		inter->curline+=fklCountChar(list,'\n',-1);
 		while(!fklIsPtrStackEmpty(tokenStack))

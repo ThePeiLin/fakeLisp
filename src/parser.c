@@ -440,6 +440,7 @@ int fklSplitStringPartsIntoToken(char** parts,uint32_t inum,uint32_t line,FklPtr
 				symbol=fklCopyMemory(parts[i]+j,len+1+2);
 				symbol[len+2]='\0';
 				fklPushPtrStack(fklNewToken(FKL_TOKEN_CHAR,symbol,len+2,line),retvalStack);
+				free(symbol);
 				j+=len+2;
 				//j+=strlen(symbol)+2;
 			}

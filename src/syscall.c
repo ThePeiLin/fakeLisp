@@ -1298,7 +1298,7 @@ void SYS_read(FklVM* exe,pthread_rwlock_t* gclock)
 		tmpFile=stream?stream->u.fp:stdin;
 		int unexpectEOF=0;
 		char* prev=NULL;
-		tmpString=fklReadInStringPattern(tmpFile,&prev,&unexpectEOF,tokenStack,readUntilBlank);
+		tmpString=fklReadInStringPattern(tmpFile,&prev,0,&unexpectEOF,tokenStack,readUntilBlank);
 		if(prev)
 			free(prev);
 		if(unexpectEOF)

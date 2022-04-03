@@ -303,7 +303,7 @@ char* fklReadLine(FILE* fp,int* eof)
 	return tmp;
 }
 
-char* fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF,FklPtrStack* retval,char* (*read)(FILE*,int*))
+char* fklReadInStringPattern(FILE* fp,char** prev,uint32_t curline,int* unexpectEOF,FklPtrStack* retval,char* (*read)(FILE*,int*))
 {
 	char* tmp=NULL;
 	size_t len=0;
@@ -335,7 +335,7 @@ char* fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF,FklPtrStack* 
 		char* strs[]={tmp+len};
 		free(next);
 		uint32_t i=0,j=0;
-		int r=fklSplitStringPartsIntoToken(strs,1,0,retval,matchStateStack,&i,&j);
+		int r=fklSplitStringPartsIntoToken(strs,1,curline,retval,matchStateStack,&i,&j);
 		if(r==0)
 		{
 			size_t nextLen=strlen(tmp+len+j);

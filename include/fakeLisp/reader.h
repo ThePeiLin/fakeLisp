@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 char* fklReadInPattern(FILE*,char**,int*);
-char* fklReadInStringPattern(FILE*,char**,int*,FklPtrStack* retval,char* (*)(FILE*,int*));
+char* fklReadInStringPattern(FILE*,char**,uint32_t,int*,FklPtrStack* retval,char* (*)(FILE*,int*));
 #ifdef __cplusplus
 }
 #endif

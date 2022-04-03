@@ -205,7 +205,7 @@ void runRepl(FklInterpreter* inter)
 		if(prev)
 			printf("%s",prev);
 		int unexpectEOF=0;
-		char* list=fklReadInStringPattern(inter->file,&prev,&unexpectEOF,tokenStack);
+		char* list=fklReadInStringPattern(inter->file,&prev,&unexpectEOF,tokenStack,NULL);
 		FklErrorState state={0,NULL};
 		if(unexpectEOF)
 		{

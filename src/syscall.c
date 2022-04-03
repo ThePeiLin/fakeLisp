@@ -9,6 +9,7 @@
 #include<math.h>
 #include<setjmp.h>
 #include<dlfcn.h>
+#include<ctype.h>
 
 extern void invokeNativeProcdure(FklVM*,FklVMproc*,FklVMrunnable*);
 extern void invokeContinuation(FklVM*,VMcontinuation*);
@@ -1242,6 +1243,38 @@ void SYS_fclose(FklVM* exe,pthread_rwlock_t* gclock)
 	FKL_SET_RETURN("SYS_fclose",FKL_VM_NIL,stack);
 }
 
+static char* readUntilBlank(FILE* fp,int* eof)
+{
+	int32_t memSize=FKL_MAX_STRING_SIZE;
+	char* tmp=(char*)malloc(sizeof(char)*memSize);
+	FKL_ASSERT(tmp,"readString",__FILE__,__LINE__);
+	int32_t strSize=0;
+	int ch=getc(fp);
+	if(ch==EOF)
+		*eof=1;
+	for(;;)
+	{
+		if(ch==EOF)
+			break;
+		strSize++;
+		if(strSize>memSize-1)
+		{
+			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+FKL_MAX_STRING_SIZE));
+			FKL_ASSERT(tmp,"readString",__FILE__,__LINE__);
+			memSize+=FKL_MAX_STRING_SIZE;
+		}
+		tmp[strSize-1]=ch;
+		if(isspace(ch))
+			break;
+		ch=getc(fp);
+	}
+	tmp[strSize]='\0';
+	memSize=strlen(tmp)+1;
+	tmp=(char*)realloc(tmp,sizeof(char)*memSize);
+	FKL_ASSERT(tmp,"readString",__FILE__,__LINE__);
+	return tmp;
+}
+
 void SYS_read(FklVM* exe,pthread_rwlock_t* gclock)
 {
 	FklVMstack* stack=exe->stack;
@@ -1259,7 +1292,7 @@ void SYS_read(FklVM* exe,pthread_rwlock_t* gclock)
 		tmpFile=stream?stream->u.fp:stdin;
 		int unexpectEOF=0;
 		char* prev=NULL;
-		tmpString=fklReadInStringPattern(tmpFile,&prev,&unexpectEOF,tokenStack);
+		tmpString=fklReadInStringPattern(tmpFile,&prev,&unexpectEOF,tokenStack,readUntilBlank);
 		if(prev)
 			free(prev);
 		if(unexpectEOF)

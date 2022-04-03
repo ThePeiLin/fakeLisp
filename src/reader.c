@@ -303,11 +303,13 @@ char* fklReadLine(FILE* fp,int* eof)
 	return tmp;
 }
 
-char* fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF,FklPtrStack* retval)
+char* fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF,FklPtrStack* retval,char* (*read)(FILE*,int*))
 {
 	char* tmp=NULL;
 	size_t len=0;
 	*unexpectEOF=0;
+	if(!read)
+		read=fklReadLine;
 	if(*prev)
 	{
 		tmp=(char*)malloc(sizeof(char)*(strlen(*prev)+1));
@@ -326,7 +328,7 @@ char* fklReadInStringPattern(FILE* fp,char** prev,int* unexpectEOF,FklPtrStack* 
 	for(;;)
 	{
 		int eof=0;
-		char* next=fklReadLine(fp,&eof);
+		char* next=read(fp,&eof);
 		len=strlen(tmp);
 		tmp=fklStrCat(tmp,next);
 		free(next);

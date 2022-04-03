@@ -2305,7 +2305,7 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int evalIm,int* exitstate)
 	{
 		FklAstCptr* begin=NULL;
 		int unexpectEOF=0;
-		char* list=fklReadInStringPattern(inter->file,&prev,&unexpectEOF,tokenStack);
+		char* list=fklReadInStringPattern(inter->file,&prev,&unexpectEOF,tokenStack,NULL);
 		if(list==NULL)continue;
 		FklErrorState state={0,NULL};
 		if(unexpectEOF)
@@ -2319,7 +2319,6 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int evalIm,int* exitstate)
 					fprintf(stderr,"error of reader:Invalid expression at line %d of %s\n",inter->curline,inter->filename);
 					break;
 			}
-
 			fklFreeByteCodeAndLnt(tmp);
 			free(list);
 			*exitstate=FKL_UNEXPECTEOF;
@@ -2546,7 +2545,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 		{
 			FklAstCptr* begin=NULL;
 			int unexpectEOF=0;
-			char* list=fklReadInStringPattern(tmpInter->file,&prev,&unexpectEOF,tokenStack);
+			char* list=fklReadInStringPattern(tmpInter->file,&prev,&unexpectEOF,tokenStack,NULL);
 			if(list==NULL)continue;
 			if(unexpectEOF)
 			{

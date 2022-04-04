@@ -1,15 +1,11 @@
-(import (std))
+(import (utils))
 (defmacro "\\(a)->(b)"
-  ((lambda ()
-     (define list (lambda ls ls))
-     (list 'lambda (cons a nil) b))))
+  `(lambda (~a) ~b))
 (defmacro "call(a)(b)" (cons a b))
 (defmacro "var(a)=(b)"
-  (cons 'define (cons a (cons b nil))))
+  `(define ~a ~b))
 (defmacro "function(n)(a){(,b)}"
-  ((lambda ()
-     (define list (lambda ls ls))
-     (list 'define n (cons 'lambda (cons a b))))))
+  `(define ~n (lambda ~a ~@b)))
 
 var pop=9
 function list ls

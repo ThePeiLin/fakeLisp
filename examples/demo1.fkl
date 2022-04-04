@@ -1,4 +1,4 @@
-(import (std))
+(import (utils))
 (define print princ)
 ;defun宏
 (defmacro

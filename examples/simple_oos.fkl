@@ -1,4 +1,4 @@
-(import (std))
+(import (utils))
 
 (defmacro (class name,body)
   (begin

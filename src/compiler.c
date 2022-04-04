@@ -2509,6 +2509,14 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 			free(path);
 			path=pathWithInterpreterPath;
 		}
+		//if(!fp)
+		//{
+		//	fprintf(stderr,"In file \"%s\" line %d\n",__FILE__,__LINE__);
+		//	perror(path);
+		//	free(path);
+		//	fklFreeMemMenager(memMenager);
+		//	return NULL;
+		//}
 		if(fklHasLoadSameFile(path,inter))
 		{
 			state->state=FKL_CIRCULARLOAD;
@@ -2571,7 +2579,8 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 					free(prev);
 					prev=NULL;
 					FklAstCptr* libName=fklNextCptr(fklGetFirstCptr(begin));
-					if(fklCptrcmp(libName,pairOfpPartsOfPath))
+					FklAstCptr* objLibName=fklGetLastCptr(pairOfpPartsOfPath);
+					if(fklCptrcmp(libName,objLibName))
 					{
 						FklCompEnv* tmpCurEnv=fklNewCompEnv(tmpInter->glob);
 						FklAstCptr* exportCptr=fklNextCptr(libName);

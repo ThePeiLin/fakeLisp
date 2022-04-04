@@ -2329,10 +2329,10 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int evalIm,int* exitstate)
 		begin=fklCreateAstWithTokens(tokenStack,inter);
 		inter->curline+=fklCountChar(list,'\n',-1);
 		//begin=fklCreateTree(list,inter,NULL);
-		while(!fklIsPtrStackEmpty(tokenStack))
-			fklFreeToken(fklPopPtrStack(tokenStack));
 		if(fklIsAllSpace(list))
 		{
+			while(!fklIsPtrStackEmpty(tokenStack))
+				fklFreeToken(fklPopPtrStack(tokenStack));
 			free(list);
 			break;
 		}
@@ -2366,8 +2366,10 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int evalIm,int* exitstate)
 			fklDeleteCptr(begin);
 			free(begin);
 		}
-		else
+		else if(begin==NULL&&!fklIsAllComment(tokenStack))
 		{
+			while(!fklIsPtrStackEmpty(tokenStack))
+				fklFreeToken(fklPopPtrStack(tokenStack));
 			free(list);
 			list=NULL;
 			fklFreeByteCodeAndLnt(tmp);
@@ -2375,6 +2377,8 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int evalIm,int* exitstate)
 			fklFreePtrStack(tokenStack);
 			return NULL;
 		}
+		while(!fklIsPtrStackEmpty(tokenStack))
+			fklFreeToken(fklPopPtrStack(tokenStack));
 		free(list);
 		list=NULL;
 	}
@@ -2567,10 +2571,10 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 			begin=fklCreateAstWithTokens(tokenStack,tmpInter);
 			tmpInter->curline+=fklCountChar(list,'\n',-1);
 			//begin=fklCreateTree(list,tmpInter,NULL);
-			while(!fklIsPtrStackEmpty(tokenStack))
-				fklFreeToken(fklPopPtrStack(tokenStack));
 			if(fklIsAllSpace(list))
 			{
+				while(!fklIsPtrStackEmpty(tokenStack))
+					fklFreeToken(fklPopPtrStack(tokenStack));
 				free(list);
 				break;
 			}
@@ -2785,14 +2789,18 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 				fklDeleteCptr(begin);
 				free(begin);
 			}
-			else
+			else if(begin==NULL&&!fklIsAllComment(tokenStack))
 			{
+				while(!fklIsPtrStackEmpty(tokenStack))
+					fklFreeToken(fklPopPtrStack(tokenStack));
 				if(libPrefix)
 					free(libPrefix);
 				fklFreeMemMenager(memMenager);
 				fklFreePtrStack(tokenStack);
 				return NULL;
 			}
+			while(!fklIsPtrStackEmpty(tokenStack))
+				fklFreeToken(fklPopPtrStack(tokenStack));
 			free(list);
 			list=NULL;
 		}

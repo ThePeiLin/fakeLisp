@@ -1,4 +1,3 @@
-(import (utils))
 (defmacro "\\(a)->(b)"
   `(lambda (~a) ~b))
 (defmacro "call(a)(b)" (cons a b))

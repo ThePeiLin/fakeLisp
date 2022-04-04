@@ -2257,7 +2257,8 @@ FklByteCodelnt* fklCompileLoad(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 	FILE* file=fopen(name->value.str,"r");
 	if(file==NULL)
 	{
-		perror(name->value.str);
+		state->state=FKL_FILEFAILURE;
+		state->place=pFileName;
 		return NULL;
 	}
 	fklAddSymbolToGlob(name->value.str);
@@ -2488,35 +2489,37 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 		}
 		strcat(path,postfix);
 		FILE* fp=fopen(path,"r");
-		if(!fp)
-		{
-			char t[]="lib/";
-			size_t len=strlen(InterpreterPath)+strlen(t)+strlen(path)+2;
-			char* pathWithInterpreterPath=(char*)malloc(sizeof(char)*len);
-			FKL_ASSERT(pathWithInterpreterPath,"fklCompileImport",__FILE__,__LINE__);
-			sprintf(pathWithInterpreterPath,"%s/%s%s",InterpreterPath,t,path);
-			fp=fopen(pathWithInterpreterPath,"r");
-			if(!fp)
-			{
-				fprintf(stderr,"In file \"%s\" line %d\n",__FILE__,__LINE__);
-				perror(path);
-				free(pathWithInterpreterPath);
-				free(path);
-				fklFreeMemMenager(memMenager);
-				return NULL;
-			}
-			sprintf(pathWithInterpreterPath,"%s%s",t,path);
-			free(path);
-			path=pathWithInterpreterPath;
-		}
 		//if(!fp)
 		//{
-		//	fprintf(stderr,"In file \"%s\" line %d\n",__FILE__,__LINE__);
-		//	perror(path);
+		//	char t[]="lib/";
+		//	size_t len=strlen(InterpreterPath)+strlen(t)+strlen(path)+2;
+		//	char* pathWithInterpreterPath=(char*)malloc(sizeof(char)*len);
+		//	FKL_ASSERT(pathWithInterpreterPath,"fklCompileImport",__FILE__,__LINE__);
+		//	sprintf(pathWithInterpreterPath,"%s/%s%s",InterpreterPath,t,path);
+		//	fp=fopen(pathWithInterpreterPath,"r");
+		//	if(!fp)
+		//	{
+		//		fprintf(stderr,"In file \"%s\" line %d\n",__FILE__,__LINE__);
+		//		perror(path);
+		//		free(pathWithInterpreterPath);
+		//		free(path);
+		//		fklFreeMemMenager(memMenager);
+		//		return NULL;
+		//	}
+		//	sprintf(pathWithInterpreterPath,"%s%s",t,path);
 		//	free(path);
-		//	fklFreeMemMenager(memMenager);
-		//	return NULL;
+		//	path=pathWithInterpreterPath;
 		//}
+		if(!fp)
+		{
+			state->state=FKL_IMPORTFAILED;
+			state->place=pairOfpPartsOfPath;
+			//fprintf(stderr,"In file \"%s\" line %d\n",__FILE__,__LINE__);
+			//perror(path);
+			free(path);
+			fklFreeMemMenager(memMenager);
+			return NULL;
+		}
 		if(fklHasLoadSameFile(path,inter))
 		{
 			state->state=FKL_CIRCULARLOAD;
@@ -2961,7 +2964,7 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 	return t;
 }
 
-void fklPrintCompileError(const FklAstCptr* obj,int type,FklInterpreter* inter)
+void fklPrintCompileError(const FklAstCptr* obj,FklErrorType type,FklInterpreter* inter)
 {
 	fprintf(stderr,"error of compiling: ");
 	switch(type)
@@ -3033,8 +3036,17 @@ void fklPrintCompileError(const FklAstCptr* obj,int type,FklInterpreter* inter)
 					fklPrintCptr(obj,stderr);
 			}
 			fprintf(stderr," is not allowed");
+		case FKL_FILEFAILURE:
+			fprintf(stderr,"failed for file:");
+			fklPrintCptr(obj,stderr);
 			break;
-
+		case FKL_IMPORTFAILED:
+			fprintf(stderr,"failed for importing module:");
+			fklPrintCptr(obj,stderr);
+			break;
+		default:
+			fprintf(stderr,"unknown compiling error.");
+			break;
 	}
 	if(inter!=NULL)fprintf(stderr," at line %d of file %s\n",(obj==NULL)?inter->curline:obj->curline,inter->filename);
 }

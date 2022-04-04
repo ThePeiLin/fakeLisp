@@ -1,4 +1,4 @@
-(import (utils))
+(import (.. lib utils))
 
 (define p
   (lambda (n)

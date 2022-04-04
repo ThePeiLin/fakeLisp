@@ -39,6 +39,7 @@ typedef enum
 	FKL_NONSCALARTYPE,
 	FKL_INVALIDASSIGN,
 	FKL_INVALIDACCESS,
+	FKL_IMPORTFAILED,
 }FklErrorType;
 
 typedef struct FklSymTabNode

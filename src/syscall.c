@@ -1002,6 +1002,8 @@ void SYS_str(FklVM* exe,pthread_rwlock_t* gclock)
 			if(!FKL_IS_I32(pstart)&&!FKL_IS_I64(pstart))
 				FKL_RAISE_BUILTIN_ERROR("sys.str",FKL_WRONGARG,runnable,exe);
 			int64_t start=FKL_IS_I32(pstart)?FKL_GET_I32(pstart):pstart->u.i64;
+			if(start>=strlen(obj->u.str))
+				FKL_RAISE_BUILTIN_ERROR("sys.str",FKL_INVALIDACCESS,runnable,exe);
 			int64_t size=strlen(obj->u.str)-start;
 			if(psize)
 			{
@@ -1084,6 +1086,8 @@ void SYS_byts(FklVM* exe,pthread_rwlock_t* gclock)
 			if(!FKL_IS_I32(pstart)&&!FKL_IS_I64(pstart))
 				FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_WRONGARG,runnable,exe);
 			int64_t start=FKL_IS_I32(pstart)?FKL_GET_I32(pstart):pstart->u.i64;
+			if(start>=obj->u.byts->size)
+				FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_INVALIDACCESS,runnable,exe);
 			int64_t size=obj->u.byts->size-start;
 			if(psize)
 			{

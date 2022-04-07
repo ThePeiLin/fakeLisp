@@ -1042,55 +1042,82 @@ void SYS_byts(FklVM* exe,pthread_rwlock_t* gclock)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
-	if(fklResBp(stack))
-		FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_TOOMANYARG,runnable,exe);
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_TOOFEWARG,runnable,exe);
 	FklVMvalue* retval=fklNewVMvalue(FKL_BYTS,fklNewEmptyVMbyts(),exe->heap);
-	if(FKL_IS_I32(obj))
+	if(FKL_IS_BYTS(obj))
 	{
-		retval->u.byts=(FklVMbyts*)realloc(retval->u.byts,sizeof(FklVMbyts)+sizeof(int32_t));
-		FKL_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
-		retval->u.byts->size=sizeof(int32_t);
-		*(int32_t*)retval->u.byts->str=FKL_GET_I32(obj);
+		FklVMvalue* pstart=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+		FklVMvalue* psize=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+		if(fklResBp(stack))
+			FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_TOOMANYARG,runnable,exe);
+		if(!FKL_IS_I32(pstart)&&!FKL_IS_I64(pstart)&&!FKL_IS_I32(psize)&&!FKL_IS_I64(psize))
+			FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_WRONGARG,runnable,exe);
+		if(pstart)
+		{
+			int64_t start=FKL_IS_I32(pstart)?FKL_GET_I32(pstart):pstart->u.i64;
+			int64_t size=obj->u.byts->size-start;
+			if(psize)
+			{
+				int64_t tsize=FKL_IS_I32(psize)?FKL_GET_I32(psize):psize->u.i64;
+				if(tsize>size)
+					FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_INVALIDACCESS,runnable,exe);
+				size=tsize;
+			}
+			FklVMbyts* retvalbyts=fklNewVMbyts(size,obj->u.byts->str+start);
+			free(retval->u.byts);
+			retval->u.byts=retvalbyts;
+		}
+		else
+			fklVMbytsCat(&retval->u.byts,obj->u.byts);
 	}
-	else if(FKL_IS_F64(obj))
-	{
-		retval->u.byts=(FklVMbyts*)realloc(retval->u.byts,sizeof(FklVMbyts)+sizeof(double));
-		FKL_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
-		retval->u.byts->size=sizeof(double);
-		*(double*)retval->u.byts->str=obj->u.f64;
-	}
-	else if(FKL_IS_I8(obj))
-	{
-		retval->u.byts=(FklVMbyts*)realloc(retval->u.byts,sizeof(FklVMbyts)+sizeof(char));
-		FKL_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
-		retval->u.byts->size=sizeof(char);
-		*(char*)retval->u.byts->str=FKL_GET_I8(obj);
-	}
-	else if(FKL_IS_SYM(obj))
-	{
-		retval->u.byts=(FklVMbyts*)realloc(retval->u.byts,sizeof(FklVMbyts)+sizeof(FklSid_t));
-		retval->u.byts->size=sizeof(FklSid_t);
-		FklSid_t sid=FKL_GET_SYM(obj);
-		memcpy(retval->u.byts->str,&sid,sizeof(FklSid_t));
-		//FklSymTabNode* n=fklGetGlobSymbolWithId(FKL_GET_SYM(obj));
-		//retval->u.byts=(FklVMbyts*)realloc(retval->u.byts,sizeof(FklVMbyts)+strlen(n->symbol));
-		//FKL_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
-		//retval->u.byts->size=strlen(n->symbol);
-		//memcpy(retval->u.byts->str,n->symbol,retval->u.byts->size);
-	}
-	else if(FKL_IS_STR(obj))
-	{
-		retval->u.byts=(FklVMbyts*)realloc(retval->u.byts,sizeof(FklVMbyts)+strlen(obj->u.str)+1);
-		FKL_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
-		retval->u.byts->size=strlen(obj->u.str);
-		memcpy(retval->u.byts->str,obj->u.str,retval->u.byts->size);
-	}
-	else if(FKL_IS_BYTS(obj))
-		fklVMbytsCat(&retval->u.byts,obj->u.byts);
 	else
-		FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_WRONGARG,runnable,exe);
+	{
+		if(fklResBp(stack))
+			FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_TOOMANYARG,runnable,exe);
+		if(FKL_IS_I32(obj))
+		{
+			retval->u.byts=(FklVMbyts*)realloc(retval->u.byts,sizeof(FklVMbyts)+sizeof(int32_t));
+			FKL_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
+			retval->u.byts->size=sizeof(int32_t);
+			*(int32_t*)retval->u.byts->str=FKL_GET_I32(obj);
+		}
+		else if(FKL_IS_F64(obj))
+		{
+			retval->u.byts=(FklVMbyts*)realloc(retval->u.byts,sizeof(FklVMbyts)+sizeof(double));
+			FKL_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
+			retval->u.byts->size=sizeof(double);
+			*(double*)retval->u.byts->str=obj->u.f64;
+		}
+		else if(FKL_IS_I8(obj))
+		{
+			retval->u.byts=(FklVMbyts*)realloc(retval->u.byts,sizeof(FklVMbyts)+sizeof(char));
+			FKL_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
+			retval->u.byts->size=sizeof(char);
+			*(char*)retval->u.byts->str=FKL_GET_I8(obj);
+		}
+		else if(FKL_IS_SYM(obj))
+		{
+			retval->u.byts=(FklVMbyts*)realloc(retval->u.byts,sizeof(FklVMbyts)+sizeof(FklSid_t));
+			retval->u.byts->size=sizeof(FklSid_t);
+			FklSid_t sid=FKL_GET_SYM(obj);
+			memcpy(retval->u.byts->str,&sid,sizeof(FklSid_t));
+			//FklSymTabNode* n=fklGetGlobSymbolWithId(FKL_GET_SYM(obj));
+			//retval->u.byts=(FklVMbyts*)realloc(retval->u.byts,sizeof(FklVMbyts)+strlen(n->symbol));
+			//FKL_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
+			//retval->u.byts->size=strlen(n->symbol);
+			//memcpy(retval->u.byts->str,n->symbol,retval->u.byts->size);
+		}
+		else if(FKL_IS_STR(obj))
+		{
+			retval->u.byts=(FklVMbyts*)realloc(retval->u.byts,sizeof(FklVMbyts)+strlen(obj->u.str)+1);
+			FKL_ASSERT(retval->u.byts,"SYS_byts",__FILE__,__LINE__);
+			retval->u.byts->size=strlen(obj->u.str);
+			memcpy(retval->u.byts->str,obj->u.str,retval->u.byts->size);
+		}
+		else
+			FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_WRONGARG,runnable,exe);
+	}
 	FKL_SET_RETURN("SYS_byts",retval,stack);
 }
 

@@ -2607,6 +2607,8 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 								free(libPrefix);
 							fklFreeMemMenager(memMenager);
 							free(list);
+							while(!fklIsPtrStackEmpty(tokenStack))
+								fklFreeToken(fklPopPtrStack(tokenStack));
 							fklFreePtrStack(tokenStack);
 							return NULL;
 						}
@@ -2633,6 +2635,8 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 										free(libPrefix);
 									fklFreeMemMenager(memMenager);
 									free(list);
+									while(!fklIsPtrStackEmpty(tokenStack))
+										fklFreeToken(fklPopPtrStack(tokenStack));
 									fklFreePtrStack(tokenStack);
 									return NULL;
 								}
@@ -2666,6 +2670,8 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 										free(libPrefix);
 									fklFreeMemMenager(memMenager);
 									free(list);
+									while(!fklIsPtrStackEmpty(tokenStack))
+										fklFreeToken(fklPopPtrStack(tokenStack));
 									fklFreePtrStack(tokenStack);
 									return NULL;
 								}
@@ -2730,6 +2736,8 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 									free(libPrefix);
 								fklFreeMemMenager(memMenager);
 								free(list);
+								while(!fklIsPtrStackEmpty(tokenStack))
+									fklFreeToken(fklPopPtrStack(tokenStack));
 								fklFreePtrStack(tokenStack);
 								return NULL;
 							}
@@ -2764,6 +2772,8 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 								free(symbolWouldExport);
 								fklFreeMemMenager(memMenager);
 								free(list);
+								while(!fklIsPtrStackEmpty(tokenStack))
+									fklFreeToken(fklPopPtrStack(tokenStack));
 								fklFreePtrStack(tokenStack);
 								return NULL;
 							}
@@ -2786,6 +2796,8 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 						fklDeleteCptr(begin);
 						free(begin);
 						free(list);
+						while(!fklIsPtrStackEmpty(tokenStack))
+							fklFreeToken(fklPopPtrStack(tokenStack));
 						break;
 					}
 				}
@@ -2799,6 +2811,8 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 				if(libPrefix)
 					free(libPrefix);
 				fklFreeMemMenager(memMenager);
+				while(!fklIsPtrStackEmpty(tokenStack))
+					fklFreeToken(fklPopPtrStack(tokenStack));
 				fklFreePtrStack(tokenStack);
 				return NULL;
 			}
@@ -2807,7 +2821,6 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 			free(list);
 			list=NULL;
 		}
-
 		if(libByteCodelnt&&!libByteCodelnt->bc->size)
 		{
 			state->state=(tmp)?FKL_LIBUNDEFINED:0;

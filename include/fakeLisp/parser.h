@@ -28,7 +28,7 @@ typedef struct
 
 int fklSplitStringPartsIntoToken(char** parts
 		,uint32_t inum
-		,uint32_t line
+		,uint32_t* line
 		,FklPtrStack* retvalStack
 		,FklPtrStack* matchStateStack
 		,uint32_t* pi

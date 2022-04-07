@@ -2307,7 +2307,7 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int evalIm,int* exitstate)
 		FklAstCptr* begin=NULL;
 		int unexpectEOF=0;
 		char* list=fklReadInStringPattern(inter->file,&prev,inter->curline,&unexpectEOF,tokenStack,NULL);
-		if(list==NULL)continue;
+		if(list==NULL&&!unexpectEOF)continue;
 		FklErrorState state={0,NULL};
 		if(unexpectEOF)
 		{
@@ -2322,7 +2322,8 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int evalIm,int* exitstate)
 			}
 			fklFreeByteCodeAndLnt(tmp);
 			free(list);
-			*exitstate=FKL_UNEXPECTEOF;
+			if(exitstate)
+				*exitstate=FKL_UNEXPECTEOF;
 			tmp=NULL;
 			break;
 		}
@@ -2344,10 +2345,12 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int evalIm,int* exitstate)
 				if(state.state)
 				{
 					fklPrintCompileError(state.place,state.state,inter);
-					if(exitstate)*exitstate=state.state;
+					if(exitstate)
+						*exitstate=state.state;
 					fklDeleteCptr(state.place);
 				}
-				if(tmpByteCodelnt==NULL&&!state.state&&exitstate)*exitstate=FKL_MACROEXPANDFAILED;
+				if(tmpByteCodelnt==NULL&&!state.state&&exitstate)
+					*exitstate=FKL_MACROEXPANDFAILED;
 				fklFreeByteCodeAndLnt(tmp);
 				free(list);
 				fklDeleteCptr(begin);
@@ -2553,7 +2556,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 			FklAstCptr* begin=NULL;
 			int unexpectEOF=0;
 			char* list=fklReadInStringPattern(tmpInter->file,&prev,tmpInter->curline,&unexpectEOF,tokenStack,NULL);
-			if(list==NULL)continue;
+			if(list==NULL&&!unexpectEOF)continue;
 			if(unexpectEOF)
 			{
 				switch(unexpectEOF)

@@ -369,7 +369,7 @@ int fklIsInValidStringPattern(const char* str)
 	FklStringMatchPattern* pattern=HeadOfStringPattern;
 	int32_t num=0;
 	char** parts=fklSplitPattern(str,&num);
-	if(fklIsVar(parts[0])||parts[0][0]=='$'||parts[0][0]=='#')
+	if(fklIsVar(parts[0]))
 	{
 		fklFreeStringArry(parts,num);
 		return 1;
@@ -395,7 +395,7 @@ int fklIsInValidStringPattern(const char* str)
 		{
 			if(i<num-1)
 			{
-				if(fklIsVar(parts[i-1])||fklIsVar(parts[i+1]))
+				if(fklIsVar(parts[i+1]))
 				{
 					fklFreeStringArry(parts,num);
 					return 1;
@@ -406,11 +406,6 @@ int fklIsInValidStringPattern(const char* str)
 				fklFreeStringArry(parts,num);
 				return 1;
 			}
-		}
-		else if(parts[i][0]=='$'||parts[i][0]=='#')
-		{
-			fklFreeStringArry(parts,num);
-			return 1;
 		}
 	}
 	fklFreeStringArry(parts,num);

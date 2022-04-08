@@ -346,8 +346,8 @@ FklLineNumberTable* loadLineNumberTable(FILE* fp)
 	for(;i<size;i++)
 	{
 		FklSid_t fid=0;
-		uint32_t scp=0;
-		uint32_t cpc=0;
+		uint64_t scp=0;
+		uint64_t cpc=0;
 		uint32_t line=0;
 		fread(&fid,sizeof(fid),1,fp);
 		fread(&scp,sizeof(scp),1,fp);

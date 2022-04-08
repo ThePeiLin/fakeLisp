@@ -107,19 +107,19 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode,uint32_t i
 			{
 				fprintf(fp,"%s ",fklFindSymbolInGlob((char*)(tmpCode->code+(++i)))->symbol);
 				i+=sizeof(FklSid_t);
-				int32_t handlerNum=fklGetI32FromByteCode(tmpCode->code+i);
+				uint32_t handlerNum=fklGetI32FromByteCode(tmpCode->code+i);
 				fprintf(fp,"%d\n",handlerNum);
-				i+=sizeof(int32_t);
+				i+=sizeof(uint32_t);
 				int j=0;
-				r+=sizeof(FklSid_t)+sizeof(int32_t);
+				r+=sizeof(FklSid_t)+sizeof(uint32_t);
 				for(;j<handlerNum;j++)
 				{
 					FklSid_t type=fklGetU32FromByteCode(tmpCode->code+i);
 					i+=sizeof(FklSid_t);
-					uint32_t pCpc=fklGetU32FromByteCode(tmpCode->code+i);
-					i+=sizeof(uint32_t);
-					r+=sizeof(FklSid_t)+sizeof(int32_t);
-					fprintf(fp,"%s %d ",fklGetGlobSymbolWithId(type)->symbol,pCpc);
+					uint64_t pCpc=fklGetU64FromByteCode(tmpCode->code+i);
+					i+=sizeof(uint64_t);
+					r+=sizeof(FklSid_t)+sizeof(uint64_t);
+					fprintf(fp,"%s %ld ",fklGetGlobSymbolWithId(type)->symbol,pCpc);
 					fklPrintAsByteStr(tmpCode->code+i,pCpc,fp);
 					i+=pCpc;
 					r+=pCpc;
@@ -133,9 +133,9 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode,uint32_t i
 			r+=sizeof(char)+sizeof(int32_t)+sizeof(uint32_t);
 			break;
 		case -2:
-			fprintf(fp,"%u ",fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)));
-			fklPrintAsByteStr((uint8_t*)(tmpCode->code+i+sizeof(char)+sizeof(uint32_t)),fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)),fp);
-			r+=sizeof(char)+sizeof(uint32_t)+fklGetU32FromByteCode(tmpCode->code+i+sizeof(char));
+			fprintf(fp,"%lu ",fklGetU64FromByteCode(tmpCode->code+i+sizeof(char)));
+			fklPrintAsByteStr((uint8_t*)(tmpCode->code+i+sizeof(char)+sizeof(uint64_t)),fklGetU64FromByteCode(tmpCode->code+i+sizeof(char)),fp);
+			r+=sizeof(char)+sizeof(uint64_t)+fklGetU64FromByteCode(tmpCode->code+i+sizeof(char));
 			break;
 		case -1:
 			tmplen=strlen((char*)tmpCode->code+i+sizeof(char));
@@ -472,9 +472,9 @@ void fklLntCat(FklLineNumberTable* t,int32_t bs,FklLineNumTabNode** l2,int32_t s
 
 void fklWriteLineNumberTable(FklLineNumberTable* lnt,FILE* fp)
 {
-	int32_t size=lnt->num;
+	uint32_t size=lnt->num;
 	fwrite(&size,sizeof(size),1,fp);
-	int32_t i=0;
+	uint32_t i=0;
 	for(;i<size;i++)
 	{
 		FklLineNumTabNode* n=lnt->list[i];
@@ -514,6 +514,20 @@ inline uint32_t fklGetU32FromByteCode(uint8_t* code)
 inline int64_t fklGetI64FromByteCode(uint8_t* code)
 {
 	int64_t i=0;
+	((uint8_t*)&i)[0]=code[0];
+	((uint8_t*)&i)[1]=code[1];
+	((uint8_t*)&i)[2]=code[2];
+	((uint8_t*)&i)[3]=code[3];
+	((uint8_t*)&i)[4]=code[4];
+	((uint8_t*)&i)[5]=code[5];
+	((uint8_t*)&i)[6]=code[6];
+	((uint8_t*)&i)[7]=code[7];
+	return i;
+}
+
+inline uint64_t fklGetU64FromByteCode(uint8_t* code)
+{
+	uint64_t i=0;
 	((uint8_t*)&i)[0]=code[0];
 	((uint8_t*)&i)[1]=code[1];
 	((uint8_t*)&i)[2]=code[2];

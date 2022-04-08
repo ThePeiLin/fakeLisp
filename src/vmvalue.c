@@ -4,7 +4,7 @@
 #include<math.h>
 #include<string.h>
 #include<dlfcn.h>
-FklVMproc* fklNewVMproc(uint32_t scp,uint32_t cpc)
+FklVMproc* fklNewVMproc(uint64_t scp,uint64_t cpc)
 {
 	FklVMproc* tmp=(FklVMproc*)malloc(sizeof(FklVMproc));
 	FKL_ASSERT(tmp,"fklNewVMproc",__FILE__,__LINE__);

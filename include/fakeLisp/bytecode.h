@@ -11,7 +11,7 @@ extern "C"{
 
 typedef struct
 {
-	uint32_t size;
+	uint64_t size;
 	uint8_t* code;
 }FklByteCode;
 
@@ -23,7 +23,7 @@ typedef struct FklByteCodeLabel
 
 typedef struct
 {
-	int32_t ls;
+	uint32_t ls;
 	struct FklLineNumberTableNode** l;
 	FklByteCode* bc;
 }FklByteCodelnt;
@@ -74,6 +74,7 @@ void fklDBG_printByteCode(uint8_t* code,uint32_t s,uint32_t c,FILE*);
 int32_t fklGetI32FromByteCode(uint8_t* code);
 uint32_t fklGetU32FromByteCode(uint8_t* code);
 int64_t fklGetI64FromByteCode(uint8_t* code);
+uint64_t fklGetU64FromByteCode(uint8_t* code);
 double fklGetF64FromByteCode(uint8_t* code);
 #ifdef __cplusplus
 }

@@ -738,10 +738,7 @@ void SYS_int(FklVM* exe,pthread_rwlock_t* gclock)
 	else if(FKL_IS_STR(obj))
 	{
 		int64_t r=fklStringToInt(obj->u.str);
-		if(r>INT32_MAX||r<INT32_MIN)
-			FKL_SET_RETURN("SYS_int",fklNewVMvalue(FKL_I64,&r,exe->heap),stack);
-		else
-			FKL_SET_RETURN("SYS_int",FKL_MAKE_VM_I32(r),stack);
+		FKL_SET_RETURN("SYS_int",makeVMint(r,exe->heap),stack);
 	}
 	else if(FKL_IS_BYTS(obj))
 	{

@@ -79,10 +79,10 @@ int main(int argc,char** argv)
 		fklWriteGlobSymbolTable(outfp);
 		fklWriteLineNumberTable(inter->lnt,outfp);
 		fklWriteTypeList(outfp);
-		int32_t sizeOfMain=mainByteCode->bc->size;
+		uint64_t sizeOfMain=mainByteCode->bc->size;
 		uint8_t* code=mainByteCode->bc->code;
-		fwrite(&sizeOfMain,sizeof(sizeOfMain),1,outfp);
-		fwrite(code,sizeof(char),sizeOfMain,outfp);
+		fwrite(&sizeOfMain,sizeof(mainByteCode->bc->size),1,outfp);
+		fwrite(code,sizeof(uint8_t),sizeOfMain,outfp);
 		fklFreeByteCode(mainByteCode->bc);
 		free(mainByteCode);
 		fclose(outfp);

@@ -45,7 +45,7 @@ typedef struct
 
 typedef struct
 {
-	uint32_t size;
+	uint64_t size;
 	uint8_t* str;
 }FklByteString;
 

@@ -62,9 +62,22 @@ typedef struct FklVMpair
 
 typedef struct FklVMbyts
 {
-	size_t size;
+	uint64_t size;
 	uint8_t str[];
 }FklVMbyts;
+
+typedef struct FklVMstr
+{
+	uint64_t size;
+	char str[];
+}FklVMstr;
+
+typedef struct FklVMfp
+{
+	size_t size;
+	uint8_t* prev;
+	FILE* fp;
+}FklVMfp;
 
 typedef struct FklVMmem
 {
@@ -113,8 +126,8 @@ typedef struct FklVMenv
 
 typedef struct FklVMproc
 {
-	uint32_t scp;
-	uint32_t cpc;
+	uint64_t scp;
+	uint64_t cpc;
 	FklSid_t sid;
 	FklVMenv* prevEnv;
 }FklVMproc;
@@ -123,9 +136,9 @@ typedef struct FklVMrunnable
 {
 	unsigned int mark :1;
 	FklVMenv* localenv;
-	uint32_t scp;
-	uint32_t cp;
-	uint32_t cpc;
+	uint64_t scp;
+	uint64_t cp;
+	uint64_t cpc;
 	FklSid_t sid;
 }FklVMrunnable;
 
@@ -148,7 +161,7 @@ typedef struct FklVM
 	char** argv;
 	pthread_t tid;
 	uint8_t* code;
-	uint32_t size;
+	uint64_t size;
 	FklPtrStack* rstack;
 	FklPtrStack* tstack;
 	FklVMstack* stack;
@@ -313,7 +326,7 @@ FklVMvalue* fklPopVMstack(FklVMstack*);
 FklVMtryBlock* fklNewVMtryBlock(FklSid_t,uint32_t tp,long int rtp);
 void fklFreeVMtryBlock(FklVMtryBlock* b);
 
-FklVMerrorHandler* fklNewVMerrorHandler(FklSid_t type,uint32_t scp,uint32_t cpc);
+FklVMerrorHandler* fklNewVMerrorHandler(FklSid_t type,uint64_t scp,uint64_t cpc);
 void fklFreeVMerrorHandler(FklVMerrorHandler*);
 int fklRaiseVMerror(FklVMvalue* err,FklVM*);
 FklVMrunnable* fklNewVMrunnable(FklVMproc*);
@@ -338,7 +351,7 @@ void fklDecreaseVMenvRefcount(FklVMenv*);
 void fklFreeVMenv(FklVMenv*);
 FklVMenv* fklCopyVMenv(FklVMenv*,FklVMheap*);
 
-FklVMproc* fklNewVMproc(uint32_t scp,uint32_t cpc);
+FklVMproc* fklNewVMproc(uint64_t scp,uint64_t cpc);
 
 FklVMvalue* fklCopyVMvalue(FklVMvalue*,FklVMheap*);
 FklVMvalue* fklNewVMvalue(FklValueType,void*,FklVMheap*);
@@ -402,6 +415,7 @@ void fklChanlRecv(FklVMrecv*,FklVMchanl*,pthread_rwlock_t* pGClock);
 
 FklVMvalue* fklCastCptrVMvalue(FklAstCptr*,FklVMheap*);
 
+FklVMstr* fklNewVMstr(char* mem,size_t size);
 #ifdef __cplusplus
 }
 #endif

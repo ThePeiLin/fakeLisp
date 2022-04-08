@@ -204,7 +204,7 @@ void fklFreeVMtryBlock(FklVMtryBlock* b)
 	free(b);
 }
 
-FklVMerrorHandler* fklNewVMerrorHandler(FklSid_t type,uint32_t scp,uint32_t cpc)
+FklVMerrorHandler* fklNewVMerrorHandler(FklSid_t type,uint64_t scp,uint64_t cpc)
 {
 	FklVMerrorHandler* t=(FklVMerrorHandler*)malloc(sizeof(FklVMerrorHandler));
 	FKL_ASSERT(t,"fklNewVMerrorHandler",__FILE__,__LINE__);

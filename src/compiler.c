@@ -92,6 +92,18 @@ static inline void setI64ToByteCode(uint8_t* code,int64_t i)
 	code[7]=((uint8_t*)&i)[7];
 }
 
+static inline void setU64ToByteCode(uint8_t* code,uint64_t i)
+{
+	code[0]=((uint8_t*)&i)[0];
+	code[1]=((uint8_t*)&i)[1];
+	code[2]=((uint8_t*)&i)[2];
+	code[3]=((uint8_t*)&i)[3];
+	code[4]=((uint8_t*)&i)[4];
+	code[5]=((uint8_t*)&i)[5];
+	code[6]=((uint8_t*)&i)[6];
+	code[7]=((uint8_t*)&i)[7];
+}
+
 static inline void setF64ToByteCode(uint8_t* code,double i)
 {
 	code[0]=((uint8_t*)&i)[0];
@@ -825,10 +837,10 @@ FklByteCode* fklCompileAtom(FklAstCptr* objCptr)
 			tmp->code[1]=tmpAtm->value.i8;
 			break;
 		case FKL_BYTS:
-			tmp=fklNewByteCode(sizeof(char)+sizeof(int32_t)+tmpAtm->value.byts.size);
+			tmp=fklNewByteCode(sizeof(char)+sizeof(tmpAtm->value.byts.size)+tmpAtm->value.byts.size);
 			tmp->code[0]=FKL_PUSH_BYTS;
-			setU32ToByteCode(tmp->code+sizeof(char),tmpAtm->value.byts.size);
-			memcpy(tmp->code+sizeof(char)+sizeof(uint32_t)
+			setU64ToByteCode(tmp->code+sizeof(char),tmpAtm->value.byts.size);
+			memcpy(tmp->code+sizeof(char)+sizeof(tmpAtm->value.byts.size)
 					,tmpAtm->value.byts.str
 					,tmpAtm->value.byts.size);
 			break;
@@ -2122,9 +2134,9 @@ FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 	fklCodeCat(codeOfLambda->bc,popTp);
 	codeOfLambda->l[codeOfLambda->ls-1]->cpc+=popTp->size;
 	fklFreeByteCode(popTp);
-	FklByteCode* pushProc=fklNewByteCode(sizeof(char)+sizeof(int32_t));
+	FklByteCode* pushProc=fklNewByteCode(sizeof(char)+sizeof(codeOfLambda->bc->size));
 	pushProc->code[0]=FKL_PUSH_PROC;
-	setU32ToByteCode(pushProc->code+sizeof(char),codeOfLambda->bc->size);
+	setU64ToByteCode(pushProc->code+sizeof(char),codeOfLambda->bc->size);
 	FklByteCodelnt* toReturn=fklNewByteCodelnt(pushProc);
 	toReturn->ls=1;
 	toReturn->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
@@ -2706,9 +2718,9 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 							fklDeleteMem(libByteCodelnt,memMenager);
 							fklFreeByteCodelnt(libByteCodelnt);
 							libByteCodelnt=NULL;
-							FklByteCode* pushProc=fklNewByteCode(sizeof(char)+sizeof(int32_t));
+							FklByteCode* pushProc=fklNewByteCode(sizeof(char)+sizeof(tmp->bc->size));
 							pushProc->code[0]=FKL_PUSH_PROC;
-							setU32ToByteCode(pushProc->code+sizeof(char),tmp->bc->size);
+							setU64ToByteCode(pushProc->code+sizeof(char),tmp->bc->size);
 							fklReCodeCat(pushProc,tmp->bc);
 							FKL_INCREASE_ALL_SCP(tmp->l,tmp->ls-1,pushProc->size);
 							fklFreeByteCode(pushProc);
@@ -2866,11 +2878,11 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 		return NULL;
 	else
 	{
-		FklByteCode* pushProc=fklNewByteCode(sizeof(char)+sizeof(uint32_t));
+		FklByteCode* pushProc=fklNewByteCode(sizeof(char)+sizeof(expressionByteCodelnt->bc->size));
 		FklByteCode* invoke=fklNewByteCode(1);
 		invoke->code[0]=FKL_INVOKE;
 		pushProc->code[0]=FKL_PUSH_PROC;
-		setU32ToByteCode(pushProc->code+sizeof(char),expressionByteCodelnt->bc->size);
+		setU64ToByteCode(pushProc->code+sizeof(char),expressionByteCodelnt->bc->size);
 		fklReCodeCat(pushProc,expressionByteCodelnt->bc);
 		expressionByteCodelnt->l[0]->cpc+=pushProc->size;
 		FKL_INCREASE_ALL_SCP(expressionByteCodelnt->l+1,expressionByteCodelnt->ls-1,pushProc->size);
@@ -2954,9 +2966,9 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 		fklFreeByteCode(popTp);
 		char* errorType=pErrorType->u.atom->value.str;
 		FklSid_t typeid=fklAddSymbolToGlob(errorType)->id;
-		FklByteCode* errorTypeByteCode=fklNewByteCode(sizeof(FklSid_t)+sizeof(uint32_t));
-		*(FklSid_t*)(errorTypeByteCode->code)=typeid;
-		*(uint32_t*)(errorTypeByteCode->code+sizeof(FklSid_t))=t->bc->size;
+		FklByteCode* errorTypeByteCode=fklNewByteCode(sizeof(FklSid_t)+sizeof(t->bc->size));
+		setU32ToByteCode(errorTypeByteCode->code,typeid);
+		setU64ToByteCode(errorTypeByteCode->code+sizeof(FklSid_t),t->bc->size);
 		fklReCodeCat(errorTypeByteCode,t->bc);
 		t->l[0]->cpc+=errorTypeByteCode->size;
 		FKL_INCREASE_ALL_SCP(t->l+1,t->ls-1,errorTypeByteCode->size);

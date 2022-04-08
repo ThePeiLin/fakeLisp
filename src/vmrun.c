@@ -667,7 +667,7 @@ void B_dummy(FklVM* exe)
 	fklDBG_printVMstack(exe->stack,stderr,1);
 	putc('\n',stderr);
 	fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
-	fprintf(stderr,"cp=%d stack->bp=%d\n%s\n",currunnable->cp-scp,stack->bp,fklGetOpcodeName((FklOpcode)(exe->code[currunnable->cp])));
+	fprintf(stderr,"cp=%ld stack->bp=%d\n%s\n",currunnable->cp-scp,stack->bp,fklGetOpcodeName((FklOpcode)(exe->code[currunnable->cp])));
 	fklDBG_printVMenv(currunnable->localenv,stderr);
 	putc('\n',stderr);
 	fprintf(stderr,"Wrong byts code!\n");
@@ -745,9 +745,9 @@ void B_push_byts(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	uint32_t size=fklGetU32FromByteCode(exe->code+runnable->cp+1);
-	FKL_SET_RETURN("B_push_byts",fklNewVMvalue(FKL_BYTS,fklNewVMbyts(size,exe->code+runnable->cp+5),exe->heap),stack);
-	runnable->cp+=5+size;
+	uint64_t size=fklGetU64FromByteCode(exe->code+runnable->cp+sizeof(char));
+	FKL_SET_RETURN("B_push_byts",fklNewVMvalue(FKL_BYTS,fklNewVMbyts(size,exe->code+runnable->cp+sizeof(char)+sizeof(uint64_t)),exe->heap),stack);
+	runnable->cp+=sizeof(char)+sizeof(uint64_t)+size;
 }
 
 void B_push_var(FklVM* exe)
@@ -806,13 +806,13 @@ void B_push_proc(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	uint32_t sizeOfProc=fklGetU32FromByteCode(exe->code+runnable->cp+1);
-	FklVMproc* code=fklNewVMproc(runnable->cp+1+sizeof(int32_t),sizeOfProc);
+	uint64_t sizeOfProc=fklGetU64FromByteCode(exe->code+runnable->cp+sizeof(char));
+	FklVMproc* code=fklNewVMproc(runnable->cp+sizeof(char)+sizeof(uint64_t),sizeOfProc);
 	fklIncreaseVMenvRefcount(runnable->localenv);
 	code->prevEnv=runnable->localenv;
 	FklVMvalue* objValue=fklNewVMvalue(FKL_PROC,code,exe->heap);
 	FKL_SET_RETURN("B_push_proc",objValue,stack);
-	runnable->cp+=5+sizeOfProc;
+	runnable->cp+=sizeof(char)+sizeof(uint64_t)+sizeOfProc;
 }
 
 void B_push_fproc(FklVM* exe)
@@ -1257,13 +1257,13 @@ void B_push_try(FklVM* exe)
 	cpc+=sizeof(FklSid_t);
 	uint32_t handlerNum=fklGetU32FromByteCode(exe->code+r->cp+cpc);
 	cpc+=sizeof(uint32_t);
-	unsigned int i=0;
+	uint32_t i=0;
 	for(;i<handlerNum;i++)
 	{
 		FklSid_t type=fklGetU32FromByteCode(exe->code+r->cp+cpc);
 		cpc+=sizeof(FklSid_t);
-		uint32_t pCpc=fklGetU32FromByteCode(exe->code+r->cp+cpc);
-		cpc+=sizeof(uint32_t);
+		uint64_t pCpc=fklGetU64FromByteCode(exe->code+r->cp+cpc);
+		cpc+=sizeof(uint64_t);
 		FklVMerrorHandler* h=fklNewVMerrorHandler(type,r->cp+cpc,pCpc);
 		fklPushPtrStack(h,tb->hstack);
 		cpc+=pCpc;
@@ -1347,7 +1347,7 @@ void fklStackRecycle(FklVM* exe)
 		if(stack->values==NULL)
 		{
 			fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
-			fprintf(stderr,"cp=%d\n%s\n",currunnable->cp,fklGetOpcodeName((FklOpcode)(exe->code[currunnable->cp])));
+			fprintf(stderr,"cp=%ld\n%s\n",currunnable->cp,fklGetOpcodeName((FklOpcode)(exe->code[currunnable->cp])));
 			FKL_ASSERT(stack->values,"fklStackRecycle",__FILE__,__LINE__);
 		}
 		stack->size-=64;

@@ -312,16 +312,14 @@ void runRepl(FklInterpreter* inter)
 
 FklByteCode* loadByteCode(FILE* fp)
 {
-	int32_t size=0;
-	int32_t i=0;
-	fread(&size,sizeof(int32_t),1,fp);
+	uint64_t size=0;
+	fread(&size,sizeof(uint64_t),1,fp);
 	FklByteCode* tmp=(FklByteCode*)malloc(sizeof(FklByteCode));
 	FKL_ASSERT(tmp,"loadByteCode",__FILE__,__LINE__);
 	tmp->size=size;
 	tmp->code=(uint8_t*)malloc(sizeof(uint8_t)*size);
 	FKL_ASSERT(tmp->code,"loadByteCode",__FILE__,__LINE__);
-	for(;i<size;i++)
-		tmp->code[i]=getc(fp);
+	fread(tmp->code,size,1,fp);
 	return tmp;
 }
 
@@ -340,17 +338,17 @@ void loadSymbolTable(FILE* fp)
 
 FklLineNumberTable* loadLineNumberTable(FILE* fp)
 {
-	int32_t size=0;
-	int32_t i=0;
-	fread(&size,sizeof(int32_t),1,fp);
+	uint32_t size=0;
+	uint32_t i=0;
+	fread(&size,sizeof(uint32_t),1,fp);
 	FklLineNumTabNode** list=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*size);
 	FKL_ASSERT(list,"loadLineNumberTable",__FILE__,__LINE__);
 	for(;i<size;i++)
 	{
-		int32_t fid=0;
-		int32_t scp=0;
-		int32_t cpc=0;
-		int32_t line=0;
+		FklSid_t fid=0;
+		uint32_t scp=0;
+		uint32_t cpc=0;
+		uint32_t line=0;
 		fread(&fid,sizeof(fid),1,fp);
 		fread(&scp,sizeof(scp),1,fp);
 		fread(&cpc,sizeof(cpc),1,fp);

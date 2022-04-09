@@ -1262,7 +1262,7 @@ void SYS_read(FklVM* exe,pthread_rwlock_t* gclock)
 			free(fklPopPtrStack(matchStateStack));
 		fklFreePtrStack(matchStateStack);
 	}
-	FklInterpreter* tmpIntpr=fklNewTmpIntpr(NULL,tmpFile->fp);
+	FklInterpreter* tmpIntpr=fklNewTmpIntpr(NULL,tmpFile?tmpFile->fp:NULL);
 	FklAstCptr* tmpCptr=fklCreateAstWithTokens(tokenStack,tmpIntpr);
 	//FklAstCptr* tmpCptr=fklBaseCreateTree(tmpString,tmpIntpr);
 	FklVMvalue* tmp=NULL;

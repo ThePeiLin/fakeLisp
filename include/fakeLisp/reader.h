@@ -17,7 +17,7 @@ char* fklReadInStringPattern(FILE*
 		,uint32_t
 		,int*
 		,FklPtrStack* retval
-		,char* (*)(FILE*,size_t* size,int*));
+		,char* (*)(FILE*,size_t* size));
 
 int fklIsAllSpaceBufSize(const char* buf,size_t size);
 #ifdef __cplusplus

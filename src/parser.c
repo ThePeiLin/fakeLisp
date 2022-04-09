@@ -25,7 +25,7 @@ static size_t skipStringIndexSize(const char* str,size_t index,size_t size)
 {
 	size_t i=1;
 	for(;index+i<size&&(str[index+i-1]=='\\'||str[index+i]!='\"');i++);
-	if(str[index+i]=='\"')
+	if(index+i<size&&str[index+i]=='\"')
 		i++;
 	return i;
 }
@@ -340,7 +340,7 @@ static size_t getSymbolLen(const char* part,size_t index,size_t size,FklPtrStack
 
 static uint32_t skipSpaceAndCountLine(const char* str,size_t index,size_t size,uint32_t* cline)
 {
-	uint32_t j=0;
+	size_t j=0;
 	for(;index+j<size&&isspace(str[index+j]);j++)
 		if(str[index+j]=='\n')
 			(*cline)++;

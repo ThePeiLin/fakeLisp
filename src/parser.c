@@ -420,7 +420,7 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 				size_t lastLen=sumLen;
 				char* str=fklCharBufToStr(parts[i]+j,sumLen);
 				int complete=isCompleteString(str);
-				for(;!complete&&parts[i][j+lastLen]=='\0';)
+				for(;!complete&&j+lastLen>=sizes[i];)
 				{
 					i++;
 					if(i>=inum)

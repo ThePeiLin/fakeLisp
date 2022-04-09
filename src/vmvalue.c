@@ -420,13 +420,16 @@ FklVMfp* fklNewVMfp(FILE* fp)
 
 int fklFreeVMfp(FklVMfp* vfp)
 {
-	if(vfp->size)
-		free(vfp->prev);
-	FILE* fp=vfp->fp;
 	int r=0;
-	if(!(fp!=NULL&&fp!=stdin&&fp!=stdout&&fp!=stderr&&fclose(fp)!=EOF))
-		r=1;
-	free(vfp);
+	if(vfp)
+	{
+		if(vfp->size)
+			free(vfp->prev);
+		FILE* fp=vfp->fp;
+		if(!(fp!=NULL&&fp!=stdin&&fp!=stdout&&fp!=stderr&&fclose(fp)!=EOF))
+			r=1;
+		free(vfp);
+	}
 	return r;
 }
 

@@ -4,7 +4,7 @@
 FklMem* fklNewMem(void* block,void (*destructor)(void*))
 {
 	FklMem* tmp=(FklMem*)malloc(sizeof(FklMem));
-	FKL_ASSERT(tmp,"fklNewMem",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklNewMem");
 	tmp->block=block;
 	tmp->destructor=destructor;
 	return tmp;
@@ -20,7 +20,7 @@ void fklFreeMem(FklMem* mem)
 FklMemMenager* fklNewMemMenager(size_t size)
 {
 	FklMemMenager* tmp=(FklMemMenager*)malloc(sizeof(FklMemMenager));
-	FKL_ASSERT(tmp,"fklNewMemMenager",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklNewMemMenager");
 	tmp->s=fklNewPtrStack(size,size/2);
 	return tmp;
 }

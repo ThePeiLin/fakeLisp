@@ -315,10 +315,10 @@ FklByteCode* loadByteCode(FILE* fp)
 	uint64_t size=0;
 	fread(&size,sizeof(uint64_t),1,fp);
 	FklByteCode* tmp=(FklByteCode*)malloc(sizeof(FklByteCode));
-	FKL_ASSERT(tmp,"loadByteCode",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"loadByteCode");
 	tmp->size=size;
 	tmp->code=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	FKL_ASSERT(tmp->code,"loadByteCode",__FILE__,__LINE__);
+	FKL_ASSERT(tmp->code,"loadByteCode");
 	fread(tmp->code,size,1,fp);
 	return tmp;
 }
@@ -342,7 +342,7 @@ FklLineNumberTable* loadLineNumberTable(FILE* fp)
 	uint32_t i=0;
 	fread(&size,sizeof(uint32_t),1,fp);
 	FklLineNumTabNode** list=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*size);
-	FKL_ASSERT(list,"loadLineNumberTable",__FILE__,__LINE__);
+	FKL_ASSERT(list,"loadLineNumberTable");
 	for(;i<size;i++)
 	{
 		FklSid_t fid=0;

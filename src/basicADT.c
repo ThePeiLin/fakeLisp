@@ -9,9 +9,9 @@ int fklIsPtrStackEmpty(FklPtrStack* stack)
 FklPtrStack* fklNewPtrStack(uint32_t size,uint32_t inc)
 {
 	FklPtrStack* tmp=(FklPtrStack*)malloc(sizeof(FklPtrStack));
-	FKL_ASSERT(tmp,"fklNewPtrStack",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklNewPtrStack");
 	tmp->base=(void**)malloc(sizeof(void*)*size);
-	FKL_ASSERT(tmp->base,"fklNewPtrStack",__FILE__,__LINE__);
+	FKL_ASSERT(tmp->base,"fklNewPtrStack");
 	tmp->size=size;
 	tmp->inc=inc;
 	tmp->top=0;
@@ -23,7 +23,7 @@ void fklPushPtrStack(void* data,FklPtrStack* stack)
 	if(stack->top==stack->size)
 	{
 		void** tmpData=(void**)realloc(stack->base,(stack->size+stack->inc)*sizeof(void*));
-		FKL_ASSERT(tmpData,"fklPushPtrStack",__FILE__,__LINE__);
+		FKL_ASSERT(tmpData,"fklPushPtrStack");
 		stack->base=tmpData;
 		stack->size+=stack->inc;
 	}
@@ -59,7 +59,7 @@ void fklRecyclePtrStack(FklPtrStack* stack)
 	if(stack->size-stack->top>stack->inc)
 	{
 		void** tmpData=(void**)realloc(stack->base,(stack->size-stack->inc)*sizeof(void*));
-		FKL_ASSERT(tmpData,"fklRecyclePtrStack",__FILE__,__LINE__);
+		FKL_ASSERT(tmpData,"fklRecyclePtrStack");
 		stack->base=tmpData;
 		stack->size-=stack->inc;
 	}
@@ -68,7 +68,7 @@ void fklRecyclePtrStack(FklPtrStack* stack)
 FklQueueNode* fklNewQueueNode(void* data)
 {
 	FklQueueNode* tmp=(FklQueueNode*)malloc(sizeof(FklQueueNode));
-	FKL_ASSERT(tmp,"fklNewQueueNode",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklNewQueueNode");
 	tmp->data=data;
 	tmp->next=NULL;
 	return tmp;
@@ -82,7 +82,7 @@ void fklFreeQueueNode(FklQueueNode* tmp)
 FklPtrQueue* fklNewPtrQueue()
 {
 	FklPtrQueue* tmp=(FklPtrQueue*)malloc(sizeof(FklPtrQueue));
-	FKL_ASSERT(tmp,"fklNewPtrQueue",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklNewPtrQueue");
 	tmp->head=NULL;
 	tmp->tail=NULL;
 	return tmp;
@@ -161,9 +161,9 @@ int fklIsIntStackEmpty(FklIntStack* stack)
 FklIntStack* fklNewIntStack(uint32_t size,uint32_t inc)
 {
 	FklIntStack* tmp=(FklIntStack*)malloc(sizeof(FklIntStack));
-	FKL_ASSERT(tmp,"fklNewPtrStack",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklNewPtrStack");
 	tmp->base=(int64_t*)malloc(sizeof(int64_t)*size);
-	FKL_ASSERT(tmp->base,"fklNewPtrStack",__FILE__,__LINE__);
+	FKL_ASSERT(tmp->base,"fklNewPtrStack");
 	tmp->size=size;
 	tmp->inc=inc;
 	tmp->top=0;
@@ -175,7 +175,7 @@ void fklPushIntStack(int64_t data,FklIntStack* stack)
 	if(stack->top==stack->size)
 	{
 		int64_t* tmpData=(int64_t*)realloc(stack->base,(stack->size+stack->inc)*sizeof(int64_t));
-		FKL_ASSERT(tmpData,"fklPushPtrStack",__FILE__,__LINE__);
+		FKL_ASSERT(tmpData,"fklPushPtrStack");
 		stack->base=tmpData;
 		stack->size+=stack->inc;
 	}
@@ -211,7 +211,7 @@ void fklRecycleIntStack(FklIntStack* stack)
 	if(stack->size-stack->top>stack->inc)
 	{
 		int64_t* tmpData=(int64_t*)realloc(stack->base,(stack->size-stack->inc)*sizeof(int64_t));
-		FKL_ASSERT(tmpData,"fklRecyclePtrStack",__FILE__,__LINE__);
+		FKL_ASSERT(tmpData,"fklRecyclePtrStack");
 		stack->base=tmpData;
 		stack->size-=stack->inc;
 	}
@@ -225,9 +225,9 @@ int fklIsUintStackEmpty(FklUintStack* stack)
 FklUintStack* fklNewUintStack(uint32_t size,uint32_t inc)
 {
 	FklUintStack* tmp=(FklUintStack*)malloc(sizeof(FklUintStack));
-	FKL_ASSERT(tmp,"fklNewPtrStack",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklNewPtrStack");
 	tmp->base=(uint64_t*)malloc(sizeof(uint64_t)*size);
-	FKL_ASSERT(tmp->base,"fklNewPtrStack",__FILE__,__LINE__);
+	FKL_ASSERT(tmp->base,"fklNewPtrStack");
 	tmp->size=size;
 	tmp->inc=inc;
 	tmp->top=0;
@@ -239,7 +239,7 @@ void fklPushUintStack(uint64_t data,FklUintStack* stack)
 	if(stack->top==stack->size)
 	{
 		uint64_t* tmpData=(uint64_t*)realloc(stack->base,(stack->size+stack->inc)*sizeof(uint64_t));
-		FKL_ASSERT(tmpData,"fklPushPtrStack",__FILE__,__LINE__);
+		FKL_ASSERT(tmpData,"fklPushPtrStack");
 		stack->base=tmpData;
 		stack->size+=stack->inc;
 	}
@@ -275,7 +275,7 @@ void fklRecycleUintStack(FklUintStack* stack)
 	if(stack->size-stack->top>stack->inc)
 	{
 		uint64_t* tmpData=(uint64_t*)realloc(stack->base,(stack->size-stack->inc)*sizeof(uint64_t));
-		FKL_ASSERT(tmpData,"fklRecyclePtrStack",__FILE__,__LINE__);
+		FKL_ASSERT(tmpData,"fklRecyclePtrStack");
 		stack->base=tmpData;
 		stack->size-=stack->inc;
 	}

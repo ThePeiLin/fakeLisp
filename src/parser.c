@@ -64,12 +64,12 @@ uint32_t countPartThatSplitByBlank(const char* str,FklUintStack* indexStack,FklU
 
 char** spiltStringByBlank(const char* str,uint32_t* num)
 {
-	FKL_ASSERT(num,"spiltStringByBlank",__FILE__,__LINE__);
+	FKL_ASSERT(num,"spiltStringByBlank");
 	FklUintStack* sizeStack=fklNewUintStack(32,16);
 	FklUintStack* indexStack=fklNewUintStack(32,16);
 	*num=countPartThatSplitByBlank(str,indexStack,sizeStack);
 	char** retval=(char**)malloc(sizeof(char*)*(*num));
-	FKL_ASSERT(retval,"spiltStringByBlank",__FILE__,__LINE__);
+	FKL_ASSERT(retval,"spiltStringByBlank");
 	for(uint32_t i=0;i<indexStack->top;i++)
 	{
 		retval[i]=fklCopyMemory(str+indexStack->base[i],sizeStack->base[i]+1);
@@ -83,7 +83,7 @@ char** spiltStringByBlank(const char* str,uint32_t* num)
 FklToken* fklNewToken(FklTokenType type,const char* str,size_t len,uint32_t line)
 {
 	FklToken* token=(FklToken*)malloc(sizeof(FklToken));
-	FKL_ASSERT(token,"fklNewToken",__FILE__,__LINE__);
+	FKL_ASSERT(token,"fklNewToken");
 	token->type=type;
 	token->line=line;
 	token->value=fklCopyMemory(str,len+1);
@@ -106,7 +106,7 @@ typedef struct
 static MatchState* newMatchState(FklStringMatchPattern* pattern,uint32_t index)
 {
 	MatchState* state=(MatchState*)malloc(sizeof(MatchState));
-	FKL_ASSERT(state,"newMatchState",__FILE__,__LINE__);
+	FKL_ASSERT(state,"newMatchState");
 	state->pattern=pattern;
 	state->index=index;
 	return state;

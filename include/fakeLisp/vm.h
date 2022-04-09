@@ -416,6 +416,7 @@ void fklChanlRecv(FklVMrecv*,FklVMchanl*,pthread_rwlock_t* pGClock);
 FklVMvalue* fklCastCptrVMvalue(FklAstCptr*,FklVMheap*);
 
 FklVMstr* fklNewVMstr(char* mem,size_t size);
+void fklFreeVMstr(FklVMstr* str);
 #ifdef __cplusplus
 }
 #endif

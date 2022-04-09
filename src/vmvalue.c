@@ -7,7 +7,7 @@
 FklVMproc* fklNewVMproc(uint64_t scp,uint64_t cpc)
 {
 	FklVMproc* tmp=(FklVMproc*)malloc(sizeof(FklVMproc));
-	FKL_ASSERT(tmp,"fklNewVMproc",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklNewVMproc");
 	tmp->prevEnv=NULL;
 	tmp->scp=scp;
 	tmp->cpc=cpc;
@@ -142,7 +142,7 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 		default:
 			{
 				FklVMvalue* tmp=(FklVMvalue*)malloc(sizeof(FklVMvalue));
-				FKL_ASSERT(tmp,"fklNewVMvalue",__FILE__,__LINE__);
+				FKL_ASSERT(tmp,"fklNewVMvalue");
 				tmp->type=type;
 				tmp->mark=0;
 				tmp->next=heap->head;
@@ -294,7 +294,7 @@ int fklNumcmp(FklVMvalue* fir,FklVMvalue* sec)
 FklVMpair* fklNewVMpair(void)
 {
 	FklVMpair* tmp=(FklVMpair*)malloc(sizeof(FklVMpair));
-	FKL_ASSERT(tmp,"fklNewVMpair",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklNewVMpair");
 	tmp->car=FKL_VM_NIL;
 	tmp->cdr=FKL_VM_NIL;
 	return tmp;
@@ -303,7 +303,7 @@ FklVMpair* fklNewVMpair(void)
 FklVMbyts* fklNewVMbyts(size_t size,uint8_t* str)
 {
 	FklVMbyts* tmp=(FklVMbyts*)malloc(sizeof(FklVMbyts)+size);
-	FKL_ASSERT(tmp,"fklNewVMbyts",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklNewVMbyts");
 	tmp->size=size;
 	memcpy(tmp->str,str,size);
 	return tmp;
@@ -313,7 +313,7 @@ FklVMbyts* fklCopyVMbyts(const FklVMbyts* obj)
 {
 	if(obj==NULL)return NULL;
 	FklVMbyts* tmp=(FklVMbyts*)malloc(sizeof(FklVMbyts)+obj->size);
-	FKL_ASSERT(tmp,"fklCopyVMbyts",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklCopyVMbyts");
 	memcpy(tmp->str,obj->str,obj->size);
 	tmp->size=obj->size;
 	return tmp;
@@ -324,14 +324,14 @@ void fklVMbytsCat(FklVMbyts** fir,const FklVMbyts* sec)
 	size_t firSize=(*fir)->size;
 	size_t secSize=sec->size;
 	*fir=(FklVMbyts*)realloc(*fir,sizeof(FklVMbyts)+(firSize+secSize)*sizeof(uint8_t));
-	FKL_ASSERT(*fir,"fklVMbytsCat",__FILE__,__LINE__);
+	FKL_ASSERT(*fir,"fklVMbytsCat");
 	(*fir)->size=firSize+secSize;
 	memcpy((*fir)->str+firSize,sec->str,secSize);
 }
 FklVMbyts* fklNewEmptyVMbyts()
 {
 	FklVMbyts* tmp=(FklVMbyts*)malloc(sizeof(FklVMbyts));
-	FKL_ASSERT(tmp,"fklNewEmptyVMbyts",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklNewEmptyVMbyts");
 	tmp->size=0;
 	return tmp;
 }
@@ -346,7 +346,7 @@ int fklEqVMbyts(const FklVMbyts* fir,const FklVMbyts* sec)
 FklVMchanl* fklNewVMchanl(int32_t maxSize)
 {
 	FklVMchanl* tmp=(FklVMchanl*)malloc(sizeof(FklVMchanl));
-	FKL_ASSERT(tmp,"fklNewVMchanl",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklNewVMchanl");
 	pthread_mutex_init(&tmp->lock,NULL);
 	tmp->max=maxSize;
 	tmp->messages=fklNewPtrQueue();
@@ -394,7 +394,7 @@ FklVMchanl* fklCopyVMchanl(FklVMchanl* ch,FklVMheap* heap)
 FklVMproc* fklCopyVMproc(FklVMproc* obj,FklVMheap* heap)
 {
 	FklVMproc* tmp=(FklVMproc*)malloc(sizeof(FklVMproc));
-	FKL_ASSERT(tmp,"fklCopyVMproc",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklCopyVMproc");
 	tmp->scp=obj->scp;
 	tmp->cpc=obj->cpc;
 	tmp->prevEnv=fklCopyVMenv(obj->prevEnv,heap);
@@ -423,7 +423,7 @@ FklVMdllHandle* fklNewVMdll(const char* dllName)
 #endif
 	size_t len=strlen(dllName)+strlen(filetype)+1;
 	char* realDllName=(char*)malloc(sizeof(char)*len);
-	FKL_ASSERT(realDllName,"fklNewVMdll",__FILE__,__LINE__);
+	FKL_ASSERT(realDllName,"fklNewVMdll");
 	sprintf(realDllName,"%s%s",dllName,filetype);
 #ifdef _WIN32
 	char* rpath=_fullpath(NULL,realDllName,0);
@@ -501,7 +501,7 @@ void* fklGetAddress(const char* funcname,FklVMdllHandle dlhandle)
 FklVMdlproc* fklNewVMdlproc(FklVMdllFunc address,FklVMvalue* dll)
 {
 	FklVMdlproc* tmp=(FklVMdlproc*)malloc(sizeof(FklVMdlproc));
-	FKL_ASSERT(tmp,"fklNewVMdlproc",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklNewVMdlproc");
 	tmp->func=address;
 	tmp->dll=dll;
 	tmp->sid=0;
@@ -516,14 +516,14 @@ void fklFreeVMdlproc(FklVMdlproc* dlproc)
 FklVMflproc* fklNewVMflproc(FklTypeId_t type,void* func)
 {
 	FklVMflproc* tmp=(FklVMflproc*)malloc(sizeof(FklVMflproc));
-	FKL_ASSERT(tmp,"fklNewVMDlproc",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklNewVMDlproc");
 	tmp->type=type;
 	tmp->func=func;
 	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklGetVMTypeUnion(type).all);
 	uint32_t anum=ft->anum;
 	FklTypeId_t* atypes=ft->atypes;
 	ffi_type** ffiAtypes=(ffi_type**)malloc(sizeof(ffi_type*)*anum);
-	FKL_ASSERT(ffiAtypes,"invokeFlproc",__FILE__,__LINE__);
+	FKL_ASSERT(ffiAtypes,"invokeFlproc");
 	uint32_t i=0;
 	for(;i<anum;i++)
 		ffiAtypes[i]=fklGetFfiType(atypes[i]);
@@ -545,7 +545,7 @@ void fklFreeVMflproc(FklVMflproc* t)
 FklVMerror* fklNewVMerror(const char* who,const char* type,const char* message)
 {
 	FklVMerror* t=(FklVMerror*)malloc(sizeof(FklVMerror));
-	FKL_ASSERT(t,"fklNewVMerror",__FILE__,__LINE__);
+	FKL_ASSERT(t,"fklNewVMerror");
 	t->who=fklCopyStr(who);
 	t->type=fklAddSymbolToGlob(type)->id;
 	t->message=fklCopyStr(message);
@@ -555,7 +555,7 @@ FklVMerror* fklNewVMerror(const char* who,const char* type,const char* message)
 FklVMerror* fklNewVMerrorWithSid(const char* who,FklSid_t type,const char* message)
 {
 	FklVMerror* t=(FklVMerror*)malloc(sizeof(FklVMerror));
-	FKL_ASSERT(t,"fklNewVMerror",__FILE__,__LINE__);
+	FKL_ASSERT(t,"fklNewVMerror");
 	t->who=fklCopyStr(who);
 	t->type=type;
 	t->message=fklCopyStr(message);
@@ -572,7 +572,7 @@ void fklFreeVMerror(FklVMerror* err)
 FklVMrecv* fklNewVMrecv(void)
 {
 	FklVMrecv* tmp=(FklVMrecv*)malloc(sizeof(FklVMrecv));
-	FKL_ASSERT(tmp,"fklNewVMrecv",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklNewVMrecv");
 	tmp->v=NULL;
 	pthread_cond_init(&tmp->cond,NULL);
 	return tmp;
@@ -587,7 +587,7 @@ void fklFreeVMrecv(FklVMrecv* r)
 FklVMsend* fklNewVMsend(FklVMvalue* m)
 {
 	FklVMsend* tmp=(FklVMsend*)malloc(sizeof(FklVMsend));
-	FKL_ASSERT(tmp,"fklNewVMsend",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklNewVMsend");
 	tmp->m=m;
 	pthread_cond_init(&tmp->cond,NULL);
 	return tmp;
@@ -669,7 +669,7 @@ static pthread_mutex_t FklVMenvGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
 FklVMenv* fklNewVMenv(FklVMenv* prev)
 {
 	FklVMenv* tmp=(FklVMenv*)malloc(sizeof(FklVMenv));
-	FKL_ASSERT(tmp,"fklNewVMenv",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklNewVMenv");
 	tmp->num=0;
 	tmp->list=NULL;
 	tmp->prev=prev;
@@ -692,7 +692,7 @@ FklVMenv* fklCopyVMenv(FklVMenv* objEnv,FklVMheap* heap)
 {
 	FklVMenv* tmp=fklNewVMenv(NULL);
 	tmp->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*objEnv->num);
-	FKL_ASSERT(tmp->list,"fklCopyVMenv",__FILE__,__LINE__);
+	FKL_ASSERT(tmp->list,"fklCopyVMenv");
 	int i=0;
 	for(;i<objEnv->num;i++)
 	{
@@ -730,7 +730,7 @@ void fklFreeVMenv(FklVMenv* obj)
 FklVMenvNode* fklNewVMenvNode(FklVMvalue* value,int32_t id)
 {
 	FklVMenvNode* tmp=(FklVMenvNode*)malloc(sizeof(FklVMenvNode));
-	FKL_ASSERT(tmp,"fklNewVMenvNode",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklNewVMenvNode");
 	tmp->id=id;
 	tmp->value=value;
 	return tmp;
@@ -742,7 +742,7 @@ FklVMenvNode* fklAddVMenvNode(FklVMenvNode* node,FklVMenv* env)
 	{
 		env->num=1;
 		env->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*1);
-		FKL_ASSERT(env->list,"fklAddVMenvNode",__FILE__,__LINE__);
+		FKL_ASSERT(env->list,"fklAddVMenvNode");
 		env->list[0]=node;
 	}
 	else
@@ -763,7 +763,7 @@ FklVMenvNode* fklAddVMenvNode(FklVMenvNode* node,FklVMenv* env)
 		env->num+=1;
 		int32_t i=env->num-1;
 		env->list=(FklVMenvNode**)realloc(env->list,sizeof(FklVMenvNode*)*env->num);
-		FKL_ASSERT(env->list,"fklAddVMenvNode",__FILE__,__LINE__);
+		FKL_ASSERT(env->list,"fklAddVMenvNode");
 		for(;i>mid;i--)
 			env->list[i]=env->list[i-1];
 		env->list[mid]=node;
@@ -850,4 +850,18 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 	fklFreePtrStack(s1);
 	fklFreePtrStack(s2);
 	return tmp;
+}
+
+FklVMstr* fklNewVMstr(char* mem,size_t size)
+{
+	FklVMstr* str=(FklVMstr*)malloc(sizeof(FklVMstr)+size*sizeof(char));
+	FKL_ASSERT(str,"fklNewVMstr");
+	str->size=size;
+	memcpy(str,mem,size);
+	return str;
+}
+
+void fklFreeVMstr(FklVMstr* str)
+{
+	free(str);
 }

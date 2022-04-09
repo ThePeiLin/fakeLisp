@@ -22,7 +22,7 @@ static void initVMStructTypeId(FklTypeId_t id,const char* structName,uint32_t nu
 	FklDefTypeUnion* pst=&GlobTypeUnionList.ul[id-1];
 	FklDefStructType* ost=(FklDefStructType*)FKL_GET_TYPES_PTR(pst->st);
 	ost=(FklDefStructType*)realloc(ost,sizeof(FklDefStructType)+num*sizeof(FklDefStructMember));
-	FKL_ASSERT(ost,"initVMStructTypeId",__FILE__,__LINE__);
+	FKL_ASSERT(ost,"initVMStructTypeId");
 	if(structName)
 		ost->type=fklAddSymbolToGlob(structName)->id;
 	else
@@ -49,7 +49,7 @@ static void initVMUnionTypeId(FklTypeId_t id,const char* unionName,uint32_t num,
 	FklDefTypeUnion* put=&GlobTypeUnionList.ul[id-1];
 	FklDefUnionType* out=(FklDefUnionType*)FKL_GET_TYPES_PTR(put->ut);
 	out=(FklDefUnionType*)realloc(out,sizeof(FklDefUnionType)+num*sizeof(FklDefStructMember));
-	FKL_ASSERT(out,"initVMUnionTypeId",__FILE__,__LINE__);
+	FKL_ASSERT(out,"initVMUnionTypeId");
 	if(unionName)
 		out->type=fklAddSymbolToGlob(unionName)->id;
 	else
@@ -69,7 +69,7 @@ static FklTypeId_t addToGlobTypeUnionList(FklDefTypeUnion type)
 	GlobTypeUnionList.num+=1;
 	size_t num=GlobTypeUnionList.num;
 	GlobTypeUnionList.ul=(FklDefTypeUnion*)realloc(GlobTypeUnionList.ul,sizeof(FklDefTypeUnion)*num);
-	FKL_ASSERT(GlobTypeUnionList.ul,"addToGlobTypeUnionList",__FILE__,__LINE__);
+	FKL_ASSERT(GlobTypeUnionList.ul,"addToGlobTypeUnionList");
 	GlobTypeUnionList.ul[num-1]=type;
 	return num;
 }
@@ -165,7 +165,7 @@ static FklTypeId_t genStructTypeId(FklAstCptr* compositeDataHead,FklDefTypes* ot
 	{
 		memberSymbolList=(FklSid_t*)malloc(sizeof(FklSid_t)*num);
 		memberTypeList=(FklTypeId_t*)malloc(sizeof(FklTypeId_t)*num);
-		FKL_ASSERT(memberTypeList&&memberCptr,"fklGenDefTypesUnion",__FILE__,__LINE__);
+		FKL_ASSERT(memberTypeList&&memberCptr,"fklGenDefTypesUnion");
 		uint32_t i=0;
 		for(;memberCptr;i++,memberCptr=fklNextCptr(memberCptr))
 		{
@@ -271,7 +271,7 @@ static FklTypeId_t genUnionTypeId(FklAstCptr* compositeDataHead,FklDefTypes* oth
 	{
 		memberSymbolList=(FklSid_t*)malloc(sizeof(FklSid_t)*num);
 		memberTypeList=(FklTypeId_t*)malloc(sizeof(FklTypeId_t)*num);
-		FKL_ASSERT(memberTypeList&&memberCptr,"fklGenDefTypesUnion",__FILE__,__LINE__);
+		FKL_ASSERT(memberTypeList&&memberCptr,"fklGenDefTypesUnion");
 		uint32_t i=0;
 		for(;memberCptr;i++,memberCptr=fklNextCptr(memberCptr))
 		{
@@ -350,7 +350,7 @@ static FklTypeId_t genFuncTypeId(FklAstCptr* compositeDataHead,FklDefTypes* othe
 	FklAstCptr* firArgCptr=fklGetFirstCptr(argCptr);
 	for(;firArgCptr;firArgCptr=fklNextCptr(firArgCptr),i++);
 	FklTypeId_t* atypes=(FklTypeId_t*)malloc(sizeof(FklTypeId_t)*i);
-	FKL_ASSERT(atypes,"fklGenDefTypesUnion",__FILE__,__LINE__);
+	FKL_ASSERT(atypes,"fklGenDefTypesUnion");
 	for(i=0,firArgCptr=fklGetFirstCptr(argCptr);firArgCptr;firArgCptr=fklNextCptr(firArgCptr),i++)
 	{
 		FklTypeId_t tmp=fklGenDefTypesUnion(firArgCptr,otherTypes);
@@ -384,7 +384,7 @@ static FklTypeId_t genFuncTypeId(FklAstCptr* compositeDataHead,FklDefTypes* othe
 FklDefTypes* fklNewDefTypes(void)
 {
 	FklDefTypes* tmp=(FklDefTypes*)malloc(sizeof(FklDefTypes));
-	FKL_ASSERT(tmp,"fklNewDefTypes",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklNewDefTypes");
 	tmp->num=0;
 	tmp->u=NULL;
 	return tmp;
@@ -452,7 +452,7 @@ FklTypeId_t fklGenDefTypesUnion(FklAstCptr* objCptr,FklDefTypes* otherTypes)
 FklTypeId_t fklNewVMNativeType(FklSid_t type,size_t size,size_t align)
 {
 	FklDefNativeType* tmp=(FklDefNativeType*)malloc(sizeof(FklDefNativeType));
-	FKL_ASSERT(tmp,"fklNewVMNativeType",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklNewVMNativeType");
 	tmp->type=type;
 	tmp->align=align;
 	tmp->size=size;
@@ -555,7 +555,7 @@ FklTypeId_t fklNewVMArrayType(FklTypeId_t type,size_t num)
 	if(!id)
 	{
 		FklDefArrayType* tmp=(FklDefArrayType*)malloc(sizeof(FklDefArrayType));
-		FKL_ASSERT(tmp,"fklNewVMArrayType",__FILE__,__LINE__);
+		FKL_ASSERT(tmp,"fklNewVMArrayType");
 		tmp->etype=type;
 		tmp->num=num;
 		tmp->totalSize=num*fklGetVMTypeSize(fklGetVMTypeUnion(type));
@@ -592,7 +592,7 @@ FklTypeId_t fklNewVMPtrType(FklTypeId_t type)
 	if(!id)
 	{
 		FklDefPtrType* tmp=(FklDefPtrType*)malloc(sizeof(FklDefPtrType));
-		FKL_ASSERT(tmp,"fklNewVMPtrType",__FILE__,__LINE__);
+		FKL_ASSERT(tmp,"fklNewVMPtrType");
 		tmp->ptype=type;
 		return addToGlobTypeUnionList((FklDefTypeUnion)FKL_MAKE_PTR_TYPE(tmp));
 	}
@@ -646,7 +646,7 @@ FklTypeId_t fklNewVMStructType(const char* structName,uint32_t num,FklSid_t symb
 		}
 		totalSize+=(totalSize%maxSize)?maxSize-totalSize%maxSize:0;
 		FklDefStructType* tmp=(FklDefStructType*)malloc(sizeof(FklDefStructType)+sizeof(FklDefStructMember)*num);
-		FKL_ASSERT(tmp,"fklNewVMStructType",__FILE__,__LINE__);
+		FKL_ASSERT(tmp,"fklNewVMStructType");
 		if(structName)
 			tmp->type=fklAddSymbolToGlob(structName)->id;
 		else
@@ -678,7 +678,7 @@ FklTypeId_t fklNewVMUnionType(const char* unionName,uint32_t num,FklSid_t symbol
 		}
 	}
 	FklDefUnionType* tmp=(FklDefUnionType*)malloc(sizeof(FklDefUnionType)+sizeof(FklDefStructMember)*num);
-	FKL_ASSERT(tmp,"fklNewVMStructType",__FILE__,__LINE__);
+	FKL_ASSERT(tmp,"fklNewVMStructType");
 	if(unionName)
 		tmp->type=fklAddSymbolToGlob(unionName)->id;
 	else
@@ -725,7 +725,7 @@ FklTypeId_t fklNewVMFuncType(FklTypeId_t rtype,uint32_t anum,FklTypeId_t atypes[
 	if(!id)
 	{
 		FklDefFuncType* tmp=(FklDefFuncType*)malloc(sizeof(FklDefFuncType)+sizeof(FklTypeId_t)*anum);
-		FKL_ASSERT(tmp,"fklNewVMFuncType",__FILE__,__LINE__);
+		FKL_ASSERT(tmp,"fklNewVMFuncType");
 		tmp->rtype=rtype;
 		tmp->anum=anum;
 		uint32_t i=0;
@@ -748,7 +748,7 @@ int fklAddDefTypes(FklDefTypes* otherTypes,FklSid_t typeName,FklTypeId_t type)
 		otherTypes->num+=1;
 		FklDefTypesNode* node=(FklDefTypesNode*)malloc(sizeof(FklDefTypesNode));
 		otherTypes->u=(FklDefTypesNode**)malloc(sizeof(FklDefTypesNode*)*1);
-		FKL_ASSERT(otherTypes->u&&node,"fklAddDefTypes",__FILE__,__LINE__);
+		FKL_ASSERT(otherTypes->u&&node,"fklAddDefTypes");
 		node->name=typeName;
 		node->type=type;
 		otherTypes->u[0]=node;
@@ -774,9 +774,9 @@ int fklAddDefTypes(FklDefTypes* otherTypes,FklSid_t typeName,FklTypeId_t type)
 		otherTypes->num+=1;
 		int64_t i=otherTypes->num-1;
 		otherTypes->u=(FklDefTypesNode**)realloc(otherTypes->u,sizeof(FklDefTypesNode*)*otherTypes->num);
-		FKL_ASSERT(otherTypes->u,"fklAddDefTypes",__FILE__,__LINE__);
+		FKL_ASSERT(otherTypes->u,"fklAddDefTypes");
 		FklDefTypesNode* node=(FklDefTypesNode*)malloc(sizeof(FklDefTypesNode));
-		FKL_ASSERT(otherTypes->u&&node,"fklAddDefTypes",__FILE__,__LINE__);
+		FKL_ASSERT(otherTypes->u&&node,"fklAddDefTypes");
 		node->name=typeName;
 		node->type=type;
 		for(;i>mid;i--)
@@ -942,7 +942,7 @@ void fklLoadTypeList(FILE* fp)
 	fread(&CharTypeId,sizeof(CharTypeId),1,fp);
 	fread(&num,sizeof(num),1,fp);
 	ul=(FklDefTypeUnion*)malloc(sizeof(FklDefTypeUnion)*num);
-	FKL_ASSERT(ul,"fklLoadTypeList",__FILE__,__LINE__);
+	FKL_ASSERT(ul,"fklLoadTypeList");
 	for(;i<num;i++)
 	{
 		FklDefTypeTag tag=FKL_DEF_NATIVE_TYPE_TAG;
@@ -953,7 +953,7 @@ void fklLoadTypeList(FILE* fp)
 			case FKL_DEF_NATIVE_TYPE_TAG:
 				{
 					FklDefNativeType* t=(FklDefNativeType*)malloc(sizeof(FklDefNativeType));
-					FKL_ASSERT(t,"fklLoadTypeList",__FILE__,__LINE__);
+					FKL_ASSERT(t,"fklLoadTypeList");
 					fread(&t->type,sizeof(t->type),1,fp);
 					fread(&t->size,sizeof(t->size),1,fp);
 					tu.nt=(FklDefNativeType*)FKL_MAKE_NATIVE_TYPE(t);
@@ -962,7 +962,7 @@ void fklLoadTypeList(FILE* fp)
 			case FKL_DEF_ARRAY_TYPE_TAG:
 				{
 					FklDefArrayType* t=(FklDefArrayType*)malloc(sizeof(FklDefArrayType));
-					FKL_ASSERT(t,"fklLoadTypeList",__FILE__,__LINE__);
+					FKL_ASSERT(t,"fklLoadTypeList");
 					fread(&t->etype,sizeof(t->etype),1,fp);
 					fread(&t->num,sizeof(t->num),1,fp);
 					tu.at=(FklDefArrayType*)FKL_MAKE_ARRAY_TYPE(t);
@@ -971,7 +971,7 @@ void fklLoadTypeList(FILE* fp)
 			case FKL_DEF_PTR_TYPE_TAG:
 				{
 					FklDefPtrType* t=(FklDefPtrType*)malloc(sizeof(FklDefPtrType));
-					FKL_ASSERT(t,"fklLoadTypeList",__FILE__,__LINE__);
+					FKL_ASSERT(t,"fklLoadTypeList");
 					fread(&t->ptype,sizeof(t->ptype),1,fp);
 					tu.pt=(FklDefPtrType*)FKL_MAKE_PTR_TYPE(t);
 				}
@@ -981,7 +981,7 @@ void fklLoadTypeList(FILE* fp)
 					uint32_t num=0;
 					fread(&num,sizeof(num),1,fp);
 					FklDefStructType* t=(FklDefStructType*)malloc(sizeof(FklDefStructType)+sizeof(FklDefStructMember)*num);
-					FKL_ASSERT(t,"fklLoadTypeList",__FILE__,__LINE__);
+					FKL_ASSERT(t,"fklLoadTypeList");
 					t->num=num;
 					fread(&t->totalSize,sizeof(t->totalSize),1,fp);
 					fread(t->layout,sizeof(FklDefStructMember),num,fp);
@@ -993,7 +993,7 @@ void fklLoadTypeList(FILE* fp)
 					uint32_t num=0;
 					fread(&num,sizeof(num),1,fp);
 					FklDefUnionType* t=(FklDefUnionType*)malloc(sizeof(FklDefUnionType)+sizeof(FklDefStructMember)*num);
-					FKL_ASSERT(t,"fklLoadTypeList",__FILE__,__LINE__);
+					FKL_ASSERT(t,"fklLoadTypeList");
 					t->num=num;
 					fread(&t->maxSize,sizeof(t->maxSize),1,fp);
 					fread(t->layout,sizeof(FklDefStructMember),num,fp);
@@ -1006,7 +1006,7 @@ void fklLoadTypeList(FILE* fp)
 					uint32_t anum=0;
 					fread(&anum,sizeof(anum),1,fp);
 					FklDefFuncType* t=(FklDefFuncType*)malloc(sizeof(FklDefUnionType)+sizeof(FklTypeId_t)*anum);
-					FKL_ASSERT(t,"fklLoadTypeList",__FILE__,__LINE__);
+					FKL_ASSERT(t,"fklLoadTypeList");
 					t->rtype=rtype;
 					t->anum=anum;
 					fread(t->atypes,sizeof(FklTypeId_t),anum,fp);

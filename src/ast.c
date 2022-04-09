@@ -752,7 +752,7 @@ void fklFreeAtom(FklAstAtom* objAtm)
 FklAstPair* fklNewPair(int curline,FklAstPair* prev)
 {
 	FklAstPair* tmp;
-	FKL_ASSERT((tmp=(FklAstPair*)malloc(sizeof(FklAstPair))),"fklNewPair",__FILE__,__LINE__);
+	FKL_ASSERT((tmp=(FklAstPair*)malloc(sizeof(FklAstPair))),"fklNewPair");
 	tmp->car.outer=tmp;
 	tmp->car.type=FKL_NIL;
 	tmp->car.u.all=NULL;
@@ -768,7 +768,7 @@ FklAstPair* fklNewPair(int curline,FklAstPair* prev)
 FklAstCptr* fklNewCptr(int curline,FklAstPair* outer)
 {
 	FklAstCptr* tmp=NULL;
-	FKL_ASSERT((tmp=(FklAstCptr*)malloc(sizeof(FklAstCptr))),"fklNewCptr",__FILE__,__LINE__);
+	FKL_ASSERT((tmp=(FklAstCptr*)malloc(sizeof(FklAstCptr))),"fklNewCptr");
 	tmp->outer=outer;
 	tmp->curline=curline;
 	tmp->type=FKL_NIL;
@@ -779,14 +779,14 @@ FklAstCptr* fklNewCptr(int curline,FklAstPair* outer)
 FklAstAtom* fklNewAtom(int type,const char* value,FklAstPair* prev)
 {
 	FklAstAtom* tmp=NULL;
-	FKL_ASSERT((tmp=(FklAstAtom*)malloc(sizeof(FklAstAtom))),"fklNewAtom",__FILE__,__LINE__);
+	FKL_ASSERT((tmp=(FklAstAtom*)malloc(sizeof(FklAstAtom))),"fklNewAtom");
 	switch(type)
 	{
 		case FKL_SYM:
 		case FKL_STR:
 			if(value!=NULL)
 			{
-				FKL_ASSERT((tmp->value.str=(char*)malloc(strlen(value)+1)),"fklNewAtom",__FILE__,__LINE__);
+				FKL_ASSERT((tmp->value.str=(char*)malloc(strlen(value)+1)),"fklNewAtom");
 				strcpy(tmp->value.str,value);
 			}
 			else
@@ -1169,7 +1169,7 @@ typedef struct
 static MatchState* newMatchState(FklStringMatchPattern* pattern,uint32_t line,uint32_t cindex)
 {
 	MatchState* state=(MatchState*)malloc(sizeof(MatchState));
-	FKL_ASSERT(state,"newMatchState",__FILE__,__LINE__);
+	FKL_ASSERT(state,"newMatchState");
 	state->pattern=pattern;
 	state->line=line;
 	state->cindex=cindex;
@@ -1204,7 +1204,7 @@ typedef struct
 AstElem* newAstElem(AstPlace place,FklAstCptr* cptr)
 {
 	AstElem* t=(AstElem*)malloc(sizeof(AstElem));
-	FKL_ASSERT(t,"newAstElem",__FILE__,__LINE__);
+	FKL_ASSERT(t,"newAstElem");
 	t->place=place;
 	t->cptr=cptr;
 	return t;

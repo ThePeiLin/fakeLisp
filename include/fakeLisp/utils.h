@@ -24,11 +24,11 @@ extern "C" {
 
 #define FKL_MIN(a,b) (((a)<(b))?(a):(b))
 
-#define FKL_ASSERT(exp,str,filepath,cl) \
+#define FKL_ASSERT(exp,str) \
 { \
 	if(!(exp)) \
 	{\
-		fprintf(stderr,"In file \"%s\" line %d\n",(filepath),(cl));\
+		fprintf(stderr,"In file \"%s\" line %d\n",__FILE__,__LINE__);\
 		perror((str));\
 		exit(1);\
 	}\
@@ -38,7 +38,7 @@ extern "C" {
 	if((stack)->tp>=(stack)->size)\
 	{\
 		(stack)->values=(FklVMvalue**)realloc((stack)->values,sizeof(FklVMvalue*)*((stack)->size+64));\
-		FKL_ASSERT((stack)->values,fn,__FILE__,__LINE__);\
+		FKL_ASSERT((stack)->values,fn);\
 		if((stack)->values==NULL)\
 		{\
 			fprintf(stderr,"In file \"%s\" line %d\n",__FILE__,__LINE__);\

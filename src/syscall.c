@@ -1255,8 +1255,9 @@ void SYS_read(FklVM* exe,pthread_rwlock_t* gclock)
 		tmpString=fklCopyStr(stream->u.str);
 		char* parts[]={tmpString};
 		size_t sizes[]={strlen(tmpString)};
+		uint32_t line=0;
 		FklPtrStack* matchStateStack=fklNewPtrStack(32,16);
-		fklSplitStringPartsIntoToken(parts,sizes,1,0,tokenStack,matchStateStack,NULL,NULL);
+		fklSplitStringPartsIntoToken(parts,sizes,1,&line,tokenStack,matchStateStack,NULL,NULL);
 		while(!fklIsPtrStackEmpty(matchStateStack))
 			free(fklPopPtrStack(matchStateStack));
 		fklFreePtrStack(matchStateStack);

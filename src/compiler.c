@@ -2313,13 +2313,15 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int evalIm,int* exitstate)
 	FklByteCode* resTp=fklNewByteCode(1);
 	resTp->code[0]=FKL_RES_TP;
 	char* prev=NULL;
+	size_t prevSize=0;
 	FklPtrStack* tokenStack=fklNewPtrStack(32,16);
 	for(;;)
 	{
 		FklAstCptr* begin=NULL;
 		int unexpectEOF=0;
-		char* list=fklReadInStringPattern(inter->file,&prev,inter->curline,&unexpectEOF,tokenStack,NULL);
-		if(list==NULL&&!unexpectEOF)continue;
+		size_t size=0;
+		char* list=fklReadInStringPattern(inter->file,&prev,&size,&prevSize,inter->curline,&unexpectEOF,tokenStack,NULL);
+		if(list==NULL&&!unexpectEOF&&size)continue;
 		FklErrorState state={0,NULL};
 		if(unexpectEOF)
 		{
@@ -2340,9 +2342,9 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int evalIm,int* exitstate)
 			break;
 		}
 		begin=fklCreateAstWithTokens(tokenStack,inter);
-		inter->curline+=fklCountChar(list,'\n',-1);
+		inter->curline+=fklCountChar(list,'\n',size);
 		//begin=fklCreateTree(list,inter,NULL);
-		if(fklIsAllSpace(list))
+		if(fklIsAllSpaceBufSize(list,size))
 		{
 			while(!fklIsPtrStackEmpty(tokenStack))
 				fklFreeToken(fklPopPtrStack(tokenStack));
@@ -2418,6 +2420,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 	fklPushMem(tmp,(FklGenDestructor)fklFreeByteCodeAndLnt,memMenager);
 	chdir(inter->curDir);
 	char* prev=NULL;
+	size_t prevSize=0;
 	/* 获取文件路径和文件名
 	 * 然后打开并查找第一个library表达式
 	 */
@@ -2567,8 +2570,9 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 		{
 			FklAstCptr* begin=NULL;
 			int unexpectEOF=0;
-			char* list=fklReadInStringPattern(tmpInter->file,&prev,tmpInter->curline,&unexpectEOF,tokenStack,NULL);
-			if(list==NULL&&!unexpectEOF)continue;
+			size_t size=0;
+			char* list=fklReadInStringPattern(tmpInter->file,&prev,&size,&prevSize,tmpInter->curline,&unexpectEOF,tokenStack,NULL);
+			if(list==NULL&&!unexpectEOF&&size)continue;
 			if(unexpectEOF)
 			{
 				switch(unexpectEOF)
@@ -2584,9 +2588,9 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 				break;
 			}
 			begin=fklCreateAstWithTokens(tokenStack,tmpInter);
-			tmpInter->curline+=fklCountChar(list,'\n',-1);
+			tmpInter->curline+=fklCountChar(list,'\n',size);
 			//begin=fklCreateTree(list,tmpInter,NULL);
-			if(fklIsAllSpace(list))
+			if(fklIsAllSpaceBufSize(list,size))
 			{
 				while(!fklIsPtrStackEmpty(tokenStack))
 					fklFreeToken(fklPopPtrStack(tokenStack));

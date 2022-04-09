@@ -154,6 +154,7 @@ void mergeSort(void* base
 char* fklStrCat(char*,const char*);
 uint8_t* fklCreateByteArry(int32_t);
 
+char* fklCharBufToStr(const char* buf,size_t size);
 #ifdef __cplusplus
 }
 #endif

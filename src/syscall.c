@@ -21,7 +21,6 @@ extern FklVMlist GlobVMs;
 extern void* ThreadVMfunc(void* p);
 extern void* ThreadVMdlprocFunc(void* p);
 extern void* ThreadVMflprocFunc(void* p);
-
 //syscalls
 
 void SYS_car(FklVM* exe,pthread_rwlock_t* gclock);
@@ -1206,7 +1205,7 @@ void SYS_fopen(FklVM* exe,pthread_rwlock_t* gclock)
 		FKL_RAISE_BUILTIN_ERROR("sys.fopen",FKL_FILEFAILURE,runnable,exe);
 	}
 	else
-		obj=fklNewVMvalue(FKL_FP,file,heap);
+		obj=fklNewVMvalue(FKL_FP,fklNewVMfp(file),heap);
 	FKL_SET_RETURN("SYS_fopen",obj,stack);
 }
 
@@ -1221,48 +1220,10 @@ void SYS_fclose(FklVM* exe,pthread_rwlock_t* gclock)
 		FKL_RAISE_BUILTIN_ERROR("sys.fclose",FKL_TOOFEWARG,runnable,exe);
 	if(!FKL_IS_FP(fp))
 		FKL_RAISE_BUILTIN_ERROR("sys.fclose",FKL_WRONGARG,runnable,exe);
-	if(fp->u.fp==NULL||fp->u.fp==stderr||fp->u.fp==stdin||fp->u.fp==stdout||fclose(fp->u.fp)==EOF)
+	if(fp->u.fp==NULL||fklFreeVMfp(fp->u.fp))
 		FKL_RAISE_BUILTIN_ERROR("sys.fclose",FKL_INVALIDACCESS,runnable,exe);
 	fp->u.fp=NULL;
 	FKL_SET_RETURN("SYS_fclose",FKL_VM_NIL,stack);
-}
-
-static char* readUntilBlank(FILE* fp,int* eof)
-{
-	int32_t memSize=FKL_MAX_STRING_SIZE;
-	char* tmp=(char*)malloc(sizeof(char)*memSize);
-	FKL_ASSERT(tmp,"readString");
-	int32_t strSize=0;
-	int ch=getc(fp);
-	if(ch==EOF)
-		*eof=1;
-	for(;;)
-	{
-		if(ch==EOF)
-			break;
-		if(ch==';')
-		{
-			while(ch!='\n')
-				ch=getc(fp);
-			continue;
-		}
-		strSize++;
-		if(strSize>memSize-1)
-		{
-			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+FKL_MAX_STRING_SIZE));
-			FKL_ASSERT(tmp,"readString");
-			memSize+=FKL_MAX_STRING_SIZE;
-		}
-		tmp[strSize-1]=ch;
-		if(isspace(ch))
-			break;
-		ch=getc(fp);
-	}
-	tmp[strSize]='\0';
-	memSize=strlen(tmp)+1;
-	tmp=(char*)realloc(tmp,sizeof(char)*memSize);
-	FKL_ASSERT(tmp,"readString");
-	return tmp;
 }
 
 void SYS_read(FklVM* exe,pthread_rwlock_t* gclock)
@@ -1275,16 +1236,14 @@ void SYS_read(FklVM* exe,pthread_rwlock_t* gclock)
 	if(stream&&!FKL_IS_FP(stream)&&!FKL_IS_STR(stream))
 		FKL_RAISE_BUILTIN_ERROR("sys.read",FKL_WRONGARG,runnable,exe);
 	char* tmpString=NULL;
-	FILE* tmpFile=NULL;
+	FklVMfp* tmpFile=NULL;
 	FklPtrStack* tokenStack=fklNewPtrStack(32,16);
 	if(!stream||FKL_IS_FP(stream))
 	{
-		tmpFile=stream?stream->u.fp:stdin;
+		tmpFile=stream?stream->u.fp:fklGetVMstdin()->u.fp;
 		int unexpectEOF=0;
-		char* prev=NULL;
-		tmpString=fklReadInStringPattern(tmpFile,&prev,0,&unexpectEOF,tokenStack,readUntilBlank);
-		if(prev)
-			free(prev);
+		size_t size=0;
+		tmpString=fklReadInStringPattern(tmpFile->fp,(char**)&tmpFile->prev,&size,&tmpFile->size,0,&unexpectEOF,tokenStack,NULL);
 		if(unexpectEOF)
 		{
 			free(tmpString);
@@ -1295,13 +1254,14 @@ void SYS_read(FklVM* exe,pthread_rwlock_t* gclock)
 	{
 		tmpString=fklCopyStr(stream->u.str);
 		char* parts[]={tmpString};
+		size_t sizes[]={strlen(tmpString)};
 		FklPtrStack* matchStateStack=fklNewPtrStack(32,16);
-		fklSplitStringPartsIntoToken(parts,1,0,tokenStack,matchStateStack,NULL,NULL);
+		fklSplitStringPartsIntoToken(parts,sizes,1,0,tokenStack,matchStateStack,NULL,NULL);
 		while(!fklIsPtrStackEmpty(matchStateStack))
 			free(fklPopPtrStack(matchStateStack));
 		fklFreePtrStack(matchStateStack);
 	}
-	FklInterpreter* tmpIntpr=fklNewTmpIntpr(NULL,tmpFile);
+	FklInterpreter* tmpIntpr=fklNewTmpIntpr(NULL,tmpFile->fp);
 	FklAstCptr* tmpCptr=fklCreateAstWithTokens(tokenStack,tmpIntpr);
 	//FklAstCptr* tmpCptr=fklBaseCreateTree(tmpString,tmpIntpr);
 	FklVMvalue* tmp=NULL;
@@ -1324,19 +1284,43 @@ void SYS_getb(FklVM* exe,pthread_rwlock_t* gclock)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMheap* heap=exe->heap;
-	FklVMvalue* size=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* psize=fklGET_VAL(fklPopVMstack(stack),heap);
 	FklVMvalue* file=fklGET_VAL(fklPopVMstack(stack),heap);
 	if(fklResBp(stack))
 		FKL_RAISE_BUILTIN_ERROR("sys.getb",FKL_TOOMANYARG,runnable,exe);
-	if(!file||!size)
+	if(!file||!psize)
 		FKL_RAISE_BUILTIN_ERROR("sys.getb",FKL_TOOFEWARG,runnable,exe);
-	if(!FKL_IS_FP(file)||!isInt(size))
+	if(!FKL_IS_FP(file)||!isInt(psize))
 		FKL_RAISE_BUILTIN_ERROR("sys.getb",FKL_WRONGARG,runnable,exe);
-	FILE* fp=file->u.fp;
-	uint8_t* str=(uint8_t*)malloc(sizeof(uint8_t)*FKL_GET_I32(size));
+	FklVMfp* fp=file->u.fp;
+	size_t size=getInt(psize);
+	uint8_t* str=(uint8_t*)malloc(sizeof(uint8_t)*size);
 	FKL_ASSERT(str,"B_getb");
 	int32_t realRead=0;
-	realRead=fread(str,sizeof(uint8_t),FKL_GET_I32(size),fp);
+	if(fp->size)
+	{
+		if(fp->size<=size)
+		{
+			memcpy(str,fp->prev,fp->size);
+			realRead+=fp->size;
+			size-=fp->size;
+			free(fp->prev);
+			fp->prev=NULL;
+			fp->size=0;
+		}
+		else
+		{
+			fp->size-=size;
+			memcpy(str,fp->prev,size);
+			realRead+=size;
+			uint8_t* prev=fp->prev;
+			fp->prev=fklCopyMemory(prev+size,sizeof(uint8_t)*fp->size);
+			free(prev);
+			size=0;
+		}
+	}
+	if(size)
+		realRead+=fread(str,sizeof(uint8_t),size,fp->fp);
 	if(!realRead)
 	{
 		free(str);
@@ -1347,10 +1331,10 @@ void SYS_getb(FklVM* exe,pthread_rwlock_t* gclock)
 		str=(uint8_t*)realloc(str,sizeof(uint8_t)*realRead);
 		FKL_ASSERT(str,"B_getb");
 		FklVMvalue* tmpByts=fklNewVMvalue(FKL_BYTS,NULL,exe->heap);
-		tmpByts->u.byts=(FklVMbyts*)malloc(sizeof(FklVMbyts)+FKL_GET_I32(size));
+		tmpByts->u.byts=(FklVMbyts*)malloc(sizeof(FklVMbyts)+getInt(psize));
 		FKL_ASSERT(tmpByts->u.byts,"SYS_getb");
-		tmpByts->u.byts->size=FKL_GET_I32(size);
-		memcpy(tmpByts->u.byts->str,str,FKL_GET_I32(size));
+		tmpByts->u.byts->size=getInt(psize);
+		memcpy(tmpByts->u.byts->str,str,getInt(psize));
 		free(str);
 		FKL_SET_RETURN("SYS_getb",tmpByts,stack);
 	}
@@ -1369,7 +1353,7 @@ void SYS_prin1(FklVM* exe,pthread_rwlock_t* gclock)
 		FKL_RAISE_BUILTIN_ERROR("sys.prin1",FKL_TOOFEWARG,runnable,exe);
 	if(file&&!FKL_IS_FP(file))
 		FKL_RAISE_BUILTIN_ERROR("sys.prin1",FKL_WRONGARG,runnable,exe);
-	FILE* objFile=file?file->u.fp:stdout;
+	FILE* objFile=file?file->u.fp->fp:stdout;
 	fklPrin1VMvalue(obj,objFile);
 	FKL_SET_RETURN("SYS_prin1",obj,stack);
 }
@@ -1387,7 +1371,7 @@ void SYS_putb(FklVM* exe,pthread_rwlock_t* gclock)
 		FKL_RAISE_BUILTIN_ERROR("sys.putb",FKL_TOOFEWARG,runnable,exe);
 	if(!FKL_IS_FP(file)||!FKL_IS_BYTS(bt))
 		FKL_RAISE_BUILTIN_ERROR("sys.putb",FKL_WRONGARG,runnable,exe);
-	FILE* objFile=file->u.fp;
+	FILE* objFile=file->u.fp->fp;
 	fwrite(bt->u.byts->str,sizeof(uint8_t),bt->u.byts->size,objFile);
 	FKL_SET_RETURN("SYS_putb",bt,stack);
 }
@@ -1405,7 +1389,7 @@ void SYS_princ(FklVM* exe,pthread_rwlock_t* gclock)
 		FKL_RAISE_BUILTIN_ERROR("sys.princ",FKL_TOOFEWARG,runnable,exe);
 	if(file&&!FKL_IS_FP(file))
 		FKL_RAISE_BUILTIN_ERROR("sys.princ",FKL_WRONGARG,runnable,exe);
-	FILE* objFile=file?file->u.fp:stdout;
+	FILE* objFile=file?file->u.fp->fp:stdout;
 	fklPrincVMvalue(obj,objFile);
 	FKL_SET_RETURN("SYS_princ",obj,stack);
 }

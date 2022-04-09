@@ -109,7 +109,7 @@ void fklPrintRawString(const char* objStr,FILE* out)
 	{
 		if(*tmpStr=='\"')
 			fprintf(out,"\\\"");
-		else if(isgraph(*tmpStr)||*tmpStr<0)
+		else if(isgraph(*tmpStr))
 			putc(*tmpStr,out);
 		else if(*tmpStr=='\x20')
 			putc(*tmpStr,out);
@@ -724,4 +724,22 @@ uint8_t* fklCreateByteArry(int32_t size)
 	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
 	FKL_ASSERT(tmp,"fklCreateByteArry");
 	return tmp;
+}
+
+char* fklCharBufToStr(const char* buf,size_t size)
+{
+	char* str=(char*)malloc(sizeof(char)*(size+1));
+	FKL_ASSERT(str,"fklVMbytsToCstr");
+	size_t len=0;
+	for(size_t i=0;i<size;i++)
+	{
+		if(!buf[i])
+			continue;
+		str[len]=buf[i];
+		len++;
+	}
+	str[len]='\0';
+	str=(char*)realloc(str,(strlen(str)+1)*sizeof(char));
+	FKL_ASSERT(str,"fklVMbytsToCstr");
+	return str;
 }

@@ -271,12 +271,11 @@ int32_t fklCountInPatternWhenReading(const char* str,FklStringMatchPattern* patt
 	return i;
 }
 
-char* fklReadLine(FILE* fp,int* eof)
+char* fklReadLine(FILE* fp,size_t* size,int* eof)
 {
 	int32_t memSize=FKL_MAX_STRING_SIZE;
 	char* tmp=(char*)malloc(sizeof(char)*memSize);
 	FKL_ASSERT(tmp,"readString");
-	int32_t strSize=0;
 	int ch=getc(fp);
 	if(ch==EOF)
 		*eof=1;
@@ -284,75 +283,65 @@ char* fklReadLine(FILE* fp,int* eof)
 	{
 		if(ch==EOF)
 			break;
-		strSize++;
-		if(strSize>memSize-1)
+		(*size)++;
+		if((*size)>memSize)
 		{
 			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+FKL_MAX_STRING_SIZE));
 			FKL_ASSERT(tmp,"readString");
 			memSize+=FKL_MAX_STRING_SIZE;
 		}
-		tmp[strSize-1]=ch;
+		tmp[*size-1]=ch;
 		if(ch=='\n')
 			break;
 		ch=getc(fp);
 	}
-	tmp[strSize]='\0';
-	memSize=strlen(tmp)+1;
-	tmp=(char*)realloc(tmp,sizeof(char)*memSize);
-	FKL_ASSERT(tmp,"readString");
+	tmp=(char*)realloc(tmp,sizeof(char)*(*size));
+	FKL_ASSERT(!*size||tmp,"fklReadLine");
 	return tmp;
 }
 
-char* fklReadInStringPattern(FILE* fp,char** prev,uint32_t curline,int* unexpectEOF,FklPtrStack* retval,char* (*read)(FILE*,int*))
+char* fklReadInStringPattern(FILE* fp,char** prev,size_t* size,size_t* prevSize,uint32_t curline,int* unexpectEOF,FklPtrStack* retval,char* (*read)(FILE*,size_t*,int*))
 {
 	char* tmp=NULL;
-	size_t len=0;
 	*unexpectEOF=0;
 	FklPtrStack* matchStateStack=fklNewPtrStack(32,16);
+	size_t nextSize=0;
 	if(!read)
 		read=fklReadLine;
 	if(*prev)
 	{
-		tmp=(char*)malloc(sizeof(char)*(strlen(*prev)+1));
+		tmp=(char*)malloc(sizeof(char)*(*prevSize));
 		FKL_ASSERT(tmp,"fklReadInStringPattern");
-		strcpy(tmp,*prev);
+		memcpy(tmp,*prev,*prevSize);
 		free(*prev);
 		*prev=NULL;
-		len=strlen(tmp);
+		*size=*prevSize;
+		nextSize=*prevSize;
+		*prevSize=0;
 	}
 	else
-	{
-		tmp=(char*)malloc(sizeof(char)*1);
-		FKL_ASSERT(tmp,"fklReadInStringPattern");
-		tmp[0]='\0';
-	}
+		*size=0;
 	uint32_t cpost=0;
 	uint32_t line=curline;
+	int eof=0;
 	for(;;)
 	{
-		int eof=0;
-		char* next=read(fp,&eof);
-		len=strlen(tmp);
-		tmp=fklStrCat(tmp,next);
 		char* strs[]={tmp+cpost};
-		free(next);
+		size_t sizes[]={nextSize};
 		uint32_t i=0,j=0;
-		int r=fklSplitStringPartsIntoToken(strs,1,&line,retval,matchStateStack,&i,&j);
-		cpost+=j;
+		int r=fklSplitStringPartsIntoToken(strs,sizes,1,&line,retval,matchStateStack,&i,&j);
 		if(r==0)
 		{
-			size_t nextLen=strlen(tmp+len+j);
-			if(nextLen)
+			if(*size-j-cpost)
 			{
-				tmp[j+len+nextLen-1]='\0';
-				*prev=fklCopyStr(tmp+len+j);
+				*prevSize=*size-j-cpost;
+				*prev=fklCopyMemory(tmp+cpost+j,*prevSize);
+				*size-=*prevSize;
 			}
-			tmp[len+j]='\0';
-			len=strlen(tmp);
-			char* rt=(char*)realloc(tmp,sizeof(char)*(len+1));
-			FKL_ASSERT(rt,"fklReadInStringPattern");
+			char* rt=(char*)realloc(tmp,sizeof(char)*(*size));
+			FKL_ASSERT(!*size||rt,"fklReadInStringPattern");
 			tmp=rt;
-			if((!fklIsAllSpace(tmp)&&!fklIsAllComment(retval))||eof)
+			if((!fklIsAllSpaceBufSize(tmp,*size)&&!fklIsAllComment(retval))||eof)
 			{
 				curline=line;
 				break;
@@ -380,7 +369,24 @@ char* fklReadInStringPattern(FILE* fp,char** prev,uint32_t curline,int* unexpect
 			tmp=NULL;
 			break;
 		}
+		cpost+=j;
+		nextSize=0;
+		char* next=read(fp,&nextSize,&eof);
+		tmp=(char*)realloc(tmp,sizeof(char)+(*size+nextSize));
+		FKL_ASSERT(tmp,"fklReadInStringPattern");
+		memcpy(tmp+*size,next,nextSize);
+		*size+=nextSize;
+		free(next);
+
 	}
 	fklFreePtrStack(matchStateStack);
 	return tmp;
+}
+
+int fklIsAllSpaceBufSize(const char* buf,size_t size)
+{
+	for(size_t i=0;i<size;i++)
+		if(!isspace(buf[i]))
+			return 0;
+	return 1;
 }

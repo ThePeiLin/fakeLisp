@@ -197,15 +197,17 @@ void runRepl(FklInterpreter* inter)
 	FklByteCode* rawProcList=NULL;
 	FklPtrStack* tokenStack=fklNewPtrStack(32,16);
 	char* prev=NULL;
+	size_t prevSize=0;
 	int32_t bs=0;
 	for(;e<2;)
 	{
 		FklAstCptr* begin=NULL;
 		if(inter->file==stdin)printf(">>>");
 		if(prev)
-			printf("%s",prev);
+			fwrite(prev,sizeof(char),prevSize,stdout);
 		int unexpectEOF=0;
-		char* list=fklReadInStringPattern(inter->file,&prev,inter->curline,&unexpectEOF,tokenStack,NULL);
+		size_t size=0;
+		char* list=fklReadInStringPattern(inter->file,&prev,&size,&prevSize,inter->curline,&unexpectEOF,tokenStack,NULL);
 		FklErrorState state={0,NULL};
 		if(unexpectEOF)
 		{
@@ -223,11 +225,11 @@ void runRepl(FklInterpreter* inter)
 			continue;
 		}
 		begin=fklCreateAstWithTokens(tokenStack,inter);
-		inter->curline+=fklCountChar(list,'\n',-1);
+		inter->curline+=fklCountChar(list,'\n',size);
 		while(!fklIsPtrStackEmpty(tokenStack))
 			fklFreeToken(fklPopPtrStack(tokenStack));
 		//begin=fklCreateTree(list,inter,NULL);
-		if(fklIsAllSpace(list))
+		if(fklIsAllSpaceBufSize(list,size))
 		{
 			free(list);
 			break;

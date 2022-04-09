@@ -20,6 +20,10 @@
 pthread_mutex_t GlobSharedObjsMutex=PTHREAD_MUTEX_INITIALIZER;
 FklSharedObjNode* GlobSharedObjs=NULL;
 
+static FklVMvalue* VMstdin=NULL;
+static FklVMvalue* VMstdout=NULL;
+static FklVMvalue* VMstderr=NULL;
+
 void threadErrorCallBack(void* a)
 {
 	void** e=(void**)a;
@@ -462,9 +466,12 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 	obj->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*FKL_NUM_OF_BUILT_IN_SYMBOL);
 	FKL_ASSERT(obj->list,"fklInitGlobEnv");
 	obj->list[0]=fklNewVMenvNode(FKL_VM_NIL,fklAddSymbolToGlob(fklGetBuiltInSymbol(0))->id);
-	obj->list[1]=fklNewVMenvNode(fklNewVMvalue(FKL_FP,stdin,heap),fklAddSymbolToGlob(fklGetBuiltInSymbol(1))->id);
-	obj->list[2]=fklNewVMenvNode(fklNewVMvalue(FKL_FP,stdout,heap),fklAddSymbolToGlob(fklGetBuiltInSymbol(2))->id);
-	obj->list[3]=fklNewVMenvNode(fklNewVMvalue(FKL_FP,stderr,heap),fklAddSymbolToGlob(fklGetBuiltInSymbol(3))->id);
+	VMstdin=fklNewVMvalue(FKL_FP,fklNewVMfp(stdin),heap);
+	VMstdout=fklNewVMvalue(FKL_FP,fklNewVMfp(stdout),heap);
+	VMstderr=fklNewVMvalue(FKL_FP,fklNewVMfp(stderr),heap);
+	obj->list[1]=fklNewVMenvNode(VMstdin,fklAddSymbolToGlob(fklGetBuiltInSymbol(1))->id);
+	obj->list[2]=fklNewVMenvNode(VMstdout,fklAddSymbolToGlob(fklGetBuiltInSymbol(2))->id);
+	obj->list[3]=fklNewVMenvNode(VMstdin,fklAddSymbolToGlob(fklGetBuiltInSymbol(3))->id);
 	size_t i=4;
 	for(;i<FKL_NUM_OF_BUILT_IN_SYMBOL;i++)
 	{
@@ -1859,4 +1866,17 @@ void fklLockGC(pthread_rwlock_t* pGClock)
 	pthread_rwlock_rdlock(pGClock);
 }
 
+FklVMvalue* fklGetVMstdin(void)
+{
+	return VMstdin;
+}
 
+FklVMvalue* fklGetVMstdout(void)
+{
+	return VMstdout;
+}
+
+FklVMvalue* fklGetVMstderr(void)
+{
+	return VMstderr;
+}

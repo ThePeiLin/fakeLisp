@@ -96,7 +96,7 @@ typedef struct FklVMvalue
 		struct FklVMdlproc* dlproc;
 		struct FklVMflproc* flproc;
 		struct FklVMcontinuation* cont;
-		FILE* fp;
+		FklVMfp* fp;
 		struct FklVMchanl* chan;
 		struct FklVMerror* err;
 	}u;
@@ -381,7 +381,8 @@ void fklFreeVMproc(FklVMproc*);
 VMcontinuation* fklNewVMcontinuation(FklVMstack*,FklPtrStack*,FklPtrStack*);
 void fklFreeVMcontinuation(VMcontinuation*);
 
-void fklFreeVMfp(FILE*);
+FklVMfp* fklNewVMfp(FILE*);
+int fklFreeVMfp(FklVMfp*);
 
 FklVMdllHandle* fklNewVMdll(const char*);
 void* fklGetAddress(const char*,FklVMdllHandle);
@@ -410,6 +411,9 @@ void fklChanlRecv(FklVMrecv*,FklVMchanl*,pthread_rwlock_t* pGClock);
 FklVMvalue* fklCastCptrVMvalue(FklAstCptr*,FklVMheap*);
 
 char* fklVMbytsToCstr(FklVMbyts*);
+FklVMvalue* fklGetVMstdin(void);
+FklVMvalue* fklGetVMstdout(void);
+FklVMvalue* fklGetVMstderr(void);
 #ifdef __cplusplus
 }
 #endif

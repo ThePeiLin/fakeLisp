@@ -10,7 +10,16 @@
 extern "C" {
 #endif
 char* fklReadInPattern(FILE*,char**,int*);
-char* fklReadInStringPattern(FILE*,char**,uint32_t,int*,FklPtrStack* retval,char* (*)(FILE*,int*));
+char* fklReadInStringPattern(FILE*
+		,char**
+		,size_t* size
+		,size_t* prevSize
+		,uint32_t
+		,int*
+		,FklPtrStack* retval
+		,char* (*)(FILE*,size_t* size,int*));
+
+int fklIsAllSpaceBufSize(const char* buf,size_t size);
 #ifdef __cplusplus
 }
 #endif

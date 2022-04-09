@@ -408,10 +408,26 @@ void fklFreeVMproc(FklVMproc* proc)
 	free(proc);
 }
 
-void fklFreeVMfp(FILE* fp)
+FklVMfp* fklNewVMfp(FILE* fp)
 {
-	if(fp!=NULL&&fp!=stdin&&fp!=stdout&&fp!=stderr)
-		fclose(fp);
+	FklVMfp* vfp=(FklVMfp*)malloc(sizeof(FklVMfp));
+	FKL_ASSERT(vfp,"fklNewVMfp");
+	vfp->fp=fp;
+	vfp->size=0;
+	vfp->prev=NULL;
+	return vfp;
+}
+
+int fklFreeVMfp(FklVMfp* vfp)
+{
+	if(vfp->size)
+		free(vfp->prev);
+	FILE* fp=vfp->fp;
+	int r=0;
+	if(!(fp!=NULL&&fp!=stdin&&fp!=stdout&&fp!=stderr&&fclose(fp)!=EOF))
+		r=1;
+	free(vfp);
+	return r;
 }
 
 FklVMdllHandle* fklNewVMdll(const char* dllName)
@@ -854,18 +870,5 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 
 char* fklVMbytsToCstr(FklVMbyts* byts)
 {
-	char* str=(char*)malloc(sizeof(char)*(byts->size+1));
-	FKL_ASSERT(str,"fklVMbytsToCstr");
-	size_t len=0;
-	for(size_t i=0;i<byts->size;i++)
-	{
-		if(!byts->str[i])
-			continue;
-		str[len]=byts->str[i];
-		len++;
-	}
-	str[len]='\0';
-	str=(char*)realloc(str,(strlen(str)+1)*sizeof(char));
-	FKL_ASSERT(str,"fklVMbytsToCstr");
-	return str;
+	return fklCharBufToStr((char*)byts->str,byts->size);
 }

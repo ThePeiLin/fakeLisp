@@ -440,7 +440,7 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 				if(complete)
 				{
 					fklPushPtrStack(fklNewToken(FKL_TOKEN_STRING,str,sumLen,*line),retvalStack);
-					line+=fklCountChar(str,'\n',-1);
+					(*line)+=fklCountChar(str,'\n',-1);
 					j+=lastLen;
 					free(str);
 				}

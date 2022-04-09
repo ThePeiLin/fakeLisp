@@ -338,7 +338,7 @@ static size_t getSymbolLen(const char* part,size_t index,size_t size,FklPtrStack
 	return i;
 }
 
-static uint32_t skipSpaceAndCountLine(const char* str,size_t index,size_t size,uint32_t* cline)
+static size_t skipSpaceAndCountLine(const char* str,size_t index,size_t size,uint32_t* cline)
 {
 	size_t j=0;
 	for(;index+j<size&&isspace(str[index+j]);j++)

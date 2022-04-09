@@ -852,16 +852,20 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 	return tmp;
 }
 
-FklVMstr* fklNewVMstr(char* mem,size_t size)
+char* fklVMbytsToCstr(FklVMbyts* byts)
 {
-	FklVMstr* str=(FklVMstr*)malloc(sizeof(FklVMstr)+size*sizeof(char));
-	FKL_ASSERT(str,"fklNewVMstr");
-	str->size=size;
-	memcpy(str,mem,size);
+	char* str=(char*)malloc(sizeof(char)*(byts->size+1));
+	FKL_ASSERT(str,"fklVMbytsToCstr");
+	size_t len=0;
+	for(size_t i=0;i<byts->size;i++)
+	{
+		if(!byts->str[i])
+			continue;
+		str[len]=byts->str[i];
+		len++;
+	}
+	str[len]='\0';
+	str=(char*)realloc(str,(strlen(str)+1)*sizeof(char));
+	FKL_ASSERT(str,"fklVMbytsToCstr");
 	return str;
-}
-
-void fklFreeVMstr(FklVMstr* str)
-{
-	free(str);
 }

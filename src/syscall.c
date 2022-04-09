@@ -955,8 +955,8 @@ void SYS_str(FklVM* exe,pthread_rwlock_t* gclock)
 	{
 		if(fklResBp(stack))
 			FKL_RAISE_BUILTIN_ERROR("sys.str",FKL_TOOMANYARG,runnable,exe);
-		if(FKL_IS_I32(obj))
-			retval->u.str=fklIntToString(FKL_GET_I32(obj));
+		if(isInt(obj)&&!FKL_IS_I8(obj))
+			retval->u.str=fklIntToString(getInt(obj));
 		else if(FKL_IS_F64(obj))
 			retval->u.str=fklDoubleToString(obj->u.f64);
 		else if(FKL_IS_I8(obj))
@@ -964,15 +964,7 @@ void SYS_str(FklVM* exe,pthread_rwlock_t* gclock)
 		else if(FKL_IS_SYM(obj))
 			retval->u.str=fklCopyStr(fklGetGlobSymbolWithId(FKL_GET_SYM(obj))->symbol);
 		else if(FKL_IS_BYTS(obj))
-		{
-			size_t s=obj->u.byts->size;
-			size_t l=(obj->u.byts->str[s-1])?s+1:s;
-			char* t=(char*)malloc(sizeof(char)*l);
-			FKL_ASSERT(t,"SYS_str");
-			memcpy(t,obj->u.byts->str,s);
-			t[l-1]='\0';
-			retval->u.str=t;
-		}
+			retval->u.str=fklVMbytsToCstr(obj->u.byts);
 		else
 			FKL_RAISE_BUILTIN_ERROR("sys.str",FKL_WRONGARG,runnable,exe);
 	}

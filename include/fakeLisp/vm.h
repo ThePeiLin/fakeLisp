@@ -66,12 +66,6 @@ typedef struct FklVMbyts
 	uint8_t str[];
 }FklVMbyts;
 
-typedef struct FklVMstr
-{
-	uint64_t size;
-	char str[];
-}FklVMstr;
-
 typedef struct FklVMfp
 {
 	size_t size;
@@ -415,8 +409,7 @@ void fklChanlRecv(FklVMrecv*,FklVMchanl*,pthread_rwlock_t* pGClock);
 
 FklVMvalue* fklCastCptrVMvalue(FklAstCptr*,FklVMheap*);
 
-FklVMstr* fklNewVMstr(char* mem,size_t size);
-void fklFreeVMstr(FklVMstr* str);
+char* fklVMbytsToCstr(FklVMbyts*);
 #ifdef __cplusplus
 }
 #endif

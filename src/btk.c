@@ -155,22 +155,6 @@ void FKL_setVMChanlBufferSize(FklVM* exe,pthread_rwlock_t* pGClock)
 	FKL_SET_RETURN("FKL_setVMChanlBufferSize",chan,stack);
 }
 
-void FKL_isEndOfFile(FklVM* exe,pthread_rwlock_t* pGClock)
-{
-	FklVMstack* stack=exe->stack;
-	FklVMvalue* fp=fklPopVMstack(stack);
-	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
-	if(fklResBp(stack))
-		FKL_RAISE_BUILTIN_ERROR("btk.isEndOfFile",FKL_TOOMANYARG,r,exe);
-	if(fp==NULL)
-		FKL_RAISE_BUILTIN_ERROR("btk.isEndOfFile",FKL_TOOFEWARG,r,exe);
-	if(!FKL_IS_FP(fp))
-		FKL_RAISE_BUILTIN_ERROR("btk.isEndOfFile",FKL_WRONGARG,r,exe);
-	FKL_SET_RETURN("FKL_isEndOfFile",feof(fp->u.fp->fp)
-			?FKL_VM_TRUE
-			:FKL_VM_NIL
-			,stack);
-}
 #ifdef __cplusplus
 }
 #endif

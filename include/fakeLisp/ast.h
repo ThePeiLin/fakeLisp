@@ -73,6 +73,7 @@ typedef struct FklAstAtom
 
 typedef struct FklInterpreter FklInterpreter;
 typedef struct FklStringMatchPattern FklStringMatchPattern;
+typedef struct FklCompEnv FklCompEnv;
 FklAstCptr* fklCreateTree(const char*,FklInterpreter*,FklStringMatchPattern*);
 FklAstCptr* fklBaseCreateTree(const char*,FklInterpreter*);
 
@@ -99,7 +100,7 @@ FklAstCptr* fklGetASTPairCdr(const FklAstCptr*);
 FklAstCptr* fklGetCptrCar(const FklAstCptr*);
 FklAstCptr* fklGetCptrCdr(const FklAstCptr*);
 
-FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,FklInterpreter* globEnv);
+FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,FklCompEnv*);
 #ifdef __cplusplus
 }
 #endif

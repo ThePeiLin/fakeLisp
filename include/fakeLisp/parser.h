@@ -36,7 +36,7 @@ int fklSplitStringPartsIntoToken(char** parts
 		,uint32_t* pj);
 void fklPrintToken(FklPtrStack*,FILE* fp);
 
-FklToken* fklNewToken(FklTokenType type,const char* str,size_t len,uint32_t line);
+FklToken* fklNewToken(FklTokenType type,const char* cstr,uint32_t line);
 void fklFreeToken(FklToken* token);
 int fklIsAllComment(FklPtrStack*);
 #ifdef __cplusplus

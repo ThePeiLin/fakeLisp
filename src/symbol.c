@@ -97,6 +97,7 @@ static const char* builtInSymbolList[]=
 	"i32",
 	"i64",
 	"fclose",
+	"feof",
 };
 
 FklSymbolTable GlobSymbolTable=FKL_STATIC_SYMBOL_INIT;

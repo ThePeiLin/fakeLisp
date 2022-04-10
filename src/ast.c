@@ -1262,7 +1262,7 @@ static MatchState* searchReverseStringCharMatchState(const char* str,FklPtrStack
 	return NULL;
 }
 
-static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern,FklInterpreter* inter,FklPtrStack* treeStack,uint32_t curline)
+static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern,const char* filename,FklCompEnv* glob,FklPtrStack* treeStack,uint32_t curline)
 {
 	FklPreEnv* tmpEnv=fklNewEnv(NULL);
 	for(uint32_t j=0;j<treeStack->top;)
@@ -1284,7 +1284,7 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 	if(pattern->type==FKL_BYTS)
 	{
 		FklByteCodelnt* t=fklNewByteCodelnt(fklNewByteCode(0));
-		FklVMenv* tmpGlobEnv=genGlobEnv(inter->glob,t,tmpVM->heap);
+		FklVMenv* tmpGlobEnv=genGlobEnv(glob,t,tmpVM->heap);
 		if(!tmpGlobEnv)
 		{
 			fklDestroyEnv(tmpEnv);
@@ -1313,7 +1313,7 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 		}
 		if(!retval)
 		{
-			fprintf(stderr,"error of compiling:Circular reference occur in expanding reader macro at line %d of %s\n",curline,inter->filename);
+			fprintf(stderr,"error of compiling:Circular reference occur in expanding reader macro at line %d of %s\n",curline,filename);
 		}
 		fklFreeVMenv(tmpGlobEnv);
 		fklFreeByteCodeAndLnt(t);
@@ -1340,7 +1340,7 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 	return retval;
 }
 
-FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,FklInterpreter* inter)
+FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,FklCompEnv* glob)
 {
 	if(fklIsPtrStackEmpty(tokenStack))
 		return NULL;
@@ -1584,7 +1584,7 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,FklInterpreter* inter
 				if(state->cindex>=state->pattern->num)
 				{
 					fklPopPtrStack(stackStack);
-					FklAstCptr* r=expandReaderMacroWithTreeStack(state->pattern,inter,cStack,state->line);
+					FklAstCptr* r=expandReaderMacroWithTreeStack(state->pattern,filename,glob,cStack,state->line);
 					freeMatchState(fklPopPtrStack(matchStateStack));
 					for(uint32_t i=0;i<cStack->top;i++)
 					{

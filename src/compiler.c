@@ -2341,7 +2341,7 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int evalIm,int* exitstate)
 			tmp=NULL;
 			break;
 		}
-		begin=fklCreateAstWithTokens(tokenStack,inter);
+		begin=fklCreateAstWithTokens(tokenStack,inter->filename,inter->glob);
 		inter->curline+=fklCountChar(list,'\n',size);
 		//begin=fklCreateTree(list,inter,NULL);
 		if(fklIsAllSpaceBufSize(list,size))
@@ -2587,7 +2587,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 				free(list);
 				break;
 			}
-			begin=fklCreateAstWithTokens(tokenStack,tmpInter);
+			begin=fklCreateAstWithTokens(tokenStack,tmpInter->filename,tmpInter->glob);
 			tmpInter->curline+=fklCountChar(list,'\n',size);
 			//begin=fklCreateTree(list,tmpInter,NULL);
 			if(fklIsAllSpaceBufSize(list,size))

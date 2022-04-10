@@ -224,7 +224,7 @@ void runRepl(FklInterpreter* inter)
 			list=NULL;
 			continue;
 		}
-		begin=fklCreateAstWithTokens(tokenStack,inter);
+		begin=fklCreateAstWithTokens(tokenStack,inter->filename,inter->glob);
 		inter->curline+=fklCountChar(list,'\n',size);
 		while(!fklIsPtrStackEmpty(tokenStack))
 			fklFreeToken(fklPopPtrStack(tokenStack));

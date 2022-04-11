@@ -712,8 +712,7 @@ void B_push_i64(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
-	int64_t i=fklGetI64FromByteCode(exe->code+r->cp+sizeof(char));
-	FKL_SET_RETURN("B_push_i64",fklNewVMvalue(FKL_I64,&i,exe->heap),stack);
+	FKL_SET_RETURN("B_push_i64",fklNewVMvalue(FKL_I64,exe->code+r->cp+sizeof(char),exe->heap),stack);
 	r->cp+=sizeof(char)+sizeof(int64_t);
 }
 

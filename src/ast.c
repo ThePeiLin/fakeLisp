@@ -703,6 +703,9 @@ void fklPrintCptr(const FklAstCptr* objCptr,FILE* out)
 					case FKL_I32:
 						fprintf(out,"%d",tmpAtm->value.i32);
 						break;
+					case FKL_I64:
+						fprintf(out,"%ld",tmpAtm->value.i64);
+						break;
 					case FKL_F64:
 						fprintf(out,"%lf",tmpAtm->value.f64);
 						break;
@@ -848,6 +851,10 @@ int fklCopyCptr(FklAstCptr* objCptr,const FklAstCptr* copiedCptr)
 					case FKL_I32:
 						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
 						atom1->value.i32=atom2->value.i32;
+						break;
+					case FKL_I64:
+						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
+						atom1->value.i64=atom2->value.i64;
 						break;
 					case FKL_F64:
 						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
@@ -1114,14 +1121,13 @@ static FklAstAtom* createNum(const char* oStr,FklAstPair* prev)
 	{
 		r=fklNewAtom(FKL_I32,NULL,prev);
 		int64_t num=fklStringToInt(oStr);
-		if(num>INT64_MAX||num<INT64_MIN)
+		if(num>INT32_MAX||num<INT32_MIN)
 		{
 			r->type=FKL_I64;
 			r->value.i64=num;
 		}
 		else
 			r->value.i32=num;
-
 	}
 	return r;
 }

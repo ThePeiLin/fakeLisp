@@ -200,7 +200,7 @@ static MatchState* searchReverseStringCharMatchState(const char* part,size_t ind
 				//return newMatchState(topState->pattern,topState->index+i);
 			}
 		}
-		FklStringMatchPattern* pattern=fklFindStringPattern(part);
+		FklStringMatchPattern* pattern=fklFindStringPattern(part+index);
 		if(pattern)
 			return newMatchState(pattern,0);
 		if(part[index]=='(')

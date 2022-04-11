@@ -36,7 +36,9 @@
           fprint
           print
           fwrite
-          square)
+          square
+          min
+          max)
   (define caar (lambda (a)
                  (car (car a))))
 
@@ -215,11 +217,15 @@
 
   (define min
     (lambda (a b)
-      (if (< a b) a b)))
+      (cond
+        [(< a b) a]
+        [1 b])))
 
   (define max
     (lambda (a b)
-      (if (> a b) a b)))
+      (cond
+        [(> a b) a]
+        [1 b])))
 
   (defmacro
     (let d,b)
@@ -229,10 +235,16 @@
       (cond ((eq (type d) 'sym)
              (setq
                args
-               (map (lambda (sd) (nth 0 sd)) (car b)))
+               (cond
+                 [(car b)
+                  (map (lambda (sd) (nth 0 sd)) (car b))]
+                 [1 nil]))
              (setq
                vals
-               (map (lambda (sd) (nth 1 sd)) (car b)))
+               (cond
+                 [(car b)
+                  (map (lambda (sd) (nth 1 sd)) (car b))]
+                 [1 nil]))
              `(let ()
                 (define ~d
                   (lambda ~args

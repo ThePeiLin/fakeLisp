@@ -219,6 +219,9 @@ int fklStringToChar(const char* objStr)
 			case 'R':
 				ch=0x0d;
 				break;
+			case 'S':
+				ch=0x20;
+				break;
 			default:
 				ch=*(objStr);
 				break;
@@ -622,6 +625,9 @@ char* fklCastEscapeCharater(const char* str,char end,size_t* len)
 						break;
 					case 'R':
 						ch=0x0d;
+						break;
+					case 'S':
+						ch=0x20;
 						break;
 					default:ch=str[i+1];break;
 				}

@@ -45,7 +45,7 @@ typedef enum
 typedef struct FklSymTabNode
 {
 	char* symbol;
-	int32_t id;
+	FklSid_t id;
 }FklSymTabNode;
 
 typedef struct FklSymbolTable

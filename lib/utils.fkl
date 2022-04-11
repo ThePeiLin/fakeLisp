@@ -213,6 +213,14 @@
     (lambda (x)
       (* x x)))
 
+  (define min
+    (lambda (a b)
+      (if (< a b) a b)))
+
+  (define max
+    (lambda (a b)
+      (if (> a b) a b)))
+
   (defmacro
     (let d,b)
     (begin

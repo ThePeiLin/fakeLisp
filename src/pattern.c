@@ -68,7 +68,7 @@ FklStringMatchPattern* fklFindStringPattern(const char* str)
 	while(cur)
 	{
 		char* part=cur->parts[0];
-		if(!strncmp(str,part,strlen(part)))
+		if(strlen(str)>=strlen(part)&&!strncmp(str,part,strlen(part)))
 			break;
 		cur=cur->next;
 	}

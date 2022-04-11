@@ -193,14 +193,16 @@ static MatchState* searchReverseStringCharMatchState(const char* part,size_t ind
 			}
 			//char* nextPart=fklGetNthPartOfStringMatchPattern(topState->pattern,topState->index+1);
 			size_t nextPartLen=strlen(nextPart);
-			if(size-index>nextPartLen&&topState->pattern!=NULL&&nextPart&&!fklIsVar(nextPart)&&!strncmp(nextPart,part+index,strlen(nextPart)))
+			if(size-index>=nextPartLen&&topState->pattern!=NULL&&nextPart&&!fklIsVar(nextPart)&&!strncmp(nextPart,part+index,strlen(nextPart)))
 			{
 				topState->index+=i;
 				return topState;
 				//return newMatchState(topState->pattern,topState->index+i);
 			}
 		}
-		FklStringMatchPattern* pattern=fklFindStringPattern(part+index);
+		char* cstr=fklCharBufToStr(part+index,size-index);
+		FklStringMatchPattern* pattern=fklFindStringPattern(cstr);
+		free(cstr);
 		if(pattern)
 			return newMatchState(pattern,0);
 		if(part[index]=='(')
@@ -275,7 +277,9 @@ static const char* searchReverseStringChar(const char* part,size_t index,size_t 
 			if(size-index>nextPartLen&&topState->pattern!=NULL&&nextPart&&!fklIsVar(nextPart)&&!strncmp(nextPart,part+index,nextPartLen))
 				return nextPart;
 		}
-		FklStringMatchPattern* pattern=fklFindStringPattern(part+index);
+		char* cstr=fklCharBufToStr(part+index,size-index);
+		FklStringMatchPattern* pattern=fklFindStringPattern(cstr);
+		free(cstr);
 		if(pattern)
 			return pattern->parts[0];
 		if(part[index]=='(')

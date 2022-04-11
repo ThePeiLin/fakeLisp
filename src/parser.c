@@ -125,7 +125,7 @@ static void freeMatchState(MatchState* state)
 	free(state);
 }
 
-#define BUILT_IN_SEPARATOR_STR_NUM (11)
+#define BUILT_IN_SEPARATOR_STR_NUM (12)
 #define PARENTHESE_0 ((void*)0)
 #define PARENTHESE_1 ((void*)1)
 #define QUOTE ((void*)2)
@@ -136,7 +136,7 @@ static void freeMatchState(MatchState* state)
 
 static const char* separatorStrSet[]=
 {
-	"(",",","#\\","#b","\"","[",";","'","`","~","~@"
+	"(",",","#\\","#b","\"","[",";","#!","'","`","~","~@"
 };
 
 static int isBuiltInSingleStrPattern(FklStringMatchPattern* pattern)
@@ -321,18 +321,24 @@ static const char* searchReverseStringChar(const char* part,size_t index,size_t 
 	return NULL;
 }
 
-static int isBuiltInReserveStr(const char* part)
+static int isBuiltInReserveStr(const char* part,size_t size)
 {
+	int r=0;
+	char* cstr=fklCharBufToStr(part,size);
 	for(uint32_t i=0;i<BUILT_IN_SEPARATOR_STR_NUM;i++)
-		if(!strncmp(part,separatorStrSet[i],strlen(separatorStrSet[i])))
-			return 1;
-	return 0;
+		if(strlen(cstr)>=strlen(separatorStrSet[i])&&!strncmp(cstr,separatorStrSet[i],strlen(separatorStrSet[i])))
+		{
+			r=1;
+			break;
+		}
+	free(cstr);
+	return r;
 }
 
 static size_t getSymbolLen(const char* part,size_t index,size_t size,FklPtrStack* stack)
 {
 	size_t i=0;
-	for(;index+i<size&&!isspace(part[index+i])&&!isBuiltInReserveStr(part+i+index);i++)
+	for(;index+i<size&&!isspace(part[index+i])&&!isBuiltInReserveStr(part+i+index,size-i-index);i++)
 	{
 		const char* state=searchReverseStringChar(part,index+i,size,stack);
 		if(state)
@@ -452,7 +458,7 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 					break;
 				}
 			}
-			else if(!strncmp(parts[i]+j,"#\\",strlen("#\\")))
+			else if(sizes[i]-j>1&&!strncmp(parts[i]+j,"#\\",strlen("#\\")))
 			{
 				//size_t len=getSymbolLen(parts[i]+j+2,matchStateStack);
 				char* symbol=fklGetStringAfterBackslash(parts[i]+j+2);
@@ -464,7 +470,7 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 				j+=len+2;
 				//j+=strlen(symbol)+2;
 			}
-			else if(!strncmp(parts[i]+j,"#b",strlen("#b")))
+			else if(sizes[i]-j>1&&!strncmp(parts[i]+j,"#b",strlen("#b")))
 			{
 				size_t len=getSymbolLen(parts[i],j+2,sizes[i],matchStateStack);
 				char* symbol=fklCharBufToStr(parts[i]+j,len+2);
@@ -472,7 +478,7 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 				free(symbol);
 				j+=len+2;
 			}
-			else if(parts[i][j]==';')
+			else if(parts[i][j]==';'||(sizes[i]-j>1&&!strncmp(parts[i]+j,"#!",strlen("#!"))))
 			{
 				uint32_t len=0;
 				for(;j+len<sizes[i]&&parts[i][j+len]!='\n';len++);

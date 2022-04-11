@@ -11,7 +11,7 @@
     (define x
       (lambda (n a)
         (princ (w n a))
-        (princ #\\x20)
+        (princ #\\s)
         (cond ((not (eq n a)) (x n (1+ a))))))
     (define p-iter
       (lambda (count)

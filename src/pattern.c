@@ -407,7 +407,7 @@ int fklIsInValidStringPattern(const char* str)
 				return 1;
 			}
 		}
-		else if(parts[i][0]=='\"')
+		else if(parts[i][0]=='\"'||parts[i][0]==';'||!strncmp(parts[i],"#!",strlen("#!")))
 		{
 			fklFreeStringArry(parts,num);
 			return 1;

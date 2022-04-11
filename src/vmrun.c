@@ -473,7 +473,7 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 	VMstderr=fklNewVMvalue(FKL_FP,fklNewVMfp(stderr),heap);
 	obj->list[1]=fklNewVMenvNode(VMstdin,fklAddSymbolToGlob(fklGetBuiltInSymbol(1))->id);
 	obj->list[2]=fklNewVMenvNode(VMstdout,fklAddSymbolToGlob(fklGetBuiltInSymbol(2))->id);
-	obj->list[3]=fklNewVMenvNode(VMstdin,fklAddSymbolToGlob(fklGetBuiltInSymbol(3))->id);
+	obj->list[3]=fklNewVMenvNode(VMstderr,fklAddSymbolToGlob(fklGetBuiltInSymbol(3))->id);
 	size_t i=4;
 	for(;i<FKL_NUM_OF_BUILT_IN_SYMBOL;i++)
 	{

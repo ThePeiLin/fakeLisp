@@ -1,290 +1,291 @@
-(library utils
-         (export caar
-                 cadr
-                 cdar
-                 cddr
-                 caaar
-                 caadr
-                 cadar
-                 caddr
-                 cdaar
-                 cdadr
-                 cddar
-                 cdddr
-                 caaaar
-                 caaadr
-                 caadar
-                 caaddr
-                 cadaar
-                 cadadr
-                 caddar
-                 cadddr
-                 cdaaar
-                 cdaadr
-                 cdadar
-                 cdaddr
-                 cddaar
-                 cddadr
-                 cdddar
-                 cddddr
-                 list
-                 map
-                 andmap
-                 ormap
-                 foreach
-                 fprint
-                 print
-                 fwrite
-                 square)
-         (define caar (lambda (a)
-                        (car (car a))))
+(library
+  utils
+  (export caar
+          cadr
+          cdar
+          cddr
+          caaar
+          caadr
+          cadar
+          caddr
+          cdaar
+          cdadr
+          cddar
+          cdddr
+          caaaar
+          caaadr
+          caadar
+          caaddr
+          cadaar
+          cadadr
+          caddar
+          cadddr
+          cdaaar
+          cdaadr
+          cdadar
+          cdaddr
+          cddaar
+          cddadr
+          cdddar
+          cddddr
+          list
+          map
+          andmap
+          ormap
+          foreach
+          fprint
+          print
+          fwrite
+          square)
+  (define caar (lambda (a)
+                 (car (car a))))
 
-         (define cadr (lambda (a)
-                        (car (cdr a))))
+  (define cadr (lambda (a)
+                 (car (cdr a))))
 
-         (define cdar (lambda (a)
-                        (cdr (car a))))
+  (define cdar (lambda (a)
+                 (cdr (car a))))
 
-         (define cddr (lambda (a)
-                        (cdr (cdr a))))
+  (define cddr (lambda (a)
+                 (cdr (cdr a))))
 
-         (define caaar (lambda (a)
-                         (car (car (car a)))))
+  (define caaar (lambda (a)
+                  (car (car (car a)))))
 
-         (define caadr (lambda (a)
-                         (car (car (cdr a)))))
+  (define caadr (lambda (a)
+                  (car (car (cdr a)))))
 
-         (define cadar (lambda (a)
-                         (car (cdr (car a)))))
+  (define cadar (lambda (a)
+                  (car (cdr (car a)))))
 
-         (define caddr (lambda (a)
-                         (car (cdr (cdr a)))))
+  (define caddr (lambda (a)
+                  (car (cdr (cdr a)))))
 
-         (define cdaar (lambda (a)
-                         (cdr (car (car a)))))
+  (define cdaar (lambda (a)
+                  (cdr (car (car a)))))
 
-         (define cdadr (lambda (a)
-                         (cdr (car (cdr a)))))
+  (define cdadr (lambda (a)
+                  (cdr (car (cdr a)))))
 
-         (define cddar (lambda (a)
-                         (cdr (cdr (car )))))
+  (define cddar (lambda (a)
+                  (cdr (cdr (car )))))
 
-         (define cdddr (lambda (a)
-                         (cdr (cdr (cdr a)))))
+  (define cdddr (lambda (a)
+                  (cdr (cdr (cdr a)))))
 
-         (define caaaar (lambda (a)
-                          (car (car (car (car a))))))
+  (define caaaar (lambda (a)
+                   (car (car (car (car a))))))
 
-         (define caaadr (lambda (a)
-                          (car (car (car (cdr a))))))
+  (define caaadr (lambda (a)
+                   (car (car (car (cdr a))))))
 
-         (define caadar (lambda (a)
-                          (car (car (cdr (car a))))))
+  (define caadar (lambda (a)
+                   (car (car (cdr (car a))))))
 
-         (define caaddr (lambda (a)
-                          (car (car (cdr (cdr a))))))
+  (define caaddr (lambda (a)
+                   (car (car (cdr (cdr a))))))
 
-         (define cadaar (lambda (a)
-                          (car (cdr (car (car a))))))
+  (define cadaar (lambda (a)
+                   (car (cdr (car (car a))))))
 
-         (define cadadr (lambda (a)
-                          (car (cdr (car (cdr a))))))
+  (define cadadr (lambda (a)
+                   (car (cdr (car (cdr a))))))
 
-         (define caddar (lambda (a)
-                          (car (cdr (cdr (car a))))))
+  (define caddar (lambda (a)
+                   (car (cdr (cdr (car a))))))
 
-         (define cadddr (lambda (a)
-                          (car (cdr (cdr (cdr a))))))
+  (define cadddr (lambda (a)
+                   (car (cdr (cdr (cdr a))))))
 
-         (define cdaaar (lambda (a)
-                          (cdr (car (car (car a))))))
+  (define cdaaar (lambda (a)
+                   (cdr (car (car (car a))))))
 
-         (define cdaadr (lambda (a)
-                          (cdr (car (car (cdr a))))))
+  (define cdaadr (lambda (a)
+                   (cdr (car (car (cdr a))))))
 
-         (define cdadar (lambda (a)
-                          (cdr (car (cdr (car a))))))
+  (define cdadar (lambda (a)
+                   (cdr (car (cdr (car a))))))
 
-         (define cdaddr (lambda (a)
-                          (cdr (car (cdr (cdr a))))))
+  (define cdaddr (lambda (a)
+                   (cdr (car (cdr (cdr a))))))
 
-         (define cddaar (lambda (a)
-                          (cdr (cdr (car (car a))))))
+  (define cddaar (lambda (a)
+                   (cdr (cdr (car (car a))))))
 
-         (define cddadr (lambda (a)
-                          (cdr (cdr (car (cdr a))))))
+  (define cddadr (lambda (a)
+                   (cdr (cdr (car (cdr a))))))
 
-         (define cdddar (lambda (a)
-                          (cdr (cdr (cdr (car a))))))
+  (define cdddar (lambda (a)
+                   (cdr (cdr (cdr (car a))))))
 
-         (define cddddr (lambda (a)
-                          (cdr (cdr (cdr (cdr a))))))
+  (define cddddr (lambda (a)
+                   (cdr (cdr (cdr (cdr a))))))
 
-         (define list (lambda ls ls))
+  (define list (lambda ls ls))
 
-         (define car-all
-           (lambda (ls r)
-             (cond ((and ls (car ls) (caar ls))
-                    (car-all (cdr ls) (cons (caar ls) r)))
-                   (1 (reverse r)))))
+  (define car-all
+    (lambda (ls r)
+      (cond ((and ls (car ls) (caar ls))
+             (car-all (cdr ls) (cons (caar ls) r)))
+        (1 (reverse r)))))
 
-         (define cdr-all
-           (lambda (ls r)
-             (cond ((and ls (car ls) (cdar ls))
-                    (cdr-all (cdr ls) (cons (cdar ls) r)))
-                   (1 (reverse r)))))
+  (define cdr-all
+    (lambda (ls r)
+      (cond ((and ls (car ls) (cdar ls))
+             (cdr-all (cdr ls) (cons (cdar ls) r)))
+        (1 (reverse r)))))
 
-         (define map
-           (lambda (f,l)
-             (define iter1
-               (lambda (ls r)
-                 (cond (ls
-                         (iter1 (cdr-all ls nil) (cons (car-all ls nil) r)))
-                       (1 (reverse r)))))
-             (define iter
-               (lambda (l r)
-                 (cond (l (iter (cdr l) (cons (apply f (car l)) r)))
-                       (1 (reverse r)))))
-             (iter (iter1 l nil) nil)))
+  (define map
+    (lambda (f,l)
+      (define iter1
+        (lambda (ls r)
+          (cond (ls
+                  (iter1 (cdr-all ls nil) (cons (car-all ls nil) r)))
+            (1 (reverse r)))))
+      (define iter
+        (lambda (l r)
+          (cond (l (iter (cdr l) (cons (apply f (car l)) r)))
+            (1 (reverse r)))))
+      (iter (iter1 l nil) nil)))
 
-         (define andmap
-           (lambda (f,l)
-             (define iter1
-               (lambda (ls r)
-                 (cond (ls
-                         (iter1 (cdr-all ls nil) (cons (car-all ls nil) r)))
-                       (1 (reverse r)))))
-             (define iter
-               (lambda (l r)
-                 (cond ((and l (car l) r)
-                        (iter (cdr l) (apply f (car l))))
-                       (1 r))))
-             (iter (iter1 l nil) 1)))
+  (define andmap
+    (lambda (f,l)
+      (define iter1
+        (lambda (ls r)
+          (cond (ls
+                  (iter1 (cdr-all ls nil) (cons (car-all ls nil) r)))
+            (1 (reverse r)))))
+      (define iter
+        (lambda (l r)
+          (cond ((and l (car l) r)
+                 (iter (cdr l) (apply f (car l))))
+            (1 r))))
+      (iter (iter1 l nil) 1)))
 
-         (define ormap
-           (lambda (f,l)
-             (define iter1
-               (lambda (ls r)
-                 (cond (ls
-                         (iter1 (cdr-all ls nil) (cons (car-all ls nil) r)))
-                       (1 (reverse r)))))
-             (define iter
-               (lambda (l r)
-                 (cond ((and l (car l) (not r))
-                        (iter (cdr l) (apply f (car l))))
-                       (1 r))))
-             (iter (iter1 l nil) nil)))
+  (define ormap
+    (lambda (f,l)
+      (define iter1
+        (lambda (ls r)
+          (cond (ls
+                  (iter1 (cdr-all ls nil) (cons (car-all ls nil) r)))
+            (1 (reverse r)))))
+      (define iter
+        (lambda (l r)
+          (cond ((and l (car l) (not r))
+                 (iter (cdr l) (apply f (car l))))
+            (1 r))))
+      (iter (iter1 l nil) nil)))
 
-         (define foreach
-           (lambda (f,l)
-             (define iter1
-               (lambda (ls r)
-                 (cond (ls
-                         (iter1 (cdr-all ls nil) (cons (car-all ls nil) r)))
-                       (1 (reverse r)))))
-             (define iter
-               (lambda (c)
-                 (cond (c (apply f (car c))
-                          (iter (cdr c))))))
-             (iter (iter1 l nil))))
+  (define foreach
+    (lambda (f,l)
+      (define iter1
+        (lambda (ls r)
+          (cond (ls
+                  (iter1 (cdr-all ls nil) (cons (car-all ls nil) r)))
+            (1 (reverse r)))))
+      (define iter
+        (lambda (c)
+          (cond (c (apply f (car c))
+                   (iter (cdr c))))))
+      (iter (iter1 l nil))))
 
-         (define fprint
-           (lambda (f,l)
-             (define p-iter
-               (lambda (c)
-                 (cond (c (princ (car c) f)
-                          (p-iter (cdr c))))))
-             (p-iter l)))
+  (define fprint
+    (lambda (f,l)
+      (define p-iter
+        (lambda (c)
+          (cond (c (princ (car c) f)
+                   (p-iter (cdr c))))))
+      (p-iter l)))
 
-         (define print
-           (lambda l
-             (apply fprint (cons stdout l))))
+  (define print
+    (lambda l
+      (apply fprint (cons stdout l))))
 
-         (define fwrite
-           (lambda (f,l)
-             (define w-iter
-               (lambda (c)
-                 (cond (c (prin1 (car c) f)
-                          (w-iter (cdr c))))))
-             (w-iter l)))
+  (define fwrite
+    (lambda (f,l)
+      (define w-iter
+        (lambda (c)
+          (cond (c (prin1 (car c) f)
+                   (w-iter (cdr c))))))
+      (w-iter l)))
 
-         (define square
-           (lambda (x)
-             (* x x)))
+  (define square
+    (lambda (x)
+      (* x x)))
 
-         (defmacro
-           (let d,b)
-           (begin
-             (define args nil)
-             (define vals nil)
-             (cond ((eq (type d) 'sym)
-                    (setq
-                      args
-                      (map (lambda (sd) (nth 0 sd)) (car b)))
-                    (setq
-                      vals
-                      (map (lambda (sd) (nth 1 sd)) (car b)))
-                    `(let ()
-                       (define ~d
-                         (lambda ~args
-                           ~@(cdr b)))
-                       (~d ~@vals)))
-                   ((eq (type d) 'pair)
-                    (setq args
-                          (map (lambda (sd) (nth 0 sd)) d))
-                    (setq vals
-                          (map (lambda (sd) (nth 1 sd)) d))
-                    `((lambda ~args ~@b) ~@vals))
-                   ((null d)
-                    `((lambda () ~@b)))
-                   (1 (raise (error "expanding-macro-let" 'syntax-error "error:Wrong type of object behind key word:let\n"))))))
+  (defmacro
+    (let d,b)
+    (begin
+      (define args nil)
+      (define vals nil)
+      (cond ((eq (type d) 'sym)
+             (setq
+               args
+               (map (lambda (sd) (nth 0 sd)) (car b)))
+             (setq
+               vals
+               (map (lambda (sd) (nth 1 sd)) (car b)))
+             `(let ()
+                (define ~d
+                  (lambda ~args
+                    ~@(cdr b)))
+                (~d ~@vals)))
+        ((eq (type d) 'pair)
+         (setq args
+           (map (lambda (sd) (nth 0 sd)) d))
+         (setq vals
+           (map (lambda (sd) (nth 1 sd)) d))
+         `((lambda ~args ~@b) ~@vals))
+        ((null d)
+         `((lambda () ~@b)))
+        (1 (raise (error "expanding-macro-let" 'syntax-error "error:Wrong type of object behind key word:let\n"))))))
 
-         (defmacro
-           (let* d,b)
-           (cond ((or (not (eq (type d) 'pair))
-                      (<= (length d) 1))
-                  `(let ~d ~@b))
-                 (1
-                  `(let (~(car d))
-                     (let* ~(cdr d)
-                       ~@b)))))
+  (defmacro
+    (let* d,b)
+    (cond ((or (not (eq (type d) 'pair))
+               (<= (length d) 1))
+           `(let ~d ~@b))
+      (1
+       `(let (~(car d))
+          (let* ~(cdr d)
+            ~@b)))))
 
-         (defmacro
-           (letrec d,b)
-           (begin
-             (define dfs (map (lambda (sd) (qsquote (define (unquote (car sd)) (unqtesp (cdr sd))))) d))
-             `(let () ~@dfs ~@b)))
+  (defmacro
+    (letrec d,b)
+    (begin
+      (define dfs (map (lambda (sd) (qsquote (define (unquote (car sd)) (unqtesp (cdr sd))))) d))
+      `(let () ~@dfs ~@b)))
 
-         (defmacro
-           (letcc t,b)
-           `(call/cc (lambda (~t) ~@b)))
+  (defmacro
+    (letcc t,b)
+    `(call/cc (lambda (~t) ~@b)))
 
-         (defmacro (if condition exp1,exp2)
-             `(cond (~condition ~exp1)
-                    (1 ~@exp2)))
+  (defmacro (if condition exp1,exp2)
+    `(cond (~condition ~exp1)
+       (1 ~@exp2)))
 
-         (defmacro (when pred,expressions)
-           `(if ~pred
-              (begin
-                ~@expressions)))
+  (defmacro (when pred,expressions)
+    `(if ~pred
+       (begin
+         ~@expressions)))
 
-         (defmacro (case v,b)
-           (begin
-             (define body (let ((tb (map (lambda (x) (cdr x)) b))
-                                (cs (map (lambda (x)
-                                           (if (eq (type x) 'pair)
-                                             (cons 'or
-                                                   (map (lambda (x) (qsquote (equal (unquote v) (unquote x)))) x))
-                                             x))
-                                         (map (lambda (x) (nth 0 x)) b))))
-                            (map (lambda (x)
-                                   (define r (cons x (car tb)))
-                                   (setq tb (cdr tb))
-                                   r)
-                                 cs)))
-             `(cond,~body)))
+  (defmacro (case v,b)
+    (begin
+      (define body (let ((tb (map (lambda (x) (cdr x)) b))
+                         (cs (map (lambda (x)
+                                    (if (eq (type x) 'pair)
+                                      (cons 'or
+                                            (map (lambda (x) (qsquote (equal (unquote v) (unquote x)))) x))
+                                      x))
+                                  (map (lambda (x) (nth 0 x)) b))))
+                     (map (lambda (x)
+                            (define r (cons x (car tb)))
+                            (setq tb (cdr tb))
+                            r)
+                          cs)))
+      `(cond,~body)))
 
-         (defmacro (define (name,args),body)
-           `(define ~name
-              (lambda ~args
-                ~@body))))
+  (defmacro (define (name,args),body)
+    `(define ~name
+       (lambda ~args
+         ~@body))))

@@ -1293,7 +1293,7 @@ void SYS_read(FklVM* exe,pthread_rwlock_t* gclock)
 	free(tmpCptr);
 }
 
-void SYS_getb(FklVM* exe,pthread_rwlock_t* gclock)
+void SYS_fgetb(FklVM* exe,pthread_rwlock_t* gclock)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
@@ -1301,15 +1301,15 @@ void SYS_getb(FklVM* exe,pthread_rwlock_t* gclock)
 	FklVMvalue* psize=fklGET_VAL(fklPopVMstack(stack),heap);
 	FklVMvalue* file=fklGET_VAL(fklPopVMstack(stack),heap);
 	if(fklResBp(stack))
-		FKL_RAISE_BUILTIN_ERROR("sys.getb",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.fgetb",FKL_TOOMANYARG,runnable,exe);
 	if(!file||!psize)
-		FKL_RAISE_BUILTIN_ERROR("sys.getb",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.fgetb",FKL_TOOFEWARG,runnable,exe);
 	if(!FKL_IS_FP(file)||!isInt(psize))
-		FKL_RAISE_BUILTIN_ERROR("sys.getb",FKL_WRONGARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.fgetb",FKL_WRONGARG,runnable,exe);
 	FklVMfp* fp=file->u.fp;
 	size_t size=getInt(psize);
 	uint8_t* str=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	FKL_ASSERT(str,"B_getb");
+	FKL_ASSERT(str,"B_fgetb");
 	int32_t realRead=0;
 	if(fp->size)
 	{
@@ -1338,19 +1338,19 @@ void SYS_getb(FklVM* exe,pthread_rwlock_t* gclock)
 	if(!realRead)
 	{
 		free(str);
-		FKL_SET_RETURN("SYS_getb",FKL_VM_NIL,stack);
+		FKL_SET_RETURN("SYS_fgetb",FKL_VM_NIL,stack);
 	}
 	else
 	{
 		str=(uint8_t*)realloc(str,sizeof(uint8_t)*realRead);
-		FKL_ASSERT(str,"B_getb");
+		FKL_ASSERT(str,"B_fgetb");
 		FklVMvalue* tmpByts=fklNewVMvalue(FKL_BYTS,NULL,exe->heap);
 		tmpByts->u.byts=(FklVMbyts*)malloc(sizeof(FklVMbyts)+getInt(psize));
-		FKL_ASSERT(tmpByts->u.byts,"SYS_getb");
+		FKL_ASSERT(tmpByts->u.byts,"SYS_fgetb");
 		tmpByts->u.byts->size=getInt(psize);
 		memcpy(tmpByts->u.byts->str,str,getInt(psize));
 		free(str);
-		FKL_SET_RETURN("SYS_getb",tmpByts,stack);
+		FKL_SET_RETURN("SYS_fgetb",tmpByts,stack);
 	}
 }
 
@@ -1372,7 +1372,7 @@ void SYS_prin1(FklVM* exe,pthread_rwlock_t* gclock)
 	FKL_SET_RETURN("SYS_prin1",obj,stack);
 }
 
-void SYS_putb(FklVM* exe,pthread_rwlock_t* gclock)
+void SYS_fputb(FklVM* exe,pthread_rwlock_t* gclock)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
@@ -1380,14 +1380,14 @@ void SYS_putb(FklVM* exe,pthread_rwlock_t* gclock)
 	FklVMvalue* bt=fklGET_VAL(fklPopVMstack(stack),heap);
 	FklVMvalue* file=fklGET_VAL(fklPopVMstack(stack),heap);
 	if(fklResBp(stack))
-		FKL_RAISE_BUILTIN_ERROR("sys.putb",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.fputb",FKL_TOOMANYARG,runnable,exe);
 	if(!file||!bt)
-		FKL_RAISE_BUILTIN_ERROR("sys.putb",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.fputb",FKL_TOOFEWARG,runnable,exe);
 	if(!FKL_IS_FP(file)||!FKL_IS_BYTS(bt))
-		FKL_RAISE_BUILTIN_ERROR("sys.putb",FKL_WRONGARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.fputb",FKL_WRONGARG,runnable,exe);
 	FILE* objFile=file->u.fp->fp;
 	fwrite(bt->u.byts->str,sizeof(uint8_t),bt->u.byts->size,objFile);
-	FKL_SET_RETURN("SYS_putb",bt,stack);
+	FKL_SET_RETURN("SYS_fputb",bt,stack);
 }
 
 void SYS_princ(FklVM* exe,pthread_rwlock_t* gclock)

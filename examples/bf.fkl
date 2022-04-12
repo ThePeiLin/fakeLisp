@@ -4,9 +4,9 @@
 
 (define (read-code fp)
   (str (append (let loop ((s nil)
-                        (c (getb 1 fp)))
+                        (c (fgetb 1 fp)))
                (if c
-                 (loop (append s c) (getb 1 fp))
+                 (loop (append s c) (fgetb 1 fp))
                  s))
              #b00)))
 (if (<= (length (argv)) 1)
@@ -35,7 +35,7 @@
     ((#\-) (let ((c (i8 (aref m mp))))
              (setf (aref m mp) (i8 (-1+ (int c))))))
     ((#\.) (princ (i8 (aref m mp))))
-    ((#\,) (setf (aref m mp) (i8 (getb 1 stdin))))
+    ((#\,) (setf (aref m mp) (i8 (fgetb 1 stdin))))
     ((#\[) (let ((c (int (aref m mp))))
              (if (eq c 0)
                (let loop ((ch (aref code cp)))

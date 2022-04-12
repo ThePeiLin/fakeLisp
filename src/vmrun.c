@@ -380,9 +380,9 @@ extern void SYS_nth(FklVM* exe,pthread_rwlock_t* gclock);
 extern void SYS_length(FklVM* exe,pthread_rwlock_t* gclock);
 extern void SYS_fopen(FklVM* exe,pthread_rwlock_t* gclock);
 extern void SYS_read(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_getb(FklVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_fgetb(FklVM* exe,pthread_rwlock_t* gclock);
 extern void SYS_prin1(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_putb(FklVM* exe,pthread_rwlock_t* gclock);
+extern void SYS_fputb(FklVM* exe,pthread_rwlock_t* gclock);
 extern void SYS_princ(FklVM* exe,pthread_rwlock_t* gclock);
 extern void SYS_dll(FklVM*,pthread_rwlock_t*);
 extern void SYS_dlsym(FklVM*,pthread_rwlock_t*);
@@ -444,9 +444,9 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_call_cc,
 		SYS_fopen,
 		SYS_read,
-		SYS_getb,
+		SYS_fgetb,
 		SYS_prin1,
-		SYS_putb,
+		SYS_fputb,
 		SYS_princ,
 		SYS_dll,
 		SYS_dlsym,

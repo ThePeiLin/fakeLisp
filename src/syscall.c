@@ -1106,6 +1106,8 @@ void SYS_nth(FklVM* exe,pthread_rwlock_t* gclock)
 		FKL_RAISE_BUILTIN_ERROR("sys.nth",FKL_WRONGARG,runnable,exe);
 	FklVMvalue* retval=NULL;
 	ssize_t index=getInt(place);
+	if(index<0)
+		FKL_RAISE_BUILTIN_ERROR("sys.nth",FKL_INVALIDACCESS,runnable,exe);
 	if(objlist==FKL_VM_NIL||FKL_IS_PAIR(objlist))
 	{
 		FklVMvalue* objPair=objlist;
@@ -1133,6 +1135,8 @@ void SYS_aref(FklVM* exe,pthread_rwlock_t* gclock)
 		FKL_RAISE_BUILTIN_ERROR("sys.aref",FKL_WRONGARG,runnable,exe);
 	FklVMvalue* retval=NULL;
 	ssize_t index=getInt(place);
+	if(index<0)
+		FKL_RAISE_BUILTIN_ERROR("sys.aref",FKL_INVALIDACCESS,runnable,exe);
 	if(FKL_IS_STR(array))
 		retval=index>=strlen(array->u.str)?FKL_VM_NIL:FKL_MAKE_VM_CHF(fklNewVMmem(fklGetCharTypeId(),FKL_MEM_RAW,(uint8_t*)array->u.str+index),heap);
 	else if(FKL_IS_BYTS(array))
@@ -1157,6 +1161,8 @@ void SYS_nthcdr(FklVM* exe,pthread_rwlock_t* gclock)
 		FKL_RAISE_BUILTIN_ERROR("sys.nthcdr",FKL_WRONGARG,runnable,exe);
 	FklVMvalue* retval=NULL;
 	ssize_t index=getInt(place);
+	if(index<0)
+		FKL_RAISE_BUILTIN_ERROR("sys.nthcdr",FKL_INVALIDACCESS,runnable,exe);
 	if(objlist==FKL_VM_NIL||FKL_IS_PAIR(objlist))
 	{
 		FklVMvalue* objPair=objlist;

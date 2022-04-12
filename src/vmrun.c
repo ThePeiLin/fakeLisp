@@ -1409,7 +1409,7 @@ int fklIsTheLastExpress(const FklVMrunnable* runnable,const FklVMrunnable* same,
 		uint32_t i=runnable->cp+(code[runnable->cp]==FKL_INVOKE);
 		size=runnable->scp+runnable->cpc;
 
-		for(;i<size;i+=(code[i]==FKL_JMP)?*(int32_t*)(code+i+1)+5:1)
+		for(;i<size;i+=(code[i]==FKL_JMP)?fklGetI64FromByteCode(code+i+sizeof(char))+sizeof(char)+sizeof(int64_t):1)
 			if(code[i]!=FKL_POP_TP&&code[i]!=FKL_POP_TRY&&code[i]!=FKL_JMP)
 				return 0;
 		if(runnable==same)

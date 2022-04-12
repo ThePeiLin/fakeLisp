@@ -26,6 +26,12 @@ typedef enum
 	FKL_REF_TAG,
 }FklVMptrTag;
 
+typedef enum
+{
+	FKL_MEM_RAW=0,
+	FKL_MEM_ATOMIC,
+}FklVMmemMode;
+
 #ifdef _WIN32
 #include<windows.h>
 typedef HMODULE FklVMdllHandle;
@@ -76,6 +82,7 @@ typedef struct FklVMfp
 typedef struct FklVMmem
 {
 	FklTypeId_t type;
+	FklVMmemMode mode;
 	uint8_t* mem;
 }FklVMmem;
 
@@ -293,7 +300,7 @@ void fklPrepFFIcif(ffi_cif* cif,int argc,ffi_type** atypes,ffi_type* rtype);
 void fklApplyFlproc(FklVMflproc* f,void* rvalue,void** avalue);
 int fklCastValueToVptr(FklTypeId_t,FklVMvalue* v,void** p);
 
-FklVMmem* fklNewVMmem(FklTypeId_t typeId,uint8_t* mem);
+FklVMmem* fklNewVMmem(FklTypeId_t typeId,FklVMmemMode mode,uint8_t* mem);
 void fklPrintMemoryRef(FklTypeId_t,FklVMmem*,FILE*);
 FklVMvalue* fklMemoryCast(FklTypeId_t,FklVMmem*,FklVMheap*);
 int fklMemorySet(FklTypeId_t id,FklVMmem*,FklVMvalue* v);

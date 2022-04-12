@@ -40,6 +40,19 @@ static inline FklVMvalue* makeVMint(int64_t r64,FklVMheap* heap)
 		return FKL_MAKE_VM_I32(r64);
 }
 
+static inline FklVMmemMode getMode(FklVMvalue* pmode)
+{
+	if(pmode)
+	{
+		FklSid_t sid=FKL_GET_SYM(pmode);
+		if(!strcmp(fklGetGlobSymbolWithId(sid)->symbol,"atomic"))
+			return FKL_MEM_ATOMIC;
+		if(!strcmp(fklGetGlobSymbolWithId(sid)->symbol,"raw"))
+			return FKL_MEM_RAW;
+	}
+	return FKL_MEM_RAW;
+}
+
 //syscalls
 
 void SYS_car(FklVM* exe,pthread_rwlock_t* gclock)
@@ -1100,14 +1113,62 @@ void SYS_nth(FklVM* exe,pthread_rwlock_t* gclock)
 		for(;i<index&&FKL_IS_PAIR(objPair);i++,objPair=fklGetVMpairCdr(objPair));
 		retval=(FKL_IS_PAIR(objPair))?FKL_MAKE_VM_REF(&objPair->u.pair->car):FKL_VM_NIL;
 	}
-	else if(FKL_IS_STR(objlist))
-		retval=index>=strlen(objlist->u.str)?FKL_VM_NIL:FKL_MAKE_VM_CHF(fklNewVMmem(fklGetCharTypeId(),(uint8_t*)objlist->u.str+index),heap);
-	else if(FKL_IS_BYTS(objlist))
-		retval=index>=objlist->u.byts->size?FKL_VM_NIL:FKL_MAKE_VM_CHF(fklNewVMmem(fklGetCharTypeId(),objlist->u.byts->str+index),heap);
 	else
 		FKL_RAISE_BUILTIN_ERROR("sys.nth",FKL_WRONGARG,runnable,exe);
 	FKL_SET_RETURN("SYS_nth",retval,stack);
 }
+
+void SYS_aref(FklVM* exe,pthread_rwlock_t* gclock)
+{
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
+	FklVMheap* heap=exe->heap;
+	FklVMvalue* array=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* place=fklGET_VAL(fklPopVMstack(stack),heap);
+	if(fklResBp(stack))
+		FKL_RAISE_BUILTIN_ERROR("sys.aref",FKL_TOOMANYARG,runnable,exe);
+	if(!place||!array)
+		FKL_RAISE_BUILTIN_ERROR("sys.aref",FKL_TOOFEWARG,runnable,exe);
+	if(!isInt(place))
+		FKL_RAISE_BUILTIN_ERROR("sys.aref",FKL_WRONGARG,runnable,exe);
+	FklVMvalue* retval=NULL;
+	ssize_t index=getInt(place);
+	if(FKL_IS_STR(array))
+		retval=index>=strlen(array->u.str)?FKL_VM_NIL:FKL_MAKE_VM_CHF(fklNewVMmem(fklGetCharTypeId(),FKL_MEM_RAW,(uint8_t*)array->u.str+index),heap);
+	else if(FKL_IS_BYTS(array))
+		retval=index>=array->u.byts->size?FKL_VM_NIL:FKL_MAKE_VM_CHF(fklNewVMmem(fklGetCharTypeId(),FKL_MEM_RAW,array->u.byts->str+index),heap);
+	else
+		FKL_RAISE_BUILTIN_ERROR("sys.aref",FKL_WRONGARG,runnable,exe);
+	FKL_SET_RETURN("SYS_aref",retval,stack);
+}
+
+void SYS_nthcdr(FklVM* exe,pthread_rwlock_t* gclock)
+{
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
+	FklVMheap* heap=exe->heap;
+	FklVMvalue* place=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* objlist=fklGET_VAL(fklPopVMstack(stack),heap);
+	if(fklResBp(stack))
+		FKL_RAISE_BUILTIN_ERROR("sys.nthcdr",FKL_TOOMANYARG,runnable,exe);
+	if(!place||!objlist)
+		FKL_RAISE_BUILTIN_ERROR("sys.nthcdr",FKL_TOOFEWARG,runnable,exe);
+	if(!isInt(place))
+		FKL_RAISE_BUILTIN_ERROR("sys.nthcdr",FKL_WRONGARG,runnable,exe);
+	FklVMvalue* retval=NULL;
+	ssize_t index=getInt(place);
+	if(objlist==FKL_VM_NIL||FKL_IS_PAIR(objlist))
+	{
+		FklVMvalue* objPair=objlist;
+		int i=0;
+		for(;i<index&&FKL_IS_PAIR(objPair);i++,objPair=fklGetVMpairCdr(objPair));
+		retval=(FKL_IS_PAIR(objPair))?FKL_MAKE_VM_REF(&objPair->u.pair->cdr):FKL_VM_NIL;
+	}
+	else
+		FKL_RAISE_BUILTIN_ERROR("sys.nthcdr",FKL_WRONGARG,runnable,exe);
+	FKL_SET_RETURN("SYS_nthcdr",retval,stack);
+}
+
 
 void SYS_length(FklVM* exe,pthread_rwlock_t* gclock)
 {
@@ -1669,17 +1730,21 @@ void SYS_newf(FklVM* exe,pthread_rwlock_t* gclock)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
-	FklVMvalue* vsize=fklPopVMstack(stack);
+	FklVMheap* heap=exe->heap;
+	FklVMvalue* vsize=fklGET_VAL(fklPopVMstack(stack),heap);
+	FklVMvalue* pmode=fklGET_VAL(fklPopVMstack(stack),heap);
 	if(fklResBp(stack))
 		FKL_RAISE_BUILTIN_ERROR("sys.newf",FKL_TOOMANYARG,r,exe);
 	if(!vsize)
 		FKL_RAISE_BUILTIN_ERROR("sys.newf",FKL_TOOFEWARG,r,exe);
 	if(!isInt(vsize))
 		FKL_RAISE_BUILTIN_ERROR("sys.newf",FKL_WRONGARG,r,exe);
+	if(pmode&&!FKL_IS_SYM(pmode))
+		FKL_RAISE_BUILTIN_ERROR("sys.newf",FKL_WRONGARG,r,exe);
 	size_t size=getInt(vsize);
 	uint8_t* mem=(uint8_t*)malloc(size);
 	FKL_ASSERT(mem,"SYS_newf");
-	FklVMvalue* retval=FKL_MAKE_VM_MEM(fklNewVMmem(0,mem),exe->heap);
+	FklVMvalue* retval=FKL_MAKE_VM_MEM(fklNewVMmem(0,getMode(pmode),mem),exe->heap);
 	FKL_SET_RETURN("SYS_newf",retval,stack);
 }
 
@@ -1698,6 +1763,7 @@ void SYS_delf(FklVM* exe,pthread_rwlock_t* gclock)
 	uint8_t* p=pmem->mem;
 	free(p);
 	pmem->mem=NULL;
+	pmem->mode=FKL_MEM_RAW;
 }
 
 void SYS_lfdl(FklVM* exe,pthread_rwlock_t* gclock)

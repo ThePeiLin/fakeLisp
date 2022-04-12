@@ -165,6 +165,9 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode,uint32_t i
 							,fklGetF64FromByteCode(tmpCode->code+i+sizeof(char)));
 					break;
 				case FKL_PUSH_I64:
+				case FKL_JMP:
+				case FKL_JMP_IF_FALSE:
+				case FKL_JMP_IF_TRUE:
 					fprintf(fp,"%ld"
 							,fklGetI64FromByteCode(tmpCode->code+i+sizeof(char)));
 					break;

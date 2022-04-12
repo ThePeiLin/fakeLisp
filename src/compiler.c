@@ -1832,7 +1832,7 @@ FklByteCodelnt* fklCompileSym(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 FklByteCodelnt* fklCompileAnd(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state,int evalIm)
 {
 	int32_t curline=objCptr->curline;
-	FklByteCode* jumpiffalse=fklNewByteCode(sizeof(char)+sizeof(int32_t));
+	FklByteCode* jumpiffalse=fklNewByteCode(sizeof(char)+sizeof(int64_t));
 	FklByteCode* push1=fklNewByteCode(sizeof(char)+sizeof(int32_t));
 	FklByteCode* resTp=fklNewByteCode(sizeof(char));
 	FklByteCode* setTp=fklNewByteCode(sizeof(char));
@@ -1865,7 +1865,7 @@ FklByteCodelnt* fklCompileAnd(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 	while(!fklIsPtrStackEmpty(stack))
 	{
 		FklByteCodelnt* tmp1=fklPopPtrStack(stack);
-		setI32ToByteCode(jumpiffalse->code+sizeof(char),tmp->bc->size);
+		setI64ToByteCode(jumpiffalse->code+sizeof(char),tmp->bc->size);
 		fklCodeCat(tmp1->bc,jumpiffalse);
 		tmp1->l[tmp1->ls-1]->cpc+=jumpiffalse->size;
 		fklReCodeCat(resTp,tmp1->bc);
@@ -1909,7 +1909,7 @@ FklByteCodelnt* fklCompileOr(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpret
 	FklByteCode* setTp=fklNewByteCode(sizeof(char));
 	FklByteCode* popTp=fklNewByteCode(sizeof(char));
 	FklByteCode* resTp=fklNewByteCode(sizeof(char));
-	FklByteCode* jumpifture=fklNewByteCode(sizeof(char)+sizeof(int32_t));
+	FklByteCode* jumpifture=fklNewByteCode(sizeof(char)+sizeof(int64_t));
 	FklByteCode* pushnil=fklNewByteCode(sizeof(char));
 	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
 	FklPtrStack* stack=fklNewPtrStack(32,16);
@@ -1938,7 +1938,7 @@ FklByteCodelnt* fklCompileOr(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpret
 	while(!fklIsPtrStackEmpty(stack))
 	{
 		FklByteCodelnt* tmp1=fklPopPtrStack(stack);
-		setI32ToByteCode(jumpifture->code+sizeof(char),tmp->bc->size);
+		setI64ToByteCode(jumpifture->code+sizeof(char),tmp->bc->size);
 		fklCodeCat(tmp1->bc,jumpifture);
 		tmp1->l[tmp1->ls-1]->cpc+=jumpifture->size;
 		fklReCodeCat(resTp,tmp1->bc);
@@ -2152,8 +2152,8 @@ FklByteCodelnt* fklCompileCond(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 {
 	FklAstCptr* cond=NULL;
 	FklByteCode* pushnil=fklNewByteCode(sizeof(char));
-	FklByteCode* jumpiffalse=fklNewByteCode(sizeof(char)+sizeof(int32_t));
-	FklByteCode* jump=fklNewByteCode(sizeof(char)+sizeof(int32_t));
+	FklByteCode* jumpiffalse=fklNewByteCode(sizeof(char)+sizeof(int64_t));
+	FklByteCode* jump=fklNewByteCode(sizeof(char)+sizeof(int64_t));
 	FklByteCode* resTp=fklNewByteCode(sizeof(char));
 	FklByteCode* setTp=fklNewByteCode(sizeof(char));
 	FklByteCode* popTp=fklNewByteCode(sizeof(char));
@@ -2205,7 +2205,7 @@ FklByteCodelnt* fklCompileCond(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 		fklFreePtrStack(stack2);
 		if(tmpCond->bc->size+((fklNextCptr(cond)==NULL)?0:jump->size))
 		{
-			setI32ToByteCode(jumpiffalse->code+sizeof(char),tmpCond->bc->size+((fklNextCptr(cond)==NULL)?0:jump->size));
+			setI64ToByteCode(jumpiffalse->code+sizeof(char),tmpCond->bc->size+((fklNextCptr(cond)==NULL)?0:jump->size));
 			fklCodeCat(conditionCode->bc,jumpiffalse);
 			conditionCode->l[conditionCode->ls-1]->cpc+=jumpiffalse->size;
 		}
@@ -2225,7 +2225,7 @@ FklByteCodelnt* fklCompileCond(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 		}
 		if(top!=stack1->top)
 		{
-			setI32ToByteCode(jump->code+sizeof(char),tmp->bc->size);
+			setI64ToByteCode(jump->code+sizeof(char),tmp->bc->size);
 			fklCodeCat(tmpCond->bc,jump);
 			tmpCond->l[tmpCond->ls-1]->cpc+=jump->size;
 		}

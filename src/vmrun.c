@@ -68,7 +68,7 @@ FklVMvalue* castInt64_tVp  (ARGL){CAST_TO_I64}
 FklVMvalue* castUint64_tVp (ARGL){CAST_TO_I64}
 FklVMvalue* castIptrVp     (ARGL){CAST_TO_I64}
 FklVMvalue* castUptrVp     (ARGL){CAST_TO_I64}
-FklVMvalue* castVptrVp     (ARGL){return fklNewVMvalue(FKL_MEM,fklNewVMmem(0,(uint8_t*)p),heap);}
+FklVMvalue* castVptrVp     (ARGL){return fklNewVMvalue(FKL_MEM,fklNewVMmem(0,FKL_MEM_ATOMIC,(uint8_t*)p),heap);}
 #undef CAST_TO_I32
 #undef CAST_TO_I64
 static FklVMvalue* (*castVptrToVMvalueFunctionsList[])(ARGL)=
@@ -403,6 +403,8 @@ extern void SYS_i32(FklVM*,pthread_rwlock_t*);
 extern void SYS_i64(FklVM*,pthread_rwlock_t*);
 extern void SYS_fclose(FklVM*,pthread_rwlock_t*);
 extern void SYS_feof(FklVM*,pthread_rwlock_t*);
+extern void SYS_aref(FklVM*,pthread_rwlock_t*);
+extern void SYS_nthcdr(FklVM*,pthread_rwlock_t*);
 
 void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 {
@@ -463,6 +465,8 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_i64,
 		SYS_fclose,
 		SYS_feof,
+		SYS_aref,
+		SYS_nthcdr,
 	};
 	obj->num=FKL_NUM_OF_BUILT_IN_SYMBOL;
 	obj->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*FKL_NUM_OF_BUILT_IN_SYMBOL);
@@ -855,7 +859,7 @@ void B_push_ptr_ref(FklVM* exe)
 		FKL_RAISE_BUILTIN_ERROR("b.push_ptr_ref",FKL_INVALIDACCESS,r,exe);
 	stack->tp-=1;
 	uint8_t* t=mem->mem+offset;
-	FklVMmem* retval=fklNewVMmem(ptrId,(uint8_t*)t);
+	FklVMmem* retval=fklNewVMmem(ptrId,FKL_MEM_RAW,(uint8_t*)t);
 	FKL_SET_RETURN("B_push_ptr_ref",FKL_MAKE_VM_CHF(retval,exe->heap),stack);
 	r->cp+=sizeof(char)+sizeof(int64_t)+sizeof(FklTypeId_t);
 }
@@ -872,7 +876,7 @@ void B_push_def_ref(FklVM* exe)
 		FKL_RAISE_BUILTIN_ERROR("b.push_def_ref",FKL_INVALIDACCESS,r,exe);
 	stack->tp-=1;
 	uint8_t* ptr=mem->mem+offset;
-	FklVMvalue* retval=FKL_MAKE_VM_CHF(fklNewVMmem(typeId,ptr),exe->heap);
+	FklVMvalue* retval=FKL_MAKE_VM_CHF(fklNewVMmem(typeId,FKL_MEM_RAW,ptr),exe->heap);
 	FKL_SET_RETURN("B_push_def_ref",retval,stack);
 	r->cp+=sizeof(char)+sizeof(int64_t)+sizeof(FklTypeId_t);
 }
@@ -893,7 +897,7 @@ void B_push_ind_ref(FklVM* exe)
 	if(!mem->mem)
 		FKL_RAISE_BUILTIN_ERROR("b.push_ind_ref",FKL_INVALIDACCESS,r,exe);
 	stack->tp-=2;
-	FklVMvalue* retval=FKL_MAKE_VM_CHF(fklNewVMmem(type,mem->mem+FKL_GET_I32(index)*size),exe->heap);
+	FklVMvalue* retval=FKL_MAKE_VM_CHF(fklNewVMmem(type,FKL_MEM_RAW,mem->mem+FKL_GET_I32(index)*size),exe->heap);
 	FKL_SET_RETURN("B_push_ind_ref",retval,stack);
 	r->cp+=sizeof(char)+sizeof(FklTypeId_t)+sizeof(uint32_t);
 }
@@ -912,7 +916,7 @@ void B_push_ref(FklVM* exe)
 	if(!mem->mem)
 		FKL_RAISE_BUILTIN_ERROR("b.push_ref",FKL_INVALIDACCESS,r,exe);
 	stack->tp-=1;
-	FklVMmem* retval=fklNewVMmem(type,mem->mem+offset);
+	FklVMmem* retval=fklNewVMmem(type,FKL_MEM_RAW,mem->mem+offset);
 	FKL_SET_RETURN("B_push_ref",FKL_MAKE_VM_CHF(retval,exe->heap),stack);
 	r->cp+=sizeof(char)+sizeof(int64_t)+sizeof(FklTypeId_t);
 }
@@ -1208,11 +1212,8 @@ void B_jmp_if_true(FklVM* exe)
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMvalue* tmpValue=fklGET_VAL(fklGetTopValue(stack),exe->heap);
 	if(tmpValue!=FKL_VM_NIL)
-	{
-		int32_t where=fklGetI32FromByteCode(exe->code+runnable->cp+sizeof(char));
-		runnable->cp+=where;
-	}
-	runnable->cp+=5;
+		runnable->cp+=fklGetI64FromByteCode(exe->code+runnable->cp+sizeof(char));
+	runnable->cp+=sizeof(char)+sizeof(int64_t);
 }
 
 void B_jmp_if_false(FklVM* exe)
@@ -1222,18 +1223,14 @@ void B_jmp_if_false(FklVM* exe)
 	FklVMvalue* tmpValue=fklGET_VAL(fklGetTopValue(stack),exe->heap);
 	fklStackRecycle(exe);
 	if(tmpValue==FKL_VM_NIL)
-	{
-		int32_t where=fklGetI32FromByteCode(exe->code+runnable->cp+sizeof(char));
-		runnable->cp+=where;
-	}
-	runnable->cp+=5;
+		runnable->cp+=fklGetI64FromByteCode(exe->code+runnable->cp+sizeof(char));
+	runnable->cp+=sizeof(char)+sizeof(int64_t);
 }
 
 void B_jmp(FklVM* exe)
 {
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	int32_t where=fklGetI32FromByteCode(exe->code+runnable->cp+sizeof(char));
-	runnable->cp+=where+5;
+	runnable->cp+=fklGetI64FromByteCode(exe->code+runnable->cp+sizeof(char))+sizeof(char)+sizeof(int64_t);
 }
 
 void B_append(FklVM* exe)
@@ -1610,6 +1607,8 @@ void fklGC_sweep(FklVMheap* heap)
 					break;
 				case FKL_MEM:
 				case FKL_CHF:
+					if(prev->u.chf->mode==FKL_MEM_ATOMIC)
+						free(prev->u.chf->mem);
 					free(prev->u.chf);
 					break;
 			}

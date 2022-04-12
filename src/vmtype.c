@@ -568,11 +568,12 @@ int fklMemorySet(FklTypeId_t type,FklVMmem* mem,FklVMvalue* v)
 	return MemorySeterList[type-1](mem->mem,v);
 }
 
-FklVMmem* fklNewVMmem(FklTypeId_t type,uint8_t* mem)
+FklVMmem* fklNewVMmem(FklTypeId_t type,FklVMmemMode mode,uint8_t* mem)
 {
 	FklVMmem* tmp=(FklVMmem*)malloc(sizeof(FklVMmem));
 	FKL_ASSERT(tmp,"fklNewVMMem");
 	tmp->type=type;
+	tmp->mode=mode;
 	tmp->mem=mem;
 	return tmp;
 }

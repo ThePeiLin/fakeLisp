@@ -16,6 +16,7 @@ typedef enum{
 	FKL_SYM,
 	FKL_STR,
 	FKL_BYTS,
+	FKL_VECTOR,
 	FKL_PROC,
 	FKL_CONT,
 	FKL_CHAN,

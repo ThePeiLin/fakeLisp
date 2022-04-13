@@ -58,6 +58,20 @@ int fklMaybePatternPrefix(const char* str)
 	return 0;
 }
 
+FklStringMatchPattern* fklFindStringPatternBuf(const char* buf,size_t size)
+{
+	if(!HeadOfStringPattern)
+		return NULL;
+	FklStringMatchPattern* cur=HeadOfStringPattern;
+	while(cur)
+	{
+		char* part=cur->parts[0];
+		if(size>=strlen(part)&&!strncmp(buf,part,strlen(part)))
+			break;
+		cur=cur->next;
+	}
+	return cur;
+}
 
 FklStringMatchPattern* fklFindStringPattern(const char* str)
 {

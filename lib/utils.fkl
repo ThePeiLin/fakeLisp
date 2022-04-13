@@ -232,7 +232,7 @@
     (begin
       (define args nil)
       (define vals nil)
-      (cond ((eq (type d) 'sym)
+      (cond ((symbol? d)
              (setq
                args
                (cond
@@ -250,7 +250,7 @@
                   (lambda ~args
                     ~@(cdr b)))
                 (~d ~@vals)))
-        ((eq (type d) 'pair)
+        ((pair? d)
          (setq args
            (map (lambda (sd) (nth 0 sd)) d))
          (setq vals
@@ -262,7 +262,7 @@
 
   (defmacro
     (let* d,b)
-    (cond ((or (not (eq (type d) 'pair))
+    (cond ((or (atom d)
                (<= (length d) 1))
            `(let ~d ~@b))
       (1
@@ -293,7 +293,7 @@
     (begin
       (define body (let ((tb (map (lambda (x) (cdr x)) b))
                          (cs (map (lambda (x)
-                                    (if (eq (type x) 'pair)
+                                    (if (pair? x)
                                       (cons 'or
                                             (map (lambda (x) (qsquote (equal (unquote v) (unquote x)))) x))
                                       x))

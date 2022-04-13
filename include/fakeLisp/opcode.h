@@ -46,9 +46,10 @@ typedef enum
 	FKL_PUSH_TRY,
 	FKL_POP_TRY,
 	FKL_APPEND,
+	FKL_PUSH_VECTOR,
 }FklOpcode;
 
-#define FKL_LAST FKL_APPEND
+#define FKL_LAST FKL_PUSH_VECTOR
 const char* fklGetOpcodeName(FklOpcode);
 int fklGetOpcodeArgLen(FklOpcode);
 FklOpcode fklFindOpcode(const char*);

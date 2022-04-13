@@ -125,7 +125,7 @@ static void freeMatchState(MatchState* state)
 	free(state);
 }
 
-#define BUILT_IN_SEPARATOR_STR_NUM (12)
+#define BUILT_IN_SEPARATOR_STR_NUM (14)
 #define PARENTHESE_0 ((void*)0)
 #define PARENTHESE_1 ((void*)1)
 #define QUOTE ((void*)2)
@@ -133,10 +133,25 @@ static void freeMatchState(MatchState* state)
 #define UNQUOTE ((void*)4)
 #define UNQTESP ((void*)5)
 #define DOTTED ((void*)6)
+#define VECTOR_0 ((void*)7)
+#define VECTOR_1 ((void*)8)
 
 static const char* separatorStrSet[]=
 {
-	"(",",","#\\","#b","\"","[",";","#!","'","`","~","~@"
+	"~@",
+	"#(",
+	"#[",
+	"(",
+	",",
+	"#\\",
+	"#b",
+	"\"",
+	"[",
+	";",
+	"#!",
+	"'",
+	"`",
+	"~",
 };
 
 static int isBuiltInSingleStrPattern(FklStringMatchPattern* pattern)
@@ -158,13 +173,17 @@ static int isBuiltInPattern(FklStringMatchPattern* pattern)
 		||pattern==UNQUOTE
 		||pattern==UNQTESP
 		||pattern==DOTTED
+		||pattern==VECTOR_0
+		||pattern==VECTOR_1
 		;
 }
 
 static int isBuiltInParenthese(FklStringMatchPattern* pattern)
 {
 	return pattern==PARENTHESE_0
-		||pattern==PARENTHESE_1;
+		||pattern==PARENTHESE_1
+		||pattern==VECTOR_0
+		||pattern==VECTOR_1;
 }
 
 static MatchState* searchReverseStringCharMatchState(const char* part,size_t index,size_t size,FklPtrStack* stack)
@@ -200,26 +219,32 @@ static MatchState* searchReverseStringCharMatchState(const char* part,size_t ind
 				//return newMatchState(topState->pattern,topState->index+i);
 			}
 		}
-		char* cstr=fklCharBufToStr(part+index,size-index);
-		FklStringMatchPattern* pattern=fklFindStringPattern(cstr);
-		free(cstr);
+		FklStringMatchPattern* pattern=fklFindStringPatternBuf(part+index,size-index);
 		if(pattern)
 			return newMatchState(pattern,0);
-		if(part[index]=='(')
+		else if(size-index>1&&part[index]=='#'&&part[index+1]=='(')
+			return newMatchState(VECTOR_0,0);
+		else if(size-index>1&&part[index]=='#'&&part[index+1]=='[')
+			return newMatchState(VECTOR_1,0);
+		else if(part[index]=='(')
 			return newMatchState(PARENTHESE_0,0);
 		else if(part[index]==')')
 		{
 			if(topState&&topState->pattern==PARENTHESE_0&&topState->index==0)
 				return newMatchState(PARENTHESE_0,1);
+			else if(topState&&topState->pattern==VECTOR_0&&topState->index==0)
+				return newMatchState(VECTOR_0,1);
 			else
 				return NULL;
 		}
-		if(part[index]=='[')
+		else if(part[index]=='[')
 			return newMatchState(PARENTHESE_1,0);
 		else if(part[index]==']')
 		{
 			if(topState&&topState->pattern==PARENTHESE_1&&topState->index==0)
 				return newMatchState(PARENTHESE_1,1);
+			else if(topState&&topState->pattern==VECTOR_1&&topState->index==0)
+				return newMatchState(VECTOR_1,1);
 			else
 				return NULL;
 		}
@@ -277,17 +302,20 @@ static const char* searchReverseStringChar(const char* part,size_t index,size_t 
 			if(size-index>nextPartLen&&topState->pattern!=NULL&&nextPart&&!fklIsVar(nextPart)&&!strncmp(nextPart,part+index,nextPartLen))
 				return nextPart;
 		}
-		char* cstr=fklCharBufToStr(part+index,size-index);
-		FklStringMatchPattern* pattern=fklFindStringPattern(cstr);
-		free(cstr);
+		FklStringMatchPattern* pattern=fklFindStringPatternBuf(part+index,size-index);
 		if(pattern)
 			return pattern->parts[0];
-		if(part[index]=='(')
+		else if(size-index>1&&part[index]=='#'&&part[index+1]=='(')
+			return "#(";
+		else if(size-index>1&&part[index]=='#'&&part[index+1]=='[')
+			return "#[";
+		else if(part[index]=='(')
 			return ")";
 		else if(part[index]==')')
 		{
-			if(topState&&topState->pattern==PARENTHESE_0&&topState->index==0)
-				return "(";
+			if(topState&&(topState->pattern==PARENTHESE_0
+						||topState->pattern==VECTOR_0)&&topState->index==0)
+				return ")";
 			else
 				return NULL;
 		}
@@ -295,7 +323,8 @@ static const char* searchReverseStringChar(const char* part,size_t index,size_t 
 			return "[";
 		else if(part[index]==']')
 		{
-			if(topState&&topState->pattern==PARENTHESE_1&&topState->index==0)
+			if(topState&&(topState->pattern==PARENTHESE_1
+						||topState->pattern==VECTOR_1)&&topState->index==0)
 				return "]";
 			else
 				return NULL;
@@ -324,14 +353,12 @@ static const char* searchReverseStringChar(const char* part,size_t index,size_t 
 static int isBuiltInReserveStr(const char* part,size_t size)
 {
 	int r=0;
-	char* cstr=fklCharBufToStr(part,size);
 	for(uint32_t i=0;i<BUILT_IN_SEPARATOR_STR_NUM;i++)
-		if(strlen(cstr)>=strlen(separatorStrSet[i])&&!strncmp(cstr,separatorStrSet[i],strlen(separatorStrSet[i])))
+		if(size>=strlen(separatorStrSet[i])&&!strncmp(part,separatorStrSet[i],strlen(separatorStrSet[i])))
 		{
 			r=1;
 			break;
 		}
-	free(cstr);
 	return r;
 }
 
@@ -375,15 +402,18 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 				{
 					if(state->index==0)
 					{
-						const char* parenthese=state->pattern==PARENTHESE_0?"(":"[";
+						const char* parenthese=state->pattern==PARENTHESE_0?"(":
+							state->pattern==PARENTHESE_1?"[":
+							state->pattern==VECTOR_0?"#(":
+							"#[";
 						fklPushPtrStack(fklNewToken(FKL_TOKEN_RESERVE_STR,parenthese,*line),retvalStack);
 						fklPushPtrStack(state,matchStateStack);
-						j++;
+						j+=strlen(parenthese);
 						continue;
 					}
 					else if(state->index==1)
 					{
-						const char* parenthese=state->pattern==PARENTHESE_0?")":"]";
+						const char* parenthese=(state->pattern==PARENTHESE_0||state->pattern==VECTOR_0)?")":"]";
 						MatchState* prevState=fklTopPtrStack(matchStateStack);
 						fklPushPtrStack(fklNewToken(FKL_TOKEN_RESERVE_STR,parenthese,*line),retvalStack);
 						freeMatchState(prevState);

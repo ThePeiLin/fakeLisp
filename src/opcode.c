@@ -46,6 +46,7 @@ static struct
 	{"push_try",-4},
 	{"pop_try",0},
 	{"append",0},
+	{"push_vector",8},
 };
 
 const char* fklGetOpcodeName(FklOpcode opcode)

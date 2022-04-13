@@ -166,7 +166,7 @@ static double (*castToDoubleFunctionsList[])(ARGL)=
 #define ARGL FklVMvalue* v,void** p
 #define CAST_TO_INT(TYPE) TYPE* t=(TYPE*)malloc(sizeof(TYPE));\
 	FKL_ASSERT(t,"VMvalue_pointer_caster");\
-	if(!FKL_IS_MEM(v)&&!IS_CHF(v))\
+	if(!FKL_IS_MEM(v)&&!FKL_IS_CHF(v))\
 	{\
 		FklVMptrTag tag=FKL_GET_TAG(v);\
 		switch(tag)\
@@ -208,10 +208,10 @@ static double (*castToDoubleFunctionsList[])(ARGL)=
 	*p=t;\
 	return 0;
 
-#define CAST_TO_FLOAT(TYPE) if(!FKL_IS_I32(v)&&!FKL_IS_I64(v)&&!FKL_IS_I8(v)&&!FKL_IS_F64(v)&&!FKL_IS_MEM(v)&&!IS_CHF(v))return 1;\
+#define CAST_TO_FLOAT(TYPE) if(!FKL_IS_I32(v)&&!FKL_IS_I64(v)&&!FKL_IS_I8(v)&&!FKL_IS_F64(v)&&!FKL_IS_MEM(v)&&!FKL_IS_CHF(v))return 1;\
 	TYPE* t=(TYPE*)malloc(sizeof(TYPE));\
 	FKL_ASSERT(t,"VMvalue_pointer_caster");\
-	if(!FKL_IS_MEM(v)&&!IS_CHF(v))\
+	if(!FKL_IS_MEM(v)&&!FKL_IS_CHF(v))\
 		*t=FKL_IS_I32(v)?FKL_GET_I32(v):(FKL_IS_I64(v)?v->u.i64:(FKL_IS_F64(v)?v->u.f64:FKL_GET_I8(v)));\
 	else\
 		*t=castToDoubleFunctionsList[v->u.chf->type-1](v->u.chf->mem);\
@@ -247,7 +247,7 @@ static int castVptrValue     (ARGL)
 {
 	void** t=(void**)malloc(sizeof(void*));
 	FKL_ASSERT(t,"VMvalue_pointer_caster");
-	if(!FKL_IS_MEM(v)&&!IS_CHF(v))
+	if(!FKL_IS_MEM(v)&&!FKL_IS_CHF(v))
 	{
 		if(v==FKL_VM_NIL)
 			*t=NULL;

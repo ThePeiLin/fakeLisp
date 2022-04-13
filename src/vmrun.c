@@ -348,63 +348,84 @@ FklVM* fklNewTmpVM(FklByteCode* mainCode)
 	return exe;
 }
 
-extern void SYS_car(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_cdr(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_cons(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_append(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_atom(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_null(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_not(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_eq(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_equal(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_eqn(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_add(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_add_1(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_sub(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_sub_1(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_mul(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_div(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_rem(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_gt(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_ge(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_lt(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_le(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_i8(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_int(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_f64(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_str(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_sym(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_byts(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_type(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_nth(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_length(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_fopen(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_read(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_fgetb(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_prin1(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_fputb(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_princ(FklVM* exe,pthread_rwlock_t* gclock);
-extern void SYS_dll(FklVM*,pthread_rwlock_t*);
-extern void SYS_dlsym(FklVM*,pthread_rwlock_t*);
-extern void SYS_argv(FklVM*,pthread_rwlock_t*);
-extern void SYS_go(FklVM*,pthread_rwlock_t*);
-extern void SYS_chanl(FklVM*,pthread_rwlock_t*);
-extern void SYS_send(FklVM*,pthread_rwlock_t*);
-extern void SYS_recv(FklVM*,pthread_rwlock_t*);
-extern void SYS_error(FklVM*,pthread_rwlock_t*);
-extern void SYS_raise(FklVM*,pthread_rwlock_t*);
-extern void SYS_call_cc(FklVM*,pthread_rwlock_t*);
-extern void SYS_apply(FklVM*,pthread_rwlock_t*);
-extern void SYS_newf(FklVM*,pthread_rwlock_t*);
-extern void SYS_delf(FklVM*,pthread_rwlock_t*);
-extern void SYS_lfdl(FklVM*,pthread_rwlock_t*);
-extern void SYS_reverse(FklVM*,pthread_rwlock_t*);
-extern void SYS_i32(FklVM*,pthread_rwlock_t*);
-extern void SYS_i64(FklVM*,pthread_rwlock_t*);
-extern void SYS_fclose(FklVM*,pthread_rwlock_t*);
-extern void SYS_feof(FklVM*,pthread_rwlock_t*);
-extern void SYS_aref(FklVM*,pthread_rwlock_t*);
-extern void SYS_nthcdr(FklVM*,pthread_rwlock_t*);
+#define ARGL FklVM*,pthread_rwlock_t*
+extern void SYS_car(ARGL);
+extern void SYS_cdr(ARGL);
+extern void SYS_cons(ARGL);
+extern void SYS_append(ARGL);
+extern void SYS_atom(ARGL);
+extern void SYS_null(ARGL);
+extern void SYS_not(ARGL);
+extern void SYS_eq(ARGL);
+extern void SYS_equal(ARGL);
+extern void SYS_eqn(ARGL);
+extern void SYS_add(ARGL);
+extern void SYS_add_1(ARGL);
+extern void SYS_sub(ARGL);
+extern void SYS_sub_1(ARGL);
+extern void SYS_mul(ARGL);
+extern void SYS_div(ARGL);
+extern void SYS_rem(ARGL);
+extern void SYS_gt(ARGL);
+extern void SYS_ge(ARGL);
+extern void SYS_lt(ARGL);
+extern void SYS_le(ARGL);
+extern void SYS_i8(ARGL);
+extern void SYS_integer(ARGL);
+extern void SYS_f64(ARGL);
+extern void SYS_string(ARGL);
+extern void SYS_symbol(ARGL);
+extern void SYS_byts(ARGL);
+extern void SYS_nth(ARGL);
+extern void SYS_length(ARGL);
+extern void SYS_fopen(ARGL);
+extern void SYS_read(ARGL);
+extern void SYS_fgetb(ARGL);
+extern void SYS_prin1(ARGL);
+extern void SYS_fputb(ARGL);
+extern void SYS_princ(ARGL);
+extern void SYS_dll(ARGL);
+extern void SYS_dlsym(ARGL);
+extern void SYS_argv(ARGL);
+extern void SYS_go(ARGL);
+extern void SYS_chanl(ARGL);
+extern void SYS_send(ARGL);
+extern void SYS_recv(ARGL);
+extern void SYS_error(ARGL);
+extern void SYS_raise(ARGL);
+extern void SYS_call_cc(ARGL);
+extern void SYS_apply(ARGL);
+extern void SYS_newf(ARGL);
+extern void SYS_delf(ARGL);
+extern void SYS_lfdl(ARGL);
+extern void SYS_reverse(ARGL);
+extern void SYS_i32(ARGL);
+extern void SYS_i64(ARGL);
+extern void SYS_fclose(ARGL);
+extern void SYS_feof(ARGL);
+extern void SYS_vref(ARGL);
+extern void SYS_nthcdr(ARGL);
+extern void SYS_i8_p(ARGL);
+extern void SYS_integer_p(ARGL);
+extern void SYS_i32_p(ARGL);
+extern void SYS_i64_p(ARGL);
+extern void SYS_f64_p(ARGL);
+extern void SYS_byts_p(ARGL);
+extern void SYS_pair_p(ARGL);
+extern void SYS_symbol_p(ARGL);
+extern void SYS_string_p(ARGL);
+extern void SYS_error_p(ARGL);
+extern void SYS_procedure_p(ARGL);
+extern void SYS_proc_p(ARGL);
+extern void SYS_dlproc_p(ARGL);
+extern void SYS_flproc_p(ARGL);
+extern void SYS_vector_p(ARGL);
+extern void SYS_memory_p(ARGL);
+extern void SYS_chanl_p(ARGL);
+extern void SYS_ref_p(ARGL);
+extern void SYS_dll_p(ARGL);
+
+#undef ARGL
 
 void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 {
@@ -432,12 +453,11 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_lt,
 		SYS_le,
 		SYS_i8,
-		SYS_int,
+		SYS_integer,
 		SYS_f64,
-		SYS_str,
-		SYS_sym,
+		SYS_string,
+		SYS_symbol,
 		SYS_byts,
-		SYS_type,
 		SYS_nth,
 		SYS_length,
 		SYS_apply,
@@ -465,8 +485,27 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_i64,
 		SYS_fclose,
 		SYS_feof,
-		SYS_aref,
+		SYS_vref,
 		SYS_nthcdr,
+		SYS_i8_p,
+		SYS_integer_p,
+		SYS_i32_p,
+		SYS_i64_p,
+		SYS_f64_p,
+		SYS_byts_p,
+		SYS_pair_p,
+		SYS_symbol_p,
+		SYS_string_p,
+		SYS_error_p,
+		SYS_procedure_p,
+		SYS_proc_p,
+		SYS_dlproc_p,
+		SYS_flproc_p,
+		SYS_vector_p,
+		SYS_memory_p,
+		SYS_chanl_p,
+		SYS_ref_p,
+		SYS_dll_p,
 	};
 	obj->num=FKL_NUM_OF_BUILT_IN_SYMBOL;
 	obj->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*FKL_NUM_OF_BUILT_IN_SYMBOL);
@@ -889,7 +928,7 @@ void B_push_ind_ref(FklVM* exe)
 	FklVMvalue* exp=fklGetValue(stack,stack->tp-2);
 	FklTypeId_t type=fklGetU32FromByteCode(exe->code+r->cp+sizeof(char));
 	uint32_t size=fklGetU32FromByteCode(exe->code+r->cp+sizeof(char)+sizeof(FklTypeId_t));
-	if(!FKL_IS_MEM(exp)&&!IS_CHF(exp))
+	if(!FKL_IS_MEM(exp)&&!FKL_IS_CHF(exp))
 		FKL_RAISE_BUILTIN_ERROR("b.push_ind_ref",FKL_WRONGARG,r,exe);
 	if(!FKL_IS_I32(index))
 		FKL_RAISE_BUILTIN_ERROR("b.push_ind_ref",FKL_WRONGARG,r,exe);
@@ -910,7 +949,7 @@ void B_push_ref(FklVM* exe)
 	FklVMvalue* exp=fklGetTopValue(stack);
 	int64_t offset=fklGetI64FromByteCode(exe->code+r->cp+sizeof(char));
 	FklTypeId_t type=*(FklTypeId_t*)(exe->code+r->cp+sizeof(char)+sizeof(int64_t));
-	if(!FKL_IS_MEM(exp)&&!IS_CHF(exp))
+	if(!FKL_IS_MEM(exp)&&!FKL_IS_CHF(exp))
 		FKL_RAISE_BUILTIN_ERROR("b.push_ref",FKL_WRONGARG,r,exe);
 	FklVMmem* mem=exp->u.chf;
 	if(!mem->mem)
@@ -1067,7 +1106,7 @@ void B_pop_ref(FklVM* exe)
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMvalue* val=fklGET_VAL(fklGetTopValue(stack),exe->heap);
 	FklVMvalue* ref=fklGetValue(stack,stack->tp-2);
-	if(!FKL_IS_REF(ref)&&!IS_CHF(ref)&&!FKL_IS_MEM(ref))
+	if(!FKL_IS_REF(ref)&&!FKL_IS_CHF(ref)&&!FKL_IS_MEM(ref))
 		FKL_RAISE_BUILTIN_ERROR("b.pop_ref",FKL_WRONGARG,runnable,exe);
 	if(fklSET_REF(ref,val))
 		FKL_RAISE_BUILTIN_ERROR("b.pop_ref",FKL_INVALIDASSIGN,runnable,exe);
@@ -1543,7 +1582,7 @@ void fklGC_markValueInStack(FklVMstack* stack)
 	for(;i<stack->tp;i++)
 	{
 		FklVMvalue* t=stack->values[i];
-		if(!IS_CHF(t))
+		if(!FKL_IS_CHF(t))
 			fklGC_markValue(t);
 	}
 }

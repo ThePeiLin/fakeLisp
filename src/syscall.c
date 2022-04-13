@@ -136,21 +136,6 @@ void SYS_append(FklVM* exe,pthread_rwlock_t* gclock)
 	FKL_SET_RETURN("SYS_append",retval,stack);
 }
 
-void SYS_atom(FklVM* exe,pthread_rwlock_t* gclock)
-{
-	FklVMstack* stack=exe->stack;
-	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	FklVMvalue* arg=fklGET_VAL(fklPopVMstack(stack),exe->heap);
-	if(fklResBp(stack))
-		FKL_RAISE_BUILTIN_ERROR("sys.atom",FKL_TOOMANYARG,runnable,exe);
-	if(!arg)
-		FKL_RAISE_BUILTIN_ERROR("sys.atom",FKL_TOOFEWARG,runnable,exe);
-	if(!FKL_IS_PAIR(arg))
-		FKL_SET_RETURN("SYS_atom",FKL_VM_TRUE,stack);
-	else
-		FKL_SET_RETURN("SYS_atom",FKL_VM_NIL,stack);
-}
-
 void SYS_null(FklVM* exe,pthread_rwlock_t* gclock)
 {
 	FklVMstack* stack=exe->stack;
@@ -673,32 +658,32 @@ void SYS_i8(FklVM* exe,pthread_rwlock_t* gclock)
 		FKL_RAISE_BUILTIN_ERROR("sys.i8",FKL_WRONGARG,runnable,exe);
 }
 
-void SYS_int(FklVM* exe,pthread_rwlock_t* gclock)
+void SYS_integer(FklVM* exe,pthread_rwlock_t* gclock)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
-		FKL_RAISE_BUILTIN_ERROR("sys.int",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.integer",FKL_TOOMANYARG,runnable,exe);
 	if(!obj)
-		FKL_RAISE_BUILTIN_ERROR("sys.int",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.integer",FKL_TOOFEWARG,runnable,exe);
 	if(FKL_IS_I8(obj))
-		FKL_SET_RETURN("SYS_int",FKL_MAKE_VM_I32(FKL_GET_I8(obj)),stack);
+		FKL_SET_RETURN("SYS_integer",FKL_MAKE_VM_I32(FKL_GET_I8(obj)),stack);
 	else if(FKL_IS_I32(obj))
-		FKL_SET_RETURN("SYS_int",obj,stack);
+		FKL_SET_RETURN("SYS_integer",obj,stack);
 	else if(FKL_IS_SYM(obj))
-		FKL_SET_RETURN("SYS_int",FKL_MAKE_VM_I32(FKL_GET_SYM(obj)),stack);
+		FKL_SET_RETURN("SYS_integer",FKL_MAKE_VM_I32(FKL_GET_SYM(obj)),stack);
 	else if(FKL_IS_I64(obj))
-		FKL_SET_RETURN("SYS_int",fklNewVMvalue(FKL_I64,&obj->u.i64,exe->heap),stack);
+		FKL_SET_RETURN("SYS_integer",fklNewVMvalue(FKL_I64,&obj->u.i64,exe->heap),stack);
 	else if(FKL_IS_F64(obj))
 	{
 		int64_t r=(int64_t)obj->u.f64;
-		FKL_SET_RETURN("SYS_int",makeVMint(r,exe->heap),stack);
+		FKL_SET_RETURN("SYS_integer",makeVMint(r,exe->heap),stack);
 	}
 	else if(FKL_IS_STR(obj))
 	{
 		int64_t r=fklStringToInt(obj->u.str);
-		FKL_SET_RETURN("SYS_int",makeVMint(r,exe->heap),stack);
+		FKL_SET_RETURN("SYS_integer",makeVMint(r,exe->heap),stack);
 	}
 	else if(FKL_IS_BYTS(obj))
 	{
@@ -713,7 +698,7 @@ void SYS_int(FklVM* exe,pthread_rwlock_t* gclock)
 				case 2:r[1]=obj->u.byts->str[1];
 				case 1:r[0]=obj->u.byts->str[0];
 			}
-			FKL_SET_RETURN("SYS_int",FKL_MAKE_VM_I32(*(int32_t*)r),stack);
+			FKL_SET_RETURN("SYS_integer",FKL_MAKE_VM_I32(*(int32_t*)r),stack);
 		}
 		else
 		{
@@ -729,11 +714,11 @@ void SYS_int(FklVM* exe,pthread_rwlock_t* gclock)
 				case 2:r[1]=obj->u.byts->str[1];
 				case 1:r[0]=obj->u.byts->str[0];
 			}
-			FKL_SET_RETURN("SYS_int",fklNewVMvalue(FKL_I64,r,exe->heap),stack);
+			FKL_SET_RETURN("SYS_integer",fklNewVMvalue(FKL_I64,r,exe->heap),stack);
 		}
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR("sys.int",FKL_WRONGARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.integer",FKL_WRONGARG,runnable,exe);
 }
 
 void SYS_i32(FklVM* exe,pthread_rwlock_t* gclock)
@@ -874,35 +859,35 @@ void SYS_f64(FklVM* exe,pthread_rwlock_t* gclock)
 	FKL_SET_RETURN("SYS_f64",retval,stack);
 }
 
-void SYS_str(FklVM* exe,pthread_rwlock_t* gclock)
+void SYS_string(FklVM* exe,pthread_rwlock_t* gclock)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(!obj)
-		FKL_RAISE_BUILTIN_ERROR("sys.str",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_TOOFEWARG,runnable,exe);
 	FklVMvalue* retval=fklNewVMvalue(FKL_STR,NULL,exe->heap);
 	if(FKL_IS_STR(obj))
 	{
 		FklVMvalue* pstart=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 		FklVMvalue* psize=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 		if(fklResBp(stack))
-			FKL_RAISE_BUILTIN_ERROR("sys.str",FKL_TOOMANYARG,runnable,exe);
+			FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_TOOMANYARG,runnable,exe);
 		if(pstart)
 		{
 			if(!isInt(pstart))
-				FKL_RAISE_BUILTIN_ERROR("sys.str",FKL_WRONGARG,runnable,exe);
+				FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_WRONGARG,runnable,exe);
 			int64_t start=getInt(pstart);
 			if(start>=strlen(obj->u.str))
-				FKL_RAISE_BUILTIN_ERROR("sys.str",FKL_INVALIDACCESS,runnable,exe);
+				FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_INVALIDACCESS,runnable,exe);
 			int64_t size=strlen(obj->u.str)-start;
 			if(psize)
 			{
 				if(!isInt(psize))
-					FKL_RAISE_BUILTIN_ERROR("sys.str",FKL_WRONGARG,runnable,exe);
+					FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_WRONGARG,runnable,exe);
 				int64_t tsize=getInt(psize);
 				if(tsize>size)
-					FKL_RAISE_BUILTIN_ERROR("sys.str",FKL_INVALIDACCESS,runnable,exe);
+					FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_INVALIDACCESS,runnable,exe);
 				size=tsize;
 			}
 			retval->u.str=fklCopyMemory(obj->u.str+start,size+1);
@@ -914,7 +899,7 @@ void SYS_str(FklVM* exe,pthread_rwlock_t* gclock)
 	else
 	{
 		if(fklResBp(stack))
-			FKL_RAISE_BUILTIN_ERROR("sys.str",FKL_TOOMANYARG,runnable,exe);
+			FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_TOOMANYARG,runnable,exe);
 		if(isInt(obj)&&!FKL_IS_I8(obj))
 			retval->u.str=fklIntToString(getInt(obj));
 		else if(FKL_IS_F64(obj))
@@ -926,28 +911,28 @@ void SYS_str(FklVM* exe,pthread_rwlock_t* gclock)
 		else if(FKL_IS_BYTS(obj))
 			retval->u.str=fklVMbytsToCstr(obj->u.byts);
 		else
-			FKL_RAISE_BUILTIN_ERROR("sys.str",FKL_WRONGARG,runnable,exe);
+			FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_WRONGARG,runnable,exe);
 	}
-	FKL_SET_RETURN("SYS_str",retval,stack);
+	FKL_SET_RETURN("SYS_string",retval,stack);
 }
 
-void SYS_sym(FklVM* exe,pthread_rwlock_t* gclock)
+void SYS_symbol(FklVM* exe,pthread_rwlock_t* gclock)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
-		FKL_RAISE_BUILTIN_ERROR("sys.sym",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.symbol",FKL_TOOMANYARG,runnable,exe);
 	if(!obj)
-		FKL_RAISE_BUILTIN_ERROR("sys.sym",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.symbol",FKL_TOOFEWARG,runnable,exe);
 	if(FKL_IS_I8(obj))
-		FKL_SET_RETURN("SYS_sym",FKL_MAKE_VM_SYM(fklAddSymbolToGlob(((char[]){FKL_GET_I8(obj),'\0'}))->id),stack);
+		FKL_SET_RETURN("SYS_symbol",FKL_MAKE_VM_SYM(fklAddSymbolToGlob(((char[]){FKL_GET_I8(obj),'\0'}))->id),stack);
 	else if(FKL_IS_SYM(obj))
-		FKL_SET_RETURN("SYS_sym",obj,stack);
+		FKL_SET_RETURN("SYS_symbol",obj,stack);
 	else if(FKL_IS_STR(obj))
-		FKL_SET_RETURN("SYS_sym",FKL_MAKE_VM_SYM(fklAddSymbolToGlob(obj->u.str)->id),stack);
+		FKL_SET_RETURN("SYS_symbol",FKL_MAKE_VM_SYM(fklAddSymbolToGlob(obj->u.str)->id),stack);
 	else
-		FKL_RAISE_BUILTIN_ERROR("sys.sym",FKL_WRONGARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.symbol",FKL_WRONGARG,runnable,exe);
 }
 
 void SYS_byts(FklVM* exe,pthread_rwlock_t* gclock)
@@ -1038,59 +1023,6 @@ void SYS_byts(FklVM* exe,pthread_rwlock_t* gclock)
 	FKL_SET_RETURN("SYS_byts",retval,stack);
 }
 
-void SYS_type(FklVM* exe,pthread_rwlock_t* gclock)
-{
-	static FklSid_t a[19];
-	static int hasInit=0;
-	if(!hasInit)
-	{
-		hasInit=1;
-		const char* b[]=
-		{
-			"nil",
-			"i32",
-			"i8",
-			"f64",
-			"i64",
-			"sym",
-			"str",
-			"byts",
-			"proc",
-			"cont",
-			"chan",
-			"fp",
-			"dll",
-			"dlproc",
-			"flproc",
-			"err",
-			"mem",
-			"ref",
-			"pair"
-		};
-		int i=0;
-		for(;i<FKL_ATM;i++)
-			a[i]=fklAddSymbolToGlob(b[i])->id;
-	}
-	FklVMstack* stack=exe->stack;
-	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	FklVMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
-	if(fklResBp(stack))
-		FKL_RAISE_BUILTIN_ERROR("sys.type",FKL_TOOMANYARG,runnable,exe);
-	size_t type=0;
-	switch(FKL_GET_TAG(obj))
-	{
-		case FKL_NIL_TAG:type=FKL_NIL;break;
-		case FKL_I32_TAG:type=FKL_I32;break;
-		case FKL_SYM_TAG:type=FKL_SYM;break;
-		case FKL_I8_TAG:type=FKL_I8;break;
-		case FKL_PTR_TAG:type=obj->type;break;
-		default:
-			FKL_RAISE_BUILTIN_ERROR("sys.type",FKL_WRONGARG,runnable,exe);
-			break;
-	}
-	FKL_SET_RETURN("SYS_type",FKL_MAKE_VM_SYM(a[type]),stack);
-}
-
 void SYS_nth(FklVM* exe,pthread_rwlock_t* gclock)
 {
 	FklVMstack* stack=exe->stack;
@@ -1120,7 +1052,7 @@ void SYS_nth(FklVM* exe,pthread_rwlock_t* gclock)
 	FKL_SET_RETURN("SYS_nth",retval,stack);
 }
 
-void SYS_aref(FklVM* exe,pthread_rwlock_t* gclock)
+void SYS_vref(FklVM* exe,pthread_rwlock_t* gclock)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
@@ -1128,22 +1060,22 @@ void SYS_aref(FklVM* exe,pthread_rwlock_t* gclock)
 	FklVMvalue* array=fklGET_VAL(fklPopVMstack(stack),heap);
 	FklVMvalue* place=fklGET_VAL(fklPopVMstack(stack),heap);
 	if(fklResBp(stack))
-		FKL_RAISE_BUILTIN_ERROR("sys.aref",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.vref",FKL_TOOMANYARG,runnable,exe);
 	if(!place||!array)
-		FKL_RAISE_BUILTIN_ERROR("sys.aref",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.vref",FKL_TOOFEWARG,runnable,exe);
 	if(!isInt(place))
-		FKL_RAISE_BUILTIN_ERROR("sys.aref",FKL_WRONGARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.vref",FKL_WRONGARG,runnable,exe);
 	FklVMvalue* retval=NULL;
 	ssize_t index=getInt(place);
 	if(index<0)
-		FKL_RAISE_BUILTIN_ERROR("sys.aref",FKL_INVALIDACCESS,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.vref",FKL_INVALIDACCESS,runnable,exe);
 	if(FKL_IS_STR(array))
 		retval=index>=strlen(array->u.str)?FKL_VM_NIL:FKL_MAKE_VM_CHF(fklNewVMmem(fklGetCharTypeId(),FKL_MEM_RAW,(uint8_t*)array->u.str+index),heap);
 	else if(FKL_IS_BYTS(array))
 		retval=index>=array->u.byts->size?FKL_VM_NIL:FKL_MAKE_VM_CHF(fklNewVMmem(fklGetCharTypeId(),FKL_MEM_RAW,array->u.byts->str+index),heap);
 	else
-		FKL_RAISE_BUILTIN_ERROR("sys.aref",FKL_WRONGARG,runnable,exe);
-	FKL_SET_RETURN("SYS_aref",retval,stack);
+		FKL_RAISE_BUILTIN_ERROR("sys.vref",FKL_WRONGARG,runnable,exe);
+	FKL_SET_RETURN("SYS_vref",retval,stack);
 }
 
 void SYS_nthcdr(FklVM* exe,pthread_rwlock_t* gclock)
@@ -1865,5 +1797,42 @@ void SYS_feof(FklVM* exe,pthread_rwlock_t* gclock)
 	FKL_SET_RETURN("SYS_fclose",!fp->u.fp->size&&feof(fp->u.fp->fp)?FKL_VM_TRUE:FKL_VM_NIL,stack);
 }
 
+#define PREDICATE(condtion,fname,err_infor) {\
+	FklVMstack* stack=exe->stack;\
+	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);\
+	FklVMvalue* val=fklGET_VAL(fklPopVMstack(stack),exe->heap);\
+	if(fklResBp(stack))\
+		FKL_RAISE_BUILTIN_ERROR(err_infor,FKL_TOOFEWARG,runnable,exe);\
+	if(!val)\
+		FKL_RAISE_BUILTIN_ERROR(err_infor,FKL_TOOFEWARG,runnable,exe);\
+	if(condtion)\
+		FKL_SET_RETURN(fname,FKL_VM_TRUE,stack);\
+	else\
+		FKL_SET_RETURN(fname,FKL_VM_NIL,stack);\
+}
 
+#define ARGL FklVM* exe,pthread_rwlock_t* gclock
+void SYS_atom(ARGL) PREDICATE(!FKL_IS_PAIR(val),"SYS_atom","sys.atom?")
+void SYS_i8_p(ARGL) PREDICATE(FKL_IS_I8(val),"SYS_i8_p","sys.i8?")
+void SYS_integer_p(ARGL) PREDICATE(FKL_IS_I32(val)||FKL_IS_I64(val),"SYS_integer_p","sys.integer?")
+void SYS_i32_p(ARGL) PREDICATE(FKL_IS_I32(val),"SYS_i32_p","sys.i32?")
+void SYS_i64_p(ARGL) PREDICATE(FKL_IS_I64(val),"SYS_i64_p","sys.i64?")
+void SYS_f64_p(ARGL) PREDICATE(FKL_IS_F64(val),"SYS_f64_p","sys.i64?")
+void SYS_byts_p(ARGL) PREDICATE(FKL_IS_BYTS(val),"SYS_byts_p","sys.byts?")
+void SYS_pair_p(ARGL) PREDICATE(FKL_IS_PAIR(val),"SYS_pair_p","sys.pair?")
+void SYS_symbol_p(ARGL) PREDICATE(FKL_IS_SYM(val),"SYS_symbol_p","sys.symbol?")
+void SYS_string_p(ARGL) PREDICATE(FKL_IS_STR(val),"SYS_string_p","sys.string?")
+void SYS_error_p(ARGL) PREDICATE(FKL_IS_ERR(val),"SYS_error_p","sys.error?")
+void SYS_procedure_p(ARGL) PREDICATE(FKL_IS_PROC(val)||FKL_IS_DLPROC(val)||FKL_IS_FLPROC(val),"SYS_procedure_p","sys.procedure?")
+void SYS_proc_p(ARGL) PREDICATE(FKL_IS_PROC(val),"SYS_proc_p","sys.proc?")
+void SYS_dlproc_p(ARGL) PREDICATE(FKL_IS_DLPROC(val),"SYS_dlproc_p","sys.dlproc?")
+void SYS_flproc_p(ARGL) PREDICATE(FKL_IS_FLPROC(val),"SYS_flproc_p","sys.flproc?")
+void SYS_vector_p(ARGL) PREDICATE(FKL_IS_VECTOR(val),"SYS_vector_p","sys.vector?")
+void SYS_memory_p(ARGL) PREDICATE(FKL_IS_MEM(val),"SYS_memory_p","sys.memory?")
+void SYS_chanl_p(ARGL) PREDICATE(FKL_IS_CHAN(val),"SYS_chanl_p","sys.chanl?")
+void SYS_ref_p(ARGL) PREDICATE(FKL_IS_REF(val)||FKL_IS_CHF(val),"SYS_ref_p","sys.ref?")
+void SYS_dll_p(ARGL) PREDICATE(FKL_IS_DLL(val),"SYS_dll_p","sys.dll?")
+
+#undef ARGL
+#undef PREDICATE
 //end

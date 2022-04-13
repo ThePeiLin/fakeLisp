@@ -497,7 +497,7 @@ static void princVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 							FklTypeId_t type=mem->type;
 							if(fklIsNativeTypeId(type))
 								fklPrintMemoryRef(type,mem,fp);
-							else if(IS_CHF(objValue))
+							else if(FKL_IS_CHF(objValue))
 								fprintf(fp,"<#memref at %p>",mem->mem);
 							else
 								fprintf(fp,"<#mem at %p>",mem->mem);
@@ -642,7 +642,7 @@ static void prin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 							FklTypeId_t type=mem->type;
 							if(fklIsNativeTypeId(type))
 								fklPrintMemoryRef(type,mem,fp);
-							else if(IS_CHF(objValue))
+							else if(FKL_IS_CHF(objValue))
 								fprintf(fp,"<#memref at %p>",mem->mem);
 							else
 								fprintf(fp,"<#mem at %p>",mem->mem);
@@ -749,7 +749,7 @@ FklVMvalue* fklGET_VAL(FklVMvalue* P,FklVMheap* heap)
 	{
 		if(FKL_IS_REF(P))
 			return *(FklVMvalue**)(FKL_GET_PTR(P));
-		else if(IS_CHF(P))
+		else if(FKL_IS_CHF(P))
 		{
 			FklVMvalue* t=NULL;
 			FklVMmem* mem=P->u.chf;
@@ -766,7 +766,7 @@ FklVMvalue* fklGET_VAL(FklVMvalue* P,FklVMheap* heap)
 
 int fklSET_REF(FklVMvalue* P,FklVMvalue* V)
 {
-	if(FKL_IS_MEM(P)||IS_CHF(P))
+	if(FKL_IS_MEM(P)||FKL_IS_CHF(P))
 	{
 		FklVMmem* mem=P->u.chf;
 		if(mem->type<=0)
@@ -910,7 +910,7 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 			}
 			cptrType=FKL_PAIR;
 		}
-		else if(!FKL_IS_REF(root)&&!IS_CHF(root))
+		else if(!FKL_IS_REF(root)&&!FKL_IS_CHF(root))
 			cptrType=FKL_ATM;
 		root1->type=cptrType;
 		if(cptrType==FKL_ATM)

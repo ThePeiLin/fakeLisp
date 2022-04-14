@@ -1977,6 +1977,8 @@ void SYS_vector(FklVM* exe,pthread_rwlock_t* gclock)
 		else
 		{
 			FklVMvalue* content=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+			if(fklResBp(stack))
+				FKL_RAISE_BUILTIN_ERROR("sys.vector",FKL_TOOMANYARG,runnable,exe);
 			FklVMvec* vec=fklNewVMvec(size,NULL);
 			for(size_t i=0;i<size;i++)
 				vec->base[i]=FKL_VM_NIL;
@@ -1985,7 +1987,6 @@ void SYS_vector(FklVM* exe,pthread_rwlock_t* gclock)
 				for(size_t i=0;i<size;i++)
 					vec->base[i]=content;
 			}
-			fklResBp(stack);
 			FKL_SET_RETURN(__func__,fklNewVMvalue(FKL_VECTOR,vec,exe->heap),stack);
 		}
 	}

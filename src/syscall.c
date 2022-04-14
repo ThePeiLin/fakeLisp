@@ -7,6 +7,7 @@
 #include<stdlib.h>
 #include<string.h>
 #include<math.h>
+#include<float.h>
 #include<setjmp.h>
 #include<dlfcn.h>
 #include<ctype.h>
@@ -24,12 +25,12 @@ extern void* ThreadVMflprocFunc(void* p);
 
 static inline int isInt(FklVMvalue* p)
 {
-	return FKL_IS_I8(p)||FKL_IS_I32(p)||FKL_IS_I64(p);
+	return FKL_IS_I32(p)||FKL_IS_I64(p);
 }
 
 static inline int64_t getInt(FklVMvalue* p)
 {
-	return FKL_IS_I8(p)?FKL_GET_I8(p):FKL_IS_I32(p)?FKL_GET_I32(p):p->u.i64;
+	return FKL_IS_I32(p)?FKL_GET_I32(p):p->u.i64;
 }
 
 static inline FklVMvalue* makeVMint(int64_t r64,FklVMheap* heap)
@@ -201,9 +202,15 @@ void SYS_eqn(FklVM* exe,pthread_rwlock_t* gclock)
 	if(!fir||!sec)
 		FKL_RAISE_BUILTIN_ERROR("sys.eqn",FKL_TOOFEWARG,runnable,exe);
 	if((FKL_IS_F64(fir)||isInt(fir))&&(FKL_IS_F64(sec)||isInt(sec)))
-		FKL_SET_RETURN(__func__,((getInt(fir)
-						-getInt(sec))
-					==0.0)
+		FKL_SET_RETURN(__func__
+				,fabs((FKL_IS_F64(fir)?fir->u.f64:getInt(fir))
+						-(FKL_IS_F64(sec)?sec->u.f64:getInt(sec)))
+				<DBL_EPSILON
+				?FKL_VM_TRUE
+				:FKL_VM_NIL
+				,stack);
+	else if(FKL_IS_I8(fir)&&FKL_IS_I8(sec))
+		FKL_SET_RETURN(__func__,fir==sec
 				?FKL_VM_TRUE
 				:FKL_VM_NIL
 				,stack);
@@ -641,15 +648,15 @@ void SYS_le(FklVM* exe,pthread_rwlock_t* gclock)
 			,stack);
 }
 
-void SYS_i8(FklVM* exe,pthread_rwlock_t* gclock)
+void SYS_char(FklVM* exe,pthread_rwlock_t* gclock)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMvalue* obj=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
-		FKL_RAISE_BUILTIN_ERROR("sys.i8",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.char",FKL_TOOMANYARG,runnable,exe);
 	if(!obj)
-		FKL_RAISE_BUILTIN_ERROR("sys.i8",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.char",FKL_TOOFEWARG,runnable,exe);
 	if(FKL_IS_I32(obj))
 		FKL_SET_RETURN(__func__,FKL_MAKE_VM_I8(FKL_GET_I32(obj)),stack);
 	else if(FKL_IS_I8(obj))
@@ -661,7 +668,7 @@ void SYS_i8(FklVM* exe,pthread_rwlock_t* gclock)
 	else if(FKL_IS_BYTS(obj))
 		FKL_SET_RETURN(__func__,FKL_MAKE_VM_I8(obj->u.byts->str[0]),stack);
 	else
-		FKL_RAISE_BUILTIN_ERROR("sys.i8",FKL_WRONGARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.char",FKL_WRONGARG,runnable,exe);
 }
 
 void SYS_integer(FklVM* exe,pthread_rwlock_t* gclock)
@@ -873,7 +880,7 @@ void SYS_string(FklVM* exe,pthread_rwlock_t* gclock)
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_TOOFEWARG,runnable,exe);
 	FklVMvalue* retval=fklNewVMvalue(FKL_STR,NULL,exe->heap);
-	if(FKL_IS_STR(obj))
+	if(FKL_IS_STR(obj)||FKL_IS_VECTOR(obj))
 	{
 		FklVMvalue* pstart=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 		FklVMvalue* psize=fklGET_VAL(fklPopVMstack(stack),exe->heap);
@@ -884,9 +891,10 @@ void SYS_string(FklVM* exe,pthread_rwlock_t* gclock)
 			if(!isInt(pstart))
 				FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_WRONGARG,runnable,exe);
 			int64_t start=getInt(pstart);
-			if(start>=strlen(obj->u.str))
+			if((FKL_IS_STR(obj)&&start>=strlen(obj->u.str))
+					||(FKL_IS_VECTOR(obj)&&start>=obj->u.vec->size))
 				FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_INVALIDACCESS,runnable,exe);
-			int64_t size=strlen(obj->u.str)-start;
+			int64_t size=FKL_IS_STR(obj)?strlen(obj->u.str)-start:obj->u.vec->size-start;
 			if(psize)
 			{
 				if(!isInt(psize))
@@ -896,11 +904,41 @@ void SYS_string(FklVM* exe,pthread_rwlock_t* gclock)
 					FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_INVALIDACCESS,runnable,exe);
 				size=tsize;
 			}
-			retval->u.str=fklCopyMemory(obj->u.str+start,size+1);
-			retval->u.str[size]='\0';
+			if(FKL_IS_STR(obj))
+			{
+				retval->u.str=fklCopyMemory(obj->u.str+start,size+1);
+				retval->u.str[size]='\0';
+			}
+			else
+			{ retval->u.str=(char*)malloc(sizeof(char)*(size+1));
+				for(size_t i=0;i<size;i++)
+				{
+					FklVMvalue* v=obj->u.vec->base[start+i];
+					if(!isInt(v))
+						FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_WRONGARG,runnable,exe);
+					retval->u.str[i]=getInt(v);
+				}
+				retval->u.str[size]='\0';
+			}
 		}
 		else
-			retval->u.str=fklCopyStr(obj->u.str);
+		{
+			if(FKL_IS_STR(obj))
+				retval->u.str=fklCopyStr(obj->u.str);
+			else
+			{
+				retval->u.str=(char*)malloc(sizeof(char)*(obj->u.vec->size+1));
+				FKL_ASSERT(retval->u.str,__func__);
+				for(size_t i=0;i<obj->u.vec->size;i++)
+				{
+					FklVMvalue* v=obj->u.vec->base[i];
+					if(!isInt(v))
+						FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_WRONGARG,runnable,exe);
+					retval->u.str[i]=getInt(v);
+				}
+				retval->u.str[obj->u.vec->size]='\0';
+			}
+		}
 	}
 	else if(FKL_IS_I8(obj))
 	{
@@ -914,12 +952,27 @@ void SYS_string(FklVM* exe,pthread_rwlock_t* gclock)
 		}
 		fklResBp(stack);
 	}
+	else if(isInt(obj))
+	{
+		FklVMvalue* content=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+		fklResBp(stack);
+		if(content)
+		{
+			if(!FKL_IS_I8(content))
+				FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_WRONGARG,runnable,exe);
+			size_t size=getInt(obj);
+			retval->u.str=(char*)malloc(sizeof(char)*(size+1));
+			FKL_ASSERT(retval->u.str,__func__);
+			retval->u.str[size]='\0';
+			memset(retval->u.str,FKL_GET_I8(content),size);
+		}
+		else
+			retval->u.str=fklIntToString(getInt(obj));
+	}
 	else
 	{
 		if(fklResBp(stack))
 			FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_TOOMANYARG,runnable,exe);
-		if(isInt(obj)&&!FKL_IS_I8(obj))
-			retval->u.str=fklIntToString(getInt(obj));
 		else if(FKL_IS_F64(obj))
 			retval->u.str=fklDoubleToString(obj->u.f64);
 		else if(FKL_IS_SYM(obj))
@@ -959,7 +1012,7 @@ void SYS_byts(FklVM* exe,pthread_rwlock_t* gclock)
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_TOOFEWARG,runnable,exe);
 	FklVMvalue* retval=fklNewVMvalue(FKL_BYTS,fklNewEmptyVMbyts(),exe->heap);
-	if(FKL_IS_BYTS(obj))
+	if(FKL_IS_BYTS(obj)||FKL_IS_VECTOR(obj))
 	{
 		FklVMvalue* pstart=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 		FklVMvalue* psize=fklGET_VAL(fklPopVMstack(stack),exe->heap);
@@ -970,9 +1023,10 @@ void SYS_byts(FklVM* exe,pthread_rwlock_t* gclock)
 			if(!isInt(pstart))
 				FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_WRONGARG,runnable,exe);
 			int64_t start=getInt(pstart);
-			if(start>=obj->u.byts->size)
+			if((FKL_IS_BYTS(obj)&&start>=obj->u.byts->size)
+					||(FKL_IS_VECTOR(obj)&&start>=obj->u.vec->size))
 				FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_INVALIDACCESS,runnable,exe);
-			int64_t size=obj->u.byts->size-start;
+			int64_t size=FKL_IS_BYTS(obj)?obj->u.byts->size-start:obj->u.vec->size-start;
 			if(psize)
 			{
 				if(!isInt(psize))
@@ -982,12 +1036,41 @@ void SYS_byts(FklVM* exe,pthread_rwlock_t* gclock)
 					FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_INVALIDACCESS,runnable,exe);
 				size=tsize;
 			}
-			FklVMbyts* retvalbyts=fklNewVMbyts(size,obj->u.byts->str+start);
+			FklVMbyts* retvalbyts=NULL;
+			if(FKL_IS_BYTS(obj))
+				retvalbyts=fklNewVMbyts(size,obj->u.byts->str+start);
+			else
+			{
+				retvalbyts=fklNewVMbyts(size,NULL);
+				for(size_t i=0;i<size;i++)
+				{
+					FklVMvalue* v=obj->u.vec->base[start+i];
+					if(!isInt(v))
+						FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_WRONGARG,runnable,exe);
+					retvalbyts->str[i]=getInt(v);
+				}
+			}
 			free(retval->u.byts);
 			retval->u.byts=retvalbyts;
 		}
 		else
-			fklVMbytsCat(&retval->u.byts,obj->u.byts);
+		{
+			if(FKL_IS_BYTS(obj))
+				fklVMbytsCat(&retval->u.byts,obj->u.byts);
+			else
+			{
+				FklVMbyts* retvalbyts=fklNewVMbyts(obj->u.vec->size,NULL);
+				for(size_t i=0;i<obj->u.vec->size;i++)
+				{
+					FklVMvalue* v=obj->u.vec->base[i];
+					if(!isInt(v))
+						FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_WRONGARG,runnable,exe);
+					retvalbyts->str[i]=getInt(v);
+				}
+				free(retval->u.byts);
+				retval->u.byts=retvalbyts;
+			}
+		}
 	}
 	else if(FKL_IS_I8(obj))
 	{
@@ -1004,65 +1087,45 @@ void SYS_byts(FklVM* exe,pthread_rwlock_t* gclock)
 		}
 		fklResBp(stack);
 	}
-	else if(FKL_IS_VECTOR(obj))
+	else if(isInt(obj))
 	{
-		FklVMvalue* pstart=fklGET_VAL(fklPopVMstack(stack),exe->heap);
-		FklVMvalue* psize=fklGET_VAL(fklPopVMstack(stack),exe->heap);
-		if(fklResBp(stack))
-			FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_TOOMANYARG,runnable,exe);
-		if(pstart)
+		FklVMvalue* content=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+		fklResBp(stack);
+		if(content)
 		{
-			if(!isInt(pstart))
-				FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_WRONGARG,runnable,exe);
-			int64_t start=getInt(pstart);
-			if(start>=obj->u.vec->size)
-				FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_INVALIDACCESS,runnable,exe);
-			int64_t size=obj->u.byts->size-start;
-			if(psize)
-			{
-				if(!isInt(psize))
-					FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_WRONGARG,runnable,exe);
-				int64_t tsize=getInt(psize);
-				if(tsize>size)
-					FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_INVALIDACCESS,runnable,exe);
-				size=tsize;
-			}
-			FklVMbyts* retvalbyts=fklNewVMbyts(size,NULL);
-			for(size_t i=0;i<size;i++)
-			{
-				FklVMvalue* v=obj->u.vec->base[start+i];
-				if(!isInt(v))
-					FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_WRONGARG,runnable,exe);
-				retvalbyts->str[i]=getInt(v);
-			}
-			free(retval->u.byts);
-			retval->u.byts=retvalbyts;
+			if(!FKL_IS_I8(content))
+				FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_WRONGARG,runnable,exe);
+			size_t size=getInt(obj);
+			retval->u.byts=(FklVMbyts*)realloc(retval->u.byts
+					,sizeof(FklVMbyts)+sizeof(char)*size);
+			retval->u.byts->size=size;
+			FKL_ASSERT(retval->u.str,__func__);
+			memset(retval->u.byts->str,FKL_GET_I8(content),size);
 		}
 		else
 		{
-			FklVMbyts* retvalbyts=fklNewVMbyts(obj->u.vec->size,NULL);
-			for(size_t i=0;i<obj->u.vec->size;i++)
+			if(FKL_IS_I32(obj))
 			{
-				FklVMvalue* v=obj->u.vec->base[i];
-				if(!isInt(v))
-					FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_WRONGARG,runnable,exe);
-				retvalbyts->str[i]=getInt(v);
+				retval->u.byts=(FklVMbyts*)realloc(retval->u.byts
+						,sizeof(FklVMbyts)+sizeof(int32_t));
+				FKL_ASSERT(retval->u.byts,"SYS_byts");
+				retval->u.byts->size=sizeof(int32_t);
+				*(int32_t*)retval->u.byts->str=FKL_GET_I32(obj);
 			}
-			free(retval->u.byts);
-			retval->u.byts=retvalbyts;
+			else if(FKL_IS_I64(obj))
+			{
+				retval->u.byts=(FklVMbyts*)realloc(retval->u.byts
+						,sizeof(FklVMbyts)+sizeof(int64_t));
+				FKL_ASSERT(retval->u.byts,"SYS_byts");
+				retval->u.byts->size=sizeof(int64_t);
+				*(int64_t*)retval->u.byts->str=obj->u.i64;
+			}
 		}
 	}
 	else
 	{
 		if(fklResBp(stack))
 			FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_TOOMANYARG,runnable,exe);
-		if(FKL_IS_I32(obj))
-		{
-			retval->u.byts=(FklVMbyts*)realloc(retval->u.byts,sizeof(FklVMbyts)+sizeof(int32_t));
-			FKL_ASSERT(retval->u.byts,"SYS_byts");
-			retval->u.byts->size=sizeof(int32_t);
-			*(int32_t*)retval->u.byts->str=FKL_GET_I32(obj);
-		}
 		else if(FKL_IS_F64(obj))
 		{
 			retval->u.byts=(FklVMbyts*)realloc(retval->u.byts,sizeof(FklVMbyts)+sizeof(double));
@@ -1076,11 +1139,6 @@ void SYS_byts(FklVM* exe,pthread_rwlock_t* gclock)
 			retval->u.byts->size=sizeof(FklSid_t);
 			FklSid_t sid=FKL_GET_SYM(obj);
 			memcpy(retval->u.byts->str,&sid,sizeof(FklSid_t));
-			//FklSymTabNode* n=fklGetGlobSymbolWithId(FKL_GET_SYM(obj));
-			//retval->u.byts=(FklVMbyts*)realloc(retval->u.byts,sizeof(FklVMbyts)+strlen(n->symbol));
-			//FKL_ASSERT(retval->u.byts,"SYS_byts");
-			//retval->u.byts->size=strlen(n->symbol);
-			//memcpy(retval->u.byts->str,n->symbol,retval->u.byts->size);
 		}
 		else if(FKL_IS_STR(obj))
 		{
@@ -1868,7 +1926,7 @@ void SYS_feof(FklVM* exe,pthread_rwlock_t* gclock)
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMvalue* fp=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
-		FKL_RAISE_BUILTIN_ERROR("sys.fclose",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.fclose",FKL_TOOMANYARG,runnable,exe);
 	if(!fp)
 		FKL_RAISE_BUILTIN_ERROR("sys.fclose",FKL_TOOFEWARG,runnable,exe);
 	if(!FKL_IS_FP(fp))
@@ -1880,6 +1938,34 @@ void SYS_feof(FklVM* exe,pthread_rwlock_t* gclock)
 
 void SYS_vector(FklVM* exe,pthread_rwlock_t* gclock)
 {
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
+	FklVMvalue* fir=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	if(!fir)
+		FKL_RAISE_BUILTIN_ERROR("sys.vector",FKL_TOOFEWARG,runnable,exe);
+	if(FKL_IS_STR(fir)||FKL_IS_BYTS(fir))
+	{
+		if(fklResBp(stack))
+			FKL_RAISE_BUILTIN_ERROR("sys.vector",FKL_TOOMANYARG,runnable,exe);
+		size_t size=FKL_IS_STR(fir)?strlen(fir->u.str):fir->u.byts->size;
+		FklVMvec* vec=fklNewVMvec(size,NULL);
+		if(FKL_IS_STR(fir))
+		{
+			for(size_t i=0;i<size;i++)
+				vec->base[i]=FKL_MAKE_VM_I8(fir->u.str[i]);
+		}
+		else
+		{
+			for(size_t i=0;i<size;i++)
+				vec->base[i]=FKL_MAKE_VM_I32(fir->u.byts->str[i]);
+		}
+		FKL_SET_RETURN(__func__,fklNewVMvalue(FKL_VECTOR,vec,exe->heap),stack);
+	}
+	else if(isInt(fir))
+	{
+	}
+	else
+		FKL_RAISE_BUILTIN_ERROR("sys.vector",FKL_WRONGARG,runnable,exe);
 }
 
 #define PREDICATE(condtion,err_infor) {\
@@ -1898,7 +1984,7 @@ void SYS_vector(FklVM* exe,pthread_rwlock_t* gclock)
 
 #define ARGL FklVM* exe,pthread_rwlock_t* gclock
 void SYS_atom(ARGL) PREDICATE(!FKL_IS_PAIR(val),"sys.atom?")
-void SYS_i8_p(ARGL) PREDICATE(FKL_IS_I8(val),"sys.i8?")
+void SYS_char_p(ARGL) PREDICATE(FKL_IS_I8(val),"sys.char?")
 void SYS_integer_p(ARGL) PREDICATE(FKL_IS_I32(val)||FKL_IS_I64(val),"sys.integer?")
 void SYS_i32_p(ARGL) PREDICATE(FKL_IS_I32(val),"sys.i32?")
 void SYS_i64_p(ARGL) PREDICATE(FKL_IS_I64(val),"sys.i64?")

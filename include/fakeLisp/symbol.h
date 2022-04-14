@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-#define FKL_NUM_OF_BUILT_IN_SYMBOL (79)
+#define FKL_NUM_OF_BUILT_IN_SYMBOL (80)
 typedef uint32_t FklSid_t;
 
 typedef enum

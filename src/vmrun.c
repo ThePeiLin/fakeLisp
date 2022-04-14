@@ -372,7 +372,7 @@ extern void SYS_gt(ARGL);
 extern void SYS_ge(ARGL);
 extern void SYS_lt(ARGL);
 extern void SYS_le(ARGL);
-extern void SYS_i8(ARGL);
+extern void SYS_char(ARGL);
 extern void SYS_integer(ARGL);
 extern void SYS_f64(ARGL);
 extern void SYS_string(ARGL);
@@ -407,7 +407,7 @@ extern void SYS_fclose(ARGL);
 extern void SYS_feof(ARGL);
 extern void SYS_vref(ARGL);
 extern void SYS_nthcdr(ARGL);
-extern void SYS_i8_p(ARGL);
+extern void SYS_char_p(ARGL);
 extern void SYS_integer_p(ARGL);
 extern void SYS_i32_p(ARGL);
 extern void SYS_i64_p(ARGL);
@@ -426,6 +426,7 @@ extern void SYS_memory_p(ARGL);
 extern void SYS_chanl_p(ARGL);
 extern void SYS_ref_p(ARGL);
 extern void SYS_dll_p(ARGL);
+extern void SYS_vector(ARGL);
 
 #undef ARGL
 
@@ -454,7 +455,7 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_ge,
 		SYS_lt,
 		SYS_le,
-		SYS_i8,
+		SYS_char,
 		SYS_integer,
 		SYS_f64,
 		SYS_string,
@@ -489,7 +490,7 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_feof,
 		SYS_vref,
 		SYS_nthcdr,
-		SYS_i8_p,
+		SYS_char_p,
 		SYS_integer_p,
 		SYS_i32_p,
 		SYS_i64_p,
@@ -508,6 +509,7 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_chanl_p,
 		SYS_ref_p,
 		SYS_dll_p,
+		SYS_vector,
 	};
 	obj->num=FKL_NUM_OF_BUILT_IN_SYMBOL;
 	obj->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*FKL_NUM_OF_BUILT_IN_SYMBOL);

@@ -308,7 +308,7 @@ int MacroPatternCmp(const FklAstCptr* first,const FklAstCptr* second)
 				if(firAtm->type==FKL_STR&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
 				else if(firAtm->type==FKL_I32&&firAtm->value.i32!=secAtm->value.i32)return 0;
 				else if(firAtm->type==FKL_F64&&fabs(firAtm->value.f64-secAtm->value.f64)!=0)return 0;
-				else if(firAtm->type==FKL_I8&&firAtm->value.i8!=secAtm->value.i8)return 0;
+				else if(firAtm->type==FKL_CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
 				else if(firAtm->type==FKL_BYTS&&!fklEqByteString(&firAtm->value.byts,&secAtm->value.byts))return 0;
 			}
 			if(firPair!=NULL&&first==&firPair->car)
@@ -831,10 +831,10 @@ FklByteCode* fklCompileAtom(FklAstCptr* objCptr)
 			tmp->code[0]=FKL_PUSH_F64;
 			fklSetF64ToByteCode(tmp->code+sizeof(char),tmpAtm->value.f64);
 			break;
-		case FKL_I8:
+		case FKL_CHR:
 			tmp=fklNewByteCode(sizeof(char)+sizeof(char));
 			tmp->code[0]=FKL_PUSH_I8;
-			tmp->code[1]=tmpAtm->value.i8;
+			tmp->code[1]=tmpAtm->value.chr;
 			break;
 		case FKL_BYTS:
 			tmp=fklNewByteCode(sizeof(char)+sizeof(tmpAtm->value.byts.size)+tmpAtm->value.byts.size);

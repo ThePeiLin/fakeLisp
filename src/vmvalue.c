@@ -885,8 +885,11 @@ FklVMvec* fklNewVMvec(size_t size,FklVMvalue** base)
 	FklVMvec* r=(FklVMvec*)malloc(sizeof(FklVMvec)+sizeof(FklVMvalue*)*size);
 	FKL_ASSERT(r,__func__);
 	r->size=size;
-	for(size_t i=0;i<size;i++)
-		r->base[i]=base[i];
+	if(base)
+	{
+		for(size_t i=0;i<size;i++)
+			r->base[i]=base[i];
+	}
 	return r;
 }
 

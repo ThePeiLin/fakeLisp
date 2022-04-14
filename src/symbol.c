@@ -64,7 +64,7 @@ static const char* builtInSymbolList[]=
 	">=",
 	"<",
 	"<=",
-	"i8",
+	"char",
 	"integer",
 	"f64",
 	"string",
@@ -99,7 +99,7 @@ static const char* builtInSymbolList[]=
 	"feof",
 	"vref",
 	"nthcdr",
-	"i8?",
+	"char?",
 	"integer?",
 	"i32?",
 	"i64?",
@@ -118,6 +118,7 @@ static const char* builtInSymbolList[]=
 	"chanl?",
 	"ref?",
 	"dll?",
+	"vector",
 };
 
 FklSymbolTable GlobSymbolTable=FKL_STATIC_SYMBOL_INIT;

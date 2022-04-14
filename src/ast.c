@@ -106,8 +106,8 @@ void fklPrintCptr(const FklAstCptr* objCptr,FILE* out)
 					case FKL_F64:
 						fprintf(out,"%lf",tmpAtm->value.f64);
 						break;
-					case FKL_I8:
-						fklPrintRawChar(tmpAtm->value.i8,out);
+					case FKL_CHR:
+						fklPrintRawChar(tmpAtm->value.chr,out);
 						break;
 					case FKL_BYTS:
 						fklPrintByteStr(tmpAtm->value.byts.size,tmpAtm->value.byts.str,out,1);
@@ -208,7 +208,7 @@ FklAstAtom* fklNewAtom(FklValueType type,const char* value,FklAstPair* prev)
 			else
 				tmp->value.str=NULL;
 			break;
-		case FKL_I8:
+		case FKL_CHR:
 		case FKL_I32:
 		case FKL_F64:
 			*(int32_t*)(&tmp->value)=0;
@@ -288,9 +288,9 @@ int fklCopyCptr(FklAstCptr* objCptr,const FklAstCptr* copiedCptr)
 						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
 						atom1->value.f64=atom2->value.f64;
 						break;
-					case FKL_I8:
+					case FKL_CHR:
 						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
-						atom1->value.i8=atom2->value.i8;
+						atom1->value.chr=atom2->value.chr;
 						break;
 					default:
 						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
@@ -411,7 +411,7 @@ int fklCptrcmp(const FklAstCptr* first,const FklAstCptr* second)
 				if((firAtm->type==FKL_SYM||firAtm->type==FKL_STR)&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
 				else if(firAtm->type==FKL_I32&&firAtm->value.i32!=secAtm->value.i32)return 0;
 				else if(firAtm->type==FKL_F64&&fabs(firAtm->value.f64-secAtm->value.f64)!=0)return 0;
-				else if(firAtm->type==FKL_I8&&firAtm->value.i8!=secAtm->value.i8)return 0;
+				else if(firAtm->type==FKL_CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
 				else if(firAtm->type==FKL_BYTS&&!fklEqByteString(&firAtm->value.byts,&secAtm->value.byts))return 0;
 			}
 			if(firPair!=NULL&&first==&firPair->car)
@@ -529,8 +529,8 @@ unsigned int fklLengthListCptr(const FklAstCptr* list)
 static FklAstAtom* createChar(const char* oStr,FklAstPair* prev)
 {
 	char* str=fklGetStringAfterBackslash(oStr+2);
-	FklAstAtom* r=fklNewAtom(FKL_I8,NULL,prev);
-	r->value.i8=(str[0]=='\\')?
+	FklAstAtom* r=fklNewAtom(FKL_CHR,NULL,prev);
+	r->value.chr=(str[0]=='\\')?
 		fklStringToChar(str+1):
 		str[0];
 	free(str);

@@ -98,7 +98,7 @@ extern "C" {
 #define FKL_IS_ERR(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_ERR)
 #define FKL_IS_CONT(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_CONT)
 #define FKL_IS_I32(P) (FKL_GET_TAG(P)==FKL_I32_TAG)
-#define FKL_IS_I8(P) (FKL_GET_TAG(P)==FKL_I8_TAG)
+#define FKL_IS_CHR(P) (FKL_GET_TAG(P)==FKL_CHR_TAG)
 #define FKL_IS_SYM(P) (FKL_GET_TAG(P)==FKL_SYM_TAG)
 #define FKL_IS_REF(P) (FKL_GET_TAG(P)==FKL_REF_TAG)
 #define FKL_IS_CHF(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_CHF)

@@ -833,7 +833,7 @@ FklByteCode* fklCompileAtom(FklAstCptr* objCptr)
 			break;
 		case FKL_CHR:
 			tmp=fklNewByteCode(sizeof(char)+sizeof(char));
-			tmp->code[0]=FKL_PUSH_I8;
+			tmp->code[0]=FKL_PUSH_CHAR;
 			tmp->code[1]=tmpAtm->value.chr;
 			break;
 		case FKL_BYTS:

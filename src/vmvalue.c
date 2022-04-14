@@ -32,7 +32,7 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVMheap* heap)
 			case FKL_NIL_TAG:
 			case FKL_I32_TAG:
 			case FKL_SYM_TAG:
-			case FKL_I8_TAG:
+			case FKL_CHR_TAG:
 				*root1=root;
 				break;
 			case FKL_PTR_TAG:
@@ -131,8 +131,8 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 		case FKL_NIL:
 			return FKL_VM_NIL;
 			break;
-		case FKL_I8:
-			return FKL_MAKE_VM_I8(pValue);
+		case FKL_CHR:
+			return FKL_MAKE_VM_CHR(pValue);
 			break;
 		case FKL_I32:
 			return FKL_MAKE_VM_I32(pValue);
@@ -838,8 +838,8 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 				case FKL_I32:
 					*root1=FKL_MAKE_VM_I32(tmpAtm->value.i32);
 					break;
-				case FKL_I8:
-					*root1=FKL_MAKE_VM_I8(tmpAtm->value.i8);
+				case FKL_CHR:
+					*root1=FKL_MAKE_VM_CHR(tmpAtm->value.chr);
 					break;
 				case FKL_SYM:
 					*root1=FKL_MAKE_VM_SYM(fklAddSymbolToGlob(tmpAtm->value.str)->id);

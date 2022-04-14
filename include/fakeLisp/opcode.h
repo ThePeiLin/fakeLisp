@@ -11,7 +11,7 @@ typedef enum
 	FKL_PUSH_PAIR,//it push an empty pair,
 	FKL_PUSH_I32,
 	FKL_PUSH_I64,
-	FKL_PUSH_I8,
+	FKL_PUSH_CHAR,
 	FKL_PUSH_F64,
 	FKL_PUSH_STR,
 	FKL_PUSH_SYM,

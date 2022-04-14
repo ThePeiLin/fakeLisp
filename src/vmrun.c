@@ -54,7 +54,7 @@ FklVMvalue* castULLongVp   (ARGL){CAST_TO_I64}
 FklVMvalue* castPtrdiff_tVp(ARGL){CAST_TO_I64}
 FklVMvalue* castSize_tVp   (ARGL){CAST_TO_I64}
 FklVMvalue* castSsize_tVp  (ARGL){CAST_TO_I64}
-FklVMvalue* castCharVp     (ARGL){return FKL_MAKE_VM_I8(p);}
+FklVMvalue* castCharVp     (ARGL){return FKL_MAKE_VM_CHR(p);}
 FklVMvalue* castWchar_tVp  (ARGL){CAST_TO_I32}
 FklVMvalue* castFloatVp    (ARGL){return fklNewVMvalue(FKL_F64,&p,heap);}
 FklVMvalue* castDoubleVp   (ARGL){return fklNewVMvalue(FKL_F64,&p,heap);}
@@ -767,7 +767,7 @@ void B_push_chr(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	FKL_SET_RETURN("B_push_chr",FKL_MAKE_VM_I8(*(char*)(exe->code+runnable->cp+1)),stack);
+	FKL_SET_RETURN("B_push_chr",FKL_MAKE_VM_CHR(*(char*)(exe->code+runnable->cp+1)),stack);
 	runnable->cp+=2;
 }
 

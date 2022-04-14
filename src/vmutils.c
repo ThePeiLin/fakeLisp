@@ -471,8 +471,8 @@ static void princVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 		case FKL_I32_TAG:
 			fprintf(fp,"%d",FKL_GET_I32(objValue));
 			break;
-		case FKL_I8_TAG:
-			putc(FKL_GET_I8(objValue),fp);
+		case FKL_CHR_TAG:
+			putc(FKL_GET_CHR(objValue),fp);
 			break;
 		case FKL_SYM_TAG:
 			fprintf(fp,"%s",fklGetGlobSymbolWithId(FKL_GET_SYM(objValue))->symbol);
@@ -627,8 +627,8 @@ static void prin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 		case FKL_I32_TAG:
 			fprintf(fp,"%d",FKL_GET_I32(objValue));
 			break;
-		case FKL_I8_TAG:
-			fklPrintRawChar(FKL_GET_I8(objValue),fp);
+		case FKL_CHR_TAG:
+			fklPrintRawChar(FKL_GET_CHR(objValue),fp);
 			break;
 		case FKL_SYM_TAG:
 			fprintf(fp,"%s",fklGetGlobSymbolWithId(FKL_GET_SYM(objValue))->symbol);
@@ -948,9 +948,9 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 					tmpAtm->type=FKL_I32;
 					tmpAtm->value.i32=FKL_GET_I32(root);
 					break;
-				case FKL_I8_TAG:
-					tmpAtm->type=FKL_I8;
-					tmpAtm->value.i8=FKL_GET_I8(root);
+				case FKL_CHR_TAG:
+					tmpAtm->type=FKL_CHR;
+					tmpAtm->value.chr=FKL_GET_CHR(root);
 					break;
 				case FKL_PTR_TAG:
 					{

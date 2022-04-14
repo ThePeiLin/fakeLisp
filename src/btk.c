@@ -37,7 +37,7 @@ void FKL_getch(FklVM* exe,pthread_rwlock_t* pGClock)
 	FklVMstack* stack=exe->stack;
 	if(fklResBp(stack))
 		FKL_RAISE_BUILTIN_ERROR("btk.getch",FKL_TOOMANYARG,fklTopPtrStack(exe->rstack),exe);
-	FKL_SET_RETURN("FKL_getch",FKL_MAKE_VM_I8(getch()),stack);
+	FKL_SET_RETURN("FKL_getch",FKL_MAKE_VM_CHR(getch()),stack);
 }
 
 void FKL_sleep(FklVM* exe,pthread_rwlock_t* pGClock)

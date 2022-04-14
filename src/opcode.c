@@ -11,7 +11,7 @@ static struct
 	{"push_pair",0},
 	{"push_i32",4},
 	{"push_i64",8},
-	{"push_i8",1},
+	{"push_char",1},
 	{"push_f64",8},
 	{"push_str",-1},
 	{"push_sym",4},

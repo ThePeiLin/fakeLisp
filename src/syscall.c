@@ -1926,13 +1926,13 @@ void SYS_feof(FklVM* exe,pthread_rwlock_t* gclock)
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMvalue* fp=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
-		FKL_RAISE_BUILTIN_ERROR("sys.fclose",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.feof",FKL_TOOMANYARG,runnable,exe);
 	if(!fp)
-		FKL_RAISE_BUILTIN_ERROR("sys.fclose",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.feof",FKL_TOOFEWARG,runnable,exe);
 	if(!FKL_IS_FP(fp))
-		FKL_RAISE_BUILTIN_ERROR("sys.fclose",FKL_WRONGARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.feof",FKL_WRONGARG,runnable,exe);
 	if(fp->u.fp==NULL)
-		FKL_RAISE_BUILTIN_ERROR("sys.fclose",FKL_INVALIDACCESS,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.feof",FKL_INVALIDACCESS,runnable,exe);
 	FKL_SET_RETURN(__func__,!fp->u.fp->size&&feof(fp->u.fp->fp)?FKL_VM_TRUE:FKL_VM_NIL,stack);
 }
 
@@ -1963,6 +1963,31 @@ void SYS_vector(FklVM* exe,pthread_rwlock_t* gclock)
 	}
 	else if(isInt(fir))
 	{
+		size_t size=getInt(fir);
+		if(!size)
+		{
+			FklPtrStack* vstack=fklNewPtrStack(32,16);
+			for(FklVMvalue* content=fklGET_VAL(fklPopVMstack(stack),exe->heap);content;content=fklGET_VAL(fklPopVMstack(stack),exe->heap))
+				fklPushPtrStack(content,vstack);
+			fklResBp(stack);
+			FklVMvec* vec=fklNewVMvec(vstack->top,(FklVMvalue**)vstack->base);
+			fklFreePtrStack(vstack);
+			FKL_SET_RETURN(__func__,fklNewVMvalue(FKL_VECTOR,vec,exe->heap),stack);
+		}
+		else
+		{
+			FklVMvalue* content=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+			FklVMvec* vec=fklNewVMvec(size,NULL);
+			for(size_t i=0;i<size;i++)
+				vec->base[i]=FKL_VM_NIL;
+			if(content)
+			{
+				for(size_t i=0;i<size;i++)
+					vec->base[i]=content;
+			}
+			fklResBp(stack);
+			FKL_SET_RETURN(__func__,fklNewVMvalue(FKL_VECTOR,vec,exe->heap),stack);
+		}
 	}
 	else
 		FKL_RAISE_BUILTIN_ERROR("sys.vector",FKL_WRONGARG,runnable,exe);

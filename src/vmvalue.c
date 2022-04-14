@@ -55,6 +55,7 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVMheap* heap)
 						case FKL_DLL:
 						case FKL_DLPROC:
 						case FKL_ERR:
+						case FKL_VECTOR:
 							*root1=root;
 							break;
 						case FKL_CHAN:
@@ -188,6 +189,8 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 						tmp->u.chf=pValue;break;
 					case FKL_MEM:
 						tmp->u.chf=pValue;break;
+					case FKL_VECTOR:
+						tmp->u.vec=pValue;break;
 					default:
 						return NULL;
 						break;
@@ -302,10 +305,11 @@ FklVMpair* fklNewVMpair(void)
 
 FklVMbyts* fklNewVMbyts(size_t size,uint8_t* str)
 {
-	FklVMbyts* tmp=(FklVMbyts*)malloc(sizeof(FklVMbyts)+size);
+	FklVMbyts* tmp=(FklVMbyts*)malloc(sizeof(FklVMbyts)+size*sizeof(uint8_t));
 	FKL_ASSERT(tmp,"fklNewVMbyts");
 	tmp->size=size;
-	memcpy(tmp->str,str,size);
+	if(str)
+		memcpy(tmp->str,str,size);
 	return tmp;
 }
 
@@ -874,4 +878,30 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 char* fklVMbytsToCstr(FklVMbyts* byts)
 {
 	return fklCharBufToStr((char*)byts->str,byts->size);
+}
+
+FklVMvec* fklNewVMvec(size_t size,FklVMvalue** base)
+{
+	FklVMvec* r=(FklVMvec*)malloc(sizeof(FklVMvec)+sizeof(FklVMvalue*)*size);
+	FKL_ASSERT(r,__func__);
+	r->size=size;
+	for(size_t i=0;i<size;i++)
+		r->base[i]=base[i];
+	return r;
+}
+
+void fklFreeVMvec(FklVMvec* vec)
+{
+	free(vec);
+}
+
+void fklVMvecCat(FklVMvec** fir,const FklVMvec* sec)
+{
+	size_t firSize=(*fir)->size;
+	size_t secSize=sec->size;
+	*fir=(FklVMvec*)realloc(*fir,sizeof(FklVMvec)+(firSize+secSize)*sizeof(FklVMvalue*));
+	FKL_ASSERT(*fir,__func__);
+	(*fir)->size=firSize+secSize;
+	for(size_t i=0;i<secSize;i++)
+		(*fir)->base[firSize+i]=sec->base[i];
 }

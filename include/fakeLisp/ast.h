@@ -48,8 +48,13 @@ typedef struct
 {
 	uint64_t size;
 	uint8_t* str;
-}FklByteString;
+}FklAstByteString;
 
+typedef struct
+{
+	size_t size;
+	FklAstCptr* base;
+}FklAstVector;
 
 typedef struct FklAstPair
 {
@@ -68,23 +73,23 @@ typedef struct FklAstAtom
 		int32_t i32;
 		int64_t i64;
 		double f64;
-		FklByteString byts;
+		FklAstByteString byts;
+		FklAstVector vec;
 	} value;
 }FklAstAtom;
 
 typedef struct FklInterpreter FklInterpreter;
 typedef struct FklStringMatchPattern FklStringMatchPattern;
 typedef struct FklCompEnv FklCompEnv;
-FklAstCptr* fklCreateTree(const char*,FklInterpreter*,FklStringMatchPattern*);
-FklAstCptr* fklBaseCreateTree(const char*,FklInterpreter*);
 
 void fklPrintCptr(const FklAstCptr*,FILE*);
 FklAstPair* fklNewPair(int,FklAstPair*);
 FklAstCptr* fklNewCptr(int,FklAstPair*);
-FklAstAtom* fklNewAtom(int type,const char*,FklAstPair*);
+FklAstAtom* fklNewAtom(FklValueType type,const char*,FklAstPair*);
 void fklFreeAtom(FklAstAtom*);
 
-int fklEqByteString(const FklByteString*,const FklByteString*);
+int fklEqByteString(const FklAstByteString*,const FklAstByteString*);
+void fklMakeAstVector(FklAstVector* vec,size_t size,const FklAstCptr* base);
 
 int fklCptrcmp(const FklAstCptr*,const FklAstCptr*);
 int fklDeleteCptr(FklAstCptr*);

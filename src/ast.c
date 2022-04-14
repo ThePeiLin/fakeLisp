@@ -30,27 +30,6 @@ static int copyAndAddToList(FklAstCptr* fir,const FklAstCptr* sec)
 	return 0;
 }
 
-//static void addToTail(FklAstCptr* fir,const FklAstCptr* sec)
-//{
-//	while(fir->type!=FKL_NIL)fir=&fir->u.pair->cdr;
-//	FklAstPair* tmp=fir->outer;
-//	*fir=*sec;
-//	fir->outer=tmp;
-//	if(fir->type==FKL_PAIR)
-//		fir->u.pair->prev=tmp;
-//	else if(fir->type==FKL_ATM)
-//		fir->u.atom->prev=tmp;
-//}
-//
-//static void addToList(FklAstCptr* fir,const FklAstCptr* sec)
-//{
-//	while(fir->type!=FKL_NIL)fir=&fir->u.pair->cdr;
-//	fir->type=FKL_PAIR;
-//	fir->u.pair=fklNewPair(sec->curline,fir->outer);
-//	fir->u.pair->car=*sec;
-//	fir->u.pair->car.outer=fir->u.pair;
-//}
-
 static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
 {
 	FklVMenv* vEnv=fklNewVMenv(NULL);
@@ -73,592 +52,10 @@ static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
 	return vEnv;
 }
 
-static FklAstCptr* expandReaderMacro(const char* objStr,FklInterpreter* inter,FklStringMatchPattern* pattern)
-{
-	FklPreEnv* tmpEnv=fklNewEnv(NULL);
-	int num=0;
-	char** parts=fklSplitStringInPattern(objStr,pattern,&num);
-	int j=0;
-	if(pattern->num-num)
-	{
-		fklFreeStringArry(parts,num);
-		fklDestroyEnv(tmpEnv);
-		return NULL;
-	}
-	for(;j<num;j++)
-	{
-		if(fklIsVar(pattern->parts[j]))
-		{
-			char* varName=fklGetVarName(pattern->parts[j]);
-			if(fklIsMustList(pattern->parts[j]))
-			{
-				FklStringMatchPattern* tmpPattern=fklFindStringPattern(parts[j]);
-				FklAstCptr* tmpCptr=fklNewCptr(inter->curline,NULL);
-				tmpCptr->type=FKL_NIL;
-				tmpCptr->u.all=NULL;
-				FklAstCptr* tmpCptr2=fklCreateTree(parts[j],inter,tmpPattern);
-				if(!tmpCptr2)
-				{
-					fklFreeStringArry(parts,num);
-					fklDestroyEnv(tmpEnv);
-					free(varName);
-					return tmpCptr;
-				}
-				copyAndAddToList(tmpCptr,tmpCptr2);
-				fklDeleteCptr(tmpCptr2);
-				free(tmpCptr2);
-				int i=0;
-				i=fklSkipInPattern(parts[j],tmpPattern);
-				for(;isspace(parts[j][i]);i++)
-					if(parts[j][i]=='\n')
-						inter->curline+=1;
-				while(parts[j][i]!=0)
-				{
-					tmpPattern=fklFindStringPattern(parts[j]+i);
-					int32_t ti=(parts[j][i+fklSkipSpace(parts[j]+i)]==',');
-					FklAstCptr* tmpCptr2=fklCreateTree(parts[j]+i+fklSkipSpace(parts[j]+i)+ti,inter,tmpPattern);
-					if(!tmpCptr2)
-					{
-						if(tmpPattern)
-						{
-							fklDeleteCptr(tmpCptr);
-							free(tmpCptr);
-							return NULL;
-						}
-						else
-							break;
-					}
-					if(ti)
-					{
-						copyAndAddToTail(tmpCptr,tmpCptr2);
-						fklDeleteCptr(tmpCptr2);
-						free(tmpCptr2);
-						break;
-					}
-					else
-						copyAndAddToList(tmpCptr,tmpCptr2);
-					fklDeleteCptr(tmpCptr2);
-					free(tmpCptr2);
-					i+=fklSkipInPattern(parts[j]+i,tmpPattern);
-					if(parts[j][i]==0)
-						break;
-					for(;isspace(parts[j][i]);i++)
-						if(parts[j][i]=='\n')
-							inter->curline+=1;
-				}
-				fklAddDefine(varName,tmpCptr,tmpEnv);
-				fklDeleteCptr(tmpCptr);
-				free(tmpCptr);
-			}
-			else
-			{
-				FklStringMatchPattern* tmpPattern=fklFindStringPattern(parts[j]);
-				FklAstCptr* tmpCptr=fklCreateTree(parts[j],inter,tmpPattern);
-				inter->curline+=fklCountChar(parts[j]+fklSkipInPattern(parts[j],tmpPattern),'\n',-1);
-				fklAddDefine(varName,tmpCptr,tmpEnv);
-				fklDeleteCptr(tmpCptr);
-				free(tmpCptr);
-			}
-			free(varName);
-		}
-		else
-			inter->curline+=fklCountChar(parts[j],'\n',-1);
-	}
-	FklVM* tmpVM=fklNewTmpVM(NULL);
-	FklAstCptr* tmpCptr=NULL;
-	if(pattern->type==FKL_BYTS)
-	{
-		FklByteCodelnt* t=fklNewByteCodelnt(fklNewByteCode(0));
-		FklVMenv* tmpGlobEnv=genGlobEnv(inter->glob,t,tmpVM->heap);
-		if(!tmpGlobEnv)
-		{
-			fklDestroyEnv(tmpEnv);
-			fklFreeByteCodelnt(t);
-			fklFreeVMheap(tmpVM->heap);
-			fklFreeVMstack(tmpVM->stack);
-			fklFreePtrStack(tmpVM->rstack);
-			fklFreePtrStack(tmpVM->tstack);
-			fklFreeStringArry(parts,num);
-			free(tmpVM);
-			return NULL;
-		}
-		FklVMenv* stringPatternEnv=fklCastPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->heap);
-		uint32_t start=t->bc->size;
-		fklCodelntCopyCat(t,pattern->u.bProc);
-		fklInitVMRunningResource(tmpVM,stringPatternEnv,tmpVM->heap,t,start,pattern->u.bProc->bc->size);
-		int state=fklRunVM(tmpVM);
-		if(!state)
-			tmpCptr=fklCastVMvalueToCptr(fklGET_VAL(tmpVM->stack->values[0],tmpVM->heap),inter->curline);
-		else
-		{
-			fklFreeVMenv(tmpGlobEnv);
-			fklFreeByteCodeAndLnt(t);
-			fklFreeVMheap(tmpVM->heap);
-			fklUninitVMRunningResource(tmpVM);
-			return NULL;
-		}
-		if(!tmpCptr)
-		{
-			fprintf(stderr,"error of compiling:Circular reference occur in expanding reader macro at line %d of %s\n",inter->curline,inter->filename);
-		}
-		fklFreeVMenv(tmpGlobEnv);
-		fklFreeByteCodeAndLnt(t);
-		fklFreeVMheap(tmpVM->heap);
-		fklUninitVMRunningResource(tmpVM);
-	}
-	else if(pattern->type==FKL_FLPROC)
-	{
-		FklVMenv* stringPatternEnv=fklCastPreEnvToVMenv(tmpEnv,NULL,tmpVM->heap);
-		FklVMrunnable* mainrunnable=fklNewVMrunnable(NULL);
-		mainrunnable->localenv=stringPatternEnv;
-		fklPushPtrStack(mainrunnable,tmpVM->rstack);
-		pattern->u.fProc(tmpVM);
-		tmpCptr=fklCastVMvalueToCptr(fklGET_VAL(tmpVM->stack->values[0],tmpVM->heap),inter->curline);
-		free(mainrunnable);
-		fklFreeVMenv(stringPatternEnv);
-		fklFreeVMheap(tmpVM->heap);
-		fklFreeVMstack(tmpVM->stack);
-		fklFreePtrStack(tmpVM->rstack);
-		fklFreePtrStack(tmpVM->tstack);
-		free(tmpVM);
-	}
-	fklDestroyEnv(tmpEnv);
-	fklFreeStringArry(parts,num);
-	return tmpCptr;
-}
-
-FklAstCptr* fklCreateTree(const char* objStr,FklInterpreter* inter,FklStringMatchPattern* pattern)
-{
-	if(objStr==NULL)return NULL;
-	if(fklIsAllSpace(objStr))
-		return NULL;
-	if(pattern)
-	{
-		return expandReaderMacro(objStr,inter,pattern);
-	}
-	else
-	{
-		FklStringMatchPattern* pattern=NULL;
-		FklPtrStack* s1=fklNewPtrStack(32,16);
-		FklIntStack* s2=fklNewIntStack(32,16);
-		FklIntStack* hasNextPartStack=fklNewIntStack(32,16);
-		int32_t i=0;
-		for(;isspace(objStr[i]);i++)
-			if(objStr[i]=='\n')
-				inter->curline+=1;
-		int32_t curline=(inter)?inter->curline:0;
-		FklAstCptr* tmp=fklNewCptr(curline,NULL);
-		fklPushPtrStack(tmp,s1);
-		int hasComma=1;
-		int hasNextPart=0;
-		fklPushIntStack(hasNextPart,hasNextPartStack);
-		while(objStr[i]&&!fklIsPtrStackEmpty(s1))
-		{
-			for(;isspace(objStr[i]);i++)
-				if(objStr[i]=='\n')
-					inter->curline+=1;
-			curline=inter->curline;
-			FklAstCptr* root=fklPopPtrStack(s1);
-			if(objStr[i]=='(')
-			{
-				if(&root->outer->car==root)
-				{
-					//如果root是root所在pair的car部分，
-					//则在对应的pair后追加一个pair为下一个部分准备
-					FklAstCptr* tmp=fklPopPtrStack(s1);
-					if(tmp)
-					{
-						tmp->type=FKL_PAIR;
-						tmp->u.pair=fklNewPair(curline,tmp->outer);
-						fklPushPtrStack(fklGetASTPairCdr(tmp),s1);
-						fklPushPtrStack(fklGetASTPairCar(tmp),s1);
-						fklPushIntStack(hasNextPart,hasNextPartStack);
-						hasNextPart=1;
-					}
-				}
-				int j=0;
-				for(;isspace(objStr[i+1+j]);j++);
-				if(objStr[i+j+1]==')')
-				{
-					root->type=FKL_NIL;
-					root->u.all=NULL;
-					i+=j+2;
-				}
-				else
-				{
-					hasComma=0;
-					root->type=FKL_PAIR;
-					root->u.pair=fklNewPair(curline,root->outer);
-					fklPushIntStack(s1->top,s2);
-					fklPushPtrStack(fklGetASTPairCdr(root),s1);
-					fklPushPtrStack(fklGetASTPairCar(root),s1);
-					i++;
-				}
-			}
-			else if(objStr[i]==',')
-			{
-				if(hasComma)
-				{
-					fklDeleteCptr(tmp);
-					free(tmp);
-					tmp=NULL;
-					break;
-				}
-				else hasComma=1;
-				if(hasNextPart&&root->outer->prev&&root->outer->prev->cdr.u.pair==root->outer)
-				{
-					//将为下一个部分准备的pair删除并将该pair的前一个pair的cdr部分入栈
-					s1->top=fklTopIntStack(s2);
-					FklAstCptr* tmp=&root->outer->prev->cdr;
-					free(tmp->u.pair);
-					tmp->type=FKL_NIL;
-					tmp->u.all=NULL;
-					fklPushPtrStack(tmp,s1);
-					hasNextPart=0;
-				}
-				i++;
-			}
-			else if(objStr[i]==')')
-			{
-				hasComma=0;
-				int64_t t=fklPopIntStack(s2);
-				FklAstCptr* c=s1->base[t];
-				if(s1->top-t>0&&c->outer->prev&&c->outer->prev->cdr.u.pair==c->outer)
-				{
-					//如果还有为下一部分准备的pair，则将该pair删除
-					FklAstCptr* tmpCptr=s1->base[t];
-					tmpCptr=&tmpCptr->outer->prev->cdr;
-					tmpCptr->type=FKL_NIL;
-					free(tmpCptr->u.pair);
-					tmpCptr->u.all=NULL;
-				}
-				hasNextPart=fklPopIntStack(hasNextPartStack);
-				//将栈顶恢复为将pair入栈前的位置
-				s1->top=t;
-				i++;
-			}
-			else
-			{
-				root->type=FKL_ATM;
-				char* str=NULL;
-				if(objStr[i]=='\"')
-				{
-					size_t len=0;
-					str=fklCastEscapeCharater(objStr+i+1,'\"',&len);
-					inter->curline+=fklCountChar(objStr+i,'\n',len);
-					root->u.atom=fklNewAtom(FKL_STR,str,root->outer);
-					i+=len+1;
-					free(str);
-				}
-				else if((pattern=fklFindStringPattern(objStr+i)))
-				{
-					root->type=FKL_NIL;
-					FklAstCptr* tmpCptr=fklCreateTree(objStr+i,inter,pattern);
-					if(tmpCptr==NULL)
-					{
-						fklDeleteCptr(tmp);
-						free(tmp);
-						return NULL;
-					}
-					root->type=tmpCptr->type;
-					root->u.all=tmpCptr->u.all;
-					if(tmpCptr->type==FKL_ATM)
-						tmpCptr->u.atom->prev=root->outer;
-					else if(tmpCptr->type==FKL_PAIR)
-						tmpCptr->u.pair->prev=root->outer;
-					free(tmpCptr);
-					i+=fklSkipInPattern(objStr+i,pattern);
-				}
-				else if(objStr[i]=='#')
-				{
-					i++;
-					FklAstAtom* atom=NULL;
-					switch(objStr[i])
-					{
-						case '\\':
-							str=fklGetStringAfterBackslash(objStr+i+1);
-							atom=fklNewAtom(FKL_I8,NULL,root->outer);
-							root->u.atom=atom;
-							atom->value.i8=(str[0]=='\\')?
-								fklStringToChar(str+1):
-								str[0];
-							i+=strlen(str)+1;
-							break;
-						case 'b':
-							str=fklGetStringAfterBackslash(objStr+i+1);
-							atom=fklNewAtom(FKL_BYTS,NULL,root->outer);
-							atom->value.byts.size=strlen(str)/2+strlen(str)%2;
-							atom->value.byts.str=fklCastStrByteStr(str);
-							root->u.atom=atom;
-							i+=strlen(str)+1;
-							break;
-						default:
-							str=fklGetStringFromList(objStr+i-1);
-							atom=fklNewAtom(FKL_SYM,str,root->outer);
-							root->u.atom=atom;
-							i+=strlen(str)-1;
-							break;
-					}
-					free(str);
-				}
-				else
-				{
-					char* str=fklGetStringFromList(objStr+i);
-					if(fklIsNum(str))
-					{
-						FklAstAtom* atom=NULL;
-						if(fklIsDouble(str))
-						{
-							atom=fklNewAtom(FKL_F64,NULL,root->outer);
-							atom->value.f64=fklStringToDouble(str);
-						}
-						else
-						{
-							atom=fklNewAtom(FKL_I32,NULL,root->outer);
-							int64_t num=fklStringToInt(str);
-							if(num>INT32_MAX||num<INT32_MIN)
-							{
-								atom->type=FKL_I64;
-								atom->value.i64=num;
-							}
-							else
-								atom->value.i32=num;
-						}
-						root->u.atom=atom;
-					}
-					else
-						root->u.atom=fklNewAtom(FKL_SYM,str,root->outer);
-					i+=strlen(str);
-					free(str);
-				}
-				hasNextPart=0;
-				if(&root->outer->car==root)
-				{
-					//如果root是root所在pair的car部分，
-					//则在对应的pair后追加一个pair为下一个部分准备
-					FklAstCptr* tmp=fklPopPtrStack(s1);
-					if(tmp)
-					{
-						tmp->type=FKL_PAIR;
-						tmp->u.pair=fklNewPair(curline,tmp->outer);
-						fklPushPtrStack(fklGetASTPairCdr(tmp),s1);
-						fklPushPtrStack(fklGetASTPairCar(tmp),s1);
-						hasNextPart=1;
-					}
-				}
-			}
-		}
-		fklFreePtrStack(s1);
-		fklFreeIntStack(s2);
-		fklFreeIntStack(hasNextPartStack);
-		return tmp;
-	}
-}
-
-int fklEqByteString(const FklByteString* fir,const FklByteString* sec)
+int fklEqByteString(const FklAstByteString* fir,const FklAstByteString* sec)
 {
 	if(fir->size!=sec->size)return 0;
 	return !memcmp(fir->str,sec->str,sec->size);
-}
-
-FklAstCptr* fklBaseCreateTree(const char* objStr,FklInterpreter* inter)
-{
-	if(!objStr)
-		return NULL;
-	FklPtrStack* s1=fklNewPtrStack(32,16);
-	FklIntStack* s2=fklNewIntStack(32,16);
-	FklIntStack* hasNextPartStack=fklNewIntStack(32,16);
-	int32_t i=0;
-	for(;isspace(objStr[i]);i++)
-		if(objStr[i]=='\n')
-			inter->curline+=1;
-	int32_t curline=(inter)?inter->curline:0;
-	FklAstCptr* tmp=fklNewCptr(curline,NULL);
-	fklPushPtrStack(tmp,s1);
-	int hasComma=1;
-	int hasNextPart=0;
-	fklPushIntStack(hasNextPart,hasNextPartStack);
-	while(objStr[i]&&!fklIsPtrStackEmpty(s1))
-	{
-		for(;isspace(objStr[i]);i++)
-			if(objStr[i]=='\n')
-				inter->curline+=1;
-		curline=inter->curline;
-		FklAstCptr* root=fklPopPtrStack(s1);
-		if(objStr[i]=='(')
-		{
-			if(&root->outer->car==root)
-			{
-				//如果root是root所在pair的car部分，
-				//则在对应的pair后追加一个pair为下一个部分准备
-				FklAstCptr* tmp=fklPopPtrStack(s1);
-				if(tmp)
-				{
-					tmp->type=FKL_PAIR;
-					tmp->u.pair=fklNewPair(curline,tmp->outer);
-					fklPushPtrStack(fklGetASTPairCdr(tmp),s1);
-					fklPushPtrStack(fklGetASTPairCar(tmp),s1);
-					fklPushIntStack(hasNextPart,hasNextPartStack);
-					hasNextPart=1;
-				}
-			}
-			int j=0;
-			for(;isspace(objStr[i+1+j]);j++);
-			if(objStr[i+j+1]==')')
-			{
-				root->type=FKL_NIL;
-				root->u.all=NULL;
-				i+=j+2;
-			}
-			else
-			{
-				hasComma=0;
-				root->type=FKL_PAIR;
-				root->u.pair=fklNewPair(curline,root->outer);
-				fklPushIntStack(s1->top,s2);
-				fklPushPtrStack(fklGetASTPairCdr(root),s1);
-				fklPushPtrStack(fklGetASTPairCar(root),s1);
-				i++;
-			}
-		}
-		else if(objStr[i]==',')
-		{
-			if(hasComma)
-			{
-				fklDeleteCptr(tmp);
-				free(tmp);
-				tmp=NULL;
-				break;
-			}
-			else hasComma=1;
-			if(hasNextPart&&root->outer->prev&&root->outer->prev->cdr.u.pair==root->outer)
-			{
-				//将为下一个部分准备的pair删除并将该pair的前一个pair的cdr部分入栈
-				s1->top=fklTopIntStack(s2);
-				FklAstCptr* tmp=&root->outer->prev->cdr;
-				free(tmp->u.pair);
-				tmp->type=FKL_NIL;
-				tmp->u.all=NULL;
-				fklPushPtrStack(tmp,s1);
-				hasNextPart=0;
-			}
-			i++;
-		}
-		else if(objStr[i]==')')
-		{
-			hasComma=0;
-			long t=fklPopIntStack(s2);
-			FklAstCptr* c=s1->base[t];
-			if(s1->top-t>0&&c->outer->prev&&c->outer->prev->cdr.u.pair==c->outer)
-			{
-				//如果还有为下一部分准备的pair，则将该pair删除
-				FklAstCptr* tmpCptr=s1->base[t];
-				tmpCptr=&tmpCptr->outer->prev->cdr;
-				tmpCptr->type=FKL_NIL;
-				free(tmpCptr->u.pair);
-				tmpCptr->u.all=NULL;
-			}
-			hasNextPart=fklPopIntStack(hasNextPartStack);
-			//将栈顶恢复为将pair入栈前的位置
-			s1->top=t;
-			i++;
-		}
-		else
-		{
-			root->type=FKL_ATM;
-			char* str=NULL;
-			if(objStr[i]=='\"')
-			{
-				size_t len=0;
-				str=fklCastEscapeCharater(objStr+i+1,'\"',&len);
-				inter->curline+=fklCountChar(objStr+i,'\n',len);
-				root->u.atom=fklNewAtom(FKL_STR,str,root->outer);
-				i+=len+1;
-				free(str);
-			}
-			else if(objStr[i]=='#')
-			{
-				i++;
-				FklAstAtom* atom=NULL;
-				switch(objStr[i])
-				{
-					case '\\':
-						str=fklGetStringAfterBackslash(objStr+i+1);
-						atom=fklNewAtom(FKL_I8,NULL,root->outer);
-						root->u.atom=atom;
-						atom->value.i8=(str[0]=='\\')?
-							fklStringToChar(str+1):
-							str[0];
-						i+=strlen(str)+1;
-						break;
-					case 'b':
-						str=fklGetStringAfterBackslash(objStr+i+1);
-						atom=fklNewAtom(FKL_BYTS,NULL,root->outer);
-						atom->value.byts.size=strlen(str)/2+strlen(str)%2;
-						atom->value.byts.str=fklCastStrByteStr(str);
-						root->u.atom=atom;
-						i+=strlen(str)+1;
-						break;
-					default:
-						str=fklGetStringFromList(objStr+i-1);
-						atom=fklNewAtom(FKL_SYM,str,root->outer);
-						root->u.atom=atom;
-						i+=strlen(str)-1;
-						break;
-				}
-				free(str);
-			}
-			else
-			{
-				char* str=fklGetStringFromList(objStr+i);
-				if(fklIsNum(str))
-				{
-					FklAstAtom* atom=NULL;
-					if(fklIsDouble(str))
-					{
-						atom=fklNewAtom(FKL_F64,NULL,root->outer);
-						atom->value.f64=fklStringToDouble(str);
-					}
-					else
-					{
-						atom=fklNewAtom(FKL_I32,NULL,root->outer);
-						int64_t num=fklStringToInt(str);
-						if(num>INT32_MAX||num<INT32_MIN)
-						{
-							atom->type=FKL_I64;
-							atom->value.i64=num;
-						}
-						else
-							atom->value.i32=num;
-					}
-					root->u.atom=atom;
-				}
-				else
-					root->u.atom=fklNewAtom(FKL_SYM,str,root->outer);
-				i+=strlen(str);
-				free(str);
-			}
-			hasNextPart=0;
-			if(&root->outer->car==root)
-			{
-				//如果root是root所在pair的car部分，
-				//则在对应的pair后追加一个pair为下一个部分准备
-				FklAstCptr* tmp=fklPopPtrStack(s1);
-				if(tmp)
-				{
-					tmp->type=FKL_PAIR;
-					tmp->u.pair=fklNewPair(curline,tmp->outer);
-					fklPushPtrStack(fklGetASTPairCdr(tmp),s1);
-					fklPushPtrStack(fklGetASTPairCar(tmp),s1);
-					hasNextPart=1;
-				}
-			}
-		}
-	}
-	fklFreePtrStack(s1);
-	fklFreeIntStack(s2);
-	fklFreeIntStack(hasNextPartStack);
-	return tmp;
 }
 
 void fklPrintCptr(const FklAstCptr* objCptr,FILE* out)
@@ -692,7 +89,7 @@ void fklPrintCptr(const FklAstCptr* objCptr,FILE* out)
 			if(objCptr->type!=FKL_NIL)
 			{
 				FklAstAtom* tmpAtm=objCptr->u.atom;
-				switch((int)tmpAtm->type)
+				switch(tmpAtm->type)
 				{
 					case FKL_SYM:
 						fprintf(out,"%s",tmpAtm->value.str);
@@ -715,6 +112,14 @@ void fklPrintCptr(const FklAstCptr* objCptr,FILE* out)
 					case FKL_BYTS:
 						fklPrintByteStr(tmpAtm->value.byts.size,tmpAtm->value.byts.str,out,1);
 						break;
+					case FKL_VECTOR:
+						fprintf(out,"#(");
+						for(size_t i=0;i<tmpAtm->value.vec.size;i++)
+							fklPrintCptr(&tmpAtm->value.vec.base[i],out);
+						fprintf(out,")");
+						break;
+					default:
+							break;
 				}
 			}
 			if(objPair!=NULL&&objCptr==&objPair->car)
@@ -749,6 +154,14 @@ void fklFreeAtom(FklAstAtom* objAtm)
 		objAtm->value.byts.size=0;
 		free(objAtm->value.byts.str);
 	}
+	else if(objAtm->type==FKL_VECTOR)
+	{
+		FklAstVector* vec=&objAtm->value.vec;
+		for(size_t i=0;i<vec->size;i++)
+			fklDeleteCptr(&vec->base[i]);
+		free(vec->base);
+		vec->size=0;
+	}
 	free(objAtm);
 }
 
@@ -779,7 +192,7 @@ FklAstCptr* fklNewCptr(int curline,FklAstPair* outer)
 	return tmp;
 }
 
-FklAstAtom* fklNewAtom(int type,const char* value,FklAstPair* prev)
+FklAstAtom* fklNewAtom(FklValueType type,const char* value,FklAstPair* prev)
 {
 	FklAstAtom* tmp=NULL;
 	FKL_ASSERT((tmp=(FklAstAtom*)malloc(sizeof(FklAstAtom))),"fklNewAtom");
@@ -803,6 +216,12 @@ FklAstAtom* fklNewAtom(int type,const char* value,FklAstPair* prev)
 		case FKL_BYTS:
 			tmp->value.byts.size=0;
 			tmp->value.byts.str=NULL;
+			break;
+		case FKL_VECTOR:
+			tmp->value.vec.size=0;
+			tmp->value.vec.base=NULL;
+			break;
+		default:
 			break;
 	}
 	tmp->prev=prev;
@@ -847,6 +266,15 @@ int fklCopyCptr(FklAstCptr* objCptr,const FklAstCptr* copiedCptr)
 						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
 						atom1->value.byts.size=atom2->value.byts.size;
 						atom1->value.byts.str=fklCopyMemory(atom2->value.byts.str,atom2->value.byts.size);
+						break;
+					case FKL_VECTOR:
+						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
+						fklMakeAstVector(&atom1->value.vec,atom2->value.vec.size,NULL);
+						for(size_t i=0;i<atom2->value.vec.size;i++)
+						{
+							fklPushPtrStack(&atom1->value.vec.base[i],s1);
+							fklPushPtrStack(&atom2->value.vec.base[i],s2);
+						}
 						break;
 					case FKL_I32:
 						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
@@ -1194,6 +622,8 @@ static void freeMatchState(MatchState* state)
 #define UNQUOTE ((void*)4)
 #define UNQTESP ((void*)5)
 #define DOTTED ((void*)6)
+#define VECTOR_0 ((void*)7)
+#define VECTOR_1 ((void*)8)
 
 typedef enum
 {
@@ -1229,12 +659,25 @@ static int isBuiltInSingleStrPattern(FklStringMatchPattern* pattern)
 static int isBuiltInParenthese(FklStringMatchPattern* pattern)
 {
 	return pattern==PARENTHESE_0
-		||pattern==PARENTHESE_1;
+		||pattern==PARENTHESE_1
+		;
+}
+
+static int isBuiltInVector(FklStringMatchPattern* pattern)
+{
+	return pattern==VECTOR_0
+		||pattern==VECTOR_1
+		;
 }
 
 static int isLeftParenthese(const char* str)
 {
 	return strlen(str)==1&&(str[0]=='('||str[0]=='[');
+}
+
+static int isVectorStart(const char* str)
+{
+	return strlen(str)==2&&str[0]=='#'&&(str[1]=='('||str[1]=='[');
 }
 
 static int isRightParenthese(const char* str)
@@ -1255,7 +698,7 @@ static MatchState* searchReverseStringCharMatchState(const char* str,FklPtrStack
 {
 	MatchState* top=fklTopPtrStack(matchStateStack);
 	uint32_t i=0;
-	for(;top&&!isBuiltInSingleStrPattern(top->pattern)&&!isBuiltInParenthese(top->pattern)&&top->cindex+i<top->pattern->num;)
+	for(;top&&!isBuiltInSingleStrPattern(top->pattern)&&!isBuiltInParenthese(top->pattern)&&!isBuiltInVector(top->pattern)&&top->cindex+i<top->pattern->num;)
 	{
 		const char* cpart=fklGetNthPartOfStringMatchPattern(top->pattern,top->cindex+i);
 		if(!fklIsVar(cpart)&&!strcmp(str,cpart))
@@ -1458,26 +901,59 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 				fklPushPtrStack(cStack,stackStack);
 				continue;
 			}
+			else if(isVectorStart(token->value))
+			{
+				FklStringMatchPattern* pattern=token->value[1]=='('?VECTOR_0:VECTOR_1;
+				MatchState* state=newMatchState(pattern,token->line,0);
+				fklPushPtrStack(state,matchStateStack);
+				cStack=fklNewPtrStack(32,16);
+				fklPushPtrStack(cStack,stackStack);
+				continue;
+			}
 			else if(isRightParenthese(token->value))
 			{
 				fklPopPtrStack(stackStack);
 				MatchState* cState=fklPopPtrStack(matchStateStack);
 				AstElem* v=newAstElem(AST_CAR,fklNewCptr(cState->line,NULL));
 				int r=0;
-				uint32_t i=0;
-				for(;i<cStack->top;i++)
+				if(isBuiltInParenthese(cState->pattern))
 				{
-					AstElem* c=cStack->base[i];
-					if(!r)
+					for(uint32_t i=0;i<cStack->top;i++)
 					{
-						if(c->place==AST_CAR)
-							r=copyAndAddToList(v->cptr,c->cptr);
-						else
-							r=copyAndAddToTail(v->cptr,c->cptr);
+						AstElem* c=cStack->base[i];
+						if(!r)
+						{
+							if(c->place==AST_CAR)
+								r=copyAndAddToList(v->cptr,c->cptr);
+							else
+								r=copyAndAddToTail(v->cptr,c->cptr);
+						}
+						fklDeleteCptr(c->cptr);
+						free(c->cptr);
+						free(c);
 					}
-					fklDeleteCptr(c->cptr);
-					free(c->cptr);
-					free(c);
+				}
+				else
+				{
+					FklAstAtom* vec=fklNewAtom(FKL_VECTOR,NULL,v->cptr->outer);
+					fklMakeAstVector(&vec->value.vec,cStack->top,NULL);
+					v->cptr->type=FKL_ATM;
+					v->cptr->u.atom=vec;
+					for(uint32_t i=0;i<cStack->top;i++)
+					{
+						AstElem* c=cStack->base[i];
+						if(!r)
+						{
+							if(c->place==AST_CAR)
+								fklCopyCptr(&vec->value.vec.base[i],c->cptr);
+							else
+								r=1;
+							
+						}
+						fklDeleteCptr(c->cptr);
+						free(c->cptr);
+						free(c);
+					}
 				}
 				fklFreePtrStack(cStack);
 				cStack=fklTopPtrStack(stackStack);
@@ -1532,7 +1008,7 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 			}
 		}
 		for(MatchState* state=fklTopPtrStack(matchStateStack);
-				state&&(isBuiltInSingleStrPattern(state->pattern)||!isBuiltInParenthese(state->pattern));
+				state&&(isBuiltInSingleStrPattern(state->pattern)||(!isBuiltInParenthese(state->pattern)&&!isBuiltInVector(state->pattern)));
 				state=fklTopPtrStack(matchStateStack))
 		{
 			if(isBuiltInSingleStrPattern(state->pattern))
@@ -1615,4 +1091,16 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 	fklFreePtrStack(stackStack);
 	fklFreePtrStack(elemStack);
 	return retval;
+}
+
+void fklMakeAstVector(FklAstVector* vec,size_t size,const FklAstCptr* base)
+{
+	vec->size=size;
+	vec->base=(FklAstCptr*)malloc(sizeof(FklAstCptr)*size);
+	FKL_ASSERT(!size||vec->base,"fklMakeAstVector");
+	if(base)
+	{
+		for(size_t i=0;i<size;i++)
+			fklCopyCptr(&vec->base[i],&base[i]);
+	}
 }

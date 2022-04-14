@@ -508,6 +508,17 @@ static void princVMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 							fprintf(fp,"<#proc: %s>",fklGetGlobSymbolWithId(objValue->u.proc->sid)->symbol);
 						else
 							fprintf(fp,"#<proc>");
+						break;
+					case FKL_VECTOR:
+						fprintf(fp,"#(");
+						for(size_t i=0;i<objValue->u.vec->size;i++)
+						{
+							princVMvalue(objValue->u.vec->base[i],fp,h);
+							if(objValue->u.vec->size-i>1)
+								fputc(' ',fp);
+						}
+						fprintf(fp,")");
+						break;
 					case FKL_PAIR:
 						cirPair=isCircularReference(objValue->u.pair,*h);
 						if(cirPair)
@@ -653,6 +664,16 @@ static void prin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 							fprintf(fp,"<#proc: %s>",fklGetGlobSymbolWithId(objValue->u.proc->sid)->symbol);
 						else
 							fprintf(fp,"#<proc>");
+						break;
+					case FKL_VECTOR:
+						fprintf(fp,"#(");
+						for(size_t i=0;i<objValue->u.vec->size;i++)
+						{
+							prin1VMvalue(objValue->u.vec->base[i],fp,h);
+							if(objValue->u.vec->size-i>1)
+								fputc(' ',fp);
+						}
+						fprintf(fp,")");
 						break;
 					case FKL_PAIR:
 						cirPair=isCircularReference(objValue->u.pair,*h);

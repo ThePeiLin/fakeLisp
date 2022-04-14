@@ -181,6 +181,9 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode,uint32_t i
 							,fklGetU32FromByteCode(tmpCode->code+i+sizeof(char))
 							,fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)+sizeof(FklTypeId_t)));
 					break;
+				case FKL_PUSH_VECTOR:
+					fprintf(fp,"%lu",fklGetU64FromByteCode(tmpCode->code+i+sizeof(char)));
+					break;
 			}
 			r+=sizeof(char)+sizeof(int64_t);
 			break;

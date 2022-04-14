@@ -86,6 +86,12 @@ typedef struct FklVMmem
 	uint8_t* mem;
 }FklVMmem;
 
+typedef struct FklVMvec
+{
+	size_t size;
+	struct FklVMvalue* base[];
+}FklVMvec;
+
 typedef struct FklVMvalue
 {
 	unsigned int mark :1;
@@ -104,6 +110,7 @@ typedef struct FklVMvalue
 		struct FklVMflproc* flproc;
 		struct FklVMcontinuation* cont;
 		FklVMfp* fp;
+		FklVMvec* vec;
 		struct FklVMchanl* chan;
 		struct FklVMerror* err;
 	}u;
@@ -421,6 +428,10 @@ char* fklVMbytsToCstr(FklVMbyts*);
 FklVMvalue* fklGetVMstdin(void);
 FklVMvalue* fklGetVMstdout(void);
 FklVMvalue* fklGetVMstderr(void);
+
+FklVMvec* fklNewVMvec(size_t size,FklVMvalue** base);
+void fklFreeVMvec(FklVMvec*);
+void fklVMvecCat(FklVMvec**,const FklVMvec*);
 #ifdef __cplusplus
 }
 #endif

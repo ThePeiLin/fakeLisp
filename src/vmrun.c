@@ -231,6 +231,7 @@ static void B_jmp(FklVM*);
 static void B_push_try(FklVM*);
 static void B_pop_try(FklVM*);
 static void B_append(FklVM*);
+static void B_push_vector(FklVM*);
 
 
 static void (*ByteCodes[])(FklVM*)=
@@ -275,6 +276,7 @@ static void (*ByteCodes[])(FklVM*)=
 	B_push_try,
 	B_pop_try,
 	B_append,
+	B_push_vector,
 };
 
 FklVM* fklNewVM(FklByteCode* mainCode)
@@ -1324,46 +1326,59 @@ void B_pop_try(FklVM* exe)
 	r->cp+=1;
 }
 
-void B_load_shared_obj(FklVM* exe)
+void B_push_vector(FklVM* exe)
 {
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
-	unsigned int len=strlen((char*)(exe->code+r->cp+1));
-	char* str=fklCopyStr((char*)(exe->code+r->cp+1));
-#ifdef _WIN32
-	FklDllHandle handle=LoadLibrary(str);
-	if(!handle)
-	{
-		TCHAR szBuf[128];
-		LPVOID lpMsgBuf;
-		DWORD dw = GetLastError();
-		FormatMessage (
-				FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
-				NULL,
-				dw,
-				MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
-				(LPTSTR) &lpMsgBuf,
-				0, NULL );
-		wsprintf(szBuf,
-				_T("%s error Message (error code=%d): %s"),
-				_T("CreateDirectory"), dw, lpMsgBuf);
-		LocalFree(lpMsgBuf);
-		fprintf(stderr,"%s\n",szBuf);
-	}
-#else
-	FklVMdllHandle handle=dlopen(str,RTLD_LAZY);
-	if(!handle)
-	{
-		perror(dlerror());
-		putc('\n',stderr);
-	}
-#endif
-	FklSharedObjNode* node=(FklSharedObjNode*)malloc(sizeof(FklSharedObjNode));
-	FKL_ASSERT(node,"B_load_shared_obj");
-	node->dll=handle;
-	node->next=GlobSharedObjs;
-	GlobSharedObjs=node;
-	r->cp+=2+len;
+	FklVMstack* stack=exe->stack;
+	uint64_t size=fklGetU64FromByteCode(exe->code+r->cp+sizeof(char));
+	FklVMvalue** base=&stack->values[stack->tp-size];
+	stack->tp-=size;
+	FKL_SET_RETURN(__func__,fklNewVMvalue(FKL_VECTOR
+				,fklNewVMvec(size,base)
+				,exe->heap)
+			,stack);
+	r->cp+=sizeof(char)+sizeof(uint64_t);
 }
+//void B_load_shared_obj(FklVM* exe)
+//{
+//	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
+//	unsigned int len=strlen((char*)(exe->code+r->cp+1));
+//	char* str=fklCopyStr((char*)(exe->code+r->cp+1));
+//#ifdef _WIN32
+//	FklDllHandle handle=LoadLibrary(str);
+//	if(!handle)
+//	{
+//		TCHAR szBuf[128];
+//		LPVOID lpMsgBuf;
+//		DWORD dw = GetLastError();
+//		FormatMessage (
+//				FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+//				NULL,
+//				dw,
+//				MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
+//				(LPTSTR) &lpMsgBuf,
+//				0, NULL );
+//		wsprintf(szBuf,
+//				_T("%s error Message (error code=%d): %s"),
+//				_T("CreateDirectory"), dw, lpMsgBuf);
+//		LocalFree(lpMsgBuf);
+//		fprintf(stderr,"%s\n",szBuf);
+//	}
+//#else
+//	FklVMdllHandle handle=dlopen(str,RTLD_LAZY);
+//	if(!handle)
+//	{
+//		perror(dlerror());
+//		putc('\n',stderr);
+//	}
+//#endif
+//	FklSharedObjNode* node=(FklSharedObjNode*)malloc(sizeof(FklSharedObjNode));
+//	FKL_ASSERT(node,"B_load_shared_obj");
+//	node->dll=handle;
+//	node->next=GlobSharedObjs;
+//	GlobSharedObjs=node;
+//	r->cp+=2+len;
+//}
 
 FklVMstack* fklNewVMstack(int32_t size)
 {
@@ -1538,6 +1553,12 @@ void fklGC_markValue(FklVMvalue* obj)
 						fklPushPtrStack(env->list[i]->value,stack);
 				}
 			}
+			else if(root->type==FKL_VECTOR)
+			{
+				FklVMvec* vec=root->u.vec;
+				for(size_t i=0;i<vec->size;i++)
+					fklPushPtrStack(vec->base[i],stack);
+			}
 			else if(root->type==FKL_CHAN)
 			{
 				pthread_mutex_lock(&root->u.chan->lock);
@@ -1643,6 +1664,9 @@ void fklGC_sweep(FklVMheap* heap)
 					break;
 				case FKL_ERR:
 					fklFreeVMerror(prev->u.err);
+					break;
+				case FKL_VECTOR:
+					fklFreeVMvec(prev->u.vec);
 					break;
 				case FKL_MEM:
 				case FKL_CHF:

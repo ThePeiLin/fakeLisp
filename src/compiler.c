@@ -804,7 +804,7 @@ FklByteCode* fklCompileAtom(FklAstCptr* objCptr)
 {
 	FklAstAtom* tmpAtm=objCptr->u.atom;
 	FklByteCode* tmp=NULL;
-	switch((int)tmpAtm->type)
+	switch(tmpAtm->type)
 	{
 		case FKL_SYM:
 			tmp=fklNewByteCode(sizeof(char)+sizeof(FklSid_t));
@@ -844,6 +844,8 @@ FklByteCode* fklCompileAtom(FklAstCptr* objCptr)
 					,tmpAtm->value.byts.str
 					,tmpAtm->value.byts.size);
 			break;
+		default:
+			break;
 	}
 	return tmp;
 }
@@ -853,6 +855,55 @@ FklByteCode* fklCompileNil()
 	FklByteCode* tmp=fklNewByteCode(1);
 	tmp->code[0]=FKL_PUSH_NIL;
 	return tmp;
+}
+
+static FklByteCode* innerCompileConst(FklAstCptr* objCptr)
+{
+	switch(objCptr->type)
+	{
+		case FKL_PAIR:
+			return fklCompilePair(objCptr);
+			break;
+		case FKL_ATM:
+			if(objCptr->u.atom->type==FKL_SYM)
+			{
+				FklByteCode* tmp=fklNewByteCode(sizeof(char)+sizeof(int32_t));
+				char* sym=objCptr->u.atom->value.str;
+				FklSymTabNode* node=fklAddSymbolToGlob(sym);
+				tmp->code[0]=FKL_PUSH_SYM;
+				fklSetU32ToByteCode(tmp->code+sizeof(char),node->id);
+				return tmp;
+			}
+			else if(objCptr->u.atom->type!=FKL_VECTOR)
+				return fklCompileAtom(objCptr);
+			else
+				return fklCompileVector(objCptr);
+			break;
+		case FKL_NIL:
+			return fklCompileNil();
+			break;
+		default:
+			break;
+	}
+	return NULL;
+}
+
+FklByteCode* fklCompileVector(FklAstCptr* objCptr)
+{
+	FklAstVector* vec=&objCptr->u.atom->value.vec;
+	FklByteCode* pushVector=fklNewByteCode(sizeof(char)+sizeof(uint64_t));
+	pushVector->code[0]=FKL_PUSH_VECTOR;
+	fklSetU64ToByteCode(pushVector->code+sizeof(char),vec->size);
+	FklByteCode* retval=fklNewByteCode(0);
+	for(size_t i=0;i<vec->size;i++)
+	{
+		FklByteCode* tmp=innerCompileConst(&vec->base[i]);
+		fklCodeCat(retval,tmp);
+		fklFreeByteCode(tmp);
+	}
+	fklCodeCat(retval,pushVector);
+	fklFreeByteCode(pushVector);
+	return retval;
 }
 
 FklByteCode* fklCompilePair(FklAstCptr* objCptr)
@@ -1048,7 +1099,7 @@ FklByteCode* fklCompileQuote(FklAstCptr* objCptr)
 {
 	objCptr=&objCptr->u.pair->car;
 	objCptr=fklNextCptr(objCptr);
-	switch((int)objCptr->type)
+	switch(objCptr->type)
 	{
 		case FKL_PAIR:
 			return fklCompilePair(objCptr);
@@ -1063,11 +1114,15 @@ FklByteCode* fklCompileQuote(FklAstCptr* objCptr)
 				fklSetU32ToByteCode(tmp->code+sizeof(char),node->id);
 				return tmp;
 			}
-			else
+			else if(objCptr->u.atom->type!=FKL_VECTOR)
 				return fklCompileAtom(objCptr);
+			else
+				return fklCompileVector(objCptr);
 			break;
 		case FKL_NIL:
 			return fklCompileNil();
+			break;
+		default:
 			break;
 	}
 	return NULL;
@@ -1083,7 +1138,8 @@ FklByteCodelnt* fklCompileConst(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterp
 {
 	int32_t line=objCptr->curline;
 	FklByteCode* tmp=NULL;
-	if(objCptr->type==FKL_ATM)tmp=fklCompileAtom(objCptr);
+	if(objCptr->type==FKL_ATM&&objCptr->u.atom->type!=FKL_VECTOR)tmp=fklCompileAtom(objCptr);
+	if(objCptr->type==FKL_ATM&&objCptr->u.atom->type==FKL_VECTOR)tmp=fklCompileVector(objCptr);
 	if(fklIsNil(objCptr))tmp=fklCompileNil();
 	if(fklIsQuoteExpression(objCptr))tmp=fklCompileQuote(objCptr);
 	if(!tmp)

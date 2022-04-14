@@ -424,7 +424,6 @@ extern void SYS_flproc_p(ARGL);
 extern void SYS_vector_p(ARGL);
 extern void SYS_memory_p(ARGL);
 extern void SYS_chanl_p(ARGL);
-extern void SYS_ref_p(ARGL);
 extern void SYS_dll_p(ARGL);
 extern void SYS_vector(ARGL);
 
@@ -507,7 +506,6 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_vector_p,
 		SYS_memory_p,
 		SYS_chanl_p,
-		SYS_ref_p,
 		SYS_dll_p,
 		SYS_vector,
 	};

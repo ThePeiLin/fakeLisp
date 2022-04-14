@@ -2027,7 +2027,6 @@ void SYS_flproc_p(ARGL) PREDICATE(FKL_IS_FLPROC(val),"sys.flproc?")
 void SYS_vector_p(ARGL) PREDICATE(FKL_IS_VECTOR(val),"sys.vector?")
 void SYS_memory_p(ARGL) PREDICATE(FKL_IS_MEM(val),"sys.memory?")
 void SYS_chanl_p(ARGL) PREDICATE(FKL_IS_CHAN(val),"sys.chanl?")
-void SYS_ref_p(ARGL) PREDICATE(FKL_IS_REF(val)||FKL_IS_CHF(val),"sys.ref?")
 void SYS_dll_p(ARGL) PREDICATE(FKL_IS_DLL(val),"sys.dll?")
 
 #undef ARGL

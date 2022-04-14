@@ -116,7 +116,6 @@ static const char* builtInSymbolList[]=
 	"vector?",
 	"memory?",
 	"chanl?",
-	"ref?",
 	"dll?",
 	"vector",
 };

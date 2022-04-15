@@ -208,18 +208,11 @@ static FklTypeId_t genStructTypeId(FklAstCptr* compositeDataHead,FklDefTypes* ot
 		}
 	}
 	if(retval&&num)
-	{
 		initVMStructTypeId(retval,structName,num,memberSymbolList,memberTypeList);
-	}
 	else if(!retval)
-	{
 		retval=fklNewVMStructType(structName,num,memberSymbolList,memberTypeList);
-		if(memberTypeList&&memberSymbolList)
-		{
-			free(memberSymbolList);
-			free(memberTypeList);
-		}
-	}
+	free(memberSymbolList);
+	free(memberTypeList);
 	return retval;
 }
 
@@ -644,7 +637,7 @@ FklTypeId_t fklNewVMStructType(const char* structName,uint32_t num,FklSid_t symb
 				structAlign=align;
 			}
 		}
-		totalSize+=(totalSize%maxSize)?maxSize-totalSize%maxSize:0;
+		totalSize+=(maxSize&&totalSize%maxSize)?maxSize-totalSize%maxSize:0;
 		FklDefStructType* tmp=(FklDefStructType*)malloc(sizeof(FklDefStructType)+sizeof(FklDefStructMember)*num);
 		FKL_ASSERT(tmp,__func__);
 		if(structName)

@@ -685,7 +685,7 @@ void SYS_integer(FklVM* exe,pthread_rwlock_t* gclock)
 	else if(FKL_IS_I32(obj))
 		FKL_SET_RETURN(__func__,obj,stack);
 	else if(FKL_IS_SYM(obj))
-		FKL_SET_RETURN(__func__,FKL_MAKE_VM_I32(FKL_GET_SYM(obj)),stack);
+		FKL_SET_RETURN(__func__,makeVMint(FKL_GET_SYM(obj),exe->heap),stack);
 	else if(FKL_IS_I64(obj))
 		FKL_SET_RETURN(__func__,fklNewVMvalue(FKL_I64,&obj->u.i64,exe->heap),stack);
 	else if(FKL_IS_F64(obj))

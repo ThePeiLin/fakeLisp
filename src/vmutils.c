@@ -785,6 +785,11 @@ FklVMvalue* fklGET_VAL(FklVMvalue* P,FklVMheap* heap)
 	return P;
 }
 
+static inline int64_t getInt(FklVMvalue* p)
+{
+	return FKL_IS_I32(p)?FKL_GET_I32(p):p->u.i64;
+}
+
 int fklSET_REF(FklVMvalue* P,FklVMvalue* V)
 {
 	if(FKL_IS_MEM(P)||FKL_IS_CHF(P))
@@ -794,9 +799,23 @@ int fklSET_REF(FklVMvalue* P,FklVMvalue* V)
 			return 1;
 		else if(!fklIsNativeTypeId(mem->type))
 		{
+			if(fklIsPtrTypeId(mem->type)&&(FKL_IS_MEM(V)||FKL_IS_CHF(V)))
+			{
+				if((FKL_IS_MEM(V)||FKL_IS_CHF(V)))
+				{
+					FklVMmem* t=V->u.chf;
+					*(void**)(mem->mem)=t->mem;
+					return 0;
+				}
+				else if(FKL_IS_I32(V)||FKL_IS_I64(V))
+				{
+					*(void**)(mem->mem)=(void*)getInt(V);
+					return 0;
+				}
+			}
 			if(!FKL_IS_I32(V)&&!FKL_IS_I64(V))
 				return 1;
-			mem->mem=(uint8_t*)(FKL_IS_I32(V)?FKL_GET_I32(V):V->u.i64);
+			*(void**)(mem->mem)=(uint8_t*)(FKL_IS_I32(V)?FKL_GET_I32(V):V->u.i64);
 		}
 		else if(fklMemorySet(mem->type,mem,V))
 			return 1;

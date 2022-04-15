@@ -18,7 +18,13 @@ struct GlobTypeUnionListStruct
 static void initVMStructTypeId(FklTypeId_t id,const char* structName,uint32_t num,FklSid_t* symbols,FklTypeId_t* memberTypes)
 {
 	size_t totalSize=0;
-	for(uint32_t i=0;i<num;totalSize+=fklGetVMTypeSize(fklGetVMTypeUnion(memberTypes[i])),i++);
+	size_t prevAllign=1;
+	for(uint32_t i=0
+			;i<num
+			;totalSize+=totalSize%prevAllign
+			,totalSize+=fklGetVMTypeSize(fklGetVMTypeUnion(memberTypes[i]))
+			,i++)
+		prevAllign=fklGetVMTypeAlign(fklGetVMTypeUnion(memberTypes[i]));
 	FklDefTypeUnion* pst=&GlobTypeUnionList.ul[id-1];
 	FklDefStructType* ost=(FklDefStructType*)FKL_GET_TYPES_PTR(pst->st);
 	ost=(FklDefStructType*)realloc(ost,sizeof(FklDefStructType)+num*sizeof(FklDefStructMember));

@@ -916,7 +916,7 @@ void B_push_def_ref(FklVM* exe)
 	if(!mem->mem)
 		FKL_RAISE_BUILTIN_ERROR("b.push_def_ref",FKL_INVALIDACCESS,r,exe);
 	stack->tp-=1;
-	uint8_t* ptr=mem->mem+offset;
+	uint8_t* ptr=*(void**)mem->mem+offset;
 	FklVMvalue* retval=FKL_MAKE_VM_CHF(fklNewVMmem(typeId,FKL_MEM_RAW,ptr),exe->heap);
 	FKL_SET_RETURN("B_push_def_ref",retval,stack);
 	r->cp+=sizeof(char)+sizeof(int64_t)+sizeof(FklTypeId_t);

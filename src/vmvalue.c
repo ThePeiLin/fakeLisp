@@ -262,6 +262,19 @@ int fklVMvaluecmp(FklVMvalue* fir,FklVMvalue* sec)
 					fklPushPtrStack(root2->u.pair->car,s2);
 					fklPushPtrStack(root2->u.pair->cdr,s2);
 					break;
+				case FKL_VECTOR:
+					if(root1->u.vec->size!=root2->u.vec->size)
+						r=0;
+					else
+					{
+						r=1;
+						size_t size=root1->u.vec->size;
+						for(size_t i=0;i<size;i++)
+							fklPushPtrStack(root1->u.vec->base[i],s1);
+						for(size_t i=0;i<size;i++)
+							fklPushPtrStack(root2->u.vec->base[i],s2);
+					}
+					break;
 				default:
 					r=(root1==root2);
 					break;

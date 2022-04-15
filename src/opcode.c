@@ -23,7 +23,7 @@ static struct
 	{"push_fproc",4},
 	{"push_ptr_ref",12},
 	{"push_def_ref",12},
-	{"push_ind_ref",8},
+	{"push_ind_ref",12},
 	{"push_ref",12},
 	{"pop",0},
 	{"pop_var",-3},

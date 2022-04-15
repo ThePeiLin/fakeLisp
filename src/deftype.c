@@ -901,6 +901,7 @@ void fklWriteTypeList(FILE* fp)
 			case FKL_DEF_STRUCT_TYPE_TAG:
 				{
 					uint32_t num=((FklDefStructType*)p)->num;
+					fwrite(&((FklDefStructType*)p)->type,sizeof(((FklDefStructType*)p)->type),1,fp);
 					fwrite(&num,sizeof(num),1,fp);
 					fwrite(&((FklDefStructType*)p)->totalSize,sizeof(((FklDefStructType*)p)->totalSize),1,fp);
 					FklDefStructMember* members=((FklDefStructType*)p)->layout;
@@ -910,6 +911,7 @@ void fklWriteTypeList(FILE* fp)
 			case FKL_DEF_UNION_TYPE_TAG:
 				{
 					uint32_t num=((FklDefUnionType*)p)->num;
+					fwrite(&((FklDefUnionType*)p)->type,sizeof(((FklDefUnionType*)p)->type),1,fp);
 					fwrite(&num,sizeof(num),1,fp);
 					fwrite(&((FklDefUnionType*)p)->maxSize,sizeof(((FklDefUnionType*)p)->maxSize),1,fp);
 					FklDefStructMember* members=((FklDefUnionType*)p)->layout;
@@ -978,9 +980,12 @@ void fklLoadTypeList(FILE* fp)
 			case FKL_DEF_STRUCT_TYPE_TAG:
 				{
 					uint32_t num=0;
+					FklSid_t type=0;
+					fread(&type,sizeof(type),1,fp);
 					fread(&num,sizeof(num),1,fp);
 					FklDefStructType* t=(FklDefStructType*)malloc(sizeof(FklDefStructType)+sizeof(FklDefStructMember)*num);
 					FKL_ASSERT(t,__func__);
+					t->type=type;
 					t->num=num;
 					fread(&t->totalSize,sizeof(t->totalSize),1,fp);
 					fread(t->layout,sizeof(FklDefStructMember),num,fp);
@@ -990,9 +995,12 @@ void fklLoadTypeList(FILE* fp)
 			case FKL_DEF_UNION_TYPE_TAG:
 				{
 					uint32_t num=0;
+					FklSid_t type=0;
+					fread(&type,sizeof(type),1,fp);
 					fread(&num,sizeof(num),1,fp);
 					FklDefUnionType* t=(FklDefUnionType*)malloc(sizeof(FklDefUnionType)+sizeof(FklDefStructMember)*num);
 					FKL_ASSERT(t,__func__);
+					t->type=type;
 					t->num=num;
 					fread(&t->maxSize,sizeof(t->maxSize),1,fp);
 					fread(t->layout,sizeof(FklDefStructMember),num,fp);

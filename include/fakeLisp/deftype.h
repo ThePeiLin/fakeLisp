@@ -78,7 +78,7 @@ typedef struct FklDefStructType
 
 typedef struct FklDefUnionType
 {
-	int64_t type;
+	FklSid_t type;
 	uint32_t num;
 	size_t maxSize;
 	uint32_t align;

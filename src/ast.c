@@ -1104,3 +1104,77 @@ void fklMakeAstVector(FklAstVector* vec,size_t size,const FklAstCptr* base)
 			fklCopyCptr(&vec->base[i],&base[i]);
 	}
 }
+
+void fklPrintCptr_N(FklAstCptr* o_cptr,FILE* fp)
+{
+	FklPtrStack* stack=fklNewPtrStack(32,16);
+	fklPushPtrStack(o_cptr,stack);
+	while(!fklIsPtrStackEmpty(stack))
+	{
+		FklAstCptr* cptr=fklPopPtrStack(stack);
+		while(cptr)
+		{
+			if(cptr->type==FKL_ATM)
+			{
+				FklAstAtom* tmpAtm=cptr->u.atom;
+				switch(tmpAtm->type)
+				{
+					case FKL_SYM:
+						fprintf(fp,"%s",tmpAtm->value.str);
+						break;
+					case FKL_STR:
+						fklPrintRawString(tmpAtm->value.str,fp);
+						break;
+					case FKL_I32:
+						fprintf(fp,"%d",tmpAtm->value.i32);
+						break;
+					case FKL_I64:
+						fprintf(fp,"%ld",tmpAtm->value.i64);
+						break;
+					case FKL_F64:
+						fprintf(fp,"%lf",tmpAtm->value.f64);
+						break;
+					case FKL_CHR:
+						fklPrintRawChar(tmpAtm->value.chr,fp);
+						break;
+					case FKL_BYTS:
+						fklPrintByteStr(tmpAtm->value.byts.size,tmpAtm->value.byts.str,fp,1);
+						break;
+					case FKL_VECTOR:
+						fprintf(fp,"#(");
+						for(size_t i=0;i<tmpAtm->value.vec.size;i++)
+							fklPrintCptr(&tmpAtm->value.vec.base[i],fp);
+						fputc(')',fp);
+						break;
+					default:
+						break;
+				}
+			}
+			else if(cptr->type==FKL_NIL)
+				fprintf(fp,"()");
+			else if(cptr->type==FKL_PAIR)
+			{
+				fputc('(',fp);
+				fklPushPtrStack(fklNextCptr(cptr),stack);
+				cptr=fklGetCptrCar(&cptr->u.pair->car);
+				continue;
+			}
+			FklAstCptr* next=fklNextCptr(cptr);
+			FklAstCptr* cdr=fklGetCptrCdr(cptr);
+			if(cptr!=cdr&&!next&&cdr->type!=FKL_NIL)
+			{
+				fputc(',',fp);
+				cptr=cdr;
+			}
+			else
+			{
+				cptr=next;
+				if(cptr)
+					fputc(' ',fp);
+			}
+		}
+		if(!fklIsPtrStackEmpty(stack))
+				fputc(')',fp);
+	}
+	fklFreePtrStack(stack);
+}

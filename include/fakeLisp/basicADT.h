@@ -37,7 +37,7 @@ typedef struct
 FklQueueNode* fklNewQueueNode(void*);
 void fklFreeQueueNode(FklQueueNode*);
 
-FklPtrQueue* fklNewPtrQueue();
+FklPtrQueue* fklNewPtrQueue(void);
 void fklFreePtrQueue(FklPtrQueue*);
 int32_t fklLengthPtrQueue(FklPtrQueue*);
 void* fklFirstPtrQueue(FklPtrQueue*);

@@ -58,7 +58,7 @@ int fklEqByteString(const FklAstByteString* fir,const FklAstByteString* sec)
 	return !memcmp(fir->str,sec->str,sec->size);
 }
 
-void fklPrintCptr(const FklAstCptr* objCptr,FILE* out)
+void fklPrintCptr_O(const FklAstCptr* objCptr,FILE* out)
 {
 	if(objCptr==NULL)return;
 	FklAstPair* tmpPair=(objCptr->type==FKL_PAIR)?objCptr->u.pair:NULL;
@@ -1098,6 +1098,8 @@ void fklMakeAstVector(FklAstVector* vec,size_t size,const FklAstCptr* base)
 	vec->size=size;
 	vec->base=(FklAstCptr*)malloc(sizeof(FklAstCptr)*size);
 	FKL_ASSERT(!size||vec->base,__func__);
+	for(size_t i=0;i<size;i++)
+		vec->base[i].outer=NULL;
 	if(base)
 	{
 		for(size_t i=0;i<size;i++)
@@ -1105,15 +1107,22 @@ void fklMakeAstVector(FklAstVector* vec,size_t size,const FklAstCptr* base)
 	}
 }
 
-void fklPrintCptr_N(FklAstCptr* o_cptr,FILE* fp)
+void fklPrintCptr(const FklAstCptr* o_cptr,FILE* fp)
 {
-	FklPtrStack* stack=fklNewPtrStack(32,16);
-	fklPushPtrStack(o_cptr,stack);
-	while(!fklIsPtrStackEmpty(stack))
+	FklPtrQueue* queue=fklNewPtrQueue();
+	FklPtrStack* queueStack=fklNewPtrStack(32,16);
+	fklPushPtrQueue(newAstElem(AST_CAR,(FklAstCptr*)o_cptr),queue);
+	fklPushPtrStack(queue,queueStack);
+	while(!fklIsPtrStackEmpty(queueStack))
 	{
-		FklAstCptr* cptr=fklPopPtrStack(stack);
-		while(cptr)
+		FklPtrQueue* cQueue=fklTopPtrStack(queueStack);
+		while(fklLengthPtrQueue(cQueue))
 		{
+			AstElem* e=fklPopPtrQueue(cQueue);
+			FklAstCptr* cptr=e->cptr;
+			if(e->place==AST_CDR)
+				fputc(',',fp);
+			free(e);
 			if(cptr->type==FKL_ATM)
 			{
 				FklAstAtom* tmpAtm=cptr->u.atom;
@@ -1141,40 +1150,60 @@ void fklPrintCptr_N(FklAstCptr* o_cptr,FILE* fp)
 						fklPrintByteStr(tmpAtm->value.byts.size,tmpAtm->value.byts.str,fp,1);
 						break;
 					case FKL_VECTOR:
-						fprintf(fp,"#(");
-						for(size_t i=0;i<tmpAtm->value.vec.size;i++)
-							fklPrintCptr(&tmpAtm->value.vec.base[i],fp);
-						fputc(')',fp);
+						fputs("#(",fp);
+						{
+							FklPtrQueue* vQueue=fklNewPtrQueue();
+							for(size_t i=0;i<tmpAtm->value.vec.size;i++)
+								fklPushPtrQueue(newAstElem(AST_CAR,&tmpAtm->value.vec.base[i]),vQueue);
+							fklPushPtrStack(vQueue,queueStack);
+							cQueue=vQueue;
+							continue;
+						}
 						break;
 					default:
 						break;
 				}
 			}
 			else if(cptr->type==FKL_NIL)
-				fprintf(fp,"()");
+				fputs("()",fp);
 			else if(cptr->type==FKL_PAIR)
 			{
 				fputc('(',fp);
-				fklPushPtrStack(fklNextCptr(cptr),stack);
-				cptr=fklGetCptrCar(&cptr->u.pair->car);
+				FklPtrQueue* lQueue=fklNewPtrQueue();
+				FklAstCptr* c=&cptr->u.pair->car;
+				for(;;)
+				{
+					AstElem* ce=newAstElem(AST_CAR,c);
+					fklPushPtrQueue(ce,lQueue);
+					FklAstCptr* next=fklNextCptr(c);
+					if(!next)
+					{
+						FklAstCptr* cdr=fklGetCptrCdr(c);
+						if(cdr->type!=FKL_NIL)
+						{
+							AstElem* cdre=newAstElem(AST_CDR,cdr);
+							fklPushPtrQueue(cdre,lQueue);
+						}
+						break;
+					}
+					c=next;
+				}
+				fklPushPtrStack(lQueue,queueStack);
+				cQueue=lQueue;
 				continue;
 			}
-			FklAstCptr* next=fklNextCptr(cptr);
-			FklAstCptr* cdr=fklGetCptrCdr(cptr);
-			if(cptr!=cdr&&!next&&cdr->type!=FKL_NIL)
-			{
-				fputc(',',fp);
-				cptr=cdr;
-			}
-			else
-			{
-				cptr=next;
-				if(cptr)
-					fputc(' ',fp);
-			}
+			if(fklLengthPtrQueue(cQueue)&&((AstElem*)fklFirstPtrQueue(cQueue))->place!=AST_CDR)
+				fputc(' ',fp);
 		}
-		if(!fklIsPtrStackEmpty(stack))
-				fputc(')',fp);
+		fklPopPtrStack(queueStack);
+		fklFreePtrQueue(cQueue);
+		if(!fklIsPtrStackEmpty(queueStack))
+		{
+			fputc(')',fp);
+			cQueue=fklTopPtrStack(queueStack);
+			if(fklLengthPtrQueue(cQueue)&&((AstElem*)fklFirstPtrQueue(cQueue))->place!=AST_CDR)
+				fputc(' ',fp);
+		}
 	}
-	fklFreePtrStack(stack);
+	fklFreePtrStack(queueStack);
 }

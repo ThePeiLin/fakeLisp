@@ -79,7 +79,7 @@ void fklFreeQueueNode(FklQueueNode* tmp)
 	free(tmp);
 }
 
-FklPtrQueue* fklNewPtrQueue()
+FklPtrQueue* fklNewPtrQueue(void)
 {
 	FklPtrQueue* tmp=(FklPtrQueue*)malloc(sizeof(FklPtrQueue));
 	FKL_ASSERT(tmp,__func__);

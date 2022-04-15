@@ -65,7 +65,7 @@ typedef struct FklDefPtrType
 
 typedef struct FklDefStructType
 {
-	int64_t type;
+	FklSid_t type;
 	uint32_t num;
 	size_t totalSize;
 	uint32_t align;

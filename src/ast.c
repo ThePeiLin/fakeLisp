@@ -168,7 +168,7 @@ void fklFreeAtom(FklAstAtom* objAtm)
 FklAstPair* fklNewPair(int curline,FklAstPair* prev)
 {
 	FklAstPair* tmp;
-	FKL_ASSERT((tmp=(FklAstPair*)malloc(sizeof(FklAstPair))),"fklNewPair");
+	FKL_ASSERT((tmp=(FklAstPair*)malloc(sizeof(FklAstPair))),__func__);
 	tmp->car.outer=tmp;
 	tmp->car.type=FKL_NIL;
 	tmp->car.u.all=NULL;
@@ -184,7 +184,7 @@ FklAstPair* fklNewPair(int curline,FklAstPair* prev)
 FklAstCptr* fklNewCptr(int curline,FklAstPair* outer)
 {
 	FklAstCptr* tmp=NULL;
-	FKL_ASSERT((tmp=(FklAstCptr*)malloc(sizeof(FklAstCptr))),"fklNewCptr");
+	FKL_ASSERT((tmp=(FklAstCptr*)malloc(sizeof(FklAstCptr))),__func__);
 	tmp->outer=outer;
 	tmp->curline=curline;
 	tmp->type=FKL_NIL;
@@ -195,14 +195,14 @@ FklAstCptr* fklNewCptr(int curline,FklAstPair* outer)
 FklAstAtom* fklNewAtom(FklValueType type,const char* value,FklAstPair* prev)
 {
 	FklAstAtom* tmp=NULL;
-	FKL_ASSERT((tmp=(FklAstAtom*)malloc(sizeof(FklAstAtom))),"fklNewAtom");
+	FKL_ASSERT((tmp=(FklAstAtom*)malloc(sizeof(FklAstAtom))),__func__);
 	switch(type)
 	{
 		case FKL_SYM:
 		case FKL_STR:
 			if(value!=NULL)
 			{
-				FKL_ASSERT((tmp->value.str=(char*)malloc(strlen(value)+1)),"fklNewAtom");
+				FKL_ASSERT((tmp->value.str=(char*)malloc(strlen(value)+1)),__func__);
 				strcpy(tmp->value.str,value);
 			}
 			else
@@ -603,7 +603,7 @@ typedef struct
 static MatchState* newMatchState(FklStringMatchPattern* pattern,uint32_t line,uint32_t cindex)
 {
 	MatchState* state=(MatchState*)malloc(sizeof(MatchState));
-	FKL_ASSERT(state,"newMatchState");
+	FKL_ASSERT(state,__func__);
 	state->pattern=pattern;
 	state->line=line;
 	state->cindex=cindex;
@@ -640,7 +640,7 @@ typedef struct
 AstElem* newAstElem(AstPlace place,FklAstCptr* cptr)
 {
 	AstElem* t=(AstElem*)malloc(sizeof(AstElem));
-	FKL_ASSERT(t,"newAstElem");
+	FKL_ASSERT(t,__func__);
 	t->place=place;
 	t->cptr=cptr;
 	return t;
@@ -1097,7 +1097,7 @@ void fklMakeAstVector(FklAstVector* vec,size_t size,const FklAstCptr* base)
 {
 	vec->size=size;
 	vec->base=(FklAstCptr*)malloc(sizeof(FklAstCptr)*size);
-	FKL_ASSERT(!size||vec->base,"fklMakeAstVector");
+	FKL_ASSERT(!size||vec->base,__func__);
 	if(base)
 	{
 		for(size_t i=0;i<size;i++)

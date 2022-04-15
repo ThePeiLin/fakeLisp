@@ -25,7 +25,7 @@ char* fklGetStringFromList(const char* str)
 			&&!isspace(*(str+len))
 			&&(*(str+len)!=',')
 			&&(*(str+len)!=0))len++;
-	FKL_ASSERT((tmp=(char*)malloc(sizeof(char)*(len+1))),"fklGetStringFromList");
+	FKL_ASSERT((tmp=(char*)malloc(sizeof(char)*(len+1))),__func__);
 	memcpy(tmp,str,len);
 	if(tmp!=NULL)*(tmp+len)='\0';
 	return tmp;
@@ -40,7 +40,7 @@ char* fklGetStringAfterBackslash(const char* str)
 		len++;
 		if(!isalnum(str[len])&&str[len-1]!='\\')break;
 	}
-	FKL_ASSERT((tmp=(char*)malloc(sizeof(char)*(len+1))),"fklGetStringAfterBackslash");
+	FKL_ASSERT((tmp=(char*)malloc(sizeof(char)*(len+1))),__func__);
 	memcpy(tmp,str,len);
 	if(tmp!=NULL)*(tmp+len)='\0';
 	return tmp;
@@ -52,7 +52,7 @@ char* fklDoubleToString(double num)
 	sprintf(numString,"%lf",num);
 	int lenOfNum=strlen(numString)+1;
 	char* tmp=(char*)malloc(lenOfNum*sizeof(char));
-	FKL_ASSERT(tmp,"fklDoubleToString");
+	FKL_ASSERT(tmp,__func__);
 	memcpy(tmp,numString,lenOfNum);
 	return tmp;
 }
@@ -73,7 +73,7 @@ char* fklIntToString(long num)
 	sprintf(numString,"%ld",num);
 	int lenOfNum=strlen(numString)+1;
 	char* tmp=NULL;
-	FKL_ASSERT((tmp=(char*)malloc(lenOfNum*sizeof(char))),"fklIntToString");
+	FKL_ASSERT((tmp=(char*)malloc(lenOfNum*sizeof(char))),__func__);
 	memcpy(tmp,numString,lenOfNum);;
 	return tmp;
 }
@@ -335,7 +335,7 @@ char* fklCopyStr(const char* str)
 {
 	if(str==NULL)return NULL;
 	char* tmp=(char*)malloc(sizeof(char)*(strlen(str)+1));
-	FKL_ASSERT(tmp,"fklCopyStr");
+	FKL_ASSERT(tmp,__func__);
 	strcpy(tmp,str);
 	return tmp;
 
@@ -379,7 +379,7 @@ uint8_t* fklCastStrByteStr(const char* str)
 	int len=strlen(str);
 	int32_t size=(len%2)?(len/2+1):len/2;
 	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	FKL_ASSERT(tmp,"fklCastStrByteStr");
+	FKL_ASSERT(tmp,__func__);
 	int32_t i=0;
 	int k=0;
 	for(;i<size;i++)
@@ -417,7 +417,7 @@ void fklPrintAsByteStr(const uint8_t* str,int32_t size,FILE* fp)
 void* fklCopyMemory(const void* pm,size_t size)
 {
 	void* tmp=(void*)malloc(size);
-	FKL_ASSERT(tmp,"fklCopyMemory");
+	FKL_ASSERT(tmp,__func__);
 	if(pm!=NULL)
 		memcpy(tmp,pm,size);
 	return tmp;
@@ -450,7 +450,7 @@ char* fklGetDir(const char* filename)
 	int i=strlen(filename)-1;
 	for(;filename[i]!=dp;i--);
 	char* tmp=(char*)malloc(sizeof(char)*(i+1));
-	FKL_ASSERT(tmp,"fklGetDir");
+	FKL_ASSERT(tmp,__func__);
 	tmp[i]='\0';
 	memcpy(tmp,filename,i);
 	return tmp;
@@ -459,7 +459,7 @@ char* fklGetDir(const char* filename)
 char* fklGetStringFromFile(FILE* file)
 {
 	char* tmp=(char*)malloc(sizeof(char));
-	FKL_ASSERT(tmp,"fklGetStringFromFile");
+	FKL_ASSERT(tmp,__func__);
 	tmp[0]='\0';
 	char* before;
 	int i=0;
@@ -470,7 +470,7 @@ char* fklGetStringFromFile(FILE* file)
 		i++;
 		j=i-1;
 		before=tmp;
-		FKL_ASSERT((tmp=(char*)malloc(sizeof(char)*(i+1))),"fklGetStringFromFile");
+		FKL_ASSERT((tmp=(char*)malloc(sizeof(char)*(i+1))),__func__);
 		if(before!=NULL)
 		{
 			memcpy(tmp,before,j);
@@ -541,13 +541,13 @@ char** fklSplit(char* str,char* divstr,int* length)
 	int count=0;
 	char* pNext=NULL;
 	char** strArry=(char**)malloc(0);
-	FKL_ASSERT(strArry,"fklSplit");
+	FKL_ASSERT(strArry,__func__);
 	pNext=strtok(str,divstr);
 	while(pNext!=NULL)
 	{
 		count++;
 		strArry=(char**)realloc(strArry,sizeof(char*)*count);
-		FKL_ASSERT(strArry,"fklSplit");
+		FKL_ASSERT(strArry,__func__);
 		strArry[count-1]=pNext;
 		pNext=strtok(NULL,divstr);
 	}
@@ -639,7 +639,7 @@ char* fklCastEscapeCharater(const char* str,char end,size_t* len)
 		if(strSize>memSize-1)
 		{
 			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+FKL_MAX_STRING_SIZE));
-			FKL_ASSERT(tmp,"castKeyStringToNormalString");
+			FKL_ASSERT(tmp,__func__);
 			memSize+=FKL_MAX_STRING_SIZE;
 		}
 		tmp[strSize-1]=ch;
@@ -647,7 +647,7 @@ char* fklCastEscapeCharater(const char* str,char end,size_t* len)
 	if(tmp)tmp[strSize]='\0';
 	memSize=strlen(tmp)+1;
 	tmp=(char*)realloc(tmp,memSize*sizeof(char));
-	FKL_ASSERT(tmp,"castKeyStringToNormalString");
+	FKL_ASSERT(tmp,__func__);
 	*len=i+1;
 	return tmp;
 }
@@ -683,7 +683,7 @@ void mergeSort(void* _base,size_t num,size_t size,int (*cmpf)(const void*,const 
 {
 	void* base0=_base;
 	void* base1=malloc(size*num);
-	FKL_ASSERT(base1,"mergeSort");
+	FKL_ASSERT(base1,__func__);
 	unsigned int seg=1;
 	unsigned int start=0;
 	for(;seg<num;seg+=seg)
@@ -720,7 +720,7 @@ void mergeSort(void* _base,size_t num,size_t size,int (*cmpf)(const void*,const 
 char* fklStrCat(char* s1,const char* s2)
 {
 	s1=(char*)realloc(s1,sizeof(char)*(strlen(s1)+strlen(s2)+1));
-	FKL_ASSERT(s1,"fklStrCat");
+	FKL_ASSERT(s1,__func__);
 	strcat(s1,s2);
 	return s1;
 }
@@ -728,14 +728,14 @@ char* fklStrCat(char* s1,const char* s2)
 uint8_t* fklCreateByteArry(int32_t size)
 {
 	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	FKL_ASSERT(tmp,"fklCreateByteArry");
+	FKL_ASSERT(tmp,__func__);
 	return tmp;
 }
 
 char* fklCharBufToStr(const char* buf,size_t size)
 {
 	char* str=(char*)malloc(sizeof(char)*(size+1));
-	FKL_ASSERT(str,"fklVMbytsToCstr");
+	FKL_ASSERT(str,__func__);
 	size_t len=0;
 	for(size_t i=0;i<size;i++)
 	{
@@ -746,6 +746,6 @@ char* fklCharBufToStr(const char* buf,size_t size)
 	}
 	str[len]='\0';
 	str=(char*)realloc(str,(strlen(str)+1)*sizeof(char));
-	FKL_ASSERT(str,"fklVMbytsToCstr");
+	FKL_ASSERT(str,__func__);
 	return str;
 }

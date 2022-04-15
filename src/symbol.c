@@ -125,7 +125,7 @@ FklSymbolTable GlobSymbolTable=FKL_STATIC_SYMBOL_INIT;
 FklSymbolTable* fklNewSymbolTable()
 {
 	FklSymbolTable* tmp=(FklSymbolTable*)malloc(sizeof(FklSymbolTable));
-	FKL_ASSERT(tmp,"fklNewSymbolTable");
+	FKL_ASSERT(tmp,__func__);
 	tmp->list=NULL;
 	tmp->idl=NULL;
 	tmp->num=0;
@@ -135,7 +135,7 @@ FklSymbolTable* fklNewSymbolTable()
 FklSymTabNode* fklNewSymTabNode(const char* symbol)
 {
 	FklSymTabNode* tmp=(FklSymTabNode*)malloc(sizeof(FklSymTabNode));
-	FKL_ASSERT(tmp,"fklNewSymbolTable");
+	FKL_ASSERT(tmp,__func__);
 	tmp->id=0;
 	tmp->symbol=fklCopyStr(symbol);
 	return tmp;
@@ -150,9 +150,9 @@ FklSymTabNode* fklAddSymbol(const char* sym,FklSymbolTable* table)
 		table->num=1;
 		node->id=table->num;
 		table->list=(FklSymTabNode**)malloc(sizeof(FklSymTabNode*)*1);
-		FKL_ASSERT(table->list,"fklAddSymbol");
+		FKL_ASSERT(table->list,__func__);
 		table->idl=(FklSymTabNode**)malloc(sizeof(FklSymTabNode*)*1);
-		FKL_ASSERT(table->idl,"fklAddSymbol");
+		FKL_ASSERT(table->idl,__func__);
 		table->list[0]=node;
 		table->idl[0]=node;
 	}
@@ -177,14 +177,14 @@ FklSymTabNode* fklAddSymbol(const char* sym,FklSymbolTable* table)
 		table->num+=1;
 		int32_t i=table->num-1;
 		table->list=(FklSymTabNode**)realloc(table->list,sizeof(FklSymTabNode*)*table->num);
-		FKL_ASSERT(table->list,"fklAddSymbol");
+		FKL_ASSERT(table->list,__func__);
 		node=fklNewSymTabNode(sym);
 		for(;i>mid;i--)
 			table->list[i]=table->list[i-1];
 		table->list[mid]=node;
 		node->id=table->num;
 		table->idl=(FklSymTabNode**)realloc(table->idl,sizeof(FklSymTabNode*)*table->num);
-		FKL_ASSERT(table->idl,"fklAddSymbol");
+		FKL_ASSERT(table->idl,__func__);
 		table->idl[table->num-1]=node;
 	}
 	return node;

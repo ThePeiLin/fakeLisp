@@ -165,7 +165,7 @@ static double (*castToDoubleFunctionsList[])(ARGL)=
 /*ffi_type pointer caster functions*/
 #define ARGL FklVMvalue* v,void** p
 #define CAST_TO_INT(TYPE) TYPE* t=(TYPE*)malloc(sizeof(TYPE));\
-	FKL_ASSERT(t,"VMvalue_pointer_caster");\
+	FKL_ASSERT(t,__func__);\
 	if(!FKL_IS_MEM(v)&&!FKL_IS_CHF(v))\
 	{\
 		FklVMptrTag tag=FKL_GET_TAG(v);\
@@ -210,7 +210,7 @@ static double (*castToDoubleFunctionsList[])(ARGL)=
 
 #define CAST_TO_FLOAT(TYPE) if(!FKL_IS_I32(v)&&!FKL_IS_I64(v)&&!FKL_IS_CHR(v)&&!FKL_IS_F64(v)&&!FKL_IS_MEM(v)&&!FKL_IS_CHF(v))return 1;\
 	TYPE* t=(TYPE*)malloc(sizeof(TYPE));\
-	FKL_ASSERT(t,"VMvalue_pointer_caster");\
+	FKL_ASSERT(t,__func__);\
 	if(!FKL_IS_MEM(v)&&!FKL_IS_CHF(v))\
 		*t=FKL_IS_I32(v)?FKL_GET_I32(v):(FKL_IS_I64(v)?v->u.i64:(FKL_IS_F64(v)?v->u.f64:FKL_GET_CHR(v)));\
 	else\
@@ -246,7 +246,7 @@ static int castUptrValue     (ARGL){CAST_TO_INT(uintptr_t)}
 static int castVptrValue     (ARGL)
 {
 	void** t=(void**)malloc(sizeof(void*));
-	FKL_ASSERT(t,"VMvalue_pointer_caster");
+	FKL_ASSERT(t,__func__);
 	if(!FKL_IS_MEM(v)&&!FKL_IS_CHF(v))
 	{
 		if(v==FKL_VM_NIL)
@@ -508,7 +508,7 @@ void fklPrepFFIcif(ffi_cif* cif,int argc,ffi_type** atypes,ffi_type* rtype)
 	pthread_mutex_lock(&GPrepCifLock);
 	ffi_status r=ffi_prep_cif(cif,FFI_DEFAULT_ABI,argc,rtype,atypes);
 	pthread_mutex_unlock(&GPrepCifLock);
-	FKL_ASSERT(r==FFI_OK,"fklPrepFFIcif");
+	FKL_ASSERT(r==FFI_OK,__func__);
 }
 
 void fklApplyFF(void* func,int argc,ffi_type* rtype,ffi_type** atypes,void* rvalue,void** avalue)
@@ -542,7 +542,7 @@ int fklCastValueToVptr(FklTypeId_t type,FklVMvalue* v,void** p)
 		else
 		{
 			void** t=(void*)malloc(sizeof(void*));
-			FKL_ASSERT(p,"fklCastValueToVptr");
+			FKL_ASSERT(p,__func__);
 			*t=v->u.flproc->func;
 			*p=t;
 		}
@@ -571,7 +571,7 @@ int fklMemorySet(FklTypeId_t type,FklVMmem* mem,FklVMvalue* v)
 FklVMmem* fklNewVMmem(FklTypeId_t type,FklVMmemMode mode,uint8_t* mem)
 {
 	FklVMmem* tmp=(FklVMmem*)malloc(sizeof(FklVMmem));
-	FKL_ASSERT(tmp,"fklNewVMMem");
+	FKL_ASSERT(tmp,__func__);
 	tmp->type=type;
 	tmp->mode=mode;
 	tmp->mem=mem;

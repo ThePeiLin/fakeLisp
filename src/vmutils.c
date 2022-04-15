@@ -25,7 +25,7 @@ typedef struct Cirular_Ref_List
 static CRL* newCRL(FklVMpair* pair,int32_t count)
 {
 	CRL* tmp=(CRL*)malloc(sizeof(CRL));
-	FKL_ASSERT(tmp,"newCRL");
+	FKL_ASSERT(tmp,__func__);
 	tmp->pair=pair;
 	tmp->count=count;
 	tmp->next=NULL;
@@ -124,7 +124,7 @@ int8_t isInTheCircle(FklVMpair* obj,FklVMpair* begin,FklVMpair* curPair)
 uint8_t* fklCopyArry(size_t size,uint8_t* str)
 {
 	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	FKL_ASSERT(tmp,"fklCopyArry");
+	FKL_ASSERT(tmp,__func__);
 	memcpy(tmp,str,size);
 	return tmp;
 }
@@ -161,12 +161,12 @@ FklVMstack* fklCopyStack(FklVMstack* stack)
 {
 	int32_t i=0;
 	FklVMstack* tmp=(FklVMstack*)malloc(sizeof(FklVMstack));
-	FKL_ASSERT(tmp,"fklCopyStack");
+	FKL_ASSERT(tmp,__func__);
 	tmp->size=stack->size;
 	tmp->tp=stack->tp;
 	tmp->bp=stack->bp;
 	tmp->values=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*(tmp->size));
-	FKL_ASSERT(tmp->values,"fklCopyStack");
+	FKL_ASSERT(tmp->values,__func__);
 	for(;i<stack->tp;i++)
 		tmp->values[i]=stack->values[i];
 	tmp->tptp=stack->tptp;
@@ -175,7 +175,7 @@ FklVMstack* fklCopyStack(FklVMstack* stack)
 	if(tmp->tpsi)
 	{
 		tmp->tpst=(uint32_t*)malloc(sizeof(uint32_t)*tmp->tpsi);
-		FKL_ASSERT(tmp->tpst,"fklCopyStack");
+		FKL_ASSERT(tmp->tpst,__func__);
 		if(tmp->tptp)memcpy(tmp->tpst,stack->tpst,sizeof(int32_t)*(tmp->tptp));
 	}
 	return tmp;
@@ -184,7 +184,7 @@ FklVMstack* fklCopyStack(FklVMstack* stack)
 FklVMtryBlock* fklNewVMtryBlock(FklSid_t sid,uint32_t tp,long int rtp)
 {
 	FklVMtryBlock* t=(FklVMtryBlock*)malloc(sizeof(FklVMtryBlock));
-	FKL_ASSERT(t,"fklNewVMtryBlock");
+	FKL_ASSERT(t,__func__);
 	t->sid=sid;
 	t->hstack=fklNewPtrStack(32,16);
 	t->tp=tp;
@@ -207,7 +207,7 @@ void fklFreeVMtryBlock(FklVMtryBlock* b)
 FklVMerrorHandler* fklNewVMerrorHandler(FklSid_t type,uint64_t scp,uint64_t cpc)
 {
 	FklVMerrorHandler* t=(FklVMerrorHandler*)malloc(sizeof(FklVMerrorHandler));
-	FKL_ASSERT(t,"fklNewVMerrorHandler");
+	FKL_ASSERT(t,__func__);
 	t->type=type;
 	t->proc.prevEnv=NULL;
 	t->proc.scp=scp;
@@ -268,7 +268,7 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 FklVMrunnable* fklNewVMrunnable(FklVMproc* code)
 {
 	FklVMrunnable* tmp=(FklVMrunnable*)malloc(sizeof(FklVMrunnable));
-	FKL_ASSERT(tmp,"fklNewVMrunnable");
+	FKL_ASSERT(tmp,__func__);
 	tmp->sid=0;
 	tmp->cp=0;
 	tmp->scp=0;
@@ -292,7 +292,7 @@ char* fklGenInvalidSymbolErrorMessage(const char* str,FklVMrunnable* r,FklVM* ex
 	char* line=fklIntToString(node->line);
 	size_t len=strlen("at line  of \n")+strlen(filename)+strlen(line)+1;
 	char* lineNumber=(char*)malloc(sizeof(char)*len);
-	FKL_ASSERT(lineNumber,"fklGenInvalidSymbolErrorMessag");
+	FKL_ASSERT(lineNumber,__func__);
 	sprintf(lineNumber,"at line %s of %s\n",line,filename);
 	free(line);
 	char* t=fklCopyStr("");
@@ -321,7 +321,7 @@ char* fklGenInvalidSymbolErrorMessage(const char* str,FklVMrunnable* r,FklVM* ex
 		char* line=fklIntToString(node->line);
 		size_t len=strlen("(:)\n")+strlen(filename)+strlen(line)+1;
 		char* lineNumber=(char*)malloc(sizeof(char)*len);
-		FKL_ASSERT(lineNumber,"fklGenErrorMessage");
+		FKL_ASSERT(lineNumber,__func__);
 		sprintf(lineNumber,"(%s:%s)\n",line,filename);
 		free(line);
 		t=fklStrCat(t,lineNumber);
@@ -339,7 +339,7 @@ char* fklGenErrorMessage(unsigned int type,FklVMrunnable* r,FklVM* exe)
 	char* line=fklIntToString(node->line);
 	size_t len=strlen("at line  of \n")+strlen(filename)+strlen(line)+1;
 	char* lineNumber=(char*)malloc(sizeof(char)*len);
-	FKL_ASSERT(lineNumber,"fklGenErrorMessage");
+	FKL_ASSERT(lineNumber,__func__);
 	sprintf(lineNumber,"at line %s of %s\n",line,filename);
 	free(line);
 	char* t=fklCopyStr("");
@@ -418,7 +418,7 @@ char* fklGenErrorMessage(unsigned int type,FklVMrunnable* r,FklVM* exe)
 		char* line=fklIntToString(node->line);
 		size_t len=strlen("(:)\n")+strlen(filename)+strlen(line)+1;
 		char* lineNumber=(char*)malloc(sizeof(char)*len);
-		FKL_ASSERT(lineNumber,"fklGenErrorMessage");
+		FKL_ASSERT(lineNumber,__func__);
 		sprintf(lineNumber,"(%s:%s)\n",line,filename);
 		free(line);
 		t=fklStrCat(t,lineNumber);
@@ -826,12 +826,12 @@ VMcontinuation* fklNewVMcontinuation(FklVMstack* stack,FklPtrStack* rstack,FklPt
 	int32_t size=rstack->top;
 	int32_t i=0;
 	VMcontinuation* tmp=(VMcontinuation*)malloc(sizeof(VMcontinuation));
-	FKL_ASSERT(tmp,"fklNewVMcontinuation");
+	FKL_ASSERT(tmp,__func__);
 	FklVMrunnable* state=(FklVMrunnable*)malloc(sizeof(FklVMrunnable)*size);
-	FKL_ASSERT(state,"fklNewVMcontinuation");
+	FKL_ASSERT(state,__func__);
 	int32_t tbnum=tstack->top;
 	FklVMtryBlock* tb=(FklVMtryBlock*)malloc(sizeof(FklVMtryBlock)*tbnum);
-	FKL_ASSERT(tb,"fklNewVMcontinuation");
+	FKL_ASSERT(tb,__func__);
 	tmp->stack=fklCopyStack(stack);
 	tmp->num=size;
 	for(;i<size;i++)

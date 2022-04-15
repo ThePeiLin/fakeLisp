@@ -50,7 +50,7 @@ typedef struct FklSymTabNode
 
 typedef struct FklSymbolTable
 {
-	uint64_t num;
+	FklSid_t num;
 	FklSymTabNode** list;
 	FklSymTabNode** idl;
 }FklSymbolTable;

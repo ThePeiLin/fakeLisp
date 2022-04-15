@@ -379,7 +379,7 @@ void fklAddKeyWord(const char* objStr,FklCompEnv* curEnv)
 		{
 			current=(FklKeyWord*)malloc(sizeof(FklKeyWord));
 			current->word=(char*)malloc(sizeof(char)*(strlen(objStr)+1));
-			FKL_ASSERT(current&&current->word,"fklAddKeyWord");
+			FKL_ASSERT(current&&current->word,__func__);
 			strcpy(current->word,objStr);
 			if(prev!=NULL)prev->next=current;
 			else

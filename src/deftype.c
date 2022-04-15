@@ -874,13 +874,12 @@ void fklInitNativeDefTypes(FklDefTypes* otherTypes)
 
 void fklWriteTypeList(FILE* fp)
 {
-	FklTypeId_t i=0;
 	FklTypeId_t num=GlobTypeUnionList.num;
 	FklDefTypeUnion* ul=GlobTypeUnionList.ul;
 	fwrite(&LastNativeTypeId,sizeof(LastNativeTypeId),1,fp);
 	fwrite(&CharTypeId,sizeof(CharTypeId),1,fp);
 	fwrite(&num,sizeof(num),1,fp);
-	for(;i<num;i++)
+	for(FklTypeId_t i=0;i<num;i++)
 	{
 		FklDefTypeUnion tu=ul[i];
 		FklDefTypeTag tag=FKL_GET_TYPES_TAG(tu.all);

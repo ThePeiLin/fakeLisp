@@ -327,10 +327,9 @@ FklByteCode* loadByteCode(FILE* fp)
 
 void loadSymbolTable(FILE* fp)
 {
-	int32_t size=0;
-	int32_t i=0;
-	fread(&size,sizeof(int32_t),1,fp);
-	for(;i<size;i++)
+	uint64_t size=0;
+	fread(&size,sizeof(size),1,fp);
+	for(uint64_t i=0;i<size;i++)
 	{
 		char* symbol=fklGetStringFromFile(fp);
 		fklAddSymbolToGlob(symbol);

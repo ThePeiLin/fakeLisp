@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-typedef uint32_t FklTypeId_t;
+typedef uint64_t FklTypeId_t;
 typedef enum
 {
 	FKL_DEF_NATIVE_TYPE_TAG=0,

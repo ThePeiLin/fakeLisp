@@ -64,58 +64,6 @@ static int cmpString(const void* a,const void* b)
 	return strcmp(*(const char**)a,*(const char**)b);
 }
 
-inline void fklSetI32ToByteCode(uint8_t* code,int32_t i)
-{
-	code[0]=((uint8_t*)&i)[0];
-	code[1]=((uint8_t*)&i)[1];
-	code[2]=((uint8_t*)&i)[2];
-	code[3]=((uint8_t*)&i)[3];
-}
-
-inline void fklSetU32ToByteCode(uint8_t* code,uint32_t i)
-{
-	code[0]=((uint8_t*)&i)[0];
-	code[1]=((uint8_t*)&i)[1];
-	code[2]=((uint8_t*)&i)[2];
-	code[3]=((uint8_t*)&i)[3];
-}
-
-inline void fklSetI64ToByteCode(uint8_t* code,int64_t i)
-{
-	code[0]=((uint8_t*)&i)[0];
-	code[1]=((uint8_t*)&i)[1];
-	code[2]=((uint8_t*)&i)[2];
-	code[3]=((uint8_t*)&i)[3];
-	code[4]=((uint8_t*)&i)[4];
-	code[5]=((uint8_t*)&i)[5];
-	code[6]=((uint8_t*)&i)[6];
-	code[7]=((uint8_t*)&i)[7];
-}
-
-inline void fklSetU64ToByteCode(uint8_t* code,uint64_t i)
-{
-	code[0]=((uint8_t*)&i)[0];
-	code[1]=((uint8_t*)&i)[1];
-	code[2]=((uint8_t*)&i)[2];
-	code[3]=((uint8_t*)&i)[3];
-	code[4]=((uint8_t*)&i)[4];
-	code[5]=((uint8_t*)&i)[5];
-	code[6]=((uint8_t*)&i)[6];
-	code[7]=((uint8_t*)&i)[7];
-}
-
-inline void fklSetF64ToByteCode(uint8_t* code,double i)
-{
-	code[0]=((uint8_t*)&i)[0];
-	code[1]=((uint8_t*)&i)[1];
-	code[2]=((uint8_t*)&i)[2];
-	code[3]=((uint8_t*)&i)[3];
-	code[4]=((uint8_t*)&i)[4];
-	code[5]=((uint8_t*)&i)[5];
-	code[6]=((uint8_t*)&i)[6];
-	code[7]=((uint8_t*)&i)[7];
-}
-
 //static int cmpByteCodeLabel(const void* a,const void* b)
 //{
 //	return strcmp(((const FklByteCodeLabel*)a)->label,((const FklByteCodeLabel*)b)->label);
@@ -867,11 +815,11 @@ static FklByteCode* innerCompileConst(FklAstCptr* objCptr)
 		case FKL_ATM:
 			if(objCptr->u.atom->type==FKL_SYM)
 			{
-				FklByteCode* tmp=fklNewByteCode(sizeof(char)+sizeof(int32_t));
+				FklByteCode* tmp=fklNewByteCode(sizeof(char)+sizeof(FklSid_t));
 				char* sym=objCptr->u.atom->value.str;
 				FklSymTabNode* node=fklAddSymbolToGlob(sym);
 				tmp->code[0]=FKL_PUSH_SYM;
-				fklSetU32ToByteCode(tmp->code+sizeof(char),node->id);
+				fklSetSidToByteCode(tmp->code+sizeof(char),node->id);
 				return tmp;
 			}
 			else if(objCptr->u.atom->type!=FKL_VECTOR)
@@ -1107,11 +1055,11 @@ FklByteCode* fklCompileQuote(FklAstCptr* objCptr)
 		case FKL_ATM:
 			if(objCptr->u.atom->type==FKL_SYM)
 			{
-				FklByteCode* tmp=fklNewByteCode(sizeof(char)+sizeof(int32_t));
+				FklByteCode* tmp=fklNewByteCode(sizeof(char)+sizeof(FklSid_t));
 				char* sym=objCptr->u.atom->value.str;
 				FklSymTabNode* node=fklAddSymbolToGlob(sym);
 				tmp->code[0]=FKL_PUSH_SYM;
-				fklSetU32ToByteCode(tmp->code+sizeof(char),node->id);
+				fklSetSidToByteCode(tmp->code+sizeof(char),node->id);
 				return tmp;
 			}
 			else if(objCptr->u.atom->type!=FKL_VECTOR)
@@ -1272,7 +1220,7 @@ FklByteCodelnt* fklCompileDef(FklAstCptr* tir,FklCompEnv* curEnv,FklInterpreter*
 			fklSetI32ToByteCode(popVar->code+sizeof(char),0);
 			tmpDef=fklAddCompDef(tmpAtm->value.str,curEnv);
 		}
-		fklSetU32ToByteCode(popVar->code+sizeof(char)+sizeof(int32_t),tmpDef->id);
+		fklSetSidToByteCode(popVar->code+sizeof(char)+sizeof(int32_t),tmpDef->id);
 		FklByteCodelnt* tmp1Copy=fklCopyByteCodelnt(tmp1);
 		fklCodeCat(tmp1->bc,pushTop);
 		fklCodeCat(tmp1->bc,popVar);
@@ -1281,10 +1229,10 @@ FklByteCodelnt* fklCompileDef(FklAstCptr* tir,FklCompEnv* curEnv,FklInterpreter*
 		{
 			if(curEnv->prev&&fklIsSymbolShouldBeExport(tmpAtm->value.str,curEnv->prev->exp,curEnv->prev->n))
 			{
-				FklByteCode* popVar=fklNewByteCode(sizeof(char)+sizeof(int32_t)+sizeof(int32_t));
+				FklByteCode* popVar=fklNewByteCode(sizeof(char)+sizeof(int32_t)+sizeof(FklSid_t));
 				popVar->code[0]=FKL_POP_VAR;
 				fklSetI32ToByteCode(popVar->code+sizeof(char),0);
-				fklSetU32ToByteCode(popVar->code+sizeof(char)+sizeof(int32_t),tmpDef->id);
+				fklSetSidToByteCode(popVar->code+sizeof(char)+sizeof(int32_t),tmpDef->id);
 				fklCodeCat(tmp1Copy->bc,pushTop);
 				fklCodeCat(tmp1Copy->bc,popVar);
 				tmp1Copy->l[tmp1Copy->ls-1]->cpc+=(popVar->size+pushTop->size);
@@ -1293,7 +1241,7 @@ FklByteCodelnt* fklCompileDef(FklAstCptr* tir,FklCompEnv* curEnv,FklInterpreter*
 				tmp1Copy=fklCopyByteCodelnt(tmp1);
 				fklCodeCat(tmp1Copy->bc,pushTop);
 				fklSetI32ToByteCode(popVar->code+sizeof(char),0);
-				fklSetU32ToByteCode(popVar->code+sizeof(char)+sizeof(int32_t),fklAddCompDef(tmpAtm->value.str,curEnv)->id);
+				fklSetSidToByteCode(popVar->code+sizeof(char)+sizeof(int32_t),fklAddCompDef(tmpAtm->value.str,curEnv)->id);
 				fklCodeCat(tmp1Copy->bc,popVar);
 				fklCodeCat(tmp1->bc,pushTop);
 				fklCodeCat(tmp1->bc,popVar);
@@ -1380,7 +1328,7 @@ FklByteCodelnt* fklCompileSetq(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 		else
 			id=tmpDef->id;
 		fklSetI32ToByteCode(popVar->code+sizeof(char),scope);
-		fklSetU32ToByteCode(popVar->code+sizeof(char)+sizeof(int32_t),id);
+		fklSetSidToByteCode(popVar->code+sizeof(char)+sizeof(int32_t),id);
 		FklByteCodelnt* tmp1Copy=fklCopyByteCodelnt(tmp1);
 		fklCodeCat(tmp1->bc,pushTop);
 		fklCodeCat(tmp1->bc,popVar);
@@ -1412,11 +1360,11 @@ FklByteCodelnt* fklCompileSetq(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 			{
 				char* symbolWithPrefix=fklCopyStr(tmpEnv->prev->prefix);
 				symbolWithPrefix=fklStrCat(symbolWithPrefix,tmpAtm->value.str);
-				fklSetU32ToByteCode(popVar->code+sizeof(char)+sizeof(int32_t),fklFindCompDef(symbolWithPrefix,tmpEnv->prev)->id);
+				fklSetSidToByteCode(popVar->code+sizeof(char)+sizeof(int32_t),fklFindCompDef(symbolWithPrefix,tmpEnv->prev)->id);
 				free(symbolWithPrefix);
 			}
 			else
-				fklSetU32ToByteCode(popVar->code+sizeof(char)+sizeof(int32_t),fklFindCompDef(tmpAtm->value.str,tmpEnv->prev)->id);
+				fklSetSidToByteCode(popVar->code+sizeof(char)+sizeof(int32_t),fklFindCompDef(tmpAtm->value.str,tmpEnv->prev)->id);
 			fklCodeCat(tmp1->bc,pushTop);
 			fklCodeCat(tmp1->bc,popVar);
 			tmp1->l[tmp1->ls-1]->cpc+=(pushTop->size+popVar->size);
@@ -1523,7 +1471,7 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 				FklByteCodelnt* pushDefRef=fklNewByteCodelnt(fklNewByteCode(sizeof(char)+sizeof(int64_t)+sizeof(FklTypeId_t)));
 				pushDefRef->bc->code[0]=FKL_PUSH_DEF_REF;
 				fklSetI64ToByteCode(pushDefRef->bc->code+sizeof(char),offset);
-				fklSetU32ToByteCode(pushDefRef->bc->code+sizeof(char)+sizeof(int64_t),defTypeId);
+				fklSetSidToByteCode(pushDefRef->bc->code+sizeof(char)+sizeof(int64_t),defTypeId);
 				FklLineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,pushDefRef->bc->size,pathCptr->curline);
 				pushDefRef->ls=1;
 				pushDefRef->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
@@ -1545,7 +1493,7 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 				pushPtrRef->bc->code[0]=FKL_PUSH_PTR_REF;
 				FklTypeId_t ptrId=fklNewVMPtrType(memberType);
 				fklSetI64ToByteCode(pushPtrRef->bc->code+sizeof(char),offset);
-				fklSetU32ToByteCode(pushPtrRef->bc->code+sizeof(char)+sizeof(int64_t),ptrId);
+				fklSetSidToByteCode(pushPtrRef->bc->code+sizeof(char)+sizeof(int64_t),ptrId);
 				FklLineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,pushPtrRef->bc->size,pathCptr->curline);
 				pushPtrRef->ls=1;
 				pushPtrRef->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
@@ -1607,7 +1555,7 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 						FklByteCodelnt* pushRef=fklNewByteCodelnt(fklNewByteCode(sizeof(char)+sizeof(int64_t)+sizeof(FklTypeId_t)));
 						pushRef->bc->code[0]=FKL_PUSH_REF;
 						fklSetI64ToByteCode(pushRef->bc->code+sizeof(char),offset);
-						fklSetU32ToByteCode(pushRef->bc->code+sizeof(char)+sizeof(int64_t),memberType);
+						fklSetSidToByteCode(pushRef->bc->code+sizeof(char)+sizeof(int64_t),memberType);
 						FklLineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,pushRef->bc->size,pathCptr->curline);
 						pushRef->ls=1;
 						pushRef->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
@@ -1653,7 +1601,7 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 						FklByteCodelnt* pushRef=fklNewByteCodelnt(fklNewByteCode(sizeof(char)+sizeof(int64_t)+sizeof(FklTypeId_t)));
 						pushRef->bc->code[0]=FKL_PUSH_REF;
 						fklSetI64ToByteCode(pushRef->bc->code+sizeof(char),offset);
-						fklSetU32ToByteCode(pushRef->bc->code+sizeof(char)+sizeof(int64_t),memberType);
+						fklSetSidToByteCode(pushRef->bc->code+sizeof(char)+sizeof(int64_t),memberType);
 						FklLineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,pushRef->bc->size,pathCptr->curline);
 						pushRef->ls=1;
 						pushRef->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
@@ -1716,7 +1664,7 @@ FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 			}
 			FklByteCodelnt* pushIndRef=fklNewByteCodelnt(fklNewByteCode(sizeof(char)+sizeof(FklTypeId_t)+sizeof(uint32_t)));
 			pushIndRef->bc->code[0]=FKL_PUSH_IND_REF;
-			fklSetU32ToByteCode(pushIndRef->bc->code+sizeof(char),elemType);
+			fklSetSidToByteCode(pushIndRef->bc->code+sizeof(char),elemType);
 			fklSetU32ToByteCode(pushIndRef->bc->code+sizeof(char)+sizeof(FklTypeId_t),fklGetVMTypeSizeWithTypeId(elemType));
 			FklLineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,pushIndRef->bc->size,indexCptr->curline);
 			pushIndRef->ls=1;
@@ -1791,7 +1739,7 @@ FklByteCodelnt* fklCompileFlsym(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterp
 	}
 	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(sizeof(char)+sizeof(FklTypeId_t)));
 	tmp->bc->code[0]=FKL_PUSH_FPROC;
-	fklSetU32ToByteCode(tmp->bc->code+sizeof(char),type);
+	fklSetSidToByteCode(tmp->bc->code+sizeof(char),type);
 	FklLineNumTabNode* n=fklNewLineNumTabNode(fklAddSymbolToGlob(inter->filename)->id,0,tmp->bc->size,objCptr->curline);
 	tmp->ls=1;
 	tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
@@ -1801,6 +1749,7 @@ FklByteCodelnt* fklCompileFlsym(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterp
 	fklFreeByteCodelnt(name);
 	return tmp;
 }
+
 FklByteCodelnt* fklCompileSzof(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state,int evalIm)
 {
 	FklAstCptr* typeCptr=fklNextCptr(fklGetFirstCptr(objCptr));
@@ -1876,7 +1825,7 @@ FklByteCodelnt* fklCompileSym(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 	}
 	else
 		id=tmpDef->id;
-	fklSetU32ToByteCode(pushVar->code+sizeof(char),id);
+	fklSetSidToByteCode(pushVar->code+sizeof(char),id);
 	FklByteCodelnt* bcl=fklNewByteCodelnt(pushVar);
 	bcl->ls=1;
 	bcl->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
@@ -2111,7 +2060,7 @@ FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 				return NULL;
 			}
 			FklCompDef* tmpDef=fklAddCompDef(tmpAtm->value.str,tmpEnv);
-			fklSetU32ToByteCode(popArg->code+sizeof(char),tmpDef->id);
+			fklSetSidToByteCode(popArg->code+sizeof(char),tmpDef->id);
 			fklCodeCat(pArg,popArg);
 			if(fklNextCptr(argCptr)==NULL&&argCptr->outer->cdr.type==FKL_ATM)
 			{
@@ -2126,7 +2075,7 @@ FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 					return NULL;
 				}
 				tmpDef=fklAddCompDef(tmpAtom1->value.str,tmpEnv);
-				fklSetU32ToByteCode(popRestArg->code+sizeof(char),tmpDef->id);
+				fklSetSidToByteCode(popRestArg->code+sizeof(char),tmpDef->id);
 				fklCodeCat(pArg,popRestArg);
 			}
 			argCptr=fklNextCptr(argCptr);
@@ -2145,7 +2094,7 @@ FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 			return NULL;
 		}
 		FklCompDef* tmpDef=fklAddCompDef(tmpAtm->value.str,tmpEnv);
-		fklSetU32ToByteCode(popRestArg->code+sizeof(char),tmpDef->id);
+		fklSetSidToByteCode(popRestArg->code+sizeof(char),tmpDef->id);
 		fklCodeCat(pArg,popRestArg);
 	}
 	fklFreeByteCode(popRestArg);
@@ -3027,7 +2976,7 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 		char* errorType=pErrorType->u.atom->value.str;
 		FklSid_t typeid=fklAddSymbolToGlob(errorType)->id;
 		FklByteCode* errorTypeByteCode=fklNewByteCode(sizeof(FklSid_t)+sizeof(t->bc->size));
-		fklSetU32ToByteCode(errorTypeByteCode->code,typeid);
+		fklSetSidToByteCode(errorTypeByteCode->code,typeid);
 		fklSetU64ToByteCode(errorTypeByteCode->code+sizeof(FklSid_t),t->bc->size);
 		fklReCodeCat(errorTypeByteCode,t->bc);
 		t->l[0]->cpc+=errorTypeByteCode->size;
@@ -3044,9 +2993,9 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 		fklFreeByteCodelnt(tmp);
 	}
 	fklFreePtrStack(handlerByteCodelntStack);
-	FklByteCode* header=fklNewByteCode(sizeof(FklSid_t)+sizeof(int32_t)+sizeof(char));
+	FklByteCode* header=fklNewByteCode(sizeof(FklSid_t)+sizeof(uint32_t)+sizeof(char));
 	header->code[0]=FKL_PUSH_TRY;
-	fklSetU32ToByteCode(header->code+sizeof(char),sid);
+	fklSetSidToByteCode(header->code+sizeof(char),sid);
 	fklSetU32ToByteCode(header->code+sizeof(char)+sizeof(FklSid_t),numOfHandlerByteCode);
 	fklReCodeCat(header,t->bc);
 	t->l[0]->cpc+=header->size;

@@ -8,7 +8,7 @@ extern "C" {
 #endif
 
 #define FKL_NUM_OF_BUILT_IN_SYMBOL (79)
-typedef uint32_t FklSid_t;
+typedef uint64_t FklSid_t;
 
 typedef enum
 {
@@ -50,7 +50,7 @@ typedef struct FklSymTabNode
 
 typedef struct FklSymbolTable
 {
-	uint32_t num;
+	uint64_t num;
 	FklSymTabNode** list;
 	FklSymTabNode** idl;
 }FklSymbolTable;

@@ -76,12 +76,14 @@ uint32_t fklGetU32FromByteCode(uint8_t* code);
 int64_t fklGetI64FromByteCode(uint8_t* code);
 uint64_t fklGetU64FromByteCode(uint8_t* code);
 double fklGetF64FromByteCode(uint8_t* code);
+FklSid_t fklGetSidFromByteCode(uint8_t* code);
 
 void fklSetI32ToByteCode(uint8_t* code,int32_t i);
 void fklSetU32ToByteCode(uint8_t* code,uint32_t i);
 void fklSetI64ToByteCode(uint8_t* code,int64_t i);
 void fklSetU64ToByteCode(uint8_t* code,uint64_t i);
 void fklSetF64ToByteCode(uint8_t* code,double i);
+void fklSetSidToByteCode(uint8_t* code,FklSid_t i);
 #ifdef __cplusplus
 }
 #endif

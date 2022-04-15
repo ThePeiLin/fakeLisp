@@ -260,9 +260,9 @@ void fklPrintSymbolTable(FklSymbolTable* table,FILE* fp)
 	for(;i<table->num;i++)
 	{
 		FklSymTabNode* cur=table->list[i];
-		fprintf(fp,"symbol:%s id:%d\n",cur->symbol,cur->id+1);
+		fprintf(fp,"symbol:%s id:%lu\n",cur->symbol,cur->id);
 	}
-	fprintf(fp,"size:%d\n",table->num);
+	fprintf(fp,"size:%lu\n",table->num);
 }
 
 void fklPrintGlobSymbolTable(FILE* fp)
@@ -272,10 +272,8 @@ void fklPrintGlobSymbolTable(FILE* fp)
 
 void fklWriteSymbolTable(FklSymbolTable* table,FILE* fp)
 {
-	uint32_t size=table->num;
-	fwrite(&size,sizeof(size),1,fp);
-	uint32_t i=0;
-	for(;i<size;i++)
+	fwrite(&table->num,sizeof(table->num),1,fp);
+	for(uint64_t i=0;i<table->num;i++)
 		fwrite(table->idl[i]->symbol,strlen(table->idl[i]->symbol)+1,1,fp);
 }
 

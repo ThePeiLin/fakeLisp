@@ -724,22 +724,22 @@ static void prin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 						fprintf(fp,"#<fp>");
 						break;
 					case FKL_DLL:
-						fprintf(fp,"<#dll>");
+						fprintf(fp,"#<dll>");
 						break;
 					case FKL_DLPROC:
 						if(objValue->u.dlproc->sid)
-							fprintf(fp,"<#dlproc: %s>",fklGetGlobSymbolWithId(objValue->u.dlproc->sid)->symbol);
+							fprintf(fp,"#<dlproc: %s>",fklGetGlobSymbolWithId(objValue->u.dlproc->sid)->symbol);
 						else
-							fprintf(fp,"<#dlproc>");
+							fprintf(fp,"#<dlproc>");
 						break;
 					case FKL_FLPROC:
 						if(objValue->u.flproc->sid)
-							fprintf(fp,"<#flproc: %s>",fklGetGlobSymbolWithId(objValue->u.flproc->sid)->symbol);
+							fprintf(fp,"#<flproc: %s>",fklGetGlobSymbolWithId(objValue->u.flproc->sid)->symbol);
 						else
-							fprintf(fp,"<#flproc>");
+							fprintf(fp,"#<flproc>");
 						break;
 					case FKL_ERR:
-						fprintf(fp,"<#err w:%s t:%s m:%s>",objValue->u.err->who,fklGetGlobSymbolWithId(objValue->u.err->type)->symbol,objValue->u.err->message);
+						fprintf(fp,"#<err w:%s t:%s m:%s>",objValue->u.err->who,fklGetGlobSymbolWithId(objValue->u.err->type)->symbol,objValue->u.err->message);
 						break;
 					default:fprintf(fp,"Bad value!");break;
 				}
@@ -762,6 +762,235 @@ static void prin1VMvalue(FklVMvalue* objValue,FILE* fp,CRL** h)
 void fklPrin1VMvalue(FklVMvalue* objValue,FILE* fp)
 {
 	prin1VMvalue(objValue,fp,NULL);
+}
+
+typedef struct PrtElem
+{
+	enum PrintingState
+	{
+		PRT_CAR,
+		PRT_CDR,
+	}state;
+	FklVMvalue* v;
+}PrtElem;
+
+static PrtElem* newPrtElem(enum PrintingState state,FklVMvalue* v)
+{
+	PrtElem* r=(PrtElem*)malloc(sizeof(PrtElem));
+	FKL_ASSERT(r,__func__);
+	r->state=state;
+	r->v=v;
+	return r;
+}
+
+typedef struct PrintQueue
+{
+	FklVMvalue* s;
+	FklPtrQueue* q;
+}PrintQueue;
+
+static PrintQueue* newPrintQueue(FklVMvalue* s)
+{
+	PrintQueue* r=(PrintQueue*)malloc(sizeof(PrintQueue));
+	FKL_ASSERT(r,__func__);
+	r->s=s;
+	r->q=fklNewPtrQueue();
+	return r;
+}
+
+static void freePrintQueue(PrintQueue* q)
+{
+	fklFreePtrQueue(q->q);
+	free(q);
+}
+
+static int isCirRef(FklVMvalue* v,FklVMvalue* s,FklPtrStack* stack)
+{
+	if(v==s)
+		return 1;
+	for(uint32_t i=0;i<stack->top;i++)
+		if(((PrintQueue*)stack->base[i])->s==v)
+			return 1;
+	return 0;
+}
+
+void fklPrin1VMvalue_N(FklVMvalue* value,FILE* fp)
+{
+	PrintQueue* queue=newPrintQueue(NULL);
+	FklPtrStack* queueStack=fklNewPtrStack(32,16);
+	fklPushPtrQueue(newPrtElem(PRT_CAR,value),queue->q);
+	fklPushPtrStack(queue,queueStack);
+	while(!fklIsPtrStackEmpty(queueStack))
+	{
+		PrintQueue* cQueue=fklTopPtrStack(queueStack);
+		while(fklLengthPtrQueue(cQueue->q))
+		{
+			PrtElem* e=fklPopPtrQueue(cQueue->q);
+			FklVMvalue* v=e->v;
+			if(e->state==PRT_CDR)
+				fputc(',',fp);
+			free(e);
+			if(v==NULL)
+				fputs("##",fp);
+			else
+			{
+				FklVMptrTag tag=FKL_GET_TAG(v);
+				switch(tag)
+				{
+					case FKL_NIL_TAG:
+						fputs("()",fp);
+						break;
+					case FKL_I32_TAG:
+						fprintf(fp,"%d",FKL_GET_I32(v));
+						break;
+					case FKL_CHR_TAG:
+						fklPrintRawChar(FKL_GET_CHR(v),fp);
+						break;
+					case FKL_SYM_TAG:
+						fputs(fklGetGlobSymbolWithId(FKL_GET_SYM(v))->symbol,fp);
+						break;
+					default:
+						switch(v->type)
+						{
+							case FKL_F64:
+								fprintf(fp,"%lf",v->u.f64);
+								break;
+							case FKL_I64:
+								fprintf(fp,"%ld",v->u.i64);
+								break;
+							case FKL_STR:
+								fklPrintRawString(v->u.str,fp);
+								break;
+							case FKL_MEM:
+							case FKL_CHF:
+								{
+									FklVMmem* mem=v->u.chf;
+									FklTypeId_t type=mem->type;
+									if(fklIsNativeTypeId(type))
+										fklPrintMemoryRef(type,mem,fp);
+									else if(FKL_IS_CHF(v))
+										fprintf(fp,"<#memref at %p>",mem->mem);
+									else
+										fprintf(fp,"<#mem at %p>",mem->mem);
+								}
+								break;
+							case FKL_PROC:
+								if(v->u.proc->sid)
+									fprintf(fp,"<#proc: %s>"
+											,fklGetGlobSymbolWithId(v->u.proc->sid)->symbol);
+								else
+									fputs("#<proc>",fp);
+								break;
+							case FKL_BYTS:
+								fklPrintByteStr(v->u.byts->size,v->u.byts->str,fp,1);
+								break;
+							case FKL_CONT:
+								fputs("#<continuation>",fp);
+								break;
+							case FKL_CHAN:
+								fputs("#<chanl>",fp);
+								break;
+							case FKL_FP:
+								fputs("#<fp>",fp);
+								break;
+							case FKL_DLL:
+								fputs("#<dll>",fp);
+								break;
+							case FKL_DLPROC:
+								if(v->u.dlproc->sid)
+									fprintf(fp,"#<dlproc: %s>"
+											,fklGetGlobSymbolWithId(v->u.dlproc->sid)->symbol);
+								else
+									fputs("#<dlproc>",fp);
+								break;
+							case FKL_FLPROC:
+								if(v->u.flproc->sid)
+									fprintf(fp,"#<flproc: %s>"
+											,fklGetGlobSymbolWithId(v->u.flproc->sid)->symbol);
+								else
+									fputs("#<flproc>",fp);
+								break;
+							case FKL_ERR:
+								fprintf(fp,"#<err w:%s t:%s m:%s>"
+										,v->u.err->who
+										,fklGetGlobSymbolWithId(v->u.err->type)->symbol
+										,v->u.err->message);
+								break;
+							case FKL_VECTOR:
+								fputs("#(",fp);
+								{
+									PrintQueue* vQueue=newPrintQueue(v);
+									for(size_t i=0;i<v->u.vec->size;i++)
+									{
+										if(isCirRef(v->u.vec->base[i],v,queueStack))
+											fklPushPtrQueue(newPrtElem(PRT_CAR,NULL),vQueue->q);
+										else
+											fklPushPtrQueue(newPrtElem(PRT_CAR,v->u.vec->base[i])
+													,vQueue->q);
+									}
+									fklPushPtrStack(vQueue,queueStack);
+									cQueue=vQueue;
+									continue;
+								}
+								break;
+							case FKL_PAIR:
+								fputc('(',fp);
+								{
+									PrintQueue* lQueue=newPrintQueue(v);
+									FklVMpair* p=v->u.pair;
+									for(;;)
+									{
+										PrtElem* ce=NULL;
+										if(isCirRef(p->car,v,queueStack))
+											ce=newPrtElem(PRT_CAR,NULL);
+										else
+											ce=newPrtElem(PRT_CAR,p->car);
+										fklPushPtrQueue(ce,lQueue->q);
+										FklVMpair* next=FKL_IS_PAIR(p->cdr)&&!isCirRef(p->cdr,v,queueStack)?p->cdr->u.pair:NULL;
+										if(!next)
+										{
+											FklVMvalue* cdr=p->cdr;
+											if(cdr!=FKL_VM_NIL)
+											{
+												PrtElem* cdre=NULL;
+												if(FKL_IS_PAIR(cdr))
+													cdre=newPrtElem(PRT_CDR,NULL);
+												else
+													cdre=newPrtElem(PRT_CDR,cdr);
+												fklPushPtrQueue(cdre,lQueue->q);
+											}
+											break;
+										}
+										p=next;
+									}
+									fklPushPtrStack(lQueue,queueStack);
+									cQueue=lQueue;
+									continue;
+								}
+								break;
+							default:
+								fputs("#<unknown>",fp);
+								break;
+						}
+						break;
+				}
+			}
+			if(fklLengthPtrQueue(cQueue->q)
+					&&((PrtElem*)fklFirstPtrQueue(cQueue->q))->state!=PRT_CDR)
+				fputc(' ',fp);
+		}
+		fklPopPtrStack(queueStack);
+		freePrintQueue(cQueue);
+		if(!fklIsPtrStackEmpty(queueStack))
+		{
+			fputc(')',fp);
+			cQueue=fklTopPtrStack(queueStack);
+			if(fklLengthPtrQueue(cQueue->q)
+					&&((PrtElem*)fklFirstPtrQueue(cQueue->q))->state!=PRT_CDR)
+				fputc(' ',fp);
+		}
+	}
+	fklFreePtrStack(queueStack);
 }
 
 FklVMvalue* fklGET_VAL(FklVMvalue* P,FklVMheap* heap)

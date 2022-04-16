@@ -58,93 +58,93 @@ int fklEqByteString(const FklAstByteString* fir,const FklAstByteString* sec)
 	return !memcmp(fir->str,sec->str,sec->size);
 }
 
-void fklPrintCptr_O(const FklAstCptr* objCptr,FILE* out)
-{
-	if(objCptr==NULL)return;
-	FklAstPair* tmpPair=(objCptr->type==FKL_PAIR)?objCptr->u.pair:NULL;
-	FklAstPair* objPair=tmpPair;
-	while(objCptr!=NULL)
-	{
-		if(objCptr->type==FKL_PAIR)
-		{
-			if(objPair!=NULL&&objCptr==&objPair->cdr)
-			{
-				putc(' ',out);
-				objPair=objPair->cdr.u.pair;
-				objCptr=&objPair->car;
-			}
-			else
-			{
-				putc('(',out);
-				objPair=objCptr->u.pair;
-				objCptr=&objPair->car;
-				continue;
-			}
-		}
-		else if(objCptr->type==FKL_ATM||objCptr->type==FKL_NIL)
-		{
-			if(objPair!=NULL&&objCptr==&objPair->cdr&&objCptr->type==FKL_ATM)putc(',',out);
-			if((objPair!=NULL&&objCptr==&objPair->car&&objCptr->type==FKL_NIL)
-					||(objCptr->outer==NULL&&objCptr->type==FKL_NIL))fputs("()",out);
-			if(objCptr->type!=FKL_NIL)
-			{
-				FklAstAtom* tmpAtm=objCptr->u.atom;
-				switch(tmpAtm->type)
-				{
-					case FKL_SYM:
-						fprintf(out,"%s",tmpAtm->value.str);
-						break;
-					case FKL_STR:
-						fklPrintRawString(tmpAtm->value.str,out);
-						break;
-					case FKL_I32:
-						fprintf(out,"%d",tmpAtm->value.i32);
-						break;
-					case FKL_I64:
-						fprintf(out,"%ld",tmpAtm->value.i64);
-						break;
-					case FKL_F64:
-						fprintf(out,"%lf",tmpAtm->value.f64);
-						break;
-					case FKL_CHR:
-						fklPrintRawChar(tmpAtm->value.chr,out);
-						break;
-					case FKL_BYTS:
-						fklPrintByteStr(tmpAtm->value.byts.size,tmpAtm->value.byts.str,out,1);
-						break;
-					case FKL_VECTOR:
-						fprintf(out,"#(");
-						for(size_t i=0;i<tmpAtm->value.vec.size;i++)
-							fklPrintCptr(&tmpAtm->value.vec.base[i],out);
-						fprintf(out,")");
-						break;
-					default:
-							break;
-				}
-			}
-			if(objPair!=NULL&&objCptr==&objPair->car)
-			{
-				objCptr=&objPair->cdr;
-				continue;
-			}
-		}
-		if(objPair!=NULL&&objCptr==&objPair->cdr)
-		{
-			putc(')',out);
-			FklAstPair* prev=NULL;
-			if(objPair->prev==NULL)break;
-			while(objPair->prev!=NULL&&objPair!=tmpPair)
-			{
-				prev=objPair;
-				objPair=objPair->prev;
-				if(prev==objPair->car.u.pair)break;
-			}
-			if(objPair!=NULL)objCptr=&objPair->cdr;
-			if(objPair==tmpPair&&(prev==objPair->cdr.u.pair||prev==NULL))break;
-		}
-		if(objPair==NULL)break;
-	}
-}
+//void fklPrintCptr_O(const FklAstCptr* objCptr,FILE* out)
+//{
+//	if(objCptr==NULL)return;
+//	FklAstPair* tmpPair=(objCptr->type==FKL_PAIR)?objCptr->u.pair:NULL;
+//	FklAstPair* objPair=tmpPair;
+//	while(objCptr!=NULL)
+//	{
+//		if(objCptr->type==FKL_PAIR)
+//		{
+//			if(objPair!=NULL&&objCptr==&objPair->cdr)
+//			{
+//				putc(' ',out);
+//				objPair=objPair->cdr.u.pair;
+//				objCptr=&objPair->car;
+//			}
+//			else
+//			{
+//				putc('(',out);
+//				objPair=objCptr->u.pair;
+//				objCptr=&objPair->car;
+//				continue;
+//			}
+//		}
+//		else if(objCptr->type==FKL_ATM||objCptr->type==FKL_NIL)
+//		{
+//			if(objPair!=NULL&&objCptr==&objPair->cdr&&objCptr->type==FKL_ATM)putc(',',out);
+//			if((objPair!=NULL&&objCptr==&objPair->car&&objCptr->type==FKL_NIL)
+//					||(objCptr->outer==NULL&&objCptr->type==FKL_NIL))fputs("()",out);
+//			if(objCptr->type!=FKL_NIL)
+//			{
+//				FklAstAtom* tmpAtm=objCptr->u.atom;
+//				switch(tmpAtm->type)
+//				{
+//					case FKL_SYM:
+//						fprintf(out,"%s",tmpAtm->value.str);
+//						break;
+//					case FKL_STR:
+//						fklPrintRawString(tmpAtm->value.str,out);
+//						break;
+//					case FKL_I32:
+//						fprintf(out,"%d",tmpAtm->value.i32);
+//						break;
+//					case FKL_I64:
+//						fprintf(out,"%ld",tmpAtm->value.i64);
+//						break;
+//					case FKL_F64:
+//						fprintf(out,"%lf",tmpAtm->value.f64);
+//						break;
+//					case FKL_CHR:
+//						fklPrintRawChar(tmpAtm->value.chr,out);
+//						break;
+//					case FKL_BYTS:
+//						fklPrintByteStr(tmpAtm->value.byts.size,tmpAtm->value.byts.str,out,1);
+//						break;
+//					case FKL_VECTOR:
+//						fprintf(out,"#(");
+//						for(size_t i=0;i<tmpAtm->value.vec.size;i++)
+//							fklPrintCptr(&tmpAtm->value.vec.base[i],out);
+//						fprintf(out,")");
+//						break;
+//					default:
+//							break;
+//				}
+//			}
+//			if(objPair!=NULL&&objCptr==&objPair->car)
+//			{
+//				objCptr=&objPair->cdr;
+//				continue;
+//			}
+//		}
+//		if(objPair!=NULL&&objCptr==&objPair->cdr)
+//		{
+//			putc(')',out);
+//			FklAstPair* prev=NULL;
+//			if(objPair->prev==NULL)break;
+//			while(objPair->prev!=NULL&&objPair!=tmpPair)
+//			{
+//				prev=objPair;
+//				objPair=objPair->prev;
+//				if(prev==objPair->car.u.pair)break;
+//			}
+//			if(objPair!=NULL)objCptr=&objPair->cdr;
+//			if(objPair==tmpPair&&(prev==objPair->cdr.u.pair||prev==NULL))break;
+//		}
+//		if(objPair==NULL)break;
+//	}
+//}
 
 void fklFreeAtom(FklAstAtom* objAtm)
 {

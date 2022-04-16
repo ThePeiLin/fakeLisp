@@ -806,8 +806,14 @@ static void freePrintQueue(PrintQueue* q)
 
 static int isCirRef(FklVMvalue* v,FklVMvalue* s,FklPtrStack* stack)
 {
-	if(v==s)
+	if(FKL_IS_VECTOR(s)&&v==s)
 		return 1;
+	else if(FKL_IS_PAIR(v)&&FKL_IS_PAIR(s))
+	{
+		for(;s;s=FKL_IS_PAIR(s->u.pair->cdr)?s->u.pair->cdr:NULL)
+			if(v==s)
+				return 1;
+	}
 	for(uint32_t i=0;i<stack->top;i++)
 		if(((PrintQueue*)stack->base[i])->s==v)
 			return 1;
@@ -831,7 +837,7 @@ void fklPrin1VMvalue_N(FklVMvalue* value,FILE* fp)
 				fputc(',',fp);
 			free(e);
 			if(v==NULL)
-				fputs("##",fp);
+				fprintf(fp,"#%u#",queueStack->top-2);
 			else
 			{
 				FklVMptrTag tag=FKL_GET_TAG(v);
@@ -946,6 +952,11 @@ void fklPrin1VMvalue_N(FklVMvalue* value,FILE* fp)
 										else
 											ce=newPrtElem(PRT_CAR,p->car);
 										fklPushPtrQueue(ce,lQueue->q);
+										if(isCirRef(p->cdr,v,queueStack)&&p->cdr!=v)
+										{
+											fklPushPtrQueue(newPrtElem(PRT_CDR,p->cdr),lQueue->q);
+											break;
+										}
 										FklVMpair* next=FKL_IS_PAIR(p->cdr)&&!isCirRef(p->cdr,v,queueStack)?p->cdr->u.pair:NULL;
 										if(!next)
 										{

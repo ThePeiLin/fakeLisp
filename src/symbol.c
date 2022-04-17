@@ -35,6 +35,7 @@ static const char* builtInErrorType[FKL_NUM_OF_BUILT_IN_ERROR_TYPE]=
 	"non-scalar-type",
 	"invalid-assign",
 	"invalid-access",
+	"invalid-macro-pattern",
 };
 
 static const char* builtInSymbolList[]=

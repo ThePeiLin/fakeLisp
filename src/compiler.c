@@ -301,7 +301,7 @@ int fmatcmp(const FklAstCptr* origin,const FklAstCptr* format,FklPreEnv** pmacro
 	FklAstPair* oriPair=(origin->type==FKL_PAIR)?origin->u.pair:NULL;
 	if(tmpPair->car.type!=oriPair->car.type)
 		return 0;
-	if(strcmp(tmpPair->car.u.atom->value.str,oriPair->car.u.atom->value.str))
+	if(oriPair->car.u.atom->type==FKL_SYM&&strcmp(tmpPair->car.u.atom->value.str,oriPair->car.u.atom->value.str))
 		return 0;
 	format=&forPair->cdr;
 	origin=&oriPair->cdr;
@@ -524,7 +524,7 @@ FklErrorState defmacro(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* in
 		FklAstCptr* head=fklGetFirstCptr(args[0]);
 		if(head->type!=FKL_ATM||head->u.atom->type!=FKL_SYM)
 		{
-			state.state=FKL_INVALIDPATTERN;
+			state.state=FKL_INVALID_MACRO_PATTERN;
 			state.place=args[0];
 			free(args);
 			return state;
@@ -3037,6 +3037,10 @@ void fklPrintCompileError(const FklAstCptr* obj,FklErrorType type,FklInterpreter
 			break;
 		case FKL_INVALIDPATTERN:
 			fprintf(stderr,"Invalid string match pattern ");
+			if(obj!=NULL)fklPrintCptr(obj,stderr);
+			break;
+		case FKL_INVALID_MACRO_PATTERN:
+			fprintf(stderr,"Invalid macro pattern ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
 		case FKL_MACROEXPANDFAILED:

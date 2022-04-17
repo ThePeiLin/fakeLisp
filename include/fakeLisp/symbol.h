@@ -40,6 +40,7 @@ typedef enum
 	FKL_INVALIDASSIGN,
 	FKL_INVALIDACCESS,
 	FKL_IMPORTFAILED,
+	FKL_INVALID_MACRO_PATTERN,
 }FklErrorType;
 
 typedef struct FklSymTabNode

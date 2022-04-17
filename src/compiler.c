@@ -2375,6 +2375,8 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int evalIm,int* exitstate)
 				fklDeleteCptr(begin);
 				free(begin);
 				tmp=NULL;
+				while(!fklIsPtrStackEmpty(tokenStack))
+					fklFreeToken(fklPopPtrStack(tokenStack));
 				break;
 			}
 			if(tmp->bc->size)

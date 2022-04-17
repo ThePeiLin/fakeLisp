@@ -363,19 +363,18 @@ static PrtElem* newPrtElem(enum PrintingState state,FklVMvalue* v)
 static int isInStack(FklVMvalue* v,FklPtrStack* stack,size_t* w)
 {
 	for(size_t i=0;i<stack->top;i++)
-	{
 		if(stack->base[i]==v)
 		{
 			*w=i;
 			return 1;
 		}
-	}
 	return 0;
 }
 
 static void scanCirRef(FklVMvalue* s,FklPtrStack* recStack)
 {
-	FklPtrStack* hasAccessed=fklNewPtrStack(32,16);
+	FklPtrStack* beAccessed=fklNewPtrStack(32,16);
+	FklPtrStack* totalAccessed=fklNewPtrStack(32,16);
 	FklPtrStack* toAccess=fklNewPtrStack(32,16);
 	fklPushPtrStack(s,toAccess);
 	while(!fklIsPtrStackEmpty(toAccess))
@@ -384,26 +383,40 @@ static void scanCirRef(FklVMvalue* s,FklPtrStack* recStack)
 		if(FKL_IS_PAIR(v)||FKL_IS_VECTOR(v))
 		{
 			size_t w=0;
-			if(isInStack(v,hasAccessed,&w))
+			if(isInStack(v,totalAccessed,&w))
 			{
 				fklPushPtrStack(v,recStack);
 				continue;
 			}
-			fklPushPtrStack(v,hasAccessed);
+			fklPushPtrStack(v,beAccessed);
 			if(FKL_IS_PAIR(v))
 			{
-				fklPushPtrStack(v->u.pair->cdr,toAccess);
-				fklPushPtrStack(v->u.pair->car,toAccess);
+				if(v->u.pair->cdr==v)
+					fklPushPtrStack(v,recStack);
+				else
+					fklPushPtrStack(v->u.pair->cdr,toAccess);
+				if(v->u.pair->car==v)
+					fklPushPtrStack(v,recStack);
+				else
+					fklPushPtrStack(v->u.pair->car,toAccess);
 			}
 			else
 			{
 				FklVMvec* vec=v->u.vec;
 				for(size_t i=vec->size;i>0;i--)
-					fklPushPtrStack(vec->base[i-1],toAccess);
+				{
+					if(vec->base[i-1]==v)
+						fklPushPtrStack(v,recStack);
+					else
+						fklPushPtrStack(vec->base[i-1],toAccess);
+				}
 			}
 		}
+		if(beAccessed->top&&!toAccess->top)
+			fklPushPtrStack(fklPopPtrStack(beAccessed),totalAccessed);
 	}
-	fklFreePtrStack(hasAccessed);
+	fklFreePtrStack(totalAccessed);
+	fklFreePtrStack(beAccessed);
 	fklFreePtrStack(toAccess);
 }
 
@@ -882,7 +895,7 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 			FklValueType cptrType=0;
 			if(root==FKL_VM_NIL)
 				cptrType=FKL_NIL;
-			else if(FKL_IS_PAIR(root)||FKL_IS_VECTOR(root))
+			else if(FKL_IS_PAIR(root))
 				cptrType=FKL_PAIR;
 			else if(!FKL_IS_REF(root)&&!FKL_IS_CHF(root))
 				cptrType=FKL_ATM;
@@ -990,6 +1003,7 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 		fklFreePtrStack(s1);
 		fklFreePtrStack(s2);
 	}
+	fklFreePtrStack(recStack);
 	return tmp;
 }
 

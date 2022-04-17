@@ -383,11 +383,13 @@ static void scanCirRef(FklVMvalue* s,FklPtrStack* recStack)
 		FklVMvalue* v=fklPopPtrStack(toAccess);
 		if(FKL_IS_PAIR(v)||FKL_IS_VECTOR(v))
 		{
-			if(isInStack(v,totalAccessed,NULL)||isInStack(v,recStack,NULL))
+			if(isInStack(v,totalAccessed,NULL))
 			{
 				fklPushPtrStack(v,recStack);
 				continue;
 			}
+			if(isInStack(v,recStack,NULL))
+				continue;
 			fklPushPtrStack(v,beAccessed);
 			if(FKL_IS_PAIR(v))
 			{

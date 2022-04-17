@@ -1413,7 +1413,6 @@ void fklStackRecycle(FklVM* exe)
 	}
 }
 
-extern void fklPrin1VMvalue_N(FklVMvalue* value,FILE* fp);
 void fklDBG_printVMstack(FklVMstack* stack,FILE* fp,int mode)
 {
 	if(fp!=stdout)fprintf(fp,"Current stack:\n");
@@ -1429,7 +1428,7 @@ void fklDBG_printVMstack(FklVMstack* stack,FILE* fp,int mode)
 			FklVMvalue* tmp=stack->values[i];
 			if(FKL_IS_REF(tmp))
 				tmp=*(FklVMvalue**)FKL_GET_PTR(tmp);
-			fklPrin1VMvalue_N(tmp,fp);
+			fklPrin1VMvalue(tmp,fp);
 			putc('\n',fp);
 		}
 	}

@@ -14,121 +14,6 @@
 #include<tchar.h>
 #endif
 
-typedef struct Cirular_Ref_List
-{
-	FklVMpair* pair;
-	int32_t count;
-	struct Cirular_Ref_List* next;
-}CRL;
-
-
-static CRL* newCRL(FklVMpair* pair,int32_t count)
-{
-	CRL* tmp=(CRL*)malloc(sizeof(CRL));
-	FKL_ASSERT(tmp,__func__);
-	tmp->pair=pair;
-	tmp->count=count;
-	tmp->next=NULL;
-	return tmp;
-}
-
-static int32_t findCRLcount(FklVMpair* pair,CRL* h)
-{
-	for(;h;h=h->next)
-	{
-		if(h->pair==pair)
-			return h->count;
-	}
-	return -1;
-}
-
-static FklVMpair* hasSameVMpair(FklVMpair* begin,FklVMpair* other,CRL* h)
-{
-	FklVMpair* tmpPair=NULL;
-	if(findCRLcount(begin,h)!=-1||findCRLcount(other,h)!=-1)
-		return NULL;
-	if(begin==other)
-		return begin;
-
-	if((FKL_IS_PAIR(other->car)&&FKL_IS_PAIR(other->car->u.pair->car))&&FKL_IS_PAIR(begin->car))
-		tmpPair=hasSameVMpair(begin->car->u.pair,other->car->u.pair->car->u.pair,h);
-	if(tmpPair)
-		return tmpPair;
-
-	if((FKL_IS_PAIR(other->car)&&FKL_IS_PAIR(other->car->u.pair->cdr))&&FKL_IS_PAIR(begin->car))
-		tmpPair=hasSameVMpair(begin->car->u.pair,other->car->u.pair->cdr->u.pair,h);
-	if(tmpPair)
-		return tmpPair;
-
-	if((FKL_IS_PAIR(other->car)&&FKL_IS_PAIR(other->car->u.pair->car))&&FKL_IS_PAIR(begin->cdr))
-		tmpPair=hasSameVMpair(begin->cdr->u.pair,other->car->u.pair->car->u.pair,h);
-	if(tmpPair)
-		return tmpPair;
-
-	if((FKL_IS_PAIR(other->car)&&FKL_IS_PAIR(other->car->u.pair->cdr))&&FKL_IS_PAIR(begin->cdr))
-		tmpPair=hasSameVMpair(begin->cdr->u.pair,other->car->u.pair->cdr->u.pair,h);
-	if(tmpPair)
-		return tmpPair;
-
-	if((FKL_IS_PAIR(other->cdr)&&FKL_IS_PAIR(other->cdr->u.pair->car))&&FKL_IS_PAIR(begin->car))
-		tmpPair=hasSameVMpair(begin->car->u.pair,other->cdr->u.pair->car->u.pair,h);
-	if(tmpPair)
-		return tmpPair;
-
-	if((FKL_IS_PAIR(other->cdr)&&FKL_IS_PAIR(other->cdr->u.pair->cdr))&&FKL_IS_PAIR(begin->car))
-		tmpPair=hasSameVMpair(begin->car->u.pair,other->cdr->u.pair->cdr->u.pair,h);
-	if(tmpPair)
-		return tmpPair;
-
-	if((FKL_IS_PAIR(other->cdr)&&FKL_IS_PAIR(other->cdr->u.pair->car))&&FKL_IS_PAIR(begin->cdr))
-		tmpPair=hasSameVMpair(begin->cdr->u.pair,other->cdr->u.pair->car->u.pair,h);
-	if(tmpPair)
-		return tmpPair;
-
-	if((FKL_IS_PAIR(other->cdr)&&FKL_IS_PAIR(other->cdr->u.pair->cdr))&&FKL_IS_PAIR(begin->cdr))
-		tmpPair=hasSameVMpair(begin->cdr->u.pair,other->cdr->u.pair->cdr->u.pair,h);
-	if(tmpPair)
-		return tmpPair;
-	return NULL;
-}
-
-static FklVMpair* isCircularReference(FklVMpair* begin,CRL* h)
-{
-	FklVMpair* tmpPair=NULL;
-	if(FKL_IS_PAIR(begin->car))
-		tmpPair=hasSameVMpair(begin,begin->car->u.pair,h);
-	if(tmpPair)
-		return tmpPair;
-	if(FKL_IS_PAIR(begin->cdr))
-		tmpPair=hasSameVMpair(begin,begin->cdr->u.pair,h);
-	if(tmpPair)
-		return tmpPair;
-	return NULL;
-}
-
-FklVMpair* fklIsCircularReference(FklVMpair* begin)
-{
-	FklVMpair* r=isCircularReference(begin,NULL);
-	return r;
-}
-
-int8_t isInTheCircle(FklVMpair* obj,FklVMpair* begin,FklVMpair* curPair)
-{
-	if(obj==curPair)
-		return 1;
-	if((FKL_IS_PAIR(curPair->car)&&begin==curPair->car->u.pair)||(FKL_IS_PAIR(curPair->cdr)&&begin==curPair->cdr->u.pair))
-		return 0;
-	return ((FKL_IS_PAIR(curPair->car))&&isInTheCircle(obj,begin,curPair->car->u.pair))||((FKL_IS_PAIR(curPair->cdr))&&isInTheCircle(obj,begin,curPair->cdr->u.pair));
-}
-
-uint8_t* fklCopyArry(size_t size,uint8_t* str)
-{
-	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	FKL_ASSERT(tmp,__func__);
-	memcpy(tmp,str,size);
-	return tmp;
-}
-
 FklVMvalue* fklPopVMstack(FklVMstack* stack)
 {
 	if(!(stack->tp>stack->bp))
@@ -980,140 +865,130 @@ void fklFreeVMcontinuation(VMcontinuation* cont)
 
 FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 {
-	CRL* head=NULL;
-	int8_t isInCir=0;
-	FklVMpair* cirPair=NULL;
-	FklAstCptr* tmp=fklNewCptr(curline,NULL);
-	FklPtrStack* s1=fklNewPtrStack(32,16);
-	FklPtrStack* s2=fklNewPtrStack(32,16);
-	fklPushPtrStack(value,s1);
-	fklPushPtrStack(tmp,s2);
-	while(!fklIsPtrStackEmpty(s1))
+	FklPtrStack* recStack=fklNewPtrStack(32,16);
+	scanCirRef(value,recStack);
+	FklAstCptr* tmp=NULL;
+	if(!recStack->top)
 	{
-		FklVMvalue* root=fklPopPtrStack(s1);
-		FklAstCptr* root1=fklPopPtrStack(s2);
-		FklValueType cptrType=0;
-		if(root==FKL_VM_NIL)
-			cptrType=FKL_NIL;
-		else if(FKL_IS_PAIR(root))
+		tmp=fklNewCptr(curline,NULL);
+		FklPtrStack* s1=fklNewPtrStack(32,16);
+		FklPtrStack* s2=fklNewPtrStack(32,16);
+		fklPushPtrStack(value,s1);
+		fklPushPtrStack(tmp,s2);
+		while(!fklIsPtrStackEmpty(s1))
 		{
-			cirPair=isCircularReference(root->u.pair,head);
-			if(cirPair)
-				isInCir=isInTheCircle(root->u.pair,cirPair,cirPair);
-			if(cirPair&&isInCir)
+			FklVMvalue* root=fklPopPtrStack(s1);
+			FklAstCptr* root1=fklPopPtrStack(s2);
+			FklValueType cptrType=0;
+			if(root==FKL_VM_NIL)
+				cptrType=FKL_NIL;
+			else if(FKL_IS_PAIR(root)||FKL_IS_VECTOR(root))
+				cptrType=FKL_PAIR;
+			else if(!FKL_IS_REF(root)&&!FKL_IS_CHF(root))
+				cptrType=FKL_ATM;
+			root1->type=cptrType;
+			if(cptrType==FKL_ATM)
 			{
-				CRL* crl=newCRL(root->u.pair,head?head->count+1:0);
-				crl->next=head;
-				head=crl;
-				fklDeleteCptr(tmp);
-				free(tmp);
-				tmp=NULL;
-				break;
-			}
-			cptrType=FKL_PAIR;
-		}
-		else if(!FKL_IS_REF(root)&&!FKL_IS_CHF(root))
-			cptrType=FKL_ATM;
-		root1->type=cptrType;
-		if(cptrType==FKL_ATM)
-		{
-			FklAstAtom* tmpAtm=fklNewAtom(FKL_SYM,NULL,root1->outer);
-			FklVMptrTag tag=FKL_GET_TAG(root);
-			switch(tag)
-			{
-				case FKL_SYM_TAG:
-					tmpAtm->type=FKL_SYM;
-					tmpAtm->value.str=fklCopyStr(fklGetGlobSymbolWithId(FKL_GET_SYM(root))->symbol);
-					break;
-				case FKL_I32_TAG:
-					tmpAtm->type=FKL_I32;
-					tmpAtm->value.i32=FKL_GET_I32(root);
-					break;
-				case FKL_CHR_TAG:
-					tmpAtm->type=FKL_CHR;
-					tmpAtm->value.chr=FKL_GET_CHR(root);
-					break;
-				case FKL_PTR_TAG:
-					{
-						tmpAtm->type=root->type;
-						switch(root->type)
+				FklAstAtom* tmpAtm=fklNewAtom(FKL_SYM,NULL,root1->outer);
+				FklVMptrTag tag=FKL_GET_TAG(root);
+				switch(tag)
+				{
+					case FKL_SYM_TAG:
+						tmpAtm->type=FKL_SYM;
+						tmpAtm->value.str=fklCopyStr(fklGetGlobSymbolWithId(FKL_GET_SYM(root))->symbol);
+						break;
+					case FKL_I32_TAG:
+						tmpAtm->type=FKL_I32;
+						tmpAtm->value.i32=FKL_GET_I32(root);
+						break;
+					case FKL_CHR_TAG:
+						tmpAtm->type=FKL_CHR;
+						tmpAtm->value.chr=FKL_GET_CHR(root);
+						break;
+					case FKL_PTR_TAG:
 						{
-							case FKL_F64:
-								tmpAtm->value.f64=root->u.f64;
-								break;
-							case FKL_I64:
-								tmpAtm->value.i64=root->u.i64;
-								break;
-							case FKL_STR:
-								tmpAtm->value.str=fklCopyStr(root->u.str);
-								break;
-							case FKL_BYTS:
-								tmpAtm->value.byts.size=root->u.byts->size;
-								tmpAtm->value.byts.str=fklCopyMemory(root->u.byts->str,root->u.byts->size);
-								break;
-							case FKL_PROC:
-								tmpAtm->type=FKL_SYM;
-								tmpAtm->value.str=fklCopyStr("#<proc>");
-								break;
-							case FKL_DLPROC:
-								tmpAtm->type=FKL_SYM;
-								tmpAtm->value.str=fklCopyStr("#<dlproc>");
-								break;
-							case FKL_CONT:
-								tmpAtm->type=FKL_SYM;
-								tmpAtm->value.str=fklCopyStr("#<proc>");
-								break;
-							case FKL_CHAN:
-								tmpAtm->type=FKL_SYM;
-								tmpAtm->value.str=fklCopyStr("#<chan>");
-								break;
-							case FKL_FP:
-								tmpAtm->type=FKL_SYM;
-								tmpAtm->value.str=fklCopyStr("#<fp>");
-								break;
-							case FKL_ERR:
-								tmpAtm->type=FKL_SYM;
-								tmpAtm->value.str=fklCopyStr("#<err>");
-								break;
-							case FKL_MEM:
-								tmpAtm->type=FKL_SYM;
-								tmpAtm->value.str=fklCopyStr("#<mem>");
-								break;
-							case FKL_CHF:
-								tmpAtm->type=FKL_SYM;
-								tmpAtm->value.str=fklCopyStr("#<ref>");
-								break;
-							default:
-								return NULL;
-								break;
+							tmpAtm->type=root->type;
+							switch(root->type)
+							{
+								case FKL_F64:
+									tmpAtm->value.f64=root->u.f64;
+									break;
+								case FKL_I64:
+									tmpAtm->value.i64=root->u.i64;
+									break;
+								case FKL_STR:
+									tmpAtm->value.str=fklCopyStr(root->u.str);
+									break;
+								case FKL_BYTS:
+									tmpAtm->value.byts.size=root->u.byts->size;
+									tmpAtm->value.byts.str=fklCopyMemory(root->u.byts->str,root->u.byts->size);
+									break;
+								case FKL_PROC:
+									tmpAtm->type=FKL_SYM;
+									tmpAtm->value.str=fklCopyStr("#<proc>");
+									break;
+								case FKL_DLPROC:
+									tmpAtm->type=FKL_SYM;
+									tmpAtm->value.str=fklCopyStr("#<dlproc>");
+									break;
+								case FKL_CONT:
+									tmpAtm->type=FKL_SYM;
+									tmpAtm->value.str=fklCopyStr("#<proc>");
+									break;
+								case FKL_CHAN:
+									tmpAtm->type=FKL_SYM;
+									tmpAtm->value.str=fklCopyStr("#<chan>");
+									break;
+								case FKL_FP:
+									tmpAtm->type=FKL_SYM;
+									tmpAtm->value.str=fklCopyStr("#<fp>");
+									break;
+								case FKL_ERR:
+									tmpAtm->type=FKL_SYM;
+									tmpAtm->value.str=fklCopyStr("#<err>");
+									break;
+								case FKL_MEM:
+									tmpAtm->type=FKL_SYM;
+									tmpAtm->value.str=fklCopyStr("#<mem>");
+									break;
+								case FKL_CHF:
+									tmpAtm->type=FKL_SYM;
+									tmpAtm->value.str=fklCopyStr("#<ref>");
+									break;
+								case FKL_VECTOR:
+									tmpAtm->type=FKL_VECTOR;
+									fklMakeAstVector(&tmpAtm->value.vec,root->u.vec->size,NULL);
+									for(size_t i=0;i<root->u.vec->size;i++)
+										fklPushPtrStack(root->u.vec->base[i],s1);
+									for(size_t i=0;i<tmpAtm->value.vec.size;i++)
+										fklPushPtrStack(&tmpAtm->value.vec.base[i],s2);
+									break;
+								default:
+									return NULL;
+									break;
+							}
 						}
-					}
-					break;
-				default:
-					return NULL;
-					break;
+						break;
+					default:
+						return NULL;
+						break;
+				}
+				root1->u.atom=tmpAtm;
 			}
-			root1->u.atom=tmpAtm;
+			else if(cptrType==FKL_PAIR)
+			{
+				fklPushPtrStack(root->u.pair->car,s1);
+				fklPushPtrStack(root->u.pair->cdr,s1);
+				FklAstPair* tmpPair=fklNewPair(curline,root1->outer);
+				root1->u.pair=tmpPair;
+				tmpPair->car.outer=tmpPair;
+				tmpPair->cdr.outer=tmpPair;
+				fklPushPtrStack(&tmpPair->car,s2);
+				fklPushPtrStack(&tmpPair->cdr,s2);
+			}
 		}
-		else if(cptrType==FKL_PAIR)
-		{
-			fklPushPtrStack(root->u.pair->car,s1);
-			fklPushPtrStack(root->u.pair->cdr,s1);
-			FklAstPair* tmpPair=fklNewPair(curline,root1->outer);
-			root1->u.pair=tmpPair;
-			tmpPair->car.outer=tmpPair;
-			tmpPair->cdr.outer=tmpPair;
-			fklPushPtrStack(&tmpPair->car,s2);
-			fklPushPtrStack(&tmpPair->cdr,s2);
-		}
-	}
-	fklFreePtrStack(s1);
-	fklFreePtrStack(s2);
-	while(head)
-	{
-		CRL* prev=head;
-		head=head->next;
-		free(prev);
+		fklFreePtrStack(s1);
+		fklFreePtrStack(s2);
 	}
 	return tmp;
 }

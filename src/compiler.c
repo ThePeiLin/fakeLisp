@@ -117,7 +117,7 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 			tmpCptr=fklCastVMvalueToCptr(fklGET_VAL(tmpVM->stack->values[0],tmpVM->heap),objCptr->curline);
 			if(!tmpCptr)
 			{
-				fprintf(stderr,"error of compiling:Circular reference occur in expanding macro at line %d of %s\n",objCptr->curline,inter->filename);
+				fprintf(stderr,"error of compiling: Circular reference occur in expanding macro at line %d of %s\n",objCptr->curline,inter->filename);
 				fklFreeVMenv(tmpGlob);
 				fklFreeByteCodeAndLnt(t);
 				fklFreeVMheap(tmpVM->heap);

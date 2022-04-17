@@ -365,7 +365,8 @@ static int isInStack(FklVMvalue* v,FklPtrStack* stack,size_t* w)
 	for(size_t i=0;i<stack->top;i++)
 		if(stack->base[i]==v)
 		{
-			*w=i;
+			if(w)
+				*w=i;
 			return 1;
 		}
 	return 0;
@@ -382,8 +383,7 @@ static void scanCirRef(FklVMvalue* s,FklPtrStack* recStack)
 		FklVMvalue* v=fklPopPtrStack(toAccess);
 		if(FKL_IS_PAIR(v)||FKL_IS_VECTOR(v))
 		{
-			size_t w=0;
-			if(isInStack(v,totalAccessed,&w))
+			if(isInStack(v,totalAccessed,NULL)||isInStack(v,recStack,NULL))
 			{
 				fklPushPtrStack(v,recStack);
 				continue;

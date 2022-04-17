@@ -804,24 +804,10 @@ static void freePrintQueue(PrintQueue* q)
 	free(q);
 }
 
-static int isCirRef(FklVMvalue* v,FklVMvalue* s,FklPtrStack* stack)
-{
-	if(FKL_IS_VECTOR(s)&&v==s)
-		return 1;
-	else if(FKL_IS_PAIR(v)&&FKL_IS_PAIR(s))
-	{
-		for(;s;s=FKL_IS_PAIR(s->u.pair->cdr)?s->u.pair->cdr:NULL)
-			if(v==s)
-				return 1;
-	}
-	for(uint32_t i=0;i<stack->top;i++)
-		if(((PrintQueue*)stack->base[i])->s==v)
-			return 1;
-	return 0;
-}
-
 void fklPrin1VMvalue_N(FklVMvalue* value,FILE* fp)
 {
+	FklPtrStack* recStack=fklNewPtrStack(32,16);
+	scanCirRef(value,recStack);
 	PrintQueue* queue=newPrintQueue(NULL);
 	FklPtrStack* queueStack=fklNewPtrStack(32,16);
 	fklPushPtrQueue(newPrtElem(PRT_CAR,value),queue->q);
@@ -928,11 +914,8 @@ void fklPrin1VMvalue_N(FklVMvalue* value,FILE* fp)
 									PrintQueue* vQueue=newPrintQueue(v);
 									for(size_t i=0;i<v->u.vec->size;i++)
 									{
-										if(isCirRef(v->u.vec->base[i],v,queueStack))
-											fklPushPtrQueue(newPrtElem(PRT_CAR,NULL),vQueue->q);
-										else
-											fklPushPtrQueue(newPrtElem(PRT_CAR,v->u.vec->base[i])
-													,vQueue->q);
+										fklPushPtrQueue(newPrtElem(PRT_CAR,v->u.vec->base[i])
+												,vQueue->q);
 									}
 									fklPushPtrStack(vQueue,queueStack);
 									cQueue=vQueue;
@@ -947,27 +930,16 @@ void fklPrin1VMvalue_N(FklVMvalue* value,FILE* fp)
 									for(;;)
 									{
 										PrtElem* ce=NULL;
-										if(isCirRef(p->car,v,queueStack))
-											ce=newPrtElem(PRT_CAR,NULL);
-										else
-											ce=newPrtElem(PRT_CAR,p->car);
+										ce=newPrtElem(PRT_CAR,p->car);
 										fklPushPtrQueue(ce,lQueue->q);
-										if(isCirRef(p->cdr,v,queueStack)&&p->cdr!=v)
-										{
-											fklPushPtrQueue(newPrtElem(PRT_CDR,p->cdr),lQueue->q);
-											break;
-										}
-										FklVMpair* next=FKL_IS_PAIR(p->cdr)&&!isCirRef(p->cdr,v,queueStack)?p->cdr->u.pair:NULL;
+										FklVMpair* next=FKL_IS_PAIR(p->cdr)?p->cdr->u.pair:NULL;
 										if(!next)
 										{
 											FklVMvalue* cdr=p->cdr;
 											if(cdr!=FKL_VM_NIL)
 											{
 												PrtElem* cdre=NULL;
-												if(FKL_IS_PAIR(cdr))
-													cdre=newPrtElem(PRT_CDR,NULL);
-												else
-													cdre=newPrtElem(PRT_CDR,cdr);
+												cdre=newPrtElem(PRT_CDR,cdr);
 												fklPushPtrQueue(cdre,lQueue->q);
 											}
 											break;

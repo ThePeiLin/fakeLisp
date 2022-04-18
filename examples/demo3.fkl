@@ -1,6 +1,6 @@
 (import (.. lib utils))
 
-(define btk (dll "btk"))
+(define btk (dlopen "btk"))
 
 (define getch (dlsym btk "getch"))
 
@@ -29,3 +29,5 @@
     ((#\\s) (print-FaQ)))
   (if (not (eq ch #\\4)) (main (getch))))
 (del-term)
+
+(dlclose btk)

@@ -68,6 +68,7 @@ int main(int argc,char** argv)
 			free(rp);
 			int state;
 			FklByteCodelnt* mainByteCode=fklCompileFile(inter,1,&state);
+			fklPrintUndefinedSymbol(mainByteCode);
 			fklFreeAllSharedObj();
 			if(mainByteCode==NULL)
 			{

@@ -47,6 +47,8 @@ static struct
 	{"pop_try",0},
 	{"append",0},
 	{"push_vector",8},
+	{"push_r_env",0},
+	{"pop_r_env",0},
 };
 
 const char* fklGetOpcodeName(FklOpcode opcode)
@@ -62,7 +64,7 @@ int fklGetOpcodeArgLen(FklOpcode opcode)
 FklOpcode fklFindOpcode(const char* str)
 {
 	FklOpcode i=0;
-	for(;i<FKL_LAST;i++)
+	for(;i<FKL_LAST_OPCODE;i++)
 		if(!strcmp(opcodeInfor[i].name,str))
 			return i;
 	return 0;

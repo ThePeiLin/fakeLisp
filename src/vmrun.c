@@ -232,7 +232,8 @@ static void B_push_try(FklVM*);
 static void B_pop_try(FklVM*);
 static void B_append(FklVM*);
 static void B_push_vector(FklVM*);
-
+static void B_push_r_env(FklVM*);
+static void B_pop_r_env(FklVM*);
 
 static void (*ByteCodes[])(FklVM*)=
 {
@@ -277,6 +278,8 @@ static void (*ByteCodes[])(FklVM*)=
 	B_pop_try,
 	B_append,
 	B_push_vector,
+	B_push_r_env,
+	B_pop_r_env,
 };
 
 FklVM* fklNewVM(FklByteCode* mainCode)
@@ -1339,6 +1342,22 @@ void B_push_vector(FklVM* exe)
 			,stack);
 	r->cp+=sizeof(char)+sizeof(uint64_t);
 }
+
+void B_push_r_env(FklVM* exe)
+{
+	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
+	r->localenv=fklNewVMenv(r->localenv);
+	r->cp+=sizeof(char);
+}
+
+void B_pop_r_env(FklVM* exe)
+{
+	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
+	FklVMenv* p=r->localenv;
+	r->localenv=r->localenv->prev;
+	fklFreeVMenv(p);
+	r->cp+=sizeof(char);
+}
 //void B_load_shared_obj(FklVM* exe)
 //{
 //	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
@@ -1464,7 +1483,10 @@ int fklIsTheLastExpress(const FklVMrunnable* runnable,const FklVMrunnable* same,
 		size=runnable->scp+runnable->cpc;
 
 		for(;i<size;i+=(code[i]==FKL_JMP)?fklGetI64FromByteCode(code+i+sizeof(char))+sizeof(char)+sizeof(int64_t):1)
-			if(code[i]!=FKL_POP_TP&&code[i]!=FKL_POP_TRY&&code[i]!=FKL_JMP)
+			if(code[i]!=FKL_POP_TP
+					&&code[i]!=FKL_POP_TRY
+					&&code[i]!=FKL_JMP
+					&&code[i]!=FKL_POP_R_ENV)
 				return 0;
 		if(runnable==same)
 			break;

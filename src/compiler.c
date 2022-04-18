@@ -2325,7 +2325,6 @@ FklByteCodelnt* fklCompileCond(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 		tmp->l[tmp->ls-1]->cpc+=popTp->size;
 	}
 	fklFreeMemMenager(memMenager);
-	fklPrintByteCodelnt(tmp,stderr);
 	return tmp;
 }
 

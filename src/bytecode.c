@@ -107,7 +107,7 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode,uint32_t i
 			{
 				fprintf(fp,"%s ",fklFindSymbolInGlob((char*)(tmpCode->code+(++i)))->symbol);
 				i+=sizeof(FklSid_t);
-				uint32_t handlerNum=fklGetI32FromByteCode(tmpCode->code+i);
+				uint32_t handlerNum=fklGetU32FromByteCode(tmpCode->code+i);
 				fprintf(fp,"%d\n",handlerNum);
 				i+=sizeof(uint32_t);
 				int j=0;

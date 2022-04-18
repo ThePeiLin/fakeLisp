@@ -3565,14 +3565,14 @@ void fklPrintUndefinedSymbol(FklByteCodelnt* code)
 				case -4:
 					{
 						i+=sizeof(FklSid_t)+sizeof(char);
-						int32_t handlerNum=fklGetI32FromByteCode(bc->code+i);
-						i+=sizeof(int32_t);
+						int32_t handlerNum=fklGetU32FromByteCode(bc->code+i);
+						i+=sizeof(uint32_t);
 						int j=0;
 						for(;j<handlerNum;j++)
 						{
 							i+=sizeof(FklSid_t);
-							uint32_t pCpc=fklGetU32FromByteCode(bc->code+i);
-							i+=sizeof(uint32_t);
+							uint32_t pCpc=fklGetU64FromByteCode(bc->code+i);
+							i+=sizeof(uint64_t);
 							i+=pCpc;
 						}
 					}
@@ -3606,19 +3606,27 @@ void fklPrintUndefinedSymbol(FklByteCodelnt* code)
 					i+=sizeof(char)+sizeof(int32_t)+sizeof(FklSid_t);
 					break;
 				case -2:
-					fklPushUintStack(i+sizeof(char)+sizeof(uint32_t),cpcstack);
+					fklPushUintStack(i+sizeof(char)+sizeof(uint64_t),cpcstack);
 					{
-						fklPushUintStack(fklGetU32FromByteCode(bc->code+i+sizeof(char)),scpstack);
+						fklPushUintStack(fklGetU64FromByteCode(bc->code+i+sizeof(char)),scpstack);
 						FklCompEnv* nextEnv=fklNewCompEnv(curEnv);
 						fklPushPtrStack(nextEnv,envstack);
 					}
-					i+=sizeof(char)+sizeof(uint32_t)+fklGetU32FromByteCode(bc->code+i+sizeof(char));
+					i+=sizeof(char)+sizeof(uint64_t)+fklGetU32FromByteCode(bc->code+i+sizeof(char));
 					break;
 				case -1:
 					tmplen=strlen((char*)bc->code+i+1);
 					i+=sizeof(char)+tmplen+1;
 					break;
 				case 0:
+					if(opcode==FKL_PUSH_R_ENV)
+						curEnv=fklNewCompEnv(curEnv);
+					else if(opcode==FKL_POP_R_ENV)
+					{
+						FklCompEnv* p=curEnv->prev;
+						fklDestroyCompEnv(curEnv);
+						curEnv=p;
+					}
 					i+=sizeof(char);
 					break;
 				case 1:
@@ -3669,7 +3677,10 @@ void fklPrintUndefinedSymbol(FklByteCodelnt* code)
 					i+=sizeof(char)+sizeof(int64_t);
 					break;
 				case 12:
-					i+=sizeof(char)+sizeof(int64_t)+sizeof(uint32_t);
+					if(opcode==FKL_PUSH_IND_REF)
+						i+=sizeof(char)+sizeof(FklTypeId_t)+sizeof(uint32_t);
+					else
+						i+=sizeof(char)+sizeof(int64_t)+sizeof(FklTypeId_t);
 					break;
 			}
 		}

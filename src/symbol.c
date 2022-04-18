@@ -81,7 +81,7 @@ static const char* builtInSymbolList[]=
 	"prin1",
 	"fputb",
 	"princ",
-	"dll",
+	"dlopen",
 	"dlsym",
 	"argv",
 	"go",
@@ -119,6 +119,7 @@ static const char* builtInSymbolList[]=
 	"chanl?",
 	"dll?",
 	"vector",
+	"dlclose",
 };
 
 FklSymbolTable GlobSymbolTable=FKL_STATIC_SYMBOL_INIT;

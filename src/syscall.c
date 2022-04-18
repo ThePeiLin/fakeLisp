@@ -1479,24 +1479,42 @@ void SYS_princ(FklVM* exe,pthread_rwlock_t* gclock)
 	FKL_SET_RETURN(__func__,obj,stack);
 }
 
-void SYS_dll(FklVM* exe,pthread_rwlock_t* gclock)
+void SYS_dlopen(FklVM* exe,pthread_rwlock_t* gclock)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMvalue* dllName=fklGET_VAL(fklPopVMstack(stack),exe->heap);
 	if(fklResBp(stack))
-		FKL_RAISE_BUILTIN_ERROR("sys.dll",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.dlopen",FKL_TOOMANYARG,runnable,exe);
 	if(!dllName)
-		FKL_RAISE_BUILTIN_ERROR("sys.dll",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.dlopen",FKL_TOOFEWARG,runnable,exe);
 	if(!FKL_IS_STR(dllName))
-		FKL_RAISE_BUILTIN_ERROR("sys.dll",FKL_WRONGARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.dlopen",FKL_WRONGARG,runnable,exe);
 	FklVMdllHandle* dll=fklNewVMdll(dllName->u.str);
 	if(!dll)
 	{
 		FKL_SET_RETURN(__func__,dllName,stack);
-		FKL_RAISE_BUILTIN_ERROR("sys.dll",FKL_LOADDLLFAILD,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.dlopen",FKL_LOADDLLFAILD,runnable,exe);
 	}
 	FKL_SET_RETURN(__func__,fklNewVMvalue(FKL_DLL,dll,exe->heap),stack);
+}
+
+void SYS_dlclose(FklVM* exe,pthread_rwlock_t* gclock)
+{
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
+	FklVMvalue* dll=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	if(fklResBp(stack))
+		FKL_RAISE_BUILTIN_ERROR("sys.dlclose",FKL_TOOMANYARG,runnable,exe);
+	if(!dll)
+		FKL_RAISE_BUILTIN_ERROR("sys.dlclose",FKL_TOOFEWARG,runnable,exe);
+	if(!FKL_IS_DLL(dll))
+		FKL_RAISE_BUILTIN_ERROR("sys.dlclose",FKL_WRONGARG,runnable,exe);
+	if(dll->u.dll==NULL)
+		FKL_RAISE_BUILTIN_ERROR("sys.dlclose",FKL_INVALIDACCESS,runnable,exe);
+	fklFreeVMdll(dll->u.dll);
+	dll->u.dll=NULL;
+	FKL_SET_RETURN(__func__,FKL_VM_NIL,stack);
 }
 
 void SYS_dlsym(FklVM* exe,pthread_rwlock_t* gclock)
@@ -1841,6 +1859,7 @@ void SYS_delf(FklVM* exe,pthread_rwlock_t* gclock)
 	free(p);
 	pmem->mem=NULL;
 	pmem->mode=FKL_MEM_RAW;
+	FKL_SET_RETURN(__func__,FKL_VM_NIL,stack);
 }
 
 void SYS_lfdl(FklVM* exe,pthread_rwlock_t* gclock)

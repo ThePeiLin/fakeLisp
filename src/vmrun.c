@@ -389,7 +389,7 @@ extern void SYS_fgetb(ARGL);
 extern void SYS_prin1(ARGL);
 extern void SYS_fputb(ARGL);
 extern void SYS_princ(ARGL);
-extern void SYS_dll(ARGL);
+extern void SYS_dlopen(ARGL);
 extern void SYS_dlsym(ARGL);
 extern void SYS_argv(ARGL);
 extern void SYS_go(ARGL);
@@ -429,6 +429,7 @@ extern void SYS_memory_p(ARGL);
 extern void SYS_chanl_p(ARGL);
 extern void SYS_dll_p(ARGL);
 extern void SYS_vector(ARGL);
+extern void SYS_dlclose(ARGL);
 
 #undef ARGL
 
@@ -473,7 +474,7 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_prin1,
 		SYS_fputb,
 		SYS_princ,
-		SYS_dll,
+		SYS_dlopen,
 		SYS_dlsym,
 		SYS_argv,
 		SYS_go,
@@ -511,6 +512,7 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_chanl_p,
 		SYS_dll_p,
 		SYS_vector,
+		SYS_dlclose,
 	};
 	obj->num=FKL_NUM_OF_BUILT_IN_SYMBOL;
 	obj->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*FKL_NUM_OF_BUILT_IN_SYMBOL);

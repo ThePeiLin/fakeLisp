@@ -68,7 +68,6 @@ int main(int argc,char** argv)
 			free(rp);
 			int state;
 			FklByteCodelnt* mainByteCode=fklCompileFile(inter,1,&state);
-			fklPrintUndefinedSymbol(mainByteCode);
 			fklFreeAllSharedObj();
 			if(mainByteCode==NULL)
 			{
@@ -81,6 +80,7 @@ int main(int argc,char** argv)
 				free(pWorkPath);
 				return state;
 			}
+			fklPrintUndefinedSymbol(mainByteCode);
 			inter->lnt->num=mainByteCode->ls;
 			inter->lnt->list=mainByteCode->l;
 			FklVMenv* globEnv=fklNewVMenv(NULL);

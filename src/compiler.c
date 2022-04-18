@@ -3580,7 +3580,7 @@ void fklPrintUndefinedSymbol(FklByteCodelnt* code)
 				case -3:
 					{
 						int32_t scope=fklGetI32FromByteCode(bc->code+i+sizeof(char));
-						FklSid_t id=fklGetU32FromByteCode(bc->code+i+sizeof(char)+sizeof(int32_t));
+						FklSid_t id=fklGetSidFromByteCode(bc->code+i+sizeof(char)+sizeof(int32_t));
 						if(scope==0)
 							fklAddCompDefBySid(id,curEnv);
 						else if(scope==-1)
@@ -3612,7 +3612,7 @@ void fklPrintUndefinedSymbol(FklByteCodelnt* code)
 						FklCompEnv* nextEnv=fklNewCompEnv(curEnv);
 						fklPushPtrStack(nextEnv,envstack);
 					}
-					i+=sizeof(char)+sizeof(uint64_t)+fklGetU32FromByteCode(bc->code+i+sizeof(char));
+					i+=sizeof(char)+sizeof(uint64_t)+fklGetU64FromByteCode(bc->code+i+sizeof(char));
 					break;
 				case -1:
 					tmplen=strlen((char*)bc->code+i+1);
@@ -3633,34 +3633,6 @@ void fklPrintUndefinedSymbol(FklByteCodelnt* code)
 					i+=sizeof(char)+sizeof(char);
 					break;
 				case 4:
-					{
-						FklSid_t id=0;
-						if(opcode==FKL_POP_ARG||opcode==FKL_POP_REST_ARG)
-						{
-							memcpy(&id,bc->code+i+sizeof(char),sizeof(FklSid_t));
-							fklAddCompDefBySid(id,curEnv);
-						}
-						else if(opcode==FKL_PUSH_VAR)
-						{
-							memcpy(&id,bc->code+i+sizeof(char),sizeof(FklSid_t));
-							FklCompDef* def=NULL;
-							for(FklCompEnv* e=curEnv;e;e=e->prev)
-							{
-								def=fklFindCompDefBySid(id,e);
-								if(def)
-									break;
-							}
-							if(!def)
-							{
-								FklLineNumberTable table={.list=code->l,.num=code->ls};
-								FklLineNumTabNode* node=fklFindLineNumTabNode(i,&table);
-								fprintf(stderr,"warnnig of compiling:symbol \"%s\" is undefined at line %d of %s\n"
-										,fklGetGlobSymbolWithId(id)->symbol
-										,node->line
-										,fklGetGlobSymbolWithId(node->fid)->symbol);
-							}
-						}
-					}
 					i+=sizeof(char)+sizeof(int32_t);
 					break;
 				case 8:
@@ -3671,6 +3643,39 @@ void fklPrintUndefinedSymbol(FklByteCodelnt* code)
 						case FKL_PUSH_I64:
 							break;
 						case FKL_PUSH_IND_REF:
+							break;
+						case FKL_POP_ARG:
+						case FKL_POP_REST_ARG:
+						case FKL_PUSH_VAR:
+							{
+								FklSid_t id=0;
+								if(opcode==FKL_POP_ARG||opcode==FKL_POP_REST_ARG)
+								{
+									memcpy(&id,bc->code+i+sizeof(char),sizeof(FklSid_t));
+									fklAddCompDefBySid(id,curEnv);
+								}
+								else if(opcode==FKL_PUSH_VAR)
+								{
+									memcpy(&id,bc->code+i+sizeof(char),sizeof(FklSid_t));
+									FklCompDef* def=NULL;
+									for(FklCompEnv* e=curEnv;e;e=e->prev)
+									{
+										def=fklFindCompDefBySid(id,e);
+										if(def)
+											break;
+									}
+									if(!def)
+									{
+										FklLineNumberTable table={.list=code->l,.num=code->ls};
+										FklLineNumTabNode* node=fklFindLineNumTabNode(i,&table);
+										fprintf(stderr,"warnnig of compiling:symbol \"%s\" is undefined at line %d of %s\n"
+												,fklGetGlobSymbolWithId(id)->symbol
+												,node->line
+												,fklGetGlobSymbolWithId(node->fid)->symbol);
+									}
+								}
+							}
+
 							break;
 						default:break;
 					}

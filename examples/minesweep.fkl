@@ -1,6 +1,6 @@
 (import (.. lib utils))
 
-(define btk (dlopeng "btk"))
+(define btk (dlopen "btk"))
 (define getch (dlsym btk "getch"))
 (define rand (dlsym btk "rand"))
 

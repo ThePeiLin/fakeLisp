@@ -67,7 +67,7 @@ int main(int argc,char** argv)
 			char* workpath=fklGetDir(rp);
 			free(rp);
 			int state;
-			FklByteCodelnt* mainByteCode=fklCompileFile(inter,1,&state);
+			FklByteCodelnt* mainByteCode=fklCompileFile(inter,&state);
 			fklFreeAllSharedObj();
 			if(mainByteCode==NULL)
 			{
@@ -237,7 +237,7 @@ void runRepl(FklInterpreter* inter)
 		}
 		if(begin!=NULL)
 		{
-			FklByteCodelnt* tmpByteCode=fklCompile(begin,inter->glob,inter,&state,!fklIsLambdaExpression(begin));
+			FklByteCodelnt* tmpByteCode=fklCompile(begin,inter->glob,inter,&state);
 			if(state.state!=0)
 			{
 				fklPrintCompileError(state.place,state.state,inter);

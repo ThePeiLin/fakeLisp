@@ -44,7 +44,7 @@ int main(int argc,char** argv)
 		//fklInitBuiltInStringPattern();
 		fklAddSymbolToGlob(argv[1]);
 		int state;
-		FklByteCodelnt* mainByteCode=fklCompileFile(inter,1,&state);
+		FklByteCodelnt* mainByteCode=fklCompileFile(inter,&state);
 		if(mainByteCode==NULL)
 		{
 			free(rp);

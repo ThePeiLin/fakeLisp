@@ -741,8 +741,9 @@ FklVMenv* fklCopyVMenv(FklVMenv* objEnv,FklVMheap* heap)
 	return tmp;
 }
 
-void fklFreeVMenv(FklVMenv* obj)
+int fklFreeVMenv(FklVMenv* obj)
 {
+	int r=0;
 	while(obj!=NULL)
 	{
 		if(!obj->refcount)
@@ -754,6 +755,7 @@ void fklFreeVMenv(FklVMenv* obj)
 				fklFreeVMenvNode(prev->list[i]);
 			free(prev->list);
 			free(prev);
+			r++;
 		}
 		else
 		{
@@ -761,6 +763,7 @@ void fklFreeVMenv(FklVMenv* obj)
 			break;
 		}
 	}
+	return r;
 }
 
 FklVMenvNode* fklNewVMenvNode(FklVMvalue* value,int32_t id)

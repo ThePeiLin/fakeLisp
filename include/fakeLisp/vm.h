@@ -356,7 +356,7 @@ void fklFreeVMenvNode(FklVMenvNode*);
 FklVMenv* fklNewVMenv(FklVMenv*);
 void fklIncreaseVMenvRefcount(FklVMenv*);
 void fklDecreaseVMenvRefcount(FklVMenv*);
-void fklFreeVMenv(FklVMenv*);
+int fklFreeVMenv(FklVMenv*);
 FklVMenv* fklCopyVMenv(FklVMenv*,FklVMheap*);
 
 FklVMproc* fklNewVMproc(uint64_t scp,uint64_t cpc);

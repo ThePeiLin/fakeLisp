@@ -1346,7 +1346,9 @@ void B_push_vector(FklVM* exe)
 void B_push_r_env(FklVM* exe)
 {
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
-	r->localenv=fklNewVMenv(r->localenv);
+	FklVMenv* prev=r->localenv;
+	r->localenv=fklNewVMenv(prev);
+	prev->refcount--;
 	r->cp+=sizeof(char);
 }
 
@@ -1355,6 +1357,7 @@ void B_pop_r_env(FklVM* exe)
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
 	FklVMenv* p=r->localenv;
 	r->localenv=r->localenv->prev;
+	p->prev=NULL;
 	fklFreeVMenv(p);
 	r->cp+=sizeof(char);
 }

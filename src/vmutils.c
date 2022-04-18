@@ -612,6 +612,7 @@ void fklPrincVMvalue(FklVMvalue* value,FILE* fp)
 void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v,FILE* fp))
 {
 	FklPtrStack* recStack=fklNewPtrStack(32,16);
+	FklPtrStack* hasPrintRecStack=fklNewPtrStack(32,16);
 	scanCirRef(value,recStack);
 	FklPtrQueue* queue=fklNewPtrQueue();
 	FklPtrStack* queueStack=fklNewPtrStack(32,16);
@@ -636,30 +637,6 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 				free(e);
 				if(!FKL_IS_VECTOR(v)&&!FKL_IS_PAIR(v))
 					atomPrinter(v,fp);
-				else if(FKL_IS_VECTOR(v))
-				{
-					for(uint32_t i=0;i<recStack->top;i++)
-						if(recStack->base[i]==v)
-						{
-							fprintf(fp,"#%u=",i);
-							break;
-						}
-					fputs("#(",fp);
-					FklPtrQueue* vQueue=fklNewPtrQueue();
-					for(size_t i=0;i<v->u.vec->size;i++)
-					{
-						size_t w=0;
-						if(isInStack(v->u.vec->base[i],recStack,&w)&&v->u.vec->base[i]==v)
-							fklPushPtrQueue(newPrtElem(PRT_REC_CAR,(void*)w)
-									,vQueue);
-						else
-							fklPushPtrQueue(newPrtElem(PRT_CAR,v->u.vec->base[i])
-									,vQueue);
-					}
-					fklPushPtrStack(vQueue,queueStack);
-					cQueue=vQueue;
-					continue;
-				}
 				else
 				{
 					for(uint32_t i=0;i<recStack->top;i++)
@@ -668,42 +645,69 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 							fprintf(fp,"#%u=",i);
 							break;
 						}
-					fputc('(',fp);
-					FklPtrQueue* lQueue=fklNewPtrQueue();
-					FklVMpair* p=v->u.pair;
-					for(;;)
+					if(FKL_IS_VECTOR(v))
 					{
-						PrtElem* ce=NULL;
-						size_t w=0;
-						if(isInStack(p->car,recStack,&w))
-							ce=newPrtElem(PRT_REC_CAR,(void*)w);
-						else
-							ce=newPrtElem(PRT_CAR,p->car);
-						fklPushPtrQueue(ce,lQueue);
-						if(isInStack(p->cdr,recStack,&w))
+						fputs("#(",fp);
+						FklPtrQueue* vQueue=fklNewPtrQueue();
+						for(size_t i=0;i<v->u.vec->size;i++)
 						{
-							PrtElem* cdre=NULL;
-							if(p->cdr!=v)
-								cdre=newPrtElem(PRT_CDR,p->cdr);
+							size_t w=0;
+							if(isInStack(v->u.vec->base[i],recStack,&w)&&v->u.vec->base[i]==v)
+								fklPushPtrQueue(newPrtElem(PRT_REC_CAR,(void*)w)
+										,vQueue);
 							else
-								cdre=newPrtElem(PRT_REC_CDR,(void*)w);
-							fklPushPtrQueue(cdre,lQueue);
-							break;
+								fklPushPtrQueue(newPrtElem(PRT_CAR,v->u.vec->base[i])
+										,vQueue);
 						}
-						FklVMpair* next=FKL_IS_PAIR(p->cdr)?p->cdr->u.pair:NULL;
-						if(!next)
-						{
-							FklVMvalue* cdr=p->cdr;
-							if(cdr!=FKL_VM_NIL)
-								fklPushPtrQueue(newPrtElem(PRT_CDR,cdr),lQueue);
-							break;
-						}
-						p=next;
+						fklPushPtrStack(vQueue,queueStack);
+						cQueue=vQueue;
+						continue;
 					}
-					fklPushPtrStack(lQueue,queueStack);
-					cQueue=lQueue;
-					continue;
+					else
+					{
+						fputc('(',fp);
+						FklPtrQueue* lQueue=fklNewPtrQueue();
+						FklVMpair* p=v->u.pair;
+						for(;;)
+						{
+							PrtElem* ce=NULL;
+							size_t w=0;
+							if(isInStack(p->car,recStack,&w)&&(isInStack(p->car,hasPrintRecStack,&w)||p->car==v))
+								ce=newPrtElem(PRT_REC_CAR,(void*)w);
+							else
+							{
+								ce=newPrtElem(PRT_CAR,p->car);
+								fklPushPtrStack(p->car,hasPrintRecStack);
+							}
+							fklPushPtrQueue(ce,lQueue);
+							if(isInStack(p->cdr,recStack,&w))
+							{
+								PrtElem* cdre=NULL;
+								if(p->cdr!=v&&!isInStack(p->cdr,hasPrintRecStack,NULL))
+									cdre=newPrtElem(PRT_CDR,p->cdr);
+								else
+								{
+									cdre=newPrtElem(PRT_REC_CDR,(void*)w);
+								}
+								fklPushPtrQueue(cdre,lQueue);
+								break;
+							}
+							FklVMpair* next=FKL_IS_PAIR(p->cdr)?p->cdr->u.pair:NULL;
+							if(!next)
+							{
+								FklVMvalue* cdr=p->cdr;
+								if(cdr!=FKL_VM_NIL)
+									fklPushPtrQueue(newPrtElem(PRT_CDR,cdr),lQueue);
+								break;
+							}
+							p=next;
+						}
+						fklPushPtrStack(lQueue,queueStack);
+						cQueue=lQueue;
+						continue;
+					}
 				}
+				
 			}
 			if(fklLengthPtrQueue(cQueue)
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_CDR
@@ -724,6 +728,7 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 	}
 	fklFreePtrStack(queueStack);
 	fklFreePtrStack(recStack);
+	fklFreePtrStack(hasPrintRecStack);
 }
 
 FklVMvalue* fklGET_VAL(FklVMvalue* P,FklVMheap* heap)

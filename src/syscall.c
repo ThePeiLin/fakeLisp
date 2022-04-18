@@ -1530,6 +1530,8 @@ void SYS_dlsym(FklVM* exe,pthread_rwlock_t* gclock)
 		FKL_RAISE_BUILTIN_ERROR("sys.dlsym",FKL_TOOFEWARG,runnable,exe);
 	if(!FKL_IS_STR(symbol)||!FKL_IS_DLL(dll))
 		FKL_RAISE_BUILTIN_ERROR("sys.dlsym",FKL_WRONGARG,runnable,exe);
+	if(!dll->u.dll)
+		FKL_RAISE_BUILTIN_ERROR("sys.dlsym",FKL_INVALIDACCESS,runnable,exe);
 	char prefix[]="FKL_";
 	size_t len=strlen(prefix)+strlen(symbol->u.str)+1;
 	char* realDlFuncName=(char*)malloc(sizeof(char)*len);

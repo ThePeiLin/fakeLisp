@@ -3,7 +3,6 @@
 #include"symbol.h"
 #include"basicADT.h"
 #include"ast.h"
-#include"deftype.h"
 #include"bytecode.h"
 
 #ifdef __cplusplus
@@ -34,7 +33,6 @@ typedef struct FklPreMacro
 {
 	FklAstCptr* pattern;
 	FklByteCodelnt* proc;
-	FklDefTypes* deftypes;
 	struct FklPreMacro* next;
 	struct FklCompEnv* macroEnv;
 }FklPreMacro;

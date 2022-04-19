@@ -534,11 +534,21 @@ FklErrorState defmacro(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* in
 		}
 		FklAstCptr* pattern=fklNewCptr(0,NULL);
 		fklReplaceCptr(pattern,args[0]);
+		head=fklGetFirstCptr(pattern);
+		if(curEnv->prev
+				&&curEnv->prev->exp
+				&&curEnv->prev->prefix)
+		{
+			char* t=fklCopyStr(curEnv->prev->prefix);
+			t=fklStrCat(t,head->u.atom->value.str);
+			free(head->u.atom->value.str);
+			head->u.atom->value.str=t;
+		}
 		FklAstCptr* express=args[1];
 		FklInterpreter* tmpInter=fklNewTmpIntpr(NULL,NULL);
 		tmpInter->filename=inter->filename;
 		tmpInter->curline=inter->curline;
-		tmpInter->glob=/*(curEnv->prev&&curEnv->prev->exp)?curEnv->prev:*/curEnv;
+		tmpInter->glob=curEnv;
 		tmpInter->curDir=inter->curDir;
 		tmpInter->prev=NULL;
 		tmpInter->lnt=NULL;
@@ -2577,33 +2587,10 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 		}
 		strcat(path,postfix);
 		FILE* fp=fopen(path,"r");
-		//if(!fp)
-		//{
-		//	char t[]="lib/";
-		//	size_t len=strlen(InterpreterPath)+strlen(t)+strlen(path)+2;
-		//	char* pathWithInterpreterPath=(char*)malloc(sizeof(char)*len);
-		//	FKL_ASSERT(pathWithInterpreterPath,__func__);
-		//	sprintf(pathWithInterpreterPath,"%s/%s%s",InterpreterPath,t,path);
-		//	fp=fopen(pathWithInterpreterPath,"r");
-		//	if(!fp)
-		//	{
-		//		fprintf(stderr,"In file \"%s\" line %d\n");
-		//		perror(path);
-		//		free(pathWithInterpreterPath);
-		//		free(path);
-		//		fklFreeMemMenager(memMenager);
-		//		return NULL;
-		//	}
-		//	sprintf(pathWithInterpreterPath,"%s%s",t,path);
-		//	free(path);
-		//	path=pathWithInterpreterPath;
-		//}
 		if(!fp)
 		{
 			state->state=FKL_IMPORTFAILED;
 			state->place=pairOfpPartsOfPath;
-			//fprintf(stderr,"In file \"%s\" line %d\n");
-			//perror(path);
 			free(path);
 			fklFreeMemMenager(memMenager);
 			return NULL;
@@ -2644,10 +2631,10 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 				switch(unexpectEOF)
 				{
 					case 1:
-						fprintf(stderr,"error of reader:Unexpect EOF at line %d of %s\n",inter->curline,inter->filename);
+						fprintf(stderr,"error of reader:Unexpect EOF at line %d of %s\n",tmpInter->curline,tmpInter->filename);
 						break;
 					case 2:
-						fprintf(stderr,"error of reader:Invalid expression at line %d of %s\n",inter->curline,inter->filename);
+						fprintf(stderr,"error of reader:Invalid expression at line %d of %s\n",tmpInter->curline,tmpInter->filename);
 						break;
 				}
 				free(list);
@@ -2655,7 +2642,6 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 			}
 			begin=fklCreateAstWithTokens(tokenStack,tmpInter->filename,tmpInter->glob);
 			tmpInter->curline+=fklCountChar(list,'\n',size);
-			//begin=fklCreateTree(list,tmpInter,NULL);
 			if(fklIsAllSpaceBufSize(list,size))
 			{
 				while(!fklIsPtrStackEmpty(tokenStack))
@@ -2788,17 +2774,16 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 							fklDeleteMem(libByteCodelnt,memMenager);
 							fklFreeByteCodelnt(libByteCodelnt);
 							libByteCodelnt=NULL;
-							FklByteCode* pushProc=fklNewByteCode(sizeof(char)+sizeof(tmp->bc->size));
-							pushProc->code[0]=FKL_PUSH_PROC;
-							fklSetU64ToByteCode(pushProc->code+sizeof(char),tmp->bc->size);
-							fklReCodeCat(pushProc,tmp->bc);
-							FKL_INCREASE_ALL_SCP(tmp->l,tmp->ls-1,pushProc->size);
-							fklFreeByteCode(pushProc);
-							FklByteCode* invoke=fklNewByteCode(sizeof(char));
-							invoke->code[0]=FKL_INVOKE;
-							fklCodeCat(tmp->bc,invoke);
-							tmp->l[tmp->ls-1]->cpc+=invoke->size;
-							fklFreeByteCode(invoke);
+							FklByteCode* pushREnv=fklNewByteCode(sizeof(char));
+							FklByteCode* popREnv=fklNewByteCode(sizeof(char));
+							pushREnv->code[0]=FKL_PUSH_R_ENV;
+							popREnv->code[0]=FKL_POP_R_ENV;
+							fklReCodeCat(pushREnv,tmp->bc);
+							FKL_INCREASE_ALL_SCP(tmp->l,tmp->ls-1,pushREnv->size);
+							fklCodeCat(tmp->bc,popREnv);
+							tmp->l[tmp->ls-1]->cpc+=popREnv->size;
+							fklFreeByteCode(pushREnv);
+							fklFreeByteCode(popREnv);
 						}
 						FklAstCptr* pExportSymbols=fklNextCptr(fklGetFirstCptr(exportCptr));
 						for(;pExportSymbols;pExportSymbols=fklNextCptr(pExportSymbols))

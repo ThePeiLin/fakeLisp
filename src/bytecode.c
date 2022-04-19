@@ -1,7 +1,6 @@
 #include<fakeLisp/bytecode.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/opcode.h>
-#include<fakeLisp/deftype.h>
 #include<fakeLisp/symbol.h>
 #include<string.h>
 #include<stdlib.h>

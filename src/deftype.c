@@ -1,7 +1,7 @@
-#include<fakeLisp/deftype.h>
 #include<fakeLisp/utils.h>
 #include<string.h>
 #include<stdlib.h>
+#include"deftype.h"
 
 static FklTypeId_t LastNativeTypeId=0;
 static FklTypeId_t CharTypeId=0;

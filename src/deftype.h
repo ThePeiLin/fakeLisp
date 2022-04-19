@@ -1,7 +1,7 @@
-#ifndef FKL_DEFTYPE_H
-#define FKL_DEFTYPE_H
-#include"symbol.h"
-#include"ast.h"
+#ifndef FKL_FFI_H
+#define FKL_FFI_H
+#include<fakeLisp/symbol.h>
+#include<fakeLisp/ast.h>
 #include<stddef.h>
 
 #ifdef __cplusplus

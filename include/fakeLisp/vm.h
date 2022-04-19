@@ -2,7 +2,6 @@
 #define FKL_VM_H
 
 #include"basicADT.h"
-#include"deftype.h"
 #include"bytecode.h"
 #include"compiler.h"
 #include<stdio.h>

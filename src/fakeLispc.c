@@ -38,9 +38,9 @@ int main(int argc,char** argv)
 #else
 		char* rp=realpath(filename,0);
 #endif
-		FklInterpreter* inter=fklNewIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
+		FklInterpreter* inter=fklNewIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL);
 		fklInitGlobKeyWord(inter->glob);
-		fklInitNativeDefTypes(inter->deftypes);
+		//fklInitNativeDefTypes(inter->deftypes);
 		//fklInitBuiltInStringPattern();
 		fklAddSymbolToGlob(argv[1]);
 		int state;
@@ -52,9 +52,9 @@ int main(int argc,char** argv)
 			fklFreeIntpr(inter);
 			fklUninitPreprocess();
 			fklFreeInterpeterPath();
-			fklFreeAllSharedObj();
+			//fklFreeAllSharedObj();
 			fklFreeGlobSymbolTable();
-			fklFreeGlobTypeList();
+			//fklFreeGlobTypeList();
 			return state;
 		}
 		fklPrintUndefinedSymbol(mainByteCode);
@@ -70,16 +70,16 @@ int main(int argc,char** argv)
 			fklFreeIntpr(inter);
 			fklUninitPreprocess();
 			fklFreeInterpeterPath();
-			fklFreeAllSharedObj();
+			//fklFreeAllSharedObj();
 			fklFreeGlobSymbolTable();
-			fklFreeGlobTypeList();
+			//fklFreeGlobTypeList();
 			return EXIT_FAILURE;
 		}
 		inter->lnt->list=mainByteCode->l;
 		inter->lnt->num=mainByteCode->ls;
 		fklWriteGlobSymbolTable(outfp);
 		fklWriteLineNumberTable(inter->lnt,outfp);
-		fklWriteTypeList(outfp);
+		//fklWriteTypeList(outfp);
 		uint64_t sizeOfMain=mainByteCode->bc->size;
 		uint8_t* code=mainByteCode->bc->code;
 		fwrite(&sizeOfMain,sizeof(mainByteCode->bc->size),1,outfp);
@@ -90,9 +90,9 @@ int main(int argc,char** argv)
 		fklFreeIntpr(inter);
 		fklUninitPreprocess();
 		fklFreeInterpeterPath();
-		fklFreeAllSharedObj();
+		//fklFreeAllSharedObj();
 		fklFreeGlobSymbolTable();
-		fklFreeGlobTypeList();
+		//fklFreeGlobTypeList();
 		free(outputname);
 		free(rp);
 	}

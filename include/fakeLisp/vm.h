@@ -267,7 +267,6 @@ void fklGC_compact(FklVMheap*);
 void fklDBG_printVMenv(FklVMenv*,FILE*);
 void fklDBG_printVMvalue(FklVMvalue*,FILE*);
 void fklDBG_printVMstack(FklVMstack*,FILE*,int);
-void fklFreeAllSharedObj(void);
 
 FklVMvalue* fklGET_VAL(FklVMvalue* P,FklVMheap*);
 int fklSET_REF(FklVMvalue* P,FklVMvalue* V);

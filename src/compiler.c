@@ -2370,16 +2370,17 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 							fklDeleteMem(libByteCodelnt,memMenager);
 							fklFreeByteCodelnt(libByteCodelnt);
 							libByteCodelnt=NULL;
-							FklByteCode* pushREnv=fklNewByteCode(sizeof(char));
-							FklByteCode* popREnv=fklNewByteCode(sizeof(char));
-							pushREnv->code[0]=FKL_PUSH_R_ENV;
-							popREnv->code[0]=FKL_POP_R_ENV;
-							fklReCodeCat(pushREnv,tmp->bc);
-							FKL_INCREASE_ALL_SCP(tmp->l,tmp->ls-1,pushREnv->size);
-							fklCodeCat(tmp->bc,popREnv);
-							tmp->l[tmp->ls-1]->cpc+=popREnv->size;
-							fklFreeByteCode(pushREnv);
-							fklFreeByteCode(popREnv);
+							FklByteCode* pushProc=fklNewByteCode(sizeof(char)+sizeof(tmp->bc->size));
+							pushProc->code[0]=FKL_PUSH_PROC;
+							fklSetU64ToByteCode(pushProc->code+sizeof(char),tmp->bc->size);
+							fklReCodeCat(pushProc,tmp->bc);
+							FKL_INCREASE_ALL_SCP(tmp->l,tmp->ls-1,pushProc->size);
+							fklFreeByteCode(pushProc);
+							FklByteCode* invoke=fklNewByteCode(sizeof(char));
+							invoke->code[0]=FKL_INVOKE;
+							fklCodeCat(tmp->bc,invoke);
+							tmp->l[tmp->ls-1]->cpc+=invoke->size;
+							fklFreeByteCode(invoke);
 						}
 						FklAstCptr* pExportSymbols=fklNextCptr(fklGetFirstCptr(exportCptr));
 						for(;pExportSymbols;pExportSymbols=fklNextCptr(pExportSymbols))

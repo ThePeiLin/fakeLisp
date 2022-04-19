@@ -22,6 +22,7 @@ typedef enum
 	FKL_SYM_TAG,
 	FKL_CHR_TAG,
 	FKL_REF_TAG,
+	FKL_MREF_TAG,
 }FklVMptrTag;
 
 #ifdef _WIN32
@@ -94,7 +95,6 @@ typedef struct FklVMvalue
 		double f64;
 		int64_t i64;
 		char* str;
-		struct FklVMmref* ref;
 		struct FklVMbyts* byts;
 		struct FklVMproc* proc;
 		FklVMdllHandle dll;
@@ -395,6 +395,8 @@ char** fklGetVMargv(void);
 
 FklVMmref* fklNewVMmref(size_t size,void* ptr);
 void fklFreeVMmref(FklVMmref*);
+
+FklVMvalue* fklPopAndGetVMstack(FklVMstack* stack);
 #ifdef __cplusplus
 }
 #endif

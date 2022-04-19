@@ -44,7 +44,7 @@ void FKL_sleep(FklVM* exe,pthread_rwlock_t* pGClock)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
-	FklVMvalue* second=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	FklVMvalue* second=fklPopAndGetVMstack(stack);
 	if(!second)
 		FKL_RAISE_BUILTIN_ERROR("btk.sleep",FKL_TOOFEWARG,r,exe);
 	if(fklResBp(stack))
@@ -60,7 +60,7 @@ void FKL_sleep(FklVM* exe,pthread_rwlock_t* pGClock)
 void FKL_usleep(FklVM* exe,pthread_rwlock_t* pGClock)
 {
 	FklVMstack* stack=exe->stack;
-	FklVMvalue* second=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	FklVMvalue* second=fklPopAndGetVMstack(stack);
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
 	if(!second)
 		FKL_RAISE_BUILTIN_ERROR("btk.usleep",FKL_TOOFEWARG,r,exe);
@@ -88,7 +88,7 @@ void FKL_rand(FklVM* exe,pthread_rwlock_t* pGClock)
 		hasSrand=1;
 	}
 	FklVMstack* stack=exe->stack;
-	FklVMvalue*  lim=fklGET_VAL(fklPopVMstack(stack),exe->heap);
+	FklVMvalue*  lim=fklPopAndGetVMstack(stack);
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
 	if(fklResBp(stack))
 		FKL_RAISE_BUILTIN_ERROR("btk.rand",FKL_TOOMANYARG,r,exe);

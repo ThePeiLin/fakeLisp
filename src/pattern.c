@@ -142,7 +142,7 @@ FklStringMatchPattern* fklNewFStringMatchPattern(int32_t num,char** parts,void(*
 {
 	FklStringMatchPattern* tmp=(FklStringMatchPattern*)malloc(sizeof(FklStringMatchPattern));
 	FKL_ASSERT(tmp,__func__);
-	tmp->type=FKL_FLPROC;
+	tmp->type=FKL_DLPROC;
 	tmp->num=num;
 	tmp->parts=parts;
 	tmp->reserveCharNum=countReverseCharNum(num,parts);

@@ -751,7 +751,7 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 		fklInitVMRunningResource(tmpVM,stringPatternEnv,tmpVM->heap,t,start,pattern->u.bProc->bc->size);
 		int state=fklRunVM(tmpVM);
 		if(!state)
-			retval=fklCastVMvalueToCptr(fklGET_VAL(tmpVM->stack->values[0],tmpVM->heap),curline);
+			retval=fklCastVMvalueToCptr(fklPopAndGetVMstack(tmpVM->stack),curline);
 		else
 		{
 			fklFreeVMenv(tmpGlobEnv);
@@ -769,14 +769,14 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 		fklFreeVMheap(tmpVM->heap);
 		fklUninitVMRunningResource(tmpVM);
 	}
-	else if(pattern->type==FKL_FLPROC)
+	else if(pattern->type==FKL_DLPROC)
 	{
 		FklVMenv* stringPatternEnv=fklCastPreEnvToVMenv(tmpEnv,NULL,tmpVM->heap);
 		FklVMrunnable* mainrunnable=fklNewVMrunnable(NULL);
 		mainrunnable->localenv=stringPatternEnv;
 		fklPushPtrStack(mainrunnable,tmpVM->rstack);
 		pattern->u.fProc(tmpVM);
-		retval=fklCastVMvalueToCptr(fklGET_VAL(tmpVM->stack->values[0],tmpVM->heap),curline);
+		retval=fklCastVMvalueToCptr(fklPopAndGetVMstack(tmpVM->stack),curline);
 		free(mainrunnable);
 		fklFreeVMenv(stringPatternEnv);
 		fklFreeVMheap(tmpVM->heap);

@@ -110,7 +110,6 @@ static const char* builtInSymbolList[]=
 	"procedure?",
 	"proc?",
 	"dlproc?",
-	"flproc?",
 	"vector?",
 	"chanl?",
 	"dll?",

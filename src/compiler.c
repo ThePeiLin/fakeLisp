@@ -114,7 +114,7 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 		int i=fklRunVM(tmpVM);
 		if(!i)
 		{
-			tmpCptr=fklCastVMvalueToCptr(fklGET_VAL(tmpVM->stack->values[0],tmpVM->heap),objCptr->curline);
+			tmpCptr=fklCastVMvalueToCptr(fklPopAndGetVMstack(tmpVM->stack),objCptr->curline);
 			if(!tmpCptr)
 			{
 				if(inter->filename)

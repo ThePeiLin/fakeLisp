@@ -23,6 +23,24 @@ FklVMvalue* fklPopVMstack(FklVMstack* stack)
 	return tmp;
 }
 
+FklVMvalue* fklPopAndGetVMstack(FklVMstack* stack)
+{
+	if(!(stack->tp>stack->bp))
+		return NULL;
+	FklVMvalue* tmp=fklGetTopValue(stack);
+	stack->tp-=1;
+	if(FKL_IS_REF(tmp))
+		return *(FklVMvalue**)(FKL_GET_PTR(tmp));
+	if(FKL_IS_MREF(tmp))
+	{
+		void* ptr=fklGetTopValue(stack);
+		stack->tp-=1;
+		return FKL_MAKE_VM_CHR(*(char*)ptr);
+	}
+	else
+		return tmp;
+}
+
 FklVMenv* fklCastPreEnvToVMenv(FklPreEnv* pe,FklVMenv* prev,FklVMheap* heap)
 {
 	int32_t size=0;
@@ -145,6 +163,7 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 		fklFreeVMtryBlock(fklPopPtrStack(exe->tstack));
 	}
 	fprintf(stderr,"error of %s :%s",err->who,err->message);
+	//fklDBG_printVMstack(exe->stack,stderr,1);
 	void* i[3]={exe,(void*)255,(void*)1};
 	exe->callback(i);
 	return 255;
@@ -467,9 +486,6 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 					case FKL_STR:
 						fprintf(fp,"%s",v->u.str);
 						break;
-					case FKL_MREF:
-						fprintf(fp,"%c",*(char*)v->u.ref);
-						break;
 					case FKL_PROC:
 						if(v->u.proc->sid)
 							fprintf(fp,"<#proc: %s>",fklGetGlobSymbolWithId(v->u.proc->sid)->symbol);
@@ -537,9 +553,6 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 					break;
 				case FKL_STR:
 					fklPrintRawString(v->u.str,fp);
-					break;
-				case FKL_MREF:
-					fklPrintRawChar(*(char*)v->u.ref,fp);
 					break;
 				case FKL_PROC:
 					if(v->u.proc->sid)
@@ -719,31 +732,14 @@ FklVMvalue* fklGET_VAL(FklVMvalue* P,FklVMheap* heap)
 	{
 		if(FKL_IS_REF(P))
 			return *(FklVMvalue**)(FKL_GET_PTR(P));
-		else if(FKL_IS_MREF(P))
-		{
-			FklVMvalue* t=FKL_MAKE_VM_CHR(*(char*)P->u.ref->ptr);
-			return t;
-		}
 		return P;
 	}
 	return P;
 }
 
-static inline int64_t getInt(FklVMvalue* p)
-{
-	return FKL_IS_I32(p)?FKL_GET_I32(p):p->u.i64;
-}
-
 int fklSET_REF(FklVMvalue* P,FklVMvalue* V)
 {
-	if(FKL_IS_MREF(P))
-	{
-		if(!FKL_IS_CHR(V)&&!FKL_IS_I32(V)&&!FKL_IS_I64(V))
-			return 1;
-		*(char*)P->u.ref->ptr=FKL_IS_CHR(V)?FKL_GET_CHR(V):getInt(V);
-		return 0;
-	}
-	else if(FKL_IS_REF(P))
+	if(FKL_IS_REF(P))
 	{
 		*(FklVMvalue**)FKL_GET_PTR(P)=V;
 		return 0;
@@ -921,10 +917,6 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 								case FKL_ERR:
 									tmpAtm->type=FKL_SYM;
 									tmpAtm->value.str=fklCopyStr("#<err>");
-									break;
-								case FKL_MREF:
-									tmpAtm->type=FKL_SYM;
-									tmpAtm->value.str=fklCopyStr("#<ref>");
 									break;
 								case FKL_VECTOR:
 									tmpAtm->type=FKL_VECTOR;

@@ -180,12 +180,8 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 						tmp->u.dll=pValue;break;
 					case FKL_DLPROC:
 						tmp->u.dlproc=pValue;break;
-					case FKL_FLPROC:
-						tmp->u.flproc=pValue;break;
 					case FKL_ERR:
 						tmp->u.err=pValue;break;
-					case FKL_MREF:
-						tmp->u.ref=pValue;break;
 					case FKL_VECTOR:
 						tmp->u.vec=pValue;break;
 					default:

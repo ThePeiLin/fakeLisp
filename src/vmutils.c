@@ -467,18 +467,8 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 					case FKL_STR:
 						fprintf(fp,"%s",v->u.str);
 						break;
-					case FKL_MEM:
-					case FKL_CHF:
-						{
-							FklVMmem* mem=v->u.chf;
-							FklTypeId_t type=mem->type;
-							if(fklIsNativeTypeId(type))
-								fklPrintMemoryRef(type,mem,fp);
-							else if(FKL_IS_CHF(v))
-								fprintf(fp,"<#memref at %p>",mem->mem);
-							else
-								fprintf(fp,"<#mem at %p>",mem->mem);
-						}
+					case FKL_MREF:
+						fprintf(fp,"%c",*(char*)v->u.ref);
 						break;
 					case FKL_PROC:
 						if(v->u.proc->sid)
@@ -506,12 +496,6 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 							fprintf(fp,"<#dlproc: %s>",fklGetGlobSymbolWithId(v->u.dlproc->sid)->symbol);
 						else
 							fprintf(fp,"<#dlproc>");
-						break;
-					case FKL_FLPROC:
-						if(v->u.flproc->sid)
-							fprintf(fp,"<#flproc: %s>",fklGetGlobSymbolWithId(v->u.flproc->sid)->symbol);
-						else
-							fprintf(fp,"<#flproc>");
 						break;
 					case FKL_ERR:
 						fprintf(fp,"%s",v->u.err->message);
@@ -554,18 +538,8 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 				case FKL_STR:
 					fklPrintRawString(v->u.str,fp);
 					break;
-				case FKL_MEM:
-				case FKL_CHF:
-					{
-						FklVMmem* mem=v->u.chf;
-						FklTypeId_t type=mem->type;
-						if(fklIsNativeTypeId(type))
-							fklPrintMemoryRef(type,mem,fp);
-						else if(FKL_IS_CHF(v))
-							fprintf(fp,"<#memref at %p>",mem->mem);
-						else
-							fprintf(fp,"<#mem at %p>",mem->mem);
-					}
+				case FKL_MREF:
+					fklPrintRawChar(*(char*)v->u.ref,fp);
 					break;
 				case FKL_PROC:
 					if(v->u.proc->sid)
@@ -595,13 +569,6 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 								,fklGetGlobSymbolWithId(v->u.dlproc->sid)->symbol);
 					else
 						fputs("#<dlproc>",fp);
-					break;
-				case FKL_FLPROC:
-					if(v->u.flproc->sid)
-						fprintf(fp,"#<flproc: %s>"
-								,fklGetGlobSymbolWithId(v->u.flproc->sid)->symbol);
-					else
-						fputs("#<flproc>",fp);
 					break;
 				case FKL_ERR:
 					fprintf(fp,"#<err w:%s t:%s m:%s>"
@@ -752,14 +719,9 @@ FklVMvalue* fklGET_VAL(FklVMvalue* P,FklVMheap* heap)
 	{
 		if(FKL_IS_REF(P))
 			return *(FklVMvalue**)(FKL_GET_PTR(P));
-		else if(FKL_IS_CHF(P))
+		else if(FKL_IS_MREF(P))
 		{
-			FklVMvalue* t=NULL;
-			FklVMmem* mem=P->u.chf;
-			if(fklIsNativeTypeId(mem->type))
-				t=fklMemoryCast(mem->type,mem,heap);
-			else
-				t=P;
+			FklVMvalue* t=FKL_MAKE_VM_CHR(*(char*)P->u.ref->ptr);
 			return t;
 		}
 		return P;
@@ -774,33 +736,11 @@ static inline int64_t getInt(FklVMvalue* p)
 
 int fklSET_REF(FklVMvalue* P,FklVMvalue* V)
 {
-	if(FKL_IS_MEM(P)||FKL_IS_CHF(P))
+	if(FKL_IS_MREF(P))
 	{
-		FklVMmem* mem=P->u.chf;
-		if(mem->type<=0)
+		if(!FKL_IS_CHR(V)&&!FKL_IS_I32(V)&&!FKL_IS_I64(V))
 			return 1;
-		else if(!fklIsNativeTypeId(mem->type))
-		{
-			if(fklIsPtrTypeId(mem->type)&&(FKL_IS_MEM(V)||FKL_IS_CHF(V)))
-			{
-				if((FKL_IS_MEM(V)||FKL_IS_CHF(V)))
-				{
-					FklVMmem* t=V->u.chf;
-					*(void**)(mem->mem)=t->mem;
-					return 0;
-				}
-				else if(FKL_IS_I32(V)||FKL_IS_I64(V))
-				{
-					*(void**)(mem->mem)=(void*)getInt(V);
-					return 0;
-				}
-			}
-			if(!FKL_IS_I32(V)&&!FKL_IS_I64(V))
-				return 1;
-			*(void**)(mem->mem)=(uint8_t*)(FKL_IS_I32(V)?FKL_GET_I32(V):V->u.i64);
-		}
-		else if(fklMemorySet(mem->type,mem,V))
-			return 1;
+		*(char*)P->u.ref->ptr=FKL_IS_CHR(V)?FKL_GET_CHR(V):getInt(V);
 		return 0;
 	}
 	else if(FKL_IS_REF(P))
@@ -919,7 +859,7 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 				cptrType=FKL_NIL;
 			else if(FKL_IS_PAIR(root))
 				cptrType=FKL_PAIR;
-			else if(!FKL_IS_REF(root)&&!FKL_IS_CHF(root))
+			else if(!FKL_IS_REF(root)&&!FKL_IS_MREF(root))
 				cptrType=FKL_ATM;
 			root1->type=cptrType;
 			if(cptrType==FKL_ATM)
@@ -982,11 +922,7 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 									tmpAtm->type=FKL_SYM;
 									tmpAtm->value.str=fklCopyStr("#<err>");
 									break;
-								case FKL_MEM:
-									tmpAtm->type=FKL_SYM;
-									tmpAtm->value.str=fklCopyStr("#<mem>");
-									break;
-								case FKL_CHF:
+								case FKL_MREF:
 									tmpAtm->type=FKL_SYM;
 									tmpAtm->value.str=fklCopyStr("#<ref>");
 									break;

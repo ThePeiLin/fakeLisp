@@ -7,6 +7,8 @@ static FklTypeId_t LastNativeTypeId=0;
 static FklTypeId_t CharTypeId=0;
 static FklTypeId_t StringTypeId=0;
 static FklTypeId_t FILEpTypeId=0;
+pthread_mutex_t GlobSharedObjsMutex=PTHREAD_MUTEX_INITIALIZER;
+FklSharedObjNode* GlobSharedObjs=NULL;
 
 static int isNativeType(FklSid_t typeName,FklDefTypes* otherTypes);
 struct GlobTypeUnionListStruct
@@ -14,6 +16,70 @@ struct GlobTypeUnionListStruct
 	FklTypeId_t num;
 	FklDefTypeUnion* ul;
 } GlobTypeUnionList={0,NULL};
+
+/*void ptr to FklVMvalue caster*/
+#define ARGL uintptr_t p,FklVMheap* heap
+#define CAST_TO_I32 return FKL_MAKE_VM_I32(p);
+#define CAST_TO_I64 return fklNewVMvalue(FKL_I64,&p,heap);
+FklVMvalue* castShortVp    (ARGL){CAST_TO_I32}
+FklVMvalue* castIntVp      (ARGL){CAST_TO_I32}
+FklVMvalue* castUShortVp   (ARGL){CAST_TO_I32}
+FklVMvalue* castUintVp     (ARGL){CAST_TO_I32}
+FklVMvalue* castLongVp     (ARGL){CAST_TO_I64}
+FklVMvalue* castULongVp    (ARGL){CAST_TO_I64}
+FklVMvalue* castLLongVp    (ARGL){CAST_TO_I64}
+FklVMvalue* castULLongVp   (ARGL){CAST_TO_I64}
+FklVMvalue* castPtrdiff_tVp(ARGL){CAST_TO_I64}
+FklVMvalue* castSize_tVp   (ARGL){CAST_TO_I64}
+FklVMvalue* castSsize_tVp  (ARGL){CAST_TO_I64}
+FklVMvalue* castCharVp     (ARGL){return FKL_MAKE_VM_CHR(p);}
+FklVMvalue* castWchar_tVp  (ARGL){CAST_TO_I32}
+FklVMvalue* castFloatVp    (ARGL){return fklNewVMvalue(FKL_F64,&p,heap);}
+FklVMvalue* castDoubleVp   (ARGL){return fklNewVMvalue(FKL_F64,&p,heap);}
+FklVMvalue* castInt8_tVp   (ARGL){CAST_TO_I32}
+FklVMvalue* castUint8_tVp  (ARGL){CAST_TO_I32}
+FklVMvalue* castInt16_tVp  (ARGL){CAST_TO_I32}
+FklVMvalue* castUint16_tVp (ARGL){CAST_TO_I32}
+FklVMvalue* castInt32_t    (ARGL){CAST_TO_I32}
+FklVMvalue* castUint32_tVp (ARGL){CAST_TO_I32}
+FklVMvalue* castInt64_tVp  (ARGL){CAST_TO_I64}
+FklVMvalue* castUint64_tVp (ARGL){CAST_TO_I64}
+FklVMvalue* castIptrVp     (ARGL){CAST_TO_I64}
+FklVMvalue* castUptrVp     (ARGL){CAST_TO_I64}
+//FklVMvalue* castVptrVp     (ARGL){return fklNewVMvalue(FKL_MEM,fklNewVMmem(0,FKL_MEM_ATOMIC,(uint8_t*)p),heap);}
+#undef CAST_TO_I32
+#undef CAST_TO_I64
+static FklVMvalue* (*castVptrToVMvalueFunctionsList[])(ARGL)=
+{
+	castShortVp    ,
+	castIntVp      ,
+	castUShortVp   ,
+	castUintVp     ,
+	castLongVp     ,
+	castULongVp    ,
+	castLLongVp    ,
+	castULLongVp   ,
+	castPtrdiff_tVp,
+	castSize_tVp   ,
+	castSsize_tVp  ,
+	castCharVp     ,
+	castWchar_tVp  ,
+	castFloatVp    ,
+	castDoubleVp   ,
+	castInt8_tVp   ,
+	castUint8_tVp  ,
+	castInt16_tVp  ,
+	castUint16_tVp ,
+	castInt32_t    ,
+	castUint32_tVp ,
+	castInt64_tVp  ,
+	castUint64_tVp ,
+	castIptrVp     ,
+	castUptrVp     ,
+	//castVptrVp     ,
+};
+#undef ARGL
+/*--------------------------*/
 
 static void initVMStructTypeId(FklTypeId_t id,const char* structName,uint32_t num,FklSid_t* symbols,FklTypeId_t* memberTypes)
 {
@@ -1119,4 +1185,95 @@ FklTypeId_t fklGetStringTypeId(void)
 FklTypeId_t fklGetFILEpTypeId(void)
 {
 	return FILEpTypeId;
+}
+
+void invokeFlproc(FklVM* exe,FklVMflproc* flproc)
+{
+	FklTypeId_t type=flproc->type;
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* curR=fklTopPtrStack(exe->rstack);
+	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklGetVMTypeUnion(type).all);
+	uint32_t anum=ft->anum;
+	FklTypeId_t* atypes=ft->atypes;
+	uint32_t i=0;
+	FklTypeId_t rtype=ft->rtype;
+	FklVMvalue** args=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*anum);
+	FKL_ASSERT(args,__func__);
+	for(i=0;i<anum;i++)
+	{
+		FklVMvalue* v=fklPopVMstack(stack);
+		if(v==NULL)
+		{
+			free(args);
+			FKL_RAISE_BUILTIN_ERROR("flproc",FKL_TOOFEWARG,curR,exe);
+		}
+		if(FKL_IS_REF(v))
+			v=*(FklVMvalue**)v;
+		args[i]=v;
+	}
+	if(fklResBp(stack))
+	{
+		free(args);
+		FKL_RAISE_BUILTIN_ERROR("flproc",FKL_TOOMANYARG,curR,exe);
+	}
+	void** pArgs=(void**)malloc(sizeof(void*)*anum);
+	FKL_ASSERT(pArgs,__func__);
+	for(i=0;i<anum;i++)
+		if(fklCastValueToVptr(atypes[i],args[i],&pArgs[i]))
+		{
+			free(args);
+			free(pArgs);
+			FKL_RAISE_BUILTIN_ERROR("flproc",FKL_WRONGARG,curR,exe);
+		}
+	uintptr_t retval=0x0;
+	fklApplyFlproc(flproc,&retval,pArgs);
+	if(rtype!=0)
+	{
+		if(rtype==fklGetStringTypeId())
+			FKL_SET_RETURN("invokeFlproc",fklNewVMvalue(FKL_STR,(void*)retval,exe->heap),stack);
+		else if(fklIsFunctionTypeId(rtype))
+			FKL_SET_RETURN("invokeFlproc",fklNewVMvalue(FKL_FLPROC,fklNewVMflproc(rtype,(void*)retval),exe->heap),stack);
+		else if(rtype==fklGetFILEpTypeId())
+			FKL_SET_RETURN("invokeFlproc",fklNewVMvalue(FKL_FP,(void*)retval,exe->heap),stack);
+		else
+		{
+			FklTypeId_t t=(rtype>fklGetLastNativeTypeId())?fklGetLastNativeTypeId():rtype;
+			FKL_SET_RETURN("invokeFlproc",castVptrToVMvalueFunctionsList[t-1](retval,exe->heap),stack);
+		}
+	}
+	for(i=0;i<anum;i++)
+		free(pArgs[i]);
+	free(pArgs);
+	free(args);
+}
+
+void fklAddSharedObj(FklVMdllHandle handle)
+{
+	FklSharedObjNode* node=(FklSharedObjNode*)malloc(sizeof(FklSharedObjNode));
+	FKL_ASSERT(node,__func__);
+	node->dll=handle;
+	pthread_mutex_lock(&GlobSharedObjsMutex);
+	node->next=GlobSharedObjs;
+	GlobSharedObjs=node;
+	pthread_mutex_unlock(&GlobSharedObjsMutex);
+
+}
+
+void fklFreeAllSharedObj(void)
+{
+	FklSharedObjNode* head=GlobSharedObjs;
+	pthread_mutex_lock(&GlobSharedObjsMutex);
+	GlobSharedObjs=NULL;
+	pthread_mutex_unlock(&GlobSharedObjsMutex);
+	while(head)
+	{
+		FklSharedObjNode* prev=head;
+		head=head->next;
+#ifdef _WIN32
+		FreeLibrary(prev->dll);
+#else
+		dlclose(prev->dll);
+#endif
+		free(prev);
+	}
 }

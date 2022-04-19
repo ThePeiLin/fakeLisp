@@ -460,10 +460,6 @@ void fklInitGlobKeyWord(FklCompEnv* glob)
 	fklAddKeyWord("export",glob);
 	fklAddKeyWord("try",glob);
 	fklAddKeyWord("catch",glob);
-	fklAddKeyWord("deftype",glob);
-	fklAddKeyWord("getf",glob);
-	fklAddKeyWord("szof",glob);
-	fklAddKeyWord("flsym",glob);
 }
 
 void fklUninitPreprocess()
@@ -656,8 +652,8 @@ FklByteCodelnt* fklCompile(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter
 		if(fklIsDefExpression(objCptr))return fklCompileDef(objCptr,curEnv,inter,state);
 		if(fklIsSetqExpression(objCptr))return fklCompileSetq(objCptr,curEnv,inter,state);
 		if(fklIsSetfExpression(objCptr))return fklCompileSetf(objCptr,curEnv,inter,state);
-		if(fklIsGetfExpression(objCptr))return fklCompileGetf(objCptr,curEnv,inter,state);
-		if(fklIsSzofExpression(objCptr))return fklCompileSzof(objCptr,curEnv,inter,state);
+		//if(fklIsGetfExpression(objCptr))return fklCompileGetf(objCptr,curEnv,inter,state);
+		//if(fklIsSzofExpression(objCptr))return fklCompileSzof(objCptr,curEnv,inter,state);
 		if(fklIsCondExpression(objCptr))return fklCompileCond(objCptr,curEnv,inter,state);
 		if(fklIsAndExpression(objCptr))return fklCompileAnd(objCptr,curEnv,inter,state);
 		if(fklIsOrExpression(objCptr))return fklCompileOr(objCptr,curEnv,inter,state);
@@ -665,7 +661,7 @@ FklByteCodelnt* fklCompile(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter
 		if(fklIsBeginExpression(objCptr)) return fklCompileBegin(objCptr,curEnv,inter,state);
 		if(fklIsImportExpression(objCptr))return fklCompileImport(objCptr,curEnv,inter,state);
 		if(fklIsTryExpression(objCptr))return fklCompileTry(objCptr,curEnv,inter,state);
-		if(fklIsFlsymExpression(objCptr))return fklCompileFlsym(objCptr,curEnv,inter,state);
+		//if(fklIsFlsymExpression(objCptr))return fklCompileFlsym(objCptr,curEnv,inter,state);
 		if(fklIsLibraryExpression(objCptr))
 		{
 			FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
@@ -689,33 +685,6 @@ FklByteCodelnt* fklCompile(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter
 			{
 				state->state=t.state;
 				state->place=t.place;
-				return NULL;
-			}
-			FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
-			tmp->ls=1;
-			tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
-			FKL_ASSERT(tmp->l,__func__);
-			tmp->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename
-					,0
-					,0
-					,objCptr->curline);
-			return tmp;
-		}
-		else if(fklIsDeftypeExpression(objCptr))
-		{
-			FklSid_t typeName=0;
-			FklTypeId_t type=fklGenDefTypes(objCptr,inter->deftypes,&typeName);
-			//FklDefTypeUnion type={.all=fklGenDefTypes(objCptr,inter->deftypes,&typeName).all};
-			if(!type)
-			{
-				state->state=FKL_INVALIDTYPEDEF;
-				state->place=objCptr;
-				return NULL;
-			}
-			if(fklAddDefTypes(inter->deftypes,typeName,type))
-			{
-				state->state=FKL_INVALIDTYPEDEF;
-				state->place=objCptr;
 				return NULL;
 			}
 			FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
@@ -1421,375 +1390,6 @@ FklByteCodelnt* fklCompileSetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 	}
 }
 
-FklByteCodelnt* fklCompileGetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state)
-{
-	FklAstCptr* fir=fklGetFirstCptr(objCptr);
-	FklAstCptr* typeCptr=fklNextCptr(fir);
-	FklAstCptr* pathCptr=fklNextCptr(typeCptr);
-	FklAstCptr* expressionCptr=fklNextCptr(pathCptr);
-	FklAstCptr* indexCptr=fklNextCptr(expressionCptr);
-	FklTypeId_t type=fklGenDefTypesUnion(typeCptr,inter->deftypes);
-	if(!(expressionCptr&&type!=0))
-	{
-		state->state=FKL_SYNTAXERROR;
-		state->place=objCptr;
-		return NULL;
-	}
-	FklDefTypeUnion typeUnion=fklGetVMTypeUnion(type);
-	if(FKL_GET_TYPES_TAG(typeUnion.all)!=FKL_DEF_FUNC_TYPE_TAG)
-	{
-		FklTypeId_t memberType=type;
-		int64_t offset=0;
-		FklByteCodelnt* tmp=NULL;
-		for(pathCptr=fklGetFirstCptr(pathCptr);pathCptr;pathCptr=fklNextCptr(pathCptr))
-		{
-			if(pathCptr->type!=FKL_ATM||(pathCptr->u.atom->type!=FKL_SYM&&pathCptr->u.atom->type!=FKL_I32&&pathCptr->u.atom->type!=FKL_I64))
-			{
-				state->state=FKL_SYNTAXERROR;
-				state->place=pathCptr;
-				return NULL;
-			}
-			else if(pathCptr->u.atom->type==FKL_I32||pathCptr->u.atom->type==FKL_I64)
-			{
-				size_t typeSize=fklGetVMTypeSizeWithTypeId(memberType);
-				offset+=typeSize*((pathCptr->u.atom->type==FKL_I32)?pathCptr->u.atom->value.i32:pathCptr->u.atom->value.i64);
-			}
-			else if(!strcmp(pathCptr->u.atom->value.str,"*"))
-			{
-				FklDefTypeUnion curTypeUnion=fklGetVMTypeUnion(memberType);
-				void* tmpPtr=FKL_GET_TYPES_PTR(curTypeUnion.all);
-				FklDefTypeTag tag=FKL_GET_TYPES_TAG(curTypeUnion.all);
-				FklTypeId_t defTypeId=0;
-				switch(tag)
-				{
-					case FKL_DEF_ARRAY_TYPE_TAG:
-						defTypeId=((FklDefArrayType*)tmpPtr)->etype;
-						break;
-					case FKL_DEF_PTR_TYPE_TAG:
-						defTypeId=((FklDefPtrType*)tmpPtr)->ptype;
-						break;
-					default:
-						state->state=FKL_CANTDEREFERENCE;
-						state->place=pathCptr;
-						if(tmp)
-							fklFreeByteCodeAndLnt(tmp);
-						return NULL;
-						break;
-				}
-				FklByteCodelnt* pushDefRef=fklNewByteCodelnt(fklNewByteCode(sizeof(char)+sizeof(int64_t)+sizeof(FklTypeId_t)));
-				pushDefRef->bc->code[0]=FKL_PUSH_DEF_REF;
-				fklSetI64ToByteCode(pushDefRef->bc->code+sizeof(char),offset);
-				fklSetSidToByteCode(pushDefRef->bc->code+sizeof(char)+sizeof(int64_t),defTypeId);
-				FklLineNumTabNode* n=fklNewLineNumTabNodeWithFilename(inter->filename,0,pushDefRef->bc->size,pathCptr->curline);
-				pushDefRef->ls=1;
-				pushDefRef->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
-				FKL_ASSERT(pushDefRef->l,__func__);
-				pushDefRef->l[0]=n;
-				offset=0;
-				memberType=defTypeId;
-				if(!tmp)
-					tmp=pushDefRef;
-				else
-				{
-					fklCodeLntCat(tmp,pushDefRef);
-					fklFreeByteCodelnt(pushDefRef);
-				}
-			}
-			else if(!strcmp(pathCptr->u.atom->value.str,"&"))
-			{
-				FklByteCodelnt* pushPtrRef=fklNewByteCodelnt(fklNewByteCode(sizeof(char)+sizeof(int64_t)+sizeof(FklTypeId_t)));
-				pushPtrRef->bc->code[0]=FKL_PUSH_PTR_REF;
-				FklTypeId_t ptrId=fklNewVMPtrType(memberType);
-				fklSetI64ToByteCode(pushPtrRef->bc->code+sizeof(char),offset);
-				fklSetSidToByteCode(pushPtrRef->bc->code+sizeof(char)+sizeof(int64_t),ptrId);
-				FklLineNumTabNode* n=fklNewLineNumTabNodeWithFilename(inter->filename,0,pushPtrRef->bc->size,pathCptr->curline);
-				pushPtrRef->ls=1;
-				pushPtrRef->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
-				FKL_ASSERT(pushPtrRef->l,__func__);
-				pushPtrRef->l[0]=n;
-				offset=0;
-				memberType=ptrId;
-				if(!tmp)
-					tmp=pushPtrRef;
-				else
-				{
-					fklCodeLntCat(tmp,pushPtrRef);
-					fklFreeByteCodelnt(pushPtrRef);
-				}
-			}
-			else
-			{
-				if(FKL_GET_TYPES_TAG(typeUnion.all)!=FKL_DEF_STRUCT_TYPE_TAG&&FKL_GET_TYPES_TAG(typeUnion.all)!=FKL_DEF_UNION_TYPE_TAG)
-				{
-					if(tmp)
-						fklFreeByteCodeAndLnt(tmp);
-					state->state=FKL_NOMEMBERTYPE;
-					state->place=typeCptr;
-					return NULL;
-				}
-				FklSid_t curPathNode=fklAddSymbolToGlob(pathCptr->u.atom->value.str)->id;
-				FklDefTypeUnion typeUnion=fklGetVMTypeUnion(memberType);
-				if(FKL_GET_TYPES_TAG(typeUnion.all)==FKL_DEF_STRUCT_TYPE_TAG)
-				{
-					FklDefStructType* structType=FKL_GET_TYPES_PTR(typeUnion.st);
-					uint32_t i=0;
-					uint32_t num=structType->num;
-					FklTypeId_t tmpType=0;
-					for(;i<num;i++)
-					{
-						size_t align=fklGetVMTypeAlign(fklGetVMTypeUnion(structType->layout[i].type));
-						if(offset%align)
-							offset+=align-offset%align;
-						if(structType->layout[i].memberSymbol==curPathNode)
-						{
-							tmpType=structType->layout[i].type;
-							break;
-						}
-						offset+=fklGetVMTypeSizeWithTypeId(structType->layout[i].type);
-					}
-					if(tmpType)
-						memberType=tmpType;
-					else
-					{
-						state->state=FKL_INVALIDMEMBER;
-						state->place=pathCptr;
-						if(tmp)
-							fklFreeByteCodeAndLnt(tmp);
-						return NULL;
-					}
-					FklAstCptr* next=fklNextCptr(pathCptr);
-					if(!next||(next->type==FKL_ATM&&next->u.atom->type==FKL_SYM&&(!strcmp(next->u.atom->value.str,"&")||!strcmp(next->u.atom->value.str,"*"))))
-					{
-						FklByteCodelnt* pushRef=fklNewByteCodelnt(fklNewByteCode(sizeof(char)+sizeof(int64_t)+sizeof(FklTypeId_t)));
-						pushRef->bc->code[0]=FKL_PUSH_REF;
-						fklSetI64ToByteCode(pushRef->bc->code+sizeof(char),offset);
-						fklSetSidToByteCode(pushRef->bc->code+sizeof(char)+sizeof(int64_t),memberType);
-						FklLineNumTabNode* n=fklNewLineNumTabNodeWithFilename(inter->filename,0,pushRef->bc->size,pathCptr->curline);
-						pushRef->ls=1;
-						pushRef->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
-						FKL_ASSERT(pushRef->l,__func__);
-						pushRef->l[0]=n;
-						if(!tmp)
-							tmp=pushRef;
-						else
-						{
-							fklCodeLntCat(tmp,pushRef);
-							fklFreeByteCodelnt(pushRef);
-						}
-						offset=0;
-					}
-				}
-				else
-				{
-					FklDefUnionType* unionType=FKL_GET_TYPES_PTR(typeUnion.st);
-					uint32_t i=0;
-					uint32_t num=unionType->num;
-					FklTypeId_t tmpType=0;
-					for(;i<num;i++)
-					{
-						if(unionType->layout[i].memberSymbol==curPathNode)
-						{
-							tmpType=unionType->layout[i].type;
-							break;
-						}
-					}
-					if(tmpType)
-						memberType=tmpType;
-					else
-					{
-						state->state=FKL_INVALIDMEMBER;
-						state->place=pathCptr;
-						if(tmp)
-							fklFreeByteCodeAndLnt(tmp);
-						return NULL;
-					}
-					FklAstCptr* next=fklNextCptr(pathCptr);
-					if(!next||(next->type==FKL_ATM&&next->u.atom->type==FKL_SYM&&(!strcmp(next->u.atom->value.str,"&")||!strcmp(next->u.atom->value.str,"*"))))
-					{
-						FklByteCodelnt* pushRef=fklNewByteCodelnt(fklNewByteCode(sizeof(char)+sizeof(int64_t)+sizeof(FklTypeId_t)));
-						pushRef->bc->code[0]=FKL_PUSH_REF;
-						fklSetI64ToByteCode(pushRef->bc->code+sizeof(char),offset);
-						fklSetSidToByteCode(pushRef->bc->code+sizeof(char)+sizeof(int64_t),memberType);
-						FklLineNumTabNode* n=fklNewLineNumTabNodeWithFilename(inter->filename,0,pushRef->bc->size,pathCptr->curline);
-						pushRef->ls=1;
-						pushRef->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
-						FKL_ASSERT(pushRef->l,__func__);
-						pushRef->l[0]=n;
-						if(!tmp)
-							tmp=pushRef;
-						else
-						{
-							fklCodeLntCat(tmp,pushRef);
-							fklFreeByteCodelnt(pushRef);
-						}
-						offset=0;
-					}
-				}
-			}
-		}
-		FklByteCodelnt* expression=fklCompile(expressionCptr,curEnv,inter,state);
-		if(state->state)
-		{
-			if(tmp)
-				fklFreeByteCodeAndLnt(tmp);
-			return NULL;
-		}
-		if(!tmp)
-			tmp=expression;
-		else
-		{
-			fklReCodeLntCat(expression,tmp);
-			fklFreeByteCodelnt(expression);
-		}
-		FklByteCodelnt* index=NULL;
-		if(indexCptr!=NULL)
-		{
-			index=fklCompile(indexCptr,curEnv,inter,state);
-			if(state->state)
-			{
-				fklFreeByteCodeAndLnt(tmp);
-				return NULL;
-			}
-			FklTypeId_t elemType=0;
-			FklDefTypeUnion outerType=fklGetVMTypeUnion(memberType);
-			void* tmpPtr=FKL_GET_TYPES_PTR(outerType.all);
-			FklDefTypeTag tag=FKL_GET_TYPES_TAG(outerType.all);
-			switch(tag)
-			{
-				case FKL_DEF_PTR_TYPE_TAG:
-					elemType=((FklDefPtrType*)tmpPtr)->ptype;
-					break;
-				case FKL_DEF_ARRAY_TYPE_TAG:
-					elemType=((FklDefArrayType*)tmpPtr)->etype;
-					break;
-				default:
-					state->state=FKL_CANTGETELEM;
-					state->place=pathCptr;
-					fklFreeByteCodeAndLnt(index);
-					fklFreeByteCodeAndLnt(tmp);
-					return NULL;
-					break;
-			}
-			FklByteCodelnt* pushIndRef=fklNewByteCodelnt(fklNewByteCode(sizeof(char)+sizeof(FklTypeId_t)+sizeof(uint32_t)));
-			pushIndRef->bc->code[0]=FKL_PUSH_IND_REF;
-			fklSetSidToByteCode(pushIndRef->bc->code+sizeof(char),elemType);
-			fklSetU32ToByteCode(pushIndRef->bc->code+sizeof(char)+sizeof(FklTypeId_t),fklGetVMTypeSizeWithTypeId(elemType));
-			FklLineNumTabNode* n=fklNewLineNumTabNodeWithFilename(inter->filename,0,pushIndRef->bc->size,indexCptr->curline);
-			pushIndRef->ls=1;
-			pushIndRef->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
-			FKL_ASSERT(pushIndRef->l,__func__);
-			pushIndRef->l[0]=n;
-			fklCodeLntCat(tmp,index);
-			fklFreeByteCodelnt(index);
-			fklCodeLntCat(tmp,pushIndRef);
-			fklFreeByteCodelnt(pushIndRef);
-		}
-		else
-		{
-			FklDefTypeUnion typeUnion=fklGetVMTypeUnion(memberType);
-			FklDefTypeTag tag=FKL_GET_TYPES_TAG(typeUnion.all);
-			if(tag!=FKL_DEF_NATIVE_TYPE_TAG&&tag!=FKL_DEF_PTR_TYPE_TAG&&tag!=FKL_DEF_ARRAY_TYPE_TAG&&tag!=FKL_DEF_FUNC_TYPE_TAG)
-			{
-				fklFreeByteCodeAndLnt(tmp);
-				state->state=FKL_NONSCALARTYPE;
-				state->place=fklNextCptr(typeCptr);
-				return NULL;
-			}
-		}
-		return tmp;
-	}
-	else
-	{
-		state->state=FKL_SYNTAXERROR;
-		state->place=objCptr;
-		return NULL;
-	}
-}
-
-FklByteCodelnt* fklCompileFlsym(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state)
-{
-	FklAstCptr* fir=fklGetFirstCptr(objCptr);
-	FklAstCptr* typeCptr=fklNextCptr(fir);
-	FklTypeId_t type=fklGenDefTypesUnion(typeCptr,inter->deftypes);
-	if(!type)
-	{
-		state->state=FKL_SYNTAXERROR;
-		state->place=objCptr;
-		return NULL;
-	}
-	FklDefTypeUnion typeUnion=fklGetVMTypeUnion(type);
-	if(FKL_GET_TYPES_TAG(typeUnion.all)!=FKL_DEF_FUNC_TYPE_TAG)
-	{
-		state->state=FKL_SYNTAXERROR;
-		state->place=objCptr;
-		return NULL;
-	}
-	FklAstCptr* nameCptr=fklNextCptr(typeCptr);
-	if(fklNextCptr(nameCptr)!=NULL)
-	{
-		state->state=FKL_SYNTAXERROR;
-		state->place=objCptr;
-		return NULL;
-	}
-	if(!nameCptr)
-	{
-		state->state=FKL_SYNTAXERROR;
-		state->place=objCptr;
-		return NULL;
-	}
-	FklByteCodelnt* name=fklCompile(nameCptr,curEnv,inter,state);
-	if(state->state)
-		return NULL;
-	if(state->state)
-	{
-		fklFreeByteCodeAndLnt(name);
-		return NULL;
-	}
-	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(sizeof(char)+sizeof(FklTypeId_t)));
-	tmp->bc->code[0]=FKL_PUSH_FPROC;
-	fklSetSidToByteCode(tmp->bc->code+sizeof(char),type);
-	FklLineNumTabNode* n=fklNewLineNumTabNodeWithFilename(inter->filename,0,tmp->bc->size,objCptr->curline);
-	tmp->ls=1;
-	tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
-	FKL_ASSERT(tmp->l,__func__);
-	tmp->l[0]=n;
-	fklReCodeLntCat(name,tmp);
-	fklFreeByteCodelnt(name);
-	return tmp;
-}
-
-FklByteCodelnt* fklCompileSzof(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state)
-{
-	FklAstCptr* typeCptr=fklNextCptr(fklGetFirstCptr(objCptr));
-	FklTypeId_t type=fklGenDefTypesUnion(typeCptr,inter->deftypes);
-	if(!type)
-	{
-		state->state=FKL_INVALIDTYPEDEF;
-		state->place=typeCptr;
-		return NULL;
-	}
-	size_t size=fklGetVMTypeSizeWithTypeId(type);
-	FklByteCodelnt* tmp=NULL;
-	if(size>INT32_MAX)
-	{
-		tmp=fklNewByteCodelnt(fklNewByteCode(sizeof(char)+sizeof(int64_t)));
-		tmp->bc->code[0]=FKL_PUSH_I64;
-		fklSetI64ToByteCode(tmp->bc->code+sizeof(char),size);
-	}
-	else
-	{
-		tmp=fklNewByteCodelnt(fklNewByteCode(sizeof(char)+sizeof(int32_t)));
-		tmp->bc->code[0]=FKL_PUSH_I32;
-		fklSetI32ToByteCode(tmp->bc->code+sizeof(char),size);
-	}
-	FklLineNumTabNode* n=fklNewLineNumTabNodeWithFilename(inter->filename,0,tmp->bc->size,objCptr->curline);
-	tmp->ls=1;
-	tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
-	FKL_ASSERT(tmp->l,__func__);
-	tmp->l[0]=n;
-	return tmp;
-}
-
 FklByteCodelnt* fklCompileSym(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state)
 {
 	int32_t line=objCptr->curline;
@@ -2348,14 +1948,13 @@ FklByteCodelnt* fklCompileLoad(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 		return NULL;
 	}
 	fklAddSymbolToGlob(name->value.str);
-	FklInterpreter* tmpIntpr=fklNewIntpr(name->value.str,file,curEnv,inter->lnt,inter->deftypes);
+	FklInterpreter* tmpIntpr=fklNewIntpr(name->value.str,file,curEnv,inter->lnt);
 	tmpIntpr->prev=inter;
 	tmpIntpr->glob=curEnv;
 	FklByteCodelnt* tmp=fklCompileFile(tmpIntpr,NULL);
 	chdir(tmpIntpr->prev->curDir);
 	tmpIntpr->glob=NULL;
 	tmpIntpr->lnt=NULL;
-	tmpIntpr->deftypes=NULL;
 	fklFreeIntpr(tmpIntpr);
 	//fklPrintByteCode(tmp,stderr);
 	FklByteCode* setTp=fklNewByteCode(1);
@@ -2603,7 +2202,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 			return NULL;
 		}
 		fklAddSymbolToGlob(path);
-		FklInterpreter* tmpInter=fklNewIntpr(path,fp,fklNewCompEnv(NULL),inter->lnt,inter->deftypes);
+		FklInterpreter* tmpInter=fklNewIntpr(path,fp,fklNewCompEnv(NULL),inter->lnt);
 		fklInitGlobKeyWord(tmpInter->glob);
 		free(path);
 		tmpInter->prev=inter;
@@ -2669,7 +2268,6 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 							free(begin);
 							chdir(tmpInter->prev->curDir);
 							tmpInter->lnt=NULL;
-							tmpInter->deftypes=NULL;
 							fklFreeIntpr(tmpInter);
 							if(libPrefix)
 								free(libPrefix);
@@ -2697,7 +2295,6 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 									free(begin);
 									chdir(tmpInter->prev->curDir);
 									tmpInter->lnt=NULL;
-									tmpInter->deftypes=NULL;
 									fklFreeIntpr(tmpInter);
 									if(libPrefix)
 										free(libPrefix);
@@ -2730,7 +2327,6 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 									free(begin);
 									chdir(tmpInter->prev->curDir);
 									tmpInter->lnt=NULL;
-									tmpInter->deftypes=NULL;
 									fklFreeIntpr(tmpInter);
 									state->state=0;
 									state->place=NULL;
@@ -2797,7 +2393,6 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 								fklFreeByteCodelnt(tmp);
 								chdir(tmpInter->prev->curDir);
 								tmpInter->lnt=NULL;
-								tmpInter->deftypes=NULL;
 								fklFreeIntpr(tmpInter);
 								if(libPrefix)
 									free(libPrefix);
@@ -2832,7 +2427,6 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 								free(begin);
 								chdir(tmpInter->prev->curDir);
 								tmpInter->lnt=NULL;
-								tmpInter->deftypes=NULL;
 								fklFreeIntpr(tmpInter);
 								if(libPrefix)
 									free(libPrefix);
@@ -2893,7 +2487,6 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 			state->state=(tmp)?FKL_LIBUNDEFINED:0;
 			state->place=(tmp)?pairOfpPartsOfPath:NULL;
 			tmpInter->lnt=NULL;
-			tmpInter->deftypes=NULL;
 			fklFreeIntpr(tmpInter);
 			if(libPrefix)
 				free(libPrefix);
@@ -2903,7 +2496,6 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 		}
 		chdir(tmpInter->prev->curDir);
 		tmpInter->lnt=NULL;
-		tmpInter->deftypes=NULL;
 		fklFreeIntpr(tmpInter);
 		fklFreePtrStack(tokenStack);
 		if(libPrefix)
@@ -3344,7 +2936,7 @@ FklCompDef* fklFindCompDef(const char* name,FklCompEnv* curEnv)
 	}
 }
 
-FklInterpreter* fklNewIntpr(const char* filename,FILE* file,FklCompEnv* env,FklLineNumberTable* lnt,FklDefTypes* deftypes)
+FklInterpreter* fklNewIntpr(const char* filename,FILE* file,FklCompEnv* env,FklLineNumberTable* lnt)
 {
 	FklInterpreter* tmp=NULL;
 	FKL_ASSERT((tmp=(FklInterpreter*)malloc(sizeof(FklInterpreter))),__func__)
@@ -3374,10 +2966,6 @@ FklInterpreter* fklNewIntpr(const char* filename,FILE* file,FklCompEnv* env,FklL
 		tmp->lnt=lnt;
 	else
 		tmp->lnt=fklNewLineNumTable();
-	if(deftypes)
-		tmp->deftypes=deftypes;
-	else
-		tmp->deftypes=fklNewDefTypes();
 	if(env)
 	{
 		tmp->glob=env;
@@ -3397,7 +2985,6 @@ void fklFreeIntpr(FklInterpreter* inter)
 	free(inter->curDir);
 	fklFreeAllMacroThenDestroyCompEnv(inter->glob);
 	if(inter->lnt)fklFreeLineNumberTable(inter->lnt);
-	if(inter->deftypes)fklFreeDefTypeTable(inter->deftypes);
 	free(inter);
 }
 
@@ -3647,8 +3234,6 @@ void fklPrintUndefinedSymbol(FklByteCodelnt* code)
 							break;
 						case FKL_PUSH_I64:
 							break;
-						case FKL_PUSH_IND_REF:
-							break;
 						case FKL_POP_ARG:
 						case FKL_POP_REST_ARG:
 						case FKL_PUSH_VAR:
@@ -3673,12 +3258,6 @@ void fklPrintUndefinedSymbol(FklByteCodelnt* code)
 						default:break;
 					}
 					i+=sizeof(char)+sizeof(int64_t);
-					break;
-				case 12:
-					if(opcode==FKL_PUSH_IND_REF)
-						i+=sizeof(char)+sizeof(FklTypeId_t)+sizeof(uint32_t);
-					else
-						i+=sizeof(char)+sizeof(int64_t)+sizeof(FklTypeId_t);
 					break;
 			}
 		}

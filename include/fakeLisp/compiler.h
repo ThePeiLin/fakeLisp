@@ -65,7 +65,6 @@ typedef struct FklInterpreter
 	FklCompEnv* glob;
 	struct FklLineNumberTable* lnt;
 	struct FklInterpreter* prev;
-	FklDefTypes* deftypes;
 }FklInterpreter;
 
 typedef struct FklKeyWord
@@ -86,7 +85,7 @@ FklCompEnv* fklNewCompEnv(FklCompEnv*);
 void fklDestroyCompEnv(FklCompEnv* objEnv);
 void fklFreeAllMacroThenDestroyCompEnv(FklCompEnv* env);
 FklCompDef* fklFindCompDef(const char*,FklCompEnv*);
-FklInterpreter* fklNewIntpr(const char*,FILE*,FklCompEnv*,FklLineNumberTable*,FklDefTypes* deftypes);
+FklInterpreter* fklNewIntpr(const char*,FILE*,FklCompEnv*,FklLineNumberTable*);
 FklInterpreter* fklNewTmpIntpr(const char*,FILE*);
 
 void fklFreeIntpr(FklInterpreter*);
@@ -111,7 +110,6 @@ FklCompEnv* fklCreateMacroCompEnv(const FklAstCptr*,FklCompEnv*);
 int fklRetree(FklAstCptr**,FklAstCptr*);
 void fklUninitPreprocess();
 void fklInitGlobKeyWord(FklCompEnv*);
-void fklInitNativeDefTypes(FklDefTypes*);
 FklStringMatchPattern* fklAddStringPattern(char**,int32_t,FklAstCptr*,FklInterpreter*);
 FklStringMatchPattern* fklAddReDefStringPattern(char**,int32_t,FklAstCptr*,FklInterpreter*);
 void fklInitBuiltInStringPattern(void);

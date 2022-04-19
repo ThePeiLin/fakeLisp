@@ -7,7 +7,6 @@
 #include<stdio.h>
 #include<stdint.h>
 #include<pthread.h>
-#include<ffi.h>
 #include<setjmp.h>
 
 #ifdef __cplusplus
@@ -25,16 +24,11 @@ typedef enum
 	FKL_REF_TAG,
 }FklVMptrTag;
 
-typedef enum
-{
-	FKL_MEM_RAW=0,
-	FKL_MEM_ATOMIC,
-}FklVMmemMode;
-
 #ifdef _WIN32
 #include<windows.h>
 typedef HMODULE FklVMdllHandle;
 #else
+#include<dlfcn.h>
 typedef void* FklVMdllHandle;
 #endif
 
@@ -78,12 +72,11 @@ typedef struct FklVMfp
 	FILE* fp;
 }FklVMfp;
 
-typedef struct FklVMmem
+typedef struct FklVMmref
 {
-	FklTypeId_t type;
-	FklVMmemMode mode;
-	uint8_t* mem;
-}FklVMmem;
+	size_t size;
+	void* ptr;
+}FklVMmref;
 
 typedef struct FklVMvec
 {
@@ -101,7 +94,7 @@ typedef struct FklVMvalue
 		double f64;
 		int64_t i64;
 		char* str;
-		struct FklVMmem* chf;
+		struct FklVMmref* ref;
 		struct FklVMbyts* byts;
 		struct FklVMproc* proc;
 		FklVMdllHandle dll;
@@ -112,6 +105,7 @@ typedef struct FklVMvalue
 		FklVMvec* vec;
 		struct FklVMchanl* chan;
 		struct FklVMerror* err;
+		void* usrdata;
 	}u;
 	struct FklVMvalue* prev;
 	struct FklVMvalue* next;
@@ -201,15 +195,6 @@ typedef struct FklVMdlproc
 	FklSid_t sid;
 }FklVMdlproc;
 
-typedef struct FklVMflproc
-{
-	void* func;
-	ffi_cif cif;
-	ffi_type** atypes;
-	FklTypeId_t type;
-	FklSid_t sid;
-}FklVMflproc;
-
 typedef struct FklVMerror
 {
 	FklSid_t type;
@@ -239,11 +224,6 @@ typedef struct FklVMerrorHandler
 	FklSid_t type;
 	FklVMproc proc;
 }FklVMerrorHandler;
-
-typedef struct FklVMptrType
-{
-	FklTypeId_t ptype;
-}FklVMptrType;
 
 typedef struct FklSharedObjNode
 {
@@ -296,24 +276,6 @@ void fklPrin1VMvalue(FklVMvalue*,FILE*);
 void fklPrincVMvalue(FklVMvalue*,FILE*);
 
 //
-
-//vmtype
-
-void fklApplyFF(void* func,int argc,ffi_type* rtype,ffi_type** atypes,void* rvalue,void** avalue);
-
-ffi_type* fklGetFfiType(FklTypeId_t typeId);
-void fklPrepFFIcif(ffi_cif* cif,int argc,ffi_type** atypes,ffi_type* rtype);
-void fklApplyFlproc(FklVMflproc* f,void* rvalue,void** avalue);
-int fklCastValueToVptr(FklTypeId_t,FklVMvalue* v,void** p);
-
-FklVMmem* fklNewVMmem(FklTypeId_t typeId,FklVMmemMode mode,uint8_t* mem);
-void fklPrintMemoryRef(FklTypeId_t,FklVMmem*,FILE*);
-FklVMvalue* fklMemoryCast(FklTypeId_t,FklVMmem*,FklVMheap*);
-int fklMemorySet(FklTypeId_t id,FklVMmem*,FklVMvalue* v);
-
-
-//
-
 
 //vmutils
 
@@ -403,9 +365,6 @@ void fklFreeVMdll(FklVMdllHandle*);
 FklVMdlproc* fklNewVMdlproc(FklVMdllFunc,FklVMvalue*);
 void fklFreeVMdlproc(FklVMdlproc*);
 
-FklVMflproc* fklNewVMflproc(FklTypeId_t type,void* func);
-void fklFreeVMflproc(FklVMflproc*);
-
 FklVMerror* fklNewVMerror(const char* who,const char* type,const char* message);
 FklVMerror* fklNewVMerrorWithSid(const char* who,FklSid_t type,const char* message);
 void fklFreeVMerror(FklVMerror*);
@@ -434,6 +393,9 @@ void fklVMvecCat(FklVMvec**,const FklVMvec*);
 void fklInitVMargs(int argc,char** argv);
 int fklGetVMargc(void);
 char** fklGetVMargv(void);
+
+FklVMmref* fklNewVMmref(size_t size,void* ptr);
+void fklFreeVMmref(FklVMmref*);
 #ifdef __cplusplus
 }
 #endif

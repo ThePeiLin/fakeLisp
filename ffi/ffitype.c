@@ -2,7 +2,9 @@
 #include<fakeLisp/utils.h>
 #include<stdlib.h>
 #include<stddef.h>
+#include<ffi.h>
 #include<pthread.h>
+#include"deftype.h"
 
 static pthread_mutex_t GPrepCifLock=PTHREAD_MUTEX_INITIALIZER;
 static ffi_type* NativeFFITypeList[]=
@@ -166,7 +168,7 @@ static double (*castToDoubleFunctionsList[])(ARGL)=
 #define ARGL FklVMvalue* v,void** p
 #define CAST_TO_INT(TYPE) TYPE* t=(TYPE*)malloc(sizeof(TYPE));\
 	FKL_ASSERT(t,__func__);\
-	if(!FKL_IS_MEM(v)&&!FKL_IS_CHF(v))\
+	if(FKL_IS_MREF(v))\
 	{\
 		FklVMptrTag tag=FKL_GET_TAG(v);\
 		switch(tag)\
@@ -203,18 +205,14 @@ static double (*castToDoubleFunctionsList[])(ARGL)=
 				break;\
 		}\
 	}\
-	else\
-		*t=castToInt64FunctionsList[v->u.chf->type-1](v->u.chf->mem);\
 	*p=t;\
 	return 0;
 
-#define CAST_TO_FLOAT(TYPE) if(!FKL_IS_I32(v)&&!FKL_IS_I64(v)&&!FKL_IS_CHR(v)&&!FKL_IS_F64(v)&&!FKL_IS_MEM(v)&&!FKL_IS_CHF(v))return 1;\
+#define CAST_TO_FLOAT(TYPE) if(!FKL_IS_I32(v)&&!FKL_IS_I64(v)&&!FKL_IS_CHR(v)&&!FKL_IS_F64(v)&&!FKL_IS_MEM(v)&&!FKL_IS_MREF(v))return 1;\
 	TYPE* t=(TYPE*)malloc(sizeof(TYPE));\
 	FKL_ASSERT(t,__func__);\
-	if(!FKL_IS_MEM(v)&&!FKL_IS_CHF(v))\
+	if(!FKL_IS_MEM(v)&&!FKL_IS_MREF(v))\
 		*t=FKL_IS_I32(v)?FKL_GET_I32(v):(FKL_IS_I64(v)?v->u.i64:(FKL_IS_F64(v)?v->u.f64:FKL_GET_CHR(v)));\
-	else\
-		*t=castToDoubleFunctionsList[v->u.chf->type-1](v->u.chf->mem);\
 	*p=t;\
 	return 0;
 
@@ -247,7 +245,7 @@ static int castVptrValue     (ARGL)
 {
 	void** t=(void**)malloc(sizeof(void*));
 	FKL_ASSERT(t,__func__);
-	if(!FKL_IS_MEM(v)&&!FKL_IS_CHF(v))
+	if(!FKL_IS_MREF(v))
 	{
 		if(v==FKL_VM_NIL)
 			*t=NULL;
@@ -273,7 +271,7 @@ static int castVptrValue     (ARGL)
 			return 1;
 	}
 	else
-		*t=v->u.chf->mem;
+		*t=v->u.ref->mem;
 	*p=t;
 	return 0;
 }

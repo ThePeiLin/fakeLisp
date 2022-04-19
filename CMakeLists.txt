@@ -10,6 +10,7 @@ set(INTERPRETER_TARGET_NAME fakeLisp)
 set(COMPILER_TARGET_NAME fakeLispc)
 set(BTK_TARGET_NAME btk)
 set(LIBFKL_TARGET_NAME fkl)
+#set(FII_TARGET_NAME fklffi)
 
 #project setting
 project(${INTERPRETER_TARGET_NAME})
@@ -22,17 +23,27 @@ file(GLOB COMPILER_SOURCE "src/fakeLispc.c")
 
 file(GLOB BTK_SOURCE "src/btk.c")
 
+#file(GLOB FFI_SOURCE "ffi/*.c")
+
 #btk.so
 add_library(${BTK_TARGET_NAME}
 	MODULE
 	${BTK_SOURCE})
 set_target_properties(${BTK_TARGET_NAME} PROPERTIES PREFIX "")
 
+#fklffi.so
+#add_library(${FFI_TARGET_NAME}
+#	MODULE
+#	${FFI_SOURCE})
+#set_target_properties(${BTK_TARGET_NAME} PROPERTIES PREFIX "")
+
+
 #libfkl.a
 file(GLOB LIBFKL_SOURCE "src/*.c")
 list(REMOVE_ITEM LIBFKL_SOURCE
 	"${PROJECT_SOURCE_DIR}/src/fakeLisp.c"
-	"${PROJECT_SOURCE_DIR}/src/fakeLispc.c")
+	"${PROJECT_SOURCE_DIR}/src/fakeLispc.c"
+	"${PROJECT_SOURCE_DIR}/src/btk.c")
 
 add_library(${LIBFKL_TARGET_NAME}
 	STATIC

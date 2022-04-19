@@ -15,7 +15,6 @@
 extern void invokeNativeProcdure(FklVM*,FklVMproc*,FklVMrunnable*);
 extern void invokeContinuation(FklVM*,VMcontinuation*);
 extern void invokeDlProc(FklVM*,FklVMdlproc*);
-extern void invokeFlproc(FklVM*,FklVMflproc*);
 extern pthread_mutex_t GlobSharedObjsMutex;
 extern FklSharedObjNode* GlobSharedObjs;
 extern FklVMlist GlobVMs;
@@ -39,19 +38,6 @@ static inline FklVMvalue* makeVMint(int64_t r64,FklVMheap* heap)
 		return fklNewVMvalue(FKL_I64,&r64,heap);
 	else
 		return FKL_MAKE_VM_I32(r64);
-}
-
-static inline FklVMmemMode getMode(FklVMvalue* pmode)
-{
-	if(pmode)
-	{
-		FklSid_t sid=FKL_GET_SYM(pmode);
-		if(!strcmp(fklGetGlobSymbolWithId(sid)->symbol,"atomic"))
-			return FKL_MEM_ATOMIC;
-		if(!strcmp(fklGetGlobSymbolWithId(sid)->symbol,"raw"))
-			return FKL_MEM_RAW;
-	}
-	return FKL_MEM_RAW;
 }
 
 //syscalls
@@ -1207,10 +1193,10 @@ void SYS_vref(ARGL)
 	{
 		if(index>=strlen(vector->u.str))
 			FKL_RAISE_BUILTIN_ERROR("sys.vref",FKL_INVALIDACCESS,runnable,exe);
-		retval=FKL_MAKE_VM_CHF(fklNewVMmem(fklGetCharTypeId(),FKL_MEM_RAW,(uint8_t*)vector->u.str+index),heap);
+		retval=FKL_MAKE_VM_MREF(fklNewVMmref(1,vector->u.str+index),heap);
 	}
 	else if(FKL_IS_BYTS(vector))
-		retval=FKL_MAKE_VM_CHF(fklNewVMmem(fklGetCharTypeId(),FKL_MEM_RAW,vector->u.byts->str+index),heap);
+		retval=FKL_MAKE_VM_MREF(fklNewVMmref(1,vector->u.byts->str+index),heap);
 	else if(FKL_IS_VECTOR(vector))
 		retval=FKL_MAKE_VM_REF(&vector->u.vec->base[index]);
 	FKL_SET_RETURN(__func__,retval,stack);
@@ -1615,12 +1601,6 @@ void SYS_go(ARGL)
 		void** p=(void**)fklCopyMemory(a,sizeof(a));
 		faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMdlprocFunc,p);
 	}
-	else
-	{
-		void* a[2]={threadVM,threadProc->u.flproc};
-		void** p=(void**)fklCopyMemory(a,sizeof(a));
-		faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMflprocFunc,p);
-	}
 	if(faildCode)
 	{
 		fklDeleteCallChain(threadVM);
@@ -1819,103 +1799,9 @@ void SYS_apply(ARGL)
 		case FKL_DLPROC:
 			invokeDlProc(exe,proc->u.dlproc);
 			break;
-		case FKL_FLPROC:
-			invokeFlproc(exe,proc->u.flproc);
 		default:
 			break;
 	}
-}
-
-void SYS_newf(ARGL)
-{
-	FklVMstack* stack=exe->stack;
-	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
-	FklVMheap* heap=exe->heap;
-	FklVMvalue* vsize=fklGET_VAL(fklPopVMstack(stack),heap);
-	FklVMvalue* pmode=fklGET_VAL(fklPopVMstack(stack),heap);
-	if(fklResBp(stack))
-		FKL_RAISE_BUILTIN_ERROR("sys.newf",FKL_TOOMANYARG,r,exe);
-	if(!vsize)
-		FKL_RAISE_BUILTIN_ERROR("sys.newf",FKL_TOOFEWARG,r,exe);
-	if(!isInt(vsize))
-		FKL_RAISE_BUILTIN_ERROR("sys.newf",FKL_WRONGARG,r,exe);
-	if(pmode&&!FKL_IS_SYM(pmode))
-		FKL_RAISE_BUILTIN_ERROR("sys.newf",FKL_WRONGARG,r,exe);
-	size_t size=getInt(vsize);
-	uint8_t* mem=(uint8_t*)malloc(size);
-	FKL_ASSERT(mem,__func__);
-	FklVMvalue* retval=FKL_MAKE_VM_MEM(fklNewVMmem(0,getMode(pmode),mem),exe->heap);
-	FKL_SET_RETURN(__func__,retval,stack);
-}
-
-void SYS_delf(ARGL)
-{
-	FklVMstack* stack=exe->stack;
-	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
-	FklVMvalue* mem=fklPopVMstack(stack);
-	if(fklResBp(stack))
-		FKL_RAISE_BUILTIN_ERROR("sys.delf",FKL_TOOMANYARG,r,exe);
-	if(!mem)
-		FKL_RAISE_BUILTIN_ERROR("sys.delf",FKL_TOOFEWARG,r,exe);
-	if(!FKL_IS_MEM(mem))
-		FKL_RAISE_BUILTIN_ERROR("sys.delf",FKL_WRONGARG,r,exe);
-	FklVMmem* pmem=mem->u.chf;
-	uint8_t* p=pmem->mem;
-	free(p);
-	pmem->mem=NULL;
-	pmem->mode=FKL_MEM_RAW;
-	FKL_SET_RETURN(__func__,FKL_VM_NIL,stack);
-}
-
-void SYS_lfdl(ARGL)
-{
-	FklVMstack* stack=exe->stack;
-	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
-	FklVMvalue* vpath=fklPopVMstack(stack);
-	if(fklResBp(stack))
-		FKL_RAISE_BUILTIN_ERROR("sys.lfdl",FKL_TOOMANYARG,r,exe);
-	if(exe->VMid==-1)
-		return;
-	if(!vpath)
-		FKL_RAISE_BUILTIN_ERROR("sys.lfdl",FKL_TOOFEWARG,r,exe);
-	if(!FKL_IS_STR(vpath))
-		FKL_RAISE_BUILTIN_ERROR("sys.lfdl",FKL_WRONGARG,r,exe);
-	const char* path=vpath->u.str;
-#ifdef _WIN32
-	FklVMdllHandle handle=LoadLibrary(path);
-	if(!handle)
-	{
-		TCHAR szBuf[128];
-		LPVOID lpMsgBuf;
-		DWORD dw = GetLastError();
-		FormatMessage (
-				FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
-				NULL,
-				dw,
-				MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
-				(LPTSTR) &lpMsgBuf,
-				0, NULL );
-		wsprintf(szBuf,
-				_T("%s error Message (error code=%d): %s"),
-				_T("CreateDirectory"), dw, lpMsgBuf);
-		LocalFree(lpMsgBuf);
-		fprintf(stderr,"%s\n",szBuf);
-	}
-#else
-	FklVMdllHandle handle=dlopen(path,RTLD_LAZY);
-	if(!handle)
-	{
-		perror(dlerror());
-		putc('\n',stderr);
-	}
-#endif
-	FklSharedObjNode* node=(FklSharedObjNode*)malloc(sizeof(FklSharedObjNode));
-	FKL_ASSERT(node,__func__);
-	node->dll=handle;
-	pthread_mutex_lock(&GlobSharedObjsMutex);
-	node->next=GlobSharedObjs;
-	GlobSharedObjs=node;
-	pthread_mutex_unlock(&GlobSharedObjsMutex);
 }
 
 void SYS_reverse(ARGL)
@@ -2067,7 +1953,6 @@ void SYS_proc_p(ARGL) PREDICATE(FKL_IS_PROC(val),"sys.proc?")
 void SYS_dlproc_p(ARGL) PREDICATE(FKL_IS_DLPROC(val),"sys.dlproc?")
 void SYS_flproc_p(ARGL) PREDICATE(FKL_IS_FLPROC(val),"sys.flproc?")
 void SYS_vector_p(ARGL) PREDICATE(FKL_IS_VECTOR(val),"sys.vector?")
-void SYS_memory_p(ARGL) PREDICATE(FKL_IS_MEM(val),"sys.memory?")
 void SYS_chanl_p(ARGL) PREDICATE(FKL_IS_CHAN(val),"sys.chanl?")
 void SYS_dll_p(ARGL) PREDICATE(FKL_IS_DLL(val),"sys.dll?")
 

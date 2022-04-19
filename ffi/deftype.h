@@ -2,7 +2,9 @@
 #define FKL_FFI_H
 #include<fakeLisp/symbol.h>
 #include<fakeLisp/ast.h>
+#include<fakeLisp/vm.h>
 #include<stddef.h>
+#include<ffi.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -141,6 +143,51 @@ size_t fklGetVMTypeSize(FklDefTypeUnion t);
 size_t fklGetVMTypeAlign(FklDefTypeUnion t);
 size_t fklGetVMTypeSizeWithTypeId(FklTypeId_t t);
 FklDefTypeUnion fklGetVMTypeUnion(FklTypeId_t);
+void fklInitNativeDefTypes(FklDefTypes*);
+
+typedef enum
+{
+	FKL_MEM_RAW=0,
+	FKL_MEM_ATOMIC,
+}FklVMmemMode;
+
+typedef struct FklVMflproc
+{
+	void* func;
+	ffi_cif cif;
+	ffi_type** atypes;
+	FklTypeId_t type;
+	FklSid_t sid;
+}FklVMflproc;
+
+typedef struct FklVMmem
+{
+	FklTypeId_t type;
+	FklVMmemMode mode;
+	uint8_t* mem;
+}FklVMmem;
+
+typedef struct FklVMptrType
+{
+	FklTypeId_t ptype;
+}FklVMptrType;
+
+void fklApplyFF(void* func,int argc,ffi_type* rtype,ffi_type** atypes,void* rvalue,void** avalue);
+
+ffi_type* fklGetFfiType(FklTypeId_t typeId);
+void fklPrepFFIcif(ffi_cif* cif,int argc,ffi_type** atypes,ffi_type* rtype);
+void fklApplyFlproc(FklVMflproc* f,void* rvalue,void** avalue);
+int fklCastValueToVptr(FklTypeId_t,FklVMvalue* v,void** p);
+
+FklVMmem* fklNewVMmem(FklTypeId_t typeId,FklVMmemMode mode,uint8_t* mem);
+void fklPrintMemoryRef(FklTypeId_t,FklVMmem*,FILE*);
+FklVMvalue* fklMemoryCast(FklTypeId_t,FklVMmem*,FklVMheap*);
+int fklMemorySet(FklTypeId_t id,FklVMmem*,FklVMvalue* v);
+
+FklVMflproc* fklNewVMflproc(FklTypeId_t type,void* func);
+void fklFreeVMflproc(FklVMflproc*);
+
+void fklAddSharedObj(FklVMdllHandle);
 
 #ifdef __cplusplus
 }

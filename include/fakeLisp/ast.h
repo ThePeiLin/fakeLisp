@@ -25,8 +25,8 @@ typedef enum{
 	FKL_DLPROC,
 	FKL_FLPROC,
 	FKL_ERR,
-	FKL_MEM,
-	FKL_CHF,
+	FKL_MREF,
+	FKL_USERDATA,
 	FKL_PAIR,
 	FKL_ATM,
 }FklValueType;

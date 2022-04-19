@@ -682,23 +682,21 @@ void fklChanlSend(FklVMsend*s,FklVMchanl* ch,pthread_rwlock_t* pGClock)
 	pthread_mutex_unlock(&ch->lock);
 }
 
-static pthread_mutex_t FklVMenvGlobalRefcountLock=PTHREAD_MUTEX_INITIALIZER;
-
 #define INCREASE_REFCOUNT(TYPE,PV) {\
 	if((PV))\
 	{\
-		pthread_mutex_lock(&(TYPE##GlobalRefcountLock));\
+		pthread_mutex_lock(&((TYPE*)(PV))->mutex);\
 		((TYPE*)(PV))->refcount+=1;\
-		pthread_mutex_unlock(&(TYPE##GlobalRefcountLock));\
+		pthread_mutex_unlock(&((TYPE*)(PV))->mutex);\
 	}\
 }
 
 #define DECREASE_REFCOUNT(TYPE,PV) {\
 	if((PV))\
 	{\
-		pthread_mutex_lock(&(TYPE##GlobalRefcountLock));\
+		pthread_mutex_lock(&((TYPE*)(PV))->mutex);\
 		((TYPE*)(PV))->refcount-=1;\
-		pthread_mutex_unlock(&(TYPE##GlobalRefcountLock));\
+		pthread_mutex_unlock(&((TYPE*)(PV))->mutex);\
 	}\
 }
 
@@ -709,6 +707,7 @@ FklVMenv* fklNewVMenv(FklVMenv* prev)
 	tmp->num=0;
 	tmp->list=NULL;
 	tmp->prev=prev;
+	pthread_mutex_init(&tmp->mutex,NULL);
 	fklIncreaseVMenvRefcount(prev);
 	tmp->refcount=0;
 	return tmp;
@@ -753,6 +752,7 @@ int fklFreeVMenv(FklVMenv* obj)
 			int32_t i=0;
 			for(;i<prev->num;i++)
 				fklFreeVMenvNode(prev->list[i]);
+			pthread_mutex_destroy(&prev->mutex);
 			free(prev->list);
 			free(prev);
 			r++;
@@ -777,6 +777,7 @@ FklVMenvNode* fklNewVMenvNode(FklVMvalue* value,int32_t id)
 
 FklVMenvNode* fklAddVMenvNode(FklVMenvNode* node,FklVMenv* env)
 {
+	pthread_mutex_lock(&env->mutex);
 	if(!env->list)
 	{
 		env->num=1;
@@ -807,6 +808,7 @@ FklVMenvNode* fklAddVMenvNode(FklVMenvNode* node,FklVMenv* env)
 			env->list[i]=env->list[i-1];
 		env->list[mid]=node;
 	}
+	pthread_mutex_unlock(&env->mutex);
 	return node;
 }
 
@@ -814,9 +816,11 @@ FklVMenvNode* fklFindVMenvNode(FklSid_t id,FklVMenv* env)
 {
 	if(!env->list)
 		return NULL;
+	pthread_mutex_lock(&env->mutex);
 	int32_t l=0;
 	int32_t h=env->num-1;
 	int32_t mid;
+	FklVMenvNode* r=NULL;
 	while(l<=h)
 	{
 		mid=l+(h-l)/2;
@@ -825,9 +829,13 @@ FklVMenvNode* fklFindVMenvNode(FklSid_t id,FklVMenv* env)
 		else if(env->list[mid]->id<id)
 			l=mid+1;
 		else
-			return env->list[mid];
+		{
+			r=env->list[mid];
+			break;
+		}
 	}
-	return NULL;
+	pthread_mutex_unlock(&env->mutex);
+	return r;
 }
 
 void fklFreeVMenvNode(FklVMenvNode* node)

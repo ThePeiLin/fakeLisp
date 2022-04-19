@@ -24,6 +24,9 @@ static FklVMvalue* VMstdin=NULL;
 static FklVMvalue* VMstdout=NULL;
 static FklVMvalue* VMstderr=NULL;
 
+static int VMargc=0;
+static char** VMargv=NULL;
+
 void threadErrorCallBack(void* a)
 {
 	void** e=(void**)a;
@@ -298,8 +301,6 @@ FklVM* fklNewVM(FklByteCode* mainCode)
 		fklPushPtrStack(fklNewVMrunnable(tmpVMproc),exe->rstack);
 		fklFreeVMproc(tmpVMproc);
 	}
-	exe->argc=0;
-	exe->argv=NULL;
 	exe->mark=1;
 	exe->chan=NULL;
 	exe->stack=fklNewVMstack(0);
@@ -342,8 +343,6 @@ FklVM* fklNewTmpVM(FklByteCode* mainCode)
 		fklPushPtrStack(fklNewVMrunnable(fklNewVMproc(0,mainCode->size)),exe->rstack);
 	}
 	exe->mark=1;
-	exe->argc=0;
-	exe->argv=NULL;
 	exe->chan=NULL;
 	exe->stack=fklNewVMstack(0);
 	exe->tstack=fklNewPtrStack(32,16);
@@ -430,6 +429,7 @@ extern void SYS_chanl_p(ARGL);
 extern void SYS_dll_p(ARGL);
 extern void SYS_vector(ARGL);
 extern void SYS_dlclose(ARGL);
+extern void SYS_getdir(ARGL);
 
 #undef ARGL
 
@@ -513,6 +513,7 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_dll_p,
 		SYS_vector,
 		SYS_dlclose,
+		SYS_getdir,
 	};
 	obj->num=FKL_NUM_OF_BUILT_IN_SYMBOL;
 	obj->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*FKL_NUM_OF_BUILT_IN_SYMBOL);
@@ -1350,7 +1351,7 @@ void B_push_r_env(FklVM* exe)
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
 	FklVMenv* prev=r->localenv;
 	r->localenv=fklNewVMenv(prev);
-	prev->refcount--;
+	fklDecreaseVMenvRefcount(prev);
 	r->cp+=sizeof(char);
 }
 
@@ -1722,8 +1723,6 @@ FklVM* fklNewThreadVM(FklVMproc* mainCode,FklVMheap* heap)
 	exe->rstack=fklNewPtrStack(32,16);
 	fklPushPtrStack(t,exe->rstack);
 	exe->mark=1;
-	exe->argc=0;
-	exe->argv=NULL;
 	exe->chan=fklNewVMvalue(FKL_CHAN,fklNewVMchanl(0),heap);
 	exe->tstack=fklNewPtrStack(32,16);
 	exe->stack=fklNewVMstack(0);
@@ -1764,8 +1763,6 @@ FklVM* fklNewThreadDlprocVM(FklVMrunnable* r,FklVMheap* heap)
 	exe->rstack=fklNewPtrStack(32,16);
 	fklPushPtrStack(t,exe->rstack);
 	exe->mark=1;
-	exe->argc=0;
-	exe->argv=NULL;
 	exe->chan=fklNewVMvalue(FKL_CHAN,fklNewVMchanl(0),heap);
 	exe->tstack=fklNewPtrStack(32,16);
 	exe->stack=fklNewVMstack(0);
@@ -1969,4 +1966,21 @@ FklVMvalue* fklGetVMstdout(void)
 FklVMvalue* fklGetVMstderr(void)
 {
 	return VMstderr;
+}
+
+void fklInitVMargs(int argc,char** argv)
+{
+	VMargc=argc-1;
+	if(VMargc)
+		VMargv=argv+1;
+}
+
+int fklGetVMargc(void)
+{
+	return VMargc;
+}
+
+char** fklGetVMargv(void)
+{
+	return VMargv;
 }

@@ -126,6 +126,7 @@ typedef struct FklVMenvNode
 
 typedef struct FklVMenv
 {
+	pthread_mutex_t mutex;
 	struct FklVMenv* prev;
 	uint32_t refcount;
 	uint32_t num;
@@ -165,8 +166,6 @@ typedef struct FklVM
 {
 	unsigned int mark :1;
 	int32_t VMid;
-	int argc;
-	char** argv;
 	pthread_t tid;
 	uint8_t* code;
 	uint64_t size;
@@ -432,6 +431,10 @@ FklVMvalue* fklGetVMstderr(void);
 FklVMvec* fklNewVMvec(size_t size,FklVMvalue** base);
 void fklFreeVMvec(FklVMvec*);
 void fklVMvecCat(FklVMvec**,const FklVMvec*);
+
+void fklInitVMargs(int argc,char** argv);
+int fklGetVMargc(void);
+char** fklGetVMargv(void);
 #ifdef __cplusplus
 }
 #endif

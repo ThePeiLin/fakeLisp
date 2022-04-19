@@ -144,6 +144,7 @@ void fklChangeWorkPath(const char*);
 char* fklGetDir(const char*);
 char* fklGetStringFromFile(FILE*);
 char** fklSplit(char*,char*,int*);
+char* fklRealpath(const char*);
 char* fklRelpath(char*,char*);
 
 void mergeSort(void* base

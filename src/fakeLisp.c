@@ -30,7 +30,7 @@ void errorCallBack(void* a)
 
 int main(int argc,char** argv)
 {
-	char* filename=(argc>1)?argv[1]:"stdin";
+	char* filename=(argc>1)?argv[1]:NULL;
 #ifdef WFKL_I32
 	char* intprPath=_fullpath(NULL,argv[0],0);
 #else
@@ -49,10 +49,12 @@ int main(int argc,char** argv)
 			fklFreeInterpeterPath();
 			return EXIT_FAILURE;
 		}
-		FklInterpreter* inter=fklNewIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL,NULL);
-		fklAddSymbolToGlob(filename);
+		FklInterpreter* inter=fklNewIntpr(((fp==stdin)?NULL:argv[1]),fp,NULL,NULL,NULL);
+		if(filename)
+			fklAddSymbolToGlob(filename);
 		fklInitGlobKeyWord(inter->glob);
 		fklInitNativeDefTypes(inter->deftypes);
+		fklInitVMargs(argc,argv);
 		//fklInitBuiltInStringPattern();
 		if(fp==stdin)
 			runRepl(inter);
@@ -88,8 +90,6 @@ int main(int argc,char** argv)
 			fklFreeByteCode(mainByteCode->bc);
 			free(mainByteCode);
 			FklVMrunnable* mainrunnable=anotherVM->rstack->base[0];
-			anotherVM->argc=argc-1;
-			anotherVM->argv=argv+1;
 			anotherVM->tid=pthread_self();
 			mainrunnable->localenv=globEnv;
 			anotherVM->callback=errorCallBack;
@@ -145,8 +145,6 @@ int main(int argc,char** argv)
 		fclose(fp);
 		FklVMrunnable* mainrunnable=anotherVM->rstack->base[0];
 		FklVMenv* globEnv=fklNewVMenv(NULL);
-		anotherVM->argc=argc-1;
-		anotherVM->argv=argv+1;
 		mainrunnable->localenv=globEnv;
 		anotherVM->callback=errorCallBack;
 		anotherVM->lnt=lnt;

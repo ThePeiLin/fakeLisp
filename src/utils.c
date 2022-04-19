@@ -425,11 +425,7 @@ void* fklCopyMemory(const void* pm,size_t size)
 
 void fklChangeWorkPath(const char* filename)
 {
-#ifdef _WIN32
-	char* p=_fullpath(NULL,filename,0);
-#else
-	char* p=realpath(filename,NULL);
-#endif
+	char* p=fklRealpath(filename);
 	char* wp=fklGetDir(p);
 	if(chdir(wp))
 	{
@@ -438,6 +434,15 @@ void fklChangeWorkPath(const char* filename)
 	}
 	free(p);
 	free(wp);
+}
+
+char* fklRealpath(const char* filename)
+{
+#ifdef _WIN32
+	return _fullpath(NULL,filename,0);
+#else
+	return realpath(filename,NULL);
+#endif
 }
 
 char* fklGetDir(const char* filename)

@@ -120,6 +120,7 @@ static const char* builtInSymbolList[]=
 	"dll?",
 	"vector",
 	"dlclose",
+	"getdir",
 };
 
 FklSymbolTable GlobSymbolTable=FKL_STATIC_SYMBOL_INIT;

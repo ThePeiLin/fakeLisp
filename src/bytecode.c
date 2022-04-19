@@ -426,6 +426,20 @@ FklLineNumTabNode* fklNewLineNumTabNode(FklSid_t fid,uint64_t scp,uint64_t cpc,u
 	return t;
 }
 
+FklLineNumTabNode* fklNewLineNumTabNodeWithFilename(const char* filename
+		,uint64_t scp
+		,uint64_t cpc
+		,uint32_t line)
+{
+	FklLineNumTabNode* t=(FklLineNumTabNode*)malloc(sizeof(FklLineNumTabNode));
+	FKL_ASSERT(t,__func__);
+	t->fid=filename?fklAddSymbolToGlob(filename)->id:0;
+	t->scp=scp;
+	t->cpc=cpc;
+	t->line=line;
+	return t;
+}
+
 void fklFreeLineNumTabNode(FklLineNumTabNode* n)
 {
 	free(n);

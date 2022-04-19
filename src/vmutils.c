@@ -173,12 +173,16 @@ char* fklGenInvalidSymbolErrorMessage(const char* str,FklVMrunnable* r,FklVM* ex
 {
 	int32_t cp=r->cp;
 	FklLineNumTabNode* node=fklFindLineNumTabNode(cp,exe->lnt);
-	char* filename=fklGetGlobSymbolWithId(node->fid)->symbol;
+	char* filename=node->fid?fklGetGlobSymbolWithId(node->fid)->symbol:NULL;
 	char* line=fklIntToString(node->line);
-	size_t len=strlen("at line  of \n")+strlen(filename)+strlen(line)+1;
+	size_t len=node->fid?strlen("at line  of \n")+strlen(filename)+strlen(line)+1
+		:strlen("at line \n")+strlen(line)+1;
 	char* lineNumber=(char*)malloc(sizeof(char)*len);
 	FKL_ASSERT(lineNumber,__func__);
-	sprintf(lineNumber,"at line %s of %s\n",line,filename);
+	if(node->fid)
+		sprintf(lineNumber,"at line %s of %s\n",line,filename);
+	else
+		sprintf(lineNumber,"at line %s\n",line);
 	free(line);
 	char* t=fklCopyStr("");
 	t=fklStrCat(t,"Invalid symbol ");
@@ -202,17 +206,20 @@ char* fklGenInvalidSymbolErrorMessage(const char* str,FklVMrunnable* r,FklVM* ex
 				t=fklStrCat(t,"at <top>");
 		}
 		FklLineNumTabNode* node=fklFindLineNumTabNode(r->cp,exe->lnt);
-		char* filename=fklGetGlobSymbolWithId(node->fid)->symbol;
+		char* filename=node->fid?fklGetGlobSymbolWithId(node->fid)->symbol:NULL;
 		char* line=fklIntToString(node->line);
-		size_t len=strlen("(:)\n")+strlen(filename)+strlen(line)+1;
+		size_t len=node->fid?strlen("(:)\n")+strlen(filename)+strlen(line)+1
+			:strlen("()\n")+strlen(line)+1;
 		char* lineNumber=(char*)malloc(sizeof(char)*len);
 		FKL_ASSERT(lineNumber,__func__);
-		sprintf(lineNumber,"(%s:%s)\n",line,filename);
+		if(node->fid)
+			sprintf(lineNumber,"(%s:%s)\n",line,filename);
+		else
+			sprintf(lineNumber,"(%s)\n",line);
 		free(line);
 		t=fklStrCat(t,lineNumber);
 		free(lineNumber);
 	}
-
 	return t;
 }
 
@@ -220,12 +227,16 @@ char* fklGenErrorMessage(unsigned int type,FklVMrunnable* r,FklVM* exe)
 {
 	int32_t cp=r->cp;
 	FklLineNumTabNode* node=fklFindLineNumTabNode(cp,exe->lnt);
-	char* filename=fklGetGlobSymbolWithId(node->fid)->symbol;
+	char* filename=node->fid?fklGetGlobSymbolWithId(node->fid)->symbol:NULL;
 	char* line=fklIntToString(node->line);
-	size_t len=strlen("at line  of \n")+strlen(filename)+strlen(line)+1;
+	size_t len=node->fid?strlen("at line  of \n")+strlen(filename)+strlen(line)+1
+		:strlen("at line \n")+strlen(line)+1;
 	char* lineNumber=(char*)malloc(sizeof(char)*len);
 	FKL_ASSERT(lineNumber,__func__);
-	sprintf(lineNumber,"at line %s of %s\n",line,filename);
+	if(node->fid)
+		sprintf(lineNumber,"at line %s of %s\n",line,filename);
+	else
+		sprintf(lineNumber,"at line %s\n",line);
 	free(line);
 	char* t=fklCopyStr("");
 	switch(type)
@@ -299,12 +310,16 @@ char* fklGenErrorMessage(unsigned int type,FklVMrunnable* r,FklVM* exe)
 				t=fklStrCat(t,"at <top>");
 		}
 		FklLineNumTabNode* node=fklFindLineNumTabNode(r->cp,exe->lnt);
-		char* filename=fklGetGlobSymbolWithId(node->fid)->symbol;
+		char* filename=node->fid?fklGetGlobSymbolWithId(node->fid)->symbol:NULL;
 		char* line=fklIntToString(node->line);
-		size_t len=strlen("(:)\n")+strlen(filename)+strlen(line)+1;
+		size_t len=node->fid?strlen("(:)\n")+strlen(filename)+strlen(line)+1
+			:strlen("()\n")+strlen(line)+1;
 		char* lineNumber=(char*)malloc(sizeof(char)*len);
 		FKL_ASSERT(lineNumber,__func__);
-		sprintf(lineNumber,"(%s:%s)\n",line,filename);
+		if(node->fid)
+			sprintf(lineNumber,"(%s:%s)\n",line,filename);
+		else
+			sprintf(lineNumber,"(%s)\n",line);
 		free(line);
 		t=fklStrCat(t,lineNumber);
 		free(lineNumber);

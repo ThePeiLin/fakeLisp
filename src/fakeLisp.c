@@ -53,9 +53,7 @@ int main(int argc,char** argv)
 		if(filename)
 			fklAddSymbolToGlob(filename);
 		fklInitGlobKeyWord(inter->glob);
-		//fklInitNativeDefTypes(inter->deftypes);
 		fklInitVMargs(argc,argv);
-		//fklInitBuiltInStringPattern();
 		if(fp==stdin)
 			runRepl(inter);
 		else
@@ -76,7 +74,6 @@ int main(int argc,char** argv)
 				fklFreeIntpr(inter);
 				fklUninitPreprocess();
 				fklFreeGlobSymbolTable();
-				//fklFreeGlobTypeList();
 				fklFreeInterpeterPath();
 				free(pWorkPath);
 				return state;
@@ -105,7 +102,6 @@ int main(int argc,char** argv)
 				fklUninitPreprocess();
 				fklFreeVMheap(anotherVM->heap);
 				fklFreeGlobSymbolTable();
-				//fklFreeGlobTypeList();
 				fklFreeAllVMs();
 			}
 			else
@@ -118,7 +114,6 @@ int main(int argc,char** argv)
 				fklFreeAllVMs();
 				fklFreeInterpeterPath();
 				fklFreeGlobSymbolTable();
-				//fklFreeGlobTypeList();
 				return exitState;
 			}
 		}
@@ -134,7 +129,6 @@ int main(int argc,char** argv)
 		}
 		loadSymbolTable(fp);
 		FklLineNumberTable* lnt=loadLineNumberTable(fp);
-		//fklLoadTypeList(fp);
 		FklByteCode* mainCode=loadByteCode(fp);
 		FklVM* anotherVM=fklNewVM(mainCode);
 		FklVMheap* heap=anotherVM->heap;
@@ -152,7 +146,6 @@ int main(int argc,char** argv)
 			fklJoinAllThread();
 			fklFreeVMheap(heap);
 			fklFreeGlobSymbolTable();
-			//fklFreeGlobTypeList();
 			fklFreeAllVMs();
 			fklFreeLineNumberTable(lnt);
 		}
@@ -163,7 +156,6 @@ int main(int argc,char** argv)
 			fklFreeAllVMs();
 			fklFreeVMheap(heap);
 			fklFreeGlobSymbolTable();
-			//fklFreeGlobTypeList();
 			fklFreeLineNumberTable(lnt);
 			fklFreeInterpeterPath();
 			return exitState;
@@ -222,7 +214,6 @@ void runRepl(FklInterpreter* inter)
 		inter->curline+=fklCountChar(list,'\n',size);
 		while(!fklIsPtrStackEmpty(tokenStack))
 			fklFreeToken(fklPopPtrStack(tokenStack));
-		//begin=fklCreateTree(list,inter,NULL);
 		if(fklIsAllSpaceBufSize(list,size))
 		{
 			free(list);
@@ -239,7 +230,6 @@ void runRepl(FklInterpreter* inter)
 				{
 					fklDeleteCptr(begin);
 					fklFreeGlobSymbolTable();
-					//fklFreeGlobTypeList();
 					exit(0);
 				}
 			}
@@ -302,7 +292,6 @@ void runRepl(FklInterpreter* inter)
 	fklFreeVMheap(anotherVM->heap);
 	fklFreeAllVMs();
 	fklFreeGlobSymbolTable();
-	//fklFreeGlobTypeList();
 }
 
 FklByteCode* loadByteCode(FILE* fp)

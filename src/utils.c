@@ -593,11 +593,8 @@ char* fklCastEscapeCharater(const char* str,char end,size_t* len)
 			}
 			else if(toupper(str[i+1])=='X')
 			{
-				//int len=0;
 				char* backSlashStr=fklGetStringAfterBackslash(str+i);
 				ch=fklStringToChar(backSlashStr+1);
-				//while(isxdigit(str[i+2+len])&&len<2)len++;
-				//sscanf(str+i+1,"%4x",&ch);
 				i+=strlen(backSlashStr);
 				free(backSlashStr);
 			}

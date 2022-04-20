@@ -1293,7 +1293,6 @@ void SYS_read(ARGL)
 		fklFreePtrStack(matchStateStack);
 	}
 	FklAstCptr* tmpCptr=fklCreateAstWithTokens(tokenStack,NULL,NULL);
-	//FklAstCptr* tmpCptr=fklBaseCreateTree(tmpString,tmpIntpr);
 	FklVMvalue* tmp=NULL;
 	if(tmpCptr==NULL)
 		tmp=FKL_VM_NIL;
@@ -1902,7 +1901,6 @@ void SYS_error_p(ARGL) PREDICATE(FKL_IS_ERR(val),"sys.error?")
 void SYS_procedure_p(ARGL) PREDICATE(FKL_IS_PROC(val)||FKL_IS_DLPROC(val),"sys.procedure?")
 void SYS_proc_p(ARGL) PREDICATE(FKL_IS_PROC(val),"sys.proc?")
 void SYS_dlproc_p(ARGL) PREDICATE(FKL_IS_DLPROC(val),"sys.dlproc?")
-//void SYS_flproc_p(ARGL) PREDICATE(FKL_IS_FLPROC(val),"sys.flproc?")
 void SYS_vector_p(ARGL) PREDICATE(FKL_IS_VECTOR(val),"sys.vector?")
 void SYS_chanl_p(ARGL) PREDICATE(FKL_IS_CHAN(val),"sys.chanl?")
 void SYS_dll_p(ARGL) PREDICATE(FKL_IS_DLL(val),"sys.dll?")

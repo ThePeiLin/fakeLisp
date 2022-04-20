@@ -170,11 +170,6 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode,uint32_t i
 					fprintf(fp,"%ld"
 							,fklGetI64FromByteCode(tmpCode->code+i+sizeof(char)));
 					break;
-				//case FKL_PUSH_FPROC:
-				//	fprintf(fp,"%u %u"
-				//			,fklGetU32FromByteCode(tmpCode->code+i+sizeof(char))
-				//			,fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)+sizeof(FklTypeId_t)));
-				//	break;
 				case FKL_PUSH_VECTOR:
 				case FKL_PUSH_SYM:
 				case FKL_PUSH_VAR:
@@ -185,23 +180,6 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode,uint32_t i
 			}
 			r+=sizeof(char)+sizeof(int64_t);
 			break;
-		//case 12:
-		//	switch(tmpCode->code[i])
-		//	{
-		//		case FKL_PUSH_IND_REF:
-		//			fprintf(fp,"%lu %u"
-		//					,fklGetSidFromByteCode(tmpCode->code+i+sizeof(char))
-		//					,fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)+sizeof(FklTypeId_t)));
-		//			r+=sizeof(char)+sizeof(FklTypeId_t)+sizeof(uint32_t);
-		//			break;
-		//		default:
-		//			fprintf(fp,"%ld %lu"
-		//					,fklGetI64FromByteCode(tmpCode->code+i+sizeof(char))
-		//					,fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)+sizeof(int64_t)));
-		//			r+=sizeof(char)+sizeof(int64_t)+sizeof(FklTypeId_t);
-		//			break;
-		//	}
-		//	break;
 	}
 	return r;
 }

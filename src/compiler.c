@@ -64,11 +64,6 @@ static int cmpString(const void* a,const void* b)
 	return strcmp(*(const char**)a,*(const char**)b);
 }
 
-//static int cmpByteCodeLabel(const void* a,const void* b)
-//{
-//	return strcmp(((const FklByteCodeLabel*)a)->label,((const FklByteCodeLabel*)b)->label);
-//}
-
 FklPreMacro* fklPreMacroMatch(const FklAstCptr* objCptr,FklPreEnv** pmacroEnv,FklCompEnv* curEnv,FklCompEnv** pCEnv)
 {
 	for(;curEnv;curEnv=curEnv->prev)
@@ -160,16 +155,6 @@ static int fklAddDefinedMacro(FklPreMacro* macro,FklCompEnv* curEnv)
 	{
 		tmpCptr=&pattern->u.pair->car;
 		fklAddKeyWord(tmpCptr->u.atom->value.str,curEnv);
-		//for(tmpCptr=&pattern->u.pair->car;tmpCptr!=NULL;tmpCptr=fklNextCptr(tmpCptr))
-		//{
-		//	if(tmpCptr->type==FKL_ATM)
-		//	{
-		//		FklAstAtom* carAtm=tmpCptr->u.atom;
-		//		FklAstAtom* cdrAtm=(tmpCptr->outer->cdr.type==FKL_ATM)?tmpCptr->outer->cdr.u.atom:NULL;
-		//		if(carAtm->type==FKL_SYM&&!isVal(carAtm->value.str))fklAddKeyWord(carAtm->value.str,curEnv);
-		//		if(cdrAtm!=NULL&&cdrAtm->type==FKL_SYM&&!isVal(cdrAtm->value.str))fklAddKeyWord(cdrAtm->value.str,curEnv);
-		//	}
-		//}
 		FklPreMacro* current=(FklPreMacro*)malloc(sizeof(FklPreMacro));
 		FKL_ASSERT(current,__func__);
 		current->next=curEnv->macro;
@@ -201,16 +186,6 @@ int fklAddMacro(FklAstCptr* pattern,FklByteCodelnt* proc,FklCompEnv* curEnv)
 	{
 		tmpCptr=&pattern->u.pair->car;
 		fklAddKeyWord(tmpCptr->u.atom->value.str,curEnv);
-//		for(tmpCptr=&pattern->u.pair->car;tmpCptr!=NULL;tmpCptr=fklNextCptr(tmpCptr))
-//		{
-//			if(tmpCptr->type==FKL_ATM)
-//			{
-//				FklAstAtom* carAtm=tmpCptr->u.atom;
-//				FklAstAtom* cdrAtm=(tmpCptr->outer->cdr.type==FKL_ATM)?tmpCptr->outer->cdr.u.atom:NULL;
-//				if(carAtm->type==FKL_SYM&&!isVal(carAtm->value.str))fklAddKeyWord(carAtm->value.str,curEnv);
-//				if(cdrAtm!=NULL&&cdrAtm->type==FKL_SYM&&!isVal(cdrAtm->value.str))fklAddKeyWord(cdrAtm->value.str,curEnv);
-//			}
-//		}
 		FKL_ASSERT((current=(FklPreMacro*)malloc(sizeof(FklPreMacro))),__func__);
 		current->next=curEnv->macro;
 		current->pattern=pattern;
@@ -227,7 +202,6 @@ int fklAddMacro(FklAstCptr* pattern,FklByteCodelnt* proc,FklCompEnv* curEnv)
 		current->pattern=pattern;
 		current->proc=proc;
 	}
-	//fklPrintAllKeyWord();
 	return 0;
 }
 
@@ -652,8 +626,6 @@ FklByteCodelnt* fklCompile(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter
 		if(fklIsDefExpression(objCptr))return fklCompileDef(objCptr,curEnv,inter,state);
 		if(fklIsSetqExpression(objCptr))return fklCompileSetq(objCptr,curEnv,inter,state);
 		if(fklIsSetfExpression(objCptr))return fklCompileSetf(objCptr,curEnv,inter,state);
-		//if(fklIsGetfExpression(objCptr))return fklCompileGetf(objCptr,curEnv,inter,state);
-		//if(fklIsSzofExpression(objCptr))return fklCompileSzof(objCptr,curEnv,inter,state);
 		if(fklIsCondExpression(objCptr))return fklCompileCond(objCptr,curEnv,inter,state);
 		if(fklIsAndExpression(objCptr))return fklCompileAnd(objCptr,curEnv,inter,state);
 		if(fklIsOrExpression(objCptr))return fklCompileOr(objCptr,curEnv,inter,state);
@@ -661,7 +633,6 @@ FklByteCodelnt* fklCompile(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter
 		if(fklIsBeginExpression(objCptr)) return fklCompileBegin(objCptr,curEnv,inter,state);
 		if(fklIsImportExpression(objCptr))return fklCompileImport(objCptr,curEnv,inter,state);
 		if(fklIsTryExpression(objCptr))return fklCompileTry(objCptr,curEnv,inter,state);
-		//if(fklIsFlsymExpression(objCptr))return fklCompileFlsym(objCptr,curEnv,inter,state);
 		if(fklIsLibraryExpression(objCptr))
 		{
 			FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
@@ -2016,7 +1987,6 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int* exitstate)
 		}
 		begin=fklCreateAstWithTokens(tokenStack,inter->filename,inter->glob);
 		inter->curline+=fklCountChar(list,'\n',size);
-		//begin=fklCreateTree(list,inter,NULL);
 		if(fklIsAllSpaceBufSize(list,size))
 		{
 			while(!fklIsPtrStackEmpty(tokenStack))

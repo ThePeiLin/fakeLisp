@@ -542,35 +542,6 @@ void fklFreeVMdlproc(FklVMdlproc* dlproc)
 	free(dlproc);
 }
 
-//FklVMflproc* fklNewVMflproc(FklTypeId_t type,void* func)
-//{
-//	FklVMflproc* tmp=(FklVMflproc*)malloc(sizeof(FklVMflproc));
-//	FKL_ASSERT(tmp,__func__);
-//	tmp->type=type;
-//	tmp->func=func;
-//	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklGetVMTypeUnion(type).all);
-//	uint32_t anum=ft->anum;
-//	FklTypeId_t* atypes=ft->atypes;
-//	ffi_type** ffiAtypes=(ffi_type**)malloc(sizeof(ffi_type*)*anum);
-//	FKL_ASSERT(ffiAtypes,__func__);
-//	uint32_t i=0;
-//	for(;i<anum;i++)
-//		ffiAtypes[i]=fklGetFfiType(atypes[i]);
-//	FklTypeId_t rtype=ft->rtype;
-//	ffi_type* ffiRtype=NULL;
-//	ffiRtype=fklGetFfiType(rtype);
-//	fklPrepFFIcif(&tmp->cif,anum,ffiAtypes,ffiRtype);
-//	tmp->atypes=ffiAtypes;
-//	tmp->sid=0;
-//	return tmp;
-//}
-
-//void fklFreeVMflproc(FklVMflproc* t)
-//{
-//	free(t->atypes);
-//	free(t);
-//}
-
 FklVMerror* fklNewVMerror(const char* who,const char* type,const char* message)
 {
 	FklVMerror* t=(FklVMerror*)malloc(sizeof(FklVMerror));

@@ -210,13 +210,11 @@ static MatchState* searchReverseStringCharMatchState(const char* part,size_t ind
 					break;
 				i++;
 			}
-			//char* nextPart=fklGetNthPartOfStringMatchPattern(topState->pattern,topState->index+1);
 			size_t nextPartLen=strlen(nextPart);
 			if(size-index>=nextPartLen&&topState->pattern!=NULL&&nextPart&&!fklIsVar(nextPart)&&!strncmp(nextPart,part+index,strlen(nextPart)))
 			{
 				topState->index+=i;
 				return topState;
-				//return newMatchState(topState->pattern,topState->index+i);
 			}
 		}
 		FklStringMatchPattern* pattern=fklFindStringPatternBuf(part+index,size-index);
@@ -297,7 +295,6 @@ static const char* searchReverseStringChar(const char* part,size_t index,size_t 
 			uint32_t i=0;
 			for(;nextPart&&fklIsVar(nextPart);i++)
 				nextPart=fklGetNthPartOfStringMatchPattern(topState->pattern,topState->index+i);
-			//char* nextPart=fklGetNthPartOfStringMatchPattern(topState->pattern,topState->index+1);
 			size_t nextPartLen=strlen(nextPart);
 			if(size-index>nextPartLen&&topState->pattern!=NULL&&nextPart&&!fklIsVar(nextPart)&&!strncmp(nextPart,part+index,nextPartLen))
 				return nextPart;
@@ -490,7 +487,6 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 			}
 			else if(sizes[i]-j>1&&!strncmp(parts[i]+j,"#\\",strlen("#\\")))
 			{
-				//size_t len=getSymbolLen(parts[i]+j+2,matchStateStack);
 				char* symbol=fklGetStringAfterBackslash(parts[i]+j+2);
 				size_t len=strlen(symbol);
 				free(symbol);
@@ -498,7 +494,6 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 				fklPushPtrStack(fklNewToken(FKL_TOKEN_CHAR,symbol,*line),retvalStack);
 				free(symbol);
 				j+=len+2;
-				//j+=strlen(symbol)+2;
 			}
 			else if(sizes[i]-j>1&&!strncmp(parts[i]+j,"#b",strlen("#b")))
 			{

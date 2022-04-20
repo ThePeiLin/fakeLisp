@@ -5,39 +5,39 @@
 #include"ffi.h"
 #define ARGL FklVM* exe,pthread_rwlock_t* gclock
 
-void FKL_C_malloc(ARGL)
+void FKL_ffi_malloc(ARGL)
 {
 }
 
-void FKL_C_free(ARGL)
+void FKL_ffi_free(ARGL)
 {
 }
 
-void FKL_C_sizeof(ARGL)
+void FKL_ffi_sizeof(ARGL)
 {
 }
 
-void FKL_C_typedef(ARGL)
+void FKL_ffi_typedef(ARGL)
 {
 }
 
-void FKL_C_call(ARGL)
+void FKL_ffi_call(ARGL)
 {
 }
 
-void FKL_C_load(ARGL)
+void FKL_ffi_load(ARGL)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
 	FklVMvalue* vpath=fklPopVMstack(stack);
 	if(fklResBp(stack))
-		FKL_RAISE_BUILTIN_ERROR("ffi.c.load",FKL_TOOMANYARG,r,exe);
+		FKL_RAISE_BUILTIN_ERROR("ffi.load",FKL_TOOMANYARG,r,exe);
 	if(exe->VMid==-1)
 		return;
 	if(!vpath)
-		FKL_RAISE_BUILTIN_ERROR("ffi.c.load",FKL_TOOFEWARG,r,exe);
+		FKL_RAISE_BUILTIN_ERROR("ffi.load",FKL_TOOFEWARG,r,exe);
 	if(!FKL_IS_STR(vpath))
-		FKL_RAISE_BUILTIN_ERROR("ffi.c.load",FKL_WRONGARG,r,exe);
+		FKL_RAISE_BUILTIN_ERROR("ffi.load",FKL_WRONGARG,r,exe);
 	const char* path=vpath->u.str;
 #ifdef _WIN32
 	FklVMdllHandle handle=LoadLibrary(path);
@@ -70,5 +70,11 @@ void FKL_C_load(ARGL)
 	fklAddSharedObj(handle);
 }
 
+void FKL_ffi_c_ref(ARGL)
+{
+}
 
+void FKL_ffi_c_set(ARGL)
+{
+}
 #undef ARGL

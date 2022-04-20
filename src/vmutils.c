@@ -516,8 +516,12 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 					case FKL_ERR:
 						fprintf(fp,"%s",v->u.err->message);
 						break;
+					case FKL_USERDATA:
+						fprintf(fp,"#<userdata:%p>",v->u.usrdata);
+						break;
 					default:
-						fprintf(fp,"Bad value!");break;
+						fputs("#<unknown>",fp);
+						break;
 				}
 			}
 		default:
@@ -588,6 +592,12 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 							,v->u.err->who
 							,fklGetGlobSymbolWithId(v->u.err->type)->symbol
 							,v->u.err->message);
+					break;
+				case FKL_USERDATA:
+					fprintf(fp,"#<userdata:%p>",v->u.usrdata);
+					break;
+				default:
+					fputs("#<unknown>",fp);
 					break;
 			}
 	}

@@ -428,7 +428,6 @@ void fklInitGlobKeyWord(FklCompEnv* glob)
 	fklAddKeyWord("unquote",glob);
 	fklAddKeyWord("qsquote",glob);
 	fklAddKeyWord("unqtesp",glob);
-	//fklAddKeyWord("progn",glob);
 	fklAddKeyWord("import",glob);
 	fklAddKeyWord("library",glob);
 	fklAddKeyWord("export",glob);

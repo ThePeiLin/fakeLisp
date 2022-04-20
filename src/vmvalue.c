@@ -55,6 +55,7 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVMheap* heap)
 						case FKL_DLPROC:
 						case FKL_ERR:
 						case FKL_VECTOR:
+						case FKL_USERDATA:
 							*root1=root;
 							break;
 						case FKL_CHAN:
@@ -184,6 +185,8 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 						tmp->u.err=pValue;break;
 					case FKL_VECTOR:
 						tmp->u.vec=pValue;break;
+					case FKL_USERDATA:
+						tmp->u.usrdata=pValue;break;
 					default:
 						return NULL;
 						break;
@@ -499,6 +502,9 @@ FklVMdllHandle* fklNewVMdll(const char* dllName)
 		return NULL;
 	}
 #endif
+	void (*init)(void)=fklGetAddress("_fklInit",handle);
+	if(init)
+		init();
 	free(realDllName);
 	free(rpath);
 	return handle;
@@ -508,6 +514,9 @@ void fklFreeVMdll(FklVMdllHandle* dll)
 {
 	if(dll)
 	{
+		void (*uninit)(void)=fklGetAddress("_fklUninit",dll);
+		if(uninit)
+			uninit();
 #ifdef _WIN32
 		FreeLibrary(dll);
 #else

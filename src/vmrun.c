@@ -77,7 +77,7 @@ static void B_push_chr(FklVM*);
 static void B_push_f64(FklVM*);
 static void B_push_str(FklVM*);
 static void B_push_sym(FklVM*);
-static void B_push_byts(FklVM*);
+//static void B_push_byts(FklVM*);
 static void B_push_var(FklVM*);
 static void B_push_top(FklVM*);
 static void B_push_proc(FklVM*);
@@ -115,7 +115,7 @@ static void (*ByteCodes[])(FklVM*)=
 	B_push_f64,
 	B_push_str,
 	B_push_sym,
-	B_push_byts,
+	//B_push_byts,
 	B_push_var,
 	B_push_top,
 	B_push_proc,
@@ -237,14 +237,11 @@ extern void SYS_integer(ARGL);
 extern void SYS_f64(ARGL);
 extern void SYS_string(ARGL);
 extern void SYS_symbol(ARGL);
-extern void SYS_byts(ARGL);
 extern void SYS_nth(ARGL);
 extern void SYS_length(ARGL);
 extern void SYS_fopen(ARGL);
 extern void SYS_read(ARGL);
-extern void SYS_fgetb(ARGL);
 extern void SYS_prin1(ARGL);
-extern void SYS_fputb(ARGL);
 extern void SYS_princ(ARGL);
 extern void SYS_dlopen(ARGL);
 extern void SYS_dlsym(ARGL);
@@ -269,7 +266,6 @@ extern void SYS_integer_p(ARGL);
 extern void SYS_i32_p(ARGL);
 extern void SYS_i64_p(ARGL);
 extern void SYS_f64_p(ARGL);
-extern void SYS_byts_p(ARGL);
 extern void SYS_pair_p(ARGL);
 extern void SYS_symbol_p(ARGL);
 extern void SYS_string_p(ARGL);
@@ -316,16 +312,13 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_f64,
 		SYS_string,
 		SYS_symbol,
-		SYS_byts,
 		SYS_nth,
 		SYS_length,
 		SYS_apply,
 		SYS_call_cc,
 		SYS_fopen,
 		SYS_read,
-		SYS_fgetb,
 		SYS_prin1,
-		SYS_fputb,
 		SYS_princ,
 		SYS_dlopen,
 		SYS_dlsym,
@@ -348,7 +341,6 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_i32_p,
 		SYS_i64_p,
 		SYS_f64_p,
-		SYS_byts_p,
 		SYS_pair_p,
 		SYS_symbol_p,
 		SYS_string_p,
@@ -594,9 +586,9 @@ void B_push_str(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	int len=strlen((char*)(exe->code+runnable->cp+1));
-	FKL_SET_RETURN("B_push_str",fklNewVMvalue(FKL_STR,fklCopyStr((char*)exe->code+runnable->cp+1),exe->heap),stack);
-	runnable->cp+=2+len;
+	uint64_t size=fklGetU64FromByteCode(exe->code+runnable->cp+sizeof(char));
+	FKL_SET_RETURN("B_push_str",fklNewVMvalue(FKL_STR,fklNewVMstr(size,(char*)exe->code+runnable->cp+sizeof(char)+sizeof(uint64_t)),exe->heap),stack);
+	runnable->cp+=sizeof(char)+sizeof(uint64_t)+size;
 }
 
 void B_push_sym(FklVM* exe)
@@ -607,14 +599,14 @@ void B_push_sym(FklVM* exe)
 	runnable->cp+=sizeof(char)+sizeof(FklSid_t);
 }
 
-void B_push_byts(FklVM* exe)
-{
-	FklVMstack* stack=exe->stack;
-	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-	uint64_t size=fklGetU64FromByteCode(exe->code+runnable->cp+sizeof(char));
-	FKL_SET_RETURN("B_push_byts",fklNewVMvalue(FKL_BYTS,fklNewVMbyts(size,exe->code+runnable->cp+sizeof(char)+sizeof(uint64_t)),exe->heap),stack);
-	runnable->cp+=sizeof(char)+sizeof(uint64_t)+size;
-}
+//void B_push_byts(FklVM* exe)
+//{
+//	FklVMstack* stack=exe->stack;
+//	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
+//	uint64_t size=fklGetU64FromByteCode(exe->code+runnable->cp+sizeof(char));
+//	FKL_SET_RETURN("B_push_byts",fklNewVMvalue(FKL_BYTS,fklNewVMbyts(size,exe->code+runnable->cp+sizeof(char)+sizeof(uint64_t)),exe->heap),stack);
+//	runnable->cp+=sizeof(char)+sizeof(uint64_t)+size;
+//}
 
 void B_push_var(FklVM* exe)
 {
@@ -1277,9 +1269,9 @@ void fklGC_sweep(FklVMheap* heap)
 				case FKL_PROC:
 					fklFreeVMproc(prev->u.proc);
 					break;
-				case FKL_BYTS:
-					free(prev->u.byts);
-					break;
+				//case FKL_BYTS:
+				//	free(prev->u.byts);
+				//	break;
 				case FKL_CONT:
 					fklFreeVMcontinuation(prev->u.cont);
 					break;

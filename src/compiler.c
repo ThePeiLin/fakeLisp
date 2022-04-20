@@ -3140,7 +3140,6 @@ void fklPrintUndefinedSymbol(FklByteCodelnt* code)
 		FklCompEnv* curEnv=fklPopPtrStack(envstack);
 		while(i<end)
 		{
-			int tmplen=0;
 			FklOpcode opcode=(FklOpcode)(bc->code[i]);
 			switch(fklGetOpcodeArgLen(opcode))
 			{
@@ -3195,8 +3194,7 @@ void fklPrintUndefinedSymbol(FklByteCodelnt* code)
 					i+=sizeof(char)+sizeof(uint64_t)+fklGetU64FromByteCode(bc->code+i+sizeof(char));
 					break;
 				case -1:
-					tmplen=strlen((char*)bc->code+i+1);
-					i+=sizeof(char)+tmplen+1;
+					i+=sizeof(char)+sizeof(uint64_t)+fklGetU64FromByteCode(bc->code+i+sizeof(char));
 					break;
 				case 0:
 					if(opcode==FKL_PUSH_R_ENV)

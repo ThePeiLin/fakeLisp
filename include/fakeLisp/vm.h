@@ -336,11 +336,11 @@ FklVMpair* fklNewVMpair(void);
 
 FklVMstr* fklNewVMstr(size_t,char*);
 
-FklVMstr* fklCopyVMbyts(const FklVMstr*);
-FklVMstr* fklNewEmptyVMbyts();
+FklVMstr* fklCopyVMstr(const FklVMstr*);
+FklVMstr* fklNewEmptyVMstr();
 void fklVMstrCat(FklVMstr**,const FklVMstr*);
-int fklEqVMbyts(const FklVMstr*,const FklVMstr*);
 int fklVMstrcmp(const FklVMstr*,const FklVMstr*);
+char* fklVMstrToCstr(FklVMstr* str);
 FklVMchanl* fklNewVMchanl(int32_t size);
 
 void fklFreeVMchanl(FklVMchanl*);

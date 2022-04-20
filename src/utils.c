@@ -751,3 +751,25 @@ char* fklCharBufToStr(const char* buf,size_t size)
 	FKL_ASSERT(str,__func__);
 	return str;
 }
+
+void fklPrintRawCharBuf(const char* str,size_t size,FILE* out)
+{
+	putc('\"',out);
+	for(uint64_t i=0;i<size;i++)
+	{
+		if(str[i]=='\"')
+			fprintf(out,"\\\"");
+		else if(isgraph(str[i]))
+			putc(str[i],out);
+		else if(str[i]=='\x20')
+			putc(str[i],out);
+		else
+		{
+			uint8_t j=str[i];
+			fprintf(out,"\\x");
+			fprintf(out,"%X",j/16);
+			fprintf(out,"%X",j%16);
+		}
+	}
+	putc('\"',out);
+}

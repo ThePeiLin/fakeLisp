@@ -639,7 +639,7 @@ void SYS_integer(ARGL)
 	}
 	else if(FKL_IS_STR(obj))
 	{
-		char* str=fklCharBufToStr(obj->u.str->str,obj->u.str->size);
+		char* str=fklVMstrToCstr(obj->u.str);
 		int64_t r=fklStringToInt(str);
 		free(str);
 		FKL_SET_RETURN(__func__,makeVMint(r,exe->heap),stack);
@@ -701,7 +701,7 @@ void SYS_i32(ARGL)
 		FKL_SET_RETURN(__func__,FKL_MAKE_VM_I32((int32_t)obj->u.f64),stack);
 	else if(FKL_IS_STR(obj))
 	{
-		char* str=fklCharBufToStr(obj->u.str->str,obj->u.str->size);
+		char* str=fklVMstrToCstr(obj->u.str);
 		int64_t r=fklStringToInt(str);
 		free(str);
 		FKL_SET_RETURN(__func__,FKL_MAKE_VM_I32((int32_t)r),stack);
@@ -756,7 +756,7 @@ void SYS_i64(ARGL)
 	}
 	else if(FKL_IS_STR(obj))
 	{
-		char* str=fklCharBufToStr(obj->u.str->str,obj->u.str->size);
+		char* str=fklVMstrToCstr(obj->u.str);
 		int64_t r=fklStringToInt(str);
 		free(str);
 		FKL_SET_RETURN(__func__,fklNewVMvalue(FKL_I64,&r,exe->heap),stack);
@@ -800,7 +800,7 @@ void SYS_f64(ARGL)
 		retval->u.f64=obj->u.f64;
 	else if(FKL_IS_STR(obj))
 	{
-		char* str=fklCharBufToStr(obj->u.str->str,obj->u.str->size);
+		char* str=fklVMstrToCstr(obj->u.str);
 		retval->u.f64=fklStringToDouble(str);
 		free(str);
 	}
@@ -971,7 +971,7 @@ void SYS_symbol(ARGL)
 		FKL_SET_RETURN(__func__,obj,stack);
 	else if(FKL_IS_STR(obj))
 	{
-		char* str=fklCharBufToStr(obj->u.str->str,obj->u.str->size);
+		char* str=fklVMstrToCstr(obj->u.str);
 		FKL_SET_RETURN(__func__,FKL_MAKE_VM_SYM(fklAddSymbolToGlob(str)->id),stack);
 		free(str);
 	}
@@ -1257,8 +1257,8 @@ void SYS_fopen(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("sys.fopen",FKL_TOOFEWARG,runnable,exe);
 	if(!FKL_IS_STR(filename)||!FKL_IS_STR(mode))
 		FKL_RAISE_BUILTIN_ERROR("sys.fopen",FKL_WRONGARG,runnable,exe);
-	char* c_filename=fklCharBufToStr(filename->u.str->str,filename->u.str->size);
-	char* c_mode=fklCharBufToStr(mode->u.str->str,filename->u.str->size);
+	char* c_filename=fklVMstrToCstr(filename->u.str);
+	char* c_mode=fklVMstrToCstr(mode->u.str);
 	FILE* file=fopen(c_filename,c_mode);
 	free(c_filename);
 	free(c_mode);
@@ -1316,9 +1316,8 @@ void SYS_read(ARGL)
 	}
 	else
 	{
-		tmpString=fklCopyStr(stream->u.str);
-		char* parts[]={tmpString};
-		size_t sizes[]={strlen(tmpString)};
+		char* parts[]={stream->u.str->str};
+		size_t sizes[]={stream->u.str->size};
 		uint32_t line=0;
 		FklPtrStack* matchStateStack=fklNewPtrStack(32,16);
 		fklSplitStringPartsIntoToken(parts,sizes,1,&line,tokenStack,matchStateStack,NULL,NULL);
@@ -1463,7 +1462,9 @@ void SYS_dlopen(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("sys.dlopen",FKL_TOOFEWARG,runnable,exe);
 	if(!FKL_IS_STR(dllName))
 		FKL_RAISE_BUILTIN_ERROR("sys.dlopen",FKL_WRONGARG,runnable,exe);
-	FklVMdllHandle* dll=fklNewVMdll(dllName->u.str);
+	char* str=fklVMstrToCstr(dllName->u.str);
+	FklVMdllHandle* dll=fklNewVMdll(str);
+	free(str);
 	if(!dll)
 	{
 		FKL_SET_RETURN(__func__,dllName,stack);
@@ -1506,11 +1507,13 @@ void SYS_dlsym(ARGL)
 	if(!dll->u.dll)
 		FKL_RAISE_BUILTIN_ERROR("sys.dlsym",FKL_INVALIDACCESS,runnable,exe);
 	char prefix[]="FKL_";
-	size_t len=strlen(prefix)+strlen(symbol->u.str)+1;
+	char* str=fklVMstrToCstr(symbol->u.str);
+	size_t len=strlen(prefix)+strlen(str)+1;
 	char* realDlFuncName=(char*)malloc(sizeof(char)*len);
 	FKL_ASSERT(realDlFuncName,__func__);
-	sprintf(realDlFuncName,"%s%s",prefix,symbol->u.str);
+	sprintf(realDlFuncName,"%s%s",prefix,str);
 	FklVMdllFunc funcAddress=fklGetAddress(realDlFuncName,dll->u.dll);
+	free(str);
 	if(!funcAddress)
 	{
 		free(realDlFuncName);
@@ -1663,7 +1666,11 @@ void SYS_error(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("sys.error",FKL_TOOFEWARG,runnable,exe);
 	if(!FKL_IS_SYM(type)||!FKL_IS_STR(message)||(!FKL_IS_SYM(who)&&!FKL_IS_STR(who)))
 		FKL_RAISE_BUILTIN_ERROR("sys.error",FKL_WRONGARG,runnable,exe);
-	FKL_SET_RETURN(__func__,fklNewVMvalue(FKL_ERR,fklNewVMerrorWithSid((FKL_IS_SYM(who))?fklGetGlobSymbolWithId(FKL_GET_SYM(who))->symbol:who->u.str,FKL_GET_SYM(type),message->u.str),exe->heap),stack);
+	char* str=FKL_IS_STR(who)?fklVMstrToCstr(who->u.str):NULL;
+	char* msg=fklVMstrToCstr(message->u.str);
+	FKL_SET_RETURN(__func__,fklNewVMvalue(FKL_ERR,fklNewVMerrorWithSid((FKL_IS_SYM(who))?fklGetGlobSymbolWithId(FKL_GET_SYM(who))->symbol:str,FKL_GET_SYM(type),msg),exe->heap),stack);
+	free(str);
+	free(msg);
 }
 
 void SYS_raise(ARGL)
@@ -1835,22 +1842,14 @@ void SYS_vector(ARGL)
 	FklVMvalue* fir=fklPopAndGetVMstack(stack);
 	if(!fir)
 		FKL_RAISE_BUILTIN_ERROR("sys.vector",FKL_TOOFEWARG,runnable,exe);
-	if(FKL_IS_STR(fir)||FKL_IS_BYTS(fir))
+	if(FKL_IS_STR(fir))
 	{
 		if(fklResBp(stack))
 			FKL_RAISE_BUILTIN_ERROR("sys.vector",FKL_TOOMANYARG,runnable,exe);
-		size_t size=FKL_IS_STR(fir)?strlen(fir->u.str):fir->u.byts->size;
+		size_t size=fir->u.str->size;
 		FklVMvec* vec=fklNewVMvec(size,NULL);
-		if(FKL_IS_STR(fir))
-		{
-			for(size_t i=0;i<size;i++)
-				vec->base[i]=FKL_MAKE_VM_CHR(fir->u.str[i]);
-		}
-		else
-		{
-			for(size_t i=0;i<size;i++)
-				vec->base[i]=FKL_MAKE_VM_I32(fir->u.byts->str[i]);
-		}
+		for(size_t i=0;i<size;i++)
+			vec->base[i]=FKL_MAKE_VM_CHR(fir->u.str->str[i]);
 		FKL_SET_RETURN(__func__,fklNewVMvalue(FKL_VECTOR,vec,exe->heap),stack);
 	}
 	else if(isInt(fir))

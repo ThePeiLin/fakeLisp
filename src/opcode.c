@@ -13,7 +13,7 @@ static struct
 	{"push_i64",8},
 	{"push_char",1},
 	{"push_f64",8},
-	{"push_str",-2},
+	{"push_str",-1},
 	{"push_sym",8},
 	//{"push_byts",-2},
 	{"push_var",8},

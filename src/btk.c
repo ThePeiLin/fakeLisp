@@ -136,7 +136,9 @@ void FKL_removeFile(FklVM* exe,pthread_rwlock_t* pGClock)
 		FKL_RAISE_BUILTIN_ERROR("btk.removeFile",FKL_TOOMANYARG,r,exe);
 	if(!FKL_IS_STR(name))
 		FKL_RAISE_BUILTIN_ERROR("btk.removeFile",FKL_WRONGARG,r,exe);
-	FKL_SET_RETURN("FKL_removeFile",FKL_MAKE_VM_I32(remove(name->u.str)),stack);
+	char* str=fklVMstrToCstr(name->u.str);
+	FKL_SET_RETURN("FKL_removeFile",FKL_MAKE_VM_I32(remove(str)),stack);
+	free(name);
 }
 
 void FKL_setVMChanlBufferSize(FklVM* exe,pthread_rwlock_t* pGClock)

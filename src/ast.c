@@ -502,12 +502,105 @@ static FklAstAtom* createNum(const char* oStr,FklAstPair* prev)
 //	return r;
 //}
 
+static char* castEscapeCharaterBuf(const char* str,char end,size_t* size)
+{
+	uint64_t strSize=0;
+	uint64_t memSize=FKL_MAX_STRING_SIZE;
+	uint64_t i=0;
+	char* tmp=(char*)malloc(sizeof(char)*memSize);
+	while(str[i]!=end)
+	{
+		int ch=0;
+		if(str[i]=='\\')
+		{
+			if(isdigit(str[i+1]))
+			{
+				if(str[i+1]=='0')
+				{
+					if(isdigit(str[i+2]))
+					{
+						int len=0;
+						while((isdigit(str[i+2+len])&&(str[i+2+len]<'8')&&len<4))len++;
+						sscanf(str+i+1,"%4o",&ch);
+						i+=len+2;
+					}
+				}
+				else
+				{
+					int len=0;
+					while(isdigit(str[i+1+len])&&len<4)len++;
+					sscanf(str+i+1,"%4d",&ch);
+					i+=len+1;
+				}
+			}
+			else if(toupper(str[i+1])=='X')
+			{
+				char* backSlashStr=fklGetStringAfterBackslash(str+i);
+				ch=fklStringToChar(backSlashStr+1);
+				i+=strlen(backSlashStr);
+				free(backSlashStr);
+			}
+			else if(str[i+1]=='\n')
+			{
+				i+=2;
+				continue;
+			}
+			else
+			{
+				switch(toupper(str[i+1]))
+				{
+					case 'A':
+						ch=0x07;
+						break;
+					case 'B':
+						ch=0x08;
+						break;
+					case 'T':
+						ch=0x09;
+						break;
+					case 'N':
+						ch=0x0a;
+						break;
+					case 'V':
+						ch=0x0b;
+						break;
+					case 'F':
+						ch=0x0c;
+						break;
+					case 'R':
+						ch=0x0d;
+						break;
+					case 'S':
+						ch=0x20;
+						break;
+					default:ch=str[i+1];break;
+				}
+				i+=2;
+			}
+		}
+		else ch=str[i++];
+		strSize++;
+		if(strSize>memSize-1)
+		{
+			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+FKL_MAX_STRING_SIZE));
+			FKL_ASSERT(tmp,__func__);
+			memSize+=FKL_MAX_STRING_SIZE;
+		}
+		tmp[strSize-1]=ch;
+	}
+	tmp=(char*)realloc(tmp,strSize*sizeof(char));
+	FKL_ASSERT(tmp,__func__);
+	*size=strSize;
+	return tmp;
+}
+
 static FklAstAtom* createString(const char* oStr,FklAstPair* prev)
 {
-	size_t len=0;
-	char* str=fklCastEscapeCharater(oStr+1,'\"',&len);
-	FklAstAtom* r=fklNewAtom(FKL_STR,str,prev);
-	free(str);
+	size_t size=0;
+	char* str=castEscapeCharaterBuf(oStr+1,'\"',&size);
+	FklAstAtom* r=fklNewAtom(FKL_STR,NULL,prev);
+	r->value.str.size=size;
+	r->value.str.str=str;
 	return r;
 }
 
@@ -1039,6 +1132,11 @@ void fklMakeAstVector(FklAstVector* vec,size_t size,const FklAstCptr* base)
 	}
 }
 
+void fklPrintRawAstString(FklAstString* str,FILE* out)
+{
+	fklPrintRawCharBuf(str->str,str->size,out);
+}
+
 void fklPrintCptr(const FklAstCptr* o_cptr,FILE* fp)
 {
 	FklPtrQueue* queue=fklNewPtrQueue();
@@ -1064,7 +1162,7 @@ void fklPrintCptr(const FklAstCptr* o_cptr,FILE* fp)
 						fprintf(fp,"%s",tmpAtm->value.sym);
 						break;
 					case FKL_STR:
-						fklPrintRawStringBuffer(&tmpAtm->value.str,fp);
+						fklPrintRawAstString(&tmpAtm->value.str,fp);
 						//fklPrintRawString(tmpAtm->value.str,fp);
 						break;
 					case FKL_I32:

@@ -98,7 +98,6 @@ FklByteCodelnt* fklCopyByteCodelnt(const FklByteCodelnt* obj)
 static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode,uint32_t i,FILE* fp)
 {
 	uint32_t r=0;
-	int tmplen=0;
 	fprintf(fp,"%d: %s ",i,fklGetOpcodeName((FklOpcode)(tmpCode->code[i])));
 	switch(fklGetOpcodeArgLen((FklOpcode)(tmpCode->code[i])))
 	{
@@ -137,9 +136,11 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode,uint32_t i
 			r+=sizeof(char)+sizeof(uint64_t);//+fklGetU64FromByteCode(tmpCode->code+i+sizeof(char));
 			break;
 		case -1:
-			tmplen=strlen((char*)tmpCode->code+i+sizeof(char));
-			fprintf(fp,"%s",tmpCode->code+i+sizeof(char));
-			r+=sizeof(char)+tmplen+1;
+			fprintf(fp,"%lu ",fklGetU64FromByteCode(tmpCode->code+i+sizeof(char)));
+			fklPrintRawCharBuf((char*)tmpCode->code+i+sizeof(char)+sizeof(uint64_t)
+					,fklGetU64FromByteCode(tmpCode->code+i+sizeof(char))
+					,fp);
+			r+=sizeof(char)+sizeof(uint64_t)+fklGetU64FromByteCode(tmpCode->code+i+sizeof(char));
 			break;
 		case 0:
 			r+=sizeof(char);

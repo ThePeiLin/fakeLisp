@@ -285,12 +285,22 @@ char* fklGenErrorMessage(unsigned int type,FklVMrunnable* r,FklVM* exe)
 			break;
 		case FKL_LOADDLLFAILD:
 			t=fklStrCat(t,"Faild to load dll \"");
-			t=fklStrCat(t,exe->stack->values[exe->stack->tp-1]->u.str);
+			{
+				FklVMvalue* v=exe->stack->values[exe->stack->tp-1];
+				char* str=fklVMstrToCstr(v->u.str);
+				t=fklStrCat(t,str);
+				free(str);
+			}
 			t=fklStrCat(t,"\" ");
 			break;
 		case FKL_INVALIDSYMBOL:
 			t=fklStrCat(t,"Invalid symbol ");
-			t=fklStrCat(t,exe->stack->values[exe->stack->tp-1]->u.str);
+			{
+				FklVMvalue* v=exe->stack->values[exe->stack->tp-1];
+				char* str=fklVMstrToCstr(v->u.str);
+				t=fklStrCat(t,str);
+				free(str);
+			}
 			t=fklStrCat(t," ");
 			break;
 		case FKL_DIVZERROERROR:
@@ -298,7 +308,12 @@ char* fklGenErrorMessage(unsigned int type,FklVMrunnable* r,FklVM* exe)
 			break;
 		case FKL_FILEFAILURE:
 			t=fklStrCat(t,"Failed for file:\"");
-			t=fklStrCat(t,exe->stack->values[exe->stack->tp-1]->u.str);
+			{
+				FklVMvalue* v=exe->stack->values[exe->stack->tp-1];
+				char* str=fklVMstrToCstr(v->u.str);
+				t=fklStrCat(t,str);
+				free(str);
+			}
 			t=fklStrCat(t,"\" ");
 			break;
 		case FKL_INVALIDASSIGN:
@@ -484,7 +499,8 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 						fprintf(fp,"%ld",v->u.i64);
 						break;
 					case FKL_STR:
-						fprintf(fp,"%s",v->u.str);
+						fwrite(v->u.str->str,v->u.str->size,1,fp);
+						//fprintf(fp,"%s",v->u.str);
 						break;
 					case FKL_PROC:
 						if(v->u.proc->sid)
@@ -492,8 +508,8 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 						else
 							fprintf(fp,"#<proc>");
 						break;
-					case FKL_BYTS:
-						fklPrintByteStr(v->u.byts->size,v->u.byts->str,fp,0);
+					//case FKL_BYTS:
+					//	fklPrintByteStr(v->u.byts->size,v->u.byts->str,fp,0);
 						break;
 					case FKL_CONT:
 						fprintf(fp,"#<cont>");
@@ -529,6 +545,11 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 	}
 }
 
+static void fklPrintRawVMstr(FklVMstr* str,FILE* fp)
+{
+	fklPrintRawCharBuf(str->str,str->size,fp);
+}
+
 static void prin1VMatom(FklVMvalue* v,FILE* fp)
 {
 	FklVMptrTag tag=FKL_GET_TAG(v);
@@ -556,7 +577,7 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 					fprintf(fp,"%ld",v->u.i64);
 					break;
 				case FKL_STR:
-					fklPrintRawString(v->u.str,fp);
+					fklPrintRawVMstr(v->u.str,fp);
 					break;
 				case FKL_PROC:
 					if(v->u.proc->sid)
@@ -565,9 +586,9 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 					else
 						fputs("#<proc>",fp);
 					break;
-				case FKL_BYTS:
-					fklPrintByteStr(v->u.byts->size,v->u.byts->str,fp,1);
-					break;
+				//case FKL_BYTS:
+				//	fklPrintByteStr(v->u.byts->size,v->u.byts->str,fp,1);
+				//	break;
 				case FKL_CONT:
 					fputs("#<continuation>",fp);
 					break;
@@ -876,7 +897,7 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 				{
 					case FKL_SYM_TAG:
 						tmpAtm->type=FKL_SYM;
-						tmpAtm->value.str=fklCopyStr(fklGetGlobSymbolWithId(FKL_GET_SYM(root))->symbol);
+						tmpAtm->value.sym=fklCopyStr(fklGetGlobSymbolWithId(FKL_GET_SYM(root))->symbol);
 						break;
 					case FKL_I32_TAG:
 						tmpAtm->type=FKL_I32;
@@ -897,36 +918,36 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 								case FKL_I64:
 									tmpAtm->value.i64=root->u.i64;
 									break;
+								//case FKL_STR:
+								//	tmpAtm->value.str=fklCopyStr(root->u.str);
+								//	break;
 								case FKL_STR:
-									tmpAtm->value.str=fklCopyStr(root->u.str);
-									break;
-								case FKL_BYTS:
-									tmpAtm->value.byts.size=root->u.byts->size;
-									tmpAtm->value.byts.str=fklCopyMemory(root->u.byts->str,root->u.byts->size);
+									tmpAtm->value.str.size=root->u.str->size;
+									tmpAtm->value.str.str=fklCopyMemory(root->u.str->str,root->u.str->size);
 									break;
 								case FKL_PROC:
 									tmpAtm->type=FKL_SYM;
-									tmpAtm->value.str=fklCopyStr("#<proc>");
+									tmpAtm->value.sym=fklCopyStr("#<proc>");
 									break;
 								case FKL_DLPROC:
 									tmpAtm->type=FKL_SYM;
-									tmpAtm->value.str=fklCopyStr("#<dlproc>");
+									tmpAtm->value.sym=fklCopyStr("#<dlproc>");
 									break;
 								case FKL_CONT:
 									tmpAtm->type=FKL_SYM;
-									tmpAtm->value.str=fklCopyStr("#<proc>");
+									tmpAtm->value.sym=fklCopyStr("#<proc>");
 									break;
 								case FKL_CHAN:
 									tmpAtm->type=FKL_SYM;
-									tmpAtm->value.str=fklCopyStr("#<chan>");
+									tmpAtm->value.sym=fklCopyStr("#<chan>");
 									break;
 								case FKL_FP:
 									tmpAtm->type=FKL_SYM;
-									tmpAtm->value.str=fklCopyStr("#<fp>");
+									tmpAtm->value.sym=fklCopyStr("#<fp>");
 									break;
 								case FKL_ERR:
 									tmpAtm->type=FKL_SYM;
-									tmpAtm->value.str=fklCopyStr("#<err>");
+									tmpAtm->value.sym=fklCopyStr("#<err>");
 									break;
 								case FKL_VECTOR:
 									tmpAtm->type=FKL_VECTOR;

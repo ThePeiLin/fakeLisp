@@ -42,12 +42,12 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVMheap* heap)
 						case FKL_F64:
 							*root1=fklNewVMvalue(FKL_F64,&root->u.f64,heap);
 							break;
-						case FKL_BYTS:
-							*root1=fklNewVMvalue(FKL_BYTS,fklNewVMbyts(root->u.byts->size,root->u.byts->str),heap);
-							break;
 						case FKL_STR:
-							*root1=fklNewVMvalue(FKL_STR,fklCopyStr(root->u.str),heap);
+							*root1=fklNewVMvalue(FKL_STR,fklNewVMstr(root->u.str->size,root->u.str->str),heap);
 							break;
+						//case FKL_STR:
+						//	*root1=fklNewVMvalue(FKL_STR,fklCopyStr(root->u.str),heap);
+						//	break;
 						case FKL_CONT:
 						case FKL_PROC:
 						case FKL_FP:
@@ -169,8 +169,8 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 						tmp->u.pair=pValue;break;
 					case FKL_PROC:
 						tmp->u.proc=pValue;break;
-					case FKL_BYTS:
-						tmp->u.byts=pValue;break;
+					//case FKL_BYTS:
+					//	tmp->u.byts=pValue;break;
 					case FKL_CONT:
 						tmp->u.cont=pValue;break;
 					case FKL_CHAN:
@@ -246,11 +246,11 @@ int fklVMvaluecmp(FklVMvalue* fir,FklVMvalue* sec)
 				case FKL_I64:
 					r=(root1->u.i64-root2->u.i64)==0;
 				case FKL_STR:
-					r=!strcmp(root1->u.str,root2->u.str);
+					r=!fklVMstrcmp(root1->u.str,root2->u.str);
 					break;
-				case FKL_BYTS:
-					r=fklEqVMbyts(root1->u.byts,root2->u.byts);
-					break;
+				//case FKL_BYTS:
+				//	r=fklEqVMbyts(root1->u.byts,root2->u.byts);
+				//	break;
 				case FKL_PAIR:
 					r=1;
 					fklPushPtrStack(root1->u.pair->car,s1);
@@ -312,9 +312,9 @@ FklVMpair* fklNewVMpair(void)
 	return tmp;
 }
 
-FklVMbyts* fklNewVMbyts(size_t size,uint8_t* str)
+FklVMstr* fklNewVMstr(size_t size,char* str)
 {
-	FklVMbyts* tmp=(FklVMbyts*)malloc(sizeof(FklVMbyts)+size*sizeof(uint8_t));
+	FklVMstr* tmp=(FklVMstr*)malloc(sizeof(FklVMstr)+size*sizeof(uint8_t));
 	FKL_ASSERT(tmp,__func__);
 	tmp->size=size;
 	if(str)
@@ -322,38 +322,40 @@ FklVMbyts* fklNewVMbyts(size_t size,uint8_t* str)
 	return tmp;
 }
 
-FklVMbyts* fklCopyVMbyts(const FklVMbyts* obj)
+int fklVMstrcmp(const FklVMstr* fir,const FklVMstr* sec)
+{
+	ssize_t size=fir->size<sec->size?fir->size:sec->size;
+	int r=memcmp(fir->str,sec->str,size);
+	if(!r)
+		return fir->size-sec->size;
+	return r;
+}
+
+FklVMstr* fklCopyVMstr(const FklVMstr* obj)
 {
 	if(obj==NULL)return NULL;
-	FklVMbyts* tmp=(FklVMbyts*)malloc(sizeof(FklVMbyts)+obj->size);
+	FklVMstr* tmp=(FklVMstr*)malloc(sizeof(FklVMstr)+obj->size);
 	FKL_ASSERT(tmp,__func__);
 	memcpy(tmp->str,obj->str,obj->size);
 	tmp->size=obj->size;
 	return tmp;
 }
 
-void fklVMbytsCat(FklVMbyts** fir,const FklVMbyts* sec)
+void fklVMstrCat(FklVMstr** fir,const FklVMstr* sec)
 {
 	size_t firSize=(*fir)->size;
 	size_t secSize=sec->size;
-	*fir=(FklVMbyts*)realloc(*fir,sizeof(FklVMbyts)+(firSize+secSize)*sizeof(uint8_t));
+	*fir=(FklVMstr*)realloc(*fir,sizeof(FklVMstr)+(firSize+secSize)*sizeof(uint8_t));
 	FKL_ASSERT(*fir,__func__);
 	(*fir)->size=firSize+secSize;
 	memcpy((*fir)->str+firSize,sec->str,secSize);
 }
-FklVMbyts* fklNewEmptyVMbyts()
+FklVMstr* fklNewEmptyVMstr()
 {
-	FklVMbyts* tmp=(FklVMbyts*)malloc(sizeof(FklVMbyts));
+	FklVMstr* tmp=(FklVMstr*)malloc(sizeof(FklVMstr));
 	FKL_ASSERT(tmp,__func__);
 	tmp->size=0;
 	return tmp;
-}
-
-int fklEqVMbyts(const FklVMbyts* fir,const FklVMbyts* sec)
-{
-	if(fir->size!=sec->size)
-		return 0;
-	return !memcmp(fir->str,sec->str,sec->size);
 }
 
 FklVMchanl* fklNewVMchanl(int32_t maxSize)
@@ -839,17 +841,17 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 					*root1=FKL_MAKE_VM_CHR(tmpAtm->value.chr);
 					break;
 				case FKL_SYM:
-					*root1=FKL_MAKE_VM_SYM(fklAddSymbolToGlob(tmpAtm->value.str)->id);
+					*root1=FKL_MAKE_VM_SYM(fklAddSymbolToGlob(tmpAtm->value.sym)->id);
 					break;
 				case FKL_F64:
 					*root1=fklNewVMvalue(FKL_F64,&tmpAtm->value.f64,heap);
 					break;
-				case FKL_BYTS:
-					*root1=fklNewVMvalue(FKL_BYTS,fklNewVMbyts(tmpAtm->value.byts.size,tmpAtm->value.byts.str),heap);
-					break;
 				case FKL_STR:
-					*root1=fklNewVMvalue(FKL_STR,fklCopyStr(tmpAtm->value.str),heap);
+					*root1=fklNewVMvalue(FKL_STR,fklNewVMstr(tmpAtm->value.str.size,tmpAtm->value.str.str),heap);
 					break;
+				//case FKL_STR:
+				//	*root1=fklNewVMvalue(FKL_STR,fklCopyStr(tmpAtm->value.str),heap);
+				//	break;
 				default:
 					return NULL;
 					break;
@@ -872,9 +874,9 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 	return tmp;
 }
 
-char* fklVMbytsToCstr(FklVMbyts* byts)
+char* fklVMstrToCstr(FklVMstr* str)
 {
-	return fklCharBufToStr((char*)byts->str,byts->size);
+	return fklCharBufToStr(str->str,str->size);
 }
 
 FklVMvec* fklNewVMvec(size_t size,FklVMvalue** base)

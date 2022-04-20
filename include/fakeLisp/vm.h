@@ -73,12 +73,6 @@ typedef struct FklVMfp
 	FILE* fp;
 }FklVMfp;
 
-typedef struct FklVMmref
-{
-	size_t size;
-	void* ptr;
-}FklVMmref;
-
 typedef struct FklVMvec
 {
 	size_t size;
@@ -390,9 +384,6 @@ void fklVMvecCat(FklVMvec**,const FklVMvec*);
 void fklInitVMargs(int argc,char** argv);
 int fklGetVMargc(void);
 char** fklGetVMargv(void);
-
-FklVMmref* fklNewVMmref(size_t size,void* ptr);
-void fklFreeVMmref(FklVMmref*);
 
 FklVMvalue* fklPopAndGetVMstack(FklVMstack* stack);
 #ifdef __cplusplus

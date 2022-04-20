@@ -896,17 +896,3 @@ void fklVMvecCat(FklVMvec** fir,const FklVMvec* sec)
 	for(size_t i=0;i<secSize;i++)
 		(*fir)->base[firSize+i]=sec->base[i];
 }
-
-FklVMmref* fklNewVMmref(size_t size,void* ptr)
-{
-	FklVMmref* r=(FklVMmref*)malloc(sizeof(FklVMmref));
-	FKL_ASSERT(r,__func__);
-	r->size=size;
-	r->ptr=ptr;
-	return r;
-}
-
-void fklFreeVMmref(FklVMmref* r)
-{
-	free(r);
-}

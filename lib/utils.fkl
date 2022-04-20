@@ -273,7 +273,9 @@
   (defmacro
     (letrec d,b)
     (begin
-      (define dfs (map (lambda (sd) (qsquote (define (unquote (car sd)) (unqtesp (cdr sd))))) d))
+      (define dfs
+        (map (lambda (sd)
+               `(define ~(car sd) ~@(cdr sd))) d))
       `(let () ~@dfs ~@b)))
 
   (defmacro
@@ -291,19 +293,21 @@
 
   (defmacro (case v,b)
     (begin
-      (define body (let ((tb (map (lambda (x) (cdr x)) b))
-                         (cs (map (lambda (x)
-                                    (if (pair? x)
-                                      (cons 'or
-                                            (map (lambda (x) (qsquote (equal (unquote v) (unquote x)))) x))
-                                      x))
-                                  (map (lambda (x) (nth 0 x)) b))))
+      (define body
+        (let [(tb (map (lambda (x) (cdr x)) b))
+              (cs (map (lambda (x)
+                         (if (pair? x)
+                           (cons 'or
+                                 (map (lambda (x)
+                                        `(equal v ~x)) x))
+                           x))
+                       (map (lambda (x) (nth 0 x)) b)))]
                      (map (lambda (x)
                             (define r (cons x (car tb)))
                             (setq tb (cdr tb))
                             r)
                           cs)))
-      `(cond,~body)))
+      `((lambda (v) (cond,~body)) ~v)))
 
   (defmacro (define (name,args),body)
     `(define ~name

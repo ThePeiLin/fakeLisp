@@ -335,8 +335,6 @@ int fklNumcmp(FklVMvalue*,FklVMvalue*);
 FklVMpair* fklNewVMpair(void);
 
 FklVMbyts* fklNewVMbyts(size_t,uint8_t*);
-//void fklIncreaseVMbyts(FklVMbyts*);
-//void fklDecreaseVMbyts(FklVMbyts*);
 
 FklVMbyts* fklCopyVMbyts(const FklVMbyts*);
 FklVMbyts* fklNewEmptyVMbyts();

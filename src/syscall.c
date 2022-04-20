@@ -1176,7 +1176,7 @@ void SYS_vref(ARGL)
 	{
 		if(index>=vector->u.str->size)
 			FKL_RAISE_BUILTIN_ERROR("sys.vref",FKL_INVALIDACCESS,runnable,exe);
-		FKL_SET_RETURN(__func__,(FklVMptr)&(vector->u.str[index]),stack);
+		FKL_SET_RETURN(__func__,(FklVMptr)&(vector->u.str->str[index]),stack);
 		FKL_SET_RETURN(__func__,FKL_MAKE_VM_MREF(1),stack);
 	}
 	//else if(FKL_IS_BYTS(vector))
@@ -1904,6 +1904,36 @@ void SYS_getdir(ARGL)
 		FKL_SET_RETURN(__func__,FKL_VM_NIL,stack);
 }
 
+void SYS_fgetc(ARGL)
+{
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
+	FklVMvalue* stream=fklPopAndGetVMstack(stack);
+	if(fklResBp(stack))
+		FKL_RAISE_BUILTIN_ERROR("sys.fgetc",FKL_TOOMANYARG,runnable,exe);
+	if(stream&&!FKL_IS_FP(stream))
+		FKL_RAISE_BUILTIN_ERROR("sys.fgetc",FKL_WRONGARG,runnable,exe);
+	FklVMfp* fp=stream?stream->u.fp:fklGetVMstdin()->u.fp;
+	if(!fp)
+		FKL_RAISE_BUILTIN_ERROR("sys.fgetc",FKL_INVALIDACCESS,runnable,exe);
+	if(fp->size)
+	{
+		fp->size-=1;
+		FKL_SET_RETURN(__func__,FKL_MAKE_VM_CHR(fp->prev[0]),stack);
+		uint8_t* prev=fp->prev;
+		fp->prev=fklCopyMemory(prev+1,sizeof(uint8_t)*fp->size);
+		free(prev);
+	}
+	else
+	{
+		int ch=fgetc(fp->fp);
+		if(ch==EOF)
+			FKL_SET_RETURN(__func__,FKL_VM_NIL,stack);
+		else
+			FKL_SET_RETURN(__func__,FKL_MAKE_VM_CHR(ch),stack);
+	}
+}
+
 #define PREDICATE(condtion,err_infor) {\
 	FklVMstack* stack=exe->stack;\
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);\
@@ -1926,7 +1956,6 @@ void SYS_integer_p(ARGL) PREDICATE(FKL_IS_I32(val)||FKL_IS_I64(val),"sys.integer
 void SYS_i32_p(ARGL) PREDICATE(FKL_IS_I32(val),"sys.i32?")
 void SYS_i64_p(ARGL) PREDICATE(FKL_IS_I64(val),"sys.i64?")
 void SYS_f64_p(ARGL) PREDICATE(FKL_IS_F64(val),"sys.i64?")
-//void SYS_byts_p(ARGL) PREDICATE(FKL_IS_BYTS(val),"sys.byts?")
 void SYS_pair_p(ARGL) PREDICATE(FKL_IS_PAIR(val),"sys.pair?")
 void SYS_symbol_p(ARGL) PREDICATE(FKL_IS_SYM(val),"sys.symbol?")
 void SYS_string_p(ARGL) PREDICATE(FKL_IS_STR(val),"sys.string?")

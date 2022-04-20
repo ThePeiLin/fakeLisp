@@ -3,12 +3,11 @@
 (define code nil)
 
 (define (read-code fp)
-  (string (append (let loop ((s nil)
-                        (c (fgetb 1 fp)))
-               (if c
-                 (loop (append s c) (fgetb 1 fp))
-                 s))
-             #b00)))
+  (let loop [(s nil)
+             (c (fgetc fp))]
+    (if c
+      (loop (append s c) (fgetc fp))
+      s)))
 (if (<= (length (argv)) 1)
   (setq code "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.")
   (setq code
@@ -17,7 +16,7 @@
           (fclose fp)
           code)))
 
-(define m #b00)
+(define m "\x0")
 
 (define len (length code))
 
@@ -28,17 +27,17 @@
       ((#\>) (begin
                (setq mp (1+ mp))
                (if (>= mp (length m))
-                 (setq m (append m #b00)))))
+                 (setq m (append m "\x0")))))
       ((#\<) (begin
                (if (<= mp 0)
-                 (setq m (append #b00 mp))
+                 (setq m (append "\x0" mp))
                  (setq mp (-1+ mp)))))
-      ((#\+) (let ((c (char (vref m mp))))
+      ((#\+) (let [(c (vref m mp))]
                (setf (vref m mp) (char (1+ (integer c))))))
-      ((#\-) (let ((c (char (vref m mp))))
+      ((#\-) (let [(c (vref m mp))]
                (setf (vref m mp) (char (-1+ (integer c))))))
-      ((#\.) (princ (char (vref m mp))))
-      ((#\,) (setf (vref m mp) (char (fgetb 1 stdin))))
+      ((#\.) (princ (vref m mp)))
+      ((#\,) (setf (vref m mp) (fgetc stdin)))
       ((#\[) (let ((c (integer (vref m mp))))
                (if (eq c 0)
                  (let loop ((ch (vref code cp)))

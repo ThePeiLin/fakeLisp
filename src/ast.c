@@ -52,20 +52,23 @@ static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
 	return vEnv;
 }
 
-int fklEqByteString(const FklAstByteString* fir,const FklAstByteString* sec)
-{
-	if(fir->size!=sec->size)return 0;
-	return !memcmp(fir->str,sec->str,sec->size);
-}
+//int fklEqByteString(const FklAstByteString* fir,const FklAstByteString* sec)
+//{
+//	if(fir->size!=sec->size)return 0;
+//	return !memcmp(fir->str,sec->str,sec->size);
+//}
 
 void fklFreeAtom(FklAstAtom* objAtm)
 {
-	if(objAtm->type==FKL_SYM||objAtm->type==FKL_STR)free(objAtm->value.str);
-	else if(objAtm->type==FKL_BYTS)
-	{
-		objAtm->value.byts.size=0;
-		free(objAtm->value.byts.str);
-	}
+	if(objAtm->type==FKL_SYM)
+		free(objAtm->value.sym);
+	else if(objAtm->type==FKL_STR)
+		free(objAtm->value.str.str);
+	//else if(objAtm->type==FKL_BYTS)
+	//{
+	//	objAtm->value.byts.size=0;
+	//	free(objAtm->value.byts.str);
+	//}
 	else if(objAtm->type==FKL_VECTOR)
 	{
 		FklAstVector* vec=&objAtm->value.vec;
@@ -111,24 +114,27 @@ FklAstAtom* fklNewAtom(FklValueType type,const char* value,FklAstPair* prev)
 	switch(type)
 	{
 		case FKL_SYM:
-		case FKL_STR:
 			if(value!=NULL)
 			{
-				FKL_ASSERT((tmp->value.str=(char*)malloc(strlen(value)+1)),__func__);
-				strcpy(tmp->value.str,value);
+				FKL_ASSERT((tmp->value.sym=(char*)malloc(strlen(value)+1)),__func__);
+				strcpy(tmp->value.sym,value);
 			}
 			else
-				tmp->value.str=NULL;
+				tmp->value.sym=NULL;
 			break;
 		case FKL_CHR:
 		case FKL_I32:
 		case FKL_F64:
 			*(int32_t*)(&tmp->value)=0;
 			break;
-		case FKL_BYTS:
-			tmp->value.byts.size=0;
-			tmp->value.byts.str=NULL;
+		case FKL_STR:
+			tmp->value.str.size=0;
+			tmp->value.str.str=NULL;
 			break;
+		//case FKL_BYTS:
+		//	tmp->value.byts.size=0;
+		//	tmp->value.byts.str=NULL;
+		//	break;
 		case FKL_VECTOR:
 			tmp->value.vec.size=0;
 			tmp->value.vec.base=NULL;
@@ -171,14 +177,18 @@ int fklCopyCptr(FklAstCptr* objCptr,const FklAstCptr* copiedCptr)
 				switch(atom2->type)
 				{
 					case FKL_SYM:
+						atom1=fklNewAtom(atom2->type,atom2->value.sym,root1->outer);
+						break;
 					case FKL_STR:
-						atom1=fklNewAtom(atom2->type,atom2->value.str,root1->outer);
-						break;
-					case FKL_BYTS:
 						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
-						atom1->value.byts.size=atom2->value.byts.size;
-						atom1->value.byts.str=fklCopyMemory(atom2->value.byts.str,atom2->value.byts.size);
+						atom1->value.str.size=atom2->value.str.size;
+						atom1->value.str.str=fklCopyMemory(atom2->value.str.str,atom2->value.str.size);
 						break;
+					//case FKL_BYTS:
+					//	atom1=fklNewAtom(atom2->type,NULL,root1->outer);
+					//	atom1->value.byts.size=atom2->value.byts.size;
+					//	atom1->value.byts.str=fklCopyMemory(atom2->value.byts.str,atom2->value.byts.size);
+					//	break;
 					case FKL_VECTOR:
 						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
 						fklMakeAstVector(&atom1->value.vec,atom2->value.vec.size,NULL);
@@ -296,6 +306,15 @@ int fklDeleteCptr(FklAstCptr* objCptr)
 	return 0;
 }
 
+int fklAstStrcmp(const FklAstString* fir,const FklAstString* sec)
+{
+	ssize_t size=fir->size<sec->size?fir->size:sec->size;
+	int r=memcmp(fir->str,sec->str,size);
+	if(!r)
+		return fir->size-sec->size;
+	return r;
+}
+
 int fklCptrcmp(const FklAstCptr* first,const FklAstCptr* second)
 {
 	if(first==NULL&&second==NULL)return 0;
@@ -320,11 +339,12 @@ int fklCptrcmp(const FklAstCptr* first,const FklAstCptr* second)
 				FklAstAtom* firAtm=first->u.atom;
 				FklAstAtom* secAtm=second->u.atom;
 				if(firAtm->type!=secAtm->type)return 0;
-				if((firAtm->type==FKL_SYM||firAtm->type==FKL_STR)&&strcmp(firAtm->value.str,secAtm->value.str))return 0;
+				if(firAtm->type==FKL_SYM&&strcmp(firAtm->value.sym,secAtm->value.sym))return 0;
 				else if(firAtm->type==FKL_I32&&firAtm->value.i32!=secAtm->value.i32)return 0;
 				else if(firAtm->type==FKL_F64&&fabs(firAtm->value.f64-secAtm->value.f64)!=0)return 0;
 				else if(firAtm->type==FKL_CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
-				else if(firAtm->type==FKL_BYTS&&!fklEqByteString(&firAtm->value.byts,&secAtm->value.byts))return 0;
+				//else if(firAtm->type==FKL_BYTS&&!fklEqByteString(&firAtm->value.byts,&secAtm->value.byts))return 0;
+				else if(firAtm->type==FKL_STR&&fklAstStrcmp(&firAtm->value.str,&secAtm->value.str))return 0;
 			}
 			if(firPair!=NULL&&first==&firPair->car)
 			{
@@ -472,15 +492,15 @@ static FklAstAtom* createNum(const char* oStr,FklAstPair* prev)
 	return r;
 }
 
-static FklAstAtom* createByts(const char* oStr,FklAstPair* prev)
-{
-	char* str=fklGetStringAfterBackslash(oStr+2);
-	FklAstAtom* r=fklNewAtom(FKL_BYTS,NULL,prev);
-	r->value.byts.size=strlen(str)/2+strlen(str)%2;
-	r->value.byts.str=fklCastStrByteStr(str);
-	free(str);
-	return r;
-}
+//static FklAstAtom* createByts(const char* oStr,FklAstPair* prev)
+//{
+//	char* str=fklGetStringAfterBackslash(oStr+2);
+//	FklAstAtom* r=fklNewAtom(FKL_BYTS,NULL,prev);
+//	r->value.byts.size=strlen(str)/2+strlen(str)%2;
+//	r->value.byts.str=fklCastStrByteStr(str);
+//	free(str);
+//	return r;
+//}
 
 static FklAstAtom* createString(const char* oStr,FklAstPair* prev)
 {
@@ -500,7 +520,7 @@ static FklAstAtom* (* const atomCreators[])(const char* str,FklAstPair* prev)=
 {
 	createChar, //char
 	createNum, //num
-	createByts, //byts
+	//createByts, //byts
 	createString,
 	createSymbol, //symbol
 };
@@ -642,7 +662,7 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 	}
 	FklVM* tmpVM=fklNewTmpVM(NULL);
 	FklAstCptr* retval=NULL;
-	if(pattern->type==FKL_BYTS)
+	if(pattern->type==FKL_PROC)
 	{
 		FklByteCodelnt* t=fklNewByteCodelnt(fklNewByteCode(0));
 		FklVMenv* tmpGlobEnv=genGlobEnv(glob,t,tmpVM->heap);
@@ -1041,10 +1061,11 @@ void fklPrintCptr(const FklAstCptr* o_cptr,FILE* fp)
 				switch(tmpAtm->type)
 				{
 					case FKL_SYM:
-						fprintf(fp,"%s",tmpAtm->value.str);
+						fprintf(fp,"%s",tmpAtm->value.sym);
 						break;
 					case FKL_STR:
-						fklPrintRawString(tmpAtm->value.str,fp);
+						fklPrintRawStringBuffer(&tmpAtm->value.str,fp);
+						//fklPrintRawString(tmpAtm->value.str,fp);
 						break;
 					case FKL_I32:
 						fprintf(fp,"%d",tmpAtm->value.i32);
@@ -1058,9 +1079,9 @@ void fklPrintCptr(const FklAstCptr* o_cptr,FILE* fp)
 					case FKL_CHR:
 						fklPrintRawChar(tmpAtm->value.chr,fp);
 						break;
-					case FKL_BYTS:
-						fklPrintByteStr(tmpAtm->value.byts.size,tmpAtm->value.byts.str,fp,1);
-						break;
+					//case FKL_BYTS:
+					//	fklPrintByteStr(tmpAtm->value.byts.size,tmpAtm->value.byts.str,fp,1);
+					//	break;
 					case FKL_VECTOR:
 						fputs("#(",fp);
 						{

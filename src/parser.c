@@ -125,7 +125,7 @@ static void freeMatchState(MatchState* state)
 	free(state);
 }
 
-#define BUILT_IN_SEPARATOR_STR_NUM (14)
+#define BUILT_IN_SEPARATOR_STR_NUM (13)
 #define PARENTHESE_0 ((void*)0)
 #define PARENTHESE_1 ((void*)1)
 #define QUOTE ((void*)2)
@@ -144,7 +144,7 @@ static const char* separatorStrSet[]=
 	"(",
 	",",
 	"#\\",
-	"#b",
+	//"#b",
 	"\"",
 	"[",
 	";",
@@ -495,14 +495,14 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 				free(symbol);
 				j+=len+2;
 			}
-			else if(sizes[i]-j>1&&!strncmp(parts[i]+j,"#b",strlen("#b")))
-			{
-				size_t len=getSymbolLen(parts[i],j+2,sizes[i],matchStateStack);
-				char* symbol=fklCharBufToStr(parts[i]+j,len+2);
-				fklPushPtrStack(fklNewToken(FKL_TOKEN_BYTS,symbol,*line),retvalStack);
-				free(symbol);
-				j+=len+2;
-			}
+			//else if(sizes[i]-j>1&&!strncmp(parts[i]+j,"#b",strlen("#b")))
+			//{
+			//	size_t len=getSymbolLen(parts[i],j+2,sizes[i],matchStateStack);
+			//	char* symbol=fklCharBufToStr(parts[i]+j,len+2);
+			//	fklPushPtrStack(fklNewToken(FKL_TOKEN_BYTS,symbol,*line),retvalStack);
+			//	free(symbol);
+			//	j+=len+2;
+			//}
 			else if(parts[i][j]==';'||(sizes[i]-j>1&&!strncmp(parts[i]+j,"#!",strlen("#!"))))
 			{
 				uint32_t len=0;

@@ -85,7 +85,7 @@ extern "C" {
 #define FKL_IS_PAIR(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_PAIR)
 #define FKL_IS_F64(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_F64)
 #define FKL_IS_STR(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_STR)
-#define FKL_IS_BYTS(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_BYTS)
+//#define FKL_IS_BYTS(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_BYTS)
 #define FKL_IS_CHAN(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_CHAN)
 #define FKL_IS_FP(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_FP)
 #define FKL_IS_DLL(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_DLL)

@@ -60,11 +60,17 @@ typedef struct FklVMpair
 	struct FklVMvalue* cdr;
 }FklVMpair;
 
-typedef struct FklVMbyts
+//typedef struct FklVMbyts
+//{
+//	uint64_t size;
+//	uint8_t str[];
+//}FklVMbyts;
+
+typedef struct FklVMstr
 {
 	uint64_t size;
-	uint8_t str[];
-}FklVMbyts;
+	char str[];
+}FklVMstr;
 
 typedef struct FklVMfp
 {
@@ -88,8 +94,8 @@ typedef struct FklVMvalue
 		struct FklVMpair* pair;
 		double f64;
 		int64_t i64;
-		char* str;
-		struct FklVMbyts* byts;
+		struct FklVMstr* str;
+		//struct FklVMbyts* byts;
 		struct FklVMproc* proc;
 		FklVMdllHandle dll;
 		struct FklVMdlproc* dlproc;
@@ -328,12 +334,13 @@ int fklNumcmp(FklVMvalue*,FklVMvalue*);
 
 FklVMpair* fklNewVMpair(void);
 
-FklVMbyts* fklNewVMbyts(size_t,uint8_t*);
+FklVMstr* fklNewVMstr(size_t,char*);
 
-FklVMbyts* fklCopyVMbyts(const FklVMbyts*);
-FklVMbyts* fklNewEmptyVMbyts();
-void fklVMbytsCat(FklVMbyts**,const FklVMbyts*);
-int fklEqVMbyts(const FklVMbyts*,const FklVMbyts*);
+FklVMstr* fklCopyVMbyts(const FklVMstr*);
+FklVMstr* fklNewEmptyVMbyts();
+void fklVMstrCat(FklVMstr**,const FklVMstr*);
+int fklEqVMbyts(const FklVMstr*,const FklVMstr*);
+int fklVMstrcmp(const FklVMstr*,const FklVMstr*);
 FklVMchanl* fklNewVMchanl(int32_t size);
 
 void fklFreeVMchanl(FklVMchanl*);
@@ -372,7 +379,7 @@ void fklChanlRecv(FklVMrecv*,FklVMchanl*,pthread_rwlock_t* pGClock);
 
 FklVMvalue* fklCastCptrVMvalue(FklAstCptr*,FklVMheap*);
 
-char* fklVMbytsToCstr(FklVMbyts*);
+//char* fklVMbytsToCstr(FklVMbyts*);
 FklVMvalue* fklGetVMstdin(void);
 FklVMvalue* fklGetVMstdout(void);
 FklVMvalue* fklGetVMstderr(void);

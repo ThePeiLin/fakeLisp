@@ -15,7 +15,6 @@ typedef enum{
 	FKL_I64,
 	FKL_SYM,
 	FKL_STR,
-	FKL_BYTS,
 	FKL_VECTOR,
 	FKL_PROC,
 	FKL_CONT,
@@ -45,8 +44,8 @@ typedef struct
 typedef struct
 {
 	uint64_t size;
-	uint8_t* str;
-}FklAstByteString;
+	char* str;
+}FklAstString;
 
 typedef struct
 {
@@ -66,12 +65,12 @@ typedef struct FklAstAtom
 	FklValueType type;
 	union
 	{
-		char* str;
+		char* sym;
 		char chr;
 		int32_t i32;
 		int64_t i64;
 		double f64;
-		FklAstByteString byts;
+		FklAstString str;
 		FklAstVector vec;
 	} value;
 }FklAstAtom;
@@ -86,7 +85,7 @@ FklAstCptr* fklNewCptr(int,FklAstPair*);
 FklAstAtom* fklNewAtom(FklValueType type,const char*,FklAstPair*);
 void fklFreeAtom(FklAstAtom*);
 
-int fklEqByteString(const FklAstByteString*,const FklAstByteString*);
+//int fklEqByteString(const FklAstByteString*,const FklAstByteString*);
 void fklMakeAstVector(FklAstVector* vec,size_t size,const FklAstCptr* base);
 
 int fklCptrcmp(const FklAstCptr*,const FklAstCptr*);
@@ -105,6 +104,7 @@ FklAstCptr* fklGetCptrCar(const FklAstCptr*);
 FklAstCptr* fklGetCptrCdr(const FklAstCptr*);
 
 FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,FklCompEnv*);
+int fklAstStrcmp(const FklAstString* fir,const FklAstString* sec);
 #ifdef __cplusplus
 }
 #endif

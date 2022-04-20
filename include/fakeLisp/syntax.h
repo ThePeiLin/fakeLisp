@@ -18,8 +18,8 @@ int fklIsAnyExpression(const char* str,const FklAstCptr* objCptr);
 int fklIsDefExpression(const FklAstCptr*);
 int fklIsSetqExpression(const FklAstCptr*);
 int fklIsSetfExpression(const FklAstCptr*);
-int fklIsGetfExpression(const FklAstCptr*);
-int fklIsSzofExpression(const FklAstCptr*);
+//int fklIsGetfExpression(const FklAstCptr*);
+//int fklIsSzofExpression(const FklAstCptr*);
 int fklIsLambdaExpression(const FklAstCptr*);
 int fklIsBeginExpression(const FklAstCptr*);
 int fklIsCondExpression(const FklAstCptr*);
@@ -38,13 +38,13 @@ int fklIsImportExpression(const FklAstCptr*);
 int fklIsLibraryExpression(const FklAstCptr*);
 int fklIsExportExpression(const FklAstCptr*);
 int fklIsDefmacroExpression(const FklAstCptr*);
-int fklIsPrognExpression(const FklAstCptr*);
+//int fklIsPrognExpression(const FklAstCptr*);
 int fklIsTryExpression(const FklAstCptr*);
 int fklIsCatchExpression(const FklAstCptr*);
 int fklIsKeyWord(const char*,FklCompEnv* curEnv);
-int fklIsDeftypeExpression(const FklAstCptr*);
-int fklIsGetfExpression(const FklAstCptr*);
-int fklIsFlsymExpression(const FklAstCptr*);
+//int fklIsDeftypeExpression(const FklAstCptr*);
+//int fklIsGetfExpression(const FklAstCptr*);
+//int fklIsFlsymExpression(const FklAstCptr*);
 
 #ifdef __cplusplus
 }

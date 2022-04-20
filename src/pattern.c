@@ -93,7 +93,7 @@ FklStringMatchPattern* fklNewStringMatchPattern(int32_t num,char** parts,FklByte
 {
 	FklStringMatchPattern* tmp=(FklStringMatchPattern*)malloc(sizeof(FklStringMatchPattern));
 	FKL_ASSERT(tmp,__func__);
-	tmp->type=FKL_BYTS;
+	tmp->type=FKL_PROC;
 	tmp->num=num;
 	tmp->reserveCharNum=countReverseCharNum(num,parts);
 	tmp->parts=parts;
@@ -299,7 +299,7 @@ void fklFreeAllStringPattern()
 		FklStringMatchPattern* prev=cur;
 		cur=cur->next;
 		fklFreeStringArry(prev->parts,prev->num);
-		if(prev->type==FKL_BYTS)
+		if(prev->type==FKL_PROC)
 			fklFreeByteCodeAndLnt(prev->u.bProc);
 		free(prev);
 	}

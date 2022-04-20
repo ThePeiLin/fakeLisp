@@ -34,11 +34,43 @@ char* fklGetStringFromList(const char* str)
 char* fklGetStringAfterBackslash(const char* str)
 {
 	char* tmp=NULL;
-	int len=0;
+	size_t len=0;
 	while(!isspace(*(str+len))&&*(str+len)!='\0')
 	{
 		len++;
-		if(!isalnum(str[len])&&str[len-1]!='\\')break;
+		if(!isalnum(str[len])&&str[len-1]!='\\')
+			break;
+	}
+	FKL_ASSERT((tmp=(char*)malloc(sizeof(char)*(len+1))),__func__);
+	memcpy(tmp,str,len);
+	if(tmp!=NULL)*(tmp+len)='\0';
+	return tmp;
+}
+
+char* fklGetStringAfterBackslashInStr(const char* str)
+{
+	char* tmp=NULL;
+	size_t len=0;
+	if(str[0])
+	{
+		if(isdigit(str[0]))
+		{
+			len++;
+			if(str[1]&&isdigit(str[1]))
+				len++;
+			if(str[2]&&isdigit(str[2]))
+				len++;
+		}
+		else if(toupper(str[0])=='X')
+		{
+			len++;
+			if(str[1]&&isxdigit(str[1]))
+				len++;
+			if(str[2]&&isxdigit(str[2]))
+				len++;
+		}
+		else
+			len++;
 	}
 	FKL_ASSERT((tmp=(char*)malloc(sizeof(char)*(len+1))),__func__);
 	memcpy(tmp,str,len);
@@ -571,41 +603,30 @@ char* fklCastEscapeCharater(const char* str,char end,size_t* len)
 		int ch=0;
 		if(str[i]=='\\')
 		{
-			if(isdigit(str[i+1]))
+			char* backSlashStr=fklGetStringAfterBackslashInStr(str+i+1);
+			size_t len=strlen(backSlashStr);
+			if(isdigit(backSlashStr[0]))
 			{
-				if(str[i+1]=='0')
-				{
-					if(isdigit(str[i+2]))
-					{
-						int len=0;
-						while((isdigit(str[i+2+len])&&(str[i+2+len]<'8')&&len<4))len++;
-						sscanf(str+i+1,"%4o",&ch);
-						i+=len+2;
-					}
-				}
+				if(backSlashStr[0]=='0'&&isdigit(backSlashStr[1]))
+					sscanf(backSlashStr,"%4o",&ch);
 				else
-				{
-					int len=0;
-					while(isdigit(str[i+1+len])&&len<4)len++;
-					sscanf(str+i+1,"%4d",&ch);
-					i+=len+1;
-				}
+					sscanf(backSlashStr,"%4d",&ch);
+				i+=len+1;
 			}
-			else if(toupper(str[i+1])=='X')
+			else if(toupper(backSlashStr[0])=='X')
 			{
-				char* backSlashStr=fklGetStringAfterBackslash(str+i);
-				ch=fklStringToChar(backSlashStr+1);
-				i+=strlen(backSlashStr);
-				free(backSlashStr);
+				ch=fklStringToChar(backSlashStr);
+				i+=len+1;
 			}
-			else if(str[i+1]=='\n')
+			else if(backSlashStr[0]=='\n')
 			{
 				i+=2;
+				free(backSlashStr);
 				continue;
 			}
 			else
 			{
-				switch(toupper(str[i+1]))
+				switch(toupper(backSlashStr[0]))
 				{
 					case 'A':
 						ch=0x07;
@@ -635,6 +656,7 @@ char* fklCastEscapeCharater(const char* str,char end,size_t* len)
 				}
 				i+=2;
 			}
+			free(backSlashStr);
 		}
 		else ch=str[i++];
 		strSize++;

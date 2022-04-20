@@ -513,41 +513,30 @@ static char* castEscapeCharaterBuf(const char* str,char end,size_t* size)
 		int ch=0;
 		if(str[i]=='\\')
 		{
-			if(isdigit(str[i+1]))
+			char* backSlashStr=fklGetStringAfterBackslashInStr(str+i+1);
+			size_t len=strlen(backSlashStr);
+			if(isdigit(backSlashStr[0]))
 			{
-				if(str[i+1]=='0')
-				{
-					if(isdigit(str[i+2]))
-					{
-						int len=0;
-						while((isdigit(str[i+2+len])&&(str[i+2+len]<'8')&&len<4))len++;
-						sscanf(str+i+1,"%4o",&ch);
-						i+=len+2;
-					}
-				}
+				if(backSlashStr[0]=='0'&&isdigit(backSlashStr[1]))
+					sscanf(backSlashStr,"%4o",&ch);
 				else
-				{
-					int len=0;
-					while(isdigit(str[i+1+len])&&len<4)len++;
-					sscanf(str+i+1,"%4d",&ch);
-					i+=len+1;
-				}
+					sscanf(backSlashStr,"%4d",&ch);
+				i+=len+1;
 			}
-			else if(toupper(str[i+1])=='X')
+			else if(toupper(backSlashStr[0])=='X')
 			{
-				char* backSlashStr=fklGetStringAfterBackslash(str+i);
-				ch=fklStringToChar(backSlashStr+1);
-				i+=strlen(backSlashStr);
-				free(backSlashStr);
+				ch=fklStringToChar(backSlashStr);
+				i+=len+1;
 			}
-			else if(str[i+1]=='\n')
+			else if(backSlashStr[0]=='\n')
 			{
 				i+=2;
+				free(backSlashStr);
 				continue;
 			}
 			else
 			{
-				switch(toupper(str[i+1]))
+				switch(toupper(backSlashStr[0]))
 				{
 					case 'A':
 						ch=0x07;
@@ -577,6 +566,7 @@ static char* castEscapeCharaterBuf(const char* str,char end,size_t* size)
 				}
 				i+=2;
 			}
+			free(backSlashStr);
 		}
 		else ch=str[i++];
 		strSize++;

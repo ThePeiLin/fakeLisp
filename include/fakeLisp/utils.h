@@ -117,6 +117,7 @@ int fklIsDouble(const char*);
 int fklIsNum(const char*);
 char* fklGetStringFromList(const char*);
 char* fklGetStringAfterBackslash(const char*);
+char* fklGetStringAfterBackslashInStr(const char* str);
 int fklPower(int,int);
 char* fklCastEscapeCharater(const char*,char,size_t*);
 void fklPrintRawCharBuf(const char* str,size_t size,FILE* out);

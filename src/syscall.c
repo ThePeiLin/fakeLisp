@@ -597,22 +597,42 @@ void SYS_char(ARGL)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMvalue* obj=fklPopAndGetVMstack(stack);
-	if(fklResBp(stack))
-		FKL_RAISE_BUILTIN_ERROR("sys.char",FKL_TOOMANYARG,runnable,exe);
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR("sys.char",FKL_TOOFEWARG,runnable,exe);
-	if(FKL_IS_I32(obj))
-		FKL_SET_RETURN(__func__,FKL_MAKE_VM_CHR(FKL_GET_I32(obj)),stack);
-	else if(FKL_IS_CHR(obj))
-		FKL_SET_RETURN(__func__,obj,stack);
-	else if(FKL_IS_F64(obj))
-		FKL_SET_RETURN(__func__,FKL_MAKE_VM_CHR((int32_t)obj->u.f64),stack);
-	else if(FKL_IS_STR(obj))
-		FKL_SET_RETURN(__func__,FKL_MAKE_VM_CHR(obj->u.str->str[0]),stack);
-	//else if(FKL_IS_BYTS(obj))
-	//	FKL_SET_RETURN(__func__,FKL_MAKE_VM_CHR(obj->u.byts->str[0]),stack);
+	if(FKL_IS_STR(obj))
+	{
+		FklVMvalue* pindex=fklPopAndGetVMstack(stack);
+		if(fklResBp(stack))
+			FKL_RAISE_BUILTIN_ERROR("sys.char",FKL_TOOMANYARG,runnable,exe);
+		if(pindex&&!isInt(pindex))
+			FKL_RAISE_BUILTIN_ERROR("sys.char",FKL_WRONGARG,runnable,exe);
+		if(pindex)
+		{
+			uint64_t index=getInt(pindex);
+			if(index>=obj->u.str->size)
+				FKL_RAISE_BUILTIN_ERROR("sys.vref",FKL_INVALIDACCESS,runnable,exe);
+			FKL_SET_RETURN(__func__,(FklVMptr)&(obj->u.str->str[index]),stack);
+			FKL_SET_RETURN(__func__,FKL_MAKE_VM_MREF(1),stack);
+		}
+		else
+		{
+			FKL_SET_RETURN(__func__,(FklVMptr)&(obj->u.str->str[0]),stack);
+			FKL_SET_RETURN(__func__,FKL_MAKE_VM_MREF(1),stack);
+		}
+	}
 	else
-		FKL_RAISE_BUILTIN_ERROR("sys.char",FKL_WRONGARG,runnable,exe);
+	{
+		if(fklResBp(stack))
+			FKL_RAISE_BUILTIN_ERROR("sys.char",FKL_TOOMANYARG,runnable,exe);
+		if(FKL_IS_I32(obj))
+			FKL_SET_RETURN(__func__,FKL_MAKE_VM_CHR(FKL_GET_I32(obj)),stack);
+		else if(FKL_IS_CHR(obj))
+			FKL_SET_RETURN(__func__,obj,stack);
+		else if(FKL_IS_F64(obj))
+			FKL_SET_RETURN(__func__,FKL_MAKE_VM_CHR((int32_t)obj->u.f64),stack);
+		else
+			FKL_RAISE_BUILTIN_ERROR("sys.char",FKL_WRONGARG,runnable,exe);
+	}
 }
 
 void SYS_integer(ARGL)
@@ -1179,13 +1199,6 @@ void SYS_vref(ARGL)
 		FKL_SET_RETURN(__func__,(FklVMptr)&(vector->u.str->str[index]),stack);
 		FKL_SET_RETURN(__func__,FKL_MAKE_VM_MREF(1),stack);
 	}
-	//else if(FKL_IS_BYTS(vector))
-	//{
-	//	if(index>=vector->u.byts->size)
-	//		FKL_RAISE_BUILTIN_ERROR("sys.vref",FKL_INVALIDACCESS,runnable,exe);
-	//	FKL_SET_RETURN(__func__,(FklVMptr)&(vector->u.byts->str[index]),stack);
-	//	FKL_SET_RETURN(__func__,FKL_MAKE_VM_MREF(1),stack);
-	//}
 	else if(FKL_IS_VECTOR(vector))
 	FKL_SET_RETURN(__func__,FKL_MAKE_VM_REF(&vector->u.vec->base[index]),stack);
 }

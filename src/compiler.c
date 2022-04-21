@@ -433,6 +433,7 @@ void fklInitGlobKeyWord(FklCompEnv* glob)
 	fklAddKeyWord("export",glob);
 	fklAddKeyWord("try",glob);
 	fklAddKeyWord("catch",glob);
+	fklAddKeyWord("macroexpand",glob);
 }
 
 void fklUninitPreprocess()
@@ -668,6 +669,21 @@ FklByteCodelnt* fklCompile(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter
 					,objCptr->curline);
 			return tmp;
 		}
+		else if(fklIsMacroExpandExpression(objCptr))
+		{
+			FklAstCptr* nextCptr=fklNextCptr(fklGetFirstCptr(objCptr));
+			int i=fklPreMacroExpand(nextCptr,curEnv,inter);
+			if(i==1)
+			{
+				FklByteCode* code=fklCompileQuote(nextCptr);
+				FklByteCodelnt* retval=fklNewByteCodelnt(code);
+				retval->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
+				FKL_ASSERT(retval->l,__func__);
+				retval->ls=1;
+				retval->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,code->size,objCptr->curline);
+				return retval;
+			}
+		}
 		int i=fklPreMacroExpand(objCptr,curEnv,inter);
 		if(i==1)
 			continue;
@@ -713,11 +729,6 @@ FklByteCode* fklCompileAtom(FklAstCptr* objCptr)
 			tmp->code[0]=FKL_PUSH_SYM;
 			fklSetI32ToByteCode(tmp->code+sizeof(char),fklAddSymbolToGlob(tmpAtm->value.sym)->id);
 			break;
-		//case FKL_STR:
-		//	tmp=fklNewByteCode(sizeof(char)+strlen(tmpAtm->value.str)+1);
-		//	tmp->code[0]=FKL_PUSH_STR;
-		//	strcpy((char*)tmp->code+1,tmpAtm->value.str);
-		//	break;
 		case FKL_I32:
 			tmp=fklNewByteCode(sizeof(char)+sizeof(int32_t));
 			tmp->code[0]=FKL_PUSH_I32;
@@ -738,14 +749,6 @@ FklByteCode* fklCompileAtom(FklAstCptr* objCptr)
 			tmp->code[0]=FKL_PUSH_CHAR;
 			tmp->code[1]=tmpAtm->value.chr;
 			break;
-	//	case FKL_BYTS:
-	//		tmp=fklNewByteCode(sizeof(char)+sizeof(tmpAtm->value.byts.size)+tmpAtm->value.byts.size);
-	//		tmp->code[0]=FKL_PUSH_BYTS;
-	//		fklSetU64ToByteCode(tmp->code+sizeof(char),tmpAtm->value.byts.size);
-	//		memcpy(tmp->code+sizeof(char)+sizeof(tmpAtm->value.byts.size)
-	//				,tmpAtm->value.byts.str
-	//				,tmpAtm->value.byts.size);
-	//		break;
 		case FKL_STR:
 			tmp=fklNewByteCode(sizeof(char)+sizeof(tmpAtm->value.str.size)+tmpAtm->value.str.size);
 			tmp->code[0]=FKL_PUSH_STR;
@@ -1007,8 +1010,6 @@ FklByteCodelnt* fklCompileQsquote(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInte
 
 FklByteCode* fklCompileQuote(FklAstCptr* objCptr)
 {
-	objCptr=&objCptr->u.pair->car;
-	objCptr=fklNextCptr(objCptr);
 	switch(objCptr->type)
 	{
 		case FKL_PAIR:
@@ -1051,7 +1052,7 @@ FklByteCodelnt* fklCompileConst(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterp
 	if(objCptr->type==FKL_ATM&&objCptr->u.atom->type!=FKL_VECTOR)tmp=fklCompileAtom(objCptr);
 	if(objCptr->type==FKL_ATM&&objCptr->u.atom->type==FKL_VECTOR)tmp=fklCompileVector(objCptr);
 	if(fklIsNil(objCptr))tmp=fklCompileNil();
-	if(fklIsQuoteExpression(objCptr))tmp=fklCompileQuote(objCptr);
+	if(fklIsQuoteExpression(objCptr))tmp=fklCompileQuote(fklNextCptr(fklGetFirstCptr(objCptr)));
 	if(!tmp)
 	{
 		state->state=FKL_INVALIDEXPR;
@@ -1926,6 +1927,7 @@ FklByteCodelnt* fklCompileLoad(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 	{
 		state->state=FKL_FILEFAILURE;
 		state->place=pFileName;
+		free(filename);
 		return NULL;
 	}
 	fklAddSymbolToGlob(filename);
@@ -1951,6 +1953,7 @@ FklByteCodelnt* fklCompileLoad(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 		tmp->l[tmp->ls-1]->cpc+=popTp->size;
 
 	}
+	free(filename);
 	fklFreeByteCode(popTp);
 	fklFreeByteCode(setTp);
 	return tmp;
@@ -2102,6 +2105,8 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 				state->state=FKL_SYNTAXERROR;
 				state->place=plib;
 				fklFreeMemMenager(memMenager);
+				if(count)
+					fklFreeStringArry(partsOfPath,count);
 				return NULL;
 			}
 			FklAstAtom* tmpAtm=pPartsOfPath->u.atom;
@@ -2110,6 +2115,8 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 				state->state=FKL_SYNTAXERROR;
 				state->place=plib;
 				fklFreeMemMenager(memMenager);
+				if(count)
+					fklFreeStringArry(partsOfPath,count);
 				return NULL;
 			}
 			if(tmpAtm->type==FKL_SYM&&!strcmp(tmpAtm->value.sym,"prefix")&&fklNextCptr(pPartsOfPath)->type==FKL_PAIR)
@@ -2120,6 +2127,8 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 					state->state=FKL_SYNTAXERROR;
 					state->place=objCptr;
 					fklFreeMemMenager(memMenager);
+					if(count)
+						fklFreeStringArry(partsOfPath,count);
 					return NULL;
 				}
 				tmpCptr=fklNextCptr(tmpCptr);
@@ -2128,6 +2137,8 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 					state->state=FKL_SYNTAXERROR;
 					state->place=plib;
 					fklFreeMemMenager(memMenager);
+					if(count)
+						fklFreeStringArry(partsOfPath,count);
 					return NULL;
 				}
 				FklAstAtom* prefixAtom=tmpCptr->u.atom;
@@ -2136,6 +2147,8 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 					state->state=FKL_SYNTAXERROR;
 					state->place=plib;
 					fklFreeMemMenager(memMenager);
+					if(count)
+						fklFreeStringArry(partsOfPath,count);
 					return NULL;
 				}
 				libPrefix=fklCopyStr(prefixAtom->value.sym);
@@ -2171,6 +2184,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 			state->place=pairOfpPartsOfPath;
 			free(path);
 			fklFreeMemMenager(memMenager);
+			fklFreeStringArry(partsOfPath,count);
 			return NULL;
 		}
 		if(fklHasLoadSameFile(path,inter))
@@ -2178,6 +2192,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 			state->state=FKL_CIRCULARLOAD;
 			state->place=objCptr;
 			fklFreeMemMenager(memMenager);
+			fklFreeStringArry(partsOfPath,count);
 			return NULL;
 		}
 		fklAddSymbolToGlob(path);
@@ -2247,6 +2262,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 							free(begin);
 							chdir(tmpInter->prev->curDir);
 							tmpInter->lnt=NULL;
+							fklFreeAllMacroThenDestroyCompEnv(tmpCurEnv);
 							fklFreeIntpr(tmpInter);
 							if(libPrefix)
 								free(libPrefix);
@@ -2275,6 +2291,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 									free(begin);
 									chdir(tmpInter->prev->curDir);
 									tmpInter->lnt=NULL;
+									fklFreeAllMacroThenDestroyCompEnv(tmpCurEnv);
 									fklFreeIntpr(tmpInter);
 									if(libPrefix)
 										free(libPrefix);
@@ -2308,6 +2325,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 									free(begin);
 									chdir(tmpInter->prev->curDir);
 									tmpInter->lnt=NULL;
+									fklFreeAllMacroThenDestroyCompEnv(tmpCurEnv);
 									fklFreeIntpr(tmpInter);
 									state->state=0;
 									state->place=NULL;
@@ -2376,6 +2394,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 								fklFreeByteCodelnt(tmp);
 								chdir(tmpInter->prev->curDir);
 								tmpInter->lnt=NULL;
+								fklFreeAllMacroThenDestroyCompEnv(tmpCurEnv);
 								fklFreeIntpr(tmpInter);
 								if(libPrefix)
 									free(libPrefix);
@@ -2411,6 +2430,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 								free(begin);
 								chdir(tmpInter->prev->curDir);
 								tmpInter->lnt=NULL;
+								fklFreeAllMacroThenDestroyCompEnv(tmpCurEnv);
 								fklFreeIntpr(tmpInter);
 								if(libPrefix)
 									free(libPrefix);

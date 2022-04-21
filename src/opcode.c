@@ -15,7 +15,6 @@ static struct
 	{"push_f64",8},
 	{"push_str",-1},
 	{"push_sym",8},
-	//{"push_byts",-2},
 	{"push_var",8},
 	{"push_top",0},
 	{"push_proc",-2},

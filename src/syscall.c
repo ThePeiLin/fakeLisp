@@ -645,45 +645,45 @@ void SYS_integer(ARGL)
 		int64_t r=(int64_t)obj->u.f64;
 		FKL_SET_RETURN(__func__,makeVMint(r,exe->heap),stack);
 	}
+	//else if(FKL_IS_STR(obj))
+	//{
+	//	char* str=fklVMstrToCstr(obj->u.str);
+	//	int64_t r=fklStringToInt(str);
+	//	free(str);
+	//	FKL_SET_RETURN(__func__,makeVMint(r,exe->heap),stack);
+	//}
 	else if(FKL_IS_STR(obj))
 	{
-		char* str=fklVMstrToCstr(obj->u.str);
-		int64_t r=fklStringToInt(str);
-		free(str);
-		FKL_SET_RETURN(__func__,makeVMint(r,exe->heap),stack);
+		size_t s=obj->u.str->size;
+		if(s<5)
+		{
+			uint8_t r[4]={0};
+			switch(s)
+			{
+				case 4:r[3]=obj->u.str->str[3];
+				case 3:r[2]=obj->u.str->str[2];
+				case 2:r[1]=obj->u.str->str[1];
+				case 1:r[0]=obj->u.str->str[0];
+			}
+			FKL_SET_RETURN(__func__,FKL_MAKE_VM_I32(*(int32_t*)r),stack);
+		}
+		else
+		{
+			uint8_t r[8]={0};
+			switch(s>8?8:s)
+			{
+				case 8:r[7]=obj->u.str->str[8];
+				case 7:r[6]=obj->u.str->str[6];
+				case 6:r[5]=obj->u.str->str[5];
+				case 5:r[4]=obj->u.str->str[4];
+				case 4:r[3]=obj->u.str->str[3];
+				case 3:r[2]=obj->u.str->str[2];
+				case 2:r[1]=obj->u.str->str[1];
+				case 1:r[0]=obj->u.str->str[0];
+			}
+			FKL_SET_RETURN(__func__,fklNewVMvalue(FKL_I64,r,exe->heap),stack);
+		}
 	}
-	//else if(FKL_IS_BYTS(obj))
-	//{
-	//	size_t s=obj->u.byts->size;
-	//	if(s<5)
-	//	{
-	//		uint8_t r[4]={0};
-	//		switch(s)
-	//		{
-	//			case 4:r[3]=obj->u.byts->str[3];
-	//			case 3:r[2]=obj->u.byts->str[2];
-	//			case 2:r[1]=obj->u.byts->str[1];
-	//			case 1:r[0]=obj->u.byts->str[0];
-	//		}
-	//		FKL_SET_RETURN(__func__,FKL_MAKE_VM_I32(*(int32_t*)r),stack);
-	//	}
-	//	else
-	//	{
-	//		uint8_t r[8]={0};
-	//		switch(s>8?8:s)
-	//		{
-	//			case 8:r[7]=obj->u.byts->str[8];
-	//			case 7:r[6]=obj->u.byts->str[6];
-	//			case 6:r[5]=obj->u.byts->str[5];
-	//			case 5:r[4]=obj->u.byts->str[4];
-	//			case 4:r[3]=obj->u.byts->str[3];
-	//			case 3:r[2]=obj->u.byts->str[2];
-	//			case 2:r[1]=obj->u.byts->str[1];
-	//			case 1:r[0]=obj->u.byts->str[0];
-	//		}
-	//		FKL_SET_RETURN(__func__,fklNewVMvalue(FKL_I64,r,exe->heap),stack);
-	//	}
-	//}
 	else
 		FKL_RAISE_BUILTIN_ERROR("sys.integer",FKL_WRONGARG,runnable,exe);
 }

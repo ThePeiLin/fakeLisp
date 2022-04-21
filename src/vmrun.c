@@ -662,7 +662,6 @@ void B_pop(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	stack->tp-=1;
-	fklStackRecycle(exe);
 	runnable->cp+=1;
 }
 
@@ -722,7 +721,6 @@ void B_pop_arg(FklVM* exe)
 	pValue=&tmp->value;
 	FklVMvalue* topValue=fklPopAndGetVMstack(stack);
 	*pValue=topValue;
-	fklStackRecycle(exe);
 	runnable->cp+=sizeof(char)+sizeof(FklSid_t);
 }
 
@@ -756,7 +754,6 @@ void B_pop_rest_arg(FklVM* exe)
 		tmp=tmp->u.pair->cdr;
 	}
 	*pValue=obj;
-	fklStackRecycle(exe);
 	runnable->cp+=sizeof(char)+sizeof(FklSid_t);
 }
 
@@ -844,6 +841,7 @@ void B_res_tp(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	stack->tp=(stack->tptp)?stack->tpst[stack->tptp-1]:0;
+	fklStackRecycle(exe);
 	runnable->cp+=1;
 }
 
@@ -903,7 +901,6 @@ void B_jmp_if_true(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMvalue* tmpValue=fklGET_VAL(fklGetTopValue(stack),exe->heap);
-	fklStackRecycle(exe);
 	if(tmpValue!=FKL_VM_NIL)
 		runnable->cp+=fklGetI64FromByteCode(exe->code+runnable->cp+sizeof(char));
 	runnable->cp+=sizeof(char)+sizeof(int64_t);
@@ -914,7 +911,6 @@ void B_jmp_if_false(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMvalue* tmpValue=fklGET_VAL(fklGetTopValue(stack),exe->heap);
-	fklStackRecycle(exe);
 	if(tmpValue==FKL_VM_NIL)
 		runnable->cp+=fklGetI64FromByteCode(exe->code+runnable->cp+sizeof(char));
 	runnable->cp+=sizeof(char)+sizeof(int64_t);

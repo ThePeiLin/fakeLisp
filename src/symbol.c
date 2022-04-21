@@ -68,7 +68,7 @@ static const char* builtInSymbolList[]=
 	"char",
 	"integer",
 	"f64",
-	"string",
+	"as-str",
 	"symbol",
 	"nth",
 	"length",
@@ -113,6 +113,8 @@ static const char* builtInSymbolList[]=
 	"dlclose",
 	"getdir",
 	"fgetc",
+	"fwrite",
+	"to-str",
 };
 
 FklSymbolTable GlobSymbolTable=FKL_STATIC_SYMBOL_INIT;

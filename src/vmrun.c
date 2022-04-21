@@ -235,7 +235,7 @@ extern void SYS_le(ARGL);
 extern void SYS_char(ARGL);
 extern void SYS_integer(ARGL);
 extern void SYS_f64(ARGL);
-extern void SYS_string(ARGL);
+extern void SYS_as_str(ARGL);
 extern void SYS_symbol(ARGL);
 extern void SYS_nth(ARGL);
 extern void SYS_length(ARGL);
@@ -280,6 +280,8 @@ extern void SYS_vector(ARGL);
 extern void SYS_dlclose(ARGL);
 extern void SYS_getdir(ARGL);
 extern void SYS_fgetc(ARGL);
+extern void SYS_fwrite(ARGL);
+extern void SYS_to_str(ARGL);
 
 #undef ARGL
 
@@ -311,7 +313,7 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_char,
 		SYS_integer,
 		SYS_f64,
-		SYS_string,
+		SYS_as_str,
 		SYS_symbol,
 		SYS_nth,
 		SYS_length,
@@ -356,6 +358,8 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_dlclose,
 		SYS_getdir,
 		SYS_fgetc,
+		SYS_fwrite,
+		SYS_to_str,
 	};
 	obj->num=FKL_NUM_OF_BUILT_IN_SYMBOL;
 	obj->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*FKL_NUM_OF_BUILT_IN_SYMBOL);
@@ -718,6 +722,7 @@ void B_pop_arg(FklVM* exe)
 	pValue=&tmp->value;
 	FklVMvalue* topValue=fklPopAndGetVMstack(stack);
 	*pValue=topValue;
+	fklStackRecycle(exe);
 	runnable->cp+=sizeof(char)+sizeof(FklSid_t);
 }
 
@@ -898,6 +903,7 @@ void B_jmp_if_true(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMvalue* tmpValue=fklGET_VAL(fklGetTopValue(stack),exe->heap);
+	fklStackRecycle(exe);
 	if(tmpValue!=FKL_VM_NIL)
 		runnable->cp+=fklGetI64FromByteCode(exe->code+runnable->cp+sizeof(char));
 	runnable->cp+=sizeof(char)+sizeof(int64_t);

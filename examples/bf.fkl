@@ -11,7 +11,7 @@
 (if (<= (length (argv)) 1)
   (setq code "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.")
   (setq code
-        (let* ((fp (fopen (string (nth 1 (argv))) "rb"))
+        (let* ((fp (fopen (to-str (nth 1 (argv))) "rb"))
                (code (read-code fp)))
           (fclose fp)
           code)))

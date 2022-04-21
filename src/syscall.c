@@ -108,14 +108,7 @@ void SYS_append(ARGL)
 			if(!FKL_IS_PTR(cur))
 				FKL_RAISE_BUILTIN_ERROR("sys.append",FKL_WRONGARG,runnable,exe);
 			fklVMstrCat(&(*prev)->u.str,cur->u.str);
-			//(*prev)->u.str=fklStrCat((*prev)->u.str,cur->u.str);
 		}
-		//else if(FKL_IS_BYTS(*prev))
-		//{
-		//	if(!FKL_IS_BYTS(cur))
-		//		FKL_RAISE_BUILTIN_ERROR("sys.append",FKL_WRONGARG,runnable,exe);
-		//	fklVMbytsCat(&(*prev)->u.byts,cur->u.byts);
-		//}
 		else if(FKL_IS_VECTOR(*prev))
 		{
 			if(!FKL_IS_VECTOR(cur))
@@ -158,7 +151,7 @@ void SYS_eqn(ARGL)
 	if((FKL_IS_F64(fir)||isInt(fir))&&(FKL_IS_F64(sec)||isInt(sec)))
 		FKL_SET_RETURN(__func__
 				,fabs((FKL_IS_F64(fir)?fir->u.f64:getInt(fir))
-						-(FKL_IS_F64(sec)?sec->u.f64:getInt(sec)))
+					-(FKL_IS_F64(sec)?sec->u.f64:getInt(sec)))
 				<DBL_EPSILON
 				?FKL_VM_TRUE
 				:FKL_VM_NIL
@@ -178,11 +171,6 @@ void SYS_eqn(ARGL)
 				?FKL_VM_TRUE
 				:FKL_VM_NIL
 				,stack);
-	//else if(FKL_IS_BYTS(fir)&&FKL_IS_BYTS(sec))
-	//	FKL_SET_RETURN(__func__,fklEqVMbyts(fir->u.byts,sec->u.byts)
-	//			?FKL_VM_TRUE
-	//			:FKL_VM_NIL
-	//			,stack);
 	else
 		FKL_RAISE_BUILTIN_ERROR("sys.eqn",FKL_WRONGARG,runnable,exe);
 }
@@ -721,24 +709,17 @@ void SYS_i32(ARGL)
 		FKL_SET_RETURN(__func__,FKL_MAKE_VM_I32((int32_t)obj->u.f64),stack);
 	else if(FKL_IS_STR(obj))
 	{
-		char* str=fklVMstrToCstr(obj->u.str);
-		int64_t r=fklStringToInt(str);
-		free(str);
-		FKL_SET_RETURN(__func__,FKL_MAKE_VM_I32((int32_t)r),stack);
+		size_t s=obj->u.str->size;
+		uint8_t r[4]={0};
+		switch(s)
+		{
+			case 4:r[3]=obj->u.str->str[3];
+			case 3:r[2]=obj->u.str->str[2];
+			case 2:r[1]=obj->u.str->str[1];
+			case 1:r[0]=obj->u.str->str[0];
+		}
+		FKL_SET_RETURN(__func__,FKL_MAKE_VM_I32(*(int32_t*)r),stack);
 	}
-	//else if(FKL_IS_BYTS(obj))
-	//{
-	//	size_t s=obj->u.byts->size;
-	//	uint8_t r[4]={0};
-	//	switch(s)
-	//	{
-	//		case 4:r[3]=obj->u.byts->str[3];
-	//		case 3:r[2]=obj->u.byts->str[2];
-	//		case 2:r[1]=obj->u.byts->str[1];
-	//		case 1:r[0]=obj->u.byts->str[0];
-	//	}
-	//	FKL_SET_RETURN(__func__,FKL_MAKE_VM_I32(*(int32_t*)r),stack);
-	//}
 	else
 		FKL_RAISE_BUILTIN_ERROR("sys.i32",FKL_WRONGARG,runnable,exe);
 }
@@ -776,28 +757,21 @@ void SYS_i64(ARGL)
 	}
 	else if(FKL_IS_STR(obj))
 	{
-		char* str=fklVMstrToCstr(obj->u.str);
-		int64_t r=fklStringToInt(str);
-		free(str);
+		size_t s=obj->u.str->size;
+		int64_t r=0;
+		switch(s>8?8:s)
+		{
+			case 8:((uint8_t*)&r)[7]=obj->u.str->str[7];
+			case 7:((uint8_t*)&r)[6]=obj->u.str->str[6];
+			case 6:((uint8_t*)&r)[5]=obj->u.str->str[5];
+			case 5:((uint8_t*)&r)[4]=obj->u.str->str[4];
+			case 4:((uint8_t*)&r)[3]=obj->u.str->str[3];
+			case 3:((uint8_t*)&r)[2]=obj->u.str->str[2];
+			case 2:((uint8_t*)&r)[1]=obj->u.str->str[1];
+			case 1:((uint8_t*)&r)[0]=obj->u.str->str[0];
+		}
 		FKL_SET_RETURN(__func__,fklNewVMvalue(FKL_I64,&r,exe->heap),stack);
 	}
-	//else if(FKL_IS_BYTS(obj))
-	//{
-	//	size_t s=obj->u.byts->size;
-	//	uint8_t r[8]={0};
-	//	switch(s>8?8:s)
-	//	{
-	//		case 8:r[7]=obj->u.byts->str[8];
-	//		case 7:r[6]=obj->u.byts->str[6];
-	//		case 6:r[5]=obj->u.byts->str[5];
-	//		case 5:r[4]=obj->u.byts->str[4];
-	//		case 4:r[3]=obj->u.byts->str[3];
-	//		case 3:r[2]=obj->u.byts->str[2];
-	//		case 2:r[1]=obj->u.byts->str[1];
-	//		case 1:r[0]=obj->u.byts->str[0];
-	//	}
-	//	FKL_SET_RETURN(__func__,fklNewVMvalue(FKL_I64,r,exe->heap),stack);
-	//}
 	else
 		FKL_RAISE_BUILTIN_ERROR("sys.i64",FKL_WRONGARG,runnable,exe);
 }
@@ -820,33 +794,27 @@ void SYS_f64(ARGL)
 		retval->u.f64=obj->u.f64;
 	else if(FKL_IS_STR(obj))
 	{
-		char* str=fklVMstrToCstr(obj->u.str);
-		retval->u.f64=fklStringToDouble(str);
-		free(str);
+		size_t s=obj->u.str->size;
+		double r=0;
+		switch(s>8?8:s)
+		{
+			case 8:((uint8_t*)&r)[7]=obj->u.str->str[7];
+			case 7:((uint8_t*)&r)[6]=obj->u.str->str[6];
+			case 6:((uint8_t*)&r)[5]=obj->u.str->str[5];
+			case 5:((uint8_t*)&r)[4]=obj->u.str->str[4];
+			case 4:((uint8_t*)&r)[3]=obj->u.str->str[3];
+			case 3:((uint8_t*)&r)[2]=obj->u.str->str[2];
+			case 2:((uint8_t*)&r)[1]=obj->u.str->str[1];
+			case 1:((uint8_t*)&r)[0]=obj->u.str->str[0];
+		}
+		retval->u.f64=r;
 	}
-	//else if(FKL_IS_BYTS(obj))
-	//{
-	//	uint8_t r[8]={0};
-	//	size_t s=obj->u.byts->size;
-	//	switch(s>8?8:s)
-	//	{
-	//		case 8:r[7]=obj->u.byts->str[7];
-	//		case 7:r[6]=obj->u.byts->str[6];
-	//		case 6:r[5]=obj->u.byts->str[5];
-	//		case 5:r[4]=obj->u.byts->str[4];
-	//		case 4:r[3]=obj->u.byts->str[3];
-	//		case 3:r[2]=obj->u.byts->str[2];
-	//		case 2:r[1]=obj->u.byts->str[1];
-	//		case 1:r[0]=obj->u.byts->str[0];
-	//	}
-	//	memcpy(&retval->u.f64,r,8);
-	//}
 	else
 		FKL_RAISE_BUILTIN_ERROR("sys.f64",FKL_WRONGARG,runnable,exe);
 	FKL_SET_RETURN(__func__,retval,stack);
 }
 
-void SYS_string(ARGL)
+void SYS_as_str(ARGL)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
@@ -879,10 +847,7 @@ void SYS_string(ARGL)
 				size=tsize;
 			}
 			if(FKL_IS_STR(obj))
-			{
 				retval->u.str=fklNewVMstr(size,obj->u.str->str+start);
-				//retval->u.str[size]='\0';
-			}
 			else
 			{
 				retval->u.str=fklNewVMstr(size,NULL);
@@ -893,7 +858,6 @@ void SYS_string(ARGL)
 						FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_WRONGARG,runnable,exe);
 					retval->u.str->str[i]=getInt(v);
 				}
-				//retval->u.str[size]='\0';
 			}
 		}
 		else
@@ -911,7 +875,6 @@ void SYS_string(ARGL)
 						FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_WRONGARG,runnable,exe);
 					retval->u.str->str[i]=getInt(v);
 				}
-				//retval->u.str[obj->u.vec->size]='\0';
 			}
 		}
 	}
@@ -941,16 +904,18 @@ void SYS_string(ARGL)
 				FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_WRONGARG,runnable,exe);
 			size_t size=getInt(obj);
 			retval->u.str=fklNewVMstr(size,NULL);
-			//retval->u.str=(char*)malloc(sizeof(char)*(size+1));
 			FKL_ASSERT(retval->u.str,__func__);
-			//retval->u.str[size]='\0';
 			memset(retval->u.str->str,FKL_GET_CHR(content),size);
 		}
 		else
 		{
-			char* str=fklIntToString(getInt(obj));
-			retval->u.str=fklNewVMstr(strlen(str),str);
-			free(str);
+			if(FKL_IS_I32(obj))
+			{
+				int32_t r=FKL_GET_I32(obj);
+				retval->u.str=fklNewVMstr(sizeof(int32_t),(char*)&r);
+			}
+			else
+				retval->u.str=fklNewVMstr(sizeof(int64_t),(char*)&obj->u.i64);
 		}
 	}
 	else
@@ -958,18 +923,12 @@ void SYS_string(ARGL)
 		if(fklResBp(stack))
 			FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_TOOMANYARG,runnable,exe);
 		else if(FKL_IS_F64(obj))
-		{
-			char* str=fklDoubleToString(obj->u.f64);
-			retval->u.str=fklNewVMstr(strlen(str),str);
-			free(str);
-		}
+			retval->u.str=fklNewVMstr(sizeof(double),(char*)&obj->u.f64);
 		else if(FKL_IS_SYM(obj))
 		{
-			char* symbol=fklGetGlobSymbolWithId(FKL_GET_SYM(obj))->symbol;
-			retval->u.str=fklNewVMstr(strlen(symbol),symbol);
+			FklSid_t sid=FKL_GET_SYM(obj);
+			retval->u.str=fklNewVMstr(sizeof(FklSid_t),(char*)&sid);
 		}
-		//else if(FKL_IS_BYTS(obj))
-		//	retval->u.str=fklVMbytsToCstr(obj->u.byts);
 		else
 			FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_WRONGARG,runnable,exe);
 	}
@@ -998,155 +957,6 @@ void SYS_symbol(ARGL)
 	else
 		FKL_RAISE_BUILTIN_ERROR("sys.symbol",FKL_WRONGARG,runnable,exe);
 }
-
-//void SYS_byts(ARGL)
-//{
-//	FklVMstack* stack=exe->stack;
-//	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-//	FklVMvalue* obj=fklPopAndGetVMstack(stack);
-//	if(!obj)
-//		FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_TOOFEWARG,runnable,exe);
-//	FklVMvalue* retval=fklNewVMvalue(FKL_BYTS,fklNewEmptyVMbyts(),exe->heap);
-//	if(FKL_IS_BYTS(obj)||FKL_IS_VECTOR(obj))
-//	{
-//		FklVMvalue* pstart=fklPopAndGetVMstack(stack);
-//		FklVMvalue* psize=fklPopAndGetVMstack(stack);
-//		if(fklResBp(stack))
-//			FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_TOOMANYARG,runnable,exe);
-//		if(pstart)
-//		{
-//			if(!isInt(pstart))
-//				FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_WRONGARG,runnable,exe);
-//			int64_t start=getInt(pstart);
-//			if((FKL_IS_BYTS(obj)&&start>=obj->u.byts->size)
-//					||(FKL_IS_VECTOR(obj)&&start>=obj->u.vec->size))
-//				FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_INVALIDACCESS,runnable,exe);
-//			int64_t size=FKL_IS_BYTS(obj)?obj->u.byts->size-start:obj->u.vec->size-start;
-//			if(psize)
-//			{
-//				if(!isInt(psize))
-//					FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_WRONGARG,runnable,exe);
-//				int64_t tsize=getInt(psize);
-//				if(tsize>size)
-//					FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_INVALIDACCESS,runnable,exe);
-//				size=tsize;
-//			}
-//			FklVMbyts* retvalbyts=NULL;
-//			if(FKL_IS_BYTS(obj))
-//				retvalbyts=fklNewVMbyts(size,obj->u.byts->str+start);
-//			else
-//			{
-//				retvalbyts=fklNewVMbyts(size,NULL);
-//				for(size_t i=0;i<size;i++)
-//				{
-//					FklVMvalue* v=obj->u.vec->base[start+i];
-//					if(!isInt(v))
-//						FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_WRONGARG,runnable,exe);
-//					retvalbyts->str[i]=getInt(v);
-//				}
-//			}
-//			free(retval->u.byts);
-//			retval->u.byts=retvalbyts;
-//		}
-//		else
-//		{
-//			if(FKL_IS_BYTS(obj))
-//				fklVMbytsCat(&retval->u.byts,obj->u.byts);
-//			else
-//			{
-//				FklVMbyts* retvalbyts=fklNewVMbyts(obj->u.vec->size,NULL);
-//				for(size_t i=0;i<obj->u.vec->size;i++)
-//				{
-//					FklVMvalue* v=obj->u.vec->base[i];
-//					if(!isInt(v))
-//						FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_WRONGARG,runnable,exe);
-//					retvalbyts->str[i]=getInt(v);
-//				}
-//				free(retval->u.byts);
-//				retval->u.byts=retvalbyts;
-//			}
-//		}
-//	}
-//	else if(FKL_IS_CHR(obj))
-//	{
-//		retval->u.byts->size=0;
-//		for(size_t i=0;obj;i++,obj=fklPopAndGetVMstack(stack))
-//		{
-//			if(!FKL_IS_CHR(obj))
-//				FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_WRONGARG,runnable,exe);
-//			retval->u.byts->size++;
-//			retval->u.byts=(FklVMbyts*)realloc(retval->u.byts
-//					,sizeof(FklVMbyts)+sizeof(char)*(i+1));
-//			FKL_ASSERT(retval->u.byts,__func__);
-//			((char*)retval->u.byts->str)[i]=FKL_GET_CHR(obj);
-//		}
-//		fklResBp(stack);
-//	}
-//	else if(isInt(obj))
-//	{
-//		FklVMvalue* content=fklPopAndGetVMstack(stack);
-//		fklResBp(stack);
-//		if(content)
-//		{
-//			if(!FKL_IS_CHR(content))
-//				FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_WRONGARG,runnable,exe);
-//			size_t size=getInt(obj);
-//			retval->u.byts=(FklVMbyts*)realloc(retval->u.byts
-//					,sizeof(FklVMbyts)+sizeof(char)*size);
-//			retval->u.byts->size=size;
-//			FKL_ASSERT(retval->u.str,__func__);
-//			memset(retval->u.byts->str,FKL_GET_CHR(content),size);
-//		}
-//		else
-//		{
-//			if(FKL_IS_I32(obj))
-//			{
-//				retval->u.byts=(FklVMbyts*)realloc(retval->u.byts
-//						,sizeof(FklVMbyts)+sizeof(int32_t));
-//				FKL_ASSERT(retval->u.byts,__func__);
-//				retval->u.byts->size=sizeof(int32_t);
-//				*(int32_t*)retval->u.byts->str=FKL_GET_I32(obj);
-//			}
-//			else if(FKL_IS_I64(obj))
-//			{
-//				retval->u.byts=(FklVMbyts*)realloc(retval->u.byts
-//						,sizeof(FklVMbyts)+sizeof(int64_t));
-//				FKL_ASSERT(retval->u.byts,__func__);
-//				retval->u.byts->size=sizeof(int64_t);
-//				*(int64_t*)retval->u.byts->str=obj->u.i64;
-//			}
-//		}
-//	}
-//	else
-//	{
-//		if(fklResBp(stack))
-//			FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_TOOMANYARG,runnable,exe);
-//		else if(FKL_IS_F64(obj))
-//		{
-//			retval->u.byts=(FklVMbyts*)realloc(retval->u.byts,sizeof(FklVMbyts)+sizeof(double));
-//			FKL_ASSERT(retval->u.byts,__func__);
-//			retval->u.byts->size=sizeof(double);
-//			*(double*)retval->u.byts->str=obj->u.f64;
-//		}
-//		else if(FKL_IS_SYM(obj))
-//		{
-//			retval->u.byts=(FklVMbyts*)realloc(retval->u.byts,sizeof(FklVMbyts)+sizeof(FklSid_t));
-//			retval->u.byts->size=sizeof(FklSid_t);
-//			FklSid_t sid=FKL_GET_SYM(obj);
-//			memcpy(retval->u.byts->str,&sid,sizeof(FklSid_t));
-//		}
-//		else if(FKL_IS_STR(obj))
-//		{
-//			retval->u.byts=(FklVMbyts*)realloc(retval->u.byts,sizeof(FklVMbyts)+strlen(obj->u.str)+1);
-//			FKL_ASSERT(retval->u.byts,__func__);
-//			retval->u.byts->size=strlen(obj->u.str);
-//			memcpy(retval->u.byts->str,obj->u.str,retval->u.byts->size);
-//		}
-//		else
-//			FKL_RAISE_BUILTIN_ERROR("sys.byts",FKL_WRONGARG,runnable,exe);
-//	}
-//	FKL_SET_RETURN(__func__,retval,stack);
-//}
 
 void SYS_nth(ARGL)
 {
@@ -1945,6 +1755,158 @@ void SYS_fgetc(ARGL)
 		else
 			FKL_SET_RETURN(__func__,FKL_MAKE_VM_CHR(ch),stack);
 	}
+}
+
+void SYS_fwrite(ARGL)
+{
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
+	FklVMvalue* obj=fklPopAndGetVMstack(stack);
+	FklVMvalue* file=fklPopAndGetVMstack(stack);
+	if(fklResBp(stack))
+		FKL_RAISE_BUILTIN_ERROR("sys.fwrite",FKL_TOOMANYARG,runnable,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR("sys.fwrite",FKL_TOOFEWARG,runnable,exe);
+	if(file&&!FKL_IS_FP(file))
+		FKL_RAISE_BUILTIN_ERROR("sys.fwrite",FKL_WRONGARG,runnable,exe);
+	FILE* objFile=file?file->u.fp->fp:stdout;
+	if(FKL_IS_STR(obj)||FKL_IS_SYM(obj))
+		fklPrincVMvalue(obj,objFile);
+	else if(FKL_IS_CHR(obj))
+		fputc(FKL_GET_CHR(obj),objFile);
+	else if(FKL_IS_I32(obj))
+	{
+		int32_t r=FKL_GET_I32(obj);
+		fwrite(&r,sizeof(int32_t),1,objFile);
+	}
+	else if(FKL_IS_I64(obj))
+		fwrite(&obj->u.i64,sizeof(int64_t),1,objFile);
+	else if(FKL_IS_F64(obj))
+		fwrite(&obj->u.f64,sizeof(double),1,objFile);
+	else
+		FKL_RAISE_BUILTIN_ERROR("sys.fwrite",FKL_WRONGARG,runnable,exe);
+	FKL_SET_RETURN(__func__,obj,stack);
+}
+
+void SYS_to_str(ARGL)
+{
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
+	FklVMvalue* obj=fklPopAndGetVMstack(stack);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_TOOFEWARG,runnable,exe);
+	FklVMvalue* retval=fklNewVMvalue(FKL_STR,NULL,exe->heap);
+	if(FKL_IS_STR(obj)||FKL_IS_VECTOR(obj))
+	{
+		FklVMvalue* pstart=fklPopAndGetVMstack(stack);
+		FklVMvalue* psize=fklPopAndGetVMstack(stack);
+		if(fklResBp(stack))
+			FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_TOOMANYARG,runnable,exe);
+		if(pstart)
+		{
+			if(!isInt(pstart))
+				FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_WRONGARG,runnable,exe);
+			int64_t start=getInt(pstart);
+			if((FKL_IS_STR(obj)&&start>=obj->u.str->size)
+					||(FKL_IS_VECTOR(obj)&&start>=obj->u.vec->size))
+				FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_INVALIDACCESS,runnable,exe);
+			int64_t size=FKL_IS_STR(obj)?obj->u.str->size-start:obj->u.vec->size-start;
+			if(psize)
+			{
+				if(!isInt(psize))
+					FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_WRONGARG,runnable,exe);
+				int64_t tsize=getInt(psize);
+				if(tsize>size)
+					FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_INVALIDACCESS,runnable,exe);
+				size=tsize;
+			}
+			if(FKL_IS_STR(obj))
+				retval->u.str=fklNewVMstr(size,obj->u.str->str+start);
+			else
+			{
+				retval->u.str=fklNewVMstr(size,NULL);
+				for(size_t i=0;i<size;i++)
+				{
+					FklVMvalue* v=obj->u.vec->base[start+i];
+					if(!isInt(v))
+						FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_WRONGARG,runnable,exe);
+					retval->u.str->str[i]=getInt(v);
+				}
+			}
+		}
+		else
+		{
+			if(FKL_IS_STR(obj))
+				retval->u.str=fklCopyVMstr(obj->u.str);
+			else
+			{
+				retval->u.str=fklNewVMstr(obj->u.vec->size,NULL);
+				FKL_ASSERT(retval->u.str,__func__);
+				for(size_t i=0;i<obj->u.vec->size;i++)
+				{
+					FklVMvalue* v=obj->u.vec->base[i];
+					if(!isInt(v))
+						FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_WRONGARG,runnable,exe);
+					retval->u.str->str[i]=getInt(v);
+				}
+			}
+		}
+	}
+	else if(FKL_IS_CHR(obj))
+	{
+		retval->u.str=fklNewEmptyVMstr();
+		retval->u.str->size=0;
+		for(size_t i=0;obj;i++,obj=fklPopAndGetVMstack(stack))
+		{
+			if(!FKL_IS_CHR(obj))
+				FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_WRONGARG,runnable,exe);
+			retval->u.str->size++;
+			retval->u.str=(FklVMstr*)realloc(retval->u.str
+					,sizeof(FklVMstr)+sizeof(char)*(i+1));
+			FKL_ASSERT(retval->u.str,__func__);
+			retval->u.str->str[i]=FKL_GET_CHR(obj);
+		}
+		fklResBp(stack);
+	}
+	else if(isInt(obj))
+	{
+		FklVMvalue* content=fklPopAndGetVMstack(stack);
+		fklResBp(stack);
+		if(content)
+		{
+			if(!FKL_IS_CHR(content))
+				FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_WRONGARG,runnable,exe);
+			size_t size=getInt(obj);
+			retval->u.str=fklNewVMstr(size,NULL);
+			FKL_ASSERT(retval->u.str,__func__);
+			memset(retval->u.str->str,FKL_GET_CHR(content),size);
+		}
+		else
+		{
+			char* str=fklIntToString(getInt(obj));
+			retval->u.str=fklNewVMstr(strlen(str),str);
+			free(str);
+		}
+	}
+	else
+	{
+		if(fklResBp(stack))
+			FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_TOOMANYARG,runnable,exe);
+		else if(FKL_IS_F64(obj))
+		{
+			char* str=fklDoubleToString(getInt(obj));
+			retval->u.str=fklNewVMstr(strlen(str),str);
+			free(str);
+		}
+		else if(FKL_IS_SYM(obj))
+		{
+			char* symbol=fklGetGlobSymbolWithId(FKL_GET_SYM(obj))->symbol;
+			retval->u.str=fklNewVMstr(strlen(symbol),symbol);
+		}
+		else
+			FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_WRONGARG,runnable,exe);
+	}
+	FKL_SET_RETURN(__func__,retval,stack);
 }
 
 #define PREDICATE(condtion,err_infor) {\

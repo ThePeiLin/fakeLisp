@@ -877,8 +877,54 @@ FklByteCodelnt* fklCompileQsquote(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInte
 {
 	objCptr=fklNextCptr(fklGetFirstCptr(objCptr));
 	FklAstCptr* top=objCptr;
-	if(objCptr->type==FKL_ATM)
+	if(objCptr->type==FKL_ATM&&objCptr->u.atom->type!=FKL_VECTOR)
 		return fklCompileConst(objCptr,curEnv,inter,state);
+	else if(objCptr->type==FKL_ATM)
+	{
+		FklAstVector* vec=&objCptr->u.atom->value.vec;
+		FklByteCodelnt* retval=fklNewByteCodelnt(fklNewByteCode(0));
+		retval->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
+		FKL_ASSERT(retval->l,__func__);
+		retval->ls=1;
+		retval->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,retval->bc->size,objCptr->curline);
+		for(size_t i=0;i<vec->size;i++)
+		{
+			if(fklIsUnqtespExpression(&vec->base[i]))
+			{
+				fklFreeByteCodeAndLnt(retval);
+				state->state=FKL_SYNTAXERROR;
+				state->place=objCptr;
+				return NULL;
+			}
+			if(fklIsUnquoteExpression(&vec->base[i]))
+			{
+				FklByteCodelnt* tmp=fklCompileUnquote(&vec->base[i],curEnv,inter,state);
+				if(state->state)
+				{
+					fklFreeByteCodeAndLnt(retval);
+					state->state=FKL_SYNTAXERROR;
+					state->place=objCptr;
+					return NULL;
+				}
+				fklCodelntCopyCat(retval,tmp);
+				fklFreeByteCodeAndLnt(tmp);
+			}
+			else
+			{
+				FklByteCode* tmp=innerCompileConst(&vec->base[i]);
+				fklCodeCat(retval->bc,tmp);
+				retval->l[retval->ls-1]->cpc+=tmp->size;
+				fklFreeByteCode(tmp);
+			}
+		}
+		FklByteCode* pushVector=fklNewByteCode(sizeof(char)+sizeof(uint64_t));
+		pushVector->code[0]=FKL_PUSH_VECTOR;
+		fklSetU64ToByteCode(pushVector->code+sizeof(char),vec->size);
+		fklCodeCat(retval->bc,pushVector);
+		retval->l[retval->ls-1]->cpc+=pushVector->size;
+		fklFreeByteCode(pushVector);
+		return retval;
+	}
 	else if(fklIsUnquoteExpression(objCptr))
 		return fklCompileUnquote(objCptr,curEnv,inter,state);
 	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));

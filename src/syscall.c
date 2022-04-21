@@ -645,13 +645,6 @@ void SYS_integer(ARGL)
 		int64_t r=(int64_t)obj->u.f64;
 		FKL_SET_RETURN(__func__,makeVMint(r,exe->heap),stack);
 	}
-	//else if(FKL_IS_STR(obj))
-	//{
-	//	char* str=fklVMstrToCstr(obj->u.str);
-	//	int64_t r=fklStringToInt(str);
-	//	free(str);
-	//	FKL_SET_RETURN(__func__,makeVMint(r,exe->heap),stack);
-	//}
 	else if(FKL_IS_STR(obj))
 	{
 		size_t s=obj->u.str->size;
@@ -1056,8 +1049,6 @@ void SYS_length(ARGL)
 		for(;FKL_IS_PAIR(obj);obj=fklGetVMpairCdr(obj))len++;
 	else if(FKL_IS_STR(obj))
 		len=obj->u.str->size;
-	//else if(FKL_IS_BYTS(obj))
-	//	len=obj->u.byts->size;
 	else if(FKL_IS_CHAN(obj))
 		len=fklGetNumVMchanl(obj->u.chan);
 	else if(FKL_IS_VECTOR(obj))
@@ -1163,65 +1154,65 @@ void SYS_read(ARGL)
 	free(tmpCptr);
 }
 
-//void SYS_fgetb(ARGL)
-//{
-//	FklVMstack* stack=exe->stack;
-//	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-//	FklVMvalue* psize=fklPopAndGetVMstack(stack);
-//	FklVMvalue* file=fklPopAndGetVMstack(stack);
-//	if(fklResBp(stack))
-//		FKL_RAISE_BUILTIN_ERROR("sys.fgetb",FKL_TOOMANYARG,runnable,exe);
-//	if(!file||!psize)
-//		FKL_RAISE_BUILTIN_ERROR("sys.fgetb",FKL_TOOFEWARG,runnable,exe);
-//	if(!FKL_IS_FP(file)||!isInt(psize))
-//		FKL_RAISE_BUILTIN_ERROR("sys.fgetb",FKL_WRONGARG,runnable,exe);
-//	FklVMfp* fp=file->u.fp;
-//	size_t size=getInt(psize);
-//	uint8_t* str=(uint8_t*)malloc(sizeof(uint8_t)*size);
-//	FKL_ASSERT(str,__func__);
-//	int32_t realRead=0;
-//	if(fp->size)
-//	{
-//		if(fp->size<=size)
-//		{
-//			memcpy(str,fp->prev,fp->size);
-//			realRead+=fp->size;
-//			size-=fp->size;
-//			free(fp->prev);
-//			fp->prev=NULL;
-//			fp->size=0;
-//		}
-//		else
-//		{
-//			fp->size-=size;
-//			memcpy(str,fp->prev,size);
-//			realRead+=size;
-//			uint8_t* prev=fp->prev;
-//			fp->prev=fklCopyMemory(prev+size,sizeof(uint8_t)*fp->size);
-//			free(prev);
-//			size=0;
-//		}
-//	}
-//	if(size)
-//		realRead+=fread(str,sizeof(uint8_t),size,fp->fp);
-//	if(!realRead)
-//	{
-//		free(str);
-//		FKL_SET_RETURN(__func__,FKL_VM_NIL,stack);
-//	}
-//	else
-//	{
-//		str=(uint8_t*)realloc(str,sizeof(uint8_t)*realRead);
-//		FKL_ASSERT(str,__func__);
-//		FklVMvalue* tmpByts=fklNewVMvalue(FKL_BYTS,NULL,exe->heap);
-//		tmpByts->u.byts=(FklVMbyts*)malloc(sizeof(FklVMbyts)+getInt(psize));
-//		FKL_ASSERT(tmpByts->u.byts,__func__);
-//		tmpByts->u.byts->size=getInt(psize);
-//		memcpy(tmpByts->u.byts->str,str,getInt(psize));
-//		free(str);
-//		FKL_SET_RETURN(__func__,tmpByts,stack);
-//	}
-//}
+void SYS_fgets(ARGL)
+{
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
+	FklVMvalue* psize=fklPopAndGetVMstack(stack);
+	FklVMvalue* file=fklPopAndGetVMstack(stack);
+	if(fklResBp(stack))
+		FKL_RAISE_BUILTIN_ERROR("sys.fgetb",FKL_TOOMANYARG,runnable,exe);
+	if(!file||!psize)
+		FKL_RAISE_BUILTIN_ERROR("sys.fgetb",FKL_TOOFEWARG,runnable,exe);
+	if(!FKL_IS_FP(file)||!isInt(psize))
+		FKL_RAISE_BUILTIN_ERROR("sys.fgetb",FKL_WRONGARG,runnable,exe);
+	FklVMfp* fp=file->u.fp;
+	size_t size=getInt(psize);
+	char* str=(char*)malloc(sizeof(char)*size);
+	FKL_ASSERT(str,__func__);
+	int32_t realRead=0;
+	if(fp->size)
+	{
+		if(fp->size<=size)
+		{
+			memcpy(str,fp->prev,fp->size);
+			realRead+=fp->size;
+			size-=fp->size;
+			free(fp->prev);
+			fp->prev=NULL;
+			fp->size=0;
+		}
+		else
+		{
+			fp->size-=size;
+			memcpy(str,fp->prev,size);
+			realRead+=size;
+			uint8_t* prev=fp->prev;
+			fp->prev=fklCopyMemory(prev+size,sizeof(uint8_t)*fp->size);
+			free(prev);
+			size=0;
+		}
+	}
+	if(size)
+		realRead+=fread(str,sizeof(uint8_t),size,fp->fp);
+	if(!realRead)
+	{
+		free(str);
+		FKL_SET_RETURN(__func__,FKL_VM_NIL,stack);
+	}
+	else
+	{
+		str=(char*)realloc(str,sizeof(char)*realRead);
+		FKL_ASSERT(str,__func__);
+		FklVMvalue* vmstr=fklNewVMvalue(FKL_STR,NULL,exe->heap);
+		vmstr->u.str=(FklVMstr*)malloc(sizeof(FklVMstr)+getInt(psize));
+		FKL_ASSERT(vmstr->u.str,__func__);
+		vmstr->u.str->size=getInt(psize);
+		memcpy(vmstr->u.str->str,str,getInt(psize));
+		free(str);
+		FKL_SET_RETURN(__func__,vmstr,stack);
+	}
+}
 
 void SYS_prin1(ARGL)
 {
@@ -1239,23 +1230,6 @@ void SYS_prin1(ARGL)
 	fklPrin1VMvalue(obj,objFile);
 	FKL_SET_RETURN(__func__,obj,stack);
 }
-
-//void SYS_fputb(ARGL)
-//{
-//	FklVMstack* stack=exe->stack;
-//	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-//	FklVMvalue* bt=fklPopAndGetVMstack(stack);
-//	FklVMvalue* file=fklPopAndGetVMstack(stack);
-//	if(fklResBp(stack))
-//		FKL_RAISE_BUILTIN_ERROR("sys.fputb",FKL_TOOMANYARG,runnable,exe);
-//	if(!file||!bt)
-//		FKL_RAISE_BUILTIN_ERROR("sys.fputb",FKL_TOOFEWARG,runnable,exe);
-//	if(!FKL_IS_FP(file)||!FKL_IS_BYTS(bt))
-//		FKL_RAISE_BUILTIN_ERROR("sys.fputb",FKL_WRONGARG,runnable,exe);
-//	FILE* objFile=file->u.fp->fp;
-//	fwrite(bt->u.byts->str,sizeof(uint8_t),bt->u.byts->size,objFile);
-//	FKL_SET_RETURN(__func__,bt,stack);
-//}
 
 void SYS_princ(ARGL)
 {

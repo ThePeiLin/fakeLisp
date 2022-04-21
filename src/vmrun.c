@@ -282,6 +282,7 @@ extern void SYS_getdir(ARGL);
 extern void SYS_fgetc(ARGL);
 extern void SYS_fwrite(ARGL);
 extern void SYS_to_str(ARGL);
+extern void SYS_fgets(ARGL);
 
 #undef ARGL
 
@@ -360,6 +361,7 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_fgetc,
 		SYS_fwrite,
 		SYS_to_str,
+		SYS_fgets,
 	};
 	obj->num=FKL_NUM_OF_BUILT_IN_SYMBOL;
 	obj->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*FKL_NUM_OF_BUILT_IN_SYMBOL);

@@ -579,7 +579,7 @@ static char* castEscapeCharaterBuf(const char* str,char end,size_t* size)
 		tmp[strSize-1]=ch;
 	}
 	tmp=(char*)realloc(tmp,strSize*sizeof(char));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(!strSize||tmp,__func__);
 	*size=strSize;
 	return tmp;
 }

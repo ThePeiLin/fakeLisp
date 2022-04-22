@@ -1,7 +1,6 @@
 #include<ffi.h>
 #include<fakeLisp/vm.h>
 #include<fakeLisp/utils.h>
-#include"deftype.h"
 #include"ffi.h"
 #define ARGL FklVM* exe,pthread_rwlock_t* gclock
 

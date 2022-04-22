@@ -438,7 +438,17 @@ int fklFreeVMfp(FklVMfp* vfp)
 	return r;
 }
 
-FklVMdllHandle* fklNewVMdll(const char* dllName)
+FklVMdllHandle fklLoadDll(const char* path)
+{
+#ifdef _WIN32
+	FklVMdllHandle handle=LoadLibrary(path);
+#else
+	FklVMdllHandle handle=dlopen(path,RTLD_LAZY);
+#endif
+	return handle;
+}
+
+FklVMdllHandle fklNewVMdll(const char* dllName)
 {
 #ifdef _WIN32
 	char filetype[]=".dll";
@@ -456,44 +466,17 @@ FklVMdllHandle* fklNewVMdll(const char* dllName)
 #endif
 	if(!rpath)
 	{
-		perror(dllName);
 		free(realDllName);
 		return NULL;
 	}
-#ifdef _WIN32
-	FklVMdllHandle handle=LoadLibrary(rpath);
+	FklVMdllHandle handle=fklLoadDll(rpath);
 	if(!handle)
 	{
-		TCHAR szBuf[128];
-		LPVOID lpMsgBuf;
-		DWORD dw = GetLastError();
-		FormatMessage (
-				FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
-				NULL,
-				dw,
-				MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
-				(LPTSTR) &lpMsgBuf,
-				0, NULL );
-		wsprintf(szBuf,
-				_T("%s error Message (error code=%d): %s"),
-				_T("CreateDirectory"), dw, lpMsgBuf);
-		LocalFree(lpMsgBuf);
-		fprintf(stderr,"%s\n",szBuf);
-		free(rpath);
-		free(realDllName);
-		return NULL;
-	}
-#else
-	FklVMdllHandle handle=dlopen(rpath,RTLD_LAZY);
-	if(!handle)
-	{
-		perror(dlerror());
 		putc('\n',stderr);
 		free(rpath);
 		free(realDllName);
 		return NULL;
 	}
-#endif
 	void (*init)(void)=fklGetAddress("_fklInit",handle);
 	if(init)
 		init();
@@ -502,7 +485,7 @@ FklVMdllHandle* fklNewVMdll(const char* dllName)
 	return handle;
 }
 
-void fklFreeVMdll(FklVMdllHandle* dll)
+void fklFreeVMdll(FklVMdllHandle dll)
 {
 	if(dll)
 	{

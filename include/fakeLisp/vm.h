@@ -357,9 +357,9 @@ void fklFreeVMcontinuation(VMcontinuation*);
 FklVMfp* fklNewVMfp(FILE*);
 int fklFreeVMfp(FklVMfp*);
 
-FklVMdllHandle* fklNewVMdll(const char*);
+FklVMdllHandle fklNewVMdll(const char*);
 void* fklGetAddress(const char*,FklVMdllHandle);
-void fklFreeVMdll(FklVMdllHandle*);
+void fklFreeVMdll(FklVMdllHandle);
 
 FklVMdlproc* fklNewVMdlproc(FklVMdllFunc,FklVMvalue*);
 void fklFreeVMdlproc(FklVMdlproc*);
@@ -394,6 +394,7 @@ int fklGetVMargc(void);
 char** fklGetVMargv(void);
 
 FklVMvalue* fklPopAndGetVMstack(FklVMstack* stack);
+FklVMdllHandle fklLoadDll(const char* path);
 #ifdef __cplusplus
 }
 #endif

@@ -58,9 +58,9 @@ extern "C" {
 	return;\
 }while(0)
 
-#define FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR(WHO,STR,RUNNABLE,EXE) do{\
-	char* errorMessage=fklGenInvalidSymbolErrorMessage((STR),(RUNNABLE),(EXE));\
-	FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerror((WHO),"invalid-symbol",errorMessage),(EXE)->heap);\
+#define FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR(WHO,STR,FREE,ERRORTYPE,RUNNABLE,EXE) do{\
+	char* errorMessage=fklGenInvalidSymbolErrorMessage((STR),(FREE),(ERRORTYPE),(RUNNABLE),(EXE));\
+	FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerror((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE)->heap);\
 	free(errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
 	return;\

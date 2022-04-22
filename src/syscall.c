@@ -1074,16 +1074,13 @@ void SYS_fopen(ARGL)
 	char* c_filename=fklVMstrToCstr(filename->u.str);
 	char* c_mode=fklVMstrToCstr(mode->u.str);
 	FILE* file=fopen(c_filename,c_mode);
-	free(c_filename);
 	free(c_mode);
 	FklVMvalue* obj=NULL;
 	if(!file)
-	{
-		FKL_SET_RETURN(__func__,filename,stack);
-		FKL_RAISE_BUILTIN_ERROR("sys.fopen",FKL_FILEFAILURE,runnable,exe);
-	}
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR("sys.fopen",c_filename,1,FKL_FILEFAILURE,runnable,exe);
 	else
 		obj=fklNewVMvalue(FKL_FP,fklNewVMfp(file),heap);
+	free(c_filename);
 	FKL_SET_RETURN(__func__,obj,stack);
 }
 
@@ -1261,12 +1258,9 @@ void SYS_dlopen(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("sys.dlopen",FKL_WRONGARG,runnable,exe);
 	char* str=fklVMstrToCstr(dllName->u.str);
 	FklVMdllHandle* dll=fklNewVMdll(str);
-	free(str);
 	if(!dll)
-	{
-		FKL_SET_RETURN(__func__,dllName,stack);
-		FKL_RAISE_BUILTIN_ERROR("sys.dlopen",FKL_LOADDLLFAILD,runnable,exe);
-	}
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR("sys.dlopen",str,1,FKL_LOADDLLFAILD,runnable,exe);
+	free(str);
 	FKL_SET_RETURN(__func__,fklNewVMvalue(FKL_DLL,dll,exe->heap),stack);
 }
 
@@ -1310,13 +1304,10 @@ void SYS_dlsym(ARGL)
 	FKL_ASSERT(realDlFuncName,__func__);
 	sprintf(realDlFuncName,"%s%s",prefix,str);
 	FklVMdllFunc funcAddress=fklGetAddress(realDlFuncName,dll->u.dll);
-	free(str);
-	if(!funcAddress)
-	{
-		free(realDlFuncName);
-		FKL_RAISE_BUILTIN_ERROR("sys.dlsym",FKL_INVALIDSYMBOL,runnable,exe);
-	}
 	free(realDlFuncName);
+	if(!funcAddress)
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR("sys.dlsym",str,1,FKL_INVALIDSYMBOL,runnable,exe);
+	free(str);
 	FklVMdlproc* dlproc=fklNewVMdlproc(funcAddress,dll);
 	FKL_SET_RETURN(__func__,fklNewVMvalue(FKL_DLPROC,dlproc,heap),stack);
 }

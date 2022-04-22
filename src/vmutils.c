@@ -186,7 +186,7 @@ FklVMrunnable* fklNewVMrunnable(FklVMproc* code)
 	return tmp;
 }
 
-char* fklGenInvalidSymbolErrorMessage(const char* str,FklVMrunnable* r,FklVM* exe)
+char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklErrorType type,FklVMrunnable* r,FklVM* exe)
 {
 	int32_t cp=r->cp;
 	FklLineNumTabNode* node=fklFindLineNumTabNode(cp,exe->lnt);
@@ -202,9 +202,27 @@ char* fklGenInvalidSymbolErrorMessage(const char* str,FklVMrunnable* r,FklVM* ex
 		sprintf(lineNumber,"at line %s\n",line);
 	free(line);
 	char* t=fklCopyStr("");
-	t=fklStrCat(t,"Invalid symbol ");
-	t=fklStrCat(t,str);
-	t=fklStrCat(t," ");
+	switch(type)
+	{
+		case FKL_LOADDLLFAILD:
+			t=fklStrCat(t,"Faild to load dll \"");
+			t=fklStrCat(t,str);
+			t=fklStrCat(t,"\" ");
+			break;
+		case FKL_INVALIDSYMBOL:
+			t=fklStrCat(t,"Invalid symbol ");
+			t=fklStrCat(t,str);
+			t=fklStrCat(t," ");
+			break;
+		case FKL_FILEFAILURE:
+			t=fklStrCat(t,"Failed for file:\"");
+			t=fklStrCat(t,str);
+			t=fklStrCat(t,"\" ");
+		default:
+			break;
+	}
+	if(_free)
+		free(str);
 	t=fklStrCat(t,lineNumber);
 	free(lineNumber);
 	for(uint32_t i=exe->rstack->top;i;i--)
@@ -240,7 +258,7 @@ char* fklGenInvalidSymbolErrorMessage(const char* str,FklVMrunnable* r,FklVM* ex
 	return t;
 }
 
-char* fklGenErrorMessage(unsigned int type,FklVMrunnable* r,FklVM* exe)
+char* fklGenErrorMessage(FklErrorType type,FklVMrunnable* r,FklVM* exe)
 {
 	int32_t cp=r->cp;
 	FklLineNumTabNode* node=fklFindLineNumTabNode(cp,exe->lnt);
@@ -322,6 +340,8 @@ char* fklGenErrorMessage(unsigned int type,FklVMrunnable* r,FklVM* exe)
 			break;
 		case FKL_UNEXPECTEOF:
 			t=fklStrCat(t,"Unexpected eof ");
+			break;
+		default:
 			break;
 	}
 	t=fklStrCat(t,lineNumber);

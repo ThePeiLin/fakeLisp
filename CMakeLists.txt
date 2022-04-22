@@ -10,7 +10,7 @@ set(INTERPRETER_TARGET_NAME fakeLisp)
 set(COMPILER_TARGET_NAME fakeLispc)
 set(BTK_TARGET_NAME btk)
 set(LIBFKL_TARGET_NAME fkl)
-#set(FII_TARGET_NAME fklffi)
+set(FII_TARGET_NAME fklffi)
 
 #project setting
 project(${INTERPRETER_TARGET_NAME})
@@ -23,7 +23,7 @@ file(GLOB COMPILER_SOURCE "src/fakeLispc.c")
 
 file(GLOB BTK_SOURCE "src/btk.c")
 
-#file(GLOB FFI_SOURCE "ffi/*.c")
+file(GLOB FFI_SOURCE "ffi/*.c")
 
 #btk.so
 add_library(${BTK_TARGET_NAME}
@@ -32,10 +32,10 @@ add_library(${BTK_TARGET_NAME}
 set_target_properties(${BTK_TARGET_NAME} PROPERTIES PREFIX "")
 
 #fklffi.so
-#add_library(${FFI_TARGET_NAME}
-#	MODULE
-#	${FFI_SOURCE})
-#set_target_properties(${BTK_TARGET_NAME} PROPERTIES PREFIX "")
+add_library(${FFI_TARGET_NAME}
+	MODULE
+	${FFI_SOURCE})
+set_target_properties(${BTK_TARGET_NAME} PROPERTIES PREFIX "")
 
 
 #libfkl.a
@@ -70,6 +70,7 @@ target_link_libraries(${LIBFKL_TARGET_NAME} ${LINK_TARGET})
 target_link_libraries(${INTERPRETER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 target_link_libraries(${BTK_TARGET_NAME} ${LIBFKL_TARGET_NAME})
+target_link_libraries(${FFI_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 
 #copy std.fkl
 add_custom_target(COPY_STD_FKL ALL

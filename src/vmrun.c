@@ -1166,7 +1166,7 @@ void fklGC_markValue(FklVMvalue* obj)
 		root=FKL_GET_TAG(root)==FKL_REF_TAG?*((FklVMvalue**)FKL_GET_PTR(root)):root;
 		if(FKL_GET_TAG(root)==FKL_PTR_TAG&&!root->mark)
 		{
-			root->mark=1;
+			root->mark=FKL_MARK_B;
 			if(root->type==FKL_PAIR)
 			{
 				fklPushPtrStack(fklGetVMpairCar(root),stack);
@@ -1261,60 +1261,59 @@ void fklGC_markMessage(FklQueueNode* head)
 
 void fklGC_sweep(FklVMheap* heap)
 {
-	FklVMvalue* cur=heap->head;
-	while(cur!=NULL)
+	FklVMvalue** phead=&heap->head;
+	while(*phead!=NULL)
 	{
-		if(FKL_GET_TAG(cur)==FKL_PTR_TAG&&!cur->mark)
+		FklVMvalue* cur=*phead;
+		if(FKL_GET_TAG(cur)==FKL_PTR_TAG&&cur->mark==FKL_MARK_W)
 		{
-			FklVMvalue* prev=cur;
-			if(cur==heap->head)
-				heap->head=cur->next;
-			if(cur->next!=NULL)cur->next->prev=cur->prev;
-			if(cur->prev!=NULL)cur->prev->next=cur->next;
-			cur=cur->next;
-			switch(prev->type)
+			*phead=cur->next;
+			switch(cur->type)
 			{
 				case FKL_STR:
-					free(prev->u.str);
+					free(cur->u.str);
 					break;
 				case FKL_PAIR:
-					free(prev->u.pair);
+					free(cur->u.pair);
 					break;
 				case FKL_PROC:
-					fklFreeVMproc(prev->u.proc);
+					fklFreeVMproc(cur->u.proc);
 					break;
-				//case FKL_BYTS:
-				//	free(prev->u.byts);
-				//	break;
 				case FKL_CONT:
-					fklFreeVMcontinuation(prev->u.cont);
+					fklFreeVMcontinuation(cur->u.cont);
 					break;
 				case FKL_CHAN:
-					fklFreeVMchanl(prev->u.chan);
+					fklFreeVMchanl(cur->u.chan);
 					break;
 				case FKL_FP:
-					fklFreeVMfp(prev->u.fp);
+					fklFreeVMfp(cur->u.fp);
 					break;
 				case FKL_DLL:
-					fklFreeVMdll(prev->u.dll);
+					fklFreeVMdll(cur->u.dll);
 					break;
 				case FKL_DLPROC:
-					fklFreeVMdlproc(prev->u.dlproc);
+					fklFreeVMdlproc(cur->u.dlproc);
 					break;
 				case FKL_ERR:
-					fklFreeVMerror(prev->u.err);
+					fklFreeVMerror(cur->u.err);
 					break;
 				case FKL_VECTOR:
-					fklFreeVMvec(prev->u.vec);
+					fklFreeVMvec(cur->u.vec);
+					break;
+				case FKL_F64:
+				case FKL_I64:
+					break;
+				default:
+					FKL_ASSERT(0,__func__);
 					break;
 			}
-			free(prev);
+			free(cur);
 			heap->num-=1;
 		}
 		else
 		{
-			cur->mark=0;
-			cur=cur->next;
+			cur->mark=FKL_MARK_W;
+			phead=&cur->next;
 		}
 	}
 }

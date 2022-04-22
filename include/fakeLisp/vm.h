@@ -85,10 +85,14 @@ typedef struct FklVMvec
 	struct FklVMvalue* base[];
 }FklVMvec;
 
+typedef enum{
+	FKL_MARK_W=0,
+	FKL_MARK_B
+}FklVMvalueMark;
 typedef struct FklVMvalue
 {
-	unsigned int mark :1;
-	unsigned int type :6;
+	FklVMvalueMark mark:4;
+	FklValueType type:12;
 	union
 	{
 		struct FklVMpair* pair;
@@ -107,7 +111,6 @@ typedef struct FklVMvalue
 		struct FklVMerror* err;
 		void* ud;
 	}u;
-	struct FklVMvalue* prev;
 	struct FklVMvalue* next;
 }FklVMvalue;
 

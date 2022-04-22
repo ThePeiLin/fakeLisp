@@ -147,9 +147,7 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 				tmp->type=type;
 				tmp->mark=0;
 				tmp->next=heap->head;
-				tmp->prev=NULL;
 				pthread_mutex_lock(&heap->lock);
-				if(heap->head!=NULL)heap->head->prev=tmp;
 				heap->head=tmp;
 				heap->num+=1;
 				pthread_mutex_unlock(&heap->lock);
@@ -169,8 +167,6 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 						tmp->u.pair=pValue;break;
 					case FKL_PROC:
 						tmp->u.proc=pValue;break;
-					//case FKL_BYTS:
-					//	tmp->u.byts=pValue;break;
 					case FKL_CONT:
 						tmp->u.cont=pValue;break;
 					case FKL_CHAN:

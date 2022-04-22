@@ -533,7 +533,7 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 						fprintf(fp,"%s",v->u.err->message);
 						break;
 					case FKL_USERDATA:
-						fprintf(fp,"#<userdata:%p>",v->u.usrdata);
+						fprintf(fp,"#<userdata:%p>",v->u.ud);
 						break;
 					default:
 						fputs("#<unknown>",fp);
@@ -586,9 +586,6 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 					else
 						fputs("#<proc>",fp);
 					break;
-				//case FKL_BYTS:
-				//	fklPrintByteStr(v->u.byts->size,v->u.byts->str,fp,1);
-				//	break;
 				case FKL_CONT:
 					fputs("#<continuation>",fp);
 					break;
@@ -615,7 +612,7 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 							,v->u.err->message);
 					break;
 				case FKL_USERDATA:
-					fprintf(fp,"#<userdata:%p>",v->u.usrdata);
+					fprintf(fp,"#<userdata:%p>",v->u.ud);
 					break;
 				default:
 					fputs("#<unknown>",fp);

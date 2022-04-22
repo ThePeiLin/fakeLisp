@@ -105,7 +105,7 @@ typedef struct FklVMvalue
 		FklVMvec* vec;
 		struct FklVMchanl* chan;
 		struct FklVMerror* err;
-		void* usrdata;
+		void* ud;
 	}u;
 	struct FklVMvalue* prev;
 	struct FklVMvalue* next;

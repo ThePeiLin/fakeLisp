@@ -298,7 +298,7 @@
                          (if (pair? x)
                            (cons 'or
                                  (map (lambda (x)
-                                        `(equal v ~x)) x))
+                                        `(equal _ ~x)) x))
                            x))
                        (map (lambda (x) (nth 0 x)) b)))]
                      (map (lambda (x)
@@ -306,7 +306,7 @@
                             (setq tb (cdr tb))
                             r)
                           cs)))
-      `((lambda (v) (cond,~body)) ~v)))
+      `((lambda (_) (cond,~body)) ~v)))
 
   (defmacro (define (name,args),body)
     `(define ~name

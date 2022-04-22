@@ -1857,9 +1857,9 @@ void SYS_to_str(ARGL)
 		}
 		else
 		{
-			char* str=fklIntToString(getInt(obj));
-			retval->u.str=fklNewVMstr(strlen(str),str);
-			free(str);
+			char buf[32]={0};
+			size_t size=snprintf(buf,32,"%ld",getInt(obj));
+			retval->u.str=fklNewVMstr(size,buf);
 		}
 	}
 	else
@@ -1868,9 +1868,9 @@ void SYS_to_str(ARGL)
 			FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_TOOMANYARG,runnable,exe);
 		else if(FKL_IS_F64(obj))
 		{
-			char* str=fklDoubleToString(getInt(obj));
-			retval->u.str=fklNewVMstr(strlen(str),str);
-			free(str);
+			char buf[64]={0};
+			size_t size=snprintf(buf,64,"%lf",obj->u.f64);
+			retval->u.str=fklNewVMstr(size,buf);
 		}
 		else if(FKL_IS_SYM(obj))
 		{

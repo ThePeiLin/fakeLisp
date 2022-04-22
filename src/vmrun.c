@@ -978,12 +978,20 @@ void B_push_vector(FklVM* exe)
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
 	FklVMstack* stack=exe->stack;
 	uint64_t size=fklGetU64FromByteCode(exe->code+r->cp+sizeof(char));
-	FklVMvalue** base=&stack->values[stack->tp-size];
-	stack->tp-=size;
+	FklPtrStack* base=fklNewPtrStack(32,16);
+	for(size_t i=0;i<size;i++)
+		fklPushPtrStack(fklPopAndGetVMstack(stack),base);
+	for(size_t i=0;i<base->top/2;i++)
+	{
+		void* t=base->base[i];
+		base->base[i]=base->base[base->top-i-1];
+		base->base[base->top-i-1]=t;
+	}
 	FKL_SET_RETURN(__func__,fklNewVMvalue(FKL_VECTOR
-				,fklNewVMvec(size,base)
+				,fklNewVMvec(size,(FklVMvalue**)base->base)
 				,exe->heap)
 			,stack);
+	fklFreePtrStack(base);
 	r->cp+=sizeof(char)+sizeof(uint64_t);
 }
 

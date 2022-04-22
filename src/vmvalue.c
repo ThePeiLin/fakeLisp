@@ -186,7 +186,7 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 					case FKL_VECTOR:
 						tmp->u.vec=pValue;break;
 					case FKL_USERDATA:
-						tmp->u.usrdata=pValue;break;
+						tmp->u.ud=pValue;break;
 					default:
 						return NULL;
 						break;

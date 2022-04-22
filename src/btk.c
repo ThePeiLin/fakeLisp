@@ -54,7 +54,6 @@ void FKL_sleep(FklVM* exe,pthread_rwlock_t* pGClock)
 	fklReleaseGC(pGClock);
 	FKL_SET_RETURN("FKL_sleep",FKL_MAKE_VM_I32(sleep(FKL_GET_I32(second))),stack);
 	fklLockGC(pGClock);
-	stack->tp+=1;
 }
 
 void FKL_usleep(FklVM* exe,pthread_rwlock_t* pGClock)
@@ -76,17 +75,21 @@ void FKL_usleep(FklVM* exe,pthread_rwlock_t* pGClock)
 #endif
 	fklLockGC(pGClock);
 	FKL_SET_RETURN("FKL_usleep",second,stack);
-	stack->tp+=1;
+}
+
+void FKL_srand(FklVM* exe,pthread_rwlock_t* pGClock)
+{
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
+    if(fklResBp(stack))
+		FKL_RAISE_BUILTIN_ERROR("btk.srand",FKL_TOOMANYARG,r,exe);
+    uint64_t s=((uint64_t)time(NULL));
+    srand(s);
+    FKL_SET_RETURN(__func__,fklMakeVMint(s,exe->heap),stack);
 }
 
 void FKL_rand(FklVM* exe,pthread_rwlock_t* pGClock)
 {
-	static int hasSrand=0;
-	if(!hasSrand)
-	{
-		srand((unsigned)time(NULL));
-		hasSrand=1;
-	}
 	FklVMstack* stack=exe->stack;
 	FklVMvalue*  lim=fklPopAndGetVMstack(stack);
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
@@ -105,23 +108,25 @@ void FKL_getTime(FklVM* exe,pthread_rwlock_t* pGClock)
 	time_t timer=time(NULL);
 	struct tm* tblock=NULL;
 	tblock=localtime(&timer);
-	char* sec=fklIntToString(tblock->tm_sec);
-	char* min=fklIntToString(tblock->tm_min);
-	char* hour=fklIntToString(tblock->tm_hour);
-	char* day=fklIntToString(tblock->tm_mday);
-	char* mon=fklIntToString(tblock->tm_mon+1);
-	char* year=fklIntToString(tblock->tm_year+1900);
-	int32_t timeLen=strlen(year)+strlen(mon)+strlen(day)+strlen(hour)+strlen(min)+strlen(sec)+5+1;
+	char sec[4]={0};
+	char min[4]={0};
+	char hour[4]={0};
+	char day[4]={0};
+	char mon[4]={0};
+	char year[10]={0};
+	snprintf(sec,4,"%u",tblock->tm_sec);
+	snprintf(min,4,"%u",tblock->tm_min);
+	snprintf(hour,4,"%u",tblock->tm_hour);
+	snprintf(day,4,"%u",tblock->tm_mday);
+	snprintf(mon,4,"%u",tblock->tm_mon+1);
+	snprintf(year,10,"%u",tblock->tm_year+1900);
+	uint32_t timeLen=strlen(year)+strlen(mon)+strlen(day)+strlen(hour)+strlen(min)+strlen(sec)+5+1;
 	char* trueTime=(char*)malloc(sizeof(char)*timeLen);
 	FKL_ASSERT(trueTime,__func__);
 	sprintf(trueTime,"%s-%s-%s_%s_%s_%s",year,mon,day,hour,min,sec);
-	free(sec);
-	free(min);
-	free(hour);
-	free(day);
-	free(mon);
-	free(year);
-	FklVMvalue* tmpVMvalue=fklNewVMvalue(FKL_STR,trueTime,exe->heap);
+	FklVMstr* str=fklNewVMstr(timeLen-1,trueTime);
+	FklVMvalue* tmpVMvalue=fklNewVMvalue(FKL_STR,str,exe->heap);
+	free(trueTime);
 	FKL_SET_RETURN("FKL_getTime",tmpVMvalue,stack);
 }
 

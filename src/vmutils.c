@@ -14,6 +14,24 @@
 #include<tchar.h>
 #endif
 
+FklVMvalue* fklMakeVMint(int64_t r64,FklVMheap* heap)
+{
+	if(r64>INT32_MAX||r64<INT32_MIN)
+		return fklNewVMvalue(FKL_I64,&r64,heap);
+	else
+		return FKL_MAKE_VM_I32(r64);
+}
+
+inline int fklIsInt(FklVMvalue* p)
+{
+	return FKL_IS_I32(p)||FKL_IS_I64(p);
+}
+
+inline int64_t fklGetInt(FklVMvalue* p)
+{
+	return FKL_IS_I32(p)?FKL_GET_I32(p):p->u.i64;
+}
+
 FklVMvalue* fklPopVMstack(FklVMstack* stack)
 {
 	if(!(stack->tp>stack->bp))

@@ -2217,17 +2217,21 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 			strcat(path,partsOfPath[i]);
 		}
 		strcat(path,postfix);
-		FILE* fp=fopen(path,"r");
+		char* rpath=fklRealpath(path);
+		free(path);
+		FILE* fp=NULL;
+		if(rpath)
+			fp=fopen(rpath,"r");
 		if(!fp)
 		{
 			state->state=FKL_IMPORTFAILED;
 			state->place=pairOfpPartsOfPath;
-			free(path);
+			free(rpath);
 			fklFreeMemMenager(memMenager);
 			fklFreeStringArry(partsOfPath,count);
 			return NULL;
 		}
-		if(fklHasLoadSameFile(path,inter))
+		if(fklHasLoadSameFile(rpath,inter))
 		{
 			state->state=FKL_CIRCULARLOAD;
 			state->place=objCptr;
@@ -2235,10 +2239,10 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 			fklFreeStringArry(partsOfPath,count);
 			return NULL;
 		}
-		fklAddSymbolToGlob(path);
-		FklInterpreter* tmpInter=fklNewIntpr(path,fp,fklNewCompEnv(NULL),inter->lnt);
+		fklAddSymbolToGlob(rpath);
+		FklInterpreter* tmpInter=fklNewIntpr(rpath,fp,fklNewCompEnv(NULL),inter->lnt);
 		fklInitGlobKeyWord(tmpInter->glob);
-		free(path);
+		free(rpath);
 		tmpInter->prev=inter;
 		FklByteCode* resTp=fklNewByteCode(1);
 		FklByteCode* setTp=fklNewByteCode(1);
@@ -2382,8 +2386,8 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 								if(libByteCodelnt->bc->size&&otherByteCodelnt)
 								{
 									fklReCodeCat(resTp,otherByteCodelnt->bc);
-									otherByteCodelnt->l[0]->cpc+=1;
-									FKL_INCREASE_ALL_SCP(otherByteCodelnt->l,otherByteCodelnt->ls-1,resTp->size);
+									otherByteCodelnt->l[0]->cpc+=resTp->size;
+									FKL_INCREASE_ALL_SCP(otherByteCodelnt->l+1,otherByteCodelnt->ls-1,resTp->size);
 								}
 								if(otherByteCodelnt)
 								{
@@ -2394,15 +2398,15 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 							fklReCodeCat(setTp,libByteCodelnt->bc);
 							if(!libByteCodelnt->l)
 							{
-								libByteCodelnt->ls=1;
+								libByteCodelnt->ls=setTp->size;
 								libByteCodelnt->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 								FKL_ASSERT(libByteCodelnt->l,__func__);
 								libByteCodelnt->l[0]=fklNewLineNumTabNodeWithFilename(tmpInter->filename,0,libByteCodelnt->bc->size,objCptr->curline);
 							}
 							else
 							{
-								libByteCodelnt->l[0]->cpc+=1;
-								FKL_INCREASE_ALL_SCP(libByteCodelnt->l,libByteCodelnt->ls-1,setTp->size);
+								libByteCodelnt->l[0]->cpc+=setTp->size;
+								FKL_INCREASE_ALL_SCP(libByteCodelnt->l+1,libByteCodelnt->ls-1,setTp->size);
 							}
 							fklCodeCat(libByteCodelnt->bc,popTp);
 							libByteCodelnt->l[libByteCodelnt->ls-1]->cpc+=popTp->size;
@@ -2414,7 +2418,8 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 							pushProc->code[0]=FKL_PUSH_PROC;
 							fklSetU64ToByteCode(pushProc->code+sizeof(char),tmp->bc->size);
 							fklReCodeCat(pushProc,tmp->bc);
-							FKL_INCREASE_ALL_SCP(tmp->l,tmp->ls-1,pushProc->size);
+							tmp->l[0]->cpc+=pushProc->size;
+							FKL_INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,pushProc->size);
 							fklFreeByteCode(pushProc);
 							FklByteCode* invoke=fklNewByteCode(sizeof(char));
 							invoke->code[0]=FKL_INVOKE;

@@ -1,8 +1,7 @@
 (import (.. lib utils))
+(import (.. lib btk))
 
-(define btk (dlopen "btk"))
-(define getch (dlsym btk "getch"))
-(define rand (dlsym btk "rand"))
+(srand (time))
 
 (defmacro (ARRY X Y)
   `(+ ~X (* ~Y rrow)))
@@ -328,4 +327,3 @@
 (getch)
 (print "\033[2J")
 (del-term)
-(dlclose btk)

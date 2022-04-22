@@ -228,12 +228,6 @@ typedef struct FklVMerrorHandler
 	FklVMproc proc;
 }FklVMerrorHandler;
 
-typedef struct FklSharedObjNode
-{
-	FklVMdllHandle dll;
-	struct FklSharedObjNode* next;
-}FklSharedObjNode;
-
 //vmrun
 
 int fklRunVM(FklVM*);
@@ -281,6 +275,9 @@ void fklPrincVMvalue(FklVMvalue*,FILE*);
 
 //vmutils
 
+FklVMvalue* fklMakeVMint(int64_t r64,FklVMheap* heap);
+int fklIsInt(FklVMvalue* p);
+int64_t fklGetInt(FklVMvalue* p);
 void fklInitVMRunningResource(FklVM*,FklVMvalue*,FklVMheap* heap,FklByteCodelnt*,uint32_t,uint32_t);
 void fklUninitVMRunningResource(FklVM*);
 
@@ -395,6 +392,7 @@ char** fklGetVMargv(void);
 
 FklVMvalue* fklPopAndGetVMstack(FklVMstack* stack);
 FklVMdllHandle fklLoadDll(const char* path);
+
 #ifdef __cplusplus
 }
 #endif

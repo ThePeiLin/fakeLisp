@@ -81,11 +81,13 @@ void FKL_srand(FklVM* exe,pthread_rwlock_t* pGClock)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
+	FklVMvalue* s=fklPopAndGetVMstack(stack);
     if(fklResBp(stack))
 		FKL_RAISE_BUILTIN_ERROR("btk.srand",FKL_TOOMANYARG,r,exe);
-    uint64_t s=((uint64_t)time(NULL));
-    srand(s);
-    FKL_SET_RETURN(__func__,fklMakeVMint(s,exe->heap),stack);
+	if(!fklIsInt(s))
+		FKL_RAISE_BUILTIN_ERROR("btk.srand",FKL_WRONGARG,r,exe);
+    srand(fklGetInt(s));
+    FKL_SET_RETURN(__func__,s,stack);
 }
 
 void FKL_rand(FklVM* exe,pthread_rwlock_t* pGClock)
@@ -160,6 +162,15 @@ void FKL_setVMChanlBufferSize(FklVM* exe,pthread_rwlock_t* pGClock)
 		FKL_RAISE_BUILTIN_ERROR("btk.setVMChanlBufferSize",FKL_WRONGARG,r,exe);
 	chan->u.chan->max=FKL_GET_I32(size);
 	FKL_SET_RETURN("FKL_setVMChanlBufferSize",chan,stack);
+}
+
+void FKL_time(FklVM* exe,pthread_rwlock_t* pGClock)
+{
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
+	if(fklResBp(stack))
+		FKL_RAISE_BUILTIN_ERROR("btk.time",FKL_TOOMANYARG,r,exe);
+	FKL_SET_RETURN(__func__,fklMakeVMint((int64_t)time(NULL),exe->heap),stack);
 }
 
 #ifdef __cplusplus

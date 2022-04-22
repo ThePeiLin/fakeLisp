@@ -1,7 +1,5 @@
 (import (.. lib utils))
-
-(define btk (dlopen "btk"))
-(define getch (dlsym btk "getch"))
+(import (.. lib btk))
 
 (let* [(yin ((lambda (cc) (princ #\@) cc)
              (call/cc (lambda (c) c))))
@@ -9,4 +7,3 @@
               (call/cc (lambda (c) c))))]
   (if (eq (getch) #\\4) nil
     (yin yang)))
-(dlclose btk)

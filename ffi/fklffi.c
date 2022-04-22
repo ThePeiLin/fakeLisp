@@ -1,7 +1,6 @@
-#include<ffi.h>
-#include<fakeLisp/vm.h>
 #include<fakeLisp/utils.h>
 #include"fklffi.h"
+#include"ffidll.h"
 #define ARGL FklVM* exe,pthread_rwlock_t* gclock
 
 void FKL_ffi_malloc(ARGL)

@@ -10,7 +10,7 @@ set(INTERPRETER_TARGET_NAME fakeLisp)
 set(COMPILER_TARGET_NAME fakeLispc)
 set(BTK_TARGET_NAME btk)
 set(LIBFKL_TARGET_NAME fkl)
-set(FII_TARGET_NAME fklffi)
+set(FFI_TARGET_NAME fklffi)
 
 #project setting
 project(${INTERPRETER_TARGET_NAME})
@@ -35,7 +35,7 @@ set_target_properties(${BTK_TARGET_NAME} PROPERTIES PREFIX "")
 add_library(${FFI_TARGET_NAME}
 	MODULE
 	${FFI_SOURCE})
-set_target_properties(${BTK_TARGET_NAME} PROPERTIES PREFIX "")
+set_target_properties(${FFI_TARGET_NAME} PROPERTIES PREFIX "")
 
 
 #libfkl.a
@@ -69,8 +69,8 @@ add_executable(${COMPILER_TARGET_NAME} ${COMPILER_SOURCE})
 target_link_libraries(${LIBFKL_TARGET_NAME} ${LINK_TARGET})
 target_link_libraries(${INTERPRETER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
-target_link_libraries(${BTK_TARGET_NAME} ${LIBFKL_TARGET_NAME})
-target_link_libraries(${FFI_TARGET_NAME} ${LIBFKL_TARGET_NAME})
+target_link_libraries(${BTK_TARGET_NAME} ${ORIGINAL_SHARED_LIB_NAME})
+target_link_libraries(${FFI_TARGET_NAME} ${ORIGINAL_SHARED_LIB_NAME})
 
 #copy std.fkl
 add_custom_target(COPY_STD_FKL ALL
@@ -81,30 +81,30 @@ add_custom_target(COPY_EXAMPLES ALL
 	COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/examples/ ${CMAKE_BINARY_DIR}/examples/)
 
 #debug setting
-if(${CMAKE_BUILD_TYPE} STREQUAL "DEBUG")
-	target_compile_options(${BTK_TARGET_NAME} PRIVATE
-		$<$<CXX_COMPILER_ID:MSVC>:/DEBUG /W4>
-		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-g -Wall>)
-    target_compile_options(${COMPILER_TARGET_NAME} PRIVATE
-		$<$<CXX_COMPILER_ID:MSVC>:/DEBUG /W4>
-		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-g -Wall>)
-    target_compile_options(${INTERPRETER_TARGET_NAME} PRIVATE
-		$<$<CXX_COMPILER_ID:MSVC>:/DEBUG /W4>
-		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-g -Wall>)
-	target_compile_options(${LIBFKL_TARGET_NAME} PRIVATE
-		$<$<CXX_COMPILER_ID:MSVC>:/DEBUG /W4>
-		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-g -Wall>)
-else()
-	target_compile_options(${BTK_TARGET_NAME} PRIVATE
-		$<$<CXX_COMPILER_ID:MSVC>:/W4>
-		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall>)
-    target_compile_options(${COMPILER_TARGET_NAME} PRIVATE
-		$<$<CXX_COMPILER_ID:MSVC>:/W4>
-		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall>)
-    target_compile_options(${INTERPRETER_TARGET_NAME} PRIVATE
-		$<$<CXX_COMPILER_ID:MSVC>:/W4>
-		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall>)
-	target_compile_options(${LIBFKL_TARGET_NAME} PRIVATE
-		$<$<CXX_COMPILER_ID:MSVC>:/W4>
-		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall>)
-endif()
+#if(${CMAKE_BUILD_TYPE} STREQUAL "DEBUG")
+#	target_compile_options(${BTK_TARGET_NAME} PRIVATE
+#		$<$<CXX_COMPILER_ID:MSVC>:/DEBUG /W4>
+#		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-g -Wall>)
+#    target_compile_options(${COMPILER_TARGET_NAME} PRIVATE
+#		$<$<CXX_COMPILER_ID:MSVC>:/DEBUG /W4>
+#		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-g -Wall>)
+#    target_compile_options(${INTERPRETER_TARGET_NAME} PRIVATE
+#		$<$<CXX_COMPILER_ID:MSVC>:/DEBUG /W4>
+#		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-g -Wall>)
+#	target_compile_options(${LIBFKL_TARGET_NAME} PRIVATE
+#		$<$<CXX_COMPILER_ID:MSVC>:/DEBUG /W4>
+#		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-g -Wall>)
+#else()
+#	target_compile_options(${BTK_TARGET_NAME} PRIVATE
+#		$<$<CXX_COMPILER_ID:MSVC>:/W4>
+#		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall>)
+#    target_compile_options(${COMPILER_TARGET_NAME} PRIVATE
+#		$<$<CXX_COMPILER_ID:MSVC>:/W4>
+#		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall>)
+#    target_compile_options(${INTERPRETER_TARGET_NAME} PRIVATE
+#		$<$<CXX_COMPILER_ID:MSVC>:/W4>
+#		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall>)
+#	target_compile_options(${LIBFKL_TARGET_NAME} PRIVATE
+#		$<$<CXX_COMPILER_ID:MSVC>:/W4>
+#		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall>)
+#endif()

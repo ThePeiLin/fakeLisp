@@ -8,6 +8,7 @@
     usleep
     srand
     rand
+    time
     get-time)
   (define btk (dlopen (append (getdir) "/../btk")))
   (define remove-file (dlsym btk "removeFile"))
@@ -18,4 +19,5 @@
   (define srand (dlsym btk "srand"))
   (define rand (dlsym btk "rand"))
   (define get-time (dlsym btk "getTime"))
+  (define time (dlsym btk "time"))
   )

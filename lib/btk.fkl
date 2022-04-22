@@ -1,0 +1,21 @@
+(library
+  btk
+  (export
+    remove-file
+    set-chanl-buf-size
+    getch
+    sleep
+    usleep
+    srand
+    rand
+    get-time)
+  (define btk (dlopen (append (getdir) "/../btk")))
+  (define remove-file (dlsym btk "removeFile"))
+  (define set-chanl-buf-size (dlsym btk "setVMChanlBufferSize"))
+  (define getch (dlsym btk "getch"))
+  (define sleep (dlsym btk "sleep"))
+  (define usleep (dlsym btk "usleep"))
+  (define srand (dlsym btk "srand"))
+  (define rand (dlsym btk "rand"))
+  (define get-time (dlsym btk "getTime"))
+  )

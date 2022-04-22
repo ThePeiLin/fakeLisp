@@ -73,8 +73,9 @@ typedef struct FklKeyWord
 	struct FklKeyWord* next;
 }FklKeyWord;
 
-void fklSetInterpreterPath(const char*);
-void fklFreeInterpeterPath(void);
+void fklSetCwd(const char*);
+void fklFreeCwd(void);
+const char* fklGetCwd(void);
 void fklPrintCompileError(const FklAstCptr*,FklErrorType,FklInterpreter*);
 FklPreDef* fklAddDefine(const char*,const FklAstCptr*,FklPreEnv*);
 FklPreDef* fklFindDefine(const char*,const FklPreEnv*);

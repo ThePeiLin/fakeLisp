@@ -6,6 +6,7 @@
 #include<string.h>
 #include<stdio.h>
 #include<stdlib.h>
+#include<unistd.h>
 
 int main(int argc,char** argv)
 {
@@ -15,20 +16,14 @@ int main(int argc,char** argv)
 		return EXIT_FAILURE;
 	}
 	char* filename=argv[1];
-#ifdef WFKL_I32
-	char* intprPath=_fullpath(NULL,argv[0],0);
-#else
-	char* intprPath=realpath(argv[0],0);
-#endif
-	char* t=fklGetDir(intprPath);
-	free(intprPath);
-	fklSetInterpreterPath(t);
-	free(t);
+	char* cwd=getcwd(NULL,0);
+	fklSetCwd(cwd);
+	free(cwd);
 	FILE* fp=(argc>1)?fopen(argv[1],"r"):stdin;
 	if(fp==NULL)
 	{
 		perror(filename);
-		fklFreeInterpeterPath();
+		fklFreeCwd();
 		return EXIT_FAILURE;
 	}
 	if(argc==1||fklIsscript(filename))
@@ -45,7 +40,7 @@ int main(int argc,char** argv)
 			free(rp);
 			fklFreeIntpr(inter);
 			fklUninitPreprocess();
-			fklFreeInterpeterPath();
+			fklFreeCwd();
 			fklFreeGlobSymbolTable();
 			return state;
 		}
@@ -57,10 +52,10 @@ int main(int argc,char** argv)
 		if(!outfp)
 		{
 			fprintf(stderr,"%s:Can't create byte code file!",outputname);
-			fklFreeInterpeterPath();
+			fklFreeCwd();
 			fklFreeIntpr(inter);
 			fklUninitPreprocess();
-			fklFreeInterpeterPath();
+			fklFreeCwd();
 			fklFreeGlobSymbolTable();
 			return EXIT_FAILURE;
 		}
@@ -77,7 +72,7 @@ int main(int argc,char** argv)
 		fclose(outfp);
 		fklFreeIntpr(inter);
 		fklUninitPreprocess();
-		fklFreeInterpeterPath();
+		fklFreeCwd();
 		fklFreeGlobSymbolTable();
 		free(outputname);
 		free(rp);
@@ -86,7 +81,7 @@ int main(int argc,char** argv)
 	{
 		fprintf(stderr,"error: It is not a correct file.\n");
 		fclose(fp);
-		fklFreeInterpeterPath();
+		fklFreeCwd();
 		return EXIT_FAILURE;
 	}
 	return 0;

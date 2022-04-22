@@ -5,6 +5,7 @@
 #include<fakeLisp/compiler.h>
 #include<fakeLisp/reader.h>
 #include<fakeLisp/parser.h>
+#include<unistd.h>
 #include<string.h>
 #include<stdlib.h>
 #include<math.h>
@@ -743,6 +744,8 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 	}
 	FklVM* tmpVM=fklNewTmpVM(NULL);
 	FklAstCptr* retval=NULL;
+	char* cwd=getcwd(NULL,0);
+	chdir(fklGetCwd());
 	if(pattern->type==FKL_PROC)
 	{
 		FklByteCodelnt* t=fklNewByteCodelnt(fklNewByteCode(0));
@@ -756,6 +759,8 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 			fklFreePtrStack(tmpVM->rstack);
 			fklFreePtrStack(tmpVM->tstack);
 			free(tmpVM);
+			chdir(cwd);
+			free(cwd);
 			return NULL;
 		}
 		FklVMvalue* stringPatternEnv=fklCastPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->heap);
@@ -770,6 +775,8 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 			fklFreeByteCodeAndLnt(t);
 			fklFreeVMheap(tmpVM->heap);
 			fklUninitVMRunningResource(tmpVM);
+			chdir(cwd);
+			free(cwd);
 			return NULL;
 		}
 		if(!retval)
@@ -795,6 +802,8 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 		fklFreePtrStack(tmpVM->tstack);
 		free(tmpVM);
 	}
+	chdir(cwd);
+	free(cwd);
 	fklDestroyEnv(tmpEnv);
 	return retval;
 }

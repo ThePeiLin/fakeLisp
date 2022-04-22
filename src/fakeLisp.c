@@ -31,22 +31,16 @@ void errorCallBack(void* a)
 int main(int argc,char** argv)
 {
 	char* filename=(argc>1)?argv[1]:NULL;
-#ifdef WFKL_I32
-	char* intprPath=_fullpath(NULL,argv[0],0);
-#else
-	char* intprPath=realpath(argv[0],0);
-#endif
-	char* t=fklGetDir(intprPath);
-	free(intprPath);
-	fklSetInterpreterPath(t);
-	free(t);
+	char* cwd=getcwd(NULL,0);
+	fklSetCwd(cwd);
+	free(cwd);
 	if(argc==1||fklIsscript(filename))
 	{
 		FILE* fp=(argc>1)?fopen(argv[1],"r"):stdin;
 		if(fp==NULL)
 		{
 			perror(filename);
-			fklFreeInterpeterPath();
+			fklFreeCwd();
 			return EXIT_FAILURE;
 		}
 		FklInterpreter* inter=NULL;
@@ -63,22 +57,19 @@ int main(int argc,char** argv)
 		{
 			char* rp=fklRealpath(filename);
 			int state;
-			char* workpath=getcwd(NULL,0);
 			inter=fklNewIntpr(rp,fp,NULL,NULL);
 			fklInitGlobKeyWord(inter->glob);
 			free(rp);
 			FklByteCodelnt* mainByteCode=fklCompileFile(inter,&state);
 			if(mainByteCode==NULL)
 			{
-				free(workpath);
 				fklFreeIntpr(inter);
 				fklUninitPreprocess();
 				fklFreeGlobSymbolTable();
-				fklFreeInterpeterPath();
+				fklFreeCwd();
 				return state;
 			}
-			chdir(workpath);
-			free(workpath);
+			chdir(fklGetCwd());
 			fklPrintUndefinedSymbol(mainByteCode);
 			inter->lnt->num=mainByteCode->ls;
 			inter->lnt->list=mainByteCode->l;
@@ -110,7 +101,7 @@ int main(int argc,char** argv)
 				fklUninitPreprocess();
 				fklFreeVMheap(anotherVM->heap);
 				fklFreeAllVMs();
-				fklFreeInterpeterPath();
+				fklFreeCwd();
 				fklFreeGlobSymbolTable();
 				return exitState;
 			}
@@ -122,7 +113,7 @@ int main(int argc,char** argv)
 		if(fp==NULL)
 		{
 			perror(filename);
-			fklFreeInterpeterPath();
+			fklFreeCwd();
 			return EXIT_FAILURE;
 		}
 		loadSymbolTable(fp);
@@ -155,17 +146,17 @@ int main(int argc,char** argv)
 			fklFreeVMheap(heap);
 			fklFreeGlobSymbolTable();
 			fklFreeLineNumberTable(lnt);
-			fklFreeInterpeterPath();
+			fklFreeCwd();
 			return exitState;
 		}
 	}
 	else
 	{
 		fprintf(stderr,"%s: It is not a correct file.\n",filename);
-		fklFreeInterpeterPath();
+		fklFreeCwd();
 		return EXIT_FAILURE;
 	}
-	fklFreeInterpeterPath();
+	fklFreeCwd();
 	return exitState;
 }
 

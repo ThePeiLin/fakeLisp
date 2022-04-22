@@ -14,7 +14,7 @@
 #include<unistd.h>
 #include<math.h>
 
-static char* InterpreterPath=NULL;
+static char* CurWorkDir=NULL;
 static int MacroPatternCmp(const FklAstCptr*,const FklAstCptr*);
 static int fmatcmp(const FklAstCptr*,const FklAstCptr*,FklPreEnv**,FklCompEnv*);
 static int fklAddDefinedMacro(FklPreMacro* macro,FklCompEnv* curEnv);
@@ -83,6 +83,8 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 	FklPreMacro* tmp=fklPreMacroMatch(objCptr,&macroEnv,curEnv,&curEnv);
 	if(tmp!=NULL)
 	{
+		char* cwd=getcwd(NULL,0);
+		chdir(fklGetCwd());
 		FklVM* tmpVM=fklNewTmpVM(NULL);
 		FklVMvalue* tmpGlob=genGlobEnv(tmp->macroEnv,t,tmpVM->heap);
 		if(!tmpGlob)
@@ -93,6 +95,8 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 			fklFreePtrStack(tmpVM->tstack);
 			fklFreeVMheap(tmpVM->heap);
 			fklFreeByteCodeAndLnt(t);
+			chdir(cwd);
+			free(cwd);
 			free(tmpVM);
 			return 2;
 		}
@@ -104,6 +108,8 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 		fklInitVMRunningResource(tmpVM,macroVMenv,tmpVM->heap,t,start,tmp->proc->bc->size);
 		FklAstCptr* tmpCptr=NULL;
 		int i=fklRunVM(tmpVM);
+		chdir(cwd);
+		free(cwd);
 		if(!i)
 		{
 			tmpCptr=fklCastVMvalueToCptr(fklPopAndGetVMstack(tmpVM->stack),objCptr->curline);
@@ -3152,14 +3158,20 @@ FklInterpreter* fklNewTmpIntpr(const char* filename,FILE* fp)
 	return tmp;
 }
 
-void fklSetInterpreterPath(const char* path)
+void fklSetCwd(const char* path)
 {
-	InterpreterPath=fklCopyStr(path);
+	CurWorkDir=fklCopyStr(path);
 }
 
-void fklFreeInterpeterPath(void)
+void fklFreeCwd(void)
 {
-	free(InterpreterPath);
+	free(CurWorkDir);
+	CurWorkDir=NULL;
+}
+
+const char* fklGetCwd(void)
+{
+	return CurWorkDir;
 }
 
 typedef struct

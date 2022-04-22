@@ -183,6 +183,8 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 						tmp->u.vec=pValue;break;
 					case FKL_USERDATA:
 						tmp->u.ud=pValue;break;
+					case FKL_ENV:
+						tmp->u.env=pValue;break;
 					default:
 						return NULL;
 						break;
@@ -408,14 +410,12 @@ FklVMproc* fklCopyVMproc(FklVMproc* obj,FklVMheap* heap)
 	FKL_ASSERT(tmp,__func__);
 	tmp->scp=obj->scp;
 	tmp->cpc=obj->cpc;
-	tmp->prevEnv=fklCopyVMenv(obj->prevEnv,heap);
+	tmp->prevEnv=fklNewVMvalue(FKL_ENV,fklCopyVMenv(obj->prevEnv->u.env,heap),heap);
 	return tmp;
 }
 
 void fklFreeVMproc(FklVMproc* proc)
 {
-	if(proc->prevEnv)
-		fklFreeVMenv(proc->prevEnv);
 	free(proc);
 }
 
@@ -671,7 +671,7 @@ void fklChanlSend(FklVMsend*s,FklVMchanl* ch,pthread_rwlock_t* pGClock)
 	}\
 }
 
-FklVMenv* fklNewVMenv(FklVMenv* prev)
+FklVMenv* fklNewVMenv(FklVMvalue* prev)
 {
 	FklVMenv* tmp=(FklVMenv*)malloc(sizeof(FklVMenv));
 	FKL_ASSERT(tmp,__func__);
@@ -679,20 +679,18 @@ FklVMenv* fklNewVMenv(FklVMenv* prev)
 	tmp->list=NULL;
 	tmp->prev=prev;
 	pthread_mutex_init(&tmp->mutex,NULL);
-	fklIncreaseVMenvRefcount(prev);
-	tmp->refcount=0;
 	return tmp;
 }
 
-void fklIncreaseVMenvRefcount(FklVMenv* env)
-{
-	INCREASE_REFCOUNT(FklVMenv,env);
-}
-
-void fklDecreaseVMenvRefcount(FklVMenv* env)
-{
-	DECREASE_REFCOUNT(FklVMenv,env);
-}
+//void fklIncreaseVMenvRefcount(FklVMenv* env)
+//{
+//	INCREASE_REFCOUNT(FklVMenv,env);
+//}
+//
+//void fklDecreaseVMenvRefcount(FklVMenv* env)
+//{
+//	DECREASE_REFCOUNT(FklVMenv,env);
+//}
 
 FklVMenv* fklCopyVMenv(FklVMenv* objEnv,FklVMheap* heap)
 {
@@ -707,34 +705,17 @@ FklVMenv* fklCopyVMenv(FklVMenv* objEnv,FklVMheap* heap)
 		FklVMenvNode* tmp=fklNewVMenvNode(v,node->id);
 		objEnv->list[i]=tmp;
 	}
-	tmp->prev=(objEnv->prev->refcount==0)?fklCopyVMenv(objEnv->prev,heap):objEnv->prev;
+	//tmp->prev=(objEnv->prev->refcount==0)?fklCopyVMenv(objEnv->prev,heap):objEnv->prev;
 	return tmp;
 }
 
-int fklFreeVMenv(FklVMenv* obj)
+void fklFreeVMenv(FklVMenv* obj)
 {
-	int r=0;
-	while(obj!=NULL)
-	{
-		if(!obj->refcount)
-		{
-			FklVMenv* prev=obj;
-			obj=obj->prev;
-			int32_t i=0;
-			for(;i<prev->num;i++)
-				fklFreeVMenvNode(prev->list[i]);
-			pthread_mutex_destroy(&prev->mutex);
-			free(prev->list);
-			free(prev);
-			r++;
-		}
-		else
-		{
-			fklDecreaseVMenvRefcount(obj);
-			break;
-		}
-	}
-	return r;
+	for(uint32_t i=0;i<obj->num;i++)
+		fklFreeVMenvNode(obj->list[i]);
+	pthread_mutex_destroy(&obj->mutex);
+	free(obj->list);
+	free(obj);
 }
 
 FklVMenvNode* fklNewVMenvNode(FklVMvalue* value,int32_t id)

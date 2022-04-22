@@ -30,19 +30,17 @@ static int copyAndAddToList(FklAstCptr* fir,const FklAstCptr* sec)
 	return 0;
 }
 
-static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
+static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
 {
-	FklVMenv* vEnv=fklNewVMenv(NULL);
-	fklInitGlobEnv(vEnv,heap);
+	FklVMvalue* vEnv=fklNewVMvalue(FKL_ENV,fklNewVMenv(NULL),heap);
+	fklInitGlobEnv(vEnv->u.env,heap);
 	if(cEnv->proc->bc->size)
 	{
 		FklVM* tmpVM=fklNewTmpVM(NULL);
-		fklIncreaseVMenvRefcount(vEnv);
 		fklInitVMRunningResource(tmpVM,vEnv,heap,cEnv->proc,0,cEnv->proc->bc->size);
 		int i=fklRunVM(tmpVM);
 		if(i==1)
 		{
-			fklFreeVMenv(vEnv);
 			fklUninitVMRunningResource(tmpVM);
 			return NULL;
 		}
@@ -748,7 +746,7 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 	if(pattern->type==FKL_PROC)
 	{
 		FklByteCodelnt* t=fklNewByteCodelnt(fklNewByteCode(0));
-		FklVMenv* tmpGlobEnv=genGlobEnv(glob,t,tmpVM->heap);
+		FklVMvalue* tmpGlobEnv=fklNewVMvalue(FKL_ENV,genGlobEnv(glob,t,tmpVM->heap),tmpVM->heap);
 		if(!tmpGlobEnv)
 		{
 			fklDestroyEnv(tmpEnv);
@@ -760,7 +758,7 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 			free(tmpVM);
 			return NULL;
 		}
-		FklVMenv* stringPatternEnv=fklCastPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->heap);
+		FklVMvalue* stringPatternEnv=fklCastPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->heap);
 		uint32_t start=t->bc->size;
 		fklCodelntCopyCat(t,pattern->u.bProc);
 		fklInitVMRunningResource(tmpVM,stringPatternEnv,tmpVM->heap,t,start,pattern->u.bProc->bc->size);
@@ -769,7 +767,6 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 			retval=fklCastVMvalueToCptr(fklPopAndGetVMstack(tmpVM->stack),curline);
 		else
 		{
-			fklFreeVMenv(tmpGlobEnv);
 			fklFreeByteCodeAndLnt(t);
 			fklFreeVMheap(tmpVM->heap);
 			fklUninitVMRunningResource(tmpVM);
@@ -779,21 +776,19 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 		{
 			fprintf(stderr,"error of compiling:Circular reference occur in expanding reader macro at line %d of %s\n",curline,filename);
 		}
-		fklFreeVMenv(tmpGlobEnv);
 		fklFreeByteCodeAndLnt(t);
 		fklFreeVMheap(tmpVM->heap);
 		fklUninitVMRunningResource(tmpVM);
 	}
 	else if(pattern->type==FKL_DLPROC)
 	{
-		FklVMenv* stringPatternEnv=fklCastPreEnvToVMenv(tmpEnv,NULL,tmpVM->heap);
+		FklVMvalue* stringPatternEnv=fklCastPreEnvToVMenv(tmpEnv,NULL,tmpVM->heap);
 		FklVMrunnable* mainrunnable=fklNewVMrunnable(NULL);
 		mainrunnable->localenv=stringPatternEnv;
 		fklPushPtrStack(mainrunnable,tmpVM->rstack);
 		pattern->u.fProc(tmpVM);
 		retval=fklCastVMvalueToCptr(fklPopAndGetVMstack(tmpVM->stack),curline);
 		free(mainrunnable);
-		fklFreeVMenv(stringPatternEnv);
 		fklFreeVMheap(tmpVM->heap);
 		fklFreeVMstack(tmpVM->stack);
 		fklFreePtrStack(tmpVM->rstack);

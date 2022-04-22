@@ -99,7 +99,6 @@ typedef struct FklVMvalue
 		double f64;
 		int64_t i64;
 		struct FklVMstr* str;
-		//struct FklVMbyts* byts;
 		struct FklVMproc* proc;
 		FklVMdllHandle dll;
 		struct FklVMdlproc* dlproc;
@@ -107,6 +106,7 @@ typedef struct FklVMvalue
 		struct FklVMcontinuation* cont;
 		FklVMfp* fp;
 		FklVMvec* vec;
+		struct FklVMenv* env;
 		struct FklVMchanl* chan;
 		struct FklVMerror* err;
 		void* ud;
@@ -123,8 +123,7 @@ typedef struct FklVMenvNode
 typedef struct FklVMenv
 {
 	pthread_mutex_t mutex;
-	struct FklVMenv* prev;
-	uint32_t refcount;
+	struct FklVMvalue* prev;
 	uint32_t num;
 	FklVMenvNode** list;
 }FklVMenv;
@@ -134,13 +133,13 @@ typedef struct FklVMproc
 	uint64_t scp;
 	uint64_t cpc;
 	FklSid_t sid;
-	FklVMenv* prevEnv;
+	FklVMvalue* prevEnv;
 }FklVMproc;
 
 typedef struct FklVMrunnable
 {
 	unsigned int mark :1;
-	FklVMenv* localenv;
+	FklVMvalue* localenv;
 	uint64_t scp;
 	uint64_t cp;
 	uint64_t cpc;
@@ -281,12 +280,12 @@ void fklPrincVMvalue(FklVMvalue*,FILE*);
 
 //vmutils
 
-void fklInitVMRunningResource(FklVM*,FklVMenv*,FklVMheap* heap,FklByteCodelnt*,uint32_t,uint32_t);
+void fklInitVMRunningResource(FklVM*,FklVMvalue*,FklVMheap* heap,FklByteCodelnt*,uint32_t,uint32_t);
 void fklUninitVMRunningResource(FklVM*);
 
 FklVMvalue* fklGetTopValue(FklVMstack* stack);
 FklVMvalue* fklGetValue(FklVMstack* stack,int32_t place);
-FklVMenv* fklCastPreEnvToVMenv(FklPreEnv*,FklVMenv*,FklVMheap*);
+FklVMvalue* fklCastPreEnvToVMenv(FklPreEnv*,FklVMvalue*,FklVMheap*);
 FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline);
 
 FklVMstack* fklCopyStack(FklVMstack*);
@@ -315,10 +314,10 @@ FklVMenvNode* fklFindVMenvNode(FklSid_t,FklVMenv*);
 void fklFreeVMenvNode(FklVMenvNode*);
 
 
-FklVMenv* fklNewVMenv(FklVMenv*);
-void fklIncreaseVMenvRefcount(FklVMenv*);
-void fklDecreaseVMenvRefcount(FklVMenv*);
-int fklFreeVMenv(FklVMenv*);
+FklVMenv* fklNewVMenv(FklVMvalue*);
+//void fklIncreaseVMenvRefcount(FklVMenv*);
+//void fklDecreaseVMenvRefcount(FklVMenv*);
+void fklFreeVMenv(FklVMenv*);
 FklVMenv* fklCopyVMenv(FklVMenv*,FklVMheap*);
 
 FklVMproc* fklNewVMproc(uint64_t scp,uint64_t cpc);

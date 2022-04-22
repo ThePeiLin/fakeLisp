@@ -20,28 +20,25 @@ static int fmatcmp(const FklAstCptr*,const FklAstCptr*,FklPreEnv**,FklCompEnv*);
 static int fklAddDefinedMacro(FklPreMacro* macro,FklCompEnv* curEnv);
 static FklErrorState defmacro(FklAstCptr*,FklCompEnv*,FklInterpreter*);
 static FklCompEnv* createPatternCompEnv(char**,int32_t,FklCompEnv*);
-static FklVMenv* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
+static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
 {
 	FklPtrStack* stack=fklNewPtrStack(32,16);
 	FklCompEnv* tcEnv=cEnv;
 	for(;tcEnv;tcEnv=tcEnv->prev)
 		fklPushPtrStack(tcEnv,stack);
-	FklVMenv* preEnv=NULL;
-	FklVMenv* vEnv=NULL;
+	FklVMvalue* preEnv=NULL;
+	FklVMvalue* vEnv=NULL;
 	uint32_t bs=t->bc->size;
 	while(!fklIsPtrStackEmpty(stack))
 	{
 		FklCompEnv* curEnv=fklPopPtrStack(stack);
-		vEnv=fklNewVMenv(preEnv);
+		vEnv=fklNewVMvalue(FKL_ENV,fklNewVMenv(preEnv),heap);
 		if(!preEnv)
-			fklInitGlobEnv(vEnv,heap);
-		else
-			fklDecreaseVMenvRefcount(preEnv);
+			fklInitGlobEnv(vEnv->u.env,heap);
 		preEnv=vEnv;
 		if(curEnv->proc->bc->size)
 		{
 			FklVM* tmpVM=fklNewTmpVM(NULL);
-			fklIncreaseVMenvRefcount(vEnv);
 			fklCodelntCopyCat(t,curEnv->proc);
 			fklInitVMRunningResource(tmpVM,vEnv,heap,t,bs,curEnv->proc->bc->size);
 			bs+=curEnv->proc->bc->size;
@@ -87,7 +84,7 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 	if(tmp!=NULL)
 	{
 		FklVM* tmpVM=fklNewTmpVM(NULL);
-		FklVMenv* tmpGlob=genGlobEnv(tmp->macroEnv,t,tmpVM->heap);
+		FklVMvalue* tmpGlob=genGlobEnv(tmp->macroEnv,t,tmpVM->heap);
 		if(!tmpGlob)
 		{
 			fklDestroyEnv(macroEnv);
@@ -99,7 +96,7 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 			free(tmpVM);
 			return 2;
 		}
-		FklVMenv* macroVMenv=fklCastPreEnvToVMenv(macroEnv,tmpGlob,tmpVM->heap);
+		FklVMvalue* macroVMenv=fklCastPreEnvToVMenv(macroEnv,tmpGlob,tmpVM->heap);
 		fklDestroyEnv(macroEnv);
 		macroEnv=NULL;
 		uint32_t start=t->bc->size;
@@ -116,7 +113,6 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 					fprintf(stderr,"error of compiling: Circular reference occur in expanding macro at line %u of %s\n",objCptr->curline,inter->filename);
 				else
 					fprintf(stderr,"error of compiling: Circular reference occur in expanding macro at line %u\n",objCptr->curline);
-				fklFreeVMenv(tmpGlob);
 				fklFreeByteCodeAndLnt(t);
 				fklFreeVMheap(tmpVM->heap);
 				fklUninitVMRunningResource(tmpVM);
@@ -128,13 +124,11 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 		}
 		else
 		{
-			fklFreeVMenv(tmpGlob);
 			fklFreeByteCodeAndLnt(t);
 			fklFreeVMheap(tmpVM->heap);
 			fklUninitVMRunningResource(tmpVM);
 			return 2;
 		}
-		fklFreeVMenv(tmpGlob);
 		fklFreeByteCodeAndLnt(t);
 		fklFreeVMheap(tmpVM->heap);
 		fklUninitVMRunningResource(tmpVM);

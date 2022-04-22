@@ -23,6 +23,7 @@ typedef enum{
 	FKL_DLL,
 	FKL_DLPROC,
 	FKL_ERR,
+	FKL_ENV,
 	FKL_USERDATA,
 	FKL_PAIR,
 	FKL_ATM,

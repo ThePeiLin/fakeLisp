@@ -41,7 +41,7 @@ FklVMvalue* fklPopAndGetVMstack(FklVMstack* stack)
 		return tmp;
 }
 
-FklVMenv* fklCastPreEnvToVMenv(FklPreEnv* pe,FklVMenv* prev,FklVMheap* heap)
+FklVMvalue* fklCastPreEnvToVMenv(FklPreEnv* pe,FklVMvalue* prev,FklVMheap* heap)
 {
 	int32_t size=0;
 	FklPreDef* tmpDef=pe->symbols;
@@ -57,7 +57,7 @@ FklVMenv* fklCastPreEnvToVMenv(FklPreEnv* pe,FklVMenv* prev,FklVMheap* heap)
 		FklVMenvNode* node=fklNewVMenvNode(v,fklAddSymbolToGlob(tmpDef->symbol)->id);
 		fklAddVMenvNode(node,tmp);
 	}
-	return tmp;
+	return fklNewVMvalue(FKL_ENV,tmp,heap);
 }
 
 FklVMstack* fklCopyStack(FklVMstack* stack)
@@ -120,7 +120,6 @@ FklVMerrorHandler* fklNewVMerrorHandler(FklSid_t type,uint64_t scp,uint64_t cpc)
 
 void fklFreeVMerrorHandler(FklVMerrorHandler* h)
 {
-	fklFreeVMenv(h->proc.prevEnv);
 	free(h);
 }
 
@@ -142,17 +141,16 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 				for(;i<increment;i++)
 				{
 					FklVMrunnable* runnable=fklPopPtrStack(exe->rstack);
-					fklFreeVMenv(runnable->localenv);
 					free(runnable);
 				}
 				FklVMrunnable* prevRunnable=fklTopPtrStack(exe->rstack);
 				FklVMrunnable* r=fklNewVMrunnable(&h->proc);
-				r->localenv=fklNewVMenv(prevRunnable->localenv);
-				FklVMenv* curEnv=r->localenv;
+				r->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(prevRunnable->localenv),exe->heap);
+				FklVMvalue* curEnv=r->localenv;
 				FklSid_t idOfError=tb->sid;
-				FklVMenvNode* errorNode=fklFindVMenvNode(idOfError,curEnv);
+				FklVMenvNode* errorNode=fklFindVMenvNode(idOfError,curEnv->u.env);
 				if(!errorNode)
-					errorNode=fklAddVMenvNode(fklNewVMenvNode(NULL,idOfError),curEnv);
+					errorNode=fklAddVMenvNode(fklNewVMenvNode(NULL,idOfError),curEnv->u.env);
 				errorNode->value=ev;
 				fklPushPtrStack(r,exe->rstack);
 				fklFreeVMerrorHandler(h);
@@ -803,7 +801,6 @@ VMcontinuation* fklNewVMcontinuation(FklVMstack* stack,FklPtrStack* rstack,FklPt
 	{
 		FklVMrunnable* cur=rstack->base[i];
 		state[i].cp=cur->cp;
-		fklIncreaseVMenvRefcount(cur->localenv);
 		state[i].localenv=cur->localenv;
 		state[i].cpc=cur->cpc;
 		state[i].scp=cur->scp;
@@ -837,7 +834,6 @@ VMcontinuation* fklNewVMcontinuation(FklVMstack* stack,FklPtrStack* rstack,FklPt
 void fklFreeVMcontinuation(VMcontinuation* cont)
 {
 	int32_t i=0;
-	int32_t size=cont->num;
 	int32_t tbsize=cont->tnum;
 	FklVMstack* stack=cont->stack;
 	FklVMrunnable* state=cont->state;
@@ -845,8 +841,6 @@ void fklFreeVMcontinuation(VMcontinuation* cont)
 	free(stack->tpst);
 	free(stack->values);
 	free(stack);
-	for(;i<size;i++)
-		fklFreeVMenv(state[i].localenv);
 	for(i=0;i<tbsize;i++)
 	{
 		FklPtrStack* hstack=tb[i].hstack;
@@ -985,10 +979,10 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 	return tmp;
 }
 
-void fklInitVMRunningResource(FklVM* vm,FklVMenv* vEnv,FklVMheap* heap,FklByteCodelnt* code,uint32_t start,uint32_t size)
+void fklInitVMRunningResource(FklVM* vm,FklVMvalue* vEnv,FklVMheap* heap,FklByteCodelnt* code,uint32_t start,uint32_t size)
 {
-	if(!vEnv->prev&&vEnv->num==0)
-		fklInitGlobEnv(vEnv,heap);
+	if(!vEnv->u.env->prev&&vEnv->u.env->num==0)
+		fklInitGlobEnv(vEnv->u.env,heap);
 	FklVMproc proc={
 		.scp=start,
 		.cpc=size,

@@ -49,7 +49,7 @@ void invokeNativeProcdure(FklVM* exe,FklVMproc* tmpProc,FklVMrunnable* runnable)
 	else
 	{
 		FklVMrunnable* tmpRunnable=fklNewVMrunnable(tmpProc);
-		tmpRunnable->localenv=fklNewVMenv(tmpProc->prevEnv);
+		tmpRunnable->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(tmpProc->prevEnv),exe->heap);
 		fklPushPtrStack(tmpRunnable,exe->rstack);
 	}
 }
@@ -477,9 +477,7 @@ int fklRunVM(FklVM* exe)
 			else
 			{
 				FklVMrunnable* r=fklPopPtrStack(exe->rstack);
-				FklVMenv* tmpEnv=r->localenv;
 				free(r);
-				fklFreeVMenv(tmpEnv);
 				continue;
 			}
 		}
@@ -513,7 +511,8 @@ int fklRunVM(FklVM* exe)
 					}
 				}
 			}
-			else fklGC_mark(exe);
+			else
+				fklGC_mark(exe);
 			fklGC_sweep(exe->heap);
 			pthread_mutex_lock(&exe->heap->lock);
 			exe->heap->threshold=exe->heap->num+FKL_THRESHOLD_SIZE;
@@ -535,7 +534,7 @@ void B_dummy(FklVM* exe)
 	putc('\n',stderr);
 	fprintf(stderr,"stack->tp==%d,stack->size==%d\n",stack->tp,stack->size);
 	fprintf(stderr,"cp=%ld stack->bp=%d\n%s\n",currunnable->cp-scp,stack->bp,fklGetOpcodeName((FklOpcode)(exe->code[currunnable->cp])));
-	fklDBG_printVMenv(currunnable->localenv,stderr);
+	fklDBG_printVMenv(currunnable->localenv->u.env,stderr);
 	putc('\n',stderr);
 	fprintf(stderr,"Wrong byts code!\n");
 	exit(EXIT_FAILURE);
@@ -621,12 +620,12 @@ void B_push_var(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+runnable->cp+sizeof(char));
-	FklVMenv* curEnv=runnable->localenv;
+	FklVMvalue* curEnv=runnable->localenv;
 	FklVMenvNode* tmp=NULL;
 	while(curEnv&&!tmp)
 	{
-		tmp=fklFindVMenvNode(idOfVar,curEnv);
-		curEnv=curEnv->prev;
+		tmp=fklFindVMenvNode(idOfVar,curEnv->u.env);
+		curEnv=curEnv->u.env->prev;
 	}
 	if(tmp==NULL)
 		FKL_RAISE_BUILTIN_ERROR("b.push_var",FKL_SYMUNDEFINE,runnable,exe);
@@ -652,7 +651,6 @@ void B_push_proc(FklVM* exe)
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	uint64_t sizeOfProc=fklGetU64FromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklVMproc* code=fklNewVMproc(runnable->cp+sizeof(char)+sizeof(uint64_t),sizeOfProc);
-	fklIncreaseVMenvRefcount(runnable->localenv);
 	code->prevEnv=runnable->localenv;
 	FklVMvalue* objValue=fklNewVMvalue(FKL_PROC,code,exe->heap);
 	FKL_SET_RETURN("B_push_proc",objValue,stack);
@@ -675,16 +673,16 @@ void B_pop_var(FklVM* exe)
 		FKL_RAISE_BUILTIN_ERROR("b.pop_var",FKL_STACKERROR,runnable,exe);
 	int32_t scopeOfVar=fklGetI32FromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+runnable->cp+sizeof(char)+sizeof(int32_t));
-	FklVMenv* curEnv=runnable->localenv;
+	FklVMvalue* curEnv=runnable->localenv;
 	FklVMvalue** pValue=NULL;
 	if(scopeOfVar>=0)
 	{
 		int32_t i=0;
 		for(;i<scopeOfVar;i++)
-			curEnv=curEnv->prev;
-		FklVMenvNode* tmp=fklFindVMenvNode(idOfVar,curEnv);
+			curEnv=curEnv->u.env->prev;
+		FklVMenvNode* tmp=fklFindVMenvNode(idOfVar,curEnv->u.env);
 		if(!tmp)
-			tmp=fklAddVMenvNode(fklNewVMenvNode(NULL,idOfVar),curEnv);
+			tmp=fklAddVMenvNode(fklNewVMenvNode(NULL,idOfVar),curEnv->u.env);
 		pValue=&tmp->value;
 	}
 	else
@@ -692,8 +690,8 @@ void B_pop_var(FklVM* exe)
 		FklVMenvNode* tmp=NULL;
 		while(curEnv&&!tmp)
 		{
-			tmp=fklFindVMenvNode(idOfVar,curEnv);
-			curEnv=curEnv->prev;
+			tmp=fklFindVMenvNode(idOfVar,curEnv->u.env);
+			curEnv=curEnv->u.env->prev;
 		}
 		if(tmp==NULL)
 			FKL_RAISE_BUILTIN_ERROR("b.pop_var",FKL_SYMUNDEFINE,runnable,exe);
@@ -715,11 +713,11 @@ void B_pop_arg(FklVM* exe)
 	if(!(stack->tp>stack->bp))
 		FKL_RAISE_BUILTIN_ERROR("b.pop_arg",FKL_TOOFEWARG,runnable,exe);
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+runnable->cp+sizeof(char));
-	FklVMenv* curEnv=runnable->localenv;
+	FklVMvalue* curEnv=runnable->localenv;
 	FklVMvalue** pValue=NULL;
-	FklVMenvNode* tmp=fklFindVMenvNode(idOfVar,curEnv);
+	FklVMenvNode* tmp=fklFindVMenvNode(idOfVar,curEnv->u.env);
 	if(!tmp)
-		tmp=fklAddVMenvNode(fklNewVMenvNode(NULL,idOfVar),curEnv);
+		tmp=fklAddVMenvNode(fklNewVMenvNode(NULL,idOfVar),curEnv->u.env);
 	pValue=&tmp->value;
 	FklVMvalue* topValue=fklPopAndGetVMstack(stack);
 	*pValue=topValue;
@@ -732,11 +730,11 @@ void B_pop_rest_arg(FklVM* exe)
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	FklVMheap* heap=exe->heap;
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+runnable->cp+sizeof(char));
-	FklVMenv* curEnv=runnable->localenv;
+	FklVMvalue* curEnv=runnable->localenv;
 	FklVMvalue** pValue=NULL;
-	FklVMenvNode* tmpNode=fklFindVMenvNode(idOfVar,curEnv);
+	FklVMenvNode* tmpNode=fklFindVMenvNode(idOfVar,curEnv->u.env);
 	if(!tmpNode)
-		tmpNode=fklAddVMenvNode(fklNewVMenvNode(NULL,idOfVar),curEnv);
+		tmpNode=fklAddVMenvNode(fklNewVMenvNode(NULL,idOfVar),curEnv->u.env);
 	pValue=&tmpNode->value;
 	FklVMvalue* obj=NULL;
 	FklVMvalue* tmp=NULL;
@@ -998,19 +996,14 @@ void B_push_vector(FklVM* exe)
 void B_push_r_env(FklVM* exe)
 {
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
-	FklVMenv* prev=r->localenv;
-	r->localenv=fklNewVMenv(prev);
-	fklDecreaseVMenvRefcount(prev);
+	r->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(r->localenv),exe->heap);
 	r->cp+=sizeof(char);
 }
 
 void B_pop_r_env(FklVM* exe)
 {
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
-	FklVMenv* p=r->localenv;
-	r->localenv=r->localenv->prev;
-	p->prev=NULL;
-	fklFreeVMenv(p);
+	r->localenv=r->localenv->u.env->prev;
 	r->cp+=sizeof(char);
 }
 
@@ -1174,13 +1167,8 @@ void fklGC_markValue(FklVMvalue* obj)
 			}
 			else if(root->type==FKL_PROC)
 			{
-				FklVMenv* curEnv=root->u.proc->prevEnv;
-				for(;curEnv!=NULL;curEnv=curEnv->prev)
-				{
-					uint32_t i=0;
-					for(;i<curEnv->num;i++)
-						fklPushPtrStack(curEnv->list[i]->value,stack);
-				}
+				FklVMvalue* curEnv=root->u.proc->prevEnv;
+				fklPushPtrStack(curEnv,stack);
 			}
 			else if(root->type==FKL_CONT)
 			{
@@ -1189,10 +1177,8 @@ void fklGC_markValue(FklVMvalue* obj)
 					fklPushPtrStack(root->u.cont->stack->values[i],stack);
 				for(i=0;i<root->u.cont->num;i++)
 				{
-					FklVMenv* env=root->u.cont->state[i].localenv;
-					uint32_t j=0;
-					for(;j<env->num;j++)
-						fklPushPtrStack(env->list[i]->value,stack);
+					FklVMvalue* env=root->u.cont->state[i].localenv;
+					fklPushPtrStack(env,stack);
 				}
 			}
 			else if(root->type==FKL_VECTOR)
@@ -1215,6 +1201,14 @@ void fklGC_markValue(FklVMvalue* obj)
 			{
 				fklPushPtrStack(root->u.dlproc->dll,stack);
 			}
+			else if(root->type==FKL_ENV)
+			{
+				FklVMenv* env=root->u.env;
+				if(env->prev)
+					fklPushPtrStack(env->prev,stack);
+				for(uint32_t j=0;j<env->num;j++)
+					fklPushPtrStack(env->list[j]->value,stack);
+			}
 		}
 	}
 	fklFreePtrStack(stack);
@@ -1233,9 +1227,8 @@ void fklGC_markValueInCallChain(FklPtrStack* rstack)
 	for(;i<rstack->top;i++)
 	{
 		FklVMrunnable* cur=rstack->base[i];
-		FklVMenv* curEnv=cur->localenv;
-		for(;curEnv!=NULL;curEnv=curEnv->prev)
-			fklGC_markValueInEnv(curEnv);
+		FklVMvalue* curEnv=cur->localenv;
+		fklGC_markValue(curEnv);
 	}
 }
 
@@ -1303,6 +1296,9 @@ void fklGC_sweep(FklVMheap* heap)
 				case FKL_F64:
 				case FKL_I64:
 					break;
+				case FKL_ENV:
+					fklFreeVMenv(cur->u.env);
+					break;
 				default:
 					FKL_ASSERT(0,__func__);
 					break;
@@ -1323,7 +1319,7 @@ FklVM* fklNewThreadVM(FklVMproc* mainCode,FklVMheap* heap)
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe,__func__);
 	FklVMrunnable* t=fklNewVMrunnable(mainCode);
-	t->localenv=fklNewVMenv(mainCode->prevEnv);
+	t->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(mainCode->prevEnv),heap);
 	exe->rstack=fklNewPtrStack(32,16);
 	fklPushPtrStack(t,exe->rstack);
 	exe->mark=1;
@@ -1467,8 +1463,6 @@ void fklDeleteCallChain(FklVM* exe)
 	while(!fklIsPtrStackEmpty(exe->rstack))
 	{
 		FklVMrunnable* cur=fklPopPtrStack(exe->rstack);
-		if(cur->localenv)
-			fklFreeVMenv(cur->localenv);
 		free(cur);
 	}
 }
@@ -1500,7 +1494,6 @@ void fklCreateCallChainWithContinuation(FklVM* vm,VMcontinuation* cc)
 		FKL_ASSERT(cur,__func__);
 		cur->cp=cc->state[i].cp;
 		cur->localenv=cc->state[i].localenv;
-		fklIncreaseVMenvRefcount(cur->localenv);
 		cur->scp=cc->state[i].scp;
 		cur->cpc=cc->state[i].cpc;
 		cur->sid=cc->state[i].sid;

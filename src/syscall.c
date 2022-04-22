@@ -1508,7 +1508,7 @@ void SYS_call_cc(ARGL)
 		else
 		{
 			FklVMrunnable* tmpRunnable=fklNewVMrunnable(tmpProc);
-			tmpRunnable->localenv=fklNewVMenv(tmpProc->prevEnv);
+			tmpRunnable->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(tmpProc->prevEnv),exe->heap);
 			fklPushPtrStack(tmpRunnable,exe->rstack);
 		}
 	}

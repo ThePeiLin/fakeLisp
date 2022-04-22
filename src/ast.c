@@ -746,7 +746,7 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 	if(pattern->type==FKL_PROC)
 	{
 		FklByteCodelnt* t=fklNewByteCodelnt(fklNewByteCode(0));
-		FklVMvalue* tmpGlobEnv=fklNewVMvalue(FKL_ENV,genGlobEnv(glob,t,tmpVM->heap),tmpVM->heap);
+		FklVMvalue* tmpGlobEnv=genGlobEnv(glob,t,tmpVM->heap);
 		if(!tmpGlobEnv)
 		{
 			fklDestroyEnv(tmpEnv);

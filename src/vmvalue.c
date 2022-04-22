@@ -45,9 +45,6 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVMheap* heap)
 						case FKL_STR:
 							*root1=fklNewVMvalue(FKL_STR,fklNewVMstr(root->u.str->size,root->u.str->str),heap);
 							break;
-						//case FKL_STR:
-						//	*root1=fklNewVMvalue(FKL_STR,fklCopyStr(root->u.str),heap);
-						//	break;
 						case FKL_CONT:
 						case FKL_PROC:
 						case FKL_FP:
@@ -246,9 +243,6 @@ int fklVMvaluecmp(FklVMvalue* fir,FklVMvalue* sec)
 				case FKL_STR:
 					r=!fklVMstrcmp(root1->u.str,root2->u.str);
 					break;
-				//case FKL_BYTS:
-				//	r=fklEqVMbyts(root1->u.byts,root2->u.byts);
-				//	break;
 				case FKL_PAIR:
 					r=1;
 					fklPushPtrStack(root1->u.pair->car,s1);
@@ -682,16 +676,6 @@ FklVMenv* fklNewVMenv(FklVMvalue* prev)
 	return tmp;
 }
 
-//void fklIncreaseVMenvRefcount(FklVMenv* env)
-//{
-//	INCREASE_REFCOUNT(FklVMenv,env);
-//}
-//
-//void fklDecreaseVMenvRefcount(FklVMenv* env)
-//{
-//	DECREASE_REFCOUNT(FklVMenv,env);
-//}
-
 FklVMenv* fklCopyVMenv(FklVMenv* objEnv,FklVMheap* heap)
 {
 	FklVMenv* tmp=fklNewVMenv(NULL);
@@ -705,7 +689,6 @@ FklVMenv* fklCopyVMenv(FklVMenv* objEnv,FklVMheap* heap)
 		FklVMenvNode* tmp=fklNewVMenvNode(v,node->id);
 		objEnv->list[i]=tmp;
 	}
-	//tmp->prev=(objEnv->prev->refcount==0)?fklCopyVMenv(objEnv->prev,heap):objEnv->prev;
 	return tmp;
 }
 
@@ -826,9 +809,6 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 				case FKL_STR:
 					*root1=fklNewVMvalue(FKL_STR,fklNewVMstr(tmpAtm->value.str.size,tmpAtm->value.str.str),heap);
 					break;
-				//case FKL_STR:
-				//	*root1=fklNewVMvalue(FKL_STR,fklCopyStr(tmpAtm->value.str),heap);
-				//	break;
 				default:
 					return NULL;
 					break;

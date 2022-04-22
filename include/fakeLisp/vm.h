@@ -87,7 +87,8 @@ typedef struct FklVMvec
 
 typedef enum{
 	FKL_MARK_W=0,
-	FKL_MARK_B
+	FKL_MARK_G,
+	FKL_MARK_B,
 }FklVMvalueMark;
 typedef struct FklVMvalue
 {
@@ -315,8 +316,6 @@ void fklFreeVMenvNode(FklVMenvNode*);
 
 
 FklVMenv* fklNewVMenv(FklVMvalue*);
-//void fklIncreaseVMenvRefcount(FklVMenv*);
-//void fklDecreaseVMenvRefcount(FklVMenv*);
 void fklFreeVMenv(FklVMenv*);
 FklVMenv* fklCopyVMenv(FklVMenv*,FklVMheap*);
 

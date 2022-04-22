@@ -33,12 +33,8 @@ int main(int argc,char** argv)
 	}
 	if(argc==1||fklIsscript(filename))
 	{
-#ifdef _WIN32
-		char* rp=_fullpath(NULL,filename,0);
-#else
-		char* rp=realpath(filename,0);
-#endif
-		FklInterpreter* inter=fklNewIntpr(((fp==stdin)?"stdin":argv[1]),fp,NULL,NULL);
+		char* rp=fklRealpath(filename);
+		FklInterpreter* inter=fklNewIntpr(rp,fp,NULL,NULL);
 		fklInitGlobKeyWord(inter->glob);
 		fklAddSymbolToGlob(argv[1]);
 		int state;

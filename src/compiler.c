@@ -1962,16 +1962,20 @@ FklByteCodelnt* fklCompileLoad(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 		free(filename);
 		return NULL;
 	}
-	FILE* file=fopen(filename,"r");
+	char* rpath=fklRealpath(filename);
+	free(filename);
+	FILE* file=NULL;
+	if(rpath)
+		file=fopen(rpath,"r");
 	if(file==NULL)
 	{
 		state->state=FKL_FILEFAILURE;
 		state->place=pFileName;
-		free(filename);
+		free(rpath);
 		return NULL;
 	}
-	fklAddSymbolToGlob(filename);
-	FklInterpreter* tmpIntpr=fklNewIntpr(filename,file,curEnv,inter->lnt);
+	fklAddSymbolToGlob(rpath);
+	FklInterpreter* tmpIntpr=fklNewIntpr(rpath,file,curEnv,inter->lnt);
 	tmpIntpr->prev=inter;
 	tmpIntpr->glob=curEnv;
 	FklByteCodelnt* tmp=fklCompileFile(tmpIntpr,NULL);
@@ -1993,7 +1997,7 @@ FklByteCodelnt* fklCompileLoad(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 		tmp->l[tmp->ls-1]->cpc+=popTp->size;
 
 	}
-	free(filename);
+	free(rpath);
 	fklFreeByteCode(popTp);
 	fklFreeByteCode(setTp);
 	return tmp;
@@ -2996,11 +3000,7 @@ FklInterpreter* fklNewIntpr(const char* filename,FILE* file,FklCompEnv* env,FklL
 	tmp->filename=fklCopyStr(filename);
 	if(file!=stdin&&filename!=NULL)
 	{
-#ifdef _WIN32
-		char* rp=_fullpath(NULL,filename,0);
-#else
-		char* rp=realpath(filename,0);
-#endif
+		char* rp=fklRealpath(filename);
 		if(!rp&&!file)
 		{
 			perror(filename);

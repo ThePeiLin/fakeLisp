@@ -49,24 +49,24 @@ int main(int argc,char** argv)
 			fklFreeInterpeterPath();
 			return EXIT_FAILURE;
 		}
-		FklInterpreter* inter=fklNewIntpr(((fp==stdin)?NULL:argv[1]),fp,NULL,NULL);
+		FklInterpreter* inter=NULL;
 		if(filename)
 			fklAddSymbolToGlob(filename);
-		fklInitGlobKeyWord(inter->glob);
 		fklInitVMargs(argc,argv);
 		if(fp==stdin)
+		{
+			inter=fklNewIntpr(NULL,fp,NULL,NULL);
+			fklInitGlobKeyWord(inter->glob);
 			runRepl(inter);
+		}
 		else
 		{
-#ifdef _WIN32
-			char* rp=_fullpath(NULL,filename,0);
-#else
-			char* rp=realpath(filename,0);
-#endif
-			char* pWorkPath=getcwd(NULL,0);
-			char* workpath=fklGetDir(rp);
-			free(rp);
+			char* rp=fklRealpath(filename);
 			int state;
+			char* workpath=getcwd(NULL,0);
+			inter=fklNewIntpr(rp,fp,NULL,NULL);
+			fklInitGlobKeyWord(inter->glob);
+			free(rp);
 			FklByteCodelnt* mainByteCode=fklCompileFile(inter,&state);
 			if(mainByteCode==NULL)
 			{
@@ -75,9 +75,10 @@ int main(int argc,char** argv)
 				fklUninitPreprocess();
 				fklFreeGlobSymbolTable();
 				fklFreeInterpeterPath();
-				free(pWorkPath);
 				return state;
 			}
+			chdir(workpath);
+			free(workpath);
 			fklPrintUndefinedSymbol(mainByteCode);
 			inter->lnt->num=mainByteCode->ls;
 			inter->lnt->list=mainByteCode->l;
@@ -91,9 +92,6 @@ int main(int argc,char** argv)
 			anotherVM->callback=errorCallBack;
 			anotherVM->lnt=inter->lnt;
 			fklInitGlobEnv(globEnv->u.env,anotherVM->heap);
-			chdir(pWorkPath);
-			free(workpath);
-			free(pWorkPath);
 			if(setjmp(buf)==0)
 			{
 				fklRunVM(anotherVM);

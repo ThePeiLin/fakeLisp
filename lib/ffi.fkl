@@ -1,0 +1,20 @@
+(library
+  ffi
+  (export
+    ffi-malloc
+    ffi-free
+    ffi-sizeof
+    ffi-typedef
+    ffi-call
+    ffi-load
+    ffi-ref
+    ffi-set)
+  (define ffi (dlopen "fklffi"))
+  (define ffi-malloc (dlsym ffi "ffi_malloc"))
+  (define ffi-free (dlsym ffi "ffi_free"))
+  (define ffi-sizeof (dlsym ffi "ffi_sizeof"))
+  (define ffi-typedef (dlsym ffi "ffi_typedef"))
+  (define ffi-call (dlsym ffi "ffi_call"))
+  (define ffi-load (dlsym ffi "ffi_load"))
+  (define ffi-ref (dlsym ffi "ffi_ref"))
+  (define ffi_set (dlsym ffi "ffi_set")))

@@ -44,11 +44,11 @@ void FKL_ffi_load(ARGL)
 	fklAddSharedObj(handle);
 }
 
-void FKL_ffi_c_ref(ARGL)
+void FKL_ffi_ref(ARGL)
 {
 }
 
-void FKL_ffi_c_set(ARGL)
+void FKL_ffi_set(ARGL)
 {
 }
 #undef ARGL

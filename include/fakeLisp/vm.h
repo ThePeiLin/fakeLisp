@@ -181,6 +181,8 @@ typedef struct FklVMheap
 	uint32_t num;
 	uint32_t threshold;
 	FklVMvalue* head;
+	FklPtrStack* gray;
+	FklVMvalue* white;
 }FklVMheap;
 
 typedef struct
@@ -237,6 +239,7 @@ FklVM* fklNewThreadVM(FklVMproc*,FklVMheap*);
 FklVM* fklNewThreadDlprocVM(FklVMrunnable* r,FklVMheap* heap);
 void fklInitGlobEnv(FklVMenv*,FklVMheap*);
 
+void fklFreeVMvalue(FklVMvalue*);
 FklVMstack* fklNewVMstack(int32_t);
 void fklFreeVMstack(FklVMstack*);
 void fklStackRecycle(FklVM*);

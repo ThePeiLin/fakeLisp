@@ -1160,34 +1160,146 @@ void fklGC_markValue(FklVMvalue* obj)
 		if(FKL_GET_TAG(root)==FKL_PTR_TAG&&!root->mark)
 		{
 			root->mark=FKL_MARK_B;
-			if(root->type==FKL_PAIR)
+			switch(root->type)
 			{
-				fklPushPtrStack(fklGetVMpairCar(root),stack);
-				fklPushPtrStack(fklGetVMpairCdr(root),stack);
+				case FKL_PAIR:
+					fklPushPtrStack(root->u.pair->car,stack);
+					fklPushPtrStack(root->u.pair->cdr,stack);
+					break;
+				case FKL_PROC:
+					fklPushPtrStack(root->u.proc->prevEnv,stack);
+					break;
+				case FKL_CONT:
+					for(uint32_t i=0;i<root->u.cont->stack->tp;i++)
+						fklPushPtrStack(root->u.cont->stack->values[i],stack);
+					for(uint32_t i=0;i<root->u.cont->num;i++)
+						fklPushPtrStack(root->u.cont->state[i].localenv,stack);
+					break;
+				case FKL_VECTOR:
+					{
+						FklVMvec* vec=root->u.vec;
+						for(size_t i=0;i<vec->size;i++)
+							fklPushPtrStack(vec->base[i],stack);
+					}
+					break;
+				case FKL_CHAN:
+					{
+						pthread_mutex_lock(&root->u.chan->lock);
+						FklQueueNode* head=root->u.chan->messages->head;
+						for(;head;head=head->next)
+							fklPushPtrStack(head->data,stack);
+						for(head=root->u.chan->sendq->head;head;head=head->next)
+							fklPushPtrStack(((FklVMsend*)head->data)->m,stack);
+						pthread_mutex_unlock(&root->u.chan->lock);
+					}
+					break;
+				case FKL_DLPROC:
+					if(root->u.dlproc->dll)
+						fklPushPtrStack(root->u.dlproc->dll,stack);
+					break;
+				case FKL_ENV:
+					{
+						FklVMenv* env=root->u.env;
+						if(env->prev)
+							fklPushPtrStack(env->prev,stack);
+						for(uint32_t i=0;i<env->num;i++)
+							fklPushPtrStack(env->list[i]->value,stack);
+					}
+					break;
+				case FKL_I64:
+				case FKL_F64:
+				case FKL_FP:
+					break;
+				default:
+					FKL_ASSERT(0,__func__);
+					break;
 			}
-			else if(root->type==FKL_PROC)
+		}
+	}
+	fklFreePtrStack(stack);
+}
+void fklGC_markRootToGray(FklVM* exe)
+{
+	FklVMstack* stack=exe->stack;
+	FklVMheap* heap=exe->heap;
+	FklPtrStack* rstack=exe->rstack;
+	for(uint32_t i=stack->tp;i>0;i--)
+	{
+		FklVMvalue* value=stack->values[i-1];
+		if(FKL_IS_MREF(value))
+			i--;
+		else if(FKL_GET_TAG(value)==FKL_PTR_TAG)
+		{
+			value->mark=FKL_MARK_G;
+			fklPushPtrStack(value,heap->gray);
+		}
+	}
+	for(uint32_t i=0;i<rstack->top;i++)
+	{
+		FklVMrunnable* cur=rstack->base[i];
+		FklVMvalue* value=cur->localenv;
+		value->mark=FKL_MARK_G;
+		fklPushPtrStack(value,heap->gray);
+	}
+	if(exe->chan)
+	{
+		exe->chan->mark=FKL_MARK_G;
+		fklPushPtrStack(exe->chan,heap->gray);
+	}
+}
+
+void fklGC_markGlobalRoot(void)
+{
+	for(uint32_t i=0;i<GlobVMs.num;i++)
+	{
+		if(GlobVMs.VMs[i])
+		{
+			if(GlobVMs.VMs[i]->mark)
+				fklGC_markRootToGray(GlobVMs.VMs[i]);
+			else
 			{
-				FklVMvalue* curEnv=root->u.proc->prevEnv;
-				fklPushPtrStack(curEnv,stack);
+				pthread_join(GlobVMs.VMs[i]->tid,NULL);
+				free(GlobVMs.VMs[i]);
+				GlobVMs.VMs[i]=NULL;
 			}
-			else if(root->type==FKL_CONT)
-			{
-				uint32_t i=0;
-				for(;i<root->u.cont->stack->tp;i++)
-					fklPushPtrStack(root->u.cont->stack->values[i],stack);
-				for(i=0;i<root->u.cont->num;i++)
-				{
-					FklVMvalue* env=root->u.cont->state[i].localenv;
-					fklPushPtrStack(env,stack);
-				}
-			}
-			else if(root->type==FKL_VECTOR)
+		}
+	}
+}
+
+void fklGC_pause(FklVM* exe)
+{
+	if(exe->VMid!=-1)
+		fklGC_markGlobalRoot();
+	else
+		fklGC_markRootToGray(exe);
+}
+
+void propagateMark(FklVMvalue* root,FklVMheap* heap)
+{
+	FklPtrStack* stack=heap->gray;
+	switch(root->type)
+	{
+		case FKL_PAIR:
+			fklPushPtrStack(root->u.pair->car,stack);
+			fklPushPtrStack(root->u.pair->cdr,stack);
+			break;
+		case FKL_PROC:
+			fklPushPtrStack(root->u.proc->prevEnv,stack);
+			break;
+		case FKL_CONT:
+			for(uint32_t i=0;i<root->u.cont->stack->tp;i++)
+				fklPushPtrStack(root->u.cont->stack->values[i],stack);
+			for(uint32_t i=0;i<root->u.cont->num;i++)
+				fklPushPtrStack(root->u.cont->state[i].localenv,stack);
+			break;
+		case FKL_VECTOR:
 			{
 				FklVMvec* vec=root->u.vec;
 				for(size_t i=0;i<vec->size;i++)
 					fklPushPtrStack(vec->base[i],stack);
 			}
-			else if(root->type==FKL_CHAN)
+			break;
+		case FKL_CHAN:
 			{
 				pthread_mutex_lock(&root->u.chan->lock);
 				FklQueueNode* head=root->u.chan->messages->head;
@@ -1197,21 +1309,81 @@ void fklGC_markValue(FklVMvalue* obj)
 					fklPushPtrStack(((FklVMsend*)head->data)->m,stack);
 				pthread_mutex_unlock(&root->u.chan->lock);
 			}
-			else if(root->type==FKL_DLPROC&&root->u.dlproc->dll)
-			{
+			break;
+		case FKL_DLPROC:
+			if(root->u.dlproc->dll)
 				fklPushPtrStack(root->u.dlproc->dll,stack);
-			}
-			else if(root->type==FKL_ENV)
+			break;
+		case FKL_ENV:
 			{
 				FklVMenv* env=root->u.env;
 				if(env->prev)
 					fklPushPtrStack(env->prev,stack);
-				for(uint32_t j=0;j<env->num;j++)
-					fklPushPtrStack(env->list[j]->value,stack);
+				for(uint32_t i=0;i<env->num;i++)
+					fklPushPtrStack(env->list[i]->value,stack);
 			}
+			break;
+		case FKL_I64:
+		case FKL_F64:
+		case FKL_FP:
+		case FKL_DLL:
+			break;
+		default:
+			FKL_ASSERT(0,__func__);
+			break;
+	}
+}
+
+void fklGC_propagate(FklVM* exe)
+{
+	FklVMvalue* v=fklPopPtrStack(exe->heap->gray);
+	v->mark=FKL_MARK_B;
+	propagateMark(v,exe->heap);
+}
+
+void fklGC_collect(FklVM* exe)
+{
+	pthread_mutex_lock(&exe->heap->lock);
+	FklVMvalue* head=exe->heap->head;
+	exe->heap->head=NULL;
+	pthread_mutex_unlock(&exe->heap->lock);
+	FklVMvalue** phead=&head;
+	while(*phead)
+	{
+		FklVMvalue* cur=*phead;
+		if(cur->mark==FKL_MARK_W)
+		{
+			*phead=cur->next;
+			cur->next=exe->heap->white;
+			exe->heap->white=cur;
+		}
+		else
+		{
+			cur->mark=FKL_MARK_W;
+			phead=&cur->next;
 		}
 	}
-	fklFreePtrStack(stack);
+	pthread_mutex_lock(&exe->heap->lock);
+	*phead=exe->heap->head;
+	exe->heap->head=head;
+	pthread_mutex_unlock(&exe->heap->lock);
+}
+
+void fklGC_sweepW(FklVM* exe)
+{
+	FklVMvalue* head=exe->heap->white;
+	exe->heap->white=NULL;
+	uint32_t count=0;
+	while(head)
+	{
+		FklVMvalue* cur=head;
+		head=head->next;
+		fklFreeVMvalue(cur);
+		count++;
+	}
+	pthread_mutex_lock(&exe->heap->lock);
+	exe->heap->num-=count;
+	pthread_mutex_unlock(&exe->heap->lock);
 }
 
 void fklGC_markValueInEnv(FklVMenv* curEnv)
@@ -1252,6 +1424,53 @@ void fklGC_markMessage(FklQueueNode* head)
 	}
 }
 
+void fklFreeVMvalue(FklVMvalue* cur)
+{
+	switch(cur->type)
+	{
+		case FKL_STR:
+			free(cur->u.str);
+			break;
+		case FKL_PAIR:
+			free(cur->u.pair);
+			break;
+		case FKL_PROC:
+			fklFreeVMproc(cur->u.proc);
+			break;
+		case FKL_CONT:
+			fklFreeVMcontinuation(cur->u.cont);
+			break;
+		case FKL_CHAN:
+			fklFreeVMchanl(cur->u.chan);
+			break;
+		case FKL_FP:
+			fklFreeVMfp(cur->u.fp);
+			break;
+		case FKL_DLL:
+			fklFreeVMdll(cur->u.dll);
+			break;
+		case FKL_DLPROC:
+			fklFreeVMdlproc(cur->u.dlproc);
+			break;
+		case FKL_ERR:
+			fklFreeVMerror(cur->u.err);
+			break;
+		case FKL_VECTOR:
+			fklFreeVMvec(cur->u.vec);
+			break;
+		case FKL_F64:
+		case FKL_I64:
+			break;
+		case FKL_ENV:
+			fklFreeVMenv(cur->u.env);
+			break;
+		default:
+			FKL_ASSERT(0,__func__);
+			break;
+	}
+	free(cur);
+}
+
 void fklGC_sweep(FklVMheap* heap)
 {
 	FklVMvalue** phead=&heap->head;
@@ -1261,49 +1480,7 @@ void fklGC_sweep(FklVMheap* heap)
 		if(FKL_GET_TAG(cur)==FKL_PTR_TAG&&cur->mark==FKL_MARK_W)
 		{
 			*phead=cur->next;
-			switch(cur->type)
-			{
-				case FKL_STR:
-					free(cur->u.str);
-					break;
-				case FKL_PAIR:
-					free(cur->u.pair);
-					break;
-				case FKL_PROC:
-					fklFreeVMproc(cur->u.proc);
-					break;
-				case FKL_CONT:
-					fklFreeVMcontinuation(cur->u.cont);
-					break;
-				case FKL_CHAN:
-					fklFreeVMchanl(cur->u.chan);
-					break;
-				case FKL_FP:
-					fklFreeVMfp(cur->u.fp);
-					break;
-				case FKL_DLL:
-					fklFreeVMdll(cur->u.dll);
-					break;
-				case FKL_DLPROC:
-					fklFreeVMdlproc(cur->u.dlproc);
-					break;
-				case FKL_ERR:
-					fklFreeVMerror(cur->u.err);
-					break;
-				case FKL_VECTOR:
-					fklFreeVMvec(cur->u.vec);
-					break;
-				case FKL_F64:
-				case FKL_I64:
-					break;
-				case FKL_ENV:
-					fklFreeVMenv(cur->u.env);
-					break;
-				default:
-					FKL_ASSERT(0,__func__);
-					break;
-			}
-			free(cur);
+			fklFreeVMvalue(cur);
 			heap->num-=1;
 		}
 		else

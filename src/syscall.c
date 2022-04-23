@@ -34,6 +34,7 @@ void SYS_car(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("sys.car",FKL_TOOFEWARG,runnable,exe);
 	if(!FKL_IS_PAIR(obj))
 		FKL_RAISE_BUILTIN_ERROR("sys.car",FKL_WRONGARG,runnable,exe);
+	FKL_SET_RETURN(__func__,obj,stack);
 	FKL_SET_RETURN(__func__,FKL_MAKE_VM_REF(&obj->u.pair->car),stack);
 }
 
@@ -48,6 +49,7 @@ void SYS_cdr(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("sys.cdr",FKL_TOOFEWARG,runnable,exe);
 	if(!FKL_IS_PAIR(obj))
 		FKL_RAISE_BUILTIN_ERROR("sys.cdr",FKL_WRONGARG,runnable,exe);
+	FKL_SET_RETURN(__func__,obj,stack);
 	FKL_SET_RETURN(__func__,FKL_MAKE_VM_REF(&obj->u.pair->cdr),stack);
 }
 
@@ -943,7 +945,6 @@ void SYS_nth(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("sys.nth",FKL_TOOFEWARG,runnable,exe);
 	if(!fklIsInt(place))
 		FKL_RAISE_BUILTIN_ERROR("sys.nth",FKL_WRONGARG,runnable,exe);
-	FklVMvalue* retval=NULL;
 	ssize_t index=fklGetInt(place);
 	if(index<0)
 		FKL_RAISE_BUILTIN_ERROR("sys.nth",FKL_INVALIDACCESS,runnable,exe);
@@ -952,11 +953,17 @@ void SYS_nth(ARGL)
 		FklVMvalue* objPair=objlist;
 		int i=0;
 		for(;i<index&&FKL_IS_PAIR(objPair);i++,objPair=fklGetVMpairCdr(objPair));
-		retval=(FKL_IS_PAIR(objPair))?FKL_MAKE_VM_REF(&objPair->u.pair->car):FKL_VM_NIL;
+		if(FKL_IS_PAIR(objPair))
+		{
+			FKL_SET_RETURN(__func__,objPair,stack);
+			FKL_SET_RETURN(__func__
+					,FKL_MAKE_VM_REF(&objPair->u.pair->car),stack);
+		}
+		else
+			FKL_SET_RETURN(__func__,FKL_VM_NIL,stack);
 	}
 	else
 		FKL_RAISE_BUILTIN_ERROR("sys.nth",FKL_WRONGARG,runnable,exe);
-	FKL_SET_RETURN(__func__,retval,stack);
 }
 
 void SYS_vref(ARGL)
@@ -983,7 +990,10 @@ void SYS_vref(ARGL)
 		FKL_SET_RETURN(__func__,FKL_MAKE_VM_MREF(1),stack);
 	}
 	else if(FKL_IS_VECTOR(vector))
-	FKL_SET_RETURN(__func__,FKL_MAKE_VM_REF(&vector->u.vec->base[index]),stack);
+	{
+		FKL_SET_RETURN(__func__,vector,stack);
+		FKL_SET_RETURN(__func__,FKL_MAKE_VM_REF(&vector->u.vec->base[index]),stack);
+	}
 }
 
 void SYS_nthcdr(ARGL)
@@ -998,7 +1008,6 @@ void SYS_nthcdr(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("sys.nthcdr",FKL_TOOFEWARG,runnable,exe);
 	if(!fklIsInt(place))
 		FKL_RAISE_BUILTIN_ERROR("sys.nthcdr",FKL_WRONGARG,runnable,exe);
-	FklVMvalue* retval=NULL;
 	ssize_t index=fklGetInt(place);
 	if(index<0)
 		FKL_RAISE_BUILTIN_ERROR("sys.nthcdr",FKL_INVALIDACCESS,runnable,exe);
@@ -1007,11 +1016,18 @@ void SYS_nthcdr(ARGL)
 		FklVMvalue* objPair=objlist;
 		int i=0;
 		for(;i<index&&FKL_IS_PAIR(objPair);i++,objPair=fklGetVMpairCdr(objPair));
-		retval=(FKL_IS_PAIR(objPair))?FKL_MAKE_VM_REF(&objPair->u.pair->cdr):FKL_VM_NIL;
+		if(FKL_IS_PAIR(objPair))
+		{
+			FKL_SET_RETURN(__func__,objPair,stack);
+			FKL_SET_RETURN(__func__
+					,FKL_MAKE_VM_REF(&objPair->u.pair->cdr)
+					,stack);
+		}
+		else
+			FKL_SET_RETURN(__func__,FKL_VM_NIL,stack);
 	}
 	else
 		FKL_RAISE_BUILTIN_ERROR("sys.nthcdr",FKL_WRONGARG,runnable,exe);
-	FKL_SET_RETURN(__func__,retval,stack);
 }
 
 

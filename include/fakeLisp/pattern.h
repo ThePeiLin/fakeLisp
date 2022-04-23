@@ -11,11 +11,7 @@ typedef struct FklStringMatchPattern
 	uint32_t num;
 	uint32_t reserveCharNum;
 	char** parts;
-	FklValueType type;
-	union{
-		void (*fProc)(FklVM*);
-		FklByteCodelnt* bProc;
-	}u;
+	FklByteCodelnt* proc;
 	struct FklStringMatchPattern* prev;
 	struct FklStringMatchPattern* next;
 }FklStringMatchPattern;
@@ -23,14 +19,12 @@ typedef struct FklStringMatchPattern
 FklStringMatchPattern* fklFindStringPattern(const char*);
 FklStringMatchPattern* fklFindStringPatternBuf(const char* buf,size_t size);
 FklStringMatchPattern* fklNewStringMatchPattern(int32_t,char**,FklByteCodelnt*);
-FklStringMatchPattern* fklNewFStringMatchPattern(int32_t num,char** parts,void(*fproc)(FklVM* exe));
 char* fklGetNthReverseCharOfStringMatchPattern(FklStringMatchPattern* pattern,uint32_t nth);
 char* fklGetNthPartOfStringMatchPattern(FklStringMatchPattern* pattern,uint32_t nth);
 char** fklSplitPattern(const char*,int32_t*);
 char** fklSplitStringInPattern(const char*,FklStringMatchPattern*,int32_t*);
 void fklFreeAllStringPattern();
 void fklFreeStringPattern(FklStringMatchPattern*);
-void fklInitBuiltInStringPattern(void);
 int32_t fklFindKeyString(const char*);
 int fklIsInValidStringPattern(const char*);
 int fklIsReDefStringPattern(const char*);

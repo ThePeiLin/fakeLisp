@@ -598,9 +598,9 @@ FklStringMatchPattern* fklAddReDefStringPattern(char** parts,int32_t num,FklAstC
 		for(;i<num;i++)
 			tmParts[i]=fklCopyStr(parts[i]);
 		fklFreeStringArry(tmp->parts,num);
-		fklFreeByteCodeAndLnt(tmp->u.bProc);
+		fklFreeByteCodeAndLnt(tmp->proc);
 		tmp->parts=tmParts;
-		tmp->u.bProc=tmpByteCodelnt;
+		tmp->proc=tmpByteCodelnt;
 	}
 	else
 	{

@@ -746,62 +746,44 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 	FklAstCptr* retval=NULL;
 	char* cwd=getcwd(NULL,0);
 	chdir(fklGetCwd());
-	if(pattern->type==FKL_PROC)
+	FklByteCodelnt* t=fklNewByteCodelnt(fklNewByteCode(0));
+	FklVMvalue* tmpGlobEnv=genGlobEnv(glob,t,tmpVM->heap);
+	if(!tmpGlobEnv)
 	{
-		FklByteCodelnt* t=fklNewByteCodelnt(fklNewByteCode(0));
-		FklVMvalue* tmpGlobEnv=genGlobEnv(glob,t,tmpVM->heap);
-		if(!tmpGlobEnv)
-		{
-			fklDestroyEnv(tmpEnv);
-			fklFreeByteCodelnt(t);
-			fklFreeVMheap(tmpVM->heap);
-			fklFreeVMstack(tmpVM->stack);
-			fklFreePtrStack(tmpVM->rstack);
-			fklFreePtrStack(tmpVM->tstack);
-			free(tmpVM);
-			chdir(cwd);
-			free(cwd);
-			return NULL;
-		}
-		FklVMvalue* stringPatternEnv=fklCastPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->heap);
-		uint32_t start=t->bc->size;
-		fklCodelntCopyCat(t,pattern->u.bProc);
-		fklInitVMRunningResource(tmpVM,stringPatternEnv,tmpVM->heap,t,start,pattern->u.bProc->bc->size);
-		int state=fklRunVM(tmpVM);
-		if(!state)
-			retval=fklCastVMvalueToCptr(fklPopAndGetVMstack(tmpVM->stack),curline);
-		else
-		{
-			fklFreeByteCodeAndLnt(t);
-			fklFreeVMheap(tmpVM->heap);
-			fklUninitVMRunningResource(tmpVM);
-			chdir(cwd);
-			free(cwd);
-			return NULL;
-		}
-		if(!retval)
-		{
-			fprintf(stderr,"error of compiling:Circular reference occur in expanding reader macro at line %d of %s\n",curline,filename);
-		}
-		fklFreeByteCodeAndLnt(t);
-		fklFreeVMheap(tmpVM->heap);
-		fklUninitVMRunningResource(tmpVM);
-	}
-	else if(pattern->type==FKL_DLPROC)
-	{
-		FklVMvalue* stringPatternEnv=fklCastPreEnvToVMenv(tmpEnv,NULL,tmpVM->heap);
-		FklVMrunnable* mainrunnable=fklNewVMrunnable(NULL);
-		mainrunnable->localenv=stringPatternEnv;
-		fklPushPtrStack(mainrunnable,tmpVM->rstack);
-		pattern->u.fProc(tmpVM);
-		retval=fklCastVMvalueToCptr(fklPopAndGetVMstack(tmpVM->stack),curline);
-		free(mainrunnable);
+		fklDestroyEnv(tmpEnv);
+		fklFreeByteCodelnt(t);
 		fklFreeVMheap(tmpVM->heap);
 		fklFreeVMstack(tmpVM->stack);
 		fklFreePtrStack(tmpVM->rstack);
 		fklFreePtrStack(tmpVM->tstack);
 		free(tmpVM);
+		chdir(cwd);
+		free(cwd);
+		return NULL;
 	}
+	FklVMvalue* stringPatternEnv=fklCastPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->heap);
+	uint32_t start=t->bc->size;
+	fklCodelntCopyCat(t,pattern->proc);
+	fklInitVMRunningResource(tmpVM,stringPatternEnv,tmpVM->heap,t,start,pattern->proc->bc->size);
+	int state=fklRunVM(tmpVM);
+	if(!state)
+		retval=fklCastVMvalueToCptr(fklPopAndGetVMstack(tmpVM->stack),curline);
+	else
+	{
+		fklFreeByteCodeAndLnt(t);
+		fklFreeVMheap(tmpVM->heap);
+		fklUninitVMRunningResource(tmpVM);
+		chdir(cwd);
+		free(cwd);
+		return NULL;
+	}
+	if(!retval)
+	{
+		fprintf(stderr,"error of compiling:Circular reference occur in expanding reader macro at line %d of %s\n",curline,filename);
+	}
+	fklFreeByteCodeAndLnt(t);
+	fklFreeVMheap(tmpVM->heap);
+	fklUninitVMRunningResource(tmpVM);
 	chdir(cwd);
 	free(cwd);
 	fklDestroyEnv(tmpEnv);

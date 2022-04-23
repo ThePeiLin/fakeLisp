@@ -20,6 +20,7 @@
 static FklVMvalue* VMstdin=NULL;
 static FklVMvalue* VMstdout=NULL;
 static FklVMvalue* VMstderr=NULL;
+static pthread_t GCthreadid;
 
 static int VMargc=0;
 static char** VMargv=NULL;
@@ -492,33 +493,40 @@ int fklRunVM(FklVM* exe)
 		pthread_rwlock_unlock(&GClock);
 		if(exe->heap->num>exe->heap->threshold)
 		{
-			if(pthread_rwlock_trywrlock(&GClock))continue;
-			int i=0;
-			if(exe->VMid!=-1)
+			if(exe->heap->running==0)
 			{
-				for(;i<GlobVMs.num;i++)
-				{
-					if(GlobVMs.VMs[i])
-					{
-						if(GlobVMs.VMs[i]->mark)
-							fklGC_mark(GlobVMs.VMs[i]);
-						else
-						{
-							pthread_join(GlobVMs.VMs[i]->tid,NULL);
-							free(GlobVMs.VMs[i]);
-							GlobVMs.VMs[i]=NULL;
-						}
-					}
-				}
+				exe->heap->running=FKL_GC_RUNNING;
+				pthread_create(&GCthreadid,NULL,fklGC_threadFunc,exe);
 			}
-			else
-				fklGC_mark(exe);
-			fklGC_sweep(exe->heap);
-			pthread_mutex_lock(&exe->heap->lock);
-			exe->heap->threshold=exe->heap->num+FKL_THRESHOLD_SIZE;
-			pthread_mutex_unlock(&exe->heap->lock);
-			pthread_rwlock_unlock(&GClock);
+			//if(pthread_rwlock_trywrlock(&GClock))continue;
+			//int i=0;
+			//if(exe->VMid!=-1)
+			//{
+			//	for(;i<GlobVMs.num;i++)
+			//	{
+			//		if(GlobVMs.VMs[i])
+			//		{
+			//			if(GlobVMs.VMs[i]->mark)
+			//				fklGC_mark(GlobVMs.VMs[i]);
+			//			else
+			//			{
+			//				pthread_join(GlobVMs.VMs[i]->tid,NULL);
+			//				free(GlobVMs.VMs[i]);
+			//				GlobVMs.VMs[i]=NULL;
+			//			}
+			//		}
+			//	}
+			//}
+			//else
+			//	fklGC_mark(exe);
+			//fklGC_sweep(exe->heap);
+			//pthread_mutex_lock(&exe->heap->lock);
+			//exe->heap->threshold=exe->heap->num+FKL_THRESHOLD_SIZE;
+			//pthread_mutex_unlock(&exe->heap->lock);
+			//pthread_rwlock_unlock(&GClock);
 		}
+		if(exe->heap->running==FKL_GC_DONE)
+			fklGC_joinGCthread(exe->heap);
 	}
 	return 0;
 }
@@ -798,7 +806,7 @@ void B_pop_ref(FklVM* exe)
 		FKL_RAISE_BUILTIN_ERROR("b.pop_ref",FKL_WRONGARG,runnable,exe);
 	if(FKL_IS_REF(ref))
 	{
-		FklVMvalue* orig=fklPopVMstack(stack);
+		FklVMvalue* by=fklPopVMstack(stack);
 		if(fklSET_REF(ref,val))
 			FKL_RAISE_BUILTIN_ERROR("b.pop_ref",FKL_INVALIDASSIGN,runnable,exe);
 	}
@@ -1132,10 +1140,14 @@ FklVMheap* fklNewVMheap()
 {
 	FklVMheap* tmp=(FklVMheap*)malloc(sizeof(FklVMheap));
 	FKL_ASSERT(tmp,__func__);
+	tmp->running=0;
 	tmp->num=0;
 	tmp->threshold=FKL_THRESHOLD_SIZE;
 	tmp->head=NULL;
+	tmp->gray=fklNewPtrStack(128,64);
+	tmp->white=NULL;
 	pthread_mutex_init(&tmp->lock,NULL);
+	pthread_mutex_init(&tmp->glock,NULL);
 	return tmp;
 }
 
@@ -1342,9 +1354,11 @@ void propagateMark(FklVMvalue* root,FklVMheap* heap)
 
 void fklGC_propagate(FklVM* exe)
 {
+	pthread_mutex_lock(&exe->heap->glock);
 	FklVMvalue* v=fklPopPtrStack(exe->heap->gray);
 	v->mark=FKL_MARK_B;
 	propagateMark(v,exe->heap);
+	pthread_mutex_unlock(&exe->heap->glock);
 }
 
 void fklGC_collect(FklVM* exe)
@@ -1388,8 +1402,31 @@ void fklGC_sweepW(FklVM* exe)
 		count++;
 	}
 	pthread_mutex_lock(&exe->heap->lock);
+	fprintf(stderr,"sweep count:%d\n",count);
 	exe->heap->num-=count;
 	pthread_mutex_unlock(&exe->heap->lock);
+}
+
+void* fklGC_threadFunc(void* arg)
+{
+	FklVM* exe=arg;
+	if(exe->VMid!=-1)
+		fklGC_markGlobalRoot();
+	else
+		fklGC_markRootToGray(exe);
+	for(;;)
+	{
+		pthread_mutex_lock(&exe->heap->glock);
+		int r=fklIsPtrStackEmpty(exe->heap->gray);
+		pthread_mutex_unlock(&exe->heap->glock);
+		if(r)
+			break;
+		fklGC_propagate(exe);
+	}
+	fklGC_collect(exe);
+	fklGC_sweepW(exe);
+	exe->heap->running=FKL_GC_DONE;
+	return NULL;
 }
 
 void fklGC_markValueInEnv(FklVMenv* curEnv)
@@ -1605,7 +1642,11 @@ void fklFreeAllVMs()
 
 void fklFreeVMheap(FklVMheap* h)
 {
+	if(h->running)
+		fklGC_joinGCthread(h);
 	fklGC_sweep(h);
+	fklFreePtrStack(h->gray);
+	pthread_mutex_destroy(&h->glock);
 	pthread_mutex_destroy(&h->lock);
 	free(h);
 }
@@ -1745,4 +1786,11 @@ int fklGetVMargc(void)
 char** fklGetVMargv(void)
 {
 	return VMargv;
+}
+
+void fklGC_joinGCthread(FklVMheap* h)
+{
+	void* result=NULL;
+	pthread_join(GCthreadid,result);
+	h->running=0;
 }

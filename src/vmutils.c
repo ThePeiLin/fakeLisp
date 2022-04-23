@@ -1047,6 +1047,8 @@ void fklInitVMRunningResource(FklVM* vm,FklVMvalue* vEnv,FklVMheap* heap,FklByte
 
 void fklUninitVMRunningResource(FklVM* vm)
 {
+	if(vm->heap->running)
+		fklGC_joinGCthread(vm->heap);
 	free(vm->lnt);
 	fklDeleteCallChain(vm);
 	fklFreeVMstack(vm->stack);

@@ -39,37 +39,6 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVMheap* heap)
 					FklValueType type=root->type;
 					switch(type)
 					{
-						case FKL_F64:
-							*root1=fklNewVMvalue(FKL_F64,&root->u.f64,heap);
-							break;
-						case FKL_STR:
-							*root1=fklNewVMvalue(FKL_STR,fklNewVMstr(root->u.str->size,root->u.str->str),heap);
-							break;
-						case FKL_CONT:
-						case FKL_PROC:
-						case FKL_FP:
-						case FKL_DLL:
-						case FKL_DLPROC:
-						case FKL_ERR:
-						case FKL_VECTOR:
-						case FKL_USERDATA:
-							*root1=root;
-							break;
-						case FKL_CHAN:
-							{
-								FklVMchanl* objCh=root->u.chan;
-								FklVMchanl* tmpCh=fklNewVMchanl(objCh->max);
-								FklQueueNode* cur=objCh->messages->head;
-								for(;cur;cur=cur->next)
-								{
-									void* tmp=FKL_VM_NIL;
-									fklPushPtrQueue(tmp,tmpCh->messages);
-									fklPushPtrStack(cur->data,s1);
-									fklPushPtrStack(tmp,s2);
-								}
-								*root1=fklNewVMvalue(FKL_CHAN,tmpCh,heap);
-							}
-							break;
 						case FKL_PAIR:
 							*root1=fklNewVMvalue(FKL_PAIR,fklNewVMpair(),heap);
 							fklPushPtrStack(&(*root1)->u.pair->car,s2);
@@ -78,6 +47,7 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVMheap* heap)
 							fklPushPtrStack(root->u.pair->cdr,s1);
 							break;
 						default:
+							*root1=root;
 							break;
 					}
 					*root1=FKL_MAKE_VM_PTR(*root1);
@@ -186,6 +156,8 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 						return NULL;
 						break;
 				}
+				if(heap->running==FKL_GC_RUNNING)
+					fklGC_toGray(tmp,heap);
 				return FKL_MAKE_VM_PTR(tmp);
 			}
 			break;

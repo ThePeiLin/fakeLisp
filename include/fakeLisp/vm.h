@@ -92,8 +92,8 @@ typedef enum{
 }FklVMvalueMark;
 typedef struct FklVMvalue
 {
-	FklVMvalueMark mark:4;
-	FklValueType type:12;
+	FklVMvalueMark mark;
+	FklValueType type;
 	union
 	{
 		struct FklVMpair* pair;
@@ -175,8 +175,15 @@ typedef struct FklVM
 	jmp_buf buf;
 }FklVM;
 
+typedef enum
+{
+	FKL_GC_RUNNING=1,
+	FKL_GC_DONE,
+}FklGCState;
+
 typedef struct FklVMheap
 {
+	int running;
 	pthread_mutex_t lock;
 	uint32_t num;
 	uint32_t threshold;
@@ -255,6 +262,7 @@ void fklFreeAllVMs();
 void fklDeleteCallChain(FklVM*);
 void fklJoinAllThread();
 void fklCancelAllThread();
+void* fklGC_threadFunc(void*);
 void fklGC_mark(FklVM*);
 void fklGC_markValue(FklVMvalue*);
 void fklGC_markValueInStack(FklVMstack*);
@@ -264,6 +272,8 @@ void fklGC_markMessage(FklQueueNode*);
 void fklGC_markSendT(FklQueueNode*);
 void fklGC_sweep(FklVMheap*);
 void fklGC_compact(FklVMheap*);
+void fklGC_toGray(FklVMvalue*,FklVMheap*);
+void fklGC_joinGCthread(FklVMheap* h);
 
 void fklDBG_printVMenv(FklVMenv*,FILE*);
 void fklDBG_printVMvalue(FklVMvalue*,FILE*);

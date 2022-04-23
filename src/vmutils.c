@@ -48,7 +48,10 @@ FklVMvalue* fklPopAndGetVMstack(FklVMstack* stack)
 	FklVMvalue* tmp=fklGetTopValue(stack);
 	stack->tp-=1;
 	if(FKL_IS_REF(tmp))
+	{
+		stack->tp-=1;
 		return *(FklVMvalue**)(FKL_GET_PTR(tmp));
+	}
 	if(FKL_IS_MREF(tmp))
 	{
 		void* ptr=fklGetTopValue(stack);

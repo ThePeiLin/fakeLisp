@@ -798,6 +798,7 @@ void B_pop_ref(FklVM* exe)
 		FKL_RAISE_BUILTIN_ERROR("b.pop_ref",FKL_WRONGARG,runnable,exe);
 	if(FKL_IS_REF(ref))
 	{
+		FklVMvalue* orig=fklPopVMstack(stack);
 		if(fklSET_REF(ref,val))
 			FKL_RAISE_BUILTIN_ERROR("b.pop_ref",FKL_INVALIDASSIGN,runnable,exe);
 	}
@@ -1054,7 +1055,10 @@ void fklDBG_printVMstack(FklVMstack* stack,FILE* fp,int mode)
 			if(fp!=stdout)fprintf(fp,"%d:",i);
 			FklVMvalue* tmp=stack->values[i];
 			if(FKL_IS_REF(tmp))
+			{
 				tmp=*(FklVMvalue**)FKL_GET_PTR(tmp);
+				i--;
+			}
 			else if(FKL_IS_MREF(tmp))
 			{
 				FklVMvalue* ptr=stack->values[--i];
@@ -1218,6 +1222,15 @@ void fklGC_markValue(FklVMvalue* obj)
 	}
 	fklFreePtrStack(stack);
 }
+
+void fklGC_toGray(FklVMvalue* v,FklVMheap* h)
+{
+	v->mark=FKL_MARK_G;
+	pthread_mutex_lock(&h->glock);
+	fklPushPtrStack(v,h->gray);
+	pthread_mutex_unlock(&h->glock);
+}
+
 void fklGC_markRootToGray(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
@@ -1226,26 +1239,19 @@ void fklGC_markRootToGray(FklVM* exe)
 	for(uint32_t i=stack->tp;i>0;i--)
 	{
 		FklVMvalue* value=stack->values[i-1];
-		if(FKL_IS_MREF(value))
+		if(FKL_IS_MREF(value)||FKL_IS_REF(value))
 			i--;
 		else if(FKL_GET_TAG(value)==FKL_PTR_TAG)
-		{
-			value->mark=FKL_MARK_G;
-			fklPushPtrStack(value,heap->gray);
-		}
+			fklGC_toGray(value,heap);
 	}
 	for(uint32_t i=0;i<rstack->top;i++)
 	{
 		FklVMrunnable* cur=rstack->base[i];
 		FklVMvalue* value=cur->localenv;
-		value->mark=FKL_MARK_G;
-		fklPushPtrStack(value,heap->gray);
+		fklGC_toGray(value,heap);
 	}
 	if(exe->chan)
-	{
-		exe->chan->mark=FKL_MARK_G;
-		fklPushPtrStack(exe->chan,heap->gray);
-	}
+		fklGC_toGray(exe->chan,heap);
 }
 
 void fklGC_markGlobalRoot(void)
@@ -1406,11 +1412,12 @@ void fklGC_markValueInCallChain(FklPtrStack* rstack)
 
 void fklGC_markValueInStack(FklVMstack* stack)
 {
-	int32_t i=0;
-	for(;i<stack->tp;i++)
+	for(uint32_t i=stack->tp;i>0;i--)
 	{
-		FklVMvalue* t=stack->values[i];
-		if(!FKL_IS_MREF(t))
+		FklVMvalue* t=stack->values[i-1];
+		if(FKL_IS_REF(t)||FKL_IS_MREF(t))
+			i--;
+		else
 			fklGC_markValue(t);
 	}
 }

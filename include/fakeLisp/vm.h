@@ -181,6 +181,7 @@ typedef struct FklVMheap
 	uint32_t num;
 	uint32_t threshold;
 	FklVMvalue* head;
+	pthread_mutex_t glock;
 	FklPtrStack* gray;
 	FklVMvalue* white;
 }FklVMheap;

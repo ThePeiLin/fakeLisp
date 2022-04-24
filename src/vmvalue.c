@@ -113,13 +113,6 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 				FKL_ASSERT(tmp,__func__);
 				tmp->type=type;
 				tmp->mark=0;
-				if(heap->running==FKL_GC_RUNNING)
-					fklGC_toGray(tmp,heap);
-				pthread_mutex_lock(&heap->lock);
-				tmp->next=heap->head;
-				heap->head=tmp;
-				heap->num+=1;
-				pthread_mutex_unlock(&heap->lock);
 				switch(type)
 				{
 					case FKL_F64:
@@ -158,6 +151,13 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 						return NULL;
 						break;
 				}
+				if(heap->running==FKL_GC_RUNNING)
+					fklGC_toGray(tmp,heap);
+				pthread_mutex_lock(&heap->lock);
+				tmp->next=heap->head;
+				heap->head=tmp;
+				heap->num+=1;
+				pthread_mutex_unlock(&heap->lock);
 				return FKL_MAKE_VM_PTR(tmp);
 			}
 			break;

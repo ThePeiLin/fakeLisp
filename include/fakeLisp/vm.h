@@ -103,7 +103,6 @@ typedef struct FklVMvalue
 		struct FklVMproc* proc;
 		FklVMdllHandle dll;
 		struct FklVMdlproc* dlproc;
-		struct FklVMflproc* flproc;
 		struct FklVMcontinuation* cont;
 		FklVMfp* fp;
 		FklVMvec* vec;
@@ -166,6 +165,7 @@ typedef struct FklVM
 	pthread_t tid;
 	uint8_t* code;
 	uint64_t size;
+	pthread_mutex_t rlock;
 	FklPtrStack* rstack;
 	FklPtrStack* tstack;
 	FklVMstack* stack;

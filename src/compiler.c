@@ -42,6 +42,8 @@ static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap
 			fklCodelntCopyCat(t,curEnv->proc);
 			fklInitVMRunningResource(tmpVM,vEnv,heap,t,bs,curEnv->proc->bc->size);
 			bs+=curEnv->proc->bc->size;
+			tmpVM->chan=fklNewVMvalue(FKL_CHAN,fklNewVMchanl(0),heap);
+			fklChanlSend(fklNewVMsend(vEnv),tmpVM->chan->u.chan,NULL);
 			int i=fklRunVM(tmpVM);
 			if(i==1)
 			{
@@ -54,6 +56,32 @@ static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap
 	}
 	fklFreePtrStack(stack);
 	return vEnv;
+}
+
+static FklByteCodelnt* getEnvGenCode(FklCompEnv* cEnv)
+{
+	FklByteCodelnt* t=fklNewByteCodelnt(fklNewByteCode(0));
+	t->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
+	FKL_ASSERT(t->l,__func__);
+	t->l[0]=fklNewLineNumTabNode(0,0,0,0);
+	FklPtrStack* stack=fklNewPtrStack(32,16);
+	FklByteCode* push_r_env=fklNewByteCode(sizeof(char));
+	push_r_env->code[0]=FKL_PUSH_R_ENV;
+	FklCompEnv* tcEnv=cEnv;
+	for(;tcEnv;tcEnv=tcEnv->prev)
+		fklPushPtrStack(tcEnv,stack);
+	while(!fklIsPtrStackEmpty(stack))
+	{
+		FklCompEnv* curEnv=fklPopPtrStack(stack);
+		if(curEnv->prev)
+		{
+			fklCodeCat(t->bc,push_r_env);
+			t->l[t->ls-1]->cpc+=push_r_env->size;
+		}
+		if(curEnv->proc->bc->size)
+			fklCodelntCopyCat(t,curEnv->proc);
+	}
+	return t;
 }
 
 static int cmpString(const void* a,const void* b)
@@ -86,6 +114,7 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 		char* cwd=getcwd(NULL,0);
 		chdir(fklGetCwd());
 		FklVM* tmpVM=fklNewTmpVM(NULL);
+		//FklByteCodelnt* genEnvCode=getEnvGenCode(tmp->macroEnv);
 		FklVMvalue* tmpGlob=genGlobEnv(tmp->macroEnv,t,tmpVM->heap);
 		if(!tmpGlob)
 		{

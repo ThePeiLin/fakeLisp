@@ -12,7 +12,7 @@
     get-time)
   (define btk (dlopen (append (getdir) "/../btk")))
   (define remove-file (dlsym btk "removeFile"))
-  (define set-chanl-buf-size (dlsym btk "setVMChanlBufferSize"))
+  (define set-chanl-buf-size (dlsym btk "setChanlBufferSize"))
   (define getch (dlsym btk "getch"))
   (define sleep (dlsym btk "sleep"))
   (define usleep (dlsym btk "usleep"))

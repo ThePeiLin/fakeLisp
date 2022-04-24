@@ -39,9 +39,10 @@ void FKL_ffi_load(ARGL)
 	char* path=fklCharBufToStr(vpath->u.str->str,vpath->u.str->size);
 	FklVMdllHandle handle=fklLoadDll(path);
 	if(!handle)
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR("sys.dlopen",path,1,FKL_LOADDLLFAILD,r,exe);
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR("ffi.load",path,1,FKL_LOADDLLFAILD,r,exe);
 	free(path);
 	fklAddSharedObj(handle);
+	FKL_SET_RETURN(__func__,vpath,stack);
 }
 
 void FKL_ffi_ref(ARGL)

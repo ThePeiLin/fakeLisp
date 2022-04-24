@@ -156,6 +156,7 @@ typedef struct
 	uint32_t tpsi;
 	uint32_t tptp;
 	uint32_t* tpst;
+	pthread_mutex_t lock;
 }FklVMstack;
 
 typedef struct FklVM
@@ -183,7 +184,7 @@ typedef enum
 
 typedef struct FklVMheap
 {
-	int running;
+	volatile int running;
 	pthread_mutex_t lock;
 	uint32_t num;
 	uint32_t threshold;

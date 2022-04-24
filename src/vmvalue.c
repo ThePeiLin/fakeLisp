@@ -110,6 +110,8 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 		default:
 			{
 				FklVMvalue* tmp=(FklVMvalue*)malloc(sizeof(FklVMvalue));
+				if(heap->running==FKL_GC_RUNNING)
+					fklGC_toGray(tmp,heap);
 				FKL_ASSERT(tmp,__func__);
 				tmp->type=type;
 				tmp->mark=0;
@@ -156,8 +158,6 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 						return NULL;
 						break;
 				}
-				if(heap->running==FKL_GC_RUNNING)
-					fklGC_toGray(tmp,heap);
 				return FKL_MAKE_VM_PTR(tmp);
 			}
 			break;
@@ -593,9 +593,11 @@ void fklChanlSend(FklVMsend*s,FklVMchanl* ch,pthread_rwlock_t* pGClock)
 			fklPushPtrQueue(s,ch->sendq);
 			if(fklLengthPtrQueue(ch->messages)==ch->max-1)
 				fklPushPtrQueue(s->m,ch->messages);
-			fklReleaseGC(pGClock);
+			if(pGClock)
+				fklReleaseGC(pGClock);
 			pthread_cond_wait(&s->cond,&ch->lock);
-			fklLockGC(pGClock);
+			if(pGClock)
+				fklLockGC(pGClock);
 		}
 	}
 	fklFreeVMsend(s);
@@ -683,8 +685,13 @@ FklVMenvNode* fklAddVMenvNode(FklVMenvNode* node,FklVMenv* env)
 		while(l<=h)
 		{
 			mid=l+(h-l)/2;
-			if(env->list[mid]->id>=node->id)
+			if(env->list[mid]->id>node->id)
 				h=mid-1;
+			else if(env->list[mid]->id==node->id)
+			{
+				pthread_mutex_unlock(&env->mutex);
+				return env->list[mid];
+			}
 			else
 				l=mid+1;
 		}

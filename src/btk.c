@@ -148,7 +148,7 @@ void FKL_removeFile(FklVM* exe,pthread_rwlock_t* pGClock)
 	free(name);
 }
 
-void FKL_setVMChanlBufferSize(FklVM* exe,pthread_rwlock_t* pGClock)
+void FKL_setChanlBufferSize(FklVM* exe,pthread_rwlock_t* pGClock)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMvalue* chan=fklPopVMstack(stack);

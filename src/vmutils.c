@@ -43,23 +43,30 @@ FklVMvalue* fklPopVMstack(FklVMstack* stack)
 
 FklVMvalue* fklPopAndGetVMstack(FklVMstack* stack)
 {
+	pthread_mutex_lock(&stack->lock);
+	FklVMvalue* r=NULL;
 	if(!(stack->tp>stack->bp))
-		return NULL;
-	FklVMvalue* tmp=fklGetTopValue(stack);
-	stack->tp-=1;
-	if(FKL_IS_REF(tmp))
-	{
-		stack->tp-=1;
-		return *(FklVMvalue**)(FKL_GET_PTR(tmp));
-	}
-	if(FKL_IS_MREF(tmp))
-	{
-		void* ptr=fklGetTopValue(stack);
-		stack->tp-=1;
-		return FKL_MAKE_VM_CHR(*(char*)ptr);
-	}
+		r=NULL;
 	else
-		return tmp;
+	{
+		FklVMvalue* tmp=fklGetTopValue(stack);
+		stack->tp-=1;
+		if(FKL_IS_REF(tmp))
+		{
+			stack->tp-=1;
+			r=*(FklVMvalue**)(FKL_GET_PTR(tmp));
+		}
+		if(FKL_IS_MREF(tmp))
+		{
+			void* ptr=fklGetTopValue(stack);
+			stack->tp-=1;
+			r=FKL_MAKE_VM_CHR(*(char*)ptr);
+		}
+		else
+			r=tmp;
+	}
+	pthread_mutex_unlock(&stack->lock);
+	return r;
 }
 
 FklVMvalue* fklCastPreEnvToVMenv(FklPreEnv* pe,FklVMvalue* prev,FklVMheap* heap)
@@ -86,9 +93,11 @@ FklVMstack* fklCopyStack(FklVMstack* stack)
 	int32_t i=0;
 	FklVMstack* tmp=(FklVMstack*)malloc(sizeof(FklVMstack));
 	FKL_ASSERT(tmp,__func__);
+	pthread_mutex_lock(&stack->lock);
 	tmp->size=stack->size;
 	tmp->tp=stack->tp;
 	tmp->bp=stack->bp;
+	pthread_mutex_init(&tmp->lock,NULL);
 	tmp->values=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*(tmp->size));
 	FKL_ASSERT(tmp->values,__func__);
 	for(;i<stack->tp;i++)
@@ -102,6 +111,7 @@ FklVMstack* fklCopyStack(FklVMstack* stack)
 		FKL_ASSERT(tmp->tpst,__func__);
 		if(tmp->tptp)memcpy(tmp->tpst,stack->tpst,sizeof(int32_t)*(tmp->tptp));
 	}
+	pthread_mutex_unlock(&stack->lock);
 	return tmp;
 }
 

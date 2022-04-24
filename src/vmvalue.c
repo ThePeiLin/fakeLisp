@@ -154,7 +154,7 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 				if(heap->running==FKL_GC_RUNNING)
 					fklGC_toGray(tmp,heap);
 				pthread_mutex_lock(&heap->lock);
-				tmp->next=heap->head;
+				tmp->next=(FklVMvalue*)heap->head;
 				heap->head=tmp;
 				heap->num+=1;
 				pthread_mutex_unlock(&heap->lock);

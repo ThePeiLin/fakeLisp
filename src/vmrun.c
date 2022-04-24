@@ -21,8 +21,7 @@ static FklVMvalue* VMstdin=NULL;
 static FklVMvalue* VMstdout=NULL;
 static FklVMvalue* VMstderr=NULL;
 static pthread_t GCthreadid;
-static volatile int GCthreadCount;
-static volatile int GCstartcp;
+static volatile int GCtimce;
 static int VMargc=0;
 static char** VMargv=NULL;
 
@@ -498,11 +497,10 @@ int fklRunVM(FklVM* exe)
 		}
 		ByteCodes[(uint8_t)exe->code[cp]](exe);
 		pthread_rwlock_unlock(&GClock);
-		//if(exe->heap->num>exe->heap->threshold&&exe->heap->running==0)
-		if(exe->heap->running==0)
+		if(exe->heap->num>exe->heap->threshold&&exe->heap->running==0)
+		//if(exe->heap->running==0)
 		{
 			exe->heap->running=FKL_GC_RUNNING;
-			GCstartcp=cp;
 			pthread_create(&GCthreadid,NULL,fklGC_threadFunc,exe);
 			//if(pthread_rwlock_trywrlock(&GClock))continue;
 			//int i=0;
@@ -530,7 +528,6 @@ int fklRunVM(FklVM* exe)
 			//pthread_mutex_unlock(&exe->heap->lock);
 			//pthread_rwlock_unlock(&GClock);
 		}
-
 		if(exe->heap->running==FKL_GC_DONE)
 			fklGC_joinGCthread(exe->heap);
 	}
@@ -1254,10 +1251,13 @@ void fklGC_markValue(FklVMvalue* obj)
 
 void fklGC_toGray(FklVMvalue* v,FklVMheap* h)
 {
-	v->mark=FKL_MARK_G;
-	pthread_mutex_lock(&h->glock);
-	fklPushPtrStack(v,h->gray);
-	pthread_mutex_unlock(&h->glock);
+	if(FKL_IS_PTR(v)&&v->mark==FKL_MARK_W)
+	{
+		v->mark=FKL_MARK_G;
+		pthread_mutex_lock(&h->glock);
+		fklPushPtrStack(v,h->gray);
+		pthread_mutex_unlock(&h->glock);
+	}
 }
 
 void fklGC_markRootToGray(FklVM* exe)
@@ -1315,27 +1315,26 @@ void fklGC_pause(FklVM* exe)
 
 void propagateMark(FklVMvalue* root,FklVMheap* heap)
 {
-	FklPtrStack* stack=heap->gray;
 	switch(root->type)
 	{
 		case FKL_PAIR:
-			fklPushPtrStack(root->u.pair->car,stack);
-			fklPushPtrStack(root->u.pair->cdr,stack);
+			fklGC_toGray(root->u.pair->car,heap);
+			fklGC_toGray(root->u.pair->cdr,heap);
 			break;
 		case FKL_PROC:
-			fklPushPtrStack(root->u.proc->prevEnv,stack);
+			fklGC_toGray(root->u.proc->prevEnv,heap);
 			break;
 		case FKL_CONT:
 			for(uint32_t i=0;i<root->u.cont->stack->tp;i++)
-				fklPushPtrStack(root->u.cont->stack->values[i],stack);
+				fklGC_toGray(root->u.cont->stack->values[i],heap);
 			for(uint32_t i=0;i<root->u.cont->num;i++)
-				fklPushPtrStack(root->u.cont->state[i].localenv,stack);
+				fklGC_toGray(root->u.cont->state[i].localenv,heap);
 			break;
 		case FKL_VECTOR:
 			{
 				FklVMvec* vec=root->u.vec;
 				for(size_t i=0;i<vec->size;i++)
-					fklPushPtrStack(vec->base[i],stack);
+					fklGC_toGray(vec->base[i],heap);
 			}
 			break;
 		case FKL_CHAN:
@@ -1343,24 +1342,24 @@ void propagateMark(FklVMvalue* root,FklVMheap* heap)
 				pthread_mutex_lock(&root->u.chan->lock);
 				FklQueueNode* head=root->u.chan->messages->head;
 				for(;head;head=head->next)
-					fklPushPtrStack(head->data,stack);
+					fklGC_toGray(head->data,heap);
 				for(head=root->u.chan->sendq->head;head;head=head->next)
-					fklPushPtrStack(((FklVMsend*)head->data)->m,stack);
+					fklGC_toGray(((FklVMsend*)head->data)->m,heap);
 				pthread_mutex_unlock(&root->u.chan->lock);
 			}
 			break;
 		case FKL_DLPROC:
 			if(root->u.dlproc->dll)
-				fklPushPtrStack(root->u.dlproc->dll,stack);
+				fklGC_toGray(root->u.dlproc->dll,heap);
 			break;
 		case FKL_ENV:
 			{
 				FklVMenv* env=root->u.env;
 				pthread_mutex_lock(&env->mutex);
 				if(env->prev)
-					fklPushPtrStack(env->prev,stack);
+					fklGC_toGray(env->prev,heap);
 				for(uint32_t i=0;i<env->num;i++)
-					fklPushPtrStack(env->list[i]->value,stack);
+					fklGC_toGray(env->list[i]->value,heap);
 				pthread_mutex_unlock(&env->mutex);
 			}
 			break;
@@ -1382,21 +1381,21 @@ void fklGC_propagate(FklVM* exe)
 {
 	pthread_mutex_lock(&exe->heap->glock);
 	FklVMvalue* v=fklPopPtrStack(exe->heap->gray);
+	pthread_mutex_unlock(&exe->heap->glock);
 	if(FKL_IS_PTR(v)&&v->mark==FKL_MARK_G)
 	{
 		v->mark=FKL_MARK_B;
 		propagateMark(v,exe->heap);
 	}
-	pthread_mutex_unlock(&exe->heap->glock);
 }
 
 void fklGC_collect(FklVM* exe)
 {
 	pthread_mutex_lock(&exe->heap->lock);
-	FklVMvalue* head=exe->heap->head;
+	volatile FklVMvalue* head=exe->heap->head;
 	exe->heap->head=NULL;
 	pthread_mutex_unlock(&exe->heap->lock);
-	FklVMvalue** phead=&head;
+	FklVMvalue** phead=(FklVMvalue**)&head;
 	while(*phead)
 	{
 		FklVMvalue* cur=*phead;
@@ -1413,7 +1412,7 @@ void fklGC_collect(FklVM* exe)
 		}
 	}
 	pthread_mutex_lock(&exe->heap->lock);
-	*phead=exe->heap->head;
+	*phead=(FklVMvalue*)exe->heap->head;
 	exe->heap->head=head;
 	pthread_mutex_unlock(&exe->heap->lock);
 }
@@ -1431,14 +1430,14 @@ void fklGC_sweepW(FklVM* exe)
 		count++;
 	}
 	pthread_mutex_lock(&exe->heap->lock);
-	fprintf(stderr,"sweep count:%d\n",count);
+	fprintf(stderr,"%d:sweep count:%d\n",GCtimce,count);
 	exe->heap->num-=count;
 	pthread_mutex_unlock(&exe->heap->lock);
 }
 
 void* fklGC_threadFunc(void* arg)
 {
-	GCthreadCount++;
+	GCtimce++;
 	FklVM* exe=arg;
 	if(exe->VMid!=-1)
 		fklGC_markGlobalRoot();
@@ -1458,7 +1457,6 @@ void* fklGC_threadFunc(void* arg)
 	fklGC_sweepW(exe);
 	exe->heap->threshold=exe->heap->num+FKL_THRESHOLD_SIZE;
 	exe->heap->running=FKL_GC_DONE;
-	GCthreadCount--;
 	return NULL;
 }
 
@@ -1550,7 +1548,7 @@ void fklFreeVMvalue(FklVMvalue* cur)
 
 void fklGC_sweep(FklVMheap* heap)
 {
-	FklVMvalue** phead=&heap->head;
+	FklVMvalue** phead=(FklVMvalue**)&heap->head;
 	while(*phead!=NULL)
 	{
 		FklVMvalue* cur=*phead;

@@ -491,7 +491,8 @@ int fklRunVM(FklVM* exe)
 		}
 		ByteCodes[(uint8_t)exe->code[cp]](exe);
 		pthread_rwlock_unlock(&GClock);
-		if(exe->heap->num>exe->heap->threshold&&exe->heap->running==0)
+		//if(exe->heap->num>exe->heap->threshold&&exe->heap->running==0)
+		if(exe->heap->running==0)
 		{
 			exe->heap->running=FKL_GC_RUNNING;
 			pthread_create(&GCthreadid,NULL,fklGC_threadFunc,exe);
@@ -1357,6 +1358,9 @@ void propagateMark(FklVMvalue* root,FklVMheap* heap)
 		case FKL_F64:
 		case FKL_FP:
 		case FKL_DLL:
+		case FKL_ERR:
+		case FKL_STR:
+		case FKL_USERDATA:
 			break;
 		default:
 			FKL_ASSERT(0,__func__);

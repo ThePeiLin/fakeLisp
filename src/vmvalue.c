@@ -110,13 +110,13 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 		default:
 			{
 				FklVMvalue* tmp=(FklVMvalue*)malloc(sizeof(FklVMvalue));
-				if(heap->running==FKL_GC_RUNNING)
-					fklGC_toGray(tmp,heap);
 				FKL_ASSERT(tmp,__func__);
 				tmp->type=type;
 				tmp->mark=0;
-				tmp->next=heap->head;
+				if(heap->running==FKL_GC_RUNNING)
+					fklGC_toGray(tmp,heap);
 				pthread_mutex_lock(&heap->lock);
+				tmp->next=heap->head;
 				heap->head=tmp;
 				heap->num+=1;
 				pthread_mutex_unlock(&heap->lock);

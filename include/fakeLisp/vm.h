@@ -109,7 +109,7 @@ typedef struct FklVMvalue
 		struct FklVMenv* env;
 		struct FklVMchanl* chan;
 		struct FklVMerror* err;
-		void* ud;
+		void* p;
 	}u;
 	struct FklVMvalue* next;
 }FklVMvalue;
@@ -165,7 +165,6 @@ typedef struct FklVM
 	pthread_t tid;
 	uint8_t* code;
 	uint64_t size;
-	pthread_mutex_t rlock;
 	FklPtrStack* rstack;
 	FklPtrStack* tstack;
 	FklVMstack* stack;
@@ -188,7 +187,7 @@ typedef struct FklVMheap
 	pthread_mutex_t lock;
 	uint32_t num;
 	uint32_t threshold;
-	volatile FklVMvalue* head;
+	FklVMvalue* head;
 	pthread_mutex_t glock;
 	FklPtrStack* gray;
 	FklVMvalue* white;

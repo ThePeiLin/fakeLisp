@@ -38,7 +38,7 @@ static int envNodeCmp(const void* a,const void* b)
 	return ((*(FklVMenvNode**)a)->id-(*(FklVMenvNode**)b)->id);
 }
 
-pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
+//pthread_rwlock_t GClock=PTHREAD_RWLOCK_INITIALIZER;
 
 
 /*procedure invoke functions*/
@@ -49,11 +49,9 @@ void invokeNativeProcdure(FklVM* exe,FklVMproc* tmpProc,FklVMrunnable* runnable)
 		prevProc->mark=1;
 	else
 	{
-		pthread_mutex_lock(&exe->rlock);
 		FklVMrunnable* tmpRunnable=fklNewVMrunnable(tmpProc);
 		tmpRunnable->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(tmpProc->prevEnv),exe->heap);
 		fklPushPtrStack(tmpRunnable,exe->rstack);
-		pthread_mutex_unlock(&exe->rlock);
 	}
 }
 
@@ -64,8 +62,7 @@ void invokeContinuation(FklVM* exe,VMcontinuation* cc)
 
 void invokeDlProc(FklVM* exe,FklVMdlproc* dlproc)
 {
-	FklVMdllFunc dllfunc=dlproc->func;
-	dllfunc(exe,&GClock);
+	dlproc->func(exe);
 }
 
 /*--------------------------*/
@@ -168,7 +165,6 @@ FklVM* fklNewVM(FklByteCode* mainCode)
 	exe->tstack=fklNewPtrStack(32,16);
 	exe->heap=fklNewVMheap();
 	exe->callback=NULL;
-	pthread_mutex_init(&exe->rlock,NULL);
 	FklVM** ppVM=NULL;
 	int i=0;
 	for(;i<GlobVMs.num;i++)
@@ -209,13 +205,12 @@ FklVM* fklNewTmpVM(FklByteCode* mainCode)
 	exe->stack=fklNewVMstack(0);
 	exe->tstack=fklNewPtrStack(32,16);
 	exe->heap=fklNewVMheap();
-	pthread_mutex_init(&exe->rlock,NULL);
 	exe->callback=threadErrorCallBack;
 	exe->VMid=-1;
 	return exe;
 }
 
-#define ARGL FklVM*,pthread_rwlock_t*
+#define ARGL FklVM*
 extern void SYS_car(ARGL);
 extern void SYS_cdr(ARGL);
 extern void SYS_cons(ARGL);
@@ -400,7 +395,7 @@ void* ThreadVMfunc(void* p)
 		FklVMstack* stack=exe->stack;
 		FklVMvalue* v=NULL;
 		while((v=fklPopAndGetVMstack(stack)))
-			fklChanlSend(fklNewVMsend(v),tmpCh,&GClock);
+			fklChanlSend(fklNewVMsend(v),tmpCh);
 	}
 	else
 	{
@@ -412,7 +407,7 @@ void* ThreadVMfunc(void* p)
 		free(threadErrorMessage);
 		free(id);
 		FklVMsend* t=fklNewVMsend(err);
-		fklChanlSend(t,tmpCh,&GClock);
+		fklChanlSend(t,tmpCh);
 	}
 	fklFreeVMstack(exe->stack);
 	exe->stack=NULL;
@@ -481,10 +476,8 @@ int fklRunVM(FklVM* exe)
 			}
 			else
 			{
-				pthread_mutex_lock(&exe->rlock);
 				FklVMrunnable* r=fklPopPtrStack(exe->rstack);
 				free(r);
-				pthread_mutex_unlock(&exe->rlock);
 				continue;
 			}
 		}
@@ -497,12 +490,11 @@ int fklRunVM(FklVM* exe)
 		}
 		ByteCodes[(uint8_t)exe->code[cp]](exe);
 		pthread_rwlock_unlock(&GClock);
-		if(exe->heap->num>exe->heap->threshold&&exe->heap->running==0)
+		if(exe->heap->running==0&&exe->heap->num>exe->heap->threshold)
 		//if(exe->heap->running==0)
 		{
 			exe->heap->running=FKL_GC_RUNNING;
 			pthread_create(&GCthreadid,NULL,fklGC_threadFunc,exe);
-			//if(pthread_rwlock_trywrlock(&GClock))continue;
 			//int i=0;
 			//if(exe->VMid!=-1)
 			//{
@@ -1265,14 +1257,12 @@ void fklGC_markRootToGray(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMheap* heap=exe->heap;
 	FklPtrStack* rstack=exe->rstack;
-	pthread_mutex_lock(&exe->rlock);
 	for(uint32_t i=0;i<rstack->top;i++)
 	{
 		FklVMrunnable* cur=rstack->base[i];
 		FklVMvalue* value=cur->localenv;
 		fklGC_toGray(value,heap);
 	}
-	pthread_mutex_unlock(&exe->rlock);
 	pthread_mutex_lock(&stack->lock);
 	for(uint32_t i=stack->tp;i>0;i--)
 	{
@@ -1392,10 +1382,10 @@ void fklGC_propagate(FklVM* exe)
 void fklGC_collect(FklVM* exe)
 {
 	pthread_mutex_lock(&exe->heap->lock);
-	volatile FklVMvalue* head=exe->heap->head;
+	FklVMvalue* head=exe->heap->head;
 	exe->heap->head=NULL;
 	pthread_mutex_unlock(&exe->heap->lock);
-	FklVMvalue** phead=(FklVMvalue**)&head;
+	FklVMvalue** phead=&head;
 	while(*phead)
 	{
 		FklVMvalue* cur=*phead;
@@ -1412,7 +1402,7 @@ void fklGC_collect(FklVM* exe)
 		}
 	}
 	pthread_mutex_lock(&exe->heap->lock);
-	*phead=(FklVMvalue*)exe->heap->head;
+	*phead=exe->heap->head;
 	exe->heap->head=head;
 	pthread_mutex_unlock(&exe->heap->lock);
 }
@@ -1446,9 +1436,7 @@ void* fklGC_threadFunc(void* arg)
 	//pthread_rwlock_unlock(&GClock);
 	for(;;)
 	{
-		pthread_mutex_lock(&exe->heap->glock);
 		int r=fklIsPtrStackEmpty(exe->heap->gray);
-		pthread_mutex_unlock(&exe->heap->glock);
 		if(r)
 			break;
 		fklGC_propagate(exe);

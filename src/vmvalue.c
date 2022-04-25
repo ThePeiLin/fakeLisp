@@ -144,7 +144,7 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 					case FKL_VECTOR:
 						tmp->u.vec=pValue;break;
 					case FKL_USERDATA:
-						tmp->u.ud=pValue;break;
+						tmp->u.p=pValue;break;
 					case FKL_ENV:
 						tmp->u.env=pValue;break;
 					default:
@@ -154,7 +154,7 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 				if(heap->running==FKL_GC_RUNNING)
 					fklGC_toGray(tmp,heap);
 				pthread_mutex_lock(&heap->lock);
-				tmp->next=(FklVMvalue*)heap->head;
+				tmp->next=heap->head;
 				heap->head=tmp;
 				heap->num+=1;
 				pthread_mutex_unlock(&heap->lock);

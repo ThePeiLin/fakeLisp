@@ -770,6 +770,8 @@ void B_pop_car(FklVM* exe)
 	FklVMvalue* objValue=fklPopAndGetVMstack(stack);
 	if(!FKL_IS_PAIR(objValue))
 		FKL_RAISE_BUILTIN_ERROR("b.pop_car",FKL_WRONGARG,runnable,exe);
+	if(objValue->mark==FKL_MARK_B&&FKL_IS_PTR(topValue)&&topValue->mark==FKL_MARK_W)
+		fklGC_toGray(topValue,exe->heap);
 	objValue->u.pair->car=topValue;
 	FKL_SET_RETURN(__func__,objValue,stack);
 	runnable->cp+=sizeof(char);
@@ -788,11 +790,6 @@ void B_pop_cdr(FklVM* exe)
 	runnable->cp+=1;
 }
 
-static inline int64_t getInt(FklVMvalue* p)
-{
-	return FKL_IS_I32(p)?FKL_GET_I32(p):p->u.i64;
-}
-
 void B_pop_ref(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
@@ -804,7 +801,7 @@ void B_pop_ref(FklVM* exe)
 	if(FKL_IS_REF(ref))
 	{
 		FklVMvalue* by=fklPopVMstack(stack);
-		if(by->mark==FKL_MARK_B&&FKL_IS_PTR(val))
+		if(by->mark==FKL_MARK_B&&FKL_IS_PTR(val)&&val->mark==FKL_MARK_W)
 			fklGC_toGray(val,exe->heap);
 		if(fklSET_REF(ref,val))
 			FKL_RAISE_BUILTIN_ERROR("b.pop_ref",FKL_INVALIDASSIGN,runnable,exe);
@@ -814,7 +811,7 @@ void B_pop_ref(FklVM* exe)
 		void* ptr=fklPopVMstack(stack);
 		if(!FKL_IS_CHR(val)&&!FKL_IS_I32(val)&&!FKL_IS_I64(val))
 			FKL_RAISE_BUILTIN_ERROR("b.pop_ref",FKL_INVALIDASSIGN,runnable,exe);
-		*(char*)ptr=FKL_IS_CHR(val)?FKL_GET_CHR(val):getInt(val);
+		*(char*)ptr=FKL_IS_CHR(val)?FKL_GET_CHR(val):fklGetInt(val);
 	}
 	FKL_SET_RETURN(__func__,val,stack);
 	runnable->cp+=1;
@@ -1176,7 +1173,7 @@ void fklGC_markValue(FklVMvalue* obj)
 	{
 		FklVMvalue* root=fklPopPtrStack(stack);
 		root=FKL_GET_TAG(root)==FKL_REF_TAG?*((FklVMvalue**)FKL_GET_PTR(root)):root;
-		if(FKL_GET_TAG(root)==FKL_PTR_TAG&&!root->mark)
+		if(FKL_IS_PTR(root)&&!root->mark)
 		{
 			root->mark=FKL_MARK_B;
 			switch(root->type)
@@ -1268,7 +1265,7 @@ void fklGC_markRootToGray(FklVM* exe)
 		FklVMvalue* value=stack->values[i-1];
 		if(FKL_IS_MREF(value)||FKL_IS_REF(value))
 			i--;
-		else if(FKL_GET_TAG(value)==FKL_PTR_TAG)
+		else if(FKL_IS_PTR(value))
 			fklGC_toGray(value,heap);
 	}
 	pthread_mutex_unlock(&stack->lock);
@@ -1539,7 +1536,7 @@ void fklGC_sweep(FklVMheap* heap)
 	while(*phead!=NULL)
 	{
 		FklVMvalue* cur=*phead;
-		if(FKL_GET_TAG(cur)==FKL_PTR_TAG&&cur->mark==FKL_MARK_W)
+		if(FKL_IS_PTR(cur)&&cur->mark==FKL_MARK_W)
 		{
 			*phead=cur->next;
 			fklFreeVMvalue(cur);

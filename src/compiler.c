@@ -160,8 +160,9 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 		else
 		{
 			fklFreeByteCodeAndLnt(t);
-			fklFreeVMheap(tmpVM->heap);
+			FklVMheap* h=tmpVM->heap;
 			fklUninitVMRunningResource(tmpVM);
+			fklFreeVMheap(h);
 			return 2;
 		}
 		fklFreeByteCodeAndLnt(t);
@@ -563,6 +564,8 @@ FklErrorState defmacro(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* in
 		{
 			if(tmpByteCodelnt)
 				fklFreeByteCodeAndLnt(tmpByteCodelnt);
+			fklDeleteCptr(pattern);
+			free(pattern);
 			free(args);
 		}
 		fklDestroyCompEnv(tmpCompEnv);

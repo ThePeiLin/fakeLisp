@@ -410,8 +410,6 @@ FklVMvalue* fklPopAndGetVMstack(FklVMstack* stack);
 FklVMdllHandle fklLoadDll(const char* path);
 
 #define FKL_SET_RETURN(fn,v,stack) do{\
-	(stack)->tp=(stack)->ap;\
-	(stack)->ap=0;\
 	if((stack)->tp>=(stack)->size)\
 	{\
 		(stack)->values=(FklVMvalue**)realloc((stack)->values,sizeof(FklVMvalue*)*((stack)->size+64));\

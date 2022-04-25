@@ -737,11 +737,13 @@ void B_pop_rest_arg(FklVM* exe)
 	FklVMvalue* obj=FKL_VM_NIL;
 	FklVMvalue* tmp=NULL;
 	if(stack->tp>stack->bp)
-		obj=fklNewVMvalue(FKL_PAIR,fklNewVMpair(),exe->heap);
+		tmp=obj=fklNewVMvalue(FKL_PAIR,fklNewVMpair(),exe->heap);
 	if(!tmpNode)
 		tmpNode=fklAddVMenvNode(fklNewVMenvNode(obj,idOfVar),curEnv->u.env);
 	else
 		*pValue=obj;
+	if(curEnv->mark==FKL_MARK_B&&FKL_IS_PTR(obj))
+		fklGC_toGray(obj,exe->heap);
 	while(stack->tp>stack->bp)
 	{
 		tmp->u.pair->car=fklPopAndGetVMstack(stack);
@@ -751,8 +753,6 @@ void B_pop_rest_arg(FklVM* exe)
 			break;
 		tmp=tmp->u.pair->cdr;
 	}
-	if(curEnv->mark==FKL_MARK_B&&FKL_IS_PTR(obj))
-		fklGC_toGray(obj,exe->heap);
 	runnable->cp+=sizeof(char)+sizeof(FklSid_t);
 }
 
@@ -1411,7 +1411,7 @@ void fklGC_sweepW(FklVM* exe)
 		count++;
 	}
 	pthread_mutex_lock(&exe->heap->lock);
-	fprintf(stderr,"%d:sweep count:%d\n",GCtimce,count);
+	//fprintf(stderr,"%d:sweep count:%d\n",GCtimce,count);
 	exe->heap->num-=count;
 	pthread_mutex_unlock(&exe->heap->lock);
 }

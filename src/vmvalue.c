@@ -555,15 +555,13 @@ void fklFreeVMsend(FklVMsend* s)
 	free(s);
 }
 
-void fklChanlRecv(FklVMrecv* r,FklVMchanl* ch,pthread_rwlock_t* pGClock)
+void fklChanlRecv(FklVMrecv* r,FklVMchanl* ch)
 {
 	pthread_mutex_lock(&ch->lock);
 	if(!fklLengthPtrQueue(ch->messages))
 	{
 		fklPushPtrQueue(r,ch->recvq);
-		fklReleaseGC(pGClock);
 		pthread_cond_wait(&r->cond,&ch->lock);
-		fklLockGC(pGClock);
 	}
 	r->v=fklPopPtrQueue(ch->messages);
 	if(fklLengthPtrQueue(ch->messages)<ch->max)
@@ -575,7 +573,7 @@ void fklChanlRecv(FklVMrecv* r,FklVMchanl* ch,pthread_rwlock_t* pGClock)
 	pthread_mutex_unlock(&ch->lock);
 }
 
-void fklChanlSend(FklVMsend*s,FklVMchanl* ch,pthread_rwlock_t* pGClock)
+void fklChanlSend(FklVMsend*s,FklVMchanl* ch)
 {
 	pthread_mutex_lock(&ch->lock);
 	if(fklLengthPtrQueue(ch->recvq))
@@ -593,11 +591,7 @@ void fklChanlSend(FklVMsend*s,FklVMchanl* ch,pthread_rwlock_t* pGClock)
 			fklPushPtrQueue(s,ch->sendq);
 			if(fklLengthPtrQueue(ch->messages)==ch->max-1)
 				fklPushPtrQueue(s->m,ch->messages);
-			if(pGClock)
-				fklReleaseGC(pGClock);
 			pthread_cond_wait(&s->cond,&ch->lock);
-			if(pGClock)
-				fklLockGC(pGClock);
 		}
 	}
 	fklFreeVMsend(s);

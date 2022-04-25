@@ -51,9 +51,7 @@ void FKL_sleep(FklVM* exe,pthread_rwlock_t* pGClock)
 		FKL_RAISE_BUILTIN_ERROR("btk.sleep",FKL_TOOMANYARG,r,exe);
 	if(!FKL_IS_I32(second))
 		FKL_RAISE_BUILTIN_ERROR("btk.sleep",FKL_WRONGARG,r,exe);
-	fklReleaseGC(pGClock);
 	FKL_SET_RETURN("FKL_sleep",FKL_MAKE_VM_I32(sleep(FKL_GET_I32(second))),stack);
-	fklLockGC(pGClock);
 }
 
 void FKL_usleep(FklVM* exe,pthread_rwlock_t* pGClock)
@@ -67,13 +65,11 @@ void FKL_usleep(FklVM* exe,pthread_rwlock_t* pGClock)
 		FKL_RAISE_BUILTIN_ERROR("btk.usleep",FKL_TOOMANYARG,r,exe);
 	if(!FKL_IS_I32(second))
 		FKL_RAISE_BUILTIN_ERROR("btk.usleep",FKL_WRONGARG,r,exe);
-	fklReleaseGC(pGClock);
 #ifdef _WIN32
 		Sleep(FKL_GET_I32(second));
 #else
 		usleep(FKL_GET_I32(second));
 #endif
-	fklLockGC(pGClock);
 	FKL_SET_RETURN("FKL_usleep",second,stack);
 }
 

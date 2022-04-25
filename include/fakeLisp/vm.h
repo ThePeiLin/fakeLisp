@@ -149,6 +149,7 @@ typedef struct FklVMrunnable
 typedef struct
 {
 	uint32_t tp;
+	uint32_t ap;
 	uint32_t bp;
 	uint32_t size;
 	FklVMvalue** values;
@@ -199,7 +200,7 @@ typedef struct
 	FklVM** VMs;
 }FklVMlist;
 
-typedef void (*FklVMdllFunc)(FklVM*,pthread_rwlock_t*);
+typedef void (*FklVMdllFunc)(FklVM*);
 
 typedef struct FklVMdlproc
 {
@@ -301,8 +302,8 @@ FklVMvalue* fklCastPreEnvToVMenv(FklPreEnv*,FklVMvalue*,FklVMheap*);
 FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline);
 
 FklVMstack* fklCopyStack(FklVMstack*);
-void fklReleaseGC(pthread_rwlock_t*);
-void fklLockGC(pthread_rwlock_t*);
+//void fklReleaseGC(pthread_rwlock_t*);
+//void fklLockGC(pthread_rwlock_t*);
 FklVMvalue* fklPopVMstack(FklVMstack*);
 FklVMtryBlock* fklNewVMtryBlock(FklSid_t,uint32_t tp,long int rtp);
 void fklFreeVMtryBlock(FklVMtryBlock* b);
@@ -314,6 +315,7 @@ FklVMrunnable* fklNewVMrunnable(FklVMproc*);
 char* fklGenErrorMessage(FklErrorType type,FklVMrunnable* r,FklVM* exe);
 char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklErrorType,FklVMrunnable* r,FklVM* exe);
 int32_t fklGetSymbolIdInByteCode(const uint8_t*);
+FklVMvalue* fklGetArg(FklVMstack*);
 int fklResBp(FklVMstack*);
 
 VMcontinuation* fklNewVMcontinuation(FklVMstack* stack,FklPtrStack* rstack,FklPtrStack* tstack);
@@ -386,8 +388,8 @@ void fklFreeVMrecv(FklVMrecv*);
 FklVMsend* fklNewVMsend(FklVMvalue*);
 void fklFreeVMsend(FklVMsend*);
 
-void fklChanlSend(FklVMsend*,FklVMchanl*,pthread_rwlock_t* pGClock);
-void fklChanlRecv(FklVMrecv*,FklVMchanl*,pthread_rwlock_t* pGClock);
+void fklChanlSend(FklVMsend*,FklVMchanl*);
+void fklChanlRecv(FklVMrecv*,FklVMchanl*);
 
 FklVMvalue* fklCastCptrVMvalue(FklAstCptr*,FklVMheap*);
 
@@ -406,6 +408,41 @@ char** fklGetVMargv(void);
 
 FklVMvalue* fklPopAndGetVMstack(FklVMstack* stack);
 FklVMdllHandle fklLoadDll(const char* path);
+
+#define FKL_SET_RETURN(fn,v,stack) do{\
+	(stack)->tp=(stack)->ap;\
+	(stack)->ap=0;\
+	if((stack)->tp>=(stack)->size)\
+	{\
+		(stack)->values=(FklVMvalue**)realloc((stack)->values,sizeof(FklVMvalue*)*((stack)->size+64));\
+		FKL_ASSERT((stack)->values,fn);\
+		if((stack)->values==NULL)\
+		{\
+			fprintf(stderr,"In file \"%s\" line %d\n",__FILE__,__LINE__);\
+			perror((fn));\
+			exit(1);\
+		}\
+		(stack)->size+=64;\
+	}\
+	(stack)->values[(stack)->tp]=(v);\
+	(stack)->tp+=1;\
+}while(0)
+
+#define FKL_RAISE_BUILTIN_ERROR(WHO,ERRORTYPE,RUNNABLE,EXE) do{\
+	char* errorMessage=fklGenErrorMessage((ERRORTYPE),(RUNNABLE),(EXE));\
+	FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerror((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE)->heap);\
+	free(errorMessage);\
+	fklRaiseVMerror(err,(EXE));\
+	return;\
+}while(0)
+
+#define FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR(WHO,STR,FREE,ERRORTYPE,RUNNABLE,EXE) do{\
+	char* errorMessage=fklGenInvalidSymbolErrorMessage((STR),(FREE),(ERRORTYPE),(RUNNABLE),(EXE));\
+	FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerror((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE)->heap);\
+	free(errorMessage);\
+	fklRaiseVMerror(err,(EXE));\
+	return;\
+}while(0)
 
 #ifdef __cplusplus
 }

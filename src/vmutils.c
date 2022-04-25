@@ -47,10 +47,37 @@ FklVMvalue* fklPopAndGetVMstack(FklVMstack* stack)
 	FklVMvalue* r=NULL;
 	if(!(stack->tp>stack->bp))
 		r=NULL;
+	FklVMvalue* tmp=fklGetTopValue(stack);
+	stack->tp-=1;
+	if(FKL_IS_REF(tmp))
+	{
+		stack->tp-=1;
+		r=*(FklVMvalue**)(FKL_GET_PTR(tmp));
+	}
+	if(FKL_IS_MREF(tmp))
+	{
+		void* ptr=fklGetTopValue(stack);
+		stack->tp-=1;
+		r=FKL_MAKE_VM_CHR(*(char*)ptr);
+	}
+	else
+		r=tmp;
+	pthread_mutex_unlock(&stack->lock);
+	return r;
+}
+
+FklVMvalue* fklGetArg(FklVMstack* stack)
+{
+	pthread_mutex_lock(&stack->lock);
+	FklVMvalue* r=NULL;
+	if(!stack->ap)
+		stack->ap=stack->tp;
+	if(!(stack->ap>stack->bp))
+		r=NULL;
 	else
 	{
 		FklVMvalue* tmp=fklGetTopValue(stack);
-		stack->tp-=1;
+		stack->ap-=1;
 		if(FKL_IS_REF(tmp))
 		{
 			stack->tp-=1;
@@ -59,7 +86,7 @@ FklVMvalue* fklPopAndGetVMstack(FklVMstack* stack)
 		if(FKL_IS_MREF(tmp))
 		{
 			void* ptr=fklGetTopValue(stack);
-			stack->tp-=1;
+			stack->ap-=1;
 			r=FKL_MAKE_VM_CHR(*(char*)ptr);
 		}
 		else
@@ -429,11 +456,11 @@ int32_t fklGetSymbolIdInByteCode(const uint8_t* code)
 
 int fklResBp(FklVMstack* stack)
 {
-	if(stack->tp>stack->bp)
-		return stack->tp-stack->bp;
-	FklVMvalue* prevBp=fklGetTopValue(stack);
+	if(stack->ap>stack->bp)
+		return stack->ap-stack->bp;
+	FklVMvalue* prevBp=stack->values[stack->ap-1];
 	stack->bp=FKL_GET_I32(prevBp);
-	stack->tp-=1;
+	stack->ap-=1;
 	return 0;
 }
 

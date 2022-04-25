@@ -1413,7 +1413,7 @@ void SYS_send(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("sys.send",FKL_WRONGARG,runnable,exe);
 	FklVMsend* t=fklNewVMsend(message);
 	FKL_SET_RETURN(__func__,ch,stack);
-	fklChanlSend(t,ch->u.chan,gclock);
+	fklChanlSend(t,ch->u.chan);
 	fklPopVMstack(stack);
 	FKL_SET_RETURN(__func__,message,stack);
 }
@@ -1431,7 +1431,7 @@ void SYS_recv(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("sys.recv",FKL_WRONGARG,runnable,exe);
 	FklVMrecv* t=fklNewVMrecv();
 	FKL_SET_RETURN(__func__,ch,stack);
-	fklChanlRecv(t,ch->u.chan,gclock);
+	fklChanlRecv(t,ch->u.chan);
 	fklPopVMstack(stack);
 	FKL_SET_RETURN(__func__,t->v,stack);
 	fklFreeVMrecv(t);
@@ -1507,7 +1507,7 @@ void SYS_call_cc(ARGL)
 	else
 	{
 		FklVMdllFunc dllfunc=proc->u.dlproc->func;
-		dllfunc(exe,gclock);
+		dllfunc(exe);
 	}
 }
 

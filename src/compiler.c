@@ -43,7 +43,7 @@ static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap
 			fklInitVMRunningResource(tmpVM,vEnv,heap,t,bs,curEnv->proc->bc->size);
 			bs+=curEnv->proc->bc->size;
 			tmpVM->chan=fklNewVMvalue(FKL_CHAN,fklNewVMchanl(0),heap);
-			fklChanlSend(fklNewVMsend(vEnv),tmpVM->chan->u.chan,NULL);
+			fklChanlSend(fklNewVMsend(vEnv),tmpVM->chan->u.chan);
 			int i=fklRunVM(tmpVM);
 			if(i==1)
 			{

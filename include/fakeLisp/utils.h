@@ -33,39 +33,6 @@ extern "C" {
 	}\
 }
 
-#define FKL_SET_RETURN(fn,v,stack) do{\
-	if((stack)->tp>=(stack)->size)\
-	{\
-		(stack)->values=(FklVMvalue**)realloc((stack)->values,sizeof(FklVMvalue*)*((stack)->size+64));\
-		FKL_ASSERT((stack)->values,fn);\
-		if((stack)->values==NULL)\
-		{\
-			fprintf(stderr,"In file \"%s\" line %d\n",__FILE__,__LINE__);\
-			perror((fn));\
-			exit(1);\
-		}\
-		(stack)->size+=64;\
-	}\
-	(stack)->values[(stack)->tp]=(v);\
-	(stack)->tp+=1;\
-}while(0)
-
-#define FKL_RAISE_BUILTIN_ERROR(WHO,ERRORTYPE,RUNNABLE,EXE) do{\
-	char* errorMessage=fklGenErrorMessage((ERRORTYPE),(RUNNABLE),(EXE));\
-	FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerror((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE)->heap);\
-	free(errorMessage);\
-	fklRaiseVMerror(err,(EXE));\
-	return;\
-}while(0)
-
-#define FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR(WHO,STR,FREE,ERRORTYPE,RUNNABLE,EXE) do{\
-	char* errorMessage=fklGenInvalidSymbolErrorMessage((STR),(FREE),(ERRORTYPE),(RUNNABLE),(EXE));\
-	FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerror((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE)->heap);\
-	free(errorMessage);\
-	fklRaiseVMerror(err,(EXE));\
-	return;\
-}while(0)
-
 #define FKL_VM_NIL ((FklVMptr)0x1)
 #define FKL_VM_TRUE (FKL_MAKE_VM_I32(1))
 #define FKL_VM_EOF ((FklVMptr)0x7fffffffa)
@@ -101,15 +68,6 @@ extern "C" {
 #define FKL_IS_MREF(P) (FKL_GET_TAG(P)==FKL_MREF_TAG)
 #define FKL_IS_I64(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_I64)
 #define FKL_FREE_CHF(P) (free(FKL_GET_PTR(P)))
-
-#define FKL_MAKE_NATIVE_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_DEF_NATIVE_TYPE_TAG))
-#define FKL_MAKE_ARRAY_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_DEF_ARRAY_TYPE_TAG))
-#define FKL_MAKE_PTR_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_DEF_PTR_TYPE_TAG))
-#define FKL_MAKE_STRUCT_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_DEF_STRUCT_TYPE_TAG))
-#define FKL_MAKE_UNION_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_DEF_UNION_TYPE_TAG))
-#define FKL_MAKE_FUNC_TYPE(P) ((void*)(((uintptr_t)(P))|FKL_DEF_FUNC_TYPE_TAG))
-#define FKL_GET_TYPES_PTR(P) ((void*)(((uintptr_t)(P))&FKL_PTR_MASK))
-#define FKL_GET_TYPES_TAG(P) ((FklDefTypeTag)(((uintptr_t)(P))&FKL_TAG_MASK))
 
 int fklIsHexNum(const char*);
 int fklIsOctNum(const char*);

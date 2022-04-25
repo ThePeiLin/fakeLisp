@@ -428,14 +428,13 @@ void* ThreadVMdlprocFunc(void* p)
 	free(p);
 	int64_t state=0;
 	FklVMchanl* ch=exe->chan->u.chan;
-	pthread_rwlock_rdlock(&GClock);
 	if(!setjmp(exe->buf))
 	{
-		f(exe,&GClock);
+		f(exe);
 		FklVMstack* stack=exe->stack;
 		FklVMvalue* v=NULL;
 		while((v=fklPopAndGetVMstack(stack)))
-			fklChanlSend(fklNewVMsend(v),ch,&GClock);
+			fklChanlSend(fklNewVMsend(v),ch);
 	}
 	else
 	{
@@ -447,10 +446,9 @@ void* ThreadVMdlprocFunc(void* p)
 		free(threadErrorMessage);
 		free(id);
 		FklVMsend* t=fklNewVMsend(err);
-		fklChanlSend(t,ch,&GClock);
+		fklChanlSend(t,ch);
 		state=255;
 	}
-	pthread_rwlock_unlock(&GClock);
 	fklFreeVMstack(exe->stack);
 	exe->stack=NULL;
 	exe->lnt=NULL;
@@ -466,7 +464,6 @@ int fklRunVM(FklVM* exe)
 	while(!fklIsPtrStackEmpty(exe->rstack))
 	{
 		FklVMrunnable* currunnable=fklTopPtrStack(exe->rstack);
-		pthread_rwlock_rdlock(&GClock);
 		if(currunnable->cp>=currunnable->cpc+currunnable->scp)
 		{
 			if(currunnable->mark)
@@ -484,12 +481,8 @@ int fklRunVM(FklVM* exe)
 
 		int32_t cp=currunnable->cp;
 		if(setjmp(exe->buf)==1)
-		{
-			pthread_rwlock_unlock(&GClock);
 			return 255;
-		}
 		ByteCodes[(uint8_t)exe->code[cp]](exe);
-		pthread_rwlock_unlock(&GClock);
 		if(exe->heap->running==0&&exe->heap->num>exe->heap->threshold)
 		//if(exe->heap->running==0)
 		{
@@ -740,17 +733,15 @@ void B_pop_rest_arg(FklVM* exe)
 	FklVMvalue* curEnv=runnable->localenv;
 	FklVMvalue** pValue=NULL;
 	FklVMenvNode* tmpNode=fklFindVMenvNode(idOfVar,curEnv->u.env);
-	if(!tmpNode)
-		tmpNode=fklAddVMenvNode(fklNewVMenvNode(FKL_VM_NIL,idOfVar),curEnv->u.env);
-	pValue=&tmpNode->value;
-	FklVMvalue* obj=NULL;
+	pValue=(tmpNode)?&tmpNode->value:NULL;
+	FklVMvalue* obj=FKL_VM_NIL;
 	FklVMvalue* tmp=NULL;
 	if(stack->tp>stack->bp)
-	{
 		obj=fklNewVMvalue(FKL_PAIR,fklNewVMpair(),exe->heap);
-		tmp=obj;
-	}
-	else obj=FKL_VM_NIL;
+	if(!tmpNode)
+		tmpNode=fklAddVMenvNode(fklNewVMenvNode(obj,idOfVar),curEnv->u.env);
+	else
+		*pValue=obj;
 	while(stack->tp>stack->bp)
 	{
 		tmp->u.pair->car=fklPopAndGetVMstack(stack);
@@ -762,7 +753,6 @@ void B_pop_rest_arg(FklVM* exe)
 	}
 	if(curEnv->mark==FKL_MARK_B&&FKL_IS_PTR(obj))
 		fklGC_toGray(obj,exe->heap);
-	*pValue=obj;
 	runnable->cp+=sizeof(char)+sizeof(FklSid_t);
 }
 
@@ -808,10 +798,10 @@ void B_pop_ref(FklVM* exe)
 	if(FKL_IS_REF(ref))
 	{
 		FklVMvalue* by=fklPopVMstack(stack);
-		if(fklSET_REF(ref,val))
-			FKL_RAISE_BUILTIN_ERROR("b.pop_ref",FKL_INVALIDASSIGN,runnable,exe);
 		if(by->mark==FKL_MARK_B&&FKL_IS_PTR(val))
 			fklGC_toGray(val,exe->heap);
+		if(fklSET_REF(ref,val))
+			FKL_RAISE_BUILTIN_ERROR("b.pop_ref",FKL_INVALIDASSIGN,runnable,exe);
 	}
 	else
 	{
@@ -1026,6 +1016,7 @@ FklVMstack* fklNewVMstack(int32_t size)
 	FklVMstack* tmp=(FklVMstack*)malloc(sizeof(FklVMstack));
 	FKL_ASSERT(tmp,__func__);
 	tmp->size=size;
+	tmp->ap=0;
 	tmp->tp=0;
 	tmp->bp=0;
 	tmp->values=(FklVMvalue**)malloc(size*sizeof(FklVMvalue*));
@@ -1762,19 +1753,19 @@ void fklCreateCallChainWithContinuation(FklVM* vm,VMcontinuation* cc)
 	}
 }
 
-void fklReleaseGC(pthread_rwlock_t* pGClock)
-{
-	if(!pGClock)
-		pGClock=&GClock;
-	pthread_rwlock_unlock(pGClock);
-}
-
-void fklLockGC(pthread_rwlock_t* pGClock)
-{
-	if(!pGClock)
-		pGClock=&GClock;
-	pthread_rwlock_rdlock(pGClock);
-}
+//void fklReleaseGC(pthread_rwlock_t* pGClock)
+//{
+//	if(!pGClock)
+//		pGClock=&GClock;
+//	pthread_rwlock_unlock(pGClock);
+//}
+//
+//void fklLockGC(pthread_rwlock_t* pGClock)
+//{
+//	if(!pGClock)
+//		pGClock=&GClock;
+//	pthread_rwlock_rdlock(pGClock);
+//}
 
 FklVMvalue* fklGetVMstdin(void)
 {

@@ -22,7 +22,7 @@ extern void* ThreadVMflprocFunc(void* p);
 
 //syscalls
 
-#define ARGL FklVM* exe,pthread_rwlock_t* gclock
+#define ARGL FklVM* exe
 void SYS_car(ARGL)
 {
 	FklVMstack* stack=exe->stack;

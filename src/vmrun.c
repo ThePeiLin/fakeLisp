@@ -49,9 +49,11 @@ void invokeNativeProcdure(FklVM* exe,FklVMproc* tmpProc,FklVMrunnable* runnable)
 		prevProc->mark=1;
 	else
 	{
+		pthread_mutex_lock(&exe->rlock);
 		FklVMrunnable* tmpRunnable=fklNewVMrunnable(tmpProc);
 		tmpRunnable->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(tmpProc->prevEnv),exe->heap);
 		fklPushPtrStack(tmpRunnable,exe->rstack);
+		pthread_mutex_unlock(&exe->rlock);
 	}
 }
 
@@ -165,6 +167,7 @@ FklVM* fklNewVM(FklByteCode* mainCode)
 	exe->tstack=fklNewPtrStack(32,16);
 	exe->heap=fklNewVMheap();
 	exe->callback=NULL;
+	pthread_mutex_init(&exe->rlock,NULL);
 	FklVM** ppVM=NULL;
 	int i=0;
 	for(;i<GlobVMs.num;i++)
@@ -205,6 +208,7 @@ FklVM* fklNewTmpVM(FklByteCode* mainCode)
 	exe->stack=fklNewVMstack(0);
 	exe->tstack=fklNewPtrStack(32,16);
 	exe->heap=fklNewVMheap();
+	pthread_mutex_init(&exe->rlock,NULL);
 	exe->callback=threadErrorCallBack;
 	exe->VMid=-1;
 	return exe;
@@ -473,8 +477,10 @@ int fklRunVM(FklVM* exe)
 			}
 			else
 			{
+				pthread_mutex_lock(&exe->rlock);
 				FklVMrunnable* r=fklPopPtrStack(exe->rstack);
 				free(r);
+				pthread_mutex_unlock(&exe->rlock);
 				continue;
 			}
 		}
@@ -1248,12 +1254,14 @@ void fklGC_markRootToGray(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMheap* heap=exe->heap;
 	FklPtrStack* rstack=exe->rstack;
+	pthread_mutex_lock(&exe->rlock);
 	for(uint32_t i=0;i<rstack->top;i++)
 	{
 		FklVMrunnable* cur=rstack->base[i];
 		FklVMvalue* value=cur->localenv;
 		fklGC_toGray(value,heap);
 	}
+	pthread_mutex_unlock(&exe->rlock);
 	pthread_mutex_lock(&stack->lock);
 	for(uint32_t i=stack->tp;i>0;i--)
 	{
@@ -1559,6 +1567,7 @@ FklVM* fklNewThreadVM(FklVMproc* mainCode,FklVMheap* heap)
 	exe->stack=fklNewVMstack(0);
 	exe->heap=heap;
 	exe->callback=threadErrorCallBack;
+	pthread_mutex_init(&exe->rlock,NULL);
 	FklVM** ppVM=NULL;
 	int i=0;
 	for(;i<GlobVMs.num;i++)

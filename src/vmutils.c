@@ -123,36 +123,6 @@ FklVMvalue* fklPopGetAndMarkWithoutLock(FklVMstack* stack,FklVMheap* heap)
 	return r;
 }
 
-FklVMvalue* fklGetArg(FklVMstack* stack)
-{
-	pthread_mutex_lock(&stack->lock);
-	FklVMvalue* r=NULL;
-	if(!stack->ap)
-		stack->ap=stack->tp;
-	if(!(stack->ap>stack->bp))
-		r=NULL;
-	else
-	{
-		FklVMvalue* tmp=fklGetTopValue(stack);
-		stack->ap-=1;
-		if(FKL_IS_REF(tmp))
-		{
-			stack->ap-=1;
-			r=*(FklVMvalue**)(FKL_GET_PTR(tmp));
-		}
-		if(FKL_IS_MREF(tmp))
-		{
-			void* ptr=fklGetTopValue(stack);
-			stack->ap-=1;
-			r=FKL_MAKE_VM_CHR(*(char*)ptr);
-		}
-		else
-			r=tmp;
-	}
-	pthread_mutex_unlock(&stack->lock);
-	return r;
-}
-
 FklVMvalue* fklCastPreEnvToVMenv(FklPreEnv* pe,FklVMvalue* prev,FklVMheap* heap)
 {
 	int32_t size=0;
@@ -509,16 +479,6 @@ int32_t fklGetSymbolIdInByteCode(const uint8_t* code)
 			break;
 	}
 	return -1;
-}
-
-int fklResBp(FklVMstack* stack)
-{
-	if(stack->tp>stack->bp)
-		return stack->tp-stack->bp;
-	FklVMvalue* prevBp=stack->values[stack->tp-1];
-	stack->bp=FKL_GET_I32(prevBp);
-	stack->tp-=1;
-	return 0;
 }
 
 typedef struct PrtElem

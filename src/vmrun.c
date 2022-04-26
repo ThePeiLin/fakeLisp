@@ -715,11 +715,12 @@ void B_pop_rest_arg(FklVM* exe)
 	FklVMvalue* obj=FKL_VM_NIL;
 	FklVMvalue* tmp=NULL;
 	if(stack->tp>stack->bp)
-		tmp=obj=fklNewVMvalue(FKL_PAIR,fklNewVMpair(),exe->heap);
+		tmp=obj=fklNewSaveVMvalue(FKL_PAIR,fklNewVMpair());
 	if(!tmpNode)
 		tmpNode=fklAddVMenvNode(fklNewVMenvNode(obj,idOfVar),curEnv->u.env);
 	else
 		*pValue=obj;
+	fklAddToHeap(obj,exe->heap);
 	if(curEnv->mark==FKL_MARK_B&&FKL_IS_PTR(obj))
 		fklGC_toGray(obj,exe->heap);
 	while(stack->tp>stack->bp)

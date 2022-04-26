@@ -93,7 +93,7 @@ static inline int64_t getI64FromByteCode(uint8_t* code)
 
 FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 {
-	switch((int)type)
+	switch(type)
 	{
 		case FKL_NIL:
 			return FKL_VM_NIL;
@@ -172,6 +172,86 @@ FklVMvalue* fklNewVMvalueToStack(FklValueType type
 	fklNewVMvalueToStackWithoutLock(type,pValue,stack,heap);
 	pthread_mutex_unlock(&stack->lock);
 	return stack->values[stack->tp-1];
+}
+
+FklVMvalue* fklNewSaveVMvalue(FklValueType type,void* pValue)
+{
+	switch(type)
+	{
+		case FKL_NIL:
+			return FKL_VM_NIL;
+			break;
+		case FKL_CHR:
+			return FKL_MAKE_VM_CHR(pValue);
+			break;
+		case FKL_I32:
+			return FKL_MAKE_VM_I32(pValue);
+			break;
+		case FKL_SYM:
+			return FKL_MAKE_VM_SYM(pValue);
+			break;
+		default:
+			{
+				FklVMvalue* tmp=(FklVMvalue*)malloc(sizeof(FklVMvalue));
+				FKL_ASSERT(tmp,__func__);
+				tmp->type=type;
+				tmp->mark=0;
+				switch(type)
+				{
+					case FKL_F64:
+						if(pValue)
+							tmp->u.f64=getF64FromByteCode(pValue);
+						break;
+					case FKL_I64:
+						if(pValue)
+							tmp->u.i64=getI64FromByteCode(pValue);
+						break;
+					case FKL_STR:
+						tmp->u.str=pValue;break;
+					case FKL_PAIR:
+						tmp->u.pair=pValue;break;
+					case FKL_PROC:
+						tmp->u.proc=pValue;break;
+					case FKL_CONT:
+						tmp->u.cont=pValue;break;
+					case FKL_CHAN:
+						tmp->u.chan=pValue;break;
+					case FKL_FP:
+						tmp->u.fp=pValue;break;
+					case FKL_DLL:
+						tmp->u.dll=pValue;break;
+					case FKL_DLPROC:
+						tmp->u.dlproc=pValue;break;
+					case FKL_ERR:
+						tmp->u.err=pValue;break;
+					case FKL_VECTOR:
+						tmp->u.vec=pValue;break;
+					case FKL_USERDATA:
+						tmp->u.p=pValue;break;
+					case FKL_ENV:
+						tmp->u.env=pValue;break;
+					default:
+						return NULL;
+						break;
+				}
+				return FKL_MAKE_VM_PTR(tmp);
+			}
+			break;
+	}
+}
+
+void fklAddToHeap(FklVMvalue* v,FklVMheap* heap)
+{
+	if(FKL_IS_PTR(v))
+	{
+		if(heap->running==FKL_GC_RUNNING)
+			fklGC_toGray(v,heap);
+		pthread_mutex_lock(&heap->lock);
+		v->next=heap->head;
+		heap->head=v;
+		heap->num+=1;
+		pthread_mutex_unlock(&heap->lock);
+	}
 }
 
 FklVMvalue* fklNewVMvalueToStackWithoutLock(FklValueType type

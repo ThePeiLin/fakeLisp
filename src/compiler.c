@@ -42,8 +42,6 @@ static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap
 			fklCodelntCopyCat(t,curEnv->proc);
 			fklInitVMRunningResource(tmpVM,vEnv,heap,t,bs,curEnv->proc->bc->size);
 			bs+=curEnv->proc->bc->size;
-			tmpVM->chan=fklNewVMvalue(FKL_CHAN,fklNewVMchanl(0),heap);
-			fklChanlSend(fklNewVMsend(vEnv),tmpVM->chan->u.chan);
 			int i=fklRunVM(tmpVM);
 			if(i==1)
 			{
@@ -58,31 +56,31 @@ static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap
 	return vEnv;
 }
 
-static FklByteCodelnt* getEnvGenCode(FklCompEnv* cEnv)
-{
-	FklByteCodelnt* t=fklNewByteCodelnt(fklNewByteCode(0));
-	t->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
-	FKL_ASSERT(t->l,__func__);
-	t->l[0]=fklNewLineNumTabNode(0,0,0,0);
-	FklPtrStack* stack=fklNewPtrStack(32,16);
-	FklByteCode* push_r_env=fklNewByteCode(sizeof(char));
-	push_r_env->code[0]=FKL_PUSH_R_ENV;
-	FklCompEnv* tcEnv=cEnv;
-	for(;tcEnv;tcEnv=tcEnv->prev)
-		fklPushPtrStack(tcEnv,stack);
-	while(!fklIsPtrStackEmpty(stack))
-	{
-		FklCompEnv* curEnv=fklPopPtrStack(stack);
-		if(curEnv->prev)
-		{
-			fklCodeCat(t->bc,push_r_env);
-			t->l[t->ls-1]->cpc+=push_r_env->size;
-		}
-		if(curEnv->proc->bc->size)
-			fklCodelntCopyCat(t,curEnv->proc);
-	}
-	return t;
-}
+//static FklByteCodelnt* getEnvGenCode(FklCompEnv* cEnv)
+//{
+//	FklByteCodelnt* t=fklNewByteCodelnt(fklNewByteCode(0));
+//	t->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
+//	FKL_ASSERT(t->l,__func__);
+//	t->l[0]=fklNewLineNumTabNode(0,0,0,0);
+//	FklPtrStack* stack=fklNewPtrStack(32,16);
+//	FklByteCode* push_r_env=fklNewByteCode(sizeof(char));
+//	push_r_env->code[0]=FKL_PUSH_R_ENV;
+//	FklCompEnv* tcEnv=cEnv;
+//	for(;tcEnv;tcEnv=tcEnv->prev)
+//		fklPushPtrStack(tcEnv,stack);
+//	while(!fklIsPtrStackEmpty(stack))
+//	{
+//		FklCompEnv* curEnv=fklPopPtrStack(stack);
+//		if(curEnv->prev)
+//		{
+//			fklCodeCat(t->bc,push_r_env);
+//			t->l[t->ls-1]->cpc+=push_r_env->size;
+//		}
+//		if(curEnv->proc->bc->size)
+//			fklCodelntCopyCat(t,curEnv->proc);
+//	}
+//	return t;
+//}
 
 static int cmpString(const void* a,const void* b)
 {
@@ -141,7 +139,7 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 		free(cwd);
 		if(!i)
 		{
-			tmpCptr=fklCastVMvalueToCptr(fklPopAndGetVMstack(tmpVM->stack),objCptr->curline);
+			tmpCptr=fklCastVMvalueToCptr(fklTopGet(tmpVM->stack),objCptr->curline);
 			if(!tmpCptr)
 			{
 				if(inter->filename)
@@ -149,8 +147,9 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 				else
 					fprintf(stderr,"error of compiling: Circular reference occur in expanding macro at line %u\n",objCptr->curline);
 				fklFreeByteCodeAndLnt(t);
-				fklFreeVMheap(tmpVM->heap);
+				FklVMheap* h=tmpVM->heap;
 				fklUninitVMRunningResource(tmpVM);
+				fklFreeVMheap(h);
 				return 2;
 			}
 			fklReplaceCptr(objCptr,tmpCptr);
@@ -166,8 +165,9 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 			return 2;
 		}
 		fklFreeByteCodeAndLnt(t);
-		fklFreeVMheap(tmpVM->heap);
+		FklVMheap* h=tmpVM->heap;
 		fklUninitVMRunningResource(tmpVM);
+		fklFreeVMheap(h);
 		return 1;
 	}
 	fklFreeByteCodeAndLnt(t);

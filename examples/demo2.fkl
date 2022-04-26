@@ -1,5 +1,3 @@
-;(import (.. lib utils))
-
 (define p
   (lambda (n)
     (define w

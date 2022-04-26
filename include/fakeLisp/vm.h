@@ -275,6 +275,9 @@ void fklGC_markSendT(FklQueueNode*);
 void fklGC_sweep(FklVMheap*);
 void fklGC_compact(FklVMheap*);
 void fklGC_toGray(FklVMvalue*,FklVMheap*);
+void fklGC_tryRun(FklVM* exe);
+void fklGC_tryJoin(FklVMheap* exe);
+void fklGC_wait(FklVMheap* h);
 void fklGC_joinGCthread(FklVMheap* h);
 
 void fklDBG_printVMenv(FklVMenv*,FILE*);
@@ -407,8 +410,24 @@ void fklInitVMargs(int argc,char** argv);
 int fklGetVMargc(void);
 char** fklGetVMargv(void);
 
-FklVMvalue* fklPopAndGetVMstack(FklVMstack* stack);
+//FklVMvalue* fklPopAndGetVMstack(FklVMstack* stack);
+FklVMvalue* fklPopGetAndMark(FklVMstack* stack,FklVMheap*);
+FklVMvalue* fklPopGetAndMarkWithoutLock(FklVMstack* stack,FklVMheap* heap);
+FklVMvalue* fklTopGet(FklVMstack* stack);
+void fklDecTop(FklVMstack* s);
+FklVMvalue* fklNewVMvalueToStack(FklValueType
+		,void* p
+		,FklVMstack*
+		,FklVMheap* heap);
+FklVMvalue* fklNewVMvalueToStackWithoutLock(FklValueType
+		,void* p
+		,FklVMstack*
+		,FklVMheap* heap);
+void fklSetAndPop(FklVMvalue* by,FklVMvalue**,FklVMstack* s,FklVMheap*);
+
 FklVMdllHandle fklLoadDll(const char* path);
+
+void fklPushVMvalue(FklVMvalue* v,FklVMstack* s);
 
 #define FKL_SET_RETURN(fn,v,stack) do{\
 	if((stack)->tp>=(stack)->size)\

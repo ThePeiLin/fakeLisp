@@ -767,7 +767,7 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 	fklInitVMRunningResource(tmpVM,stringPatternEnv,tmpVM->heap,t,start,pattern->proc->bc->size);
 	int state=fklRunVM(tmpVM);
 	if(!state)
-		retval=fklCastVMvalueToCptr(fklPopAndGetVMstack(tmpVM->stack),curline);
+		retval=fklCastVMvalueToCptr(fklTopGet(tmpVM->stack),curline);
 	else
 	{
 		fklFreeByteCodeAndLnt(t);
@@ -782,8 +782,9 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 		fprintf(stderr,"error of compiling:Circular reference occur in expanding reader macro at line %d of %s\n",curline,filename);
 	}
 	fklFreeByteCodeAndLnt(t);
-	fklFreeVMheap(tmpVM->heap);
+	FklVMheap* h=tmpVM->heap;
 	fklUninitVMRunningResource(tmpVM);
+	fklFreeVMheap(h);
 	chdir(cwd);
 	free(cwd);
 	fklDestroyEnv(tmpEnv);

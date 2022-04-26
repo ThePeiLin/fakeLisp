@@ -163,6 +163,107 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 			break;
 	}
 }
+FklVMvalue* fklNewVMvalueToStack(FklValueType type
+		,void* pValue
+		,FklVMstack* stack
+		,FklVMheap* heap)
+{
+	pthread_mutex_lock(&stack->lock);
+	fklNewVMvalueToStackWithoutLock(type,pValue,stack,heap);
+	pthread_mutex_unlock(&stack->lock);
+	return stack->values[stack->tp-1];
+}
+
+FklVMvalue* fklNewVMvalueToStackWithoutLock(FklValueType type
+		,void* pValue
+		,FklVMstack* stack
+		,FklVMheap* heap)
+{
+	if(stack->tp>=stack->size)
+	{
+		stack->values=(FklVMvalue**)realloc(stack->values
+				,sizeof(FklVMvalue*)*(stack->size+64));
+		FKL_ASSERT(stack->values,__func__);
+		if(stack->values==NULL)
+		{
+			fprintf(stderr,"In file \"%s\" line %d\n",__FILE__,__LINE__);\
+				perror(__func__);
+			exit(1);
+		}
+		stack->size+=64;
+	}
+	switch(type)
+	{
+		case FKL_NIL:
+			stack->values[stack->tp]=FKL_VM_NIL;
+			break;
+		case FKL_CHR:
+			stack->values[stack->tp]=FKL_MAKE_VM_CHR(pValue);
+			break;
+		case FKL_I32:
+			stack->values[stack->tp]=FKL_MAKE_VM_I32(pValue);
+			break;
+		case FKL_SYM:
+			stack->values[stack->tp]=FKL_MAKE_VM_SYM(pValue);
+			break;
+		default:
+			{
+				FklVMvalue* tmp=(FklVMvalue*)malloc(sizeof(FklVMvalue));
+				FKL_ASSERT(tmp,__func__);
+				stack->values[stack->tp]=tmp;
+				tmp->type=type;
+				tmp->mark=0;
+				switch(type)
+				{
+					case FKL_F64:
+						if(pValue)
+							tmp->u.f64=getF64FromByteCode(pValue);
+						break;
+					case FKL_I64:
+						if(pValue)
+							tmp->u.i64=getI64FromByteCode(pValue);
+						break;
+					case FKL_STR:
+						tmp->u.str=pValue;break;
+					case FKL_PAIR:
+						tmp->u.pair=pValue;break;
+					case FKL_PROC:
+						tmp->u.proc=pValue;break;
+					case FKL_CONT:
+						tmp->u.cont=pValue;break;
+					case FKL_CHAN:
+						tmp->u.chan=pValue;break;
+					case FKL_FP:
+						tmp->u.fp=pValue;break;
+					case FKL_DLL:
+						tmp->u.dll=pValue;break;
+					case FKL_DLPROC:
+						tmp->u.dlproc=pValue;break;
+					case FKL_ERR:
+						tmp->u.err=pValue;break;
+					case FKL_VECTOR:
+						tmp->u.vec=pValue;break;
+					case FKL_USERDATA:
+						tmp->u.p=pValue;break;
+					case FKL_ENV:
+						tmp->u.env=pValue;break;
+					default:
+						FKL_ASSERT(0,__func__);
+						break;
+				}
+				if(heap->running==FKL_GC_RUNNING)
+					fklGC_toGray(tmp,heap);
+				pthread_mutex_lock(&heap->lock);
+				tmp->next=heap->head;
+				heap->head=tmp;
+				heap->num+=1;
+				pthread_mutex_unlock(&heap->lock);
+			}
+			break;
+	}
+	stack->tp++;
+	return stack->values[stack->tp-1];
+}
 
 FklVMvalue* fklNewTrueValue(FklVMheap* heap)
 {

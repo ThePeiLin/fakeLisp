@@ -41,9 +41,62 @@ FklVMvalue* fklPopVMstack(FklVMstack* stack)
 	return tmp;
 }
 
-FklVMvalue* fklPopAndGetVMstack(FklVMstack* stack)
+FklVMvalue* fklTopGet(FklVMstack* stack)
 {
 	pthread_mutex_lock(&stack->lock);
+	FklVMvalue* r=NULL;
+	if(!(stack->tp>stack->bp))
+		r=NULL;
+	else
+	{
+		FklVMvalue* tmp=fklGetTopValue(stack);
+		if(FKL_IS_REF(tmp))
+		{
+			stack->tp-=1;
+			r=*(FklVMvalue**)(FKL_GET_PTR(tmp));
+			stack->values[stack->tp-1]=r;
+		}
+		else if(FKL_IS_MREF(tmp))
+		{
+			stack->tp-=1;
+			void* ptr=fklGetTopValue(stack);
+			r=FKL_MAKE_VM_CHR(*(char*)ptr);
+			stack->values[stack->tp-1]=r;
+		}
+		else
+			r=tmp;
+	}
+	pthread_mutex_unlock(&stack->lock);
+	return r;
+}
+
+void fklDecTop(FklVMstack* stack)
+{
+	pthread_mutex_lock(&stack->lock);
+	stack->tp--;
+	pthread_mutex_unlock(&stack->lock);
+}
+
+inline void fklSetAndPop(FklVMvalue* by,FklVMvalue** pV,FklVMstack* stack,FklVMheap* heap)
+{
+	FklVMvalue* t=fklTopGet(stack);
+	*pV=t;
+	if(by->mark==FKL_MARK_B
+			&&FKL_IS_PTR(t)&&t->mark==FKL_MARK_W)
+		fklGC_toGray(t,heap);
+	fklDecTop(stack);
+}
+
+FklVMvalue* fklPopGetAndMark(FklVMstack* stack,FklVMheap* heap)
+{
+	pthread_mutex_lock(&stack->lock);
+	FklVMvalue* r=fklPopGetAndMarkWithoutLock(stack,heap);
+	pthread_mutex_unlock(&stack->lock);
+	return r;
+}
+
+FklVMvalue* fklPopGetAndMarkWithoutLock(FklVMstack* stack,FklVMheap* heap)
+{
 	FklVMvalue* r=NULL;
 	if(!(stack->tp>stack->bp))
 		r=NULL;
@@ -56,7 +109,7 @@ FklVMvalue* fklPopAndGetVMstack(FklVMstack* stack)
 			stack->tp-=1;
 			r=*(FklVMvalue**)(FKL_GET_PTR(tmp));
 		}
-		if(FKL_IS_MREF(tmp))
+		else if(FKL_IS_MREF(tmp))
 		{
 			void* ptr=fklGetTopValue(stack);
 			stack->tp-=1;
@@ -65,7 +118,8 @@ FklVMvalue* fklPopAndGetVMstack(FklVMstack* stack)
 		else
 			r=tmp;
 	}
-	pthread_mutex_unlock(&stack->lock);
+	if(r&&heap->running==FKL_GC_RUNNING&&FKL_IS_PTR(r))
+		fklGC_toGray(r,heap);
 	return r;
 }
 
@@ -587,9 +641,6 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 						else
 							fprintf(fp,"#<proc>");
 						break;
-					//case FKL_BYTS:
-					//	fklPrintByteStr(v->u.byts->size,v->u.byts->str,fp,0);
-						break;
 					case FKL_CONT:
 						fprintf(fp,"#<cont>");
 						break;
@@ -990,9 +1041,6 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 								case FKL_I64:
 									tmpAtm->value.i64=root->u.i64;
 									break;
-								//case FKL_STR:
-								//	tmpAtm->value.str=fklCopyStr(root->u.str);
-								//	break;
 								case FKL_STR:
 									tmpAtm->value.str.size=root->u.str->size;
 									tmpAtm->value.str.str=fklCopyMemory(root->u.str->str,root->u.str->size);
@@ -1087,8 +1135,7 @@ void fklInitVMRunningResource(FklVM* vm,FklVMvalue* vEnv,FklVMheap* heap,FklByte
 
 void fklUninitVMRunningResource(FklVM* vm)
 {
-	if(vm->heap->running)
-		fklGC_joinGCthread(vm->heap);
+	fklGC_wait(vm->heap);
 	free(vm->lnt);
 	fklDeleteCallChain(vm);
 	fklFreeVMstack(vm->stack);

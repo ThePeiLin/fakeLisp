@@ -292,7 +292,7 @@ FklVMvalue* fklNewVMvalueToStackWithoutLock(FklValueType type
 				FKL_ASSERT(tmp,__func__);
 				stack->values[stack->tp]=tmp;
 				tmp->type=type;
-				tmp->mark=0;
+				tmp->mark=FKL_MARK_W;
 				switch(type)
 				{
 					case FKL_F64:

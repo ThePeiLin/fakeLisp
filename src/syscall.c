@@ -1,5 +1,9 @@
 #include<fakeLisp/reader.h>
+#include<fakeLisp/symbol.h>
 #include<fakeLisp/fklni.h>
+#include<fakeLisp/basicADT.h>
+#include<fakeLisp/parser.h>
+#include<fakeLisp/utils.h>
 #include<stdlib.h>
 #include<string.h>
 #include<math.h>

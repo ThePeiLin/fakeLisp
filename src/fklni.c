@@ -1,4 +1,5 @@
 #include<fakeLisp/fklni.h>
+#include<fakeLisp/utils.h>
 
 int fklNiResBp(uint32_t* ap,FklVMstack* stack)
 {
@@ -75,4 +76,12 @@ FklVMvalue* fklNiGetArg(uint32_t*ap,FklVMstack* stack)
 FklVMvalue* fklNiNewVMvalue(FklValueType type,void* p,FklVMstack* s,FklVMheap* heap)
 {
 	return fklNewVMvalueToStack(type,p,s,heap);
+}
+
+FklVMvalue* fklNiPopTop(uint32_t* ap,FklVMstack* stack)
+{
+	if(!(*ap>stack->bp))
+		return NULL;
+	*ap-=1;
+	return stack->values[*ap];
 }

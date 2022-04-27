@@ -92,7 +92,7 @@ typedef enum{
 }FklVMvalueMark;
 typedef struct FklVMvalue
 {
-	FklVMvalueMark mark;
+	volatile FklVMvalueMark mark;
 	FklValueType type;
 	union
 	{
@@ -111,7 +111,7 @@ typedef struct FklVMvalue
 		struct FklVMerror* err;
 		void* p;
 	}u;
-	struct FklVMvalue* next;
+	volatile struct FklVMvalue* next;
 }FklVMvalue;
 
 typedef struct FklVMenvNode
@@ -188,10 +188,10 @@ typedef struct FklVMheap
 	pthread_mutex_t lock;
 	uint32_t num;
 	uint32_t threshold;
-	FklVMvalue* head;
+	volatile FklVMvalue* head;
 	pthread_mutex_t glock;
 	FklPtrStack* gray;
-	FklVMvalue* white;
+	volatile FklVMvalue* white;
 }FklVMheap;
 
 typedef struct
@@ -248,7 +248,7 @@ FklVM* fklNewThreadVM(FklVMproc*,FklVMheap*);
 FklVM* fklNewThreadDlprocVM(FklVMrunnable* r,FklVMheap* heap);
 void fklInitGlobEnv(FklVMenv*,FklVMheap*);
 
-void fklFreeVMvalue(FklVMvalue*);
+void fklFreeVMvalue(volatile FklVMvalue*);
 FklVMstack* fklNewVMstack(int32_t);
 void fklFreeVMstack(FklVMstack*);
 void fklStackRecycle(FklVM*);
@@ -293,7 +293,7 @@ void fklPrincVMvalue(FklVMvalue*,FILE*);
 
 //vmutils
 
-FklVMvalue* fklMakeVMint(int64_t r64,FklVMheap* heap);
+FklVMvalue* fklMakeVMint(int64_t r64,FklVMstack*,FklVMheap* heap);
 int fklIsInt(FklVMvalue* p);
 int64_t fklGetInt(FklVMvalue* p);
 void fklInitVMRunningResource(FklVM*,FklVMvalue*,FklVMheap* heap,FklByteCodelnt*,uint32_t,uint32_t);
@@ -331,11 +331,11 @@ void fklFreeVMenvNode(FklVMenvNode*);
 
 FklVMenv* fklNewVMenv(FklVMvalue*);
 void fklFreeVMenv(FklVMenv*);
-FklVMenv* fklCopyVMenv(FklVMenv*,FklVMheap*);
+//FklVMenv* fklCopyVMenv(FklVMenv*,FklVMheap*);
 
 FklVMproc* fklNewVMproc(uint64_t scp,uint64_t cpc);
 
-FklVMvalue* fklCopyVMvalue(FklVMvalue*,FklVMheap*);
+FklVMvalue* fklCopyVMvalue(FklVMvalue*,FklVMstack*,FklVMheap*);
 FklVMvalue* fklNewVMvalue(FklValueType,void*,FklVMheap*);
 FklVMvalue* fklNewSaveVMvalue(FklValueType,void*);
 void fklAddToHeap(FklVMvalue*,FklVMheap*);
@@ -361,10 +361,10 @@ char* fklVMstrToCstr(FklVMstr* str);
 FklVMchanl* fklNewVMchanl(int32_t size);
 
 void fklFreeVMchanl(FklVMchanl*);
-FklVMchanl* fklCopyVMchanl(FklVMchanl*,FklVMheap*);
+//FklVMchanl* fklCopyVMchanl(FklVMchanl*,FklVMheap*);
 int32_t fklGetNumVMchanl(FklVMchanl*);
 
-FklVMproc* fklCopyVMproc(FklVMproc*,FklVMheap*);
+//FklVMproc* fklCopyVMproc(FklVMproc*,FklVMheap*);
 void fklFreeVMproc(FklVMproc*);
 
 FklVMfp* fklNewVMfp(FILE*);
@@ -444,7 +444,7 @@ void fklPushVMvalue(FklVMvalue* v,FklVMstack* s);
 
 #define FKL_RAISE_BUILTIN_ERROR(WHO,ERRORTYPE,RUNNABLE,EXE) do{\
 	char* errorMessage=fklGenErrorMessage((ERRORTYPE),(RUNNABLE),(EXE));\
-	FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerror((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE)->heap);\
+	FklVMvalue* err=fklNiNewVMvalue(FKL_ERR,fklNewVMerror((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE)->stack,(EXE)->heap);\
 	free(errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
 	return;\
@@ -452,7 +452,7 @@ void fklPushVMvalue(FklVMvalue* v,FklVMstack* s);
 
 #define FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR(WHO,STR,FREE,ERRORTYPE,RUNNABLE,EXE) do{\
 	char* errorMessage=fklGenInvalidSymbolErrorMessage((STR),(FREE),(ERRORTYPE),(RUNNABLE),(EXE));\
-	FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerror((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE)->heap);\
+	FklVMvalue* err=fklNiNewVMvalue(FKL_ERR,fklNewVMerror((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE)->stack,(EXE)->heap);\
 	free(errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
 	return;\

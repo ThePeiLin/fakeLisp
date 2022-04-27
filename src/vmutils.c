@@ -14,10 +14,10 @@
 #include<tchar.h>
 #endif
 
-FklVMvalue* fklMakeVMint(int64_t r64,FklVMheap* heap)
+FklVMvalue* fklMakeVMint(int64_t r64,FklVMstack* s,FklVMheap* heap)
 {
 	if(r64>INT32_MAX||r64<INT32_MIN)
-		return fklNewVMvalue(FKL_I64,&r64,heap);
+		return fklNewVMvalueToStack(FKL_I64,&r64,s,heap);
 	else
 		return FKL_MAKE_VM_I32(r64);
 }
@@ -85,42 +85,6 @@ inline void fklSetAndPop(FklVMvalue* by,FklVMvalue** pV,FklVMstack* stack,FklVMh
 			&&FKL_IS_PTR(t)&&t->mark==FKL_MARK_W)
 		fklGC_toGray(t,heap);
 	fklDecTop(stack);
-}
-
-FklVMvalue* fklPopGetAndMark(FklVMstack* stack,FklVMheap* heap)
-{
-	pthread_mutex_lock(&stack->lock);
-	FklVMvalue* r=fklPopGetAndMarkWithoutLock(stack,heap);
-	pthread_mutex_unlock(&stack->lock);
-	return r;
-}
-
-FklVMvalue* fklPopGetAndMarkWithoutLock(FklVMstack* stack,FklVMheap* heap)
-{
-	FklVMvalue* r=NULL;
-	if(!(stack->tp>stack->bp))
-		r=NULL;
-	else
-	{
-		FklVMvalue* tmp=fklGetTopValue(stack);
-		stack->tp-=1;
-		if(FKL_IS_REF(tmp))
-		{
-			stack->tp-=1;
-			r=*(FklVMvalue**)(FKL_GET_PTR(tmp));
-		}
-		else if(FKL_IS_MREF(tmp))
-		{
-			void* ptr=fklGetTopValue(stack);
-			stack->tp-=1;
-			r=FKL_MAKE_VM_CHR(*(char*)ptr);
-		}
-		else
-			r=tmp;
-	}
-	if(r&&heap->running==FKL_GC_RUNNING&&FKL_IS_PTR(r))
-		fklGC_toGray(r,heap);
-	return r;
 }
 
 FklVMvalue* fklCastPreEnvToVMenv(FklPreEnv* pe,FklVMvalue* prev,FklVMheap* heap)
@@ -230,7 +194,8 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 				}
 				FklVMrunnable* prevRunnable=fklTopPtrStack(exe->rstack);
 				FklVMrunnable* r=fklNewVMrunnable(&h->proc);
-				r->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(prevRunnable->localenv),exe->heap);
+				r->localenv=fklNewSaveVMvalue(FKL_ENV,fklNewVMenv(prevRunnable->localenv));
+				fklAddToHeap(r->localenv,exe->heap);
 				FklVMvalue* curEnv=r->localenv;
 				FklSid_t idOfError=tb->sid;
 				FklVMenvNode* errorNode=fklFindVMenvNode(idOfError,curEnv->u.env);
@@ -246,6 +211,24 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 		fklFreeVMtryBlock(fklPopPtrStack(exe->tstack));
 	}
 	fprintf(stderr,"error of %s :%s",err->who,err->message);
+	for(uint32_t i=exe->rstack->top;i;i--)
+	{
+		FklVMrunnable* r=exe->rstack->base[i-1];
+		if(r->sid!=0)
+			fprintf(stderr,"at proc:%s",fklGetGlobSymbolWithId(r->sid)->symbol);
+		else
+		{
+			if(i>1)
+				fprintf(stderr,"at <lambda>");
+			else
+				fprintf(stderr,"at <top>");
+		}
+		FklLineNumTabNode* node=fklFindLineNumTabNode(r->cp,exe->lnt);
+		if(node->fid)
+			fprintf(stderr,"(%u:%s)\n",node->line,fklGetGlobSymbolWithId(node->fid)->symbol);
+		else
+			fprintf(stderr,"(%u)\n",node->line);
+	}
 	//fklDBG_printVMstack(exe->stack,stderr,1);
 	void* i[3]={exe,(void*)255,(void*)1};
 	exe->callback(i);
@@ -431,36 +414,6 @@ char* fklGenErrorMessage(FklErrorType type,FklVMrunnable* r,FklVM* exe)
 	}
 	t=fklStrCat(t,lineNumber);
 	free(lineNumber);
-	for(uint32_t i=exe->rstack->top;i;i--)
-	{
-		FklVMrunnable* r=exe->rstack->base[i-1];
-		if(r->sid!=0)
-		{
-			t=fklStrCat(t,"at proc:");
-			t=fklStrCat(t,fklGetGlobSymbolWithId(r->sid)->symbol);
-		}
-		else
-		{
-			if(i>1)
-				t=fklStrCat(t,"at <lambda>");
-			else
-				t=fklStrCat(t,"at <top>");
-		}
-		FklLineNumTabNode* node=fklFindLineNumTabNode(r->cp,exe->lnt);
-		char* filename=node->fid?fklGetGlobSymbolWithId(node->fid)->symbol:NULL;
-		char* line=fklIntToString(node->line);
-		size_t len=node->fid?strlen("(:)\n")+strlen(filename)+strlen(line)+1
-			:strlen("()\n")+strlen(line)+1;
-		char* lineNumber=(char*)malloc(sizeof(char)*len);
-		FKL_ASSERT(lineNumber,__func__);
-		if(node->fid)
-			sprintf(lineNumber,"(%s:%s)\n",line,filename);
-		else
-			sprintf(lineNumber,"(%s)\n",line);
-		free(line);
-		t=fklStrCat(t,lineNumber);
-		free(lineNumber);
-	}
 	return t;
 }
 

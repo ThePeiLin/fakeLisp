@@ -20,6 +20,7 @@ static int fmatcmp(const FklAstCptr*,const FklAstCptr*,FklPreEnv**,FklCompEnv*);
 static int fklAddDefinedMacro(FklPreMacro* macro,FklCompEnv* curEnv);
 static FklErrorState defmacro(FklAstCptr*,FklCompEnv*,FklInterpreter*);
 static FklCompEnv* createPatternCompEnv(char**,int32_t,FklCompEnv*);
+extern int fklRunForGenEnv(FklVM* exe);
 static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
 {
 	FklPtrStack* stack=fklNewPtrStack(32,16);
@@ -42,7 +43,7 @@ static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap
 			fklCodelntCopyCat(t,curEnv->proc);
 			fklInitVMRunningResource(tmpVM,vEnv,heap,t,bs,curEnv->proc->bc->size);
 			bs+=curEnv->proc->bc->size;
-			int i=fklRunVM(tmpVM);
+			int i=fklRunForGenEnv(tmpVM);
 			if(i==1)
 			{
 				fklUninitVMRunningResource(tmpVM);

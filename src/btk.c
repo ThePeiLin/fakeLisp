@@ -129,7 +129,7 @@ void FKL_getTime(ARGL)
 	FKL_ASSERT(trueTime,__func__);
 	sprintf(trueTime,"%s-%s-%s_%s_%s_%s",year,mon,day,hour,min,sec);
 	FklVMstr* str=fklNewVMstr(timeLen-1,trueTime);
-	FklVMvalue* tmpVMvalue=fklNewVMvalue(FKL_STR,str,exe->heap);
+	FklVMvalue* tmpVMvalue=fklNiNewVMvalue(FKL_STR,str,stack,exe->heap);
 	free(trueTime);
 	fklNiReturn(tmpVMvalue,&ap,stack);
 	fklNiEnd(&ap,stack);
@@ -175,7 +175,7 @@ void FKL_time(ARGL)
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR("btk.time",FKL_TOOMANYARG,r,exe);
-	fklNiReturn(fklMakeVMint((int64_t)time(NULL),exe->heap),&ap,stack);
+	fklNiReturn(fklMakeVMint((int64_t)time(NULL),stack,exe->heap),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

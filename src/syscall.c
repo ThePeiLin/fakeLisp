@@ -82,23 +82,23 @@ void SYS_append(ARGL)
 	for(;cur;cur=fklNiGetArg(&ap,stack))
 	{
 		if(*prev==FKL_VM_NIL)
-			*prev=fklCopyVMvalue(cur,exe->heap);
+			*prev=fklCopyVMvalue(cur,stack,exe->heap);
 		else if(FKL_IS_PAIR(*prev))
 		{
 			for(;FKL_IS_PAIR(*prev);prev=&(*prev)->u.pair->cdr);
-			*prev=fklCopyVMvalue(cur,exe->heap);
+			*prev=fklCopyVMvalue(cur,stack,exe->heap);
 		}
 		else if(FKL_IS_STR(*prev))
 		{
 			if(!FKL_IS_PTR(cur))
 				FKL_RAISE_BUILTIN_ERROR("sys.append",FKL_WRONGARG,runnable,exe);
-			fklVMstrCat(&(*prev)->u.str,cur->u.str);
+			fklVMstrCat((FklVMstr**)&(*prev)->u.str,cur->u.str);
 		}
 		else if(FKL_IS_VECTOR(*prev))
 		{
 			if(!FKL_IS_VECTOR(cur))
 				FKL_RAISE_BUILTIN_ERROR("sys.append",FKL_WRONGARG,runnable,exe);
-			fklVMvecCat(&(*prev)->u.vec,cur->u.vec);
+			fklVMvecCat((FklVMvec**)&(*prev)->u.vec,cur->u.vec);
 		}
 		else
 			FKL_RAISE_BUILTIN_ERROR("sys.append",FKL_WRONGARG,runnable,exe);
@@ -208,7 +208,7 @@ void SYS_add(ARGL)
 		fklNiReturn(fklNiNewVMvalue(FKL_F64,&rd,stack,exe->heap),&ap,stack);
 	}
 	else
-		fklNiReturn(fklMakeVMint(r64,exe->heap),&ap,stack);
+		fklNiReturn(fklMakeVMint(r64,stack,exe->heap),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -229,7 +229,7 @@ void SYS_add_1(ARGL)
 		fklNiReturn(fklNiNewVMvalue(FKL_F64,&r,stack,exe->heap),&ap,stack);
 	}
 	else
-		fklNiReturn(fklMakeVMint(fklGetInt(arg)+1,exe->heap),&ap,stack);
+		fklNiReturn(fklMakeVMint(fklGetInt(arg)+1,stack,exe->heap),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -254,7 +254,7 @@ void SYS_sub(ARGL)
 			fklNiReturn(fklNiNewVMvalue(FKL_F64,&rd,stack,exe->heap),&ap,stack);
 		}
 		else
-			fklNiReturn(fklMakeVMint(-fklGetInt(prev),exe->heap),&ap,stack);
+			fklNiReturn(fklMakeVMint(-fklGetInt(prev),stack,exe->heap),&ap,stack);
 	}
 	else
 	{
@@ -276,7 +276,7 @@ void SYS_sub(ARGL)
 		else
 		{
 			r64=(FKL_IS_I64(prev))?prev->u.i64:FKL_GET_I32(prev)-r64;
-			fklNiReturn(fklMakeVMint(r64,exe->heap),&ap,stack);
+			fklNiReturn(fklMakeVMint(r64,stack,exe->heap),&ap,stack);
 		}
 	}
 	fklNiEnd(&ap,stack);
@@ -299,7 +299,7 @@ void SYS_sub_1(ARGL)
 		fklNiReturn(fklNiNewVMvalue(FKL_F64,&r,stack,exe->heap),&ap,stack);
 	}
 	else
-		fklNiReturn(fklMakeVMint(fklGetInt(arg)-1,exe->heap),&ap,stack);
+		fklNiReturn(fklMakeVMint(fklGetInt(arg)-1,stack,exe->heap),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -326,7 +326,7 @@ void SYS_mul(ARGL)
 		fklNiReturn(fklNiNewVMvalue(FKL_F64,&rd,stack,exe->heap),&ap,stack);
 	}
 	else
-		fklNiReturn(fklMakeVMint(r64,exe->heap),&ap,stack);
+		fklNiReturn(fklMakeVMint(r64,stack,exe->heap),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -365,7 +365,7 @@ void SYS_div(ARGL)
 			else
 			{
 				r64=1/r64;
-				fklNiReturn(fklMakeVMint(r64,exe->heap),&ap,stack);
+				fklNiReturn(fklMakeVMint(r64,stack,exe->heap),&ap,stack);
 			}
 		}
 	}
@@ -397,7 +397,7 @@ void SYS_div(ARGL)
 			else
 			{
 				r64=fklGetInt(prev)/r64;
-				fklNiReturn(fklMakeVMint(r64,exe->heap),&ap,stack);
+				fklNiReturn(fklMakeVMint(r64,stack,exe->heap),&ap,stack);
 			}
 		}
 	}
@@ -428,7 +428,7 @@ void SYS_rem(ARGL)
 	else
 	{
 		int64_t r=fklGetInt(fir)%fklGetInt(sec);
-		fklNiReturn(fklMakeVMint(r,exe->heap),&ap,stack);
+		fklNiReturn(fklMakeVMint(r,stack,exe->heap),&ap,stack);
 	}
 	fklNiEnd(&ap,stack);
 }
@@ -647,13 +647,13 @@ void SYS_integer(ARGL)
 	else if(FKL_IS_I32(obj))
 		fklNiReturn(obj,&ap,stack);
 	else if(FKL_IS_SYM(obj))
-		fklNiReturn(fklMakeVMint(FKL_GET_SYM(obj),exe->heap),&ap,stack);
+		fklNiReturn(fklMakeVMint(FKL_GET_SYM(obj),stack,exe->heap),&ap,stack);
 	else if(FKL_IS_I64(obj))
-		fklNiReturn(fklNiNewVMvalue(FKL_I64,&obj->u.i64,stack,exe->heap),&ap,stack);
+		fklNiReturn(fklNiNewVMvalue(FKL_I64,(void*)&obj->u.i64,stack,exe->heap),&ap,stack);
 	else if(FKL_IS_F64(obj))
 	{
 		int64_t r=(int64_t)obj->u.f64;
-		fklNiReturn(fklMakeVMint(r,exe->heap),&ap,stack);
+		fklNiReturn(fklMakeVMint(r,stack,exe->heap),&ap,stack);
 	}
 	else if(FKL_IS_STR(obj))
 	{
@@ -754,7 +754,7 @@ void SYS_i64(ARGL)
 		fklNiReturn(fklNiNewVMvalue(FKL_I64,&r,stack,exe->heap),&ap,stack);
 	}
 	else if(FKL_IS_I64(obj))
-		fklNiReturn(fklNiNewVMvalue(FKL_I64,&obj->u.i64,stack,exe->heap),&ap,stack);
+		fklNiReturn(fklNiNewVMvalue(FKL_I64,(void*)&obj->u.i64,stack,exe->heap),&ap,stack);
 	else if(FKL_IS_F64(obj))
 	{
 		int64_t r=(int64_t)obj->u.f64;
@@ -1087,7 +1087,7 @@ void SYS_length(ARGL)
 		len=obj->u.vec->size;
 	else
 		FKL_RAISE_BUILTIN_ERROR("sys.length",FKL_WRONGARG,runnable,exe);
-	fklNiReturn(fklMakeVMint(len,exe->heap),&ap,stack);
+	fklNiReturn(fklMakeVMint(len,stack,exe->heap),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -1799,9 +1799,9 @@ void SYS_fwrite(ARGL)
 		fwrite(&r,sizeof(int32_t),1,objFile);
 	}
 	else if(FKL_IS_I64(obj))
-		fwrite(&obj->u.i64,sizeof(int64_t),1,objFile);
+		fwrite((void*)&obj->u.i64,sizeof(int64_t),1,objFile);
 	else if(FKL_IS_F64(obj))
-		fwrite(&obj->u.f64,sizeof(double),1,objFile);
+		fwrite((void*)&obj->u.f64,sizeof(double),1,objFile);
 	else
 		FKL_RAISE_BUILTIN_ERROR("sys.fwrite",FKL_WRONGARG,runnable,exe);
 	fklNiReturn(obj,&ap,stack);

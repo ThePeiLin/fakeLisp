@@ -997,7 +997,6 @@ FklVMstack* fklNewVMstack(int32_t size)
 	FklVMstack* tmp=(FklVMstack*)malloc(sizeof(FklVMstack));
 	FKL_ASSERT(tmp,__func__);
 	tmp->size=size;
-	tmp->ap=0;
 	tmp->tp=0;
 	tmp->bp=0;
 	tmp->values=(FklVMvalue**)malloc(size*sizeof(FklVMvalue*));

@@ -149,7 +149,6 @@ typedef struct FklVMrunnable
 typedef struct
 {
 	uint32_t tp;
-	uint32_t ap;
 	uint32_t bp;
 	uint32_t size;
 	FklVMvalue** values;

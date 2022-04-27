@@ -876,7 +876,7 @@ FklVMvalue* fklGetValue(FklVMstack* stack,int32_t place)
 	return stack->values[place];
 }
 
-VMcontinuation* fklNewVMcontinuation(FklVMstack* stack,FklPtrStack* rstack,FklPtrStack* tstack)
+VMcontinuation* fklNewVMcontinuation(uint32_t ap,FklVMstack* stack,FklPtrStack* rstack,FklPtrStack* tstack)
 {
 	int32_t size=rstack->top;
 	int32_t i=0;
@@ -888,6 +888,7 @@ VMcontinuation* fklNewVMcontinuation(FklVMstack* stack,FklPtrStack* rstack,FklPt
 	FklVMtryBlock* tb=(FklVMtryBlock*)malloc(sizeof(FklVMtryBlock)*tbnum);
 	FKL_ASSERT(tb,__func__);
 	tmp->stack=fklCopyStack(stack);
+	tmp->stack->tp=ap;
 	tmp->num=size;
 	for(;i<size;i++)
 	{

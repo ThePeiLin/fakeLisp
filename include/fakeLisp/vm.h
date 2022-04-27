@@ -319,7 +319,7 @@ char* fklGenErrorMessage(FklErrorType type,FklVMrunnable* r,FklVM* exe);
 char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklErrorType,FklVMrunnable* r,FklVM* exe);
 int32_t fklGetSymbolIdInByteCode(const uint8_t*);
 
-VMcontinuation* fklNewVMcontinuation(FklVMstack* stack,FklPtrStack* rstack,FklPtrStack* tstack);
+VMcontinuation* fklNewVMcontinuation(uint32_t ap,FklVMstack* stack,FklPtrStack* rstack,FklPtrStack* tstack);
 void fklFreeVMcontinuation(VMcontinuation* cont);
 
 
@@ -366,9 +366,6 @@ int32_t fklGetNumVMchanl(FklVMchanl*);
 
 FklVMproc* fklCopyVMproc(FklVMproc*,FklVMheap*);
 void fklFreeVMproc(FklVMproc*);
-
-VMcontinuation* fklNewVMcontinuation(FklVMstack*,FklPtrStack*,FklPtrStack*);
-void fklFreeVMcontinuation(VMcontinuation*);
 
 FklVMfp* fklNewVMfp(FILE*);
 int fklFreeVMfp(FklVMfp*);

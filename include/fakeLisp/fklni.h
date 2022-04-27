@@ -11,4 +11,7 @@ void fklNiReturn(FklVMvalue*,uint32_t* ap,FklVMstack*);
 int fklNiResBp(uint32_t* ap,FklVMstack*);
 void fklNiEnd(uint32_t* ap,FklVMstack*);
 void fklNiBegin(uint32_t* ap,FklVMstack*);
+FklVMvalue* fklNiNewVMvalue(FklValueType type,void* p,FklVMstack*,FklVMheap* heap);
+#define FKL_NI_BEGIN(EXE) FklVMstack* stack=(EXE)->stack;uint32_t ap=0;fklNiBegin(&ap,stack)
+//#define FKL_NI_END() fklNiEnd(&ap,stack)
 #endif

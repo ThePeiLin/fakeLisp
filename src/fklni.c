@@ -12,18 +12,25 @@ int fklNiResBp(uint32_t* ap,FklVMstack* stack)
 
 void fklNiReturn(FklVMvalue* v,uint32_t* ap,FklVMstack* s)
 {
-	if(*ap>=s->size)
+	pthread_mutex_lock(&s->lock);
+	if(s->tp>=s->size)
 	{
-		pthread_mutex_lock(&s->lock);
 		s->values=(FklVMvalue**)realloc(s->values
 				,sizeof(FklVMvalue*)*(s->size+64));
 		FKL_ASSERT(s->values,__func__);
 		s->size+=64;
-		s->tp=*ap;
-		pthread_mutex_unlock(&s->lock);
 	}
-	s->values[*ap]=v;
+	if(*ap<s->tp)
+	{
+		FklVMvalue* t=s->values[*ap];
+		s->values[*ap]=v;
+		s->values[s->tp]=t;
+	}
+	else
+		s->values[*ap]=v;
 	*ap+=1;
+	s->tp+=1;
+	pthread_mutex_unlock(&s->lock);
 }
 
 inline void fklNiBegin(uint32_t* ap,FklVMstack* s)
@@ -63,4 +70,9 @@ FklVMvalue* fklNiGetArg(uint32_t*ap,FklVMstack* stack)
 			r=tmp;
 	}
 	return r;
+}
+
+FklVMvalue* fklNiNewVMvalue(FklValueType type,void* p,FklVMstack* s,FklVMheap* heap)
+{
+	return fklNewVMvalueToStack(type,p,s,heap);
 }

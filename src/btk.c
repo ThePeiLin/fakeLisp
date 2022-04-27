@@ -1,4 +1,4 @@
-#include<fakeLisp/vm.h>
+#include<fakeLisp/fklni.h>
 #include<fakeLisp/utils.h>
 #include<stdio.h>
 #include<stdlib.h>
@@ -32,36 +32,39 @@ int getch()
 	return ch;
 }
 #endif
-void FKL_getch(FklVM* exe,pthread_rwlock_t* pGClock)
+#define ARGL FklVM* exe
+void FKL_getch(ARGL)
 {
-	FklVMstack* stack=exe->stack;
-	if(fklResBp(stack))
+	FKL_NI_BEGIN(exe);
+	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR("btk.getch",FKL_TOOMANYARG,fklTopPtrStack(exe->rstack),exe);
-	FKL_SET_RETURN("FKL_getch",FKL_MAKE_VM_CHR(getch()),stack);
+	fklNiReturn(FKL_MAKE_VM_CHR(getch()),&ap,stack);
+	fklNiEnd(&ap,stack);
 }
 
-void FKL_sleep(FklVM* exe,pthread_rwlock_t* pGClock)
+void FKL_sleep(ARGL)
 {
-	FklVMstack* stack=exe->stack;
+	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
-	FklVMvalue* second=fklPopGetAndMark(stack,exe->heap);
+	FklVMvalue* second=fklNiGetArg(&ap,stack);
 	if(!second)
 		FKL_RAISE_BUILTIN_ERROR("btk.sleep",FKL_TOOFEWARG,r,exe);
-	if(fklResBp(stack))
+	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR("btk.sleep",FKL_TOOMANYARG,r,exe);
 	if(!FKL_IS_I32(second))
 		FKL_RAISE_BUILTIN_ERROR("btk.sleep",FKL_WRONGARG,r,exe);
-	FKL_SET_RETURN("FKL_sleep",FKL_MAKE_VM_I32(sleep(FKL_GET_I32(second))),stack);
+	fklNiReturn(FKL_MAKE_VM_I32(sleep(FKL_GET_I32(second))),&ap,stack);
+	fklNiEnd(&ap,stack);
 }
 
-void FKL_usleep(FklVM* exe,pthread_rwlock_t* pGClock)
+void FKL_usleep(ARGL)
 {
-	FklVMstack* stack=exe->stack;
-	FklVMvalue* second=fklPopGetAndMark(stack,exe->heap);
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* second=fklNiGetArg(&ap,stack);
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
 	if(!second)
 		FKL_RAISE_BUILTIN_ERROR("btk.usleep",FKL_TOOFEWARG,r,exe);
-	if(fklResBp(stack))
+	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR("btk.usleep",FKL_TOOMANYARG,r,exe);
 	if(!FKL_IS_I32(second))
 		FKL_RAISE_BUILTIN_ERROR("btk.usleep",FKL_WRONGARG,r,exe);
@@ -70,38 +73,41 @@ void FKL_usleep(FklVM* exe,pthread_rwlock_t* pGClock)
 #else
 		usleep(FKL_GET_I32(second));
 #endif
-	FKL_SET_RETURN("FKL_usleep",second,stack);
+	fklNiReturn(second,&ap,stack);
+	fklNiEnd(&ap,stack);
 }
 
-void FKL_srand(FklVM* exe,pthread_rwlock_t* pGClock)
+void FKL_srand(ARGL)
 {
-	FklVMstack* stack=exe->stack;
+	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
-	FklVMvalue* s=fklPopGetAndMark(stack,exe->heap);
-    if(fklResBp(stack))
+	FklVMvalue* s=fklNiGetArg(&ap,stack);
+    if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR("btk.srand",FKL_TOOMANYARG,r,exe);
 	if(!fklIsInt(s))
 		FKL_RAISE_BUILTIN_ERROR("btk.srand",FKL_WRONGARG,r,exe);
     srand(fklGetInt(s));
-    FKL_SET_RETURN(__func__,s,stack);
+    fklNiReturn(s,&ap,stack);
+	fklNiEnd(&ap,stack);
 }
 
-void FKL_rand(FklVM* exe,pthread_rwlock_t* pGClock)
+void FKL_rand(ARGL)
 {
-	FklVMstack* stack=exe->stack;
-	FklVMvalue*  lim=fklPopGetAndMark(stack,exe->heap);
+	FKL_NI_BEGIN(exe);
+	FklVMvalue*  lim=fklNiGetArg(&ap,stack);
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
-	if(fklResBp(stack))
+	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR("btk.rand",FKL_TOOMANYARG,r,exe);
 	if(lim&&!FKL_IS_I32(lim))
 		FKL_RAISE_BUILTIN_ERROR("btk.rand",FKL_WRONGARG,r,exe);
-	FKL_SET_RETURN("FKL_rand",FKL_MAKE_VM_I32(rand()%((lim==NULL||!FKL_IS_I32(lim))?RAND_MAX:FKL_GET_I32(lim))),stack);
+	fklNiReturn(FKL_MAKE_VM_I32(rand()%((lim==NULL||!FKL_IS_I32(lim))?RAND_MAX:FKL_GET_I32(lim))),&ap,stack);
+	fklNiEnd(&ap,stack);
 }
 
-void FKL_getTime(FklVM* exe,pthread_rwlock_t* pGClock)
+void FKL_getTime(ARGL)
 {
-	FklVMstack* stack=exe->stack;
-	if(fklResBp(stack))
+	FKL_NI_BEGIN(exe);
+	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR("btk.getTime",FKL_TOOMANYARG,fklTopPtrStack(exe->rstack),exe);
 	time_t timer=time(NULL);
 	struct tm* tblock=NULL;
@@ -125,48 +131,52 @@ void FKL_getTime(FklVM* exe,pthread_rwlock_t* pGClock)
 	FklVMstr* str=fklNewVMstr(timeLen-1,trueTime);
 	FklVMvalue* tmpVMvalue=fklNewVMvalue(FKL_STR,str,exe->heap);
 	free(trueTime);
-	FKL_SET_RETURN("FKL_getTime",tmpVMvalue,stack);
+	fklNiReturn(tmpVMvalue,&ap,stack);
+	fklNiEnd(&ap,stack);
 }
 
-void FKL_removeFile(FklVM* exe,pthread_rwlock_t* pGClock)
+void FKL_removeFile(ARGL)
 {
-	FklVMstack* stack=exe->stack;
+	FKL_NI_BEGIN(exe);
 	FklVMvalue* name=fklPopVMstack(stack);
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
 	if(!name)
 		FKL_RAISE_BUILTIN_ERROR("btk.removeFile",FKL_TOOFEWARG,r,exe);
-	if(fklResBp(stack))
+	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR("btk.removeFile",FKL_TOOMANYARG,r,exe);
 	if(!FKL_IS_STR(name))
 		FKL_RAISE_BUILTIN_ERROR("btk.removeFile",FKL_WRONGARG,r,exe);
 	char* str=fklVMstrToCstr(name->u.str);
-	FKL_SET_RETURN("FKL_removeFile",FKL_MAKE_VM_I32(remove(str)),stack);
+	fklNiReturn(FKL_MAKE_VM_I32(remove(str)),&ap,stack);
+	fklNiEnd(&ap,stack);
 	free(name);
 }
 
-void FKL_setChanlBufferSize(FklVM* exe,pthread_rwlock_t* pGClock)
+void FKL_setChanlBufferSize(ARGL)
 {
-	FklVMstack* stack=exe->stack;
+	FKL_NI_BEGIN(exe);
 	FklVMvalue* chan=fklPopVMstack(stack);
 	FklVMvalue* size=fklPopVMstack(stack);
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
-	if(fklResBp(stack))
-		FKL_RAISE_BUILTIN_ERROR("btk.setVMChanlBufferSize",FKL_TOOMANYARG,r,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR("btk.setChanlBufferSize",FKL_TOOMANYARG,r,exe);
 	if(size==NULL||chan==NULL)
-		FKL_RAISE_BUILTIN_ERROR("btk.setVMChanlBufferSize",FKL_TOOFEWARG,r,exe);
+		FKL_RAISE_BUILTIN_ERROR("btk.setChanlBufferSize",FKL_TOOFEWARG,r,exe);
 	if(!FKL_IS_I32(size)||!FKL_IS_CHAN(chan))
-		FKL_RAISE_BUILTIN_ERROR("btk.setVMChanlBufferSize",FKL_WRONGARG,r,exe);
+		FKL_RAISE_BUILTIN_ERROR("btk.setChanlBufferSize",FKL_WRONGARG,r,exe);
 	chan->u.chan->max=FKL_GET_I32(size);
-	FKL_SET_RETURN("FKL_setVMChanlBufferSize",chan,stack);
+	fklNiReturn(chan,&ap,stack);
+	fklNiEnd(&ap,stack);
 }
 
-void FKL_time(FklVM* exe,pthread_rwlock_t* pGClock)
+void FKL_time(ARGL)
 {
-	FklVMstack* stack=exe->stack;
+	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
-	if(fklResBp(stack))
+	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR("btk.time",FKL_TOOMANYARG,r,exe);
-	FKL_SET_RETURN(__func__,fklMakeVMint((int64_t)time(NULL),exe->heap),stack);
+	fklNiReturn(fklMakeVMint((int64_t)time(NULL),exe->heap),&ap,stack);
+	fklNiEnd(&ap,stack);
 }
 
 #ifdef __cplusplus

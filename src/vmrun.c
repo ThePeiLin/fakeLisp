@@ -1437,23 +1437,27 @@ void fklGC_collect(FklVM* exe)
 void fklGC_sweepW(FklVM* exe)
 {
 	volatile FklVMvalue* head=exe->heap->white;
-	FklPtrStack* stack=fklNewPtrStack(32,16);
 	exe->heap->white=NULL;
 	uint32_t count=0;
-	while(head)
+	volatile FklVMvalue* volatile* phead=&head;
+	while(*phead)
 	{
-		volatile FklVMvalue* cur=head;
-		fklPushPtrStack((void*)cur,stack);
-		head=head->next;
-		cur->next=NULL;
-		count++;
+		volatile FklVMvalue* cur=*phead;
+		if(cur->mark==FKL_MARK_W)
+		{
+			*phead=cur->next;
+			fprintf(stderr,"free %p\n",cur);
+			fklFreeVMvalue(cur);
+			count++;
+		}
+		else
+			phead=&cur->next;
 	}
-	while(!fklIsPtrStackEmpty(stack))
-		fklFreeVMvalue(fklPopPtrStack(stack));
 	pthread_mutex_lock(&exe->heap->lock);
 	//fprintf(stderr,"%d:sweep count:%d\n",GCtimce,count);
+	*phead=exe->heap->head;
+	exe->heap->head=head;
 	exe->heap->num-=count;
-	fklFreePtrStack(stack);
 	pthread_mutex_unlock(&exe->heap->lock);
 }
 

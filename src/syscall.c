@@ -1643,11 +1643,11 @@ void SYS_reverse(ARGL)
 	if(obj!=FKL_VM_NIL)
 	{
 		FklVMheap* heap=exe->heap;
-		for(FklVMvalue* cdr=obj;cdr!=FKL_VM_NIL;cdr=fklGetVMpairCdr(cdr))
+		for(FklVMvalue* cdr=obj;cdr!=FKL_VM_NIL;cdr=cdr->u.pair->cdr)
 		{
 			FklVMvalue* pair=fklNiNewVMvalue(FKL_PAIR,fklNewVMpair(),stack,heap);
 			pair->u.pair->cdr=retval;
-			pair->u.pair->car=fklGetVMpairCar(cdr);
+			pair->u.pair->car=cdr->u.pair->car;
 			retval=pair;
 		}
 	}

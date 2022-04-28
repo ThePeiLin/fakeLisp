@@ -25,6 +25,21 @@ static volatile int GCtimce;
 static int VMargc=0;
 static char** VMargv=NULL;
 
+typedef struct Graylink
+{
+	volatile FklVMvalue* v;
+	volatile struct Graylink* next;
+}Graylink;
+
+Graylink* newGraylink(volatile FklVMvalue* v,volatile struct Graylink* next)
+{
+	Graylink* g=(Graylink*)malloc(sizeof(Graylink));
+	FKL_ASSERT(g,__func__);
+	g->v=v;
+	g->next=next;
+	return g;
+}
+
 void threadErrorCallBack(void* a)
 {
 	void** e=(void**)a;
@@ -749,7 +764,7 @@ void B_pop_rest_arg(FklVM* exe)
 		tmpNode=fklAddVMenvNode(fklNewVMenvNode(obj,idOfVar),curEnv->u.env);
 	else
 		*pValue=obj;
-	if(curEnv->mark==FKL_MARK_B&&FKL_IS_PTR(obj))
+	if(exe->heap->running==FKL_GC_RUNNING&&FKL_IS_PTR(obj)&&obj->mark==FKL_MARK_W)
 		fklGC_toGray(obj,exe->heap);
 	while(ap>stack->bp)
 	{
@@ -772,7 +787,7 @@ void B_pop_car(FklVM* exe)
 	FklVMvalue* objValue=fklNiGetArg(&ap,stack);
 	if(!FKL_IS_PAIR(objValue))
 		FKL_RAISE_BUILTIN_ERROR("b.pop_car",FKL_WRONGARG,runnable,exe);
-	if(objValue->mark==FKL_MARK_B&&FKL_IS_PTR(topValue)&&topValue->mark==FKL_MARK_W)
+	if(exe->heap->running==FKL_GC_RUNNING&&FKL_IS_PTR(topValue)&&topValue->mark==FKL_MARK_W)
 		fklGC_toGray(topValue,exe->heap);
 	objValue->u.pair->car=topValue;
 	fklNiReturn(objValue,&ap,stack);
@@ -805,7 +820,7 @@ void B_pop_ref(FklVM* exe)
 	FklVMvalue* by=fklNiPopTop(&ap,stack);
 	if(FKL_IS_REF(ref))
 	{
-		if(by->mark==FKL_MARK_B&&FKL_IS_PTR(val)&&val->mark==FKL_MARK_W)
+		if(exe->heap->running==FKL_GC_RUNNING&&FKL_IS_PTR(val)&&val->mark==FKL_MARK_W)
 			fklGC_toGray(val,exe->heap);
 		if(fklSET_REF(ref,val))
 			FKL_RAISE_BUILTIN_ERROR("b.pop_ref",FKL_INVALIDASSIGN,runnable,exe);
@@ -1013,20 +1028,16 @@ void B_push_vector(FklVM* exe)
 void B_push_r_env(FklVM* exe)
 {
 	FKL_NI_BEGIN(exe);
-	pthread_mutex_lock(&exe->rlock);
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
 	r->localenv=fklNiNewVMvalue(FKL_ENV,fklNewVMenv(r->localenv),stack,exe->heap);
-	pthread_mutex_unlock(&exe->rlock);
 	fklNiEnd(&ap,stack);
 	r->cp+=sizeof(char);
 }
 
 void B_pop_r_env(FklVM* exe)
 {
-	pthread_mutex_lock(&exe->rlock);
 	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
 	r->localenv=r->localenv->u.env->prev;
-	pthread_mutex_unlock(&exe->rlock);
 	r->cp+=sizeof(char);
 }
 
@@ -1159,7 +1170,7 @@ FklVMheap* fklNewVMheap()
 	tmp->num=0;
 	tmp->threshold=FKL_THRESHOLD_SIZE;
 	tmp->head=NULL;
-	tmp->gray=fklNewPtrStack(128,64);
+	tmp->gray=NULL;
 	tmp->white=NULL;
 	pthread_mutex_init(&tmp->lock,NULL);
 	pthread_mutex_init(&tmp->glock,NULL);
@@ -1256,7 +1267,7 @@ void fklGC_toGray(FklVMvalue* v,FklVMheap* h)
 	{
 		v->mark=FKL_MARK_G;
 		pthread_mutex_lock(&h->glock);
-		fklPushPtrStack(v,h->gray);
+		h->gray=newGraylink(v,h->gray);
 		pthread_mutex_unlock(&h->glock);
 	}
 }
@@ -1278,10 +1289,12 @@ void fklGC_markRootToGray(FklVM* exe)
 	for(uint32_t i=stack->tp;i>0;i--)
 	{
 		FklVMvalue* value=stack->values[i-1];
-		if(FKL_IS_MREF(value)||FKL_IS_REF(value))
+		if(FKL_IS_MREF(value))
 			i--;
 		else if(FKL_IS_PTR(value))
 			fklGC_toGray(value,heap);
+		else if(FKL_IS_REF(value))
+			fklGC_toGray(FKL_GET_PTR(value),heap);
 	}
 	pthread_mutex_unlock(&stack->lock);
 	if(exe->chan)
@@ -1314,7 +1327,7 @@ void fklGC_pause(FklVM* exe)
 		fklGC_markRootToGray(exe);
 }
 
-void propagateMark(FklVMvalue* root,FklVMheap* heap)
+void propagateMark(volatile FklVMvalue* root,FklVMheap* heap)
 {
 	switch(root->type)
 	{
@@ -1381,8 +1394,11 @@ void propagateMark(FklVMvalue* root,FklVMheap* heap)
 void fklGC_propagate(FklVM* exe)
 {
 	pthread_mutex_lock(&exe->heap->glock);
-	FklVMvalue* v=fklPopPtrStack(exe->heap->gray);
+	volatile Graylink* g=exe->heap->gray;
+	exe->heap->gray=g->next;
 	pthread_mutex_unlock(&exe->heap->glock);
+	volatile FklVMvalue* v=g->v;
+	free((void*)g);
 	if(FKL_IS_PTR(v)&&v->mark==FKL_MARK_G)
 	{
 		v->mark=FKL_MARK_B;
@@ -1451,8 +1467,7 @@ void* fklGC_threadFunc(void* arg)
 		fklGC_markRootToGray(exe);
 	for(;;)
 	{
-		int r=fklIsPtrStackEmpty(exe->heap->gray);
-		if(r)
+		if(!exe->heap->gray)
 			break;
 		fklGC_propagate(exe);
 	}
@@ -1680,7 +1695,6 @@ void fklFreeVMheap(FklVMheap* h)
 {
 	fklGC_wait(h);
 	fklGC_sweep(h);
-	fklFreePtrStack(h->gray);
 	pthread_mutex_destroy(&h->glock);
 	pthread_mutex_destroy(&h->lock);
 	free(h);

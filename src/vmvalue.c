@@ -264,12 +264,6 @@ FklVMvalue* fklNewVMvalueToStackWithoutLock(FklValueType type
 		stack->values=(FklVMvalue**)realloc(stack->values
 				,sizeof(FklVMvalue*)*(stack->size+64));
 		FKL_ASSERT(stack->values,__func__);
-		if(stack->values==NULL)
-		{
-			fprintf(stderr,"In file \"%s\" line %d\n",__FILE__,__LINE__);\
-				perror(__func__);
-			exit(1);
-		}
 		stack->size+=64;
 	}
 	switch(type)

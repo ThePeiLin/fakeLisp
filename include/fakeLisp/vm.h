@@ -124,7 +124,7 @@ typedef struct FklVMenv
 {
 	pthread_mutex_t mutex;
 	struct FklVMvalue* prev;
-	uint32_t num;
+	volatile uint32_t num;
 	FklVMenvNode** list;
 }FklVMenv;
 
@@ -148,7 +148,7 @@ typedef struct FklVMrunnable
 
 typedef struct
 {
-	uint32_t tp;
+	volatile uint32_t tp;
 	uint32_t bp;
 	uint32_t size;
 	FklVMvalue** values;
@@ -184,13 +184,13 @@ typedef enum
 
 typedef struct FklVMheap
 {
-	volatile int running;
+	volatile FklGCState running;
 	pthread_mutex_t lock;
-	uint32_t num;
+	volatile uint32_t num;
 	uint32_t threshold;
 	volatile FklVMvalue* head;
 	pthread_mutex_t glock;
-	FklPtrStack* gray;
+	volatile struct Graylink* gray;
 	volatile FklVMvalue* white;
 }FklVMheap;
 

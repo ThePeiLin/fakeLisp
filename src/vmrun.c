@@ -28,11 +28,11 @@ static char** VMargv=NULL;
 
 typedef struct Graylink
 {
-	volatile FklVMvalue* v;
-	volatile struct Graylink* next;
+	FklVMvalue* volatile v;
+	struct Graylink* volatile next;
 }Graylink;
 
-Graylink* newGraylink(volatile FklVMvalue* v,volatile struct Graylink* next)
+Graylink* newGraylink(FklVMvalue* v,struct Graylink* next)
 {
 	Graylink* g=(Graylink*)malloc(sizeof(Graylink));
 	FKL_ASSERT(g,__func__);
@@ -701,7 +701,7 @@ void B_pop_var(FklVM* exe)
 	int32_t scopeOfVar=fklGetI32FromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+runnable->cp+sizeof(char)+sizeof(int32_t));
 	FklVMvalue* curEnv=runnable->localenv;
-	FklVMvalue** pValue=NULL;
+	FklVMvalue* volatile* pValue=NULL;
 	if(scopeOfVar>=0)
 	{
 		int32_t i=0;
@@ -740,7 +740,7 @@ void B_pop_arg(FklVM* exe)
 		FKL_RAISE_BUILTIN_ERROR("b.pop_arg",FKL_TOOFEWARG,runnable,exe);
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklVMvalue* curEnv=runnable->localenv;
-	FklVMvalue** pValue=NULL;
+	FklVMvalue* volatile* pValue=NULL;
 	FklVMenvNode* tmp=fklFindVMenvNode(idOfVar,curEnv->u.env);
 	if(!tmp)
 		tmp=fklAddVMenvNode(fklNewVMenvNode(FKL_VM_NIL,idOfVar),curEnv->u.env);
@@ -756,7 +756,7 @@ void B_pop_rest_arg(FklVM* exe)
 	FklVMheap* heap=exe->heap;
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklVMvalue* curEnv=runnable->localenv;
-	FklVMvalue** pValue=NULL;
+	FklVMvalue* volatile* pValue=NULL;
 	FklVMenvNode* tmpNode=fklFindVMenvNode(idOfVar,curEnv->u.env);
 	pValue=(tmpNode)?&tmpNode->value:NULL;
 	FklVMvalue* obj=FKL_VM_NIL;
@@ -1412,13 +1412,13 @@ void fklGC_propagate(FklVM* exe)
 void fklGC_collect(FklVM* exe)
 {
 	pthread_mutex_lock(&exe->heap->lock);
-	volatile FklVMvalue* head=exe->heap->head;
+	FklVMvalue* head=exe->heap->head;
 	exe->heap->head=NULL;
 	pthread_mutex_unlock(&exe->heap->lock);
-	volatile FklVMvalue* volatile* phead=&head;
+	FklVMvalue* volatile* phead=&head;
 	while(*phead)
 	{
-		volatile FklVMvalue* cur=*phead;
+		FklVMvalue* cur=*phead;
 		if(cur->mark==FKL_MARK_W)
 		{
 			*phead=cur->next;
@@ -1439,10 +1439,10 @@ void fklGC_collect(FklVM* exe)
 
 void fklGC_sweepW(FklVM* exe)
 {
-	volatile FklVMvalue* head=exe->heap->white;
+	FklVMvalue* head=exe->heap->white;
 	exe->heap->white=NULL;
 	uint32_t count=0;
-	volatile FklVMvalue* volatile* phead=&head;
+	FklVMvalue* volatile* phead=&head;
 	while(*phead)
 	{
 		volatile FklVMvalue* cur=*phead;
@@ -1573,7 +1573,7 @@ void fklFreeVMvalue(volatile FklVMvalue* cur)
 
 void fklGC_sweep(FklVMheap* heap)
 {
-	volatile FklVMvalue* volatile* phead=&heap->head;
+	FklVMvalue* volatile* phead=&heap->head;
 	while(*phead!=NULL)
 	{
 		volatile FklVMvalue* cur=*phead;

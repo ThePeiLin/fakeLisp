@@ -77,7 +77,7 @@ void fklDecTop(FklVMstack* stack)
 	pthread_mutex_unlock(&stack->lock);
 }
 
-inline void fklSetAndPop(FklVMvalue* by,FklVMvalue** pV,FklVMstack* stack,FklVMheap* heap)
+inline void fklSetAndPop(FklVMvalue* by,FklVMvalue* volatile* pV,FklVMstack* stack,FklVMheap* heap)
 {
 	FklVMvalue* t=fklTopGet(stack);
 	*pV=t;

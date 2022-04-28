@@ -111,19 +111,19 @@ typedef struct FklVMvalue
 		struct FklVMerror* err;
 		void* p;
 	}u;
-	volatile struct FklVMvalue* next;
+	struct FklVMvalue* volatile next;
 }FklVMvalue;
 
 typedef struct FklVMenvNode
 {
 	uint32_t id;
-	FklVMvalue* value;
+	FklVMvalue* volatile value;
 }FklVMenvNode;
 
 typedef struct FklVMenv
 {
 	pthread_rwlock_t lock;
-	struct FklVMvalue* prev;
+	struct FklVMvalue* volatile prev;
 	volatile uint32_t num;
 	FklVMenvNode** list;
 }FklVMenv;
@@ -188,10 +188,10 @@ typedef struct FklVMheap
 	pthread_mutex_t lock;
 	volatile uint32_t num;
 	uint32_t threshold;
-	volatile FklVMvalue* head;
+	FklVMvalue* volatile head;
 	pthread_mutex_t glock;
-	volatile struct Graylink* gray;
-	volatile FklVMvalue* white;
+	struct Graylink* volatile gray;
+	FklVMvalue* volatile white;
 }FklVMheap;
 
 typedef struct
@@ -419,7 +419,7 @@ FklVMvalue* fklNewVMvalueToStackWithoutLock(FklValueType
 		,void* p
 		,FklVMstack*
 		,FklVMheap* heap);
-void fklSetAndPop(FklVMvalue* by,FklVMvalue**,FklVMstack* s,FklVMheap*);
+void fklSetAndPop(FklVMvalue* by,FklVMvalue* volatile*,FklVMstack* s,FklVMheap*);
 
 FklVMdllHandle fklLoadDll(const char* path);
 

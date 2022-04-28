@@ -125,9 +125,9 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode,uint32_t i
 			}
 			break;
 		case -3:
-			fprintf(fp,"%d %u"
+			fprintf(fp,"%d %s"
 					,fklGetI32FromByteCode(tmpCode->code+i+sizeof(char))
-					,fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)+sizeof(int32_t)));
+					,fklGetGlobSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)+sizeof(int32_t)))->symbol);
 			r+=sizeof(char)+sizeof(int32_t)+sizeof(FklSid_t);
 			break;
 		case -2:
@@ -165,18 +165,18 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode,uint32_t i
 							,fklGetF64FromByteCode(tmpCode->code+i+sizeof(char)));
 					break;
 				case FKL_PUSH_I64:
+				case FKL_PUSH_VECTOR:
 				case FKL_JMP:
 				case FKL_JMP_IF_FALSE:
 				case FKL_JMP_IF_TRUE:
 					fprintf(fp,"%ld"
 							,fklGetI64FromByteCode(tmpCode->code+i+sizeof(char)));
 					break;
-				case FKL_PUSH_VECTOR:
-				case FKL_PUSH_SYM:
-				case FKL_PUSH_VAR:
 				case FKL_POP_ARG:
+				case FKL_PUSH_VAR:
+				case FKL_PUSH_SYM:
 				case FKL_POP_REST_ARG:
-					fprintf(fp,"%lu",fklGetU64FromByteCode(tmpCode->code+i+sizeof(char)));
+					fprintf(fp,"%s",fklGetGlobSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)))->symbol);
 					break;
 			}
 			r+=sizeof(char)+sizeof(int64_t);

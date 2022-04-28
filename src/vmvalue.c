@@ -798,7 +798,7 @@ FklVMenv* fklNewVMenv(FklVMvalue* prev)
 	tmp->num=0;
 	tmp->list=NULL;
 	tmp->prev=prev;
-	pthread_mutex_init(&tmp->mutex,NULL);
+	pthread_rwlock_init(&tmp->lock,NULL);
 	return tmp;
 }
 
@@ -820,10 +820,12 @@ FklVMenv* fklNewVMenv(FklVMvalue* prev)
 
 void fklFreeVMenv(FklVMenv* obj)
 {
+	pthread_rwlock_wrlock(&obj->lock);
 	for(uint32_t i=0;i<obj->num;i++)
 		fklFreeVMenvNode(obj->list[i]);
-	pthread_mutex_destroy(&obj->mutex);
 	free(obj->list);
+	pthread_rwlock_unlock(&obj->lock);
+	pthread_rwlock_destroy(&obj->lock);
 	free(obj);
 }
 
@@ -838,7 +840,7 @@ FklVMenvNode* fklNewVMenvNode(FklVMvalue* value,int32_t id)
 
 FklVMenvNode* fklAddVMenvNode(FklVMenvNode* node,FklVMenv* env)
 {
-	pthread_mutex_lock(&env->mutex);
+	pthread_rwlock_wrlock(&env->lock);
 	if(!env->list)
 	{
 		env->num=1;
@@ -858,7 +860,7 @@ FklVMenvNode* fklAddVMenvNode(FklVMenvNode* node,FklVMenv* env)
 				h=mid-1;
 			else if(env->list[mid]->id==node->id)
 			{
-				pthread_mutex_unlock(&env->mutex);
+				pthread_rwlock_unlock(&env->lock);
 				return env->list[mid];
 			}
 			else
@@ -874,7 +876,7 @@ FklVMenvNode* fklAddVMenvNode(FklVMenvNode* node,FklVMenv* env)
 			env->list[i]=env->list[i-1];
 		env->list[mid]=node;
 	}
-	pthread_mutex_unlock(&env->mutex);
+	pthread_rwlock_unlock(&env->lock);
 	return node;
 }
 
@@ -882,7 +884,7 @@ FklVMenvNode* fklFindVMenvNode(FklSid_t id,FklVMenv* env)
 {
 	if(!env->list)
 		return NULL;
-	pthread_mutex_lock(&env->mutex);
+	pthread_rwlock_rdlock(&env->lock);
 	int32_t l=0;
 	int32_t h=env->num-1;
 	int32_t mid;
@@ -900,7 +902,7 @@ FklVMenvNode* fklFindVMenvNode(FklSid_t id,FklVMenv* env)
 			break;
 		}
 	}
-	pthread_mutex_unlock(&env->mutex);
+	pthread_rwlock_unlock(&env->lock);
 	return r;
 }
 

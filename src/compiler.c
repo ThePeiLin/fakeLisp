@@ -43,7 +43,7 @@ static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap
 			fklCodelntCopyCat(t,curEnv->proc);
 			fklInitVMRunningResource(tmpVM,vEnv,heap,t,bs,curEnv->proc->bc->size);
 			bs+=curEnv->proc->bc->size;
-			int i=fklRunForGenEnv(tmpVM);
+			int i=fklRunVM(tmpVM);
 			if(i==1)
 			{
 				fklUninitVMRunningResource(tmpVM);

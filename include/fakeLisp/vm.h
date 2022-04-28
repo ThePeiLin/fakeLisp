@@ -122,7 +122,7 @@ typedef struct FklVMenvNode
 
 typedef struct FklVMenv
 {
-	pthread_mutex_t mutex;
+	pthread_rwlock_t lock;
 	struct FklVMvalue* prev;
 	volatile uint32_t num;
 	FklVMenvNode** list;

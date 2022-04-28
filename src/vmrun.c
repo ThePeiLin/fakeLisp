@@ -694,7 +694,7 @@ void B_pop(FklVM* exe)
 
 void B_pop_var(FklVM* exe)
 {
-	FKL_NI_BEGIN(exe);
+	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
 	if(!(stack->tp>stack->bp))
 		FKL_RAISE_BUILTIN_ERROR("b.pop_var",FKL_STACKERROR,runnable,exe);
@@ -702,7 +702,6 @@ void B_pop_var(FklVM* exe)
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+runnable->cp+sizeof(char)+sizeof(int32_t));
 	FklVMvalue* curEnv=runnable->localenv;
 	FklVMvalue** pValue=NULL;
-	FklVMvalue* v=fklNiGetArg(&ap,stack);
 	if(scopeOfVar>=0)
 	{
 		int32_t i=0;
@@ -710,7 +709,8 @@ void B_pop_var(FklVM* exe)
 			curEnv=curEnv->u.env->prev;
 		FklVMenvNode* tmp=fklFindVMenvNode(idOfVar,curEnv->u.env);
 		if(!tmp)
-			tmp=fklAddVMenvNode(fklNewVMenvNode(v,idOfVar),curEnv->u.env);
+			tmp=fklAddVMenvNode(fklNewVMenvNode(FKL_VM_NIL,idOfVar),curEnv->u.env);
+		pValue=&tmp->value;
 	}
 	else
 	{
@@ -722,14 +722,13 @@ void B_pop_var(FklVM* exe)
 		}
 		if(tmp==NULL)
 			FKL_RAISE_BUILTIN_ERROR("b.pop_var",FKL_SYMUNDEFINE,runnable,exe);
-		tmp->value=v;
+		pValue=&tmp->value;
 	}
-	//fklSetAndPop(curEnv,pValue,stack,exe->heap);
+	fklSetAndPop(curEnv,pValue,stack,exe->heap);
 	if(FKL_IS_PROC(*pValue)&&(*pValue)->u.proc->sid==0)
 		(*pValue)->u.proc->sid=idOfVar;
 	if(FKL_IS_DLPROC(*pValue)&&(*pValue)->u.dlproc->sid==0)
 		(*pValue)->u.dlproc->sid=idOfVar;
-	fklNiEnd(&ap,stack);
 	runnable->cp+=sizeof(char)+sizeof(int32_t)+sizeof(FklSid_t);
 }
 

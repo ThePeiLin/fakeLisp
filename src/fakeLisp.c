@@ -20,8 +20,8 @@ void loadSymbolTable(FILE*);
 FklLineNumberTable* loadLineNumberTable(FILE*);
 static jmp_buf buf;
 static int exitState=0;
-extern int GCjoinCount;
-extern int GCtimce;
+//extern int GCjoinCount;
+//extern int GCtimce;
 
 void errorCallBack(void* a)
 {
@@ -89,8 +89,8 @@ int main(int argc,char** argv)
 			{
 				fklRunVM(anotherVM);
 				fklGC_wait(anotherVM->heap);
-				fprintf(stderr,"GCtimce:%d\n",GCtimce);
-				fprintf(stderr,"GCjoinCount:%d\n",GCjoinCount);
+				//fprintf(stderr,"GCtimce:%d\n",GCtimce);
+				//fprintf(stderr,"GCjoinCount:%d\n",GCjoinCount);
 				fklJoinAllThread();
 				fklFreeIntpr(inter);
 				fklUninitPreprocess();

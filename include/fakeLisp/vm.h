@@ -4,6 +4,7 @@
 #include"basicADT.h"
 #include"bytecode.h"
 #include"compiler.h"
+#include<stdatomic.h>
 #include<stdio.h>
 #include<stdint.h>
 #include<pthread.h>
@@ -93,7 +94,7 @@ typedef enum{
 typedef struct FklVMvalue
 {
 	volatile FklVMvalueMark mark;
-	FklValueType type;
+	volatile FklValueType type;
 	union
 	{
 		struct FklVMpair* pair;
@@ -110,7 +111,7 @@ typedef struct FklVMvalue
 		struct FklVMchanl* chan;
 		struct FklVMerror* err;
 		void* p;
-	}u;
+	}volatile u;
 	struct FklVMvalue* volatile next;
 }FklVMvalue;
 
@@ -133,18 +134,25 @@ typedef struct FklVMproc
 	uint64_t scp;
 	uint64_t cpc;
 	FklSid_t sid;
-	FklVMvalue* prevEnv;
+	FklVMvalue* volatile prevEnv;
 }FklVMproc;
 
 typedef struct FklVMrunnable
 {
 	unsigned int mark :1;
-	FklVMvalue* localenv;
+	FklVMvalue* volatile localenv;
 	uint64_t scp;
 	uint64_t cp;
 	uint64_t cpc;
 	FklSid_t sid;
 }FklVMrunnable;
+
+typedef struct FklVMrunnableStack
+{
+	pthread_mutex_t rlock;
+	FklVMrunnable* volatile* rs;
+	volatile uint32_t tp;
+}FklVMrunnableStack;
 
 typedef struct
 {
@@ -165,8 +173,7 @@ typedef struct FklVM
 	pthread_t tid;
 	uint8_t* code;
 	uint64_t size;
-	pthread_mutex_t rlock;
-	FklPtrStack* rstack;
+	FklVMrunnableStack* rstack;
 	FklPtrStack* tstack;
 	FklVMstack* stack;
 	struct FklVMvalue* chan;
@@ -185,11 +192,11 @@ typedef enum
 typedef struct FklVMheap
 {
 	volatile FklGCState running;
-	pthread_mutex_t lock;
+	pthread_rwlock_t lock;
 	volatile uint32_t num;
 	uint32_t threshold;
 	FklVMvalue* volatile head;
-	pthread_mutex_t glock;
+	pthread_rwlock_t glock;
 	struct Graylink* volatile gray;
 	FklVMvalue* volatile white;
 }FklVMheap;
@@ -274,6 +281,7 @@ void fklGC_markSendT(FklQueueNode*);
 void fklGC_sweep(FklVMheap*);
 void fklGC_compact(FklVMheap*);
 void fklGC_toGray(FklVMvalue*,FklVMheap*);
+void fklGC_reGray(FklVMvalue*,FklVMheap*);
 void fklGC_tryRun(FklVM* exe);
 void fklGC_tryJoin(FklVMheap* exe);
 void fklGC_wait(FklVMheap* h);
@@ -419,6 +427,8 @@ FklVMvalue* fklNewVMvalueToStackWithoutLock(FklValueType
 		,void* p
 		,FklVMstack*
 		,FklVMheap* heap);
+
+FklVMvalue* fklSetRef(FklVMvalue* by,FklVMvalue* volatile*,FklVMvalue* v,FklVMheap*);
 void fklSetAndPop(FklVMvalue* by,FklVMvalue* volatile*,FklVMstack* s,FklVMheap*);
 
 FklVMdllHandle fklLoadDll(const char* path);

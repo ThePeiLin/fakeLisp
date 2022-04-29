@@ -819,6 +819,17 @@ int fklSET_REF(FklVMvalue* P,FklVMvalue* V)
 		return 1;
 }
 
+FklVMvalue* fklSetRef(FklVMvalue* by,FklVMvalue* volatile* pref,FklVMvalue* v,FklVMheap* h)
+{
+	FklVMvalue* ref=*pref;
+	if(by->mark==FKL_MARK_B)
+		fklGC_reGray(by,h);
+	else if(by->mark==FKL_MARK_G&&FKL_IS_PTR(ref)&&ref->mark==FKL_MARK_W)
+		fklGC_toGray(ref,h);
+	*pref=v;
+	return ref;
+}
+
 FklVMvalue* fklGetTopValue(FklVMstack* stack)
 {
 	return stack->values[stack->tp-1];

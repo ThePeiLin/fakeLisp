@@ -1646,8 +1646,8 @@ void SYS_reverse(ARGL)
 		for(FklVMvalue* cdr=obj;cdr!=FKL_VM_NIL;cdr=cdr->u.pair->cdr)
 		{
 			FklVMvalue* pair=fklNiNewVMvalue(FKL_PAIR,fklNewVMpair(),stack,heap);
-			pair->u.pair->cdr=retval;
-			pair->u.pair->car=cdr->u.pair->car;
+            fklSetRef(pair,&pair->u.pair->cdr,retval,heap);
+            fklSetRef(pair,&pair->u.pair->car,cdr->u.pair->car,heap);
 			retval=pair;
 		}
 	}

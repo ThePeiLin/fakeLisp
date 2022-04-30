@@ -556,7 +556,7 @@ inline void fklGC_tryRun(FklVM* exe)
 	//if(!pthread_mutex_trylock(&GCthreadLock)
 	//		&&
 	//if(running==0
-	//		&&!pthread_rwlock_trywrlock(&exe->heap->lock))
+	//	&&!pthread_rwlock_trywrlock(&exe->heap->lock))
 	pthread_rwlock_rdlock(&exe->heap->lock);
 	FklGCState running=exe->heap->running;
 	int valueNumCmpresult=exe->heap->num>exe->heap->threshold;

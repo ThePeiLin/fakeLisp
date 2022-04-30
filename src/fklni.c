@@ -21,21 +21,16 @@ void fklNiReturn(FklVMvalue* v,uint32_t* ap,FklVMstack* s)
 		FKL_ASSERT(s->values,__func__);
 		s->size+=64;
 	}
-	if(*ap<s->tp
-			&&(s->tp<=*ap+1
-				||(!FKL_IS_MREF(s->values[*ap+1])
-					&&!FKL_IS_REF(s->values[*ap+1]))))
+	if(*ap<s->tp&&(s->tp<=*ap+1||(!FKL_IS_MREF(s->values[*ap+1]))))
 	{
 		FklVMvalue* t=s->values[*ap];
 		s->values[*ap]=v;
 		s->values[s->tp]=t;
 	}
 	else
-	{
 		s->values[*ap]=v;
-		if(*ap<s->tp&&(FKL_IS_MREF(s->values[*ap+1])||FKL_IS_REF(s->values[*ap+1])))
-			s->values[*ap+1]=FKL_VM_NIL;
-	}
+	if(*ap<s->tp&&(FKL_IS_MREF(s->values[*ap+1])))
+		s->values[*ap+1]=FKL_VM_NIL;
 	*ap+=1;
 	s->tp+=1;
 	pthread_rwlock_unlock(&s->lock);

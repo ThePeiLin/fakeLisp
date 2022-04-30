@@ -484,7 +484,7 @@ int fklRunVM(FklVM* exe)
 	while(exe->rhead)
 	{
 		FklVMrunnable* currunnable=exe->rhead;
-			if(currunnable->cp>=currunnable->cpc+currunnable->scp)
+		if(currunnable->cp>=currunnable->cpc+currunnable->scp)
 		{
 			if(currunnable->mark)
 			{
@@ -512,32 +512,42 @@ int fklRunVM(FklVM* exe)
 	return 0;
 }
 
-//int fklRunForGenEnv(FklVM* exe)
-//{
-//	while(!fklIsPtrStackEmpty(exe->rhead))
-//	{
-//		FklVMrunnable* currunnable=fklTopPtrStack(exe->rhead);
-//		if(currunnable->cp>=currunnable->cpc+currunnable->scp)
-//		{
-//			if(currunnable->mark)
-//			{
-//				currunnable->cp=currunnable->scp;
-//				currunnable->mark=0;
-//			}
-//			else
-//			{
-//				FklVMrunnable* r=fklPopPtrStack(exe->rhead);
-//				free(r);
-//				continue;
-//			}
-//		}
-//		uint64_t cp=currunnable->cp;
-//		if(setjmp(exe->buf)==1)
-//			return 255;
-//		ByteCodes[exe->code[cp]](exe);
-//	}
-//	return 0;
-//}
+int fklRunVMForRepl(FklVM* exe)
+{
+	while(exe->rhead)
+	{
+		FklVMrunnable* currunnable=exe->rhead;
+		if(currunnable->cp>=currunnable->cpc+currunnable->scp)
+		{
+			if(currunnable->mark)
+			{
+				currunnable->cp=currunnable->scp;
+				currunnable->mark=0;
+			}
+			else
+			{
+				pthread_rwlock_wrlock(&exe->rlock);
+				FklVMrunnable* r=exe->rhead;
+				if(r->prev==NULL)
+				{
+					pthread_rwlock_unlock(&exe->rlock);
+					break;
+				}
+				exe->rhead=r->prev;
+				free(r);
+				pthread_rwlock_unlock(&exe->rlock);
+				continue;
+			}
+		}
+		uint64_t cp=currunnable->cp;
+		if(setjmp(exe->buf)==1)
+			return 255;
+		ByteCodes[exe->code[cp]](exe);
+		fklGC_tryRun(exe);
+		fklGC_tryJoin(exe->heap);
+	}
+	return 0;
+}
 
 inline void fklGC_tryRun(FklVM* exe)
 {
@@ -545,6 +555,8 @@ inline void fklGC_tryRun(FklVM* exe)
 	//if(!pthread_mutex_trylock(&GCthreadLock))
 	//if(!pthread_mutex_trylock(&GCthreadLock)
 	//		&&
+	//if(running==0
+	//		&&!pthread_rwlock_trywrlock(&exe->heap->lock))
 	pthread_rwlock_rdlock(&exe->heap->lock);
 	FklGCState running=exe->heap->running;
 	int valueNumCmpresult=exe->heap->num>exe->heap->threshold;
@@ -552,8 +564,6 @@ inline void fklGC_tryRun(FklVM* exe)
 	if(valueNumCmpresult
 			&&running==0
 			&&!pthread_rwlock_trywrlock(&exe->heap->lock))
-	//if(running==0
-	//		&&!pthread_rwlock_trywrlock(&exe->heap->lock))
 	{
 		exe->heap->running=FKL_GC_RUNNING;
 		pthread_rwlock_unlock(&exe->heap->lock);

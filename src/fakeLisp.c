@@ -243,13 +243,16 @@ void runRepl(FklInterpreter* inter)
 				anotherVM->rhead=mainrunnable;
 				if(!(e=setjmp(buf)))
 				{
-					fklRunVM(anotherVM);
+					fklRunVMForRepl(anotherVM);
 					FklVMstack* stack=anotherVM->stack;
 					if(inter->file==stdin&&stack->tp!=0)
 					{
 						printf(";=>");
 						fklDBG_printVMstack(stack,stdout,0);
 					}
+					fklGC_wait(anotherVM->heap);
+					free(anotherVM->rhead);
+					anotherVM->rhead=NULL;
 					stack->tp=0;
 					fklFreeVMproc(tmp);
 				}

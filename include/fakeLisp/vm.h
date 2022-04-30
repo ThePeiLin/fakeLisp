@@ -243,6 +243,7 @@ typedef struct FklVMerrorHandler
 //vmrun
 
 int fklRunVM(FklVM*);
+int fklRunVMForRepl(FklVM*);
 FklVM* fklNewVM(FklByteCode*);
 FklVM* fklNewTmpVM(FklByteCode*);
 FklVM* fklNewThreadVM(FklVMproc*,FklVMheap*);

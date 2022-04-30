@@ -1542,6 +1542,7 @@ void SYS_call_cc(ARGL)
 		{
 			FklVMrunnable* tmpRunnable=fklNewVMrunnable(tmpProc,exe->rhead);
 			tmpRunnable->localenv=fklNiNewVMvalue(FKL_ENV,fklNewVMenv(tmpProc->prevEnv),stack,exe->heap);
+			exe->rhead=tmpRunnable;
 		}
 	}
 	else if(proc->type==FKL_CONT)

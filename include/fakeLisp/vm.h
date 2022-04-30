@@ -188,7 +188,7 @@ typedef struct FklVMheap
 {
 	volatile FklGCState running;
 	pthread_rwlock_t lock;
-	volatile uint32_t num;
+	volatile size_t num;
 	uint32_t threshold;
 	FklVMvalue* volatile head;
 	pthread_rwlock_t glock;

@@ -547,12 +547,13 @@ inline void fklGC_tryRun(FklVM* exe)
 	//		&&
 	pthread_rwlock_rdlock(&exe->heap->lock);
 	FklGCState running=exe->heap->running;
+	int valueNumCmpresult=exe->heap->num>exe->heap->threshold;
 	pthread_rwlock_unlock(&exe->heap->lock);
-	//if(exe->heap->num>exe->heap->threshold
-	//		&&running==0
-	//		&&!pthread_rwlock_trywrlock(&exe->heap->lock))
-	if(running==0
+	if(valueNumCmpresult
+			&&running==0
 			&&!pthread_rwlock_trywrlock(&exe->heap->lock))
+	//if(running==0
+	//		&&!pthread_rwlock_trywrlock(&exe->heap->lock))
 	{
 		exe->heap->running=FKL_GC_RUNNING;
 		pthread_rwlock_unlock(&exe->heap->lock);
@@ -700,8 +701,8 @@ void B_push_proc(FklVM* exe)
 	FklVMrunnable* runnable=exe->rhead;
 	uint64_t sizeOfProc=fklGetU64FromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklVMproc* code=fklNewVMproc(runnable->cp+sizeof(char)+sizeof(uint64_t),sizeOfProc);
-	code->prevEnv=runnable->localenv;
-	fklNewVMvalueToStack(FKL_PROC,code,stack,exe->heap);
+	FklVMvalue* vmcode=fklNewVMvalueToStack(FKL_PROC,code,stack,exe->heap);
+	fklSetRef(vmcode,&code->prevEnv,runnable->localenv,exe->heap);
 	runnable->cp+=sizeof(char)+sizeof(uint64_t)+sizeOfProc;
 }
 
@@ -1058,7 +1059,9 @@ void B_push_r_env(FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;
 	pthread_rwlock_wrlock(&exe->rlock);
-	r->localenv=fklNiNewVMvalue(FKL_ENV,fklNewVMenv(r->localenv),stack,exe->heap);
+	FklVMvalue* n=fklNiNewVMvalue(FKL_ENV,fklNewVMenv(r->localenv),stack,exe->heap);
+	fklSetRef(n,&n->u.env->prev,r->localenv,exe->heap);
+	r->localenv=n;
 	pthread_rwlock_unlock(&exe->rlock);
 	fklNiEnd(&ap,stack);
 	r->cp+=sizeof(char);
@@ -1206,87 +1209,87 @@ FklVMheap* fklNewVMheap()
 	return tmp;
 }
 
-void fklGC_mark(FklVM* exe)
-{
-	fklGC_markValueInStack(exe->stack);
-	//fklGC_markValueInCallChain(exe->rhead);
-	if(exe->chan)
-		fklGC_markValue(exe->chan);
-}
+//void fklGC_mark(FklVM* exe)
+//{
+//	fklGC_markValueInStack(exe->stack);
+//	fklGC_markValueInCallChain(exe->rhead);
+//	if(exe->chan)
+//		fklGC_markValue(exe->chan);
+//}
 
-void fklGC_markSendT(FklQueueNode* head)
-{
-	for(;head;head=head->next)
-		fklGC_markValue(((FklVMsend*)head->data)->m);
-}
-
-void fklGC_markValue(FklVMvalue* obj)
-{
-	FklPtrStack* stack=fklNewPtrStack(32,16);
-	fklPushPtrStack(obj,stack);
-	while(!fklIsPtrStackEmpty(stack))
-	{
-		FklVMvalue* root=fklPopPtrStack(stack);
-		root=FKL_GET_TAG(root)==FKL_REF_TAG?*((FklVMvalue**)FKL_GET_PTR(root)):root;
-		if(FKL_IS_PTR(root)&&!root->mark)
-		{
-			root->mark=FKL_MARK_B;
-			switch(root->type)
-			{
-				case FKL_PAIR:
-					fklPushPtrStack(root->u.pair->car,stack);
-					fklPushPtrStack(root->u.pair->cdr,stack);
-					break;
-				case FKL_PROC:
-					fklPushPtrStack(root->u.proc->prevEnv,stack);
-					break;
-				case FKL_CONT:
-					for(uint32_t i=0;i<root->u.cont->stack->tp;i++)
-						fklPushPtrStack(root->u.cont->stack->values[i],stack);
-					break;
-				case FKL_VECTOR:
-					{
-						FklVMvec* vec=root->u.vec;
-						for(size_t i=0;i<vec->size;i++)
-							fklPushPtrStack(vec->base[i],stack);
-					}
-					break;
-				case FKL_CHAN:
-					{
-						pthread_mutex_lock(&root->u.chan->lock);
-						FklQueueNode* head=root->u.chan->messages->head;
-						for(;head;head=head->next)
-							fklPushPtrStack(head->data,stack);
-						for(head=root->u.chan->sendq->head;head;head=head->next)
-							fklPushPtrStack(((FklVMsend*)head->data)->m,stack);
-						pthread_mutex_unlock(&root->u.chan->lock);
-					}
-					break;
-				case FKL_DLPROC:
-					if(root->u.dlproc->dll)
-						fklPushPtrStack(root->u.dlproc->dll,stack);
-					break;
-				case FKL_ENV:
-					{
-						FklVMenv* env=root->u.env;
-						if(env->prev)
-							fklPushPtrStack(env->prev,stack);
-						for(uint32_t i=0;i<env->num;i++)
-							fklPushPtrStack(env->list[i]->value,stack);
-					}
-					break;
-				case FKL_I64:
-				case FKL_F64:
-				case FKL_FP:
-					break;
-				default:
-					FKL_ASSERT(0,__func__);
-					break;
-			}
-		}
-	}
-	fklFreePtrStack(stack);
-}
+//void fklGC_markSendT(FklQueueNode* head)
+//{
+//	for(;head;head=head->next)
+//		fklGC_markValue(((FklVMsend*)head->data)->m);
+//}
+//
+//void fklGC_markValue(FklVMvalue* obj)
+//{
+//	FklPtrStack* stack=fklNewPtrStack(32,16);
+//	fklPushPtrStack(obj,stack);
+//	while(!fklIsPtrStackEmpty(stack))
+//	{
+//		FklVMvalue* root=fklPopPtrStack(stack);
+//		root=FKL_GET_TAG(root)==FKL_REF_TAG?*((FklVMvalue**)FKL_GET_PTR(root)):root;
+//		if(FKL_IS_PTR(root)&&!root->mark)
+//		{
+//			root->mark=FKL_MARK_B;
+//			switch(root->type)
+//			{
+//				case FKL_PAIR:
+//					fklPushPtrStack(root->u.pair->car,stack);
+//					fklPushPtrStack(root->u.pair->cdr,stack);
+//					break;
+//				case FKL_PROC:
+//					fklPushPtrStack(root->u.proc->prevEnv,stack);
+//					break;
+//				case FKL_CONT:
+//					for(uint32_t i=0;i<root->u.cont->stack->tp;i++)
+//						fklPushPtrStack(root->u.cont->stack->values[i],stack);
+//					break;
+//				case FKL_VECTOR:
+//					{
+//						FklVMvec* vec=root->u.vec;
+//						for(size_t i=0;i<vec->size;i++)
+//							fklPushPtrStack(vec->base[i],stack);
+//					}
+//					break;
+//				case FKL_CHAN:
+//					{
+//						pthread_mutex_lock(&root->u.chan->lock);
+//						FklQueueNode* head=root->u.chan->messages->head;
+//						for(;head;head=head->next)
+//							fklPushPtrStack(head->data,stack);
+//						for(head=root->u.chan->sendq->head;head;head=head->next)
+//							fklPushPtrStack(((FklVMsend*)head->data)->m,stack);
+//						pthread_mutex_unlock(&root->u.chan->lock);
+//					}
+//					break;
+//				case FKL_DLPROC:
+//					if(root->u.dlproc->dll)
+//						fklPushPtrStack(root->u.dlproc->dll,stack);
+//					break;
+//				case FKL_ENV:
+//					{
+//						FklVMenv* env=root->u.env;
+//						if(env->prev)
+//							fklPushPtrStack(env->prev,stack);
+//						for(uint32_t i=0;i<env->num;i++)
+//							fklPushPtrStack(env->list[i]->value,stack);
+//					}
+//					break;
+//				case FKL_I64:
+//				case FKL_F64:
+//				case FKL_FP:
+//					break;
+//				default:
+//					FKL_ASSERT(0,__func__);
+//					break;
+//			}
+//		}
+//	}
+//	fklFreePtrStack(stack);
+//}
 
 void fklGC_reGray(FklVMvalue* v,FklVMheap* h)
 {
@@ -1370,7 +1373,8 @@ void propagateMark(volatile FklVMvalue* root,FklVMheap* heap)
 			fklGC_toGray(root->u.pair->cdr,heap);
 			break;
 		case FKL_PROC:
-			fklGC_toGray(root->u.proc->prevEnv,heap);
+			if(root->u.proc->prevEnv)
+				fklGC_toGray(root->u.proc->prevEnv,heap);
 			break;
 		case FKL_CONT:
 			for(uint32_t i=0;i<root->u.cont->stack->tp;i++)
@@ -1515,44 +1519,44 @@ void* fklGC_threadFunc(void* arg)
 	return NULL;
 }
 
-void fklGC_markValueInEnv(FklVMenv* curEnv)
-{
-	int32_t i=0;
-	for(;i<curEnv->num;i++)
-		fklGC_markValue(curEnv->list[i]->value);
-}
+//void fklGC_markValueInEnv(FklVMenv* curEnv)
+//{
+//	int32_t i=0;
+//	for(;i<curEnv->num;i++)
+//		fklGC_markValue(curEnv->list[i]->value);
+//}
 
-void fklGC_markValueInCallChain(FklPtrStack* rhead)
-{
-	size_t i=0;
-	for(;i<rhead->top;i++)
-	{
-		FklVMrunnable* cur=rhead->base[i];
-		FklVMvalue* curEnv=cur->localenv;
-		fklGC_markValue(curEnv);
-	}
-}
-
-void fklGC_markValueInStack(FklVMstack* stack)
-{
-	for(uint32_t i=stack->tp;i>0;i--)
-	{
-		FklVMvalue* t=stack->values[i-1];
-		if(FKL_IS_REF(t)||FKL_IS_MREF(t))
-			i--;
-		else
-			fklGC_markValue(t);
-	}
-}
-
-void fklGC_markMessage(FklQueueNode* head)
-{
-	while(head!=NULL)
-	{
-		fklGC_markValue(head->data);
-		head=head->next;
-	}
-}
+//void fklGC_markValueInCallChain(FklPtrStack* rhead)
+//{
+//	size_t i=0;
+//	for(;i<rhead->top;i++)
+//	{
+//		FklVMrunnable* cur=rhead->base[i];
+//		FklVMvalue* curEnv=cur->localenv;
+//		fklGC_markValue(curEnv);
+//	}
+//}
+//
+//void fklGC_markValueInStack(FklVMstack* stack)
+//{
+//	for(uint32_t i=stack->tp;i>0;i--)
+//	{
+//		FklVMvalue* t=stack->values[i-1];
+//		if(FKL_IS_REF(t)||FKL_IS_MREF(t))
+//			i--;
+//		else
+//			fklGC_markValue(t);
+//	}
+//}
+//
+//void fklGC_markMessage(FklQueueNode* head)
+//{
+//	while(head!=NULL)
+//	{
+//		fklGC_markValue(head->data);
+//		head=head->next;
+//	}
+//}
 
 void fklFreeVMvalue(volatile FklVMvalue* cur)
 {
@@ -1807,6 +1811,7 @@ void fklCreateCallChainWithContinuation(FklVM* vm,FklVMcontinuation* cc)
 	for(FklVMrunnable* cur=cc->curr;cur;cur=cur->prev)
 	{
 		FklVMrunnable* r=fklNewVMrunnable(NULL,vm->rhead);
+		vm->rhead=r;
 		r->cp=cur->cp;
 		r->localenv=cur->localenv;
 		r->scp=cur->scp;

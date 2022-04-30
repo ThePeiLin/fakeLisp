@@ -172,7 +172,7 @@ FklVMvalue* fklNewVMvalueToStack(FklValueType type
 		,FklVMheap* heap)
 {
 	FklVMvalue* r=NULL;
-	pthread_mutex_lock(&stack->lock);
+	pthread_rwlock_wrlock(&stack->lock);
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(FklVMvalue**)realloc(stack->values
@@ -180,7 +180,7 @@ FklVMvalue* fklNewVMvalueToStack(FklValueType type
 		FKL_ASSERT(stack->values,__func__);
 		stack->size+=64;
 	}
-	pthread_mutex_unlock(&stack->lock);
+	pthread_rwlock_unlock(&stack->lock);
 	switch(type)
 	{
 		case FKL_NIL:
@@ -253,12 +253,11 @@ FklVMvalue* fklNewVMvalueToStack(FklValueType type
 			}
 			break;
 	}
-	pthread_mutex_lock(&stack->lock);
+	pthread_rwlock_wrlock(&stack->lock);
 	stack->values[stack->tp]=r;
 	stack->tp++;
-	pthread_mutex_unlock(&stack->lock);
+	pthread_rwlock_unlock(&stack->lock);
 	return stack->values[stack->tp-1];
-
 }
 
 FklVMvalue* fklNewSaveVMvalue(FklValueType type,void* pValue)
@@ -428,9 +427,9 @@ FklVMvalue* fklNewVMvalueToStackWithoutLock(FklValueType type
 			}
 			break;
 	}
-	pthread_mutex_lock(&stack->lock);
+	pthread_rwlock_wrlock(&stack->lock);
 	stack->tp++;
-	pthread_mutex_lock(&stack->lock);
+	pthread_rwlock_unlock(&stack->lock);
 	return stack->values[stack->tp-1];
 }
 

@@ -6,6 +6,7 @@ FklVMvalue* fklNiGetArg(uint32_t* ap,FklVMstack*);
 FklVMvalue* fklNiNewVMvalue(FklValueType type,void* p,FklVMstack*,FklVMheap* heap);
 FklVMvalue* fklNiPopTop(uint32_t* ap,FklVMstack*);
 void fklNiReturn(FklVMvalue*,uint32_t* ap,FklVMstack*);
+void fklNiReturnMref(uint32_t,void* mem,uint32_t* ap,FklVMstack* s);
 int fklNiResBp(uint32_t* ap,FklVMstack*);
 void fklNiEnd(uint32_t* ap,FklVMstack*);
 void fklNiBegin(uint32_t* ap,FklVMstack*);

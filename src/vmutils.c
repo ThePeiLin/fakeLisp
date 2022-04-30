@@ -43,7 +43,7 @@ FklVMvalue* fklPopVMstack(FklVMstack* stack)
 
 FklVMvalue* fklTopGet(FklVMstack* stack)
 {
-	pthread_mutex_lock(&stack->lock);
+	pthread_rwlock_wrlock(&stack->lock);
 	FklVMvalue* r=NULL;
 	if(!(stack->tp>stack->bp))
 		r=NULL;
@@ -66,15 +66,15 @@ FklVMvalue* fklTopGet(FklVMstack* stack)
 		else
 			r=tmp;
 	}
-	pthread_mutex_unlock(&stack->lock);
+	pthread_rwlock_unlock(&stack->lock);
 	return r;
 }
 
 void fklDecTop(FklVMstack* stack)
 {
-	pthread_mutex_lock(&stack->lock);
+	pthread_rwlock_wrlock(&stack->lock);
 	stack->tp--;
-	pthread_mutex_unlock(&stack->lock);
+	pthread_rwlock_unlock(&stack->lock);
 }
 
 inline void fklSetAndPop(FklVMvalue* by,FklVMvalue* volatile* pV,FklVMstack* stack,FklVMheap* heap)
@@ -111,11 +111,11 @@ FklVMstack* fklCopyStack(FklVMstack* stack)
 	int32_t i=0;
 	FklVMstack* tmp=(FklVMstack*)malloc(sizeof(FklVMstack));
 	FKL_ASSERT(tmp,__func__);
-	pthread_mutex_lock(&stack->lock);
+	pthread_rwlock_rdlock(&stack->lock);
 	tmp->size=stack->size;
 	tmp->tp=stack->tp;
 	tmp->bp=stack->bp;
-	pthread_mutex_init(&tmp->lock,NULL);
+	pthread_rwlock_init(&tmp->lock,NULL);
 	tmp->values=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*(tmp->size));
 	FKL_ASSERT(tmp->values,__func__);
 	for(;i<stack->tp;i++)
@@ -129,18 +129,18 @@ FklVMstack* fklCopyStack(FklVMstack* stack)
 		FKL_ASSERT(tmp->tpst,__func__);
 		if(tmp->tptp)memcpy(tmp->tpst,stack->tpst,sizeof(int32_t)*(tmp->tptp));
 	}
-	pthread_mutex_unlock(&stack->lock);
+	pthread_rwlock_unlock(&stack->lock);
 	return tmp;
 }
 
-FklVMtryBlock* fklNewVMtryBlock(FklSid_t sid,uint32_t tp,long int rtp)
+FklVMtryBlock* fklNewVMtryBlock(FklSid_t sid,uint32_t tp,FklVMrunnable* r)
 {
 	FklVMtryBlock* t=(FklVMtryBlock*)malloc(sizeof(FklVMtryBlock));
 	FKL_ASSERT(t,__func__);
 	t->sid=sid;
 	t->hstack=fklNewPtrStack(32,16);
 	t->tp=tp;
-	t->rtp=rtp;
+	t->curr=r;
 	return t;
 }
 
@@ -185,15 +185,16 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 			FklVMerrorHandler* h=fklPopPtrStack(tb->hstack);
 			if(h->type==err->type)
 			{
-				long int increment=exe->rstack->top-tb->rtp;
-				unsigned int i=0;
-				for(;i<increment;i++)
+				FklVMrunnable* curr=tb->curr;
+				for(FklVMrunnable* other=exe->rhead;other!=curr;)
 				{
-					FklVMrunnable* runnable=fklPopPtrStack(exe->rstack);
-					free(runnable);
+					FklVMrunnable* r=other;
+					other=other->prev;
+					free(r);
 				}
-				FklVMrunnable* prevRunnable=fklTopPtrStack(exe->rstack);
-				FklVMrunnable* r=fklNewVMrunnable(&h->proc);
+				exe->rhead=curr;
+				FklVMrunnable* prevRunnable=exe->rhead;
+				FklVMrunnable* r=fklNewVMrunnable(&h->proc,prevRunnable);
 				r->localenv=fklNewSaveVMvalue(FKL_ENV,fklNewVMenv(prevRunnable->localenv));
 				fklAddToHeap(r->localenv,exe->heap);
 				FklVMvalue* curEnv=r->localenv;
@@ -202,8 +203,8 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 				if(!errorNode)
 					errorNode=fklAddVMenvNode(fklNewVMenvNode(NULL,idOfError),curEnv->u.env);
 				errorNode->value=ev;
-				fklPushPtrStack(r,exe->rstack);
 				fklFreeVMerrorHandler(h);
+				exe->rhead=r;
 				return 1;
 			}
 			fklFreeVMerrorHandler(h);
@@ -211,19 +212,18 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 		fklFreeVMtryBlock(fklPopPtrStack(exe->tstack));
 	}
 	fprintf(stderr,"error of %s :%s",err->who,err->message);
-	for(uint32_t i=exe->rstack->top;i;i--)
+	for(FklVMrunnable* cur=exe->rhead;cur;cur=cur->prev)
 	{
-		FklVMrunnable* r=exe->rstack->base[i-1];
-		if(r->sid!=0)
-			fprintf(stderr,"at proc:%s",fklGetGlobSymbolWithId(r->sid)->symbol);
+		if(cur->sid!=0)
+			fprintf(stderr,"at proc:%s",fklGetGlobSymbolWithId(cur->sid)->symbol);
 		else
 		{
-			if(i>1)
+			if(cur->prev)
 				fprintf(stderr,"at <lambda>");
 			else
 				fprintf(stderr,"at <top>");
 		}
-		FklLineNumTabNode* node=fklFindLineNumTabNode(r->cp,exe->lnt);
+		FklLineNumTabNode* node=fklFindLineNumTabNode(cur->cp,exe->lnt);
 		if(node->fid)
 			fprintf(stderr,"(%u:%s)\n",node->line,fklGetGlobSymbolWithId(node->fid)->symbol);
 		else
@@ -235,7 +235,7 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 	return 255;
 }
 
-FklVMrunnable* fklNewVMrunnable(FklVMproc* code)
+FklVMrunnable* fklNewVMrunnable(FklVMproc* code,FklVMrunnable* prev)
 {
 	FklVMrunnable* tmp=(FklVMrunnable*)malloc(sizeof(FklVMrunnable));
 	FKL_ASSERT(tmp,__func__);
@@ -243,6 +243,7 @@ FklVMrunnable* fklNewVMrunnable(FklVMproc* code)
 	tmp->cp=0;
 	tmp->scp=0;
 	tmp->cpc=0;
+	tmp->prev=prev;
 	if(code)
 	{
 		tmp->cp=code->scp;
@@ -293,36 +294,6 @@ char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklErrorType type,FklV
 		free(str);
 	t=fklStrCat(t,lineNumber);
 	free(lineNumber);
-	for(uint32_t i=exe->rstack->top;i;i--)
-	{
-		FklVMrunnable* r=exe->rstack->base[i-1];
-		if(r->sid!=0)
-		{
-			t=fklStrCat(t,"at proc:");
-			t=fklStrCat(t,fklGetGlobSymbolWithId(r->sid)->symbol);
-		}
-		else
-		{
-			if(i>1)
-				t=fklStrCat(t,"at <lambda>");
-			else
-				t=fklStrCat(t,"at <top>");
-		}
-		FklLineNumTabNode* node=fklFindLineNumTabNode(r->cp,exe->lnt);
-		char* filename=node->fid?fklGetGlobSymbolWithId(node->fid)->symbol:NULL;
-		char* line=fklIntToString(node->line);
-		size_t len=node->fid?strlen("(:)\n")+strlen(filename)+strlen(line)+1
-			:strlen("()\n")+strlen(line)+1;
-		char* lineNumber=(char*)malloc(sizeof(char)*len);
-		FKL_ASSERT(lineNumber,__func__);
-		if(node->fid)
-			sprintf(lineNumber,"(%s:%s)\n",line,filename);
-		else
-			sprintf(lineNumber,"(%s)\n",line);
-		free(line);
-		t=fklStrCat(t,lineNumber);
-		free(lineNumber);
-	}
 	return t;
 }
 
@@ -824,7 +795,7 @@ FklVMvalue* fklSetRef(FklVMvalue* by,FklVMvalue* volatile* pref,FklVMvalue* v,Fk
 	FklVMvalue* ref=*pref;
 	if(by->mark==FKL_MARK_B)
 		fklGC_reGray(by,h);
-	else if(by->mark==FKL_MARK_G&&FKL_IS_PTR(ref)&&ref->mark==FKL_MARK_W)
+	else if(by->mark==FKL_MARK_G&&ref&&FKL_IS_PTR(ref)&&ref->mark==FKL_MARK_W)
 		fklGC_toGray(ref,h);
 	*pref=v;
 	return ref;
@@ -840,29 +811,27 @@ FklVMvalue* fklGetValue(FklVMstack* stack,int32_t place)
 	return stack->values[place];
 }
 
-VMcontinuation* fklNewVMcontinuation(uint32_t ap,FklVMstack* stack,FklPtrStack* rstack,FklPtrStack* tstack)
+FklVMcontinuation* fklNewVMcontinuation(uint32_t ap,FklVMstack* stack,FklVMrunnable* curr,FklPtrStack* tstack)
 {
-	int32_t size=rstack->top;
 	int32_t i=0;
-	VMcontinuation* tmp=(VMcontinuation*)malloc(sizeof(VMcontinuation));
+	FklVMcontinuation* tmp=(FklVMcontinuation*)malloc(sizeof(FklVMcontinuation));
 	FKL_ASSERT(tmp,__func__);
-	FklVMrunnable* state=(FklVMrunnable*)malloc(sizeof(FklVMrunnable)*size);
-	FKL_ASSERT(state,__func__);
 	int32_t tbnum=tstack->top;
 	FklVMtryBlock* tb=(FklVMtryBlock*)malloc(sizeof(FklVMtryBlock)*tbnum);
 	FKL_ASSERT(tb,__func__);
 	tmp->stack=fklCopyStack(stack);
 	tmp->stack->tp=ap;
-	tmp->num=size;
-	for(;i<size;i++)
+	tmp->curr=NULL;
+	for(FklVMrunnable* cur=curr;cur;cur=cur->prev)
 	{
-		FklVMrunnable* cur=rstack->base[i];
-		state[i].cp=cur->cp;
-		state[i].localenv=cur->localenv;
-		state[i].cpc=cur->cpc;
-		state[i].scp=cur->scp;
-		state[i].sid=cur->sid;
-		state[i].mark=cur->mark;
+		FklVMrunnable* t=fklNewVMrunnable(NULL,tmp->curr);
+		tmp->curr=t;
+		t->cp=cur->cp;
+		t->localenv=cur->localenv;
+		t->cpc=cur->cpc;
+		t->scp=cur->scp;
+		t->sid=cur->sid;
+		t->mark=cur->mark;
 	}
 	tmp->tnum=tbnum;
 	for(i=0;i<tbnum;i++)
@@ -880,20 +849,25 @@ VMcontinuation* fklNewVMcontinuation(uint32_t ap,FklVMstack* stack,FklPtrStack* 
 			fklPushPtrStack(h,curHstack);
 		}
 		tb[i].hstack=curHstack;
-		tb[i].rtp=cur->rtp;
+		tb[i].curr=cur->curr;
 		tb[i].tp=cur->tp;
 	}
-	tmp->state=state;
 	tmp->tb=tb;
 	return tmp;
 }
 
-void fklFreeVMcontinuation(VMcontinuation* cont)
+void fklFreeVMcontinuation(FklVMcontinuation* cont)
 {
 	int32_t i=0;
 	int32_t tbsize=cont->tnum;
 	FklVMstack* stack=cont->stack;
-	FklVMrunnable* state=cont->state;
+	FklVMrunnable* curr=cont->curr;
+	while(curr)
+	{
+		FklVMrunnable* cur=curr;
+		curr=curr->prev;
+		free(cur);
+	}
 	FklVMtryBlock* tb=cont->tb;
 	free(stack->tpst);
 	free(stack->values);
@@ -909,7 +883,6 @@ void fklFreeVMcontinuation(VMcontinuation* cont)
 		fklFreePtrStack(hstack);
 	}
 	free(tb);
-	free(state);
 	free(cont);
 }
 
@@ -1043,11 +1016,11 @@ void fklInitVMRunningResource(FklVM* vm,FklVMvalue* vEnv,FklVMheap* heap,FklByte
 		.sid=0,
 		.prevEnv=NULL,
 	};
-	FklVMrunnable* mainrunnable=fklNewVMrunnable(&proc);
+	FklVMrunnable* mainrunnable=fklNewVMrunnable(&proc,NULL);
 	mainrunnable->localenv=vEnv;
 	vm->code=code->bc->code;
 	vm->size=code->bc->size;
-	fklPushPtrStack(mainrunnable,vm->rstack);
+	vm->rhead=mainrunnable;
 	vm->lnt=fklNewLineNumTable();
 	vm->lnt->num=code->ls;
 	vm->lnt->list=code->l;
@@ -1064,7 +1037,6 @@ void fklUninitVMRunningResource(FklVM* vm)
 	free(vm->lnt);
 	fklDeleteCallChain(vm);
 	fklFreeVMstack(vm->stack);
-	fklFreePtrStack(vm->rstack);
 	fklFreePtrStack(vm->tstack);
 	free(vm);
 }

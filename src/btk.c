@@ -37,7 +37,7 @@ void FKL_getch(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR("btk.getch",FKL_TOOMANYARG,fklTopPtrStack(exe->rstack),exe);
+		FKL_RAISE_BUILTIN_ERROR("btk.getch",FKL_TOOMANYARG,exe->rhead,exe);
 	fklNiReturn(FKL_MAKE_VM_CHR(getch()),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -45,7 +45,7 @@ void FKL_getch(ARGL)
 void FKL_sleep(ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
+	FklVMrunnable* r=exe->rhead;
 	FklVMvalue* second=fklNiGetArg(&ap,stack);
 	if(!second)
 		FKL_RAISE_BUILTIN_ERROR("btk.sleep",FKL_TOOFEWARG,r,exe);
@@ -61,7 +61,7 @@ void FKL_usleep(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* second=fklNiGetArg(&ap,stack);
-	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
+	FklVMrunnable* r=exe->rhead;
 	if(!second)
 		FKL_RAISE_BUILTIN_ERROR("btk.usleep",FKL_TOOFEWARG,r,exe);
 	if(fklNiResBp(&ap,stack))
@@ -80,7 +80,7 @@ void FKL_usleep(ARGL)
 void FKL_srand(ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
+	FklVMrunnable* r=exe->rhead;
 	FklVMvalue* s=fklNiGetArg(&ap,stack);
     if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR("btk.srand",FKL_TOOMANYARG,r,exe);
@@ -95,7 +95,7 @@ void FKL_rand(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue*  lim=fklNiGetArg(&ap,stack);
-	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
+	FklVMrunnable* r=exe->rhead;
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR("btk.rand",FKL_TOOMANYARG,r,exe);
 	if(lim&&!FKL_IS_I32(lim))
@@ -108,7 +108,7 @@ void FKL_getTime(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR("btk.getTime",FKL_TOOMANYARG,fklTopPtrStack(exe->rstack),exe);
+		FKL_RAISE_BUILTIN_ERROR("btk.getTime",FKL_TOOMANYARG,exe->rhead,exe);
 	time_t timer=time(NULL);
 	struct tm* tblock=NULL;
 	tblock=localtime(&timer);
@@ -139,7 +139,7 @@ void FKL_removeFile(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* name=fklPopVMstack(stack);
-	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
+	FklVMrunnable* r=exe->rhead;
 	if(!name)
 		FKL_RAISE_BUILTIN_ERROR("btk.removeFile",FKL_TOOFEWARG,r,exe);
 	if(fklNiResBp(&ap,stack))
@@ -157,7 +157,7 @@ void FKL_setChanlBufferSize(ARGL)
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* chan=fklPopVMstack(stack);
 	FklVMvalue* size=fklPopVMstack(stack);
-	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
+	FklVMrunnable* r=exe->rhead;
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR("btk.setChanlBufferSize",FKL_TOOMANYARG,r,exe);
 	if(size==NULL||chan==NULL)
@@ -172,7 +172,7 @@ void FKL_setChanlBufferSize(ARGL)
 void FKL_time(ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
+	FklVMrunnable* r=exe->rhead;
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR("btk.time",FKL_TOOMANYARG,r,exe);
 	fklNiReturn(fklMakeVMint((int64_t)time(NULL),stack,exe->heap),&ap,stack);

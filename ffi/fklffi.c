@@ -27,7 +27,7 @@ void FKL_ffi_call(ARGL)
 void FKL_ffi_load(ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMrunnable* r=fklTopPtrStack(exe->rstack);
+	FklVMrunnable* r=exe->rhead;
 	FklVMvalue* vpath=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR("ffi.load",FKL_TOOMANYARG,r,exe);

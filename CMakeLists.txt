@@ -3,6 +3,14 @@ cmake_minimum_required(VERSION 3.18)
 #cmake options
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set(CMAKE_BUILD_TYPE DEBUG)
+#set(CMAKE_BUILD_TYPE RELEASE)
+
+#warnnig setting
+if(MSVC)
+	add_compile_options(/W4)
+else()
+	add_compile_options(-Wall)
+endif()
 set(CMAKE_C_STANDARD 11)
 
 #target names
@@ -80,31 +88,4 @@ add_custom_target(COPY_STD_FKL ALL
 add_custom_target(COPY_EXAMPLES ALL
 	COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/examples/ ${CMAKE_BINARY_DIR}/examples/)
 
-#debug setting
-if(${CMAKE_BUILD_TYPE} STREQUAL "DEBUG")
-	target_compile_options(${BTK_TARGET_NAME} PRIVATE
-		$<$<CXX_COMPILER_ID:MSVC>:/DEBUG /W4>
-		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-g -Wall>)
-    target_compile_options(${COMPILER_TARGET_NAME} PRIVATE
-		$<$<CXX_COMPILER_ID:MSVC>:/DEBUG /W4>
-		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-g -Wall>)
-    target_compile_options(${INTERPRETER_TARGET_NAME} PRIVATE
-		$<$<CXX_COMPILER_ID:MSVC>:/DEBUG /W4>
-		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-g -Wall>)
-	target_compile_options(${LIBFKL_TARGET_NAME} PRIVATE
-		$<$<CXX_COMPILER_ID:MSVC>:/DEBUG /W4>
-		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-g -Wall>)
-else()
-	target_compile_options(${BTK_TARGET_NAME} PRIVATE
-		$<$<CXX_COMPILER_ID:MSVC>:/W4>
-		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall>)
-    target_compile_options(${COMPILER_TARGET_NAME} PRIVATE
-		$<$<CXX_COMPILER_ID:MSVC>:/W4>
-		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall>)
-    target_compile_options(${INTERPRETER_TARGET_NAME} PRIVATE
-		$<$<CXX_COMPILER_ID:MSVC>:/W4>
-		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall>)
-	target_compile_options(${LIBFKL_TARGET_NAME} PRIVATE
-		$<$<CXX_COMPILER_ID:MSVC>:/W4>
-		$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall>)
-endif()
+

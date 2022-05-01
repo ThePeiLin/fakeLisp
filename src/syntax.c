@@ -270,20 +270,6 @@ int fklIsExportExpression(const FklAstCptr* objCptr)
 	return 0;
 }
 
-//int fklIsPrognExpression(const FklAstCptr* objCptr)
-//{
-//	if(objCptr->type==FKL_PAIR)
-//	{
-//		FklAstCptr* fir=fklGetFirstCptr(objCptr);
-//		if(fir->type!=FKL_ATM)
-//			return 0;
-//		FklAstAtom* firAtm=fir->u.atom;
-//		if(firAtm->type==FKL_SYM&&!strcmp(firAtm->value.str,"progn"))
-//			return 1;
-//	}
-//	return 0;
-//}
-
 FklKeyWord* fklHasKeyWord(const FklAstCptr* objCptr,FklCompEnv* curEnv)
 {
 	FklAstAtom* tmpAtm=NULL;

@@ -77,16 +77,6 @@ void fklDecTop(FklVMstack* stack)
 	pthread_rwlock_unlock(&stack->lock);
 }
 
-inline void fklSetAndPop(FklVMvalue* by,FklVMvalue* volatile* pV,FklVMstack* stack,FklVMheap* heap)
-{
-	FklVMvalue* t=fklTopGet(stack);
-	*pV=t;
-	if(by->mark==FKL_MARK_B
-			&&FKL_IS_PTR(t)&&t->mark==FKL_MARK_W)
-		fklGC_toGray(t,heap);
-	fklDecTop(stack);
-}
-
 FklVMvalue* fklCastPreEnvToVMenv(FklPreEnv* pe,FklVMvalue* prev,FklVMheap* heap)
 {
 	int32_t size=0;
@@ -229,7 +219,6 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 		else
 			fprintf(stderr,"(%u)\n",node->line);
 	}
-	//fklDBG_printVMstack(exe->stack,stderr,1);
 	void* i[3]={exe,(void*)255,(void*)1};
 	exe->callback(i);
 	return 255;
@@ -517,7 +506,6 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 						break;
 					case FKL_STR:
 						fwrite(v->u.str->str,v->u.str->size,1,fp);
-						//fprintf(fp,"%s",v->u.str);
 						break;
 					case FKL_PROC:
 						if(v->u.proc->sid)
@@ -790,7 +778,7 @@ int fklSET_REF(FklVMvalue* P,FklVMvalue* V)
 		return 1;
 }
 
-FklVMvalue* fklSetRef(FklVMvalue* by,FklVMvalue* volatile* pref,FklVMvalue* v,FklVMheap* h)
+FklVMvalue* fklSetRef(FklVMvalue* by,FklVMvalue** pref,FklVMvalue* v,FklVMheap* h)
 {
 	FklVMvalue* ref=*pref;
 	if(by->mark==FKL_MARK_B)

@@ -279,54 +279,6 @@ int32_t fklFindKeyString(const char* str)
 	return fklSkipAtom(str,"");
 }
 
-//FklVMvalue* singleArgPattern(FklVM* exe,const char* var,const char* str)
-//{
-//	FklVMrunnable* runnable=fklTopPtrStack(exe->rstack);
-//	FklVMvalue* sym=FKL_MAKE_VM_SYM(fklAddSymbolToGlob(str)->id);
-//	FklVMvalue* varA=fklFindVMenvNode(fklAddSymbolToGlob(var)->id,runnable->localenv->u.env)->value;
-//	FklVMvalue* pair=fklNewVMvalue(FKL_PAIR,fklNewVMpair(),exe->heap);
-//	pair->u.pair->car=sym;
-//	pair->u.pair->cdr=fklNewVMvalue(FKL_PAIR,fklNewVMpair(),exe->heap);
-//	pair->u.pair->cdr->u.pair->car=varA;
-//	return pair;
-//}
-//
-//void READER_MACRO_quote(FklVM* exe)
-//{
-//	FKL_SET_RETURN("READER_MACRO_quote",singleArgPattern(exe,"a","quote"),exe->stack);
-//}
-//
-//void READER_MACRO_qsquote(FklVM* exe)
-//{
-//	FKL_SET_RETURN("READER_MACRO_qsquote",singleArgPattern(exe,"a","qsquote"),exe->stack);
-//}
-//
-//void READER_MACRO_unquote(FklVM* exe)
-//{
-//	FKL_SET_RETURN("READER_MACRO_unquote",singleArgPattern(exe,"a","unquote"),exe->stack);
-//}
-//
-//void READER_MACRO_unqtesp(FklVM* exe)
-//{
-//	FKL_SET_RETURN("READER_MACRO_unqtesp",singleArgPattern(exe,"a","unqtesp"),exe->stack);
-//}
-//
-//FklStringMatchPattern* addBuiltInStringPattern(const char* str,void(*fproc)(FklVM* exe))
-//{
-//	int32_t num=0;
-//	char** parts=fklSplitPattern(str,&num);
-//	FklStringMatchPattern* tmp=fklNewFStringMatchPattern(num,parts,fproc);
-//	return tmp;
-//}
-//
-//void fklInitBuiltInStringPattern(void)
-//{
-//	addBuiltInStringPattern("'(a)",READER_MACRO_quote);
-//	addBuiltInStringPattern("`(a)",READER_MACRO_qsquote);
-//	addBuiltInStringPattern("~(a)",READER_MACRO_unquote);
-//	addBuiltInStringPattern("~@(a)",READER_MACRO_unqtesp);
-//}
-
 int fklIsInValidStringPattern(const char* str)
 {
 	FklStringMatchPattern* pattern=HeadOfStringPattern;

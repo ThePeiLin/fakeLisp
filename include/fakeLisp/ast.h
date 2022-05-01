@@ -86,7 +86,6 @@ FklAstCptr* fklNewCptr(int,FklAstPair*);
 FklAstAtom* fklNewAtom(FklValueType type,const char*,FklAstPair*);
 void fklFreeAtom(FklAstAtom*);
 
-//int fklEqByteString(const FklAstByteString*,const FklAstByteString*);
 void fklMakeAstVector(FklAstVector* vec,size_t size,const FklAstCptr* base);
 
 int fklCptrcmp(const FklAstCptr*,const FklAstCptr*);

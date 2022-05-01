@@ -56,32 +56,6 @@ static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap
 	return vEnv;
 }
 
-//static FklByteCodelnt* getEnvGenCode(FklCompEnv* cEnv)
-//{
-//	FklByteCodelnt* t=fklNewByteCodelnt(fklNewByteCode(0));
-//	t->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
-//	FKL_ASSERT(t->l,__func__);
-//	t->l[0]=fklNewLineNumTabNode(0,0,0,0);
-//	FklPtrStack* stack=fklNewPtrStack(32,16);
-//	FklByteCode* push_r_env=fklNewByteCode(sizeof(char));
-//	push_r_env->code[0]=FKL_PUSH_R_ENV;
-//	FklCompEnv* tcEnv=cEnv;
-//	for(;tcEnv;tcEnv=tcEnv->prev)
-//		fklPushPtrStack(tcEnv,stack);
-//	while(!fklIsPtrStackEmpty(stack))
-//	{
-//		FklCompEnv* curEnv=fklPopPtrStack(stack);
-//		if(curEnv->prev)
-//		{
-//			fklCodeCat(t->bc,push_r_env);
-//			t->l[t->ls-1]->cpc+=push_r_env->size;
-//		}
-//		if(curEnv->proc->bc->size)
-//			fklCodelntCopyCat(t,curEnv->proc);
-//	}
-//	return t;
-//}
-
 static int cmpString(const void* a,const void* b)
 {
 	return strcmp(*(const char**)a,*(const char**)b);
@@ -112,7 +86,6 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 		char* cwd=getcwd(NULL,0);
 		chdir(fklGetCwd());
 		FklVM* tmpVM=fklNewTmpVM(NULL);
-		//FklByteCodelnt* genEnvCode=getEnvGenCode(tmp->macroEnv);
 		FklVMvalue* tmpGlob=genGlobEnv(tmp->macroEnv,t,tmpVM->heap);
 		if(!tmpGlob)
 		{
@@ -264,7 +237,6 @@ int MacroPatternCmp(const FklAstCptr* first,const FklAstCptr* second)
 				else if(firAtm->type==FKL_I32&&firAtm->value.i32!=secAtm->value.i32)return 0;
 				else if(firAtm->type==FKL_F64&&fabs(firAtm->value.f64-secAtm->value.f64)!=0)return 0;
 				else if(firAtm->type==FKL_CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
-				//else if(firAtm->type==FKL_BYTS&&!fklEqByteString(&firAtm->value.byts,&secAtm->value.byts))return 0;
 			}
 			if(firPair!=NULL&&first==&firPair->car)
 			{ first=&firPair->cdr;
@@ -1502,9 +1474,7 @@ FklByteCodelnt* fklCompileAnd(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 	FklByteCode* setTp=fklNewByteCode(sizeof(char));
 	FklByteCode* popTp=fklNewByteCode(sizeof(char));
 	FklByteCode* pushREnv=fklNewByteCode(sizeof(char));
-	//FklByteCode* pushREnv=fklNewByteCode(0);
 	FklByteCode* popREnv=fklNewByteCode(sizeof(char));
-	//FklByteCode* popREnv=fklNewByteCode(0);
 	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
 	FklPtrStack* stack=fklNewPtrStack(32,16);
 	jumpiffalse->code[0]=FKL_JMP_IF_FALSE;
@@ -1605,9 +1575,7 @@ FklByteCodelnt* fklCompileOr(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpret
 	FklByteCode* jumpifture=fklNewByteCode(sizeof(char)+sizeof(int64_t));
 	FklByteCode* pushnil=fklNewByteCode(sizeof(char));
 	FklByteCode* pushREnv=fklNewByteCode(sizeof(char));
-	//FklByteCode* pushREnv=fklNewByteCode(0);
 	FklByteCode* popREnv=fklNewByteCode(sizeof(char));
-	//FklByteCode* popREnv=fklNewByteCode(0);
 	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
 	FklPtrStack* stack=fklNewPtrStack(32,16);
 	pushnil->code[0]=FKL_PUSH_NIL;
@@ -1882,9 +1850,7 @@ FklByteCodelnt* fklCompileCond(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 	FklByteCode* setTp=fklNewByteCode(sizeof(char));
 	FklByteCode* popTp=fklNewByteCode(sizeof(char));
 	FklByteCode* pushREnv=fklNewByteCode(sizeof(char));
-	//FklByteCode* pushREnv=fklNewByteCode(0);
 	FklByteCode* popREnv=fklNewByteCode(sizeof(char));
-	//FklByteCode* popREnv=fklNewByteCode(0);
 	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
 	FklPtrStack* stack1=fklNewPtrStack(32,16);
 	FklMemMenager* memMenager=fklNewMemMenager(32);
@@ -2028,7 +1994,6 @@ FklByteCodelnt* fklCompileLoad(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 	tmpIntpr->glob=NULL;
 	tmpIntpr->lnt=NULL;
 	fklFreeIntpr(tmpIntpr);
-	//fklPrintByteCode(tmp,stderr);
 	FklByteCode* setTp=fklNewByteCode(1);
 	FklByteCode* popTp=fklNewByteCode(1);
 	setTp->code[0]=FKL_SET_TP;
@@ -2185,8 +2150,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 			return NULL;
 		}
 		uint32_t count=0;
-		char** partsOfPath=NULL;//(const char**)malloc(sizeof(const char*)*0);
-								//FKL_ASSERT(partsOfPath,__func__);
+		char** partsOfPath=NULL;
 		while(pPartsOfPath)
 		{
 			if(pPartsOfPath->type!=FKL_ATM)

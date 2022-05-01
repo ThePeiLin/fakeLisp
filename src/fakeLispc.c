@@ -34,7 +34,6 @@ int main(int argc,char** argv)
 		fklAddSymbolToGlob(argv[1]);
 		int state;
 		FklByteCodelnt* mainByteCode=fklCompileFile(inter,&state);
-		//fklPrintByteCodelnt(mainByteCode,stderr);
 		fklInitVMargs(argc,argv);
 		if(mainByteCode==NULL)
 		{

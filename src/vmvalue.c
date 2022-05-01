@@ -626,29 +626,6 @@ void fklFreeVMchanl(FklVMchanl* ch)
 	free(ch);
 }
 
-//FklVMchanl* fklCopyVMchanl(FklVMchanl* ch,FklVMheap* heap)
-//{
-//	FklVMchanl* tmpCh=fklNewVMchanl(ch->max);
-//	FklQueueNode* cur=ch->messages->head;
-//	FklPtrQueue* tmp=fklNewPtrQueue();
-//	for(;cur;cur=cur->next)
-//	{
-//		void* message=fklCopyVMvalue(cur->data,heap);
-//		fklPushPtrQueue(message,tmp);
-//	}
-//	return tmpCh;
-//}
-
-//FklVMproc* fklCopyVMproc(FklVMproc* obj,FklVMheap* heap)
-//{
-//	FklVMproc* tmp=(FklVMproc*)malloc(sizeof(FklVMproc));
-//	FKL_ASSERT(tmp,__func__);
-//	tmp->scp=obj->scp;
-//	tmp->cpc=obj->cpc;
-//	tmp->prevEnv=fklNewVMvalue(FKL_ENV,fklCopyVMenv(obj->prevEnv->u.env,heap),heap);
-//	return tmp;
-//}
-
 void fklFreeVMproc(FklVMproc* proc)
 {
 	free(proc);
@@ -895,22 +872,6 @@ FklVMenv* fklNewVMenv(FklVMvalue* prev)
 	pthread_rwlock_init(&tmp->lock,NULL);
 	return tmp;
 }
-
-//FklVMenv* fklCopyVMenv(FklVMenv* objEnv,FklVMheap* heap)
-//{
-//	FklVMenv* tmp=fklNewVMenv(NULL);
-//	tmp->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*objEnv->num);
-//	FKL_ASSERT(tmp->list,__func__);
-//	int i=0;
-//	for(;i<objEnv->num;i++)
-//	{
-//		FklVMenvNode* node=objEnv->list[i];
-//		FklVMvalue* v=fklCopyVMvalue(node->value,heap);
-//		FklVMenvNode* tmp=fklNewVMenvNode(v,node->id);
-//		objEnv->list[i]=tmp;
-//	}
-//	return tmp;
-//}
 
 void fklFreeVMenv(FklVMenv* obj)
 {

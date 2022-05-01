@@ -688,6 +688,73 @@ void SYS_integer(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void SYS_to_int(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR("sys.to-int",FKL_TOOMANYARG,runnable,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR("sys.to-int",FKL_TOOFEWARG,runnable,exe);
+	if(FKL_IS_CHR(obj))
+		fklNiReturn(FKL_MAKE_VM_I32(FKL_GET_CHR(obj)),&ap,stack);
+	else if(FKL_IS_I32(obj))
+		fklNiReturn(obj,&ap,stack);
+	else if(FKL_IS_I64(obj))
+		fklNiReturn(fklNiNewVMvalue(FKL_I64,(void*)&obj->u.i64,stack,exe->heap),&ap,stack);
+	else if(FKL_IS_F64(obj))
+	{
+		int64_t r=(int64_t)obj->u.f64;
+		fklNiReturn(fklMakeVMint(r,stack,exe->heap),&ap,stack);
+	}
+	else if(FKL_IS_STR(obj))
+	{
+		char* c_str=fklCharBufToStr(obj->u.str->str,obj->u.str->size);
+		if(!fklIsNum(c_str))
+			fklNiReturn(FKL_VM_NIL,&ap,stack);
+		else
+			fklNiReturn(fklMakeVMint(fklStringToInt(c_str),stack,exe->heap),&ap,stack);
+		free(c_str);
+	}
+	else
+		FKL_RAISE_BUILTIN_ERROR("sys.to-int",FKL_WRONGARG,runnable,exe);
+	fklNiEnd(&ap,stack);
+}
+
+void SYS_to_f64(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR("sys.to-f64",FKL_TOOMANYARG,runnable,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR("sys.to-f64",FKL_TOOFEWARG,runnable,exe);
+	if(fklIsInt(obj)||FKL_IS_CHR(obj))
+	{
+		double r=fklIsInt(obj)?fklGetInt(obj):FKL_GET_CHR(obj);
+		fklNiReturn(fklNiNewVMvalue(FKL_I64,&r,stack,exe->heap),&ap,stack);
+	}
+	else if(FKL_IS_F64(obj))
+		fklNiReturn(fklNiNewVMvalue(FKL_I64,(void*)&obj->u.i64,stack,exe->heap),&ap,stack);
+	else if(FKL_IS_STR(obj))
+	{
+		char* c_str=fklCharBufToStr(obj->u.str->str,obj->u.str->size);
+		if(!fklIsNum(c_str))
+			fklNiReturn(FKL_VM_NIL,&ap,stack);
+		else
+		{
+			double d=fklStringToDouble(c_str);
+			fklNiReturn(fklNiNewVMvalue(FKL_F64,&d,stack,exe->heap),&ap,stack);
+		}
+		free(c_str);
+	}
+	else
+		FKL_RAISE_BUILTIN_ERROR("sys.to-f64",FKL_WRONGARG,runnable,exe);
+	fklNiEnd(&ap,stack);
+}
+
 void SYS_i32(ARGL)
 {
 	FKL_NI_BEGIN(exe);

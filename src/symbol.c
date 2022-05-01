@@ -116,6 +116,8 @@ static const char* builtInSymbolList[]=
 	"fwrite",
 	"to-str",
 	"fgets",
+	"to-int",
+	"to-f64",
 };
 
 FklSymbolTable GlobSymbolTable=FKL_STATIC_SYMBOL_INIT;

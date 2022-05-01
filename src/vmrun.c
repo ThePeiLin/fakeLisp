@@ -297,6 +297,8 @@ extern void SYS_fgetc(ARGL);
 extern void SYS_fwrite(ARGL);
 extern void SYS_to_str(ARGL);
 extern void SYS_fgets(ARGL);
+extern void SYS_to_int(ARGL);
+extern void SYS_to_f64(ARGL);
 
 #undef ARGL
 
@@ -376,6 +378,8 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_fwrite,
 		SYS_to_str,
 		SYS_fgets,
+		SYS_to_int,
+		SYS_to_f64,
 	};
 	obj->num=FKL_NUM_OF_BUILT_IN_SYMBOL;
 	obj->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*FKL_NUM_OF_BUILT_IN_SYMBOL);

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.18)
 
 #cmake options
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
-set(CMAKE_BUILD_TYPE DEBUG)
+#set(CMAKE_BUILD_TYPE DEBUG)
 #set(CMAKE_BUILD_TYPE RELEASE)
 
 #warnnig setting

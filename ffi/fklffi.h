@@ -3,4 +3,5 @@
 #include<ffi.h>
 #include<fakeLisp/vm.h>
 
+void fklFfiAddSharedObj(FklVMdllHandle);
 #endif

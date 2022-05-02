@@ -1,8 +1,28 @@
 #include<fakeLisp/utils.h>
 #include<fakeLisp/fklni.h>
 #include"fklffi.h"
-#include"ffidll.h"
+#include"fklffitype.h"
 #define ARGL FklVM* exe,pthread_rwlock_t* gclock
+
+pthread_mutex_t GlobSharedObjsMutex=PTHREAD_MUTEX_INITIALIZER;
+
+typedef struct FklSharedObjNode
+{
+	FklVMdllHandle dll;
+	struct FklSharedObjNode* next;
+}FklSharedObjNode;
+
+FklSharedObjNode* GlobSharedObjs=NULL;
+void fklFfiAddSharedObj(FklVMdllHandle handle)
+{
+	FklSharedObjNode* node=(FklSharedObjNode*)malloc(sizeof(FklSharedObjNode));
+	FKL_ASSERT(node,__func__);
+	node->dll=handle;
+	pthread_mutex_lock(&GlobSharedObjsMutex);
+	node->next=GlobSharedObjs;
+	GlobSharedObjs=node;
+	pthread_mutex_unlock(&GlobSharedObjsMutex);
+}
 
 void FKL_ffi_malloc(ARGL)
 {
@@ -42,7 +62,7 @@ void FKL_ffi_load(ARGL)
 	if(!handle)
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR("ffi.load",path,1,FKL_LOADDLLFAILD,r,exe);
 	free(path);
-	fklAddSharedObj(handle);
+	fklFfiAddSharedObj(handle);
 	fklNiReturn(vpath,&ap,stack);
 	fklNiEnd(&ap,stack);
 }

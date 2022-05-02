@@ -844,24 +844,6 @@ void fklChanlSend(FklVMsend*s,FklVMchanl* ch)
 	pthread_mutex_unlock(&ch->lock);
 }
 
-#define INCREASE_REFCOUNT(TYPE,PV) {\
-	if((PV))\
-	{\
-		pthread_mutex_lock(&((TYPE*)(PV))->mutex);\
-		((TYPE*)(PV))->refcount+=1;\
-		pthread_mutex_unlock(&((TYPE*)(PV))->mutex);\
-	}\
-}
-
-#define DECREASE_REFCOUNT(TYPE,PV) {\
-	if((PV))\
-	{\
-		pthread_mutex_lock(&((TYPE*)(PV))->mutex);\
-		((TYPE*)(PV))->refcount-=1;\
-		pthread_mutex_unlock(&((TYPE*)(PV))->mutex);\
-	}\
-}
-
 FklVMenv* fklNewVMenv(FklVMvalue* prev)
 {
 	FklVMenv* tmp=(FklVMenv*)malloc(sizeof(FklVMenv));

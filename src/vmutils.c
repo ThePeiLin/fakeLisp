@@ -201,7 +201,7 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 		}
 		fklFreeVMtryBlock(fklPopPtrStack(exe->tstack));
 	}
-	fprintf(stderr,"error of %s :%s",err->who,err->message);
+	fprintf(stderr,"error of %s :%s\n",err->who,err->message);
 	for(FklVMrunnable* cur=exe->rhead;cur;cur=cur->prev)
 	{
 		if(cur->sid!=0)

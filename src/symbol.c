@@ -120,7 +120,7 @@ static const char* builtInSymbolList[]=
 	"to-f64",
 };
 
-FklSymbolTable GlobSymbolTable=FKL_STATIC_SYMBOL_INIT;
+FklSymbolTable* GlobSymbolTable=NULL;
 
 FklSymbolTable* fklNewSymbolTable()
 {
@@ -192,7 +192,9 @@ FklSymTabNode* fklAddSymbol(const char* sym,FklSymbolTable* table)
 
 FklSymTabNode* fklAddSymbolToGlob(const char* sym)
 {
-	return fklAddSymbol(sym,&GlobSymbolTable);
+	if(!GlobSymbolTable)
+		GlobSymbolTable=fklNewSymbolTable();
+	return fklAddSymbol(sym,GlobSymbolTable);
 }
 
 
@@ -215,10 +217,11 @@ void fklFreeSymbolTable(FklSymbolTable* table)
 void fklFreeGlobSymbolTable()
 {
 	int32_t i=0;
-	for(;i<GlobSymbolTable.num;i++)
-		fklFreeSymTabNode(GlobSymbolTable.list[i]);
-	free(GlobSymbolTable.list);
-	free(GlobSymbolTable.idl);
+	for(;i<GlobSymbolTable->num;i++)
+		fklFreeSymTabNode(GlobSymbolTable->list[i]);
+	free(GlobSymbolTable->list);
+	free(GlobSymbolTable->idl);
+	free(GlobSymbolTable);
 }
 
 FklSymTabNode* fklFindSymbol(const char* symbol,FklSymbolTable* table)
@@ -244,14 +247,14 @@ FklSymTabNode* fklFindSymbol(const char* symbol,FklSymbolTable* table)
 
 FklSymTabNode* fklFindSymbolInGlob(const char* sym)
 {
-	return fklFindSymbol(sym,&GlobSymbolTable);
+	return fklFindSymbol(sym,GlobSymbolTable);
 }
 
 FklSymTabNode* fklGetGlobSymbolWithId(FklSid_t id)
 {
 	if(id==0)
 		return NULL;
-	return GlobSymbolTable.idl[id-1];
+	return GlobSymbolTable->idl[id-1];
 }
 
 void fklPrintSymbolTable(FklSymbolTable* table,FILE* fp)
@@ -267,7 +270,7 @@ void fklPrintSymbolTable(FklSymbolTable* table,FILE* fp)
 
 void fklPrintGlobSymbolTable(FILE* fp)
 {
-	fklPrintSymbolTable(&GlobSymbolTable,fp);
+	fklPrintSymbolTable(GlobSymbolTable,fp);
 }
 
 void fklWriteSymbolTable(FklSymbolTable* table,FILE* fp)
@@ -279,7 +282,7 @@ void fklWriteSymbolTable(FklSymbolTable* table,FILE* fp)
 
 void fklWriteGlobSymbolTable(FILE* fp)
 {
-	fklWriteSymbolTable(&GlobSymbolTable,fp);
+	fklWriteSymbolTable(GlobSymbolTable,fp);
 }
 
 const char** fklGetBuiltInSymbolList(void)
@@ -295,4 +298,14 @@ const char* fklGetBuiltInSymbol(FklErrorType type)
 const char* fklGetBuiltInErrorType(FklErrorType type)
 {
 	return builtInErrorType[type];
+}
+
+FklSymbolTable* fklGetGlobSymbolTable(void)
+{
+	return GlobSymbolTable;
+}
+
+void fklSetGlobSymbolTable(FklSymbolTable* t)
+{
+	GlobSymbolTable=t;
 }

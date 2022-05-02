@@ -695,9 +695,9 @@ FklVMdllHandle fklNewVMdll(const char* dllName)
 		free(realDllName);
 		return NULL;
 	}
-	void (*init)(void)=fklGetAddress("_fklInit",handle);
+	void (*init)(FklSymbolTable*)=fklGetAddress("_fklInit",handle);
 	if(init)
-		init();
+		init(fklGetGlobSymbolTable());
 	free(realDllName);
 	free(rpath);
 	return handle;

@@ -76,6 +76,8 @@ void fklFreeGlobSymbolTable();
 void fklWriteSymbolTable(FklSymbolTable*,FILE*);
 void fklWriteGlobSymbolTable(FILE*);
 
+FklSymbolTable* fklGetGlobSymbolTable(void);
+void fklSetGlobSymbolTable(FklSymbolTable*);
 #ifdef __cplusplus
 }
 #endif

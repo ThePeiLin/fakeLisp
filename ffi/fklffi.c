@@ -4,7 +4,7 @@
 #include"fklffitype.h"
 #define ARGL FklVM* exe,pthread_rwlock_t* gclock
 
-pthread_mutex_t GlobSharedObjsMutex=PTHREAD_MUTEX_INITIALIZER;
+static pthread_rwlock_t GlobSharedObjsLock=PTHREAD_RWLOCK_INITIALIZER;
 
 typedef struct FklSharedObjNode
 {
@@ -12,16 +12,16 @@ typedef struct FklSharedObjNode
 	struct FklSharedObjNode* next;
 }FklSharedObjNode;
 
-FklSharedObjNode* GlobSharedObjs=NULL;
+static FklSharedObjNode* GlobSharedObjs=NULL;
 void fklFfiAddSharedObj(FklVMdllHandle handle)
 {
 	FklSharedObjNode* node=(FklSharedObjNode*)malloc(sizeof(FklSharedObjNode));
 	FKL_ASSERT(node,__func__);
 	node->dll=handle;
-	pthread_mutex_lock(&GlobSharedObjsMutex);
+	pthread_rwlock_wrlock(&GlobSharedObjsLock);
 	node->next=GlobSharedObjs;
 	GlobSharedObjs=node;
-	pthread_mutex_unlock(&GlobSharedObjsMutex);
+	pthread_rwlock_unlock(&GlobSharedObjsLock);
 }
 
 void FKL_ffi_malloc(ARGL)
@@ -73,5 +73,17 @@ void FKL_ffi_ref(ARGL)
 
 void FKL_ffi_set(ARGL)
 {
+}
+
+void _fklInit(FklSymbolTable* glob)
+{
+	fklSetGlobSymbolTable(glob);
+	fklFfiInitGlobNativeTypes();
+}
+
+void _fklUninit(void)
+{
+	fklFfiFreeGlobDefTypeTable();
+	fklFfiFreeGlobTypeList();
 }
 #undef ARGL

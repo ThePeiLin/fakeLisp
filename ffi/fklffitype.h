@@ -149,6 +149,8 @@ size_t fklFfiGetTypeAlign(FklDefTypeUnion t);
 size_t fklFfiGetTypeSizeWithTypeId(FklTypeId_t t);
 FklDefTypeUnion fklFfiGetTypeUnion(FklTypeId_t);
 
+void fklFfiInitGlobNativeTypes(void);
+void fklFfiFreeGlobDefTypeTable(void);
 #ifdef __cplusplus
 }
 #endif

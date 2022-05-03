@@ -159,6 +159,93 @@ FklTypeId_t fklFfiNewStructType(FklSid_t structName,uint32_t num,FklSid_t symbol
 	return id;
 }
 
+FklTypeId_t fklFfiNewPtrType(FklTypeId_t type)
+{
+	FklTypeId_t id=0;
+	size_t i=0;
+	size_t typeNum=GlobTypeUnionList.num;
+	for(;i<typeNum;i++)
+	{
+		FklDefTypeUnion tmpType=GlobTypeUnionList.ul[i];
+		if(FKL_GET_TYPES_TAG(tmpType.all)==FKL_DEF_PTR_TYPE_TAG)
+		{
+			FklDefPtrType* ptrType=(FklDefTypeUnion){.pt=FKL_GET_TYPES_PTR(tmpType.all)}.pt;
+			if(ptrType->ptype==type)
+			{
+				id=i+1;
+				break;
+			}
+		}
+	}
+	if(!id)
+	{
+		FklDefPtrType* tmp=(FklDefPtrType*)malloc(sizeof(FklDefPtrType));
+		FKL_ASSERT(tmp,__func__);
+		tmp->ptype=type;
+		return addToGlobTypeUnionList((FklDefTypeUnion)FKL_MAKE_PTR_TYPE(tmp));
+	}
+	return id;
+}
+
+FklTypeId_t fklFfiNewArrayType(FklTypeId_t type,size_t num)
+{
+	FklTypeId_t id=0;
+	size_t i=0;
+	size_t typeNum=GlobTypeUnionList.num;
+	for(;i<typeNum;i++)
+	{
+		FklDefTypeUnion tmpType=GlobTypeUnionList.ul[i];
+		if(FKL_GET_TYPES_TAG(tmpType.all)==FKL_DEF_ARRAY_TYPE_TAG)
+		{
+			FklDefArrayType* arrayType=(FklDefTypeUnion){.at=FKL_GET_TYPES_PTR(tmpType.all)}.at;
+			if(arrayType->etype==type&&arrayType->num==num)
+			{
+				id=i+1;
+				break;
+			}
+		}
+	}
+	if(!id)
+	{
+		FklDefArrayType* tmp=(FklDefArrayType*)malloc(sizeof(FklDefArrayType));
+		FKL_ASSERT(tmp,__func__);
+		tmp->etype=type;
+		tmp->num=num;
+		tmp->totalSize=num*fklFfiGetTypeSize(fklFfiGetTypeUnion(type));
+		tmp->align=fklFfiGetTypeAlign(fklFfiGetTypeUnion(type));
+		return addToGlobTypeUnionList((FklDefTypeUnion)FKL_MAKE_ARRAY_TYPE(tmp));
+	}
+	else
+		return id;
+}
+
+FklTypeId_t fklFfiNewUnionType(FklSid_t unionName,uint32_t num,FklSid_t symbols[],FklTypeId_t memberTypes[])
+{
+	size_t maxSize=0;
+	size_t align=0;
+	for(uint32_t i=0;i<num;i++)
+	{
+		size_t curSize=fklFfiGetTypeSizeWithTypeId(memberTypes[i]);
+		if(maxSize<curSize)
+		{
+			maxSize=curSize;
+			align=fklFfiGetTypeAlign(fklFfiGetTypeUnion(memberTypes[i]));
+		}
+	}
+	FklDefUnionType* tmp=(FklDefUnionType*)malloc(sizeof(FklDefUnionType)+sizeof(FklDefStructMember)*num);
+	FKL_ASSERT(tmp,__func__);
+	tmp->type=unionName;
+	tmp->num=num;
+	tmp->maxSize=maxSize;
+	tmp->align=align;
+	for(uint32_t i=0;i<num;i++)
+	{
+		tmp->layout[i].memberSymbol=symbols[i];
+		tmp->layout[i].type=memberTypes[i];
+	}
+	return addToGlobTypeUnionList((FklDefTypeUnion)FKL_MAKE_UNION_TYPE(tmp));
+}
+
 FklDefTypes* fklFfiNewDefTypes(void)
 {
 	FklDefTypes* tmp=(FklDefTypes*)malloc(sizeof(FklDefTypes));
@@ -329,7 +416,7 @@ static FklTypeId_t genArrayTypeId(FklVMvalue* numPair,FklDefTypes* otherTypes)
 static FklTypeId_t genPtrTypeId(FklVMvalue* typePair,FklDefTypes* otherTypes)
 {
 	FklVMvalue* ptrTypeV=FKL_IS_PAIR(typePair)?typePair->u.pair->car:NULL;
-	if(!ptrTypeV||!FKL_IS_SYM(ptrTypeV))
+	if(!ptrTypeV)
 		return 0;
 	FklTypeId_t pType=fklFfiGenDefTypesUnion(ptrTypeV,otherTypes);
 	if(!pType)
@@ -659,6 +746,8 @@ static FklTypeId_t genUnionTypeId(FklVMvalue* unionBodyPair,FklDefTypes* otherTy
 		initUnionTypeId(retval,unionNameId,num,memberTypeList,memberTypeList);
 	else if(!retval)
 		retval=fklFfiNewUnionType(unionNameId,num,memberSymbolList,memberTypeList);
+	free(memberSymbolList);
+	free(memberTypeList);
 	return retval;
 }
 
@@ -831,4 +920,9 @@ FklDefTypesNode* fklFfiFindDefTypesNode(FklSid_t typeName,FklDefTypes* otherType
 			return otherTypes->u[mid];
 	}
 	return NULL;
+}
+
+FklTypeId_t fklFfiGenTypeId(FklVMvalue* obj)
+{
+	return fklFfiGenDefTypesUnion(obj,GlobDefTypes);
 }

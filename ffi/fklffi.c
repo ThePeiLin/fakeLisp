@@ -53,6 +53,19 @@ void FKL_ffi_delete(ARGL)
 
 void FKL_ffi_sizeof(ARGL)
 {
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* typedeclare=fklNiGetArg(&ap,stack);
+	if(!typedeclare)
+		FKL_RAISE_BUILTIN_ERROR("ffi.sizeof",FKL_TOOFEWARG,exe->rhead,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR("ffi.sizeof",FKL_TOOMANYARG,exe->rhead,exe);
+	if(!FKL_IS_SYM(typedeclare)&&!FKL_IS_PAIR(typedeclare))
+		FKL_RAISE_BUILTIN_ERROR("ffi.sizeof",FKL_WRONGARG,exe->rhead,exe);
+	FklTypeId_t id=fklFfiGenTypeId(typedeclare);
+	if(!id)
+		FKL_FFI_RAISE_ERROR("ffi.sizeof",FKL_FFI_INVALID_TYPEDECLARE,exe);
+	fklNiReturn(fklMakeVMint(fklFfiGetTypeSizeWithTypeId(id),stack,exe->heap),&ap,stack);
+	fklNiEnd(&ap,stack);
 }
 
 void FKL_ffi_typedef(ARGL)
@@ -69,10 +82,9 @@ void FKL_ffi_typedef(ARGL)
 	FklSid_t typenameId=FKL_GET_SYM(typename);
 	if(fklFfiIsNativeTypeName(typenameId))
 		FKL_FFI_RAISE_ERROR("ffi.typedef",FKL_FFI_INVALID_TYPENAME,exe);
-	FklTypeId_t typeid=fklFfiTypedef(typedeclare,typenameId);
-	if(!typeid)
+	if(!fklFfiTypedef(typedeclare,typenameId))
 		FKL_FFI_RAISE_ERROR("ffi.typedef",FKL_FFI_INVALID_TYPEDECLARE,exe);
-	fklNiReturn(FKL_VM_NIL,&ap,stack);
+	fklNiReturn(typename,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

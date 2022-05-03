@@ -1472,6 +1472,7 @@ void fklFreeVMvalue(FklVMvalue* cur)
 			break;
 		case FKL_F64:
 		case FKL_I64:
+		case FKL_USERDATA:
 			break;
 		case FKL_ENV:
 			fklFreeVMenv(cur->u.env);

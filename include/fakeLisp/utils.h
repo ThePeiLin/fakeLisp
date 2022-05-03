@@ -66,6 +66,7 @@ extern "C" {
 #define FKL_IS_REF(P) (FKL_GET_TAG(P)==FKL_REF_TAG)
 #define FKL_IS_MREF(P) (FKL_GET_TAG(P)==FKL_MREF_TAG)
 #define FKL_IS_I64(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_I64)
+#define FKL_IS_USERDATA(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_USERDATA)
 #define FKL_FREE_CHF(P) (free(FKL_GET_PTR(P)))
 
 int fklIsHexNum(const char*);

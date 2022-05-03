@@ -43,12 +43,47 @@ static void fklFfiFreeAllSharedObj(void)
 	}
 }
 
+typedef struct FklFfiMem
+{
+	FklTypeId_t typeid;
+	uint8_t mem[];
+}FklFfiMem;
+
 void FKL_ffi_new(ARGL)
 {
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* typedeclare=fklNiGetArg(&ap,stack);
+	if(!typedeclare)
+		FKL_RAISE_BUILTIN_ERROR("ffi.new",FKL_TOOFEWARG,exe->rhead,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR("ffi.new",FKL_TOOMANYARG,exe->rhead,exe);
+	if(!FKL_IS_SYM(typedeclare)&&!FKL_IS_PAIR(typedeclare))
+		FKL_RAISE_BUILTIN_ERROR("ffi.new",FKL_WRONGARG,exe->rhead,exe);
+	FklTypeId_t id=fklFfiGenTypeId(typedeclare);
+	if(!id)
+		FKL_FFI_RAISE_ERROR("ffi.new",FKL_FFI_INVALID_TYPEDECLARE,exe);
+	size_t size=fklFfiGetTypeSizeWithTypeId(id);
+	FklFfiMem* p=(FklFfiMem*)malloc(sizeof(FklFfiMem)+size);
+	FKL_ASSERT(p,__func__);
+	p->typeid=id;
+	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA,p,stack,exe->heap),&ap,stack);
+	fklNiEnd(&ap,stack);
 }
 
 void FKL_ffi_delete(ARGL)
 {
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* mem=fklNiGetArg(&ap,stack);
+	if(!mem)
+		FKL_RAISE_BUILTIN_ERROR("ffi.delete",FKL_TOOFEWARG,exe->rhead,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR("ffi.delete",FKL_TOOMANYARG,exe->rhead,exe);
+	if(!FKL_IS_USERDATA(mem))
+		FKL_RAISE_BUILTIN_ERROR("ffi.delete",FKL_WRONGARG,exe->rhead,exe);
+	free(mem->u.p);
+	mem->u.p=NULL;
+	fklNiReturn(FKL_VM_NIL,&ap,stack);
+	fklNiEnd(&ap,stack);
 }
 
 void FKL_ffi_sizeof(ARGL)

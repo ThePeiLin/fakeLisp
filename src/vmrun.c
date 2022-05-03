@@ -1470,9 +1470,11 @@ void fklFreeVMvalue(FklVMvalue* cur)
 		case FKL_VECTOR:
 			fklFreeVMvec(cur->u.vec);
 			break;
+		case FKL_USERDATA:
+			free(cur->u.p);
+			break;
 		case FKL_F64:
 		case FKL_I64:
-		case FKL_USERDATA:
 			break;
 		case FKL_ENV:
 			fklFreeVMenv(cur->u.env);

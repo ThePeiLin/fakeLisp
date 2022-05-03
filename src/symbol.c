@@ -129,6 +129,7 @@ FklSymbolTable* fklNewSymbolTable()
 	tmp->list=NULL;
 	tmp->idl=NULL;
 	tmp->num=0;
+	pthread_rwlock_init(&tmp->rwlock,NULL);
 	return tmp;
 }
 
@@ -144,6 +145,7 @@ FklSymTabNode* fklNewSymTabNode(const char* symbol)
 FklSymTabNode* fklAddSymbol(const char* sym,FklSymbolTable* table)
 {
 	FklSymTabNode* node=NULL;
+	pthread_rwlock_wrlock(&table->rwlock);
 	if(!table->list)
 	{
 		node=fklNewSymTabNode(sym);
@@ -187,6 +189,7 @@ FklSymTabNode* fklAddSymbol(const char* sym,FklSymbolTable* table)
 		FKL_ASSERT(table->idl,__func__);
 		table->idl[table->num-1]=node;
 	}
+	pthread_rwlock_unlock(&table->rwlock);
 	return node;
 }
 
@@ -226,23 +229,30 @@ void fklFreeGlobSymbolTable()
 
 FklSymTabNode* fklFindSymbol(const char* symbol,FklSymbolTable* table)
 {
-	if(!table->list)
-		return NULL;
-	int32_t l=0;
-	int32_t h=table->num-1;
-	int32_t mid;
-	while(l<=h)
+	FklSymTabNode* retval=NULL;
+	pthread_rwlock_rdlock(&table->rwlock);
+	if(table->list)
 	{
-		mid=l+(h-l)/2;
-		int resultOfCmp=strcmp(table->list[mid]->symbol,symbol);
-		if(resultOfCmp>0)
-			h=mid-1;
-		else if(resultOfCmp<0)
-			l=mid+1;
-		else
-			return table->list[mid];
+		int32_t l=0;
+		int32_t h=table->num-1;
+		int32_t mid;
+		while(l<=h)
+		{
+			mid=l+(h-l)/2;
+			int resultOfCmp=strcmp(table->list[mid]->symbol,symbol);
+			if(resultOfCmp>0)
+				h=mid-1;
+			else if(resultOfCmp<0)
+				l=mid+1;
+			else
+			{
+				retval=table->list[mid];
+				break;
+			}
+		}
 	}
-	return NULL;
+	pthread_rwlock_unlock(&table->rwlock);
+	return retval;
 }
 
 FklSymTabNode* fklFindSymbolInGlob(const char* sym)

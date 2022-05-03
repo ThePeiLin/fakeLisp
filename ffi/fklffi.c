@@ -1,6 +1,5 @@
 #include<fakeLisp/utils.h>
 #include<fakeLisp/fklni.h>
-#include"fklffi.h"
 #include"fklffitype.h"
 #define ARGL FklVM* exe,pthread_rwlock_t* gclock
 
@@ -13,7 +12,8 @@ typedef struct FklSharedObjNode
 }FklSharedObjNode;
 
 static FklSharedObjNode* GlobSharedObjs=NULL;
-void fklFfiAddSharedObj(FklVMdllHandle handle)
+
+static void fklFfiAddSharedObj(FklVMdllHandle handle)
 {
 	FklSharedObjNode* node=(FklSharedObjNode*)malloc(sizeof(FklSharedObjNode));
 	FKL_ASSERT(node,__func__);
@@ -24,11 +24,30 @@ void fklFfiAddSharedObj(FklVMdllHandle handle)
 	pthread_rwlock_unlock(&GlobSharedObjsLock);
 }
 
-void FKL_ffi_malloc(ARGL)
+static void fklFfiFreeAllSharedObj(void)
+{
+	FklSharedObjNode* head=GlobSharedObjs;
+	pthread_rwlock_wrlock(&GlobSharedObjsLock);
+	GlobSharedObjs=NULL;
+	pthread_rwlock_unlock(&GlobSharedObjsLock);
+	while(head)
+	{
+		FklSharedObjNode* prev=head;
+		head=head->next;
+#ifdef _WIN32
+		FreeLibrary(prev->dll);
+#else
+		dlclose(prev->dll);
+#endif
+		free(prev);
+	}
+}
+
+void FKL_ffi_new(ARGL)
 {
 }
 
-void FKL_ffi_free(ARGL)
+void FKL_ffi_delete(ARGL)
 {
 }
 
@@ -85,5 +104,6 @@ void _fklUninit(void)
 {
 	fklFfiFreeGlobDefTypeTable();
 	fklFfiFreeGlobTypeList();
+	fklFfiFreeAllSharedObj();
 }
 #undef ARGL

@@ -2,6 +2,7 @@
 #define FKL_SYMBOL_H
 #include<stdint.h>
 #include<stdio.h>
+#include<pthread.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -55,6 +56,7 @@ typedef struct FklSymbolTable
 	FklSid_t num;
 	FklSymTabNode** list;
 	FklSymTabNode** idl;
+	pthread_rwlock_t rwlock;
 }FklSymbolTable;
 
 const char** fklGetBuiltInSymbolList(void);

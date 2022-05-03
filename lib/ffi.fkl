@@ -1,8 +1,8 @@
 (library
   ffi
   (export
-    ffi-malloc
-    ffi-free
+    ffi-new
+    ffi-delete
     ffi-sizeof
     ffi-typedef
     ffi-call
@@ -10,8 +10,8 @@
     ffi-ref
     ffi-set)
   (define ffi (dlopen (append (getdir) "/../fklffi")))
-  (define ffi-malloc (dlsym ffi "ffi_malloc"))
-  (define ffi-free (dlsym ffi "ffi_free"))
+  (define ffi-new (dlsym ffi "ffi_new"))
+  (define ffi-delete (dlsym ffi "ffi_delete"))
   (define ffi-sizeof (dlsym ffi "ffi_sizeof"))
   (define ffi-typedef (dlsym ffi "ffi_typedef"))
   (define ffi-call (dlsym ffi "ffi_call"))

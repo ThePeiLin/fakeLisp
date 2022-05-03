@@ -57,6 +57,23 @@ void FKL_ffi_sizeof(ARGL)
 
 void FKL_ffi_typedef(ARGL)
 {
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* typedeclare=fklNiGetArg(&ap,stack);
+	FklVMvalue* typename=fklNiGetArg(&ap,stack);
+	if(!typedeclare||!typename)
+		FKL_RAISE_BUILTIN_ERROR("ffi.typedef",FKL_TOOFEWARG,exe->rhead,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR("ffi.typedef",FKL_TOOMANYARG,exe->rhead,exe);
+	if(!FKL_IS_SYM(typename)||(!FKL_IS_PAIR(typedeclare)&&!FKL_IS_SYM(typedeclare)))
+		FKL_RAISE_BUILTIN_ERROR("ffi.typedef",FKL_WRONGARG,exe->rhead,exe);
+	FklSid_t typenameId=FKL_GET_SYM(typename);
+	if(fklFfiIsNativeTypeName(typenameId))
+		FKL_FFI_RAISE_ERROR("ffi.typedef",FKL_FFI_INVALID_TYPENAME,exe);
+	FklTypeId_t typeid=fklFfiTypedef(typedeclare,typenameId);
+	if(!typeid)
+		FKL_FFI_RAISE_ERROR("ffi.typedef",FKL_FFI_INVALID_TYPEDECLARE,exe);
+	fklNiReturn(FKL_VM_NIL,&ap,stack);
+	fklNiEnd(&ap,stack);
 }
 
 void FKL_ffi_call(ARGL)
@@ -79,7 +96,7 @@ void FKL_ffi_load(ARGL)
 	char* path=fklCharBufToStr(vpath->u.str->str,vpath->u.str->size);
 	FklVMdllHandle handle=fklLoadDll(path);
 	if(!handle)
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR("ffi.load",path,1,FKL_LOADDLLFAILD,r,exe);
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR("ffi.load",path,1,FKL_LOADDLLFAILD,exe);
 	free(path);
 	fklFfiAddSharedObj(handle);
 	fklNiReturn(vpath,&ap,stack);
@@ -98,6 +115,7 @@ void _fklInit(FklSymbolTable* glob)
 {
 	fklSetGlobSymbolTable(glob);
 	fklFfiInitGlobNativeTypes();
+	fklFfiInitTypedefSymbol();
 }
 
 void _fklUninit(void)

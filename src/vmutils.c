@@ -244,7 +244,7 @@ FklVMrunnable* fklNewVMrunnable(FklVMproc* code,FklVMrunnable* prev)
 	return tmp;
 }
 
-char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklErrorType type,FklVMrunnable* r,FklVM* exe)
+char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklErrorType type)
 {
 	char* t=fklCopyStr("");
 	switch(type)

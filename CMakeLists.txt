@@ -77,8 +77,8 @@ add_executable(${COMPILER_TARGET_NAME} ${COMPILER_SOURCE})
 target_link_libraries(${LIBFKL_TARGET_NAME} ${LINK_TARGET})
 target_link_libraries(${INTERPRETER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
-target_link_libraries(${BTK_TARGET_NAME} ${ORIGINAL_SHARED_LIB_NAME})
-target_link_libraries(${FFI_TARGET_NAME} ${ORIGINAL_SHARED_LIB_NAME})
+target_link_libraries(${BTK_TARGET_NAME} ${LIBFKL_TARGET_NAME})
+target_link_libraries(${FFI_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 
 #copy std.fkl
 add_custom_target(COPY_STD_FKL ALL

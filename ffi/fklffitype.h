@@ -25,6 +25,12 @@ typedef enum
 	FKL_DEF_FUNC_TYPE_TAG,
 }FklDefTypeTag;
 
+typedef enum FklFfiErrorType
+{
+	FKL_FFI_INVALID_TYPEDECLARE=0,
+	FKL_FFI_INVALID_TYPENAME,
+}FklFfiErrorType;
+
 typedef struct FklDefTypesNode
 {
 	FklSid_t name;
@@ -108,8 +114,8 @@ FklTypeId_t fklFfiGetFILEpTypeId(void);
 FklDefTypes* fklFfiNewDefTypes(void);
 void fklFfiFreeDefTypeTable(FklDefTypes* defs);
 
-FklTypeId_t fklFfiGenDefTypes(FklVMvalue*,FklDefTypes* otherTypes,FklSid_t* typeName);
-FklTypeId_t fklFfiGenDefTypesUnion(FklVMvalue* objCptr,FklDefTypes* otherTypes);
+FklTypeId_t fklFfiGenDefTypes(FklVMvalue*,FklDefTypes* otherTypes,FklSid_t typeName);
+FklTypeId_t fklFfiGenDefTypesUnion(FklVMvalue*,FklDefTypes* otherTypes);
 FklDefTypesNode* fklFfiFindDefTypesNode(FklSid_t typeId,FklDefTypes* otherTypes);
 int fklFfiAddDefTypes(FklDefTypes*,FklSid_t typeName,FklTypeId_t);
 void fklFfiInitNativeDefTypes(FklDefTypes* otherTypes);
@@ -134,10 +140,10 @@ void fklFfiFreeArrayType(FklDefArrayType*);
 FklTypeId_t fklFfiNewPtrType(FklTypeId_t);
 void fklFfiFreePtrType(FklDefPtrType*);
 
-FklTypeId_t fklFfiNewStructType(const char*,uint32_t,FklSid_t[],FklTypeId_t []);
+FklTypeId_t fklFfiNewStructType(FklSid_t,uint32_t,FklSid_t[],FklTypeId_t []);
 void fklFfiFreeStructType(FklDefStructType*);
 
-FklTypeId_t fklFfiNewUnionType(const char* structName,uint32_t num,FklSid_t symbols[],FklTypeId_t memberTypes[]);
+FklTypeId_t fklFfiNewUnionType(FklSid_t,uint32_t num,FklSid_t symbols[],FklTypeId_t memberTypes[]);
 void fklFfiFreeUnionType(FklDefUnionType*);
 
 FklTypeId_t fklFfiNewFuncType(FklTypeId_t rtype,uint32_t anum,FklTypeId_t atypes[]);
@@ -151,6 +157,26 @@ FklDefTypeUnion fklFfiGetTypeUnion(FklTypeId_t);
 
 void fklFfiInitGlobNativeTypes(void);
 void fklFfiFreeGlobDefTypeTable(void);
+void fklFfiInitTypedefSymbol(void);
+
+int fklFfiIsNativeTypeName(FklSid_t id);
+const char* fklFfiGetErrorType(FklFfiErrorType);
+char* fklFfiGenErrorMessage(FklFfiErrorType);
+
+FklTypeId_t fklFfiTypedef(FklVMvalue*,FklSid_t typeName);
+#define FKL_FFI_RAISE_ERROR(WHO,ERRORTYPE,EXE) do{\
+	char* errorMessage=fklFfiGenErrorMessage((ERRORTYPE));\
+	FklVMvalue* err=fklNiNewVMvalue(FKL_ERR\
+			,fklNewVMerror((WHO)\
+				,fklFfiGetErrorType(ERRORTYPE)\
+				,errorMessage)\
+			,(EXE)->stack\
+			,(EXE)->heap);\
+	free(errorMessage);\
+	fklRaiseVMerror(err,(EXE));\
+	return;\
+}while(0)
+
 #ifdef __cplusplus
 }
 #endif

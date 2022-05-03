@@ -311,7 +311,7 @@ void fklFreeVMerrorHandler(FklVMerrorHandler*);
 int fklRaiseVMerror(FklVMvalue* err,FklVM*);
 FklVMrunnable* fklNewVMrunnable(FklVMproc*,FklVMrunnable*);
 char* fklGenErrorMessage(FklErrorType type,FklVMrunnable* r,FklVM* exe);
-char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklErrorType,FklVMrunnable* r,FklVM* exe);
+char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklErrorType);
 int32_t fklGetSymbolIdInByteCode(const uint8_t*);
 
 FklVMcontinuation* fklNewVMcontinuation(uint32_t ap,FklVMstack* stack,FklVMrunnable* ,FklPtrStack* tstack);
@@ -442,8 +442,8 @@ void fklFreeRunnables(FklVMrunnable* h);
 	return;\
 }while(0)
 
-#define FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR(WHO,STR,FREE,ERRORTYPE,RUNNABLE,EXE) do{\
-	char* errorMessage=fklGenInvalidSymbolErrorMessage((STR),(FREE),(ERRORTYPE),(RUNNABLE),(EXE));\
+#define FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR(WHO,STR,FREE,ERRORTYPE,EXE) do{\
+	char* errorMessage=fklGenInvalidSymbolErrorMessage((STR),(FREE),(ERRORTYPE));\
 	FklVMvalue* err=fklNiNewVMvalue(FKL_ERR,fklNewVMerror((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE)->stack,(EXE)->heap);\
 	free(errorMessage);\
 	fklRaiseVMerror(err,(EXE));\

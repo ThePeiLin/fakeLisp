@@ -48,19 +48,24 @@ void FKL_ffi_new(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* typedeclare=fklNiGetArg(&ap,stack);
+	FklVMvalue* atomic=fklNiGetArg(&ap,stack);
 	if(!typedeclare)
 		FKL_RAISE_BUILTIN_ERROR("ffi.new",FKL_TOOFEWARG,exe->rhead,exe);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR("ffi.new",FKL_TOOMANYARG,exe->rhead,exe);
-	if(!FKL_IS_SYM(typedeclare)&&!FKL_IS_PAIR(typedeclare))
+	if((!FKL_IS_SYM(typedeclare)
+				&&!FKL_IS_PAIR(typedeclare))
+			||(atomic
+				&&!FKL_IS_SYM(atomic)))
 		FKL_RAISE_BUILTIN_ERROR("ffi.new",FKL_WRONGARG,exe->rhead,exe);
 	FklTypeId_t id=fklFfiGenTypeId(typedeclare);
 	if(!id)
 		FKL_FFI_RAISE_ERROR("ffi.new",FKL_FFI_INVALID_TYPEDECLARE,exe);
 	size_t size=fklFfiGetTypeSizeWithTypeId(id);
-	void* p=malloc(size);
-	FKL_ASSERT(p,__func__);
-	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA,fklFfiNewMemUd(id,p),stack,exe->heap),&ap,stack);
+	FklVMudata* mem=fklFfiNewMemUd(id,size,atomic);
+	if(!mem)
+		FKL_FFI_RAISE_ERROR("ffi.new",FKL_FFI_INVALID_MEM_MODE,exe);
+	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA,mem,stack,exe->heap),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

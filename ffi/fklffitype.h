@@ -29,6 +29,7 @@ typedef enum FklFfiErrorType
 {
 	FKL_FFI_INVALID_TYPEDECLARE=0,
 	FKL_FFI_INVALID_TYPENAME,
+	FKL_FFI_INVALID_MEM_MODE,
 }FklFfiErrorType;
 
 typedef struct FklDefTypesNode

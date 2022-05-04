@@ -847,6 +847,7 @@ static const char* FfiErrorType[]=
 {
 	"invalid-type-declare",
 	"invalid-type-name",
+	"invalid-mem-mode",
 };
 
 const char* fklFfiGetErrorType(FklFfiErrorType type)
@@ -864,6 +865,9 @@ char* fklFfiGenErrorMessage(FklFfiErrorType type)
 			break;
 		case FKL_FFI_INVALID_TYPENAME:
 			t=fklStrCat(t,"Invalid type name ");
+			break;
+		case FKL_FFI_INVALID_MEM_MODE:
+			t=fklStrCat(t,"Invalid mem mode ");
 			break;
 		default:
 			FKL_ASSERT(0,__func__);

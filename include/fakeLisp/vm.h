@@ -85,6 +85,7 @@ typedef struct FklVMudMethodTable
 	void (*_princ)(void*,FILE*);
 	void (*_prin1)(void*,FILE*);
 	void (*_finalizer)(void*);
+	void (*_eq)(void*,void*);
 }FklVMudMethodTable;
 
 typedef struct FklVMudata

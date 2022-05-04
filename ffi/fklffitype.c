@@ -73,7 +73,7 @@ void fklFfiInitNativeDefTypes(FklDefTypes* otherTypes)
 		{"uptr",sizeof(uintptr_t)},
 		{"vptr",sizeof(void*)},
 	};
-	size_t num=sizeof(nativeTypeList)/(sizeof(char*)+sizeof(size_t));
+	size_t num=sizeof(nativeTypeList)/sizeof(nativeTypeList[0]);
 	size_t i=0;
 	for(;i<num;i++)
 	{
@@ -183,6 +183,38 @@ FklTypeId_t fklFfiNewPtrType(FklTypeId_t type)
 		FKL_ASSERT(tmp,__func__);
 		tmp->ptype=type;
 		return addToGlobTypeUnionList((FklDefTypeUnion)FKL_MAKE_PTR_TYPE(tmp));
+	}
+	return id;
+}
+
+FklTypeId_t fklFfiNewFuncType(FklTypeId_t rtype,uint32_t anum,FklTypeId_t atypes[])
+{
+	FklTypeId_t id=0;
+	size_t i=0;
+	size_t typeNum=GlobTypeUnionList.num;
+	for(;i<typeNum;i++)
+	{
+		FklDefTypeUnion tmpType=GlobTypeUnionList.ul[i];
+		if(FKL_GET_TYPES_TAG(tmpType.all)==FKL_DEF_FUNC_TYPE_TAG)
+		{
+			FklDefFuncType* funcType=(FklDefTypeUnion){.ft=FKL_GET_TYPES_PTR(tmpType.all)}.ft;
+			if(funcType->rtype==rtype&&funcType->anum==anum&&!memcmp(funcType->atypes,atypes,sizeof(FklTypeId_t)*anum))
+			{
+				id=i+1;
+				break;
+			}
+		}
+	}
+	if(!id)
+	{
+		FklDefFuncType* tmp=(FklDefFuncType*)malloc(sizeof(FklDefFuncType)+sizeof(FklTypeId_t)*anum);
+		FKL_ASSERT(tmp,__func__);
+		tmp->rtype=rtype;
+		tmp->anum=anum;
+		uint32_t i=0;
+		for(;i<anum;i++)
+			tmp->atypes[i]=atypes[i];
+		return addToGlobTypeUnionList((FklDefTypeUnion)FKL_MAKE_FUNC_TYPE(tmp));
 	}
 	return id;
 }
@@ -753,57 +785,45 @@ static FklTypeId_t genUnionTypeId(FklVMvalue* unionBodyPair,FklDefTypes* otherTy
 
 static FklTypeId_t genFuncTypeId(FklVMvalue* functionBodyV,FklDefTypes* otherTypes)
 {
-	if(!FKL_IS_PAIR(functionBodyV))
-		return 0;
-	FklTypeId_t rtype=0;
-	FklVMvalue* argV=functionBodyV->u.pair->car;
-	if(!FKL_IS_PAIR(argV)||argV!=FKL_VM_NIL)
-		return 0;
-	FklVMvalue* rtypeV=FKL_IS_PAIR(functionBodyV->u.pair->cdr)?functionBodyV->u.pair->cdr->u.pair->car:NULL;
-	if(rtypeV)
+    if(!FKL_IS_PAIR(functionBodyV))
+        return 0;
+    FklTypeId_t rtype=0;
+    FklVMvalue* argV=functionBodyV->u.pair->car;
+    if(!FKL_IS_PAIR(argV)&&argV!=FKL_VM_NIL)
+        return 0;
+    FklVMvalue* rtypeV=FKL_IS_PAIR(functionBodyV->u.pair->cdr)?functionBodyV->u.pair->cdr->u.pair->car:NULL;
+    if(rtypeV)
 	{
 		FklTypeId_t tmp=fklFfiGenDefTypesUnion(rtypeV,otherTypes);
 		if(!tmp)
 			return 0;
-		FklDefTypeUnion tu=fklFfiGetTypeUnion(tmp);
-		if(FKL_GET_TYPES_TAG(tu.all)!=FKL_DEF_NATIVE_TYPE_TAG&&FKL_GET_TYPES_TAG(tu.all)!=FKL_DEF_PTR_TYPE_TAG&&FKL_GET_TYPES_TAG(tu.all)!=FKL_DEF_ARRAY_TYPE_TAG&&FKL_GET_TYPES_TAG(tu.all)!=FKL_DEF_FUNC_TYPE_TAG)
-			return 0;
 		rtype=tmp;
 	}
-	uint32_t i=0;
-	for(FklVMvalue* first=argV->u.pair->car;FKL_IS_PAIR(first);first=first->u.pair->cdr,i++);
-	FklTypeId_t* atypes=(FklTypeId_t*)malloc(sizeof(FklTypeId_t)*i);
-	FKL_ASSERT(atypes,__func__);
-	FklVMvalue* firArgV=argV;
-	for(i=0;FKL_IS_PAIR(firArgV);firArgV=firArgV->u.pair->cdr,i++)
-	{
-		FklVMvalue* argV=firArgV->u.pair->car;
-		FklTypeId_t tmp=fklFfiGenDefTypesUnion(argV,otherTypes);
-		if(!tmp)
-		{
-			free(atypes);
-			return 0;
-		}
-		FklDefTypeUnion tu=fklFfiGetTypeUnion(tmp);
-		if(FKL_GET_TYPES_TAG(tu.all)!=FKL_DEF_NATIVE_TYPE_TAG
-				&&FKL_GET_TYPES_TAG(tu.all)!=FKL_DEF_PTR_TYPE_TAG
-				&&FKL_GET_TYPES_TAG(tu.all)!=FKL_DEF_ARRAY_TYPE_TAG
-				&&FKL_GET_TYPES_TAG(tu.all)!=FKL_DEF_FUNC_TYPE_TAG)
-		{
-			free(atypes);
-			return 0;
-		}
+    uint32_t i=0;
+    for(FklVMvalue* first=argV->u.pair->car;FKL_IS_PAIR(first);first=first->u.pair->cdr,i++);
+    FklTypeId_t* atypes=(FklTypeId_t*)malloc(sizeof(FklTypeId_t)*i);
+    FKL_ASSERT(atypes,__func__);
+    FklVMvalue* firArgV=argV;
+    for(i=0;FKL_IS_PAIR(firArgV);firArgV=firArgV->u.pair->cdr,i++)
+    {
+        FklVMvalue* argV=firArgV->u.pair->car;
+        FklTypeId_t tmp=fklFfiGenDefTypesUnion(argV,otherTypes);
+        if(!tmp)
+        {
+            free(atypes);
+            return 0;
+        }
 		FklVMvalue* cdr=firArgV->u.pair->cdr;
-		if(!tmp||(!FKL_IS_PAIR(cdr)&&cdr!=FKL_VM_NIL))
-		{
-			free(atypes);
-			return 0;
-		}
-		atypes[i]=tmp;
-	}
-	FklTypeId_t retval=fklFfiNewFuncType(rtype,i,atypes);
-	free(atypes);
-	return retval;
+        if(!tmp||(!FKL_IS_PAIR(cdr)&&cdr!=FKL_VM_NIL))
+        {
+            free(atypes);
+            return 0;
+        }
+        atypes[i]=tmp;
+    }
+    FklTypeId_t retval=fklFfiNewFuncType(rtype,i,atypes);
+    free(atypes);
+    return retval;
 }
 
 /*------------------------*/
@@ -848,6 +868,8 @@ static const char* FfiErrorType[]=
 	"invalid-type-declare",
 	"invalid-type-name",
 	"invalid-mem-mode",
+	"invalid-selector",
+	"invalid-assign",
 };
 
 const char* fklFfiGetErrorType(FklFfiErrorType type)
@@ -868,6 +890,12 @@ char* fklFfiGenErrorMessage(FklFfiErrorType type)
 			break;
 		case FKL_FFI_INVALID_MEM_MODE:
 			t=fklStrCat(t,"Invalid mem mode ");
+			break;
+		case FKL_FFI_INVALID_SELECTOR:
+			t=fklStrCat(t,"Invalid selector ");
+			break;
+		case FKL_FFI_INVALID_ASSIGN:
+			t=fklStrCat(t,"Invalid assign ");
 			break;
 		default:
 			FKL_ASSERT(0,__func__);
@@ -936,7 +964,7 @@ int fklFfiIsNativeTypeId(FklTypeId_t type)
 	return type>0&&type<=LastNativeTypeId;
 }
 
-int fklFfiFfiIsArrayTypeId(FklTypeId_t type)
+int fklFfiIsArrayTypeId(FklTypeId_t type)
 {
 	FklDefTypeUnion tu=fklFfiGetTypeUnion(type);
 	return FKL_GET_TYPES_TAG(tu.all)==FKL_DEF_ARRAY_TYPE_TAG;
@@ -966,3 +994,7 @@ int fklFfiIsFunctionTypeId(FklTypeId_t type)
 	return FKL_GET_TYPES_TAG(tu.all)==FKL_DEF_FUNC_TYPE_TAG;
 }
 
+int fklFfiIsVptrTypeId(FklTypeId_t type)
+{
+	return type==LastNativeTypeId;
+}

@@ -144,7 +144,7 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 					case FKL_VECTOR:
 						tmp->u.vec=pValue;break;
 					case FKL_USERDATA:
-						tmp->u.p=pValue;break;
+						tmp->u.ud=pValue;break;
 					case FKL_ENV:
 						tmp->u.env=pValue;break;
 					default:
@@ -233,7 +233,7 @@ FklVMvalue* fklNewVMvalueToStack(FklValueType type
 					case FKL_VECTOR:
 						tmp->u.vec=pValue;break;
 					case FKL_USERDATA:
-						tmp->u.p=pValue;break;
+						tmp->u.ud=pValue;break;
 					case FKL_ENV:
 						tmp->u.env=pValue;break;
 					default:
@@ -313,7 +313,7 @@ FklVMvalue* fklNewSaveVMvalue(FklValueType type,void* pValue)
 					case FKL_VECTOR:
 						tmp->u.vec=pValue;break;
 					case FKL_USERDATA:
-						tmp->u.p=pValue;break;
+						tmp->u.ud=pValue;break;
 					case FKL_ENV:
 						tmp->u.env=pValue;break;
 					default:
@@ -407,7 +407,7 @@ FklVMvalue* fklNewVMvalueToStackWithoutLock(FklValueType type
 					case FKL_VECTOR:
 						tmp->u.vec=pValue;break;
 					case FKL_USERDATA:
-						tmp->u.p=pValue;break;
+						tmp->u.ud=pValue;break;
 					case FKL_ENV:
 						tmp->u.env=pValue;break;
 					default:
@@ -504,6 +504,12 @@ int fklVMvaluecmp(FklVMvalue* fir,FklVMvalue* sec)
 							fklPushPtrStack(root2->u.vec->base[i],s2);
 					}
 					break;
+				case FKL_USERDATA:
+					if(root1->u.ud->type!=root2->u.ud->type||!root1->u.ud->t->__equal)
+						r=0;
+					else
+						r=root1->u.ud->t->__equal(root1->u.ud->mem,root2->u.ud->mem);
+					break;
 				default:
 					r=(root1==root2);
 					break;
@@ -515,11 +521,6 @@ int fklVMvaluecmp(FklVMvalue* fir,FklVMvalue* sec)
 	fklFreePtrStack(s1);
 	fklFreePtrStack(s2);
 	return r;
-}
-
-int subfklVMvaluecmp(FklVMvalue* fir,FklVMvalue* sec)
-{
-	return fir==sec;
 }
 
 int fklNumcmp(FklVMvalue* fir,FklVMvalue* sec)
@@ -1051,6 +1052,11 @@ FklVMudata* fklNewVMudata(FklSid_t type,FklVMudMethodTable* t,void* mem)
 	r->t=t;
 	r->mem=mem;
 	return r;
+}
+
+int fklIsInvokableUd(FklVMvalue* v)
+{
+	return FKL_IS_USERDATA(v)&&v->u.ud->t->__invoke;
 }
 
 void fklFreeVMudata(FklVMudata* u)

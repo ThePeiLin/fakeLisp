@@ -30,6 +30,8 @@ typedef enum FklFfiErrorType
 	FKL_FFI_INVALID_TYPEDECLARE=0,
 	FKL_FFI_INVALID_TYPENAME,
 	FKL_FFI_INVALID_MEM_MODE,
+	FKL_FFI_INVALID_SELECTOR,
+	FKL_FFI_INVALID_ASSIGN,
 }FklFfiErrorType;
 
 typedef struct FklDefTypesNode
@@ -131,6 +133,7 @@ int fklFfiIsPtrTypeId(FklTypeId_t);
 int fklFfiIsStructTypeId(FklTypeId_t);
 int fklFfiIsUnionTypeId(FklTypeId_t);
 int fklFfiIsFunctionTypeId(FklTypeId_t);
+int fklFfiIsVptrTypeId(FklTypeId_t);
 
 FklTypeId_t fklFfiNewNativeType(FklSid_t,size_t,size_t);
 void fklFfiFreeNativeType(FklDefNativeType*);

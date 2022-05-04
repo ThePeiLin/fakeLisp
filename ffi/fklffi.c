@@ -62,6 +62,25 @@ static void fklFfiFreeAllSharedObj(void)
 void FKL_ffi_mem_p(ARGL) PREDICATE(fklFfiIsMem(val),"ffi.mem?")
 
 #undef PREDICATE
+
+void FKL_ffi_null_p(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* val=fklNiGetArg(&ap,stack);
+	if(!val)
+		FKL_RAISE_BUILTIN_ERROR("ffi.null?",FKL_TOOFEWARG,runnable,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR("ffi.null?",FKL_TOOMANYARG,runnable,exe);
+	if(!fklFfiIsMem(val))
+		FKL_RAISE_BUILTIN_ERROR("ffi.null?",FKL_TOOFEWARG,runnable,exe);
+	if(fklFfiIsNull(val->u.ud->mem))
+		fklNiReturn(FKL_VM_TRUE,&ap,stack);
+	else
+		fklNiReturn(FKL_VM_NIL,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 void FKL_ffi_new(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -112,12 +131,20 @@ void FKL_ffi_sizeof(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("ffi.sizeof",FKL_TOOFEWARG,exe->rhead,exe);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR("ffi.sizeof",FKL_TOOMANYARG,exe->rhead,exe);
-	if(!FKL_IS_SYM(typedeclare)&&!FKL_IS_PAIR(typedeclare))
+	if(!FKL_IS_SYM(typedeclare)&&!FKL_IS_PAIR(typedeclare)&&!fklFfiIsMem(typedeclare))
 		FKL_RAISE_BUILTIN_ERROR("ffi.sizeof",FKL_WRONGARG,exe->rhead,exe);
-	FklTypeId_t id=fklFfiGenTypeId(typedeclare);
-	if(!id)
-		FKL_FFI_RAISE_ERROR("ffi.sizeof",FKL_FFI_INVALID_TYPEDECLARE,exe);
-	fklNiReturn(fklMakeVMint(fklFfiGetTypeSizeWithTypeId(id),stack,exe->heap),&ap,stack);
+	if(fklFfiIsMem(typedeclare))
+	{
+		FklFfiMem* m=typedeclare->u.ud->mem;
+		fklNiReturn(fklMakeVMint(fklFfiGetTypeSizeWithTypeId(m->type),stack,exe->heap),&ap,stack);
+	}
+	else
+	{
+		FklTypeId_t id=fklFfiGenTypeId(typedeclare);
+		if(!id)
+			FKL_FFI_RAISE_ERROR("ffi.sizeof",FKL_FFI_INVALID_TYPEDECLARE,exe);
+		fklNiReturn(fklMakeVMint(fklFfiGetTypeSizeWithTypeId(id),stack,exe->heap),&ap,stack);
+	}
 	fklNiEnd(&ap,stack);
 }
 
@@ -139,10 +166,6 @@ void FKL_ffi_typedef(ARGL)
 		FKL_FFI_RAISE_ERROR("ffi.typedef",FKL_FFI_INVALID_TYPEDECLARE,exe);
 	fklNiReturn(typename,&ap,stack);
 	fklNiEnd(&ap,stack);
-}
-
-void FKL_ffi_call(ARGL)
-{
 }
 
 void FKL_ffi_load(ARGL)
@@ -170,10 +193,45 @@ void FKL_ffi_load(ARGL)
 
 void FKL_ffi_ref(ARGL)
 {
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* r=exe->rhead;
+	FklVMvalue* mem=fklNiGetArg(&ap,stack);
+	FklVMvalue* selector=fklNiGetArg(&ap,stack);
+	FklVMvalue* index=fklNiGetArg(&ap,stack);
+	if(!mem)
+		FKL_RAISE_BUILTIN_ERROR("ffi.ref",FKL_TOOFEWARG,r,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR("ffi.ref",FKL_TOOMANYARG,r,exe);
+	if(!fklFfiIsMem(mem)||(selector&&!FKL_IS_SYM(selector)&&selector!=FKL_VM_NIL)||(index&&!fklIsInt(index)))
+		FKL_RAISE_BUILTIN_ERROR("ffi.ref",FKL_WRONGARG,r,exe);
+	FklVMudata* ref=fklFfiNewMemRefUd(mem->u.ud->mem,selector,index);
+	if(!ref)
+		FKL_FFI_RAISE_ERROR("ffi.ref",FKL_FFI_INVALID_SELECTOR,exe);
+	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA
+				,ref
+				,stack
+				,exe->heap)
+			,&ap
+			,stack);
+	fklNiEnd(&ap,stack);
 }
 
 void FKL_ffi_set(ARGL)
 {
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* r=exe->rhead;
+	FklVMvalue* ref=fklNiGetArg(&ap,stack);
+	FklVMvalue* mem=fklNiGetArg(&ap,stack);
+	if(!mem||!ref)
+		FKL_RAISE_BUILTIN_ERROR("ffi.set",FKL_TOOFEWARG,r,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR("ffi.set",FKL_TOOMANYARG,r,exe);
+	if(!fklFfiIsMem(ref)||(!fklFfiIsMem(mem)&&mem!=FKL_VM_NIL&&!fklIsInt(mem)))
+		FKL_RAISE_BUILTIN_ERROR("ffi.set",FKL_WRONGARG,r,exe);
+	if(fklFfiSetMem(ref->u.ud->mem,mem))
+		FKL_FFI_RAISE_ERROR("ffi.set",FKL_FFI_INVALID_ASSIGN,exe);
+	fklNiReturn(mem,&ap,stack);
+	fklNiEnd(&ap,stack);
 }
 
 void _fklInit(FklSymbolTable* glob)

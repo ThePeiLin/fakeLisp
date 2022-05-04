@@ -928,7 +928,7 @@ void B_invoke(FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
 	FklVMvalue* tmpValue=fklNiGetArg(&ap,stack);
-	if(!FKL_IS_PTR(tmpValue)||(tmpValue->type!=FKL_PROC&&tmpValue->type!=FKL_CONT&&tmpValue->type!=FKL_DLPROC))
+	if(!FKL_IS_PROC(tmpValue)&&!FKL_IS_DLPROC(tmpValue)&&!FKL_IS_CONT(tmpValue)&&!fklIsInvokableUd(tmpValue))
 		FKL_RAISE_BUILTIN_ERROR("b.invoke",FKL_INVOKEERROR,runnable,exe);
 	runnable->cp+=sizeof(char);
 	switch(tmpValue->type)
@@ -944,6 +944,10 @@ void B_invoke(FklVM* exe)
 		case FKL_DLPROC:
 			fklNiEnd(&ap,stack);
 			invokeDlProc(exe,tmpValue->u.dlproc);
+			break;
+		case FKL_USERDATA:
+			fklNiEnd(&ap,stack);
+			tmpValue->u.ud->t->__invoke(exe,tmpValue->u.ud->mem);
 			break;
 		default:
 			break;
@@ -1471,9 +1475,9 @@ void fklFreeVMvalue(FklVMvalue* cur)
 			fklFreeVMvec(cur->u.vec);
 			break;
 		case FKL_USERDATA:
-			if(cur->u.p->t->_finalizer)
-				cur->u.p->t->_finalizer(cur->u.p->mem);
-			fklFreeVMudata(cur->u.p);
+			if(cur->u.ud->t->__finalizer)
+				cur->u.ud->t->__finalizer(cur->u.ud->mem);
+			fklFreeVMudata(cur->u.ud);
 			break;
 		case FKL_F64:
 		case FKL_I64:

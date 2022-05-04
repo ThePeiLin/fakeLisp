@@ -297,7 +297,7 @@ char* fklGenErrorMessage(FklErrorType type,FklVMrunnable* r,FklVM* exe)
 			t=fklStrCat(t," is undefined ");
 			break;
 		case FKL_INVOKEERROR:
-			t=fklStrCat(t,"Try to invoke an object that isn't procedure,continuation or native procedure ");
+			t=fklStrCat(t,"Try to invoke an object that can't be invoke ");
 			break;
 		case FKL_LOADDLLFAILD:
 			t=fklStrCat(t,"Faild to load dll \"");
@@ -505,10 +505,10 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 						fprintf(fp,"%s",v->u.err->message);
 						break;
 					case FKL_USERDATA:
-						if(v->u.p->t->_princ)
-							v->u.p->t->_princ(v->u.p->mem,fp);
+						if(v->u.ud->t->__princ)
+							v->u.ud->t->__princ(fp,v->u.ud->mem);
 						else
-							fprintf(fp,"#<%s:%p>",fklGetGlobSymbolWithId(v->u.p->type)->symbol,v->u.p);
+							fprintf(fp,"#<%s:%p>",fklGetGlobSymbolWithId(v->u.ud->type)->symbol,v->u.ud);
 						break;
 					default:
 						fputs("#<unknown>",fp);
@@ -587,10 +587,10 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 							,v->u.err->message);
 					break;
 				case FKL_USERDATA:
-					if(v->u.p->t->_prin1)
-						v->u.p->t->_prin1(v->u.p->mem,fp);
+					if(v->u.ud->t->__prin1)
+						v->u.ud->t->__prin1(fp,v->u.ud->mem);
 					else
-						fprintf(fp,"#<%s:%p>",fklGetGlobSymbolWithId(v->u.p->type)->symbol,v->u.p);
+						fprintf(fp,"#<%s:%p>",fklGetGlobSymbolWithId(v->u.ud->type)->symbol,v->u.ud);
 					break;
 				default:
 					fputs("#<unknown>",fp);

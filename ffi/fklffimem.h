@@ -9,6 +9,10 @@ typedef struct FklFfiMem
 
 void fklFfiMemInit(void);
 FklFfiMem* fklFfiNewMem(FklTypeId_t type,size_t);
+FklFfiMem* fklFfiNewRef(FklTypeId_t type,void* ref);
 FklVMudata* fklFfiNewMemUd(FklTypeId_t type,size_t size,FklVMvalue* atomic);
+FklVMudata* fklFfiNewMemRefUd(FklFfiMem* m,FklVMvalue* selector,FklVMvalue* index);
 int fklFfiIsMem(FklVMvalue*);
+int fklFfiSetMem(FklFfiMem*,FklVMvalue*);
+int fklFfiIsNull(FklFfiMem*);
 #endif

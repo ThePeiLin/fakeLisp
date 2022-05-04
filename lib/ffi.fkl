@@ -2,21 +2,21 @@
   ffi
   (export
     ffi-mem?
+    ffi-null?
     ffi-new
     ffi-delete
     ffi-sizeof
     ffi-typedef
-    ffi-call
     ffi-load
     ffi-ref
     ffi-set)
   (define ffi (dlopen (append (getdir) "/../fklffi")))
   (define ffi-mem? (dlsym ffi "ffi_mem_p"))
+  (define ffi-null? (dlsym ffi "ffi_null_p"))
   (define ffi-new (dlsym ffi "ffi_new"))
   (define ffi-delete (dlsym ffi "ffi_delete"))
   (define ffi-sizeof (dlsym ffi "ffi_sizeof"))
   (define ffi-typedef (dlsym ffi "ffi_typedef"))
-  (define ffi-call (dlsym ffi "ffi_call"))
   (define ffi-load (dlsym ffi "ffi_load"))
   (define ffi-ref (dlsym ffi "ffi_ref"))
   (define ffi-set (dlsym ffi "ffi_set")))

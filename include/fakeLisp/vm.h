@@ -80,18 +80,10 @@ typedef struct FklVMvec
 	struct FklVMvalue* base[];
 }FklVMvec;
 
-typedef struct FklVMudMethodTable
-{
-	void (*_princ)(void*,FILE*);
-	void (*_prin1)(void*,FILE*);
-	void (*_finalizer)(void*);
-	void (*_eq)(void*,void*);
-}FklVMudMethodTable;
-
 typedef struct FklVMudata
 {
 	FklSid_t type;
-	FklVMudMethodTable* t;
+	struct FklVMudMethodTable* t;
 	void* mem;
 }FklVMudata;
 typedef enum{
@@ -119,7 +111,7 @@ typedef struct FklVMvalue
 		struct FklVMenv* env;
 		struct FklVMchanl* chan;
 		struct FklVMerror* err;
-		FklVMudata* p;
+		FklVMudata* ud;
 	}u;
 	struct FklVMvalue* next;
 }FklVMvalue;
@@ -186,6 +178,15 @@ typedef struct FklVM
 	void (*callback)(void*);
 	jmp_buf buf;
 }FklVM;
+
+typedef struct FklVMudMethodTable
+{
+	void (*__princ)(FILE*,void*);
+	void (*__prin1)(FILE*,void*);
+	void (*__finalizer)(void*);
+	int  (*__equal)(void*,void*);
+	void (*__invoke)(FklVM*,void*);
+}FklVMudMethodTable;
 
 typedef enum
 {
@@ -409,6 +410,7 @@ void fklFreeVMvec(FklVMvec*);
 void fklVMvecCat(FklVMvec**,const FklVMvec*);
 
 FklVMudata* fklNewVMudata(FklSid_t type,FklVMudMethodTable* t,void* mem);
+int fklIsInvokableUd(FklVMvalue*);
 void fklFreeVMudata(FklVMudata*);
 
 void fklInitVMargs(int argc,char** argv);

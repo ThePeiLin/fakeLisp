@@ -17,20 +17,29 @@ static void _mem_atomic_finalizer(void* p)
 	free(p);
 }
 
+static void _mem_princ(void* p,FILE* fp)
+{
+	FklFfiMem* m=p;
+	if(fklFfiIsPtrTypeId(m->type))
+		fprintf(fp,"%p",*((void**)(m->mem)));
+}
+
 static FklVMudMethodTable FfiMemMethodTable=
 {
-	._princ=NULL,
-	._prin1=NULL,
-	._finalizer=_mem_finalizer,
-	._eq=NULL,
+	.__princ=_mem_princ,
+	.__prin1=_mem_princ,
+	.__finalizer=_mem_finalizer,
+	.__eq=NULL,
+	.__invoke=NULL,
 };
 
 static FklVMudMethodTable FfiAtomicMemMethodTable=
 {
-	._princ=NULL,
-	._prin1=NULL,
-	._finalizer=_mem_atomic_finalizer,
-	._eq=NULL,
+	.__princ=_mem_princ,
+	.__prin1=_mem_princ,
+	.__finalizer=_mem_atomic_finalizer,
+	.__eq=NULL,
+	.__invoke=NULL,
 };
 
 void fklFfiMemInit(void)
@@ -45,7 +54,7 @@ FklFfiMem* fklFfiNewMem(FklTypeId_t type,size_t size)
 	FklFfiMem* r=(FklFfiMem*)malloc(sizeof(FklFfiMem));
 	FKL_ASSERT(r,__func__);
 	r->type=type;
-	void* p=malloc(size);
+	void* p=calloc(sizeof(uint8_t),size);
 	FKL_ASSERT(p,__func__);
 	r->mem=p;
 	return r;
@@ -53,9 +62,9 @@ FklFfiMem* fklFfiNewMem(FklTypeId_t type,size_t size)
 
 FklVMudata* fklFfiNewMemUd(FklTypeId_t type,size_t size,FklVMvalue* atomic)
 {
-	if(FKL_GET_SYM(atomic)==FfiAtomicSid)
+	if(atomic==NULL||FKL_GET_SYM(atomic)==FfiAtomicSid)
 		return fklNewVMudata(FfiMemUdSid,&FfiAtomicMemMethodTable,fklFfiNewMem(type,size));
-	else if(atomic==NULL||FKL_GET_SYM(atomic)==FfiRawSid)
+	else if(FKL_GET_SYM(atomic)==FfiRawSid)
 		return fklNewVMudata(FfiMemUdSid,&FfiMemMethodTable,fklFfiNewMem(type,size));
 	else
 		return NULL;
@@ -63,5 +72,5 @@ FklVMudata* fklFfiNewMemUd(FklTypeId_t type,size_t size,FklVMvalue* atomic)
 
 int fklFfiIsMem(FklVMvalue* p)
 {
-	return FKL_IS_USERDATA(p)&&p->u.p->type==FfiMemUdSid;
+	return FKL_IS_USERDATA(p)&&p->u.ud->type==FfiMemUdSid;
 }

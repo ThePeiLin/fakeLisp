@@ -44,6 +44,24 @@ static void fklFfiFreeAllSharedObj(void)
 	}
 }
 
+#define PREDICATE(condtion,err_infor) {\
+	FKL_NI_BEGIN(exe);\
+	FklVMrunnable* runnable=exe->rhead;\
+	FklVMvalue* val=fklNiGetArg(&ap,stack);\
+	if(fklNiResBp(&ap,stack))\
+		FKL_RAISE_BUILTIN_ERROR(err_infor,FKL_TOOFEWARG,runnable,exe);\
+	if(!val)\
+		FKL_RAISE_BUILTIN_ERROR(err_infor,FKL_TOOFEWARG,runnable,exe);\
+	if(condtion)\
+		fklNiReturn(FKL_VM_TRUE,&ap,stack);\
+	else\
+		fklNiReturn(FKL_VM_NIL,&ap,stack);\
+	fklNiEnd(&ap,stack);\
+}
+
+void FKL_ffi_mem_p(ARGL) PREDICATE(fklFfiIsMem(val),"ffi.mem?")
+
+#undef PREDICATE
 void FKL_ffi_new(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -79,7 +97,7 @@ void FKL_ffi_delete(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("ffi.delete",FKL_TOOMANYARG,exe->rhead,exe);
 	if(!fklFfiIsMem(mem))
 		FKL_RAISE_BUILTIN_ERROR("ffi.delete",FKL_WRONGARG,exe->rhead,exe);
-	FklFfiMem* m=mem->u.p->mem;
+	FklFfiMem* m=mem->u.ud->mem;
 	free(m->mem);
 	m->mem=NULL;
 	fklNiReturn(FKL_VM_NIL,&ap,stack);

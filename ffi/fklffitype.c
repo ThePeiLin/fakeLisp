@@ -930,3 +930,39 @@ FklTypeId_t fklFfiGenTypeId(FklVMvalue* obj)
 {
 	return fklFfiGenDefTypesUnion(obj,GlobDefTypes);
 }
+
+int fklFfiIsNativeTypeId(FklTypeId_t type)
+{
+	return type>0&&type<=LastNativeTypeId;
+}
+
+int fklFfiFfiIsArrayTypeId(FklTypeId_t type)
+{
+	FklDefTypeUnion tu=fklFfiGetTypeUnion(type);
+	return FKL_GET_TYPES_TAG(tu.all)==FKL_DEF_ARRAY_TYPE_TAG;
+}
+
+int fklFfiIsPtrTypeId(FklTypeId_t type)
+{
+	FklDefTypeUnion tu=fklFfiGetTypeUnion(type);
+	return FKL_GET_TYPES_TAG(tu.all)==FKL_DEF_PTR_TYPE_TAG;
+}
+
+int fklFfiIsStructTypeId(FklTypeId_t type)
+{
+	FklDefTypeUnion tu=fklFfiGetTypeUnion(type);
+	return FKL_GET_TYPES_TAG(tu.all)==FKL_DEF_STRUCT_TYPE_TAG;
+}
+
+int fklFfiIsUnionTypeId(FklTypeId_t type)
+{
+	FklDefTypeUnion tu=fklFfiGetTypeUnion(type);
+	return FKL_GET_TYPES_TAG(tu.all)==FKL_DEF_UNION_TYPE_TAG;
+}
+
+int fklFfiIsFunctionTypeId(FklTypeId_t type)
+{
+	FklDefTypeUnion tu=fklFfiGetTypeUnion(type);
+	return FKL_GET_TYPES_TAG(tu.all)==FKL_DEF_FUNC_TYPE_TAG;
+}
+

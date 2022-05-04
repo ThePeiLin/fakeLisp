@@ -1,6 +1,7 @@
 (library
   ffi
   (export
+    ffi-mem?
     ffi-new
     ffi-delete
     ffi-sizeof
@@ -10,6 +11,7 @@
     ffi-ref
     ffi-set)
   (define ffi (dlopen (append (getdir) "/../fklffi")))
+  (define ffi-mem? (dlsym ffi "ffi_mem_p"))
   (define ffi-new (dlsym ffi "ffi_new"))
   (define ffi-delete (dlsym ffi "ffi_delete"))
   (define ffi-sizeof (dlsym ffi "ffi_sizeof"))

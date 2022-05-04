@@ -1471,7 +1471,9 @@ void fklFreeVMvalue(FklVMvalue* cur)
 			fklFreeVMvec(cur->u.vec);
 			break;
 		case FKL_USERDATA:
-			free(cur->u.p);
+			if(cur->u.p->t->_finalizer)
+				cur->u.p->t->_finalizer(cur->u.p->mem);
+			fklFreeVMudata(cur->u.p);
 			break;
 		case FKL_F64:
 		case FKL_I64:

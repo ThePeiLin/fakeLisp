@@ -80,11 +80,25 @@ typedef struct FklVMvec
 	struct FklVMvalue* base[];
 }FklVMvec;
 
+typedef struct FklVMudMethodTable
+{
+	void (*_princ)(void*,FILE*);
+	void (*_prin1)(void*,FILE*);
+	void (*_finalizer)(void*);
+}FklVMudMethodTable;
+
+typedef struct FklVMudata
+{
+	FklSid_t type;
+	FklVMudMethodTable* t;
+	void* mem;
+}FklVMudata;
 typedef enum{
 	FKL_MARK_W=0,
 	FKL_MARK_G,
 	FKL_MARK_B,
 }FklVMvalueMark;
+
 typedef struct FklVMvalue
 {
 	FklVMvalueMark mark;
@@ -104,7 +118,7 @@ typedef struct FklVMvalue
 		struct FklVMenv* env;
 		struct FklVMchanl* chan;
 		struct FklVMerror* err;
-		void* p;
+		FklVMudata* p;
 	}u;
 	struct FklVMvalue* next;
 }FklVMvalue;
@@ -392,6 +406,9 @@ FklVMvalue* fklGetVMstderr(void);
 FklVMvec* fklNewVMvec(size_t size,FklVMvalue** base);
 void fklFreeVMvec(FklVMvec*);
 void fklVMvecCat(FklVMvec**,const FklVMvec*);
+
+FklVMudata* fklNewVMudata(FklSid_t type,FklVMudMethodTable* t,void* mem);
+void fklFreeVMudata(FklVMudata*);
 
 void fklInitVMargs(int argc,char** argv);
 int fklGetVMargc(void);

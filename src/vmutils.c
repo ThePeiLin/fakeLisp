@@ -505,7 +505,10 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 						fprintf(fp,"%s",v->u.err->message);
 						break;
 					case FKL_USERDATA:
-						fprintf(fp,"#<userdata:%p>",v->u.p);
+						if(v->u.p->t->_princ)
+							v->u.p->t->_princ(v->u.p->mem,fp);
+						else
+							fprintf(fp,"#<%s:%p>",fklGetGlobSymbolWithId(v->u.p->type)->symbol,v->u.p);
 						break;
 					default:
 						fputs("#<unknown>",fp);
@@ -584,7 +587,10 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 							,v->u.err->message);
 					break;
 				case FKL_USERDATA:
-					fprintf(fp,"#<userdata:%p>",v->u.p);
+					if(v->u.p->t->_prin1)
+						v->u.p->t->_prin1(v->u.p->mem,fp);
+					else
+						fprintf(fp,"#<%s:%p>",fklGetGlobSymbolWithId(v->u.p->type)->symbol,v->u.p);
 					break;
 				default:
 					fputs("#<unknown>",fp);

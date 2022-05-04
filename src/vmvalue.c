@@ -1042,3 +1042,18 @@ void fklVMvecCat(FklVMvec** fir,const FklVMvec* sec)
 	for(size_t i=0;i<secSize;i++)
 		(*fir)->base[firSize+i]=sec->base[i];
 }
+
+FklVMudata* fklNewVMudata(FklSid_t type,FklVMudMethodTable* t,void* mem)
+{
+	FklVMudata* r=(FklVMudata*)malloc(sizeof(FklVMudata));
+	FKL_ASSERT(r,__func__);
+	r->type=type;
+	r->t=t;
+	r->mem=mem;
+	return r;
+}
+
+void fklFreeVMudata(FklVMudata* u)
+{
+	free(u);
+}

@@ -1,6 +1,7 @@
 #include<fakeLisp/utils.h>
 #include<fakeLisp/fklni.h>
 #include"fklffitype.h"
+#include"fklffimem.h"
 #define ARGL FklVM* exe,pthread_rwlock_t* gclock
 
 static pthread_rwlock_t GlobSharedObjsLock=PTHREAD_RWLOCK_INITIALIZER;
@@ -43,12 +44,6 @@ static void fklFfiFreeAllSharedObj(void)
 	}
 }
 
-typedef struct FklFfiMem
-{
-	FklTypeId_t typeid;
-	uint8_t mem[];
-}FklFfiMem;
-
 void FKL_ffi_new(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -63,10 +58,9 @@ void FKL_ffi_new(ARGL)
 	if(!id)
 		FKL_FFI_RAISE_ERROR("ffi.new",FKL_FFI_INVALID_TYPEDECLARE,exe);
 	size_t size=fklFfiGetTypeSizeWithTypeId(id);
-	FklFfiMem* p=(FklFfiMem*)malloc(sizeof(FklFfiMem)+size);
+	void* p=malloc(size);
 	FKL_ASSERT(p,__func__);
-	p->typeid=id;
-	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA,p,stack,exe->heap),&ap,stack);
+	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA,fklFfiNewMemUd(id,p),stack,exe->heap),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -78,10 +72,11 @@ void FKL_ffi_delete(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("ffi.delete",FKL_TOOFEWARG,exe->rhead,exe);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR("ffi.delete",FKL_TOOMANYARG,exe->rhead,exe);
-	if(!FKL_IS_USERDATA(mem))
+	if(!fklFfiIsMem(mem))
 		FKL_RAISE_BUILTIN_ERROR("ffi.delete",FKL_WRONGARG,exe->rhead,exe);
-	free(mem->u.p);
-	mem->u.p=NULL;
+	FklFfiMem* m=mem->u.p->mem;
+	free(m->mem);
+	m->mem=NULL;
 	fklNiReturn(FKL_VM_NIL,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -161,6 +156,7 @@ void FKL_ffi_set(ARGL)
 void _fklInit(FklSymbolTable* glob)
 {
 	fklSetGlobSymbolTable(glob);
+	fklFfiMemInit();
 	fklFfiInitGlobNativeTypes();
 	fklFfiInitTypedefSymbol();
 }

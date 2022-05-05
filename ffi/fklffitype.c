@@ -18,6 +18,7 @@ static FklSid_t PtrTypedefSymbolId=0;
 static FklSid_t StructTypedefSymbolId=0;
 static FklSid_t UnionTypedefSymbolId=0;
 static FklSid_t FunctionTypedefSymbolId=0;
+static FklSid_t VoidSymbolId=0;
 
 struct GlobTypeUnionListStruct
 {
@@ -430,6 +431,7 @@ void fklFfiInitTypedefSymbol(void)
 	StructTypedefSymbolId=fklAddSymbolToGlob("struct")->id;
 	UnionTypedefSymbolId=fklAddSymbolToGlob("union")->id;
 	FunctionTypedefSymbolId=fklAddSymbolToGlob("function")->id;
+	VoidSymbolId=fklAddSymbolToGlob("void")->id;
 }
 
 /*genTypeId functions list*/
@@ -802,12 +804,17 @@ static FklTypeId_t genFuncTypeId(FklVMvalue* functionBodyV,FklDefTypes* otherTyp
 			||(FKL_IS_PAIR(functionBodyV->u.pair->cdr)
 				&&functionBodyV->u.pair->cdr->u.pair->cdr!=FKL_VM_NIL))
 		return 0;
-    if(rtypeV)
+    if(rtypeV&&rtypeV!=FKL_VM_NIL)
 	{
-		FklTypeId_t tmp=fklFfiGenDefTypesUnion(rtypeV,otherTypes);
-		if(!tmp)
-			return 0;
-		rtype=tmp;
+		if(FKL_IS_SYM(rtypeV)&&FKL_GET_SYM(rtypeV)==VoidSymbolId)
+			rtype=0;
+		else
+		{
+			FklTypeId_t tmp=fklFfiGenDefTypesUnion(rtypeV,otherTypes);
+			if(!tmp)
+				return 0;
+			rtype=tmp;
+		}
 	}
     uint32_t i=0;
 	for(FklVMvalue* first=argV;FKL_IS_PAIR(first);first=first->u.pair->cdr)i++;

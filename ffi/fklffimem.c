@@ -319,22 +319,22 @@ FklVMudata* fklFfiCastVMvalueIntoMem(FklVMvalue* v)
 	FklVMudata* r=NULL;
 	if(FKL_IS_I32(v))
 	{
-		m=fklFfiNewMem(fklFfiGetI32TypeId(),sizeof(int32_t));
+		m=fklFfiNewMem(fklFfiGetI32TypeId(),sizeof(void*));
 		*(int32_t*)m->mem=FKL_GET_I32(v);
 	}
 	else if(FKL_IS_I64(v))
 	{
-		m=fklFfiNewMem(fklFfiGetI64TypeId(),sizeof(int64_t));
+		m=fklFfiNewMem(fklFfiGetI64TypeId(),sizeof(void*));
 		*(int64_t*)m->mem=v->u.i64;
 	}
 	else if(FKL_IS_F64(v))
 	{
-		m=fklFfiNewMem(fklFfiGetF64TypeId(),sizeof(double));
+		m=fklFfiNewMem(fklFfiGetF64TypeId(),sizeof(void*));
 		*(double*)m->mem=v->u.f64;
 	}
 	else if(FKL_IS_CHR(v))
 	{
-		m=fklFfiNewMem(fklFfiGetCharTypeId(),sizeof(char));
+		m=fklFfiNewMem(fklFfiGetCharTypeId(),sizeof(void*));
 		*(char*)m->mem=FKL_GET_CHR(v);
 	}
 	else if(FKL_IS_STR(v))
@@ -343,7 +343,7 @@ FklVMudata* fklFfiCastVMvalueIntoMem(FklVMvalue* v)
 		m=fklFfiNewRef(fklFfiGetStringTypeId(),fklCopyStr(fklGetGlobSymbolWithId(FKL_GET_SYM(v))->symbol));
 	else if(FKL_IS_FP(v))
 	{
-		m=fklFfiNewMem(fklFfiGetFILEpTypeId(),sizeof(FILE*));
+		m=fklFfiNewMem(fklFfiGetFILEpTypeId(),sizeof(void*));
 		*(FILE**)m->mem=v->u.fp->fp;
 	}
 	else if(v==FKL_VM_NIL)

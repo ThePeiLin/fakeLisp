@@ -2,7 +2,7 @@
 #include<fakeLisp/utils.h>
 #include<string.h>
 
-static FklSid_t FfiMemUdSid=0;
+FklSid_t FfiMemUdSid=0;
 static FklSid_t FfiAtomicSid=0;
 static FklSid_t FfiRawSid=0;
 static FklSid_t FfiRefSid=0;
@@ -354,4 +354,9 @@ FklVMudata* fklFfiCastVMvalueIntoMem(FklVMvalue* v)
 	}
 	r=fklNewVMudata(FfiMemUdSid,&FfiAtomicMemMethodTable,m);
 	return r;
+}
+
+FklSid_t fklFfiGetFfiMemUdSid(void)
+{
+	return FfiMemUdSid;
 }

@@ -811,7 +811,10 @@ static FklTypeId_t genFuncTypeId(FklVMvalue* functionBodyV,FklDefTypes* otherTyp
 	}
     uint32_t i=0;
 	if(FKL_IS_PAIR(argV))
+	{
+		i++;
 		for(FklVMvalue* first=argV->u.pair->car;FKL_IS_PAIR(first);first=first->u.pair->cdr,i++);
+	}
     FklTypeId_t* atypes=(FklTypeId_t*)malloc(sizeof(FklTypeId_t)*i);
     FKL_ASSERT(atypes,__func__);
     FklVMvalue* firArgV=argV;

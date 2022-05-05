@@ -8,6 +8,7 @@ typedef struct FklFfiMem
 }FklFfiMem;
 
 void fklFfiMemInit(void);
+FklSid_t fklFfiGetFfiMemUdSid(void);
 FklFfiMem* fklFfiNewMem(FklTypeId_t type,size_t);
 FklFfiMem* fklFfiNewRef(FklTypeId_t type,void* ref);
 FklVMudata* fklFfiNewMemUd(FklTypeId_t type,size_t size,FklVMvalue* atomic);

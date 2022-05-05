@@ -2,47 +2,8 @@
 #include<fakeLisp/fklni.h>
 #include"fklffitype.h"
 #include"fklffimem.h"
+#include"fklffidll.h"
 #define ARGL FklVM* exe,pthread_rwlock_t* gclock
-
-static pthread_rwlock_t GlobSharedObjsLock=PTHREAD_RWLOCK_INITIALIZER;
-
-typedef struct FklSharedObjNode
-{
-	FklVMdllHandle dll;
-	struct FklSharedObjNode* next;
-}FklSharedObjNode;
-
-static FklSharedObjNode* GlobSharedObjs=NULL;
-
-static void fklFfiAddSharedObj(FklVMdllHandle handle)
-{
-	FklSharedObjNode* node=(FklSharedObjNode*)malloc(sizeof(FklSharedObjNode));
-	FKL_ASSERT(node,__func__);
-	node->dll=handle;
-	pthread_rwlock_wrlock(&GlobSharedObjsLock);
-	node->next=GlobSharedObjs;
-	GlobSharedObjs=node;
-	pthread_rwlock_unlock(&GlobSharedObjsLock);
-}
-
-static void fklFfiFreeAllSharedObj(void)
-{
-	FklSharedObjNode* head=GlobSharedObjs;
-	pthread_rwlock_wrlock(&GlobSharedObjsLock);
-	GlobSharedObjs=NULL;
-	pthread_rwlock_unlock(&GlobSharedObjsLock);
-	while(head)
-	{
-		FklSharedObjNode* prev=head;
-		head=head->next;
-#ifdef _WIN32
-		FreeLibrary(prev->dll);
-#else
-		dlclose(prev->dll);
-#endif
-		free(prev);
-	}
-}
 
 #define PREDICATE(condtion,err_infor) {\
 	FKL_NI_BEGIN(exe);\
@@ -249,8 +210,30 @@ void FKL_ffi_mem(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_ffi_sym(ARGL)
+void FKL_ffi_proc(ARGL)
 {
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* r=exe->rhead;
+	FklVMvalue* val=fklNiGetArg(&ap,stack);
+	FklVMvalue* typedeclare=fklNiGetArg(&ap,stack);
+	if(!val||!typedeclare)
+		FKL_RAISE_BUILTIN_ERROR("ffi.proc",FKL_TOOFEWARG,r,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR("ffi.proc",FKL_TOOMANYARG,r,exe);
+	if((!FKL_IS_SYM(typedeclare)
+				&&!FKL_IS_PAIR(typedeclare))
+			||(val
+				&&!FKL_IS_STR(val)))
+		FKL_RAISE_BUILTIN_ERROR("ffi.proc",FKL_WRONGARG,exe->rhead,exe);
+
+	FklTypeId_t id=fklFfiGenTypeId(typedeclare);
+	if(!id||!fklFfiIsFunctionTypeId(id))
+		FKL_FFI_RAISE_ERROR("ffi.proc",FKL_FFI_INVALID_TYPEDECLARE,exe);
+	char* cStr=fklCharBufToStr(val->u.str->str,val->u.str->size);
+	FklVMudata* func=fklFfiNewProcUd(id,cStr);
+	free(cStr);
+	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA,func,stack,exe->heap),&ap,stack);
+	fklNiEnd(&ap,stack);
 }
 
 void _fklInit(FklSymbolTable* glob)

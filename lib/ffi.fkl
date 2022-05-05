@@ -9,7 +9,8 @@
     ffi-typedef
     ffi-load
     ffi-ref
-    ffi-set)
+    ffi-set
+    ffi-mem)
   (define ffi (dlopen (append (getdir) "/../fklffi")))
   (define ffi-mem? (dlsym ffi "ffi_mem_p"))
   (define ffi-null? (dlsym ffi "ffi_null_p"))
@@ -19,4 +20,14 @@
   (define ffi-typedef (dlsym ffi "ffi_typedef"))
   (define ffi-load (dlsym ffi "ffi_load"))
   (define ffi-ref (dlsym ffi "ffi_ref"))
-  (define ffi-set (dlsym ffi "ffi_set")))
+  (define ffi-set (dlsym ffi "ffi_set"))
+  (define ffi-mem (dlsym ffi "ffi_mem"))
+  (defmacro (ffi-path-ref path mem,index)
+    (begin
+      (define iter
+        (lambda [c r]
+          (cond
+            [c (iter (cdr c) (cons 'ffi-ref (cons r (cons `(quote ~(car c)) nil))))]
+            [1 r]))
+        )
+      `(ffi-ref ~(iter path mem) '() ~@index))))

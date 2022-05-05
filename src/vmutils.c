@@ -506,7 +506,7 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 						break;
 					case FKL_USERDATA:
 						if(v->u.ud->t->__princ)
-							v->u.ud->t->__princ(fp,v->u.ud->mem);
+							v->u.ud->t->__princ(fp,v->u.ud->data);
 						else
 							fprintf(fp,"#<%s:%p>",fklGetGlobSymbolWithId(v->u.ud->type)->symbol,v->u.ud);
 						break;
@@ -588,7 +588,7 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 					break;
 				case FKL_USERDATA:
 					if(v->u.ud->t->__prin1)
-						v->u.ud->t->__prin1(fp,v->u.ud->mem);
+						v->u.ud->t->__prin1(fp,v->u.ud->data);
 					else
 						fprintf(fp,"#<%s:%p>",fklGetGlobSymbolWithId(v->u.ud->type)->symbol,v->u.ud);
 					break;

@@ -74,7 +74,7 @@ void FKL_ffi_null_p(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("ffi.null?",FKL_TOOMANYARG,runnable,exe);
 	if(!fklFfiIsMem(val))
 		FKL_RAISE_BUILTIN_ERROR("ffi.null?",FKL_TOOFEWARG,runnable,exe);
-	if(fklFfiIsNull(val->u.ud->mem))
+	if(fklFfiIsNull(val->u.ud->data))
 		fklNiReturn(FKL_VM_TRUE,&ap,stack);
 	else
 		fklNiReturn(FKL_VM_NIL,&ap,stack);
@@ -116,7 +116,7 @@ void FKL_ffi_delete(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("ffi.delete",FKL_TOOMANYARG,exe->rhead,exe);
 	if(!fklFfiIsMem(mem))
 		FKL_RAISE_BUILTIN_ERROR("ffi.delete",FKL_WRONGARG,exe->rhead,exe);
-	FklFfiMem* m=mem->u.ud->mem;
+	FklFfiMem* m=mem->u.ud->data;
 	free(m->mem);
 	m->mem=NULL;
 	fklNiReturn(FKL_VM_NIL,&ap,stack);
@@ -135,7 +135,7 @@ void FKL_ffi_sizeof(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("ffi.sizeof",FKL_WRONGARG,exe->rhead,exe);
 	if(fklFfiIsMem(typedeclare))
 	{
-		FklFfiMem* m=typedeclare->u.ud->mem;
+		FklFfiMem* m=typedeclare->u.ud->data;
 		fklNiReturn(fklMakeVMint(fklFfiGetTypeSizeWithTypeId(m->type),stack,exe->heap),&ap,stack);
 	}
 	else
@@ -204,7 +204,7 @@ void FKL_ffi_ref(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("ffi.ref",FKL_TOOMANYARG,r,exe);
 	if(!fklFfiIsMem(mem)||(selector&&!FKL_IS_SYM(selector)&&selector!=FKL_VM_NIL)||(index&&!fklIsInt(index)))
 		FKL_RAISE_BUILTIN_ERROR("ffi.ref",FKL_WRONGARG,r,exe);
-	FklVMudata* ref=fklFfiNewMemRefUd(mem->u.ud->mem,selector,index);
+	FklVMudata* ref=fklFfiNewMemRefUd(mem->u.ud->data,selector,index);
 	if(!ref)
 		FKL_FFI_RAISE_ERROR("ffi.ref",FKL_FFI_INVALID_SELECTOR,exe);
 	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA
@@ -226,12 +226,31 @@ void FKL_ffi_set(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("ffi.set",FKL_TOOFEWARG,r,exe);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR("ffi.set",FKL_TOOMANYARG,r,exe);
-	if(!fklFfiIsMem(ref)||(!fklFfiIsMem(mem)&&mem!=FKL_VM_NIL&&!fklIsInt(mem)))
+	if(!fklFfiIsMem(ref)||!fklFfiIsMem(mem))
 		FKL_RAISE_BUILTIN_ERROR("ffi.set",FKL_WRONGARG,r,exe);
-	if(fklFfiSetMem(ref->u.ud->mem,mem))
+	if(fklFfiSetMem(ref->u.ud->data,mem))
 		FKL_FFI_RAISE_ERROR("ffi.set",FKL_FFI_INVALID_ASSIGN,exe);
 	fklNiReturn(mem,&ap,stack);
 	fklNiEnd(&ap,stack);
+}
+
+void FKL_ffi_mem(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* val=fklNiGetArg(&ap,stack);
+	if(!val)
+		FKL_RAISE_BUILTIN_ERROR("ffi.mem",FKL_TOOFEWARG,runnable,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR("ffi.mem",FKL_TOOMANYARG,runnable,exe);
+	if(!fklFfiIsCastableVMvalueType(val))
+		FKL_RAISE_BUILTIN_ERROR("ffi.mem",FKL_TOOFEWARG,runnable,exe);
+	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA,fklFfiCastVMvalueIntoMem(val),stack,exe->heap),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void FKL_ffi_sym(ARGL)
+{
 }
 
 void _fklInit(FklSymbolTable* glob)

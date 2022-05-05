@@ -84,7 +84,7 @@ typedef struct FklVMudata
 {
 	FklSid_t type;
 	struct FklVMudMethodTable* t;
-	void* mem;
+	void* data;
 }FklVMudata;
 typedef enum{
 	FKL_MARK_W=0,

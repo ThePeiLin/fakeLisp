@@ -508,7 +508,7 @@ int fklVMvaluecmp(FklVMvalue* fir,FklVMvalue* sec)
 					if(root1->u.ud->type!=root2->u.ud->type||!root1->u.ud->t->__equal)
 						r=0;
 					else
-						r=root1->u.ud->t->__equal(root1->u.ud->mem,root2->u.ud->mem);
+						r=root1->u.ud->t->__equal(root1->u.ud->data,root2->u.ud->data);
 					break;
 				default:
 					r=(root1==root2);
@@ -1050,7 +1050,7 @@ FklVMudata* fklNewVMudata(FklSid_t type,FklVMudMethodTable* t,void* mem)
 	FKL_ASSERT(r,__func__);
 	r->type=type;
 	r->t=t;
-	r->mem=mem;
+	r->data=mem;
 	return r;
 }
 

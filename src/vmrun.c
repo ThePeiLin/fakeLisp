@@ -947,7 +947,7 @@ void B_invoke(FklVM* exe)
 			break;
 		case FKL_USERDATA:
 			fklNiEnd(&ap,stack);
-			tmpValue->u.ud->t->__invoke(exe,tmpValue->u.ud->mem);
+			tmpValue->u.ud->t->__invoke(exe,tmpValue->u.ud->data);
 			break;
 		default:
 			break;
@@ -1476,7 +1476,7 @@ void fklFreeVMvalue(FklVMvalue* cur)
 			break;
 		case FKL_USERDATA:
 			if(cur->u.ud->t->__finalizer)
-				cur->u.ud->t->__finalizer(cur->u.ud->mem);
+				cur->u.ud->t->__finalizer(cur->u.ud->data);
 			fklFreeVMudata(cur->u.ud);
 			break;
 		case FKL_F64:

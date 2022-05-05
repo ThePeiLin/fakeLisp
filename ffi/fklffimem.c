@@ -1,4 +1,5 @@
 #include"fklffimem.h"
+#include"fklffidll.h"
 #include<fakeLisp/utils.h>
 #include<string.h>
 
@@ -349,8 +350,17 @@ FklVMudata* fklFfiCastVMvalueIntoMem(FklVMvalue* v)
 		m=fklFfiNewMem(fklFfiGetLastNativeTypeId(),sizeof(void*));
 	else if(fklFfiIsMem(v))
 	{
-		FklFfiMem* mem=v->u.ud->data;
-		m=fklFfiNewRef(mem->type,mem->mem);
+		if(v->u.ud->t->__invoke)
+		{
+			FklFfiproc* proc=v->u.ud->data;
+			m=fklFfiNewRef(proc->type,proc->func);
+		}
+		else
+		{
+			FklFfiMem* mem=v->u.ud->data;
+			m=fklFfiNewRef(mem->type,mem->mem);
+			return fklNewVMudata(FfiMemUdSid,&FfiMemMethodTable,m);
+		}
 	}
 	r=fklNewVMudata(FfiMemUdSid,&FfiAtomicMemMethodTable,m);
 	return r;

@@ -231,6 +231,8 @@ void FKL_ffi_proc(ARGL)
 		FKL_FFI_RAISE_ERROR("ffi.proc",FKL_FFI_INVALID_TYPEDECLARE,exe);
 	char* cStr=fklCharBufToStr(val->u.str->str,val->u.str->size);
 	FklVMudata* func=fklFfiNewProcUd(id,cStr);
+	if(!func)
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR("ffi.proc",cStr,1,FKL_INVALIDSYMBOL,exe);
 	free(cStr);
 	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA,func,stack,exe->heap),&ap,stack);
 	fklNiEnd(&ap,stack);

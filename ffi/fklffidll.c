@@ -219,7 +219,11 @@ FklVMudata* fklFfiNewProcUd(FklTypeId_t type,const char* cStr)
 	pthread_rwlock_rdlock(&GlobSharedObjsLock);
 	void* address=NULL;
 	for(FklFfiSharedObjNode* head=GlobSharedObjs;head;head=head->next)
+	{
 		address=fklGetAddress(cStr,head->dll);
+		if(address)
+			break;
+	}
 	pthread_rwlock_unlock(&GlobSharedObjsLock);
 	if(!address)
 		return NULL;

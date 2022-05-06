@@ -34,6 +34,38 @@ typedef enum FklFfiErrorType
 	FKL_FFI_INVALID_ASSIGN,
 }FklFfiErrorType;
 
+typedef enum FklFfiNativeTypeEnum
+{
+	FKL_FFI_SHORT=1,
+	FKL_FFI_INT,
+	FKL_FFI_USHORT,
+	FKL_FFI_UNSIGNED,
+	FKL_FFI_LONG,
+	FKL_FFI_ULONG,
+	FKL_FFI_LONG_LONG,
+	FKL_FFI_ULONG_LONG,
+	FKL_FFI_PTRDIFF_T,
+	FKL_FFI_SIZE_T,
+	FKL_FFI_SSIZE_T,
+	FKL_FFI_CHAR,
+	FKL_FFI_WCHAR_T,
+	FKL_FFI_FLOAT,
+	FKL_FFI_DOUBLE,
+	FKL_FFI_INT8_T,
+	FKL_FFI_UINT8_T,
+	FKL_FFI_INT16_T,
+	FKL_FFI_UINT16_T,
+	FKL_FFI_INT32_T,
+	FKL_FFI_UINT32_T,
+	FKL_FFI_INT64_T,
+	FKL_FFI_UINT64_T,
+	FKL_FFI_IPTR,
+	FKL_FFI_UPTR,
+	FKL_FFI_VPTR,
+	FKL_FFI_STRING,
+	FKL_FFI_FILE_P,
+}FklFfiNativeTypeEnum;
+
 typedef struct FklDefTypesNode
 {
 	FklSid_t name;
@@ -109,14 +141,6 @@ typedef struct FklDefFuncType
 
 void fklFfiDefType(FklVMvalue* typedeclare);
 
-FklTypeId_t fklFfiGetLastNativeTypeId(void);
-FklTypeId_t fklFfiGetStringTypeId(void);
-FklTypeId_t fklFfiGetFILEpTypeId(void);
-FklTypeId_t fklFfiGetI32TypeId(void);
-FklTypeId_t fklFfiGetI64TypeId(void);
-FklTypeId_t fklFfiGetCharTypeId(void);
-FklTypeId_t fklFfiGetF64TypeId(void);
-
 FklDefTypes* fklFfiNewDefTypes(void);
 void fklFfiFreeDefTypeTable(FklDefTypes* defs);
 
@@ -131,19 +155,15 @@ void fklFfiLoadTypeList(FILE* fp);
 void fklFfiFreeGlobTypeList(void);
 
 int fklFfiIsNativeTypeId(FklTypeId_t);
-int fklFfiIsFILEpTypeId(FklTypeId_t);
-int fklFfiIsStringTypeId(FklTypeId_t);
+int fklFfiIsIntegerTypeId(FklTypeId_t);
+int fklFfiIsNumTypeId(FklTypeId_t type);
+int fklFfiIsFloatTypeId(FklTypeId_t);
+
 int fklFfiIsArrayTypeId(FklTypeId_t);
 int fklFfiIsPtrTypeId(FklTypeId_t);
 int fklFfiIsStructTypeId(FklTypeId_t);
 int fklFfiIsUnionTypeId(FklTypeId_t);
 int fklFfiIsFunctionTypeId(FklTypeId_t);
-int fklFfiIsVptrTypeId(FklTypeId_t);
-
-FklTypeId_t fklFfiGetI32TypeId(void);
-FklTypeId_t fklFfiGetI64TypeId(void);
-FklTypeId_t fklFfiCharTypeId(void);
-FklTypeId_t fklFfiGetF64TypeId(void);
 
 FklTypeId_t fklFfiNewNativeType(FklSid_t,size_t,size_t);
 void fklFfiFreeNativeType(FklDefNativeType*);

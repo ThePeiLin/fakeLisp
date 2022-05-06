@@ -5,14 +5,6 @@
 static pthread_rwlock_t GlobDefTypesLock=PTHREAD_RWLOCK_INITIALIZER;
 static FklDefTypes* GlobDefTypes=NULL;
 
-static FklTypeId_t LastNativeTypeId=0;
-static FklTypeId_t I32TypeId=0;
-static FklTypeId_t I64TypeId=0;
-static FklTypeId_t F64TypeId=0;
-static FklTypeId_t CharTypeId=0;
-static FklTypeId_t StringTypeId=0;
-static FklTypeId_t FILEpTypeId=0;
-
 static FklSid_t ArrayTypedefSymbolId=0;
 static FklSid_t PtrTypedefSymbolId=0;
 static FklSid_t StructTypedefSymbolId=0;
@@ -76,6 +68,8 @@ void fklFfiInitNativeDefTypes(FklDefTypes* otherTypes)
 		{"iptr",sizeof(intptr_t)},
 		{"uptr",sizeof(uintptr_t)},
 		{"vptr",sizeof(void*)},
+		{"string",sizeof(char*)},
+		{"FILE*",sizeof(FILE*)},
 	};
 	size_t num=sizeof(nativeTypeList)/sizeof(nativeTypeList[0]);
 	size_t i=0;
@@ -86,17 +80,6 @@ void fklFfiInitNativeDefTypes(FklDefTypes* otherTypes)
 		FklTypeId_t t=fklFfiNewNativeType(typeName,size,size);
 		fklFfiAddDefTypes(otherTypes,typeName,t);
 	}
-	FklSid_t otherTypeName=fklAddSymbolToGlob("string")->id;
-	StringTypeId=fklFfiNewNativeType(otherTypeName,sizeof(char*),sizeof(char*));
-	fklFfiAddDefTypes(otherTypes,otherTypeName,StringTypeId);
-	otherTypeName=fklAddSymbolToGlob("FILE*")->id;
-	FILEpTypeId=fklFfiNewNativeType(otherTypeName,sizeof(FILE*),sizeof(FILE*));
-	fklFfiAddDefTypes(otherTypes,otherTypeName,FILEpTypeId);
-	CharTypeId=12;
-	I32TypeId=20;
-	I64TypeId=22;
-	F64TypeId=15;
-	LastNativeTypeId=num;
 }
 
 static FklTypeId_t addToGlobTypeUnionList(FklDefTypeUnion type)
@@ -978,17 +961,23 @@ FklTypeId_t fklFfiGenTypeId(FklVMvalue* obj)
 
 int fklFfiIsNativeTypeId(FklTypeId_t type)
 {
-	return type>0&&type<=LastNativeTypeId;
+	return type>0&&type<=FKL_FFI_VPTR;
 }
 
-int fklFfiIsFILEpTypeId(FklTypeId_t type)
+int fklFfiIsIntegerTypeId(FklTypeId_t type)
 {
-	return type==FILEpTypeId;
+	return (type>=FKL_FFI_SHORT&&type<FKL_FFI_FLOAT)
+		||(type>=FKL_FFI_INT8_T&&type<FKL_FFI_VPTR);
 }
 
-int fklFfiIsStringTypeId(FklTypeId_t type)
+int fklFfiIsNumTypeId(FklTypeId_t type)
 {
-	return type==StringTypeId;
+	return type>0&&type<FKL_FFI_VPTR;
+}
+
+int fklFfiIsFloatTypeId(FklTypeId_t type)
+{
+	return type==FKL_FFI_FLOAT||type==FKL_FFI_DOUBLE;
 }
 
 int fklFfiIsArrayTypeId(FklTypeId_t type)
@@ -1000,7 +989,7 @@ int fklFfiIsArrayTypeId(FklTypeId_t type)
 int fklFfiIsPtrTypeId(FklTypeId_t type)
 {
 	FklDefTypeUnion tu=fklFfiGetTypeUnion(type);
-	return FKL_GET_TYPES_TAG(tu.all)==FKL_DEF_PTR_TYPE_TAG;
+	return type==FKL_FFI_VPTR||FKL_GET_TYPES_TAG(tu.all)==FKL_DEF_PTR_TYPE_TAG;
 }
 
 int fklFfiIsStructTypeId(FklTypeId_t type)
@@ -1019,44 +1008,4 @@ int fklFfiIsFunctionTypeId(FklTypeId_t type)
 {
 	FklDefTypeUnion tu=fklFfiGetTypeUnion(type);
 	return FKL_GET_TYPES_TAG(tu.all)==FKL_DEF_FUNC_TYPE_TAG;
-}
-
-int fklFfiIsVptrTypeId(FklTypeId_t type)
-{
-	return type==LastNativeTypeId;
-}
-
-FklTypeId_t fklFfiGetI32TypeId(void)
-{
-	return I32TypeId;
-}
-
-FklTypeId_t fklFfiGetI64TypeId(void)
-{
-	return I64TypeId;
-}
-
-FklTypeId_t fklFfiGetCharTypeId(void)
-{
-	return CharTypeId;
-}
-
-FklTypeId_t fklFfiGetStringTypeId(void)
-{
-	return StringTypeId;
-}
-
-FklTypeId_t fklFfiGetF64TypeId(void)
-{
-	return F64TypeId;
-}
-
-FklTypeId_t fklFfiGetFILEpTypeId(void)
-{
-	return FILEpTypeId;
-}
-
-FklTypeId_t fklFfiGetLastNativeTypeId(void)
-{
-	return LastNativeTypeId;
 }

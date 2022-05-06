@@ -59,10 +59,24 @@ void FKL_ffi_new(ARGL)
 	FklTypeId_t id=fklFfiGenTypeId(typedeclare);
 	if(!id)
 		FKL_FFI_RAISE_ERROR("ffi.new",FKL_FFI_INVALID_TYPEDECLARE,exe);
-	size_t size=fklFfiGetTypeSizeWithTypeId(id);
-	FklVMudata* mem=fklFfiNewMemUd(id,size,atomic);
+	FklVMudata* mem=NULL;
+	if(id==FKL_FFI_FILE_P||id==FKL_FFI_STRING)
+		mem=fklFfiNewMemRefUd(id,NULL);
+	else
+	{
+		size_t size=fklFfiGetTypeSizeWithTypeId(id);
+		mem=fklFfiNewMemUd(id,size,atomic);
+	}
 	if(!mem)
 		FKL_FFI_RAISE_ERROR("ffi.new",FKL_FFI_INVALID_MEM_MODE,exe);
+	if(id==FKL_FFI_FILE_P||id==FKL_FFI_STRING)
+	{
+		mem->t->__finalizer(mem->data);
+		free(mem);
+		FklFfiMem* m=mem->data;
+		free(m->mem);
+		m->mem=NULL;
+	}
 	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA,mem,stack,exe->heap),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -165,7 +179,7 @@ void FKL_ffi_ref(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("ffi.ref",FKL_TOOMANYARG,r,exe);
 	if(!fklFfiIsMem(mem)||(selector&&!FKL_IS_SYM(selector)&&selector!=FKL_VM_NIL)||(index&&!fklIsInt(index)))
 		FKL_RAISE_BUILTIN_ERROR("ffi.ref",FKL_WRONGARG,r,exe);
-	FklVMudata* ref=fklFfiNewMemRefUd(mem->u.ud->data,selector,index);
+	FklVMudata* ref=fklFfiNewMemRefUdWithSI(mem->u.ud->data,selector,index);
 	if(!ref)
 		FKL_FFI_RAISE_ERROR("ffi.ref",FKL_FFI_INVALID_SELECTOR,exe);
 	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA
@@ -187,7 +201,8 @@ void FKL_ffi_set(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("ffi.set",FKL_TOOFEWARG,r,exe);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR("ffi.set",FKL_TOOMANYARG,r,exe);
-	if(!fklFfiIsMem(ref)||!fklFfiIsMem(mem))
+	if(!fklFfiIsMem(ref)
+			||(!fklFfiIsMem(mem)&&!fklFfiIsCastableVMvalueType(mem)))
 		FKL_RAISE_BUILTIN_ERROR("ffi.set",FKL_WRONGARG,r,exe);
 	if(fklFfiSetMem(ref->u.ud->data,mem))
 		FKL_FFI_RAISE_ERROR("ffi.set",FKL_FFI_INVALID_ASSIGN,exe);

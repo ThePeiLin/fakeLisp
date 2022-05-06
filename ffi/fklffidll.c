@@ -104,8 +104,8 @@ void fklFfiPrepFFIcif(ffi_cif* cif,int argc,ffi_type** atypes,ffi_type* rtype)
 
 ffi_type* fklFfiGetFfiType(FklTypeId_t type)
 {
-	if(type>fklFfiGetLastNativeTypeId())
-		type=fklFfiGetLastNativeTypeId();
+	if(type>FKL_FFI_VPTR)
+		type=FKL_FFI_VPTR;
 	return NativeFFITypeList[type];
 }
 
@@ -119,6 +119,7 @@ static void _ffi_proc_invoke(FklVM* exe,void* ptr)
 	uint32_t anum=ft->anum;
 	uint32_t i=0;
 	FklTypeId_t rtype=ft->rtype;
+	FklTypeId_t* atypes=ft->atypes;
 	FklVMvalue** args=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*anum);
 	FKL_ASSERT(args,__func__);
 	for(i=0;i<anum;i++)
@@ -142,15 +143,21 @@ static void _ffi_proc_invoke(FklVM* exe,void* ptr)
 	FKL_ASSERT(pArgs,__func__);
 	for(i=0;i<anum;i++)
 	{
-		FklVMudata* ud=fklFfiCastVMvalueIntoMem(args[i]);
-		if(!ud)
+		FklVMudata* ud=fklFfiNewMemUd(atypes[i],fklFfiGetTypeSizeWithTypeId(atypes[i]),NULL);
+		if(fklFfiSetMem(ud->data,args[i]))
 		{
+			for(uint32_t j=0;j<i;j++)
+			{
+				FklVMudata* tud=udataList[i];
+				tud->t->__finalizer(tud->data);
+				fklFreeVMudata(tud);
+			}
 			free(args);
 			free(pArgs);
 			FKL_RAISE_BUILTIN_ERROR(fklGetGlobSymbolWithId(proc->sid)->symbol,FKL_WRONGARG,curR,exe);
 		}
 		FklFfiMem* mem=ud->data;
-		if(fklFfiIsStringTypeId(mem->type)||fklFfiIsArrayTypeId(mem->type))
+		if(mem->type==FKL_FFI_FILE_P||mem->type==FKL_FFI_STRING||fklFfiIsArrayTypeId(mem->type))
 			pArgs[i]=&mem->mem;
 		else
 			pArgs[i]=mem->mem;

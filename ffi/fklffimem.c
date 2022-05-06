@@ -89,9 +89,9 @@ static void _mem_print(FILE* fp,void* p)
 		NativeTypePrinterList[m->type-1](fp,m->mem);
 	if(fklFfiIsPtrTypeId(m->type)||fklFfiIsFunctionTypeId(m->type))
 		fprintf(fp,"%p",*((void**)(m->mem)));
-	else if(fklFfiIsFILEpTypeId(m->type))
+	else if(m->type==FKL_FFI_FILE_P)
 		fprintf(fp,"%p",*((void**)(m->mem)));
-	else if(fklFfiIsStringTypeId(m->type))
+	else if(m->type==FKL_FFI_STRING)
 		fprintf(fp,"%s",(char*)m->mem);
 	else if(fklFfiIsStructTypeId(m->type))
 	{
@@ -196,7 +196,12 @@ FklVMudata* fklFfiNewMemUd(FklTypeId_t type,size_t size,FklVMvalue* atomic)
 		return NULL;
 }
 
-FklVMudata* fklFfiNewMemRefUd(FklFfiMem* m,FklVMvalue* selector,FklVMvalue* pindex)
+FklVMudata* fklFfiNewMemRefUd(FklTypeId_t type,void* mem)
+{
+	return fklNewVMudata(FfiMemUdSid,&FfiMemMethodTable,fklFfiNewRef(type,mem));
+}
+
+FklVMudata* fklFfiNewMemRefUdWithSI(FklFfiMem* m,FklVMvalue* selector,FklVMvalue* pindex)
 {
 	if(selector==NULL||selector==FKL_VM_NIL)
 	{
@@ -265,39 +270,293 @@ FklVMudata* fklFfiNewMemRefUd(FklFfiMem* m,FklVMvalue* selector,FklVMvalue* pind
 
 int fklFfiIsMem(FklVMvalue* p)
 {
-	return FKL_IS_USERDATA(p)&&p->u.ud->type==FfiMemUdSid;
+	return FKL_IS_USERDATA(p)&&p->u.ud->type==FfiMemUdSid&&!p->u.ud->t->__invoke;
 }
 
-int fklFfiSetMem(FklFfiMem* ref,FklVMvalue* pmem)
+int fklFfiIsProc(FklVMvalue* p)
 {
-	size_t refSize=fklFfiGetTypeSizeWithTypeId(ref->type);
-	size_t memSize=fklFfiGetTypeSizeWithTypeId(((FklFfiMem*)pmem->u.ud->data)->type);
-	if(refSize<memSize)
+	return FKL_IS_USERDATA(p)&&p->u.ud->type==FfiMemUdSid&&p->u.ud->t->__invoke;
+}
+
+#define ARGL FklFfiMem* mem
+#define GET_INTEGER_MEM(TYPE) return *(TYPE*)(mem->mem);
+static int64_t __get_integer_from_short    (ARGL){GET_INTEGER_MEM(short)}
+static int64_t __get_integer_from_int      (ARGL){GET_INTEGER_MEM(int)}
+static int64_t __get_integer_from_ushort   (ARGL){GET_INTEGER_MEM(unsigned short)}
+static int64_t __get_integer_from_unsigned (ARGL){GET_INTEGER_MEM(unsigned)}
+static int64_t __get_integer_from_long     (ARGL){GET_INTEGER_MEM(long)}
+static int64_t __get_integer_from_ulong    (ARGL){GET_INTEGER_MEM(unsigned long)}
+static int64_t __get_integer_from_longlong (ARGL){GET_INTEGER_MEM(long long)}
+static int64_t __get_integer_from_ulonglong(ARGL){GET_INTEGER_MEM(unsigned long)}
+static int64_t __get_integer_from_ptrdiff_t(ARGL){GET_INTEGER_MEM(ptrdiff_t)}
+static int64_t __get_integer_from_size_t   (ARGL){GET_INTEGER_MEM(size_t)}
+static int64_t __get_integer_from_ssize_t  (ARGL){GET_INTEGER_MEM(ssize_t)}
+static int64_t __get_integer_from_char     (ARGL){GET_INTEGER_MEM(char)}
+static int64_t __get_integer_from_wchar_t  (ARGL){GET_INTEGER_MEM(wchar_t)}
+static int64_t __get_integer_from_float    (ARGL){GET_INTEGER_MEM(float)}
+static int64_t __get_integer_from_double   (ARGL){GET_INTEGER_MEM(double)}
+static int64_t __get_integer_from_int8_t   (ARGL){GET_INTEGER_MEM(int8_t)}
+static int64_t __get_integer_from_uint8_t  (ARGL){GET_INTEGER_MEM(uint8_t)}
+static int64_t __get_integer_from_int16_t  (ARGL){GET_INTEGER_MEM(int16_t)}
+static int64_t __get_integer_from_uint16_t (ARGL){GET_INTEGER_MEM(uint16_t)}
+static int64_t __get_integer_from_int32    (ARGL){GET_INTEGER_MEM(int32_t)}
+static int64_t __get_integer_from_uint32_t (ARGL){GET_INTEGER_MEM(uint32_t)}
+static int64_t __get_integer_from_int64_t  (ARGL){GET_INTEGER_MEM(int64_t)}
+static int64_t __get_integer_from_uint64_t (ARGL){GET_INTEGER_MEM(uint64_t)}
+static int64_t __get_integer_from_iptr     (ARGL){GET_INTEGER_MEM(intptr_t)}
+static int64_t __get_integer_from_uptr     (ARGL){GET_INTEGER_MEM(uintptr_t)}
+#undef GET_INTEGER_MEM
+#define GET_DOUBLE_MEM(TYPE) return *(TYPE*)(mem->mem);
+static double __get_double_from_short    (ARGL){GET_DOUBLE_MEM(short)}
+static double __get_double_from_int      (ARGL){GET_DOUBLE_MEM(int)}
+static double __get_double_from_uShort   (ARGL){GET_DOUBLE_MEM(unsigned short)}
+static double __get_double_from_unsigned (ARGL){GET_DOUBLE_MEM(unsigned)}
+static double __get_double_from_long     (ARGL){GET_DOUBLE_MEM(long)}
+static double __get_double_from_ulong    (ARGL){GET_DOUBLE_MEM(unsigned long)}
+static double __get_double_from_longlong (ARGL){GET_DOUBLE_MEM(long long)}
+static double __get_double_from_ulonglong(ARGL){GET_DOUBLE_MEM(unsigned long)}
+static double __get_double_from_ptrdiff_t(ARGL){GET_DOUBLE_MEM(ptrdiff_t)}
+static double __get_double_from_size_t   (ARGL){GET_DOUBLE_MEM(size_t)}
+static double __get_double_from_ssize_t  (ARGL){GET_DOUBLE_MEM(ssize_t)}
+static double __get_double_from_char     (ARGL){GET_DOUBLE_MEM(char)}
+static double __get_double_from_wchar_t  (ARGL){GET_DOUBLE_MEM(wchar_t)}
+static double __get_double_from_float    (ARGL){GET_DOUBLE_MEM(float)}
+static double __get_double_from_double   (ARGL){GET_DOUBLE_MEM(double)}
+static double __get_double_from_int8_t   (ARGL){GET_DOUBLE_MEM(int8_t)}
+static double __get_double_from_uint8_t  (ARGL){GET_DOUBLE_MEM(uint8_t)}
+static double __get_double_from_int16_t  (ARGL){GET_DOUBLE_MEM(int16_t)}
+static double __get_double_from_uint16_t (ARGL){GET_DOUBLE_MEM(uint16_t)}
+static double __get_double_from_int32    (ARGL){GET_DOUBLE_MEM(int32_t)}
+static double __get_double_from_uint32_t (ARGL){GET_DOUBLE_MEM(uint32_t)}
+static double __get_double_from_int64_t  (ARGL){GET_DOUBLE_MEM(int64_t)}
+static double __get_double_from_uint64_t (ARGL){GET_DOUBLE_MEM(uint64_t)}
+static double __get_double_from_iptr     (ARGL){GET_DOUBLE_MEM(intptr_t)}
+static double __get_double_from_uptr     (ARGL){GET_DOUBLE_MEM(uintptr_t)}
+#undef GET_DOUBLE_MEM
+#undef ARGL
+static int64_t (*__ffiGetIntegerFuncList[])(FklFfiMem* mem)=
+{
+	NULL                        ,
+	__get_integer_from_short    ,
+	__get_integer_from_int      ,
+	__get_integer_from_ushort   ,
+	__get_integer_from_unsigned ,
+	__get_integer_from_long     ,
+	__get_integer_from_ulong    ,
+	__get_integer_from_longlong ,
+	__get_integer_from_ulonglong,
+	__get_integer_from_ptrdiff_t,
+	__get_integer_from_size_t   ,
+	__get_integer_from_ssize_t  ,
+	__get_integer_from_char     ,
+	__get_integer_from_wchar_t  ,
+	__get_integer_from_float    ,
+	__get_integer_from_double   ,
+	__get_integer_from_int8_t   ,
+	__get_integer_from_uint8_t  ,
+	__get_integer_from_int16_t  ,
+	__get_integer_from_uint16_t ,
+	__get_integer_from_int32    ,
+	__get_integer_from_uint32_t ,
+	__get_integer_from_int64_t  ,
+	__get_integer_from_uint64_t ,
+	__get_integer_from_iptr     ,
+	__get_integer_from_uptr     ,
+};
+static double (*__ffiGetDoubleFuncList[])(FklFfiMem* mem)=
+{
+	NULL                  ,
+	__get_double_from_short    ,
+	__get_double_from_int      ,
+	__get_double_from_uShort   ,
+	__get_double_from_unsigned ,
+	__get_double_from_long     ,
+	__get_double_from_ulong    ,
+	__get_double_from_longlong ,
+	__get_double_from_ulonglong,
+	__get_double_from_ptrdiff_t,
+	__get_double_from_size_t   ,
+	__get_double_from_ssize_t  ,
+	__get_double_from_char     ,
+	__get_double_from_wchar_t  ,
+	__get_double_from_float    ,
+	__get_double_from_double   ,
+	__get_double_from_int8_t   ,
+	__get_double_from_uint8_t  ,
+	__get_double_from_int16_t  ,
+	__get_double_from_uint16_t ,
+	__get_double_from_int32    ,
+	__get_double_from_uint32_t ,
+	__get_double_from_int64_t  ,
+	__get_double_from_uint64_t ,
+	__get_double_from_iptr     ,
+	__get_double_from_uptr     ,
+};
+
+static int __ffiGetVMvalueAsF64(FklVMvalue* val,double* d)
+{
+	if(fklIsInt(val))
+		*d=fklGetInt(val);
+	else if(FKL_IS_CHR(val))
+		*d=FKL_GET_CHR(val);
+	else if(FKL_IS_F64(val))
+		*d=val->u.f64;
+	else if(fklFfiIsMem(val)&&fklFfiIsNumTypeId(((FklFfiMem*)val->u.ud->data)->type))
+		*d=__ffiGetDoubleFuncList[((FklFfiMem*)val->u.ud->data)->type](val->u.ud->data);
+	else
 		return 1;
-	else if(memSize)
+	return 0;
+}
+
+static int __ffiGetVMvalueAsI64(FklVMvalue* val,int64_t* i)
+{
+	if(fklIsInt(val))
+		*i=fklGetInt(val);
+	else if(FKL_IS_CHR(val))
+		*i=FKL_GET_CHR(val);
+	else if(FKL_IS_F64(val))
+		*i=val->u.f64;
+	else if(fklFfiIsMem(val)&&fklFfiIsNumTypeId(((FklFfiMem*)val->u.ud->data)->type))
+		*i=__ffiGetIntegerFuncList[((FklFfiMem*)val->u.ud->data)->type](val->u.ud->data);
+	else
+		return 1;
+	return 0;
+}
+
+#define ARGL void* mem,FklVMvalue* val
+#define SET_INTEGER_MEM(TYPE) int64_t i=0.0;if(__ffiGetVMvalueAsI64(val,&i))return 1;*(TYPE*)mem=i;return 0;
+#define SET_FLOAT_MEM(TYPE) double d=0.0;if(__ffiGetVMvalueAsF64(val,&d))return 1;*(TYPE*)mem=d;return 0;
+static int __set_short    (ARGL){SET_INTEGER_MEM(short)}
+static int __set_int      (ARGL){SET_INTEGER_MEM(int)}
+static int __set_ushort   (ARGL){SET_INTEGER_MEM(unsigned short)}
+static int __set_unsigned (ARGL){SET_INTEGER_MEM(unsigned)}
+static int __set_long     (ARGL){SET_INTEGER_MEM(long)}
+static int __set_ulong    (ARGL){SET_INTEGER_MEM(unsigned long)}
+static int __set_longlong (ARGL){SET_INTEGER_MEM(long long)}
+static int __set_ulonglong(ARGL){SET_INTEGER_MEM(unsigned long long)}
+static int __set_ptrdiff_t(ARGL){SET_INTEGER_MEM(ptrdiff_t)}
+static int __set_size_t   (ARGL){SET_INTEGER_MEM(size_t)}
+static int __set_ssize_t  (ARGL){SET_INTEGER_MEM(ssize_t)}
+static int __set_char     (ARGL){SET_INTEGER_MEM(char)}
+static int __set_wchar_t  (ARGL){SET_INTEGER_MEM(wchar_t)}
+static int __set_float    (ARGL){SET_FLOAT_MEM(float)}
+static int __set_double   (ARGL){SET_FLOAT_MEM(double)}
+static int __set_int8_t   (ARGL){SET_INTEGER_MEM(int8_t)}
+static int __set_uint8_t  (ARGL){SET_INTEGER_MEM(uint8_t)}
+static int __set_int16_t  (ARGL){SET_INTEGER_MEM(int16_t)}
+static int __set_uint16_t (ARGL){SET_INTEGER_MEM(uint16_t)}
+static int __set_int32_t  (ARGL){SET_INTEGER_MEM(int32_t)}
+static int __set_uint32_t (ARGL){SET_INTEGER_MEM(uint32_t)}
+static int __set_int64_t  (ARGL){SET_INTEGER_MEM(int64_t)}
+static int __set_uint64_t (ARGL){SET_INTEGER_MEM(uint64_t)}
+static int __set_iptr     (ARGL){SET_INTEGER_MEM(intptr_t)}
+static int __set_uptr     (ARGL){SET_INTEGER_MEM(uintptr_t)}
+#undef SET_INTEGER_MEM
+#undef SET_FLOAT_MEM
+#undef ARGL
+static int (*__ffiMemSetList[])(void*,FklVMvalue*)=
+{
+	NULL           ,
+	__set_short    ,
+	__set_int      ,
+	__set_ushort   ,
+	__set_unsigned ,
+	__set_long     ,
+	__set_ulong    ,
+	__set_longlong ,
+	__set_ulonglong,
+	__set_ptrdiff_t,
+	__set_size_t   ,
+	__set_ssize_t  ,
+	__set_char     ,
+	__set_wchar_t  ,
+	__set_float    ,
+	__set_double   ,
+	__set_int8_t   ,
+	__set_uint8_t  ,
+	__set_int16_t  ,
+	__set_uint16_t ,
+	__set_int32_t  ,
+	__set_uint32_t ,
+	__set_int64_t  ,
+	__set_uint64_t ,
+	__set_iptr     ,
+	__set_uptr     ,
+};
+
+int fklFfiSetMem(FklFfiMem* ref,FklVMvalue* val)
+{
+	if(fklFfiIsNumTypeId(ref->type))
+		return __ffiMemSetList[ref->type](ref->mem,val);
+	else if(fklFfiIsPtrTypeId(ref->type))
 	{
-		if(fklIsInt(pmem))
+		if(val==FKL_VM_NIL)
+			*(void**)ref->mem=NULL;
+		else if(fklFfiIsMem(val))
 		{
-			int64_t i=fklGetInt(pmem);
-			memcpy(ref->mem,&i,refSize);
+			FklFfiMem* valmem=val->u.ud->data;
+			if(!fklFfiIsPtrTypeId(valmem->type)&&valmem->type!=FKL_FFI_STRING&&valmem->type!=FKL_FFI_FILE_P)
+				return 1;
+			if(fklFfiIsPtrTypeId(valmem->type))
+				*(void**)ref->mem=*(void**)valmem->mem;
+			else if(valmem->type==FKL_FFI_STRING)
+				*(void**)ref->mem=valmem->mem;
+			else if(valmem->type==FKL_FFI_FILE_P)
+				*(void**)ref->mem=valmem->mem;
+			else
+				return 1;
+		}
+		else if(fklFfiIsProc(val))
+		{
+			FklFfiproc* valproc=val->u.ud->data;
+			*(void**)ref->mem=valproc->func;
 		}
 		else
+			return 1;
+	}
+	else if(ref->type==FKL_FFI_STRING)
+	{
+		if(FKL_IS_STR(val))
 		{
-			FklFfiMem* mem=pmem->u.ud->data;
-			memcpy(ref->mem,mem->mem,refSize);
+			if(ref->mem)
+				free(ref->mem);
+			ref->mem=fklCharBufToStr(val->u.str->str,val->u.str->size);
 		}
+		else if(FKL_IS_SYM(val))
+		{
+			if(ref->mem)
+				free(ref->mem);
+			ref->mem=fklCopyStr(fklGetGlobSymbolWithId(FKL_GET_SYM(val))->symbol);
+		}
+		else
+			return 1;
+	}
+	else if(ref->type==FKL_FFI_FILE_P)
+	{
+		if(FKL_IS_FP(val))
+			ref->mem=val->u.fp->fp;
+		else
+			return 1;
 	}
 	else
 	{
-		void* m=NULL;
-		memcpy(ref->mem,&m,refSize);
+		if(!fklFfiIsMem(val))
+			return 1;
+		else
+		{
+			FklFfiMem* valmem=val->u.ud->data;
+			if(ref->type!=valmem->type)
+				return 1;
+			else
+				memcpy(ref->mem,valmem->mem,fklFfiGetTypeSizeWithTypeId(ref->type));
+		}
 	}
 	return 0;
 }
 
 int fklFfiIsNull(FklFfiMem* m)
 {
-	return (fklFfiIsVptrTypeId(m->type)||fklFfiIsPtrTypeId(m->type))&&!(*(void**)m->mem);
+	return (m->type==FKL_FFI_VPTR||fklFfiIsPtrTypeId(m->type))&&!(*(void**)m->mem);
 }
 
 int fklFfiIsCastableVMvalueType(FklVMvalue* v)
@@ -309,8 +568,8 @@ int fklFfiIsCastableVMvalueType(FklVMvalue* v)
 		&&!FKL_IS_DLPROC(v)
 		&&!FKL_IS_VECTOR(v)
 		&&!FKL_IS_ERR(v)
-		&&!fklFfiIsMem(v)
-		&&!FKL_IS_CONT(v);
+		&&!FKL_IS_CONT(v)
+		&&!fklFfiIsMem(v);
 }
 
 FklVMudata* fklFfiCastVMvalueIntoMem(FklVMvalue* v)
@@ -319,35 +578,35 @@ FklVMudata* fklFfiCastVMvalueIntoMem(FklVMvalue* v)
 	FklVMudata* r=NULL;
 	if(FKL_IS_I32(v))
 	{
-		m=fklFfiNewMem(fklFfiGetI32TypeId(),sizeof(void*));
+		m=fklFfiNewMem(FKL_FFI_INT32_T,sizeof(void*));
 		*(int32_t*)m->mem=FKL_GET_I32(v);
 	}
 	else if(FKL_IS_I64(v))
 	{
-		m=fklFfiNewMem(fklFfiGetI64TypeId(),sizeof(void*));
+		m=fklFfiNewMem(FKL_FFI_INT64_T,sizeof(void*));
 		*(int64_t*)m->mem=v->u.i64;
 	}
 	else if(FKL_IS_F64(v))
 	{
-		m=fklFfiNewMem(fklFfiGetF64TypeId(),sizeof(void*));
+		m=fklFfiNewMem(FKL_FFI_DOUBLE,sizeof(void*));
 		*(double*)m->mem=v->u.f64;
 	}
 	else if(FKL_IS_CHR(v))
 	{
-		m=fklFfiNewMem(fklFfiGetCharTypeId(),sizeof(void*));
+		m=fklFfiNewMem(FKL_FFI_CHAR,sizeof(void*));
 		*(char*)m->mem=FKL_GET_CHR(v);
 	}
 	else if(FKL_IS_STR(v))
-		m=fklFfiNewRef(fklFfiGetStringTypeId(),fklCharBufToStr(v->u.str->str,v->u.str->size));
+		m=fklFfiNewRef(FKL_FFI_STRING,fklCharBufToStr(v->u.str->str,v->u.str->size));
 	else if(FKL_IS_SYM(v))
-		m=fklFfiNewRef(fklFfiGetStringTypeId(),fklCopyStr(fklGetGlobSymbolWithId(FKL_GET_SYM(v))->symbol));
+		m=fklFfiNewRef(FKL_FFI_STRING,fklCopyStr(fklGetGlobSymbolWithId(FKL_GET_SYM(v))->symbol));
 	else if(FKL_IS_FP(v))
 	{
-		m=fklFfiNewMem(fklFfiGetFILEpTypeId(),sizeof(void*));
+		m=fklFfiNewMem(FKL_FFI_FILE_P,sizeof(void*));
 		*(FILE**)m->mem=v->u.fp->fp;
 	}
 	else if(v==FKL_VM_NIL)
-		m=fklFfiNewMem(fklFfiGetLastNativeTypeId(),sizeof(void*));
+		m=fklFfiNewMem(FKL_FFI_VPTR,sizeof(void*));
 	else if(fklFfiIsMem(v))
 	{
 		if(v->u.ud->t->__invoke)

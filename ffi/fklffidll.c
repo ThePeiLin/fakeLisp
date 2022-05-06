@@ -144,10 +144,12 @@ static void _ffi_proc_invoke(FklVM* exe,void* ptr)
 	for(i=0;i<anum;i++)
 	{
 		FklVMudata* ud=fklFfiNewMemUd(atypes[i],fklFfiGetTypeSizeWithTypeId(atypes[i]),NULL);
-		if(fklFfiSetMem(ud->data,args[i]))
+		if(fklFfiSetMemForProc(ud,args[i]))
 		{
 			for(uint32_t j=0;j<i;j++)
 			{
+				ud->t->__finalizer(ud->data);
+				fklFreeVMudata(ud);
 				FklVMudata* tud=udataList[i];
 				tud->t->__finalizer(tud->data);
 				fklFreeVMudata(tud);

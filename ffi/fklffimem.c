@@ -484,6 +484,83 @@ static int (*__ffiMemSetList[])(void*,FklVMvalue*)=
 	__set_uptr     ,
 };
 
+int fklFfiSetMemForProc(FklVMudata* ud,FklVMvalue* val)
+{
+	FklFfiMem* ref=ud->data;
+	if(fklFfiIsNumTypeId(ref->type))
+		return __ffiMemSetList[ref->type](ref->mem,val);
+	else if(fklFfiIsPtrTypeId(ref->type))
+	{
+		if(val==FKL_VM_NIL)
+			*(void**)ref->mem=NULL;
+		else if(fklFfiIsMem(val))
+		{
+			FklFfiMem* valmem=val->u.ud->data;
+			if(!fklFfiIsPtrTypeId(valmem->type)&&valmem->type!=FKL_FFI_STRING&&valmem->type!=FKL_FFI_FILE_P)
+				return 1;
+			if(fklFfiIsPtrTypeId(valmem->type))
+				*(void**)ref->mem=*(void**)valmem->mem;
+			else if(valmem->type==FKL_FFI_STRING)
+				*(void**)ref->mem=valmem->mem;
+			else if(valmem->type==FKL_FFI_FILE_P)
+				*(void**)ref->mem=valmem->mem;
+			else
+				return 1;
+		}
+		else if(fklFfiIsProc(val))
+		{
+			FklFfiproc* valproc=val->u.ud->data;
+			*(void**)ref->mem=valproc->func;
+		}
+		else
+			return 1;
+	}
+	else if(ref->type==FKL_FFI_STRING)
+	{
+		if(FKL_IS_STR(val))
+		{
+			if(ref->mem)
+				free(ref->mem);
+			ref->mem=fklCharBufToStr(val->u.str->str,val->u.str->size);
+		}
+		else if(FKL_IS_SYM(val))
+		{
+			if(ref->mem)
+				free(ref->mem);
+			ref->mem=fklCopyStr(fklGetGlobSymbolWithId(FKL_GET_SYM(val))->symbol);
+		}
+		else
+			return 1;
+	}
+	else if(ref->type==FKL_FFI_FILE_P)
+	{
+		if(FKL_IS_FP(val))
+			ref->mem=val->u.fp->fp;
+		else
+			return 1;
+	}
+	else
+	{
+		if(!fklFfiIsMem(val))
+			return 1;
+		else
+		{
+			FklFfiMem* valmem=val->u.ud->data;
+			if(ref->type!=valmem->type)
+				return 1;
+			if(fklFfiIsArrayTypeId(ref->type))
+			{
+				free(ref->mem);
+				ref->mem=valmem->mem;
+				ud->t=&FfiMemMethodTable;
+			}
+			else
+				memcpy(ref->mem,valmem->mem,fklFfiGetTypeSizeWithTypeId(ref->type));
+		}
+	}
+	return 0;
+}
+
 int fklFfiSetMem(FklFfiMem* ref,FklVMvalue* val)
 {
 	if(fklFfiIsNumTypeId(ref->type))

@@ -17,6 +17,7 @@ FklVMudata* fklFfiNewMemRefUd(FklTypeId_t type,void*);
 int fklFfiIsMem(FklVMvalue*);
 int fklFfiIsProc(FklVMvalue*);
 int fklFfiSetMem(FklFfiMem*,FklVMvalue*);
+int fklFfiSetMemForProc(FklVMudata*,FklVMvalue*);
 int fklFfiIsNull(FklFfiMem*);
 FklVMudata* fklFfiCastVMvalueIntoMem(FklVMvalue*);
 int fklFfiIsCastableVMvalueType(FklVMvalue* v);

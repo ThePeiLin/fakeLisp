@@ -546,7 +546,7 @@ FklVMpair* fklNewVMpair(void)
 	return tmp;
 }
 
-FklVMstr* fklNewVMstr(size_t size,char* str)
+FklVMstr* fklNewVMstr(size_t size,const char* str)
 {
 	FklVMstr* tmp=(FklVMstr*)malloc(sizeof(FklVMstr)+size*sizeof(uint8_t));
 	FKL_ASSERT(tmp,__func__);

@@ -191,6 +191,23 @@ static FklVMudMethodTable FfiProcMethodTable=
 	.__invoke=_ffi_proc_invoke,
 };
 
+int fklFfiIsValidFunctionTypeId(FklSid_t id)
+{
+	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(id).all);
+	uint32_t anum=ft->anum;
+	FklTypeId_t* atypes=ft->atypes;
+	FklTypeId_t rtype=ft->rtype;
+	uint32_t i=0;
+	for(;i<anum;i++)
+	{
+		if(!fklFfiIsArrayTypeId(atypes[i])&&fklFfiGetTypeSizeWithTypeId(atypes[i])>sizeof(void*))
+			return 0;
+	}
+	if(rtype&&!fklFfiIsArrayTypeId(rtype)&&fklFfiGetTypeSizeWithTypeId(rtype)>sizeof(void*))
+		return 0;
+	return 1;
+}
+
 FklFfiproc* fklFfiNewProc(FklTypeId_t type,void* func,FklSid_t sid)
 {
 	FklFfiproc* tmp=(FklFfiproc*)malloc(sizeof(FklFfiproc));

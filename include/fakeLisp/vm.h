@@ -361,7 +361,7 @@ int fklNumcmp(FklVMvalue*,FklVMvalue*);
 
 FklVMpair* fklNewVMpair(void);
 
-FklVMstr* fklNewVMstr(size_t,char*);
+FklVMstr* fklNewVMstr(size_t,const char*);
 
 FklVMstr* fklCopyVMstr(const FklVMstr*);
 FklVMstr* fklNewEmptyVMstr();

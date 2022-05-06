@@ -227,7 +227,7 @@ void FKL_ffi_proc(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("ffi.proc",FKL_WRONGARG,exe->rhead,exe);
 
 	FklTypeId_t id=fklFfiGenTypeId(typedeclare);
-	if(!id||!fklFfiIsFunctionTypeId(id))
+	if(!id||!fklFfiIsFunctionTypeId(id)||!fklFfiIsValidFunctionTypeId(id))
 		FKL_FFI_RAISE_ERROR("ffi.proc",FKL_FFI_INVALID_TYPEDECLARE,exe);
 	char* cStr=fklCharBufToStr(val->u.str->str,val->u.str->size);
 	FklVMudata* func=fklFfiNewProcUd(id,cStr);

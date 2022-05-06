@@ -1807,7 +1807,7 @@ void SYS_getdir(ARGL)
 	else
 	{
 		const char* cwd=fklGetCwd();
-		FklVMstr* str=fklNewVMstr(strlen(cwd),(void*)cwd);
+		FklVMstr* str=fklNewVMstr(strlen(cwd),cwd);
 		fklNiReturn(fklNiNewVMvalue(FKL_STR,str,stack,exe->heap),&ap,stack);
 	}
 	fklNiEnd(&ap,stack);

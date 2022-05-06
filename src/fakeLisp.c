@@ -74,7 +74,7 @@ int main(int argc,char** argv)
 			inter->lnt->num=mainByteCode->ls;
 			inter->lnt->list=mainByteCode->l;
 			FklVM* anotherVM=fklNewVM(mainByteCode->bc);
-			FklVMvalue* globEnv=fklNewVMvalue(FKL_ENV,fklNewVMenv(FKL_VM_NIL),anotherVM->heap);
+			FklVMvalue* globEnv=fklNewVMvalue(FKL_ENV,fklNewVMenv(NULL),anotherVM->heap);
 			fklFreeByteCode(mainByteCode->bc);
 			free(mainByteCode);
 			FklVMrunnable* mainrunnable=anotherVM->rhead;

@@ -30,7 +30,7 @@
         (lambda [c r]
           (cond
             [c (iter (cdr c)
-                     `(ffi-ref r (quote ~(car c))))]
+                     `(ffi-ref ~r (quote ~(car c))))]
             [1 r])))
       `(ffi-ref ~(iter path mem) '() ~@index)))
   (defmacro (ffi-procedure sym arg-types,rtypes)

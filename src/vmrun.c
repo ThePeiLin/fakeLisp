@@ -674,7 +674,7 @@ void B_push_var(FklVM* exe)
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklVMvalue* curEnv=runnable->localenv;
 	FklVMenvNode* tmp=NULL;
-	while(curEnv&&!tmp)
+	while(!tmp&&curEnv&&curEnv!=FKL_VM_NIL)
 	{
 		tmp=fklFindVMenvNode(idOfVar,curEnv->u.env);
 		curEnv=curEnv->u.env->prev;
@@ -742,7 +742,7 @@ void B_pop_var(FklVM* exe)
 	else
 	{
 		FklVMenvNode* tmp=NULL;
-		while(curEnv&&!tmp)
+		while(!tmp&&curEnv&&curEnv!=FKL_VM_NIL)
 		{
 			tmp=fklFindVMenvNode(idOfVar,curEnv->u.env);
 			curEnv=curEnv->u.env->prev;

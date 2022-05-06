@@ -29,7 +29,8 @@
       (define iter
         (lambda [c r]
           (cond
-            [c (iter (cdr c) (cons 'ffi-ref (cons r (cons `(quote ~(car c)) nil))))]
+            [c (iter (cdr c)
+                     `(ffi-ref r (quote ~(car c))))]
             [1 r])))
       `(ffi-ref ~(iter path mem) '() ~@index)))
   (defmacro (ffi-m-proc sym arg-types,rtypes)

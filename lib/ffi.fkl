@@ -33,6 +33,6 @@
                      `(ffi-ref r (quote ~(car c))))]
             [1 r])))
       `(ffi-ref ~(iter path mem) '() ~@index)))
-  (defmacro (ffi-m-proc sym arg-types,rtypes)
+  (defmacro (ffi-procedure sym arg-types,rtypes)
     `(ffi-proc ~sym (quote (function ~arg-types ~@rtypes))))
   )

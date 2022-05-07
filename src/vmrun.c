@@ -448,10 +448,11 @@ void* ThreadVMdlprocFunc(void* p)
 	if(!setjmp(exe->buf))
 	{
 		f(exe);
-		FklVMstack* stack=exe->stack;
+		FKL_NI_BEGIN(exe);
 		FklVMvalue* v=NULL;
-		while((v=fklTopGet(stack)))
+		while((v=fklNiGetArg(&ap,stack)))
 			fklChanlSend(fklNewVMsend(v),ch);
+		fklNiEnd(&ap,stack);
 	}
 	else
 	{

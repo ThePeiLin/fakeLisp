@@ -119,7 +119,6 @@ vector?
 chanl?  
 dll?  
 vector  
-dlclose  
 getdir  
 fgetc  
 fwrite  

@@ -110,7 +110,6 @@ static const char* builtInSymbolList[]=
 	"chanl?",
 	"dll?",
 	"vector",
-	"dlclose",
 	"getdir",
 	"fgetc",
 	"fwrite",

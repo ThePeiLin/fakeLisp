@@ -1366,25 +1366,6 @@ void SYS_dlopen(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_dlclose(ARGL)
-{
-	FKL_NI_BEGIN(exe);
-	FklVMrunnable* runnable=exe->rhead;
-	FklVMvalue* dll=fklNiGetArg(&ap,stack);
-	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR("sys.dlclose",FKL_TOOMANYARG,runnable,exe);
-	if(!dll)
-		FKL_RAISE_BUILTIN_ERROR("sys.dlclose",FKL_TOOFEWARG,runnable,exe);
-	if(!FKL_IS_DLL(dll))
-		FKL_RAISE_BUILTIN_ERROR("sys.dlclose",FKL_WRONGARG,runnable,exe);
-	if(dll->u.dll==NULL)
-		FKL_RAISE_BUILTIN_ERROR("sys.dlclose",FKL_INVALIDACCESS,runnable,exe);
-	fklFreeVMdll(dll->u.dll);
-	dll->u.dll=NULL;
-	fklNiReturn(FKL_VM_NIL,&ap,stack);
-	fklNiEnd(&ap,stack);
-}
-
 void SYS_dlsym(ARGL)
 {
 	FKL_NI_BEGIN(exe);

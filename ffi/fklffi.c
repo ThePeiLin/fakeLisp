@@ -245,8 +245,23 @@ void FKL_ffi_mem(ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR("ffi.mem",FKL_TOOMANYARG,runnable,exe);
 	if(!fklFfiIsCastableVMvalueType(val))
-		FKL_RAISE_BUILTIN_ERROR("ffi.mem",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("ffi.mem",FKL_WRONGARG,runnable,exe);
 	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA,fklFfiCastVMvalueIntoMem(val),stack,exe->heap),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void FKL_ffi_val(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* mem=fklNiGetArg(&ap,stack);
+	if(!mem)
+		FKL_RAISE_BUILTIN_ERROR("ffi.val",FKL_TOOFEWARG,runnable,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR("ffi.val",FKL_TOOMANYARG,runnable,exe);
+	if(!fklFfiIsMem(mem)||!fklFfiIsValuableMem(mem->u.ud->data))
+		FKL_RAISE_BUILTIN_ERROR("ffi.val",FKL_WRONGARG,runnable,exe);
+	fklNiReturn(fklFfiNewVMvalue(mem->u.ud->data,stack,exe->heap),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

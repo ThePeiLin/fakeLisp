@@ -21,4 +21,6 @@ int fklFfiSetMemForProc(FklVMudata*,FklVMvalue*);
 int fklFfiIsNull(FklFfiMem*);
 FklVMudata* fklFfiCastVMvalueIntoMem(FklVMvalue*);
 int fklFfiIsCastableVMvalueType(FklVMvalue* v);
+int fklFfiIsValuableMem(FklFfiMem* mem);
+FklVMvalue* fklFfiNewVMvalue(FklFfiMem* mem,FklVMstack* stack,FklVMheap* heap);
 #endif

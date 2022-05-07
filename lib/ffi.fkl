@@ -12,6 +12,7 @@
     ffi-ref
     ffi-set
     ffi-mem
+    ffi-val
     ffi-proc)
   (define ffi (dlopen (append (getdir) "/../fklffi")))
   (define ffi-mem? (dlsym ffi "ffi_mem_p"))
@@ -25,6 +26,7 @@
   (define ffi-ref (dlsym ffi "ffi_ref"))
   (define ffi-set (dlsym ffi "ffi_set"))
   (define ffi-mem (dlsym ffi "ffi_mem"))
+  (define ffi-val (dlsym ffi "ffi_val"))
   (define ffi-proc (dlsym ffi "ffi_proc"))
   (defmacro (ffi-path-ref path mem,index)
     (begin

@@ -2,6 +2,7 @@
 #include"fklffidll.h"
 #include<fakeLisp/utils.h>
 #include<string.h>
+#include<fakeLisp/fklni.h>
 
 FklSid_t FfiMemUdSid=0;
 static FklSid_t FfiAtomicSid=0;
@@ -722,4 +723,32 @@ FklVMudata* fklFfiCastVMvalueIntoMem(FklVMvalue* v)
 FklSid_t fklFfiGetFfiMemUdSid(void)
 {
 	return FfiMemUdSid;
+}
+
+int fklFfiIsValuableMem(FklFfiMem* mem)
+{
+	if(fklFfiIsNumTypeId(mem->type)||fklFfiIsNull(mem)||mem->type==FKL_FFI_STRING)
+		return 1;
+	return 0;
+}
+
+FklVMvalue* fklFfiNewVMvalue(FklFfiMem* mem,FklVMstack* stack,FklVMheap* heap)
+{
+	if(fklFfiIsNull(mem))
+		return FKL_VM_NIL;
+	else if(mem->type==FKL_FFI_STRING)
+	{
+		FklVMstr* str=fklNewVMstr(strlen(mem->mem),mem->mem);
+		return fklNiNewVMvalue(FKL_STR,str,stack,heap);
+	}
+	else
+	{
+		if(fklFfiIsFloatTypeId(mem->type))
+		{
+			double d=__ffiGetDoubleFuncList[mem->type](mem);
+			return fklNiNewVMvalue(FKL_F64,&d,stack,heap);
+		}
+		else
+			return fklMakeVMint(__ffiGetIntegerFuncList[mem->type](mem),stack,heap);
+	}
 }

@@ -64,33 +64,30 @@ eq
 equal  
 \=  
 \+  
+1+  
 \-  
+-1+  
 \*  
 /  
 %  
 \>  
-<  
 \>=  
+<  
 <=  
-i8  
-int  
-i32  
-i64  
+char  
+integer  
 f64  
-str  
-sym  
-byts  
-type  
+as-str  
+symbol  
 nth  
 length  
-clcc  
-file  
+apply  
+call/cc  
+fopen  
 read  
-getb  
-write  
-putb  
+prin1  
 princ  
-dll  
+dlopen  
 dlsym  
 argv  
 go  
@@ -99,10 +96,37 @@ send
 recv  
 error  
 raise  
-newf  
-delf  
-lfdl  
 reverse  
+i32  
+i64  
+fclose  
+feof  
+vref  
+nthcdr  
+char?  
+integer?  
+i32?  
+i64?  
+f64?  
+pair?  
+symbol?  
+string?  
+error?  
+procedure?  
+proc?  
+dlproc?  
+vector?  
+chanl?  
+dll?  
+vector  
+dlclose  
+getdir  
+fgetc  
+fwrite  
+to-str  
+fgets  
+to-int  
+to-f64  
 
 Special forms:  
 
@@ -119,15 +143,14 @@ begin
 unquote  
 qsquote  
 unqtesp  
-proc  
 import  
-getf  
-szof  
-flsym  
+try  
+library
 
 Preprocesser commands:  
 deftype  
 defmacro  
+macroexpand
 
 ##  Chinese version:  
 [README\_ZH.md](./README\_ZH.md)

@@ -190,10 +190,10 @@ void runRepl(FklInterpreter* inter)
 			switch(unexpectEOF)
 			{
 					case 1:
-						fprintf(stderr,"error of reader:Unexpect EOF at line %d of %s\n",inter->curline,inter->filename);
+						fprintf(stderr,"error of reader:Unexpect EOF at line %d\n",inter->curline);
 						break;
 					case 2:
-						fprintf(stderr,"error of reader:Invalid expression at line %d of %s\n",inter->curline,inter->filename);
+						fprintf(stderr,"error of reader:Invalid expression at line %d\n",inter->curline);
 						break;
 				}
 			free(list);
@@ -271,6 +271,7 @@ void runRepl(FklInterpreter* inter)
 		}
 		else
 		{
+			fprintf(stderr,"error of reader:Invalid expression at line %d\n",inter->curline);
 			if(list!=NULL)
 				free(list);
 		}

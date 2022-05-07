@@ -822,9 +822,11 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 							FklPtrStack* cStack=fklPopPtrStack(stackStack);
 							while(!fklIsPtrStackEmpty(cStack))
 							{
-								FklAstCptr* cptr=fklPopPtrStack(cStack);
+								AstElem* v=fklPopPtrStack(cStack);
+								FklAstCptr* cptr=v->cptr;
 								fklDeleteCptr(cptr);
 								free(cptr);
+								free(v);
 							}
 							fklFreePtrStack(cStack);
 						}
@@ -880,7 +882,9 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 				fklPushPtrStack(cStack,stackStack);
 				continue;
 			}
-			else if(isRightParenthese(token->value))
+			else if(isRightParenthese(token->value)
+					&&(isBuiltInParenthese(((MatchState*)fklTopPtrStack(matchStateStack))->pattern)
+						||isBuiltInVector(((MatchState*)fklTopPtrStack(matchStateStack))->pattern)))
 			{
 				fklPopPtrStack(stackStack);
 				MatchState* cState=fklPopPtrStack(matchStateStack);
@@ -918,7 +922,6 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 								fklCopyCptr(&vec->value.vec.base[i],c->cptr);
 							else
 								r=1;
-							
 						}
 						fklDeleteCptr(c->cptr);
 						free(c->cptr);
@@ -940,9 +943,11 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 						FklPtrStack* cStack=fklPopPtrStack(stackStack);
 						while(!fklIsPtrStackEmpty(cStack))
 						{
-							FklAstCptr* cptr=fklPopPtrStack(cStack);
+							AstElem* v=fklPopPtrStack(cStack);
+							FklAstCptr* cptr=v->cptr;
 							fklDeleteCptr(cptr);
 							free(cptr);
+							free(v);
 						}
 						fklFreePtrStack(cStack);
 					}
@@ -983,10 +988,34 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 		{
 			if(isBuiltInSingleStrPattern(state->pattern))
 			{
-				fklPopPtrStack(stackStack);
 				MatchState* cState=fklPopPtrStack(matchStateStack);
 				AstElem* postfix=fklPopPtrStack(cStack);
-				fklFreePtrStack(cStack);
+				if(!postfix)
+				{
+					while(!fklIsPtrStackEmpty(stackStack))
+					{
+						FklPtrStack* cStack=fklPopPtrStack(stackStack);
+						while(!fklIsPtrStackEmpty(cStack))
+						{
+							AstElem* v=fklPopPtrStack(cStack);
+							FklAstCptr* cptr=v->cptr;
+							fklDeleteCptr(cptr);
+							free(cptr);
+							free(v);
+						}
+						fklFreePtrStack(cStack);
+					}
+					fklFreePtrStack(stackStack);
+					while(!fklIsPtrStackEmpty(matchStateStack))
+					{
+						MatchState* state=fklPopPtrStack(matchStateStack);
+						free(state);
+					}
+					fklFreePtrStack(matchStateStack);
+					freeMatchState(cState);
+					return NULL;
+				}
+				fklPopPtrStack(stackStack);
 				cStack=fklTopPtrStack(stackStack);
 				if(state->pattern==DOTTED)
 				{

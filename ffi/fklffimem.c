@@ -529,6 +529,15 @@ int fklFfiSetMemForProc(FklVMudata* ud,FklVMvalue* val)
 				free(ref->mem);
 			ref->mem=fklCopyStr(fklGetGlobSymbolWithId(FKL_GET_SYM(val))->symbol);
 		}
+		else if(fklFfiIsMem(val))
+		{
+			FklFfiMem* m=val->u.ud->data;
+			if(m->type!=FKL_FFI_STRING)
+				return 1;
+			free(ref->mem);
+			ref->mem=m->mem;
+			ud->t=&FfiMemMethodTable;
+		}
 		else
 			return 1;
 	}
@@ -604,6 +613,14 @@ int fklFfiSetMem(FklFfiMem* ref,FklVMvalue* val)
 			if(ref->mem)
 				free(ref->mem);
 			ref->mem=fklCopyStr(fklGetGlobSymbolWithId(FKL_GET_SYM(val))->symbol);
+		}
+		else if(fklFfiIsMem(val))
+		{
+			FklFfiMem* m=val->u.ud->data;
+			if(m->type!=FKL_FFI_STRING)
+				return 1;
+			free(ref->mem);
+			ref->mem=fklCopyStr(m->mem);
 		}
 		else
 			return 1;

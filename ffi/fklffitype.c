@@ -1,6 +1,7 @@
 #include"fklffitype.h"
 #include<fakeLisp/utils.h>
 #include<string.h>
+#include<stdalign.h>
 
 static pthread_rwlock_t GlobDefTypesLock=PTHREAD_RWLOCK_INITIALIZER;
 static FklDefTypes* GlobDefTypes=NULL;
@@ -40,44 +41,44 @@ void fklFfiInitNativeDefTypes(FklDefTypes* otherTypes)
 	{
 		char* typeName;
 		size_t size;
+		size_t align;
 	}nativeTypeList[]=
 	{
-		{"short",sizeof(short)},
-		{"int",sizeof(int)},
-		{"unsigned-short",sizeof(unsigned short)},
-		{"unsigned",sizeof(unsigned)},
-		{"long",sizeof(long)},
-		{"unsigned-long",sizeof(unsigned long)},
-		{"long-long",sizeof(long long)},
-		{"unsigned-long-long",sizeof(unsigned long long)},
-		{"ptrdiff_t",sizeof(ptrdiff_t)},
-		{"size_t",sizeof(size_t)},
-		{"ssize_t",sizeof(ssize_t)},
-		{"char",sizeof(char)},
-		{"wchar_t",sizeof(wchar_t)},
-		{"float",sizeof(float)},
-		{"double",sizeof(double)},
-		{"int8_t",sizeof(int8_t)},
-		{"uint8_t",sizeof(uint8_t)},
-		{"int16_t",sizeof(int16_t)},
-		{"uint16_t",sizeof(uint16_t)},
-		{"int32_t",sizeof(int32_t)},
-		{"uint32_t",sizeof(uint32_t)},
-		{"int64_t",sizeof(int64_t)},
-		{"uint64_t",sizeof(uint64_t)},
-		{"iptr",sizeof(intptr_t)},
-		{"uptr",sizeof(uintptr_t)},
-		{"vptr",sizeof(void*)},
-		{"string",sizeof(char*)},
-		{"FILE*",sizeof(FILE*)},
+		{"short",              sizeof(short),              alignof(short),              },
+		{"int",                sizeof(int),                alignof(int),                },
+		{"unsigned-short",     sizeof(unsigned short),     alignof(unsigned short),     },
+		{"unsigned",           sizeof(unsigned),           alignof(unsigned),           },
+		{"long",               sizeof(long),               alignof(long),               },
+		{"unsigned-long",      sizeof(unsigned long),      alignof(unsigned long),      },
+		{"long-long",          sizeof(long long),          alignof(long long),          },
+		{"unsigned-long-long", sizeof(unsigned long long), alignof(unsigned long long), },
+		{"ptrdiff_t",          sizeof(ptrdiff_t),          alignof(ptrdiff_t),          },
+		{"size_t",             sizeof(size_t),             alignof(size_t),             },
+		{"ssize_t",            sizeof(ssize_t),            alignof(ssize_t),            },
+		{"char",               sizeof(char),               alignof(char),               },
+		{"wchar_t",            sizeof(wchar_t),            alignof(wchar_t),            },
+		{"float",              sizeof(float),              alignof(float),              },
+		{"double",             sizeof(double),             alignof(double),             },
+		{"int8_t",             sizeof(int8_t),             alignof(int8_t),             },
+		{"uint8_t",            sizeof(uint8_t),            alignof(uint8_t),            },
+		{"int16_t",            sizeof(int16_t),            alignof(int16_t),            },
+		{"uint16_t",           sizeof(uint16_t),           alignof(uint16_t),           },
+		{"int32_t",            sizeof(int32_t),            alignof(int32_t),            },
+		{"uint32_t",           sizeof(uint32_t),           alignof(uint32_t),           },
+		{"int64_t",            sizeof(int64_t),            alignof(int64_t),            },
+		{"uint64_t",           sizeof(uint64_t),           alignof(uint64_t),           },
+		{"iptr",               sizeof(intptr_t),           alignof(intptr_t),           },
+		{"uptr",               sizeof(uintptr_t),          alignof(uintptr_t),          },
+		{"vptr",               sizeof(void*),              alignof(void*),              },
+		{"string",             sizeof(char*),              alignof(char*),              },
+		{"FILE*",              sizeof(FILE*),              alignof(FILE*),              },
 	};
 	size_t num=sizeof(nativeTypeList)/sizeof(nativeTypeList[0]);
 	size_t i=0;
 	for(;i<num;i++)
 	{
 		FklSid_t typeName=fklAddSymbolToGlob(nativeTypeList[i].typeName)->id;
-		size_t size=nativeTypeList[i].size;
-		FklTypeId_t t=fklFfiNewNativeType(typeName,size,size);
+		FklTypeId_t t=fklFfiNewNativeType(typeName,nativeTypeList[i].size,nativeTypeList[i].align);
 		fklFfiAddDefTypes(otherTypes,typeName,t);
 	}
 }

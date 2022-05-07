@@ -2103,10 +2103,7 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int* exitstate)
 				fklFreeToken(fklPopPtrStack(tokenStack));
 			free(list);
 			list=NULL;
-			fklFreeByteCodeAndLnt(tmp);
-			fklFreeByteCode(resTp);
-			fklFreePtrStack(tokenStack);
-			return NULL;
+			break;
 		}
 		while(!fklIsPtrStackEmpty(tokenStack))
 			fklFreeToken(fklPopPtrStack(tokenStack));

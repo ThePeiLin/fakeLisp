@@ -903,8 +903,8 @@ void SYS_as_str(ARGL)
 			if(!fklIsInt(pstart))
 				FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_WRONGARG,runnable,exe);
 			int64_t start=fklGetInt(pstart);
-			if((FKL_IS_STR(obj)&&start>=obj->u.str->size)
-					||(FKL_IS_VECTOR(obj)&&start>=obj->u.vec->size))
+			if((FKL_IS_STR(obj)&&(start<0||start>=obj->u.str->size))
+					||(FKL_IS_VECTOR(obj)&&(start<0||start>=obj->u.vec->size)))
 				FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_INVALIDACCESS,runnable,exe);
 			int64_t size=FKL_IS_STR(obj)?obj->u.str->size-start:obj->u.vec->size-start;
 			if(psize)
@@ -912,7 +912,7 @@ void SYS_as_str(ARGL)
 				if(!fklIsInt(psize))
 					FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_WRONGARG,runnable,exe);
 				int64_t tsize=fklGetInt(psize);
-				if(tsize>size)
+				if(tsize<0||tsize>size)
 					FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_INVALIDACCESS,runnable,exe);
 				size=tsize;
 			}
@@ -1724,14 +1724,39 @@ void SYS_vector(ARGL)
 	FklVMvalue* fir=fklNiGetArg(&ap,stack);
 	if(!fir)
 		FKL_RAISE_BUILTIN_ERROR("sys.vector",FKL_TOOFEWARG,runnable,exe);
-	if(FKL_IS_STR(fir))
+	if(FKL_IS_STR(fir)||FKL_IS_VECTOR(fir))
 	{
+		FklVMvalue* startV=fklNiGetArg(&ap,stack);
+		FklVMvalue* sizeV=fklNiGetArg(&ap,stack);
 		if(fklNiResBp(&ap,stack))
 			FKL_RAISE_BUILTIN_ERROR("sys.vector",FKL_TOOMANYARG,runnable,exe);
-		size_t size=fir->u.str->size;
+		if((startV&&!fklIsInt(startV))
+				||(sizeV&&!fklIsInt(sizeV)))
+			FKL_RAISE_BUILTIN_ERROR("sys.vector",FKL_WRONGARG,runnable,exe);
+		int64_t start=0;
+		size_t size=FKL_IS_STR(fir)?fir->u.str->size:fir->u.vec->size;
+		if(startV)
+		{
+			int64_t tstart=fklGetInt(startV);
+			if(tstart<0||tstart>size)
+				FKL_RAISE_BUILTIN_ERROR("sys.vector",FKL_INVALIDACCESS,runnable,exe);
+			start=tstart;
+		}
+		size=size-start;
+		if(sizeV)
+		{
+			int64_t tsize=fklGetInt(sizeV);
+			if(tsize<0||tsize>size)
+				FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_INVALIDACCESS,runnable,exe);
+			size=tsize;
+		}
 		FklVMvec* vec=fklNewVMvec(size,NULL);
-		for(size_t i=0;i<size;i++)
-			vec->base[i]=FKL_MAKE_VM_CHR(fir->u.str->str[i]);
+		if(FKL_IS_STR(fir))
+			for(size_t i=0;i<size;i++)
+				vec->base[i]=FKL_MAKE_VM_CHR(fir->u.str->str[i+start]);
+		else
+			for(size_t i=0;i<size;i++)
+				vec->base[i]=fir->u.vec->base[i+start];
 		fklNiReturn(fklNiNewVMvalue(FKL_VECTOR,vec,stack,exe->heap),&ap,stack);
 	}
 	else if(fklIsInt(fir))
@@ -1763,6 +1788,13 @@ void SYS_vector(ARGL)
 			fklNiReturn(fklNiNewVMvalue(FKL_VECTOR,vec,stack,exe->heap),&ap,stack);
 		}
 	}
+//	else if(FKL_IS_VECTOR(fir))
+//	{
+//		FklVMvalue* startV=fklNiGetArg(&ap,stack);
+//		FklVMvalue* sizeV=fklNiGetArg(&ap,stack);
+//		if(fklNiResBp(&ap,stack))
+//				FKL_RAISE_BUILTIN_ERROR("sys.vector",FKL_TOOMANYARG,runnable,exe);
+//	}
 	else
 		FKL_RAISE_BUILTIN_ERROR("sys.vector",FKL_WRONGARG,runnable,exe);
 	fklNiEnd(&ap,stack);

@@ -18,7 +18,7 @@ extern void invokeDlProc(FklVM*,FklVMdlproc*);
 extern FklVMlist GlobVMs;
 extern void* ThreadVMfunc(void* p);
 extern void* ThreadVMdlprocFunc(void* p);
-extern void* ThreadVMflprocFunc(void* p);
+extern void* ThreadVMinvokableUd(void* p);
 
 //syscalls
 
@@ -1427,7 +1427,7 @@ void SYS_go(ARGL)
 	FklVMvalue* threadProc=fklNiGetArg(&ap,stack);
 	if(!threadProc)
 		FKL_RAISE_BUILTIN_ERROR("sys.go",FKL_TOOFEWARG,runnable,exe);
-	if(!FKL_IS_PROC(threadProc)&&!FKL_IS_DLPROC(threadProc)&&!FKL_IS_CONT(threadProc))
+	if(!FKL_IS_PROC(threadProc)&&!FKL_IS_DLPROC(threadProc)&&!FKL_IS_CONT(threadProc)&&!fklIsInvokableUd(threadProc))
 		FKL_RAISE_BUILTIN_ERROR("sys.go",FKL_WRONGARG,runnable,exe);
 	FklVM* threadVM=(FKL_IS_PROC(threadProc)||FKL_IS_CONT(threadProc))?fklNewThreadVM(threadProc->u.proc,exe->heap):fklNewThreadDlprocVM(runnable,exe->heap);
 	threadVM->lnt=exe->lnt;
@@ -1462,6 +1462,12 @@ void SYS_go(ARGL)
 		void* a[2]={threadVM,threadProc->u.dlproc->func};
 		void** p=(void**)fklCopyMemory(a,sizeof(a));
 		faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMdlprocFunc,p);
+	}
+	else
+	{
+		void* a[2]={threadVM,threadProc->u.ud};
+		void** p=(void**)fklCopyMemory(a,sizeof(a));
+		faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMinvokableUd,p);
 	}
 	if(faildCode)
 	{
@@ -1613,7 +1619,7 @@ void SYS_apply(ARGL)
 	FklVMvalue* proc=fklNiGetArg(&ap,stack);
 	if(!proc)
 		FKL_RAISE_BUILTIN_ERROR("sys.apply",FKL_TOOFEWARG,runnable,exe);
-	if(!FKL_IS_PTR(proc)||(proc->type!=FKL_PROC&&proc->type!=FKL_CONT&&proc->type!=FKL_DLPROC))
+	if(!FKL_IS_PROC(proc)&&!FKL_IS_CONT(proc)&&!FKL_IS_DLPROC(proc)&&!fklIsInvokableUd(proc))
 		FKL_RAISE_BUILTIN_ERROR("b.invoke",FKL_INVOKEERROR,runnable,exe);
 	FklPtrStack* stack1=fklNewPtrStack(32,16);
 	FklVMvalue* value=NULL;
@@ -1656,17 +1662,23 @@ void SYS_apply(ARGL)
 		fklNiReturn(t,&ap,stack);
 	}
 	fklFreePtrStack(stack1);
-	fklNiEnd(&ap,stack);
 	switch(proc->type)
 	{
 		case FKL_PROC:
 			invokeNativeProcdure(exe,proc->u.proc,runnable);
+			fklNiEnd(&ap,stack);
 			break;
 		case FKL_CONT:
+			fklNiEnd(&ap,stack);
 			invokeContinuation(exe,proc->u.cont);
 			break;
 		case FKL_DLPROC:
+			fklNiEnd(&ap,stack);
 			invokeDlProc(exe,proc->u.dlproc);
+			break;
+		case FKL_USERDATA:
+			fklNiEnd(&ap,stack);
+			proc->u.ud->t->__invoke(exe,proc->u.ud->data);
 			break;
 		default:
 			break;

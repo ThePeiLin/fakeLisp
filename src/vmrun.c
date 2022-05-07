@@ -477,6 +477,46 @@ void* ThreadVMdlprocFunc(void* p)
 	return (void*)state;
 }
 
+void* ThreadVMinvokableUd(void* p)
+{
+	void** a=(void**)p;
+	FklVM* exe=a[0];
+	FklVMudata* ud=a[1];
+	free(p);
+	int64_t state=0;
+	FklVMchanl* ch=exe->chan->u.chan;
+	if(!setjmp(exe->buf))
+	{
+		ud->t->__invoke(exe,ud->data);
+		FKL_NI_BEGIN(exe);
+		FklVMvalue* v=NULL;
+		while((v=fklNiGetArg(&ap,stack)))
+			fklChanlSend(fklNewVMsend(v),ch);
+		fklNiEnd(&ap,stack);
+	}
+	else
+	{
+		char* threadErrorMessage=fklCopyStr("error:occur in thread ");
+		char* id=fklIntToString(exe->VMid);
+		threadErrorMessage=fklStrCat(threadErrorMessage,id);
+		threadErrorMessage=fklStrCat(threadErrorMessage,"\n");
+		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerror(NULL,fklGetBuiltInErrorType(FKL_THREADERROR),threadErrorMessage),exe->heap);
+		free(threadErrorMessage);
+		free(id);
+		FklVMsend* t=fklNewVMsend(err);
+		fklChanlSend(t,ch);
+		state=255;
+	}
+	fklFreeVMstack(exe->stack);
+	exe->stack=NULL;
+	exe->lnt=NULL;
+	fklDeleteCallChain(exe);
+	exe->rhead=NULL;
+	fklFreePtrStack(exe->tstack);
+	exe->mark=0;
+	return (void*)state;
+}
+
 int fklRunVM(FklVM* exe)
 {
 	while(exe->rhead)

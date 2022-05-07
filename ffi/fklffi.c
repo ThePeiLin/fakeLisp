@@ -123,6 +123,31 @@ void FKL_ffi_sizeof(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void FKL_ffi_alignof(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* typedeclare=fklNiGetArg(&ap,stack);
+	if(!typedeclare)
+		FKL_RAISE_BUILTIN_ERROR("ffi.alignof",FKL_TOOFEWARG,exe->rhead,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR("ffi.alignof",FKL_TOOMANYARG,exe->rhead,exe);
+	if(!FKL_IS_SYM(typedeclare)&&!FKL_IS_PAIR(typedeclare)&&!fklFfiIsMem(typedeclare))
+		FKL_RAISE_BUILTIN_ERROR("ffi.alignof",FKL_WRONGARG,exe->rhead,exe);
+	if(fklFfiIsMem(typedeclare))
+	{
+		FklFfiMem* m=typedeclare->u.ud->data;
+		fklNiReturn(fklMakeVMint(fklFfiGetTypeSizeWithTypeId(m->type),stack,exe->heap),&ap,stack);
+	}
+	else
+	{
+		FklTypeId_t id=fklFfiGenTypeId(typedeclare);
+		if(!id)
+			FKL_FFI_RAISE_ERROR("ffi.alignof",FKL_FFI_INVALID_TYPEDECLARE,exe);
+		fklNiReturn(fklMakeVMint(fklFfiGetTypeAlignWithTypeId(id),stack,exe->heap),&ap,stack);
+	}
+	fklNiEnd(&ap,stack);
+}
+
 void FKL_ffi_typedef(ARGL)
 {
 	FKL_NI_BEGIN(exe);

@@ -187,6 +187,7 @@ void fklFfiFreeFuncType(FklDefFuncType*);
 size_t fklFfiGetTypeSize(FklDefTypeUnion t);
 size_t fklFfiGetTypeAlign(FklDefTypeUnion t);
 size_t fklFfiGetTypeSizeWithTypeId(FklTypeId_t t);
+size_t fklFfiGetTypeAlignWithTypeId(FklTypeId_t t);
 FklDefTypeUnion fklFfiGetTypeUnion(FklTypeId_t);
 
 void fklFfiInitGlobNativeTypes(void);

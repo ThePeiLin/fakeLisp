@@ -8,6 +8,7 @@
     ffi-sizeof
     ffi-typedef
     ffi-load
+    ffi-alignof
     ffi-ref
     ffi-set
     ffi-mem
@@ -18,6 +19,7 @@
   (define ffi-new (dlsym ffi "ffi_new"))
   (define ffi-delete (dlsym ffi "ffi_delete"))
   (define ffi-sizeof (dlsym ffi "ffi_sizeof"))
+  (define ffi-alignof (dlsym ffi "ffi_alignof"))
   (define ffi-typedef (dlsym ffi "ffi_typedef"))
   (define ffi-load (dlsym ffi "ffi_load"))
   (define ffi-ref (dlsym ffi "ffi_ref"))

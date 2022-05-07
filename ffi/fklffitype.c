@@ -127,10 +127,9 @@ FklTypeId_t fklFfiNewStructType(FklSid_t structName,uint32_t num,FklSid_t symbol
 			totalSize+=(totalSize%align)?align-totalSize%align:0;
 			totalSize+=size;
 			if(maxSize<size)
-			{
 				maxSize=size;
+			if(align>structAlign)
 				structAlign=align;
-			}
 		}
 		totalSize+=(maxSize&&totalSize%maxSize)?maxSize-totalSize%maxSize:0;
 		FklDefStructType* tmp=(FklDefStructType*)malloc(sizeof(FklDefStructType)+sizeof(FklDefStructMember)*num);
@@ -249,10 +248,10 @@ FklTypeId_t fklFfiNewUnionType(FklSid_t unionName,uint32_t num,FklSid_t symbols[
 	{
 		size_t curSize=fklFfiGetTypeSizeWithTypeId(memberTypes[i]);
 		if(maxSize<curSize)
-		{
 			maxSize=curSize;
-			align=fklFfiGetTypeAlign(fklFfiGetTypeUnion(memberTypes[i]));
-		}
+		size_t ta=fklFfiGetTypeAlign(fklFfiGetTypeUnion(memberTypes[i]));
+		if(ta>align)
+			align=ta;
 	}
 	FklDefUnionType* tmp=(FklDefUnionType*)malloc(sizeof(FklDefUnionType)+sizeof(FklDefStructMember)*num);
 	FKL_ASSERT(tmp,__func__);
@@ -459,6 +458,11 @@ size_t fklFfiGetTypeSizeWithTypeId(FklTypeId_t t)
 	return fklFfiGetTypeSize(fklFfiGetTypeUnion(t));
 }
 
+size_t fklFfiGetTypeAlignWithTypeId(FklTypeId_t t)
+{
+	return fklFfiGetTypeAlign(fklFfiGetTypeUnion(t));
+}
+
 size_t fklFfiGetTypeSize(FklDefTypeUnion t)
 {
 	FklDefTypeTag tag=FKL_GET_TYPES_TAG(t.all);
@@ -523,12 +527,17 @@ static void initStructTypeId(FklTypeId_t id,FklSid_t structNameId,uint32_t num,F
 {
 	size_t totalSize=0;
 	size_t prevAllign=1;
+	size_t align=0;
 	for(uint32_t i=0
 			;i<num
 			;totalSize+=totalSize%prevAllign
 			,totalSize+=fklFfiGetTypeSize(fklFfiGetTypeUnion(memberTypes[i]))
 			,i++)
+	{
 		prevAllign=fklFfiGetTypeAlign(fklFfiGetTypeUnion(memberTypes[i]));
+		if(prevAllign>align)
+			align=prevAllign;
+	}
 	FklDefTypeUnion* pst=&GlobTypeUnionList.ul[id-1];
 	FklDefStructType* ost=(FklDefStructType*)FKL_GET_TYPES_PTR(pst->st);
 	ost=(FklDefStructType*)realloc(ost,sizeof(FklDefStructType)+num*sizeof(FklDefStructMember));
@@ -536,6 +545,7 @@ static void initStructTypeId(FklTypeId_t id,FklSid_t structNameId,uint32_t num,F
 	ost->type=structNameId;
 	ost->num=num;
 	ost->totalSize=totalSize;
+	ost->align=align;
 	for(uint32_t i=0;i<num;i++)
 	{
 		ost->layout[i].memberSymbol=symbols[i];
@@ -650,11 +660,15 @@ static FklTypeId_t genStructTypeId(FklVMvalue* structBodyPair,FklDefTypes* other
 static void initUnionTypeId(FklTypeId_t id,FklSid_t unionNameId,uint32_t num,FklSid_t* symbols,FklTypeId_t* memberTypes)
 {
 	size_t maxSize=0;
+	size_t align=0;
 	for(uint32_t i=0;i<num;i++)
 	{
 		size_t curSize=fklFfiGetTypeSizeWithTypeId(memberTypes[i]);
 		if(maxSize<curSize)
 			maxSize=curSize;
+		size_t ta=fklFfiGetTypeAlign(fklFfiGetTypeUnion(memberTypes[i]));
+		if(ta>align)
+			align=ta;
 	}
 	FklDefTypeUnion* put=&GlobTypeUnionList.ul[id-1];
 	FklDefUnionType* out=(FklDefUnionType*)FKL_GET_TYPES_PTR(put->ut);
@@ -663,6 +677,7 @@ static void initUnionTypeId(FklTypeId_t id,FklSid_t unionNameId,uint32_t num,Fkl
 	out->type=unionNameId;
 	out->num=num;
 	out->maxSize=maxSize;
+	out->align=align;
 	for(uint32_t i=0;i<num;i++)
 	{
 		out->layout[i].memberSymbol=symbols[i];

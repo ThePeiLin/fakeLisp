@@ -882,9 +882,7 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 				fklPushPtrStack(cStack,stackStack);
 				continue;
 			}
-			else if(isRightParenthese(token->value)
-					&&(isBuiltInParenthese(((MatchState*)fklTopPtrStack(matchStateStack))->pattern)
-						||isBuiltInVector(((MatchState*)fklTopPtrStack(matchStateStack))->pattern)))
+			else if(isRightParenthese(token->value))
 			{
 				fklPopPtrStack(stackStack);
 				MatchState* cState=fklPopPtrStack(matchStateStack);
@@ -988,34 +986,10 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 		{
 			if(isBuiltInSingleStrPattern(state->pattern))
 			{
+				fklPopPtrStack(stackStack);
 				MatchState* cState=fklPopPtrStack(matchStateStack);
 				AstElem* postfix=fklPopPtrStack(cStack);
-				if(!postfix)
-				{
-					while(!fklIsPtrStackEmpty(stackStack))
-					{
-						FklPtrStack* cStack=fklPopPtrStack(stackStack);
-						while(!fklIsPtrStackEmpty(cStack))
-						{
-							AstElem* v=fklPopPtrStack(cStack);
-							FklAstCptr* cptr=v->cptr;
-							fklDeleteCptr(cptr);
-							free(cptr);
-							free(v);
-						}
-						fklFreePtrStack(cStack);
-					}
-					fklFreePtrStack(stackStack);
-					while(!fklIsPtrStackEmpty(matchStateStack))
-					{
-						MatchState* state=fklPopPtrStack(matchStateStack);
-						free(state);
-					}
-					fklFreePtrStack(matchStateStack);
-					freeMatchState(cState);
-					return NULL;
-				}
-				fklPopPtrStack(stackStack);
+				fklFreePtrStack(cStack);
 				cStack=fklTopPtrStack(stackStack);
 				if(state->pattern==DOTTED)
 				{
@@ -1098,7 +1072,12 @@ void fklMakeAstVector(FklAstVector* vec,size_t size,const FklAstCptr* base)
 	vec->base=(FklAstCptr*)malloc(sizeof(FklAstCptr)*size);
 	FKL_ASSERT(!size||vec->base,__func__);
 	for(size_t i=0;i<size;i++)
+	{
 		vec->base[i].outer=NULL;
+		vec->base[i].type=FKL_NIL;
+		vec->base[i].curline=0;
+		vec->base[i].u.all=NULL;
+	}
 	if(base)
 	{
 		for(size_t i=0;i<size;i++)

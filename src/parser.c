@@ -411,6 +411,13 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 					{
 						const char* parenthese=(state->pattern==PARENTHESE_0||state->pattern==VECTOR_0)?")":"]";
 						MatchState* prevState=fklTopPtrStack(matchStateStack);
+						if(!isBuiltInParenthese(prevState->pattern))
+						{
+							freeMatchState(state);
+							while(!fklIsPtrStackEmpty(matchStateStack))
+								freeMatchState(fklPopPtrStack(matchStateStack));
+							return 2;
+						}
 						fklPushPtrStack(fklNewToken(FKL_TOKEN_RESERVE_STR,parenthese,*line),retvalStack);
 						freeMatchState(prevState);
 						fklPopPtrStack(matchStateStack);

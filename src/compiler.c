@@ -2533,20 +2533,12 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 			else if(begin==NULL&&!fklIsAllComment(tokenStack))
 			{
 				fprintf(stderr,"error of reader:Invalid expression at line %d of %s\n",tmpInter->curline,tmpInter->filename);
+				free(prev);
 				while(!fklIsPtrStackEmpty(tokenStack))
 					fklFreeToken(fklPopPtrStack(tokenStack));
-				tmpInter->lnt=NULL;
-				fklFreeIntpr(tmpInter);
-				if(libPrefix)
-					free(libPrefix);
-				fklFreeMemMenager(memMenager);
-				fklFreeStringArry(partsOfPath,count);
-				while(!fklIsPtrStackEmpty(tokenStack))
-					fklFreeToken(fklPopPtrStack(tokenStack));
-				fklFreePtrStack(tokenStack);
 				if(list)
 					free(list);
-				return NULL;
+				break;
 			}
 			while(!fklIsPtrStackEmpty(tokenStack))
 				fklFreeToken(fklPopPtrStack(tokenStack));

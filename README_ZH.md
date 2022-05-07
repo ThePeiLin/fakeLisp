@@ -469,18 +469,6 @@ dlsym的第一个参数为动态库，第二个参数为要查找的函数名，
 ### raise
 参数为一个错误对象，该函数会使解释器发生错误对象对应的错误来终止程序的运行或触发错误处理的表达式。  
 
-### newf
-参数为内存的大小，申请一块大小为参数所指定的字节数的内存。
-
-### delf
-参数为一块内存，释放内存。
-
-### lfdl
-参数只能为字符串，字符串的内容为要加载的动态库的路径，如：
-```scheme
-(lfdl "libc.so.6")
-```
-
 ---
 
 
@@ -566,9 +554,6 @@ nil
 (cons () ())
 ;=> (())
 
-(quote (,))
-;=> (())
-
 (cons (quote ()) (quote ()))
 ;=> (()) ;这个值为真，因为不是空表
 ```
@@ -646,12 +631,11 @@ lambda表达式，返回一个参数列表为args，函数体为列表body的过
 ### import
 加载模块用的特殊形式，表达式的值为该模块最后一个表达式的值；  
 编译时编译器查找目标文件中的第一个library表达式，如果library后的第一个表达式与要import的模块所查找的路径不同，则查找文件中的下一个library表达式，  
-如import的模块名为(tool test)，则tool/test.fkl文件中至少要有一个library表达式定义的模块名为(tool test)；  
-即，(import (tool test))必须对应(library (tool test) ...)  
+如import的模块名为(tool test)，则tool/test.fkl文件中至少要有一个library表达式定义的模块名为test；  
 并且，export表达式必须紧跟模块名，library表达式中必须有且仅有一个export表达式；  
 ```scheme
 ;test.fkl
-(library (test)
+(library test
   (export (x y))
   (define x 2)
   (define y 1)
@@ -726,71 +710,16 @@ caught an error
 如果没有发生错误，则表达式的值为\<expression1\>中的值，否则其值为对应错误的处理表达式的值，如\<expression3\>的值或\<expression5\>的值，  
 错误发生的时候，会产生一个错误对象，用符号\<symbol-that-bind-the-error-occured\>绑定；尖括号中的内容为可替代内容。  
 
-### szof
-格式为：  
+### macroexpand
+返回宏展开的表达式  
 ```scheme
-(szof <type>)
+(macroexpand (let [(a 1)(b 2)] (princ (+ a b))))
+;=> ((lambda (a b) (princ (+ a b))) 1 2)
 ```
-返回<type>的大小。  
-
-### getf
-格式为：  
-```scheme
-(getf <type> <path> <exp> <index(可选)>)
-```
-
-按照path返回一个内存的引用。
-比如：  
-```
-(deftype Vec3
-  (struct
-    (x float)
-    (y float)
-    (z float)))
-
-(define v1 (newf (szof Vec3)))
-(setf (getf Vec3 (x) v1) 1.0)
-(getf Vec3 (x) v1)
-```
-path中的“\&”表示取地址，“\*”表示解引用。  
-只能取原始类型，数组，指针，外部函数的引用，引用结构体联合体将会导致编译错误。  
-这些引用都是不安全的。  
-
-### flsym
-从加载的动态库中查找一个函数，并返回这个函数
-格式为：
-```scheme
-(flsym <funtion-type> <name>)
-(flsym (function (string) size_t) "strlen")
-```
-
 
 ## 预处理指令（不产生字节码）:  
 defmacro  
 
-### deftype
-给一个类型加一个别名，只支持原始数据类型，数组，指针，结构体，联合体。  
-示例如下：
-```scheme
-(define LNode
-   (struct LNode
-     (data int)
-     (next (ptr (struct LNode)))))
-
-(define fiUnion
-  (union
-    (f float)
-    (i int)))
-
-(function (int int) int)
-;         ~~~~~~~~~  ^
-;             ^      |
-;             |  函数返回值
-;          参数列表
-
-(deftype Mtx4 (array 16 float))
-
-```
 ## 关于面向对象  
 lisp系的编程语言大多都有词法闭包，  可以利用词法闭包来实现面向对象的功能，下面的宏实现了一个简单的对象系统：  
   

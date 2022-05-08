@@ -12,7 +12,7 @@
 #include<dlfcn.h>
 #include<ctype.h>
 
-extern void invokeNativeProcdure(FklVM*,FklVMproc*,FklVMrunnable*);
+extern void applyNativeProc(FklVM*,FklVMproc*,FklVMrunnable*);
 extern void invokeContinuation(FklVM*,FklVMcontinuation*);
 extern void invokeDlProc(FklVM*,FklVMdlproc*);
 extern FklVMlist GlobVMs;
@@ -1665,7 +1665,7 @@ void SYS_apply(ARGL)
 	switch(proc->type)
 	{
 		case FKL_PROC:
-			invokeNativeProcdure(exe,proc->u.proc,runnable);
+			applyNativeProc(exe,proc->u.proc,runnable);
 			fklNiEnd(&ap,stack);
 			break;
 		case FKL_CONT:

@@ -63,6 +63,21 @@ void invokeNativeProcdure(FklVM* exe,FklVMproc* tmpProc,FklVMrunnable* runnable)
 	pthread_rwlock_unlock(&exe->rlock);
 }
 
+void applyNativeProc(FklVM* exe,FklVMproc* tmpProc,FklVMrunnable* runnable)
+{
+	FklVMrunnable* prevProc=fklHasSameProc(tmpProc->scp,exe->rhead);
+	if(fklIsTheLastExpress(runnable,prevProc,exe)&&prevProc)
+		prevProc->mark=1;
+	else
+	{
+		pthread_rwlock_wrlock(&exe->rlock);
+		FklVMrunnable* tmpRunnable=fklNewVMrunnable(tmpProc,exe->rhead);
+		tmpRunnable->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(tmpProc->prevEnv),exe->heap);
+		exe->rhead=tmpRunnable;
+		pthread_rwlock_unlock(&exe->rlock);
+	}
+}
+
 void tailInvokeNativeProcdure(FklVM* exe,FklVMproc* proc,FklVMrunnable* runnable)
 {
 	if(runnable->scp==proc->scp)

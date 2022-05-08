@@ -1,5 +1,5 @@
-(import (lib ffi))
-(import (lib utils))
+(import (.. lib ffi))
+(import (.. lib utils))
 
 (ffi-typedef
   '(struct

@@ -293,10 +293,10 @@ void FKL_ffi_proc(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void _fklInit(FklSymbolTable* glob)
+void _fklInit(FklSymbolTable* glob,FklVMvalue* rel)
 {
 	fklSetGlobSymbolTable(glob);
-	fklFfiMemInit();
+	fklFfiMemInit(rel);
 	fklFfiInitGlobNativeTypes();
 	fklFfiInitTypedefSymbol();
 }

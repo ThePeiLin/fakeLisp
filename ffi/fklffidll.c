@@ -253,5 +253,5 @@ FklVMudata* fklFfiNewProcUd(FklTypeId_t type,const char* cStr)
 	pthread_rwlock_unlock(&GlobSharedObjsLock);
 	if(!address)
 		return NULL;
-	return fklNewVMudata(fklFfiGetFfiMemUdSid(),&FfiProcMethodTable,fklFfiNewProc(type,address,fklAddSymbolToGlob(cStr)->id));
+	return fklNewVMudata(fklFfiGetFfiMemUdSid(),&FfiProcMethodTable,fklFfiNewProc(type,address,fklAddSymbolToGlob(cStr)->id),fklFfiGetRel());
 }

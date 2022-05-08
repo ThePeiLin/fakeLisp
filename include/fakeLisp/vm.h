@@ -83,9 +83,11 @@ typedef struct FklVMvec
 typedef struct FklVMudata
 {
 	FklSid_t type;
+	struct FklVMvalue* rel;
 	struct FklVMudMethodTable* t;
 	void* data;
 }FklVMudata;
+
 typedef enum{
 	FKL_MARK_W=0,
 	FKL_MARK_G,
@@ -379,6 +381,7 @@ FklVMfp* fklNewVMfp(FILE*);
 int fklFreeVMfp(FklVMfp*);
 
 FklVMdllHandle fklNewVMdll(const char*);
+void fklInitVMdll(FklVMvalue* rel);
 void* fklGetAddress(const char*,FklVMdllHandle);
 void fklFreeVMdll(FklVMdllHandle);
 
@@ -409,7 +412,7 @@ FklVMvec* fklNewVMvec(size_t size,FklVMvalue** base);
 void fklFreeVMvec(FklVMvec*);
 void fklVMvecCat(FklVMvec**,const FklVMvec*);
 
-FklVMudata* fklNewVMudata(FklSid_t type,FklVMudMethodTable* t,void* mem);
+FklVMudata* fklNewVMudata(FklSid_t type,FklVMudMethodTable* t,void* mem,FklVMvalue* rel);
 int fklIsInvokableUd(FklVMvalue*);
 void fklFreeVMudata(FklVMudata*);
 

@@ -7,7 +7,7 @@ typedef struct FklFfiMem
 	void* mem;
 }FklFfiMem;
 
-void fklFfiMemInit(void);
+void fklFfiMemInit(FklVMvalue*);
 FklSid_t fklFfiGetFfiMemUdSid(void);
 FklFfiMem* fklFfiNewMem(FklTypeId_t type,size_t);
 FklFfiMem* fklFfiNewRef(FklTypeId_t type,void* ref);
@@ -23,4 +23,5 @@ FklVMudata* fklFfiCastVMvalueIntoMem(FklVMvalue*);
 int fklFfiIsCastableVMvalueType(FklVMvalue* v);
 int fklFfiIsValuableMem(FklFfiMem* mem);
 FklVMvalue* fklFfiNewVMvalue(FklFfiMem* mem,FklVMstack* stack,FklVMheap* heap);
+FklVMvalue* fklFfiGetRel(void);
 #endif

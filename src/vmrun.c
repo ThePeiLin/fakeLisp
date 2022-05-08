@@ -1364,12 +1364,6 @@ void fklGC_markGlobalRoot(void)
 		{
 			if(GlobVMs.VMs[i]->mark)
 				fklGC_markRootToGray(GlobVMs.VMs[i]);
-			else
-			{
-				pthread_join(GlobVMs.VMs[i]->tid,NULL);
-				free(GlobVMs.VMs[i]);
-				GlobVMs.VMs[i]=NULL;
-			}
 		}
 	}
 }
@@ -1433,13 +1427,16 @@ void propagateMark(FklVMvalue* root,FklVMheap* heap)
 				pthread_rwlock_unlock(&env->lock);
 			}
 			break;
+		case FKL_USERDATA:
+			if(root->u.ud->rel)
+				fklGC_toGray(root->u.ud->rel,heap);
+			break;
 		case FKL_I64:
 		case FKL_F64:
 		case FKL_FP:
 		case FKL_DLL:
 		case FKL_ERR:
 		case FKL_STR:
-		case FKL_USERDATA:
 			break;
 		default:
 			FKL_ASSERT(0,__func__);
@@ -1532,6 +1529,21 @@ void* fklGC_threadFunc(void* arg)
 	exe->heap->threshold=exe->heap->num+FKL_THRESHOLD_SIZE;
 	exe->heap->running=FKL_GC_DONE;
 	pthread_rwlock_unlock(&exe->heap->lock);
+	if(exe->VMid!=-1)
+	{
+		for(uint32_t i=0;i<GlobVMs.num;i++)
+		{
+			if(GlobVMs.VMs[i])
+			{
+				if(!GlobVMs.VMs[i]->mark)
+				{
+					pthread_join(GlobVMs.VMs[i]->tid,NULL);
+					free(GlobVMs.VMs[i]);
+					GlobVMs.VMs[i]=NULL;
+				}
+			}
+		}
+	}
 	return NULL;
 }
 
@@ -1590,13 +1602,20 @@ void fklFreeVMvalue(FklVMvalue* cur)
 void fklGC_sweep(FklVMheap* heap)
 {
 	FklVMvalue** phead=&heap->head;
+	FklVMvalue* freeDll=NULL;
 	while(*phead!=NULL)
 	{
 		FklVMvalue* cur=*phead;
 		if(FKL_IS_PTR(cur)&&cur->mark==FKL_MARK_W)
 		{
 			*phead=cur->next;
-			fklFreeVMvalue(cur);
+			if(FKL_IS_DLL(cur))
+			{
+				cur->next=freeDll;
+				freeDll=cur;
+			}
+			else
+				fklFreeVMvalue(cur);
 			heap->num-=1;
 		}
 		else
@@ -1604,6 +1623,13 @@ void fklGC_sweep(FklVMheap* heap)
 			cur->mark=FKL_MARK_W;
 			phead=&cur->next;
 		}
+	}
+	phead=&freeDll;
+	while(*phead!=NULL)
+	{
+		FklVMvalue* cur=*phead;
+		*phead=cur->next;
+		fklFreeVMvalue(cur);
 	}
 }
 

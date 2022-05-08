@@ -1362,7 +1362,9 @@ void SYS_dlopen(ARGL)
 	if(!dll)
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR("sys.dlopen",str,1,FKL_LOADDLLFAILD,exe);
 	free(str);
-	fklNiReturn(fklNiNewVMvalue(FKL_DLL,dll,stack,exe->heap),&ap,stack);
+	FklVMvalue* rel=fklNiNewVMvalue(FKL_DLL,dll,stack,exe->heap);
+	fklInitVMdll(rel);
+	fklNiReturn(rel,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

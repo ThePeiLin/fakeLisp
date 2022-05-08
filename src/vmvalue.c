@@ -696,12 +696,17 @@ FklVMdllHandle fklNewVMdll(const char* dllName)
 		free(realDllName);
 		return NULL;
 	}
-	void (*init)(FklSymbolTable*)=fklGetAddress("_fklInit",handle);
-	if(init)
-		init(fklGetGlobSymbolTable());
 	free(realDllName);
 	free(rpath);
 	return handle;
+}
+
+void fklInitVMdll(FklVMvalue* rel)
+{
+	FklVMdllHandle handle=rel->u.dll;
+	void (*init)(FklSymbolTable*,FklVMvalue* rel)=fklGetAddress("_fklInit",handle);
+	if(init)
+		init(fklGetGlobSymbolTable(),rel);
 }
 
 void fklFreeVMdll(FklVMdllHandle dll)
@@ -1044,12 +1049,13 @@ void fklVMvecCat(FklVMvec** fir,const FklVMvec* sec)
 		(*fir)->base[firSize+i]=sec->base[i];
 }
 
-FklVMudata* fklNewVMudata(FklSid_t type,FklVMudMethodTable* t,void* mem)
+FklVMudata* fklNewVMudata(FklSid_t type,FklVMudMethodTable* t,void* mem,FklVMvalue* rel)
 {
 	FklVMudata* r=(FklVMudata*)malloc(sizeof(FklVMudata));
 	FKL_ASSERT(r,__func__);
 	r->type=type;
 	r->t=t;
+	r->rel=rel;
 	r->data=mem;
 	return r;
 }

@@ -1835,6 +1835,7 @@ FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 	FKL_ASSERT(toReturn->l,__func__);
 	toReturn->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,pushProc->size,line);
 	fklFreeAllMacroThenDestroyCompEnv(tmpEnv);
+	fklScanAndSetTailInvoke(codeOfLambda->bc);
 	fklCodeLntCat(toReturn,codeOfLambda);
 	fklFreeByteCodelnt(codeOfLambda);
 	return toReturn;

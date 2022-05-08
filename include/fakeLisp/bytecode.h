@@ -88,6 +88,7 @@ void fklSetI64ToByteCode(uint8_t* code,int64_t i);
 void fklSetU64ToByteCode(uint8_t* code,uint64_t i);
 void fklSetF64ToByteCode(uint8_t* code,double i);
 void fklSetSidToByteCode(uint8_t* code,FklSid_t i);
+void fklScanAndSetTailInvoke(FklByteCode* bc);
 #ifdef __cplusplus
 }
 #endif

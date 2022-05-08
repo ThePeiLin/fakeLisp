@@ -40,9 +40,10 @@ typedef enum
 	FKL_PUSH_VECTOR,
 	FKL_PUSH_R_ENV,
 	FKL_POP_R_ENV,
+	FKL_TAIL_INVOKE,
 }FklOpcode;
 
-#define FKL_LAST_OPCODE FKL_POP_R_ENV
+#define FKL_LAST_OPCODE FKL_TAIL_INVOKE
 const char* fklGetOpcodeName(FklOpcode);
 int fklGetOpcodeArgLen(FklOpcode);
 FklOpcode fklFindOpcode(const char*);

@@ -56,15 +56,23 @@ static int envNodeCmp(const void* a,const void* b)
 /*procedure invoke functions*/
 void invokeNativeProcdure(FklVM* exe,FklVMproc* tmpProc,FklVMrunnable* runnable)
 {
-	FklVMrunnable* prevProc=fklHasSameProc(tmpProc->scp,exe->rhead);
-	if(fklIsTheLastExpress(runnable,prevProc,exe)&&prevProc)
-		prevProc->mark=1;
+	pthread_rwlock_wrlock(&exe->rlock);
+	FklVMrunnable* tmpRunnable=fklNewVMrunnable(tmpProc,exe->rhead);
+	tmpRunnable->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(tmpProc->prevEnv),exe->heap);
+	exe->rhead=tmpRunnable;
+	pthread_rwlock_unlock(&exe->rlock);
+}
+
+void tailInvokeNativeProcdure(FklVM* exe,FklVMproc* proc,FklVMrunnable* runnable)
+{
+	if(runnable->scp==proc->scp)
+		runnable->mark=1;
 	else
 	{
 		pthread_rwlock_wrlock(&exe->rlock);
-		FklVMrunnable* tmpRunnable=fklNewVMrunnable(tmpProc,exe->rhead);
-		tmpRunnable->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(tmpProc->prevEnv),exe->heap);
-		exe->rhead=tmpRunnable;
+		FklVMrunnable* tmpRunnable=fklNewVMrunnable(proc,exe->rhead->prev);
+		tmpRunnable->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(proc->prevEnv),exe->heap);
+		exe->rhead->prev=tmpRunnable;
 		pthread_rwlock_unlock(&exe->rlock);
 	}
 }
@@ -116,6 +124,7 @@ static void B_append(FklVM*);
 static void B_push_vector(FklVM*);
 static void B_push_r_env(FklVM*);
 static void B_pop_r_env(FklVM*);
+static void B_tail_invoke(FklVM*);
 
 static void (*ByteCodes[])(FklVM*)=
 {
@@ -153,6 +162,7 @@ static void (*ByteCodes[])(FklVM*)=
 	B_push_vector,
 	B_push_r_env,
 	B_pop_r_env,
+	B_tail_invoke,
 };
 
 FklVM* fklNewVM(FklByteCode* mainCode)
@@ -993,6 +1003,37 @@ void B_invoke(FklVM* exe)
 	}
 }
 
+void B_tail_invoke(FklVM* exe)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* tmpValue=fklNiGetArg(&ap,stack);
+	if(!FKL_IS_PROC(tmpValue)&&!FKL_IS_DLPROC(tmpValue)&&!FKL_IS_CONT(tmpValue)&&!fklIsInvokableUd(tmpValue))
+		FKL_RAISE_BUILTIN_ERROR("b.invoke",FKL_INVOKEERROR,runnable,exe);
+	runnable->cp+=sizeof(char);
+	switch(tmpValue->type)
+	{
+		case FKL_PROC:
+			tailInvokeNativeProcdure(exe,tmpValue->u.proc,runnable);
+			fklNiEnd(&ap,stack);
+			break;
+		case FKL_CONT:
+			fklNiEnd(&ap,stack);
+			invokeContinuation(exe,tmpValue->u.cont);
+			break;
+		case FKL_DLPROC:
+			fklNiEnd(&ap,stack);
+			invokeDlProc(exe,tmpValue->u.dlproc);
+			break;
+		case FKL_USERDATA:
+			fklNiEnd(&ap,stack);
+			tmpValue->u.ud->t->__invoke(exe,tmpValue->u.ud->data);
+			break;
+		default:
+			break;
+	}
+}
+
 void B_jmp_if_true(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
@@ -1205,7 +1246,7 @@ int fklIsTheLastExpress(const FklVMrunnable* runnable,const FklVMrunnable* same,
 	for(;;)
 	{
 		uint8_t* code=exe->code;
-		uint32_t i=runnable->cp+(code[runnable->cp]==FKL_INVOKE);
+		uint32_t i=runnable->cp+(code[runnable->cp]==FKL_INVOKE||code[runnable->cp]==FKL_TAIL_INVOKE);
 		size=runnable->scp+runnable->cpc;
 
 		for(;i<size;i+=(code[i]==FKL_JMP)?fklGetI64FromByteCode(code+i+sizeof(char))+sizeof(char)+sizeof(int64_t):1)

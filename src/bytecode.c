@@ -186,11 +186,81 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode,uint32_t i
 
 void fklPrintByteCode(const FklByteCode* tmpCode,FILE* fp)
 {
-	uint32_t i=0;
+	uint64_t i=0;
 	while(i<tmpCode->size)
 	{
 		i+=printSingleByteCode(tmpCode,i,fp);
 		putc('\n',fp);
+	}
+}
+
+static uint64_t skipToInvoke(uint64_t index,const FklByteCode* bc)
+{
+	uint64_t r=0;
+	while(index+r<bc->size&&bc->code[index+r]!=FKL_INVOKE)
+	{
+		switch(fklGetOpcodeArgLen((FklOpcode)(bc->code[index+r])))
+		{
+			case -4:
+				{
+					r+=sizeof(char);
+					r+=sizeof(FklSid_t);
+					uint32_t handlerNum=fklGetU32FromByteCode(bc->code+index+r);
+					r+=sizeof(uint32_t);
+					for(uint32_t j=0;j<handlerNum;j++)
+					{
+						r+=sizeof(FklSid_t);
+						uint64_t pCpc=fklGetU64FromByteCode(bc->code+index+r);
+						r+=sizeof(uint64_t);
+						r+=pCpc;
+					}
+				}
+				break;
+			case -3:
+				r+=sizeof(char)+sizeof(int32_t)+sizeof(FklSid_t);
+				break;
+			case -2:
+				r+=sizeof(char)+sizeof(uint64_t)+fklGetU64FromByteCode(bc->code+index+r+sizeof(char));
+				break;
+			case -1:
+				r+=sizeof(char)+sizeof(uint64_t)+fklGetU64FromByteCode(bc->code+index+r+sizeof(char));
+				break;
+			case 0:
+				r+=sizeof(char);
+				break;
+			case 1:
+				r+=sizeof(char)+sizeof(char);
+				break;
+			case 4:
+				r+=sizeof(char)+sizeof(int32_t);
+				break;
+			case 8:
+				r+=sizeof(char)+sizeof(int64_t);
+				break;
+		}
+	}
+	return r;
+}
+
+static int fklIsTheLastExpression(uint64_t index,FklByteCode* bc)
+{
+	uint64_t size=bc->size;
+	uint8_t* code=bc->code;
+	for(uint64_t i=index;i<size;i+=(code[i]==FKL_JMP)?fklGetI64FromByteCode(code+i+sizeof(char))+sizeof(char)+sizeof(int64_t):1)
+		if(code[i]!=FKL_POP_TP
+				&&code[i]!=FKL_POP_TRY
+				&&code[i]!=FKL_JMP
+				&&code[i]!=FKL_POP_R_ENV)
+			return 0;
+	return 1;
+}
+
+void fklScanAndSetTailInvoke(FklByteCode* bc)
+{
+	for(uint64_t i=skipToInvoke(0,bc);i<bc->size;i+=skipToInvoke(i,bc))
+	{
+		if(fklIsTheLastExpression(++i,bc))
+			bc->code[i-1]=FKL_TAIL_INVOKE;
 	}
 }
 

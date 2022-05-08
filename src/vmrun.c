@@ -457,8 +457,10 @@ void* ThreadVMfunc(void* p)
 	if(state!=0)
 		fklDeleteCallChain(exe);
 	fklFreePtrStack(exe->tstack);
+	pthread_rwlock_wrlock(&exe->rlock);
 	exe->rhead=NULL;
 	exe->mark=0;
+	pthread_rwlock_unlock(&exe->rlock);
 	return (void*)state;
 }
 
@@ -1362,8 +1364,17 @@ void fklGC_markGlobalRoot(void)
 	{
 		if(GlobVMs.VMs[i])
 		{
-			if(GlobVMs.VMs[i]->mark)
+			pthread_rwlock_rdlock(&GlobVMs.VMs[i]->rlock);
+			unsigned mark=GlobVMs.VMs[i]->mark;
+			pthread_rwlock_unlock(&GlobVMs.VMs[i]->rlock);
+			if(mark)
 				fklGC_markRootToGray(GlobVMs.VMs[i]);
+			else
+			{
+				pthread_join(GlobVMs.VMs[i]->tid,NULL);
+				free(GlobVMs.VMs[i]);
+				GlobVMs.VMs[i]=NULL;
+			}
 		}
 	}
 }
@@ -1444,27 +1455,27 @@ void propagateMark(FklVMvalue* root,FklVMheap* heap)
 	}
 }
 
-void fklGC_propagate(FklVM* exe)
+void fklGC_propagate(FklVMheap* heap)
 {
-	pthread_rwlock_rdlock(&exe->heap->glock);
-	Graylink* g=exe->heap->gray;
-	exe->heap->gray=g->next;
-	pthread_rwlock_unlock(&exe->heap->glock);
+	pthread_rwlock_rdlock(&heap->glock);
+	Graylink* g=heap->gray;
+	heap->gray=g->next;
+	pthread_rwlock_unlock(&heap->glock);
 	FklVMvalue* v=g->v;
 	free((void*)g);
 	if(FKL_IS_PTR(v)&&v->mark==FKL_MARK_G)
 	{
 		v->mark=FKL_MARK_B;
-		propagateMark(v,exe->heap);
+		propagateMark(v,heap);
 	}
 }
 
-void fklGC_collect(FklVM* exe)
+void fklGC_collect(FklVMheap* heap)
 {
-	pthread_rwlock_wrlock(&exe->heap->lock);
-	FklVMvalue* head=exe->heap->head;
-	exe->heap->head=NULL;
-	pthread_rwlock_unlock(&exe->heap->lock);
+	pthread_rwlock_wrlock(&heap->lock);
+	FklVMvalue* head=heap->head;
+	heap->head=NULL;
+	pthread_rwlock_unlock(&heap->lock);
 	FklVMvalue** phead=&head;
 	while(*phead)
 	{
@@ -1472,8 +1483,8 @@ void fklGC_collect(FklVM* exe)
 		if(cur->mark==FKL_MARK_W)
 		{
 			*phead=cur->next;
-			cur->next=exe->heap->white;
-			exe->heap->white=cur;
+			cur->next=heap->white;
+			heap->white=cur;
 		}
 		else
 		{
@@ -1481,16 +1492,16 @@ void fklGC_collect(FklVM* exe)
 			phead=&cur->next;
 		}
 	}
-	pthread_rwlock_wrlock(&exe->heap->lock);
-	*phead=exe->heap->head;
-	exe->heap->head=head;
-	pthread_rwlock_unlock(&exe->heap->lock);
+	pthread_rwlock_wrlock(&heap->lock);
+	*phead=heap->head;
+	heap->head=head;
+	pthread_rwlock_unlock(&heap->lock);
 }
 
-void fklGC_sweepW(FklVM* exe)
+void fklGC_sweepW(FklVMheap* heap)
 {
-	FklVMvalue* head=exe->heap->white;
-	exe->heap->white=NULL;
+	FklVMvalue* head=heap->white;
+	heap->white=NULL;
 	uint32_t count=0;
 	FklVMvalue** phead=&head;
 	while(*phead)
@@ -1500,50 +1511,36 @@ void fklGC_sweepW(FklVM* exe)
 		fklFreeVMvalue(cur);
 		count++;
 	}
-	pthread_rwlock_wrlock(&exe->heap->lock);
-	*phead=exe->heap->head;
-	exe->heap->head=head;
-	exe->heap->num-=count;
-	pthread_rwlock_unlock(&exe->heap->lock);
+	pthread_rwlock_wrlock(&heap->lock);
+	*phead=heap->head;
+	heap->head=head;
+	heap->num-=count;
+	pthread_rwlock_unlock(&heap->lock);
 }
 
 void* fklGC_threadFunc(void* arg)
 {
 	FklVM* exe=arg;
+	FklVMheap* heap=exe->heap;
 	if(exe->VMid!=-1)
 		fklGC_markGlobalRoot();
 	else
 		fklGC_markRootToGray(exe);
 	for(;;)
 	{
-		pthread_rwlock_rdlock(&exe->heap->glock);
-		Graylink* g=exe->heap->gray;
-		pthread_rwlock_unlock(&exe->heap->glock);
+		pthread_rwlock_rdlock(&heap->glock);
+		Graylink* g=heap->gray;
+		pthread_rwlock_unlock(&heap->glock);
 		if(!g)
 			break;
-		fklGC_propagate(exe);
+		fklGC_propagate(heap);
 	}
-	fklGC_collect(exe);
-	fklGC_sweepW(exe);
-	pthread_rwlock_wrlock(&exe->heap->lock);
-	exe->heap->threshold=exe->heap->num+FKL_THRESHOLD_SIZE;
-	exe->heap->running=FKL_GC_DONE;
-	pthread_rwlock_unlock(&exe->heap->lock);
-	if(exe->VMid!=-1)
-	{
-		for(uint32_t i=0;i<GlobVMs.num;i++)
-		{
-			if(GlobVMs.VMs[i])
-			{
-				if(!GlobVMs.VMs[i]->mark)
-				{
-					pthread_join(GlobVMs.VMs[i]->tid,NULL);
-					free(GlobVMs.VMs[i]);
-					GlobVMs.VMs[i]=NULL;
-				}
-			}
-		}
-	}
+	fklGC_collect(heap);
+	fklGC_sweepW(heap);
+	pthread_rwlock_wrlock(&heap->lock);
+	heap->threshold=heap->num+FKL_THRESHOLD_SIZE;
+	heap->running=FKL_GC_DONE;
+	pthread_rwlock_unlock(&heap->lock);
 	return NULL;
 }
 

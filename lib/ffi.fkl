@@ -28,6 +28,8 @@
   (define ffi-mem (dlsym ffi "ffi_mem"))
   (define ffi-val (dlsym ffi "ffi_val"))
   (define ffi-proc (dlsym ffi "ffi_proc"))
+  (defmacro (ffi-deftype type alias)
+    `(ffi-typedef '~type '~alias))
   (defmacro (ffi-path-ref path mem,index)
     (begin
       (define iter

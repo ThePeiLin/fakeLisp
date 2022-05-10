@@ -105,6 +105,7 @@ void invokeDlProc(FklVM* exe,FklVMdlproc* dlproc)
 /*--------------------------*/
 
 FklVMlist GlobVMs={0,NULL};
+pthread_rwlock_t GlobVMsLock=PTHREAD_RWLOCK_INITIALIZER;
 static void B_dummy(FklVM*);
 static void B_push_nil(FklVM*);
 static void B_push_pair(FklVM*);
@@ -205,6 +206,7 @@ FklVM* fklNewVM(FklByteCode* mainCode)
 	pthread_rwlock_init(&exe->rlock,NULL);
 	FklVM** ppVM=NULL;
 	int i=0;
+	pthread_rwlock_wrlock(&GlobVMsLock);
 	for(;i<GlobVMs.num;i++)
 		if(GlobVMs.VMs[i]==NULL)
 			ppVM=GlobVMs.VMs+i;
@@ -222,6 +224,7 @@ FklVM* fklNewVM(FklByteCode* mainCode)
 		GlobVMs.num+=1;
 		exe->VMid=size;
 	}
+	pthread_rwlock_unlock(&GlobVMsLock);
 	return exe;
 }
 
@@ -1360,6 +1363,7 @@ void fklGC_markRootToGray(FklVM* exe)
 
 void fklGC_markGlobalRoot(void)
 {
+	pthread_rwlock_rdlock(&GlobVMsLock);
 	for(uint32_t i=0;i<GlobVMs.num;i++)
 	{
 		if(GlobVMs.VMs[i])
@@ -1377,6 +1381,7 @@ void fklGC_markGlobalRoot(void)
 			}
 		}
 	}
+	pthread_rwlock_unlock(&GlobVMsLock);
 }
 
 void fklGC_pause(FklVM* exe)
@@ -1646,6 +1651,7 @@ FklVM* fklNewThreadVM(FklVMproc* mainCode,FklVMheap* heap)
 	pthread_rwlock_init(&exe->rlock,NULL);
 	FklVM** ppVM=NULL;
 	int i=0;
+	pthread_rwlock_wrlock(&GlobVMsLock);
 	for(;i<GlobVMs.num;i++)
 		if(GlobVMs.VMs[i]==NULL)
 		{
@@ -1666,6 +1672,7 @@ FklVM* fklNewThreadVM(FklVMproc* mainCode,FklVMheap* heap)
 		GlobVMs.num+=1;
 		exe->VMid=size;
 	}
+	pthread_rwlock_unlock(&GlobVMsLock);
 	return exe;
 }
 
@@ -1685,6 +1692,7 @@ FklVM* fklNewThreadDlprocVM(FklVMrunnable* r,FklVMheap* heap)
 	exe->callback=threadErrorCallBack;
 	FklVM** ppVM=NULL;
 	int i=0;
+	pthread_rwlock_wrlock(&GlobVMsLock);
 	for(;i<GlobVMs.num;i++)
 		if(GlobVMs.VMs[i]==NULL)
 		{
@@ -1705,6 +1713,7 @@ FklVM* fklNewThreadDlprocVM(FklVMrunnable* r,FklVMheap* heap)
 		GlobVMs.num+=1;
 		exe->VMid=size;
 	}
+	pthread_rwlock_unlock(&GlobVMsLock);
 	return exe;
 }
 
@@ -1732,6 +1741,7 @@ void fklFreeAllVMs()
 			free(cur);
 	}
 	free(GlobVMs.VMs);
+	pthread_rwlock_destroy(&GlobVMsLock);
 }
 
 void fklFreeVMheap(FklVMheap* h)

@@ -72,8 +72,8 @@ void FKL_ffi_new(ARGL)
 	if(id==FKL_FFI_FILE_P||id==FKL_FFI_STRING)
 	{
 		mem->t->__finalizer(mem->data);
-		free(mem);
 		FklFfiMem* m=mem->data;
+		free(mem);
 		free(m->mem);
 		m->mem=NULL;
 	}

@@ -2362,8 +2362,11 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 								}
 								FklAstAtom* pSymbol=pExportSymbols->u.atom;
 								num++;
-								exportSymbols=(const char**)fklReallocMem(exportSymbols,realloc(exportSymbols,sizeof(const char*)*num),memMenager);
-								FKL_ASSERT(exportSymbols,__func__);
+								const char** t_Cstr=exportSymbols;
+								t_Cstr=(const char**)realloc(t_Cstr,sizeof(const char*)*num);
+								FKL_ASSERT(t_Cstr,__func__);
+								fklReallocMem(exportSymbols,t_Cstr,memMenager);
+								exportSymbols=t_Cstr;
 								exportSymbols[num-1]=pSymbol->value.sym;
 							}
 							mergeSort(exportSymbols,num,sizeof(const char*),cmpString);

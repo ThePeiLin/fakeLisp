@@ -446,6 +446,13 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 				else if(state->index<state->pattern->num)
 				{
 					char* curPart=fklGetNthPartOfStringMatchPattern(state->pattern,state->index);
+					MatchState* prevState=fklTopPtrStack(matchStateStack);
+					if(state->index!=0&&prevState->pattern!=state->pattern)
+					{
+						while(!fklIsPtrStackEmpty(matchStateStack))
+							freeMatchState(fklPopPtrStack(matchStateStack));
+						return 2;
+					}
 					state->index++;
 					if(state->index-1==0)
 						fklPushPtrStack(state,matchStateStack);

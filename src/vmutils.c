@@ -401,11 +401,10 @@ static void scanCirRef(FklVMvalue* s,FklPtrStack* recStack)
 {
 	FklPtrStack* beAccessed=fklNewPtrStack(32,16);
 	FklPtrStack* totalAccessed=fklNewPtrStack(32,16);
-	FklPtrStack* toAccess=fklNewPtrStack(32,16);
-	fklPushPtrStack(s,toAccess);
-	while(!fklIsPtrStackEmpty(toAccess))
+	fklPushPtrStack(s,beAccessed);
+	while(!fklIsPtrStackEmpty(beAccessed))
 	{
-		FklVMvalue* v=fklPopPtrStack(toAccess);
+		FklVMvalue* v=fklPopPtrStack(beAccessed);
 		if(FKL_IS_PAIR(v)||FKL_IS_VECTOR(v))
 		{
 			if(isInStack(v,totalAccessed,NULL))
@@ -415,17 +414,17 @@ static void scanCirRef(FklVMvalue* s,FklPtrStack* recStack)
 			}
 			if(isInStack(v,recStack,NULL))
 				continue;
-			fklPushPtrStack(v,beAccessed);
+			fklPushPtrStack(v,totalAccessed);
 			if(FKL_IS_PAIR(v))
 			{
 				if(v->u.pair->cdr==v)
 					fklPushPtrStack(v,recStack);
 				else
-					fklPushPtrStack(v->u.pair->cdr,toAccess);
+					fklPushPtrStack(v->u.pair->cdr,beAccessed);
 				if(v->u.pair->car==v)
 					fklPushPtrStack(v,recStack);
 				else
-					fklPushPtrStack(v->u.pair->car,toAccess);
+					fklPushPtrStack(v->u.pair->car,beAccessed);
 			}
 			else
 			{
@@ -435,16 +434,13 @@ static void scanCirRef(FklVMvalue* s,FklPtrStack* recStack)
 					if(vec->base[i-1]==v)
 						fklPushPtrStack(v,recStack);
 					else
-						fklPushPtrStack(vec->base[i-1],toAccess);
+						fklPushPtrStack(vec->base[i-1],beAccessed);
 				}
 			}
 		}
-		if(beAccessed->top&&!toAccess->top)
-			fklPushPtrStack(fklPopPtrStack(beAccessed),totalAccessed);
 	}
 	fklFreePtrStack(totalAccessed);
 	fklFreePtrStack(beAccessed);
-	fklFreePtrStack(toAccess);
 }
 
 static void princVMatom(FklVMvalue* v,FILE* fp)

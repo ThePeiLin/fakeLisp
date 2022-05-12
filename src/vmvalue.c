@@ -166,6 +166,7 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 			break;
 	}
 }
+
 FklVMvalue* fklNewVMvalueToStack(FklValueType type
 		,void* pValue
 		,FklVMstack* stack
@@ -341,96 +342,6 @@ void fklAddToHeap(FklVMvalue* v,FklVMheap* heap)
 		heap->num+=1;
 		pthread_rwlock_unlock(&heap->lock);
 	}
-}
-
-FklVMvalue* fklNewVMvalueToStackWithoutLock(FklValueType type
-		,void* pValue
-		,FklVMstack* stack
-		,FklVMheap* heap)
-{
-	if(stack->tp>=stack->size)
-	{
-		stack->values=(FklVMvalue**)realloc(stack->values
-				,sizeof(FklVMvalue*)*(stack->size+64));
-		FKL_ASSERT(stack->values,__func__);
-		stack->size+=64;
-	}
-	switch(type)
-	{
-		case FKL_NIL:
-			stack->values[stack->tp]=FKL_VM_NIL;
-			break;
-		case FKL_CHR:
-			stack->values[stack->tp]=FKL_MAKE_VM_CHR(pValue);
-			break;
-		case FKL_I32:
-			stack->values[stack->tp]=FKL_MAKE_VM_I32(pValue);
-			break;
-		case FKL_SYM:
-			stack->values[stack->tp]=FKL_MAKE_VM_SYM(pValue);
-			break;
-		default:
-			{
-				FklVMvalue* tmp=(FklVMvalue*)malloc(sizeof(FklVMvalue));
-				FKL_ASSERT(tmp,__func__);
-				stack->values[stack->tp]=tmp;
-				tmp->type=type;
-				tmp->mark=FKL_MARK_W;
-				switch(type)
-				{
-					case FKL_F64:
-						if(pValue)
-							tmp->u.f64=getF64FromByteCode(pValue);
-						break;
-					case FKL_I64:
-						if(pValue)
-							tmp->u.i64=getI64FromByteCode(pValue);
-						break;
-					case FKL_STR:
-						tmp->u.str=pValue;break;
-					case FKL_PAIR:
-						tmp->u.pair=pValue;break;
-					case FKL_PROC:
-						tmp->u.proc=pValue;break;
-					case FKL_CONT:
-						tmp->u.cont=pValue;break;
-					case FKL_CHAN:
-						tmp->u.chan=pValue;break;
-					case FKL_FP:
-						tmp->u.fp=pValue;break;
-					case FKL_DLL:
-						tmp->u.dll=pValue;break;
-					case FKL_DLPROC:
-						tmp->u.dlproc=pValue;break;
-					case FKL_ERR:
-						tmp->u.err=pValue;break;
-					case FKL_VECTOR:
-						tmp->u.vec=pValue;break;
-					case FKL_USERDATA:
-						tmp->u.ud=pValue;break;
-					case FKL_ENV:
-						tmp->u.env=pValue;break;
-					default:
-						FKL_ASSERT(0,__func__);
-						break;
-				}
-				pthread_rwlock_rdlock(&heap->lock);
-				FklGCState running=heap->running;
-				pthread_rwlock_unlock(&heap->lock);
-				if(running==FKL_GC_RUNNING)
-					fklGC_toGray(tmp,heap);
-				pthread_rwlock_wrlock(&heap->lock);
-				tmp->next=heap->head;
-				heap->head=tmp;
-				heap->num+=1;
-				pthread_rwlock_unlock(&heap->lock);
-			}
-			break;
-	}
-	pthread_rwlock_wrlock(&stack->lock);
-	stack->tp++;
-	pthread_rwlock_unlock(&stack->lock);
-	return stack->values[stack->tp-1];
 }
 
 FklVMvalue* fklNewTrueValue(FklVMheap* heap)

@@ -457,10 +457,10 @@ void* ThreadVMfunc(void* p)
 	fklFreeVMstack(exe->stack);
 	exe->stack=NULL;
 	exe->lnt=NULL;
-	if(state!=0)
-		fklDeleteCallChain(exe);
 	fklFreePtrStack(exe->tstack);
 	pthread_rwlock_wrlock(&exe->rlock);
+	if(state!=0)
+		fklDeleteCallChain(exe);
 	exe->rhead=NULL;
 	exe->mark=0;
 	pthread_rwlock_unlock(&exe->rlock);
@@ -500,10 +500,12 @@ void* ThreadVMdlprocFunc(void* p)
 	fklFreeVMstack(exe->stack);
 	exe->stack=NULL;
 	exe->lnt=NULL;
+	pthread_rwlock_wrlock(&exe->rlock);
 	fklDeleteCallChain(exe);
 	exe->rhead=NULL;
 	fklFreePtrStack(exe->tstack);
 	exe->mark=0;
+	pthread_rwlock_unlock(&exe->rlock);
 	return (void*)state;
 }
 
@@ -540,10 +542,12 @@ void* ThreadVMinvokableUd(void* p)
 	fklFreeVMstack(exe->stack);
 	exe->stack=NULL;
 	exe->lnt=NULL;
+	pthread_rwlock_wrlock(&exe->rlock);
 	fklDeleteCallChain(exe);
 	exe->rhead=NULL;
 	fklFreePtrStack(exe->tstack);
 	exe->mark=0;
+	pthread_rwlock_unlock(&exe->rlock);
 	return (void*)state;
 }
 
@@ -1810,18 +1814,20 @@ void fklCreateCallChainWithContinuation(FklVM* vm,FklVMcontinuation* cc)
 		tmpStack->values[tmpStack->tp]=stack->values[i];
 		tmpStack->tp+=1;
 	}
-	fklDeleteCallChain(vm);
-	while(!fklIsPtrStackEmpty(vm->tstack))
-		fklFreeVMtryBlock(fklPopPtrStack(vm->tstack));
-	vm->stack=tmpStack;
-	fklFreeVMstack(stack);
+	pthread_rwlock_wrlock(&stack->lock);
+	free(stack->values);
+	free(stack->tpst);
+	stack->values=tmpStack->values;
+	stack->bp=tmpStack->bp;
+	stack->size=tmpStack->size;
+	stack->tp=tmpStack->tp;
+	stack->tptp=tmpStack->tptp;
+	stack->tpsi=tmpStack->tpsi;
+	stack->tpst=tmpStack->tpst;
+	free(tmpStack);
+	pthread_rwlock_unlock(&stack->lock);
 	pthread_rwlock_wrlock(&vm->rlock);
-	for(FklVMrunnable* r=vm->rhead;r;)
-	{
-		FklVMrunnable* cur=r;
-		r=r->prev;
-		free(cur);
-	}
+	fklDeleteCallChain(vm);
 	vm->rhead=NULL;
 	for(FklVMrunnable* cur=cc->curr;cur;cur=cur->prev)
 	{
@@ -1835,6 +1841,8 @@ void fklCreateCallChainWithContinuation(FklVM* vm,FklVMcontinuation* cc)
 		r->mark=cur->mark;
 	}
 	pthread_rwlock_unlock(&vm->rlock);
+	while(!fklIsPtrStackEmpty(vm->tstack))
+		fklFreeVMtryBlock(fklPopPtrStack(vm->tstack));
 	for(i=0;i<cc->tnum;i++)
 	{
 		FklVMtryBlock* tmp=&cc->tb[i];

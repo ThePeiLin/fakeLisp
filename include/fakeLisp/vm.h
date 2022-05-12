@@ -428,11 +428,6 @@ FklVMvalue* fklNewVMvalueToStack(FklValueType
 		,void* p
 		,FklVMstack*
 		,FklVMheap* heap);
-FklVMvalue* fklNewVMvalueToStackWithoutLock(FklValueType
-		,void* p
-		,FklVMstack*
-		,FklVMheap* heap);
-
 FklVMvalue* fklSetRef(FklVMvalue* by,FklVMvalue**,FklVMvalue* v,FklVMheap*);
 
 FklVMdllHandle fklLoadDll(const char* path);

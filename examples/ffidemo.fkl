@@ -19,8 +19,8 @@
 (define create-link-node
   (lambda (data next)
     (define retval (ffi-new 'LinkNode 'raw))
-    (ffi-set (ffi-ref retval 'data) data)
-    (ffi-set (ffi-ref retval 'next) next)
+    (ffi-set! (ffi-ref retval 'data) data)
+    (ffi-set! (ffi-ref retval 'next) next)
     (ffi-ref retval '&)))
 
 (define head nil)
@@ -55,6 +55,6 @@
   (when (not (ffi-null? cur))
     (define prev cur)
     (setq cur (ffi-new '(ptr LinkNode)))
-    (ffi-set cur (ffi-path-ref (* next) prev))
+    (ffi-set! cur (ffi-path-ref (* next) prev))
     (ffi-delete (ffi-path-ref (*) prev))
     (iter-free cur)))

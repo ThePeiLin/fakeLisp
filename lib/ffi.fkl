@@ -10,7 +10,7 @@
     ffi-load
     ffi-alignof
     ffi-ref
-    ffi-set
+    ffi-set!
     ffi-mem
     ffi-val
     ffi-proc)
@@ -24,7 +24,7 @@
   (define ffi-typedef (dlsym ffi "ffi_typedef"))
   (define ffi-load (dlsym ffi "ffi_load"))
   (define ffi-ref (dlsym ffi "ffi_ref"))
-  (define ffi-set (dlsym ffi "ffi_set"))
+  (define ffi-set! (dlsym ffi "ffi_set"))
   (define ffi-mem (dlsym ffi "ffi_mem"))
   (define ffi-val (dlsym ffi "ffi_val"))
   (define ffi-proc (dlsym ffi "ffi_proc"))

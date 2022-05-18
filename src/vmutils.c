@@ -500,6 +500,9 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 					case FKL_ERR:
 						fprintf(fp,"%s",v->u.err->message);
 						break;
+					case FKL_BIG_INT:
+						fklPrintBigInt(v->u.bigInt,fp);
+						break;
 					case FKL_USERDATA:
 						if(v->u.ud->t->__princ)
 							v->u.ud->t->__princ(fp,v->u.ud->data);
@@ -582,6 +585,9 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 							,fklGetGlobSymbolWithId(v->u.err->type)->symbol
 							,v->u.err->message);
 					break;
+				case FKL_BIG_INT:
+					fklPrintBigInt(v->u.bigInt,fp);
+					break;
 				case FKL_USERDATA:
 					if(v->u.ud->t->__prin1)
 						v->u.ud->t->__prin1(fp,v->u.ud->data);
@@ -593,7 +599,6 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 					break;
 			}
 	}
-
 }
 
 void fklPrin1VMvalue(FklVMvalue* value,FILE* fp)

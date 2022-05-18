@@ -13,6 +13,7 @@ typedef enum{
 	FKL_CHR,
 	FKL_F64,
 	FKL_I64,
+	FKL_BIG_INT,
 	FKL_SYM,
 	FKL_STR,
 	FKL_VECTOR,
@@ -73,6 +74,7 @@ typedef struct FklAstAtom
 		double f64;
 		FklAstString str;
 		FklAstVector vec;
+		FklBigInt bigInt;
 	} value;
 }FklAstAtom;
 

@@ -65,6 +65,15 @@ void fklFreeAtom(FklAstAtom* objAtm)
 		free(vec->base);
 		vec->size=0;
 	}
+	else if(objAtm->type==FKL_BIG_INT)
+	{
+		FklBigInt* bi=&objAtm->value.bigInt;
+		free(bi->digits);
+		bi->digits=NULL;
+		bi->neg=0;
+		bi->num=0;
+		bi->size=0;
+	}
 	free(objAtm);
 }
 
@@ -458,14 +467,32 @@ static FklAstAtom* createNum(const char* oStr,FklAstPair* prev)
 	else
 	{
 		r=fklNewAtom(FKL_I32,NULL,prev);
-		int64_t num=fklStringToInt(oStr);
-		if(num>INT32_MAX||num<INT32_MIN)
+		FklBigInt* bInt=fklNewBigIntFromStr(oStr);
+		FklBigInt* bI64Max=fklNewBigInt(INT64_MAX);
+		FklBigInt* bI64Min=fklNewBigInt(INT64_MIN);
+		if(fklCmpBigInt(bInt,bI64Max)>0||fklCmpBigInt(bInt,bI64Min)<0)
 		{
-			r->type=FKL_I64;
-			r->value.i64=num;
+			r->type=FKL_BIG_INT;
+			r->value.bigInt.digits=NULL;
+			r->value.bigInt.num=0;
+			r->value.bigInt.size=0;
+			r->value.bigInt.neg=0;
+			fklSetBigInt(&r->value.bigInt,bInt);
 		}
 		else
-			r->value.i32=num;
+		{
+			int64_t num=fklBigIntToI64(bInt);
+			if(num>INT32_MAX||num<INT32_MIN)
+			{
+				r->type=FKL_I64;
+				r->value.i64=num;
+			}
+			else
+				r->value.i32=num;
+		}
+		fklFreeBigInt(bInt);
+		fklFreeBigInt(bI64Max);
+		fklFreeBigInt(bI64Min);
 	}
 	return r;
 }

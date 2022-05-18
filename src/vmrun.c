@@ -141,6 +141,7 @@ static void B_push_vector(FklVM*);
 static void B_push_r_env(FklVM*);
 static void B_pop_r_env(FklVM*);
 static void B_tail_invoke(FklVM*);
+static void B_push_big_int(FklVM*);
 
 static void (*ByteCodes[])(FklVM*)=
 {
@@ -179,6 +180,7 @@ static void (*ByteCodes[])(FklVM*)=
 	B_push_r_env,
 	B_pop_r_env,
 	B_tail_invoke,
+	B_push_big_int,
 };
 
 FklVM* fklNewVM(FklByteCode* mainCode)
@@ -1186,6 +1188,14 @@ void B_pop_r_env(FklVM* exe)
 	r->cp+=sizeof(char);
 }
 
+void B_push_big_int(FklVM* exe)
+{
+	FklVMrunnable* r=exe->rhead;
+	FklBigInt* bigInt=fklNewBigIntFromMem(exe->code+r->cp+sizeof(char));
+	fklNewVMvalueToStack(FKL_BIG_INT,bigInt,exe->stack,exe->heap);
+	r->cp+=sizeof(char)+sizeof(char)+sizeof(bigInt->num)+bigInt->num;
+}
+
 FklVMstack* fklNewVMstack(int32_t size)
 {
 	FklVMstack* tmp=(FklVMstack*)malloc(sizeof(FklVMstack));
@@ -1597,6 +1607,9 @@ void fklFreeVMvalue(FklVMvalue* cur)
 			break;
 		case FKL_ENV:
 			fklFreeVMenv(cur->u.env);
+			break;
+		case FKL_BIG_INT:
+			fklFreeBigInt(cur->u.bigInt);
 			break;
 		default:
 			FKL_ASSERT(0,__func__);

@@ -113,6 +113,7 @@ typedef struct FklVMvalue
 		struct FklVMenv* env;
 		struct FklVMchanl* chan;
 		struct FklVMerror* err;
+		FklBigInt* bigInt;
 		FklVMudata* ud;
 	}u;
 	struct FklVMvalue* next;

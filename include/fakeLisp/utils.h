@@ -22,7 +22,7 @@ extern "C" {
 }
 
 #define FKL_MIN(a,b) (((a)<(b))?(a):(b))
-
+#define FKL_MAX(a,b) (((a)>(b))?(a):(b))
 #define FKL_ASSERT(exp,str) \
 { \
 	if(!(exp)) \

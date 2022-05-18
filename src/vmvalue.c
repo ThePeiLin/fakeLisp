@@ -147,6 +147,8 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 						tmp->u.ud=pValue;break;
 					case FKL_ENV:
 						tmp->u.env=pValue;break;
+					case FKL_BIG_INT:
+						tmp->u.bigInt=pValue;break;
 					default:
 						return NULL;
 						break;
@@ -237,6 +239,8 @@ FklVMvalue* fklNewVMvalueToStack(FklValueType type
 						tmp->u.ud=pValue;break;
 					case FKL_ENV:
 						tmp->u.env=pValue;break;
+					case FKL_BIG_INT:
+						tmp->u.bigInt=pValue;break;
 					default:
 						FKL_ASSERT(0,__func__);
 						break;

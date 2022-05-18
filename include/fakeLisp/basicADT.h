@@ -1,5 +1,6 @@
 #ifndef FKL_BASIC_ADT_H
 #define FKL_BASIC_ADT_H
+#include<stdio.h>
 #include<stdint.h>
 
 #ifdef __cplusplus
@@ -77,6 +78,36 @@ void fklFreeUintStack(FklUintStack*);
 void fklRecycleUintStack(FklUintStack*);
 int fklIsUintStackEmpty(FklUintStack*);
 
+typedef struct FklBigInt{
+	uint8_t* digits;
+	uint64_t num;
+	uint64_t size;
+	int neg;
+}FklBigInt;
+
+#define FKL_IS_ZERO_BIG_INT(I) ((I)->num==1&&(I)->digits[0]==0)
+FklBigInt* fklNewBigInt(int64_t v);
+FklBigInt* fklNewBigIntFromStr(const char* str);
+FklBigInt* fklNewBigIntFromMem(void* mem);
+FklBigInt* fklNewBigInt0(void);
+FklBigInt* fklNewBigInt1(void);
+void fklSetBigInt(FklBigInt*,const FklBigInt* src);
+void fklSetBigIntI(FklBigInt*,int64_t src);
+void fklAddBigInt(FklBigInt*,const FklBigInt* addend);
+void fklAddBigIntI(FklBigInt*,int64_t addend);
+void fklSubBigInt(FklBigInt*,const FklBigInt* toSub);
+void fklSubBigIntI(FklBigInt*,int64_t toSub);
+void fklMulBigInt(FklBigInt*,const FklBigInt* multiplier);
+void fklMulBigIntI(FklBigInt*,int64_t multiplier);
+int fklDivBigInt(FklBigInt*,const FklBigInt* divider);
+int fklDivBigIntI(FklBigInt*,int64_t divider);
+int fklRemBigInt(FklBigInt*,const FklBigInt* divider);
+int fklRemBigIntI(FklBigInt*,int64_t divider);
+int fklCmpBigInt(const FklBigInt*,const FklBigInt*);
+int64_t fklBigIntToI64(const FklBigInt*);
+double fklBigIntToDouble(const FklBigInt*);
+void fklFreeBigInt(FklBigInt*);
+void fklPrintBigInt(FklBigInt*,FILE*);
 #ifdef __cplusplus
 }
 #endif

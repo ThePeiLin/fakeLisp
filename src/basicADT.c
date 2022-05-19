@@ -409,18 +409,33 @@ FklBigInt* fklNewBigIntFromStr(const char* v)
 	return r;
 }
 
-FklBigInt* fklNewBigIntFromMem(void* mem)
+FklBigInt* fklNewBigIntFromMem(void* mem,size_t size)
 {
-	int neg=((uint8_t*)mem)[0];
+	if(size<2)
+		return NULL;
+	uint8_t neg=((uint8_t*)mem)[0];
+	if(neg>1)
+		return NULL;
 	mem++;
-	uint64_t num=fklGetU64FromByteCode(mem);
-	mem+=sizeof(num);
+	uint64_t num=size-1;
 	FklBigInt* t=(FklBigInt*)malloc(sizeof(FklBigInt));
 	FKL_ASSERT(t,__func__);
 	t->num=num;
 	t->size=num;
 	t->neg=neg;
-	t->digits=fklCopyMemory(mem,num*sizeof(uint8_t));
+	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*num);
+	FKL_ASSERT(t->digits,__func__);
+	for(uint64_t i=0;i<num;i++)
+	{
+		uint8_t n=((uint8_t*)mem)[i];
+		if(n>9)
+		{
+			free(t->digits);
+			free(t);
+			return NULL;
+		}
+		t->digits[i]=n;
+	}
 	return t;
 }
 
@@ -622,9 +637,10 @@ void fklMulBigInt(FklBigInt* a,const FklBigInt* multipler)
 				int sum=(res[i+j]+n0*n1);
 				res[i+j]=sum%10;
 				res[i+j+1]=sum/10;
-				num++;
-				if(sum/10)
-					num++;
+				if(sum/10&&i+j+2>num)
+					num=i+j+2;
+				else if(i+j+1>num)
+					num=i+j+1;
 			}
 		}
 		free(a->digits);
@@ -746,10 +762,10 @@ int fklRemBigIntI(FklBigInt* a,int64_t div)
 int64_t fklBigIntToI64(const FklBigInt* a)
 {
 	int64_t r=0;
-	int base=1;
+	uint64_t base=1;
 	for(uint64_t i=0;i<a->num;i++)
 	{
-		r=a->digits[i]*base;
+		r+=a->digits[i]*base;
 		base*=10;
 	}
 	if(a->neg)
@@ -760,10 +776,10 @@ int64_t fklBigIntToI64(const FklBigInt* a)
 double fklBigIntToDouble(const FklBigInt* a)
 {
 	double r=0;
-	int base=1;
+	uint64_t base=1;
 	for(uint64_t i=0;i<a->num;i++)
 	{
-		r=a->digits[i]*base;
+		r+=a->digits[i]*base;
 		base*=10;
 	}
 	if(a->neg)

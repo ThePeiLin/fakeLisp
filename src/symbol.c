@@ -28,14 +28,14 @@ static const char* builtInErrorType[FKL_NUM_OF_BUILT_IN_ERROR_TYPE]=
 	"unexpect-eof",
 	"div-zero-error",
 	"file-failure",
-	"cant-dereference",
-	"cant-get-element",
 	"invalid-member-symbol",
 	"no-member-type",
 	"non-scalar-type",
 	"invalid-assign",
 	"invalid-access",
+	"inport-failed",
 	"invalid-macro-pattern",
+	"faild-to-create-big-int-from-mem",
 };
 
 static const char* builtInSymbolList[]=
@@ -117,6 +117,8 @@ static const char* builtInSymbolList[]=
 	"fgets",
 	"to-int",
 	"to-f64",
+	"big-int?",
+	"big-int",
 };
 
 FklSymbolTable* GlobSymbolTable=NULL;

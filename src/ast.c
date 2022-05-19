@@ -132,6 +132,12 @@ FklAstAtom* fklNewAtom(FklValueType type,const char* value,FklAstPair* prev)
 			tmp->value.vec.size=0;
 			tmp->value.vec.base=NULL;
 			break;
+		case FKL_BIG_INT:
+			tmp->value.bigInt.digits=NULL;
+			tmp->value.bigInt.num=0;
+			tmp->value.bigInt.size=0;
+			tmp->value.bigInt.neg=0;
+			break;
 		default:
 			break;
 	}
@@ -201,6 +207,10 @@ int fklCopyCptr(FklAstCptr* objCptr,const FklAstCptr* copiedCptr)
 					case FKL_CHR:
 						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
 						atom1->value.chr=atom2->value.chr;
+						break;
+					case FKL_BIG_INT:
+						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
+						fklSetBigInt(&atom1->value.bigInt,&atom2->value.bigInt);
 						break;
 					default:
 						atom1=fklNewAtom(atom2->type,NULL,root1->outer);

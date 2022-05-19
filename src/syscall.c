@@ -845,6 +845,36 @@ void SYS_i64(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void SYS_big_int(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR("sys.big-int",FKL_TOOMANYARG,runnable,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR("sys.big-int",FKL_TOOFEWARG,runnable,exe);
+	if(FKL_IS_CHR(obj))
+		fklNiReturn(fklNiNewVMvalue(FKL_BIG_INT,fklNewBigInt(FKL_GET_CHR(obj)),stack,exe->heap),&ap,stack);
+	else if(FKL_IS_I32(obj))
+		fklNiReturn(fklNiNewVMvalue(FKL_BIG_INT,fklNewBigInt(FKL_GET_I32(obj)),stack,exe->heap),&ap,stack);
+	else if(FKL_IS_SYM(obj))
+		fklNiReturn(fklNiNewVMvalue(FKL_BIG_INT,fklNewBigInt(FKL_GET_SYM(obj)),stack,exe->heap),&ap,stack);
+	else if(FKL_IS_I64(obj))
+		fklNiReturn(fklNiNewVMvalue(FKL_BIG_INT,fklNewBigInt(obj->u.i64),stack,exe->heap),&ap,stack);
+	else if(FKL_IS_F64(obj))
+		fklNiReturn(fklNiNewVMvalue(FKL_BIG_INT,fklNewBigInt(obj->u.f64),stack,exe->heap),&ap,stack);
+	else if(FKL_IS_STR(obj))
+	{
+		FklBigInt* bi=fklNewBigIntFromMem(obj->u.str->str,obj->u.str->size);
+		if(!bi)
+			FKL_RAISE_BUILTIN_ERROR("sys.big-int",FKL_FAILD_TO_CREATE_BIG_INT_FROM_MEM,runnable,exe);
+		fklNiReturn(fklNiNewVMvalue(FKL_BIG_INT,bi,stack,exe->heap),&ap,stack);
+	}
+	else
+		FKL_RAISE_BUILTIN_ERROR("sys.big-int",FKL_WRONGARG,runnable,exe);
+	fklNiEnd(&ap,stack);
+}
 void SYS_f64(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -2044,7 +2074,7 @@ void SYS_not(ARGL) PREDICATE(val==FKL_VM_NIL,"sys.not")
 void SYS_null(ARGL) PREDICATE(val==FKL_VM_NIL,"sys.null")
 void SYS_atom(ARGL) PREDICATE(!FKL_IS_PAIR(val),"sys.atom?")
 void SYS_char_p(ARGL) PREDICATE(FKL_IS_CHR(val),"sys.char?")
-void SYS_integer_p(ARGL) PREDICATE(FKL_IS_I32(val)||FKL_IS_I64(val),"sys.integer?")
+void SYS_integer_p(ARGL) PREDICATE(FKL_IS_I32(val)||FKL_IS_I64(val)||FKL_IS_BIG_INT(val),"sys.integer?")
 void SYS_i32_p(ARGL) PREDICATE(FKL_IS_I32(val),"sys.i32?")
 void SYS_i64_p(ARGL) PREDICATE(FKL_IS_I64(val),"sys.i64?")
 void SYS_f64_p(ARGL) PREDICATE(FKL_IS_F64(val),"sys.i64?")
@@ -2058,6 +2088,7 @@ void SYS_dlproc_p(ARGL) PREDICATE(FKL_IS_DLPROC(val),"sys.dlproc?")
 void SYS_vector_p(ARGL) PREDICATE(FKL_IS_VECTOR(val),"sys.vector?")
 void SYS_chanl_p(ARGL) PREDICATE(FKL_IS_CHAN(val),"sys.chanl?")
 void SYS_dll_p(ARGL) PREDICATE(FKL_IS_DLL(val),"sys.dll?")
+void SYS_big_int_p(ARGL) PREDICATE(FKL_IS_BIG_INT(val),"sys.big-int?")
 
 #undef ARGL
 #undef PREDICATE

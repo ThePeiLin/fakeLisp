@@ -88,7 +88,7 @@ typedef struct FklBigInt{
 #define FKL_IS_ZERO_BIG_INT(I) ((I)->num==1&&(I)->digits[0]==0)
 FklBigInt* fklNewBigInt(int64_t v);
 FklBigInt* fklNewBigIntFromStr(const char* str);
-FklBigInt* fklNewBigIntFromMem(void* mem);
+FklBigInt* fklNewBigIntFromMem(void* mem,size_t size);
 FklBigInt* fklNewBigInt0(void);
 FklBigInt* fklNewBigInt1(void);
 void fklSetBigInt(FklBigInt*,const FklBigInt* src);

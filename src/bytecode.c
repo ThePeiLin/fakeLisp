@@ -135,11 +135,22 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode,uint32_t i
 			r+=sizeof(char)+sizeof(uint64_t);
 			break;
 		case -1:
-			fprintf(fp,"%lu ",fklGetU64FromByteCode(tmpCode->code+i+sizeof(char)));
-			fklPrintRawCharBuf((char*)tmpCode->code+i+sizeof(char)+sizeof(uint64_t)
-					,fklGetU64FromByteCode(tmpCode->code+i+sizeof(char))
-					,fp);
-			r+=sizeof(char)+sizeof(uint64_t)+fklGetU64FromByteCode(tmpCode->code+i+sizeof(char));
+			if(tmpCode->code[i]==FKL_PUSH_STR)
+			{
+				fprintf(fp,"%lu ",fklGetU64FromByteCode(tmpCode->code+i+sizeof(char)));
+				fklPrintRawCharBuf((char*)tmpCode->code+i+sizeof(char)+sizeof(uint64_t)
+						,fklGetU64FromByteCode(tmpCode->code+i+sizeof(char))
+						,fp);
+				r+=sizeof(char)+sizeof(uint64_t)+fklGetU64FromByteCode(tmpCode->code+i+sizeof(char));
+			}
+			else
+			{
+				uint64_t num=fklGetU64FromByteCode(tmpCode->code+i+sizeof(char));
+				FklBigInt* bi=fklNewBigIntFromMem(tmpCode->code+i+sizeof(char)+sizeof(num),num);
+				fklPrintBigInt(bi,fp);
+				r+=sizeof(char)+sizeof(bi->num)+sizeof(uint8_t)*num;
+				fklFreeBigInt(bi);
+			}
 			break;
 		case 0:
 			r+=sizeof(char);

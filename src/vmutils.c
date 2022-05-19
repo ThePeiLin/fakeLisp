@@ -341,6 +341,9 @@ char* fklGenErrorMessage(FklErrorType type,FklVMrunnable* r,FklVM* exe)
 		case FKL_UNEXPECTEOF:
 			t=fklStrCat(t,"Unexpected eof ");
 			break;
+		case FKL_FAILD_TO_CREATE_BIG_INT_FROM_MEM:
+			t=fklStrCat(t,"Failed to create big-int from mem ");
+			break;
 		default:
 			break;
 	}

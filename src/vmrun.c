@@ -328,6 +328,8 @@ extern void SYS_to_str(ARGL);
 extern void SYS_fgets(ARGL);
 extern void SYS_to_int(ARGL);
 extern void SYS_to_f64(ARGL);
+extern void SYS_big_int_p(ARGL);
+extern void SYS_big_int(ARGL);
 
 #undef ARGL
 
@@ -408,6 +410,8 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_fgets,
 		SYS_to_int,
 		SYS_to_f64,
+		SYS_big_int_p,
+		SYS_big_int,
 	};
 	obj->num=FKL_NUM_OF_BUILT_IN_SYMBOL;
 	obj->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*FKL_NUM_OF_BUILT_IN_SYMBOL);
@@ -1191,9 +1195,10 @@ void B_pop_r_env(FklVM* exe)
 void B_push_big_int(FklVM* exe)
 {
 	FklVMrunnable* r=exe->rhead;
-	FklBigInt* bigInt=fklNewBigIntFromMem(exe->code+r->cp+sizeof(char));
+	uint64_t num=fklGetU64FromByteCode(exe->code+r->cp+sizeof(char));
+	FklBigInt* bigInt=fklNewBigIntFromMem(exe->code+r->cp+sizeof(char)+sizeof(num),sizeof(uint8_t)*num);
 	fklNewVMvalueToStack(FKL_BIG_INT,bigInt,exe->stack,exe->heap);
-	r->cp+=sizeof(char)+sizeof(char)+sizeof(bigInt->num)+bigInt->num;
+	r->cp+=sizeof(char)+sizeof(bigInt->num)+num;
 }
 
 FklVMstack* fklNewVMstack(int32_t size)

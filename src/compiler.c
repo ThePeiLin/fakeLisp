@@ -764,9 +764,9 @@ FklByteCode* fklCompileAtom(FklAstCptr* objCptr)
 		case FKL_BIG_INT:
 			tmp=fklNewByteCode(sizeof(char)+sizeof(char)+sizeof(tmpAtm->value.bigInt.size)+tmpAtm->value.bigInt.num);
 			tmp->code[0]=FKL_PUSH_BIG_INT;
-			tmp->code[1]=tmpAtm->value.bigInt.neg;
-			fklSetU64ToByteCode(tmp->code+sizeof(char)+sizeof(char),tmpAtm->value.bigInt.num);
-			memcpy(tmp->code+sizeof(char)+sizeof(char)+sizeof(tmpAtm->value.bigInt.num)
+			fklSetU64ToByteCode(tmp->code+sizeof(char),tmpAtm->value.bigInt.num+1);
+			tmp->code[sizeof(char)+sizeof(tmpAtm->value.bigInt.num)]=tmpAtm->value.bigInt.neg;
+			memcpy(tmp->code+sizeof(char)+sizeof(tmpAtm->value.bigInt.num)+sizeof(char)
 					,tmpAtm->value.bigInt.digits
 					,tmpAtm->value.bigInt.num);
 			break;
@@ -2764,21 +2764,6 @@ void fklPrintCompileError(const FklAstCptr* obj,FklErrorType type,FklInterpreter
 			fprintf(stderr,"Library ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			fprintf(stderr," undefined");
-			break;
-		case FKL_CANTDEREFERENCE:
-			fprintf(stderr,"cant dereference a non pointer type member ");
-			if(obj!=NULL)fklPrintCptr(obj,stderr);
-			break;
-		case FKL_CANTGETELEM:
-			fprintf(stderr,"cant get element of a non-array or non-pointer type");
-			if(obj!=NULL)
-			{
-				fprintf(stderr," member by path ");
-				if(obj->type==FKL_NIL)
-					fprintf(stderr,"()");
-				else
-					fklPrintCptr(obj,stderr);
-			}
 			break;
 		case FKL_INVALIDMEMBER:
 			fprintf(stderr,"invalid member ");

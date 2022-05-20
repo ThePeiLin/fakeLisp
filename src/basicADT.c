@@ -759,8 +759,24 @@ int fklRemBigIntI(FklBigInt* a,int64_t div)
 	}
 }
 
+int fklIsGtLtI64BigInt(const FklBigInt* a)
+{
+	FklBigInt* bI64Max=fklNewBigInt(INT64_MAX);
+	FklBigInt* bI64Min=fklNewBigInt(INT64_MIN);
+	int r=(fklCmpBigInt(a,bI64Max)>0||fklCmpBigInt(a,bI64Min)<0);
+	fklFreeBigInt(bI64Max);
+	fklFreeBigInt(bI64Min);
+	return r;
+}
+
 int64_t fklBigIntToI64(const FklBigInt* a)
 {
+	if(fklIsGtLtI64BigInt(a))
+	{
+		if(a->neg)
+			return INT64_MIN;
+		return INT64_MAX;
+	}
 	int64_t r=0;
 	uint64_t base=1;
 	for(uint64_t i=0;i<a->num;i++)
@@ -793,4 +809,28 @@ void fklPrintBigInt(FklBigInt* a,FILE* fp)
 		fputc('-',fp);
 	for(uint64_t i=a->num;i>0;i--)
 		fprintf(fp,"%u",a->digits[i-1]);
+}
+
+void fklSprintBigInt(FklBigInt* bi,size_t size,char* buf)
+{
+	if(bi->neg)
+	{
+		(buf++)[0]='-';
+		size--;
+	}
+	for(uint64_t i=0;i<size;i++)
+		buf[i]=bi->digits[i]+'0';
+}
+
+int fklCmpBigIntI(const FklBigInt* bi,int64_t i)
+{
+	FklBigInt* tbi=fklNewBigInt(i);
+	int r=fklCmpBigInt(bi,tbi);
+	fklFreeBigInt(tbi);
+	return r;
+}
+
+int fklCmpIBigInt(int64_t i,const FklBigInt* bi)
+{
+	return fklCmpBigIntI(bi,i)*-1;
 }

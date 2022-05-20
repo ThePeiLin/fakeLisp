@@ -312,6 +312,7 @@ void fklPrincVMvalue(FklVMvalue*,FILE*);
 FklVMvalue* fklMakeVMint(int64_t r64,FklVMstack*,FklVMheap* heap);
 int fklIsInt(FklVMvalue* p);
 int64_t fklGetInt(FklVMvalue* p);
+double fklGetDouble(FklVMvalue* p);
 void fklInitVMRunningResource(FklVM*,FklVMvalue*,FklVMheap* heap,FklByteCodelnt*,uint32_t,uint32_t);
 void fklUninitVMRunningResource(FklVM*);
 

@@ -24,12 +24,24 @@ FklVMvalue* fklMakeVMint(int64_t r64,FklVMstack* s,FklVMheap* heap)
 
 inline int fklIsInt(FklVMvalue* p)
 {
-	return FKL_IS_I32(p)||FKL_IS_I64(p);
+	return FKL_IS_I32(p)||FKL_IS_I64(p)||FKL_IS_BIG_INT(p);
 }
 
 inline int64_t fklGetInt(FklVMvalue* p)
 {
-	return FKL_IS_I32(p)?FKL_GET_I32(p):p->u.i64;
+	return FKL_IS_I32(p)
+		?FKL_GET_I32(p)
+		:(FKL_IS_I64(p))?p->u.i64
+		:fklBigIntToI64(p->u.bigInt);
+}
+
+inline double fklGetDouble(FklVMvalue* p)
+{
+	return FKL_IS_I32(p)
+		?FKL_GET_I32(p)
+		:(FKL_IS_I64(p))?p->u.i64
+		:(FKL_IS_BIG_INT(p))?fklBigIntToDouble(p->u.bigInt)
+		:p->u.f64;
 }
 
 FklVMvalue* fklPopVMstack(FklVMstack* stack)

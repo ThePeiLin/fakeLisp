@@ -419,6 +419,9 @@ int fklVMvaluecmp(FklVMvalue* fir,FklVMvalue* sec)
 							fklPushPtrStack(root2->u.vec->base[i],s2);
 					}
 					break;
+				case FKL_BIG_INT:
+					r=!fklCmpBigInt(root1->u.bigInt,root2->u.bigInt);
+					break;
 				case FKL_USERDATA:
 					if(root1->u.ud->type!=root2->u.ud->type||!root1->u.ud->t->__equal)
 						r=0;

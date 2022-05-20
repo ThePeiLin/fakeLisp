@@ -478,9 +478,7 @@ static FklAstAtom* createNum(const char* oStr,FklAstPair* prev)
 	{
 		r=fklNewAtom(FKL_I32,NULL,prev);
 		FklBigInt* bInt=fklNewBigIntFromStr(oStr);
-		FklBigInt* bI64Max=fklNewBigInt(INT64_MAX);
-		FklBigInt* bI64Min=fklNewBigInt(INT64_MIN);
-		if(fklCmpBigInt(bInt,bI64Max)>0||fklCmpBigInt(bInt,bI64Min)<0)
+		if(fklIsGtLtI64BigInt(bInt))
 		{
 			r->type=FKL_BIG_INT;
 			r->value.bigInt.digits=NULL;
@@ -501,8 +499,6 @@ static FklAstAtom* createNum(const char* oStr,FklAstPair* prev)
 				r->value.i32=num;
 		}
 		fklFreeBigInt(bInt);
-		fklFreeBigInt(bI64Max);
-		fklFreeBigInt(bI64Min);
 	}
 	return r;
 }

@@ -137,13 +137,38 @@ void SYS_eqn(ARGL)
 	if(!fir||!sec)
 		FKL_RAISE_BUILTIN_ERROR("sys.eqn",FKL_TOOFEWARG,runnable,exe);
 	if((FKL_IS_F64(fir)||fklIsInt(fir))&&(FKL_IS_F64(sec)||fklIsInt(sec)))
-		fklNiReturn(fabs((FKL_IS_F64(fir)?fir->u.f64:fklGetInt(fir))
-					-(FKL_IS_F64(sec)?sec->u.f64:fklGetInt(sec)))
-				<DBL_EPSILON
-				?FKL_VM_TRUE
-				:FKL_VM_NIL
-				,&ap
-				,stack);
+	{
+		if(FKL_IS_F64(fir)||FKL_IS_F64(sec))
+			fklNiReturn(fabs(fklGetDouble(fir)-fklGetDouble(sec))
+					<DBL_EPSILON
+					?FKL_VM_TRUE
+					:FKL_VM_NIL
+					,&ap
+					,stack);
+		else
+		{
+			if(FKL_IS_BIG_INT(fir)&&FKL_IS_BIG_INT(sec))
+				fklNiReturn(fklCmpBigInt(fir->u.bigInt,sec->u.bigInt)==0
+						?FKL_VM_TRUE
+						:FKL_VM_NIL
+						,&ap
+						,stack);
+			else if(FKL_IS_BIG_INT(fir)||FKL_IS_BIG_INT(sec))
+				fklNiReturn((FKL_IS_BIG_INT(fir)
+							?fklCmpBigIntI(fir->u.bigInt,fklGetInt(sec))==0
+							:fklCmpIBigInt(fklGetInt(fir),sec->u.bigInt)==0)
+						?FKL_VM_TRUE
+						:FKL_VM_NIL
+						,&ap
+						,stack);
+			else
+				fklNiReturn(fklGetInt(fir)==fklGetInt(sec)
+						?FKL_VM_TRUE
+						:FKL_VM_NIL
+						,&ap
+						,stack);
+		}
+	}
 	else if(FKL_IS_CHR(fir)&&FKL_IS_CHR(sec))
 		fklNiReturn(fir==sec
 				?FKL_VM_TRUE
@@ -645,43 +670,22 @@ void SYS_integer(ARGL)
 	else if(FKL_IS_SYM(obj))
 		fklNiReturn(fklMakeVMint(FKL_GET_SYM(obj),stack,exe->heap),&ap,stack);
 	else if(FKL_IS_I64(obj))
-		fklNiReturn(fklNiNewVMvalue(FKL_I64,(void*)&obj->u.i64,stack,exe->heap),&ap,stack);
+		fklNiReturn(fklMakeVMint(obj->u.i64,stack,exe->heap),&ap,stack);
+	else if(FKL_IS_BIG_INT(obj))
+	{
+		if(fklIsGtLtI64BigInt(obj->u.bigInt))
+		{
+			FklBigInt* bi=fklNewBigInt0();
+			fklSetBigInt(bi,obj->u.bigInt);
+			fklNiReturn(fklNiNewVMvalue(FKL_BIG_INT,bi,stack,exe->heap),&ap,stack);
+		}
+		else
+			fklNiReturn(fklMakeVMint(fklBigIntToI64(obj->u.bigInt),stack,exe->heap),&ap,stack);
+	}
 	else if(FKL_IS_F64(obj))
 	{
 		int64_t r=(int64_t)obj->u.f64;
 		fklNiReturn(fklMakeVMint(r,stack,exe->heap),&ap,stack);
-	}
-	else if(FKL_IS_STR(obj))
-	{
-		size_t s=obj->u.str->size;
-		if(s<5)
-		{
-			uint8_t r[4]={0};
-			switch(s)
-			{
-				case 4:r[3]=obj->u.str->str[3];
-				case 3:r[2]=obj->u.str->str[2];
-				case 2:r[1]=obj->u.str->str[1];
-				case 1:r[0]=obj->u.str->str[0];
-			}
-			fklNiReturn(FKL_MAKE_VM_I32(*(int32_t*)r),&ap,stack);
-		}
-		else
-		{
-			uint8_t r[8]={0};
-			switch(s>8?8:s)
-			{
-				case 8:r[7]=obj->u.str->str[8];
-				case 7:r[6]=obj->u.str->str[6];
-				case 6:r[5]=obj->u.str->str[5];
-				case 5:r[4]=obj->u.str->str[4];
-				case 4:r[3]=obj->u.str->str[3];
-				case 3:r[2]=obj->u.str->str[2];
-				case 2:r[1]=obj->u.str->str[1];
-				case 1:r[0]=obj->u.str->str[0];
-			}
-			fklNiReturn(fklNiNewVMvalue(FKL_I64,r,stack,exe->heap),&ap,stack);
-		}
 	}
 	else
 		FKL_RAISE_BUILTIN_ERROR("sys.integer",FKL_WRONGARG,runnable,exe);
@@ -864,6 +868,12 @@ void SYS_big_int(ARGL)
 		fklNiReturn(fklNiNewVMvalue(FKL_BIG_INT,fklNewBigInt(obj->u.i64),stack,exe->heap),&ap,stack);
 	else if(FKL_IS_F64(obj))
 		fklNiReturn(fklNiNewVMvalue(FKL_BIG_INT,fklNewBigInt(obj->u.f64),stack,exe->heap),&ap,stack);
+	else if(FKL_IS_BIG_INT(obj))
+	{
+		FklBigInt* bi=fklNewBigInt0();
+		fklSetBigInt(bi,obj->u.bigInt);
+		fklNiReturn(fklNiNewVMvalue(FKL_BIG_INT,bi,stack,exe->heap),&ap,stack);
+	}
 	else if(FKL_IS_STR(obj))
 	{
 		FklBigInt* bi=fklNewBigIntFromMem(obj->u.str->str,obj->u.str->size);
@@ -875,6 +885,7 @@ void SYS_big_int(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("sys.big-int",FKL_WRONGARG,runnable,exe);
 	fklNiEnd(&ap,stack);
 }
+
 void SYS_f64(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -1014,8 +1025,15 @@ void SYS_as_str(ARGL)
 				int32_t r=FKL_GET_I32(obj);
 				retval->u.str=fklNewVMstr(sizeof(int32_t),(char*)&r);
 			}
-			else
+			else if(FKL_IS_I64(obj))
 				retval->u.str=fklNewVMstr(sizeof(int64_t),(char*)&obj->u.i64);
+			else
+			{
+				FklBigInt* bi=obj->u.bigInt;
+				retval->u.str=fklNewVMstr(bi->num+1,NULL);
+				retval->u.str->str[0]=bi->neg;
+				memcpy(retval->u.str->str+1,bi->digits,bi->num);
+			}
 		}
 	}
 	else
@@ -2028,9 +2046,18 @@ void SYS_to_str(ARGL)
 		}
 		else
 		{
-			char buf[32]={0};
-			size_t size=snprintf(buf,32,"%ld",fklGetInt(obj));
-			retval->u.str=fklNewVMstr(size,buf);
+			if(FKL_IS_BIG_INT(obj))
+			{
+				FklBigInt* bi=obj->u.bigInt;
+				retval->u.str=fklNewVMstr(sizeof(char)*(bi->num+bi->neg),NULL);
+				fklSprintBigInt(bi,retval->u.str->size,retval->u.str->str);
+			}
+			else
+			{
+				char buf[32]={0};
+				size_t size=snprintf(buf,32,"%ld",fklGetInt(obj));
+				retval->u.str=fklNewVMstr(size,buf);
+			}
 		}
 	}
 	else

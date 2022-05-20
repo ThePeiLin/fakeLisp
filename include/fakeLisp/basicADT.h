@@ -99,15 +99,19 @@ void fklSubBigInt(FklBigInt*,const FklBigInt* toSub);
 void fklSubBigIntI(FklBigInt*,int64_t toSub);
 void fklMulBigInt(FklBigInt*,const FklBigInt* multiplier);
 void fklMulBigIntI(FklBigInt*,int64_t multiplier);
+int fklIsGtLtI64BigInt(const FklBigInt* a);
 int fklDivBigInt(FklBigInt*,const FklBigInt* divider);
 int fklDivBigIntI(FklBigInt*,int64_t divider);
 int fklRemBigInt(FklBigInt*,const FklBigInt* divider);
 int fklRemBigIntI(FklBigInt*,int64_t divider);
 int fklCmpBigInt(const FklBigInt*,const FklBigInt*);
+int fklCmpBigIntI(const FklBigInt*,int64_t i);
+int fklCmpIBigInt(int64_t i,const FklBigInt*);
 int64_t fklBigIntToI64(const FklBigInt*);
 double fklBigIntToDouble(const FklBigInt*);
 void fklFreeBigInt(FklBigInt*);
 void fklPrintBigInt(FklBigInt*,FILE*);
+void fklSprintBigInt(FklBigInt*,size_t size,char* buf);
 #ifdef __cplusplus
 }
 #endif

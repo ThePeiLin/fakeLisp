@@ -622,6 +622,11 @@ void fklMulBigInt(FklBigInt* a,const FklBigInt* multipler)
 		a->digits[0]=0;
 		return;
 	}
+	else if(multipler->num==1&&multipler->digits[0]==1)
+	{
+		a->neg^=multipler->neg;
+		return;
+	}
 	else
 	{
 		uint64_t totalNum=a->num+multipler->num;
@@ -636,7 +641,7 @@ void fklMulBigInt(FklBigInt* a,const FklBigInt* multipler)
 				int n1=multipler->digits[j];
 				int sum=(res[i+j]+n0*n1);
 				res[i+j]=sum%10;
-				res[i+j+1]=sum/10;
+				res[i+j+1]+=sum/10;
 				if(sum/10&&i+j+2>num)
 					num=i+j+2;
 				else if(i+j+1>num)
@@ -759,6 +764,16 @@ int fklRemBigIntI(FklBigInt* a,int64_t div)
 	}
 }
 
+int fklIsGeLeI64BigInt(const FklBigInt* a)
+{
+	FklBigInt* bI64Max=fklNewBigInt(INT64_MAX);
+	FklBigInt* bI64Min=fklNewBigInt(INT64_MIN);
+	int r=(fklCmpBigInt(a,bI64Max)>=0||fklCmpBigInt(a,bI64Min)<=0);
+	fklFreeBigInt(bI64Max);
+	fklFreeBigInt(bI64Min);
+	return r;
+}
+
 int fklIsGtLtI64BigInt(const FklBigInt* a)
 {
 	FklBigInt* bI64Max=fklNewBigInt(INT64_MAX);
@@ -792,7 +807,7 @@ int64_t fklBigIntToI64(const FklBigInt* a)
 double fklBigIntToDouble(const FklBigInt* a)
 {
 	double r=0;
-	uint64_t base=1;
+	double base=1;
 	for(uint64_t i=0;i<a->num;i++)
 	{
 		r+=a->digits[i]*base;
@@ -805,7 +820,7 @@ double fklBigIntToDouble(const FklBigInt* a)
 
 void fklPrintBigInt(FklBigInt* a,FILE* fp)
 {
-	if(!FKL_IS_ZERO_BIG_INT(a)&&a->neg)
+	if(!FKL_IS_0_BIG_INT(a)&&a->neg)
 		fputc('-',fp);
 	for(uint64_t i=a->num;i>0;i--)
 		fprintf(fp,"%u",a->digits[i-1]);

@@ -85,7 +85,8 @@ typedef struct FklBigInt{
 	int neg;
 }FklBigInt;
 
-#define FKL_IS_ZERO_BIG_INT(I) ((I)->num==1&&(I)->digits[0]==0)
+#define FKL_IS_0_BIG_INT(I) ((I)->num==1&&(I)->digits[0]==0)
+#define FKL_IS_1_BIG_INT(I) ((I)->num==1&&(I)->digits[0]==1)
 FklBigInt* fklNewBigInt(int64_t v);
 FklBigInt* fklNewBigIntFromStr(const char* str);
 FklBigInt* fklNewBigIntFromMem(void* mem,size_t size);
@@ -100,6 +101,7 @@ void fklSubBigIntI(FklBigInt*,int64_t toSub);
 void fklMulBigInt(FklBigInt*,const FklBigInt* multiplier);
 void fklMulBigIntI(FklBigInt*,int64_t multiplier);
 int fklIsGtLtI64BigInt(const FklBigInt* a);
+int fklIsGeLeI64BigInt(const FklBigInt* a);
 int fklDivBigInt(FklBigInt*,const FklBigInt* divider);
 int fklDivBigIntI(FklBigInt*,int64_t divider);
 int fklRemBigInt(FklBigInt*,const FklBigInt* divider);

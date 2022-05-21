@@ -217,10 +217,19 @@ void SYS_add(ARGL)
 	FklVMvalue* cur=fklNiGetArg(&ap,stack);
 	int64_t r64=0;
 	double rd=0.0;
+	FklBigInt* bi=fklNewBigInt0();
 	for(;cur;cur=fklNiGetArg(&ap,stack))
 	{
-		if(fklIsInt(cur))
-			r64+=fklGetInt(cur);
+		if(fklIsFixint(cur))
+		{
+			int64_t c64=fklGetInt(cur);
+			if(fklIsI64AddOverflow(r64,c64))
+				fklAddBigIntI(bi,c64);
+			else
+				r64+=fklGetInt(cur);
+		}
+		else if(FKL_IS_BIG_INT(cur))
+			fklAddBigInt(bi,cur->u.bigInt);
 		else if(FKL_IS_F64(cur))
 			rd+=cur->u.f64;
 		else
@@ -229,11 +238,26 @@ void SYS_add(ARGL)
 	fklNiResBp(&ap,stack);
 	if(rd!=0.0)
 	{
-		rd+=r64;
+		rd+=r64+fklBigIntToDouble(bi);
 		fklNiReturn(fklNiNewVMvalue(FKL_F64,&rd,stack,exe->heap),&ap,stack);
+		fklFreeBigInt(bi);
+	}
+	else if(FKL_IS_0_BIG_INT(bi))
+	{
+		fklNiReturn(fklMakeVMint(r64,stack,exe->heap),&ap,stack);
+		fklFreeBigInt(bi);
 	}
 	else
-		fklNiReturn(fklMakeVMint(r64,stack,exe->heap),&ap,stack);
+	{
+		fklAddBigIntI(bi,r64);
+		if(fklIsGtLtI64BigInt(bi))
+			fklNiReturn(fklNiNewVMvalue(FKL_BIG_INT,bi,stack,exe->heap),&ap,stack);
+		else
+		{
+			fklNiReturn(fklMakeVMint(fklBigIntToI64(bi),stack,exe->heap),&ap,stack);
+			fklFreeBigInt(bi);
+		}
+	}
 	fklNiEnd(&ap,stack);
 }
 
@@ -254,7 +278,32 @@ void SYS_add_1(ARGL)
 		fklNiReturn(fklNiNewVMvalue(FKL_F64,&r,stack,exe->heap),&ap,stack);
 	}
 	else
-		fklNiReturn(fklMakeVMint(fklGetInt(arg)+1,stack,exe->heap),&ap,stack);
+	{
+		if(FKL_IS_BIG_INT(arg))
+		{
+			if(fklIsGeLeI64BigInt(arg->u.bigInt))
+			{
+				FklBigInt* bi=fklNewBigInt0();
+				fklSetBigInt(bi,arg->u.bigInt);
+				fklAddBigIntI(bi,1);
+				fklNiReturn(fklNiNewVMvalue(FKL_BIG_INT,bi,stack,exe->heap),&ap,stack);
+			}
+			else
+				fklNiReturn(fklMakeVMint(fklBigIntToI64(arg->u.bigInt)+1,stack,exe->heap),&ap,stack);
+		}
+		else
+		{
+			int64_t i=fklGetInt(arg);
+			if(i==INT64_MAX)
+			{
+				FklBigInt* bi=fklNewBigInt(i);
+				fklAddBigIntI(bi,1);
+				fklNiReturn(fklNiNewVMvalue(FKL_BIG_INT,bi,stack,exe->heap),&ap,stack);
+			}
+			else
+				fklNiReturn(fklMakeVMint(fklGetInt(arg)+1,stack,exe->heap),&ap,stack);
+		}
+	}
 	fklNiEnd(&ap,stack);
 }
 
@@ -278,15 +327,48 @@ void SYS_sub(ARGL)
 			rd=-prev->u.f64;
 			fklNiReturn(fklNiNewVMvalue(FKL_F64,&rd,stack,exe->heap),&ap,stack);
 		}
+		else if(fklIsFixint(prev))
+		{
+			int64_t p64=fklGetInt(prev);
+			if(fklIsI64MulOverflow(p64,-1))
+			{
+				FklBigInt* bi=fklNewBigInt(p64);
+				fklMulBigIntI(bi,-1);
+				fklNiReturn(fklNiNewVMvalue(FKL_BIG_INT,bi,stack,exe->heap),&ap,stack);
+			}
+			else
+				fklNiReturn(fklMakeVMint(-fklGetInt(prev),stack,exe->heap),&ap,stack);
+
+		}
 		else
-			fklNiReturn(fklMakeVMint(-fklGetInt(prev),stack,exe->heap),&ap,stack);
+		{
+			FklBigInt* bi=fklNewBigInt0();
+			fklSetBigInt(bi,prev->u.bigInt);
+			fklMulBigIntI(bi,-1);
+			if(fklIsGtLtI64BigInt(bi))
+				fklNiReturn(fklNiNewVMvalue(FKL_BIG_INT,bi,stack,exe->heap),&ap,stack);
+			else
+			{
+				fklNiReturn(fklMakeVMint(fklBigIntToI64(bi),stack,exe->heap),&ap,stack);
+				fklFreeBigInt(bi);
+			}
+		}
 	}
 	else
 	{
+		FklBigInt* bi=fklNewBigInt0();
 		for(;cur;cur=fklNiGetArg(&ap,stack))
 		{
-			if(fklIsInt(cur))
-				r64+=fklGetInt(cur);
+			if(fklIsFixint(cur))
+			{
+				int64_t c64=fklGetInt(cur);
+				if(fklIsI64AddOverflow(r64,c64))
+					fklAddBigIntI(bi,c64);
+				else
+					r64+=c64;
+			}
+			else if(FKL_IS_BIG_INT(cur))
+				fklAddBigInt(bi,cur->u.bigInt);
 			else if(FKL_IS_F64(cur))
 				rd+=cur->u.f64;
 			else
@@ -295,13 +377,32 @@ void SYS_sub(ARGL)
 		fklNiResBp(&ap,stack);
 		if(FKL_IS_F64(prev)||rd!=0.0)
 		{
-			rd=((FKL_IS_F64(prev))?prev->u.f64:((FKL_IS_I64(prev))?prev->u.i64:FKL_GET_I32(prev)))-rd-r64;
+			rd=fklGetDouble(prev)-rd-r64-fklBigIntToDouble(bi);
 			fklNiReturn(fklNiNewVMvalue(FKL_F64,&rd,stack,exe->heap),&ap,stack);
+			fklFreeBigInt(bi);
+		}
+		else if(FKL_IS_0_BIG_INT(bi)&&!FKL_IS_BIG_INT(prev))
+		{
+			int64_t p64=fklGetInt(prev);
+			if(fklIsI64AddOverflow(p64,-r64))
+			{
+				fklAddBigIntI(bi,p64);
+				fklSubBigIntI(bi,r64);
+				fklNiReturn(fklNiNewVMvalue(FKL_BIG_INT,bi,stack,exe->heap),&ap,stack);
+			}
+			else
+			{
+				r64=p64-r64;
+				fklNiReturn(fklMakeVMint(r64,stack,exe->heap),&ap,stack);
+				fklFreeBigInt(bi);
+			}
 		}
 		else
 		{
-			r64=(FKL_IS_I64(prev))?prev->u.i64:FKL_GET_I32(prev)-r64;
-			fklNiReturn(fklMakeVMint(r64,stack,exe->heap),&ap,stack);
+			fklSubBigInt(bi,prev->u.bigInt);
+			fklMulBigIntI(bi,-1);
+			fklSubBigIntI(bi,r64);
+			fklNiReturn(fklNiNewVMvalue(FKL_BIG_INT,bi,stack,exe->heap),&ap,stack);
 		}
 	}
 	fklNiEnd(&ap,stack);
@@ -324,7 +425,32 @@ void SYS_sub_1(ARGL)
 		fklNiReturn(fklNiNewVMvalue(FKL_F64,&r,stack,exe->heap),&ap,stack);
 	}
 	else
-		fklNiReturn(fklMakeVMint(fklGetInt(arg)-1,stack,exe->heap),&ap,stack);
+	{
+		if(FKL_IS_BIG_INT(arg))
+		{
+			if(fklIsGeLeI64BigInt(arg->u.bigInt))
+			{
+				FklBigInt* bi=fklNewBigInt0();
+				fklSetBigInt(bi,arg->u.bigInt);
+				fklAddBigIntI(bi,1);
+				fklNiReturn(fklNiNewVMvalue(FKL_BIG_INT,bi,stack,exe->heap),&ap,stack);
+			}
+			else
+				fklNiReturn(fklMakeVMint(fklBigIntToI64(arg->u.bigInt)-1,stack,exe->heap),&ap,stack);
+		}
+		else
+		{
+			int64_t i=fklGetInt(arg);
+			if(i==INT64_MIN)
+			{
+				FklBigInt* bi=fklNewBigInt(i);
+				fklSubBigIntI(bi,1);
+				fklNiReturn(fklNiNewVMvalue(FKL_BIG_INT,bi,stack,exe->heap),&ap,stack);
+			}
+			else
+				fklNiReturn(fklMakeVMint(fklGetInt(arg)-1,stack,exe->heap),&ap,stack);
+		}
+	}
 	fklNiEnd(&ap,stack);
 }
 
@@ -335,10 +461,19 @@ void SYS_mul(ARGL)
 	FklVMvalue* cur=fklNiGetArg(&ap,stack);
 	double rd=1.0;
 	int64_t r64=1;
+	FklBigInt* bi=fklNewBigInt1();
 	for(;cur;cur=fklNiGetArg(&ap,stack))
 	{
-		if(fklIsInt(cur))
-			r64*=fklGetInt(cur);
+		if(fklIsFixint(cur))
+		{
+			int64_t c64=fklGetInt(cur);
+			if(fklIsI64MulOverflow(r64,c64))
+				fklMulBigIntI(bi,c64);
+			else
+				r64*=c64;
+		}
+		else if(FKL_IS_BIG_INT(cur))
+			fklMulBigInt(bi,cur->u.bigInt);
 		else if(FKL_IS_F64(cur))
 			rd*=cur->u.f64;
 		else
@@ -347,11 +482,20 @@ void SYS_mul(ARGL)
 	fklNiResBp(&ap,stack);
 	if(rd!=1.0)
 	{
-		rd*=r64;
+		rd*=r64*fklBigIntToDouble(bi);
 		fklNiReturn(fklNiNewVMvalue(FKL_F64,&rd,stack,exe->heap),&ap,stack);
+		fklFreeBigInt(bi);
+	}
+	else if(FKL_IS_1_BIG_INT(bi))
+	{
+		fklNiReturn(fklMakeVMint(r64,stack,exe->heap),&ap,stack);
+		fklFreeBigInt(bi);
 	}
 	else
-		fklNiReturn(fklMakeVMint(r64,stack,exe->heap),&ap,stack);
+	{
+		fklMulBigIntI(bi,r64);
+		fklNiReturn(fklNiNewVMvalue(FKL_BIG_INT,bi,stack,exe->heap),&ap,stack);
+	}
 	fklNiEnd(&ap,stack);
 }
 
@@ -718,7 +862,16 @@ void SYS_to_int(ARGL)
 		if(!fklIsNum(c_str))
 			fklNiReturn(FKL_VM_NIL,&ap,stack);
 		else
-			fklNiReturn(fklMakeVMint(fklStringToInt(c_str),stack,exe->heap),&ap,stack);
+		{
+			FklBigInt* bi=fklNewBigIntFromStr(c_str);
+			if(!fklIsGtLtI64BigInt(bi))
+			{
+				fklNiReturn(fklMakeVMint(fklBigIntToI64(bi),stack,exe->heap),&ap,stack);
+				fklFreeBigInt(bi);
+			}
+			else
+				fklNiReturn(fklNiNewVMvalue(FKL_BIG_INT,bi,stack,exe->heap),&ap,stack);
+		}
 		free(c_str);
 	}
 	else
@@ -737,7 +890,7 @@ void SYS_to_f64(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("sys.to-f64",FKL_TOOFEWARG,runnable,exe);
 	if(fklIsInt(obj)||FKL_IS_CHR(obj))
 	{
-		double r=fklIsInt(obj)?fklGetInt(obj):FKL_GET_CHR(obj);
+		double r=fklIsInt(obj)?fklGetDouble(obj):FKL_GET_CHR(obj);
 		fklNiReturn(fklNiNewVMvalue(FKL_I64,&r,stack,exe->heap),&ap,stack);
 	}
 	else if(FKL_IS_F64(obj))
@@ -1940,6 +2093,13 @@ void SYS_fwrite(ARGL)
 	{
 		int32_t r=FKL_GET_I32(obj);
 		fwrite(&r,sizeof(int32_t),1,objFile);
+	}
+	else if(FKL_IS_BIG_INT(obj))
+	{
+		uint64_t len=obj->u.bigInt->num+1;
+		fwrite(&len,sizeof(len),1,objFile);
+		fwrite(&obj->u.bigInt->neg,sizeof(uint8_t),1,objFile);
+		fwrite(obj->u.bigInt->digits,sizeof(uint8_t),obj->u.bigInt->num,objFile);
 	}
 	else if(FKL_IS_I64(obj))
 		fwrite((void*)&obj->u.i64,sizeof(int64_t),1,objFile);

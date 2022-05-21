@@ -795,3 +795,16 @@ void fklPrintRawCharBuf(const char* str,size_t size,FILE* out)
 	}
 	putc('\"',out);
 }
+
+inline int fklIsI64AddOverflow(int64_t a,int64_t b)
+{
+	int64_t sum=a+b;
+	return (a<0&&b<0&&sum>0)||(a>0&&b>0&&sum<0);
+}
+
+inline int fklIsI64MulOverflow(int64_t a,int64_t b)
+{
+	int64_t t=a*b;
+	t/=b;
+	return a!=t;
+}

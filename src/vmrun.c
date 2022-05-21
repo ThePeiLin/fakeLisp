@@ -1472,6 +1472,7 @@ void propagateMark(FklVMvalue* root,FklVMheap* heap)
 		case FKL_DLL:
 		case FKL_ERR:
 		case FKL_STR:
+		case FKL_BIG_INT:
 			break;
 		default:
 			FKL_ASSERT(0,__func__);

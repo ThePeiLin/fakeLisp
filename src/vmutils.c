@@ -22,6 +22,11 @@ FklVMvalue* fklMakeVMint(int64_t r64,FklVMstack* s,FklVMheap* heap)
 		return FKL_MAKE_VM_I32(r64);
 }
 
+inline int fklIsFixint(FklVMvalue* p)
+{
+	return FKL_IS_I32(p)||FKL_IS_I64(p);
+}
+
 inline int fklIsInt(FklVMvalue* p)
 {
 	return FKL_IS_I32(p)||FKL_IS_I64(p)||FKL_IS_BIG_INT(p);
@@ -37,8 +42,7 @@ inline int64_t fklGetInt(FklVMvalue* p)
 
 inline double fklGetDouble(FklVMvalue* p)
 {
-	return FKL_IS_I32(p)
-		?FKL_GET_I32(p)
+	return FKL_IS_I32(p)?FKL_GET_I32(p)
 		:(FKL_IS_I64(p))?p->u.i64
 		:(FKL_IS_BIG_INT(p))?fklBigIntToDouble(p->u.bigInt)
 		:p->u.f64;

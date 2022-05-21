@@ -464,6 +464,22 @@ void fklSetBigInt(FklBigInt* des,const FklBigInt* src)
 	des->num=src->num;
 }
 
+void fklInitBigInt(FklBigInt* a,const FklBigInt* src)
+{
+	a->digits=NULL;
+	a->neg=0;
+	a->num=0;
+	a->size=0;
+	fklSetBigInt(a,src);
+}
+
+void fklInitBigIntI(FklBigInt* a,int64_t v)
+{
+	FklBigInt* bi=fklNewBigInt(v);
+	fklInitBigInt(a,bi);
+	fklFreeBigInt(bi);
+}
+
 void fklSetBigIntI(FklBigInt* des,int64_t src)
 {
 	if(src<0)
@@ -630,7 +646,6 @@ void fklMulBigInt(FklBigInt* a,const FklBigInt* multipler)
 	else
 	{
 		uint64_t totalNum=a->num+multipler->num;
-		uint64_t num=0;
 		uint8_t* res=(uint8_t*)calloc(totalNum,sizeof(uint8_t));
 		FKL_ASSERT(res,__func__);
 		for(uint64_t i=0;i<a->num;i++)
@@ -642,15 +657,11 @@ void fklMulBigInt(FklBigInt* a,const FklBigInt* multipler)
 				int sum=(res[i+j]+n0*n1);
 				res[i+j]=sum%10;
 				res[i+j+1]+=sum/10;
-				if(sum/10&&i+j+2>num)
-					num=i+j+2;
-				else if(i+j+1>num)
-					num=i+j+1;
 			}
 		}
 		free(a->digits);
 		a->digits=res;
-		a->num=num;
+		a->num=totalNum-(res[totalNum-1]==0);
 		a->size=totalNum;
 		a->neg^=multipler->neg;
 	}
@@ -688,10 +699,10 @@ int fklDivBigInt(FklBigInt* a,const FklBigInt* divider)
 		FKL_ASSERT(s.digits,__func__);
 		for(uint64_t i=0;i<a->num;i++)
 		{
-			s.digits[i]=a->digits[i];
+			memcpy(s.digits,&a->digits[a->num-i-1],(i+1)*sizeof(uint8_t));
 			s.num++;
 			int count=0;
-			for(;cmpDigits(&s,divider)>0;fklSubBigInt(&s,divider),count++);
+			for(;cmpDigits(&s,divider)>=0;fklSubBigInt(&s,divider),count++);
 			if(count!=0)
 			{
 				res[num]=count;
@@ -738,15 +749,14 @@ int fklRemBigInt(FklBigInt* a,const FklBigInt* divider)
 		FKL_ASSERT(s.digits,__func__);
 		for(uint64_t i=0;i<a->num;i++)
 		{
-			s.digits[i]=a->digits[i];
+			memcpy(s.digits,&a->digits[a->num-i-1],(i+1)*sizeof(uint8_t));
 			s.num++;
-			for(;cmpDigits(&s,divider)>0;fklSubBigInt(&s,divider));
+			for(;cmpDigits(&s,divider)>=0;fklSubBigInt(&s,divider));
 		}
-		free(s.digits);
 		free(a->digits);
 		a->digits=s.digits;
-		a->size=s.num;
-		a->num=s.size;
+		a->num=s.num;
+		a->size=s.size;
 	}
 	return 0;
 }
@@ -762,6 +772,37 @@ int fklRemBigIntI(FklBigInt* a,int64_t div)
 		fklFreeBigInt(divider);
 		return r;
 	}
+}
+
+int fklIsDivisibleBigInt(const FklBigInt* a,const FklBigInt* b)
+{
+	int r=0;
+	FklBigInt tbi={NULL,0,0,0};
+	fklInitBigInt(&tbi,a);
+	fklRemBigInt(&tbi,b);
+	if(tbi.num==1&&tbi.digits[0]==0)
+		r=1;
+	free(tbi.digits);
+	return r;
+}
+
+int fklIsDivisibleBigIntI(const FklBigInt* a,int64_t i)
+{
+	FklBigInt* bi=fklNewBigInt(i);
+	int r=fklIsDivisibleBigInt(a,bi);
+	fklFreeBigInt(bi);
+	return r;
+}
+
+int fklIsDivisibleIBigInt(int64_t i,const FklBigInt* b)
+{
+	int r=0;
+	FklBigInt* a=fklNewBigInt(i);
+	fklRemBigInt(a,b);
+	if(a->num==1&&a->digits[0]==0)
+		r=1;
+	fklFreeBigInt(a);
+	return r;
 }
 
 int fklIsGeLeI64BigInt(const FklBigInt* a)

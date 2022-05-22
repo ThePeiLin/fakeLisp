@@ -705,13 +705,23 @@ void SYS_gt(ARGL)
 	{
 		if(prev)
 		{
-			if((FKL_IS_F64(prev)||fklIsInt(prev))
-					&&(FKL_IS_F64(cur)||fklIsInt(cur)))
-				r=((((FKL_IS_F64(prev))?prev->u.f64
-								:fklGetInt(prev))
-							-((FKL_IS_F64(cur))?cur->u.f64
-								:fklGetInt(cur)))
-						>0.0);
+			if((FKL_IS_F64(prev)&&fklIsNumber(cur))
+					||(FKL_IS_F64(cur)&&fklIsNumber(prev)))
+				r=(fklGetDouble(prev)-fklGetDouble(cur))>DBL_EPSILON;
+			else if(fklIsInt(prev)&&fklIsInt(cur))
+			{
+				if(fklIsFixint(prev)&&fklIsFixint(cur))
+					r=fklGetInt(prev)>fklGetInt(cur);
+				else
+				{
+					if(fklIsFixint(prev))
+						r=fklCmpBigIntI(cur->u.bigInt,fklGetInt(prev))<0;
+					else if(fklIsFixint(cur))
+						r=fklCmpBigIntI(prev->u.bigInt,fklGetInt(cur))>0;
+					else
+						r=fklCmpBigInt(prev->u.bigInt,cur->u.bigInt)>0;
+				}
+			}
 			else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
 				r=(fklVMstrcmp(prev->u.str,cur->u.str)>0);
 			else
@@ -744,13 +754,23 @@ void SYS_ge(ARGL)
 	{
 		if(prev)
 		{
-			if((FKL_IS_F64(prev)||fklIsInt(prev))
-					&&(FKL_IS_F64(cur)||fklIsInt(cur)))
-				r=((((FKL_IS_F64(prev))?prev->u.f64
-								:fklGetInt(prev))
-							-((FKL_IS_F64(cur))?cur->u.f64
-								:fklGetInt(cur)))
-						>=0.0);
+			if((FKL_IS_F64(prev)&&fklIsNumber(cur))
+					||(FKL_IS_F64(cur)&&fklIsNumber(prev)))
+				r=(fklGetDouble(prev)-fklGetDouble(cur))>=DBL_EPSILON;
+			else if(fklIsInt(prev)&&fklIsInt(cur))
+			{
+				if(fklIsFixint(prev)&&fklIsFixint(cur))
+					r=fklGetInt(prev)>=fklGetInt(cur);
+				else
+				{
+					if(fklIsFixint(prev))
+						r=fklCmpBigIntI(cur->u.bigInt,fklGetInt(prev))<=0;
+					else if(fklIsFixint(cur))
+						r=fklCmpBigIntI(prev->u.bigInt,fklGetInt(cur))>=0;
+					else
+						r=fklCmpBigInt(prev->u.bigInt,cur->u.bigInt)>=0;
+				}
+			}
 			else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
 				r=(fklVMstrcmp(prev->u.str,cur->u.str)>=0);
 			else
@@ -783,13 +803,23 @@ void SYS_lt(ARGL)
 	{
 		if(prev)
 		{
-			if((FKL_IS_F64(prev)||fklIsInt(prev))
-					&&(FKL_IS_F64(cur)||fklIsInt(cur)))
-				r=((((FKL_IS_F64(prev))?prev->u.f64
-								:fklGetInt(prev))
-							-((FKL_IS_F64(cur))?cur->u.f64
-								:fklGetInt(cur)))
-						<0.0);
+			if((FKL_IS_F64(prev)&&fklIsNumber(cur))
+					||(FKL_IS_F64(cur)&&fklIsNumber(prev)))
+				r=(fklGetDouble(prev)-fklGetDouble(cur))<DBL_EPSILON;
+			else if(fklIsInt(prev)&&fklIsInt(cur))
+			{
+				if(fklIsFixint(prev)&&fklIsFixint(cur))
+					r=fklGetInt(prev)<fklGetInt(cur);
+				else
+				{
+					if(fklIsFixint(prev))
+						r=fklCmpBigIntI(cur->u.bigInt,fklGetInt(prev))>0;
+					else if(fklIsFixint(cur))
+						r=fklCmpBigIntI(prev->u.bigInt,fklGetInt(cur))<0;
+					else
+						r=fklCmpBigInt(prev->u.bigInt,cur->u.bigInt)<0;
+				}
+			}
 			else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
 				r=(fklVMstrcmp(prev->u.str,cur->u.str)<0);
 			else
@@ -821,19 +851,29 @@ void SYS_le(ARGL)
 	for(;cur;cur=fklNiGetArg(&ap,stack))
 	{
 		if(prev)
-		{
-			if((FKL_IS_F64(prev)||fklIsInt(prev))
-					&&(FKL_IS_F64(cur)||fklIsInt(prev)))
-				r=((((FKL_IS_F64(prev))?prev->u.f64
-								:fklGetInt(prev))
-							-((FKL_IS_F64(cur))?cur->u.f64
-								:fklGetInt(cur)))
-						<=0.0);
-			else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
-				r=(fklVMstrcmp(prev->u.str,cur->u.str)<=0);
-			else
-				FKL_RAISE_BUILTIN_ERROR("sys.le",FKL_WRONGARG,runnable,exe);
-		}
+        {
+            if((FKL_IS_F64(prev)&&fklIsNumber(cur))
+                    ||(FKL_IS_F64(cur)&&fklIsNumber(prev)))
+                r=(fklGetDouble(prev)-fklGetDouble(cur))<=DBL_EPSILON;
+            else if(fklIsInt(prev)&&fklIsInt(cur))
+            {
+                if(fklIsFixint(prev)&&fklIsFixint(cur))
+                    r=fklGetInt(prev)<=fklGetInt(cur);
+                else
+                {
+                    if(fklIsFixint(prev))
+                        r=fklCmpBigIntI(cur->u.bigInt,fklGetInt(prev))>=0;
+                    else if(fklIsFixint(cur))
+                        r=fklCmpBigIntI(prev->u.bigInt,fklGetInt(cur))<=0;
+                    else
+                        r=fklCmpBigInt(prev->u.bigInt,cur->u.bigInt)<=0;
+                }
+            }
+            else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
+                r=(fklVMstrcmp(prev->u.str,cur->u.str)<=0);
+            else
+                FKL_RAISE_BUILTIN_ERROR("sys.le",FKL_WRONGARG,runnable,exe);
+        }
 		if(!r)
 			break;
 		prev=cur;
@@ -876,8 +916,8 @@ void SYS_char(ARGL)
 	{
 		if(fklNiResBp(&ap,stack))
 			FKL_RAISE_BUILTIN_ERROR("sys.char",FKL_TOOMANYARG,runnable,exe);
-		if(FKL_IS_I32(obj))
-			fklNiReturn(FKL_MAKE_VM_CHR(FKL_GET_I32(obj)),&ap,stack);
+		if(fklIsInt(obj))
+			fklNiReturn(FKL_MAKE_VM_CHR(fklGetInt(obj)),&ap,stack);
 		else if(FKL_IS_CHR(obj))
 			fklNiReturn(obj,&ap,stack);
 		else if(FKL_IS_F64(obj))
@@ -1053,9 +1093,9 @@ void SYS_i64(ARGL)
 		int8_t r=FKL_GET_CHR(obj);
 		fklNiReturn(fklNiNewVMvalue(FKL_I64,&r,stack,exe->heap),&ap,stack);
 	}
-	else if(FKL_IS_I32(obj))
+	else if(fklIsInt(obj))
 	{
-		int32_t r=FKL_GET_I32(obj);
+		int64_t r=fklGetInt(obj);
 		fklNiReturn(fklNiNewVMvalue(FKL_I64,&r,stack,exe->heap),&ap,stack);
 	}
 	else if(FKL_IS_SYM(obj))
@@ -1063,8 +1103,6 @@ void SYS_i64(ARGL)
 		int64_t r=FKL_GET_SYM(obj);
 		fklNiReturn(fklNiNewVMvalue(FKL_I64,&r,stack,exe->heap),&ap,stack);
 	}
-	else if(FKL_IS_I64(obj))
-		fklNiReturn(fklNiNewVMvalue(FKL_I64,(void*)&obj->u.i64,stack,exe->heap),&ap,stack);
 	else if(FKL_IS_F64(obj))
 	{
 		int64_t r=(int64_t)obj->u.f64;
@@ -1141,8 +1179,8 @@ void SYS_f64(ARGL)
 	FklVMvalue* retval=fklNiNewVMvalue(FKL_F64,NULL,stack,exe->heap);
 	if(FKL_IS_CHR(obj))
 		retval->u.f64=(double)FKL_GET_CHR(obj);
-	else if(FKL_IS_I32(obj))
-		retval->u.f64=(double)FKL_GET_I32(obj);
+	else if(fklIsInt(obj))
+		retval->u.f64=(double)fklGetInt(obj);
 	else if(FKL_IS_F64(obj))
 		retval->u.f64=obj->u.f64;
 	else if(FKL_IS_STR(obj))

@@ -688,6 +688,7 @@ int fklDivBigInt(FklBigInt* a,const FklBigInt* divider)
 	{
 		a->num=1;
 		a->digits[0]=1;
+		a->neg^=divider->neg;
 	}
 	else
 	{
@@ -702,7 +703,7 @@ int fklDivBigInt(FklBigInt* a,const FklBigInt* divider)
 			memcpy(s.digits,&a->digits[a->num-i-1],(i+1)*sizeof(uint8_t));
 			s.num++;
 			int count=0;
-			for(;cmpDigits(&s,divider)>=0;fklSubBigInt(&s,divider),count++);
+			for(;cmpDigits(&s,divider)>=0;subDigits(&s,divider),count++);
 			if(count!=0)
 			{
 				res[num]=count;
@@ -751,7 +752,7 @@ int fklRemBigInt(FklBigInt* a,const FklBigInt* divider)
 		{
 			memcpy(s.digits,&a->digits[a->num-i-1],(i+1)*sizeof(uint8_t));
 			s.num++;
-			for(;cmpDigits(&s,divider)>=0;fklSubBigInt(&s,divider));
+			for(;cmpDigits(&s,divider)>=0;subDigits(&s,divider));
 		}
 		free(a->digits);
 		a->digits=s.digits;

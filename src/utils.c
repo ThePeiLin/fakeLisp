@@ -804,6 +804,8 @@ inline int fklIsI64AddOverflow(int64_t a,int64_t b)
 
 inline int fklIsI64MulOverflow(int64_t a,int64_t b)
 {
+	if(b==0)
+		return 0;
 	int64_t t=a*b;
 	t/=b;
 	return a!=t;

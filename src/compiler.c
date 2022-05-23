@@ -2408,12 +2408,12 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 									fklFreePtrStack(tokenStack);
 									return NULL;
 								}
-								if(libByteCodelnt->bc->size&&otherByteCodelnt&&otherByteCodelnt->bc->size)
-								{
-									fklReCodeCat(resTp,otherByteCodelnt->bc);
-									otherByteCodelnt->l[0]->cpc+=resTp->size;
-									FKL_INCREASE_ALL_SCP(otherByteCodelnt->l+1,otherByteCodelnt->ls-1,resTp->size);
-								}
+								//if(libByteCodelnt->bc->size&&otherByteCodelnt&&otherByteCodelnt->bc->size)
+								//{
+								//	fklReCodeCat(resTp,otherByteCodelnt->bc);
+								//	otherByteCodelnt->l[0]->cpc+=resTp->size;
+								//	FKL_INCREASE_ALL_SCP(otherByteCodelnt->l+1,otherByteCodelnt->ls-1,resTp->size);
+								//}
 								if(otherByteCodelnt)
 								{
 									fklCodeLntCat(libByteCodelnt,otherByteCodelnt);

@@ -82,10 +82,10 @@ target_link_libraries(${FFI_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 
 #copy std.fkl
 add_custom_target(COPY_STD_FKL ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/lib ${CMAKE_BINARY_DIR}/lib)
+	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/lib ${CMAKE_BINARY_DIR}/lib)
 
 #copy examples
 add_custom_target(COPY_EXAMPLES ALL
-	COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/examples/ ${CMAKE_BINARY_DIR}/examples/)
+	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/examples/ ${CMAKE_BINARY_DIR}/examples/)
 
 

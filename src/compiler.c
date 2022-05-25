@@ -2632,24 +2632,41 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 	for(;pHandlerExpression;pHandlerExpression=fklNextCptr(pHandlerExpression))
 	{
 		if(pHandlerExpression->type!=FKL_PAIR
-				||fklGetFirstCptr(pHandlerExpression)->type!=FKL_ATM
-				||fklGetFirstCptr(pHandlerExpression)->u.atom->type!=FKL_SYM)
+				||!fklIsListCptr(fklGetFirstCptr(pHandlerExpression)))
 		{
 			state->state=FKL_SYNTAXERROR;
 			state->place=objCptr;
 			fklFreeByteCodeAndLnt(expressionByteCodelnt);
 			return NULL;
 		}
-		FklAstCptr* pErrorType=fklGetFirstCptr(pHandlerExpression);
-		FklAstCptr* begin=fklNextCptr(pErrorType);
-		if(!begin||pErrorType->type!=FKL_ATM||pErrorType->u.atom->type!=FKL_SYM)
+		FklAstCptr* pErrorTypes=fklGetFirstCptr(pHandlerExpression);
+		uint32_t errTypeNum=fklLengthListCptr(pErrorTypes);
+		FklSid_t* errTypeIds=(FklSid_t*)malloc(sizeof(FklSid_t)*errTypeNum);
+		FKL_ASSERT(errTypeIds,__func__);
+		FklAstCptr* firErrSymbol=fklGetFirstCptr(pErrorTypes);
+		for(uint32_t i=0;i<errTypeNum;i++)
 		{
-			state->state=FKL_SYNTAXERROR;
-			state->place=objCptr;
-			fklFreeByteCodeAndLnt(expressionByteCodelnt);
-			fklFreePtrStack(handlerByteCodelntStack);
-			return NULL;
+			if(firErrSymbol->type!=FKL_ATM||firErrSymbol->u.atom->type!=FKL_SYM)
+			{
+				state->state=FKL_SYNTAXERROR;
+				state->place=objCptr;
+				free(errTypeIds);
+				fklFreeByteCodeAndLnt(expressionByteCodelnt);
+				fklFreePtrStack(handlerByteCodelntStack);
+				return NULL;
+			}
+			errTypeIds[i]=fklAddSymbolToGlob(firErrSymbol->u.atom->value.sym)->id;
+			firErrSymbol=fklNextCptr(firErrSymbol);
 		}
+		FklAstCptr* begin=fklNextCptr(pErrorTypes);
+		//if(!begin||pErrorTypes->type!=FKL_ATM||pErrorTypes->u.atom->type!=FKL_SYM)
+		//{
+		//	state->state=FKL_SYNTAXERROR;
+		//	state->place=objCptr;
+		//	fklFreeByteCodeAndLnt(expressionByteCodelnt);
+		//	fklFreePtrStack(handlerByteCodelntStack);
+		//	return NULL;
+		//}
 		FklCompEnv* tmpEnv=fklNewCompEnv(curEnv);
 		fklAddCompDef(errSymbol,tmpEnv);
 		FklByteCodelnt* t=NULL;
@@ -2687,16 +2704,19 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 		t->l[t->ls-1]->cpc+=popTp->size;
 		fklFreeByteCode(setTp);
 		fklFreeByteCode(popTp);
-		char* errorType=pErrorType->u.atom->value.sym;
-		FklSid_t typeid=fklAddSymbolToGlob(errorType)->id;
-		FklByteCode* errorTypeByteCode=fklNewByteCode(sizeof(FklSid_t)+sizeof(t->bc->size));
-		fklSetSidToByteCode(errorTypeByteCode->code,typeid);
-		fklSetU64ToByteCode(errorTypeByteCode->code+sizeof(FklSid_t),t->bc->size);
+		//char* errorType=pErrorType->u.atom->value.sym;
+		//FklSid_t typeid=fklAddSymbolToGlob(errorType)->id;
+		FklByteCode* errorTypeByteCode=fklNewByteCode(sizeof(uint32_t)+sizeof(FklSid_t)*errTypeNum+sizeof(t->bc->size));
+		fklSetU32ToByteCode(errorTypeByteCode->code,errTypeNum);
+		for(uint32_t i=0;i<errTypeNum;i++)
+			fklSetSidToByteCode(errorTypeByteCode->code+sizeof(uint32_t)+i*sizeof(FklSid_t),errTypeIds[i]);
+		fklSetU64ToByteCode(errorTypeByteCode->code+sizeof(uint32_t)+errTypeNum*sizeof(FklSid_t),t->bc->size);
 		fklReCodeCat(errorTypeByteCode,t->bc);
 		t->l[0]->cpc+=errorTypeByteCode->size;
 		FKL_INCREASE_ALL_SCP(t->l+1,t->ls-1,errorTypeByteCode->size);
 		fklFreeByteCode(errorTypeByteCode);
 		fklPushPtrStack(t,handlerByteCodelntStack);
+		free(errTypeIds);
 	}
 	FklByteCodelnt* t=expressionByteCodelnt;
 	size_t numOfHandlerByteCode=handlerByteCodelntStack->top;
@@ -2720,6 +2740,7 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 	fklCodeCat(t->bc,popTry);
 	t->l[t->ls-1]->cpc+=popTry->size;
 	fklFreeByteCode(popTry);
+	fklPrintByteCode(t->bc,stderr);
 	return t;
 }
 

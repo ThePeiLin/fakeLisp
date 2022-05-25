@@ -167,11 +167,12 @@ void fklFreeVMtryBlock(FklVMtryBlock* b)
 	free(b);
 }
 
-FklVMerrorHandler* fklNewVMerrorHandler(FklSid_t type,uint64_t scp,uint64_t cpc)
+FklVMerrorHandler* fklNewVMerrorHandler(FklSid_t* typeIds,uint32_t errTypeNum,uint64_t scp,uint64_t cpc)
 {
 	FklVMerrorHandler* t=(FklVMerrorHandler*)malloc(sizeof(FklVMerrorHandler));
 	FKL_ASSERT(t,__func__);
-	t->type=type;
+	t->typeIds=typeIds;
+	t->num=errTypeNum;
 	t->proc.prevEnv=NULL;
 	t->proc.scp=scp;
 	t->proc.cpc=cpc;
@@ -180,7 +181,16 @@ FklVMerrorHandler* fklNewVMerrorHandler(FklSid_t type,uint64_t scp,uint64_t cpc)
 
 void fklFreeVMerrorHandler(FklVMerrorHandler* h)
 {
+	free(h->typeIds);
 	free(h);
+}
+
+static int isShouldBeHandle(FklSid_t* typeIds,uint32_t num,FklSid_t type)
+{
+	for(uint32_t i=0;i<num;i++)
+		if(typeIds[i]==type)
+			return 1;
+	return 0;
 }
 
 int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
@@ -194,7 +204,7 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 		while(!fklIsPtrStackEmpty(tb->hstack))
 		{
 			FklVMerrorHandler* h=fklPopPtrStack(tb->hstack);
-			if(h->type==err->type)
+			if(isShouldBeHandle(h->typeIds,h->num,err->type))
 			{
 				FklVMrunnable* curr=tb->curr;
 				for(FklVMrunnable* other=exe->rhead;other!=curr;)
@@ -834,7 +844,7 @@ FklVMcontinuation* fklNewVMcontinuation(uint32_t ap,FklVMstack* stack,FklVMrunna
 		for(;j<handlerNum;j++)
 		{
 			FklVMerrorHandler* curH=hstack->base[i];
-			FklVMerrorHandler* h=fklNewVMerrorHandler(curH->type,curH->proc.scp,curH->proc.cpc);
+			FklVMerrorHandler* h=fklNewVMerrorHandler(fklCopyMemory(curH->typeIds,sizeof(FklSid_t)*curH->num),curH->num,curH->proc.scp,curH->proc.cpc);
 			fklPushPtrStack(h,curHstack);
 		}
 		tb[i].hstack=curHstack;

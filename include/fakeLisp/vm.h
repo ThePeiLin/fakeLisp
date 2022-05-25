@@ -249,7 +249,8 @@ typedef struct FklVMtryBlock
 
 typedef struct FklVMerrorHandler
 {
-	FklSid_t type;
+	FklSid_t* typeIds;
+	uint32_t num;
 	FklVMproc proc;
 }FklVMerrorHandler;
 
@@ -328,7 +329,7 @@ FklVMvalue* fklPopVMstack(FklVMstack*);
 FklVMtryBlock* fklNewVMtryBlock(FklSid_t,uint32_t tp,FklVMrunnable* r);
 void fklFreeVMtryBlock(FklVMtryBlock* b);
 
-FklVMerrorHandler* fklNewVMerrorHandler(FklSid_t type,uint64_t scp,uint64_t cpc);
+FklVMerrorHandler* fklNewVMerrorHandler(FklSid_t* typeIds,uint32_t,uint64_t scp,uint64_t cpc);
 void fklFreeVMerrorHandler(FklVMerrorHandler*);
 int fklRaiseVMerror(FklVMvalue* err,FklVM*);
 FklVMrunnable* fklNewVMrunnable(FklVMproc*,FklVMrunnable*);

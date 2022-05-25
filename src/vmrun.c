@@ -1125,11 +1125,18 @@ void B_push_try(FklVM* exe)
 	uint32_t i=0;
 	for(;i<handlerNum;i++)
 	{
-		FklSid_t type=fklGetSidFromByteCode(exe->code+r->cp+cpc);
-		cpc+=sizeof(FklSid_t);
+		uint32_t errTypeNum=fklGetU32FromByteCode(exe->code+r->cp+cpc);
+		cpc+=sizeof(uint32_t);
+		FklSid_t* typeIds=(FklSid_t*)malloc(sizeof(FklSid_t)*errTypeNum);
+		FKL_ASSERT(typeIds,__func__);
+		for(uint32_t j=0;j<errTypeNum;j++)
+		{
+			typeIds[j]=fklGetSidFromByteCode(exe->code+r->cp+cpc);
+			cpc+=sizeof(FklSid_t);
+		}
 		uint64_t pCpc=fklGetU64FromByteCode(exe->code+r->cp+cpc);
 		cpc+=sizeof(uint64_t);
-		FklVMerrorHandler* h=fklNewVMerrorHandler(type,r->cp+cpc,pCpc);
+		FklVMerrorHandler* h=fklNewVMerrorHandler(typeIds,errTypeNum,r->cp+cpc,pCpc);
 		fklPushPtrStack(h,tb->hstack);
 		cpc+=pCpc;
 	}
@@ -1872,7 +1879,7 @@ void fklCreateCallChainWithContinuation(FklVM* vm,FklVMcontinuation* cc)
 		for(;j<handlerNum;j++)
 		{
 			FklVMerrorHandler* tmpH=hstack->base[j];
-			FklVMerrorHandler* curH=fklNewVMerrorHandler(tmpH->type,tmpH->proc.scp,tmpH->proc.cpc);
+			FklVMerrorHandler* curH=fklNewVMerrorHandler(fklCopyMemory(tmpH->typeIds,sizeof(FklSid_t)*tmpH->num),tmpH->num,tmpH->proc.scp,tmpH->proc.cpc);
 			fklPushPtrStack(curH,cur->hstack);
 		}
 		fklPushPtrStack(cur,vm->tstack);

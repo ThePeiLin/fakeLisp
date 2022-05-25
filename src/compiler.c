@@ -2740,7 +2740,6 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 	fklCodeCat(t->bc,popTry);
 	t->l[t->ls-1]->cpc+=popTry->size;
 	fklFreeByteCode(popTry);
-	fklPrintByteCode(t->bc,stderr);
 	return t;
 }
 
@@ -3247,7 +3246,9 @@ void fklPrintUndefinedSymbol(FklByteCodelnt* code)
 						int j=0;
 						for(;j<handlerNum;j++)
 						{
-							i+=sizeof(FklSid_t);
+							uint32_t num=fklGetU32FromByteCode(bc->code+i);
+							i+=num;
+							i+=sizeof(FklSid_t)*num;
 							uint32_t pCpc=fklGetU64FromByteCode(bc->code+i);
 							i+=sizeof(uint64_t);
 							i+=pCpc;

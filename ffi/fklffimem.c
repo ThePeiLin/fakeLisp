@@ -141,12 +141,38 @@ static void _mem_print(FILE* fp,void* p)
 	}
 }
 
+int _mem_equal(const FklVMudata* a,const FklVMudata* b)
+{
+	if(a->t->__invoke!=b->t->__invoke)
+		return 0;
+	if(a->t->__invoke)
+	{
+		FklFfiProc* p0=a->data;
+		FklFfiProc* p1=b->data;
+		if(p0->type==p1->type&&p0->func==p1->func)
+			return 1;
+	}
+	else
+	{
+		FklFfiMem* m0=a->data;
+		FklFfiMem* m1=b->data;
+		if(m0->type==m1->type)
+		{
+			if((m0->type==FKL_FFI_STRING||m0->type==FKL_FFI_FILE_P)&&m0->mem==m1->mem)
+				return 1;
+			else if(!memcmp(m0->mem,m1->mem,fklFfiGetTypeSizeWithTypeId(m0->type)))
+				return 1;
+		}
+	}
+	return 0;
+}
+
 static FklVMudMethodTable FfiMemMethodTable=
 {
 	.__princ=_mem_print,
 	.__prin1=_mem_print,
 	.__finalizer=_mem_finalizer,
-	.__equal=NULL,
+	.__equal=_mem_equal,
 	.__invoke=NULL,
 };
 
@@ -155,7 +181,7 @@ static FklVMudMethodTable FfiAtomicMemMethodTable=
 	.__princ=_mem_print,
 	.__prin1=_mem_print,
 	.__finalizer=_mem_atomic_finalizer,
-	.__equal=NULL,
+	.__equal=_mem_equal,
 	.__invoke=NULL,
 };
 
@@ -514,7 +540,7 @@ int fklFfiSetMemForProc(FklVMudata* ud,FklVMvalue* val)
 		}
 		else if(fklFfiIsProc(val))
 		{
-			FklFfiproc* valproc=val->u.ud->data;
+			FklFfiProc* valproc=val->u.ud->data;
 			*(void**)ref->mem=valproc->func;
 		}
 		else
@@ -599,7 +625,7 @@ int fklFfiSetMem(FklFfiMem* ref,FklVMvalue* val)
 		}
 		else if(fklFfiIsProc(val))
 		{
-			FklFfiproc* valproc=val->u.ud->data;
+			FklFfiProc* valproc=val->u.ud->data;
 			*(void**)ref->mem=valproc->func;
 		}
 		else
@@ -710,7 +736,7 @@ FklVMudata* fklFfiCastVMvalueIntoMem(FklVMvalue* v)
 	{
 		if(v->u.ud->t->__invoke)
 		{
-			FklFfiproc* proc=v->u.ud->data;
+			FklFfiProc* proc=v->u.ud->data;
 			m=fklFfiNewRef(proc->type,proc->func);
 		}
 		else

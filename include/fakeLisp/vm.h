@@ -187,7 +187,7 @@ typedef struct FklVMudMethodTable
 	void (*__princ)(FILE*,void*);
 	void (*__prin1)(FILE*,void*);
 	void (*__finalizer)(void*);
-	int  (*__equal)(void*,void*);
+	int  (*__equal)(const FklVMudata*,const FklVMudata*);
 	void (*__invoke)(FklVM*,void*);
 }FklVMudMethodTable;
 

@@ -45,7 +45,7 @@ void fklFfiFreeAllSharedObj(void)
 	}
 }
 
-void fklFfiFreeProc(FklFfiproc* t)
+void fklFfiFreeProc(FklFfiProc* t)
 {
 	free(t->atypes);
 	free(t);
@@ -58,7 +58,7 @@ static void _ffi_proc_atomic_finalizer(void* p)
 
 static void _ffi_proc_print(FILE* fp,void* p)
 {
-	FklFfiproc* f=p;
+	FklFfiProc* f=p;
 	fprintf(fp,"#<ffi-proc:%s>",fklGetGlobSymbolWithId(f->sid)->symbol);
 }
 
@@ -112,7 +112,7 @@ ffi_type* fklFfiGetFfiType(FklTypeId_t type)
 static void _ffi_proc_invoke(FklVM* exe,void* ptr)
 {
 	FKL_NI_BEGIN(exe);
-	FklFfiproc* proc=ptr;
+	FklFfiProc* proc=ptr;
 	FklTypeId_t type=proc->type;
 	FklVMrunnable* curR=exe->rhead;
 	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(type).all);
@@ -191,12 +191,13 @@ static void _ffi_proc_invoke(FklVM* exe,void* ptr)
 	fklNiEnd(&ap,stack);
 }
 
+extern int _mem_equal(const FklVMudata* a,const FklVMudata* b);
 static FklVMudMethodTable FfiProcMethodTable=
 {
 	.__princ=_ffi_proc_print,
 	.__prin1=_ffi_proc_print,
 	.__finalizer=_ffi_proc_atomic_finalizer,
-	.__equal=NULL,
+	.__equal=_mem_equal,
 	.__invoke=_ffi_proc_invoke,
 };
 
@@ -217,9 +218,9 @@ int fklFfiIsValidFunctionTypeId(FklSid_t id)
 	return 1;
 }
 
-FklFfiproc* fklFfiNewProc(FklTypeId_t type,void* func,FklSid_t sid)
+FklFfiProc* fklFfiNewProc(FklTypeId_t type,void* func,FklSid_t sid)
 {
-	FklFfiproc* tmp=(FklFfiproc*)malloc(sizeof(FklFfiproc));
+	FklFfiProc* tmp=(FklFfiProc*)malloc(sizeof(FklFfiProc));
 	FKL_ASSERT(tmp,__func__);
 	tmp->type=type;
 	tmp->func=func;

@@ -10,18 +10,18 @@ typedef HMODULE FklFfidllHandle;
 typedef void* FklFfidllHandle;
 #endif
 
-typedef struct FklFfiproc
+typedef struct FklFfiProc
 {
 	void* func;
 	ffi_cif cif;
 	ffi_type** atypes;
 	FklTypeId_t type;
 	FklSid_t sid;
-}FklFfiproc;
+}FklFfiProc;
 
 void fklFfiFreeAllSharedObj(void);
 void fklFfiAddSharedObj(FklFfidllHandle handle);
 FklVMudata* fklFfiNewProcUd(FklTypeId_t id,const char* );
-FklFfiproc* fklFfiNewProc(FklTypeId_t type,void* func,FklSid_t);
+FklFfiProc* fklFfiNewProc(FklTypeId_t type,void* func,FklSid_t);
 int fklFfiIsValidFunctionTypeId(FklTypeId_t type);
 #endif

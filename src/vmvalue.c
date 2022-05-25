@@ -426,7 +426,7 @@ int fklVMvaluecmp(FklVMvalue* fir,FklVMvalue* sec)
 					if(root1->u.ud->type!=root2->u.ud->type||!root1->u.ud->t->__equal)
 						r=0;
 					else
-						r=root1->u.ud->t->__equal(root1->u.ud->data,root2->u.ud->data);
+						r=root1->u.ud->t->__equal(root1->u.ud,root2->u.ud);
 					break;
 				default:
 					r=(root1==root2);

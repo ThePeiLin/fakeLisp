@@ -149,7 +149,25 @@ stderr
 (cdr i)
 ;=> 2
 ```
-注意，car与cdr函数都是取对应部分的引用，而不是值。
+
+### set-car! set-cdr!
+用于设置pair的car或cdr部分
+```scheme
+(define i (cons 1 2))
+;=> (1,2)
+
+(set-car! i 3)
+;=> 3
+
+i
+;=> (3,2)
+
+(set-cdr! i 4)
+;=> 4
+
+i
+;=> (3,4)
+```
 
 ### append
 连接表、字符串和字节串，参数数量不定  
@@ -364,7 +382,7 @@ stderr
 ### <=
 若前一个参数均小于等于后一个参数，则返回真，否则返回假  
 
-### integer i32 i64 f64 symbol  
+### integer i32 i64 big-int f64 symbol  
 返回用参数创建的对象  
 ```scheme
 (i32 1.0)
@@ -373,10 +391,7 @@ stderr
 (integer #\a)
 ;=> 61
 
-(integer "\x1") ;如果参数是字符串则返回这参数的内存对于的对象  
-;=> 1
-
-;integer函数会根据转换的数值的大小自动转化成i32或i64
+;integer函数会根据转换的数值的大小自动转化成i32、i64或big-int
 
 (i32 "\x1");返回值必定是i32
 ;=> 1
@@ -389,6 +404,9 @@ stderr
 
 (i64 #\a)
 ;=> 61
+
+(big-int 1) ;返回值必定是big-int
+;=> 1
 
 (f64 15)
 ;=> 15.0
@@ -426,7 +444,7 @@ stderr
 (char 1)
 ;=> #\x1
 ```
-如果参数是字符串，则还接受一个参数作为索引，返回索引的字符的引用  
+
 ```scheme
 (char "abcd")
 ;=> #\a
@@ -437,13 +455,27 @@ stderr
 ```
 
 ### nth
-第一个参数为索引，第二个参数为要取得其对应索引的引用的对象,只能为列表  
+第一个参数为索引，第二个参数为要取得其对应索引的对象,只能为列表  
 ```scheme
 (nth 0 ())
 ;=> ()
 
 (nth 1 (1 2 3))
 ;=> 2
+
+```
+
+### nth-set!
+设置第n个car
+```scheme
+(define i '(1 2 3 4))
+;=> (1 2 3 4)
+
+(nth-set! 1 i 9)
+;=> 9
+
+i
+;=> (1 9 3 4)
 
 ```
 
@@ -487,7 +519,7 @@ stderr
 参数为文件指针，如果到达文件结尾则返回真，否则返回假  
 
 ### vref
-参数为一个向量或字符串和一个索引，返回索引的对象的引用
+参数为一个向量或字符串和一个索引，返回索引的对象
 ```scheme
 (vref "abcd" 1)
 ;=> #\b
@@ -497,11 +529,48 @@ stderr
 
 ```
 
+### vref-set!
+设置索引的对象
+```scheme
+(define i #(1 2 3))
+;=> #(1 2 3)
+
+(define b "abcd")
+;=> "abcd"
+
+(vref-set! i 1 9)
+;=> 9
+
+i
+;=> #(1 9 3)
+
+(vref-set! b 1 #\n)
+;=> #\n
+
+b
+;=> "ancd"
+
+```
+
 ### nthcdr
-参数是一个索引和一个列表，返回列表的第n个cdr的引用  
+参数是一个索引和一个列表，返回列表的第n个cdr  
 ```scheme
 (nthcdr 1 '(1 2 3))
 ;=> (3)
+
+```
+
+### nthcdr-set!
+设置第n个cdr的值
+```scheme
+(define i '(1 2 3 4))
+;=> (1 2 3 4)
+
+(nthcdr-set! 1 i '(5 6))
+;=> (5 6)
+
+i
+;=> (1 2 5 6)
 
 ```
 
@@ -637,28 +706,6 @@ dlsym的第一个参数为动态库，第二个参数为要查找的函数名，
 ```scheme
 (setq i 8)
 ;=> 8
-```
-
-### setf  
-为引用赋值，由于解释器是通过引用传值的，所以可以为任意引用赋值，如:  
-```scheme
-(define i 10)
-;=> 10
-
-(setf i 9)  
-;=> 9
-
-i
-;=> 9
-
-(setf i (cons 1 2))
-;=> (1,2)
-
-(setf (car i) 10)
-;=> 10
-
-i
-;=> (10,2)
 ```
 
 ### quote  
@@ -894,25 +941,25 @@ lisp系的编程语言大多都有词法闭包，  可以利用词法闭包来�
                               (not (eq segmentId 'method)))
                        (break nil))
                      (case segmentId
-                       (('data) (setf data-list (appd data-list segmentData)))
-                       (('method) (setf pre-method-list (appd pre-method-list segmentData)))))
+                       (('data) (setq data-list (appd data-list segmentData)))
+                       (('method) (setq pre-method-list (appd pre-method-list segmentData)))))
               (loop (cdr c)))))
 
     (let loop ((c data-list))
       (cond (c (let ((name (car (car c))))
-                 (setf case-list (cons `(((quote ~name)) ~name) case-list)))
+                 (setq case-list (cons `(((quote ~name)) ~name) case-list)))
                (loop (cdr c)))))
 
     (let loop ((c pre-method-list))
       (cond (c
               (let ((methodName (car (car c))))
                 (cond ((not (eq methodName name))
-                       (setf method-list (cons `(~methodName (lambda ~@(cdr (car c)))) method-list))
-                       (setf case-list (cons `(((quote ~methodName)) ~methodName) case-list)))
+                       (setq method-list (cons `(~methodName (lambda ~@(cdr (car c)))) method-list))
+                       (setq case-list (cons `(((quote ~methodName)) ~methodName) case-list)))
                       (1
-                       (setf construct-method (cdr (car c))))))
+                       (setq construct-method (cdr (car c))))))
               (loop (cdr c)))))
-    (setf case-list
+    (setq case-list
           (appd case-list
                 `((1
                    (raise (error 'invalid-selector (append "error:Invalid selector \"" (str selector) "\"\n")))))))
@@ -935,15 +982,15 @@ lisp系的编程语言大多都有词法闭包，  可以利用词法闭包来�
 
        (method
          (Vec3 (x y z)
-               (setf X (dbl x))
-               (setf Y (dbl y))
-               (setf Z (dbl z)))
+               (setq X (dbl x))
+               (setq Y (dbl y))
+               (setq Z (dbl z)))
          (setX (x)
-               (setf X (dbl x)))
+               (setq X (dbl x)))
          (setY (y)
-               (setf Y (dbl y)))
+               (setq Y (dbl y)))
          (setZ (z)
-               (setf Z (dbl z)))))
+               (setq Z (dbl z)))))
 ;=> #<proc>
 
 (define i (Vec3 1 2 3))

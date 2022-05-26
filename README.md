@@ -126,12 +126,19 @@ to-str
 fgets  
 to-int  
 to-f64  
+big-int?  
+big-int  
+set-car!  
+set-cdr!  
+nth-set!  
+nthcdr-set!  
+vref-set!  
+list?  
 
 Special forms:  
 
 define  
 setq  
-setf  
 quote  
 cond  
 and  

@@ -126,72 +126,6 @@ void SYS_eq(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_eqn(ARGL)
-{
-	FKL_NI_BEGIN(exe);
-	FklVMrunnable* runnable=exe->rhead;
-	FklVMvalue* fir=fklNiGetArg(&ap,stack);
-	FklVMvalue* sec=fklNiGetArg(&ap,stack);
-	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR("sys.eqn",FKL_TOOMANYARG,runnable,exe);
-	if(!fir||!sec)
-		FKL_RAISE_BUILTIN_ERROR("sys.eqn",FKL_TOOFEWARG,runnable,exe);
-	if((FKL_IS_F64(fir)||fklIsInt(fir))&&(FKL_IS_F64(sec)||fklIsInt(sec)))
-	{
-		if(FKL_IS_F64(fir)||FKL_IS_F64(sec))
-			fklNiReturn(fabs(fklGetDouble(fir)-fklGetDouble(sec))
-					<DBL_EPSILON
-					?FKL_VM_TRUE
-					:FKL_VM_NIL
-					,&ap
-					,stack);
-		else
-		{
-			if(FKL_IS_BIG_INT(fir)&&FKL_IS_BIG_INT(sec))
-				fklNiReturn(fklCmpBigInt(fir->u.bigInt,sec->u.bigInt)==0
-						?FKL_VM_TRUE
-						:FKL_VM_NIL
-						,&ap
-						,stack);
-			else if(FKL_IS_BIG_INT(fir)||FKL_IS_BIG_INT(sec))
-				fklNiReturn((FKL_IS_BIG_INT(fir)
-							?fklCmpBigIntI(fir->u.bigInt,fklGetInt(sec))==0
-							:fklCmpIBigInt(fklGetInt(fir),sec->u.bigInt)==0)
-						?FKL_VM_TRUE
-						:FKL_VM_NIL
-						,&ap
-						,stack);
-			else
-				fklNiReturn(fklGetInt(fir)==fklGetInt(sec)
-						?FKL_VM_TRUE
-						:FKL_VM_NIL
-						,&ap
-						,stack);
-		}
-	}
-	else if(FKL_IS_CHR(fir)&&FKL_IS_CHR(sec))
-		fklNiReturn(fir==sec
-				?FKL_VM_TRUE
-				:FKL_VM_NIL
-				,&ap
-				,stack);
-	else if(FKL_IS_SYM(fir)&&FKL_IS_SYM(sec))
-		fklNiReturn(fir==sec
-				?FKL_VM_TRUE
-				:FKL_VM_NIL
-				,&ap
-				,stack);
-	else if(FKL_IS_STR(fir)&&FKL_IS_STR(sec))
-		fklNiReturn(!fklVMstrcmp(fir->u.str,sec->u.str)
-				?FKL_VM_TRUE
-				:FKL_VM_NIL
-				,&ap
-				,stack);
-	else
-		FKL_RAISE_BUILTIN_ERROR("sys.eqn",FKL_WRONGARG,runnable,exe);
-	fklNiEnd(&ap,stack);
-}
-
 void SYS_equal(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -692,6 +626,69 @@ void SYS_rem(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void SYS_eqn(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	int r=1;
+	FklVMvalue* cur=fklNiGetArg(&ap,stack);
+	FklVMvalue* prev=NULL;
+	if(!cur)
+		FKL_RAISE_BUILTIN_ERROR("sys.eqn",FKL_TOOFEWARG,runnable,exe);
+	for(;cur;cur=fklNiGetArg(&ap,stack))
+	{
+		if(prev)
+		{
+			if((FKL_IS_F64(prev)&&fklIsNumber(cur))
+					||(FKL_IS_F64(cur)&&fklIsNumber(prev)))
+				r=fabs(fklGetDouble(prev)-fklGetDouble(cur))<DBL_EPSILON;
+			else if(fklIsInt(prev)&&fklIsInt(cur))
+			{
+				if(fklIsFixint(prev)&&fklIsFixint(cur))
+					r=fklGetInt(prev)==fklGetInt(cur);
+				else
+				{
+					if(fklIsFixint(prev))
+						r=fklCmpBigIntI(cur->u.bigInt,fklGetInt(prev))==0;
+					else if(fklIsFixint(cur))
+						r=fklCmpBigIntI(prev->u.bigInt,fklGetInt(cur))==0;
+					else
+						r=fklCmpBigInt(prev->u.bigInt,cur->u.bigInt)==0;
+				}
+			}
+			else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
+				r=(fklVMstrcmp(prev->u.str,cur->u.str)==0);
+			else if(FKL_IS_USERDATA(prev)&&prev->u.ud->t->__cmp)
+			{
+				int isUnableToBeCmp=0;
+				r=prev->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)==0;
+				if(isUnableToBeCmp)
+					FKL_RAISE_BUILTIN_ERROR("sys.eqn",FKL_WRONGARG,runnable,exe);
+			}
+			else if(FKL_IS_USERDATA(cur)&&cur->u.ud->t->__cmp)
+			{
+				int isUnableToBeCmp=0;
+				r=cur->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)==0;
+				if(isUnableToBeCmp)
+					FKL_RAISE_BUILTIN_ERROR("sys.eqn",FKL_WRONGARG,runnable,exe);
+			}
+			else
+				FKL_RAISE_BUILTIN_ERROR("sys.eqn",FKL_WRONGARG,runnable,exe);
+		}
+		if(!r)
+			break;
+		prev=cur;
+	}
+	for(;cur;cur=fklNiGetArg(&ap,stack));
+	fklNiResBp(&ap,stack);
+	fklNiReturn(r
+			?FKL_VM_TRUE
+			:FKL_VM_NIL
+			,&ap
+			,stack);
+	fklNiEnd(&ap,stack);
+}
+
 void SYS_gt(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -724,6 +721,20 @@ void SYS_gt(ARGL)
 			}
 			else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
 				r=(fklVMstrcmp(prev->u.str,cur->u.str)>0);
+			else if(FKL_IS_USERDATA(prev)&&prev->u.ud->t->__cmp)
+			{
+				int isUnableToBeCmp=0;
+				r=prev->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)>0;
+				if(isUnableToBeCmp)
+					FKL_RAISE_BUILTIN_ERROR("sys.gt",FKL_WRONGARG,runnable,exe);
+			}
+			else if(FKL_IS_USERDATA(cur)&&cur->u.ud->t->__cmp)
+			{
+				int isUnableToBeCmp=0;
+				r=cur->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)>0;
+				if(isUnableToBeCmp)
+					FKL_RAISE_BUILTIN_ERROR("sys.gt",FKL_WRONGARG,runnable,exe);
+			}
 			else
 				FKL_RAISE_BUILTIN_ERROR("sys.gt",FKL_WRONGARG,runnable,exe);
 		}
@@ -773,6 +784,20 @@ void SYS_ge(ARGL)
 			}
 			else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
 				r=(fklVMstrcmp(prev->u.str,cur->u.str)>=0);
+			else if(FKL_IS_USERDATA(prev)&&prev->u.ud->t->__cmp)
+			{
+				int isUnableToBeCmp=0;
+				r=prev->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)>=0;
+				if(isUnableToBeCmp)
+					FKL_RAISE_BUILTIN_ERROR("sys.ge",FKL_WRONGARG,runnable,exe);
+			}
+			else if(FKL_IS_USERDATA(cur)&&cur->u.ud->t->__cmp)
+			{
+				int isUnableToBeCmp=0;
+				r=cur->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)>=0;
+				if(isUnableToBeCmp)
+					FKL_RAISE_BUILTIN_ERROR("sys.ge",FKL_WRONGARG,runnable,exe);
+			}
 			else
 				FKL_RAISE_BUILTIN_ERROR("sys.ge",FKL_WRONGARG,runnable,exe);
 		}
@@ -805,7 +830,7 @@ void SYS_lt(ARGL)
 		{
 			if((FKL_IS_F64(prev)&&fklIsNumber(cur))
 					||(FKL_IS_F64(cur)&&fklIsNumber(prev)))
-				r=(fklGetDouble(prev)-fklGetDouble(cur))<DBL_EPSILON;
+				r=(fklGetDouble(prev)-fklGetDouble(cur))<-DBL_EPSILON;
 			else if(fklIsInt(prev)&&fklIsInt(cur))
 			{
 				if(fklIsFixint(prev)&&fklIsFixint(cur))
@@ -822,6 +847,20 @@ void SYS_lt(ARGL)
 			}
 			else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
 				r=(fklVMstrcmp(prev->u.str,cur->u.str)<0);
+			else if(FKL_IS_USERDATA(prev)&&prev->u.ud->t->__cmp)
+			{
+				int isUnableToBeCmp=0;
+				r=prev->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)<0;
+				if(isUnableToBeCmp)
+					FKL_RAISE_BUILTIN_ERROR("sys.lt",FKL_WRONGARG,runnable,exe);
+			}
+			else if(FKL_IS_USERDATA(cur)&&cur->u.ud->t->__cmp)
+			{
+				int isUnableToBeCmp=0;
+				r=cur->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)<0;
+				if(isUnableToBeCmp)
+					FKL_RAISE_BUILTIN_ERROR("sys.lt",FKL_WRONGARG,runnable,exe);
+			}
 			else
 				FKL_RAISE_BUILTIN_ERROR("sys.lt",FKL_WRONGARG,runnable,exe);
 		}
@@ -851,29 +890,43 @@ void SYS_le(ARGL)
 	for(;cur;cur=fklNiGetArg(&ap,stack))
 	{
 		if(prev)
-        {
-            if((FKL_IS_F64(prev)&&fklIsNumber(cur))
-                    ||(FKL_IS_F64(cur)&&fklIsNumber(prev)))
-                r=(fklGetDouble(prev)-fklGetDouble(cur))<=DBL_EPSILON;
-            else if(fklIsInt(prev)&&fklIsInt(cur))
-            {
-                if(fklIsFixint(prev)&&fklIsFixint(cur))
-                    r=fklGetInt(prev)<=fklGetInt(cur);
-                else
-                {
-                    if(fklIsFixint(prev))
-                        r=fklCmpBigIntI(cur->u.bigInt,fklGetInt(prev))>=0;
-                    else if(fklIsFixint(cur))
-                        r=fklCmpBigIntI(prev->u.bigInt,fklGetInt(cur))<=0;
-                    else
-                        r=fklCmpBigInt(prev->u.bigInt,cur->u.bigInt)<=0;
-                }
-            }
-            else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
-                r=(fklVMstrcmp(prev->u.str,cur->u.str)<=0);
-            else
-                FKL_RAISE_BUILTIN_ERROR("sys.le",FKL_WRONGARG,runnable,exe);
-        }
+		{
+			if((FKL_IS_F64(prev)&&fklIsNumber(cur))
+					||(FKL_IS_F64(cur)&&fklIsNumber(prev)))
+				r=(fklGetDouble(prev)-fklGetDouble(cur))<=-DBL_EPSILON;
+			else if(fklIsInt(prev)&&fklIsInt(cur))
+			{
+				if(fklIsFixint(prev)&&fklIsFixint(cur))
+					r=fklGetInt(prev)<=fklGetInt(cur);
+				else
+				{
+					if(fklIsFixint(prev))
+						r=fklCmpBigIntI(cur->u.bigInt,fklGetInt(prev))>=0;
+					else if(fklIsFixint(cur))
+						r=fklCmpBigIntI(prev->u.bigInt,fklGetInt(cur))<=0;
+					else
+						r=fklCmpBigInt(prev->u.bigInt,cur->u.bigInt)<=0;
+				}
+			}
+			else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
+				r=(fklVMstrcmp(prev->u.str,cur->u.str)<=0);
+			else if(FKL_IS_USERDATA(prev)&&prev->u.ud->t->__cmp)
+			{
+				int isUnableToBeCmp=0;
+				r=prev->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)<=0;
+				if(isUnableToBeCmp)
+					FKL_RAISE_BUILTIN_ERROR("sys.le",FKL_WRONGARG,runnable,exe);
+			}
+			else if(FKL_IS_USERDATA(cur)&&cur->u.ud->t->__cmp)
+			{
+				int isUnableToBeCmp=0;
+				r=cur->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)<=0;
+				if(isUnableToBeCmp)
+					FKL_RAISE_BUILTIN_ERROR("sys.le",FKL_WRONGARG,runnable,exe);
+			}
+			else
+				FKL_RAISE_BUILTIN_ERROR("sys.le",FKL_WRONGARG,runnable,exe);
+		}
 		if(!r)
 			break;
 		prev=cur;

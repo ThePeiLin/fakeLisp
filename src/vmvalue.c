@@ -476,10 +476,10 @@ FklVMstr* fklNewVMstr(size_t size,const char* str)
 
 int fklVMstrcmp(const FklVMstr* fir,const FklVMstr* sec)
 {
-	ssize_t size=fir->size<sec->size?fir->size:sec->size;
+	size_t size=fir->size<sec->size?fir->size:sec->size;
 	int r=memcmp(fir->str,sec->str,size);
 	if(!r)
-		return fir->size-sec->size;
+		return (int64_t)fir->size-(int64_t)sec->size;
 	return r;
 }
 

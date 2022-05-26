@@ -826,6 +826,22 @@ int fklIsGtLtI64BigInt(const FklBigInt* a)
 	return r;
 }
 
+int fklIsGtI64MaxBigInt(const FklBigInt* a)
+{
+	FklBigInt* bI64Max=fklNewBigInt(INT64_MAX);
+	int r=fklCmpBigInt(a,bI64Max)>0;
+	fklFreeBigInt(bI64Max);
+	return r;
+}
+
+int fklIsLtI64MinBigInt(const FklBigInt* a)
+{
+	FklBigInt* bI64Min=fklNewBigInt(INT64_MIN);
+	int r=fklCmpBigInt(a,bI64Min)<0;
+	fklFreeBigInt(bI64Min);
+	return r;
+}
+
 int64_t fklBigIntToI64(const FklBigInt* a)
 {
 	if(fklIsGtLtI64BigInt(a))

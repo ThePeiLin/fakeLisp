@@ -3,6 +3,7 @@
 #include<fakeLisp/utils.h>
 #include<string.h>
 #include<fakeLisp/fklni.h>
+#include<float.h>
 
 static FklVMvalue* FfiRel=NULL;
 FklSid_t FfiMemUdSid=0;
@@ -53,6 +54,121 @@ static void printUptr     (ARGL){PRINT_MEM_REF("%lu",uintptr_t,mem,fp);}
 static void printVptr     (ARGL){PRINT_MEM_REF("%p",void*,mem,fp);}
 #undef ARGL
 #undef PRINT_MEM_REF
+
+#define ARGL FklFfiMem* mem
+#define GET_INTEGER_MEM(TYPE) return *(TYPE*)(mem->mem);
+static int64_t __get_integer_from_short    (ARGL){GET_INTEGER_MEM(short)}
+static int64_t __get_integer_from_int      (ARGL){GET_INTEGER_MEM(int)}
+static int64_t __get_integer_from_ushort   (ARGL){GET_INTEGER_MEM(unsigned short)}
+static int64_t __get_integer_from_unsigned (ARGL){GET_INTEGER_MEM(unsigned)}
+static int64_t __get_integer_from_long     (ARGL){GET_INTEGER_MEM(long)}
+static int64_t __get_integer_from_ulong    (ARGL){GET_INTEGER_MEM(unsigned long)}
+static int64_t __get_integer_from_longlong (ARGL){GET_INTEGER_MEM(long long)}
+static int64_t __get_integer_from_ulonglong(ARGL){GET_INTEGER_MEM(unsigned long)}
+static int64_t __get_integer_from_ptrdiff_t(ARGL){GET_INTEGER_MEM(ptrdiff_t)}
+static int64_t __get_integer_from_size_t   (ARGL){GET_INTEGER_MEM(size_t)}
+static int64_t __get_integer_from_ssize_t  (ARGL){GET_INTEGER_MEM(ssize_t)}
+static int64_t __get_integer_from_char     (ARGL){GET_INTEGER_MEM(char)}
+static int64_t __get_integer_from_wchar_t  (ARGL){GET_INTEGER_MEM(wchar_t)}
+static int64_t __get_integer_from_float    (ARGL){GET_INTEGER_MEM(float)}
+static int64_t __get_integer_from_double   (ARGL){GET_INTEGER_MEM(double)}
+static int64_t __get_integer_from_int8_t   (ARGL){GET_INTEGER_MEM(int8_t)}
+static int64_t __get_integer_from_uint8_t  (ARGL){GET_INTEGER_MEM(uint8_t)}
+static int64_t __get_integer_from_int16_t  (ARGL){GET_INTEGER_MEM(int16_t)}
+static int64_t __get_integer_from_uint16_t (ARGL){GET_INTEGER_MEM(uint16_t)}
+static int64_t __get_integer_from_int32    (ARGL){GET_INTEGER_MEM(int32_t)}
+static int64_t __get_integer_from_uint32_t (ARGL){GET_INTEGER_MEM(uint32_t)}
+static int64_t __get_integer_from_int64_t  (ARGL){GET_INTEGER_MEM(int64_t)}
+static int64_t __get_integer_from_uint64_t (ARGL){GET_INTEGER_MEM(uint64_t)}
+static int64_t __get_integer_from_iptr     (ARGL){GET_INTEGER_MEM(intptr_t)}
+static int64_t __get_integer_from_uptr     (ARGL){GET_INTEGER_MEM(uintptr_t)}
+#undef GET_INTEGER_MEM
+#define GET_DOUBLE_MEM(TYPE) return *(TYPE*)(mem->mem);
+static double __get_double_from_short    (ARGL){GET_DOUBLE_MEM(short)}
+static double __get_double_from_int      (ARGL){GET_DOUBLE_MEM(int)}
+static double __get_double_from_uShort   (ARGL){GET_DOUBLE_MEM(unsigned short)}
+static double __get_double_from_unsigned (ARGL){GET_DOUBLE_MEM(unsigned)}
+static double __get_double_from_long     (ARGL){GET_DOUBLE_MEM(long)}
+static double __get_double_from_ulong    (ARGL){GET_DOUBLE_MEM(unsigned long)}
+static double __get_double_from_longlong (ARGL){GET_DOUBLE_MEM(long long)}
+static double __get_double_from_ulonglong(ARGL){GET_DOUBLE_MEM(unsigned long)}
+static double __get_double_from_ptrdiff_t(ARGL){GET_DOUBLE_MEM(ptrdiff_t)}
+static double __get_double_from_size_t   (ARGL){GET_DOUBLE_MEM(size_t)}
+static double __get_double_from_ssize_t  (ARGL){GET_DOUBLE_MEM(ssize_t)}
+static double __get_double_from_char     (ARGL){GET_DOUBLE_MEM(char)}
+static double __get_double_from_wchar_t  (ARGL){GET_DOUBLE_MEM(wchar_t)}
+static double __get_double_from_float    (ARGL){GET_DOUBLE_MEM(float)}
+static double __get_double_from_double   (ARGL){GET_DOUBLE_MEM(double)}
+static double __get_double_from_int8_t   (ARGL){GET_DOUBLE_MEM(int8_t)}
+static double __get_double_from_uint8_t  (ARGL){GET_DOUBLE_MEM(uint8_t)}
+static double __get_double_from_int16_t  (ARGL){GET_DOUBLE_MEM(int16_t)}
+static double __get_double_from_uint16_t (ARGL){GET_DOUBLE_MEM(uint16_t)}
+static double __get_double_from_int32    (ARGL){GET_DOUBLE_MEM(int32_t)}
+static double __get_double_from_uint32_t (ARGL){GET_DOUBLE_MEM(uint32_t)}
+static double __get_double_from_int64_t  (ARGL){GET_DOUBLE_MEM(int64_t)}
+static double __get_double_from_uint64_t (ARGL){GET_DOUBLE_MEM(uint64_t)}
+static double __get_double_from_iptr     (ARGL){GET_DOUBLE_MEM(intptr_t)}
+static double __get_double_from_uptr     (ARGL){GET_DOUBLE_MEM(uintptr_t)}
+#undef GET_DOUBLE_MEM
+static int64_t (*__ffiGetIntegerFuncList[])(ARGL)=
+{
+	NULL                        ,
+	__get_integer_from_short    ,
+	__get_integer_from_int      ,
+	__get_integer_from_ushort   ,
+	__get_integer_from_unsigned ,
+	__get_integer_from_long     ,
+	__get_integer_from_ulong    ,
+	__get_integer_from_longlong ,
+	__get_integer_from_ulonglong,
+	__get_integer_from_ptrdiff_t,
+	__get_integer_from_size_t   ,
+	__get_integer_from_ssize_t  ,
+	__get_integer_from_char     ,
+	__get_integer_from_wchar_t  ,
+	__get_integer_from_float    ,
+	__get_integer_from_double   ,
+	__get_integer_from_int8_t   ,
+	__get_integer_from_uint8_t  ,
+	__get_integer_from_int16_t  ,
+	__get_integer_from_uint16_t ,
+	__get_integer_from_int32    ,
+	__get_integer_from_uint32_t ,
+	__get_integer_from_int64_t  ,
+	__get_integer_from_uint64_t ,
+	__get_integer_from_iptr     ,
+	__get_integer_from_uptr     ,
+};
+static double (*__ffiGetDoubleFuncList[])(ARGL)=
+{
+	NULL                  ,
+	__get_double_from_short    ,
+	__get_double_from_int      ,
+	__get_double_from_uShort   ,
+	__get_double_from_unsigned ,
+	__get_double_from_long     ,
+	__get_double_from_ulong    ,
+	__get_double_from_longlong ,
+	__get_double_from_ulonglong,
+	__get_double_from_ptrdiff_t,
+	__get_double_from_size_t   ,
+	__get_double_from_ssize_t  ,
+	__get_double_from_char     ,
+	__get_double_from_wchar_t  ,
+	__get_double_from_float    ,
+	__get_double_from_double   ,
+	__get_double_from_int8_t   ,
+	__get_double_from_uint8_t  ,
+	__get_double_from_int16_t  ,
+	__get_double_from_uint16_t ,
+	__get_double_from_int32    ,
+	__get_double_from_uint32_t ,
+	__get_double_from_int64_t  ,
+	__get_double_from_uint64_t ,
+	__get_double_from_iptr     ,
+	__get_double_from_uptr     ,
+};
+#undef ARGL
 
 static void (*NativeTypePrinterList[])(FILE*,void*)=
 {
@@ -167,6 +283,119 @@ int _mem_equal(const FklVMudata* a,const FklVMudata* b)
 	return 0;
 }
 
+static int _mem_cmp_VU(FklVMvalue* a,FklFfiMem* b,int* isUnableToBeCmp)
+{
+	if((FKL_IS_STR(a)&&b->type!=FKL_FFI_STRING)
+			||(!FKL_IS_STR(a)&&b->type==FKL_FFI_STRING)
+			||!fklIsNumber(a)
+			||!fklFfiIsNumTypeId(b->type))
+	{
+		*isUnableToBeCmp=1;
+		return 0;
+	}
+	if(b->type==FKL_FFI_STRING)
+	{
+		size_t len=strlen(b->mem);
+		int r=memcmp(a->u.str->str,b->mem,a->u.str->size<len?a->u.str->size:len);
+		if(!r)
+			return (int64_t)a->u.str->size-(int64_t)len;
+		return r;
+	}
+	else if(FKL_IS_F64(a)||b->type==FKL_FFI_DOUBLE)
+	{
+		double ad=fklGetDouble(a);
+		double bd=__ffiGetDoubleFuncList[b->type](b);
+		if(ad-bd>DBL_EPSILON)
+			return 1;
+		else if(ad-bd<-DBL_EPSILON)
+			return -1;
+		else
+			return 0;
+	}
+	else if(fklIsFixint(a))
+	{
+		int64_t ai=fklGetInt(a);
+		int64_t bi=__ffiGetIntegerFuncList[b->type](b);
+		if(ai>bi)
+			return 1;
+		else if(ai<bi)
+			return -1;
+		else
+			return 0;
+	}
+	else if(FKL_IS_BIG_INT(a))
+	{
+		if(fklIsLtI64MinBigInt(a->u.bigInt))
+			return -1;
+		else if(fklIsGtI64MaxBigInt(a->u.bigInt))
+			return 1;
+		else
+		{
+			int64_t ai=fklBigIntToI64(a->u.bigInt);
+			int64_t bi=__ffiGetIntegerFuncList[b->type](b);
+			if(ai>bi)
+				return 1;
+			else if(ai<bi)
+				return -1;
+			else
+				return 0;
+		}
+	}
+	return 0;
+}
+
+static int _mem_cmp_UU(FklFfiMem* a,FklFfiMem* b,int* isUnableToBeCmp)
+{
+	if((a->type==FKL_FFI_STRING&&b->type!=a->type)
+			||(a->type!=FKL_FFI_STRING&&b->type==FKL_FFI_STRING)
+			||!fklFfiIsNumTypeId(a->type)
+			||!fklFfiIsNumTypeId(b->type))
+	{
+		*isUnableToBeCmp=1;
+		return 0;
+	}
+	if(a->type==FKL_FFI_STRING&&b->type==FKL_FFI_STRING)
+		return strcmp(a->mem,b->mem);
+	else if(fklFfiIsIntegerTypeId(a->type)&&fklFfiIsIntegerTypeId(b->type))
+	{
+		int64_t ai=__ffiGetIntegerFuncList[a->type](a);
+		int64_t bi=__ffiGetIntegerFuncList[b->type](b);
+		if(ai>bi)
+			return 1;
+		else if(ai<bi)
+			return -1;
+		else
+			return 0;
+	}
+	else
+	{
+		double ad=__ffiGetDoubleFuncList[a->type](a);
+		double bd=__ffiGetDoubleFuncList[b->type](b);
+		if(ad-bd>DBL_EPSILON)
+			return 1;
+		else if(ad-bd<-DBL_EPSILON)
+			return -1;
+		else
+			return 0;
+	}
+	return 0;
+}
+
+static int _mem_cmp(FklVMvalue* a,FklVMvalue* b,int* isUnableToBeCmp)
+{
+	if(fklFfiIsMem(a)&&!fklFfiIsMem(b))
+		return _mem_cmp_VU(b,a->u.ud->data,isUnableToBeCmp)*-1;
+	else if(fklFfiIsMem(b)&&!fklFfiIsMem(a))
+		return _mem_cmp_VU(a,b->u.ud->data,isUnableToBeCmp);
+	else if(fklFfiIsMem(a)&&fklFfiIsMem(b))
+		return _mem_cmp_UU(a->u.ud->data,b->u.ud->data,isUnableToBeCmp);
+	else
+	{
+		*isUnableToBeCmp=1;
+		return 0;
+	}
+}
+
 static FklVMudMethodTable FfiMemMethodTable=
 {
 	.__princ=_mem_print,
@@ -174,6 +403,7 @@ static FklVMudMethodTable FfiMemMethodTable=
 	.__finalizer=_mem_finalizer,
 	.__equal=_mem_equal,
 	.__invoke=NULL,
+	.__cmp=_mem_cmp,
 };
 
 static FklVMudMethodTable FfiAtomicMemMethodTable=
@@ -183,6 +413,7 @@ static FklVMudMethodTable FfiAtomicMemMethodTable=
 	.__finalizer=_mem_atomic_finalizer,
 	.__equal=_mem_equal,
 	.__invoke=NULL,
+	.__cmp=_mem_cmp,
 };
 
 void fklFfiMemInit(FklVMvalue* rel)
@@ -308,121 +539,6 @@ int fklFfiIsProc(FklVMvalue* p)
 {
 	return FKL_IS_USERDATA(p)&&p->u.ud->type==FfiMemUdSid&&p->u.ud->t->__invoke;
 }
-
-#define ARGL FklFfiMem* mem
-#define GET_INTEGER_MEM(TYPE) return *(TYPE*)(mem->mem);
-static int64_t __get_integer_from_short    (ARGL){GET_INTEGER_MEM(short)}
-static int64_t __get_integer_from_int      (ARGL){GET_INTEGER_MEM(int)}
-static int64_t __get_integer_from_ushort   (ARGL){GET_INTEGER_MEM(unsigned short)}
-static int64_t __get_integer_from_unsigned (ARGL){GET_INTEGER_MEM(unsigned)}
-static int64_t __get_integer_from_long     (ARGL){GET_INTEGER_MEM(long)}
-static int64_t __get_integer_from_ulong    (ARGL){GET_INTEGER_MEM(unsigned long)}
-static int64_t __get_integer_from_longlong (ARGL){GET_INTEGER_MEM(long long)}
-static int64_t __get_integer_from_ulonglong(ARGL){GET_INTEGER_MEM(unsigned long)}
-static int64_t __get_integer_from_ptrdiff_t(ARGL){GET_INTEGER_MEM(ptrdiff_t)}
-static int64_t __get_integer_from_size_t   (ARGL){GET_INTEGER_MEM(size_t)}
-static int64_t __get_integer_from_ssize_t  (ARGL){GET_INTEGER_MEM(ssize_t)}
-static int64_t __get_integer_from_char     (ARGL){GET_INTEGER_MEM(char)}
-static int64_t __get_integer_from_wchar_t  (ARGL){GET_INTEGER_MEM(wchar_t)}
-static int64_t __get_integer_from_float    (ARGL){GET_INTEGER_MEM(float)}
-static int64_t __get_integer_from_double   (ARGL){GET_INTEGER_MEM(double)}
-static int64_t __get_integer_from_int8_t   (ARGL){GET_INTEGER_MEM(int8_t)}
-static int64_t __get_integer_from_uint8_t  (ARGL){GET_INTEGER_MEM(uint8_t)}
-static int64_t __get_integer_from_int16_t  (ARGL){GET_INTEGER_MEM(int16_t)}
-static int64_t __get_integer_from_uint16_t (ARGL){GET_INTEGER_MEM(uint16_t)}
-static int64_t __get_integer_from_int32    (ARGL){GET_INTEGER_MEM(int32_t)}
-static int64_t __get_integer_from_uint32_t (ARGL){GET_INTEGER_MEM(uint32_t)}
-static int64_t __get_integer_from_int64_t  (ARGL){GET_INTEGER_MEM(int64_t)}
-static int64_t __get_integer_from_uint64_t (ARGL){GET_INTEGER_MEM(uint64_t)}
-static int64_t __get_integer_from_iptr     (ARGL){GET_INTEGER_MEM(intptr_t)}
-static int64_t __get_integer_from_uptr     (ARGL){GET_INTEGER_MEM(uintptr_t)}
-#undef GET_INTEGER_MEM
-#define GET_DOUBLE_MEM(TYPE) return *(TYPE*)(mem->mem);
-static double __get_double_from_short    (ARGL){GET_DOUBLE_MEM(short)}
-static double __get_double_from_int      (ARGL){GET_DOUBLE_MEM(int)}
-static double __get_double_from_uShort   (ARGL){GET_DOUBLE_MEM(unsigned short)}
-static double __get_double_from_unsigned (ARGL){GET_DOUBLE_MEM(unsigned)}
-static double __get_double_from_long     (ARGL){GET_DOUBLE_MEM(long)}
-static double __get_double_from_ulong    (ARGL){GET_DOUBLE_MEM(unsigned long)}
-static double __get_double_from_longlong (ARGL){GET_DOUBLE_MEM(long long)}
-static double __get_double_from_ulonglong(ARGL){GET_DOUBLE_MEM(unsigned long)}
-static double __get_double_from_ptrdiff_t(ARGL){GET_DOUBLE_MEM(ptrdiff_t)}
-static double __get_double_from_size_t   (ARGL){GET_DOUBLE_MEM(size_t)}
-static double __get_double_from_ssize_t  (ARGL){GET_DOUBLE_MEM(ssize_t)}
-static double __get_double_from_char     (ARGL){GET_DOUBLE_MEM(char)}
-static double __get_double_from_wchar_t  (ARGL){GET_DOUBLE_MEM(wchar_t)}
-static double __get_double_from_float    (ARGL){GET_DOUBLE_MEM(float)}
-static double __get_double_from_double   (ARGL){GET_DOUBLE_MEM(double)}
-static double __get_double_from_int8_t   (ARGL){GET_DOUBLE_MEM(int8_t)}
-static double __get_double_from_uint8_t  (ARGL){GET_DOUBLE_MEM(uint8_t)}
-static double __get_double_from_int16_t  (ARGL){GET_DOUBLE_MEM(int16_t)}
-static double __get_double_from_uint16_t (ARGL){GET_DOUBLE_MEM(uint16_t)}
-static double __get_double_from_int32    (ARGL){GET_DOUBLE_MEM(int32_t)}
-static double __get_double_from_uint32_t (ARGL){GET_DOUBLE_MEM(uint32_t)}
-static double __get_double_from_int64_t  (ARGL){GET_DOUBLE_MEM(int64_t)}
-static double __get_double_from_uint64_t (ARGL){GET_DOUBLE_MEM(uint64_t)}
-static double __get_double_from_iptr     (ARGL){GET_DOUBLE_MEM(intptr_t)}
-static double __get_double_from_uptr     (ARGL){GET_DOUBLE_MEM(uintptr_t)}
-#undef GET_DOUBLE_MEM
-#undef ARGL
-static int64_t (*__ffiGetIntegerFuncList[])(FklFfiMem* mem)=
-{
-	NULL                        ,
-	__get_integer_from_short    ,
-	__get_integer_from_int      ,
-	__get_integer_from_ushort   ,
-	__get_integer_from_unsigned ,
-	__get_integer_from_long     ,
-	__get_integer_from_ulong    ,
-	__get_integer_from_longlong ,
-	__get_integer_from_ulonglong,
-	__get_integer_from_ptrdiff_t,
-	__get_integer_from_size_t   ,
-	__get_integer_from_ssize_t  ,
-	__get_integer_from_char     ,
-	__get_integer_from_wchar_t  ,
-	__get_integer_from_float    ,
-	__get_integer_from_double   ,
-	__get_integer_from_int8_t   ,
-	__get_integer_from_uint8_t  ,
-	__get_integer_from_int16_t  ,
-	__get_integer_from_uint16_t ,
-	__get_integer_from_int32    ,
-	__get_integer_from_uint32_t ,
-	__get_integer_from_int64_t  ,
-	__get_integer_from_uint64_t ,
-	__get_integer_from_iptr     ,
-	__get_integer_from_uptr     ,
-};
-static double (*__ffiGetDoubleFuncList[])(FklFfiMem* mem)=
-{
-	NULL                  ,
-	__get_double_from_short    ,
-	__get_double_from_int      ,
-	__get_double_from_uShort   ,
-	__get_double_from_unsigned ,
-	__get_double_from_long     ,
-	__get_double_from_ulong    ,
-	__get_double_from_longlong ,
-	__get_double_from_ulonglong,
-	__get_double_from_ptrdiff_t,
-	__get_double_from_size_t   ,
-	__get_double_from_ssize_t  ,
-	__get_double_from_char     ,
-	__get_double_from_wchar_t  ,
-	__get_double_from_float    ,
-	__get_double_from_double   ,
-	__get_double_from_int8_t   ,
-	__get_double_from_uint8_t  ,
-	__get_double_from_int16_t  ,
-	__get_double_from_uint16_t ,
-	__get_double_from_int32    ,
-	__get_double_from_uint32_t ,
-	__get_double_from_int64_t  ,
-	__get_double_from_uint64_t ,
-	__get_double_from_iptr     ,
-	__get_double_from_uptr     ,
-};
 
 static int __ffiGetVMvalueAsF64(FklVMvalue* val,double* d)
 {

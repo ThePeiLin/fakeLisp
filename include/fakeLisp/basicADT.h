@@ -103,6 +103,8 @@ void fklSubBigIntI(FklBigInt*,int64_t toSub);
 void fklMulBigInt(FklBigInt*,const FklBigInt* multiplier);
 void fklMulBigIntI(FklBigInt*,int64_t multiplier);
 int fklIsGtLtI64BigInt(const FklBigInt* a);
+int fklIsGtI64MaxBigInt(const FklBigInt* a);
+int fklIsLtI64MinBigInt(const FklBigInt* a);
 int fklIsGeLeI64BigInt(const FklBigInt* a);
 int fklDivBigInt(FklBigInt*,const FklBigInt* divider);
 int fklDivBigIntI(FklBigInt*,int64_t divider);

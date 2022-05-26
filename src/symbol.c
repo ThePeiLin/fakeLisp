@@ -119,6 +119,12 @@ static const char* builtInSymbolList[]=
 	"to-f64",
 	"big-int?",
 	"big-int",
+	"set-car!",
+	"set-cdr!",
+	"nth-set!",
+	"nthcdr-set!",
+	"vref-set!",
+	"list?",
 };
 
 FklSymbolTable* GlobSymbolTable=NULL;

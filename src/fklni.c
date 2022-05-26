@@ -21,7 +21,8 @@ void fklNiReturn(FklVMvalue* v,uint32_t* ap,FklVMstack* s)
 		FKL_ASSERT(s->values,__func__);
 		s->size+=64;
 	}
-	if(*ap<s->tp&&(s->tp<=*ap+1||(!FKL_IS_MREF(s->values[*ap+1]))))
+	//if(*ap<s->tp&&(s->tp<=*ap+1||(!FKL_IS_MREF(s->values[*ap+1]))))
+	if(*ap<s->tp&&s->tp<=*ap+1)
 	{
 		FklVMvalue* t=s->values[*ap];
 		s->values[*ap]=v;
@@ -29,52 +30,52 @@ void fklNiReturn(FklVMvalue* v,uint32_t* ap,FklVMstack* s)
 	}
 	else
 		s->values[*ap]=v;
-	if(*ap<s->tp&&(FKL_IS_MREF(s->values[*ap+1])))
-		s->values[*ap+1]=FKL_VM_NIL;
+	//if(*ap<s->tp&&(FKL_IS_MREF(s->values[*ap+1])))
+	//	s->values[*ap+1]=FKL_VM_NIL;
 	*ap+=1;
 	s->tp+=1;
 	pthread_rwlock_unlock(&s->lock);
 }
 
-void fklNiReturnMref(uint32_t size,void* mem,uint32_t* ap,FklVMstack* s)
-{
-	pthread_rwlock_wrlock(&s->lock);
-	if(s->tp>=s->size)
-	{
-		s->values=(FklVMvalue**)realloc(s->values
-				,sizeof(FklVMvalue*)*(s->size+64));
-		FKL_ASSERT(s->values,__func__);
-		s->size+=64;
-	}
-	if(*ap<s->tp)
-	{
-		FklVMvalue* t=s->values[*ap];
-		s->values[*ap]=mem;
-		s->values[s->tp]=t;
-	}
-	else
-		s->values[*ap]=mem;
-	*ap+=1;
-	s->tp+=1;
-	if(s->tp>=s->size)
-	{
-		s->values=(FklVMvalue**)realloc(s->values
-				,sizeof(FklVMvalue*)*(s->size+64));
-		FKL_ASSERT(s->values,__func__);
-		s->size+=64;
-	}
-	if(*ap<s->tp)
-	{
-		FklVMvalue* t=s->values[*ap];
-		s->values[*ap]=FKL_MAKE_VM_MREF(size);
-		s->values[s->tp]=t;
-	}
-	else
-		s->values[*ap]=FKL_MAKE_VM_MREF(size);
-	*ap+=1;
-	s->tp+=1;
-	pthread_rwlock_unlock(&s->lock);
-}
+//void fklNiReturnMref(uint32_t size,void* mem,uint32_t* ap,FklVMstack* s)
+//{
+//	pthread_rwlock_wrlock(&s->lock);
+//	if(s->tp>=s->size)
+//	{
+//		s->values=(FklVMvalue**)realloc(s->values
+//				,sizeof(FklVMvalue*)*(s->size+64));
+//		FKL_ASSERT(s->values,__func__);
+//		s->size+=64;
+//	}
+//	if(*ap<s->tp)
+//	{
+//		FklVMvalue* t=s->values[*ap];
+//		s->values[*ap]=mem;
+//		s->values[s->tp]=t;
+//	}
+//	else
+//		s->values[*ap]=mem;
+//	*ap+=1;
+//	s->tp+=1;
+//	if(s->tp>=s->size)
+//	{
+//		s->values=(FklVMvalue**)realloc(s->values
+//				,sizeof(FklVMvalue*)*(s->size+64));
+//		FKL_ASSERT(s->values,__func__);
+//		s->size+=64;
+//	}
+//	if(*ap<s->tp)
+//	{
+//		FklVMvalue* t=s->values[*ap];
+//		s->values[*ap]=FKL_MAKE_VM_MREF(size);
+//		s->values[s->tp]=t;
+//	}
+//	else
+//		s->values[*ap]=FKL_MAKE_VM_MREF(size);
+//	*ap+=1;
+//	s->tp+=1;
+//	pthread_rwlock_unlock(&s->lock);
+//}
 
 inline void fklNiBegin(uint32_t* ap,FklVMstack* s)
 {
@@ -98,19 +99,19 @@ FklVMvalue* fklNiGetArg(uint32_t*ap,FklVMstack* stack)
 	{
 		FklVMvalue* tmp=stack->values[*ap-1];
 		*ap-=1;
-		if(FKL_IS_REF(tmp))
-		{
-			*ap-=1;
-			r=*(FklVMvalue**)(FKL_GET_PTR(tmp));
-		}
-		else if(FKL_IS_MREF(tmp))
-		{
-			void* ptr=stack->values[*ap-1];
-			*ap-=1;
-			r=FKL_MAKE_VM_CHR(*(char*)ptr);
-		}
-		else
-			r=tmp;
+		//if(FKL_IS_REF(tmp))
+		//{
+		//	*ap-=1;
+		//	r=*(FklVMvalue**)(FKL_GET_PTR(tmp));
+		//}
+		//else if(FKL_IS_MREF(tmp))
+		//{
+		//	void* ptr=stack->values[*ap-1];
+		//	*ap-=1;
+		//	r=FKL_MAKE_VM_CHR(*(char*)ptr);
+		//}
+		//else
+		r=tmp;
 	}
 	return r;
 }

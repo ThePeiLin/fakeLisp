@@ -37,6 +37,14 @@ inline int fklIsNumber(FklVMvalue* p)
 	return fklIsInt(p)||FKL_IS_F64(p);
 }
 
+int fklIsList(FklVMvalue* p)
+{
+	for(;p!=FKL_VM_NIL;p=p->u.pair->cdr)
+		if(!FKL_IS_PAIR(p))
+			return 0;
+	return 1;
+}
+
 inline int64_t fklGetInt(FklVMvalue* p)
 {
 	return FKL_IS_I32(p)
@@ -71,21 +79,21 @@ FklVMvalue* fklTopGet(FklVMstack* stack)
 	else
 	{
 		FklVMvalue* tmp=fklGetTopValue(stack);
-		if(FKL_IS_REF(tmp))
-		{
-			stack->tp-=1;
-			r=*(FklVMvalue**)(FKL_GET_PTR(tmp));
-			stack->values[stack->tp-1]=r;
-		}
-		else if(FKL_IS_MREF(tmp))
-		{
-			stack->tp-=1;
-			void* ptr=fklGetTopValue(stack);
-			r=FKL_MAKE_VM_CHR(*(char*)ptr);
-			stack->values[stack->tp-1]=r;
-		}
-		else
-			r=tmp;
+		//if(FKL_IS_REF(tmp))
+		//{
+		//	stack->tp-=1;
+		//	r=*(FklVMvalue**)(FKL_GET_PTR(tmp));
+		//	stack->values[stack->tp-1]=r;
+		//}
+		//else if(FKL_IS_MREF(tmp))
+		//{
+		//	stack->tp-=1;
+		//	void* ptr=fklGetTopValue(stack);
+		//	r=FKL_MAKE_VM_CHR(*(char*)ptr);
+		//	stack->values[stack->tp-1]=r;
+		//}
+		//else
+		r=tmp;
 	}
 	pthread_rwlock_unlock(&stack->lock);
 	return r;
@@ -767,27 +775,27 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 	fklFreePtrStack(hasPrintRecStack);
 }
 
-FklVMvalue* fklGET_VAL(FklVMvalue* P,FklVMheap* heap)
-{
-	if(P)
-	{
-		if(FKL_IS_REF(P))
-			return *(FklVMvalue**)(FKL_GET_PTR(P));
-		return P;
-	}
-	return P;
-}
+//FklVMvalue* fklGET_VAL(FklVMvalue* P,FklVMheap* heap)
+//{
+//	if(P)
+//	{
+//		//if(FKL_IS_REF(P))
+//		//	return *(FklVMvalue**)(FKL_GET_PTR(P));
+//		return P;
+//	}
+//	return P;
+//}
 
-int fklSET_REF(FklVMvalue* P,FklVMvalue* V)
-{
-	if(FKL_IS_REF(P))
-	{
-		*(FklVMvalue**)FKL_GET_PTR(P)=V;
-		return 0;
-	}
-	else
-		return 1;
-}
+//int fklSET_REF(FklVMvalue* P,FklVMvalue* V)
+//{
+//	if(FKL_IS_REF(P))
+//	{
+//		*(FklVMvalue**)FKL_GET_PTR(P)=V;
+//		return 0;
+//	}
+//	else
+//		return 1;
+//}
 
 FklVMvalue* fklSetRef(FklVMvalue* by,FklVMvalue** pref,FklVMvalue* v,FklVMheap* h)
 {
@@ -906,7 +914,8 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 				cptrType=FKL_NIL;
 			else if(FKL_IS_PAIR(root))
 				cptrType=FKL_PAIR;
-			else if(!FKL_IS_REF(root)&&!FKL_IS_MREF(root))
+			else
+				//if(!FKL_IS_REF(root)&&!FKL_IS_MREF(root))
 				cptrType=FKL_ATM;
 			root1->type=cptrType;
 			if(cptrType==FKL_ATM)

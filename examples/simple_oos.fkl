@@ -17,23 +17,23 @@
                               (not (eq segment-id 'method)))
                        (break nil))
                      (case segment-id
-                       (('data) (setf data-list (append data-list segment-data)))
-                       (('method) (setf pre-method-list (append pre-method-list segment-data)))))
+                       (('data) (setq data-list (append data-list segment-data)))
+                       (('method) (setq pre-method-list (append pre-method-list segment-data)))))
               (loop (cdr c)))))
 
     (let loop ((c data-list))
       (cond (c (let ((name (car (car c))))
-                 (setf case-list (cons `(((quote ~name)) ~name) case-list)))
+                 (setq case-list (cons `(((quote ~name)) ~name) case-list)))
                (loop (cdr c)))))
 
     (let loop ((c pre-method-list))
       (cond (c
               (let ((method-name (car (car c))))
                 (cond ((not (eq method-name name))
-                       (setf method-list (cons `(~method-name (lambda ~@(cdr (car c)))) method-list))
-                       (setf case-list (cons `(((quote ~method-name)) ~method-name) case-list)))
+                       (setq method-list (cons `(~method-name (lambda ~@(cdr (car c)))) method-list))
+                       (setq case-list (cons `(((quote ~method-name)) ~method-name) case-list)))
                       (1
-                       (setf construct-method (cdr (car c))))))
+                       (setq construct-method (cdr (car c))))))
               (loop (cdr c)))))
     (setq case-list
           (append case-list

@@ -22,8 +22,8 @@ typedef enum
 	FKL_I32_TAG,
 	FKL_SYM_TAG,
 	FKL_CHR_TAG,
-	FKL_REF_TAG,
-	FKL_MREF_TAG,
+//	FKL_REF_TAG,
+//	FKL_MREF_TAG,
 }FklVMptrTag;
 
 #ifdef _WIN32
@@ -301,8 +301,8 @@ void fklDBG_printVMenv(FklVMenv*,FILE*);
 void fklDBG_printVMvalue(FklVMvalue*,FILE*);
 void fklDBG_printVMstack(FklVMstack*,FILE*,int);
 
-FklVMvalue* fklGET_VAL(FklVMvalue* P,FklVMheap*);
-int fklSET_REF(FklVMvalue* P,FklVMvalue* V);
+//FklVMvalue* fklGET_VAL(FklVMvalue* P,FklVMheap*);
+//int fklSET_REF(FklVMvalue* P,FklVMvalue* V);
 void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v,FILE* fp));
 void fklPrin1VMvalue(FklVMvalue*,FILE*);
 void fklPrincVMvalue(FklVMvalue*,FILE*);
@@ -315,6 +315,7 @@ FklVMvalue* fklMakeVMint(int64_t r64,FklVMstack*,FklVMheap* heap);
 int fklIsNumber(FklVMvalue* p);
 int fklIsFixint(FklVMvalue* p);
 int fklIsInt(FklVMvalue* p);
+int fklIsList(FklVMvalue* p);
 int64_t fklGetInt(FklVMvalue* p);
 double fklGetDouble(FklVMvalue* p);
 void fklInitVMRunningResource(FklVM*,FklVMvalue*,FklVMheap* heap,FklByteCodelnt*,uint32_t,uint32_t);

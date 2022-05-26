@@ -424,7 +424,7 @@ void fklInitGlobKeyWord(FklCompEnv* glob)
 	fklAddKeyWord("and",glob);
 	fklAddKeyWord("or",glob);
 	fklAddKeyWord("lambda",glob);
-	fklAddKeyWord("setf",glob);
+//	fklAddKeyWord("setf",glob);
 	fklAddKeyWord("load",glob);
 	fklAddKeyWord("begin",glob);
 	fklAddKeyWord("unquote",glob);
@@ -630,7 +630,7 @@ FklByteCodelnt* fklCompile(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter
 		if(fklIsSymbol(objCptr))return fklCompileSym(objCptr,curEnv,inter,state);
 		if(fklIsDefExpression(objCptr))return fklCompileDef(objCptr,curEnv,inter,state);
 		if(fklIsSetqExpression(objCptr))return fklCompileSetq(objCptr,curEnv,inter,state);
-		if(fklIsSetfExpression(objCptr))return fklCompileSetf(objCptr,curEnv,inter,state);
+		//if(fklIsSetfExpression(objCptr))return fklCompileSetf(objCptr,curEnv,inter,state);
 		if(fklIsCondExpression(objCptr))return fklCompileCond(objCptr,curEnv,inter,state);
 		if(fklIsAndExpression(objCptr))return fklCompileAnd(objCptr,curEnv,inter,state);
 		if(fklIsOrExpression(objCptr))return fklCompileOr(objCptr,curEnv,inter,state);
@@ -1400,34 +1400,34 @@ FklByteCodelnt* fklCompileSetq(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 	return tmp1;
 }
 
-FklByteCodelnt* fklCompileSetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state)
-{
-	FklAstCptr* fir=&objCptr->u.pair->car;
-	FklAstCptr* sec=fklNextCptr(fir);
-	if(fklIsSymbol(sec))
-		return fklCompileSetq(objCptr,curEnv,inter,state);
-	else
-	{
-		FklAstCptr* tir=fklNextCptr(sec);
-		FklByteCodelnt* tmp1=fklCompile(sec,curEnv,inter,state);
-		if(state->state!=0)
-			return NULL;
-		FklByteCodelnt* tmp2=fklCompile(tir,curEnv,inter,state);
-		if(state->state!=0)
-		{
-			fklFreeByteCodeAndLnt(tmp1);
-			return NULL;
-		}
-		FklByteCode* popRef=fklNewByteCode(sizeof(char));
-		popRef->code[0]=FKL_POP_REF;
-		fklCodeLntCat(tmp1,tmp2);
-		fklCodeCat(tmp1->bc,popRef);
-		tmp1->l[tmp1->ls-1]->cpc+=popRef->size;
-		fklFreeByteCode(popRef);
-		fklFreeByteCodelnt(tmp2);
-		return tmp1;
-	}
-}
+//FklByteCodelnt* fklCompileSetf(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state)
+//{
+//	FklAstCptr* fir=&objCptr->u.pair->car;
+//	FklAstCptr* sec=fklNextCptr(fir);
+//	if(fklIsSymbol(sec))
+//		return fklCompileSetq(objCptr,curEnv,inter,state);
+//	else
+//	{
+//		FklAstCptr* tir=fklNextCptr(sec);
+//		FklByteCodelnt* tmp1=fklCompile(sec,curEnv,inter,state);
+//		if(state->state!=0)
+//			return NULL;
+//		FklByteCodelnt* tmp2=fklCompile(tir,curEnv,inter,state);
+//		if(state->state!=0)
+//		{
+//			fklFreeByteCodeAndLnt(tmp1);
+//			return NULL;
+//		}
+//		FklByteCode* popRef=fklNewByteCode(sizeof(char));
+//		popRef->code[0]=FKL_POP_REF;
+//		fklCodeLntCat(tmp1,tmp2);
+//		fklCodeCat(tmp1->bc,popRef);
+//		tmp1->l[tmp1->ls-1]->cpc+=popRef->size;
+//		fklFreeByteCode(popRef);
+//		fklFreeByteCodelnt(tmp2);
+//		return tmp1;
+//	}
+//}
 
 FklByteCodelnt* fklCompileSym(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state)
 {

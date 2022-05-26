@@ -58,7 +58,7 @@
                             (equal yc (1+ line))
                             (equal xc 0)
                             (equal xc (1+ row)))
-                      (setf (vref g-map (ARRY xc yc)) (cons 4 10)))
+                      (vref-set! g-map (ARRY xc yc) (cons 4 10)))
                     (loop-xc (1+ xc)))))
            (loop-yc (1+ yc)))))
   (let loop-i ((i 0))
@@ -69,9 +69,9 @@
     (define back (cdr (vref g-map place)))
     (cond ((< i bombnum)
            (cond ((equal back 0)
-                  (setf (vref g-map place)
-                        (cons front
-                              9))))
+                  (vref-set! g-map
+                        place
+                        (cons front 9))))
            (loop-i (+ i
                       (if (equal back 0) 1 0))))))
   (define (get-around-bomb-num g-map x y)
@@ -93,9 +93,9 @@
              (define back (cdr (vref g-map place)))
              (cond ((<= xc row)
                     (if (neq back 9)
-                      (setf (vref g-map place)
-                            (cons front
-                                  (get-around-bomb-num g-map xc yc))))
+                      (vref-set! g-map place
+                                 (cons front
+                                       (get-around-bomb-num g-map xc yc))))
                     (loop-xc (1+ xc)))))
            (loop-yc (1+ yc)))))
   g-map)
@@ -245,11 +245,11 @@
           ((equal front 2)
            (INC bombnum)
            (if (equal back 9) (INC rbombnum))))
-    (setf (vref g-map place)
-          (cons (if (equal front 3)
-                  1
-                  (1+ front))
-                back)))
+    (vref-set! g-map place
+               (cons (if (equal front 3)
+                       1
+                       (1+ front))
+                     back)))
   (define (quit)
     (setq is-game-over 1))
   (define (open-block)
@@ -261,10 +261,10 @@
     (cond ((equal back 9)
            (setq is-game-over 1))
           ((neq back 0)
-           (setf (vref g-map place)
-                 (cons 0 back)))
+           (vref-set! g-map place
+                      (cons 0 back)))
           (1
-           (setf (vref g-map place) (cons 0 back))
+           (vref-set! g-map place (cons 0 back))
            (let loop-tier ((tier 1))
              (cond ((can-open-block g-map row line x y tier)
                     (let loop-yt ((yt tier))
@@ -275,8 +275,8 @@
                                              (let ((place (ARRY (- x xt) (- y yt))))
                                                (define front (car (vref g-map place)))
                                                (define back (cdr (vref g-map place)))
-                                               (setf (vref g-map place)
-                                                     (cons 0 back)))))
+                                               (vref-set! g-map place
+                                                          (cons 0 back)))))
                                       (loop-xt (- xt (if (or (equal yt tier)
                                                              (equal yt (NEG tier)))
                                                        1
@@ -289,7 +289,7 @@
       (cond ((< i num-of-block)
              (let ((back (cdr (vref g-map i)))
                    (front (car (vref g-map i))))
-               (if (neq front 4) (setf (vref g-map i) (cons 0 back))))
+               (if (neq front 4) (vref-set! g-map i (cons 0 back))))
              (loop-i (1+ i))))))
   (print-map g-map row line xl yl bombnum)
   (let loop-ch ((ch (getch)))

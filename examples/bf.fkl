@@ -11,10 +11,10 @@
 (if (<= (length (argv)) 1)
   (setq code "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.")
   (setq code
-        (let* ((fp (fopen (to-str (nth 1 (argv))) "rb"))
-               (code (read-code fp)))
-          (fclose fp)
-          code)))
+    (let* ((fp (fopen (to-str (nth 1 (argv))) "rb"))
+           (code (read-code fp)))
+      (fclose fp)
+      code)))
 
 (define m "\x0")
 
@@ -33,11 +33,11 @@
                  (setq m (append "\x0" mp))
                  (setq mp (-1+ mp)))))
       ((#\+) (let [(c (vref m mp))]
-               (setf (vref m mp) (char (1+ (integer c))))))
+               (vref-set! m mp (char (1+ (integer c))))))
       ((#\-) (let [(c (vref m mp))]
-               (setf (vref m mp) (char (-1+ (integer c))))))
+               (vref-set! m mp (char (-1+ (integer c))))))
       ((#\.) (princ (vref m mp)))
-      ((#\,) (setf (vref m mp) (fgetc stdin)))
+      ((#\,) (vref-set! m mp (fgetc stdin)))
       ((#\[) (let ((c (integer (vref m mp))))
                (if (eq c 0)
                  (let loop ((ch (vref code cp)))

@@ -24,7 +24,7 @@ static struct
 	{"pop_rest_arg", 8,  },
 	{"pop_car",      0,  },
 	{"pop_cdr",      0,  },
-	{"pop_ref",      0,  },
+//	{"pop_ref",      0,  },
 	{"set_tp",       0,  },
 	{"set_bp",       0,  },
 	{"invoke",       0,  },

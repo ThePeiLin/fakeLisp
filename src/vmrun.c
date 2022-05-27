@@ -332,9 +332,9 @@ extern void SYS_big_int_p(ARGL);
 extern void SYS_big_int(ARGL);
 extern void SYS_set_car(ARGL);
 extern void SYS_set_cdr(ARGL);
-extern void SYS_nth_set(ARGL);
-extern void SYS_nthcdr_set(ARGL);
-extern void SYS_vref_set(ARGL);
+extern void SYS_set_nth(ARGL);
+extern void SYS_set_nthcdr(ARGL);
+extern void SYS_set_vref(ARGL);
 extern void SYS_list_p(ARGL);
 
 #undef ARGL
@@ -420,9 +420,9 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_big_int,
 		SYS_set_car,
 		SYS_set_cdr,
-		SYS_nth_set,
-		SYS_nthcdr_set,
-		SYS_vref_set,
+		SYS_set_nth,
+		SYS_set_nthcdr,
+		SYS_set_vref,
 		SYS_list_p,
 	};
 	obj->num=FKL_NUM_OF_BUILT_IN_SYMBOL;

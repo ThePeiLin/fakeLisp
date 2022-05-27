@@ -1488,7 +1488,7 @@ void SYS_nth(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_nth_set(ARGL)
+void SYS_set_nth(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1496,14 +1496,14 @@ void SYS_nth_set(ARGL)
 	FklVMvalue* objlist=fklNiGetArg(&ap,stack);
 	FklVMvalue* target=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR("sys.nth-set!",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.set-nth!",FKL_TOOMANYARG,runnable,exe);
 	if(!place||!objlist||!target)
-		FKL_RAISE_BUILTIN_ERROR("sys.nth-set!",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.set-nth!",FKL_TOOFEWARG,runnable,exe);
 	if(!fklIsInt(place))
-		FKL_RAISE_BUILTIN_ERROR("sys.nth-set!",FKL_WRONGARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.set-nth!",FKL_WRONGARG,runnable,exe);
 	ssize_t index=fklGetInt(place);
 	if(index<0)
-		FKL_RAISE_BUILTIN_ERROR("sys.nth-set!",FKL_INVALIDACCESS,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.set-nth!",FKL_INVALIDACCESS,runnable,exe);
 	if(objlist==FKL_VM_NIL||FKL_IS_PAIR(objlist))
 	{
 		FklVMvalue* objPair=objlist;
@@ -1515,10 +1515,10 @@ void SYS_nth_set(ARGL)
 			fklNiReturn(target,&ap,stack);
 		}
 		else
-			FKL_RAISE_BUILTIN_ERROR("sys.nth-set!",FKL_INVALIDASSIGN,runnable,exe);
+			FKL_RAISE_BUILTIN_ERROR("sys.set-nth!",FKL_INVALIDASSIGN,runnable,exe);
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR("sys.nth-set!",FKL_WRONGARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.set-nth!",FKL_WRONGARG,runnable,exe);
 	fklNiEnd(&ap,stack);
 }
 
@@ -1556,7 +1556,7 @@ void SYS_vref(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_vref_set(ARGL)
+void SYS_set_vref(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1564,28 +1564,28 @@ void SYS_vref_set(ARGL)
 	FklVMvalue* place=fklNiGetArg(&ap,stack);
 	FklVMvalue* target=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR("sys.vref-set!",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.set-vref!",FKL_TOOMANYARG,runnable,exe);
 	if(!place||!vector||!target)
-		FKL_RAISE_BUILTIN_ERROR("sys.vref-set!",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.set-vref!",FKL_TOOFEWARG,runnable,exe);
 	if(!fklIsInt(place)||(!FKL_IS_VECTOR(vector)&&!FKL_IS_STR(vector)))
-		FKL_RAISE_BUILTIN_ERROR("sys.vref-set!",FKL_WRONGARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.set-vref!",FKL_WRONGARG,runnable,exe);
 	ssize_t index=fklGetInt(place);
 	size_t size=FKL_IS_STR(vector)?vector->u.str->size:vector->u.vec->size;
 	if(index<0||index>=size)
-		FKL_RAISE_BUILTIN_ERROR("sys.vref-set!",FKL_INVALIDACCESS,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.set-vref!",FKL_INVALIDACCESS,runnable,exe);
 	if(FKL_IS_STR(vector))
 	{
 		if(index>=vector->u.str->size)
-			FKL_RAISE_BUILTIN_ERROR("sys.vref-set!",FKL_INVALIDACCESS,runnable,exe);
+			FKL_RAISE_BUILTIN_ERROR("sys.set-vref!",FKL_INVALIDACCESS,runnable,exe);
 		if(!FKL_IS_CHR(target)&&!fklIsInt(target))
-			FKL_RAISE_BUILTIN_ERROR("sys.vref-set!",FKL_WRONGARG,runnable,exe);
+			FKL_RAISE_BUILTIN_ERROR("sys.set-vref!",FKL_WRONGARG,runnable,exe);
 		vector->u.str->str[index]=FKL_IS_CHR(target)?FKL_GET_CHR(target):fklGetInt(target);
 		fklNiReturn(target,&ap,stack);
 	}
 	else if(FKL_IS_VECTOR(vector))
 	{
 		if(index>=vector->u.vec->size)
-			FKL_RAISE_BUILTIN_ERROR("sys.vref-set!",FKL_INVALIDACCESS,runnable,exe);
+			FKL_RAISE_BUILTIN_ERROR("sys.set-vref!",FKL_INVALIDACCESS,runnable,exe);
 		fklSetRef(vector,&vector->u.vec->base[index],target,exe->heap);
 		fklNiReturn(target,&ap,stack);
 	}
@@ -1626,7 +1626,7 @@ void SYS_nthcdr(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_nthcdr_set(ARGL)
+void SYS_set_nthcdr(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1634,14 +1634,14 @@ void SYS_nthcdr_set(ARGL)
 	FklVMvalue* objlist=fklNiGetArg(&ap,stack);
 	FklVMvalue* target=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR("sys.nthcdr-set!",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.set-nthcdr!",FKL_TOOMANYARG,runnable,exe);
 	if(!place||!objlist||!target)
-		FKL_RAISE_BUILTIN_ERROR("sys.nthcdr-set!",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.set-nthcdr!",FKL_TOOFEWARG,runnable,exe);
 	if(!fklIsInt(place))
-		FKL_RAISE_BUILTIN_ERROR("sys.nthcdr-set!",FKL_WRONGARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.set-nthcdr!",FKL_WRONGARG,runnable,exe);
 	ssize_t index=fklGetInt(place);
 	if(index<0)
-		FKL_RAISE_BUILTIN_ERROR("sys.nthcdr-set!",FKL_INVALIDACCESS,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.set-nthcdr!",FKL_INVALIDACCESS,runnable,exe);
 	if(objlist==FKL_VM_NIL||FKL_IS_PAIR(objlist))
 	{
 		FklVMvalue* objPair=objlist;
@@ -1655,10 +1655,10 @@ void SYS_nthcdr_set(ARGL)
 			fklNiReturn(target,&ap,stack);
 		}
 		else
-			FKL_RAISE_BUILTIN_ERROR("sys.nthcdr-set!",FKL_INVALIDACCESS,runnable,exe);
+			FKL_RAISE_BUILTIN_ERROR("sys.set-nthcdr!",FKL_INVALIDACCESS,runnable,exe);
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR("sys.nthcdr-set!",FKL_WRONGARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR("sys.set-nthcdr!",FKL_WRONGARG,runnable,exe);
 	fklNiEnd(&ap,stack);
 }
 

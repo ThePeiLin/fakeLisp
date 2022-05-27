@@ -33,11 +33,11 @@
                  (setq m (append "\x0" mp))
                  (setq mp (-1+ mp)))))
       ((#\+) (let [(c (vref m mp))]
-               (vref-set! m mp (char (1+ (integer c))))))
+               (set-vref! m mp (char (1+ (integer c))))))
       ((#\-) (let [(c (vref m mp))]
-               (vref-set! m mp (char (-1+ (integer c))))))
+               (set-vref! m mp (char (-1+ (integer c))))))
       ((#\.) (princ (vref m mp)))
-      ((#\,) (vref-set! m mp (fgetc stdin)))
+      ((#\,) (set-vref! m mp (fgetc stdin)))
       ((#\[) (let ((c (integer (vref m mp))))
                (if (eq c 0)
                  (let loop ((ch (vref code cp)))

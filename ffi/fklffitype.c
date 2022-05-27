@@ -420,6 +420,8 @@ void fklFfiInitTypedefSymbol(void)
 /*genTypeId functions list*/
 static FklTypeId_t genArrayTypeId(FklVMvalue* numPair,FklDefTypes* otherTypes)
 {
+	if(!fklIsList(numPair))
+		return 0;
 	FklVMvalue* numV=FKL_IS_PAIR(numPair)?numPair->u.pair->car:NULL;
 	if(!numV||!fklIsInt(numV))
 		return 0;
@@ -430,21 +432,19 @@ static FklTypeId_t genArrayTypeId(FklVMvalue* numPair,FklDefTypes* otherTypes)
 	FklTypeId_t type=fklFfiGenDefTypesUnion(typeV,otherTypes);
 	if(!type)
 		return type;
-	if(typePair->u.pair->cdr!=FKL_VM_NIL)
-		return 0;
 	return fklFfiNewArrayType(type,fklGetInt(numV));
 }
 
 static FklTypeId_t genPtrTypeId(FklVMvalue* typePair,FklDefTypes* otherTypes)
 {
+	if(!fklIsList(typePair))
+		return 0;
 	FklVMvalue* ptrTypeV=FKL_IS_PAIR(typePair)?typePair->u.pair->car:NULL;
 	if(!ptrTypeV)
 		return 0;
 	FklTypeId_t pType=fklFfiGenDefTypesUnion(ptrTypeV,otherTypes);
 	if(!pType)
 		return pType;
-	if(typePair->u.pair->cdr!=FKL_VM_NIL)
-		return 0;
 	return fklFfiNewPtrType(pType);
 }
 
@@ -556,6 +556,8 @@ static void initStructTypeId(FklTypeId_t id,FklSid_t structNameId,uint32_t num,F
 
 static FklTypeId_t genStructTypeId(FklVMvalue* structBodyPair,FklDefTypes* otherTypes)
 {
+	if(!fklIsList(structBodyPair))
+		return 0;
 	if(!FKL_IS_PAIR(structBodyPair))
 		return 0;
 	FklSid_t structNameId=0;
@@ -688,6 +690,8 @@ static void initUnionTypeId(FklTypeId_t id,FklSid_t unionNameId,uint32_t num,Fkl
 
 static FklTypeId_t genUnionTypeId(FklVMvalue* unionBodyPair,FklDefTypes* otherTypes)
 {
+	if(!fklIsList(unionBodyPair))
+		return 0;
 	if(!FKL_IS_PAIR(unionBodyPair))
 		return 0;
 	FklSid_t unionNameId=0;
@@ -791,11 +795,13 @@ static FklTypeId_t genUnionTypeId(FklVMvalue* unionBodyPair,FklDefTypes* otherTy
 
 static FklTypeId_t genFuncTypeId(FklVMvalue* functionBodyV,FklDefTypes* otherTypes)
 {
+	if(!fklIsList(functionBodyV))
+		return 0;
     if(!FKL_IS_PAIR(functionBodyV))
         return 0;
     FklTypeId_t rtype=0;
     FklVMvalue* argV=functionBodyV->u.pair->car;
-    if(!FKL_IS_PAIR(argV)&&argV!=FKL_VM_NIL)
+    if(!fklIsList(argV))
         return 0;
     FklVMvalue* rtypeV=FKL_IS_PAIR(functionBodyV->u.pair->cdr)?functionBodyV->u.pair->cdr->u.pair->car:NULL;
 	if((functionBodyV->u.pair->cdr!=FKL_VM_NIL
@@ -830,7 +836,7 @@ static FklTypeId_t genFuncTypeId(FklVMvalue* functionBodyV,FklDefTypes* otherTyp
             return 0;
         }
 		FklVMvalue* cdr=firArgV->u.pair->cdr;
-        if(!tmp||(!FKL_IS_PAIR(cdr)&&cdr!=FKL_VM_NIL))
+        if(!tmp||(!fklIsList(cdr)))
         {
             free(atypes);
             return 0;

@@ -9,11 +9,13 @@
 #include<tchar.h>
 #include<conio.h>
 #include<windows.h>
+#include<io.h>
+#include<process.h>
 #else
 #include<termios.h>
 #include<dlfcn.h>
-#endif
 #include<unistd.h>
+#endif
 #include<time.h>
 #include<setjmp.h>
 

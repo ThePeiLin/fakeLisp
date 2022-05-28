@@ -8,11 +8,16 @@
 #include<fakeLisp/vm.h>
 #include<stdio.h>
 #include<stdlib.h>
-#include<unistd.h>
 #include<string.h>
 #include<ctype.h>
 #include<pthread.h>
 #include<setjmp.h>
+#ifdef _WIN32
+#include<io.h>
+#include<process.h>
+#else
+#include<unistd.h>
+#endif
 
 void runRepl(FklInterpreter*);
 FklByteCode* loadByteCode(FILE*);

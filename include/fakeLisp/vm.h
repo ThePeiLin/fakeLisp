@@ -4,7 +4,6 @@
 #include"basicADT.h"
 #include"bytecode.h"
 #include"compiler.h"
-#include<stdatomic.h>
 #include<stdio.h>
 #include<stdint.h>
 #include<pthread.h>

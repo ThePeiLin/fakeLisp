@@ -5,7 +5,12 @@
 #include<fakeLisp/compiler.h>
 #include<fakeLisp/reader.h>
 #include<fakeLisp/parser.h>
+#ifdef _WIN32
+#include<io.h>
+#include<process.h>
+#else
 #include<unistd.h>
+#endif
 #include<string.h>
 #include<stdlib.h>
 #include<math.h>

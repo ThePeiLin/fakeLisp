@@ -8,10 +8,10 @@
 #include<windows.h>
 #else
 #include<termios.h>
+#include<unistd.h>
 #endif
 #include<time.h>
 #include<string.h>
-#include<unistd.h>
 #include<limits.h>
 #ifdef __cplusplus
 extern "C"

@@ -465,13 +465,13 @@ i
 
 ```
 
-### nth-set!
+### set-nth!
 设置第n个car
 ```scheme
 (define i '(1 2 3 4))
 ;=> (1 2 3 4)
 
-(nth-set! 1 i 9)
+(set-nth! 1 i 9)
 ;=> 9
 
 i
@@ -529,7 +529,7 @@ i
 
 ```
 
-### vref-set!
+### set-vref!
 设置索引的对象
 ```scheme
 (define i #(1 2 3))
@@ -538,13 +538,13 @@ i
 (define b "abcd")
 ;=> "abcd"
 
-(vref-set! i 1 9)
+(set-vref! i 1 9)
 ;=> 9
 
 i
 ;=> #(1 9 3)
 
-(vref-set! b 1 #\n)
+(set-vref! b 1 #\n)
 ;=> #\n
 
 b
@@ -560,13 +560,13 @@ b
 
 ```
 
-### nthcdr-set!
+### set-nthcdr!
 设置第n个cdr的值
 ```scheme
 (define i '(1 2 3 4))
 ;=> (1 2 3 4)
 
-(nthcdr-set! 1 i '(5 6))
+(set-nthcdr! 1 i '(5 6))
 ;=> (5 6)
 
 i

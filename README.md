@@ -130,9 +130,9 @@ big-int?
 big-int  
 set-car!  
 set-cdr!  
-nth-set!  
-nthcdr-set!  
-vref-set!  
+set-nth!  
+set-nthcdr!  
+set-vref!  
 list?  
 
 Special forms:  

@@ -2574,6 +2574,74 @@ void SYS_to_str(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void SYS_box(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR("sys.box",FKL_TOOMANYARG,runnable,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR("sys.box",FKL_TOOFEWARG,runnable,exe);
+	fklNiReturn(fklNiNewVMvalue(FKL_BOX,obj,stack,exe->heap),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void SYS_unbox(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* box=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR("sys.unbox",FKL_TOOMANYARG,runnable,exe);
+	if(!box)
+		FKL_RAISE_BUILTIN_ERROR("sys.unbox",FKL_TOOFEWARG,runnable,exe);
+	if(!FKL_IS_BOX(box))
+		FKL_RAISE_BUILTIN_ERROR("sys.unbox",FKL_WRONGARG,runnable,exe);
+	fklNiReturn(box->u.box,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void SYS_set_box(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* box=fklNiGetArg(&ap,stack);
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR("sys.set-box!",FKL_TOOMANYARG,runnable,exe);
+	if(!obj||!box)
+		FKL_RAISE_BUILTIN_ERROR("sys.set-box!",FKL_TOOFEWARG,runnable,exe);
+	if(!FKL_IS_BOX(box))
+		FKL_RAISE_BUILTIN_ERROR("sys.set-box!",FKL_WRONGARG,runnable,exe);
+	fklSetRef(box,&box->u.box,obj,exe->heap);
+	fklNiReturn(obj,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void SYS_box_cas(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* box=fklNiGetArg(&ap,stack);
+	FklVMvalue* old=fklNiGetArg(&ap,stack);
+	FklVMvalue* new=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR("sys.box-cas!",FKL_TOOMANYARG,runnable,exe);
+	if(!old||!box||!new)
+		FKL_RAISE_BUILTIN_ERROR("sys.box-cas!",FKL_TOOFEWARG,runnable,exe);
+	if(!FKL_IS_BOX(box))
+		FKL_RAISE_BUILTIN_ERROR("sys.box-cas!",FKL_WRONGARG,runnable,exe);
+	if(box->u.box==old)
+	{
+		fklSetRef(box,&box->u.box,new,exe->heap);
+		fklNiReturn(FKL_VM_TRUE,&ap,stack);
+	}
+	else
+		fklNiReturn(FKL_VM_NIL,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 #define PREDICATE(condtion,err_infor) {\
 	FKL_NI_BEGIN(exe);\
 	FklVMrunnable* runnable=exe->rhead;\
@@ -2609,6 +2677,7 @@ void SYS_chanl_p(ARGL) PREDICATE(FKL_IS_CHAN(val),"sys.chanl?")
 void SYS_dll_p(ARGL) PREDICATE(FKL_IS_DLL(val),"sys.dll?")
 void SYS_big_int_p(ARGL) PREDICATE(FKL_IS_BIG_INT(val),"sys.big-int?")
 void SYS_list_p(ARGL) PREDICATE(fklIsList(val),"sys.list?")
+void SYS_box_p(ARGL) PREDICATE(FKL_IS_BOX(val),"sys.box?")
 
 #undef ARGL
 #undef PREDICATE

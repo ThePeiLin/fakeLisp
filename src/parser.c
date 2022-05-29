@@ -125,7 +125,7 @@ static void freeMatchState(MatchState* state)
 	free(state);
 }
 
-#define BUILT_IN_SEPARATOR_STR_NUM (13)
+#define BUILT_IN_SEPARATOR_STR_NUM (14)
 #define PARENTHESE_0 ((void*)0)
 #define PARENTHESE_1 ((void*)1)
 #define QUOTE ((void*)2)
@@ -135,6 +135,7 @@ static void freeMatchState(MatchState* state)
 #define DOTTED ((void*)6)
 #define VECTOR_0 ((void*)7)
 #define VECTOR_1 ((void*)8)
+#define BOX ((void*)9)
 
 static const char* separatorStrSet[]=
 {
@@ -151,6 +152,7 @@ static const char* separatorStrSet[]=
 	"'",
 	"`",
 	"~",
+	"#&",
 };
 
 static int isBuiltInSingleStrPattern(FklStringMatchPattern* pattern)
@@ -160,6 +162,7 @@ static int isBuiltInSingleStrPattern(FklStringMatchPattern* pattern)
 		||pattern==UNQUOTE
 		||pattern==UNQTESP
 		||pattern==DOTTED
+		||pattern==BOX
 		;
 }
 
@@ -174,6 +177,7 @@ static int isBuiltInPattern(FklStringMatchPattern* pattern)
 		||pattern==DOTTED
 		||pattern==VECTOR_0
 		||pattern==VECTOR_1
+		||pattern==BOX
 		;
 }
 
@@ -261,6 +265,10 @@ static MatchState* searchReverseStringCharMatchState(const char* part,size_t ind
 			case ',':
 				return newMatchState(DOTTED,0);
 				break;
+			case '#':
+				if(size-index>1&&part[index+1]=='&')
+					return newMatchState(BOX,0);
+				break;
 		}
 	}
 	return NULL;
@@ -340,6 +348,10 @@ static const char* searchReverseStringChar(const char* part,size_t index,size_t 
 				break;
 			case ',':
 				return ",";
+				break;
+			case '#':
+				if(size-index>1&&part[index+1]=='&')
+					return "#&";
 				break;
 		}
 	}
@@ -437,6 +449,8 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 						"~@":
 						state->pattern==DOTTED?
 						",":
+						state->pattern==BOX?
+						"#&":
 						NULL;
 					fklPushPtrStack(fklNewToken(FKL_TOKEN_RESERVE_STR,str,*line),retvalStack);
 					fklPushPtrStack(state,matchStateStack);

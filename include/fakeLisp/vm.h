@@ -114,6 +114,7 @@ typedef struct FklVMvalue
 		struct FklVMerror* err;
 		FklBigInt* bigInt;
 		FklVMudata* ud;
+		struct FklVMvalue* box;
 	}u;
 	struct FklVMvalue* next;
 }FklVMvalue;

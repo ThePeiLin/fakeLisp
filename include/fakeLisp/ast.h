@@ -25,8 +25,9 @@ typedef enum{
 	FKL_DLPROC,
 	FKL_ERR,
 	FKL_ENV,
-	FKL_USERDATA,
 	FKL_PAIR,
+	FKL_BOX,
+	FKL_USERDATA,
 	FKL_ATM,
 }FklValueType;
 
@@ -75,6 +76,7 @@ typedef struct FklAstAtom
 		FklAstString str;
 		FklAstVector vec;
 		FklBigInt bigInt;
+		FklAstCptr box;
 	} value;
 }FklAstAtom;
 

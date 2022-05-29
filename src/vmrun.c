@@ -144,6 +144,7 @@ static void B_push_r_env(FklVM*);
 static void B_pop_r_env(FklVM*);
 static void B_tail_invoke(FklVM*);
 static void B_push_big_int(FklVM*);
+static void B_push_box(FklVM*);
 
 static void (*ByteCodes[])(FklVM*)=
 {
@@ -183,6 +184,7 @@ static void (*ByteCodes[])(FklVM*)=
 	B_pop_r_env,
 	B_tail_invoke,
 	B_push_big_int,
+	B_push_box,
 };
 
 FklVM* fklNewVM(FklByteCode* mainCode)
@@ -338,6 +340,11 @@ extern void SYS_set_nth(ARGL);
 extern void SYS_set_nthcdr(ARGL);
 extern void SYS_set_vref(ARGL);
 extern void SYS_list_p(ARGL);
+extern void SYS_box(ARGL);
+extern void SYS_unbox(ARGL);
+extern void SYS_set_box(ARGL);
+extern void SYS_box_cas(ARGL);
+extern void SYS_box_p(ARGL);
 
 #undef ARGL
 
@@ -426,6 +433,11 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_set_nthcdr,
 		SYS_set_vref,
 		SYS_list_p,
+		SYS_box,
+		SYS_unbox,
+		SYS_set_box,
+		SYS_box_cas,
+		SYS_box_p,
 	};
 	obj->num=FKL_NUM_OF_BUILT_IN_SYMBOL;
 	obj->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*FKL_NUM_OF_BUILT_IN_SYMBOL);
@@ -1224,6 +1236,16 @@ void B_push_big_int(FklVM* exe)
 	r->cp+=sizeof(char)+sizeof(bigInt->num)+num;
 }
 
+void B_push_box(FklVM* exe)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* r=exe->rhead;
+	FklVMvalue* c=fklNiGetArg(&ap,stack);
+	fklNiReturn(fklNiNewVMvalue(FKL_BOX,c,stack,exe->heap),&ap,stack);
+	fklNiEnd(&ap,stack);
+	r->cp+=sizeof(char);
+}
+
 FklVMstack* fklNewVMstack(int32_t size)
 {
 	FklVMstack* tmp=(FklVMstack*)malloc(sizeof(FklVMstack));
@@ -1459,6 +1481,9 @@ void propagateMark(FklVMvalue* root,FklVMheap* heap)
 					fklGC_toGray(vec->base[i],heap);
 			}
 			break;
+		case FKL_BOX:
+			fklGC_toGray(root->u.box,heap);
+			break;
 		case FKL_CHAN:
 			{
 				pthread_mutex_lock(&root->u.chan->lock);
@@ -1633,6 +1658,7 @@ void fklFreeVMvalue(FklVMvalue* cur)
 			break;
 		case FKL_F64:
 		case FKL_I64:
+		case FKL_BOX:
 			break;
 		case FKL_ENV:
 			fklFreeVMenv(cur->u.env);

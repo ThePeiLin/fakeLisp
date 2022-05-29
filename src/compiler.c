@@ -805,10 +805,12 @@ static FklByteCode* innerCompileConst(FklAstCptr* objCptr)
 				fklSetSidToByteCode(tmp->code+sizeof(char),node->id);
 				return tmp;
 			}
-			else if(objCptr->u.atom->type!=FKL_VECTOR)
+			else if(objCptr->u.atom->type!=FKL_VECTOR&&objCptr->u.atom->type!=FKL_BOX)
 				return fklCompileAtom(objCptr);
-			else
+			else if(objCptr->u.atom->type==FKL_VECTOR)
 				return fklCompileVector(objCptr);
+			else
+				return fklCompileBox(objCptr);
 			break;
 		case FKL_NIL:
 			return fklCompileNil();
@@ -835,6 +837,17 @@ FklByteCode* fklCompileVector(FklAstCptr* objCptr)
 	fklCodeCat(retval,pushVector);
 	fklFreeByteCode(pushVector);
 	return retval;
+}
+
+FklByteCode* fklCompileBox(FklAstCptr* objCptr)
+{
+	FklAstCptr* box=&objCptr->u.atom->value.box;
+	FklByteCode* pushBox=fklNewByteCode(sizeof(char));
+	pushBox->code[0]=FKL_PUSH_BOX;
+	FklByteCode* tmp=innerCompileConst(box);
+	fklReCodeCat(tmp,pushBox);
+	fklFreeByteCode(tmp);
+	return pushBox;
 }
 
 FklByteCode* fklCompilePair(FklAstCptr* objCptr)
@@ -895,28 +908,75 @@ FklByteCodelnt* fklCompileQsquote(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInte
 {
 	objCptr=fklNextCptr(fklGetFirstCptr(objCptr));
 	FklAstCptr* top=objCptr;
-	if(objCptr->type==FKL_ATM&&objCptr->u.atom->type!=FKL_VECTOR)
+	if(objCptr->type==FKL_ATM&&objCptr->u.atom->type!=FKL_VECTOR&&objCptr->u.atom->type!=FKL_BOX)
 		return fklCompileConst(objCptr,curEnv,inter,state);
 	else if(objCptr->type==FKL_ATM)
 	{
-		FklAstVector* vec=&objCptr->u.atom->value.vec;
-		FklByteCodelnt* retval=fklNewByteCodelnt(fklNewByteCode(0));
-		retval->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
-		FKL_ASSERT(retval->l,__func__);
-		retval->ls=1;
-		retval->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,retval->bc->size,objCptr->curline);
-		for(size_t i=0;i<vec->size;i++)
+		FklAstAtom* tAtom=objCptr->u.atom;
+		if(tAtom->type==FKL_VECTOR)
 		{
-			if(fklIsUnqtespExpression(&vec->base[i]))
+			FklAstVector* vec=&objCptr->u.atom->value.vec;
+			FklByteCodelnt* retval=fklNewByteCodelnt(fklNewByteCode(0));
+			retval->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
+			FKL_ASSERT(retval->l,__func__);
+			retval->ls=1;
+			retval->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,retval->bc->size,objCptr->curline);
+			for(size_t i=0;i<vec->size;i++)
+			{
+				if(fklIsUnqtespExpression(&vec->base[i]))
+				{
+					fklFreeByteCodeAndLnt(retval);
+					state->state=FKL_SYNTAXERROR;
+					state->place=objCptr;
+					return NULL;
+				}
+				if(fklIsUnquoteExpression(&vec->base[i]))
+				{
+					FklByteCodelnt* tmp=fklCompileUnquote(&vec->base[i],curEnv,inter,state);
+					if(state->state)
+					{
+						fklFreeByteCodeAndLnt(retval);
+						state->state=FKL_SYNTAXERROR;
+						state->place=objCptr;
+						return NULL;
+					}
+					fklCodelntCopyCat(retval,tmp);
+					fklFreeByteCodeAndLnt(tmp);
+				}
+				else
+				{
+					FklByteCode* tmp=innerCompileConst(&vec->base[i]);
+					fklCodeCat(retval->bc,tmp);
+					retval->l[retval->ls-1]->cpc+=tmp->size;
+					fklFreeByteCode(tmp);
+				}
+			}
+			FklByteCode* pushVector=fklNewByteCode(sizeof(char)+sizeof(uint64_t));
+			pushVector->code[0]=FKL_PUSH_VECTOR;
+			fklSetU64ToByteCode(pushVector->code+sizeof(char),vec->size);
+			fklCodeCat(retval->bc,pushVector);
+			retval->l[retval->ls-1]->cpc+=pushVector->size;
+			fklFreeByteCode(pushVector);
+			return retval;
+		}
+		else
+		{
+			FklAstCptr* box=&objCptr->u.atom->value.box;
+			FklByteCodelnt* retval=fklNewByteCodelnt(fklNewByteCode(0));
+			retval->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
+			FKL_ASSERT(retval->l,__func__);
+			retval->ls=1;
+			retval->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,retval->bc->size,objCptr->curline);
+			if(fklIsUnqtespExpression(box))
 			{
 				fklFreeByteCodeAndLnt(retval);
 				state->state=FKL_SYNTAXERROR;
 				state->place=objCptr;
 				return NULL;
 			}
-			if(fklIsUnquoteExpression(&vec->base[i]))
+			if(fklIsUnquoteExpression(box))
 			{
-				FklByteCodelnt* tmp=fklCompileUnquote(&vec->base[i],curEnv,inter,state);
+				FklByteCodelnt* tmp=fklCompileUnquote(box,curEnv,inter,state);
 				if(state->state)
 				{
 					fklFreeByteCodeAndLnt(retval);
@@ -929,19 +989,18 @@ FklByteCodelnt* fklCompileQsquote(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInte
 			}
 			else
 			{
-				FklByteCode* tmp=innerCompileConst(&vec->base[i]);
+				FklByteCode* tmp=innerCompileConst(box);
 				fklCodeCat(retval->bc,tmp);
 				retval->l[retval->ls-1]->cpc+=tmp->size;
 				fklFreeByteCode(tmp);
 			}
+			FklByteCode* pushBox=fklNewByteCode(sizeof(char));
+			pushBox->code[0]=FKL_PUSH_BOX;
+			fklCodeCat(retval->bc,pushBox);
+			retval->l[retval->ls-1]->cpc+=pushBox->size;
+			fklFreeByteCode(pushBox);
+			return retval;
 		}
-		FklByteCode* pushVector=fklNewByteCode(sizeof(char)+sizeof(uint64_t));
-		pushVector->code[0]=FKL_PUSH_VECTOR;
-		fklSetU64ToByteCode(pushVector->code+sizeof(char),vec->size);
-		fklCodeCat(retval->bc,pushVector);
-		retval->l[retval->ls-1]->cpc+=pushVector->size;
-		fklFreeByteCode(pushVector);
-		return retval;
 	}
 	else if(fklIsUnquoteExpression(objCptr))
 		return fklCompileUnquote(objCptr,curEnv,inter,state);
@@ -1089,10 +1148,12 @@ FklByteCode* fklCompileQuote(FklAstCptr* objCptr)
 				fklSetSidToByteCode(tmp->code+sizeof(char),node->id);
 				return tmp;
 			}
-			else if(objCptr->u.atom->type!=FKL_VECTOR)
+			else if(objCptr->u.atom->type!=FKL_VECTOR&&objCptr->u.atom->type!=FKL_BOX)
 				return fklCompileAtom(objCptr);
-			else
+			else if(objCptr->u.atom->type==FKL_VECTOR)
 				return fklCompileVector(objCptr);
+			else
+				return fklCompileBox(objCptr);
 			break;
 		case FKL_NIL:
 			return fklCompileNil();
@@ -1115,6 +1176,7 @@ FklByteCodelnt* fklCompileConst(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterp
 	FklByteCode* tmp=NULL;
 	if(objCptr->type==FKL_ATM&&objCptr->u.atom->type!=FKL_VECTOR)tmp=fklCompileAtom(objCptr);
 	if(objCptr->type==FKL_ATM&&objCptr->u.atom->type==FKL_VECTOR)tmp=fklCompileVector(objCptr);
+	if(objCptr->type==FKL_ATM&&objCptr->u.atom->type==FKL_BOX)tmp=fklCompileBox(objCptr);
 	if(fklIsNil(objCptr))tmp=fklCompileNil();
 	if(fklIsQuoteExpression(objCptr))tmp=fklCompileQuote(fklNextCptr(fklGetFirstCptr(objCptr)));
 	if(!tmp)

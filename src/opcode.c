@@ -42,6 +42,7 @@ static struct
 	{"pop_r_env",    0,  },
 	{"tail_invoke",  0,  },
 	{"push_big_int"  -1, },
+	{"push_box",     0,  },
 };
 
 const char* fklGetOpcodeName(FklOpcode opcode)

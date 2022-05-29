@@ -414,6 +414,8 @@ typedef struct PrtElem
 		PRT_CDR,
 		PRT_REC_CAR,
 		PRT_REC_CDR,
+		PRT_BOX,
+		PRT_REC_BOX,
 	}state;
 	FklVMvalue* v;
 }PrtElem;
@@ -447,7 +449,7 @@ static void scanCirRef(FklVMvalue* s,FklPtrStack* recStack)
 	while(!fklIsPtrStackEmpty(beAccessed))
 	{
 		FklVMvalue* v=fklPopPtrStack(beAccessed);
-		if(FKL_IS_PAIR(v)||FKL_IS_VECTOR(v))
+		if(FKL_IS_PAIR(v)||FKL_IS_VECTOR(v)||FKL_IS_BOX(v))
 		{
 			if(isInStack(v,totalAccessed,NULL))
 			{
@@ -468,7 +470,7 @@ static void scanCirRef(FklVMvalue* s,FklPtrStack* recStack)
 				else
 					fklPushPtrStack(v->u.pair->car,beAccessed);
 			}
-			else
+			else if(FKL_IS_VECTOR(v))
 			{
 				FklVMvec* vec=v->u.vec;
 				for(size_t i=vec->size;i>0;i--)
@@ -478,6 +480,13 @@ static void scanCirRef(FklVMvalue* s,FklPtrStack* recStack)
 					else
 						fklPushPtrStack(vec->base[i-1],beAccessed);
 				}
+			}
+			else
+			{
+				if(v->u.box==v)
+					fklPushPtrStack(v,recStack);
+				else
+					fklPushPtrStack(v->u.box,beAccessed);
 			}
 		}
 	}
@@ -671,7 +680,7 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 			FklVMvalue* v=e->v;
 			if(e->state==PRT_CDR||e->state==PRT_REC_CDR)
 				fputc(',',fp);
-			if(e->state==PRT_REC_CAR||e->state==PRT_REC_CDR)
+			if(e->state==PRT_REC_CAR||e->state==PRT_REC_CDR||e->state==PRT_REC_BOX)
 			{
 				fprintf(fp,"#%lu#",(uintptr_t)e->v);
 				free(e);
@@ -679,7 +688,7 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 			else
 			{
 				free(e);
-				if(!FKL_IS_VECTOR(v)&&!FKL_IS_PAIR(v))
+				if(!FKL_IS_VECTOR(v)&&!FKL_IS_PAIR(v)&&!FKL_IS_BOX(v))
 					atomPrinter(v,fp);
 				else
 				{
@@ -705,6 +714,16 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 						}
 						fklPushPtrStack(vQueue,queueStack);
 						cQueue=vQueue;
+						continue;
+					}
+					else if(FKL_IS_BOX(v))
+					{
+						fputs("#&",fp);
+						size_t w=0;
+						if(isInStack(v->u.box,recStack,&w)&&v->u.box==v)
+							fklPushPtrQueue(newPrtElem(PRT_REC_BOX,(void*)w),cQueue);
+						else
+							fklPushPtrQueue(newPrtElem(PRT_BOX,v->u.box),cQueue);
 						continue;
 					}
 					else
@@ -755,7 +774,9 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 			}
 			if(fklLengthPtrQueue(cQueue)
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_CDR
-					&&(((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_REC_CDR))
+					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_REC_CDR
+					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_BOX
+					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_REC_BOX)
 				fputc(' ',fp);
 		}
 		fklPopPtrStack(queueStack);
@@ -766,7 +787,9 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 			cQueue=fklTopPtrStack(queueStack);
 			if(fklLengthPtrQueue(cQueue)
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_CDR
-					&&(((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_REC_CDR))
+					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_REC_CDR
+					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_BOX
+					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_REC_BOX)
 				fputc(' ',fp);
 		}
 	}
@@ -975,6 +998,11 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 									tmpAtm->type=FKL_SYM;
 									tmpAtm->value.sym=fklCopyStr("#<err>");
 									break;
+								case FKL_BOX:
+									tmpAtm->type=FKL_BOX;
+									fklPushPtrStack(root->u.box,s1);
+									fklPushPtrStack(&tmpAtm->value.box,s2);
+									break;
 								case FKL_VECTOR:
 									tmpAtm->type=FKL_VECTOR;
 									fklMakeAstVector(&tmpAtm->value.vec,root->u.vec->size,NULL);
@@ -982,6 +1010,10 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 										fklPushPtrStack(root->u.vec->base[i],s1);
 									for(size_t i=0;i<tmpAtm->value.vec.size;i++)
 										fklPushPtrStack(&tmpAtm->value.vec.base[i],s2);
+									break;
+								case FKL_BIG_INT:
+									tmpAtm->type=FKL_BIG_INT;
+									fklSetBigInt(&tmpAtm->value.bigInt,root->u.bigInt);
 									break;
 								default:
 									return NULL;

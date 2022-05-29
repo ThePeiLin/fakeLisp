@@ -125,6 +125,11 @@ static const char* builtInSymbolList[]=
 	"set-nthcdr!",
 	"set-vref!",
 	"list?",
+	"box",
+	"unbox",
+	"set-box!",
+	"box-cas!",
+	"box?",
 };
 
 FklSymbolTable* GlobSymbolTable=NULL;

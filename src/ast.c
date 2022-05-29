@@ -70,6 +70,15 @@ void fklFreeAtom(FklAstAtom* objAtm)
 		free(vec->base);
 		vec->size=0;
 	}
+	else if(objAtm->type==FKL_BOX)
+	{
+		FklAstCptr* c=&objAtm->value.box;
+		fklDeleteCptr(c);
+		c->curline=0;
+		c->outer=NULL;
+		c->type=FKL_NIL;
+		c->u.all=NULL;
+	}
 	else if(objAtm->type==FKL_BIG_INT)
 	{
 		FklBigInt* bi=&objAtm->value.bigInt;
@@ -143,6 +152,12 @@ FklAstAtom* fklNewAtom(FklValueType type,const char* value,FklAstPair* prev)
 			tmp->value.bigInt.size=0;
 			tmp->value.bigInt.neg=0;
 			break;
+		case FKL_BOX:
+			tmp->value.box.curline=0;
+			tmp->value.box.outer=NULL;
+			tmp->value.box.type=FKL_NIL;
+			tmp->value.box.u.all=NULL;
+			break;
 		default:
 			break;
 	}
@@ -196,6 +211,11 @@ int fklCopyCptr(FklAstCptr* objCptr,const FklAstCptr* copiedCptr)
 							fklPushPtrStack(&atom1->value.vec.base[i],s1);
 							fklPushPtrStack(&atom2->value.vec.base[i],s2);
 						}
+						break;
+					case FKL_BOX:
+						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
+						fklPushPtrStack(&atom1->value.box,s1);
+						fklPushPtrStack(&atom2->value.box,s2);
 						break;
 					case FKL_I32:
 						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
@@ -644,11 +664,13 @@ static void freeMatchState(MatchState* state)
 #define DOTTED ((void*)6)
 #define VECTOR_0 ((void*)7)
 #define VECTOR_1 ((void*)8)
+#define BOX ((void*)9)
 
 typedef enum
 {
 	AST_CAR,
 	AST_CDR,
+	AST_BOX,
 }AstPlace;
 
 typedef struct
@@ -673,6 +695,7 @@ static int isBuiltInSingleStrPattern(FklStringMatchPattern* pattern)
 		||pattern==UNQUOTE
 		||pattern==UNQTESP
 		||pattern==DOTTED
+		||pattern==BOX
 		;
 }
 
@@ -711,7 +734,8 @@ static int isBuiltSingleStr(const char* str)
 				||str[0]=='`'
 				||str[0]=='~'
 				||str[0]==','))
-		||!strcmp(str,"~@");
+		||!strcmp(str,"~@")
+		||!strcmp(str,"#&");
 }
 
 static MatchState* searchReverseStringCharMatchState(const char* str,FklPtrStack* matchStateStack)
@@ -1010,6 +1034,8 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 					 UNQUOTE:
 					 token->value[1]=='@'?
 					 UNQTESP:NULL):
+					(strlen(token->value)==2&&token->value[0]=='#'&&token->value[1]=='&')?
+					BOX:
 					NULL;
 				MatchState* state=newMatchState(pattern,token->line,0);
 				fklPushPtrStack(state,matchStateStack);
@@ -1033,6 +1059,18 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 				{
 					postfix->place=AST_CDR;
 					fklPushPtrStack(postfix,cStack);
+				}
+				else if(state->pattern==BOX)
+				{
+					AstElem* v=newAstElem(AST_CAR,fklNewCptr(token->line,NULL));
+					FklAstCptr* vCptr=v->cptr;
+					vCptr->type=FKL_ATM;
+					FklAstAtom* atom=fklNewAtom(FKL_BOX,NULL,vCptr->outer);
+					atom->value.box=*(postfix->cptr);
+					vCptr->u.atom=atom;
+					free(postfix->cptr);
+					free(postfix);
+					fklPushPtrStack(v,cStack);
 				}
 				else
 				{
@@ -1178,6 +1216,13 @@ void fklPrintCptr(const FklAstCptr* o_cptr,FILE* fp)
 							continue;
 						}
 						break;
+					case FKL_BIG_INT:
+						fklPrintBigInt(&tmpAtm->value.bigInt,fp);
+						break;
+					case FKL_BOX:
+						fputs("#&",fp);
+						fklPushPtrQueue(newAstElem(AST_BOX,&tmpAtm->value.box),cQueue);
+						break;
 					default:
 						break;
 				}
@@ -1210,7 +1255,7 @@ void fklPrintCptr(const FklAstCptr* o_cptr,FILE* fp)
 				cQueue=lQueue;
 				continue;
 			}
-			if(fklLengthPtrQueue(cQueue)&&((AstElem*)fklFirstPtrQueue(cQueue))->place!=AST_CDR)
+			if(fklLengthPtrQueue(cQueue)&&((AstElem*)fklFirstPtrQueue(cQueue))->place!=AST_CDR&&((AstElem*)fklFirstPtrQueue(cQueue))->place!=AST_BOX)
 				fputc(' ',fp);
 		}
 		fklPopPtrStack(queueStack);

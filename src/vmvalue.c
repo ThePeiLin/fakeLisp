@@ -93,6 +93,36 @@ static inline int64_t getI64FromByteCode(uint8_t* code)
 
 FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 {
+	FklVMvalue* r=fklNewSaveVMvalue(type,pValue);
+	fklAddToHeap(r,heap);
+	return r;
+}
+
+FklVMvalue* fklNewVMvalueToStack(FklValueType type
+		,void* pValue
+		,FklVMstack* stack
+		,FklVMheap* heap)
+{
+	FklVMvalue* r=fklNewSaveVMvalue(type,pValue);
+	pthread_rwlock_wrlock(&stack->lock);
+	if(stack->tp>=stack->size)
+	{
+		stack->values=(FklVMvalue**)realloc(stack->values
+				,sizeof(FklVMvalue*)*(stack->size+64));
+		FKL_ASSERT(stack->values,__func__);
+		stack->size+=64;
+	}
+	pthread_rwlock_unlock(&stack->lock);
+	fklAddToHeap(r,heap);
+	pthread_rwlock_wrlock(&stack->lock);
+	stack->values[stack->tp]=r;
+	stack->tp++;
+	pthread_rwlock_unlock(&stack->lock);
+	return stack->values[stack->tp-1];
+}
+
+FklVMvalue* fklNewSaveVMvalue(FklValueType type,void* pValue)
+{
 	switch(type)
 	{
 		case FKL_NIL:
@@ -111,98 +141,6 @@ FklVMvalue* fklNewVMvalue(FklValueType type,void* pValue,FklVMheap* heap)
 			{
 				FklVMvalue* tmp=(FklVMvalue*)malloc(sizeof(FklVMvalue));
 				FKL_ASSERT(tmp,__func__);
-				tmp->type=type;
-				tmp->mark=0;
-				switch(type)
-				{
-					case FKL_F64:
-						if(pValue)
-							tmp->u.f64=getF64FromByteCode(pValue);
-						break;
-					case FKL_I64:
-						if(pValue)
-							tmp->u.i64=getI64FromByteCode(pValue);
-						break;
-					case FKL_STR:
-						tmp->u.str=pValue;break;
-					case FKL_PAIR:
-						tmp->u.pair=pValue;break;
-					case FKL_PROC:
-						tmp->u.proc=pValue;break;
-					case FKL_CONT:
-						tmp->u.cont=pValue;break;
-					case FKL_CHAN:
-						tmp->u.chan=pValue;break;
-					case FKL_FP:
-						tmp->u.fp=pValue;break;
-					case FKL_DLL:
-						tmp->u.dll=pValue;break;
-					case FKL_DLPROC:
-						tmp->u.dlproc=pValue;break;
-					case FKL_ERR:
-						tmp->u.err=pValue;break;
-					case FKL_VECTOR:
-						tmp->u.vec=pValue;break;
-					case FKL_USERDATA:
-						tmp->u.ud=pValue;break;
-					case FKL_ENV:
-						tmp->u.env=pValue;break;
-					case FKL_BIG_INT:
-						tmp->u.bigInt=pValue;break;
-					default:
-						return NULL;
-						break;
-				}
-				pthread_rwlock_rdlock(&heap->lock);
-				FklGCState running=heap->running;
-				pthread_rwlock_unlock(&heap->lock);
-				if(running==FKL_GC_RUNNING)
-					fklGC_toGray(tmp,heap);
-				pthread_rwlock_wrlock(&heap->lock);
-				tmp->next=heap->head;
-				heap->head=tmp;
-				heap->num+=1;
-				pthread_rwlock_unlock(&heap->lock);
-				return FKL_MAKE_VM_PTR(tmp);
-			}
-			break;
-	}
-}
-
-FklVMvalue* fklNewVMvalueToStack(FklValueType type
-		,void* pValue
-		,FklVMstack* stack
-		,FklVMheap* heap)
-{
-	FklVMvalue* r=NULL;
-	pthread_rwlock_wrlock(&stack->lock);
-	if(stack->tp>=stack->size)
-	{
-		stack->values=(FklVMvalue**)realloc(stack->values
-				,sizeof(FklVMvalue*)*(stack->size+64));
-		FKL_ASSERT(stack->values,__func__);
-		stack->size+=64;
-	}
-	pthread_rwlock_unlock(&stack->lock);
-	switch(type)
-	{
-		case FKL_NIL:
-			r=FKL_VM_NIL;
-			break;
-		case FKL_CHR:
-			r=FKL_MAKE_VM_CHR(pValue);
-			break;
-		case FKL_I32:
-			r=FKL_MAKE_VM_I32(pValue);
-			break;
-		case FKL_SYM:
-			r=FKL_MAKE_VM_SYM(pValue);
-			break;
-		default:
-			{
-				FklVMvalue* tmp=(FklVMvalue*)malloc(sizeof(FklVMvalue));
-				FKL_ASSERT(tmp,__func__);
-				r=tmp;
 				tmp->type=type;
 				tmp->mark=FKL_MARK_W;
 				switch(type)
@@ -241,86 +179,8 @@ FklVMvalue* fklNewVMvalueToStack(FklValueType type
 						tmp->u.env=pValue;break;
 					case FKL_BIG_INT:
 						tmp->u.bigInt=pValue;break;
-					default:
-						FKL_ASSERT(0,__func__);
-						break;
-				}
-				pthread_rwlock_rdlock(&heap->lock);
-				FklGCState running=heap->running;
-				pthread_rwlock_unlock(&heap->lock);
-				if(running==FKL_GC_RUNNING)
-					fklGC_toGray(tmp,heap);
-				pthread_rwlock_wrlock(&heap->lock);
-				tmp->next=heap->head;
-				heap->head=tmp;
-				heap->num+=1;
-				pthread_rwlock_unlock(&heap->lock);
-			}
-			break;
-	}
-	pthread_rwlock_wrlock(&stack->lock);
-	stack->values[stack->tp]=r;
-	stack->tp++;
-	pthread_rwlock_unlock(&stack->lock);
-	return stack->values[stack->tp-1];
-}
-
-FklVMvalue* fklNewSaveVMvalue(FklValueType type,void* pValue)
-{
-	switch(type)
-	{
-		case FKL_NIL:
-			return FKL_VM_NIL;
-			break;
-		case FKL_CHR:
-			return FKL_MAKE_VM_CHR(pValue);
-			break;
-		case FKL_I32:
-			return FKL_MAKE_VM_I32(pValue);
-			break;
-		case FKL_SYM:
-			return FKL_MAKE_VM_SYM(pValue);
-			break;
-		default:
-			{
-				FklVMvalue* tmp=(FklVMvalue*)malloc(sizeof(FklVMvalue));
-				FKL_ASSERT(tmp,__func__);
-				tmp->type=type;
-				tmp->mark=0;
-				switch(type)
-				{
-					case FKL_F64:
-						if(pValue)
-							tmp->u.f64=getF64FromByteCode(pValue);
-						break;
-					case FKL_I64:
-						if(pValue)
-							tmp->u.i64=getI64FromByteCode(pValue);
-						break;
-					case FKL_STR:
-						tmp->u.str=pValue;break;
-					case FKL_PAIR:
-						tmp->u.pair=pValue;break;
-					case FKL_PROC:
-						tmp->u.proc=pValue;break;
-					case FKL_CONT:
-						tmp->u.cont=pValue;break;
-					case FKL_CHAN:
-						tmp->u.chan=pValue;break;
-					case FKL_FP:
-						tmp->u.fp=pValue;break;
-					case FKL_DLL:
-						tmp->u.dll=pValue;break;
-					case FKL_DLPROC:
-						tmp->u.dlproc=pValue;break;
-					case FKL_ERR:
-						tmp->u.err=pValue;break;
-					case FKL_VECTOR:
-						tmp->u.vec=pValue;break;
-					case FKL_USERDATA:
-						tmp->u.ud=pValue;break;
-					case FKL_ENV:
-						tmp->u.env=pValue;break;
+					case FKL_BOX:
+						tmp->u.box=pValue;break;
 					default:
 						return NULL;
 						break;
@@ -903,12 +763,24 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 				case FKL_STR:
 					*root1=fklNewVMvalue(FKL_STR,fklNewVMstr(tmpAtm->value.str.size,tmpAtm->value.str.str),heap);
 					break;
+				case FKL_BOX:
+					*root1=fklNewVMvalue(FKL_BOX,FKL_VM_NIL,heap);
+					fklPushPtrStack(&(*root1)->u.box,s1);
+					fklPushPtrStack(&tmpAtm->value.box,s2);
+					break;
 				case FKL_VECTOR:
 					*root1=fklNewVMvalue(FKL_VECTOR,fklNewVMvec(tmpAtm->value.vec.size,NULL),heap);
 					for(size_t i=0;i<tmpAtm->value.vec.size;i++)
 					{
 						fklPushPtrStack(&(*root1)->u.vec->base[i],s1);
 						fklPushPtrStack(&tmpAtm->value.vec.base[i],s2);
+					}
+					break;
+				case FKL_BIG_INT:
+					{
+						FklBigInt* bi=fklNewBigInt0();
+						fklSetBigInt(bi,&tmpAtm->value.bigInt);
+						*root1=fklNewVMvalue(FKL_BIG_INT,bi,heap);
 					}
 					break;
 				default:

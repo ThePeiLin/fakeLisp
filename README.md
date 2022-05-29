@@ -134,6 +134,11 @@ set-nth!
 set-nthcdr!  
 set-vref!  
 list?  
+box  
+unbox  
+set-box!  
+box-cas!  
+box?  
 
 Special forms:  
 

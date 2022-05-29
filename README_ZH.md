@@ -574,6 +574,59 @@ i
 
 ```
 
+### box
+接受一个参数，返回一个装有参数内容的box
+```scheme
+(box 9)
+;=> #&9
+
+```
+
+### unbox
+参数是一个box，返回该box装的内容
+```scheme
+(define i (box 114514))
+;=> #&114514
+
+(unbox i)
+;=> 114514
+
+```
+
+### set-box!
+第一个参数是一个box，第二个参数是新的内容，设置该box的内容
+```scheme
+(define i (box 9))
+;=> #&9
+
+(set-box! i '(1 2 3))
+;=> (1 2 3)
+
+i
+;=> #&(1 2 3)
+
+```
+
+### box-cas!
+第一个参数是一个box，第二个参数是旧内容，第三个参数是新内容，如果旧内容与box内的内容相同，则用新内容设置box内的内容，并返回真，否则返回假  
+```scheme
+(define i (box 'old))
+;=> #&old
+
+(box-cas! i 'old 'new)
+;=> 1
+
+i
+;=> #&new
+
+(box-cas! i 'other 'wrong)
+;=> ()
+
+i
+;=> #&new
+
+```
+
 ### char? integer? f64?等各种类型判断函数
 如果参数是对应的类型，则返回真
 ```scheme

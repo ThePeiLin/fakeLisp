@@ -967,13 +967,6 @@ FklByteCodelnt* fklCompileQsquote(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInte
 			FKL_ASSERT(retval->l,__func__);
 			retval->ls=1;
 			retval->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,retval->bc->size,objCptr->curline);
-			if(fklIsUnqtespExpression(box))
-			{
-				fklFreeByteCodeAndLnt(retval);
-				state->state=FKL_SYNTAXERROR;
-				state->place=objCptr;
-				return NULL;
-			}
 			if(fklIsUnquoteExpression(box))
 			{
 				FklByteCodelnt* tmp=fklCompileUnquote(box,curEnv,inter,state);

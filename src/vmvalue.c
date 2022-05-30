@@ -528,17 +528,7 @@ void fklFreeVMdlproc(FklVMdlproc* dlproc)
 	free(dlproc);
 }
 
-FklVMerror* fklNewVMerror(const char* who,const char* type,const char* message)
-{
-	FklVMerror* t=(FklVMerror*)malloc(sizeof(FklVMerror));
-	FKL_ASSERT(t,__func__);
-	t->who=fklCopyStr(who);
-	t->type=fklAddSymbolToGlob(type)->id;
-	t->message=fklCopyStr(message);
-	return t;
-}
-
-FklVMerror* fklNewVMerrorWithSid(const char* who,FklSid_t type,const char* message)
+FklVMerror* fklNewVMerror(const char* who,FklSid_t type,const char* message)
 {
 	FklVMerror* t=(FklVMerror*)malloc(sizeof(FklVMerror));
 	FKL_ASSERT(t,__func__);

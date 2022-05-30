@@ -195,7 +195,7 @@ void fklFfiFreeGlobDefTypeTable(void);
 void fklFfiInitTypedefSymbol(void);
 
 int fklFfiIsNativeTypeName(FklSid_t id);
-const char* fklFfiGetErrorType(FklFfiErrorType);
+FklSid_t fklFfiGetErrorType(FklFfiErrorType);
 char* fklFfiGenErrorMessage(FklFfiErrorType);
 
 FklTypeId_t fklFfiGenTypeId(FklVMvalue*);

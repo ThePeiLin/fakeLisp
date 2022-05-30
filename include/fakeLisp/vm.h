@@ -395,8 +395,7 @@ void fklFreeVMdll(FklVMdllHandle);
 FklVMdlproc* fklNewVMdlproc(FklVMdllFunc,FklVMvalue*);
 void fklFreeVMdlproc(FklVMdlproc*);
 
-FklVMerror* fklNewVMerror(const char* who,const char* type,const char* message);
-FklVMerror* fklNewVMerrorWithSid(const char* who,FklSid_t type,const char* message);
+FklVMerror* fklNewVMerror(const char* who,FklSid_t type,const char* message);
 void fklFreeVMerror(FklVMerror*);
 
 

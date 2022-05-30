@@ -894,9 +894,12 @@ static const char* FfiErrorType[]=
 	"invalid-assign",
 };
 
-const char* fklFfiGetErrorType(FklFfiErrorType type)
+FklSid_t fklFfiGetErrorType(FklFfiErrorType type)
 {
-	return FfiErrorType[type];
+	static FklSid_t ffiErrorTypeId[sizeof(FfiErrorType)/sizeof(const char*)]={0};
+	if(!ffiErrorTypeId[type])
+		ffiErrorTypeId[type]=fklAddSymbolToGlob(FfiErrorType[type])->id;
+	return ffiErrorTypeId[type];
 }
 
 char* fklFfiGenErrorMessage(FklFfiErrorType type)

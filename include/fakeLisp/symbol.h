@@ -59,8 +59,8 @@ typedef struct FklSymbolTable
 }FklSymbolTable;
 
 const char** fklGetBuiltInSymbolList(void);
-const char* fklGetBuiltInSymbol(FklErrorType);
-const char* fklGetBuiltInErrorType(FklErrorType);
+const char* fklGetBuiltInSymbol(uint64_t);
+FklSid_t fklGetBuiltInErrorType(FklErrorType);
 FklSymbolTable* fklNewSymbolTable();
 FklSymTabNode* fklNewSymTabNode(const char*);
 FklSymTabNode* fklAddSymbol(const char*,FklSymbolTable*);

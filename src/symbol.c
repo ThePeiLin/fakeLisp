@@ -315,14 +315,17 @@ const char** fklGetBuiltInSymbolList(void)
 	return builtInSymbolList;
 }
 
-const char* fklGetBuiltInSymbol(FklErrorType type)
+const char* fklGetBuiltInSymbol(uint64_t i)
 {
-	return builtInSymbolList[type];
+	return builtInSymbolList[i];
 }
 
-const char* fklGetBuiltInErrorType(FklErrorType type)
+FklSid_t fklGetBuiltInErrorType(FklErrorType type)
 {
-	return builtInErrorType[type];
+	static FklSid_t errorTypeId[FKL_NUM_OF_BUILT_IN_ERROR_TYPE]={0};
+	if(!errorTypeId[type])
+		errorTypeId[type]=fklAddSymbolToGlob(builtInErrorType[type])->id;
+	return errorTypeId[type];
 }
 
 FklSymbolTable* fklGetGlobSymbolTable(void)

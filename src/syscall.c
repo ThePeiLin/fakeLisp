@@ -2083,7 +2083,7 @@ void SYS_error(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("sys.error",FKL_WRONGARG,runnable,exe);
 	char* str=FKL_IS_STR(who)?fklVMstrToCstr(who->u.str):NULL;
 	char* msg=fklVMstrToCstr(message->u.str);
-	fklNiReturn(fklNiNewVMvalue(FKL_ERR,fklNewVMerrorWithSid((FKL_IS_SYM(who))?fklGetGlobSymbolWithId(FKL_GET_SYM(who))->symbol:str,FKL_GET_SYM(type),msg),stack,exe->heap),&ap,stack);
+	fklNiReturn(fklNiNewVMvalue(FKL_ERR,fklNewVMerror((FKL_IS_SYM(who))?fklGetGlobSymbolWithId(FKL_GET_SYM(who))->symbol:str,FKL_GET_SYM(type),msg),stack,exe->heap),&ap,stack);
 	free(str);
 	free(msg);
 	fklNiEnd(&ap,stack);

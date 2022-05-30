@@ -1185,23 +1185,16 @@ void B_push_vector(FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;
 	uint64_t size=fklGetU64FromByteCode(exe->code+r->cp+sizeof(char));
-	FklPtrStack* base=fklNewPtrStack(32,16);
-	for(size_t i=0;i<size;i++)
-		fklPushPtrStack(fklNiGetArg(&ap,stack),base);
-	for(size_t i=0;i<base->top/2;i++)
-	{
-		void* t=base->base[i];
-		base->base[i]=base->base[base->top-i-1];
-		base->base[base->top-i-1]=t;
-	}
+	FklVMvec* vec=fklNewVMvec(size,NULL);
+	for(size_t i=size;i>0;i--)
+		vec->base[i-1]=fklNiGetArg(&ap,stack);
 	fklNiReturn(fklNiNewVMvalue(FKL_VECTOR
-				,fklNewVMvec(size,(FklVMvalue**)base->base)
+				,vec
 				,stack
 				,exe->heap)
 			,&ap
 			,stack);
 	fklNiEnd(&ap,stack);
-	fklFreePtrStack(base);
 	r->cp+=sizeof(char)+sizeof(uint64_t);
 }
 

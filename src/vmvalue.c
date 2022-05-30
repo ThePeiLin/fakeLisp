@@ -438,7 +438,7 @@ int fklFreeVMfp(FklVMfp* vfp)
 FklVMdllHandle fklLoadDll(const char* path)
 {
 #ifdef _WIN32
-	FklVMdllHandle handle=LoadLibrary(path);
+	FklVMdllHandle handle=LoadLibraryExA(path,NULL,LOAD_WITH_ALTERED_SEARCH_PATH);
 #else
 	FklVMdllHandle handle=dlopen(path,RTLD_LAZY);
 #endif

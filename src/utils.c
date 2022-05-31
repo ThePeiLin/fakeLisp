@@ -479,13 +479,8 @@ char* fklRealpath(const char* filename)
 
 char* fklGetDir(const char* filename)
 {
-#ifdef _WIN32
-	char dp='\\';
-#else
-	char dp='/';
-#endif
 	int i=strlen(filename)-1;
-	for(;filename[i]!=dp;i--);
+	for(;filename[i]!=FKL_PATH_SEPARATOR;i--);
 	char* tmp=(char*)malloc(sizeof(char)*(i+1));
 	FKL_ASSERT(tmp,__func__);
 	tmp[i]='\0';
@@ -519,7 +514,7 @@ char* fklGetStringFromFile(FILE* file)
 	return tmp;
 }
 
-char* fklRelpath(char* abs,char* relto)
+char* fklRelpath(const char* abs,const char* relto)
 {
 #ifdef _WIN32
 	char divstr[]="\\";

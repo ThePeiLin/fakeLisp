@@ -43,6 +43,7 @@ int main(int argc,char** argv)
 			if(fklIsscript(filename))
 			{
 				char* rp=fklRealpath(filename);
+				fklSetMainFileRealPath(rp);
 				FklInterpreter* inter=fklNewIntpr(rp,fp,NULL,NULL);
 				fklInitGlobKeyWord(inter->glob);
 				fklAddSymbolToGlob(argv[1]);
@@ -54,6 +55,7 @@ int main(int argc,char** argv)
 					free(rp);
 					fklFreeIntpr(inter);
 					fklUninitPreprocess();
+					fklFreeMainFileRealPath();
 					fklFreeCwd();
 					fklFreeGlobSymbolTable();
 					return state;
@@ -66,9 +68,9 @@ int main(int argc,char** argv)
 				if(!outfp)
 				{
 					fprintf(stderr,"%s:Can't create byte code file!",outputname);
-					fklFreeCwd();
 					fklFreeIntpr(inter);
 					fklUninitPreprocess();
+					fklFreeMainFileRealPath();
 					fklFreeCwd();
 					fklFreeGlobSymbolTable();
 					globfree(&buf);
@@ -87,6 +89,7 @@ int main(int argc,char** argv)
 				fclose(outfp);
 				fklFreeIntpr(inter);
 				fklUninitPreprocess();
+				fklFreeMainFileRealPath();
 				fklFreeCwd();
 				fklFreeGlobSymbolTable();
 				free(outputname);

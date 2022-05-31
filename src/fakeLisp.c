@@ -54,6 +54,7 @@ int main(int argc,char** argv)
 		fklInitVMargs(argc,argv);
 		if(fp==stdin)
 		{
+			fklSetMainFileRealPathWithCwd();
 			inter=fklNewIntpr(NULL,fp,NULL,NULL);
 			fklInitGlobKeyWord(inter->glob);
 			runRepl(inter);
@@ -61,6 +62,7 @@ int main(int argc,char** argv)
 		else
 		{
 			char* rp=fklRealpath(filename);
+			fklSetMainFileRealPath(rp);
 			int state;
 			inter=fklNewIntpr(rp,fp,NULL,NULL);
 			fklInitGlobKeyWord(inter->glob);
@@ -71,6 +73,7 @@ int main(int argc,char** argv)
 				fklFreeIntpr(inter);
 				fklUninitPreprocess();
 				fklFreeGlobSymbolTable();
+				fklFreeMainFileRealPath();
 				fklFreeCwd();
 				return state;
 			}
@@ -107,6 +110,7 @@ int main(int argc,char** argv)
 				fklUninitPreprocess();
 				fklFreeVMheap(anotherVM->heap);
 				fklFreeAllVMs();
+				fklFreeMainFileRealPath();
 				fklFreeCwd();
 				fklFreeGlobSymbolTable();
 				return exitState;
@@ -123,6 +127,9 @@ int main(int argc,char** argv)
 			return EXIT_FAILURE;
 		}
 		loadSymbolTable(fp);
+		char* rp=fklRealpath(filename);
+		fklSetMainFileRealPath(rp);
+		free(rp);
 		FklLineNumberTable* lnt=loadLineNumberTable(fp);
 		FklByteCode* mainCode=loadByteCode(fp);
 		FklVM* anotherVM=fklNewVM(mainCode);
@@ -162,6 +169,7 @@ int main(int argc,char** argv)
 		fklFreeCwd();
 		return EXIT_FAILURE;
 	}
+	fklFreeMainFileRealPath();
 	fklFreeCwd();
 	return exitState;
 }

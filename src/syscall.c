@@ -2356,9 +2356,12 @@ void SYS_getdir(ARGL)
 	FklLineNumTabNode* node=fklFindLineNumTabNode(r->cp,exe->lnt);
 	if(node->fid)
 	{
-		char* filename=fklGetGlobSymbolWithId(node->fid)->symbol;
+		char* filename=fklCopyStr(fklGetMainFileRealPath());
+		filename=fklStrCat(filename,FKL_PATH_SEPARATOR_STR);
+		filename=fklStrCat(filename,fklGetGlobSymbolWithId(node->fid)->symbol);
 		char* rpath=fklRealpath(filename);
 		char* dir=fklGetDir(rpath);
+		free(filename);
 		free(rpath);
 		FklVMstr* str=fklNewVMstr(strlen(dir),dir);
 		free(dir);

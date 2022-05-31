@@ -76,6 +76,10 @@ typedef struct FklKeyWord
 void fklSetCwd(const char*);
 void fklFreeCwd(void);
 const char* fklGetCwd(void);
+void fklSetMainFileRealPath(const char* path);
+void fklFreeMainFileRealPath(void);
+void fklSetMainFileRealPathWithCwd(void);
+const char* fklGetMainFileRealPath(void);
 void fklPrintCompileError(const FklAstCptr*,FklErrorType,FklInterpreter*);
 FklPreDef* fklAddDefine(const char*,const FklAstCptr*,FklPreEnv*);
 FklPreDef* fklFindDefine(const char*,const FklPreEnv*);

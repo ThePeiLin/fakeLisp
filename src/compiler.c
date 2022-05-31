@@ -20,6 +20,7 @@
 #include<math.h>
 
 static char* CurWorkDir=NULL;
+static char* MainFileRealPath=NULL;
 static int MacroPatternCmp(const FklAstCptr*,const FklAstCptr*);
 static int fmatcmp(const FklAstCptr*,const FklAstCptr*,FklPreEnv**,FklCompEnv*);
 static int fklAddDefinedMacro(FklPreMacro* macro,FklCompEnv* curEnv);
@@ -2189,12 +2190,6 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int* exitstate)
 
 FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state)
 {
-#ifdef _WIN32
-	char divstr[]="\\";
-#else
-	char divstr[]="/";
-#endif
-
 	FklMemMenager* memMenager=fklNewMemMenager(32);
 	char postfix[]=".fkl";
 	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
@@ -2295,7 +2290,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 		for(i=0;i<count;i++)
 		{
 			if(i>0)
-				strcat(path,divstr);
+				strcat(path,FKL_PATH_SEPARATOR_STR);
 			strcat(path,partsOfPath[i]);
 		}
 		strcat(path,postfix);
@@ -3080,8 +3075,7 @@ FklCompDef* fklFindCompDef(const char* name,FklCompEnv* curEnv)
 FklInterpreter* fklNewIntpr(const char* filename,FILE* file,FklCompEnv* env,FklLineNumberTable* lnt)
 {
 	FklInterpreter* tmp=NULL;
-	FKL_ASSERT((tmp=(FklInterpreter*)malloc(sizeof(FklInterpreter))),__func__)
-	tmp->filename=fklCopyStr(filename);
+	FKL_ASSERT((tmp=(FklInterpreter*)malloc(sizeof(FklInterpreter))),__func__);
 	if(file!=stdin&&filename!=NULL)
 	{
 		char* rp=fklRealpath(filename);
@@ -3091,11 +3085,15 @@ FklInterpreter* fklNewIntpr(const char* filename,FILE* file,FklCompEnv* env,FklL
 			exit(EXIT_FAILURE);
 		}
 		tmp->curDir=fklGetDir(rp?rp:filename);
+		tmp->filename=fklRelpath(fklGetMainFileRealPath(),rp);
 		if(rp)
 			free(rp);
 	}
 	else
+	{
 		tmp->curDir=getcwd(NULL,0);
+		tmp->filename=NULL;
+	}
 	tmp->file=file;
 	tmp->curline=1;
 	tmp->prev=NULL;
@@ -3210,7 +3208,6 @@ FklInterpreter* fklNewTmpIntpr(const char* filename,FILE* fp)
 {
 	FklInterpreter* tmp=NULL;
 	FKL_ASSERT((tmp=(FklInterpreter*)malloc(sizeof(FklInterpreter))),__func__);
-	tmp->filename=fklCopyStr(filename);
 	if(fp!=stdin&&filename)
 	{
 #ifdef _WIN32
@@ -3223,11 +3220,15 @@ FklInterpreter* fklNewTmpIntpr(const char* filename,FILE* fp)
 			perror(filename);
 			exit(EXIT_FAILURE);
 		}
+		tmp->filename=fklRelpath(fklGetMainFileRealPath(),rp);
 		tmp->curDir=fklGetDir(rp);
 		free(rp);
 	}
 	else
+	{
 		tmp->curDir=NULL;
+		tmp->filename=NULL;
+	}
 	tmp->file=fp;
 	tmp->curline=1;
 	tmp->prev=NULL;
@@ -3250,6 +3251,27 @@ void fklFreeCwd(void)
 const char* fklGetCwd(void)
 {
 	return CurWorkDir;
+}
+
+void fklSetMainFileRealPath(const char* path)
+{
+	MainFileRealPath=fklGetDir(path);
+}
+
+void fklSetMainFileRealPathWithCwd(void)
+{
+	MainFileRealPath=fklCopyStr(CurWorkDir);
+}
+
+void fklFreeMainFileRealPath(void)
+{
+	free(MainFileRealPath);
+	MainFileRealPath=NULL;
+}
+
+const char* fklGetMainFileRealPath(void)
+{
+	return MainFileRealPath;
 }
 
 typedef struct

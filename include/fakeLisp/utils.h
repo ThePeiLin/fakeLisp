@@ -9,6 +9,18 @@
 extern "C" {
 #endif
 
+#ifdef _WIN32
+#define FKL_PATH_SEPARATOR '\\'
+#else
+#define FKL_PATH_SEPARATOR '/'
+#endif
+
+#ifdef _WIN32
+#define FKL_PATH_SEPARATOR_STR "\\"
+#else
+#define FKL_PATH_SEPARATOR_STR "/"
+#endif
+
 #define FKL_THRESHOLD_SIZE 256
 #define FKL_MAX_STRING_SIZE 64
 #define FKL_STATIC_SYMBOL_INIT {0,NULL,NULL}
@@ -104,7 +116,7 @@ char* fklGetDir(const char*);
 char* fklGetStringFromFile(FILE*);
 char** fklSplit(char*,char*,int*);
 char* fklRealpath(const char*);
-char* fklRelpath(char*,char*);
+char* fklRelpath(const char*,const char*);
 
 int fklIsI64AddOverflow(int64_t a,int64_t b);
 int fklIsI64MulOverflow(int64_t a,int64_t b);

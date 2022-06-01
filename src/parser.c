@@ -514,13 +514,11 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 			}
 			else if(sizes[i]-j>1&&!strncmp(parts[i]+j,"#\\",strlen("#\\")))
 			{
-				char* symbol=fklGetStringAfterBackslash(parts[i]+j+2);
-				size_t len=strlen(symbol);
-				free(symbol);
-				symbol=fklCharBufToStr(parts[i]+j,len+2);
+				size_t len=getSymbolLen(parts[i],j+3,sizes[i],matchStateStack)+3;
+				char* symbol=fklCharBufToStr(parts[i]+j,len);
 				fklPushPtrStack(fklNewToken(FKL_TOKEN_CHAR,symbol,*line),retvalStack);
 				free(symbol);
-				j+=len+2;
+				j+=len;
 			}
 			else if(parts[i][j]==';'||(sizes[i]-j>1&&!strncmp(parts[i]+j,"#!",strlen("#!"))))
 			{

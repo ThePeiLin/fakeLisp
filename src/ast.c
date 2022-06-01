@@ -480,14 +480,57 @@ unsigned int fklLengthListCptr(const FklAstCptr* list)
 	return n;
 }
 
+static int fklIsValidCharStr(const char* str)
+{
+	size_t len=strlen(str);
+	if(len==0)
+		return 0;
+	if(isalpha(str[0])&&len>1)
+		return 0;
+	if(str[0]=='\\')
+	{
+		if(len<2)
+			return 0;
+		if(toupper(str[1])=='X')
+		{
+			if(len<3||len>4)
+				return 0;
+			for(size_t i=2;i<len;i++)
+				if(!isxdigit(str[i]))
+					return 0;
+		}
+		else if(str[1]=='0')
+		{
+			if(len>5)
+				return 0;
+			if(len>2)
+			{
+				for(size_t i=2;i<len;i++)
+					if(!isdigit(str[i])||str[i]>'7')
+						return 0;
+			}
+		}
+		else if(isdigit(str[1]))
+		{
+			if(len>4)
+				return 0;
+			for(size_t i=1;i<len;i++)
+				if(!isdigit(str[i]))
+					return 0;
+		}
+	}
+	return 1;
+}
+
 static FklAstAtom* createChar(const char* oStr,FklAstPair* prev)
 {
-	char* str=fklGetStringAfterBackslash(oStr+2);
+	if(!fklIsValidCharStr(oStr+2))
+		return NULL;
+	oStr+=2;
 	FklAstAtom* r=fklNewAtom(FKL_CHR,NULL,prev);
-	r->value.chr=(str[0]=='\\')?
-		fklStringToChar(str+1):
-		str[0];
-	free(str);
+	r->value.chr=(oStr[0]=='\\')?
+		fklStringToChar(oStr+1):
+		oStr[0];
 	return r;
 }
 
@@ -836,9 +879,35 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 		if(token->type>FKL_TOKEN_RESERVE_STR&&token->type<FKL_TOKEN_COMMENT)
 		{
 			FklAstCptr* cur=fklNewCptr(token->line,NULL);
+			FklAstAtom* atm=atomCreators[token->type-1](token->value,cur->outer);
+			if(!atm)
+			{
+				fklDeleteCptr(cur);
+				free(cur);
+				while(!fklIsPtrStackEmpty(stackStack))
+				{
+					FklPtrStack* cStack=fklPopPtrStack(stackStack);
+					while(!fklIsPtrStackEmpty(cStack))
+					{
+						AstElem* v=fklPopPtrStack(cStack);
+						FklAstCptr* cptr=v->cptr;
+						fklDeleteCptr(cptr);
+						free(cptr);
+						free(v);
+					}
+				}
+				fklFreePtrStack(stackStack);
+				while(!fklIsPtrStackEmpty(matchStateStack))
+				{
+					MatchState* state=fklPopPtrStack(matchStateStack);
+					free(state);
+				}
+				fklFreePtrStack(matchStateStack);
+				return NULL;
+			}
 			cur->type=FKL_ATM;
 			cur->curline=token->line;
-			cur->u.atom=atomCreators[token->type-1](token->value,cur->outer);
+			cur->u.atom=atm;
 			AstElem* elem=newAstElem(AST_CAR,cur);
 			fklPushPtrStack(elem,cStack);
 		}

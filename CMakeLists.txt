@@ -16,6 +16,7 @@ set(CMAKE_C_STANDARD 11)
 #target names
 set(INTERPRETER_TARGET_NAME fakeLisp)
 set(COMPILER_TARGET_NAME fakeLispc)
+set(BYTECODE_PRINTER_TARGET_NAME fakeLispp)
 set(BTK_TARGET_NAME btk)
 set(LIBFKL_TARGET_NAME fkl)
 set(FFI_TARGET_NAME fklffi)
@@ -28,6 +29,8 @@ include_directories("${PROJECT_SOURCE_DIR}/include")
 file(GLOB INTERPRETER_SOURCE "src/fakeLisp.c")
 
 file(GLOB COMPILER_SOURCE "src/fakeLispc.c")
+
+file(GLOB BYTECODE_PRINTER_SOURCE "src/fakeLispp.c")
 
 file(GLOB BTK_SOURCE "src/btk.c")
 
@@ -51,6 +54,7 @@ file(GLOB LIBFKL_SOURCE "src/*.c")
 list(REMOVE_ITEM LIBFKL_SOURCE
 	"${PROJECT_SOURCE_DIR}/src/fakeLisp.c"
 	"${PROJECT_SOURCE_DIR}/src/fakeLispc.c"
+	"${PROJECT_SOURCE_DIR}/src/fakeLispp.c"
 	"${PROJECT_SOURCE_DIR}/src/btk.c")
 
 add_library(${LIBFKL_TARGET_NAME}
@@ -72,11 +76,14 @@ set(LINK_TARGET m pthread dl ffi)
 #fakeLisp and fakeLispc
 add_executable(${INTERPRETER_TARGET_NAME} ${INTERPRETER_SOURCE})
 add_executable(${COMPILER_TARGET_NAME} ${COMPILER_SOURCE})
+add_executable(${BYTECODE_PRINTER_TARGET_NAME} ${BYTECODE_PRINTER_SOURCE})
 
 #linking
 target_link_libraries(${LIBFKL_TARGET_NAME} ${LINK_TARGET})
 target_link_libraries(${INTERPRETER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
+target_link_libraries(${BYTECODE_PRINTER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
+
 target_link_libraries(${BTK_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 target_link_libraries(${FFI_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 

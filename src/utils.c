@@ -516,11 +516,10 @@ char* fklGetStringFromFile(FILE* file)
 
 char* fklRelpath(const char* abs,const char* relto)
 {
+	char divstr[]=FKL_PATH_SEPARATOR_STR;
 #ifdef _WIN32
-	char divstr[]="\\";
 	char upperDir[]="..\\";
 #else
-	char divstr[]="/";
 	char upperDir[]="../";
 #endif
 	char* cabs=fklCopyStr(abs);
@@ -552,11 +551,7 @@ char* fklRelpath(const char* abs,const char* relto)
 	for(index=lastCommonRoot+1;index<lengthOfRelto-1;index++)
 	{
 		strcat(rp,reltoDirs[index]);
-#ifdef _WIN32
-		strcat(rp,"\\");
-#else
-		strcat(rp,"/");
-#endif
+		strcat(rp,divstr);
 	}
 	if(reltoDirs!=NULL)
 		strcat(rp,reltoDirs[lengthOfRelto-1]);

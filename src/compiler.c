@@ -3210,11 +3210,7 @@ FklInterpreter* fklNewTmpIntpr(const char* filename,FILE* fp)
 	FKL_ASSERT((tmp=(FklInterpreter*)malloc(sizeof(FklInterpreter))),__func__);
 	if(fp!=stdin&&filename)
 	{
-#ifdef _WIN32
-		char* rp=_fullpath(NULL,filename,0);
-#else
-		char* rp=realpath(filename,0);
-#endif
+		char* rp=fklRealpath(filename);
 		if(rp==NULL)
 		{
 			perror(filename);

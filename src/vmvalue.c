@@ -456,11 +456,7 @@ FklVMdllHandle fklNewVMdll(const char* dllName)
 	char* realDllName=(char*)malloc(sizeof(char)*len);
 	FKL_ASSERT(realDllName,__func__);
 	sprintf(realDllName,"%s%s",dllName,filetype);
-#ifdef _WIN32
-	char* rpath=_fullpath(NULL,realDllName,0);
-#else
-	char* rpath=realpath(realDllName,0);
-#endif
+	char* rpath=fklRealpath(realDllName);
 	if(!rpath)
 	{
 		free(realDllName);

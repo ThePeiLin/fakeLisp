@@ -285,6 +285,8 @@ void fklRecycleUintStack(FklUintStack* stack)
 	}
 }
 
+#define FKL_BIG_INT_RADIX (10)
+
 FklBigInt* fklNewBigInt(int64_t v)
 {
 	if(v==0)
@@ -299,7 +301,7 @@ FklBigInt* fklNewBigInt(int64_t v)
 	}
 	else
 		t->neg=0;
-	t->num=floor(log10(d))+1;
+	t->num=floor(log2(d)/log2(FKL_BIG_INT_RADIX))+1;
 	if(t->num==0)
 		t->num=1;
 	t->size=t->num;
@@ -307,10 +309,10 @@ FklBigInt* fklNewBigInt(int64_t v)
 	FKL_ASSERT(t->digits,__func__);
 	for(uint64_t i=0;i<t->num;i++)
 	{
-		t->digits[i]=v%10;
+		t->digits[i]=v%FKL_BIG_INT_RADIX;
 		if(t->neg)
 			t->digits[i]*=-1;
-		v/=10;
+		v/=FKL_BIG_INT_RADIX;
 	}
 	return t;
 }
@@ -399,7 +401,7 @@ FklBigInt* fklNewBigIntFromStr(const char* v)
 		{
 			FklBigInt* t=fklNewBigInt(v[i-1]-'0');
 			fklMulBigInt(t,base);
-			fklMulBigIntI(base,10);
+			fklMulBigIntI(base,FKL_BIG_INT_RADIX);
 			fklAddBigInt(r,t);
 			fklFreeBigInt(t);
 		}
@@ -489,14 +491,14 @@ void fklSetBigIntI(FklBigInt* des,int64_t src)
 	}
 	else
 		des->neg=0;
-	des->num=floor(log10(src))+1;
+	des->num=floor(log2(src)/log2(FKL_BIG_INT_RADIX))+1;
 	if(des->num==0)
 		des->num=1;
 	ensureBigIntDigits(des,des->num);
 	for(uint64_t i=0;i<des->num;i++)
 	{
-		des->digits[i]=src%10;
-		src/=10;
+		des->digits[i]=src%FKL_BIG_INT_RADIX;
+		src/=FKL_BIG_INT_RADIX;
 	}
 }
 
@@ -540,8 +542,8 @@ static void addDigits(FklBigInt* a,const FklBigInt* addend)
 		}
 		uint8_t addendDigit=i<addend->num?addend->digits[i]:0;
 		uint8_t total=a->digits[i]+addendDigit+carry;
-		a->digits[i]=total%10;
-		carry=(total>=10)?1:0;
+		a->digits[i]=total%FKL_BIG_INT_RADIX;
+		carry=(total>=FKL_BIG_INT_RADIX)?1:0;
 	}
 }
 
@@ -580,7 +582,7 @@ static void subDigits(FklBigInt* a,const FklBigInt* sub)
 		if(tmp<0)
 		{
 			carry=-1;
-			tmp+=10;
+			tmp+=FKL_BIG_INT_RADIX;
 		}
 		else
 			carry=0;
@@ -655,8 +657,8 @@ void fklMulBigInt(FklBigInt* a,const FklBigInt* multipler)
 			{
 				int n1=multipler->digits[j];
 				int sum=(res[i+j]+n0*n1);
-				res[i+j]=sum%10;
-				res[i+j+1]+=sum/10;
+				res[i+j]=sum%FKL_BIG_INT_RADIX;
+				res[i+j+1]+=sum/FKL_BIG_INT_RADIX;
 			}
 		}
 		free(a->digits);
@@ -855,7 +857,7 @@ int64_t fklBigIntToI64(const FklBigInt* a)
 	for(uint64_t i=0;i<a->num;i++)
 	{
 		r+=a->digits[i]*base;
-		base*=10;
+		base*=FKL_BIG_INT_RADIX;
 	}
 	if(a->neg)
 		r*=-1;
@@ -869,7 +871,7 @@ double fklBigIntToDouble(const FklBigInt* a)
 	for(uint64_t i=0;i<a->num;i++)
 	{
 		r+=a->digits[i]*base;
-		base*=10;
+		base*=FKL_BIG_INT_RADIX;
 	}
 	if(a->neg)
 		r*=-1;

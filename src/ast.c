@@ -406,7 +406,7 @@ int fklCptrcmp(const FklAstCptr* first,const FklAstCptr* second)
 
 FklAstCptr* fklNextCptr(const FklAstCptr* objCptr)
 {
-	if(objCptr->outer!=NULL&&objCptr->outer->cdr.type==FKL_PAIR)
+	if(objCptr&&objCptr->outer!=NULL&&objCptr->outer->cdr.type==FKL_PAIR)
 		return &objCptr->outer->cdr.u.pair->car;
 	return NULL;
 }

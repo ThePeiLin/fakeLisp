@@ -77,8 +77,27 @@ typedef struct FklAstAtom
 		FklAstVector vec;
 		FklBigInt bigInt;
 		FklAstCptr box;
-	} value;
+	}value;
 }FklAstAtom;
+
+//typedef struct FklAstValue
+//{
+//	FklValueType type;
+//	uint32_t curline;
+//	union
+//	{
+//		char* sym;
+//		char chr;
+//		int32_t i32;
+//		int64_t i64;
+//		double f64;
+//		FklAstString str;
+//		FklAstVector vec;
+//		FklAstPair pair;
+//		FklBigInt bigInt;
+//		struct FklAstValue* box;
+//	}value;
+//}FklAstValue;
 
 typedef struct FklInterpreter FklInterpreter;
 typedef struct FklStringMatchPattern FklStringMatchPattern;

@@ -1,6 +1,10 @@
 #ifndef FKL_FFI_MEM_H
 #define FKL_FFI_MEM_H
 #include"fklffitype.h"
+
+#ifdef __cplusplus
+extern "C"{
+#endif
 typedef struct FklFfiMem
 {
 	FklTypeId_t type;
@@ -15,7 +19,6 @@ FklVMudata* fklFfiNewMemUd(FklTypeId_t type,size_t size,FklVMvalue* atomic);
 FklVMudata* fklFfiNewMemRefUdWithSI(FklFfiMem* m,FklVMvalue* selector,FklVMvalue* index);
 FklVMudata* fklFfiNewMemRefUd(FklTypeId_t type,void*);
 int fklFfiIsMem(FklVMvalue*);
-int fklFfiIsProc(FklVMvalue*);
 int fklFfiSetMem(FklFfiMem*,FklVMvalue*);
 int fklFfiSetMemForProc(FklVMudata*,FklVMvalue*);
 int fklFfiIsNull(FklFfiMem*);
@@ -24,4 +27,7 @@ int fklFfiIsCastableVMvalueType(FklVMvalue* v);
 int fklFfiIsValuableMem(FklFfiMem* mem);
 FklVMvalue* fklFfiNewVMvalue(FklFfiMem* mem,FklVMstack* stack,FklVMheap* heap);
 FklVMvalue* fklFfiGetRel(void);
+#ifdef __cplusplus
+}
+#endif
 #endif

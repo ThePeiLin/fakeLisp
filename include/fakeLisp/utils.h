@@ -24,10 +24,6 @@ extern "C" {
 #define FKL_THRESHOLD_SIZE (256)
 #define FKL_MAX_STRING_SIZE (64)
 #define FKL_STATIC_SYMBOL_INIT {0,NULL,NULL}
-#define FKL_UNUSEDBITNUM (3)
-#define FKL_PTR_MASK ((intptr_t)0xFFFFFFFFFFFFFFF8)
-#define FKL_TAG_MASK ((intptr_t)0x7)
-
 #define FKL_INCREASE_ALL_SCP(l,ls,s) {int32_t i=0;\
 	for(;i<(ls);i++)\
 	(l)[i]->scp+=(s);\

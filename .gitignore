@@ -14,6 +14,8 @@
 !/src/*
 !/ffi/
 !/ffi/*
+!/fklc/
+!/fklc/*
 !Makefile
 *.fklc
 !README.md

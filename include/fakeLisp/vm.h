@@ -474,6 +474,10 @@ void fklFreeRunnables(FklVMrunnable* h);
 	return;\
 }while(0)
 
+#define FKL_UNUSEDBITNUM (3)
+#define FKL_PTR_MASK ((intptr_t)0xFFFFFFFFFFFFFFF8)
+#define FKL_TAG_MASK ((intptr_t)0x7)
+
 #define FKL_VM_NIL ((FklVMptr)0x1)
 #define FKL_VM_TRUE (FKL_MAKE_VM_I32(1))
 #define FKL_VM_EOF ((FklVMptr)0x7fffffffa)

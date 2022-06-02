@@ -532,12 +532,9 @@ FklVMudata* fklFfiNewMemRefUdWithSI(FklFfiMem* m,FklVMvalue* selector,FklVMvalue
 
 int fklFfiIsMem(FklVMvalue* p)
 {
-	return FKL_IS_USERDATA(p)&&p->u.ud->type==FfiMemUdSid&&!p->u.ud->t->__invoke;
-}
-
-int fklFfiIsProc(FklVMvalue* p)
-{
-	return FKL_IS_USERDATA(p)&&p->u.ud->type==FfiMemUdSid&&p->u.ud->t->__invoke;
+	return FKL_IS_USERDATA(p)
+		&&p->u.ud->type==FfiMemUdSid
+		&&(p->u.ud->t==&FfiMemMethodTable||p->u.ud->t==&FfiAtomicMemMethodTable);
 }
 
 static int __ffiGetVMvalueAsF64(FklVMvalue* val,double* d)

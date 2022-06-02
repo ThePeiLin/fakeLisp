@@ -1,6 +1,11 @@
 #ifndef FKL_FFI_DLL_H
 #define FKL_FFI_DLL_H
 #include"fklffitype.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include<ffi.h>
 #ifdef _WIN32
 #include<windows.h>
@@ -19,9 +24,14 @@ typedef struct FklFfiProc
 	FklSid_t sid;
 }FklFfiProc;
 
+int fklFfiIsProc(FklVMvalue*);
 void fklFfiFreeAllSharedObj(void);
 void fklFfiAddSharedObj(FklFfidllHandle handle);
 FklVMudata* fklFfiNewProcUd(FklTypeId_t id,const char* );
 FklFfiProc* fklFfiNewProc(FklTypeId_t type,void* func,FklSid_t);
 int fklFfiIsValidFunctionTypeId(FklTypeId_t type);
+
+#ifdef __cplusplus
+}
+#endif
 #endif

@@ -201,6 +201,11 @@ static FklVMudMethodTable FfiProcMethodTable=
 	.__invoke=_ffi_proc_invoke,
 };
 
+int fklFfiIsProc(FklVMvalue* p)
+{
+	return FKL_IS_USERDATA(p)&&p->u.ud->type==fklFfiGetFfiMemUdSid()&&p->u.ud->t==&FfiProcMethodTable;
+}
+
 int fklFfiIsValidFunctionTypeId(FklSid_t id)
 {
 	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(id).all);

@@ -1,5 +1,6 @@
 #include"fsym.h"
 static FklSymbolTable* OuterSymbolTable=NULL;
+
 void fklcInitFsym(FklSymbolTable* table)
 {
 	OuterSymbolTable=table;
@@ -12,5 +13,6 @@ FklSymbolTable* fklcGetOuterSymbolTable(void)
 
 void fklcUninitFsym(void)
 {
-	fklFreeGlobSymbolTable();
+	if(fklGetGlobSymbolTable())
+		fklFreeGlobSymbolTable();
 }

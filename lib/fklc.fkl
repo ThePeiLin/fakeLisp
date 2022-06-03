@@ -3,7 +3,7 @@
   (export
     fklc-compile-i32
     fklc-fbc?)
-  (define fklc (dlopen (append (getdir)) "/../fklc"))
+  (define fklc (dlopen (append (getdir) "/../fklc")))
   (define fklc-fbc? (dlsym fklc "fklc_fbc_p"))
   (define fklc-compile-i32 (dlsym fklc "fklc_compile_i32"))
   )

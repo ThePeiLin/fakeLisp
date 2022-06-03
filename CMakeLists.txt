@@ -20,6 +20,7 @@ set(BYTECODE_PRINTER_TARGET_NAME fakeLispp)
 set(BTK_TARGET_NAME btk)
 set(LIBFKL_TARGET_NAME fkl)
 set(FFI_TARGET_NAME fklffi)
+set(FKLC_TARGET_NAME fklc)
 
 #project setting
 project(${INTERPRETER_TARGET_NAME})
@@ -36,6 +37,8 @@ file(GLOB BTK_SOURCE "src/btk.c")
 
 file(GLOB FFI_SOURCE "ffi/*.c")
 
+file(GLOB FKLC_SOURCE "fklc/*.c")
+
 #btk.so
 add_library(${BTK_TARGET_NAME}
 	MODULE
@@ -48,6 +51,11 @@ add_library(${FFI_TARGET_NAME}
 	${FFI_SOURCE})
 set_target_properties(${FFI_TARGET_NAME} PROPERTIES PREFIX "")
 
+#fklc.so
+add_library(${FKLC_TARGET_NAME}
+	MODULE
+	${FKLC_SOURCE})
+set_target_properties(${FKLC_TARGET_NAME} PROPERTIES PREFIX "")
 
 #libfkl.a
 file(GLOB LIBFKL_SOURCE "src/*.c")
@@ -86,6 +94,7 @@ target_link_libraries(${BYTECODE_PRINTER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 
 target_link_libraries(${BTK_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 target_link_libraries(${FFI_TARGET_NAME} ${LIBFKL_TARGET_NAME})
+target_link_libraries(${FKLC_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 
 #copy std.fkl
 add_custom_target(COPY_STD_FKL ALL

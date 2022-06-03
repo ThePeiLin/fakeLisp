@@ -331,10 +331,10 @@ int fklDeleteCptr(FklAstCptr* objCptr)
 
 int fklAstStrcmp(const FklAstString* fir,const FklAstString* sec)
 {
-	ssize_t size=fir->size<sec->size?fir->size:sec->size;
+	uint64_t size=fir->size<sec->size?fir->size:sec->size;
 	int r=memcmp(fir->str,sec->str,size);
 	if(!r)
-		return fir->size-sec->size;
+		return (int64_t)fir->size-(int64_t)sec->size;
 	return r;
 }
 

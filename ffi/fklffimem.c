@@ -4,6 +4,10 @@
 #include<string.h>
 #include<fakeLisp/fklni.h>
 #include<float.h>
+#ifdef _WIN32
+#include<BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#endif
 
 static FklVMvalue* FfiRel=NULL;
 FklSid_t FfiMemUdSid=0;

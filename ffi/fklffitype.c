@@ -2,6 +2,10 @@
 #include<fakeLisp/utils.h>
 #include<string.h>
 #include<stdalign.h>
+#ifdef _WIN32
+#include<BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#endif
 
 static pthread_rwlock_t GlobDefTypesLock=PTHREAD_RWLOCK_INITIALIZER;
 static FklDefTypes* GlobDefTypes=NULL;

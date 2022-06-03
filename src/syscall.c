@@ -1466,7 +1466,7 @@ void SYS_nth(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("sys.nth",FKL_TOOFEWARG,runnable,exe);
 	if(!fklIsInt(place))
 		FKL_RAISE_BUILTIN_ERROR("sys.nth",FKL_WRONGARG,runnable,exe);
-	ssize_t index=fklGetInt(place);
+	int64_t index=fklGetInt(place);
 	if(index<0)
 		FKL_RAISE_BUILTIN_ERROR("sys.nth",FKL_INVALIDACCESS,runnable,exe);
 	if(objlist==FKL_VM_NIL||FKL_IS_PAIR(objlist))
@@ -1501,7 +1501,7 @@ void SYS_set_nth(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("sys.set-nth!",FKL_TOOFEWARG,runnable,exe);
 	if(!fklIsInt(place))
 		FKL_RAISE_BUILTIN_ERROR("sys.set-nth!",FKL_WRONGARG,runnable,exe);
-	ssize_t index=fklGetInt(place);
+	int64_t index=fklGetInt(place);
 	if(index<0)
 		FKL_RAISE_BUILTIN_ERROR("sys.set-nth!",FKL_INVALIDACCESS,runnable,exe);
 	if(objlist==FKL_VM_NIL||FKL_IS_PAIR(objlist))
@@ -1534,7 +1534,7 @@ void SYS_vref(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("sys.vref",FKL_TOOFEWARG,runnable,exe);
 	if(!fklIsInt(place)||(!FKL_IS_VECTOR(vector)&&!FKL_IS_STR(vector)))
 		FKL_RAISE_BUILTIN_ERROR("sys.vref",FKL_WRONGARG,runnable,exe);
-	ssize_t index=fklGetInt(place);
+	int64_t index=fklGetInt(place);
 	size_t size=FKL_IS_STR(vector)?vector->u.str->size:vector->u.vec->size;
 	if(index<0||index>=size)
 		FKL_RAISE_BUILTIN_ERROR("sys.vref",FKL_INVALIDACCESS,runnable,exe);
@@ -1569,7 +1569,7 @@ void SYS_set_vref(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("sys.set-vref!",FKL_TOOFEWARG,runnable,exe);
 	if(!fklIsInt(place)||(!FKL_IS_VECTOR(vector)&&!FKL_IS_STR(vector)))
 		FKL_RAISE_BUILTIN_ERROR("sys.set-vref!",FKL_WRONGARG,runnable,exe);
-	ssize_t index=fklGetInt(place);
+	int64_t index=fklGetInt(place);
 	size_t size=FKL_IS_STR(vector)?vector->u.str->size:vector->u.vec->size;
 	if(index<0||index>=size)
 		FKL_RAISE_BUILTIN_ERROR("sys.set-vref!",FKL_INVALIDACCESS,runnable,exe);
@@ -1604,7 +1604,7 @@ void SYS_nthcdr(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("sys.nthcdr",FKL_TOOFEWARG,runnable,exe);
 	if(!fklIsInt(place))
 		FKL_RAISE_BUILTIN_ERROR("sys.nthcdr",FKL_WRONGARG,runnable,exe);
-	ssize_t index=fklGetInt(place);
+	int64_t index=fklGetInt(place);
 	if(index<0)
 		FKL_RAISE_BUILTIN_ERROR("sys.nthcdr",FKL_INVALIDACCESS,runnable,exe);
 	if(objlist==FKL_VM_NIL||FKL_IS_PAIR(objlist))
@@ -1639,7 +1639,7 @@ void SYS_set_nthcdr(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("sys.set-nthcdr!",FKL_TOOFEWARG,runnable,exe);
 	if(!fklIsInt(place))
 		FKL_RAISE_BUILTIN_ERROR("sys.set-nthcdr!",FKL_WRONGARG,runnable,exe);
-	ssize_t index=fklGetInt(place);
+	int64_t index=fklGetInt(place);
 	if(index<0)
 		FKL_RAISE_BUILTIN_ERROR("sys.set-nthcdr!",FKL_INVALIDACCESS,runnable,exe);
 	if(objlist==FKL_VM_NIL||FKL_IS_PAIR(objlist))

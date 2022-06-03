@@ -13,6 +13,12 @@ else()
 endif()
 set(CMAKE_C_STANDARD 11)
 
+if(WIN32)
+	set(LINK_TARGET m pthread)
+else()
+	set(LINK_TARGET m pthread dl)
+endif()
+
 #target names
 set(INTERPRETER_TARGET_NAME fakeLisp)
 set(COMPILER_TARGET_NAME fakeLispc)
@@ -79,7 +85,6 @@ target_link_libraries(${ORIGINAL_SHARED_LIB_NAME} ${LINK_TARGET})
 
 set_property(TARGET ${LIBFKL_TARGET_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-set(LINK_TARGET m pthread dl ffi)
 
 #fakeLisp and fakeLispc
 add_executable(${INTERPRETER_TARGET_NAME} ${INTERPRETER_SOURCE})
@@ -93,7 +98,7 @@ target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 target_link_libraries(${BYTECODE_PRINTER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 
 target_link_libraries(${BTK_TARGET_NAME} ${LIBFKL_TARGET_NAME})
-target_link_libraries(${FFI_TARGET_NAME} ${LIBFKL_TARGET_NAME})
+target_link_libraries(${FFI_TARGET_NAME} ${LIBFKL_TARGET_NAME} ffi)
 target_link_libraries(${FKLC_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 
 #copy std.fkl

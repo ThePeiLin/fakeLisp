@@ -9,8 +9,12 @@
 #include<math.h>
 #include<float.h>
 #include<setjmp.h>
-#include<dlfcn.h>
 #include<ctype.h>
+#ifdef _WIN32
+#include<windows.h>
+#else
+#include<dlfcn.h>
+#endif
 
 extern void applyNativeProc(FklVM*,FklVMproc*,FklVMrunnable*);
 extern void invokeContinuation(FklVM*,FklVMcontinuation*);

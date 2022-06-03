@@ -7,7 +7,6 @@
 #include<stdlib.h>
 #include<math.h>
 #include<pthread.h>
-#include<ffi.h>
 #ifndef _WIN32
 #include<dlfcn.h>
 #else

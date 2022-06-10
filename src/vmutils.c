@@ -194,6 +194,8 @@ void fklFreeVMerrorHandler(FklVMerrorHandler* h)
 
 static int isShouldBeHandle(FklSid_t* typeIds,uint32_t num,FklSid_t type)
 {
+	if(num==0)
+		return 1;
 	for(uint32_t i=0;i<num;i++)
 		if(typeIds[i]==type)
 			return 1;

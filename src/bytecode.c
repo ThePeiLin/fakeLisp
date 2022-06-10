@@ -107,15 +107,18 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode,uint32_t i
 				fprintf(fp,"%s ",fklGetGlobSymbolWithId(errSymId)->symbol);
 				i+=sizeof(FklSid_t);
 				uint32_t handlerNum=fklGetU32FromByteCode(tmpCode->code+i);
-				fprintf(fp,"%d\n",handlerNum);
+				fprintf(fp,"%d",handlerNum);
 				i+=sizeof(uint32_t);
 				int j=0;
 				r+=sizeof(FklSid_t)+sizeof(uint32_t);
 				for(;j<handlerNum;j++)
 				{
+					fputc('\n',fp);
 					uint32_t errTypeNum=fklGetU32FromByteCode(tmpCode->code+i);
 					i+=sizeof(uint32_t);
 					r+=sizeof(uint32_t);
+					if(errTypeNum==0)
+						fprintf(fp,"() ");
 					for(uint32_t k=0;k<errTypeNum;k++)
 					{
 						FklSid_t type=fklGetSidFromByteCode(tmpCode->code+i);

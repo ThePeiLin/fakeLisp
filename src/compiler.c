@@ -2746,7 +2746,7 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 	for(;pHandlerExpression;pHandlerExpression=fklNextCptr(pHandlerExpression))
 	{
 		if(pHandlerExpression->type!=FKL_PAIR
-				||!fklIsListCptr(fklGetFirstCptr(pHandlerExpression)))
+				||(fklGetFirstCptr(pHandlerExpression)->type!=FKL_NIL&&!fklIsListCptr(fklGetFirstCptr(pHandlerExpression))))
 		{
 			state->state=FKL_SYNTAXERROR;
 			state->place=objCptr;
@@ -3378,13 +3378,13 @@ void fklPrintUndefinedSymbol(FklByteCodelnt* code)
 				case -4:
 					{
 						i+=sizeof(FklSid_t)+sizeof(char);
-						int32_t handlerNum=fklGetU32FromByteCode(bc->code+i);
+						uint32_t handlerNum=fklGetU32FromByteCode(bc->code+i);
 						i+=sizeof(uint32_t);
 						int j=0;
 						for(;j<handlerNum;j++)
 						{
 							uint32_t num=fklGetU32FromByteCode(bc->code+i);
-							i+=num;
+							i+=sizeof(num);
 							i+=sizeof(FklSid_t)*num;
 							uint32_t pCpc=fklGetU64FromByteCode(bc->code+i);
 							i+=sizeof(uint64_t);

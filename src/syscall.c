@@ -1427,6 +1427,8 @@ void SYS_as_str(ARGL)
 			FklSid_t sid=FKL_GET_SYM(obj);
 			retval->u.str=fklNewVMstr(sizeof(FklSid_t),(char*)&sid);
 		}
+		else if(FKL_IS_USERDATA(obj)&&obj->u.ud->t->__as_str)
+			retval->u.str=obj->u.ud->t->__as_str(obj->u.ud->data);
 		else
 			FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_WRONGARG,runnable,exe);
 	}
@@ -2411,6 +2413,51 @@ void SYS_fgetc(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void SYS_fwrite(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	FklVMvalue* file=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR("sys.fwrite",FKL_TOOMANYARG,runnable,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR("sys.fwrite",FKL_TOOFEWARG,runnable,exe);
+	if(file&&!FKL_IS_FP(file))
+		FKL_RAISE_BUILTIN_ERROR("sys.fwrite",FKL_WRONGARG,runnable,exe);
+	FILE* objFile=file?file->u.fp->fp:stdout;
+	if(FKL_IS_STR(obj)||FKL_IS_SYM(obj))
+		fklPrincVMvalue(obj,objFile);
+	else if(FKL_IS_CHR(obj))
+		fputc(FKL_GET_CHR(obj),objFile);
+	else if(FKL_IS_I32(obj))
+	{
+		int32_t r=FKL_GET_I32(obj);
+		fwrite(&r,sizeof(int32_t),1,objFile);
+	}
+	else if(FKL_IS_BIG_INT(obj))
+	{
+		uint64_t len=obj->u.bigInt->num+1;
+		fwrite(&len,sizeof(len),1,objFile);
+		fwrite(&obj->u.bigInt->neg,sizeof(uint8_t),1,objFile);
+		fwrite(obj->u.bigInt->digits,sizeof(uint8_t),obj->u.bigInt->num,objFile);
+	}
+	else if(FKL_IS_I64(obj))
+		fwrite((void*)&obj->u.i64,sizeof(int64_t),1,objFile);
+	else if(FKL_IS_F64(obj))
+		fwrite((void*)&obj->u.f64,sizeof(double),1,objFile);
+	else if(FKL_IS_USERDATA(obj)&&obj->u.ud->t->__as_str)
+	{
+		FklVMstr* s=obj->u.ud->t->__as_str(obj->u.ud->data);
+		fwrite(s->str,s->size,1,objFile);
+		free(s);
+	}
+	else
+		FKL_RAISE_BUILTIN_ERROR("sys.fwrite",FKL_WRONGARG,runnable,exe);
+	fklNiReturn(obj,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 void SYS_to_str(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -2535,6 +2582,8 @@ void SYS_to_str(ARGL)
 			char* symbol=fklGetGlobSymbolWithId(FKL_GET_SYM(obj))->symbol;
 			retval->u.str=fklNewVMstr(strlen(symbol),symbol);
 		}
+		else if(FKL_IS_USERDATA(obj)&&obj->u.ud->t->__to_str)
+			retval->u.str=obj->u.ud->t->__to_str(obj->u.ud->data);
 		else
 			FKL_RAISE_BUILTIN_ERROR("sys.string",FKL_WRONGARG,runnable,exe);
 	}

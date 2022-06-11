@@ -121,6 +121,7 @@ dll?
 vector  
 getdir  
 fgetc  
+fwrite  
 to-str  
 fgets  
 to-int  

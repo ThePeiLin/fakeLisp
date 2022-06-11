@@ -190,6 +190,8 @@ typedef struct FklVMudMethodTable
 	int  (*__equal)(const FklVMudata*,const FklVMudata*);
 	void (*__invoke)(FklVM*,void*);
 	int (*__cmp)(FklVMvalue*,FklVMvalue*,int*);
+	FklVMstr* (*__as_str)(void*);
+	FklVMstr* (*__to_str)(void*);
 }FklVMudMethodTable;
 
 typedef enum

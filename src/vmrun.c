@@ -327,7 +327,6 @@ extern void SYS_dll_p(ARGL);
 extern void SYS_vector(ARGL);
 extern void SYS_getdir(ARGL);
 extern void SYS_fgetc(ARGL);
-extern void SYS_fwrite(ARGL);
 extern void SYS_to_str(ARGL);
 extern void SYS_fgets(ARGL);
 extern void SYS_to_int(ARGL);
@@ -420,7 +419,6 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_vector,
 		SYS_getdir,
 		SYS_fgetc,
-		SYS_fwrite,
 		SYS_to_str,
 		SYS_fgets,
 		SYS_to_int,

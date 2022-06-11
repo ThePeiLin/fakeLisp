@@ -112,7 +112,6 @@ static const char* builtInSymbolList[]=
 	"vector",
 	"getdir",
 	"fgetc",
-	"fwrite",
 	"to-str",
 	"fgets",
 	"to-int",

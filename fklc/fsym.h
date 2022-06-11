@@ -8,6 +8,7 @@ extern "C"{
 void fklcInitFsym(FklSymbolTable*);
 FklSymbolTable* fklcGetOuterSymbolTable(void);
 void fklcUninitFsym(void);
+FklSid_t fklcGetSymbolIdWithOuterSymbolId(FklSid_t);
 #ifdef __cplusplus
 }
 #endif

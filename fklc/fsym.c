@@ -16,3 +16,9 @@ void fklcUninitFsym(void)
 	if(fklGetGlobSymbolTable())
 		fklFreeGlobSymbolTable();
 }
+
+FklSid_t fklcGetSymbolIdWithOuterSymbolId(FklSid_t sid)
+{
+	const char* sym=fklGetSymbolWithId(sid,OuterSymbolTable)->symbol;
+	return fklAddSymbolToGlob(sym)->id;
+}

@@ -277,9 +277,14 @@ FklSymTabNode* fklFindSymbolInGlob(const char* sym)
 
 FklSymTabNode* fklGetGlobSymbolWithId(FklSid_t id)
 {
+	return fklGetSymbolWithId(id,GlobSymbolTable);
+}
+
+FklSymTabNode* fklGetSymbolWithId(FklSid_t id,FklSymbolTable* table)
+{
 	if(id==0)
 		return NULL;
-	return GlobSymbolTable->idl[id-1];
+	return table->idl[id-1];
 }
 
 void fklPrintSymbolTable(FklSymbolTable* table,FILE* fp)

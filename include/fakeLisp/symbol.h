@@ -67,6 +67,7 @@ FklSymTabNode* fklAddSymbol(const char*,FklSymbolTable*);
 FklSymTabNode* fklAddSymbolToGlob(const char*);
 FklSymTabNode* fklFindSymbol(const char*,FklSymbolTable*);
 FklSymTabNode* fklFindSymbolInGlob(const char*);
+FklSymTabNode* fklGetSymbolWithId(FklSid_t id,FklSymbolTable*);
 FklSymTabNode* fklGetGlobSymbolWithId(FklSid_t id);
 void fklPrintSymbolTable(FklSymbolTable*,FILE*);
 void fklPrintGlobSymbolTable(FILE*);

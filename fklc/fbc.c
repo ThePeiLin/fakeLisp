@@ -2,6 +2,7 @@
 #include"fsym.h"
 #include<fakeLisp/symbol.h>
 #include<fakeLisp/vm.h>
+#include<string.h>
 static FklVMvalue* FklcRel;
 FklSid_t FklcBcUdSid=0;
 
@@ -25,6 +26,7 @@ static FklVMudMethodTable FklcBcMethodTable=
 	.__cmp=NULL,
 	.__as_str=NULL,
 	.__to_str=NULL,
+	.__write_in_binary=NULL,
 };
 
 FklVMudata* fklcNewFbcUd(FklByteCode* code)
@@ -41,4 +43,21 @@ void fklcInit(FklVMvalue* rel)
 {
 	FklcBcUdSid=fklAddSymbol("fbc",fklcGetOuterSymbolTable())->id;
 	FklcRel=rel;
+}
+
+FklByteCode* fklcNewPushStrByteCode(const FklVMstr* str)
+{
+	FklByteCode* tmp=fklNewByteCode(sizeof(char)+sizeof(str->size)+str->size);
+	tmp->code[0]=FKL_PUSH_STR;
+	fklSetU64ToByteCode(tmp->code+sizeof(char),str->size);
+	memcpy(tmp->code+sizeof(char)+sizeof(str->size)
+			,str->str
+			,str->size);
+	tmp=fklNewByteCode(sizeof(char)+sizeof(str->size)+str->size);
+	tmp->code[0]=FKL_PUSH_STR;
+	fklSetU64ToByteCode(tmp->code+sizeof(char),str->size);
+	memcpy(tmp->code+sizeof(char)+sizeof(str->size)
+			,str->str
+			,str->size);
+	return tmp;
 }

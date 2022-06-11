@@ -745,7 +745,8 @@ static void fklSetCharToByteCode(uint8_t* code,char c)
 FklByteCode* fklNewPushI32ByteCode(int32_t a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_PUSH_I32,a,fklSetI32ToByteCode)
 FklByteCode* fklNewPushI64ByteCode(int64_t a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_PUSH_I64,a,fklSetI64ToByteCode)
 FklByteCode* fklNewPushSidByteCode(FklSid_t a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_PUSH_SYM,a,fklSetSidToByteCode)
-FklByteCode* fklNewPushChrByteCode(char a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_PUSH_CHAR,a,fklSetCharToByteCode)
+FklByteCode* fklNewPushCharByteCode(char a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_PUSH_CHAR,a,fklSetCharToByteCode)
+FklByteCode* fklNewPushF64ByteCode(double a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_PUSH_F64,a,fklSetF64ToByteCode)
 FklByteCode* fklNewPushBigIntByteCode(const FklBigInt* bigInt)
 {
 	FklByteCode* tmp=fklNewByteCode(sizeof(char)+sizeof(char)+sizeof(bigInt->size)+bigInt->num);

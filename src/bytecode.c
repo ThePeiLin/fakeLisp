@@ -731,3 +731,29 @@ inline void fklSetSidToByteCode(uint8_t* code,FklSid_t i)
 	code[6]=((uint8_t*)&i)[6];
 	code[7]=((uint8_t*)&i)[7];
 }
+
+static void fklSetCharToByteCode(uint8_t* code,char c)
+{
+	code[0]=(uint8_t)c;
+}
+
+#define NEW_PUSH_FIX_OBJ_BYTECODE(OPCODE,OBJ,OBJ_SETTER) {FklByteCode* t=fklNewByteCode(sizeof(char)+sizeof(OBJ));\
+	t->code[0]=(OPCODE);\
+	(OBJ_SETTER)(t->code+sizeof(char),(OBJ));\
+	return t;}
+
+FklByteCode* fklNewPushI32ByteCode(int32_t a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_PUSH_I32,a,fklSetI32ToByteCode)
+FklByteCode* fklNewPushI64ByteCode(int64_t a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_PUSH_I64,a,fklSetI64ToByteCode)
+FklByteCode* fklNewPushSidByteCode(FklSid_t a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_PUSH_SYM,a,fklSetSidToByteCode)
+FklByteCode* fklNewPushChrByteCode(char a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_PUSH_CHAR,a,fklSetCharToByteCode)
+FklByteCode* fklNewPushBigIntByteCode(const FklBigInt* bigInt)
+{
+	FklByteCode* tmp=fklNewByteCode(sizeof(char)+sizeof(char)+sizeof(bigInt->size)+bigInt->num);
+	tmp->code[0]=FKL_PUSH_BIG_INT;
+	fklSetU64ToByteCode(tmp->code+sizeof(char),bigInt->num+1);
+	tmp->code[sizeof(char)+sizeof(bigInt->num)]=bigInt->neg;
+	memcpy(tmp->code+sizeof(char)+sizeof(bigInt->num)+sizeof(char)
+			,bigInt->digits
+			,bigInt->num);
+	return tmp;
+}

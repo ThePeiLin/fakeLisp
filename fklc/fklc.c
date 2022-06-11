@@ -12,13 +12,13 @@
 	FklVMrunnable* runnable=exe->rhead;\
 	FklVMvalue* val=fklNiGetArg(&ap,stack);\
 	if(fklNiResBp(&ap,stack))\
-		FKL_RAISE_BUILTIN_ERROR(err_infor,FKL_TOOFEWARG,runnable,exe);\
+	FKL_RAISE_BUILTIN_ERROR(err_infor,FKL_TOOFEWARG,runnable,exe);\
 	if(!val)\
-		FKL_RAISE_BUILTIN_ERROR(err_infor,FKL_TOOFEWARG,runnable,exe);\
+	FKL_RAISE_BUILTIN_ERROR(err_infor,FKL_TOOFEWARG,runnable,exe);\
 	if(condtion)\
-		fklNiReturn(FKL_VM_TRUE,&ap,stack);\
+	fklNiReturn(FKL_VM_TRUE,&ap,stack);\
 	else\
-		fklNiReturn(FKL_VM_NIL,&ap,stack);\
+	fklNiReturn(FKL_VM_NIL,&ap,stack);\
 	fklNiEnd(&ap,stack);\
 }
 
@@ -35,10 +35,22 @@ void FKL_fklc_compile_i32(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("fklc.compile-i32",FKL_TOOFEWARG,runnable,exe);
 	if(!FKL_IS_I32(i_32))
 		FKL_RAISE_BUILTIN_ERROR("fklc.compile-i32",FKL_WRONGARG,runnable,exe);
-	FklByteCode* bc=fklNewByteCode(sizeof(char)+sizeof(uint32_t));
-	bc->code[0]=FKL_PUSH_I32;
-	fklSetI32ToByteCode(bc->code+sizeof(char),FKL_GET_I32(i_32));
-	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA,fklcNewFbcUd(bc),stack,exe->heap),&ap,stack);
+	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA,fklcNewFbcUd(fklNewPushI32ByteCode(FKL_GET_I32(i_32))),stack,exe->heap),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void FKL_fklc_compile_i64(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* i_64=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR("fklc.compile-i64",FKL_TOOMANYARG,runnable,exe);
+	if(!i_64)
+		FKL_RAISE_BUILTIN_ERROR("fklc.compile-i64",FKL_TOOFEWARG,runnable,exe);
+	if(!FKL_IS_I64(i_64))
+		FKL_RAISE_BUILTIN_ERROR("fklc.compile-i64",FKL_WRONGARG,runnable,exe);
+	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA,fklcNewFbcUd(fklNewPushI64ByteCode(i_64->u.i64)),stack,exe->heap),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

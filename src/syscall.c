@@ -2446,12 +2446,8 @@ void SYS_fwrite(ARGL)
 		fwrite((void*)&obj->u.i64,sizeof(int64_t),1,objFile);
 	else if(FKL_IS_F64(obj))
 		fwrite((void*)&obj->u.f64,sizeof(double),1,objFile);
-	else if(FKL_IS_USERDATA(obj)&&obj->u.ud->t->__as_str)
-	{
-		FklVMstr* s=obj->u.ud->t->__as_str(obj->u.ud->data);
-		fwrite(s->str,s->size,1,objFile);
-		free(s);
-	}
+	else if(FKL_IS_USERDATA(obj)&&obj->u.ud->t->__write_in_binary)
+		obj->u.ud->t->__write_in_binary(objFile,obj->u.ud->data);
 	else
 		FKL_RAISE_BUILTIN_ERROR("sys.fwrite",FKL_WRONGARG,runnable,exe);
 	fklNiReturn(obj,&ap,stack);

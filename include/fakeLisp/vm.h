@@ -192,6 +192,7 @@ typedef struct FklVMudMethodTable
 	int (*__cmp)(FklVMvalue*,FklVMvalue*,int*);
 	FklVMstr* (*__as_str)(void*);
 	FklVMstr* (*__to_str)(void*);
+	void (*__write_in_binary)(FILE*,void*);
 }FklVMudMethodTable;
 
 typedef enum

@@ -922,8 +922,7 @@ void B_pop_car(FklVM* exe)
 	FklVMrunnable* runnable=exe->rhead;
 	FklVMvalue* topValue=fklNiGetArg(&ap,stack);
 	FklVMvalue* objValue=fklNiGetArg(&ap,stack);
-	if(!FKL_IS_PAIR(objValue))
-		FKL_RAISE_BUILTIN_ERROR("b.pop_car",FKL_WRONGARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(objValue,FKL_IS_PAIR,"b.pop_car",runnable,exe);
 	fklSetRef(objValue,&objValue->u.pair->car,topValue,exe->heap);
 	fklNiReturn(objValue,&ap,stack);
 	fklNiEnd(&ap,stack);
@@ -936,35 +935,12 @@ void B_pop_cdr(FklVM* exe)
 	FklVMrunnable* runnable=exe->rhead;
 	FklVMvalue* topValue=fklNiGetArg(&ap,stack);
 	FklVMvalue* objValue=fklNiGetArg(&ap,stack);
-	if(!FKL_IS_PAIR(objValue))
-		FKL_RAISE_BUILTIN_ERROR("b.pop_cdr",FKL_WRONGARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(objValue,FKL_IS_PAIR,"b.pop_cdr",runnable,exe);
 	fklSetRef(objValue,&objValue->u.pair->cdr,topValue,exe->heap);
 	fklNiReturn(objValue,&ap,stack);
 	fklNiEnd(&ap,stack);
 	runnable->cp+=sizeof(char);
 }
-
-//void B_pop_ref(FklVM* exe)
-//{
-//	FKL_NI_BEGIN(exe);
-//	FklVMrunnable* runnable=exe->rhead;
-//	FklVMvalue* val=fklNiGetArg(&ap,stack);
-//	FklVMvalue* ref=fklNiPopTop(&ap,stack);
-//	if(!FKL_IS_REF(ref)&&!FKL_IS_MREF(ref))
-//		FKL_RAISE_BUILTIN_ERROR("b.pop_ref",FKL_WRONGARG,runnable,exe);
-//	FklVMvalue* by=fklNiPopTop(&ap,stack);
-//	if(FKL_IS_REF(ref))
-//		fklSetRef(by,(FklVMvalue**)FKL_GET_PTR(ref),val,exe->heap);
-//	else
-//	{
-//		if(!FKL_IS_CHR(val)&&!FKL_IS_I32(val)&&!FKL_IS_I64(val))
-//			FKL_RAISE_BUILTIN_ERROR("b.pop_ref",FKL_INVALIDASSIGN,runnable,exe);
-//		*(char*)by=FKL_IS_CHR(val)?FKL_GET_CHR(val):fklGetInt(val);
-//	}
-//	fklNiReturn(val,&ap,stack);
-//	fklNiEnd(&ap,stack);
-//	runnable->cp+=sizeof(char);
-//}
 
 void B_set_tp(FklVM* exe)
 {

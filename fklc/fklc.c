@@ -47,6 +47,28 @@ void FKL_fklc_compile_symbol(ARGL) CONST_COMPILE("fklc.compile-symbol",sym,FKL_I
 void FKL_fklc_compile_big_int(ARGL) CONST_COMPILE("fklc.compile-big-int",big_int,FKL_IS_BIG_INT,fklNewPushBigIntByteCode(big_int->u.bigInt))
 void FKL_fklc_compile_f64(ARGL) CONST_COMPILE("fklc.compile-f64",f_64,FKL_IS_F64,fklNewPushF64ByteCode(f_64->u.f64))
 void FKL_fklc_compile_string(ARGL) CONST_COMPILE("fklc.compile-string",str,FKL_IS_STR,fklcNewPushStrByteCode(str->u.str))
+
+void FKL_fklc_compile_integer(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* integer=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR("fklc.compile-integer",FKL_TOOMANYARG,runnable,exe);
+	if(!integer)
+		FKL_RAISE_BUILTIN_ERROR("fklc.compile-integer",FKL_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(integer,fklIsInt,"fklc.compile-integer",runnable,exe);
+	FklByteCode* bc=NULL;
+	if(FKL_IS_I32(integer))
+		bc=fklNewPushI32ByteCode(FKL_GET_I32(integer));
+	else if(FKL_IS_I64(integer))
+		bc=fklNewPushI64ByteCode(integer->u.i64);
+	else if(FKL_IS_BIG_INT(integer))
+		bc=fklNewPushBigIntByteCode(integer->u.bigInt);
+	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA,fklcNewFbcUd(bc),stack,exe->heap),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 #undef CONST_COMPILE
 
 void _fklInit(FklSymbolTable* glob,FklVMvalue* rel)

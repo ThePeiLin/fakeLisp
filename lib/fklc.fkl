@@ -8,6 +8,7 @@
     fklc-compile-f64
     fklc-compile-string
     fklc-compile-big-int
+    fklc-compile-integer
     fklc-fbc?)
   (define fklc (dlopen (append (getdir) "/../fklc")))
   (define fklc-fbc? (dlsym fklc "fklc_fbc_p"))
@@ -18,4 +19,5 @@
   (define fklc-compile-f64 (dlsym fklc "fklc_compile_f64"))
   (define fklc-compile-string (dlsym fklc "fklc_compile_string"))
   (define fklc-compile-big-int (dlsym fklc "fklc_compile_big_int"))
+  (define fklc-compile-integer (dlsym fklc "fklc_compile_integer"))
   )

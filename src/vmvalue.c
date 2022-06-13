@@ -751,8 +751,8 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 					break;
 				case FKL_BOX:
 					*root1=fklNewVMvalue(FKL_BOX,FKL_VM_NIL,heap);
-					fklPushPtrStack(&(*root1)->u.box,s1);
-					fklPushPtrStack(&tmpAtm->value.box,s2);
+					fklPushPtrStack(&tmpAtm->value.box,s1);
+					fklPushPtrStack(&(*root1)->u.box,s2);
 					break;
 				case FKL_VECTOR:
 					*root1=fklNewVMvalue(FKL_VECTOR,fklNewVMvec(tmpAtm->value.vec.size,NULL),heap);

@@ -130,6 +130,7 @@ static const char* builtInSymbolList[]=
 	"set-box!",
 	"box-cas!",
 	"box?",
+	"fix-int?",
 };
 
 FklSymbolTable* GlobSymbolTable=NULL;

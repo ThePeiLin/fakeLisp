@@ -896,6 +896,53 @@ FklByteCode* fklCompilePair(FklAstCptr* objCptr)
 	return tmp;
 }
 
+FklByteCodelnt* fklCompileUnquoteVector(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state)
+{
+	FklAstVector* vec=&objCptr->u.atom->value.vec;
+	FklByteCodelnt* retval=fklNewByteCodelnt(fklNewByteCode(0));
+	retval->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
+	FKL_ASSERT(retval->l,__func__);
+	retval->ls=1;
+	retval->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,retval->bc->size,objCptr->curline);
+	for(size_t i=0;i<vec->size;i++)
+	{
+		if(fklIsUnqtespExpression(&vec->base[i]))
+		{
+			fklFreeByteCodeAndLnt(retval);
+			state->state=FKL_SYNTAXERROR;
+			state->place=objCptr;
+			return NULL;
+		}
+		if(fklIsUnquoteExpression(&vec->base[i]))
+		{
+			FklByteCodelnt* tmp=fklCompileUnquote(&vec->base[i],curEnv,inter,state);
+			if(state->state)
+			{
+				fklFreeByteCodeAndLnt(retval);
+				state->state=FKL_SYNTAXERROR;
+				state->place=objCptr;
+				return NULL;
+			}
+			fklCodelntCopyCat(retval,tmp);
+			fklFreeByteCodeAndLnt(tmp);
+		}
+		else
+		{
+			FklByteCode* tmp=innerCompileConst(&vec->base[i]);
+			fklCodeCat(retval->bc,tmp);
+			retval->l[retval->ls-1]->cpc+=tmp->size;
+			fklFreeByteCode(tmp);
+		}
+	}
+	FklByteCode* pushVector=fklNewByteCode(sizeof(char)+sizeof(uint64_t));
+	pushVector->code[0]=FKL_PUSH_VECTOR;
+	fklSetU64ToByteCode(pushVector->code+sizeof(char),vec->size);
+	fklCodeCat(retval->bc,pushVector);
+	retval->l[retval->ls-1]->cpc+=pushVector->size;
+	fklFreeByteCode(pushVector);
+	return retval;
+}
+
 FklByteCodelnt* fklCompileQsquote(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state)
 {
 	objCptr=fklNextCptr(fklGetFirstCptr(objCptr));
@@ -906,51 +953,7 @@ FklByteCodelnt* fklCompileQsquote(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInte
 	{
 		FklAstAtom* tAtom=objCptr->u.atom;
 		if(tAtom->type==FKL_VECTOR)
-		{
-			FklAstVector* vec=&objCptr->u.atom->value.vec;
-			FklByteCodelnt* retval=fklNewByteCodelnt(fklNewByteCode(0));
-			retval->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
-			FKL_ASSERT(retval->l,__func__);
-			retval->ls=1;
-			retval->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,retval->bc->size,objCptr->curline);
-			for(size_t i=0;i<vec->size;i++)
-			{
-				if(fklIsUnqtespExpression(&vec->base[i]))
-				{
-					fklFreeByteCodeAndLnt(retval);
-					state->state=FKL_SYNTAXERROR;
-					state->place=objCptr;
-					return NULL;
-				}
-				if(fklIsUnquoteExpression(&vec->base[i]))
-				{
-					FklByteCodelnt* tmp=fklCompileUnquote(&vec->base[i],curEnv,inter,state);
-					if(state->state)
-					{
-						fklFreeByteCodeAndLnt(retval);
-						state->state=FKL_SYNTAXERROR;
-						state->place=objCptr;
-						return NULL;
-					}
-					fklCodelntCopyCat(retval,tmp);
-					fklFreeByteCodeAndLnt(tmp);
-				}
-				else
-				{
-					FklByteCode* tmp=innerCompileConst(&vec->base[i]);
-					fklCodeCat(retval->bc,tmp);
-					retval->l[retval->ls-1]->cpc+=tmp->size;
-					fklFreeByteCode(tmp);
-				}
-			}
-			FklByteCode* pushVector=fklNewByteCode(sizeof(char)+sizeof(uint64_t));
-			pushVector->code[0]=FKL_PUSH_VECTOR;
-			fklSetU64ToByteCode(pushVector->code+sizeof(char),vec->size);
-			fklCodeCat(retval->bc,pushVector);
-			retval->l[retval->ls-1]->cpc+=pushVector->size;
-			fklFreeByteCode(pushVector);
-			return retval;
-		}
+			return fklCompileUnquoteVector(objCptr,curEnv,inter,state);
 		else
 		{
 			FklAstCptr* box=&objCptr->u.atom->value.box;
@@ -1078,7 +1081,22 @@ FklByteCodelnt* fklCompileQsquote(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInte
 		}
 		else if((objCptr->type==FKL_ATM||objCptr->type==FKL_NIL)&&(!fklIsUnqtespExpression(&objPair->car)))
 		{
-			FklByteCodelnt* tmp1=fklCompileConst(objCptr,curEnv,inter,state);
+			FklByteCodelnt* tmp1=NULL;
+			if(objCptr->type==FKL_ATM&&objCptr->u.atom->type==FKL_VECTOR)
+			{
+				tmp1=fklCompileUnquoteVector(objCptr,curEnv,inter,state);
+				if(state->state!=0)
+				{
+					fklFreeByteCodeAndLnt(tmp);
+					fklFreeByteCode(appd);
+					fklFreeByteCode(popToCar);
+					fklFreeByteCode(popToCdr);
+					fklFreeByteCode(pushPair);
+					return NULL;
+				}
+			}
+			else
+				tmp1=fklCompileConst(objCptr,curEnv,inter,state);
 			fklCodeCat(tmp1->bc,(objCptr==&objPair->car)?popToCar:popToCdr);
 			tmp1->l[tmp1->ls-1]->cpc+=(objCptr==&objPair->car)?popToCar->size:popToCdr->size;
 			fklCodeLntCat(tmp,tmp1);

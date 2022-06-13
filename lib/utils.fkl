@@ -35,7 +35,7 @@
           foreach
           fprint
           print
-          fwrite
+          fprin1
           square
           min
           max)
@@ -203,7 +203,7 @@
     (lambda l
       (apply fprint (cons stdout l))))
 
-  (define fwrite
+  (define fprin1
     (lambda (f,l)
       (define w-iter
         (lambda (c)

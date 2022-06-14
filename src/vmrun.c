@@ -724,7 +724,7 @@ void B_push_pair(FklVM* exe)
 	FklVMpair* pair=fklNewVMpair();
 	pair->cdr=fklNiGetArg(&ap,stack);
 	pair->car=fklNiGetArg(&ap,stack);
-	fklNewVMvalueToStack(FKL_PAIR,pair,stack,exe->heap);
+	fklNiReturn(fklNewVMvalueToStack(FKL_PAIR,pair,stack,exe->heap),&ap,stack);
 	fklNiEnd(&ap,stack);
 	runnable->cp+=sizeof(char);
 }
@@ -1108,17 +1108,20 @@ void B_append(FklVM* exe)
 	FklVMvalue* sec=fklNiGetArg(&ap,stack);
 	if(sec!=FKL_VM_NIL&&!FKL_IS_PAIR(sec))
 		FKL_RAISE_BUILTIN_ERROR("b.append",FKL_WRONGARG,runnable,exe);
-	if(!FKL_IS_PAIR(sec))
-		FKL_RAISE_BUILTIN_ERROR("b.append",FKL_WRONGARG,runnable,exe);
-	FklVMvalue** lastcdr=&sec;
-	FklVMvalue* lastpair=NULL;
-	while(FKL_IS_PAIR(*lastcdr))
+	if(sec==FKL_VM_NIL)
+		fklNiReturn(fir,&ap,stack);
+	else
 	{
-		lastpair=*lastcdr;
-		lastcdr=&(*lastcdr)->u.pair->cdr;
+		FklVMvalue** lastcdr=&sec;
+		FklVMvalue* lastpair=NULL;
+		while(FKL_IS_PAIR(*lastcdr))
+		{
+			lastpair=*lastcdr;
+			lastcdr=&(*lastcdr)->u.pair->cdr;
+		}
+		fklSetRef(lastpair,lastcdr,fir,exe->heap);
+		fklNiReturn(sec,&ap,stack);
 	}
-	fklSetRef(lastpair,lastcdr,fir,exe->heap);
-	fklNiReturn(sec,&ap,stack);
 	fklNiEnd(&ap,stack);
 	runnable->cp+=sizeof(char);
 }

@@ -393,7 +393,10 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp)
 			{
 				fid=obj->l[j]->fid;
 				line=obj->l[j]->line;
-				fprintf(fp,"%s:%u:%lu",fklGetGlobSymbolWithId(obj->l[j]->fid)->symbol,obj->l[j]->line,obj->l[j]->cpc);
+				if(fid)
+					fprintf(fp,"%s:%u:%lu",fklGetGlobSymbolWithId(obj->l[j]->fid)->symbol,obj->l[j]->line,obj->l[j]->cpc);
+				else
+					fprintf(fp,"%u:%lu",obj->l[j]->line,obj->l[j]->cpc);
 			}
 			putc('\n',fp);
 			if(needBreak)

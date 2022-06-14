@@ -636,7 +636,6 @@ FklByteCodelnt* fklCompile(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter
 		if(fklIsSymbol(objCptr))return fklCompileSym(objCptr,curEnv,inter,state);
 		if(fklIsDefExpression(objCptr))return fklCompileDef(objCptr,curEnv,inter,state);
 		if(fklIsSetqExpression(objCptr))return fklCompileSetq(objCptr,curEnv,inter,state);
-		//if(fklIsSetfExpression(objCptr))return fklCompileSetf(objCptr,curEnv,inter,state);
 		if(fklIsCondExpression(objCptr))return fklCompileCond(objCptr,curEnv,inter,state);
 		if(fklIsAndExpression(objCptr))return fklCompileAnd(objCptr,curEnv,inter,state);
 		if(fklIsOrExpression(objCptr))return fklCompileOr(objCptr,curEnv,inter,state);
@@ -847,34 +846,29 @@ FklByteCode* fklCompilePair(FklAstCptr* objCptr)
 	FklByteCode* tmp=fklNewByteCode(0);
 	FklAstPair* objPair=objCptr->u.pair;
 	FklAstPair* tmpPair=objPair;
-	FklByteCode* popToCar=fklNewByteCode(1);
-	FklByteCode* popToCdr=fklNewByteCode(1);
 	FklByteCode* pushPair=fklNewByteCode(1);
-	popToCar->code[0]=FKL_POP_CAR;
-	popToCdr->code[0]=FKL_POP_CDR;
 	pushPair->code[0]=FKL_PUSH_PAIR;
 	while(objCptr!=NULL)
 	{
 		if(objCptr->type==FKL_PAIR)
 		{
-			fklCodeCat(tmp,pushPair);
+			fklReCodeCat(pushPair,tmp);
 			objPair=objCptr->u.pair;
-			objCptr=&objPair->car;
+			objCptr=&objPair->cdr;
 			continue;
 		}
 		else if(objCptr->type==FKL_ATM||objCptr->type==FKL_NIL)
 		{
 			FklByteCode* tmp1=(objCptr->type==FKL_ATM)?fklCompileAtom(objCptr):fklCompileNil();
-			fklCodeCat(tmp1,(objCptr==&objPair->car)?popToCar:popToCdr);
-			fklCodeCat(tmp,tmp1);
+			fklReCodeCat(tmp1,tmp);
 			fklFreeByteCode(tmp1);
-			if(objPair!=NULL&&objCptr==&objPair->car)
+			if(objPair!=NULL&&objCptr==&objPair->cdr)
 			{
-				objCptr=&objPair->cdr;
+				objCptr=&objPair->car;
 				continue;
 			}
 		}
-		if(objPair!=NULL&&objCptr==&objPair->cdr)
+		if(objPair!=NULL&&objCptr==&objPair->car)
 		{
 			FklAstPair* prev=NULL;
 			if(objPair->prev==NULL)break;
@@ -882,16 +876,13 @@ FklByteCode* fklCompilePair(FklAstCptr* objCptr)
 			{
 				prev=objPair;
 				objPair=objPair->prev;
-				fklCodeCat(tmp,(prev==objPair->car.u.pair)?popToCar:popToCdr);
-				if(prev==objPair->car.u.pair)break;
+				if(prev==objPair->cdr.u.pair)break;
 			}
-			if(objPair!=NULL)objCptr=&objPair->cdr;
-			if(objPair==tmpPair&&(prev==objPair->cdr.u.pair||prev==NULL))break;
+			if(objPair!=NULL)objCptr=&objPair->car;
+			if(objPair==tmpPair&&(prev==objPair->car.u.pair||prev==NULL))break;
 		}
 		if(objPair==NULL)break;
 	}
-	fklFreeByteCode(popToCar);
-	fklFreeByteCode(popToCdr);
 	fklFreeByteCode(pushPair);
 	return tmp;
 }
@@ -996,11 +987,7 @@ FklByteCodelnt* fklCompileQsquote(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInte
 	FklAstPair* objPair=objCptr->u.pair;
 	FklAstPair* tmpPair=objPair;
 	FklByteCode* appd=fklNewByteCode(1);
-	FklByteCode* popToCar=fklNewByteCode(1);
-	FklByteCode* popToCdr=fklNewByteCode(1);
 	FklByteCode* pushPair=fklNewByteCode(1);
-	popToCar->code[0]=FKL_POP_CAR;
-	popToCdr->code[0]=FKL_POP_CDR;
 	pushPair->code[0]=FKL_PUSH_PAIR;
 	appd->code[0]=FKL_APPEND;
 	while(objCptr!=NULL)
@@ -1012,18 +999,14 @@ FklByteCodelnt* fklCompileQsquote(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInte
 			{
 				fklFreeByteCodeAndLnt(tmp);
 				fklFreeByteCode(appd);
-				fklFreeByteCode(popToCar);
-				fklFreeByteCode(popToCdr);
 				fklFreeByteCode(pushPair);
 				return NULL;
 			}
-			fklCodeCat(tmp1->bc,(objCptr==&objPair->car)?popToCar:popToCdr);
-			tmp1->l[tmp1->ls-1]->cpc+=(objCptr==&objPair->car)?popToCar->size:popToCdr->size;
-			fklCodeLntCat(tmp,tmp1);
+			fklReCodeLntCat(tmp1,tmp);
 			fklFreeByteCodelnt(tmp1);
-			if(objPair!=NULL&&objCptr==&objPair->car)
+			if(objPair!=NULL&&objCptr==&objPair->cdr)
 			{
-				objCptr=&objPair->cdr;
+				objCptr=&objPair->car;
 				continue;
 			}
 		}
@@ -1031,8 +1014,6 @@ FklByteCodelnt* fklCompileQsquote(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInte
 		{
 			if(objCptr==&objPair->cdr||objCptr==top)
 			{
-				fklFreeByteCode(popToCar);
-				fklFreeByteCode(popToCdr);
 				fklFreeByteCode(pushPair);
 				fklFreeByteCode(appd);
 				fklFreeByteCodeAndLnt(tmp);
@@ -1045,41 +1026,38 @@ FklByteCodelnt* fklCompileQsquote(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInte
 			{
 				fklFreeByteCodeAndLnt(tmp);
 				fklFreeByteCode(appd);
-				fklFreeByteCode(popToCar);
-				fklFreeByteCode(popToCdr);
 				fklFreeByteCode(pushPair);
 				return NULL;
 			}
-			fklCodeCat(tmp1->bc,appd);
-			tmp1->l[tmp1->ls-1]->cpc+=appd->size;
-			fklCodeLntCat(tmp,tmp1);
+			fklReCodeLntCat(tmp1,tmp);
 			fklFreeByteCodelnt(tmp1);
-			if(objPair!=NULL&&objCptr==&objPair->car)
+			if(objPair!=NULL&&objCptr==&objPair->cdr)
 			{
-				objCptr=&objPair->cdr;
+				objCptr=&objPair->car;
 				continue;
 			}
 		}
 		else if(objCptr->type==FKL_PAIR)
 		{
-			if(!fklIsUnqtespExpression(fklGetFirstCptr(objCptr)))
+			FklByteCode* cons=fklIsUnqtespExpression(fklGetFirstCptr(objCptr))?appd:pushPair;
+			fklReCodeCat(cons,tmp->bc);
+			if(!tmp->l)
 			{
-				fklCodeCat(tmp->bc,pushPair);
-				if(!tmp->l)
-				{
-					tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
-					FKL_ASSERT(tmp->l,__func__);
-					tmp->ls=1;
-					tmp->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,pushPair->size,objCptr->curline);
-				}
-				else
-					tmp->l[tmp->ls-1]->cpc+=pushPair->size;
+				tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
+				FKL_ASSERT(tmp->l,__func__);
+				tmp->ls=1;
+				tmp->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,cons->size,objCptr->curline);
+			}
+			else
+			{
+				tmp->l[0]->cpc+=cons->size;
+				FKL_INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,cons->size);
 			}
 			objPair=objCptr->u.pair;
-			objCptr=&objPair->car;
+			objCptr=&objPair->cdr;
 			continue;
 		}
-		else if((objCptr->type==FKL_ATM||objCptr->type==FKL_NIL)&&(!fklIsUnqtespExpression(&objPair->car)))
+		else if(objCptr->type==FKL_ATM||objCptr->type==FKL_NIL)
 		{
 			FklByteCodelnt* tmp1=NULL;
 			if(objCptr->type==FKL_ATM&&objCptr->u.atom->type==FKL_VECTOR)
@@ -1089,25 +1067,21 @@ FklByteCodelnt* fklCompileQsquote(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInte
 				{
 					fklFreeByteCodeAndLnt(tmp);
 					fklFreeByteCode(appd);
-					fklFreeByteCode(popToCar);
-					fklFreeByteCode(popToCdr);
 					fklFreeByteCode(pushPair);
 					return NULL;
 				}
 			}
 			else
 				tmp1=fklCompileConst(objCptr,curEnv,inter,state);
-			fklCodeCat(tmp1->bc,(objCptr==&objPair->car)?popToCar:popToCdr);
-			tmp1->l[tmp1->ls-1]->cpc+=(objCptr==&objPair->car)?popToCar->size:popToCdr->size;
-			fklCodeLntCat(tmp,tmp1);
+			fklReCodeLntCat(tmp1,tmp);
 			fklFreeByteCodelnt(tmp1);
-			if(objPair!=NULL&&objCptr==&objPair->car)
+			if(objPair!=NULL&&objCptr==&objPair->cdr)
 			{
-				objCptr=&objPair->cdr;
+				objCptr=&objPair->car;
 				continue;
 			}
 		}
-		if(objPair!=NULL&&objCptr==&objPair->cdr)
+		if(objPair!=NULL&&objCptr==&objPair->car)
 		{
 			FklAstPair* prev=NULL;
 			if(objPair->prev==NULL)break;
@@ -1115,20 +1089,13 @@ FklByteCodelnt* fklCompileQsquote(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInte
 			{
 				prev=objPair;
 				objPair=objPair->prev;
-				if(prev!=NULL&&!fklIsUnqtespExpression(&prev->car))
-				{
-					fklCodeCat(tmp->bc,(prev==objPair->car.u.pair)?popToCar:appd);
-					tmp->l[tmp->ls-1]->cpc+=(prev==objPair->car.u.pair)?popToCar->size:appd->size;
-				}
-				if(prev==objPair->car.u.pair)break;
+				if(prev==objPair->cdr.u.pair)break;
 			}
-			if(objPair!=NULL)objCptr=&objPair->cdr;
-			if(objPair==tmpPair&&(prev==objPair->cdr.u.pair||prev==NULL))break;
+			if(objPair!=NULL)objCptr=&objPair->car;
+			if(objPair==tmpPair&&(prev==objPair->car.u.pair||prev==NULL))break;
 		}
 		if(objPair==NULL)break;
 	}
-	fklFreeByteCode(popToCar);
-	fklFreeByteCode(popToCdr);
 	fklFreeByteCode(pushPair);
 	fklFreeByteCode(appd);
 	return tmp;

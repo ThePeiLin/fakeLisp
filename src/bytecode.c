@@ -121,17 +121,19 @@ static inline uint64_t printErrorHandlerHead(const FklByteCode* tmpCode,uint64_t
 	uint32_t errTypeNum=fklGetU32FromByteCode(tmpCode->code+i);
 	i+=sizeof(uint32_t);
 	r+=sizeof(uint32_t);
-	if(errTypeNum==0)
-		fprintf(fp," () ");
+	fputc('(',fp);
 	for(uint32_t k=0;k<errTypeNum;k++)
 	{
 		FklSid_t type=fklGetSidFromByteCode(tmpCode->code+i);
-		fprintf(fp," %s ",fklGetGlobSymbolWithId(type)->symbol);
+		fprintf(fp,"%s",fklGetGlobSymbolWithId(type)->symbol);
 		i+=sizeof(FklSid_t);
 		r+=sizeof(FklSid_t);
+		if(k+1<errTypeNum)
+			fputc(' ',fp);
 	}
+	fputc(')',fp);
 	uint64_t pCpc=fklGetU64FromByteCode(tmpCode->code+i);
-	fprintf(fp,"%ld\n",pCpc);
+	fprintf(fp," %ld\n",pCpc);
 	i+=sizeof(uint64_t);
 	r+=sizeof(uint64_t);
 	return r;
@@ -148,7 +150,7 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 	uint32_t r=0;
 	if(cState->type==BP_ERROR_HANLER)
 	{
-		fprintf(fp,"ERR:");
+		fprintf(fp,"EH:");
 		for(uint32_t i=0;i<tc-1;i++)
 			fputc('\t',fp);
 		r+=printErrorHandlerHead(tmpCode,i,fp);

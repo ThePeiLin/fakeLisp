@@ -124,8 +124,8 @@ static void B_pop(FklVM*);
 static void B_pop_var(FklVM*);
 static void B_pop_arg(FklVM*);
 static void B_pop_rest_arg(FklVM*);
-static void B_pop_car(FklVM*);
-static void B_pop_cdr(FklVM*);
+//static void B_pop_car(FklVM*);
+//static void B_pop_cdr(FklVM*);
 //static void B_pop_ref(FklVM*);
 static void B_set_tp(FklVM*);
 static void B_set_bp(FklVM*);
@@ -164,9 +164,9 @@ static void (*ByteCodes[])(FklVM*)=
 	B_pop_var,
 	B_pop_arg,
 	B_pop_rest_arg,
-	B_pop_car,
-	B_pop_cdr,
-	//B_pop_ref,
+//	B_pop_car,
+//	B_pop_cdr,
+//	B_pop_ref,
 	B_set_tp,
 	B_set_bp,
 	B_invoke,
@@ -719,9 +719,13 @@ void B_push_nil(FklVM* exe)
 
 void B_push_pair(FklVM* exe)
 {
-	FklVMstack* stack=exe->stack;
+	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
-	fklNewVMvalueToStack(FKL_PAIR,fklNewVMpair(),stack,exe->heap);
+	FklVMpair* pair=fklNewVMpair();
+	pair->cdr=fklNiGetArg(&ap,stack);
+	pair->car=fklNiGetArg(&ap,stack);
+	fklNewVMvalueToStack(FKL_PAIR,pair,stack,exe->heap);
+	fklNiEnd(&ap,stack);
 	runnable->cp+=sizeof(char);
 }
 
@@ -918,31 +922,31 @@ void B_pop_rest_arg(FklVM* exe)
 	runnable->cp+=sizeof(char)+sizeof(FklSid_t);
 }
 
-void B_pop_car(FklVM* exe)
-{
-	FKL_NI_BEGIN(exe);
-	FklVMrunnable* runnable=exe->rhead;
-	FklVMvalue* topValue=fklNiGetArg(&ap,stack);
-	FklVMvalue* objValue=fklNiGetArg(&ap,stack);
-	FKL_NI_CHECK_TYPE(objValue,FKL_IS_PAIR,"b.pop_car",runnable,exe);
-	fklSetRef(objValue,&objValue->u.pair->car,topValue,exe->heap);
-	fklNiReturn(objValue,&ap,stack);
-	fklNiEnd(&ap,stack);
-	runnable->cp+=sizeof(char);
-}
-
-void B_pop_cdr(FklVM* exe)
-{
-	FKL_NI_BEGIN(exe);
-	FklVMrunnable* runnable=exe->rhead;
-	FklVMvalue* topValue=fklNiGetArg(&ap,stack);
-	FklVMvalue* objValue=fklNiGetArg(&ap,stack);
-	FKL_NI_CHECK_TYPE(objValue,FKL_IS_PAIR,"b.pop_cdr",runnable,exe);
-	fklSetRef(objValue,&objValue->u.pair->cdr,topValue,exe->heap);
-	fklNiReturn(objValue,&ap,stack);
-	fklNiEnd(&ap,stack);
-	runnable->cp+=sizeof(char);
-}
+//void B_pop_car(FklVM* exe)
+//{
+//	FKL_NI_BEGIN(exe);
+//	FklVMrunnable* runnable=exe->rhead;
+//	FklVMvalue* topValue=fklNiGetArg(&ap,stack);
+//	FklVMvalue* objValue=fklNiGetArg(&ap,stack);
+//	FKL_NI_CHECK_TYPE(objValue,FKL_IS_PAIR,"b.pop_car",runnable,exe);
+//	fklSetRef(objValue,&objValue->u.pair->car,topValue,exe->heap);
+//	fklNiReturn(objValue,&ap,stack);
+//	fklNiEnd(&ap,stack);
+//	runnable->cp+=sizeof(char);
+//}
+//
+//void B_pop_cdr(FklVM* exe)
+//{
+//	FKL_NI_BEGIN(exe);
+//	FklVMrunnable* runnable=exe->rhead;
+//	FklVMvalue* topValue=fklNiGetArg(&ap,stack);
+//	FklVMvalue* objValue=fklNiGetArg(&ap,stack);
+//	FKL_NI_CHECK_TYPE(objValue,FKL_IS_PAIR,"b.pop_cdr",runnable,exe);
+//	fklSetRef(objValue,&objValue->u.pair->cdr,topValue,exe->heap);
+//	fklNiReturn(objValue,&ap,stack);
+//	fklNiEnd(&ap,stack);
+//	runnable->cp+=sizeof(char);
+//}
 
 void B_set_tp(FklVM* exe)
 {

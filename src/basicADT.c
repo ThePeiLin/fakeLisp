@@ -907,5 +907,5 @@ int fklCmpBigIntI(const FklBigInt* bi,int64_t i)
 
 int fklCmpIBigInt(int64_t i,const FklBigInt* bi)
 {
-	return fklCmpBigIntI(bi,i)*-1;
+	return -fklCmpBigIntI(bi,i);
 }

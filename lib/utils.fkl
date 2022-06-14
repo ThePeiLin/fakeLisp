@@ -201,7 +201,7 @@
 
   (define print
     (lambda l
-      (apply fprint (cons stdout l))))
+      (apply fprint stdout l)))
 
   (define fprin1
     (lambda (f,l)

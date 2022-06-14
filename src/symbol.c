@@ -186,8 +186,9 @@ FklSymTabNode* fklAddSymbol(const char* sym,FklSymbolTable* table)
 				l=mid+1;
 			else
 			{
+				node=table->list[mid];
 				pthread_rwlock_unlock(&table->rwlock);
-				return table->list[mid];
+				return node;
 			}
 		}
 		if(strcmp(table->list[mid]->symbol,sym)<=0)

@@ -116,11 +116,7 @@ FklVMvalue* fklCastPreEnvToVMenv(FklPreEnv* pe,FklVMvalue* prev,FklVMheap* heap)
 	}
 	FklVMenv* tmp=fklNewVMenv(prev);
 	for(tmpDef=pe->symbols;tmpDef;tmpDef=tmpDef->next)
-	{
-		FklVMvalue* v=fklCastCptrVMvalue(&tmpDef->obj,heap);
-		FklVMenvNode* node=fklNewVMenvNode(v,fklAddSymbolToGlob(tmpDef->symbol)->id);
-		fklAddVMenvNode(node,tmp);
-	}
+		fklAddVMenvNodeWithV(fklAddSymbolToGlob(tmpDef->symbol)->id,fklCastCptrVMvalue(&tmpDef->obj,heap),tmp);
 	return fklNewVMvalue(FKL_ENV,tmp,heap);
 }
 
@@ -229,10 +225,7 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 				fklAddToHeap(r->localenv,exe->heap);
 				FklVMvalue* curEnv=r->localenv;
 				FklSid_t idOfError=tb->sid;
-				FklVMenvNode* errorNode=fklFindVMenvNode(idOfError,curEnv->u.env);
-				if(!errorNode)
-					errorNode=fklAddVMenvNode(fklNewVMenvNode(NULL,idOfError),curEnv->u.env);
-				errorNode->value=ev;
+				fklAddVMenvNode(idOfError,curEnv->u.env)->value=ev;
 				fklFreeVMerrorHandler(h);
 				exe->rhead=r;
 				return 1;

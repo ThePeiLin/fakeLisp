@@ -97,9 +97,7 @@ void SYS_cons(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("sys.cons",FKL_TOOMANYARG,runnable,exe);
 	if(!car||!cdr)
 		FKL_RAISE_BUILTIN_ERROR("sys.cons",FKL_TOOFEWARG,runnable,exe);
-	FklVMvalue* pair=fklNiNewVMvalue(FKL_PAIR,fklNewVMpair(),stack,exe->heap);
-	fklSetRef(pair,&pair->u.pair->car,car,exe->heap);
-	fklSetRef(pair,&pair->u.pair->cdr,cdr,exe->heap);
+	FklVMvalue* pair=fklNiNewVMvalue(FKL_PAIR,fklNewVMpair(car,cdr),stack,exe->heap);
 	fklNiReturn(pair,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -1905,11 +1903,7 @@ void SYS_argv(FklVM* exe,pthread_rwlock_t* pGClock)
 	int argc=fklGetVMargc();
 	char** argv=fklGetVMargv();
 	for(;i<argc;i++,tmp=&(*tmp)->u.pair->cdr)
-	{
-		FklVMvalue* cur=fklNiNewVMvalue(FKL_PAIR,fklNewVMpair(),stack,exe->heap);
-		*tmp=cur;
-		cur->u.pair->car=fklNiNewVMvalue(FKL_STR,fklNewVMstr(strlen(argv[i]),argv[i]),stack,exe->heap);
-	}
+		*tmp=fklNiNewVMvalue(FKL_PAIR,fklNewVMpair(fklNiNewVMvalue(FKL_STR,fklNewVMstr(strlen(argv[i]),argv[i]),stack,exe->heap),FKL_VM_NIL),stack,exe->heap);;
 	fklNiReturn(retval,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -2193,12 +2187,7 @@ void SYS_reverse(ARGL)
 	{
 		FklVMheap* heap=exe->heap;
 		for(FklVMvalue* cdr=obj;cdr!=FKL_VM_NIL;cdr=cdr->u.pair->cdr)
-		{
-			FklVMvalue* pair=fklNiNewVMvalue(FKL_PAIR,fklNewVMpair(),stack,heap);
-            fklSetRef(pair,&pair->u.pair->cdr,retval,heap);
-            fklSetRef(pair,&pair->u.pair->car,cdr->u.pair->car,heap);
-			retval=pair;
-		}
+			retval=fklNiNewVMvalue(FKL_PAIR,fklNewVMpair(cdr->u.pair->car,retval),stack,heap);
 	}
 	fklNiReturn(retval,&ap,stack);
 	fklNiEnd(&ap,stack);

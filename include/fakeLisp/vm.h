@@ -347,7 +347,8 @@ void fklFreeVMcontinuation(FklVMcontinuation* cont);
 
 
 FklVMenvNode* fklNewVMenvNode(FklVMvalue*,int32_t);
-FklVMenvNode* fklAddVMenvNode(FklVMenvNode*,FklVMenv*);
+FklVMenvNode* fklAddVMenvNode(FklSid_t,FklVMenv*);
+FklVMenvNode* fklAddVMenvNodeWithV(FklSid_t,FklVMvalue*,FklVMenv*);
 FklVMenvNode* fklFindVMenvNode(FklSid_t,FklVMenv*);
 void fklFreeVMenvNode(FklVMenvNode*);
 
@@ -371,7 +372,7 @@ int fklVMvaluecmp(FklVMvalue*,FklVMvalue*);
 int subfklVMvaluecmp(FklVMvalue*,FklVMvalue*);
 int fklNumcmp(FklVMvalue*,FklVMvalue*);
 
-FklVMpair* fklNewVMpair(void);
+FklVMpair* fklNewVMpair(FklVMvalue* car,FklVMvalue* cdr);
 
 FklVMstr* fklNewVMstr(size_t,const char*);
 

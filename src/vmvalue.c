@@ -40,7 +40,7 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVMstack* s,FklVMheap* heap)
 					switch(type)
 					{
 						case FKL_PAIR:
-							*root1=fklNewVMvalueToStack(FKL_PAIR,fklNewVMpair(),s,heap);
+							*root1=fklNewVMvalueToStack(FKL_PAIR,fklNewVMpair(FKL_VM_NIL,FKL_VM_NIL),s,heap);
 							fklPushPtrStack(&(*root1)->u.pair->car,s2);
 							fklPushPtrStack(&(*root1)->u.pair->cdr,s2);
 							fklPushPtrStack(root->u.pair->car,s1);
@@ -315,12 +315,12 @@ int fklNumcmp(FklVMvalue* fir,FklVMvalue* sec)
 	}
 }
 
-FklVMpair* fklNewVMpair(void)
+FklVMpair* fklNewVMpair(FklVMvalue* car,FklVMvalue* cdr)
 {
 	FklVMpair* tmp=(FklVMpair*)malloc(sizeof(FklVMpair));
 	FKL_ASSERT(tmp,__func__);
-	tmp->car=FKL_VM_NIL;
-	tmp->cdr=FKL_VM_NIL;
+	tmp->car=car;
+	tmp->cdr=cdr;
 	return tmp;
 }
 
@@ -645,15 +645,17 @@ FklVMenvNode* fklNewVMenvNode(FklVMvalue* value,int32_t id)
 	return tmp;
 }
 
-FklVMenvNode* fklAddVMenvNode(FklVMenvNode* node,FklVMenv* env)
+FklVMenvNode* fklAddVMenvNode(FklSid_t id,FklVMenv* env)
 {
+	FklVMenvNode* r=NULL;
 	pthread_rwlock_wrlock(&env->lock);
 	if(!env->list)
 	{
 		env->num=1;
 		env->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*1);
 		FKL_ASSERT(env->list,__func__);
-		env->list[0]=node;
+		r=fklNewVMenvNode(FKL_VM_NIL,id);
+		env->list[0]=r;
 	}
 	else
 	{
@@ -663,17 +665,18 @@ FklVMenvNode* fklAddVMenvNode(FklVMenvNode* node,FklVMenv* env)
 		while(l<=h)
 		{
 			mid=l+(h-l)/2;
-			if(env->list[mid]->id>node->id)
+			if(env->list[mid]->id>id)
 				h=mid-1;
-			else if(env->list[mid]->id==node->id)
+			else if(env->list[mid]->id==id)
 			{
+				r=env->list[mid];
 				pthread_rwlock_unlock(&env->lock);
-				return env->list[mid];
+				return r;
 			}
 			else
 				l=mid+1;
 		}
-		if(env->list[mid]->id<=node->id)
+		if(env->list[mid]->id<=id)
 			mid++;
 		env->num+=1;
 		int32_t i=env->num-1;
@@ -681,10 +684,58 @@ FklVMenvNode* fklAddVMenvNode(FklVMenvNode* node,FklVMenv* env)
 		FKL_ASSERT(env->list,__func__);
 		for(;i>mid;i--)
 			env->list[i]=env->list[i-1];
-		env->list[mid]=node;
+		r=fklNewVMenvNode(FKL_VM_NIL,id);
+		env->list[mid]=r;
 	}
 	pthread_rwlock_unlock(&env->lock);
-	return node;
+	return r;
+}
+
+FklVMenvNode* fklAddVMenvNodeWithV(FklSid_t id,FklVMvalue* value,FklVMenv* env)
+{
+	FklVMenvNode* r=NULL;
+	pthread_rwlock_wrlock(&env->lock);
+	if(!env->list)
+	{
+		env->num=1;
+		env->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*1);
+		FKL_ASSERT(env->list,__func__);
+		r=fklNewVMenvNode(value,id);
+		env->list[0]=r;
+	}
+	else
+	{
+		int32_t l=0;
+		int32_t h=env->num-1;
+		int32_t mid=0;
+		while(l<=h)
+		{
+			mid=l+(h-l)/2;
+			if(env->list[mid]->id>id)
+				h=mid-1;
+			else if(env->list[mid]->id==id)
+			{
+				r=env->list[mid];
+				pthread_rwlock_unlock(&env->lock);
+				r->value=value;
+				return r;
+			}
+			else
+				l=mid+1;
+		}
+		if(env->list[mid]->id<=id)
+			mid++;
+		env->num+=1;
+		int32_t i=env->num-1;
+		env->list=(FklVMenvNode**)realloc(env->list,sizeof(FklVMenvNode*)*env->num);
+		FKL_ASSERT(env->list,__func__);
+		for(;i>mid;i--)
+			env->list[i]=env->list[i-1];
+		r=fklNewVMenvNode(value,id);
+		env->list[mid]=r;
+	}
+	pthread_rwlock_unlock(&env->lock);
+	return r;
 }
 
 FklVMenvNode* fklFindVMenvNode(FklSid_t id,FklVMenv* env)
@@ -777,7 +828,7 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 		else if(root->type==FKL_PAIR)
 		{
 			FklAstPair* objPair=root->u.pair;
-			FklVMpair* tmpPair=fklNewVMpair();
+			FklVMpair* tmpPair=fklNewVMpair(FKL_VM_NIL,FKL_VM_NIL);
 			*root1=fklNewVMvalue(FKL_PAIR,tmpPair,heap);
 			fklPushPtrStack(&objPair->car,s1);
 			fklPushPtrStack(&objPair->cdr,s1);

@@ -882,9 +882,11 @@ void B_pop_rest_arg(FklVM* exe)
 	FklVMheap* heap=exe->heap;
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklVMvalue* curEnv=runnable->localenv;
-	FklVMvalue** pValue=&fklAddVMenvNode(idOfVar,curEnv->u.env)->value;
+	FklVMvalue* obj=FKL_VM_NIL;
+	FklVMvalue** pValue=&obj;
 	for(;ap>stack->bp;pValue=&(*pValue)->u.pair->cdr)
 		*pValue=fklNiNewVMvalue(FKL_PAIR,fklNewVMpair(fklNiGetArg(&ap,stack),FKL_VM_NIL),stack,heap);
+	fklSetRef(curEnv,&fklAddVMenvNode(idOfVar,curEnv->u.env)->value,obj,heap);
 	fklNiEnd(&ap,stack);
 	runnable->cp+=sizeof(char)+sizeof(FklSid_t);
 }

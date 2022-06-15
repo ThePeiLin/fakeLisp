@@ -653,7 +653,7 @@ inline void fklGC_tryRun(FklVM* exe)
 {
 	pthread_rwlock_rdlock(&exe->heap->lock);
 	FklGCState running=exe->heap->running;
-	int valueNumCmpresult=exe->heap->num>exe->heap->threshold;
+	int valueNumCmpresult=1;//exe->heap->num>exe->heap->threshold;
 	pthread_rwlock_unlock(&exe->heap->lock);
 	if(valueNumCmpresult
 			&&running==0
@@ -717,7 +717,7 @@ void B_push_pair(FklVM* exe)
 	FklVMrunnable* runnable=exe->rhead;
 	FklVMvalue* cdr=fklNiGetArg(&ap,stack);
 	FklVMvalue* car=fklNiGetArg(&ap,stack);
-	fklNiReturn(fklNewVMvalueToStack(FKL_PAIR,fklNewVMpair(car,cdr),stack,exe->heap),&ap,stack);
+	fklNiReturn(fklNiNewVMvalue(FKL_PAIR,fklNewVMpair(car,cdr),stack,exe->heap),&ap,stack);
 	fklNiEnd(&ap,stack);
 	runnable->cp+=sizeof(char);
 }
@@ -835,8 +835,7 @@ void B_pop_var(FklVM* exe)
 	FklVMvalue** pValue=NULL;
 	if(scopeOfVar>=0)
 	{
-		int32_t i=0;
-		for(;i<scopeOfVar;i++)
+		for(uint32_t i=0;i<scopeOfVar;i++)
 			curEnv=curEnv->u.env->prev;
 		pValue=&fklAddVMenvNode(idOfVar,curEnv->u.env)->value;
 	}
@@ -865,7 +864,7 @@ void B_pop_arg(FklVM* exe)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
-	if(!(stack->tp>stack->bp))
+	if(ap<=stack->bp)
 		FKL_RAISE_BUILTIN_ERROR("b.pop_arg",FKL_TOOFEWARG,runnable,exe);
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklVMvalue* curEnv=runnable->localenv;
@@ -1319,9 +1318,9 @@ void fklGC_markRootToGray(FklVM* exe)
 		fklGC_toGray(cur->localenv,heap);
 	pthread_rwlock_unlock(&exe->rlock);
 	pthread_rwlock_rdlock(&stack->lock);
-	for(uint32_t i=stack->tp;i>0;i--)
+	for(uint32_t i=0;i<stack->tp;i++)
 	{
-		FklVMvalue* value=stack->values[i-1];
+		FklVMvalue* value=stack->values[i];
 		if(FKL_IS_PTR(value))
 			fklGC_toGray(value,heap);
 	}
@@ -1361,6 +1360,7 @@ void fklGC_pause(FklVM* exe)
 		fklGC_markRootToGray(exe);
 }
 
+#include<signal.h>
 void propagateMark(FklVMvalue* root,FklVMheap* heap)
 {
 	switch(root->type)
@@ -1428,6 +1428,7 @@ void propagateMark(FklVMvalue* root,FklVMheap* heap)
 		case FKL_BIG_INT:
 			break;
 		default:
+			raise(SIGSEGV);
 			FKL_ASSERT(0,__func__);
 			break;
 	}

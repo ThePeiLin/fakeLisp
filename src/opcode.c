@@ -30,7 +30,7 @@ static struct
 	{"invoke",       0,  },
 	{"res-tp",       0,  },
 	{"pop-tp",       0,  },
-	{"res_bp",       0,  },
+	{"res-bp",       0,  },
 	{"jmp-if-true",  8,  },
 	{"jmp-if-false", 8,  },
 	{"jmp",          8,  },

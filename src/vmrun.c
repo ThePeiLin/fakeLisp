@@ -717,7 +717,7 @@ void B_push_pair(FklVM* exe)
 	FklVMrunnable* runnable=exe->rhead;
 	FklVMvalue* cdr=fklNiGetArg(&ap,stack);
 	FklVMvalue* car=fklNiGetArg(&ap,stack);
-	fklNiReturn(fklNiNewVMvalue(FKL_PAIR,fklNewVMpair(car,cdr),stack,exe->heap),&ap,stack);
+	fklNiReturn(fklNewVMpairV(car,cdr,stack,exe->heap),&ap,stack);
 	fklNiEnd(&ap,stack);
 	runnable->cp+=sizeof(char);
 }
@@ -884,7 +884,7 @@ void B_pop_rest_arg(FklVM* exe)
 	FklVMvalue* obj=FKL_VM_NIL;
 	FklVMvalue** pValue=&obj;
 	for(;ap>stack->bp;pValue=&(*pValue)->u.pair->cdr)
-		*pValue=fklNiNewVMvalue(FKL_PAIR,fklNewVMpair(fklNiGetArg(&ap,stack),FKL_VM_NIL),stack,heap);
+		*pValue=fklNewVMpairV(fklNiGetArg(&ap,stack),FKL_VM_NIL,stack,heap);
 	fklSetRef(curEnv,&fklAddVMenvNode(idOfVar,curEnv->u.env)->value,obj,heap);
 	fklNiEnd(&ap,stack);
 	runnable->cp+=sizeof(char)+sizeof(FklSid_t);
@@ -1110,13 +1110,10 @@ void B_push_vector(FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;
 	uint64_t size=fklGetU64FromByteCode(exe->code+r->cp+sizeof(char));
-	FklVMvec* vec=fklNewVMvec(size,NULL);
+	FklVMvalue* vec=fklNewVMvecV(size,NULL,stack,exe->heap);
 	for(size_t i=size;i>0;i--)
-		vec->base[i-1]=fklNiGetArg(&ap,stack);
-	fklNiReturn(fklNiNewVMvalue(FKL_VECTOR
-				,vec
-				,stack
-				,exe->heap)
+		fklSetRef(vec,&vec->u.vec->base[i-1],fklNiGetArg(&ap,stack),exe->heap);
+	fklNiReturn(vec
 			,&ap
 			,stack);
 	fklNiEnd(&ap,stack);
@@ -1359,7 +1356,6 @@ void fklGC_pause(FklVM* exe)
 	else
 		fklGC_markRootToGray(exe);
 }
-
 #include<signal.h>
 void propagateMark(FklVMvalue* root,FklVMheap* heap)
 {

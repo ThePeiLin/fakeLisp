@@ -792,28 +792,6 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 	fklFreePtrStack(hasPrintRecStack);
 }
 
-//FklVMvalue* fklGET_VAL(FklVMvalue* P,FklVMheap* heap)
-//{
-//	if(P)
-//	{
-//		//if(FKL_IS_REF(P))
-//		//	return *(FklVMvalue**)(FKL_GET_PTR(P));
-//		return P;
-//	}
-//	return P;
-//}
-
-//int fklSET_REF(FklVMvalue* P,FklVMvalue* V)
-//{
-//	if(FKL_IS_REF(P))
-//	{
-//		*(FklVMvalue**)FKL_GET_PTR(P)=V;
-//		return 0;
-//	}
-//	else
-//		return 1;
-//}
-
 FklVMvalue* fklSetRef(FklVMvalue* by,FklVMvalue** pref,FklVMvalue* v,FklVMheap* h)
 {
 	FklVMvalue* ref=*pref;

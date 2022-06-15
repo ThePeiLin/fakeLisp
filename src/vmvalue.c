@@ -40,7 +40,7 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVMstack* s,FklVMheap* heap)
 					switch(type)
 					{
 						case FKL_PAIR:
-							*root1=fklNewVMvalueToStack(FKL_PAIR,fklNewVMpair(FKL_VM_NIL,FKL_VM_NIL),s,heap);
+							*root1=fklNewVMvalueToStack(FKL_PAIR,fklNewVMpair(),s,heap);
 							fklPushPtrStack(&(*root1)->u.pair->car,s2);
 							fklPushPtrStack(&(*root1)->u.pair->cdr,s2);
 							fklPushPtrStack(root->u.pair->car,s1);
@@ -315,13 +315,30 @@ int fklNumcmp(FklVMvalue* fir,FklVMvalue* sec)
 	}
 }
 
-FklVMpair* fklNewVMpair(FklVMvalue* car,FklVMvalue* cdr)
+FklVMpair* fklNewVMpair(void)
 {
 	FklVMpair* tmp=(FklVMpair*)malloc(sizeof(FklVMpair));
 	FKL_ASSERT(tmp,__func__);
-	tmp->car=car;
-	tmp->cdr=cdr;
+	tmp->car=FKL_VM_NIL;
+	tmp->cdr=FKL_VM_NIL;
 	return tmp;
+}
+
+FklVMvalue* fklNewVMpairV(FklVMvalue* car,FklVMvalue* cdr,FklVMstack* stack,FklVMheap* heap)
+{
+	FklVMvalue* pair=fklNewVMvalueToStack(FKL_PAIR,fklNewVMpair(),stack,heap);
+	fklSetRef(pair,&pair->u.pair->car,car,heap);
+	fklSetRef(pair,&pair->u.pair->cdr,cdr,heap);
+	return pair;
+}
+
+FklVMvalue* fklNewVMvecV(size_t size,FklVMvalue** base,FklVMstack* stack,FklVMheap* heap)
+{
+	FklVMvalue* vec=fklNewVMvalueToStack(FKL_VECTOR,fklNewVMvec(size),stack,heap);
+	if(base)
+		for(size_t i=0;i<size;i++)
+			fklSetRef(vec,&vec->u.vec->base[i],base[i],heap);
+	return vec;
 }
 
 FklVMstr* fklNewVMstr(size_t size,const char* str)
@@ -806,7 +823,7 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 					fklPushPtrStack(&(*root1)->u.box,s2);
 					break;
 				case FKL_VECTOR:
-					*root1=fklNewVMvalue(FKL_VECTOR,fklNewVMvec(tmpAtm->value.vec.size,NULL),heap);
+					*root1=fklNewVMvalue(FKL_VECTOR,fklNewVMvec(tmpAtm->value.vec.size),heap);
 					for(size_t i=0;i<tmpAtm->value.vec.size;i++)
 					{
 						fklPushPtrStack(&tmpAtm->value.vec.base[i],s1);
@@ -828,7 +845,7 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 		else if(root->type==FKL_PAIR)
 		{
 			FklAstPair* objPair=root->u.pair;
-			FklVMpair* tmpPair=fklNewVMpair(FKL_VM_NIL,FKL_VM_NIL);
+			FklVMpair* tmpPair=fklNewVMpair();
 			*root1=fklNewVMvalue(FKL_PAIR,tmpPair,heap);
 			fklPushPtrStack(&objPair->car,s1);
 			fklPushPtrStack(&objPair->cdr,s1);
@@ -847,16 +864,11 @@ char* fklVMstrToCstr(FklVMstr* str)
 	return fklCharBufToStr(str->str,str->size);
 }
 
-FklVMvec* fklNewVMvec(size_t size,FklVMvalue** base)
+FklVMvec* fklNewVMvec(size_t size)
 {
 	FklVMvec* r=(FklVMvec*)malloc(sizeof(FklVMvec)+sizeof(FklVMvalue*)*size);
 	FKL_ASSERT(r,__func__);
 	r->size=size;
-	if(base)
-	{
-		for(size_t i=0;i<size;i++)
-			r->base[i]=base[i];
-	}
 	return r;
 }
 

@@ -372,7 +372,8 @@ int fklVMvaluecmp(FklVMvalue*,FklVMvalue*);
 int subfklVMvaluecmp(FklVMvalue*,FklVMvalue*);
 int fklNumcmp(FklVMvalue*,FklVMvalue*);
 
-FklVMpair* fklNewVMpair(FklVMvalue* car,FklVMvalue* cdr);
+FklVMpair* fklNewVMpair(void);
+FklVMvalue* fklNewVMpairV(FklVMvalue* car,FklVMvalue* cdr,FklVMstack*,FklVMheap*);
 
 FklVMstr* fklNewVMstr(size_t,const char*);
 
@@ -418,7 +419,8 @@ FklVMvalue* fklGetVMstdin(void);
 FklVMvalue* fklGetVMstdout(void);
 FklVMvalue* fklGetVMstderr(void);
 
-FklVMvec* fklNewVMvec(size_t size,FklVMvalue** base);
+FklVMvec* fklNewVMvec(size_t size);
+FklVMvalue* fklNewVMvecV(size_t size,FklVMvalue** base,FklVMstack*,FklVMheap*);
 void fklFreeVMvec(FklVMvec*);
 void fklVMvecCat(FklVMvec**,const FklVMvec*);
 

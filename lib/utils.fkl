@@ -258,7 +258,7 @@
          `((lambda ~args ~@b) ~@vals))
         ((null d)
          `((lambda () ~@b)))
-        (1 (raise (error "expanding-macro-let" 'syntax-error "error:Wrong type of object behind key word:let\n"))))))
+        (1 (raise (error "expanding-macro-let" 'syntax-error "Wrong type of object behind key word:let\n"))))))
 
   (defmacro
     (let* d,b)

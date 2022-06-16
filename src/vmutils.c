@@ -795,11 +795,16 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 FklVMvalue* fklSetRef(FklVMvalue* by,FklVMvalue** pref,FklVMvalue* v,FklVMheap* h)
 {
 	FklVMvalue* ref=*pref;
-	if(by->mark==FKL_MARK_B)
-		fklGC_reGray(by,h);
-	else if(by->mark==FKL_MARK_G&&ref&&FKL_IS_PTR(ref)&&ref->mark==FKL_MARK_W)
-		fklGC_toGray(ref,h);
 	*pref=v;
+	if(pthread_rwlock_trywrlock(&h->lock))
+	{
+		if(by->mark==FKL_MARK_B)
+			fklGC_reGray(by,h);
+		else if(by->mark==FKL_MARK_G&&ref&&FKL_IS_PTR(ref)&&ref->mark==FKL_MARK_W)
+			fklGC_toGray(ref,h);
+	}
+	else
+		pthread_rwlock_unlock(&h->lock);
 	return ref;
 }
 

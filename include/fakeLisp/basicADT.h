@@ -9,6 +9,19 @@ extern "C"{
 
 typedef struct
 {
+	void** table;
+	size_t size;
+	size_t inc;
+}FklPtrHashTable;
+
+FklPtrHashTable* fklNewPtrHashTable(size_t size,size_t inc);
+void* fklGetHashPtr(uint64_t key);
+void** fklGetHashSlot(uint64_t key);
+uint64_t fklPtrHashFunc(uint64_t id);
+void fklFreePtrHashTable(FklPtrHashTable*);
+
+typedef struct
+{
 	void** base;
 	uint32_t size;
 	uint32_t top;

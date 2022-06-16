@@ -160,8 +160,11 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 	fprintf(fp,"%ld:",i);
 	for(uint32_t i=0;i<tc;i++)
 		fputc('\t',fp);
-	fprintf(fp," %s ",fklGetOpcodeName((FklOpcode)(tmpCode->code[i])));
-	switch(fklGetOpcodeArgLen((FklOpcode)(tmpCode->code[i])))
+	fprintf(fp," %s",fklGetOpcodeName((FklOpcode)(tmpCode->code[i])));
+	int opcodeArgLen=fklGetOpcodeArgLen((FklOpcode)(tmpCode->code[i]));
+	if(opcodeArgLen)
+		fputc(' ',fp);
+	switch(opcodeArgLen)
 	{
 		case -4:
 			{
@@ -388,15 +391,14 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp)
 			i+=printSingleByteCode(tmpCode,i,fp,cState,s,&needBreak);
 			if(obj->l[j]->scp+obj->l[j]->cpc<i)
 				j++;
-			putc('\t',fp);
 			if(obj->l[j]->fid!=fid||obj->l[j]->line!=line)
 			{
 				fid=obj->l[j]->fid;
 				line=obj->l[j]->line;
 				if(fid)
-					fprintf(fp,"%s:%u:%lu",fklGetGlobSymbolWithId(obj->l[j]->fid)->symbol,obj->l[j]->line,obj->l[j]->cpc);
+					fprintf(fp,"\t%s:%u:%lu",fklGetGlobSymbolWithId(obj->l[j]->fid)->symbol,obj->l[j]->line,obj->l[j]->cpc);
 				else
-					fprintf(fp,"%u:%lu",obj->l[j]->line,obj->l[j]->cpc);
+					fprintf(fp,"\t%u:%lu",obj->l[j]->line,obj->l[j]->cpc);
 			}
 			putc('\n',fp);
 			if(needBreak)

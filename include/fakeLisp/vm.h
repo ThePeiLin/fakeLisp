@@ -421,6 +421,7 @@ FklVMvalue* fklGetVMstderr(void);
 
 FklVMvec* fklNewVMvec(size_t size);
 FklVMvalue* fklNewVMvecV(size_t size,FklVMvalue** base,FklVMstack*,FklVMheap*);
+FklVMvalue* fklNewVMvecVFromStack(size_t size,FklVMvalue** base,FklVMstack*,FklVMheap*);
 void fklFreeVMvec(FklVMvec*);
 void fklVMvecCat(FklVMvec**,const FklVMvec*);
 

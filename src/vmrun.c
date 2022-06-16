@@ -918,8 +918,10 @@ void B_res_tp(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=exe->rhead;
+	pthread_rwlock_wrlock(&stack->lock);
 	stack->tp=(stack->tptp)?stack->tpst[stack->tptp-1]:0;
 	fklStackRecycle(exe);
+	pthread_rwlock_unlock(&stack->lock);
 	runnable->cp+=sizeof(char);
 }
 
@@ -1156,7 +1158,9 @@ void B_push_box(FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;
 	FklVMvalue* c=fklNiGetArg(&ap,stack);
-	fklNiReturn(fklNiNewVMvalue(FKL_BOX,c,stack,exe->heap),&ap,stack);
+	FklVMvalue* box=fklNiNewVMvalue(FKL_BOX,FKL_VM_NIL,stack,exe->heap);
+	fklSetRef(box,&box->u.box,c,exe->heap);
+	fklNiReturn(box,&ap,stack);
 	fklNiEnd(&ap,stack);
 	r->cp+=sizeof(char);
 }

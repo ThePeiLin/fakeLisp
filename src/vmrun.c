@@ -611,16 +611,16 @@ int fklRunVM(FklVM* exe)
 	return 0;
 }
 
-inline void fklChangeGCstate(FklGCState state,FklVMheap* h)
+inline void fklChangeGCstate(FklGCstate state,FklVMheap* h)
 {
 	pthread_rwlock_wrlock(&h->lock);
 	h->running=state;
 	pthread_rwlock_unlock(&h->lock);
 }
 
-inline FklGCState fklGetGCstate(FklVMheap* h)
+inline FklGCstate fklGetGCstate(FklVMheap* h)
 {
-	FklGCState state=FKL_GC_NONE;
+	FklGCstate state=FKL_GC_NONE;
 	pthread_rwlock_wrlock(&h->lock);
 	state=h->running;
 	pthread_rwlock_unlock(&h->lock);
@@ -629,7 +629,7 @@ inline FklGCState fklGetGCstate(FklVMheap* h)
 
 inline void fklWaitGC(FklVMheap* h)
 {
-	FklGCState running=fklGetGCstate(h);
+	FklGCstate running=fklGetGCstate(h);
 	if(running==FKL_GC_SWEEPING||running==FKL_GC_COLLECT||running==FKL_GC_DONE)
 		fklGC_joinGCthread(h);
 	Graylink** head=&h->gray;
@@ -1481,7 +1481,7 @@ void fklGC_sweep(FklVMheap* heap)
 	pthread_rwlock_unlock(&heap->lock);
 }
 
-inline void fklGetGCstateAndHeapNum(FklVMheap* h,FklGCState* s,int* cr)
+inline void fklGetGCstateAndHeapNum(FklVMheap* h,FklGCstate* s,int* cr)
 {
 	pthread_rwlock_rdlock(&h->lock);
 	*s=h->running;
@@ -1491,7 +1491,7 @@ inline void fklGetGCstateAndHeapNum(FklVMheap* h,FklGCState* s,int* cr)
 
 inline void fklGC_step(FklVM* exe)
 {
-	FklGCState running=FKL_GC_NONE;
+	FklGCstate running=FKL_GC_NONE;
 	int cr=0;
 	fklGetGCstateAndHeapNum(exe->heap,&running,&cr);
 	static size_t need=0;

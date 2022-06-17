@@ -198,11 +198,11 @@ typedef enum
 	FKL_GC_COLLECT,
 	FKL_GC_SWEEPING,
 	FKL_GC_DONE,
-}FklGCState;
+}FklGCstate;
 
 typedef struct FklVMheap
 {
-	FklGCState running;
+	FklGCstate running;
 	pthread_rwlock_t lock;
 	size_t num;
 	uint32_t threshold;
@@ -282,9 +282,9 @@ void fklFreeAllVMs();
 void fklDeleteCallChain(FklVM*);
 void fklJoinAllThread();
 void fklCancelAllThread();
-void fklChangeGCstate(FklGCState,FklVMheap*);
-FklGCState fklGetGCstate(FklVMheap*);
-void fklGetGCstateAndHeapNum(FklVMheap*,FklGCState* s,int* num);
+void fklChangeGCstate(FklGCstate,FklVMheap*);
+FklGCstate fklGetGCstate(FklVMheap*);
+void fklGetGCstateAndHeapNum(FklVMheap*,FklGCstate* s,int* num);
 void* fklGC_threadFunc(void*);
 void* fklGC_sweepThreadFunc(void*);
 void fklGC_mark(FklVM*);

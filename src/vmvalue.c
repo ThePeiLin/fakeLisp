@@ -195,7 +195,7 @@ void fklAddToHeap(FklVMvalue* v,FklVMheap* heap)
 {
 	if(FKL_IS_PTR(v))
 	{
-		FklGCState running=fklGetGCstate(heap);
+		FklGCstate running=fklGetGCstate(heap);
 		if(running>FKL_GC_MARK_ROOT&&running<FKL_GC_SWEEPING)
 			fklGC_toGray(v,heap);
 		pthread_rwlock_wrlock(&heap->lock);

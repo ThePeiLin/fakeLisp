@@ -198,9 +198,9 @@ typedef struct FklVMudMethodTable
 typedef enum
 {
 	FKL_GC_NONE=0,
-	FKL_GC_RUNNING,
 	FKL_GC_MARK_ROOT,
 	FKL_GC_PROPAGATE,
+	FKL_GC_COLLECT,
 	FKL_GC_SWEEP,
 	FKL_GC_SWEEPING,
 	FKL_GC_DONE,

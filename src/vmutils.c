@@ -796,7 +796,8 @@ FklVMvalue* fklSetRef(FklVMvalue* by,FklVMvalue** pref,FklVMvalue* v,FklVMheap* 
 {
 	FklVMvalue* ref=*pref;
 	*pref=v;
-	if(fklGetGCstate(h)==FKL_GC_PROPAGATE)
+	FklGCState running=fklGetGCstate(h);
+	if(running==FKL_GC_PROPAGATE||running==FKL_GC_COLLECT)
 	{
 		if(by->mark==FKL_MARK_B)
 			fklGC_reGray(by,h);

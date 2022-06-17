@@ -195,10 +195,8 @@ void fklAddToHeap(FklVMvalue* v,FklVMheap* heap)
 {
 	if(FKL_IS_PTR(v))
 	{
-		pthread_rwlock_rdlock(&heap->lock);
-		FklGCState running=heap->running;
-		pthread_rwlock_unlock(&heap->lock);
-		if(running)
+		FklGCState running=fklGetGCstate(heap);
+		if(running>FKL_GC_MARK_ROOT&&running<FKL_GC_SWEEPING)
 			fklGC_toGray(v,heap);
 		pthread_rwlock_wrlock(&heap->lock);
 		v->next=heap->head;
@@ -337,7 +335,6 @@ FklVMvalue* fklNewVMvecV(size_t size,FklVMvalue** base,FklVMstack* stack,FklVMhe
 	FklVMvalue* vec=fklNewVMvalueToStack(FKL_VECTOR,fklNewVMvec(size),stack,heap);
 	if(base)
 		for(size_t i=0;i<size;i++)
-			//vec->u.vec->base[i]=base[i];
 			fklSetRef(vec,&vec->u.vec->base[i],base[i],heap);
 	return vec;
 }

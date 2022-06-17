@@ -630,7 +630,7 @@ inline FklGCState fklGetGCstate(FklVMheap* h)
 inline void fklWaitGC(FklVMheap* h)
 {
 	FklGCState running=fklGetGCstate(h);
-	if(running==FKL_GC_SWEEPING||running==FKL_GC_DONE)
+	if(running==FKL_GC_SWEEPING||running==FKL_GC_COLLECT||running==FKL_GC_DONE)
 		fklGC_joinGCthread(h);
 	Graylink** head=&h->gray;
 	while(*head)
@@ -1436,6 +1436,7 @@ void fklGC_collect(FklVMheap* heap)
 	pthread_rwlock_wrlock(&heap->lock);
 	FklVMvalue* head=heap->head;
 	heap->head=NULL;
+	heap->running=FKL_GC_SWEEPING;
 	pthread_rwlock_unlock(&heap->lock);
 	FklVMvalue** phead=&head;
 	while(*phead)
@@ -1518,10 +1519,11 @@ inline void fklGC_step(FklVM* exe)
 			if(!pthread_mutex_trylock(&GCthreadLock))
 			{
 				pthread_create(&GCthreadId,NULL,fklGC_threadFunc,exe->heap);
-				fklChangeGCstate(FKL_GC_SWEEPING,exe->heap);
+				fklChangeGCstate(FKL_GC_COLLECT,exe->heap);
 				pthread_mutex_unlock(&GCthreadLock);
 			}
 			break;
+		case FKL_GC_COLLECT:
 		case FKL_GC_SWEEPING:
 			break;
 		case FKL_GC_DONE:

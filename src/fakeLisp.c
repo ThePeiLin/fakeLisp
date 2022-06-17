@@ -94,7 +94,7 @@ int main(int argc,char** argv)
 			if(setjmp(buf)==0)
 			{
 				fklRunVM(anotherVM);
-				fklGC_wait(anotherVM->heap);
+				fklWaitGC(anotherVM->heap);
 				fklJoinAllThread();
 				fklFreeIntpr(inter);
 				fklUninitPreprocess();
@@ -252,14 +252,14 @@ void runRepl(FklInterpreter* inter)
 				anotherVM->rhead=mainrunnable;
 				if(!(e=setjmp(buf)))
 				{
-					fklRunVMForRepl(anotherVM);
+					fklRunVM(anotherVM);
 					FklVMstack* stack=anotherVM->stack;
 					if(inter->file==stdin&&stack->tp!=0)
 					{
 						printf(";=>");
 						fklDBG_printVMstack(stack,stdout,0);
 					}
-					fklGC_wait(anotherVM->heap);
+					fklWaitGC(anotherVM->heap);
 					free(anotherVM->rhead);
 					anotherVM->rhead=NULL;
 					stack->tp=0;

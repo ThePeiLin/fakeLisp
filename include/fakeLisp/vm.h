@@ -197,7 +197,12 @@ typedef struct FklVMudMethodTable
 
 typedef enum
 {
-	FKL_GC_RUNNING=1,
+	FKL_GC_NONE=0,
+	FKL_GC_RUNNING,
+	FKL_GC_MARK_ROOT,
+	FKL_GC_PROPAGATE,
+	FKL_GC_SWEEP,
+	FKL_GC_SWEEPING,
 	FKL_GC_DONE,
 }FklGCState;
 
@@ -210,6 +215,7 @@ typedef struct FklVMheap
 	FklVMvalue* head;
 	pthread_rwlock_t glock;
 	struct Graylink* gray;
+	size_t grayNum;
 	FklVMvalue* white;
 }FklVMheap;
 
@@ -261,7 +267,6 @@ typedef struct FklVMerrorHandler
 //vmrun
 
 int fklRunVM(FklVM*);
-int fklRunVMForRepl(FklVM*);
 FklVM* fklNewVM(FklByteCode*);
 FklVM* fklNewTmpVM(FklByteCode*);
 FklVM* fklNewThreadVM(FklVMproc*,FklVMheap*);
@@ -283,7 +288,11 @@ void fklFreeAllVMs();
 void fklDeleteCallChain(FklVM*);
 void fklJoinAllThread();
 void fklCancelAllThread();
+void fklChangeGCstate(FklGCState,FklVMheap*);
+FklGCState fklGetGCstate(FklVMheap*);
+void fklGetGCstateAndHeapNum(FklVMheap*,FklGCState* s,int* num);
 void* fklGC_threadFunc(void*);
+void* fklGC_sweepThreadFunc(void*);
 void fklGC_mark(FklVM*);
 void fklGC_markValue(FklVMvalue*);
 void fklGC_markValueInStack(FklVMstack*);
@@ -291,26 +300,22 @@ void fklGC_markValueInEnv(FklVMenv*);
 void fklGC_markValueInCallChain(FklPtrStack*);
 void fklGC_markMessage(FklQueueNode*);
 void fklGC_markSendT(FklQueueNode*);
-void fklGC_sweep(FklVMheap*);
-void fklGC_compact(FklVMheap*);
 void fklGC_toGray(FklVMvalue*,FklVMheap*);
 void fklGC_reGray(FklVMvalue*,FklVMheap*);
-void fklGC_tryRun(FklVM* exe);
-void fklGC_tryJoin(FklVMheap* exe);
-void fklGC_wait(FklVMheap* h);
+void fklGC_step(FklVM* exe);
 void fklGC_joinGCthread(FklVMheap* h);
+
+void fklWaitGC(FklVMheap* h);
+void fklFreeAllValues(FklVMheap*);
+void fklGC_sweep(FklVMheap*);
 
 void fklDBG_printVMenv(FklVMenv*,FILE*);
 void fklDBG_printVMvalue(FklVMvalue*,FILE*);
 void fklDBG_printVMstack(FklVMstack*,FILE*,int);
 
-//FklVMvalue* fklGET_VAL(FklVMvalue* P,FklVMheap*);
-//int fklSET_REF(FklVMvalue* P,FklVMvalue* V);
 void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v,FILE* fp));
 void fklPrin1VMvalue(FklVMvalue*,FILE*);
 void fklPrincVMvalue(FklVMvalue*,FILE*);
-
-//
 
 //vmutils
 

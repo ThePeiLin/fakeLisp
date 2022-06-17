@@ -796,15 +796,13 @@ FklVMvalue* fklSetRef(FklVMvalue* by,FklVMvalue** pref,FklVMvalue* v,FklVMheap* 
 {
 	FklVMvalue* ref=*pref;
 	*pref=v;
-	if(pthread_rwlock_trywrlock(&h->lock))
+	if(fklGetGCstate(h)==FKL_GC_PROPAGATE)
 	{
 		if(by->mark==FKL_MARK_B)
 			fklGC_reGray(by,h);
 		else if(by->mark==FKL_MARK_G&&ref&&FKL_IS_PTR(ref)&&ref->mark==FKL_MARK_W)
 			fklGC_toGray(ref,h);
 	}
-	else
-		pthread_rwlock_unlock(&h->lock);
 	return ref;
 }
 
@@ -1050,7 +1048,7 @@ void fklInitVMRunningResource(FklVM* vm,FklVMvalue* vEnv,FklVMheap* heap,FklByte
 
 void fklUninitVMRunningResource(FklVM* vm)
 {
-	fklGC_wait(vm->heap);
+	fklWaitGC(vm->heap);
 	free(vm->lnt);
 	fklDeleteCallChain(vm);
 	fklFreeVMstack(vm->stack);

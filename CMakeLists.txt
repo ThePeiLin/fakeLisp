@@ -9,14 +9,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 if(MSVC)
 	add_compile_options(/W4)
 else()
-	add_compile_options(-Wall)
+	add_compile_options(-Wall)# -fsanitize=thread)
 endif()
 set(CMAKE_C_STANDARD 11)
 
 if(WIN32)
 	set(LINK_TARGET m pthread)
 else()
-	set(LINK_TARGET m pthread dl)
+	set(LINK_TARGET m pthread dl)# tsan)
 endif()
 
 #target names

@@ -631,15 +631,13 @@ inline void fklWaitGC(FklVMheap* h)
 {
 	FklGCState running=fklGetGCstate(h);
 	if(running==FKL_GC_SWEEPING||running==FKL_GC_DONE)
-	{
 		fklGC_joinGCthread(h);
-		Graylink** head=&h->gray;
-		while(*head)
-		{
-			Graylink* cur=*head;
-			*head=cur->next;
-			free(cur);
-		}
+	Graylink** head=&h->gray;
+	while(*head)
+	{
+		Graylink* cur=*head;
+		*head=cur->next;
+		free(cur);
 	}
 }
 

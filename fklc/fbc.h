@@ -12,7 +12,7 @@ int fklcIsFbc(FklVMvalue*);
 void fklcInit(FklVMvalue* rel);
 FklVMudata* fklcNewFbcUd(FklByteCode* code);
 FklVMvalue* fklcGetRel(void);
-FklByteCode* fklcNewPushStrByteCode(const FklVMstr* str);
+FklByteCode* fklcNewPushStrByteCode(const FklString* str);
 #ifdef __cplusplus
 }
 #endif

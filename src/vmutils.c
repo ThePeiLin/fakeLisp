@@ -336,7 +336,7 @@ char* fklGenErrorMessage(FklErrorType type,FklVMrunnable* r,FklVM* exe)
 			t=fklStrCat(t,"Faild to load dll \"");
 			{
 				FklVMvalue* v=exe->stack->values[exe->stack->tp-1];
-				char* str=fklVMstrToCstr(v->u.str);
+				char* str=fklStringToCstr(v->u.str);
 				t=fklStrCat(t,str);
 				free(str);
 			}
@@ -346,7 +346,7 @@ char* fklGenErrorMessage(FklErrorType type,FklVMrunnable* r,FklVM* exe)
 			t=fklStrCat(t,"Invalid symbol ");
 			{
 				FklVMvalue* v=exe->stack->values[exe->stack->tp-1];
-				char* str=fklVMstrToCstr(v->u.str);
+				char* str=fklStringToCstr(v->u.str);
 				t=fklStrCat(t,str);
 				free(str);
 			}
@@ -359,7 +359,7 @@ char* fklGenErrorMessage(FklErrorType type,FklVMrunnable* r,FklVM* exe)
 			t=fklStrCat(t,"Failed for file:\"");
 			{
 				FklVMvalue* v=exe->stack->values[exe->stack->tp-1];
-				char* str=fklVMstrToCstr(v->u.str);
+				char* str=fklStringToCstr(v->u.str);
 				t=fklStrCat(t,str);
 				free(str);
 			}
@@ -564,11 +564,6 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 	}
 }
 
-static void fklPrintRawVMstr(FklVMstr* str,FILE* fp)
-{
-	fklPrintRawCharBuf(str->str,str->size,fp);
-}
-
 static void prin1VMatom(FklVMvalue* v,FILE* fp)
 {
 	FklVMptrTag tag=FKL_GET_TAG(v);
@@ -596,7 +591,7 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 					fprintf(fp,"%ld",v->u.i64);
 					break;
 				case FKL_STR:
-					fklPrintRawVMstr(v->u.str,fp);
+					fklPrintRawString(v->u.str,fp);
 					break;
 				case FKL_PROC:
 					if(v->u.proc->sid)

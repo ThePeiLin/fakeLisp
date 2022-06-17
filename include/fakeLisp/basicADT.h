@@ -135,20 +135,20 @@ void fklFreeBigInt(FklBigInt*);
 void fklPrintBigInt(FklBigInt*,FILE*);
 void fklSprintBigInt(FklBigInt*,size_t size,char* buf);
 
-typedef struct FklVMstr
+typedef struct FklString
 {
 	uint64_t size;
 	char str[];
-}FklVMstr;
+}FklString;
 
-FklVMstr* fklNewVMstr(size_t,const char*);
+FklString* fklNewString(size_t,const char*);
 
-FklVMstr* fklCopyVMstr(const FklVMstr*);
-FklVMstr* fklNewEmptyVMstr();
-void fklVMstrCat(FklVMstr**,const FklVMstr*);
-int fklVMstrcmp(const FklVMstr*,const FklVMstr*);
-char* fklVMstrToCstr(FklVMstr* str);
-
+FklString* fklCopyString(const FklString*);
+FklString* fklNewEmptyString();
+void fklStringCat(FklString**,const FklString*);
+int fklStringcmp(const FklString*,const FklString*);
+char* fklStringToCstr(FklString* str);
+void fklPrintRawString(FklString* str,FILE* fp);
 #ifdef __cplusplus
 }
 #endif

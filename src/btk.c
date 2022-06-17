@@ -125,7 +125,7 @@ void FKL_getTime(ARGL)
 	char* trueTime=(char*)malloc(sizeof(char)*timeLen);
 	FKL_ASSERT(trueTime,__func__);
 	sprintf(trueTime,"%s-%s-%s_%s_%s_%s",year,mon,day,hour,min,sec);
-	FklVMstr* str=fklNewVMstr(timeLen-1,trueTime);
+	FklString* str=fklNewString(timeLen-1,trueTime);
 	FklVMvalue* tmpVMvalue=fklNiNewVMvalue(FKL_STR,str,stack,exe->heap);
 	free(trueTime);
 	fklNiReturn(tmpVMvalue,&ap,stack);
@@ -142,7 +142,7 @@ void FKL_removeFile(ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR("btk.removeFile",FKL_TOOMANYARG,r,exe);
 	FKL_NI_CHECK_TYPE(name,FKL_IS_STR,"btk.removeFile",r,exe);
-	char* str=fklVMstrToCstr(name->u.str);
+	char* str=fklStringToCstr(name->u.str);
 	fklNiReturn(FKL_MAKE_VM_I32(remove(str)),&ap,stack);
 	fklNiEnd(&ap,stack);
 	free(name);

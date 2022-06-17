@@ -910,9 +910,9 @@ int fklCmpIBigInt(int64_t i,const FklBigInt* bi)
 	return -fklCmpBigIntI(bi,i);
 }
 
-FklVMstr* fklNewVMstr(size_t size,const char* str)
+FklString* fklNewString(size_t size,const char* str)
 {
-	FklVMstr* tmp=(FklVMstr*)malloc(sizeof(FklVMstr)+size*sizeof(uint8_t));
+	FklString* tmp=(FklString*)malloc(sizeof(FklString)+size*sizeof(uint8_t));
 	FKL_ASSERT(tmp,__func__);
 	tmp->size=size;
 	if(str)
@@ -920,7 +920,7 @@ FklVMstr* fklNewVMstr(size_t size,const char* str)
 	return tmp;
 }
 
-int fklVMstrcmp(const FklVMstr* fir,const FklVMstr* sec)
+int fklStringcmp(const FklString* fir,const FklString* sec)
 {
 	size_t size=fir->size<sec->size?fir->size:sec->size;
 	int r=memcmp(fir->str,sec->str,size);
@@ -929,31 +929,34 @@ int fklVMstrcmp(const FklVMstr* fir,const FklVMstr* sec)
 	return r;
 }
 
-FklVMstr* fklCopyVMstr(const FklVMstr* obj)
+FklString* fklCopyString(const FklString* obj)
 {
 	if(obj==NULL)return NULL;
-	FklVMstr* tmp=(FklVMstr*)malloc(sizeof(FklVMstr)+obj->size);
+	FklString* tmp=(FklString*)malloc(sizeof(FklString)+obj->size);
 	FKL_ASSERT(tmp,__func__);
 	memcpy(tmp->str,obj->str,obj->size);
 	tmp->size=obj->size;
 	return tmp;
 }
 
-void fklVMstrCat(FklVMstr** fir,const FklVMstr* sec)
+void fklStringCat(FklString** fir,const FklString* sec)
 {
 	size_t firSize=(*fir)->size;
 	size_t secSize=sec->size;
-	*fir=(FklVMstr*)realloc(*fir,sizeof(FklVMstr)+(firSize+secSize)*sizeof(uint8_t));
+	*fir=(FklString*)realloc(*fir,sizeof(FklString)+(firSize+secSize)*sizeof(uint8_t));
 	FKL_ASSERT(*fir,__func__);
 	(*fir)->size=firSize+secSize;
 	memcpy((*fir)->str+firSize,sec->str,secSize);
 }
-FklVMstr* fklNewEmptyVMstr()
+FklString* fklNewEmptyString()
 {
-	FklVMstr* tmp=(FklVMstr*)malloc(sizeof(FklVMstr));
+	FklString* tmp=(FklString*)malloc(sizeof(FklString));
 	FKL_ASSERT(tmp,__func__);
 	tmp->size=0;
 	return tmp;
 }
 
-
+void fklPrintRawString(FklString* str,FILE* fp)
+{
+	fklPrintRawCharBuf(str->str,str->size,fp);
+}

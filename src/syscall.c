@@ -120,7 +120,7 @@ void SYS_append(ARGL)
 		else if(FKL_IS_STR(*prev))
 		{
 			FKL_NI_CHECK_TYPE(cur,FKL_IS_STR,"sys.append",runnable,exe);
-			fklVMstrCat((FklVMstr**)&(*prev)->u.str,cur->u.str);
+			fklStringCat((FklString**)&(*prev)->u.str,cur->u.str);
 		}
 		else if(FKL_IS_VECTOR(*prev))
 		{
@@ -680,7 +680,7 @@ void SYS_eqn(ARGL)
 				}
 			}
 			else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
-				r=(fklVMstrcmp(prev->u.str,cur->u.str)==0);
+				r=(fklStringcmp(prev->u.str,cur->u.str)==0);
 			else if(FKL_IS_USERDATA(prev)&&prev->u.ud->t->__cmp)
 			{
 				int isUnableToBeCmp=0;
@@ -743,7 +743,7 @@ void SYS_gt(ARGL)
 				}
 			}
 			else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
-				r=(fklVMstrcmp(prev->u.str,cur->u.str)>0);
+				r=(fklStringcmp(prev->u.str,cur->u.str)>0);
 			else if(FKL_IS_USERDATA(prev)&&prev->u.ud->t->__cmp)
 			{
 				int isUnableToBeCmp=0;
@@ -806,7 +806,7 @@ void SYS_ge(ARGL)
 				}
 			}
 			else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
-				r=(fklVMstrcmp(prev->u.str,cur->u.str)>=0);
+				r=(fklStringcmp(prev->u.str,cur->u.str)>=0);
 			else if(FKL_IS_USERDATA(prev)&&prev->u.ud->t->__cmp)
 			{
 				int isUnableToBeCmp=0;
@@ -869,7 +869,7 @@ void SYS_lt(ARGL)
 				}
 			}
 			else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
-				r=(fklVMstrcmp(prev->u.str,cur->u.str)<0);
+				r=(fklStringcmp(prev->u.str,cur->u.str)<0);
 			else if(FKL_IS_USERDATA(prev)&&prev->u.ud->t->__cmp)
 			{
 				int isUnableToBeCmp=0;
@@ -932,7 +932,7 @@ void SYS_le(ARGL)
 				}
 			}
 			else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
-				r=(fklVMstrcmp(prev->u.str,cur->u.str)<=0);
+				r=(fklStringcmp(prev->u.str,cur->u.str)<=0);
 			else if(FKL_IS_USERDATA(prev)&&prev->u.ud->t->__cmp)
 			{
 				int isUnableToBeCmp=0;
@@ -1313,10 +1313,10 @@ void SYS_as_str(ARGL)
 				size=tsize;
 			}
 			if(FKL_IS_STR(obj))
-				retval->u.str=fklNewVMstr(size,obj->u.str->str+start);
+				retval->u.str=fklNewString(size,obj->u.str->str+start);
 			else
 			{
-				retval->u.str=fklNewVMstr(size,NULL);
+				retval->u.str=fklNewString(size,NULL);
 				for(size_t i=0;i<size;i++)
 				{
 					FklVMvalue* v=obj->u.vec->base[start+i];
@@ -1328,10 +1328,10 @@ void SYS_as_str(ARGL)
 		else
 		{
 			if(FKL_IS_STR(obj))
-				retval->u.str=fklCopyVMstr(obj->u.str);
+				retval->u.str=fklCopyString(obj->u.str);
 			else
 			{
-				retval->u.str=fklNewVMstr(obj->u.vec->size,NULL);
+				retval->u.str=fklNewString(obj->u.vec->size,NULL);
 				FKL_ASSERT(retval->u.str,__func__);
 				for(size_t i=0;i<obj->u.vec->size;i++)
 				{
@@ -1344,14 +1344,14 @@ void SYS_as_str(ARGL)
 	}
 	else if(FKL_IS_CHR(obj))
 	{
-		retval->u.str=fklNewEmptyVMstr();
+		retval->u.str=fklNewEmptyString();
 		retval->u.str->size=0;
 		for(size_t i=0;obj;i++,obj=fklNiGetArg(&ap,stack))
 		{
 			FKL_NI_CHECK_TYPE(obj,FKL_IS_CHR,"sys.as-str",runnable,exe);
 			retval->u.str->size++;
-			retval->u.str=(FklVMstr*)realloc(retval->u.str
-					,sizeof(FklVMstr)+sizeof(char)*(i+1));
+			retval->u.str=(FklString*)realloc(retval->u.str
+					,sizeof(FklString)+sizeof(char)*(i+1));
 			FKL_ASSERT(retval->u.str,__func__);
 			retval->u.str->str[i]=FKL_GET_CHR(obj);
 		}
@@ -1365,7 +1365,7 @@ void SYS_as_str(ARGL)
 		{
 			FKL_NI_CHECK_TYPE(content,FKL_IS_CHR,"sys.as-str",runnable,exe);
 			size_t size=fklGetInt(obj);
-			retval->u.str=fklNewVMstr(size,NULL);
+			retval->u.str=fklNewString(size,NULL);
 			FKL_ASSERT(retval->u.str,__func__);
 			memset(retval->u.str->str,FKL_GET_CHR(content),size);
 		}
@@ -1374,14 +1374,14 @@ void SYS_as_str(ARGL)
 			if(FKL_IS_I32(obj))
 			{
 				int32_t r=FKL_GET_I32(obj);
-				retval->u.str=fklNewVMstr(sizeof(int32_t),(char*)&r);
+				retval->u.str=fklNewString(sizeof(int32_t),(char*)&r);
 			}
 			else if(FKL_IS_I64(obj))
-				retval->u.str=fklNewVMstr(sizeof(int64_t),(char*)&obj->u.i64);
+				retval->u.str=fklNewString(sizeof(int64_t),(char*)&obj->u.i64);
 			else
 			{
 				FklBigInt* bi=obj->u.bigInt;
-				retval->u.str=fklNewVMstr(bi->num+1,NULL);
+				retval->u.str=fklNewString(bi->num+1,NULL);
 				retval->u.str->str[0]=bi->neg;
 				memcpy(retval->u.str->str+1,bi->digits,bi->num);
 			}
@@ -1392,11 +1392,11 @@ void SYS_as_str(ARGL)
 		if(fklNiResBp(&ap,stack))
 			FKL_RAISE_BUILTIN_ERROR("sys.as-str",FKL_TOOMANYARG,runnable,exe);
 		else if(FKL_IS_F64(obj))
-			retval->u.str=fklNewVMstr(sizeof(double),(char*)&obj->u.f64);
+			retval->u.str=fklNewString(sizeof(double),(char*)&obj->u.f64);
 		else if(FKL_IS_SYM(obj))
 		{
 			FklSid_t sid=FKL_GET_SYM(obj);
-			retval->u.str=fklNewVMstr(sizeof(FklSid_t),(char*)&sid);
+			retval->u.str=fklNewString(sizeof(FklSid_t),(char*)&sid);
 		}
 		else if(FKL_IS_USERDATA(obj)&&obj->u.ud->t->__as_str)
 			retval->u.str=obj->u.ud->t->__as_str(obj->u.ud->data);
@@ -1422,7 +1422,7 @@ void SYS_symbol(ARGL)
 		fklNiReturn(obj,&ap,stack);
 	else if(FKL_IS_STR(obj))
 	{
-		char* str=fklVMstrToCstr(obj->u.str);
+		char* str=fklStringToCstr(obj->u.str);
 		fklNiReturn(FKL_MAKE_VM_SYM(fklAddSymbolToGlob(str)->id),&ap,stack);
 		free(str);
 	}
@@ -1659,8 +1659,8 @@ void SYS_fopen(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("sys.fopen",FKL_TOOFEWARG,runnable,exe);
 	if(!FKL_IS_STR(filename)||!FKL_IS_STR(mode))
 		FKL_RAISE_BUILTIN_ERROR("sys.fopen",FKL_WRONGARG,runnable,exe);
-	char* c_filename=fklVMstrToCstr(filename->u.str);
-	char* c_mode=fklVMstrToCstr(mode->u.str);
+	char* c_filename=fklStringToCstr(filename->u.str);
+	char* c_mode=fklStringToCstr(mode->u.str);
 	FILE* file=fopen(c_filename,c_mode);
 	free(c_mode);
 	FklVMvalue* obj=NULL;
@@ -1792,7 +1792,7 @@ void SYS_fgets(ARGL)
 		str=(char*)realloc(str,sizeof(char)*realRead);
 		FKL_ASSERT(str,__func__);
 		FklVMvalue* vmstr=fklNiNewVMvalue(FKL_STR,NULL,stack,exe->heap);
-		vmstr->u.str=(FklVMstr*)malloc(sizeof(FklVMstr)+fklGetInt(psize));
+		vmstr->u.str=(FklString*)malloc(sizeof(FklString)+fklGetInt(psize));
 		FKL_ASSERT(vmstr->u.str,__func__);
 		vmstr->u.str->size=fklGetInt(psize);
 		memcpy(vmstr->u.str->str,str,fklGetInt(psize));
@@ -1848,7 +1848,7 @@ void SYS_dlopen(ARGL)
 	if(!dllName)
 		FKL_RAISE_BUILTIN_ERROR("sys.dlopen",FKL_TOOFEWARG,runnable,exe);
 	FKL_NI_CHECK_TYPE(dllName,FKL_IS_STR,"sys.dlopen",runnable,exe);
-	char* str=fklVMstrToCstr(dllName->u.str);
+	char* str=fklStringToCstr(dllName->u.str);
 	FklVMdllHandle* dll=fklNewVMdll(str);
 	if(!dll)
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR("sys.dlopen",str,1,FKL_LOADDLLFAILD,exe);
@@ -1875,7 +1875,7 @@ void SYS_dlsym(ARGL)
 	if(!dll->u.dll)
 		FKL_RAISE_BUILTIN_ERROR("sys.dlsym",FKL_INVALIDACCESS,runnable,exe);
 	char prefix[]="FKL_";
-	char* str=fklVMstrToCstr(symbol->u.str);
+	char* str=fklStringToCstr(symbol->u.str);
 	size_t len=strlen(prefix)+strlen(str)+1;
 	char* realDlFuncName=(char*)malloc(sizeof(char)*len);
 	FKL_ASSERT(realDlFuncName,__func__);
@@ -1902,7 +1902,7 @@ void SYS_argv(FklVM* exe,pthread_rwlock_t* pGClock)
 	int argc=fklGetVMargc();
 	char** argv=fklGetVMargv();
 	for(;i<argc;i++,tmp=&(*tmp)->u.pair->cdr)
-		*tmp=fklNewVMpairV(fklNiNewVMvalue(FKL_STR,fklNewVMstr(strlen(argv[i]),argv[i]),stack,exe->heap),FKL_VM_NIL,stack,exe->heap);
+		*tmp=fklNewVMpairV(fklNiNewVMvalue(FKL_STR,fklNewString(strlen(argv[i]),argv[i]),stack,exe->heap),FKL_VM_NIL,stack,exe->heap);
 	fklNiReturn(retval,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -2032,8 +2032,8 @@ void SYS_error(ARGL)
 		FKL_RAISE_BUILTIN_ERROR("sys.error",FKL_TOOFEWARG,runnable,exe);
 	if(!FKL_IS_SYM(type)||!FKL_IS_STR(message)||(!FKL_IS_SYM(who)&&!FKL_IS_STR(who)))
 		FKL_RAISE_BUILTIN_ERROR("sys.error",FKL_WRONGARG,runnable,exe);
-	char* str=FKL_IS_STR(who)?fklVMstrToCstr(who->u.str):NULL;
-	char* msg=fklVMstrToCstr(message->u.str);
+	char* str=FKL_IS_STR(who)?fklStringToCstr(who->u.str):NULL;
+	char* msg=fklStringToCstr(message->u.str);
 	fklNiReturn(fklNiNewVMvalue(FKL_ERR,fklNewVMerror((FKL_IS_SYM(who))?fklGetGlobSymbolWithId(FKL_GET_SYM(who))->symbol:str,FKL_GET_SYM(type),msg),stack,exe->heap),&ap,stack);
 	free(str);
 	free(msg);
@@ -2299,14 +2299,14 @@ void SYS_getdir(ARGL)
 		char* dir=fklGetDir(rpath);
 		free(filename);
 		free(rpath);
-		FklVMstr* str=fklNewVMstr(strlen(dir),dir);
+		FklString* str=fklNewString(strlen(dir),dir);
 		free(dir);
 		fklNiReturn(fklNiNewVMvalue(FKL_STR,str,stack,exe->heap),&ap,stack);
 	}
 	else
 	{
 		const char* cwd=fklGetCwd();
-		FklVMstr* str=fklNewVMstr(strlen(cwd),cwd);
+		FklString* str=fklNewString(strlen(cwd),cwd);
 		fklNiReturn(fklNiNewVMvalue(FKL_STR,str,stack,exe->heap),&ap,stack);
 	}
 	fklNiEnd(&ap,stack);
@@ -2415,10 +2415,10 @@ void SYS_to_str(ARGL)
 				size=tsize;
 			}
 			if(FKL_IS_STR(obj))
-				retval->u.str=fklNewVMstr(size,obj->u.str->str+start);
+				retval->u.str=fklNewString(size,obj->u.str->str+start);
 			else
 			{
-				retval->u.str=fklNewVMstr(size,NULL);
+				retval->u.str=fklNewString(size,NULL);
 				for(size_t i=0;i<size;i++)
 				{
 					FklVMvalue* v=obj->u.vec->base[start+i];
@@ -2430,10 +2430,10 @@ void SYS_to_str(ARGL)
 		else
 		{
 			if(FKL_IS_STR(obj))
-				retval->u.str=fklCopyVMstr(obj->u.str);
+				retval->u.str=fklCopyString(obj->u.str);
 			else
 			{
-				retval->u.str=fklNewVMstr(obj->u.vec->size,NULL);
+				retval->u.str=fklNewString(obj->u.vec->size,NULL);
 				FKL_ASSERT(retval->u.str,__func__);
 				for(size_t i=0;i<obj->u.vec->size;i++)
 				{
@@ -2446,14 +2446,14 @@ void SYS_to_str(ARGL)
 	}
 	else if(FKL_IS_CHR(obj))
 	{
-		retval->u.str=fklNewEmptyVMstr();
+		retval->u.str=fklNewEmptyString();
 		retval->u.str->size=0;
 		for(size_t i=0;obj;i++,obj=fklNiGetArg(&ap,stack))
 		{
 			FKL_NI_CHECK_TYPE(obj,FKL_IS_CHR,"sys.to-str",runnable,exe);
 			retval->u.str->size++;
-			retval->u.str=(FklVMstr*)realloc(retval->u.str
-					,sizeof(FklVMstr)+sizeof(char)*(i+1));
+			retval->u.str=(FklString*)realloc(retval->u.str
+					,sizeof(FklString)+sizeof(char)*(i+1));
 			FKL_ASSERT(retval->u.str,__func__);
 			retval->u.str->str[i]=FKL_GET_CHR(obj);
 		}
@@ -2467,7 +2467,7 @@ void SYS_to_str(ARGL)
 		{
 			FKL_NI_CHECK_TYPE(content,FKL_IS_CHR,"sys.to-str",runnable,exe);
 			size_t size=fklGetInt(obj);
-			retval->u.str=fklNewVMstr(size,NULL);
+			retval->u.str=fklNewString(size,NULL);
 			FKL_ASSERT(retval->u.str,__func__);
 			memset(retval->u.str->str,FKL_GET_CHR(content),size);
 		}
@@ -2476,14 +2476,14 @@ void SYS_to_str(ARGL)
 			if(FKL_IS_BIG_INT(obj))
 			{
 				FklBigInt* bi=obj->u.bigInt;
-				retval->u.str=fklNewVMstr(sizeof(char)*(bi->num+bi->neg),NULL);
+				retval->u.str=fklNewString(sizeof(char)*(bi->num+bi->neg),NULL);
 				fklSprintBigInt(bi,retval->u.str->size,retval->u.str->str);
 			}
 			else
 			{
 				char buf[32]={0};
 				size_t size=snprintf(buf,32,"%ld",fklGetInt(obj));
-				retval->u.str=fklNewVMstr(size,buf);
+				retval->u.str=fklNewString(size,buf);
 			}
 		}
 	}
@@ -2495,12 +2495,12 @@ void SYS_to_str(ARGL)
 		{
 			char buf[64]={0};
 			size_t size=snprintf(buf,64,"%lf",obj->u.f64);
-			retval->u.str=fklNewVMstr(size,buf);
+			retval->u.str=fklNewString(size,buf);
 		}
 		else if(FKL_IS_SYM(obj))
 		{
 			char* symbol=fklGetGlobSymbolWithId(FKL_GET_SYM(obj))->symbol;
-			retval->u.str=fklNewVMstr(strlen(symbol),symbol);
+			retval->u.str=fklNewString(strlen(symbol),symbol);
 		}
 		else if(FKL_IS_USERDATA(obj)&&obj->u.ud->t->__to_str)
 			retval->u.str=obj->u.ud->t->__to_str(obj->u.ud->data);

@@ -132,7 +132,7 @@ int fklPower(int first,int second)
 	return result;
 }
 
-void fklPrintRawString(const char* objStr,FILE* out)
+void fklPrintRawCstring(const char* objStr,FILE* out)
 {
 	const char* tmpStr=objStr;
 	int len=strlen(objStr);

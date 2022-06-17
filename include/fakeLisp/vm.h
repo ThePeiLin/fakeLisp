@@ -96,7 +96,7 @@ typedef struct FklVMvalue
 		struct FklVMpair* pair;
 		double f64;
 		int64_t i64;
-		struct FklVMstr* str;
+		struct FklString* str;
 		struct FklVMproc* proc;
 		FklVMdllHandle dll;
 		struct FklVMdlproc* dlproc;
@@ -184,8 +184,8 @@ typedef struct FklVMudMethodTable
 	int  (*__equal)(const FklVMudata*,const FklVMudata*);
 	void (*__invoke)(FklVM*,void*);
 	int (*__cmp)(FklVMvalue*,FklVMvalue*,int*);
-	FklVMstr* (*__as_str)(void*);
-	FklVMstr* (*__to_str)(void*);
+	FklString* (*__as_str)(void*);
+	FklString* (*__to_str)(void*);
 	void (*__write_in_binary)(FILE*,void*);
 }FklVMudMethodTable;
 

@@ -714,7 +714,7 @@ void B_push_str(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=exe->rhead;
 	uint64_t size=fklGetU64FromByteCode(exe->code+runnable->cp+sizeof(char));
-	fklNewVMvalueToStack(FKL_STR,fklNewVMstr(size,(char*)exe->code+runnable->cp+sizeof(char)+sizeof(uint64_t)),stack,exe->heap);
+	fklNewVMvalueToStack(FKL_STR,fklNewString(size,(char*)exe->code+runnable->cp+sizeof(char)+sizeof(uint64_t)),stack,exe->heap);
 	runnable->cp+=sizeof(char)+sizeof(uint64_t)+size;
 }
 

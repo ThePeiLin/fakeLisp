@@ -255,7 +255,7 @@ int fklVMvaluecmp(FklVMvalue* fir,FklVMvalue* sec)
 				case FKL_I64:
 					r=(root1->u.i64-root2->u.i64)==0;
 				case FKL_STR:
-					r=!fklVMstrcmp(root1->u.str,root2->u.str);
+					r=!fklStringcmp(root1->u.str,root2->u.str);
 					break;
 				case FKL_PAIR:
 					r=1;
@@ -767,7 +767,7 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 					*root1=fklNewVMvalue(FKL_F64,&tmpAtm->value.f64,heap);
 					break;
 				case FKL_STR:
-					*root1=fklNewVMvalue(FKL_STR,fklNewVMstr(tmpAtm->value.str.size,tmpAtm->value.str.str),heap);
+					*root1=fklNewVMvalue(FKL_STR,fklNewString(tmpAtm->value.str.size,tmpAtm->value.str.str),heap);
 					break;
 				case FKL_BOX:
 					*root1=fklNewVMvalue(FKL_BOX,FKL_VM_NIL,heap);
@@ -811,7 +811,7 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 	return tmp;
 }
 
-char* fklVMstrToCstr(FklVMstr* str)
+char* fklStringToCstr(FklString* str)
 {
 	return fklCharBufToStr(str->str,str->size);
 }

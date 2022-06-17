@@ -45,7 +45,7 @@ void fklcInit(FklVMvalue* rel)
 	FklcRel=rel;
 }
 
-FklByteCode* fklcNewPushStrByteCode(const FklVMstr* str)
+FklByteCode* fklcNewPushStrByteCode(const FklString* str)
 {
 	FklByteCode* tmp=fklNewByteCode(sizeof(char)+sizeof(str->size)+str->size);
 	tmp->code[0]=FKL_PUSH_STR;

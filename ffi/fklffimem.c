@@ -891,7 +891,7 @@ FklVMvalue* fklFfiNewVMvalue(FklFfiMem* mem,FklVMstack* stack,FklVMheap* heap)
 		return FKL_VM_NIL;
 	else if(mem->type==FKL_FFI_STRING)
 	{
-		FklVMstr* str=fklNewVMstr(strlen(mem->mem),mem->mem);
+		FklString* str=fklNewString(strlen(mem->mem),mem->mem);
 		return fklNiNewVMvalue(FKL_STR,str,stack,heap);
 	}
 	else

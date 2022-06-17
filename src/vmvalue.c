@@ -339,52 +339,6 @@ FklVMvalue* fklNewVMvecV(size_t size,FklVMvalue** base,FklVMstack* stack,FklVMhe
 	return vec;
 }
 
-FklVMstr* fklNewVMstr(size_t size,const char* str)
-{
-	FklVMstr* tmp=(FklVMstr*)malloc(sizeof(FklVMstr)+size*sizeof(uint8_t));
-	FKL_ASSERT(tmp,__func__);
-	tmp->size=size;
-	if(str)
-		memcpy(tmp->str,str,size);
-	return tmp;
-}
-
-int fklVMstrcmp(const FklVMstr* fir,const FklVMstr* sec)
-{
-	size_t size=fir->size<sec->size?fir->size:sec->size;
-	int r=memcmp(fir->str,sec->str,size);
-	if(!r)
-		return (int64_t)fir->size-(int64_t)sec->size;
-	return r;
-}
-
-FklVMstr* fklCopyVMstr(const FklVMstr* obj)
-{
-	if(obj==NULL)return NULL;
-	FklVMstr* tmp=(FklVMstr*)malloc(sizeof(FklVMstr)+obj->size);
-	FKL_ASSERT(tmp,__func__);
-	memcpy(tmp->str,obj->str,obj->size);
-	tmp->size=obj->size;
-	return tmp;
-}
-
-void fklVMstrCat(FklVMstr** fir,const FklVMstr* sec)
-{
-	size_t firSize=(*fir)->size;
-	size_t secSize=sec->size;
-	*fir=(FklVMstr*)realloc(*fir,sizeof(FklVMstr)+(firSize+secSize)*sizeof(uint8_t));
-	FKL_ASSERT(*fir,__func__);
-	(*fir)->size=firSize+secSize;
-	memcpy((*fir)->str+firSize,sec->str,secSize);
-}
-FklVMstr* fklNewEmptyVMstr()
-{
-	FklVMstr* tmp=(FklVMstr*)malloc(sizeof(FklVMstr));
-	FKL_ASSERT(tmp,__func__);
-	tmp->size=0;
-	return tmp;
-}
-
 FklVMchanl* fklNewVMchanl(int32_t maxSize)
 {
 	FklVMchanl* tmp=(FklVMchanl*)malloc(sizeof(FklVMchanl));

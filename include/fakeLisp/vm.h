@@ -60,12 +60,6 @@ typedef struct FklVMpair
 	struct FklVMvalue* cdr;
 }FklVMpair;
 
-typedef struct FklVMstr
-{
-	uint64_t size;
-	char str[];
-}FklVMstr;
-
 typedef struct FklVMfp
 {
 	size_t size;
@@ -380,13 +374,6 @@ int fklNumcmp(FklVMvalue*,FklVMvalue*);
 FklVMpair* fklNewVMpair(void);
 FklVMvalue* fklNewVMpairV(FklVMvalue* car,FklVMvalue* cdr,FklVMstack*,FklVMheap*);
 
-FklVMstr* fklNewVMstr(size_t,const char*);
-
-FklVMstr* fklCopyVMstr(const FklVMstr*);
-FklVMstr* fklNewEmptyVMstr();
-void fklVMstrCat(FklVMstr**,const FklVMstr*);
-int fklVMstrcmp(const FklVMstr*,const FklVMstr*);
-char* fklVMstrToCstr(FklVMstr* str);
 FklVMchanl* fklNewVMchanl(int32_t size);
 
 void fklFreeVMchanl(FklVMchanl*);

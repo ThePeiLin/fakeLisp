@@ -134,6 +134,21 @@ double fklBigIntToDouble(const FklBigInt*);
 void fklFreeBigInt(FklBigInt*);
 void fklPrintBigInt(FklBigInt*,FILE*);
 void fklSprintBigInt(FklBigInt*,size_t size,char* buf);
+
+typedef struct FklVMstr
+{
+	uint64_t size;
+	char str[];
+}FklVMstr;
+
+FklVMstr* fklNewVMstr(size_t,const char*);
+
+FklVMstr* fklCopyVMstr(const FklVMstr*);
+FklVMstr* fklNewEmptyVMstr();
+void fklVMstrCat(FklVMstr**,const FklVMstr*);
+int fklVMstrcmp(const FklVMstr*,const FklVMstr*);
+char* fklVMstrToCstr(FklVMstr* str);
+
 #ifdef __cplusplus
 }
 #endif

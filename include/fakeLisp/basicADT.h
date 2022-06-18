@@ -7,18 +7,40 @@
 extern "C"{
 #endif
 
-typedef struct
+typedef struct FklString
 {
-	void** table;
+	uint64_t size;
+	char str[];
+}FklString;
+
+FklString* fklNewString(size_t,const char*);
+FklString* fklCopyString(const FklString*);
+FklString* fklNewEmptyString();
+void fklStringCat(FklString**,const FklString*);
+int fklStringcmp(const FklString*,const FklString*);
+char* fklStringToCstr(FklString* str);
+void fklPrintRawString(FklString* str,FILE* fp);
+
+typedef struct FklU64PtrHashNode
+{
+	uint64_t key;
+	void* value;
+}FklU64PtrHashNode;
+
+typedef struct FklU64PtrHashTable
+{
+	FklU64PtrHashNode** table;
+	size_t num;
 	size_t size;
 	size_t inc;
-}FklPtrHashTable;
+	size_t (*hash)(uint64_t,struct FklU64PtrHashTable*);
+}FklU64PtrHashTable;
 
-FklPtrHashTable* fklNewPtrHashTable(size_t size,size_t inc);
-void* fklGetHashPtr(uint64_t key);
-void** fklGetHashSlot(uint64_t key);
-uint64_t fklPtrHashFunc(uint64_t id);
-void fklFreePtrHashTable(FklPtrHashTable*);
+typedef size_t (*FklHashFunc)(uint64_t,struct FklU64PtrHashTable*);
+FklU64PtrHashTable* fklNewPtrHashTable(size_t size,size_t inc,FklHashFunc);
+void* fklGetHashPtr(void* key);
+void** fklGetHashSlot(void* key);
+void fklFreePtrHashTable(FklU64PtrHashTable*);
 
 typedef struct
 {
@@ -99,7 +121,7 @@ typedef struct FklBigInt{
 }FklBigInt;
 
 #define FKL_IS_0_BIG_INT(I) ((I)->num==1&&(I)->digits[0]==0)
-#define FKL_IS_1_BIG_INT(I) ((I)->num==1&&(I)->digits[0]==1)
+#define FKL_IS_1_BIG_INT(I) ((I)->num==1&&(I)->neg==0&&(I)->digits[0]==1)
 FklBigInt* fklNewBigInt(int64_t v);
 FklBigInt* fklNewBigIntFromStr(const char* str);
 FklBigInt* fklNewBigIntFromMem(void* mem,size_t size);
@@ -134,21 +156,8 @@ double fklBigIntToDouble(const FklBigInt*);
 void fklFreeBigInt(FklBigInt*);
 void fklPrintBigInt(FklBigInt*,FILE*);
 void fklSprintBigInt(FklBigInt*,size_t size,char* buf);
+FklString* fklBigIntToString(FklBigInt*,int radix);
 
-typedef struct FklString
-{
-	uint64_t size;
-	char str[];
-}FklString;
-
-FklString* fklNewString(size_t,const char*);
-
-FklString* fklCopyString(const FklString*);
-FklString* fklNewEmptyString();
-void fklStringCat(FklString**,const FklString*);
-int fklStringcmp(const FklString*,const FklString*);
-char* fklStringToCstr(FklString* str);
-void fklPrintRawString(FklString* str,FILE* fp);
 #ifdef __cplusplus
 }
 #endif

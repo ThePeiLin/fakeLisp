@@ -1320,18 +1320,14 @@ void fklGC_markGlobalRoot(void)
 	pthread_rwlock_unlock(&GlobVMsLock);
 }
 
-void fklGC_pause(FklVM* exe,size_t* need)
+void fklGC_pause(FklVM* exe)
 {
 	if(exe->VMid!=-1)
 		fklGC_markGlobalRoot();
 	else
 		fklGC_markRootToGray(exe);
-	pthread_rwlock_rdlock(&exe->heap->glock);
-	*need=exe->heap->grayNum;
-	pthread_rwlock_unlock(&exe->heap->glock);
 }
 
-#include<signal.h>
 void propagateMark(FklVMvalue* root,FklVMheap* heap)
 {
 	switch(root->type)
@@ -1399,7 +1395,6 @@ void propagateMark(FklVMvalue* root,FklVMheap* heap)
 		case FKL_BIG_INT:
 			break;
 		default:
-			raise(SIGSEGV);
 			FKL_ASSERT(0,__func__);
 			break;
 	}
@@ -1489,31 +1484,58 @@ inline void fklGetGCstateAndHeapNum(FklVMheap* h,FklGCstate* s,int* cr)
 	pthread_rwlock_unlock(&h->lock);
 }
 
+static size_t fklGetHeapNum(FklVMheap* h)
+{
+	size_t num=0;
+	pthread_rwlock_rdlock(&h->lock);
+	num=h->num;
+	pthread_rwlock_unlock(&h->lock);
+	return num;
+}
+
+static size_t fklGetGrayNum(FklVMheap* h)
+{
+	size_t num=0;
+	pthread_rwlock_rdlock(&h->glock);
+	num=h->grayNum;
+	pthread_rwlock_unlock(&h->glock);
+	return num;
+}
+
+#define FKL_GC_GRAY_FACTOR (16)
+#define FKL_GC_NEW_FACTOR (4)
+
 inline void fklGC_step(FklVM* exe)
 {
 	FklGCstate running=FKL_GC_NONE;
 	int cr=0;
 	fklGetGCstateAndHeapNum(exe->heap,&running,&cr);
-	static size_t need=0;
+	static size_t objNum=0;
 	switch(running)
 	{
 		case FKL_GC_NONE:
 			if(cr)
 			{
 				fklChangeGCstate(FKL_GC_MARK_ROOT,exe->heap);
-				fklGC_pause(exe,&need);
+				fklGC_pause(exe);
+				objNum=fklGetHeapNum(exe->heap);
 				fklChangeGCstate(FKL_GC_PROPAGATE,exe->heap);
 			}
 			break;
 		case FKL_GC_MARK_ROOT:
 			break;
 		case FKL_GC_PROPAGATE:
-			for(size_t i=0;i<need/16+1;i++)
-				if(fklGC_propagate(exe->heap))
-				{
-					fklChangeGCstate(FKL_GC_SWEEP,exe->heap);
-					break;
-				}
+			{
+				size_t new_n=fklGetHeapNum(exe->heap)-objNum;
+				size_t timce=fklGetGrayNum(exe->heap)/FKL_GC_GRAY_FACTOR+new_n/FKL_GC_NEW_FACTOR+1;
+				objNum+=new_n;
+				for(size_t i=0;i<timce;i++)
+					if(fklGC_propagate(exe->heap))
+					{
+						fklChangeGCstate(FKL_GC_SWEEP,exe->heap);
+						break;
+					}
+			}
 			break;
 		case FKL_GC_SWEEP:
 			if(!pthread_mutex_trylock(&GCthreadLock))

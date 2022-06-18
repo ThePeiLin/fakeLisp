@@ -21,8 +21,6 @@ typedef enum
 	FKL_I32_TAG,
 	FKL_SYM_TAG,
 	FKL_CHR_TAG,
-//	FKL_REF_TAG,
-//	FKL_MREF_TAG,
 }FklVMptrTag;
 
 #ifdef _WIN32
@@ -186,7 +184,7 @@ typedef struct FklVMudMethodTable
 	int (*__cmp)(FklVMvalue*,FklVMvalue*,int*);
 	FklString* (*__as_str)(void*);
 	FklString* (*__to_str)(void*);
-	void (*__write_in_binary)(FILE*,void*);
+	void (*__write)(FILE*,void*);
 }FklVMudMethodTable;
 
 typedef enum

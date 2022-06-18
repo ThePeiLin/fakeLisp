@@ -410,7 +410,7 @@ static FklVMudMethodTable FfiMemMethodTable=
 	.__cmp=_mem_cmp,
 	.__as_str=NULL,
 	.__to_str=NULL,
-	.__write_in_binary=NULL,
+	.__write=NULL,
 };
 
 static FklVMudMethodTable FfiAtomicMemMethodTable=
@@ -423,7 +423,7 @@ static FklVMudMethodTable FfiAtomicMemMethodTable=
 	.__cmp=_mem_cmp,
 	.__as_str=NULL,
 	.__to_str=NULL,
-	.__write_in_binary=NULL,
+	.__write=NULL,
 };
 
 void fklFfiMemInit(FklVMvalue* rel)

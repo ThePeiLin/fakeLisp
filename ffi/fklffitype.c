@@ -809,8 +809,8 @@ static FklTypeId_t genFuncTypeId(FklVMvalue* functionBodyV,FklDefTypes* otherTyp
         return 0;
     FklVMvalue* rtypeV=FKL_IS_PAIR(functionBodyV->u.pair->cdr)?functionBodyV->u.pair->cdr->u.pair->car:NULL;
 	if((functionBodyV->u.pair->cdr!=FKL_VM_NIL
-				&&!FKL_IS_PAIR(functionBodyV->u.pair->cdr))
-			||(FKL_IS_PAIR(functionBodyV->u.pair->cdr)
+				&&!rtype)
+			||(rtype
 				&&functionBodyV->u.pair->cdr->u.pair->cdr!=FKL_VM_NIL))
 		return 0;
     if(rtypeV&&rtypeV!=FKL_VM_NIL)

@@ -281,6 +281,7 @@ void runRepl(FklInterpreter* inter)
 			list=NULL;
 			fklDeleteCptr(begin);
 			free(begin);
+			begin=NULL;
 		}
 		else
 		{

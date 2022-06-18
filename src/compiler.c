@@ -2467,10 +2467,11 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 								}
 								FklAstAtom* pSymbol=pExportSymbols->u.atom;
 								num++;
-								const char** t_Cstr=exportSymbols;
-								t_Cstr=(const char**)realloc(t_Cstr,sizeof(const char*)*num);
+								const char** t_Cstr=(const char**)malloc(sizeof(const char*)*num);
 								FKL_ASSERT(t_Cstr,__func__);
 								fklReallocMem(exportSymbols,t_Cstr,memMenager);
+								memcpy(t_Cstr,exportSymbols,sizeof(const char**)*num-1);
+								free(exportSymbols);
 								exportSymbols=t_Cstr;
 								exportSymbols[num-1]=pSymbol->value.sym;
 							}

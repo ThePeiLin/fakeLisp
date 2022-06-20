@@ -341,6 +341,7 @@ extern void SYS_set_box(ARGL);
 extern void SYS_box_cas(ARGL);
 extern void SYS_box_p(ARGL);
 extern void SYS_fix_int_p(ARGL);
+extern void SYS_number_p(ARGL);
 
 #undef ARGL
 
@@ -435,6 +436,7 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_box_cas,
 		SYS_box_p,
 		SYS_fix_int_p,
+		SYS_number_p,
 	};
 	obj->num=FKL_NUM_OF_BUILT_IN_SYMBOL;
 	obj->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*FKL_NUM_OF_BUILT_IN_SYMBOL);

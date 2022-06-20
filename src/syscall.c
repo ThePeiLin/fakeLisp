@@ -2600,6 +2600,7 @@ void SYS_fix_int_p(ARGL) PREDICATE(FKL_IS_I32(val)||FKL_IS_I64(val),"sys.fix-int
 void SYS_i32_p(ARGL) PREDICATE(FKL_IS_I32(val),"sys.i32?")
 void SYS_i64_p(ARGL) PREDICATE(FKL_IS_I64(val),"sys.i64?")
 void SYS_f64_p(ARGL) PREDICATE(FKL_IS_F64(val),"sys.i64?")
+void SYS_number_p(ARGL) PREDICATE(fklIsNumber(val),"sys.number?")
 void SYS_pair_p(ARGL) PREDICATE(FKL_IS_PAIR(val),"sys.pair?")
 void SYS_symbol_p(ARGL) PREDICATE(FKL_IS_SYM(val),"sys.symbol?")
 void SYS_string_p(ARGL) PREDICATE(FKL_IS_STR(val),"sys.string?")

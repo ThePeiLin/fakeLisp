@@ -61,3 +61,10 @@ FklByteCode* fklcNewPushStrByteCode(const FklString* str)
 			,str->size);
 	return tmp;
 }
+
+void fklcCodeAppend(FklByteCode** fir,const FklByteCode* sec)
+{
+	if(!*fir)
+		*fir=fklNewByteCode(0);
+	fklCodeCat(*fir,sec);
+}

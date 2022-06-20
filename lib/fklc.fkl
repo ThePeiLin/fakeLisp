@@ -11,6 +11,7 @@
     fklc-compile-integer
     fklc-compile-number
     fklc-compile-atom-literal
+    fklc-fbc-append
     fklc-fbc?)
   (define fklc (dlopen (append (getdir) "/../fklc")))
   (define fklc-fbc? (dlsym fklc "fklc_fbc_p"))
@@ -24,4 +25,5 @@
   (define fklc-compile-integer (dlsym fklc "fklc_compile_integer"))
   (define fklc-compile-number (dlsym fklc "fklc_compile_number"))
   (define fklc-compile-atom-literal (dlsym fklc "fklc_compile_atom_literal"))
+  (define fklc-fbc-append (dlsym fklc "fklc_fbc_append"))
   )

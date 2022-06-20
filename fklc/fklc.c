@@ -2,6 +2,7 @@
 #include<fakeLisp/fklni.h>
 #include<fakeLisp/vm.h>
 #include<fakeLisp/opcode.h>
+#include<fakeLisp/bytecode.h>
 #include"fbc.h"
 #include"flnt.h"
 #include"fsym.h"
@@ -56,6 +57,24 @@ void FKL_fklc_fbc_p(ARGL) PREDICATE(fklcIsFbc(val),"fklc.fbc?")
 	FKL_RAISE_BUILTIN_ERROR(ERR_INFO,FKL_WRONGARG,runnable,exe);\
 	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA,fklcNewFbcUd(BC),stack,exe->heap),&ap,stack);\
 	fklNiEnd(&ap,stack);\
+}
+
+void FKL_fklc_fbc_append(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* retval=FKL_VM_NIL;
+	FklByteCode* bc=NULL;
+	for(FklVMvalue* cur=fklNiGetArg(&ap,stack);cur;cur=fklNiGetArg(&ap,stack))
+	{
+		FKL_NI_CHECK_TYPE(cur,fklcIsFbc,"fklc.fbc-append",runnable,exe);
+		fklcCodeAppend(&bc,cur->u.ud->data);
+	}
+	if(bc)
+		retval=fklNiNewVMvalue(FKL_USERDATA,fklcNewFbcUd(bc),stack,exe->heap);
+	fklNiResBp(&ap,stack);
+	fklNiReturn(retval,&ap,stack);
+	fklNiEnd(&ap,stack);
 }
 
 void FKL_fklc_compile_i32(ARGL) CONST_COMPILE("fklc.compile-i32",i_32,FKL_IS_I32,fklNewPushI32ByteCode(FKL_GET_I32(i_32)))

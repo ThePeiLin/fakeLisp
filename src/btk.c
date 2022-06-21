@@ -33,7 +33,7 @@ int getch()
 }
 #endif
 #define ARGL FklVM* exe
-void FKL_getch(ARGL)
+void FKL_btk_getch(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	if(fklNiResBp(&ap,stack))
@@ -42,7 +42,7 @@ void FKL_getch(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_sleep(ARGL)
+void FKL_btk_sleep(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;
@@ -56,7 +56,7 @@ void FKL_sleep(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_usleep(ARGL)
+void FKL_btk_usleep(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* second=fklNiGetArg(&ap,stack);
@@ -75,7 +75,7 @@ void FKL_usleep(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_srand(ARGL)
+void FKL_btk_srand(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;
@@ -88,7 +88,7 @@ void FKL_srand(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_rand(ARGL)
+void FKL_btk_rand(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue*  lim=fklNiGetArg(&ap,stack);
@@ -101,11 +101,11 @@ void FKL_rand(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_getTime(ARGL)
+void FKL_btk_get_time(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.getTime",FKL_TOOMANYARG,exe->rhead,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.get_time",FKL_TOOMANYARG,exe->rhead,exe);
 	time_t timer=time(NULL);
 	struct tm* tblock=NULL;
 	tblock=localtime(&timer);
@@ -132,40 +132,40 @@ void FKL_getTime(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_removeFile(ARGL)
+void FKL_btk_remove_file(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* name=fklPopVMstack(stack);
 	FklVMrunnable* r=exe->rhead;
 	if(!name)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.removeFile",FKL_TOOFEWARG,r,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.remove_file",FKL_TOOFEWARG,r,exe);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.removeFile",FKL_TOOMANYARG,r,exe);
-	FKL_NI_CHECK_TYPE(name,FKL_IS_STR,"btk.removeFile",r,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.remove_file",FKL_TOOMANYARG,r,exe);
+	FKL_NI_CHECK_TYPE(name,FKL_IS_STR,"btk.remove_file",r,exe);
 	char* str=fklStringToCstr(name->u.str);
 	fklNiReturn(FKL_MAKE_VM_I32(remove(str)),&ap,stack);
 	fklNiEnd(&ap,stack);
 	free(name);
 }
 
-void FKL_setChanlBufferSize(ARGL)
+void FKL_btk_set_chanl_buffer_size(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* chan=fklPopVMstack(stack);
 	FklVMvalue* size=fklPopVMstack(stack);
 	FklVMrunnable* r=exe->rhead;
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.setChanlBufferSize",FKL_TOOMANYARG,r,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.set_chanl_buffer_size",FKL_TOOMANYARG,r,exe);
 	if(size==NULL||chan==NULL)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.setChanlBufferSize",FKL_TOOFEWARG,r,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.set_chanl_buffer_size",FKL_TOOFEWARG,r,exe);
 	if(!fklIsInt(size)||!FKL_IS_CHAN(chan))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.setChanlBufferSize",FKL_WRONGARG,r,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.set_chanl_buffer_size",FKL_WRONGARG,r,exe);
 	chan->u.chan->max=fklGetInt(size);
 	fklNiReturn(chan,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_time(ARGL)
+void FKL_btk_time(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;

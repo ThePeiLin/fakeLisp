@@ -741,7 +741,7 @@ void B_push_var(FklVM* exe)
 		curEnv=curEnv->u.env->prev;
 	}
 	if(tmp==NULL)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.push_var",FKL_SYMUNDEFINE,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.push-var",FKL_SYMUNDEFINE,runnable,exe);
 	fklPushVMvalue(tmp->value,stack);
 	runnable->cp+=sizeof(char)+sizeof(FklSid_t);
 }
@@ -751,7 +751,7 @@ void B_push_top(FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
 	if(stack->tp==stack->bp)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.push_top",FKL_STACKERROR,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.push-top",FKL_STACKERROR,runnable,exe);
 	FklVMvalue* val=fklNiGetArg(&ap,stack);
 	fklNiReturn(val,&ap,stack);
 	fklNiReturn(val,&ap,stack);
@@ -785,7 +785,7 @@ void B_pop_var(FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
 	if(!(stack->tp>stack->bp))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop_var",FKL_STACKERROR,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-var",FKL_STACKERROR,runnable,exe);
 	int32_t scopeOfVar=fklGetI32FromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+runnable->cp+sizeof(char)+sizeof(int32_t));
 	FklVMvalue* curEnv=runnable->localenv;
@@ -805,7 +805,7 @@ void B_pop_var(FklVM* exe)
 			curEnv=curEnv->u.env->prev;
 		}
 		if(tmp==NULL)
-			FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop_var",FKL_SYMUNDEFINE,runnable,exe);
+			FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-var",FKL_SYMUNDEFINE,runnable,exe);
 		pValue=&tmp->value;
 	}
 //	pthread_rwlock_wrlock(&curEnv->u.env->lock);
@@ -824,7 +824,7 @@ void B_pop_arg(FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
 	if(ap<=stack->bp)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop_arg",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-arg",FKL_TOOFEWARG,runnable,exe);
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklVMvalue* curEnv=runnable->localenv;
 	FklVMvalue* volatile* pValue=&fklAddVMenvNode(idOfVar,curEnv->u.env)->value;
@@ -908,7 +908,7 @@ void B_res_bp(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=exe->rhead;
 	if(stack->tp>stack->bp)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.res_bp",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.res-bp",FKL_TOOMANYARG,runnable,exe);
 	FklVMvalue* prevBp=fklGetTopValue(stack);
 	stack->bp=FKL_GET_I32(prevBp);
 	pthread_rwlock_wrlock(&stack->lock);

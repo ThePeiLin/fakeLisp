@@ -35,8 +35,11 @@ typedef struct FklVMchanl
 {
 	uint32_t max;
 	pthread_mutex_t lock;
+	volatile uint32_t messageNum;
 	FklPtrQueue* messages;
+	volatile uint32_t sendNum;
 	FklPtrQueue* sendq;
+	volatile uint32_t recvNum;
 	FklPtrQueue* recvq;
 }FklVMchanl;
 

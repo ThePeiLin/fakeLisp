@@ -543,15 +543,18 @@ void fklFreeVMsend(FklVMsend* s)
 void fklChanlRecv(FklVMrecv* r,FklVMchanl* ch)
 {
 	pthread_mutex_lock(&ch->lock);
-	if(!fklLengthPtrQueue(ch->messages))
+	if(!ch->messageNum)
 	{
 		fklPushPtrQueue(r,ch->recvq);
+		ch->recvNum++;
 		pthread_cond_wait(&r->cond,&ch->lock);
 	}
 	r->v=fklPopPtrQueue(ch->messages);
-	if(fklLengthPtrQueue(ch->messages)<ch->max)
+	ch->messageNum--;
+	if(ch->messageNum<ch->max)
 	{
 		FklVMsend* s=fklPopPtrQueue(ch->sendq);
+		ch->sendq--;
 		if(s)
 			pthread_cond_signal(&s->cond);
 	}
@@ -561,21 +564,29 @@ void fklChanlRecv(FklVMrecv* r,FklVMchanl* ch)
 void fklChanlSend(FklVMsend*s,FklVMchanl* ch)
 {
 	pthread_mutex_lock(&ch->lock);
-	if(fklLengthPtrQueue(ch->recvq))
+	if(ch->recvNum)
 	{
 		FklVMrecv* r=fklPopPtrQueue(ch->recvq);
+		ch->recvNum--;
 		if(r)
 			pthread_cond_signal(&r->cond);
 	}
-	if(!ch->max||fklLengthPtrQueue(ch->messages)<ch->max-1)
+	if(!ch->max||ch->messageNum<ch->max-1)
+	{
 		fklPushPtrQueue(s->m,ch->messages);
+		ch->messageNum++;
+	}
 	else
 	{
-		if(fklLengthPtrQueue(ch->messages)>=ch->max-1)
+		if(ch->messageNum>=ch->max-1)
 		{
 			fklPushPtrQueue(s,ch->sendq);
-			if(fklLengthPtrQueue(ch->messages)==ch->max-1)
+			ch->sendNum++;
+			if(ch->messageNum==ch->max-1)
+			{
 				fklPushPtrQueue(s->m,ch->messages);
+				ch->messageNum++;
+			}
 			pthread_cond_wait(&s->cond,&ch->lock);
 		}
 	}

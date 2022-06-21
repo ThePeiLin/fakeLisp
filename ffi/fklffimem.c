@@ -225,7 +225,9 @@ static void _mem_print(FILE* fp,void* p)
 			FklDefTypeUnion tu=fklFfiGetTypeUnion(st->layout[i].type);
 			size_t align=fklFfiGetTypeAlign(tu);
 			offset+=(offset%align)?align-offset%align:0;
-			fprintf(fp,".%s=",fklGetGlobSymbolWithId(st->layout[i].memberSymbol)->symbol);
+			fputc('.',fp);
+			fklPrintString(fklGetGlobSymbolWithId(st->layout[i].memberSymbol)->symbol,fp);
+			fputc('=',fp);
 			FklFfiMem tm={st->layout[i].type,m->mem+offset};
 			_mem_print(fp,&tm);
 			size_t memberSize=fklFfiGetTypeSize(tu);
@@ -240,7 +242,9 @@ static void _mem_print(FILE* fp,void* p)
 		fputc('{',fp);
 		for(uint32_t i=0;i<st->num;i++)
 		{
-			fprintf(fp,".%s=",fklGetGlobSymbolWithId(st->layout[i].memberSymbol)->symbol);
+			fputc('.',fp);
+			fklPrintString(fklGetGlobSymbolWithId(st->layout[i].memberSymbol)->symbol,fp);
+			fputc('=',fp);
 			FklFfiMem tm={st->layout[i].type,m->mem};
 			_mem_print(fp,&tm);
 			fputc(';',fp);
@@ -428,11 +432,11 @@ static FklVMudMethodTable FfiAtomicMemMethodTable=
 
 void fklFfiMemInit(FklVMvalue* rel)
 {
-	FfiMemUdSid=fklAddSymbolToGlob("ffi-mem")->id;
-	FfiAtomicSid=fklAddSymbolToGlob("atomic")->id;
-	FfiRawSid=fklAddSymbolToGlob("raw")->id;
-	FfiRefSid=fklAddSymbolToGlob("&")->id;
-	FfiDeRefSid=fklAddSymbolToGlob("*")->id;
+	FfiMemUdSid=fklAddSymbolToGlobCstr("ffi-mem")->id;
+	FfiAtomicSid=fklAddSymbolToGlobCstr("atomic")->id;
+	FfiRawSid=fklAddSymbolToGlobCstr("raw")->id;
+	FfiRefSid=fklAddSymbolToGlobCstr("&")->id;
+	FfiDeRefSid=fklAddSymbolToGlobCstr("*")->id;
 	FfiRel=rel;
 }
 
@@ -681,7 +685,8 @@ int fklFfiSetMemForProc(FklVMudata* ud,FklVMvalue* val)
 		{
 			if(ref->mem)
 				free(ref->mem);
-			ref->mem=fklCopyStr(fklGetGlobSymbolWithId(FKL_GET_SYM(val))->symbol);
+			FklString* s=fklGetGlobSymbolWithId(FKL_GET_SYM(val))->symbol;
+			ref->mem=fklCharBufToStr(s->str,s->size);
 		}
 		else if(fklFfiIsMem(val))
 		{
@@ -766,7 +771,8 @@ int fklFfiSetMem(FklFfiMem* ref,FklVMvalue* val)
 		{
 			if(ref->mem)
 				free(ref->mem);
-			ref->mem=fklCopyStr(fklGetGlobSymbolWithId(FKL_GET_SYM(val))->symbol);
+			FklString* s=fklGetGlobSymbolWithId(FKL_GET_SYM(val))->symbol;
+			ref->mem=fklCharBufToStr(s->str,s->size);
 		}
 		else if(fklFfiIsMem(val))
 		{
@@ -774,7 +780,7 @@ int fklFfiSetMem(FklFfiMem* ref,FklVMvalue* val)
 			if(m->type!=FKL_FFI_STRING)
 				return 1;
 			free(ref->mem);
-			ref->mem=fklCopyStr(m->mem);
+			ref->mem=fklCopyCStr(m->mem);
 		}
 		else
 			return 1;
@@ -847,7 +853,10 @@ FklVMudata* fklFfiCastVMvalueIntoMem(FklVMvalue* v)
 	else if(FKL_IS_STR(v))
 		m=fklFfiNewRef(FKL_FFI_STRING,fklCharBufToStr(v->u.str->str,v->u.str->size));
 	else if(FKL_IS_SYM(v))
-		m=fklFfiNewRef(FKL_FFI_STRING,fklCopyStr(fklGetGlobSymbolWithId(FKL_GET_SYM(v))->symbol));
+	{
+		FklString* s=fklGetGlobSymbolWithId(FKL_GET_SYM(v))->symbol;
+		m=fklFfiNewRef(FKL_FFI_STRING,fklCharBufToStr(s->str,s->size));
+	}
 	else if(FKL_IS_FP(v))
 	{
 		m=fklFfiNewMem(FKL_FFI_FILE_P,sizeof(void*));

@@ -58,10 +58,8 @@ static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap
 
 void fklFreeAtom(FklAstAtom* objAtm)
 {
-	if(objAtm->type==FKL_SYM)
-		free(objAtm->value.sym);
-	else if(objAtm->type==FKL_STR)
-		free(objAtm->value.str.str);
+	if(objAtm->type==FKL_SYM||objAtm->type==FKL_STR)
+		free(objAtm->value.str);
 	else if(objAtm->type==FKL_VECTOR)
 	{
 		FklAstVector* vec=&objAtm->value.vec;
@@ -118,29 +116,20 @@ FklAstCptr* fklNewCptr(int curline,FklAstPair* outer)
 	return tmp;
 }
 
-FklAstAtom* fklNewAtom(FklValueType type,const char* value,FklAstPair* prev)
+FklAstAtom* fklNewAtom(FklValueType type,FklAstPair* prev)
 {
 	FklAstAtom* tmp=NULL;
 	FKL_ASSERT((tmp=(FklAstAtom*)malloc(sizeof(FklAstAtom))),__func__);
 	switch(type)
 	{
-		case FKL_SYM:
-			if(value!=NULL)
-			{
-				FKL_ASSERT((tmp->value.sym=(char*)malloc(strlen(value)+1)),__func__);
-				strcpy(tmp->value.sym,value);
-			}
-			else
-				tmp->value.sym=NULL;
-			break;
 		case FKL_CHR:
 		case FKL_I32:
 		case FKL_F64:
 			*(int32_t*)(&tmp->value)=0;
 			break;
 		case FKL_STR:
-			tmp->value.str.size=0;
-			tmp->value.str.str=NULL;
+		case FKL_SYM:
+			tmp->value.str=NULL;
 			break;
 		case FKL_VECTOR:
 			tmp->value.vec.size=0;
@@ -195,16 +184,13 @@ int fklCopyCptr(FklAstCptr* objCptr,const FklAstCptr* copiedCptr)
 				atom2=root2->u.atom;
 				switch(atom2->type)
 				{
-					case FKL_SYM:
-						atom1=fklNewAtom(atom2->type,atom2->value.sym,root1->outer);
-						break;
 					case FKL_STR:
-						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
-						atom1->value.str.size=atom2->value.str.size;
-						atom1->value.str.str=fklCopyMemory(atom2->value.str.str,atom2->value.str.size);
+					case FKL_SYM:
+						atom1=fklNewAtom(atom2->type,root1->outer);
+						atom1->value.str=fklNewString(atom2->value.str->size,atom2->value.str->str);
 						break;
 					case FKL_VECTOR:
-						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
+						atom1=fklNewAtom(atom2->type,root1->outer);
 						fklMakeAstVector(&atom1->value.vec,atom2->value.vec.size,NULL);
 						for(size_t i=0;i<atom2->value.vec.size;i++)
 						{
@@ -213,32 +199,32 @@ int fklCopyCptr(FklAstCptr* objCptr,const FklAstCptr* copiedCptr)
 						}
 						break;
 					case FKL_BOX:
-						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
+						atom1=fklNewAtom(atom2->type,root1->outer);
 						fklPushPtrStack(&atom1->value.box,s1);
 						fklPushPtrStack(&atom2->value.box,s2);
 						break;
 					case FKL_I32:
-						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
+						atom1=fklNewAtom(atom2->type,root1->outer);
 						atom1->value.i32=atom2->value.i32;
 						break;
 					case FKL_I64:
-						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
+						atom1=fklNewAtom(atom2->type,root1->outer);
 						atom1->value.i64=atom2->value.i64;
 						break;
 					case FKL_F64:
-						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
+						atom1=fklNewAtom(atom2->type,root1->outer);
 						atom1->value.f64=atom2->value.f64;
 						break;
 					case FKL_CHR:
-						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
+						atom1=fklNewAtom(atom2->type,root1->outer);
 						atom1->value.chr=atom2->value.chr;
 						break;
 					case FKL_BIG_INT:
-						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
+						atom1=fklNewAtom(atom2->type,root1->outer);
 						fklSetBigInt(&atom1->value.bigInt,&atom2->value.bigInt);
 						break;
 					default:
-						atom1=fklNewAtom(atom2->type,NULL,root1->outer);
+						atom1=fklNewAtom(atom2->type,root1->outer);
 						break;
 				}
 				root1->u.atom=atom1;
@@ -329,14 +315,24 @@ int fklDeleteCptr(FklAstCptr* objCptr)
 	return 0;
 }
 
-int fklAstStrcmp(const FklAstString* fir,const FklAstString* sec)
-{
-	uint64_t size=fir->size<sec->size?fir->size:sec->size;
-	int r=memcmp(fir->str,sec->str,size);
-	if(!r)
-		return (int64_t)fir->size-(int64_t)sec->size;
-	return r;
-}
+//int fklAstStrcmp(const FklAstString* fir,const FklAstString* sec)
+//{
+//	uint64_t size=fir->size<sec->size?fir->size:sec->size;
+//	int r=memcmp(fir->str,sec->str,size);
+//	if(!r)
+//		return (int64_t)fir->size-(int64_t)sec->size;
+//	return r;
+//}
+//
+//int fklAstStrCstrCmp(const FklAstString* fir,const char* sec)
+//{
+//	size_t seclen=strlen(sec);
+//	uint64_t size=fir->size<seclen?fir->size:seclen;
+//	int r=memcmp(fir->str,sec,size);
+//	if(!r)
+//		return (int64_t)fir->size-(int64_t)seclen;
+//	return r;
+//}
 
 int fklCptrcmp(const FklAstCptr* first,const FklAstCptr* second)
 {
@@ -362,11 +358,10 @@ int fklCptrcmp(const FklAstCptr* first,const FklAstCptr* second)
 				FklAstAtom* firAtm=first->u.atom;
 				FklAstAtom* secAtm=second->u.atom;
 				if(firAtm->type!=secAtm->type)return 0;
-				if(firAtm->type==FKL_SYM&&strcmp(firAtm->value.sym,secAtm->value.sym))return 0;
 				else if(firAtm->type==FKL_I32&&firAtm->value.i32!=secAtm->value.i32)return 0;
 				else if(firAtm->type==FKL_F64&&fabs(firAtm->value.f64-secAtm->value.f64)!=0)return 0;
 				else if(firAtm->type==FKL_CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
-				else if(firAtm->type==FKL_STR&&fklAstStrcmp(&firAtm->value.str,&secAtm->value.str))return 0;
+				else if((firAtm->type==FKL_STR||firAtm->type==FKL_SYM)&&fklStringcmp(firAtm->value.str,secAtm->value.str))return 0;
 			}
 			if(firPair!=NULL&&first==&firPair->car)
 			{
@@ -527,7 +522,7 @@ static FklAstAtom* createChar(const char* oStr,FklAstPair* prev)
 	if(!fklIsValidCharStr(oStr+2))
 		return NULL;
 	oStr+=2;
-	FklAstAtom* r=fklNewAtom(FKL_CHR,NULL,prev);
+	FklAstAtom* r=fklNewAtom(FKL_CHR,prev);
 	r->value.chr=(oStr[0]=='\\')?
 		fklStringToChar(oStr+1):
 		oStr[0];
@@ -539,12 +534,12 @@ static FklAstAtom* createNum(const char* oStr,FklAstPair* prev)
 	FklAstAtom* r=NULL;
 	if(fklIsDouble(oStr))
 	{
-		r=fklNewAtom(FKL_F64,NULL,prev);
+		r=fklNewAtom(FKL_F64,prev);
 		r->value.f64=fklStringToDouble(oStr);
 	}
 	else
 	{
-		r=fklNewAtom(FKL_I32,NULL,prev);
+		r=fklNewAtom(FKL_I32,prev);
 		FklBigInt* bInt=fklNewBigIntFromStr(oStr);
 		if(fklIsGtLtI64BigInt(bInt))
 		{
@@ -657,15 +652,18 @@ static FklAstAtom* createString(const char* oStr,FklAstPair* prev)
 {
 	size_t size=0;
 	char* str=castEscapeCharaterBuf(oStr+1,'\"',&size);
-	FklAstAtom* r=fklNewAtom(FKL_STR,NULL,prev);
-	r->value.str.size=size;
-	r->value.str.str=str;
+	FklAstAtom* r=fklNewAtom(FKL_STR,prev);
+	r->value.str=fklNewString(size,str);
 	return r;
 }
 
 static FklAstAtom* createSymbol(const char* oStr,FklAstPair* prev)
 {
-	return fklNewAtom(FKL_SYM,oStr,prev);
+	size_t size=0;
+	char* str=castEscapeCharaterBuf(oStr+1,'|',&size);
+	FklAstAtom* r=fklNewAtom(FKL_SYM,prev);
+	r->value.str=fklNewString(size,str);
+	return r;
 }
 
 static FklAstAtom* (* const atomCreators[])(const char* str,FklAstPair* prev)=
@@ -807,7 +805,7 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 		{
 			if(fklIsVar(pattern->parts[i]))
 			{
-				char* varName=fklGetVarName(pattern->parts[i]);
+				FklString* varName=fklNewStringFromCstr(fklGetVarName(pattern->parts[i]));
 				AstElem* elem=treeStack->base[j];
 				fklAddDefine(varName,elem->cptr,tmpEnv);
 				free(varName);
@@ -1038,7 +1036,7 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 				}
 				else
 				{
-					FklAstAtom* vec=fklNewAtom(FKL_VECTOR,NULL,v->cptr->outer);
+					FklAstAtom* vec=fklNewAtom(FKL_VECTOR,v->cptr->outer);
 					fklMakeAstVector(&vec->value.vec,cStack->top,NULL);
 					v->cptr->type=FKL_ATM;
 					v->cptr->u.atom=vec;
@@ -1134,7 +1132,7 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 					AstElem* v=newAstElem(AST_CAR,fklNewCptr(token->line,NULL));
 					FklAstCptr* vCptr=v->cptr;
 					vCptr->type=FKL_ATM;
-					FklAstAtom* atom=fklNewAtom(FKL_BOX,NULL,vCptr->outer);
+					FklAstAtom* atom=fklNewAtom(FKL_BOX,vCptr->outer);
 					atom->value.box=*(postfix->cptr);
 					vCptr->u.atom=atom;
 					free(postfix->cptr);
@@ -1157,7 +1155,8 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 						NULL;
 					fklPushPtrStack(v,cStack);
 					prefix->type=FKL_ATM;
-					prefix->u.atom=fklNewAtom(FKL_SYM,prefixValue,v->cptr->outer);
+					prefix->u.atom=fklNewAtom(FKL_SYM,v->cptr->outer);
+					prefix->u.atom->value.str=fklNewString(strlen(prefixValue),prefixValue);
 					copyAndAddToList(v->cptr,prefix);
 					copyAndAddToList(v->cptr,postfix->cptr);
 					fklDeleteCptr(prefix);
@@ -1230,10 +1229,10 @@ void fklMakeAstVector(FklAstVector* vec,size_t size,const FklAstCptr* base)
 	}
 }
 
-void fklPrintRawAstString(FklAstString* str,FILE* out)
-{
-	fklPrintRawCharBuf(str->str,str->size,out);
-}
+//void fklPrintRawAstString(FklString* str,FILE* out)
+//{
+//	fklPrintRawCharBuf(str->str,str->size,out);
+//}
 
 void fklPrintCptr(const FklAstCptr* o_cptr,FILE* fp)
 {
@@ -1257,10 +1256,10 @@ void fklPrintCptr(const FklAstCptr* o_cptr,FILE* fp)
 				switch(tmpAtm->type)
 				{
 					case FKL_SYM:
-						fprintf(fp,"%s",tmpAtm->value.sym);
+						fklPrintRawString(tmpAtm->value.str,fp);
 						break;
 					case FKL_STR:
-						fklPrintRawAstString(&tmpAtm->value.str,fp);
+						fklPrintRawString(tmpAtm->value.str,fp);
 						break;
 					case FKL_I32:
 						fprintf(fp,"%d",tmpAtm->value.i32);

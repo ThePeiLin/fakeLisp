@@ -344,7 +344,7 @@ void fklPrintRawChar(char chr,FILE* out)
 	}
 }
 
-int fklIsSymbolShouldBeExport(const char* str,const char** pStr,uint32_t n)
+int fklIsSymbolShouldBeExport(const FklString* str,const FklString** pStr,uint32_t n)
 {
 	int32_t l=0;
 	int32_t h=n-1;
@@ -352,7 +352,7 @@ int fklIsSymbolShouldBeExport(const char* str,const char** pStr,uint32_t n)
 	while(l<=h)
 	{
 		mid=l+(h-l)/2;
-		int resultOfCmp=strcmp(pStr[mid],str);
+		int resultOfCmp=fklStringcmp(pStr[mid],str);
 		if(resultOfCmp>0)
 			h=mid-1;
 		else if(resultOfCmp<0)

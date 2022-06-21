@@ -59,7 +59,9 @@ static void _ffi_proc_atomic_finalizer(void* p)
 static void _ffi_proc_print(FILE* fp,void* p)
 {
 	FklFfiProc* f=p;
-	fprintf(fp,"#<ffi-proc:%s>",fklGetGlobSymbolWithId(f->sid)->symbol);
+	fprintf(fp,"#<ffi-proc:");
+	fklPrintString(fklGetGlobSymbolWithId(f->sid)->symbol,fp);
+	fputc('>',fp);
 }
 
 static pthread_mutex_t GPrepCifLock=PTHREAD_MUTEX_INITIALIZER;
@@ -261,5 +263,5 @@ FklVMudata* fklFfiNewProcUd(FklTypeId_t type,const char* cStr)
 	pthread_rwlock_unlock(&GlobSharedObjsLock);
 	if(!address)
 		return NULL;
-	return fklNewVMudata(fklFfiGetFfiMemUdSid(),&FfiProcMethodTable,fklFfiNewProc(type,address,fklAddSymbolToGlob(cStr)->id),fklFfiGetRel());
+	return fklNewVMudata(fklFfiGetFfiMemUdSid(),&FfiProcMethodTable,fklFfiNewProc(type,address,fklAddSymbolToGlobCstr(cStr)->id),fklFfiGetRel());
 }

@@ -13,9 +13,9 @@
 	FklVMrunnable* runnable=exe->rhead;\
 	FklVMvalue* val=fklNiGetArg(&ap,stack);\
 	if(fklNiResBp(&ap,stack))\
-	FKL_RAISE_BUILTIN_ERROR(err_infor,FKL_TOOFEWARG,runnable,exe);\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(err_infor,FKL_TOOFEWARG,runnable,exe);\
 	if(!val)\
-	FKL_RAISE_BUILTIN_ERROR(err_infor,FKL_TOOFEWARG,runnable,exe);\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(err_infor,FKL_TOOFEWARG,runnable,exe);\
 	if(condtion)\
 	fklNiReturn(FKL_VM_TRUE,&ap,stack);\
 	else\
@@ -50,11 +50,11 @@ void FKL_fklc_fbc_p(ARGL) PREDICATE(fklcIsFbc(val),"fklc.fbc?")
 	FklVMrunnable* runnable=exe->rhead;\
 	FklVMvalue* ARG=fklNiGetArg(&ap,stack);\
 	if(fklNiResBp(&ap,stack))\
-	FKL_RAISE_BUILTIN_ERROR(ERR_INFO,FKL_TOOMANYARG,runnable,exe);\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_TOOMANYARG,runnable,exe);\
 	if(!ARG)\
-	FKL_RAISE_BUILTIN_ERROR(ERR_INFO,FKL_TOOFEWARG,runnable,exe);\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_TOOFEWARG,runnable,exe);\
 	if(!P(ARG))\
-	FKL_RAISE_BUILTIN_ERROR(ERR_INFO,FKL_WRONGARG,runnable,exe);\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_WRONGARG,runnable,exe);\
 	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA,fklcNewFbcUd(BC),stack,exe->heap),&ap,stack);\
 	fklNiEnd(&ap,stack);\
 }

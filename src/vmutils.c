@@ -234,11 +234,18 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 		}
 		fklFreeVMtryBlock(fklPopPtrStack(exe->tstack));
 	}
-	fprintf(stderr,"error of %s :%s\n",err->who,err->message);
+	fprintf(stderr,"error of ");
+	fklPrintString(err->who,stderr);
+	fprintf(stderr," :");
+	fklPrintString(err->message,stderr);
+	fprintf(stderr,"\n");
 	for(FklVMrunnable* cur=exe->rhead;cur;cur=cur->prev)
 	{
 		if(cur->sid!=0)
-			fprintf(stderr,"at proc:%s",fklGetGlobSymbolWithId(cur->sid)->symbol);
+		{
+			fprintf(stderr,"at proc:");
+			fklPrintString(fklGetGlobSymbolWithId(cur->sid)->symbol,stderr);
+		}
 		else
 		{
 			if(cur->prev)
@@ -248,7 +255,11 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 		}
 		FklLineNumTabNode* node=fklFindLineNumTabNode(cur->cp,exe->lnt);
 		if(node->fid)
-			fprintf(stderr,"(%u:%s)\n",node->line,fklGetGlobSymbolWithId(node->fid)->symbol);
+		{
+			fprintf(stderr,"(%u:",node->line);
+			fklPrintString(fklGetGlobSymbolWithId(node->fid)->symbol,stderr);
+			fprintf(stderr,")\n");
+		}
 		else
 			fprintf(stderr,"(%u)\n",node->line);
 	}
@@ -279,7 +290,7 @@ FklVMrunnable* fklNewVMrunnable(FklVMproc* code,FklVMrunnable* prev)
 
 char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklErrorType type)
 {
-	char* t=fklCopyStr("");
+	char* t=fklCopyCStr("");
 	switch(type)
 	{
 		case FKL_LOADDLLFAILD:
@@ -306,7 +317,7 @@ char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklErrorType type)
 
 char* fklGenErrorMessage(FklErrorType type,FklVMrunnable* r,FklVM* exe)
 {
-	char* t=fklCopyStr("");
+	char* t=fklCopyCStr("");
 	switch(type)
 	{
 		case FKL_WRONGARG:
@@ -326,7 +337,7 @@ char* fklGenErrorMessage(FklErrorType type,FklVMrunnable* r,FklVM* exe)
 			break;
 		case FKL_SYMUNDEFINE:
 			t=fklStrCat(t,"Symbol ");
-			t=fklStrCat(t,fklGetGlobSymbolWithId(fklGetSymbolIdInByteCode(exe->code+r->cp))->symbol);
+			t=fklCstrStringCat(t,fklGetGlobSymbolWithId(fklGetSymbolIdInByteCode(exe->code+r->cp))->symbol);
 			t=fklStrCat(t," is undefined ");
 			break;
 		case FKL_INVOKEERROR:
@@ -503,7 +514,7 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 			putc(FKL_GET_CHR(v),fp);
 			break;
 		case FKL_SYM_TAG:
-			fprintf(fp,"%s",fklGetGlobSymbolWithId(FKL_GET_SYM(v))->symbol);
+			fklPrintString(fklGetGlobSymbolWithId(FKL_GET_SYM(v))->symbol,fp);
 			break;
 		case FKL_PTR_TAG:
 			{
@@ -520,7 +531,11 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 						break;
 					case FKL_PROC:
 						if(v->u.proc->sid)
-							fprintf(fp,"<#proc: %s>",fklGetGlobSymbolWithId(v->u.proc->sid)->symbol);
+						{
+							fprintf(fp,"<#proc: ");
+							fklPrintString(fklGetGlobSymbolWithId(FKL_GET_SYM(v))->symbol,fp);
+							fputc('>',fp);
+						}
 						else
 							fprintf(fp,"#<proc>");
 						break;
@@ -538,12 +553,16 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 						break;
 					case FKL_DLPROC:
 						if(v->u.dlproc->sid)
-							fprintf(fp,"<#dlproc: %s>",fklGetGlobSymbolWithId(v->u.dlproc->sid)->symbol);
+						{
+							fprintf(fp,"<#dlproc: ");
+							fklPrintString(fklGetGlobSymbolWithId(v->u.dlproc->sid)->symbol,fp);
+							fputc('>',fp);
+						}
 						else
 							fprintf(fp,"<#dlproc>");
 						break;
 					case FKL_ERR:
-						fprintf(fp,"%s",v->u.err->message);
+						fklPrintString(v->u.err->message,fp);
 						break;
 					case FKL_BIG_INT:
 						fklPrintBigInt(v->u.bigInt,fp);
@@ -552,7 +571,11 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 						if(v->u.ud->t->__princ)
 							v->u.ud->t->__princ(fp,v->u.ud->data);
 						else
-							fprintf(fp,"#<%s:%p>",fklGetGlobSymbolWithId(v->u.ud->type)->symbol,v->u.ud);
+						{
+							fprintf(fp,"#<");
+							fklPrintString(fklGetGlobSymbolWithId(v->u.ud->type)->symbol,fp);
+							fprintf(fp,":%p>",v->u.ud);
+						}
 						break;
 					default:
 						fputs("#<unknown>",fp);
@@ -579,7 +602,7 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 			fklPrintRawChar(FKL_GET_CHR(v),fp);
 			break;
 		case FKL_SYM_TAG:
-			fputs(fklGetGlobSymbolWithId(FKL_GET_SYM(v))->symbol,fp);
+			fklPrintString(fklGetGlobSymbolWithId(FKL_GET_SYM(v))->symbol,fp);
 			break;
 		default:
 			switch(v->type)
@@ -595,9 +618,11 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 					break;
 				case FKL_PROC:
 					if(v->u.proc->sid)
-						fprintf(fp,"<#proc: %s>"
-								,fklGetGlobSymbolWithId(v->u.proc->sid)->symbol);
-					else
+					{
+						fprintf(fp,"<#proc: ");
+						fklPrintString(fklGetGlobSymbolWithId(FKL_GET_SYM(v))->symbol,fp);
+						fputc('>',fp);
+					}					else
 						fputs("#<proc>",fp);
 					break;
 				case FKL_CONT:
@@ -613,17 +638,22 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 					fputs("#<dll>",fp);
 					break;
 				case FKL_DLPROC:
-					if(v->u.dlproc->sid)
-						fprintf(fp,"#<dlproc: %s>"
-								,fklGetGlobSymbolWithId(v->u.dlproc->sid)->symbol);
+					if(v->u.dlproc->sid){
+						fprintf(fp,"<#dlproc: ");
+						fklPrintString(fklGetGlobSymbolWithId(v->u.dlproc->sid)->symbol,fp);
+						fputc('>',fp);
+					}
 					else
 						fputs("#<dlproc>",fp);
 					break;
 				case FKL_ERR:
-					fprintf(fp,"#<err w:%s t:%s m:%s>"
-							,v->u.err->who
-							,fklGetGlobSymbolWithId(v->u.err->type)->symbol
-							,v->u.err->message);
+					fprintf(fp,"#<err w:");
+					fklPrintString(v->u.err->who,fp);
+					fprintf(fp," t:");
+					fklPrintString(fklGetGlobSymbolWithId(v->u.err->type)->symbol,fp);
+					fprintf(fp," m:");
+					fklPrintString(v->u.err->message,fp);
+					fprintf(fp,">");
 					break;
 				case FKL_BIG_INT:
 					fklPrintBigInt(v->u.bigInt,fp);
@@ -632,7 +662,11 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 					if(v->u.ud->t->__prin1)
 						v->u.ud->t->__prin1(fp,v->u.ud->data);
 					else
-						fprintf(fp,"#<%s:%p>",fklGetGlobSymbolWithId(v->u.ud->type)->symbol,v->u.ud);
+					{
+						fprintf(fp,"#<");
+						fklPrintString(fklGetGlobSymbolWithId(v->u.ud->type)->symbol,fp);
+						fprintf(fp,":%p>",v->u.ud);
+					}
 					break;
 				default:
 					fputs("#<unknown>",fp);
@@ -914,13 +948,13 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 			root1->type=cptrType;
 			if(cptrType==FKL_ATM)
 			{
-				FklAstAtom* tmpAtm=fklNewAtom(FKL_SYM,NULL,root1->outer);
+				FklAstAtom* tmpAtm=fklNewAtom(FKL_SYM,root1->outer);
 				FklVMptrTag tag=FKL_GET_TAG(root);
 				switch(tag)
 				{
 					case FKL_SYM_TAG:
 						tmpAtm->type=FKL_SYM;
-						tmpAtm->value.sym=fklCopyStr(fklGetGlobSymbolWithId(FKL_GET_SYM(root))->symbol);
+						tmpAtm->value.str=fklCopyString(fklGetGlobSymbolWithId(FKL_GET_SYM(root))->symbol);
 						break;
 					case FKL_I32_TAG:
 						tmpAtm->type=FKL_I32;
@@ -942,32 +976,31 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 									tmpAtm->value.i64=root->u.i64;
 									break;
 								case FKL_STR:
-									tmpAtm->value.str.size=root->u.str->size;
-									tmpAtm->value.str.str=fklCopyMemory(root->u.str->str,root->u.str->size);
+									tmpAtm->value.str=fklCopyString(root->u.str);
 									break;
 								case FKL_PROC:
 									tmpAtm->type=FKL_SYM;
-									tmpAtm->value.sym=fklCopyStr("#<proc>");
+									tmpAtm->value.str=fklNewStringFromCstr("#<proc>");
 									break;
 								case FKL_DLPROC:
 									tmpAtm->type=FKL_SYM;
-									tmpAtm->value.sym=fklCopyStr("#<dlproc>");
+									tmpAtm->value.str=fklNewStringFromCstr("#<dlproc>");
 									break;
 								case FKL_CONT:
 									tmpAtm->type=FKL_SYM;
-									tmpAtm->value.sym=fklCopyStr("#<proc>");
+									tmpAtm->value.str=fklNewStringFromCstr("#<proc>");
 									break;
 								case FKL_CHAN:
 									tmpAtm->type=FKL_SYM;
-									tmpAtm->value.sym=fklCopyStr("#<chan>");
+									tmpAtm->value.str=fklNewStringFromCstr("#<chan>");
 									break;
 								case FKL_FP:
 									tmpAtm->type=FKL_SYM;
-									tmpAtm->value.sym=fklCopyStr("#<fp>");
+									tmpAtm->value.str=fklNewStringFromCstr("#<fp>");
 									break;
 								case FKL_ERR:
 									tmpAtm->type=FKL_SYM;
-									tmpAtm->value.sym=fklCopyStr("#<err>");
+									tmpAtm->value.str=fklNewStringFromCstr("#<err>");
 									break;
 								case FKL_BOX:
 									tmpAtm->type=FKL_BOX;

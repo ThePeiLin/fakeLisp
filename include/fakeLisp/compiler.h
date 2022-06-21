@@ -17,7 +17,7 @@ typedef struct
 
 typedef struct FklPreDef
 {
-	char* symbol;
+	FklString* symbol;
 	FklAstCptr obj;//node or symbol or val
 	struct FklPreDef* next;
 }FklPreDef;
@@ -46,8 +46,8 @@ typedef struct FklCompDef
 typedef struct FklCompEnv
 {
 	struct FklCompEnv* prev;
-	char* prefix;
-	const char** exp;
+	FklString* prefix;
+	const FklString** exp;
 	uint32_t n;
 	FklCompDef* head;
 	FklPreMacro* macro;
@@ -69,7 +69,7 @@ typedef struct FklInterpreter
 
 typedef struct FklKeyWord
 {
-	char* word;
+	FklString* word;
 	struct FklKeyWord* next;
 }FklKeyWord;
 
@@ -81,15 +81,16 @@ void fklFreeMainFileRealPath(void);
 void fklSetMainFileRealPathWithCwd(void);
 const char* fklGetMainFileRealPath(void);
 void fklPrintCompileError(const FklAstCptr*,FklErrorType,FklInterpreter*);
-FklPreDef* fklAddDefine(const char*,const FklAstCptr*,FklPreEnv*);
-FklPreDef* fklFindDefine(const char*,const FklPreEnv*);
-FklPreDef* fklNewDefines(const char*);
+FklPreDef* fklAddDefine(const FklString*,const FklAstCptr*,FklPreEnv*);
+FklPreDef* fklFindDefine(const FklString*,const FklPreEnv*);
+FklPreDef* fklNewDefines(const FklString*);
 
-FklCompDef* fklAddCompDef(const char*,FklCompEnv*);
+FklCompDef* fklAddCompDef(const FklString*,FklCompEnv*);
+FklCompDef* fklAddCompDefCstr(const char*,FklCompEnv*);
 FklCompEnv* fklNewCompEnv(FklCompEnv*);
 void fklDestroyCompEnv(FklCompEnv* objEnv);
 void fklFreeAllMacroThenDestroyCompEnv(FklCompEnv* env);
-FklCompDef* fklFindCompDef(const char*,FklCompEnv*);
+FklCompDef* fklFindCompDef(const FklString*,FklCompEnv*);
 FklInterpreter* fklNewIntpr(const char*,FILE*,FklCompEnv*,FklLineNumberTable*);
 FklInterpreter* fklNewTmpIntpr(const char*,FILE*);
 

@@ -50,7 +50,7 @@ int main(int argc,char** argv)
 		}
 		FklInterpreter* inter=NULL;
 		if(filename)
-			fklAddSymbolToGlob(filename);
+			fklAddSymbolToGlobCstr(filename);
 		fklInitVMargs(argc,argv);
 		if(fp==stdin)
 		{
@@ -319,9 +319,12 @@ void loadSymbolTable(FILE* fp)
 	fread(&size,sizeof(size),1,fp);
 	for(uint64_t i=0;i<size;i++)
 	{
-		char* symbol=fklGetStringFromFile(fp);
-		fklAddSymbolToGlob(symbol);
-		free(symbol);
+		uint64_t len=0;
+		fread(&len,sizeof(len),1,fp);
+		FklString* buf=fklNewString(len,NULL);
+		fread(buf->str,len,1,fp);
+		fklAddSymbolToGlob(buf);
+		free(buf);
 	}
 }
 

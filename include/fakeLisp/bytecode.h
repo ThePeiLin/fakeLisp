@@ -15,11 +15,11 @@ typedef struct
 	uint8_t* code;
 }FklByteCode;
 
-typedef struct FklByteCodeLabel
-{
-	char* label;
-	int32_t place;
-}FklByteCodeLabel;
+//typedef struct FklByteCodeLabel
+//{
+//	char* label;
+//	int32_t place;
+//}FklByteCodeLabel;
 
 typedef struct
 {
@@ -58,9 +58,9 @@ void fklCodeLntCat(FklByteCodelnt*,FklByteCodelnt*);
 void fklCodelntCopyCat(FklByteCodelnt*,const FklByteCodelnt*);
 void fklReCodeLntCat(FklByteCodelnt*,FklByteCodelnt*);
 
-FklByteCodeLabel* fklNewByteCodeLable(int32_t,const char*);
-FklByteCodeLabel* fklFindByteCodeLabel(const char*,FklPtrStack*);
-void fklFreeByteCodeLabel(FklByteCodeLabel*);
+//FklByteCodeLabel* fklNewByteCodeLable(int32_t,const char*);
+//FklByteCodeLabel* fklFindByteCodeLabel(const char*,FklPtrStack*);
+//void fklFreeByteCodeLabel(FklByteCodeLabel*);
 
 FklLineNumberTable* fklNewLineNumTable();
 FklLineNumTabNode* fklNewLineNumTabNode(FklSid_t fid,uint64_t scp,uint64_t cpc,uint32_t line);

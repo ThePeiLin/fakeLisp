@@ -493,13 +493,13 @@ void fklFreeVMdlproc(FklVMdlproc* dlproc)
 	free(dlproc);
 }
 
-FklVMerror* fklNewVMerror(const char* who,FklSid_t type,const char* message)
+FklVMerror* fklNewVMerror(const FklString* who,FklSid_t type,const FklString* message)
 {
 	FklVMerror* t=(FklVMerror*)malloc(sizeof(FklVMerror));
 	FKL_ASSERT(t,__func__);
-	t->who=fklCopyStr(who);
+	t->who=fklCopyString(who);
 	t->type=type;
-	t->message=fklCopyStr(message);
+	t->message=fklCopyString(message);
 	return t;
 }
 
@@ -763,13 +763,13 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 					*root1=FKL_MAKE_VM_CHR(tmpAtm->value.chr);
 					break;
 				case FKL_SYM:
-					*root1=FKL_MAKE_VM_SYM(fklAddSymbolToGlob(tmpAtm->value.sym)->id);
+					*root1=FKL_MAKE_VM_SYM(fklAddSymbolToGlob(tmpAtm->value.str)->id);
 					break;
 				case FKL_F64:
 					*root1=fklNewVMvalue(FKL_F64,&tmpAtm->value.f64,heap);
 					break;
 				case FKL_STR:
-					*root1=fklNewVMvalue(FKL_STR,fklNewString(tmpAtm->value.str.size,tmpAtm->value.str.str),heap);
+					*root1=fklNewVMvalue(FKL_STR,fklNewString(tmpAtm->value.str->size,tmpAtm->value.str->str),heap);
 					break;
 				case FKL_BOX:
 					*root1=fklNewVMvalue(FKL_BOX,FKL_VM_NIL,heap);

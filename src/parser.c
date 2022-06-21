@@ -95,7 +95,7 @@ FklToken* fklNewToken(FklTokenType type,const char* str,uint32_t line)
 	FKL_ASSERT(token,__func__);
 	token->type=type;
 	token->line=line;
-	token->value=fklCopyStr(str);
+	token->value=fklCopyCStr(str);
 	return token;
 }
 
@@ -125,7 +125,7 @@ static void freeMatchState(MatchState* state)
 	free(state);
 }
 
-#define BUILT_IN_SEPARATOR_STR_NUM (14)
+#define BUILT_IN_SEPARATOR_STR_NUM (15)
 #define PARENTHESE_0 ((void*)0)
 #define PARENTHESE_1 ((void*)1)
 #define QUOTE ((void*)2)
@@ -153,6 +153,7 @@ static const char* separatorStrSet[]=
 	"`",
 	"~",
 	"#&",
+	"|",
 };
 
 static int isBuiltInSingleStrPattern(FklStringMatchPattern* pattern)

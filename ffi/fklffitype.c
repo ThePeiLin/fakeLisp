@@ -81,7 +81,7 @@ void fklFfiInitNativeDefTypes(FklDefTypes* otherTypes)
 	size_t i=0;
 	for(;i<num;i++)
 	{
-		FklSid_t typeName=fklAddSymbolToGlob(nativeTypeList[i].typeName)->id;
+		FklSid_t typeName=fklAddSymbolToGlobCstr(nativeTypeList[i].typeName)->id;
 		FklTypeId_t t=fklFfiNewNativeType(typeName,nativeTypeList[i].size,nativeTypeList[i].align);
 		fklFfiAddDefTypes(otherTypes,typeName,t);
 	}
@@ -413,12 +413,12 @@ void fklFfiFreeFuncType(FklDefFuncType* obj)
 
 void fklFfiInitTypedefSymbol(void)
 {
-	ArrayTypedefSymbolId=fklAddSymbolToGlob("array")->id;
-	PtrTypedefSymbolId=fklAddSymbolToGlob("ptr")->id;
-	StructTypedefSymbolId=fklAddSymbolToGlob("struct")->id;
-	UnionTypedefSymbolId=fklAddSymbolToGlob("union")->id;
-	FunctionTypedefSymbolId=fklAddSymbolToGlob("function")->id;
-	VoidSymbolId=fklAddSymbolToGlob("void")->id;
+	ArrayTypedefSymbolId=fklAddSymbolToGlobCstr("array")->id;
+	PtrTypedefSymbolId=fklAddSymbolToGlobCstr("ptr")->id;
+	StructTypedefSymbolId=fklAddSymbolToGlobCstr("struct")->id;
+	UnionTypedefSymbolId=fklAddSymbolToGlobCstr("union")->id;
+	FunctionTypedefSymbolId=fklAddSymbolToGlobCstr("function")->id;
+	VoidSymbolId=fklAddSymbolToGlobCstr("void")->id;
 }
 
 /*genTypeId functions list*/
@@ -902,13 +902,13 @@ FklSid_t fklFfiGetErrorType(FklFfiErrorType type)
 {
 	static FklSid_t ffiErrorTypeId[sizeof(FfiErrorType)/sizeof(const char*)]={0};
 	if(!ffiErrorTypeId[type])
-		ffiErrorTypeId[type]=fklAddSymbolToGlob(FfiErrorType[type])->id;
+		ffiErrorTypeId[type]=fklAddSymbolToGlobCstr(FfiErrorType[type])->id;
 	return ffiErrorTypeId[type];
 }
 
 char* fklFfiGenErrorMessage(FklFfiErrorType type)
 {
-	char* t=fklCopyStr("");
+	char* t=fklCopyCStr("");
 	switch(type)
 	{
 		case FKL_FFI_INVALID_TYPEDECLARE:

@@ -125,7 +125,7 @@ static inline uint64_t printErrorHandlerHead(const FklByteCode* tmpCode,uint64_t
 	for(uint32_t k=0;k<errTypeNum;k++)
 	{
 		FklSid_t type=fklGetSidFromByteCode(tmpCode->code+i);
-		fprintf(fp,"%s",fklGetGlobSymbolWithId(type)->symbol);
+		fklPrintString(fklGetGlobSymbolWithId(type)->symbol,fp);
 		i+=sizeof(FklSid_t);
 		r+=sizeof(FklSid_t);
 		if(k+1<errTypeNum)
@@ -169,7 +169,7 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 		case -4:
 			{
 				FklSid_t errSymId=fklGetSidFromByteCode(tmpCode->code+(++i));
-				fprintf(fp,"%s ",fklGetGlobSymbolWithId(errSymId)->symbol);
+				fklPrintString(fklGetGlobSymbolWithId(errSymId)->symbol,fp);
 				i+=sizeof(FklSid_t);
 				uint32_t handlerNum=fklGetU32FromByteCode(tmpCode->code+i);
 				fprintf(fp,"%d",handlerNum);
@@ -203,9 +203,8 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 			}
 			break;
 		case -3:
-			fprintf(fp,"%d %s"
-					,fklGetI32FromByteCode(tmpCode->code+i+sizeof(char))
-					,fklGetGlobSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)+sizeof(int32_t)))->symbol);
+			fprintf(fp,"%d ",fklGetI32FromByteCode(tmpCode->code+i+sizeof(char)));
+			fklPrintString(fklGetGlobSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)+sizeof(int32_t)))->symbol,fp);
 			r+=sizeof(char)+sizeof(int32_t)+sizeof(FklSid_t);
 			break;
 		case -2:
@@ -245,7 +244,7 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 			break;
 		case 4:
 			if(tmpCode->code[i]==FKL_PUSH_SYM)
-				fprintf(fp,"%s",fklGetGlobSymbolWithId(fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)))->symbol);
+				fklPrintString(fklGetGlobSymbolWithId(fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)))->symbol,fp);
 			else
 				fprintf(fp,"%d"
 						,fklGetI32FromByteCode(tmpCode->code+i+sizeof(char)));
@@ -270,7 +269,7 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 				case FKL_PUSH_VAR:
 				case FKL_PUSH_SYM:
 				case FKL_POP_REST_ARG:
-					fprintf(fp,"%s",fklGetGlobSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)))->symbol);
+					fklPrintString(fklGetGlobSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)))->symbol,fp);
 					break;
 			}
 			r+=sizeof(char)+sizeof(int64_t);
@@ -396,7 +395,11 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp)
 				fid=obj->l[j]->fid;
 				line=obj->l[j]->line;
 				if(fid)
-					fprintf(fp,"\t%s:%u:%lu",fklGetGlobSymbolWithId(obj->l[j]->fid)->symbol,obj->l[j]->line,obj->l[j]->cpc);
+				{
+					fputc('\t',fp);
+					fklPrintString(fklGetGlobSymbolWithId(obj->l[j]->fid)->symbol,fp);
+					fprintf(fp,":%u:%lu",obj->l[j]->line,obj->l[j]->cpc);
+				}
 				else
 					fprintf(fp,"\t%u:%lu",obj->l[j]->line,obj->l[j]->cpc);
 			}
@@ -540,40 +543,40 @@ void fklReCodeLntCat(FklByteCodelnt* f,FklByteCodelnt* s)
 	fklReCodeCat(f->bc,s->bc);
 }
 
-FklByteCodeLabel* fklNewByteCodeLable(int32_t place,const char* label)
-{
-	FklByteCodeLabel* tmp=(FklByteCodeLabel*)malloc(sizeof(FklByteCodeLabel));
-	FKL_ASSERT(tmp,__func__);
-	tmp->place=place;
-	tmp->label=fklCopyStr(label);
-	return tmp;
-}
-
-FklByteCodeLabel* fklFindByteCodeLabel(const char* label,FklPtrStack* s)
-{
-	int32_t l=0;
-	int32_t h=s->top-1;
-	int32_t mid;
-	while(l<=h)
-	{
-		mid=l+(h-l)/2;
-		int cmp=strcmp(((FklByteCodeLabel*)s->base[mid])->label,label);
-		if(cmp>0)
-			h=mid-1;
-		else if(cmp<0)
-			l=mid+1;
-		else
-			return (FklByteCodeLabel*)s->base[mid];
-	}
-	return NULL;
-}
-
-
-void fklFreeByteCodeLabel(FklByteCodeLabel* obj)
-{
-	free(obj->label);
-	free(obj);
-}
+//FklByteCodeLabel* fklNewByteCodeLable(int32_t place,const char* label)
+//{
+//	FklByteCodeLabel* tmp=(FklByteCodeLabel*)malloc(sizeof(FklByteCodeLabel));
+//	FKL_ASSERT(tmp,__func__);
+//	tmp->place=place;
+//	tmp->label=fklCopyStr(label);
+//	return tmp;
+//}
+//
+//FklByteCodeLabel* fklFindByteCodeLabel(const char* label,FklPtrStack* s)
+//{
+//	int32_t l=0;
+//	int32_t h=s->top-1;
+//	int32_t mid;
+//	while(l<=h)
+//	{
+//		mid=l+(h-l)/2;
+//		int cmp=strcmp(((FklByteCodeLabel*)s->base[mid])->label,label);
+//		if(cmp>0)
+//			h=mid-1;
+//		else if(cmp<0)
+//			l=mid+1;
+//		else
+//			return (FklByteCodeLabel*)s->base[mid];
+//	}
+//	return NULL;
+//}
+//
+//
+//void fklFreeByteCodeLabel(FklByteCodeLabel* obj)
+//{
+//	free(obj->label);
+//	free(obj);
+//}
 
 FklLineNumberTable* fklNewLineNumTable()
 {
@@ -602,7 +605,7 @@ FklLineNumTabNode* fklNewLineNumTabNodeWithFilename(const char* filename
 {
 	FklLineNumTabNode* t=(FklLineNumTabNode*)malloc(sizeof(FklLineNumTabNode));
 	FKL_ASSERT(t,__func__);
-	t->fid=filename?fklAddSymbolToGlob(filename)->id:0;
+	t->fid=filename?fklAddSymbolToGlobCstr(filename)->id:0;
 	t->scp=scp;
 	t->cpc=cpc;
 	t->line=line;

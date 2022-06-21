@@ -441,18 +441,18 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 	obj->num=FKL_NUM_OF_BUILT_IN_SYMBOL;
 	obj->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*FKL_NUM_OF_BUILT_IN_SYMBOL);
 	FKL_ASSERT(obj->list,__func__);
-	obj->list[0]=fklNewVMenvNode(FKL_VM_NIL,fklAddSymbolToGlob(fklGetBuiltInSymbol(0))->id);
+	obj->list[0]=fklNewVMenvNode(FKL_VM_NIL,fklAddSymbolToGlobCstr(fklGetBuiltInSymbol(0))->id);
 	VMstdin=fklNewVMvalue(FKL_FP,fklNewVMfp(stdin),heap);
 	VMstdout=fklNewVMvalue(FKL_FP,fklNewVMfp(stdout),heap);
 	VMstderr=fklNewVMvalue(FKL_FP,fklNewVMfp(stderr),heap);
-	obj->list[1]=fklNewVMenvNode(VMstdin,fklAddSymbolToGlob(fklGetBuiltInSymbol(1))->id);
-	obj->list[2]=fklNewVMenvNode(VMstdout,fklAddSymbolToGlob(fklGetBuiltInSymbol(2))->id);
-	obj->list[3]=fklNewVMenvNode(VMstderr,fklAddSymbolToGlob(fklGetBuiltInSymbol(3))->id);
+	obj->list[1]=fklNewVMenvNode(VMstdin,fklAddSymbolToGlobCstr(fklGetBuiltInSymbol(1))->id);
+	obj->list[2]=fklNewVMenvNode(VMstdout,fklAddSymbolToGlobCstr(fklGetBuiltInSymbol(2))->id);
+	obj->list[3]=fklNewVMenvNode(VMstderr,fklAddSymbolToGlobCstr(fklGetBuiltInSymbol(3))->id);
 	size_t i=4;
 	for(;i<FKL_NUM_OF_BUILT_IN_SYMBOL;i++)
 	{
 		FklVMdlproc* proc=fklNewVMdlproc(syscallFunctionList[i-4],NULL);
-		FklSymTabNode* node=fklAddSymbolToGlob(fklGetBuiltInSymbol(i));
+		FklSymTabNode* node=fklAddSymbolToGlobCstr(fklGetBuiltInSymbol(i));
 		proc->sid=node->id;
 		obj->list[i]=fklNewVMenvNode(fklNewVMvalue(FKL_DLPROC,proc,heap),node->id);
 	}
@@ -475,11 +475,11 @@ void* ThreadVMfunc(void* p)
 	}
 	else
 	{
-		char* threadErrorMessage=fklCopyStr("error:occur in thread ");
+		char* threadErrorMessage=fklCopyCStr("error:occur in thread ");
 		char* id=fklIntToString(exe->VMid);
 		threadErrorMessage=fklStrCat(threadErrorMessage,id);
 		threadErrorMessage=fklStrCat(threadErrorMessage,"\n");
-		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerror(NULL,fklGetBuiltInErrorType(FKL_THREADERROR),threadErrorMessage),exe->heap);
+		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerrorCstr(NULL,fklGetBuiltInErrorType(FKL_THREADERROR),threadErrorMessage),exe->heap);
 		free(threadErrorMessage);
 		free(id);
 		FklVMsend* t=fklNewVMsend(err);
@@ -517,11 +517,11 @@ void* ThreadVMdlprocFunc(void* p)
 	}
 	else
 	{
-		char* threadErrorMessage=fklCopyStr("error:occur in thread ");
+		char* threadErrorMessage=fklCopyCStr("error:occur in thread ");
 		char* id=fklIntToString(exe->VMid);
 		threadErrorMessage=fklStrCat(threadErrorMessage,id);
 		threadErrorMessage=fklStrCat(threadErrorMessage,"\n");
-		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerror(NULL,fklGetBuiltInErrorType(FKL_THREADERROR),threadErrorMessage),exe->heap);
+		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerrorCstr(NULL,fklGetBuiltInErrorType(FKL_THREADERROR),threadErrorMessage),exe->heap);
 		free(threadErrorMessage);
 		free(id);
 		FklVMsend* t=fklNewVMsend(err);
@@ -559,11 +559,11 @@ void* ThreadVMinvokableUd(void* p)
 	}
 	else
 	{
-		char* threadErrorMessage=fklCopyStr("error:occur in thread ");
+		char* threadErrorMessage=fklCopyCStr("error:occur in thread ");
 		char* id=fklIntToString(exe->VMid);
 		threadErrorMessage=fklStrCat(threadErrorMessage,id);
 		threadErrorMessage=fklStrCat(threadErrorMessage,"\n");
-		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerror(NULL,fklGetBuiltInErrorType(FKL_THREADERROR),threadErrorMessage),exe->heap);
+		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerrorCstr(NULL,fklGetBuiltInErrorType(FKL_THREADERROR),threadErrorMessage),exe->heap);
 		free(threadErrorMessage);
 		free(id);
 		FklVMsend* t=fklNewVMsend(err);
@@ -741,7 +741,7 @@ void B_push_var(FklVM* exe)
 		curEnv=curEnv->u.env->prev;
 	}
 	if(tmp==NULL)
-		FKL_RAISE_BUILTIN_ERROR("b.push_var",FKL_SYMUNDEFINE,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.push_var",FKL_SYMUNDEFINE,runnable,exe);
 	fklPushVMvalue(tmp->value,stack);
 	runnable->cp+=sizeof(char)+sizeof(FklSid_t);
 }
@@ -751,7 +751,7 @@ void B_push_top(FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
 	if(stack->tp==stack->bp)
-		FKL_RAISE_BUILTIN_ERROR("b.push_top",FKL_STACKERROR,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.push_top",FKL_STACKERROR,runnable,exe);
 	FklVMvalue* val=fklNiGetArg(&ap,stack);
 	fklNiReturn(val,&ap,stack);
 	fklNiReturn(val,&ap,stack);
@@ -785,7 +785,7 @@ void B_pop_var(FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
 	if(!(stack->tp>stack->bp))
-		FKL_RAISE_BUILTIN_ERROR("b.pop_var",FKL_STACKERROR,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop_var",FKL_STACKERROR,runnable,exe);
 	int32_t scopeOfVar=fklGetI32FromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+runnable->cp+sizeof(char)+sizeof(int32_t));
 	FklVMvalue* curEnv=runnable->localenv;
@@ -805,7 +805,7 @@ void B_pop_var(FklVM* exe)
 			curEnv=curEnv->u.env->prev;
 		}
 		if(tmp==NULL)
-			FKL_RAISE_BUILTIN_ERROR("b.pop_var",FKL_SYMUNDEFINE,runnable,exe);
+			FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop_var",FKL_SYMUNDEFINE,runnable,exe);
 		pValue=&tmp->value;
 	}
 //	pthread_rwlock_wrlock(&curEnv->u.env->lock);
@@ -824,7 +824,7 @@ void B_pop_arg(FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
 	if(ap<=stack->bp)
-		FKL_RAISE_BUILTIN_ERROR("b.pop_arg",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop_arg",FKL_TOOFEWARG,runnable,exe);
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklVMvalue* curEnv=runnable->localenv;
 	FklVMvalue* volatile* pValue=&fklAddVMenvNode(idOfVar,curEnv->u.env)->value;
@@ -908,7 +908,7 @@ void B_res_bp(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=exe->rhead;
 	if(stack->tp>stack->bp)
-		FKL_RAISE_BUILTIN_ERROR("b.res_bp",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.res_bp",FKL_TOOMANYARG,runnable,exe);
 	FklVMvalue* prevBp=fklGetTopValue(stack);
 	stack->bp=FKL_GET_I32(prevBp);
 	pthread_rwlock_wrlock(&stack->lock);
@@ -924,7 +924,7 @@ void B_invoke(FklVM* exe)
 	FklVMrunnable* runnable=exe->rhead;
 	FklVMvalue* tmpValue=fklNiGetArg(&ap,stack);
 	if(!FKL_IS_PROC(tmpValue)&&!FKL_IS_DLPROC(tmpValue)&&!FKL_IS_CONT(tmpValue)&&!fklIsInvokableUd(tmpValue))
-		FKL_RAISE_BUILTIN_ERROR("b.invoke",FKL_INVOKEERROR,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.invoke",FKL_INVOKEERROR,runnable,exe);
 	runnable->cp+=sizeof(char);
 	switch(tmpValue->type)
 	{
@@ -955,7 +955,7 @@ void B_tail_invoke(FklVM* exe)
 	FklVMrunnable* runnable=exe->rhead;
 	FklVMvalue* tmpValue=fklNiGetArg(&ap,stack);
 	if(!FKL_IS_PROC(tmpValue)&&!FKL_IS_DLPROC(tmpValue)&&!FKL_IS_CONT(tmpValue)&&!fklIsInvokableUd(tmpValue))
-		FKL_RAISE_BUILTIN_ERROR("b.invoke",FKL_INVOKEERROR,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.invoke",FKL_INVOKEERROR,runnable,exe);
 	runnable->cp+=sizeof(char);
 	switch(tmpValue->type)
 	{
@@ -1013,7 +1013,7 @@ void B_append(FklVM* exe)
 	FklVMvalue* fir=fklNiGetArg(&ap,stack);
 	FklVMvalue* sec=fklNiGetArg(&ap,stack);
 	if(sec!=FKL_VM_NIL&&!FKL_IS_PAIR(sec))
-		FKL_RAISE_BUILTIN_ERROR("b.append",FKL_WRONGARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.append",FKL_WRONGARG,runnable,exe);
 	if(sec==FKL_VM_NIL)
 		fklNiReturn(fir,&ap,stack);
 	else

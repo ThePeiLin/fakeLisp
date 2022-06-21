@@ -8,16 +8,17 @@ extern "C" {
 #endif
 
 FklKeyWord* fklHasKeyWord(const FklAstCptr*,FklCompEnv*);
-void fklAddKeyWord(const char*,FklCompEnv*);
-void fklPrintAllKeyWord();
+void fklAddKeyWord(const FklString*,FklCompEnv*);
+void fklAddKeyWordCstr(const char*,FklCompEnv*);
+//void fklPrintAllKeyWord();
 void fklAddSynRule(int (*)(const FklAstCptr*));
 int (*checkAST(const FklAstCptr*))(const FklAstCptr*);
 int fklIsValid(const FklAstCptr*);
 int fklIsPreprocess(const FklAstCptr*);
-int fklIsAnyExpression(const char* str,const FklAstCptr* objCptr);
+//int fklIsAnyExpression(const char* str,const FklAstCptr* objCptr);
 int fklIsDefExpression(const FklAstCptr*);
 int fklIsSetqExpression(const FklAstCptr*);
-int fklIsSetfExpression(const FklAstCptr*);
+//int fklIsSetfExpression(const FklAstCptr*);
 int fklIsLambdaExpression(const FklAstCptr*);
 int fklIsBeginExpression(const FklAstCptr*);
 int fklIsCondExpression(const FklAstCptr*);
@@ -39,7 +40,7 @@ int fklIsDefmacroExpression(const FklAstCptr*);
 int fklIsTryExpression(const FklAstCptr*);
 int fklIsCatchExpression(const FklAstCptr*);
 int fklIsMacroExpandExpression(const FklAstCptr*);
-int fklIsKeyWord(const char*,FklCompEnv* curEnv);
+int fklIsKeyWord(const FklString*,FklCompEnv* curEnv);
 #ifdef __cplusplus
 }
 #endif

@@ -229,8 +229,8 @@ typedef struct FklVMdlproc
 typedef struct FklVMerror
 {
 	FklSid_t type;
-	char* who;
-	char* message;
+	FklString* who;
+	FklString* message;
 }FklVMerror;
 
 typedef struct FklVMcontinuation
@@ -390,7 +390,9 @@ void fklFreeVMdll(FklVMdllHandle);
 FklVMdlproc* fklNewVMdlproc(FklVMdllFunc,FklVMvalue*);
 void fklFreeVMdlproc(FklVMdlproc*);
 
-FklVMerror* fklNewVMerror(const char* who,FklSid_t type,const char* message);
+FklVMerror* fklNewVMerror(const FklString* who,FklSid_t type,const FklString* message);
+FklVMerror* fklNewVMerrorCstr(const char* who,FklSid_t type,const char* message);
+FklVMerror* fklNewVMerrorMCstr(const FklString* who,FklSid_t type,const char* message);
 void fklFreeVMerror(FklVMerror*);
 
 
@@ -457,15 +459,23 @@ void fklFreeRunnables(FklVMrunnable* h);
 
 #define FKL_RAISE_BUILTIN_ERROR(WHO,ERRORTYPE,RUNNABLE,EXE) do{\
 	char* errorMessage=fklGenErrorMessage((ERRORTYPE),(RUNNABLE),(EXE));\
-	FklVMvalue* err=fklNiNewVMvalue(FKL_ERR,fklNewVMerror((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE)->stack,(EXE)->heap);\
+	FklVMvalue* err=fklNiNewVMvalue(FKL_ERR,fklNewVMerrorMCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE)->stack,(EXE)->heap);\
 	free(errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
 	return;\
 }while(0)
 
-#define FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR(WHO,STR,FREE,ERRORTYPE,EXE) do{\
+#define FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,ERRORTYPE,RUNNABLE,EXE) do{\
+	char* errorMessage=fklGenErrorMessage((ERRORTYPE),(RUNNABLE),(EXE));\
+	FklVMvalue* err=fklNiNewVMvalue(FKL_ERR,fklNewVMerrorCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE)->stack,(EXE)->heap);\
+	free(errorMessage);\
+	fklRaiseVMerror(err,(EXE));\
+	return;\
+}while(0)
+
+#define FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(WHO,STR,FREE,ERRORTYPE,EXE) do{\
 	char* errorMessage=fklGenInvalidSymbolErrorMessage((STR),(FREE),(ERRORTYPE));\
-	FklVMvalue* err=fklNiNewVMvalue(FKL_ERR,fklNewVMerror((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE)->stack,(EXE)->heap);\
+	FklVMvalue* err=fklNiNewVMvalue(FKL_ERR,fklNewVMerrorCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE)->stack,(EXE)->heap);\
 	free(errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
 	return;\

@@ -248,7 +248,7 @@ void fklFreeAllStringPattern()
 	{
 		FklStringMatchPattern* prev=cur;
 		cur=cur->next;
-		fklFreeStringArry(prev->parts,prev->num);
+		fklFreeCstrArray(prev->parts,prev->num);
 		fklFreeByteCodeAndLnt(prev->proc);
 		free(prev);
 	}
@@ -286,7 +286,7 @@ int fklIsInValidStringPattern(const char* str)
 	char** parts=fklSplitPattern(str,&num);
 	if(fklIsVar(parts[0])||parts[0][0]=='\"')
 	{
-		fklFreeStringArry(parts,num);
+		fklFreeCstrArray(parts,num);
 		return 1;
 	}
 	if(pattern)
@@ -297,7 +297,7 @@ int fklIsInValidStringPattern(const char* str)
 		{
 			if(!strcmp(parts[0],pattern->parts[0]))
 			{
-				fklFreeStringArry(parts,num);
+				fklFreeCstrArray(parts,num);
 				return 1;
 			}
 			pattern=pattern->next;
@@ -312,23 +312,23 @@ int fklIsInValidStringPattern(const char* str)
 			{
 				if(fklIsVar(parts[i+1]))
 				{
-					fklFreeStringArry(parts,num);
+					fklFreeCstrArray(parts,num);
 					return 1;
 				}
 			}
 			else
 			{
-				fklFreeStringArry(parts,num);
+				fklFreeCstrArray(parts,num);
 				return 1;
 			}
 		}
 		else if(parts[i][0]=='\"'||parts[i][0]==';'||!strncmp(parts[i],"#!",strlen("#!")))
 		{
-			fklFreeStringArry(parts,num);
+			fklFreeCstrArray(parts,num);
 			return 1;
 		}
 	}
-	fklFreeStringArry(parts,num);
+	fklFreeCstrArray(parts,num);
 	return 0;
 }
 
@@ -367,12 +367,12 @@ int fklIsReDefStringPattern(const char* str)
 						}
 					}
 				}
-				fklFreeStringArry(parts,num);
+				fklFreeCstrArray(parts,num);
 				return r;
 			}
 			pattern=pattern->next;
 		}
-		fklFreeStringArry(parts,num);
+		fklFreeCstrArray(parts,num);
 		return 0;
 	}
 	else
@@ -395,7 +395,7 @@ int fklIsVar(const char* part)
 	return 0;
 }
 
-void fklFreeStringArry(char** ss,int32_t num)
+void fklFreeCstrArray(char** ss,int32_t num)
 {
 	int i=0;
 	for(;i<num;i++)

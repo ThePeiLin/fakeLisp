@@ -16,10 +16,17 @@ typedef struct FklString
 FklString* fklNewString(size_t,const char*);
 FklString* fklCopyString(const FklString*);
 FklString* fklNewEmptyString();
+FklString* fklNewStringFromCstr(const char*);
 void fklStringCat(FklString**,const FklString*);
+void fklStringCstrCat(FklString**,const char*);
+char* fklCstrStringCat(char*,const FklString*);
 int fklStringcmp(const FklString*,const FklString*);
+int fklStringCstrCmp(const FklString*,const char*);
 char* fklStringToCstr(FklString* str);
 void fklPrintRawString(FklString* str,FILE* fp);
+void fklPrintString(FklString* str,FILE* fp);
+FklString* fklStringAppend(const FklString*,const FklString*);
+void fklFreeStringArray(FklString**,int32_t num);
 
 typedef struct FklU64PtrHashNode
 {

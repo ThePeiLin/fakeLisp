@@ -3,6 +3,7 @@
 #include<stdint.h>
 #include<stdio.h>
 #include<pthread.h>
+#include<fakeLisp/basicADT.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,7 +47,7 @@ typedef enum
 
 typedef struct FklSymTabNode
 {
-	char* symbol;
+	FklString* symbol;
 	FklSid_t id;
 }FklSymTabNode;
 
@@ -62,11 +63,22 @@ const char** fklGetBuiltInSymbolList(void);
 const char* fklGetBuiltInSymbol(uint64_t);
 FklSid_t fklGetBuiltInErrorType(FklErrorType);
 FklSymbolTable* fklNewSymbolTable();
-FklSymTabNode* fklNewSymTabNode(const char*);
-FklSymTabNode* fklAddSymbol(const char*,FklSymbolTable*);
-FklSymTabNode* fklAddSymbolToGlob(const char*);
-FklSymTabNode* fklFindSymbol(const char*,FklSymbolTable*);
-FklSymTabNode* fklFindSymbolInGlob(const char*);
+
+FklSymTabNode* fklNewSymTabNode(const FklString*);
+FklSymTabNode* fklNewSymTabNodeCstr(const char*);
+
+FklSymTabNode* fklAddSymbol(const FklString*,FklSymbolTable*);
+FklSymTabNode* fklAddSymbolCstr(const char*,FklSymbolTable*);
+
+FklSymTabNode* fklAddSymbolToGlob(const FklString*);
+FklSymTabNode* fklAddSymbolToGlobCstr(const char*);
+
+FklSymTabNode* fklFindSymbol(const FklString*,FklSymbolTable*);
+FklSymTabNode* fklFindSymbolCstr(const char*,FklSymbolTable*);
+
+FklSymTabNode* fklFindSymbolInGlob(const FklString*);
+FklSymTabNode* fklFindSymbolInGlobCstr(const char*);
+
 FklSymTabNode* fklGetSymbolWithId(FklSid_t id,FklSymbolTable*);
 FklSymTabNode* fklGetGlobSymbolWithId(FklSid_t id);
 void fklPrintSymbolTable(FklSymbolTable*,FILE*);

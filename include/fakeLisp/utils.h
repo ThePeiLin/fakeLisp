@@ -4,6 +4,7 @@
 #include<stddef.h>
 #include<stdio.h>
 #include<stdlib.h>
+#include<fakeLisp/basicADT.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -64,9 +65,9 @@ uint8_t fklCastCharInt(char);
 int fklIsscript(const char*);
 int fklIscode(const char*);
 int fklIsAllSpace(const char*);
-char* fklCopyStr(const char*);
+char* fklCopyCStr(const char*);
 void* fklCopyMemory(const void*,size_t);
-int fklIsSymbolShouldBeExport(const char* str,const char** pStr,uint32_t n);
+int fklIsSymbolShouldBeExport(const FklString* str,const FklString** pStr,uint32_t n);
 void fklPrintByteStr(size_t size,const uint8_t* str,FILE*,int);
 void fklPrintAsByteStr(const uint8_t*,int32_t,FILE*);
 void fklChangeWorkPath(const char*);

@@ -617,7 +617,7 @@ FklVMenvNode* fklNewVMenvNode(FklVMvalue* value,int32_t id)
 FklVMenvNode* fklAddVMenvNode(FklSid_t id,FklVMenv* env)
 {
 	FklVMenvNode* r=NULL;
-	pthread_rwlock_wrlock(&env->lock);
+	pthread_rwlock_rdlock(&env->lock);
 	if(!env->list)
 	{
 		env->num=1;
@@ -645,6 +645,8 @@ FklVMenvNode* fklAddVMenvNode(FklSid_t id,FklVMenv* env)
 			else
 				l=mid+1;
 		}
+		pthread_rwlock_unlock(&env->lock);
+		pthread_rwlock_wrlock(&env->lock);
 		if(env->list[mid]->id<=id)
 			mid++;
 		env->num+=1;

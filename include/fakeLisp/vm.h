@@ -114,13 +114,13 @@ typedef struct FklVMvalue
 typedef struct FklVMenvNode
 {
 	uint32_t id;
-	FklVMvalue* value;
+	FklVMvalue* volatile value;
 }FklVMenvNode;
 
 typedef struct FklVMenv
 {
 	pthread_rwlock_t lock;
-	struct FklVMvalue* prev;
+	struct FklVMvalue* volatile prev;
 	uint32_t num;
 	FklVMenvNode** list;
 }FklVMenv;
@@ -431,7 +431,7 @@ FklVMvalue* fklNewVMvalueToStack(FklValueType
 		,void* p
 		,FklVMstack*
 		,FklVMheap* heap);
-FklVMvalue* fklSetRef(FklVMvalue* by,FklVMvalue**,FklVMvalue* v,FklVMheap*);
+FklVMvalue* fklSetRef(FklVMvalue* by,FklVMvalue* volatile*,FklVMvalue* v,FklVMheap*);
 
 FklVMdllHandle fklLoadDll(const char* path);
 

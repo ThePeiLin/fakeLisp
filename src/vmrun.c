@@ -789,7 +789,7 @@ void B_pop_var(FklVM* exe)
 	int32_t scopeOfVar=fklGetI32FromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+runnable->cp+sizeof(char)+sizeof(int32_t));
 	FklVMvalue* curEnv=runnable->localenv;
-	FklVMvalue** pValue=NULL;
+	FklVMvalue* volatile* pValue=NULL;
 	if(scopeOfVar>=0)
 	{
 		for(uint32_t i=0;i<scopeOfVar;i++)
@@ -808,9 +808,9 @@ void B_pop_var(FklVM* exe)
 			FKL_RAISE_BUILTIN_ERROR("b.pop_var",FKL_SYMUNDEFINE,runnable,exe);
 		pValue=&tmp->value;
 	}
-	pthread_rwlock_wrlock(&curEnv->u.env->lock);
+//	pthread_rwlock_wrlock(&curEnv->u.env->lock);
 	fklSetRef(curEnv,pValue,fklNiGetArg(&ap,stack),exe->heap);
-	pthread_rwlock_unlock(&curEnv->u.env->lock);
+//	pthread_rwlock_unlock(&curEnv->u.env->lock);
 	fklNiEnd(&ap,stack);
 	if(FKL_IS_PROC(*pValue)&&(*pValue)->u.proc->sid==0)
 		(*pValue)->u.proc->sid=idOfVar;
@@ -827,10 +827,10 @@ void B_pop_arg(FklVM* exe)
 		FKL_RAISE_BUILTIN_ERROR("b.pop_arg",FKL_TOOFEWARG,runnable,exe);
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklVMvalue* curEnv=runnable->localenv;
-	FklVMvalue** pValue=&fklAddVMenvNode(idOfVar,curEnv->u.env)->value;
-	pthread_rwlock_wrlock(&curEnv->u.env->lock);
+	FklVMvalue* volatile* pValue=&fklAddVMenvNode(idOfVar,curEnv->u.env)->value;
+//	pthread_rwlock_wrlock(&curEnv->u.env->lock);
 	fklSetRef(curEnv,pValue,fklNiGetArg(&ap,stack),exe->heap);
-	pthread_rwlock_unlock(&curEnv->u.env->lock);
+//	pthread_rwlock_unlock(&curEnv->u.env->lock);
 	fklNiEnd(&ap,stack);
 	runnable->cp+=sizeof(char)+sizeof(FklSid_t);
 }
@@ -843,13 +843,13 @@ void B_pop_rest_arg(FklVM* exe)
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklVMvalue* curEnv=runnable->localenv;
 	FklVMvalue* obj=FKL_VM_NIL;
-	FklVMvalue** pValue=&obj;
+	FklVMvalue* volatile* pValue=&obj;
 	for(;ap>stack->bp;pValue=&(*pValue)->u.pair->cdr)
 		*pValue=fklNewVMpairV(fklNiGetArg(&ap,stack),FKL_VM_NIL,stack,heap);
 	pValue=&fklAddVMenvNode(idOfVar,curEnv->u.env)->value;
-	pthread_rwlock_wrlock(&curEnv->u.env->lock);
+//	pthread_rwlock_wrlock(&curEnv->u.env->lock);
 	fklSetRef(curEnv,pValue,obj,heap);
-	pthread_rwlock_unlock(&curEnv->u.env->lock);
+//	pthread_rwlock_unlock(&curEnv->u.env->lock);
 	fklNiEnd(&ap,stack);
 	runnable->cp+=sizeof(char)+sizeof(FklSid_t);
 }
@@ -1091,9 +1091,9 @@ void B_push_r_env(FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;
 	FklVMvalue* n=fklNiNewVMvalue(FKL_ENV,fklNewVMenv(FKL_VM_NIL),stack,exe->heap);
-	pthread_rwlock_wrlock(&n->u.env->lock);
+//	pthread_rwlock_wrlock(&n->u.env->lock);
 	fklSetRef(n,&n->u.env->prev,r->localenv,exe->heap);
-	pthread_rwlock_unlock(&n->u.env->lock);
+//	pthread_rwlock_unlock(&n->u.env->lock);
 	pthread_rwlock_wrlock(&exe->rlock);
 	r->localenv=n;
 	pthread_rwlock_unlock(&exe->rlock);

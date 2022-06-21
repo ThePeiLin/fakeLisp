@@ -787,7 +787,7 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 	fklFreePtrStack(hasPrintRecStack);
 }
 
-FklVMvalue* fklSetRef(FklVMvalue* by,FklVMvalue** pref,FklVMvalue* v,FklVMheap* h)
+FklVMvalue* fklSetRef(FklVMvalue* by,FklVMvalue* volatile* pref,FklVMvalue* v,FklVMheap* h)
 {
 	FklVMvalue* ref=*pref;
 	*pref=v;

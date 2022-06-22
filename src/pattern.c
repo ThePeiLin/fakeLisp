@@ -461,48 +461,47 @@ uint32_t fklCountInPattern(const FklString* str,FklStringMatchPattern* pattern)
 	return i;
 }
 
-size_t fklSkipUntilNext(const char* str,const char* part)
+size_t fklSkipUntilNext(const FklString* str,size_t index,const FklString* part)
 {
-	int32_t s=0;
-	while(str[s])
+	size_t s=0;
+	const char* buf=str->str;
+	while(buf[s+index])
 	{
-		if(str[s]=='(')
+		if(buf[s+index]=='(')
 		{
-			s+=fklSkipParentheses(str+s);
+			s+=fklSkipParentheses(str,s+index);
 		}
-		else if(str[s]=='\"')
+		else if(buf[s+index]=='\"')
 		{
 			size_t len=0;
-			char* tmpStr=fklCastEscapeCharater(str+s+1,'\"',&len);
+			char* tmpStr=fklCastEscapeCharater(buf+s+index+1,'\"',&len);
 			s+=len+1;
 			free(tmpStr);
 		}
-		else if(isspace(str[s]))
+		else if(isspace(buf[s+index]))
 		{
-			s+=fklSkipSpace(str+s);
+			s+=fklSkipSpace(str,s+index);
 			continue;
 		}
-		else if(str[s]==',')
-		{
+		else if(buf[s+index]==',')
 			break;
-		}
 		else
 		{
 			FklStringMatchPattern* pattern=fklFindStringPattern(str+s);
 			if(pattern)
 			{
-				s+=fklSkipInPattern(str+s,pattern);
-				s+=fklSkipSpace(str+s);
+				s+=fklSkipInPattern(str,index+s,pattern);
+				s+=fklSkipSpace(str,index+s);
 				continue;
 			}
 			else if(part&&!fklIsVar(part))
 			{
-				s+=fklSkipAtom(str+s,part);
-				s+=fklSkipSpace(str+s);
-				if(!strncmp(str+s,part,strlen(part)))
+				s+=fklSkipAtom(str,index+s,part);
+				s+=fklSkipSpace(str,index+s);
+				if(!memcmp(buf+s+index,part,part->size))
 					break;
 			}
-			s+=fklSkipAtom(str+s,part?part:"");
+			s+=fklSkipAtom(str,index+s,part);
 		}
 		if(!part||fklIsVar(part))
 			break;

@@ -156,6 +156,70 @@ FklSymTabNode* fklNewSymTabNodeCstr(const char* symbol)
 	return tmp;
 }
 
+FklSymTabNode* fklNewSymTabNode(const FklString* symbol)
+{
+	FklSymTabNode* tmp=(FklSymTabNode*)malloc(sizeof(FklSymTabNode));
+	FKL_ASSERT(tmp,__func__);
+	tmp->id=0;
+	tmp->symbol=fklCopyString(symbol);
+	return tmp;
+}
+
+FklSymTabNode* fklAddSymbol(const FklString* sym,FklSymbolTable* table)
+{
+	FklSymTabNode* node=NULL;
+	pthread_rwlock_wrlock(&table->rwlock);
+	if(!table->list)
+	{
+		node=fklNewSymTabNode(sym);
+		table->num=1;
+		node->id=table->num;
+		table->list=(FklSymTabNode**)malloc(sizeof(FklSymTabNode*)*1);
+		FKL_ASSERT(table->list,__func__);
+		table->idl=(FklSymTabNode**)malloc(sizeof(FklSymTabNode*)*1);
+		FKL_ASSERT(table->idl,__func__);
+		table->list[0]=node;
+		table->idl[0]=node;
+	}
+	else
+	{
+		int32_t l=0;
+		int32_t h=table->num-1;
+		int32_t mid=0;
+		while(l<=h)
+		{
+			mid=l+(h-l)/2;
+			int r=fklStringcmp(table->list[mid]->symbol,sym);
+			if(r>0)
+				h=mid-1;
+			else if(r<0)
+				l=mid+1;
+			else
+			{
+				node=table->list[mid];
+				pthread_rwlock_unlock(&table->rwlock);
+				return node;
+			}
+		}
+		if(fklStringcmp(table->list[mid]->symbol,sym)<=0)
+			mid++;
+		table->num+=1;
+		int32_t i=table->num-1;
+		table->list=(FklSymTabNode**)realloc(table->list,sizeof(FklSymTabNode*)*table->num);
+		FKL_ASSERT(table->list,__func__);
+		node=fklNewSymTabNode(sym);
+		for(;i>mid;i--)
+			table->list[i]=table->list[i-1];
+		table->list[mid]=node;
+		node->id=table->num;
+		table->idl=(FklSymTabNode**)realloc(table->idl,sizeof(FklSymTabNode*)*table->num);
+		FKL_ASSERT(table->idl,__func__);
+		table->idl[table->num-1]=node;
+	}
+	pthread_rwlock_unlock(&table->rwlock);
+	return node;
+}
+
 FklSymTabNode* fklAddSymbolCstr(const char* sym,FklSymbolTable* table)
 {
 	FklSymTabNode* node=NULL;
@@ -218,6 +282,12 @@ FklSymTabNode* fklAddSymbolToGlobCstr(const char* sym)
 	return fklAddSymbolCstr(sym,GlobSymbolTable);
 }
 
+FklSymTabNode* fklAddSymbolToGlob(const FklString* sym)
+{
+	if(!GlobSymbolTable)
+		GlobSymbolTable=fklNewSymbolTable();
+	return fklAddSymbol(sym,GlobSymbolTable);
+}
 
 void fklFreeSymTabNode(FklSymTabNode* node)
 {

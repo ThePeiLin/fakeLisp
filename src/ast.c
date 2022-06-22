@@ -517,19 +517,19 @@ static int fklIsValidCharStr(const char* str)
 	return 1;
 }
 
-static FklAstAtom* createChar(const char* oStr,FklAstPair* prev)
+static FklAstAtom* createChar(const FklString* oStr,FklAstPair* prev)
 {
-	if(!fklIsValidCharStr(oStr+2))
+	if(!fklIsValidCharStr(oStr->str+2))
 		return NULL;
 	oStr+=2;
 	FklAstAtom* r=fklNewAtom(FKL_CHR,prev);
-	r->value.chr=(oStr[0]=='\\')?
-		fklStringToChar(oStr+1):
-		oStr[0];
+	r->value.chr=(oStr->str[0]=='\\')?
+		fklStringToChar(oStr->str+1):
+		oStr->str[0];
 	return r;
 }
 
-static FklAstAtom* createNum(const char* oStr,FklAstPair* prev)
+static FklAstAtom* createNum(const FklString* oStr,FklAstPair* prev)
 {
 	FklAstAtom* r=NULL;
 	if(fklIsDouble(oStr))
@@ -648,30 +648,38 @@ static char* castEscapeCharaterBuf(const char* str,char end,size_t* size)
 	return tmp;
 }
 
-static FklAstAtom* createString(const char* oStr,FklAstPair* prev)
+static FklAstAtom* createString(const FklString* oStr,FklAstPair* prev)
 {
 	size_t size=0;
-	char* str=castEscapeCharaterBuf(oStr+1,'\"',&size);
+	char* str=castEscapeCharaterBuf(oStr->str+1,'\"',&size);
 	FklAstAtom* r=fklNewAtom(FKL_STR,prev);
 	r->value.str=fklNewString(size,str);
 	return r;
 }
 
-static FklAstAtom* createSymbol(const char* oStr,FklAstPair* prev)
+static FklAstAtom* createSymbol(const FklString* oStr,FklAstPair* prev)
+{
+	FklAstAtom* r=fklNewAtom(FKL_SYM,prev);
+	r->value.str=fklCopyString(oStr);
+	return r;
+}
+
+static FklAstAtom* createLongSymbol(const FklString* oStr,FklAstPair* prev)
 {
 	size_t size=0;
-	char* str=castEscapeCharaterBuf(oStr+1,'|',&size);
+	char* str=castEscapeCharaterBuf(oStr->str+1,'|',&size);
 	FklAstAtom* r=fklNewAtom(FKL_SYM,prev);
 	r->value.str=fklNewString(size,str);
 	return r;
 }
 
-static FklAstAtom* (* const atomCreators[])(const char* str,FklAstPair* prev)=
+static FklAstAtom* (* const atomCreators[])(const FklString* str,FklAstPair* prev)=
 {
 	createChar,
 	createNum,
 	createString,
 	createSymbol,
+	createLongSymbol,
 };
 
 typedef struct

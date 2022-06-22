@@ -15,13 +15,14 @@ typedef enum
 	FKL_TOKEN_NUM,
 	FKL_TOKEN_STRING,
 	FKL_TOKEN_SYMBOL,
+	FKL_TOKEN_LONG_SYMBOL,
 	FKL_TOKEN_COMMENT,
 }FklTokenType;
 
 typedef struct
 {
 	FklTokenType type;
-	char* value;
+	FklString* value;
 	uint32_t line;
 }FklToken;
 
@@ -35,7 +36,7 @@ int fklSplitStringPartsIntoToken(char** parts
 		,uint32_t* pj);
 void fklPrintToken(FklPtrStack*,FILE* fp);
 
-FklToken* fklNewToken(FklTokenType type,const char* cstr,uint32_t line);
+FklToken* fklNewToken(FklTokenType type,const FklString* str,uint32_t line);
 void fklFreeToken(FklToken* token);
 int fklIsAllComment(FklPtrStack*);
 #ifdef __cplusplus

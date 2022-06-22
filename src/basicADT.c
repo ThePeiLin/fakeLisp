@@ -929,6 +929,16 @@ int fklStringcmp(const FklString* fir,const FklString* sec)
 	return r;
 }
 
+int fklStringCstrCmp(const FklString* fir,const char* sec)
+{
+	size_t seclen=strlen(sec);
+	size_t size=fir->size<seclen?fir->size:seclen;
+	int r=memcmp(fir->str,sec,size);
+	if(!r)
+		return (int64_t)fir->size-(int64_t)seclen;
+	return r;
+}
+
 FklString* fklCopyString(const FklString* obj)
 {
 	if(obj==NULL)return NULL;
@@ -941,7 +951,7 @@ FklString* fklCopyString(const FklString* obj)
 
 char* fklStringToCstr(const FklString* str)
 {
-	return fklCharBufToStr(str->str,str->size);
+	return fklCharBufToCstr(str->str,str->size);
 }
 
 FklString* fklNewStringFromCstr(const char* cStr)
@@ -989,4 +999,39 @@ FklString* fklStringAppend(const FklString* a,const FklString* b)
 	memcpy(&r->str[0],a->str,a->size);
 	memcpy(&r->str[a->size],b->str,b->size);
 	return r;
+}
+
+char* fklCstrStringCat(char* fir,const FklString* sec)
+{
+	size_t len=strlen(fir);
+	fir=(char*)realloc(fir,sizeof(char)*len+sec->size+1);
+	FKL_ASSERT(fir,__func__);
+	fklWriteStringToCstr(&fir[len],sec);
+	return fir;
+}
+
+void fklStringCstrCat(FklString** pfir,const char* sec)
+{
+	size_t seclen=strlen(sec);
+	FklString* prev=*pfir;
+	prev=(FklString*)realloc(prev,(prev->size+seclen)*sizeof(char));
+	FKL_ASSERT(prev,__func__);
+	*pfir=prev;
+	memcpy(&prev->str[prev->size],sec,seclen);
+	prev->size+=seclen;
+}
+
+void fklWriteStringToCstr(char* c_str,const FklString* str)
+{
+	size_t len=0;
+	const char* buf=str->str;
+	size_t size=str->size;
+	for(size_t i=0;i<size;i++)
+	{
+		if(!buf[i])
+			continue;
+		c_str[len]=buf[i];
+		len++;
+	}
+	c_str[len]='\0';
 }

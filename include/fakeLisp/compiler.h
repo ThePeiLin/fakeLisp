@@ -91,6 +91,7 @@ FklCompEnv* fklNewCompEnv(FklCompEnv*);
 void fklDestroyCompEnv(FklCompEnv* objEnv);
 void fklFreeAllMacroThenDestroyCompEnv(FklCompEnv* env);
 FklCompDef* fklFindCompDef(const FklString*,FklCompEnv*);
+FklCompDef* fklFindCompDefBySid(FklSid_t,FklCompEnv*);
 FklInterpreter* fklNewIntpr(const char*,FILE*,FklCompEnv*,FklLineNumberTable*);
 FklInterpreter* fklNewTmpIntpr(const char*,FILE*);
 

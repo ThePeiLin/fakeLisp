@@ -476,7 +476,7 @@ FklErrorState defmacro(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* in
 				free(args);
 				return state;
 			}
-			char* tmpStr=fklCharBufToStr(tmpAtom->value.str->str,tmpAtom->value.str->size);
+			char* tmpStr=fklCharBufToCstr(tmpAtom->value.str->str,tmpAtom->value.str->size);
 			if(!fklIsReDefStringPattern(tmpStr)&&fklIsInValidStringPattern(tmpStr))
 			{
 				fklPrintCompileError(args[0],FKL_INVALIDEXPR,inter);
@@ -2067,7 +2067,7 @@ FklByteCodelnt* fklCompileLoad(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 	FklAstCptr* fir=&objCptr->u.pair->car;
 	FklAstCptr* pFileName=fklNextCptr(fir);
 	FklAstAtom* name=pFileName->u.atom;
-	char* filename=fklCharBufToStr(name->value.str->str,name->value.str->size);
+	char* filename=fklCharBufToCstr(name->value.str->str,name->value.str->size);
 	if(fklHasLoadSameFile(filename,inter))
 	{
 		state->state=FKL_CIRCULARLOAD;
@@ -2329,7 +2329,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 			l+=partsOfPath[i]->size;
 		}
 		fklStringCstrCat(&path,postfix);
-		char* path_c=fklCharBufToStr(path->str,path->size);
+		char* path_c=fklCharBufToCstr(path->str,path->size);
 		char* rpath=fklRealpath(path_c);
 		free(path_c);
 		free(path);
@@ -2959,6 +2959,31 @@ FklPreDef* fklFindDefine(const FklString* name,const FklPreEnv* curEnv)
 	}
 }
 
+FklCompDef* fklAddCompDefCstr(const char* name,FklCompEnv* curEnv)
+{
+	if(curEnv->head==NULL)
+	{
+		FklSymTabNode* node=fklAddSymbolToGlobCstr(name);
+		FKL_ASSERT((curEnv->head=(FklCompDef*)malloc(sizeof(FklCompDef))),__func__);
+		curEnv->head->next=NULL;
+		curEnv->head->id=node->id;
+		return curEnv->head;
+	}
+	else
+	{
+		FklSymTabNode* node=fklAddSymbolToGlobCstr(name);
+		FklCompDef* curDef=fklFindCompDefBySid(node->id,curEnv);
+		if(curDef==NULL)
+		{
+			FKL_ASSERT((curDef=(FklCompDef*)malloc(sizeof(FklCompDef))),__func__);
+			curDef->id=node->id;
+			curDef->next=curEnv->head;
+			curEnv->head=curDef;
+		}
+		return curDef;
+	}
+}
+
 FklCompDef* fklAddCompDef(const FklString* name,FklCompEnv* curEnv)
 {
 	if(curEnv->head==NULL)
@@ -2971,10 +2996,10 @@ FklCompDef* fklAddCompDef(const FklString* name,FklCompEnv* curEnv)
 	}
 	else
 	{
-		FklCompDef* curDef=fklFindCompDef(name,curEnv);
+		FklSymTabNode* node=fklAddSymbolToGlob(name);
+		FklCompDef* curDef=fklFindCompDefBySid(node->id,curEnv);
 		if(curDef==NULL)
 		{
-			FklSymTabNode* node=fklAddSymbolToGlob(name);
 			FKL_ASSERT((curDef=(FklCompDef*)malloc(sizeof(FklCompDef))),__func__);
 			curDef->id=node->id;
 			curDef->next=curEnv->head;

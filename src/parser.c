@@ -89,13 +89,13 @@ char** spiltStringByBlank(const char* str,uint32_t* num)
 	return retval;
 }
 
-FklToken* fklNewToken(FklTokenType type,const char* str,uint32_t line)
+FklToken* fklNewToken(FklTokenType type,const FklString* str,uint32_t line)
 {
 	FklToken* token=(FklToken*)malloc(sizeof(FklToken));
 	FKL_ASSERT(token,__func__);
 	token->type=type;
 	token->line=line;
-	token->value=fklCopyCstr(str);
+	token->value=fklCopyString(str);
 	return token;
 }
 
@@ -481,7 +481,7 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 			{
 				size_t sumLen=skipStringIndexSize(parts[i],j,sizes[i]);
 				size_t lastLen=sumLen;
-				char* str=fklCharBufToStr(parts[i]+j,sumLen);
+				char* str=fklCharBufToCstr(parts[i]+j,sumLen);
 				int complete=isCompleteString(str);
 				for(;!complete&&j+lastLen>=sizes[i];)
 				{
@@ -492,7 +492,7 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 						break;
 					}
 					j=0;
-					char* nextStr=fklCharBufToStr(parts[i],sizes[i]);
+					char* nextStr=fklCharBufToCstr(parts[i],sizes[i]);
 					str=fklStrCat(str,nextStr);
 					free(nextStr);
 					sumLen=skipUntilSpace(str);
@@ -516,7 +516,7 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 			else if(sizes[i]-j>1&&!strncmp(parts[i]+j,"#\\",strlen("#\\")))
 			{
 				size_t len=getSymbolLen(parts[i],j+3,sizes[i],matchStateStack)+3;
-				char* symbol=fklCharBufToStr(parts[i]+j,len);
+				char* symbol=fklCharBufToCstr(parts[i]+j,len);
 				fklPushPtrStack(fklNewToken(FKL_TOKEN_CHAR,symbol,*line),retvalStack);
 				free(symbol);
 				j+=len;
@@ -525,7 +525,7 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 			{
 				uint32_t len=0;
 				for(;j+len<sizes[i]&&parts[i][j+len]!='\n';len++);
-				char* str=fklCharBufToStr(parts[i]+j,len);
+				char* str=fklCharBufToCstr(parts[i]+j,len);
 				fklPushPtrStack(fklNewToken(FKL_TOKEN_COMMENT,str,*line),retvalStack);
 				j+=len;
 				free(str);
@@ -536,7 +536,7 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 				size_t len=getSymbolLen(parts[i],j,sizes[i],matchStateStack);
 				if(len)
 				{
-					char* symbol=fklCharBufToStr(parts[i]+j,len);
+					char* symbol=fklCopyMemory(parts[i]+j,len);
 					FklTokenType type=FKL_TOKEN_SYMBOL;
 					if(fklIsNum(symbol))
 						type=FKL_TOKEN_NUM;

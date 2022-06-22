@@ -746,7 +746,7 @@ uint8_t* fklCreateByteArry(int32_t size)
 	return tmp;
 }
 
-char* fklCharBufToStr(const char* buf,size_t size)
+char* fklCharBufToCstr(const char* buf,size_t size)
 {
 	char* str=(char*)malloc(sizeof(char)*(size+1));
 	FKL_ASSERT(str,__func__);

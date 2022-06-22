@@ -1064,7 +1064,7 @@ void SYS_to_int(ARGL)
 	}
 	else if(FKL_IS_STR(obj))
 	{
-		char* c_str=fklCharBufToStr(obj->u.str->str,obj->u.str->size);
+		char* c_str=fklCharBufToCstr(obj->u.str->str,obj->u.str->size);
 		if(!fklIsNum(c_str))
 			fklNiReturn(FKL_VM_NIL,&ap,stack);
 		else
@@ -1103,7 +1103,7 @@ void SYS_to_f64(ARGL)
 		fklNiReturn(fklNiNewVMvalue(FKL_I64,(void*)&obj->u.i64,stack,exe->heap),&ap,stack);
 	else if(FKL_IS_STR(obj))
 	{
-		char* c_str=fklCharBufToStr(obj->u.str->str,obj->u.str->size);
+		char* c_str=fklCharBufToCstr(obj->u.str->str,obj->u.str->size);
 		if(!fklIsNum(c_str))
 			fklNiReturn(FKL_VM_NIL,&ap,stack);
 		else

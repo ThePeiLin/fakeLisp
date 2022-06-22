@@ -475,7 +475,7 @@ void* ThreadVMfunc(void* p)
 	}
 	else
 	{
-		char* threadErrorMessage=fklCopyCStr("error:occur in thread ");
+		char* threadErrorMessage=fklCopyCstr("error:occur in thread ");
 		char* id=fklIntToString(exe->VMid);
 		threadErrorMessage=fklStrCat(threadErrorMessage,id);
 		threadErrorMessage=fklStrCat(threadErrorMessage,"\n");
@@ -517,7 +517,7 @@ void* ThreadVMdlprocFunc(void* p)
 	}
 	else
 	{
-		char* threadErrorMessage=fklCopyCStr("error:occur in thread ");
+		char* threadErrorMessage=fklCopyCstr("error:occur in thread ");
 		char* id=fklIntToString(exe->VMid);
 		threadErrorMessage=fklStrCat(threadErrorMessage,id);
 		threadErrorMessage=fklStrCat(threadErrorMessage,"\n");
@@ -559,7 +559,7 @@ void* ThreadVMinvokableUd(void* p)
 	}
 	else
 	{
-		char* threadErrorMessage=fklCopyCStr("error:occur in thread ");
+		char* threadErrorMessage=fklCopyCstr("error:occur in thread ");
 		char* id=fklIntToString(exe->VMid);
 		threadErrorMessage=fklStrCat(threadErrorMessage,id);
 		threadErrorMessage=fklStrCat(threadErrorMessage,"\n");

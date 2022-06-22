@@ -679,14 +679,14 @@ int fklFfiSetMemForProc(FklVMudata* ud,FklVMvalue* val)
 		{
 			if(ref->mem)
 				free(ref->mem);
-			ref->mem=fklCharBufToStr(val->u.str->str,val->u.str->size);
+			ref->mem=fklCharBufToCstr(val->u.str->str,val->u.str->size);
 		}
 		else if(FKL_IS_SYM(val))
 		{
 			if(ref->mem)
 				free(ref->mem);
 			FklString* s=fklGetGlobSymbolWithId(FKL_GET_SYM(val))->symbol;
-			ref->mem=fklCharBufToStr(s->str,s->size);
+			ref->mem=fklCharBufToCstr(s->str,s->size);
 		}
 		else if(fklFfiIsMem(val))
 		{
@@ -765,14 +765,14 @@ int fklFfiSetMem(FklFfiMem* ref,FklVMvalue* val)
 		{
 			if(ref->mem)
 				free(ref->mem);
-			ref->mem=fklCharBufToStr(val->u.str->str,val->u.str->size);
+			ref->mem=fklCharBufToCstr(val->u.str->str,val->u.str->size);
 		}
 		else if(FKL_IS_SYM(val))
 		{
 			if(ref->mem)
 				free(ref->mem);
 			FklString* s=fklGetGlobSymbolWithId(FKL_GET_SYM(val))->symbol;
-			ref->mem=fklCharBufToStr(s->str,s->size);
+			ref->mem=fklCharBufToCstr(s->str,s->size);
 		}
 		else if(fklFfiIsMem(val))
 		{
@@ -851,11 +851,11 @@ FklVMudata* fklFfiCastVMvalueIntoMem(FklVMvalue* v)
 		*(char*)m->mem=FKL_GET_CHR(v);
 	}
 	else if(FKL_IS_STR(v))
-		m=fklFfiNewRef(FKL_FFI_STRING,fklCharBufToStr(v->u.str->str,v->u.str->size));
+		m=fklFfiNewRef(FKL_FFI_STRING,fklCharBufToCstr(v->u.str->str,v->u.str->size));
 	else if(FKL_IS_SYM(v))
 	{
 		FklString* s=fklGetGlobSymbolWithId(FKL_GET_SYM(v))->symbol;
-		m=fklFfiNewRef(FKL_FFI_STRING,fklCharBufToStr(s->str,s->size));
+		m=fklFfiNewRef(FKL_FFI_STRING,fklCharBufToCstr(s->str,s->size));
 	}
 	else if(FKL_IS_FP(v))
 	{

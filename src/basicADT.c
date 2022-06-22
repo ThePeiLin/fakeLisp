@@ -343,11 +343,12 @@ FklBigInt* fklNewBigInt1(void)
 	return t;
 }
 
-FklBigInt* fklNewBigIntFromStr(const char* v)
+FklBigInt* fklNewBigIntFromCstr(const char* v)
 {
 	FklBigInt* r=fklNewBigInt0();
+	size_t len=strlen(v);
 	FKL_ASSERT(r,__func__);
-	if(fklIsHexNum(v))
+	if(fklIsHexNum(v,len))
 	{
 		uint64_t num=0;
 		int neg=v[0]=='-';
@@ -370,7 +371,7 @@ FklBigInt* fklNewBigIntFromStr(const char* v)
 		fklFreeBigInt(base);
 		r->neg=neg;
 	}
-	else if(fklIsOctNum(v))
+	else if(fklIsOctNum(v,len))
 	{
 		uint64_t num=0;
 		int neg=v[0]=='-';
@@ -411,7 +412,7 @@ FklBigInt* fklNewBigIntFromStr(const char* v)
 	return r;
 }
 
-FklBigInt* fklNewBigIntFromMem(void* mem,size_t size)
+FklBigInt* fklNewBigIntFromMem(const void* mem,size_t size)
 {
 	if(size<2)
 		return NULL;
@@ -959,15 +960,22 @@ FklString* fklNewStringFromCstr(const char* cStr)
 	return fklNewString(strlen(cStr),cStr);
 }
 
+void fklStringCharBufCat(FklString** a,const char* buf,size_t s)
+{
+	size_t aSize=(*a)->size;
+	FklString* prev=*a;
+	prev=(FklString*)realloc(prev,sizeof(FklString)+(aSize+s)*sizeof(char));
+	FKL_ASSERT(prev,__func__);
+	*a=prev;
+	prev->size=aSize+s;
+	memcpy(prev->str+aSize,buf,s);
+}
+
 void fklStringCat(FklString** fir,const FklString* sec)
 {
-	size_t firSize=(*fir)->size;
-	size_t secSize=sec->size;
-	*fir=(FklString*)realloc(*fir,sizeof(FklString)+(firSize+secSize)*sizeof(uint8_t));
-	FKL_ASSERT(*fir,__func__);
-	(*fir)->size=firSize+secSize;
-	memcpy((*fir)->str+firSize,sec->str,secSize);
+	fklStringCharBufCat(fir,sec->str,sec->size);
 }
+
 FklString* fklNewEmptyString()
 {
 	FklString* tmp=(FklString*)malloc(sizeof(FklString));

@@ -523,16 +523,14 @@ static FklAstAtom* createChar(const FklString* oStr,FklAstPair* prev)
 		return NULL;
 	oStr+=2;
 	FklAstAtom* r=fklNewAtom(FKL_CHR,prev);
-	r->value.chr=(oStr->str[0]=='\\')?
-		fklStringToChar(oStr->str+1):
-		oStr->str[0];
+	r->value.chr=fklStringToChar(oStr);
 	return r;
 }
 
 static FklAstAtom* createNum(const FklString* oStr,FklAstPair* prev)
 {
 	FklAstAtom* r=NULL;
-	if(fklIsDouble(oStr))
+	if(fklIsDoubleString(oStr))
 	{
 		r=fklNewAtom(FKL_F64,prev);
 		r->value.f64=fklStringToDouble(oStr);
@@ -540,7 +538,7 @@ static FklAstAtom* createNum(const FklString* oStr,FklAstPair* prev)
 	else
 	{
 		r=fklNewAtom(FKL_I32,prev);
-		FklBigInt* bInt=fklNewBigIntFromStr(oStr);
+		FklBigInt* bInt=fklNewBigIntFromString(oStr);
 		if(fklIsGtLtI64BigInt(bInt))
 		{
 			r->type=FKL_BIG_INT;
@@ -589,7 +587,7 @@ static char* castEscapeCharaterBuf(const char* str,char end,size_t* size)
 			}
 			else if(toupper(backSlashStr[0])=='X')
 			{
-				ch=fklStringToChar(backSlashStr);
+				ch=fklCstrToChar(backSlashStr);
 				i+=len+1;
 			}
 			else if(backSlashStr[0]=='\n')
@@ -762,39 +760,40 @@ static int isBuiltInVector(FklStringMatchPattern* pattern)
 		;
 }
 
-static int isLeftParenthese(const char* str)
+static int isLeftParenthese(const FklString* str)
 {
-	return strlen(str)==1&&(str[0]=='('||str[0]=='[');
+	return str->size==1&&(str->str[0]=='('||str->str[0]=='[');
 }
 
-static int isVectorStart(const char* str)
+static int isVectorStart(const FklString* str)
 {
-	return strlen(str)==2&&str[0]=='#'&&(str[1]=='('||str[1]=='[');
+	return str->size==2&&str->str[0]=='#'&&(str->str[1]=='('||str->str[1]=='[');
 }
 
-static int isRightParenthese(const char* str)
+static int isRightParenthese(const FklString* str)
 {
-	return strlen(str)==1&&(str[0]==')'||str[0]==']');
+	return str->size==1&&(str->str[0]==')'||str->str[0]==']');
 }
 
-static int isBuiltSingleStr(const char* str)
+static int isBuiltSingleStr(const FklString* str)
 {
-	return (strlen(str)==1&&(str[0]=='\''
-				||str[0]=='`'
-				||str[0]=='~'
-				||str[0]==','))
-		||!strcmp(str,"~@")
-		||!strcmp(str,"#&");
+	const char* buf=str->str;
+	return (str->size==1&&(buf[0]=='\''
+				||buf[0]=='`'
+				||buf[0]=='~'
+				||buf[0]==','))
+		||!fklStringCstrCmp(str,"~@")
+		||!fklStringCstrCmp(str,"#&");
 }
 
-static MatchState* searchReverseStringCharMatchState(const char* str,FklPtrStack* matchStateStack)
+static MatchState* searchReverseStringCharMatchState(const FklString* str,FklPtrStack* matchStateStack)
 {
 	MatchState* top=fklTopPtrStack(matchStateStack);
 	uint32_t i=0;
 	for(;top&&!isBuiltInSingleStrPattern(top->pattern)&&!isBuiltInParenthese(top->pattern)&&!isBuiltInVector(top->pattern)&&top->cindex+i<top->pattern->num;)
 	{
-		const char* cpart=fklGetNthPartOfStringMatchPattern(top->pattern,top->cindex+i);
-		if(!fklIsVar(cpart)&&!strcmp(str,cpart))
+		const FklString* cpart=fklGetNthPartOfStringMatchPattern(top->pattern,top->cindex+i);
+		if(!fklIsVar(cpart)&&!fklStringcmp(str,cpart))
 		{
 			top->cindex+=i;
 			return top;
@@ -813,7 +812,7 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 		{
 			if(fklIsVar(pattern->parts[i]))
 			{
-				FklString* varName=fklNewStringFromCstr(fklGetVarName(pattern->parts[i]));
+				FklString* varName=fklCopyString(fklGetVarName(pattern->parts[i]));
 				AstElem* elem=treeStack->base[j];
 				fklAddDefine(varName,elem->cptr,tmpEnv);
 				free(varName);
@@ -924,7 +923,7 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 			if(state)
 			{
 				FklStringMatchPattern* pattern=state->pattern;
-				const char* part=fklGetNthPartOfStringMatchPattern(pattern,state->cindex-1);
+				const FklString* part=fklGetNthPartOfStringMatchPattern(pattern,state->cindex-1);
 				if(part&&fklIsVar(part)&&fklIsMustList(part))
 				{
 					fklPopPtrStack(stackStack);
@@ -993,7 +992,7 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 				fklPushPtrStack(state,matchStateStack);
 				cStack=fklNewPtrStack(32,16);
 				fklPushPtrStack(cStack,stackStack);
-				const char* part=fklGetNthPartOfStringMatchPattern(pattern,state->cindex);
+				const FklString* part=fklGetNthPartOfStringMatchPattern(pattern,state->cindex);
 				if(fklIsVar(part)&&fklIsMustList(part))
 				{
 					cStack=fklNewPtrStack(32,16);
@@ -1003,7 +1002,7 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 			}
 			else if(isLeftParenthese(token->value))
 			{
-				FklStringMatchPattern* pattern=token->value[0]=='('?PARENTHESE_0:PARENTHESE_1;
+				FklStringMatchPattern* pattern=token->value->str[0]=='('?PARENTHESE_0:PARENTHESE_1;
 				MatchState* state=newMatchState(pattern,token->line,0);
 				fklPushPtrStack(state,matchStateStack);
 				cStack=fklNewPtrStack(32,16);
@@ -1012,7 +1011,7 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 			}
 			else if(isVectorStart(token->value))
 			{
-				FklStringMatchPattern* pattern=token->value[1]=='('?VECTOR_0:VECTOR_1;
+				FklStringMatchPattern* pattern=token->value->str[1]=='('?VECTOR_0:VECTOR_1;
 				MatchState* state=newMatchState(pattern,token->line,0);
 				fklPushPtrStack(state,matchStateStack);
 				cStack=fklNewPtrStack(32,16);
@@ -1098,18 +1097,19 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 			}
 			else if(isBuiltSingleStr(token->value))
 			{
-				FklStringMatchPattern* pattern=token->value[0]=='\''?
+				const char* buf=token->value->str;
+				FklStringMatchPattern* pattern=buf[0]=='\''?
 					QUOTE:
-					token->value[0]=='`'?
+					buf[0]=='`'?
 					QSQUOTE:
-					token->value[0]==','?
+					buf[0]==','?
 					DOTTED:
-					token->value[0]=='~'?
-					(strlen(token->value)==1?
+					buf[0]=='~'?
+					(token->value->size==1?
 					 UNQUOTE:
-					 token->value[1]=='@'?
+					 buf[1]=='@'?
 					 UNQTESP:NULL):
-					(strlen(token->value)==2&&token->value[0]=='#'&&token->value[1]=='&')?
+					(token->value->size==2&&buf[0]=='#'&&buf[1]=='&')?
 					BOX:
 					NULL;
 				MatchState* state=newMatchState(pattern,token->line,0);
@@ -1177,7 +1177,7 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 			}
 			else
 			{
-				const char* cpart=fklGetNthPartOfStringMatchPattern(state->pattern,state->cindex);
+				const FklString* cpart=fklGetNthPartOfStringMatchPattern(state->pattern,state->cindex);
 				if(cpart&&fklIsVar(cpart)&&!fklIsMustList(cpart))
 				{
 					state->cindex++;

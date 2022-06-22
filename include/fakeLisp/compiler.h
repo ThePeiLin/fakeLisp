@@ -117,8 +117,8 @@ FklCompEnv* fklCreateMacroCompEnv(const FklAstCptr*,FklCompEnv*);
 int fklRetree(FklAstCptr**,FklAstCptr*);
 void fklUninitPreprocess();
 void fklInitGlobKeyWord(FklCompEnv*);
-FklStringMatchPattern* fklAddStringPattern(char**,int32_t,FklAstCptr*,FklInterpreter*);
-FklStringMatchPattern* fklAddReDefStringPattern(char**,int32_t,FklAstCptr*,FklInterpreter*);
+FklStringMatchPattern* fklAddStringPattern(FklString* const*,int32_t,FklAstCptr*,FklInterpreter*);
+FklStringMatchPattern* fklAddReDefStringPattern(FklString* const*,int32_t,FklAstCptr*,FklInterpreter*);
 void fklInitBuiltInStringPattern(void);
 
 FklByteCodelnt* fklCompileFile(FklInterpreter*,int*);

@@ -31,7 +31,7 @@ inline int fklIsInt(FklVMvalue* p)
 	return FKL_IS_I32(p)||FKL_IS_I64(p)||FKL_IS_BIG_INT(p);
 }
 
-inline int fklIsNumber(FklVMvalue* p)
+inline int fklIsVMnumber(FklVMvalue* p)
 {
 	return fklIsInt(p)||FKL_IS_F64(p);
 }

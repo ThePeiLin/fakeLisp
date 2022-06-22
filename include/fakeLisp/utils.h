@@ -42,10 +42,15 @@ extern "C" {
 	}\
 }
 
-int fklIsHexNum(const char*);
-int fklIsOctNum(const char*);
-int fklIsDouble(const char*);
-int fklIsNum(const char*);
+int fklIsHexNumString(const FklString*);
+int fklIsOctNumString(const FklString*);
+int fklIsDoubleString(const FklString*);
+int fklIsNumberString(const FklString*);
+int fklIsHexNum(const char*,size_t len);
+int fklIsOctNum(const char*,size_t len);
+int fklIsDouble(const char*,size_t len);
+int fklIsNumber(const char*,size_t len);
+
 char* fklGetStringFromList(const char*);
 char* fklGetStringAfterBackslash(const char*);
 char* fklGetStringAfterBackslashInStr(const char* str);
@@ -54,12 +59,21 @@ char* fklCastEscapeCharater(const char*,char,size_t*);
 void fklPrintRawCharBuf(const char* str,size_t size,FILE* out);
 void fklPrintRawCstring(const char*,FILE*);
 void fklPrintRawChar(char,FILE*);
-char* fklDoubleToString(double);
-double fklStringToDouble(const char*);
-char* fklIntToString(long);
-int64_t fklStringToInt(const char*);
+
+char* fklDoubleToCstr(double);
+FklString* fklDoubleToString(double);
+double fklCstrToDouble(const char*);
+double fklStringToDouble(const FklString*);
+
+char* fklIntToCstr(long);
+FklString* fklIntToString(long);
+int64_t fklCstrToInt(const char*);
+int64_t fklStringToInt(const FklString*);
+
 int32_t fklCountChar(const char*,char,int32_t);
-int fklStringToChar(const char*);
+int fklStringToChar(const FklString*);
+int fklCstrToChar(const char*);
+
 uint8_t* fklCastStrByteStr(const char*);
 uint8_t fklCastCharInt(char);
 int fklIsscript(const char*);

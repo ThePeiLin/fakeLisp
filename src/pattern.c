@@ -4,9 +4,9 @@
 #include<string.h>
 #include<ctype.h>
 static FklStringMatchPattern* HeadOfStringPattern=NULL;
-static int32_t countStringParts(const char*);
-static int32_t* matchPartOfPattern(const char*,FklStringMatchPattern*,int32_t*);
-static uint32_t countReverseCharNum(uint32_t num,char** parts)
+static uint32_t countStringParts(const FklString*);
+static uint32_t* matchPartOfPattern(const FklString*,FklStringMatchPattern*,uint32_t*);
+static uint32_t countReverseCharNum(uint32_t num,FklString* const* parts)
 {
 	uint32_t retval=0;
 	for(uint32_t i=0;i<num;i++)
@@ -16,24 +16,25 @@ static uint32_t countReverseCharNum(uint32_t num,char** parts)
 }
 
 
-int32_t countStringParts(const char* str)
+uint32_t countStringParts(const FklString* str)
 {
-	int i=0;
-	int32_t count=0;
-	for(;str[i]!='\0';i++)
+	uint32_t count=0;
+	size_t size=str->size;
+	const char* buf=str->str;
+	for(size_t i=0;i<size;i++)
 	{
-		if(isspace(str[i]))
-			i+=fklSkipSpace(str+i);
-		if(str[i]=='(')
+		if(isspace(buf[i]))
+			i+=fklSkipSpace(str,i);
+		if(buf[i]=='(')
 		{
-			int j=i;
-			for(;str[j]!='\0'&&str[j]!=')';j++);
+			size_t j=i;
+			for(;j<size&&buf[j]!=')';j++);
 			i=j;
 			count++;
 			continue;
 		}
-		int j=i;
-		for(;str[j]!='\0'&&str[j]!='(';j++);
+		size_t j=i;
+		for(;j<size&&buf[j]!='(';j++);
 		count++;
 		i=j-1;
 		continue;
@@ -42,21 +43,21 @@ int32_t countStringParts(const char* str)
 }
 
 
-int fklMaybePatternPrefix(const char* str)
-{
-	if(!HeadOfStringPattern)
-		return 0;
-	FklStringMatchPattern* cur=HeadOfStringPattern;
-	str+=fklSkipSpace(str);
-	while(cur)
-	{
-		char* part=cur->parts[0];
-		if(strlen(str)&&!strncmp(str,part,strlen(str)))
-			return 1;
-		cur=cur->next;
-	}
-	return 0;
-}
+//int fklMaybePatternPrefix(const char* str)
+//{
+//	if(!HeadOfStringPattern)
+//		return 0;
+//	FklStringMatchPattern* cur=HeadOfStringPattern;
+//	str+=fklSkipSpace(str);
+//	while(cur)
+//	{
+//		FklString* part=cur->parts[0];
+//		if(strlen(str)&&!strncmp(str,part,strlen(str)))
+//			return 1;
+//		cur=cur->next;
+//	}
+//	return 0;
+//}
 
 FklStringMatchPattern* fklFindStringPatternBuf(const char* buf,size_t size)
 {
@@ -65,31 +66,31 @@ FklStringMatchPattern* fklFindStringPatternBuf(const char* buf,size_t size)
 	FklStringMatchPattern* cur=HeadOfStringPattern;
 	while(cur)
 	{
-		char* part=cur->parts[0];
-		if(size>=strlen(part)&&!strncmp(buf,part,strlen(part)))
+		const FklString* part=cur->parts[0];
+		if(size>=part->size&&!memcmp(buf,part->str,part->size))
 			break;
 		cur=cur->next;
 	}
 	return cur;
 }
 
-FklStringMatchPattern* fklFindStringPattern(const char* str)
+FklStringMatchPattern* fklFindStringPattern(const FklString* str)
 {
 	if(!HeadOfStringPattern)
 		return NULL;
 	FklStringMatchPattern* cur=HeadOfStringPattern;
-	str+=fklSkipSpace(str);
+	str+=fklSkipSpace(str,0);
 	while(cur)
 	{
-		char* part=cur->parts[0];
-		if(strlen(str)>=strlen(part)&&!strncmp(str,part,strlen(part)))
+		const FklString* part=cur->parts[0];
+		if(str->size>=part->size&&!memcmp(str->str,part->str,part->size))
 			break;
 		cur=cur->next;
 	}
 	return cur;
 }
 
-FklStringMatchPattern* fklNewStringMatchPattern(int32_t num,char** parts,FklByteCodelnt* proc)
+FklStringMatchPattern* fklNewStringMatchPattern(uint32_t num,FklString** parts,FklByteCodelnt* proc)
 {
 	FklStringMatchPattern* tmp=(FklStringMatchPattern*)malloc(sizeof(FklStringMatchPattern));
 	FKL_ASSERT(tmp,__func__);
@@ -106,8 +107,8 @@ FklStringMatchPattern* fklNewStringMatchPattern(int32_t num,char** parts,FklByte
 		FklStringMatchPattern* cur=HeadOfStringPattern;
 		while(cur)
 		{
-			int32_t fir=strlen(tmp->parts[0]);
-			int32_t sec=strlen(cur->parts[0]);
+			int32_t fir=tmp->parts[0]->size;
+			int32_t sec=cur->parts[0]->size;
 			if(fir>sec)
 			{
 				if(!cur->prev)
@@ -137,7 +138,7 @@ FklStringMatchPattern* fklNewStringMatchPattern(int32_t num,char** parts,FklByte
 	return tmp;
 }
 
-char* fklGetNthReverseCharOfStringMatchPattern(FklStringMatchPattern* pattern,uint32_t nth)
+const FklString* fklGetNthReverseCharOfStringMatchPattern(FklStringMatchPattern* pattern,uint32_t nth)
 {
 	uint32_t i=0;
 	uint32_t j=0;
@@ -145,44 +146,39 @@ char* fklGetNthReverseCharOfStringMatchPattern(FklStringMatchPattern* pattern,ui
 	return (j==nth)?pattern->parts[i]:NULL;
 }
 
-char* fklGetNthPartOfStringMatchPattern(FklStringMatchPattern* pattern,uint32_t nth)
+const FklString* fklGetNthPartOfStringMatchPattern(FklStringMatchPattern* pattern,uint32_t nth)
 {
 	if(nth>=pattern->num||nth<0)
 		return NULL;
 	return pattern->parts[nth];
 }
 
-char** fklSplitPattern(const char* str,int32_t* num)
+FklString** fklSplitPattern(const FklString* str,uint32_t* num)
 {
-	int i=0;
-	int32_t count=countStringParts(str);
+	uint32_t count=countStringParts(str);
 	*num=count;
-	char** tmp=(char**)malloc(sizeof(char*)*count);
+	FklString** tmp=(FklString**)malloc(sizeof(FklString*)*count);
 	FKL_ASSERT(tmp,__func__);
 	count=0;
-	for(;str[i]!='\0';i++)
+	const char* buf=str->str;
+	size_t size=str->size;
+	for(size_t i=0;i<size;i++)
 	{
-		if(isspace(str[i]))
-			i+=fklSkipSpace(str+i);
-		if(str[i]=='(')
+		if(isspace(buf[i]))
+			i+=fklSkipSpace(str,i);
+		if(buf[i]=='(')
 		{
-			int j=i;
-			for(;str[j]!='\0'&&str[j]!=')';j++);
-			char* tmpStr=(char*)malloc(sizeof(char)*(j-i+2));
-			FKL_ASSERT(tmpStr,__func__);
-			memcpy(tmpStr,str+i,j-i+1);
-			tmpStr[j-i+1]='\0';
+			size_t j=i;
+			for(;j<size&&buf[j]!=')';j++);
+			FklString* tmpStr=fklNewString(j-i+1,buf+i);
 			tmp[count]=tmpStr;
 			i=j;
 			count++;
 			continue;
 		}
-		int j=i;
-		for(;str[j]!='\0'&&str[j]!='(';j++);
-		char* tmpStr=(char*)malloc(sizeof(char)*(j-i+1));
-		FKL_ASSERT(tmpStr,__func__);
-		memcpy(tmpStr,str+i,j-i);
-		tmpStr[j-i]='\0';
+		size_t j=i;
+		for(;j<size&&buf[j]!='(';j++);
+		FklString* tmpStr=fklNewString(j-i,buf+i);
 		tmp[count]=tmpStr;
 		count++;
 		i=j-1;
@@ -191,50 +187,47 @@ char** fklSplitPattern(const char* str,int32_t* num)
 	return tmp;
 }
 
-static int32_t* matchPartOfPattern(const char* str,FklStringMatchPattern* pattern,int32_t* num)
+static uint32_t* matchPartOfPattern(const FklString* str,FklStringMatchPattern* pattern,uint32_t* num)
 {
 	*num=fklCountInPattern(str,pattern);
-	int32_t* fklSplitIndex=(int32_t*)malloc(sizeof(int32_t)*(*num));
+	uint32_t* fklSplitIndex=(uint32_t*)malloc(sizeof(uint32_t)*(*num));
 	FKL_ASSERT(fklSplitIndex,__func__);
-	int32_t s=0;
-	int32_t i=0;
+	uint32_t s=0;
+	uint32_t i=0;
 	for(;i<*num;i++)
 	{
-		char* part=pattern->parts[i];
+		const FklString* part=pattern->parts[i];
 		if(!fklIsVar(part))
 		{
-			s+=fklSkipSpace(str+s);
-			if(!strncmp(str+s,part,strlen(part)))
+			s+=fklSkipSpace(str,s);
+			if(!memcmp(str->str+s,part,part->size))
 				fklSplitIndex[i]=s;
-			s+=strlen(part);
+			s+=part->size;
 		}
 		else
 		{
-			s+=fklSkipSpace(str+s);
+			s+=fklSkipSpace(str,s);
 			fklSplitIndex[i]=s;
-			char* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
-			s+=fklSkipUntilNextWhenReading(str+s,next);
+			FklString* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
+			s+=fklSkipUntilNextWhenReading(str,s,next);
 		}
 	}
 	return fklSplitIndex;
 }
 
 
-char** fklSplitStringInPattern(const char* str,FklStringMatchPattern* pattern,int32_t* num)
+FklString** fklSplitStringInPattern(const FklString* str,FklStringMatchPattern* pattern,uint32_t* num)
 {
 	int i=0;
-	int32_t* s=matchPartOfPattern(str,pattern,num);
-	char** tmp=(char**)malloc(sizeof(char*)*(pattern->num));
+	uint32_t* s=matchPartOfPattern(str,pattern,num);
+	FklString** tmp=(FklString**)malloc(sizeof(FklString*)*(pattern->num));
 	FKL_ASSERT(tmp,__func__);
 	for(;i<pattern->num;i++)
 		tmp[i]=NULL;
 	for(i=0;i<*num;i++)
 	{
-		int32_t strSize=(i+1<*num)?((size_t)(s[i+1]-s[i])):(size_t)fklSkipInPattern(str,pattern)-s[i];
-		char* tmpStr=(char*)malloc(sizeof(char)*(strSize+1));
-		FKL_ASSERT(tmpStr,__func__);
-		memcpy(tmpStr,str+s[i],strSize);
-		tmpStr[strSize]='\0';
+		size_t strSize=(i+1<*num)?((size_t)(s[i+1]-s[i])):(size_t)fklSkipInPattern(str,0,pattern)-s[i];
+		FklString* tmpStr=fklNewString(strSize,str->str+s[i]);
 		tmp[i]=tmpStr;
 	}
 	free(s);
@@ -248,7 +241,7 @@ void fklFreeAllStringPattern()
 	{
 		FklStringMatchPattern* prev=cur;
 		cur=cur->next;
-		fklFreeCstrArray(prev->parts,prev->num);
+		fklFreeStringArray(prev->parts,prev->num);
 		fklFreeByteCodeAndLnt(prev->proc);
 		free(prev);
 	}
@@ -264,29 +257,29 @@ void fklFreeStringPattern(FklStringMatchPattern* o)
 	free(o);
 }
 
-int32_t fklFindKeyString(const char* str)
-{
-	FklStringMatchPattern* cur=HeadOfStringPattern;
-	while(cur)
-	{
-		int i=0;
-		char* keyString=cur->parts[0];
-		i+=fklSkipAtom(str+i,keyString);
-		if(str[i])
-			return i;
-		cur=cur->next;
-	}
-	return fklSkipAtom(str,"");
-}
+//uint32_t fklFindKeyString(const FklString* str)
+//{
+//	FklStringMatchPattern* cur=HeadOfStringPattern;
+//	while(cur)
+//	{
+//		int i=0;
+//		const FklString* keyString=cur->parts[0];
+//		i+=fklSkipAtom(str+i,keyString);
+//		if(str[i])
+//			return i;
+//		cur=cur->next;
+//	}
+//	return fklSkipAtom(str,"");
+//}
 
-int fklIsInValidStringPattern(const char* str)
+int fklIsInValidStringPattern(const FklString* str)
 {
 	FklStringMatchPattern* pattern=HeadOfStringPattern;
-	int32_t num=0;
-	char** parts=fklSplitPattern(str,&num);
-	if(fklIsVar(parts[0])||parts[0][0]=='\"')
+	uint32_t num=0;
+	FklString** parts=fklSplitPattern(str,&num);
+	if(fklIsVar(parts[0])||parts[0]->str[0]=='\"')
 	{
-		fklFreeCstrArray(parts,num);
+		fklFreeStringArray(parts,num);
 		return 1;
 	}
 	if(pattern)
@@ -295,9 +288,9 @@ int fklIsInValidStringPattern(const char* str)
 			pattern=pattern->prev;
 		while(pattern)
 		{
-			if(!strcmp(parts[0],pattern->parts[0]))
+			if(!fklStringcmp(parts[0],pattern->parts[0]))
 			{
-				fklFreeCstrArray(parts,num);
+				fklFreeStringArray(parts,num);
 				return 1;
 			}
 			pattern=pattern->next;
@@ -312,39 +305,39 @@ int fklIsInValidStringPattern(const char* str)
 			{
 				if(fklIsVar(parts[i+1]))
 				{
-					fklFreeCstrArray(parts,num);
+					fklFreeStringArray(parts,num);
 					return 1;
 				}
 			}
 			else
 			{
-				fklFreeCstrArray(parts,num);
+				fklFreeStringArray(parts,num);
 				return 1;
 			}
 		}
-		else if(parts[i][0]=='\"'||parts[i][0]==';'||!strncmp(parts[i],"#!",strlen("#!")))
+		else if(parts[i]->str[0]=='\"'||parts[i]->str[0]==';'||!memcmp(parts[i]->str,"#!",strlen("#!")))
 		{
-			fklFreeCstrArray(parts,num);
+			fklFreeStringArray(parts,num);
 			return 1;
 		}
 	}
-	fklFreeCstrArray(parts,num);
+	fklFreeStringArray(parts,num);
 	return 0;
 }
 
-int fklIsReDefStringPattern(const char* str)
+int fklIsReDefStringPattern(const FklString* str)
 {
 	FklStringMatchPattern* pattern=HeadOfStringPattern;
-	int32_t num=0;
+	uint32_t num=0;
 	if(pattern)
 	{
-		char** parts=fklSplitPattern(str,&num);
+		FklString** parts=fklSplitPattern(str,&num);
 		while(pattern->prev)
 			pattern=pattern->prev;
 		while(pattern)
 		{
 			int r=1;
-			if(!strcmp(parts[0],pattern->parts[0]))
+			if(!fklStringcmp(parts[0],pattern->parts[0]))
 			{
 				if(pattern->num!=num)
 					r=0;
@@ -360,37 +353,38 @@ int fklIsReDefStringPattern(const char* str)
 							r=0;
 							break;
 						}
-						else if(strcmp(parts[i],pattern->parts[i]))
+						else if(fklStringcmp(parts[i],pattern->parts[i]))
 						{
 							r=0;
 							break;
 						}
 					}
 				}
-				fklFreeCstrArray(parts,num);
+				fklFreeStringArray(parts,num);
 				return r;
 			}
 			pattern=pattern->next;
 		}
-		fklFreeCstrArray(parts,num);
+		fklFreeStringArray(parts,num);
 		return 0;
 	}
 	else
 		return 0;
 }
 
-int fklIsMustList(const char* str)
+int fklIsMustList(const FklString* str)
 {
 	if(!fklIsVar(str))
 		return 0;
-	if(str[1]==',')
+	if(str->str[1]==',')
 		return 1;
 	return 0;
 }
 
-int fklIsVar(const char* part)
+int fklIsVar(const FklString* part)
 {
-	if(part[0]=='(')
+	const char* buf=part->str;
+	if(buf[0]=='(')
 		return 1;
 	return 0;
 }
@@ -402,64 +396,66 @@ void fklFreeCstrArray(char** ss,uint32_t num)
 	free(ss);
 }
 
-size_t fklSkipInPattern(const char* str,FklStringMatchPattern* pattern)
+size_t fklSkipInPattern(const FklString* str,size_t index,FklStringMatchPattern* pattern)
 {
-	int32_t i=0;
-	int32_t s=0;
+	uint32_t i=0;
+	size_t s=0;
 	if(pattern)
 	{
 		for(;i<pattern->num;i++)
 		{
-			char* part=pattern->parts[i];
+			FklString* part=pattern->parts[i];
 			if(!fklIsVar(part))
 			{
-				s+=fklSkipSpace(str+s);
-				s+=strlen(part);
+				s+=fklSkipSpace(str,s+index);
+				s+=part->size;
 			}
 			else
 			{
-				s+=fklSkipSpace(str+s);
-				char* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
-				s+=fklSkipUntilNextWhenReading(str+s,next);
+				s+=fklSkipSpace(str,s+index);
+				FklString* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
+				s+=fklSkipUntilNextWhenReading(str,s+index,next);
 			}
 		}
 	}
 	else
-		s+=fklSkipUntilNext(str+s,NULL);
+		s+=fklSkipUntilNext(str,s+index,NULL);
 	return s;
 }
 
-size_t fklSkipSpace(const char* str)
+size_t fklSkipSpace(const FklString* str,size_t index)
 {
 	size_t i=0;
-	for(;str[i]!='\0'&&isspace(str[i]);i++);
+	size_t size=str->size;
+	const char* buf=str->str;
+	for(;i+index<size&&isspace(buf[i]);i++);
 	return i;
 }
 
-int32_t fklCountInPattern(const char* str,FklStringMatchPattern* pattern)
+uint32_t fklCountInPattern(const FklString* str,FklStringMatchPattern* pattern)
 {
-	int32_t i=0;
-	int32_t s=0;
-	int32_t len=strlen(str);
+	uint32_t i=0;
+	uint32_t s=0;
+	size_t len=str->size;
 	while(i<pattern->num)
 	{
 		if(s>=len)break;
-		char* part=pattern->parts[i];
+		FklString* part=pattern->parts[i];
 		if(!fklIsVar(part))
 		{
-			s+=fklSkipSpace(str+s);
-			if(strncmp(str+s,part,strlen(part)))
+			s+=fklSkipSpace(str,s);
+			if(memcmp(str->str+s,part,part->size))
 				break;
-			s+=strlen(part);
+			s+=part->size;
 		}
 		else
 		{
-			s+=fklSkipSpace(str+s);
-			if(str[s]==')')break;
-			char* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
-			s+=fklSkipUntilNextWhenReading(str+s,next);
+			s+=fklSkipSpace(str,s);
+			if(str->str[s]==')')break;
+			FklString* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
+			s+=fklSkipUntilNextWhenReading(str,s,next);
 		}
-		s+=fklSkipSpace(str+s);
+		s+=fklSkipSpace(str,s);
 		i++;
 	}
 	return i;
@@ -591,7 +587,7 @@ size_t fklSkipAtom(const char* str,const char* keyString)
 	return i;
 }
 
-char* fklGetVarName(const char* str)
+char* fklGetVarName(const FklString* str)
 {
 	int i=(str[1]==',')?2:1;
 	int j=i;

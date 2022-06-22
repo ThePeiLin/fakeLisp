@@ -4,12 +4,12 @@
 #include<ctype.h>
 #include<string.h>
 
-static size_t skipSpace(const char* str)
-{
-	size_t i=0;
-	for(;str[i]!='\0'&&isspace(str[i]);i++);
-	return i;
-}
+//static size_t skipSpace(const char* str)
+//{
+//	size_t i=0;
+//	for(;str[i]!='\0'&&isspace(str[i]);i++);
+//	return i;
+//}
 
 
 size_t skipString(const char* str)
@@ -30,25 +30,29 @@ static size_t skipStringIndexSize(const char* str,size_t index,size_t size)
 	return i;
 }
 
-size_t skipUntilSpace(const char* str)
+size_t skipUntilSpace(const FklString* str)
 {
 	size_t i=0;
-	for(;str[i]!='\0'&&!isspace(str[i]);i++)
+	size_t size=str->size;
+	const char* buf=str->str;
+	for(;i<size&&!isspace(buf[i]);i++)
 	{
-		if(str[i]=='\"')
-			i+=skipString(str+i);
-		if(str[i]=='\0')
+		if(buf[i]=='\"')
+			i+=skipString(buf+i);
+		if(buf[i]=='\0')
 			break;
 	}
 	return i;
 }
 
-int isCompleteString(const char* str)
+int isCompleteString(const FklString* str)
 {
 	int mark=0;
 	int markN=0;
-	for(size_t i=0;str[i]!='\0'&&markN<2;i++)
-		if(str[i]=='\"'&&(!i||str[i-1]!='\\'))
+	size_t size=str->size;
+	const char* buf=str->str;
+	for(size_t i=0;i<size&&markN<2;i++)
+		if(buf[i]=='\"'&&(!i||buf[i-1]!='\\'))
 		{
 			mark=~mark;
 			markN+=1;
@@ -56,38 +60,38 @@ int isCompleteString(const char* str)
 	return !mark;
 }
 
-uint32_t countPartThatSplitByBlank(const char* str,FklUintStack* indexStack,FklUintStack* sizeStack)
-{
-	uint32_t retval=0;
-	for(size_t i=0;str[i]!='\0';)
-	{
-		fklPushUintStack(i,indexStack);
-		size_t size=skipUntilSpace(str+i);
-		i+=size;
-		fklPushUintStack(size,sizeStack);
-		i+=skipSpace(str+i);
-		retval++;
-	}
-	return retval;
-}
+//uint32_t countPartThatSplitByBlank(const char* str,FklUintStack* indexStack,FklUintStack* sizeStack)
+//{
+//	uint32_t retval=0;
+//	for(size_t i=0;str[i]!='\0';)
+//	{
+//		fklPushUintStack(i,indexStack);
+//		size_t size=skipUntilSpace(str+i);
+//		i+=size;
+//		fklPushUintStack(size,sizeStack);
+//		i+=skipSpace(str+i);
+//		retval++;
+//	}
+//	return retval;
+//}
 
-char** spiltStringByBlank(const char* str,uint32_t* num)
-{
-	FKL_ASSERT(num,__func__);
-	FklUintStack* sizeStack=fklNewUintStack(32,16);
-	FklUintStack* indexStack=fklNewUintStack(32,16);
-	*num=countPartThatSplitByBlank(str,indexStack,sizeStack);
-	char** retval=(char**)malloc(sizeof(char*)*(*num));
-	FKL_ASSERT(retval,__func__);
-	for(uint32_t i=0;i<indexStack->top;i++)
-	{
-		retval[i]=fklCopyMemory(str+indexStack->base[i],sizeStack->base[i]+1);
-		retval[i][sizeStack->base[i]]='\0';
-	}
-	fklFreeUintStack(indexStack);
-	fklFreeUintStack(sizeStack);
-	return retval;
-}
+//static char** spiltStringByBlank(const char* str,uint32_t* num)
+//{
+//	FKL_ASSERT(num,__func__);
+//	FklUintStack* sizeStack=fklNewUintStack(32,16);
+//	FklUintStack* indexStack=fklNewUintStack(32,16);
+//	*num=countPartThatSplitByBlank(str,indexStack,sizeStack);
+//	char** retval=(char**)malloc(sizeof(char*)*(*num));
+//	FKL_ASSERT(retval,__func__);
+//	for(uint32_t i=0;i<indexStack->top;i++)
+//	{
+//		retval[i]=fklCopyMemory(str+indexStack->base[i],sizeStack->base[i]+1);
+//		retval[i][sizeStack->base[i]]='\0';
+//	}
+//	fklFreeUintStack(indexStack);
+//	fklFreeUintStack(sizeStack);
+//	return retval;
+//}
 
 FklToken* fklNewTokenCopyStr(FklTokenType type,const FklString* str,uint32_t line)
 {
@@ -215,7 +219,7 @@ static MatchState* searchReverseStringCharMatchState(const char* part,size_t ind
 			topState=i==0?NULL:stack->base[i-1];
 		if(topState&&!isBuiltInPattern(topState->pattern))
 		{
-			char* nextPart=fklGetNthPartOfStringMatchPattern(topState->pattern,topState->index);
+			const FklString* nextPart=fklGetNthPartOfStringMatchPattern(topState->pattern,topState->index);
 			uint32_t i=0;
 			for(;;)
 			{
@@ -224,8 +228,7 @@ static MatchState* searchReverseStringCharMatchState(const char* part,size_t ind
 					break;
 				i++;
 			}
-			size_t nextPartLen=strlen(nextPart);
-			if(size-index>=nextPartLen&&topState->pattern!=NULL&&nextPart&&!fklIsVar(nextPart)&&!strncmp(nextPart,part+index,strlen(nextPart)))
+			if(size-index>=nextPart->size&&topState->pattern!=NULL&&nextPart&&!fklIsVar(nextPart)&&!memcmp(nextPart->str,part+index,nextPart->size))
 			{
 				topState->index+=i;
 				return topState;
@@ -296,7 +299,7 @@ static int hasReverseStringNext(MatchState* state)
 	return 0;
 }
 
-static const char* searchReverseStringChar(const char* part,size_t index,size_t size,FklPtrStack* stack)
+static int searchReverseStringChar(const char* part,size_t index,size_t size,FklPtrStack* stack)
 {
 	if(index<size)
 	{
@@ -309,64 +312,63 @@ static const char* searchReverseStringChar(const char* part,size_t index,size_t 
 			topState=i==0?NULL:stack->base[i-1];
 		if(topState&&!isBuiltInPattern(topState->pattern))
 		{
-			char* nextPart=fklGetNthPartOfStringMatchPattern(topState->pattern,topState->index);
+			const FklString* nextPart=fklGetNthPartOfStringMatchPattern(topState->pattern,topState->index);
 			uint32_t i=0;
 			for(;nextPart&&fklIsVar(nextPart);i++)
 				nextPart=fklGetNthPartOfStringMatchPattern(topState->pattern,topState->index+i);
-			size_t nextPartLen=strlen(nextPart);
-			if(size-index>nextPartLen&&topState->pattern!=NULL&&nextPart&&!fklIsVar(nextPart)&&!strncmp(nextPart,part+index,nextPartLen))
-				return nextPart;
+			if(size-index>nextPart->size&&topState->pattern!=NULL&&nextPart&&!fklIsVar(nextPart)&&!memcmp(nextPart->str,part+index,nextPart->size))
+				return 1;
 		}
 		FklStringMatchPattern* pattern=fklFindStringPatternBuf(part+index,size-index);
 		if(pattern)
-			return pattern->parts[0];
+			return 1;
 		else if(size-index>1&&part[index]=='#'&&part[index+1]=='(')
-			return "#(";
+			return 1;
 		else if(size-index>1&&part[index]=='#'&&part[index+1]=='[')
-			return "#[";
+			return 1;
 		else if(part[index]=='(')
-			return ")";
+			return 1;
 		else if(part[index]==')')
 		{
 			if(topState&&(topState->pattern==PARENTHESE_0
 						||topState->pattern==VECTOR_0)&&topState->index==0)
-				return ")";
+				return 1;
 			else
-				return NULL;
+				return 0;
 		}
 		if(part[index]=='[')
-			return "[";
+			return 1;
 		else if(part[index]==']')
 		{
 			if(topState&&(topState->pattern==PARENTHESE_1
 						||topState->pattern==VECTOR_1)&&topState->index==0)
-				return "]";
+				return 1;
 			else
-				return NULL;
+				return 0;
 		}
 		switch(part[index])
 		{
 			case '\'':
-				return "\'";
+				return 1;
 				break;
 			case '`':
-				return "`";
+				return 1;
 				break;
 			case '~':
 				if(size-index>1&&part[index+1]=='@')
-					return "~@";
-				return "~";
+					return 1;
+				return 1;
 				break;
 			case ',':
-				return ",";
+				return 1;
 				break;
 			case '#':
 				if(size-index>1&&part[index+1]=='&')
-					return "#&";
+					return 1;
 				break;
 		}
 	}
-	return NULL;
+	return 0;
 }
 
 static int isBuiltInReserveStr(const char* part,size_t size)
@@ -386,7 +388,7 @@ static size_t getSymbolLen(const char* part,size_t index,size_t size,FklPtrStack
 	size_t i=0;
 	for(;index+i<size&&!isspace(part[index+i])&&!isBuiltInReserveStr(part+i+index,size-i-index);i++)
 	{
-		const char* state=searchReverseStringChar(part,index+i,size,stack);
+		int state=searchReverseStringChar(part,index+i,size,stack);
 		if(state)
 			break;
 	}
@@ -470,7 +472,7 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 				}
 				else if(state->index<state->pattern->num)
 				{
-					char* curPart=fklGetNthPartOfStringMatchPattern(state->pattern,state->index);
+					const FklString* curPart=fklGetNthPartOfStringMatchPattern(state->pattern,state->index);
 					MatchState* prevState=fklTopPtrStack(matchStateStack);
 					if(state->index!=0&&prevState->pattern!=state->pattern)
 					{
@@ -481,8 +483,8 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 					state->index++;
 					if(state->index-1==0)
 						fklPushPtrStack(state,matchStateStack);
-					fklPushPtrStack(fklNewToken(FKL_TOKEN_RESERVE_STR,fklNewStringFromCstr(curPart),*line),retvalStack);
-					j+=strlen(curPart);
+					fklPushPtrStack(fklNewToken(FKL_TOKEN_RESERVE_STR,fklCopyString(curPart),*line),retvalStack);
+					j+=curPart->size;
 					if(state->index<state->pattern->num)
 						continue;
 				}
@@ -491,7 +493,7 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 			{
 				size_t sumLen=skipStringIndexSize(parts[i],j,sizes[i]);
 				size_t lastLen=sumLen;
-				FklString* str=fklNewString(sumLen,parts[i]+j)
+				FklString* str=fklNewString(sumLen,parts[i]+j);
 				int complete=isCompleteString(str);
 				for(;!complete&&j+lastLen>=sizes[i];)
 				{
@@ -502,7 +504,7 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 						break;
 					}
 					j=0;
-					fklStringCharBufCat(str,parts[i],sizes[i]);
+					fklStringCharBufCat(&str,parts[i],sizes[i]);
 					sumLen=skipUntilSpace(str);
 					complete=isCompleteString(str);
 					lastLen=sumLen-lastLen;
@@ -531,10 +533,8 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 			{
 				uint32_t len=0;
 				for(;j+len<sizes[i]&&parts[i][j+len]!='\n';len++);
-				char* str=fklCharBufToCstr(parts[i]+j,len);
-				fklPushPtrStack(fklNewToken(FKL_TOKEN_COMMENT,str,*line),retvalStack);
+				fklPushPtrStack(fklNewToken(FKL_TOKEN_COMMENT,fklNewString(len,parts[i]+j),*line),retvalStack);
 				j+=len;
-				free(str);
 				continue;
 			}
 			else
@@ -542,13 +542,12 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 				size_t len=getSymbolLen(parts[i],j,sizes[i],matchStateStack);
 				if(len)
 				{
-					char* symbol=fklCopyMemory(parts[i]+j,len);
+					FklString* symbol=fklNewString(len,parts[i]+j);
 					FklTokenType type=FKL_TOKEN_SYMBOL;
-					if(fklIsNum(symbol))
+					if(fklIsNumberString(symbol))
 						type=FKL_TOKEN_NUM;
 					fklPushPtrStack(fklNewToken(type,symbol,*line),retvalStack);
 					j+=len;
-					free(symbol);
 				}
 				else
 				{
@@ -566,7 +565,7 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 					freeMatchState(fklPopPtrStack(matchStateStack));
 				else if(!isBuiltInParenthese(topState->pattern))
 				{
-					char* curPart=fklGetNthPartOfStringMatchPattern(topState->pattern,topState->index);
+					const FklString* curPart=fklGetNthPartOfStringMatchPattern(topState->pattern,topState->index);
 					if(curPart&&fklIsVar(curPart)&&!fklIsMustList(curPart))
 						topState->index++;
 					else if(curPart&&!fklIsVar(curPart))
@@ -609,7 +608,9 @@ void fklPrintToken(FklPtrStack* tokenStack,FILE* fp)
 	for(uint32_t i=0;i<tokenStack->top;i++)
 	{
 		FklToken* token=tokenStack->base[i];
-		fprintf(fp,"%d,%s:%s\n",token->line,tokenTypeName[token->type],token->value);
+		fprintf(fp,"%d,%s:",token->line,tokenTypeName[token->type]);
+		fklPrintString(token->value,fp);
+		fputc('\n',fp);
 	}
 }
 

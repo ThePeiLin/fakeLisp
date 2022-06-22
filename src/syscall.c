@@ -234,7 +234,7 @@ void SYS_add_1(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.add_1",FKL_TOOMANYARG,runnable,exe);
 	if(!arg)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.add_1",FKL_TOOFEWARG,runnable,exe);
-	FKL_NI_CHECK_TYPE(arg,fklIsNumber,"sys.add_1",runnable,exe);
+	FKL_NI_CHECK_TYPE(arg,fklIsVMnumber,"sys.add_1",runnable,exe);
 	if(FKL_IS_F64(arg))
 	{
 		double r=arg->u.f64+1.0;
@@ -280,7 +280,7 @@ void SYS_sub(ARGL)
 	int64_t r64=0;
 	if(!prev)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.sub",FKL_TOOFEWARG,runnable,exe);
-	FKL_NI_CHECK_TYPE(prev,fklIsNumber,"sys.sub",runnable,exe);
+	FKL_NI_CHECK_TYPE(prev,fklIsVMnumber,"sys.sub",runnable,exe);
 	if(!cur)
 	{
 		fklNiResBp(&ap,stack);
@@ -382,7 +382,7 @@ void SYS_sub_1(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.sub_1",FKL_TOOMANYARG,runnable,exe);
 	if(!arg)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.add_1",FKL_TOOFEWARG,runnable,exe);
-	FKL_NI_CHECK_TYPE(arg,fklIsNumber,"sys.add_1",runnable,exe);
+	FKL_NI_CHECK_TYPE(arg,fklIsVMnumber,"sys.add_1",runnable,exe);
 	if(FKL_IS_F64(arg))
 	{
 		double r=arg->u.f64-1.0;
@@ -476,7 +476,7 @@ void SYS_div(ARGL)
 	double rd=1.0;
 	if(!prev)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.div",FKL_TOOFEWARG,runnable,exe);
-	FKL_NI_CHECK_TYPE(prev,fklIsNumber,"sys.div",runnable,exe);
+	FKL_NI_CHECK_TYPE(prev,fklIsVMnumber,"sys.div",runnable,exe);
 	if(!cur)
 	{
 		fklNiResBp(&ap,stack);
@@ -593,7 +593,7 @@ void SYS_rem(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.rem",FKL_TOOMANYARG,runnable,exe);
 	if(!fir||!sec)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.rem",FKL_TOOFEWARG,runnable,exe);
-	if(!fklIsNumber(fir)||!fklIsNumber(sec))
+	if(!fklIsVMnumber(fir)||!fklIsVMnumber(sec))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.rem",FKL_WRONGARG,runnable,exe);
 	if(FKL_IS_F64(fir)||FKL_IS_F64(sec))
 	{
@@ -662,8 +662,8 @@ void SYS_eqn(ARGL)
 	{
 		if(prev)
 		{
-			if((FKL_IS_F64(prev)&&fklIsNumber(cur))
-					||(FKL_IS_F64(cur)&&fklIsNumber(prev)))
+			if((FKL_IS_F64(prev)&&fklIsVMnumber(cur))
+					||(FKL_IS_F64(cur)&&fklIsVMnumber(prev)))
 				r=fabs(fklGetDouble(prev)-fklGetDouble(cur))<DBL_EPSILON;
 			else if(fklIsInt(prev)&&fklIsInt(cur))
 			{
@@ -725,8 +725,8 @@ void SYS_gt(ARGL)
 	{
 		if(prev)
 		{
-			if((FKL_IS_F64(prev)&&fklIsNumber(cur))
-					||(FKL_IS_F64(cur)&&fklIsNumber(prev)))
+			if((FKL_IS_F64(prev)&&fklIsVMnumber(cur))
+					||(FKL_IS_F64(cur)&&fklIsVMnumber(prev)))
 				r=(fklGetDouble(prev)-fklGetDouble(cur))>DBL_EPSILON;
 			else if(fklIsInt(prev)&&fklIsInt(cur))
 			{
@@ -788,8 +788,8 @@ void SYS_ge(ARGL)
 	{
 		if(prev)
 		{
-			if((FKL_IS_F64(prev)&&fklIsNumber(cur))
-					||(FKL_IS_F64(cur)&&fklIsNumber(prev)))
+			if((FKL_IS_F64(prev)&&fklIsVMnumber(cur))
+					||(FKL_IS_F64(cur)&&fklIsVMnumber(prev)))
 				r=(fklGetDouble(prev)-fklGetDouble(cur))>=DBL_EPSILON;
 			else if(fklIsInt(prev)&&fklIsInt(cur))
 			{
@@ -851,8 +851,8 @@ void SYS_lt(ARGL)
 	{
 		if(prev)
 		{
-			if((FKL_IS_F64(prev)&&fklIsNumber(cur))
-					||(FKL_IS_F64(cur)&&fklIsNumber(prev)))
+			if((FKL_IS_F64(prev)&&fklIsVMnumber(cur))
+					||(FKL_IS_F64(cur)&&fklIsVMnumber(prev)))
 				r=(fklGetDouble(prev)-fklGetDouble(cur))<-DBL_EPSILON;
 			else if(fklIsInt(prev)&&fklIsInt(cur))
 			{
@@ -914,8 +914,8 @@ void SYS_le(ARGL)
 	{
 		if(prev)
 		{
-			if((FKL_IS_F64(prev)&&fklIsNumber(cur))
-					||(FKL_IS_F64(cur)&&fklIsNumber(prev)))
+			if((FKL_IS_F64(prev)&&fklIsVMnumber(cur))
+					||(FKL_IS_F64(cur)&&fklIsVMnumber(prev)))
 				r=(fklGetDouble(prev)-fklGetDouble(cur))<=-DBL_EPSILON;
 			else if(fklIsInt(prev)&&fklIsInt(cur))
 			{
@@ -1064,8 +1064,7 @@ void SYS_to_int(ARGL)
 	}
 	else if(FKL_IS_STR(obj))
 	{
-		char* c_str=fklCharBufToCstr(obj->u.str->str,obj->u.str->size);
-		if(!fklIsNum(c_str))
+		if(!fklIsNumber(obj->u.str))
 			fklNiReturn(FKL_VM_NIL,&ap,stack);
 		else
 		{
@@ -1103,15 +1102,13 @@ void SYS_to_f64(ARGL)
 		fklNiReturn(fklNiNewVMvalue(FKL_I64,(void*)&obj->u.i64,stack,exe->heap),&ap,stack);
 	else if(FKL_IS_STR(obj))
 	{
-		char* c_str=fklCharBufToCstr(obj->u.str->str,obj->u.str->size);
-		if(!fklIsNum(c_str))
+		if(!fklIsNumberString(obj->u.str))
 			fklNiReturn(FKL_VM_NIL,&ap,stack);
 		else
 		{
-			double d=fklStringToDouble(c_str);
+			double d=fklStringToDoubleString(obj->u.str);
 			fklNiReturn(fklNiNewVMvalue(FKL_F64,&d,stack,exe->heap),&ap,stack);
 		}
-		free(c_str);
 	}
 	else
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.to-f64",FKL_WRONGARG,runnable,exe);
@@ -2592,7 +2589,7 @@ void SYS_fix_int_p(ARGL) PREDICATE(FKL_IS_I32(val)||FKL_IS_I64(val),"sys.fix-int
 void SYS_i32_p(ARGL) PREDICATE(FKL_IS_I32(val),"sys.i32?")
 void SYS_i64_p(ARGL) PREDICATE(FKL_IS_I64(val),"sys.i64?")
 void SYS_f64_p(ARGL) PREDICATE(FKL_IS_F64(val),"sys.i64?")
-void SYS_number_p(ARGL) PREDICATE(fklIsNumber(val),"sys.number?")
+void SYS_number_p(ARGL) PREDICATE(fklIsVMnumber(val),"sys.number?")
 void SYS_pair_p(ARGL) PREDICATE(FKL_IS_PAIR(val),"sys.pair?")
 void SYS_symbol_p(ARGL) PREDICATE(FKL_IS_SYM(val),"sys.symbol?")
 void SYS_string_p(ARGL) PREDICATE(FKL_IS_STR(val),"sys.string?")

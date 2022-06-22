@@ -19,6 +19,7 @@ FklString* fklNewEmptyString();
 FklString* fklNewStringFromCstr(const char*);
 void fklStringCat(FklString**,const FklString*);
 void fklStringCstrCat(FklString**,const char*);
+void fklStringCharBufCat(FklString**,const char* buf,size_t s);
 char* fklCstrStringCat(char*,const FklString*);
 int fklStringcmp(const FklString*,const FklString*);
 int fklStringCstrCmp(const FklString*,const char*);
@@ -131,8 +132,9 @@ typedef struct FklBigInt{
 #define FKL_IS_0_BIG_INT(I) ((I)->num==1&&(I)->digits[0]==0)
 #define FKL_IS_1_BIG_INT(I) ((I)->num==1&&(I)->neg==0&&(I)->digits[0]==1)
 FklBigInt* fklNewBigInt(int64_t v);
-FklBigInt* fklNewBigIntFromStr(const char* str);
-FklBigInt* fklNewBigIntFromMem(void* mem,size_t size);
+FklBigInt* fklNewBigIntFromCstr(const char* str);
+FklBigInt* fklNewBigIntFromMem(const void* mem,size_t size);
+FklBigInt* fklNewBigIntFromString(const FklString*);
 FklBigInt* fklNewBigInt0(void);
 FklBigInt* fklNewBigInt1(void);
 void fklInitBigInt(FklBigInt*,const FklBigInt*);

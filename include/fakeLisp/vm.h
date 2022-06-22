@@ -315,7 +315,7 @@ void fklPrincVMvalue(FklVMvalue*,FILE*);
 //vmutils
 
 FklVMvalue* fklMakeVMint(int64_t r64,FklVMstack*,FklVMheap* heap);
-int fklIsNumber(FklVMvalue* p);
+int fklIsVMnumber(FklVMvalue* p);
 int fklIsFixint(FklVMvalue* p);
 int fklIsInt(FklVMvalue* p);
 int fklIsList(FklVMvalue* p);

@@ -25,7 +25,7 @@ static int MacroPatternCmp(const FklAstCptr*,const FklAstCptr*);
 static int fmatcmp(const FklAstCptr*,const FklAstCptr*,FklPreEnv**,FklCompEnv*);
 static int fklAddDefinedMacro(FklPreMacro* macro,FklCompEnv* curEnv);
 static FklErrorState defmacro(FklAstCptr*,FklCompEnv*,FklInterpreter*);
-static FklCompEnv* createPatternCompEnv(char**,int32_t,FklCompEnv*);
+static FklCompEnv* createPatternCompEnv(FklString* const*,int32_t,FklCompEnv*);
 static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
 {
 	FklPtrStack* stack=fklNewPtrStack(32,16);
@@ -476,21 +476,20 @@ FklErrorState defmacro(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* in
 				free(args);
 				return state;
 			}
-			char* tmpStr=fklCharBufToCstr(tmpAtom->value.str->str,tmpAtom->value.str->size);
-			if(!fklIsReDefStringPattern(tmpStr)&&fklIsInValidStringPattern(tmpStr))
+			int isReDef=fklIsReDefStringPattern(tmpAtom->value.str);
+			if(!isReDef&&fklIsInValidStringPattern(tmpAtom->value.str))
 			{
 				fklPrintCompileError(args[0],FKL_INVALIDEXPR,inter);
 				free(args);
 				return state;
 			}
-			int32_t num=0;
-			char** parts=fklSplitPattern(tmpStr,&num);
-			if(fklIsReDefStringPattern(tmpStr))
+			uint32_t num=0;
+			FklString** parts=fklSplitPattern(tmpAtom->value.str,&num);
+			if(isReDef)
 				fklAddReDefStringPattern(parts,num,args[1],inter);
 			else
 				fklAddStringPattern(parts,num,args[1],inter);
-			free(tmpStr);
-			fklFreeCstrArray(parts,num);
+			fklFreeStringArray(parts,num);
 			free(args);
 		}
 		else
@@ -552,7 +551,7 @@ FklErrorState defmacro(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* in
 	return state;
 }
 
-FklStringMatchPattern* fklAddStringPattern(char** parts,int32_t num,FklAstCptr* express,FklInterpreter* inter)
+FklStringMatchPattern* fklAddStringPattern(FklString* const* parts,int32_t num,FklAstCptr* express,FklInterpreter* inter)
 {
 	FklStringMatchPattern* tmp=NULL;
 	FklErrorState state={0,NULL};
@@ -567,11 +566,11 @@ FklStringMatchPattern* fklAddStringPattern(char** parts,int32_t num,FklAstCptr* 
 	FklByteCodelnt* tmpByteCodelnt=fklCompile(express,tmpCompEnv,tmpInter,&state);
 	if(!state.state)
 	{
-		char** tmParts=(char**)malloc(sizeof(char*)*num);
+		FklString** tmParts=(FklString**)malloc(sizeof(FklString*)*num);
 		FKL_ASSERT(tmParts,__func__);
 		int32_t i=0;
 		for(;i<num;i++)
-			tmParts[i]=fklCopyCstr(parts[i]);
+			tmParts[i]=fklCopyString(parts[i]);
 		tmp=fklNewStringMatchPattern(num,tmParts,tmpByteCodelnt);
 	}
 	else
@@ -587,7 +586,7 @@ FklStringMatchPattern* fklAddStringPattern(char** parts,int32_t num,FklAstCptr* 
 	return tmp;
 }
 
-FklStringMatchPattern* fklAddReDefStringPattern(char** parts,int32_t num,FklAstCptr* express,FklInterpreter* inter)
+FklStringMatchPattern* fklAddReDefStringPattern(FklString* const* parts,int32_t num,FklAstCptr* express,FklInterpreter* inter)
 {
 	FklStringMatchPattern* tmp=fklFindStringPattern(parts[0]);
 	FklErrorState state={0,NULL};
@@ -602,12 +601,12 @@ FklStringMatchPattern* fklAddReDefStringPattern(char** parts,int32_t num,FklAstC
 	FklByteCodelnt* tmpByteCodelnt=fklCompile(express,tmpCompEnv,tmpInter,&state);
 	if(!state.state)
 	{
-		char** tmParts=(char**)malloc(sizeof(char*)*num);
+		FklString** tmParts=(FklString**)malloc(sizeof(FklString*)*num);
 		FKL_ASSERT(tmParts,__func__);
 		int32_t i=0;
 		for(;i<num;i++)
-			tmParts[i]=fklCopyCstr(parts[i]);
-		fklFreeCstrArray(tmp->parts,num);
+			tmParts[i]=fklCopyString(parts[i]);
+		fklFreeStringArray(tmp->parts,num);
 		fklFreeByteCodeAndLnt(tmp->proc);
 		tmp->parts=tmParts;
 		tmp->proc=tmpByteCodelnt;
@@ -703,7 +702,7 @@ FklByteCodelnt* fklCompile(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter
 	}
 }
 
-FklCompEnv* createPatternCompEnv(char** parts,int32_t num,FklCompEnv* prev)
+FklCompEnv* createPatternCompEnv(FklString* const* parts,int32_t num,FklCompEnv* prev)
 {
 	if(parts==NULL)return NULL;
 	FklCompEnv* tmpEnv=fklNewCompEnv(prev);
@@ -711,7 +710,7 @@ FklCompEnv* createPatternCompEnv(char** parts,int32_t num,FklCompEnv* prev)
 	for(;i<num;i++)
 		if(fklIsVar(parts[i]))
 		{
-			FklString* varName=fklNewStringFromCstr(fklGetVarName(parts[i]));
+			FklString* varName=fklCopyString(fklGetVarName(parts[i]));
 			fklAddCompDef(varName,tmpEnv);
 			free(varName);
 		}

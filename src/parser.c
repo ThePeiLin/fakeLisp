@@ -95,7 +95,7 @@ FklToken* fklNewToken(FklTokenType type,const char* str,uint32_t line)
 	FKL_ASSERT(token,__func__);
 	token->type=type;
 	token->line=line;
-	token->value=fklCopyCStr(str);
+	token->value=fklCopyCstr(str);
 	return token;
 }
 

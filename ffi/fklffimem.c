@@ -780,7 +780,7 @@ int fklFfiSetMem(FklFfiMem* ref,FklVMvalue* val)
 			if(m->type!=FKL_FFI_STRING)
 				return 1;
 			free(ref->mem);
-			ref->mem=fklCopyCStr(m->mem);
+			ref->mem=fklCopyCstr(m->mem);
 		}
 		else
 			return 1;

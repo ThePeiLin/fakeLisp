@@ -363,7 +363,7 @@ int fklIsSymbolShouldBeExport(const FklString* str,const FklString** pStr,uint32
 	return 0;
 }
 
-char* fklCopyStr(const char* str)
+char* fklCopyCstr(const char* str)
 {
 	if(str==NULL)return NULL;
 	char* tmp=(char*)malloc(sizeof(char)*(strlen(str)+1));
@@ -522,8 +522,8 @@ char* fklRelpath(const char* abs,const char* relto)
 #else
 	char upperDir[]="../";
 #endif
-	char* cabs=fklCopyStr(abs);
-	char* crelto=fklCopyStr(relto);
+	char* cabs=fklCopyCstr(abs);
+	char* crelto=fklCopyCstr(relto);
 	int lengthOfAbs=0;
 	int lengthOfRelto=0;
 	char** absDirs=fklSplit(cabs,divstr,&lengthOfAbs);
@@ -555,7 +555,7 @@ char* fklRelpath(const char* abs,const char* relto)
 	}
 	if(reltoDirs!=NULL)
 		strcat(rp,reltoDirs[lengthOfRelto-1]);
-	char* trp=fklCopyStr(rp);
+	char* trp=fklCopyCstr(rp);
 	free(cabs);
 	free(crelto);
 	free(absDirs);

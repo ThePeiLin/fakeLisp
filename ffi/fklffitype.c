@@ -908,7 +908,7 @@ FklSid_t fklFfiGetErrorType(FklFfiErrorType type)
 
 char* fklFfiGenErrorMessage(FklFfiErrorType type)
 {
-	char* t=fklCopyCStr("");
+	char* t=fklCopyCstr("");
 	switch(type)
 	{
 		case FKL_FFI_INVALID_TYPEDECLARE:

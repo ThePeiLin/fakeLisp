@@ -32,7 +32,7 @@ int fklIsVar(const char*);
 int fklIsMustList(const char*);
 int fklMaybePatternPrefix(const char*);
 
-void fklFreeCstrArray(char** ss,int32_t num);
+void fklFreeCstrArray(char** ss,uint32_t num);
 size_t fklSkipInPattern(const char*,FklStringMatchPattern*);
 size_t fklSkipSpace(const char*);
 int32_t fklCountInPattern(const char* str,FklStringMatchPattern*);

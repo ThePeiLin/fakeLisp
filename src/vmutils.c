@@ -290,7 +290,7 @@ FklVMrunnable* fklNewVMrunnable(FklVMproc* code,FklVMrunnable* prev)
 
 char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklErrorType type)
 {
-	char* t=fklCopyCStr("");
+	char* t=fklCopyCstr("");
 	switch(type)
 	{
 		case FKL_LOADDLLFAILD:
@@ -317,7 +317,7 @@ char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklErrorType type)
 
 char* fklGenErrorMessage(FklErrorType type,FklVMrunnable* r,FklVM* exe)
 {
-	char* t=fklCopyCStr("");
+	char* t=fklCopyCstr("");
 	switch(type)
 	{
 		case FKL_WRONGARG:

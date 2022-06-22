@@ -939,6 +939,16 @@ FklString* fklCopyString(const FklString* obj)
 	return tmp;
 }
 
+char* fklStringToCstr(const FklString* str)
+{
+	return fklCharBufToStr(str->str,str->size);
+}
+
+FklString* fklNewStringFromCstr(const char* cStr)
+{
+	return fklNewString(strlen(cStr),cStr);
+}
+
 void fklStringCat(FklString** fir,const FklString* sec)
 {
 	size_t firSize=(*fir)->size;
@@ -956,7 +966,27 @@ FklString* fklNewEmptyString()
 	return tmp;
 }
 
-void fklPrintRawString(FklString* str,FILE* fp)
+void fklPrintRawString(const FklString* str,FILE* fp)
 {
 	fklPrintRawCharBuf(str->str,str->size,fp);
+}
+
+void fklPrintString(const FklString* str,FILE* fp)
+{
+	fwrite(str->str,str->size,1,fp);
+}
+
+void fklFreeStringArray(FklString** ss,uint32_t num)
+{
+	for(uint32_t i=0;i<num;i++)
+		free(ss[i]);
+	free(ss);
+}
+
+FklString* fklStringAppend(const FklString* a,const FklString* b)
+{
+	FklString* r=fklNewString(a->size+b->size,NULL);
+	memcpy(&r->str[0],a->str,a->size);
+	memcpy(&r->str[a->size],b->str,b->size);
+	return r;
 }

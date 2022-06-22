@@ -571,7 +571,7 @@ FklStringMatchPattern* fklAddStringPattern(char** parts,int32_t num,FklAstCptr* 
 		FKL_ASSERT(tmParts,__func__);
 		int32_t i=0;
 		for(;i<num;i++)
-			tmParts[i]=fklCopyCStr(parts[i]);
+			tmParts[i]=fklCopyCstr(parts[i]);
 		tmp=fklNewStringMatchPattern(num,tmParts,tmpByteCodelnt);
 	}
 	else
@@ -606,7 +606,7 @@ FklStringMatchPattern* fklAddReDefStringPattern(char** parts,int32_t num,FklAstC
 		FKL_ASSERT(tmParts,__func__);
 		int32_t i=0;
 		for(;i<num;i++)
-			tmParts[i]=fklCopyCStr(parts[i]);
+			tmParts[i]=fklCopyCstr(parts[i]);
 		fklFreeCstrArray(tmp->parts,num);
 		fklFreeByteCodeAndLnt(tmp->proc);
 		tmp->parts=tmParts;
@@ -3265,7 +3265,7 @@ FklInterpreter* fklNewTmpIntpr(const char* filename,FILE* fp)
 
 void fklSetCwd(const char* path)
 {
-	CurWorkDir=fklCopyCStr(path);
+	CurWorkDir=fklCopyCstr(path);
 }
 
 void fklFreeCwd(void)
@@ -3286,7 +3286,7 @@ void fklSetMainFileRealPath(const char* path)
 
 void fklSetMainFileRealPathWithCwd(void)
 {
-	MainFileRealPath=fklCopyCStr(CurWorkDir);
+	MainFileRealPath=fklCopyCstr(CurWorkDir);
 }
 
 void fklFreeMainFileRealPath(void)

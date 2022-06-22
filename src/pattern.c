@@ -395,10 +395,9 @@ int fklIsVar(const char* part)
 	return 0;
 }
 
-void fklFreeCstrArray(char** ss,int32_t num)
+void fklFreeCstrArray(char** ss,uint32_t num)
 {
-	int i=0;
-	for(;i<num;i++)
+	for(uint32_t i=0;i<num;i++)
 		free(ss[i]);
 	free(ss);
 }

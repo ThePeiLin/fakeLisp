@@ -503,6 +503,16 @@ FklVMerror* fklNewVMerror(const FklString* who,FklSid_t type,const FklString* me
 	return t;
 }
 
+FklVMerror* fklNewVMerrorCstr(const char* who,FklSid_t type,const char* message)
+{
+	FklVMerror* t=(FklVMerror*)malloc(sizeof(FklVMerror));
+	FKL_ASSERT(t,__func__);
+	t->who=fklNewStringFromCstr(who);
+	t->type=type;
+	t->message=fklNewStringFromCstr(message);
+	return t;
+}
+
 void fklFreeVMerror(FklVMerror* err)
 {
 	free(err->who);
@@ -822,11 +832,6 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 	fklFreePtrStack(s1);
 	fklFreePtrStack(s2);
 	return tmp;
-}
-
-char* fklStringToCstr(FklString* str)
-{
-	return fklCharBufToStr(str->str,str->size);
 }
 
 FklVMvec* fklNewVMvec(size_t size)

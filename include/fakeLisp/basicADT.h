@@ -22,11 +22,11 @@ void fklStringCstrCat(FklString**,const char*);
 char* fklCstrStringCat(char*,const FklString*);
 int fklStringcmp(const FklString*,const FklString*);
 int fklStringCstrCmp(const FklString*,const char*);
-char* fklStringToCstr(FklString* str);
-void fklPrintRawString(FklString* str,FILE* fp);
-void fklPrintString(FklString* str,FILE* fp);
+char* fklStringToCstr(const FklString* str);
+void fklPrintRawString(const FklString* str,FILE* fp);
+void fklPrintString(const FklString* str,FILE* fp);
 FklString* fklStringAppend(const FklString*,const FklString*);
-void fklFreeStringArray(FklString**,int32_t num);
+void fklFreeStringArray(FklString**,uint32_t num);
 
 typedef struct FklU64PtrHashNode
 {

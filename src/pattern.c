@@ -5,7 +5,7 @@
 #include<ctype.h>
 static FklStringMatchPattern* HeadOfStringPattern=NULL;
 static uint32_t countStringParts(const FklString*);
-static uint32_t* matchPartOfPattern(const FklString*,FklStringMatchPattern*,uint32_t*);
+//static uint32_t* matchPartOfPattern(const FklString*,FklStringMatchPattern*,uint32_t*);
 static uint32_t countReverseCharNum(uint32_t num,FklString* const* parts)
 {
 	uint32_t retval=0;
@@ -13,6 +13,15 @@ static uint32_t countReverseCharNum(uint32_t num,FklString* const* parts)
 		if(!fklIsVar(parts[i]))
 			retval++;
 	return retval;
+}
+
+static size_t fklSkipSpace(const FklString* str,size_t index)
+{
+	size_t i=0;
+	size_t size=str->size;
+	const char* buf=str->str;
+	for(;i+index<size&&isspace(buf[i]);i++);
+	return i;
 }
 
 
@@ -187,52 +196,52 @@ FklString** fklSplitPattern(const FklString* str,uint32_t* num)
 	return tmp;
 }
 
-static uint32_t* matchPartOfPattern(const FklString* str,FklStringMatchPattern* pattern,uint32_t* num)
-{
-	*num=fklCountInPattern(str,pattern);
-	uint32_t* fklSplitIndex=(uint32_t*)malloc(sizeof(uint32_t)*(*num));
-	FKL_ASSERT(fklSplitIndex,__func__);
-	uint32_t s=0;
-	uint32_t i=0;
-	for(;i<*num;i++)
-	{
-		const FklString* part=pattern->parts[i];
-		if(!fklIsVar(part))
-		{
-			s+=fklSkipSpace(str,s);
-			if(!memcmp(str->str+s,part,part->size))
-				fklSplitIndex[i]=s;
-			s+=part->size;
-		}
-		else
-		{
-			s+=fklSkipSpace(str,s);
-			fklSplitIndex[i]=s;
-			FklString* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
-			s+=fklSkipUntilNextWhenReading(str,s,next);
-		}
-	}
-	return fklSplitIndex;
-}
+//static uint32_t* matchPartOfPattern(const FklString* str,FklStringMatchPattern* pattern,uint32_t* num)
+//{
+//	*num=fklCountInPattern(str,pattern);
+//	uint32_t* fklSplitIndex=(uint32_t*)malloc(sizeof(uint32_t)*(*num));
+//	FKL_ASSERT(fklSplitIndex,__func__);
+//	uint32_t s=0;
+//	uint32_t i=0;
+//	for(;i<*num;i++)
+//	{
+//		const FklString* part=pattern->parts[i];
+//		if(!fklIsVar(part))
+//		{
+//			s+=fklSkipSpace(str,s);
+//			if(!memcmp(str->str+s,part,part->size))
+//				fklSplitIndex[i]=s;
+//			s+=part->size;
+//		}
+//		else
+//		{
+//			s+=fklSkipSpace(str,s);
+//			fklSplitIndex[i]=s;
+//			FklString* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
+//			s+=fklSkipUntilNextWhenReading(str,s,next);
+//		}
+//	}
+//	return fklSplitIndex;
+//}
 
 
-FklString** fklSplitStringInPattern(const FklString* str,FklStringMatchPattern* pattern,uint32_t* num)
-{
-	int i=0;
-	uint32_t* s=matchPartOfPattern(str,pattern,num);
-	FklString** tmp=(FklString**)malloc(sizeof(FklString*)*(pattern->num));
-	FKL_ASSERT(tmp,__func__);
-	for(;i<pattern->num;i++)
-		tmp[i]=NULL;
-	for(i=0;i<*num;i++)
-	{
-		size_t strSize=(i+1<*num)?((size_t)(s[i+1]-s[i])):(size_t)fklSkipInPattern(str,0,pattern)-s[i];
-		FklString* tmpStr=fklNewString(strSize,str->str+s[i]);
-		tmp[i]=tmpStr;
-	}
-	free(s);
-	return tmp;
-}
+//FklString** fklSplitStringInPattern(const FklString* str,FklStringMatchPattern* pattern,uint32_t* num)
+//{
+//	int i=0;
+//	uint32_t* s=matchPartOfPattern(str,pattern,num);
+//	FklString** tmp=(FklString**)malloc(sizeof(FklString*)*(pattern->num));
+//	FKL_ASSERT(tmp,__func__);
+//	for(;i<pattern->num;i++)
+//		tmp[i]=NULL;
+//	for(i=0;i<*num;i++)
+//	{
+//		size_t strSize=(i+1<*num)?((size_t)(s[i+1]-s[i])):(size_t)fklSkipInPattern(str,0,pattern)-s[i];
+//		FklString* tmpStr=fklNewString(strSize,str->str+s[i]);
+//		tmp[i]=tmpStr;
+//	}
+//	free(s);
+//	return tmp;
+//}
 
 void fklFreeAllStringPattern()
 {
@@ -396,293 +405,283 @@ void fklFreeCstrArray(char** ss,uint32_t num)
 	free(ss);
 }
 
-size_t fklSkipInPattern(const FklString* str,size_t index,FklStringMatchPattern* pattern)
-{
-	uint32_t i=0;
-	size_t s=0;
-	if(pattern)
-	{
-		for(;i<pattern->num;i++)
-		{
-			FklString* part=pattern->parts[i];
-			if(!fklIsVar(part))
-			{
-				s+=fklSkipSpace(str,s+index);
-				s+=part->size;
-			}
-			else
-			{
-				s+=fklSkipSpace(str,s+index);
-				FklString* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
-				s+=fklSkipUntilNextWhenReading(str,s+index,next);
-			}
-		}
-	}
-	else
-		s+=fklSkipUntilNext(str,s+index,NULL);
-	return s;
-}
+//size_t fklSkipInPattern(const FklString* str,size_t index,FklStringMatchPattern* pattern)
+//{
+//	uint32_t i=0;
+//	size_t s=0;
+//	if(pattern)
+//	{
+//		for(;i<pattern->num;i++)
+//		{
+//			FklString* part=pattern->parts[i];
+//			if(!fklIsVar(part))
+//			{
+//				s+=fklSkipSpace(str,s+index);
+//				s+=part->size;
+//			}
+//			else
+//			{
+//				s+=fklSkipSpace(str,s+index);
+//				FklString* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
+//				s+=fklSkipUntilNextWhenReading(str,s+index,next);
+//			}
+//		}
+//	}
+//	else
+//		s+=fklSkipUntilNext(str,s+index,NULL);
+//	return s;
+//}
 
-size_t fklSkipSpace(const FklString* str,size_t index)
+//uint32_t fklCountInPattern(const FklString* str,FklStringMatchPattern* pattern)
+//{
+//	uint32_t i=0;
+//	uint32_t s=0;
+//	size_t len=str->size;
+//	while(i<pattern->num)
+//	{
+//		if(s>=len)break;
+//		FklString* part=pattern->parts[i];
+//		if(!fklIsVar(part))
+//		{
+//			s+=fklSkipSpace(str,s);
+//			if(memcmp(str->str+s,part,part->size))
+//				break;
+//			s+=part->size;
+//		}
+//		else
+//		{
+//			s+=fklSkipSpace(str,s);
+//			if(str->str[s]==')')break;
+//			FklString* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
+//			s+=fklSkipUntilNextWhenReading(str,s,next);
+//		}
+//		s+=fklSkipSpace(str,s);
+//		i++;
+//	}
+//	return i;
+//}
+
+//size_t fklSkipUntilNext(const FklString* str,size_t index,const FklString* part)
+//{
+//	size_t s=0;
+//	const char* buf=str->str;
+//	while(buf[s+index])
+//	{
+//		if(buf[s+index]=='(')
+//		{
+//			s+=fklSkipParentheses(str,s+index);
+//		}
+//		else if(buf[s+index]=='\"')
+//		{
+//			size_t len=0;
+//			char* tmpStr=fklCastEscapeCharater(buf+s+index+1,'\"',&len);
+//			s+=len+1;
+//			free(tmpStr);
+//		}
+//		else if(isspace(buf[s+index]))
+//		{
+//			s+=fklSkipSpace(str,s+index);
+//			continue;
+//		}
+//		else if(buf[s+index]==',')
+//			break;
+//		else
+//		{
+//			FklStringMatchPattern* pattern=fklFindStringPattern(str+s);
+//			if(pattern)
+//			{
+//				s+=fklSkipInPattern(str,index+s,pattern);
+//				s+=fklSkipSpace(str,index+s);
+//				continue;
+//			}
+//			else if(part&&!fklIsVar(part))
+//			{
+//				s+=fklSkipAtom(str,index+s,part);
+//				s+=fklSkipSpace(str,index+s);
+//				if(!memcmp(buf+s+index,part,part->size))
+//					break;
+//			}
+//			s+=fklSkipAtom(str,index+s,part);
+//		}
+//		if(!part||fklIsVar(part))
+//			break;
+//	}
+//	return s;
+//}
+
+//size_t fklSkipParentheses(const FklString* str,size_t index)
+//{
+//	int parentheses=0;
+//	int mark=0;
+//	int32_t i=0;
+//	while(str[i]!='\0')
+//	{
+//		if(str[i]=='\"'&&(i<1||str[i-1]!='\\'))
+//			mark^=1;
+//		if(str[i]=='('&&(i<1||str[i-1]!='\\')&&!mark)
+//			parentheses++;
+//		else if(str[i]==')'&&(i<1||str[i-1]!='\\')&&!mark)
+//			parentheses--;
+//		i++;
+//		if(parentheses==0)
+//			break;
+//	}
+//	return i;
+//}
+
+//size_t fklSkipAtom(const FklString* str,size_t i,const FklString* keyString)
+//{
+//	int32_t keyLen=strlen(keyString);
+//	int32_t i=0;
+//	i+=fklSkipSpace(str);
+//	if(str[i]=='\"')
+//	{
+//		size_t len=0;
+//		char* tStr=fklCastEscapeCharater(str+i+1,'\"',&len);
+//		free(tStr);
+//		i+=len+1;
+//	}
+//	else if(str[i]=='#'&&(str[i+1]=='b'||str[i+1]=='\\'))
+//	{
+//		i++;
+//		if(str[i]=='\\')
+//		{
+//			i++;
+//			if(str[i]!='\\')
+//				i++;
+//			else
+//			{
+//				i++;
+//				if(isdigit(str[i]))
+//				{
+//					int32_t j=0;
+//					for(;isdigit(str[i+j])&&j<3;j++);
+//					i+=j;
+//				}
+//				else if(toupper(str[i])=='X')
+//				{
+//					i++;
+//					int32_t j=0;
+//					for(;isxdigit(str[i+j])&&j<2;j++);
+//					i+=j;
+//				}
+//				else
+//					i++;
+//			}
+//		}
+//		else if(str[i]=='b')
+//		{
+//			i++;
+//			for(;isxdigit(str[i]);i++);
+//		}
+//	}
+//	else
+//	{
+//		for(;str[i]!='\0';i++)
+//		{
+//			if(isspace(str[i])||str[i]=='('||str[i]==')'||str[i]==','||!strncmp(str+i,"#b",2)||!strncmp(str+i,"#\\",2)||(keyLen&&!strncmp(str+i,keyString,keyLen)))
+//				break;
+//		}
+//	}
+//	return i;
+//}
+
+FklString* fklGetVarName(const FklString* str)
 {
-	size_t i=0;
 	size_t size=str->size;
 	const char* buf=str->str;
-	for(;i+index<size&&isspace(buf[i]);i++);
-	return i;
-}
-
-uint32_t fklCountInPattern(const FklString* str,FklStringMatchPattern* pattern)
-{
-	uint32_t i=0;
-	uint32_t s=0;
-	size_t len=str->size;
-	while(i<pattern->num)
-	{
-		if(s>=len)break;
-		FklString* part=pattern->parts[i];
-		if(!fklIsVar(part))
-		{
-			s+=fklSkipSpace(str,s);
-			if(memcmp(str->str+s,part,part->size))
-				break;
-			s+=part->size;
-		}
-		else
-		{
-			s+=fklSkipSpace(str,s);
-			if(str->str[s]==')')break;
-			FklString* next=(i+1<pattern->num)?pattern->parts[i+1]:NULL;
-			s+=fklSkipUntilNextWhenReading(str,s,next);
-		}
-		s+=fklSkipSpace(str,s);
-		i++;
-	}
-	return i;
-}
-
-size_t fklSkipUntilNext(const FklString* str,size_t index,const FklString* part)
-{
-	size_t s=0;
-	const char* buf=str->str;
-	while(buf[s+index])
-	{
-		if(buf[s+index]=='(')
-		{
-			s+=fklSkipParentheses(str,s+index);
-		}
-		else if(buf[s+index]=='\"')
-		{
-			size_t len=0;
-			char* tmpStr=fklCastEscapeCharater(buf+s+index+1,'\"',&len);
-			s+=len+1;
-			free(tmpStr);
-		}
-		else if(isspace(buf[s+index]))
-		{
-			s+=fklSkipSpace(str,s+index);
-			continue;
-		}
-		else if(buf[s+index]==',')
-			break;
-		else
-		{
-			FklStringMatchPattern* pattern=fklFindStringPattern(str+s);
-			if(pattern)
-			{
-				s+=fklSkipInPattern(str,index+s,pattern);
-				s+=fklSkipSpace(str,index+s);
-				continue;
-			}
-			else if(part&&!fklIsVar(part))
-			{
-				s+=fklSkipAtom(str,index+s,part);
-				s+=fklSkipSpace(str,index+s);
-				if(!memcmp(buf+s+index,part,part->size))
-					break;
-			}
-			s+=fklSkipAtom(str,index+s,part);
-		}
-		if(!part||fklIsVar(part))
-			break;
-	}
-	return s;
-}
-
-size_t fklSkipParentheses(const char* str)
-{
-	int parentheses=0;
-	int mark=0;
-	int32_t i=0;
-	while(str[i]!='\0')
-	{
-		if(str[i]=='\"'&&(i<1||str[i-1]!='\\'))
-			mark^=1;
-		if(str[i]=='('&&(i<1||str[i-1]!='\\')&&!mark)
-			parentheses++;
-		else if(str[i]==')'&&(i<1||str[i-1]!='\\')&&!mark)
-			parentheses--;
-		i++;
-		if(parentheses==0)
-			break;
-	}
-	return i;
-}
-
-size_t fklSkipAtom(const char* str,const char* keyString)
-{
-	int32_t keyLen=strlen(keyString);
-	int32_t i=0;
-	i+=fklSkipSpace(str);
-	if(str[i]=='\"')
-	{
-		size_t len=0;
-		char* tStr=fklCastEscapeCharater(str+i+1,'\"',&len);
-		free(tStr);
-		i+=len+1;
-	}
-	else if(str[i]=='#'&&(str[i+1]=='b'||str[i+1]=='\\'))
-	{
-		i++;
-		if(str[i]=='\\')
-		{
-			i++;
-			if(str[i]!='\\')
-				i++;
-			else
-			{
-				i++;
-				if(isdigit(str[i]))
-				{
-					int32_t j=0;
-					for(;isdigit(str[i+j])&&j<3;j++);
-					i+=j;
-				}
-				else if(toupper(str[i])=='X')
-				{
-					i++;
-					int32_t j=0;
-					for(;isxdigit(str[i+j])&&j<2;j++);
-					i+=j;
-				}
-				else
-					i++;
-			}
-		}
-		else if(str[i]=='b')
-		{
-			i++;
-			for(;isxdigit(str[i]);i++);
-		}
-	}
-	else
-	{
-		for(;str[i]!='\0';i++)
-		{
-			if(isspace(str[i])||str[i]=='('||str[i]==')'||str[i]==','||!strncmp(str+i,"#b",2)||!strncmp(str+i,"#\\",2)||(keyLen&&!strncmp(str+i,keyString,keyLen)))
-				break;
-		}
-	}
-	return i;
-}
-
-char* fklGetVarName(const FklString* str)
-{
-	int i=(str[1]==',')?2:1;
-	int j=i;
-	for(;str[i]!='\0'&&str[i]!=')';i++);
-	char* tmp=(char*)malloc(sizeof(char)*(i-j+1));
-	FKL_ASSERT(tmp,__func__);
-	memcpy(tmp,str+j,i-j);
-	tmp[i-j]='\0';
+	size_t i=(buf[1]==',')?2:1;
+	size_t j=i;
+	for(;i<size&&buf[i]!=')';i++);
+	FklString* tmp=fklNewString(i-j,buf+j);
 	return tmp;
 }
 
-void fklPrintInPattern(char** strs,FklStringMatchPattern* pattern,FILE* fp,int32_t count)
-{
-	int i=0;
-	for(;i<pattern->num;i++)
-	{
-		int j=0;
-		for(;j<count;j++)
-			putc('\t',fp);
-		if(!fklIsVar(pattern->parts[i]))
-		{
-			char* part=pattern->parts[i];
-			fprintf(fp,"%s\n",part);
-		}
-		else
-		{
-			FklStringMatchPattern* nextPattern=fklFindStringPattern(strs[i]);
-			if(nextPattern)
-			{
-				int32_t num=0;
-				int32_t j=0;
-				char** ss=fklSplitStringInPattern(strs[i],nextPattern,&num);
-				fklPrintInPattern(ss,nextPattern,fp,count+1);
-				for(;j<num;j++)
-					free(ss[j]);
-				free(ss);
-			}
-			else
-			{
-				putc('\t',fp);
-				fprintf(fp,"%s\n",strs[i]);
-			}
-		}
-	}
-}
+//void fklPrintInPattern(FklString** strs,FklStringMatchPattern* pattern,FILE* fp,uint32_t count)
+//{
+//	int i=0;
+//	for(;i<pattern->num;i++)
+//	{
+//		int j=0;
+//		for(;j<count;j++)
+//			putc('\t',fp);
+//		if(!fklIsVar(pattern->parts[i]))
+//		{
+//			char* part=pattern->parts[i];
+//			fprintf(fp,"%s\n",part);
+//		}
+//		else
+//		{
+//			FklStringMatchPattern* nextPattern=fklFindStringPattern(strs[i]);
+//			if(nextPattern)
+//			{
+//				int32_t num=0;
+//				int32_t j=0;
+//				char** ss=fklSplitStringInPattern(strs[i],nextPattern,&num);
+//				fklPrintInPattern(ss,nextPattern,fp,count+1);
+//				for(;j<num;j++)
+//					free(ss[j]);
+//				free(ss);
+//			}
+//			else
+//			{
+//				putc('\t',fp);
+//				fprintf(fp,"%s\n",strs[i]);
+//			}
+//		}
+//	}
+//}
 
-size_t fklSkipUntilNextWhenReading(const char* str,const char* part)
-{
-	int32_t s=0;
-	while(str[s])
-	{
-		if(str[s]=='(')
-		{
-			s+=fklSkipParentheses(str+s);
-		}
-		else if(str[s]=='\"')
-		{
-			size_t len=0;
-			char* tmpStr=fklCastEscapeCharater(str+s+1,'\"',&len);
-			s+=len+1;
-			free(tmpStr);
-		}
-		else if(isspace(str[s]))
-		{
-			s+=fklSkipSpace(str+s);
-			continue;
-		}
-		else if(str[s]==',')
-		{
-			if(part)
-				s++;
-			else
-				break;
-		}
-		else
-		{
-			FklStringMatchPattern* pattern=fklFindStringPattern(str+s);
-			if(pattern)
-			{
-				s+=fklSkipInPattern(str+s,pattern);
-				s+=fklSkipSpace(str+s);
-				continue;
-			}
-			else if(part&&!fklIsVar(part))
-			{
-				s+=fklSkipAtom(str+s,part);
-				s+=fklSkipSpace(str+s);
-				if(!strncmp(str+s,part,strlen(part)))
-					break;
-			}
-			s+=fklSkipAtom(str+s,part?part:"");
-		}
-		if(!part||fklIsVar(part))
-			break;
-	}
-	return s;
-}
+//size_t fklSkipUntilNextWhenReading(const FklString* str,size_t index,const FklString* part)
+//{
+//	int32_t s=0;
+//	while(str[s])
+//	{
+//		if(str[s]=='(')
+//		{
+//			s+=fklSkipParentheses(str+s);
+//		}
+//		else if(str[s]=='\"')
+//		{
+//			size_t len=0;
+//			char* tmpStr=fklCastEscapeCharater(str+s+1,'\"',&len);
+//			s+=len+1;
+//			free(tmpStr);
+//		}
+//		else if(isspace(str[s]))
+//		{
+//			s+=fklSkipSpace(str+s);
+//			continue;
+//		}
+//		else if(str[s]==',')
+//		{
+//			if(part)
+//				s++;
+//			else
+//				break;
+//		}
+//		else
+//		{
+//			FklStringMatchPattern* pattern=fklFindStringPattern(str+s);
+//			if(pattern)
+//			{
+//				s+=fklSkipInPattern(str+s,pattern);
+//				s+=fklSkipSpace(str+s);
+//				continue;
+//			}
+//			else if(part&&!fklIsVar(part))
+//			{
+//				s+=fklSkipAtom(str+s,part);
+//				s+=fklSkipSpace(str+s);
+//				if(!strncmp(str+s,part,strlen(part)))
+//					break;
+//			}
+//			s+=fklSkipAtom(str+s,part?part:"");
+//		}
+//		if(!part||fklIsVar(part))
+//			break;
+//	}
+//	return s;
+//}
 
 

@@ -295,7 +295,7 @@ static int _mem_cmp_VU(FklVMvalue* a,FklFfiMem* b,int* isUnableToBeCmp)
 {
 	if((FKL_IS_STR(a)&&b->type!=FKL_FFI_STRING)
 			||(!FKL_IS_STR(a)&&b->type==FKL_FFI_STRING)
-			||!fklIsNumber(a)
+			||!fklIsVMnumber(a)
 			||!fklFfiIsNumTypeId(b->type))
 	{
 		*isUnableToBeCmp=1;

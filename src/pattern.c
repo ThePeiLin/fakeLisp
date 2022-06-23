@@ -281,16 +281,11 @@ void fklFreeStringPattern(FklStringMatchPattern* o)
 //	return fklSkipAtom(str,"");
 //}
 
-int fklIsInValidStringPattern(const FklString* str)
+int fklIsInValidStringPattern(FklString* const* parts,uint32_t num)
 {
 	FklStringMatchPattern* pattern=HeadOfStringPattern;
-	uint32_t num=0;
-	FklString** parts=fklSplitPattern(str,&num);
 	if(fklIsVar(parts[0])||parts[0]->str[0]=='\"')
-	{
-		fklFreeStringArray(parts,num);
 		return 1;
-	}
 	if(pattern)
 	{
 		while(pattern->prev)
@@ -298,10 +293,7 @@ int fklIsInValidStringPattern(const FklString* str)
 		while(pattern)
 		{
 			if(!fklStringcmp(parts[0],pattern->parts[0]))
-			{
-				fklFreeStringArray(parts,num);
 				return 1;
-			}
 			pattern=pattern->next;
 		}
 	}
@@ -313,43 +305,30 @@ int fklIsInValidStringPattern(const FklString* str)
 			if(i<num-1)
 			{
 				if(fklIsVar(parts[i+1]))
-				{
-					fklFreeStringArray(parts,num);
 					return 1;
-				}
 			}
 			else
-			{
-				fklFreeStringArray(parts,num);
 				return 1;
-			}
 		}
 		else if(parts[i]->str[0]=='\"'||parts[i]->str[0]==';'||!memcmp(parts[i]->str,"#!",strlen("#!")))
-		{
-			fklFreeStringArray(parts,num);
 			return 1;
-		}
 	}
-	fklFreeStringArray(parts,num);
 	return 0;
 }
 
-int fklIsReDefStringPattern(const FklString* str)
+int fklIsReDefStringPattern(FklString* const* parts,uint32_t num)
 {
 	FklStringMatchPattern* pattern=HeadOfStringPattern;
-	uint32_t num=0;
 	if(pattern)
 	{
-		FklString** parts=fklSplitPattern(str,&num);
 		while(pattern->prev)
 			pattern=pattern->prev;
 		while(pattern)
 		{
-			int r=1;
 			if(!fklStringcmp(parts[0],pattern->parts[0]))
 			{
 				if(pattern->num!=num)
-					r=0;
+					return 0;
 				else
 				{
 					int32_t i=0;
@@ -358,23 +337,15 @@ int fklIsReDefStringPattern(const FklString* str)
 						if(fklIsVar(pattern->parts[i])&&fklIsVar(parts[i]))
 							continue;
 						else if(fklIsVar(pattern->parts[i])||fklIsVar(parts[i]))
-						{
-							r=0;
-							break;
-						}
+							return 0;
 						else if(fklStringcmp(parts[i],pattern->parts[i]))
-						{
-							r=0;
-							break;
-						}
+							return 0;
 					}
 				}
-				fklFreeStringArray(parts,num);
-				return r;
+				return 1;
 			}
 			pattern=pattern->next;
 		}
-		fklFreeStringArray(parts,num);
 		return 0;
 	}
 	else

@@ -46,16 +46,22 @@ int fklIsHexNumString(const FklString*);
 int fklIsOctNumString(const FklString*);
 int fklIsDoubleString(const FklString*);
 int fklIsNumberString(const FklString*);
-int fklIsHexNum(const char*,size_t len);
-int fklIsOctNum(const char*,size_t len);
-int fklIsDouble(const char*,size_t len);
-int fklIsNumber(const char*,size_t len);
+
+int fklIsHexNumCstr(const char*);
+int fklIsOctNumCstr(const char*);
+int fklIsDoubleCstr(const char*);
+int fklIsNumberCstr(const char*);
+
+int fklIsHexNumCharBuf(const char*,size_t);
+int fklIsOctNumCharBuf(const char*,size_t);
+int fklIsDoubleCharBuf(const char*,size_t);
+int fklIsNumberCharBuf(const char*,size_t);
 
 char* fklGetStringFromList(const char*);
 char* fklGetStringAfterBackslash(const char*);
 char* fklGetStringAfterBackslashInStr(const char* str);
 int fklPower(int,int);
-char* fklCastEscapeCharater(const char*,char,size_t*);
+//char* fklCastEscapeCharater(const char*,char,size_t*);
 void fklPrintRawCharBuf(const char* str,size_t size,FILE* out);
 void fklPrintRawCstring(const char*,FILE*);
 void fklPrintRawChar(char,FILE*);

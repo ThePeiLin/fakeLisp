@@ -181,7 +181,7 @@ void FKL_ffi_load(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.load",FKL_TOOFEWARG,r,exe);
 	if(!FKL_IS_STR(vpath))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.load",FKL_WRONGARG,r,exe);
-	char* path=fklCharBufToStr(vpath->u.str->str,vpath->u.str->size);
+	char* path=fklCharBufToCstr(vpath->u.str->str,vpath->u.str->size);
 	FklVMdllHandle handle=fklLoadDll(path);
 	if(!handle)
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("ffi.load",path,1,FKL_LOADDLLFAILD,exe);
@@ -284,7 +284,7 @@ void FKL_ffi_proc(ARGL)
 	FklTypeId_t id=fklFfiGenTypeId(typedeclare);
 	if(!id||!fklFfiIsFunctionTypeId(id)||!fklFfiIsValidFunctionTypeId(id))
 		FKL_FFI_RAISE_ERROR("ffi.proc",FKL_FFI_INVALID_TYPEDECLARE,exe);
-	char* cStr=fklCharBufToStr(val->u.str->str,val->u.str->size);
+	char* cStr=fklCharBufToCstr(val->u.str->str,val->u.str->size);
 	FklVMudata* func=fklFfiNewProcUd(id,cStr);
 	if(!func)
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("ffi.proc",cStr,1,FKL_INVALIDSYMBOL,exe);

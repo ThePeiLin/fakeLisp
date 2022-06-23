@@ -22,17 +22,18 @@ FklStringMatchPattern* fklNewStringMatchPattern(uint32_t,FklString**,FklByteCode
 const FklString* fklGetNthReverseCharOfStringMatchPattern(FklStringMatchPattern* pattern,uint32_t nth);
 const FklString* fklGetNthPartOfStringMatchPattern(FklStringMatchPattern* pattern,uint32_t nth);
 FklString** fklSplitPattern(const FklString*,uint32_t*);
-//FklString** fklSplitStringInPattern(const FklString*,FklStringMatchPattern*,uint32_t*);
 void fklFreeAllStringPattern();
 void fklFreeStringPattern(FklStringMatchPattern*);
-//uint32_t fklFindKeyString(const FklString*);
-int fklIsInValidStringPattern(const FklString*);
-int fklIsReDefStringPattern(const FklString*);
+int fklIsInValidStringPattern(FklString* const*,uint32_t);
+int fklIsReDefStringPattern(FklString* const*,uint32_t);
 int fklIsVar(const FklString*);
 int fklIsMustList(const FklString*);
 //int fklMaybePatternPrefix(const char*);
+//uint32_t fklFindKeyString(const FklString*);
+//FklString** fklSplitStringInPattern(const FklString*,FklStringMatchPattern*,uint32_t*);
 
 void fklFreeCstrArray(char** ss,uint32_t num);
+FklString* fklGetVarName(const FklString*);
 //size_t fklSkipInPattern(const FklString*,size_t i,FklStringMatchPattern*);
 //size_t fklSkipSpace(const FklString*,size_t i);
 //uint32_t fklCountInPattern(const FklString* str,FklStringMatchPattern*);
@@ -40,7 +41,6 @@ void fklFreeCstrArray(char** ss,uint32_t num);
 //size_t fklSkipUntilNextWhenReading(const FklString*,size_t,const FklString*);
 //size_t fklSkipParentheses(const FklString*,size_t);
 //size_t fklSkipAtom(const FklString*,size_t,const FklString*);
-FklString* fklGetVarName(const FklString*);
 //void fklPrintInPattern(FklString**,FklStringMatchPattern*,FILE*,uint32_t);
 
 #ifdef __cplusplus

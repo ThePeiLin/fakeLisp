@@ -476,20 +476,20 @@ FklErrorState defmacro(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* in
 				free(args);
 				return state;
 			}
-			int isReDef=fklIsReDefStringPattern(tmpAtom->value.str);
-			if(!isReDef&&fklIsInValidStringPattern(tmpAtom->value.str))
+			uint32_t num=0;
+			FklString** parts=fklSplitPattern(tmpAtom->value.str,&num);
+			int isReDef=fklIsReDefStringPattern(parts,num);
+			if(!isReDef&&fklIsInValidStringPattern(parts,num))
 			{
 				fklPrintCompileError(args[0],FKL_INVALIDEXPR,inter);
 				free(args);
 				return state;
 			}
-			uint32_t num=0;
-			FklString** parts=fklSplitPattern(tmpAtom->value.str,&num);
 			if(isReDef)
 				fklAddReDefStringPattern(parts,num,args[1],inter);
 			else
 				fklAddStringPattern(parts,num,args[1],inter);
-			fklFreeStringArray(parts,num);
+//			fklFreeStringArray(parts,num);
 			free(args);
 		}
 		else
@@ -551,7 +551,7 @@ FklErrorState defmacro(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* in
 	return state;
 }
 
-FklStringMatchPattern* fklAddStringPattern(FklString* const* parts,int32_t num,FklAstCptr* express,FklInterpreter* inter)
+FklStringMatchPattern* fklAddStringPattern(FklString** parts,uint32_t num,FklAstCptr* express,FklInterpreter* inter)
 {
 	FklStringMatchPattern* tmp=NULL;
 	FklErrorState state={0,NULL};
@@ -565,14 +565,7 @@ FklStringMatchPattern* fklAddStringPattern(FklString* const* parts,int32_t num,F
 	FklCompEnv* tmpCompEnv=createPatternCompEnv(parts,num,inter->glob);
 	FklByteCodelnt* tmpByteCodelnt=fklCompile(express,tmpCompEnv,tmpInter,&state);
 	if(!state.state)
-	{
-		FklString** tmParts=(FklString**)malloc(sizeof(FklString*)*num);
-		FKL_ASSERT(tmParts,__func__);
-		int32_t i=0;
-		for(;i<num;i++)
-			tmParts[i]=fklCopyString(parts[i]);
-		tmp=fklNewStringMatchPattern(num,tmParts,tmpByteCodelnt);
-	}
+		tmp=fklNewStringMatchPattern(num,parts,tmpByteCodelnt);
 	else
 	{
 		if(tmpByteCodelnt)
@@ -586,7 +579,7 @@ FklStringMatchPattern* fklAddStringPattern(FklString* const* parts,int32_t num,F
 	return tmp;
 }
 
-FklStringMatchPattern* fklAddReDefStringPattern(FklString* const* parts,int32_t num,FklAstCptr* express,FklInterpreter* inter)
+FklStringMatchPattern* fklAddReDefStringPattern(FklString** parts,uint32_t num,FklAstCptr* express,FklInterpreter* inter)
 {
 	FklStringMatchPattern* tmp=fklFindStringPattern(parts[0]);
 	FklErrorState state={0,NULL};
@@ -601,14 +594,9 @@ FklStringMatchPattern* fklAddReDefStringPattern(FklString* const* parts,int32_t 
 	FklByteCodelnt* tmpByteCodelnt=fklCompile(express,tmpCompEnv,tmpInter,&state);
 	if(!state.state)
 	{
-		FklString** tmParts=(FklString**)malloc(sizeof(FklString*)*num);
-		FKL_ASSERT(tmParts,__func__);
-		int32_t i=0;
-		for(;i<num;i++)
-			tmParts[i]=fklCopyString(parts[i]);
 		fklFreeStringArray(tmp->parts,num);
 		fklFreeByteCodeAndLnt(tmp->proc);
-		tmp->parts=tmParts;
+		tmp->parts=parts;
 		tmp->proc=tmpByteCodelnt;
 	}
 	else

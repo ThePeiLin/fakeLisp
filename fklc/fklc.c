@@ -27,7 +27,7 @@ void FKL_fklc_fbc_p(ARGL) PREDICATE(fklcIsFbc(val),"fklc.fbc?")
 
 #undef PREDICATE
 
-#define IS_LITERAL(V) (fklIsNumber(V)||FKL_IS_CHR(V)||FKL_IS_STR(V)||FKL_IS_SYM(V))
+#define IS_LITERAL(V) (fklIsVMnumber(V)||FKL_IS_CHR(V)||FKL_IS_STR(V)||FKL_IS_SYM(V))
 
 #define COMPILE_INTEGER(V) (FKL_IS_I32(V)?\
 		fklNewPushI32ByteCode(FKL_GET_I32(V)):\
@@ -37,7 +37,7 @@ void FKL_fklc_fbc_p(ARGL) PREDICATE(fklcIsFbc(val),"fklc.fbc?")
 
 #define COMPILE_NUMBER(V) (fklIsInt(V)?COMPILE_INTEGER(V):fklNewPushF64ByteCode((V)->u.f64))
 
-#define COMPILE_LITERAL(V) (fklIsNumber(V)?\
+#define COMPILE_LITERAL(V) (fklIsVMnumber(V)?\
 		COMPILE_NUMBER(V):\
 		FKL_IS_CHR(V)?\
 		fklNewPushCharByteCode(FKL_GET_CHR(V)):\
@@ -85,7 +85,7 @@ void FKL_fklc_compile_big_int(ARGL) CONST_COMPILE("fklc.compile-big-int",big_int
 void FKL_fklc_compile_f64(ARGL) CONST_COMPILE("fklc.compile-f64",f_64,FKL_IS_F64,fklNewPushF64ByteCode(f_64->u.f64))
 void FKL_fklc_compile_string(ARGL) CONST_COMPILE("fklc.compile-string",str,FKL_IS_STR,fklcNewPushStrByteCode(str->u.str))
 void FKL_fklc_compile_integer(ARGL) CONST_COMPILE("fklc.compile-integer",integer,fklIsInt,COMPILE_INTEGER(integer))
-void FKL_fklc_compile_number(ARGL) CONST_COMPILE("fklc.compile-number",number,fklIsNumber,COMPILE_NUMBER(number))
+void FKL_fklc_compile_number(ARGL) CONST_COMPILE("fklc.compile-number",number,fklIsVMnumber,COMPILE_NUMBER(number))
 void FKL_fklc_compile_atom_literal(ARGL) CONST_COMPILE("fklc.compile-atom-literal",literal,IS_LITERAL,COMPILE_LITERAL(literal))
 
 #undef CONST_COMPILE

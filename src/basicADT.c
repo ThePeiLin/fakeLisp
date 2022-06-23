@@ -348,7 +348,7 @@ FklBigInt* fklNewBigIntFromCstr(const char* v)
 	FklBigInt* r=fklNewBigInt0();
 	size_t len=strlen(v);
 	FKL_ASSERT(r,__func__);
-	if(fklIsHexNum(v,len))
+	if(fklIsHexNumCharBuf(v,len))
 	{
 		uint64_t num=0;
 		int neg=v[0]=='-';
@@ -371,7 +371,7 @@ FklBigInt* fklNewBigIntFromCstr(const char* v)
 		fklFreeBigInt(base);
 		r->neg=neg;
 	}
-	else if(fklIsOctNum(v,len))
+	else if(fklIsOctNumCharBuf(v,len))
 	{
 		uint64_t num=0;
 		int neg=v[0]=='-';

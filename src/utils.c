@@ -78,48 +78,48 @@ char* fklGetStringAfterBackslashInStr(const char* str)
 	return tmp;
 }
 
-char* fklDoubleToString(double num)
+FklString* fklDoubleToString(double num)
 {
 	char numString[256]={0};
-	sprintf(numString,"%lf",num);
-	int lenOfNum=strlen(numString)+1;
-	char* tmp=(char*)malloc(lenOfNum*sizeof(char));
-	FKL_ASSERT(tmp,__func__);
-	memcpy(tmp,numString,lenOfNum);
+	int lenOfNum=sprintf(numString,"%lf",num);
+	FklString* tmp=fklNewString(lenOfNum,numString);
 	return tmp;
 }
 
 
-double fklStringToDouble(const char* str)
+double fklStringToDouble(const FklString* str)
 {
 	double tmp;
-	sscanf(str,"%lf",&tmp);
+	char* c_str=(char*)malloc(sizeof(char)*(str->size+1));
+	fklWriteStringToCstr(c_str,str);
+	sscanf(c_str,"%lf",&tmp);
+	free(c_str);
 	return tmp;
 }
 
 
 
-char* fklIntToString(long num)
+FklString* fklIntToString(long num)
 {
 	char numString[256]={0};
-	sprintf(numString,"%ld",num);
-	int lenOfNum=strlen(numString)+1;
-	char* tmp=NULL;
-	FKL_ASSERT((tmp=(char*)malloc(lenOfNum*sizeof(char))),__func__);
-	memcpy(tmp,numString,lenOfNum);;
+	int lenOfNum=sprintf(numString,"%ld",num);
+	FklString* tmp=fklNewString(lenOfNum,numString);
 	return tmp;
 }
 
 
-int64_t fklStringToInt(const char* str)
+int64_t fklStringToInt(const FklString* str)
 {
 	int64_t tmp;
-	if(fklIsHexNum(str))
-		sscanf(str,"%lx",&tmp);
-	else if(fklIsOctNum(str))
-		sscanf(str,"%lo",&tmp);
+	char* c_str=(char*)malloc(sizeof(char)*(str->size+1));
+	fklWriteStringToCstr(c_str,str);
+	if(fklIsHexNumString(str))
+		sscanf(c_str,"%lx",&tmp);
+	else if(fklIsOctNumString(str))
+		sscanf(c_str,"%lo",&tmp);
 	else
-		sscanf(str,"%ld",&tmp);
+		sscanf(c_str,"%ld",&tmp);
+	free(c_str);
 	return tmp;
 }
 
@@ -156,13 +156,12 @@ void fklPrintRawCstring(const char* objStr,FILE* out)
 	putc('\"',out);
 }
 
-int fklIsHexNum(const char* objStr)
+int fklIsHexNumCstr(const char* objStr)
 {
-	int i=(*objStr=='-')?1:0;
-	int len=strlen(objStr);
+	size_t i=(*objStr=='-')?1:0;
 	if(!strncmp(objStr+i,"0x",2)||!strncmp(objStr+i,"0X",2))
 	{
-		for(i+=2;i<len;i++)
+		for(i+=2;objStr[i]!='\0';i++)
 		{
 			if(!isxdigit(objStr[i]))
 				return 0;
@@ -173,13 +172,12 @@ int fklIsHexNum(const char* objStr)
 	return 1;
 }
 
-int fklIsOctNum(const char* objStr)
+int fklIsOctNumCstr(const char* objStr)
 {
-	int i=(*objStr=='-')?1:0;
-	int len=strlen(objStr);
+	size_t i=(*objStr=='-')?1:0;
 	if(objStr[i]!='0')
 		return 0;
-	for(;i<len;i++)
+	for(;objStr[i]!='\0';i++)
 	{
 		if(!isdigit(objStr[i])||objStr[i]>'7')
 			return 0;
@@ -187,12 +185,12 @@ int fklIsOctNum(const char* objStr)
 	return 1;
 }
 
-int fklIsDouble(const char* objStr)
+int fklIsDoubleCstr(const char* objStr)
 {
-	int i=(objStr[0]=='-')?1:0;
-	int len=strlen(objStr);
+	size_t i=(objStr[0]=='-')?1:0;
 	int isHex=(!strncmp(objStr+i,"0x",2)||!strncmp(objStr+i,"0X",2));
-	for(i+=isHex*2;i<len;i++)
+	ssize_t len=strlen(objStr);
+	for(i+=isHex*2;objStr[i]!='\0';i++)
 	{
 		if(objStr[i]=='.'||(i!=0&&toupper(objStr[i])==('E'+isHex*('P'-'E'))&&i<(len-1)))
 			return 1;
@@ -200,35 +198,37 @@ int fklIsDouble(const char* objStr)
 	return 0;
 }
 
-int fklStringToChar(const char* objStr)
+int fklStringToChar(const FklString* objStr)
 {
+	char* c_str=(char*)malloc(sizeof(char)*(objStr->size+1));
+	fklWriteStringToCstr(c_str,objStr);
+	size_t len=sizeof(c_str);
 	int ch=0;
-	if(toupper(objStr[0])=='X'&&isxdigit(objStr[1]))
+	if(toupper(c_str[0])=='X'&&isxdigit(c_str[1]))
 	{
-		size_t len=strlen(objStr)+2;
 		char* tmpStr=(char*)malloc(sizeof(char)*len);
-		sprintf(tmpStr,"0%s",objStr);
-		if(fklIsHexNum(tmpStr))
+		sprintf(tmpStr,"0%s",c_str);
+		if(fklIsHexNumString(objStr))
 		{
 			sscanf(tmpStr+2,"%x",&ch);
 		}
 		free(tmpStr);
 	}
-	else if(fklIsNum(objStr))
+	else if(fklIsNumberString(objStr))
 	{
-		if(fklIsHexNum(objStr))
+		if(fklIsHexNumString(objStr))
 		{
-			objStr++;
-			sscanf(objStr,"%x",&ch);
+			c_str++;
+			sscanf(c_str,"%x",&ch);
 		}
-		else if(fklIsOctNum(objStr))
-			sscanf(objStr,"%o",&ch);
+		else if(fklIsOctNumString(objStr))
+			sscanf(c_str,"%o",&ch);
 		else
-			sscanf(objStr,"%d",&ch);
+			sscanf(c_str,"%d",&ch);
 	}
 	else
 	{
-		switch(toupper(*(objStr)))
+		switch(toupper(*(c_str)))
 		{
 			case 'A':
 				ch=0x07;
@@ -255,10 +255,11 @@ int fklStringToChar(const char* objStr)
 				ch=0x20;
 				break;
 			default:
-				ch=*(objStr);
+				ch=*(c_str);
 				break;
 		}
 	}
+	free(c_str);
 	return ch;
 }
 
@@ -582,89 +583,89 @@ char** fklSplit(char* str,char* divstr,int* length)
 	return strArry;
 }
 
-char* fklCastEscapeCharater(const char* str,char end,size_t* len)
-{
-	int32_t strSize=0;
-	int32_t memSize=FKL_MAX_STRING_SIZE;
-	int32_t i=0;
-	char* tmp=(char*)malloc(sizeof(char)*memSize);
-	while(str[i]!=end)
-	{
-		int ch=0;
-		if(str[i]=='\\')
-		{
-			char* backSlashStr=fklGetStringAfterBackslashInStr(str+i+1);
-			size_t len=strlen(backSlashStr);
-			if(isdigit(backSlashStr[0]))
-			{
-				if(backSlashStr[0]=='0'&&isdigit(backSlashStr[1]))
-					sscanf(backSlashStr,"%4o",&ch);
-				else
-					sscanf(backSlashStr,"%4d",&ch);
-				i+=len+1;
-			}
-			else if(toupper(backSlashStr[0])=='X')
-			{
-				ch=fklStringToChar(backSlashStr);
-				i+=len+1;
-			}
-			else if(backSlashStr[0]=='\n')
-			{
-				i+=2;
-				free(backSlashStr);
-				continue;
-			}
-			else
-			{
-				switch(toupper(backSlashStr[0]))
-				{
-					case 'A':
-						ch=0x07;
-						break;
-					case 'B':
-						ch=0x08;
-						break;
-					case 'T':
-						ch=0x09;
-						break;
-					case 'N':
-						ch=0x0a;
-						break;
-					case 'V':
-						ch=0x0b;
-						break;
-					case 'F':
-						ch=0x0c;
-						break;
-					case 'R':
-						ch=0x0d;
-						break;
-					case 'S':
-						ch=0x20;
-						break;
-					default:ch=str[i+1];break;
-				}
-				i+=2;
-			}
-			free(backSlashStr);
-		}
-		else ch=str[i++];
-		strSize++;
-		if(strSize>memSize-1)
-		{
-			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+FKL_MAX_STRING_SIZE));
-			FKL_ASSERT(tmp,__func__);
-			memSize+=FKL_MAX_STRING_SIZE;
-		}
-		tmp[strSize-1]=ch;
-	}
-	if(tmp)tmp[strSize]='\0';
-	memSize=strlen(tmp)+1;
-	tmp=(char*)realloc(tmp,memSize*sizeof(char));
-	FKL_ASSERT(tmp,__func__);
-	*len=i+1;
-	return tmp;
-}
+//char* fklCastEscapeCharater(const char* str,char end,size_t* len)
+//{
+//	int32_t strSize=0;
+//	int32_t memSize=FKL_MAX_STRING_SIZE;
+//	int32_t i=0;
+//	char* tmp=(char*)malloc(sizeof(char)*memSize);
+//	while(str[i]!=end)
+//	{
+//		int ch=0;
+//		if(str[i]=='\\')
+//		{
+//			char* backSlashStr=fklGetStringAfterBackslashInStr(str+i+1);
+//			size_t len=strlen(backSlashStr);
+//			if(isdigit(backSlashStr[0]))
+//			{
+//				if(backSlashStr[0]=='0'&&isdigit(backSlashStr[1]))
+//					sscanf(backSlashStr,"%4o",&ch);
+//				else
+//					sscanf(backSlashStr,"%4d",&ch);
+//				i+=len+1;
+//			}
+//			else if(toupper(backSlashStr[0])=='X')
+//			{
+//				ch=fklStringToChar(backSlashStr);
+//				i+=len+1;
+//			}
+//			else if(backSlashStr[0]=='\n')
+//			{
+//				i+=2;
+//				free(backSlashStr);
+//				continue;
+//			}
+//			else
+//			{
+//				switch(toupper(backSlashStr[0]))
+//				{
+//					case 'A':
+//						ch=0x07;
+//						break;
+//					case 'B':
+//						ch=0x08;
+//						break;
+//					case 'T':
+//						ch=0x09;
+//						break;
+//					case 'N':
+//						ch=0x0a;
+//						break;
+//					case 'V':
+//						ch=0x0b;
+//						break;
+//					case 'F':
+//						ch=0x0c;
+//						break;
+//					case 'R':
+//						ch=0x0d;
+//						break;
+//					case 'S':
+//						ch=0x20;
+//						break;
+//					default:ch=str[i+1];break;
+//				}
+//				i+=2;
+//			}
+//			free(backSlashStr);
+//		}
+//		else ch=str[i++];
+//		strSize++;
+//		if(strSize>memSize-1)
+//		{
+//			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+FKL_MAX_STRING_SIZE));
+//			FKL_ASSERT(tmp,__func__);
+//			memSize+=FKL_MAX_STRING_SIZE;
+//		}
+//		tmp[strSize-1]=ch;
+//	}
+//	if(tmp)tmp[strSize]='\0';
+//	memSize=strlen(tmp)+1;
+//	tmp=(char*)realloc(tmp,memSize*sizeof(char));
+//	FKL_ASSERT(tmp,__func__);
+//	*len=i+1;
+//	return tmp;
+//}
 
 int32_t fklCountChar(const char* str,char c,int32_t len)
 {

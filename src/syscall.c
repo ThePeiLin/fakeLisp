@@ -1064,11 +1064,11 @@ void SYS_to_int(ARGL)
 	}
 	else if(FKL_IS_STR(obj))
 	{
-		if(!fklIsNumber(obj->u.str))
+		if(!fklIsNumberString(obj->u.str))
 			fklNiReturn(FKL_VM_NIL,&ap,stack);
 		else
 		{
-			FklBigInt* bi=fklNewBigIntFromStr(c_str);
+			FklBigInt* bi=fklNewBigIntFromString(obj->u.str);
 			if(!fklIsGtLtI64BigInt(bi))
 			{
 				fklNiReturn(fklMakeVMint(fklBigIntToI64(bi),stack,exe->heap),&ap,stack);
@@ -1077,7 +1077,6 @@ void SYS_to_int(ARGL)
 			else
 				fklNiReturn(fklNiNewVMvalue(FKL_BIG_INT,bi,stack,exe->heap),&ap,stack);
 		}
-		free(c_str);
 	}
 	else
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.to-int",FKL_WRONGARG,runnable,exe);
@@ -1106,7 +1105,7 @@ void SYS_to_f64(ARGL)
 			fklNiReturn(FKL_VM_NIL,&ap,stack);
 		else
 		{
-			double d=fklStringToDoubleString(obj->u.str);
+			double d=fklStringToDouble(obj->u.str);
 			fklNiReturn(fklNiNewVMvalue(FKL_F64,&d,stack,exe->heap),&ap,stack);
 		}
 	}

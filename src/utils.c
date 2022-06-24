@@ -327,7 +327,7 @@ int fklIsNumberCharBuf(const char* buf,size_t len)
 	int i=(*buf=='-'||*buf=='+')?1:0;
 	int hasDot=0;
 	int hasExp=0;
-	if(i&&len>1&&!isdigit(buf[1]))
+	if(i&&(len<2||!isdigit(buf[1])))
 		return 0;
 	else
 	{

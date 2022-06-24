@@ -34,13 +34,13 @@ typedef void* FklVMdllHandle;
 typedef struct FklVMchanl
 {
 	uint32_t max;
-	pthread_mutex_t lock;
 	volatile uint32_t messageNum;
-	FklPtrQueue* messages;
 	volatile uint32_t sendNum;
-	FklPtrQueue* sendq;
 	volatile uint32_t recvNum;
+	pthread_mutex_t lock;
+	FklPtrQueue* messages;
 	FklPtrQueue* recvq;
+	FklPtrQueue* sendq;
 }FklVMchanl;
 
 typedef struct
@@ -205,12 +205,12 @@ typedef struct FklVMheap
 {
 	FklGCstate running;
 	pthread_rwlock_t lock;
-	size_t num;
+	size_t volatile num;
 	uint32_t threshold;
 	FklVMvalue* head;
 	pthread_rwlock_t glock;
-	struct Graylink* gray;
-	size_t grayNum;
+	struct Graylink* volatile gray;
+	size_t volatile grayNum;
 	FklVMvalue* white;
 }FklVMheap;
 

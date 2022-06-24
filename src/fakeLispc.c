@@ -46,7 +46,7 @@ int main(int argc,char** argv)
 				fklSetMainFileRealPath(rp);
 				FklInterpreter* inter=fklNewIntpr(rp,fp,NULL,NULL);
 				fklInitGlobKeyWord(inter->glob);
-				fklAddSymbolToGlob(argv[1]);
+				fklAddSymbolToGlobCstr(argv[1]);
 				int state;
 				FklByteCodelnt* mainByteCode=fklCompileFile(inter,&state);
 				fklInitVMargs(argc,argv);

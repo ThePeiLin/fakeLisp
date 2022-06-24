@@ -343,6 +343,48 @@ FklBigInt* fklNewBigInt1(void)
 	return t;
 }
 
+FklBigInt* fklNewBigIntFromString(const FklString* str)
+{
+	const char* buf=str->str;
+	FklBigInt* r=fklNewBigInt0();
+	size_t len=str->size;
+	FKL_ASSERT(r,__func__);
+	if(fklIsHexNumCharBuf(buf,len))
+	{
+		int neg=buf[0]=='-';
+		uint64_t i=2+neg;
+		for(;i<len&&isxdigit(buf[i]);i++)
+		{
+			fklMulBigIntI(r,16);
+			fklAddBigIntI(r,isdigit(buf[i])?buf[i-1]-'0':toupper(buf[i])-'A'+10);
+		}
+		r->neg=neg;
+	}
+	else if(fklIsOctNumCharBuf(buf,len))
+	{
+		int neg=buf[0]=='-';
+		uint64_t i=1+neg;
+		for(;i<len&&isdigit(buf[i])&&buf[i]<'9';i++)
+		{
+			fklMulBigIntI(r,8);
+			fklAddBigIntI(r,buf[i]-'0');
+		}
+		r->neg=neg;
+	}
+	else
+	{
+		int neg=buf[0]=='-';
+		uint64_t i=neg;
+		for(;i<len&&isdigit(buf[i]);i++)
+		{
+			fklMulBigIntI(r,10);
+			fklAddBigIntI(r,buf[i]-'0');
+		}
+		r->neg=neg;
+	}
+	return r;
+}
+
 FklBigInt* fklNewBigIntFromCstr(const char* v)
 {
 	FklBigInt* r=fklNewBigInt0();
@@ -350,63 +392,36 @@ FklBigInt* fklNewBigIntFromCstr(const char* v)
 	FKL_ASSERT(r,__func__);
 	if(fklIsHexNumCharBuf(v,len))
 	{
-		uint64_t num=0;
 		int neg=v[0]=='-';
 		v+=2+neg;
-		uint64_t i=0;
-		FklBigInt* base=fklNewBigInt1();
-		for(;isxdigit(v[i]);i++,num++);
-		for(;i>0;i--)
+		for(uint64_t i=0;isxdigit(v[i]);i++)
 		{
-			FklBigInt* t=fklNewBigInt(isdigit(v[i-1])
-					?v[i-1]-'0'
-					:isupper(v[i-1])
-					?v[i-1]-'A'
-					:v[i-1]-'a');
-			fklMulBigInt(t,base);
-			fklMulBigIntI(base,16);
-			fklAddBigInt(r,t);
-			fklFreeBigInt(t);
+			fklMulBigIntI(r,16);
+			fklAddBigIntI(r,isdigit(v[i])?v[i-1]-'0':toupper(v[i])-'A'+10);
 		}
-		fklFreeBigInt(base);
 		r->neg=neg;
 	}
 	else if(fklIsOctNumCharBuf(v,len))
 	{
-		uint64_t num=0;
 		int neg=v[0]=='-';
-		v+=neg;
-		uint64_t i=0;
-		FklBigInt* base=fklNewBigInt1();
-		for(;isdigit(v[i])&&v[i]<'9';i++,num++);
-		for(;i>0;i--)
+		v+=neg+1;
+		for(uint64_t i=0;isdigit(v[i])&&v[i]<'9';i++)
 		{
-			FklBigInt* t=fklNewBigInt(v[i-1]-'0');
-			fklMulBigInt(t,base);
-			fklMulBigIntI(base,8);
-			fklAddBigInt(r,t);
-			fklFreeBigInt(t);
+			fklMulBigIntI(r,8);
+			fklAddBigIntI(r,v[i]-'0');
 		}
-		fklFreeBigInt(base);
 		r->neg=neg;
 	}
 	else
 	{
-		uint64_t num=0;
 		int neg=v[0]=='-';
 		v+=neg;
 		uint64_t i=0;
-		FklBigInt* base=fklNewBigInt1();
-		for(;isdigit(v[i]);i++,num++);
-		for(;i>0;i--)
+		for(;isdigit(v[i]);i++)
 		{
-			FklBigInt* t=fklNewBigInt(v[i-1]-'0');
-			fklMulBigInt(t,base);
-			fklMulBigIntI(base,FKL_BIG_INT_RADIX);
-			fklAddBigInt(r,t);
-			fklFreeBigInt(t);
+			fklMulBigIntI(r,10);
+			fklAddBigIntI(r,v[i]-'0');
 		}
-		fklFreeBigInt(base);
 		r->neg=neg;
 	}
 	return r;
@@ -1022,7 +1037,7 @@ void fklStringCstrCat(FklString** pfir,const char* sec)
 {
 	size_t seclen=strlen(sec);
 	FklString* prev=*pfir;
-	prev=(FklString*)realloc(prev,(prev->size+seclen)*sizeof(char));
+	prev=(FklString*)realloc(prev,sizeof(FklString)+(prev->size+seclen)*sizeof(char));
 	FKL_ASSERT(prev,__func__);
 	*pfir=prev;
 	memcpy(&prev->str[prev->size],sec,seclen);

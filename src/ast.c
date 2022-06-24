@@ -187,7 +187,7 @@ int fklCopyCptr(FklAstCptr* objCptr,const FklAstCptr* copiedCptr)
 					case FKL_STR:
 					case FKL_SYM:
 						atom1=fklNewAtom(atom2->type,root1->outer);
-						atom1->value.str=fklNewString(atom2->value.str->size,atom2->value.str->str);
+						atom1->value.str=fklCopyString(atom2->value.str);
 						break;
 					case FKL_VECTOR:
 						atom1=fklNewAtom(atom2->type,root1->outer);
@@ -475,9 +475,8 @@ unsigned int fklLengthListCptr(const FklAstCptr* list)
 	return n;
 }
 
-static int fklIsValidCharStr(const char* str)
+static int fklIsValidCharStr(const char* str,size_t len)
 {
-	size_t len=strlen(str);
 	if(len==0)
 		return 0;
 	if(isalpha(str[0])&&len>1)
@@ -519,11 +518,10 @@ static int fklIsValidCharStr(const char* str)
 
 static FklAstAtom* createChar(const FklString* oStr,FklAstPair* prev)
 {
-	if(!fklIsValidCharStr(oStr->str+2))
+	if(!fklIsValidCharStr(oStr->str+2,oStr->size-2))
 		return NULL;
-	oStr+=2;
 	FklAstAtom* r=fklNewAtom(FKL_CHR,prev);
-	r->value.chr=fklStringToChar(oStr);
+	r->value.chr=fklCharBufToChar(oStr->str+2,oStr->size-2);
 	return r;
 }
 
@@ -564,7 +562,7 @@ static FklAstAtom* createNum(const FklString* oStr,FklAstPair* prev)
 	return r;
 }
 
-static char* castEscapeCharaterBuf(const char* str,char end,size_t* size)
+static char* castEscapeCharBuf(const char* str,char end,size_t* size)
 {
 	uint64_t strSize=0;
 	uint64_t memSize=FKL_MAX_STRING_SIZE;
@@ -575,60 +573,26 @@ static char* castEscapeCharaterBuf(const char* str,char end,size_t* size)
 		int ch=0;
 		if(str[i]=='\\')
 		{
-			char* backSlashStr=fklGetStringAfterBackslashInStr(str+i+1);
-			size_t len=strlen(backSlashStr);
-			if(isdigit(backSlashStr[0]))
+			const char* backSlashStr=str+i;
+			size_t len=1;
+			if(isdigit(backSlashStr[len]))
 			{
-				if(backSlashStr[0]=='0'&&isdigit(backSlashStr[1]))
-					sscanf(backSlashStr,"%4o",&ch);
-				else
-					sscanf(backSlashStr,"%4d",&ch);
-				i+=len+1;
-			}
-			else if(toupper(backSlashStr[0])=='X')
-			{
-				ch=fklCstrToChar(backSlashStr);
-				i+=len+1;
-			}
-			else if(backSlashStr[0]=='\n')
-			{
-				i+=2;
-				free(backSlashStr);
-				continue;
-			}
-			else
-			{
-				switch(toupper(backSlashStr[0]))
+				if(backSlashStr[len]=='0')
 				{
-					case 'A':
-						ch=0x07;
-						break;
-					case 'B':
-						ch=0x08;
-						break;
-					case 'T':
-						ch=0x09;
-						break;
-					case 'N':
-						ch=0x0a;
-						break;
-					case 'V':
-						ch=0x0b;
-						break;
-					case 'F':
-						ch=0x0c;
-						break;
-					case 'R':
-						ch=0x0d;
-						break;
-					case 'S':
-						ch=0x20;
-						break;
-					default:ch=str[i+1];break;
+					if(toupper(backSlashStr[len+1])=='X')
+						for(len++;isxdigit(backSlashStr[len])&&len<5;len++);
+					else
+						for(;isdigit(backSlashStr[len])&&backSlashStr[len]<'8'&&len<5;len++);
 				}
-				i+=2;
+				else
+					for(;isdigit(backSlashStr[len+1])&&len<4;len++);
 			}
-			free(backSlashStr);
+			else if(toupper(backSlashStr[len])=='X')
+				for(len++;isxdigit(backSlashStr[len])&&len<4;len++);
+			else
+				len++;
+			ch=fklCharBufToChar(backSlashStr,len);
+			i+=len;
 		}
 		else ch=str[i++];
 		strSize++;
@@ -649,9 +613,10 @@ static char* castEscapeCharaterBuf(const char* str,char end,size_t* size)
 static FklAstAtom* createString(const FklString* oStr,FklAstPair* prev)
 {
 	size_t size=0;
-	char* str=castEscapeCharaterBuf(oStr->str+1,'\"',&size);
+	char* str=castEscapeCharBuf(oStr->str+1,'\"',&size);
 	FklAstAtom* r=fklNewAtom(FKL_STR,prev);
 	r->value.str=fklNewString(size,str);
+	free(str);
 	return r;
 }
 
@@ -665,7 +630,7 @@ static FklAstAtom* createSymbol(const FklString* oStr,FklAstPair* prev)
 static FklAstAtom* createLongSymbol(const FklString* oStr,FklAstPair* prev)
 {
 	size_t size=0;
-	char* str=castEscapeCharaterBuf(oStr->str+1,'|',&size);
+	char* str=castEscapeCharBuf(oStr->str+1,'|',&size);
 	FklAstAtom* r=fklNewAtom(FKL_SYM,prev);
 	r->value.str=fklNewString(size,str);
 	return r;

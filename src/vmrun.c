@@ -479,7 +479,7 @@ void* ThreadVMfunc(void* p)
 		char* id=fklIntToCstr(exe->VMid);
 		threadErrorMessage=fklStrCat(threadErrorMessage,id);
 		threadErrorMessage=fklStrCat(threadErrorMessage,"\n");
-		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerrorCstr(NULL,fklGetBuiltInErrorType(FKL_THREADERROR),threadErrorMessage),exe->heap);
+		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerrorCstr("thread",fklGetBuiltInErrorType(FKL_THREADERROR),threadErrorMessage),exe->heap);
 		free(threadErrorMessage);
 		free(id);
 		FklVMsend* t=fklNewVMsend(err);
@@ -521,7 +521,7 @@ void* ThreadVMdlprocFunc(void* p)
 		char* id=fklIntToCstr(exe->VMid);
 		threadErrorMessage=fklStrCat(threadErrorMessage,id);
 		threadErrorMessage=fklStrCat(threadErrorMessage,"\n");
-		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerrorCstr(NULL,fklGetBuiltInErrorType(FKL_THREADERROR),threadErrorMessage),exe->heap);
+		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerrorCstr("thread",fklGetBuiltInErrorType(FKL_THREADERROR),threadErrorMessage),exe->heap);
 		free(threadErrorMessage);
 		free(id);
 		FklVMsend* t=fklNewVMsend(err);
@@ -563,7 +563,7 @@ void* ThreadVMinvokableUd(void* p)
 		char* id=fklIntToCstr(exe->VMid);
 		threadErrorMessage=fklStrCat(threadErrorMessage,id);
 		threadErrorMessage=fklStrCat(threadErrorMessage,"\n");
-		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerrorCstr(NULL,fklGetBuiltInErrorType(FKL_THREADERROR),threadErrorMessage),exe->heap);
+		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerrorCstr("thread",fklGetBuiltInErrorType(FKL_THREADERROR),threadErrorMessage),exe->heap);
 		free(threadErrorMessage);
 		free(id);
 		FklVMsend* t=fklNewVMsend(err);
@@ -634,7 +634,7 @@ inline void fklWaitGC(FklVMheap* h)
 	FklGCstate running=fklGetGCstate(h);
 	if(running==FKL_GC_SWEEPING||running==FKL_GC_COLLECT||running==FKL_GC_DONE)
 		fklGC_joinGCthread(h);
-	Graylink** head=&h->gray;
+	Graylink* volatile* head=&h->gray;
 	while(*head)
 	{
 		Graylink* cur=*head;
@@ -1486,23 +1486,23 @@ inline void fklGetGCstateAndHeapNum(FklVMheap* h,FklGCstate* s,int* cr)
 	pthread_rwlock_unlock(&h->lock);
 }
 
-static size_t fklGetHeapNum(FklVMheap* h)
-{
-	size_t num=0;
-	pthread_rwlock_rdlock(&h->lock);
-	num=h->num;
-	pthread_rwlock_unlock(&h->lock);
-	return num;
-}
+//static size_t fklGetHeapNum(FklVMheap* h)
+//{
+//	size_t num=0;
+//	pthread_rwlock_rdlock(&h->lock);
+//	num=h->num;
+//	pthread_rwlock_unlock(&h->lock);
+//	return num;
+//}
 
-static size_t fklGetGrayNum(FklVMheap* h)
-{
-	size_t num=0;
-	pthread_rwlock_rdlock(&h->glock);
-	num=h->grayNum;
-	pthread_rwlock_unlock(&h->glock);
-	return num;
-}
+//static size_t fklGetGrayNum(FklVMheap* h)
+//{
+//	size_t num=0;
+//	pthread_rwlock_rdlock(&h->glock);
+//	num=h->grayNum;
+//	pthread_rwlock_unlock(&h->glock);
+//	return num;
+//}
 
 #define FKL_GC_GRAY_FACTOR (16)
 #define FKL_GC_NEW_FACTOR (4)
@@ -1512,7 +1512,7 @@ inline void fklGC_step(FklVM* exe)
 	FklGCstate running=FKL_GC_NONE;
 	int cr=0;
 	fklGetGCstateAndHeapNum(exe->heap,&running,&cr);
-	static size_t objNum=0;
+	static size_t grayNum=0;
 	switch(running)
 	{
 		case FKL_GC_NONE:
@@ -1520,7 +1520,6 @@ inline void fklGC_step(FklVM* exe)
 			{
 				fklChangeGCstate(FKL_GC_MARK_ROOT,exe->heap);
 				fklGC_pause(exe);
-				objNum=fklGetHeapNum(exe->heap);
 				fklChangeGCstate(FKL_GC_PROPAGATE,exe->heap);
 			}
 			break;
@@ -1528,9 +1527,9 @@ inline void fklGC_step(FklVM* exe)
 			break;
 		case FKL_GC_PROPAGATE:
 			{
-				size_t new_n=fklGetHeapNum(exe->heap)-objNum;
-				size_t timce=fklGetGrayNum(exe->heap)/FKL_GC_GRAY_FACTOR+new_n/FKL_GC_NEW_FACTOR+1;
-				objNum+=new_n;
+				size_t new_n=exe->heap->grayNum-grayNum;
+				size_t timce=exe->heap->grayNum/FKL_GC_GRAY_FACTOR+new_n/FKL_GC_NEW_FACTOR+1;
+				grayNum+=new_n;
 				for(size_t i=0;i<timce;i++)
 					if(fklGC_propagate(exe->heap))
 					{

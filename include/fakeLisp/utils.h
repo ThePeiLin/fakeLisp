@@ -73,12 +73,12 @@ double fklStringToDouble(const FklString*);
 
 char* fklIntToCstr(long);
 FklString* fklIntToString(long);
-int64_t fklCstrToInt(const char*);
-int64_t fklStringToInt(const FklString*);
+//int64_t fklCstrToInt(const char*);
+//int64_t fklStringToInt(const FklString*);
 
 int32_t fklCountChar(const char*,char,int32_t);
 int fklStringToChar(const FklString*);
-int fklCstrToChar(const char*);
+int fklCharBufToChar(const char*,size_t);
 
 uint8_t* fklCastStrByteStr(const char*);
 uint8_t fklCastCharInt(char);

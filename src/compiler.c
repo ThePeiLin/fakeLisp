@@ -64,7 +64,7 @@ static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap
 
 static int cmpString(const void* a,const void* b)
 {
-	return strcmp(*(const char**)a,*(const char**)b);
+	return fklStringcmp(*(const FklString**)a,*(const FklString**)b);
 }
 
 FklPreMacro* fklPreMacroMatch(const FklAstCptr* objCptr,FklPreEnv** pmacroEnv,FklCompEnv* curEnv,FklCompEnv** pCEnv)
@@ -2301,7 +2301,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 		uint32_t i=0;
 		for(;i<count;i++)
 			totalPathLength+=partsOfPath[i]->size;
-		totalPathLength+=count+strlen(postfix);
+		totalPathLength+=count-1;
 		FklString* path=fklNewString(totalPathLength,NULL);
 		FKL_ASSERT(path,__func__);
 		size_t l=0;
@@ -2312,7 +2312,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 				memcpy(&path->str[l],FKL_PATH_SEPARATOR_STR,strlen(FKL_PATH_SEPARATOR_STR));
 				l+=strlen(FKL_PATH_SEPARATOR_STR);
 			}
-			memcpy(&path->str[l],partsOfPath[i],partsOfPath[i]->size);
+			memcpy(&path->str[l],partsOfPath[i]->str,partsOfPath[i]->size);
 			l+=partsOfPath[i]->size;
 		}
 		fklStringCstrCat(&path,postfix);
@@ -2973,9 +2973,9 @@ FklCompDef* fklAddCompDefCstr(const char* name,FklCompEnv* curEnv)
 
 FklCompDef* fklAddCompDef(const FklString* name,FklCompEnv* curEnv)
 {
+	FklSymTabNode* node=fklAddSymbolToGlob(name);
 	if(curEnv->head==NULL)
 	{
-		FklSymTabNode* node=fklAddSymbolToGlob(name);
 		FKL_ASSERT((curEnv->head=(FklCompDef*)malloc(sizeof(FklCompDef))),__func__);
 		curEnv->head->next=NULL;
 		curEnv->head->id=node->id;
@@ -2983,7 +2983,6 @@ FklCompDef* fklAddCompDef(const FklString* name,FklCompEnv* curEnv)
 	}
 	else
 	{
-		FklSymTabNode* node=fklAddSymbolToGlob(name);
 		FklCompDef* curDef=fklFindCompDefBySid(node->id,curEnv);
 		if(curDef==NULL)
 		{
@@ -3104,8 +3103,6 @@ FklCompDef* fklFindCompDef(const FklString* name,FklCompEnv* curEnv)
 	else
 	{
 		FklSymTabNode* node=fklAddSymbolToGlob(name);
-		if(node==NULL)
-			return NULL;
 		FklSid_t id=node->id;
 		FklCompDef* curDef=curEnv->head;
 		while(curDef&&id!=curDef->id)

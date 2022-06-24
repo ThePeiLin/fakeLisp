@@ -345,6 +345,9 @@ FklVMchanl* fklNewVMchanl(int32_t maxSize)
 	FKL_ASSERT(tmp,__func__);
 	pthread_mutex_init(&tmp->lock,NULL);
 	tmp->max=maxSize;
+	tmp->messageNum=0;
+	tmp->sendNum=0;
+	tmp->recvNum=0;
 	tmp->messages=fklNewPtrQueue();
 	tmp->sendq=fklNewPtrQueue();
 	tmp->recvq=fklNewPtrQueue();

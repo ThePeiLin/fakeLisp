@@ -777,7 +777,7 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 		{
 			if(fklIsVar(pattern->parts[i]))
 			{
-				FklString* varName=fklCopyString(fklGetVarName(pattern->parts[i]));
+				FklString* varName=fklGetVarName(pattern->parts[i]);
 				AstElem* elem=treeStack->base[j];
 				fklAddDefine(varName,elem->cptr,tmpEnv);
 				free(varName);

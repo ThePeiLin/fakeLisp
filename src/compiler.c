@@ -698,7 +698,7 @@ FklCompEnv* createPatternCompEnv(FklString* const* parts,int32_t num,FklCompEnv*
 	for(;i<num;i++)
 		if(fklIsVar(parts[i]))
 		{
-			FklString* varName=fklCopyString(fklGetVarName(parts[i]));
+			FklString* varName=fklGetVarName(parts[i]);
 			fklAddCompDef(varName,tmpEnv);
 			free(varName);
 		}

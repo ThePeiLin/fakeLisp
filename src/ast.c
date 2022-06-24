@@ -562,58 +562,10 @@ static FklAstAtom* createNum(const FklString* oStr,FklAstPair* prev)
 	return r;
 }
 
-static char* castEscapeCharBuf(const char* str,char end,size_t* size)
-{
-	uint64_t strSize=0;
-	uint64_t memSize=FKL_MAX_STRING_SIZE;
-	uint64_t i=0;
-	char* tmp=(char*)malloc(sizeof(char)*memSize);
-	while(str[i]!=end)
-	{
-		int ch=0;
-		if(str[i]=='\\')
-		{
-			const char* backSlashStr=str+i;
-			size_t len=1;
-			if(isdigit(backSlashStr[len]))
-			{
-				if(backSlashStr[len]=='0')
-				{
-					if(toupper(backSlashStr[len+1])=='X')
-						for(len++;isxdigit(backSlashStr[len])&&len<5;len++);
-					else
-						for(;isdigit(backSlashStr[len])&&backSlashStr[len]<'8'&&len<5;len++);
-				}
-				else
-					for(;isdigit(backSlashStr[len+1])&&len<4;len++);
-			}
-			else if(toupper(backSlashStr[len])=='X')
-				for(len++;isxdigit(backSlashStr[len])&&len<4;len++);
-			else
-				len++;
-			ch=fklCharBufToChar(backSlashStr,len);
-			i+=len;
-		}
-		else ch=str[i++];
-		strSize++;
-		if(strSize>memSize-1)
-		{
-			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+FKL_MAX_STRING_SIZE));
-			FKL_ASSERT(tmp,__func__);
-			memSize+=FKL_MAX_STRING_SIZE;
-		}
-		tmp[strSize-1]=ch;
-	}
-	tmp=(char*)realloc(tmp,strSize*sizeof(char));
-	FKL_ASSERT(!strSize||tmp,__func__);
-	*size=strSize;
-	return tmp;
-}
-
 static FklAstAtom* createString(const FklString* oStr,FklAstPair* prev)
 {
 	size_t size=0;
-	char* str=castEscapeCharBuf(oStr->str+1,'\"',&size);
+	char* str=fklCastEscapeCharBuf(oStr->str+1,'\"',&size);
 	FklAstAtom* r=fklNewAtom(FKL_STR,prev);
 	r->value.str=fklNewString(size,str);
 	free(str);
@@ -627,14 +579,14 @@ static FklAstAtom* createSymbol(const FklString* oStr,FklAstPair* prev)
 	return r;
 }
 
-static FklAstAtom* createLongSymbol(const FklString* oStr,FklAstPair* prev)
-{
-	size_t size=0;
-	char* str=castEscapeCharBuf(oStr->str+1,'|',&size);
-	FklAstAtom* r=fklNewAtom(FKL_SYM,prev);
-	r->value.str=fklNewString(size,str);
-	return r;
-}
+//static FklAstAtom* createLongSymbol(const FklString* oStr,FklAstPair* prev)
+//{
+//	size_t size=0;
+//	char* str=fklCastEscapeCharBuf(oStr->str+1,'|',&size);
+//	FklAstAtom* r=fklNewAtom(FKL_SYM,prev);
+//	r->value.str=fklNewString(size,str);
+//	return r;
+//}
 
 static FklAstAtom* (* const atomCreators[])(const FklString* str,FklAstPair* prev)=
 {
@@ -642,7 +594,6 @@ static FklAstAtom* (* const atomCreators[])(const FklString* str,FklAstPair* pre
 	createNum,
 	createString,
 	createSymbol,
-	createLongSymbol,
 };
 
 typedef struct

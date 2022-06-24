@@ -927,3 +927,53 @@ inline int fklIsI64MulOverflow(int64_t a,int64_t b)
 	t/=b;
 	return a!=t;
 }
+
+char* fklCastEscapeCharBuf(const char* str,char end,size_t* size)
+{
+	uint64_t strSize=0;
+	uint64_t memSize=FKL_MAX_STRING_SIZE;
+	uint64_t i=0;
+	char* tmp=(char*)malloc(sizeof(char)*memSize);
+	while(str[i]!=end)
+	{
+		int ch=0;
+		if(str[i]=='\\')
+		{
+			const char* backSlashStr=str+i;
+			size_t len=1;
+			if(isdigit(backSlashStr[len]))
+			{
+				if(backSlashStr[len]=='0')
+				{
+					if(toupper(backSlashStr[len+1])=='X')
+						for(len++;isxdigit(backSlashStr[len])&&len<5;len++);
+					else
+						for(;isdigit(backSlashStr[len])&&backSlashStr[len]<'8'&&len<5;len++);
+				}
+				else
+					for(;isdigit(backSlashStr[len+1])&&len<4;len++);
+			}
+			else if(toupper(backSlashStr[len])=='X')
+				for(len++;isxdigit(backSlashStr[len])&&len<4;len++);
+			else
+				len++;
+			ch=fklCharBufToChar(backSlashStr,len);
+			i+=len;
+		}
+		else ch=str[i++];
+		strSize++;
+		if(strSize>memSize-1)
+		{
+			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+FKL_MAX_STRING_SIZE));
+			FKL_ASSERT(tmp,__func__);
+			memSize+=FKL_MAX_STRING_SIZE;
+		}
+		tmp[strSize-1]=ch;
+	}
+	tmp=(char*)realloc(tmp,strSize*sizeof(char));
+	FKL_ASSERT(!strSize||tmp,__func__);
+	*size=strSize;
+	return tmp;
+}
+
+

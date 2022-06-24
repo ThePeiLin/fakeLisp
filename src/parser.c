@@ -45,14 +45,14 @@ size_t skipUntilSpace(const FklString* str)
 	return i;
 }
 
-int isCompleteString(const FklString* str)
+int isCompleteString(const FklString* str,char ch)
 {
 	int mark=0;
 	int markN=0;
 	size_t size=str->size;
 	const char* buf=str->str;
 	for(size_t i=0;i<size&&markN<2;i++)
-		if(buf[i]=='\"'&&(!i||buf[i-1]!='\\'))
+		if(buf[i]==ch&&(!i||buf[i-1]!='\\'))
 		{
 			mark=~mark;
 			markN+=1;
@@ -494,7 +494,7 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 				size_t sumLen=skipStringIndexSize(parts[i],j,sizes[i]);
 				size_t lastLen=sumLen;
 				FklString* str=fklNewString(sumLen,parts[i]+j);
-				int complete=isCompleteString(str);
+				int complete=isCompleteString(str,'"');
 				for(;!complete&&j+lastLen>=sizes[i];)
 				{
 					i++;
@@ -506,7 +506,7 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 					j=0;
 					fklStringCharBufCat(&str,parts[i],sizes[i]);
 					sumLen=skipUntilSpace(str);
-					complete=isCompleteString(str);
+					complete=isCompleteString(str,'"');
 					lastLen=sumLen-lastLen;
 				}
 				done|=!complete;
@@ -515,6 +515,43 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 					fklPushPtrStack(fklNewToken(FKL_TOKEN_STRING,fklCopyString(str),*line),retvalStack);
 					(*line)+=fklCountChar(str->str,'\n',str->size);
 					j+=lastLen;
+					free(str);
+				}
+				else
+				{
+					free(str);
+					break;
+				}
+			}
+			else if(parts[i][j]=='|')
+			{
+				size_t sumLen=skipStringIndexSize(parts[i],j,sizes[i]);
+				size_t lastLen=sumLen;
+				FklString* str=fklNewString(sumLen,parts[i]+j);
+				int complete=isCompleteString(str,'|');
+				for(;!complete&&j+lastLen>=sizes[i];)
+				{
+					i++;
+					if(i>=inum)
+					{
+						i--;
+						break;
+					}
+					j=0;
+					fklStringCharBufCat(&str,parts[i],sizes[i]);
+					sumLen=skipUntilSpace(str);
+					complete=isCompleteString(str,'|');
+					lastLen=sumLen-lastLen;
+				}
+				done|=!complete;
+				if(complete)
+				{
+					size_t size=0;
+					char* s=fklCastEscapeCharBuf(str->str+1,'|',&size);
+					fklPushPtrStack(fklNewToken(FKL_TOKEN_SYMBOL,fklNewString(size,s),*line),retvalStack);
+					(*line)+=fklCountChar(str->str,'\n',str->size);
+					j+=lastLen;
+					free(s);
 					free(str);
 				}
 				else

@@ -80,6 +80,8 @@ int32_t fklCountChar(const char*,char,int32_t);
 int fklStringToChar(const FklString*);
 int fklCharBufToChar(const char*,size_t);
 
+char* fklCastEscapeCharBuf(const char* str,char end,size_t* size);
+
 uint8_t* fklCastStrByteStr(const char*);
 uint8_t fklCastCharInt(char);
 int fklIsscript(const char*);

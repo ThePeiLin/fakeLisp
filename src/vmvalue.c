@@ -567,7 +567,7 @@ void fklChanlRecv(FklVMrecv* r,FklVMchanl* ch)
 	if(ch->messageNum<ch->max)
 	{
 		FklVMsend* s=fklPopPtrQueue(ch->sendq);
-		ch->sendq--;
+		ch->sendNum--;
 		if(s)
 			pthread_cond_signal(&s->cond);
 	}

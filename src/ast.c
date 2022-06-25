@@ -579,15 +579,6 @@ static FklAstAtom* createSymbol(const FklString* oStr,FklAstPair* prev)
 	return r;
 }
 
-//static FklAstAtom* createLongSymbol(const FklString* oStr,FklAstPair* prev)
-//{
-//	size_t size=0;
-//	char* str=fklCastEscapeCharBuf(oStr->str+1,'|',&size);
-//	FklAstAtom* r=fklNewAtom(FKL_SYM,prev);
-//	r->value.str=fklNewString(size,str);
-//	return r;
-//}
-
 static FklAstAtom* (* const atomCreators[])(const FklString* str,FklAstPair* prev)=
 {
 	createChar,

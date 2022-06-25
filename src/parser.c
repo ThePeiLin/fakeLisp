@@ -21,11 +21,11 @@ size_t skipString(const char* str)
 	return i;
 }
 
-static size_t skipStringIndexSize(const char* str,size_t index,size_t size)
+static size_t skipStringIndexSize(const char* str,size_t index,size_t size,char ch)
 {
 	size_t i=1;
-	for(;index+i<size&&(str[index+i-1]=='\\'||str[index+i]!='\"');i++);
-	if(index+i<size&&str[index+i]=='\"')
+	for(;index+i<size&&(str[index+i-1]=='\\'||str[index+i]!=ch);i++);
+	if(index+i<size&&str[index+i]==ch)
 		i++;
 	return i;
 }
@@ -150,6 +150,7 @@ static void freeMatchState(MatchState* state)
 #define VECTOR_0 ((void*)7)
 #define VECTOR_1 ((void*)8)
 #define BOX ((void*)9)
+#define INCOMPLETE_SYMBOL ((void*)10)
 
 static const char* separatorStrSet[]=
 {
@@ -212,6 +213,7 @@ static MatchState* searchReverseStringCharMatchState(const char* part,size_t ind
 		for(uint32_t i=stack->top;topState
 				&&!isBuiltInParenthese(topState->pattern)
 				&&(isBuiltInSingleStrPattern(topState->pattern)
+					||topState->pattern==INCOMPLETE_SYMBOL
 					||(fklIsVar(fklGetNthPartOfStringMatchPattern(topState->pattern,topState->index))
 						&&(topState->index==topState->pattern->num-1
 							||fklIsVar(fklGetNthPartOfStringMatchPattern(topState->pattern,topState->index+1)))));
@@ -307,6 +309,7 @@ static int searchReverseStringChar(const char* part,size_t index,size_t size,Fkl
 		for(uint32_t i=stack->top;topState
 				&&!isBuiltInParenthese(topState->pattern)
 				&&(isBuiltInSingleStrPattern(topState->pattern)
+					||topState->pattern==INCOMPLETE_SYMBOL
 					||!hasReverseStringNext(topState));
 				i--)
 			topState=i==0?NULL:stack->base[i-1];
@@ -491,7 +494,7 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 			}
 			else if(parts[i][j]=='\"')
 			{
-				size_t sumLen=skipStringIndexSize(parts[i],j,sizes[i]);
+				size_t sumLen=skipStringIndexSize(parts[i],j,sizes[i],'\"');
 				size_t lastLen=sumLen;
 				FklString* str=fklNewString(sumLen,parts[i]+j);
 				int complete=isCompleteString(str,'"');
@@ -525,7 +528,7 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 			}
 			else if(parts[i][j]=='|')
 			{
-				size_t sumLen=skipStringIndexSize(parts[i],j,sizes[i]);
+				size_t sumLen=skipStringIndexSize(parts[i],j,sizes[i],'|');
 				size_t lastLen=sumLen;
 				FklString* str=fklNewString(sumLen,parts[i]+j);
 				int complete=isCompleteString(str,'|');
@@ -548,9 +551,31 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 				{
 					size_t size=0;
 					char* s=fklCastEscapeCharBuf(str->str+1,'|',&size);
-					fklPushPtrStack(fklNewToken(FKL_TOKEN_SYMBOL,fklNewString(size,s),*line),retvalStack);
+					MatchState* topState=fklTopPtrStack(matchStateStack);
 					(*line)+=fklCountChar(str->str,'\n',str->size);
 					j+=lastLen;
+					if(!topState||topState->pattern!=INCOMPLETE_SYMBOL)
+					{
+						fklPushPtrStack(fklNewToken(FKL_TOKEN_SYMBOL,fklNewString(size,s),*line),retvalStack);
+						if(j<sizes[i]&&!isspace(parts[i][j]))
+						{
+							fklPushPtrStack(newMatchState(INCOMPLETE_SYMBOL,0),matchStateStack);
+							continue;
+						}
+					}
+					else
+					{
+						FklToken* topToken=fklTopPtrStack(retvalStack);
+						fklStringCharBufCat(&topToken->value,s,size);
+						fklPopPtrStack(matchStateStack);
+						if(!(topState&&j<sizes[i]&&(isspace(parts[i][j])
+										||(searchReverseStringChar(parts[i],j,sizes[i],matchStateStack)
+											&&parts[i][j]!='|'))))
+						{
+							fklPushPtrStack(topState,matchStateStack);
+							continue;
+						}
+					}
 					free(s);
 					free(str);
 				}
@@ -568,7 +593,7 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 			}
 			else if(parts[i][j]==';'||(sizes[i]-j>1&&!strncmp(parts[i]+j,"#!",strlen("#!"))))
 			{
-				uint32_t len=0;
+				size_t len=0;
 				for(;j+len<sizes[i]&&parts[i][j+len]!='\n';len++);
 				fklPushPtrStack(fklNewToken(FKL_TOKEN_COMMENT,fklNewString(len,parts[i]+j),*line),retvalStack);
 				j+=len;
@@ -579,12 +604,28 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 				size_t len=getSymbolLen(parts[i],j,sizes[i],matchStateStack);
 				if(len)
 				{
+					MatchState* topState=fklTopPtrStack(matchStateStack);
 					FklString* symbol=fklNewString(len,parts[i]+j);
-					FklTokenType type=FKL_TOKEN_SYMBOL;
-					if(fklIsNumberString(symbol))
-						type=FKL_TOKEN_NUM;
-					fklPushPtrStack(fklNewToken(type,symbol,*line),retvalStack);
+					FklToken* sym=fklNewToken(FKL_TOKEN_SYMBOL,symbol,*line);
 					j+=len;
+					if(!topState||topState->pattern!=INCOMPLETE_SYMBOL)
+					{
+						fklPushPtrStack(sym,retvalStack);
+						if(j<sizes[i]&&parts[i][j]=='|')
+						{
+							fklPushPtrStack(newMatchState(INCOMPLETE_SYMBOL,0),matchStateStack);
+							continue;
+						}
+						else if(fklIsNumberString(symbol))
+							sym->type=FKL_TOKEN_NUM;
+					}
+					else
+					{
+						if(topState&&j<sizes[i]&&parts[i][j]!='|')
+							fklPopPtrStack(matchStateStack);
+						FklToken* topToken=fklTopPtrStack(retvalStack);
+						fklStringCat(&topToken->value,symbol);
+					}
 				}
 				else
 				{

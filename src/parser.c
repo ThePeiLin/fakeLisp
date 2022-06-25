@@ -407,6 +407,13 @@ static size_t skipSpaceAndCountLine(const char* str,size_t index,size_t size,uin
 	return j;
 }
 
+static int isDivider(const char* buf,size_t i,size_t size,FklPtrStack* matchStateStack)
+{
+	return isspace(buf[i])
+			||searchReverseStringChar(buf,i,size,matchStateStack)
+			||isBuiltInReserveStr(buf+i,size);
+}
+
 int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32_t* line,FklPtrStack* retvalStack,FklPtrStack* matchStateStack,uint32_t* pi,uint32_t* pj)
 {
 	int done=0;
@@ -557,10 +564,7 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 					if(!topState||topState->pattern!=INCOMPLETE_SYMBOL)
 					{
 						fklPushPtrStack(fklNewToken(FKL_TOKEN_SYMBOL,fklNewString(size,s),*line),retvalStack);
-						if(j<sizes[i]&&!isspace(parts[i][j])
-								&&(parts[i][j]=='|'
-									||(!searchReverseStringChar(parts[i],j,sizes[i],matchStateStack)
-										&&!isBuiltInReserveStr(parts[i]+j,sizes[i]-j))))
+						if(j<sizes[i]&&(parts[i][j]=='|'||!isDivider(parts[i],j,sizes[i],matchStateStack)))
 						{
 							fklPushPtrStack(newMatchState(INCOMPLETE_SYMBOL,0),matchStateStack);
 							continue;
@@ -571,10 +575,7 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 						FklToken* topToken=fklTopPtrStack(retvalStack);
 						fklStringCharBufCat(&topToken->value,s,size);
 						fklPopPtrStack(matchStateStack);
-						if(!(topState&&j<sizes[i]&&(isspace(parts[i][j])
-										||((isBuiltInReserveStr(parts[i]+j,sizes[i]-j)
-												||searchReverseStringChar(parts[i],j,sizes[i],matchStateStack))
-											&&parts[i][j]!='|'))))
+						if(j<sizes[i]&&(parts[i][j]=='|'||!isDivider(parts[i],j,sizes[i],matchStateStack)))
 						{
 							fklPushPtrStack(topState,matchStateStack);
 							continue;

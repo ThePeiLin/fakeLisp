@@ -561,9 +561,11 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 					MatchState* topState=fklTopPtrStack(matchStateStack);
 					(*line)+=fklCountChar(str->str,'\n',str->size);
 					j+=lastLen;
+					free(str);
 					if(!topState||topState->pattern!=INCOMPLETE_SYMBOL)
 					{
 						fklPushPtrStack(fklNewToken(FKL_TOKEN_SYMBOL,fklNewString(size,s),*line),retvalStack);
+						free(s);
 						if(j<sizes[i]&&(parts[i][j]=='|'||!isDivider(parts[i],j,sizes[i],matchStateStack)))
 						{
 							fklPushPtrStack(newMatchState(INCOMPLETE_SYMBOL,0),matchStateStack);
@@ -574,15 +576,16 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 					{
 						FklToken* topToken=fklTopPtrStack(retvalStack);
 						fklStringCharBufCat(&topToken->value,s,size);
+						free(s);
 						fklPopPtrStack(matchStateStack);
 						if(j<sizes[i]&&(parts[i][j]=='|'||!isDivider(parts[i],j,sizes[i],matchStateStack)))
 						{
 							fklPushPtrStack(topState,matchStateStack);
 							continue;
 						}
+						else
+							freeMatchState(topState);
 					}
-					free(s);
-					free(str);
 				}
 				else
 				{
@@ -610,11 +613,11 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 				if(len)
 				{
 					MatchState* topState=fklTopPtrStack(matchStateStack);
-					FklString* symbol=fklNewString(len,parts[i]+j);
-					FklToken* sym=fklNewToken(FKL_TOKEN_SYMBOL,symbol,*line);
-					j+=len;
 					if(!topState||topState->pattern!=INCOMPLETE_SYMBOL)
 					{
+						FklString* symbol=fklNewString(len,parts[i]+j);
+						j+=len;
+						FklToken* sym=fklNewToken(FKL_TOKEN_SYMBOL,symbol,*line);
 						fklPushPtrStack(sym,retvalStack);
 						if(j<sizes[i]&&parts[i][j]=='|')
 						{
@@ -626,10 +629,13 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 					}
 					else
 					{
-						if(topState&&j<sizes[i]&&parts[i][j]!='|')
-							fklPopPtrStack(matchStateStack);
 						FklToken* topToken=fklTopPtrStack(retvalStack);
-						fklStringCat(&topToken->value,symbol);
+						fklStringCharBufCat(&topToken->value,parts[i]+j,len);
+						j+=len;
+						if(topState&&j<sizes[i]&&parts[i][j]!='|')
+							freeMatchState(fklPopPtrStack(matchStateStack));
+						else
+							continue;
 					}
 				}
 				else

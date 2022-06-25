@@ -557,7 +557,7 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 					if(!topState||topState->pattern!=INCOMPLETE_SYMBOL)
 					{
 						fklPushPtrStack(fklNewToken(FKL_TOKEN_SYMBOL,fklNewString(size,s),*line),retvalStack);
-						if(j<sizes[i]&&!isspace(parts[i][j]))
+						if(j<sizes[i]&&(parts[i][j]=='|'||(!searchReverseStringChar(parts[i],j,sizes[i],matchStateStack)&&!isBuiltInReserveStr(parts[i]+j,sizes[i]-j))))
 						{
 							fklPushPtrStack(newMatchState(INCOMPLETE_SYMBOL,0),matchStateStack);
 							continue;
@@ -569,7 +569,8 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 						fklStringCharBufCat(&topToken->value,s,size);
 						fklPopPtrStack(matchStateStack);
 						if(!(topState&&j<sizes[i]&&(isspace(parts[i][j])
-										||(searchReverseStringChar(parts[i],j,sizes[i],matchStateStack)
+										||((isBuiltInReserveStr(parts[i]+j,sizes[i]-j)
+												||searchReverseStringChar(parts[i],j,sizes[i],matchStateStack))
 											&&parts[i][j]!='|'))))
 						{
 							fklPushPtrStack(topState,matchStateStack);

@@ -142,13 +142,12 @@
       (define iter1
         (lambda (ls r)
           (cond (ls
-                  (define cars (car-all ls nil))
-                  (define cdrs (cdr-all ls nil))
-                  (iter1 cdrs (cond [cars (cons cars r) r] [1 r])))
+                  (iter1 (cdr-all ls nil) (cons (car-all ls nil) r)))
             (1 (reverse r)))))
       (define iter
         (lambda (l r)
-          (cond (l (iter (cdr l) (cons (apply f (car l)) r)))
+          (cond ((and l (car l))
+                 (iter (cdr l) (cons (apply f (car l)) r)))
             (1 (reverse r)))))
       (iter (iter1 l nil) nil)))
 
@@ -157,9 +156,7 @@
       (define iter1
         (lambda (ls r)
           (cond (ls
-                  (define cars (car-all ls nil))
-                  (define cdrs (cdr-all ls nil))
-                  (iter1 cdrs (cond [cars (cons cars r) r] [1 r])))
+                  (iter1 (cdr-all ls nil) (cons (car-all ls nil) r)))
             (1 (reverse r)))))
       (define iter
         (lambda (l r)
@@ -173,9 +170,7 @@
       (define iter1
         (lambda (ls r)
           (cond (ls
-                  (define cars (car-all ls nil))
-                  (define cdrs (cdr-all ls nil))
-                  (iter1 cdrs (cond [cars (cons cars r) r] [1 r])))
+                  (iter1 (cdr-all ls nil) (cons (car-all ls nil) r)))
             (1 (reverse r)))))
       (define iter
         (lambda (l r)
@@ -189,14 +184,13 @@
       (define iter1
         (lambda (ls r)
           (cond (ls
-                  (define cars (car-all ls nil))
-                  (define cdrs (cdr-all ls nil))
-                  (iter1 cdrs (cond [cars (cons cars r) r] [1 r])))
+                  (iter1 (cdr-all ls nil) (cons (car-all ls nil) r)))
             (1 (reverse r)))))
       (define iter
         (lambda (c)
-          (cond (c (apply f (car c))
-                   (iter (cdr c))))))
+          (cond ((and c (car c))
+                 (apply f (car c))
+                 (iter (cdr c))))))
       (iter (iter1 l nil))))
 
   (define fprint

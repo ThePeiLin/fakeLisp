@@ -142,7 +142,9 @@
       (define iter1
         (lambda (ls r)
           (cond (ls
-                  (iter1 (cdr-all ls nil) (cons (car-all ls nil) r)))
+                  (define cars (car-all ls nil))
+                  (define cdrs (cdr-all ls nil))
+                  (iter1 cdrs (cond [cars (cons cars r) r] [1 r])))
             (1 (reverse r)))))
       (define iter
         (lambda (l r)
@@ -155,7 +157,9 @@
       (define iter1
         (lambda (ls r)
           (cond (ls
-                  (iter1 (cdr-all ls nil) (cons (car-all ls nil) r)))
+                  (define cars (car-all ls nil))
+                  (define cdrs (cdr-all ls nil))
+                  (iter1 cdrs (cond [cars (cons cars r) r] [1 r])))
             (1 (reverse r)))))
       (define iter
         (lambda (l r)
@@ -169,7 +173,9 @@
       (define iter1
         (lambda (ls r)
           (cond (ls
-                  (iter1 (cdr-all ls nil) (cons (car-all ls nil) r)))
+                  (define cars (car-all ls nil))
+                  (define cdrs (cdr-all ls nil))
+                  (iter1 cdrs (cond [cars (cons cars r) r] [1 r])))
             (1 (reverse r)))))
       (define iter
         (lambda (l r)
@@ -183,7 +189,9 @@
       (define iter1
         (lambda (ls r)
           (cond (ls
-                  (iter1 (cdr-all ls nil) (cons (car-all ls nil) r)))
+                  (define cars (car-all ls nil))
+                  (define cdrs (cdr-all ls nil))
+                  (iter1 cdrs (cond [cars (cons cars r) r] [1 r])))
             (1 (reverse r)))))
       (define iter
         (lambda (c)

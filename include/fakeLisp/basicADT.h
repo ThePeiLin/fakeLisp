@@ -26,6 +26,7 @@ int fklStringCstrCmp(const FklString*,const char*);
 char* fklStringToCstr(const FklString* str);
 void fklPrintRawString(const FklString* str,FILE* fp);
 void fklPrintString(const FklString* str,FILE* fp);
+void fklPrintRawSymbol(const FklString* str,FILE* fp);
 FklString* fklStringAppend(const FklString*,const FklString*);
 void fklFreeStringArray(FklString**,uint32_t num);
 void fklWriteStringToCstr(char*,const FklString*);

@@ -62,8 +62,8 @@ char* fklGetStringAfterBackslash(const char*);
 char* fklGetStringAfterBackslashInStr(const char* str);
 int fklPower(int,int);
 //char* fklCastEscapeCharater(const char*,char,size_t*);
-void fklPrintRawCharBuf(const char* str,size_t size,FILE* out);
-void fklPrintRawCstring(const char*,FILE*);
+void fklPrintRawCharBuf(const char* str,char se,size_t size,FILE* out);
+void fklPrintRawCstring(const char*,char se,FILE*);
 void fklPrintRawChar(char,FILE*);
 
 char* fklDoubleToCstr(double);

@@ -602,7 +602,7 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 			fklPrintRawChar(FKL_GET_CHR(v),fp);
 			break;
 		case FKL_SYM_TAG:
-			fklPrintString(fklGetGlobSymbolWithId(FKL_GET_SYM(v))->symbol,fp);
+			fklPrintRawSymbol(fklGetGlobSymbolWithId(FKL_GET_SYM(v))->symbol,fp);
 			break;
 		default:
 			switch(v->type)

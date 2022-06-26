@@ -222,6 +222,7 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 			{
 				fprintf(fp,"%lu ",fklGetU64FromByteCode(tmpCode->code+i+sizeof(char)));
 				fklPrintRawCharBuf((char*)tmpCode->code+i+sizeof(char)+sizeof(uint64_t)
+						,'"'
 						,fklGetU64FromByteCode(tmpCode->code+i+sizeof(char))
 						,fp);
 				r+=sizeof(char)+sizeof(uint64_t)+fklGetU64FromByteCode(tmpCode->code+i+sizeof(char));
@@ -269,7 +270,7 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 				case FKL_PUSH_VAR:
 				case FKL_PUSH_SYM:
 				case FKL_POP_REST_ARG:
-					fklPrintString(fklGetGlobSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)))->symbol,fp);
+					fklPrintRawSymbol(fklGetGlobSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)))->symbol,fp);
 					break;
 			}
 			r+=sizeof(char)+sizeof(int64_t);

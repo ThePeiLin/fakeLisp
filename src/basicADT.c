@@ -1001,7 +1001,12 @@ FklString* fklNewEmptyString()
 
 void fklPrintRawString(const FklString* str,FILE* fp)
 {
-	fklPrintRawCharBuf(str->str,str->size,fp);
+	fklPrintRawCharBuf(str->str,'"',str->size,fp);
+}
+
+void fklPrintRawSymbol(const FklString* str,FILE* fp)
+{
+	fklPrintRawCharBuf(str->str,'|',str->size,fp);
 }
 
 void fklPrintString(const FklString* str,FILE* fp)

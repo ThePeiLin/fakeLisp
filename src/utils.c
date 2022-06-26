@@ -134,28 +134,9 @@ int fklPower(int first,int second)
 	return result;
 }
 
-void fklPrintRawCstring(const char* objStr,FILE* out)
+void fklPrintRawCstring(const char* objStr,char se,FILE* out)
 {
-	const char* tmpStr=objStr;
-	int len=strlen(objStr);
-	putc('\"',out);
-	for(;tmpStr<objStr+len;tmpStr++)
-	{
-		if(*tmpStr=='\"')
-			fprintf(out,"\\\"");
-		else if(isgraph(*tmpStr))
-			putc(*tmpStr,out);
-		else if(*tmpStr=='\x20')
-			putc(*tmpStr,out);
-		else
-		{
-			uint8_t j=*tmpStr;
-			fprintf(out,"\\x");
-			fprintf(out,"%X",j/16);
-			fprintf(out,"%X",j%16);
-		}
-	}
-	putc('\"',out);
+	fklPrintRawCharBuf(objStr,se,strlen(objStr),out);
 }
 
 int fklIsHexNumCstr(const char* objStr)
@@ -891,13 +872,13 @@ char* fklCharBufToCstr(const char* buf,size_t size)
 	return str;
 }
 
-void fklPrintRawCharBuf(const char* str,size_t size,FILE* out)
+void fklPrintRawCharBuf(const char* str,char se,size_t size,FILE* out)
 {
-	putc('\"',out);
+	putc(se,out);
 	for(uint64_t i=0;i<size;i++)
 	{
-		if(str[i]=='\"')
-			fprintf(out,"\\\"");
+		if(str[i]==se)
+			fprintf(out,"\\%c",se);
 		else if(isgraph(str[i]))
 			putc(str[i],out);
 		else if(str[i]=='\x20')
@@ -910,7 +891,7 @@ void fklPrintRawCharBuf(const char* str,size_t size,FILE* out)
 			fprintf(out,"%X",j%16);
 		}
 	}
-	putc('\"',out);
+	putc(se,out);
 }
 
 inline int fklIsI64AddOverflow(int64_t a,int64_t b)

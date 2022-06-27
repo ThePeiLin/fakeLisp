@@ -1078,7 +1078,10 @@ void B_push_vector(FklVM* exe)
 	uint64_t size=fklGetU64FromByteCode(exe->code+r->cp+sizeof(char));
 	FklVMvalue* vec=fklNewVMvecV(size,NULL,stack,exe->heap);
 	for(size_t i=size;i>0;i--)
+	{
+		vec->u.vec->base[i-1]=FKL_VM_NIL;
 		fklSetRef(vec,&vec->u.vec->base[i-1],fklNiGetArg(&ap,stack),exe->heap);
+	}
 	fklNiReturn(vec
 			,&ap
 			,stack);

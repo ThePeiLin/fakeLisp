@@ -2158,6 +2158,13 @@ void SYS_apply(ARGL)
 	}
 }
 
+void SYS_map(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	fklNiEnd(&ap,stack);
+}
+
 void SYS_reverse(ARGL)
 {
 	FKL_NI_BEGIN(exe);

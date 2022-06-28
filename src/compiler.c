@@ -1808,7 +1808,7 @@ FklByteCodelnt* fklCompileLibrary(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInte
 
 FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state)
 {
-	int32_t line=objCptr->curline;
+	uint32_t line=objCptr->curline;
 	FklAstCptr* tmpCptr=objCptr;
 	FklAstPair* objPair=NULL;
 	FklCompEnv* tmpEnv=fklNewCompEnv(curEnv);
@@ -1882,7 +1882,15 @@ FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 	fklCodeCat(pArg,setTp);
 	fklFreeByteCode(fklResBp);
 	fklFreeByteCode(setTp);
-	objCptr=fklNextCptr(fklNextCptr(objCptr));
+	FklAstCptr* begin=fklNextCptr(fklNextCptr(objCptr));
+	if(!begin)
+	{
+		fklFreeAllMacroThenDestroyCompEnv(tmpEnv);
+		state->state=FKL_SYNTAXERROR;
+		state->place=tmpCptr;
+		return NULL;
+	}
+	objCptr=begin;
 	FklByteCodelnt* codeOfLambda=fklNewByteCodelnt(pArg);
 	codeOfLambda->ls=1;
 	codeOfLambda->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
@@ -1890,7 +1898,7 @@ FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 	codeOfLambda->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,pArg->size,line);
 	FklByteCode* resTp=fklNewByteCode(sizeof(char));
 	resTp->code[0]=FKL_RES_TP;
-	for(;objCptr;objCptr=fklNextCptr(objCptr))
+		for(;objCptr;objCptr=fklNextCptr(objCptr))
 	{
 		FklByteCodelnt* tmp1=fklCompile(objCptr,tmpEnv,inter,state);
 		if(state->state!=0)

@@ -1171,7 +1171,7 @@ void fklPrintCptr(const FklAstCptr* o_cptr,FILE* fp)
 				switch(tmpAtm->type)
 				{
 					case FKL_SYM:
-						fklPrintRawString(tmpAtm->value.str,fp);
+						fklPrintRawSymbol(tmpAtm->value.str,fp);
 						break;
 					case FKL_STR:
 						fklPrintRawString(tmpAtm->value.str,fp);

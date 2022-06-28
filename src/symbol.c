@@ -36,6 +36,7 @@ static const char* builtInErrorType[FKL_NUM_OF_BUILT_IN_ERROR_TYPE]=
 	"inport-failed",
 	"invalid-macro-pattern",
 	"faild-to-create-big-int-from-mem",
+	"differ-list-in-list",
 };
 
 static const char* builtInSymbolList[]=

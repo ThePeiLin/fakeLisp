@@ -1,5 +1,6 @@
 #include<fakeLisp/utils.h>
 #include<fakeLisp/fklni.h>
+#include<string.h>
 #include"fklffitype.h"
 #include"fklffimem.h"
 #include"fklffidll.h"
@@ -211,6 +212,27 @@ void FKL_ffi_ref(ARGL)
 				,ref
 				,stack
 				,exe->heap)
+			,&ap
+			,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void FKL_ffi_clear(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* r=exe->rhead;
+	FklVMvalue* mem=fklNiGetArg(&ap,stack);
+	if(!mem)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.clear!",FKL_TOOFEWARG,r,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.clear!",FKL_TOOMANYARG,r,exe);
+	if(!fklFfiIsMem(mem))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.clear!",FKL_WRONGARG,r,exe);
+	FklFfiMem* ptr=mem->u.ud->data;
+	if(ptr->type==FKL_FFI_STRING)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.clear!",FKL_WRONGARG,r,exe);
+	memset(ptr->mem,0,fklFfiGetTypeSizeWithTypeId(ptr->type));
+	fklNiReturn(mem
 			,&ap
 			,stack);
 	fklNiEnd(&ap,stack);

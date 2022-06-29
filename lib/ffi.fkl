@@ -14,6 +14,7 @@
     ffi-mem
     ffi-val
     ffi-cast-ref
+    ffi-clear!
     ffi-proc)
   (define ffi (dlopen (append (getdir) "/../fklffi")))
   (define ffi-mem? (dlsym ffi "ffi_mem_p"))
@@ -30,6 +31,7 @@
   (define ffi-mem (dlsym ffi "ffi_mem"))
   (define ffi-val (dlsym ffi "ffi_val"))
   (define ffi-proc (dlsym ffi "ffi_proc"))
+  (define ffi-clear! (dlsym ffi "ffi_clear"))
   (defmacro (ffi-deftype type alias)
     `(ffi-typedef '~type '~alias))
   (defmacro (ffi-path-ref path mem,index)

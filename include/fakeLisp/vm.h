@@ -149,13 +149,15 @@ typedef struct FklVMrunnable
 
 typedef struct
 {
-	uint32_t tp;
-	uint32_t bp;
-	uint32_t size;
+	FklUintStack* bps;
+	FklUintStack* tps;
+	uint64_t tp;
+	uint64_t bp;
+	size_t size;
 	FklVMvalue** values;
-	uint32_t tpsi;
-	uint32_t tptp;
-	uint32_t* tpst;
+//	uint32_t tpsi;
+//	uint32_t tptp;
+//	uint32_t* tpst;
 	pthread_rwlock_t lock;
 }FklVMstack;
 
@@ -261,7 +263,7 @@ typedef struct FklVMerrorHandler
 
 //vmrun
 
-int fklRunVM(FklVM*);
+int fklRunVM(FklVM*,FklVMrunnable*);
 FklVM* fklNewVM(FklByteCode*);
 FklVM* fklNewTmpVM(FklByteCode*);
 FklVM* fklNewThreadVM(FklVMproc*,FklVMheap*);
@@ -424,6 +426,7 @@ FklVMudata* fklNewVMudata(FklSid_t type,FklVMudMethodTable* t,void* mem,FklVMval
 int fklIsInvokableUd(FklVMvalue*);
 void fklFreeVMudata(FklVMudata*);
 
+int fklIsInvokeable(FklVMvalue*);
 void fklInitVMargs(int argc,char** argv);
 int fklGetVMargc(void);
 char** fklGetVMargv(void);
@@ -442,6 +445,8 @@ FklVMdllHandle fklLoadDll(const char* path);
 
 void fklPushVMvalue(FklVMvalue* v,FklVMstack* s);
 
+FklVMvalue* fklVMcallA(FklVMvalue*,size_t argNum,FklVMvalue*[],FklVMrunnable*,FklVM*);
+size_t fklVMlistLength(FklVMvalue*);
 void fklFreeRunnables(FklVMrunnable* h);
 #define FKL_SET_RETURN(fn,v,stack) do{\
 	if((stack)->tp>=(stack)->size)\

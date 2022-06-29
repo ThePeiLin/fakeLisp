@@ -1623,9 +1623,9 @@ void SYS_length(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.length",FKL_TOOMANYARG,runnable,exe);
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.length",FKL_TOOFEWARG,runnable,exe);
-	int64_t len=0;
+	size_t len=0;
 	if(obj==FKL_VM_NIL||FKL_IS_PAIR(obj))
-		for(;FKL_IS_PAIR(obj);obj=fklGetVMpairCdr(obj))len++;
+		len=fklVMlistLength(obj);
 	else if(FKL_IS_STR(obj))
 		len=obj->u.str->size;
 	else if(FKL_IS_CHAN(obj))
@@ -2056,7 +2056,7 @@ void SYS_call_cc(ARGL)
 	pthread_rwlock_rdlock(&exe->rlock);
 	FklVMvalue* cc=fklNiNewVMvalue(FKL_CONT,fklNewVMcontinuation(ap,stack,exe->rhead,exe->tstack),stack,exe->heap);
 	pthread_rwlock_unlock(&exe->rlock);
-	fklNiReturn(FKL_MAKE_VM_I32(stack->bp),&ap,stack);
+	fklPushUintStack(stack->bp,stack->bps);
 	stack->bp=ap;
 	fklNiReturn(cc,&ap,stack);
 	if(proc->type==FKL_PROC)
@@ -2092,8 +2092,7 @@ void SYS_apply(ARGL)
 	FklVMvalue* proc=fklNiGetArg(&ap,stack);
 	if(!proc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.apply",FKL_TOOFEWARG,runnable,exe);
-	if(!FKL_IS_PROC(proc)&&!FKL_IS_CONT(proc)&&!FKL_IS_DLPROC(proc)&&!fklIsInvokableUd(proc))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.invoke",FKL_INVOKEERROR,runnable,exe);
+	FKL_NI_CHECK_TYPE(proc,fklIsInvokeable,"sys.apply",runnable,exe);
 	FklPtrStack* stack1=fklNewPtrStack(32,16);
 	FklVMvalue* value=NULL;
 	FklVMvalue* lastList=NULL;
@@ -2121,7 +2120,7 @@ void SYS_apply(ARGL)
 		fklFreePtrStack(stack2);
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.apply",FKL_WRONGARG,runnable,exe);
 	}
-	fklNiReturn(FKL_MAKE_VM_I32(stack->bp),&ap,stack);
+	fklPushUintStack(stack->bp,stack->bps);
 	stack->bp=ap;
 	while(!fklIsPtrStackEmpty(stack2))
 	{
@@ -2162,6 +2161,48 @@ void SYS_map(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* proc=fklNiGetArg(&ap,stack);
+	FklVMheap* heap=exe->heap;
+	if(!proc)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.map",FKL_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(proc,fklIsInvokeable,"sys.map",runnable,exe);
+	size_t argNum=ap-stack->bp;
+	if(argNum==0)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.map",FKL_TOOFEWARG,runnable,exe);
+	FklVMvalue* argVec=fklNewVMvecV(ap-stack->bp,NULL,stack,heap);
+	for(size_t i=0;i<argNum;i++)
+	{
+		FklVMvalue* cur=fklNiGetArg(&ap,stack);
+		if(!fklIsList(cur))
+			FKL_RAISE_BUILTIN_ERROR_CSTR("sys.map",FKL_WRONGARG,runnable,exe);
+		fklSetRef(argVec,&argVec->u.vec->base[i],cur,heap);
+	}
+	fklNiResBp(&ap,stack);
+	size_t len=fklVMlistLength(argVec->u.vec->base[0]);
+	for(size_t i=1;i<argNum;i++)
+		if(fklVMlistLength(argVec->u.vec->base[i])!=len)
+			FKL_RAISE_BUILTIN_ERROR_CSTR("sys.map",FKL_LIST_DIFFER_IN_LENGTH,runnable,exe);
+	if(len==0)
+		fklNiReturn(FKL_VM_NIL,&ap,stack);
+	else
+	{
+		FklVMvalue* r=FKL_VM_NIL;
+		FklVMvalue** cur=&r;
+		FklVMvalue* cars=fklNewVMvecV(argNum,NULL,stack,heap);
+		for(size_t i=0;i<len;i++)
+		{
+			*cur=fklNiNewVMvalue(FKL_PAIR,fklNewVMpair(),stack,heap);
+			for(size_t j=0;j<argNum;j++)
+			{
+				FklVMvalue* pair=argVec->u.vec->base[i];
+				fklSetRef(cars,&cars->u.vec->base[i],pair->u.pair->car,heap);
+				fklSetRef(argVec,&argVec->u.vec->base[i],pair->u.pair->cdr,heap);
+			}
+			FklVMvalue* result=FKL_VM_NIL;//fklVMcallA(proc,argNum,cars->u.vec->base,runnable,exe);
+			fklSetRef(*cur,&(*cur)->u.pair->car,result,heap);
+			cur=&(*cur)->u.pair->cdr;
+		}
+	}
 	fklNiEnd(&ap,stack);
 }
 
@@ -2236,26 +2277,25 @@ void SYS_vector(ARGL)
 				FKL_RAISE_BUILTIN_ERROR_CSTR("sys.vector",FKL_INVALIDACCESS,runnable,exe);
 			size=tsize;
 		}
-		FklVMvec* vec=fklNewVMvec(size);
+		FklVMvalue* vec=fklNewVMvecV(size,NULL,stack,exe->heap);
 		if(FKL_IS_STR(fir))
 			for(size_t i=0;i<size;i++)
-				vec->base[i]=FKL_MAKE_VM_CHR(fir->u.str->str[i+start]);
+				vec->u.vec->base[i]=FKL_MAKE_VM_CHR(fir->u.str->str[i+start]);
 		else
 			for(size_t i=0;i<size;i++)
-				vec->base[i]=fir->u.vec->base[i+start];
-		fklNiReturn(fklNiNewVMvalue(FKL_VECTOR,vec,stack,exe->heap),&ap,stack);
+				fklSetRef(vec,&vec->u.vec->base[i],fir->u.vec->base[i+start],exe->heap);
+		fklNiReturn(vec,&ap,stack);
 	}
 	else if(fklIsInt(fir))
 	{
 		size_t size=fklGetInt(fir);
 		if(!size)
 		{
-			FklPtrStack* vstack=fklNewPtrStack(32,16);
-			for(FklVMvalue* content=fklNiGetArg(&ap,stack);content;content=fklNiGetArg(&ap,stack))
-				fklPushPtrStack(content,vstack);
+			size_t size=ap-stack->bp;
+			FklVMvalue* vec=fklNewVMvecV(size,NULL,stack,exe->heap);
+			for(size_t i=0;i<size;i++)
+				fklSetRef(vec,&vec->u.vec->base[i],fklNiGetArg(&ap,stack),exe->heap);
 			fklNiResBp(&ap,stack);
-			FklVMvalue* vec=fklNewVMvecV(vstack->top,(FklVMvalue**)vstack->base,stack,exe->heap);
-			fklFreePtrStack(vstack);
 			fklNiReturn(vec,&ap,stack);
 		}
 		else
@@ -2267,9 +2307,6 @@ void SYS_vector(ARGL)
 			if(content)
 				for(size_t i=0;i<size;i++)
 					fklSetRef(vec,&vec->u.vec->base[i],content,exe->heap);
-			else
-				for(size_t i=0;i<size;i++)
-					vec->u.vec->base[i]=FKL_VM_NIL;
 			fklNiReturn(vec,&ap,stack);
 		}
 	}

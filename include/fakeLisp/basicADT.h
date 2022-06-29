@@ -110,12 +110,13 @@ int fklIsIntStackEmpty(FklIntStack*);
 typedef struct
 {
 	uint64_t* base;
-	uint32_t size;
+	size_t size;
 	uint32_t top;
 	uint32_t inc;
 }FklUintStack;
 
 FklUintStack* fklNewUintStack(uint32_t size,uint32_t inc);
+FklUintStack* fklNewUintStackFromStack(FklUintStack*);
 void fklPushUintStack(uint64_t e,FklUintStack*);
 uint64_t fklPopUintStack(FklUintStack*);
 uint64_t fklTopUintStack(FklUintStack*);

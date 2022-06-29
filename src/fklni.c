@@ -5,9 +5,7 @@ int fklNiResBp(uint32_t* ap,FklVMstack* stack)
 {
 	if(*ap>stack->bp)
 		return *ap-stack->bp;
-	FklVMvalue* prevBp=stack->values[*ap-1];
-	stack->bp=FKL_GET_I32(prevBp);
-	*ap-=1;
+	stack->bp=fklPopUintStack(stack->bps);
 	return 0;
 }
 

@@ -238,6 +238,15 @@ FklUintStack* fklNewUintStack(uint32_t size,uint32_t inc)
 	return tmp;
 }
 
+FklUintStack* fklNewUintStackFromStack(FklUintStack* stack)
+{
+	FklUintStack* r=fklNewUintStack(stack->size,stack->inc);
+	r->top=stack->top;
+	for(size_t i=0;i<stack->top;i++)
+		r->base[i]=stack->base[i];
+	return r;
+}
+
 void fklPushUintStack(uint64_t data,FklUintStack* stack)
 {
 	if(stack->top==stack->size)

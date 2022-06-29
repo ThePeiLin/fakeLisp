@@ -44,7 +44,7 @@ static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap
 	{
 		FklVM* tmpVM=fklNewTmpVM(NULL);
 		fklInitVMRunningResource(tmpVM,vEnv,heap,cEnv->proc,0,cEnv->proc->bc->size);
-		int i=fklRunVM(tmpVM);
+		int i=fklRunVM(tmpVM,NULL);
 		if(i==1)
 		{
 			fklUninitVMRunningResource(tmpVM);
@@ -750,7 +750,7 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 	uint32_t start=t->bc->size;
 	fklCodelntCopyCat(t,pattern->proc);
 	fklInitVMRunningResource(tmpVM,stringPatternEnv,tmpVM->heap,t,start,pattern->proc->bc->size);
-	int state=fklRunVM(tmpVM);
+	int state=fklRunVM(tmpVM,NULL);
 	if(!state)
 		retval=fklCastVMvalueToCptr(fklTopGet(tmpVM->stack),curline);
 	else

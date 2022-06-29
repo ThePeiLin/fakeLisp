@@ -134,15 +134,8 @@ FklVMstack* fklCopyStack(FklVMstack* stack)
 	FKL_ASSERT(tmp->values,__func__);
 	for(;i<stack->tp;i++)
 		tmp->values[i]=stack->values[i];
-	tmp->tptp=stack->tptp;
-	tmp->tpst=NULL;
-	tmp->tpsi=stack->tpsi;
-	if(tmp->tpsi)
-	{
-		tmp->tpst=(uint32_t*)malloc(sizeof(uint32_t)*tmp->tpsi);
-		FKL_ASSERT(tmp->tpst,__func__);
-		if(tmp->tptp)memcpy(tmp->tpst,stack->tpst,sizeof(int32_t)*(tmp->tptp));
-	}
+	tmp->tps=fklNewUintStackFromStack(stack->tps);
+	tmp->bps=fklNewUintStackFromStack(stack->bps);
 	pthread_rwlock_unlock(&stack->lock);
 	return tmp;
 }
@@ -388,6 +381,9 @@ char* fklGenErrorMessage(FklErrorType type,FklVMrunnable* r,FklVM* exe)
 		case FKL_FAILD_TO_CREATE_BIG_INT_FROM_MEM:
 			t=fklStrCat(t,"Failed to create big-int from mem ");
 			break;
+		case FKL_LIST_DIFFER_IN_LENGTH:
+			t=fklStrCat(t,"List differ in length ");
+			break;
 		default:
 			break;
 	}
@@ -533,7 +529,7 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 						if(v->u.proc->sid)
 						{
 							fprintf(fp,"<#proc: ");
-							fklPrintString(fklGetGlobSymbolWithId(FKL_GET_SYM(v))->symbol,fp);
+							fklPrintString(fklGetGlobSymbolWithId(v->u.proc->sid)->symbol,fp);
 							fputc('>',fp);
 						}
 						else
@@ -620,7 +616,7 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 					if(v->u.proc->sid)
 					{
 						fprintf(fp,"<#proc: ");
-						fklPrintString(fklGetGlobSymbolWithId(FKL_GET_SYM(v))->symbol,fp);
+						fklPrintString(fklGetGlobSymbolWithId(v->u.proc->sid)->symbol,fp);
 						fputc('>',fp);
 					}					else
 						fputs("#<proc>",fp);
@@ -904,7 +900,8 @@ void fklFreeVMcontinuation(FklVMcontinuation* cont)
 		free(cur);
 	}
 	FklVMtryBlock* tb=cont->tb;
-	free(stack->tpst);
+	fklFreeUintStack(stack->tps);
+	fklFreeUintStack(stack->bps);
 	free(stack->values);
 	free(stack);
 	for(i=0;i<tbsize;i++)
@@ -1083,4 +1080,11 @@ void fklUninitVMRunningResource(FklVM* vm)
 	fklFreeVMstack(vm->stack);
 	fklFreePtrStack(vm->tstack);
 	free(vm);
+}
+
+size_t fklVMlistLength(FklVMvalue* v)
+{
+	size_t len=0;
+	for(;FKL_IS_PAIR(v);v=fklGetVMpairCdr(v))len++;
+	return len;
 }

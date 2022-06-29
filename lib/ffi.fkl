@@ -13,6 +13,7 @@
     ffi-set!
     ffi-mem
     ffi-val
+    ffi-cast-ref
     ffi-proc)
   (define ffi (dlopen (append (getdir) "/../fklffi")))
   (define ffi-mem? (dlsym ffi "ffi_mem_p"))
@@ -25,6 +26,7 @@
   (define ffi-load (dlsym ffi "ffi_load"))
   (define ffi-ref (dlsym ffi "ffi_ref"))
   (define ffi-set! (dlsym ffi "ffi_set"))
+  (define ffi-cast-ref (dlsym ffi "ffi_cast_ref"))
   (define ffi-mem (dlsym ffi "ffi_mem"))
   (define ffi-val (dlsym ffi "ffi_val"))
   (define ffi-proc (dlsym ffi "ffi_proc"))

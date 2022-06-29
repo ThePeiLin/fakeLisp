@@ -216,6 +216,31 @@ void FKL_ffi_ref(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void FKL_ffi_cast_ref(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* r=exe->rhead;
+	FklVMvalue* type=fklNiGetArg(&ap,stack);
+	FklVMvalue* mem=fklNiGetArg(&ap,stack);
+	if(!mem||!type)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.cast-ref",FKL_TOOFEWARG,r,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.cast-ref",FKL_TOOMANYARG,r,exe);
+	if(!fklFfiIsMem(mem)||(!FKL_IS_PAIR(type)&&!FKL_IS_SYM(type)))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.cast-ref",FKL_WRONGARG,r,exe);
+	FklTypeId_t id=fklFfiGenTypeId(type);
+	if(!id)
+		FKL_FFI_RAISE_ERROR("ffi.cast-ref",FKL_FFI_INVALID_TYPEDECLARE,exe);
+	FklVMudata* ref=fklFfiNewMemRefUd(id,((FklFfiMem*)mem->u.ud->data)->mem);
+	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA
+				,ref
+				,stack
+				,exe->heap)
+			,&ap
+			,stack);
+	fklNiEnd(&ap,stack);
+}
+
 void FKL_ffi_set(ARGL)
 {
 	FKL_NI_BEGIN(exe);

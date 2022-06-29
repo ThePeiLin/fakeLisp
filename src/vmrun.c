@@ -98,6 +98,7 @@ void tailInvokeNativeProcdure(FklVM* exe,FklVMproc* proc,FklVMrunnable* runnable
 void invokeContinuation(FklVM* exe,FklVMcontinuation* cc)
 {
 	fklCreateCallChainWithContinuation(exe,cc);
+	longjmp(exe->buf,2);
 }
 
 void invokeDlProc(FklVM* exe,FklVMdlproc* dlproc)
@@ -342,6 +343,7 @@ extern void SYS_box_cas(ARGL);
 extern void SYS_box_p(ARGL);
 extern void SYS_fix_int_p(ARGL);
 extern void SYS_number_p(ARGL);
+extern void SYS_map(ARGL);
 
 #undef ARGL
 
@@ -437,6 +439,7 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_box_p,
 		SYS_fix_int_p,
 		SYS_number_p,
+		SYS_map,
 	};
 	obj->num=FKL_NUM_OF_BUILT_IN_SYMBOL;
 	obj->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*FKL_NUM_OF_BUILT_IN_SYMBOL);
@@ -605,9 +608,9 @@ int fklRunVM(FklVM* exe,FklVMrunnable* baseRunnable)
 			}
 		}
 		uint64_t cp=currunnable->cp;
+		ByteCodes[exe->code[cp]](exe);
 		if(setjmp(exe->buf)==1)
 			return 255;
-		ByteCodes[exe->code[cp]](exe);
 		fklGC_step(exe);
 	}
 	return 0;
@@ -874,7 +877,8 @@ void B_set_bp(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=exe->rhead;
-	fklPushUintStack(stack->bp,stack->bps);
+	fklNiSetBp(stack->tp,stack);
+//	fklPushUintStack(stack->bp,stack->bps);
 //	fklPushVMvalue(FKL_MAKE_VM_I32(stack->bp),stack);
 	stack->bp=stack->tp;
 	runnable->cp+=sizeof(char);

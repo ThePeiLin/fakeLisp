@@ -1915,9 +1915,10 @@ void SYS_go(ARGL)
 	threadVM->code=exe->code;
 	threadVM->size=exe->size;
 	FklVMstack* threadVMstack=threadVM->stack;
-	FklVMvalue* prevBp=FKL_MAKE_VM_I32(threadVMstack->bp);
-	fklPushVMvalue(prevBp,threadVMstack);
-	threadVMstack->bp=threadVMstack->tp;
+//	FklVMvalue* prevBp=FKL_MAKE_VM_I32(threadVMstack->bp);
+//	fklPushVMvalue(prevBp,threadVMstack);
+//	threadVMstack->bp=threadVMstack->tp;
+	fklNiSetBp(threadVMstack->tp,threadVMstack);
 	FklVMvalue* cur=fklNiGetArg(&ap,stack);
 	FklPtrStack* comStack=fklNewPtrStack(32,16);
 	for(;cur;cur=fklNiGetArg(&ap,stack))
@@ -2056,8 +2057,9 @@ void SYS_call_cc(ARGL)
 	pthread_rwlock_rdlock(&exe->rlock);
 	FklVMvalue* cc=fklNiNewVMvalue(FKL_CONT,fklNewVMcontinuation(ap,stack,exe->rhead,exe->tstack),stack,exe->heap);
 	pthread_rwlock_unlock(&exe->rlock);
-	fklPushUintStack(stack->bp,stack->bps);
-	stack->bp=ap;
+	fklNiSetBp(ap,stack);
+//	fklPushUintStack(stack->bp,stack->bps);
+//	stack->bp=ap;
 	fklNiReturn(cc,&ap,stack);
 	if(proc->type==FKL_PROC)
 	{
@@ -2120,8 +2122,9 @@ void SYS_apply(ARGL)
 		fklFreePtrStack(stack2);
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.apply",FKL_WRONGARG,runnable,exe);
 	}
-	fklPushUintStack(stack->bp,stack->bps);
-	stack->bp=ap;
+	fklNiSetBp(ap,stack);
+//	fklPushUintStack(stack->bp,stack->bps);
+//	stack->bp=ap;
 	while(!fklIsPtrStackEmpty(stack2))
 	{
 		FklVMvalue* t=fklPopPtrStack(stack2);
@@ -2192,7 +2195,7 @@ void SYS_map(ARGL)
 		for(size_t i=0;i<len;i++)
 		{
 			*cur=fklNiNewVMvalue(FKL_PAIR,fklNewVMpair(),stack,heap);
-			for(size_t j=0;j<argNum;j++)
+			for(size_t i=0;i<argNum;i++)
 			{
 				FklVMvalue* pair=argVec->u.vec->base[i];
 				fklSetRef(cars,&cars->u.vec->base[i],pair->u.pair->car,heap);
@@ -2202,6 +2205,7 @@ void SYS_map(ARGL)
 			fklSetRef(*cur,&(*cur)->u.pair->car,result,heap);
 			cur=&(*cur)->u.pair->cdr;
 		}
+		fklNiReturn(r,&ap,stack);
 	}
 	fklNiEnd(&ap,stack);
 }

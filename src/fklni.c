@@ -9,6 +9,12 @@ int fklNiResBp(uint32_t* ap,FklVMstack* stack)
 	return 0;
 }
 
+void fklNiSetBp(uint64_t nbp,FklVMstack* s)
+{
+	fklPushUintStack(s->bp,s->bps);
+	s->bp=nbp;
+}
+
 void fklNiReturn(FklVMvalue* v,uint32_t* ap,FklVMstack* s)
 {
 	pthread_rwlock_wrlock(&s->lock);

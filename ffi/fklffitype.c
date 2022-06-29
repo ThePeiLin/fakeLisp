@@ -434,7 +434,7 @@ static FklTypeId_t genArrayTypeId(FklVMvalue* numPair,FklDefTypes* otherTypes)
 	if(!typeV)
 		return 0;
 	FklTypeId_t type=fklFfiGenDefTypesUnion(typeV,otherTypes);
-	if(!type)
+	if(!type||type==FKL_FFI_STRING)
 		return type;
 	return fklFfiNewArrayType(type,fklGetInt(numV));
 }
@@ -637,7 +637,7 @@ static FklTypeId_t genStructTypeId(FklVMvalue* structBodyPair,FklDefTypes* other
 				return 0;
 			}
 			FklTypeId_t type=fklFfiGenDefTypesUnion(memberTypeV,otherTypes);
-			if(!type)
+			if(!type||type==FKL_FFI_STRING)
 			{
 				free(memberTypeList);
 				free(memberSymbolList);
@@ -771,7 +771,7 @@ static FklTypeId_t genUnionTypeId(FklVMvalue* unionBodyPair,FklDefTypes* otherTy
 				return 0;
 			}
 			FklTypeId_t type=fklFfiGenDefTypesUnion(memberTypeV,otherTypes);
-			if(!type)
+			if(!type||type==FKL_FFI_STRING)
 			{
 				free(memberTypeList);
 				free(memberSymbolList);

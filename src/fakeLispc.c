@@ -58,6 +58,7 @@ int main(int argc,char** argv)
 					fklFreeMainFileRealPath();
 					fklFreeCwd();
 					fklFreeGlobSymbolTable();
+					globfree(&buf);
 					return state;
 				}
 				fklPrintUndefinedSymbol(mainByteCode);

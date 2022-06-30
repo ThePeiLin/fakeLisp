@@ -2670,6 +2670,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 
 FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state)
 {
+	FklCompEnv* newEnv=fklNewCompEnv(curEnv);
 	FklAstCptr* pExpression=fklNextCptr(fklGetFirstCptr(objCptr));
 	FklAstCptr* pCatchExpression=fklNextCptr(pExpression);
 	if(!pExpression||(!fklIsCatchExpression(pCatchExpression)))
@@ -2678,7 +2679,8 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 		state->place=objCptr;
 		return NULL;
 	}
-	FklByteCodelnt* expressionByteCodelnt=fklCompile(pExpression,curEnv,inter,state);
+	FklByteCodelnt* expressionByteCodelnt=fklCompile(pExpression,newEnv,inter,state);
+	fklFreeAllMacroThenDestroyCompEnv(newEnv);
 	if(state->state)
 		return NULL;
 	else
@@ -2757,6 +2759,7 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 			FklByteCodelnt* tmp1=fklCompile(begin,tmpEnv,inter,state);
 			if(state->state)
 			{
+				free(errTypeIds);
 				fklFreeByteCodeAndLnt(expressionByteCodelnt);
 				fklFreePtrStack(handlerByteCodelntStack);
 				fklFreeAllMacroThenDestroyCompEnv(tmpEnv);
@@ -2773,6 +2776,16 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 				FKL_INCREASE_ALL_SCP(tmp1->l+1,tmp1->ls-1,resTp->size);
 				fklFreeByteCode(resTp);
 			}
+		}
+		if(!t)
+		{
+			state->state=FKL_SYNTAXERROR;
+			state->place=objCptr;
+			free(errTypeIds);
+			fklFreeByteCodeAndLnt(expressionByteCodelnt);
+			fklFreePtrStack(handlerByteCodelntStack);
+			fklFreeAllMacroThenDestroyCompEnv(tmpEnv);
+			return NULL;
 		}
 		fklFreeAllMacroThenDestroyCompEnv(tmpEnv);
 		FklByteCode* setTp=fklNewByteCode(1);

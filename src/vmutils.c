@@ -172,6 +172,7 @@ FklVMerrorHandler* fklNewVMerrorHandler(FklSid_t* typeIds,uint32_t errTypeNum,ui
 	t->proc.prevEnv=NULL;
 	t->proc.scp=scp;
 	t->proc.cpc=cpc;
+	t->proc.sid=0;
 	return t;
 }
 

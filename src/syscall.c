@@ -681,6 +681,8 @@ void SYS_eqn(ARGL)
 			}
 			else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
 				r=(fklStringcmp(prev->u.str,cur->u.str)==0);
+			else if(FKL_IS_CHR(prev)&&FKL_IS_CHR(cur))
+				r=prev==cur;
 			else if(FKL_IS_USERDATA(prev)&&prev->u.ud->t->__cmp)
 			{
 				int isUnableToBeCmp=0;

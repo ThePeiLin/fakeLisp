@@ -187,11 +187,13 @@
                   (iter1 (cdr-all ls nil) (cons (car-all ls nil) r)))
             (1 (reverse r)))))
       (define iter
-        (lambda (c)
-          (cond ((and c (car c))
-                 (apply f (car c))
-                 (iter (cdr c))))))
-      (iter (iter1 l nil))))
+        (lambda (c r)
+          (cond
+            ((and c (car c))
+             (iter (cdr c)
+                   (apply f (car c))))
+            (1 r))))
+      (iter (iter1 l nil) nil)))
 
   (define fprint
     (lambda (f,l)

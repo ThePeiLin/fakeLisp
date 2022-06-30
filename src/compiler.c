@@ -2671,8 +2671,8 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state)
 {
 	FklAstCptr* pExpression=fklNextCptr(fklGetFirstCptr(objCptr));
-	FklAstCptr* pCatchExpression=NULL;
-	if(!pExpression||!(pCatchExpression=fklNextCptr(pExpression)))
+	FklAstCptr* pCatchExpression=fklNextCptr(pExpression);
+	if(!pExpression||(!fklIsCatchExpression(pCatchExpression)))
 	{
 		state->state=FKL_SYNTAXERROR;
 		state->place=objCptr;

@@ -311,6 +311,8 @@ int fklIsNumberCharBuf(const char* buf,size_t len)
 	int hasExp=0;
 	if(i&&(len<2||!isdigit(buf[1])))
 		return 0;
+	else if(len==1&&buf[0]=='.')
+		return 0;
 	else
 	{
 		if(len>3&&(!strncmp(buf+i,"0x",2)||!strncmp(buf+i,"0X",2)))

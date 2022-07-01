@@ -445,7 +445,7 @@ FklVMdllHandle fklLoadDll(const char* path);
 
 void fklPushVMvalue(FklVMvalue* v,FklVMstack* s);
 
-FklVMvalue* fklVMcallA(FklVMvalue*,size_t argNum,FklVMvalue*[],FklVMrunnable*,FklVM*);
+FklVMvalue* fklVMcallInDlproc(FklVMvalue*,size_t argNum,FklVMvalue*[],FklVMrunnable*,FklVM*);
 
 size_t fklVMlistLength(FklVMvalue*);
 void fklFreeRunnables(FklVMrunnable* h);

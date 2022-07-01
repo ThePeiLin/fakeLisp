@@ -2203,7 +2203,7 @@ void SYS_map(ARGL)
 				fklSetRef(cars,&cars->u.vec->base[i],pair->u.pair->car,heap);
 				fklSetRef(argVec,&argVec->u.vec->base[i],pair->u.pair->cdr,heap);
 			}
-			FklVMvalue* result=FKL_VM_NIL;//fklVMcallA(proc,argNum,cars->u.vec->base,runnable,exe);
+			FklVMvalue* result=FKL_VM_NIL;//fklVMcallInDlproc(proc,argNum,cars->u.vec->base,runnable,exe);
 			fklSetRef(*cur,&(*cur)->u.pair->car,result,heap);
 			cur=&(*cur)->u.pair->cdr;
 		}

@@ -13,6 +13,8 @@
 extern "C" {
 #endif
 
+struct FklVM;
+typedef void (*FklVMdllFunc)(struct FklVM*);
 typedef struct FklVMvalue* FklVMptr;
 typedef enum
 {
@@ -155,9 +157,6 @@ typedef struct
 	uint64_t bp;
 	size_t size;
 	FklVMvalue** values;
-//	uint32_t tpsi;
-//	uint32_t tptp;
-//	uint32_t* tpst;
 	pthread_rwlock_t lock;
 }FklVMstack;
 
@@ -176,6 +175,7 @@ typedef struct FklVM
 	struct FklVMheap* heap;
 	struct FklLineNumberTable* lnt;
 	void (*callback)(void*);
+	FklVMvalue* nextInvoke;
 	jmp_buf buf;
 }FklVM;
 
@@ -222,8 +222,6 @@ typedef struct
 	FklVM** VMs;
 }FklVMlist;
 
-typedef void (*FklVMdllFunc)(FklVM*);
-
 typedef struct FklVMdlproc
 {
 	FklVMdllFunc func;
@@ -267,7 +265,7 @@ int fklRunVM(FklVM*,FklVMrunnable*);
 FklVM* fklNewVM(FklByteCode*);
 FklVM* fklNewTmpVM(FklByteCode*);
 FklVM* fklNewThreadVM(FklVMproc*,FklVMheap*);
-FklVM* fklNewThreadDlprocVM(FklVMrunnable* r,FklVMheap* heap);
+FklVM* fklNewThreadInvokableObjVM(FklVMrunnable* r,FklVMheap* heap,FklVMvalue*);
 void fklInitGlobEnv(FklVMenv*,FklVMheap*);
 
 void fklFreeVMvalue(FklVMvalue*);

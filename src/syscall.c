@@ -1912,7 +1912,7 @@ void SYS_go(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.go",FKL_TOOFEWARG,runnable,exe);
 	if(!FKL_IS_PROC(threadProc)&&!FKL_IS_DLPROC(threadProc)&&!FKL_IS_CONT(threadProc)&&!fklIsInvokableUd(threadProc))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.go",FKL_WRONGARG,runnable,exe);
-	FklVM* threadVM=(FKL_IS_PROC(threadProc)||FKL_IS_CONT(threadProc))?fklNewThreadVM(threadProc->u.proc,exe->heap):fklNewThreadDlprocVM(runnable,exe->heap);
+	FklVM* threadVM=FKL_IS_PROC(threadProc)?fklNewThreadVM(threadProc->u.proc,exe->heap):fklNewThreadInvokableObjVM(runnable,exe->heap,threadProc);
 	threadVM->lnt=exe->lnt;
 	threadVM->code=exe->code;
 	threadVM->size=exe->size;
@@ -1934,25 +1934,24 @@ void SYS_go(ARGL)
 	fklFreePtrStack(comStack);
 	FklVMvalue* chan=threadVM->chan;
 	int32_t faildCode=0;
-	if(FKL_IS_PROC(threadProc))
-		faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMfunc,threadVM);
-	else if(FKL_IS_CONT(threadProc))
-	{
-		fklCreateCallChainWithContinuation(threadVM,threadProc->u.cont);
-		faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMfunc,threadVM);
-	}
-	else if(FKL_IS_DLPROC(threadProc))
-	{
-		void* a[2]={threadVM,threadProc->u.dlproc->func};
-		void** p=(void**)fklCopyMemory(a,sizeof(a));
-		faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMdlprocFunc,p);
-	}
-	else
-	{
-		void* a[2]={threadVM,threadProc->u.ud};
-		void** p=(void**)fklCopyMemory(a,sizeof(a));
-		faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMinvokableUd,p);
-	}
+	faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMfunc,threadVM);
+	//else if(FKL_IS_CONT(threadProc))
+	//{
+	//	fklCreateCallChainWithContinuation(threadVM,threadProc->u.cont);
+	//	faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMfunc,threadVM);
+	//}
+	//else if(FKL_IS_DLPROC(threadProc))
+	//{
+	//	void* a[2]={threadVM,threadProc->u.dlproc->func};
+	//	void** p=(void**)fklCopyMemory(a,sizeof(a));
+	//	faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMdlprocFunc,p);
+	//}
+	//else
+	//{
+	//	void* a[2]={threadVM,threadProc->u.ud};
+	//	void** p=(void**)fklCopyMemory(a,sizeof(a));
+	//	faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMinvokableUd,p);
+	//}
 	if(faildCode)
 	{
 		fklDeleteCallChain(threadVM);
@@ -2143,23 +2142,24 @@ void SYS_apply(ARGL)
 	{
 		case FKL_PROC:
 			applyNativeProc(exe,proc->u.proc,runnable);
-			fklNiEnd(&ap,stack);
 			break;
-		case FKL_CONT:
-			fklNiEnd(&ap,stack);
-			invokeContinuation(exe,proc->u.cont);
-			break;
-		case FKL_DLPROC:
-			fklNiEnd(&ap,stack);
-			invokeDlProc(exe,proc->u.dlproc);
-			break;
-		case FKL_USERDATA:
-			fklNiEnd(&ap,stack);
-			proc->u.ud->t->__invoke(exe,proc->u.ud->data);
-			break;
+//		case FKL_CONT:
+//			fklNiEnd(&ap,stack);
+//			invokeContinuation(exe,proc->u.cont);
+//			break;
+//		case FKL_DLPROC:
+//			fklNiEnd(&ap,stack);
+//			invokeDlProc(exe,proc->u.dlproc);
+//			break;
+//		case FKL_USERDATA:
+//			fklNiEnd(&ap,stack);
+//			proc->u.ud->t->__invoke(exe,proc->u.ud->data);
+//			break;
 		default:
+			exe->nextInvoke=proc;
 			break;
 	}
+	fklNiEnd(&ap,stack);
 }
 
 void SYS_map(ARGL)

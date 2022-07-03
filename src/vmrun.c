@@ -191,6 +191,7 @@ FklVM* fklNewVM(FklByteCode* mainCode)
 	exe->code=NULL;
 	exe->size=0;
 	exe->rhead=NULL;
+	exe->nextInvoke=NULL;
 	if(mainCode!=NULL)
 	{
 		exe->code=fklCopyMemory(mainCode->code,mainCode->size);
@@ -237,6 +238,7 @@ FklVM* fklNewTmpVM(FklByteCode* mainCode)
 	exe->code=NULL;
 	exe->size=0;
 	exe->rhead=NULL;
+	exe->nextInvoke=NULL;
 	if(mainCode!=NULL)
 	{
 		exe->code=fklCopyMemory(mainCode->code,mainCode->size);
@@ -501,94 +503,117 @@ void* ThreadVMfunc(void* p)
 	return (void*)state;
 }
 
-void* ThreadVMdlprocFunc(void* p)
-{
-	void** a=(void**)p;
-	FklVM* exe=a[0];
-	FklVMdllFunc f=a[1];
-	free(p);
-	int64_t state=0;
-	FklVMchanl* ch=exe->chan->u.chan;
-	if(!setjmp(exe->buf))
-	{
-		f(exe);
-		FKL_NI_BEGIN(exe);
-		FklVMvalue* v=NULL;
-		while((v=fklNiGetArg(&ap,stack)))
-			fklChanlSend(fklNewVMsend(v),ch);
-		fklNiEnd(&ap,stack);
-	}
-	else
-	{
-		char* threadErrorMessage=fklCopyCstr("error:occur in thread ");
-		char* id=fklIntToCstr(exe->VMid);
-		threadErrorMessage=fklStrCat(threadErrorMessage,id);
-		threadErrorMessage=fklStrCat(threadErrorMessage,"\n");
-		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerrorCstr("thread",fklGetBuiltInErrorType(FKL_THREADERROR),threadErrorMessage),exe->heap);
-		free(threadErrorMessage);
-		free(id);
-		FklVMsend* t=fklNewVMsend(err);
-		fklChanlSend(t,ch);
-		state=255;
-	}
-	fklFreeVMstack(exe->stack);
-	exe->stack=NULL;
-	exe->lnt=NULL;
-	pthread_rwlock_wrlock(&exe->rlock);
-	fklDeleteCallChain(exe);
-	exe->rhead=NULL;
-	fklFreePtrStack(exe->tstack);
-	exe->mark=0;
-	pthread_rwlock_unlock(&exe->rlock);
-	return (void*)state;
-}
+//void* ThreadVMdlprocFunc(void* p)
+//{
+//	void** a=(void**)p;
+//	FklVM* exe=a[0];
+//	FklVMdllFunc f=a[1];
+//	free(p);
+//	int64_t state=0;
+//	FklVMchanl* ch=exe->chan->u.chan;
+//	if(!setjmp(exe->buf))
+//	{
+//		f(exe);
+//		FKL_NI_BEGIN(exe);
+//		FklVMvalue* v=NULL;
+//		while((v=fklNiGetArg(&ap,stack)))
+//			fklChanlSend(fklNewVMsend(v),ch);
+//		fklNiEnd(&ap,stack);
+//	}
+//	else
+//	{
+//		char* threadErrorMessage=fklCopyCstr("error:occur in thread ");
+//		char* id=fklIntToCstr(exe->VMid);
+//		threadErrorMessage=fklStrCat(threadErrorMessage,id);
+//		threadErrorMessage=fklStrCat(threadErrorMessage,"\n");
+//		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerrorCstr("thread",fklGetBuiltInErrorType(FKL_THREADERROR),threadErrorMessage),exe->heap);
+//		free(threadErrorMessage);
+//		free(id);
+//		FklVMsend* t=fklNewVMsend(err);
+//		fklChanlSend(t,ch);
+//		state=255;
+//	}
+//	fklFreeVMstack(exe->stack);
+//	exe->stack=NULL;
+//	exe->lnt=NULL;
+//	pthread_rwlock_wrlock(&exe->rlock);
+//	fklDeleteCallChain(exe);
+//	exe->rhead=NULL;
+//	fklFreePtrStack(exe->tstack);
+//	exe->mark=0;
+//	pthread_rwlock_unlock(&exe->rlock);
+//	return (void*)state;
+//}
 
-void* ThreadVMinvokableUd(void* p)
+//void* ThreadVMinvokableUd(void* p)
+//{
+//	void** a=(void**)p;
+//	FklVM* exe=a[0];
+//	FklVMudata* ud=a[1];
+//	free(p);
+//	int64_t state=0;
+//	FklVMchanl* ch=exe->chan->u.chan;
+//	if(!setjmp(exe->buf))
+//	{
+//		ud->t->__invoke(exe,ud->data);
+//		FKL_NI_BEGIN(exe);
+//		FklVMvalue* v=NULL;
+//		while((v=fklNiGetArg(&ap,stack)))
+//			fklChanlSend(fklNewVMsend(v),ch);
+//		fklNiEnd(&ap,stack);
+//	}
+//	else
+//	{
+//		char* threadErrorMessage=fklCopyCstr("error:occur in thread ");
+//		char* id=fklIntToCstr(exe->VMid);
+//		threadErrorMessage=fklStrCat(threadErrorMessage,id);
+//		threadErrorMessage=fklStrCat(threadErrorMessage,"\n");
+//		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerrorCstr("thread",fklGetBuiltInErrorType(FKL_THREADERROR),threadErrorMessage),exe->heap);
+//		free(threadErrorMessage);
+//		free(id);
+//		FklVMsend* t=fklNewVMsend(err);
+//		fklChanlSend(t,ch);
+//		state=255;
+//	}
+//	fklFreeVMstack(exe->stack);
+//	exe->stack=NULL;
+//	exe->lnt=NULL;
+//	pthread_rwlock_wrlock(&exe->rlock);
+//	fklDeleteCallChain(exe);
+//	exe->rhead=NULL;
+//	fklFreePtrStack(exe->tstack);
+//	exe->mark=0;
+//	pthread_rwlock_unlock(&exe->rlock);
+//	return (void*)state;
+//}
+
+void invokeInvokeObj(FklVMvalue* v,FklVM* exe)
 {
-	void** a=(void**)p;
-	FklVM* exe=a[0];
-	FklVMudata* ud=a[1];
-	free(p);
-	int64_t state=0;
-	FklVMchanl* ch=exe->chan->u.chan;
-	if(!setjmp(exe->buf))
+	switch(v->type)
 	{
-		ud->t->__invoke(exe,ud->data);
-		FKL_NI_BEGIN(exe);
-		FklVMvalue* v=NULL;
-		while((v=fklNiGetArg(&ap,stack)))
-			fklChanlSend(fklNewVMsend(v),ch);
-		fklNiEnd(&ap,stack);
+		case FKL_CONT:
+			invokeContinuation(exe,v->u.cont);
+			break;
+		case FKL_DLPROC:
+			invokeDlProc(exe,v->u.dlproc);
+			break;
+		case FKL_USERDATA:
+			v->u.ud->t->__invoke(exe,v->u.ud->data);
+			break;
+		default:
+			break;
 	}
-	else
-	{
-		char* threadErrorMessage=fklCopyCstr("error:occur in thread ");
-		char* id=fklIntToCstr(exe->VMid);
-		threadErrorMessage=fklStrCat(threadErrorMessage,id);
-		threadErrorMessage=fklStrCat(threadErrorMessage,"\n");
-		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerrorCstr("thread",fklGetBuiltInErrorType(FKL_THREADERROR),threadErrorMessage),exe->heap);
-		free(threadErrorMessage);
-		free(id);
-		FklVMsend* t=fklNewVMsend(err);
-		fklChanlSend(t,ch);
-		state=255;
-	}
-	fklFreeVMstack(exe->stack);
-	exe->stack=NULL;
-	exe->lnt=NULL;
-	pthread_rwlock_wrlock(&exe->rlock);
-	fklDeleteCallChain(exe);
-	exe->rhead=NULL;
-	fklFreePtrStack(exe->tstack);
-	exe->mark=0;
-	pthread_rwlock_unlock(&exe->rlock);
-	return (void*)state;
 }
 
 int fklRunVM(FklVM* exe,FklVMrunnable* baseRunnable)
 {
 	while(exe->rhead!=baseRunnable)
 	{
+		if(exe->nextInvoke)
+		{
+			invokeInvokeObj(exe->nextInvoke,exe);
+			exe->nextInvoke=NULL;
+		}
 		FklVMrunnable* currunnable=exe->rhead;
 		if(currunnable->cp>=currunnable->cpc+currunnable->scp)
 		{
@@ -862,14 +887,6 @@ void B_set_tp(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=exe->rhead;
 	fklPushUintStack(stack->tp,stack->tps);
-//	if(stack->tptp>=stack->tpsi)
-//	{
-//		stack->tpst=(uint32_t*)realloc(stack->tpst,sizeof(uint32_t)*(stack->tpsi+16));
-//		FKL_ASSERT(stack->tpst,__func__);
-//		stack->tpsi+=16;
-//	}
-//	stack->tpst[stack->tptp]=stack->tp;
-//	stack->tptp+=1;
 	runnable->cp+=1;
 }
 
@@ -878,8 +895,6 @@ void B_set_bp(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=exe->rhead;
 	fklNiSetBp(stack->tp,stack);
-//	fklPushUintStack(stack->bp,stack->bps);
-//	fklPushVMvalue(FKL_MAKE_VM_I32(stack->bp),stack);
 	stack->bp=stack->tp;
 	runnable->cp+=sizeof(char);
 }
@@ -890,7 +905,6 @@ void B_res_tp(FklVM* exe)
 	FklVMrunnable* runnable=exe->rhead;
 	pthread_rwlock_wrlock(&stack->lock);
 	stack->tp=fklTopUintStack(stack->tps);
-//	stack->tp=(stack->tptp)?stack->tpst[stack->tptp-1]:0;
 	fklStackRecycle(exe);
 	pthread_rwlock_unlock(&stack->lock);
 	runnable->cp+=sizeof(char);
@@ -901,13 +915,6 @@ void B_pop_tp(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=exe->rhead;
 	fklPopUintStack(stack->tps);
-//	stack->tptp-=1;
-//	if(stack->tpsi-stack->tptp>16)
-//	{
-//		stack->tpst=(uint32_t*)realloc(stack->tpst,sizeof(uint32_t)*(stack->tpsi-16));
-//		FKL_ASSERT(stack->tpst,__func__);
-//		stack->tpsi-=16;
-//	}
 	runnable->cp+=sizeof(char);
 }
 
@@ -918,12 +925,6 @@ void B_res_bp(FklVM* exe)
 	if(stack->tp>stack->bp)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.res-bp",FKL_TOOMANYARG,runnable,exe);
 	stack->bp=fklPopUintStack(stack->bps);
-//	FklVMvalue* prevBp=fklGetTopValue(stack);
-//	stack->bp=FKL_GET_I32(prevBp);
-//	pthread_rwlock_wrlock(&stack->lock);
-//	stack->tp-=1;
-//	fklStackRecycle(exe);
-//	pthread_rwlock_unlock(&stack->lock);
 	runnable->cp+=sizeof(char);
 }
 
@@ -938,23 +939,24 @@ void B_invoke(FklVM* exe)
 	{
 		case FKL_PROC:
 			invokeNativeProcdure(exe,tmpValue->u.proc,runnable);
-			fklNiEnd(&ap,stack);
 			break;
-		case FKL_CONT:
-			fklNiEnd(&ap,stack);
-			invokeContinuation(exe,tmpValue->u.cont);
-			break;
-		case FKL_DLPROC:
-			fklNiEnd(&ap,stack);
-			invokeDlProc(exe,tmpValue->u.dlproc);
-			break;
-		case FKL_USERDATA:
-			fklNiEnd(&ap,stack);
-			tmpValue->u.ud->t->__invoke(exe,tmpValue->u.ud->data);
-			break;
+			//		case FKL_CONT:
+			//			fklNiEnd(&ap,stack);
+			//			invokeContinuation(exe,tmpValue->u.cont);
+			//			break;
+			//		case FKL_DLPROC:
+			//			fklNiEnd(&ap,stack);
+			//			invokeDlProc(exe,tmpValue->u.dlproc);
+			//			break;
+			//		case FKL_USERDATA:
+			//			fklNiEnd(&ap,stack);
+			//			tmpValue->u.ud->t->__invoke(exe,tmpValue->u.ud->data);
+			//			break;
 		default:
+			exe->nextInvoke=tmpValue;
 			break;
 	}
+	fklNiEnd(&ap,stack);
 }
 
 void B_tail_invoke(FklVM* exe)
@@ -969,23 +971,24 @@ void B_tail_invoke(FklVM* exe)
 	{
 		case FKL_PROC:
 			tailInvokeNativeProcdure(exe,tmpValue->u.proc,runnable);
-			fklNiEnd(&ap,stack);
 			break;
-		case FKL_CONT:
-			fklNiEnd(&ap,stack);
-			invokeContinuation(exe,tmpValue->u.cont);
-			break;
-		case FKL_DLPROC:
-			fklNiEnd(&ap,stack);
-			invokeDlProc(exe,tmpValue->u.dlproc);
-			break;
-		case FKL_USERDATA:
-			fklNiEnd(&ap,stack);
-			tmpValue->u.ud->t->__invoke(exe,tmpValue->u.ud->data);
-			break;
+			//		case FKL_CONT:
+			//			fklNiEnd(&ap,stack);
+			//			invokeContinuation(exe,tmpValue->u.cont);
+			//			break;
+			//		case FKL_DLPROC:
+			//			fklNiEnd(&ap,stack);
+			//			invokeDlProc(exe,tmpValue->u.dlproc);
+			//			break;
+			//		case FKL_USERDATA:
+			//			fklNiEnd(&ap,stack);
+			//			tmpValue->u.ud->t->__invoke(exe,tmpValue->u.ud->data);
+			//			break;
 		default:
+			exe->nextInvoke=tmpValue;
 			break;
 	}
+	fklNiEnd(&ap,stack);
 }
 
 void B_jmp_if_true(FklVM* exe)
@@ -1153,9 +1156,6 @@ FklVMstack* fklNewVMstack(int32_t size)
 	FKL_ASSERT(tmp->values,__func__);
 	tmp->tps=fklNewUintStack(32,16);
 	tmp->bps=fklNewUintStack(32,16);
-//	tmp->tpsi=0;
-//	tmp->tptp=0;
-//	tmp->tpst=NULL;
 	pthread_rwlock_init(&tmp->lock,NULL);
 	return tmp;
 }
@@ -1296,6 +1296,8 @@ void fklGC_markRootToGray(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMheap* heap=exe->heap;
+	if(exe->nextInvoke)
+		fklGC_toGray(exe->nextInvoke,heap);
 	pthread_rwlock_rdlock(&exe->rlock);
 	for(FklVMrunnable* cur=exe->rhead;cur;cur=cur->prev)
 		fklGC_toGray(cur->localenv,heap);
@@ -1687,6 +1689,7 @@ FklVM* fklNewThreadVM(FklVMproc* mainCode,FklVMheap* heap)
 	exe->stack=fklNewVMstack(0);
 	exe->heap=heap;
 	exe->callback=threadErrorCallBack;
+	exe->nextInvoke=NULL;
 	pthread_rwlock_init(&exe->rlock,NULL);
 	FklVM** ppVM=NULL;
 	int i=0;
@@ -1715,7 +1718,7 @@ FklVM* fklNewThreadVM(FklVMproc* mainCode,FklVMheap* heap)
 	return exe;
 }
 
-FklVM* fklNewThreadDlprocVM(FklVMrunnable* r,FklVMheap* heap)
+FklVM* fklNewThreadInvokableObjVM(FklVMrunnable* r,FklVMheap* heap,FklVMvalue* nextInvoke)
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe,__func__);
@@ -1729,6 +1732,8 @@ FklVM* fklNewThreadDlprocVM(FklVMrunnable* r,FklVMheap* heap)
 	exe->stack=fklNewVMstack(0);
 	exe->heap=heap;
 	exe->callback=threadErrorCallBack;
+	exe->nextInvoke=nextInvoke;
+	pthread_rwlock_init(&exe->rlock,NULL);
 	FklVM** ppVM=NULL;
 	int i=0;
 	pthread_rwlock_wrlock(&GlobVMsLock);
@@ -1762,7 +1767,6 @@ void fklFreeVMstack(FklVMstack* stack)
 	pthread_rwlock_destroy(&stack->lock);
 	fklFreeUintStack(stack->bps);
 	fklFreeUintStack(stack->tps);
-//	free(stack->tpst);
 	free(stack->values);
 	free(stack);
 }

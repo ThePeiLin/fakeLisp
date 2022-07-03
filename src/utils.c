@@ -110,22 +110,6 @@ char* fklIntToCstr(long num)
 	return fklCopyCstr(numString);
 }
 
-//int64_t fklStringToInt(const FklString* str)
-//{
-//	char* c_str=fklStringToCstr(str);
-//	int64_t tmp=fklCstrToInt(c_str);
-//	free(c_str);
-//	return tmp;
-	//if(fklIsHexNumString(str))
-	//	sscanf(c_str,"%lx",&tmp);
-	//else if(fklIsOctNumString(str))
-	//	sscanf(c_str,"%lo",&tmp);
-	//else
-	//	sscanf(c_str,"%ld",&tmp);
-	//free(c_str);
-	//return tmp;
-//}
-
 int fklPower(int first,int second)
 {
 	int i;
@@ -691,90 +675,6 @@ char** fklSplit(char* str,char* divstr,int* length)
 	*length=count;
 	return strArry;
 }
-
-//char* fklCastEscapeCharater(const char* str,char end,size_t* len)
-//{
-//	int32_t strSize=0;
-//	int32_t memSize=FKL_MAX_STRING_SIZE;
-//	int32_t i=0;
-//	char* tmp=(char*)malloc(sizeof(char)*memSize);
-//	while(str[i]!=end)
-//	{
-//		int ch=0;
-//		if(str[i]=='\\')
-//		{
-//			char* backSlashStr=fklGetStringAfterBackslashInStr(str+i+1);
-//			size_t len=strlen(backSlashStr);
-//			if(isdigit(backSlashStr[0]))
-//			{
-//				if(backSlashStr[0]=='0'&&isdigit(backSlashStr[1]))
-//					sscanf(backSlashStr,"%4o",&ch);
-//				else
-//					sscanf(backSlashStr,"%4d",&ch);
-//				i+=len+1;
-//			}
-//			else if(toupper(backSlashStr[0])=='X')
-//			{
-//				ch=fklStringToChar(backSlashStr);
-//				i+=len+1;
-//			}
-//			else if(backSlashStr[0]=='\n')
-//			{
-//				i+=2;
-//				free(backSlashStr);
-//				continue;
-//			}
-//			else
-//			{
-//				switch(toupper(backSlashStr[0]))
-//				{
-//					case 'A':
-//						ch=0x07;
-//						break;
-//					case 'B':
-//						ch=0x08;
-//						break;
-//					case 'T':
-//						ch=0x09;
-//						break;
-//					case 'N':
-//						ch=0x0a;
-//						break;
-//					case 'V':
-//						ch=0x0b;
-//						break;
-//					case 'F':
-//						ch=0x0c;
-//						break;
-//					case 'R':
-//						ch=0x0d;
-//						break;
-//					case 'S':
-//						ch=0x20;
-//						break;
-//					default:ch=str[i+1];break;
-//				}
-//				i+=2;
-//			}
-//			free(backSlashStr);
-//		}
-//		else ch=str[i++];
-//		strSize++;
-//		if(strSize>memSize-1)
-//		{
-//			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+FKL_MAX_STRING_SIZE));
-//			FKL_ASSERT(tmp,__func__);
-//			memSize+=FKL_MAX_STRING_SIZE;
-//		}
-//		tmp[strSize-1]=ch;
-//	}
-//	if(tmp)tmp[strSize]='\0';
-//	memSize=strlen(tmp)+1;
-//	tmp=(char*)realloc(tmp,memSize*sizeof(char));
-//	FKL_ASSERT(tmp,__func__);
-//	*len=i+1;
-//	return tmp;
-//}
 
 int32_t fklCountChar(const char* str,char c,int32_t len)
 {

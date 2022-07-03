@@ -78,20 +78,6 @@ FklVMvalue* fklTopGet(FklVMstack* stack)
 	else
 	{
 		FklVMvalue* tmp=fklGetTopValue(stack);
-		//if(FKL_IS_REF(tmp))
-		//{
-		//	stack->tp-=1;
-		//	r=*(FklVMvalue**)(FKL_GET_PTR(tmp));
-		//	stack->values[stack->tp-1]=r;
-		//}
-		//else if(FKL_IS_MREF(tmp))
-		//{
-		//	stack->tp-=1;
-		//	void* ptr=fklGetTopValue(stack);
-		//	r=FKL_MAKE_VM_CHR(*(char*)ptr);
-		//	stack->values[stack->tp-1]=r;
-		//}
-		//else
 		r=tmp;
 	}
 	pthread_rwlock_unlock(&stack->lock);

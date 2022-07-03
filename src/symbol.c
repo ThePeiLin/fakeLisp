@@ -134,6 +134,8 @@ static const char* builtInSymbolList[]=
 	"fix-int?",
 	"number?",
 	"map",
+	"sref",
+	"set-sref!",
 };
 
 FklSymbolTable* GlobSymbolTable=NULL;

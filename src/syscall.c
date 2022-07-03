@@ -1487,6 +1487,54 @@ void SYS_set_nth(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void SYS_sref(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* vector=fklNiGetArg(&ap,stack);
+	FklVMvalue* place=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.sref",FKL_TOOMANYARG,runnable,exe);
+	if(!place||!vector)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.sref",FKL_TOOFEWARG,runnable,exe);
+	if(!fklIsInt(place)||!FKL_IS_STR(vector))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.sref",FKL_WRONGARG,runnable,exe);
+	int64_t index=fklGetInt(place);
+	size_t size=vector->u.str->size;
+	if(index<0||index>=size)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.sref",FKL_INVALIDACCESS,runnable,exe);
+	if(index>=vector->u.str->size)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.sref",FKL_INVALIDACCESS,runnable,exe);
+	fklNiReturn(FKL_MAKE_VM_CHR(vector->u.str->str[index]),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void SYS_set_sref(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* vector=fklNiGetArg(&ap,stack);
+	FklVMvalue* place=fklNiGetArg(&ap,stack);
+	FklVMvalue* target=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-sref!",FKL_TOOMANYARG,runnable,exe);
+	if(!place||!vector||!target)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-sref!",FKL_TOOFEWARG,runnable,exe);
+	if(!fklIsInt(place)||!FKL_IS_STR(vector))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-sref!",FKL_WRONGARG,runnable,exe);
+	int64_t index=fklGetInt(place);
+	size_t size=vector->u.str->size;
+	if(index<0||index>=size)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-sref!",FKL_INVALIDACCESS,runnable,exe);
+	if(index>=vector->u.str->size)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-sref!",FKL_INVALIDACCESS,runnable,exe);
+	if(!FKL_IS_CHR(target)&&!fklIsInt(target))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-sref!",FKL_WRONGARG,runnable,exe);
+	vector->u.str->str[index]=FKL_IS_CHR(target)?FKL_GET_CHR(target):fklGetInt(target);
+	fklNiReturn(target,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 void SYS_vref(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -1497,24 +1545,15 @@ void SYS_vref(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.vref",FKL_TOOMANYARG,runnable,exe);
 	if(!place||!vector)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.vref",FKL_TOOFEWARG,runnable,exe);
-	if(!fklIsInt(place)||(!FKL_IS_VECTOR(vector)&&!FKL_IS_STR(vector)))
+	if(!fklIsInt(place)||!FKL_IS_VECTOR(vector))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.vref",FKL_WRONGARG,runnable,exe);
 	int64_t index=fklGetInt(place);
-	size_t size=FKL_IS_STR(vector)?vector->u.str->size:vector->u.vec->size;
+	size_t size=vector->u.vec->size;
 	if(index<0||index>=size)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.vref",FKL_INVALIDACCESS,runnable,exe);
-	if(FKL_IS_STR(vector))
-	{
-		if(index>=vector->u.str->size)
-			FKL_RAISE_BUILTIN_ERROR_CSTR("sys.vref",FKL_INVALIDACCESS,runnable,exe);
-		fklNiReturn(FKL_MAKE_VM_CHR(vector->u.str->str[index]),&ap,stack);
-	}
-	else if(FKL_IS_VECTOR(vector))
-	{
-		if(index>=vector->u.vec->size)
-			FKL_RAISE_BUILTIN_ERROR_CSTR("sys.vref",FKL_INVALIDACCESS,runnable,exe);
-		fklNiReturn(vector->u.vec->base[index],&ap,stack);
-	}
+	if(index>=vector->u.vec->size)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.vref",FKL_INVALIDACCESS,runnable,exe);
+	fklNiReturn(vector->u.vec->base[index],&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -1529,28 +1568,16 @@ void SYS_set_vref(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-vref!",FKL_TOOMANYARG,runnable,exe);
 	if(!place||!vector||!target)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-vref!",FKL_TOOFEWARG,runnable,exe);
-	if(!fklIsInt(place)||(!FKL_IS_VECTOR(vector)&&!FKL_IS_STR(vector)))
+	if(!fklIsInt(place)||!FKL_IS_VECTOR(vector))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-vref!",FKL_WRONGARG,runnable,exe);
 	int64_t index=fklGetInt(place);
-	size_t size=FKL_IS_STR(vector)?vector->u.str->size:vector->u.vec->size;
+	size_t size=vector->u.vec->size;
 	if(index<0||index>=size)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-vref!",FKL_INVALIDACCESS,runnable,exe);
-	if(FKL_IS_STR(vector))
-	{
-		if(index>=vector->u.str->size)
-			FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-vref!",FKL_INVALIDACCESS,runnable,exe);
-		if(!FKL_IS_CHR(target)&&!fklIsInt(target))
-			FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-vref!",FKL_WRONGARG,runnable,exe);
-		vector->u.str->str[index]=FKL_IS_CHR(target)?FKL_GET_CHR(target):fklGetInt(target);
-		fklNiReturn(target,&ap,stack);
-	}
-	else if(FKL_IS_VECTOR(vector))
-	{
-		if(index>=vector->u.vec->size)
-			FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-vref!",FKL_INVALIDACCESS,runnable,exe);
-		fklSetRef(vector,&vector->u.vec->base[index],target,exe->heap);
-		fklNiReturn(target,&ap,stack);
-	}
+	if(index>=vector->u.vec->size)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-vref!",FKL_INVALIDACCESS,runnable,exe);
+	fklSetRef(vector,&vector->u.vec->base[index],target,exe->heap);
+	fklNiReturn(target,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

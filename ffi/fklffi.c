@@ -21,11 +21,11 @@
 	fklNiEnd(&ap,stack);\
 }
 
-void FKL_ffi_mem_p(ARGL) PREDICATE(fklFfiIsMem(val),"ffi.mem?")
+void ffi_mem_p(ARGL) PREDICATE(fklFfiIsMem(val),"ffi.mem?")
 
 #undef PREDICATE
 
-void FKL_ffi_null_p(ARGL)
+void ffi_null_p(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -43,7 +43,7 @@ void FKL_ffi_null_p(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_ffi_new(ARGL)
+void ffi_new(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* typedeclare=fklNiGetArg(&ap,stack);
@@ -82,7 +82,7 @@ void FKL_ffi_new(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_ffi_delete(ARGL)
+void ffi_delete(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* mem=fklNiGetArg(&ap,stack);
@@ -99,7 +99,7 @@ void FKL_ffi_delete(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_ffi_sizeof(ARGL)
+void ffi_sizeof(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* typedeclare=fklNiGetArg(&ap,stack);
@@ -124,7 +124,7 @@ void FKL_ffi_sizeof(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_ffi_alignof(ARGL)
+void ffi_alignof(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* typedeclare=fklNiGetArg(&ap,stack);
@@ -149,7 +149,7 @@ void FKL_ffi_alignof(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_ffi_typedef(ARGL)
+void ffi_typedef(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* typedeclare=fklNiGetArg(&ap,stack);
@@ -169,7 +169,7 @@ void FKL_ffi_typedef(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_ffi_load(ARGL)
+void ffi_load(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;
@@ -192,7 +192,7 @@ void FKL_ffi_load(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_ffi_ref(ARGL)
+void ffi_ref(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;
@@ -217,7 +217,7 @@ void FKL_ffi_ref(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_ffi_clear(ARGL)
+void ffi_clear(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;
@@ -238,7 +238,7 @@ void FKL_ffi_clear(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_ffi_cast_ref(ARGL)
+void ffi_cast_ref(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;
@@ -263,7 +263,7 @@ void FKL_ffi_cast_ref(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_ffi_set(ARGL)
+void ffi_set(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;
@@ -282,7 +282,7 @@ void FKL_ffi_set(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_ffi_mem(ARGL)
+void ffi_mem(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -297,7 +297,7 @@ void FKL_ffi_mem(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_ffi_val(ARGL)
+void ffi_val(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -312,7 +312,7 @@ void FKL_ffi_val(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_ffi_proc(ARGL)
+void ffi_proc(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;

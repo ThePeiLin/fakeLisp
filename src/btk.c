@@ -33,7 +33,7 @@ int getch()
 }
 #endif
 #define ARGL FklVM* exe
-void FKL_btk_getch(ARGL)
+void btk_getch(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	if(fklNiResBp(&ap,stack))
@@ -42,7 +42,7 @@ void FKL_btk_getch(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_btk_sleep(ARGL)
+void btk_sleep(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;
@@ -56,7 +56,7 @@ void FKL_btk_sleep(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_btk_usleep(ARGL)
+void btk_usleep(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* second=fklNiGetArg(&ap,stack);
@@ -75,7 +75,7 @@ void FKL_btk_usleep(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_btk_srand(ARGL)
+void btk_srand(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;
@@ -88,7 +88,7 @@ void FKL_btk_srand(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_btk_rand(ARGL)
+void btk_rand(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue*  lim=fklNiGetArg(&ap,stack);
@@ -101,7 +101,7 @@ void FKL_btk_rand(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_btk_get_time(ARGL)
+void btk_get_time(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	if(fklNiResBp(&ap,stack))
@@ -132,7 +132,7 @@ void FKL_btk_get_time(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_btk_remove_file(ARGL)
+void btk_remove_file(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* name=fklPopVMstack(stack);
@@ -148,7 +148,7 @@ void FKL_btk_remove_file(ARGL)
 	free(name);
 }
 
-void FKL_btk_set_chanl_buffer_size(ARGL)
+void btk_set_chanl_buffer_size(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* chan=fklPopVMstack(stack);
@@ -165,7 +165,7 @@ void FKL_btk_set_chanl_buffer_size(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void FKL_btk_time(ARGL)
+void btk_time(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;

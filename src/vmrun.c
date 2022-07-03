@@ -95,6 +95,14 @@ void tailInvokeNativeProcdure(FklVM* exe,FklVMproc* proc,FklVMrunnable* runnable
 	}
 }
 
+FklVMvalue* fklVMcallInDlproc(FklVMvalue* proc
+		,size_t argNum
+		,FklVMvalue* arglist[]
+		,FklVMrunnable* runnable
+		,FklVM* exe)
+{
+}
+
 void invokeContinuation(FklVM* exe,FklVMcontinuation* cc)
 {
 	fklCreateCallChainWithContinuation(exe,cc);
@@ -507,90 +515,6 @@ void* ThreadVMfunc(void* p)
 	return (void*)state;
 }
 
-//void* ThreadVMdlprocFunc(void* p)
-//{
-//	void** a=(void**)p;
-//	FklVM* exe=a[0];
-//	FklVMdllFunc f=a[1];
-//	free(p);
-//	int64_t state=0;
-//	FklVMchanl* ch=exe->chan->u.chan;
-//	if(!setjmp(exe->buf))
-//	{
-//		f(exe);
-//		FKL_NI_BEGIN(exe);
-//		FklVMvalue* v=NULL;
-//		while((v=fklNiGetArg(&ap,stack)))
-//			fklChanlSend(fklNewVMsend(v),ch);
-//		fklNiEnd(&ap,stack);
-//	}
-//	else
-//	{
-//		char* threadErrorMessage=fklCopyCstr("error:occur in thread ");
-//		char* id=fklIntToCstr(exe->VMid);
-//		threadErrorMessage=fklStrCat(threadErrorMessage,id);
-//		threadErrorMessage=fklStrCat(threadErrorMessage,"\n");
-//		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerrorCstr("thread",fklGetBuiltInErrorType(FKL_THREADERROR),threadErrorMessage),exe->heap);
-//		free(threadErrorMessage);
-//		free(id);
-//		FklVMsend* t=fklNewVMsend(err);
-//		fklChanlSend(t,ch);
-//		state=255;
-//	}
-//	fklFreeVMstack(exe->stack);
-//	exe->stack=NULL;
-//	exe->lnt=NULL;
-//	pthread_rwlock_wrlock(&exe->rlock);
-//	fklDeleteCallChain(exe);
-//	exe->rhead=NULL;
-//	fklFreePtrStack(exe->tstack);
-//	exe->mark=0;
-//	pthread_rwlock_unlock(&exe->rlock);
-//	return (void*)state;
-//}
-
-//void* ThreadVMinvokableUd(void* p)
-//{
-//	void** a=(void**)p;
-//	FklVM* exe=a[0];
-//	FklVMudata* ud=a[1];
-//	free(p);
-//	int64_t state=0;
-//	FklVMchanl* ch=exe->chan->u.chan;
-//	if(!setjmp(exe->buf))
-//	{
-//		ud->t->__invoke(exe,ud->data);
-//		FKL_NI_BEGIN(exe);
-//		FklVMvalue* v=NULL;
-//		while((v=fklNiGetArg(&ap,stack)))
-//			fklChanlSend(fklNewVMsend(v),ch);
-//		fklNiEnd(&ap,stack);
-//	}
-//	else
-//	{
-//		char* threadErrorMessage=fklCopyCstr("error:occur in thread ");
-//		char* id=fklIntToCstr(exe->VMid);
-//		threadErrorMessage=fklStrCat(threadErrorMessage,id);
-//		threadErrorMessage=fklStrCat(threadErrorMessage,"\n");
-//		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerrorCstr("thread",fklGetBuiltInErrorType(FKL_THREADERROR),threadErrorMessage),exe->heap);
-//		free(threadErrorMessage);
-//		free(id);
-//		FklVMsend* t=fklNewVMsend(err);
-//		fklChanlSend(t,ch);
-//		state=255;
-//	}
-//	fklFreeVMstack(exe->stack);
-//	exe->stack=NULL;
-//	exe->lnt=NULL;
-//	pthread_rwlock_wrlock(&exe->rlock);
-//	fklDeleteCallChain(exe);
-//	exe->rhead=NULL;
-//	fklFreePtrStack(exe->tstack);
-//	exe->mark=0;
-//	pthread_rwlock_unlock(&exe->rlock);
-//	return (void*)state;
-//}
-
 void invokeInvokableObj(FklVMvalue* v,FklVM* exe)
 {
 	exe->nextInvoke=NULL;
@@ -838,9 +762,7 @@ void B_pop_var(FklVM* exe)
 			FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-var",FKL_SYMUNDEFINE,runnable,exe);
 		pValue=&tmp->value;
 	}
-//	pthread_rwlock_wrlock(&curEnv->u.env->lock);
 	fklSetRef(curEnv,pValue,fklNiGetArg(&ap,stack),exe->heap);
-//	pthread_rwlock_unlock(&curEnv->u.env->lock);
 	fklNiEnd(&ap,stack);
 	if(FKL_IS_PROC(*pValue)&&(*pValue)->u.proc->sid==0)
 		(*pValue)->u.proc->sid=idOfVar;
@@ -858,9 +780,7 @@ void B_pop_arg(FklVM* exe)
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklVMvalue* curEnv=runnable->localenv;
 	FklVMvalue* volatile* pValue=&fklAddVMenvNode(idOfVar,curEnv->u.env)->value;
-//	pthread_rwlock_wrlock(&curEnv->u.env->lock);
 	fklSetRef(curEnv,pValue,fklNiGetArg(&ap,stack),exe->heap);
-//	pthread_rwlock_unlock(&curEnv->u.env->lock);
 	fklNiEnd(&ap,stack);
 	runnable->cp+=sizeof(char)+sizeof(FklSid_t);
 }
@@ -877,9 +797,7 @@ void B_pop_rest_arg(FklVM* exe)
 	for(;ap>stack->bp;pValue=&(*pValue)->u.pair->cdr)
 		*pValue=fklNewVMpairV(fklNiGetArg(&ap,stack),FKL_VM_NIL,stack,heap);
 	pValue=&fklAddVMenvNode(idOfVar,curEnv->u.env)->value;
-//	pthread_rwlock_wrlock(&curEnv->u.env->lock);
 	fklSetRef(curEnv,pValue,obj,heap);
-//	pthread_rwlock_unlock(&curEnv->u.env->lock);
 	fklNiEnd(&ap,stack);
 	runnable->cp+=sizeof(char)+sizeof(FklSid_t);
 }
@@ -942,18 +860,6 @@ void B_invoke(FklVM* exe)
 		case FKL_PROC:
 			invokeNativeProcdure(exe,tmpValue->u.proc,runnable);
 			break;
-			//		case FKL_CONT:
-			//			fklNiEnd(&ap,stack);
-			//			invokeContinuation(exe,tmpValue->u.cont);
-			//			break;
-			//		case FKL_DLPROC:
-			//			fklNiEnd(&ap,stack);
-			//			invokeDlProc(exe,tmpValue->u.dlproc);
-			//			break;
-			//		case FKL_USERDATA:
-			//			fklNiEnd(&ap,stack);
-			//			tmpValue->u.ud->t->__invoke(exe,tmpValue->u.ud->data);
-			//			break;
 		default:
 			exe->nextInvoke=tmpValue;
 			break;
@@ -974,18 +880,6 @@ void B_tail_invoke(FklVM* exe)
 		case FKL_PROC:
 			tailInvokeNativeProcdure(exe,tmpValue->u.proc,runnable);
 			break;
-			//		case FKL_CONT:
-			//			fklNiEnd(&ap,stack);
-			//			invokeContinuation(exe,tmpValue->u.cont);
-			//			break;
-			//		case FKL_DLPROC:
-			//			fklNiEnd(&ap,stack);
-			//			invokeDlProc(exe,tmpValue->u.dlproc);
-			//			break;
-			//		case FKL_USERDATA:
-			//			fklNiEnd(&ap,stack);
-			//			tmpValue->u.ud->t->__invoke(exe,tmpValue->u.ud->data);
-			//			break;
 		default:
 			exe->nextInvoke=tmpValue;
 			break;
@@ -1107,9 +1001,7 @@ void B_push_r_env(FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;
 	FklVMvalue* n=fklNiNewVMvalue(FKL_ENV,fklNewVMenv(FKL_VM_NIL),stack,exe->heap);
-//	pthread_rwlock_wrlock(&n->u.env->lock);
 	fklSetRef(n,&n->u.env->prev,r->localenv,exe->heap);
-//	pthread_rwlock_unlock(&n->u.env->lock);
 	pthread_rwlock_wrlock(&exe->rlock);
 	r->localenv=n;
 	pthread_rwlock_unlock(&exe->rlock);

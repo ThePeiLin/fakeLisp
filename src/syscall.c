@@ -1895,14 +1895,15 @@ void SYS_dlsym(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.dlsym",FKL_WRONGARG,runnable,exe);
 	if(!dll->u.dll)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.dlsym",FKL_INVALIDACCESS,runnable,exe);
-	char prefix[]="FKL_";
+//	char prefix[]="FKL_";
 	char* str=fklStringToCstr(symbol->u.str);
-	size_t len=strlen(prefix)+strlen(str)+1;
-	char* realDlFuncName=(char*)malloc(sizeof(char)*len);
-	FKL_ASSERT(realDlFuncName,__func__);
-	sprintf(realDlFuncName,"%s%s",prefix,str);
-	FklVMdllFunc funcAddress=fklGetAddress(realDlFuncName,dll->u.dll);
-	free(realDlFuncName);
+//	size_t len=strlen(prefix)+strlen(str)+1;
+//	char* realDlFuncName=(char*)malloc(sizeof(char)*len);
+//	FKL_ASSERT(realDlFuncName,__func__);
+//	sprintf(realDlFuncName,"%s%s",prefix,str);
+//	FklVMdllFunc funcAddress=fklGetAddress(realDlFuncName,dll->u.dll);
+	FklVMdllFunc funcAddress=fklGetAddress(str,dll->u.dll);
+//	free(realDlFuncName);
 	if(!funcAddress)
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("sys.dlsym",str,1,FKL_INVALIDSYMBOL,exe);
 	free(str);
@@ -1962,23 +1963,6 @@ void SYS_go(ARGL)
 	FklVMvalue* chan=threadVM->chan;
 	int32_t faildCode=0;
 	faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMfunc,threadVM);
-	//else if(FKL_IS_CONT(threadProc))
-	//{
-	//	fklCreateCallChainWithContinuation(threadVM,threadProc->u.cont);
-	//	faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMfunc,threadVM);
-	//}
-	//else if(FKL_IS_DLPROC(threadProc))
-	//{
-	//	void* a[2]={threadVM,threadProc->u.dlproc->func};
-	//	void** p=(void**)fklCopyMemory(a,sizeof(a));
-	//	faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMdlprocFunc,p);
-	//}
-	//else
-	//{
-	//	void* a[2]={threadVM,threadProc->u.ud};
-	//	void** p=(void**)fklCopyMemory(a,sizeof(a));
-	//	faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMinvokableUd,p);
-	//}
 	if(faildCode)
 	{
 		fklDeleteCallChain(threadVM);
@@ -2081,14 +2065,10 @@ void SYS_call_cc(ARGL)
 	if(!proc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.call/cc",FKL_TOOFEWARG,runnable,exe);
 	FKL_NI_CHECK_TYPE(proc,fklIsInvokeable,"sys.apply",runnable,exe);
-//	if(!FKL_IS_PTR(proc)||(proc->type!=FKL_PROC&&proc->type!=FKL_CONT&&proc->type!=FKL_DLPROC))
-//		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.call/cc",FKL_INVOKEERROR,runnable,exe);
 	pthread_rwlock_rdlock(&exe->rlock);
 	FklVMvalue* cc=fklNiNewVMvalue(FKL_CONT,fklNewVMcontinuation(ap,stack,exe->rhead,exe->tstack,exe->nextInvoke),stack,exe->heap);
 	pthread_rwlock_unlock(&exe->rlock);
 	fklNiSetBp(ap,stack);
-//	fklPushUintStack(stack->bp,stack->bps);
-//	stack->bp=ap;
 	fklNiReturn(cc,&ap,stack);
 	if(proc->type==FKL_PROC)
 	{
@@ -2105,16 +2085,6 @@ void SYS_call_cc(ARGL)
 	}
 	else
 		exe->nextInvoke=proc;
-//	else if(proc->type==FKL_CONT)
-//	{
-//		FklVMcontinuation* cc=proc->u.cont;
-//		fklCreateCallChainWithContinuation(exe,cc);
-//	}
-//	else
-//	{
-//		FklVMdllFunc dllfunc=proc->u.dlproc->func;
-//		dllfunc(exe);
-//	}
 	fklNiEnd(&ap,stack);
 }
 
@@ -2154,8 +2124,6 @@ void SYS_apply(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.apply",FKL_WRONGARG,runnable,exe);
 	}
 	fklNiSetBp(ap,stack);
-//	fklPushUintStack(stack->bp,stack->bps);
-//	stack->bp=ap;
 	while(!fklIsPtrStackEmpty(stack2))
 	{
 		FklVMvalue* t=fklPopPtrStack(stack2);
@@ -2173,18 +2141,6 @@ void SYS_apply(ARGL)
 		case FKL_PROC:
 			applyNativeProc(exe,proc->u.proc,runnable);
 			break;
-//		case FKL_CONT:
-//			fklNiEnd(&ap,stack);
-//			invokeContinuation(exe,proc->u.cont);
-//			break;
-//		case FKL_DLPROC:
-//			fklNiEnd(&ap,stack);
-//			invokeDlProc(exe,proc->u.dlproc);
-//			break;
-//		case FKL_USERDATA:
-//			fklNiEnd(&ap,stack);
-//			proc->u.ud->t->__invoke(exe,proc->u.ud->data);
-//			break;
 		default:
 			exe->nextInvoke=proc;
 			break;
@@ -2233,7 +2189,7 @@ void SYS_map(ARGL)
 				fklSetRef(cars,&cars->u.vec->base[i],pair->u.pair->car,heap);
 				fklSetRef(argVec,&argVec->u.vec->base[i],pair->u.pair->cdr,heap);
 			}
-			FklVMvalue* result=FKL_VM_NIL;//fklVMcallInDlproc(proc,argNum,cars->u.vec->base,runnable,exe);
+			FklVMvalue* result=fklVMcallInDlproc(proc,argNum,cars->u.vec->base,runnable,exe);
 			fklSetRef(*cur,&(*cur)->u.pair->car,result,heap);
 			cur=&(*cur)->u.pair->cdr;
 		}

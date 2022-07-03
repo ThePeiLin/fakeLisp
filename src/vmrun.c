@@ -98,7 +98,7 @@ void tailInvokeNativeProcdure(FklVM* exe,FklVMproc* proc,FklVMrunnable* runnable
 void invokeContinuation(FklVM* exe,FklVMcontinuation* cc)
 {
 	fklCreateCallChainWithContinuation(exe,cc);
-	longjmp(exe->buf,2);
+//	longjmp(exe->buf,2);
 }
 
 void invokeDlProc(FklVM* exe,FklVMdlproc* dlproc)
@@ -587,8 +587,9 @@ void* ThreadVMfunc(void* p)
 //	return (void*)state;
 //}
 
-void invokeInvokeObj(FklVMvalue* v,FklVM* exe)
+void invokeInvokableObj(FklVMvalue* v,FklVM* exe)
 {
+	exe->nextInvoke=NULL;
 	switch(v->type)
 	{
 		case FKL_CONT:
@@ -610,10 +611,7 @@ int fklRunVM(FklVM* exe,FklVMrunnable* baseRunnable)
 	while(exe->rhead!=baseRunnable)
 	{
 		if(exe->nextInvoke)
-		{
-			invokeInvokeObj(exe->nextInvoke,exe);
-			exe->nextInvoke=NULL;
-		}
+			invokeInvokableObj(exe->nextInvoke,exe);
 		FklVMrunnable* currunnable=exe->rhead;
 		if(currunnable->cp>=currunnable->cpc+currunnable->scp)
 		{
@@ -1362,6 +1360,8 @@ void propagateMark(FklVMvalue* root,FklVMheap* heap)
 				fklGC_toGray(root->u.cont->stack->values[i],heap);
 			for(FklVMrunnable* curr=root->u.cont->curr;curr;curr=curr->prev)
 				fklGC_toGray(curr->localenv,heap);
+			if(root->u.cont->nextInvoke)
+				fklGC_toGray(root->u.cont->nextInvoke,heap);
 			break;
 		case FKL_VECTOR:
 			{
@@ -1843,6 +1843,7 @@ void fklCreateCallChainWithContinuation(FklVM* vm,FklVMcontinuation* cc)
 {
 	FklVMstack* stack=vm->stack;
 	FklVMstack* tmpStack=fklCopyStack(cc->stack);
+	vm->nextInvoke=cc->nextInvoke;
 	int32_t i=stack->bp;
 	for(;i<stack->tp;i++)
 	{

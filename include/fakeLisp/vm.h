@@ -242,6 +242,7 @@ typedef struct FklVMcontinuation
 	FklVMstack* stack;
 	FklVMrunnable* curr;
 	struct FklVMtryBlock* tb;
+	FklVMvalue* nextInvoke;
 }FklVMcontinuation;
 
 typedef struct FklVMtryBlock
@@ -342,7 +343,7 @@ char* fklGenErrorMessage(FklErrorType type,FklVMrunnable* r,FklVM* exe);
 char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklErrorType);
 int32_t fklGetSymbolIdInByteCode(const uint8_t*);
 
-FklVMcontinuation* fklNewVMcontinuation(uint32_t ap,FklVMstack* stack,FklVMrunnable* ,FklPtrStack* tstack);
+FklVMcontinuation* fklNewVMcontinuation(uint32_t ap,FklVMstack* stack,FklVMrunnable* ,FklPtrStack* tstack,FklVMvalue*);
 void fklFreeVMcontinuation(FklVMcontinuation* cont);
 
 

@@ -2053,10 +2053,11 @@ void SYS_call_cc(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.call/cc",FKL_TOOMANYARG,runnable,exe);
 	if(!proc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.call/cc",FKL_TOOFEWARG,runnable,exe);
-	if(!FKL_IS_PTR(proc)||(proc->type!=FKL_PROC&&proc->type!=FKL_CONT&&proc->type!=FKL_DLPROC))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.call/cc",FKL_INVOKEERROR,runnable,exe);
+	FKL_NI_CHECK_TYPE(proc,fklIsInvokeable,"sys.apply",runnable,exe);
+//	if(!FKL_IS_PTR(proc)||(proc->type!=FKL_PROC&&proc->type!=FKL_CONT&&proc->type!=FKL_DLPROC))
+//		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.call/cc",FKL_INVOKEERROR,runnable,exe);
 	pthread_rwlock_rdlock(&exe->rlock);
-	FklVMvalue* cc=fklNiNewVMvalue(FKL_CONT,fklNewVMcontinuation(ap,stack,exe->rhead,exe->tstack),stack,exe->heap);
+	FklVMvalue* cc=fklNiNewVMvalue(FKL_CONT,fklNewVMcontinuation(ap,stack,exe->rhead,exe->tstack,exe->nextInvoke),stack,exe->heap);
 	pthread_rwlock_unlock(&exe->rlock);
 	fklNiSetBp(ap,stack);
 //	fklPushUintStack(stack->bp,stack->bps);
@@ -2075,16 +2076,18 @@ void SYS_call_cc(ARGL)
 			exe->rhead=tmpRunnable;
 		}
 	}
-	else if(proc->type==FKL_CONT)
-	{
-		FklVMcontinuation* cc=proc->u.cont;
-		fklCreateCallChainWithContinuation(exe,cc);
-	}
 	else
-	{
-		FklVMdllFunc dllfunc=proc->u.dlproc->func;
-		dllfunc(exe);
-	}
+		exe->nextInvoke=proc;
+//	else if(proc->type==FKL_CONT)
+//	{
+//		FklVMcontinuation* cc=proc->u.cont;
+//		fklCreateCallChainWithContinuation(exe,cc);
+//	}
+//	else
+//	{
+//		FklVMdllFunc dllfunc=proc->u.dlproc->func;
+//		dllfunc(exe);
+//	}
 	fklNiEnd(&ap,stack);
 }
 

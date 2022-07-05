@@ -29,7 +29,7 @@
           cdddar
           cddddr
           list
-          map
+;          map
           andmap
           ormap
           foreach
@@ -137,19 +137,19 @@
              (cdr-all (cdr ls) (cons (cdar ls) r)))
         (1 (reverse r)))))
 
-  (define map
-    (lambda (f,l)
-      (define iter1
-        (lambda (ls r)
-          (cond (ls
-                  (iter1 (cdr-all ls nil) (cons (car-all ls nil) r)))
-            (1 (reverse r)))))
-      (define iter
-        (lambda (l r)
-          (cond ((and l (car l))
-                 (iter (cdr l) (cons (apply f (car l)) r)))
-            (1 (reverse r)))))
-      (iter (iter1 l nil) nil)))
+  ;(define map
+  ;  (lambda (f,l)
+  ;    (define iter1
+  ;      (lambda (ls r)
+  ;        (cond (ls
+  ;                (iter1 (cdr-all ls nil) (cons (car-all ls nil) r)))
+  ;          (1 (reverse r)))))
+  ;    (define iter
+  ;      (lambda (l r)
+  ;        (cond ((and l (car l))
+  ;               (iter (cdr l) (cons (apply f (car l)) r)))
+  ;          (1 (reverse r)))))
+  ;    (iter (iter1 l nil) nil)))
 
   (define andmap
     (lambda (f,l)

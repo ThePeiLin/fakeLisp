@@ -922,6 +922,13 @@ void fklFreeVMcontinuation(FklVMcontinuation* cont)
 	{
 		FklVMrunnable* cur=curr;
 		curr=curr->prev;
+		FklVMcCC* curCCC=cur->ccc;
+		while(curCCC)
+		{
+			FklVMcCC* cur=curCCC;
+			curCCC=cur->next;
+			fklFreeVMcCC(cur);
+		}
 		free(cur);
 	}
 	FklVMtryBlock* tb=cont->tb;

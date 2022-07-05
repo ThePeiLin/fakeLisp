@@ -95,18 +95,42 @@ void tailInvokeNativeProcdure(FklVM* exe,FklVMproc* proc,FklVMrunnable* runnable
 	}
 }
 
-FklVMvalue* fklVMcallInDlproc(FklVMvalue* proc
+int fklVMcallInDlproc(FklVMvalue* proc
 		,size_t argNum
 		,FklVMvalue* arglist[]
 		,FklVMrunnable* runnable
-		,FklVM* exe)
+		,FklVM* exe
+		,FklVMFuncK kFunc
+		,void* ctx
+		,size_t size)
 {
+	FklVMstack* stack=exe->stack;
+	runnable->ccc=fklNewVMcCC(kFunc,ctx,size,runnable->ccc);
+	fklNiSetBp(stack->tp,stack);
+	for(size_t i=argNum;i>0;i--)
+		fklPushVMvalue(arglist[i-1],stack);
+	switch(proc->type)
+	{
+		case FKL_PROC:
+			{
+				pthread_rwlock_wrlock(&exe->rlock);
+				FklVMrunnable* tmpRunnable=fklNewVMrunnable(proc->u.proc,exe->rhead);
+				tmpRunnable->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(proc->u.proc->prevEnv),exe->heap);
+				exe->rhead=tmpRunnable;
+				pthread_rwlock_unlock(&exe->rlock);
+			}
+			break;
+		default:
+			exe->nextInvoke=proc;
+			break;
+	}
+	longjmp(exe->buf,2);
+	return 0;
 }
 
 void invokeContinuation(FklVM* exe,FklVMcontinuation* cc)
 {
 	fklCreateCallChainWithContinuation(exe,cc);
-//	longjmp(exe->buf,2);
 }
 
 void invokeDlProc(FklVM* exe,FklVMdlproc* dlproc)
@@ -214,6 +238,7 @@ FklVM* fklNewVM(FklByteCode* mainCode)
 	exe->tstack=fklNewPtrStack(32,16);
 	exe->heap=fklNewVMheap();
 	exe->callback=NULL;
+	exe->nny=0;
 	pthread_rwlock_init(&exe->rlock,NULL);
 	FklVM** ppVM=NULL;
 	int i=0;
@@ -254,6 +279,7 @@ FklVM* fklNewTmpVM(FklByteCode* mainCode)
 		exe->rhead=fklNewVMrunnable(fklNewVMproc(0,mainCode->size),exe->rhead);
 	}
 	exe->mark=1;
+	exe->nny=0;
 	exe->chan=NULL;
 	exe->stack=fklNewVMstack(0);
 	exe->tstack=fklNewPtrStack(32,16);
@@ -479,7 +505,7 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 void* ThreadVMfunc(void* p)
 {
 	FklVM* exe=(FklVM*)p;
-	int64_t state=fklRunVM(exe,NULL);
+	int64_t state=fklRunVM(exe);
 	FklVMchanl* tmpCh=exe->chan->u.chan;
 	exe->chan=NULL;
 	if(!state)
@@ -534,13 +560,22 @@ void invokeInvokableObj(FklVMvalue* v,FklVM* exe)
 	}
 }
 
-int fklRunVM(FklVM* exe,FklVMrunnable* baseRunnable)
+int fklRunVM(FklVM* exe)
 {
-	while(exe->rhead!=baseRunnable)
+	while(exe->rhead)
 	{
 		if(exe->nextInvoke)
 			invokeInvokableObj(exe->nextInvoke,exe);
 		FklVMrunnable* currunnable=exe->rhead;
+		while(currunnable->ccc)
+		{
+			FklVMcCC* curCCC=currunnable->ccc;
+			currunnable->ccc=curCCC->next;
+			FklVMFuncK kFunc=curCCC->kFunc;
+			void* ctx=curCCC->ctx;
+			free(curCCC);
+			kFunc(exe,FKL_CC_RE,ctx);
+		}
 		if(currunnable->cp>=currunnable->cpc+currunnable->scp)
 		{
 			if(currunnable->mark)
@@ -823,10 +858,7 @@ void B_res_tp(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=exe->rhead;
-	pthread_rwlock_wrlock(&stack->lock);
-	stack->tp=fklTopUintStack(stack->tps);
-	fklStackRecycle(exe);
-	pthread_rwlock_unlock(&stack->lock);
+	fklNiResTp(stack);
 	runnable->cp+=sizeof(char);
 }
 
@@ -1054,20 +1086,12 @@ FklVMstack* fklNewVMstack(int32_t size)
 	return tmp;
 }
 
-void fklStackRecycle(FklVM* exe)
+void fklStackRecycle(FklVMstack* stack)
 {
-	FklVMstack* stack=exe->stack;
-	FklVMrunnable* currunnable=exe->rhead;
 	if(stack->size-stack->tp>64)
 	{
 		stack->values=(FklVMvalue**)realloc(stack->values,sizeof(FklVMvalue*)*(stack->size-64));
 		FKL_ASSERT(stack->values,__func__);
-		if(stack->values==NULL)
-		{
-			fprintf(stderr,"stack->tp==%ld,stack->size==%ld\n",stack->tp,stack->size);
-			fprintf(stderr,"cp=%ld\n%s\n",currunnable->cp,fklGetOpcodeName((FklOpcode)(exe->code[currunnable->cp])));
-			FKL_ASSERT(stack->values,__func__);
-		}
 		stack->size-=64;
 	}
 }
@@ -1586,6 +1610,7 @@ FklVM* fklNewThreadVM(FklVMproc* mainCode,FklVMheap* heap)
 	exe->heap=heap;
 	exe->callback=threadErrorCallBack;
 	exe->nextInvoke=NULL;
+	exe->nny=0;
 	pthread_rwlock_init(&exe->rlock,NULL);
 	FklVM** ppVM=NULL;
 	int i=0;
@@ -1629,6 +1654,7 @@ FklVM* fklNewThreadInvokableObjVM(FklVMrunnable* r,FklVMheap* heap,FklVMvalue* n
 	exe->heap=heap;
 	exe->callback=threadErrorCallBack;
 	exe->nextInvoke=nextInvoke;
+	exe->nny=0;
 	pthread_rwlock_init(&exe->rlock,NULL);
 	FklVM** ppVM=NULL;
 	int i=0;

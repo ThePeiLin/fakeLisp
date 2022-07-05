@@ -48,7 +48,7 @@ static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap
 			fklCodelntCopyCat(t,curEnv->proc);
 			fklInitVMRunningResource(tmpVM,vEnv,heap,t,bs,curEnv->proc->bc->size);
 			bs+=curEnv->proc->bc->size;
-			int i=fklRunVM(tmpVM,NULL);
+			int i=fklRunVM(tmpVM);
 			if(i==1)
 			{
 				fklUninitVMRunningResource(tmpVM);
@@ -113,7 +113,7 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 		fklCodelntCopyCat(t,tmp->proc);
 		fklInitVMRunningResource(tmpVM,macroVMenv,tmpVM->heap,t,start,tmp->proc->bc->size);
 		FklAstCptr* tmpCptr=NULL;
-		int i=fklRunVM(tmpVM,NULL);
+		int i=fklRunVM(tmpVM);
 		chdir(cwd);
 		free(cwd);
 		if(!i)

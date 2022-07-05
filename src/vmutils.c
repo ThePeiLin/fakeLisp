@@ -257,6 +257,7 @@ FklVMrunnable* fklNewVMrunnable(FklVMproc* code,FklVMrunnable* prev)
 	tmp->scp=0;
 	tmp->cpc=0;
 	tmp->prev=prev;
+	tmp->ccc=NULL;
 	if(code)
 	{
 		tmp->cp=code->scp;
@@ -266,6 +267,23 @@ FklVMrunnable* fklNewVMrunnable(FklVMproc* code,FklVMrunnable* prev)
 	}
 	tmp->mark=0;
 	return tmp;
+}
+
+FklVMcCC* fklNewVMcCC(FklVMFuncK kFunc,void* ctx,size_t size,FklVMcCC* next)
+{
+	FklVMcCC* r=(FklVMcCC*)malloc(sizeof(FklVMcCC));
+	FKL_ASSERT(r,__func__);
+	r->kFunc=kFunc;
+	r->ctx=ctx;
+	r->size=size;
+	r->next=next;
+	return r;
+}
+
+void fklFreeVMcCC(FklVMcCC* cc)
+{
+	free(cc->ctx);
+	free(cc);
 }
 
 char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklErrorType type)
@@ -322,6 +340,9 @@ char* fklGenErrorMessage(FklErrorType type,FklVMrunnable* r,FklVM* exe)
 			break;
 		case FKL_INVOKEERROR:
 			t=fklStrCat(t,"Try to invoke an object that can't be invoke ");
+			break;
+		case FKL_CROSS_C_CALL_CONTINUATION:
+			t=fklStrCat(t,"attempt to get a continuation cross C-call boundary ");
 			break;
 		case FKL_LOADDLLFAILD:
 			t=fklStrCat(t,"Faild to load dll \"");
@@ -829,12 +850,18 @@ FklVMvalue* fklGetValue(FklVMstack* stack,int32_t place)
 	return stack->values[place];
 }
 
-FklVMcontinuation* fklNewVMcontinuation(uint32_t ap,FklVMstack* stack,FklVMrunnable* curr,FklPtrStack* tstack,FklVMvalue* nextInvoke)
+FklVMcontinuation* fklNewVMcontinuation(uint32_t ap,FklVM* exe)
 {
-	int32_t i=0;
+	if(exe->nny)
+		return NULL;
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* curr=exe->rhead;
+	FklPtrStack* tstack=exe->tstack;
+	FklVMvalue* nextInvoke=exe->nextInvoke;
+	uint32_t i=0;
 	FklVMcontinuation* tmp=(FklVMcontinuation*)malloc(sizeof(FklVMcontinuation));
 	FKL_ASSERT(tmp,__func__);
-	int32_t tbnum=tstack->top;
+	uint32_t tbnum=tstack->top;
 	FklVMtryBlock* tb=(FklVMtryBlock*)malloc(sizeof(FklVMtryBlock)*tbnum);
 	FKL_ASSERT(tb,__func__);
 	tmp->stack=fklCopyStack(stack);

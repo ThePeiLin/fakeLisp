@@ -13,6 +13,12 @@
 extern "C" {
 #endif
 
+typedef enum
+{
+	FKL_CC_OK,
+	FKL_CC_RE,
+}FklCCState;
+
 struct FklVM;
 typedef void (*FklVMdllFunc)(struct FklVM*);
 typedef struct FklVMvalue* FklVMptr;
@@ -138,6 +144,16 @@ typedef struct FklVMproc
 	FklVMvalue* prevEnv;
 }FklVMproc;
 
+typedef void (*FklVMFuncK)(struct FklVM*,FklCCState,void*);
+
+typedef struct FklVMcCC
+{
+	FklVMFuncK kFunc;
+	void* ctx;
+	size_t size;
+	struct FklVMcCC* next;
+}FklVMcCC;
+
 typedef struct FklVMrunnable
 {
 	unsigned int mark :1;
@@ -146,6 +162,7 @@ typedef struct FklVMrunnable
 	uint64_t cp;
 	uint64_t cpc;
 	FklSid_t sid;
+	FklVMcCC* ccc;
 	struct FklVMrunnable* prev;
 }FklVMrunnable;
 
@@ -177,6 +194,7 @@ typedef struct FklVM
 	void (*callback)(void*);
 	FklVMvalue* nextInvoke;
 	jmp_buf buf;
+	int nny;
 }FklVM;
 
 typedef struct FklVMudMethodTable
@@ -262,7 +280,7 @@ typedef struct FklVMerrorHandler
 
 //vmrun
 
-int fklRunVM(FklVM*,FklVMrunnable*);
+int fklRunVM(FklVM*);
 FklVM* fklNewVM(FklByteCode*);
 FklVM* fklNewTmpVM(FklByteCode*);
 FklVM* fklNewThreadVM(FklVMproc*,FklVMheap*);
@@ -272,7 +290,7 @@ void fklInitGlobEnv(FklVMenv*,FklVMheap*);
 void fklFreeVMvalue(FklVMvalue*);
 FklVMstack* fklNewVMstack(int32_t);
 void fklFreeVMstack(FklVMstack*);
-void fklStackRecycle(FklVM*);
+void fklStackRecycle(FklVMstack*);
 int fklCreateNewThread(FklVM*);
 FklVMlist* fklNewThreadStack(int32_t);
 FklVMrunnable* fklHasSameProc(uint32_t,FklVMrunnable*);
@@ -343,7 +361,10 @@ char* fklGenErrorMessage(FklErrorType type,FklVMrunnable* r,FklVM* exe);
 char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklErrorType);
 int32_t fklGetSymbolIdInByteCode(const uint8_t*);
 
-FklVMcontinuation* fklNewVMcontinuation(uint32_t ap,FklVMstack* stack,FklVMrunnable* ,FklPtrStack* tstack,FklVMvalue*);
+FklVMcCC* fklNewVMcCC(FklVMFuncK kFunc,void* ctx,size_t,FklVMcCC* next);
+void fklFreeVMcCC(FklVMcCC*);
+
+FklVMcontinuation* fklNewVMcontinuation(uint32_t ap,FklVM*);
 void fklFreeVMcontinuation(FklVMcontinuation* cont);
 
 
@@ -447,11 +468,14 @@ FklVMdllHandle fklLoadDll(const char* path);
 
 void fklPushVMvalue(FklVMvalue* v,FklVMstack* s);
 
-FklVMvalue* fklVMcallInDlproc(FklVMvalue*
+int fklVMcallInDlproc(FklVMvalue*
 		,size_t argNum
 		,FklVMvalue*[]
 		,FklVMrunnable*
-		,FklVM*);
+		,FklVM*
+		,FklVMFuncK
+		,void*
+		,size_t);
 
 size_t fklVMlistLength(FklVMvalue*);
 void fklFreeRunnables(FklVMrunnable* h);

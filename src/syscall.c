@@ -1895,15 +1895,8 @@ void SYS_dlsym(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.dlsym",FKL_WRONGARG,runnable,exe);
 	if(!dll->u.dll)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.dlsym",FKL_INVALIDACCESS,runnable,exe);
-//	char prefix[]="FKL_";
 	char* str=fklStringToCstr(symbol->u.str);
-//	size_t len=strlen(prefix)+strlen(str)+1;
-//	char* realDlFuncName=(char*)malloc(sizeof(char)*len);
-//	FKL_ASSERT(realDlFuncName,__func__);
-//	sprintf(realDlFuncName,"%s%s",prefix,str);
-//	FklVMdllFunc funcAddress=fklGetAddress(realDlFuncName,dll->u.dll);
 	FklVMdllFunc funcAddress=fklGetAddress(str,dll->u.dll);
-//	free(realDlFuncName);
 	if(!funcAddress)
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("sys.dlsym",str,1,FKL_INVALIDSYMBOL,exe);
 	free(str);
@@ -2064,12 +2057,15 @@ void SYS_call_cc(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.call/cc",FKL_TOOMANYARG,runnable,exe);
 	if(!proc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.call/cc",FKL_TOOFEWARG,runnable,exe);
-	FKL_NI_CHECK_TYPE(proc,fklIsInvokeable,"sys.apply",runnable,exe);
+	FKL_NI_CHECK_TYPE(proc,fklIsInvokeable,"sys.call/cc",runnable,exe);
 	pthread_rwlock_rdlock(&exe->rlock);
-	FklVMvalue* cc=fklNiNewVMvalue(FKL_CONT,fklNewVMcontinuation(ap,stack,exe->rhead,exe->tstack,exe->nextInvoke),stack,exe->heap);
+	FklVMcontinuation* cc=fklNewVMcontinuation(ap,exe);
+	if(!cc)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.call/cc",FKL_CROSS_C_CALL_CONTINUATION,runnable,exe);
+	FklVMvalue* vcc=fklNiNewVMvalue(FKL_CONT,cc,stack,exe->heap);
 	pthread_rwlock_unlock(&exe->rlock);
 	fklNiSetBp(ap,stack);
-	fklNiReturn(cc,&ap,stack);
+	fklNiReturn(vcc,&ap,stack);
 	if(proc->type==FKL_PROC)
 	{
 		FklVMproc* tmpProc=proc->u.proc;
@@ -2148,6 +2144,55 @@ void SYS_apply(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+typedef struct
+{
+	FklVMvalue** cur;
+	FklVMvalue* r;
+	FklVMvalue* proc;
+	FklVMvalue* vec;
+	FklVMvalue* cars;
+	size_t i;
+	size_t len;
+	size_t num;
+	uint32_t ap;
+}MapCtx;
+
+void k_map(ARGL,FklCCState s,void* ctx)
+{
+	MapCtx* mapctx=(MapCtx*)ctx;
+	FklVMheap* heap=exe->heap;
+	size_t len=mapctx->len;
+	size_t argNum=mapctx->num;
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=exe->rhead;
+	if(s==FKL_CC_RE)
+	{
+		FklVMvalue* result=fklGetTopValue(exe->stack);
+		fklSetRef(*(mapctx->cur),&(*mapctx->cur)->u.pair->car,result,heap);
+		mapctx->cur=&(*mapctx->cur)->u.pair->cdr;
+		fklNiResTp(exe->stack);
+		mapctx->i++;
+	}
+	for(;mapctx->i<len;mapctx->i++)
+	{
+		*(mapctx->cur)=fklNiNewVMvalue(FKL_PAIR,fklNewVMpair(),stack,heap);
+		for(size_t i=0;i<argNum;i++)
+		{
+			FklVMvalue* pair=mapctx->vec->u.vec->base[i];
+			fklSetRef(mapctx->cars,&(mapctx->cars)->u.vec->base[i],pair->u.pair->car,heap);
+			fklSetRef(mapctx->vec,&mapctx->vec->u.vec->base[i],pair->u.pair->cdr,heap);
+		}
+		fklVMcallInDlproc(mapctx->proc,argNum,mapctx->cars->u.vec->base,runnable,exe,k_map,mapctx,sizeof(MapCtx));
+		FklVMvalue* result=fklGetTopValue(exe->stack);
+		fklSetRef(*(mapctx->cur),&(*mapctx->cur)->u.pair->car,result,heap);
+		mapctx->cur=&(*mapctx->cur)->u.pair->cdr;
+		fklNiResTp(exe->stack);
+	}
+	fklNiReturn(mapctx->r,&mapctx->ap,stack);
+	fklNiEnd(&mapctx->ap,stack);
+	free(ctx);
+}
+
 void SYS_map(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -2177,25 +2222,21 @@ void SYS_map(ARGL)
 		fklNiReturn(FKL_VM_NIL,&ap,stack);
 	else
 	{
-		FklVMvalue* r=FKL_VM_NIL;
-		FklVMvalue** cur=&r;
+
 		FklVMvalue* cars=fklNewVMvecV(argNum,NULL,stack,heap);
-		for(size_t i=0;i<len;i++)
-		{
-			*cur=fklNiNewVMvalue(FKL_PAIR,fklNewVMpair(),stack,heap);
-			for(size_t i=0;i<argNum;i++)
-			{
-				FklVMvalue* pair=argVec->u.vec->base[i];
-				fklSetRef(cars,&cars->u.vec->base[i],pair->u.pair->car,heap);
-				fklSetRef(argVec,&argVec->u.vec->base[i],pair->u.pair->cdr,heap);
-			}
-			FklVMvalue* result=fklVMcallInDlproc(proc,argNum,cars->u.vec->base,runnable,exe);
-			fklSetRef(*cur,&(*cur)->u.pair->car,result,heap);
-			cur=&(*cur)->u.pair->cdr;
-		}
-		fklNiReturn(r,&ap,stack);
+		MapCtx* mapctx=(MapCtx*)malloc(sizeof(MapCtx));
+		FKL_ASSERT(mapctx,__func__);
+		mapctx->proc=proc;
+		mapctx->r=FKL_VM_NIL;
+		mapctx->ap=ap;
+		mapctx->cars=cars;
+		mapctx->cur=&mapctx->r;
+		mapctx->i=0;
+		mapctx->len=len;
+		mapctx->num=argNum;
+		mapctx->vec=argVec;
+		k_map(exe,FKL_CC_OK,mapctx);
 	}
-	fklNiEnd(&ap,stack);
 }
 
 void SYS_reverse(ARGL)

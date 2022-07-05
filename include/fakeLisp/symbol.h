@@ -9,8 +9,8 @@
 extern "C" {
 #endif
 
-#define FKL_NUM_OF_BUILT_IN_ERROR_TYPE (30)
 #define FKL_NUM_OF_BUILT_IN_SYMBOL (95)
+#define FKL_NUM_OF_BUILT_IN_ERROR_TYPE (31)
 typedef uint64_t FklSid_t;
 
 typedef enum
@@ -44,6 +44,7 @@ typedef enum
 	FKL_INVALID_MACRO_PATTERN,
 	FKL_FAILD_TO_CREATE_BIG_INT_FROM_MEM,
 	FKL_LIST_DIFFER_IN_LENGTH,
+	FKL_CROSS_C_CALL_CONTINUATION,
 }FklErrorType;
 
 typedef struct FklSymTabNode

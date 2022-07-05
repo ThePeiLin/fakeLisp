@@ -93,7 +93,7 @@ int main(int argc,char** argv)
 			fklInitGlobEnv(globEnv->u.env,anotherVM->heap);
 			if(setjmp(buf)==0)
 			{
-				fklRunVM(anotherVM,NULL);
+				fklRunVM(anotherVM);
 				fklWaitGC(anotherVM->heap);
 				fklJoinAllThread();
 				fklFreeIntpr(inter);
@@ -144,7 +144,7 @@ int main(int argc,char** argv)
 		fklInitGlobEnv(globEnv->u.env,anotherVM->heap);
 		if(!setjmp(buf))
 		{
-			fklRunVM(anotherVM,NULL);
+			fklRunVM(anotherVM);
 			fklJoinAllThread();
 			fklFreeVMheap(heap);
 			fklFreeGlobSymbolTable();
@@ -252,7 +252,7 @@ void runRepl(FklInterpreter* inter)
 				anotherVM->rhead=mainrunnable;
 				if(!(e=setjmp(buf)))
 				{
-					fklRunVM(anotherVM,NULL);
+					fklRunVM(anotherVM);
 					FklVMstack* stack=anotherVM->stack;
 					if(inter->file==stdin&&stack->tp!=0)
 					{

@@ -362,6 +362,7 @@ char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklErrorType);
 int32_t fklGetSymbolIdInByteCode(const uint8_t*);
 
 FklVMcCC* fklNewVMcCC(FklVMFuncK kFunc,void* ctx,size_t,FklVMcCC* next);
+FklVMcCC* fklCopyVMcCC(FklVMcCC*);
 void fklFreeVMcCC(FklVMcCC*);
 
 FklVMcontinuation* fklNewVMcontinuation(uint32_t ap,FklVM*);

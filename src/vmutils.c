@@ -280,6 +280,15 @@ FklVMcCC* fklNewVMcCC(FklVMFuncK kFunc,void* ctx,size_t size,FklVMcCC* next)
 	return r;
 }
 
+FklVMcCC* fklCopyVMcCC(FklVMcCC* ccc)
+{
+	FklVMcCC* r=NULL;
+	FklVMcCC** pr=&r;
+	for(FklVMcCC* curCCC=ccc;curCCC;curCCC=curCCC->next,pr=&(*pr)->next)
+		*pr=fklNewVMcCC(curCCC->kFunc,fklCopyMemory(curCCC->ctx,curCCC->size),curCCC->size,NULL);
+	return r;
+}
+
 void fklFreeVMcCC(FklVMcCC* cc)
 {
 	free(cc->ctx);
@@ -878,6 +887,7 @@ FklVMcontinuation* fklNewVMcontinuation(uint32_t ap,FklVM* exe)
 		t->scp=cur->scp;
 		t->sid=cur->sid;
 		t->mark=cur->mark;
+		t->ccc=fklCopyVMcCC(cur->ccc);
 	}
 	tmp->tnum=tbnum;
 	for(i=0;i<tbnum;i++)

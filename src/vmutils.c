@@ -269,6 +269,18 @@ FklVMrunnable* fklNewVMrunnable(FklVMproc* code,FklVMrunnable* prev)
 	return tmp;
 }
 
+void fklFreeVMrunnable(FklVMrunnable* runnable)
+{
+	FklVMcCC* curCCC=runnable->ccc;
+	while(curCCC)
+	{
+		FklVMcCC* cur=curCCC;
+		curCCC=cur->next;
+		fklFreeVMcCC(cur);
+	}
+	free(runnable);
+}
+
 FklVMcCC* fklNewVMcCC(FklVMFuncK kFunc,void* ctx,size_t size,FklVMcCC* next)
 {
 	FklVMcCC* r=(FklVMcCC*)malloc(sizeof(FklVMcCC));
@@ -857,97 +869,6 @@ FklVMvalue* fklGetTopValue(FklVMstack* stack)
 FklVMvalue* fklGetValue(FklVMstack* stack,int32_t place)
 {
 	return stack->values[place];
-}
-
-FklVMcontinuation* fklNewVMcontinuation(uint32_t ap,FklVM* exe)
-{
-	if(exe->nny)
-		return NULL;
-	FklVMstack* stack=exe->stack;
-	FklVMrunnable* curr=exe->rhead;
-	FklPtrStack* tstack=exe->tstack;
-	FklVMvalue* nextInvoke=exe->nextInvoke;
-	uint32_t i=0;
-	FklVMcontinuation* tmp=(FklVMcontinuation*)malloc(sizeof(FklVMcontinuation));
-	FKL_ASSERT(tmp,__func__);
-	uint32_t tbnum=tstack->top;
-	FklVMtryBlock* tb=(FklVMtryBlock*)malloc(sizeof(FklVMtryBlock)*tbnum);
-	FKL_ASSERT(tb,__func__);
-	tmp->stack=fklCopyStack(stack);
-	tmp->stack->tp=ap;
-	tmp->curr=NULL;
-	tmp->nextInvoke=nextInvoke;
-	for(FklVMrunnable* cur=curr;cur;cur=cur->prev)
-	{
-		FklVMrunnable* t=fklNewVMrunnable(NULL,tmp->curr);
-		tmp->curr=t;
-		t->cp=cur->cp;
-		t->localenv=cur->localenv;
-		t->cpc=cur->cpc;
-		t->scp=cur->scp;
-		t->sid=cur->sid;
-		t->mark=cur->mark;
-		t->ccc=fklCopyVMcCC(cur->ccc);
-	}
-	tmp->tnum=tbnum;
-	for(i=0;i<tbnum;i++)
-	{
-		FklVMtryBlock* cur=tstack->base[i];
-		tb[i].sid=cur->sid;
-		FklPtrStack* hstack=cur->hstack;
-		int32_t handlerNum=hstack->top;
-		FklPtrStack* curHstack=fklNewPtrStack(handlerNum,handlerNum/2);
-		int32_t j=0;
-		for(;j<handlerNum;j++)
-		{
-			FklVMerrorHandler* curH=hstack->base[i];
-			FklVMerrorHandler* h=fklNewVMerrorHandler(fklCopyMemory(curH->typeIds,sizeof(FklSid_t)*curH->num),curH->num,curH->proc.scp,curH->proc.cpc);
-			fklPushPtrStack(h,curHstack);
-		}
-		tb[i].hstack=curHstack;
-		tb[i].curr=cur->curr;
-		tb[i].tp=cur->tp;
-	}
-	tmp->tb=tb;
-	return tmp;
-}
-
-void fklFreeVMcontinuation(FklVMcontinuation* cont)
-{
-	int32_t i=0;
-	int32_t tbsize=cont->tnum;
-	FklVMstack* stack=cont->stack;
-	FklVMrunnable* curr=cont->curr;
-	while(curr)
-	{
-		FklVMrunnable* cur=curr;
-		curr=curr->prev;
-		FklVMcCC* curCCC=cur->ccc;
-		while(curCCC)
-		{
-			FklVMcCC* cur=curCCC;
-			curCCC=cur->next;
-			fklFreeVMcCC(cur);
-		}
-		free(cur);
-	}
-	FklVMtryBlock* tb=cont->tb;
-	fklFreeUintStack(stack->tps);
-	fklFreeUintStack(stack->bps);
-	free(stack->values);
-	free(stack);
-	for(i=0;i<tbsize;i++)
-	{
-		FklPtrStack* hstack=tb[i].hstack;
-		while(!fklIsPtrStackEmpty(hstack))
-		{
-			FklVMerrorHandler* h=fklPopPtrStack(hstack);
-			fklFreeVMerrorHandler(h);
-		}
-		fklFreePtrStack(hstack);
-	}
-	free(tb);
-	free(cont);
 }
 
 FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)

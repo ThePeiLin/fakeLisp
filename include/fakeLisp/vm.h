@@ -357,6 +357,7 @@ FklVMerrorHandler* fklNewVMerrorHandler(FklSid_t* typeIds,uint32_t,uint64_t scp,
 void fklFreeVMerrorHandler(FklVMerrorHandler*);
 int fklRaiseVMerror(FklVMvalue* err,FklVM*);
 FklVMrunnable* fklNewVMrunnable(FklVMproc*,FklVMrunnable*);
+void fklFreeVMrunnable(FklVMrunnable*);
 char* fklGenErrorMessage(FklErrorType type,FklVMrunnable* r,FklVM* exe);
 char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklErrorType);
 int32_t fklGetSymbolIdInByteCode(const uint8_t*);

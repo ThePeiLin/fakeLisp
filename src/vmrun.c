@@ -1758,14 +1758,7 @@ void fklDeleteCallChain(FklVM* exe)
 	{
 		FklVMrunnable* cur=exe->rhead;
 		exe->rhead=cur->prev;
-		FklVMcCC* curCCC=cur->ccc;
-		while(curCCC)
-		{
-			FklVMcCC* cur=curCCC;
-			curCCC=cur->next;
-			fklFreeVMcCC(cur);
-		}
-		free(cur);
+		fklFreeVMrunnable(cur);
 	}
 }
 

@@ -27,6 +27,7 @@ extern void* ThreadVMinvokableUd(void* p);
 //syscalls
 
 #define ARGL FklVM* exe
+#define K_FUNC_ARGL FklVM* exe,FklCCState s,void* ctx
 void SYS_car(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -2157,91 +2158,99 @@ typedef struct
 	uint32_t ap;
 }MapCtx;
 
-void k_map(ARGL,FklCCState s,void* ctx)
-{
-	MapCtx* mapctx=(MapCtx*)ctx;
-	FklVMheap* heap=exe->heap;
-	size_t len=mapctx->len;
-	size_t argNum=mapctx->num;
-	FklVMstack* stack=exe->stack;
-	FklVMrunnable* runnable=exe->rhead;
-	if(s==FKL_CC_OK)
-		fklNiSetTp(exe->stack);
-	else if(s==FKL_CC_RE)
-	{
-		FklVMvalue* result=fklGetTopValue(exe->stack);
-		fklSetRef(*(mapctx->cur),&(*mapctx->cur)->u.pair->car,result,heap);
-		mapctx->cur=&(*mapctx->cur)->u.pair->cdr;
-		fklNiResTp(exe->stack);
-		mapctx->i++;
-	}
-	for(;mapctx->i<len;mapctx->i++)
-	{
-		*(mapctx->cur)=fklNiNewVMvalue(FKL_PAIR,fklNewVMpair(),stack,heap);
-		for(size_t i=0;i<argNum;i++)
-		{
-			FklVMvalue* pair=mapctx->vec->u.vec->base[i];
-			fklSetRef(mapctx->cars,&(mapctx->cars)->u.vec->base[i],pair->u.pair->car,heap);
-			fklSetRef(mapctx->vec,&mapctx->vec->u.vec->base[i],pair->u.pair->cdr,heap);
-		}
-		fklVMcallInDlproc(mapctx->proc,argNum,mapctx->cars->u.vec->base,runnable,exe,k_map,mapctx,sizeof(MapCtx));
-		FklVMvalue* result=fklGetTopValue(exe->stack);
-		fklSetRef(*(mapctx->cur),&(*mapctx->cur)->u.pair->car,result,heap);
-		mapctx->cur=&(*mapctx->cur)->u.pair->cdr;
-		fklNiResTp(exe->stack);
-	}
-	fklNiPopTp(stack);
-	fklNiReturn(*mapctx->r,&mapctx->ap,stack);
-	fklNiEnd(&mapctx->ap,stack);
-	free(ctx);
-}
+#define K_MAP_PATTERN(K_FUNC,CUR_PROCESS,RESULT_PROCESS,NEXT_PROCESS) {MapCtx* mapctx=(MapCtx*)ctx;\
+	FklVMheap* heap=exe->heap;\
+	size_t len=mapctx->len;\
+	size_t argNum=mapctx->num;\
+	FklVMstack* stack=exe->stack;\
+	FklVMrunnable* runnable=exe->rhead;\
+	if(s==FKL_CC_OK)\
+		fklNiSetTp(exe->stack);\
+	else if(s==FKL_CC_RE)\
+	{\
+		FklVMvalue* result=fklGetTopValue(exe->stack);\
+		RESULT_PROCESS\
+		NEXT_PROCESS\
+		fklNiResTp(exe->stack);\
+		mapctx->i++;\
+	}\
+	while(mapctx->i<len)\
+	{\
+		CUR_PROCESS\
+		for(size_t i=0;i<argNum;i++)\
+		{\
+			FklVMvalue* pair=mapctx->vec->u.vec->base[i];\
+			fklSetRef(mapctx->cars,&(mapctx->cars)->u.vec->base[i],pair->u.pair->car,heap);\
+			fklSetRef(mapctx->vec,&mapctx->vec->u.vec->base[i],pair->u.pair->cdr,heap);\
+		}\
+		fklVMcallInDlproc(mapctx->proc,argNum,mapctx->cars->u.vec->base,runnable,exe,(K_FUNC),mapctx,sizeof(MapCtx));\
+		FklVMvalue* result=fklGetTopValue(exe->stack);\
+		RESULT_PROCESS\
+		NEXT_PROCESS\
+		fklNiResTp(exe->stack);\
+		mapctx->i++;\
+	}\
+	fklNiPopTp(stack);\
+	fklNiReturn(*mapctx->r,&mapctx->ap,stack);\
+	fklNiEnd(&mapctx->ap,stack);\
+	free(ctx);}
 
-void SYS_map(ARGL)
-{
-	FKL_NI_BEGIN(exe);
-	FklVMrunnable* runnable=exe->rhead;
-	FklVMvalue* proc=fklNiGetArg(&ap,stack);
-	FklVMheap* heap=exe->heap;
-	if(!proc)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.map",FKL_TOOFEWARG,runnable,exe);
-	FKL_NI_CHECK_TYPE(proc,fklIsInvokeable,"sys.map",runnable,exe);
-	size_t argNum=ap-stack->bp;
-	if(argNum==0)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.map",FKL_TOOFEWARG,runnable,exe);
-	FklVMvalue* argVec=fklNewVMvecV(ap-stack->bp,NULL,stack,heap);
-	for(size_t i=0;i<argNum;i++)
-	{
-		FklVMvalue* cur=fklNiGetArg(&ap,stack);
-		if(!fklIsList(cur))
-			FKL_RAISE_BUILTIN_ERROR_CSTR("sys.map",FKL_WRONGARG,runnable,exe);
-		fklSetRef(argVec,&argVec->u.vec->base[i],cur,heap);
-	}
-	fklNiResBp(&ap,stack);
-	size_t len=fklVMlistLength(argVec->u.vec->base[0]);
-	for(size_t i=1;i<argNum;i++)
-		if(fklVMlistLength(argVec->u.vec->base[i])!=len)
-			FKL_RAISE_BUILTIN_ERROR_CSTR("sys.map",FKL_LIST_DIFFER_IN_LENGTH,runnable,exe);
-	if(len==0)
-		fklNiReturn(FKL_VM_NIL,&ap,stack);
-	else
-	{
+#define MAP_PATTERN(FUNC_NAME,K_FUNC) {FKL_NI_BEGIN(exe);\
+	FklVMrunnable* runnable=exe->rhead;\
+	FklVMvalue* proc=fklNiGetArg(&ap,stack);\
+	FklVMheap* heap=exe->heap;\
+	if(!proc)\
+		FKL_RAISE_BUILTIN_ERROR_CSTR((FUNC_NAME),FKL_TOOFEWARG,runnable,exe);\
+	FKL_NI_CHECK_TYPE(proc,fklIsInvokeable,(FUNC_NAME),runnable,exe);\
+	size_t argNum=ap-stack->bp;\
+	if(argNum==0)\
+		FKL_RAISE_BUILTIN_ERROR_CSTR((FUNC_NAME),FKL_TOOFEWARG,runnable,exe);\
+	FklVMvalue* argVec=fklNewVMvecV(ap-stack->bp,NULL,stack,heap);\
+	for(size_t i=0;i<argNum;i++)\
+	{\
+		FklVMvalue* cur=fklNiGetArg(&ap,stack);\
+		if(!fklIsList(cur))\
+			FKL_RAISE_BUILTIN_ERROR_CSTR((FUNC_NAME),FKL_WRONGARG,runnable,exe);\
+		fklSetRef(argVec,&argVec->u.vec->base[i],cur,heap);\
+	}\
+	fklNiResBp(&ap,stack);\
+	size_t len=fklVMlistLength(argVec->u.vec->base[0]);\
+	for(size_t i=1;i<argNum;i++)\
+		if(fklVMlistLength(argVec->u.vec->base[i])!=len)\
+			FKL_RAISE_BUILTIN_ERROR_CSTR((FUNC_NAME),FKL_LIST_DIFFER_IN_LENGTH,runnable,exe);\
+	if(len==0)\
+	{\
+		fklNiReturn(FKL_VM_NIL,&ap,stack);\
+			fklNiEnd(&ap,stack);\
+	}\
+	else\
+	{\
+		FklVMvalue* cars=fklNewVMvecV(argNum,NULL,stack,heap);\
+		MapCtx* mapctx=(MapCtx*)malloc(sizeof(MapCtx));\
+		FKL_ASSERT(mapctx,__func__);\
+		fklPushVMvalue(FKL_VM_NIL,stack);\
+		mapctx->proc=proc;\
+		mapctx->r=fklNiGetTopSlot(stack);\
+		mapctx->ap=ap;\
+		mapctx->cars=cars;\
+		mapctx->cur=mapctx->r;\
+		mapctx->i=0;\
+		mapctx->len=len;\
+		mapctx->num=argNum;\
+		mapctx->vec=argVec;\
+		(K_FUNC)(exe,FKL_CC_OK,mapctx);\
+	}}\
 
-		FklVMvalue* cars=fklNewVMvecV(argNum,NULL,stack,heap);
-		MapCtx* mapctx=(MapCtx*)malloc(sizeof(MapCtx));
-		FKL_ASSERT(mapctx,__func__);
-		fklPushVMvalue(FKL_VM_NIL,stack);
-		mapctx->proc=proc;
-		mapctx->r=fklNiGetTopSlot(stack);
-		mapctx->ap=ap;
-		mapctx->cars=cars;
-		mapctx->cur=mapctx->r;
-		mapctx->i=0;
-		mapctx->len=len;
-		mapctx->num=argNum;
-		mapctx->vec=argVec;
-		k_map(exe,FKL_CC_OK,mapctx);
-	}
-}
+static void k_map(K_FUNC_ARGL)
+	K_MAP_PATTERN(k_map,
+			*(mapctx->cur)=fklNiNewVMvalue(FKL_PAIR,fklNewVMpair(),stack,heap);,
+			fklSetRef(*(mapctx->cur),&(*mapctx->cur)->u.pair->car,result,heap);,
+			mapctx->cur=&(*mapctx->cur)->u.pair->cdr;
+			)
+void SYS_map(ARGL) MAP_PATTERN("sys.map",k_map)
+
+static void k_foreach(K_FUNC_ARGL) K_MAP_PATTERN(k_foreach,,*(mapctx->r)=result;,)
+void SYS_foreach(ARGL) MAP_PATTERN("sys.foreach",k_foreach)
 
 void SYS_reverse(ARGL)
 {
@@ -2685,5 +2694,6 @@ void SYS_list_p(ARGL) PREDICATE(fklIsList(val),"sys.list?")
 void SYS_box_p(ARGL) PREDICATE(FKL_IS_BOX(val),"sys.box?")
 
 #undef ARGL
+#undef K_FUNC_ARGL
 #undef PREDICATE
 //end

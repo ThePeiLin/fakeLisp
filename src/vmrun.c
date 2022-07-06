@@ -841,7 +841,7 @@ void B_set_tp(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=exe->rhead;
-	fklPushUintStack(stack->tp,stack->tps);
+	fklNiSetTp(stack);
 	runnable->cp+=1;
 }
 
@@ -866,7 +866,7 @@ void B_pop_tp(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=exe->rhead;
-	fklPopUintStack(stack->tps);
+	fklNiPopTp(stack);
 	runnable->cp+=sizeof(char);
 }
 
@@ -885,7 +885,8 @@ void B_invoke(FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
 	FklVMvalue* tmpValue=fklNiGetArg(&ap,stack);
-	FKL_NI_CHECK_TYPE(tmpValue,fklIsInvokeable,"b.invoke",runnable,exe);
+	if(!fklIsInvokeable(tmpValue))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.invoke",FKL_INVOKEERROR,runnable,exe);
 	runnable->cp+=sizeof(char);
 	switch(tmpValue->type)
 	{

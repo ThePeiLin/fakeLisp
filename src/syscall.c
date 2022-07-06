@@ -2147,7 +2147,7 @@ void SYS_apply(ARGL)
 typedef struct
 {
 	FklVMvalue** cur;
-	FklVMvalue* r;
+	FklVMvalue** r;
 	FklVMvalue* proc;
 	FklVMvalue* vec;
 	FklVMvalue* cars;
@@ -2165,7 +2165,9 @@ void k_map(ARGL,FklCCState s,void* ctx)
 	size_t argNum=mapctx->num;
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=exe->rhead;
-	if(s==FKL_CC_RE)
+	if(s==FKL_CC_OK)
+		fklNiSetTp(exe->stack);
+	else if(s==FKL_CC_RE)
 	{
 		FklVMvalue* result=fklGetTopValue(exe->stack);
 		fklSetRef(*(mapctx->cur),&(*mapctx->cur)->u.pair->car,result,heap);
@@ -2188,7 +2190,8 @@ void k_map(ARGL,FklCCState s,void* ctx)
 		mapctx->cur=&(*mapctx->cur)->u.pair->cdr;
 		fklNiResTp(exe->stack);
 	}
-	fklNiReturn(mapctx->r,&mapctx->ap,stack);
+	fklNiPopTp(stack);
+	fklNiReturn(*mapctx->r,&mapctx->ap,stack);
 	fklNiEnd(&mapctx->ap,stack);
 	free(ctx);
 }
@@ -2226,11 +2229,12 @@ void SYS_map(ARGL)
 		FklVMvalue* cars=fklNewVMvecV(argNum,NULL,stack,heap);
 		MapCtx* mapctx=(MapCtx*)malloc(sizeof(MapCtx));
 		FKL_ASSERT(mapctx,__func__);
+		fklPushVMvalue(FKL_VM_NIL,stack);
 		mapctx->proc=proc;
-		mapctx->r=FKL_VM_NIL;
+		mapctx->r=fklNiGetTopSlot(stack);
 		mapctx->ap=ap;
 		mapctx->cars=cars;
-		mapctx->cur=&mapctx->r;
+		mapctx->cur=mapctx->r;
 		mapctx->i=0;
 		mapctx->len=len;
 		mapctx->num=argNum;

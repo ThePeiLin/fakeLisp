@@ -17,6 +17,21 @@ void fklNiResTp(FklVMstack* stack)
 	pthread_rwlock_unlock(&stack->lock);
 }
 
+void fklNiSetTp(FklVMstack* stack)
+{
+	fklPushUintStack(stack->tp,stack->tps);
+}
+
+void fklNiPopTp(FklVMstack* stack)
+{
+	fklPopUintStack(stack->tps);
+}
+
+FklVMvalue** fklNiGetTopSlot(FklVMstack* stack)
+{
+	return &stack->values[stack->tp-1];
+}
+
 void fklNiSetBp(uint64_t nbp,FklVMstack* s)
 {
 	fklPushUintStack(s->bp,s->bps);

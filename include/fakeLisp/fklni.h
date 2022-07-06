@@ -12,9 +12,12 @@ FklVMvalue* fklNiPopTop(uint32_t* ap,FklVMstack*);
 void fklNiReturn(FklVMvalue*,uint32_t* ap,FklVMstack*);
 void fklNiSetBp(uint64_t nbp,FklVMstack* s);
 int fklNiResBp(uint32_t* ap,FklVMstack*);
+void fklNiSetTp(FklVMstack*);
 void fklNiResTp(FklVMstack*);
+void fklNiPopTp(FklVMstack*);
 void fklNiEnd(uint32_t* ap,FklVMstack*);
 void fklNiBegin(uint32_t* ap,FklVMstack*);
+FklVMvalue** fklNiGetTopSlot(FklVMstack*);
 #define FKL_NI_BEGIN(EXE) FklVMstack* stack=(EXE)->stack;\
 uint32_t ap=0;\
 fklNiBegin(&ap,stack);

@@ -564,6 +564,8 @@ int fklRunVM(FklVM* exe)
 {
 	while(exe->rhead)
 	{
+		if(setjmp(exe->buf)==1)
+			return 255;
 		if(exe->nextInvoke)
 			invokeInvokableObj(exe->nextInvoke,exe);
 		FklVMrunnable* currunnable=exe->rhead;
@@ -595,8 +597,6 @@ int fklRunVM(FklVM* exe)
 		}
 		uint64_t cp=currunnable->cp;
 		ByteCodes[exe->code[cp]](exe);
-		if(setjmp(exe->buf)==1)
-			return 255;
 		fklGC_step(exe);
 	}
 	return 0;

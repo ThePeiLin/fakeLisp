@@ -2195,7 +2195,7 @@ typedef struct
 	fklNiEnd(&mapctx->ap,stack);\
 	free(ctx);}
 
-#define MAP_PATTERN(FUNC_NAME,K_FUNC) {FKL_NI_BEGIN(exe);\
+#define MAP_PATTERN(FUNC_NAME,K_FUNC,DEFAULT_VALUE) {FKL_NI_BEGIN(exe);\
 	FklVMrunnable* runnable=exe->rhead;\
 	FklVMvalue* proc=fklNiGetArg(&ap,stack);\
 	FklVMheap* heap=exe->heap;\
@@ -2220,15 +2220,15 @@ typedef struct
 			FKL_RAISE_BUILTIN_ERROR_CSTR((FUNC_NAME),FKL_LIST_DIFFER_IN_LENGTH,runnable,exe);\
 	if(len==0)\
 	{\
-		fklNiReturn(FKL_VM_NIL,&ap,stack);\
-			fklNiEnd(&ap,stack);\
+		fklNiReturn((DEFAULT_VALUE),&ap,stack);\
+		fklNiEnd(&ap,stack);\
 	}\
 	else\
 	{\
 		FklVMvalue* cars=fklNewVMvecV(argNum,NULL,stack,heap);\
 		MapCtx* mapctx=(MapCtx*)malloc(sizeof(MapCtx));\
 		FKL_ASSERT(mapctx,__func__);\
-		fklPushVMvalue(FKL_VM_NIL,stack);\
+		fklPushVMvalue((DEFAULT_VALUE),stack);\
 		mapctx->proc=proc;\
 		mapctx->r=fklNiGetTopSlot(stack);\
 		mapctx->ap=ap;\
@@ -2247,10 +2247,19 @@ static void k_map(K_FUNC_ARGL)
 			fklSetRef(*(mapctx->cur),&(*mapctx->cur)->u.pair->car,result,heap);,
 			mapctx->cur=&(*mapctx->cur)->u.pair->cdr;
 			)
-void SYS_map(ARGL) MAP_PATTERN("sys.map",k_map)
+void SYS_map(ARGL) MAP_PATTERN("sys.map",k_map,FKL_VM_NIL)
 
 static void k_foreach(K_FUNC_ARGL) K_MAP_PATTERN(k_foreach,,*(mapctx->r)=result;,)
-void SYS_foreach(ARGL) MAP_PATTERN("sys.foreach",k_foreach)
+void SYS_foreach(ARGL) MAP_PATTERN("sys.foreach",k_foreach,FKL_VM_NIL)
+
+static void k_andmap(K_FUNC_ARGL) K_MAP_PATTERN(k_andmap,,*(mapctx->r)=result;if(result==FKL_VM_NIL)mapctx->i=len;,)
+void SYS_andmap(ARGL) MAP_PATTERN("sys.andmap",k_andmap,FKL_VM_TRUE)
+
+static void k_ormap(K_FUNC_ARGL) K_MAP_PATTERN(k_ormap,,*(mapctx->r)=result;if(result!=FKL_VM_NIL)mapctx->i=len;,)
+void SYS_ormap(ARGL) MAP_PATTERN("sys.ormap",k_ormap,FKL_VM_NIL)
+
+#undef K_MAP_PATTERN
+#undef MAP_PATTERN
 
 void SYS_reverse(ARGL)
 {

@@ -138,6 +138,8 @@ static const char* builtInSymbolList[]=
 	"sref",
 	"set-sref!",
 	"foreach",
+	"andmap",
+	"ormap",
 };
 
 FklSymbolTable* GlobSymbolTable=NULL;

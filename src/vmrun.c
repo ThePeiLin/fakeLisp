@@ -1329,6 +1329,8 @@ void propagateMark(FklVMvalue* root,FklVMheap* heap)
 		case FKL_USERDATA:
 			if(root->u.ud->rel)
 				fklGC_toGray(root->u.ud->rel,heap);
+			if(root->u.ud->t->__atomic)
+				root->u.ud->t->__atomic(root->u.ud->data,heap);
 			break;
 		case FKL_I64:
 		case FKL_F64:

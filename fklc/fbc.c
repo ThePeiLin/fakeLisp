@@ -27,6 +27,7 @@ static FklVMudMethodTable FklcBcMethodTable=
 	.__as_str=NULL,
 	.__to_str=NULL,
 	.__write=NULL,
+	.__atomic=NULL,
 };
 
 FklVMudata* fklcNewFbcUd(FklByteCode* code)

@@ -208,6 +208,7 @@ typedef struct FklVMudMethodTable
 	FklString* (*__as_str)(void*);
 	FklString* (*__to_str)(void*);
 	void (*__write)(FILE*,void*);
+	void (*__atomic)(void*,struct FklVMheap*);
 }FklVMudMethodTable;
 
 typedef enum

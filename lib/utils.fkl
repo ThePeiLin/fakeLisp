@@ -29,10 +29,6 @@
           cdddar
           cddddr
           list
-;          map
-;          andmap
-;          ormap
-;          foreach
           fprint
           print
           fprin1
@@ -124,76 +120,6 @@
                    (cdr (cdr (cdr (cdr a))))))
 
   (define list (lambda ls ls))
-
-;  (define car-all
-;    (lambda (ls r)
-;      (cond ((and ls (car ls) (caar ls))
-;             (car-all (cdr ls) (cons (caar ls) r)))
-;        (1 (reverse r)))))
-;
-;  (define cdr-all
-;    (lambda (ls r)
-;      (cond ((and ls (car ls) (cdar ls))
-;             (cdr-all (cdr ls) (cons (cdar ls) r)))
-;        (1 (reverse r)))))
-
-;  (define map
-;    (lambda (f,l)
-;      (define iter1
-;        (lambda (ls r)
-;          (cond (ls
-;                  (iter1 (cdr-all ls nil) (cons (car-all ls nil) r)))
-;            (1 (reverse r)))))
-;      (define iter
-;        (lambda (l r)
-;          (cond ((and l (car l))
-;                 (iter (cdr l) (cons (apply f (car l)) r)))
-;            (1 (reverse r)))))
-;      (iter (iter1 l nil) nil)))
-
-;  (define andmap
-;    (lambda (f,l)
-;      (define iter1
-;        (lambda (ls r)
-;          (cond (ls
-;                  (iter1 (cdr-all ls nil) (cons (car-all ls nil) r)))
-;            (1 (reverse r)))))
-;      (define iter
-;        (lambda (l r)
-;          (cond ((and l (car l) r)
-;                 (iter (cdr l) (apply f (car l))))
-;            (1 r))))
-;      (iter (iter1 l nil) 1)))
-;
-;  (define ormap
-;    (lambda (f,l)
-;      (define iter1
-;        (lambda (ls r)
-;          (cond (ls
-;                  (iter1 (cdr-all ls nil) (cons (car-all ls nil) r)))
-;            (1 (reverse r)))))
-;      (define iter
-;        (lambda (l r)
-;          (cond ((and l (car l) (not r))
-;                 (iter (cdr l) (apply f (car l))))
-;            (1 r))))
-;      (iter (iter1 l nil) nil)))
-;
-;  (define foreach
-;    (lambda (f,l)
-;      (define iter1
-;        (lambda (ls r)
-;          (cond (ls
-;                  (iter1 (cdr-all ls nil) (cons (car-all ls nil) r)))
-;            (1 (reverse r)))))
-;      (define iter
-;        (lambda (c r)
-;          (cond
-;            ((and c (car c))
-;             (iter (cdr c)
-;                   (apply f (car c))))
-;            (1 r))))
-;      (iter (iter1 l nil) nil)))
 
   (define fprint
     (lambda (f,l)

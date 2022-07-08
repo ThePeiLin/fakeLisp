@@ -13,3 +13,5 @@ include/fakeLisp/compiler.h 编译器定义及编译器相关函数
 src/fakeLisp.c 解释器源文件  
 src/fakeLispc.c 编译器源文件  
 src/btk.c basic tool kit 基础工具套件，提供脚本调用的第三方函数  
+ffi/* 外部函数接口模块
+fklc/* 编译器模块

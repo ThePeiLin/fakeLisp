@@ -140,6 +140,7 @@ static const char* builtInSymbolList[]=
 	"foreach",
 	"andmap",
 	"ormap",
+	"list",
 };
 
 FklSymbolTable* GlobSymbolTable=NULL;

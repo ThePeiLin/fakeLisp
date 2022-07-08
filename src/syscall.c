@@ -2261,6 +2261,25 @@ void SYS_ormap(ARGL) MAP_PATTERN("sys.ormap",k_ormap,FKL_VM_NIL)
 #undef K_MAP_PATTERN
 #undef MAP_PATTERN
 
+void SYS_list(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMheap* heap=exe->heap;
+	fklPushVMvalue(FKL_VM_NIL,stack);
+	FklVMvalue** r=fklNiGetTopSlot(stack);
+	FklVMvalue** pcur=r;
+	for(FklVMvalue* cur=fklNiGetArg(&ap,stack)
+			;cur
+			;cur=fklNiGetArg(&ap,stack))
+	{
+		*pcur=fklNewVMpairV(cur,FKL_VM_NIL,stack,heap);
+		pcur=&(*pcur)->u.pair->cdr;
+	}
+	fklNiResBp(&ap,stack);
+	fklNiReturn(*r,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 void SYS_reverse(ARGL)
 {
 	FKL_NI_BEGIN(exe);

@@ -28,7 +28,6 @@
           cddadr
           cdddar
           cddddr
-          list
           fprint
           print
           fprin1
@@ -118,8 +117,6 @@
 
   (define cddddr (lambda (a)
                    (cdr (cdr (cdr (cdr a))))))
-
-  (define list (lambda ls ls))
 
   (define fprint
     (lambda (f,l)

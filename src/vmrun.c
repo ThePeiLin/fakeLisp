@@ -375,7 +375,7 @@ extern void SYS_list_p(ARGL);
 extern void SYS_box(ARGL);
 extern void SYS_unbox(ARGL);
 extern void SYS_set_box(ARGL);
-extern void SYS_box_cas(ARGL);
+extern void SYS_cas_box(ARGL);
 extern void SYS_box_p(ARGL);
 extern void SYS_fix_int_p(ARGL);
 extern void SYS_number_p(ARGL);
@@ -386,7 +386,7 @@ extern void SYS_foreach(ARGL);
 extern void SYS_andmap(ARGL);
 extern void SYS_ormap(ARGL);
 extern void SYS_list(ARGL);
-extern void SYS_vector_cas(ARGL);
+extern void SYS_cas_vref(ARGL);
 
 #undef ARGL
 
@@ -478,7 +478,7 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_box,
 		SYS_unbox,
 		SYS_set_box,
-		SYS_box_cas,
+		SYS_cas_box,
 		SYS_box_p,
 		SYS_fix_int_p,
 		SYS_number_p,
@@ -489,7 +489,7 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_andmap,
 		SYS_ormap,
 		SYS_list,
-		SYS_vector_cas,
+		SYS_cas_vref,
 	};
 	obj->num=FKL_NUM_OF_BUILT_IN_SYMBOL;
 	obj->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*FKL_NUM_OF_BUILT_IN_SYMBOL);

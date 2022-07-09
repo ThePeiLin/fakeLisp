@@ -542,6 +542,7 @@ void fklFreeRunnables(FklVMrunnable* h);
 #define FKL_GET_I32(P) ((int32_t)((uintptr_t)(P)>>FKL_UNUSEDBITNUM))
 #define FKL_GET_CHR(P) ((char)((uintptr_t)(P)>>FKL_UNUSEDBITNUM))
 #define FKL_GET_SYM(P) ((FklSid_t)((uintptr_t)(P)>>FKL_UNUSEDBITNUM))
+#define FKL_IS_NIL(P) ((P)==FKL_VM_NIL)
 #define FKL_IS_PTR(P) (FKL_GET_TAG(P)==FKL_PTR_TAG)
 #define FKL_IS_PAIR(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_PAIR)
 #define FKL_IS_F64(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_F64)

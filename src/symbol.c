@@ -130,7 +130,7 @@ static const char* builtInSymbolList[]=
 	"box",
 	"unbox",
 	"set-box!",
-	"box-cas!",
+	"cas-box!",
 	"box?",
 	"fix-int?",
 	"number?",
@@ -141,7 +141,7 @@ static const char* builtInSymbolList[]=
 	"andmap",
 	"ormap",
 	"list",
-	"vector-cas!",
+	"cas-vref!",
 };
 
 FklSymbolTable* GlobSymbolTable=NULL;

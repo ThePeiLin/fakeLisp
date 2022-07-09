@@ -1582,7 +1582,7 @@ void SYS_set_vref(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_vector_cas(ARGL)
+void SYS_cas_vref(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1591,17 +1591,17 @@ void SYS_vector_cas(ARGL)
 	FklVMvalue* old=fklNiGetArg(&ap,stack);
 	FklVMvalue* new_=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-vref!",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.cas-vref!",FKL_TOOMANYARG,runnable,exe);
 	if(!place||!vector||!old||!new_)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-vref!",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.cas-vref!",FKL_TOOFEWARG,runnable,exe);
 	if(!fklIsInt(place)||!FKL_IS_VECTOR(vector))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-vref!",FKL_WRONGARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.cas-vref!",FKL_WRONGARG,runnable,exe);
 	int64_t index=fklGetInt(place);
 	size_t size=vector->u.vec->size;
 	if(index<0||index>=size)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-vref!",FKL_INVALIDACCESS,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.cas-vref!",FKL_INVALIDACCESS,runnable,exe);
 	if(index>=vector->u.vec->size)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-vref!",FKL_INVALIDACCESS,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.cas-vref!",FKL_INVALIDACCESS,runnable,exe);
 	if(vector->u.vec->base[index]==old)
 	{
 		fklSetRef(vector,&vector->u.vec->base[index],new_,exe->heap);
@@ -2690,7 +2690,7 @@ void SYS_set_box(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_box_cas(ARGL)
+void SYS_cas_box(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -2698,10 +2698,10 @@ void SYS_box_cas(ARGL)
 	FklVMvalue* old=fklNiGetArg(&ap,stack);
 	FklVMvalue* new=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.box-cas!",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.cas-box!",FKL_TOOMANYARG,runnable,exe);
 	if(!old||!box||!new)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.box-cas!",FKL_TOOFEWARG,runnable,exe);
-	FKL_NI_CHECK_TYPE(box,FKL_IS_BOX,"sys.box-cas!",runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.cas-box!",FKL_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(box,FKL_IS_BOX,"sys.cas-box!",runnable,exe);
 	if(box->u.box==old)
 	{
 		fklSetRef(box,&box->u.box,new,exe->heap);

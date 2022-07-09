@@ -46,23 +46,6 @@ void fklcInit(FklVMvalue* rel)
 	FklcRel=rel;
 }
 
-FklByteCode* fklcNewPushStrByteCode(const FklString* str)
-{
-	FklByteCode* tmp=fklNewByteCode(sizeof(char)+sizeof(str->size)+str->size);
-	tmp->code[0]=FKL_PUSH_STR;
-	fklSetU64ToByteCode(tmp->code+sizeof(char),str->size);
-	memcpy(tmp->code+sizeof(char)+sizeof(str->size)
-			,str->str
-			,str->size);
-	tmp=fklNewByteCode(sizeof(char)+sizeof(str->size)+str->size);
-	tmp->code[0]=FKL_PUSH_STR;
-	fklSetU64ToByteCode(tmp->code+sizeof(char),str->size);
-	memcpy(tmp->code+sizeof(char)+sizeof(str->size)
-			,str->str
-			,str->size);
-	return tmp;
-}
-
 void fklcCodeAppend(FklByteCode** fir,const FklByteCode* sec)
 {
 	if(!*fir)

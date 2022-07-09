@@ -849,6 +849,23 @@ FklByteCode* fklNewPushI64ByteCode(int64_t a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_PUSH
 FklByteCode* fklNewPushSidByteCode(FklSid_t a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_PUSH_SYM,a,fklSetSidToByteCode)
 FklByteCode* fklNewPushCharByteCode(char a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_PUSH_CHAR,a,fklSetCharToByteCode)
 FklByteCode* fklNewPushF64ByteCode(double a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_PUSH_F64,a,fklSetF64ToByteCode)
+FklByteCode* fklNewPushStrByteCode(const FklString* str)
+{
+	FklByteCode* tmp=fklNewByteCode(sizeof(char)+sizeof(str->size)+str->size);
+	tmp->code[0]=FKL_PUSH_STR;
+	fklSetU64ToByteCode(tmp->code+sizeof(char),str->size);
+	memcpy(tmp->code+sizeof(char)+sizeof(str->size)
+			,str->str
+			,str->size);
+	tmp=fklNewByteCode(sizeof(char)+sizeof(str->size)+str->size);
+	tmp->code[0]=FKL_PUSH_STR;
+	fklSetU64ToByteCode(tmp->code+sizeof(char),str->size);
+	memcpy(tmp->code+sizeof(char)+sizeof(str->size)
+			,str->str
+			,str->size);
+	return tmp;
+}
+
 FklByteCode* fklNewPushBigIntByteCode(const FklBigInt* bigInt)
 {
 	FklByteCode* tmp=fklNewByteCode(sizeof(char)+sizeof(char)+sizeof(bigInt->size)+bigInt->num);

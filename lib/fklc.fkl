@@ -10,6 +10,7 @@
     fklc-compile-big-int
     fklc-compile-integer
     fklc-compile-number
+    fklc-make-push-nil
     fklc-compile-atom-literal
     fklc-fbc-append
     fklc-fbc?)
@@ -24,6 +25,7 @@
   (define fklc-compile-big-int (dlsym fklc "fklc_compile_big_int"))
   (define fklc-compile-integer (dlsym fklc "fklc_compile_integer"))
   (define fklc-compile-number (dlsym fklc "fklc_compile_number"))
+  (define fklc-make-push-nil (dlsym fklc "fklc_make_push_nil"))
   (define fklc-compile-atom-literal (dlsym fklc "fklc_compile_atom_literal"))
   (define fklc-fbc-append (dlsym fklc "fklc_fbc_append"))
   )

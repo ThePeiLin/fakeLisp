@@ -96,6 +96,7 @@ FklByteCode* fklNewPushBigIntByteCode(const FklBigInt*);
 FklByteCode* fklNewPushSidByteCode(FklSid_t);
 FklByteCode* fklNewPushCharByteCode(char);
 FklByteCode* fklNewPushF64ByteCode(double a);
+FklByteCode* fklNewPushNilByteCode(void);
 #ifdef __cplusplus
 }
 #endif

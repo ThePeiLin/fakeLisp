@@ -860,3 +860,10 @@ FklByteCode* fklNewPushBigIntByteCode(const FklBigInt* bigInt)
 			,bigInt->num);
 	return tmp;
 }
+
+FklByteCode* fklNewPushNilByteCode(void)
+{
+	FklByteCode* r=fklNewByteCode(sizeof(char));
+	r->code[0]=FKL_PUSH_NIL;
+	return r;
+}

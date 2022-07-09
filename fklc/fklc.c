@@ -27,7 +27,7 @@ void fklc_fbc_p(ARGL) PREDICATE(fklcIsFbc(val),"fklc.fbc?")
 
 #undef PREDICATE
 
-#define IS_LITERAL(V) (fklIsVMnumber(V)||FKL_IS_CHR(V)||FKL_IS_STR(V)||FKL_IS_SYM(V))
+#define IS_LITERAL(V) ((V)==FKL_VM_NIL||fklIsVMnumber(V)||FKL_IS_CHR(V)||FKL_IS_STR(V)||FKL_IS_SYM(V))
 
 #define COMPILE_INTEGER(V) (FKL_IS_I32(V)?\
 		fklNewPushI32ByteCode(FKL_GET_I32(V)):\
@@ -37,7 +37,9 @@ void fklc_fbc_p(ARGL) PREDICATE(fklcIsFbc(val),"fklc.fbc?")
 
 #define COMPILE_NUMBER(V) (fklIsInt(V)?COMPILE_INTEGER(V):fklNewPushF64ByteCode((V)->u.f64))
 
-#define COMPILE_LITERAL(V) (fklIsVMnumber(V)?\
+#define COMPILE_LITERAL(V) ((V)==FKL_VM_NIL?\
+		fklNewPushNilByteCode():\
+		fklIsVMnumber(V)?\
 		COMPILE_NUMBER(V):\
 		FKL_IS_CHR(V)?\
 		fklNewPushCharByteCode(FKL_GET_CHR(V)):\
@@ -77,6 +79,16 @@ void fklc_fbc_append(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void fklc_make_push_nil(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("make-push-nil",FKL_TOOMANYARG,runnable,exe);
+	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA,fklcNewFbcUd(fklNewPushNilByteCode()),stack,exe->heap),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 void fklc_compile_i32(ARGL) CONST_COMPILE("fklc.compile-i32",i_32,FKL_IS_I32,fklNewPushI32ByteCode(FKL_GET_I32(i_32)))
 void fklc_compile_i64(ARGL) CONST_COMPILE("fklc.compile-i64",i_64,FKL_IS_I64,fklNewPushI64ByteCode(i_64->u.i64))
 void fklc_compile_char(ARGL) CONST_COMPILE("fklc.compile-char",chr,FKL_IS_CHR,fklNewPushCharByteCode(FKL_GET_CHR(chr)))
@@ -86,6 +98,9 @@ void fklc_compile_f64(ARGL) CONST_COMPILE("fklc.compile-f64",f_64,FKL_IS_F64,fkl
 void fklc_compile_string(ARGL) CONST_COMPILE("fklc.compile-string",str,FKL_IS_STR,fklcNewPushStrByteCode(str->u.str))
 void fklc_compile_integer(ARGL) CONST_COMPILE("fklc.compile-integer",integer,fklIsInt,COMPILE_INTEGER(integer))
 void fklc_compile_number(ARGL) CONST_COMPILE("fklc.compile-number",number,fklIsVMnumber,COMPILE_NUMBER(number))
+void fklc_compile_pair(ARGL) CONST_COMPILE("fklc.compile-pair",pair,FKL_IS_PAIR,fklcNewPushPairByteCode(pair))
+void fklc_compile_vector(ARGL) CONST_COMPILE("fklc.compile-vector",vec,FKL_IS_VECTOR,fklcNewPushVectorByteCode(vec))
+void fklc_compile_box(ARGL) CONST_COMPILE("fklc.compile-box",box,FKL_IS_BOX,fklcNewPushBoxByteCode(box))
 void fklc_compile_atom_literal(ARGL) CONST_COMPILE("fklc.compile-atom-literal",literal,IS_LITERAL,COMPILE_LITERAL(literal))
 
 #undef CONST_COMPILE

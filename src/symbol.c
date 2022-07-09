@@ -141,6 +141,7 @@ static const char* builtInSymbolList[]=
 	"andmap",
 	"ormap",
 	"list",
+	"vector-cas!",
 };
 
 FklSymbolTable* GlobSymbolTable=NULL;

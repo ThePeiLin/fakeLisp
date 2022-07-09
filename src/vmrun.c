@@ -386,6 +386,7 @@ extern void SYS_foreach(ARGL);
 extern void SYS_andmap(ARGL);
 extern void SYS_ormap(ARGL);
 extern void SYS_list(ARGL);
+extern void SYS_vector_cas(ARGL);
 
 #undef ARGL
 
@@ -488,6 +489,7 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_andmap,
 		SYS_ormap,
 		SYS_list,
+		SYS_vector_cas,
 	};
 	obj->num=FKL_NUM_OF_BUILT_IN_SYMBOL;
 	obj->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*FKL_NUM_OF_BUILT_IN_SYMBOL);

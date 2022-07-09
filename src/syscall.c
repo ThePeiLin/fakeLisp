@@ -1582,6 +1582,36 @@ void SYS_set_vref(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void SYS_vector_cas(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* vector=fklNiGetArg(&ap,stack);
+	FklVMvalue* place=fklNiGetArg(&ap,stack);
+	FklVMvalue* old=fklNiGetArg(&ap,stack);
+	FklVMvalue* new_=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-vref!",FKL_TOOMANYARG,runnable,exe);
+	if(!place||!vector||!old||!new_)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-vref!",FKL_TOOFEWARG,runnable,exe);
+	if(!fklIsInt(place)||!FKL_IS_VECTOR(vector))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-vref!",FKL_WRONGARG,runnable,exe);
+	int64_t index=fklGetInt(place);
+	size_t size=vector->u.vec->size;
+	if(index<0||index>=size)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-vref!",FKL_INVALIDACCESS,runnable,exe);
+	if(index>=vector->u.vec->size)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-vref!",FKL_INVALIDACCESS,runnable,exe);
+	if(vector->u.vec->base[index]==old)
+	{
+		fklSetRef(vector,&vector->u.vec->base[index],new_,exe->heap);
+		fklNiReturn(FKL_VM_TRUE,&ap,stack);
+	}
+	else
+		fklNiReturn(FKL_VM_NIL,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 void SYS_nthcdr(ARGL)
 {
 	FKL_NI_BEGIN(exe);

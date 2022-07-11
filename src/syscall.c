@@ -1082,7 +1082,7 @@ void SYS_parse_int(ARGL)
 		}
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.to-int",FKL_WRONGARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.parse-int",FKL_WRONGARG,runnable,exe);
 	fklNiEnd(&ap,stack);
 }
 

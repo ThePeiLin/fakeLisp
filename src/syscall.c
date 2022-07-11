@@ -1045,15 +1045,15 @@ void SYS_integer(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_to_int(ARGL)
+void SYS_parse_int(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.to-int",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.parse-int",FKL_TOOMANYARG,runnable,exe);
 	if(!obj)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.to-int",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.parse-int",FKL_TOOFEWARG,runnable,exe);
 	if(FKL_IS_CHR(obj))
 		fklNiReturn(FKL_MAKE_VM_I32(FKL_GET_CHR(obj)),&ap,stack);
 	else if(FKL_IS_I32(obj))
@@ -1086,15 +1086,15 @@ void SYS_to_int(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_to_f64(ARGL)
+void SYS_parse_f64(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.to-f64",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.parse-f64",FKL_TOOMANYARG,runnable,exe);
 	if(!obj)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.to-f64",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.parse-f64",FKL_TOOFEWARG,runnable,exe);
 	if(fklIsInt(obj)||FKL_IS_CHR(obj))
 	{
 		double r=fklIsInt(obj)?fklGetDouble(obj):FKL_GET_CHR(obj);
@@ -1113,7 +1113,7 @@ void SYS_to_f64(ARGL)
 		}
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.to-f64",FKL_WRONGARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.parse-f64",FKL_WRONGARG,runnable,exe);
 	fklNiEnd(&ap,stack);
 }
 

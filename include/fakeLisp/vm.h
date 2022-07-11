@@ -378,7 +378,7 @@ FklVMenvNode* fklFindVMenvNode(FklSid_t,FklVMenv*);
 void fklFreeVMenvNode(FklVMenvNode*);
 
 
-FklVMenv* fklNewVMenv(FklVMvalue*);
+FklVMenv* fklNewVMenv(FklVMvalue*,FklVMheap*);
 void fklFreeVMenv(FklVMenv*);
 
 FklVMproc* fklNewVMproc(uint64_t scp,uint64_t cpc);

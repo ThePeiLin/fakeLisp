@@ -61,7 +61,7 @@ void invokeNativeProcdure(FklVM* exe,FklVMproc* tmpProc,FklVMrunnable* runnable)
 {
 	pthread_rwlock_wrlock(&exe->rlock);
 	FklVMrunnable* tmpRunnable=fklNewVMrunnable(tmpProc,exe->rhead);
-	tmpRunnable->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(tmpProc->prevEnv),exe->heap);
+	tmpRunnable->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(tmpProc->prevEnv,exe->heap),exe->heap);
 	exe->rhead=tmpRunnable;
 	pthread_rwlock_unlock(&exe->rlock);
 }
@@ -75,7 +75,7 @@ void applyNativeProc(FklVM* exe,FklVMproc* tmpProc,FklVMrunnable* runnable)
 	{
 		pthread_rwlock_wrlock(&exe->rlock);
 		FklVMrunnable* tmpRunnable=fklNewVMrunnable(tmpProc,exe->rhead);
-		tmpRunnable->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(tmpProc->prevEnv),exe->heap);
+		tmpRunnable->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(tmpProc->prevEnv,exe->heap),exe->heap);
 		exe->rhead=tmpRunnable;
 		pthread_rwlock_unlock(&exe->rlock);
 	}
@@ -89,7 +89,7 @@ void tailInvokeNativeProcdure(FklVM* exe,FklVMproc* proc,FklVMrunnable* runnable
 	{
 		pthread_rwlock_wrlock(&exe->rlock);
 		FklVMrunnable* tmpRunnable=fklNewVMrunnable(proc,exe->rhead->prev);
-		tmpRunnable->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(proc->prevEnv),exe->heap);
+		tmpRunnable->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(proc->prevEnv,exe->heap),exe->heap);
 		exe->rhead->prev=tmpRunnable;
 		pthread_rwlock_unlock(&exe->rlock);
 	}
@@ -115,7 +115,7 @@ int fklVMcallInDlproc(FklVMvalue* proc
 			{
 				pthread_rwlock_wrlock(&exe->rlock);
 				FklVMrunnable* tmpRunnable=fklNewVMrunnable(proc->u.proc,exe->rhead);
-				tmpRunnable->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(proc->u.proc->prevEnv),exe->heap);
+				tmpRunnable->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(proc->u.proc->prevEnv,exe->heap),exe->heap);
 				exe->rhead=tmpRunnable;
 				pthread_rwlock_unlock(&exe->rlock);
 			}
@@ -764,7 +764,6 @@ void B_push_proc(FklVM* exe)
 	FklVMrunnable* runnable=exe->rhead;
 	uint64_t sizeOfProc=fklGetU64FromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklVMproc* code=fklNewVMproc(runnable->cp+sizeof(char)+sizeof(uint64_t),sizeOfProc);
-	//	FklVMvalue* vmcode=
 	fklNewVMvalueToStack(FKL_PROC,code,stack,exe->heap);
 	fklSetRef(&code->prevEnv,runnable->localenv,exe->heap);
 	runnable->cp+=sizeof(char)+sizeof(uint64_t)+sizeOfProc;
@@ -970,10 +969,8 @@ void B_append(FklVM* exe)
 	else
 	{
 		FklVMvalue** lastcdr=&sec;
-//		FklVMvalue* lastpair=NULL;
 		while(FKL_IS_PAIR(*lastcdr))
 		{
-//			lastpair=*lastcdr;
 			lastcdr=&(*lastcdr)->u.pair->cdr;
 		}
 		fklSetRef(lastcdr,fir,exe->heap);
@@ -1044,7 +1041,7 @@ void B_push_r_env(FklVM* exe)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;
-	FklVMvalue* n=fklNiNewVMvalue(FKL_ENV,fklNewVMenv(FKL_VM_NIL),stack,exe->heap);
+	FklVMvalue* n=fklNiNewVMvalue(FKL_ENV,fklNewVMenv(FKL_VM_NIL,exe->heap),stack,exe->heap);
 	fklSetRef(&n->u.env->prev,r->localenv,exe->heap);
 	pthread_rwlock_wrlock(&exe->rlock);
 	r->localenv=n;
@@ -1615,7 +1612,7 @@ FklVM* fklNewThreadVM(FklVMproc* mainCode,FklVMheap* heap)
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe,__func__);
 	FklVMrunnable* t=fklNewVMrunnable(mainCode,NULL);
-	t->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(mainCode->prevEnv),heap);
+	t->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(mainCode->prevEnv,heap),heap);
 	exe->rhead=t;
 	exe->mark=1;
 	exe->chan=fklNewVMvalue(FKL_CHAN,fklNewVMchanl(0),heap);

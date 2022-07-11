@@ -607,7 +607,7 @@ void fklChanlSend(FklVMsend*s,FklVMchanl* ch)
 	pthread_mutex_unlock(&ch->lock);
 }
 
-FklVMenv* fklNewVMenv(FklVMvalue* prev)
+FklVMenv* fklNewVMenv(FklVMvalue* prev,FklVMheap* h)
 {
 	FklVMenv* tmp=(FklVMenv*)malloc(sizeof(FklVMenv));
 	FKL_ASSERT(tmp,__func__);
@@ -615,6 +615,7 @@ FklVMenv* fklNewVMenv(FklVMvalue* prev)
 	tmp->num=0;
 	tmp->list=NULL;
 	tmp->prev=prev;
+	fklSetRef(&tmp->prev,prev,h);
 	return tmp;
 }
 

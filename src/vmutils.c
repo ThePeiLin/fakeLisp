@@ -100,7 +100,7 @@ FklVMvalue* fklCastPreEnvToVMenv(FklPreEnv* pe,FklVMvalue* prev,FklVMheap* heap)
 		size++;
 		tmpDef=tmpDef->next;
 	}
-	FklVMenv* tmp=fklNewVMenv(prev);
+	FklVMenv* tmp=fklNewVMenv(prev,heap);
 	for(tmpDef=pe->symbols;tmpDef;tmpDef=tmpDef->next)
 		fklAddVMenvNodeWithV(fklAddSymbolToGlob(tmpDef->symbol)->id,fklCastCptrVMvalue(&tmpDef->obj,heap),tmp);
 	return fklNewVMvalue(FKL_ENV,tmp,heap);
@@ -201,7 +201,7 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 				exe->rhead=curr;
 				FklVMrunnable* prevRunnable=exe->rhead;
 				FklVMrunnable* r=fklNewVMrunnable(&h->proc,prevRunnable);
-				r->localenv=fklNewSaveVMvalue(FKL_ENV,fklNewVMenv(prevRunnable->localenv));
+				r->localenv=fklNewSaveVMvalue(FKL_ENV,fklNewVMenv(prevRunnable->localenv,exe->heap));
 				fklAddToHeap(r->localenv,exe->heap);
 				FklVMvalue* curEnv=r->localenv;
 				FklSid_t idOfError=tb->sid;

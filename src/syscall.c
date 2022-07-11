@@ -2106,7 +2106,7 @@ void SYS_call_cc(ARGL)
 		else
 		{
 			FklVMrunnable* tmpRunnable=fklNewVMrunnable(tmpProc,exe->rhead);
-			tmpRunnable->localenv=fklNiNewVMvalue(FKL_ENV,fklNewVMenv(tmpProc->prevEnv),stack,exe->heap);
+			tmpRunnable->localenv=fklNiNewVMvalue(FKL_ENV,fklNewVMenv(tmpProc->prevEnv,exe->heap),stack,exe->heap);
 			exe->rhead=tmpRunnable;
 		}
 	}

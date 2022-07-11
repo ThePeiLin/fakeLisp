@@ -462,8 +462,7 @@ FklVMvalue* fklNewVMvalueToStack(FklValueType
 		,void* p
 		,FklVMstack*
 		,FklVMheap* heap);
-FklVMvalue* fklSetRef(FklVMvalue* by
-		,FklVMvalue* volatile*
+FklVMvalue* fklSetRef(FklVMvalue* volatile*
 		,FklVMvalue* v
 		,FklVMheap*);
 

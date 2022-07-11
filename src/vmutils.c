@@ -846,17 +846,18 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 	fklFreePtrStack(hasPrintRecStack);
 }
 
-FklVMvalue* fklSetRef(FklVMvalue* by,FklVMvalue* volatile* pref,FklVMvalue* v,FklVMheap* h)
+FklVMvalue* fklSetRef(FklVMvalue* volatile* pref,FklVMvalue* v,FklVMheap* h)
 {
 	FklVMvalue* ref=*pref;
 	*pref=v;
 	FklGCstate running=fklGetGCstate(h);
 	if(running==FKL_GC_PROPAGATE||running==FKL_GC_COLLECT)
 	{
-		if(by->mark==FKL_MARK_B)
-			fklGC_reGray(by,h);
-		else if(by->mark==FKL_MARK_G&&ref&&FKL_IS_PTR(ref)&&ref->mark==FKL_MARK_W)
+//		if(by->mark==FKL_MARK_B)
+//			fklGC_reGray(by,h);
+//		else if(by->mark==FKL_MARK_G&&ref&&FKL_IS_PTR(ref)&&ref->mark==FKL_MARK_W)
 			fklGC_toGray(ref,h);
+			fklGC_toGray(v,h);
 	}
 	return ref;
 }

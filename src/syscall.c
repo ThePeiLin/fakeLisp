@@ -53,7 +53,7 @@ void SYS_set_car(ARGL)
 	if(!target||!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-car!",FKL_TOOFEWARG,runnable,exe);
 	FKL_NI_CHECK_TYPE(obj,FKL_IS_PAIR,"sys.set-car!",runnable,exe);
-	fklSetRef(obj,&obj->u.pair->car,target,exe->heap);
+	fklSetRef(&obj->u.pair->car,target,exe->heap);
 	fklNiReturn(target,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -83,7 +83,7 @@ void SYS_set_cdr(ARGL)
 	if(!target||!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-cdr!",FKL_TOOFEWARG,runnable,exe);
 	FKL_NI_CHECK_TYPE(obj,FKL_IS_PAIR,"sys.set-cdr",runnable,exe);
-	fklSetRef(obj,&obj->u.pair->cdr,target,exe->heap);
+	fklSetRef(&obj->u.pair->cdr,target,exe->heap);
 	fklNiReturn(target,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -1477,7 +1477,7 @@ void SYS_set_nth(ARGL)
 		for(;i<index&&FKL_IS_PAIR(objPair);i++,objPair=fklGetVMpairCdr(objPair));
 		if(FKL_IS_PAIR(objPair))
 		{
-			fklSetRef(objPair,&objPair->u.pair->car,target,exe->heap);
+			fklSetRef(&objPair->u.pair->car,target,exe->heap);
 			fklNiReturn(target,&ap,stack);
 		}
 		else
@@ -1577,7 +1577,7 @@ void SYS_set_vref(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-vref!",FKL_INVALIDACCESS,runnable,exe);
 	if(index>=vector->u.vec->size)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-vref!",FKL_INVALIDACCESS,runnable,exe);
-	fklSetRef(vector,&vector->u.vec->base[index],target,exe->heap);
+	fklSetRef(&vector->u.vec->base[index],target,exe->heap);
 	fklNiReturn(target,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -1604,7 +1604,7 @@ void SYS_cas_vref(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.cas-vref!",FKL_INVALIDACCESS,runnable,exe);
 	if(vector->u.vec->base[index]==old)
 	{
-		fklSetRef(vector,&vector->u.vec->base[index],new_,exe->heap);
+		fklSetRef(&vector->u.vec->base[index],new_,exe->heap);
 		fklNiReturn(FKL_VM_TRUE,&ap,stack);
 	}
 	else
@@ -1663,7 +1663,7 @@ void SYS_set_nthcdr(ARGL)
 		for(;i<index&&FKL_IS_PAIR(objPair);i++,objPair=fklGetVMpairCdr(objPair));
 		if(FKL_IS_PAIR(objPair))
 		{
-			fklSetRef(objPair,&objPair->u.pair->cdr,target,exe->heap);
+			fklSetRef(&objPair->u.pair->cdr,target,exe->heap);
 			fklNiReturn(target,&ap,stack);
 		}
 		else
@@ -2210,8 +2210,8 @@ typedef struct
 		for(size_t i=0;i<argNum;i++)\
 		{\
 			FklVMvalue* pair=mapctx->vec->u.vec->base[i];\
-			fklSetRef(mapctx->cars,&(mapctx->cars)->u.vec->base[i],pair->u.pair->car,heap);\
-			fklSetRef(mapctx->vec,&mapctx->vec->u.vec->base[i],pair->u.pair->cdr,heap);\
+			fklSetRef(&(mapctx->cars)->u.vec->base[i],pair->u.pair->car,heap);\
+			fklSetRef(&mapctx->vec->u.vec->base[i],pair->u.pair->cdr,heap);\
 		}\
 		fklVMcallInDlproc(mapctx->proc,argNum,mapctx->cars->u.vec->base,runnable,exe,(K_FUNC),mapctx,sizeof(MapCtx));\
 		FklVMvalue* result=fklGetTopValue(exe->stack);\
@@ -2241,7 +2241,7 @@ typedef struct
 		FklVMvalue* cur=fklNiGetArg(&ap,stack);\
 		if(!fklIsList(cur))\
 			FKL_RAISE_BUILTIN_ERROR_CSTR((FUNC_NAME),FKL_WRONGARG,runnable,exe);\
-		fklSetRef(argVec,&argVec->u.vec->base[i],cur,heap);\
+		fklSetRef(&argVec->u.vec->base[i],cur,heap);\
 	}\
 	fklNiResBp(&ap,stack);\
 	size_t len=fklVMlistLength(argVec->u.vec->base[0]);\
@@ -2274,7 +2274,7 @@ typedef struct
 static void k_map(K_FUNC_ARGL)
 	K_MAP_PATTERN(k_map,
 			*(mapctx->cur)=fklNiNewVMvalue(FKL_PAIR,fklNewVMpair(),stack,heap);,
-			fklSetRef(*(mapctx->cur),&(*mapctx->cur)->u.pair->car,result,heap);,
+			fklSetRef(&(*mapctx->cur)->u.pair->car,result,heap);,
 			mapctx->cur=&(*mapctx->cur)->u.pair->cdr;
 			)
 void SYS_map(ARGL) MAP_PATTERN("sys.map",k_map,FKL_VM_NIL)
@@ -2387,7 +2387,7 @@ void SYS_vector(ARGL)
 				vec->u.vec->base[i]=FKL_MAKE_VM_CHR(fir->u.str->str[i+start]);
 		else
 			for(size_t i=0;i<size;i++)
-				fklSetRef(vec,&vec->u.vec->base[i],fir->u.vec->base[i+start],exe->heap);
+				fklSetRef(&vec->u.vec->base[i],fir->u.vec->base[i+start],exe->heap);
 		fklNiReturn(vec,&ap,stack);
 	}
 	else if(fklIsInt(fir))
@@ -2398,7 +2398,7 @@ void SYS_vector(ARGL)
 			size_t size=ap-stack->bp;
 			FklVMvalue* vec=fklNewVMvecV(size,NULL,stack,exe->heap);
 			for(size_t i=0;i<size;i++)
-				fklSetRef(vec,&vec->u.vec->base[i],fklNiGetArg(&ap,stack),exe->heap);
+				fklSetRef(&vec->u.vec->base[i],fklNiGetArg(&ap,stack),exe->heap);
 			fklNiResBp(&ap,stack);
 			fklNiReturn(vec,&ap,stack);
 		}
@@ -2410,7 +2410,7 @@ void SYS_vector(ARGL)
 			FklVMvalue* vec=fklNewVMvecV(size,NULL,stack,exe->heap);
 			if(content)
 				for(size_t i=0;i<size;i++)
-					fklSetRef(vec,&vec->u.vec->base[i],content,exe->heap);
+					fklSetRef(&vec->u.vec->base[i],content,exe->heap);
 			fklNiReturn(vec,&ap,stack);
 		}
 	}
@@ -2685,7 +2685,7 @@ void SYS_set_box(ARGL)
 	if(!obj||!box)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.set-box!",FKL_TOOFEWARG,runnable,exe);
 	FKL_NI_CHECK_TYPE(box,FKL_IS_BOX,"sys.set-box!",runnable,exe);
-	fklSetRef(box,&box->u.box,obj,exe->heap);
+	fklSetRef(&box->u.box,obj,exe->heap);
 	fklNiReturn(obj,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -2704,7 +2704,7 @@ void SYS_cas_box(ARGL)
 	FKL_NI_CHECK_TYPE(box,FKL_IS_BOX,"sys.cas-box!",runnable,exe);
 	if(box->u.box==old)
 	{
-		fklSetRef(box,&box->u.box,new,exe->heap);
+		fklSetRef(&box->u.box,new,exe->heap);
 		fklNiReturn(FKL_VM_TRUE,&ap,stack);
 	}
 	else

@@ -764,8 +764,9 @@ void B_push_proc(FklVM* exe)
 	FklVMrunnable* runnable=exe->rhead;
 	uint64_t sizeOfProc=fklGetU64FromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklVMproc* code=fklNewVMproc(runnable->cp+sizeof(char)+sizeof(uint64_t),sizeOfProc);
-	FklVMvalue* vmcode=fklNewVMvalueToStack(FKL_PROC,code,stack,exe->heap);
-	fklSetRef(vmcode,&code->prevEnv,runnable->localenv,exe->heap);
+	//	FklVMvalue* vmcode=
+	fklNewVMvalueToStack(FKL_PROC,code,stack,exe->heap);
+	fklSetRef(&code->prevEnv,runnable->localenv,exe->heap);
 	runnable->cp+=sizeof(char)+sizeof(uint64_t)+sizeOfProc;
 }
 
@@ -807,7 +808,7 @@ void B_pop_var(FklVM* exe)
 			FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-var",FKL_SYMUNDEFINE,runnable,exe);
 		pValue=&tmp->value;
 	}
-	fklSetRef(curEnv,pValue,fklNiGetArg(&ap,stack),exe->heap);
+	fklSetRef(pValue,fklNiGetArg(&ap,stack),exe->heap);
 	fklNiEnd(&ap,stack);
 	if(FKL_IS_PROC(*pValue)&&(*pValue)->u.proc->sid==0)
 		(*pValue)->u.proc->sid=idOfVar;
@@ -825,7 +826,7 @@ void B_pop_arg(FklVM* exe)
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklVMvalue* curEnv=runnable->localenv;
 	FklVMvalue* volatile* pValue=&fklAddVMenvNode(idOfVar,curEnv->u.env)->value;
-	fklSetRef(curEnv,pValue,fklNiGetArg(&ap,stack),exe->heap);
+	fklSetRef(pValue,fklNiGetArg(&ap,stack),exe->heap);
 	fklNiEnd(&ap,stack);
 	runnable->cp+=sizeof(char)+sizeof(FklSid_t);
 }
@@ -842,7 +843,7 @@ void B_pop_rest_arg(FklVM* exe)
 	for(;ap>stack->bp;pValue=&(*pValue)->u.pair->cdr)
 		*pValue=fklNewVMpairV(fklNiGetArg(&ap,stack),FKL_VM_NIL,stack,heap);
 	pValue=&fklAddVMenvNode(idOfVar,curEnv->u.env)->value;
-	fklSetRef(curEnv,pValue,obj,heap);
+	fklSetRef(pValue,obj,heap);
 	fklNiEnd(&ap,stack);
 	runnable->cp+=sizeof(char)+sizeof(FklSid_t);
 }
@@ -969,13 +970,13 @@ void B_append(FklVM* exe)
 	else
 	{
 		FklVMvalue** lastcdr=&sec;
-		FklVMvalue* lastpair=NULL;
+//		FklVMvalue* lastpair=NULL;
 		while(FKL_IS_PAIR(*lastcdr))
 		{
-			lastpair=*lastcdr;
+//			lastpair=*lastcdr;
 			lastcdr=&(*lastcdr)->u.pair->cdr;
 		}
-		fklSetRef(lastpair,lastcdr,fir,exe->heap);
+		fklSetRef(lastcdr,fir,exe->heap);
 		fklNiReturn(sec,&ap,stack);
 	}
 	fklNiEnd(&ap,stack);
@@ -1030,7 +1031,7 @@ void B_push_vector(FklVM* exe)
 	for(size_t i=size;i>0;i--)
 	{
 		vec->u.vec->base[i-1]=FKL_VM_NIL;
-		fklSetRef(vec,&vec->u.vec->base[i-1],fklNiGetArg(&ap,stack),exe->heap);
+		fklSetRef(&vec->u.vec->base[i-1],fklNiGetArg(&ap,stack),exe->heap);
 	}
 	fklNiReturn(vec
 			,&ap
@@ -1044,7 +1045,7 @@ void B_push_r_env(FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;
 	FklVMvalue* n=fklNiNewVMvalue(FKL_ENV,fklNewVMenv(FKL_VM_NIL),stack,exe->heap);
-	fklSetRef(n,&n->u.env->prev,r->localenv,exe->heap);
+	fklSetRef(&n->u.env->prev,r->localenv,exe->heap);
 	pthread_rwlock_wrlock(&exe->rlock);
 	r->localenv=n;
 	pthread_rwlock_unlock(&exe->rlock);
@@ -1076,7 +1077,7 @@ void B_push_box(FklVM* exe)
 	FklVMrunnable* r=exe->rhead;
 	FklVMvalue* c=fklNiGetArg(&ap,stack);
 	FklVMvalue* box=fklNiNewVMvalue(FKL_BOX,FKL_VM_NIL,stack,exe->heap);
-	fklSetRef(box,&box->u.box,c,exe->heap);
+	fklSetRef(&box->u.box,c,exe->heap);
 	fklNiReturn(box,&ap,stack);
 	fklNiEnd(&ap,stack);
 	r->cp+=sizeof(char);

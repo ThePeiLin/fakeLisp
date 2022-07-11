@@ -7,7 +7,7 @@ FklVMproc* fklNewVMproc(uint64_t scp,uint64_t cpc)
 {
 	FklVMproc* tmp=(FklVMproc*)malloc(sizeof(FklVMproc));
 	FKL_ASSERT(tmp,__func__);
-	tmp->prevEnv=NULL;
+	tmp->prevEnv=FKL_VM_NIL;
 	tmp->scp=scp;
 	tmp->cpc=cpc;
 	tmp->sid=0;
@@ -325,8 +325,8 @@ FklVMpair* fklNewVMpair(void)
 FklVMvalue* fklNewVMpairV(FklVMvalue* car,FklVMvalue* cdr,FklVMstack* stack,FklVMheap* heap)
 {
 	FklVMvalue* pair=fklNewVMvalueToStack(FKL_PAIR,fklNewVMpair(),stack,heap);
-	fklSetRef(pair,&pair->u.pair->car,car,heap);
-	fklSetRef(pair,&pair->u.pair->cdr,cdr,heap);
+	fklSetRef(&pair->u.pair->car,car,heap);
+	fklSetRef(&pair->u.pair->cdr,cdr,heap);
 	return pair;
 }
 
@@ -335,7 +335,7 @@ FklVMvalue* fklNewVMvecV(size_t size,FklVMvalue** base,FklVMstack* stack,FklVMhe
 	FklVMvalue* vec=fklNewVMvalueToStack(FKL_VECTOR,fklNewVMvec(size),stack,heap);
 	if(base)
 		for(size_t i=0;i<size;i++)
-			fklSetRef(vec,&vec->u.vec->base[i],base[i],heap);
+			fklSetRef(&vec->u.vec->base[i],base[i],heap);
 	return vec;
 }
 
@@ -611,10 +611,10 @@ FklVMenv* fklNewVMenv(FklVMvalue* prev)
 {
 	FklVMenv* tmp=(FklVMenv*)malloc(sizeof(FklVMenv));
 	FKL_ASSERT(tmp,__func__);
+	pthread_rwlock_init(&tmp->lock,NULL);
 	tmp->num=0;
 	tmp->list=NULL;
 	tmp->prev=prev;
-	pthread_rwlock_init(&tmp->lock,NULL);
 	return tmp;
 }
 

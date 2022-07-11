@@ -2,7 +2,6 @@
   btk
   (export
     remove-file
-    set-chanl-buf-size
     getch
     sleep
     usleep
@@ -12,7 +11,6 @@
     get-time)
   (define btk (dlopen (append (getdir) "/../btk")))
   (define remove-file (dlsym btk "btk_remove_file"))
-  (define set-chanl-buf-size (dlsym btk "btk_set_chanl_buffer_size"))
   (define getch (dlsym btk "btk_getch"))
   (define sleep (dlsym btk "btk_sleep"))
   (define usleep (dlsym btk "btk_usleep"))

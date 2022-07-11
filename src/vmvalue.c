@@ -553,6 +553,27 @@ void fklFreeVMsend(FklVMsend* s)
 	free(s);
 }
 
+void fklChanlRecvOk(FklVMchanl* ch,FklVMvalue** r,int* ok)
+{
+	if(ch->messageNum)
+	{
+		pthread_mutex_lock(&ch->lock);
+		*r=fklPopPtrQueue(ch->messages);
+		ch->messageNum--;
+		if(ch->messageNum<ch->max)
+		{
+			FklVMsend* s=fklPopPtrQueue(ch->sendq);
+			ch->sendNum--;
+			if(s)
+				pthread_cond_signal(&s->cond);
+		}
+		pthread_mutex_unlock(&ch->lock);
+		*ok=1;
+	}
+	else
+		*ok=0;
+}
+
 void fklChanlRecv(FklVMrecv* r,FklVMchanl* ch)
 {
 	pthread_mutex_lock(&ch->lock);

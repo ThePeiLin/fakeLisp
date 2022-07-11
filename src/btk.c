@@ -148,23 +148,6 @@ void btk_remove_file(ARGL)
 	free(name);
 }
 
-void btk_set_chanl_buffer_size(ARGL)
-{
-	FKL_NI_BEGIN(exe);
-	FklVMvalue* chan=fklPopVMstack(stack);
-	FklVMvalue* size=fklPopVMstack(stack);
-	FklVMrunnable* r=exe->rhead;
-	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.set_chanl_buffer_size",FKL_TOOMANYARG,r,exe);
-	if(size==NULL||chan==NULL)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.set_chanl_buffer_size",FKL_TOOFEWARG,r,exe);
-	if(!fklIsInt(size)||!FKL_IS_CHAN(chan))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.set_chanl_buffer_size",FKL_WRONGARG,r,exe);
-	chan->u.chan->max=fklGetInt(size);
-	fklNiReturn(chan,&ap,stack);
-	fklNiEnd(&ap,stack);
-}
-
 void btk_time(ARGL)
 {
 	FKL_NI_BEGIN(exe);

@@ -1688,10 +1688,10 @@ void SYS_length(ARGL)
 		len=fklVMlistLength(obj);
 	else if(FKL_IS_STR(obj))
 		len=obj->u.str->size;
-	else if(FKL_IS_CHAN(obj))
-		len=fklGetNumVMchanl(obj->u.chan);
 	else if(FKL_IS_VECTOR(obj))
 		len=obj->u.vec->size;
+	else if(FKL_IS_USERDATA(obj)&&obj->u.ud->t->__length)
+		len=obj->u.ud->t->__length(obj->u.ud->data);
 	else
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.length",FKL_WRONGARG,runnable,exe);
 	fklNiReturn(fklMakeVMint(len,stack,exe->heap),&ap,stack);
@@ -2014,6 +2014,24 @@ void SYS_chanl(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+//void SYS_chanl_mes_num(ARGL)
+//{
+//	FKL_NI_BEGIN(exe);
+//	FklVMrunnable* runnable=exe->rhead;
+//	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+//	if(fklNiResBp(&ap,stack))
+//		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.chanl-mes-num",FKL_TOOMANYARG,runnable,exe);
+//	if(!obj)
+//		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.chanl-mes-num",FKL_TOOFEWARG,runnable,exe);
+//	size_t len=0;
+//	if(FKL_IS_CHAN(obj))
+//		len=obj->u.chan->messageNum;
+//	else
+//		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.chanl-mes-num",FKL_WRONGARG,runnable,exe);
+//	fklNiReturn(fklMakeVMint(len,stack,exe->heap),&ap,stack);
+//	fklNiEnd(&ap,stack);
+//}
+
 void SYS_send(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -2036,15 +2054,31 @@ void SYS_recv(ARGL)
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
 	FklVMvalue* ch=fklNiGetArg(&ap,stack);
+	FklVMvalue* okBox=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.recv",FKL_TOOMANYARG,runnable,exe);
 	if(!ch)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.recv",FKL_TOOFEWARG,runnable,exe);
 	FKL_NI_CHECK_TYPE(ch,FKL_IS_CHAN,"sys.recv",runnable,exe);
-	FklVMrecv* t=fklNewVMrecv();
-	fklChanlRecv(t,ch->u.chan);
-	fklNiReturn(t->v,&ap,stack);
-	fklFreeVMrecv(t);
+	if(okBox)
+	{
+		FKL_NI_CHECK_TYPE(okBox,FKL_IS_BOX,"sys.recv",runnable,exe);
+		FklVMvalue* r=FKL_VM_NIL;
+		int ok=0;
+		fklChanlRecvOk(ch->u.chan,&r,&ok);
+		if(ok)
+			okBox->u.box=FKL_VM_TRUE;
+		else
+			okBox->u.box=FKL_VM_NIL;
+		fklNiReturn(r,&ap,stack);
+	}
+	else
+	{
+		FklVMrecv* t=fklNewVMrecv();
+		fklChanlRecv(t,ch->u.chan);
+		fklNiReturn(t->v,&ap,stack);
+		fklFreeVMrecv(t);
+	}
 	fklNiEnd(&ap,stack);
 }
 

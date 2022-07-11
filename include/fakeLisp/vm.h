@@ -209,6 +209,7 @@ typedef struct FklVMudMethodTable
 	FklString* (*__to_str)(void*);
 	void (*__write)(FILE*,void*);
 	void (*__atomic)(void*,struct FklVMheap*);
+	size_t (*__length)(void*);
 }FklVMudMethodTable;
 
 typedef enum
@@ -431,6 +432,7 @@ FklVMsend* fklNewVMsend(FklVMvalue*);
 void fklFreeVMsend(FklVMsend*);
 
 void fklChanlSend(FklVMsend*,FklVMchanl*);
+void fklChanlRecvOk(FklVMchanl*,FklVMvalue**,int*);
 void fklChanlRecv(FklVMrecv*,FklVMchanl*);
 
 FklVMvalue* fklCastCptrVMvalue(FklAstCptr*,FklVMheap*);

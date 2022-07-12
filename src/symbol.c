@@ -142,6 +142,8 @@ static const char* builtInSymbolList[]=
 	"ormap",
 	"list",
 	"cas-vref!",
+	"memq",
+	"member",
 };
 
 FklSymbolTable* GlobSymbolTable=NULL;

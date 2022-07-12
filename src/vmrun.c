@@ -381,6 +381,8 @@ extern void SYS_andmap(ARGL);
 extern void SYS_ormap(ARGL);
 extern void SYS_list(ARGL);
 extern void SYS_cas_vref(ARGL);
+extern void SYS_memq(ARGL);
+extern void SYS_member(ARGL);
 
 #undef ARGL
 
@@ -484,6 +486,8 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		SYS_ormap,
 		SYS_list,
 		SYS_cas_vref,
+		SYS_memq,
+		SYS_member,
 	};
 	VMstdin=fklNewVMvalue(FKL_FP,fklNewVMfp(stdin),heap);
 	VMstdout=fklNewVMvalue(FKL_FP,fklNewVMfp(stdout),heap);

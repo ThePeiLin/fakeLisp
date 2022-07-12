@@ -223,9 +223,7 @@
         (let [(tb (map (lambda (x) (cdr x)) b))
               (cs (map (lambda (x)
                          (if (pair? x)
-                           (cons 'or
-                                 (map (lambda (x)
-                                        `(equal _ ~x)) x))
+                           `(member _ '~x)
                            x))
                        (map (lambda (x) (nth 0 x)) b)))]
                      (map (lambda (x)

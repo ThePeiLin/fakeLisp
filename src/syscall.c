@@ -2322,6 +2322,44 @@ void SYS_ormap(ARGL) MAP_PATTERN("sys.ormap",k_ormap,FKL_VM_NIL)
 #undef K_MAP_PATTERN
 #undef MAP_PATTERN
 
+void SYS_memq(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	FklVMvalue* list=fklNiGetArg(&ap,stack);
+	if(!obj||!list)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.memq",FKL_TOOFEWARG,runnable,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.memq",FKL_TOOMANYARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(list,fklIsList,"sys.memq",runnable,exe);
+	FklVMvalue* r=list;
+	for(;r!=FKL_VM_NIL;r=r->u.pair->cdr)
+		if(r->u.pair->car==obj)
+			break;
+	fklNiReturn(r,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void SYS_member(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	FklVMvalue* list=fklNiGetArg(&ap,stack);
+	if(!obj||!list)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.member",FKL_TOOFEWARG,runnable,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.member",FKL_TOOMANYARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(list,fklIsList,"sys.member",runnable,exe);
+	FklVMvalue* r=list;
+	for(;r!=FKL_VM_NIL;r=r->u.pair->cdr)
+		if(fklVMvaluecmp(r->u.pair->car,obj))
+			break;
+	fklNiReturn(r,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 void SYS_list(ARGL)
 {
 	FKL_NI_BEGIN(exe);

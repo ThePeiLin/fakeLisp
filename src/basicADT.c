@@ -1119,7 +1119,7 @@ void* fklInsertHashItem(void* item,FklHashTable* table)
 	int (*__keyEqual)(void*,void*)=table->t->__keyEqual;
 	FklHashTableNode** pp=&table->base[__hashFunc(__getKey(item),table)];
 	for(;*pp;pp=&(*pp)->next)
-		if(__keyEqual(__getKey((*pp)->item),item))
+		if(__keyEqual(__getKey((*pp)->item),__getKey(item)))
 			return (*pp)->item;
 	*pp=newHashTableNode(item,NULL);
 	table->list[table->num]=*pp;
@@ -1132,16 +1132,18 @@ void* fklInsertHashItem(void* item,FklHashTable* table)
 void fklRehashTable(FklHashTable* table)
 {
 	table->size*=2;
+	size_t num=table->num;
 	FklHashTableNode** list=table->list;
 	FklHashTableNode** base=table->base;
 	FklHashTableNode** nlist=(FklHashTableNode**)calloc(table->size,sizeof(FklHashTableNode*));
-	table->list=nlist;
 	FKL_ASSERT(nlist,__func__);
+	table->list=nlist;
 	FklHashTableNode** nbase=(FklHashTableNode**)calloc(table->size,sizeof(FklHashTableNode*));
 	table->base=nbase;
 	free(base);
 	FKL_ASSERT(nbase,__func__);
-	for(size_t i=0;i<table->num;i++)
+	table->num=0;
+	for(size_t i=0;i<num;i++)
 	{
 		fklInsertHashItem(list[i]->item,table);
 		free(list[i]);

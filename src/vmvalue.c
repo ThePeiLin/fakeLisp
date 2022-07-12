@@ -693,7 +693,7 @@ void fklAtomicVMenv(FklVMenv* env,FklVMheap* heap)
 	pthread_rwlock_rdlock(&env->lock);
 	if(env->prev)
 		fklGC_toGray(env->prev,heap);
-	for(uint32_t i=0;i<table->num;i++)
+	for(size_t i=0;i<table->num;i++)
 	{
 		VMenvHashItem* item=table->list[i]->item;
 		fklGC_toGray(item->v,heap);

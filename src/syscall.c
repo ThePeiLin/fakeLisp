@@ -1969,9 +1969,6 @@ void SYS_go(ARGL)
 	threadVM->code=exe->code;
 	threadVM->size=exe->size;
 	FklVMstack* threadVMstack=threadVM->stack;
-//	FklVMvalue* prevBp=FKL_MAKE_VM_I32(threadVMstack->bp);
-//	fklPushVMvalue(prevBp,threadVMstack);
-//	threadVMstack->bp=threadVMstack->tp;
 	fklNiSetBp(threadVMstack->tp,threadVMstack);
 	FklVMvalue* cur=fklNiGetArg(&ap,stack);
 	FklPtrStack* comStack=fklNewPtrStack(32,16);

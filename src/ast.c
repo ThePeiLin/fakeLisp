@@ -315,25 +315,6 @@ int fklDeleteCptr(FklAstCptr* objCptr)
 	return 0;
 }
 
-//int fklAstStrcmp(const FklAstString* fir,const FklAstString* sec)
-//{
-//	uint64_t size=fir->size<sec->size?fir->size:sec->size;
-//	int r=memcmp(fir->str,sec->str,size);
-//	if(!r)
-//		return (int64_t)fir->size-(int64_t)sec->size;
-//	return r;
-//}
-//
-//int fklAstStrCstrCmp(const FklAstString* fir,const char* sec)
-//{
-//	size_t seclen=strlen(sec);
-//	uint64_t size=fir->size<seclen?fir->size:seclen;
-//	int r=memcmp(fir->str,sec,size);
-//	if(!r)
-//		return (int64_t)fir->size-(int64_t)seclen;
-//	return r;
-//}
-
 int fklCptrcmp(const FklAstCptr* first,const FklAstCptr* second)
 {
 	if(first==NULL&&second==NULL)return 0;
@@ -1143,11 +1124,6 @@ void fklMakeAstVector(FklAstVector* vec,size_t size,const FklAstCptr* base)
 			fklCopyCptr(&vec->base[i],&base[i]);
 	}
 }
-
-//void fklPrintRawAstString(FklString* str,FILE* out)
-//{
-//	fklPrintRawCharBuf(str->str,str->size,out);
-//}
 
 void fklPrintCptr(const FklAstCptr* o_cptr,FILE* fp)
 {

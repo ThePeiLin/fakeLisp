@@ -38,9 +38,10 @@ static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap
 	while(!fklIsPtrStackEmpty(stack))
 	{
 		FklCompEnv* curEnv=fklPopPtrStack(stack);
-		vEnv=fklNewVMvalue(FKL_ENV,fklNewVMenv(preEnv,heap),heap);
 		if(!preEnv)
-			fklInitGlobEnv(vEnv->u.env,heap);
+			vEnv=fklNewVMvalue(FKL_ENV,fklNewGlobVMenv(preEnv,heap),heap);//fklInitGlobEnv(vEnv->u.env,heap);
+		else
+			vEnv=fklNewVMvalue(FKL_ENV,fklNewVMenv(preEnv,heap),heap);
 		preEnv=vEnv;
 		if(curEnv->proc->bc->size)
 		{

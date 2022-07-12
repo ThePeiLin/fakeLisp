@@ -379,6 +379,7 @@ void fklFreeVMcontinuation(FklVMcontinuation* cont);
 //FklVMenvNode* fklFindVMenvNode(FklSid_t,FklVMenv*);
 //void fklFreeVMenvNode(FklVMenvNode*);
 
+FklVMenv* fklNewGlobVMenv(FklVMvalue*,FklVMheap*);
 FklVMenv* fklNewVMenv(FklVMvalue*,FklVMheap*);
 FklVMvalue* volatile* fklFindVar(FklSid_t id,FklVMenv*);
 FklVMvalue* volatile* fklFindOrAddVar(FklSid_t id,FklVMenv* env);

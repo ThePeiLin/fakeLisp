@@ -38,8 +38,8 @@ static int copyAndAddToList(FklAstCptr* fir,const FklAstCptr* sec)
 
 static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
 {
-	FklVMvalue* vEnv=fklNewVMvalue(FKL_ENV,fklNewVMenv(FKL_VM_NIL,heap),heap);
-	fklInitGlobEnv(vEnv->u.env,heap);
+	FklVMvalue* vEnv=fklNewVMvalue(FKL_ENV,fklNewGlobVMenv(FKL_VM_NIL,heap),heap);
+//	fklInitGlobEnv(vEnv->u.env,heap);
 	if(cEnv->proc->bc->size)
 	{
 		FklVM* tmpVM=fklNewTmpVM(NULL);

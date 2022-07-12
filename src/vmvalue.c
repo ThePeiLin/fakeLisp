@@ -674,6 +674,20 @@ static FklHashTableMethodTable VMenvHashMethTable=
 	.__getKey=_vmenv_getKey,
 };
 
+FklVMenv* fklNewGlobVMenv(FklVMvalue* prev,FklVMheap* h)
+{
+	FklVMenv* tmp=(FklVMenv*)malloc(sizeof(FklVMenv));
+	FKL_ASSERT(tmp,__func__);
+	pthread_rwlock_init(&tmp->lock,NULL);
+//	tmp->num=0;
+//	tmp->list=NULL;
+	tmp->prev=prev;
+	tmp->t=fklNewHashTable(512,0.75,&VMenvHashMethTable);
+	fklSetRef(&tmp->prev,prev,h);
+	fklInitGlobEnv(tmp,h);
+	return tmp;
+}
+
 FklVMenv* fklNewVMenv(FklVMvalue* prev,FklVMheap* h)
 {
 	FklVMenv* tmp=(FklVMenv*)malloc(sizeof(FklVMenv));

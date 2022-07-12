@@ -144,6 +144,7 @@ static const char* builtInSymbolList[]=
 	"cas-vref!",
 	"memq",
 	"member",
+	"memp",
 };
 
 FklSymbolTable* GlobSymbolTable=NULL;

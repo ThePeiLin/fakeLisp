@@ -2360,6 +2360,75 @@ void SYS_member(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+typedef struct
+{
+	FklVMvalue* proc;
+	FklVMvalue* list;
+	FklVMvalue** r;
+	uint32_t ap;
+}MempCtx;
+
+static void k_memp(K_FUNC_ARGL)
+{
+	MempCtx* mempctx=(MempCtx*)ctx;
+	FklVMstack* stack=exe->stack;
+	if(s==FKL_CC_OK)
+		fklNiSetTp(stack);
+	else if(s==FKL_CC_RE)
+	{
+		FklVMvalue* result=fklGetTopValue(stack);
+		if(result!=FKL_VM_NIL)
+		{
+			*mempctx->r=mempctx->list;
+			mempctx->list=FKL_VM_NIL;
+		}
+		else
+			mempctx->list=mempctx->list->u.pair->cdr;
+		fklNiResTp(stack);
+	}
+	while(mempctx->list!=FKL_VM_NIL)
+	{
+		fklVMcallInDlproc(mempctx->proc
+				,1,&mempctx->list->u.pair->car
+				,exe->rhead,exe,k_memp,mempctx,sizeof(MempCtx));
+		FklVMvalue* result=fklGetTopValue(stack);
+		if(result!=FKL_VM_NIL)
+		{
+			*mempctx->r=mempctx->list;
+			mempctx->list=FKL_VM_NIL;
+		}
+		else
+			mempctx->list=mempctx->list->u.pair->cdr;
+		fklNiResTp(stack);
+	}
+	fklNiPopTp(stack);
+	fklNiReturn(*mempctx->r,&mempctx->ap,stack);
+	fklNiEnd(&mempctx->ap,stack);
+	free(ctx);
+}
+
+void SYS_memp(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* proc=fklNiGetArg(&ap,stack);
+	FklVMvalue* list=fklNiGetArg(&ap,stack);
+	if(!proc||!list)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.member",FKL_TOOFEWARG,runnable,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.member",FKL_TOOMANYARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(proc,fklIsInvokeable,"sys.memp",runnable,exe);
+	FKL_NI_CHECK_TYPE(list,fklIsList,"sys.member",runnable,exe);
+	MempCtx* mempctx=(MempCtx*)malloc(sizeof(MempCtx));
+	FKL_ASSERT(mempctx,__func__);
+	mempctx->proc=proc;
+	mempctx->list=list;
+	fklPushVMvalue(FKL_VM_NIL,stack);
+	mempctx->r=fklNiGetTopSlot(stack);
+	mempctx->ap=ap;
+	k_memp(exe,FKL_CC_OK,mempctx);
+}
+
 void SYS_list(ARGL)
 {
 	FKL_NI_BEGIN(exe);

@@ -1081,7 +1081,7 @@ FklHashTable* fklNewHashTable(size_t size
 	FKL_ASSERT(r,__func__);
 	FklHashTableNode** base=(FklHashTableNode**)calloc(size,sizeof(FklHashTableNode*));
 	FKL_ASSERT(base,__func__);
-	FklHashTableNode** list=(FklHashTableNode**)calloc(size,sizeof(FklHashTableNode*));
+	FklHashTableNode** list=(FklHashTableNode**)malloc(size*sizeof(FklHashTableNode*));
 	FKL_ASSERT(list,__func__);
 	r->base=base;
 	r->list=list;
@@ -1135,12 +1135,11 @@ void fklRehashTable(FklHashTable* table)
 	size_t num=table->num;
 	FklHashTableNode** list=table->list;
 	FklHashTableNode** base=table->base;
-	FklHashTableNode** nlist=(FklHashTableNode**)calloc(table->size,sizeof(FklHashTableNode*));
+	FklHashTableNode** nlist=(FklHashTableNode**)realloc(base,table->size*sizeof(FklHashTableNode*));
 	FKL_ASSERT(nlist,__func__);
 	table->list=nlist;
 	FklHashTableNode** nbase=(FklHashTableNode**)calloc(table->size,sizeof(FklHashTableNode*));
 	table->base=nbase;
-	free(base);
 	FKL_ASSERT(nbase,__func__);
 	table->num=0;
 	for(size_t i=0;i<num;i++)

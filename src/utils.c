@@ -89,7 +89,8 @@ FklString* fklDoubleToString(double num)
 
 double fklStringToDouble(const FklString* str)
 {
-	char c_str[str->size+1];
+	char* c_str=(char*)malloc(sizeof(char)*str->size+1);
+	FKL_ASSERT(c_str,__func__);
 	fklWriteStringToCstr(c_str,str);
 	double tmp=atof(c_str);
 	return tmp;

@@ -679,8 +679,6 @@ FklVMenv* fklNewGlobVMenv(FklVMvalue* prev,FklVMheap* h)
 	FklVMenv* tmp=(FklVMenv*)malloc(sizeof(FklVMenv));
 	FKL_ASSERT(tmp,__func__);
 	pthread_rwlock_init(&tmp->lock,NULL);
-//	tmp->num=0;
-//	tmp->list=NULL;
 	tmp->prev=prev;
 	tmp->t=fklNewHashTable(512,0.75,&VMenvHashMethTable);
 	fklSetRef(&tmp->prev,prev,h);
@@ -693,8 +691,6 @@ FklVMenv* fklNewVMenv(FklVMvalue* prev,FklVMheap* h)
 	FklVMenv* tmp=(FklVMenv*)malloc(sizeof(FklVMenv));
 	FKL_ASSERT(tmp,__func__);
 	pthread_rwlock_init(&tmp->lock,NULL);
-//	tmp->num=0;
-//	tmp->list=NULL;
 	tmp->prev=prev;
 	tmp->t=fklNewHashTable(8,0.75,&VMenvHashMethTable);
 	fklSetRef(&tmp->prev,prev,h);
@@ -772,7 +768,7 @@ void fklDBG_printVMenv(FklVMenv* curEnv,FILE* fp)
 		for(int i=0;i<curEnv->t->num;i++)
 		{
 			VMenvHashItem* item=curEnv->t->list[i]->item;
-			FklVMvalue* tmp=item->v;//curEnv->list[i]->value;
+			FklVMvalue* tmp=item->v;
 			fklPrin1VMvalue(tmp,fp);
 			putc(' ',fp);
 		}
@@ -783,149 +779,11 @@ void fklDBG_printVMenv(FklVMenv* curEnv,FILE* fp)
 void fklFreeVMenv(FklVMenv* obj)
 {
 	pthread_rwlock_wrlock(&obj->lock);
-//	for(uint32_t i=0;i<obj->num;i++)
-//		fklFreeVMenvNode(obj->list[i]);
-//	free(obj->list);
 	fklFreeHashTable(obj->t);
 	pthread_rwlock_unlock(&obj->lock);
 	pthread_rwlock_destroy(&obj->lock);
 	free(obj);
 }
-
-//FklVMenvNode* fklNewVMenvNode(FklVMvalue* value,int32_t id)
-//{
-//	FklVMenvNode* tmp=(FklVMenvNode*)malloc(sizeof(FklVMenvNode));
-//	FKL_ASSERT(tmp,__func__);
-//	tmp->id=id;
-//	tmp->value=value;
-//	return tmp;
-//}
-//
-//FklVMenvNode* fklAddVMenvNode(FklSid_t id,FklVMenv* env)
-//{
-//	FklVMenvNode* r=NULL;
-//	pthread_rwlock_rdlock(&env->lock);
-//	if(!env->list)
-//	{
-//		env->num=1;
-//		env->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*1);
-//		FKL_ASSERT(env->list,__func__);
-//		r=fklNewVMenvNode(FKL_VM_NIL,id);
-//		env->list[0]=r;
-//	}
-//	else
-//	{
-//		int32_t l=0;
-//		int32_t h=env->num-1;
-//		int32_t mid=0;
-//		while(l<=h)
-//		{
-//			mid=l+(h-l)/2;
-//			if(env->list[mid]->id>id)
-//				h=mid-1;
-//			else if(env->list[mid]->id==id)
-//			{
-//				r=env->list[mid];
-//				pthread_rwlock_unlock(&env->lock);
-//				return r;
-//			}
-//			else
-//				l=mid+1;
-//		}
-//		pthread_rwlock_unlock(&env->lock);
-//		pthread_rwlock_wrlock(&env->lock);
-//		if(env->list[mid]->id<=id)
-//			mid++;
-//		env->num+=1;
-//		int32_t i=env->num-1;
-//		env->list=(FklVMenvNode**)realloc(env->list,sizeof(FklVMenvNode*)*env->num);
-//		FKL_ASSERT(env->list,__func__);
-//		for(;i>mid;i--)
-//			env->list[i]=env->list[i-1];
-//		r=fklNewVMenvNode(FKL_VM_NIL,id);
-//		env->list[mid]=r;
-//	}
-//	pthread_rwlock_unlock(&env->lock);
-//	return r;
-//}
-//
-//FklVMenvNode* fklAddVMenvNodeWithV(FklSid_t id,FklVMvalue* value,FklVMenv* env)
-//{
-//	FklVMenvNode* r=NULL;
-//	pthread_rwlock_wrlock(&env->lock);
-//	if(!env->list)
-//	{
-//		env->num=1;
-//		env->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*1);
-//		FKL_ASSERT(env->list,__func__);
-//		r=fklNewVMenvNode(value,id);
-//		env->list[0]=r;
-//	}
-//	else
-//	{
-//		int32_t l=0;
-//		int32_t h=env->num-1;
-//		int32_t mid=0;
-//		while(l<=h)
-//		{
-//			mid=l+(h-l)/2;
-//			if(env->list[mid]->id>id)
-//				h=mid-1;
-//			else if(env->list[mid]->id==id)
-//			{
-//				r=env->list[mid];
-//				pthread_rwlock_unlock(&env->lock);
-//				r->value=value;
-//				return r;
-//			}
-//			else
-//				l=mid+1;
-//		}
-//		if(env->list[mid]->id<=id)
-//			mid++;
-//		env->num+=1;
-//		int32_t i=env->num-1;
-//		env->list=(FklVMenvNode**)realloc(env->list,sizeof(FklVMenvNode*)*env->num);
-//		FKL_ASSERT(env->list,__func__);
-//		for(;i>mid;i--)
-//			env->list[i]=env->list[i-1];
-//		r=fklNewVMenvNode(value,id);
-//		env->list[mid]=r;
-//	}
-//	pthread_rwlock_unlock(&env->lock);
-//	return r;
-//}
-//
-//FklVMenvNode* fklFindVMenvNode(FklSid_t id,FklVMenv* env)
-//{
-//	if(!env->list)
-//		return NULL;
-//	pthread_rwlock_rdlock(&env->lock);
-//	int32_t l=0;
-//	int32_t h=env->num-1;
-//	int32_t mid;
-//	FklVMenvNode* r=NULL;
-//	while(l<=h)
-//	{
-//		mid=l+(h-l)/2;
-//		if(env->list[mid]->id>id)
-//			h=mid-1;
-//		else if(env->list[mid]->id<id)
-//			l=mid+1;
-//		else
-//		{
-//			r=env->list[mid];
-//			break;
-//		}
-//	}
-//	pthread_rwlock_unlock(&env->lock);
-//	return r;
-//}
-//
-//void fklFreeVMenvNode(FklVMenvNode* node)
-//{
-//	free(node);
-//}
 
 FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 {

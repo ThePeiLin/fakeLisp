@@ -853,11 +853,8 @@ FklVMvalue* fklSetRef(FklVMvalue* volatile* pref,FklVMvalue* v,FklVMheap* h)
 	FklGCstate running=fklGetGCstate(h);
 	if(running==FKL_GC_PROPAGATE||running==FKL_GC_COLLECT)
 	{
-//		if(by->mark==FKL_MARK_B)
-//			fklGC_reGray(by,h);
-//		else if(by->mark==FKL_MARK_G&&ref&&FKL_IS_PTR(ref)&&ref->mark==FKL_MARK_W)
-			fklGC_toGray(ref,h);
-			fklGC_toGray(v,h);
+		fklGC_toGray(ref,h);
+		fklGC_toGray(v,h);
 	}
 	return ref;
 }
@@ -894,7 +891,6 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 			else if(FKL_IS_PAIR(root))
 				cptrType=FKL_PAIR;
 			else
-				//if(!FKL_IS_REF(root)&&!FKL_IS_MREF(root))
 				cptrType=FKL_ATM;
 			root1->type=cptrType;
 			if(cptrType==FKL_ATM)
@@ -1003,8 +999,6 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 
 void fklInitVMRunningResource(FklVM* vm,FklVMvalue* vEnv,FklVMheap* heap,FklByteCodelnt* code,uint32_t start,uint32_t size)
 {
-	//if((!vEnv->u.env->prev||vEnv->u.env->prev==FKL_VM_NIL)&&vEnv->u.env->t->num==0)
-	//	fklInitGlobEnv(vEnv->u.env,heap);
 	FklVMproc proc={
 		.scp=start,
 		.cpc=size,

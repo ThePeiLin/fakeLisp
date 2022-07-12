@@ -50,12 +50,6 @@ void threadErrorCallBack(void* a)
 	longjmp(exe->buf,i[(sizeof(void*)*2)/sizeof(int)]);
 }
 
-//static int envNodeCmp(const void* a,const void* b)
-//{
-//	return ((*(FklVMenvNode**)a)->id-(*(FklVMenvNode**)b)->id);
-//}
-
-
 /*procedure invoke functions*/
 void invokeNativeProcdure(FklVM* exe,FklVMproc* tmpProc,FklVMrunnable* runnable)
 {
@@ -505,22 +499,6 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		proc->sid=node->id;
 		fklFindOrAddVarWithValue(node->id,fklNewVMvalue(FKL_DLPROC,proc,heap),obj);
 	}
-	//obj->num=FKL_NUM_OF_BUILT_IN_SYMBOL;
-	//obj->list=(FklVMenvNode**)malloc(sizeof(FklVMenvNode*)*FKL_NUM_OF_BUILT_IN_SYMBOL);
-	//FKL_ASSERT(obj->list,__func__);
-	//obj->list[0]=fklNewVMenvNode(FKL_VM_NIL,fklAddSymbolToGlobCstr(fklGetBuiltInSymbol(0))->id);
-	//obj->list[1]=fklNewVMenvNode(VMstdin,fklAddSymbolToGlobCstr(fklGetBuiltInSymbol(1))->id);
-	//obj->list[2]=fklNewVMenvNode(VMstdout,fklAddSymbolToGlobCstr(fklGetBuiltInSymbol(2))->id);
-	//obj->list[3]=fklNewVMenvNode(VMstderr,fklAddSymbolToGlobCstr(fklGetBuiltInSymbol(3))->id);
-	//size_t i=4;
-	//for(;i<FKL_NUM_OF_BUILT_IN_SYMBOL;i++)
-	//{
-	//	FklVMdlproc* proc=fklNewVMdlproc(syscallFunctionList[i-4],NULL);
-	//	FklSymTabNode* node=fklAddSymbolToGlobCstr(fklGetBuiltInSymbol(i));
-	//	proc->sid=node->id;
-	//	obj->list[i]=fklNewVMenvNode(fklNewVMvalue(FKL_DLPROC,proc,heap),node->id);
-	//}
-	//mergeSort(obj->list,obj->num,sizeof(FklVMenvNode*),envNodeCmp);
 }
 
 void* ThreadVMfunc(void* p)
@@ -745,7 +723,6 @@ void B_push_var(FklVM* exe)
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklVMvalue* curEnv=runnable->localenv;
 	FklVMvalue* volatile* pv=NULL;
-//	FklVMenvNode* tmp=NULL;
 	while(!pv&&curEnv&&curEnv!=FKL_VM_NIL)
 	{
 		pv=fklFindVar(idOfVar,curEnv->u.env);
@@ -805,14 +782,13 @@ void B_pop_var(FklVM* exe)
 	{
 		for(uint32_t i=0;i<scopeOfVar;i++)
 			curEnv=curEnv->u.env->prev;
-		pv=fklFindOrAddVar(idOfVar,curEnv->u.env);//&fklAddVMenvNode(idOfVar,curEnv->u.env)->value;
+		pv=fklFindOrAddVar(idOfVar,curEnv->u.env);
 	}
 	else
 	{
-//		FklVMenvNode* tmp=NULL;
 		while(!pv&&curEnv&&curEnv!=FKL_VM_NIL)
 		{
-			pv=fklFindVar(idOfVar,curEnv->u.env);//fklFindVMenvNode(idOfVar,curEnv->u.env);
+			pv=fklFindVar(idOfVar,curEnv->u.env);
 			curEnv=curEnv->u.env->prev;
 		}
 		if(pv==NULL)
@@ -835,7 +811,7 @@ void B_pop_arg(FklVM* exe)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-arg",FKL_TOOFEWARG,runnable,exe);
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklVMvalue* curEnv=runnable->localenv;
-	FklVMvalue* volatile* pValue=fklFindOrAddVar(idOfVar,curEnv->u.env);//&fklAddVMenvNode(idOfVar,curEnv->u.env)->value;
+	FklVMvalue* volatile* pValue=fklFindOrAddVar(idOfVar,curEnv->u.env);
 	fklSetRef(pValue,fklNiGetArg(&ap,stack),exe->heap);
 	fklNiEnd(&ap,stack);
 	runnable->cp+=sizeof(char)+sizeof(FklSid_t);
@@ -852,7 +828,7 @@ void B_pop_rest_arg(FklVM* exe)
 	FklVMvalue* volatile* pValue=&obj;
 	for(;ap>stack->bp;pValue=&(*pValue)->u.pair->cdr)
 		*pValue=fklNewVMpairV(fklNiGetArg(&ap,stack),FKL_VM_NIL,stack,heap);
-	pValue=fklFindOrAddVar(idOfVar,curEnv->u.env);//&fklAddVMenvNode(idOfVar,curEnv->u.env)->value;
+	pValue=fklFindOrAddVar(idOfVar,curEnv->u.env);
 	fklSetRef(pValue,obj,heap);
 	fklNiEnd(&ap,stack);
 	runnable->cp+=sizeof(char)+sizeof(FklSid_t);

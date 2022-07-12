@@ -31,26 +31,37 @@ FklString* fklStringAppend(const FklString*,const FklString*);
 void fklFreeStringArray(FklString**,uint32_t num);
 void fklWriteStringToCstr(char*,const FklString*);
 
-typedef struct FklU64PtrHashNode
+typedef struct FklHashTableNode
 {
-	uint64_t key;
-	void* value;
-}FklU64PtrHashNode;
+	void* item;
+	struct FklHashTableNode* next;
+}FklHashTableNode;
 
-typedef struct FklU64PtrHashTable
+typedef struct FklHashTable
 {
-	FklU64PtrHashNode** table;
+	FklHashTableNode** base;
+	FklHashTableNode** list;
 	size_t num;
 	size_t size;
-	size_t inc;
-	size_t (*hash)(uint64_t,struct FklU64PtrHashTable*);
-}FklU64PtrHashTable;
+	double threshold;
+	struct FklHashTableMethodTable* t;
+}FklHashTable;
 
-typedef size_t (*FklHashFunc)(uint64_t,struct FklU64PtrHashTable*);
-FklU64PtrHashTable* fklNewPtrHashTable(size_t size,size_t inc,FklHashFunc);
-void* fklGetHashPtr(void* key);
-void** fklGetHashSlot(void* key);
-void fklFreePtrHashTable(FklU64PtrHashTable*);
+typedef struct FklHashTableMethodTable
+{
+	size_t (*__hashFunc)(void*,FklHashTable*);
+	void (*__freeItem)(void*);
+	int (*__keyEqual)(void*,void*);
+	void* (*__getKey)(void*);
+}FklHashTableMethodTable;
+
+FklHashTable* fklNewHashTable(size_t size
+		,double threshold
+		,FklHashTableMethodTable*);
+void* fklGetHashItem(void* key,FklHashTable*);
+void* fklInsertHashItem(void* item,FklHashTable*);
+void fklFreeHashTable(FklHashTable*);
+void fklRehashTable(FklHashTable*);
 
 typedef struct
 {

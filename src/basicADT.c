@@ -1072,3 +1072,92 @@ void fklWriteStringToCstr(char* c_str,const FklString* str)
 	}
 	c_str[len]='\0';
 }
+
+FklHashTable* fklNewHashTable(size_t size
+		,double threshold
+		,FklHashTableMethodTable* t)
+{
+	FklHashTable* r=(FklHashTable*)malloc(sizeof(FklHashTable));
+	FKL_ASSERT(r,__func__);
+	FklHashTableNode** base=(FklHashTableNode**)calloc(size,sizeof(FklHashTableNode*));
+	FKL_ASSERT(base,__func__);
+	FklHashTableNode** list=(FklHashTableNode**)calloc(size,sizeof(FklHashTableNode*));
+	FKL_ASSERT(list,__func__);
+	r->base=base;
+	r->list=list;
+	r->num=0;
+	r->size=size;
+	r->threshold=threshold;
+	r->t=t;
+	return r;
+}
+
+void* fklGetHashItem(void* key,FklHashTable* table)
+{
+	size_t (*__hashFunc)(void*,FklHashTable*)=table->t->__hashFunc;
+	void* (*__getKey)(void*)=table->t->__getKey;
+	int (*__keyEqual)(void*,void*)=table->t->__keyEqual;
+	for(FklHashTableNode* p=table->base[__hashFunc(key,table)];p;p=p->next)
+		if(__keyEqual(key,__getKey(p->item)))
+			return p->item;
+	return NULL;
+}
+
+static FklHashTableNode* newHashTableNode(void* item,FklHashTableNode* next)
+{
+	FklHashTableNode* node=(FklHashTableNode*)malloc(sizeof(FklHashTableNode));
+	FKL_ASSERT(node,__func__);
+	node->item=item;
+	node->next=next;
+	return node;
+}
+
+void* fklInsertHashItem(void* item,FklHashTable* table)
+{
+	size_t (*__hashFunc)(void*,FklHashTable*)=table->t->__hashFunc;
+	void* (*__getKey)(void*)=table->t->__getKey;
+	int (*__keyEqual)(void*,void*)=table->t->__keyEqual;
+	FklHashTableNode** pp=&table->base[__hashFunc(__getKey(item),table)];
+	for(;*pp;pp=&(*pp)->next)
+		if(__keyEqual(__getKey((*pp)->item),item))
+			return (*pp)->item;
+	*pp=newHashTableNode(item,NULL);
+	table->list[table->num]=*pp;
+	table->num++;
+	if((double)table->num/table->size>table->threshold)
+		fklRehashTable(table);
+	return item;
+}
+
+void fklRehashTable(FklHashTable* table)
+{
+	table->size*=2;
+	FklHashTableNode** list=table->list;
+	FklHashTableNode** base=table->base;
+	FklHashTableNode** nlist=(FklHashTableNode**)calloc(table->size,sizeof(FklHashTableNode*));
+	table->list=nlist;
+	FKL_ASSERT(nlist,__func__);
+	FklHashTableNode** nbase=(FklHashTableNode**)calloc(table->size,sizeof(FklHashTableNode*));
+	table->base=nbase;
+	free(base);
+	FKL_ASSERT(nbase,__func__);
+	for(size_t i=0;i<table->num;i++)
+	{
+		fklInsertHashItem(list[i]->item,table);
+		free(list[i]);
+	}
+	free(list);
+}
+
+void fklFreeHashTable(FklHashTable* table)
+{
+	void (*__freeItem)(void*)=table->t->__freeItem;
+	for(size_t i=0;i<table->num;i++)
+	{
+		__freeItem(table->list[i]->item);
+		free(table->list[i]);
+	}
+	free(table->list);
+	free(table->base);
+	free(table);
+}

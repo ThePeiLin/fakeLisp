@@ -102,7 +102,7 @@ FklVMvalue* fklCastPreEnvToVMenv(FklPreEnv* pe,FklVMvalue* prev,FklVMheap* heap)
 	}
 	FklVMenv* tmp=fklNewVMenv(prev,heap);
 	for(tmpDef=pe->symbols;tmpDef;tmpDef=tmpDef->next)
-		fklAddVMenvNodeWithV(fklAddSymbolToGlob(tmpDef->symbol)->id,fklCastCptrVMvalue(&tmpDef->obj,heap),tmp);
+		fklSetRef(fklFindOrAddVar(fklAddSymbolToGlob(tmpDef->symbol)->id,tmp),fklCastCptrVMvalue(&tmpDef->obj,heap),heap);
 	return fklNewVMvalue(FKL_ENV,tmp,heap);
 }
 
@@ -205,7 +205,7 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 				fklAddToHeap(r->localenv,exe->heap);
 				FklVMvalue* curEnv=r->localenv;
 				FklSid_t idOfError=tb->sid;
-				fklAddVMenvNode(idOfError,curEnv->u.env)->value=ev;
+				fklSetRef(fklFindOrAddVar(idOfError,curEnv->u.env),ev,exe->heap);
 				fklFreeVMerrorHandler(h);
 				exe->rhead=r;
 				return 1;
@@ -1003,7 +1003,7 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 
 void fklInitVMRunningResource(FklVM* vm,FklVMvalue* vEnv,FklVMheap* heap,FklByteCodelnt* code,uint32_t start,uint32_t size)
 {
-	if((!vEnv->u.env->prev||vEnv->u.env->prev==FKL_VM_NIL)&&vEnv->u.env->num==0)
+	if((!vEnv->u.env->prev||vEnv->u.env->prev==FKL_VM_NIL)&&vEnv->u.env->t->num==0)
 		fklInitGlobEnv(vEnv->u.env,heap);
 	FklVMproc proc={
 		.scp=start,

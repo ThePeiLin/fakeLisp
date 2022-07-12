@@ -682,7 +682,7 @@ FklVMenv* fklNewVMenv(FklVMvalue* prev,FklVMheap* h)
 //	tmp->num=0;
 //	tmp->list=NULL;
 	tmp->prev=prev;
-	tmp->t=fklNewHashTable(512,0.75,&VMenvHashMethTable);
+	tmp->t=fklNewHashTable(8,0.75,&VMenvHashMethTable);
 	fklSetRef(&tmp->prev,prev,h);
 	return tmp;
 }

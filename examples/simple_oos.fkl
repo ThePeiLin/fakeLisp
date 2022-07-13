@@ -17,13 +17,13 @@
                               (not (eq segment-id 'method)))
                        (break nil))
                      (case segment-id
-                       (('data) (setq data-list (append data-list segment-data)))
-                       (('method) (setq pre-method-list (append pre-method-list segment-data)))))
+                       ((data) (setq data-list (append data-list segment-data)))
+                       ((method) (setq pre-method-list (append pre-method-list segment-data)))))
               (loop (cdr c)))))
 
     (let loop ((c data-list))
       (cond (c (let ((name (car (car c))))
-                 (setq case-list (cons `(((quote ~name)) ~name) case-list)))
+                 (setq case-list (cons `((~name) ~name) case-list)))
                (loop (cdr c)))))
 
     (let loop ((c pre-method-list))
@@ -31,7 +31,7 @@
               (let ((method-name (car (car c))))
                 (cond ((not (eq method-name name))
                        (setq method-list (cons `(~method-name (lambda ~@(cdr (car c)))) method-list))
-                       (setq case-list (cons `(((quote ~method-name)) ~method-name) case-list)))
+                       (setq case-list (cons `((~method-name) ~method-name) case-list)))
                       (1
                        (setq construct-method (cdr (car c))))))
               (loop (cdr c)))))
@@ -49,14 +49,6 @@
              (lambda (selector)
                (case selector
                  ~@case-list))))))))
-
-(define print
-  (lambda l
-    (define p-iter
-      (lambda (c)
-        (cond (c (princ (car c))
-                 (p-iter (cdr c))))))
-    (p-iter l)))
 
 (class Vec3
        (data

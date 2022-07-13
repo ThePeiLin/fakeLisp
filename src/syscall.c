@@ -28,7 +28,7 @@ extern void* ThreadVMinvokableUd(void* p);
 
 #define ARGL FklVM* exe
 #define K_FUNC_ARGL FklVM* exe,FklCCState s,void* ctx
-void SYS_car(ARGL)
+void builtin_car(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -42,7 +42,7 @@ void SYS_car(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_set_car(ARGL)
+void builtin_set_car(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -58,7 +58,7 @@ void SYS_set_car(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_cdr(ARGL)
+void builtin_cdr(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -72,7 +72,7 @@ void SYS_cdr(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_set_cdr(ARGL)
+void builtin_set_cdr(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -88,7 +88,7 @@ void SYS_set_cdr(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_cons(ARGL)
+void builtin_cons(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -102,7 +102,7 @@ void SYS_cons(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_append(ARGL)
+void builtin_append(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -136,7 +136,7 @@ void SYS_append(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_eq(ARGL)
+void builtin_eq(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -154,7 +154,7 @@ void SYS_eq(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_equal(ARGL)
+void builtin_equal(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -172,7 +172,7 @@ void SYS_equal(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_add(ARGL)
+void builtin_add(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -226,7 +226,7 @@ void SYS_add(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_add_1(ARGL)
+void builtin_add_1(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -271,7 +271,7 @@ void SYS_add_1(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_sub(ARGL)
+void builtin_sub(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -374,7 +374,7 @@ void SYS_sub(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_sub_1(ARGL)
+void builtin_sub_1(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -419,7 +419,7 @@ void SYS_sub_1(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_mul(ARGL)
+void builtin_mul(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -467,7 +467,7 @@ void SYS_mul(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_div(ARGL)
+void builtin_div(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -584,7 +584,7 @@ void SYS_div(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_rem(ARGL)
+void builtin_rem(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -650,7 +650,7 @@ void SYS_rem(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_eqn(ARGL)
+void builtin_eqn(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -715,7 +715,7 @@ void SYS_eqn(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_gt(ARGL)
+void builtin_gt(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -778,7 +778,7 @@ void SYS_gt(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_ge(ARGL)
+void builtin_ge(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -841,7 +841,7 @@ void SYS_ge(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_lt(ARGL)
+void builtin_lt(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -904,7 +904,7 @@ void SYS_lt(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_le(ARGL)
+void builtin_le(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -967,7 +967,7 @@ void SYS_le(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_char(ARGL)
+void builtin_char(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1007,7 +1007,7 @@ void SYS_char(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_integer(ARGL)
+void builtin_integer(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1045,7 +1045,7 @@ void SYS_integer(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_parse_int(ARGL)
+void builtin_parse_int(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1086,7 +1086,7 @@ void SYS_parse_int(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_parse_f64(ARGL)
+void builtin_parse_f64(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1117,7 +1117,7 @@ void SYS_parse_f64(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_i32(ARGL)
+void builtin_i32(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1154,7 +1154,7 @@ void SYS_i32(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_i64(ARGL)
+void builtin_i64(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1205,7 +1205,7 @@ void SYS_i64(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_big_int(ARGL)
+void builtin_big_int(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1242,7 +1242,7 @@ void SYS_big_int(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_f64(ARGL)
+void builtin_f64(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1281,7 +1281,7 @@ void SYS_f64(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_as_str(ARGL)
+void builtin_as_str(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1406,7 +1406,7 @@ void SYS_as_str(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_symbol(ARGL)
+void builtin_symbol(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1426,7 +1426,7 @@ void SYS_symbol(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_nth(ARGL)
+void builtin_nth(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1455,7 +1455,7 @@ void SYS_nth(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_set_nth(ARGL)
+void builtin_set_nth(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1488,7 +1488,7 @@ void SYS_set_nth(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_sref(ARGL)
+void builtin_sref(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1510,7 +1510,7 @@ void SYS_sref(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_set_sref(ARGL)
+void builtin_set_sref(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1536,7 +1536,7 @@ void SYS_set_sref(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_vref(ARGL)
+void builtin_vref(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1558,7 +1558,7 @@ void SYS_vref(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_set_vref(ARGL)
+void builtin_set_vref(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1582,7 +1582,7 @@ void SYS_set_vref(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_cas_vref(ARGL)
+void builtin_cas_vref(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1612,7 +1612,7 @@ void SYS_cas_vref(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_nthcdr(ARGL)
+void builtin_nthcdr(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1641,7 +1641,7 @@ void SYS_nthcdr(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_set_nthcdr(ARGL)
+void builtin_set_nthcdr(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1674,7 +1674,7 @@ void SYS_set_nthcdr(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_length(ARGL)
+void builtin_length(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1698,7 +1698,7 @@ void SYS_length(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_fopen(ARGL)
+void builtin_fopen(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1725,7 +1725,7 @@ void SYS_fopen(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_fclose(ARGL)
+void builtin_fclose(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1742,7 +1742,7 @@ void SYS_fclose(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_read(ARGL)
+void builtin_read(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1793,7 +1793,7 @@ void SYS_read(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_fgets(ARGL)
+void builtin_fgets(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1854,7 +1854,7 @@ void SYS_fgets(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_prin1(ARGL)
+void builtin_prin1(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1872,7 +1872,7 @@ void SYS_prin1(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_princ(ARGL)
+void builtin_princ(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1890,7 +1890,7 @@ void SYS_princ(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_dlopen(ARGL)
+void builtin_dlopen(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1911,7 +1911,7 @@ void SYS_dlopen(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_dlsym(ARGL)
+void builtin_dlsym(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1936,7 +1936,7 @@ void SYS_dlsym(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_argv(FklVM* exe,pthread_rwlock_t* pGClock)
+void builtin_argv(FklVM* exe,pthread_rwlock_t* pGClock)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* retval=NULL;
@@ -1953,7 +1953,7 @@ void SYS_argv(FklVM* exe,pthread_rwlock_t* pGClock)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_go(ARGL)
+void builtin_go(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1997,7 +1997,7 @@ void SYS_go(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_chanl(ARGL)
+void builtin_chanl(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -2011,7 +2011,7 @@ void SYS_chanl(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-//void SYS_chanl_mes_num(ARGL)
+//void builtin_chanl_mes_num(ARGL)
 //{
 //	FKL_NI_BEGIN(exe);
 //	FklVMrunnable* runnable=exe->rhead;
@@ -2029,7 +2029,7 @@ void SYS_chanl(ARGL)
 //	fklNiEnd(&ap,stack);
 //}
 
-void SYS_send(ARGL)
+void builtin_send(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -2046,7 +2046,7 @@ void SYS_send(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_recv(ARGL)
+void builtin_recv(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -2079,7 +2079,7 @@ void SYS_recv(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_error(ARGL)
+void builtin_error(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -2096,7 +2096,7 @@ void SYS_error(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_raise(ARGL)
+void builtin_raise(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -2110,7 +2110,7 @@ void SYS_raise(ARGL)
 	fklRaiseVMerror(err,exe);
 }
 
-void SYS_call_cc(ARGL)
+void builtin_call_cc(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -2146,7 +2146,7 @@ void SYS_call_cc(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_apply(ARGL)
+void builtin_apply(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -2308,21 +2308,21 @@ static void k_map(K_FUNC_ARGL)
 			fklSetRef(&(*mapctx->cur)->u.pair->car,result,heap);,
 			mapctx->cur=&(*mapctx->cur)->u.pair->cdr;
 			)
-void SYS_map(ARGL) MAP_PATTERN("sys.map",k_map,FKL_VM_NIL)
+void builtin_map(ARGL) MAP_PATTERN("sys.map",k_map,FKL_VM_NIL)
 
 static void k_foreach(K_FUNC_ARGL) K_MAP_PATTERN(k_foreach,,*(mapctx->r)=result;,)
-void SYS_foreach(ARGL) MAP_PATTERN("sys.foreach",k_foreach,FKL_VM_NIL)
+void builtin_foreach(ARGL) MAP_PATTERN("sys.foreach",k_foreach,FKL_VM_NIL)
 
 static void k_andmap(K_FUNC_ARGL) K_MAP_PATTERN(k_andmap,,*(mapctx->r)=result;if(result==FKL_VM_NIL)mapctx->i=len;,)
-void SYS_andmap(ARGL) MAP_PATTERN("sys.andmap",k_andmap,FKL_VM_TRUE)
+void builtin_andmap(ARGL) MAP_PATTERN("sys.andmap",k_andmap,FKL_VM_TRUE)
 
 static void k_ormap(K_FUNC_ARGL) K_MAP_PATTERN(k_ormap,,*(mapctx->r)=result;if(result!=FKL_VM_NIL)mapctx->i=len;,)
-void SYS_ormap(ARGL) MAP_PATTERN("sys.ormap",k_ormap,FKL_VM_NIL)
+void builtin_ormap(ARGL) MAP_PATTERN("sys.ormap",k_ormap,FKL_VM_NIL)
 
 #undef K_MAP_PATTERN
 #undef MAP_PATTERN
 
-void SYS_memq(ARGL)
+void builtin_memq(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -2390,7 +2390,7 @@ static void k_member(K_FUNC_ARGL)
 	free(ctx);
 }
 
-void SYS_member(ARGL)
+void builtin_member(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -2470,7 +2470,7 @@ static void k_memp(K_FUNC_ARGL)
 	free(ctx);
 }
 
-void SYS_memp(ARGL)
+void builtin_memp(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -2492,7 +2492,7 @@ void SYS_memp(ARGL)
 	k_memp(exe,FKL_CC_OK,mempctx);
 }
 
-void SYS_list(ARGL)
+void builtin_list(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMheap* heap=exe->heap;
@@ -2511,7 +2511,7 @@ void SYS_list(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_reverse(ARGL)
+void builtin_reverse(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -2533,7 +2533,7 @@ void SYS_reverse(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_feof(ARGL)
+void builtin_feof(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -2549,7 +2549,7 @@ void SYS_feof(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_vector(ARGL)
+void builtin_vector(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -2620,7 +2620,7 @@ void SYS_vector(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_getdir(ARGL)
+void builtin_getdir(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;
@@ -2649,7 +2649,7 @@ void SYS_getdir(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_fgetc(ARGL)
+void builtin_fgetc(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -2680,7 +2680,7 @@ void SYS_fgetc(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_fwrite(ARGL)
+void builtin_fwrite(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -2721,7 +2721,7 @@ void SYS_fwrite(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_to_str(ARGL)
+void builtin_to_str(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -2848,7 +2848,7 @@ void SYS_to_str(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_box(ARGL)
+void builtin_box(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -2861,7 +2861,7 @@ void SYS_box(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_unbox(ARGL)
+void builtin_unbox(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -2875,7 +2875,7 @@ void SYS_unbox(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_set_box(ARGL)
+void builtin_set_box(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -2891,7 +2891,7 @@ void SYS_set_box(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void SYS_cas_box(ARGL)
+void builtin_cas_box(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -2928,29 +2928,29 @@ void SYS_cas_box(ARGL)
 	fklNiEnd(&ap,stack);\
 }
 
-void SYS_not(ARGL) PREDICATE(val==FKL_VM_NIL,"sys.not")
-void SYS_null(ARGL) PREDICATE(val==FKL_VM_NIL,"sys.null")
-void SYS_atom(ARGL) PREDICATE(!FKL_IS_PAIR(val),"sys.atom?")
-void SYS_char_p(ARGL) PREDICATE(FKL_IS_CHR(val),"sys.char?")
-void SYS_integer_p(ARGL) PREDICATE(FKL_IS_I32(val)||FKL_IS_I64(val)||FKL_IS_BIG_INT(val),"sys.integer?")
-void SYS_fix_int_p(ARGL) PREDICATE(FKL_IS_I32(val)||FKL_IS_I64(val),"sys.fix-int?")
-void SYS_i32_p(ARGL) PREDICATE(FKL_IS_I32(val),"sys.i32?")
-void SYS_i64_p(ARGL) PREDICATE(FKL_IS_I64(val),"sys.i64?")
-void SYS_f64_p(ARGL) PREDICATE(FKL_IS_F64(val),"sys.i64?")
-void SYS_number_p(ARGL) PREDICATE(fklIsVMnumber(val),"sys.number?")
-void SYS_pair_p(ARGL) PREDICATE(FKL_IS_PAIR(val),"sys.pair?")
-void SYS_symbol_p(ARGL) PREDICATE(FKL_IS_SYM(val),"sys.symbol?")
-void SYS_string_p(ARGL) PREDICATE(FKL_IS_STR(val),"sys.string?")
-void SYS_error_p(ARGL) PREDICATE(FKL_IS_ERR(val),"sys.error?")
-void SYS_procedure_p(ARGL) PREDICATE(FKL_IS_PROC(val)||FKL_IS_DLPROC(val),"sys.procedure?")
-void SYS_proc_p(ARGL) PREDICATE(FKL_IS_PROC(val),"sys.proc?")
-void SYS_dlproc_p(ARGL) PREDICATE(FKL_IS_DLPROC(val),"sys.dlproc?")
-void SYS_vector_p(ARGL) PREDICATE(FKL_IS_VECTOR(val),"sys.vector?")
-void SYS_chanl_p(ARGL) PREDICATE(FKL_IS_CHAN(val),"sys.chanl?")
-void SYS_dll_p(ARGL) PREDICATE(FKL_IS_DLL(val),"sys.dll?")
-void SYS_big_int_p(ARGL) PREDICATE(FKL_IS_BIG_INT(val),"sys.big-int?")
-void SYS_list_p(ARGL) PREDICATE(fklIsList(val),"sys.list?")
-void SYS_box_p(ARGL) PREDICATE(FKL_IS_BOX(val),"sys.box?")
+void builtin_not(ARGL) PREDICATE(val==FKL_VM_NIL,"sys.not")
+void builtin_null(ARGL) PREDICATE(val==FKL_VM_NIL,"sys.null")
+void builtin_atom(ARGL) PREDICATE(!FKL_IS_PAIR(val),"sys.atom?")
+void builtin_char_p(ARGL) PREDICATE(FKL_IS_CHR(val),"sys.char?")
+void builtin_integer_p(ARGL) PREDICATE(FKL_IS_I32(val)||FKL_IS_I64(val)||FKL_IS_BIG_INT(val),"sys.integer?")
+void builtin_fix_int_p(ARGL) PREDICATE(FKL_IS_I32(val)||FKL_IS_I64(val),"sys.fix-int?")
+void builtin_i32_p(ARGL) PREDICATE(FKL_IS_I32(val),"sys.i32?")
+void builtin_i64_p(ARGL) PREDICATE(FKL_IS_I64(val),"sys.i64?")
+void builtin_f64_p(ARGL) PREDICATE(FKL_IS_F64(val),"sys.i64?")
+void builtin_number_p(ARGL) PREDICATE(fklIsVMnumber(val),"sys.number?")
+void builtin_pair_p(ARGL) PREDICATE(FKL_IS_PAIR(val),"sys.pair?")
+void builtin_symbol_p(ARGL) PREDICATE(FKL_IS_SYM(val),"sys.symbol?")
+void builtin_string_p(ARGL) PREDICATE(FKL_IS_STR(val),"sys.string?")
+void builtin_error_p(ARGL) PREDICATE(FKL_IS_ERR(val),"sys.error?")
+void builtin_procedure_p(ARGL) PREDICATE(FKL_IS_PROC(val)||FKL_IS_DLPROC(val),"sys.procedure?")
+void builtin_proc_p(ARGL) PREDICATE(FKL_IS_PROC(val),"sys.proc?")
+void builtin_dlproc_p(ARGL) PREDICATE(FKL_IS_DLPROC(val),"sys.dlproc?")
+void builtin_vector_p(ARGL) PREDICATE(FKL_IS_VECTOR(val),"sys.vector?")
+void builtin_chanl_p(ARGL) PREDICATE(FKL_IS_CHAN(val),"sys.chanl?")
+void builtin_dll_p(ARGL) PREDICATE(FKL_IS_DLL(val),"sys.dll?")
+void builtin_big_int_p(ARGL) PREDICATE(FKL_IS_BIG_INT(val),"sys.big-int?")
+void builtin_list_p(ARGL) PREDICATE(fklIsList(val),"sys.list?")
+void builtin_box_p(ARGL) PREDICATE(FKL_IS_BOX(val),"sys.box?")
 
 #undef ARGL
 #undef K_FUNC_ARGL

@@ -285,105 +285,105 @@ FklVM* fklNewTmpVM(FklByteCode* mainCode)
 }
 
 #define ARGL FklVM*
-extern void SYS_car(ARGL);
-extern void SYS_cdr(ARGL);
-extern void SYS_cons(ARGL);
-extern void SYS_append(ARGL);
-extern void SYS_atom(ARGL);
-extern void SYS_null(ARGL);
-extern void SYS_not(ARGL);
-extern void SYS_eq(ARGL);
-extern void SYS_equal(ARGL);
-extern void SYS_eqn(ARGL);
-extern void SYS_add(ARGL);
-extern void SYS_add_1(ARGL);
-extern void SYS_sub(ARGL);
-extern void SYS_sub_1(ARGL);
-extern void SYS_mul(ARGL);
-extern void SYS_div(ARGL);
-extern void SYS_rem(ARGL);
-extern void SYS_gt(ARGL);
-extern void SYS_ge(ARGL);
-extern void SYS_lt(ARGL);
-extern void SYS_le(ARGL);
-extern void SYS_char(ARGL);
-extern void SYS_integer(ARGL);
-extern void SYS_f64(ARGL);
-extern void SYS_as_str(ARGL);
-extern void SYS_symbol(ARGL);
-extern void SYS_nth(ARGL);
-extern void SYS_length(ARGL);
-extern void SYS_fopen(ARGL);
-extern void SYS_read(ARGL);
-extern void SYS_prin1(ARGL);
-extern void SYS_princ(ARGL);
-extern void SYS_dlopen(ARGL);
-extern void SYS_dlsym(ARGL);
-extern void SYS_argv(ARGL);
-extern void SYS_go(ARGL);
-extern void SYS_chanl(ARGL);
-extern void SYS_send(ARGL);
-extern void SYS_recv(ARGL);
-extern void SYS_error(ARGL);
-extern void SYS_raise(ARGL);
-extern void SYS_call_cc(ARGL);
-extern void SYS_apply(ARGL);
-extern void SYS_reverse(ARGL);
-extern void SYS_i32(ARGL);
-extern void SYS_i64(ARGL);
-extern void SYS_fclose(ARGL);
-extern void SYS_feof(ARGL);
-extern void SYS_vref(ARGL);
-extern void SYS_nthcdr(ARGL);
-extern void SYS_char_p(ARGL);
-extern void SYS_integer_p(ARGL);
-extern void SYS_i32_p(ARGL);
-extern void SYS_i64_p(ARGL);
-extern void SYS_f64_p(ARGL);
-extern void SYS_pair_p(ARGL);
-extern void SYS_symbol_p(ARGL);
-extern void SYS_string_p(ARGL);
-extern void SYS_error_p(ARGL);
-extern void SYS_procedure_p(ARGL);
-extern void SYS_proc_p(ARGL);
-extern void SYS_dlproc_p(ARGL);
-extern void SYS_vector_p(ARGL);
-extern void SYS_chanl_p(ARGL);
-extern void SYS_dll_p(ARGL);
-extern void SYS_vector(ARGL);
-extern void SYS_getdir(ARGL);
-extern void SYS_fgetc(ARGL);
-extern void SYS_fwrite(ARGL);
-extern void SYS_to_str(ARGL);
-extern void SYS_fgets(ARGL);
-extern void SYS_parse_int(ARGL);
-extern void SYS_parse_f64(ARGL);
-extern void SYS_big_int_p(ARGL);
-extern void SYS_big_int(ARGL);
-extern void SYS_set_car(ARGL);
-extern void SYS_set_cdr(ARGL);
-extern void SYS_set_nth(ARGL);
-extern void SYS_set_nthcdr(ARGL);
-extern void SYS_set_vref(ARGL);
-extern void SYS_list_p(ARGL);
-extern void SYS_box(ARGL);
-extern void SYS_unbox(ARGL);
-extern void SYS_set_box(ARGL);
-extern void SYS_cas_box(ARGL);
-extern void SYS_box_p(ARGL);
-extern void SYS_fix_int_p(ARGL);
-extern void SYS_number_p(ARGL);
-extern void SYS_map(ARGL);
-extern void SYS_sref(ARGL);
-extern void SYS_set_sref(ARGL);
-extern void SYS_foreach(ARGL);
-extern void SYS_andmap(ARGL);
-extern void SYS_ormap(ARGL);
-extern void SYS_list(ARGL);
-extern void SYS_cas_vref(ARGL);
-extern void SYS_memq(ARGL);
-extern void SYS_member(ARGL);
-extern void SYS_memp(ARGL);
+extern void builtin_car(ARGL);
+extern void builtin_cdr(ARGL);
+extern void builtin_cons(ARGL);
+extern void builtin_append(ARGL);
+extern void builtin_atom(ARGL);
+extern void builtin_null(ARGL);
+extern void builtin_not(ARGL);
+extern void builtin_eq(ARGL);
+extern void builtin_equal(ARGL);
+extern void builtin_eqn(ARGL);
+extern void builtin_add(ARGL);
+extern void builtin_add_1(ARGL);
+extern void builtin_sub(ARGL);
+extern void builtin_sub_1(ARGL);
+extern void builtin_mul(ARGL);
+extern void builtin_div(ARGL);
+extern void builtin_rem(ARGL);
+extern void builtin_gt(ARGL);
+extern void builtin_ge(ARGL);
+extern void builtin_lt(ARGL);
+extern void builtin_le(ARGL);
+extern void builtin_char(ARGL);
+extern void builtin_integer(ARGL);
+extern void builtin_f64(ARGL);
+extern void builtin_as_str(ARGL);
+extern void builtin_symbol(ARGL);
+extern void builtin_nth(ARGL);
+extern void builtin_length(ARGL);
+extern void builtin_fopen(ARGL);
+extern void builtin_read(ARGL);
+extern void builtin_prin1(ARGL);
+extern void builtin_princ(ARGL);
+extern void builtin_dlopen(ARGL);
+extern void builtin_dlsym(ARGL);
+extern void builtin_argv(ARGL);
+extern void builtin_go(ARGL);
+extern void builtin_chanl(ARGL);
+extern void builtin_send(ARGL);
+extern void builtin_recv(ARGL);
+extern void builtin_error(ARGL);
+extern void builtin_raise(ARGL);
+extern void builtin_call_cc(ARGL);
+extern void builtin_apply(ARGL);
+extern void builtin_reverse(ARGL);
+extern void builtin_i32(ARGL);
+extern void builtin_i64(ARGL);
+extern void builtin_fclose(ARGL);
+extern void builtin_feof(ARGL);
+extern void builtin_vref(ARGL);
+extern void builtin_nthcdr(ARGL);
+extern void builtin_char_p(ARGL);
+extern void builtin_integer_p(ARGL);
+extern void builtin_i32_p(ARGL);
+extern void builtin_i64_p(ARGL);
+extern void builtin_f64_p(ARGL);
+extern void builtin_pair_p(ARGL);
+extern void builtin_symbol_p(ARGL);
+extern void builtin_string_p(ARGL);
+extern void builtin_error_p(ARGL);
+extern void builtin_procedure_p(ARGL);
+extern void builtin_proc_p(ARGL);
+extern void builtin_dlproc_p(ARGL);
+extern void builtin_vector_p(ARGL);
+extern void builtin_chanl_p(ARGL);
+extern void builtin_dll_p(ARGL);
+extern void builtin_vector(ARGL);
+extern void builtin_getdir(ARGL);
+extern void builtin_fgetc(ARGL);
+extern void builtin_fwrite(ARGL);
+extern void builtin_to_str(ARGL);
+extern void builtin_fgets(ARGL);
+extern void builtin_parse_int(ARGL);
+extern void builtin_parse_f64(ARGL);
+extern void builtin_big_int_p(ARGL);
+extern void builtin_big_int(ARGL);
+extern void builtin_set_car(ARGL);
+extern void builtin_set_cdr(ARGL);
+extern void builtin_set_nth(ARGL);
+extern void builtin_set_nthcdr(ARGL);
+extern void builtin_set_vref(ARGL);
+extern void builtin_list_p(ARGL);
+extern void builtin_box(ARGL);
+extern void builtin_unbox(ARGL);
+extern void builtin_set_box(ARGL);
+extern void builtin_cas_box(ARGL);
+extern void builtin_box_p(ARGL);
+extern void builtin_fix_int_p(ARGL);
+extern void builtin_number_p(ARGL);
+extern void builtin_map(ARGL);
+extern void builtin_sref(ARGL);
+extern void builtin_set_sref(ARGL);
+extern void builtin_foreach(ARGL);
+extern void builtin_andmap(ARGL);
+extern void builtin_ormap(ARGL);
+extern void builtin_list(ARGL);
+extern void builtin_cas_vref(ARGL);
+extern void builtin_memq(ARGL);
+extern void builtin_member(ARGL);
+extern void builtin_memp(ARGL);
 
 #undef ARGL
 
@@ -391,105 +391,105 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 {
 	FklVMdllFunc syscallFunctionList[]=
 	{
-		SYS_car,
-		SYS_cdr,
-		SYS_cons,
-		SYS_append,
-		SYS_atom,
-		SYS_null,
-		SYS_not,
-		SYS_eq,
-		SYS_equal,
-		SYS_eqn,
-		SYS_add,
-		SYS_add_1,
-		SYS_sub,
-		SYS_sub_1,
-		SYS_mul,
-		SYS_div,
-		SYS_rem,
-		SYS_gt,
-		SYS_ge,
-		SYS_lt,
-		SYS_le,
-		SYS_char,
-		SYS_integer,
-		SYS_f64,
-		SYS_as_str,
-		SYS_symbol,
-		SYS_nth,
-		SYS_length,
-		SYS_apply,
-		SYS_call_cc,
-		SYS_fopen,
-		SYS_read,
-		SYS_prin1,
-		SYS_princ,
-		SYS_dlopen,
-		SYS_dlsym,
-		SYS_argv,
-		SYS_go,
-		SYS_chanl,
-		SYS_send,
-		SYS_recv,
-		SYS_error,
-		SYS_raise,
-		SYS_reverse,
-		SYS_i32,
-		SYS_i64,
-		SYS_fclose,
-		SYS_feof,
-		SYS_vref,
-		SYS_nthcdr,
-		SYS_char_p,
-		SYS_integer_p,
-		SYS_i32_p,
-		SYS_i64_p,
-		SYS_f64_p,
-		SYS_pair_p,
-		SYS_symbol_p,
-		SYS_string_p,
-		SYS_error_p,
-		SYS_procedure_p,
-		SYS_proc_p,
-		SYS_dlproc_p,
-		SYS_vector_p,
-		SYS_chanl_p,
-		SYS_dll_p,
-		SYS_vector,
-		SYS_getdir,
-		SYS_fgetc,
-		SYS_fwrite,
-		SYS_to_str,
-		SYS_fgets,
-		SYS_parse_int,
-		SYS_parse_f64,
-		SYS_big_int_p,
-		SYS_big_int,
-		SYS_set_car,
-		SYS_set_cdr,
-		SYS_set_nth,
-		SYS_set_nthcdr,
-		SYS_set_vref,
-		SYS_list_p,
-		SYS_box,
-		SYS_unbox,
-		SYS_set_box,
-		SYS_cas_box,
-		SYS_box_p,
-		SYS_fix_int_p,
-		SYS_number_p,
-		SYS_map,
-		SYS_sref,
-		SYS_set_sref,
-		SYS_foreach,
-		SYS_andmap,
-		SYS_ormap,
-		SYS_list,
-		SYS_cas_vref,
-		SYS_memq,
-		SYS_member,
-		SYS_memp,
+		builtin_car,
+		builtin_cdr,
+		builtin_cons,
+		builtin_append,
+		builtin_atom,
+		builtin_null,
+		builtin_not,
+		builtin_eq,
+		builtin_equal,
+		builtin_eqn,
+		builtin_add,
+		builtin_add_1,
+		builtin_sub,
+		builtin_sub_1,
+		builtin_mul,
+		builtin_div,
+		builtin_rem,
+		builtin_gt,
+		builtin_ge,
+		builtin_lt,
+		builtin_le,
+		builtin_char,
+		builtin_integer,
+		builtin_f64,
+		builtin_as_str,
+		builtin_symbol,
+		builtin_nth,
+		builtin_length,
+		builtin_apply,
+		builtin_call_cc,
+		builtin_fopen,
+		builtin_read,
+		builtin_prin1,
+		builtin_princ,
+		builtin_dlopen,
+		builtin_dlsym,
+		builtin_argv,
+		builtin_go,
+		builtin_chanl,
+		builtin_send,
+		builtin_recv,
+		builtin_error,
+		builtin_raise,
+		builtin_reverse,
+		builtin_i32,
+		builtin_i64,
+		builtin_fclose,
+		builtin_feof,
+		builtin_vref,
+		builtin_nthcdr,
+		builtin_char_p,
+		builtin_integer_p,
+		builtin_i32_p,
+		builtin_i64_p,
+		builtin_f64_p,
+		builtin_pair_p,
+		builtin_symbol_p,
+		builtin_string_p,
+		builtin_error_p,
+		builtin_procedure_p,
+		builtin_proc_p,
+		builtin_dlproc_p,
+		builtin_vector_p,
+		builtin_chanl_p,
+		builtin_dll_p,
+		builtin_vector,
+		builtin_getdir,
+		builtin_fgetc,
+		builtin_fwrite,
+		builtin_to_str,
+		builtin_fgets,
+		builtin_parse_int,
+		builtin_parse_f64,
+		builtin_big_int_p,
+		builtin_big_int,
+		builtin_set_car,
+		builtin_set_cdr,
+		builtin_set_nth,
+		builtin_set_nthcdr,
+		builtin_set_vref,
+		builtin_list_p,
+		builtin_box,
+		builtin_unbox,
+		builtin_set_box,
+		builtin_cas_box,
+		builtin_box_p,
+		builtin_fix_int_p,
+		builtin_number_p,
+		builtin_map,
+		builtin_sref,
+		builtin_set_sref,
+		builtin_foreach,
+		builtin_andmap,
+		builtin_ormap,
+		builtin_list,
+		builtin_cas_vref,
+		builtin_memq,
+		builtin_member,
+		builtin_memp,
 	};
 	VMstdin=fklNewVMvalue(FKL_FP,fklNewVMfp(stdin),heap);
 	VMstdout=fklNewVMvalue(FKL_FP,fklNewVMfp(stdout),heap);

@@ -521,18 +521,6 @@ void* ThreadVMfunc(void* p)
 			fklChanlSend(fklNewVMsend(v),tmpCh);
 		fklNiEnd(&ap,stack);
 	}
-	else
-	{
-		char* threadErrorMessage=fklCopyCstr("error:occur in thread ");
-		char* id=fklIntToCstr(exe->VMid);
-		threadErrorMessage=fklStrCat(threadErrorMessage,id);
-		threadErrorMessage=fklStrCat(threadErrorMessage,"\n");
-		FklVMvalue* err=fklNewVMvalue(FKL_ERR,fklNewVMerrorCstr("thread",fklGetBuiltInErrorType(FKL_THREADERROR),threadErrorMessage),exe->heap);
-		free(threadErrorMessage);
-		free(id);
-		FklVMsend* t=fklNewVMsend(err);
-		fklChanlSend(t,tmpCh);
-	}
 	fklFreeVMstack(exe->stack);
 	exe->stack=NULL;
 	exe->lnt=NULL;

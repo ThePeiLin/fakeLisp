@@ -122,19 +122,11 @@ typedef struct FklVMvalue
 	struct FklVMvalue* next;
 }FklVMvalue;
 
-//typedef struct FklVMenvNode
-//{
-//	uint32_t id;
-//	FklVMvalue* volatile value;
-//}FklVMenvNode;
-
 typedef struct FklVMenv
 {
-	pthread_rwlock_t lock;
+	pthread_mutex_t lock;
 	struct FklVMvalue* volatile prev;
-//	uint32_t num;
 	FklHashTable* t;
-//	FklVMenvNode** list;
 }FklVMenv;
 
 typedef struct FklVMproc
@@ -371,13 +363,6 @@ void fklFreeVMcCC(FklVMcCC*);
 
 FklVMcontinuation* fklNewVMcontinuation(uint32_t ap,FklVM*);
 void fklFreeVMcontinuation(FklVMcontinuation* cont);
-
-
-//FklVMenvNode* fklNewVMenvNode(FklVMvalue*,int32_t);
-//FklVMenvNode* fklAddVMenvNode(FklSid_t,FklVMenv*);
-//FklVMenvNode* fklAddVMenvNodeWithV(FklSid_t,FklVMvalue*,FklVMenv*);
-//FklVMenvNode* fklFindVMenvNode(FklSid_t,FklVMenv*);
-//void fklFreeVMenvNode(FklVMenvNode*);
 
 FklVMenv* fklNewGlobVMenv(FklVMvalue*,FklVMheap*);
 FklVMenv* fklNewVMenv(FklVMvalue*,FklVMheap*);

@@ -678,7 +678,7 @@ FklVMenv* fklNewGlobVMenv(FklVMvalue* prev,FklVMheap* h)
 {
 	FklVMenv* tmp=(FklVMenv*)malloc(sizeof(FklVMenv));
 	FKL_ASSERT(tmp,__func__);
-	pthread_rwlock_init(&tmp->lock,NULL);
+	pthread_mutex_init(&tmp->lock,NULL);
 	tmp->prev=prev;
 	tmp->t=fklNewHashTable(512,0.75,&VMenvHashMethTable);
 	fklSetRef(&tmp->prev,prev,h);
@@ -690,7 +690,7 @@ FklVMenv* fklNewVMenv(FklVMvalue* prev,FklVMheap* h)
 {
 	FklVMenv* tmp=(FklVMenv*)malloc(sizeof(FklVMenv));
 	FKL_ASSERT(tmp,__func__);
-	pthread_rwlock_init(&tmp->lock,NULL);
+	pthread_mutex_init(&tmp->lock,NULL);
 	tmp->prev=prev;
 	tmp->t=fklNewHashTable(8,0.75,&VMenvHashMethTable);
 	fklSetRef(&tmp->prev,prev,h);
@@ -700,7 +700,6 @@ FklVMenv* fklNewVMenv(FklVMvalue* prev,FklVMheap* h)
 void fklAtomicVMenv(FklVMenv* env,FklVMheap* heap)
 {
 	FklHashTable* table=env->t;
-	pthread_rwlock_rdlock(&env->lock);
 	if(env->prev)
 		fklGC_toGray(env->prev,heap);
 	for(size_t i=0;i<table->num;i++)
@@ -708,17 +707,14 @@ void fklAtomicVMenv(FklVMenv* env,FklVMheap* heap)
 		VMenvHashItem* item=table->list[i]->item;
 		fklGC_toGray(item->v,heap);
 	}
-	pthread_rwlock_unlock(&env->lock);
 }
 
 FklVMvalue* volatile* fklFindVar(FklSid_t id,FklVMenv* env)
 {
 	FklVMvalue* volatile* r=NULL;
-	pthread_rwlock_rdlock(&env->lock);
 	VMenvHashItem* item=fklGetHashItem(&id,env->t);
 	if(item)
 		r=&item->v;
-	pthread_rwlock_unlock(&env->lock);
 	return r;
 }
 
@@ -728,13 +724,13 @@ FklVMvalue* volatile* fklFindOrAddVar(FklSid_t id,FklVMenv* env)
 	r=fklFindVar(id,env);
 	if(!r)
 	{
-		pthread_rwlock_wrlock(&env->lock);
+		pthread_mutex_lock(&env->lock);
 		VMenvHashItem* item=newVMenvHashItme(id,FKL_VM_NIL);
 		VMenvHashItem* ritem=fklInsertHashItem(item,env->t);
 		if(item!=ritem)
 			free(item);
 		r=&ritem->v;
-		pthread_rwlock_unlock(&env->lock);
+		pthread_mutex_unlock(&env->lock);
 	}
 	return r;
 }
@@ -745,13 +741,13 @@ FklVMvalue* volatile* fklFindOrAddVarWithValue(FklSid_t id,FklVMvalue* v,FklVMen
 	r=fklFindVar(id,env);
 	if(!r)
 	{
-		pthread_rwlock_wrlock(&env->lock);
+		pthread_mutex_lock(&env->lock);
 		VMenvHashItem* item=newVMenvHashItme(id,FKL_VM_NIL);
 		VMenvHashItem* ritem=fklInsertHashItem(item,env->t);
 		if(item!=ritem)
 			free(item);
 		r=&ritem->v;
-		pthread_rwlock_unlock(&env->lock);
+		pthread_mutex_unlock(&env->lock);
 	}
 	*r=v;
 	return r;
@@ -759,7 +755,6 @@ FklVMvalue* volatile* fklFindOrAddVarWithValue(FklSid_t id,FklVMvalue* v,FklVMen
 
 void fklDBG_printVMenv(FklVMenv* curEnv,FILE* fp)
 {
-	pthread_rwlock_rdlock(&curEnv->lock);
 	if(curEnv->t->num==0)
 		fprintf(fp,"This ENV is empty!");
 	else
@@ -773,15 +768,14 @@ void fklDBG_printVMenv(FklVMenv* curEnv,FILE* fp)
 			putc(' ',fp);
 		}
 	}
-	pthread_rwlock_unlock(&curEnv->lock);
 }
 
 void fklFreeVMenv(FklVMenv* obj)
 {
-	pthread_rwlock_wrlock(&obj->lock);
+	pthread_mutex_lock(&obj->lock);
 	fklFreeHashTable(obj->t);
-	pthread_rwlock_unlock(&obj->lock);
-	pthread_rwlock_destroy(&obj->lock);
+	pthread_mutex_unlock(&obj->lock);
+	pthread_mutex_destroy(&obj->lock);
 	free(obj);
 }
 

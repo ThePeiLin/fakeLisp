@@ -27,7 +27,7 @@ static struct
 //	{"pop-ref",      0,  },
 	{"set-tp",       0,  },
 	{"set-bp",       0,  },
-	{"invoke",       0,  },
+	{"call",         0,  },
 	{"res-tp",       0,  },
 	{"pop-tp",       0,  },
 	{"res-bp",       0,  },
@@ -40,7 +40,7 @@ static struct
 	{"push-vector",  8,  },
 	{"push-r-env",   0,  },
 	{"pop-r-env",    0,  },
-	{"tail-invoke",  0,  },
+	{"tail-call",    0,  },
 	{"push-big-int", -1, },
 	{"push-box",     0,  },
 };

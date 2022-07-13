@@ -21,7 +21,7 @@ static const char* builtInErrorType[FKL_NUM_OF_BUILT_IN_ERROR_TYPE]=
 	"cant-create-threads",
 	"thread-error",
 	"macro-expand-error",
-	"invoke-error",
+	"call-error",
 	"load-dll-faild",
 	"invalid-symbol",
 	"library-undefined",

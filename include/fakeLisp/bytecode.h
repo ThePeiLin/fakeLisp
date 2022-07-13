@@ -88,7 +88,7 @@ void fklSetI64ToByteCode(uint8_t* code,int64_t i);
 void fklSetU64ToByteCode(uint8_t* code,uint64_t i);
 void fklSetF64ToByteCode(uint8_t* code,double i);
 void fklSetSidToByteCode(uint8_t* code,FklSid_t i);
-void fklScanAndSetTailInvoke(FklByteCode* bc);
+void fklScanAndSetTailCall(FklByteCode* bc);
 
 FklByteCode* fklNewPushI32ByteCode(int32_t);
 FklByteCode* fklNewPushI64ByteCode(int64_t);

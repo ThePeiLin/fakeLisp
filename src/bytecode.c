@@ -301,10 +301,10 @@ void fklPrintByteCode(const FklByteCode* tmpCode,FILE* fp)
 	fklFreePtrStack(s);
 }
 
-static uint64_t skipToInvoke(uint64_t index,const FklByteCode* bc)
+static uint64_t skipToCall(uint64_t index,const FklByteCode* bc)
 {
 	uint64_t r=0;
-	while(index+r<bc->size&&bc->code[index+r]!=FKL_INVOKE)
+	while(index+r<bc->size&&bc->code[index+r]!=FKL_CALL)
 	{
 		switch(fklGetOpcodeArgLen((FklOpcode)(bc->code[index+r])))
 		{
@@ -363,12 +363,12 @@ static int fklIsTheLastExpression(uint64_t index,FklByteCode* bc)
 	return 1;
 }
 
-void fklScanAndSetTailInvoke(FklByteCode* bc)
+void fklScanAndSetTailCall(FklByteCode* bc)
 {
-	for(uint64_t i=skipToInvoke(0,bc);i<bc->size;i+=skipToInvoke(i,bc))
+	for(uint64_t i=skipToCall(0,bc);i<bc->size;i+=skipToCall(i,bc))
 	{
 		if(fklIsTheLastExpression(++i,bc))
-			bc->code[i-1]=FKL_TAIL_INVOKE;
+			bc->code[i-1]=FKL_TAIL_CALL;
 	}
 }
 

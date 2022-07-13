@@ -267,9 +267,9 @@ static void _mem_print(FILE* fp,void* p)
 
 int _mem_equal(const FklVMudata* a,const FklVMudata* b)
 {
-	if(a->t->__invoke!=b->t->__invoke)
+	if(a->t->__call!=b->t->__call)
 		return 0;
-	if(a->t->__invoke)
+	if(a->t->__call)
 	{
 		FklFfiProc* p0=a->data;
 		FklFfiProc* p1=b->data;
@@ -410,7 +410,7 @@ static FklVMudMethodTable FfiMemMethodTable=
 	.__prin1=_mem_print,
 	.__finalizer=_mem_finalizer,
 	.__equal=_mem_equal,
-	.__invoke=NULL,
+	.__call=NULL,
 	.__cmp=_mem_cmp,
 	.__as_str=NULL,
 	.__to_str=NULL,
@@ -424,7 +424,7 @@ static FklVMudMethodTable FfiAtomicMemMethodTable=
 	.__prin1=_mem_print,
 	.__finalizer=_mem_atomic_finalizer,
 	.__equal=_mem_equal,
-	.__invoke=NULL,
+	.__call=NULL,
 	.__cmp=_mem_cmp,
 	.__as_str=NULL,
 	.__to_str=NULL,
@@ -868,7 +868,7 @@ FklVMudata* fklFfiCastVMvalueIntoMem(FklVMvalue* v)
 		m=fklFfiNewMem(FKL_FFI_VPTR,sizeof(void*));
 	else if(fklFfiIsMem(v))
 	{
-		if(v->u.ud->t->__invoke)
+		if(v->u.ud->t->__call)
 		{
 			FklFfiProc* proc=v->u.ud->data;
 			m=fklFfiNewRef(proc->type,proc->func);

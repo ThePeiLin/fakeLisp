@@ -359,8 +359,8 @@ char* fklGenErrorMessage(FklErrorType type,FklVMrunnable* r,FklVM* exe)
 			t=fklCstrStringCat(t,fklGetGlobSymbolWithId(fklGetSymbolIdInByteCode(exe->code+r->cp))->symbol);
 			t=fklStrCat(t," is undefined ");
 			break;
-		case FKL_INVOKEERROR:
-			t=fklStrCat(t,"Try to invoke an object that can't be invoke ");
+		case FKL_CALL_ERROR:
+			t=fklStrCat(t,"Try to call an object that can't be call ");
 			break;
 		case FKL_CROSS_C_CALL_CONTINUATION:
 			t=fklStrCat(t,"attempt to get a continuation cross C-call boundary ");

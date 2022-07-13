@@ -17,12 +17,7 @@
 #endif
 
 extern void applyNativeProc(FklVM*,FklVMproc*,FklVMrunnable*);
-extern void invokeContinuation(FklVM*,FklVMcontinuation*);
-extern void invokeDlProc(FklVM*,FklVMdlproc*);
-extern FklVMlist GlobVMs;
 extern void* ThreadVMfunc(void* p);
-extern void* ThreadVMdlprocFunc(void* p);
-extern void* ThreadVMinvokableUd(void* p);
 
 //syscalls
 
@@ -1962,9 +1957,9 @@ void builtin_go(ARGL)
 	FklVMvalue* threadProc=fklNiGetArg(&ap,stack);
 	if(!threadProc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.go",FKL_TOOFEWARG,runnable,exe);
-	if(!FKL_IS_PROC(threadProc)&&!FKL_IS_DLPROC(threadProc)&&!FKL_IS_CONT(threadProc)&&!fklIsInvokableUd(threadProc))
+	if(!FKL_IS_PROC(threadProc)&&!FKL_IS_DLPROC(threadProc)&&!FKL_IS_CONT(threadProc)&&!fklIsCallableUd(threadProc))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.go",FKL_WRONGARG,runnable,exe);
-	FklVM* threadVM=FKL_IS_PROC(threadProc)?fklNewThreadVM(threadProc->u.proc,exe->heap):fklNewThreadInvokableObjVM(runnable,exe->heap,threadProc);
+	FklVM* threadVM=FKL_IS_PROC(threadProc)?fklNewThreadVM(threadProc->u.proc,exe->heap):fklNewThreadCallableObjVM(runnable,exe->heap,threadProc);
 	threadVM->lnt=exe->lnt;
 	threadVM->code=exe->code;
 	threadVM->size=exe->size;
@@ -2119,7 +2114,7 @@ void builtin_call_cc(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.call/cc",FKL_TOOMANYARG,runnable,exe);
 	if(!proc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.call/cc",FKL_TOOFEWARG,runnable,exe);
-	FKL_NI_CHECK_TYPE(proc,fklIsInvokeable,"sys.call/cc",runnable,exe);
+	FKL_NI_CHECK_TYPE(proc,fklIsCallable,"sys.call/cc",runnable,exe);
 	pthread_rwlock_rdlock(&exe->rlock);
 	FklVMcontinuation* cc=fklNewVMcontinuation(ap,exe);
 	if(!cc)
@@ -2142,7 +2137,7 @@ void builtin_call_cc(ARGL)
 		}
 	}
 	else
-		exe->nextInvoke=proc;
+		exe->nextCall=proc;
 	fklNiEnd(&ap,stack);
 }
 
@@ -2153,7 +2148,7 @@ void builtin_apply(ARGL)
 	FklVMvalue* proc=fklNiGetArg(&ap,stack);
 	if(!proc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.apply",FKL_TOOFEWARG,runnable,exe);
-	FKL_NI_CHECK_TYPE(proc,fklIsInvokeable,"sys.apply",runnable,exe);
+	FKL_NI_CHECK_TYPE(proc,fklIsCallable,"sys.apply",runnable,exe);
 	FklPtrStack* stack1=fklNewPtrStack(32,16);
 	FklVMvalue* value=NULL;
 	FklVMvalue* lastList=NULL;
@@ -2200,7 +2195,7 @@ void builtin_apply(ARGL)
 			applyNativeProc(exe,proc->u.proc,runnable);
 			break;
 		default:
-			exe->nextInvoke=proc;
+			exe->nextCall=proc;
 			break;
 	}
 	fklNiEnd(&ap,stack);
@@ -2262,7 +2257,7 @@ typedef struct
 	FklVMheap* heap=exe->heap;\
 	if(!proc)\
 		FKL_RAISE_BUILTIN_ERROR_CSTR((FUNC_NAME),FKL_TOOFEWARG,runnable,exe);\
-	FKL_NI_CHECK_TYPE(proc,fklIsInvokeable,(FUNC_NAME),runnable,exe);\
+	FKL_NI_CHECK_TYPE(proc,fklIsCallable,(FUNC_NAME),runnable,exe);\
 	size_t argNum=ap-stack->bp;\
 	if(argNum==0)\
 		FKL_RAISE_BUILTIN_ERROR_CSTR((FUNC_NAME),FKL_TOOFEWARG,runnable,exe);\
@@ -2404,7 +2399,7 @@ void builtin_member(ARGL)
 	FKL_NI_CHECK_TYPE(list,fklIsList,"sys.member",runnable,exe);
 	if(proc)
 	{
-		FKL_NI_CHECK_TYPE(proc,fklIsInvokeable,"sys.member",runnable,exe);
+		FKL_NI_CHECK_TYPE(proc,fklIsCallable,"sys.member",runnable,exe);
 		MemberCtx* memberctx=(MemberCtx*)malloc(sizeof(MemberCtx));
 		FKL_ASSERT(memberctx,__func__);
 		fklPushVMvalue(FKL_VM_NIL,stack);
@@ -2480,7 +2475,7 @@ void builtin_memp(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.member",FKL_TOOFEWARG,runnable,exe);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("sys.member",FKL_TOOMANYARG,runnable,exe);
-	FKL_NI_CHECK_TYPE(proc,fklIsInvokeable,"sys.memp",runnable,exe);
+	FKL_NI_CHECK_TYPE(proc,fklIsCallable,"sys.memp",runnable,exe);
 	FKL_NI_CHECK_TYPE(list,fklIsList,"sys.member",runnable,exe);
 	MempCtx* mempctx=(MempCtx*)malloc(sizeof(MempCtx));
 	FKL_ASSERT(mempctx,__func__);

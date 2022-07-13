@@ -185,7 +185,7 @@ typedef struct FklVM
 	struct FklVMheap* heap;
 	struct FklLineNumberTable* lnt;
 	void (*callback)(void*);
-	FklVMvalue* nextInvoke;
+	FklVMvalue* nextCall;
 	jmp_buf buf;
 	int nny;
 }FklVM;
@@ -196,7 +196,7 @@ typedef struct FklVMudMethodTable
 	void (*__prin1)(FILE*,void*);
 	void (*__finalizer)(void*);
 	int  (*__equal)(const FklVMudata*,const FklVMudata*);
-	void (*__invoke)(FklVM*,void*);
+	void (*__call)(FklVM*,void*);
 	int (*__cmp)(FklVMvalue*,FklVMvalue*,int*);
 	FklString* (*__as_str)(void*);
 	FklString* (*__to_str)(void*);
@@ -255,7 +255,7 @@ typedef struct FklVMcontinuation
 	FklVMstack* stack;
 	FklVMrunnable* curr;
 	struct FklVMtryBlock* tb;
-	FklVMvalue* nextInvoke;
+	FklVMvalue* nextCall;
 }FklVMcontinuation;
 
 typedef struct FklVMtryBlock
@@ -279,7 +279,7 @@ int fklRunVM(FklVM*);
 FklVM* fklNewVM(FklByteCode*);
 FklVM* fklNewTmpVM(FklByteCode*);
 FklVM* fklNewThreadVM(FklVMproc*,FklVMheap*);
-FklVM* fklNewThreadInvokableObjVM(FklVMrunnable* r,FklVMheap* heap,FklVMvalue*);
+FklVM* fklNewThreadCallableObjVM(FklVMrunnable* r,FklVMheap* heap,FklVMvalue*);
 void fklInitGlobEnv(FklVMenv*,FklVMheap*);
 
 void fklFreeVMvalue(FklVMvalue*);
@@ -438,10 +438,10 @@ void fklFreeVMvec(FklVMvec*);
 void fklVMvecCat(FklVMvec**,const FklVMvec*);
 
 FklVMudata* fklNewVMudata(FklSid_t type,FklVMudMethodTable* t,void* mem,FklVMvalue* rel);
-int fklIsInvokableUd(FklVMvalue*);
+int fklIsCallableUd(FklVMvalue*);
 void fklFreeVMudata(FklVMudata*);
 
-int fklIsInvokeable(FklVMvalue*);
+int fklIsCallable(FklVMvalue*);
 void fklInitVMargs(int argc,char** argv);
 int fklGetVMargc(void);
 char** fklGetVMargv(void);

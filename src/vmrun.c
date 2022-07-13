@@ -50,8 +50,8 @@ void threadErrorCallBack(void* a)
 	longjmp(exe->buf,i[(sizeof(void*)*2)/sizeof(int)]);
 }
 
-/*procedure invoke functions*/
-void invokeNativeProcdure(FklVM* exe,FklVMproc* tmpProc,FklVMrunnable* runnable)
+/*procedure call functions*/
+void callNativeProcdure(FklVM* exe,FklVMproc* tmpProc,FklVMrunnable* runnable)
 {
 	pthread_rwlock_wrlock(&exe->rlock);
 	FklVMrunnable* tmpRunnable=fklNewVMrunnable(tmpProc,exe->rhead);
@@ -75,7 +75,7 @@ void applyNativeProc(FklVM* exe,FklVMproc* tmpProc,FklVMrunnable* runnable)
 	}
 }
 
-void tailInvokeNativeProcdure(FklVM* exe,FklVMproc* proc,FklVMrunnable* runnable)
+void tailCallNativeProcdure(FklVM* exe,FklVMproc* proc,FklVMrunnable* runnable)
 {
 	if(runnable->scp==proc->scp)
 		runnable->mark=1;
@@ -115,19 +115,19 @@ int fklVMcallInDlproc(FklVMvalue* proc
 			}
 			break;
 		default:
-			exe->nextInvoke=proc;
+			exe->nextCall=proc;
 			break;
 	}
 	longjmp(exe->buf,2);
 	return 0;
 }
 
-void invokeContinuation(FklVM* exe,FklVMcontinuation* cc)
+void callContinuation(FklVM* exe,FklVMcontinuation* cc)
 {
 	fklCreateCallChainWithContinuation(exe,cc);
 }
 
-void invokeDlProc(FklVM* exe,FklVMdlproc* dlproc)
+void callDlProc(FklVM* exe,FklVMdlproc* dlproc)
 {
 	dlproc->func(exe);
 }
@@ -154,7 +154,7 @@ static void B_pop_arg(FklVM*);
 static void B_pop_rest_arg(FklVM*);
 static void B_set_tp(FklVM*);
 static void B_set_bp(FklVM*);
-static void B_invoke(FklVM*);
+static void B_call(FklVM*);
 static void B_res_tp(FklVM*);
 static void B_pop_tp(FklVM*);
 static void B_res_bp(FklVM*);
@@ -167,7 +167,7 @@ static void B_append(FklVM*);
 static void B_push_vector(FklVM*);
 static void B_push_r_env(FklVM*);
 static void B_pop_r_env(FklVM*);
-static void B_tail_invoke(FklVM*);
+static void B_tail_call(FklVM*);
 static void B_push_big_int(FklVM*);
 static void B_push_box(FklVM*);
 
@@ -191,7 +191,7 @@ static void (*ByteCodes[])(FklVM*)=
 	B_pop_rest_arg,
 	B_set_tp,
 	B_set_bp,
-	B_invoke,
+	B_call,
 	B_res_tp,
 	B_pop_tp,
 	B_res_bp,
@@ -204,7 +204,7 @@ static void (*ByteCodes[])(FklVM*)=
 	B_push_vector,
 	B_push_r_env,
 	B_pop_r_env,
-	B_tail_invoke,
+	B_tail_call,
 	B_push_big_int,
 	B_push_box,
 };
@@ -217,7 +217,7 @@ FklVM* fklNewVM(FklByteCode* mainCode)
 	exe->code=NULL;
 	exe->size=0;
 	exe->rhead=NULL;
-	exe->nextInvoke=NULL;
+	exe->nextCall=NULL;
 	if(mainCode!=NULL)
 	{
 		exe->code=fklCopyMemory(mainCode->code,mainCode->size);
@@ -265,7 +265,7 @@ FklVM* fklNewTmpVM(FklByteCode* mainCode)
 	exe->code=NULL;
 	exe->size=0;
 	exe->rhead=NULL;
-	exe->nextInvoke=NULL;
+	exe->nextCall=NULL;
 	if(mainCode!=NULL)
 	{
 		exe->code=fklCopyMemory(mainCode->code,mainCode->size);
@@ -534,19 +534,19 @@ void* ThreadVMfunc(void* p)
 	return (void*)state;
 }
 
-void invokeInvokableObj(FklVMvalue* v,FklVM* exe)
+void callCallableObj(FklVMvalue* v,FklVM* exe)
 {
-	exe->nextInvoke=NULL;
+	exe->nextCall=NULL;
 	switch(v->type)
 	{
 		case FKL_CONT:
-			invokeContinuation(exe,v->u.cont);
+			callContinuation(exe,v->u.cont);
 			break;
 		case FKL_DLPROC:
-			invokeDlProc(exe,v->u.dlproc);
+			callDlProc(exe,v->u.dlproc);
 			break;
 		case FKL_USERDATA:
-			v->u.ud->t->__invoke(exe,v->u.ud->data);
+			v->u.ud->t->__call(exe,v->u.ud->data);
 			break;
 		default:
 			break;
@@ -559,8 +559,8 @@ int fklRunVM(FklVM* exe)
 	{
 		if(setjmp(exe->buf)==1)
 			return 255;
-		if(exe->nextInvoke)
-			invokeInvokableObj(exe->nextInvoke,exe);
+		if(exe->nextCall)
+			callCallableObj(exe->nextCall,exe);
 		FklVMrunnable* currunnable=exe->rhead;
 		while(currunnable->ccc)
 		{
@@ -871,41 +871,41 @@ void B_res_bp(FklVM* exe)
 	runnable->cp+=sizeof(char);
 }
 
-void B_invoke(FklVM* exe)
+void B_call(FklVM* exe)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
 	FklVMvalue* tmpValue=fklNiGetArg(&ap,stack);
-	if(!fklIsInvokeable(tmpValue))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.invoke",FKL_INVOKEERROR,runnable,exe);
+	if(!fklIsCallable(tmpValue))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.call",FKL_CALL_ERROR,runnable,exe);
 	runnable->cp+=sizeof(char);
 	switch(tmpValue->type)
 	{
 		case FKL_PROC:
-			invokeNativeProcdure(exe,tmpValue->u.proc,runnable);
+			callNativeProcdure(exe,tmpValue->u.proc,runnable);
 			break;
 		default:
-			exe->nextInvoke=tmpValue;
+			exe->nextCall=tmpValue;
 			break;
 	}
 	fklNiEnd(&ap,stack);
 }
 
-void B_tail_invoke(FklVM* exe)
+void B_tail_call(FklVM* exe)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
 	FklVMvalue* tmpValue=fklNiGetArg(&ap,stack);
-	if(!FKL_IS_PROC(tmpValue)&&!FKL_IS_DLPROC(tmpValue)&&!FKL_IS_CONT(tmpValue)&&!fklIsInvokableUd(tmpValue))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.invoke",FKL_INVOKEERROR,runnable,exe);
+	if(!fklIsCallable(tmpValue))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.tail-call",FKL_CALL_ERROR,runnable,exe);
 	runnable->cp+=sizeof(char);
 	switch(tmpValue->type)
 	{
 		case FKL_PROC:
-			tailInvokeNativeProcdure(exe,tmpValue->u.proc,runnable);
+			callNativeProcdure(exe,tmpValue->u.proc,runnable);
 			break;
 		default:
-			exe->nextInvoke=tmpValue;
+			exe->nextCall=tmpValue;
 			break;
 	}
 	fklNiEnd(&ap,stack);
@@ -1126,7 +1126,7 @@ int fklIsTheLastExpress(const FklVMrunnable* runnable,const FklVMrunnable* same,
 	for(;;)
 	{
 		uint8_t* code=exe->code;
-		uint32_t i=runnable->cp+(code[runnable->cp]==FKL_INVOKE||code[runnable->cp]==FKL_TAIL_INVOKE);
+		uint32_t i=runnable->cp+(code[runnable->cp]==FKL_CALL||code[runnable->cp]==FKL_TAIL_CALL);
 		size=runnable->scp+runnable->cpc;
 
 		for(;i<size;i+=(code[i]==FKL_JMP)?fklGetI64FromByteCode(code+i+sizeof(char))+sizeof(char)+sizeof(int64_t):1)
@@ -1186,8 +1186,8 @@ void fklGC_markRootToGray(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMheap* heap=exe->heap;
-	if(exe->nextInvoke)
-		fklGC_toGray(exe->nextInvoke,heap);
+	if(exe->nextCall)
+		fklGC_toGray(exe->nextCall,heap);
 	pthread_rwlock_rdlock(&exe->rlock);
 	for(FklVMrunnable* cur=exe->rhead;cur;cur=cur->prev)
 		fklGC_toGray(cur->localenv,heap);
@@ -1252,8 +1252,8 @@ void propagateMark(FklVMvalue* root,FklVMheap* heap)
 				fklGC_toGray(root->u.cont->stack->values[i],heap);
 			for(FklVMrunnable* curr=root->u.cont->curr;curr;curr=curr->prev)
 				fklGC_toGray(curr->localenv,heap);
-			if(root->u.cont->nextInvoke)
-				fklGC_toGray(root->u.cont->nextInvoke,heap);
+			if(root->u.cont->nextCall)
+				fklGC_toGray(root->u.cont->nextCall,heap);
 			break;
 		case FKL_VECTOR:
 			{
@@ -1575,7 +1575,7 @@ FklVM* fklNewThreadVM(FklVMproc* mainCode,FklVMheap* heap)
 	exe->stack=fklNewVMstack(0);
 	exe->heap=heap;
 	exe->callback=threadErrorCallBack;
-	exe->nextInvoke=NULL;
+	exe->nextCall=NULL;
 	exe->nny=0;
 	pthread_rwlock_init(&exe->rlock,NULL);
 	FklVM** ppVM=NULL;
@@ -1605,7 +1605,7 @@ FklVM* fklNewThreadVM(FklVMproc* mainCode,FklVMheap* heap)
 	return exe;
 }
 
-FklVM* fklNewThreadInvokableObjVM(FklVMrunnable* r,FklVMheap* heap,FklVMvalue* nextInvoke)
+FklVM* fklNewThreadCallableObjVM(FklVMrunnable* r,FklVMheap* heap,FklVMvalue* nextCall)
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe,__func__);
@@ -1619,7 +1619,7 @@ FklVM* fklNewThreadInvokableObjVM(FklVMrunnable* r,FklVMheap* heap,FklVMvalue* n
 	exe->stack=fklNewVMstack(0);
 	exe->heap=heap;
 	exe->callback=threadErrorCallBack;
-	exe->nextInvoke=nextInvoke;
+	exe->nextCall=nextCall;
 	exe->nny=0;
 	pthread_rwlock_init(&exe->rlock,NULL);
 	FklVM** ppVM=NULL;
@@ -1731,7 +1731,7 @@ void fklCreateCallChainWithContinuation(FklVM* vm,FklVMcontinuation* cc)
 {
 	FklVMstack* stack=vm->stack;
 	FklVMstack* tmpStack=fklCopyStack(cc->stack);
-	vm->nextInvoke=cc->nextInvoke;
+	vm->nextCall=cc->nextCall;
 	int32_t i=stack->bp;
 	for(;i<stack->tp;i++)
 	{

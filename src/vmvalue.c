@@ -889,14 +889,14 @@ FklVMudata* fklNewVMudata(FklSid_t type,FklVMudMethodTable* t,void* mem,FklVMval
 	return r;
 }
 
-int fklIsInvokableUd(FklVMvalue* v)
+int fklIsCallableUd(FklVMvalue* v)
 {
-	return FKL_IS_USERDATA(v)&&v->u.ud->t->__invoke;
+	return FKL_IS_USERDATA(v)&&v->u.ud->t->__call;
 }
 
-int fklIsInvokeable(FklVMvalue* v)
+int fklIsCallable(FklVMvalue* v)
 {
-	return FKL_IS_PROC(v)||FKL_IS_DLPROC(v)||FKL_IS_CONT(v)||fklIsInvokableUd(v);
+	return FKL_IS_PROC(v)||FKL_IS_DLPROC(v)||FKL_IS_CONT(v)||fklIsCallableUd(v);
 }
 
 void fklFreeVMudata(FklVMudata* u)
@@ -911,7 +911,7 @@ FklVMcontinuation* fklNewVMcontinuation(uint32_t ap,FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* curr=exe->rhead;
 	FklPtrStack* tstack=exe->tstack;
-	FklVMvalue* nextInvoke=exe->nextInvoke;
+	FklVMvalue* nextCall=exe->nextCall;
 	uint32_t i=0;
 	FklVMcontinuation* tmp=(FklVMcontinuation*)malloc(sizeof(FklVMcontinuation));
 	FKL_ASSERT(tmp,__func__);
@@ -921,7 +921,7 @@ FklVMcontinuation* fklNewVMcontinuation(uint32_t ap,FklVM* exe)
 	tmp->stack=fklCopyStack(stack);
 	tmp->stack->tp=ap;
 	tmp->curr=NULL;
-	tmp->nextInvoke=nextInvoke;
+	tmp->nextCall=nextCall;
 	for(FklVMrunnable* cur=curr;cur;cur=cur->prev)
 	{
 		FklVMrunnable* t=fklNewVMrunnable(NULL,tmp->curr);

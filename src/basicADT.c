@@ -1119,13 +1119,14 @@ void* fklInsertHashItem(void* item,FklHashTable* table)
 	void* (*__getKey)(void*)=table->t->__getKey;
 	int (*__keyEqual)(void*,void*)=table->t->__keyEqual;
 	FklHashTableNode** pp=&table->base[__hashFunc(__getKey(item),table)];
-	for(;*pp;pp=&(*pp)->next)
+	int i=0;
+	for(;*pp;pp=&(*pp)->next,i++)
 		if(__keyEqual(__getKey((*pp)->item),__getKey(item)))
 			return (*pp)->item;
 	*pp=newHashTableNode(item,NULL);
 	table->list[table->num]=*pp;
 	table->num++;
-	if((double)table->num/table->size>table->threshold)
+	if(i>4||(double)table->num/table->size>table->threshold)
 		fklRehashTable(table);
 	return item;
 }

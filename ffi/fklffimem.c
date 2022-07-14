@@ -220,15 +220,16 @@ static void _mem_print(FILE* fp,void* p)
 		FklDefStructType* st=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type).all);
 		fputc('{',fp);
 		size_t offset=0;
-		for(uint32_t i=0;i<st->num;i++)
+		for(uint32_t i=0;i<st->layout->num;i++)
 		{
-			FklDefTypeUnion tu=fklFfiGetTypeUnion(st->layout[i].type);
+			FklFfiMemberHashItem* item=st->layout->list[i]->item;
+			FklDefTypeUnion tu=fklFfiGetTypeUnion(item->type);
 			size_t align=fklFfiGetTypeAlign(tu);
 			offset+=(offset%align)?align-offset%align:0;
 			fputc('.',fp);
-			fklPrintString(fklGetGlobSymbolWithId(st->layout[i].memberSymbol)->symbol,fp);
+			fklPrintString(fklGetGlobSymbolWithId(item->key)->symbol,fp);
 			fputc('=',fp);
-			FklFfiMem tm={st->layout[i].type,m->mem+offset};
+			FklFfiMem tm={item->type,m->mem+offset};
 			_mem_print(fp,&tm);
 			size_t memberSize=fklFfiGetTypeSize(tu);
 			offset+=memberSize;
@@ -238,14 +239,15 @@ static void _mem_print(FILE* fp,void* p)
 	}
 	else if(fklFfiIsUnionTypeId(m->type))
 	{
-		FklDefStructType* st=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type).all);
+		FklDefUnionType* ut=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type).all);
 		fputc('{',fp);
-		for(uint32_t i=0;i<st->num;i++)
+		for(uint32_t i=0;i<ut->layout->num;i++)
 		{
+			FklFfiMemberHashItem* item=ut->layout->list[i]->item;
 			fputc('.',fp);
-			fklPrintString(fklGetGlobSymbolWithId(st->layout[i].memberSymbol)->symbol,fp);
+			fklPrintString(fklGetGlobSymbolWithId(item->key)->symbol,fp);
 			fputc('=',fp);
-			FklFfiMem tm={st->layout[i].type,m->mem};
+			FklFfiMem tm={item->type,m->mem};
 			_mem_print(fp,&tm);
 			fputc(';',fp);
 		}
@@ -522,25 +524,21 @@ FklVMudata* fklFfiNewMemRefUdWithSI(FklFfiMem* m,FklVMvalue* selector,FklVMvalue
 		}
 		else if(fklFfiIsStructTypeId(m->type)||fklFfiIsUnionTypeId(m->type))
 		{
+			FklHashTable* layout=NULL;
 			if(fklFfiIsStructTypeId(m->type))
 			{
 				FklDefStructType* st=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type).all);
-				size_t offset=0;
-				for(uint32_t i=0;i<st->num;i++)
-				{
-					FklDefTypeUnion tu=fklFfiGetTypeUnion(st->layout[i].type);
-					size_t align=fklFfiGetTypeAlign(tu);
-					offset+=(offset%align)?align-offset%align:0;
-					if(st->layout[i].memberSymbol==selectorId)
-					{
-						return fklNewVMudata(FfiMemUdSid
-								,&FfiMemMethodTable
-								,fklFfiNewRef(st->layout[i].type,m->mem+offset),FfiRel);
-					}
-					size_t memberSize=fklFfiGetTypeSize(tu);
-					offset+=memberSize;
-				}
+				layout=st->layout;
 			}
+			else
+			{
+				FklDefUnionType* ut=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type).all);
+				layout=ut->layout;
+			}
+			FklFfiMemberHashItem* item=fklGetHashItem(&selectorId,layout);
+			return fklNewVMudata(FfiMemUdSid
+					,&FfiMemMethodTable
+					,fklFfiNewRef(item->type,m->mem+item->offset),FfiRel);
 		}
 	}
 	return NULL;

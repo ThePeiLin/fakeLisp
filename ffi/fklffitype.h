@@ -89,7 +89,7 @@ typedef union FklTypeUnion
 	struct FklDefFuncType* ft;
 }FklDefTypeUnion;
 
-typedef struct FklDefStructMember FklDefStructMember;
+//typedef struct FklDefStructMember FklDefStructMember;
 typedef struct FklDefNativeType
 {
 	FklSid_t type;
@@ -110,26 +110,27 @@ typedef struct FklDefPtrType
 	FklTypeId_t ptype;
 }FklDefPtrType;
 
+typedef struct
+{
+	FklSid_t key;
+	FklTypeId_t type;
+	size_t offset;
+}FklFfiMemberHashItem;
+
 typedef struct FklDefStructType
 {
 	FklSid_t type;
-	uint32_t num;
 	size_t totalSize;
 	uint32_t align;
-	struct FklDefStructMember
-	{
-		FklSid_t memberSymbol;
-		FklTypeId_t type;
-	}layout[];
+	FklHashTable* layout;
 }FklDefStructType;
 
 typedef struct FklDefUnionType
 {
 	FklSid_t type;
-	uint32_t num;
 	size_t maxSize;
 	uint32_t align;
-	struct FklDefStructMember layout[];
+	FklHashTable* layout;
 }FklDefUnionType;
 
 typedef struct FklDefFuncType

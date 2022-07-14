@@ -1077,6 +1077,7 @@ FklHashTable* fklNewHashTable(size_t size
 		,double threshold
 		,FklHashTableMethodTable* t)
 {
+	FKL_ASSERT(size,__func__);
 	FklHashTable* r=(FklHashTable*)malloc(sizeof(FklHashTable));
 	FKL_ASSERT(r,__func__);
 	FklHashTableNode** base=(FklHashTableNode**)calloc(size,sizeof(FklHashTableNode*));

@@ -2839,7 +2839,7 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 	return t;
 }
 
-void fklPrintCompileError(const FklAstCptr* obj,FklErrorType type,FklInterpreter* inter)
+void fklPrintCompileError(const FklAstCptr* obj,FklBuiltInErrorType type,FklInterpreter* inter)
 {
 	fprintf(stderr,"error of compiling: ");
 	switch(type)
@@ -3068,14 +3068,6 @@ FklCompEnv* fklNewCompEnv(FklCompEnv* prev)
 	tmp->proc=fklNewByteCodelnt(fklNewByteCode(0));
 	tmp->refcount=0;
 	return tmp;
-}
-
-void fklInitCompEnv(FklCompEnv* curEnv)
-{
-	for(const char** builtInSymbolList=fklGetBuiltInSymbolList()
-			;*builtInSymbolList!=NULL
-			;builtInSymbolList++)
-		fklAddCompDefCstr(*builtInSymbolList,curEnv);
 }
 
 FklPreEnv* fklNewEnv(FklPreEnv* prev)

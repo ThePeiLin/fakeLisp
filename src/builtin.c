@@ -16,6 +16,55 @@
 #include<dlfcn.h>
 #endif
 
+static FklVMvalue* BuiltInStdin=NULL;
+static FklVMvalue* BuiltInStdout=NULL;
+static FklVMvalue* BuiltInStderr=NULL;
+
+
+static const char* builtInErrorType[]=
+{
+	"dummy",
+	"symbol-undefined",
+	"syntax-error",
+	"invalid-expression",
+	"invalid-type-def",
+	"circular-load",
+	"invalid-pattern",
+	"wrong-types-of-arguements",
+	"stack-error",
+	"too-many-arguements",
+	"too-few-arguements",
+	"cant-create-threads",
+	"thread-error",
+	"macro-expand-error",
+	"call-error",
+	"load-dll-faild",
+	"invalid-symbol",
+	"library-undefined",
+	"unexpect-eof",
+	"div-zero-error",
+	"file-failure",
+	"invalid-member-symbol",
+	"no-member-type",
+	"non-scalar-type",
+	"invalid-assign",
+	"invalid-access",
+	"inport-failed",
+	"invalid-macro-pattern",
+	"faild-to-create-big-int-from-mem",
+	"differ-list-in-list",
+	"cross-c-call-continuation",
+	NULL,
+};
+
+FklSid_t fklGetBuiltInErrorType(FklBuiltInErrorType type)
+{
+	static FklSid_t errorTypeId[sizeof(builtInErrorType)/sizeof(const char*)]={0};
+	if(!errorTypeId[type])
+		errorTypeId[type]=fklAddSymbolToGlobCstr(builtInErrorType[type])->id;
+	return errorTypeId[type];
+}
+
 extern void applyNativeProc(FklVM*,FklVMproc*,FklVMrunnable*);
 extern void* ThreadVMfunc(void* p);
 
@@ -192,7 +241,7 @@ void builtin_add(ARGL)
 		else
 		{
 			fklFreeBigInt(bi);
-			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.add",FKL_WRONGARG,runnable,exe);
+			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.+",FKL_WRONGARG,runnable,exe);
 		}
 	}
 	fklNiResBp(&ap,stack);
@@ -227,10 +276,10 @@ void builtin_add_1(ARGL)
 	FklVMrunnable* runnable=exe->rhead;
 	FklVMvalue* arg=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.add_1",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.1+",FKL_TOOMANYARG,runnable,exe);
 	if(!arg)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.add_1",FKL_TOOFEWARG,runnable,exe);
-	FKL_NI_CHECK_TYPE(arg,fklIsVMnumber,"builtin.add_1",runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.1+",FKL_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(arg,fklIsVMnumber,"builtin.1+",runnable,exe);
 	if(FKL_IS_F64(arg))
 	{
 		double r=arg->u.f64+1.0;
@@ -275,8 +324,8 @@ void builtin_sub(ARGL)
 	double rd=0.0;
 	int64_t r64=0;
 	if(!prev)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sub",FKL_TOOFEWARG,runnable,exe);
-	FKL_NI_CHECK_TYPE(prev,fklIsVMnumber,"builtin.sub",runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.-",FKL_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(prev,fklIsVMnumber,"builtin.-",runnable,exe);
 	if(!cur)
 	{
 		fklNiResBp(&ap,stack);
@@ -653,7 +702,7 @@ void builtin_eqn(ARGL)
 	FklVMvalue* cur=fklNiGetArg(&ap,stack);
 	FklVMvalue* prev=NULL;
 	if(!cur)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.eqn",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.=",FKL_TOOFEWARG,runnable,exe);
 	for(;cur;cur=fklNiGetArg(&ap,stack))
 	{
 		if(prev)
@@ -684,17 +733,17 @@ void builtin_eqn(ARGL)
 				int isUnableToBeCmp=0;
 				r=prev->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)==0;
 				if(isUnableToBeCmp)
-					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.eqn",FKL_WRONGARG,runnable,exe);
+					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.=",FKL_WRONGARG,runnable,exe);
 			}
 			else if(FKL_IS_USERDATA(cur)&&cur->u.ud->t->__cmp)
 			{
 				int isUnableToBeCmp=0;
 				r=cur->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)==0;
 				if(isUnableToBeCmp)
-					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.eqn",FKL_WRONGARG,runnable,exe);
+					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.=",FKL_WRONGARG,runnable,exe);
 			}
 			else
-				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.eqn",FKL_WRONGARG,runnable,exe);
+				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.=",FKL_WRONGARG,runnable,exe);
 		}
 		if(!r)
 			break;
@@ -1751,7 +1800,7 @@ void builtin_read(ARGL)
 	FklPtrStack* tokenStack=fklNewPtrStack(32,16);
 	if(!stream||FKL_IS_FP(stream))
 	{
-		tmpFile=stream?stream->u.fp:fklGetVMstdin()->u.fp;
+		tmpFile=stream?stream->u.fp:BuiltInStdin->u.fp;
 		int unexpectEOF=0;
 		size_t size=0;
 		tmpString=fklReadInStringPattern(tmpFile->fp,(char**)&tmpFile->prev,&size,&tmpFile->size,0,&unexpectEOF,tokenStack,NULL);
@@ -2653,7 +2702,7 @@ void builtin_fgetc(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetc",FKL_TOOMANYARG,runnable,exe);
 	if(stream&&!FKL_IS_FP(stream))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetc",FKL_WRONGARG,runnable,exe);
-	FklVMfp* fp=stream?stream->u.fp:fklGetVMstdin()->u.fp;
+	FklVMfp* fp=stream?stream->u.fp:BuiltInStdin->u.fp;
 	if(!fp)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetc",FKL_INVALIDACCESS,runnable,exe);
 	if(fp->size)
@@ -2951,3 +3000,142 @@ void builtin_box_p(ARGL) PREDICATE(FKL_IS_BOX(val),"builtin.box?")
 #undef K_FUNC_ARGL
 #undef PREDICATE
 //end
+
+static const struct SymbolFuncStruct
+{
+	const char* s;
+	FklVMdllFunc f;
+}builtInSymbolList[]=
+{
+	{"nil",         NULL,                },
+	{"stdin",       NULL,                },
+	{"stdout",      NULL,                },
+	{"stderr",      NULL,                },
+	{"car",         builtin_car,         },
+	{"cdr",         builtin_cdr,         },
+	{"cons",        builtin_cons,        },
+	{"append",      builtin_append,      },
+	{"atom",        builtin_atom,        },
+	{"null",        builtin_null,        },
+	{"not",         builtin_not,         },
+	{"eq",          builtin_eq,          },
+	{"equal",       builtin_equal,       },
+	{"=",           builtin_eqn,         },
+	{"+",           builtin_add,         },
+	{"1+",          builtin_add_1,       },
+	{"-",           builtin_sub,         },
+	{"-1+",         builtin_sub_1,       },
+	{"*",           builtin_mul,         },
+	{"/",           builtin_div,         },
+	{"%",           builtin_rem,         },
+	{">",           builtin_gt,          },
+	{">=",          builtin_ge,          },
+	{"<",           builtin_lt,          },
+	{"<=",          builtin_le,          },
+	{"char",        builtin_char,        },
+	{"integer",     builtin_integer,     },
+	{"f64",         builtin_f64,         },
+	{"as-str",      builtin_as_str,      },
+	{"symbol",      builtin_symbol,      },
+	{"nth",         builtin_nth,         },
+	{"length",      builtin_length,      },
+	{"apply",       builtin_apply,       },
+	{"call/cc",     builtin_call_cc,     },
+	{"fopen",       builtin_fopen,       },
+	{"read",        builtin_read,        },
+	{"prin1",       builtin_prin1,       },
+	{"princ",       builtin_princ,       },
+	{"dlopen",      builtin_dlopen,      },
+	{"dlsym",       builtin_dlsym,       },
+	{"argv",        builtin_argv,        },
+	{"go",          builtin_go,          },
+	{"chanl",       builtin_chanl,       },
+	{"send",        builtin_send,        },
+	{"recv",        builtin_recv,        },
+	{"error",       builtin_error,       },
+	{"raise",       builtin_raise,       },
+	{"reverse",     builtin_reverse,     },
+	{"i32",         builtin_i32,         },
+	{"i64",         builtin_i64,         },
+	{"fclose",      builtin_fclose,      },
+	{"feof",        builtin_feof,        },
+	{"vref",        builtin_vref,        },
+	{"nthcdr",      builtin_nthcdr,      },
+	{"char?",       builtin_char_p,      },
+	{"integer?",    builtin_integer_p,   },
+	{"i32?",        builtin_i32_p,       },
+	{"i64?",        builtin_i64_p,       },
+	{"f64?",        builtin_f64_p,       },
+	{"pair?",       builtin_pair_p,      },
+	{"symbol?",     builtin_symbol_p,    },
+	{"string?",     builtin_string_p,    },
+	{"error?",      builtin_error_p,     },
+	{"procedure?",  builtin_procedure_p, },
+	{"proc?",       builtin_proc_p,      },
+	{"dlproc?",     builtin_dlproc_p,    },
+	{"vector?",     builtin_vector_p,    },
+	{"chanl?",      builtin_chanl_p,     },
+	{"dll?",        builtin_dll_p,       },
+	{"vector",      builtin_vector,      },
+	{"getdir",      builtin_getdir,      },
+	{"fgetc",       builtin_fgetc,       },
+	{"fwrite",      builtin_fwrite,      },
+	{"to-str",      builtin_to_str,      },
+	{"fgets",       builtin_fgets,       },
+	{"parse-int",   builtin_parse_int,   },
+	{"parse-f64",   builtin_parse_f64,   },
+	{"big-int?",    builtin_big_int_p,   },
+	{"big-int",     builtin_big_int,     },
+	{"set-car!",    builtin_set_car,     },
+	{"set-cdr!",    builtin_set_cdr,     },
+	{"set-nth!",    builtin_set_nth,     },
+	{"set-nthcdr!", builtin_set_nthcdr,  },
+	{"set-vref!",   builtin_set_vref,    },
+	{"list?",       builtin_list_p,      },
+	{"box",         builtin_box,         },
+	{"unbox",       builtin_unbox,       },
+	{"set-box!",    builtin_set_box,     },
+	{"cas-box!",    builtin_cas_box,     },
+	{"box?",        builtin_box_p,       },
+	{"fix-int?",    builtin_fix_int_p,   },
+	{"number?",     builtin_number_p,    },
+	{"map",         builtin_map,         },
+	{"sref",        builtin_sref,        },
+	{"set-sref!",   builtin_set_sref,    },
+	{"foreach",     builtin_foreach,     },
+	{"andmap",      builtin_andmap,      },
+	{"ormap",       builtin_ormap,       },
+	{"list",        builtin_list,        },
+	{"cas-vref!",   builtin_cas_vref,    },
+	{"memq",        builtin_memq,        },
+	{"member",      builtin_member,      },
+	{"memp",        builtin_memp,        },
+	{NULL,          NULL,                },
+};
+
+void fklInitCompEnv(FklCompEnv* curEnv)
+{
+	for(const struct SymbolFuncStruct* list=builtInSymbolList
+			;list->s!=NULL
+			;list++)
+		fklAddCompDefCstr(list->s,curEnv);
+}
+
+void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
+{
+	const struct SymbolFuncStruct* list=builtInSymbolList;
+	BuiltInStdin=fklNewVMvalue(FKL_FP,fklNewVMfp(stdin),heap);
+	BuiltInStdout=fklNewVMvalue(FKL_FP,fklNewVMfp(stdout),heap);
+	BuiltInStderr=fklNewVMvalue(FKL_FP,fklNewVMfp(stderr),heap);
+	fklFindOrAddVarWithValue(fklAddSymbolToGlobCstr((list++)->s)->id,FKL_VM_NIL,obj);
+	fklFindOrAddVarWithValue(fklAddSymbolToGlobCstr((list++)->s)->id,BuiltInStdin,obj);
+	fklFindOrAddVarWithValue(fklAddSymbolToGlobCstr((list++)->s)->id,BuiltInStdout,obj);
+	fklFindOrAddVarWithValue(fklAddSymbolToGlobCstr((list++)->s)->id,BuiltInStderr,obj);
+	for(;list->s!=NULL;list++)
+	{
+		FklVMdlproc* proc=fklNewVMdlproc(list->f,NULL);
+		FklSymTabNode* node=fklAddSymbolToGlobCstr(list->s);
+		proc->sid=node->id;
+		fklFindOrAddVarWithValue(node->id,fklNewVMvalue(FKL_DLPROC,proc,heap),obj);
+	}
+}

@@ -4,14 +4,14 @@
 #include"basicADT.h"
 #include"ast.h"
 #include"bytecode.h"
-
+#include"builtin.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 typedef struct
 {
-	FklErrorType state;
+	FklBuiltInErrorType state;
 	FklAstCptr* place;
 }FklErrorState;
 
@@ -80,7 +80,7 @@ void fklSetMainFileRealPath(const char* path);
 void fklFreeMainFileRealPath(void);
 void fklSetMainFileRealPathWithCwd(void);
 const char* fklGetMainFileRealPath(void);
-void fklPrintCompileError(const FklAstCptr*,FklErrorType,FklInterpreter*);
+void fklPrintCompileError(const FklAstCptr*,FklBuiltInErrorType,FklInterpreter*);
 FklPreDef* fklAddDefine(const FklString*,const FklAstCptr*,FklPreEnv*);
 FklPreDef* fklFindDefine(const FklString*,const FklPreEnv*);
 FklPreDef* fklNewDefines(const FklString*);

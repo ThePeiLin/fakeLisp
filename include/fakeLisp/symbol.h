@@ -11,40 +11,6 @@ extern "C" {
 
 typedef uint64_t FklSid_t;
 
-typedef enum
-{
-	FKL_SYMUNDEFINE=1,
-	FKL_SYNTAXERROR,
-	FKL_INVALIDEXPR,
-	FKL_INVALIDTYPEDEF,
-	FKL_CIRCULARLOAD,
-	FKL_INVALIDPATTERN,
-	FKL_WRONGARG,
-	FKL_STACKERROR,
-	FKL_TOOMANYARG,
-	FKL_TOOFEWARG,
-	FKL_CANTCREATETHREAD,
-	FKL_THREADERROR,
-	FKL_MACROEXPANDFAILED,
-	FKL_CALL_ERROR,
-	FKL_LOADDLLFAILD,
-	FKL_INVALIDSYMBOL,
-	FKL_LIBUNDEFINED,
-	FKL_UNEXPECTEOF,
-	FKL_DIVZERROERROR,
-	FKL_FILEFAILURE,
-	FKL_INVALIDMEMBER,
-	FKL_NOMEMBERTYPE,
-	FKL_NONSCALARTYPE,
-	FKL_INVALIDASSIGN,
-	FKL_INVALIDACCESS,
-	FKL_IMPORTFAILED,
-	FKL_INVALID_MACRO_PATTERN,
-	FKL_FAILD_TO_CREATE_BIG_INT_FROM_MEM,
-	FKL_LIST_DIFFER_IN_LENGTH,
-	FKL_CROSS_C_CALL_CONTINUATION,
-}FklErrorType;
-
 typedef struct FklSymTabNode
 {
 	FklString* symbol;
@@ -59,9 +25,6 @@ typedef struct FklSymbolTable
 	pthread_rwlock_t rwlock;
 }FklSymbolTable;
 
-const char** fklGetBuiltInSymbolList(void);
-const char* fklGetBuiltInSymbol(uint64_t);
-FklSid_t fklGetBuiltInErrorType(FklErrorType);
 FklSymbolTable* fklNewSymbolTable();
 
 FklSymTabNode* fklNewSymTabNode(const FklString*);

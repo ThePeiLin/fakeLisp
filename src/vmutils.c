@@ -307,7 +307,7 @@ void fklFreeVMcCC(FklVMcCC* cc)
 	free(cc);
 }
 
-char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklErrorType type)
+char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorType type)
 {
 	char* t=fklCopyCstr("");
 	switch(type)
@@ -334,7 +334,7 @@ char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklErrorType type)
 	return t;
 }
 
-char* fklGenErrorMessage(FklErrorType type,FklVMrunnable* r,FklVM* exe)
+char* fklGenErrorMessage(FklBuiltInErrorType type,FklVMrunnable* r,FklVM* exe)
 {
 	char* t=fklCopyCstr("");
 	switch(type)

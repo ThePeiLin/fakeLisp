@@ -4,6 +4,7 @@
 #include"basicADT.h"
 #include"bytecode.h"
 #include"compiler.h"
+#include"builtin.h"
 #include<stdio.h>
 #include<stdint.h>
 #include<pthread.h>
@@ -280,7 +281,6 @@ FklVM* fklNewVM(FklByteCode*);
 FklVM* fklNewTmpVM(FklByteCode*);
 FklVM* fklNewThreadVM(FklVMproc*,FklVMheap*);
 FklVM* fklNewThreadCallableObjVM(FklVMrunnable* r,FklVMheap* heap,FklVMvalue*);
-void fklInitGlobEnv(FklVMenv*,FklVMheap*);
 
 void fklFreeVMvalue(FklVMvalue*);
 FklVMstack* fklNewVMstack(int32_t);
@@ -353,8 +353,8 @@ void fklFreeVMerrorHandler(FklVMerrorHandler*);
 int fklRaiseVMerror(FklVMvalue* err,FklVM*);
 FklVMrunnable* fklNewVMrunnable(FklVMproc*,FklVMrunnable*);
 void fklFreeVMrunnable(FklVMrunnable*);
-char* fklGenErrorMessage(FklErrorType type,FklVMrunnable* r,FklVM* exe);
-char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklErrorType);
+char* fklGenErrorMessage(FklBuiltInErrorType type,FklVMrunnable* r,FklVM* exe);
+char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorType);
 int32_t fklGetSymbolIdInByteCode(const uint8_t*);
 
 FklVMcCC* fklNewVMcCC(FklVMFuncK kFunc,void* ctx,size_t,FklVMcCC* next);
@@ -426,10 +426,6 @@ void fklChanlRecvOk(FklVMchanl*,FklVMvalue**,int*);
 void fklChanlRecv(FklVMrecv*,FklVMchanl*);
 
 FklVMvalue* fklCastCptrVMvalue(FklAstCptr*,FklVMheap*);
-
-FklVMvalue* fklGetVMstdin(void);
-FklVMvalue* fklGetVMstdout(void);
-FklVMvalue* fklGetVMstderr(void);
 
 FklVMvec* fklNewVMvec(size_t size);
 FklVMvalue* fklNewVMvecV(size_t size,FklVMvalue** base,FklVMstack*,FklVMheap*);

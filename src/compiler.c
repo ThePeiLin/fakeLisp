@@ -196,7 +196,8 @@ int fklAddMacro(FklAstCptr* pattern,FklByteCodelnt* proc,FklCompEnv* curEnv)
 	{
 		tmpCptr=&pattern->u.pair->car;
 		fklAddKeyWord(tmpCptr->u.atom->value.str,curEnv);
-		FKL_ASSERT((current=(FklPreMacro*)malloc(sizeof(FklPreMacro))));
+		current=(FklPreMacro*)malloc(sizeof(FklPreMacro));
+		FKL_ASSERT(current);
 		current->next=curEnv->macro;
 		current->pattern=pattern;
 		current->proc=proc;
@@ -452,8 +453,8 @@ void fklUninitPreprocess()
 
 FklAstCptr** dealArg(FklAstCptr* argCptr,int num)
 {
-	FklAstCptr** args=NULL;
-	FKL_ASSERT((args=(FklAstCptr**)malloc(num*sizeof(FklAstCptr*))));
+	FklAstCptr** args=(FklAstCptr**)malloc(num*sizeof(FklAstCptr*));
+	FKL_ASSERT(args);
 	int i=0;
 	for(;i<num;i++,argCptr=fklNextCptr(argCptr))
 		args[i]=argCptr;
@@ -2973,7 +2974,8 @@ FklCompDef* fklAddCompDefCstr(const char* name,FklCompEnv* curEnv)
 	if(curEnv->head==NULL)
 	{
 		FklSymTabNode* node=fklAddSymbolToGlobCstr(name);
-		FKL_ASSERT((curEnv->head=(FklCompDef*)malloc(sizeof(FklCompDef))));
+		curEnv->head=(FklCompDef*)malloc(sizeof(FklCompDef));
+		FKL_ASSERT(curEnv->head);
 		curEnv->head->next=NULL;
 		curEnv->head->id=node->id;
 		return curEnv->head;
@@ -2984,7 +2986,8 @@ FklCompDef* fklAddCompDefCstr(const char* name,FklCompEnv* curEnv)
 		FklCompDef* curDef=fklFindCompDefBySid(node->id,curEnv);
 		if(curDef==NULL)
 		{
-			FKL_ASSERT((curDef=(FklCompDef*)malloc(sizeof(FklCompDef))));
+			curDef=(FklCompDef*)malloc(sizeof(FklCompDef));
+			FKL_ASSERT(curDef);
 			curDef->id=node->id;
 			curDef->next=curEnv->head;
 			curEnv->head=curDef;
@@ -2998,7 +3001,8 @@ FklCompDef* fklAddCompDef(const FklString* name,FklCompEnv* curEnv)
 	FklSymTabNode* node=fklAddSymbolToGlob(name);
 	if(curEnv->head==NULL)
 	{
-		FKL_ASSERT((curEnv->head=(FklCompDef*)malloc(sizeof(FklCompDef))));
+		curEnv->head=(FklCompDef*)malloc(sizeof(FklCompDef));
+		FKL_ASSERT(curEnv->head);
 		curEnv->head->next=NULL;
 		curEnv->head->id=node->id;
 		return curEnv->head;
@@ -3008,7 +3012,8 @@ FklCompDef* fklAddCompDef(const FklString* name,FklCompEnv* curEnv)
 		FklCompDef* curDef=fklFindCompDefBySid(node->id,curEnv);
 		if(curDef==NULL)
 		{
-			FKL_ASSERT((curDef=(FklCompDef*)malloc(sizeof(FklCompDef))));
+			curDef=(FklCompDef*)malloc(sizeof(FklCompDef));
+			FKL_ASSERT(curDef);
 			curDef->id=node->id;
 			curDef->next=curEnv->head;
 			curEnv->head=curDef;
@@ -3033,7 +3038,8 @@ FklCompDef* fklAddCompDefBySid(FklSid_t id,FklCompEnv* curEnv)
 {
 	if(curEnv->head==NULL)
 	{
-		FKL_ASSERT((curEnv->head=(FklCompDef*)malloc(sizeof(FklCompDef))));
+		curEnv->head=(FklCompDef*)malloc(sizeof(FklCompDef));
+		FKL_ASSERT(curEnv->head);
 		curEnv->head->next=NULL;
 		curEnv->head->id=id;
 		return curEnv->head;
@@ -3043,7 +3049,8 @@ FklCompDef* fklAddCompDefBySid(FklSid_t id,FklCompEnv* curEnv)
 		FklCompDef* curDef=fklFindCompDefBySid(id,curEnv);
 		if(curDef==NULL)
 		{
-			FKL_ASSERT((curDef=(FklCompDef*)malloc(sizeof(FklCompDef))));
+			curDef=(FklCompDef*)malloc(sizeof(FklCompDef));
+			FKL_ASSERT(curDef);
 			curDef->id=id;
 			curDef->next=curEnv->head;
 			curEnv->head=curDef;
@@ -3073,7 +3080,8 @@ FklCompEnv* fklNewCompEnv(FklCompEnv* prev)
 FklPreEnv* fklNewEnv(FklPreEnv* prev)
 {
 	FklPreEnv* curEnv=NULL;
-	FKL_ASSERT((curEnv=(FklPreEnv*)malloc(sizeof(FklPreEnv))));
+	curEnv=(FklPreEnv*)malloc(sizeof(FklPreEnv));
+	FKL_ASSERT(curEnv);
 	if(prev!=NULL)prev->next=curEnv;
 	curEnv->prev=prev;
 	curEnv->next=NULL;
@@ -3127,8 +3135,8 @@ FklCompDef* fklFindCompDef(const FklString* name,FklCompEnv* curEnv)
 
 FklInterpreter* fklNewIntpr(const char* filename,FILE* file,FklCompEnv* env,FklLineNumberTable* lnt)
 {
-	FklInterpreter* tmp=NULL;
-	FKL_ASSERT((tmp=(FklInterpreter*)malloc(sizeof(FklInterpreter))));
+	FklInterpreter* tmp=(FklInterpreter*)malloc(sizeof(FklInterpreter));
+	FKL_ASSERT(tmp);
 	if(file!=stdin&&filename!=NULL)
 	{
 		char* rp=fklRealpath(filename);
@@ -3259,8 +3267,8 @@ void fklFreeAllKeyWord(FklKeyWord* head)
 
 FklInterpreter* fklNewTmpIntpr(const char* filename,FILE* fp)
 {
-	FklInterpreter* tmp=NULL;
-	FKL_ASSERT((tmp=(FklInterpreter*)malloc(sizeof(FklInterpreter))));
+	FklInterpreter* tmp=(FklInterpreter*)malloc(sizeof(FklInterpreter));
+	FKL_ASSERT(tmp);
 	if(fp!=stdin&&filename)
 	{
 		char* rp=fklRealpath(filename);

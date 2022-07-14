@@ -6,10 +6,11 @@
 #include<stdlib.h>
 FklByteCode* fklNewByteCode(unsigned int size)
 {
-	FklByteCode* tmp=NULL;
-	FKL_ASSERT((tmp=(FklByteCode*)malloc(sizeof(FklByteCode))));
+	FklByteCode* tmp=(FklByteCode*)malloc(sizeof(FklByteCode));
+	FKL_ASSERT(tmp);
 	tmp->size=size;
-	FKL_ASSERT((tmp->code=(uint8_t*)malloc(size*sizeof(uint8_t))));
+	tmp->code=(uint8_t*)malloc(size*sizeof(uint8_t));
+	FKL_ASSERT(tmp->code);
 	int32_t i=0;
 	for(;i<tmp->size;i++)tmp->code[i]=0;
 	return tmp;

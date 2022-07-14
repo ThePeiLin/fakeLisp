@@ -91,8 +91,8 @@ void fklFreeAtom(FklAstAtom* objAtm)
 
 FklAstPair* fklNewPair(int curline,FklAstPair* prev)
 {
-	FklAstPair* tmp;
-	FKL_ASSERT((tmp=(FklAstPair*)malloc(sizeof(FklAstPair))));
+	FklAstPair* tmp=(FklAstPair*)malloc(sizeof(FklAstPair));
+	FKL_ASSERT(tmp);
 	tmp->car.outer=tmp;
 	tmp->car.type=FKL_NIL;
 	tmp->car.u.all=NULL;
@@ -107,8 +107,8 @@ FklAstPair* fklNewPair(int curline,FklAstPair* prev)
 
 FklAstCptr* fklNewCptr(int curline,FklAstPair* outer)
 {
-	FklAstCptr* tmp=NULL;
-	FKL_ASSERT((tmp=(FklAstCptr*)malloc(sizeof(FklAstCptr))));
+	FklAstCptr* tmp=(FklAstCptr*)malloc(sizeof(FklAstCptr));
+	FKL_ASSERT(tmp);
 	tmp->outer=outer;
 	tmp->curline=curline;
 	tmp->type=FKL_NIL;
@@ -118,8 +118,8 @@ FklAstCptr* fklNewCptr(int curline,FklAstPair* outer)
 
 FklAstAtom* fklNewAtom(FklValueType type,FklAstPair* prev)
 {
-	FklAstAtom* tmp=NULL;
-	FKL_ASSERT((tmp=(FklAstAtom*)malloc(sizeof(FklAstAtom))));
+	FklAstAtom* tmp=(FklAstAtom*)malloc(sizeof(FklAstAtom));
+	FKL_ASSERT(tmp);
 	switch(type)
 	{
 		case FKL_CHR:

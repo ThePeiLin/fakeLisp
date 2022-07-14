@@ -25,7 +25,8 @@ char* fklGetStringFromList(const char* str)
 			&&!isspace(*(str+len))
 			&&(*(str+len)!=',')
 			&&(*(str+len)!=0))len++;
-	FKL_ASSERT((tmp=(char*)malloc(sizeof(char)*(len+1))));
+	tmp=(char*)malloc(sizeof(char)*(len+1));
+	FKL_ASSERT(tmp);
 	memcpy(tmp,str,len);
 	if(tmp!=NULL)*(tmp+len)='\0';
 	return tmp;
@@ -41,7 +42,8 @@ char* fklGetStringAfterBackslash(const char* str)
 		if(!isalnum(str[len])&&str[len-1]!='\\')
 			break;
 	}
-	FKL_ASSERT((tmp=(char*)malloc(sizeof(char)*(len+1))));
+	tmp=(char*)malloc(sizeof(char)*(len+1));
+	FKL_ASSERT(tmp);
 	memcpy(tmp,str,len);
 	if(tmp!=NULL)*(tmp+len)='\0';
 	return tmp;
@@ -72,7 +74,8 @@ char* fklGetStringAfterBackslashInStr(const char* str)
 		else
 			len++;
 	}
-	FKL_ASSERT((tmp=(char*)malloc(sizeof(char)*(len+1))));
+	tmp=(char*)malloc(sizeof(char)*(len+1));
+	FKL_ASSERT(tmp);
 	memcpy(tmp,str,len);
 	if(tmp!=NULL)*(tmp+len)='\0';
 	return tmp;
@@ -596,7 +599,8 @@ char* fklGetStringFromFile(FILE* file)
 		i++;
 		j=i-1;
 		before=tmp;
-		FKL_ASSERT((tmp=(char*)malloc(sizeof(char)*(i+1))));
+		tmp=(char*)malloc(sizeof(char)*(i+1));
+		FKL_ASSERT(tmp);
 		if(before!=NULL)
 		{
 			memcpy(tmp,before,j);

@@ -19,7 +19,7 @@
 extern void applyNativeProc(FklVM*,FklVMproc*,FklVMrunnable*);
 extern void* ThreadVMfunc(void* p);
 
-//syscalls
+//builtin functions
 
 #define ARGL FklVM* exe
 #define K_FUNC_ARGL FklVM* exe,FklCCState s,void* ctx

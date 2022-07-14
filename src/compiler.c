@@ -3072,10 +3072,10 @@ FklCompEnv* fklNewCompEnv(FklCompEnv* prev)
 
 void fklInitCompEnv(FklCompEnv* curEnv)
 {
-	int i=0;
-	const char** builtInSymbolList=fklGetBuiltInSymbolList();
-	for(i=0;i<FKL_NUM_OF_BUILT_IN_SYMBOL;i++)
-		fklAddCompDefCstr(builtInSymbolList[i],curEnv);
+	for(const char** builtInSymbolList=fklGetBuiltInSymbolList()
+			;*builtInSymbolList!=NULL
+			;builtInSymbolList++)
+		fklAddCompDefCstr(*builtInSymbolList,curEnv);
 }
 
 FklPreEnv* fklNewEnv(FklPreEnv* prev)

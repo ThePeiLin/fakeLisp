@@ -9,8 +9,6 @@
 extern "C" {
 #endif
 
-#define FKL_NUM_OF_BUILT_IN_SYMBOL (103)
-#define FKL_NUM_OF_BUILT_IN_ERROR_TYPE (31)
 typedef uint64_t FklSid_t;
 
 typedef enum

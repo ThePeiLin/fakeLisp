@@ -5,7 +5,7 @@
 #include<stdlib.h>
 #include<string.h>
 
-static const char* builtInErrorType[FKL_NUM_OF_BUILT_IN_ERROR_TYPE]=
+static const char* builtInErrorType[]=
 {
 	"dummy",
 	"symbol-undefined",
@@ -38,6 +38,7 @@ static const char* builtInErrorType[FKL_NUM_OF_BUILT_IN_ERROR_TYPE]=
 	"faild-to-create-big-int-from-mem",
 	"differ-list-in-list",
 	"cross-c-call-continuation",
+	NULL,
 };
 
 static const char* builtInSymbolList[]=
@@ -145,6 +146,7 @@ static const char* builtInSymbolList[]=
 	"memq",
 	"member",
 	"memp",
+	NULL,
 };
 
 FklSymbolTable* GlobSymbolTable=NULL;
@@ -415,7 +417,7 @@ const char* fklGetBuiltInSymbol(uint64_t i)
 
 FklSid_t fklGetBuiltInErrorType(FklErrorType type)
 {
-	static FklSid_t errorTypeId[FKL_NUM_OF_BUILT_IN_ERROR_TYPE]={0};
+	static FklSid_t errorTypeId[sizeof(builtInErrorType)/sizeof(const char*)]={0};
 	if(!errorTypeId[type])
 		errorTypeId[type]=fklAddSymbolToGlobCstr(builtInErrorType[type])->id;
 	return errorTypeId[type];

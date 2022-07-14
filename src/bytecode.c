@@ -210,7 +210,7 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 		case -2:
 			{
 				uint64_t ncpc=fklGetU64FromByteCode(tmpCode->code+i+sizeof(char));
-				fprintf(fp,"%lu ",ncpc);
+				fprintf(fp,"%lu",ncpc);
 				fklPushPtrStack(newByteCodePrintState(cState->type,cState->tc,i+sizeof(char)+sizeof(uint64_t)+ncpc,cState->cpc),s);
 				fklPushPtrStack(newByteCodePrintState(BP_NONE,tc+1,i+sizeof(char)+sizeof(uint64_t),i+sizeof(char)+sizeof(uint64_t)+ncpc),s);
 				r+=sizeof(char)+sizeof(uint64_t);
@@ -397,7 +397,7 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp)
 				line=obj->l[j]->line;
 				if(fid)
 				{
-					fputc('\t',fp);
+					fprintf(fp,"    ;");
 					fklPrintString(fklGetGlobSymbolWithId(obj->l[j]->fid)->symbol,fp);
 					fprintf(fp,":%u:%lu",obj->l[j]->line,obj->l[j]->cpc);
 				}

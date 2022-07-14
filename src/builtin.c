@@ -4,6 +4,7 @@
 #include<fakeLisp/basicADT.h>
 #include<fakeLisp/parser.h>
 #include<fakeLisp/utils.h>
+#include<fakeLisp/builtin.h>
 #include<stdlib.h>
 #include<string.h>
 #include<math.h>

@@ -1126,14 +1126,16 @@ void* fklInsertHashItem(void* item,FklHashTable* table)
 	*pp=newHashTableNode(item,NULL);
 	table->list[table->num]=*pp;
 	table->num++;
-	if(i>4||(double)table->num/table->size>table->threshold)
-		fklRehashTable(table);
+	if((double)table->num/table->size>table->threshold)
+		fklRehashTable(table,1);
+	else if(i>4)
+		fklRehashTable(table,2);
 	return item;
 }
 
-void fklRehashTable(FklHashTable* table)
+void fklRehashTable(FklHashTable* table,unsigned int inc)
 {
-	table->size*=2;
+	table->size+=table->size/inc;
 	size_t num=table->num;
 	FklHashTableNode** list=table->list;
 	FklHashTableNode** base=table->base;

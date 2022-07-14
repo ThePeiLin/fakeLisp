@@ -61,7 +61,7 @@ FklHashTable* fklNewHashTable(size_t size
 void* fklGetHashItem(void* key,FklHashTable*);
 void* fklInsertHashItem(void* item,FklHashTable*);
 void fklFreeHashTable(FklHashTable*);
-void fklRehashTable(FklHashTable*);
+void fklRehashTable(FklHashTable*,unsigned int);
 
 typedef struct
 {

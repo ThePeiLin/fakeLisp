@@ -427,7 +427,8 @@ FklVMdllHandle fklNewVMdll(const char* dllName)
 	size_t len=strlen(dllName)+strlen(filetype)+1;
 	char* realDllName=(char*)malloc(sizeof(char)*len);
 	FKL_ASSERT(realDllName);
-	sprintf(realDllName,"%s%s",dllName,filetype);
+	strcpy(realDllName,dllName);
+	strcat(realDllName,filetype);
 	char* rpath=fklRealpath(realDllName);
 	if(!rpath)
 	{

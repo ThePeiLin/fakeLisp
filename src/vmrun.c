@@ -676,7 +676,7 @@ void B_tail_call(FklVM* exe)
 	switch(tmpValue->type)
 	{
 		case FKL_PROC:
-			callNativeProcdure(exe,tmpValue->u.proc,runnable);
+			tailCallNativeProcdure(exe,tmpValue->u.proc,runnable);
 			break;
 		default:
 			exe->nextCall=tmpValue;

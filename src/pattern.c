@@ -85,7 +85,7 @@ FklStringMatchPattern* fklFindStringPattern(const FklString* str)
 FklStringMatchPattern* fklNewStringMatchPattern(uint32_t num,FklString** parts,FklByteCodelnt* proc)
 {
 	FklStringMatchPattern* tmp=(FklStringMatchPattern*)malloc(sizeof(FklStringMatchPattern));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	tmp->num=num;
 	tmp->reserveCharNum=countReverseCharNum(num,parts);
 	tmp->parts=parts;
@@ -150,7 +150,7 @@ FklString** fklSplitPattern(const FklString* str,uint32_t* num)
 	uint32_t count=countStringParts(str);
 	*num=count;
 	FklString** tmp=(FklString**)malloc(sizeof(FklString*)*count);
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	count=0;
 	const char* buf=str->str;
 	size_t size=str->size;

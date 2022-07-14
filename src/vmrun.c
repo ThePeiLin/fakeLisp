@@ -33,7 +33,7 @@ typedef struct Graylink
 Graylink* newGraylink(FklVMvalue* v,struct Graylink* next)
 {
 	Graylink* g=(Graylink*)malloc(sizeof(Graylink));
-	FKL_ASSERT(g,__func__);
+	FKL_ASSERT(g);
 	g->v=v;
 	g->next=next;
 	return g;
@@ -209,7 +209,7 @@ static void (*ByteCodes[])(FklVM*)=
 FklVM* fklNewVM(FklByteCode* mainCode)
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
-	FKL_ASSERT(exe,__func__);
+	FKL_ASSERT(exe);
 	FklVMproc* tmpVMproc=NULL;
 	exe->code=NULL;
 	exe->size=0;
@@ -246,7 +246,7 @@ FklVM* fklNewVM(FklByteCode* mainCode)
 	{
 		int32_t size=GlobVMs.num;
 		GlobVMs.VMs=(FklVM**)realloc(GlobVMs.VMs,sizeof(FklVM*)*(size+1));
-		FKL_ASSERT(!size||GlobVMs.VMs,__func__);
+		FKL_ASSERT(!size||GlobVMs.VMs);
 		GlobVMs.VMs[size]=exe;
 		GlobVMs.num+=1;
 		exe->VMid=size;
@@ -258,7 +258,7 @@ FklVM* fklNewVM(FklByteCode* mainCode)
 FklVM* fklNewTmpVM(FklByteCode* mainCode)
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
-	FKL_ASSERT(exe,__func__);
+	FKL_ASSERT(exe);
 	exe->code=NULL;
 	exe->size=0;
 	exe->rhead=NULL;
@@ -750,7 +750,7 @@ void B_push_try(FklVM* exe)
 		uint32_t errTypeNum=fklGetU32FromByteCode(exe->code+r->cp+cpc);
 		cpc+=sizeof(uint32_t);
 		FklSid_t* typeIds=(FklSid_t*)malloc(sizeof(FklSid_t)*errTypeNum);
-		FKL_ASSERT(typeIds,__func__);
+		FKL_ASSERT(typeIds);
 		for(uint32_t j=0;j<errTypeNum;j++)
 		{
 			typeIds[j]=fklGetSidFromByteCode(exe->code+r->cp+cpc);
@@ -838,12 +838,12 @@ void B_push_box(FklVM* exe)
 FklVMstack* fklNewVMstack(int32_t size)
 {
 	FklVMstack* tmp=(FklVMstack*)malloc(sizeof(FklVMstack));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	tmp->size=size;
 	tmp->tp=0;
 	tmp->bp=0;
 	tmp->values=(FklVMvalue**)malloc(size*sizeof(FklVMvalue*));
-	FKL_ASSERT(tmp->values,__func__);
+	FKL_ASSERT(tmp->values);
 	tmp->tps=fklNewUintStack(32,16);
 	tmp->bps=fklNewUintStack(32,16);
 	pthread_rwlock_init(&tmp->lock,NULL);
@@ -855,7 +855,7 @@ void fklStackRecycle(FklVMstack* stack)
 	if(stack->size-stack->tp>64)
 	{
 		stack->values=(FklVMvalue**)realloc(stack->values,sizeof(FklVMvalue*)*(stack->size-64));
-		FKL_ASSERT(stack->values,__func__);
+		FKL_ASSERT(stack->values);
 		stack->size-=64;
 	}
 }
@@ -919,7 +919,7 @@ int fklIsTheLastExpress(const FklVMrunnable* runnable,const FklVMrunnable* same,
 FklVMheap* fklNewVMheap()
 {
 	FklVMheap* tmp=(FklVMheap*)malloc(sizeof(FklVMheap));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	tmp->running=0;
 	tmp->num=0;
 	tmp->threshold=FKL_THRESHOLD_SIZE;
@@ -1072,7 +1072,7 @@ void propagateMark(FklVMvalue* root,FklVMheap* heap)
 		case FKL_BIG_INT:
 			break;
 		default:
-			FKL_ASSERT(0,__func__);
+			FKL_ASSERT(0);
 			break;
 	}
 }
@@ -1233,7 +1233,7 @@ inline void fklGC_step(FklVM* exe)
 			}
 			break;
 		default:
-			FKL_ASSERT(0,__func__);
+			FKL_ASSERT(0);
 			break;
 	}
 }
@@ -1296,7 +1296,7 @@ void fklFreeVMvalue(FklVMvalue* cur)
 			fklFreeBigInt(cur->u.bigInt);
 			break;
 		default:
-			FKL_ASSERT(0,__func__);
+			FKL_ASSERT(0);
 			break;
 	}
 	free((void*)cur);
@@ -1339,7 +1339,7 @@ void fklFreeAllValues(FklVMheap* heap)
 FklVM* fklNewThreadVM(FklVMproc* mainCode,FklVMheap* heap)
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
-	FKL_ASSERT(exe,__func__);
+	FKL_ASSERT(exe);
 	FklVMrunnable* t=fklNewVMrunnable(mainCode,NULL);
 	t->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(mainCode->prevEnv,heap),heap);
 	exe->rhead=t;
@@ -1370,7 +1370,7 @@ FklVM* fklNewThreadVM(FklVMproc* mainCode,FklVMheap* heap)
 	{
 		int32_t size=GlobVMs.num;
 		GlobVMs.VMs=(FklVM**)realloc(GlobVMs.VMs,sizeof(FklVM*)*(size+1));
-		FKL_ASSERT(!size||GlobVMs.VMs,__func__);
+		FKL_ASSERT(!size||GlobVMs.VMs);
 		GlobVMs.VMs[size]=exe;
 		GlobVMs.num+=1;
 		exe->VMid=size;
@@ -1382,7 +1382,7 @@ FklVM* fklNewThreadVM(FklVMproc* mainCode,FklVMheap* heap)
 FklVM* fklNewThreadCallableObjVM(FklVMrunnable* r,FklVMheap* heap,FklVMvalue* nextCall)
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
-	FKL_ASSERT(exe,__func__);
+	FKL_ASSERT(exe);
 	FklVMrunnable* t=fklNewVMrunnable(NULL,NULL);
 	t->cp=r->cp;
 	t->localenv=NULL;
@@ -1414,7 +1414,7 @@ FklVM* fklNewThreadCallableObjVM(FklVMrunnable* r,FklVMheap* heap,FklVMvalue* ne
 	{
 		int32_t size=GlobVMs.num;
 		GlobVMs.VMs=(FklVM**)realloc(GlobVMs.VMs,sizeof(FklVM*)*(size+1));
-		FKL_ASSERT(!size||GlobVMs.VMs,__func__);
+		FKL_ASSERT(!size||GlobVMs.VMs);
 		GlobVMs.VMs[size]=exe;
 		GlobVMs.num+=1;
 		exe->VMid=size;
@@ -1512,7 +1512,7 @@ void fklCreateCallChainWithContinuation(FklVM* vm,FklVMcontinuation* cc)
 		if(tmpStack->tp>=tmpStack->size)
 		{
 			tmpStack->values=(FklVMvalue**)realloc(tmpStack->values,sizeof(FklVMvalue*)*(tmpStack->size+64));
-			FKL_ASSERT(tmpStack->values,__func__);
+			FKL_ASSERT(tmpStack->values);
 			tmpStack->size+=64;
 		}
 		tmpStack->values[tmpStack->tp]=stack->values[i];
@@ -1594,7 +1594,7 @@ inline void fklPushVMvalue(FklVMvalue* v,FklVMstack* s)
 	{
 		s->values=(FklVMvalue**)realloc(s->values
 				,sizeof(FklVMvalue*)*(s->size+64));
-		FKL_ASSERT(s->values,__func__);
+		FKL_ASSERT(s->values);
 		s->size+=64;
 	}
 	s->values[s->tp]=v;

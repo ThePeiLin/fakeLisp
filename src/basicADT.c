@@ -13,9 +13,9 @@ int fklIsPtrStackEmpty(FklPtrStack* stack)
 FklPtrStack* fklNewPtrStack(uint32_t size,uint32_t inc)
 {
 	FklPtrStack* tmp=(FklPtrStack*)malloc(sizeof(FklPtrStack));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	tmp->base=(void**)malloc(sizeof(void*)*size);
-	FKL_ASSERT(tmp->base,__func__);
+	FKL_ASSERT(tmp->base);
 	tmp->size=size;
 	tmp->inc=inc;
 	tmp->top=0;
@@ -27,7 +27,7 @@ void fklPushPtrStack(void* data,FklPtrStack* stack)
 	if(stack->top==stack->size)
 	{
 		void** tmpData=(void**)realloc(stack->base,(stack->size+stack->inc)*sizeof(void*));
-		FKL_ASSERT(tmpData,__func__);
+		FKL_ASSERT(tmpData);
 		stack->base=tmpData;
 		stack->size+=stack->inc;
 	}
@@ -63,7 +63,7 @@ void fklRecyclePtrStack(FklPtrStack* stack)
 	if(stack->size-stack->top>stack->inc)
 	{
 		void** tmpData=(void**)realloc(stack->base,(stack->size-stack->inc)*sizeof(void*));
-		FKL_ASSERT(tmpData,__func__);
+		FKL_ASSERT(tmpData);
 		stack->base=tmpData;
 		stack->size-=stack->inc;
 	}
@@ -72,7 +72,7 @@ void fklRecyclePtrStack(FklPtrStack* stack)
 FklQueueNode* fklNewQueueNode(void* data)
 {
 	FklQueueNode* tmp=(FklQueueNode*)malloc(sizeof(FklQueueNode));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	tmp->data=data;
 	tmp->next=NULL;
 	return tmp;
@@ -86,7 +86,7 @@ void fklFreeQueueNode(FklQueueNode* tmp)
 FklPtrQueue* fklNewPtrQueue(void)
 {
 	FklPtrQueue* tmp=(FklPtrQueue*)malloc(sizeof(FklPtrQueue));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	tmp->head=NULL;
 	tmp->tail=NULL;
 	return tmp;
@@ -165,9 +165,9 @@ int fklIsIntStackEmpty(FklIntStack* stack)
 FklIntStack* fklNewIntStack(uint32_t size,uint32_t inc)
 {
 	FklIntStack* tmp=(FklIntStack*)malloc(sizeof(FklIntStack));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	tmp->base=(int64_t*)malloc(sizeof(int64_t)*size);
-	FKL_ASSERT(tmp->base,__func__);
+	FKL_ASSERT(tmp->base);
 	tmp->size=size;
 	tmp->inc=inc;
 	tmp->top=0;
@@ -179,7 +179,7 @@ void fklPushIntStack(int64_t data,FklIntStack* stack)
 	if(stack->top==stack->size)
 	{
 		int64_t* tmpData=(int64_t*)realloc(stack->base,(stack->size+stack->inc)*sizeof(int64_t));
-		FKL_ASSERT(tmpData,__func__);
+		FKL_ASSERT(tmpData);
 		stack->base=tmpData;
 		stack->size+=stack->inc;
 	}
@@ -215,7 +215,7 @@ void fklRecycleIntStack(FklIntStack* stack)
 	if(stack->size-stack->top>stack->inc)
 	{
 		int64_t* tmpData=(int64_t*)realloc(stack->base,(stack->size-stack->inc)*sizeof(int64_t));
-		FKL_ASSERT(tmpData,__func__);
+		FKL_ASSERT(tmpData);
 		stack->base=tmpData;
 		stack->size-=stack->inc;
 	}
@@ -229,9 +229,9 @@ int fklIsUintStackEmpty(FklUintStack* stack)
 FklUintStack* fklNewUintStack(uint32_t size,uint32_t inc)
 {
 	FklUintStack* tmp=(FklUintStack*)malloc(sizeof(FklUintStack));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	tmp->base=(uint64_t*)malloc(sizeof(uint64_t)*size);
-	FKL_ASSERT(tmp->base,__func__);
+	FKL_ASSERT(tmp->base);
 	tmp->size=size;
 	tmp->inc=inc;
 	tmp->top=0;
@@ -252,7 +252,7 @@ void fklPushUintStack(uint64_t data,FklUintStack* stack)
 	if(stack->top==stack->size)
 	{
 		uint64_t* tmpData=(uint64_t*)realloc(stack->base,(stack->size+stack->inc)*sizeof(uint64_t));
-		FKL_ASSERT(tmpData,__func__);
+		FKL_ASSERT(tmpData);
 		stack->base=tmpData;
 		stack->size+=stack->inc;
 	}
@@ -288,7 +288,7 @@ void fklRecycleUintStack(FklUintStack* stack)
 	if(stack->size-stack->top>stack->inc)
 	{
 		uint64_t* tmpData=(uint64_t*)realloc(stack->base,(stack->size-stack->inc)*sizeof(uint64_t));
-		FKL_ASSERT(tmpData,__func__);
+		FKL_ASSERT(tmpData);
 		stack->base=tmpData;
 		stack->size-=stack->inc;
 	}
@@ -302,7 +302,7 @@ FklBigInt* fklNewBigInt(int64_t v)
 		return fklNewBigInt0();
 	FklBigInt* t=(FklBigInt*)malloc(sizeof(FklBigInt));
 	double d=v;
-	FKL_ASSERT(t,__func__);
+	FKL_ASSERT(t);
 	if(v<0)
 	{
 		t->neg=1;
@@ -315,7 +315,7 @@ FklBigInt* fklNewBigInt(int64_t v)
 		t->num=1;
 	t->size=t->num;
 	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*t->num);
-	FKL_ASSERT(t->digits,__func__);
+	FKL_ASSERT(t->digits);
 	for(uint64_t i=0;i<t->num;i++)
 	{
 		t->digits[i]=v%FKL_BIG_INT_RADIX;
@@ -329,12 +329,12 @@ FklBigInt* fklNewBigInt(int64_t v)
 FklBigInt* fklNewBigInt0(void)
 {
 	FklBigInt* t=(FklBigInt*)malloc(sizeof(FklBigInt));
-	FKL_ASSERT(t,__func__);
+	FKL_ASSERT(t);
 	t->neg=0;
 	t->num=1;
 	t->size=t->num;
 	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*t->num);
-	FKL_ASSERT(t->digits,__func__);
+	FKL_ASSERT(t->digits);
 	t->digits[0]=0;
 	return t;
 }
@@ -342,12 +342,12 @@ FklBigInt* fklNewBigInt0(void)
 FklBigInt* fklNewBigInt1(void)
 {
 	FklBigInt* t=(FklBigInt*)malloc(sizeof(FklBigInt));
-	FKL_ASSERT(t,__func__);
+	FKL_ASSERT(t);
 	t->neg=0;
 	t->num=1;
 	t->size=t->num;
 	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*t->num);
-	FKL_ASSERT(t->digits,__func__);
+	FKL_ASSERT(t->digits);
 	t->digits[0]=1;
 	return t;
 }
@@ -357,7 +357,7 @@ FklBigInt* fklNewBigIntFromString(const FklString* str)
 	const char* buf=str->str;
 	FklBigInt* r=fklNewBigInt0();
 	size_t len=str->size;
-	FKL_ASSERT(r,__func__);
+	FKL_ASSERT(r);
 	if(fklIsHexNumCharBuf(buf,len))
 	{
 		int neg=buf[0]=='-';
@@ -398,7 +398,7 @@ FklBigInt* fklNewBigIntFromCstr(const char* v)
 {
 	FklBigInt* r=fklNewBigInt0();
 	size_t len=strlen(v);
-	FKL_ASSERT(r,__func__);
+	FKL_ASSERT(r);
 	if(fklIsHexNumCharBuf(v,len))
 	{
 		int neg=v[0]=='-';
@@ -446,12 +446,12 @@ FklBigInt* fklNewBigIntFromMem(const void* mem,size_t size)
 	mem++;
 	uint64_t num=size-1;
 	FklBigInt* t=(FklBigInt*)malloc(sizeof(FklBigInt));
-	FKL_ASSERT(t,__func__);
+	FKL_ASSERT(t);
 	t->num=num;
 	t->size=num;
 	t->neg=neg;
 	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*num);
-	FKL_ASSERT(t->digits,__func__);
+	FKL_ASSERT(t->digits);
 	for(uint64_t i=0;i<num;i++)
 	{
 		uint8_t n=((uint8_t*)mem)[i];
@@ -478,7 +478,7 @@ static void ensureBigIntDigits(FklBigInt* obj,uint64_t num)
 	{
 		uint8_t* digits=obj->digits;
 		obj->digits=(uint8_t*)realloc(digits,sizeof(char)*num);
-		FKL_ASSERT(obj->digits,__func__);
+		FKL_ASSERT(obj->digits);
 		obj->size=num;
 	}
 }
@@ -611,12 +611,12 @@ static void subDigits(FklBigInt* a,const FklBigInt* sub)
 		}
 		else
 			carry=0;
-		FKL_ASSERT(tmp>=0,__func__);
+		FKL_ASSERT(tmp>=0);
 		a->digits[i]=tmp;
 		if(tmp!=0)
 			a->num=i+1;
 	}
-	FKL_ASSERT(carry==0,__func__);
+	FKL_ASSERT(carry==0);
 }
 
 void fklAddBigInt(FklBigInt* a,const FklBigInt* addend)
@@ -674,7 +674,7 @@ void fklMulBigInt(FklBigInt* a,const FklBigInt* multipler)
 	{
 		uint64_t totalNum=a->num+multipler->num;
 		uint8_t* res=(uint8_t*)calloc(totalNum,sizeof(uint8_t));
-		FKL_ASSERT(res,__func__);
+		FKL_ASSERT(res);
 		for(uint64_t i=0;i<a->num;i++)
 		{
 			int n0=a->digits[i];
@@ -720,11 +720,11 @@ int fklDivBigInt(FklBigInt* a,const FklBigInt* divider)
 	else
 	{
 		uint8_t* res=(uint8_t*)malloc(sizeof(uint8_t)*a->num);
-		FKL_ASSERT(res,__func__);
+		FKL_ASSERT(res);
 		uint64_t num=0;
 		FklBigInt s={NULL,0,a->num,0};
 		s.digits=(uint8_t*)malloc(sizeof(uint8_t)*(divider->num+1));
-		FKL_ASSERT(s.digits,__func__);
+		FKL_ASSERT(s.digits);
 		for(uint64_t i=0;i<a->num;i++)
 		{
 			memcpy(s.digits,&a->digits[a->num-i-1],(i+1)*sizeof(uint8_t));
@@ -774,7 +774,7 @@ int fklRemBigInt(FklBigInt* a,const FklBigInt* divider)
 	{
 		FklBigInt s={NULL,0,a->num,0};
 		s.digits=(uint8_t*)malloc(sizeof(uint8_t)*(divider->num+1));
-		FKL_ASSERT(s.digits,__func__);
+		FKL_ASSERT(s.digits);
 		for(uint64_t i=0;i<a->num;i++)
 		{
 			memcpy(s.digits,&a->digits[a->num-i-1],(i+1)*sizeof(uint8_t));
@@ -938,7 +938,7 @@ int fklCmpIBigInt(int64_t i,const FklBigInt* bi)
 FklString* fklNewString(size_t size,const char* str)
 {
 	FklString* tmp=(FklString*)malloc(sizeof(FklString)+size*sizeof(uint8_t));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	tmp->size=size;
 	if(str)
 		memcpy(tmp->str,str,size);
@@ -968,7 +968,7 @@ FklString* fklCopyString(const FklString* obj)
 {
 	if(obj==NULL)return NULL;
 	FklString* tmp=(FklString*)malloc(sizeof(FklString)+obj->size);
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	memcpy(tmp->str,obj->str,obj->size);
 	tmp->size=obj->size;
 	return tmp;
@@ -989,7 +989,7 @@ void fklStringCharBufCat(FklString** a,const char* buf,size_t s)
 	size_t aSize=(*a)->size;
 	FklString* prev=*a;
 	prev=(FklString*)realloc(prev,sizeof(FklString)+(aSize+s)*sizeof(char));
-	FKL_ASSERT(prev,__func__);
+	FKL_ASSERT(prev);
 	*a=prev;
 	prev->size=aSize+s;
 	memcpy(prev->str+aSize,buf,s);
@@ -1003,7 +1003,7 @@ void fklStringCat(FklString** fir,const FklString* sec)
 FklString* fklNewEmptyString()
 {
 	FklString* tmp=(FklString*)malloc(sizeof(FklString));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	tmp->size=0;
 	return tmp;
 }
@@ -1042,7 +1042,7 @@ char* fklCstrStringCat(char* fir,const FklString* sec)
 {
 	size_t len=strlen(fir);
 	fir=(char*)realloc(fir,sizeof(char)*len+sec->size+1);
-	FKL_ASSERT(fir,__func__);
+	FKL_ASSERT(fir);
 	fklWriteStringToCstr(&fir[len],sec);
 	return fir;
 }
@@ -1052,7 +1052,7 @@ void fklStringCstrCat(FklString** pfir,const char* sec)
 	size_t seclen=strlen(sec);
 	FklString* prev=*pfir;
 	prev=(FklString*)realloc(prev,sizeof(FklString)+(prev->size+seclen)*sizeof(char));
-	FKL_ASSERT(prev,__func__);
+	FKL_ASSERT(prev);
 	*pfir=prev;
 	memcpy(&prev->str[prev->size],sec,seclen);
 	prev->size+=seclen;
@@ -1077,13 +1077,13 @@ FklHashTable* fklNewHashTable(size_t size
 		,double threshold
 		,FklHashTableMethodTable* t)
 {
-	FKL_ASSERT(size,__func__);
+	FKL_ASSERT(size);
 	FklHashTable* r=(FklHashTable*)malloc(sizeof(FklHashTable));
-	FKL_ASSERT(r,__func__);
+	FKL_ASSERT(r);
 	FklHashTableNode** base=(FklHashTableNode**)calloc(size,sizeof(FklHashTableNode*));
-	FKL_ASSERT(base,__func__);
+	FKL_ASSERT(base);
 	FklHashTableNode** list=(FklHashTableNode**)malloc(size*sizeof(FklHashTableNode*));
-	FKL_ASSERT(list,__func__);
+	FKL_ASSERT(list);
 	r->base=base;
 	r->list=list;
 	r->num=0;
@@ -1107,7 +1107,7 @@ void* fklGetHashItem(void* key,FklHashTable* table)
 static FklHashTableNode* newHashTableNode(void* item,FklHashTableNode* next)
 {
 	FklHashTableNode* node=(FklHashTableNode*)malloc(sizeof(FklHashTableNode));
-	FKL_ASSERT(node,__func__);
+	FKL_ASSERT(node);
 	node->item=item;
 	node->next=next;
 	return node;
@@ -1140,11 +1140,11 @@ void fklRehashTable(FklHashTable* table,unsigned int inc)
 	FklHashTableNode** list=table->list;
 	FklHashTableNode** base=table->base;
 	FklHashTableNode** nlist=(FklHashTableNode**)realloc(base,table->size*sizeof(FklHashTableNode*));
-	FKL_ASSERT(nlist,__func__);
+	FKL_ASSERT(nlist);
 	table->list=nlist;
 	FklHashTableNode** nbase=(FklHashTableNode**)calloc(table->size,sizeof(FklHashTableNode*));
 	table->base=nbase;
-	FKL_ASSERT(nbase,__func__);
+	FKL_ASSERT(nbase);
 	table->num=0;
 	for(size_t i=0;i<num;i++)
 	{

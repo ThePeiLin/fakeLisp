@@ -92,7 +92,7 @@ static FklTypeId_t addToGlobTypeUnionList(FklDefTypeUnion type)
 	GlobTypeUnionList.num+=1;
 	size_t num=GlobTypeUnionList.num;
 	GlobTypeUnionList.ul=(FklDefTypeUnion*)realloc(GlobTypeUnionList.ul,sizeof(FklDefTypeUnion)*num);
-	FKL_ASSERT(GlobTypeUnionList.ul,__func__);
+	FKL_ASSERT(GlobTypeUnionList.ul);
 	GlobTypeUnionList.ul[num-1]=type;
 	return num;
 }
@@ -131,7 +131,7 @@ static FklHashTableMethodTable FfiMemberHashMethodTable=
 static FklFfiMemberHashItem* newStructHashItem(FklSid_t id,FklTypeId_t type,size_t offset)
 {
 	FklFfiMemberHashItem* r=(FklFfiMemberHashItem*)malloc(sizeof(FklFfiMemberHashItem));
-	FKL_ASSERT(r,__func__);
+	FKL_ASSERT(r);
 	r->key=id;
 	r->type=type;
 	r->offset=offset;
@@ -179,7 +179,7 @@ FklTypeId_t fklFfiNewStructType(FklSid_t structName,uint32_t num,FklSid_t symbol
 		}
 		totalSize+=(maxSize&&totalSize%maxSize)?maxSize-totalSize%maxSize:0;
 		FklDefStructType* tmp=(FklDefStructType*)malloc(sizeof(FklDefStructType));
-		FKL_ASSERT(tmp,__func__);
+		FKL_ASSERT(tmp);
 		tmp->type=structName;
 		tmp->totalSize=totalSize;
 		tmp->align=structAlign;
@@ -220,7 +220,7 @@ FklTypeId_t fklFfiNewPtrType(FklTypeId_t type)
 	if(!id)
 	{
 		FklDefPtrType* tmp=(FklDefPtrType*)malloc(sizeof(FklDefPtrType));
-		FKL_ASSERT(tmp,__func__);
+		FKL_ASSERT(tmp);
 		tmp->ptype=type;
 		return addToGlobTypeUnionList((FklDefTypeUnion)FKL_MAKE_PTR_TYPE(tmp));
 	}
@@ -248,7 +248,7 @@ FklTypeId_t fklFfiNewFuncType(FklTypeId_t rtype,uint32_t anum,FklTypeId_t atypes
 	if(!id)
 	{
 		FklDefFuncType* tmp=(FklDefFuncType*)malloc(sizeof(FklDefFuncType)+sizeof(FklTypeId_t)*anum);
-		FKL_ASSERT(tmp,__func__);
+		FKL_ASSERT(tmp);
 		tmp->rtype=rtype;
 		tmp->anum=anum;
 		uint32_t i=0;
@@ -280,7 +280,7 @@ FklTypeId_t fklFfiNewArrayType(FklTypeId_t type,size_t num)
 	if(!id)
 	{
 		FklDefArrayType* tmp=(FklDefArrayType*)malloc(sizeof(FklDefArrayType));
-		FKL_ASSERT(tmp,__func__);
+		FKL_ASSERT(tmp);
 		tmp->etype=type;
 		tmp->num=num;
 		tmp->totalSize=num*fklFfiGetTypeSize(fklFfiGetTypeUnion(type));
@@ -305,7 +305,7 @@ FklTypeId_t fklFfiNewUnionType(FklSid_t unionName,uint32_t num,FklSid_t symbols[
 			align=ta;
 	}
 	FklDefUnionType* tmp=(FklDefUnionType*)malloc(sizeof(FklDefUnionType));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	tmp->type=unionName;
 	tmp->maxSize=maxSize;
 	tmp->align=align;
@@ -318,7 +318,7 @@ FklTypeId_t fklFfiNewUnionType(FklSid_t unionName,uint32_t num,FklSid_t symbols[
 FklDefTypes* fklFfiNewDefTypes(void)
 {
 	FklDefTypes* tmp=(FklDefTypes*)malloc(sizeof(FklDefTypes));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	tmp->num=0;
 	tmp->u=NULL;
 	return tmp;
@@ -327,7 +327,7 @@ FklDefTypes* fklFfiNewDefTypes(void)
 FklTypeId_t fklFfiNewNativeType(FklSid_t type,size_t size,size_t align)
 {
 	FklDefNativeType* tmp=(FklDefNativeType*)malloc(sizeof(FklDefNativeType));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	tmp->type=type;
 	tmp->align=align;
 	tmp->size=size;
@@ -346,7 +346,7 @@ int fklFfiAddDefTypes(FklDefTypes* otherTypes,FklSid_t typeName,FklTypeId_t type
 		otherTypes->num+=1;
 		FklDefTypesNode* node=(FklDefTypesNode*)malloc(sizeof(FklDefTypesNode));
 		otherTypes->u=(FklDefTypesNode**)malloc(sizeof(FklDefTypesNode*)*1);
-		FKL_ASSERT(otherTypes->u&&node,__func__);
+		FKL_ASSERT(otherTypes->u&&node);
 		node->name=typeName;
 		node->type=type;
 		otherTypes->u[0]=node;
@@ -372,9 +372,9 @@ int fklFfiAddDefTypes(FklDefTypes* otherTypes,FklSid_t typeName,FklTypeId_t type
 		otherTypes->num+=1;
 		int64_t i=otherTypes->num-1;
 		otherTypes->u=(FklDefTypesNode**)realloc(otherTypes->u,sizeof(FklDefTypesNode*)*otherTypes->num);
-		FKL_ASSERT(otherTypes->u,__func__);
+		FKL_ASSERT(otherTypes->u);
 		FklDefTypesNode* node=(FklDefTypesNode*)malloc(sizeof(FklDefTypesNode));
-		FKL_ASSERT(otherTypes->u&&node,__func__);
+		FKL_ASSERT(otherTypes->u&&node);
 		node->name=typeName;
 		node->type=type;
 		for(;i>mid;i--)
@@ -593,7 +593,7 @@ static void initStructTypeId(FklTypeId_t id,FklSid_t structNameId,uint32_t num,F
 	FklDefTypeUnion* pst=&GlobTypeUnionList.ul[id-1];
 	FklDefStructType* ost=(FklDefStructType*)FKL_GET_TYPES_PTR(pst->st);
 	ost=(FklDefStructType*)realloc(ost,sizeof(FklDefStructType));
-	FKL_ASSERT(ost,__func__);
+	FKL_ASSERT(ost);
 	ost->type=structNameId;
 	ost->totalSize=totalSize;
 	ost->align=align;
@@ -666,7 +666,7 @@ static FklTypeId_t genStructTypeId(FklVMvalue* structBodyPair,FklDefTypes* other
 	{
 		memberSymbolList=(FklSid_t*)malloc(sizeof(FklSid_t)*num);
 		memberTypeList=(FklTypeId_t*)malloc(sizeof(FklTypeId_t)*num);
-		FKL_ASSERT(memberTypeList&&memberV,__func__);
+		FKL_ASSERT(memberTypeList&&memberV);
 		for(uint32_t i=0;FKL_IS_PAIR(memberPair);i++)
 		{
 			memberV=memberPair->u.pair->car;
@@ -734,7 +734,7 @@ static void initUnionTypeId(FklTypeId_t id,FklSid_t unionNameId,uint32_t num,Fkl
 	FklDefTypeUnion* put=&GlobTypeUnionList.ul[id-1];
 	FklDefUnionType* out=(FklDefUnionType*)FKL_GET_TYPES_PTR(put->ut);
 	out=(FklDefUnionType*)realloc(out,sizeof(FklDefUnionType)+num);
-	FKL_ASSERT(out,__func__);
+	FKL_ASSERT(out);
 	out->type=unionNameId;
 	out->maxSize=maxSize;
 	out->align=align;
@@ -799,7 +799,7 @@ static FklTypeId_t genUnionTypeId(FklVMvalue* unionBodyPair,FklDefTypes* otherTy
 	{
 		memberSymbolList=(FklSid_t*)malloc(sizeof(FklSid_t)*num);
 		memberTypeList=(FklTypeId_t*)malloc(sizeof(FklTypeId_t)*num);
-		FKL_ASSERT(memberTypeList&&memberV,__func__);
+		FKL_ASSERT(memberTypeList&&memberV);
 		for(uint32_t i=0;FKL_IS_PAIR(memberPair);i++)
 		{
 			memberV=memberPair->u.pair->car;
@@ -882,7 +882,7 @@ static FklTypeId_t genFuncTypeId(FklVMvalue* functionBodyV,FklDefTypes* otherTyp
     uint32_t i=0;
 	for(FklVMvalue* first=argV;FKL_IS_PAIR(first);first=first->u.pair->cdr)i++;
     FklTypeId_t* atypes=(FklTypeId_t*)malloc(sizeof(FklTypeId_t)*i);
-    FKL_ASSERT(atypes,__func__);
+    FKL_ASSERT(atypes);
     FklVMvalue* firArgV=argV;
     for(i=0;FKL_IS_PAIR(firArgV);firArgV=firArgV->u.pair->cdr,i++)
     {
@@ -981,7 +981,7 @@ char* fklFfiGenErrorMessage(FklFfiErrorType type)
 			t=fklStrCat(t,"Invalid assign ");
 			break;
 		default:
-			FKL_ASSERT(0,__func__);
+			FKL_ASSERT(0);
 			break;
 	}
 	return t;

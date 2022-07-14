@@ -6,7 +6,7 @@
 FklVMproc* fklNewVMproc(uint64_t scp,uint64_t cpc)
 {
 	FklVMproc* tmp=(FklVMproc*)malloc(sizeof(FklVMproc));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	tmp->prevEnv=FKL_VM_NIL;
 	tmp->scp=scp;
 	tmp->cpc=cpc;
@@ -109,7 +109,7 @@ FklVMvalue* fklNewVMvalueToStack(FklValueType type
 	{
 		stack->values=(FklVMvalue**)realloc(stack->values
 				,sizeof(FklVMvalue*)*(stack->size+64));
-		FKL_ASSERT(stack->values,__func__);
+		FKL_ASSERT(stack->values);
 		stack->size+=64;
 	}
 	pthread_rwlock_unlock(&stack->lock);
@@ -140,7 +140,7 @@ FklVMvalue* fklNewSaveVMvalue(FklValueType type,void* pValue)
 		default:
 			{
 				FklVMvalue* tmp=(FklVMvalue*)malloc(sizeof(FklVMvalue));
-				FKL_ASSERT(tmp,__func__);
+				FKL_ASSERT(tmp);
 				tmp->type=type;
 				tmp->mark=FKL_MARK_W;
 				switch(type)
@@ -316,7 +316,7 @@ int fklNumcmp(FklVMvalue* fir,FklVMvalue* sec)
 FklVMpair* fklNewVMpair(void)
 {
 	FklVMpair* tmp=(FklVMpair*)malloc(sizeof(FklVMpair));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	tmp->car=FKL_VM_NIL;
 	tmp->cdr=FKL_VM_NIL;
 	return tmp;
@@ -342,7 +342,7 @@ FklVMvalue* fklNewVMvecV(size_t size,FklVMvalue** base,FklVMstack* stack,FklVMhe
 FklVMchanl* fklNewVMchanl(int32_t maxSize)
 {
 	FklVMchanl* tmp=(FklVMchanl*)malloc(sizeof(FklVMchanl));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	pthread_mutex_init(&tmp->lock,NULL);
 	tmp->max=maxSize;
 	tmp->messageNum=0;
@@ -385,7 +385,7 @@ void fklFreeVMproc(FklVMproc* proc)
 FklVMfp* fklNewVMfp(FILE* fp)
 {
 	FklVMfp* vfp=(FklVMfp*)malloc(sizeof(FklVMfp));
-	FKL_ASSERT(vfp,__func__);
+	FKL_ASSERT(vfp);
 	vfp->fp=fp;
 	vfp->size=0;
 	vfp->prev=NULL;
@@ -426,7 +426,7 @@ FklVMdllHandle fklNewVMdll(const char* dllName)
 #endif
 	size_t len=strlen(dllName)+strlen(filetype)+1;
 	char* realDllName=(char*)malloc(sizeof(char)*len);
-	FKL_ASSERT(realDllName,__func__);
+	FKL_ASSERT(realDllName);
 	sprintf(realDllName,"%s%s",dllName,filetype);
 	char* rpath=fklRealpath(realDllName);
 	if(!rpath)
@@ -484,7 +484,7 @@ void* fklGetAddress(const char* funcname,FklVMdllHandle dlhandle)
 FklVMdlproc* fklNewVMdlproc(FklVMdllFunc address,FklVMvalue* dll)
 {
 	FklVMdlproc* tmp=(FklVMdlproc*)malloc(sizeof(FklVMdlproc));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	tmp->func=address;
 	tmp->dll=dll;
 	tmp->sid=0;
@@ -499,7 +499,7 @@ void fklFreeVMdlproc(FklVMdlproc* dlproc)
 FklVMerror* fklNewVMerror(const FklString* who,FklSid_t type,const FklString* message)
 {
 	FklVMerror* t=(FklVMerror*)malloc(sizeof(FklVMerror));
-	FKL_ASSERT(t,__func__);
+	FKL_ASSERT(t);
 	t->who=fklCopyString(who);
 	t->type=type;
 	t->message=fklCopyString(message);
@@ -509,7 +509,7 @@ FklVMerror* fklNewVMerror(const FklString* who,FklSid_t type,const FklString* me
 FklVMerror* fklNewVMerrorCstr(const char* who,FklSid_t type,const char* message)
 {
 	FklVMerror* t=(FklVMerror*)malloc(sizeof(FklVMerror));
-	FKL_ASSERT(t,__func__);
+	FKL_ASSERT(t);
 	t->who=fklNewStringFromCstr(who);
 	t->type=type;
 	t->message=fklNewStringFromCstr(message);
@@ -526,7 +526,7 @@ void fklFreeVMerror(FklVMerror* err)
 FklVMrecv* fklNewVMrecv(void)
 {
 	FklVMrecv* tmp=(FklVMrecv*)malloc(sizeof(FklVMrecv));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	tmp->v=NULL;
 	pthread_cond_init(&tmp->cond,NULL);
 	return tmp;
@@ -541,7 +541,7 @@ void fklFreeVMrecv(FklVMrecv* r)
 FklVMsend* fklNewVMsend(FklVMvalue* m)
 {
 	FklVMsend* tmp=(FklVMsend*)malloc(sizeof(FklVMsend));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	tmp->m=m;
 	pthread_cond_init(&tmp->cond,NULL);
 	return tmp;
@@ -637,7 +637,7 @@ typedef struct
 VMenvHashItem* newVMenvHashItme(FklSid_t id,FklVMvalue* v)
 {
 	VMenvHashItem* r=(VMenvHashItem*)malloc(sizeof(VMenvHashItem));
-	FKL_ASSERT(r,__func__);
+	FKL_ASSERT(r);
 	r->key=id;
 	r->v=v;
 	return r;
@@ -677,7 +677,7 @@ static FklHashTableMethodTable VMenvHashMethTable=
 FklVMenv* fklNewGlobVMenv(FklVMvalue* prev,FklVMheap* h)
 {
 	FklVMenv* tmp=(FklVMenv*)malloc(sizeof(FklVMenv));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	pthread_mutex_init(&tmp->lock,NULL);
 	tmp->prev=prev;
 	tmp->t=fklNewHashTable(512,0.75,&VMenvHashMethTable);
@@ -689,7 +689,7 @@ FklVMenv* fklNewGlobVMenv(FklVMvalue* prev,FklVMheap* h)
 FklVMenv* fklNewVMenv(FklVMvalue* prev,FklVMheap* h)
 {
 	FklVMenv* tmp=(FklVMenv*)malloc(sizeof(FklVMenv));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	pthread_mutex_init(&tmp->lock,NULL);
 	tmp->prev=prev;
 	tmp->t=fklNewHashTable(8,0.75,&VMenvHashMethTable);
@@ -855,7 +855,7 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 FklVMvec* fklNewVMvec(size_t size)
 {
 	FklVMvec* r=(FklVMvec*)malloc(sizeof(FklVMvec)+sizeof(FklVMvalue*)*size);
-	FKL_ASSERT(r,__func__);
+	FKL_ASSERT(r);
 	r->size=size;
 	for(size_t i=0;i<size;i++)
 		r->base[i]=FKL_VM_NIL;
@@ -872,7 +872,7 @@ void fklVMvecCat(FklVMvec** fir,const FklVMvec* sec)
 	size_t firSize=(*fir)->size;
 	size_t secSize=sec->size;
 	*fir=(FklVMvec*)realloc(*fir,sizeof(FklVMvec)+(firSize+secSize)*sizeof(FklVMvalue*));
-	FKL_ASSERT(*fir,__func__);
+	FKL_ASSERT(*fir);
 	(*fir)->size=firSize+secSize;
 	for(size_t i=0;i<secSize;i++)
 		(*fir)->base[firSize+i]=sec->base[i];
@@ -881,7 +881,7 @@ void fklVMvecCat(FklVMvec** fir,const FklVMvec* sec)
 FklVMudata* fklNewVMudata(FklSid_t type,FklVMudMethodTable* t,void* mem,FklVMvalue* rel)
 {
 	FklVMudata* r=(FklVMudata*)malloc(sizeof(FklVMudata));
-	FKL_ASSERT(r,__func__);
+	FKL_ASSERT(r);
 	r->type=type;
 	r->t=t;
 	r->rel=rel;
@@ -914,10 +914,10 @@ FklVMcontinuation* fklNewVMcontinuation(uint32_t ap,FklVM* exe)
 	FklVMvalue* nextCall=exe->nextCall;
 	uint32_t i=0;
 	FklVMcontinuation* tmp=(FklVMcontinuation*)malloc(sizeof(FklVMcontinuation));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	uint32_t tbnum=tstack->top;
 	FklVMtryBlock* tb=(FklVMtryBlock*)malloc(sizeof(FklVMtryBlock)*tbnum);
-	FKL_ASSERT(tb,__func__);
+	FKL_ASSERT(tb);
 	tmp->stack=fklCopyStack(stack);
 	tmp->stack->tp=ap;
 	tmp->curr=NULL;

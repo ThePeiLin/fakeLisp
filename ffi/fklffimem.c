@@ -447,10 +447,10 @@ void fklFfiMemInit(FklVMvalue* rel)
 FklFfiMem* fklFfiNewMem(FklTypeId_t type,size_t size)
 {
 	FklFfiMem* r=(FklFfiMem*)malloc(sizeof(FklFfiMem));
-	FKL_ASSERT(r,__func__);
+	FKL_ASSERT(r);
 	r->type=type;
 	void* p=calloc(sizeof(uint8_t),size);
-	FKL_ASSERT(p,__func__);
+	FKL_ASSERT(p);
 	r->mem=p;
 	return r;
 }
@@ -458,7 +458,7 @@ FklFfiMem* fklFfiNewMem(FklTypeId_t type,size_t size)
 FklFfiMem* fklFfiNewRef(FklTypeId_t type,void* ref)
 {
 	FklFfiMem* r=(FklFfiMem*)malloc(sizeof(FklFfiMem));
-	FKL_ASSERT(r,__func__);
+	FKL_ASSERT(r);
 	r->type=type;
 	r->mem=ref;
 	return r;

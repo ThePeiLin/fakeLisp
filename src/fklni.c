@@ -45,7 +45,7 @@ void fklNiReturn(FklVMvalue* v,uint32_t* ap,FklVMstack* s)
 	{
 		s->values=(FklVMvalue**)realloc(s->values
 				,sizeof(FklVMvalue*)*(s->size+64));
-		FKL_ASSERT(s->values,__func__);
+		FKL_ASSERT(s->values);
 		s->size+=64;
 	}
 	if(*ap<s->tp)

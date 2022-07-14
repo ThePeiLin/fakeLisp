@@ -1376,7 +1376,7 @@ void builtin_as_str(ARGL)
 			else
 			{
 				retval->u.str=fklNewString(obj->u.vec->size,NULL);
-				FKL_ASSERT(retval->u.str,__func__);
+				FKL_ASSERT(retval->u.str);
 				for(size_t i=0;i<obj->u.vec->size;i++)
 				{
 					FklVMvalue* v=obj->u.vec->base[i];
@@ -1396,7 +1396,7 @@ void builtin_as_str(ARGL)
 			retval->u.str->size++;
 			retval->u.str=(FklString*)realloc(retval->u.str
 					,sizeof(FklString)+sizeof(char)*(i+1));
-			FKL_ASSERT(retval->u.str,__func__);
+			FKL_ASSERT(retval->u.str);
 			retval->u.str->str[i]=FKL_GET_CHR(obj);
 		}
 		fklNiResBp(&ap,stack);
@@ -1410,7 +1410,7 @@ void builtin_as_str(ARGL)
 			FKL_NI_CHECK_TYPE(content,FKL_IS_CHR,"builtin.as-str",runnable,exe);
 			size_t size=fklGetInt(obj);
 			retval->u.str=fklNewString(size,NULL);
-			FKL_ASSERT(retval->u.str,__func__);
+			FKL_ASSERT(retval->u.str);
 			memset(retval->u.str->str,FKL_GET_CHR(content),size);
 		}
 		else
@@ -1853,7 +1853,7 @@ void builtin_fgets(ARGL)
 	FklVMfp* fp=file->u.fp;
 	size_t size=fklGetInt(psize);
 	char* str=(char*)malloc(sizeof(char)*size);
-	FKL_ASSERT(str,__func__);
+	FKL_ASSERT(str);
 	int32_t realRead=0;
 	if(fp->size)
 	{
@@ -1887,10 +1887,10 @@ void builtin_fgets(ARGL)
 	else
 	{
 		str=(char*)realloc(str,sizeof(char)*realRead);
-		FKL_ASSERT(str,__func__);
+		FKL_ASSERT(str);
 		FklVMvalue* vmstr=fklNiNewVMvalue(FKL_STR,NULL,stack,exe->heap);
 		vmstr->u.str=(FklString*)malloc(sizeof(FklString)+fklGetInt(psize));
-		FKL_ASSERT(vmstr->u.str,__func__);
+		FKL_ASSERT(vmstr->u.str);
 		vmstr->u.str->size=fklGetInt(psize);
 		memcpy(vmstr->u.str->str,str,fklGetInt(psize));
 		free(str);
@@ -2333,7 +2333,7 @@ typedef struct
 	{\
 		FklVMvalue* cars=fklNewVMvecV(argNum,NULL,stack,heap);\
 		MapCtx* mapctx=(MapCtx*)malloc(sizeof(MapCtx));\
-		FKL_ASSERT(mapctx,__func__);\
+		FKL_ASSERT(mapctx);\
 		fklPushVMvalue((DEFAULT_VALUE),stack);\
 		mapctx->proc=proc;\
 		mapctx->r=fklNiGetTopSlot(stack);\
@@ -2451,7 +2451,7 @@ void builtin_member(ARGL)
 	{
 		FKL_NI_CHECK_TYPE(proc,fklIsCallable,"builtin.member",runnable,exe);
 		MemberCtx* memberctx=(MemberCtx*)malloc(sizeof(MemberCtx));
-		FKL_ASSERT(memberctx,__func__);
+		FKL_ASSERT(memberctx);
 		fklPushVMvalue(FKL_VM_NIL,stack);
 		memberctx->r=fklNiGetTopSlot(stack);
 		memberctx->obj=obj;
@@ -2528,7 +2528,7 @@ void builtin_memp(ARGL)
 	FKL_NI_CHECK_TYPE(proc,fklIsCallable,"builtin.memp",runnable,exe);
 	FKL_NI_CHECK_TYPE(list,fklIsList,"builtin.member",runnable,exe);
 	MempCtx* mempctx=(MempCtx*)malloc(sizeof(MempCtx));
-	FKL_ASSERT(mempctx,__func__);
+	FKL_ASSERT(mempctx);
 	fklPushVMvalue(FKL_VM_NIL,stack);
 	mempctx->r=fklNiGetTopSlot(stack);
 	mempctx->proc=proc;
@@ -2816,7 +2816,7 @@ void builtin_to_str(ARGL)
 			else
 			{
 				retval->u.str=fklNewString(obj->u.vec->size,NULL);
-				FKL_ASSERT(retval->u.str,__func__);
+				FKL_ASSERT(retval->u.str);
 				for(size_t i=0;i<obj->u.vec->size;i++)
 				{
 					FklVMvalue* v=obj->u.vec->base[i];
@@ -2836,7 +2836,7 @@ void builtin_to_str(ARGL)
 			retval->u.str->size++;
 			retval->u.str=(FklString*)realloc(retval->u.str
 					,sizeof(FklString)+sizeof(char)*(i+1));
-			FKL_ASSERT(retval->u.str,__func__);
+			FKL_ASSERT(retval->u.str);
 			retval->u.str->str[i]=FKL_GET_CHR(obj);
 		}
 		fklNiResBp(&ap,stack);
@@ -2850,7 +2850,7 @@ void builtin_to_str(ARGL)
 			FKL_NI_CHECK_TYPE(content,FKL_IS_CHR,"builtin.to-str",runnable,exe);
 			size_t size=fklGetInt(obj);
 			retval->u.str=fklNewString(size,NULL);
-			FKL_ASSERT(retval->u.str,__func__);
+			FKL_ASSERT(retval->u.str);
 			memset(retval->u.str->str,FKL_GET_CHR(content),size);
 		}
 		else

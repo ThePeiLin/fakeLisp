@@ -110,14 +110,14 @@ FklVMstack* fklCopyStack(FklVMstack* stack)
 {
 	int32_t i=0;
 	FklVMstack* tmp=(FklVMstack*)malloc(sizeof(FklVMstack));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	pthread_rwlock_rdlock(&stack->lock);
 	tmp->size=stack->size;
 	tmp->tp=stack->tp;
 	tmp->bp=stack->bp;
 	pthread_rwlock_init(&tmp->lock,NULL);
 	tmp->values=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*(tmp->size));
-	FKL_ASSERT(tmp->values,__func__);
+	FKL_ASSERT(tmp->values);
 	for(;i<stack->tp;i++)
 		tmp->values[i]=stack->values[i];
 	tmp->tps=fklNewUintStackFromStack(stack->tps);
@@ -129,7 +129,7 @@ FklVMstack* fklCopyStack(FklVMstack* stack)
 FklVMtryBlock* fklNewVMtryBlock(FklSid_t sid,uint32_t tp,FklVMrunnable* r)
 {
 	FklVMtryBlock* t=(FklVMtryBlock*)malloc(sizeof(FklVMtryBlock));
-	FKL_ASSERT(t,__func__);
+	FKL_ASSERT(t);
 	t->sid=sid;
 	t->hstack=fklNewPtrStack(32,16);
 	t->tp=tp;
@@ -152,7 +152,7 @@ void fklFreeVMtryBlock(FklVMtryBlock* b)
 FklVMerrorHandler* fklNewVMerrorHandler(FklSid_t* typeIds,uint32_t errTypeNum,uint64_t scp,uint64_t cpc)
 {
 	FklVMerrorHandler* t=(FklVMerrorHandler*)malloc(sizeof(FklVMerrorHandler));
-	FKL_ASSERT(t,__func__);
+	FKL_ASSERT(t);
 	t->typeIds=typeIds;
 	t->num=errTypeNum;
 	t->proc.prevEnv=NULL;
@@ -251,7 +251,7 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 FklVMrunnable* fklNewVMrunnable(FklVMproc* code,FklVMrunnable* prev)
 {
 	FklVMrunnable* tmp=(FklVMrunnable*)malloc(sizeof(FklVMrunnable));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	tmp->sid=0;
 	tmp->cp=0;
 	tmp->scp=0;
@@ -284,7 +284,7 @@ void fklFreeVMrunnable(FklVMrunnable* runnable)
 FklVMcCC* fklNewVMcCC(FklVMFuncK kFunc,void* ctx,size_t size,FklVMcCC* next)
 {
 	FklVMcCC* r=(FklVMcCC*)malloc(sizeof(FklVMcCC));
-	FKL_ASSERT(r,__func__);
+	FKL_ASSERT(r);
 	r->kFunc=kFunc;
 	r->ctx=ctx;
 	r->size=size;
@@ -453,7 +453,7 @@ typedef struct PrtElem
 static PrtElem* newPrtElem(enum PrintingState state,FklVMvalue* v)
 {
 	PrtElem* r=(PrtElem*)malloc(sizeof(PrtElem));
-	FKL_ASSERT(r,__func__);
+	FKL_ASSERT(r);
 	r->state=state;
 	r->v=v;
 	return r;

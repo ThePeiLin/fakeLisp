@@ -18,7 +18,7 @@ static FklFfiSharedObjNode* GlobSharedObjs=NULL;
 void fklFfiAddSharedObj(FklFfidllHandle handle)
 {
 	FklFfiSharedObjNode* node=(FklFfiSharedObjNode*)malloc(sizeof(FklFfiSharedObjNode));
-	FKL_ASSERT(node,__func__);
+	FKL_ASSERT(node);
 	node->dll=handle;
 	pthread_rwlock_wrlock(&GlobSharedObjsLock);
 	node->next=GlobSharedObjs;
@@ -101,7 +101,7 @@ void fklFfiPrepFFIcif(ffi_cif* cif,int argc,ffi_type** atypes,ffi_type* rtype)
 	pthread_mutex_lock(&GPrepCifLock);
 	ffi_status r=ffi_prep_cif(cif,FFI_DEFAULT_ABI,argc,rtype,atypes);
 	pthread_mutex_unlock(&GPrepCifLock);
-	FKL_ASSERT(r==FFI_OK,__func__);
+	FKL_ASSERT(r==FFI_OK);
 }
 
 ffi_type* fklFfiGetFfiType(FklTypeId_t type)
@@ -123,7 +123,7 @@ static void _ffi_proc_invoke(FklVM* exe,void* ptr)
 	FklTypeId_t rtype=ft->rtype;
 	FklTypeId_t* atypes=ft->atypes;
 	FklVMvalue** args=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*anum);
-	FKL_ASSERT(args,__func__);
+	FKL_ASSERT(args);
 	for(i=0;i<anum;i++)
 	{
 		FklVMvalue* v=fklNiGetArg(&ap,stack);
@@ -141,8 +141,8 @@ static void _ffi_proc_invoke(FklVM* exe,void* ptr)
 	}
 	void** pArgs=(void**)malloc(sizeof(void*)*anum);
 	FklVMudata** udataList=(FklVMudata**)malloc(sizeof(FklVMudata*)*anum);
-	FKL_ASSERT(udataList,__func__);
-	FKL_ASSERT(pArgs,__func__);
+	FKL_ASSERT(udataList);
+	FKL_ASSERT(pArgs);
 	for(i=0;i<anum;i++)
 	{
 		FklVMudata* ud=fklFfiNewMemUd(atypes[i],fklFfiGetTypeSizeWithTypeId(atypes[i]),NULL);
@@ -177,7 +177,7 @@ static void _ffi_proc_invoke(FklVM* exe,void* ptr)
 	{
 		FklVMudata* ud=fklFfiNewMemUd(rtype,fklFfiGetTypeSizeWithTypeId(rtype),NULL);
 		void* retval=((FklFfiMem*)ud->data)->mem;
-		FKL_ASSERT(retval,__func__);
+		FKL_ASSERT(retval);
 		ffi_call(&proc->cif,proc->func,retval,pArgs);
 		fklNiReturn(fklNiNewVMvalue(FKL_USERDATA,ud,stack,exe->heap),&ap,stack);
 	}
@@ -232,7 +232,7 @@ int fklFfiIsValidFunctionTypeId(FklSid_t id)
 FklFfiProc* fklFfiNewProc(FklTypeId_t type,void* func,FklSid_t sid)
 {
 	FklFfiProc* tmp=(FklFfiProc*)malloc(sizeof(FklFfiProc));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	tmp->type=type;
 	tmp->func=func;
 	tmp->sid=sid;
@@ -240,7 +240,7 @@ FklFfiProc* fklFfiNewProc(FklTypeId_t type,void* func,FklSid_t sid)
 	uint32_t anum=ft->anum;
 	FklTypeId_t* atypes=ft->atypes;
 	ffi_type** ffiAtypes=(ffi_type**)malloc(sizeof(ffi_type*)*anum);
-	FKL_ASSERT(ffiAtypes,__func__);
+	FKL_ASSERT(ffiAtypes);
 	uint32_t i=0;
 	for(;i<anum;i++)
 		ffiAtypes[i]=fklFfiGetFfiType(atypes[i]);

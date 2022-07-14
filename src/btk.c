@@ -123,7 +123,7 @@ void btk_get_time(ARGL)
 	snprintf(year,10,"%u",tblock->tm_year+1900);
 	uint32_t timeLen=strlen(year)+strlen(mon)+strlen(day)+strlen(hour)+strlen(min)+strlen(sec)+5+1;
 	char* trueTime=(char*)malloc(sizeof(char)*timeLen);
-	FKL_ASSERT(trueTime,__func__);
+	FKL_ASSERT(trueTime);
 	sprintf(trueTime,"%s-%s-%s_%s_%s_%s",year,mon,day,hour,min,sec);
 	FklString* str=fklNewString(timeLen-1,trueTime);
 	FklVMvalue* tmpVMvalue=fklNiNewVMvalue(FKL_STR,str,stack,exe->heap);

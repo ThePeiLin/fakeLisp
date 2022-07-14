@@ -92,7 +92,7 @@ void fklFreeAtom(FklAstAtom* objAtm)
 FklAstPair* fklNewPair(int curline,FklAstPair* prev)
 {
 	FklAstPair* tmp;
-	FKL_ASSERT((tmp=(FklAstPair*)malloc(sizeof(FklAstPair))),__func__);
+	FKL_ASSERT((tmp=(FklAstPair*)malloc(sizeof(FklAstPair))));
 	tmp->car.outer=tmp;
 	tmp->car.type=FKL_NIL;
 	tmp->car.u.all=NULL;
@@ -108,7 +108,7 @@ FklAstPair* fklNewPair(int curline,FklAstPair* prev)
 FklAstCptr* fklNewCptr(int curline,FklAstPair* outer)
 {
 	FklAstCptr* tmp=NULL;
-	FKL_ASSERT((tmp=(FklAstCptr*)malloc(sizeof(FklAstCptr))),__func__);
+	FKL_ASSERT((tmp=(FklAstCptr*)malloc(sizeof(FklAstCptr))));
 	tmp->outer=outer;
 	tmp->curline=curline;
 	tmp->type=FKL_NIL;
@@ -119,7 +119,7 @@ FklAstCptr* fklNewCptr(int curline,FklAstPair* outer)
 FklAstAtom* fklNewAtom(FklValueType type,FklAstPair* prev)
 {
 	FklAstAtom* tmp=NULL;
-	FKL_ASSERT((tmp=(FklAstAtom*)malloc(sizeof(FklAstAtom))),__func__);
+	FKL_ASSERT((tmp=(FklAstAtom*)malloc(sizeof(FklAstAtom))));
 	switch(type)
 	{
 		case FKL_CHR:
@@ -578,7 +578,7 @@ typedef struct
 static MatchState* newMatchState(FklStringMatchPattern* pattern,uint32_t line,uint32_t cindex)
 {
 	MatchState* state=(MatchState*)malloc(sizeof(MatchState));
-	FKL_ASSERT(state,__func__);
+	FKL_ASSERT(state);
 	state->pattern=pattern;
 	state->line=line;
 	state->cindex=cindex;
@@ -617,7 +617,7 @@ typedef struct
 AstElem* newAstElem(AstPlace place,FklAstCptr* cptr)
 {
 	AstElem* t=(AstElem*)malloc(sizeof(AstElem));
-	FKL_ASSERT(t,__func__);
+	FKL_ASSERT(t);
 	t->place=place;
 	t->cptr=cptr;
 	return t;
@@ -1110,7 +1110,7 @@ void fklMakeAstVector(FklAstVector* vec,size_t size,const FklAstCptr* base)
 {
 	vec->size=size;
 	vec->base=(FklAstCptr*)malloc(sizeof(FklAstCptr)*size);
-	FKL_ASSERT(!size||vec->base,__func__);
+	FKL_ASSERT(!size||vec->base);
 	for(size_t i=0;i<size;i++)
 	{
 		vec->base[i].outer=NULL;

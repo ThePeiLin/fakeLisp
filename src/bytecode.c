@@ -7,9 +7,9 @@
 FklByteCode* fklNewByteCode(unsigned int size)
 {
 	FklByteCode* tmp=NULL;
-	FKL_ASSERT((tmp=(FklByteCode*)malloc(sizeof(FklByteCode))),__func__);
+	FKL_ASSERT((tmp=(FklByteCode*)malloc(sizeof(FklByteCode))));
 	tmp->size=size;
-	FKL_ASSERT((tmp->code=(uint8_t*)malloc(size*sizeof(uint8_t))),__func__);
+	FKL_ASSERT((tmp->code=(uint8_t*)malloc(size*sizeof(uint8_t))));
 	int32_t i=0;
 	for(;i<tmp->size;i++)tmp->code[i]=0;
 	return tmp;
@@ -18,7 +18,7 @@ FklByteCode* fklNewByteCode(unsigned int size)
 FklByteCodelnt* fklNewByteCodelnt(FklByteCode* bc)
 {
 	FklByteCodelnt* t=(FklByteCodelnt*)malloc(sizeof(FklByteCodelnt));
-	FKL_ASSERT(t,__func__);
+	FKL_ASSERT(t);
 	t->ls=0;
 	t->l=NULL;
 	t->bc=bc;
@@ -56,7 +56,7 @@ void fklCodeCat(FklByteCode* fir,const FklByteCode* sec)
 	int32_t size=fir->size;
 	fir->size=sec->size+fir->size;
 	fir->code=(uint8_t*)realloc(fir->code,sizeof(uint8_t)*fir->size);
-	FKL_ASSERT(fir->code||!fir->size,__func__);
+	FKL_ASSERT(fir->code||!fir->size);
 	memcpy(fir->code+size,sec->code,sec->size);
 }
 
@@ -64,7 +64,7 @@ void fklReCodeCat(const FklByteCode* fir,FklByteCode* sec)
 {
 	int32_t size=fir->size;
 	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*(fir->size+sec->size));
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	memcpy(tmp,fir->code,fir->size);
 	memcpy(tmp+size,sec->code,sec->size);
 	free(sec->code);
@@ -84,7 +84,7 @@ FklByteCodelnt* fklCopyByteCodelnt(const FklByteCodelnt* obj)
 	FklByteCodelnt* tmp=fklNewByteCodelnt(fklCopyByteCode(obj->bc));
 	tmp->ls=obj->ls;
 	tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*obj->ls);
-	FKL_ASSERT(tmp->l,__func__);
+	FKL_ASSERT(tmp->l);
 	int32_t i=0;
 	for(;i<obj->ls;i++)
 	{
@@ -108,7 +108,7 @@ typedef struct ByteCodePrintState
 static ByteCodePrintState* newByteCodePrintState(BPtype type,uint32_t tc,uint64_t cp,uint64_t cpc)
 {
 	ByteCodePrintState* t=(ByteCodePrintState*)malloc(sizeof(ByteCodePrintState));
-	FKL_ASSERT(t,__func__);
+	FKL_ASSERT(t);
 	t->type=type;
 	t->tc=tc;
 	t->cp=cp;
@@ -426,7 +426,7 @@ void fklCodeLntCat(FklByteCodelnt* f,FklByteCodelnt* s)
 	{
 		f->ls=s->ls;
 		f->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*s->ls);
-		FKL_ASSERT(f->l,__func__);
+		FKL_ASSERT(f->l);
 		s->l[0]->cpc+=f->bc->size;
 		FKL_INCREASE_ALL_SCP(s->l+1,s->ls-1,f->bc->size);
 		memcpy(f->l,s->l,(s->ls)*sizeof(FklLineNumTabNode*));
@@ -438,7 +438,7 @@ void fklCodeLntCat(FklByteCodelnt* f,FklByteCodelnt* s)
 		{
 			f->l[f->ls-1]->cpc+=s->l[0]->cpc;
 			f->l=(FklLineNumTabNode**)realloc(f->l,sizeof(FklLineNumTabNode*)*(f->ls+s->ls-1));
-			FKL_ASSERT(f->l,__func__);
+			FKL_ASSERT(f->l);
 			memcpy(f->l+f->ls,s->l+1,(s->ls-1)*sizeof(FklLineNumTabNode*));
 			f->ls+=s->ls-1;
 			fklFreeLineNumTabNode(s->l[0]);
@@ -446,7 +446,7 @@ void fklCodeLntCat(FklByteCodelnt* f,FklByteCodelnt* s)
 		else
 		{
 			f->l=(FklLineNumTabNode**)realloc(f->l,sizeof(FklLineNumTabNode*)*(f->ls+s->ls));
-			FKL_ASSERT(f->l,__func__);
+			FKL_ASSERT(f->l);
 			memcpy(f->l+f->ls,s->l,(s->ls)*sizeof(FklLineNumTabNode*));
 			f->ls+=s->ls;
 		}
@@ -462,7 +462,7 @@ void fklCodelntCopyCat(FklByteCodelnt* f,const FklByteCodelnt* s)
 		{
 			f->ls=s->ls;
 			f->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*s->ls);
-			FKL_ASSERT(f->l,__func__);
+			FKL_ASSERT(f->l);
 			uint32_t i=0;
 			for(;i<f->ls;i++)
 			{
@@ -476,7 +476,7 @@ void fklCodelntCopyCat(FklByteCodelnt* f,const FklByteCodelnt* s)
 		{
 			uint32_t i=0;
 			FklLineNumTabNode** tl=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*s->ls);
-			FKL_ASSERT(tl,__func__);
+			FKL_ASSERT(tl);
 			for(;i<s->ls;i++)
 			{
 				FklLineNumTabNode* t=s->l[i];
@@ -487,7 +487,7 @@ void fklCodelntCopyCat(FklByteCodelnt* f,const FklByteCodelnt* s)
 			{
 				f->l[f->ls-1]->cpc+=s->l[0]->cpc;
 				f->l=(FklLineNumTabNode**)realloc(f->l,sizeof(FklLineNumTabNode*)*(f->ls+s->ls-1));
-				FKL_ASSERT(f->l,__func__);
+				FKL_ASSERT(f->l);
 				memcpy(f->l+f->ls,tl+1,(s->ls-1)*sizeof(FklLineNumTabNode*));
 				f->ls+=s->ls-1;
 				fklFreeLineNumTabNode(tl[0]);
@@ -495,7 +495,7 @@ void fklCodelntCopyCat(FklByteCodelnt* f,const FklByteCodelnt* s)
 			else
 			{
 				f->l=(FklLineNumTabNode**)realloc(f->l,sizeof(FklLineNumTabNode*)*(f->ls+s->ls));
-				FKL_ASSERT(f->l,__func__);
+				FKL_ASSERT(f->l);
 				memcpy(f->l+f->ls,tl,(s->ls)*sizeof(FklLineNumTabNode*));
 				f->ls+=s->ls;
 			}
@@ -511,7 +511,7 @@ void fklReCodeLntCat(FklByteCodelnt* f,FklByteCodelnt* s)
 	{
 		s->ls=f->ls;
 		s->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*f->ls);
-		FKL_ASSERT(s->l,__func__);
+		FKL_ASSERT(s->l);
 		f->l[f->ls-1]->cpc+=s->bc->size;
 		memcpy(s->l,f->l,(f->ls)*sizeof(FklLineNumTabNode*));
 	}
@@ -521,7 +521,7 @@ void fklReCodeLntCat(FklByteCodelnt* f,FklByteCodelnt* s)
 		if(f->l[f->ls-1]->line==s->l[0]->line&&f->l[f->ls-1]->fid==s->l[0]->fid)
 		{
 			FklLineNumTabNode** l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*(f->ls+s->ls-1));
-			FKL_ASSERT(l,__func__);
+			FKL_ASSERT(l);
 			f->l[f->ls-1]->cpc+=s->l[0]->cpc;
 			fklFreeLineNumTabNode(s->l[0]);
 			memcpy(l,f->l,(f->ls)*sizeof(FklLineNumTabNode*));
@@ -533,7 +533,7 @@ void fklReCodeLntCat(FklByteCodelnt* f,FklByteCodelnt* s)
 		else
 		{
 			FklLineNumTabNode** l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*(f->ls+s->ls));
-			FKL_ASSERT(l,__func__);
+			FKL_ASSERT(l);
 			memcpy(l,f->l,(f->ls)*sizeof(FklLineNumTabNode*));
 			memcpy(l+f->ls,s->l,(s->ls)*sizeof(FklLineNumTabNode*));
 			free(s->l);
@@ -547,7 +547,7 @@ void fklReCodeLntCat(FklByteCodelnt* f,FklByteCodelnt* s)
 //FklByteCodeLabel* fklNewByteCodeLable(int32_t place,const char* label)
 //{
 //	FklByteCodeLabel* tmp=(FklByteCodeLabel*)malloc(sizeof(FklByteCodeLabel));
-//	FKL_ASSERT(tmp,__func__);
+//	FKL_ASSERT(tmp);
 //	tmp->place=place;
 //	tmp->label=fklCopyStr(label);
 //	return tmp;
@@ -582,7 +582,7 @@ void fklReCodeLntCat(FklByteCodelnt* f,FklByteCodelnt* s)
 FklLineNumberTable* fklNewLineNumTable()
 {
 	FklLineNumberTable* t=(FklLineNumberTable*)malloc(sizeof(FklLineNumberTable));
-	FKL_ASSERT(t,__func__);
+	FKL_ASSERT(t);
 	t->num=0;
 	t->list=NULL;
 	return t;
@@ -591,7 +591,7 @@ FklLineNumberTable* fklNewLineNumTable()
 FklLineNumTabNode* fklNewLineNumTabNode(FklSid_t fid,uint64_t scp,uint64_t cpc,uint32_t line)
 {
 	FklLineNumTabNode* t=(FklLineNumTabNode*)malloc(sizeof(FklLineNumTabNode));
-	FKL_ASSERT(t,__func__);
+	FKL_ASSERT(t);
 	t->fid=fid;
 	t->scp=scp;
 	t->cpc=cpc;
@@ -605,7 +605,7 @@ FklLineNumTabNode* fklNewLineNumTabNodeWithFilename(const char* filename
 		,uint32_t line)
 {
 	FklLineNumTabNode* t=(FklLineNumTabNode*)malloc(sizeof(FklLineNumTabNode));
-	FKL_ASSERT(t,__func__);
+	FKL_ASSERT(t);
 	t->fid=filename?fklAddSymbolToGlobCstr(filename)->id:0;
 	t->scp=scp;
 	t->cpc=cpc;
@@ -646,7 +646,7 @@ void fklLntCat(FklLineNumberTable* t,uint32_t bs,FklLineNumTabNode** l2,uint32_t
 	{
 		t->num=s2;
 		t->list=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*s2);
-		FKL_ASSERT(t->list,__func__);
+		FKL_ASSERT(t->list);
 		l2[0]->cpc+=bs;
 		FKL_INCREASE_ALL_SCP(l2+1,s2-1,bs);
 		memcpy(t->list,l2,(s2)*sizeof(FklLineNumTabNode*));
@@ -658,7 +658,7 @@ void fklLntCat(FklLineNumberTable* t,uint32_t bs,FklLineNumTabNode** l2,uint32_t
 		{
 			t->list[t->num-1]->cpc+=l2[0]->cpc;
 			t->list=(FklLineNumTabNode**)realloc(t->list,sizeof(FklLineNumTabNode*)*(t->num+s2-1));
-			FKL_ASSERT(t->list,__func__);
+			FKL_ASSERT(t->list);
 			memcpy(t->list+t->num,l2+1,(s2-1)*sizeof(FklLineNumTabNode*));
 			t->num+=s2-1;
 			fklFreeLineNumTabNode(l2[0]);
@@ -666,7 +666,7 @@ void fklLntCat(FklLineNumberTable* t,uint32_t bs,FklLineNumTabNode** l2,uint32_t
 		else
 		{
 			t->list=(FklLineNumTabNode**)realloc(t->list,sizeof(FklLineNumTabNode*)*(t->num+s2));
-			FKL_ASSERT(t->list,__func__);
+			FKL_ASSERT(t->list);
 			memcpy(t->list+t->num,l2,(s2)*sizeof(FklLineNumTabNode*));
 			t->num+=s2;
 		}

@@ -9,7 +9,7 @@ char* fklReadLine(FILE* fp,size_t* size)
 {
 	int32_t memSize=FKL_MAX_STRING_SIZE;
 	char* tmp=(char*)malloc(sizeof(char)*memSize);
-	FKL_ASSERT(tmp,__func__);
+	FKL_ASSERT(tmp);
 	int ch=getc(fp);
 	for(;;)
 	{
@@ -19,7 +19,7 @@ char* fklReadLine(FILE* fp,size_t* size)
 		if((*size)>memSize)
 		{
 			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+FKL_MAX_STRING_SIZE));
-			FKL_ASSERT(tmp,__func__);
+			FKL_ASSERT(tmp);
 			memSize+=FKL_MAX_STRING_SIZE;
 		}
 		tmp[*size-1]=ch;
@@ -28,7 +28,7 @@ char* fklReadLine(FILE* fp,size_t* size)
 		ch=getc(fp);
 	}
 	tmp=(char*)realloc(tmp,sizeof(char)*(*size));
-	FKL_ASSERT(!*size||tmp,__func__);
+	FKL_ASSERT(!*size||tmp);
 	return tmp;
 }
 
@@ -42,7 +42,7 @@ char* fklReadInStringPattern(FILE* fp,char** prev,size_t* size,size_t* prevSize,
 	if(*prev)
 	{
 		tmp=(char*)malloc(sizeof(char)*(*prevSize));
-		FKL_ASSERT(tmp,__func__);
+		FKL_ASSERT(tmp);
 		memcpy(tmp,*prev,*prevSize);
 		free(*prev);
 		*prev=NULL;
@@ -68,7 +68,7 @@ char* fklReadInStringPattern(FILE* fp,char** prev,size_t* size,size_t* prevSize,
 				*size-=*prevSize;
 			}
 			char* rt=(char*)realloc(tmp,sizeof(char)*(*size));
-			FKL_ASSERT(!*size||rt,__func__);
+			FKL_ASSERT(!*size||rt);
 			tmp=rt;
 			if((!fklIsAllSpaceBufSize(tmp,*size)&&!fklIsAllComment(retval))||feof(fp))
 			{
@@ -102,7 +102,7 @@ char* fklReadInStringPattern(FILE* fp,char** prev,size_t* size,size_t* prevSize,
 		size_t nextSize=0;
 		char* next=read(fp,&nextSize);
 		tmp=(char*)realloc(tmp,sizeof(char)+(*size+nextSize));
-		FKL_ASSERT(tmp,__func__);
+		FKL_ASSERT(tmp);
 		memcpy(tmp+*size,next,nextSize);
 		*size+=nextSize;
 		free(next);

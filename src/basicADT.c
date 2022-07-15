@@ -1126,7 +1126,30 @@ void* fklInsertHashItem(void* item,FklHashTable* table)
 	*pp=newHashTableNode(item,NULL);
 	table->list[table->num]=*pp;
 	table->num++;
-	if((double)table->num/table->size>table->threshold)
+	if(((double)table->num/table->size)>table->threshold)
+		fklRehashTable(table,1);
+	else if(i>4)
+		fklRehashTable(table,2);
+	return item;
+}
+
+void* fklInsertNrptHashItem(void* item,FklHashTable* table)
+{
+	size_t (*__hashFunc)(void*,FklHashTable*)=table->t->__hashFunc;
+	void* (*__getKey)(void*)=table->t->__getKey;
+	int (*__keyEqual)(void*,void*)=table->t->__keyEqual;
+	FklHashTableNode** pp=&table->base[__hashFunc(__getKey(item),table)];
+	int i=0;
+	for(;*pp;pp=&(*pp)->next,i++)
+		if(__keyEqual(__getKey((*pp)->item),__getKey(item)))
+		{
+			table->t->__freeItem(item);
+			return (*pp)->item;
+		}
+	*pp=newHashTableNode(item,NULL);
+	table->list[table->num]=*pp;
+	table->num++;
+	if(((double)table->num/table->size)>table->threshold)
 		fklRehashTable(table,1);
 	else if(i>4)
 		fklRehashTable(table,2);

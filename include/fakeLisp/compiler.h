@@ -37,24 +37,23 @@ typedef struct FklPreMacro
 	struct FklCompEnv* macroEnv;
 }FklPreMacro;
 
-typedef struct FklCompDef
-{
-	FklSid_t id;
-	struct FklCompDef* next;
-}FklCompDef;
-
 typedef struct FklCompEnv
 {
 	struct FklCompEnv* prev;
 	FklString* prefix;
 	const FklString** exp;
 	uint32_t n;
-	FklCompDef* head;
+	FklHashTable* defs;
 	FklPreMacro* macro;
 	FklByteCodelnt* proc;
 	uint32_t refcount;
 	struct FklKeyWord* keyWords;
 }FklCompEnv;
+
+typedef struct
+{
+	FklSid_t id;
+}FklCompEnvHashItem;
 
 typedef struct FklInterpreter
 {
@@ -85,13 +84,14 @@ FklPreDef* fklAddDefine(const FklString*,const FklAstCptr*,FklPreEnv*);
 FklPreDef* fklFindDefine(const FklString*,const FklPreEnv*);
 FklPreDef* fklNewDefines(const FklString*);
 
-FklCompDef* fklAddCompDef(const FklString*,FklCompEnv*);
-FklCompDef* fklAddCompDefCstr(const char*,FklCompEnv*);
+FklCompEnvHashItem* fklAddCompDef(const FklString*,FklCompEnv*);
+FklCompEnvHashItem* fklAddCompDefBySid(FklSid_t,FklCompEnv*);
+FklCompEnvHashItem* fklAddCompDefCstr(const char*,FklCompEnv*);
 FklCompEnv* fklNewCompEnv(FklCompEnv*);
 void fklDestroyCompEnv(FklCompEnv* objEnv);
 void fklFreeAllMacroThenDestroyCompEnv(FklCompEnv* env);
-FklCompDef* fklFindCompDef(const FklString*,FklCompEnv*);
-FklCompDef* fklFindCompDefBySid(FklSid_t,FklCompEnv*);
+FklCompEnvHashItem* fklFindCompDef(const FklString*,FklCompEnv*);
+FklCompEnvHashItem* fklFindCompDefBySid(FklSid_t,FklCompEnv*);
 FklInterpreter* fklNewIntpr(const char*,FILE*,FklCompEnv*,FklLineNumberTable*);
 FklInterpreter* fklNewTmpIntpr(const char*,FILE*);
 

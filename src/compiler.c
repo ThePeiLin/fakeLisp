@@ -26,6 +26,46 @@ static int fmatcmp(const FklAstCptr*,const FklAstCptr*,FklPreEnv**,FklCompEnv*);
 static int fklAddDefinedMacro(FklPreMacro* macro,FklCompEnv* curEnv);
 static FklErrorState defmacro(FklAstCptr*,FklCompEnv*,FklInterpreter*);
 static FklCompEnv* createPatternCompEnv(FklString* const*,int32_t,FklCompEnv*);
+
+FklCompEnvHashItem* newCompEnvHashItem(FklSid_t key)
+{
+	FklCompEnvHashItem* r=(FklCompEnvHashItem*)malloc(sizeof(FklCompEnvHashItem));
+	FKL_ASSERT(r);
+	r->id=key;
+	return r;
+}
+
+size_t _compenv_hashFunc(void* key,FklHashTable* table)
+{
+	FklSid_t sid=*(FklSid_t*)key;
+	return sid%table->size;
+}
+
+void _compenv_freeItem(void* item)
+{
+	free(item);
+}
+
+int _compenv_keyEqual(void* pkey0,void* pkey1)
+{
+	FklSid_t k0=*(FklSid_t*)pkey0;
+	FklSid_t k1=*(FklSid_t*)pkey1;
+	return k0==k1;
+}
+
+void* _compenv_getKey(void* item)
+{
+	return &((FklCompEnvHashItem*)item)->id;
+}
+
+static FklHashTableMethodTable CompEnvHashMethodTable=
+{
+	.__hashFunc=_compenv_hashFunc,
+	.__freeItem=_compenv_freeItem,
+	.__keyEqual=_compenv_keyEqual,
+	.__getKey=_compenv_getKey,
+};
+
 static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
 {
 	FklPtrStack* stack=fklNewPtrStack(32,16);
@@ -1244,7 +1284,7 @@ FklByteCodelnt* fklCompileDef(FklAstCptr* tir,FklCompEnv* curEnv,FklInterpreter*
 	}
 	for(;;)
 	{
-		FklCompDef* tmpDef=NULL;
+		FklCompEnvHashItem* tmpDef=NULL;
 		FklAstAtom* tmpAtm=sec->u.atom;
 		if(curEnv->prev&&fklIsSymbolShouldBeExport(tmpAtm->value.str,curEnv->prev->exp,curEnv->prev->n))
 		{
@@ -1342,7 +1382,7 @@ FklByteCodelnt* fklCompileSetq(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 		int32_t scope=0;
 		int32_t id=0;
 		FklAstAtom* tmpAtm=sec->u.atom;
-		FklCompDef* tmpDef=NULL;
+		FklCompEnvHashItem* tmpDef=NULL;
 		FklCompEnv* tmpEnv=curEnv;
 		while(tmpEnv!=NULL)
 		{
@@ -1460,7 +1500,7 @@ FklByteCodelnt* fklCompileSym(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 	FklByteCode* pushVar=fklNewByteCode(sizeof(char)+sizeof(FklSid_t));
 	pushVar->code[0]=FKL_PUSH_VAR;
 	FklAstAtom* tmpAtm=objCptr->u.atom;
-	FklCompDef* tmpDef=NULL;
+	FklCompEnvHashItem* tmpDef=NULL;
 	FklCompEnv* tmpEnv=curEnv;
 	int32_t id=0;
 	while(tmpEnv!=NULL&&tmpDef==NULL)
@@ -1836,7 +1876,7 @@ FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 				fklFreeAllMacroThenDestroyCompEnv(tmpEnv);
 				return NULL;
 			}
-			FklCompDef* tmpDef=fklAddCompDef(tmpAtm->value.str,tmpEnv);
+			FklCompEnvHashItem* tmpDef=fklAddCompDef(tmpAtm->value.str,tmpEnv);
 			fklSetSidToByteCode(popArg->code+sizeof(char),tmpDef->id);
 			fklCodeCat(pArg,popArg);
 			if(fklNextCptr(argCptr)==NULL&&argCptr->outer->cdr.type==FKL_ATM)
@@ -1870,7 +1910,7 @@ FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 			fklFreeAllMacroThenDestroyCompEnv(tmpEnv);
 			return NULL;
 		}
-		FklCompDef* tmpDef=fklAddCompDef(tmpAtm->value.str,tmpEnv);
+		FklCompEnvHashItem* tmpDef=fklAddCompDef(tmpAtm->value.str,tmpEnv);
 		fklSetSidToByteCode(popRestArg->code+sizeof(char),tmpDef->id);
 		fklCodeCat(pArg,popRestArg);
 	}
@@ -2571,7 +2611,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 								return NULL;
 							}
 							FklAstAtom* pSymbol=pExportSymbols->u.atom;
-							FklCompDef* tmpDef=NULL;
+							FklCompEnvHashItem* tmpDef=NULL;
 							FklString* symbolWouldExport=NULL;
 							if(libPrefix)
 								symbolWouldExport=fklStringAppend(libPrefix,pSymbol->value.str);
@@ -2969,94 +3009,24 @@ FklPreDef* fklFindDefine(const FklString* name,const FklPreEnv* curEnv)
 	}
 }
 
-FklCompDef* fklAddCompDefCstr(const char* name,FklCompEnv* curEnv)
+FklCompEnvHashItem* fklAddCompDefCstr(const char* name,FklCompEnv* curEnv)
 {
-	if(curEnv->head==NULL)
-	{
-		FklSymTabNode* node=fklAddSymbolToGlobCstr(name);
-		curEnv->head=(FklCompDef*)malloc(sizeof(FklCompDef));
-		FKL_ASSERT(curEnv->head);
-		curEnv->head->next=NULL;
-		curEnv->head->id=node->id;
-		return curEnv->head;
-	}
-	else
-	{
-		FklSymTabNode* node=fklAddSymbolToGlobCstr(name);
-		FklCompDef* curDef=fklFindCompDefBySid(node->id,curEnv);
-		if(curDef==NULL)
-		{
-			curDef=(FklCompDef*)malloc(sizeof(FklCompDef));
-			FKL_ASSERT(curDef);
-			curDef->id=node->id;
-			curDef->next=curEnv->head;
-			curEnv->head=curDef;
-		}
-		return curDef;
-	}
+	return (FklCompEnvHashItem*)fklInsertNrptHashItem(newCompEnvHashItem(fklAddSymbolToGlobCstr(name)->id),curEnv->defs);
 }
 
-FklCompDef* fklAddCompDef(const FklString* name,FklCompEnv* curEnv)
+FklCompEnvHashItem* fklAddCompDef(const FklString* name,FklCompEnv* curEnv)
 {
-	FklSymTabNode* node=fklAddSymbolToGlob(name);
-	if(curEnv->head==NULL)
-	{
-		curEnv->head=(FklCompDef*)malloc(sizeof(FklCompDef));
-		FKL_ASSERT(curEnv->head);
-		curEnv->head->next=NULL;
-		curEnv->head->id=node->id;
-		return curEnv->head;
-	}
-	else
-	{
-		FklCompDef* curDef=fklFindCompDefBySid(node->id,curEnv);
-		if(curDef==NULL)
-		{
-			curDef=(FklCompDef*)malloc(sizeof(FklCompDef));
-			FKL_ASSERT(curDef);
-			curDef->id=node->id;
-			curDef->next=curEnv->head;
-			curEnv->head=curDef;
-		}
-		return curDef;
-	}
+	return (FklCompEnvHashItem*)fklInsertNrptHashItem(newCompEnvHashItem(fklAddSymbolToGlob(name)->id),curEnv->defs);
 }
 
-FklCompDef* fklFindCompDefBySid(FklSid_t id,FklCompEnv* curEnv)
+FklCompEnvHashItem* fklFindCompDefBySid(FklSid_t id,FklCompEnv* curEnv)
 {
-	if(curEnv->head==NULL)return NULL;
-	else
-	{
-		FklCompDef* curDef=curEnv->head;
-		while(curDef&&id!=curDef->id)
-			curDef=curDef->next;
-		return curDef;
-	}
+	return (FklCompEnvHashItem*)fklGetHashItem(&id,curEnv->defs);
 }
 
-FklCompDef* fklAddCompDefBySid(FklSid_t id,FklCompEnv* curEnv)
+FklCompEnvHashItem* fklAddCompDefBySid(FklSid_t id,FklCompEnv* curEnv)
 {
-	if(curEnv->head==NULL)
-	{
-		curEnv->head=(FklCompDef*)malloc(sizeof(FklCompDef));
-		FKL_ASSERT(curEnv->head);
-		curEnv->head->next=NULL;
-		curEnv->head->id=id;
-		return curEnv->head;
-	}
-	else
-	{
-		FklCompDef* curDef=fklFindCompDefBySid(id,curEnv);
-		if(curDef==NULL)
-		{
-			curDef=(FklCompDef*)malloc(sizeof(FklCompDef));
-			FKL_ASSERT(curDef);
-			curDef->id=id;
-			curDef->next=curEnv->head;
-			curEnv->head=curDef;
-		}
-		return curDef;
-	}
+	return (FklCompEnvHashItem*)fklInsertNrptHashItem(newCompEnvHashItem(id),curEnv->defs);
 }
 
 FklCompEnv* fklNewCompEnv(FklCompEnv* prev)
@@ -3066,9 +3036,9 @@ FklCompEnv* fklNewCompEnv(FklCompEnv* prev)
 	tmp->prev=prev;
 	if(prev)
 		prev->refcount+=1;
-	tmp->head=NULL;
 	tmp->prefix=NULL;
 	tmp->exp=NULL;
+	tmp->defs=fklNewHashTable(8,0.75,&CompEnvHashMethodTable);
 	tmp->n=0;
 	tmp->macro=NULL;
 	tmp->keyWords=NULL;
@@ -3119,18 +3089,9 @@ void fklFreeAllMacroThenDestroyCompEnv(FklCompEnv* env)
 	}
 }
 
-FklCompDef* fklFindCompDef(const FklString* name,FklCompEnv* curEnv)
+FklCompEnvHashItem* fklFindCompDef(const FklString* name,FklCompEnv* curEnv)
 {
-	if(curEnv->head==NULL)return NULL;
-	else
-	{
-		FklSymTabNode* node=fklAddSymbolToGlob(name);
-		FklSid_t id=node->id;
-		FklCompDef* curDef=curEnv->head;
-		while(curDef&&id!=curDef->id)
-			curDef=curDef->next;
-		return curDef;
-	}
+	return (FklCompEnvHashItem*)fklGetHashItem(&fklAddSymbolToGlob(name)->id,curEnv->defs);
 }
 
 FklInterpreter* fklNewIntpr(const char* filename,FILE* file,FklCompEnv* env,FklLineNumberTable* lnt)
@@ -3193,13 +3154,7 @@ void fklDestroyCompEnv(FklCompEnv* objEnv)
 		{
 			FklCompEnv* curEnv=objEnv;
 			objEnv=objEnv->prev;
-			FklCompDef* tmpDef=curEnv->head;
-			while(tmpDef!=NULL)
-			{
-				FklCompDef* prev=tmpDef;
-				tmpDef=tmpDef->next;
-				free(prev);
-			}
+			fklFreeHashTable(curEnv->defs);
 			fklFreeByteCodeAndLnt(curEnv->proc);
 			fklFreeAllMacro(curEnv->macro);
 			fklFreeAllKeyWord(curEnv->keyWords);
@@ -3407,7 +3362,7 @@ void fklPrintUndefinedSymbol(FklByteCodelnt* code)
 						}
 						else
 						{
-							FklCompDef* def=NULL;
+							FklCompEnvHashItem* def=NULL;
 							for(FklCompEnv* e=curEnv;e;e=e->prev)
 							{
 								def=fklFindCompDefBySid(id,e);
@@ -3465,7 +3420,7 @@ void fklPrintUndefinedSymbol(FklByteCodelnt* code)
 									fklAddCompDefBySid(id,curEnv);
 								else if(opcode==FKL_PUSH_VAR)
 								{
-									FklCompDef* def=NULL;
+									FklCompEnvHashItem* def=NULL;
 									for(FklCompEnv* e=curEnv;e;e=e->prev)
 									{
 										def=fklFindCompDefBySid(id,e);
@@ -3492,7 +3447,7 @@ void fklPrintUndefinedSymbol(FklByteCodelnt* code)
 	{
 		MayUndefine* cur=mayUndefined->base[i];
 		FklCompEnv* curEnv=cur->env;
-		FklCompDef* def=NULL;
+		FklCompEnvHashItem* def=NULL;
 		for(FklCompEnv* e=curEnv;e;e=e->prev)
 		{
 			def=fklFindCompDefBySid(cur->sid,e);

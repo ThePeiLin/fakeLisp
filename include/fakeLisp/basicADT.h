@@ -60,6 +60,7 @@ FklHashTable* fklNewHashTable(size_t size
 		,FklHashTableMethodTable*);
 void* fklGetHashItem(void* key,FklHashTable*);
 void* fklInsertHashItem(void* item,FklHashTable*);
+void* fklInsertNrptHashItem(void* item,FklHashTable* table);
 void fklFreeHashTable(FklHashTable*);
 void fklRehashTable(FklHashTable*,unsigned int);
 

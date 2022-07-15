@@ -2391,7 +2391,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 			return NULL;
 		}
 		fklAddSymbolToGlobCstr(rpath);
-		FklInterpreter* tmpInter=fklNewIntpr(rpath,fp,fklNewCompEnv(NULL),inter->lnt);
+		FklInterpreter* tmpInter=fklNewIntpr(rpath,fp,fklNewGlobCompEnv(NULL),inter->lnt);
 		fklInitGlobKeyWord(tmpInter->glob);
 		free(rpath);
 		tmpInter->prev=inter;
@@ -2510,7 +2510,6 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 							}
 							mergeSort(exportSymbols,num,sizeof(const char*),cmpString);
 							FklAstCptr* pBody=fklNextCptr(fklNextCptr(libName));
-							fklInitCompEnv(tmpInter->glob);
 							tmpInter->glob->prefix=libPrefix;
 							tmpInter->glob->exp=exportSymbols;
 							tmpInter->glob->n=num;
@@ -3029,6 +3028,25 @@ FklCompEnvHashItem* fklAddCompDefBySid(FklSid_t id,FklCompEnv* curEnv)
 	return (FklCompEnvHashItem*)fklInsertNrptHashItem(newCompEnvHashItem(id),curEnv->defs);
 }
 
+FklCompEnv* fklNewGlobCompEnv(FklCompEnv* prev)
+{
+	FklCompEnv* tmp=(FklCompEnv*)malloc(sizeof(FklCompEnv));
+	FKL_ASSERT(tmp);
+	tmp->prev=prev;
+	if(prev)
+		prev->refcount+=1;
+	tmp->prefix=NULL;
+	tmp->exp=NULL;
+	tmp->defs=fklNewHashTable(512,0.75,&CompEnvHashMethodTable);
+	tmp->n=0;
+	tmp->macro=NULL;
+	tmp->keyWords=NULL;
+	tmp->proc=fklNewByteCodelnt(fklNewByteCode(0));
+	tmp->refcount=0;
+	fklInitCompEnv(tmp);
+	return tmp;
+}
+
 FklCompEnv* fklNewCompEnv(FklCompEnv* prev)
 {
 	FklCompEnv* tmp=(FklCompEnv*)malloc(sizeof(FklCompEnv));
@@ -3128,8 +3146,7 @@ FklInterpreter* fklNewIntpr(const char* filename,FILE* file,FklCompEnv* env,FklL
 		tmp->glob=env;
 		return tmp;
 	}
-	tmp->glob=fklNewCompEnv(NULL);
-	fklInitCompEnv(tmp->glob);
+	tmp->glob=fklNewGlobCompEnv(NULL);
 	return tmp;
 }
 
@@ -3319,8 +3336,7 @@ void fklPrintUndefinedSymbol(FklByteCodelnt* code)
 	FklByteCode* bc=code->bc;
 	fklPushUintStack(0,cpcstack);
 	fklPushUintStack(bc->size,scpstack);
-	FklCompEnv* globEnv=fklNewCompEnv(NULL);
-	fklInitCompEnv(globEnv);
+	FklCompEnv* globEnv=fklNewGlobCompEnv(NULL);
 	fklPushPtrStack(globEnv,envstack);
 	while((!fklIsUintStackEmpty(cpcstack))&&(!fklIsUintStackEmpty(scpstack)))
 	{

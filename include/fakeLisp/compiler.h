@@ -88,6 +88,7 @@ FklCompEnvHashItem* fklAddCompDef(const FklString*,FklCompEnv*);
 FklCompEnvHashItem* fklAddCompDefBySid(FklSid_t,FklCompEnv*);
 FklCompEnvHashItem* fklAddCompDefCstr(const char*,FklCompEnv*);
 FklCompEnv* fklNewCompEnv(FklCompEnv*);
+FklCompEnv* fklNewGlobCompEnv(FklCompEnv*);
 void fklDestroyCompEnv(FklCompEnv* objEnv);
 void fklFreeAllMacroThenDestroyCompEnv(FklCompEnv* env);
 FklCompEnvHashItem* fklFindCompDef(const FklString*,FklCompEnv*);

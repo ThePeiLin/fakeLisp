@@ -3010,12 +3010,12 @@ FklPreDef* fklFindDefine(const FklString* name,const FklPreEnv* curEnv)
 
 FklCompEnvHashItem* fklAddCompDefCstr(const char* name,FklCompEnv* curEnv)
 {
-	return (FklCompEnvHashItem*)fklInsertNrptHashItem(newCompEnvHashItem(fklAddSymbolToGlobCstr(name)->id),curEnv->defs);
+	return (FklCompEnvHashItem*)fklInsNrptHashItem(newCompEnvHashItem(fklAddSymbolToGlobCstr(name)->id),curEnv->defs);
 }
 
 FklCompEnvHashItem* fklAddCompDef(const FklString* name,FklCompEnv* curEnv)
 {
-	return (FklCompEnvHashItem*)fklInsertNrptHashItem(newCompEnvHashItem(fklAddSymbolToGlob(name)->id),curEnv->defs);
+	return (FklCompEnvHashItem*)fklInsNrptHashItem(newCompEnvHashItem(fklAddSymbolToGlob(name)->id),curEnv->defs);
 }
 
 FklCompEnvHashItem* fklFindCompDefBySid(FklSid_t id,FklCompEnv* curEnv)
@@ -3025,7 +3025,7 @@ FklCompEnvHashItem* fklFindCompDefBySid(FklSid_t id,FklCompEnv* curEnv)
 
 FklCompEnvHashItem* fklAddCompDefBySid(FklSid_t id,FklCompEnv* curEnv)
 {
-	return (FklCompEnvHashItem*)fklInsertNrptHashItem(newCompEnvHashItem(id),curEnv->defs);
+	return (FklCompEnvHashItem*)fklInsNrptHashItem(newCompEnvHashItem(id),curEnv->defs);
 }
 
 FklCompEnv* fklNewGlobCompEnv(FklCompEnv* prev)

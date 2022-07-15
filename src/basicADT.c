@@ -1133,7 +1133,7 @@ void* fklInsertHashItem(void* item,FklHashTable* table)
 	return item;
 }
 
-void* fklInsertNrptHashItem(void* item,FklHashTable* table)
+void* fklInsNrptHashItem(void* item,FklHashTable* table)
 {
 	size_t (*__hashFunc)(void*,FklHashTable*)=table->t->__hashFunc;
 	void* (*__getKey)(void*)=table->t->__getKey;

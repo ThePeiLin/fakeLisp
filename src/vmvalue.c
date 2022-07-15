@@ -726,7 +726,7 @@ FklVMvalue* volatile* fklFindOrAddVar(FklSid_t id,FklVMenv* env)
 	if(!r)
 	{
 		pthread_mutex_lock(&env->lock);
-		VMenvHashItem* ritem=fklInsertNrptHashItem(newVMenvHashItme(id,FKL_VM_NIL),env->t);
+		VMenvHashItem* ritem=fklInsNrptHashItem(newVMenvHashItme(id,FKL_VM_NIL),env->t);
 		r=&ritem->v;
 		pthread_mutex_unlock(&env->lock);
 	}
@@ -740,7 +740,7 @@ FklVMvalue* volatile* fklFindOrAddVarWithValue(FklSid_t id,FklVMvalue* v,FklVMen
 	if(!r)
 	{
 		pthread_mutex_lock(&env->lock);
-		VMenvHashItem* ritem=fklInsertNrptHashItem(newVMenvHashItme(id,FKL_VM_NIL),env->t);
+		VMenvHashItem* ritem=fklInsNrptHashItem(newVMenvHashItme(id,FKL_VM_NIL),env->t);
 		r=&ritem->v;
 		pthread_mutex_unlock(&env->lock);
 	}

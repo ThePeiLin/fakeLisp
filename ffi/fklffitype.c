@@ -190,7 +190,7 @@ FklTypeId_t fklFfiNewStructType(FklSid_t structName,uint32_t num,FklSid_t symbol
 			FklDefTypeUnion tu=fklFfiGetTypeUnion(memberTypes[i]);
 			size_t align=fklFfiGetTypeAlign(tu);
 			offset+=(offset%align)?align-offset%align:0;
-			fklInsertHashItem(newStructHashItem(symbols[i],memberTypes[i],offset),tmp->layout);
+			fklInsNrptHashItem(newStructHashItem(symbols[i],memberTypes[i],offset),tmp->layout);
 			size_t memberSize=fklFfiGetTypeSize(tu);
 			offset+=memberSize;
 		}
@@ -311,7 +311,7 @@ FklTypeId_t fklFfiNewUnionType(FklSid_t unionName,uint32_t num,FklSid_t symbols[
 	tmp->align=align;
 	tmp->layout=fklNewHashTable(8,0.75,&FfiMemberHashMethodTable);
 	for(uint32_t i=0;i<num;i++)
-		fklInsertHashItem(newStructHashItem(symbols[i],memberTypes[i],0),tmp->layout);
+		fklInsNrptHashItem(newStructHashItem(symbols[i],memberTypes[i],0),tmp->layout);
 	return addToGlobTypeUnionList((FklDefTypeUnion)FKL_MAKE_UNION_TYPE(tmp));
 }
 
@@ -606,7 +606,7 @@ static void initStructTypeId(FklTypeId_t id,FklSid_t structNameId,uint32_t num,F
 		FklDefTypeUnion tu=fklFfiGetTypeUnion(memberTypes[i]);
 		size_t align=fklFfiGetTypeAlign(tu);
 		offset+=(offset%align)?align-offset%align:0;
-		fklInsertHashItem(newStructHashItem(symbols[i],memberTypes[i],offset),ost->layout);
+		fklInsNrptHashItem(newStructHashItem(symbols[i],memberTypes[i],offset),ost->layout);
 		size_t memberSize=fklFfiGetTypeSize(tu);
 		offset+=memberSize;
 	}
@@ -742,7 +742,7 @@ static void initUnionTypeId(FklTypeId_t id,FklSid_t unionNameId,uint32_t num,Fkl
 		fklFreeHashTable(out->layout);
 	out->layout=fklNewHashTable(8,0.75,&FfiMemberHashMethodTable);
 	for(uint32_t i=0;i<num;i++)
-		fklInsertHashItem(newStructHashItem(symbols[i],memberTypes[i],0),out->layout);
+		fklInsNrptHashItem(newStructHashItem(symbols[i],memberTypes[i],0),out->layout);
 	put->ut=FKL_MAKE_UNION_TYPE(out);
 }
 

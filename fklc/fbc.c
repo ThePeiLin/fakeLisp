@@ -11,7 +11,7 @@ static void _bc_finalizer(void* p)
 	fklFreeByteCode(p);
 }
 
-static void _bc_princ(FILE* fp,void* p)
+static void _bc_princ(void* p,FILE* fp)
 {
 	fklPrintByteCode(p,fp);
 }
@@ -19,7 +19,7 @@ static void _bc_princ(FILE* fp,void* p)
 static FklVMudMethodTable FklcBcMethodTable=
 {
 	.__princ=_bc_princ,
-	.__prin1=NULL,
+	.__prin1=_bc_princ,
 	.__finalizer=_bc_finalizer,
 	.__equal=NULL,
 	.__call=NULL,

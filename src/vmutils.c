@@ -594,7 +594,7 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 						break;
 					case FKL_USERDATA:
 						if(v->u.ud->t->__princ)
-							v->u.ud->t->__princ(fp,v->u.ud->data);
+							v->u.ud->t->__princ(v->u.ud->data,fp);
 						else
 						{
 							fprintf(fp,"#<");
@@ -685,7 +685,7 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 					break;
 				case FKL_USERDATA:
 					if(v->u.ud->t->__prin1)
-						v->u.ud->t->__prin1(fp,v->u.ud->data);
+						v->u.ud->t->__prin1(v->u.ud->data,fp);
 					else
 					{
 						fprintf(fp,"#<");

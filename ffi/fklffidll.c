@@ -56,7 +56,7 @@ static void _ffi_proc_atomic_finalizer(void* p)
 	fklFfiFreeProc(p);
 }
 
-static void _ffi_proc_print(FILE* fp,void* p)
+static void _ffi_proc_print(void* p,FILE* fp)
 {
 	FklFfiProc* f=p;
 	fprintf(fp,"#<ffi-proc:");
@@ -111,7 +111,7 @@ ffi_type* fklFfiGetFfiType(FklTypeId_t type)
 	return NativeFFITypeList[type];
 }
 
-static void _ffi_proc_invoke(FklVM* exe,void* ptr)
+static void _ffi_proc_invoke(void* ptr,FklVM* exe)
 {
 	FKL_NI_BEGIN(exe);
 	FklFfiProc* proc=ptr;

@@ -320,7 +320,7 @@ void callCallableObj(FklVMvalue* v,FklVM* exe)
 			callDlProc(exe,v->u.dlproc);
 			break;
 		case FKL_USERDATA:
-			v->u.ud->t->__call(exe,v->u.ud->data);
+			v->u.ud->t->__call(v->u.ud->data,exe);
 			break;
 		default:
 			break;

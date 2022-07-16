@@ -193,17 +193,17 @@ typedef struct FklVM
 
 typedef struct FklVMudMethodTable
 {
-	void (*__princ)(FILE*,void*);
-	void (*__prin1)(FILE*,void*);
+	void (*__princ)(void*,FILE*);
+	void (*__prin1)(void*,FILE*);
 	void (*__finalizer)(void*);
 	int  (*__equal)(const FklVMudata*,const FklVMudata*);
-	void (*__call)(FklVM*,void*);
+	void (*__call)(void*,FklVM*);
 	int (*__cmp)(FklVMvalue*,FklVMvalue*,int*);
-	FklString* (*__as_str)(void*);
-	FklString* (*__to_str)(void*);
-	void (*__write)(FILE*,void*);
+	void (*__write)(void*,FILE*);
 	void (*__atomic)(void*,struct FklVMheap*);
 	size_t (*__length)(void*);
+//	FklString* (*__as_str)(void*);
+//	FklString* (*__to_str)(void*);
 }FklVMudMethodTable;
 
 typedef enum

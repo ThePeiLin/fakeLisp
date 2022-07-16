@@ -1090,75 +1090,145 @@ void builtin_integer(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_parse_int(ARGL)
+void builtin_list_to_vector(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.parse-int",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.list->vector",FKL_TOOMANYARG,runnable,exe);
 	if(!obj)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.parse-int",FKL_TOOFEWARG,runnable,exe);
-	if(FKL_IS_CHR(obj))
-		fklNiReturn(FKL_MAKE_VM_I32(FKL_GET_CHR(obj)),&ap,stack);
-	else if(FKL_IS_I32(obj))
-		fklNiReturn(obj,&ap,stack);
-	else if(FKL_IS_I64(obj))
-		fklNiReturn(fklNiNewVMvalue(FKL_I64,(void*)&obj->u.i64,stack,exe->heap),&ap,stack);
-	else if(FKL_IS_F64(obj))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.list->vector",FKL_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(obj,fklIsList,"builtin.list->vector",runnable,exe);
+	size_t len=fklVMlistLength(obj);
+	FklVMvalue* r=fklNewVMvecV(len,NULL,stack,exe->heap);
+	for(size_t i=0;obj!=FKL_VM_NIL;i++,obj=obj->u.pair->cdr)
+		fklSetRef(&r->u.vec->base[i],obj->u.pair->car,exe->heap);
+	fklNiReturn(r,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_vector_to_list(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.vector->list",FKL_TOOMANYARG,runnable,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.vector->list",FKL_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(obj,FKL_IS_VECTOR,"builtin.vector->list",runnable,exe);
+	fklPushVMvalue(FKL_VM_NIL,stack);
+	FklVMvec* vec=obj->u.vec;
+	FklVMvalue** pr=fklNiGetTopSlot(stack);
+	FklVMvalue** cur=pr;
+	for(size_t i=0;i<vec->size;i++)
 	{
-		int64_t r=(int64_t)obj->u.f64;
-		fklNiReturn(fklMakeVMint(r,stack,exe->heap),&ap,stack);
+		fklSetRef(cur,fklNewVMvalue(FKL_PAIR,fklNewVMpair(),exe->heap),exe->heap);
+		fklSetRef(&(*cur)->u.pair->car,vec->base[i],exe->heap);
+		cur=&(*cur)->u.pair->cdr;
 	}
-	else if(FKL_IS_STR(obj))
+	fklNiReturn(*pr,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_symbol_to_string(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.symbol->string",FKL_TOOMANYARG,runnable,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.symbol->string",FKL_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(obj,FKL_IS_SYM,"builtin.symbol->string",runnable,exe);
+	FklVMvalue* retval=fklNiNewVMvalue(FKL_STR
+			,fklCopyString(fklGetGlobSymbolWithId(FKL_GET_SYM(obj))->symbol)
+			,stack,exe->heap);
+	fklNiReturn(retval,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_string_to_symbol(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.string->symbol",FKL_TOOMANYARG,runnable,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.string->symbol",FKL_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(obj,FKL_IS_STR,"builtin.string->symbol",runnable,exe);
+	fklNiReturn(FKL_MAKE_VM_SYM(fklAddSymbolToGlob(obj->u.str)->id),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_string_to_number(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.string->number",FKL_TOOMANYARG,runnable,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.string->number",FKL_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(obj,FKL_IS_STR,"builtin.string->number",runnable,exe);
+	FklVMvalue* r=FKL_VM_NIL;
+	if(fklIsNumberString(obj->u.str))
 	{
-		if(!fklIsNumberString(obj->u.str))
-			fklNiReturn(FKL_VM_NIL,&ap,stack);
+		if(fklIsDoubleString(obj->u.str))
+		{
+			double d=fklStringToDouble(obj->u.str);
+			r=fklNiNewVMvalue(FKL_F64,&d,stack,exe->heap);
+		}
 		else
 		{
 			FklBigInt* bi=fklNewBigIntFromString(obj->u.str);
 			if(!fklIsGtLtI64BigInt(bi))
 			{
-				fklNiReturn(fklMakeVMint(fklBigIntToI64(bi),stack,exe->heap),&ap,stack);
+				r=fklMakeVMint(fklBigIntToI64(bi),stack,exe->heap);
 				fklFreeBigInt(bi);
 			}
 			else
-				fklNiReturn(fklNiNewVMvalue(FKL_BIG_INT,bi,stack,exe->heap),&ap,stack);
+				r=fklNiNewVMvalue(FKL_BIG_INT,bi,stack,exe->heap);
 		}
 	}
-	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.parse-int",FKL_WRONGARG,runnable,exe);
+	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_parse_f64(ARGL)
+void builtin_number_to_string(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.parse-f64",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->string",FKL_TOOMANYARG,runnable,exe);
 	if(!obj)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.parse-f64",FKL_TOOFEWARG,runnable,exe);
-	if(fklIsInt(obj)||FKL_IS_CHR(obj))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->string",FKL_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(obj,fklIsVMnumber,"builtin.number->string",runnable,exe);
+	FklVMvalue* retval=fklNiNewVMvalue(FKL_STR,NULL,stack,exe->heap);
+	char buf[64]={0};
+	if(fklIsInt(obj))
 	{
-		double r=fklIsInt(obj)?fklGetDouble(obj):FKL_GET_CHR(obj);
-		fklNiReturn(fklNiNewVMvalue(FKL_I64,&r,stack,exe->heap),&ap,stack);
-	}
-	else if(FKL_IS_F64(obj))
-		fklNiReturn(fklNiNewVMvalue(FKL_I64,(void*)&obj->u.i64,stack,exe->heap),&ap,stack);
-	else if(FKL_IS_STR(obj))
-	{
-		if(!fklIsNumberString(obj->u.str))
-			fklNiReturn(FKL_VM_NIL,&ap,stack);
+		if(FKL_IS_BIG_INT(obj))
+		{
+			FklBigInt* bi=obj->u.bigInt;
+			retval->u.str=fklNewString(sizeof(char)*(bi->num+bi->neg),NULL);
+			fklSprintBigInt(bi,retval->u.str->size,retval->u.str->str);
+		}
 		else
 		{
-			double d=fklStringToDouble(obj->u.str);
-			fklNiReturn(fklNiNewVMvalue(FKL_F64,&d,stack,exe->heap),&ap,stack);
+			size_t size=snprintf(buf,64,"%ld",fklGetInt(obj));
+			retval->u.str=fklNewString(size,buf);
 		}
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.parse-f64",FKL_WRONGARG,runnable,exe);
+	{
+		size_t size=snprintf(buf,64,"%lf",obj->u.f64);
+		retval->u.str=fklNewString(size,buf);
+	}
+	fklNiReturn(retval,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -1326,130 +1396,130 @@ void builtin_f64(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_as_str(ARGL)
-{
-	FKL_NI_BEGIN(exe);
-	FklVMrunnable* runnable=exe->rhead;
-	FklVMvalue* obj=fklNiGetArg(&ap,stack);
-	if(!obj)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.as-str",FKL_TOOFEWARG,runnable,exe);
-	FklVMvalue* retval=fklNiNewVMvalue(FKL_STR,NULL,stack,exe->heap);
-	if(FKL_IS_STR(obj)||FKL_IS_VECTOR(obj))
-	{
-		FklVMvalue* pstart=fklNiGetArg(&ap,stack);
-		FklVMvalue* psize=fklNiGetArg(&ap,stack);
-		if(fklNiResBp(&ap,stack))
-			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.as-str",FKL_TOOMANYARG,runnable,exe);
-		if(pstart)
-		{
-			FKL_NI_CHECK_TYPE(pstart,fklIsInt,"builtin.as-str",runnable,exe);
-			int64_t start=fklGetInt(pstart);
-			if((FKL_IS_STR(obj)&&(start<0||start>=obj->u.str->size))
-					||(FKL_IS_VECTOR(obj)&&(start<0||start>=obj->u.vec->size)))
-				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.as-str",FKL_INVALIDACCESS,runnable,exe);
-			int64_t size=FKL_IS_STR(obj)?obj->u.str->size-start:obj->u.vec->size-start;
-			if(psize)
-			{
-				FKL_NI_CHECK_TYPE(psize,fklIsInt,"builtin.as-str",runnable,exe);
-				int64_t tsize=fklGetInt(psize);
-				if(tsize<0||tsize>size)
-					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.as-str",FKL_INVALIDACCESS,runnable,exe);
-				size=tsize;
-			}
-			if(FKL_IS_STR(obj))
-				retval->u.str=fklNewString(size,obj->u.str->str+start);
-			else
-			{
-				retval->u.str=fklNewString(size,NULL);
-				for(size_t i=0;i<size;i++)
-				{
-					FklVMvalue* v=obj->u.vec->base[start+i];
-					FKL_NI_CHECK_TYPE(v,fklIsInt,"builtin.as-str",runnable,exe);
-					retval->u.str->str[i]=fklGetInt(v);
-				}
-			}
-		}
-		else
-		{
-			if(FKL_IS_STR(obj))
-				retval->u.str=fklCopyString(obj->u.str);
-			else
-			{
-				retval->u.str=fklNewString(obj->u.vec->size,NULL);
-				FKL_ASSERT(retval->u.str);
-				for(size_t i=0;i<obj->u.vec->size;i++)
-				{
-					FklVMvalue* v=obj->u.vec->base[i];
-					FKL_NI_CHECK_TYPE(v,fklIsInt,"builtin.as-str",runnable,exe);
-					retval->u.str->str[i]=fklGetInt(v);
-				}
-			}
-		}
-	}
-	else if(FKL_IS_CHR(obj))
-	{
-		retval->u.str=fklNewEmptyString();
-		retval->u.str->size=0;
-		for(size_t i=0;obj;i++,obj=fklNiGetArg(&ap,stack))
-		{
-			FKL_NI_CHECK_TYPE(obj,FKL_IS_CHR,"builtin.as-str",runnable,exe);
-			retval->u.str->size++;
-			retval->u.str=(FklString*)realloc(retval->u.str
-					,sizeof(FklString)+sizeof(char)*(i+1));
-			FKL_ASSERT(retval->u.str);
-			retval->u.str->str[i]=FKL_GET_CHR(obj);
-		}
-		fklNiResBp(&ap,stack);
-	}
-	else if(fklIsInt(obj))
-	{
-		FklVMvalue* content=fklNiGetArg(&ap,stack);
-		fklNiResBp(&ap,stack);
-		if(content)
-		{
-			FKL_NI_CHECK_TYPE(content,FKL_IS_CHR,"builtin.as-str",runnable,exe);
-			size_t size=fklGetInt(obj);
-			retval->u.str=fklNewString(size,NULL);
-			FKL_ASSERT(retval->u.str);
-			memset(retval->u.str->str,FKL_GET_CHR(content),size);
-		}
-		else
-		{
-			if(FKL_IS_I32(obj))
-			{
-				int32_t r=FKL_GET_I32(obj);
-				retval->u.str=fklNewString(sizeof(int32_t),(char*)&r);
-			}
-			else if(FKL_IS_I64(obj))
-				retval->u.str=fklNewString(sizeof(int64_t),(char*)&obj->u.i64);
-			else
-			{
-				FklBigInt* bi=obj->u.bigInt;
-				retval->u.str=fklNewString(bi->num+1,NULL);
-				retval->u.str->str[0]=bi->neg;
-				memcpy(retval->u.str->str+1,bi->digits,bi->num);
-			}
-		}
-	}
-	else
-	{
-		if(fklNiResBp(&ap,stack))
-			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.as-str",FKL_TOOMANYARG,runnable,exe);
-		else if(FKL_IS_F64(obj))
-			retval->u.str=fklNewString(sizeof(double),(char*)&obj->u.f64);
-		else if(FKL_IS_SYM(obj))
-		{
-			FklSid_t sid=FKL_GET_SYM(obj);
-			retval->u.str=fklNewString(sizeof(FklSid_t),(char*)&sid);
-		}
-		else if(FKL_IS_USERDATA(obj)&&obj->u.ud->t->__as_str)
-			retval->u.str=obj->u.ud->t->__as_str(obj->u.ud->data);
-		else
-			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.as-str",FKL_WRONGARG,runnable,exe);
-	}
-	fklNiReturn(retval,&ap,stack);
-	fklNiEnd(&ap,stack);
-}
+//void builtin_as_str(ARGL)
+//{
+//	FKL_NI_BEGIN(exe);
+//	FklVMrunnable* runnable=exe->rhead;
+//	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+//	if(!obj)
+//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.as-str",FKL_TOOFEWARG,runnable,exe);
+//	FklVMvalue* retval=fklNiNewVMvalue(FKL_STR,NULL,stack,exe->heap);
+//	if(FKL_IS_STR(obj)||FKL_IS_VECTOR(obj))
+//	{
+//		FklVMvalue* pstart=fklNiGetArg(&ap,stack);
+//		FklVMvalue* psize=fklNiGetArg(&ap,stack);
+//		if(fklNiResBp(&ap,stack))
+//			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.as-str",FKL_TOOMANYARG,runnable,exe);
+//		if(pstart)
+//		{
+//			FKL_NI_CHECK_TYPE(pstart,fklIsInt,"builtin.as-str",runnable,exe);
+//			int64_t start=fklGetInt(pstart);
+//			if((FKL_IS_STR(obj)&&(start<0||start>=obj->u.str->size))
+//					||(FKL_IS_VECTOR(obj)&&(start<0||start>=obj->u.vec->size)))
+//				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.as-str",FKL_INVALIDACCESS,runnable,exe);
+//			int64_t size=FKL_IS_STR(obj)?obj->u.str->size-start:obj->u.vec->size-start;
+//			if(psize)
+//			{
+//				FKL_NI_CHECK_TYPE(psize,fklIsInt,"builtin.as-str",runnable,exe);
+//				int64_t tsize=fklGetInt(psize);
+//				if(tsize<0||tsize>size)
+//					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.as-str",FKL_INVALIDACCESS,runnable,exe);
+//				size=tsize;
+//			}
+//			if(FKL_IS_STR(obj))
+//				retval->u.str=fklNewString(size,obj->u.str->str+start);
+//			else
+//			{
+//				retval->u.str=fklNewString(size,NULL);
+//				for(size_t i=0;i<size;i++)
+//				{
+//					FklVMvalue* v=obj->u.vec->base[start+i];
+//					FKL_NI_CHECK_TYPE(v,fklIsInt,"builtin.as-str",runnable,exe);
+//					retval->u.str->str[i]=fklGetInt(v);
+//				}
+//			}
+//		}
+//		else
+//		{
+//			if(FKL_IS_STR(obj))
+//				retval->u.str=fklCopyString(obj->u.str);
+//			else
+//			{
+//				retval->u.str=fklNewString(obj->u.vec->size,NULL);
+//				FKL_ASSERT(retval->u.str);
+//				for(size_t i=0;i<obj->u.vec->size;i++)
+//				{
+//					FklVMvalue* v=obj->u.vec->base[i];
+//					FKL_NI_CHECK_TYPE(v,fklIsInt,"builtin.as-str",runnable,exe);
+//					retval->u.str->str[i]=fklGetInt(v);
+//				}
+//			}
+//		}
+//	}
+//	else if(FKL_IS_CHR(obj))
+//	{
+//		retval->u.str=fklNewEmptyString();
+//		retval->u.str->size=0;
+//		for(size_t i=0;obj;i++,obj=fklNiGetArg(&ap,stack))
+//		{
+//			FKL_NI_CHECK_TYPE(obj,FKL_IS_CHR,"builtin.as-str",runnable,exe);
+//			retval->u.str->size++;
+//			retval->u.str=(FklString*)realloc(retval->u.str
+//					,sizeof(FklString)+sizeof(char)*(i+1));
+//			FKL_ASSERT(retval->u.str);
+//			retval->u.str->str[i]=FKL_GET_CHR(obj);
+//		}
+//		fklNiResBp(&ap,stack);
+//	}
+//	else if(fklIsInt(obj))
+//	{
+//		FklVMvalue* content=fklNiGetArg(&ap,stack);
+//		fklNiResBp(&ap,stack);
+//		if(content)
+//		{
+//			FKL_NI_CHECK_TYPE(content,FKL_IS_CHR,"builtin.as-str",runnable,exe);
+//			size_t size=fklGetInt(obj);
+//			retval->u.str=fklNewString(size,NULL);
+//			FKL_ASSERT(retval->u.str);
+//			memset(retval->u.str->str,FKL_GET_CHR(content),size);
+//		}
+//		else
+//		{
+//			if(FKL_IS_I32(obj))
+//			{
+//				int32_t r=FKL_GET_I32(obj);
+//				retval->u.str=fklNewString(sizeof(int32_t),(char*)&r);
+//			}
+//			else if(FKL_IS_I64(obj))
+//				retval->u.str=fklNewString(sizeof(int64_t),(char*)&obj->u.i64);
+//			else
+//			{
+//				FklBigInt* bi=obj->u.bigInt;
+//				retval->u.str=fklNewString(bi->num+1,NULL);
+//				retval->u.str->str[0]=bi->neg;
+//				memcpy(retval->u.str->str+1,bi->digits,bi->num);
+//			}
+//		}
+//	}
+//	else
+//	{
+//		if(fklNiResBp(&ap,stack))
+//			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.as-str",FKL_TOOMANYARG,runnable,exe);
+//		else if(FKL_IS_F64(obj))
+//			retval->u.str=fklNewString(sizeof(double),(char*)&obj->u.f64);
+//		else if(FKL_IS_SYM(obj))
+//		{
+//			FklSid_t sid=FKL_GET_SYM(obj);
+//			retval->u.str=fklNewString(sizeof(FklSid_t),(char*)&sid);
+//		}
+//		else if(FKL_IS_USERDATA(obj)&&obj->u.ud->t->__as_str)
+//			retval->u.str=obj->u.ud->t->__as_str(obj->u.ud->data);
+//		else
+//			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.as-str",FKL_WRONGARG,runnable,exe);
+//	}
+//	fklNiReturn(retval,&ap,stack);
+//	fklNiEnd(&ap,stack);
+//}
 
 void builtin_symbol(ARGL)
 {
@@ -2759,139 +2829,139 @@ void builtin_fwrite(ARGL)
 	else if(FKL_IS_F64(obj))
 		fwrite((void*)&obj->u.f64,sizeof(double),1,objFile);
 	else if(FKL_IS_USERDATA(obj)&&obj->u.ud->t->__write)
-		obj->u.ud->t->__write(objFile,obj->u.ud->data);
+		obj->u.ud->t->__write(obj->u.ud->data,objFile);
 	else
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fwrite",FKL_WRONGARG,runnable,exe);
 	fklNiReturn(obj,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_to_str(ARGL)
-{
-	FKL_NI_BEGIN(exe);
-	FklVMrunnable* runnable=exe->rhead;
-	FklVMvalue* obj=fklNiGetArg(&ap,stack);
-	if(!obj)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.to-str",FKL_TOOFEWARG,runnable,exe);
-	FklVMvalue* retval=fklNiNewVMvalue(FKL_STR,NULL,stack,exe->heap);
-	if(FKL_IS_STR(obj)||FKL_IS_VECTOR(obj))
-	{
-		FklVMvalue* pstart=fklNiGetArg(&ap,stack);
-		FklVMvalue* psize=fklNiGetArg(&ap,stack);
-		if(fklNiResBp(&ap,stack))
-			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.to-str",FKL_TOOMANYARG,runnable,exe);
-		if(pstart)
-		{
-			FKL_NI_CHECK_TYPE(pstart,fklIsInt,"builtin.to-str",runnable,exe);
-			int64_t start=fklGetInt(pstart);
-			if((FKL_IS_STR(obj)&&start>=obj->u.str->size)
-					||(FKL_IS_VECTOR(obj)&&start>=obj->u.vec->size))
-				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.to-str",FKL_INVALIDACCESS,runnable,exe);
-			int64_t size=FKL_IS_STR(obj)?obj->u.str->size-start:obj->u.vec->size-start;
-			if(psize)
-			{
-				FKL_NI_CHECK_TYPE(psize,fklIsInt,"builtin.to-str",runnable,exe);
-				int64_t tsize=fklGetInt(psize);
-				if(tsize>size)
-					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.to-str",FKL_INVALIDACCESS,runnable,exe);
-				size=tsize;
-			}
-			if(FKL_IS_STR(obj))
-				retval->u.str=fklNewString(size,obj->u.str->str+start);
-			else
-			{
-				retval->u.str=fklNewString(size,NULL);
-				for(size_t i=0;i<size;i++)
-				{
-					FklVMvalue* v=obj->u.vec->base[start+i];
-					FKL_NI_CHECK_TYPE(v,fklIsInt,"builtin.to-str",runnable,exe);
-					retval->u.str->str[i]=fklGetInt(v);
-				}
-			}
-		}
-		else
-		{
-			if(FKL_IS_STR(obj))
-				retval->u.str=fklCopyString(obj->u.str);
-			else
-			{
-				retval->u.str=fklNewString(obj->u.vec->size,NULL);
-				FKL_ASSERT(retval->u.str);
-				for(size_t i=0;i<obj->u.vec->size;i++)
-				{
-					FklVMvalue* v=obj->u.vec->base[i];
-					FKL_NI_CHECK_TYPE(v,fklIsInt,"builtin.to-str",runnable,exe);
-					retval->u.str->str[i]=fklGetInt(v);
-				}
-			}
-		}
-	}
-	else if(FKL_IS_CHR(obj))
-	{
-		retval->u.str=fklNewEmptyString();
-		retval->u.str->size=0;
-		for(size_t i=0;obj;i++,obj=fklNiGetArg(&ap,stack))
-		{
-			FKL_NI_CHECK_TYPE(obj,FKL_IS_CHR,"builtin.to-str",runnable,exe);
-			retval->u.str->size++;
-			retval->u.str=(FklString*)realloc(retval->u.str
-					,sizeof(FklString)+sizeof(char)*(i+1));
-			FKL_ASSERT(retval->u.str);
-			retval->u.str->str[i]=FKL_GET_CHR(obj);
-		}
-		fklNiResBp(&ap,stack);
-	}
-	else if(fklIsInt(obj))
-	{
-		FklVMvalue* content=fklNiGetArg(&ap,stack);
-		fklNiResBp(&ap,stack);
-		if(content)
-		{
-			FKL_NI_CHECK_TYPE(content,FKL_IS_CHR,"builtin.to-str",runnable,exe);
-			size_t size=fklGetInt(obj);
-			retval->u.str=fklNewString(size,NULL);
-			FKL_ASSERT(retval->u.str);
-			memset(retval->u.str->str,FKL_GET_CHR(content),size);
-		}
-		else
-		{
-			if(FKL_IS_BIG_INT(obj))
-			{
-				FklBigInt* bi=obj->u.bigInt;
-				retval->u.str=fklNewString(sizeof(char)*(bi->num+bi->neg),NULL);
-				fklSprintBigInt(bi,retval->u.str->size,retval->u.str->str);
-			}
-			else
-			{
-				char buf[32]={0};
-				size_t size=snprintf(buf,32,"%ld",fklGetInt(obj));
-				retval->u.str=fklNewString(size,buf);
-			}
-		}
-	}
-	else
-	{
-		if(fklNiResBp(&ap,stack))
-			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.to-str",FKL_TOOMANYARG,runnable,exe);
-		else if(FKL_IS_F64(obj))
-		{
-			char buf[64]={0};
-			size_t size=snprintf(buf,64,"%lf",obj->u.f64);
-			retval->u.str=fklNewString(size,buf);
-		}
-		else if(FKL_IS_SYM(obj))
-		{
-			FklString* symbol=fklGetGlobSymbolWithId(FKL_GET_SYM(obj))->symbol;
-			retval->u.str=fklCopyString(symbol);
-		}
-		else if(FKL_IS_USERDATA(obj)&&obj->u.ud->t->__to_str)
-			retval->u.str=obj->u.ud->t->__to_str(obj->u.ud->data);
-		else
-			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.to-str",FKL_WRONGARG,runnable,exe);
-	}
-	fklNiReturn(retval,&ap,stack);
-	fklNiEnd(&ap,stack);
-}
+//void builtin_to_str(ARGL)
+//{
+//	FKL_NI_BEGIN(exe);
+//	FklVMrunnable* runnable=exe->rhead;
+//	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+//	if(!obj)
+//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.to-str",FKL_TOOFEWARG,runnable,exe);
+//	FklVMvalue* retval=fklNiNewVMvalue(FKL_STR,NULL,stack,exe->heap);
+//	if(FKL_IS_STR(obj)||FKL_IS_VECTOR(obj))
+//	{
+//		FklVMvalue* pstart=fklNiGetArg(&ap,stack);
+//		FklVMvalue* psize=fklNiGetArg(&ap,stack);
+//		if(fklNiResBp(&ap,stack))
+//			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.to-str",FKL_TOOMANYARG,runnable,exe);
+//		if(pstart)
+//		{
+//			FKL_NI_CHECK_TYPE(pstart,fklIsInt,"builtin.to-str",runnable,exe);
+//			int64_t start=fklGetInt(pstart);
+//			if((FKL_IS_STR(obj)&&start>=obj->u.str->size)
+//					||(FKL_IS_VECTOR(obj)&&start>=obj->u.vec->size))
+//				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.to-str",FKL_INVALIDACCESS,runnable,exe);
+//			int64_t size=FKL_IS_STR(obj)?obj->u.str->size-start:obj->u.vec->size-start;
+//			if(psize)
+//			{
+//				FKL_NI_CHECK_TYPE(psize,fklIsInt,"builtin.to-str",runnable,exe);
+//				int64_t tsize=fklGetInt(psize);
+//				if(tsize>size)
+//					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.to-str",FKL_INVALIDACCESS,runnable,exe);
+//				size=tsize;
+//			}
+//			if(FKL_IS_STR(obj))
+//				retval->u.str=fklNewString(size,obj->u.str->str+start);
+//			else
+//			{
+//				retval->u.str=fklNewString(size,NULL);
+//				for(size_t i=0;i<size;i++)
+//				{
+//					FklVMvalue* v=obj->u.vec->base[start+i];
+//					FKL_NI_CHECK_TYPE(v,fklIsInt,"builtin.to-str",runnable,exe);
+//					retval->u.str->str[i]=fklGetInt(v);
+//				}
+//			}
+//		}
+//		else
+//		{
+//			if(FKL_IS_STR(obj))
+//				retval->u.str=fklCopyString(obj->u.str);
+//			else
+//			{
+//				retval->u.str=fklNewString(obj->u.vec->size,NULL);
+//				FKL_ASSERT(retval->u.str);
+//				for(size_t i=0;i<obj->u.vec->size;i++)
+//				{
+//					FklVMvalue* v=obj->u.vec->base[i];
+//					FKL_NI_CHECK_TYPE(v,fklIsInt,"builtin.to-str",runnable,exe);
+//					retval->u.str->str[i]=fklGetInt(v);
+//				}
+//			}
+//		}
+//	}
+//	else if(FKL_IS_CHR(obj))
+//	{
+//		retval->u.str=fklNewEmptyString();
+//		retval->u.str->size=0;
+//		for(size_t i=0;obj;i++,obj=fklNiGetArg(&ap,stack))
+//		{
+//			FKL_NI_CHECK_TYPE(obj,FKL_IS_CHR,"builtin.to-str",runnable,exe);
+//			retval->u.str->size++;
+//			retval->u.str=(FklString*)realloc(retval->u.str
+//					,sizeof(FklString)+sizeof(char)*(i+1));
+//			FKL_ASSERT(retval->u.str);
+//			retval->u.str->str[i]=FKL_GET_CHR(obj);
+//		}
+//		fklNiResBp(&ap,stack);
+//	}
+//	else if(fklIsInt(obj))
+//	{
+//		FklVMvalue* content=fklNiGetArg(&ap,stack);
+//		fklNiResBp(&ap,stack);
+//		if(content)
+//		{
+//			FKL_NI_CHECK_TYPE(content,FKL_IS_CHR,"builtin.to-str",runnable,exe);
+//			size_t size=fklGetInt(obj);
+//			retval->u.str=fklNewString(size,NULL);
+//			FKL_ASSERT(retval->u.str);
+//			memset(retval->u.str->str,FKL_GET_CHR(content),size);
+//		}
+//		else
+//		{
+//			if(FKL_IS_BIG_INT(obj))
+//			{
+//				FklBigInt* bi=obj->u.bigInt;
+//				retval->u.str=fklNewString(sizeof(char)*(bi->num+bi->neg),NULL);
+//				fklSprintBigInt(bi,retval->u.str->size,retval->u.str->str);
+//			}
+//			else
+//			{
+//				char buf[32]={0};
+//				size_t size=snprintf(buf,32,"%ld",fklGetInt(obj));
+//				retval->u.str=fklNewString(size,buf);
+//			}
+//		}
+//	}
+//	else
+//	{
+//		if(fklNiResBp(&ap,stack))
+//			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.to-str",FKL_TOOMANYARG,runnable,exe);
+//		else if(FKL_IS_F64(obj))
+//		{
+//			char buf[64]={0};
+//			size_t size=snprintf(buf,64,"%lf",obj->u.f64);
+//			retval->u.str=fklNewString(size,buf);
+//		}
+//		else if(FKL_IS_SYM(obj))
+//		{
+//			FklString* symbol=fklGetGlobSymbolWithId(FKL_GET_SYM(obj))->symbol;
+//			retval->u.str=fklCopyString(symbol);
+//		}
+//		else if(FKL_IS_USERDATA(obj)&&obj->u.ud->t->__to_str)
+//			retval->u.str=obj->u.ud->t->__to_str(obj->u.ud->data);
+//		else
+//			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.to-str",FKL_WRONGARG,runnable,exe);
+//	}
+//	fklNiReturn(retval,&ap,stack);
+//	fklNiEnd(&ap,stack);
+//}
 
 void builtin_box(ARGL)
 {
@@ -3008,110 +3078,153 @@ static const struct SymbolFuncStruct
 	FklVMdllFunc f;
 }builtInSymbolList[]=
 {
-	{"nil",         NULL,                },
-	{"stdin",       NULL,                },
-	{"stdout",      NULL,                },
-	{"stderr",      NULL,                },
-	{"car",         builtin_car,         },
-	{"cdr",         builtin_cdr,         },
-	{"cons",        builtin_cons,        },
-	{"append",      builtin_append,      },
-	{"atom",        builtin_atom,        },
-	{"null",        builtin_null,        },
-	{"not",         builtin_not,         },
-	{"eq",          builtin_eq,          },
-	{"equal",       builtin_equal,       },
-	{"=",           builtin_eqn,         },
-	{"+",           builtin_add,         },
-	{"1+",          builtin_add_1,       },
-	{"-",           builtin_sub,         },
-	{"-1+",         builtin_sub_1,       },
-	{"*",           builtin_mul,         },
-	{"/",           builtin_div,         },
-	{"%",           builtin_rem,         },
-	{">",           builtin_gt,          },
-	{">=",          builtin_ge,          },
-	{"<",           builtin_lt,          },
-	{"<=",          builtin_le,          },
-	{"char",        builtin_char,        },
-	{"integer",     builtin_integer,     },
-	{"f64",         builtin_f64,         },
-	{"as-str",      builtin_as_str,      },
-	{"symbol",      builtin_symbol,      },
-	{"nth",         builtin_nth,         },
-	{"length",      builtin_length,      },
-	{"apply",       builtin_apply,       },
-	{"call/cc",     builtin_call_cc,     },
-	{"fopen",       builtin_fopen,       },
-	{"read",        builtin_read,        },
-	{"prin1",       builtin_prin1,       },
-	{"princ",       builtin_princ,       },
-	{"dlopen",      builtin_dlopen,      },
-	{"dlsym",       builtin_dlsym,       },
-	{"argv",        builtin_argv,        },
-	{"go",          builtin_go,          },
-	{"chanl",       builtin_chanl,       },
-	{"send",        builtin_send,        },
-	{"recv",        builtin_recv,        },
-	{"error",       builtin_error,       },
-	{"raise",       builtin_raise,       },
-	{"reverse",     builtin_reverse,     },
-	{"i32",         builtin_i32,         },
-	{"i64",         builtin_i64,         },
-	{"fclose",      builtin_fclose,      },
-	{"feof",        builtin_feof,        },
-	{"vref",        builtin_vref,        },
-	{"nthcdr",      builtin_nthcdr,      },
-	{"char?",       builtin_char_p,      },
-	{"integer?",    builtin_integer_p,   },
-	{"i32?",        builtin_i32_p,       },
-	{"i64?",        builtin_i64_p,       },
-	{"f64?",        builtin_f64_p,       },
-	{"pair?",       builtin_pair_p,      },
-	{"symbol?",     builtin_symbol_p,    },
-	{"string?",     builtin_string_p,    },
-	{"error?",      builtin_error_p,     },
-	{"procedure?",  builtin_procedure_p, },
-	{"proc?",       builtin_proc_p,      },
-	{"dlproc?",     builtin_dlproc_p,    },
-	{"vector?",     builtin_vector_p,    },
-	{"chanl?",      builtin_chanl_p,     },
-	{"dll?",        builtin_dll_p,       },
-	{"vector",      builtin_vector,      },
-	{"getdir",      builtin_getdir,      },
-	{"fgetc",       builtin_fgetc,       },
-	{"fwrite",      builtin_fwrite,      },
-	{"to-str",      builtin_to_str,      },
-	{"fgets",       builtin_fgets,       },
-	{"parse-int",   builtin_parse_int,   },
-	{"parse-f64",   builtin_parse_f64,   },
-	{"big-int?",    builtin_big_int_p,   },
-	{"big-int",     builtin_big_int,     },
-	{"set-car!",    builtin_set_car,     },
-	{"set-cdr!",    builtin_set_cdr,     },
-	{"set-nth!",    builtin_set_nth,     },
-	{"set-nthcdr!", builtin_set_nthcdr,  },
-	{"set-vref!",   builtin_set_vref,    },
-	{"list?",       builtin_list_p,      },
-	{"box",         builtin_box,         },
-	{"unbox",       builtin_unbox,       },
-	{"set-box!",    builtin_set_box,     },
-	{"cas-box!",    builtin_cas_box,     },
-	{"box?",        builtin_box_p,       },
-	{"fix-int?",    builtin_fix_int_p,   },
-	{"number?",     builtin_number_p,    },
-	{"map",         builtin_map,         },
-	{"sref",        builtin_sref,        },
-	{"set-sref!",   builtin_set_sref,    },
-	{"foreach",     builtin_foreach,     },
-	{"andmap",      builtin_andmap,      },
-	{"ormap",       builtin_ormap,       },
-	{"list",        builtin_list,        },
-	{"cas-vref!",   builtin_cas_vref,    },
-	{"memq",        builtin_memq,        },
-	{"member",      builtin_member,      },
-	{"memp",        builtin_memp,        },
-	{NULL,          NULL,                },
+	{"nil",                     NULL,                           },
+	{"stdin",                   NULL,                           },
+	{"stdout",                  NULL,                           },
+	{"stderr",                  NULL,                           },
+	{"car",                     builtin_car,                    },
+	{"cdr",                     builtin_cdr,                    },
+	{"cons",                    builtin_cons,                   },
+	{"append",                  builtin_append,                 },
+	{"atom",                    builtin_atom,                   },
+	{"null",                    builtin_null,                   },
+	{"not",                     builtin_not,                    },
+	{"eq",                      builtin_eq,                     },
+	{"equal",                   builtin_equal,                  },
+	{"=",                       builtin_eqn,                    },
+	{"+",                       builtin_add,                    },
+	{"1+",                      builtin_add_1,                  },
+	{"-",                       builtin_sub,                    },
+	{"-1+",                     builtin_sub_1,                  },
+	{"*",                       builtin_mul,                    },
+	{"/",                       builtin_div,                    },
+	{"%",                       builtin_rem,                    },
+	{">",                       builtin_gt,                     },
+	{">=",                      builtin_ge,                     },
+	{"<",                       builtin_lt,                     },
+	{"<=",                      builtin_le,                     },
+	{"char",                    builtin_char,                   },
+	{"integer",                 builtin_integer,                },
+	{"f64",                     builtin_f64,                    },
+	{"symbol",                  builtin_symbol,                 },
+	{"nth",                     builtin_nth,                    },
+	{"length",                  builtin_length,                 },
+	{"apply",                   builtin_apply,                  },
+	{"call/cc",                 builtin_call_cc,                },
+	{"fopen",                   builtin_fopen,                  },
+	{"read",                    builtin_read,                   },
+	{"prin1",                   builtin_prin1,                  },
+	{"princ",                   builtin_princ,                  },
+	{"dlopen",                  builtin_dlopen,                 },
+	{"dlsym",                   builtin_dlsym,                  },
+	{"argv",                    builtin_argv,                   },
+	{"go",                      builtin_go,                     },
+	{"chanl",                   builtin_chanl,                  },
+	{"send",                    builtin_send,                   },
+	{"recv",                    builtin_recv,                   },
+	{"error",                   builtin_error,                  },
+	{"raise",                   builtin_raise,                  },
+	{"reverse",                 builtin_reverse,                },
+	{"i32",                     builtin_i32,                    },
+	{"i64",                     builtin_i64,                    },
+	{"fclose",                  builtin_fclose,                 },
+	{"feof",                    builtin_feof,                   },
+	{"nthcdr",                  builtin_nthcdr,                 },
+	{"char?",                   builtin_char_p,                 },
+	{"integer?",                builtin_integer_p,              },
+	{"i32?",                    builtin_i32_p,                  },
+	{"i64?",                    builtin_i64_p,                  },
+	{"f64?",                    builtin_f64_p,                  },
+	{"pair?",                   builtin_pair_p,                 },
+
+	{"symbol?",                 builtin_symbol_p,               },
+	{"string->symbol",          builtin_string_to_symbol,       },
+
+	{"string?",                 builtin_string_p,               },
+	{"string",                  builtin_string,                 },
+	{"make-string",             builtin_make_string,            },
+	{"substring",               builtin_substring,              },
+	{"symbol->string",          builtin_symbol_to_string,       },
+	{"number->string",          builtin_number_to_string,       },
+	{"vector->string",          builtin_vector_to_string,       },
+	{"list->string",            builtin_list_to_string,         },
+	{"sref",                    builtin_sref,                   },
+	{"set-sref!",               builtin_set_sref,               },
+	{"fill-string!",            builtin_fill_string,            },
+
+	{"error?",                  builtin_error_p,                },
+	{"procedure?",              builtin_procedure_p,            },
+	{"proc?",                   builtin_proc_p,                 },
+	{"dlproc?",                 builtin_dlproc_p,               },
+
+	{"vector?",                 builtin_vector_p,               },
+	{"vector",                  builtin_vector,                 },
+	{"make-vector",             builtin_make_vector,            },
+	{"list->vector",            builtin_list_to_vector,         },
+	{"string->vector",          builtin_string_to_vector,       },
+	{"vref",                    builtin_vref,                   },
+	{"set-vref!",               builtin_set_vref,               },
+	{"cas-vref!",               builtin_cas_vref,               },
+	{"fill-vector!",            builtin_fill_vector,            },
+
+	{"list?",                   builtin_list_p,                 },
+	{"list",                    builtin_list,                   },
+	{"make-list",               builtin_make_list,              },
+	{"vector->list",            builtin_vector_to_list,         },
+	{"string->list",            builtin_string_to_list,         },
+
+	{"bytevector?",             builtin_bytevector_p,           },
+	{"bytevector",              builtin_bytevector,             },
+	{"make-bytevector",         builtin_make_bytevector,        },
+	{"bytevector-s8-ref",       builtin_bytevector_s8_ref,      },
+	{"bytevector-u8-ref",       builtin_bytevector_u8_ref,      },
+	{"bytevector-s16-ref",      builtin_bytevector_s16_ref,     },
+	{"bytevector-u16-ref",      builtin_bytevector_u16_ref,     },
+	{"bytevector-s32-ref",      builtin_bytevector_s32_ref,     },
+	{"bytevector-u32-ref",      builtin_bytevector_u32_ref,     },
+	{"bytevector-s64-ref",      builtin_bytevector_s64_ref,     },
+	{"bytevector-u64-ref",      builtin_bytevector_u64_ref,     },
+	{"set-bytevector-s8-ref!",  builtin_set_bytevector_s8_ref,  },
+	{"set-bytevector-u8-ref!",  builtin_set_bytevector_u8_ref,  },
+	{"set-bytevector-s16-ref!", builtin_set_bytevector_s16_ref, },
+	{"set-bytevector-u16-ref!", builtin_set_bytevector_u16_ref, },
+	{"set-bytevector-s32-ref!", builtin_set_bytevector_s32_ref, },
+	{"set-bytevector-u32-ref!", builtin_set_bytevector_u32_ref, },
+	{"set-bytevector-s64-ref!", builtin_set_bytevector_s64_ref, },
+	{"set-bytevector-u64-ref!", builtin_set_bytevector_u64_ref, },
+	{"fill-bytevector!",        builtin_fill_bytevector,        },
+
+	{"chanl?",                  builtin_chanl_p,                },
+	{"dll?",                    builtin_dll_p,                  },
+	{"getdir",                  builtin_getdir,                 },
+	{"fgetc",                   builtin_fgetc,                  },
+	{"fwrite",                  builtin_fwrite,                 },
+	{"fgets",                   builtin_fgets,                  },
+
+	{"bigint?",                 builtin_big_int_p,              },
+	{"bigint",                  builtin_big_int,                },
+	{"set-car!",                builtin_set_car,                },
+	{"set-cdr!",                builtin_set_cdr,                },
+	{"set-nth!",                builtin_set_nth,                },
+	{"set-nthcdr!",             builtin_set_nthcdr,             },
+	{"box",                     builtin_box,                    },
+	{"unbox",                   builtin_unbox,                  },
+	{"set-box!",                builtin_set_box,                },
+	{"cas-box!",                builtin_cas_box,                },
+	{"box?",                    builtin_box_p,                  },
+	{"fix-int?",                builtin_fix_int_p,              },
+
+	{"number?",                 builtin_number_p,               },
+	{"string->number",          builtin_string_to_number,       },
+
+	{"map",                     builtin_map,                    },
+	{"foreach",                 builtin_foreach,                },
+	{"andmap",                  builtin_andmap,                 },
+	{"ormap",                   builtin_ormap,                  },
+	{"memq",                    builtin_memq,                   },
+	{"member",                  builtin_member,                 },
+	{"memp",                    builtin_memp,                   },
+	{NULL,                      NULL,                           },
 };
 
 void fklInitCompEnv(FklCompEnv* curEnv)

@@ -204,7 +204,7 @@ static void (*NativeTypePrinterList[])(FILE*,void*)=
 	printVptr     ,
 };
 
-static void _mem_print(FILE* fp,void* p)
+static void _mem_print(void* p,FILE* fp)
 {
 	FklFfiMem* m=p;
 	if(fklFfiIsNativeTypeId(m->type))
@@ -230,7 +230,7 @@ static void _mem_print(FILE* fp,void* p)
 			fklPrintString(fklGetGlobSymbolWithId(item->key)->symbol,fp);
 			fputc('=',fp);
 			FklFfiMem tm={item->type,m->mem+offset};
-			_mem_print(fp,&tm);
+			_mem_print(&tm,fp);
 			size_t memberSize=fklFfiGetTypeSize(tu);
 			offset+=memberSize;
 			fputc(',',fp);
@@ -248,7 +248,7 @@ static void _mem_print(FILE* fp,void* p)
 			fklPrintString(fklGetGlobSymbolWithId(item->key)->symbol,fp);
 			fputc('=',fp);
 			FklFfiMem tm={item->type,m->mem};
-			_mem_print(fp,&tm);
+			_mem_print(&tm,fp);
 			fputc(';',fp);
 		}
 		fputc('}',fp);
@@ -260,7 +260,7 @@ static void _mem_print(FILE* fp,void* p)
 		for(uint32_t i=0;i<at->num;i++)
 		{
 			FklFfiMem tm={at->etype,m->mem+i*fklFfiGetTypeSizeWithTypeId(at->etype)};
-			_mem_print(fp,&tm);
+			_mem_print(&tm,fp);
 			fputc(',',fp);
 		}
 		fputc(']',fp);

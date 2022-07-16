@@ -89,7 +89,6 @@ typedef union FklTypeUnion
 	struct FklDefFuncType* ft;
 }FklDefTypeUnion;
 
-//typedef struct FklDefStructMember FklDefStructMember;
 typedef struct FklDefNativeType
 {
 	FklSid_t type;

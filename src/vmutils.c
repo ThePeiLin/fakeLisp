@@ -71,7 +71,7 @@ FklVMvalue* fklPopVMstack(FklVMstack* stack)
 
 FklVMvalue* fklTopGet(FklVMstack* stack)
 {
-//	pthread_rwlock_wrlock(&stack->lock);
+	pthread_rwlock_wrlock(&stack->lock);
 	FklVMvalue* r=NULL;
 	if(!(stack->tp>stack->bp))
 		r=NULL;
@@ -80,15 +80,15 @@ FklVMvalue* fklTopGet(FklVMstack* stack)
 		FklVMvalue* tmp=fklGetTopValue(stack);
 		r=tmp;
 	}
-//	pthread_rwlock_unlock(&stack->lock);
+	pthread_rwlock_unlock(&stack->lock);
 	return r;
 }
 
 void fklDecTop(FklVMstack* stack)
 {
-//	pthread_rwlock_wrlock(&stack->lock);
+	pthread_rwlock_wrlock(&stack->lock);
 	stack->tp--;
-//	pthread_rwlock_unlock(&stack->lock);
+	pthread_rwlock_unlock(&stack->lock);
 }
 
 FklVMvalue* fklCastPreEnvToVMenv(FklPreEnv* pe,FklVMvalue* prev,FklVMheap* heap)
@@ -111,18 +111,18 @@ FklVMstack* fklCopyStack(FklVMstack* stack)
 	int32_t i=0;
 	FklVMstack* tmp=(FklVMstack*)malloc(sizeof(FklVMstack));
 	FKL_ASSERT(tmp);
-//	pthread_rwlock_rdlock(&stack->lock);
+	pthread_rwlock_rdlock(&stack->lock);
 	tmp->size=stack->size;
 	tmp->tp=stack->tp;
 	tmp->bp=stack->bp;
-//	pthread_rwlock_init(&tmp->lock,NULL);
+	pthread_rwlock_init(&tmp->lock,NULL);
 	tmp->values=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*(tmp->size));
 	FKL_ASSERT(tmp->values);
 	for(;i<stack->tp;i++)
 		tmp->values[i]=stack->values[i];
 	tmp->tps=fklNewUintStackFromStack(stack->tps);
 	tmp->bps=fklNewUintStackFromStack(stack->bps);
-//	pthread_rwlock_unlock(&stack->lock);
+	pthread_rwlock_unlock(&stack->lock);
 	return tmp;
 }
 

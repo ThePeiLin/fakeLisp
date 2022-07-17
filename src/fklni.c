@@ -11,10 +11,10 @@ int fklNiResBp(uint32_t* ap,FklVMstack* stack)
 
 void fklNiResTp(FklVMstack* stack)
 {
-//	pthread_rwlock_wrlock(&stack->lock);
+	pthread_rwlock_wrlock(&stack->lock);
 	stack->tp=fklTopUintStack(stack->tps);
 	fklStackRecycle(stack);
-//	pthread_rwlock_unlock(&stack->lock);
+	pthread_rwlock_unlock(&stack->lock);
 }
 
 void fklNiSetTp(FklVMstack* stack)
@@ -40,7 +40,7 @@ void fklNiSetBp(uint64_t nbp,FklVMstack* s)
 
 void fklNiReturn(FklVMvalue* v,uint32_t* ap,FklVMstack* s)
 {
-//	pthread_rwlock_wrlock(&s->lock);
+	pthread_rwlock_wrlock(&s->lock);
 	if(s->tp>=s->size)
 	{
 		s->values=(FklVMvalue**)realloc(s->values
@@ -58,7 +58,7 @@ void fklNiReturn(FklVMvalue* v,uint32_t* ap,FklVMstack* s)
 		s->values[*ap]=v;
 	*ap+=1;
 	s->tp+=1;
-//	pthread_rwlock_unlock(&s->lock);
+	pthread_rwlock_unlock(&s->lock);
 }
 
 inline void fklNiBegin(uint32_t* ap,FklVMstack* s)
@@ -68,9 +68,9 @@ inline void fklNiBegin(uint32_t* ap,FklVMstack* s)
 
 inline void fklNiEnd(uint32_t* ap,FklVMstack* s)
 {
-//	pthread_rwlock_wrlock(&s->lock);
+	pthread_rwlock_wrlock(&s->lock);
 	s->tp=*ap;
-//	pthread_rwlock_unlock(&s->lock);
+	pthread_rwlock_unlock(&s->lock);
 	*ap=0;
 }
 

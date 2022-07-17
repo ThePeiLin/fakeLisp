@@ -163,16 +163,6 @@ void builtin_append(ARGL)
 			for(;FKL_IS_PAIR(*prev);prev=&(*prev)->u.pair->cdr);
 			*prev=fklCopyVMvalue(cur,stack,exe->heap);
 		}
-		else if(FKL_IS_STR(*prev))
-		{
-			FKL_NI_CHECK_TYPE(cur,FKL_IS_STR,"builtin.append",runnable,exe);
-			fklStringCat((FklString**)&(*prev)->u.str,cur->u.str);
-		}
-		else if(FKL_IS_VECTOR(*prev))
-		{
-			FKL_NI_CHECK_TYPE(cur,FKL_IS_VECTOR,"builtin.append",runnable,exe);
-			fklVMvecCat((FklVMvec**)&(*prev)->u.vec,cur->u.vec);
-		}
 		else
 			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.append",FKL_WRONGARG,runnable,exe);
 	}
@@ -1108,9 +1098,80 @@ void builtin_list_to_vector(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void builtin_string_to_vector(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.string->vector",FKL_TOOMANYARG,runnable,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.string->vector",FKL_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(obj,FKL_IS_STR,"builtin.string->vector",runnable,exe);
+	size_t len=obj->u.str->size;
+	FklVMvalue* r=fklNewVMvecV(len,NULL,stack,exe->heap);
+	for(size_t i=0;i<len;i++)
+		fklSetRef(&r->u.vec->base[i],FKL_MAKE_VM_CHR(obj->u.str->str[i]),exe->heap);
+	fklNiReturn(r,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_make_list(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMheap* heap=exe->heap;
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* size=fklNiGetArg(&ap,stack);
+	if(!size)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.make-vector",FKL_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(size,fklIsInt,"builtin.make-vector",runnable,exe);
+	FklVMvalue* content=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.make-vector",FKL_TOOMANYARG,runnable,exe);
+	size_t len=fklGetInt(size);
+	fklPushVMvalue(FKL_VM_NIL,stack);
+	FklVMvalue** pr=fklNiGetTopSlot(stack);
+	FklVMvalue** cur=pr;
+	FklVMvalue* t=content?content:FKL_VM_NIL;
+	for(size_t i=0;i<len;i++)
+	{
+		fklSetRef(cur,fklNewVMvalue(FKL_PAIR,fklNewVMpair(),heap),heap);
+		fklSetRef(&(*cur)->u.pair->car,t,heap);
+		cur=&(*cur)->u.pair->cdr;
+	}
+	fklNiReturn(*pr,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_string_to_list(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMheap* heap=exe->heap;
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.string->list",FKL_TOOMANYARG,runnable,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.string->list",FKL_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(obj,FKL_IS_STR,"builtin.string->list",runnable,exe);
+	fklPushVMvalue(FKL_VM_NIL,stack);
+	FklString* str=obj->u.str;
+	FklVMvalue** pr=fklNiGetTopSlot(stack);
+	FklVMvalue** cur=pr;
+	for(size_t i=0;i<str->size;i++)
+	{
+		fklSetRef(cur,fklNewVMvalue(FKL_PAIR,fklNewVMpair(),heap),heap);
+		fklSetRef(&(*cur)->u.pair->car,FKL_MAKE_VM_CHR(str->str[i]),heap);
+		cur=&(*cur)->u.pair->cdr;
+	}
+	fklNiReturn(*pr,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 void builtin_vector_to_list(ARGL)
 {
 	FKL_NI_BEGIN(exe);
+	FklVMheap* heap=exe->heap;
 	FklVMrunnable* runnable=exe->rhead;
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
@@ -1124,8 +1185,8 @@ void builtin_vector_to_list(ARGL)
 	FklVMvalue** cur=pr;
 	for(size_t i=0;i<vec->size;i++)
 	{
-		fklSetRef(cur,fklNewVMvalue(FKL_PAIR,fklNewVMpair(),exe->heap),exe->heap);
-		fklSetRef(&(*cur)->u.pair->car,vec->base[i],exe->heap);
+		fklSetRef(cur,fklNewVMvalue(FKL_PAIR,fklNewVMpair(),heap),heap);
+		fklSetRef(&(*cur)->u.pair->car,vec->base[i],heap);
 		cur=&(*cur)->u.pair->cdr;
 	}
 	fklNiReturn(*pr,&ap,stack);
@@ -1153,6 +1214,21 @@ void builtin_string(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void builtin_append_string(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* cur=fklNiGetArg(&ap,stack);
+	FklVMvalue* retval=fklNewVMvalueToStack(FKL_STR,fklNewString(0,NULL),stack,exe->heap);
+	for(;cur;cur=fklNiGetArg(&ap,stack))
+	{
+		FKL_NI_CHECK_TYPE(cur,FKL_IS_STR,"builtin.append-string",runnable,exe);
+		fklStringCat((FklString**)&retval->u.str,cur->u.str);
+	}
+	fklNiResBp(&ap,stack);
+	fklNiReturn(retval,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
 void builtin_make_string(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -1183,6 +1259,20 @@ void builtin_make_string(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void builtin_append_vector(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* retval=fklNewVMvecV(0,NULL,stack,exe->heap);;
+	for(FklVMvalue* cur=fklNiGetArg(&ap,stack);cur;cur=fklNiGetArg(&ap,stack))
+	{
+		FKL_NI_CHECK_TYPE(cur,FKL_IS_VECTOR,"builtin.append",runnable,exe);
+		fklVMvecCat((FklVMvec**)&retval->u.vec,cur->u.vec);
+	}
+	fklNiResBp(&ap,stack);
+	fklNiReturn(retval,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
 void builtin_make_vector(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -1825,9 +1915,9 @@ void builtin_fill_string(ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fill-string!",FKL_TOOMANYARG,runnable,exe);
 	if(!str||!content)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-sref!",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fill-string!",FKL_TOOFEWARG,runnable,exe);
 	if(!FKL_IS_CHR(content)||!FKL_IS_STR(str))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-sref!",FKL_WRONGARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fill-string!",FKL_WRONGARG,runnable,exe);
 	memset(str->u.str->str,FKL_GET_CHR(content),str->u.str->size);
 	fklNiReturn(str,&ap,stack);
 	fklNiEnd(&ap,stack);
@@ -1876,6 +1966,23 @@ void builtin_set_vref(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-vref!",FKL_INVALIDACCESS,runnable,exe);
 	fklSetRef(&vector->u.vec->base[index],target,exe->heap);
 	fklNiReturn(target,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_fill_vector(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* vec=fklNiGetArg(&ap,stack);
+	FklVMvalue* content=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fill-vector!",FKL_TOOMANYARG,runnable,exe);
+	if(!vec||!content)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fill-vector!",FKL_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(vec,FKL_IS_VECTOR,"builtin.fill-vector!",runnable,exe);
+	for(size_t i=0;i<vec->u.vec->size;i++)
+		fklSetRef(&vec->u.vec->base[i],content,exe->heap);
+	fklNiReturn(vec,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -3264,8 +3371,9 @@ static const struct SymbolFuncStruct
 
 	{"string?",                 builtin_string_p,               },
 	{"string",                  builtin_string,                 },
-	{"make-string",             builtin_make_string,            },
 	{"substring",               builtin_substring,              },
+	{"make-string",             builtin_make_string,            },
+	{"append-string", builtin_append_string,},
 	{"symbol->string",          builtin_symbol_to_string,       },
 	{"number->string",          builtin_number_to_string,       },
 	{"vector->string",          builtin_vector_to_string,       },
@@ -3282,19 +3390,22 @@ static const struct SymbolFuncStruct
 	{"vector?",                 builtin_vector_p,               },
 	{"vector",                  builtin_vector,                 },
 	{"make-vector",             builtin_make_vector,            },
+	{"append-vector",             builtin_append_vector,            },
 	{"subvector",               builtin_subvector,              },
 	{"list->vector",            builtin_list_to_vector,         },
-//	{"string->vector",          builtin_string_to_vector,       },
+	{"string->vector",          builtin_string_to_vector,       },
 	{"vref",                    builtin_vref,                   },
 	{"set-vref!",               builtin_set_vref,               },
 	{"cas-vref!",               builtin_cas_vref,               },
-//	{"fill-vector!",            builtin_fill_vector,            },
+	{"fill-vector!",            builtin_fill_vector,            },
 
 	{"list?",                   builtin_list_p,                 },
 	{"list",                    builtin_list,                   },
-//	{"make-list",               builtin_make_list,              },
+	{"make-list",               builtin_make_list,              },
 	{"vector->list",            builtin_vector_to_list,         },
-//	{"string->list",            builtin_string_to_list,         },
+	{"string->list",            builtin_string_to_list,         },
+	{"set-nth!",                builtin_set_nth,                },
+	{"set-nthcdr!",             builtin_set_nthcdr,             },
 
 //	{"bytevector?",             builtin_bytevector_p,           },
 //	{"bytevector",              builtin_bytevector,             },
@@ -3319,7 +3430,6 @@ static const struct SymbolFuncStruct
 //	{"set-bytevector-u64-ref!", builtin_set_bytevector_u64_ref, },
 //	{"set-bytevector-f32-ref!", builtin_set_bytevector_f32_ref, },
 //	{"set-bytevector-f64-ref!", builtin_set_bytevector_f64_ref, },
-//
 //	{"fill-bytevector!",        builtin_fill_bytevector,        },
 
 	{"chanl?",                  builtin_chanl_p,                },
@@ -3333,8 +3443,6 @@ static const struct SymbolFuncStruct
 	{"bigint",                  builtin_big_int,                },
 	{"set-car!",                builtin_set_car,                },
 	{"set-cdr!",                builtin_set_cdr,                },
-	{"set-nth!",                builtin_set_nth,                },
-	{"set-nthcdr!",             builtin_set_nthcdr,             },
 	{"box",                     builtin_box,                    },
 	{"unbox",                   builtin_unbox,                  },
 	{"set-box!",                builtin_set_box,                },

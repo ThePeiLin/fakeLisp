@@ -3,15 +3,15 @@
 (define code nil)
 
 (define (read-code fp)
-  (let loop [(s nil)
+  (let loop [(s "")
              (c (fgetc fp))]
     (if c
-      (loop (append s c) (fgetc fp))
+      (loop (append-string s (string c)) (fgetc fp))
       s)))
 (if (<= (length (argv)) 1)
   (setq code "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.")
   (setq code
-    (let* ((fp (fopen (to-str (nth 1 (argv))) "rb"))
+    (let* ((fp (fopen (nth 1 (argv)) "rb"))
            (code (read-code fp)))
       (fclose fp)
       code)))
@@ -27,10 +27,10 @@
       ((#\>) (begin
                (setq mp (1+ mp))
                (if (>= mp (length m))
-                 (setq m (append m "\x0")))))
+                 (setq m (append-string m "\x0")))))
       ((#\<) (begin
                (if (<= mp 0)
-                 (setq m (append "\x0" mp))
+                 (setq m (append-string "\x0" mp))
                  (setq mp (-1+ mp)))))
       ((#\+) (let [(c (sref m mp))]
                (set-sref! m mp (char (1+ (integer c))))))

@@ -104,7 +104,7 @@ FklVMvalue* fklNewVMvalueToStack(FklValueType type
 		,FklVMheap* heap)
 {
 	FklVMvalue* r=fklNewSaveVMvalue(type,pValue);
-	pthread_rwlock_wrlock(&stack->lock);
+//	pthread_rwlock_wrlock(&stack->lock);
 	if(stack->tp>=stack->size)
 	{
 		stack->values=(FklVMvalue**)realloc(stack->values
@@ -112,12 +112,12 @@ FklVMvalue* fklNewVMvalueToStack(FklValueType type
 		FKL_ASSERT(stack->values);
 		stack->size+=64;
 	}
-	pthread_rwlock_unlock(&stack->lock);
+//	pthread_rwlock_unlock(&stack->lock);
 	fklAddToHeap(r,heap);
-	pthread_rwlock_wrlock(&stack->lock);
+//	pthread_rwlock_wrlock(&stack->lock);
 	stack->values[stack->tp]=r;
 	stack->tp++;
-	pthread_rwlock_unlock(&stack->lock);
+//	pthread_rwlock_unlock(&stack->lock);
 	return stack->values[stack->tp-1];
 }
 

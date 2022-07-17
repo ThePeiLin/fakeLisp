@@ -24,8 +24,6 @@ static FklVMudMethodTable FklcBcMethodTable=
 	.__equal=NULL,
 	.__call=NULL,
 	.__cmp=NULL,
-	.__as_str=NULL,
-	.__to_str=NULL,
 	.__write=NULL,
 	.__atomic=NULL,
 };

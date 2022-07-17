@@ -530,9 +530,9 @@ void B_pop(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=exe->rhead;
-	pthread_rwlock_wrlock(&stack->lock);
+//	pthread_rwlock_wrlock(&stack->lock);
 	stack->tp-=1;
-	pthread_rwlock_unlock(&stack->lock);
+//	pthread_rwlock_unlock(&stack->lock);
 	runnable->cp+=sizeof(char);
 }
 
@@ -846,7 +846,7 @@ FklVMstack* fklNewVMstack(int32_t size)
 	FKL_ASSERT(tmp->values);
 	tmp->tps=fklNewUintStack(32,16);
 	tmp->bps=fklNewUintStack(32,16);
-	pthread_rwlock_init(&tmp->lock,NULL);
+//	pthread_rwlock_init(&tmp->lock,NULL);
 	return tmp;
 }
 
@@ -966,14 +966,14 @@ void fklGC_markRootToGray(FklVM* exe)
 	for(FklVMrunnable* cur=exe->rhead;cur;cur=cur->prev)
 		fklGC_toGray(cur->localenv,heap);
 	pthread_rwlock_unlock(&exe->rlock);
-	pthread_rwlock_rdlock(&stack->lock);
+//	pthread_rwlock_rdlock(&stack->lock);
 	for(uint32_t i=0;i<stack->tp;i++)
 	{
 		FklVMvalue* value=stack->values[i];
 		if(FKL_IS_PTR(value))
 			fklGC_toGray(value,heap);
 	}
-	pthread_rwlock_unlock(&stack->lock);
+//	pthread_rwlock_unlock(&stack->lock);
 	if(exe->chan)
 		fklGC_toGray(exe->chan,heap);
 }
@@ -1426,7 +1426,7 @@ FklVM* fklNewThreadCallableObjVM(FklVMrunnable* r,FklVMheap* heap,FklVMvalue* ne
 
 void fklFreeVMstack(FklVMstack* stack)
 {
-	pthread_rwlock_destroy(&stack->lock);
+//	pthread_rwlock_destroy(&stack->lock);
 	fklFreeUintStack(stack->bps);
 	fklFreeUintStack(stack->tps);
 	free(stack->values);
@@ -1518,7 +1518,7 @@ void fklCreateCallChainWithContinuation(FklVM* vm,FklVMcontinuation* cc)
 		tmpStack->values[tmpStack->tp]=stack->values[i];
 		tmpStack->tp+=1;
 	}
-	pthread_rwlock_wrlock(&stack->lock);
+//	pthread_rwlock_wrlock(&stack->lock);
 	free(stack->values);
 	fklFreeUintStack(stack->tps);
 	fklFreeUintStack(stack->bps);
@@ -1529,7 +1529,7 @@ void fklCreateCallChainWithContinuation(FklVM* vm,FklVMcontinuation* cc)
 	stack->tp=tmpStack->tp;
 	stack->tps=tmpStack->tps;
 	free(tmpStack);
-	pthread_rwlock_unlock(&stack->lock);
+//	pthread_rwlock_unlock(&stack->lock);
 	pthread_rwlock_wrlock(&vm->rlock);
 	fklDeleteCallChain(vm);
 	vm->rhead=NULL;
@@ -1589,7 +1589,7 @@ void fklGC_joinGCthread(FklVMheap* h)
 
 inline void fklPushVMvalue(FklVMvalue* v,FklVMstack* s)
 {
-	pthread_rwlock_wrlock(&s->lock);
+//	pthread_rwlock_wrlock(&s->lock);
 	if(s->tp>=s->size)
 	{
 		s->values=(FklVMvalue**)realloc(s->values
@@ -1599,7 +1599,7 @@ inline void fklPushVMvalue(FklVMvalue* v,FklVMstack* s)
 	}
 	s->values[s->tp]=v;
 	s->tp+=1;
-	pthread_rwlock_unlock(&s->lock);
+//	pthread_rwlock_unlock(&s->lock);
 }
 
 void fklFreeRunnables(FklVMrunnable* h)

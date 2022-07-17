@@ -414,8 +414,6 @@ static FklVMudMethodTable FfiMemMethodTable=
 	.__equal=_mem_equal,
 	.__call=NULL,
 	.__cmp=_mem_cmp,
-	.__as_str=NULL,
-	.__to_str=NULL,
 	.__write=NULL,
 	.__atomic=NULL,
 };
@@ -428,8 +426,6 @@ static FklVMudMethodTable FfiAtomicMemMethodTable=
 	.__equal=_mem_equal,
 	.__call=NULL,
 	.__cmp=_mem_cmp,
-	.__as_str=NULL,
-	.__to_str=NULL,
 	.__write=NULL,
 	.__atomic=NULL,
 };

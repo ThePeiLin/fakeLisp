@@ -201,8 +201,6 @@ static FklVMudMethodTable FfiProcMethodTable=
 	.__finalizer=_ffi_proc_atomic_finalizer,
 	.__equal=_mem_equal,
 	.__call=_ffi_proc_invoke,
-	.__as_str=NULL,
-	.__to_str=NULL,
 	.__write=NULL,
 	.__atomic=NULL,
 };

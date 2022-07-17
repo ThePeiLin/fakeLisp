@@ -164,11 +164,11 @@ typedef struct
 {
 	FklUintStack* bps;
 	FklUintStack* tps;
-	uint64_t tp;
+	uint64_t volatile tp;
 	uint64_t bp;
 	size_t size;
 	FklVMvalue** values;
-	pthread_rwlock_t lock;
+//	pthread_rwlock_t lock;
 }FklVMstack;
 
 typedef struct FklVM
@@ -219,7 +219,7 @@ typedef enum
 
 typedef struct FklVMheap
 {
-	FklGCstate running;
+	FklGCstate volatile running;
 	pthread_rwlock_t lock;
 	size_t volatile num;
 	uint32_t threshold;
@@ -521,9 +521,6 @@ void fklFreeRunnables(FklVMrunnable* h);
 #define FKL_MAKE_VM_CHR(C) ((FklVMptr)((((uintptr_t)(C))<<FKL_UNUSEDBITNUM)|FKL_CHR_TAG))
 #define FKL_MAKE_VM_SYM(S) ((FklVMptr)((((uintptr_t)(S))<<FKL_UNUSEDBITNUM)|FKL_SYM_TAG))
 #define FKL_MAKE_VM_PTR(P) ((FklVMptr)(((uintptr_t)(P))|FKL_PTR_TAG))
-//#define FKL_MAKE_VM_REF(P) ((FklVMptr)(((uintptr_t)(P))|FKL_REF_TAG))
-//#define FKL_MAKE_VM_MREF(S) ((FklVMptr)((((uintptr_t)(S))<<FKL_UNUSEDBITNUM)|FKL_MREF_TAG))
-//#define FKL_GET_MREF_SIZE(P) ((size_t)((uintptr_t)(P)>>FKL_UNUSEDBITNUM))
 #define FKL_GET_TAG(P) ((FklVMptrTag)(((uintptr_t)(P))&FKL_TAG_MASK))
 #define FKL_GET_PTR(P) ((FklVMptr)(((uintptr_t)(P))&FKL_PTR_MASK))
 #define FKL_GET_I32(P) ((int32_t)((uintptr_t)(P)>>FKL_UNUSEDBITNUM))
@@ -545,13 +542,10 @@ void fklFreeRunnables(FklVMrunnable* h);
 #define FKL_IS_I32(P) (FKL_GET_TAG(P)==FKL_I32_TAG)
 #define FKL_IS_CHR(P) (FKL_GET_TAG(P)==FKL_CHR_TAG)
 #define FKL_IS_SYM(P) (FKL_GET_TAG(P)==FKL_SYM_TAG)
-//#define FKL_IS_REF(P) (FKL_GET_TAG(P)==FKL_REF_TAG)
-//#define FKL_IS_MREF(P) (FKL_GET_TAG(P)==FKL_MREF_TAG)
 #define FKL_IS_I64(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_I64)
 #define FKL_IS_USERDATA(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_USERDATA)
 #define FKL_IS_BIG_INT(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_BIG_INT)
 #define FKL_IS_BOX(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_BOX)
-//#define FKL_FREE_CHF(P) (free(FKL_GET_PTR(P)))
 
 #ifdef __cplusplus
 }

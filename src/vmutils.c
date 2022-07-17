@@ -554,6 +554,9 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 					case FKL_STR:
 						fwrite(v->u.str->str,v->u.str->size,1,fp);
 						break;
+					case FKL_VECTOR:
+						fklPrintBytevector(v->u.bvec,fp);
+						break;
 					case FKL_PROC:
 						if(v->u.proc->sid)
 						{
@@ -608,6 +611,7 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 				}
 			}
 		default:
+			FKL_ASSERT(0);
 			break;
 	}
 }
@@ -629,74 +633,82 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 		case FKL_SYM_TAG:
 			fklPrintRawSymbol(fklGetGlobSymbolWithId(FKL_GET_SYM(v))->symbol,fp);
 			break;
-		default:
-			switch(v->type)
+		case FKL_PTR_TAG:
 			{
-				case FKL_F64:
-					fprintf(fp,"%lf",v->u.f64);
-					break;
-				case FKL_I64:
-					fprintf(fp,"%ld",v->u.i64);
-					break;
-				case FKL_STR:
-					fklPrintRawString(v->u.str,fp);
-					break;
-				case FKL_PROC:
-					if(v->u.proc->sid)
-					{
-						fprintf(fp,"<#proc: ");
-						fklPrintString(fklGetGlobSymbolWithId(v->u.proc->sid)->symbol,fp);
-						fputc('>',fp);
-					}					else
-						fputs("#<proc>",fp);
-					break;
-				case FKL_CONT:
-					fputs("#<continuation>",fp);
-					break;
-				case FKL_CHAN:
-					fputs("#<chanl>",fp);
-					break;
-				case FKL_FP:
-					fputs("#<fp>",fp);
-					break;
-				case FKL_DLL:
-					fputs("#<dll>",fp);
-					break;
-				case FKL_DLPROC:
-					if(v->u.dlproc->sid){
-						fprintf(fp,"<#dlproc: ");
-						fklPrintString(fklGetGlobSymbolWithId(v->u.dlproc->sid)->symbol,fp);
-						fputc('>',fp);
-					}
-					else
-						fputs("#<dlproc>",fp);
-					break;
-				case FKL_ERR:
-					fprintf(fp,"#<err w:");
-					fklPrintString(v->u.err->who,fp);
-					fprintf(fp," t:");
-					fklPrintString(fklGetGlobSymbolWithId(v->u.err->type)->symbol,fp);
-					fprintf(fp," m:");
-					fklPrintString(v->u.err->message,fp);
-					fprintf(fp,">");
-					break;
-				case FKL_BIG_INT:
-					fklPrintBigInt(v->u.bigInt,fp);
-					break;
-				case FKL_USERDATA:
-					if(v->u.ud->t->__prin1)
-						v->u.ud->t->__prin1(v->u.ud->data,fp);
-					else
-					{
-						fprintf(fp,"#<");
-						fklPrintString(fklGetGlobSymbolWithId(v->u.ud->type)->symbol,fp);
-						fprintf(fp,":%p>",v->u.ud);
-					}
-					break;
-				default:
-					fputs("#<unknown>",fp);
-					break;
+				switch(v->type)
+				{
+					case FKL_F64:
+						fprintf(fp,"%lf",v->u.f64);
+						break;
+					case FKL_I64:
+						fprintf(fp,"%ld",v->u.i64);
+						break;
+					case FKL_STR:
+						fklPrintRawString(v->u.str,fp);
+						break;
+					case FKL_VECTOR:
+						fklPrintBytevector(v->u.bvec,fp);
+						break;
+					case FKL_PROC:
+						if(v->u.proc->sid)
+						{
+							fprintf(fp,"<#proc: ");
+							fklPrintString(fklGetGlobSymbolWithId(v->u.proc->sid)->symbol,fp);
+							fputc('>',fp);
+						}					else
+							fputs("#<proc>",fp);
+						break;
+					case FKL_CONT:
+						fputs("#<continuation>",fp);
+						break;
+					case FKL_CHAN:
+						fputs("#<chanl>",fp);
+						break;
+					case FKL_FP:
+						fputs("#<fp>",fp);
+						break;
+					case FKL_DLL:
+						fputs("#<dll>",fp);
+						break;
+					case FKL_DLPROC:
+						if(v->u.dlproc->sid){
+							fprintf(fp,"<#dlproc: ");
+							fklPrintString(fklGetGlobSymbolWithId(v->u.dlproc->sid)->symbol,fp);
+							fputc('>',fp);
+						}
+						else
+							fputs("#<dlproc>",fp);
+						break;
+					case FKL_ERR:
+						fprintf(fp,"#<err w:");
+						fklPrintString(v->u.err->who,fp);
+						fprintf(fp," t:");
+						fklPrintString(fklGetGlobSymbolWithId(v->u.err->type)->symbol,fp);
+						fprintf(fp," m:");
+						fklPrintString(v->u.err->message,fp);
+						fprintf(fp,">");
+						break;
+					case FKL_BIG_INT:
+						fklPrintBigInt(v->u.bigInt,fp);
+						break;
+					case FKL_USERDATA:
+						if(v->u.ud->t->__prin1)
+							v->u.ud->t->__prin1(v->u.ud->data,fp);
+						else
+						{
+							fprintf(fp,"#<");
+							fklPrintString(fklGetGlobSymbolWithId(v->u.ud->type)->symbol,fp);
+							fprintf(fp,":%p>",v->u.ud);
+						}
+						break;
+					default:
+						fputs("#<unknown>",fp);
+						break;
+				}
 			}
+		default:
+			FKL_ASSERT(0);
+			break;
 	}
 }
 

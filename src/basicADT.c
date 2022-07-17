@@ -326,6 +326,29 @@ FklBigInt* fklNewBigInt(int64_t v)
 	return t;
 }
 
+FklBigInt* fklNewBigIntU(uint64_t v)
+{
+	if(v==0)
+		return fklNewBigInt0();
+	FklBigInt* t=(FklBigInt*)malloc(sizeof(FklBigInt));
+	FKL_ASSERT(t);
+	t->neg=0;
+	t->num=floor(log2(v)/log2(FKL_BIG_INT_RADIX))+1;
+	if(t->num==0)
+		t->num=1;
+	t->size=t->num;
+	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*t->num);
+	FKL_ASSERT(t->digits);
+	for(uint64_t i=0;i<t->num;i++)
+	{
+		t->digits[i]=v%FKL_BIG_INT_RADIX;
+		if(t->neg)
+			t->digits[i]*=-1;
+		v/=FKL_BIG_INT_RADIX;
+	}
+	return t;
+}
+
 FklBigInt* fklNewBigInt0(void)
 {
 	FklBigInt* t=(FklBigInt*)malloc(sizeof(FklBigInt));

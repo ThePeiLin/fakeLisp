@@ -107,6 +107,7 @@ typedef struct FklVMvalue
 		double f64;
 		int64_t i64;
 		struct FklString* str;
+		struct FklBytevector* bvec;
 		struct FklVMproc* proc;
 		FklVMdllHandle dll;
 		struct FklVMdlproc* dlproc;
@@ -537,6 +538,7 @@ void fklFreeRunnables(FklVMrunnable* h);
 #define FKL_IS_PROC(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_PROC)
 #define FKL_IS_DLPROC(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_DLPROC)
 #define FKL_IS_VECTOR(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_VECTOR)
+#define FKL_IS_BYTEVECTOR(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_BYTEVECTOR)
 #define FKL_IS_ERR(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_ERR)
 #define FKL_IS_CONT(P) (FKL_GET_TAG(P)==FKL_PTR_TAG&&(P)->type==FKL_CONT)
 #define FKL_IS_I32(P) (FKL_GET_TAG(P)==FKL_I32_TAG)

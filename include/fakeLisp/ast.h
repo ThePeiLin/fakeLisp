@@ -27,6 +27,7 @@ typedef enum{
 	FKL_ENV,
 	FKL_PAIR,
 	FKL_BOX,
+	FKL_BYTEVECTOR,
 	FKL_USERDATA,
 	FKL_ATM,
 }FklValueType;

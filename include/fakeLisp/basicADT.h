@@ -31,6 +31,16 @@ FklString* fklStringAppend(const FklString*,const FklString*);
 void fklFreeStringArray(FklString**,uint32_t num);
 void fklWriteStringToCstr(char*,const FklString*);
 
+typedef struct FklBytevector
+{
+	uint64_t size;
+	uint8_t ptr[];
+}FklBytevector;
+
+FklBytevector* fklNewBytevector(size_t,const uint8_t*);
+FklBytevector* fklCopyBytevector(const FklBytevector*);
+void fklBytevectorCat(FklBytevector**,const FklBytevector*);
+
 typedef struct FklHashTableNode
 {
 	void* item;
@@ -146,6 +156,7 @@ typedef struct FklBigInt{
 #define FKL_IS_0_BIG_INT(I) ((I)->num==1&&(I)->digits[0]==0)
 #define FKL_IS_1_BIG_INT(I) ((I)->num==1&&(I)->neg==0&&(I)->digits[0]==1)
 FklBigInt* fklNewBigInt(int64_t v);
+FklBigInt* fklNewBigIntU(uint64_t v);
 FklBigInt* fklNewBigIntFromCstr(const char* str);
 FklBigInt* fklNewBigIntFromMem(const void* mem,size_t size);
 FklBigInt* fklNewBigIntFromString(const FklString*);

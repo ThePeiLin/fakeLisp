@@ -153,6 +153,8 @@ FklVMvalue* fklNewSaveVMvalue(FklValueType type,void* pValue)
 						if(pValue)
 							tmp->u.i64=getI64FromByteCode(pValue);
 						break;
+					case FKL_BYTEVECTOR:
+						tmp->u.bytevec=pValue;break;
 					case FKL_STR:
 						tmp->u.str=pValue;break;
 					case FKL_PAIR:
@@ -257,12 +259,20 @@ int fklVMvaluecmp(FklVMvalue* fir,FklVMvalue* sec)
 				case FKL_STR:
 					r=!fklStringcmp(root1->u.str,root2->u.str);
 					break;
+				case FKL_BYTEVECTOR:
+					r=!fklBytevectorcmp(root1->u.bytevec,root2->u.bytevec);
+					break;
 				case FKL_PAIR:
 					r=1;
 					fklPushPtrStack(root1->u.pair->car,s1);
 					fklPushPtrStack(root1->u.pair->cdr,s1);
 					fklPushPtrStack(root2->u.pair->car,s2);
 					fklPushPtrStack(root2->u.pair->cdr,s2);
+					break;
+				case FKL_BOX:
+					r=1;
+					fklPushPtrStack(root1->u.box,s1);
+					fklPushPtrStack(root2->u.box,s1);
 					break;
 				case FKL_VECTOR:
 					if(root1->u.vec->size!=root2->u.vec->size)

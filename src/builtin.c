@@ -1080,6 +1080,34 @@ void builtin_integer(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void builtin_char_to_integer(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.char->integer",FKL_TOOMANYARG,runnable,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.char->integer",FKL_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(obj,FKL_IS_CHR,"builtin.char->integer",runnable,exe);
+	fklNiReturn(FKL_MAKE_VM_I32(FKL_GET_CHR(obj)),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_integer_to_char(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.integer->char",FKL_TOOMANYARG,runnable,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.integer->char",FKL_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(obj,fklIsInt,"builtin.integer->char",runnable,exe);
+	fklNiReturn(FKL_MAKE_VM_CHR(fklGetInt(obj)),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 void builtin_list_to_vector(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -1168,6 +1196,58 @@ void builtin_string_to_list(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void builtin_bytevector_to_s8_list(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMheap* heap=exe->heap;
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.bytevector->s8-list",FKL_TOOMANYARG,runnable,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.bytevector->s8-list",FKL_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(obj,FKL_IS_BYTEVECTOR,"builtin.bytevector->s8-list",runnable,exe);
+	fklPushVMvalue(FKL_VM_NIL,stack);
+	size_t size=obj->u.bvec->size;
+	int8_t* s8a=(int8_t*)obj->u.bvec->ptr;
+	FklVMvalue** pr=fklNiGetTopSlot(stack);
+	FklVMvalue** cur=pr;
+	for(size_t i=0;i<size;i++)
+	{
+		fklSetRef(cur,fklNewVMvalue(FKL_PAIR,fklNewVMpair(),heap),heap);
+		fklSetRef(&(*cur)->u.pair->car,FKL_MAKE_VM_I32(s8a[i]),heap);
+		cur=&(*cur)->u.pair->cdr;
+	}
+	fklNiReturn(*pr,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_bytevector_to_u8_list(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMheap* heap=exe->heap;
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.bytevector->s8-list",FKL_TOOMANYARG,runnable,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.bytevector->s8-list",FKL_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(obj,FKL_IS_BYTEVECTOR,"builtin.bytevector->s8-list",runnable,exe);
+	fklPushVMvalue(FKL_VM_NIL,stack);
+	size_t size=obj->u.bvec->size;
+	uint8_t* u8a=obj->u.bvec->ptr;
+	FklVMvalue** pr=fklNiGetTopSlot(stack);
+	FklVMvalue** cur=pr;
+	for(size_t i=0;i<size;i++)
+	{
+		fklSetRef(cur,fklNewVMvalue(FKL_PAIR,fklNewVMpair(),heap),heap);
+		fklSetRef(&(*cur)->u.pair->car,FKL_MAKE_VM_I32(u8a[i]),heap);
+		cur=&(*cur)->u.pair->cdr;
+	}
+	fklNiReturn(*pr,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 void builtin_vector_to_list(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -1223,12 +1303,29 @@ void builtin_append_string(ARGL)
 	for(;cur;cur=fklNiGetArg(&ap,stack))
 	{
 		FKL_NI_CHECK_TYPE(cur,FKL_IS_STR,"builtin.append-string",runnable,exe);
-		fklStringCat((FklString**)&retval->u.str,cur->u.str);
+		fklStringCat(&retval->u.str,cur->u.str);
 	}
 	fklNiResBp(&ap,stack);
 	fklNiReturn(retval,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
+
+void builtin_append_bytevector(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* cur=fklNiGetArg(&ap,stack);
+	FklVMvalue* retval=fklNewVMvalueToStack(FKL_STR,fklNewString(0,NULL),stack,exe->heap);
+	for(;cur;cur=fklNiGetArg(&ap,stack))
+	{
+		FKL_NI_CHECK_TYPE(cur,FKL_IS_STR,"builtin.append-bytevector",runnable,exe);
+		fklBytevectorCat(&retval->u.bvec,cur->u.bvec);
+	}
+	fklNiResBp(&ap,stack);
+	fklNiReturn(retval,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 void builtin_make_string(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -1247,12 +1344,8 @@ void builtin_make_string(ARGL)
 	char ch=0;
 	if(content)
 	{
-		if(!fklIsInt(content)&&!FKL_IS_CHR(content))
-			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.make-string",FKL_WRONGARG,runnable,exe);
-		if(FKL_IS_CHR(content))
-			ch=FKL_GET_CHR(content);
-		else
-			ch=fklGetInt(content);
+		FKL_NI_CHECK_TYPE(content,FKL_IS_CHR,"builtin.make-string",runnable,exe);
+		ch=FKL_GET_CHR(content);
 	}
 	memset(str->str,ch,len);
 	fklNiReturn(r,&ap,stack);
@@ -1464,6 +1557,19 @@ void builtin_vector_to_string(ARGL)
 		FKL_NI_CHECK_TYPE(vec->u.vec->base[i],FKL_IS_CHR,"builtin.vector->string",runnable,exe);
 		r->u.str->str[i]=FKL_GET_CHR(vec->u.vec->base[i]);
 	}
+	fklNiReturn(r,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_bytevector_to_string(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* vec=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.vector->string",FKL_TOOMANYARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(vec,FKL_IS_BYTEVECTOR,"builtin.vector->string",runnable,exe);
+	FklVMvalue* r=fklNewVMvalueToStack(FKL_STR,fklNewString(vec->u.bvec->size,(char*)vec->u.bvec->ptr),stack,exe->heap);
 	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -1862,23 +1968,169 @@ void builtin_sref(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
-	FklVMvalue* vector=fklNiGetArg(&ap,stack);
+	FklVMvalue* str=fklNiGetArg(&ap,stack);
 	FklVMvalue* place=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sref",FKL_TOOMANYARG,runnable,exe);
-	if(!place||!vector)
+	if(!place||!str)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sref",FKL_TOOFEWARG,runnable,exe);
-	if(!fklIsInt(place)||!FKL_IS_STR(vector))
+	if(!fklIsInt(place)||!FKL_IS_STR(str))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sref",FKL_WRONGARG,runnable,exe);
 	int64_t index=fklGetInt(place);
-	size_t size=vector->u.str->size;
+	size_t size=str->u.str->size;
 	if(index<0||index>=size)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sref",FKL_INVALIDACCESS,runnable,exe);
-	if(index>=vector->u.str->size)
+	if(index>=str->u.str->size)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sref",FKL_INVALIDACCESS,runnable,exe);
-	fklNiReturn(FKL_MAKE_VM_CHR(vector->u.str->str[index]),&ap,stack);
+	fklNiReturn(FKL_MAKE_VM_CHR(str->u.str->str[index]),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
+
+#define BV_LT_U64_REF(TYPE,WHO) {\
+	FKL_NI_BEGIN(exe);\
+	FklVMrunnable* runnable=exe->rhead;\
+	FklVMvalue* bvec=fklNiGetArg(&ap,stack);\
+	FklVMvalue* place=fklNiGetArg(&ap,stack);\
+	if(fklNiResBp(&ap,stack))\
+		FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_TOOMANYARG,runnable,exe);\
+	if(!place||!bvec)\
+		FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_TOOFEWARG,runnable,exe);\
+	if(!fklIsInt(place)||!FKL_IS_BYTEVECTOR(bvec))\
+		FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_WRONGARG,runnable,exe);\
+	int64_t index=fklGetInt(place);\
+	size_t size=bvec->u.bvec->size;\
+	TYPE r=0;\
+	if(index<0||index>=size||size-index<sizeof(r))\
+		FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_INVALIDACCESS,runnable,exe);\
+	for(size_t i=0;i<sizeof(r);i++)\
+		((uint8_t*)&r)[i]=bvec->u.bvec->ptr[index+i];\
+	fklNiReturn(fklMakeVMint(r,stack,exe->heap),&ap,stack);\
+	fklNiEnd(&ap,stack);\
+}
+
+void builtin_bvi8ref(ARGL) BV_LT_U64_REF(int8_t,"builtin.bvi8ref")
+void builtin_bvi16ref(ARGL) BV_LT_U64_REF(int16_t,"builtin.bvi16ref")
+void builtin_bvi32ref(ARGL) BV_LT_U64_REF(int32_t,"builtin.bvi32ref")
+void builtin_bvi64ref(ARGL) BV_LT_U64_REF(int64_t,"builtin.bvi64ref")
+
+void builtin_bvu8ref(ARGL) BV_LT_U64_REF(uint8_t,"builtin.bvu8ref")
+void builtin_bvu16ref(ARGL) BV_LT_U64_REF(uint16_t,"builtin.bvu16ref")
+void builtin_bvu32ref(ARGL) BV_LT_U64_REF(uint32_t,"builtin.bvu32ref")
+void builtin_bvu64ref(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* bvec=fklNiGetArg(&ap,stack);
+	FklVMvalue* place=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.bvu64ref",FKL_TOOMANYARG,runnable,exe);
+	if(!place||!bvec)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.bvu64ref",FKL_TOOFEWARG,runnable,exe);
+	if(!fklIsInt(place)||!FKL_IS_BYTEVECTOR(bvec))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.bvu64ref",FKL_WRONGARG,runnable,exe);
+	int64_t index=fklGetInt(place);
+	size_t size=bvec->u.bvec->size;
+	uint64_t r=0;
+	if(index<0||index>=size||size-index<sizeof(r))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.bvu64ref",FKL_INVALIDACCESS,runnable,exe);
+	for(size_t i=0;i<sizeof(r);i++)
+		((uint8_t*)&r)[i]=bvec->u.bvec->ptr[index+i];
+	if(r>=INT64_MAX)
+		fklNiReturn(fklNewVMvalueToStack(FKL_BIG_INT,fklNewBigIntU(r),stack,exe->heap),&ap,stack);
+	else
+		fklNiReturn(fklMakeVMint(r,stack,exe->heap),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+#undef BV_LT_U64_REF
+
+#define BV_F_REF(TYPE,WHO) {\
+	FKL_NI_BEGIN(exe);\
+	FklVMrunnable* runnable=exe->rhead;\
+	FklVMvalue* bvec=fklNiGetArg(&ap,stack);\
+	FklVMvalue* place=fklNiGetArg(&ap,stack);\
+	if(fklNiResBp(&ap,stack))\
+		FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_TOOMANYARG,runnable,exe);\
+	if(!place||!bvec)\
+		FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_TOOFEWARG,runnable,exe);\
+	if(!fklIsInt(place)||!FKL_IS_BYTEVECTOR(bvec))\
+		FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_WRONGARG,runnable,exe);\
+	int64_t index=fklGetInt(place);\
+	size_t size=bvec->u.bvec->size;\
+	TYPE r=0;\
+	if(index<0||index>=size||size-index<sizeof(r))\
+		FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_INVALIDACCESS,runnable,exe);\
+	for(size_t i=0;i<sizeof(r);i++)\
+		((uint8_t*)&r)[i]=bvec->u.bvec->ptr[index+i];\
+	FklVMvalue* f=fklNewVMvalueToStack(FKL_F64,NULL,stack,exe->heap);\
+	f->u.f64=r;\
+	fklNiReturn(f,&ap,stack);\
+	fklNiEnd(&ap,stack);\
+}
+
+void builtin_bvf32ref(ARGL) BV_F_REF(float,"builtin.bvf32ref")
+void builtin_bvf64ref(ARGL) BV_F_REF(double,"builtin.bvf32ref")
+#undef BV_F_REF
+
+#define SET_BV_REF(TYPE,WHO) {\
+	FKL_NI_BEGIN(exe);\
+	FklVMrunnable* runnable=exe->rhead;\
+	FklVMvalue* bvec=fklNiGetArg(&ap,stack);\
+	FklVMvalue* place=fklNiGetArg(&ap,stack);\
+	FklVMvalue* target=fklNiGetArg(&ap,stack);\
+	if(fklNiResBp(&ap,stack))\
+		FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_TOOMANYARG,runnable,exe);\
+	if(!place||!bvec||!target)\
+		FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_TOOFEWARG,runnable,exe);\
+	if(!fklIsInt(place)||!FKL_IS_BYTEVECTOR(bvec)||!fklIsInt(target))\
+		FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_WRONGARG,runnable,exe);\
+	int64_t index=fklGetInt(place);\
+	size_t size=bvec->u.bvec->size;\
+	TYPE r=fklGetInt(target);\
+	if(index<0||index>=size||size-index<sizeof(r))\
+		FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_INVALIDACCESS,runnable,exe);\
+	for(size_t i=0;i<sizeof(r);i++)\
+		bvec->u.bvec->ptr[index+i]=((uint8_t*)&r)[i];\
+	fklNiReturn(target,&ap,stack);\
+	fklNiEnd(&ap,stack);\
+}
+
+void builtin_set_bvi8ref(ARGL) SET_BV_REF(int8_t,"builtin.set-bvi8ref!")
+void builtin_set_bvi16ref(ARGL) SET_BV_REF(int16_t,"builtin.set-bvi16ref!")
+void builtin_set_bvi32ref(ARGL) SET_BV_REF(int32_t,"builtin.set-bvi32ref!")
+void builtin_set_bvi64ref(ARGL) SET_BV_REF(int64_t,"builtin.set-bvi64ref!")
+
+void builtin_set_bvu8ref(ARGL) SET_BV_REF(uint8_t,"builtin.set-bvu8ref!")
+void builtin_set_bvu16ref(ARGL) SET_BV_REF(uint16_t,"builtin.set-bvu16ref!")
+void builtin_set_bvu32ref(ARGL) SET_BV_REF(uint32_t,"builtin.set-bvu32ref!")
+void builtin_set_bvu64ref(ARGL) SET_BV_REF(uint64_t,"builtin.set-bvu64ref!")
+#undef SET_BV_IU_REF
+
+#define SET_BV_F_REF(TYPE,WHO) {\
+	FKL_NI_BEGIN(exe);\
+	FklVMrunnable* runnable=exe->rhead;\
+	FklVMvalue* bvec=fklNiGetArg(&ap,stack);\
+	FklVMvalue* place=fklNiGetArg(&ap,stack);\
+	FklVMvalue* target=fklNiGetArg(&ap,stack);\
+	if(fklNiResBp(&ap,stack))\
+		FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_TOOMANYARG,runnable,exe);\
+	if(!place||!bvec||!target)\
+		FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_TOOFEWARG,runnable,exe);\
+	if(!fklIsInt(place)||!FKL_IS_BYTEVECTOR(bvec)||!FKL_IS_F64(target))\
+		FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_WRONGARG,runnable,exe);\
+	int64_t index=fklGetInt(place);\
+	size_t size=bvec->u.bvec->size;\
+	TYPE r=target->u.f64;\
+	if(index<0||index>=size||size-index<sizeof(r))\
+		FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_INVALIDACCESS,runnable,exe);\
+	for(size_t i=0;i<sizeof(r);i++)\
+		bvec->u.bvec->ptr[index+i]=((uint8_t*)&r)[i];\
+	fklNiReturn(target,&ap,stack);\
+	fklNiEnd(&ap,stack);\
+}
+
+void builtin_set_bvf32ref(ARGL) SET_BV_F_REF(float,"builtin.set-bvf32ref!")
+void builtin_set_bvf64ref(ARGL) SET_BV_F_REF(double,"builtin.set-bvf64ref!")
+#undef SET_BV_F_REF
 
 void builtin_set_sref(ARGL)
 {
@@ -1920,6 +2172,23 @@ void builtin_fill_string(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fill-string!",FKL_WRONGARG,runnable,exe);
 	memset(str->u.str->str,FKL_GET_CHR(content),str->u.str->size);
 	fklNiReturn(str,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_fill_bytevector(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* bvec=fklNiGetArg(&ap,stack);
+	FklVMvalue* content=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fill-bytevector!",FKL_TOOMANYARG,runnable,exe);
+	if(!bvec||!content)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fill-bytevector!",FKL_TOOFEWARG,runnable,exe);
+	if(!fklIsInt(content)||!FKL_IS_STR(bvec))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fill-bytevector!",FKL_WRONGARG,runnable,exe);
+	memset(bvec->u.bvec->ptr,fklGetInt(content),bvec->u.bvec->size);
+	fklNiReturn(bvec,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -3257,6 +3526,53 @@ void builtin_cas_box(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void builtin_bytevector(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMheap* heap=exe->heap;
+	FklVMrunnable* runnable=exe->rhead;
+	size_t size=ap-stack->bp;
+	FklVMvalue* r=fklNewVMvalueToStack(FKL_BYTEVECTOR,fklNewBytevector(size,NULL),stack,heap);
+	FklBytevector* bytevec=r->u.bvec;
+	size_t i=0;
+	for(FklVMvalue* cur=fklNiGetArg(&ap,stack)
+			;cur!=NULL
+			;cur=fklNiGetArg(&ap,stack),i++)
+	{
+		FKL_NI_CHECK_TYPE(cur,fklIsInt,"builtin.bytevector",runnable,exe);
+		bytevec->ptr[i]=fklGetInt(cur);
+	}
+	fklNiResBp(&ap,stack);
+	fklNiReturn(r,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_make_bytevector(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMheap* heap=exe->heap;
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* size=fklNiGetArg(&ap,stack);
+	if(!size)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.make-bytevector",FKL_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(size,fklIsInt,"builtin.make-bytevector",runnable,exe);
+	FklVMvalue* content=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.make-bytevector",FKL_TOOMANYARG,runnable,exe);
+	size_t len=fklGetInt(size);
+	FklVMvalue* r=fklNewVMvalueToStack(FKL_BYTEVECTOR,fklNewBytevector(len,NULL),stack,heap);
+	FklBytevector* bytevec=r->u.bvec;
+	uint8_t u_8=0;
+	if(content)
+	{
+		FKL_NI_CHECK_TYPE(content,fklIsInt,"builtin.make-bytevector",runnable,exe);
+		u_8=fklGetInt(content);
+	}
+	memset(bytevec->ptr,u_8,len);
+	fklNiReturn(r,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 #define PREDICATE(condtion,err_infor) {\
 	FKL_NI_BEGIN(exe);\
 	FklVMrunnable* runnable=exe->rhead;\
@@ -3290,6 +3606,7 @@ void builtin_procedure_p(ARGL) PREDICATE(FKL_IS_PROC(val)||FKL_IS_DLPROC(val),"b
 void builtin_proc_p(ARGL) PREDICATE(FKL_IS_PROC(val),"builtin.proc?")
 void builtin_dlproc_p(ARGL) PREDICATE(FKL_IS_DLPROC(val),"builtin.dlproc?")
 void builtin_vector_p(ARGL) PREDICATE(FKL_IS_VECTOR(val),"builtin.vector?")
+void builtin_bytevector_p(ARGL) PREDICATE(FKL_IS_BYTEVECTOR(val),"builtin.bytevector?")
 void builtin_chanl_p(ARGL) PREDICATE(FKL_IS_CHAN(val),"builtin.chanl?")
 void builtin_dll_p(ARGL) PREDICATE(FKL_IS_DLL(val),"builtin.dll?")
 void builtin_big_int_p(ARGL) PREDICATE(FKL_IS_BIG_INT(val),"builtin.big-int?")
@@ -3307,160 +3624,167 @@ static const struct SymbolFuncStruct
 	FklVMdllFunc f;
 }builtInSymbolList[]=
 {
-	{"nil",                     NULL,                           },
-	{"stdin",                   NULL,                           },
-	{"stdout",                  NULL,                           },
-	{"stderr",                  NULL,                           },
-	{"car",                     builtin_car,                    },
-	{"cdr",                     builtin_cdr,                    },
-	{"cons",                    builtin_cons,                   },
-	{"append",                  builtin_append,                 },
-	{"atom",                    builtin_atom,                   },
-	{"null",                    builtin_null,                   },
-	{"not",                     builtin_not,                    },
-	{"eq",                      builtin_eq,                     },
-	{"equal",                   builtin_equal,                  },
-	{"=",                       builtin_eqn,                    },
-	{"+",                       builtin_add,                    },
-	{"1+",                      builtin_add_1,                  },
-	{"-",                       builtin_sub,                    },
-	{"-1+",                     builtin_sub_1,                  },
-	{"*",                       builtin_mul,                    },
-	{"/",                       builtin_div,                    },
-	{"%",                       builtin_rem,                    },
-	{">",                       builtin_gt,                     },
-	{">=",                      builtin_ge,                     },
-	{"<",                       builtin_lt,                     },
-	{"<=",                      builtin_le,                     },
-	{"char",                    builtin_char,                   },
-	{"integer",                 builtin_integer,                },
-	{"f64",                     builtin_f64,                    },
-	{"symbol",                  builtin_symbol,                 },
-	{"nth",                     builtin_nth,                    },
-	{"length",                  builtin_length,                 },
-	{"apply",                   builtin_apply,                  },
-	{"call/cc",                 builtin_call_cc,                },
-	{"fopen",                   builtin_fopen,                  },
-	{"read",                    builtin_read,                   },
-	{"prin1",                   builtin_prin1,                  },
-	{"princ",                   builtin_princ,                  },
-	{"dlopen",                  builtin_dlopen,                 },
-	{"dlsym",                   builtin_dlsym,                  },
-	{"argv",                    builtin_argv,                   },
-	{"go",                      builtin_go,                     },
-	{"chanl",                   builtin_chanl,                  },
-	{"send",                    builtin_send,                   },
-	{"recv",                    builtin_recv,                   },
-	{"error",                   builtin_error,                  },
-	{"raise",                   builtin_raise,                  },
-	{"reverse",                 builtin_reverse,                },
-	{"i32",                     builtin_i32,                    },
-	{"i64",                     builtin_i64,                    },
-	{"fclose",                  builtin_fclose,                 },
-	{"feof",                    builtin_feof,                   },
-	{"nthcdr",                  builtin_nthcdr,                 },
-	{"char?",                   builtin_char_p,                 },
-	{"integer?",                builtin_integer_p,              },
-	{"i32?",                    builtin_i32_p,                  },
-	{"i64?",                    builtin_i64_p,                  },
-	{"f64?",                    builtin_f64_p,                  },
-	{"pair?",                   builtin_pair_p,                 },
+	{"nil",                 NULL,                          },
+	{"stdin",               NULL,                          },
+	{"stdout",              NULL,                          },
+	{"stderr",              NULL,                          },
+	{"car",                 builtin_car,                   },
+	{"cdr",                 builtin_cdr,                   },
+	{"cons",                builtin_cons,                  },
+	{"append",              builtin_append,                },
+	{"atom",                builtin_atom,                  },
+	{"null",                builtin_null,                  },
+	{"not",                 builtin_not,                   },
+	{"eq",                  builtin_eq,                    },
+	{"equal",               builtin_equal,                 },
+	{"=",                   builtin_eqn,                   },
+	{"+",                   builtin_add,                   },
+	{"1+",                  builtin_add_1,                 },
+	{"-",                   builtin_sub,                   },
+	{"-1+",                 builtin_sub_1,                 },
+	{"*",                   builtin_mul,                   },
+	{"/",                   builtin_div,                   },
+	{"%",                   builtin_rem,                   },
+	{">",                   builtin_gt,                    },
+	{">=",                  builtin_ge,                    },
+	{"<",                   builtin_lt,                    },
+	{"<=",                  builtin_le,                    },
+//	{"char",                builtin_char,                  },
+	{"integer",             builtin_integer,               },
+	{"f64",                 builtin_f64,                   },
+	{"symbol",              builtin_symbol,                },
+	{"nth",                 builtin_nth,                   },
+	{"length",              builtin_length,                },
+	{"apply",               builtin_apply,                 },
+	{"call/cc",             builtin_call_cc,               },
+	{"fopen",               builtin_fopen,                 },
+	{"read",                builtin_read,                  },
+	{"prin1",               builtin_prin1,                 },
+	{"princ",               builtin_princ,                 },
+	{"dlopen",              builtin_dlopen,                },
+	{"dlsym",               builtin_dlsym,                 },
+	{"argv",                builtin_argv,                  },
+	{"go",                  builtin_go,                    },
+	{"chanl",               builtin_chanl,                 },
+	{"send",                builtin_send,                  },
+	{"recv",                builtin_recv,                  },
+	{"error",               builtin_error,                 },
+	{"raise",               builtin_raise,                 },
+	{"reverse",             builtin_reverse,               },
+	{"i32",                 builtin_i32,                   },
+	{"i64",                 builtin_i64,                   },
+	{"fclose",              builtin_fclose,                },
+	{"feof",                builtin_feof,                  },
+	{"nthcdr",              builtin_nthcdr,                },
+	{"char?",               builtin_char_p,                },
+	{"integer?",            builtin_integer_p,             },
+	{"i32?",                builtin_i32_p,                 },
+	{"i64?",                builtin_i64_p,                 },
+	{"f64?",                builtin_f64_p,                 },
+	{"pair?",               builtin_pair_p,                },
 
-	{"symbol?",                 builtin_symbol_p,               },
-	{"string->symbol",          builtin_string_to_symbol,       },
+	{"symbol?",             builtin_symbol_p,              },
+	{"string->symbol",      builtin_string_to_symbol,      },
 
-	{"string?",                 builtin_string_p,               },
-	{"string",                  builtin_string,                 },
-	{"substring",               builtin_substring,              },
-	{"make-string",             builtin_make_string,            },
-	{"append-string", builtin_append_string,},
-	{"symbol->string",          builtin_symbol_to_string,       },
-	{"number->string",          builtin_number_to_string,       },
-	{"vector->string",          builtin_vector_to_string,       },
-	{"list->string",            builtin_list_to_string,         },
-	{"sref",                    builtin_sref,                   },
-	{"set-sref!",               builtin_set_sref,               },
-	{"fill-string!",            builtin_fill_string,            },
+	{"string?",             builtin_string_p,              },
+	{"string",              builtin_string,                },
+	{"substring",           builtin_substring,             },
+	{"make-string",         builtin_make_string,           },
+	{"append-string",       builtin_append_string,         },
+	{"symbol->string",      builtin_symbol_to_string,      },
+	{"number->string",      builtin_number_to_string,      },
+	{"vector->string",      builtin_vector_to_string,      },
+	{"bytevector->string",  builtin_bytevector_to_string,  },
+	{"list->string",        builtin_list_to_string,        },
+	{"sref",                builtin_sref,                  },
+	{"set-sref!",           builtin_set_sref,              },
+	{"fill-string!",        builtin_fill_string,           },
 
-	{"error?",                  builtin_error_p,                },
-	{"procedure?",              builtin_procedure_p,            },
-	{"proc?",                   builtin_proc_p,                 },
-	{"dlproc?",                 builtin_dlproc_p,               },
+	{"error?",              builtin_error_p,               },
+	{"procedure?",          builtin_procedure_p,           },
+	{"proc?",               builtin_proc_p,                },
+	{"dlproc?",             builtin_dlproc_p,              },
 
-	{"vector?",                 builtin_vector_p,               },
-	{"vector",                  builtin_vector,                 },
-	{"make-vector",             builtin_make_vector,            },
-	{"append-vector",             builtin_append_vector,            },
-	{"subvector",               builtin_subvector,              },
-	{"list->vector",            builtin_list_to_vector,         },
-	{"string->vector",          builtin_string_to_vector,       },
-	{"vref",                    builtin_vref,                   },
-	{"set-vref!",               builtin_set_vref,               },
-	{"cas-vref!",               builtin_cas_vref,               },
-	{"fill-vector!",            builtin_fill_vector,            },
+	{"vector?",             builtin_vector_p,              },
+	{"vector",              builtin_vector,                },
+	{"make-vector",         builtin_make_vector,           },
+	{"append-vector",       builtin_append_vector,         },
+	{"subvector",           builtin_subvector,             },
+	{"list->vector",        builtin_list_to_vector,        },
+	{"string->vector",      builtin_string_to_vector,      },
+	{"vref",                builtin_vref,                  },
+	{"set-vref!",           builtin_set_vref,              },
+	{"cas-vref!",           builtin_cas_vref,              },
+	{"fill-vector!",        builtin_fill_vector,           },
 
-	{"list?",                   builtin_list_p,                 },
-	{"list",                    builtin_list,                   },
-	{"make-list",               builtin_make_list,              },
-	{"vector->list",            builtin_vector_to_list,         },
-	{"string->list",            builtin_string_to_list,         },
-	{"set-nth!",                builtin_set_nth,                },
-	{"set-nthcdr!",             builtin_set_nthcdr,             },
+	{"list?",               builtin_list_p,                },
+	{"list",                builtin_list,                  },
+	{"make-list",           builtin_make_list,             },
+	{"vector->list",        builtin_vector_to_list,        },
+	{"string->list",        builtin_string_to_list,        },
+	{"set-nth!",            builtin_set_nth,               },
+	{"set-nthcdr!",         builtin_set_nthcdr,            },
 
-//	{"bytevector?",             builtin_bytevector_p,           },
-//	{"bytevector",              builtin_bytevector,             },
-//	{"make-bytevector",         builtin_make_bytevector,        },
-//	{"bytevector-s8-ref",       builtin_bytevector_s8_ref,      },
-//	{"bytevector-u8-ref",       builtin_bytevector_u8_ref,      },
-//	{"bytevector-s16-ref",      builtin_bytevector_s16_ref,     },
-//	{"bytevector-u16-ref",      builtin_bytevector_u16_ref,     },
-//	{"bytevector-s32-ref",      builtin_bytevector_s32_ref,     },
-//	{"bytevector-u32-ref",      builtin_bytevector_u32_ref,     },
-//	{"bytevector-s64-ref",      builtin_bytevector_s64_ref,     },
-//	{"bytevector-u64-ref",      builtin_bytevector_u64_ref,     },
-//	{"bytevector-f32-ref",      builtin_bytevector_f32_ref,     },
-//	{"bytevector-f64-ref",      builtin_bytevector_f64_ref,     },
-//	{"set-bytevector-s8-ref!",  builtin_set_bytevector_s8_ref,  },
-//	{"set-bytevector-u8-ref!",  builtin_set_bytevector_u8_ref,  },
-//	{"set-bytevector-s16-ref!", builtin_set_bytevector_s16_ref, },
-//	{"set-bytevector-u16-ref!", builtin_set_bytevector_u16_ref, },
-//	{"set-bytevector-s32-ref!", builtin_set_bytevector_s32_ref, },
-//	{"set-bytevector-u32-ref!", builtin_set_bytevector_u32_ref, },
-//	{"set-bytevector-s64-ref!", builtin_set_bytevector_s64_ref, },
-//	{"set-bytevector-u64-ref!", builtin_set_bytevector_u64_ref, },
-//	{"set-bytevector-f32-ref!", builtin_set_bytevector_f32_ref, },
-//	{"set-bytevector-f64-ref!", builtin_set_bytevector_f64_ref, },
-//	{"fill-bytevector!",        builtin_fill_bytevector,        },
+	{"bytevector?",         builtin_bytevector_p,          },
+	{"bytevector",          builtin_bytevector,            },
+	{"make-bytevector",     builtin_make_bytevector,       },
+	{"append-bytevector",   builtin_append_bytevector,     },
+	{"bytevector->s8-list", builtin_bytevector_to_s8_list, },
+	{"bytevector->u8-list", builtin_bytevector_to_u8_list, },
 
-	{"chanl?",                  builtin_chanl_p,                },
-	{"dll?",                    builtin_dll_p,                  },
-	{"getdir",                  builtin_getdir,                 },
-	{"fgetc",                   builtin_fgetc,                  },
-	{"fwrite",                  builtin_fwrite,                 },
-	{"fgets",                   builtin_fgets,                  },
+	{"bvi8ref",             builtin_bvi8ref,               },
+	{"bvi16ref",            builtin_bvi16ref,              },
+	{"bvi32ref",            builtin_bvi32ref,              },
+	{"bvi64ref",            builtin_bvi64ref,              },
+	{"bvu8ref",             builtin_bvu8ref,               },
+	{"bvu16ref",            builtin_bvu16ref,              },
+	{"bvu32ref",            builtin_bvu32ref,              },
+	{"bvu64ref",            builtin_bvu64ref,              },
+	{"bvf32ref",            builtin_bvf32ref,              },
+	{"bvf64ref",            builtin_bvf64ref,              },
+	{"set-bvi8ref!",        builtin_set_bvi8ref,           },
+	{"set-bvi16ref!",       builtin_set_bvi16ref,          },
+	{"set-bvi32ref!",       builtin_set_bvi32ref,          },
+	{"set-bvi64ref!",       builtin_set_bvi64ref,          },
+	{"set-bvu8ref!",        builtin_set_bvu8ref,           },
+	{"set-bvu16ref!",       builtin_set_bvu16ref,          },
+	{"set-bvu32ref!",       builtin_set_bvu32ref,          },
+	{"set-bvu64ref!",       builtin_set_bvu64ref,          },
+	{"set-bvf32ref!",       builtin_set_bvf32ref,          },
+	{"set-bvf64ref!",       builtin_set_bvf64ref,          },
+	{"fill-bytevector!",    builtin_fill_bytevector,       },
 
-	{"bigint?",                 builtin_big_int_p,              },
-	{"bigint",                  builtin_big_int,                },
-	{"set-car!",                builtin_set_car,                },
-	{"set-cdr!",                builtin_set_cdr,                },
-	{"box",                     builtin_box,                    },
-	{"unbox",                   builtin_unbox,                  },
-	{"set-box!",                builtin_set_box,                },
-	{"cas-box!",                builtin_cas_box,                },
-	{"box?",                    builtin_box_p,                  },
-	{"fix-int?",                builtin_fix_int_p,              },
+	{"chanl?",              builtin_chanl_p,               },
+	{"dll?",                builtin_dll_p,                 },
+	{"getdir",              builtin_getdir,                },
+	{"fgetc",               builtin_fgetc,                 },
+	{"fwrite",              builtin_fwrite,                },
+	{"fgets",               builtin_fgets,                 },
 
-	{"number?",                 builtin_number_p,               },
-	{"string->number",          builtin_string_to_number,       },
+	{"bigint?",             builtin_big_int_p,             },
+	{"bigint",              builtin_big_int,               },
+	{"set-car!",            builtin_set_car,               },
+	{"set-cdr!",            builtin_set_cdr,               },
+	{"box",                 builtin_box,                   },
+	{"unbox",               builtin_unbox,                 },
+	{"set-box!",            builtin_set_box,               },
+	{"cas-box!",            builtin_cas_box,               },
+	{"box?",                builtin_box_p,                 },
+	{"fix-int?",            builtin_fix_int_p,             },
 
-	{"map",                     builtin_map,                    },
-	{"foreach",                 builtin_foreach,                },
-	{"andmap",                  builtin_andmap,                 },
-	{"ormap",                   builtin_ormap,                  },
-	{"memq",                    builtin_memq,                   },
-	{"member",                  builtin_member,                 },
-	{"memp",                    builtin_memp,                   },
-	{NULL,                      NULL,                           },
+	{"number?",             builtin_number_p,              },
+	{"string->number",      builtin_string_to_number,      },
+	{"char->integer",       builtin_char_to_integer,       },
+	{"integer->char",       builtin_integer_to_char,       },
+
+	{"map",                 builtin_map,                   },
+	{"foreach",             builtin_foreach,               },
+	{"andmap",              builtin_andmap,                },
+	{"ormap",               builtin_ormap,                 },
+	{"memq",                builtin_memq,                  },
+	{"member",              builtin_member,                },
+	{"memp",                builtin_memp,                  },
+	{NULL,                  NULL,                          },
 };
 
 void fklInitCompEnv(FklCompEnv* curEnv)

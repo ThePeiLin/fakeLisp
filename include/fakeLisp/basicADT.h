@@ -40,6 +40,8 @@ typedef struct FklBytevector
 FklBytevector* fklNewBytevector(size_t,const uint8_t*);
 FklBytevector* fklCopyBytevector(const FklBytevector*);
 void fklBytevectorCat(FklBytevector**,const FklBytevector*);
+int fklBytevectorcmp(const FklBytevector*,const FklBytevector*);
+void fklPrintRawBytevector(const FklBytevector* str,FILE* fp);
 
 typedef struct FklHashTableNode
 {

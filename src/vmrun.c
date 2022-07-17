@@ -1254,6 +1254,9 @@ void fklFreeVMvalue(FklVMvalue* cur)
 		case FKL_STR:
 			free(cur->u.str);
 			break;
+		case FKL_BYTEVECTOR:
+			free(cur->u.bvec);
+			break;
 		case FKL_PAIR:
 			free(cur->u.pair);
 			break;

@@ -717,6 +717,8 @@ void builtin_eqn(ARGL)
 			}
 			else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
 				r=(fklStringcmp(prev->u.str,cur->u.str)==0);
+			else if(FKL_IS_BYTEVECTOR(prev)&&FKL_IS_BYTEVECTOR(prev))
+				r=(fklBytevectorcmp(prev->u.bvec,cur->u.bvec)==0);
 			else if(FKL_IS_CHR(prev)&&FKL_IS_CHR(cur))
 				r=prev==cur;
 			else if(FKL_IS_USERDATA(prev)&&prev->u.ud->t->__cmp)
@@ -782,6 +784,8 @@ void builtin_gt(ARGL)
 			}
 			else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
 				r=(fklStringcmp(prev->u.str,cur->u.str)>0);
+			else if(FKL_IS_BYTEVECTOR(prev)&&FKL_IS_BYTEVECTOR(cur))
+				r=(fklBytevectorcmp(prev->u.bvec,cur->u.bvec)>0);
 			else if(FKL_IS_USERDATA(prev)&&prev->u.ud->t->__cmp)
 			{
 				int isUnableToBeCmp=0;
@@ -845,6 +849,8 @@ void builtin_ge(ARGL)
 			}
 			else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
 				r=(fklStringcmp(prev->u.str,cur->u.str)>=0);
+			else if(FKL_IS_BYTEVECTOR(prev)&&FKL_IS_BYTEVECTOR(cur))
+				r=(fklBytevectorcmp(prev->u.bvec,cur->u.bvec)>=0);
 			else if(FKL_IS_USERDATA(prev)&&prev->u.ud->t->__cmp)
 			{
 				int isUnableToBeCmp=0;
@@ -908,6 +914,8 @@ void builtin_lt(ARGL)
 			}
 			else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
 				r=(fklStringcmp(prev->u.str,cur->u.str)<0);
+			else if(FKL_IS_BYTEVECTOR(prev)&&FKL_IS_BYTEVECTOR(cur))
+				r=(fklBytevectorcmp(prev->u.bvec,cur->u.bvec)<0);
 			else if(FKL_IS_USERDATA(prev)&&prev->u.ud->t->__cmp)
 			{
 				int isUnableToBeCmp=0;
@@ -971,6 +979,8 @@ void builtin_le(ARGL)
 			}
 			else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
 				r=(fklStringcmp(prev->u.str,cur->u.str)<=0);
+			else if(FKL_IS_BYTEVECTOR(prev)&&FKL_IS_BYTEVECTOR(cur))
+				r=(fklBytevectorcmp(prev->u.bvec,cur->u.bvec)<=0);
 			else if(FKL_IS_USERDATA(prev)&&prev->u.ud->t->__cmp)
 			{
 				int isUnableToBeCmp=0;
@@ -2473,11 +2483,11 @@ void builtin_fgets(ARGL)
 	FklVMvalue* psize=fklNiGetArg(&ap,stack);
 	FklVMvalue* file=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetb",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgets",FKL_TOOMANYARG,runnable,exe);
 	if(!file||!psize)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetb",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgets",FKL_TOOFEWARG,runnable,exe);
 	if(!FKL_IS_FP(file)||!fklIsInt(psize))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetb",FKL_WRONGARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgets",FKL_WRONGARG,runnable,exe);
 	FklVMfp* fp=file->u.fp;
 	size_t size=fklGetInt(psize);
 	char* str=(char*)malloc(sizeof(char)*size);
@@ -2523,6 +2533,61 @@ void builtin_fgets(ARGL)
 		memcpy(vmstr->u.str->str,str,fklGetInt(psize));
 		free(str);
 		fklNiReturn(vmstr,&ap,stack);
+	}
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_fgetb(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* psize=fklNiGetArg(&ap,stack);
+	FklVMvalue* file=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetb",FKL_TOOMANYARG,runnable,exe);
+	if(!file||!psize)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetb",FKL_TOOFEWARG,runnable,exe);
+	if(!FKL_IS_FP(file)||!fklIsInt(psize))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetb",FKL_WRONGARG,runnable,exe);
+	FklVMfp* fp=file->u.fp;
+	size_t size=fklGetInt(psize);
+	uint8_t* ptr=(uint8_t*)malloc(sizeof(uint8_t)*size);
+	FKL_ASSERT(ptr);
+	int32_t realRead=0;
+	if(fp->size)
+	{
+		if(fp->size<=size)
+		{
+			memcpy(ptr,fp->prev,fp->size);
+			realRead+=fp->size;
+			size-=fp->size;
+			free(fp->prev);
+			fp->prev=NULL;
+			fp->size=0;
+		}
+		else
+		{
+			fp->size-=size;
+			memcpy(ptr,fp->prev,size);
+			realRead+=size;
+			uint8_t* prev=fp->prev;
+			fp->prev=fklCopyMemory(prev+size,sizeof(uint8_t)*fp->size);
+			free(prev);
+			size=0;
+		}
+	}
+	if(size)
+		realRead+=fread(ptr,sizeof(uint8_t),size,fp->fp);
+	if(!realRead)
+	{
+		free(ptr);
+		fklNiReturn(FKL_VM_NIL,&ap,stack);
+	}
+	else
+	{
+		FklVMvalue* bvec=fklNewVMvalueToStack(FKL_BYTEVECTOR,fklNewBytevector(realRead,ptr),stack,exe->heap);
+		free(ptr);
+		fklNiReturn(bvec,&ap,stack);
 	}
 	fklNiEnd(&ap,stack);
 }
@@ -3760,6 +3825,7 @@ static const struct SymbolFuncStruct
 	{"fgetc",               builtin_fgetc,                 },
 	{"fwrite",              builtin_fwrite,                },
 	{"fgets",               builtin_fgets,                 },
+	{"fgetb",               builtin_fgetb,                 },
 
 	{"bigint?",             builtin_big_int_p,             },
 	{"bigint",              builtin_big_int,               },

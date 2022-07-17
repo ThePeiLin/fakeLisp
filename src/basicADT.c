@@ -1212,3 +1212,45 @@ void fklFreeHashTable(FklHashTable* table)
 	free(table->base);
 	free(table);
 }
+
+FklBytevector* fklNewBytevector(size_t size,const uint8_t* ptr)
+{
+	FklBytevector* tmp=(FklBytevector*)malloc(sizeof(FklBytevector)+size*sizeof(uint8_t));
+	FKL_ASSERT(tmp);
+	tmp->size=size;
+	if(ptr)
+		memcpy(tmp->ptr,ptr,size);
+	return tmp;
+}
+
+void fklBytevectorCat(FklBytevector** a,const FklBytevector* b)
+{
+	size_t aSize=(*a)->size;
+	FklBytevector* prev=*a;
+	prev=(FklBytevector*)realloc(prev,sizeof(FklBytevector)+(aSize+b->size)*sizeof(char));
+	FKL_ASSERT(prev);
+	*a=prev;
+	prev->size=aSize+b->size;
+	memcpy(prev->ptr+aSize,b->ptr,b->size);
+}
+
+int fklBytevectorcmp(const FklBytevector* fir,const FklBytevector* sec)
+{
+	size_t size=fir->size<sec->size?fir->size:sec->size;
+	int r=memcmp(fir->ptr,sec->ptr,size);
+	if(!r)
+		return (int64_t)fir->size-(int64_t)sec->size;
+	return r;
+}
+
+void fklPrintRawBytevector(const FklBytevector* bv,FILE* fp)
+{
+	fprintf(fp,"#vu8(");
+	for(size_t i=0;i<bv->size;i++)
+	{
+		fprintf(fp,"0x%X",bv->ptr[i]);
+		if(i<bv->size-1)
+			fputc(' ',fp);
+	}
+	fprintf(fp,")");
+}

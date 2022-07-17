@@ -554,8 +554,8 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 					case FKL_STR:
 						fwrite(v->u.str->str,v->u.str->size,1,fp);
 						break;
-					case FKL_VECTOR:
-						fklPrintBytevector(v->u.bvec,fp);
+					case FKL_BYTEVECTOR:
+						fklPrintRawBytevector(v->u.bvec,fp);
 						break;
 					case FKL_PROC:
 						if(v->u.proc->sid)
@@ -610,6 +610,7 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 						break;
 				}
 			}
+			break;
 		default:
 			FKL_ASSERT(0);
 			break;
@@ -646,8 +647,8 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 					case FKL_STR:
 						fklPrintRawString(v->u.str,fp);
 						break;
-					case FKL_VECTOR:
-						fklPrintBytevector(v->u.bvec,fp);
+					case FKL_BYTEVECTOR:
+						fklPrintRawBytevector(v->u.bvec,fp);
 						break;
 					case FKL_PROC:
 						if(v->u.proc->sid)
@@ -706,6 +707,7 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 						break;
 				}
 			}
+			break;
 		default:
 			FKL_ASSERT(0);
 			break;

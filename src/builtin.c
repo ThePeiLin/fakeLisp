@@ -1132,6 +1132,83 @@ void builtin_vector_to_list(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void builtin_string(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMheap* heap=exe->heap;
+	FklVMrunnable* runnable=exe->rhead;
+	size_t size=ap-stack->bp;
+	FklVMvalue* r=fklNiNewVMvalue(FKL_STR,fklNewString(size,NULL),stack,heap);
+	FklString* str=r->u.str;
+	size_t i=0;
+	for(FklVMvalue* cur=fklNiGetArg(&ap,stack)
+			;cur!=NULL
+			;cur=fklNiGetArg(&ap,stack),i++)
+	{
+		FKL_NI_CHECK_TYPE(cur,FKL_IS_CHR,"builtin.string",runnable,exe);
+		str->str[i]=FKL_GET_CHR(cur);
+	}
+	fklNiResBp(&ap,stack);
+	fklNiReturn(r,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_make_string(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMheap* heap=exe->heap;
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* size=fklNiGetArg(&ap,stack);
+	if(!size)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.make-string",FKL_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(size,fklIsInt,"builtin.make-string",runnable,exe);
+	FklVMvalue* content=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.make-string",FKL_TOOMANYARG,runnable,exe);
+	size_t len=fklGetInt(size);
+	FklVMvalue* r=fklNiNewVMvalue(FKL_STR,fklNewString(len,NULL),stack,heap);
+	FklString* str=r->u.str;
+	char ch=0;
+	if(content)
+	{
+		if(!fklIsInt(content)&&!FKL_IS_CHR(content))
+			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.make-string",FKL_WRONGARG,runnable,exe);
+		if(FKL_IS_CHR(content))
+			ch=FKL_GET_CHR(content);
+		else
+			ch=fklGetInt(content);
+	}
+	memset(str->str,ch,len);
+	fklNiResBp(&ap,stack);
+	fklNiReturn(r,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_substring(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMheap* heap=exe->heap;
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* ostr=fklNiGetArg(&ap,stack);
+	FklVMvalue* vstart=fklNiGetArg(&ap,stack);
+	FklVMvalue* vend=fklNiGetArg(&ap,stack);
+	if(!ostr||!vstart||!vend)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.substring",FKL_TOOFEWARG,runnable,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.substring",FKL_TOOMANYARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(ostr,FKL_IS_STR,"builtin.substring",runnable,exe);
+	FKL_NI_CHECK_TYPE(vstart,fklIsInt,"builtin.substring",runnable,exe);
+	FKL_NI_CHECK_TYPE(vend,fklIsInt,"builtin.substring",runnable,exe);
+	size_t size=ostr->u.str->size;
+	ssize_t start=fklGetInt(vstart);
+	ssize_t end=fklGetInt(vend);
+	if(start<0||start>size||end<start||end>size)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.substring",FKL_INVALIDACCESS,runnable,exe);
+	size=end-start;
+	FklVMvalue* r=fklNiNewVMvalue(FKL_STR,fklNewString(size,ostr->u.str->str+start),stack,heap);
+	fklNiReturn(r,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
 void builtin_symbol_to_string(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -1229,6 +1306,25 @@ void builtin_number_to_string(ARGL)
 		retval->u.str=fklNewString(size,buf);
 	}
 	fklNiReturn(retval,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_vector_to_string(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* vec=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.vector->string",FKL_TOOMANYARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(vec,FKL_IS_VECTOR,"builtin.vector->string",runnable,exe);
+	size_t size=vec->u.vec->size;
+	FklVMvalue* r=fklNiNewVMvalue(FKL_STR,fklNewString(size,NULL),stack,exe->heap);
+	for(size_t i=0;i<size;i++)
+	{
+		FKL_NI_CHECK_TYPE(vec->u.vec->base[i],FKL_IS_CHR,"builtin.vector->string",runnable,exe);
+		r->u.str->str[i]=FKL_GET_CHR(vec->u.vec->base[i]);
+	}
+	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

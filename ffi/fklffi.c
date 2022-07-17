@@ -78,7 +78,7 @@ void ffi_new(ARGL)
 		free(m->mem);
 		m->mem=NULL;
 	}
-	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA,mem,stack,exe->heap),&ap,stack);
+	fklNiReturn(fklNewVMvalueToStack(FKL_USERDATA,mem,stack,exe->heap),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -208,7 +208,7 @@ void ffi_ref(ARGL)
 	FklVMudata* ref=fklFfiNewMemRefUdWithSI(mem->u.ud->data,selector,index);
 	if(!ref)
 		FKL_FFI_RAISE_ERROR("ffi.ref",FKL_FFI_INVALID_SELECTOR,exe);
-	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA
+	fklNiReturn(fklNewVMvalueToStack(FKL_USERDATA
 				,ref
 				,stack
 				,exe->heap)
@@ -254,7 +254,7 @@ void ffi_cast_ref(ARGL)
 	if(!id)
 		FKL_FFI_RAISE_ERROR("ffi.cast-ref",FKL_FFI_INVALID_TYPEDECLARE,exe);
 	FklVMudata* ref=fklFfiNewMemRefUd(id,((FklFfiMem*)mem->u.ud->data)->mem);
-	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA
+	fklNiReturn(fklNewVMvalueToStack(FKL_USERDATA
 				,ref
 				,stack
 				,exe->heap)
@@ -293,7 +293,7 @@ void ffi_mem(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.mem",FKL_TOOMANYARG,runnable,exe);
 	if(!fklFfiIsCastableVMvalueType(val))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.mem",FKL_WRONGARG,runnable,exe);
-	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA,fklFfiCastVMvalueIntoMem(val),stack,exe->heap),&ap,stack);
+	fklNiReturn(fklNewVMvalueToStack(FKL_USERDATA,fklFfiCastVMvalueIntoMem(val),stack,exe->heap),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -336,7 +336,7 @@ void ffi_proc(ARGL)
 	if(!func)
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("ffi.proc",cStr,1,FKL_INVALIDSYMBOL,exe);
 	free(cStr);
-	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA,func,stack,exe->heap),&ap,stack);
+	fklNiReturn(fklNewVMvalueToStack(FKL_USERDATA,func,stack,exe->heap),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

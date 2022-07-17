@@ -57,7 +57,7 @@ void fklc_fbc_p(ARGL) PREDICATE(fklcIsFbc(val),"fklc.fbc?")
 	FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_TOOFEWARG,runnable,exe);\
 	if(!P(ARG))\
 	FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_WRONGARG,runnable,exe);\
-	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA,fklcNewFbcUd(BC),stack,exe->heap),&ap,stack);\
+	fklNiReturn(fklNewVMvalueToStack(FKL_USERDATA,fklcNewFbcUd(BC),stack,exe->heap),&ap,stack);\
 	fklNiEnd(&ap,stack);\
 }
 
@@ -73,7 +73,7 @@ void fklc_fbc_append(ARGL)
 		fklcCodeAppend(&bc,cur->u.ud->data);
 	}
 	if(bc)
-		retval=fklNiNewVMvalue(FKL_USERDATA,fklcNewFbcUd(bc),stack,exe->heap);
+		retval=fklNewVMvalueToStack(FKL_USERDATA,fklcNewFbcUd(bc),stack,exe->heap);
 	fklNiResBp(&ap,stack);
 	fklNiReturn(retval,&ap,stack);
 	fklNiEnd(&ap,stack);
@@ -85,7 +85,7 @@ void fklc_make_push_nil(ARGL)
 	FklVMrunnable* runnable=exe->rhead;
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("make-push-nil",FKL_TOOMANYARG,runnable,exe);
-	fklNiReturn(fklNiNewVMvalue(FKL_USERDATA,fklcNewFbcUd(fklNewPushNilByteCode()),stack,exe->heap),&ap,stack);
+	fklNiReturn(fklNewVMvalueToStack(FKL_USERDATA,fklcNewFbcUd(fklNewPushNilByteCode()),stack,exe->heap),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

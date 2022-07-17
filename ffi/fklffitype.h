@@ -202,7 +202,7 @@ FklTypeId_t fklFfiGenTypeId(FklVMvalue*);
 FklTypeId_t fklFfiTypedef(FklVMvalue*,FklSid_t typeName);
 #define FKL_FFI_RAISE_ERROR(WHO,ERRORTYPE,EXE) do{\
 	char* errorMessage=fklFfiGenErrorMessage((ERRORTYPE));\
-	FklVMvalue* err=fklNiNewVMvalue(FKL_ERR\
+	FklVMvalue* err=fklNewVMvalueToStack(FKL_ERR\
 			,fklNewVMerrorCstr((WHO)\
 				,fklFfiGetErrorType(ERRORTYPE)\
 				,errorMessage)\

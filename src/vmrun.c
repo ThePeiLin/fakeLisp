@@ -796,7 +796,7 @@ void B_push_r_env(FklVM* exe)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;
-	FklVMvalue* n=fklNiNewVMvalue(FKL_ENV,fklNewVMenv(FKL_VM_NIL,exe->heap),stack,exe->heap);
+	FklVMvalue* n=fklNewVMvalueToStack(FKL_ENV,fklNewVMenv(FKL_VM_NIL,exe->heap),stack,exe->heap);
 	fklSetRef(&n->u.env->prev,r->localenv,exe->heap);
 	pthread_rwlock_wrlock(&exe->rlock);
 	r->localenv=n;
@@ -828,7 +828,7 @@ void B_push_box(FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;
 	FklVMvalue* c=fklNiGetArg(&ap,stack);
-	FklVMvalue* box=fklNiNewVMvalue(FKL_BOX,FKL_VM_NIL,stack,exe->heap);
+	FklVMvalue* box=fklNewVMvalueToStack(FKL_BOX,FKL_VM_NIL,stack,exe->heap);
 	fklSetRef(&box->u.box,c,exe->heap);
 	fklNiReturn(box,&ap,stack);
 	fklNiEnd(&ap,stack);

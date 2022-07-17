@@ -88,11 +88,6 @@ FklVMvalue* fklNiGetArg(uint32_t*ap,FklVMstack* stack)
 	return r;
 }
 
-FklVMvalue* fklNiNewVMvalue(FklValueType type,void* p,FklVMstack* s,FklVMheap* heap)
-{
-	return fklNewVMvalueToStack(type,p,s,heap);
-}
-
 FklVMvalue* fklNiPopTop(uint32_t* ap,FklVMstack* stack)
 {
 	if(!(*ap>stack->bp))

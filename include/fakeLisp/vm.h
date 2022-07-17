@@ -488,7 +488,7 @@ void fklFreeRunnables(FklVMrunnable* h);
 
 #define FKL_RAISE_BUILTIN_ERROR(WHO,ERRORTYPE,RUNNABLE,EXE) do{\
 	char* errorMessage=fklGenErrorMessage((ERRORTYPE),(RUNNABLE),(EXE));\
-	FklVMvalue* err=fklNiNewVMvalue(FKL_ERR,fklNewVMerrorMCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE)->stack,(EXE)->heap);\
+	FklVMvalue* err=fklNewVMvalueToStack(FKL_ERR,fklNewVMerrorMCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE)->stack,(EXE)->heap);\
 	free(errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
 	return;\
@@ -496,7 +496,7 @@ void fklFreeRunnables(FklVMrunnable* h);
 
 #define FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,ERRORTYPE,RUNNABLE,EXE) do{\
 	char* errorMessage=fklGenErrorMessage((ERRORTYPE),(RUNNABLE),(EXE));\
-	FklVMvalue* err=fklNiNewVMvalue(FKL_ERR,fklNewVMerrorCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE)->stack,(EXE)->heap);\
+	FklVMvalue* err=fklNewVMvalueToStack(FKL_ERR,fklNewVMerrorCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE)->stack,(EXE)->heap);\
 	free(errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
 	return;\
@@ -504,7 +504,7 @@ void fklFreeRunnables(FklVMrunnable* h);
 
 #define FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(WHO,STR,FREE,ERRORTYPE,EXE) do{\
 	char* errorMessage=fklGenInvalidSymbolErrorMessage((STR),(FREE),(ERRORTYPE));\
-	FklVMvalue* err=fklNiNewVMvalue(FKL_ERR,fklNewVMerrorCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE)->stack,(EXE)->heap);\
+	FklVMvalue* err=fklNewVMvalueToStack(FKL_ERR,fklNewVMerrorCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE)->stack,(EXE)->heap);\
 	free(errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
 	return;\

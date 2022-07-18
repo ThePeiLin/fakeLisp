@@ -5,6 +5,7 @@
 #include<math.h>
 #include<string.h>
 #include<ctype.h>
+#include<float.h>
 int fklIsPtrStackEmpty(FklPtrStack* stack)
 {
 	return stack->top==0;
@@ -321,6 +322,34 @@ FklBigInt* fklNewBigInt(int64_t v)
 		t->digits[i]=v%FKL_BIG_INT_RADIX;
 		if(t->neg)
 			t->digits[i]*=-1;
+		v/=FKL_BIG_INT_RADIX;
+	}
+	return t;
+}
+
+FklBigInt* fklNewBigIntD(double v)
+{
+	v=ceil(v);
+	if(fabs(v-0)<DBL_EPSILON)
+		return fklNewBigInt0();
+	FklBigInt* t=(FklBigInt*)malloc(sizeof(FklBigInt));
+	FKL_ASSERT(t);
+	if(v-0<DBL_EPSILON)
+	{
+		t->neg=1;
+		v*=-1;
+	}
+	else
+		t->neg=0;
+	t->num=floor(log2(v)/log2(FKL_BIG_INT_RADIX))+1;
+	if(t->num==0)
+		t->num=1;
+	t->size=t->num;
+	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*t->num);
+	FKL_ASSERT(t->digits);
+	for(uint64_t i=0;i<t->num;i++)
+	{
+		t->digits[i]=fmod(v,FKL_BIG_INT_RADIX);
 		v/=FKL_BIG_INT_RADIX;
 	}
 	return t;

@@ -252,7 +252,7 @@ int fklVMvaluecmp(FklVMvalue* fir,FklVMvalue* sec)
 			switch(root1->type)
 			{
 				case FKL_F64:
-					r=(fabs(root1->u.f64-root2->u.f64)==0);
+					r=root1->u.f64==root2->u.f64;
 					break;
 				case FKL_I64:
 					r=(root1->u.i64-root2->u.i64)==0;

@@ -158,6 +158,7 @@ typedef struct FklBigInt{
 #define FKL_IS_0_BIG_INT(I) ((I)->num==1&&(I)->digits[0]==0)
 #define FKL_IS_1_BIG_INT(I) ((I)->num==1&&(I)->neg==0&&(I)->digits[0]==1)
 FklBigInt* fklNewBigInt(int64_t v);
+FklBigInt* fklNewBigIntD(double v);
 FklBigInt* fklNewBigIntU(uint64_t v);
 FklBigInt* fklNewBigIntFromCstr(const char* str);
 FklBigInt* fklNewBigIntFromMem(const void* mem,size_t size);

@@ -6,6 +6,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<math.h>
+#include<float.h>
 #include<pthread.h>
 #ifndef _WIN32
 #include<dlfcn.h>
@@ -16,6 +17,14 @@
 FklVMvalue* fklMakeVMint(int64_t r64,FklVMstack* s,FklVMheap* heap)
 {
 	if(r64>INT32_MAX||r64<INT32_MIN)
+		return fklNewVMvalueToStack(FKL_I64,&r64,s,heap);
+	else
+		return FKL_MAKE_VM_I32(r64);
+}
+
+FklVMvalue* fklMakeVMintD(double r64,FklVMstack* s,FklVMheap* heap)
+{
+	if(r64-INT32_MAX>DBL_EPSILON||r64-INT32_MIN<-DBL_EPSILON)
 		return fklNewVMvalueToStack(FKL_I64,&r64,s,heap);
 	else
 		return FKL_MAKE_VM_I32(r64);

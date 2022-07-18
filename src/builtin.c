@@ -1027,83 +1027,83 @@ void builtin_le(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_char(ARGL)
-{
-	FKL_NI_BEGIN(exe);
-	FklVMrunnable* runnable=exe->rhead;
-	FklVMvalue* obj=fklNiGetArg(&ap,stack);
-	if(!obj)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.char",FKL_TOOFEWARG,runnable,exe);
-	if(FKL_IS_STR(obj))
-	{
-		FklVMvalue* pindex=fklNiGetArg(&ap,stack);
-		if(fklNiResBp(&ap,stack))
-			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.char",FKL_TOOMANYARG,runnable,exe);
-		if(pindex&&!fklIsInt(pindex))
-			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.char",FKL_WRONGARG,runnable,exe);
-		if(pindex)
-		{
-			uint64_t index=fklGetInt(pindex);
-			if(index>=obj->u.str->size)
-				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.vref",FKL_INVALIDACCESS,runnable,exe);
-			fklNiReturn(FKL_MAKE_VM_CHR(obj->u.str->str[index]),&ap,stack);
-		}
-		else
-			fklNiReturn(FKL_MAKE_VM_CHR(obj->u.str->str[0]),&ap,stack);
-	}
-	else
-	{
-		if(fklNiResBp(&ap,stack))
-			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.char",FKL_TOOMANYARG,runnable,exe);
-		if(fklIsInt(obj))
-			fklNiReturn(FKL_MAKE_VM_CHR(fklGetInt(obj)),&ap,stack);
-		else if(FKL_IS_CHR(obj))
-			fklNiReturn(obj,&ap,stack);
-		else if(FKL_IS_F64(obj))
-			fklNiReturn(FKL_MAKE_VM_CHR((int32_t)obj->u.f64),&ap,stack);
-		else
-			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.char",FKL_WRONGARG,runnable,exe);
-	}
-	fklNiEnd(&ap,stack);
-}
+//void builtin_char(ARGL)
+//{
+//	FKL_NI_BEGIN(exe);
+//	FklVMrunnable* runnable=exe->rhead;
+//	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+//	if(!obj)
+//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.char",FKL_TOOFEWARG,runnable,exe);
+//	if(FKL_IS_STR(obj))
+//	{
+//		FklVMvalue* pindex=fklNiGetArg(&ap,stack);
+//		if(fklNiResBp(&ap,stack))
+//			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.char",FKL_TOOMANYARG,runnable,exe);
+//		if(pindex&&!fklIsInt(pindex))
+//			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.char",FKL_WRONGARG,runnable,exe);
+//		if(pindex)
+//		{
+//			uint64_t index=fklGetInt(pindex);
+//			if(index>=obj->u.str->size)
+//				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.vref",FKL_INVALIDACCESS,runnable,exe);
+//			fklNiReturn(FKL_MAKE_VM_CHR(obj->u.str->str[index]),&ap,stack);
+//		}
+//		else
+//			fklNiReturn(FKL_MAKE_VM_CHR(obj->u.str->str[0]),&ap,stack);
+//	}
+//	else
+//	{
+//		if(fklNiResBp(&ap,stack))
+//			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.char",FKL_TOOMANYARG,runnable,exe);
+//		if(fklIsInt(obj))
+//			fklNiReturn(FKL_MAKE_VM_CHR(fklGetInt(obj)),&ap,stack);
+//		else if(FKL_IS_CHR(obj))
+//			fklNiReturn(obj,&ap,stack);
+//		else if(FKL_IS_F64(obj))
+//			fklNiReturn(FKL_MAKE_VM_CHR((int32_t)obj->u.f64),&ap,stack);
+//		else
+//			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.char",FKL_WRONGARG,runnable,exe);
+//	}
+//	fklNiEnd(&ap,stack);
+//}
 
-void builtin_integer(ARGL)
-{
-	FKL_NI_BEGIN(exe);
-	FklVMrunnable* runnable=exe->rhead;
-	FklVMvalue* obj=fklNiGetArg(&ap,stack);
-	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.integer",FKL_TOOMANYARG,runnable,exe);
-	if(!obj)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.integer",FKL_TOOFEWARG,runnable,exe);
-	if(FKL_IS_CHR(obj))
-		fklNiReturn(FKL_MAKE_VM_I32(FKL_GET_CHR(obj)),&ap,stack);
-	else if(FKL_IS_I32(obj))
-		fklNiReturn(obj,&ap,stack);
-	else if(FKL_IS_SYM(obj))
-		fklNiReturn(fklMakeVMint(FKL_GET_SYM(obj),stack,exe->heap),&ap,stack);
-	else if(FKL_IS_I64(obj))
-		fklNiReturn(fklMakeVMint(obj->u.i64,stack,exe->heap),&ap,stack);
-	else if(FKL_IS_BIG_INT(obj))
-	{
-		if(fklIsGtLtI64BigInt(obj->u.bigInt))
-		{
-			FklBigInt* bi=fklNewBigInt0();
-			fklSetBigInt(bi,obj->u.bigInt);
-			fklNiReturn(fklNewVMvalueToStack(FKL_BIG_INT,bi,stack,exe->heap),&ap,stack);
-		}
-		else
-			fklNiReturn(fklMakeVMint(fklBigIntToI64(obj->u.bigInt),stack,exe->heap),&ap,stack);
-	}
-	else if(FKL_IS_F64(obj))
-	{
-		int64_t r=(int64_t)obj->u.f64;
-		fklNiReturn(fklMakeVMint(r,stack,exe->heap),&ap,stack);
-	}
-	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.integer",FKL_WRONGARG,runnable,exe);
-	fklNiEnd(&ap,stack);
-}
+//void builtin_integer(ARGL)
+//{
+//	FKL_NI_BEGIN(exe);
+//	FklVMrunnable* runnable=exe->rhead;
+//	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+//	if(fklNiResBp(&ap,stack))
+//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.integer",FKL_TOOMANYARG,runnable,exe);
+//	if(!obj)
+//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.integer",FKL_TOOFEWARG,runnable,exe);
+//	if(FKL_IS_CHR(obj))
+//		fklNiReturn(FKL_MAKE_VM_I32(FKL_GET_CHR(obj)),&ap,stack);
+//	else if(FKL_IS_I32(obj))
+//		fklNiReturn(obj,&ap,stack);
+//	else if(FKL_IS_SYM(obj))
+//		fklNiReturn(fklMakeVMint(FKL_GET_SYM(obj),stack,exe->heap),&ap,stack);
+//	else if(FKL_IS_I64(obj))
+//		fklNiReturn(fklMakeVMint(obj->u.i64,stack,exe->heap),&ap,stack);
+//	else if(FKL_IS_BIG_INT(obj))
+//	{
+//		if(fklIsGtLtI64BigInt(obj->u.bigInt))
+//		{
+//			FklBigInt* bi=fklNewBigInt0();
+//			fklSetBigInt(bi,obj->u.bigInt);
+//			fklNiReturn(fklNewVMvalueToStack(FKL_BIG_INT,bi,stack,exe->heap),&ap,stack);
+//		}
+//		else
+//			fklNiReturn(fklMakeVMint(fklBigIntToI64(obj->u.bigInt),stack,exe->heap),&ap,stack);
+//	}
+//	else if(FKL_IS_F64(obj))
+//	{
+//		int64_t r=(int64_t)obj->u.f64;
+//		fklNiReturn(fklMakeVMint(r,stack,exe->heap),&ap,stack);
+//	}
+//	else
+//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.integer",FKL_WRONGARG,runnable,exe);
+//	fklNiEnd(&ap,stack);
+//}
 
 void builtin_char_to_integer(ARGL)
 {
@@ -1824,7 +1824,7 @@ void builtin_list_to_string(ARGL)
 //	fklNiEnd(&ap,stack);
 //}
 
-void builtin_integer_to_f64(ARGL)
+void builtin_number_to_f64(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -1834,29 +1834,47 @@ void builtin_integer_to_f64(ARGL)
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.integer->f64",FKL_TOOFEWARG,runnable,exe);
 	FklVMvalue* retval=fklNewVMvalueToStack(FKL_F64,NULL,stack,exe->heap);
-	FKL_NI_CHECK_TYPE(obj,fklIsInt,"builtin.integer->f64",runnable,exe);
+	FKL_NI_CHECK_TYPE(obj,fklIsVMnumber,"builtin.integer->f64",runnable,exe);
 	if(fklIsFixint(obj))
 		retval->u.f64=(double)fklGetInt(obj);
-	else
+	else if(FKL_IS_BIG_INT(obj))
 		retval->u.f64=fklBigIntToDouble(obj->u.bigInt);
+	else
+		retval->u.f64=obj->u.f64;
 	fklNiReturn(retval,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_f64_to_integer(ARGL)
+void builtin_number_to_integer(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.f64->integer",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->integer",FKL_TOOMANYARG,runnable,exe);
 	if(!obj)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.f64->integer",FKL_TOOFEWARG,runnable,exe);
-	FKL_NI_CHECK_TYPE(obj,FKL_IS_F64,"builtin.f64->integer",runnable,exe);
-	if(obj->u.f64-(double)INT64_MAX>DBL_EPSILON||obj->u.f64-INT64_MIN<-DBL_EPSILON)
-		fklNiReturn(fklNewVMvalueToStack(FKL_BIG_INT,fklNewBigIntD(obj->u.f64),stack,exe->heap),&ap,stack);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->integer",FKL_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(obj,fklIsVMnumber,"builtin.number->integer",runnable,exe);
+	if(FKL_IS_F64(obj))
+	{
+		if(obj->u.f64-(double)INT64_MAX>DBL_EPSILON||obj->u.f64-INT64_MIN<-DBL_EPSILON)
+			fklNiReturn(fklNewVMvalueToStack(FKL_BIG_INT,fklNewBigIntD(obj->u.f64),stack,exe->heap),&ap,stack);
+		else
+			fklNiReturn(fklMakeVMintD(obj->u.f64,stack,exe->heap),&ap,stack);
+	}
+	else if(FKL_IS_BIG_INT(obj))
+	{
+		if(fklIsGtLtI64BigInt(obj->u.bigInt))
+		{
+			FklBigInt* bi=fklNewBigInt0();
+			fklSetBigInt(bi,obj->u.bigInt);
+			fklNiReturn(fklNewVMvalueToStack(FKL_BIG_INT,bi,stack,exe->heap),&ap,stack);
+		}
+		else
+			fklNiReturn(fklMakeVMint(fklBigIntToI64(obj->u.bigInt),stack,exe->heap),&ap,stack);
+	}
 	else
-		fklNiReturn(fklMakeVMintD(obj->u.f64,stack,exe->heap),&ap,stack);
+		fklNiReturn(fklMakeVMint(fklGetInt(obj),stack,exe->heap),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -3876,7 +3894,7 @@ static const struct SymbolFuncStruct
 
 	{"string?",             builtin_string_p,              },
 	{"string",              builtin_string,                },
-	{"sub-string",           builtin_sub_string,             },
+	{"sub-string",          builtin_sub_string,            },
 	{"make-string",         builtin_make_string,           },
 //	{"append-string",       builtin_append_string,         },
 	{"symbol->string",      builtin_symbol_to_string,      },
@@ -3897,7 +3915,7 @@ static const struct SymbolFuncStruct
 	{"vector",              builtin_vector,                },
 	{"make-vector",         builtin_make_vector,           },
 //	{"append-vector",       builtin_append_vector,         },
-	{"sub-vector",           builtin_sub_vector,             },
+	{"sub-vector",          builtin_sub_vector,            },
 	{"list->vector",        builtin_list_to_vector,        },
 	{"string->vector",      builtin_string_to_vector,      },
 	{"vref",                builtin_vref,                  },
@@ -3915,7 +3933,7 @@ static const struct SymbolFuncStruct
 
 	{"bytevector?",         builtin_bytevector_p,          },
 	{"bytevector",          builtin_bytevector,            },
-	{"subbytevector", builtin_subbytevector,},
+	{"subbytevector",       builtin_subbytevector,         },
 	{"make-bytevector",     builtin_make_bytevector,       },
 //	{"append-bytevector",   builtin_append_bytevector,     },
 	{"bytevector->s8-list", builtin_bytevector_to_s8_list, },
@@ -3968,8 +3986,8 @@ static const struct SymbolFuncStruct
 	{"char->integer",       builtin_char_to_integer,       },
 	{"symbol->integer",     builtin_symbol_to_integer,     },
 	{"integer->char",       builtin_integer_to_char,       },
-	{"integer->f64",        builtin_integer_to_f64,        },
-	{"f64->integer",        builtin_f64_to_integer,        },
+	{"number->f64",        builtin_number_to_f64,        },
+	{"number->integer",     builtin_number_to_integer,     },
 
 	{"map",                 builtin_map,                   },
 	{"foreach",             builtin_foreach,               },

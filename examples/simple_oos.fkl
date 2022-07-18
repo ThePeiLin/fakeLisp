@@ -42,7 +42,7 @@
                             'passing-member-symbol
                             'invalid-selector
                             (append "error:Invalid selector \""
-                                    (to-str selector)
+                                    (symbol->string selector)
                                     "\"\n")))))))
 
     (define local-env (append data-list method-list))
@@ -63,15 +63,15 @@
 
        (method
          (Vec3 (x y z)
-               (setq X (f64 x))
-               (setq Y (f64 y))
-               (setq Z (f64 z)))
+               (setq X (number->f64 x))
+               (setq Y (number->f64 y))
+               (setq Z (number->f64 z)))
          (set-X (x)
-               (setq X (f64 x)))
+               (setq X (number->f64 x)))
          (set-Y (y)
-               (setq Y (f64 y)))
+               (setq Y (number->f64 y)))
          (set-Z (z)
-               (setq Z (f64 z)))))
+               (setq Z (number->f64 z)))))
 
 
 (define i (Vec3 1 2 3))

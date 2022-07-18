@@ -45,12 +45,6 @@ typedef struct
 	}u;
 }FklAstCptr;
 
-//typedef struct
-//{
-//	uint64_t size;
-//	char* str;
-//}FklAstString;
-
 typedef struct
 {
 	size_t size;
@@ -75,6 +69,7 @@ typedef struct FklAstAtom
 		double f64;
 		FklString* str;
 		FklAstVector vec;
+		FklBytevector* bvec;
 		FklBigInt bigInt;
 		FklAstCptr box;
 	}value;
@@ -109,10 +104,6 @@ FklAstCptr* fklNewCptr(int,FklAstPair*);
 FklAstAtom* fklNewAtom(FklValueType type,FklAstPair*);
 void fklFreeAtom(FklAstAtom*);
 
-//FklAstString* fklNewAstStringFromCstr(const char*);
-//FklAstString* fklCopyAstString(const FklAstString*);
-//void fklFreeAstString(FklAstString*);
-
 void fklMakeAstVector(FklAstVector* vec,size_t size,const FklAstCptr* base);
 
 int fklCptrcmp(const FklAstCptr*,const FklAstCptr*);
@@ -131,8 +122,6 @@ FklAstCptr* fklGetCptrCar(const FklAstCptr*);
 FklAstCptr* fklGetCptrCdr(const FklAstCptr*);
 
 FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,FklCompEnv*);
-//int fklAstStrcmp(const FklAstString* fir,const FklAstString* sec);
-//int fklAstStrCstrCmp(const FklAstString* fir,const char* sec);
 #ifdef __cplusplus
 }
 #endif

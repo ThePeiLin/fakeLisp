@@ -151,12 +151,16 @@ static void freeMatchState(MatchState* state)
 #define VECTOR_1 ((void*)8)
 #define BOX ((void*)9)
 #define INCOMPLETE_SYMBOL ((void*)10)
+#define BVECTOR_0 ((void*)11)
+#define BVECTOR_1 ((void*)12)
 
 static const char* separatorStrSet[]=
 {
 	"~@",
 	"#(",
 	"#[",
+	"#vu8(",
+	"#vu8[",
 	"(",
 	",",
 	"#\\",
@@ -193,6 +197,8 @@ static int isBuiltInPattern(FklStringMatchPattern* pattern)
 		||pattern==DOTTED
 		||pattern==VECTOR_0
 		||pattern==VECTOR_1
+		||pattern==BVECTOR_0
+		||pattern==BVECTOR_1
 		||pattern==BOX
 		;
 }
@@ -202,7 +208,9 @@ static int isBuiltInParenthese(FklStringMatchPattern* pattern)
 	return pattern==PARENTHESE_0
 		||pattern==PARENTHESE_1
 		||pattern==VECTOR_0
-		||pattern==VECTOR_1;
+		||pattern==VECTOR_1
+		||pattern==BVECTOR_0
+		||pattern==BVECTOR_1;
 }
 
 static MatchState* searchReverseStringCharMatchState(const char* part,size_t index,size_t size,FklPtrStack* stack)
@@ -243,6 +251,10 @@ static MatchState* searchReverseStringCharMatchState(const char* part,size_t ind
 			return newMatchState(VECTOR_0,0);
 		else if(size-index>1&&part[index]=='#'&&part[index+1]=='[')
 			return newMatchState(VECTOR_1,0);
+		else if(size-index>4&&!strncmp("#vu8(",part+index,5))
+			return newMatchState(BVECTOR_0,0);
+		else if(size-index>4&&!strncmp("#vu8[",part+index,5))
+			return newMatchState(BVECTOR_1,0);
 		else if(part[index]=='(')
 			return newMatchState(PARENTHESE_0,0);
 		else if(part[index]==')')
@@ -251,6 +263,8 @@ static MatchState* searchReverseStringCharMatchState(const char* part,size_t ind
 				return newMatchState(PARENTHESE_0,1);
 			else if(topState&&topState->pattern==VECTOR_0&&topState->index==0)
 				return newMatchState(VECTOR_0,1);
+			else if(topState&&topState->pattern==BVECTOR_0&&topState->index==0)
+				return newMatchState(BVECTOR_0,1);
 			else
 				return NULL;
 		}
@@ -262,6 +276,8 @@ static MatchState* searchReverseStringCharMatchState(const char* part,size_t ind
 				return newMatchState(PARENTHESE_1,1);
 			else if(topState&&topState->pattern==VECTOR_1&&topState->index==0)
 				return newMatchState(VECTOR_1,1);
+			else if(topState&&topState->pattern==BVECTOR_1&&topState->index==0)
+				return newMatchState(BVECTOR_1,1);
 			else
 				return NULL;
 		}
@@ -329,12 +345,18 @@ static int searchReverseStringChar(const char* part,size_t index,size_t size,Fkl
 			return 1;
 		else if(size-index>1&&part[index]=='#'&&part[index+1]=='[')
 			return 1;
+		else if(size-index>4&&!strncmp("#vu8(",part+index,5))
+			return 1;
+		else if(size-index>4&&!strncmp("#vu8[",part+index,5))
+			return 1;
 		else if(part[index]=='(')
 			return 1;
 		else if(part[index]==')')
 		{
 			if(topState&&(topState->pattern==PARENTHESE_0
-						||topState->pattern==VECTOR_0)&&topState->index==0)
+						||topState->pattern==VECTOR_0
+						||topState->pattern==BVECTOR_0)
+					&&topState->index==0)
 				return 1;
 			else
 				return 0;
@@ -344,7 +366,9 @@ static int searchReverseStringChar(const char* part,size_t index,size_t size,Fkl
 		else if(part[index]==']')
 		{
 			if(topState&&(topState->pattern==PARENTHESE_1
-						||topState->pattern==VECTOR_1)&&topState->index==0)
+						||topState->pattern==VECTOR_1
+						||topState->pattern==BVECTOR_1)
+					&&topState->index==0)
 				return 1;
 			else
 				return 0;
@@ -436,7 +460,9 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 						const char* parenthese=state->pattern==PARENTHESE_0?"(":
 							state->pattern==PARENTHESE_1?"[":
 							state->pattern==VECTOR_0?"#(":
-							"#[";
+							state->pattern==VECTOR_1?"#[":
+							state->pattern==BVECTOR_0?"#vu8(":
+							"#vu8[";
 						fklPushPtrStack(fklNewToken(FKL_TOKEN_RESERVE_STR,fklNewStringFromCstr(parenthese),*line),retvalStack);
 						fklPushPtrStack(state,matchStateStack);
 						j+=strlen(parenthese);
@@ -444,7 +470,9 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 					}
 					else if(state->index==1)
 					{
-						const char* parenthese=(state->pattern==PARENTHESE_0||state->pattern==VECTOR_0)?")":"]";
+						const char* parenthese=(state->pattern==PARENTHESE_0
+								||state->pattern==VECTOR_0
+								||state->pattern==BVECTOR_0)?")":"]";
 						MatchState* prevState=fklTopPtrStack(matchStateStack);
 						if(!isBuiltInParenthese(prevState->pattern))
 						{

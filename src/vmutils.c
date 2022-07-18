@@ -948,6 +948,9 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 								case FKL_STR:
 									tmpAtm->value.str=fklCopyString(root->u.str);
 									break;
+								case FKL_BYTEVECTOR:
+									tmpAtm->value.bvec=fklCopyBytevector(root->u.bvec);
+									break;
 								case FKL_PROC:
 									tmpAtm->type=FKL_SYM;
 									tmpAtm->value.str=fklNewStringFromCstr("#<proc>");

@@ -1325,10 +1325,10 @@ void builtin_append_bytevector(ARGL)
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
 	FklVMvalue* cur=fklNiGetArg(&ap,stack);
-	FklVMvalue* retval=fklNewVMvalueToStack(FKL_STR,fklNewString(0,NULL),stack,exe->heap);
+	FklVMvalue* retval=fklNewVMvalueToStack(FKL_BYTEVECTOR,fklNewBytevector(0,NULL),stack,exe->heap);
 	for(;cur;cur=fklNiGetArg(&ap,stack))
 	{
-		FKL_NI_CHECK_TYPE(cur,FKL_IS_STR,"builtin.append-bytevector",runnable,exe);
+		FKL_NI_CHECK_TYPE(cur,FKL_IS_BYTEVECTOR,"builtin.append-bytevector",runnable,exe);
 		fklBytevectorCat(&retval->u.bvec,cur->u.bvec);
 	}
 	fklNiResBp(&ap,stack);
@@ -1480,6 +1480,21 @@ void builtin_string_to_symbol(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.string->symbol",FKL_TOOFEWARG,runnable,exe);
 	FKL_NI_CHECK_TYPE(obj,FKL_IS_STR,"builtin.string->symbol",runnable,exe);
 	fklNiReturn(FKL_MAKE_VM_SYM(fklAddSymbolToGlob(obj->u.str)->id),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_symbol_to_integer(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.symbol->integer",FKL_TOOMANYARG,runnable,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.symbol->integer",FKL_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(obj,FKL_IS_SYM,"builtin.symbol->integer",runnable,exe);
+	FklVMvalue* r=fklMakeVMint(FKL_GET_SYM(obj),stack,exe->heap);
+	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -2410,6 +2425,8 @@ void builtin_length(ARGL)
 		len=obj->u.str->size;
 	else if(FKL_IS_VECTOR(obj))
 		len=obj->u.vec->size;
+	else if(FKL_IS_BYTEVECTOR(obj))
+		len=obj->u.bvec->size;
 	else if(FKL_IS_USERDATA(obj)&&obj->u.ud->t->__length)
 		len=obj->u.ud->t->__length(obj->u.ud->data);
 	else
@@ -3395,6 +3412,37 @@ void builtin_fgetc(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void builtin_fgeti(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* stream=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgeti",FKL_TOOMANYARG,runnable,exe);
+	if(stream&&!FKL_IS_FP(stream))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgeti",FKL_WRONGARG,runnable,exe);
+	FklVMfp* fp=stream?stream->u.fp:BuiltInStdin->u.fp;
+	if(!fp)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgeti",FKL_INVALIDACCESS,runnable,exe);
+	if(fp->size)
+	{
+		fp->size-=1;
+		fklNiReturn(FKL_MAKE_VM_CHR(fp->prev[0]),&ap,stack);
+		uint8_t* prev=fp->prev;
+		fp->prev=fklCopyMemory(prev+1,sizeof(uint8_t)*fp->size);
+		free(prev);
+	}
+	else
+	{
+		int ch=fgetc(fp->fp);
+		if(ch==EOF)
+			fklNiReturn(FKL_VM_NIL,&ap,stack);
+		else
+			fklNiReturn(FKL_MAKE_VM_I32(ch),&ap,stack);
+	}
+	fklNiEnd(&ap,stack);
+}
+
 void builtin_fwrite(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -3856,6 +3904,7 @@ static const struct SymbolFuncStruct
 	{"dll?",                builtin_dll_p,                 },
 	{"getdir",              builtin_getdir,                },
 	{"fgetc",               builtin_fgetc,                 },
+	{"fgeti",               builtin_fgeti,                 },
 	{"fwrite",              builtin_fwrite,                },
 	{"fgets",               builtin_fgets,                 },
 	{"fgetb",               builtin_fgetb,                 },
@@ -3879,9 +3928,10 @@ static const struct SymbolFuncStruct
 	{"number?",             builtin_number_p,              },
 	{"string->number",      builtin_string_to_number,      },
 	{"char->integer",       builtin_char_to_integer,       },
+	{"symbol->integer",     builtin_symbol_to_integer,     },
 	{"integer->char",       builtin_integer_to_char,       },
-	{"integer->f64",       builtin_integer_to_f64,       },
-	{"f64->integer",       builtin_f64_to_integer,       },
+	{"integer->f64",        builtin_integer_to_f64,        },
+	{"f64->integer",        builtin_f64_to_integer,        },
 
 	{"map",                 builtin_map,                   },
 	{"foreach",             builtin_foreach,               },

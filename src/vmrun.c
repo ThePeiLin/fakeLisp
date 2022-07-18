@@ -167,6 +167,7 @@ static void B_pop_r_env(FklVM*);
 static void B_tail_call(FklVM*);
 static void B_push_big_int(FklVM*);
 static void B_push_box(FklVM*);
+static void B_push_bytevector(FklVM*);
 
 static void (*ByteCodes[])(FklVM*)=
 {
@@ -204,6 +205,7 @@ static void (*ByteCodes[])(FklVM*)=
 	B_tail_call,
 	B_push_big_int,
 	B_push_box,
+	B_push_bytevector,
 };
 
 FklVM* fklNewVM(FklByteCode* mainCode)
@@ -833,6 +835,15 @@ void B_push_box(FklVM* exe)
 	fklNiReturn(box,&ap,stack);
 	fklNiEnd(&ap,stack);
 	r->cp+=sizeof(char);
+}
+
+void B_push_bytevector(FklVM* exe)
+{
+	FklVMstack* stack=exe->stack;
+	FklVMrunnable* runnable=exe->rhead;
+	uint64_t size=fklGetU64FromByteCode(exe->code+runnable->cp+sizeof(char));
+	fklNewVMvalueToStack(FKL_BYTEVECTOR,fklNewBytevector(size,exe->code+runnable->cp+sizeof(char)+sizeof(uint64_t)),stack,exe->heap);
+	runnable->cp+=sizeof(char)+sizeof(uint64_t)+size;
 }
 
 FklVMstack* fklNewVMstack(int32_t size)

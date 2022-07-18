@@ -786,6 +786,14 @@ FklByteCode* fklCompileAtom(FklAstCptr* objCptr)
 					,tmpAtm->value.str->str
 					,tmpAtm->value.str->size);
 			break;
+		case FKL_BYTEVECTOR:
+			tmp=fklNewByteCode(sizeof(char)+sizeof(tmpAtm->value.bvec->size)+tmpAtm->value.bvec->size);
+			tmp->code[0]=FKL_PUSH_BYTEVECTOR;
+			fklSetU64ToByteCode(tmp->code+sizeof(char),tmpAtm->value.bvec->size);
+			memcpy(tmp->code+sizeof(char)+sizeof(tmpAtm->value.bvec->size)
+					,tmpAtm->value.bvec->ptr
+					,tmpAtm->value.bvec->size);
+			break;
 		case FKL_BIG_INT:
 			tmp=fklNewByteCode(sizeof(char)+sizeof(char)+sizeof(tmpAtm->value.bigInt.size)+tmpAtm->value.bigInt.num);
 			tmp->code[0]=FKL_PUSH_BIG_INT;

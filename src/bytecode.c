@@ -228,13 +228,19 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 						,fp);
 				r+=sizeof(char)+sizeof(uint64_t)+fklGetU64FromByteCode(tmpCode->code+i+sizeof(char));
 			}
-			else
+			else if(tmpCode->code[i]==FKL_PUSH_BIG_INT)
 			{
 				uint64_t num=fklGetU64FromByteCode(tmpCode->code+i+sizeof(char));
 				FklBigInt* bi=fklNewBigIntFromMem(tmpCode->code+i+sizeof(char)+sizeof(num),num);
 				fklPrintBigInt(bi,fp);
 				r+=sizeof(char)+sizeof(bi->num)+sizeof(uint8_t)*num;
 				fklFreeBigInt(bi);
+			}
+			else
+			{
+				fprintf(fp,"%lu ",fklGetU64FromByteCode(tmpCode->code+i+sizeof(char)));
+				fklPrintRawByteBuf(tmpCode->code+i+sizeof(char)+sizeof(uint64_t),fklGetU64FromByteCode(tmpCode->code+i+sizeof(char)),fp);
+				r+=sizeof(char)+sizeof(uint64_t)+fklGetU64FromByteCode(tmpCode->code+i+sizeof(char));
 			}
 			break;
 		case 0:

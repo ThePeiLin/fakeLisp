@@ -16,7 +16,7 @@
       (fclose fp)
       code)))
 
-(define m "\x0")
+(define m #vu8(0))
 
 (define len (length code))
 
@@ -27,18 +27,18 @@
       ((#\>) (begin
                (setq mp (1+ mp))
                (if (>= mp (length m))
-                 (setq m (append-string m "\x0")))))
+                 (setq m (append-bytevector m #vu8(0))))))
       ((#\<) (begin
                (if (<= mp 0)
-                 (setq m (append-string "\x0" mp))
+                 (setq m (append-bytevector #vu8(0) mp))
                  (setq mp (-1+ mp)))))
-      ((#\+) (let [(c (sref m mp))]
-               (set-sref! m mp (char (1+ (integer c))))))
-      ((#\-) (let [(c (sref m mp))]
-               (set-sref! m mp (char (-1+ (integer c))))))
-      ((#\.) (princ (sref m mp)))
-      ((#\,) (set-sref! m mp (fgetc stdin)))
-      ((#\[) (let ((c (integer (sref m mp))))
+      ((#\+) (let [(c (bvu8ref m mp))]
+               (set-bvu8ref! m mp (1+ c))))
+      ((#\-) (let [(c (bvu8ref m mp))]
+               (set-bvu8ref! m mp (-1+ c))))
+      ((#\.) (princ (integer->char (bvu8ref m mp))))
+      ((#\,) (set-bvu8ref! m mp (fgetc stdin)))
+      ((#\[) (let ((c (bvu8ref m mp)))
                (if (eq c 0)
                  (let loop ((ch (sref code cp)))
                    (if (not (eq ch #\]))

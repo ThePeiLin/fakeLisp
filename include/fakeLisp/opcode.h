@@ -43,9 +43,10 @@ typedef enum
 	FKL_TAIL_CALL,
 	FKL_PUSH_BIG_INT,
 	FKL_PUSH_BOX,
+	FKL_PUSH_BYTEVECTOR,
 }FklOpcode;
 
-#define FKL_LAST_OPCODE FKL_PUSH_BOX
+#define FKL_LAST_OPCODE FKL_PUSH_BYTEVECTOR
 const char* fklGetOpcodeName(FklOpcode);
 int fklGetOpcodeArgLen(FklOpcode);
 FklOpcode fklFindOpcode(const char*);

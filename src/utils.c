@@ -800,6 +800,18 @@ void fklPrintRawCharBuf(const char* str,char se,size_t size,FILE* out)
 	putc(se,out);
 }
 
+void fklPrintRawByteBuf(const uint8_t* ptr,size_t size,FILE* out)
+{
+	fprintf(out,"#vu8(");
+	for(size_t i=0;i<size;i++)
+	{
+		fprintf(out,"0x%X",ptr[i]);
+		if(i<size-1)
+			fputc(' ',out);
+	}
+	fprintf(out,")");
+}
+
 inline int fklIsI64AddOverflow(int64_t a,int64_t b)
 {
 	int64_t sum=a+b;

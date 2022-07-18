@@ -67,6 +67,7 @@ int fklPower(int,int);
 void fklPrintRawCharBuf(const char* str,char se,size_t size,FILE* out);
 void fklPrintRawCstring(const char*,char se,FILE*);
 void fklPrintRawChar(char,FILE*);
+void fklPrintRawByteBuf(const uint8_t* ptr,size_t size,FILE* out);
 
 char* fklDoubleToCstr(double);
 FklString* fklDoubleToString(double);

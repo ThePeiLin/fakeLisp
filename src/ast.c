@@ -60,6 +60,8 @@ void fklFreeAtom(FklAstAtom* objAtm)
 {
 	if(objAtm->type==FKL_SYM||objAtm->type==FKL_STR)
 		free(objAtm->value.str);
+	else if(objAtm->type==FKL_BYTEVECTOR)
+		free(objAtm->value.bvec);
 	else if(objAtm->type==FKL_VECTOR)
 	{
 		FklAstVector* vec=&objAtm->value.vec;
@@ -131,6 +133,9 @@ FklAstAtom* fklNewAtom(FklValueType type,FklAstPair* prev)
 		case FKL_SYM:
 			tmp->value.str=NULL;
 			break;
+		case FKL_BYTEVECTOR:
+			tmp->value.bvec=NULL;
+			break;
 		case FKL_VECTOR:
 			tmp->value.vec.size=0;
 			tmp->value.vec.base=NULL;
@@ -188,6 +193,10 @@ int fklCopyCptr(FklAstCptr* objCptr,const FklAstCptr* copiedCptr)
 					case FKL_SYM:
 						atom1=fklNewAtom(atom2->type,root1->outer);
 						atom1->value.str=fklCopyString(atom2->value.str);
+						break;
+					case FKL_BYTEVECTOR:
+						atom1=fklNewAtom(atom2->type,root1->outer);
+						atom1->value.bvec=fklCopyBytevector(atom2->value.bvec);
 						break;
 					case FKL_VECTOR:
 						atom1=fklNewAtom(atom2->type,root1->outer);
@@ -600,6 +609,8 @@ static void freeMatchState(MatchState* state)
 #define VECTOR_0 ((void*)7)
 #define VECTOR_1 ((void*)8)
 #define BOX ((void*)9)
+#define BVECTOR_0 ((void*)10)
+#define BVECTOR_1 ((void*)11)
 
 typedef enum
 {
@@ -648,6 +659,13 @@ static int isBuiltInVector(FklStringMatchPattern* pattern)
 		;
 }
 
+static int isBuiltInBvector(FklStringMatchPattern* pattern)
+{
+	return pattern==BVECTOR_0
+		||pattern==BVECTOR_1
+		;
+}
+
 static int isLeftParenthese(const FklString* str)
 {
 	return str->size==1&&(str->str[0]=='('||str->str[0]=='[');
@@ -656,6 +674,11 @@ static int isLeftParenthese(const FklString* str)
 static int isVectorStart(const FklString* str)
 {
 	return str->size==2&&str->str[0]=='#'&&(str->str[1]=='('||str->str[1]=='[');
+}
+
+static int isBytevectorStart(const FklString* str)
+{
+	return str->size==5&&!strncmp(str->str,"#vu8",4)&&(str->str[4]=='('||str->str[4]=='[');
 }
 
 static int isRightParenthese(const FklString* str)
@@ -678,7 +701,11 @@ static MatchState* searchReverseStringCharMatchState(const FklString* str,FklPtr
 {
 	MatchState* top=fklTopPtrStack(matchStateStack);
 	uint32_t i=0;
-	for(;top&&!isBuiltInSingleStrPattern(top->pattern)&&!isBuiltInParenthese(top->pattern)&&!isBuiltInVector(top->pattern)&&top->cindex+i<top->pattern->num;)
+	for(;top&&!isBuiltInSingleStrPattern(top->pattern)
+			&&!isBuiltInParenthese(top->pattern)
+			&&!isBuiltInVector(top->pattern)
+			&&!isBuiltInBvector(top->pattern)
+			&&top->cindex+i<top->pattern->num;)
 	{
 		const FklString* cpart=fklGetNthPartOfStringMatchPattern(top->pattern,top->cindex+i);
 		if(!fklIsVar(cpart)&&!fklStringcmp(str,cpart))
@@ -906,6 +933,15 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 				fklPushPtrStack(cStack,stackStack);
 				continue;
 			}
+			else if(isBytevectorStart(token->value))
+			{
+				FklStringMatchPattern* pattern=token->value->str[4]=='('?BVECTOR_0:BVECTOR_1;
+				MatchState* state=newMatchState(pattern,token->line,0);
+				fklPushPtrStack(state,matchStateStack);
+				cStack=fklNewPtrStack(32,16);
+				fklPushPtrStack(cStack,stackStack);
+				continue;
+			}
 			else if(isRightParenthese(token->value))
 			{
 				fklPopPtrStack(stackStack);
@@ -929,7 +965,7 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 						free(c);
 					}
 				}
-				else
+				else if(isBuiltInVector(cState->pattern))
 				{
 					FklAstAtom* vec=fklNewAtom(FKL_VECTOR,v->cptr->outer);
 					fklMakeAstVector(&vec->value.vec,cStack->top,NULL);
@@ -942,6 +978,35 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 						{
 							if(c->place==AST_CAR)
 								fklCopyCptr(&vec->value.vec.base[i],c->cptr);
+							else
+								r=1;
+						}
+						fklDeleteCptr(c->cptr);
+						free(c->cptr);
+						free(c);
+					}
+				}
+				else
+				{
+					FklAstAtom* bvec=fklNewAtom(FKL_BYTEVECTOR,v->cptr->outer);
+					v->cptr->type=FKL_ATM;
+					v->cptr->u.atom=bvec;
+					FklBytevector* bv=fklNewBytevector(cStack->top,NULL);
+					v->cptr->u.atom->value.bvec=bv;
+					for(uint32_t i=0;i<cStack->top;i++)
+					{
+						AstElem* c=cStack->base[i];
+						if(!r)
+						{
+							if(c->place==AST_CAR&&c->cptr->type==FKL_ATM&&
+									(c->cptr->u.atom->type==FKL_BIG_INT
+									 ||c->cptr->u.atom->type==FKL_I64
+									 ||c->cptr->u.atom->type==FKL_I32
+									 ))
+								bv->ptr[i]=c->cptr->u.atom->type==FKL_BIG_INT
+									?fklBigIntToI64(&c->cptr->u.atom->value.bigInt)
+									:c->cptr->u.atom->type==FKL_I64?c->cptr->u.atom->value.i64
+									:c->cptr->u.atom->value.i32;
 							else
 								r=1;
 						}
@@ -1008,7 +1073,9 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 			}
 		}
 		for(MatchState* state=fklTopPtrStack(matchStateStack);
-				state&&(isBuiltInSingleStrPattern(state->pattern)||(!isBuiltInParenthese(state->pattern)&&!isBuiltInVector(state->pattern)));
+				state&&(isBuiltInSingleStrPattern(state->pattern)||(!isBuiltInParenthese(state->pattern)
+						&&!isBuiltInVector(state->pattern)
+						&&!isBuiltInBvector(state->pattern)));
 				state=fklTopPtrStack(matchStateStack))
 		{
 			if(isBuiltInSingleStrPattern(state->pattern))
@@ -1148,6 +1215,9 @@ void fklPrintCptr(const FklAstCptr* o_cptr,FILE* fp)
 				{
 					case FKL_SYM:
 						fklPrintRawSymbol(tmpAtm->value.str,fp);
+						break;
+					case FKL_BYTEVECTOR:
+						fklPrintRawBytevector(tmpAtm->value.bvec,fp);
 						break;
 					case FKL_STR:
 						fklPrintRawString(tmpAtm->value.str,fp);

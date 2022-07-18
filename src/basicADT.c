@@ -329,7 +329,7 @@ FklBigInt* fklNewBigInt(int64_t v)
 
 FklBigInt* fklNewBigIntD(double v)
 {
-	v=ceil(v);
+	v=floor(v);
 	if(fabs(v-0)<DBL_EPSILON)
 		return fklNewBigInt0();
 	FklBigInt* t=(FklBigInt*)malloc(sizeof(FklBigInt));
@@ -1274,12 +1274,15 @@ int fklBytevectorcmp(const FklBytevector* fir,const FklBytevector* sec)
 
 void fklPrintRawBytevector(const FklBytevector* bv,FILE* fp)
 {
-	fprintf(fp,"#vu8(");
-	for(size_t i=0;i<bv->size;i++)
-	{
-		fprintf(fp,"0x%X",bv->ptr[i]);
-		if(i<bv->size-1)
-			fputc(' ',fp);
-	}
-	fprintf(fp,")");
+	fklPrintRawByteBuf(bv->ptr,bv->size,fp);
+}
+
+FklBytevector* fklCopyBytevector(const FklBytevector* obj)
+{
+	if(obj==NULL)return NULL;
+	FklBytevector* tmp=(FklBytevector*)malloc(sizeof(FklBytevector)+obj->size);
+	FKL_ASSERT(tmp);
+	memcpy(tmp->ptr,obj->ptr,obj->size);
+	tmp->size=obj->size;
+	return tmp;
 }

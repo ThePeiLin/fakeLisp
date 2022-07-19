@@ -120,7 +120,7 @@ static FklVMvalue* __fkl_userdata_copyer(FklVMvalue* obj,FklVMstack* s,FklVMheap
 				,s,h);
 }
 
-FklVMvalue* (*valueCopyers[])(FklVMvalue* obj,FklVMstack* s,FklVMheap* heap)=
+static FklVMvalue* (*const valueCopyers[])(FklVMvalue* obj,FklVMstack* s,FklVMheap* heap)=
 {
 	NULL,
 	NULL,

@@ -147,6 +147,67 @@ void builtin_cons(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+static int __fkl_str_append(FklVMvalue* retval,FklVMvalue* cur)
+{
+	if(!FKL_IS_STR(cur))
+		return 1;
+	fklStringCat(&retval->u.str,cur->u.str);
+	return 0;
+}
+
+static int __fkl_vector_append(FklVMvalue* retval,FklVMvalue* cur)
+{
+	if(!FKL_IS_VECTOR(cur))
+		return 1;
+	fklVMvecCat((FklVMvec**)&retval->u.vec,cur->u.vec);
+	return 0;
+}
+
+static int __fkl_bytevector_append(FklVMvalue* retval,FklVMvalue* cur)
+{
+	if(!FKL_IS_BYTEVECTOR(cur))
+		return 1;
+	fklBytevectorCat(&retval->u.bvec,cur->u.bvec);
+	return 0;
+}
+
+static int __fkl_userdata_append(FklVMvalue* retval,FklVMvalue* cur)
+{
+	if(!FKL_IS_USERDATA(cur)
+			||retval->u.ud->type!=cur->u.ud->type
+			||!retval->u.ud->t->__append
+			||retval->u.ud->t->__append!=cur->u.ud->t->__append)
+		return 1;
+	cur->u.ud->t->__append(&retval->u.ud->data,cur->u.ud->data);
+	return 0;
+}
+
+static int (*const valueAppend[])(FklVMvalue* retval,FklVMvalue* cur)=
+{
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	__fkl_str_append,
+	__fkl_vector_append,
+	NULL,
+	NULL,
+	__fkl_bytevector_append,
+	__fkl_userdata_append,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+};
+
 void builtin_append(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -156,37 +217,12 @@ void builtin_append(ARGL)
 	if(cur&&cur!=FKL_VM_NIL&&!FKL_IS_PAIR(cur)&&fklIsAppendable(cur))
 	{
 		retval=cur;
-		FklVMvalue* prev=cur;
 		cur=fklNiGetArg(&ap,stack);
 		if(cur)
-			retval=fklCopyVMvalue(prev,stack,exe->heap);
+			retval=fklCopyVMvalue(retval,stack,exe->heap);
 		for(;cur;cur=fklNiGetArg(&ap,stack))
 		{
-			if(FKL_IS_STR(prev))
-			{
-				FKL_NI_CHECK_TYPE(cur,FKL_IS_STR,"builtin.append",runnable,exe);
-				fklStringCat((FklString**)&retval->u.str,cur->u.str);
-			}
-			else if(FKL_IS_BYTEVECTOR(prev))
-			{
-				FKL_NI_CHECK_TYPE(cur,FKL_IS_BYTEVECTOR,"builtin.append-bytevector",runnable,exe);
-				fklBytevectorCat(&retval->u.bvec,cur->u.bvec);
-			}
-			else if(FKL_IS_VECTOR(prev))
-			{
-				FKL_NI_CHECK_TYPE(cur,FKL_IS_VECTOR,"builtin.append",runnable,exe);
-				fklVMvecCat((FklVMvec**)&retval->u.vec,cur->u.vec);
-			}
-			else if(FKL_IS_USERDATA(prev))
-			{
-				if(!FKL_IS_USERDATA(cur)
-						||prev->u.ud->type!=cur->u.ud->type
-						||!prev->u.ud->t->__append
-						||prev->u.ud->t->__append!=cur->u.ud->t->__append)
-					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.append",FKL_WRONGARG,runnable,exe);
-				cur->u.ud->t->__append(&retval->u.ud->data,cur->u.ud->data);
-			}
-			else
+			if(valueAppend[retval->type](retval,cur))
 				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.append",FKL_WRONGARG,runnable,exe);
 		}
 	}

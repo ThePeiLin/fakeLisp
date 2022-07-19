@@ -214,7 +214,7 @@ void builtin_append(ARGL)
 	FklVMrunnable* runnable=exe->rhead;
 	FklVMvalue* retval=FKL_VM_NIL;
 	FklVMvalue* cur=fklNiGetArg(&ap,stack);
-	if(cur&&cur!=FKL_VM_NIL&&!FKL_IS_PAIR(cur)&&fklIsAppendable(cur))
+	if(cur&&fklIsAppendable(cur))
 	{
 		retval=cur;
 		cur=fklNiGetArg(&ap,stack);

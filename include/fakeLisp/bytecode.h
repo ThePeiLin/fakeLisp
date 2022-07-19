@@ -41,7 +41,9 @@ typedef struct FklLineNumberTableNode
 	uint64_t cpc;
 	uint32_t line;
 }FklLineNumTabNode;
+
 FklByteCode* fklNewByteCode(size_t);
+FklByteCode* fklNewByteCodeAndInit(size_t,const uint8_t*);
 void fklCodeCat(FklByteCode*,const FklByteCode*);
 void fklReCodeCat(const FklByteCode*,FklByteCode*);
 FklByteCode* fklCopyByteCode(const FklByteCode*);

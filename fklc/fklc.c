@@ -61,31 +61,42 @@ void fklc_fbc_p(ARGL) PREDICATE(fklcIsFbc(val),"fklc.fbc?")
 	fklNiEnd(&ap,stack);\
 }
 
-//void fklc_fbc_append(ARGL)
-//{
-//	FKL_NI_BEGIN(exe);
-//	FklVMrunnable* runnable=exe->rhead;
-//	FklVMvalue* retval=FKL_VM_NIL;
-//	FklByteCode* bc=NULL;
-//	for(FklVMvalue* cur=fklNiGetArg(&ap,stack);cur;cur=fklNiGetArg(&ap,stack))
-//	{
-//		FKL_NI_CHECK_TYPE(cur,fklcIsFbc,"fklc.fbc-append",runnable,exe);
-//		fklcCodeAppend(&bc,cur->u.ud->data);
-//	}
-//	if(bc)
-//		retval=fklNewVMvalueToStack(FKL_USERDATA,fklcNewFbcUd(bc),stack,exe->heap);
-//	fklNiResBp(&ap,stack);
-//	fklNiReturn(retval,&ap,stack);
-//	fklNiEnd(&ap,stack);
-//}
-
 void fklc_make_push_nil(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("make-push-nil",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.make-push-nil",FKL_TOOMANYARG,runnable,exe);
 	fklNiReturn(fklNewVMvalueToStack(FKL_USERDATA,fklcNewFbcUd(fklNewPushNilByteCode()),stack,exe->heap),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void fklc_fbc_to_bytevector(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* fbc=fklNiGetArg(&ap,stack);
+	if(!fbc)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.fbc->bytevector",FKL_TOOMANYARG,runnable,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.fbc->bytevector",FKL_TOOMANYARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(fbc,fklcIsFbc,"fklc.fbc->bytevector",runnable,exe);
+	FklByteCode* bc=fbc->u.ud->data;
+	fklNiReturn(fklNewVMvalueToStack(FKL_BYTEVECTOR,fklNewBytevector(bc->size,bc->code),stack,exe->heap),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void fklc_bytevector_to_fbc(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* bv=fklNiGetArg(&ap,stack);
+	if(!bv)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.fbc->bytevector",FKL_TOOMANYARG,runnable,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.fbc->bytevector",FKL_TOOMANYARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(bv,FKL_IS_BYTEVECTOR,"fklc.fbc->bytevector",runnable,exe);
+	fklNiReturn(fklNewVMvalueToStack(FKL_USERDATA,fklcNewFbcUd(fklNewByteCodeAndInit(bv->u.bvec->size,bv->u.bvec->ptr)),stack,exe->heap),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

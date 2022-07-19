@@ -1,31 +1,33 @@
 (library
   fklc
   (export
-    fklc-compile-i32
-    fklc-compile-i64
-    fklc-compile-char
-    fklc-compile-symbol
-    fklc-compile-f64
-    fklc-compile-string
-    fklc-compile-big-int
-    fklc-compile-integer
-    fklc-compile-number
-    fklc-make-push-nil
-    fklc-compile-atom-literal
-    ;fklc-fbc-append
-    fklc-fbc?)
+    compile-i32
+    compile-i64
+    compile-char
+    compile-symbol
+    compile-f64
+    compile-string
+    compile-big-int
+    compile-integer
+    compile-number
+    make-push-nil
+    compile-atom-literal
+    fbc->bytevector
+    bytevector->fbc
+    fbc?)
   (define fklc (dlopen (append (getdir) "/../fklc")))
-  (define fklc-fbc? (dlsym fklc "fklc_fbc_p"))
-  (define fklc-compile-i32 (dlsym fklc "fklc_compile_i32"))
-  (define fklc-compile-i64 (dlsym fklc "fklc_compile_i64"))
-  (define fklc-compile-char (dlsym fklc "fklc_compile_char"))
-  (define fklc-compile-symbol (dlsym fklc "fklc_compile_symbol"))
-  (define fklc-compile-f64 (dlsym fklc "fklc_compile_f64"))
-  (define fklc-compile-string (dlsym fklc "fklc_compile_string"))
-  (define fklc-compile-big-int (dlsym fklc "fklc_compile_big_int"))
-  (define fklc-compile-integer (dlsym fklc "fklc_compile_integer"))
-  (define fklc-compile-number (dlsym fklc "fklc_compile_number"))
-  (define fklc-make-push-nil (dlsym fklc "fklc_make_push_nil"))
-  (define fklc-compile-atom-literal (dlsym fklc "fklc_compile_atom_literal"))
-  ;(define fklc-fbc-append (dlsym fklc "fklc_fbc_append"))
+  (define fbc? (dlsym fklc "fklc_fbc_p"))
+  (define compile-i32 (dlsym fklc "fklc_compile_i32"))
+  (define compile-i64 (dlsym fklc "fklc_compile_i64"))
+  (define compile-char (dlsym fklc "fklc_compile_char"))
+  (define compile-symbol (dlsym fklc "fklc_compile_symbol"))
+  (define compile-f64 (dlsym fklc "fklc_compile_f64"))
+  (define compile-string (dlsym fklc "fklc_compile_string"))
+  (define compile-big-int (dlsym fklc "fklc_compile_big_int"))
+  (define compile-integer (dlsym fklc "fklc_compile_integer"))
+  (define compile-number (dlsym fklc "fklc_compile_number"))
+  (define make-push-nil (dlsym fklc "fklc_make_push_nil"))
+  (define compile-atom-literal (dlsym fklc "fklc_compile_atom_literal"))
+  (define fbc->bytevector (dlsym fklc "fklc_fbc_to_bytevector"))
+  (define bytevector->fbc (dlsym fklc "fklc_bytevector_to_fbc"))
   )

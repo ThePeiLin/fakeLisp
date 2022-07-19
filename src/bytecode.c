@@ -4,6 +4,7 @@
 #include<fakeLisp/symbol.h>
 #include<string.h>
 #include<stdlib.h>
+
 FklByteCode* fklNewByteCode(size_t size)
 {
 	FklByteCode* tmp=(FklByteCode*)malloc(sizeof(FklByteCode));
@@ -11,7 +12,17 @@ FklByteCode* fklNewByteCode(size_t size)
 	tmp->size=size;
 	tmp->code=(uint8_t*)malloc(size*sizeof(uint8_t));
 	FKL_ASSERT(tmp->code);
-//	memset(tmp->code,0,size);
+	return tmp;
+}
+
+FklByteCode* fklNewByteCodeAndInit(size_t size,const uint8_t* ptr)
+{
+	FklByteCode* tmp=(FklByteCode*)malloc(sizeof(FklByteCode));
+	FKL_ASSERT(tmp);
+	tmp->size=size;
+	tmp->code=(uint8_t*)malloc(size*sizeof(uint8_t));
+	FKL_ASSERT(tmp->code);
+	memcpy(tmp->code,ptr,size);
 	return tmp;
 }
 
@@ -289,18 +300,34 @@ void fklPrintByteCode(const FklByteCode* tmpCode,FILE* fp)
 {
 	FklPtrStack* s=fklNewPtrStack(32,16);
 	fklPushPtrStack(newByteCodePrintState(BP_NONE,0,0,tmpCode->size),s);
-	while(!fklIsPtrStackEmpty(s))
+	if(!fklIsPtrStackEmpty(s))
 	{
 		ByteCodePrintState* cState=fklPopPtrStack(s);
 		uint64_t i=cState->cp;
 		uint64_t cpc=cState->cpc;
 		int needBreak=0;
-		while(i<cpc)
-		{
+		if(i<cpc)
 			i+=printSingleByteCode(tmpCode,i,fp,cState,s,&needBreak);
+		while(i<cpc&&!needBreak)
+		{
 			putc('\n',fp);
-			if(needBreak)
-				break;
+			i+=printSingleByteCode(tmpCode,i,fp,cState,s,&needBreak);
+		}
+		free(cState);
+	}
+	while(!fklIsPtrStackEmpty(s))
+	{
+		putc('\n',fp);
+		ByteCodePrintState* cState=fklPopPtrStack(s);
+		uint64_t i=cState->cp;
+		uint64_t cpc=cState->cpc;
+		int needBreak=0;
+		if(i<cpc)
+			i+=printSingleByteCode(tmpCode,i,fp,cState,s,&needBreak);
+		while(i<cpc&&!needBreak)
+		{
+			putc('\n',fp);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,s,&needBreak);
 		}
 		free(cState);
 	}
@@ -386,13 +413,13 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp)
 	uint64_t j=0;
 	FklSid_t fid=0;
 	uint64_t line=0;
-	while(!fklIsPtrStackEmpty(s))
+	if(!fklIsPtrStackEmpty(s))
 	{
 		ByteCodePrintState* cState=fklPopPtrStack(s);
 		uint64_t i=cState->cp;
 		uint64_t cpc=cState->cpc;
 		int needBreak=0;
-		while(i<cpc)
+		if(i<cpc)
 		{
 			i+=printSingleByteCode(tmpCode,i,fp,cState,s,&needBreak);
 			if(obj->l[j]->scp+obj->l[j]->cpc<i)
@@ -410,7 +437,74 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp)
 				else
 					fprintf(fp,"\t%u:%lu",obj->l[j]->line,obj->l[j]->cpc);
 			}
+		}
+		while(i<cpc&&!needBreak)
+		{
 			putc('\n',fp);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,s,&needBreak);
+			if(obj->l[j]->scp+obj->l[j]->cpc<i)
+				j++;
+			if(obj->l[j]->fid!=fid||obj->l[j]->line!=line)
+			{
+				fid=obj->l[j]->fid;
+				line=obj->l[j]->line;
+				if(fid)
+				{
+					fprintf(fp,"    ;");
+					fklPrintString(fklGetGlobSymbolWithId(obj->l[j]->fid)->symbol,fp);
+					fprintf(fp,":%u:%lu",obj->l[j]->line,obj->l[j]->cpc);
+				}
+				else
+					fprintf(fp,"\t%u:%lu",obj->l[j]->line,obj->l[j]->cpc);
+			}
+			}
+		free(cState);
+	}
+	while(!fklIsPtrStackEmpty(s))
+	{
+		putc('\n',fp);
+		ByteCodePrintState* cState=fklPopPtrStack(s);
+		uint64_t i=cState->cp;
+		uint64_t cpc=cState->cpc;
+		int needBreak=0;
+		if(i<cpc)
+		{
+			i+=printSingleByteCode(tmpCode,i,fp,cState,s,&needBreak);
+			if(obj->l[j]->scp+obj->l[j]->cpc<i)
+				j++;
+			if(obj->l[j]->fid!=fid||obj->l[j]->line!=line)
+			{
+				fid=obj->l[j]->fid;
+				line=obj->l[j]->line;
+				if(fid)
+				{
+					fprintf(fp,"    ;");
+					fklPrintString(fklGetGlobSymbolWithId(obj->l[j]->fid)->symbol,fp);
+					fprintf(fp,":%u:%lu",obj->l[j]->line,obj->l[j]->cpc);
+				}
+				else
+					fprintf(fp,"\t%u:%lu",obj->l[j]->line,obj->l[j]->cpc);
+			}
+		}
+		while(i<cpc&&!needBreak)
+		{
+			putc('\n',fp);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,s,&needBreak);
+			if(obj->l[j]->scp+obj->l[j]->cpc<i)
+				j++;
+			if(obj->l[j]->fid!=fid||obj->l[j]->line!=line)
+			{
+				fid=obj->l[j]->fid;
+				line=obj->l[j]->line;
+				if(fid)
+				{
+					fprintf(fp,"    ;");
+					fklPrintString(fklGetGlobSymbolWithId(obj->l[j]->fid)->symbol,fp);
+					fprintf(fp,":%u:%lu",obj->l[j]->line,obj->l[j]->cpc);
+				}
+				else
+					fprintf(fp,"\t%u:%lu",obj->l[j]->line,obj->l[j]->cpc);
+			}
 			if(needBreak)
 				break;
 		}

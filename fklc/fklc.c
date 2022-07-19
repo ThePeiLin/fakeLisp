@@ -107,6 +107,7 @@ void fklc_compile_symbol(ARGL) CONST_COMPILE("fklc.compile-symbol",sym,FKL_IS_SY
 void fklc_compile_big_int(ARGL) CONST_COMPILE("fklc.compile-big-int",big_int,FKL_IS_BIG_INT,fklNewPushBigIntByteCode(big_int->u.bigInt))
 void fklc_compile_f64(ARGL) CONST_COMPILE("fklc.compile-f64",f_64,FKL_IS_F64,fklNewPushF64ByteCode(f_64->u.f64))
 void fklc_compile_string(ARGL) CONST_COMPILE("fklc.compile-string",str,FKL_IS_STR,fklNewPushStrByteCode(str->u.str))
+void fklc_compile_bytevector(ARGL) CONST_COMPILE("fklc.compile-bytevector",bvec,FKL_IS_BYTEVECTOR,fklNewPushBvecByteCode(bvec->u.bvec))
 void fklc_compile_integer(ARGL) CONST_COMPILE("fklc.compile-integer",integer,fklIsInt,COMPILE_INTEGER(integer))
 void fklc_compile_number(ARGL) CONST_COMPILE("fklc.compile-number",number,fklIsVMnumber,COMPILE_NUMBER(number))
 void fklc_compile_pair(ARGL) CONST_COMPILE("fklc.compile-pair",pair,FKL_IS_PAIR,fklcNewPushPairByteCode(pair))

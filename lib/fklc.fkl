@@ -7,6 +7,7 @@
     compile-symbol
     compile-f64
     compile-string
+    compile-bytevector
     compile-big-int
     compile-integer
     compile-number
@@ -23,6 +24,7 @@
   (define compile-symbol (dlsym fklc "fklc_compile_symbol"))
   (define compile-f64 (dlsym fklc "fklc_compile_f64"))
   (define compile-string (dlsym fklc "fklc_compile_string"))
+  (define compile-bytevector (dlsym fklc "fklc_compile_bytevector"))
   (define compile-big-int (dlsym fklc "fklc_compile_big_int"))
   (define compile-integer (dlsym fklc "fklc_compile_integer"))
   (define compile-number (dlsym fklc "fklc_compile_number"))

@@ -957,12 +957,17 @@ FklByteCode* fklNewPushStrByteCode(const FklString* str)
 	memcpy(tmp->code+sizeof(char)+sizeof(str->size)
 			,str->str
 			,str->size);
-	tmp=fklNewByteCode(sizeof(char)+sizeof(str->size)+str->size);
-	tmp->code[0]=FKL_PUSH_STR;
-	fklSetU64ToByteCode(tmp->code+sizeof(char),str->size);
-	memcpy(tmp->code+sizeof(char)+sizeof(str->size)
-			,str->str
-			,str->size);
+	return tmp;
+}
+
+FklByteCode* fklNewPushBvecByteCode(const FklBytevector* bvec)
+{
+	FklByteCode* tmp=fklNewByteCode(sizeof(char)+sizeof(bvec->size)+bvec->size);
+	tmp->code[0]=FKL_PUSH_BYTEVECTOR;
+	fklSetU64ToByteCode(tmp->code+sizeof(char),bvec->size);
+	memcpy(tmp->code+sizeof(char)+sizeof(bvec->size)
+			,bvec->ptr
+			,bvec->size);
 	return tmp;
 }
 

@@ -100,6 +100,7 @@ FklByteCode* fklNewPushCharByteCode(char);
 FklByteCode* fklNewPushF64ByteCode(double a);
 FklByteCode* fklNewPushNilByteCode(void);
 FklByteCode* fklNewPushStrByteCode(const FklString* str);
+FklByteCode* fklNewPushBvecByteCode(const FklBytevector* str);
 #ifdef __cplusplus
 }
 #endif

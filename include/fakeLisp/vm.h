@@ -203,8 +203,8 @@ typedef struct FklVMudMethodTable
 	void (*__write)(void*,FILE*);
 	void (*__atomic)(void*,struct FklVMheap*);
 	size_t (*__length)(void*);
-//	FklString* (*__as_str)(void*);
-//	FklString* (*__to_str)(void*);
+	void (*__append)(void**,void*);
+	void* (*__copy)(void*);
 }FklVMudMethodTable;
 
 typedef enum
@@ -376,6 +376,7 @@ void fklFreeVMenv(FklVMenv*);
 
 FklVMproc* fklNewVMproc(uint64_t scp,uint64_t cpc);
 
+FklVMvalue* fklCopyVMlistOrAtom(FklVMvalue*,FklVMstack*,FklVMheap*);
 FklVMvalue* fklCopyVMvalue(FklVMvalue*,FklVMstack*,FklVMheap*);
 FklVMvalue* fklNewVMvalue(FklValueType,void*,FklVMheap*);
 FklVMvalue* fklNewSaveVMvalue(FklValueType,void*);
@@ -440,6 +441,7 @@ int fklIsCallableUd(FklVMvalue*);
 void fklFreeVMudata(FklVMudata*);
 
 int fklIsCallable(FklVMvalue*);
+int fklIsAppendable(FklVMvalue*);
 void fklInitVMargs(int argc,char** argv);
 int fklGetVMargc(void);
 char** fklGetVMargv(void);

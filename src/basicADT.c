@@ -488,6 +488,19 @@ FklBigInt* fklNewBigIntFromCstr(const char* v)
 	return r;
 }
 
+FklBigInt* fklCopyBigInt(const FklBigInt* bigint)
+{
+	FklBigInt* t=(FklBigInt*)malloc(sizeof(FklBigInt));
+	FKL_ASSERT(t);
+	t->num=bigint->num;
+	t->size=bigint->num;
+	t->neg=bigint->neg;
+	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*bigint->num);
+	FKL_ASSERT(t->digits);
+	memcpy(t->digits,bigint->digits,t->num);
+	return t;
+}
+
 FklBigInt* fklNewBigIntFromMem(const void* mem,size_t size)
 {
 	if(size<2)

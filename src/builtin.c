@@ -153,33 +153,57 @@ void builtin_append(ARGL)
 	FklVMrunnable* runnable=exe->rhead;
 	FklVMvalue* retval=FKL_VM_NIL;
 	FklVMvalue* cur=fklNiGetArg(&ap,stack);
-	FklVMvalue** prev=&retval;
-	for(;cur;cur=fklNiGetArg(&ap,stack))
+	if(cur&&cur!=FKL_VM_NIL&&!FKL_IS_PAIR(cur)&&fklIsAppendable(cur))
 	{
-		if(*prev==FKL_VM_NIL)
-			*prev=fklCopyVMvalue(cur,stack,exe->heap);
-		else if(FKL_IS_PAIR(*prev))
+		retval=cur;
+		FklVMvalue* prev=cur;
+		cur=fklNiGetArg(&ap,stack);
+		if(cur)
+			retval=fklCopyVMvalue(prev,stack,exe->heap);
+		for(;cur;cur=fklNiGetArg(&ap,stack))
 		{
-			for(;FKL_IS_PAIR(*prev);prev=&(*prev)->u.pair->cdr);
-			*prev=fklCopyVMvalue(cur,stack,exe->heap);
+			if(FKL_IS_STR(prev))
+			{
+				FKL_NI_CHECK_TYPE(cur,FKL_IS_STR,"builtin.append",runnable,exe);
+				fklStringCat((FklString**)&retval->u.str,cur->u.str);
+			}
+			else if(FKL_IS_BYTEVECTOR(prev))
+			{
+				FKL_NI_CHECK_TYPE(cur,FKL_IS_BYTEVECTOR,"builtin.append-bytevector",runnable,exe);
+				fklBytevectorCat(&retval->u.bvec,cur->u.bvec);
+			}
+			else if(FKL_IS_VECTOR(prev))
+			{
+				FKL_NI_CHECK_TYPE(cur,FKL_IS_VECTOR,"builtin.append",runnable,exe);
+				fklVMvecCat((FklVMvec**)&retval->u.vec,cur->u.vec);
+			}
+			else if(FKL_IS_USERDATA(prev))
+			{
+				if(!FKL_IS_USERDATA(cur)
+						||prev->u.ud->type!=cur->u.ud->type
+						||!prev->u.ud->t->__append
+						||prev->u.ud->t->__append!=cur->u.ud->t->__append)
+					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.append",FKL_WRONGARG,runnable,exe);
+				cur->u.ud->t->__append(&retval->u.ud->data,cur->u.ud->data);
+			}
+			else
+				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.append",FKL_WRONGARG,runnable,exe);
 		}
-		else if(FKL_IS_STR(*prev))
+	}
+	else
+	{
+		FklVMvalue** prev=&retval;
+		for(;cur;cur=fklNiGetArg(&ap,stack))
 		{
-			FKL_NI_CHECK_TYPE(cur,FKL_IS_STR,"builtin.append",runnable,exe);
-			fklStringCat((FklString**)&(*prev)->u.str,cur->u.str);
+			if(*prev==FKL_VM_NIL)
+			{
+				*prev=cur;
+				*prev=fklCopyVMlistOrAtom(*prev,stack,exe->heap);
+				for(;FKL_IS_PAIR(*prev);prev=&(*prev)->u.pair->cdr);
+			}
+			else
+				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.append",FKL_WRONGARG,runnable,exe);
 		}
-		else if(FKL_IS_BYTEVECTOR(*prev))
-		{
-			FKL_NI_CHECK_TYPE(cur,FKL_IS_BYTEVECTOR,"builtin.append-bytevector",runnable,exe);
-			fklBytevectorCat(&retval->u.bvec,cur->u.bvec);
-		}
-		else if(FKL_IS_VECTOR(*prev))
-		{
-			FKL_NI_CHECK_TYPE(cur,FKL_IS_VECTOR,"builtin.append",runnable,exe);
-			fklVMvecCat((FklVMvec**)&(*prev)->u.vec,cur->u.vec);
-		}
-		else
-			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.append",FKL_WRONGARG,runnable,exe);
 	}
 	fklNiResBp(&ap,stack);
 	fklNiReturn(retval,&ap,stack);

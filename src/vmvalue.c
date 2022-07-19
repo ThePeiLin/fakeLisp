@@ -14,7 +14,7 @@ FklVMproc* fklNewVMproc(uint64_t scp,uint64_t cpc)
 	return tmp;
 }
 
-FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVMstack* s,FklVMheap* heap)
+FklVMvalue* fklCopyVMlistOrAtom(FklVMvalue* obj,FklVMstack* s,FklVMheap* heap)
 {
 	FklPtrStack* s1=fklNewPtrStack(32,16);
 	FklPtrStack* s2=fklNewPtrStack(32,16);
@@ -60,6 +60,113 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVMstack* s,FklVMheap* heap)
 	}
 	fklFreePtrStack(s1);
 	fklFreePtrStack(s2);
+	return tmp;
+}
+
+static FklVMvalue* __fkl_f64_copyer(FklVMvalue* obj,FklVMstack* s,FklVMheap* heap)
+{
+	FklVMvalue* tmp=fklNewVMvalueToStack(FKL_F64,NULL,s,heap);
+	tmp->u.f64=obj->u.f64;
+	return tmp;
+}
+
+static FklVMvalue* __fkl_i64_copyer(FklVMvalue* obj,FklVMstack* s,FklVMheap* heap)
+{
+	FklVMvalue* tmp=fklNewVMvalueToStack(FKL_I64,NULL,s,heap);
+	tmp->u.i64=obj->u.i64;
+	return tmp;
+}
+
+static FklVMvalue* __fkl_bigint_copyer(FklVMvalue* obj,FklVMstack* s,FklVMheap* h)
+{
+	return fklNewVMvalueToStack(FKL_BIG_INT,fklCopyBigInt(obj->u.bigInt),s,h);
+}
+
+static FklVMvalue* __fkl_vector_copyer(FklVMvalue* obj,FklVMstack* s,FklVMheap* h)
+{
+	return fklNewVMvecV(obj->u.vec->size,obj->u.vec->base,s,h);
+}
+
+static FklVMvalue* __fkl_str_copyer(FklVMvalue* obj,FklVMstack* s,FklVMheap* h)
+{
+	return fklNewVMvalueToStack(FKL_STR,fklCopyString(obj->u.str),s,h);
+}
+
+static FklVMvalue* __fkl_bytevector_copyer(FklVMvalue* obj,FklVMstack* s,FklVMheap* h)
+{
+	return fklNewVMvalueToStack(FKL_BYTEVECTOR,fklCopyBytevector(obj->u.bvec),s,h);
+}
+
+static FklVMvalue* __fkl_pair_copyer(FklVMvalue* obj,FklVMstack* s,FklVMheap* h)
+{
+	return fklNewVMpairV(obj->u.pair->car,obj->u.pair->cdr,s,h);
+}
+
+static FklVMvalue* __fkl_userdata_copyer(FklVMvalue* obj,FklVMstack* s,FklVMheap* h)
+{
+	if(obj->u.ud->t->__copy==NULL)
+		return NULL;
+	else
+		return fklNewVMvalueToStack(FKL_USERDATA
+				,fklNewVMudata(obj->u.ud->type
+					,obj->u.ud->t
+					,obj->u.ud->t->__copy(obj->u.ud->data)
+					,obj->u.ud->rel)
+				,s,h);
+}
+
+FklVMvalue* (*valueCopyers[])(FklVMvalue* obj,FklVMstack* s,FklVMheap* heap)=
+{
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	__fkl_f64_copyer,
+	__fkl_i64_copyer,
+	__fkl_bigint_copyer,
+	__fkl_str_copyer,
+	__fkl_vector_copyer,
+	__fkl_pair_copyer,
+	__fkl_bytevector_copyer,
+	__fkl_userdata_copyer,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+};
+
+FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVMstack* s,FklVMheap* heap)
+{
+	FklVMvalue* tmp=FKL_VM_NIL;
+	FklVMptrTag tag=FKL_GET_TAG(obj);
+	switch(tag)
+	{
+		case FKL_NIL_TAG:
+		case FKL_I32_TAG:
+		case FKL_SYM_TAG:
+		case FKL_CHR_TAG:
+			tmp=obj;
+			break;
+		case FKL_PTR_TAG:
+			{
+				FklValueType type=obj->type;
+				FKL_ASSERT(type<FKL_ATM);
+				FklVMvalue* (*valueCopyer)(FklVMvalue* obj,FklVMstack* s,FklVMheap* heap)=valueCopyers[type];
+				if(!valueCopyer)
+					return NULL;
+				else
+					return valueCopyer(obj,s,heap);
+			}
+			break;
+		default:
+			FKL_ASSERT(0);
+			break;
+	}
 	return tmp;
 }
 
@@ -905,6 +1012,14 @@ int fklIsCallableUd(FklVMvalue* v)
 int fklIsCallable(FklVMvalue* v)
 {
 	return FKL_IS_PROC(v)||FKL_IS_DLPROC(v)||FKL_IS_CONT(v)||fklIsCallableUd(v);
+}
+
+int fklIsAppendable(FklVMvalue* v)
+{
+	return FKL_IS_STR(v)
+		||FKL_IS_BYTEVECTOR(v)
+		||FKL_IS_VECTOR(v)
+		||(FKL_IS_USERDATA(v)&&v->u.ud->t->__copy&&v->u.ud->t->__append);
 }
 
 void fklFreeVMudata(FklVMudata* u)

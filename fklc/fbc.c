@@ -29,12 +29,26 @@ static void _bc_append(void** a,void* b)
 	fklCodeCat(*a,b);
 }
 
+static int _bc_equal(const FklVMudata* a,const FklVMudata* b)
+{
+	if(a->type!=b->type)
+		return 0;
+	else
+	{
+		FklByteCode* bc0=a->data;
+		FklByteCode* bc1=b->data;
+		if(bc0->size!=bc1->size)
+			return 0;
+		return memcmp(bc0->code,bc1->code,bc0->size);
+	}
+}
+
 static FklVMudMethodTable FklcBcMethodTable=
 {
 	.__princ=_bc_princ,
 	.__prin1=_bc_princ,
 	.__finalizer=_bc_finalizer,
-	.__equal=NULL,
+	.__equal=_bc_equal,
 	.__call=NULL,
 	.__cmp=NULL,
 	.__write=NULL,

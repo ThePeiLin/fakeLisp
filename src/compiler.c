@@ -754,54 +754,28 @@ FklByteCode* fklCompileAtom(FklAstCptr* objCptr)
 	switch(tmpAtm->type)
 	{
 		case FKL_SYM:
-			tmp=fklNewByteCode(sizeof(char)+sizeof(FklSid_t));
-			tmp->code[0]=FKL_PUSH_SYM;
-			fklSetSidToByteCode(tmp->code+sizeof(char),fklAddSymbolToGlob(tmpAtm->value.str)->id);
+			tmp=fklNewPushSidByteCode(fklAddSymbolToGlob(tmpAtm->value.str)->id);
 			break;
 		case FKL_I32:
-			tmp=fklNewByteCode(sizeof(char)+sizeof(int32_t));
-			tmp->code[0]=FKL_PUSH_I32;
-			fklSetI32ToByteCode(tmp->code+sizeof(char),tmpAtm->value.i32);
+			tmp=fklNewPushI32ByteCode(tmpAtm->value.i32);
 			break;
 		case FKL_I64:
-			tmp=fklNewByteCode(sizeof(char)+sizeof(int64_t));
-			tmp->code[0]=FKL_PUSH_I64;
-			fklSetI64ToByteCode(tmp->code+sizeof(char),tmpAtm->value.i64);
+			tmp=fklNewPushI64ByteCode(tmpAtm->value.i64);
 			break;
 		case FKL_F64:
-			tmp=fklNewByteCode(sizeof(char)+sizeof(double));
-			tmp->code[0]=FKL_PUSH_F64;
-			fklSetF64ToByteCode(tmp->code+sizeof(char),tmpAtm->value.f64);
+			tmp=fklNewPushF64ByteCode(tmpAtm->value.f64);
 			break;
 		case FKL_CHR:
-			tmp=fklNewByteCode(sizeof(char)+sizeof(char));
-			tmp->code[0]=FKL_PUSH_CHAR;
-			tmp->code[1]=tmpAtm->value.chr;
+			tmp=fklNewPushCharByteCode(tmpAtm->value.chr);
 			break;
 		case FKL_STR:
-			tmp=fklNewByteCode(sizeof(char)+sizeof(tmpAtm->value.str->size)+tmpAtm->value.str->size);
-			tmp->code[0]=FKL_PUSH_STR;
-			fklSetU64ToByteCode(tmp->code+sizeof(char),tmpAtm->value.str->size);
-			memcpy(tmp->code+sizeof(char)+sizeof(tmpAtm->value.str->size)
-					,tmpAtm->value.str->str
-					,tmpAtm->value.str->size);
+			tmp=fklNewPushStrByteCode(tmpAtm->value.str);
 			break;
 		case FKL_BYTEVECTOR:
-			tmp=fklNewByteCode(sizeof(char)+sizeof(tmpAtm->value.bvec->size)+tmpAtm->value.bvec->size);
-			tmp->code[0]=FKL_PUSH_BYTEVECTOR;
-			fklSetU64ToByteCode(tmp->code+sizeof(char),tmpAtm->value.bvec->size);
-			memcpy(tmp->code+sizeof(char)+sizeof(tmpAtm->value.bvec->size)
-					,tmpAtm->value.bvec->ptr
-					,tmpAtm->value.bvec->size);
+			tmp=fklNewPushBvecByteCode(tmpAtm->value.bvec);
 			break;
 		case FKL_BIG_INT:
-			tmp=fklNewByteCode(sizeof(char)+sizeof(char)+sizeof(tmpAtm->value.bigInt.size)+tmpAtm->value.bigInt.num);
-			tmp->code[0]=FKL_PUSH_BIG_INT;
-			fklSetU64ToByteCode(tmp->code+sizeof(char),tmpAtm->value.bigInt.num+1);
-			tmp->code[sizeof(char)+sizeof(tmpAtm->value.bigInt.num)]=tmpAtm->value.bigInt.neg;
-			memcpy(tmp->code+sizeof(char)+sizeof(tmpAtm->value.bigInt.num)+sizeof(char)
-					,tmpAtm->value.bigInt.digits
-					,tmpAtm->value.bigInt.num);
+			tmp=fklNewPushBigIntByteCode(&tmpAtm->value.bigInt);
 			break;
 		default:
 			break;

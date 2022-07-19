@@ -203,6 +203,8 @@ static FklVMudMethodTable FfiProcMethodTable=
 	.__call=_ffi_proc_invoke,
 	.__write=NULL,
 	.__atomic=NULL,
+	.__append=NULL,
+	.__copy=NULL,
 };
 
 int fklFfiIsProc(FklVMvalue* p)

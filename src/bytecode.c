@@ -4,15 +4,14 @@
 #include<fakeLisp/symbol.h>
 #include<string.h>
 #include<stdlib.h>
-FklByteCode* fklNewByteCode(unsigned int size)
+FklByteCode* fklNewByteCode(size_t size)
 {
 	FklByteCode* tmp=(FklByteCode*)malloc(sizeof(FklByteCode));
 	FKL_ASSERT(tmp);
 	tmp->size=size;
 	tmp->code=(uint8_t*)malloc(size*sizeof(uint8_t));
 	FKL_ASSERT(tmp->code);
-	int32_t i=0;
-	for(;i<tmp->size;i++)tmp->code[i]=0;
+//	memset(tmp->code,0,size);
 	return tmp;
 }
 

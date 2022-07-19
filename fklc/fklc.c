@@ -61,23 +61,23 @@ void fklc_fbc_p(ARGL) PREDICATE(fklcIsFbc(val),"fklc.fbc?")
 	fklNiEnd(&ap,stack);\
 }
 
-void fklc_fbc_append(ARGL)
-{
-	FKL_NI_BEGIN(exe);
-	FklVMrunnable* runnable=exe->rhead;
-	FklVMvalue* retval=FKL_VM_NIL;
-	FklByteCode* bc=NULL;
-	for(FklVMvalue* cur=fklNiGetArg(&ap,stack);cur;cur=fklNiGetArg(&ap,stack))
-	{
-		FKL_NI_CHECK_TYPE(cur,fklcIsFbc,"fklc.fbc-append",runnable,exe);
-		fklcCodeAppend(&bc,cur->u.ud->data);
-	}
-	if(bc)
-		retval=fklNewVMvalueToStack(FKL_USERDATA,fklcNewFbcUd(bc),stack,exe->heap);
-	fklNiResBp(&ap,stack);
-	fklNiReturn(retval,&ap,stack);
-	fklNiEnd(&ap,stack);
-}
+//void fklc_fbc_append(ARGL)
+//{
+//	FKL_NI_BEGIN(exe);
+//	FklVMrunnable* runnable=exe->rhead;
+//	FklVMvalue* retval=FKL_VM_NIL;
+//	FklByteCode* bc=NULL;
+//	for(FklVMvalue* cur=fklNiGetArg(&ap,stack);cur;cur=fklNiGetArg(&ap,stack))
+//	{
+//		FKL_NI_CHECK_TYPE(cur,fklcIsFbc,"fklc.fbc-append",runnable,exe);
+//		fklcCodeAppend(&bc,cur->u.ud->data);
+//	}
+//	if(bc)
+//		retval=fklNewVMvalueToStack(FKL_USERDATA,fklcNewFbcUd(bc),stack,exe->heap);
+//	fklNiResBp(&ap,stack);
+//	fklNiReturn(retval,&ap,stack);
+//	fklNiEnd(&ap,stack);
+//}
 
 void fklc_make_push_nil(ARGL)
 {

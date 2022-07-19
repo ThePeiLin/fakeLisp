@@ -16,6 +16,19 @@ static void _bc_princ(void* p,FILE* fp)
 	fklPrintByteCode(p,fp);
 }
 
+static void* _bc_copy(void* p)
+{
+	FklByteCode* bc=p;
+	FklByteCode* code=fklNewByteCode(bc->size);
+	memcpy(code->code,bc->code,bc->size);
+	return code;
+}
+
+static void _bc_append(void** a,void* b)
+{
+	fklCodeCat(*a,b);
+}
+
 static FklVMudMethodTable FklcBcMethodTable=
 {
 	.__princ=_bc_princ,
@@ -26,6 +39,8 @@ static FklVMudMethodTable FklcBcMethodTable=
 	.__cmp=NULL,
 	.__write=NULL,
 	.__atomic=NULL,
+	.__append=_bc_append,
+	.__copy=_bc_copy,
 };
 
 FklVMudata* fklcNewFbcUd(FklByteCode* code)

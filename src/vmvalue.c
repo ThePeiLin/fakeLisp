@@ -102,6 +102,11 @@ static FklVMvalue* __fkl_pair_copyer(FklVMvalue* obj,FklVMstack* s,FklVMheap* h)
 	return fklNewVMpairV(obj->u.pair->car,obj->u.pair->cdr,s,h);
 }
 
+static FklVMvalue* __fkl_box_copyer(FklVMvalue* obj,FklVMstack* s,FklVMheap* h)
+{
+	return fklNewVMvalueToStack(FKL_BOX,obj->u.box,s,h);
+}
+
 static FklVMvalue* __fkl_userdata_copyer(FklVMvalue* obj,FklVMstack* s,FklVMheap* h)
 {
 	if(obj->u.ud->t->__copy==NULL)
@@ -127,6 +132,7 @@ FklVMvalue* (*valueCopyers[])(FklVMvalue* obj,FklVMstack* s,FklVMheap* heap)=
 	__fkl_str_copyer,
 	__fkl_vector_copyer,
 	__fkl_pair_copyer,
+	__fkl_box_copyer,
 	__fkl_bytevector_copyer,
 	__fkl_userdata_copyer,
 	NULL,

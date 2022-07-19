@@ -1333,6 +1333,48 @@ void builtin_bytevector_to_u8_list(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void builtin_bytevector_to_s8_vector(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMheap* heap=exe->heap;
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.bytevector->s8-vector",FKL_TOOMANYARG,runnable,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.bytevector->s8-vector",FKL_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(obj,FKL_IS_BYTEVECTOR,"builtin.bytevector->s8-vector",runnable,exe);
+	fklPushVMvalue(FKL_VM_NIL,stack);
+	size_t size=obj->u.bvec->size;
+	int8_t* s8a=(int8_t*)obj->u.bvec->ptr;
+	FklVMvalue* vec=fklNewVMvecV(obj->u.bvec->size,NULL,stack,exe->heap);
+	for(size_t i=0;i<size;i++)
+		fklSetRef(&vec->u.vec->base[i],FKL_MAKE_VM_I32(s8a[i]),heap);
+	fklNiReturn(vec,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_bytevector_to_u8_vector(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMheap* heap=exe->heap;
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.bytevector->u8-vector",FKL_TOOMANYARG,runnable,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.bytevector->u8-vector",FKL_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(obj,FKL_IS_BYTEVECTOR,"builtin.bytevector->u8-vector",runnable,exe);
+	fklPushVMvalue(FKL_VM_NIL,stack);
+	size_t size=obj->u.bvec->size;
+	uint8_t* u8a=obj->u.bvec->ptr;
+	FklVMvalue* vec=fklNewVMvecV(obj->u.bvec->size,NULL,stack,exe->heap);
+	for(size_t i=0;i<size;i++)
+		fklSetRef(&vec->u.vec->base[i],FKL_MAKE_VM_I32(u8a[i]),heap);
+	fklNiReturn(vec,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 void builtin_vector_to_list(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -1455,7 +1497,7 @@ void builtin_sub_string(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_subbytevector(ARGL)
+void builtin_sub_bytevector(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMheap* heap=exe->heap;
@@ -1998,10 +2040,10 @@ void builtin_sref(ARGL)
 	fklNiEnd(&ap,stack);\
 }
 
-void builtin_bvi8ref(ARGL) BV_LT_U64_REF(int8_t,"builtin.bvi8ref")
-void builtin_bvi16ref(ARGL) BV_LT_U64_REF(int16_t,"builtin.bvi16ref")
-void builtin_bvi32ref(ARGL) BV_LT_U64_REF(int32_t,"builtin.bvi32ref")
-void builtin_bvi64ref(ARGL) BV_LT_U64_REF(int64_t,"builtin.bvi64ref")
+void builtin_bvs8ref(ARGL) BV_LT_U64_REF(int8_t,"builtin.bvs8ref")
+void builtin_bvs16ref(ARGL) BV_LT_U64_REF(int16_t,"builtin.bvs16ref")
+void builtin_bvs32ref(ARGL) BV_LT_U64_REF(int32_t,"builtin.bvs32ref")
+void builtin_bvs64ref(ARGL) BV_LT_U64_REF(int64_t,"builtin.bvs64ref")
 
 void builtin_bvu8ref(ARGL) BV_LT_U64_REF(uint8_t,"builtin.bvu8ref")
 void builtin_bvu16ref(ARGL) BV_LT_U64_REF(uint16_t,"builtin.bvu16ref")
@@ -2084,10 +2126,10 @@ void builtin_bvf64ref(ARGL) BV_F_REF(double,"builtin.bvf32ref")
 	fklNiEnd(&ap,stack);\
 }
 
-void builtin_set_bvi8ref(ARGL) SET_BV_REF(int8_t,"builtin.set-bvi8ref!")
-void builtin_set_bvi16ref(ARGL) SET_BV_REF(int16_t,"builtin.set-bvi16ref!")
-void builtin_set_bvi32ref(ARGL) SET_BV_REF(int32_t,"builtin.set-bvi32ref!")
-void builtin_set_bvi64ref(ARGL) SET_BV_REF(int64_t,"builtin.set-bvi64ref!")
+void builtin_set_bvs8ref(ARGL) SET_BV_REF(int8_t,"builtin.set-bvs8ref!")
+void builtin_set_bvs16ref(ARGL) SET_BV_REF(int16_t,"builtin.set-bvs16ref!")
+void builtin_set_bvs32ref(ARGL) SET_BV_REF(int32_t,"builtin.set-bvs32ref!")
+void builtin_set_bvs64ref(ARGL) SET_BV_REF(int64_t,"builtin.set-bvs64ref!")
 
 void builtin_set_bvu8ref(ARGL) SET_BV_REF(uint8_t,"builtin.set-bvu8ref!")
 void builtin_set_bvu16ref(ARGL) SET_BV_REF(uint16_t,"builtin.set-bvu16ref!")
@@ -3672,25 +3714,27 @@ static const struct SymbolFuncStruct
 
 	{"bytevector?",         builtin_bytevector_p,          },
 	{"bytevector",          builtin_bytevector,            },
-	{"subbytevector",       builtin_subbytevector,         },
+	{"sub-bytevector",       builtin_sub_bytevector,         },
 	{"make-bytevector",     builtin_make_bytevector,       },
 	{"bytevector->s8-list", builtin_bytevector_to_s8_list, },
 	{"bytevector->u8-list", builtin_bytevector_to_u8_list, },
+	{"bytevector->s8-vector", builtin_bytevector_to_s8_vector, },
+	{"bytevector->u8-vector", builtin_bytevector_to_u8_vector, },
 
-	{"bvi8ref",             builtin_bvi8ref,               },
-	{"bvi16ref",            builtin_bvi16ref,              },
-	{"bvi32ref",            builtin_bvi32ref,              },
-	{"bvi64ref",            builtin_bvi64ref,              },
+	{"bvs8ref",             builtin_bvs8ref,               },
+	{"bvs16ref",            builtin_bvs16ref,              },
+	{"bvs32ref",            builtin_bvs32ref,              },
+	{"bvs64ref",            builtin_bvs64ref,              },
 	{"bvu8ref",             builtin_bvu8ref,               },
 	{"bvu16ref",            builtin_bvu16ref,              },
 	{"bvu32ref",            builtin_bvu32ref,              },
 	{"bvu64ref",            builtin_bvu64ref,              },
 	{"bvf32ref",            builtin_bvf32ref,              },
 	{"bvf64ref",            builtin_bvf64ref,              },
-	{"set-bvi8ref!",        builtin_set_bvi8ref,           },
-	{"set-bvi16ref!",       builtin_set_bvi16ref,          },
-	{"set-bvi32ref!",       builtin_set_bvi32ref,          },
-	{"set-bvi64ref!",       builtin_set_bvi64ref,          },
+	{"set-bvs8ref!",        builtin_set_bvs8ref,           },
+	{"set-bvs16ref!",       builtin_set_bvs16ref,          },
+	{"set-bvs32ref!",       builtin_set_bvs32ref,          },
+	{"set-bvs64ref!",       builtin_set_bvs64ref,          },
 	{"set-bvu8ref!",        builtin_set_bvu8ref,           },
 	{"set-bvu16ref!",       builtin_set_bvu16ref,          },
 	{"set-bvu32ref!",       builtin_set_bvu32ref,          },

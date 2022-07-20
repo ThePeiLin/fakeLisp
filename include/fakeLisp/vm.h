@@ -169,7 +169,7 @@ typedef struct
 	uint64_t bp;
 	size_t size;
 	FklVMvalue** values;
-	pthread_rwlock_t lock;
+//	pthread_rwlock_t lock;
 }FklVMstack;
 
 typedef struct FklVM

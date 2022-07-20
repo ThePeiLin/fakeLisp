@@ -1482,9 +1482,17 @@ void builtin_to_string(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.->string",FKL_TOOFEWARG,runnable,exe);
 	FklVMvalue* retval=FKL_VM_NIL;
 	if(FKL_IS_SYM(obj))
-		fklNewVMvalueToStack(FKL_STR
+		retval=fklNewVMvalueToStack(FKL_STR
 				,fklCopyString(fklGetGlobSymbolWithId(FKL_GET_SYM(obj))->symbol)
 				,stack,exe->heap);
+	else if(FKL_IS_CHR(obj))
+	{
+		FklString* r=fklNewString(1,NULL);
+		r->str[0]=FKL_GET_CHR(obj);
+		retval=fklNewVMvalueToStack(FKL_STR
+				,r
+				,stack,exe->heap);
+	}
 	else if(fklIsVMnumber(obj))
 	{
 		char buf[64]={0};

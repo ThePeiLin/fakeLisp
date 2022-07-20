@@ -211,9 +211,9 @@ static void _mem_print(void* p,FILE* fp)
 		NativeTypePrinterList[m->type-1](fp,m->mem);
 	if(fklFfiIsPtrTypeId(m->type)||fklFfiIsFunctionTypeId(m->type))
 		fprintf(fp,"%p",*((void**)(m->mem)));
-	else if(m->type==FKL_FFI_FILE_P)
+	else if(m->type==FKL_FFI_TYPE_FILE_P)
 		fprintf(fp,"%p",*((void**)(m->mem)));
-	else if(m->type==FKL_FFI_STRING)
+	else if(m->type==FKL_FFI_TYPE_STRING)
 		fprintf(fp,"%s",(char*)m->mem);
 	else if(fklFfiIsStructTypeId(m->type))
 	{
@@ -284,7 +284,7 @@ int _mem_equal(const FklVMudata* a,const FklVMudata* b)
 		FklFfiMem* m1=b->data;
 		if(m0->type==m1->type)
 		{
-			if((m0->type==FKL_FFI_STRING||m0->type==FKL_FFI_FILE_P)&&m0->mem==m1->mem)
+			if((m0->type==FKL_FFI_TYPE_STRING||m0->type==FKL_FFI_TYPE_FILE_P)&&m0->mem==m1->mem)
 				return 1;
 			else if(!memcmp(m0->mem,m1->mem,fklFfiGetTypeSizeWithTypeId(m0->type)))
 				return 1;
@@ -295,15 +295,15 @@ int _mem_equal(const FklVMudata* a,const FklVMudata* b)
 
 static int _mem_cmp_VU(FklVMvalue* a,FklFfiMem* b,int* isUnableToBeCmp)
 {
-	if((FKL_IS_STR(a)&&b->type!=FKL_FFI_STRING)
-			||(!FKL_IS_STR(a)&&b->type==FKL_FFI_STRING)
+	if((FKL_IS_STR(a)&&b->type!=FKL_FFI_TYPE_STRING)
+			||(!FKL_IS_STR(a)&&b->type==FKL_FFI_TYPE_STRING)
 			||!fklIsVMnumber(a)
 			||!fklFfiIsNumTypeId(b->type))
 	{
 		*isUnableToBeCmp=1;
 		return 0;
 	}
-	if(b->type==FKL_FFI_STRING)
+	if(b->type==FKL_FFI_TYPE_STRING)
 	{
 		size_t len=strlen(b->mem);
 		int r=memcmp(a->u.str->str,b->mem,a->u.str->size<len?a->u.str->size:len);
@@ -311,7 +311,7 @@ static int _mem_cmp_VU(FklVMvalue* a,FklFfiMem* b,int* isUnableToBeCmp)
 			return (int64_t)a->u.str->size-(int64_t)len;
 		return r;
 	}
-	else if(FKL_IS_F64(a)||b->type==FKL_FFI_DOUBLE)
+	else if(FKL_IS_F64(a)||b->type==FKL_FFI_TYPE_DOUBLE)
 	{
 		double ad=fklGetDouble(a);
 		double bd=__ffiGetDoubleFuncList[b->type](b);
@@ -356,15 +356,15 @@ static int _mem_cmp_VU(FklVMvalue* a,FklFfiMem* b,int* isUnableToBeCmp)
 
 static int _mem_cmp_UU(FklFfiMem* a,FklFfiMem* b,int* isUnableToBeCmp)
 {
-	if((a->type==FKL_FFI_STRING&&b->type!=a->type)
-			||(a->type!=FKL_FFI_STRING&&b->type==FKL_FFI_STRING)
+	if((a->type==FKL_FFI_TYPE_STRING&&b->type!=a->type)
+			||(a->type!=FKL_FFI_TYPE_STRING&&b->type==FKL_FFI_TYPE_STRING)
 			||!fklFfiIsNumTypeId(a->type)
 			||!fklFfiIsNumTypeId(b->type))
 	{
 		*isUnableToBeCmp=1;
 		return 0;
 	}
-	if(a->type==FKL_FFI_STRING&&b->type==FKL_FFI_STRING)
+	if(a->type==FKL_FFI_TYPE_STRING&&b->type==FKL_FFI_TYPE_STRING)
 		return strcmp(a->mem,b->mem);
 	else if(fklFfiIsIntegerTypeId(a->type)&&fklFfiIsIntegerTypeId(b->type))
 	{
@@ -483,9 +483,9 @@ FklVMudata* fklFfiNewMemRefUdWithSI(FklFfiMem* m,FklVMvalue* selector,FklVMvalue
 {
 	if(selector==NULL||selector==FKL_VM_NIL)
 	{
-		if(pindex&&(!fklFfiIsPtrTypeId(m->type)&&!fklFfiIsArrayTypeId(m->type)&&m->type!=FKL_FFI_STRING))
+		if(pindex&&(!fklFfiIsPtrTypeId(m->type)&&!fklFfiIsArrayTypeId(m->type)&&m->type!=FKL_FFI_TYPE_STRING))
 			return NULL;
-		if(pindex&&(fklFfiIsPtrTypeId(m->type)||fklFfiIsArrayTypeId(m->type)||m->type==FKL_FFI_STRING))
+		if(pindex&&(fklFfiIsPtrTypeId(m->type)||fklFfiIsArrayTypeId(m->type)||m->type==FKL_FFI_TYPE_STRING))
 		{
 			int64_t index=fklGetInt(pindex);
 			if(fklFfiIsPtrTypeId(m->type))
@@ -500,7 +500,7 @@ FklVMudata* fklFfiNewMemRefUdWithSI(FklFfiMem* m,FklVMvalue* selector,FklVMvalue
 				return fklNewVMudata(FfiMemUdSid,&FfiMemMethodTable,fklFfiNewRef(at->etype,m->mem+index*fklFfiGetTypeSizeWithTypeId(at->etype)),FfiRel);
 			}
 			else
-				return fklNewVMudata(FfiMemUdSid,&FfiMemMethodTable,fklFfiNewRef(FKL_FFI_CHAR,m->mem+index*sizeof(char)),FfiRel);
+				return fklNewVMudata(FfiMemUdSid,&FfiMemMethodTable,fklFfiNewRef(FKL_FFI_TYPE_CHAR,m->mem+index*sizeof(char)),FfiRel);
 		}
 		else
 			return fklNewVMudata(FfiMemUdSid,&FfiMemMethodTable,fklFfiNewRef(m->type,m->mem),FfiRel);
@@ -654,13 +654,13 @@ int fklFfiSetMemForProc(FklVMudata* ud,FklVMvalue* val)
 		else if(fklFfiIsMem(val))
 		{
 			FklFfiMem* valmem=val->u.ud->data;
-			if(!fklFfiIsPtrTypeId(valmem->type)&&valmem->type!=FKL_FFI_STRING&&valmem->type!=FKL_FFI_FILE_P)
+			if(!fklFfiIsPtrTypeId(valmem->type)&&valmem->type!=FKL_FFI_TYPE_STRING&&valmem->type!=FKL_FFI_TYPE_FILE_P)
 				return 1;
 			if(fklFfiIsPtrTypeId(valmem->type))
 				*(void**)ref->mem=*(void**)valmem->mem;
-			else if(valmem->type==FKL_FFI_STRING)
+			else if(valmem->type==FKL_FFI_TYPE_STRING)
 				*(void**)ref->mem=valmem->mem;
-			else if(valmem->type==FKL_FFI_FILE_P)
+			else if(valmem->type==FKL_FFI_TYPE_FILE_P)
 				*(void**)ref->mem=valmem->mem;
 			else
 				return 1;
@@ -673,7 +673,7 @@ int fklFfiSetMemForProc(FklVMudata* ud,FklVMvalue* val)
 		else
 			return 1;
 	}
-	else if(ref->type==FKL_FFI_STRING)
+	else if(ref->type==FKL_FFI_TYPE_STRING)
 	{
 		if(FKL_IS_STR(val))
 		{
@@ -691,7 +691,7 @@ int fklFfiSetMemForProc(FklVMudata* ud,FklVMvalue* val)
 		else if(fklFfiIsMem(val))
 		{
 			FklFfiMem* m=val->u.ud->data;
-			if(m->type!=FKL_FFI_STRING)
+			if(m->type!=FKL_FFI_TYPE_STRING)
 				return 1;
 			free(ref->mem);
 			ref->mem=m->mem;
@@ -700,7 +700,7 @@ int fklFfiSetMemForProc(FklVMudata* ud,FklVMvalue* val)
 		else
 			return 1;
 	}
-	else if(ref->type==FKL_FFI_FILE_P)
+	else if(ref->type==FKL_FFI_TYPE_FILE_P)
 	{
 		if(FKL_IS_FP(val))
 			ref->mem=val->u.fp->fp;
@@ -740,13 +740,13 @@ int fklFfiSetMem(FklFfiMem* ref,FklVMvalue* val)
 		else if(fklFfiIsMem(val))
 		{
 			FklFfiMem* valmem=val->u.ud->data;
-			if(!fklFfiIsPtrTypeId(valmem->type)&&valmem->type!=FKL_FFI_STRING&&valmem->type!=FKL_FFI_FILE_P)
+			if(!fklFfiIsPtrTypeId(valmem->type)&&valmem->type!=FKL_FFI_TYPE_STRING&&valmem->type!=FKL_FFI_TYPE_FILE_P)
 				return 1;
 			if(fklFfiIsPtrTypeId(valmem->type))
 				*(void**)ref->mem=*(void**)valmem->mem;
-			else if(valmem->type==FKL_FFI_STRING)
+			else if(valmem->type==FKL_FFI_TYPE_STRING)
 				*(void**)ref->mem=valmem->mem;
-			else if(valmem->type==FKL_FFI_FILE_P)
+			else if(valmem->type==FKL_FFI_TYPE_FILE_P)
 				*(void**)ref->mem=valmem->mem;
 			else
 				return 1;
@@ -759,7 +759,7 @@ int fklFfiSetMem(FklFfiMem* ref,FklVMvalue* val)
 		else
 			return 1;
 	}
-	else if(ref->type==FKL_FFI_STRING)
+	else if(ref->type==FKL_FFI_TYPE_STRING)
 	{
 		if(FKL_IS_STR(val))
 		{
@@ -777,7 +777,7 @@ int fklFfiSetMem(FklFfiMem* ref,FklVMvalue* val)
 		else if(fklFfiIsMem(val))
 		{
 			FklFfiMem* m=val->u.ud->data;
-			if(m->type!=FKL_FFI_STRING)
+			if(m->type!=FKL_FFI_TYPE_STRING)
 				return 1;
 			free(ref->mem);
 			ref->mem=fklCopyCstr(m->mem);
@@ -785,7 +785,7 @@ int fklFfiSetMem(FklFfiMem* ref,FklVMvalue* val)
 		else
 			return 1;
 	}
-	else if(ref->type==FKL_FFI_FILE_P)
+	else if(ref->type==FKL_FFI_TYPE_FILE_P)
 	{
 		if(FKL_IS_FP(val))
 			ref->mem=val->u.fp->fp;
@@ -810,7 +810,7 @@ int fklFfiSetMem(FklFfiMem* ref,FklVMvalue* val)
 
 int fklFfiIsNull(FklFfiMem* m)
 {
-	return (m->type==FKL_FFI_VPTR||fklFfiIsPtrTypeId(m->type))&&!(*(void**)m->mem);
+	return (m->type==FKL_FFI_TYPE_VPTR||fklFfiIsPtrTypeId(m->type))&&!(*(void**)m->mem);
 }
 
 int fklFfiIsCastableVMvalueType(FklVMvalue* v)
@@ -832,38 +832,38 @@ FklVMudata* fklFfiCastVMvalueIntoMem(FklVMvalue* v)
 	FklVMudata* r=NULL;
 	if(FKL_IS_I32(v))
 	{
-		m=fklFfiNewMem(FKL_FFI_INT32_T,sizeof(void*));
+		m=fklFfiNewMem(FKL_FFI_TYPE_INT32_T,sizeof(void*));
 		*(int32_t*)m->mem=FKL_GET_I32(v);
 	}
 	else if(FKL_IS_I64(v))
 	{
-		m=fklFfiNewMem(FKL_FFI_INT64_T,sizeof(void*));
+		m=fklFfiNewMem(FKL_FFI_TYPE_INT64_T,sizeof(void*));
 		*(int64_t*)m->mem=v->u.i64;
 	}
 	else if(FKL_IS_F64(v))
 	{
-		m=fklFfiNewMem(FKL_FFI_DOUBLE,sizeof(void*));
+		m=fklFfiNewMem(FKL_FFI_TYPE_DOUBLE,sizeof(void*));
 		*(double*)m->mem=v->u.f64;
 	}
 	else if(FKL_IS_CHR(v))
 	{
-		m=fklFfiNewMem(FKL_FFI_CHAR,sizeof(void*));
+		m=fklFfiNewMem(FKL_FFI_TYPE_CHAR,sizeof(void*));
 		*(char*)m->mem=FKL_GET_CHR(v);
 	}
 	else if(FKL_IS_STR(v))
-		m=fklFfiNewRef(FKL_FFI_STRING,fklCharBufToCstr(v->u.str->str,v->u.str->size));
+		m=fklFfiNewRef(FKL_FFI_TYPE_STRING,fklCharBufToCstr(v->u.str->str,v->u.str->size));
 	else if(FKL_IS_SYM(v))
 	{
 		FklString* s=fklGetGlobSymbolWithId(FKL_GET_SYM(v))->symbol;
-		m=fklFfiNewRef(FKL_FFI_STRING,fklCharBufToCstr(s->str,s->size));
+		m=fklFfiNewRef(FKL_FFI_TYPE_STRING,fklCharBufToCstr(s->str,s->size));
 	}
 	else if(FKL_IS_FP(v))
 	{
-		m=fklFfiNewMem(FKL_FFI_FILE_P,sizeof(void*));
+		m=fklFfiNewMem(FKL_FFI_TYPE_FILE_P,sizeof(void*));
 		*(FILE**)m->mem=v->u.fp->fp;
 	}
 	else if(v==FKL_VM_NIL)
-		m=fklFfiNewMem(FKL_FFI_VPTR,sizeof(void*));
+		m=fklFfiNewMem(FKL_FFI_TYPE_VPTR,sizeof(void*));
 	else if(fklFfiIsMem(v))
 	{
 		if(v->u.ud->t->__call)
@@ -889,7 +889,7 @@ FklSid_t fklFfiGetFfiMemUdSid(void)
 
 int fklFfiIsValuableMem(FklFfiMem* mem)
 {
-	if(fklFfiIsNumTypeId(mem->type)||fklFfiIsNull(mem)||mem->type==FKL_FFI_STRING)
+	if(fklFfiIsNumTypeId(mem->type)||fklFfiIsNull(mem)||mem->type==FKL_FFI_TYPE_STRING)
 		return 1;
 	return 0;
 }
@@ -898,7 +898,7 @@ FklVMvalue* fklFfiNewVMvalue(FklFfiMem* mem,FklVMstack* stack,FklVMheap* heap)
 {
 	if(fklFfiIsNull(mem))
 		return FKL_VM_NIL;
-	else if(mem->type==FKL_FFI_STRING)
+	else if(mem->type==FKL_FFI_TYPE_STRING)
 	{
 		FklString* str=fklNewString(strlen(mem->mem),mem->mem);
 		return fklNewVMvalueToStack(FKL_TYPE_STR,str,stack,heap);

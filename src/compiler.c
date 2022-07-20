@@ -227,7 +227,7 @@ static int fklAddDefinedMacro(FklPreMacro* macro,FklCompEnv* curEnv)
 
 int fklAddMacro(FklAstCptr* pattern,FklByteCodelnt* proc,FklCompEnv* curEnv)
 {
-	if(pattern->type!=FKL_TYPE_PAIR)return FKL_SYNTAXERROR;
+	if(pattern->type!=FKL_TYPE_PAIR)return FKL_ERR_SYNTAXERROR;
 	FklAstCptr* tmpCptr=NULL;
 	FklPreMacro* current=curEnv->macro;
 	while(current!=NULL&&!MacroPatternCmp(pattern,current->pattern))
@@ -514,7 +514,7 @@ FklErrorState defmacro(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* in
 			FklAstAtom* tmpAtom=args[0]->u.atom;
 			if(tmpAtom->type!=FKL_TYPE_STR)
 			{
-				fklPrintCompileError(args[0],FKL_SYNTAXERROR,inter);
+				fklPrintCompileError(args[0],FKL_ERR_SYNTAXERROR,inter);
 				free(args);
 				return state;
 			}
@@ -523,7 +523,7 @@ FklErrorState defmacro(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* in
 			int isReDef=fklIsReDefStringPattern(parts,num);
 			if(!isReDef&&fklIsInValidStringPattern(parts,num))
 			{
-				fklPrintCompileError(args[0],FKL_INVALIDEXPR,inter);
+				fklPrintCompileError(args[0],FKL_ERR_INVALIDEXPR,inter);
 				free(args);
 				return state;
 			}
@@ -536,7 +536,7 @@ FklErrorState defmacro(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* in
 		}
 		else
 		{
-			state.state=FKL_SYNTAXERROR;
+			state.state=FKL_ERR_SYNTAXERROR;
 			state.place=args[0];
 			free(args);
 			return state;
@@ -547,7 +547,7 @@ FklErrorState defmacro(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* in
 		FklAstCptr* head=fklGetFirstCptr(args[0]);
 		if(head->type!=FKL_TYPE_ATM||head->u.atom->type!=FKL_TYPE_SYM)
 		{
-			state.state=FKL_INVALID_MACRO_PATTERN;
+			state.state=FKL_ERR_INVALID_MACRO_PATTERN;
 			state.place=args[0];
 			free(args);
 			return state;
@@ -675,7 +675,7 @@ FklByteCodelnt* fklCompile(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter
 		if(fklIsLibraryExpression(objCptr))return fklCompileLibrary(objCptr,curEnv,inter,state);
 		if(fklIsCatchExpression(objCptr)||fklIsUnqtespExpression(objCptr)||fklIsExportExpression(objCptr))
 		{
-			state->state=FKL_INVALIDEXPR;
+			state->state=FKL_ERR_INVALIDEXPR;
 			state->place=objCptr;
 			return NULL;
 		}
@@ -718,13 +718,13 @@ FklByteCodelnt* fklCompile(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter
 			continue;
 		else if(i==2)
 		{
-			state->state=FKL_MACROEXPANDFAILED;
+			state->state=FKL_ERR_MACROEXPANDFAILED;
 			state->place=objCptr;
 			return NULL;
 		}
 		else if(!fklIsValid(objCptr)||fklHasKeyWord(objCptr,curEnv))
 		{
-			state->state=FKL_SYNTAXERROR;
+			state->state=FKL_ERR_SYNTAXERROR;
 			state->place=objCptr;
 			return NULL;
 		}
@@ -911,7 +911,7 @@ FklByteCodelnt* fklCompileUnquoteVector(FklAstCptr* objCptr,FklCompEnv* curEnv,F
 		if(fklIsUnqtespExpression(&vec->base[i]))
 		{
 			fklFreeByteCodeAndLnt(retval);
-			state->state=FKL_SYNTAXERROR;
+			state->state=FKL_ERR_SYNTAXERROR;
 			state->place=objCptr;
 			return NULL;
 		}
@@ -921,7 +921,7 @@ FklByteCodelnt* fklCompileUnquoteVector(FklAstCptr* objCptr,FklCompEnv* curEnv,F
 			if(state->state)
 			{
 				fklFreeByteCodeAndLnt(retval);
-				state->state=FKL_SYNTAXERROR;
+				state->state=FKL_ERR_SYNTAXERROR;
 				state->place=objCptr;
 				return NULL;
 			}
@@ -970,7 +970,7 @@ FklByteCodelnt* fklCompileQsquote(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInte
 				if(state->state)
 				{
 					fklFreeByteCodeAndLnt(retval);
-					state->state=FKL_SYNTAXERROR;
+					state->state=FKL_ERR_SYNTAXERROR;
 					state->place=objCptr;
 					return NULL;
 				}
@@ -1028,7 +1028,7 @@ FklByteCodelnt* fklCompileQsquote(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInte
 				fklFreeByteCode(pushPair);
 				fklFreeByteCode(appd);
 				fklFreeByteCodeAndLnt(tmp);
-				state->state=FKL_INVALIDEXPR;
+				state->state=FKL_ERR_INVALIDEXPR;
 				state->place=objCptr;
 				return NULL;
 			}
@@ -1162,7 +1162,7 @@ FklByteCodelnt* fklCompileConst(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterp
 	if(fklIsQuoteExpression(objCptr))tmp=fklCompileQuote(fklNextCptr(fklGetFirstCptr(objCptr)));
 	if(!tmp)
 	{
-		state->state=FKL_INVALIDEXPR;
+		state->state=FKL_ERR_INVALIDEXPR;
 		state->place=objCptr;
 		return NULL;
 	}
@@ -1475,7 +1475,7 @@ FklByteCodelnt* fklCompileSym(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 	int32_t line=objCptr->curline;
 	if(fklHasKeyWord(objCptr,curEnv))
 	{
-		state->state=FKL_SYNTAXERROR;
+		state->state=FKL_ERR_SYNTAXERROR;
 		state->place=objCptr;
 		return NULL;
 	}
@@ -1778,7 +1778,7 @@ FklByteCodelnt* fklCompileLibrary(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInte
 	uint32_t i=0;
 	if(!firCptr)
 	{
-		state->state=FKL_SYNTAXERROR;
+		state->state=FKL_ERR_SYNTAXERROR;
 		state->place=objCptr;
 		fklFreeByteCodeAndLnt(tmp);
 		fklFreeByteCode(resTp);
@@ -1851,7 +1851,7 @@ FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 			FklAstAtom* tmpAtm=(argCptr->type==FKL_TYPE_ATM)?argCptr->u.atom:NULL;
 			if(argCptr->type!=FKL_TYPE_ATM||tmpAtm==NULL||tmpAtm->type!=FKL_TYPE_SYM)
 			{
-				state->state=FKL_SYNTAXERROR;
+				state->state=FKL_ERR_SYNTAXERROR;
 				state->place=tmpCptr;
 				fklFreeByteCode(popArg);
 				fklFreeByteCode(popRestArg);
@@ -1866,7 +1866,7 @@ FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 				FklAstAtom* tmpAtom1=(argCptr->outer->cdr.type==FKL_TYPE_ATM)?argCptr->outer->cdr.u.atom:NULL;
 				if(tmpAtom1!=NULL&&tmpAtom1->type!=FKL_TYPE_SYM)
 				{
-					state->state=FKL_SYNTAXERROR;
+					state->state=FKL_ERR_SYNTAXERROR;
 					state->place=tmpCptr;
 					fklFreeByteCode(popArg);
 					fklFreeByteCode(popRestArg);
@@ -1885,7 +1885,7 @@ FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 		FklAstAtom* tmpAtm=fklNextCptr(objCptr)->u.atom;
 		if(tmpAtm->type!=FKL_TYPE_SYM)
 		{
-			state->state=FKL_SYNTAXERROR;
+			state->state=FKL_ERR_SYNTAXERROR;
 			state->place=tmpCptr;
 			fklFreeByteCode(popArg);
 			fklFreeByteCode(popRestArg);
@@ -1910,7 +1910,7 @@ FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 	if(!begin)
 	{
 		fklFreeAllMacroThenDestroyCompEnv(tmpEnv);
-		state->state=FKL_SYNTAXERROR;
+		state->state=FKL_ERR_SYNTAXERROR;
 		state->place=tmpCptr;
 		return NULL;
 	}
@@ -2089,7 +2089,7 @@ FklByteCodelnt* fklCompileLoad(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 	char* filename=fklCharBufToCstr(name->value.str->str,name->value.str->size);
 	if(fklHasLoadSameFile(filename,inter))
 	{
-		state->state=FKL_CIRCULARLOAD;
+		state->state=FKL_ERR_CIRCULARLOAD;
 		state->place=pFileName;
 		free(filename);
 		return NULL;
@@ -2101,7 +2101,7 @@ FklByteCodelnt* fklCompileLoad(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 		file=fopen(rpath,"r");
 	if(file==NULL)
 	{
-		state->state=FKL_FILEFAILURE;
+		state->state=FKL_ERR_FILEFAILURE;
 		state->place=pFileName;
 		free(rpath);
 		return NULL;
@@ -2169,7 +2169,7 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int* exitstate)
 			fklFreeByteCodeAndLnt(tmp);
 			free(list);
 			if(exitstate)
-				*exitstate=FKL_UNEXPECTEOF;
+				*exitstate=FKL_ERR_UNEXPECTEOF;
 			tmp=NULL;
 			break;
 		}
@@ -2195,7 +2195,7 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int* exitstate)
 					fklDeleteCptr(state.place);
 				}
 				if(tmpByteCodelnt==NULL&&!state.state&&exitstate)
-					*exitstate=FKL_MACROEXPANDFAILED;
+					*exitstate=FKL_ERR_MACROEXPANDFAILED;
 				fklFreeByteCodeAndLnt(tmp);
 				free(list);
 				fklDeleteCptr(begin);
@@ -2219,7 +2219,7 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int* exitstate)
 		else if(begin==NULL&&!fklIsAllComment(tokenStack))
 		{
 			fprintf(stderr,"error of reader:Invalid expression at line %d of %s\n",inter->curline,inter->filename);
-			*exitstate=FKL_INVALIDEXPR;
+			*exitstate=FKL_ERR_INVALIDEXPR;
 			while(!fklIsPtrStackEmpty(tokenStack))
 				fklFreeToken(fklPopPtrStack(tokenStack));
 			free(list);
@@ -2258,7 +2258,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 		FklAstCptr* pPartsOfPath=fklGetFirstCptr(plib);
 		if(!pPartsOfPath)
 		{
-			state->state=FKL_SYNTAXERROR;
+			state->state=FKL_ERR_SYNTAXERROR;
 			state->place=plib;
 			fklFreeMemMenager(memMenager);
 			return NULL;
@@ -2269,7 +2269,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 		{
 			if(pPartsOfPath->type!=FKL_TYPE_ATM)
 			{
-				state->state=FKL_SYNTAXERROR;
+				state->state=FKL_ERR_SYNTAXERROR;
 				state->place=plib;
 				fklFreeMemMenager(memMenager);
 				if(count)
@@ -2279,7 +2279,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 			FklAstAtom* tmpAtm=pPartsOfPath->u.atom;
 			if(tmpAtm->type!=FKL_TYPE_STR&&tmpAtm->type!=FKL_TYPE_SYM)
 			{
-				state->state=FKL_SYNTAXERROR;
+				state->state=FKL_ERR_SYNTAXERROR;
 				state->place=plib;
 				fklFreeMemMenager(memMenager);
 				if(count)
@@ -2291,7 +2291,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 				FklAstCptr* tmpCptr=fklNextCptr(pPartsOfPath);
 				if(!tmpCptr||tmpCptr->type!=FKL_TYPE_PAIR)
 				{
-					state->state=FKL_SYNTAXERROR;
+					state->state=FKL_ERR_SYNTAXERROR;
 					state->place=objCptr;
 					fklFreeMemMenager(memMenager);
 					if(count)
@@ -2301,7 +2301,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 				tmpCptr=fklNextCptr(tmpCptr);
 				if(!tmpCptr||fklNextCptr(tmpCptr)||tmpCptr->type!=FKL_TYPE_ATM)
 				{
-					state->state=FKL_SYNTAXERROR;
+					state->state=FKL_ERR_SYNTAXERROR;
 					state->place=plib;
 					fklFreeMemMenager(memMenager);
 					if(count)
@@ -2311,7 +2311,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 				FklAstAtom* prefixAtom=tmpCptr->u.atom;
 				if(prefixAtom->type!=FKL_TYPE_STR&&prefixAtom->type!=FKL_TYPE_SYM)
 				{
-					state->state=FKL_SYNTAXERROR;
+					state->state=FKL_ERR_SYNTAXERROR;
 					state->place=plib;
 					fklFreeMemMenager(memMenager);
 					if(count)
@@ -2357,7 +2357,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 			fp=fopen(rpath,"r");
 		if(!fp)
 		{
-			state->state=FKL_IMPORTFAILED;
+			state->state=FKL_ERR_IMPORTFAILED;
 			state->place=pairOfpPartsOfPath;
 			free(rpath);
 			fklFreeMemMenager(memMenager);
@@ -2366,7 +2366,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 		}
 		if(fklHasLoadSameFile(rpath,inter))
 		{
-			state->state=FKL_CIRCULARLOAD;
+			state->state=FKL_ERR_CIRCULARLOAD;
 			state->place=objCptr;
 			fklFreeMemMenager(memMenager);
 			fklFreeStringArray(partsOfPath,count);
@@ -2434,7 +2434,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 						FklAstCptr* exportCptr=fklNextCptr(libName);
 						if(!exportCptr||!fklIsExportExpression(exportCptr))
 						{
-							fklPrintCompileError(begin,FKL_INVALIDEXPR,tmpInter);
+							fklPrintCompileError(begin,FKL_ERR_INVALIDEXPR,tmpInter);
 							fklDeleteCptr(begin);
 							free(begin);
 							chdir(tmpInter->prev->curDir);
@@ -2463,7 +2463,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 								if(pExportSymbols->type!=FKL_TYPE_ATM
 										||pExportSymbols->u.atom->type!=FKL_TYPE_SYM)
 								{
-									fklPrintCompileError(exportCptr,FKL_SYNTAXERROR,tmpInter);
+									fklPrintCompileError(exportCptr,FKL_ERR_SYNTAXERROR,tmpInter);
 									fklDeleteCptr(begin);
 									free(begin);
 									chdir(tmpInter->prev->curDir);
@@ -2573,7 +2573,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 							if(pExportSymbols->type!=FKL_TYPE_ATM
 									||pExportSymbols->u.atom->type!=FKL_TYPE_SYM)
 							{
-								fklPrintCompileError(exportCptr,FKL_SYNTAXERROR,tmpInter);
+								fklPrintCompileError(exportCptr,FKL_ERR_SYNTAXERROR,tmpInter);
 								fklDeleteCptr(begin);
 								free(begin);
 								fklFreeByteCodelnt(tmp);
@@ -2601,7 +2601,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 							tmpDef=fklFindCompDef(symbolWouldExport,tmpInter->glob);
 							if(!tmpDef)
 							{
-								fklPrintCompileError(pExportSymbols,FKL_SYMUNDEFINE,tmpInter);
+								fklPrintCompileError(pExportSymbols,FKL_ERR_SYMUNDEFINE,tmpInter);
 								fklDeleteCptr(begin);
 								free(begin);
 								chdir(tmpInter->prev->curDir);
@@ -2663,7 +2663,7 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 		}
 		if(libByteCodelnt&&!libByteCodelnt->bc->size)
 		{
-			state->state=(tmp)?FKL_LIBUNDEFINED:0;
+			state->state=(tmp)?FKL_ERR_LIBUNDEFINED:0;
 			state->place=(tmp)?pairOfpPartsOfPath:NULL;
 			tmpInter->lnt=NULL;
 			fklFreeIntpr(tmpInter);
@@ -2698,7 +2698,7 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 	FklAstCptr* pCatchExpression=fklNextCptr(pExpression);
 	if(!pExpression||(!fklIsCatchExpression(pCatchExpression)))
 	{
-		state->state=FKL_SYNTAXERROR;
+		state->state=FKL_ERR_SYNTAXERROR;
 		state->place=objCptr;
 		return NULL;
 	}
@@ -2728,7 +2728,7 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 			||pErrSymbol->u.atom->type!=FKL_TYPE_SYM
 			||!(pHandlerExpression=fklNextCptr(pErrSymbol)))
 	{
-		state->state=FKL_SYNTAXERROR;
+		state->state=FKL_ERR_SYNTAXERROR;
 		state->place=objCptr;
 		fklFreeByteCodeAndLnt(expressionByteCodelnt);
 		return NULL;
@@ -2741,7 +2741,7 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 		if(pHandlerExpression->type!=FKL_TYPE_PAIR
 				||(fklGetFirstCptr(pHandlerExpression)->type!=FKL_TYPE_NIL&&!fklIsListCptr(fklGetFirstCptr(pHandlerExpression))))
 		{
-			state->state=FKL_SYNTAXERROR;
+			state->state=FKL_ERR_SYNTAXERROR;
 			state->place=objCptr;
 			fklFreeByteCodeAndLnt(expressionByteCodelnt);
 			return NULL;
@@ -2755,7 +2755,7 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 		{
 			if(firErrSymbol->type!=FKL_TYPE_ATM||firErrSymbol->u.atom->type!=FKL_TYPE_SYM)
 			{
-				state->state=FKL_SYNTAXERROR;
+				state->state=FKL_ERR_SYNTAXERROR;
 				state->place=objCptr;
 				free(errTypeIds);
 				fklFreeByteCodeAndLnt(expressionByteCodelnt);
@@ -2768,7 +2768,7 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 		FklAstCptr* begin=fklNextCptr(pErrorTypes);
 		//if(!begin||pErrorTypes->type!=FKL_TYPE_ATM||pErrorTypes->u.atom->type!=FKL_TYPE_SYM)
 		//{
-		//	state->state=FKL_SYNTAXERROR;
+		//	state->state=FKL_ERR_SYNTAXERROR;
 		//	state->place=objCptr;
 		//	fklFreeByteCodeAndLnt(expressionByteCodelnt);
 		//	fklFreePtrStack(handlerByteCodelntStack);
@@ -2802,7 +2802,7 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 		}
 		if(!t)
 		{
-			state->state=FKL_SYNTAXERROR;
+			state->state=FKL_ERR_SYNTAXERROR;
 			state->place=objCptr;
 			free(errTypeIds);
 			fklFreeByteCodeAndLnt(expressionByteCodelnt);
@@ -2866,53 +2866,53 @@ void fklPrintCompileError(const FklAstCptr* obj,FklBuiltInErrorType type,FklInte
 	fprintf(stderr,"error of compiling: ");
 	switch(type)
 	{
-		case FKL_SYMUNDEFINE:
+		case FKL_ERR_SYMUNDEFINE:
 			fprintf(stderr,"Symbol ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			fprintf(stderr," is undefined");
 			break;
-		case FKL_SYNTAXERROR:
+		case FKL_ERR_SYNTAXERROR:
 			fprintf(stderr,"Invalid syntax ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
-		case FKL_INVALIDEXPR:
+		case FKL_ERR_INVALIDEXPR:
 			fprintf(stderr,"Invalid expression ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
-		case FKL_INVALIDTYPEDEF:
+		case FKL_ERR_INVALIDTYPEDEF:
 			fprintf(stderr,"Invalid type define ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
-		case FKL_CIRCULARLOAD:
+		case FKL_ERR_CIRCULARLOAD:
 			fprintf(stderr,"Circular load file ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
-		case FKL_INVALIDPATTERN:
+		case FKL_ERR_INVALIDPATTERN:
 			fprintf(stderr,"Invalid string match pattern ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
-		case FKL_INVALID_MACRO_PATTERN:
+		case FKL_ERR_INVALID_MACRO_PATTERN:
 			fprintf(stderr,"Invalid macro pattern ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
-		case FKL_MACROEXPANDFAILED:
+		case FKL_ERR_MACROEXPANDFAILED:
 			fprintf(stderr,"Failed to expand macro in ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
-		case FKL_LIBUNDEFINED:
+		case FKL_ERR_LIBUNDEFINED:
 			fprintf(stderr,"Library ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			fprintf(stderr," undefined");
 			break;
-		case FKL_INVALIDMEMBER:
+		case FKL_ERR_INVALIDMEMBER:
 			fprintf(stderr,"invalid member ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
-		case FKL_NOMEMBERTYPE:
+		case FKL_ERR_NOMEMBERTYPE:
 			fprintf(stderr,"cannot get member in a no-member type in ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
-		case FKL_NONSCALARTYPE:
+		case FKL_ERR_NONSCALARTYPE:
 			fprintf(stderr,"get the reference of a non-scalar type member by path ");
 			if(obj!=NULL)
 			{
@@ -2922,11 +2922,11 @@ void fklPrintCompileError(const FklAstCptr* obj,FklBuiltInErrorType type,FklInte
 					fklPrintCptr(obj,stderr);
 			}
 			fprintf(stderr," is not allowed");
-		case FKL_FILEFAILURE:
+		case FKL_ERR_FILEFAILURE:
 			fprintf(stderr,"failed for file:");
 			fklPrintCptr(obj,stderr);
 			break;
-		case FKL_IMPORTFAILED:
+		case FKL_ERR_IMPORTFAILED:
 			fprintf(stderr,"failed for importing module:");
 			fklPrintCptr(obj,stderr);
 			break;

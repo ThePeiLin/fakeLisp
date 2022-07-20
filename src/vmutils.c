@@ -321,17 +321,17 @@ char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorType ty
 	char* t=fklCopyCstr("");
 	switch(type)
 	{
-		case FKL_LOADDLLFAILD:
+		case FKL_ERR_LOADDLLFAILD:
 			t=fklStrCat(t,"Faild to load dll \"");
 			t=fklStrCat(t,str);
 			t=fklStrCat(t,"\" ");
 			break;
-		case FKL_INVALIDSYMBOL:
+		case FKL_ERR_INVALIDSYMBOL:
 			t=fklStrCat(t,"Invalid symbol ");
 			t=fklStrCat(t,str);
 			t=fklStrCat(t," ");
 			break;
-		case FKL_FILEFAILURE:
+		case FKL_ERR_FILEFAILURE:
 			t=fklStrCat(t,"Failed for file:\"");
 			t=fklStrCat(t,str);
 			t=fklStrCat(t,"\" ");
@@ -348,33 +348,33 @@ char* fklGenErrorMessage(FklBuiltInErrorType type,FklVMrunnable* r,FklVM* exe)
 	char* t=fklCopyCstr("");
 	switch(type)
 	{
-		case FKL_WRONGARG:
+		case FKL_ERR_WRONGARG:
 			t=fklStrCat(t,"Wrong arguement ");
 			break;
-		case FKL_STACKERROR:
+		case FKL_ERR_STACKERROR:
 			t=fklStrCat(t,"Stack error ");
 			break;
-		case FKL_TOOMANYARG:
+		case FKL_ERR_TOOMANYARG:
 			t=fklStrCat(t,"Too many arguements ");
 			break;
-		case FKL_TOOFEWARG:
+		case FKL_ERR_TOOFEWARG:
 			t=fklStrCat(t,"Too few arguements ");
 			break;
-		case FKL_CANTCREATETHREAD:
+		case FKL_ERR_CANTCREATETHREAD:
 			t=fklStrCat(t,"Can't create thread ");
 			break;
-		case FKL_SYMUNDEFINE:
+		case FKL_ERR_SYMUNDEFINE:
 			t=fklStrCat(t,"Symbol ");
 			t=fklCstrStringCat(t,fklGetGlobSymbolWithId(fklGetSymbolIdInByteCode(exe->code+r->cp))->symbol);
 			t=fklStrCat(t," is undefined ");
 			break;
-		case FKL_CALL_ERROR:
+		case FKL_ERR_CALL_ERROR:
 			t=fklStrCat(t,"Try to call an object that can't be call ");
 			break;
-		case FKL_CROSS_C_CALL_CONTINUATION:
+		case FKL_ERR_CROSS_C_CALL_CONTINUATION:
 			t=fklStrCat(t,"attempt to get a continuation cross C-call boundary ");
 			break;
-		case FKL_LOADDLLFAILD:
+		case FKL_ERR_LOADDLLFAILD:
 			t=fklStrCat(t,"Faild to load dll \"");
 			{
 				FklVMvalue* v=exe->stack->values[exe->stack->tp-1];
@@ -384,7 +384,7 @@ char* fklGenErrorMessage(FklBuiltInErrorType type,FklVMrunnable* r,FklVM* exe)
 			}
 			t=fklStrCat(t,"\" ");
 			break;
-		case FKL_INVALIDSYMBOL:
+		case FKL_ERR_INVALIDSYMBOL:
 			t=fklStrCat(t,"Invalid symbol ");
 			{
 				FklVMvalue* v=exe->stack->values[exe->stack->tp-1];
@@ -394,10 +394,10 @@ char* fklGenErrorMessage(FklBuiltInErrorType type,FklVMrunnable* r,FklVM* exe)
 			}
 			t=fklStrCat(t," ");
 			break;
-		case FKL_DIVZERROERROR:
+		case FKL_ERR_DIVZEROERROR:
 			t=fklStrCat(t,"Divided by zero ");
 			break;
-		case FKL_FILEFAILURE:
+		case FKL_ERR_FILEFAILURE:
 			t=fklStrCat(t,"Failed for file:\"");
 			{
 				FklVMvalue* v=exe->stack->values[exe->stack->tp-1];
@@ -407,19 +407,19 @@ char* fklGenErrorMessage(FklBuiltInErrorType type,FklVMrunnable* r,FklVM* exe)
 			}
 			t=fklStrCat(t,"\" ");
 			break;
-		case FKL_INVALIDASSIGN:
+		case FKL_ERR_INVALIDASSIGN:
 			t=fklStrCat(t,"Invalid assign ");
 			break;
-		case FKL_INVALIDACCESS:
+		case FKL_ERR_INVALIDACCESS:
 			t=fklStrCat(t,"Invalid access ");
 			break;
-		case FKL_UNEXPECTEOF:
+		case FKL_ERR_UNEXPECTEOF:
 			t=fklStrCat(t,"Unexpected eof ");
 			break;
-		case FKL_FAILD_TO_CREATE_BIG_INT_FROM_MEM:
+		case FKL_ERR_FAILD_TO_CREATE_BIG_INT_FROM_MEM:
 			t=fklStrCat(t,"Failed to create big-int from mem ");
 			break;
-		case FKL_LIST_DIFFER_IN_LENGTH:
+		case FKL_ERR_LIST_DIFFER_IN_LENGTH:
 			t=fklStrCat(t,"List differ in length ");
 			break;
 		default:

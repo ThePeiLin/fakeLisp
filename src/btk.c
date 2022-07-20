@@ -37,7 +37,7 @@ void btk_getch(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.getch",FKL_TOOMANYARG,exe->rhead,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.getch",FKL_ERR_TOOMANYARG,exe->rhead,exe);
 	fklNiReturn(FKL_MAKE_VM_CHR(getch()),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -48,9 +48,9 @@ void btk_sleep(ARGL)
 	FklVMrunnable* r=exe->rhead;
 	FklVMvalue* second=fklNiGetArg(&ap,stack);
 	if(!second)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.sleep",FKL_TOOFEWARG,r,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.sleep",FKL_ERR_TOOFEWARG,r,exe);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.sleep",FKL_TOOMANYARG,r,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.sleep",FKL_ERR_TOOMANYARG,r,exe);
 	FKL_NI_CHECK_TYPE(second,fklIsInt,"btk.sleep",r,exe);
 	fklNiReturn(FKL_MAKE_VM_I32(sleep(fklGetInt(second))),&ap,stack);
 	fklNiEnd(&ap,stack);
@@ -62,9 +62,9 @@ void btk_usleep(ARGL)
 	FklVMvalue* second=fklNiGetArg(&ap,stack);
 	FklVMrunnable* r=exe->rhead;
 	if(!second)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.usleep",FKL_TOOFEWARG,r,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.usleep",FKL_ERR_TOOFEWARG,r,exe);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.usleep",FKL_TOOMANYARG,r,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.usleep",FKL_ERR_TOOMANYARG,r,exe);
 	FKL_NI_CHECK_TYPE(second,fklIsInt,"btk.usleep",r,exe);
 #ifdef _WIN32
 		Sleep(fklGetInt(second));
@@ -81,7 +81,7 @@ void btk_srand(ARGL)
 	FklVMrunnable* r=exe->rhead;
 	FklVMvalue* s=fklNiGetArg(&ap,stack);
     if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.srand",FKL_TOOMANYARG,r,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.srand",FKL_ERR_TOOMANYARG,r,exe);
 	FKL_NI_CHECK_TYPE(s,fklIsInt,"btk.srand",r,exe);
     srand(fklGetInt(s));
     fklNiReturn(s,&ap,stack);
@@ -94,9 +94,9 @@ void btk_rand(ARGL)
 	FklVMvalue*  lim=fklNiGetArg(&ap,stack);
 	FklVMrunnable* r=exe->rhead;
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.rand",FKL_TOOMANYARG,r,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.rand",FKL_ERR_TOOMANYARG,r,exe);
 	if(lim&&!fklIsInt(lim))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.rand",FKL_WRONGARG,r,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.rand",FKL_ERR_WRONGARG,r,exe);
 	fklNiReturn(FKL_MAKE_VM_I32(rand()%((lim==NULL)?RAND_MAX:fklGetInt(lim))),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -105,7 +105,7 @@ void btk_get_time(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.get_time",FKL_TOOMANYARG,exe->rhead,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.get_time",FKL_ERR_TOOMANYARG,exe->rhead,exe);
 	time_t timer=time(NULL);
 	struct tm* tblock=NULL;
 	tblock=localtime(&timer);
@@ -138,9 +138,9 @@ void btk_remove_file(ARGL)
 	FklVMvalue* name=fklPopVMstack(stack);
 	FklVMrunnable* r=exe->rhead;
 	if(!name)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.remove_file",FKL_TOOFEWARG,r,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.remove_file",FKL_ERR_TOOFEWARG,r,exe);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.remove_file",FKL_TOOMANYARG,r,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.remove_file",FKL_ERR_TOOMANYARG,r,exe);
 	FKL_NI_CHECK_TYPE(name,FKL_IS_STR,"btk.remove_file",r,exe);
 	char* str=fklStringToCstr(name->u.str);
 	fklNiReturn(FKL_MAKE_VM_I32(remove(str)),&ap,stack);
@@ -153,7 +153,7 @@ void btk_time(ARGL)
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.time",FKL_TOOMANYARG,r,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("btk.time",FKL_ERR_TOOMANYARG,r,exe);
 	fklNiReturn(fklMakeVMint((int64_t)time(NULL),stack,exe->heap),&ap,stack);
 	fklNiEnd(&ap,stack);
 }

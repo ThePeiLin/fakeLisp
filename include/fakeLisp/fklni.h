@@ -20,7 +20,7 @@ FklVMvalue** fklNiGetTopSlot(FklVMstack*);
 #define FKL_NI_BEGIN(EXE) FklVMstack* stack=(EXE)->stack;\
 uint32_t ap=0;\
 fklNiBegin(&ap,stack);
-#define FKL_NI_CHECK_TYPE(V,P,ERR_INFO,RUNNABLE,EXE) if(!P(V))FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_WRONGARG,RUNNABLE,EXE)
+#define FKL_NI_CHECK_TYPE(V,P,ERR_INFO,RUNNABLE,EXE) if(!P(V))FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_ERR_WRONGARG,RUNNABLE,EXE)
 #ifdef __cplusplus
 }
 #endif

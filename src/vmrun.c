@@ -499,7 +499,7 @@ void B_push_var(FklVM* exe)
 		curEnv=curEnv->u.env->prev;
 	}
 	if(pv==NULL)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.push-var",FKL_SYMUNDEFINE,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.push-var",FKL_ERR_SYMUNDEFINE,runnable,exe);
 	fklPushVMvalue(*pv,stack);
 	runnable->cp+=sizeof(char)+sizeof(FklSid_t);
 }
@@ -509,7 +509,7 @@ void B_push_top(FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
 	if(stack->tp==stack->bp)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.push-top",FKL_STACKERROR,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.push-top",FKL_ERR_STACKERROR,runnable,exe);
 	FklVMvalue* val=fklNiGetArg(&ap,stack);
 	fklNiReturn(val,&ap,stack);
 	fklNiReturn(val,&ap,stack);
@@ -543,7 +543,7 @@ void B_pop_var(FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
 	if(!(stack->tp>stack->bp))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-var",FKL_STACKERROR,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-var",FKL_ERR_STACKERROR,runnable,exe);
 	int32_t scopeOfVar=fklGetI32FromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+runnable->cp+sizeof(char)+sizeof(int32_t));
 	FklVMvalue* curEnv=runnable->localenv;
@@ -562,7 +562,7 @@ void B_pop_var(FklVM* exe)
 			curEnv=curEnv->u.env->prev;
 		}
 		if(pv==NULL)
-			FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-var",FKL_SYMUNDEFINE,runnable,exe);
+			FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-var",FKL_ERR_SYMUNDEFINE,runnable,exe);
 	}
 	fklSetRef(pv,fklNiGetArg(&ap,stack),exe->heap);
 	fklNiEnd(&ap,stack);
@@ -578,7 +578,7 @@ void B_pop_arg(FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
 	if(ap<=stack->bp)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-arg",FKL_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-arg",FKL_ERR_TOOFEWARG,runnable,exe);
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklVMvalue* curEnv=runnable->localenv;
 	FklVMvalue* volatile* pValue=fklFindOrAddVar(idOfVar,curEnv->u.env);
@@ -642,7 +642,7 @@ void B_res_bp(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=exe->rhead;
 	if(stack->tp>stack->bp)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.res-bp",FKL_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.res-bp",FKL_ERR_TOOMANYARG,runnable,exe);
 	stack->bp=fklPopUintStack(stack->bps);
 	runnable->cp+=sizeof(char);
 }
@@ -653,7 +653,7 @@ void B_call(FklVM* exe)
 	FklVMrunnable* runnable=exe->rhead;
 	FklVMvalue* tmpValue=fklNiGetArg(&ap,stack);
 	if(!fklIsCallable(tmpValue))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.call",FKL_CALL_ERROR,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.call",FKL_ERR_CALL_ERROR,runnable,exe);
 	runnable->cp+=sizeof(char);
 	switch(tmpValue->type)
 	{
@@ -673,7 +673,7 @@ void B_tail_call(FklVM* exe)
 	FklVMrunnable* runnable=exe->rhead;
 	FklVMvalue* tmpValue=fklNiGetArg(&ap,stack);
 	if(!fklIsCallable(tmpValue))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.tail-call",FKL_CALL_ERROR,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.tail-call",FKL_ERR_CALL_ERROR,runnable,exe);
 	runnable->cp+=sizeof(char);
 	switch(tmpValue->type)
 	{
@@ -720,7 +720,7 @@ void B_append(FklVM* exe)
 	FklVMvalue* fir=fklNiGetArg(&ap,stack);
 	FklVMvalue* sec=fklNiGetArg(&ap,stack);
 	if(sec!=FKL_VM_NIL&&!FKL_IS_PAIR(sec))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.append",FKL_WRONGARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.append",FKL_ERR_WRONGARG,runnable,exe);
 	if(sec==FKL_VM_NIL)
 		fklNiReturn(fir,&ap,stack);
 	else

@@ -28,19 +28,19 @@ FklVMvalue* fklCopyVMlistOrAtom(FklVMvalue* obj,FklVMstack* s,FklVMheap* heap)
 		FklVMvalue** root1=fklPopPtrStack(s2);
 		switch(tag)
 		{
-			case FKL_NIL_TAG:
-			case FKL_I32_TAG:
-			case FKL_SYM_TAG:
-			case FKL_CHR_TAG:
+			case FKL_TAG_NIL:
+			case FKL_TAG_I32:
+			case FKL_TAG_SYM:
+			case FKL_TAG_CHR:
 				*root1=root;
 				break;
-			case FKL_PTR_TAG:
+			case FKL_TAG_PTR:
 				{
 					FklValueType type=root->type;
 					switch(type)
 					{
-						case FKL_PAIR:
-							*root1=fklNewVMvalueToStack(FKL_PAIR,fklNewVMpair(),s,heap);
+						case FKL_TYPE_PAIR:
+							*root1=fklNewVMvalueToStack(FKL_TYPE_PAIR,fklNewVMpair(),s,heap);
 							fklPushPtrStack(&(*root1)->u.pair->car,s2);
 							fklPushPtrStack(&(*root1)->u.pair->cdr,s2);
 							fklPushPtrStack(root->u.pair->car,s1);
@@ -65,21 +65,21 @@ FklVMvalue* fklCopyVMlistOrAtom(FklVMvalue* obj,FklVMstack* s,FklVMheap* heap)
 
 static FklVMvalue* __fkl_f64_copyer(FklVMvalue* obj,FklVMstack* s,FklVMheap* heap)
 {
-	FklVMvalue* tmp=fklNewVMvalueToStack(FKL_F64,NULL,s,heap);
+	FklVMvalue* tmp=fklNewVMvalueToStack(FKL_TYPE_F64,NULL,s,heap);
 	tmp->u.f64=obj->u.f64;
 	return tmp;
 }
 
 static FklVMvalue* __fkl_i64_copyer(FklVMvalue* obj,FklVMstack* s,FklVMheap* heap)
 {
-	FklVMvalue* tmp=fklNewVMvalueToStack(FKL_I64,NULL,s,heap);
+	FklVMvalue* tmp=fklNewVMvalueToStack(FKL_TYPE_I64,NULL,s,heap);
 	tmp->u.i64=obj->u.i64;
 	return tmp;
 }
 
 static FklVMvalue* __fkl_bigint_copyer(FklVMvalue* obj,FklVMstack* s,FklVMheap* h)
 {
-	return fklNewVMvalueToStack(FKL_BIG_INT,fklCopyBigInt(obj->u.bigInt),s,h);
+	return fklNewVMvalueToStack(FKL_TYPE_BIG_INT,fklCopyBigInt(obj->u.bigInt),s,h);
 }
 
 static FklVMvalue* __fkl_vector_copyer(FklVMvalue* obj,FklVMstack* s,FklVMheap* h)
@@ -89,12 +89,12 @@ static FklVMvalue* __fkl_vector_copyer(FklVMvalue* obj,FklVMstack* s,FklVMheap* 
 
 static FklVMvalue* __fkl_str_copyer(FklVMvalue* obj,FklVMstack* s,FklVMheap* h)
 {
-	return fklNewVMvalueToStack(FKL_STR,fklCopyString(obj->u.str),s,h);
+	return fklNewVMvalueToStack(FKL_TYPE_STR,fklCopyString(obj->u.str),s,h);
 }
 
 static FklVMvalue* __fkl_bytevector_copyer(FklVMvalue* obj,FklVMstack* s,FklVMheap* h)
 {
-	return fklNewVMvalueToStack(FKL_BYTEVECTOR,fklCopyBytevector(obj->u.bvec),s,h);
+	return fklNewVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCopyBytevector(obj->u.bvec),s,h);
 }
 
 static FklVMvalue* __fkl_pair_copyer(FklVMvalue* obj,FklVMstack* s,FklVMheap* h)
@@ -104,7 +104,7 @@ static FklVMvalue* __fkl_pair_copyer(FklVMvalue* obj,FklVMstack* s,FklVMheap* h)
 
 static FklVMvalue* __fkl_box_copyer(FklVMvalue* obj,FklVMstack* s,FklVMheap* h)
 {
-	return fklNewVMvalueToStack(FKL_BOX,obj->u.box,s,h);
+	return fklNewVMvalueToStack(FKL_TYPE_BOX,obj->u.box,s,h);
 }
 
 static FklVMvalue* __fkl_userdata_copyer(FklVMvalue* obj,FklVMstack* s,FklVMheap* h)
@@ -112,7 +112,7 @@ static FklVMvalue* __fkl_userdata_copyer(FklVMvalue* obj,FklVMstack* s,FklVMheap
 	if(obj->u.ud->t->__copy==NULL)
 		return NULL;
 	else
-		return fklNewVMvalueToStack(FKL_USERDATA
+		return fklNewVMvalueToStack(FKL_TYPE_USERDATA
 				,fklNewVMudata(obj->u.ud->type
 					,obj->u.ud->t
 					,obj->u.ud->t->__copy(obj->u.ud->data)
@@ -152,16 +152,16 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVMstack* s,FklVMheap* heap)
 	FklVMptrTag tag=FKL_GET_TAG(obj);
 	switch(tag)
 	{
-		case FKL_NIL_TAG:
-		case FKL_I32_TAG:
-		case FKL_SYM_TAG:
-		case FKL_CHR_TAG:
+		case FKL_TAG_NIL:
+		case FKL_TAG_I32:
+		case FKL_TAG_SYM:
+		case FKL_TAG_CHR:
 			tmp=obj;
 			break;
-		case FKL_PTR_TAG:
+		case FKL_TAG_PTR:
 			{
 				FklValueType type=obj->type;
-				FKL_ASSERT(type<FKL_ATM);
+				FKL_ASSERT(type<FKL_TYPE_ATM);
 				FklVMvalue* (*valueCopyer)(FklVMvalue* obj,FklVMstack* s,FklVMheap* heap)=valueCopyers[type];
 				if(!valueCopyer)
 					return NULL;
@@ -238,16 +238,16 @@ FklVMvalue* fklNewSaveVMvalue(FklValueType type,void* pValue)
 {
 	switch(type)
 	{
-		case FKL_NIL:
+		case FKL_TYPE_NIL:
 			return FKL_VM_NIL;
 			break;
-		case FKL_CHR:
+		case FKL_TYPE_CHR:
 			return FKL_MAKE_VM_CHR(pValue);
 			break;
-		case FKL_I32:
+		case FKL_TYPE_I32:
 			return FKL_MAKE_VM_I32(pValue);
 			break;
-		case FKL_SYM:
+		case FKL_TYPE_SYM:
 			return FKL_MAKE_VM_SYM(pValue);
 			break;
 		default:
@@ -258,43 +258,43 @@ FklVMvalue* fklNewSaveVMvalue(FklValueType type,void* pValue)
 				tmp->mark=FKL_MARK_W;
 				switch(type)
 				{
-					case FKL_F64:
+					case FKL_TYPE_F64:
 						if(pValue)
 							tmp->u.f64=getF64FromByteCode(pValue);
 						break;
-					case FKL_I64:
+					case FKL_TYPE_I64:
 						if(pValue)
 							tmp->u.i64=getI64FromByteCode(pValue);
 						break;
-					case FKL_BYTEVECTOR:
+					case FKL_TYPE_BYTEVECTOR:
 						tmp->u.bvec=pValue;break;
-					case FKL_STR:
+					case FKL_TYPE_STR:
 						tmp->u.str=pValue;break;
-					case FKL_PAIR:
+					case FKL_TYPE_PAIR:
 						tmp->u.pair=pValue;break;
-					case FKL_PROC:
+					case FKL_TYPE_PROC:
 						tmp->u.proc=pValue;break;
-					case FKL_CONT:
+					case FKL_TYPE_CONT:
 						tmp->u.cont=pValue;break;
-					case FKL_CHAN:
+					case FKL_TYPE_CHAN:
 						tmp->u.chan=pValue;break;
-					case FKL_FP:
+					case FKL_TYPE_FP:
 						tmp->u.fp=pValue;break;
-					case FKL_DLL:
+					case FKL_TYPE_DLL:
 						tmp->u.dll=pValue;break;
-					case FKL_DLPROC:
+					case FKL_TYPE_DLPROC:
 						tmp->u.dlproc=pValue;break;
-					case FKL_ERR:
+					case FKL_TYPE_ERR:
 						tmp->u.err=pValue;break;
-					case FKL_VECTOR:
+					case FKL_TYPE_VECTOR:
 						tmp->u.vec=pValue;break;
-					case FKL_USERDATA:
+					case FKL_TYPE_USERDATA:
 						tmp->u.ud=pValue;break;
-					case FKL_ENV:
+					case FKL_TYPE_ENV:
 						tmp->u.env=pValue;break;
-					case FKL_BIG_INT:
+					case FKL_TYPE_BIG_INT:
 						tmp->u.bigInt=pValue;break;
-					case FKL_BOX:
+					case FKL_TYPE_BOX:
 						tmp->u.box=pValue;break;
 					default:
 						return NULL;
@@ -323,13 +323,13 @@ void fklAddToHeap(FklVMvalue* v,FklVMheap* heap)
 
 FklVMvalue* fklNewTrueValue(FklVMheap* heap)
 {
-	FklVMvalue* tmp=fklNewVMvalue(FKL_I32,(FklVMptr)1,heap);
+	FklVMvalue* tmp=fklNewVMvalue(FKL_TYPE_I32,(FklVMptr)1,heap);
 	return tmp;
 }
 
 FklVMvalue* fklNewNilValue(FklVMheap* heap)
 {
-	FklVMvalue* tmp=fklNewVMvalue(FKL_NIL,NULL,heap);
+	FklVMvalue* tmp=fklNewVMvalue(FKL_TYPE_NIL,NULL,heap);
 	return tmp;
 }
 
@@ -364,30 +364,30 @@ int fklVMvaluecmp(FklVMvalue* fir,FklVMvalue* sec)
 				r=0;
 			switch(root1->type)
 			{
-				case FKL_F64:
+				case FKL_TYPE_F64:
 					r=root1->u.f64==root2->u.f64;
 					break;
-				case FKL_I64:
+				case FKL_TYPE_I64:
 					r=(root1->u.i64-root2->u.i64)==0;
-				case FKL_STR:
+				case FKL_TYPE_STR:
 					r=!fklStringcmp(root1->u.str,root2->u.str);
 					break;
-				case FKL_BYTEVECTOR:
+				case FKL_TYPE_BYTEVECTOR:
 					r=!fklBytevectorcmp(root1->u.bvec,root2->u.bvec);
 					break;
-				case FKL_PAIR:
+				case FKL_TYPE_PAIR:
 					r=1;
 					fklPushPtrStack(root1->u.pair->car,s1);
 					fklPushPtrStack(root1->u.pair->cdr,s1);
 					fklPushPtrStack(root2->u.pair->car,s2);
 					fklPushPtrStack(root2->u.pair->cdr,s2);
 					break;
-				case FKL_BOX:
+				case FKL_TYPE_BOX:
 					r=1;
 					fklPushPtrStack(root1->u.box,s1);
 					fklPushPtrStack(root2->u.box,s1);
 					break;
-				case FKL_VECTOR:
+				case FKL_TYPE_VECTOR:
 					if(root1->u.vec->size!=root2->u.vec->size)
 						r=0;
 					else
@@ -400,10 +400,10 @@ int fklVMvaluecmp(FklVMvalue* fir,FklVMvalue* sec)
 							fklPushPtrStack(root2->u.vec->base[i],s2);
 					}
 					break;
-				case FKL_BIG_INT:
+				case FKL_TYPE_BIG_INT:
 					r=!fklCmpBigInt(root1->u.bigInt,root2->u.bigInt);
 					break;
-				case FKL_USERDATA:
+				case FKL_TYPE_USERDATA:
 					if(root1->u.ud->type!=root2->u.ud->type||!root1->u.ud->t->__equal)
 						r=0;
 					else
@@ -424,13 +424,13 @@ int fklVMvaluecmp(FklVMvalue* fir,FklVMvalue* sec)
 
 int fklNumcmp(FklVMvalue* fir,FklVMvalue* sec)
 {
-	if(FKL_GET_TAG(fir)==FKL_GET_TAG(sec)&&FKL_GET_TAG(fir)==FKL_I32_TAG)
+	if(FKL_GET_TAG(fir)==FKL_GET_TAG(sec)&&FKL_GET_TAG(fir)==FKL_TAG_I32)
 		return fir==sec;
 	else
 	{
-		double first=(FKL_GET_TAG(fir)==FKL_I32_TAG)?FKL_GET_I32(fir)
+		double first=(FKL_GET_TAG(fir)==FKL_TAG_I32)?FKL_GET_I32(fir)
 			:((FKL_IS_I64(fir))?fir->u.i64:fir->u.f64);
-		double second=(FKL_GET_TAG(sec)==FKL_I32_TAG)?FKL_GET_I32(sec)
+		double second=(FKL_GET_TAG(sec)==FKL_TAG_I32)?FKL_GET_I32(sec)
 			:((FKL_IS_I64(sec))?sec->u.i64:sec->u.f64);
 		return fabs(first-second)==0;
 	}
@@ -447,7 +447,7 @@ FklVMpair* fklNewVMpair(void)
 
 FklVMvalue* fklNewVMpairV(FklVMvalue* car,FklVMvalue* cdr,FklVMstack* stack,FklVMheap* heap)
 {
-	FklVMvalue* pair=fklNewVMvalueToStack(FKL_PAIR,fklNewVMpair(),stack,heap);
+	FklVMvalue* pair=fklNewVMvalueToStack(FKL_TYPE_PAIR,fklNewVMpair(),stack,heap);
 	fklSetRef(&pair->u.pair->car,car,heap);
 	fklSetRef(&pair->u.pair->cdr,cdr,heap);
 	return pair;
@@ -455,7 +455,7 @@ FklVMvalue* fklNewVMpairV(FklVMvalue* car,FklVMvalue* cdr,FklVMstack* stack,FklV
 
 FklVMvalue* fklNewVMvecV(size_t size,FklVMvalue** base,FklVMstack* stack,FklVMheap* heap)
 {
-	FklVMvalue* vec=fklNewVMvalueToStack(FKL_VECTOR,fklNewVMvec(size),stack,heap);
+	FklVMvalue* vec=fklNewVMvalueToStack(FKL_TYPE_VECTOR,fklNewVMvec(size),stack,heap);
 	if(base)
 		for(size_t i=0;i<size;i++)
 			fklSetRef(&vec->u.vec->base[i],base[i],heap);
@@ -908,47 +908,47 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 	{
 		FklAstCptr* root=fklPopPtrStack(s1);
 		FklVMvalue** root1=fklPopPtrStack(s2);
-		if(root->type==FKL_ATM)
+		if(root->type==FKL_TYPE_ATM)
 		{
 			FklAstAtom* tmpAtm=root->u.atom;
 			switch(tmpAtm->type)
 			{
-				case FKL_I32:
+				case FKL_TYPE_I32:
 					*root1=FKL_MAKE_VM_I32(tmpAtm->value.i32);
 					break;
-				case FKL_CHR:
+				case FKL_TYPE_CHR:
 					*root1=FKL_MAKE_VM_CHR(tmpAtm->value.chr);
 					break;
-				case FKL_SYM:
+				case FKL_TYPE_SYM:
 					*root1=FKL_MAKE_VM_SYM(fklAddSymbolToGlob(tmpAtm->value.str)->id);
 					break;
-				case FKL_F64:
-					*root1=fklNewVMvalue(FKL_F64,&tmpAtm->value.f64,heap);
+				case FKL_TYPE_F64:
+					*root1=fklNewVMvalue(FKL_TYPE_F64,&tmpAtm->value.f64,heap);
 					break;
-				case FKL_STR:
-					*root1=fklNewVMvalue(FKL_STR,fklNewString(tmpAtm->value.str->size,tmpAtm->value.str->str),heap);
+				case FKL_TYPE_STR:
+					*root1=fklNewVMvalue(FKL_TYPE_STR,fklNewString(tmpAtm->value.str->size,tmpAtm->value.str->str),heap);
 					break;
-				case FKL_BYTEVECTOR:
-					*root1=fklNewVMvalue(FKL_BYTEVECTOR,fklNewBytevector(tmpAtm->value.bvec->size,tmpAtm->value.bvec->ptr),heap);
+				case FKL_TYPE_BYTEVECTOR:
+					*root1=fklNewVMvalue(FKL_TYPE_BYTEVECTOR,fklNewBytevector(tmpAtm->value.bvec->size,tmpAtm->value.bvec->ptr),heap);
 					break;
-				case FKL_BOX:
-					*root1=fklNewVMvalue(FKL_BOX,FKL_VM_NIL,heap);
+				case FKL_TYPE_BOX:
+					*root1=fklNewVMvalue(FKL_TYPE_BOX,FKL_VM_NIL,heap);
 					fklPushPtrStack(&tmpAtm->value.box,s1);
 					fklPushPtrStack(&(*root1)->u.box,s2);
 					break;
-				case FKL_VECTOR:
-					*root1=fklNewVMvalue(FKL_VECTOR,fklNewVMvec(tmpAtm->value.vec.size),heap);
+				case FKL_TYPE_VECTOR:
+					*root1=fklNewVMvalue(FKL_TYPE_VECTOR,fklNewVMvec(tmpAtm->value.vec.size),heap);
 					for(size_t i=0;i<tmpAtm->value.vec.size;i++)
 					{
 						fklPushPtrStack(&tmpAtm->value.vec.base[i],s1);
 						fklPushPtrStack(&(*root1)->u.vec->base[i],s2);
 					}
 					break;
-				case FKL_BIG_INT:
+				case FKL_TYPE_BIG_INT:
 					{
 						FklBigInt* bi=fklNewBigInt0();
 						fklSetBigInt(bi,&tmpAtm->value.bigInt);
-						*root1=fklNewVMvalue(FKL_BIG_INT,bi,heap);
+						*root1=fklNewVMvalue(FKL_TYPE_BIG_INT,bi,heap);
 					}
 					break;
 				default:
@@ -956,11 +956,11 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 					break;
 			}
 		}
-		else if(root->type==FKL_PAIR)
+		else if(root->type==FKL_TYPE_PAIR)
 		{
 			FklAstPair* objPair=root->u.pair;
 			FklVMpair* tmpPair=fklNewVMpair();
-			*root1=fklNewVMvalue(FKL_PAIR,tmpPair,heap);
+			*root1=fklNewVMvalue(FKL_TYPE_PAIR,tmpPair,heap);
 			fklPushPtrStack(&objPair->car,s1);
 			fklPushPtrStack(&objPair->cdr,s1);
 			fklPushPtrStack(&tmpPair->car,s2);

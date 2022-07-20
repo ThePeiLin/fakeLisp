@@ -229,7 +229,7 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 			}
 			break;
 		case -1:
-			if(tmpCode->code[i]==FKL_PUSH_STR)
+			if(tmpCode->code[i]==FKL_OP_PUSH_STR)
 			{
 				fprintf(fp,"%lu ",fklGetU64FromByteCode(tmpCode->code+i+sizeof(char)));
 				fklPrintRawCharBuf((char*)tmpCode->code+i+sizeof(char)+sizeof(uint64_t)
@@ -238,7 +238,7 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 						,fp);
 				r+=sizeof(char)+sizeof(uint64_t)+fklGetU64FromByteCode(tmpCode->code+i+sizeof(char));
 			}
-			else if(tmpCode->code[i]==FKL_PUSH_BIG_INT)
+			else if(tmpCode->code[i]==FKL_OP_PUSH_BIG_INT)
 			{
 				uint64_t num=fklGetU64FromByteCode(tmpCode->code+i+sizeof(char));
 				FklBigInt* bi=fklNewBigIntFromMem(tmpCode->code+i+sizeof(char)+sizeof(num),num);
@@ -261,7 +261,7 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 			r+=sizeof(char)+sizeof(char);
 			break;
 		case 4:
-			if(tmpCode->code[i]==FKL_PUSH_SYM)
+			if(tmpCode->code[i]==FKL_OP_PUSH_SYM)
 				fklPrintString(fklGetGlobSymbolWithId(fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)))->symbol,fp);
 			else
 				fprintf(fp,"%d"
@@ -271,22 +271,22 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 		case 8:
 			switch(tmpCode->code[i])
 			{
-				case FKL_PUSH_F64:
+				case FKL_OP_PUSH_F64:
 					fprintf(fp,"%lf"
 							,fklGetF64FromByteCode(tmpCode->code+i+sizeof(char)));
 					break;
-				case FKL_PUSH_I64:
-				case FKL_PUSH_VECTOR:
-				case FKL_JMP:
-				case FKL_JMP_IF_FALSE:
-				case FKL_JMP_IF_TRUE:
+				case FKL_OP_PUSH_I64:
+				case FKL_OP_PUSH_VECTOR:
+				case FKL_OP_JMP:
+				case FKL_OP_JMP_IF_FALSE:
+				case FKL_OP_JMP_IF_TRUE:
 					fprintf(fp,"%ld"
 							,fklGetI64FromByteCode(tmpCode->code+i+sizeof(char)));
 					break;
-				case FKL_POP_ARG:
-				case FKL_PUSH_VAR:
-				case FKL_PUSH_SYM:
-				case FKL_POP_REST_ARG:
+				case FKL_OP_POP_ARG:
+				case FKL_OP_PUSH_VAR:
+				case FKL_OP_PUSH_SYM:
+				case FKL_OP_POP_REST_ARG:
 					fklPrintRawSymbol(fklGetGlobSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)))->symbol,fp);
 					break;
 			}
@@ -337,7 +337,7 @@ void fklPrintByteCode(const FklByteCode* tmpCode,FILE* fp)
 static uint64_t skipToCall(uint64_t index,const FklByteCode* bc)
 {
 	uint64_t r=0;
-	while(index+r<bc->size&&bc->code[index+r]!=FKL_CALL)
+	while(index+r<bc->size&&bc->code[index+r]!=FKL_OP_CALL)
 	{
 		switch(fklGetOpcodeArgLen((FklOpcode)(bc->code[index+r])))
 		{
@@ -387,11 +387,11 @@ static int fklIsTheLastExpression(uint64_t index,FklByteCode* bc)
 {
 	uint64_t size=bc->size;
 	uint8_t* code=bc->code;
-	for(uint64_t i=index;i<size;i+=(code[i]==FKL_JMP)?fklGetI64FromByteCode(code+i+sizeof(char))+sizeof(char)+sizeof(int64_t):1)
-		if(code[i]!=FKL_POP_TP
-				&&code[i]!=FKL_POP_TRY
-				&&code[i]!=FKL_JMP
-				&&code[i]!=FKL_POP_R_ENV)
+	for(uint64_t i=index;i<size;i+=(code[i]==FKL_OP_JMP)?fklGetI64FromByteCode(code+i+sizeof(char))+sizeof(char)+sizeof(int64_t):1)
+		if(code[i]!=FKL_OP_POP_TP
+				&&code[i]!=FKL_OP_POP_TRY
+				&&code[i]!=FKL_OP_JMP
+				&&code[i]!=FKL_OP_POP_R_ENV)
 			return 0;
 	return 1;
 }
@@ -401,7 +401,7 @@ void fklScanAndSetTailCall(FklByteCode* bc)
 	for(uint64_t i=skipToCall(0,bc);i<bc->size;i+=skipToCall(i,bc))
 	{
 		if(fklIsTheLastExpression(++i,bc))
-			bc->code[i-1]=FKL_TAIL_CALL;
+			bc->code[i-1]=FKL_OP_TAIL_CALL;
 	}
 }
 
@@ -944,15 +944,15 @@ static void fklSetCharToByteCode(uint8_t* code,char c)
 	(OBJ_SETTER)(t->code+sizeof(char),(OBJ));\
 	return t;}
 
-FklByteCode* fklNewPushI32ByteCode(int32_t a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_PUSH_I32,a,fklSetI32ToByteCode)
-FklByteCode* fklNewPushI64ByteCode(int64_t a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_PUSH_I64,a,fklSetI64ToByteCode)
-FklByteCode* fklNewPushSidByteCode(FklSid_t a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_PUSH_SYM,a,fklSetSidToByteCode)
-FklByteCode* fklNewPushCharByteCode(char a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_PUSH_CHAR,a,fklSetCharToByteCode)
-FklByteCode* fklNewPushF64ByteCode(double a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_PUSH_F64,a,fklSetF64ToByteCode)
+FklByteCode* fklNewPushI32ByteCode(int32_t a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_I32,a,fklSetI32ToByteCode)
+FklByteCode* fklNewPushI64ByteCode(int64_t a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_I64,a,fklSetI64ToByteCode)
+FklByteCode* fklNewPushSidByteCode(FklSid_t a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_SYM,a,fklSetSidToByteCode)
+FklByteCode* fklNewPushCharByteCode(char a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_CHAR,a,fklSetCharToByteCode)
+FklByteCode* fklNewPushF64ByteCode(double a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_F64,a,fklSetF64ToByteCode)
 FklByteCode* fklNewPushStrByteCode(const FklString* str)
 {
 	FklByteCode* tmp=fklNewByteCode(sizeof(char)+sizeof(str->size)+str->size);
-	tmp->code[0]=FKL_PUSH_STR;
+	tmp->code[0]=FKL_OP_PUSH_STR;
 	fklSetU64ToByteCode(tmp->code+sizeof(char),str->size);
 	memcpy(tmp->code+sizeof(char)+sizeof(str->size)
 			,str->str
@@ -963,7 +963,7 @@ FklByteCode* fklNewPushStrByteCode(const FklString* str)
 FklByteCode* fklNewPushBvecByteCode(const FklBytevector* bvec)
 {
 	FklByteCode* tmp=fklNewByteCode(sizeof(char)+sizeof(bvec->size)+bvec->size);
-	tmp->code[0]=FKL_PUSH_BYTEVECTOR;
+	tmp->code[0]=FKL_OP_PUSH_BYTEVECTOR;
 	fklSetU64ToByteCode(tmp->code+sizeof(char),bvec->size);
 	memcpy(tmp->code+sizeof(char)+sizeof(bvec->size)
 			,bvec->ptr
@@ -974,7 +974,7 @@ FklByteCode* fklNewPushBvecByteCode(const FklBytevector* bvec)
 FklByteCode* fklNewPushBigIntByteCode(const FklBigInt* bigInt)
 {
 	FklByteCode* tmp=fklNewByteCode(sizeof(char)+sizeof(char)+sizeof(bigInt->size)+bigInt->num);
-	tmp->code[0]=FKL_PUSH_BIG_INT;
+	tmp->code[0]=FKL_OP_PUSH_BIG_INT;
 	fklSetU64ToByteCode(tmp->code+sizeof(char),bigInt->num+1);
 	tmp->code[sizeof(char)+sizeof(bigInt->num)]=bigInt->neg;
 	memcpy(tmp->code+sizeof(char)+sizeof(bigInt->num)+sizeof(char)
@@ -986,6 +986,6 @@ FklByteCode* fklNewPushBigIntByteCode(const FklBigInt* bigInt)
 FklByteCode* fklNewPushNilByteCode(void)
 {
 	FklByteCode* r=fklNewByteCode(sizeof(char));
-	r->code[0]=FKL_PUSH_NIL;
+	r->code[0]=FKL_OP_PUSH_NIL;
 	return r;
 }

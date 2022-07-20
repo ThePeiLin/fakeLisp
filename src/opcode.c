@@ -55,8 +55,7 @@ int fklGetOpcodeArgLen(FklOpcode opcode)
 
 FklOpcode fklFindOpcode(const char* str)
 {
-	FklOpcode i=0;
-	for(;i<FKL_LAST_OPCODE;i++)
+	for(FklOpcode i=0;i<FKL_OP_LAST_OPCODE;i++)
 		if(!strcmp(opcodeInfor[i].name,str))
 			return i;
 	return 0;

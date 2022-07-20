@@ -52,7 +52,7 @@ void callNativeProcdure(FklVM* exe,FklVMproc* tmpProc,FklVMrunnable* runnable)
 {
 	pthread_rwlock_wrlock(&exe->rlock);
 	FklVMrunnable* tmpRunnable=fklNewVMrunnable(tmpProc,exe->rhead);
-	tmpRunnable->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(tmpProc->prevEnv,exe->heap),exe->heap);
+	tmpRunnable->localenv=fklNewVMvalue(FKL_TYPE_ENV,fklNewVMenv(tmpProc->prevEnv,exe->heap),exe->heap);
 	exe->rhead=tmpRunnable;
 	pthread_rwlock_unlock(&exe->rlock);
 }
@@ -66,7 +66,7 @@ void applyNativeProc(FklVM* exe,FklVMproc* tmpProc,FklVMrunnable* runnable)
 	{
 		pthread_rwlock_wrlock(&exe->rlock);
 		FklVMrunnable* tmpRunnable=fklNewVMrunnable(tmpProc,exe->rhead);
-		tmpRunnable->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(tmpProc->prevEnv,exe->heap),exe->heap);
+		tmpRunnable->localenv=fklNewVMvalue(FKL_TYPE_ENV,fklNewVMenv(tmpProc->prevEnv,exe->heap),exe->heap);
 		exe->rhead=tmpRunnable;
 		pthread_rwlock_unlock(&exe->rlock);
 	}
@@ -80,7 +80,7 @@ void tailCallNativeProcdure(FklVM* exe,FklVMproc* proc,FklVMrunnable* runnable)
 	{
 		pthread_rwlock_wrlock(&exe->rlock);
 		FklVMrunnable* tmpRunnable=fklNewVMrunnable(proc,exe->rhead->prev);
-		tmpRunnable->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(proc->prevEnv,exe->heap),exe->heap);
+		tmpRunnable->localenv=fklNewVMvalue(FKL_TYPE_ENV,fklNewVMenv(proc->prevEnv,exe->heap),exe->heap);
 		exe->rhead->prev=tmpRunnable;
 		pthread_rwlock_unlock(&exe->rlock);
 	}
@@ -102,11 +102,11 @@ int fklVMcallInDlproc(FklVMvalue* proc
 		fklPushVMvalue(arglist[i-1],stack);
 	switch(proc->type)
 	{
-		case FKL_PROC:
+		case FKL_TYPE_PROC:
 			{
 				pthread_rwlock_wrlock(&exe->rlock);
 				FklVMrunnable* tmpRunnable=fklNewVMrunnable(proc->u.proc,exe->rhead);
-				tmpRunnable->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(proc->u.proc->prevEnv,exe->heap),exe->heap);
+				tmpRunnable->localenv=fklNewVMvalue(FKL_TYPE_ENV,fklNewVMenv(proc->u.proc->prevEnv,exe->heap),exe->heap);
 				exe->rhead=tmpRunnable;
 				pthread_rwlock_unlock(&exe->rlock);
 			}
@@ -315,13 +315,13 @@ void callCallableObj(FklVMvalue* v,FklVM* exe)
 	exe->nextCall=NULL;
 	switch(v->type)
 	{
-		case FKL_CONT:
+		case FKL_TYPE_CONT:
 			callContinuation(exe,v->u.cont);
 			break;
-		case FKL_DLPROC:
+		case FKL_TYPE_DLPROC:
 			callDlProc(exe,v->u.dlproc);
 			break;
-		case FKL_USERDATA:
+		case FKL_TYPE_USERDATA:
 			v->u.ud->t->__call(v->u.ud->data,exe);
 			break;
 		default:
@@ -449,7 +449,7 @@ void B_push_i64(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* r=exe->rhead;
-	fklNewVMvalueToStack(FKL_I64,exe->code+r->cp+sizeof(char),stack,exe->heap);
+	fklNewVMvalueToStack(FKL_TYPE_I64,exe->code+r->cp+sizeof(char),stack,exe->heap);
 	r->cp+=sizeof(char)+sizeof(int64_t);
 }
 
@@ -465,7 +465,7 @@ void B_push_f64(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=exe->rhead;
-	fklNewVMvalueToStack(FKL_F64,exe->code+runnable->cp+sizeof(char),stack,exe->heap);
+	fklNewVMvalueToStack(FKL_TYPE_F64,exe->code+runnable->cp+sizeof(char),stack,exe->heap);
 	runnable->cp+=sizeof(char)+sizeof(double);
 }
 
@@ -474,7 +474,7 @@ void B_push_str(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=exe->rhead;
 	uint64_t size=fklGetU64FromByteCode(exe->code+runnable->cp+sizeof(char));
-	fklNewVMvalueToStack(FKL_STR,fklNewString(size,(char*)exe->code+runnable->cp+sizeof(char)+sizeof(uint64_t)),stack,exe->heap);
+	fklNewVMvalueToStack(FKL_TYPE_STR,fklNewString(size,(char*)exe->code+runnable->cp+sizeof(char)+sizeof(uint64_t)),stack,exe->heap);
 	runnable->cp+=sizeof(char)+sizeof(uint64_t)+size;
 }
 
@@ -523,7 +523,7 @@ void B_push_proc(FklVM* exe)
 	FklVMrunnable* runnable=exe->rhead;
 	uint64_t sizeOfProc=fklGetU64FromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklVMproc* code=fklNewVMproc(runnable->cp+sizeof(char)+sizeof(uint64_t),sizeOfProc);
-	fklNewVMvalueToStack(FKL_PROC,code,stack,exe->heap);
+	fklNewVMvalueToStack(FKL_TYPE_PROC,code,stack,exe->heap);
 	fklSetRef(&code->prevEnv,runnable->localenv,exe->heap);
 	runnable->cp+=sizeof(char)+sizeof(uint64_t)+sizeOfProc;
 }
@@ -657,7 +657,7 @@ void B_call(FklVM* exe)
 	runnable->cp+=sizeof(char);
 	switch(tmpValue->type)
 	{
-		case FKL_PROC:
+		case FKL_TYPE_PROC:
 			callNativeProcdure(exe,tmpValue->u.proc,runnable);
 			break;
 		default:
@@ -677,7 +677,7 @@ void B_tail_call(FklVM* exe)
 	runnable->cp+=sizeof(char);
 	switch(tmpValue->type)
 	{
-		case FKL_PROC:
+		case FKL_TYPE_PROC:
 			tailCallNativeProcdure(exe,tmpValue->u.proc,runnable);
 			break;
 		default:
@@ -798,7 +798,7 @@ void B_push_r_env(FklVM* exe)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;
-	FklVMvalue* n=fklNewVMvalueToStack(FKL_ENV,fklNewVMenv(FKL_VM_NIL,exe->heap),stack,exe->heap);
+	FklVMvalue* n=fklNewVMvalueToStack(FKL_TYPE_ENV,fklNewVMenv(FKL_VM_NIL,exe->heap),stack,exe->heap);
 	fklSetRef(&n->u.env->prev,r->localenv,exe->heap);
 	pthread_rwlock_wrlock(&exe->rlock);
 	r->localenv=n;
@@ -821,7 +821,7 @@ void B_push_big_int(FklVM* exe)
 	FklVMrunnable* r=exe->rhead;
 	uint64_t num=fklGetU64FromByteCode(exe->code+r->cp+sizeof(char));
 	FklBigInt* bigInt=fklNewBigIntFromMem(exe->code+r->cp+sizeof(char)+sizeof(num),sizeof(uint8_t)*num);
-	fklNewVMvalueToStack(FKL_BIG_INT,bigInt,exe->stack,exe->heap);
+	fklNewVMvalueToStack(FKL_TYPE_BIG_INT,bigInt,exe->stack,exe->heap);
 	r->cp+=sizeof(char)+sizeof(bigInt->num)+num;
 }
 
@@ -830,7 +830,7 @@ void B_push_box(FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;
 	FklVMvalue* c=fklNiGetArg(&ap,stack);
-	FklVMvalue* box=fklNewVMvalueToStack(FKL_BOX,FKL_VM_NIL,stack,exe->heap);
+	FklVMvalue* box=fklNewVMvalueToStack(FKL_TYPE_BOX,FKL_VM_NIL,stack,exe->heap);
 	fklSetRef(&box->u.box,c,exe->heap);
 	fklNiReturn(box,&ap,stack);
 	fklNiEnd(&ap,stack);
@@ -842,7 +842,7 @@ void B_push_bytevector(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=exe->rhead;
 	uint64_t size=fklGetU64FromByteCode(exe->code+runnable->cp+sizeof(char));
-	fklNewVMvalueToStack(FKL_BYTEVECTOR,fklNewBytevector(size,exe->code+runnable->cp+sizeof(char)+sizeof(uint64_t)),stack,exe->heap);
+	fklNewVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklNewBytevector(size,exe->code+runnable->cp+sizeof(char)+sizeof(uint64_t)),stack,exe->heap);
 	runnable->cp+=sizeof(char)+sizeof(uint64_t)+size;
 }
 
@@ -911,14 +911,14 @@ int fklIsTheLastExpress(const FklVMrunnable* runnable,const FklVMrunnable* same,
 	for(;;)
 	{
 		uint8_t* code=exe->code;
-		uint32_t i=runnable->cp+(code[runnable->cp]==FKL_CALL||code[runnable->cp]==FKL_TAIL_CALL);
+		uint32_t i=runnable->cp+(code[runnable->cp]==FKL_OP_CALL||code[runnable->cp]==FKL_OP_TAIL_CALL);
 		size=runnable->scp+runnable->cpc;
 
-		for(;i<size;i+=(code[i]==FKL_JMP)?fklGetI64FromByteCode(code+i+sizeof(char))+sizeof(char)+sizeof(int64_t):1)
-			if(code[i]!=FKL_POP_TP
-					&&code[i]!=FKL_POP_TRY
-					&&code[i]!=FKL_JMP
-					&&code[i]!=FKL_POP_R_ENV)
+		for(;i<size;i+=(code[i]==FKL_OP_JMP)?fklGetI64FromByteCode(code+i+sizeof(char))+sizeof(char)+sizeof(int64_t):1)
+			if(code[i]!=FKL_OP_POP_TP
+					&&code[i]!=FKL_OP_POP_TRY
+					&&code[i]!=FKL_OP_JMP
+					&&code[i]!=FKL_OP_POP_R_ENV)
 				return 0;
 		if(runnable==same)
 			break;
@@ -1024,15 +1024,15 @@ void propagateMark(FklVMvalue* root,FklVMheap* heap)
 {
 	switch(root->type)
 	{
-		case FKL_PAIR:
+		case FKL_TYPE_PAIR:
 			fklGC_toGray(root->u.pair->car,heap);
 			fklGC_toGray(root->u.pair->cdr,heap);
 			break;
-		case FKL_PROC:
+		case FKL_TYPE_PROC:
 			if(root->u.proc->prevEnv)
 				fklGC_toGray(root->u.proc->prevEnv,heap);
 			break;
-		case FKL_CONT:
+		case FKL_TYPE_CONT:
 			for(uint32_t i=0;i<root->u.cont->stack->tp;i++)
 				fklGC_toGray(root->u.cont->stack->values[i],heap);
 			for(FklVMrunnable* curr=root->u.cont->curr;curr;curr=curr->prev)
@@ -1040,17 +1040,17 @@ void propagateMark(FklVMvalue* root,FklVMheap* heap)
 			if(root->u.cont->nextCall)
 				fklGC_toGray(root->u.cont->nextCall,heap);
 			break;
-		case FKL_VECTOR:
+		case FKL_TYPE_VECTOR:
 			{
 				FklVMvec* vec=root->u.vec;
 				for(size_t i=0;i<vec->size;i++)
 					fklGC_toGray(vec->base[i],heap);
 			}
 			break;
-		case FKL_BOX:
+		case FKL_TYPE_BOX:
 			fklGC_toGray(root->u.box,heap);
 			break;
-		case FKL_CHAN:
+		case FKL_TYPE_CHAN:
 			{
 				pthread_mutex_lock(&root->u.chan->lock);
 				FklQueueNode* head=root->u.chan->messages->head;
@@ -1061,27 +1061,27 @@ void propagateMark(FklVMvalue* root,FklVMheap* heap)
 				pthread_mutex_unlock(&root->u.chan->lock);
 			}
 			break;
-		case FKL_DLPROC:
+		case FKL_TYPE_DLPROC:
 			if(root->u.dlproc->dll)
 				fklGC_toGray(root->u.dlproc->dll,heap);
 			break;
-		case FKL_ENV:
+		case FKL_TYPE_ENV:
 			fklAtomicVMenv(root->u.env,heap);
 			break;
-		case FKL_USERDATA:
+		case FKL_TYPE_USERDATA:
 			if(root->u.ud->rel)
 				fklGC_toGray(root->u.ud->rel,heap);
 			if(root->u.ud->t->__atomic)
 				root->u.ud->t->__atomic(root->u.ud->data,heap);
 			break;
-		case FKL_I64:
-		case FKL_F64:
-		case FKL_FP:
-		case FKL_DLL:
-		case FKL_ERR:
-		case FKL_STR:
-		case FKL_BYTEVECTOR:
-		case FKL_BIG_INT:
+		case FKL_TYPE_I64:
+		case FKL_TYPE_F64:
+		case FKL_TYPE_FP:
+		case FKL_TYPE_DLL:
+		case FKL_TYPE_ERR:
+		case FKL_TYPE_STR:
+		case FKL_TYPE_BYTEVECTOR:
+		case FKL_TYPE_BIG_INT:
 			break;
 		default:
 			FKL_ASSERT(0);
@@ -1262,52 +1262,52 @@ void fklFreeVMvalue(FklVMvalue* cur)
 {
 	switch(cur->type)
 	{
-		case FKL_STR:
+		case FKL_TYPE_STR:
 			free(cur->u.str);
 			break;
-		case FKL_BYTEVECTOR:
+		case FKL_TYPE_BYTEVECTOR:
 			free(cur->u.bvec);
 			break;
-		case FKL_PAIR:
+		case FKL_TYPE_PAIR:
 			free(cur->u.pair);
 			break;
-		case FKL_PROC:
+		case FKL_TYPE_PROC:
 			fklFreeVMproc(cur->u.proc);
 			break;
-		case FKL_CONT:
+		case FKL_TYPE_CONT:
 			fklFreeVMcontinuation(cur->u.cont);
 			break;
-		case FKL_CHAN:
+		case FKL_TYPE_CHAN:
 			fklFreeVMchanl(cur->u.chan);
 			break;
-		case FKL_FP:
+		case FKL_TYPE_FP:
 			fklFreeVMfp(cur->u.fp);
 			break;
-		case FKL_DLL:
+		case FKL_TYPE_DLL:
 			fklFreeVMdll(cur->u.dll);
 			break;
-		case FKL_DLPROC:
+		case FKL_TYPE_DLPROC:
 			fklFreeVMdlproc(cur->u.dlproc);
 			break;
-		case FKL_ERR:
+		case FKL_TYPE_ERR:
 			fklFreeVMerror(cur->u.err);
 			break;
-		case FKL_VECTOR:
+		case FKL_TYPE_VECTOR:
 			fklFreeVMvec(cur->u.vec);
 			break;
-		case FKL_USERDATA:
+		case FKL_TYPE_USERDATA:
 			if(cur->u.ud->t->__finalizer)
 				cur->u.ud->t->__finalizer(cur->u.ud->data);
 			fklFreeVMudata(cur->u.ud);
 			break;
-		case FKL_F64:
-		case FKL_I64:
-		case FKL_BOX:
+		case FKL_TYPE_F64:
+		case FKL_TYPE_I64:
+		case FKL_TYPE_BOX:
 			break;
-		case FKL_ENV:
+		case FKL_TYPE_ENV:
 			fklFreeVMenv(cur->u.env);
 			break;
-		case FKL_BIG_INT:
+		case FKL_TYPE_BIG_INT:
 			fklFreeBigInt(cur->u.bigInt);
 			break;
 		default:
@@ -1356,10 +1356,10 @@ FklVM* fklNewThreadVM(FklVMproc* mainCode,FklVMheap* heap)
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe);
 	FklVMrunnable* t=fklNewVMrunnable(mainCode,NULL);
-	t->localenv=fklNewVMvalue(FKL_ENV,fklNewVMenv(mainCode->prevEnv,heap),heap);
+	t->localenv=fklNewVMvalue(FKL_TYPE_ENV,fklNewVMenv(mainCode->prevEnv,heap),heap);
 	exe->rhead=t;
 	exe->mark=1;
-	exe->chan=fklNewVMvalue(FKL_CHAN,fklNewVMchanl(0),heap);
+	exe->chan=fklNewVMvalue(FKL_TYPE_CHAN,fklNewVMchanl(0),heap);
 	exe->tstack=fklNewPtrStack(32,16);
 	exe->stack=fklNewVMstack(0);
 	exe->heap=heap;
@@ -1403,7 +1403,7 @@ FklVM* fklNewThreadCallableObjVM(FklVMrunnable* r,FklVMheap* heap,FklVMvalue* ne
 	t->localenv=NULL;
 	exe->rhead=t;
 	exe->mark=1;
-	exe->chan=fklNewVMvalue(FKL_CHAN,fklNewVMchanl(0),heap);
+	exe->chan=fklNewVMvalue(FKL_TYPE_CHAN,fklNewVMchanl(0),heap);
 	exe->tstack=fklNewPtrStack(32,16);
 	exe->stack=fklNewVMstack(0);
 	exe->heap=heap;

@@ -17,7 +17,7 @@
 FklVMvalue* fklMakeVMint(int64_t r64,FklVMstack* s,FklVMheap* heap)
 {
 	if(r64>INT32_MAX||r64<INT32_MIN)
-		return fklNewVMvalueToStack(FKL_I64,&r64,s,heap);
+		return fklNewVMvalueToStack(FKL_TYPE_I64,&r64,s,heap);
 	else
 		return FKL_MAKE_VM_I32(r64);
 }
@@ -25,7 +25,7 @@ FklVMvalue* fklMakeVMint(int64_t r64,FklVMstack* s,FklVMheap* heap)
 FklVMvalue* fklMakeVMintD(double r64,FklVMstack* s,FklVMheap* heap)
 {
 	if(r64-INT32_MAX>DBL_EPSILON||r64-INT32_MIN<-DBL_EPSILON)
-		return fklNewVMvalueToStack(FKL_I64,&r64,s,heap);
+		return fklNewVMvalueToStack(FKL_TYPE_I64,&r64,s,heap);
 	else
 		return FKL_MAKE_VM_I32(r64);
 }
@@ -112,7 +112,7 @@ FklVMvalue* fklCastPreEnvToVMenv(FklPreEnv* pe,FklVMvalue* prev,FklVMheap* heap)
 	FklVMenv* tmp=fklNewVMenv(prev,heap);
 	for(tmpDef=pe->symbols;tmpDef;tmpDef=tmpDef->next)
 		fklSetRef(fklFindOrAddVar(fklAddSymbolToGlob(tmpDef->symbol)->id,tmp),fklCastCptrVMvalue(&tmpDef->obj,heap),heap);
-	return fklNewVMvalue(FKL_ENV,tmp,heap);
+	return fklNewVMvalue(FKL_TYPE_ENV,tmp,heap);
 }
 
 FklVMstack* fklCopyStack(FklVMstack* stack)
@@ -210,7 +210,7 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 				exe->rhead=curr;
 				FklVMrunnable* prevRunnable=exe->rhead;
 				FklVMrunnable* r=fklNewVMrunnable(&h->proc,prevRunnable);
-				r->localenv=fklNewSaveVMvalue(FKL_ENV,fklNewVMenv(prevRunnable->localenv,exe->heap));
+				r->localenv=fklNewSaveVMvalue(FKL_TYPE_ENV,fklNewVMenv(prevRunnable->localenv,exe->heap));
 				fklAddToHeap(r->localenv,exe->heap);
 				FklVMvalue* curEnv=r->localenv;
 				FklSid_t idOfError=tb->sid;
@@ -433,12 +433,12 @@ int32_t fklGetSymbolIdInByteCode(const uint8_t* code)
 	char op=*code;
 	switch(op)
 	{
-		case FKL_PUSH_VAR:
+		case FKL_OP_PUSH_VAR:
 			return *(int32_t*)(code+sizeof(char));
 			break;
-		case FKL_POP_VAR:
-		case FKL_POP_ARG:
-		case FKL_POP_REST_ARG:
+		case FKL_OP_POP_VAR:
+		case FKL_OP_POP_ARG:
+		case FKL_OP_POP_REST_ARG:
 			return *(int32_t*)(code+sizeof(char)+sizeof(int32_t));
 			break;
 	}
@@ -538,35 +538,35 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 	FklVMptrTag tag=FKL_GET_TAG(v);
 	switch(tag)
 	{
-		case FKL_NIL_TAG:
+		case FKL_TAG_NIL:
 			fprintf(fp,"()");
 			break;
-		case FKL_I32_TAG:
+		case FKL_TAG_I32:
 			fprintf(fp,"%d",FKL_GET_I32(v));
 			break;
-		case FKL_CHR_TAG:
+		case FKL_TAG_CHR:
 			putc(FKL_GET_CHR(v),fp);
 			break;
-		case FKL_SYM_TAG:
+		case FKL_TAG_SYM:
 			fklPrintString(fklGetGlobSymbolWithId(FKL_GET_SYM(v))->symbol,fp);
 			break;
-		case FKL_PTR_TAG:
+		case FKL_TAG_PTR:
 			{
 				switch(v->type)
 				{
-					case FKL_F64:
+					case FKL_TYPE_F64:
 						fprintf(fp,"%lf",v->u.f64);
 						break;
-					case FKL_I64:
+					case FKL_TYPE_I64:
 						fprintf(fp,"%ld",v->u.i64);
 						break;
-					case FKL_STR:
+					case FKL_TYPE_STR:
 						fwrite(v->u.str->str,v->u.str->size,1,fp);
 						break;
-					case FKL_BYTEVECTOR:
+					case FKL_TYPE_BYTEVECTOR:
 						fklPrintRawBytevector(v->u.bvec,fp);
 						break;
-					case FKL_PROC:
+					case FKL_TYPE_PROC:
 						if(v->u.proc->sid)
 						{
 							fprintf(fp,"<#proc: ");
@@ -576,19 +576,19 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 						else
 							fprintf(fp,"#<proc>");
 						break;
-					case FKL_CONT:
+					case FKL_TYPE_CONT:
 						fprintf(fp,"#<cont>");
 						break;
-					case FKL_CHAN:
+					case FKL_TYPE_CHAN:
 						fprintf(fp,"#<chan>");
 						break;
-					case FKL_FP:
+					case FKL_TYPE_FP:
 						fprintf(fp,"#<fp>");
 						break;
-					case FKL_DLL:
+					case FKL_TYPE_DLL:
 						fprintf(fp,"<#dll>");
 						break;
-					case FKL_DLPROC:
+					case FKL_TYPE_DLPROC:
 						if(v->u.dlproc->sid)
 						{
 							fprintf(fp,"<#dlproc: ");
@@ -598,13 +598,13 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 						else
 							fprintf(fp,"<#dlproc>");
 						break;
-					case FKL_ERR:
+					case FKL_TYPE_ERR:
 						fklPrintString(v->u.err->message,fp);
 						break;
-					case FKL_BIG_INT:
+					case FKL_TYPE_BIG_INT:
 						fklPrintBigInt(v->u.bigInt,fp);
 						break;
-					case FKL_USERDATA:
+					case FKL_TYPE_USERDATA:
 						if(v->u.ud->t->__princ)
 							v->u.ud->t->__princ(v->u.ud->data,fp);
 						else
@@ -631,35 +631,35 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 	FklVMptrTag tag=FKL_GET_TAG(v);
 	switch(tag)
 	{
-		case FKL_NIL_TAG:
+		case FKL_TAG_NIL:
 			fputs("()",fp);
 			break;
-		case FKL_I32_TAG:
+		case FKL_TAG_I32:
 			fprintf(fp,"%d",FKL_GET_I32(v));
 			break;
-		case FKL_CHR_TAG:
+		case FKL_TAG_CHR:
 			fklPrintRawChar(FKL_GET_CHR(v),fp);
 			break;
-		case FKL_SYM_TAG:
+		case FKL_TAG_SYM:
 			fklPrintRawSymbol(fklGetGlobSymbolWithId(FKL_GET_SYM(v))->symbol,fp);
 			break;
-		case FKL_PTR_TAG:
+		case FKL_TAG_PTR:
 			{
 				switch(v->type)
 				{
-					case FKL_F64:
+					case FKL_TYPE_F64:
 						fprintf(fp,"%lf",v->u.f64);
 						break;
-					case FKL_I64:
+					case FKL_TYPE_I64:
 						fprintf(fp,"%ld",v->u.i64);
 						break;
-					case FKL_STR:
+					case FKL_TYPE_STR:
 						fklPrintRawString(v->u.str,fp);
 						break;
-					case FKL_BYTEVECTOR:
+					case FKL_TYPE_BYTEVECTOR:
 						fklPrintRawBytevector(v->u.bvec,fp);
 						break;
-					case FKL_PROC:
+					case FKL_TYPE_PROC:
 						if(v->u.proc->sid)
 						{
 							fprintf(fp,"<#proc: ");
@@ -668,19 +668,19 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 						}					else
 							fputs("#<proc>",fp);
 						break;
-					case FKL_CONT:
+					case FKL_TYPE_CONT:
 						fputs("#<continuation>",fp);
 						break;
-					case FKL_CHAN:
+					case FKL_TYPE_CHAN:
 						fputs("#<chanl>",fp);
 						break;
-					case FKL_FP:
+					case FKL_TYPE_FP:
 						fputs("#<fp>",fp);
 						break;
-					case FKL_DLL:
+					case FKL_TYPE_DLL:
 						fputs("#<dll>",fp);
 						break;
-					case FKL_DLPROC:
+					case FKL_TYPE_DLPROC:
 						if(v->u.dlproc->sid){
 							fprintf(fp,"<#dlproc: ");
 							fklPrintString(fklGetGlobSymbolWithId(v->u.dlproc->sid)->symbol,fp);
@@ -689,7 +689,7 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 						else
 							fputs("#<dlproc>",fp);
 						break;
-					case FKL_ERR:
+					case FKL_TYPE_ERR:
 						fprintf(fp,"#<err w:");
 						fklPrintString(v->u.err->who,fp);
 						fprintf(fp," t:");
@@ -698,10 +698,10 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 						fklPrintString(v->u.err->message,fp);
 						fprintf(fp,">");
 						break;
-					case FKL_BIG_INT:
+					case FKL_TYPE_BIG_INT:
 						fklPrintBigInt(v->u.bigInt,fp);
 						break;
-					case FKL_USERDATA:
+					case FKL_TYPE_USERDATA:
 						if(v->u.ud->t->__prin1)
 							v->u.ud->t->__prin1(v->u.ud->data,fp);
 						else
@@ -910,86 +910,86 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 			FklAstCptr* root1=fklPopPtrStack(s2);
 			FklValueType cptrType=0;
 			if(root==FKL_VM_NIL)
-				cptrType=FKL_NIL;
+				cptrType=FKL_TYPE_NIL;
 			else if(FKL_IS_PAIR(root))
-				cptrType=FKL_PAIR;
+				cptrType=FKL_TYPE_PAIR;
 			else
-				cptrType=FKL_ATM;
+				cptrType=FKL_TYPE_ATM;
 			root1->type=cptrType;
-			if(cptrType==FKL_ATM)
+			if(cptrType==FKL_TYPE_ATM)
 			{
-				FklAstAtom* tmpAtm=fklNewAtom(FKL_SYM,root1->outer);
+				FklAstAtom* tmpAtm=fklNewAtom(FKL_TYPE_SYM,root1->outer);
 				FklVMptrTag tag=FKL_GET_TAG(root);
 				switch(tag)
 				{
-					case FKL_SYM_TAG:
-						tmpAtm->type=FKL_SYM;
+					case FKL_TAG_SYM:
+						tmpAtm->type=FKL_TYPE_SYM;
 						tmpAtm->value.str=fklCopyString(fklGetGlobSymbolWithId(FKL_GET_SYM(root))->symbol);
 						break;
-					case FKL_I32_TAG:
-						tmpAtm->type=FKL_I32;
+					case FKL_TAG_I32:
+						tmpAtm->type=FKL_TYPE_I32;
 						tmpAtm->value.i32=FKL_GET_I32(root);
 						break;
-					case FKL_CHR_TAG:
-						tmpAtm->type=FKL_CHR;
+					case FKL_TAG_CHR:
+						tmpAtm->type=FKL_TYPE_CHR;
 						tmpAtm->value.chr=FKL_GET_CHR(root);
 						break;
-					case FKL_PTR_TAG:
+					case FKL_TAG_PTR:
 						{
 							tmpAtm->type=root->type;
 							switch(root->type)
 							{
-								case FKL_F64:
+								case FKL_TYPE_F64:
 									tmpAtm->value.f64=root->u.f64;
 									break;
-								case FKL_I64:
+								case FKL_TYPE_I64:
 									tmpAtm->value.i64=root->u.i64;
 									break;
-								case FKL_STR:
+								case FKL_TYPE_STR:
 									tmpAtm->value.str=fklCopyString(root->u.str);
 									break;
-								case FKL_BYTEVECTOR:
+								case FKL_TYPE_BYTEVECTOR:
 									tmpAtm->value.bvec=fklCopyBytevector(root->u.bvec);
 									break;
-								case FKL_PROC:
-									tmpAtm->type=FKL_SYM;
+								case FKL_TYPE_PROC:
+									tmpAtm->type=FKL_TYPE_SYM;
 									tmpAtm->value.str=fklNewStringFromCstr("#<proc>");
 									break;
-								case FKL_DLPROC:
-									tmpAtm->type=FKL_SYM;
+								case FKL_TYPE_DLPROC:
+									tmpAtm->type=FKL_TYPE_SYM;
 									tmpAtm->value.str=fklNewStringFromCstr("#<dlproc>");
 									break;
-								case FKL_CONT:
-									tmpAtm->type=FKL_SYM;
+								case FKL_TYPE_CONT:
+									tmpAtm->type=FKL_TYPE_SYM;
 									tmpAtm->value.str=fklNewStringFromCstr("#<proc>");
 									break;
-								case FKL_CHAN:
-									tmpAtm->type=FKL_SYM;
+								case FKL_TYPE_CHAN:
+									tmpAtm->type=FKL_TYPE_SYM;
 									tmpAtm->value.str=fklNewStringFromCstr("#<chan>");
 									break;
-								case FKL_FP:
-									tmpAtm->type=FKL_SYM;
+								case FKL_TYPE_FP:
+									tmpAtm->type=FKL_TYPE_SYM;
 									tmpAtm->value.str=fklNewStringFromCstr("#<fp>");
 									break;
-								case FKL_ERR:
-									tmpAtm->type=FKL_SYM;
+								case FKL_TYPE_ERR:
+									tmpAtm->type=FKL_TYPE_SYM;
 									tmpAtm->value.str=fklNewStringFromCstr("#<err>");
 									break;
-								case FKL_BOX:
-									tmpAtm->type=FKL_BOX;
+								case FKL_TYPE_BOX:
+									tmpAtm->type=FKL_TYPE_BOX;
 									fklPushPtrStack(root->u.box,s1);
 									fklPushPtrStack(&tmpAtm->value.box,s2);
 									break;
-								case FKL_VECTOR:
-									tmpAtm->type=FKL_VECTOR;
+								case FKL_TYPE_VECTOR:
+									tmpAtm->type=FKL_TYPE_VECTOR;
 									fklMakeAstVector(&tmpAtm->value.vec,root->u.vec->size,NULL);
 									for(size_t i=0;i<root->u.vec->size;i++)
 										fklPushPtrStack(root->u.vec->base[i],s1);
 									for(size_t i=0;i<tmpAtm->value.vec.size;i++)
 										fklPushPtrStack(&tmpAtm->value.vec.base[i],s2);
 									break;
-								case FKL_BIG_INT:
-									tmpAtm->type=FKL_BIG_INT;
+								case FKL_TYPE_BIG_INT:
+									tmpAtm->type=FKL_TYPE_BIG_INT;
 									fklSetBigInt(&tmpAtm->value.bigInt,root->u.bigInt);
 									break;
 								default:
@@ -1004,7 +1004,7 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 				}
 				root1->u.atom=tmpAtm;
 			}
-			else if(cptrType==FKL_PAIR)
+			else if(cptrType==FKL_TYPE_PAIR)
 			{
 				fklPushPtrStack(root->u.pair->car,s1);
 				fklPushPtrStack(root->u.pair->cdr,s1);

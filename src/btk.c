@@ -126,7 +126,7 @@ void btk_get_time(ARGL)
 	FKL_ASSERT(trueTime);
 	sprintf(trueTime,"%s-%s-%s_%s_%s_%s",year,mon,day,hour,min,sec);
 	FklString* str=fklNewString(timeLen-1,trueTime);
-	FklVMvalue* tmpVMvalue=fklNewVMvalueToStack(FKL_STR,str,stack,exe->heap);
+	FklVMvalue* tmpVMvalue=fklNewVMvalueToStack(FKL_TYPE_STR,str,stack,exe->heap);
 	free(trueTime);
 	fklNiReturn(tmpVMvalue,&ap,stack);
 	fklNiEnd(&ap,stack);

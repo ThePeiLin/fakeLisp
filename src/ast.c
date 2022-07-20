@@ -18,8 +18,8 @@
 
 static int copyAndAddToTail(FklAstCptr* fir,const FklAstCptr* sec)
 {
-	while(fir->type==FKL_PAIR)fir=&fir->u.pair->cdr;
-	if(fir->type!=FKL_NIL)
+	while(fir->type==FKL_TYPE_PAIR)fir=&fir->u.pair->cdr;
+	if(fir->type!=FKL_TYPE_NIL)
 		return 1;
 	fklReplaceCptr(fir,sec);
 	return 0;
@@ -27,10 +27,10 @@ static int copyAndAddToTail(FklAstCptr* fir,const FklAstCptr* sec)
 
 static int copyAndAddToList(FklAstCptr* fir,const FklAstCptr* sec)
 {
-	while(fir->type==FKL_PAIR)fir=&fir->u.pair->cdr;
-	if(fir->type!=FKL_NIL)
+	while(fir->type==FKL_TYPE_PAIR)fir=&fir->u.pair->cdr;
+	if(fir->type!=FKL_TYPE_NIL)
 		return 1;
-	fir->type=FKL_PAIR;
+	fir->type=FKL_TYPE_PAIR;
 	fir->u.pair=fklNewPair(sec->curline,fir->outer);
 	fklReplaceCptr(&fir->u.pair->car,sec);
 	return 0;
@@ -38,7 +38,7 @@ static int copyAndAddToList(FklAstCptr* fir,const FklAstCptr* sec)
 
 static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
 {
-	FklVMvalue* vEnv=fklNewVMvalue(FKL_ENV,fklNewGlobVMenv(FKL_VM_NIL,heap),heap);
+	FklVMvalue* vEnv=fklNewVMvalue(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,heap),heap);
 //	fklInitGlobEnv(vEnv->u.env,heap);
 	if(cEnv->proc->bc->size)
 	{
@@ -58,11 +58,11 @@ static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap
 
 void fklFreeAtom(FklAstAtom* objAtm)
 {
-	if(objAtm->type==FKL_SYM||objAtm->type==FKL_STR)
+	if(objAtm->type==FKL_TYPE_SYM||objAtm->type==FKL_TYPE_STR)
 		free(objAtm->value.str);
-	else if(objAtm->type==FKL_BYTEVECTOR)
+	else if(objAtm->type==FKL_TYPE_BYTEVECTOR)
 		free(objAtm->value.bvec);
-	else if(objAtm->type==FKL_VECTOR)
+	else if(objAtm->type==FKL_TYPE_VECTOR)
 	{
 		FklAstVector* vec=&objAtm->value.vec;
 		for(size_t i=0;i<vec->size;i++)
@@ -70,16 +70,16 @@ void fklFreeAtom(FklAstAtom* objAtm)
 		free(vec->base);
 		vec->size=0;
 	}
-	else if(objAtm->type==FKL_BOX)
+	else if(objAtm->type==FKL_TYPE_BOX)
 	{
 		FklAstCptr* c=&objAtm->value.box;
 		fklDeleteCptr(c);
 		c->curline=0;
 		c->outer=NULL;
-		c->type=FKL_NIL;
+		c->type=FKL_TYPE_NIL;
 		c->u.all=NULL;
 	}
-	else if(objAtm->type==FKL_BIG_INT)
+	else if(objAtm->type==FKL_TYPE_BIG_INT)
 	{
 		FklBigInt* bi=&objAtm->value.bigInt;
 		free(bi->digits);
@@ -96,10 +96,10 @@ FklAstPair* fklNewPair(int curline,FklAstPair* prev)
 	FklAstPair* tmp=(FklAstPair*)malloc(sizeof(FklAstPair));
 	FKL_ASSERT(tmp);
 	tmp->car.outer=tmp;
-	tmp->car.type=FKL_NIL;
+	tmp->car.type=FKL_TYPE_NIL;
 	tmp->car.u.all=NULL;
 	tmp->cdr.outer=tmp;
-	tmp->cdr.type=FKL_NIL;
+	tmp->cdr.type=FKL_TYPE_NIL;
 	tmp->cdr.u.all=NULL;
 	tmp->prev=prev;
 	tmp->car.curline=curline;
@@ -113,7 +113,7 @@ FklAstCptr* fklNewCptr(int curline,FklAstPair* outer)
 	FKL_ASSERT(tmp);
 	tmp->outer=outer;
 	tmp->curline=curline;
-	tmp->type=FKL_NIL;
+	tmp->type=FKL_TYPE_NIL;
 	tmp->u.all=NULL;
 	return tmp;
 }
@@ -124,32 +124,32 @@ FklAstAtom* fklNewAtom(FklValueType type,FklAstPair* prev)
 	FKL_ASSERT(tmp);
 	switch(type)
 	{
-		case FKL_CHR:
-		case FKL_I32:
-		case FKL_F64:
+		case FKL_TYPE_CHR:
+		case FKL_TYPE_I32:
+		case FKL_TYPE_F64:
 			*(int32_t*)(&tmp->value)=0;
 			break;
-		case FKL_STR:
-		case FKL_SYM:
+		case FKL_TYPE_STR:
+		case FKL_TYPE_SYM:
 			tmp->value.str=NULL;
 			break;
-		case FKL_BYTEVECTOR:
+		case FKL_TYPE_BYTEVECTOR:
 			tmp->value.bvec=NULL;
 			break;
-		case FKL_VECTOR:
+		case FKL_TYPE_VECTOR:
 			tmp->value.vec.size=0;
 			tmp->value.vec.base=NULL;
 			break;
-		case FKL_BIG_INT:
+		case FKL_TYPE_BIG_INT:
 			tmp->value.bigInt.digits=NULL;
 			tmp->value.bigInt.num=0;
 			tmp->value.bigInt.size=0;
 			tmp->value.bigInt.neg=0;
 			break;
-		case FKL_BOX:
+		case FKL_TYPE_BOX:
 			tmp->value.box.curline=0;
 			tmp->value.box.outer=NULL;
-			tmp->value.box.type=FKL_NIL;
+			tmp->value.box.type=FKL_TYPE_NIL;
 			tmp->value.box.u.all=NULL;
 			break;
 		default:
@@ -177,28 +177,28 @@ int fklCopyCptr(FklAstCptr* objCptr,const FklAstCptr* copiedCptr)
 		root1->curline=root2->curline;
 		switch(root1->type)
 		{
-			case FKL_PAIR:
+			case FKL_TYPE_PAIR:
 				root1->u.pair=fklNewPair(0,root1->outer);
 				fklPushPtrStack(fklGetASTPairCar(root1),s1);
 				fklPushPtrStack(fklGetASTPairCdr(root1),s1);
 				fklPushPtrStack(fklGetASTPairCar(root2),s2);
 				fklPushPtrStack(fklGetASTPairCdr(root2),s2);
 				break;
-			case FKL_ATM:
+			case FKL_TYPE_ATM:
 				atom1=NULL;
 				atom2=root2->u.atom;
 				switch(atom2->type)
 				{
-					case FKL_STR:
-					case FKL_SYM:
+					case FKL_TYPE_STR:
+					case FKL_TYPE_SYM:
 						atom1=fklNewAtom(atom2->type,root1->outer);
 						atom1->value.str=fklCopyString(atom2->value.str);
 						break;
-					case FKL_BYTEVECTOR:
+					case FKL_TYPE_BYTEVECTOR:
 						atom1=fklNewAtom(atom2->type,root1->outer);
 						atom1->value.bvec=fklCopyBytevector(atom2->value.bvec);
 						break;
-					case FKL_VECTOR:
+					case FKL_TYPE_VECTOR:
 						atom1=fklNewAtom(atom2->type,root1->outer);
 						fklMakeAstVector(&atom1->value.vec,atom2->value.vec.size,NULL);
 						for(size_t i=0;i<atom2->value.vec.size;i++)
@@ -207,28 +207,28 @@ int fklCopyCptr(FklAstCptr* objCptr,const FklAstCptr* copiedCptr)
 							fklPushPtrStack(&atom2->value.vec.base[i],s2);
 						}
 						break;
-					case FKL_BOX:
+					case FKL_TYPE_BOX:
 						atom1=fklNewAtom(atom2->type,root1->outer);
 						fklPushPtrStack(&atom1->value.box,s1);
 						fklPushPtrStack(&atom2->value.box,s2);
 						break;
-					case FKL_I32:
+					case FKL_TYPE_I32:
 						atom1=fklNewAtom(atom2->type,root1->outer);
 						atom1->value.i32=atom2->value.i32;
 						break;
-					case FKL_I64:
+					case FKL_TYPE_I64:
 						atom1=fklNewAtom(atom2->type,root1->outer);
 						atom1->value.i64=atom2->value.i64;
 						break;
-					case FKL_F64:
+					case FKL_TYPE_F64:
 						atom1=fklNewAtom(atom2->type,root1->outer);
 						atom1->value.f64=atom2->value.f64;
 						break;
-					case FKL_CHR:
+					case FKL_TYPE_CHR:
 						atom1=fklNewAtom(atom2->type,root1->outer);
 						atom1->value.chr=atom2->value.chr;
 						break;
-					case FKL_BIG_INT:
+					case FKL_TYPE_BIG_INT:
 						atom1=fklNewAtom(atom2->type,root1->outer);
 						fklSetBigInt(&atom1->value.bigInt,&atom2->value.bigInt);
 						break;
@@ -250,26 +250,26 @@ int fklCopyCptr(FklAstCptr* objCptr,const FklAstCptr* copiedCptr)
 void fklReplaceCptr(FklAstCptr* fir,const FklAstCptr* sec)
 {
 	FklAstPair* tmp=fir->outer;
-	FklAstCptr tmpCptr={NULL,0,FKL_NIL,{NULL}};
+	FklAstCptr tmpCptr={NULL,0,FKL_TYPE_NIL,{NULL}};
 	tmpCptr.type=fir->type;
 	tmpCptr.u.all=fir->u.all;
 	fklCopyCptr(fir,sec);
 	fklDeleteCptr(&tmpCptr);
-	if(fir->type==FKL_PAIR)
+	if(fir->type==FKL_TYPE_PAIR)
 		fir->u.pair->prev=tmp;
-	else if(fir->type==FKL_ATM)
+	else if(fir->type==FKL_TYPE_ATM)
 		fir->u.atom->prev=tmp;
 }
 
 int fklDeleteCptr(FklAstCptr* objCptr)
 {
 	if(objCptr==NULL)return 0;
-	FklAstPair* tmpPair=(objCptr->type==FKL_PAIR)?objCptr->u.pair:NULL;
+	FklAstPair* tmpPair=(objCptr->type==FKL_TYPE_PAIR)?objCptr->u.pair:NULL;
 	FklAstPair* objPair=tmpPair;
 	FklAstCptr* tmpCptr=objCptr;
 	while(tmpCptr!=NULL)
 	{
-		if(tmpCptr->type==FKL_PAIR)
+		if(tmpCptr->type==FKL_TYPE_PAIR)
 		{
 			if(objPair!=NULL&&tmpCptr==&objPair->cdr)
 			{
@@ -284,14 +284,14 @@ int fklDeleteCptr(FklAstCptr* objCptr)
 				continue;
 			}
 		}
-		else if(tmpCptr->type==FKL_ATM)
+		else if(tmpCptr->type==FKL_TYPE_ATM)
 		{
 			fklFreeAtom(tmpCptr->u.atom);
-			tmpCptr->type=FKL_NIL;
+			tmpCptr->type=FKL_TYPE_NIL;
 			tmpCptr->u.all=NULL;
 			continue;
 		}
-		else if(tmpCptr->type==FKL_NIL)
+		else if(tmpCptr->type==FKL_TYPE_NIL)
 		{
 			if(objPair!=NULL&&tmpCptr==&objPair->car)
 			{
@@ -306,12 +306,12 @@ int fklDeleteCptr(FklAstCptr* objCptr)
 				if(objPair==NULL||prev==tmpPair)break;
 				if(prev==objPair->car.u.pair)
 				{
-					objPair->car.type=FKL_NIL;
+					objPair->car.type=FKL_TYPE_NIL;
 					objPair->car.u.all=NULL;
 				}
 				else if(prev==objPair->cdr.u.pair)
 				{
-					objPair->cdr.type=FKL_NIL;
+					objPair->cdr.type=FKL_TYPE_NIL;
 					objPair->cdr.u.all=NULL;
 				}
 				tmpCptr=&objPair->cdr;
@@ -319,7 +319,7 @@ int fklDeleteCptr(FklAstCptr* objCptr)
 		}
 		if(objPair==NULL)break;
 	}
-	objCptr->type=FKL_NIL;
+	objCptr->type=FKL_TYPE_NIL;
 	objCptr->u.all=NULL;
 	return 0;
 }
@@ -329,11 +329,11 @@ int fklCptrcmp(const FklAstCptr* first,const FklAstCptr* second)
 	if(first==NULL&&second==NULL)return 0;
 	FklAstPair* firPair=NULL;
 	FklAstPair* secPair=NULL;
-	FklAstPair* tmpPair=(first->type==FKL_PAIR)?first->u.pair:NULL;
+	FklAstPair* tmpPair=(first->type==FKL_TYPE_PAIR)?first->u.pair:NULL;
 	for(;;)
 	{
 		if(first->type!=second->type)return 0;
-		else if(first->type==FKL_PAIR)
+		else if(first->type==FKL_TYPE_PAIR)
 		{
 			firPair=first->u.pair;
 			secPair=second->u.pair;
@@ -341,17 +341,17 @@ int fklCptrcmp(const FklAstCptr* first,const FklAstCptr* second)
 			second=&secPair->car;
 			continue;
 		}
-		else if(first->type==FKL_ATM||first->type==FKL_NIL)
+		else if(first->type==FKL_TYPE_ATM||first->type==FKL_TYPE_NIL)
 		{
-			if(first->type==FKL_ATM)
+			if(first->type==FKL_TYPE_ATM)
 			{
 				FklAstAtom* firAtm=first->u.atom;
 				FklAstAtom* secAtm=second->u.atom;
 				if(firAtm->type!=secAtm->type)return 0;
-				else if(firAtm->type==FKL_I32&&firAtm->value.i32!=secAtm->value.i32)return 0;
-				else if(firAtm->type==FKL_F64&&fabs(firAtm->value.f64-secAtm->value.f64)!=0)return 0;
-				else if(firAtm->type==FKL_CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
-				else if((firAtm->type==FKL_STR||firAtm->type==FKL_SYM)&&fklStringcmp(firAtm->value.str,secAtm->value.str))return 0;
+				else if(firAtm->type==FKL_TYPE_I32&&firAtm->value.i32!=secAtm->value.i32)return 0;
+				else if(firAtm->type==FKL_TYPE_F64&&fabs(firAtm->value.f64-secAtm->value.f64)!=0)return 0;
+				else if(firAtm->type==FKL_TYPE_CHR&&firAtm->value.chr!=secAtm->value.chr)return 0;
+				else if((firAtm->type==FKL_TYPE_STR||firAtm->type==FKL_TYPE_SYM)&&fklStringcmp(firAtm->value.str,secAtm->value.str))return 0;
 			}
 			if(firPair!=NULL&&first==&firPair->car)
 			{
@@ -391,7 +391,7 @@ int fklCptrcmp(const FklAstCptr* first,const FklAstCptr* second)
 
 FklAstCptr* fklNextCptr(const FklAstCptr* objCptr)
 {
-	if(objCptr&&objCptr->outer!=NULL&&objCptr->outer->cdr.type==FKL_PAIR)
+	if(objCptr&&objCptr->outer!=NULL&&objCptr->outer->cdr.type==FKL_TYPE_PAIR)
 		return &objCptr->outer->cdr.u.pair->car;
 	return NULL;
 }
@@ -405,7 +405,7 @@ FklAstCptr* fklPrevCptr(const FklAstCptr* objCptr)
 
 FklAstCptr* fklGetLastCptr(const FklAstCptr* objList)
 {
-	if(objList->type!=FKL_PAIR)
+	if(objList->type!=FKL_TYPE_PAIR)
 		return NULL;
 	FklAstPair* objPair=objList->u.pair;
 	FklAstCptr* first=&objPair->car;
@@ -415,7 +415,7 @@ FklAstCptr* fklGetLastCptr(const FklAstCptr* objList)
 
 FklAstCptr* fklGetFirstCptr(const FklAstCptr* objList)
 {
-	if(objList->type!=FKL_PAIR)
+	if(objList->type!=FKL_TYPE_PAIR)
 		return NULL;
 	FklAstPair* objPair=objList->u.pair;
 	FklAstCptr* first=&objPair->car;
@@ -449,16 +449,16 @@ FklAstCptr* fklGetCptrCdr(const FklAstCptr* obj)
 int fklIsListCptr(const FklAstCptr* list)
 {
 	FklAstCptr* last=NULL;
-	for(last=(list->type==FKL_PAIR)?&list->u.pair->car:NULL
-			;fklGetCptrCdr(last)->type==FKL_PAIR
+	for(last=(list->type==FKL_TYPE_PAIR)?&list->u.pair->car:NULL
+			;fklGetCptrCdr(last)->type==FKL_TYPE_PAIR
 			;last=fklNextCptr(last));
-	return fklGetCptrCdr(last)->type!=FKL_ATM;
+	return fklGetCptrCdr(last)->type!=FKL_TYPE_ATM;
 }
 
 unsigned int fklLengthListCptr(const FklAstCptr* list)
 {
 	unsigned int n=0;
-	for(FklAstCptr* fir=(list->type==FKL_PAIR)?&list->u.pair->car:NULL
+	for(FklAstCptr* fir=(list->type==FKL_TYPE_PAIR)?&list->u.pair->car:NULL
 			;fir
 			;fir=fklNextCptr(fir))
 		n++;
@@ -510,7 +510,7 @@ static FklAstAtom* createChar(const FklString* oStr,FklAstPair* prev)
 {
 	if(!fklIsValidCharStr(oStr->str+2,oStr->size-2))
 		return NULL;
-	FklAstAtom* r=fklNewAtom(FKL_CHR,prev);
+	FklAstAtom* r=fklNewAtom(FKL_TYPE_CHR,prev);
 	r->value.chr=fklCharBufToChar(oStr->str+2,oStr->size-2);
 	return r;
 }
@@ -520,16 +520,16 @@ static FklAstAtom* createNum(const FklString* oStr,FklAstPair* prev)
 	FklAstAtom* r=NULL;
 	if(fklIsDoubleString(oStr))
 	{
-		r=fklNewAtom(FKL_F64,prev);
+		r=fklNewAtom(FKL_TYPE_F64,prev);
 		r->value.f64=fklStringToDouble(oStr);
 	}
 	else
 	{
-		r=fklNewAtom(FKL_I32,prev);
+		r=fklNewAtom(FKL_TYPE_I32,prev);
 		FklBigInt* bInt=fklNewBigIntFromString(oStr);
 		if(fklIsGtLtI64BigInt(bInt))
 		{
-			r->type=FKL_BIG_INT;
+			r->type=FKL_TYPE_BIG_INT;
 			r->value.bigInt.digits=NULL;
 			r->value.bigInt.num=0;
 			r->value.bigInt.size=0;
@@ -541,7 +541,7 @@ static FklAstAtom* createNum(const FklString* oStr,FklAstPair* prev)
 			int64_t num=fklBigIntToI64(bInt);
 			if(num>INT32_MAX||num<INT32_MIN)
 			{
-				r->type=FKL_I64;
+				r->type=FKL_TYPE_I64;
 				r->value.i64=num;
 			}
 			else
@@ -556,7 +556,7 @@ static FklAstAtom* createString(const FklString* oStr,FklAstPair* prev)
 {
 	size_t size=0;
 	char* str=fklCastEscapeCharBuf(oStr->str+1,'\"',&size);
-	FklAstAtom* r=fklNewAtom(FKL_STR,prev);
+	FklAstAtom* r=fklNewAtom(FKL_TYPE_STR,prev);
 	r->value.str=fklNewString(size,str);
 	free(str);
 	return r;
@@ -564,7 +564,7 @@ static FklAstAtom* createString(const FklString* oStr,FklAstPair* prev)
 
 static FklAstAtom* createSymbol(const FklString* oStr,FklAstPair* prev)
 {
-	FklAstAtom* r=fklNewAtom(FKL_SYM,prev);
+	FklAstAtom* r=fklNewAtom(FKL_TYPE_SYM,prev);
 	r->value.str=fklCopyString(oStr);
 	return r;
 }
@@ -825,7 +825,7 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 				fklFreePtrStack(matchStateStack);
 				return NULL;
 			}
-			cur->type=FKL_ATM;
+			cur->type=FKL_TYPE_ATM;
 			cur->curline=token->line;
 			cur->u.atom=atm;
 			AstElem* elem=newAstElem(AST_CAR,cur);
@@ -967,9 +967,9 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 				}
 				else if(isBuiltInVector(cState->pattern))
 				{
-					FklAstAtom* vec=fklNewAtom(FKL_VECTOR,v->cptr->outer);
+					FklAstAtom* vec=fklNewAtom(FKL_TYPE_VECTOR,v->cptr->outer);
 					fklMakeAstVector(&vec->value.vec,cStack->top,NULL);
-					v->cptr->type=FKL_ATM;
+					v->cptr->type=FKL_TYPE_ATM;
 					v->cptr->u.atom=vec;
 					for(uint32_t i=0;i<cStack->top;i++)
 					{
@@ -988,8 +988,8 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 				}
 				else
 				{
-					FklAstAtom* bvec=fklNewAtom(FKL_BYTEVECTOR,v->cptr->outer);
-					v->cptr->type=FKL_ATM;
+					FklAstAtom* bvec=fklNewAtom(FKL_TYPE_BYTEVECTOR,v->cptr->outer);
+					v->cptr->type=FKL_TYPE_ATM;
 					v->cptr->u.atom=bvec;
 					FklBytevector* bv=fklNewBytevector(cStack->top,NULL);
 					v->cptr->u.atom->value.bvec=bv;
@@ -998,14 +998,14 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 						AstElem* c=cStack->base[i];
 						if(!r)
 						{
-							if(c->place==AST_CAR&&c->cptr->type==FKL_ATM&&
-									(c->cptr->u.atom->type==FKL_BIG_INT
-									 ||c->cptr->u.atom->type==FKL_I64
-									 ||c->cptr->u.atom->type==FKL_I32
+							if(c->place==AST_CAR&&c->cptr->type==FKL_TYPE_ATM&&
+									(c->cptr->u.atom->type==FKL_TYPE_BIG_INT
+									 ||c->cptr->u.atom->type==FKL_TYPE_I64
+									 ||c->cptr->u.atom->type==FKL_TYPE_I32
 									 ))
-								bv->ptr[i]=c->cptr->u.atom->type==FKL_BIG_INT
+								bv->ptr[i]=c->cptr->u.atom->type==FKL_TYPE_BIG_INT
 									?fklBigIntToI64(&c->cptr->u.atom->value.bigInt)
-									:c->cptr->u.atom->type==FKL_I64?c->cptr->u.atom->value.i64
+									:c->cptr->u.atom->type==FKL_TYPE_I64?c->cptr->u.atom->value.i64
 									:c->cptr->u.atom->value.i32;
 							else
 								r=1;
@@ -1094,8 +1094,8 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 				{
 					AstElem* v=newAstElem(AST_CAR,fklNewCptr(token->line,NULL));
 					FklAstCptr* vCptr=v->cptr;
-					vCptr->type=FKL_ATM;
-					FklAstAtom* atom=fklNewAtom(FKL_BOX,vCptr->outer);
+					vCptr->type=FKL_TYPE_ATM;
+					FklAstAtom* atom=fklNewAtom(FKL_TYPE_BOX,vCptr->outer);
 					atom->value.box=*(postfix->cptr);
 					vCptr->u.atom=atom;
 					free(postfix->cptr);
@@ -1117,8 +1117,8 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 						"unqtesp":
 						NULL;
 					fklPushPtrStack(v,cStack);
-					prefix->type=FKL_ATM;
-					prefix->u.atom=fklNewAtom(FKL_SYM,v->cptr->outer);
+					prefix->type=FKL_TYPE_ATM;
+					prefix->u.atom=fklNewAtom(FKL_TYPE_SYM,v->cptr->outer);
 					prefix->u.atom->value.str=fklNewString(strlen(prefixValue),prefixValue);
 					copyAndAddToList(v->cptr,prefix);
 					copyAndAddToList(v->cptr,postfix->cptr);
@@ -1181,7 +1181,7 @@ void fklMakeAstVector(FklAstVector* vec,size_t size,const FklAstCptr* base)
 	for(size_t i=0;i<size;i++)
 	{
 		vec->base[i].outer=NULL;
-		vec->base[i].type=FKL_NIL;
+		vec->base[i].type=FKL_TYPE_NIL;
 		vec->base[i].curline=0;
 		vec->base[i].u.all=NULL;
 	}
@@ -1208,33 +1208,33 @@ void fklPrintCptr(const FklAstCptr* o_cptr,FILE* fp)
 			if(e->place==AST_CDR)
 				fputc(',',fp);
 			free(e);
-			if(cptr->type==FKL_ATM)
+			if(cptr->type==FKL_TYPE_ATM)
 			{
 				FklAstAtom* tmpAtm=cptr->u.atom;
 				switch(tmpAtm->type)
 				{
-					case FKL_SYM:
+					case FKL_TYPE_SYM:
 						fklPrintRawSymbol(tmpAtm->value.str,fp);
 						break;
-					case FKL_BYTEVECTOR:
+					case FKL_TYPE_BYTEVECTOR:
 						fklPrintRawBytevector(tmpAtm->value.bvec,fp);
 						break;
-					case FKL_STR:
+					case FKL_TYPE_STR:
 						fklPrintRawString(tmpAtm->value.str,fp);
 						break;
-					case FKL_I32:
+					case FKL_TYPE_I32:
 						fprintf(fp,"%d",tmpAtm->value.i32);
 						break;
-					case FKL_I64:
+					case FKL_TYPE_I64:
 						fprintf(fp,"%ld",tmpAtm->value.i64);
 						break;
-					case FKL_F64:
+					case FKL_TYPE_F64:
 						fprintf(fp,"%lf",tmpAtm->value.f64);
 						break;
-					case FKL_CHR:
+					case FKL_TYPE_CHR:
 						fklPrintRawChar(tmpAtm->value.chr,fp);
 						break;
-					case FKL_VECTOR:
+					case FKL_TYPE_VECTOR:
 						fputs("#(",fp);
 						{
 							FklPtrQueue* vQueue=fklNewPtrQueue();
@@ -1245,10 +1245,10 @@ void fklPrintCptr(const FklAstCptr* o_cptr,FILE* fp)
 							continue;
 						}
 						break;
-					case FKL_BIG_INT:
+					case FKL_TYPE_BIG_INT:
 						fklPrintBigInt(&tmpAtm->value.bigInt,fp);
 						break;
-					case FKL_BOX:
+					case FKL_TYPE_BOX:
 						fputs("#&",fp);
 						fklPushPtrQueue(newAstElem(AST_BOX,&tmpAtm->value.box),cQueue);
 						break;
@@ -1256,9 +1256,9 @@ void fklPrintCptr(const FklAstCptr* o_cptr,FILE* fp)
 						break;
 				}
 			}
-			else if(cptr->type==FKL_NIL)
+			else if(cptr->type==FKL_TYPE_NIL)
 				fputs("()",fp);
-			else if(cptr->type==FKL_PAIR)
+			else if(cptr->type==FKL_TYPE_PAIR)
 			{
 				fputc('(',fp);
 				FklPtrQueue* lQueue=fklNewPtrQueue();
@@ -1271,7 +1271,7 @@ void fklPrintCptr(const FklAstCptr* o_cptr,FILE* fp)
 					if(!next)
 					{
 						FklAstCptr* cdr=fklGetCptrCdr(c);
-						if(cdr->type!=FKL_NIL)
+						if(cdr->type!=FKL_TYPE_NIL)
 						{
 							AstElem* cdre=newAstElem(AST_CDR,cdr);
 							fklPushPtrQueue(cdre,lQueue);

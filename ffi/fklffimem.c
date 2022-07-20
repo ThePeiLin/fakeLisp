@@ -901,14 +901,14 @@ FklVMvalue* fklFfiNewVMvalue(FklFfiMem* mem,FklVMstack* stack,FklVMheap* heap)
 	else if(mem->type==FKL_FFI_STRING)
 	{
 		FklString* str=fklNewString(strlen(mem->mem),mem->mem);
-		return fklNewVMvalueToStack(FKL_STR,str,stack,heap);
+		return fklNewVMvalueToStack(FKL_TYPE_STR,str,stack,heap);
 	}
 	else
 	{
 		if(fklFfiIsFloatTypeId(mem->type))
 		{
 			double d=__ffiGetDoubleFuncList[mem->type](mem);
-			return fklNewVMvalueToStack(FKL_F64,&d,stack,heap);
+			return fklNewVMvalueToStack(FKL_TYPE_F64,&d,stack,heap);
 		}
 		else
 			return fklMakeVMint(__ffiGetIntegerFuncList[mem->type](mem),stack,heap);

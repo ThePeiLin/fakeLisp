@@ -229,7 +229,6 @@ typedef struct FklVMheap
 	pthread_rwlock_t glock;
 	struct Graylink* volatile gray;
 	size_t volatile grayNum;
-	FklVMvalue* white;
 }FklVMheap;
 
 typedef struct
@@ -318,7 +317,7 @@ void fklGC_joinGCthread(FklVMheap* h);
 
 void fklWaitGC(FklVMheap* h);
 void fklFreeAllValues(FklVMheap*);
-void fklGC_sweep(FklVMheap*);
+void fklGC_sweep(FklVMvalue*);
 
 void fklDBG_printVMenv(FklVMenv*,FILE*);
 void fklDBG_printVMvalue(FklVMvalue*,FILE*);

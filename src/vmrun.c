@@ -3,6 +3,7 @@
 #include<fakeLisp/utils.h>
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/bytecode.h>
+#include<fakeLisp/vm.h>
 #include<string.h>
 #include<math.h>
 #ifdef _WIN32
@@ -940,7 +941,6 @@ FklVMheap* fklNewVMheap()
 	tmp->head=NULL;
 	tmp->gray=NULL;
 	tmp->grayNum=0;
-	tmp->white=NULL;
 	pthread_rwlock_init(&tmp->lock,NULL);
 	pthread_rwlock_init(&tmp->glock,NULL);
 	return tmp;
@@ -1118,8 +1118,9 @@ int fklGC_propagate(FklVMheap* heap)
 	return r;
 }
 
-void fklGC_collect(FklVMheap* heap)
+void fklGC_collect(FklVMheap* heap,FklVMvalue** pw)
 {
+	size_t count=0;
 	pthread_rwlock_wrlock(&heap->lock);
 	FklVMvalue* head=heap->head;
 	heap->head=NULL;
@@ -1132,8 +1133,9 @@ void fklGC_collect(FklVMheap* heap)
 		if(cur->mark==FKL_MARK_W)
 		{
 			*phead=cur->next;
-			cur->next=heap->white;
-			heap->white=cur;
+			cur->next=*pw;
+			*pw=cur;
+			count++;
 		}
 		else
 		{
@@ -1147,25 +1149,15 @@ void fklGC_collect(FklVMheap* heap)
 	pthread_rwlock_unlock(&heap->lock);
 }
 
-void fklGC_sweep(FklVMheap* heap)
+void fklGC_sweep(FklVMvalue* head)
 {
-	FklVMvalue* head=heap->white;
-	heap->white=NULL;
-	uint32_t count=0;
 	FklVMvalue** phead=&head;
 	while(*phead)
 	{
 		FklVMvalue* cur=*phead;
 		*phead=cur->next;
 		fklFreeVMvalue(cur);
-		count++;
 	}
-	pthread_rwlock_wrlock(&heap->lock);
-	*phead=heap->head;
-	heap->head=head;
-	heap->num-=count;
-	heap->running=FKL_GC_DONE;
-	pthread_rwlock_unlock(&heap->lock);
 }
 
 inline void fklGetGCstateAndHeapNum(FklVMheap* h,FklGCstate* s,int* cr)
@@ -1257,8 +1249,11 @@ inline void fklGC_step(FklVM* exe)
 void* fklGC_threadFunc(void* arg)
 {
 	FklVMheap* heap=arg;
-	fklGC_collect(heap);
-	fklGC_sweep(heap);
+	FklVMvalue* white=NULL;
+	fklGC_collect(heap,&white);
+	heap->running=FKL_GC_SWEEPING;
+	fklGC_sweep(white);
+	heap->running=FKL_GC_DONE;
 	return NULL;
 }
 

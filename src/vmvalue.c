@@ -312,7 +312,7 @@ void fklAddToHeap(FklVMvalue* v,FklVMheap* heap)
 	{
 		FklGCstate running=fklGetGCstate(heap);
 		if(running>FKL_GC_MARK_ROOT&&running<FKL_GC_SWEEPING)
-			fklGC_toGray(v,heap);
+			fklGC_toGrey(v,heap);
 		pthread_rwlock_wrlock(&heap->lock);
 		v->next=heap->head;
 		heap->head=v;
@@ -825,11 +825,11 @@ void fklAtomicVMenv(FklVMenv* env,FklVMheap* heap)
 {
 	FklHashTable* table=env->t;
 	if(env->prev)
-		fklGC_toGray(env->prev,heap);
+		fklGC_toGrey(env->prev,heap);
 	for(size_t i=0;i<table->num;i++)
 	{
 		VMenvHashItem* item=table->list[i]->item;
-		fklGC_toGray(item->v,heap);
+		fklGC_toGrey(item->v,heap);
 	}
 }
 

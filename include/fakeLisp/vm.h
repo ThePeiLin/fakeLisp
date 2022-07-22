@@ -226,9 +226,9 @@ typedef struct FklVMheap
 	size_t volatile num;
 	uint32_t threshold;
 	FklVMvalue* head;
-	pthread_rwlock_t glock;
-	struct Graylink* volatile gray;
-	size_t volatile grayNum;
+	pthread_rwlock_t greylock;
+	struct Greylink* volatile grey;
+	size_t volatile greyNum;
 }FklVMheap;
 
 typedef struct
@@ -310,8 +310,8 @@ void fklGC_markValueInEnv(FklVMenv*);
 void fklGC_markValueInCallChain(FklPtrStack*);
 void fklGC_markMessage(FklQueueNode*);
 void fklGC_markSendT(FklQueueNode*);
-void fklGC_toGray(FklVMvalue*,FklVMheap*);
-void fklGC_reGray(FklVMvalue*,FklVMheap*);
+void fklGC_toGrey(FklVMvalue*,FklVMheap*);
+//void fklGC_reGrey(FklVMvalue*,FklVMheap*);
 void fklGC_step(FklVM* exe);
 void fklGC_joinGCthread(FklVMheap* h);
 

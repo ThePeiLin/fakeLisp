@@ -392,13 +392,16 @@ inline void fklWaitGC(FklVMheap* h)
 	FklGCstate running=fklGetGCstate(h);
 	if(running==FKL_GC_SWEEPING||running==FKL_GC_COLLECT||running==FKL_GC_DONE)
 		fklGC_joinGCthread(h);
-	Graylink* volatile* head=&h->gray;
-	while(*head)
+	fklChangeGCstate(FKL_GC_NONE,h);
+	h->grayNum=0;
+	for(Graylink* volatile* head=&h->gray;*head;)
 	{
 		Graylink* cur=*head;
 		*head=cur->next;
 		free(cur);
 	}
+	for(FklVMvalue* head=h->head;head;head=head->next)
+		head->mark=FKL_MARK_W;
 }
 
 void B_dummy(FklVM* exe)

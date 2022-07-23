@@ -317,6 +317,9 @@ void fklAddToHeap(FklVMvalue* v,FklVMheap* heap)
 		v->next=heap->head;
 		heap->head=v;
 		heap->num+=1;
+		if(heap->num>heap->threshold)
+		{
+		}
 		pthread_rwlock_unlock(&heap->lock);
 	}
 }

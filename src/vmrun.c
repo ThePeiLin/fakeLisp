@@ -1410,9 +1410,13 @@ void fklFreeAllVMs()
 	for(FklVMnode** ph=&GlobVMs;*ph;)
 	{
 		FklVMnode* cur=*ph;
-		ph=&cur->next;
-		fklFreePtrStack(cur->vm->tstack);
-		fklFreeVMstack(cur->vm->stack);
+		*ph=cur->next;
+		if(cur->vm->mark)
+		{
+			fklDeleteCallChain(cur->vm);
+			fklFreeVMstack(cur->vm->stack);
+			fklFreePtrStack(cur->vm->tstack);
+		}
 		free(cur->vm);
 		free(cur);
 	}

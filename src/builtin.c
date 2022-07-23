@@ -2615,7 +2615,7 @@ void builtin_go(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
-	if(exe->VMid==-1)
+	if(!exe->thrds)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.go",FKL_ERR_CANTCREATETHREAD,runnable,exe);
 	FklVMvalue* threadProc=fklNiGetArg(&ap,stack);
 	if(!threadProc)

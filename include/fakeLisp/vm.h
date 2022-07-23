@@ -5,6 +5,7 @@
 #include"bytecode.h"
 #include"compiler.h"
 #include"builtin.h"
+#include<stdatomic.h>
 #include<stdio.h>
 #include<stdint.h>
 #include<pthread.h>
@@ -99,7 +100,7 @@ typedef enum{
 
 typedef struct FklVMvalue
 {
-	FklVMvalueMark mark;
+	_Atomic(FklVMvalueMark) mark;
 	FklValueType type;
 	union
 	{
@@ -174,8 +175,8 @@ typedef struct
 
 typedef struct FklVM
 {
-	unsigned int mark :1;
-	int32_t VMid;
+	int32_t mark;
+	int32_t thrds;
 	pthread_t tid;
 	uint8_t* code;
 	uint64_t size;
@@ -231,12 +232,6 @@ typedef struct FklVMheap
 	size_t volatile greyNum;
 }FklVMheap;
 
-typedef struct
-{
-	uint32_t num;
-	FklVM** VMs;
-}FklVMlist;
-
 typedef struct FklVMdlproc
 {
 	FklVMdllFunc func;
@@ -288,7 +283,7 @@ FklVMstack* fklNewVMstack(int32_t);
 void fklFreeVMstack(FklVMstack*);
 void fklStackRecycle(FklVMstack*);
 int fklCreateNewThread(FklVM*);
-FklVMlist* fklNewThreadStack(int32_t);
+//FklVMlist* fklNewThreadStack(int32_t);
 FklVMrunnable* fklHasSameProc(uint32_t,FklVMrunnable*);
 int fklIsTheLastExpress(const FklVMrunnable*,const FklVMrunnable*,const FklVM* exe);
 FklVMheap* fklNewVMheap();
@@ -311,7 +306,6 @@ void fklGC_markValueInCallChain(FklPtrStack*);
 void fklGC_markMessage(FklQueueNode*);
 void fklGC_markSendT(FklQueueNode*);
 void fklGC_toGrey(FklVMvalue*,FklVMheap*);
-//void fklGC_reGrey(FklVMvalue*,FklVMheap*);
 void fklGC_step(FklVM* exe);
 void fklGC_joinGCthread(FklVMheap* h);
 

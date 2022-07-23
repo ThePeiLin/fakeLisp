@@ -176,8 +176,8 @@ void ffi_load(ARGL)
 	FklVMvalue* vpath=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.load",FKL_ERR_TOOMANYARG,r,exe);
-	if(exe->VMid==-1)
-		return;
+	if(!exe->thrds)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.load",FKL_ERR_CANTCREATETHREAD,r,exe);
 	if(!vpath)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.load",FKL_ERR_TOOFEWARG,r,exe);
 	if(!FKL_IS_STR(vpath))

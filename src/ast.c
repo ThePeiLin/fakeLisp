@@ -47,7 +47,6 @@ static int copyAndAddToList(FklAstCptr* fir,const FklAstCptr* sec)
 static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
 {
 	FklVMvalue* vEnv=fklNewVMvalue(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,heap),heap);
-//	fklInitGlobEnv(vEnv->u.env,heap);
 	if(cEnv->proc->bc->size)
 	{
 		FklVMnode* prevVMs=fklGetGlobVMs();
@@ -789,10 +788,11 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 	{
 		fklJoinAllThread(prevVMs);
 		fklFreeByteCodeAndLnt(t);
-		fklFreeVMheap(tmpVM->heap);
 		fklUninitVMRunningResource(tmpVM,prevVMs);
 		chdir(cwd);
 		free(cwd);
+		fklFreeVMheap(h);
+		fklDestroyEnv(tmpEnv);
 		return NULL;
 	}
 	fklFreeByteCodeAndLnt(t);

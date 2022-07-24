@@ -1046,14 +1046,11 @@ void fklInitVMRunningResource(FklVM* vm,FklVMvalue* vEnv,FklVMheap* heap,FklByte
 	}
 }
 
-void fklUninitVMRunningResource(FklVM* vm)
+void fklUninitVMRunningResource(FklVM* vm,FklVMnode* node)
 {
 	fklWaitGC(vm->heap);
 	free(vm->lnt);
-	fklDeleteCallChain(vm);
-	fklFreeVMstack(vm->stack);
-	fklFreePtrStack(vm->tstack);
-	free(vm);
+	fklFreeAllTmpVMs(node);
 }
 
 size_t fklVMlistLength(FklVMvalue* v)

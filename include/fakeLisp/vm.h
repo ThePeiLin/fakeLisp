@@ -270,11 +270,18 @@ typedef struct FklVMerrorHandler
 	FklVMproc proc;
 }FklVMerrorHandler;
 
+typedef struct FklVMnode
+{
+	FklVM* vm;
+	struct FklVMnode* next;
+}FklVMnode;
+
 //vmrun
 
 int fklRunVM(FklVM*);
+FklVMnode* fklGetGlobVMs(void);
 FklVM* fklNewVM(FklByteCode*);
-FklVM* fklNewTmpVM(FklByteCode*);
+FklVM* fklNewTmpVM(FklByteCode*,FklVMheap*);
 FklVM* fklNewThreadVM(FklVMproc*,FklVMheap*);
 FklVM* fklNewThreadCallableObjVM(FklVMrunnable* r,FklVMheap* heap,FklVMvalue*);
 
@@ -289,9 +296,10 @@ int fklIsTheLastExpress(const FklVMrunnable*,const FklVMrunnable*,const FklVM* e
 FklVMheap* fklNewVMheap();
 void fklCreateCallChainWithContinuation(FklVM*,FklVMcontinuation*);
 void fklFreeVMheap(FklVMheap*);
-void fklFreeAllVMs();
+void fklFreeAllTmpVMs(FklVMnode* node);
+void fklFreeAllVMs(void);
 void fklDeleteCallChain(FklVM*);
-void fklJoinAllThread();
+void fklJoinAllThread(FklVMnode* node);
 void fklCancelAllThread();
 void fklChangeGCstate(FklGCstate,FklVMheap*);
 FklGCstate fklGetGCstate(FklVMheap*);
@@ -332,7 +340,7 @@ int fklIsList(FklVMvalue* p);
 int64_t fklGetInt(FklVMvalue* p);
 double fklGetDouble(FklVMvalue* p);
 void fklInitVMRunningResource(FklVM*,FklVMvalue*,FklVMheap* heap,FklByteCodelnt*,uint32_t,uint32_t);
-void fklUninitVMRunningResource(FklVM*);
+void fklUninitVMRunningResource(FklVM*,FklVMnode*);
 
 FklVMvalue* fklGetTopValue(FklVMstack* stack);
 FklVMvalue* fklGetValue(FklVMstack* stack,int32_t place);

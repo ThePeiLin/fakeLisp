@@ -112,7 +112,7 @@ FklVMvalue* fklCastPreEnvToVMenv(FklPreEnv* pe,FklVMvalue* prev,FklVMheap* heap)
 	FklVMenv* tmp=fklNewVMenv(prev,heap);
 	for(tmpDef=pe->symbols;tmpDef;tmpDef=tmpDef->next)
 		fklSetRef(fklFindOrAddVar(fklAddSymbolToGlob(tmpDef->symbol)->id,tmp),fklCastCptrVMvalue(&tmpDef->obj,heap),heap);
-	return fklNewVMvalue(FKL_TYPE_ENV,tmp,heap);
+	return fklNewVMvalueNoGC(FKL_TYPE_ENV,tmp,heap);
 }
 
 FklVMstack* fklCopyStack(FklVMstack* stack)

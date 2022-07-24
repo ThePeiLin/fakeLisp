@@ -381,6 +381,7 @@ FklVMproc* fklNewVMproc(uint64_t scp,uint64_t cpc);
 FklVMvalue* fklCopyVMlistOrAtom(FklVMvalue*,FklVMstack*,FklVMheap*);
 FklVMvalue* fklCopyVMvalue(FklVMvalue*,FklVMstack*,FklVMheap*);
 FklVMvalue* fklNewVMvalue(FklValueType,void*,FklVMheap*);
+FklVMvalue* fklNewVMvalueNoGC(FklValueType,void*,FklVMheap*);
 FklVMvalue* fklNewSaveVMvalue(FklValueType,void*);
 void fklAddToHeap(FklVMvalue*,FklVMheap*);
 FklVMvalue* fklNewTrueValue(FklVMheap*);

@@ -71,8 +71,8 @@ FklHashTable* fklNewHashTable(size_t size
 		,double threshold
 		,FklHashTableMethodTable*);
 void* fklGetHashItem(void* key,FklHashTable*);
-void* fklInsertHashItem(void* item,FklHashTable*);
-void* fklInsNrptHashItem(void* item,FklHashTable* table);
+void* fklInsReplHashItem(void* item,FklHashTable*);
+void* fklInsNoRpHashItem(void* item,FklHashTable* table);
 void fklFreeHashTable(FklHashTable*);
 void fklRehashTable(FklHashTable*,unsigned int);
 

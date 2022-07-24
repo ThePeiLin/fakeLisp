@@ -82,7 +82,7 @@ int main(int argc,char** argv)
 			inter->lnt->num=mainByteCode->ls;
 			inter->lnt->list=mainByteCode->l;
 			FklVM* anotherVM=fklNewVM(mainByteCode->bc);
-			FklVMvalue* globEnv=fklNewVMvalue(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,anotherVM->heap),anotherVM->heap);
+			FklVMvalue* globEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,anotherVM->heap),anotherVM->heap);
 			fklFreeByteCode(mainByteCode->bc);
 			free(mainByteCode);
 			FklVMrunnable* mainrunnable=anotherVM->rhead;
@@ -136,7 +136,7 @@ int main(int argc,char** argv)
 		fklFreeByteCode(mainCode);
 		fclose(fp);
 		FklVMrunnable* mainrunnable=anotherVM->rhead;
-		FklVMvalue* globEnv=fklNewVMvalue(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,anotherVM->heap),anotherVM->heap);
+		FklVMvalue* globEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,anotherVM->heap),anotherVM->heap);
 		mainrunnable->localenv=globEnv;
 		anotherVM->callback=errorCallBack;
 		anotherVM->lnt=lnt;
@@ -177,7 +177,7 @@ void runRepl(FklInterpreter* inter)
 {
 	int e=0;
 	FklVM* anotherVM=fklNewVM(NULL);
-	FklVMvalue* globEnv=fklNewVMvalue(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,anotherVM->heap),anotherVM->heap);
+	FklVMvalue* globEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,anotherVM->heap),anotherVM->heap);
 	anotherVM->callback=errorCallBack;
 	anotherVM->lnt=inter->lnt;
 //	fklInitGlobEnv(globEnv->u.env,anotherVM->heap);

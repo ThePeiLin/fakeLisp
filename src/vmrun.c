@@ -370,7 +370,7 @@ int fklRunVM(FklVM* exe)
 		}
 		uint64_t cp=currunnable->cp;
 		ByteCodes[exe->code[cp]](exe);
-		fklGC_step(exe);
+//		fklGC_step(exe);
 	}
 	return 0;
 }
@@ -979,10 +979,10 @@ void fklGC_markRootToGrey(FklVM* exe)
 	FklVMheap* heap=exe->heap;
 	if(exe->nextCall)
 		fklGC_toGrey(exe->nextCall,heap);
-	pthread_rwlock_rdlock(&exe->rlock);
+//	pthread_rwlock_rdlock(&exe->rlock);
 	for(FklVMrunnable* cur=exe->rhead;cur;cur=cur->prev)
 		fklGC_toGrey(cur->localenv,heap);
-	pthread_rwlock_unlock(&exe->rlock);
+//	pthread_rwlock_unlock(&exe->rlock);
 //	pthread_rwlock_rdlock(&stack->lock);
 	for(uint32_t i=0;i<stack->tp;i++)
 	{
@@ -1123,11 +1123,11 @@ int fklGC_propagate(FklVMheap* heap)
 void fklGC_collect(FklVMheap* heap,FklVMvalue** pw)
 {
 	size_t count=0;
-	pthread_rwlock_wrlock(&heap->lock);
+//	pthread_rwlock_wrlock(&heap->lock);
 	FklVMvalue* head=heap->head;
 	heap->head=NULL;
 	heap->running=FKL_GC_SWEEPING;
-	pthread_rwlock_unlock(&heap->lock);
+//	pthread_rwlock_unlock(&heap->lock);
 	FklVMvalue** phead=&head;
 	while(*phead)
 	{
@@ -1142,10 +1142,11 @@ void fklGC_collect(FklVMheap* heap,FklVMvalue** pw)
 		else
 			phead=&cur->next;
 	}
-	pthread_rwlock_wrlock(&heap->lock);
+//	pthread_rwlock_wrlock(&heap->lock);
 	*phead=heap->head;
 	heap->head=head;
-	pthread_rwlock_unlock(&heap->lock);
+	heap->num-=count;
+//	pthread_rwlock_unlock(&heap->lock);
 }
 
 void fklGC_sweep(FklVMvalue* head)
@@ -1223,7 +1224,7 @@ inline void fklGC_step(FklVM* exe)
 		case FKL_GC_SWEEP:
 			if(!pthread_mutex_trylock(&GCthreadLock))
 			{
-				pthread_create(&GCthreadId,NULL,fklGC_threadFunc,exe->heap);
+				pthread_create(&GCthreadId,NULL,fklGC_sweepThreadFunc,exe->heap);
 				fklChangeGCstate(FKL_GC_COLLECT,exe->heap);
 				pthread_mutex_unlock(&GCthreadLock);
 			}
@@ -1245,7 +1246,7 @@ inline void fklGC_step(FklVM* exe)
 	}
 }
 
-void* fklGC_threadFunc(void* arg)
+void* fklGC_sweepThreadFunc(void* arg)
 {
 	FklVMheap* heap=arg;
 	FklVMvalue* white=NULL;
@@ -1253,6 +1254,43 @@ void* fklGC_threadFunc(void* arg)
 	fklChangeGCstate(FKL_GC_SWEEPING,heap);
 	fklGC_sweep(white);
 	fklChangeGCstate(FKL_GC_DONE,heap);
+	return NULL;
+}
+
+void* fklGC_threadFunc(void* arg)
+{
+	FklVMheap* heap=arg;
+	heap->running=FKL_GC_MARK_ROOT;
+	pthread_rwlock_rdlock(&GlobVMsLock);
+	FklVMnode** ph=&GlobVMs;
+	for(;*ph&&(*ph)->vm->heap!=heap;ph=&(*ph)->next);
+	for(;*ph&&(*ph)->vm->heap==heap;)
+	{
+		FklVMnode* cur=*ph;
+		int32_t mark=cur->vm->mark;
+		if(mark)
+		{
+			fklGC_markRootToGrey(cur->vm);
+			ph=&cur->next;
+		}
+		else
+		{
+			pthread_join(cur->vm->tid,NULL);
+			*ph=cur->next;
+			free(cur->vm);
+			free(cur);
+		}
+	}
+	pthread_rwlock_unlock(&GlobVMsLock);
+	heap->running=FKL_GC_PROPAGATE;
+	while(!fklGC_propagate(heap));
+	FklVMvalue* white=NULL;
+	heap->running=FKL_GC_COLLECT;
+	fklGC_collect(heap,&white);
+	heap->running=FKL_GC_SWEEP;
+	heap->running=FKL_GC_SWEEPING;
+	fklGC_sweep(white);
+	heap->running=FKL_GC_NONE;
 	return NULL;
 }
 

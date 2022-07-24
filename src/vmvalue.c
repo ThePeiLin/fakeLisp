@@ -225,12 +225,10 @@ FklVMvalue* fklNewVMvalueToStack(FklValueType type
 		FKL_ASSERT(stack->values);
 		stack->size+=64;
 	}
-//	pthread_rwlock_unlock(&stack->lock);
-	fklAddToHeap(r,heap);
-//	pthread_rwlock_wrlock(&stack->lock);
 	stack->values[stack->tp]=r;
 	stack->tp++;
 //	pthread_rwlock_unlock(&stack->lock);
+	fklAddToHeap(r,heap);
 	return stack->values[stack->tp-1];
 }
 
@@ -306,7 +304,7 @@ FklVMvalue* fklNewSaveVMvalue(FklValueType type,void* pValue)
 	}
 }
 
-void fklAddToHeap(FklVMvalue* v,FklVMheap* heap)
+static void fklAddToHeapNoGC(FklVMvalue* v,FklVMheap* heap)
 {
 	if(FKL_IS_PTR(v))
 	{
@@ -317,9 +315,30 @@ void fklAddToHeap(FklVMvalue* v,FklVMheap* heap)
 		v->next=heap->head;
 		heap->head=v;
 		heap->num+=1;
-		if(heap->num>heap->threshold)
-		{
-		}
+		pthread_rwlock_unlock(&heap->lock);
+	}
+}
+
+FklVMvalue* fklNewVMvalueNoGC(FklValueType type,void* pValue,FklVMheap* heap)
+{
+	FklVMvalue* r=fklNewSaveVMvalue(type,pValue);
+	fklAddToHeapNoGC(r,heap);
+	return r;
+}
+
+void fklAddToHeap(FklVMvalue* v,FklVMheap* heap)
+{
+	if(FKL_IS_PTR(v))
+	{
+		FklGCstate running=fklGetGCstate(heap);
+		if(running>FKL_GC_NONE&&running<FKL_GC_SWEEPING)
+			fklGC_toGrey(v,heap);
+		pthread_rwlock_wrlock(&heap->lock);
+		heap->num+=1;
+//		if(heap->num>heap->threshold)
+			fklGC_threadFunc(heap);
+		v->next=heap->head;
+		heap->head=v;
 		pthread_rwlock_unlock(&heap->lock);
 	}
 }
@@ -852,7 +871,7 @@ FklVMvalue* volatile* fklFindOrAddVar(FklSid_t id,FklVMenv* env)
 	if(!r)
 	{
 		pthread_mutex_lock(&env->lock);
-		VMenvHashItem* ritem=fklInsNrptHashItem(newVMenvHashItme(id,FKL_VM_NIL),env->t);
+		VMenvHashItem* ritem=fklInsReplHashItem(newVMenvHashItme(id,FKL_VM_NIL),env->t);
 		r=&ritem->v;
 		pthread_mutex_unlock(&env->lock);
 	}
@@ -866,7 +885,7 @@ FklVMvalue* volatile* fklFindOrAddVarWithValue(FklSid_t id,FklVMvalue* v,FklVMen
 	if(!r)
 	{
 		pthread_mutex_lock(&env->lock);
-		VMenvHashItem* ritem=fklInsNrptHashItem(newVMenvHashItme(id,FKL_VM_NIL),env->t);
+		VMenvHashItem* ritem=fklInsReplHashItem(newVMenvHashItme(id,FKL_VM_NIL),env->t);
 		r=&ritem->v;
 		pthread_mutex_unlock(&env->lock);
 	}

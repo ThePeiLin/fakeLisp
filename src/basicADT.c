@@ -1178,7 +1178,7 @@ static FklHashTableNode* newHashTableNode(void* item,FklHashTableNode* next)
 	return node;
 }
 
-void* fklInsertHashItem(void* item,FklHashTable* table)
+void* fklInsReplHashItem(void* item,FklHashTable* table)
 {
 	size_t (*__hashFunc)(void*,FklHashTable*)=table->t->__hashFunc;
 	void* (*__getKey)(void*)=table->t->__getKey;
@@ -1198,7 +1198,7 @@ void* fklInsertHashItem(void* item,FklHashTable* table)
 	return item;
 }
 
-void* fklInsNrptHashItem(void* item,FklHashTable* table)
+void* fklInsNoRpHashItem(void* item,FklHashTable* table)
 {
 	size_t (*__hashFunc)(void*,FklHashTable*)=table->t->__hashFunc;
 	void* (*__getKey)(void*)=table->t->__getKey;
@@ -1236,7 +1236,7 @@ void fklRehashTable(FklHashTable* table,unsigned int inc)
 	table->num=0;
 	for(size_t i=0;i<num;i++)
 	{
-		fklInsertHashItem(list[i]->item,table);
+		fklInsReplHashItem(list[i]->item,table);
 		free(list[i]);
 	}
 	free(list);

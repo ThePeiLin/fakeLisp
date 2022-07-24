@@ -3692,9 +3692,9 @@ void fklInitCompEnv(FklCompEnv* curEnv)
 void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 {
 	const struct SymbolFuncStruct* list=builtInSymbolList;
-	BuiltInStdin=fklNewVMvalue(FKL_TYPE_FP,fklNewVMfp(stdin),heap);
-	BuiltInStdout=fklNewVMvalue(FKL_TYPE_FP,fklNewVMfp(stdout),heap);
-	BuiltInStderr=fklNewVMvalue(FKL_TYPE_FP,fklNewVMfp(stderr),heap);
+	BuiltInStdin=fklNewVMvalueNoGC(FKL_TYPE_FP,fklNewVMfp(stdin),heap);
+	BuiltInStdout=fklNewVMvalueNoGC(FKL_TYPE_FP,fklNewVMfp(stdout),heap);
+	BuiltInStderr=fklNewVMvalueNoGC(FKL_TYPE_FP,fklNewVMfp(stderr),heap);
 	fklFindOrAddVarWithValue(fklAddSymbolToGlobCstr((list++)->s)->id,FKL_VM_NIL,obj);
 	fklFindOrAddVarWithValue(fklAddSymbolToGlobCstr((list++)->s)->id,BuiltInStdin,obj);
 	fklFindOrAddVarWithValue(fklAddSymbolToGlobCstr((list++)->s)->id,BuiltInStdout,obj);
@@ -3704,6 +3704,6 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMheap* heap)
 		FklVMdlproc* proc=fklNewVMdlproc(list->f,NULL);
 		FklSymTabNode* node=fklAddSymbolToGlobCstr(list->s);
 		proc->sid=node->id;
-		fklFindOrAddVarWithValue(node->id,fklNewVMvalue(FKL_TYPE_DLPROC,proc,heap),obj);
+		fklFindOrAddVarWithValue(node->id,fklNewVMvalueNoGC(FKL_TYPE_DLPROC,proc,heap),obj);
 	}
 }

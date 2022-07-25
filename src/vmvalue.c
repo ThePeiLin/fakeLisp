@@ -228,7 +228,7 @@ FklVMvalue* fklNewVMvalueToStack(FklValueType type
 	stack->values[stack->tp]=r;
 	stack->tp++;
 //	pthread_rwlock_unlock(&stack->lock);
-	fklAddToHeap(r,heap);
+	fklAddToHeapBeforeGC(r,heap);
 	return stack->values[stack->tp-1];
 }
 
@@ -304,7 +304,7 @@ FklVMvalue* fklNewSaveVMvalue(FklValueType type,void* pValue)
 	}
 }
 
-static void fklAddToHeapNoGC(FklVMvalue* v,FklVMheap* heap)
+void fklAddToHeapNoGC(FklVMvalue* v,FklVMheap* heap)
 {
 	if(FKL_IS_PTR(v))
 	{
@@ -324,6 +324,23 @@ FklVMvalue* fklNewVMvalueNoGC(FklValueType type,void* pValue,FklVMheap* heap)
 	FklVMvalue* r=fklNewSaveVMvalue(type,pValue);
 	fklAddToHeapNoGC(r,heap);
 	return r;
+}
+
+void fklAddToHeapBeforeGC(FklVMvalue* v,FklVMheap* heap)
+{
+	if(FKL_IS_PTR(v))
+	{
+		FklGCstate running=fklGetGCstate(heap);
+		if(running>FKL_GC_NONE&&running<FKL_GC_SWEEPING)
+			fklGC_toGrey(v,heap);
+		pthread_rwlock_wrlock(&heap->lock);
+		heap->num+=1;
+		v->next=heap->head;
+		heap->head=v;
+//		if(heap->num>heap->threshold)
+			fklGC_threadFunc(heap);
+		pthread_rwlock_unlock(&heap->lock);
+	}
 }
 
 void fklAddToHeap(FklVMvalue* v,FklVMheap* heap)
@@ -596,9 +613,68 @@ FklVMdllHandle fklNewVMdll(const char* dllName)
 void fklInitVMdll(FklVMvalue* rel)
 {
 	FklVMdllHandle handle=rel->u.dll;
-	void (*init)(FklSymbolTable*,FklVMvalue* rel)=fklGetAddress("_fklInit",handle);
+	void (*init)(FklSymbolTable*,FklVMvalue* rel,FklVMlist*)=fklGetAddress("_fklInit",handle);
 	if(init)
-		init(fklGetGlobSymbolTable(),rel);
+		init(fklGetGlobSymbolTable(),rel,fklGetGlobVMs());
+}
+
+void fklFreeVMvalue(FklVMvalue* cur)
+{
+	switch(cur->type)
+	{
+		case FKL_TYPE_STR:
+			free(cur->u.str);
+			break;
+		case FKL_TYPE_BYTEVECTOR:
+			free(cur->u.bvec);
+			break;
+		case FKL_TYPE_PAIR:
+			free(cur->u.pair);
+			break;
+		case FKL_TYPE_PROC:
+			fklFreeVMproc(cur->u.proc);
+			break;
+		case FKL_TYPE_CONT:
+			fklFreeVMcontinuation(cur->u.cont);
+			break;
+		case FKL_TYPE_CHAN:
+			fklFreeVMchanl(cur->u.chan);
+			break;
+		case FKL_TYPE_FP:
+			fklFreeVMfp(cur->u.fp);
+			break;
+		case FKL_TYPE_DLL:
+			fklFreeVMdll(cur->u.dll);
+			break;
+		case FKL_TYPE_DLPROC:
+			fklFreeVMdlproc(cur->u.dlproc);
+			break;
+		case FKL_TYPE_ERR:
+			fklFreeVMerror(cur->u.err);
+			break;
+		case FKL_TYPE_VECTOR:
+			fklFreeVMvec(cur->u.vec);
+			break;
+		case FKL_TYPE_USERDATA:
+			if(cur->u.ud->t->__finalizer)
+				cur->u.ud->t->__finalizer(cur->u.ud->data);
+			fklFreeVMudata(cur->u.ud);
+			break;
+		case FKL_TYPE_F64:
+		case FKL_TYPE_I64:
+		case FKL_TYPE_BOX:
+			break;
+		case FKL_TYPE_ENV:
+			fklFreeVMenv(cur->u.env);
+			break;
+		case FKL_TYPE_BIG_INT:
+			fklFreeBigInt(cur->u.bigInt);
+			break;
+		default:
+			FKL_ASSERT(0);
+			break;
+	}
+	free((void*)cur);
 }
 
 void fklFreeVMdll(FklVMdllHandle dll)
@@ -871,7 +947,7 @@ FklVMvalue* volatile* fklFindOrAddVar(FklSid_t id,FklVMenv* env)
 	if(!r)
 	{
 		pthread_mutex_lock(&env->lock);
-		VMenvHashItem* ritem=fklInsReplHashItem(newVMenvHashItme(id,FKL_VM_NIL),env->t);
+		VMenvHashItem* ritem=fklPutReplHashItem(newVMenvHashItme(id,FKL_VM_NIL),env->t);
 		r=&ritem->v;
 		pthread_mutex_unlock(&env->lock);
 	}
@@ -885,7 +961,7 @@ FklVMvalue* volatile* fklFindOrAddVarWithValue(FklSid_t id,FklVMvalue* v,FklVMen
 	if(!r)
 	{
 		pthread_mutex_lock(&env->lock);
-		VMenvHashItem* ritem=fklInsReplHashItem(newVMenvHashItme(id,FKL_VM_NIL),env->t);
+		VMenvHashItem* ritem=fklPutReplHashItem(newVMenvHashItme(id,FKL_VM_NIL),env->t);
 		r=&ritem->v;
 		pthread_mutex_unlock(&env->lock);
 	}
@@ -945,21 +1021,21 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 					*root1=FKL_MAKE_VM_SYM(fklAddSymbolToGlob(tmpAtm->value.str)->id);
 					break;
 				case FKL_TYPE_F64:
-					*root1=fklNewVMvalue(FKL_TYPE_F64,&tmpAtm->value.f64,heap);
+					*root1=fklNewVMvalueNoGC(FKL_TYPE_F64,&tmpAtm->value.f64,heap);
 					break;
 				case FKL_TYPE_STR:
-					*root1=fklNewVMvalue(FKL_TYPE_STR,fklNewString(tmpAtm->value.str->size,tmpAtm->value.str->str),heap);
+					*root1=fklNewVMvalueNoGC(FKL_TYPE_STR,fklNewString(tmpAtm->value.str->size,tmpAtm->value.str->str),heap);
 					break;
 				case FKL_TYPE_BYTEVECTOR:
-					*root1=fklNewVMvalue(FKL_TYPE_BYTEVECTOR,fklNewBytevector(tmpAtm->value.bvec->size,tmpAtm->value.bvec->ptr),heap);
+					*root1=fklNewVMvalueNoGC(FKL_TYPE_BYTEVECTOR,fklNewBytevector(tmpAtm->value.bvec->size,tmpAtm->value.bvec->ptr),heap);
 					break;
 				case FKL_TYPE_BOX:
-					*root1=fklNewVMvalue(FKL_TYPE_BOX,FKL_VM_NIL,heap);
+					*root1=fklNewVMvalueNoGC(FKL_TYPE_BOX,FKL_VM_NIL,heap);
 					fklPushPtrStack(&tmpAtm->value.box,s1);
 					fklPushPtrStack(&(*root1)->u.box,s2);
 					break;
 				case FKL_TYPE_VECTOR:
-					*root1=fklNewVMvalue(FKL_TYPE_VECTOR,fklNewVMvec(tmpAtm->value.vec.size),heap);
+					*root1=fklNewVMvalueNoGC(FKL_TYPE_VECTOR,fklNewVMvec(tmpAtm->value.vec.size),heap);
 					for(size_t i=0;i<tmpAtm->value.vec.size;i++)
 					{
 						fklPushPtrStack(&tmpAtm->value.vec.base[i],s1);
@@ -970,7 +1046,7 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 					{
 						FklBigInt* bi=fklNewBigInt0();
 						fklSetBigInt(bi,&tmpAtm->value.bigInt);
-						*root1=fklNewVMvalue(FKL_TYPE_BIG_INT,bi,heap);
+						*root1=fklNewVMvalueNoGC(FKL_TYPE_BIG_INT,bi,heap);
 					}
 					break;
 				default:
@@ -982,7 +1058,7 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMheap* heap)
 		{
 			FklAstPair* objPair=root->u.pair;
 			FklVMpair* tmpPair=fklNewVMpair();
-			*root1=fklNewVMvalue(FKL_TYPE_PAIR,tmpPair,heap);
+			*root1=fklNewVMvalueNoGC(FKL_TYPE_PAIR,tmpPair,heap);
 			fklPushPtrStack(&objPair->car,s1);
 			fklPushPtrStack(&objPair->cdr,s1);
 			fklPushPtrStack(&tmpPair->car,s2);

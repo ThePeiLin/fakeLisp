@@ -276,10 +276,17 @@ typedef struct FklVMnode
 	struct FklVMnode* next;
 }FklVMnode;
 
+typedef struct FklVMlist
+{
+	FklVMnode* h;
+	pthread_rwlock_t lock;
+}FklVMlist;
+
 //vmrun
 
 int fklRunVM(FklVM*);
-FklVMnode* fklGetGlobVMs(void);
+FklVMlist* fklGetGlobVMs(void);
+void fklSetGlobVMs(FklVMlist*);
 FklVM* fklNewVM(FklByteCode*);
 FklVM* fklNewTmpVM(FklByteCode*,FklVMheap*);
 FklVM* fklNewThreadVM(FklVMproc*,FklVMheap*);
@@ -384,6 +391,8 @@ FklVMvalue* fklNewVMvalue(FklValueType,void*,FklVMheap*);
 FklVMvalue* fklNewVMvalueNoGC(FklValueType,void*,FklVMheap*);
 FklVMvalue* fklNewSaveVMvalue(FklValueType,void*);
 void fklAddToHeap(FklVMvalue*,FklVMheap*);
+void fklAddToHeapNoGC(FklVMvalue*,FklVMheap*);
+void fklAddToHeapBeforeGC(FklVMvalue*,FklVMheap*);
 FklVMvalue* fklNewTrueValue(FklVMheap*);
 FklVMvalue* fklNewNilValue();
 FklVMvalue* fklGetTopValue(FklVMstack*);

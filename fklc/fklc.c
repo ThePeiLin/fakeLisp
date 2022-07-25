@@ -119,8 +119,9 @@ void fklc_compile_atom_literal(ARGL) CONST_COMPILE("fklc.compile-atom-literal",l
 
 #undef CONST_COMPILE
 #undef IS_LITERAL
-void _fklInit(FklSymbolTable* glob,FklVMvalue* rel)
+void _fklInit(FklSymbolTable* glob,FklVMvalue* rel,FklVMlist* GlobVMs)
 {
+	fklSetGlobVMs(GlobVMs);
 	fklcInitFsym(glob);
 	fklcInit(rel);
 }

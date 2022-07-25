@@ -141,8 +141,13 @@ static FklVMnode* newVMnode(FklVM* exe,FklVMnode* next)
 	return t;
 }
 
-static FklVMnode* GlobVMs=NULL;
-pthread_rwlock_t GlobVMsLock=PTHREAD_RWLOCK_INITIALIZER;
+static FklVMlist list=
+{
+	NULL,
+	PTHREAD_RWLOCK_INITIALIZER,
+};
+
+static FklVMlist* GlobVMs=&list;
 static void B_dummy(FklVM*);
 static void B_push_nil(FklVM*);
 static void B_push_pair(FklVM*);
@@ -245,10 +250,10 @@ FklVM* fklNewVM(FklByteCode* mainCode)
 	exe->nny=0;
 	exe->thrds=1;
 	pthread_rwlock_init(&exe->rlock,NULL);
-	pthread_rwlock_wrlock(&GlobVMsLock);
-	FklVMnode* node=newVMnode(exe,GlobVMs);
-	GlobVMs=node;
-	pthread_rwlock_unlock(&GlobVMsLock);
+	pthread_rwlock_wrlock(&GlobVMs->lock);
+	FklVMnode* node=newVMnode(exe,GlobVMs->h);
+	GlobVMs->h=node;
+	pthread_rwlock_unlock(&GlobVMs->lock);
 	return exe;
 }
 
@@ -280,10 +285,10 @@ FklVM* fklNewTmpVM(FklByteCode* mainCode,FklVMheap* h)
 	//	exe->callback=threadErrorCallBack;
 	exe->callback=NULL;
 	exe->thrds=1;
-	pthread_rwlock_wrlock(&GlobVMsLock);
-	FklVMnode* node=newVMnode(exe,GlobVMs);
-	GlobVMs=node;
-	pthread_rwlock_unlock(&GlobVMsLock);
+	pthread_rwlock_wrlock(&GlobVMs->lock);
+	FklVMnode* node=newVMnode(exe,GlobVMs->h);
+	GlobVMs->h=node;
+	pthread_rwlock_unlock(&GlobVMs->lock);
 	return exe;
 }
 
@@ -997,8 +1002,8 @@ void fklGC_markRootToGrey(FklVM* exe)
 
 void fklGC_markGlobalRoot(void)
 {
-	pthread_rwlock_rdlock(&GlobVMsLock);
-	for(FklVMnode** ph=&GlobVMs;*ph;)
+	pthread_rwlock_rdlock(&GlobVMs->lock);
+	for(FklVMnode** ph=&GlobVMs->h;*ph;)
 	{
 		FklVMnode* cur=*ph;
 		pthread_rwlock_rdlock(&cur->vm->rlock);
@@ -1017,7 +1022,7 @@ void fklGC_markGlobalRoot(void)
 			free(cur);
 		}
 	}
-	pthread_rwlock_unlock(&GlobVMsLock);
+	pthread_rwlock_unlock(&GlobVMs->lock);
 }
 
 void fklGC_pause(FklVM* exe)
@@ -1261,8 +1266,8 @@ void* fklGC_threadFunc(void* arg)
 {
 	FklVMheap* heap=arg;
 	heap->running=FKL_GC_MARK_ROOT;
-	pthread_rwlock_rdlock(&GlobVMsLock);
-	FklVMnode** ph=&GlobVMs;
+	pthread_rwlock_rdlock(&GlobVMs->lock);
+	FklVMnode** ph=&GlobVMs->h;
 	for(;*ph&&(*ph)->vm->heap!=heap;ph=&(*ph)->next);
 	for(;*ph&&(*ph)->vm->heap==heap;)
 	{
@@ -1281,7 +1286,7 @@ void* fklGC_threadFunc(void* arg)
 			free(cur);
 		}
 	}
-	pthread_rwlock_unlock(&GlobVMsLock);
+	pthread_rwlock_unlock(&GlobVMs->lock);
 	heap->running=FKL_GC_PROPAGATE;
 	while(!fklGC_propagate(heap));
 	FklVMvalue* white=NULL;
@@ -1292,65 +1297,6 @@ void* fklGC_threadFunc(void* arg)
 	fklGC_sweep(white);
 	heap->running=FKL_GC_NONE;
 	return NULL;
-}
-
-void fklFreeVMvalue(FklVMvalue* cur)
-{
-	switch(cur->type)
-	{
-		case FKL_TYPE_STR:
-			free(cur->u.str);
-			break;
-		case FKL_TYPE_BYTEVECTOR:
-			free(cur->u.bvec);
-			break;
-		case FKL_TYPE_PAIR:
-			free(cur->u.pair);
-			break;
-		case FKL_TYPE_PROC:
-			fklFreeVMproc(cur->u.proc);
-			break;
-		case FKL_TYPE_CONT:
-			fklFreeVMcontinuation(cur->u.cont);
-			break;
-		case FKL_TYPE_CHAN:
-			fklFreeVMchanl(cur->u.chan);
-			break;
-		case FKL_TYPE_FP:
-			fklFreeVMfp(cur->u.fp);
-			break;
-		case FKL_TYPE_DLL:
-			fklFreeVMdll(cur->u.dll);
-			break;
-		case FKL_TYPE_DLPROC:
-			fklFreeVMdlproc(cur->u.dlproc);
-			break;
-		case FKL_TYPE_ERR:
-			fklFreeVMerror(cur->u.err);
-			break;
-		case FKL_TYPE_VECTOR:
-			fklFreeVMvec(cur->u.vec);
-			break;
-		case FKL_TYPE_USERDATA:
-			if(cur->u.ud->t->__finalizer)
-				cur->u.ud->t->__finalizer(cur->u.ud->data);
-			fklFreeVMudata(cur->u.ud);
-			break;
-		case FKL_TYPE_F64:
-		case FKL_TYPE_I64:
-		case FKL_TYPE_BOX:
-			break;
-		case FKL_TYPE_ENV:
-			fklFreeVMenv(cur->u.env);
-			break;
-		case FKL_TYPE_BIG_INT:
-			fklFreeBigInt(cur->u.bigInt);
-			break;
-		default:
-			FKL_ASSERT(0);
-			break;
-	}
-	free((void*)cur);
 }
 
 void fklFreeAllValues(FklVMheap* heap)
@@ -1392,10 +1338,10 @@ FklVM* fklNewThreadVM(FklVMproc* mainCode,FklVMheap* heap)
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe);
 	FklVMrunnable* t=fklNewVMrunnable(mainCode,NULL);
-	t->localenv=fklNewVMvalue(FKL_TYPE_ENV,fklNewVMenv(mainCode->prevEnv,heap),heap);
+	t->localenv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewVMenv(mainCode->prevEnv,heap),heap);
 	exe->rhead=t;
 	exe->mark=1;
-	exe->chan=fklNewVMvalue(FKL_TYPE_CHAN,fklNewVMchanl(0),heap);
+	exe->chan=fklNewVMvalueNoGC(FKL_TYPE_CHAN,fklNewVMchanl(0),heap);
 	exe->tstack=fklNewPtrStack(32,16);
 	exe->stack=fklNewVMstack(0);
 	exe->heap=heap;
@@ -1404,10 +1350,10 @@ FklVM* fklNewThreadVM(FklVMproc* mainCode,FklVMheap* heap)
 	exe->nny=0;
 	exe->thrds=1;
 	pthread_rwlock_init(&exe->rlock,NULL);
-	pthread_rwlock_wrlock(&GlobVMsLock);
-	FklVMnode* node=newVMnode(exe,GlobVMs);
-	GlobVMs=node;
-	pthread_rwlock_unlock(&GlobVMsLock);
+	pthread_rwlock_wrlock(&GlobVMs->lock);
+	FklVMnode* node=newVMnode(exe,GlobVMs->h);
+	GlobVMs->h=node;
+	pthread_rwlock_unlock(&GlobVMs->lock);
 	return exe;
 }
 
@@ -1420,7 +1366,7 @@ FklVM* fklNewThreadCallableObjVM(FklVMrunnable* r,FklVMheap* heap,FklVMvalue* ne
 	t->localenv=NULL;
 	exe->rhead=t;
 	exe->mark=1;
-	exe->chan=fklNewVMvalue(FKL_TYPE_CHAN,fklNewVMchanl(0),heap);
+	exe->chan=fklNewVMvalueNoGC(FKL_TYPE_CHAN,fklNewVMchanl(0),heap);
 	exe->tstack=fklNewPtrStack(32,16);
 	exe->stack=fklNewVMstack(0);
 	exe->heap=heap;
@@ -1429,10 +1375,10 @@ FklVM* fklNewThreadCallableObjVM(FklVMrunnable* r,FklVMheap* heap,FklVMvalue* ne
 	exe->nny=0;
 	exe->thrds=1;
 	pthread_rwlock_init(&exe->rlock,NULL);
-	pthread_rwlock_wrlock(&GlobVMsLock);
-	FklVMnode* node=newVMnode(exe,GlobVMs);
-	GlobVMs=node;
-	pthread_rwlock_unlock(&GlobVMsLock);
+	pthread_rwlock_wrlock(&GlobVMs->lock);
+	FklVMnode* node=newVMnode(exe,GlobVMs->h);
+	GlobVMs->h=node;
+	pthread_rwlock_unlock(&GlobVMs->lock);
 	return exe;
 }
 
@@ -1448,7 +1394,7 @@ void fklFreeVMstack(FklVMstack* stack)
 
 void fklFreeAllTmpVMs(FklVMnode* node)
 {
-	for(FklVMnode** ph=&GlobVMs;*ph!=node;)
+	for(FklVMnode** ph=&GlobVMs->h;*ph!=node;)
 	{
 		FklVMnode* cur=*ph;
 		*ph=cur->next;
@@ -1461,13 +1407,13 @@ void fklFreeAllTmpVMs(FklVMnode* node)
 		free(cur->vm);
 		free(cur);
 	}
-	pthread_rwlock_destroy(&GlobVMsLock);
+	pthread_rwlock_destroy(&GlobVMs->lock);
 }
 
 void fklFreeAllVMs(void)
 {
-	uint8_t* code=GlobVMs?GlobVMs->vm->code:NULL;
-	for(FklVMnode** ph=&GlobVMs;*ph;)
+	uint8_t* code=GlobVMs->h?GlobVMs->h->vm->code:NULL;
+	for(FklVMnode** ph=&GlobVMs->h;*ph;)
 	{
 		FklVMnode* cur=*ph;
 		*ph=cur->next;
@@ -1481,7 +1427,7 @@ void fklFreeAllVMs(void)
 		free(cur);
 	}
 	free(code);
-	pthread_rwlock_destroy(&GlobVMsLock);
+	pthread_rwlock_destroy(&GlobVMs->lock);
 }
 
 void fklFreeVMheap(FklVMheap* h)
@@ -1496,7 +1442,7 @@ void fklFreeVMheap(FklVMheap* h)
 void fklJoinAllThread(FklVMnode* node)
 {
 	pthread_t selfId=pthread_self();
-	for(FklVMnode** ph=&GlobVMs;*ph!=node;ph=&(*ph)->next)
+	for(FklVMnode** ph=&GlobVMs->h;*ph!=node;ph=&(*ph)->next)
 	{
 		FklVMnode* cur=*ph;
 		if(cur->vm->tid!=selfId)
@@ -1504,15 +1450,21 @@ void fklJoinAllThread(FklVMnode* node)
 	}
 }
 
-FklVMnode* fklGetGlobVMs(void)
+FklVMlist* fklGetGlobVMs(void)
 {
 	return GlobVMs;
 }
 
+void fklSetGlobVMs(FklVMlist* l)
+{
+	GlobVMs=l;
+}
+
+
 void fklCancelAllThread()
 {
 	pthread_t selfId=pthread_self();
-	for(FklVMnode** ph=&GlobVMs;*ph;ph=&(*ph)->next)
+	for(FklVMnode** ph=&GlobVMs->h;*ph;ph=&(*ph)->next)
 	{
 		FklVMnode* cur=*ph;
 		if(cur->vm->tid!=selfId)

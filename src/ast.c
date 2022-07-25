@@ -49,7 +49,7 @@ static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap
 	FklVMvalue* vEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,heap),heap);
 	if(cEnv->proc->bc->size)
 	{
-		FklVMnode* prevVMs=fklGetGlobVMs();
+		FklVMnode* prevVMs=fklGetGlobVMs()->h;
 		FklVM* tmpVM=fklNewTmpVM(NULL,NULL);
 		tmpVM->callback=errorCallBack;
 		fklInitVMRunningResource(tmpVM,vEnv,heap,cEnv->proc,0,cEnv->proc->bc->size);
@@ -749,7 +749,7 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 			}
 		}
 	}
-	FklVMnode* prevVMs=fklGetGlobVMs();
+	FklVMnode* prevVMs=fklGetGlobVMs()->h;
 	FklAstCptr* retval=NULL;
 	char* cwd=getcwd(NULL,0);
 	chdir(fklGetCwd());

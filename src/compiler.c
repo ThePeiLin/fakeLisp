@@ -92,7 +92,7 @@ static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap
 		preEnv=vEnv;
 		if(curEnv->proc->bc->size)
 		{
-			FklVMnode* prevVMs=fklGetGlobVMs();
+			FklVMnode* prevVMs=fklGetGlobVMs()->h;
 			FklVM* tmpVM=fklNewTmpVM(NULL,NULL);
 			tmpVM->callback=errorCallBack;
 			fklCodelntCopyCat(t,curEnv->proc);
@@ -147,7 +147,7 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 		chdir(fklGetCwd());
 		FklVMheap* h=fklNewVMheap();
 		FklVMvalue* tmpGlob=genGlobEnv(tmp->macroEnv,t,h);
-		FklVMnode* prevVMs=fklGetGlobVMs();
+		FklVMnode* prevVMs=fklGetGlobVMs()->h;
 		FklVM* tmpVM=fklNewTmpVM(NULL,h);
 		tmpVM->callback=errorCallBack;
 		if(!tmpGlob)
@@ -3009,12 +3009,12 @@ FklPreDef* fklFindDefine(const FklString* name,const FklPreEnv* curEnv)
 
 FklCompEnvHashItem* fklAddCompDefCstr(const char* name,FklCompEnv* curEnv)
 {
-	return (FklCompEnvHashItem*)fklInsNoRpHashItem(newCompEnvHashItem(fklAddSymbolToGlobCstr(name)->id),curEnv->defs);
+	return (FklCompEnvHashItem*)fklPutNoRpHashItem(newCompEnvHashItem(fklAddSymbolToGlobCstr(name)->id),curEnv->defs);
 }
 
 FklCompEnvHashItem* fklAddCompDef(const FklString* name,FklCompEnv* curEnv)
 {
-	return (FklCompEnvHashItem*)fklInsNoRpHashItem(newCompEnvHashItem(fklAddSymbolToGlob(name)->id),curEnv->defs);
+	return (FklCompEnvHashItem*)fklPutNoRpHashItem(newCompEnvHashItem(fklAddSymbolToGlob(name)->id),curEnv->defs);
 }
 
 FklCompEnvHashItem* fklFindCompDefBySid(FklSid_t id,FklCompEnv* curEnv)
@@ -3024,7 +3024,7 @@ FklCompEnvHashItem* fklFindCompDefBySid(FklSid_t id,FklCompEnv* curEnv)
 
 FklCompEnvHashItem* fklAddCompDefBySid(FklSid_t id,FklCompEnv* curEnv)
 {
-	return (FklCompEnvHashItem*)fklInsNoRpHashItem(newCompEnvHashItem(id),curEnv->defs);
+	return (FklCompEnvHashItem*)fklPutNoRpHashItem(newCompEnvHashItem(id),curEnv->defs);
 }
 
 FklCompEnv* fklNewGlobCompEnv(FklCompEnv* prev)

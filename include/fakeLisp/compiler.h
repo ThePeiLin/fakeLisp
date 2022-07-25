@@ -58,6 +58,7 @@ typedef struct
 typedef struct FklInterpreter
 {
 	char* filename;
+	char* realpath;
 	char* curDir;
 	FILE* file;
 	int curline;

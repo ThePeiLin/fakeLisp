@@ -2104,14 +2104,15 @@ FklByteCodelnt* fklCompileLoad(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 	FklAstCptr* pFileName=fklNextCptr(fir);
 	FklAstAtom* name=pFileName->u.atom;
 	char* filename=fklCharBufToCstr(name->value.str->str,name->value.str->size);
-	if(fklHasLoadSameFile(filename,inter))
+	char* rpath=fklRealpath(filename);
+	if(fklHasLoadSameFile(rpath,inter))
 	{
 		state->state=FKL_ERR_CIRCULARLOAD;
 		state->place=pFileName;
 		free(filename);
+		free(rpath);
 		return NULL;
 	}
-	char* rpath=fklRealpath(filename);
 	free(filename);
 	FILE* file=NULL;
 	if(rpath)
@@ -2711,33 +2712,72 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state)
 {
 	FklCompEnv* newEnv=fklNewCompEnv(curEnv);
-	FklAstCptr* pExpression=fklNextCptr(fklGetFirstCptr(objCptr));
-	FklAstCptr* pCatchExpression=fklNextCptr(pExpression);
+	FklAstCptr* pCatchExpression=fklNextCptr(fklGetFirstCptr(objCptr));
+	FklAstCptr* pExpression=fklNextCptr(pCatchExpression);
 	if(!pExpression||(!fklIsCatchExpression(pCatchExpression)))
 	{
 		state->state=FKL_ERR_SYNTAXERROR;
 		state->place=objCptr;
 		return NULL;
 	}
-	FklByteCodelnt* expressionByteCodelnt=fklCompile(pExpression,newEnv,inter,state);
-	fklFreeAllMacroThenDestroyCompEnv(newEnv);
-	if(state->state)
-		return NULL;
+	FklByteCodelnt* expressionByteCodelnt=fklNewByteCodelnt(fklNewByteCode(0));
+	FklByteCode* resTp=fklNewByteCode(1);
+	FklByteCode* setTp=fklNewByteCode(1);
+	FklByteCode* popTp=fklNewByteCode(1);
+	resTp->code[0]=FKL_OP_RES_TP;
+	setTp->code[0]=FKL_OP_SET_TP;
+	popTp->code[0]=FKL_OP_POP_TP;
+	for(;pExpression;pExpression=fklNextCptr(pExpression))
+	{
+		FklByteCodelnt* tmp=fklCompile(pExpression,newEnv,inter,state);
+		if(state->state)
+		{
+			fklFreeByteCodeAndLnt(expressionByteCodelnt);
+			fklFreeByteCode(resTp);
+			fklFreeByteCode(setTp);
+			fklFreeByteCode(popTp);
+			return NULL;
+		}
+		if(tmp->bc->size&&expressionByteCodelnt->bc->size)
+		{
+			fklReCodeCat(resTp,tmp->bc);
+			tmp->l[0]->cpc+=1;
+			FKL_INCREASE_ALL_SCP(tmp->l,tmp->ls-1,resTp->size);
+		}
+		fklCodeLntCat(expressionByteCodelnt,tmp);
+		fklFreeByteCodelnt(tmp);
+	}
+	fklReCodeCat(setTp,expressionByteCodelnt->bc);
+	if(!expressionByteCodelnt->l)
+	{
+		expressionByteCodelnt->ls=1;
+		expressionByteCodelnt->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
+		FKL_ASSERT(expressionByteCodelnt->l);
+		expressionByteCodelnt->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,expressionByteCodelnt->bc->size,objCptr->curline);
+	}
 	else
 	{
-		FklByteCode* pushProc=fklNewByteCode(sizeof(char)+sizeof(expressionByteCodelnt->bc->size));
-		FklByteCode* call=fklNewByteCode(1);
-		call->code[0]=FKL_OP_CALL;
-		pushProc->code[0]=FKL_OP_PUSH_PROC;
-		fklSetU64ToByteCode(pushProc->code+sizeof(char),expressionByteCodelnt->bc->size);
-		fklReCodeCat(pushProc,expressionByteCodelnt->bc);
-		expressionByteCodelnt->l[0]->cpc+=pushProc->size;
-		FKL_INCREASE_ALL_SCP(expressionByteCodelnt->l+1,expressionByteCodelnt->ls-1,pushProc->size);
-		fklCodeCat(expressionByteCodelnt->bc,call);
-		expressionByteCodelnt->l[expressionByteCodelnt->ls-1]->cpc+=call->size;
-		fklFreeByteCode(pushProc);
-		fklFreeByteCode(call);
+		expressionByteCodelnt->l[0]->cpc+=1;
+		FKL_INCREASE_ALL_SCP(expressionByteCodelnt->l,expressionByteCodelnt->ls-1,setTp->size);
 	}
+	fklCodeCat(expressionByteCodelnt->bc,popTp);
+	expressionByteCodelnt->l[expressionByteCodelnt->ls-1]->cpc+=popTp->size;
+	fklFreeByteCode(resTp);
+	fklFreeByteCode(setTp);
+	fklFreeByteCode(popTp);
+	fklFreeAllMacroThenDestroyCompEnv(newEnv);
+	FklByteCode* pushProc=fklNewByteCode(sizeof(char)+sizeof(expressionByteCodelnt->bc->size));
+	FklByteCode* call=fklNewByteCode(1);
+	call->code[0]=FKL_OP_CALL;
+	pushProc->code[0]=FKL_OP_PUSH_PROC;
+	fklSetU64ToByteCode(pushProc->code+sizeof(char),expressionByteCodelnt->bc->size);
+	fklReCodeCat(pushProc,expressionByteCodelnt->bc);
+	expressionByteCodelnt->l[0]->cpc+=pushProc->size;
+	FKL_INCREASE_ALL_SCP(expressionByteCodelnt->l+1,expressionByteCodelnt->ls-1,pushProc->size);
+	fklCodeCat(expressionByteCodelnt->bc,call);
+	expressionByteCodelnt->l[expressionByteCodelnt->ls-1]->cpc+=call->size;
+	fklFreeByteCode(pushProc);
+	fklFreeByteCode(call);
 	FklAstCptr* pErrSymbol=fklNextCptr(fklGetFirstCptr(pCatchExpression));
 	FklAstCptr* pHandlerExpression=NULL;
 	if(!pErrSymbol
@@ -2880,6 +2920,8 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 
 void fklPrintCompileError(const FklAstCptr* obj,FklBuiltInErrorType type,FklInterpreter* inter)
 {
+	if(type==FKL_ERR_DUMMY)
+		return;
 	fprintf(stderr,"error of compiling: ");
 	switch(type)
 	{
@@ -3123,10 +3165,9 @@ FklInterpreter* fklNewIntpr(const char* filename,FILE* file,FklCompEnv* env,FklL
 			perror(filename);
 			exit(EXIT_FAILURE);
 		}
-		tmp->curDir=fklGetDir(rp?rp:filename);
+		tmp->curDir=fklGetDir(rp);
 		tmp->filename=fklRelpath(fklGetMainFileRealPath(),rp);
-		if(rp)
-			free(rp);
+		tmp->realpath=rp;
 	}
 	else
 	{
@@ -3155,6 +3196,8 @@ void fklFreeIntpr(FklInterpreter* inter)
 		free(inter->filename);
 	if(inter->file!=stdin)
 		fclose(inter->file);
+	if(inter->realpath)
+		free(inter->realpath);
 	free(inter->curDir);
 	fklFreeAllMacroThenDestroyCompEnv(inter->glob);
 	if(inter->lnt)fklFreeLineNumberTable(inter->lnt);
@@ -3184,11 +3227,11 @@ void fklDestroyCompEnv(FklCompEnv* objEnv)
 	}
 }
 
-int fklHasLoadSameFile(const char* filename,const FklInterpreter* inter)
+int fklHasLoadSameFile(const char* realpath,const FklInterpreter* inter)
 {
 	while(inter!=NULL)
 	{
-		if(inter->filename&&!strcmp(inter->filename,filename))
+		if(inter->realpath&&!strcmp(inter->realpath,realpath))
 			return 1;
 		inter=inter->prev;
 	}
@@ -3250,7 +3293,7 @@ FklInterpreter* fklNewTmpIntpr(const char* filename,FILE* fp)
 		}
 		tmp->filename=fklRelpath(fklGetMainFileRealPath(),rp);
 		tmp->curDir=fklGetDir(rp);
-		free(rp);
+		tmp->realpath=rp;
 	}
 	else
 	{

@@ -3173,6 +3173,7 @@ FklInterpreter* fklNewIntpr(const char* filename,FILE* file,FklCompEnv* env,FklL
 	{
 		tmp->curDir=getcwd(NULL,0);
 		tmp->filename=NULL;
+		tmp->realpath=NULL;
 	}
 	tmp->file=file;
 	tmp->curline=1;
@@ -3299,6 +3300,7 @@ FklInterpreter* fklNewTmpIntpr(const char* filename,FILE* fp)
 	{
 		tmp->curDir=NULL;
 		tmp->filename=NULL;
+		tmp->realpath=NULL;
 	}
 	tmp->file=fp;
 	tmp->curline=1;

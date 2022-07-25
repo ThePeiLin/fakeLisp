@@ -44,15 +44,15 @@ static int copyAndAddToList(FklAstCptr* fir,const FklAstCptr* sec)
 	return 0;
 }
 
-static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
+static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMgc* gc)
 {
-	FklVMvalue* vEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,heap),heap);
+	FklVMvalue* vEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,gc),gc);
 	if(cEnv->proc->bc->size)
 	{
 		FklVMnode* prevVMs=fklGetGlobVMs()->h;
 		FklVM* tmpVM=fklNewTmpVM(NULL,NULL);
 		tmpVM->callback=errorCallBack;
-		fklInitVMRunningResource(tmpVM,vEnv,heap,cEnv->proc,0,cEnv->proc->bc->size);
+		fklInitVMRunningResource(tmpVM,vEnv,gc,cEnv->proc,0,cEnv->proc->bc->size);
 		if(setjmp(buf)==0)
 		{
 			fklRunVM(tmpVM);
@@ -753,16 +753,16 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 	FklAstCptr* retval=NULL;
 	char* cwd=getcwd(NULL,0);
 	chdir(fklGetCwd());
-		FklVMheap* h=fklNewVMheap();
+	FklVMgc* gc=fklNewVMgc();
 	FklByteCodelnt* t=fklNewByteCodelnt(fklNewByteCode(0));
-	FklVMvalue* tmpGlobEnv=genGlobEnv(glob,t,h);
-	FklVM* tmpVM=fklNewTmpVM(NULL,h);
+	FklVMvalue* tmpGlobEnv=genGlobEnv(glob,t,gc);
+	FklVM* tmpVM=fklNewTmpVM(NULL,gc);
 	tmpVM->callback=errorCallBack;
 	if(!tmpGlobEnv)
 	{
 		fklDestroyEnv(tmpEnv);
 		fklFreeByteCodelnt(t);
-		fklFreeVMheap(tmpVM->heap);
+		fklFreeVMgc(tmpVM->gc);
 		fklFreeVMstack(tmpVM->stack);
 		fklFreeRunnables(tmpVM->rhead);
 		fklFreePtrStack(tmpVM->tstack);
@@ -771,10 +771,10 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 		free(cwd);
 		return NULL;
 	}
-	FklVMvalue* stringPatternEnv=fklCastPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->heap);
+	FklVMvalue* stringPatternEnv=fklCastPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->gc);
 	uint32_t start=t->bc->size;
 	fklCodelntCopyCat(t,pattern->proc);
-	fklInitVMRunningResource(tmpVM,stringPatternEnv,tmpVM->heap,t,start,pattern->proc->bc->size);
+	fklInitVMRunningResource(tmpVM,stringPatternEnv,tmpVM->gc,t,start,pattern->proc->bc->size);
 	if(setjmp(buf)==0)
 	{
 		fklRunVM(tmpVM);
@@ -791,14 +791,14 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 		fklUninitVMRunningResource(tmpVM,prevVMs);
 		chdir(cwd);
 		free(cwd);
-		fklFreeVMheap(h);
+		fklFreeVMgc(gc);
 		fklDestroyEnv(tmpEnv);
 		return NULL;
 	}
 	fklFreeByteCodeAndLnt(t);
-	h=tmpVM->heap;
+	gc=tmpVM->gc;
 	fklUninitVMRunningResource(tmpVM,prevVMs);
-	fklFreeVMheap(h);
+	fklFreeVMgc(gc);
 	chdir(cwd);
 	free(cwd);
 	fklDestroyEnv(tmpEnv);

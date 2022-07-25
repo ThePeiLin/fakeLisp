@@ -179,7 +179,7 @@ static void _ffi_proc_invoke(void* ptr,FklVM* exe)
 		void* retval=((FklFfiMem*)ud->data)->mem;
 		FKL_ASSERT(retval);
 		ffi_call(&proc->cif,proc->func,retval,pArgs);
-		fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_USERDATA,ud,stack,exe->heap),&ap,stack);
+		fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_USERDATA,ud,stack,exe->gc),&ap,stack);
 	}
 	for(i=0;i<anum;i++)
 	{

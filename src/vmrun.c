@@ -53,7 +53,7 @@ void callNativeProcdure(FklVM* exe,FklVMproc* tmpProc,FklVMrunnable* runnable)
 {
 	pthread_rwlock_wrlock(&exe->rlock);
 	FklVMrunnable* tmpRunnable=fklNewVMrunnable(tmpProc,exe->rhead);
-	tmpRunnable->localenv=fklNewVMvalue(FKL_TYPE_ENV,fklNewVMenv(tmpProc->prevEnv,exe->heap),exe->heap);
+	tmpRunnable->localenv=fklNewVMvalue(FKL_TYPE_ENV,fklNewVMenv(tmpProc->prevEnv,exe->gc),exe->gc);
 	exe->rhead=tmpRunnable;
 	pthread_rwlock_unlock(&exe->rlock);
 }
@@ -67,7 +67,7 @@ void applyNativeProc(FklVM* exe,FklVMproc* tmpProc,FklVMrunnable* runnable)
 	{
 		pthread_rwlock_wrlock(&exe->rlock);
 		FklVMrunnable* tmpRunnable=fklNewVMrunnable(tmpProc,exe->rhead);
-		tmpRunnable->localenv=fklNewVMvalue(FKL_TYPE_ENV,fklNewVMenv(tmpProc->prevEnv,exe->heap),exe->heap);
+		tmpRunnable->localenv=fklNewVMvalue(FKL_TYPE_ENV,fklNewVMenv(tmpProc->prevEnv,exe->gc),exe->gc);
 		exe->rhead=tmpRunnable;
 		pthread_rwlock_unlock(&exe->rlock);
 	}
@@ -81,7 +81,7 @@ void tailCallNativeProcdure(FklVM* exe,FklVMproc* proc,FklVMrunnable* runnable)
 	{
 		pthread_rwlock_wrlock(&exe->rlock);
 		FklVMrunnable* tmpRunnable=fklNewVMrunnable(proc,exe->rhead->prev);
-		tmpRunnable->localenv=fklNewVMvalue(FKL_TYPE_ENV,fklNewVMenv(proc->prevEnv,exe->heap),exe->heap);
+		tmpRunnable->localenv=fklNewVMvalue(FKL_TYPE_ENV,fklNewVMenv(proc->prevEnv,exe->gc),exe->gc);
 		exe->rhead->prev=tmpRunnable;
 		pthread_rwlock_unlock(&exe->rlock);
 	}
@@ -107,7 +107,7 @@ int fklVMcallInDlproc(FklVMvalue* proc
 			{
 				pthread_rwlock_wrlock(&exe->rlock);
 				FklVMrunnable* tmpRunnable=fklNewVMrunnable(proc->u.proc,exe->rhead);
-				tmpRunnable->localenv=fklNewVMvalue(FKL_TYPE_ENV,fklNewVMenv(proc->u.proc->prevEnv,exe->heap),exe->heap);
+				tmpRunnable->localenv=fklNewVMvalue(FKL_TYPE_ENV,fklNewVMenv(proc->u.proc->prevEnv,exe->gc),exe->gc);
 				exe->rhead=tmpRunnable;
 				pthread_rwlock_unlock(&exe->rlock);
 			}
@@ -245,7 +245,7 @@ FklVM* fklNewVM(FklByteCode* mainCode)
 	exe->chan=NULL;
 	exe->stack=fklNewVMstack(0);
 	exe->tstack=fklNewPtrStack(32,16);
-	exe->heap=fklNewVMheap();
+	exe->gc=fklNewVMgc();
 	exe->callback=NULL;
 	exe->nny=0;
 	exe->thrds=1;
@@ -257,7 +257,7 @@ FklVM* fklNewVM(FklByteCode* mainCode)
 	return exe;
 }
 
-FklVM* fklNewTmpVM(FklByteCode* mainCode,FklVMheap* h)
+FklVM* fklNewTmpVM(FklByteCode* mainCode,FklVMgc* gc)
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe);
@@ -277,10 +277,10 @@ FklVM* fklNewTmpVM(FklByteCode* mainCode,FklVMheap* h)
 	exe->chan=NULL;
 	exe->stack=fklNewVMstack(0);
 	exe->tstack=fklNewPtrStack(32,16);
-	if(h)
-		exe->heap=h;
+	if(gc)
+		exe->gc=gc;
 	else
-		exe->heap=fklNewVMheap();
+		exe->gc=fklNewVMgc();
 	pthread_rwlock_init(&exe->rlock,NULL);
 	//	exe->callback=threadErrorCallBack;
 	exe->callback=NULL;
@@ -380,36 +380,36 @@ int fklRunVM(FklVM* exe)
 	return 0;
 }
 
-inline void fklChangeGCstate(FklGCstate state,FklVMheap* h)
+inline void fklChangeGCstate(FklGCstate state,FklVMgc* gc)
 {
-	pthread_rwlock_wrlock(&h->lock);
-	h->running=state;
-	pthread_rwlock_unlock(&h->lock);
+	pthread_rwlock_wrlock(&gc->lock);
+	gc->running=state;
+	pthread_rwlock_unlock(&gc->lock);
 }
 
-inline FklGCstate fklGetGCstate(FklVMheap* h)
+inline FklGCstate fklGetGCstate(FklVMgc* gc)
 {
 	FklGCstate state=FKL_GC_NONE;
-	pthread_rwlock_wrlock(&h->lock);
-	state=h->running;
-	pthread_rwlock_unlock(&h->lock);
+	pthread_rwlock_wrlock(&gc->lock);
+	state=gc->running;
+	pthread_rwlock_unlock(&gc->lock);
 	return state;
 }
 
-inline void fklWaitGC(FklVMheap* h)
+inline void fklWaitGC(FklVMgc* gc)
 {
-	FklGCstate running=fklGetGCstate(h);
+	FklGCstate running=fklGetGCstate(gc);
 	if(running==FKL_GC_SWEEPING||running==FKL_GC_COLLECT||running==FKL_GC_DONE)
-		fklGC_joinGCthread(h);
-	fklChangeGCstate(FKL_GC_NONE,h);
-	h->greyNum=0;
-	for(Greylink* volatile* head=&h->grey;*head;)
+		fklGC_joinGCthread(gc);
+	fklChangeGCstate(FKL_GC_NONE,gc);
+	gc->greyNum=0;
+	for(Greylink* volatile* head=&gc->grey;*head;)
 	{
 		Greylink* cur=*head;
 		*head=cur->next;
 		free(cur);
 	}
-	for(FklVMvalue* head=h->head;head;head=head->next)
+	for(FklVMvalue* head=gc->head;head;head=head->next)
 		head->mark=FKL_MARK_W;
 }
 
@@ -444,7 +444,7 @@ void B_push_pair(FklVM* exe)
 	FklVMrunnable* runnable=exe->rhead;
 	FklVMvalue* cdr=fklNiGetArg(&ap,stack);
 	FklVMvalue* car=fklNiGetArg(&ap,stack);
-	fklNiReturn(fklNewVMpairV(car,cdr,stack,exe->heap),&ap,stack);
+	fklNiReturn(fklNewVMpairV(car,cdr,stack,exe->gc),&ap,stack);
 	fklNiEnd(&ap,stack);
 	runnable->cp+=sizeof(char);
 }
@@ -461,7 +461,7 @@ void B_push_i64(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* r=exe->rhead;
-	fklNewVMvalueToStack(FKL_TYPE_I64,exe->code+r->cp+sizeof(char),stack,exe->heap);
+	fklNewVMvalueToStack(FKL_TYPE_I64,exe->code+r->cp+sizeof(char),stack,exe->gc);
 	r->cp+=sizeof(char)+sizeof(int64_t);
 }
 
@@ -477,7 +477,7 @@ void B_push_f64(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=exe->rhead;
-	fklNewVMvalueToStack(FKL_TYPE_F64,exe->code+runnable->cp+sizeof(char),stack,exe->heap);
+	fklNewVMvalueToStack(FKL_TYPE_F64,exe->code+runnable->cp+sizeof(char),stack,exe->gc);
 	runnable->cp+=sizeof(char)+sizeof(double);
 }
 
@@ -486,7 +486,7 @@ void B_push_str(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=exe->rhead;
 	uint64_t size=fklGetU64FromByteCode(exe->code+runnable->cp+sizeof(char));
-	fklNewVMvalueToStack(FKL_TYPE_STR,fklNewString(size,(char*)exe->code+runnable->cp+sizeof(char)+sizeof(uint64_t)),stack,exe->heap);
+	fklNewVMvalueToStack(FKL_TYPE_STR,fklNewString(size,(char*)exe->code+runnable->cp+sizeof(char)+sizeof(uint64_t)),stack,exe->gc);
 	runnable->cp+=sizeof(char)+sizeof(uint64_t)+size;
 }
 
@@ -535,8 +535,8 @@ void B_push_proc(FklVM* exe)
 	FklVMrunnable* runnable=exe->rhead;
 	uint64_t sizeOfProc=fklGetU64FromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklVMproc* code=fklNewVMproc(runnable->cp+sizeof(char)+sizeof(uint64_t),sizeOfProc);
-	fklNewVMvalueToStack(FKL_TYPE_PROC,code,stack,exe->heap);
-	fklSetRef(&code->prevEnv,runnable->localenv,exe->heap);
+	fklNewVMvalueToStack(FKL_TYPE_PROC,code,stack,exe->gc);
+	fklSetRef(&code->prevEnv,runnable->localenv,exe->gc);
 	runnable->cp+=sizeof(char)+sizeof(uint64_t)+sizeOfProc;
 }
 
@@ -576,7 +576,7 @@ void B_pop_var(FklVM* exe)
 		if(pv==NULL)
 			FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-var",FKL_ERR_SYMUNDEFINE,runnable,exe);
 	}
-	fklSetRef(pv,fklNiGetArg(&ap,stack),exe->heap);
+	fklSetRef(pv,fklNiGetArg(&ap,stack),exe->gc);
 	fklNiEnd(&ap,stack);
 	if(FKL_IS_PROC(*pv)&&(*pv)->u.proc->sid==0)
 		(*pv)->u.proc->sid=idOfVar;
@@ -594,7 +594,7 @@ void B_pop_arg(FklVM* exe)
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklVMvalue* curEnv=runnable->localenv;
 	FklVMvalue* volatile* pValue=fklFindOrAddVar(idOfVar,curEnv->u.env);
-	fklSetRef(pValue,fklNiGetArg(&ap,stack),exe->heap);
+	fklSetRef(pValue,fklNiGetArg(&ap,stack),exe->gc);
 	fklNiEnd(&ap,stack);
 	runnable->cp+=sizeof(char)+sizeof(FklSid_t);
 }
@@ -603,15 +603,15 @@ void B_pop_rest_arg(FklVM* exe)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
-	FklVMheap* heap=exe->heap;
+	FklVMgc* gc=exe->gc;
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+runnable->cp+sizeof(char));
 	FklVMvalue* curEnv=runnable->localenv;
 	FklVMvalue* obj=FKL_VM_NIL;
 	FklVMvalue* volatile* pValue=&obj;
 	for(;ap>stack->bp;pValue=&(*pValue)->u.pair->cdr)
-		*pValue=fklNewVMpairV(fklNiGetArg(&ap,stack),FKL_VM_NIL,stack,heap);
+		*pValue=fklNewVMpairV(fklNiGetArg(&ap,stack),FKL_VM_NIL,stack,gc);
 	pValue=fklFindOrAddVar(idOfVar,curEnv->u.env);
-	fklSetRef(pValue,obj,heap);
+	fklSetRef(pValue,obj,gc);
 	fklNiEnd(&ap,stack);
 	runnable->cp+=sizeof(char)+sizeof(FklSid_t);
 }
@@ -742,7 +742,7 @@ void B_append(FklVM* exe)
 		{
 			lastcdr=&(*lastcdr)->u.pair->cdr;
 		}
-		fklSetRef(lastcdr,fir,exe->heap);
+		fklSetRef(lastcdr,fir,exe->gc);
 		fklNiReturn(sec,&ap,stack);
 	}
 	fklNiEnd(&ap,stack);
@@ -793,11 +793,11 @@ void B_push_vector(FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;
 	uint64_t size=fklGetU64FromByteCode(exe->code+r->cp+sizeof(char));
-	FklVMvalue* vec=fklNewVMvecV(size,NULL,stack,exe->heap);
+	FklVMvalue* vec=fklNewVMvecV(size,NULL,stack,exe->gc);
 	for(size_t i=size;i>0;i--)
 	{
 		vec->u.vec->base[i-1]=FKL_VM_NIL;
-		fklSetRef(&vec->u.vec->base[i-1],fklNiGetArg(&ap,stack),exe->heap);
+		fklSetRef(&vec->u.vec->base[i-1],fklNiGetArg(&ap,stack),exe->gc);
 	}
 	fklNiReturn(vec
 			,&ap
@@ -810,8 +810,8 @@ void B_push_r_env(FklVM* exe)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;
-	FklVMvalue* n=fklNewVMvalueToStack(FKL_TYPE_ENV,fklNewVMenv(FKL_VM_NIL,exe->heap),stack,exe->heap);
-	fklSetRef(&n->u.env->prev,r->localenv,exe->heap);
+	FklVMvalue* n=fklNewVMvalueToStack(FKL_TYPE_ENV,fklNewVMenv(FKL_VM_NIL,exe->gc),stack,exe->gc);
+	fklSetRef(&n->u.env->prev,r->localenv,exe->gc);
 	pthread_rwlock_wrlock(&exe->rlock);
 	r->localenv=n;
 	pthread_rwlock_unlock(&exe->rlock);
@@ -833,7 +833,7 @@ void B_push_big_int(FklVM* exe)
 	FklVMrunnable* r=exe->rhead;
 	uint64_t num=fklGetU64FromByteCode(exe->code+r->cp+sizeof(char));
 	FklBigInt* bigInt=fklNewBigIntFromMem(exe->code+r->cp+sizeof(char)+sizeof(num),sizeof(uint8_t)*num);
-	fklNewVMvalueToStack(FKL_TYPE_BIG_INT,bigInt,exe->stack,exe->heap);
+	fklNewVMvalueToStack(FKL_TYPE_BIG_INT,bigInt,exe->stack,exe->gc);
 	r->cp+=sizeof(char)+sizeof(bigInt->num)+num;
 }
 
@@ -842,8 +842,8 @@ void B_push_box(FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* r=exe->rhead;
 	FklVMvalue* c=fklNiGetArg(&ap,stack);
-	FklVMvalue* box=fklNewVMvalueToStack(FKL_TYPE_BOX,FKL_VM_NIL,stack,exe->heap);
-	fklSetRef(&box->u.box,c,exe->heap);
+	FklVMvalue* box=fklNewVMvalueToStack(FKL_TYPE_BOX,FKL_VM_NIL,stack,exe->gc);
+	fklSetRef(&box->u.box,c,exe->gc);
 	fklNiReturn(box,&ap,stack);
 	fklNiEnd(&ap,stack);
 	r->cp+=sizeof(char);
@@ -854,7 +854,7 @@ void B_push_bytevector(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMrunnable* runnable=exe->rhead;
 	uint64_t size=fklGetU64FromByteCode(exe->code+runnable->cp+sizeof(char));
-	fklNewVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklNewBytevector(size,exe->code+runnable->cp+sizeof(char)+sizeof(uint64_t)),stack,exe->heap);
+	fklNewVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklNewBytevector(size,exe->code+runnable->cp+sizeof(char)+sizeof(uint64_t)),stack,exe->gc);
 	runnable->cp+=sizeof(char)+sizeof(uint64_t)+size;
 }
 
@@ -939,9 +939,9 @@ int fklIsTheLastExpress(const FklVMrunnable* runnable,const FklVMrunnable* same,
 	return 1;
 }
 
-FklVMheap* fklNewVMheap()
+FklVMgc* fklNewVMgc()
 {
-	FklVMheap* tmp=(FklVMheap*)malloc(sizeof(FklVMheap));
+	FklVMgc* tmp=(FklVMgc*)malloc(sizeof(FklVMgc));
 	FKL_ASSERT(tmp);
 	tmp->running=0;
 	tmp->num=0;
@@ -954,50 +954,50 @@ FklVMheap* fklNewVMheap()
 	return tmp;
 }
 
-//void fklGC_reGrey(FklVMvalue* v,FklVMheap* h)
+//void fklGC_reGrey(FklVMvalue* v,FklVMgc* gc)
 //{
 //	if(FKL_IS_PTR(v))
 //	{
 //		v->mark=FKL_MARK_G;
-//		pthread_rwlock_wrlock(&h->greylock);
+//		pthread_rwlock_wrlock(&gc->greylock);
 //		h->grey=newGreylink(v,h->grey);
 //		h->greyNum++;
-//		pthread_rwlock_unlock(&h->greylock);
+//		pthread_rwlock_unlock(&gc->greylock);
 //	}
 //}
 
-void fklGC_toGrey(FklVMvalue* v,FklVMheap* h)
+void fklGC_toGrey(FklVMvalue* v,FklVMgc* gc)
 {
 	if(FKL_IS_PTR(v)&&atomic_load(&v->mark)!=FKL_MARK_B)
 	{
 		atomic_store(&v->mark,FKL_MARK_G);
-		pthread_rwlock_wrlock(&h->greylock);
-		h->grey=newGreylink(v,h->grey);
-		h->greyNum++;
-		pthread_rwlock_unlock(&h->greylock);
+		pthread_rwlock_wrlock(&gc->greylock);
+		gc->grey=newGreylink(v,gc->grey);
+		gc->greyNum++;
+		pthread_rwlock_unlock(&gc->greylock);
 	}
 }
 
 void fklGC_markRootToGrey(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
-	FklVMheap* heap=exe->heap;
+	FklVMgc* gc=exe->gc;
 	if(exe->nextCall)
-		fklGC_toGrey(exe->nextCall,heap);
+		fklGC_toGrey(exe->nextCall,gc);
 //	pthread_rwlock_rdlock(&exe->rlock);
 	for(FklVMrunnable* cur=exe->rhead;cur;cur=cur->prev)
-		fklGC_toGrey(cur->localenv,heap);
+		fklGC_toGrey(cur->localenv,gc);
 //	pthread_rwlock_unlock(&exe->rlock);
 //	pthread_rwlock_rdlock(&stack->lock);
 	for(uint32_t i=0;i<stack->tp;i++)
 	{
 		FklVMvalue* value=stack->values[i];
 		if(FKL_IS_PTR(value))
-			fklGC_toGrey(value,heap);
+			fklGC_toGrey(value,gc);
 	}
 //	pthread_rwlock_unlock(&stack->lock);
 	if(exe->chan)
-		fklGC_toGrey(exe->chan,heap);
+		fklGC_toGrey(exe->chan,gc);
 }
 
 void fklGC_markGlobalRoot(void)
@@ -1027,67 +1027,67 @@ void fklGC_markGlobalRoot(void)
 
 void fklGC_pause(FklVM* exe)
 {
-	pthread_rwlock_rdlock(&exe->heap->lock);
+	pthread_rwlock_rdlock(&exe->gc->lock);
 	if(exe->thrds)
 		fklGC_markGlobalRoot();
 	else
 		fklGC_markRootToGrey(exe);
-	pthread_rwlock_unlock(&exe->heap->lock);
+	pthread_rwlock_unlock(&exe->gc->lock);
 }
 
-void propagateMark(FklVMvalue* root,FklVMheap* heap)
+void propagateMark(FklVMvalue* root,FklVMgc* gc)
 {
 	switch(root->type)
 	{
 		case FKL_TYPE_PAIR:
-			fklGC_toGrey(root->u.pair->car,heap);
-			fklGC_toGrey(root->u.pair->cdr,heap);
+			fklGC_toGrey(root->u.pair->car,gc);
+			fklGC_toGrey(root->u.pair->cdr,gc);
 			break;
 		case FKL_TYPE_PROC:
 			if(root->u.proc->prevEnv)
-				fklGC_toGrey(root->u.proc->prevEnv,heap);
+				fklGC_toGrey(root->u.proc->prevEnv,gc);
 			break;
 		case FKL_TYPE_CONT:
 			for(uint32_t i=0;i<root->u.cont->stack->tp;i++)
-				fklGC_toGrey(root->u.cont->stack->values[i],heap);
+				fklGC_toGrey(root->u.cont->stack->values[i],gc);
 			for(FklVMrunnable* curr=root->u.cont->curr;curr;curr=curr->prev)
-				fklGC_toGrey(curr->localenv,heap);
+				fklGC_toGrey(curr->localenv,gc);
 			if(root->u.cont->nextCall)
-				fklGC_toGrey(root->u.cont->nextCall,heap);
+				fklGC_toGrey(root->u.cont->nextCall,gc);
 			break;
 		case FKL_TYPE_VECTOR:
 			{
 				FklVMvec* vec=root->u.vec;
 				for(size_t i=0;i<vec->size;i++)
-					fklGC_toGrey(vec->base[i],heap);
+					fklGC_toGrey(vec->base[i],gc);
 			}
 			break;
 		case FKL_TYPE_BOX:
-			fklGC_toGrey(root->u.box,heap);
+			fklGC_toGrey(root->u.box,gc);
 			break;
 		case FKL_TYPE_CHAN:
 			{
 				pthread_mutex_lock(&root->u.chan->lock);
 				FklQueueNode* head=root->u.chan->messages->head;
 				for(;head;head=head->next)
-					fklGC_toGrey(head->data,heap);
+					fklGC_toGrey(head->data,gc);
 				for(head=root->u.chan->sendq->head;head;head=head->next)
-					fklGC_toGrey(((FklVMsend*)head->data)->m,heap);
+					fklGC_toGrey(((FklVMsend*)head->data)->m,gc);
 				pthread_mutex_unlock(&root->u.chan->lock);
 			}
 			break;
 		case FKL_TYPE_DLPROC:
 			if(root->u.dlproc->dll)
-				fklGC_toGrey(root->u.dlproc->dll,heap);
+				fklGC_toGrey(root->u.dlproc->dll,gc);
 			break;
 		case FKL_TYPE_ENV:
-			fklAtomicVMenv(root->u.env,heap);
+			fklAtomicVMenv(root->u.env,gc);
 			break;
 		case FKL_TYPE_USERDATA:
 			if(root->u.ud->rel)
-				fklGC_toGrey(root->u.ud->rel,heap);
+				fklGC_toGrey(root->u.ud->rel,gc);
 			if(root->u.ud->t->__atomic)
-				root->u.ud->t->__atomic(root->u.ud->data,heap);
+				root->u.ud->t->__atomic(root->u.ud->data,gc);
 			break;
 		case FKL_TYPE_I64:
 		case FKL_TYPE_F64:
@@ -1104,35 +1104,35 @@ void propagateMark(FklVMvalue* root,FklVMheap* heap)
 	}
 }
 
-int fklGC_propagate(FklVMheap* heap)
+int fklGC_propagate(FklVMgc* gc)
 {
-	pthread_rwlock_wrlock(&heap->greylock);
-	Greylink* g=heap->grey;
+	pthread_rwlock_wrlock(&gc->greylock);
+	Greylink* g=gc->grey;
 	FklVMvalue* v=FKL_VM_NIL;
 	if(g)
 	{
-		heap->greyNum--;
-		heap->grey=g->next;
+		gc->greyNum--;
+		gc->grey=g->next;
 		v=g->v;
 		free(g);
 	}
-	pthread_rwlock_unlock(&heap->greylock);
+	pthread_rwlock_unlock(&gc->greylock);
 	if(FKL_IS_PTR(v)&&atomic_load(&v->mark)==FKL_MARK_G)
 	{
 		atomic_store(&v->mark,FKL_MARK_B);
-		propagateMark(v,heap);
+		propagateMark(v,gc);
 	}
-	return heap->grey==NULL;
+	return gc->grey==NULL;
 }
 
-void fklGC_collect(FklVMheap* heap,FklVMvalue** pw)
+void fklGC_collect(FklVMgc* gc,FklVMvalue** pw)
 {
 	size_t count=0;
-//	pthread_rwlock_wrlock(&heap->lock);
-	FklVMvalue* head=heap->head;
-	heap->head=NULL;
-	heap->running=FKL_GC_SWEEPING;
-//	pthread_rwlock_unlock(&heap->lock);
+//	pthread_rwlock_wrlock(&gc->lock);
+	FklVMvalue* head=gc->head;
+	gc->head=NULL;
+	gc->running=FKL_GC_SWEEPING;
+//	pthread_rwlock_unlock(&gc->lock);
 	FklVMvalue** phead=&head;
 	while(*phead)
 	{
@@ -1147,11 +1147,11 @@ void fklGC_collect(FklVMheap* heap,FklVMvalue** pw)
 		else
 			phead=&cur->next;
 	}
-//	pthread_rwlock_wrlock(&heap->lock);
-	*phead=heap->head;
-	heap->head=head;
-	heap->num-=count;
-//	pthread_rwlock_unlock(&heap->lock);
+//	pthread_rwlock_wrlock(&gc->lock);
+	*phead=gc->head;
+	gc->head=head;
+	gc->num-=count;
+//	pthread_rwlock_unlock(&gc->lock);
 }
 
 void fklGC_sweep(FklVMvalue* head)
@@ -1165,29 +1165,29 @@ void fklGC_sweep(FklVMvalue* head)
 	}
 }
 
-inline void fklGetGCstateAndHeapNum(FklVMheap* h,FklGCstate* s,int* cr)
+inline void fklGetGCstateAndGCNum(FklVMgc* gc,FklGCstate* s,int* cr)
 {
-	pthread_rwlock_rdlock(&h->lock);
-	*s=h->running;
-	*cr=h->num>h->threshold;
-	pthread_rwlock_unlock(&h->lock);
+	pthread_rwlock_rdlock(&gc->lock);
+	*s=gc->running;
+	*cr=gc->num>gc->threshold;
+	pthread_rwlock_unlock(&gc->lock);
 }
 
-//static size_t fklGetHeapNum(FklVMheap* h)
+//static size_t fklGetHeapNum(FklVMgc* gc)
 //{
 //	size_t num=0;
-//	pthread_rwlock_rdlock(&h->lock);
+//	pthread_rwlock_rdlock(&gc->lock);
 //	num=h->num;
-//	pthread_rwlock_unlock(&h->lock);
+//	pthread_rwlock_unlock(&gc->lock);
 //	return num;
 //}
 
-//static size_t fklGetGreyNum(FklVMheap* h)
+//static size_t fklGetGreyNum(FklVMgc* gc)
 //{
 //	size_t num=0;
-//	pthread_rwlock_rdlock(&h->greylock);
+//	pthread_rwlock_rdlock(&gc->greylock);
 //	num=h->greyNum;
-//	pthread_rwlock_unlock(&h->greylock);
+//	pthread_rwlock_unlock(&gc->greylock);
 //	return num;
 //}
 
@@ -1198,7 +1198,7 @@ inline void fklGC_step(FklVM* exe)
 {
 	FklGCstate running=FKL_GC_NONE;
 	int cr=0;
-	fklGetGCstateAndHeapNum(exe->heap,&running,&cr);
+	fklGetGCstateAndGCNum(exe->gc,&running,&cr);
 	static size_t greyNum=0;
 	cr=1;
 	switch(running)
@@ -1206,22 +1206,22 @@ inline void fklGC_step(FklVM* exe)
 		case FKL_GC_NONE:
 			if(cr)
 			{
-				fklChangeGCstate(FKL_GC_MARK_ROOT,exe->heap);
+				fklChangeGCstate(FKL_GC_MARK_ROOT,exe->gc);
 				fklGC_pause(exe);
-				fklChangeGCstate(FKL_GC_PROPAGATE,exe->heap);
+				fklChangeGCstate(FKL_GC_PROPAGATE,exe->gc);
 			}
 			break;
 		case FKL_GC_MARK_ROOT:
 			break;
 		case FKL_GC_PROPAGATE:
 			{
-				size_t new_n=exe->heap->greyNum-greyNum;
-				size_t timce=exe->heap->greyNum/FKL_GC_GRAY_FACTOR+new_n/FKL_GC_NEW_FACTOR+1;
+				size_t new_n=exe->gc->greyNum-greyNum;
+				size_t timce=exe->gc->greyNum/FKL_GC_GRAY_FACTOR+new_n/FKL_GC_NEW_FACTOR+1;
 				greyNum+=new_n;
 				for(size_t i=0;i<timce;i++)
-					if(fklGC_propagate(exe->heap))
+					if(fklGC_propagate(exe->gc))
 					{
-						fklChangeGCstate(FKL_GC_SWEEP,exe->heap);
+						fklChangeGCstate(FKL_GC_SWEEP,exe->gc);
 						break;
 					}
 			}
@@ -1229,8 +1229,8 @@ inline void fklGC_step(FklVM* exe)
 		case FKL_GC_SWEEP:
 			if(!pthread_mutex_trylock(&GCthreadLock))
 			{
-				pthread_create(&GCthreadId,NULL,fklGC_sweepThreadFunc,exe->heap);
-				fklChangeGCstate(FKL_GC_COLLECT,exe->heap);
+				pthread_create(&GCthreadId,NULL,fklGC_sweepThreadFunc,exe->gc);
+				fklChangeGCstate(FKL_GC_COLLECT,exe->gc);
 				pthread_mutex_unlock(&GCthreadLock);
 			}
 			break;
@@ -1240,7 +1240,7 @@ inline void fklGC_step(FklVM* exe)
 		case FKL_GC_DONE:
 			if(!pthread_mutex_trylock(&GCthreadLock))
 			{
-				fklChangeGCstate(FKL_GC_NONE,exe->heap);
+				fklChangeGCstate(FKL_GC_NONE,exe->gc);
 				pthread_join(GCthreadId,NULL);
 				pthread_mutex_unlock(&GCthreadLock);
 			}
@@ -1253,23 +1253,23 @@ inline void fklGC_step(FklVM* exe)
 
 void* fklGC_sweepThreadFunc(void* arg)
 {
-	FklVMheap* heap=arg;
+	FklVMgc* gc=arg;
 	FklVMvalue* white=NULL;
-	fklGC_collect(heap,&white);
-	fklChangeGCstate(FKL_GC_SWEEPING,heap);
+	fklGC_collect(gc,&white);
+	fklChangeGCstate(FKL_GC_SWEEPING,gc);
 	fklGC_sweep(white);
-	fklChangeGCstate(FKL_GC_DONE,heap);
+	fklChangeGCstate(FKL_GC_DONE,gc);
 	return NULL;
 }
 
 void* fklGC_threadFunc(void* arg)
 {
-	FklVMheap* heap=arg;
-	heap->running=FKL_GC_MARK_ROOT;
+	FklVMgc* gc=arg;
+	gc->running=FKL_GC_MARK_ROOT;
 	pthread_rwlock_rdlock(&GlobVMs->lock);
 	FklVMnode** ph=&GlobVMs->h;
-	for(;*ph&&(*ph)->vm->heap!=heap;ph=&(*ph)->next);
-	for(;*ph&&(*ph)->vm->heap==heap;)
+	for(;*ph&&(*ph)->vm->gc!=gc;ph=&(*ph)->next);
+	for(;*ph&&(*ph)->vm->gc==gc;)
 	{
 		FklVMnode* cur=*ph;
 		int32_t mark=cur->vm->mark;
@@ -1287,21 +1287,21 @@ void* fklGC_threadFunc(void* arg)
 		}
 	}
 	pthread_rwlock_unlock(&GlobVMs->lock);
-	heap->running=FKL_GC_PROPAGATE;
-	while(!fklGC_propagate(heap));
+	gc->running=FKL_GC_PROPAGATE;
+	while(!fklGC_propagate(gc));
 	FklVMvalue* white=NULL;
-	heap->running=FKL_GC_COLLECT;
-	fklGC_collect(heap,&white);
-	heap->running=FKL_GC_SWEEP;
-	heap->running=FKL_GC_SWEEPING;
+	gc->running=FKL_GC_COLLECT;
+	fklGC_collect(gc,&white);
+	gc->running=FKL_GC_SWEEP;
+	gc->running=FKL_GC_SWEEPING;
 	fklGC_sweep(white);
-	heap->running=FKL_GC_NONE;
+	gc->running=FKL_GC_NONE;
 	return NULL;
 }
 
-void fklFreeAllValues(FklVMheap* heap)
+void fklFreeAllValues(FklVMgc* gc)
 {
-	FklVMvalue** phead=&heap->head;
+	FklVMvalue** phead=&gc->head;
 	FklVMvalue* freeDll=NULL;
 	while(*phead!=NULL)
 	{
@@ -1316,7 +1316,7 @@ void fklFreeAllValues(FklVMheap* heap)
 			}
 			else
 				fklFreeVMvalue(cur);
-			heap->num-=1;
+			gc->num-=1;
 		}
 		else
 		{
@@ -1333,18 +1333,18 @@ void fklFreeAllValues(FklVMheap* heap)
 	}
 }
 
-FklVM* fklNewThreadVM(FklVMproc* mainCode,FklVMheap* heap)
+FklVM* fklNewThreadVM(FklVMproc* mainCode,FklVMgc* gc)
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe);
 	FklVMrunnable* t=fklNewVMrunnable(mainCode,NULL);
-	t->localenv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewVMenv(mainCode->prevEnv,heap),heap);
+	t->localenv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewVMenv(mainCode->prevEnv,gc),gc);
 	exe->rhead=t;
 	exe->mark=1;
-	exe->chan=fklNewVMvalueNoGC(FKL_TYPE_CHAN,fklNewVMchanl(0),heap);
+	exe->chan=fklNewVMvalueNoGC(FKL_TYPE_CHAN,fklNewVMchanl(0),gc);
 	exe->tstack=fklNewPtrStack(32,16);
 	exe->stack=fklNewVMstack(0);
-	exe->heap=heap;
+	exe->gc=gc;
 	exe->callback=threadErrorCallBack;
 	exe->nextCall=NULL;
 	exe->nny=0;
@@ -1357,7 +1357,7 @@ FklVM* fklNewThreadVM(FklVMproc* mainCode,FklVMheap* heap)
 	return exe;
 }
 
-FklVM* fklNewThreadCallableObjVM(FklVMrunnable* r,FklVMheap* heap,FklVMvalue* nextCall)
+FklVM* fklNewThreadCallableObjVM(FklVMrunnable* r,FklVMgc* gc,FklVMvalue* nextCall)
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe);
@@ -1366,10 +1366,10 @@ FklVM* fklNewThreadCallableObjVM(FklVMrunnable* r,FklVMheap* heap,FklVMvalue* ne
 	t->localenv=NULL;
 	exe->rhead=t;
 	exe->mark=1;
-	exe->chan=fklNewVMvalueNoGC(FKL_TYPE_CHAN,fklNewVMchanl(0),heap);
+	exe->chan=fklNewVMvalueNoGC(FKL_TYPE_CHAN,fklNewVMchanl(0),gc);
 	exe->tstack=fklNewPtrStack(32,16);
 	exe->stack=fklNewVMstack(0);
-	exe->heap=heap;
+	exe->gc=gc;
 	exe->callback=threadErrorCallBack;
 	exe->nextCall=nextCall;
 	exe->nny=0;
@@ -1430,13 +1430,13 @@ void fklFreeAllVMs(void)
 	pthread_rwlock_destroy(&GlobVMs->lock);
 }
 
-void fklFreeVMheap(FklVMheap* h)
+void fklFreeVMgc(FklVMgc* gc)
 {
-	fklWaitGC(h);
-	fklFreeAllValues(h);
-	pthread_rwlock_destroy(&h->greylock);
-	pthread_rwlock_destroy(&h->lock);
-	free(h);
+	fklWaitGC(gc);
+	fklFreeAllValues(gc);
+	pthread_rwlock_destroy(&gc->greylock);
+	pthread_rwlock_destroy(&gc->lock);
+	free(gc);
 }
 
 void fklJoinAllThread(FklVMnode* node)
@@ -1570,10 +1570,10 @@ char** fklGetVMargv(void)
 	return VMargv;
 }
 
-void fklGC_joinGCthread(FklVMheap* h)
+void fklGC_joinGCthread(FklVMgc* gc)
 {
 	pthread_join(GCthreadId,NULL);
-	h->running=FKL_GC_NONE;
+	gc->running=FKL_GC_NONE;
 }
 
 inline void fklPushVMvalue(FklVMvalue* v,FklVMstack* s)

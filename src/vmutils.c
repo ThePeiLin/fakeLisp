@@ -14,18 +14,18 @@
 #include<tchar.h>
 #endif
 
-FklVMvalue* fklMakeVMint(int64_t r64,FklVMstack* s,FklVMheap* heap)
+FklVMvalue* fklMakeVMint(int64_t r64,FklVMstack* s,FklVMgc* gc)
 {
 	if(r64>INT32_MAX||r64<INT32_MIN)
-		return fklNewVMvalueToStack(FKL_TYPE_I64,&r64,s,heap);
+		return fklNewVMvalueToStack(FKL_TYPE_I64,&r64,s,gc);
 	else
 		return FKL_MAKE_VM_I32(r64);
 }
 
-FklVMvalue* fklMakeVMintD(double r64,FklVMstack* s,FklVMheap* heap)
+FklVMvalue* fklMakeVMintD(double r64,FklVMstack* s,FklVMgc* gc)
 {
 	if(r64-INT32_MAX>DBL_EPSILON||r64-INT32_MIN<-DBL_EPSILON)
-		return fklNewVMvalueToStack(FKL_TYPE_I64,&r64,s,heap);
+		return fklNewVMvalueToStack(FKL_TYPE_I64,&r64,s,gc);
 	else
 		return FKL_MAKE_VM_I32(r64);
 }
@@ -100,7 +100,7 @@ void fklDecTop(FklVMstack* stack)
 //	pthread_rwlock_unlock(&stack->lock);
 }
 
-FklVMvalue* fklCastPreEnvToVMenv(FklPreEnv* pe,FklVMvalue* prev,FklVMheap* heap)
+FklVMvalue* fklCastPreEnvToVMenv(FklPreEnv* pe,FklVMvalue* prev,FklVMgc* gc)
 {
 	int32_t size=0;
 	FklPreDef* tmpDef=pe->symbols;
@@ -109,10 +109,10 @@ FklVMvalue* fklCastPreEnvToVMenv(FklPreEnv* pe,FklVMvalue* prev,FklVMheap* heap)
 		size++;
 		tmpDef=tmpDef->next;
 	}
-	FklVMenv* tmp=fklNewVMenv(prev,heap);
+	FklVMenv* tmp=fklNewVMenv(prev,gc);
 	for(tmpDef=pe->symbols;tmpDef;tmpDef=tmpDef->next)
-		fklSetRef(fklFindOrAddVar(fklAddSymbolToGlob(tmpDef->symbol)->id,tmp),fklCastCptrVMvalue(&tmpDef->obj,heap),heap);
-	return fklNewVMvalueNoGC(FKL_TYPE_ENV,tmp,heap);
+		fklSetRef(fklFindOrAddVar(fklAddSymbolToGlob(tmpDef->symbol)->id,tmp),fklCastCptrVMvalue(&tmpDef->obj,gc),gc);
+	return fklNewVMvalueNoGC(FKL_TYPE_ENV,tmp,gc);
 }
 
 FklVMstack* fklCopyStack(FklVMstack* stack)
@@ -210,11 +210,11 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 				exe->rhead=curr;
 				FklVMrunnable* prevRunnable=exe->rhead;
 				FklVMrunnable* r=fklNewVMrunnable(&h->proc,prevRunnable);
-				r->localenv=fklNewSaveVMvalue(FKL_TYPE_ENV,fklNewVMenv(prevRunnable->localenv,exe->heap));
-				fklAddToHeap(r->localenv,exe->heap);
+				r->localenv=fklNewSaveVMvalue(FKL_TYPE_ENV,fklNewVMenv(prevRunnable->localenv,exe->gc));
+				fklAddToGC(r->localenv,exe->gc);
 				FklVMvalue* curEnv=r->localenv;
 				FklSid_t idOfError=tb->sid;
-				fklSetRef(fklFindOrAddVar(idOfError,curEnv->u.env),ev,exe->heap);
+				fklSetRef(fklFindOrAddVar(idOfError,curEnv->u.env),ev,exe->gc);
 				fklFreeVMerrorHandler(h);
 				exe->rhead=r;
 				return 1;
@@ -869,15 +869,15 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 	fklFreePtrStack(hasPrintRecStack);
 }
 
-FklVMvalue* fklSetRef(FklVMvalue* volatile* pref,FklVMvalue* v,FklVMheap* h)
+FklVMvalue* fklSetRef(FklVMvalue* volatile* pref,FklVMvalue* v,FklVMgc* gc)
 {
 	FklVMvalue* ref=*pref;
 	*pref=v;
-	FklGCstate running=fklGetGCstate(h);
+	FklGCstate running=fklGetGCstate(gc);
 	if(running==FKL_GC_PROPAGATE||running==FKL_GC_COLLECT)
 	{
-		fklGC_toGrey(ref,h);
-		fklGC_toGrey(v,h);
+		fklGC_toGrey(ref,gc);
+		fklGC_toGrey(v,gc);
 	}
 	return ref;
 }
@@ -1023,7 +1023,7 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 	return tmp;
 }
 
-void fklInitVMRunningResource(FklVM* vm,FklVMvalue* vEnv,FklVMheap* heap,FklByteCodelnt* code,uint32_t start,uint32_t size)
+void fklInitVMRunningResource(FklVM* vm,FklVMvalue* vEnv,FklVMgc* gc,FklByteCodelnt* code,uint32_t start,uint32_t size)
 {
 	FklVMproc proc={
 		.scp=start,
@@ -1039,16 +1039,16 @@ void fklInitVMRunningResource(FklVM* vm,FklVMvalue* vEnv,FklVMheap* heap,FklByte
 	vm->lnt=fklNewLineNumTable();
 	vm->lnt->num=code->ls;
 	vm->lnt->list=code->l;
-	if(vm->heap!=heap)
+	if(vm->gc!=gc)
 	{
-		fklFreeVMheap(vm->heap);
-		vm->heap=heap;
+		fklFreeVMgc(vm->gc);
+		vm->gc=gc;
 	}
 }
 
 void fklUninitVMRunningResource(FklVM* vm,FklVMnode* node)
 {
-	fklWaitGC(vm->heap);
+	fklWaitGC(vm->gc);
 	free(vm->lnt);
 	fklFreeAllTmpVMs(node);
 }

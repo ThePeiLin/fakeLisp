@@ -73,7 +73,7 @@ static FklHashTableMethodTable CompEnvHashMethodTable=
 	.__getKey=_compenv_getKey,
 };
 
-static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap)
+static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMgc* gc)
 {
 	FklPtrStack* stack=fklNewPtrStack(32,16);
 	FklCompEnv* tcEnv=cEnv;
@@ -86,9 +86,9 @@ static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap
 	{
 		FklCompEnv* curEnv=fklPopPtrStack(stack);
 		if(!preEnv)
-			vEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewGlobVMenv(preEnv,heap),heap);//fklInitGlobEnv(vEnv->u.env,heap);
+			vEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewGlobVMenv(preEnv,gc),gc);//fklInitGlobEnv(vEnv->u.env,gc);
 		else
-			vEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewVMenv(preEnv,heap),heap);
+			vEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewVMenv(preEnv,gc),gc);
 		preEnv=vEnv;
 		if(curEnv->proc->bc->size)
 		{
@@ -96,7 +96,7 @@ static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMheap* heap
 			FklVM* tmpVM=fklNewTmpVM(NULL,NULL);
 			tmpVM->callback=errorCallBack;
 			fklCodelntCopyCat(t,curEnv->proc);
-			fklInitVMRunningResource(tmpVM,vEnv,heap,t,bs,curEnv->proc->bc->size);
+			fklInitVMRunningResource(tmpVM,vEnv,gc,t,bs,curEnv->proc->bc->size);
 			bs+=curEnv->proc->bc->size;
 			if(setjmp(buf)==0)
 			{
@@ -145,10 +145,10 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 	{
 		char* cwd=getcwd(NULL,0);
 		chdir(fklGetCwd());
-		FklVMheap* h=fklNewVMheap();
-		FklVMvalue* tmpGlob=genGlobEnv(tmp->macroEnv,t,h);
+		FklVMgc* gc=fklNewVMgc();
+		FklVMvalue* tmpGlob=genGlobEnv(tmp->macroEnv,t,gc);
 		FklVMnode* prevVMs=fklGetGlobVMs()->h;
-		FklVM* tmpVM=fklNewTmpVM(NULL,h);
+		FklVM* tmpVM=fklNewTmpVM(NULL,gc);
 		tmpVM->callback=errorCallBack;
 		if(!tmpGlob)
 		{
@@ -156,19 +156,19 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 			fklFreeVMstack(tmpVM->stack);
 			fklFreeRunnables(tmpVM->rhead);
 			fklFreePtrStack(tmpVM->tstack);
-			fklFreeVMheap(tmpVM->heap);
+			fklFreeVMgc(tmpVM->gc);
 			fklFreeByteCodeAndLnt(t);
 			chdir(cwd);
 			free(cwd);
 			free(tmpVM);
 			return 2;
 		}
-		FklVMvalue* macroVMenv=fklCastPreEnvToVMenv(macroEnv,tmpGlob,tmpVM->heap);
+		FklVMvalue* macroVMenv=fklCastPreEnvToVMenv(macroEnv,tmpGlob,tmpVM->gc);
 		fklDestroyEnv(macroEnv);
 		macroEnv=NULL;
 		uint32_t start=t->bc->size;
 		fklCodelntCopyCat(t,tmp->proc);
-		fklInitVMRunningResource(tmpVM,macroVMenv,tmpVM->heap,t,start,tmp->proc->bc->size);
+		fklInitVMRunningResource(tmpVM,macroVMenv,tmpVM->gc,t,start,tmp->proc->bc->size);
 		FklAstCptr* tmpCptr=NULL;
 		chdir(cwd);
 		free(cwd);
@@ -183,9 +183,9 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 				else
 					fprintf(stderr,"error of compiling: Circular reference occur in expanding macro at line %u\n",objCptr->curline);
 				fklFreeByteCodeAndLnt(t);
-				FklVMheap* h=tmpVM->heap;
+				FklVMgc* gc=tmpVM->gc;
 				fklUninitVMRunningResource(tmpVM,prevVMs);
-				fklFreeVMheap(h);
+				fklFreeVMgc(gc);
 				return 2;
 			}
 			fklReplaceCptr(objCptr,tmpCptr);
@@ -196,15 +196,15 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 		{
 			fklJoinAllThread(prevVMs);
 			fklFreeByteCodeAndLnt(t);
-			FklVMheap* h=tmpVM->heap;
+			FklVMgc* gc=tmpVM->gc;
 			fklUninitVMRunningResource(tmpVM,prevVMs);
-			fklFreeVMheap(h);
+			fklFreeVMgc(gc);
 			return 2;
 		}
 		fklFreeByteCodeAndLnt(t);
-		h=tmpVM->heap;
+		gc=tmpVM->gc;
 		fklUninitVMRunningResource(tmpVM,prevVMs);
-		fklFreeVMheap(h);
+		fklFreeVMgc(gc);
 		return 1;
 	}
 	fklFreeByteCodeAndLnt(t);

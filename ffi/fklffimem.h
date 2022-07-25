@@ -25,7 +25,7 @@ int fklFfiIsNull(FklFfiMem*);
 FklVMudata* fklFfiCastVMvalueIntoMem(FklVMvalue*);
 int fklFfiIsCastableVMvalueType(FklVMvalue* v);
 int fklFfiIsValuableMem(FklFfiMem* mem);
-FklVMvalue* fklFfiNewVMvalue(FklFfiMem* mem,FklVMstack* stack,FklVMheap* heap);
+FklVMvalue* fklFfiNewVMvalue(FklFfiMem* mem,FklVMstack* stack,FklVMgc* gc);
 FklVMvalue* fklFfiGetRel(void);
 #ifdef __cplusplus
 }

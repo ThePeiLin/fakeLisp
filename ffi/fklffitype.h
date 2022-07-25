@@ -207,7 +207,7 @@ FklTypeId_t fklFfiTypedef(FklVMvalue*,FklSid_t typeName);
 				,fklFfiGetErrorType(ERRORTYPE)\
 				,errorMessage)\
 			,(EXE)->stack\
-			,(EXE)->heap);\
+			,(EXE)->gc);\
 	free(errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
 	return;\

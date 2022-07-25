@@ -38,9 +38,9 @@ typedef enum
 
 typedef struct FklCompEnv FklCompEnv;
 typedef struct FklVMenv FklVMenv;
-typedef struct FklVMheap FklVMheap;
+typedef struct FklVMgc FklVMgc;
 
 void fklInitCompEnv(FklCompEnv* curEnv);
-void fklInitGlobEnv(FklVMenv*,FklVMheap*);
+void fklInitGlobEnv(FklVMenv*,FklVMgc*);
 FklSid_t fklGetBuiltInErrorType(FklBuiltInErrorType);
 #endif

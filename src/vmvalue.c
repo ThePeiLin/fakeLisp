@@ -99,7 +99,8 @@ static FklVMvalue* __fkl_bytevector_copyer(FklVMvalue* obj,FklVMstack* s,FklVMgc
 
 static FklVMvalue* __fkl_pair_copyer(FklVMvalue* obj,FklVMstack* s,FklVMgc* gc)
 {
-	return fklNewVMpairV(obj->u.pair->car,obj->u.pair->cdr,s,gc);
+//	return fklNewVMpairV(obj->u.pair->car,obj->u.pair->cdr,s,gc);
+	return fklCopyVMlistOrAtom(obj,s,gc);
 }
 
 static FklVMvalue* __fkl_box_copyer(FklVMvalue* obj,FklVMstack* s,FklVMgc* gc)

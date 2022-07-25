@@ -189,6 +189,7 @@ typedef struct FklVM
 	struct FklLineNumberTable* lnt;
 	void (*callback)(void*);
 	FklVMvalue* nextCall;
+	FklVMvalue* nextCallBackUp;
 	jmp_buf buf;
 	int nny;
 }FklVM;

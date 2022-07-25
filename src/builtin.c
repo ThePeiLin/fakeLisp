@@ -208,6 +208,22 @@ static int (*const valueAppend[])(FklVMvalue* retval,FklVMvalue* cur)=
 	NULL,
 };
 
+void builtin_copy(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.copy",FKL_ERR_TOOFEWARG,runnable,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.copy",FKL_ERR_TOOMANYARG,runnable,exe);
+	FklVMvalue* retval=fklCopyVMvalue(obj,stack,exe->gc);
+	if(!retval)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.append",FKL_ERR_WRONGARG,runnable,exe);
+	fklNiReturn(retval,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 void builtin_append(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -220,6 +236,8 @@ void builtin_append(ARGL)
 		cur=fklNiGetArg(&ap,stack);
 		if(cur)
 			retval=fklCopyVMvalue(retval,stack,exe->gc);
+		if(!retval)
+			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.append",FKL_ERR_WRONGARG,runnable,exe);
 		for(;cur;cur=fklNiGetArg(&ap,stack))
 		{
 			if(valueAppend[retval->type](retval,cur))
@@ -3523,6 +3541,7 @@ static const struct SymbolFuncStruct
 	{"cdr",                   builtin_cdr,                     },
 	{"cons",                  builtin_cons,                    },
 	{"append",                builtin_append,                  },
+	{"copy",                  builtin_copy,                    },
 	{"atom",                  builtin_atom,                    },
 	{"null",                  builtin_null,                    },
 	{"not",                   builtin_not,                     },

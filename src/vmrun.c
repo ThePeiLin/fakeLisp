@@ -232,6 +232,7 @@ FklVM* fklNewVM(FklByteCode* mainCode)
 	exe->size=0;
 	exe->rhead=NULL;
 	exe->nextCall=NULL;
+	exe->nextCallBackUp=NULL;
 	exe->tid=pthread_self();
 	if(mainCode!=NULL)
 	{
@@ -265,6 +266,7 @@ FklVM* fklNewTmpVM(FklByteCode* mainCode,FklVMgc* gc)
 	exe->size=0;
 	exe->rhead=NULL;
 	exe->nextCall=NULL;
+	exe->nextCallBackUp=NULL;
 	if(mainCode!=NULL)
 	{
 		exe->code=fklCopyMemory(mainCode->code,mainCode->size);
@@ -321,6 +323,7 @@ void* ThreadVMfunc(void* p)
 
 void callCallableObj(FklVMvalue* v,FklVM* exe)
 {
+	exe->nextCallBackUp=exe->nextCall;
 	exe->nextCall=NULL;
 	switch(v->type)
 	{
@@ -984,6 +987,8 @@ void fklGC_markRootToGrey(FklVM* exe)
 	FklVMgc* gc=exe->gc;
 	if(exe->nextCall)
 		fklGC_toGrey(exe->nextCall,gc);
+	if(exe->nextCallBackUp)
+		fklGC_toGrey(exe->nextCallBackUp,gc);
 //	pthread_rwlock_rdlock(&exe->rlock);
 	for(FklVMrunnable* cur=exe->rhead;cur;cur=cur->prev)
 		fklGC_toGrey(cur->localenv,gc);
@@ -1347,6 +1352,7 @@ FklVM* fklNewThreadVM(FklVMproc* mainCode,FklVMgc* gc)
 	exe->gc=gc;
 	exe->callback=threadErrorCallBack;
 	exe->nextCall=NULL;
+	exe->nextCallBackUp=NULL;
 	exe->nny=0;
 	exe->thrds=1;
 	pthread_rwlock_init(&exe->rlock,NULL);
@@ -1372,6 +1378,7 @@ FklVM* fklNewThreadCallableObjVM(FklVMrunnable* r,FklVMgc* gc,FklVMvalue* nextCa
 	exe->gc=gc;
 	exe->callback=threadErrorCallBack;
 	exe->nextCall=nextCall;
+	exe->nextCallBackUp=NULL;
 	exe->nny=0;
 	exe->thrds=1;
 	pthread_rwlock_init(&exe->rlock,NULL);

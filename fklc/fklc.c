@@ -8,6 +8,20 @@
 #include"fsym.h"
 #define ARGL FklVM* exe,pthread_rwlock_t* gclock
 
+#define FKLC_RAISE_ERROR(WHO,ERRORTYPE,EXE) do{\
+	char* errorMessage=fklcGenErrorMessage((ERRORTYPE));\
+	FklVMvalue* err=fklNewVMvalueToStack(FKL_TYPE_ERR\
+			,fklNewVMerrorCstr((WHO)\
+				,fklcGetErrorType(ERRORTYPE)\
+				,errorMessage)\
+			,(EXE)->stack\
+			,(EXE)->gc);\
+	free(errorMessage);\
+	fklRaiseVMerror(err,(EXE));\
+	return;\
+}while(0)
+
+
 #define PREDICATE(condtion,err_infor) {\
 	FKL_NI_BEGIN(exe);\
 	FklVMrunnable* runnable=exe->rhead;\
@@ -27,7 +41,9 @@ void fklc_fbc_p(ARGL) PREDICATE(fklcIsFbc(val),"fklc.fbc?")
 
 #undef PREDICATE
 
-#define IS_LITERAL(V) ((V)==FKL_VM_NIL||fklIsVMnumber(V)||FKL_IS_CHR(V)||FKL_IS_STR(V)||FKL_IS_SYM(V))
+#define IS_LITERAL(V) ((V)==FKL_VM_NIL||fklIsVMnumber(V)||FKL_IS_CHR(V)||FKL_IS_STR(V)||FKL_IS_BYTEVECTOR(V)||FKL_IS_SYM(V))
+
+#define IS_COMPILABLE(V) (IS_LITERAL(V)||FKL_IS_PAIR(V)||FKL_IS_BOX(V)||FKL_IS_VECTOR(V))
 
 #define COMPILE_INTEGER(V) (FKL_IS_I32(V)?\
 		fklNewPushI32ByteCode(FKL_GET_I32(V)):\
@@ -112,13 +128,28 @@ void fklc_compile_string(ARGL) CONST_COMPILE("fklc.compile-string",str,FKL_IS_ST
 void fklc_compile_bytevector(ARGL) CONST_COMPILE("fklc.compile-bytevector",bvec,FKL_IS_BYTEVECTOR,fklNewPushBvecByteCode(bvec->u.bvec))
 void fklc_compile_integer(ARGL) CONST_COMPILE("fklc.compile-integer",integer,fklIsInt,COMPILE_INTEGER(integer))
 void fklc_compile_number(ARGL) CONST_COMPILE("fklc.compile-number",number,fklIsVMnumber,COMPILE_NUMBER(number))
-void fklc_compile_pair(ARGL) CONST_COMPILE("fklc.compile-pair",pair,FKL_IS_PAIR,fklcNewPushPairByteCode(pair))
-void fklc_compile_vector(ARGL) CONST_COMPILE("fklc.compile-vector",vec,FKL_IS_VECTOR,fklcNewPushVectorByteCode(vec))
-void fklc_compile_box(ARGL) CONST_COMPILE("fklc.compile-box",box,FKL_IS_BOX,fklcNewPushBoxByteCode(box))
 void fklc_compile_atom_literal(ARGL) CONST_COMPILE("fklc.compile-atom-literal",literal,IS_LITERAL,COMPILE_LITERAL(literal))
+void fklc_compile_obj(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.compile-obj",FKL_ERR_TOOMANYARG,runnable,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.compile-obj",FKL_ERR_TOOFEWARG,runnable,exe);
+	if(!IS_COMPILABLE(obj))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.compile-obj",FKL_ERR_WRONGARG,runnable,exe);
+	FklByteCode* bc=fklcNewPushObjByteCode(obj);
+	if(!bc)
+		FKLC_RAISE_ERROR("fklc.compile-obj",FKL_FKLC_ERR_IMCOMPILABLE_OBJ_OCCUR,exe);
+	fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_USERDATA,fklcNewFbcUd(bc),stack,exe->gc),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
 
 #undef CONST_COMPILE
 #undef IS_LITERAL
+#undef IS_COMPILABLE
 void _fklInit(FklSymbolTable* glob,FklVMvalue* rel,FklVMlist* GlobVMs)
 {
 	fklSetGlobVMs(GlobVMs);

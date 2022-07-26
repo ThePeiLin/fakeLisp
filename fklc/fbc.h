@@ -12,6 +12,7 @@ int fklcIsFbc(FklVMvalue*);
 void fklcInit(FklVMvalue* rel);
 FklVMudata* fklcNewFbcUd(FklByteCode* code);
 FklVMvalue* fklcGetRel(void);
+FklByteCode* fklcNewPushObjByteCode(FklVMvalue*);
 FklByteCode* fklcNewPushPairByteCode(FklVMvalue*);
 FklByteCode* fklcNewPushBoxByteCode(FklVMvalue*);
 FklByteCode* fklcNewPushVectorByteCode(FklVMvalue*);

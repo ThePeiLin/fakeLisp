@@ -13,6 +13,7 @@
     compile-number
     make-push-nil
     compile-atom-literal
+    compile-obj
     fbc->bytevector
     bytevector->fbc
     fbc?)
@@ -30,6 +31,7 @@
   (define compile-number (dlsym fklc "fklc_compile_number"))
   (define make-push-nil (dlsym fklc "fklc_make_push_nil"))
   (define compile-atom-literal (dlsym fklc "fklc_compile_atom_literal"))
+  (define compile-obj (dlsym fklc "fklc_compile_obj"))
   (define fbc->bytevector (dlsym fklc "fklc_fbc_to_bytevector"))
   (define bytevector->fbc (dlsym fklc "fklc_bytevector_to_fbc"))
   )

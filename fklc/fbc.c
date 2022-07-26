@@ -79,3 +79,82 @@ void fklcCodeAppend(FklByteCode** fir,const FklByteCode* sec)
 		*fir=fklNewByteCode(0);
 	fklCodeCat(*fir,sec);
 }
+
+#define IS_LITERAL(V) ((V)==FKL_VM_NIL||fklIsVMnumber(V)||FKL_IS_CHR(V)||FKL_IS_STR(V)||FKL_IS_BYTEVECTOR(V)||FKL_IS_SYM(V))
+
+#define IS_COMPILABLE(V) (IS_LITERAL(V)||FKL_IS_PAIR(V)||FKL_IS_BOX(V)||FKL_IS_VECTOR(V))
+
+#define COMPILE_INTEGER(V) (FKL_IS_I32(V)?\
+		fklNewPushI32ByteCode(FKL_GET_I32(V)):\
+		FKL_IS_I64(V)?\
+		fklNewPushI64ByteCode((V)->u.i64):\
+		fklNewPushBigIntByteCode((V)->u.bigInt))
+
+#define COMPILE_NUMBER(V) (fklIsInt(V)?COMPILE_INTEGER(V):fklNewPushF64ByteCode((V)->u.f64))
+
+#define COMPILE_LITERAL(V) ((V)==FKL_VM_NIL?\
+		fklNewPushNilByteCode():\
+		fklIsVMnumber(V)?\
+		COMPILE_NUMBER(V):\
+		FKL_IS_CHR(V)?\
+		fklNewPushCharByteCode(FKL_GET_CHR(V)):\
+		FKL_IS_STR(V)?\
+		fklNewPushStrByteCode((V)->u.str):\
+		FKL_IS_SYM(V)?\
+		fklNewPushSidByteCode(FKL_GET_SYM(V)):\
+		fklNewPushBvecByteCode((V)->u.bvec))
+
+FklByteCode* fklcNewPushObjByteCode(FklVMvalue* obj)
+{
+	FklPtrStack* stack=fklNewPtrStack(32,16);
+	fklPushPtrStack(obj,stack);
+	FklByteCode* retval=fklNewByteCode(0);
+	while(!fklIsPtrStackEmpty(stack))
+	{
+		FklVMvalue* t=fklPopPtrStack(stack);
+		if(!IS_COMPILABLE(t))
+		{
+			fklFreePtrStack(stack);
+			fklFreeByteCode(retval);
+			return NULL;
+		}
+		if(IS_LITERAL(t))
+		{
+			FklByteCode* tmp=COMPILE_LITERAL(t);
+			fklReCodeCat(tmp,retval);
+		}
+		else
+		{
+			FklByteCode* tmp=NULL;
+			if(FKL_IS_PAIR(t))
+			{
+				tmp=fklNewByteCode(sizeof(char));
+				tmp->code[0]=FKL_OP_PUSH_PAIR;
+				fklPushPtrStack(t->u.pair->car,stack);
+				fklPushPtrStack(t->u.pair->cdr,stack);
+			}
+			else if(FKL_IS_BOX(t))
+			{
+				tmp=fklNewByteCode(sizeof(char));
+				tmp->code[0]=FKL_OP_PUSH_BOX;
+				fklPushPtrStack(t->u.box,stack);
+			}
+			else
+			{
+				tmp=fklNewByteCode(sizeof(char)+sizeof(uint64_t));
+				tmp->code[0]=FKL_OP_PUSH_VECTOR;
+				fklSetU64ToByteCode(tmp->code+sizeof(char),t->u.vec->size);
+				for(size_t i=0;i<t->u.vec->size;i++)
+					fklPushPtrStack(t->u.vec->base[i],stack);
+			}
+			fklReCodeCat(tmp,retval);
+		}
+	}
+	return retval;
+}
+
+#undef COMPILE_INTEGER
+#undef COMPILE_NUMBER
+#undef COMPILE_LITERAL
+#undef IS_LITERAL
+#undef IS_COMPILABLE

@@ -418,19 +418,7 @@ inline void fklWaitGC(FklVMgc* gc)
 
 void B_dummy(FklVM* exe)
 {
-	FklVMrunnable* currunnable=exe->rhead;
-	uint32_t scp=currunnable->scp;
-	FklVMstack* stack=exe->stack;
-	fklDBG_printByteCode(exe->code,scp,currunnable->cpc,stderr);
-	putc('\n',stderr);
-	fklDBG_printVMstack(exe->stack,stderr,1);
-	putc('\n',stderr);
-	fprintf(stderr,"stack->tp==%ld,stack->size==%ld\n",stack->tp,stack->size);
-	fprintf(stderr,"cp=%ld stack->bp=%ld\n%s\n",currunnable->cp-scp,stack->bp,fklGetOpcodeName((FklOpcode)(exe->code[currunnable->cp])));
-	fklDBG_printVMenv(currunnable->localenv->u.env,stderr);
-	putc('\n',stderr);
-	fprintf(stderr,"Wrong byts code!\n");
-	exit(EXIT_FAILURE);
+	FKL_ASSERT(0);
 }
 
 void B_push_nil(FklVM* exe)

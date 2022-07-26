@@ -69,10 +69,11 @@ void* fklReallocMem(void* o_block,void* n_block,FklMemMenager* memMenager)
 		if(((FklMem*)s->base[i])->block==o_block)
 		{
 			m=s->base[i];
+			m->block=n_block;
+			return n_block;
 			break;
 		}
-	m->block=n_block;
-	return n_block;
+	return NULL;
 }
 
 

@@ -5,7 +5,7 @@
 #include"bytecode.h"
 #include"compiler.h"
 #include"builtin.h"
-#include<stdatomic.h>
+//#include<stdatomic.h>
 #include<stdio.h>
 #include<stdint.h>
 #include<pthread.h>
@@ -100,7 +100,7 @@ typedef enum{
 
 typedef struct FklVMvalue
 {
-	_Atomic(FklVMvalueMark) mark;
+	FklVMvalueMark volatile mark;
 	FklValueType type;
 	union
 	{
@@ -188,8 +188,8 @@ typedef struct FklVM
 	struct FklVMgc* gc;
 	struct FklLineNumberTable* lnt;
 	void (*callback)(void*);
-	FklVMvalue* nextCall;
-	FklVMvalue* nextCallBackUp;
+	FklVMvalue* volatile nextCall;
+	FklVMvalue* volatile nextCallBackUp;
 	jmp_buf buf;
 	int nny;
 }FklVM;

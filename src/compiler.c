@@ -2342,8 +2342,9 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 				continue;
 			}
 			count++;
-			partsOfPath=(FklString**)realloc(partsOfPath,sizeof(FklString*)*count);
-			FKL_ASSERT(partsOfPath);
+			FklString** tmp=(FklString**)realloc(partsOfPath,sizeof(FklString*)*count);
+			FKL_ASSERT(tmp);
+			partsOfPath=tmp;
 			partsOfPath[count-1]=tmpAtm->type==FKL_TYPE_SYM?fklCopyString(tmpAtm->value.str):fklCopyString(tmpAtm->value.str);
 			pPartsOfPath=fklNextCptr(pPartsOfPath);
 		}

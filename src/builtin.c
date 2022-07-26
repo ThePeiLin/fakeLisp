@@ -1939,6 +1939,27 @@ void builtin_sref(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+#define BV_U_S_8_REF(TYPE,WHO) {\
+	FKL_NI_BEGIN(exe);\
+	FklVMrunnable* runnable=exe->rhead;\
+	FklVMvalue* bvec=fklNiGetArg(&ap,stack);\
+	FklVMvalue* place=fklNiGetArg(&ap,stack);\
+	if(fklNiResBp(&ap,stack))\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_TOOMANYARG,runnable,exe);\
+	if(!place||!bvec)\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_TOOFEWARG,runnable,exe);\
+	if(!fklIsInt(place)||!FKL_IS_BYTEVECTOR(bvec))\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_WRONGARG,runnable,exe);\
+	int64_t index=fklGetInt(place);\
+	size_t size=bvec->u.bvec->size;\
+	TYPE r=0;\
+	if(index<0||index>=size||size-index<sizeof(r))\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_INVALIDACCESS,runnable,exe);\
+	r=bvec->u.bvec->ptr[index];\
+	fklNiReturn(fklMakeVMint(r,stack,exe->gc),&ap,stack);\
+	fklNiEnd(&ap,stack);\
+}
+
 #define BV_LT_U64_REF(TYPE,WHO) {\
 	FKL_NI_BEGIN(exe);\
 	FklVMrunnable* runnable=exe->rhead;\
@@ -1956,17 +1977,17 @@ void builtin_sref(ARGL)
 	if(index<0||index>=size||size-index<sizeof(r))\
 	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_INVALIDACCESS,runnable,exe);\
 	for(size_t i=0;i<sizeof(r);i++)\
-	((uint8_t*)&r)[i]=bvec->u.bvec->ptr[index+i];\
+		((uint8_t*)&r)[i]=bvec->u.bvec->ptr[index+i];\
 	fklNiReturn(fklMakeVMint(r,stack,exe->gc),&ap,stack);\
 	fklNiEnd(&ap,stack);\
 }
 
-void builtin_bvs8ref(ARGL) BV_LT_U64_REF(int8_t,"builtin.bvs8ref")
+void builtin_bvs8ref(ARGL) BV_U_S_8_REF(int8_t,"builtin.bvs8ref")
 void builtin_bvs16ref(ARGL) BV_LT_U64_REF(int16_t,"builtin.bvs16ref")
 void builtin_bvs32ref(ARGL) BV_LT_U64_REF(int32_t,"builtin.bvs32ref")
 void builtin_bvs64ref(ARGL) BV_LT_U64_REF(int64_t,"builtin.bvs64ref")
 
-void builtin_bvu8ref(ARGL) BV_LT_U64_REF(uint8_t,"builtin.bvu8ref")
+void builtin_bvu8ref(ARGL) BV_U_S_8_REF(uint8_t,"builtin.bvu8ref")
 void builtin_bvu16ref(ARGL) BV_LT_U64_REF(uint16_t,"builtin.bvu16ref")
 	void builtin_bvu32ref(ARGL) BV_LT_U64_REF(uint32_t,"builtin.bvu32ref")
 void builtin_bvu64ref(ARGL)
@@ -1995,6 +2016,7 @@ void builtin_bvu64ref(ARGL)
 	fklNiEnd(&ap,stack);
 }
 #undef BV_LT_U64_REF
+#undef BV_U_S_8_REF
 
 #define BV_F_REF(TYPE,WHO) {\
 	FKL_NI_BEGIN(exe);\
@@ -2024,6 +2046,28 @@ void builtin_bvf32ref(ARGL) BV_F_REF(float,"builtin.bvf32ref")
 void builtin_bvf64ref(ARGL) BV_F_REF(double,"builtin.bvf32ref")
 #undef BV_F_REF
 
+#define SET_BV_LE_U8_REF(TYPE,WHO) {\
+	FKL_NI_BEGIN(exe);\
+	FklVMrunnable* runnable=exe->rhead;\
+	FklVMvalue* bvec=fklNiGetArg(&ap,stack);\
+	FklVMvalue* place=fklNiGetArg(&ap,stack);\
+	FklVMvalue* target=fklNiGetArg(&ap,stack);\
+	if(fklNiResBp(&ap,stack))\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_TOOMANYARG,runnable,exe);\
+	if(!place||!bvec||!target)\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_TOOFEWARG,runnable,exe);\
+	if(!fklIsInt(place)||!FKL_IS_BYTEVECTOR(bvec)||!fklIsInt(target))\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_WRONGARG,runnable,exe);\
+	int64_t index=fklGetInt(place);\
+	size_t size=bvec->u.bvec->size;\
+	TYPE r=fklGetInt(target);\
+	if(index<0||index>=size||size-index<sizeof(r))\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_INVALIDACCESS,runnable,exe);\
+	bvec->u.bvec->ptr[index]=r;\
+	fklNiReturn(target,&ap,stack);\
+	fklNiEnd(&ap,stack);\
+}
+
 #define SET_BV_REF(TYPE,WHO) {\
 	FKL_NI_BEGIN(exe);\
 	FklVMrunnable* runnable=exe->rhead;\
@@ -2047,12 +2091,12 @@ void builtin_bvf64ref(ARGL) BV_F_REF(double,"builtin.bvf32ref")
 	fklNiEnd(&ap,stack);\
 }
 
-void builtin_set_bvs8ref(ARGL) SET_BV_REF(int8_t,"builtin.set-bvs8ref!")
+void builtin_set_bvs8ref(ARGL) SET_BV_LE_U8_REF(int8_t,"builtin.set-bvs8ref!")
 void builtin_set_bvs16ref(ARGL) SET_BV_REF(int16_t,"builtin.set-bvs16ref!")
 void builtin_set_bvs32ref(ARGL) SET_BV_REF(int32_t,"builtin.set-bvs32ref!")
 void builtin_set_bvs64ref(ARGL) SET_BV_REF(int64_t,"builtin.set-bvs64ref!")
 
-void builtin_set_bvu8ref(ARGL) SET_BV_REF(uint8_t,"builtin.set-bvu8ref!")
+void builtin_set_bvu8ref(ARGL) SET_BV_LE_U8_REF(uint8_t,"builtin.set-bvu8ref!")
 void builtin_set_bvu16ref(ARGL) SET_BV_REF(uint16_t,"builtin.set-bvu16ref!")
 void builtin_set_bvu32ref(ARGL) SET_BV_REF(uint32_t,"builtin.set-bvu32ref!")
 void builtin_set_bvu64ref(ARGL) SET_BV_REF(uint64_t,"builtin.set-bvu64ref!")
@@ -2469,8 +2513,6 @@ void builtin_fgets(ARGL)
 	}
 	else
 	{
-		str=(char*)realloc(str,sizeof(char)*realRead);
-		FKL_ASSERT(str);
 		FklVMvalue* vmstr=fklNewVMvalueToStack(FKL_TYPE_STR,NULL,stack,exe->gc);
 		vmstr->u.str=(FklString*)malloc(sizeof(FklString)+fklGetInt(psize));
 		FKL_ASSERT(vmstr->u.str);
@@ -2849,6 +2891,8 @@ void builtin_apply(ARGL)
 		}
 		fklPushPtrStack(value,stack1);
 	}
+	if(!lastList)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.apply",FKL_ERR_TOOFEWARG,runnable,exe);
 	FklPtrStack* stack2=fklNewPtrStack(32,16);
 	if(!FKL_IS_PAIR(lastList)&&lastList!=FKL_VM_NIL)
 	{

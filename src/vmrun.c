@@ -959,9 +959,11 @@ FklVMgc* fklNewVMgc()
 
 void fklGC_toGrey(FklVMvalue* v,FklVMgc* gc)
 {
-	if(FKL_IS_PTR(v)&&atomic_load(&v->mark)!=FKL_MARK_B)
+	//if(FKL_IS_PTR(v)&&atomic_load(&v->mark)!=FKL_MARK_B)
+	if(FKL_IS_PTR(v)&&v->mark!=FKL_MARK_B)
 	{
-		atomic_store(&v->mark,FKL_MARK_G);
+		v->mark=FKL_MARK_G;
+//		atomic_store(&v->mark,FKL_MARK_G);
 		pthread_rwlock_wrlock(&gc->greylock);
 		gc->grey=newGreylink(v,gc->grey);
 		gc->greyNum++;
@@ -1110,9 +1112,11 @@ int fklGC_propagate(FklVMgc* gc)
 		free(g);
 	}
 	pthread_rwlock_unlock(&gc->greylock);
-	if(FKL_IS_PTR(v)&&atomic_load(&v->mark)==FKL_MARK_G)
+	//if(FKL_IS_PTR(v)&&atomic_load(&v->mark)==FKL_MARK_G)
+	if(FKL_IS_PTR(v)&&v->mark==FKL_MARK_G)
 	{
-		atomic_store(&v->mark,FKL_MARK_B);
+		v->mark=FKL_MARK_B;
+//		atomic_store(&v->mark,FKL_MARK_B);
 		propagateMark(v,gc);
 	}
 	return gc->grey==NULL;
@@ -1130,7 +1134,8 @@ void fklGC_collect(FklVMgc* gc,FklVMvalue** pw)
 	while(*phead)
 	{
 		FklVMvalue* cur=*phead;
-		if(atomic_exchange(&cur->mark,FKL_MARK_W)==FKL_MARK_W)
+		//if(atomic_exchange(&cur->mark,FKL_MARK_W)==FKL_MARK_W)
+		if(cur->mark==FKL_MARK_W)
 		{
 			*phead=cur->next;
 			cur->next=*pw;
@@ -1138,7 +1143,10 @@ void fklGC_collect(FklVMgc* gc,FklVMvalue** pw)
 			count++;
 		}
 		else
+		{
+			cur->mark=FKL_MARK_W;
 			phead=&cur->next;
+		}
 	}
 //	pthread_rwlock_wrlock(&gc->lock);
 	*phead=gc->head;

@@ -671,8 +671,9 @@ char** fklSplit(char* str,char* divstr,int* length)
 	while(pNext!=NULL)
 	{
 		count++;
-		strArry=(char**)realloc(strArry,sizeof(char*)*count);
-		FKL_ASSERT(strArry);
+		char** tstrArry=(char**)realloc(strArry,sizeof(char*)*count);
+		FKL_ASSERT(tstrArry);
+		strArry=tstrArry;
 		strArry[count-1]=pNext;
 		pNext=strtok(NULL,divstr);
 	}
@@ -773,8 +774,9 @@ char* fklCharBufToCstr(const char* buf,size_t size)
 		len++;
 	}
 	str[len]='\0';
-	str=(char*)realloc(str,(strlen(str)+1)*sizeof(char));
+	char* tstr=(char*)realloc(str,(strlen(str)+1)*sizeof(char));
 	FKL_ASSERT(str);
+	str=tstr;
 	return str;
 }
 
@@ -863,14 +865,16 @@ char* fklCastEscapeCharBuf(const char* str,char end,size_t* size)
 		strSize++;
 		if(strSize>memSize-1)
 		{
-			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+FKL_MAX_STRING_SIZE));
+			char* ttmp=(char*)realloc(tmp,sizeof(char)*(memSize+FKL_MAX_STRING_SIZE));
 			FKL_ASSERT(tmp);
+			tmp=ttmp;
 			memSize+=FKL_MAX_STRING_SIZE;
 		}
 		tmp[strSize-1]=ch;
 	}
-	tmp=(char*)realloc(tmp,strSize*sizeof(char));
-	FKL_ASSERT(!strSize||tmp);
+	char* ttmp=(char*)realloc(tmp,strSize*sizeof(char));
+	FKL_ASSERT(!strSize||ttmp);
+	tmp=ttmp;
 	*size=strSize;
 	return tmp;
 }

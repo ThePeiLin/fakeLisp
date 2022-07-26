@@ -18,8 +18,9 @@ char* fklReadLine(FILE* fp,size_t* size)
 		(*size)++;
 		if((*size)>memSize)
 		{
-			tmp=(char*)realloc(tmp,sizeof(char)*(memSize+FKL_MAX_STRING_SIZE));
-			FKL_ASSERT(tmp);
+			char* ttmp=(char*)realloc(tmp,sizeof(char)*(memSize+FKL_MAX_STRING_SIZE));
+			FKL_ASSERT(ttmp);
+			tmp=ttmp;
 			memSize+=FKL_MAX_STRING_SIZE;
 		}
 		tmp[*size-1]=ch;
@@ -27,8 +28,9 @@ char* fklReadLine(FILE* fp,size_t* size)
 			break;
 		ch=getc(fp);
 	}
-	tmp=(char*)realloc(tmp,sizeof(char)*(*size));
-	FKL_ASSERT(!*size||tmp);
+	char* ttmp=(char*)realloc(tmp,sizeof(char)*(*size));
+	FKL_ASSERT(!*size||ttmp);
+	tmp=ttmp;
 	return tmp;
 }
 

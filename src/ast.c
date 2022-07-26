@@ -1134,9 +1134,7 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 						"qsquote":
 						pattern==UNQUOTE?
 						"unquote":
-						pattern==UNQTESP?
-						"unqtesp":
-						NULL;
+						"unqtesp";
 					fklPushPtrStack(v,cStack);
 					prefix->type=FKL_TYPE_ATM;
 					prefix->u.atom=fklNewAtom(FKL_TYPE_SYM,v->cptr->outer);

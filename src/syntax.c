@@ -198,14 +198,8 @@ int fklIsValid(const FklAstCptr* objCptr)
 {
 	if(objCptr->type==FKL_TYPE_PAIR)
 	{
-		objCptr=&objCptr->u.pair->car;
-		const FklAstCptr* fklPrevCptr=NULL;
-		while(objCptr!=NULL)
-		{
-			fklPrevCptr=objCptr;
-			objCptr=fklNextCptr(objCptr);
-		}
-		if(fklPrevCptr->outer->cdr.type!=FKL_TYPE_NIL)return 0;
+		if(!fklIsListCptr(objCptr))
+			return 0;
 	}
 	return 1;
 }

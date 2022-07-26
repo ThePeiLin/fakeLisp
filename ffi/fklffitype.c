@@ -592,8 +592,9 @@ static void initStructTypeId(FklTypeId_t id,FklSid_t structNameId,uint32_t num,F
 	}
 	FklDefTypeUnion* pst=&GlobTypeUnionList.ul[id-1];
 	FklDefStructType* ost=(FklDefStructType*)FKL_GET_TYPES_PTR(pst->st);
-	ost=(FklDefStructType*)realloc(ost,sizeof(FklDefStructType));
-	FKL_ASSERT(ost);
+	FklDefStructType* tost=(FklDefStructType*)realloc(ost,sizeof(FklDefStructType));
+	FKL_ASSERT(tost);
+	ost=tost;
 	ost->type=structNameId;
 	ost->totalSize=totalSize;
 	ost->align=align;
@@ -733,8 +734,9 @@ static void initUnionTypeId(FklTypeId_t id,FklSid_t unionNameId,uint32_t num,Fkl
 	}
 	FklDefTypeUnion* put=&GlobTypeUnionList.ul[id-1];
 	FklDefUnionType* out=(FklDefUnionType*)FKL_GET_TYPES_PTR(put->ut);
-	out=(FklDefUnionType*)realloc(out,sizeof(FklDefUnionType)+num);
-	FKL_ASSERT(out);
+	FklDefUnionType* tout=(FklDefUnionType*)realloc(out,sizeof(FklDefUnionType)+num);
+	FKL_ASSERT(tout);
+	out=tout;
 	out->type=unionNameId;
 	out->maxSize=maxSize;
 	out->align=align;

@@ -55,8 +55,11 @@ typedef struct FklHashTable
 	FklHashTableNode** list;
 	size_t num;
 	size_t size;
-	double threshold;
 	struct FklHashTableMethodTable* t;
+	double threshold;
+	int thresholdInc;
+	size_t linkNum;
+	int linkNumInc;
 }FklHashTable;
 
 typedef struct FklHashTableMethodTable
@@ -68,7 +71,10 @@ typedef struct FklHashTableMethodTable
 }FklHashTableMethodTable;
 
 FklHashTable* fklNewHashTable(size_t size
+		,size_t linkNum
+		,int linkNumInc
 		,double threshold
+		,int thresholdInc
 		,FklHashTableMethodTable*);
 void* fklGetHashItem(void* key,FklHashTable*);
 void* fklPutReplHashItem(void* item,FklHashTable*);

@@ -1139,10 +1139,13 @@ void fklWriteStringToCstr(char* c_str,const FklString* str)
 }
 
 FklHashTable* fklNewHashTable(size_t size
+		,size_t linkNum
+		,int linkNumInc
 		,double threshold
+		,int thresholdInc
 		,FklHashTableMethodTable* t)
 {
-	FKL_ASSERT(size);
+	FKL_ASSERT(size&&linkNum&&linkNumInc&&thresholdInc&&threshold!=0.0);
 	FklHashTable* r=(FklHashTable*)malloc(sizeof(FklHashTable));
 	FKL_ASSERT(r);
 	FklHashTableNode** base=(FklHashTableNode**)calloc(size,sizeof(FklHashTableNode*));
@@ -1153,7 +1156,10 @@ FklHashTable* fklNewHashTable(size_t size
 	r->list=list;
 	r->num=0;
 	r->size=size;
+	r->linkNum=linkNum;
+	r->linkNumInc=linkNumInc;
 	r->threshold=threshold;
+	r->thresholdInc=thresholdInc;
 	r->t=t;
 	return r;
 }
@@ -1178,6 +1184,11 @@ static FklHashTableNode* newHashTableNode(void* item,FklHashTableNode* next)
 	return node;
 }
 
+#define REHASH() if(((double)table->num/table->size)>table->threshold)\
+	fklRehashTable(table,table->thresholdInc);\
+	else if(i>table->linkNum)\
+	fklRehashTable(table,table->linkNumInc)
+
 void* fklPutReplHashItem(void* item,FklHashTable* table)
 {
 	size_t (*__hashFunc)(void*,FklHashTable*)=table->t->__hashFunc;
@@ -1191,10 +1202,7 @@ void* fklPutReplHashItem(void* item,FklHashTable* table)
 	*pp=newHashTableNode(item,NULL);
 	table->list[table->num]=*pp;
 	table->num++;
-	if(((double)table->num/table->size)>table->threshold)
-		fklRehashTable(table,1);
-	else if(i>4)
-		fklRehashTable(table,2);
+	REHASH();
 	return item;
 }
 
@@ -1214,10 +1222,7 @@ void* fklPutNoRpHashItem(void* item,FklHashTable* table)
 	*pp=newHashTableNode(item,NULL);
 	table->list[table->num]=*pp;
 	table->num++;
-	if(((double)table->num/table->size)>table->threshold)
-		fklRehashTable(table,1);
-	else if(i>4)
-		fklRehashTable(table,2);
+	REHASH();
 	return item;
 }
 

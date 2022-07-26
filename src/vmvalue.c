@@ -907,7 +907,7 @@ FklVMenv* fklNewGlobVMenv(FklVMvalue* prev,FklVMgc* gc)
 	FKL_ASSERT(tmp);
 	pthread_mutex_init(&tmp->lock,NULL);
 	tmp->prev=prev;
-	tmp->t=fklNewHashTable(512,0.75,&VMenvHashMethTable);
+	tmp->t=fklNewHashTable(512,4,2,0.75,1,&VMenvHashMethTable);
 	fklSetRef(&tmp->prev,prev,gc);
 	fklInitGlobEnv(tmp,gc);
 	return tmp;
@@ -919,7 +919,7 @@ FklVMenv* fklNewVMenv(FklVMvalue* prev,FklVMgc* gc)
 	FKL_ASSERT(tmp);
 	pthread_mutex_init(&tmp->lock,NULL);
 	tmp->prev=prev;
-	tmp->t=fklNewHashTable(8,0.75,&VMenvHashMethTable);
+	tmp->t=fklNewHashTable(8,4,2,0.75,1,&VMenvHashMethTable);
 	fklSetRef(&tmp->prev,prev,gc);
 	return tmp;
 }

@@ -3078,7 +3078,7 @@ FklCompEnv* fklNewGlobCompEnv(FklCompEnv* prev)
 		prev->refcount+=1;
 	tmp->prefix=NULL;
 	tmp->exp=NULL;
-	tmp->defs=fklNewHashTable(512,0.75,&CompEnvHashMethodTable);
+	tmp->defs=fklNewHashTable(512,4,2,0.75,1,&CompEnvHashMethodTable);
 	tmp->n=0;
 	tmp->macro=NULL;
 	tmp->keyWords=NULL;
@@ -3097,7 +3097,7 @@ FklCompEnv* fklNewCompEnv(FklCompEnv* prev)
 		prev->refcount+=1;
 	tmp->prefix=NULL;
 	tmp->exp=NULL;
-	tmp->defs=fklNewHashTable(8,0.75,&CompEnvHashMethodTable);
+	tmp->defs=fklNewHashTable(8,4,2,0.75,1,&CompEnvHashMethodTable);
 	tmp->n=0;
 	tmp->macro=NULL;
 	tmp->keyWords=NULL;

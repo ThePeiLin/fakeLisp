@@ -410,7 +410,7 @@ FklVMvalue* fklNewVMpairV(FklVMvalue* car,FklVMvalue* cdr,FklVMstack*,FklVMgc*);
 FklVMchanl* fklNewVMchanl(int32_t size);
 
 void fklFreeVMchanl(FklVMchanl*);
-int32_t fklGetNumVMchanl(FklVMchanl*);
+//int32_t fklGetNumVMchanl(FklVMchanl*);
 
 void fklFreeVMproc(FklVMproc*);
 

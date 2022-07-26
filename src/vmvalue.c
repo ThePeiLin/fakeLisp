@@ -521,14 +521,14 @@ FklVMchanl* fklNewVMchanl(int32_t maxSize)
 	return tmp;
 }
 
-int32_t fklGetNumVMchanl(FklVMchanl* ch)
-{
-	pthread_rwlock_rdlock((pthread_rwlock_t*)&ch->lock);
-	uint32_t i=0;
-	i=fklLengthPtrQueue(ch->messages);
-	pthread_rwlock_unlock((pthread_rwlock_t*)&ch->lock);
-	return i;
-}
+//int32_t fklGetNumVMchanl(FklVMchanl* ch)
+//{
+//	pthread_rwlock_rdlock((pthread_rwlock_t*)&ch->lock);
+//	uint32_t i=0;
+//	i=fklLengthPtrQueue(ch->messages);
+//	pthread_rwlock_unlock((pthread_rwlock_t*)&ch->lock);
+//	return i;
+//}
 
 void fklFreeVMchanl(FklVMchanl* ch)
 {

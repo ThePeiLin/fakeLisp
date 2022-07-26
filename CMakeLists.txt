@@ -28,7 +28,7 @@ endif()
 set(INTERPRETER_TARGET_NAME fakeLisp)
 set(COMPILER_TARGET_NAME fakeLispc)
 set(BYTECODE_PRINTER_TARGET_NAME fakeLispp)
-set(BTK_TARGET_NAME btk)
+#set(BTK_TARGET_NAME btk)
 set(LIBFKL_TARGET_NAME fkl)
 set(FFI_TARGET_NAME fklffi)
 set(FKLC_TARGET_NAME fklc)
@@ -44,17 +44,17 @@ file(GLOB COMPILER_SOURCE "src/fakeLispc.c")
 
 file(GLOB BYTECODE_PRINTER_SOURCE "src/fakeLispp.c")
 
-file(GLOB BTK_SOURCE "src/btk.c")
+#file(GLOB BTK_SOURCE "src/btk.c")
 
 file(GLOB FFI_SOURCE "ffi/*.c")
 
 file(GLOB FKLC_SOURCE "fklc/*.c")
 
 #btk.so
-add_library(${BTK_TARGET_NAME}
-	MODULE
-	${BTK_SOURCE})
-set_target_properties(${BTK_TARGET_NAME} PROPERTIES PREFIX "")
+#add_library(${BTK_TARGET_NAME}
+#	MODULE
+#	${BTK_SOURCE})
+#set_target_properties(${BTK_TARGET_NAME} PROPERTIES PREFIX "")
 
 #fklffi.so
 add_library(${FFI_TARGET_NAME}
@@ -74,7 +74,8 @@ list(REMOVE_ITEM LIBFKL_SOURCE
 	"${PROJECT_SOURCE_DIR}/src/fakeLisp.c"
 	"${PROJECT_SOURCE_DIR}/src/fakeLispc.c"
 	"${PROJECT_SOURCE_DIR}/src/fakeLispp.c"
-	"${PROJECT_SOURCE_DIR}/src/btk.c")
+	#"${PROJECT_SOURCE_DIR}/src/btk.c"
+	)
 
 add_library(${LIBFKL_TARGET_NAME}
 	STATIC
@@ -102,7 +103,7 @@ target_link_libraries(${INTERPRETER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 target_link_libraries(${BYTECODE_PRINTER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 
-target_link_libraries(${BTK_TARGET_NAME} ${LIBFKL_TARGET_NAME})
+#target_link_libraries(${BTK_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 target_link_libraries(${FFI_TARGET_NAME} ${LIBFKL_TARGET_NAME} ffi)
 target_link_libraries(${FKLC_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 

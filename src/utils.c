@@ -302,7 +302,7 @@ int fklIsNumberCharBuf(const char* buf,size_t len)
 		return 0;
 	else
 	{
-		if(len>3&&(!strncmp(buf+i,"0x",2)||!strncmp(buf+i,"0X",2)))
+		if(len>2&&(!strncmp(buf+i,"0x",2)||!strncmp(buf+i,"0X",2)))
 		{
 			for(i+=2;i<len;i++)
 			{

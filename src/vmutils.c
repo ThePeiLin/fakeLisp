@@ -588,6 +588,9 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 					case FKL_TYPE_DLL:
 						fprintf(fp,"<#dll>");
 						break;
+					case FKL_TYPE_ENV:
+						fprintf(fp,"#<env>");
+						break;
 					case FKL_TYPE_DLPROC:
 						if(v->u.dlproc->sid)
 						{
@@ -688,6 +691,9 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 						}
 						else
 							fputs("#<dlproc>",fp);
+						break;
+					case FKL_TYPE_ENV:
+						fprintf(fp,"#<env>");
 						break;
 					case FKL_TYPE_ERR:
 						fprintf(fp,"#<err w:");

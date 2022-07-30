@@ -295,7 +295,8 @@ void fklRecycleUintStack(FklUintStack* stack)
 	}
 }
 
-#define FKL_BIG_INT_RADIX (10)
+#define FKL_BIG_INT_RADIX (256)
+#define FKL_BIG_INT_BITS (8)
 
 FklBigInt* fklNewBigInt(int64_t v)
 {
@@ -417,7 +418,7 @@ FklBigInt* fklNewBigIntFromString(const FklString* str)
 		for(;i<len&&isxdigit(buf[i]);i++)
 		{
 			fklMulBigIntI(r,16);
-			fklAddBigIntI(r,isdigit(buf[i])?buf[i-1]-'0':toupper(buf[i])-'A'+10);
+			fklAddBigIntI(r,isdigit(buf[i])?buf[i]-'0':toupper(buf[i])-'A'+10);
 		}
 		r->neg=neg;
 	}
@@ -520,16 +521,125 @@ FklBigInt* fklNewBigIntFromMem(const void* mem,size_t size)
 	for(uint64_t i=0;i<num;i++)
 	{
 		uint8_t n=((uint8_t*)mem)[i];
-		if(n>9)
-		{
-			free(t->digits);
-			free(t);
-			return NULL;
-		}
 		t->digits[i]=n;
 	}
 	return t;
 }
+
+static const struct
+{
+	uint64_t base;
+	size_t pow;
+}BASE8[]=
+{
+	{0,   0, },
+	{0,   0, },
+	{0,   0, },
+	{0,   0, },
+	{0,   0, },
+	{0,   0, },
+	{0,   0, },
+	{64,  2, },
+	{0,   0, },
+	{0,   0, },
+	{100, 2, },
+	{0,   0, },
+	{0,   0, },
+	{0,   0, },
+	{0,   0, },
+	{0,   0, },
+	{256, 2, },
+};
+
+static FklUintStack* toRadixDigitsLe(const FklBigInt* u,uint32_t radix)
+{
+	FKL_ASSERT(!FKL_IS_0_BIG_INT(u));
+	const double radixLog2=log2(radix);
+	const size_t radixDigits=ceil((((double)(u->num*FKL_BIG_INT_BITS))/radixLog2));
+	FklUintStack* res=fklNewUintStack(radixDigits,16);
+	uint64_t base=BASE8[radix].base;
+	size_t pow=BASE8[radix].pow;
+	FklBigInt digits=FKL_BIG_INT_INIT;
+	fklSetBigInt(&digits,u);
+	//if(digits.num>=64)
+	//{
+	//	FklBigInt bigBase=FKL_BIG_INT_INIT;
+	//	fklSetBigIntU(&bigBase,base*base);
+	//	size_t bigPow=2;
+	//	size_t targetLen=sqrt(digits.num);
+	//	while(bigBase.num<targetLen)
+	//	{
+	//		FklBigInt tmp=FKL_BIG_INT_INIT;
+	//		fklSetBigInt(&tmp,&bigBase);
+	//		fklMulBigInt(&bigBase,&tmp);
+	//		free(tmp.digits);
+	//		bigPow*=2;
+	//	}
+	//	while(fklCmpBigInt(&digits,&bigBase)>0)
+	//	{
+	//		FklBigInt bigR=FKL_BIG_INT_INIT;
+	//		fklDivRemBigInt(&digits,&bigR,&bigBase);
+	//		for(size_t i=0;i<bigPow;i++)
+	//		{
+	//			uint64_t r=0;
+	//			fklDivRemBigIntU(&bigR,&r,base);
+	//			for(size_t j=0;j<pow;j++)
+	//			{
+	//				fklPushUintStack(r%radix,res);
+	//				r/=radix;
+	//			}
+	//		}
+	//		free(bigR.digits);
+	//	}
+	//}
+	while(digits.num>1)
+	{
+		uint64_t r=0;
+		fklDivRemBigIntU(&digits,&r,base);
+		for(size_t i=0;i<pow;i++)
+		{
+			fklPushUintStack(r%radix,res);
+			r/=radix;
+		}
+	}
+	uint8_t r=digits.digits[0];
+	while(r!=0)
+	{
+		fklPushUintStack(r%radix,res);
+		r/=radix;
+	}
+	free(digits.digits);
+	return res;
+}
+
+//static FklUintStack* toInexactBitWiseDigitsLe(const FklBigInt* u,uint8_t bits)
+//{
+//	FKL_ASSERT(!FKL_IS_0_BIG_INT(u)&&bits<=8);
+//	const size_t digits=ceil(((double)(u->num*FKL_BIG_INT_BITS))/bits);
+//	const uint8_t mask=(1<<bits)-1;
+//	FklUintStack* res=fklNewUintStack(digits,16);
+//	int32_t r=0;
+//	int32_t rbits=0;
+//	for(size_t i=0;i<u->num;i++)
+//	{
+//		uint8_t c=u->digits[i];
+//		r|=c<<rbits;
+//		rbits+=FKL_BIG_INT_BITS;
+//		while(rbits>=bits)
+//		{
+//			fklPushUintStack(r&mask,res);
+//			r>>=bits;
+//			if(rbits>FKL_BIG_INT_BITS)
+//				r=c>>(FKL_BIG_INT_BITS-(rbits-bits));
+//			rbits-=bits;
+//		}
+//	}
+//	if(rbits!=0)
+//		fklPushUintStack(r,res);
+//	while(!fklIsUintStackEmpty(res)&&fklTopUintStack(res)==0)
+//		fklPopUintStack(res);
+//	return res;
+//}
 
 void fklFreeBigInt(FklBigInt* t)
 {
@@ -565,11 +675,32 @@ void fklInitBigInt(FklBigInt* a,const FklBigInt* src)
 	fklSetBigInt(a,src);
 }
 
+void fklInitBigIntU(FklBigInt* a,uint64_t v)
+{
+	FklBigInt* bi=fklNewBigIntU(v);
+	fklInitBigInt(a,bi);
+	fklFreeBigInt(bi);
+}
+
 void fklInitBigIntI(FklBigInt* a,int64_t v)
 {
 	FklBigInt* bi=fklNewBigInt(v);
 	fklInitBigInt(a,bi);
 	fklFreeBigInt(bi);
+}
+
+void fklSetBigIntU(FklBigInt* des,uint64_t src)
+{
+	des->neg=0;
+	des->num=floor(log2(src)/log2(FKL_BIG_INT_RADIX))+1;
+	if(des->num==0)
+		des->num=1;
+	ensureBigIntDigits(des,des->num);
+	for(uint64_t i=0;i<des->num;i++)
+	{
+		des->digits[i]=src%FKL_BIG_INT_RADIX;
+		src/=FKL_BIG_INT_RADIX;
+	}
 }
 
 void fklSetBigIntI(FklBigInt* des,int64_t src)
@@ -631,7 +762,7 @@ static void addDigits(FklBigInt* a,const FklBigInt* addend)
 			a->digits[i]=0;
 		}
 		uint8_t addendDigit=i<addend->num?addend->digits[i]:0;
-		uint8_t total=a->digits[i]+addendDigit+carry;
+		uint16_t total=a->digits[i]+addendDigit+carry;
 		a->digits[i]=total%FKL_BIG_INT_RADIX;
 		carry=(total>=FKL_BIG_INT_RADIX)?1:0;
 	}
@@ -766,6 +897,88 @@ void fklMulBigIntI(FklBigInt* a,int64_t mul)
 	fklFreeBigInt(multipler);
 }
 
+int fklDivRemBigIntI(FklBigInt* a,int64_t* rem,int64_t div)
+{
+	FKL_ASSERT(rem);
+	if(div==0)
+		return 1;
+	else
+	{
+		FklBigInt* divider=fklNewBigInt(div);
+		FklBigInt trem=FKL_BIG_INT_INIT;
+		int r=fklDivRemBigInt(a,&trem,divider);
+		fklFreeBigInt(divider);
+		*rem=fklBigIntToI64(&trem);
+		free(trem.digits);
+		return r;
+	}
+}
+
+int fklDivRemBigIntU(FklBigInt* a,uint64_t* rem,uint64_t div)
+{
+	if(div==0)
+		return 1;
+	else
+	{
+		FklBigInt* divider=fklNewBigIntU(div);
+		FklBigInt trem=FKL_BIG_INT_INIT;
+		int r=fklDivRemBigInt(a,&trem,divider);
+		fklFreeBigInt(divider);
+		*rem=fklBigIntToU64(&trem);
+		free(trem.digits);
+		return r;
+	}
+}
+
+int fklDivRemBigInt(FklBigInt* a,FklBigInt* rem,const FklBigInt* divider)
+{
+	if(divider->num==1&&divider->digits[0]==0)
+		return 1;
+	int cmpR=cmpDigits(a,divider);
+	if(cmpR<0)
+	{
+		a->num=1;
+		a->digits[0]=0;
+	}
+	else if(!cmpR)
+	{
+		a->num=1;
+		a->digits[0]=1;
+		a->neg^=divider->neg;
+	}
+	else
+	{
+		uint8_t res[a->num];
+		uint64_t num=0;
+		FklBigInt s=FKL_BIG_INT_INIT;
+		uint8_t sdigits[a->num+1];
+		s.digits=&sdigits[a->num+1];
+		s.size=a->num+1;
+		for(uint64_t i=0;i<a->num;i++)
+		{
+			int count=0;
+			if(!FKL_IS_0_BIG_INT(&s))
+				s.num++;
+			s.digits--;
+			s.digits[0]=a->digits[a->num-i-1];
+			for(;cmpDigits(&s,divider)>=0
+					;subDigits(&s,divider))
+				count++;
+			if(count!=0||num!=0)
+			{
+				res[num]=count;
+				num++;
+			}
+		}
+		fklSetBigInt(rem,&s);
+		for(size_t i=0;i<num;i++)
+			a->digits[i]=res[num-i-1];
+		a->num=num;
+		a->neg^=divider->neg;
+	}
+	return 0;
+}
+
 int fklDivBigInt(FklBigInt* a,const FklBigInt* divider)
 {
 	if(divider->num==1&&divider->digits[0]==0)
@@ -784,28 +997,29 @@ int fklDivBigInt(FklBigInt* a,const FklBigInt* divider)
 	}
 	else
 	{
-		uint8_t* res=(uint8_t*)malloc(sizeof(uint8_t)*a->num);
-		FKL_ASSERT(res);
+		uint8_t res[a->num];
 		uint64_t num=0;
-		FklBigInt s={NULL,0,a->num,0};
-		s.digits=(uint8_t*)malloc(sizeof(uint8_t)*(divider->num+1));
-		FKL_ASSERT(s.digits);
+		FklBigInt s=FKL_BIG_INT_INIT;
+		uint8_t sdigits[a->num+1];
+		s.digits=&sdigits[a->num+1];
+		s.size=a->num+1;
 		for(uint64_t i=0;i<a->num;i++)
 		{
-			memcpy(s.digits,&a->digits[a->num-i-1],(i+1)*sizeof(uint8_t));
-			s.num++;
 			int count=0;
-			for(;cmpDigits(&s,divider)>=0;subDigits(&s,divider),count++);
-			if(count!=0)
+			if(!FKL_IS_0_BIG_INT(&s))
+				s.num++;
+			s.digits--;
+			s.digits[0]=a->digits[a->num-i-1];
+			for(;cmpDigits(&s,divider)>=0;subDigits(&s,divider))
+				count++;
+			if(count!=0||num!=0)
 			{
 				res[num]=count;
 				num++;
 			}
 		}
-		free(s.digits);
-		free(a->digits);
-		a->digits=res;
-		a->size=a->num;
+		for(size_t i=0;i<num;i++)
+			a->digits[i]=res[num-i-1];
 		a->num=num;
 		a->neg^=divider->neg;
 	}
@@ -825,6 +1039,19 @@ int fklDivBigIntI(FklBigInt* a,int64_t div)
 	}
 }
 
+int fklDivBigIntU(FklBigInt* a,uint64_t div)
+{
+	if(div==0)
+		return 1;
+	else
+	{
+		FklBigInt* divider=fklNewBigIntU(div);
+		int r=fklDivBigInt(a,divider);
+		fklFreeBigInt(divider);
+		return r;
+	}
+}
+
 int fklRemBigInt(FklBigInt* a,const FklBigInt* divider)
 {
 	if(divider->num==1&&divider->digits[0]==0)
@@ -837,21 +1064,34 @@ int fklRemBigInt(FklBigInt* a,const FklBigInt* divider)
 	}
 	else if(cmpR>0)
 	{
-		FklBigInt s={NULL,0,a->num,0};
-		s.digits=(uint8_t*)malloc(sizeof(uint8_t)*(divider->num+1));
-		FKL_ASSERT(s.digits);
+		FklBigInt s=FKL_BIG_INT_INIT;
+		uint8_t sdigits[a->num+1];
+		s.digits=&sdigits[a->num+1];
+		s.size=a->num+1;
 		for(uint64_t i=0;i<a->num;i++)
 		{
-			memcpy(s.digits,&a->digits[a->num-i-1],(i+1)*sizeof(uint8_t));
-			s.num++;
+			if(!FKL_IS_0_BIG_INT(&s))
+				s.num++;
+			s.digits--;
+			s.digits[0]=a->digits[a->num-i-1];
 			for(;cmpDigits(&s,divider)>=0;subDigits(&s,divider));
 		}
-		free(a->digits);
-		a->digits=s.digits;
-		a->num=s.num;
-		a->size=s.size;
+		fklSetBigInt(a,&s);
 	}
 	return 0;
+}
+
+int fklRemBigIntU(FklBigInt* a,uint64_t div)
+{
+	if(div==0)
+		return 1;
+	else
+	{
+		FklBigInt* divider=fklNewBigIntU(div);
+		int r=fklRemBigInt(a,divider);
+		fklFreeBigInt(divider);
+		return r;
+	}
 }
 
 int fklRemBigIntI(FklBigInt* a,int64_t div)
@@ -873,7 +1113,7 @@ int fklIsDivisibleBigInt(const FklBigInt* a,const FklBigInt* b)
 	FklBigInt tbi={NULL,0,0,0};
 	fklInitBigInt(&tbi,a);
 	fklRemBigInt(&tbi,b);
-	if(tbi.num==1&&tbi.digits[0]==0)
+	if(FKL_IS_0_BIG_INT(&tbi))
 		r=1;
 	free(tbi.digits);
 	return r;
@@ -918,6 +1158,14 @@ int fklIsGtLtI64BigInt(const FklBigInt* a)
 	return r;
 }
 
+int fklIsGtU64MaxBigInt(const FklBigInt* a)
+{
+	FklBigInt* bI64Max=fklNewBigIntU(UINT64_MAX);
+	int r=fklCmpBigInt(a,bI64Max)>0;
+	fklFreeBigInt(bI64Max);
+	return r;
+}
+
 int fklIsGtI64MaxBigInt(const FklBigInt* a)
 {
 	FklBigInt* bI64Max=fklNewBigInt(INT64_MAX);
@@ -931,6 +1179,20 @@ int fklIsLtI64MinBigInt(const FklBigInt* a)
 	FklBigInt* bI64Min=fklNewBigInt(INT64_MIN);
 	int r=fklCmpBigInt(a,bI64Min)<0;
 	fklFreeBigInt(bI64Min);
+	return r;
+}
+
+uint64_t fklBigIntToU64(const FklBigInt* a)
+{
+	if(fklIsGtU64MaxBigInt(a))
+		return UINT64_MAX;
+	uint64_t r=0;
+	uint64_t base=1;
+	for(uint64_t i=0;i<a->num;i++)
+	{
+		r+=a->digits[i]*base;
+		base*=FKL_BIG_INT_RADIX;
+	}
 	return r;
 }
 
@@ -968,23 +1230,70 @@ double fklBigIntToDouble(const FklBigInt* a)
 	return r;
 }
 
-void fklPrintBigInt(FklBigInt* a,FILE* fp)
+void fklPrintBigInt(const FklBigInt* a,FILE* fp)
 {
 	if(!FKL_IS_0_BIG_INT(a)&&a->neg)
 		fputc('-',fp);
-	for(uint64_t i=a->num;i>0;i--)
-		fprintf(fp,"%u",a->digits[i-1]);
+	if(FKL_IS_0_BIG_INT(a))
+		fputc('0',fp);
+	else
+	{
+		FklUintStack* res=toRadixDigitsLe(a,10);
+		for(size_t i=res->top;i>0;i--)
+			fprintf(fp,"%lu",res->base[i-1]);
+		fklFreeUintStack(res);
+	}
 }
 
-void fklSprintBigInt(FklBigInt* bi,size_t size,char* buf)
+FklString* fklBigIntToString(const FklBigInt* a,int radix)
+{
+	if(FKL_IS_0_BIG_INT(a))
+	{
+		FklString* s=fklNewString(sizeof(char)*1,NULL);
+		s->str[0]='0';
+		return s;
+	}
+	else
+	{
+		size_t len=0;
+		size_t j=0;
+		if(a->neg)
+		{
+			j++;
+			len++;
+		}
+		FklUintStack* res=toRadixDigitsLe(a,10);
+		len+=res->top;
+		FklString* s=fklNewString(sizeof(char)*len,NULL);
+		char* buf=s->str;
+		if(a->neg)
+			buf[0]='-';
+		for(size_t i=res->top;i>0;i--,j++)
+		{
+			uint64_t c=res->base[i-1];
+			buf[j]=c<10?c+'0':c-10+'a';
+		}
+		fklFreeUintStack(res);
+		return s;
+	}
+}
+
+void fklSprintBigInt(const FklBigInt* bi,size_t size,char* buf)
 {
 	if(bi->neg)
 	{
 		(buf++)[0]='-';
 		size--;
 	}
-	for(uint64_t i=0;i<size;i++)
-		buf[i]=bi->digits[i]+'0';
+	if(FKL_IS_0_BIG_INT(bi))
+		buf[0]='0';
+	else
+	{
+		FklUintStack* res=toRadixDigitsLe(bi,10);
+		for(size_t i=res->top;i>0;i--)
+			buf[i]=res->base[i-1]+'0';
+		fklFreeUintStack(res);
+	}
 }
 
 int fklCmpBigIntI(const FklBigInt* bi,int64_t i)

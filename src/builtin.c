@@ -1525,11 +1525,7 @@ void builtin_to_string(ARGL)
 		if(fklIsInt(obj))
 		{
 			if(FKL_IS_BIG_INT(obj))
-			{
-				FklBigInt* bi=obj->u.bigInt;
-				retval->u.str=fklNewString(sizeof(char)*(bi->num+bi->neg),NULL);
-				fklSprintBigInt(bi,retval->u.str->size,retval->u.str->str);
-			}
+				retval->u.str=fklBigIntToString(obj->u.bigInt,10);
 			else
 			{
 				size_t size=snprintf(buf,64,"%ld",fklGetInt(obj));
@@ -1670,11 +1666,7 @@ void builtin_number_to_string(ARGL)
 	if(fklIsInt(obj))
 	{
 		if(FKL_IS_BIG_INT(obj))
-		{
-			FklBigInt* bi=obj->u.bigInt;
-			retval->u.str=fklNewString(sizeof(char)*(bi->num+bi->neg),NULL);
-			fklSprintBigInt(bi,retval->u.str->size,retval->u.str->str);
-		}
+			retval->u.str=fklBigIntToString(obj->u.bigInt,10);
 		else
 		{
 			size_t size=snprintf(buf,64,"%ld",fklGetInt(obj));
@@ -2383,16 +2375,16 @@ void builtin_fopen(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fopen",FKL_ERR_TOOFEWARG,runnable,exe);
 	if(!FKL_IS_STR(filename)||!FKL_IS_STR(mode))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fopen",FKL_ERR_WRONGARG,runnable,exe);
-	char* c_filename=fklStringToCstr(filename->u.str);
-	char* c_mode=fklStringToCstr(mode->u.str);
+	char c_filename[filename->u.str->size+1];
+	char c_mode[mode->u.str->size+1];
+	fklWriteStringToCstr(c_filename,filename->u.str);
+	fklWriteStringToCstr(c_mode,mode->u.str);
 	FILE* file=fopen(c_filename,c_mode);
-	free(c_mode);
 	FklVMvalue* obj=NULL;
 	if(!file)
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("builtin.fopen",c_filename,1,FKL_ERR_FILEFAILURE,exe);
 	else
 		obj=fklNewVMvalueToStack(FKL_TYPE_FP,fklNewVMfp(file),stack,gc);
-	free(c_filename);
 	fklNiReturn(obj,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -2625,11 +2617,11 @@ void builtin_dlopen(ARGL)
 	if(!dllName)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.dlopen",FKL_ERR_TOOFEWARG,runnable,exe);
 	FKL_NI_CHECK_TYPE(dllName,FKL_IS_STR,"builtin.dlopen",runnable,exe);
-	char* str=fklStringToCstr(dllName->u.str);
+	char str[dllName->u.str->size+1];
+	fklWriteStringToCstr(str,dllName->u.str);
 	FklVMdllHandle* dll=fklNewVMdll(str);
 	if(!dll)
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("builtin.dlopen",str,1,FKL_ERR_LOADDLLFAILD,exe);
-	free(str);
 	FklVMvalue* rel=fklNewVMvalueToStack(FKL_TYPE_DLL,dll,stack,exe->gc);
 	fklInitVMdll(rel);
 	fklNiReturn(rel,&ap,stack);
@@ -2651,11 +2643,11 @@ void builtin_dlsym(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.dlsym",FKL_ERR_WRONGARG,runnable,exe);
 	if(!dll->u.dll)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.dlsym",FKL_ERR_INVALIDACCESS,runnable,exe);
-	char* str=fklStringToCstr(symbol->u.str);
+	char str[symbol->u.str->size+1];
+	fklWriteStringToCstr(str,symbol->u.str);
 	FklVMdllFunc funcAddress=fklGetAddress(str,dll->u.dll);
 	if(!funcAddress)
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("builtin.dlsym",str,1,FKL_ERR_INVALIDSYMBOL,exe);
-	free(str);
 	FklVMdlproc* dlproc=fklNewVMdlproc(funcAddress,dll);
 	fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_DLPROC,dlproc,stack,gc),&ap,stack);
 	fklNiEnd(&ap,stack);
@@ -3666,17 +3658,17 @@ void builtin_get_time(ARGL)
 void builtin_remove_file(ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMvalue* name=fklPopVMstack(stack);
+	FklVMvalue* name=fklNiGetArg(&ap,stack);
 	FklVMrunnable* r=exe->rhead;
 	if(!name)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.remove-file",FKL_ERR_TOOFEWARG,r,exe);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.remove-file",FKL_ERR_TOOMANYARG,r,exe);
 	FKL_NI_CHECK_TYPE(name,FKL_IS_STR,"builtin.remove-file",r,exe);
-	char* str=fklStringToCstr(name->u.str);
+	char str[name->u.str->size+1];
+	fklWriteStringToCstr(str,name->u.str);
 	fklNiReturn(FKL_MAKE_VM_I32(remove(str)),&ap,stack);
 	fklNiEnd(&ap,stack);
-	free(name);
 }
 
 void builtin_time(ARGL)
@@ -3689,6 +3681,43 @@ void builtin_time(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void builtin_set(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* r=exe->rhead;
+	FklVMvalue* sym=fklNiGetArg(&ap,stack);
+	FklVMvalue* value=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set!",FKL_ERR_TOOMANYARG,r,exe);
+	if(!sym||!value)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set!",FKL_ERR_TOOFEWARG,r,exe);
+	FKL_NI_CHECK_TYPE(sym,FKL_IS_SYM,"builtin.set!",r,exe);
+	fklSetRef(fklFindOrAddVar(FKL_GET_SYM(sym),r->localenv->u.env)
+			,value
+			,exe->gc);
+	fklNiReturn(value,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_system(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* name=fklNiGetArg(&ap,stack);
+	FklVMrunnable* r=exe->rhead;
+	if(!name)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.system",FKL_ERR_TOOFEWARG,r,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.system",FKL_ERR_TOOMANYARG,r,exe);
+	FKL_NI_CHECK_TYPE(name,FKL_IS_STR,"builtin.system",r,exe);
+	char str[name->u.str->size+1];
+	fklWriteStringToCstr(str,name->u.str);
+	fklNiReturn(fklMakeVMint(system(str),stack,exe->gc),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_match(ARGL)
+{
+}
 
 void builtin_not(ARGL) PREDICATE(val==FKL_VM_NIL,"builtin.not")
 void builtin_null(ARGL) PREDICATE(val==FKL_VM_NIL,"builtin.null")
@@ -3891,6 +3920,8 @@ static const struct SymbolFuncStruct
 	{"member",                builtin_member,                  },
 	{"memp",                  builtin_memp,                    },
 
+	{"set!",                  builtin_set,                     },
+
 	{"getch",                 builtin_getch,                   },
 	{"sleep",                 builtin_sleep,                   },
 	{"usleep",                builtin_usleep,                  },
@@ -3899,6 +3930,7 @@ static const struct SymbolFuncStruct
 	{"get-time",              builtin_get_time,                },
 	{"remove-file",           builtin_remove_file,             },
 	{"time",                  builtin_time,                    },
+	{"system",                builtin_system,                  },
 
 	{NULL,                    NULL,                            },
 };

@@ -46,7 +46,7 @@ static int _bc_equal(const FklVMudata* a,const FklVMudata* b)
 static FklVMudMethodTable FklcBcMethodTable=
 {
 	.__princ=_bc_princ,
-	.__prin1=_bc_princ,
+	.__prin1=NULL,
 	.__finalizer=_bc_finalizer,
 	.__equal=_bc_equal,
 	.__call=NULL,

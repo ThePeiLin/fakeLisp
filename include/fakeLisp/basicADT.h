@@ -161,6 +161,7 @@ typedef struct FklBigInt{
 	int neg;
 }FklBigInt;
 
+#define FKL_BIG_INT_INIT {NULL,0,0,0}
 #define FKL_IS_0_BIG_INT(I) ((I)->num==1&&(I)->digits[0]==0)
 #define FKL_IS_1_BIG_INT(I) ((I)->num==1&&(I)->neg==0&&(I)->digits[0]==1)
 FklBigInt* fklNewBigInt(int64_t v);
@@ -176,6 +177,7 @@ void fklInitBigInt(FklBigInt*,const FklBigInt*);
 void fklInitBigIntI(FklBigInt*,int64_t v);
 void fklSetBigInt(FklBigInt*,const FklBigInt* src);
 void fklSetBigIntI(FklBigInt*,int64_t src);
+void fklSetBigIntU(FklBigInt*,uint64_t src);
 void fklAddBigInt(FklBigInt*,const FklBigInt* addend);
 void fklAddBigIntI(FklBigInt*,int64_t addend);
 void fklSubBigInt(FklBigInt*,const FklBigInt* toSub);
@@ -184,24 +186,33 @@ void fklMulBigInt(FklBigInt*,const FklBigInt* multiplier);
 void fklMulBigIntI(FklBigInt*,int64_t multiplier);
 int fklIsGtLtI64BigInt(const FklBigInt* a);
 int fklIsGtI64MaxBigInt(const FklBigInt* a);
+int fklIsGtU64MaxBigInt(const FklBigInt* a);
 int fklIsLtI64MinBigInt(const FklBigInt* a);
 int fklIsGeLeI64BigInt(const FklBigInt* a);
+int fklDivRemBigInt(FklBigInt*,FklBigInt*,const FklBigInt* divider);
+int fklDivRemBigIntI(FklBigInt*,int64_t*,int64_t divider);
+int fklDivRemBigIntU(FklBigInt*,uint64_t*,uint64_t divider);
 int fklDivBigInt(FklBigInt*,const FklBigInt* divider);
 int fklDivBigIntI(FklBigInt*,int64_t divider);
+int fklDivBigIntU(FklBigInt*,uint64_t divider);
 int fklRemBigInt(FklBigInt*,const FklBigInt* divider);
 int fklRemBigIntI(FklBigInt*,int64_t divider);
+int fklRemBigIntU(FklBigInt*,uint64_t divider);
 int fklCmpBigInt(const FklBigInt*,const FklBigInt*);
 int fklCmpBigIntI(const FklBigInt*,int64_t i);
+int fklCmpBigIntU(const FklBigInt*,uint64_t i);
 int fklCmpIBigInt(int64_t i,const FklBigInt*);
+int fklCmpUBigInt(uint64_t i,const FklBigInt*);
 int fklIsDivisibleBigInt(const FklBigInt* a,const FklBigInt* b);
 int fklIsDivisibleBigIntI(const FklBigInt* a,int64_t);
 int fklIsDivisibleIBigInt(int64_t a,const FklBigInt* b);
 int64_t fklBigIntToI64(const FklBigInt*);
+uint64_t fklBigIntToU64(const FklBigInt*);
 double fklBigIntToDouble(const FklBigInt*);
 void fklFreeBigInt(FklBigInt*);
-void fklPrintBigInt(FklBigInt*,FILE*);
-void fklSprintBigInt(FklBigInt*,size_t size,char* buf);
-FklString* fklBigIntToString(FklBigInt*,int radix);
+void fklPrintBigInt(const FklBigInt*,FILE*);
+void fklSprintBigInt(const FklBigInt*,size_t size,char* buf);
+FklString* fklBigIntToString(const FklBigInt*,int radix);
 
 #ifdef __cplusplus
 }

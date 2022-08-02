@@ -3100,7 +3100,6 @@ static void k_map(K_FUNC_ARGL) {K_MAP_PATTERN(k_map,
 		*(mapctx->cur)=fklNewVMvalueToStack(FKL_TYPE_PAIR,fklNewVMpair(),stack,gc);,
 		fklSetRef(&(*mapctx->cur)->u.pair->car,result,gc);,
 		mapctx->cur=&(*mapctx->cur)->u.pair->cdr;)}
-
 void builtin_map(ARGL) {MAP_PATTERN("builtin.map",k_map,FKL_VM_NIL)}
 
 static void k_foreach(K_FUNC_ARGL) {K_MAP_PATTERN(k_foreach,,*(mapctx->r)=result;,)}
@@ -3270,11 +3269,11 @@ void builtin_memp(ARGL)
 	FklVMvalue* proc=fklNiGetArg(&ap,stack);
 	FklVMvalue* list=fklNiGetArg(&ap,stack);
 	if(!proc||!list)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.member",FKL_ERR_TOOFEWARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.memp",FKL_ERR_TOOFEWARG,runnable,exe);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.member",FKL_ERR_TOOMANYARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.memp",FKL_ERR_TOOMANYARG,runnable,exe);
 	FKL_NI_CHECK_TYPE(proc,fklIsCallable,"builtin.memp",runnable,exe);
-	FKL_NI_CHECK_TYPE(list,fklIsList,"builtin.member",runnable,exe);
+	FKL_NI_CHECK_TYPE(list,fklIsList,"builtin.memp",runnable,exe);
 	MempCtx* mempctx=(MempCtx*)malloc(sizeof(MempCtx));
 	FKL_ASSERT(mempctx);
 	fklPushVMvalue(FKL_VM_NIL,stack);
@@ -3283,6 +3282,77 @@ void builtin_memp(ARGL)
 	mempctx->list=list;
 	mempctx->ap=ap;
 	k_memp(exe,FKL_CC_OK,mempctx);
+}
+
+typedef struct
+{
+	FklVMvalue** r;
+	FklVMvalue** cur;
+	FklVMvalue* proc;
+	FklVMvalue* list;
+	uint32_t ap;
+}FilterCtx;
+
+static void k_filter(K_FUNC_ARGL)
+{
+	FilterCtx* filterctx=(FilterCtx*)ctx;
+	FklVMstack* stack=exe->stack;
+	if(s==FKL_CC_OK)
+		fklNiSetTp(stack);
+	else if(s==FKL_CC_RE)
+	{
+		FklVMvalue* result=fklGetTopValue(stack);
+		if(result!=FKL_VM_NIL)
+		{
+			*filterctx->cur=fklNewVMvalueToStack(FKL_TYPE_PAIR,fklNewVMpair(),stack,exe->gc);
+			fklSetRef(&(*filterctx->cur)->u.pair->car,filterctx->list->u.pair->car,exe->gc);
+			filterctx->cur=&(*filterctx->cur)->u.pair->cdr;
+		}
+		filterctx->list=filterctx->list->u.pair->cdr;
+		fklNiResTp(stack);
+	}
+	while(filterctx->list!=FKL_VM_NIL)
+	{
+		fklVMcallInDlproc(filterctx->proc
+				,1,&filterctx->list->u.pair->car
+				,exe->rhead,exe,k_filter,filterctx,sizeof(MempCtx));
+		FklVMvalue* result=fklGetTopValue(stack);
+		if(result!=FKL_VM_NIL)
+		{
+			*filterctx->cur=fklNewVMvalueToStack(FKL_TYPE_PAIR,fklNewVMpair(),stack,exe->gc);
+			fklSetRef(&(*filterctx->cur)->u.pair->car,filterctx->list->u.pair->car,exe->gc);
+			filterctx->cur=&(*filterctx->cur)->u.pair->cdr;
+		}
+		filterctx->list=filterctx->list->u.pair->cdr;
+		fklNiResTp(stack);
+	}
+	fklNiPopTp(stack);
+	fklNiReturn(*filterctx->r,&filterctx->ap,stack);
+	fklNiEnd(&filterctx->ap,stack);
+	free(ctx);
+}
+
+void builtin_filter(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* proc=fklNiGetArg(&ap,stack);
+	FklVMvalue* list=fklNiGetArg(&ap,stack);
+	if(!proc||!list)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.filter",FKL_ERR_TOOFEWARG,runnable,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.filter",FKL_ERR_TOOMANYARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(proc,fklIsCallable,"builtin.filter",runnable,exe);
+	FKL_NI_CHECK_TYPE(list,fklIsList,"builtin.filter",runnable,exe);
+	FilterCtx* filterctx=(FilterCtx*)malloc(sizeof(FilterCtx));
+	FKL_ASSERT(filterctx);
+	fklPushVMvalue(FKL_VM_NIL,stack);
+	filterctx->r=fklNiGetTopSlot(stack);
+	filterctx->cur=filterctx->r;
+	filterctx->proc=proc;
+	filterctx->list=list;
+	filterctx->ap=ap;
+	k_filter(exe,FKL_CC_OK,filterctx);
 }
 
 void builtin_list(ARGL)
@@ -3992,6 +4062,7 @@ static const struct SymbolFuncStruct
 	{"memq",                  builtin_memq,                    },
 	{"member",                builtin_member,                  },
 	{"memp",                  builtin_memp,                    },
+	{"filter",                builtin_filter,                  },
 
 	{"set!",                  builtin_set,                     },
 

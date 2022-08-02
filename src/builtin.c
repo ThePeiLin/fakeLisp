@@ -602,6 +602,90 @@ void builtin_mul(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void builtin_idiv(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* prev=fklNiGetArg(&ap,stack);
+	FklVMvalue* cur=fklNiGetArg(&ap,stack);
+	int64_t r64=1;
+	if(!prev)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.//",FKL_ERR_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(prev,fklIsInt,"builtin.//",runnable,exe);
+	if(!cur)
+	{
+		fklNiResBp(&ap,stack);
+		if(fklIsFixint(prev))
+		{
+			r64=fklGetInt(prev);
+			if(!r64)
+				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.//",FKL_ERR_DIVZEROERROR,runnable,exe);
+			if(r64==1)
+				fklNiReturn(FKL_MAKE_VM_I32(1),&ap,stack);
+			else
+				fklNiReturn(FKL_MAKE_VM_I32(0),&ap,stack);
+		}
+		else
+		{
+			if(FKL_IS_0_BIG_INT(prev->u.bigInt))
+				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.//",FKL_ERR_DIVZEROERROR,runnable,exe);
+			if(FKL_IS_1_BIG_INT(prev->u.bigInt))
+				fklNiReturn(FKL_MAKE_VM_I32(1),&ap,stack);
+			else
+				fklNiReturn(FKL_MAKE_VM_I32(0),&ap,stack);
+		}
+	}
+	else
+	{
+		FklBigInt* bi=fklNewBigInt1();
+		for(;cur;cur=fklNiGetArg(&ap,stack))
+		{
+			if(fklIsFixint(cur))
+			{
+				int64_t c64=fklGetInt(cur);
+				if(fklIsI64MulOverflow(r64,c64))
+					fklMulBigIntI(bi,c64);
+				else
+					r64*=c64;
+			}
+			else if(FKL_IS_BIG_INT(cur))
+				fklMulBigInt(bi,cur->u.bigInt);
+			else
+			{
+				fklFreeBigInt(bi);
+				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.//",FKL_ERR_WRONGARG,runnable,exe);
+			}
+		}
+		if(r64==0||FKL_IS_0_BIG_INT(bi))
+		{
+			fklFreeBigInt(bi);
+			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.//",FKL_ERR_DIVZEROERROR,runnable,exe);
+		}
+		fklNiResBp(&ap,stack);
+		if(FKL_IS_BIG_INT(prev)&&!fklIsGtLtI64BigInt(prev->u.bigInt)&&!FKL_IS_1_BIG_INT(bi))
+		{
+			FklBigInt* t=fklNewBigInt0();
+			fklSetBigInt(t,prev->u.bigInt);
+			fklDivBigInt(t,bi);
+			fklDivBigIntI(t,r64);
+			if(fklIsGtLtI64BigInt(t))
+				fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_BIG_INT,t,stack,exe->gc),&ap,stack);
+			else
+			{
+				fklNiReturn(fklMakeVMint(fklBigIntToI64(t),stack,exe->gc),&ap,stack);
+				fklFreeBigInt(t);
+			}
+		}
+		else
+		{
+			r64=fklGetInt(prev)/r64;
+			fklNiReturn(fklMakeVMint(r64,stack,exe->gc),&ap,stack);
+		}
+		fklFreeBigInt(bi);
+	}
+	fklNiEnd(&ap,stack);
+}
+
 void builtin_div(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -1931,8 +2015,7 @@ void builtin_sref(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-#define BV_U_S_8_REF(TYPE,WHO) {\
-	FKL_NI_BEGIN(exe);\
+#define BV_U_S_8_REF(TYPE,WHO) FKL_NI_BEGIN(exe);\
 	FklVMrunnable* runnable=exe->rhead;\
 	FklVMvalue* bvec=fklNiGetArg(&ap,stack);\
 	FklVMvalue* place=fklNiGetArg(&ap,stack);\
@@ -1949,11 +2032,9 @@ void builtin_sref(ARGL)
 	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_INVALIDACCESS,runnable,exe);\
 	r=bvec->u.bvec->ptr[index];\
 	fklNiReturn(fklMakeVMint(r,stack,exe->gc),&ap,stack);\
-	fklNiEnd(&ap,stack);\
-}
+	fklNiEnd(&ap,stack);
 
-#define BV_LT_U64_REF(TYPE,WHO) {\
-	FKL_NI_BEGIN(exe);\
+#define BV_LT_U64_REF(TYPE,WHO) FKL_NI_BEGIN(exe);\
 	FklVMrunnable* runnable=exe->rhead;\
 	FklVMvalue* bvec=fklNiGetArg(&ap,stack);\
 	FklVMvalue* place=fklNiGetArg(&ap,stack);\
@@ -1971,17 +2052,16 @@ void builtin_sref(ARGL)
 	for(size_t i=0;i<sizeof(r);i++)\
 		((uint8_t*)&r)[i]=bvec->u.bvec->ptr[index+i];\
 	fklNiReturn(fklMakeVMint(r,stack,exe->gc),&ap,stack);\
-	fklNiEnd(&ap,stack);\
-}
+	fklNiEnd(&ap,stack);
 
-void builtin_bvs8ref(ARGL) BV_U_S_8_REF(int8_t,"builtin.bvs8ref")
-void builtin_bvs16ref(ARGL) BV_LT_U64_REF(int16_t,"builtin.bvs16ref")
-void builtin_bvs32ref(ARGL) BV_LT_U64_REF(int32_t,"builtin.bvs32ref")
-void builtin_bvs64ref(ARGL) BV_LT_U64_REF(int64_t,"builtin.bvs64ref")
+void builtin_bvs8ref(ARGL) {BV_U_S_8_REF(int8_t,"builtin.bvs8ref")}
+void builtin_bvs16ref(ARGL) {BV_LT_U64_REF(int16_t,"builtin.bvs16ref")}
+void builtin_bvs32ref(ARGL) {BV_LT_U64_REF(int32_t,"builtin.bvs32ref")}
+void builtin_bvs64ref(ARGL) {BV_LT_U64_REF(int64_t,"builtin.bvs64ref")}
 
-void builtin_bvu8ref(ARGL) BV_U_S_8_REF(uint8_t,"builtin.bvu8ref")
-void builtin_bvu16ref(ARGL) BV_LT_U64_REF(uint16_t,"builtin.bvu16ref")
-	void builtin_bvu32ref(ARGL) BV_LT_U64_REF(uint32_t,"builtin.bvu32ref")
+void builtin_bvu8ref(ARGL) {BV_U_S_8_REF(uint8_t,"builtin.bvu8ref")}
+void builtin_bvu16ref(ARGL) {BV_LT_U64_REF(uint16_t,"builtin.bvu16ref")}
+void builtin_bvu32ref(ARGL) {BV_LT_U64_REF(uint32_t,"builtin.bvu32ref")}
 void builtin_bvu64ref(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -2038,8 +2118,7 @@ void builtin_bvf32ref(ARGL) BV_F_REF(float,"builtin.bvf32ref")
 void builtin_bvf64ref(ARGL) BV_F_REF(double,"builtin.bvf32ref")
 #undef BV_F_REF
 
-#define SET_BV_LE_U8_REF(TYPE,WHO) {\
-	FKL_NI_BEGIN(exe);\
+#define SET_BV_LE_U8_REF(TYPE,WHO) FKL_NI_BEGIN(exe);\
 	FklVMrunnable* runnable=exe->rhead;\
 	FklVMvalue* bvec=fklNiGetArg(&ap,stack);\
 	FklVMvalue* place=fklNiGetArg(&ap,stack);\
@@ -2057,11 +2136,9 @@ void builtin_bvf64ref(ARGL) BV_F_REF(double,"builtin.bvf32ref")
 	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_INVALIDACCESS,runnable,exe);\
 	bvec->u.bvec->ptr[index]=r;\
 	fklNiReturn(target,&ap,stack);\
-	fklNiEnd(&ap,stack);\
-}
+	fklNiEnd(&ap,stack);
 
-#define SET_BV_REF(TYPE,WHO) {\
-	FKL_NI_BEGIN(exe);\
+#define SET_BV_REF(TYPE,WHO) FKL_NI_BEGIN(exe);\
 	FklVMrunnable* runnable=exe->rhead;\
 	FklVMvalue* bvec=fklNiGetArg(&ap,stack);\
 	FklVMvalue* place=fklNiGetArg(&ap,stack);\
@@ -2080,18 +2157,17 @@ void builtin_bvf64ref(ARGL) BV_F_REF(double,"builtin.bvf32ref")
 	for(size_t i=0;i<sizeof(r);i++)\
 	bvec->u.bvec->ptr[index+i]=((uint8_t*)&r)[i];\
 	fklNiReturn(target,&ap,stack);\
-	fklNiEnd(&ap,stack);\
-}
+	fklNiEnd(&ap,stack);
 
-void builtin_set_bvs8ref(ARGL) SET_BV_LE_U8_REF(int8_t,"builtin.set-bvs8ref!")
-void builtin_set_bvs16ref(ARGL) SET_BV_REF(int16_t,"builtin.set-bvs16ref!")
-void builtin_set_bvs32ref(ARGL) SET_BV_REF(int32_t,"builtin.set-bvs32ref!")
-void builtin_set_bvs64ref(ARGL) SET_BV_REF(int64_t,"builtin.set-bvs64ref!")
+void builtin_set_bvs8ref(ARGL) {SET_BV_LE_U8_REF(int8_t,"builtin.set-bvs8ref!")}
+void builtin_set_bvs16ref(ARGL) {SET_BV_REF(int16_t,"builtin.set-bvs16ref!")}
+void builtin_set_bvs32ref(ARGL) {SET_BV_REF(int32_t,"builtin.set-bvs32ref!")}
+void builtin_set_bvs64ref(ARGL) {SET_BV_REF(int64_t,"builtin.set-bvs64ref!")}
 
-void builtin_set_bvu8ref(ARGL) SET_BV_LE_U8_REF(uint8_t,"builtin.set-bvu8ref!")
-void builtin_set_bvu16ref(ARGL) SET_BV_REF(uint16_t,"builtin.set-bvu16ref!")
-void builtin_set_bvu32ref(ARGL) SET_BV_REF(uint32_t,"builtin.set-bvu32ref!")
-void builtin_set_bvu64ref(ARGL) SET_BV_REF(uint64_t,"builtin.set-bvu64ref!")
+void builtin_set_bvu8ref(ARGL) {SET_BV_LE_U8_REF(uint8_t,"builtin.set-bvu8ref!")}
+void builtin_set_bvu16ref(ARGL) {SET_BV_REF(uint16_t,"builtin.set-bvu16ref!")}
+void builtin_set_bvu32ref(ARGL) {SET_BV_REF(uint32_t,"builtin.set-bvu32ref!")}
+void builtin_set_bvu64ref(ARGL) {SET_BV_REF(uint64_t,"builtin.set-bvu64ref!")}
 #undef SET_BV_IU_REF
 
 #define SET_BV_F_REF(TYPE,WHO) {\
@@ -2975,7 +3051,7 @@ typedef struct
 	fklNiEnd(&mapctx->ap,stack);\
 	free(ctx);}
 
-#define MAP_PATTERN(FUNC_NAME,K_FUNC,DEFAULT_VALUE) {FKL_NI_BEGIN(exe);\
+#define MAP_PATTERN(FUNC_NAME,K_FUNC,DEFAULT_VALUE) FKL_NI_BEGIN(exe);\
 	FklVMrunnable* runnable=exe->rhead;\
 	FklVMvalue* proc=fklNiGetArg(&ap,stack);\
 	FklVMgc* gc=exe->gc;\
@@ -3018,25 +3094,23 @@ typedef struct
 		mapctx->len=len;\
 		mapctx->num=argNum;\
 		mapctx->vec=argVec;\
-		(K_FUNC)(exe,FKL_CC_OK,mapctx);\
-	}}\
+		(K_FUNC)(exe,FKL_CC_OK,mapctx);}\
 
-static void k_map(K_FUNC_ARGL)
-	K_MAP_PATTERN(k_map,
-			*(mapctx->cur)=fklNewVMvalueToStack(FKL_TYPE_PAIR,fklNewVMpair(),stack,gc);,
-			fklSetRef(&(*mapctx->cur)->u.pair->car,result,gc);,
-			mapctx->cur=&(*mapctx->cur)->u.pair->cdr;
-			)
-	void builtin_map(ARGL) MAP_PATTERN("builtin.map",k_map,FKL_VM_NIL)
+static void k_map(K_FUNC_ARGL) {K_MAP_PATTERN(k_map,
+		*(mapctx->cur)=fklNewVMvalueToStack(FKL_TYPE_PAIR,fklNewVMpair(),stack,gc);,
+		fklSetRef(&(*mapctx->cur)->u.pair->car,result,gc);,
+		mapctx->cur=&(*mapctx->cur)->u.pair->cdr;)}
 
-	static void k_foreach(K_FUNC_ARGL) K_MAP_PATTERN(k_foreach,,*(mapctx->r)=result;,)
-	void builtin_foreach(ARGL) MAP_PATTERN("builtin.foreach",k_foreach,FKL_VM_NIL)
+void builtin_map(ARGL) {MAP_PATTERN("builtin.map",k_map,FKL_VM_NIL)}
 
-	static void k_andmap(K_FUNC_ARGL) K_MAP_PATTERN(k_andmap,,*(mapctx->r)=result;if(result==FKL_VM_NIL)mapctx->i=len;,)
-	void builtin_andmap(ARGL) MAP_PATTERN("builtin.andmap",k_andmap,FKL_VM_TRUE)
+static void k_foreach(K_FUNC_ARGL) {K_MAP_PATTERN(k_foreach,,*(mapctx->r)=result;,)}
+void builtin_foreach(ARGL) {MAP_PATTERN("builtin.foreach",k_foreach,FKL_VM_NIL)}
 
-	static void k_ormap(K_FUNC_ARGL) K_MAP_PATTERN(k_ormap,,*(mapctx->r)=result;if(result!=FKL_VM_NIL)mapctx->i=len;,)
-	void builtin_ormap(ARGL) MAP_PATTERN("builtin.ormap",k_ormap,FKL_VM_NIL)
+static void k_andmap(K_FUNC_ARGL) {K_MAP_PATTERN(k_andmap,,*(mapctx->r)=result;if(result==FKL_VM_NIL)mapctx->i=len;,)}
+void builtin_andmap(ARGL) {MAP_PATTERN("builtin.andmap",k_andmap,FKL_VM_TRUE)}
+
+static void k_ormap(K_FUNC_ARGL) {K_MAP_PATTERN(k_ormap,,*(mapctx->r)=result;if(result!=FKL_VM_NIL)mapctx->i=len;,)}
+void builtin_ormap(ARGL) {MAP_PATTERN("builtin.ormap",k_ormap,FKL_VM_NIL)}
 
 #undef K_MAP_PATTERN
 #undef MAP_PATTERN
@@ -3525,8 +3599,7 @@ void builtin_make_bytevector(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-#define PREDICATE(condtion,err_infor) {\
-	FKL_NI_BEGIN(exe);\
+#define PREDICATE(condtion,err_infor) FKL_NI_BEGIN(exe);\
 	FklVMrunnable* runnable=exe->rhead;\
 	FklVMvalue* val=fklNiGetArg(&ap,stack);\
 	if(fklNiResBp(&ap,stack))\
@@ -3537,8 +3610,7 @@ void builtin_make_bytevector(ARGL)
 	fklNiReturn(FKL_VM_TRUE,&ap,stack);\
 	else\
 	fklNiReturn(FKL_VM_NIL,&ap,stack);\
-	fklNiEnd(&ap,stack);\
-}
+	fklNiEnd(&ap,stack);
 
 #ifndef _WIN32
 
@@ -3719,30 +3791,30 @@ void builtin_match(ARGL)
 {
 }
 
-void builtin_not(ARGL) PREDICATE(val==FKL_VM_NIL,"builtin.not")
-void builtin_null(ARGL) PREDICATE(val==FKL_VM_NIL,"builtin.null")
-void builtin_atom(ARGL) PREDICATE(!FKL_IS_PAIR(val),"builtin.atom?")
-void builtin_char_p(ARGL) PREDICATE(FKL_IS_CHR(val),"builtin.char?")
-void builtin_integer_p(ARGL) PREDICATE(FKL_IS_I32(val)||FKL_IS_I64(val)||FKL_IS_BIG_INT(val),"builtin.integer?")
-void builtin_fix_int_p(ARGL) PREDICATE(FKL_IS_I32(val)||FKL_IS_I64(val),"builtin.fix-int?")
-void builtin_i32_p(ARGL) PREDICATE(FKL_IS_I32(val),"builtin.i32?")
-void builtin_i64_p(ARGL) PREDICATE(FKL_IS_I64(val),"builtin.i64?")
-void builtin_f64_p(ARGL) PREDICATE(FKL_IS_F64(val),"builtin.i64?")
-void builtin_number_p(ARGL) PREDICATE(fklIsVMnumber(val),"builtin.number?")
-void builtin_pair_p(ARGL) PREDICATE(FKL_IS_PAIR(val),"builtin.pair?")
-void builtin_symbol_p(ARGL) PREDICATE(FKL_IS_SYM(val),"builtin.symbol?")
-void builtin_string_p(ARGL) PREDICATE(FKL_IS_STR(val),"builtin.string?")
-void builtin_error_p(ARGL) PREDICATE(FKL_IS_ERR(val),"builtin.error?")
-void builtin_procedure_p(ARGL) PREDICATE(FKL_IS_PROC(val)||FKL_IS_DLPROC(val),"builtin.procedure?")
-void builtin_proc_p(ARGL) PREDICATE(FKL_IS_PROC(val),"builtin.proc?")
-void builtin_dlproc_p(ARGL) PREDICATE(FKL_IS_DLPROC(val),"builtin.dlproc?")
-void builtin_vector_p(ARGL) PREDICATE(FKL_IS_VECTOR(val),"builtin.vector?")
-void builtin_bytevector_p(ARGL) PREDICATE(FKL_IS_BYTEVECTOR(val),"builtin.bytevector?")
-void builtin_chanl_p(ARGL) PREDICATE(FKL_IS_CHAN(val),"builtin.chanl?")
-void builtin_dll_p(ARGL) PREDICATE(FKL_IS_DLL(val),"builtin.dll?")
-void builtin_big_int_p(ARGL) PREDICATE(FKL_IS_BIG_INT(val),"builtin.big-int?")
-void builtin_list_p(ARGL) PREDICATE(fklIsList(val),"builtin.list?")
-void builtin_box_p(ARGL) PREDICATE(FKL_IS_BOX(val),"builtin.box?")
+void builtin_not(ARGL) {PREDICATE(val==FKL_VM_NIL,"builtin.not")}
+void builtin_null(ARGL) {PREDICATE(val==FKL_VM_NIL,"builtin.null")}
+void builtin_atom(ARGL) {PREDICATE(!FKL_IS_PAIR(val),"builtin.atom?")}
+void builtin_char_p(ARGL) {PREDICATE(FKL_IS_CHR(val),"builtin.char?")}
+void builtin_integer_p(ARGL) {PREDICATE(FKL_IS_I32(val)||FKL_IS_I64(val)||FKL_IS_BIG_INT(val),"builtin.integer?")}
+void builtin_fix_int_p(ARGL) {PREDICATE(FKL_IS_I32(val)||FKL_IS_I64(val),"builtin.fix-int?")}
+void builtin_i32_p(ARGL) {PREDICATE(FKL_IS_I32(val),"builtin.i32?")}
+void builtin_i64_p(ARGL) {PREDICATE(FKL_IS_I64(val),"builtin.i64?")}
+void builtin_f64_p(ARGL) {PREDICATE(FKL_IS_F64(val),"builtin.i64?")}
+void builtin_number_p(ARGL) {PREDICATE(fklIsVMnumber(val),"builtin.number?")}
+void builtin_pair_p(ARGL) {PREDICATE(FKL_IS_PAIR(val),"builtin.pair?")}
+void builtin_symbol_p(ARGL) {PREDICATE(FKL_IS_SYM(val),"builtin.symbol?")}
+void builtin_string_p(ARGL) {PREDICATE(FKL_IS_STR(val),"builtin.string?")}
+void builtin_error_p(ARGL) {PREDICATE(FKL_IS_ERR(val),"builtin.error?")}
+void builtin_procedure_p(ARGL) {PREDICATE(FKL_IS_PROC(val)||FKL_IS_DLPROC(val),"builtin.procedure?")}
+void builtin_proc_p(ARGL) {PREDICATE(FKL_IS_PROC(val),"builtin.proc?")}
+void builtin_dlproc_p(ARGL) {PREDICATE(FKL_IS_DLPROC(val),"builtin.dlproc?")}
+void builtin_vector_p(ARGL) {PREDICATE(FKL_IS_VECTOR(val),"builtin.vector?")}
+void builtin_bytevector_p(ARGL) {PREDICATE(FKL_IS_BYTEVECTOR(val),"builtin.bytevector?")}
+void builtin_chanl_p(ARGL) {PREDICATE(FKL_IS_CHAN(val),"builtin.chanl?")}
+void builtin_dll_p(ARGL) {PREDICATE(FKL_IS_DLL(val),"builtin.dll?")}
+void builtin_big_int_p(ARGL) {PREDICATE(FKL_IS_BIG_INT(val),"builtin.big-int?")}
+void builtin_list_p(ARGL){PREDICATE(fklIsList(val),"builtin.list?")}
+void builtin_box_p(ARGL) {PREDICATE(FKL_IS_BOX(val),"builtin.box?")}
 
 #undef ARGL
 #undef K_FUNC_ARGL
@@ -3776,6 +3848,7 @@ static const struct SymbolFuncStruct
 	{"-1+",                   builtin_sub_1,                   },
 	{"*",                     builtin_mul,                     },
 	{"/",                     builtin_div,                     },
+	{"//",                    builtin_idiv,                    },
 	{"%",                     builtin_rem,                     },
 	{">",                     builtin_gt,                      },
 	{">=",                    builtin_ge,                      },

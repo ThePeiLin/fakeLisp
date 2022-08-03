@@ -35,7 +35,6 @@ static const char* builtInErrorType[]=
 	"symbol-undefined",
 	"syntax-error",
 	"invalid-expression",
-	"invalid-type-def",
 	"circular-load",
 	"invalid-pattern",
 	"wrong-types-of-arguements",
@@ -53,15 +52,14 @@ static const char* builtInErrorType[]=
 	"div-zero-error",
 	"file-failure",
 	"invalid-member-symbol",
-	"no-member-type",
-	"non-scalar-type",
 	"invalid-assign",
 	"invalid-access",
-	"inport-failed",
+	"import-failed",
 	"invalid-macro-pattern",
 	"faild-to-create-big-int-from-mem",
 	"differ-list-in-list",
 	"cross-c-call-continuation",
+	"invalid-radix",
 	NULL,
 };
 
@@ -1604,7 +1602,6 @@ void builtin_to_string(ARGL)
 	}
 	else if(fklIsVMnumber(obj))
 	{
-		char buf[64]={0};
 		retval=fklNewVMvalueToStack(FKL_TYPE_STR,NULL,stack,exe->gc);
 		if(fklIsInt(obj))
 		{
@@ -1612,12 +1609,17 @@ void builtin_to_string(ARGL)
 				retval->u.str=fklBigIntToString(obj->u.bigInt,10);
 			else
 			{
-				size_t size=snprintf(buf,64,"%ld",fklGetInt(obj));
-				retval->u.str=fklNewString(size,buf);
+				FklBigInt bi=FKL_BIG_INT_INIT;
+				uint8_t t[64]={0};
+				bi.size=64;
+				bi.digits=t;
+				fklSetBigIntI(&bi,fklGetInt(obj));
+				retval->u.str=fklBigIntToString(&bi,10);
 			}
 		}
 		else
 		{
+			char buf[64]={0};
 			size_t size=snprintf(buf,64,"%lf",obj->u.f64);
 			retval->u.str=fklNewString(size,buf);
 		}
@@ -1740,25 +1742,41 @@ void builtin_number_to_string(ARGL)
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	FklVMvalue* radix=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->string",FKL_ERR_TOOMANYARG,runnable,exe);
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->string",FKL_ERR_TOOFEWARG,runnable,exe);
 	FKL_NI_CHECK_TYPE(obj,fklIsVMnumber,"builtin.number->string",runnable,exe);
 	FklVMvalue* retval=fklNewVMvalueToStack(FKL_TYPE_STR,NULL,stack,exe->gc);
-	char buf[64]={0};
 	if(fklIsInt(obj))
 	{
+		uint32_t base=10;
+		if(radix)
+		{
+			FKL_NI_CHECK_TYPE(radix,fklIsInt,"builtin.number->string",runnable,exe);
+			int64_t t=fklGetInt(radix);
+			if(t!=8&&t!=10&&t!=16)
+				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->string",FKL_ERR_INVALIDRADIX,runnable,exe);
+			base=t;
+		}
 		if(FKL_IS_BIG_INT(obj))
-			retval->u.str=fklBigIntToString(obj->u.bigInt,10);
+			retval->u.str=fklBigIntToString(obj->u.bigInt,base);
 		else
 		{
-			size_t size=snprintf(buf,64,"%ld",fklGetInt(obj));
-			retval->u.str=fklNewString(size,buf);
+			FklBigInt bi=FKL_BIG_INT_INIT;
+			uint8_t t[64]={0};
+			bi.size=64;
+			bi.digits=t;
+			fklSetBigIntI(&bi,fklGetInt(obj));
+			retval->u.str=fklBigIntToString(&bi,base);
 		}
 	}
 	else
 	{
+		char buf[256]={0};
+		if(radix)
+			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->string",FKL_ERR_TOOMANYARG,runnable,exe);
 		size_t size=snprintf(buf,64,"%lf",obj->u.f64);
 		retval->u.str=fklNewString(size,buf);
 	}

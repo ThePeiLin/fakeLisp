@@ -422,6 +422,9 @@ char* fklGenErrorMessage(FklBuiltInErrorType type,FklVMrunnable* r,FklVM* exe)
 		case FKL_ERR_LIST_DIFFER_IN_LENGTH:
 			t=fklStrCat(t,"List differ in length ");
 			break;
+		case FKL_ERR_INVALIDRADIX:
+			t=fklStrCat(t,"Radix should be 8,10 or 16 ");
+			break;
 		default:
 			break;
 	}

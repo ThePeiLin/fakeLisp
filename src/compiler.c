@@ -2939,10 +2939,6 @@ void fklPrintCompileError(const FklAstCptr* obj,FklBuiltInErrorType type,FklInte
 			fprintf(stderr,"Invalid expression ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
-		case FKL_ERR_INVALIDTYPEDEF:
-			fprintf(stderr,"Invalid type define ");
-			if(obj!=NULL)fklPrintCptr(obj,stderr);
-			break;
 		case FKL_ERR_CIRCULARLOAD:
 			fprintf(stderr,"Circular load file ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
@@ -2968,20 +2964,6 @@ void fklPrintCompileError(const FklAstCptr* obj,FklBuiltInErrorType type,FklInte
 			fprintf(stderr,"invalid member ");
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			break;
-		case FKL_ERR_NOMEMBERTYPE:
-			fprintf(stderr,"cannot get member in a no-member type in ");
-			if(obj!=NULL)fklPrintCptr(obj,stderr);
-			break;
-		case FKL_ERR_NONSCALARTYPE:
-			fprintf(stderr,"get the reference of a non-scalar type member by path ");
-			if(obj!=NULL)
-			{
-				if(obj->type==FKL_TYPE_NIL)
-					fprintf(stderr,"()");
-				else
-					fklPrintCptr(obj,stderr);
-			}
-			fprintf(stderr," is not allowed");
 		case FKL_ERR_FILEFAILURE:
 			fprintf(stderr,"failed for file:");
 			fklPrintCptr(obj,stderr);

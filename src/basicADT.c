@@ -908,12 +908,12 @@ void fklMulBigInt(FklBigInt* a,const FklBigInt* multipler)
 		FKL_ASSERT(res);
 		for(uint64_t i=0;i<a->num;i++)
 		{
-			int n0=a->digits[i];
-			int carry=0;
+			uint8_t n0=a->digits[i];
+			uint32_t carry=0;
 			for(uint64_t j=0;j<multipler->num;j++)
 			{
-				int n1=multipler->digits[j];
-				int sum=(res[i+j]+n0*n1+carry);
+				uint8_t n1=multipler->digits[j];
+				uint32_t sum=(res[i+j]+n0*n1+carry);
 				res[i+j]=sum%FKL_BIG_INT_RADIX;
 				carry=sum/FKL_BIG_INT_RADIX;
 			}
@@ -1308,16 +1308,33 @@ FklString* fklBigIntToString(const FklBigInt* a,int radix)
 			j++;
 			len++;
 		}
-		FklUintStack* res=toRadixDigitsLe(a,10);
+		FklUintStack* res=toRadixDigitsLe(a,radix);
 		len+=res->top;
+		if(radix==16)
+		{
+			len+=2;
+			j+=2;
+		}
+		else if(radix==8)
+		{
+			len++;
+			j++;
+		}
 		FklString* s=fklNewString(sizeof(char)*len,NULL);
 		char* buf=s->str;
 		if(a->neg)
 			buf[0]='-';
+		if(radix==16)
+		{
+			buf[a->neg]='0';
+			buf[a->neg+1]='x';
+		}
+		else if(radix==8)
+			buf[a->neg]='0';
 		for(size_t i=res->top;i>0;i--,j++)
 		{
 			uint64_t c=res->base[i-1];
-			buf[j]=c<10?c+'0':c-10+'a';
+			buf[j]=c<10?c+'0':c-10+'A';
 		}
 		fklFreeUintStack(res);
 		return s;

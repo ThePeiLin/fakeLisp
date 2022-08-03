@@ -552,13 +552,30 @@ static const struct
 	{256, 2, },
 };
 
+static void divRemBigIntU8(FklBigInt* a,uint64_t* prem,uint8_t b)
+{
+	uint64_t rem=0;
+	for(uint64_t i=a->num;i>0;i--)
+	{
+		uint64_t t=(rem<<FKL_BIG_INT_BITS)|a->digits[i-1];
+		uint64_t q=t/b;
+		uint64_t r=t%b;
+		if(q==0&&i==a->num)
+			a->num--;
+		else
+			a->digits[i-1]=q;
+		rem=r;
+	}
+	*prem=rem;
+}
+
 static FklUintStack* toRadixDigitsLe(const FklBigInt* u,uint32_t radix)
 {
 	FKL_ASSERT(!FKL_IS_0_BIG_INT(u));
 	const double radixLog2=log2(radix);
 	const size_t radixDigits=ceil((((double)(u->num*FKL_BIG_INT_BITS))/radixLog2));
 	FklUintStack* res=fklNewUintStack(radixDigits,16);
-	uint64_t base=BASE8[radix].base;
+	uint8_t base=BASE8[radix].base;
 	size_t pow=BASE8[radix].pow;
 	FklBigInt digits=FKL_BIG_INT_INIT;
 	fklSetBigInt(&digits,u);
@@ -589,7 +606,7 @@ static FklUintStack* toRadixDigitsLe(const FklBigInt* u,uint32_t radix)
 			for(size_t i=0;i<bigPow;i++)
 			{
 				uint64_t r=0;
-				fklDivRemBigIntU(&bigR,&r,base);
+				divRemBigIntU8(&bigR,&r,base);
 				for(size_t j=0;j<pow;j++)
 				{
 					fklPushUintStack(r%radix,res);
@@ -603,7 +620,7 @@ static FklUintStack* toRadixDigitsLe(const FklBigInt* u,uint32_t radix)
 	while(digits.num>1)
 	{
 		uint64_t r=0;
-		fklDivRemBigIntU(&digits,&r,base);
+		divRemBigIntU8(&digits,&r,base);
 		for(size_t i=0;i<pow;i++)
 		{
 			fklPushUintStack(r%radix,res);

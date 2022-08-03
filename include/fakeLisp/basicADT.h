@@ -154,7 +154,8 @@ void fklFreeUintStack(FklUintStack*);
 void fklRecycleUintStack(FklUintStack*);
 int fklIsUintStackEmpty(FklUintStack*);
 
-typedef struct FklBigInt{
+typedef struct FklBigInt
+{
 	uint8_t* digits;
 	uint64_t num;
 	uint64_t size;

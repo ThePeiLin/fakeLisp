@@ -279,12 +279,30 @@ void builtin_eq(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.eq",FKL_ERR_TOOMANYARG,runnable,exe);
 	if(!fir||!sec)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.eq",FKL_ERR_TOOFEWARG,runnable,exe);
-	fklNiReturn(fir==sec
+	fklNiReturn(fklVMvalueEq(fir,sec)
 			?FKL_VM_TRUE
 			:FKL_VM_NIL
 			,&ap
 			,stack);
 	fklNiEnd(&ap,stack);
+}
+
+void builtin_eqv(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* fir=fklNiGetArg(&ap,stack);
+	FklVMvalue* sec=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.eq",FKL_ERR_TOOMANYARG,runnable,exe);
+	if(!fir||!sec)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.eq",FKL_ERR_TOOFEWARG,runnable,exe);
+	fklNiReturn((fklVMvalueEqv(fir,sec))
+			?FKL_VM_TRUE
+			:FKL_VM_NIL
+			,&ap
+			,stack);
+		fklNiEnd(&ap,stack);
 }
 
 void builtin_equal(ARGL)
@@ -297,7 +315,7 @@ void builtin_equal(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.equal",FKL_ERR_TOOMANYARG,runnable,exe);
 	if(!fir||!sec)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.equal",FKL_ERR_TOOFEWARG,runnable,exe);
-	fklNiReturn((fklVMvaluecmp(fir,sec))
+	fklNiReturn((fklVMvalueEqual(fir,sec))
 			?FKL_VM_TRUE
 			:FKL_VM_NIL
 			,&ap
@@ -801,7 +819,7 @@ void builtin_div(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_rem(ARGL)
+void builtin_mod(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMrunnable* runnable=exe->rhead;
@@ -844,7 +862,7 @@ void builtin_rem(ARGL)
 				fklFreeBigInt(rem);
 				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.%",FKL_ERR_DIVZEROERROR,runnable,exe);
 			}
-			fklRemBigInt(rem,sec->u.bigInt);
+			fklModBigInt(rem,sec->u.bigInt);
 		}
 		else
 		{
@@ -854,7 +872,7 @@ void builtin_rem(ARGL)
 				fklFreeBigInt(rem);
 				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.%",FKL_ERR_DIVZEROERROR,runnable,exe);
 			}
-			fklRemBigIntI(rem,si);
+			fklModBigIntI(rem,si);
 		}
 		if(fklIsGtLtI64BigInt(rem))
 			fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_BIG_INT,rem,stack,exe->gc),&ap,stack);
@@ -3227,7 +3245,7 @@ void builtin_member(ARGL)
 	}
 	FklVMvalue* r=list;
 	for(;r!=FKL_VM_NIL;r=r->u.pair->cdr)
-		if(fklVMvaluecmp(r->u.pair->car,obj))
+		if(fklVMvalueEqual(r->u.pair->car,obj))
 			break;
 	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
@@ -3875,10 +3893,6 @@ void builtin_system(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_match(ARGL)
-{
-}
-
 void builtin_not(ARGL) {PREDICATE(val==FKL_VM_NIL,"builtin.not")}
 void builtin_null(ARGL) {PREDICATE(val==FKL_VM_NIL,"builtin.null")}
 void builtin_atom(ARGL) {PREDICATE(!FKL_IS_PAIR(val),"builtin.atom?")}
@@ -3928,6 +3942,7 @@ static const struct SymbolFuncStruct
 	{"null",                  builtin_null,                    },
 	{"not",                   builtin_not,                     },
 	{"eq",                    builtin_eq,                      },
+	{"eqv",                   builtin_eqv,                     },
 	{"equal",                 builtin_equal,                   },
 	{"=",                     builtin_eqn,                     },
 	{"+",                     builtin_add,                     },
@@ -3937,7 +3952,7 @@ static const struct SymbolFuncStruct
 	{"*",                     builtin_mul,                     },
 	{"/",                     builtin_div,                     },
 	{"//",                    builtin_idiv,                    },
-	{"%",                     builtin_rem,                     },
+	{"%",                     builtin_mod,                     },
 	{">",                     builtin_gt,                      },
 	{">=",                    builtin_ge,                      },
 	{"<",                     builtin_lt,                      },
@@ -4093,6 +4108,8 @@ static const struct SymbolFuncStruct
 	{"remove-file",           builtin_remove_file,             },
 	{"time",                  builtin_time,                    },
 	{"system",                builtin_system,                  },
+
+//	{"hash",builtin_hash,},
 
 	{NULL,                    NULL,                            },
 };

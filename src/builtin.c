@@ -3390,7 +3390,7 @@ static void k_filter(K_FUNC_ARGL)
 	{
 		fklVMcallInDlproc(filterctx->proc
 				,1,&filterctx->list->u.pair->car
-				,exe->rhead,exe,k_filter,filterctx,sizeof(MempCtx));
+				,exe->rhead,exe,k_filter,filterctx,sizeof(FilterCtx));
 		FklVMvalue* result=fklGetTopValue(stack);
 		if(result!=FKL_VM_NIL)
 		{

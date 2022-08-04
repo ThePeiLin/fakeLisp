@@ -525,6 +525,45 @@ void builtin_sub(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void builtin_abs(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.abs",FKL_ERR_TOOMANYARG,runnable,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.abs",FKL_ERR_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(obj,fklIsVMnumber,"builtin.abs",runnable,exe);
+	if(FKL_IS_F64(obj))
+	{
+		double f=fabs(obj->u.f64);
+		fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_F64,&f,stack,exe->gc),&ap,stack);
+	}
+	else
+	{
+		if(fklIsFixint(obj))
+		{
+			int64_t i=fklGetInt(obj);
+			if(i==INT64_MIN)
+			{
+				FklBigInt* bi=fklNewBigInt(i);
+				bi->neg=0;
+				fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_BIG_INT,bi,stack,exe->gc),&ap,stack);
+			}
+			else
+				fklNiReturn(fklMakeVMint(i,stack,exe->gc),&ap,stack);
+		}
+		else
+		{
+			FklBigInt* bi=fklCopyBigInt(obj->u.bigInt);
+			bi->neg=0;
+			fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_BIG_INT,bi,stack,exe->gc),&ap,stack);
+		}
+	}
+	fklNiEnd(&ap,stack);
+}
+
 void builtin_sub_1(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -3953,6 +3992,7 @@ static const struct SymbolFuncStruct
 	{"/",                     builtin_div,                     },
 	{"//",                    builtin_idiv,                    },
 	{"%",                     builtin_mod,                     },
+	{"abs",                   builtin_abs,                     },
 	{">",                     builtin_gt,                      },
 	{">=",                    builtin_ge,                      },
 	{"<",                     builtin_lt,                      },

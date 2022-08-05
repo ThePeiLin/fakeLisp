@@ -1,0 +1,9 @@
+(define internationle-in-some-language
+  #hash[(Chinese,"国际主义")
+        (English,"the Internationale")
+        (Franch,"L'internationale")
+        (Russian,"Интернационалом")])
+(define my-language 'Chinese)
+(princ (cdr (href internationle-in-some-language
+             my-language)))
+(princ #\\n)

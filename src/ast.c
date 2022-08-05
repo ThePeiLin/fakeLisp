@@ -84,6 +84,16 @@ void fklFreeAtom(FklAstAtom* objAtm)
 		free(vec->base);
 		vec->size=0;
 	}
+	else if(objAtm->type==FKL_TYPE_HASHTABLE)
+	{
+		FklAstCptr* c=&objAtm->value.hash.items;
+		objAtm->value.hash.num=0;
+		fklDeleteCptr(c);
+		c->curline=0;
+		c->outer=NULL;
+		c->type=FKL_TYPE_NIL;
+		c->u.all=NULL;
+	}
 	else if(objAtm->type==FKL_TYPE_BOX)
 	{
 		FklAstCptr* c=&objAtm->value.box;
@@ -160,6 +170,14 @@ FklAstAtom* fklNewAtom(FklValueType type,FklAstPair* prev)
 			tmp->value.bigInt.size=0;
 			tmp->value.bigInt.neg=0;
 			break;
+		case FKL_TYPE_HASHTABLE:
+			tmp->value.hash.num=0;
+			tmp->value.hash.type=0;
+			tmp->value.hash.items.curline=0;
+			tmp->value.hash.items.outer=NULL;
+			tmp->value.hash.items.type=FKL_TYPE_NIL;
+			tmp->value.hash.items.u.all=NULL;
+			break;
 		case FKL_TYPE_BOX:
 			tmp->value.box.curline=0;
 			tmp->value.box.outer=NULL;
@@ -220,6 +238,12 @@ int fklCopyCptr(FklAstCptr* objCptr,const FklAstCptr* copiedCptr)
 							fklPushPtrStack(&atom1->value.vec.base[i],s1);
 							fklPushPtrStack(&atom2->value.vec.base[i],s2);
 						}
+						break;
+					case FKL_TYPE_HASHTABLE:
+						atom1=fklNewAtom(atom2->type,root1->outer);
+						fklMakeAstHashTable(&atom1->value.hash,atom2->value.hash.type,atom2->value.hash.num);
+						fklPushPtrStack(&atom1->value.hash.items,s1);
+						fklPushPtrStack(&atom2->value.hash.items,s2);
 						break;
 					case FKL_TYPE_BOX:
 						atom1=fklNewAtom(atom2->type,root1->outer);
@@ -625,6 +649,12 @@ static void freeMatchState(MatchState* state)
 #define BOX ((void*)9)
 #define BVECTOR_0 ((void*)10)
 #define BVECTOR_1 ((void*)11)
+#define HASH_EQ_0 ((void*)12)
+#define HASH_EQ_1 ((void*)13)
+#define HASH_EQV_0 ((void*)14)
+#define HASH_EQV_1 ((void*)15)
+#define HASH_EQUAL_0 ((void*)16)
+#define HASH_EQUAL_1 ((void*)17)
 
 typedef enum
 {
@@ -656,6 +686,17 @@ static int isBuiltInSingleStrPattern(FklStringMatchPattern* pattern)
 		||pattern==UNQTESP
 		||pattern==DOTTED
 		||pattern==BOX
+		;
+}
+
+static int isBuiltInHashTable(FklStringMatchPattern* pattern)
+{
+	return pattern==HASH_EQ_0
+		||pattern==HASH_EQ_1
+		||pattern==HASH_EQV_0
+		||pattern==HASH_EQV_1
+		||pattern==HASH_EQUAL_0
+		||pattern==HASH_EQUAL_1
 		;
 }
 
@@ -700,6 +741,43 @@ static int isRightParenthese(const FklString* str)
 	return str->size==1&&(str->str[0]==')'||str->str[0]==']');
 }
 
+static FklStringMatchPattern* getHashPattern(const FklString* str)
+{
+	if(str->size==6&&!strncmp(str->str,"#hash",5))
+	{
+		if(str->str[5]=='(')
+			return HASH_EQ_0;
+		if(str->str[5]=='[')
+			return HASH_EQ_1;
+		return NULL;
+	}
+	else if(str->size==9&&!strncmp(str->str,"#hasheqv",8))
+	{
+		if(str->str[8]=='(')
+			return HASH_EQV_0;
+		if(str->str[8]=='[')
+			return HASH_EQV_1;
+		return NULL;
+	}
+	else if(str->size==11&&!strncmp(str->str,"#hashequal",10))
+	{
+		if(str->str[10]=='(')
+			return HASH_EQUAL_0;
+		if(str->str[10]=='[')
+			return HASH_EQUAL_1;
+		return NULL;
+	}
+	return NULL;
+}
+
+static int isHashTableStart(const FklString* str)
+{
+	return (str->size==6&&!strncmp(str->str,"#hash",5)&&(str->str[5]=='('||str->str[5]=='['))
+		||(str->size==9&&!strncmp(str->str,"#hasheqv",8)&&(str->str[8]=='('||str->str[8]=='['))
+		||(str->size==11&&!strncmp(str->str,"#hashequal",10)&&(str->str[10]=='('||str->str[10]=='['))
+		;
+}
+
 static int isBuiltSingleStr(const FklString* str)
 {
 	const char* buf=str->str;
@@ -711,14 +789,20 @@ static int isBuiltSingleStr(const FklString* str)
 		||!fklStringCstrCmp(str,"#&");
 }
 
+static int isBuiltInPattern(FklStringMatchPattern* pattern)
+{
+	return isBuiltInSingleStrPattern(pattern)
+		||isBuiltInParenthese(pattern)
+		||isBuiltInVector(pattern)
+		||isBuiltInBvector(pattern)
+		||isBuiltInHashTable(pattern);
+}
+
 static MatchState* searchReverseStringCharMatchState(const FklString* str,FklPtrStack* matchStateStack)
 {
 	MatchState* top=fklTopPtrStack(matchStateStack);
 	uint32_t i=0;
-	for(;top&&!isBuiltInSingleStrPattern(top->pattern)
-			&&!isBuiltInParenthese(top->pattern)
-			&&!isBuiltInVector(top->pattern)
-			&&!isBuiltInBvector(top->pattern)
+	for(;top&&!isBuiltInPattern(top->pattern)
 			&&top->cindex+i<top->pattern->num;)
 	{
 		const FklString* cpart=fklGetNthPartOfStringMatchPattern(top->pattern,top->cindex+i);
@@ -963,6 +1047,15 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 				fklPushPtrStack(cStack,stackStack);
 				continue;
 			}
+			else if(isHashTableStart(token->value))
+			{
+				FklStringMatchPattern* pattern=getHashPattern(token->value);
+				MatchState* state=newMatchState(pattern,token->line,0);
+				fklPushPtrStack(state,matchStateStack);
+				cStack=fklNewPtrStack(32,16);
+				fklPushPtrStack(cStack,stackStack);
+				continue;
+			}
 			else if(isRightParenthese(token->value))
 			{
 				fklPopPtrStack(stackStack);
@@ -971,7 +1064,7 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 				int r=0;
 				if(isBuiltInParenthese(cState->pattern))
 				{
-					for(uint32_t i=0;i<cStack->top;i++)
+					for(uint64_t i=0;i<cStack->top;i++)
 					{
 						AstElem* c=cStack->base[i];
 						if(!r)
@@ -992,13 +1085,41 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 					fklMakeAstVector(&vec->value.vec,cStack->top,NULL);
 					v->cptr->type=FKL_TYPE_ATM;
 					v->cptr->u.atom=vec;
-					for(uint32_t i=0;i<cStack->top;i++)
+					for(uint64_t i=0;i<cStack->top;i++)
 					{
 						AstElem* c=cStack->base[i];
 						if(!r)
 						{
 							if(c->place==AST_CAR)
 								fklCopyCptr(&vec->value.vec.base[i],c->cptr);
+							else
+								r=1;
+						}
+						fklDeleteCptr(c->cptr);
+						free(c->cptr);
+						free(c);
+					}
+				}
+				else if(isBuiltInHashTable(cState->pattern))
+				{
+					FklAstAtom* hash=fklNewAtom(FKL_TYPE_HASHTABLE,v->cptr->outer);
+					fklMakeAstHashTable(&hash->value.hash
+							,(cState->pattern==HASH_EQ_0||cState->pattern==HASH_EQ_1)?FKL_VM_HASH_EQ
+							:(cState->pattern==HASH_EQV_0||cState->pattern==HASH_EQV_1)?FKL_VM_HASH_EQV
+							:FKL_VM_HASH_EQUAL
+							,cStack->top);
+					v->cptr->type=FKL_TYPE_ATM;
+					v->cptr->u.atom=hash;
+					FklAstCptr* items=&hash->value.hash.items;
+					for(uint64_t i=0;i<cStack->top;i++)
+					{
+						AstElem* c=cStack->base[i];
+						if(!r)
+						{
+							if(c->place==AST_CAR&&c->cptr->type==FKL_TYPE_PAIR)
+							{
+								r=copyAndAddToList(items,c->cptr);
+							}
 							else
 								r=1;
 						}
@@ -1096,7 +1217,8 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 		for(MatchState* state=fklTopPtrStack(matchStateStack);
 				state&&(isBuiltInSingleStrPattern(state->pattern)||(!isBuiltInParenthese(state->pattern)
 						&&!isBuiltInVector(state->pattern)
-						&&!isBuiltInBvector(state->pattern)));
+						&&!isBuiltInBvector(state->pattern)
+						&&!isBuiltInHashTable(state->pattern)));
 				state=fklTopPtrStack(matchStateStack))
 		{
 			if(isBuiltInSingleStrPattern(state->pattern))
@@ -1192,6 +1314,16 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 	return retval;
 }
 
+void fklMakeAstHashTable(FklAstHashTable* hash,uint32_t type,uint64_t num)
+{
+	hash->type=type;
+	hash->num=num;
+	hash->items.type=FKL_TYPE_NIL;
+	hash->items.curline=0;
+	hash->items.outer=NULL;
+	hash->items.u.all=NULL;
+}
+
 void fklMakeAstVector(FklAstVector* vec,size_t size,const FklAstCptr* base)
 {
 	vec->size=size;
@@ -1270,6 +1402,21 @@ void fklPrintCptr(const FklAstCptr* o_cptr,FILE* fp)
 					case FKL_TYPE_BOX:
 						fputs("#&",fp);
 						fklPushPtrQueue(newAstElem(AST_BOX,&tmpAtm->value.box),cQueue);
+						break;
+					case FKL_TYPE_HASHTABLE:
+						switch(tmpAtm->value.hash.type)
+						{
+							case FKL_VM_HASH_EQ:
+								fputs("#hash",fp);
+								break;
+							case FKL_VM_HASH_EQV:
+								fputs("#hasheqv",fp);
+								break;
+							case FKL_VM_HASH_EQUAL:
+								fputs("#hashequal",fp);
+								break;
+						}
+						fklPushPtrQueue(newAstElem(AST_BOX,&tmpAtm->value.hash.items),cQueue);
 						break;
 					default:
 						break;

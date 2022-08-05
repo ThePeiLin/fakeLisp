@@ -183,6 +183,9 @@ static void B_tail_call(FklVM*);
 static void B_push_big_int(FklVM*);
 static void B_push_box(FklVM*);
 static void B_push_bytevector(FklVM*);
+static void B_push_hash_eq(FklVM*);
+static void B_push_hash_eqv(FklVM*);
+static void B_push_hash_equal(FklVM*);
 
 static void (*ByteCodes[])(FklVM*)=
 {
@@ -221,6 +224,9 @@ static void (*ByteCodes[])(FklVM*)=
 	B_push_big_int,
 	B_push_box,
 	B_push_bytevector,
+	B_push_hash_eq,
+	B_push_hash_eqv,
+	B_push_hash_equal,
 };
 
 FklVM* fklNewVM(FklByteCode* mainCode)
@@ -849,6 +855,60 @@ void B_push_bytevector(FklVM* exe)
 	runnable->cp+=sizeof(char)+sizeof(uint64_t)+size;
 }
 
+void B_push_hash_eq(FklVM* exe)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	uint64_t num=fklGetU64FromByteCode(exe->code+runnable->cp+sizeof(char));
+	FklVMvalue* hash=fklNewVMvalueToStack(FKL_TYPE_HASHTABLE
+			,fklNewVMhashTable(FKL_VM_HASH_EQ),stack,exe->gc);
+	for(size_t i=num;i>0;i--)
+	{
+		FklVMvalue* value=fklNiGetArg(&ap,stack);
+		FklVMvalue* key=fklNiGetArg(&ap,stack);
+		fklSetVMhashTable(key,value,hash->u.hash,exe->gc);
+	}
+	fklNiReturn(hash,&ap,stack);
+	fklNiEnd(&ap,stack);
+	runnable->cp+=sizeof(char)+sizeof(uint64_t);
+}
+
+void B_push_hash_eqv(FklVM* exe)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	uint64_t num=fklGetU64FromByteCode(exe->code+runnable->cp+sizeof(char));
+	FklVMvalue* hash=fklNewVMvalueToStack(FKL_TYPE_HASHTABLE
+			,fklNewVMhashTable(FKL_VM_HASH_EQV),stack,exe->gc);
+	for(size_t i=num;i>0;i--)
+	{
+		FklVMvalue* value=fklNiGetArg(&ap,stack);
+		FklVMvalue* key=fklNiGetArg(&ap,stack);
+		fklSetVMhashTable(key,value,hash->u.hash,exe->gc);
+	}
+	fklNiReturn(hash,&ap,stack);
+	fklNiEnd(&ap,stack);
+	runnable->cp+=sizeof(char)+sizeof(uint64_t);
+}
+
+void B_push_hash_equal(FklVM* exe)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	uint64_t num=fklGetU64FromByteCode(exe->code+runnable->cp+sizeof(char));
+	FklVMvalue* hash=fklNewVMvalueToStack(FKL_TYPE_HASHTABLE
+			,fklNewVMhashTable(FKL_VM_HASH_EQUAL),stack,exe->gc);
+	for(size_t i=num;i>0;i--)
+	{
+		FklVMvalue* value=fklNiGetArg(&ap,stack);
+		FklVMvalue* key=fklNiGetArg(&ap,stack);
+		fklSetVMhashTable(key,value,hash->u.hash,exe->gc);
+	}
+	fklNiReturn(hash,&ap,stack);
+	fklNiEnd(&ap,stack);
+	runnable->cp+=sizeof(char)+sizeof(uint64_t);
+}
+
 FklVMstack* fklNewVMstack(int32_t size)
 {
 	FklVMstack* tmp=(FklVMstack*)malloc(sizeof(FklVMstack));
@@ -1077,6 +1137,9 @@ void propagateMark(FklVMvalue* root,FklVMgc* gc)
 			break;
 		case FKL_TYPE_ENV:
 			fklAtomicVMenv(root->u.env,gc);
+			break;
+		case FKL_TYPE_HASHTABLE:
+			fklAtomicVMhashTable(root->u.hash,gc);
 			break;
 		case FKL_TYPE_USERDATA:
 			if(root->u.ud->rel)

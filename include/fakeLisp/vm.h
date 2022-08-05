@@ -43,10 +43,10 @@ typedef void* FklVMdllHandle;
 
 typedef struct FklVMchanl
 {
-	uint32_t max;
-	volatile uint32_t messageNum;
-	volatile uint32_t sendNum;
-	volatile uint32_t recvNum;
+	size_t max;
+	volatile size_t messageNum;
+	volatile size_t sendNum;
+	volatile size_t recvNum;
 	pthread_mutex_t lock;
 	FklPtrQueue* messages;
 	FklPtrQueue* recvq;
@@ -116,6 +116,7 @@ typedef struct FklVMvalue
 		FklVMfp* fp;
 		FklVMvec* vec;
 		struct FklVMenv* env;
+		struct FklVMhashTable* hash;
 		struct FklVMchanl* chan;
 		struct FklVMerror* err;
 		FklBigInt* bigInt;
@@ -127,10 +128,29 @@ typedef struct FklVMvalue
 
 typedef struct FklVMenv
 {
-	pthread_mutex_t lock;
+	pthread_rwlock_t lock;
 	struct FklVMvalue* volatile prev;
 	FklHashTable* t;
 }FklVMenv;
+
+typedef enum
+{
+	FKL_VM_HASH_EQ,
+	FKL_VM_HASH_EQV,
+	FKL_VM_HASH_EQUAL,
+}FklVMhashTableEqType;
+
+typedef struct
+{
+	FklVMvalue* key;
+	FklVMvalue* v;
+}FklVMhashTableItem;
+
+typedef struct FklVMhashTable
+{
+	FklVMhashTableEqType type;
+	FklHashTable* ht;
+}FklVMhashTable;
 
 typedef struct FklVMproc
 {
@@ -207,6 +227,7 @@ typedef struct FklVMudMethodTable
 	size_t (*__length)(void*);
 	void (*__append)(void**,void*);
 	void* (*__copy)(void*);
+	size_t (*__hash)(void*,FklPtrStack*);
 	FklString* (*__to_string)(void*);
 }FklVMudMethodTable;
 
@@ -339,14 +360,16 @@ void fklPrincVMvalue(FklVMvalue*,FILE*);
 
 //vmutils
 
+FklVMvalue* fklMakeVMf64(double f,FklVMstack*,FklVMgc* gc);
 FklVMvalue* fklMakeVMint(int64_t r64,FklVMstack*,FklVMgc* gc);
+FklVMvalue* fklMakeVMuint(uint64_t r64,FklVMstack*,FklVMgc* gc);
 FklVMvalue* fklMakeVMintD(double r64,FklVMstack*,FklVMgc* gc);
-int fklIsVMnumber(FklVMvalue* p);
-int fklIsFixint(FklVMvalue* p);
-int fklIsInt(FklVMvalue* p);
-int fklIsList(FklVMvalue* p);
-int64_t fklGetInt(FklVMvalue* p);
-double fklGetDouble(FklVMvalue* p);
+int fklIsVMnumber(const FklVMvalue* p);
+int fklIsFixint(const FklVMvalue* p);
+int fklIsInt(const FklVMvalue* p);
+int fklIsList(const FklVMvalue* p);
+int64_t fklGetInt(const FklVMvalue* p);
+double fklGetDouble(const FklVMvalue* p);
 void fklInitVMRunningResource(FklVM*,FklVMvalue*,FklVMgc* gc,FklByteCodelnt*,uint32_t,uint32_t);
 void fklUninitVMRunningResource(FklVM*,FklVMnode*);
 
@@ -376,6 +399,13 @@ void fklFreeVMcCC(FklVMcCC*);
 FklVMcontinuation* fklNewVMcontinuation(uint32_t ap,FklVM*);
 void fklFreeVMcontinuation(FklVMcontinuation* cont);
 
+FklVMhashTable* fklNewVMhashTable(FklVMhashTableEqType);
+void fklSetVMhashTable(FklVMvalue* key,FklVMvalue* v,FklVMhashTable* ht,FklVMgc* gc);
+FklVMhashTableItem* fklRefVMhashTable1(FklVMvalue* key,FklVMvalue* toSet,FklVMhashTable* ht,FklVMgc*);
+FklVMhashTableItem* fklRefVMhashTable(FklVMvalue* key,FklVMhashTable* ht);
+void fklAtomicVMhashTable(FklVMhashTable* ht,FklVMgc* gc);
+void fklFreeVMhashTable(FklVMhashTable*);
+
 FklVMenv* fklNewGlobVMenv(FklVMvalue*,FklVMgc*);
 FklVMenv* fklNewVMenv(FklVMvalue*,FklVMgc*);
 FklVMvalue* volatile* fklFindVar(FklSid_t id,FklVMenv*);
@@ -400,8 +430,9 @@ FklVMvalue* fklGetTopValue(FklVMstack*);
 FklVMvalue* fklGetValue(FklVMstack*,int32_t);
 FklVMvalue* fklGetVMpairCar(FklVMvalue*);
 FklVMvalue* fklGetVMpairCdr(FklVMvalue*);
-int fklVMvaluecmp(FklVMvalue*,FklVMvalue*);
-int subfklVMvaluecmp(FklVMvalue*,FklVMvalue*);
+int fklVMvalueEqual(const FklVMvalue*,const FklVMvalue*);
+int fklVMvalueEqv(const FklVMvalue*,const FklVMvalue*);
+int fklVMvalueEq(const FklVMvalue*,const FklVMvalue*);
 int fklNumcmp(FklVMvalue*,FklVMvalue*);
 
 FklVMpair* fklNewVMpair(void);
@@ -564,6 +595,10 @@ void fklFreeRunnables(FklVMrunnable* h);
 #define FKL_IS_USERDATA(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_USERDATA)
 #define FKL_IS_BIG_INT(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_BIG_INT)
 #define FKL_IS_BOX(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_BOX)
+#define FKL_IS_HASHTABLE(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_HASHTABLE)
+#define FKL_IS_HASHTABLE_EQ(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_HASHTABLE&&(P)->u.hash->type==FKL_VM_HASH_EQ)
+#define FKL_IS_HASHTABLE_EQV(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_HASHTABLE&&(P)->u.hash->type==FKL_VM_HASH_EQV)
+#define FKL_IS_HASHTABLE_EQUAL(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_HASHTABLE&&(P)->u.hash->type==FKL_VM_HASH_EQUAL)
 
 #ifdef __cplusplus
 }

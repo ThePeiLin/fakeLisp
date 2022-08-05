@@ -278,6 +278,9 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 				case FKL_OP_PUSH_I64:
 				case FKL_OP_PUSH_VECTOR:
 				case FKL_OP_JMP:
+				case FKL_OP_PUSH_HASHTABLE_EQ:
+				case FKL_OP_PUSH_HASHTABLE_EQV:
+				case FKL_OP_PUSH_HASHTABLE_EQUAL:
 				case FKL_OP_JMP_IF_FALSE:
 				case FKL_OP_JMP_IF_TRUE:
 					fprintf(fp,"%ld"

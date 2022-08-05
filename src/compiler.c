@@ -858,6 +858,38 @@ FklByteCode* fklCompileVector(FklAstCptr* objCptr)
 	return retval;
 }
 
+FklByteCode* fklCompileHashtable(FklAstCptr* objCptr)
+{
+	FklByteCode* pushHash=fklNewByteCode(sizeof(char)+sizeof(uint64_t));
+	FklAstHashTable* hash=&objCptr->u.atom->value.hash;
+	FklByteCode* retval=fklNewByteCode(0);
+	switch(hash->type)
+	{
+		case FKL_VM_HASH_EQ:
+			pushHash->code[0]=FKL_OP_PUSH_HASHTABLE_EQ;
+			break;
+		case FKL_VM_HASH_EQV:
+			pushHash->code[0]=FKL_OP_PUSH_HASHTABLE_EQV;
+			break;
+		case FKL_VM_HASH_EQUAL:
+			pushHash->code[0]=FKL_OP_PUSH_HASHTABLE_EQUAL;
+			break;
+	}
+	for(FklAstCptr* first=fklGetFirstCptr(&hash->items);first;first=fklNextCptr(first))
+	{
+		FklByteCode* key=innerCompileConst(fklGetASTPairCar(first));
+		FklByteCode* value=innerCompileConst(fklGetASTPairCdr(first));
+		fklCodeCat(retval,key);
+		fklCodeCat(retval,value);
+		fklFreeByteCode(key);
+		fklFreeByteCode(value);
+	}
+	fklSetU64ToByteCode(pushHash->code+sizeof(char),hash->num);
+	fklCodeCat(retval,pushHash);
+	fklFreeByteCode(pushHash);
+	return retval;
+}
+
 FklByteCode* fklCompileBox(FklAstCptr* objCptr)
 {
 	FklAstCptr* box=&objCptr->u.atom->value.box;
@@ -1174,9 +1206,10 @@ FklByteCodelnt* fklCompileConst(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterp
 	FklByteCode* tmp=NULL;
 	if(objCptr->type==FKL_TYPE_ATM&&objCptr->u.atom->type!=FKL_TYPE_VECTOR)tmp=fklCompileAtom(objCptr);
 	if(objCptr->type==FKL_TYPE_ATM&&objCptr->u.atom->type==FKL_TYPE_VECTOR)tmp=fklCompileVector(objCptr);
-	if(objCptr->type==FKL_TYPE_ATM&&objCptr->u.atom->type==FKL_TYPE_BOX)tmp=fklCompileBox(objCptr);
-	if(fklIsNil(objCptr))tmp=fklCompileNil();
-	if(fklIsQuoteExpression(objCptr))tmp=fklCompileQuote(fklNextCptr(fklGetFirstCptr(objCptr)));
+	else if(objCptr->type==FKL_TYPE_ATM&&objCptr->u.atom->type==FKL_TYPE_BOX)tmp=fklCompileBox(objCptr);
+	else if(objCptr->type==FKL_TYPE_ATM&&objCptr->u.atom->type==FKL_TYPE_HASHTABLE)tmp=fklCompileHashtable(objCptr);
+	else if(fklIsNil(objCptr))tmp=fklCompileNil();
+	else if(fklIsQuoteExpression(objCptr))tmp=fklCompileQuote(fklNextCptr(fklGetFirstCptr(objCptr)));
 	if(!tmp)
 	{
 		state->state=FKL_ERR_INVALIDEXPR;

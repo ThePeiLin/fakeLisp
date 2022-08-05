@@ -29,6 +29,7 @@ typedef enum{
 	FKL_TYPE_DLPROC,
 	FKL_TYPE_ERR,
 	FKL_TYPE_ENV,
+	FKL_TYPE_HASHTABLE,
 	FKL_TYPE_ATM,
 }FklValueType;
 
@@ -57,6 +58,13 @@ typedef struct FklAstPair
 	FklAstCptr car,cdr;
 }FklAstPair;
 
+typedef struct FklAstHashTable
+{
+	uint32_t type;
+	uint64_t num;
+	FklAstCptr items;
+}FklAstHashTable;
+
 typedef struct FklAstAtom
 {
 	FklAstPair* prev;
@@ -72,6 +80,7 @@ typedef struct FklAstAtom
 		FklBytevector* bvec;
 		FklBigInt bigInt;
 		FklAstCptr box;
+		FklAstHashTable hash;
 	}value;
 }FklAstAtom;
 
@@ -104,6 +113,7 @@ FklAstCptr* fklNewCptr(int,FklAstPair*);
 FklAstAtom* fklNewAtom(FklValueType type,FklAstPair*);
 void fklFreeAtom(FklAstAtom*);
 
+void fklMakeAstHashTable(FklAstHashTable* hash,uint32_t,uint64_t);
 void fklMakeAstVector(FklAstVector* vec,size_t size,const FklAstCptr* base);
 
 int fklCptrcmp(const FklAstCptr*,const FklAstCptr*);

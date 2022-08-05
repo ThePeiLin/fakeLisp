@@ -43,6 +43,14 @@ void fklc_fbc_p(ARGL) PREDICATE(fklcIsFbc(val),"fklc.fbc?")
 
 void fklc_pattern_match(ARGL)
 {
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* pattern=fklNiGetArg(&ap,stack);
+	FklVMvalue* exp=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.pattern-match",FKL_ERR_TOOFEWARG,runnable,exe);
+	fklNiReturn(FKL_VM_NIL,&ap,stack);
+	fklNiEnd(&ap,stack);
 }
 
 #define IS_LITERAL(V) ((V)==FKL_VM_NIL||fklIsVMnumber(V)||FKL_IS_CHR(V)||FKL_IS_STR(V)||FKL_IS_BYTEVECTOR(V)||FKL_IS_SYM(V))

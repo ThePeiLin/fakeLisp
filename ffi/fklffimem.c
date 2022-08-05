@@ -220,9 +220,9 @@ static void _mem_print(void* p,FILE* fp)
 		FklDefStructType* st=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type).all);
 		fputc('{',fp);
 		size_t offset=0;
-		for(uint32_t i=0;i<st->layout->num;i++)
+		for(FklHashTableNodeList* list=st->layout->list;list;list=list->next)
 		{
-			FklFfiMemberHashItem* item=st->layout->list[i]->item;
+			FklFfiMemberHashItem* item=list->node->item;
 			FklDefTypeUnion tu=fklFfiGetTypeUnion(item->type);
 			size_t align=fklFfiGetTypeAlign(tu);
 			offset+=(offset%align)?align-offset%align:0;
@@ -241,9 +241,9 @@ static void _mem_print(void* p,FILE* fp)
 	{
 		FklDefUnionType* ut=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type).all);
 		fputc('{',fp);
-		for(uint32_t i=0;i<ut->layout->num;i++)
+		for(FklHashTableNodeList* list=ut->layout->list;list;list=list->next)
 		{
-			FklFfiMemberHashItem* item=ut->layout->list[i]->item;
+			FklFfiMemberHashItem* item=list->node->item;
 			fputc('.',fp);
 			fklPrintString(fklGetGlobSymbolWithId(item->key)->symbol,fp);
 			fputc('=',fp);
@@ -418,6 +418,7 @@ static FklVMudMethodTable FfiMemMethodTable=
 	.__atomic=NULL,
 	.__append=NULL,
 	.__copy=NULL,
+	.__hash=NULL,
 };
 
 static FklVMudMethodTable FfiAtomicMemMethodTable=
@@ -432,6 +433,7 @@ static FklVMudMethodTable FfiAtomicMemMethodTable=
 	.__atomic=NULL,
 	.__append=NULL,
 	.__copy=NULL,
+	.__hash=NULL,
 };
 
 void fklFfiMemInit(FklVMvalue* rel)

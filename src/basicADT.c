@@ -652,6 +652,8 @@ static FklUintStack* toBitWiseDigitsLe(const FklBigInt* u,uint8_t bits)
 			c>>=bits;
 		}
 	}
+	while(!fklIsUintStackEmpty(res)&&fklTopUintStack(res)==0)
+		fklPopUintStack(res);
 	return res;
 }
 
@@ -1547,10 +1549,9 @@ FklHashTable* fklNewHashTable(size_t size
 	FKL_ASSERT(r);
 	FklHashTableNode** base=(FklHashTableNode**)calloc(size,sizeof(FklHashTableNode*));
 	FKL_ASSERT(base);
-	FklHashTableNode** list=(FklHashTableNode**)malloc(size*sizeof(FklHashTableNode*));
-	FKL_ASSERT(list);
 	r->base=base;
-	r->list=list;
+	r->list=NULL;
+	r->tail=&r->list;
 	r->num=0;
 	r->size=size;
 	r->linkNum=linkNum;
@@ -1581,9 +1582,18 @@ static FklHashTableNode* newHashTableNode(void* item,FklHashTableNode* next)
 	return node;
 }
 
+static FklHashTableNodeList* newHashTableNodeList(FklHashTableNode* node,FklHashTableNodeList* next)
+{
+	FklHashTableNodeList* list=(FklHashTableNodeList*)malloc(sizeof(FklHashTableNodeList));
+	FKL_ASSERT(node);
+	list->node=node;
+	list->next=next;
+	return list;
+}
+
 #define REHASH() if(((double)table->num/table->size)>table->threshold)\
 	fklRehashTable(table,table->thresholdInc);\
-	else if(i>table->linkNum)\
+	else if(table->linkNum&&i>table->linkNum)\
 	fklRehashTable(table,table->linkNumInc)
 
 void* fklPutReplHashItem(void* item,FklHashTable* table)
@@ -1597,7 +1607,8 @@ void* fklPutReplHashItem(void* item,FklHashTable* table)
 		if(__keyEqual(__getKey((*pp)->item),__getKey(item)))
 			return (*pp)->item;
 	*pp=newHashTableNode(item,NULL);
-	table->list[table->num]=*pp;
+	*table->tail=newHashTableNodeList(*pp,NULL);
+	table->tail=&(*table->tail)->next;
 	table->num++;
 	REHASH();
 	return item;
@@ -1617,7 +1628,8 @@ void* fklPutNoRpHashItem(void* item,FklHashTable* table)
 			return (*pp)->item;
 		}
 	*pp=newHashTableNode(item,NULL);
-	table->list[table->num]=*pp;
+	*table->tail=newHashTableNodeList(*pp,NULL);
+	table->tail=&(*table->tail)->next;
 	table->num++;
 	REHASH();
 	return item;
@@ -1626,33 +1638,36 @@ void* fklPutNoRpHashItem(void* item,FklHashTable* table)
 void fklRehashTable(FklHashTable* table,unsigned int inc)
 {
 	table->size+=table->size/inc;
-	size_t num=table->num;
-	FklHashTableNode** list=table->list;
-	FklHashTableNode** base=table->base;
-	FklHashTableNode** nlist=(FklHashTableNode**)realloc(base,table->size*sizeof(FklHashTableNode*));
-	FKL_ASSERT(nlist);
-	table->list=nlist;
+	FklHashTableNodeList* list=table->list;
+	table->list=NULL;
+	table->tail=&table->list;
+	free(table->base);
 	FklHashTableNode** nbase=(FklHashTableNode**)calloc(table->size,sizeof(FklHashTableNode*));
-	table->base=nbase;
 	FKL_ASSERT(nbase);
+	table->base=nbase;
 	table->num=0;
-	for(size_t i=0;i<num;i++)
+	while(list)
 	{
-		fklPutReplHashItem(list[i]->item,table);
-		free(list[i]);
+		FklHashTableNodeList* cur=list;
+		fklPutReplHashItem(list->node->item,table);
+		list=list->next;
+		free(cur->node);
+		free(cur);
 	}
-	free(list);
 }
 
 void fklFreeHashTable(FklHashTable* table)
 {
 	void (*__freeItem)(void*)=table->t->__freeItem;
-	for(size_t i=0;i<table->num;i++)
+	FklHashTableNodeList* list=table->list;
+	while(list)
 	{
-		__freeItem(table->list[i]->item);
-		free(table->list[i]);
+		FklHashTableNodeList* cur=list;
+		__freeItem(cur->node->item);
+		free(cur->node);
+		list=list->next;
+		free(cur);
 	}
-	free(table->list);
 	free(table->base);
 	free(table);
 }

@@ -224,7 +224,7 @@ void builtin_copy(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.copy",FKL_ERR_TOOMANYARG,runnable,exe);
 	FklVMvalue* retval=fklCopyVMvalue(obj,stack,exe->gc);
 	if(!retval)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.append",FKL_ERR_WRONGARG,runnable,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.copy",FKL_ERR_WRONGARG,runnable,exe);
 	fklNiReturn(retval,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -536,10 +536,7 @@ void builtin_abs(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.abs",FKL_ERR_TOOFEWARG,runnable,exe);
 	FKL_NI_CHECK_TYPE(obj,fklIsVMnumber,"builtin.abs",runnable,exe);
 	if(FKL_IS_F64(obj))
-	{
-		double f=fabs(obj->u.f64);
-		fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_F64,&f,stack,exe->gc),&ap,stack);
-	}
+		fklNiReturn(fklMakeVMf64(fabs(obj->u.f64),stack,exe->gc),&ap,stack);
 	else
 	{
 		if(fklIsFixint(obj))
@@ -552,7 +549,7 @@ void builtin_abs(ARGL)
 				fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_BIG_INT,bi,stack,exe->gc),&ap,stack);
 			}
 			else
-				fklNiReturn(fklMakeVMint(i,stack,exe->gc),&ap,stack);
+				fklNiReturn(fklMakeVMuint(labs(i),stack,exe->gc),&ap,stack);
 		}
 		else
 		{
@@ -1478,9 +1475,9 @@ void builtin_vector_to_list(ARGL)
 	FklVMvalue** cur=pr;
 	for(size_t i=0;i<vec->size;i++)
 	{
-		fklSetRef(cur,fklNewVMvalue(FKL_TYPE_PAIR,fklNewVMpair(),gc),gc);
-		fklSetRef(&(*cur)->u.pair->car,vec->base[i],gc);
+		fklSetRef(cur,fklNewVMpairV(vec->base[i],FKL_VM_NIL,stack,gc),gc);
 		cur=&(*cur)->u.pair->cdr;
+		fklPopVMstack(stack);
 	}
 	fklNiReturn(*pr,&ap,stack);
 	fklNiEnd(&ap,stack);
@@ -2023,8 +2020,7 @@ void builtin_nth(ARGL)
 	if(objlist==FKL_VM_NIL||FKL_IS_PAIR(objlist))
 	{
 		FklVMvalue* objPair=objlist;
-		int i=0;
-		for(;i<index&&FKL_IS_PAIR(objPair);i++,objPair=fklGetVMpairCdr(objPair));
+		for(uint64_t i=0;i<index&&FKL_IS_PAIR(objPair);i++,objPair=fklGetVMpairCdr(objPair));
 		if(FKL_IS_PAIR(objPair))
 			fklNiReturn(objPair->u.pair->car,&ap,stack);
 		else
@@ -2509,7 +2505,7 @@ void builtin_length(ARGL)
 		len=obj->u.ud->t->__length(obj->u.ud->data);
 	else
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.length",FKL_ERR_WRONGARG,runnable,exe);
-	fklNiReturn(fklMakeVMint(len,stack,exe->gc),&ap,stack);
+	fklNiReturn(fklMakeVMuint(len,stack,exe->gc),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -2879,23 +2875,23 @@ void builtin_chanl(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-//void builtin_chanl_mes_num(ARGL)
-//{
-//	FKL_NI_BEGIN(exe);
-//	FklVMrunnable* runnable=exe->rhead;
-//	FklVMvalue* obj=fklNiGetArg(&ap,stack);
-//	if(fklNiResBp(&ap,stack))
-//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.chanl-mes-num",FKL_ERR_TOOMANYARG,runnable,exe);
-//	if(!obj)
-//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.chanl-mes-num",FKL_ERR_TOOFEWARG,runnable,exe);
-//	size_t len=0;
-//	if(FKL_IS_CHAN(obj))
-//		len=obj->u.chan->messageNum;
-//	else
-//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.chanl-mes-num",FKL_ERR_WRONGARG,runnable,exe);
-//	fklNiReturn(fklMakeVMint(len,stack,exe->gc),&ap,stack);
-//	fklNiEnd(&ap,stack);
-//}
+void builtin_chanl_num(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.chanl-num",FKL_ERR_TOOMANYARG,runnable,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.chanl-num",FKL_ERR_TOOFEWARG,runnable,exe);
+	size_t len=0;
+	if(FKL_IS_CHAN(obj))
+		len=obj->u.chan->messageNum;
+	else
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.chanl-num",FKL_ERR_WRONGARG,runnable,exe);
+	fklNiReturn(fklMakeVMuint(len,stack,exe->gc),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
 
 void builtin_send(ARGL)
 {
@@ -3932,6 +3928,289 @@ void builtin_system(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void builtin_hash(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMhashTable* ht=fklNewVMhashTable(FKL_VM_HASH_EQ);
+	for(FklVMvalue* cur=fklNiGetArg(&ap,stack)
+			;cur
+			;cur=fklNiGetArg(&ap,stack))
+	{
+		if(!FKL_IS_PAIR(cur))
+		{
+			fklFreeVMhashTable(ht);
+			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.hash",FKL_ERR_WRONGARG,runnable,exe);
+		}
+		fklSetVMhashTable(cur->u.pair->car,cur->u.pair->cdr,ht,exe->gc);
+	}
+	fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_HASHTABLE,ht,stack,exe->gc),&ap,stack);;
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_hash_num(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* ht=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.hash-num",FKL_ERR_TOOMANYARG,runnable,exe);
+	if(!ht)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.hash-num",FKL_ERR_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(ht,FKL_IS_HASHTABLE,"builtin.hash-num",runnable,exe);
+	fklNiReturn(fklMakeVMuint(ht->u.hash->ht->num,stack,exe->gc),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_make_hash(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMhashTable* ht=fklNewVMhashTable(FKL_VM_HASH_EQ);
+	for(FklVMvalue* key=fklNiGetArg(&ap,stack);key;key=fklNiGetArg(&ap,stack))
+	{
+		FklVMvalue* value=fklNiGetArg(&ap,stack);
+		if(!value)
+		{
+			fklFreeVMhashTable(ht);
+			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.make-hash",FKL_ERR_TOOFEWARG,runnable,exe);
+		}
+		fklSetVMhashTable(key,value,ht,exe->gc);
+	}
+	fklNiResBp(&ap,stack);
+	fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_HASHTABLE,ht,stack,exe->gc),&ap,stack);;
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_hasheqv(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMhashTable* ht=fklNewVMhashTable(FKL_VM_HASH_EQV);
+	for(FklVMvalue* cur=fklNiGetArg(&ap,stack)
+			;cur
+			;cur=fklNiGetArg(&ap,stack))
+	{
+		if(!FKL_IS_PAIR(cur))
+		{
+			fklFreeVMhashTable(ht);
+			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.hasheqv",FKL_ERR_WRONGARG,runnable,exe);
+		}
+		fklSetVMhashTable(cur->u.pair->car,cur->u.pair->cdr,ht,exe->gc);
+	}
+	fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_HASHTABLE,ht,stack,exe->gc),&ap,stack);;
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_make_hasheqv(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMhashTable* ht=fklNewVMhashTable(FKL_VM_HASH_EQV);
+	for(FklVMvalue* key=fklNiGetArg(&ap,stack);key;key=fklNiGetArg(&ap,stack))
+	{
+		FklVMvalue* value=fklNiGetArg(&ap,stack);
+		if(!value)
+		{
+			fklFreeVMhashTable(ht);
+			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.make-hasheqv",FKL_ERR_TOOFEWARG,runnable,exe);
+		}
+		fklSetVMhashTable(key,value,ht,exe->gc);
+	}
+	fklNiResBp(&ap,stack);
+	fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_HASHTABLE,ht,stack,exe->gc),&ap,stack);;
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_hashequal(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMhashTable* ht=fklNewVMhashTable(FKL_VM_HASH_EQUAL);
+	for(FklVMvalue* cur=fklNiGetArg(&ap,stack)
+			;cur
+			;cur=fklNiGetArg(&ap,stack))
+	{
+		if(!FKL_IS_PAIR(cur))
+		{
+			fklFreeVMhashTable(ht);
+			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.hashequal",FKL_ERR_WRONGARG,runnable,exe);
+		}
+		fklSetVMhashTable(cur->u.pair->car,cur->u.pair->cdr,ht,exe->gc);
+	}
+	fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_HASHTABLE,ht,stack,exe->gc),&ap,stack);;
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_make_hashequal(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMhashTable* ht=fklNewVMhashTable(FKL_VM_HASH_EQUAL);
+	for(FklVMvalue* key=fklNiGetArg(&ap,stack);key;key=fklNiGetArg(&ap,stack))
+	{
+		FklVMvalue* value=fklNiGetArg(&ap,stack);
+		if(!value)
+		{
+			fklFreeVMhashTable(ht);
+			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.make-hashequal",FKL_ERR_TOOFEWARG,runnable,exe);
+		}
+		fklSetVMhashTable(key,value,ht,exe->gc);
+	}
+	fklNiResBp(&ap,stack);
+	fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_HASHTABLE,ht,stack,exe->gc),&ap,stack);;
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_href(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* ht=fklNiGetArg(&ap,stack);
+	FklVMvalue* key=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.href",FKL_ERR_TOOMANYARG,runnable,exe);
+	if(!ht||!key)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.href",FKL_ERR_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(ht,FKL_IS_HASHTABLE,"builtin.href",runnable,exe);
+	FklVMhashTableItem* item=fklRefVMhashTable(key,ht->u.hash);
+	if(item)
+		fklNiReturn(fklNewVMpairV(item->key,item->v,stack,exe->gc),&ap,stack);
+	else
+		fklNiReturn(FKL_VM_NIL,&ap,stack);;
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_href1(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* ht=fklNiGetArg(&ap,stack);
+	FklVMvalue* key=fklNiGetArg(&ap,stack);
+	FklVMvalue* toSet=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.href!",FKL_ERR_TOOMANYARG,runnable,exe);
+	if(!ht||!key||!toSet)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.href!",FKL_ERR_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(ht,FKL_IS_HASHTABLE,"builtin.href!",runnable,exe);
+	FklVMhashTableItem* item=fklRefVMhashTable1(key,toSet,ht->u.hash,exe->gc);
+	fklNiReturn(fklNewVMpairV(item->key,item->v,stack,exe->gc),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_set_href(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* ht=fklNiGetArg(&ap,stack);
+	FklVMvalue* key=fklNiGetArg(&ap,stack);
+	FklVMvalue* value=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-href!",FKL_ERR_TOOMANYARG,runnable,exe);
+	if(!ht||!key||!value)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-href!",FKL_ERR_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(ht,FKL_IS_HASHTABLE,"builtin.set-href!",runnable,exe);
+	fklSetVMhashTable(key,value,ht->u.hash,exe->gc);
+	fklNiReturn(value,&ap,stack);;
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_set_href8(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* ht=fklNiGetArg(&ap,stack);
+	if(!ht)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-href*!",FKL_ERR_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(ht,FKL_IS_HASHTABLE,"builtin.set-href*!",runnable,exe);
+	for(FklVMvalue* key=fklNiGetArg(&ap,stack);key;key=fklNiGetArg(&ap,stack))
+	{
+		FklVMvalue* value=fklNiGetArg(&ap,stack);
+		if(!value)
+			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-href*!",FKL_ERR_TOOFEWARG,runnable,exe);
+		fklSetVMhashTable(key,value,ht->u.hash,exe->gc);
+	}
+	fklNiResBp(&ap,stack);
+	fklNiReturn(ht,&ap,stack);;
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_hash_to_list(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMgc* gc=exe->gc;
+	FklVMvalue* ht=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builin.hash->list",FKL_ERR_TOOMANYARG,runnable,exe);
+	if(!ht)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builin.hash->list",FKL_ERR_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(ht,FKL_IS_HASHTABLE,"builtin.hash->list",runnable,exe);
+	fklPushVMvalue(FKL_VM_NIL,stack);
+	FklVMhashTable* hash=ht->u.hash;
+	FklVMvalue** pr=fklNiGetTopSlot(stack);
+	FklVMvalue** cur=pr;
+	for(FklHashTableNodeList* list=hash->ht->list;list;list=list->next)
+	{
+		FklVMhashTableItem* item=list->node->item;
+		FklVMvalue* pair=fklNewVMpairV(item->key,item->v,stack,gc);
+		fklSetRef(cur,fklNewVMpairV(pair,FKL_VM_NIL,stack,gc),gc);
+		cur=&(*cur)->u.pair->cdr;
+	}
+	fklNiReturn(*pr,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_hash_keys(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMgc* gc=exe->gc;
+	FklVMvalue* ht=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builin.hash-keys",FKL_ERR_TOOMANYARG,runnable,exe);
+	if(!ht)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builin.hash-keys",FKL_ERR_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(ht,FKL_IS_HASHTABLE,"builtin.hash-keys",runnable,exe);
+	fklPushVMvalue(FKL_VM_NIL,stack);
+	FklVMhashTable* hash=ht->u.hash;
+	FklVMvalue** pr=fklNiGetTopSlot(stack);
+	FklVMvalue** cur=pr;
+	for(FklHashTableNodeList* list=hash->ht->list;list;list=list->next)
+	{
+		FklVMhashTableItem* item=list->node->item;
+		fklSetRef(cur,fklNewVMpairV(item->key,FKL_VM_NIL,stack,gc),gc);
+		cur=&(*cur)->u.pair->cdr;
+	}
+	fklNiReturn(*pr,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_hash_values(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMgc* gc=exe->gc;
+	FklVMvalue* ht=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builin.hash-values",FKL_ERR_TOOMANYARG,runnable,exe);
+	if(!ht)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builin.hash-values",FKL_ERR_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(ht,FKL_IS_HASHTABLE,"builtin.hash-values",runnable,exe);
+	fklPushVMvalue(FKL_VM_NIL,stack);
+	FklVMhashTable* hash=ht->u.hash;
+	FklVMvalue** pr=fklNiGetTopSlot(stack);
+	FklVMvalue** cur=pr;
+	for(FklHashTableNodeList* list=hash->ht->list;list;list=list->next)
+	{
+		FklVMhashTableItem* item=list->node->item;
+		fklSetRef(cur,fklNewVMpairV(item->v,FKL_VM_NIL,stack,gc),gc);
+		cur=&(*cur)->u.pair->cdr;
+	}
+	fklNiReturn(*pr,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 void builtin_not(ARGL) {PREDICATE(val==FKL_VM_NIL,"builtin.not")}
 void builtin_null(ARGL) {PREDICATE(val==FKL_VM_NIL,"builtin.null")}
 void builtin_atom(ARGL) {PREDICATE(!FKL_IS_PAIR(val),"builtin.atom?")}
@@ -3956,6 +4235,10 @@ void builtin_dll_p(ARGL) {PREDICATE(FKL_IS_DLL(val),"builtin.dll?")}
 void builtin_big_int_p(ARGL) {PREDICATE(FKL_IS_BIG_INT(val),"builtin.big-int?")}
 void builtin_list_p(ARGL){PREDICATE(fklIsList(val),"builtin.list?")}
 void builtin_box_p(ARGL) {PREDICATE(FKL_IS_BOX(val),"builtin.box?")}
+void builtin_hash_p(ARGL) {PREDICATE(FKL_IS_HASHTABLE(val),"builtin.hash?")}
+void builtin_hasheq_p(ARGL) {PREDICATE(FKL_IS_HASHTABLE_EQ(val),"builtin.hash?")}
+void builtin_hasheqv_p(ARGL) {PREDICATE(FKL_IS_HASHTABLE_EQV(val),"builtin.hash?")}
+void builtin_hashequal_p(ARGL) {PREDICATE(FKL_IS_HASHTABLE_EQUAL(val),"builtin.hash?")}
 
 #undef ARGL
 #undef K_FUNC_ARGL
@@ -4010,6 +4293,7 @@ static const struct SymbolFuncStruct
 	{"argv",                  builtin_argv,                    },
 	{"go",                    builtin_go,                      },
 	{"chanl",                 builtin_chanl,                   },
+	{"chanl-num",             builtin_chanl_num,               },
 	{"send",                  builtin_send,                    },
 	{"recv",                  builtin_recv,                    },
 	{"error",                 builtin_error,                   },
@@ -4149,7 +4433,24 @@ static const struct SymbolFuncStruct
 	{"time",                  builtin_time,                    },
 	{"system",                builtin_system,                  },
 
-//	{"hash",builtin_hash,},
+	{"hash",                  builtin_hash,                    },
+	{"hash-num",              builtin_hash_num,                },
+	{"make-hash",             builtin_make_hash,               },
+	{"hasheqv",               builtin_hasheqv,                 },
+	{"make-hasheqv",          builtin_make_hasheqv,            },
+	{"hashequal",             builtin_hashequal,               },
+	{"make-hashequal",        builtin_make_hashequal,          },
+	{"hash?",                 builtin_hash_p,                  },
+	{"hasheq?",               builtin_hasheq_p,                },
+	{"hasheqv?",              builtin_hasheqv_p,               },
+	{"hashequal?",            builtin_hashequal_p,             },
+	{"href",                  builtin_href,                    },
+	{"href!",                 builtin_href1,                   },
+	{"set-href!",             builtin_set_href,                },
+	{"set-href*!",            builtin_set_href8,               },
+	{"hash->list",            builtin_hash_to_list,            },
+	{"hash-keys",             builtin_hash_keys,               },
+	{"hash-values",           builtin_hash_values,             },
 
 	{NULL,                    NULL,                            },
 };

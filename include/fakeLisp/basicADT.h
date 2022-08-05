@@ -49,10 +49,17 @@ typedef struct FklHashTableNode
 	struct FklHashTableNode* next;
 }FklHashTableNode;
 
+typedef struct FklHashTableNodeList
+{
+	FklHashTableNode* node;
+	struct FklHashTableNodeList* next;
+}FklHashTableNodeList;
+
 typedef struct FklHashTable
 {
 	FklHashTableNode** base;
-	FklHashTableNode** list;
+	FklHashTableNodeList* list;
+	FklHashTableNodeList** tail;
 	size_t num;
 	size_t size;
 	struct FklHashTableMethodTable* t;

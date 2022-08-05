@@ -153,6 +153,12 @@ static void freeMatchState(MatchState* state)
 #define INCOMPLETE_SYMBOL ((void*)10)
 #define BVECTOR_0 ((void*)11)
 #define BVECTOR_1 ((void*)12)
+#define HASH_EQ_0 ((void*)13)
+#define HASH_EQ_1 ((void*)14)
+#define HASH_EQV_0 ((void*)15)
+#define HASH_EQV_1 ((void*)16)
+#define HASH_EQUAL_0 ((void*)17)
+#define HASH_EQUAL_1 ((void*)18)
 
 static const char* separatorStrSet[]=
 {
@@ -161,6 +167,12 @@ static const char* separatorStrSet[]=
 	"#[",
 	"#vu8(",
 	"#vu8[",
+	"#hash(",
+	"#hash[",
+	"#hasheqv(",
+	"#hasheqv[",
+	"#hashequal(",
+	"#hashequal[",
 	"(",
 	",",
 	"#\\",
@@ -200,7 +212,12 @@ static int isBuiltInPattern(FklStringMatchPattern* pattern)
 		||pattern==BVECTOR_0
 		||pattern==BVECTOR_1
 		||pattern==BOX
-		;
+		||pattern==HASH_EQ_0
+		||pattern==HASH_EQ_1
+		||pattern==HASH_EQV_0
+		||pattern==HASH_EQV_1
+		||pattern==HASH_EQUAL_0
+		||pattern==HASH_EQUAL_1;
 }
 
 static int isBuiltInParenthese(FklStringMatchPattern* pattern)
@@ -210,7 +227,13 @@ static int isBuiltInParenthese(FklStringMatchPattern* pattern)
 		||pattern==VECTOR_0
 		||pattern==VECTOR_1
 		||pattern==BVECTOR_0
-		||pattern==BVECTOR_1;
+		||pattern==BVECTOR_1
+		||pattern==HASH_EQ_0
+		||pattern==HASH_EQ_1
+		||pattern==HASH_EQV_0
+		||pattern==HASH_EQV_1
+		||pattern==HASH_EQUAL_0
+		||pattern==HASH_EQUAL_1;
 }
 
 static MatchState* searchReverseStringCharMatchState(const char* part,size_t index,size_t size,FklPtrStack* stack)
@@ -255,6 +278,18 @@ static MatchState* searchReverseStringCharMatchState(const char* part,size_t ind
 			return newMatchState(BVECTOR_0,0);
 		else if(size-index>4&&!strncmp("#vu8[",part+index,5))
 			return newMatchState(BVECTOR_1,0);
+		else if(size-index>5&&!strncmp("#hash(",part+index,6))
+			return newMatchState(HASH_EQ_0,0);
+		else if(size-index>5&&!strncmp("#hash[",part+index,6))
+			return newMatchState(HASH_EQ_1,0);
+		else if(size-index>8&&!strncmp("#hasheqv(",part+index,9))
+			return newMatchState(HASH_EQV_0,0);
+		else if(size-index>8&&!strncmp("#hasheqv[",part+index,9))
+			return newMatchState(HASH_EQV_1,0);
+		else if(size-index>10&&!strncmp("#hashequal(",part+index,11))
+			return newMatchState(HASH_EQUAL_0,0);
+		else if(size-index>10&&!strncmp("#hashequal[",part+index,11))
+			return newMatchState(HASH_EQUAL_1,0);
 		else if(part[index]=='(')
 			return newMatchState(PARENTHESE_0,0);
 		else if(part[index]==')')
@@ -265,6 +300,12 @@ static MatchState* searchReverseStringCharMatchState(const char* part,size_t ind
 				return newMatchState(VECTOR_0,1);
 			else if(topState&&topState->pattern==BVECTOR_0&&topState->index==0)
 				return newMatchState(BVECTOR_0,1);
+			else if(topState&&topState->pattern==HASH_EQ_0&&topState->index==0)
+				return newMatchState(HASH_EQ_0,1);
+			else if(topState&&topState->pattern==HASH_EQV_0&&topState->index==0)
+				return newMatchState(HASH_EQV_0,1);
+			else if(topState&&topState->pattern==HASH_EQUAL_0&&topState->index==0)
+				return newMatchState(HASH_EQUAL_0,1);
 			else
 				return NULL;
 		}
@@ -278,6 +319,12 @@ static MatchState* searchReverseStringCharMatchState(const char* part,size_t ind
 				return newMatchState(VECTOR_1,1);
 			else if(topState&&topState->pattern==BVECTOR_1&&topState->index==0)
 				return newMatchState(BVECTOR_1,1);
+			else if(topState&&topState->pattern==HASH_EQ_1&&topState->index==0)
+				return newMatchState(HASH_EQ_1,1);
+			else if(topState&&topState->pattern==HASH_EQV_1&&topState->index==0)
+				return newMatchState(HASH_EQV_1,1);
+			else if(topState&&topState->pattern==HASH_EQUAL_1&&topState->index==0)
+				return newMatchState(HASH_EQUAL_1,1);
 			else
 				return NULL;
 		}
@@ -341,33 +388,41 @@ static int searchReverseStringChar(const char* part,size_t index,size_t size,Fkl
 		FklStringMatchPattern* pattern=fklFindStringPatternBuf(part+index,size-index);
 		if(pattern)
 			return 1;
-		else if(size-index>1&&part[index]=='#'&&part[index+1]=='(')
-			return 1;
-		else if(size-index>1&&part[index]=='#'&&part[index+1]=='[')
-			return 1;
-		else if(size-index>4&&!strncmp("#vu8(",part+index,5))
-			return 1;
-		else if(size-index>4&&!strncmp("#vu8[",part+index,5))
-			return 1;
-		else if(part[index]=='(')
+		else if((size-index>1&&part[index]=='#'&&part[index+1]=='(')
+				||(size-index>1&&part[index]=='#'&&part[index+1]=='[')
+				||(size-index>4&&!strncmp("#vu8(",part+index,5))
+				||(size-index>4&&!strncmp("#vu8[",part+index,5))
+				||(size-index>5&&!strncmp("#hash(",part+index,6))
+				||(size-index>5&&!strncmp("#hash[",part+index,6))
+				||(size-index>8&&!strncmp("#hasheqv(",part+index,9))
+				||(size-index>8&&!strncmp("#hasheqv[",part+index,9))
+				||(size-index>10&&!strncmp("#hashequal(",part+index,11))
+				||(size-index>10&&!strncmp("#hashequal[",part+index,11))
+				||(part[index]=='(')
+				||(part[index]==']')
+				)
 			return 1;
 		else if(part[index]==')')
 		{
 			if(topState&&(topState->pattern==PARENTHESE_0
 						||topState->pattern==VECTOR_0
-						||topState->pattern==BVECTOR_0)
+						||topState->pattern==BVECTOR_0
+						||topState->pattern==HASH_EQ_0
+						||topState->pattern==HASH_EQV_0
+						||topState->pattern==HASH_EQUAL_0)
 					&&topState->index==0)
 				return 1;
 			else
 				return 0;
 		}
-		if(part[index]=='[')
-			return 1;
 		else if(part[index]==']')
 		{
 			if(topState&&(topState->pattern==PARENTHESE_1
 						||topState->pattern==VECTOR_1
-						||topState->pattern==BVECTOR_1)
+						||topState->pattern==BVECTOR_1
+						||topState->pattern==HASH_EQ_1
+						||topState->pattern==HASH_EQV_1
+						||topState->pattern==HASH_EQUAL_1)
 					&&topState->index==0)
 				return 1;
 			else
@@ -462,7 +517,13 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 							state->pattern==VECTOR_0?"#(":
 							state->pattern==VECTOR_1?"#[":
 							state->pattern==BVECTOR_0?"#vu8(":
-							"#vu8[";
+							state->pattern==BVECTOR_1?"#vu8[":
+							state->pattern==HASH_EQ_0?"#hash(":
+							state->pattern==HASH_EQ_1?"#hash[":
+							state->pattern==HASH_EQV_0?"#hasheqv(":
+							state->pattern==HASH_EQV_1?"#hasheqv[":
+							state->pattern==HASH_EQUAL_0?"#hashequal(":
+							"#hashequal[";
 						fklPushPtrStack(fklNewToken(FKL_TOKEN_RESERVE_STR,fklNewStringFromCstr(parenthese),*line),retvalStack);
 						fklPushPtrStack(state,matchStateStack);
 						j+=strlen(parenthese);
@@ -472,7 +533,10 @@ int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32
 					{
 						const char* parenthese=(state->pattern==PARENTHESE_0
 								||state->pattern==VECTOR_0
-								||state->pattern==BVECTOR_0)?")":"]";
+								||state->pattern==BVECTOR_0
+								||state->pattern==HASH_EQ_0
+								||state->pattern==HASH_EQV_0
+								||state->pattern==HASH_EQUAL_0)?")":"]";
 						MatchState* prevState=fklTopPtrStack(matchStateStack);
 						if(!isBuiltInParenthese(prevState->pattern))
 						{

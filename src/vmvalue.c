@@ -1198,6 +1198,7 @@ static FklHashTableMethodTable* const VMhashTableMethTableTable[]=
 
 void fklAtomicVMhashTable(FklVMhashTable* ht,FklVMgc* gc)
 {
+	pthread_rwlock_rdlock(&ht->lock);
 	FklHashTable* table=ht->ht;
 	for(FklHashTableNodeList* list=table->list;list;list=list->next)
 	{
@@ -1206,12 +1207,14 @@ void fklAtomicVMhashTable(FklVMhashTable* ht,FklVMgc* gc)
 		fklGC_toGrey(item->v,gc);
 		list=list->next;
 	}
+	pthread_rwlock_unlock(&ht->lock);
 }
 
 FklVMhashTable* fklNewVMhashTable(FklVMhashTableEqType type)
 {
 	FklVMhashTable* tmp=(FklVMhashTable*)malloc(sizeof(FklVMhashTable));
 	FKL_ASSERT(tmp);
+	pthread_rwlock_init(&tmp->lock,NULL);
 	tmp->type=type;
 	tmp->ht=fklNewHashTable(8,8,2,1.0,1,VMhashTableMethTableTable[type]);
 	return tmp;
@@ -1220,29 +1223,41 @@ FklVMhashTable* fklNewVMhashTable(FklVMhashTableEqType type)
 void fklFreeVMhashTable(FklVMhashTable* ht)
 {
 	fklFreeHashTable(ht->ht);
+	pthread_rwlock_destroy(&ht->lock);
 	free(ht);
 }
 
 FklVMhashTableItem* fklRefVMhashTable1(FklVMvalue* key,FklVMvalue* toSet,FklVMhashTable* ht,FklVMgc* gc)
 {
-	FklVMhashTableItem* item=fklGetHashItem(&key,ht->ht);
+	FklVMhashTableItem* item=fklRefVMhashTable(key,ht);
 	if(!item)
+	{
+		pthread_rwlock_wrlock(&ht->lock);
 		item=fklPutNoRpHashItem(newVMhashTableItem(key,toSet,gc),ht->ht);
+		pthread_rwlock_unlock(&ht->lock);
+	}
 	return item;
 }
 
 FklVMhashTableItem* fklRefVMhashTable(FklVMvalue* key,FklVMhashTable* ht)
 {
-	return fklGetHashItem(&key,ht->ht);
+	pthread_rwlock_rdlock(&ht->lock);
+	FklVMhashTableItem* item=fklGetHashItem(&key,ht->ht);
+	pthread_rwlock_unlock(&ht->lock);
+	return item;
 }
 
 void fklSetVMhashTable(FklVMvalue* key,FklVMvalue* v,FklVMhashTable* ht,FklVMgc* gc)
 {
-	FklVMhashTableItem* item=fklGetHashItem(&key,ht->ht);
+	FklVMhashTableItem* item=fklRefVMhashTable(key,ht);
 	if(item)
 		fklSetRef(&item->v,v,gc);
 	else
+	{
+		pthread_rwlock_wrlock(&ht->lock);
 		fklPutNoRpHashItem(newVMhashTableItem(key,v,gc),ht->ht);
+		pthread_rwlock_unlock(&ht->lock);
+	}
 }
 
 void fklAtomicVMenv(FklVMenv* env,FklVMgc* gc)

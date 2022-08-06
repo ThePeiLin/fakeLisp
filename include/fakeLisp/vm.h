@@ -148,8 +148,9 @@ typedef struct
 
 typedef struct FklVMhashTable
 {
-	FklVMhashTableEqType type;
+	pthread_rwlock_t lock;
 	FklHashTable* ht;
+	FklVMhashTableEqType type;
 }FklVMhashTable;
 
 typedef struct FklVMproc

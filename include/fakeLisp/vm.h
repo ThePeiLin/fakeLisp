@@ -401,6 +401,7 @@ FklVMcontinuation* fklNewVMcontinuation(uint32_t ap,FklVM*);
 void fklFreeVMcontinuation(FklVMcontinuation* cont);
 
 FklVMhashTable* fklNewVMhashTable(FklVMhashTableEqType);
+void fklSetVMhashTableInReverseOrder(FklVMvalue* key,FklVMvalue* v,FklVMhashTable* ht,FklVMgc* gc);
 void fklSetVMhashTable(FklVMvalue* key,FklVMvalue* v,FklVMhashTable* ht,FklVMgc* gc);
 FklVMhashTableItem* fklRefVMhashTable1(FklVMvalue* key,FklVMvalue* toSet,FklVMhashTable* ht,FklVMgc*);
 FklVMhashTableItem* fklRefVMhashTable(FklVMvalue* key,FklVMhashTable* ht);

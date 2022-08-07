@@ -1247,6 +1247,19 @@ FklVMhashTableItem* fklRefVMhashTable(FklVMvalue* key,FklVMhashTable* ht)
 	return item;
 }
 
+void fklSetVMhashTableInReverseOrder(FklVMvalue* key,FklVMvalue* v,FklVMhashTable* ht,FklVMgc* gc)
+{
+	FklVMhashTableItem* item=fklRefVMhashTable(key,ht);
+	if(item)
+		fklSetRef(&item->v,v,gc);
+	else
+	{
+		pthread_rwlock_wrlock(&ht->lock);
+		fklPutInReverseOrder(newVMhashTableItem(key,v,gc),ht->ht);
+		pthread_rwlock_unlock(&ht->lock);
+	}
+}
+
 void fklSetVMhashTable(FklVMvalue* key,FklVMvalue* v,FklVMhashTable* ht,FklVMgc* gc)
 {
 	FklVMhashTableItem* item=fklRefVMhashTable(key,ht);

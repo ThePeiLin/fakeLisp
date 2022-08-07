@@ -84,6 +84,7 @@ FklHashTable* fklNewHashTable(size_t size
 		,int thresholdInc
 		,FklHashTableMethodTable*);
 void* fklGetHashItem(void* key,FklHashTable*);
+void* fklPutInReverseOrder(void* item,FklHashTable* table);
 void* fklPutReplHashItem(void* item,FklHashTable*);
 void* fklPutNoRpHashItem(void* item,FklHashTable* table);
 void fklFreeHashTable(FklHashTable*);

@@ -1614,6 +1614,28 @@ void* fklPutReplHashItem(void* item,FklHashTable* table)
 	return item;
 }
 
+void* fklPutInReverseOrder(void* item,FklHashTable* table)
+{
+	size_t (*__hashFunc)(void*,FklHashTable*)=table->t->__hashFunc;
+	void* (*__getKey)(void*)=table->t->__getKey;
+	int (*__keyEqual)(void*,void*)=table->t->__keyEqual;
+	FklHashTableNode** pp=&table->base[__hashFunc(__getKey(item),table)];
+	int i=0;
+	for(;*pp;pp=&(*pp)->next,i++)
+		if(__keyEqual(__getKey((*pp)->item),__getKey(item)))
+		{
+			table->t->__freeItem(item);
+			return (*pp)->item;
+		}
+	*pp=newHashTableNode(item,NULL);
+	table->list=newHashTableNodeList(*pp,table->list);
+	if(table->tail==&table->list)
+		table->tail=&table->list->next;
+	table->num++;
+	REHASH();
+	return item;
+}
+
 void* fklPutNoRpHashItem(void* item,FklHashTable* table)
 {
 	size_t (*__hashFunc)(void*,FklHashTable*)=table->t->__hashFunc;

@@ -1016,6 +1016,18 @@ FklVMvalue* fklGetValue(FklVMstack* stack,int32_t place)
 	return stack->values[place];
 }
 
+static void addToList(FklAstCptr* fir,FklAstCptr* sec)
+{
+	while(fir->type==FKL_TYPE_PAIR)fir=&fir->u.pair->cdr;
+	fir->type=FKL_TYPE_PAIR;
+	fir->u.pair=fklNewPair(sec->curline,fir->outer);
+	fir->u.pair->car.curline=sec->curline;
+	fir->u.pair->car.outer=fir->outer;
+	fir->u.pair->car.type=sec->type;
+	fir->u.pair->car.u.pair=sec->u.pair;
+	fir->u.pair->car.u.pair->prev=fir->u.pair;
+}
+
 FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 {
 	FklPtrStack* recStack=fklNewPtrStack(32,16);
@@ -1111,6 +1123,28 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline)
 										fklPushPtrStack(root->u.vec->base[i],s1);
 									for(size_t i=0;i<tmpAtm->value.vec.size;i++)
 										fklPushPtrStack(&tmpAtm->value.vec.base[i],s2);
+									break;
+								case FKL_TYPE_HASHTABLE:
+									{
+										tmpAtm->type=FKL_TYPE_HASHTABLE;
+										uint64_t num=root->u.hash->ht->num;
+										fklMakeAstHashTable(&tmpAtm->value.hash,root->u.hash->type,root->u.hash->ht->num);
+										for(FklHashTableNodeList* list=root->u.hash->ht->list;list;list=list->next)
+										{
+											FklVMhashTableItem* item=list->node->item;
+											fklPushPtrStack(item->key,s1);
+											fklPushPtrStack(item->v,s1);
+										}
+										for(size_t i=0;i<num;i++)
+										{
+											FklAstCptr pair={NULL,0,FKL_TYPE_NIL,{NULL}};
+											pair.type=FKL_TYPE_PAIR;
+											pair.u.pair=fklNewPair(0,pair.outer);
+											addToList(&tmpAtm->value.hash.items,&pair);
+											fklPushPtrStack(&pair.u.pair->car,s2);
+											fklPushPtrStack(&pair.u.pair->cdr,s2);
+										}
+									}
 									break;
 								case FKL_TYPE_BIG_INT:
 									tmpAtm->type=FKL_TYPE_BIG_INT;

@@ -476,6 +476,7 @@ void fklChanlRecv(FklVMrecv*,FklVMchanl*);
 
 FklVMvalue* fklCastCptrVMvalue(FklAstCptr*,FklVMgc*);
 
+FklVMvec* fklNewVMvecNoInit(size_t size);
 FklVMvec* fklNewVMvec(size_t size);
 FklVMvalue* fklNewVMvecV(size_t size,FklVMvalue** base,FklVMstack*,FklVMgc*);
 FklVMvalue* fklNewVMvecVFromStack(size_t size,FklVMvalue** base,FklVMstack*,FklVMgc*);

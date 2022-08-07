@@ -32,7 +32,6 @@ static void errorCallBack(void* a)
 	longjmp(buf,i[(sizeof(void*)*2)/sizeof(int)]);
 }
 
-
 static int copyAndAddToList(FklAstCptr* fir,const FklAstCptr* sec)
 {
 	while(fir->type==FKL_TYPE_PAIR)fir=&fir->u.pair->cdr;

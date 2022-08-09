@@ -49,7 +49,11 @@ void fklc_pattern_match(ARGL)
 	FklVMvalue* exp=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.pattern-match",FKL_ERR_TOOFEWARG,runnable,exe);
-	fklNiReturn(FKL_VM_NIL,&ap,stack);
+	if(!fklcIsValidSyntaxPattern(pattern))
+		FKLC_RAISE_ERROR("fklc.pattern-match",FKL_FKLC_ERR_INVALID_SYNTAX_PATTERN,exe);
+	FklVMhashTable* hash=fklNewVMhashTable(FKL_VM_HASH_EQ);
+	fklcMatchPattern(pattern,exp,hash,exe->gc);
+	fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_HASHTABLE,hash,stack,exe->gc),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

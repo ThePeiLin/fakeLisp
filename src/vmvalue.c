@@ -1250,7 +1250,8 @@ FklVMhashTableItem* fklRefVMhashTable(FklVMvalue* key,FklVMhashTable* ht)
 void fklClearVMhashTable(FklVMhashTable* ht,FklVMgc* gc)
 {
 	pthread_rwlock_wrlock(&ht->lock);
-	for(FklHashTableNodeList* list=ht->ht->list;list;)
+	FklHashTable* hash=ht->ht;
+	for(FklHashTableNodeList* list=hash->list;list;)
 	{
 		FklVMhashTableItem* item=list->node->item;
 		fklSetRef(&item->key,FKL_VM_NIL,gc);
@@ -1261,7 +1262,9 @@ void fklClearVMhashTable(FklVMhashTable* ht,FklVMgc* gc)
 		list=list->next;
 		free(cur);
 	}
-	ht->ht->num=0;
+	hash->num=0;
+	hash->list=NULL;
+	hash->tail=&hash->list;
 	pthread_rwlock_unlock(&ht->lock);
 }
 

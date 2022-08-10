@@ -3082,7 +3082,7 @@ typedef struct
 	size_t i;
 	size_t len;
 	size_t num;
-	uint32_t ap;
+	size_t ap;
 }MapCtx;
 
 #define K_MAP_PATTERN(K_FUNC,CUR_PROCESS,RESULT_PROCESS,NEXT_PROCESS) {MapCtx* mapctx=(MapCtx*)ctx;\
@@ -3210,7 +3210,7 @@ typedef struct
 	FklVMvalue* obj;
 	FklVMvalue* proc;
 	FklVMvalue* list;
-	uint32_t ap;
+	size_t ap;
 }MemberCtx;
 
 static void k_member(K_FUNC_ARGL)
@@ -3291,7 +3291,7 @@ typedef struct
 	FklVMvalue** r;
 	FklVMvalue* proc;
 	FklVMvalue* list;
-	uint32_t ap;
+	size_t ap;
 }MempCtx;
 
 static void k_memp(K_FUNC_ARGL)
@@ -3361,7 +3361,7 @@ typedef struct
 	FklVMvalue** cur;
 	FklVMvalue* proc;
 	FklVMvalue* list;
-	uint32_t ap;
+	size_t ap;
 }FilterCtx;
 
 static void k_filter(K_FUNC_ARGL)

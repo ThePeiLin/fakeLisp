@@ -1,7 +1,7 @@
 #include<fakeLisp/fklni.h>
 #include<fakeLisp/utils.h>
 
-int fklNiResBp(uint32_t* ap,FklVMstack* stack)
+int fklNiResBp(size_t* ap,FklVMstack* stack)
 {
 	if(*ap>stack->bp)
 		return *ap-stack->bp;
@@ -38,7 +38,7 @@ void fklNiSetBp(uint64_t nbp,FklVMstack* s)
 	s->bp=nbp;
 }
 
-void fklNiReturn(FklVMvalue* v,uint32_t* ap,FklVMstack* s)
+void fklNiReturn(FklVMvalue* v,size_t* ap,FklVMstack* s)
 {
 //	pthread_rwlock_wrlock(&s->lock);
 	if(s->tp>=s->size)
@@ -61,12 +61,12 @@ void fklNiReturn(FklVMvalue* v,uint32_t* ap,FklVMstack* s)
 //	pthread_rwlock_unlock(&s->lock);
 }
 
-inline void fklNiBegin(uint32_t* ap,FklVMstack* s)
+inline void fklNiBegin(size_t* ap,FklVMstack* s)
 {
 	*ap=s->tp;
 }
 
-inline void fklNiEnd(uint32_t* ap,FklVMstack* s)
+inline void fklNiEnd(size_t* ap,FklVMstack* s)
 {
 //	pthread_rwlock_wrlock(&s->lock);
 	s->tp=*ap;
@@ -74,7 +74,7 @@ inline void fklNiEnd(uint32_t* ap,FklVMstack* s)
 	*ap=0;
 }
 
-FklVMvalue* fklNiGetArg(uint32_t*ap,FklVMstack* stack)
+FklVMvalue* fklNiGetArg(size_t*ap,FklVMstack* stack)
 {
 	FklVMvalue* r=NULL;
 	if(!(*ap>stack->bp))
@@ -88,7 +88,7 @@ FklVMvalue* fklNiGetArg(uint32_t*ap,FklVMstack* stack)
 	return r;
 }
 
-FklVMvalue* fklNiPopTop(uint32_t* ap,FklVMstack* stack)
+FklVMvalue* fklNiPopTop(size_t* ap,FklVMstack* stack)
 {
 	if(!(*ap>stack->bp))
 		return NULL;

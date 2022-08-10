@@ -53,7 +53,13 @@ void fklc_pattern_match(ARGL)
 		FKLC_RAISE_ERROR("fklc.pattern-match",FKL_FKLC_ERR_INVALID_SYNTAX_PATTERN,exe);
 	FklVMhashTable* hash=fklNewVMhashTable(FKL_VM_HASH_EQ);
 	fklcMatchPattern(pattern,exp,hash,exe->gc);
-	fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_HASHTABLE,hash,stack,exe->gc),&ap,stack);
+	if(hash->ht->num)
+		fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_HASHTABLE,hash,stack,exe->gc),&ap,stack);
+	else
+	{
+		fklFreeVMhashTable(hash);
+		fklNiReturn(FKL_VM_NIL,&ap,stack);
+	}
 	fklNiEnd(&ap,stack);
 }
 

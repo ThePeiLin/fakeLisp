@@ -52,14 +52,13 @@ void fklc_pattern_match(ARGL)
 	if(!fklcIsValidSyntaxPattern(pattern))
 		FKLC_RAISE_ERROR("fklc.pattern-match",FKL_FKLC_ERR_INVALID_SYNTAX_PATTERN,exe);
 	FklVMhashTable* hash=fklNewVMhashTable(FKL_VM_HASH_EQ);
-	fklcMatchPattern(pattern,exp,hash,exe->gc);
-	if(hash->ht->num)
-		fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_HASHTABLE,hash,stack,exe->gc),&ap,stack);
-	else
+	if(fklcMatchPattern(pattern,exp,hash,exe->gc))
 	{
 		fklFreeVMhashTable(hash);
 		fklNiReturn(FKL_VM_NIL,&ap,stack);
 	}
+	else
+		fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_HASHTABLE,hash,stack,exe->gc),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

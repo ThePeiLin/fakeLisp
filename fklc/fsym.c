@@ -106,12 +106,12 @@ int fklcIsValidSyntaxPattern(FklVMvalue* pattern)
 	return 1;
 }
 
-void fklcMatchPattern(FklVMvalue* pattern,FklVMvalue* exp,FklVMhashTable* ht,FklVMgc* gc)
+int fklcMatchPattern(FklVMvalue* pattern,FklVMvalue* exp,FklVMhashTable* ht,FklVMgc* gc)
 {
 	if(!FKL_IS_PAIR(exp))
-		return;
+		return 1;
 	if(pattern->u.pair->car!=exp->u.pair->car)
-		return;
+		return 1;
 	FklPtrStack* s0=fklNewPtrStack(32,16);
 	FklPtrStack* s1=fklNewPtrStack(32,16);
 	fklPushPtrStack(pattern->u.pair->cdr,s0);
@@ -133,10 +133,10 @@ void fklcMatchPattern(FklVMvalue* pattern,FklVMvalue* exp,FklVMhashTable* ht,Fkl
 		{
 			fklFreePtrStack(s0);
 			fklFreePtrStack(s1);
-			fklClearVMhashTable(ht,gc);
-			return;
+			return 1;
 		}
 	}
 	fklFreePtrStack(s0);
 	fklFreePtrStack(s1);
+	return 0;
 }

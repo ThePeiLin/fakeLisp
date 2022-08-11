@@ -1038,6 +1038,15 @@ static size_t _str_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 	return sum;
 }
 
+static size_t _bytevector_hashFunc(const FklVMvalue* v,FklPtrStack* s)
+{
+	FklBytevector* bvec=v->u.bvec;
+	size_t sum=bvec->size;
+	for(size_t i=0;i<bvec->size;i++)
+		sum+=bvec->ptr[i];
+	return sum;
+}
+
 static size_t _vector_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 {
 	FklVMvec* vec=v->u.vec;
@@ -1092,6 +1101,7 @@ static size_t (*const valueHashFuncTable[])(const FklVMvalue*,FklPtrStack* s)=
 	_vector_hashFunc,
 	_pair_hashFunc,
 	_box_hashFunc,
+	_bytevector_hashFunc,
 	_userdata_hashFunc,
 	NULL,
 	NULL,

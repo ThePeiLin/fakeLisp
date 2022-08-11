@@ -3945,6 +3945,7 @@ void builtin_hash(ARGL)
 		}
 		fklSetVMhashTable(cur->u.pair->car,cur->u.pair->cdr,ht,exe->gc);
 	}
+	fklNiResBp(&ap,stack);
 	fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_HASHTABLE,ht,stack,exe->gc),&ap,stack);;
 	fklNiEnd(&ap,stack);
 }

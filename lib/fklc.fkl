@@ -70,7 +70,7 @@
                 opcode-list)))
   (define opcode->number
     (lambda (s)
-      (cdr (href opcode-hashtable s))))
+      (href opcode-hashtable s ())))
   (define fklc (dlopen (append (getdir) "/../fklc")))
   (define fbc? (dlsym fklc "fklc_fbc_p"))
   (define pattern-match (dlsym fklc "fklc_pattern_match"))
@@ -94,8 +94,4 @@
       (define r (pattern-match p e))
       (cond
         [(r (set-box! result-box (f r)))])))
-  (define compile-define-expression
-    (lambda (ht)
-      ()
-      ))
   )

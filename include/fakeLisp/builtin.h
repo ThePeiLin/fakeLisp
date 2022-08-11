@@ -33,6 +33,7 @@ typedef enum
 	FKL_ERR_LIST_DIFFER_IN_LENGTH,
 	FKL_ERR_CROSS_C_CALL_CONTINUATION,
 	FKL_ERR_INVALIDRADIX,
+	FKL_ERR_NO_VALUE_FOR_KEY,
 }FklBuiltInErrorType;
 
 typedef struct FklCompEnv FklCompEnv;

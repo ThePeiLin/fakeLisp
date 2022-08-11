@@ -60,6 +60,7 @@ static const char* builtInErrorType[]=
 	"differ-list-in-list",
 	"cross-c-call-continuation",
 	"invalid-radix",
+	"no-value-for-key",
 	NULL,
 };
 
@@ -4068,6 +4069,7 @@ void builtin_href(ARGL)
 	FklVMrunnable* runnable=exe->rhead;
 	FklVMvalue* ht=fklNiGetArg(&ap,stack);
 	FklVMvalue* key=fklNiGetArg(&ap,stack);
+	FklVMvalue* defa=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.href",FKL_ERR_TOOMANYARG,runnable,exe);
 	if(!ht||!key)
@@ -4075,9 +4077,14 @@ void builtin_href(ARGL)
 	FKL_NI_CHECK_TYPE(ht,FKL_IS_HASHTABLE,"builtin.href",runnable,exe);
 	FklVMhashTableItem* item=fklRefVMhashTable(key,ht->u.hash);
 	if(item)
-		fklNiReturn(fklNewVMpairV(item->key,item->v,stack,exe->gc),&ap,stack);
+		fklNiReturn(item->v,&ap,stack);
 	else
-		fklNiReturn(FKL_VM_NIL,&ap,stack);;
+	{
+		if(defa)
+			fklNiReturn(defa,&ap,stack);
+		else
+			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.href",FKL_ERR_NO_VALUE_FOR_KEY,runnable,exe);
+	}
 	fklNiEnd(&ap,stack);
 }
 
@@ -4094,7 +4101,7 @@ void builtin_href1(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.href!",FKL_ERR_TOOFEWARG,runnable,exe);
 	FKL_NI_CHECK_TYPE(ht,FKL_IS_HASHTABLE,"builtin.href!",runnable,exe);
 	FklVMhashTableItem* item=fklRefVMhashTable1(key,toSet,ht->u.hash,exe->gc);
-	fklNiReturn(fklNewVMpairV(item->key,item->v,stack,exe->gc),&ap,stack);
+	fklNiReturn(item->v,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

@@ -17,7 +17,60 @@
     fbc->bytevector
     bytevector->fbc
     pattern-match
+    match-and-call
+    opcode-list
+    opcode-hashtable
+    opcode->number
     fbc?)
+  (define opcode-list
+    '(
+      dummy
+      push-nil
+      push-pair
+      push-i32
+      push-i64
+      push-char
+      push-f64
+      push-str
+      push-sym
+      push-var
+      push-top
+      push-proc
+      pop
+      pop-var
+      pop-arg
+      pop-rest-arg
+      set-tp
+      set-bp
+      call
+      res-tp
+      pop-tp
+      jmp-if-true
+      jmp-if-false
+      jmp
+      push-try
+      pop-try
+      append
+      push-vactor
+      push-r-env
+      pop-r-env
+      tail-call
+      push-big-int
+      push-box
+      push-bytevector
+      push-hashtable-eq
+      push-hashtable-eqv
+      push-hashtable-equal
+      ))
+  (define opcode-hashtable
+    (apply hash
+           (map ((lambda (n)
+                   (lambda (s)
+                     (cons s (setq n (1+ n))))) -1)
+                opcode-list)))
+  (define opcode->number
+    (lambda (s)
+      (cdr (href opcode-hashtable s))))
   (define fklc (dlopen (append (getdir) "/../fklc")))
   (define fbc? (dlsym fklc "fklc_fbc_p"))
   (define pattern-match (dlsym fklc "fklc_pattern_match"))
@@ -35,4 +88,14 @@
   (define compile-atom-literal (dlsym fklc "fklc_compile_atom_literal"))
   (define compile-obj (dlsym fklc "fklc_compile_obj"))
   (define fbc->bytevector (dlsym fklc "fklc_fbc_to_bytevector"))
-  (define bytevector->fbc (dlsym fklc "fklc_bytevector_to_fbc")))
+  (define bytevector->fbc (dlsym fklc "fklc_bytevector_to_fbc"))
+  (define match-and-call
+    (lambda (p e f result-box)
+      (define r (pattern-match p e))
+      (cond
+        [(r (set-box! result-box (f r)))])))
+  (define compile-define-expression
+    (lambda (ht)
+      ()
+      ))
+  )

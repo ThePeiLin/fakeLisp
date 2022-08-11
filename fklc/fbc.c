@@ -43,6 +43,15 @@ static int _bc_equal(const FklVMudata* a,const FklVMudata* b)
 	}
 }
 
+static size_t _bc_hash(void* data,FklPtrStack* s)
+{
+	FklByteCode* bc=data;
+	size_t sum=0;
+	for(size_t i=0;i<bc->size;i++)
+		sum+=bc->code[i];
+	return sum;
+}
+
 static FklVMudMethodTable FklcBcMethodTable=
 {
 	.__princ=_bc_princ,
@@ -55,7 +64,7 @@ static FklVMudMethodTable FklcBcMethodTable=
 	.__atomic=NULL,
 	.__append=_bc_append,
 	.__copy=_bc_copy,
-	.__hash=NULL,
+	.__hash=_bc_hash,
 };
 
 FklVMudata* fklcNewFbcUd(FklByteCode* code)

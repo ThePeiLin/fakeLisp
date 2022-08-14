@@ -3493,6 +3493,7 @@ void builtin_vector(ARGL)
 		fklSetRef(&vec->u.vec->base[i],fklNiGetArg(&ap,stack),exe->gc);
 	fklNiResBp(&ap,stack);
 	fklNiReturn(vec,&ap,stack);
+	fklNiEnd(&ap,stack);
 }
 
 void builtin_getdir(ARGL)

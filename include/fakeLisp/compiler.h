@@ -152,6 +152,7 @@ FklByteCodelnt* fklCompileLibrary(FklAstCptr*,FklCompEnv*,FklInterpreter*,FklErr
 FklByteCodelnt* fklCompileTry(FklAstCptr*,FklCompEnv*,FklInterpreter*,FklErrorState*);
 FklByteCodelnt* fklCompileFlsym(FklAstCptr*,FklCompEnv*,FklInterpreter*,FklErrorState*);
 
+FklByteCode* fklCompileHashtable(FklAstCptr*);
 FklByteCode* fklCompileVector(FklAstCptr*);
 FklByteCode* fklCompileBox(FklAstCptr*);
 void fklPrintUndefinedSymbol(FklByteCodelnt* code);

@@ -89,9 +89,41 @@
   (define compile-obj (dlsym fklc "fklc_compile_obj"))
   (define fbc->bytevector (dlsym fklc "fklc_fbc_to_bytevector"))
   (define bytevector->fbc (dlsym fklc "fklc_bytevector_to_fbc"))
+
+  (define raise-wrong-type-error
+    (lambda (where)
+      (raise (error where 'wrong-types-of-arguements  "Wrong arguement "))))
+
+  (define check-type
+    (lambda (v p where)
+      (cond
+        [(not (p v))
+         (raise-wrong-type-error where)])))
+
+  (define make-lst
+    (lambda (prev)
+      `#(lst #hash() ~prev)))
+
+  (define lst?
+    (lambda (o)
+      (and (vector? o)
+           (eqv (length o) 3)
+           (eq (vref o 0) 'lst))))
+
+  (define lst-symbols
+    (lambda (t)
+      (check-type t lst? 'lst-symbols)
+      (vref t 1)))
+
+  (define lst-prev
+    (lambda (t)
+      (check-type t lst? 'lst-prev)
+      (vref t 2)))
+
   (define match-and-call
     (lambda (p e f result-box)
       (define r (pattern-match p e))
       (cond
         [(r (set-box! result-box (f r)))])))
+
   )

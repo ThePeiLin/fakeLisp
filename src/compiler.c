@@ -824,12 +824,24 @@ static FklByteCode* innerCompileConst(FklAstCptr* objCptr)
 				fklSetSidToByteCode(tmp->code+sizeof(char),node->id);
 				return tmp;
 			}
-			else if(objCptr->u.atom->type!=FKL_TYPE_VECTOR&&objCptr->u.atom->type!=FKL_TYPE_BOX)
-				return fklCompileAtom(objCptr);
-			else if(objCptr->u.atom->type==FKL_TYPE_VECTOR)
-				return fklCompileVector(objCptr);
 			else
-				return fklCompileBox(objCptr);
+			{
+				switch(objCptr->u.atom->type)
+				{
+					case FKL_TYPE_VECTOR:
+						return fklCompileVector(objCptr);
+						break;
+					case FKL_TYPE_BOX:
+						return fklCompileBox(objCptr);
+						break;
+					case FKL_TYPE_HASHTABLE:
+						return fklCompileHashtable(objCptr);
+						break;
+					default:
+						return fklCompileAtom(objCptr);
+						break;
+				}
+			}
 			break;
 		case FKL_TYPE_NIL:
 			return fklCompileNil();
@@ -964,7 +976,7 @@ FklByteCodelnt* fklCompileUnquoteVector(FklAstCptr* objCptr,FklCompEnv* curEnv,F
 			state->place=objCptr;
 			return NULL;
 		}
-		if(fklIsUnquoteExpression(&vec->base[i]))
+		else if(fklIsUnquoteExpression(&vec->base[i]))
 		{
 			FklByteCodelnt* tmp=fklCompileUnquote(&vec->base[i],curEnv,inter,state);
 			if(state->state)

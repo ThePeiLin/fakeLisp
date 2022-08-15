@@ -1,10 +1,10 @@
 #include"fsym.h"
 #include<fakeLisp/utils.h>
-static FklSymbolTable* OuterSymbolTable=NULL;
+FklSymbolTable* OuterSymbolTable=NULL;
 
-void fklcInitFsym(FklSymbolTable* table)
+void fklcInitFsym(void)
 {
-	OuterSymbolTable=table;
+	OuterSymbolTable=fklNewSymbolTable();
 }
 
 FklSymbolTable* fklcGetOuterSymbolTable(void)
@@ -14,8 +14,7 @@ FklSymbolTable* fklcGetOuterSymbolTable(void)
 
 void fklcUninitFsym(void)
 {
-	if(fklGetGlobSymbolTable())
-		fklFreeGlobSymbolTable();
+	fklFreeSymbolTable(OuterSymbolTable);
 }
 
 FklSid_t fklcGetSymbolIdWithOuterSymbolId(FklSid_t sid)

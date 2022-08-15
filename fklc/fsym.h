@@ -6,8 +6,7 @@
 extern "C"{
 #endif
 
-void fklcInitFsym(FklSymbolTable*);
-FklSymbolTable* fklcGetOuterSymbolTable(void);
+void fklcInitFsym(void);
 void fklcUninitFsym(void);
 FklSid_t fklcGetSymbolIdWithOuterSymbolId(FklSid_t);
 typedef enum

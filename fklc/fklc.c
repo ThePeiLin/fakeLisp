@@ -6,6 +6,7 @@
 #include"fbc.h"
 #include"flnt.h"
 #include"fsym.h"
+extern FklSymbolTable* OuterSymbolTable;
 #define ARGL FklVM* exe,pthread_rwlock_t* gclock
 
 #define FKLC_RAISE_ERROR(WHO,ERRORTYPE,EXE) do{\
@@ -178,7 +179,7 @@ void fklc_add_symbol(ARGL)
 	if(!str)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.add-symbol!",FKL_ERR_TOOFEWARG,runnable,exe);
 	FKL_NI_CHECK_TYPE(str,FKL_IS_STR,"fklc.add-symbol!",runnable,exe);
-	fklNiReturn(fklMakeVMint(fklAddSymbolToGlob(str->u.str)->id,stack,exe->gc),&ap,stack);
+	fklNiReturn(fklMakeVMint(fklAddSymbol(str->u.str,OuterSymbolTable)->id,stack,exe->gc),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -188,7 +189,8 @@ void fklc_add_symbol(ARGL)
 void _fklInit(FklSymbolTable* glob,FklVMvalue* rel,FklVMlist* GlobVMs)
 {
 	fklSetGlobVMs(GlobVMs);
-	fklcInitFsym(glob);
+	fklSetGlobSymbolTable(glob);
+	fklcInitFsym();
 	fklcInit(rel);
 }
 

@@ -109,7 +109,7 @@ int main(int argc,char** argv)
 			.l=lnt->list,
 			.bc=mainCode,
 		};
-		fklPrintByteCodelnt(&bytecodelnt,stdout);
+		fklPrintByteCodelnt(&bytecodelnt,stdout,NULL);
 		fklFreeByteCode(mainCode);
 		fclose(fp);
 		fklFreeCwd();

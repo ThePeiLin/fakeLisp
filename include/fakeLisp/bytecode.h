@@ -43,10 +43,10 @@ void fklReCodeCat(const FklByteCode*,FklByteCode*);
 FklByteCode* fklCopyByteCode(const FklByteCode*);
 FklByteCodelnt* fklCopyByteCodelnt(const FklByteCodelnt*);
 void fklFreeByteCode(FklByteCode*);
-void fklPrintByteCode(const FklByteCode*,FILE*);
+void fklPrintByteCode(const FklByteCode*,FILE*,FklSymbolTable*);
 
 FklByteCodelnt* fklNewByteCodelnt(FklByteCode* bc);
-void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp);
+void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,FklSymbolTable*);
 void fklFreeByteCodelnt(FklByteCodelnt*);
 void fklFreeByteCodeAndLnt(FklByteCodelnt*);
 void fklIncreaseScpOfByteCodelnt(FklByteCodelnt*,uint64_t);

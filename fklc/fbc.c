@@ -6,6 +6,7 @@
 static FklVMvalue* FklcRel;
 FklSid_t FklcBcUdSid=0;
 
+extern FklSymbolTable* OuterSymbolTable;
 static void _bc_finalizer(void* p)
 {
 	fklFreeByteCode(p);
@@ -13,7 +14,7 @@ static void _bc_finalizer(void* p)
 
 static void _bc_princ(void* p,FILE* fp)
 {
-	fklPrintByteCode(p,fp);
+	fklPrintByteCode(p,fp,OuterSymbolTable);
 }
 
 static void* _bc_copy(void* p)
@@ -79,7 +80,7 @@ int fklcIsFbc(FklVMvalue* p)
 
 void fklcInit(FklVMvalue* rel)
 {
-	FklcBcUdSid=fklAddSymbolCstr("fbc",fklcGetOuterSymbolTable())->id;
+	FklcBcUdSid=fklAddSymbolCstr("fbc",OuterSymbolTable)->id;
 	FklcRel=rel;
 }
 
@@ -116,7 +117,7 @@ void fklcCodeAppend(FklByteCode** fir,const FklByteCode* sec)
 
 FklByteCode* fklcNewPushSidByteCode(FklSid_t a)
 {
-	return fklNewPushSidByteCode(fklAddSymbolToGlob(fklGetSymbolWithId(a,fklcGetOuterSymbolTable())->symbol)->id);
+	return fklNewPushSidByteCode(fklAddSymbol(fklGetGlobSymbolWithId(a)->symbol,OuterSymbolTable)->id);
 }
 
 FklByteCode* fklcNewPushObjByteCode(FklVMvalue* obj)

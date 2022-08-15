@@ -21,7 +21,14 @@
     opcode-list
     opcode-hashtable
     opcode->number
-    fbc?)
+    fbc?
+    init-symbol-table!
+    init-lst-as-global!
+    add-lst-symbol!
+    find-lst-symbol
+    add-symbol!
+    match-and-call
+    )
   (define opcode-list
     '(
       dummy
@@ -89,6 +96,7 @@
   (define compile-obj (dlsym fklc "fklc_compile_obj"))
   (define fbc->bytevector (dlsym fklc "fklc_fbc_to_bytevector"))
   (define bytevector->fbc (dlsym fklc "fklc_bytevector_to_fbc"))
+  (define add-symbol! (dlsym fklc "fklc_add_symbol"))
 
   (define raise-wrong-type-error
     (lambda (where)
@@ -323,25 +331,12 @@
       "hash-values"
       ))
 
-  (define init-global-symbol-table
+  (define init-symbol-table!
     (lambda ()
-      (foreach ((lambda (n)
-                  (lambda (str)
-                    (setq n (1+ n))
-                    (href! global-symbol-table str n))))
+      (foreach (lambda (str)
+                 (add-symbol! str))
                builtin-symbol-list)))
 
-  (define get-sid
-    (lambda (str)
-      (href global-symbol-table
-            str
-            nil)))
-
-  (define add-symbol-to-global!
-    (lambda (str)
-      (href global-symbol-table
-            str
-            (1+ (hash-num global-symbol-table)))))
 
   (define add-lst-symbol!
     (lambda (t s)
@@ -354,6 +349,11 @@
       (check-type t lst? 'find-lst-symbol)
       (check-type s symbol? 'find-lst-symbol)
       (href (lst-symbols t) s nil)))
+
+  (define init-lst-as-global!
+    (lambda (t)
+      (foreach (lambda (s) (add-lst-symbol! t s))
+               builtin-symbol-list)))
 
   (define match-and-call
     (lambda (p e f result-box)

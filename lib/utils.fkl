@@ -215,7 +215,7 @@
 
   (defmacro (when pred,expressions)
     `(cond (~pred
-         ~@expressions)))
+             ~@expressions)))
 
   (defmacro (case v,b)
     (begin
@@ -226,14 +226,37 @@
                            `(member _ '~x)
                            x))
                        (map (lambda (x) (nth 0 x)) b)))]
-                     (map (lambda (x)
-                            (define r (cons x (car tb)))
-                            (setq tb (cdr tb))
-                            r)
-                          cs)))
+          (map (lambda (x)
+                 (define r (cons x (car tb)))
+                 (setq tb (cdr tb))
+                 r)
+               cs)))
       `((lambda (_) (cond,~body)) ~v)))
 
   (defmacro (define (name,args),body)
     `(define ~name
        (lambda ~args
-         ~@body))))
+         ~@body)))
+
+  (defmacro (->> x,forms)
+    (begin
+      (let iter [(c (cdr forms))
+                 (r (append (car forms) (cons x ())))]
+        (cond
+          [c (iter (cdr c)
+                   (append (car c) (cons r ())))]
+          [1 r]))))
+
+  (defmacro (-> x,forms)
+    (begin
+      (let iter [(c (cdr forms))
+                 (r (append (cons (caar forms) ())
+                            (cons x ())
+                            (cdar forms)))]
+        (cond
+          [c (iter (cdr c)
+                   (append (cons (caar c) ())
+                           (cons r ())
+                           (cdar c)))]
+          [1 r]))))
+  )

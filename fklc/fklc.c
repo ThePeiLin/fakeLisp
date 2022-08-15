@@ -168,6 +168,20 @@ void fklc_compile_obj(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void fklc_add_symbol(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* str=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.add-symbol!",FKL_ERR_TOOMANYARG,runnable,exe);
+	if(!str)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.add-symbol!",FKL_ERR_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(str,FKL_IS_STR,"fklc.add-symbol!",runnable,exe);
+	fklNiReturn(fklMakeVMint(fklAddSymbolToGlob(str->u.str)->id,stack,exe->gc),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 #undef CONST_COMPILE
 #undef IS_LITERAL
 #undef IS_COMPILABLE

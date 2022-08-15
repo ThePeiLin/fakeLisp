@@ -111,8 +111,13 @@ void fklcCodeAppend(FklByteCode** fir,const FklByteCode* sec)
 		FKL_IS_STR(V)?\
 		fklNewPushStrByteCode((V)->u.str):\
 		FKL_IS_SYM(V)?\
-		fklNewPushSidByteCode(FKL_GET_SYM(V)):\
+		fklcNewPushSidByteCode(FKL_GET_SYM(V)):\
 		fklNewPushBvecByteCode((V)->u.bvec))
+
+FklByteCode* fklcNewPushSidByteCode(FklSid_t a)
+{
+	return fklNewPushSidByteCode(fklAddSymbolToGlob(fklGetSymbolWithId(a,fklcGetOuterSymbolTable())->symbol)->id);
+}
 
 FklByteCode* fklcNewPushObjByteCode(FklVMvalue* obj)
 {

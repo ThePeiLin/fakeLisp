@@ -942,16 +942,16 @@ static void fklSetCharToByteCode(uint8_t* code,char c)
 	code[0]=(uint8_t)c;
 }
 
-#define NEW_PUSH_FIX_OBJ_BYTECODE(OPCODE,OBJ,OBJ_SETTER) {FklByteCode* t=fklNewByteCode(sizeof(char)+sizeof(OBJ));\
+#define NEW_PUSH_FIX_OBJ_BYTECODE(OPCODE,OBJ,OBJ_SETTER) FklByteCode* t=fklNewByteCode(sizeof(char)+sizeof(OBJ));\
 	t->code[0]=(OPCODE);\
 	(OBJ_SETTER)(t->code+sizeof(char),(OBJ));\
-	return t;}
+	return t
 
-FklByteCode* fklNewPushI32ByteCode(int32_t a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_I32,a,fklSetI32ToByteCode)
-FklByteCode* fklNewPushI64ByteCode(int64_t a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_I64,a,fklSetI64ToByteCode)
-FklByteCode* fklNewPushSidByteCode(FklSid_t a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_SYM,a,fklSetSidToByteCode)
-FklByteCode* fklNewPushCharByteCode(char a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_CHAR,a,fklSetCharToByteCode)
-FklByteCode* fklNewPushF64ByteCode(double a) NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_F64,a,fklSetF64ToByteCode)
+FklByteCode* fklNewPushI32ByteCode(int32_t a) {NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_I32,a,fklSetI32ToByteCode);}
+FklByteCode* fklNewPushI64ByteCode(int64_t a) {NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_I64,a,fklSetI64ToByteCode);}
+FklByteCode* fklNewPushSidByteCode(FklSid_t a) {NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_SYM,a,fklSetSidToByteCode);}
+FklByteCode* fklNewPushCharByteCode(char a) {NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_CHAR,a,fklSetCharToByteCode);}
+FklByteCode* fklNewPushF64ByteCode(double a) {NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_F64,a,fklSetF64ToByteCode);}
 FklByteCode* fklNewPushStrByteCode(const FklString* str)
 {
 	FklByteCode* tmp=fklNewByteCode(sizeof(char)+sizeof(str->size)+str->size);

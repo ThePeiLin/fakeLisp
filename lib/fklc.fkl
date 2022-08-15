@@ -115,10 +115,27 @@
       (check-type t lst? 'lst-symbols)
       (vref t 1)))
 
+  (define lst-symbols-num
+    (lambda (t)
+      (check-type t lst? 'lst-symbols-num)
+      (hash-num (lst-symbols))))
+
   (define lst-prev
     (lambda (t)
       (check-type t lst? 'lst-prev)
       (vref t 2)))
+
+  (define add-lst-symbol!
+    (lambda (t s)
+      (check-type t lst? 'add-lst-symbol!)
+      (check-type s symbol? 'add-lst-symbol!)
+      (href! (lst-symbols t) s s)))
+
+  (define find-lst-symbol
+    (lambda (t s)
+      (check-type t lst? 'find-lst-symbol)
+      (check-type s symbol? 'find-lst-symbol)
+      (href (lst-symbols t) s nil)))
 
   (define match-and-call
     (lambda (p e f result-box)

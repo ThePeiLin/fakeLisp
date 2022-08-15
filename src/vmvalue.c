@@ -1215,7 +1215,6 @@ void fklAtomicVMhashTable(FklVMhashTable* ht,FklVMgc* gc)
 		FklVMhashTableItem* item=list->node->item;
 		fklGC_toGrey(item->key,gc);
 		fklGC_toGrey(item->v,gc);
-		list=list->next;
 	}
 	pthread_rwlock_unlock(&ht->lock);
 }

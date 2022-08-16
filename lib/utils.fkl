@@ -214,8 +214,12 @@
        (1 ~@exp2)))
 
   (defmacro (when pred,expressions)
-    `(cond (~pred
-             ~@expressions)))
+    `(cond [~pred
+             ~@expressions]))
+
+  (defmacro (unless pred,expressions)
+    `(cond [(not ~pred)
+            ~@expressions]))
 
   (defmacro (case v,b)
     (begin

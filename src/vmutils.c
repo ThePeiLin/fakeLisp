@@ -79,6 +79,23 @@ inline int64_t fklGetInt(const FklVMvalue* p)
 		:fklBigIntToI64(p->u.bigInt);
 }
 
+inline uint64_t fklGetUint(const FklVMvalue* p)
+{
+	return FKL_IS_I32(p)
+		?FKL_GET_I32(p)
+		:(FKL_IS_I64(p))?p->u.i64
+		:fklBigIntToU64(p->u.bigInt);
+}
+
+inline int fklVMnumberLt0(const FklVMvalue* p)
+{
+	return fklIsFixint(p)
+		?fklGetInt(p)<0
+		:FKL_IS_F64(p)
+		?0.0-p->u.f64>DBL_EPSILON
+		:!FKL_IS_0_BIG_INT(p->u.bigInt)&&p->u.bigInt->neg;
+}
+
 inline double fklGetDouble(const FklVMvalue* p)
 {
 	return FKL_IS_I32(p)?FKL_GET_I32(p)
@@ -444,6 +461,8 @@ char* fklGenErrorMessage(FklBuiltInErrorType type,FklVMrunnable* r,FklVM* exe)
 		case FKL_ERR_INVALIDRADIX:
 			t=fklStrCat(t,"Radix should be 8,10 or 16");
 			break;
+		case FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0:
+			t=fklStrCat(t,"Number should not be less than 0");
 		default:
 			break;
 	}

@@ -11,6 +11,7 @@
     compile-big-int
     compile-integer
     compile-number
+    make-fbc
     make-push-nil
     compile-atom-literal
     compile-obj
@@ -26,8 +27,14 @@
     init-lst-as-global!
     add-lst-symbol!
     find-lst-symbol
+    find-symbol-in-ht
     add-symbol!
     match-and-call
+    make-lst
+    make-global-lst
+    lst-symbols-num
+    lst-symbols
+    lst-prev
     )
   (define opcode-list
     '(
@@ -96,6 +103,7 @@
   (define compile-obj (dlsym fklc "fklc_compile_obj"))
   (define fbc->bytevector (dlsym fklc "fklc_fbc_to_bytevector"))
   (define bytevector->fbc (dlsym fklc "fklc_bytevector_to_fbc"))
+  (define make-fbc (dlsym fklc "fklc_make_fbc"))
   (define add-symbol! (dlsym fklc "fklc_add_symbol"))
 
   (define raise-wrong-type-error
@@ -110,243 +118,235 @@
 
   (define make-lst
     (lambda (prev)
-      `#(lst #hash() ~prev)))
-
-  (define lst?
-    (lambda (o)
-      (and (vector? o)
-           (eqv (length o) 3)
-           (eq (vref o 0) 'lst))))
+      (cons #hash() prev)))
 
   (define lst-symbols
     (lambda (t)
-      (check-type t lst? 'lst-symbols)
-      (vref t 1)))
+      (car t)))
 
   (define lst-symbols-num
     (lambda (t)
-      (check-type t lst? 'lst-symbols-num)
       (hash-num (lst-symbols))))
 
   (define lst-prev
     (lambda (t)
-      (check-type t lst? 'lst-prev)
-      (vref t 2)))
-
-  (define global-symbol-table #hashequal())
+      (cdr t)))
 
   (define builtin-symbol-list
     '(
-      "nil"
-      "stdin"
-      "stdout"
-      "stderr"
-      "car"
-      "cdr"
-      "cons"
-      "append"
-      "copy"
-      "atom"
-      "null"
-      "not"
-      "eq"
-      "eqv"
-      "equal"
-      "="
-      "+"
-      "1+"
-      "-"
-      "-1+"
-      "*"
-      "/"
-      "//"
-      "%"
-      "abs"
-      ">"
-      ">="
-      "<"
-      "<="
-      "nth"
-      "length"
-      "apply"
-      "call/cc"
-      "fopen"
-      "read"
-      "prin1"
-      "princ"
-      "dlopen"
-      "dlsym"
-      "argv"
-      "go"
-      "chanl"
-      "chanl-num"
-      "send"
-      "recv"
-      "error"
-      "raise"
-      "reverse"
-      "fclose"
-      "feof"
-      "nthcdr"
-      "char?"
-      "integer?"
-      "i32?"
-      "i64?"
-      "f64?"
-      "pair?"
-      "symbol?"
-      "string->symbol"
-      "string?"
-      "string"
-      "sub-string"
-      "make-string"
-      "symbol->string"
-      "number->string"
-      "vector->string"
-      "bytevector->string"
-      "list->string"
-      "->string"
-      "sref"
-      "set-sref!"
-      "fill-string!"
-      "error?"
-      "procedure?"
-      "proc?"
-      "dlproc?"
-      "vector?"
-      "vector"
-      "make-vector"
-      "sub-vector"
-      "list->vector"
-      "string->vector"
-      "vref"
-      "set-vref!"
-      "cas-vref!"
-      "fill-vector!"
-      "list?"
-      "list"
-      "make-list"
-      "vector->list"
-      "string->list"
-      "set-nth!"
-      "set-nthcdr!"
-      "bytevector?"
-      "bytevector"
-      "sub-bytevector"
-      "make-bytevector"
-      "bytevector->s8-list"
-      "bytevector->u8-list"
-      "bytevector->s8-vector"
-      "bytevector->u8-vector"
-      "bvs8ref"
-      "bvs16ref"
-      "bvs32ref"
-      "bvs64ref"
-      "bvu8ref"
-      "bvu16ref"
-      "bvu32ref"
-      "bvu64ref"
-      "bvf32ref"
-      "bvf64ref"
-      "set-bvs8ref!"
-      "set-bvs16ref!"
-      "set-bvs32ref!"
-      "set-bvs64ref!"
-      "set-bvu8ref!"
-      "set-bvu16ref!"
-      "set-bvu32ref!"
-      "set-bvu64ref!"
-      "set-bvf32ref!"
-      "set-bvf64ref!"
-      "fill-bytevector!"
+      nil
+      stdin
+      stdout
+      stderr
+      car
+      cdr
+      cons
+      append
+      copy
+      atom
+      null
+      not
+      eq
+      eqv
+      equal
+      =
+      +
+      1+
+      -
+      -1+
+      *
+      /
+      //
+      %
+      abs
+      >
+      >=
+      <
+      <=
+      nth
+      length
+      apply
+      call/cc
+      fopen
+      read
+      prin1
+      princ
+      dlopen
+      dlsym
+      argv
+      go
+      chanl
+      chanl-num
+      send
+      recv
+      error
+      raise
+      reverse
+      fclose
+      feof
+      nthcdr
+      char?
+      integer?
+      i32?
+      i64?
+      f64?
+      pair?
+      symbol?
+      string->symbol
+      string?
+      string
+      sub-string
+      make-string
+      symbol->string
+      number->string
+      vector->string
+      bytevector->string
+      list->string
+      ->string
+      sref
+      set-sref!
+      fill-string!
+      error?
+      procedure?
+      proc?
+      dlproc?
+      vector?
+      vector
+      make-vector
+      sub-vector
+      list->vector
+      string->vector
+      vref
+      set-vref!
+      cas-vref!
+      fill-vector!
+      list?
+      list
+      make-list
+      vector->list
+      string->list
+      set-nth!
+      set-nthcdr!
+      bytevector?
+      bytevector
+      sub-bytevector
+      make-bytevector
+      bytevector->s8-list
+      bytevector->u8-list
+      bytevector->s8-vector
+      bytevector->u8-vector
+      bvs8ref
+      bvs16ref
+      bvs32ref
+      bvs64ref
+      bvu8ref
+      bvu16ref
+      bvu32ref
+      bvu64ref
+      bvf32ref
+      bvf64ref
+      set-bvs8ref!
+      set-bvs16ref!
+      set-bvs32ref!
+      set-bvs64ref!
+      set-bvu8ref!
+      set-bvu16ref!
+      set-bvu32ref!
+      set-bvu64ref!
+      set-bvf32ref!
+      set-bvf64ref!
+      fill-bytevector!
 
-      "chanl?"
-      "dll?"
-      "getdir"
-      "fgetc"
-      "fgeti"
-      "fwrite"
-      "fgets"
-      "fgetb"
+      chanl?
+      dll?
+      getdir
+      fgetc
+      fgeti
+      fwrite
+      fgets
+      fgetb
 
-      "big-int?"
+      big-int?
 
-      "set-car!"
-      "set-cdr!"
-      "box"
-      "unbox"
-      "set-box!"
-      "cas-box!"
-      "box?"
-      "fix-int?"
+      set-car!
+      set-cdr!
+      box
+      unbox
+      set-box!
+      cas-box!
+      box?
+      fix-int?
 
-      "number?"
-      "string->number"
-      "char->integer"
-      "symbol->integer"
-      "integer->char"
-      "number->f64"
-      "number->integer"
-      "number->i32"
-      "number->i64"
-      "number->big-int"
+      number?
+      string->number
+      char->integer
+      symbol->integer
+      integer->char
+      number->f64
+      number->integer
+      number->i32
+      number->i64
+      number->big-int
 
-      "map"
-      "foreach"
-      "andmap"
-      "ormap"
-      "memq"
-      "member"
-      "memp"
-      "filter"
+      map
+      foreach
+      andmap
+      ormap
+      memq
+      member
+      memp
+      filter
 
-      "set!"
+      set!
 
-      "getch"
-      "sleep"
-      "usleep"
-      "srand"
-      "rand"
-      "get-time"
-      "remove-file"
-      "time"
-      "system"
-      "hash"
-      "hash-num"
-      "make-hash"
-      "hasheqv"
-      "make-hasheqv"
-      "hashequal"
-      "make-hashequal"
-      "hash?"
-      "hasheq?"
-      "hasheqv?"
-      "hashequal?"
-      "href"
-      "href!"
-      "set-href!"
-      "set-href*!"
-      "hash->list"
-      "hash-keys"
-      "hash-values"
+      getch
+      sleep
+      usleep
+      srand
+      rand
+      get-time
+      remove-file
+      time
+      system
+      hash
+      hash-num
+      make-hash
+      hasheqv
+      make-hasheqv
+      hashequal
+      make-hashequal
+      hash?
+      hasheq?
+      hasheqv?
+      hashequal?
+      href
+      href!
+      set-href!
+      set-href*!
+      hash->list
+      hash-keys
+      hash-values
       ))
 
   (define init-symbol-table!
     (lambda ()
-      (foreach (lambda (str)
-                 (add-symbol! str))
+      (foreach (lambda (sym)
+                 (add-symbol! (symbol->string sym)))
                builtin-symbol-list)))
 
 
   (define add-lst-symbol!
     (lambda (t s)
-      (check-type t lst? 'add-lst-symbol!)
       (check-type s symbol? 'add-lst-symbol!)
-      (href! (lst-symbols t) s s)))
+      (href! (lst-symbols t) s 1)))
+
+  (define find-symbol-in-ht
+    (lambda (ht s)
+      (check-type s symbol? 'find-symbol-in-ht)
+      (href ht s '())))
 
   (define find-lst-symbol
     (lambda (t s)
-      (check-type t lst? 'find-lst-symbol)
       (check-type s symbol? 'find-lst-symbol)
       (href (lst-symbols t) s nil)))
 
@@ -355,10 +355,16 @@
       (foreach (lambda (s) (add-lst-symbol! t s))
                builtin-symbol-list)))
 
+  (define make-global-lst
+    (lambda ()
+       (define r (make-lst nil))
+       (init-lst-as-global! r)
+       r))
+
   (define match-and-call
-    (lambda (p e f result-box)
+    (lambda (p e f t result-box)
       (define r (pattern-match p e))
       (cond
-        [(r (set-box! result-box (f r)))])))
+        [(r (set-box! result-box (f r t)))])))
 
   )

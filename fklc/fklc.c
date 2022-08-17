@@ -3,6 +3,7 @@
 #include<fakeLisp/vm.h>
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/bytecode.h>
+#include<string.h>
 #include"fbc.h"
 #include"flnt.h"
 #include"fsym.h"
@@ -180,6 +181,33 @@ void fklc_add_symbol(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.add-symbol!",FKL_ERR_TOOFEWARG,runnable,exe);
 	FKL_NI_CHECK_TYPE(str,FKL_IS_STR,"fklc.add-symbol!",runnable,exe);
 	fklNiReturn(fklMakeVMint(fklAddSymbol(str->u.str,OuterSymbolTable)->id,stack,exe->gc),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void fklc_make_fbc(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMrunnable* runnable=exe->rhead;
+	FklVMvalue* size=fklNiGetArg(&ap,stack);
+	if(!size)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.make-fbc",FKL_ERR_TOOFEWARG,runnable,exe);
+	FKL_NI_CHECK_TYPE(size,fklIsInt,"fklc.make-fbc",runnable,exe);
+	FklVMvalue* content=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.make-fbc",FKL_ERR_TOOMANYARG,runnable,exe);
+	if(fklVMnumberLt0(size))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.make-fbc",FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,runnable,exe);
+	size_t len=fklGetUint(size);
+	FklByteCode* bc=fklNewByteCode(len);
+	uint8_t c=0;
+	if(content)
+	{
+		if(!FKL_IS_CHR(content)&&!fklIsInt(content))
+			FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.make-fbc",FKL_ERR_WRONGARG,runnable,exe);
+		c=fklGetInt(content);
+	}
+	memset(bc->code,c,len);
+	fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_USERDATA,fklcNewFbcUd(bc),stack,exe->gc),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

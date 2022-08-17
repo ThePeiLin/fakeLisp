@@ -506,6 +506,8 @@ FklVMvalue* fklSetRef(FklVMvalue* volatile*
 		,FklVMvalue* v
 		,FklVMgc*);
 
+int fklVMnumberLt0(const FklVMvalue*);
+uint64_t fklGetUint(const FklVMvalue*);
 FklVMdllHandle fklLoadDll(const char* path);
 
 void fklPushVMvalue(FklVMvalue* v,FklVMstack* s);

@@ -1920,7 +1920,18 @@ FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 				fklFreeAllMacroThenDestroyCompEnv(tmpEnv);
 				return NULL;
 			}
-			FklCompEnvHashItem* tmpDef=fklAddCompDef(tmpAtm->value.str,tmpEnv);
+			FklCompEnvHashItem* tmpDef=fklFindCompDef(tmpAtm->value.str,tmpEnv);
+			if(tmpDef)
+			{
+				state->state=FKL_ERR_SYNTAXERROR;
+				state->place=tmpCptr;
+				fklFreeByteCode(popArg);
+				fklFreeByteCode(popRestArg);
+				fklFreeAllMacroThenDestroyCompEnv(tmpEnv);
+				return NULL;
+			}
+			else
+				tmpDef=fklAddCompDef(tmpAtm->value.str,tmpEnv);
 			fklSetSidToByteCode(popArg->code+sizeof(char),tmpDef->id);
 			fklCodeCat(pArg,popArg);
 			if(fklNextCptr(argCptr)==NULL&&argCptr->outer->cdr.type==FKL_TYPE_ATM)

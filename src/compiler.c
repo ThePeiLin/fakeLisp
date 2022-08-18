@@ -1969,22 +1969,24 @@ FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 	fklFreeByteCode(fklResBp);
 	fklFreeByteCode(setTp);
 	FklAstCptr* begin=fklNextCptr(fklNextCptr(objCptr));
-	if(!begin)
-	{
-		fklFreeAllMacroThenDestroyCompEnv(tmpEnv);
-		state->state=FKL_ERR_SYNTAXERROR;
-		state->place=tmpCptr;
-		return NULL;
-	}
-	objCptr=begin;
 	FklByteCodelnt* codeOfLambda=fklNewByteCodelnt(pArg);
 	codeOfLambda->ls=1;
 	codeOfLambda->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 	FKL_ASSERT(codeOfLambda->l);
 	codeOfLambda->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,pArg->size,line);
+	//	if(!begin)
+	//	{
+	//		FklByteCode* pushnil=fklNewByteCode(1);
+	//		pushnil->code[0]=FKL_OP_PUSH_NIL;
+	//		fklCodeCat(codeOfLambda->bc,pushnil);
+	//		codeOfLambda->l[codeOfLambda->ls-1]->cpc+=pushnil->size;
+	//		fklFreeByteCode(pushnil);
+	//	}
+	//	else
+	objCptr=begin;
 	FklByteCode* resTp=fklNewByteCode(sizeof(char));
 	resTp->code[0]=FKL_OP_RES_TP;
-		for(;objCptr;objCptr=fklNextCptr(objCptr))
+	for(;objCptr;objCptr=fklNextCptr(objCptr))
 	{
 		FklByteCodelnt* tmp1=fklCompile(objCptr,tmpEnv,inter,state);
 		if(state->state!=0)

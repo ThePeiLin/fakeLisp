@@ -53,6 +53,12 @@ static size_t _bc_hash(void* data,FklPtrStack* s)
 	return sum;
 }
 
+static size_t _bc_length(void* data)
+{
+	FklByteCode* bc=data;
+	return bc->size;
+}
+
 static FklVMudMethodTable FklcBcMethodTable=
 {
 	.__princ=_bc_princ,
@@ -65,6 +71,7 @@ static FklVMudMethodTable FklcBcMethodTable=
 	.__atomic=NULL,
 	.__append=_bc_append,
 	.__copy=_bc_copy,
+	.__length=_bc_length,
 	.__hash=_bc_hash,
 };
 
@@ -155,7 +162,32 @@ FklByteCode* fklcNewPushObjByteCode(FklVMvalue* obj)
 				tmp->code[0]=FKL_OP_PUSH_BOX;
 				fklPushPtrStack(t->u.box,stack);
 			}
-			else
+			else if(FKL_IS_HASHTABLE(t))
+			{
+				tmp=fklNewByteCode(sizeof(char)+sizeof(uint64_t));
+				FklOpcode hashtype=0;
+				switch(t->u.hash->type)
+				{
+					case FKL_VM_HASH_EQ:
+						hashtype=FKL_OP_PUSH_HASHTABLE_EQ;
+						break;
+					case FKL_VM_HASH_EQV:
+						hashtype=FKL_OP_PUSH_HASHTABLE_EQV;
+						break;
+					case FKL_VM_HASH_EQUAL:
+						hashtype=FKL_OP_PUSH_HASHTABLE_EQUAL;
+						break;
+				}
+				tmp->code[0]=hashtype;
+				fklSetU64ToByteCode(tmp->code+sizeof(char),t->u.hash->ht->num);
+				for(FklHashTableNodeList* list=t->u.hash->ht->list;list;list=list->next)
+				{
+					FklVMhashTableItem* item=list->node->item;
+					fklPushPtrStack(item->key,stack);
+					fklPushPtrStack(item->v,stack);
+				}
+			}
+			else if(FKL_IS_VECTOR(t))
 			{
 				tmp=fklNewByteCode(sizeof(char)+sizeof(uint64_t));
 				tmp->code[0]=FKL_OP_PUSH_VECTOR;

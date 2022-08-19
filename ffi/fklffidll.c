@@ -116,7 +116,7 @@ static void _ffi_proc_invoke(void* ptr,FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklFfiProc* proc=ptr;
 	FklTypeId_t type=proc->type;
-	FklVMrunnable* curR=exe->rhead;
+	FklVMframe* curR=exe->frames;
 	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(type).all);
 	uint32_t anum=ft->anum;
 	uint32_t i=0;

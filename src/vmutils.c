@@ -170,14 +170,14 @@ FklVMstack* fklCopyStack(FklVMstack* stack)
 	return tmp;
 }
 
-FklVMtryBlock* fklNewVMtryBlock(FklSid_t sid,uint32_t tp,FklVMrunnable* r)
+FklVMtryBlock* fklNewVMtryBlock(FklSid_t sid,uint32_t tp,FklVMframe* frame)
 {
 	FklVMtryBlock* t=(FklVMtryBlock*)malloc(sizeof(FklVMtryBlock));
 	FKL_ASSERT(t);
 	t->sid=sid;
 	t->hstack=fklNewPtrStack(32,16);
 	t->tp=tp;
-	t->curr=r;
+	t->curFrame=frame;
 	return t;
 }
 
@@ -235,23 +235,23 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 			FklVMerrorHandler* h=fklPopPtrStack(tb->hstack);
 			if(isShouldBeHandle(h->typeIds,h->num,err->type))
 			{
-				FklVMrunnable* curr=tb->curr;
-				for(FklVMrunnable* other=exe->rhead;other!=curr;)
+				FklVMframe* curr=tb->curFrame;
+				for(FklVMframe* other=exe->frames;other!=curr;)
 				{
-					FklVMrunnable* r=other;
+					FklVMframe* frame=other;
 					other=other->prev;
-					free(r);
+					free(frame);
 				}
-				exe->rhead=curr;
-				FklVMrunnable* prevRunnable=exe->rhead;
-				FklVMrunnable* r=fklNewVMrunnable(&h->proc,prevRunnable);
-				r->localenv=fklNewSaveVMvalue(FKL_TYPE_ENV,fklNewVMenv(prevRunnable->localenv,exe->gc));
-				fklAddToGC(r->localenv,exe->gc);
-				FklVMvalue* curEnv=r->localenv;
+				exe->frames=curr;
+				FklVMframe* prevFrame=exe->frames;
+				FklVMframe* frame=fklNewVMframe(&h->proc,prevFrame);
+				frame->localenv=fklNewSaveVMvalue(FKL_TYPE_ENV,fklNewVMenv(prevFrame->localenv,exe->gc));
+				fklAddToGC(frame->localenv,exe->gc);
+				FklVMvalue* curEnv=frame->localenv;
 				FklSid_t idOfError=tb->sid;
 				fklSetRef(fklFindOrAddVar(idOfError,curEnv->u.env),ev,exe->gc);
 				fklFreeVMerrorHandler(h);
-				exe->rhead=r;
+				exe->frames=frame;
 				return 1;
 			}
 			fklFreeVMerrorHandler(h);
@@ -263,7 +263,7 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 	fprintf(stderr," :");
 	fklPrintString(err->message,stderr);
 	fprintf(stderr,"\n");
-	for(FklVMrunnable* cur=exe->rhead;cur;cur=cur->prev)
+	for(FklVMframe* cur=exe->frames;cur;cur=cur->prev)
 	{
 		if(cur->sid!=0)
 		{
@@ -292,9 +292,9 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 	return 255;
 }
 
-FklVMrunnable* fklNewVMrunnable(FklVMproc* code,FklVMrunnable* prev)
+FklVMframe* fklNewVMframe(FklVMproc* code,FklVMframe* prev)
 {
-	FklVMrunnable* tmp=(FklVMrunnable*)malloc(sizeof(FklVMrunnable));
+	FklVMframe* tmp=(FklVMframe*)malloc(sizeof(FklVMframe));
 	FKL_ASSERT(tmp);
 	tmp->sid=0;
 	tmp->cp=0;
@@ -313,16 +313,16 @@ FklVMrunnable* fklNewVMrunnable(FklVMproc* code,FklVMrunnable* prev)
 	return tmp;
 }
 
-void fklFreeVMrunnable(FklVMrunnable* runnable)
+void fklFreeVMframe(FklVMframe* frame)
 {
-	FklVMcCC* curCCC=runnable->ccc;
+	FklVMcCC* curCCC=frame->ccc;
 	while(curCCC)
 	{
 		FklVMcCC* cur=curCCC;
 		curCCC=cur->next;
 		fklFreeVMcCC(cur);
 	}
-	free(runnable);
+	free(frame);
 }
 
 FklVMcCC* fklNewVMcCC(FklVMFuncK kFunc,void* ctx,size_t size,FklVMcCC* next)
@@ -377,7 +377,7 @@ char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorType ty
 	return t;
 }
 
-char* fklGenErrorMessage(FklBuiltInErrorType type,FklVMrunnable* r,FklVM* exe)
+char* fklGenErrorMessage(FklBuiltInErrorType type,FklVMframe* frame,FklVM* exe)
 {
 	char* t=fklCopyCstr("");
 	switch(type)
@@ -399,7 +399,7 @@ char* fklGenErrorMessage(FklBuiltInErrorType type,FklVMrunnable* r,FklVM* exe)
 			break;
 		case FKL_ERR_SYMUNDEFINE:
 			t=fklStrCat(t,"Symbol ");
-			t=fklCstrStringCat(t,fklGetGlobSymbolWithId(fklGetSymbolIdInByteCode(exe->code+r->cp))->symbol);
+			t=fklCstrStringCat(t,fklGetGlobSymbolWithId(fklGetSymbolIdInByteCode(exe->code+frame->cp))->symbol);
 			t=fklStrCat(t," is undefined");
 			break;
 		case FKL_ERR_CALL_ERROR:
@@ -1209,11 +1209,11 @@ void fklInitVMRunningResource(FklVM* vm,FklVMvalue* vEnv,FklVMgc* gc,FklByteCode
 		.sid=0,
 		.prevEnv=NULL,
 	};
-	FklVMrunnable* mainrunnable=fklNewVMrunnable(&proc,NULL);
-	mainrunnable->localenv=vEnv;
+	FklVMframe* mainframe=fklNewVMframe(&proc,NULL);
+	mainframe->localenv=vEnv;
 	vm->code=code->bc->code;
 	vm->size=code->bc->size;
-	vm->rhead=mainrunnable;
+	vm->frames=mainframe;
 	vm->lnt=fklNewLineNumTable();
 	vm->lnt->num=code->ls;
 	vm->lnt->list=code->l;

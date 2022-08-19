@@ -154,7 +154,7 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 		{
 			fklDestroyEnv(macroEnv);
 			fklFreeVMstack(tmpVM->stack);
-			fklFreeRunnables(tmpVM->rhead);
+			fklFreeVMframes(tmpVM->frames);
 			fklFreePtrStack(tmpVM->tstack);
 			fklFreeVMgc(tmpVM->gc);
 			fklFreeByteCodeAndLnt(t);

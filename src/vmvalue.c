@@ -1693,7 +1693,7 @@ FklVMcontinuation* fklNewVMcontinuation(uint32_t ap,FklVM* exe)
 	if(exe->nny)
 		return NULL;
 	FklVMstack* stack=exe->stack;
-	FklVMrunnable* curr=exe->rhead;
+	FklVMframe* curr=exe->frames;
 	FklPtrStack* tstack=exe->tstack;
 	FklVMvalue* nextCall=exe->nextCall;
 	uint32_t i=0;
@@ -1706,9 +1706,9 @@ FklVMcontinuation* fklNewVMcontinuation(uint32_t ap,FklVM* exe)
 	tmp->stack->tp=ap;
 	tmp->curr=NULL;
 	tmp->nextCall=nextCall;
-	for(FklVMrunnable* cur=curr;cur;cur=cur->prev)
+	for(FklVMframe* cur=curr;cur;cur=cur->prev)
 	{
-		FklVMrunnable* t=fklNewVMrunnable(NULL,tmp->curr);
+		FklVMframe* t=fklNewVMframe(NULL,tmp->curr);
 		tmp->curr=t;
 		t->cp=cur->cp;
 		t->localenv=cur->localenv;
@@ -1734,7 +1734,7 @@ FklVMcontinuation* fklNewVMcontinuation(uint32_t ap,FklVM* exe)
 			fklPushPtrStack(h,curHstack);
 		}
 		tb[i].hstack=curHstack;
-		tb[i].curr=cur->curr;
+		tb[i].curFrame=cur->curFrame;
 		tb[i].tp=cur->tp;
 	}
 	tmp->tb=tb;
@@ -1746,12 +1746,12 @@ void fklFreeVMcontinuation(FklVMcontinuation* cont)
 	int32_t i=0;
 	int32_t tbsize=cont->tnum;
 	FklVMstack* stack=cont->stack;
-	FklVMrunnable* curr=cont->curr;
+	FklVMframe* curr=cont->curr;
 	while(curr)
 	{
-		FklVMrunnable* cur=curr;
+		FklVMframe* cur=curr;
 		curr=curr->prev;
-		fklFreeVMrunnable(cur);
+		fklFreeVMframe(cur);
 	}
 	FklVMtryBlock* tb=cont->tb;
 	fklFreeUintStack(stack->tps);

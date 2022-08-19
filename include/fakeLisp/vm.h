@@ -171,7 +171,7 @@ typedef struct FklVMcCC
 	struct FklVMcCC* next;
 }FklVMcCC;
 
-typedef struct FklVMrunnable
+typedef struct FklVMframe
 {
 	unsigned int mark :1;
 	FklVMvalue* localenv;
@@ -180,8 +180,8 @@ typedef struct FklVMrunnable
 	uint64_t cpc;
 	FklSid_t sid;
 	FklVMcCC* ccc;
-	struct FklVMrunnable* prev;
-}FklVMrunnable;
+	struct FklVMframe* prev;
+}FklVMframe;
 
 typedef struct
 {
@@ -202,7 +202,7 @@ typedef struct FklVM
 	uint8_t* code;
 	uint64_t size;
 	pthread_rwlock_t rlock;
-	FklVMrunnable* rhead;
+	FklVMframe* frames;
 	FklPtrStack* tstack;
 	FklVMstack* stack;
 	struct FklVMvalue* chan;
@@ -273,7 +273,7 @@ typedef struct FklVMcontinuation
 {
 	uint32_t tnum;
 	FklVMstack* stack;
-	FklVMrunnable* curr;
+	FklVMframe* curr;
 	struct FklVMtryBlock* tb;
 	FklVMvalue* nextCall;
 }FklVMcontinuation;
@@ -282,7 +282,7 @@ typedef struct FklVMtryBlock
 {
 	FklSid_t sid;
 	FklPtrStack* hstack;
-	FklVMrunnable* curr;
+	FklVMframe* curFrame;
 	uint32_t tp;
 }FklVMtryBlock;
 
@@ -313,7 +313,7 @@ void fklSetGlobVMs(FklVMlist*);
 FklVM* fklNewVM(FklByteCode*);
 FklVM* fklNewTmpVM(FklByteCode*,FklVMgc*);
 FklVM* fklNewThreadVM(FklVMproc*,FklVMgc*);
-FklVM* fklNewThreadCallableObjVM(FklVMrunnable* r,FklVMgc* gc,FklVMvalue*);
+FklVM* fklNewThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue*);
 
 void fklFreeVMvalue(FklVMvalue*);
 FklVMstack* fklNewVMstack(int32_t);
@@ -321,8 +321,8 @@ void fklFreeVMstack(FklVMstack*);
 void fklStackRecycle(FklVMstack*);
 int fklCreateNewThread(FklVM*);
 //FklVMlist* fklNewThreadStack(int32_t);
-FklVMrunnable* fklHasSameProc(uint32_t,FklVMrunnable*);
-int fklIsTheLastExpress(const FklVMrunnable*,const FklVMrunnable*,const FklVM* exe);
+FklVMframe* fklHasSameProc(uint32_t,FklVMframe*);
+int fklIsTheLastExpress(const FklVMframe*,const FklVMframe*,const FklVM* exe);
 FklVMgc* fklNewVMgc();
 void fklCreateCallChainWithContinuation(FklVM*,FklVMcontinuation*);
 void fklFreeVMgc(FklVMgc*);
@@ -381,15 +381,15 @@ FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline);
 
 FklVMstack* fklCopyStack(FklVMstack*);
 FklVMvalue* fklPopVMstack(FklVMstack*);
-FklVMtryBlock* fklNewVMtryBlock(FklSid_t,uint32_t tp,FklVMrunnable* r);
+FklVMtryBlock* fklNewVMtryBlock(FklSid_t,uint32_t tp,FklVMframe* frame);
 void fklFreeVMtryBlock(FklVMtryBlock* b);
 
 FklVMerrorHandler* fklNewVMerrorHandler(FklSid_t* typeIds,uint32_t,uint64_t scp,uint64_t cpc);
 void fklFreeVMerrorHandler(FklVMerrorHandler*);
 int fklRaiseVMerror(FklVMvalue* err,FklVM*);
-FklVMrunnable* fklNewVMrunnable(FklVMproc*,FklVMrunnable*);
-void fklFreeVMrunnable(FklVMrunnable*);
-char* fklGenErrorMessage(FklBuiltInErrorType type,FklVMrunnable* r,FklVM* exe);
+FklVMframe* fklNewVMframe(FklVMproc*,FklVMframe*);
+void fklFreeVMframe(FklVMframe*);
+char* fklGenErrorMessage(FklBuiltInErrorType type,FklVMframe* frame,FklVM* exe);
 char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorType);
 int32_t fklGetSymbolIdInByteCode(const uint8_t*);
 
@@ -515,14 +515,14 @@ void fklPushVMvalue(FklVMvalue* v,FklVMstack* s);
 int fklVMcallInDlproc(FklVMvalue*
 		,size_t argNum
 		,FklVMvalue*[]
-		,FklVMrunnable*
+		,FklVMframe*
 		,FklVM*
 		,FklVMFuncK
 		,void*
 		,size_t);
 
 size_t fklVMlistLength(FklVMvalue*);
-void fklFreeRunnables(FklVMrunnable* h);
+void fklFreeVMframes(FklVMframe* h);
 #define FKL_SET_RETURN(fn,v,stack) do{\
 	if((stack)->tp>=(stack)->size)\
 	{\

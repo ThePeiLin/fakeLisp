@@ -85,8 +85,8 @@ int main(int argc,char** argv)
 			FklVMvalue* globEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
 			fklFreeByteCode(mainByteCode->bc);
 			free(mainByteCode);
-			FklVMrunnable* mainrunnable=anotherVM->rhead;
-			mainrunnable->localenv=globEnv;
+			FklVMframe* mainframe=anotherVM->frames;
+			mainframe->localenv=globEnv;
 			anotherVM->callback=errorCallBack;
 			anotherVM->lnt=inter->lnt;
 //			fklInitGlobEnv(globEnv->u.env,anotherVM->gc);
@@ -135,9 +135,9 @@ int main(int argc,char** argv)
 		FklVMgc* gc=anotherVM->gc;
 		fklFreeByteCode(mainCode);
 		fclose(fp);
-		FklVMrunnable* mainrunnable=anotherVM->rhead;
+		FklVMframe* mainframe=anotherVM->frames;
 		FklVMvalue* globEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
-		mainrunnable->localenv=globEnv;
+		mainframe->localenv=globEnv;
 		anotherVM->callback=errorCallBack;
 		anotherVM->lnt=lnt;
 //		fklInitGlobEnv(globEnv->u.env,anotherVM->gc);
@@ -245,9 +245,9 @@ void runRepl(FklInterpreter* inter)
 				bs+=tmpByteCode->bc->size;
 				fklFreeByteCodelnt(tmpByteCode);
 				tmp->prevEnv=NULL;
-				FklVMrunnable* mainrunnable=fklNewVMrunnable(tmp,anotherVM->rhead);
-				mainrunnable->localenv=globEnv;
-				anotherVM->rhead=mainrunnable;
+				FklVMframe* mainframe=fklNewVMframe(tmp,anotherVM->frames);
+				mainframe->localenv=globEnv;
+				anotherVM->frames=mainframe;
 				if(!(e=setjmp(buf)))
 				{
 					fklRunVM(anotherVM);
@@ -258,8 +258,8 @@ void runRepl(FklInterpreter* inter)
 						fklDBG_printVMstack(stack,stdout,0);
 					}
 					fklWaitGC(anotherVM->gc);
-					free(anotherVM->rhead);
-					anotherVM->rhead=NULL;
+					free(anotherVM->frames);
+					anotherVM->frames=NULL;
 					stack->tp=0;
 					fklFreeVMproc(tmp);
 				}

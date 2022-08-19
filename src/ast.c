@@ -847,7 +847,7 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 		fklFreeByteCodelnt(t);
 		fklFreeVMgc(tmpVM->gc);
 		fklFreeVMstack(tmpVM->stack);
-		fklFreeRunnables(tmpVM->rhead);
+		fklFreeVMframes(tmpVM->frames);
 		fklFreePtrStack(tmpVM->tstack);
 		free(tmpVM);
 		chdir(cwd);

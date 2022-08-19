@@ -1785,26 +1785,41 @@ FklByteCodelnt* fklCompileBegin(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterp
 	resTp->code[0]=FKL_OP_RES_TP;
 	setTp->code[0]=FKL_OP_SET_TP;
 	popTp->code[0]=FKL_OP_POP_TP;
-	while(firCptr)
+	if(!firCptr)
 	{
-		FklByteCodelnt* tmp1=fklCompile(firCptr,curEnv,inter,state);
-		if(state->state!=0)
+		tmp->ls=1;
+		tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
+		FKL_ASSERT(tmp->l);
+		tmp->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,tmp->bc->size,objCptr->curline);
+		FklByteCode* pushnil=fklNewByteCode(1);
+		pushnil->code[0]=FKL_OP_PUSH_NIL;
+		fklCodeCat(tmp->bc,pushnil);
+		tmp->l[tmp->ls-1]->cpc+=pushnil->size;
+		fklFreeByteCode(pushnil);
+	}
+	else
+	{
+		while(firCptr)
 		{
-			fklFreeByteCodeAndLnt(tmp);
-			fklFreeByteCode(resTp);
-			fklFreeByteCode(setTp);
-			fklFreeByteCode(popTp);
-			return NULL;
+			FklByteCodelnt* tmp1=fklCompile(firCptr,curEnv,inter,state);
+			if(state->state!=0)
+			{
+				fklFreeByteCodeAndLnt(tmp);
+				fklFreeByteCode(resTp);
+				fklFreeByteCode(setTp);
+				fklFreeByteCode(popTp);
+				return NULL;
+			}
+			if(tmp->bc->size&&tmp1->bc->size)
+			{
+				fklReCodeCat(resTp,tmp1->bc);
+				tmp1->l[0]->cpc+=1;
+				FKL_INCREASE_ALL_SCP(tmp1->l,tmp1->ls-1,resTp->size);
+			}
+			fklCodeLntCat(tmp,tmp1);
+			fklFreeByteCodelnt(tmp1);
+			firCptr=fklNextCptr(firCptr);
 		}
-		if(tmp->bc->size&&tmp1->bc->size)
-		{
-			fklReCodeCat(resTp,tmp1->bc);
-			tmp1->l[0]->cpc+=1;
-			FKL_INCREASE_ALL_SCP(tmp1->l,tmp1->ls-1,resTp->size);
-		}
-		fklCodeLntCat(tmp,tmp1);
-		fklFreeByteCodelnt(tmp1);
-		firCptr=fklNextCptr(firCptr);
 	}
 	fklReCodeCat(setTp,tmp->bc);
 	if(!tmp->l)
@@ -1985,37 +2000,39 @@ FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 	codeOfLambda->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 	FKL_ASSERT(codeOfLambda->l);
 	codeOfLambda->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,pArg->size,line);
-	//	if(!begin)
-	//	{
-	//		FklByteCode* pushnil=fklNewByteCode(1);
-	//		pushnil->code[0]=FKL_OP_PUSH_NIL;
-	//		fklCodeCat(codeOfLambda->bc,pushnil);
-	//		codeOfLambda->l[codeOfLambda->ls-1]->cpc+=pushnil->size;
-	//		fklFreeByteCode(pushnil);
-	//	}
-	//	else
-	objCptr=begin;
-	FklByteCode* resTp=fklNewByteCode(sizeof(char));
-	resTp->code[0]=FKL_OP_RES_TP;
-	for(;objCptr;objCptr=fklNextCptr(objCptr))
+	if(!begin)
 	{
-		FklByteCodelnt* tmp1=fklCompile(objCptr,tmpEnv,inter,state);
-		if(state->state!=0)
-		{
-			fklFreeByteCodeAndLnt(codeOfLambda);
-			fklFreeByteCode(resTp);
-			fklFreeAllMacroThenDestroyCompEnv(tmpEnv);
-			return NULL;
-		}
-		if(fklNextCptr(objCptr)!=NULL)
-		{
-			fklCodeCat(tmp1->bc,resTp);
-			tmp1->l[tmp1->ls-1]->cpc+=resTp->size;
-		}
-		fklCodeLntCat(codeOfLambda,tmp1);
-		fklFreeByteCodelnt(tmp1);
+		FklByteCode* pushnil=fklNewByteCode(1);
+		pushnil->code[0]=FKL_OP_PUSH_NIL;
+		fklCodeCat(codeOfLambda->bc,pushnil);
+		codeOfLambda->l[codeOfLambda->ls-1]->cpc+=pushnil->size;
+		fklFreeByteCode(pushnil);
 	}
-	fklFreeByteCode(resTp);
+	else
+	{
+		objCptr=begin;
+		FklByteCode* resTp=fklNewByteCode(sizeof(char));
+		resTp->code[0]=FKL_OP_RES_TP;
+		for(;objCptr;objCptr=fklNextCptr(objCptr))
+		{
+			FklByteCodelnt* tmp1=fklCompile(objCptr,tmpEnv,inter,state);
+			if(state->state!=0)
+			{
+				fklFreeByteCodeAndLnt(codeOfLambda);
+				fklFreeByteCode(resTp);
+				fklFreeAllMacroThenDestroyCompEnv(tmpEnv);
+				return NULL;
+			}
+			if(fklNextCptr(objCptr)!=NULL)
+			{
+				fklCodeCat(tmp1->bc,resTp);
+				tmp1->l[tmp1->ls-1]->cpc+=resTp->size;
+			}
+			fklCodeLntCat(codeOfLambda,tmp1);
+			fklFreeByteCodelnt(tmp1);
+		}
+		fklFreeByteCode(resTp);
+	}
 	FklByteCode* popTp=fklNewByteCode(sizeof(char));
 	popTp->code[0]=FKL_OP_POP_TP;
 	fklCodeCat(codeOfLambda->bc,popTp);
@@ -2197,6 +2214,14 @@ FklByteCodelnt* fklCompileLoad(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 	popTp->code[0]=FKL_OP_POP_TP;
 	if(tmp)
 	{
+		if(!tmp->bc->size)
+		{
+			FklByteCode* pushnil=fklNewByteCode(1);
+			pushnil->code[0]=FKL_OP_PUSH_NIL;
+			fklCodeCat(tmp->bc,pushnil);
+			tmp->l[tmp->ls-1]->cpc+=pushnil->size;
+			fklFreeByteCode(pushnil);
+		}
 		fklReCodeCat(setTp,tmp->bc);
 		fklCodeCat(tmp->bc,popTp);
 		tmp->l[0]->cpc+=setTp->size;

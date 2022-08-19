@@ -3955,15 +3955,6 @@ void builtin_system(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_void(ARGL)
-{
-	FKL_NI_BEGIN(exe);
-	FklVMrunnable* r=exe->rhead;
-	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.void",FKL_ERR_TOOMANYARG,r,exe);
-	fklNiEnd(&ap,stack);
-}
-
 void builtin_hash(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -4490,7 +4481,6 @@ static const struct SymbolFuncStruct
 	{"remove-file",           builtin_remove_file,             },
 	{"time",                  builtin_time,                    },
 	{"system",                builtin_system,                  },
-	{"void",                builtin_void,                  },
 
 	{"hash",                  builtin_hash,                    },
 	{"hash-num",              builtin_hash_num,                },

@@ -1986,8 +1986,6 @@ FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 	}
 	fklFreeByteCode(popRestArg);
 	fklFreeByteCode(popArg);
-	FklByteCode* fklResBp=fklNewByteCode(sizeof(char));
-	fklResBp->code[0]=FKL_OP_RES_BP;
 	FklAstCptr* begin=fklNextCptr(fklNextCptr(objCptr));
 	FklByteCodelnt* codeOfLambda=fklNewByteCodelnt(pArg);
 	codeOfLambda->ls=1;
@@ -2004,6 +2002,8 @@ FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 	}
 	else
 	{
+		FklByteCode* fklResBp=fklNewByteCode(sizeof(char));
+		fklResBp->code[0]=FKL_OP_RES_BP;
 		FklByteCode* setTp=fklNewByteCode(sizeof(char));
 		setTp->code[0]=FKL_OP_SET_TP;
 		fklCodeCat(pArg,fklResBp);

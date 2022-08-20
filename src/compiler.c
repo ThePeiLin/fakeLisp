@@ -2800,57 +2800,71 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 	FklCompEnv* newEnv=fklNewCompEnv(curEnv);
 	FklAstCptr* pCatchExpression=fklNextCptr(fklGetFirstCptr(objCptr));
 	FklAstCptr* pExpression=fklNextCptr(pCatchExpression);
-	if(!pExpression||(!fklIsCatchExpression(pCatchExpression)))
+	if(!fklIsCatchExpression(pCatchExpression))
 	{
 		state->state=FKL_ERR_SYNTAXERROR;
 		state->place=objCptr;
 		return NULL;
 	}
 	FklByteCodelnt* expressionByteCodelnt=fklNewByteCodelnt(fklNewByteCode(0));
-	FklByteCode* resTp=fklNewByteCode(1);
-	FklByteCode* setTp=fklNewByteCode(1);
-	FklByteCode* popTp=fklNewByteCode(1);
-	resTp->code[0]=FKL_OP_RES_TP;
-	setTp->code[0]=FKL_OP_SET_TP;
-	popTp->code[0]=FKL_OP_POP_TP;
-	for(;pExpression;pExpression=fklNextCptr(pExpression))
+	if(pExpression)
 	{
-		FklByteCodelnt* tmp=fklCompile(pExpression,newEnv,inter,state);
-		if(state->state)
+		FklByteCode* resTp=fklNewByteCode(1);
+		FklByteCode* setTp=fklNewByteCode(1);
+		FklByteCode* popTp=fklNewByteCode(1);
+		resTp->code[0]=FKL_OP_RES_TP;
+		setTp->code[0]=FKL_OP_SET_TP;
+		popTp->code[0]=FKL_OP_POP_TP;
+		for(;pExpression;pExpression=fklNextCptr(pExpression))
 		{
-			fklFreeByteCodeAndLnt(expressionByteCodelnt);
-			fklFreeByteCode(resTp);
-			fklFreeByteCode(setTp);
-			fklFreeByteCode(popTp);
-			return NULL;
+			FklByteCodelnt* tmp=fklCompile(pExpression,newEnv,inter,state);
+			if(state->state)
+			{
+				fklFreeByteCodeAndLnt(expressionByteCodelnt);
+				fklFreeByteCode(resTp);
+				fklFreeByteCode(setTp);
+				fklFreeByteCode(popTp);
+				return NULL;
+			}
+			if(tmp->bc->size&&expressionByteCodelnt->bc->size)
+			{
+				fklReCodeCat(resTp,tmp->bc);
+				tmp->l[0]->cpc+=1;
+				FKL_INCREASE_ALL_SCP(tmp->l,tmp->ls-1,resTp->size);
+			}
+			fklCodeLntCat(expressionByteCodelnt,tmp);
+			fklFreeByteCodelnt(tmp);
 		}
-		if(tmp->bc->size&&expressionByteCodelnt->bc->size)
+		fklReCodeCat(setTp,expressionByteCodelnt->bc);
+		if(!expressionByteCodelnt->l)
 		{
-			fklReCodeCat(resTp,tmp->bc);
-			tmp->l[0]->cpc+=1;
-			FKL_INCREASE_ALL_SCP(tmp->l,tmp->ls-1,resTp->size);
+			expressionByteCodelnt->ls=1;
+			expressionByteCodelnt->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
+			FKL_ASSERT(expressionByteCodelnt->l);
+			expressionByteCodelnt->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,expressionByteCodelnt->bc->size,objCptr->curline);
 		}
-		fklCodeLntCat(expressionByteCodelnt,tmp);
-		fklFreeByteCodelnt(tmp);
+		else
+		{
+			expressionByteCodelnt->l[0]->cpc+=1;
+			FKL_INCREASE_ALL_SCP(expressionByteCodelnt->l,expressionByteCodelnt->ls-1,setTp->size);
+		}
+		fklCodeCat(expressionByteCodelnt->bc,popTp);
+		expressionByteCodelnt->l[expressionByteCodelnt->ls-1]->cpc+=popTp->size;
+		fklFreeByteCode(resTp);
+		fklFreeByteCode(setTp);
+		fklFreeByteCode(popTp);
 	}
-	fklReCodeCat(setTp,expressionByteCodelnt->bc);
-	if(!expressionByteCodelnt->l)
+	else
 	{
+		FklByteCode* pushnil=fklNewByteCode(1);
+		pushnil->code[0]=FKL_OP_PUSH_NIL;
+		fklCodeCat(expressionByteCodelnt->bc,pushnil);
+		fklFreeByteCode(pushnil);
 		expressionByteCodelnt->ls=1;
 		expressionByteCodelnt->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 		FKL_ASSERT(expressionByteCodelnt->l);
 		expressionByteCodelnt->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,expressionByteCodelnt->bc->size,objCptr->curline);
 	}
-	else
-	{
-		expressionByteCodelnt->l[0]->cpc+=1;
-		FKL_INCREASE_ALL_SCP(expressionByteCodelnt->l,expressionByteCodelnt->ls-1,setTp->size);
-	}
-	fklCodeCat(expressionByteCodelnt->bc,popTp);
-	expressionByteCodelnt->l[expressionByteCodelnt->ls-1]->cpc+=popTp->size;
-	fklFreeByteCode(resTp);
-	fklFreeByteCode(setTp);
-	fklFreeByteCode(popTp);
 	fklFreeAllMacroThenDestroyCompEnv(newEnv);
 	FklByteCode* pushProc=fklNewByteCode(sizeof(char)+sizeof(expressionByteCodelnt->bc->size));
 	FklByteCode* call=fklNewByteCode(1);

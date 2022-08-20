@@ -391,7 +391,7 @@ int fklIsKeyWord(const FklString* str,FklCompEnv* curEnv)
 int fklIsTryExpression(const FklAstCptr* objCptr)
 {
 	objCptr=(objCptr->type==FKL_TYPE_PAIR)?&objCptr->u.pair->car:NULL;
-	if(objCptr!=NULL&&fklNextCptr(objCptr)!=NULL&&fklNextCptr(fklNextCptr(objCptr))!=NULL)
+	if(objCptr!=NULL&&fklNextCptr(objCptr)!=NULL)
 	{
 		if(objCptr->type!=FKL_TYPE_ATM||fklNextCptr(objCptr)->type==FKL_TYPE_NIL)return 0;
 		else

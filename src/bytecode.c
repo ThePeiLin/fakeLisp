@@ -475,7 +475,7 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,FklSymbolTable* table)
 				else
 					fprintf(fp,"\t%u:%lu",obj->l[j]->line,obj->l[j]->cpc);
 			}
-			}
+		}
 		free(cState);
 	}
 	while(!fklIsPtrStackEmpty(s))

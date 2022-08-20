@@ -18,7 +18,6 @@
     fbc->bytevector
     bytevector->fbc
     pattern-match
-    match-and-call
     opcode-list
     opcode-hashtable
     opcode->number
@@ -29,7 +28,6 @@
     find-lst-symbol
     find-symbol-in-ht
     add-symbol!
-    match-and-call
     make-lst
     make-global-lst
     lst-symbols-num
@@ -357,14 +355,7 @@
 
   (define make-global-lst
     (lambda ()
-       (define r (make-lst nil))
-       (init-lst-as-global! r)
-       r))
-
-  (define match-and-call
-    (lambda (p e f t result-box)
-      (define r (pattern-match p e))
-      (cond
-        [(r (set-box! result-box (f r t)))])))
-
+      (define r (make-lst nil))
+      (init-lst-as-global! r)
+      r))
   )

@@ -145,6 +145,7 @@ FklByteCode* fklcNewPushObjByteCode(FklVMvalue* obj)
 		{
 			FklByteCode* tmp=COMPILE_LITERAL(t);
 			fklReCodeCat(tmp,retval);
+			fklFreeByteCode(tmp);
 		}
 		else
 		{
@@ -196,8 +197,10 @@ FklByteCode* fklcNewPushObjByteCode(FklVMvalue* obj)
 					fklPushPtrStack(t->u.vec->base[i],stack);
 			}
 			fklReCodeCat(tmp,retval);
+			fklFreeByteCode(tmp);
 		}
 	}
+	fklFreePtrStack(stack);
 	return retval;
 }
 

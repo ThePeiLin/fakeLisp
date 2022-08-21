@@ -1991,9 +1991,9 @@ FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 	codeOfLambda->ls=1;
 	codeOfLambda->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 	FKL_ASSERT(codeOfLambda->l);
-	codeOfLambda->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,pArg->size,line);
 	if(!begin)
 	{
+		codeOfLambda->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,pArg->size,line);
 		FklByteCode* pushnil=fklNewByteCode(1);
 		pushnil->code[0]=FKL_OP_PUSH_NIL;
 		fklCodeCat(codeOfLambda->bc,pushnil);
@@ -2008,6 +2008,7 @@ FklByteCodelnt* fklCompileLambda(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 		setTp->code[0]=FKL_OP_SET_TP;
 		fklCodeCat(pArg,fklResBp);
 		fklCodeCat(pArg,setTp);
+		codeOfLambda->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,pArg->size,line);
 		fklFreeByteCode(fklResBp);
 		fklFreeByteCode(setTp);
 		objCptr=begin;

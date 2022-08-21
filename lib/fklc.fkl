@@ -57,6 +57,7 @@
       call
       res-tp
       pop-tp
+      res-bp
       jmp-if-true
       jmp-if-false
       jmp

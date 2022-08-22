@@ -335,13 +335,15 @@ void fklPrintByteCode(const FklByteCode* tmpCode,FILE* fp,FklSymbolTable* table)
 	}
 	while(!fklIsPtrStackEmpty(s))
 	{
-		putc('\n',fp);
 		ByteCodePrintState* cState=fklPopPtrStack(s);
 		uint64_t i=cState->cp;
 		uint64_t cpc=cState->cpc;
 		int needBreak=0;
 		if(i<cpc)
+		{
+			putc('\n',fp);
 			i+=printSingleByteCode(tmpCode,i,fp,cState,s,&needBreak,table);
+		}
 		while(i<cpc&&!needBreak)
 		{
 			putc('\n',fp);
@@ -480,13 +482,13 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,FklSymbolTable* table)
 	}
 	while(!fklIsPtrStackEmpty(s))
 	{
-		putc('\n',fp);
 		ByteCodePrintState* cState=fklPopPtrStack(s);
 		uint64_t i=cState->cp;
 		uint64_t cpc=cState->cpc;
 		int needBreak=0;
 		if(i<cpc)
 		{
+			putc('\n',fp);
 			i+=printSingleByteCode(tmpCode,i,fp,cState,s,&needBreak,table);
 			if(obj->l[j]->scp+obj->l[j]->cpc<i)
 				j++;

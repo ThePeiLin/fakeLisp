@@ -1,8 +1,8 @@
 #ifndef FKL_AST_H
 #define FKL_AST_H
 #include"symbol.h"
+#include"base.h"
 #include<stdint.h>
-#include"basicADT.h"
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -146,6 +146,7 @@ FklVMvalue* fklCastPreEnvToVMenv(FklPreEnv* pe,FklVMvalue* prev,FklVMgc* gc)
 	}
 	FklVMenv* tmp=fklNewVMenv(prev,gc);
 	for(tmpDef=pe->symbols;tmpDef;tmpDef=tmpDef->next)
+	//	fklSetRef(fklFindOrAddVar(fklAddSymbolToGlob(tmpDef->symbol)->id,tmp),fklCastCptrVMvalue(&tmpDef->obj,gc,lineNumberHash),gc);
 		fklSetRef(fklFindOrAddVar(fklAddSymbolToGlob(tmpDef->symbol)->id,tmp),fklCastCptrVMvalue(&tmpDef->obj,gc),gc);
 	return fklNewVMvalueNoGC(FKL_TYPE_ENV,tmp,gc);
 }

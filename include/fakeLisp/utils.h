@@ -1,11 +1,11 @@
 #ifndef FKL_SRC_UTILS_H
 #define FKL_SRC_UTILS_H
+#include"base.h"
 #include<stdint.h>
 #include<stddef.h>
 #include<stdio.h>
 #include<stdlib.h>
 #include<assert.h>
-#include<fakeLisp/basicADT.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,7 +1,7 @@
 #ifndef FKL_COMPILER_H
 #define FKL_COMPILER_H
 #include"symbol.h"
-#include"basicADT.h"
+#include"base.h"
 #include"ast.h"
 #include"bytecode.h"
 #include"builtin.h"

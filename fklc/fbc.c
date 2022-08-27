@@ -87,7 +87,7 @@ int fklcIsFbc(FklVMvalue* p)
 
 void fklcInit(FklVMvalue* rel)
 {
-	FklcBcUdSid=fklAddSymbolCstr("fbc",OuterSymbolTable)->id;
+	FklcBcUdSid=fklAddSymbolToGlobCstr("fbc")->id;
 	FklcRel=rel;
 }
 

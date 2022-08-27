@@ -1,7 +1,7 @@
 #ifndef FKL_BYTECODE_H
 #define FKL_BYTECODE_H
 #include"symbol.h"
-#include"basicADT.h"
+#include"base.h"
 #include<stdint.h>
 #include<stdio.h>
 

@@ -1,7 +1,7 @@
 #ifndef FKL_VM_H
 #define FKL_VM_H
 
-#include"basicADT.h"
+#include"base.h"
 #include"bytecode.h"
 #include"compiler.h"
 #include"builtin.h"

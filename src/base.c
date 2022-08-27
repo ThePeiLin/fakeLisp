@@ -1605,7 +1605,11 @@ void* fklPutReplHashItem(void* item,FklHashTable* table)
 	int i=0;
 	for(;*pp;pp=&(*pp)->next,i++)
 		if(__keyEqual(__getKey((*pp)->item),__getKey(item)))
-			return (*pp)->item;
+		{
+			table->t->__freeItem((*pp)->item);
+			(*pp)->item=item;
+			return item;
+		}
 	*pp=newHashTableNode(item,NULL);
 	*table->tail=newHashTableNodeList(*pp,NULL);
 	table->tail=&(*table->tail)->next;

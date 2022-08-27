@@ -854,18 +854,17 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 		free(cwd);
 		return NULL;
 	}
-	FklVMvalue* stringPatternEnv=fklCastPreEnvToVMenv(tmpEnv,tmpGlobEnv,tmpVM->gc);
+	FklHashTable* lineHash=fklNewLineNumHashTable();
+	FklVMvalue* stringPatternEnv=fklCastPreEnvToVMenv(tmpEnv,tmpGlobEnv,lineHash,tmpVM->gc);
 	uint32_t start=t->bc->size;
 	fklCodelntCopyCat(t,pattern->proc);
 	fklInitVMRunningResource(tmpVM,stringPatternEnv,tmpVM->gc,t,start,pattern->proc->bc->size);
 	if(setjmp(buf)==0)
 	{
 		fklRunVM(tmpVM);
-		retval=fklCastVMvalueToCptr(fklTopGet(tmpVM->stack),curline);
+		retval=fklCastVMvalueToCptr(fklTopGet(tmpVM->stack),curline,lineHash);
 		if(!retval)
-		{
 			fprintf(stderr,"error of compiling:Circular reference occur in expanding reader macro at line %d of %s\n",curline,filename);
-		};
 	}
 	else
 	{
@@ -876,6 +875,7 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 		free(cwd);
 		fklFreeVMgc(gc);
 		fklDestroyEnv(tmpEnv);
+		fklFreeHashTable(lineHash);
 		return NULL;
 	}
 	fklFreeByteCodeAndLnt(t);
@@ -885,6 +885,7 @@ static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern
 	chdir(cwd);
 	free(cwd);
 	fklDestroyEnv(tmpEnv);
+	fklFreeHashTable(lineHash);
 	return retval;
 }
 

@@ -1298,7 +1298,7 @@ void fklSetVMhashTable(FklVMvalue* key,FklVMvalue* v,FklVMhashTable* ht,FklVMgc*
 	else
 	{
 		pthread_rwlock_wrlock(&ht->lock);
-		fklPutNoRpHashItem(newVMhashTableItem(key,v,gc),ht->ht);
+		fklPutReplHashItem(newVMhashTableItem(key,v,gc),ht->ht);
 		pthread_rwlock_unlock(&ht->lock);
 	}
 }
@@ -1335,7 +1335,7 @@ FklVMvalue* volatile* fklFindOrAddVar(FklSid_t id,FklVMenv* env)
 	if(!r)
 	{
 		pthread_rwlock_wrlock(&env->lock);
-		VMenvHashItem* ritem=fklPutReplHashItem(newVMenvHashItme(id,FKL_VM_NIL),env->t);
+		VMenvHashItem* ritem=fklPutNoRpHashItem(newVMenvHashItme(id,FKL_VM_NIL),env->t);
 		pthread_rwlock_unlock(&env->lock);
 		r=&ritem->v;
 	}
@@ -1349,7 +1349,7 @@ FklVMvalue* volatile* fklFindOrAddVarWithValue(FklSid_t id,FklVMvalue* v,FklVMen
 	if(!r)
 	{
 		pthread_rwlock_wrlock(&env->lock);
-		VMenvHashItem* ritem=fklPutReplHashItem(newVMenvHashItme(id,FKL_VM_NIL),env->t);
+		VMenvHashItem* ritem=fklPutNoRpHashItem(newVMenvHashItme(id,FKL_VM_NIL),env->t);
 		pthread_rwlock_unlock(&env->lock);
 		r=&ritem->v;
 	}
@@ -1381,162 +1381,6 @@ void fklFreeVMenv(FklVMenv* obj)
 	pthread_rwlock_unlock(&obj->lock);
 	pthread_rwlock_destroy(&obj->lock);
 	free(obj);
-}
-
-#define SENTINEL_CPTR NULL
-
-FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMgc* gc)
-{
-	FklPtrStack* cptrStack=fklNewPtrStack(32,16);
-	FklUintStack* reftypeStack=fklNewUintStack(32,16);
-	FklPtrStack* valueStack=fklNewPtrStack(32,16);
-	FklPtrStack* stackStack=fklNewPtrStack(32,16);
-	fklPushPtrStack(objCptr,cptrStack);
-	fklPushPtrStack(valueStack,stackStack);
-	while(!fklIsPtrStackEmpty(cptrStack))
-	{
-		FklAstCptr* root=fklPopPtrStack(cptrStack);
-		FklPtrStack* cStack=fklTopPtrStack(stackStack);
-		if(root==SENTINEL_CPTR)
-		{
-			fklPopPtrStack(stackStack);
-			FklPtrStack* tStack=fklTopPtrStack(stackStack);
-			FklValueType type=fklPopUintStack(reftypeStack);
-			FklVMvalue* v=fklNewVMvalueNoGC(type,NULL,gc);
-			fklPushPtrStack(v,tStack);
-			switch(type)
-			{
-				case FKL_TYPE_BOX:
-					v->u.box=fklPopPtrStack(cStack);
-					break;
-				case FKL_TYPE_PAIR:
-					{
-						FklVMpair* pair=fklNewVMpair();
-						size_t top=cStack->top;
-						pair->car=cStack->base[top-1];
-						pair->cdr=cStack->base[top-2];
-						v->u.pair=pair;
-					}
-					break;
-				case FKL_TYPE_VECTOR:
-					{
-						v->u.vec=fklNewVMvecNoInit(cStack->top);
-						for(size_t i=cStack->top,j=0;i>0;i--,j++)
-							v->u.vec->base[j]=cStack->base[i-1];
-					}
-					break;
-				case FKL_TYPE_HASHTABLE:
-					{
-						FklVMhashTable* hash=fklNewVMhashTable(fklPopUintStack(reftypeStack));
-						v->u.hash=hash;
-						for(size_t i=cStack->top;i>0;i-=2)
-						{
-							FklVMvalue* key=cStack->base[i-1];
-							FklVMvalue* v=cStack->base[i-2];
-							fklSetVMhashTable(key,v,hash,gc);
-						}
-					}
-					break;
-				default:
-					FKL_ASSERT(0);
-					break;
-			}
-			fklFreePtrStack(cStack);
-			cStack=tStack;
-		}
-		else
-		{
-			if(root->type==FKL_TYPE_ATM)
-			{
-				FklAstAtom* tmpAtm=root->u.atom;
-				switch(tmpAtm->type)
-				{
-					case FKL_TYPE_I32:
-						fklPushPtrStack(FKL_MAKE_VM_I32(tmpAtm->value.i32),cStack);
-						break;
-					case FKL_TYPE_CHR:
-						fklPushPtrStack(FKL_MAKE_VM_CHR(tmpAtm->value.chr),cStack);
-						break;
-					case FKL_TYPE_SYM:
-						fklPushPtrStack(FKL_MAKE_VM_SYM(fklAddSymbolToGlob(tmpAtm->value.str)->id),cStack);
-						break;
-					case FKL_TYPE_F64:
-						fklPushPtrStack(fklNewVMvalueNoGC(FKL_TYPE_F64,&tmpAtm->value.f64,gc),cStack);
-						break;
-					case FKL_TYPE_STR:
-						fklPushPtrStack(fklNewVMvalueNoGC(FKL_TYPE_STR
-									,fklNewString(tmpAtm->value.str->size,tmpAtm->value.str->str)
-									,gc),cStack);
-						break;
-					case FKL_TYPE_BYTEVECTOR:
-						fklPushPtrStack(fklNewVMvalueNoGC(FKL_TYPE_BYTEVECTOR
-									,fklNewBytevector(tmpAtm->value.bvec->size,tmpAtm->value.bvec->ptr)
-									,gc),cStack);
-						break;
-					case FKL_TYPE_BIG_INT:
-						fklPushPtrStack(fklNewVMvalueNoGC(FKL_TYPE_BIG_INT,fklCopyBigInt(&tmpAtm->value.bigInt),gc),cStack);
-						break;
-					case FKL_TYPE_BOX:
-						{
-							FklPtrStack* bStack=fklNewPtrStack(1,16);
-							fklPushPtrStack(bStack,stackStack);
-							cStack=bStack;
-							fklPushUintStack(FKL_TYPE_BOX,reftypeStack);
-							fklPushPtrStack(SENTINEL_CPTR,cptrStack);
-							fklPushPtrStack(&tmpAtm->value.box,cptrStack);
-						}
-						break;
-					case FKL_TYPE_VECTOR:
-						{
-							fklPushUintStack(FKL_TYPE_VECTOR,reftypeStack);
-							fklPushPtrStack(SENTINEL_CPTR,cptrStack);
-							for(size_t i=0;i<tmpAtm->value.vec.size;i++)
-								fklPushPtrStack(&tmpAtm->value.vec.base[i],cptrStack);
-							FklPtrStack* vStack=fklNewPtrStack(tmpAtm->value.vec.size,16);
-							fklPushPtrStack(vStack,stackStack);
-							cStack=vStack;
-						}
-						break;
-					case FKL_TYPE_HASHTABLE:
-						{
-							fklPushUintStack(root->u.atom->value.hash.type,reftypeStack);
-							fklPushUintStack(FKL_TYPE_HASHTABLE,reftypeStack);
-							fklPushPtrStack(SENTINEL_CPTR,cptrStack);
-							for(FklAstCptr* cptr=fklGetFirstCptr(&tmpAtm->value.hash.items);cptr;cptr=fklNextCptr(cptr))
-							{
-								fklPushPtrStack(fklGetASTPairCar(cptr),cptrStack);
-								fklPushPtrStack(fklGetASTPairCdr(cptr),cptrStack);
-							}
-							FklPtrStack* hStack=fklNewPtrStack(32,16);
-							fklPushPtrStack(hStack,stackStack);
-							cStack=hStack;
-						}
-						break;
-					default:
-						return NULL;
-						break;
-				}
-			}
-			else if(root->type==FKL_TYPE_PAIR)
-			{
-				FklPtrStack* pStack=fklNewPtrStack(2,16);
-				fklPushPtrStack(pStack,stackStack);
-				cStack=pStack;
-				fklPushUintStack(FKL_TYPE_PAIR,reftypeStack);
-				fklPushPtrStack(SENTINEL_CPTR,cptrStack);
-				fklPushPtrStack(fklGetASTPairCar(root),cptrStack);
-				fklPushPtrStack(fklGetASTPairCdr(root),cptrStack);
-			}
-			else
-				fklPushPtrStack(FKL_VM_NIL,cStack);
-		}
-	}
-	FklVMvalue* retval=fklTopPtrStack(valueStack);
-	fklFreePtrStack(stackStack);
-	fklFreePtrStack(cptrStack);
-	fklFreePtrStack(valueStack);
-	fklFreeUintStack(reftypeStack);
-	return retval;
 }
 
 //FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklVMgc* gc)

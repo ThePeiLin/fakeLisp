@@ -85,8 +85,8 @@ FklHashTable* fklNewHashTable(size_t size
 		,FklHashTableMethodTable*);
 void* fklGetHashItem(void* key,FklHashTable*);
 void* fklPutInReverseOrder(void* item,FklHashTable* table);
-void* fklPutReplHashItem(void* item,FklHashTable*);
-void* fklPutNoRpHashItem(void* item,FklHashTable* table);
+void* fklPutReplHashItem(void* item,FklHashTable*); //put and replace;
+void* fklPutNoRpHashItem(void* item,FklHashTable* table); //put and no replace
 void fklFreeHashTable(FklHashTable*);
 void fklRehashTable(FklHashTable*,unsigned int);
 

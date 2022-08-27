@@ -2610,7 +2610,7 @@ void builtin_read(ARGL)
 	if(tmpCptr==NULL)
 		tmp=FKL_VM_NIL;
 	else
-		tmp=fklCastCptrVMvalue(tmpCptr,exe->gc);
+		tmp=fklCastCptrVMvalue(tmpCptr,NULL,exe->gc);
 	while(!fklIsPtrStackEmpty(tokenStack))
 		fklFreeToken(fklPopPtrStack(tokenStack));
 	fklFreePtrStack(tokenStack);

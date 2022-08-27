@@ -374,10 +374,11 @@ double fklGetDouble(const FklVMvalue* p);
 void fklInitVMRunningResource(FklVM*,FklVMvalue*,FklVMgc* gc,FklByteCodelnt*,uint32_t,uint32_t);
 void fklUninitVMRunningResource(FklVM*,FklVMnode*);
 
+FklHashTable* fklNewLineNumHashTable(void);
 FklVMvalue* fklGetTopValue(FklVMstack* stack);
 FklVMvalue* fklGetValue(FklVMstack* stack,int32_t place);
-FklVMvalue* fklCastPreEnvToVMenv(FklPreEnv*,FklVMvalue*,FklVMgc*);
-FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,int32_t curline);
+FklVMvalue* fklCastPreEnvToVMenv(FklPreEnv*,FklVMvalue*,FklHashTable*,FklVMgc*);
+FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,uint64_t curline,FklHashTable*);
 
 FklVMstack* fklCopyStack(FklVMstack*);
 FklVMvalue* fklPopVMstack(FklVMstack*);
@@ -475,7 +476,7 @@ void fklChanlSend(FklVMsend*,FklVMchanl*);
 void fklChanlRecvOk(FklVMchanl*,FklVMvalue**,int*);
 void fklChanlRecv(FklVMrecv*,FklVMchanl*);
 
-FklVMvalue* fklCastCptrVMvalue(FklAstCptr*,FklVMgc*);
+FklVMvalue* fklCastCptrVMvalue(FklAstCptr*,FklHashTable* lineNumberHash,FklVMgc*);
 
 FklVMvec* fklNewVMvecNoInit(size_t size);
 FklVMvec* fklNewVMvec(size_t size);

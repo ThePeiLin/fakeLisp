@@ -163,7 +163,8 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 			free(tmpVM);
 			return 2;
 		}
-		FklVMvalue* macroVMenv=fklCastPreEnvToVMenv(macroEnv,tmpGlob,tmpVM->gc);
+		FklHashTable* lineHash=fklNewLineNumHashTable();
+		FklVMvalue* macroVMenv=fklCastPreEnvToVMenv(macroEnv,tmpGlob,lineHash,tmpVM->gc);
 		fklDestroyEnv(macroEnv);
 		macroEnv=NULL;
 		uint32_t start=t->bc->size;
@@ -175,17 +176,18 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 		if(setjmp(buf)==0)
 		{
 			fklRunVM(tmpVM);
-			tmpCptr=fklCastVMvalueToCptr(fklTopGet(tmpVM->stack),objCptr->curline);
+			tmpCptr=fklCastVMvalueToCptr(fklTopGet(tmpVM->stack),objCptr->curline,lineHash);
 			if(!tmpCptr)
 			{
 				if(inter->filename)
-					fprintf(stderr,"error of compiling: Circular reference occur in expanding macro at line %u of %s\n",objCptr->curline,inter->filename);
+					fprintf(stderr,"error of compiling: Circular reference occur in expanding macro at line %lu of %s\n",objCptr->curline,inter->filename);
 				else
-					fprintf(stderr,"error of compiling: Circular reference occur in expanding macro at line %u\n",objCptr->curline);
+					fprintf(stderr,"error of compiling: Circular reference occur in expanding macro at line %lu\n",objCptr->curline);
 				fklFreeByteCodeAndLnt(t);
 				FklVMgc* gc=tmpVM->gc;
 				fklUninitVMRunningResource(tmpVM,prevVMs);
 				fklFreeVMgc(gc);
+				fklFreeHashTable(lineHash);
 				return 2;
 			}
 			fklReplaceCptr(objCptr,tmpCptr);
@@ -199,12 +201,14 @@ int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* int
 			FklVMgc* gc=tmpVM->gc;
 			fklUninitVMRunningResource(tmpVM,prevVMs);
 			fklFreeVMgc(gc);
+			fklFreeHashTable(lineHash);
 			return 2;
 		}
 		fklFreeByteCodeAndLnt(t);
 		gc=tmpVM->gc;
 		fklUninitVMRunningResource(tmpVM,prevVMs);
 		fklFreeVMgc(gc);
+		fklFreeHashTable(lineHash);
 		return 1;
 	}
 	fklFreeByteCodeAndLnt(t);
@@ -706,13 +710,8 @@ FklByteCodelnt* fklCompile(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter
 				return NULL;
 			}
 			FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
-			tmp->ls=1;
-			tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
-			FKL_ASSERT(tmp->l);
-			tmp->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename
-					,0
-					,0
-					,objCptr->curline);
+			tmp->ls=0;
+			tmp->l=NULL;
 			return tmp;
 		}
 		else if(fklIsMacroExpandExpression(objCptr))
@@ -1241,7 +1240,7 @@ FklByteCodelnt* fklCompileFuncCall(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInt
 {
 	FklAstCptr* headoflist=NULL;
 	FklAstPair* tmpPair=objCptr->u.pair;
-	int32_t line=objCptr->curline;
+	uint64_t line=objCptr->curline;
 	FklByteCodelnt* tmp1=NULL;
 	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
 	FklByteCode* setBp=fklNewByteCode(1);
@@ -1761,7 +1760,7 @@ FklByteCodelnt* fklCompileOr(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpret
 	}
 	fklReCodeCat(setTp,tmp->bc);
 	tmp->l[0]->cpc+=setTp->size;
-	FKL_INCREASE_ALL_SCP(tmp->l,tmp->ls-1,setTp->size);
+	FKL_INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,setTp->size);
 	fklCodeCat(tmp->bc,popTp);
 	tmp->l[tmp->ls-1]->cpc+=popTp->size;
 	fklFreeByteCode(resTp);
@@ -1814,7 +1813,7 @@ FklByteCodelnt* fklCompileBegin(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterp
 			{
 				fklReCodeCat(resTp,tmp1->bc);
 				tmp1->l[0]->cpc+=1;
-				FKL_INCREASE_ALL_SCP(tmp1->l,tmp1->ls-1,resTp->size);
+				FKL_INCREASE_ALL_SCP(tmp1->l+1,tmp1->ls-1,resTp->size);
 			}
 			fklCodeLntCat(tmp,tmp1);
 			fklFreeByteCodelnt(tmp1);
@@ -1831,7 +1830,7 @@ FklByteCodelnt* fklCompileBegin(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterp
 		else
 		{
 			tmp->l[0]->cpc+=1;
-			FKL_INCREASE_ALL_SCP(tmp->l,tmp->ls-1,setTp->size);
+			FKL_INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,setTp->size);
 		}
 		fklCodeCat(tmp->bc,popTp);
 		tmp->l[tmp->ls-1]->cpc+=popTp->size;
@@ -1879,7 +1878,7 @@ FklByteCodelnt* fklCompileLibrary(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInte
 		{
 			fklReCodeCat(resTp,tmp1->bc);
 			tmp1->l[0]->cpc+=1;
-			FKL_INCREASE_ALL_SCP(tmp1->l,tmp1->ls-1,resTp->size);
+			FKL_INCREASE_ALL_SCP(tmp1->l+1,tmp1->ls-1,resTp->size);
 			i=0;
 		}
 		fklCodeLntCat(tmp,tmp1);
@@ -1897,7 +1896,7 @@ FklByteCodelnt* fklCompileLibrary(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInte
 	else
 	{
 		tmp->l[0]->cpc+=1;
-		FKL_INCREASE_ALL_SCP(tmp->l,tmp->ls-1,setTp->size);
+		FKL_INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,setTp->size);
 	}
 	fklCodeCat(tmp->bc,popTp);
 	tmp->l[tmp->ls-1]->cpc+=popTp->size;
@@ -2633,11 +2632,8 @@ FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInter
 									FKL_INCREASE_ALL_SCP(otherByteCodelnt->l+1,otherByteCodelnt->ls-1,resTp->size);
 									i=0;
 								}
-								if(otherByteCodelnt)
-								{
-									fklCodeLntCat(libByteCodelnt,otherByteCodelnt);
-									fklFreeByteCodelnt(otherByteCodelnt);
-								}
+								fklCodeLntCat(libByteCodelnt,otherByteCodelnt);
+								fklFreeByteCodelnt(otherByteCodelnt);
 							}
 							fklReCodeCat(setTp,libByteCodelnt->bc);
 							if(!libByteCodelnt->l)
@@ -2831,7 +2827,7 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 			{
 				fklReCodeCat(resTp,tmp->bc);
 				tmp->l[0]->cpc+=1;
-				FKL_INCREASE_ALL_SCP(tmp->l,tmp->ls-1,resTp->size);
+				FKL_INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,resTp->size);
 			}
 			fklCodeLntCat(expressionByteCodelnt,tmp);
 			fklFreeByteCodelnt(tmp);
@@ -2847,7 +2843,7 @@ FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpre
 		else
 		{
 			expressionByteCodelnt->l[0]->cpc+=1;
-			FKL_INCREASE_ALL_SCP(expressionByteCodelnt->l,expressionByteCodelnt->ls-1,setTp->size);
+			FKL_INCREASE_ALL_SCP(expressionByteCodelnt->l+1,expressionByteCodelnt->ls-1,setTp->size);
 		}
 		fklCodeCat(expressionByteCodelnt->bc,popTp);
 		expressionByteCodelnt->l[expressionByteCodelnt->ls-1]->cpc+=popTp->size;
@@ -3079,9 +3075,9 @@ void fklPrintCompileError(const FklAstCptr* obj,FklBuiltInErrorType type,FklInte
 	if(inter!=NULL)
 	{
 		if(inter->filename)
-			fprintf(stderr," at line %d of file %s\n",(obj==NULL)?inter->curline:obj->curline,inter->filename);
+			fprintf(stderr," at line %lu of file %s\n",(obj==NULL)?inter->curline:obj->curline,inter->filename);
 		else
-			fprintf(stderr," at line %d\n",(obj==NULL)?inter->curline:obj->curline);
+			fprintf(stderr," at line %lu\n",(obj==NULL)?inter->curline:obj->curline);
 	}
 }
 

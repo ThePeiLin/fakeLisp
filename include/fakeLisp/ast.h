@@ -36,7 +36,7 @@ typedef enum{
 typedef struct
 {
 	struct FklAstPair* outer;
-	uint32_t curline;
+	uint64_t curline;
 	FklValueType type;
 	union
 	{

@@ -758,15 +758,14 @@ void fklFreeLineNumberTable(FklLineNumberTable* t)
 
 FklLineNumTabNode* fklFindLineNumTabNode(uint64_t cp,FklLineNumberTable* t)
 {
-	uint32_t i=0;
 	uint32_t size=t->num;
 	FklLineNumTabNode** list=t->list;
-	for(;i<size;i++)
+	for(uint32_t i=0;i<size;i++)
 	{
-		if(list[i]->scp<=cp&&(list[i]->scp+list[i]->cpc)>=cp)
+		if(list[i]->scp<=cp&&cp<(list[i]->scp+list[i]->cpc))
 			return list[i];
 	}
-	return NULL;
+	return list[size-1];
 }
 
 void fklLntCat(FklLineNumberTable* t,uint32_t bs,FklLineNumTabNode** l2,uint32_t s2)

@@ -38,6 +38,7 @@ static int copyAndAddToList(FklAstCptr* fir,const FklAstCptr* sec)
 	if(fir->type!=FKL_TYPE_NIL)
 		return 1;
 	fir->type=FKL_TYPE_PAIR;
+	fir->curline=sec->curline;
 	fir->u.pair=fklNewPair(sec->curline,fir->outer);
 	fklReplaceCptr(&fir->u.pair->car,sec);
 	return 0;

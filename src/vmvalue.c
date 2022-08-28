@@ -990,7 +990,7 @@ static FklVMhashTableItem* newVMhashTableItem(FklVMvalue* key,FklVMvalue* v,FklV
 
 static size_t _vmhashtableEq_hashFunc(void* key,FklHashTable* table)
 {
-	return ((uintptr_t)(*(void**)key)>>3)%table->size;
+	return ((uintptr_t)(*(void**)key)>>FKL_UNUSEDBITNUM)%table->size;
 }
 
 static size_t integerHashFunc(const FklVMvalue* v)
@@ -1013,7 +1013,7 @@ static size_t _vmhashtableEqv_hashFunc(void* key,FklHashTable* table)
 	if(fklIsInt(v))
 		return integerHashFunc(v);
 	else
-		return ((uintptr_t)(*(void**)key)>>3)%table->size;
+		return ((uintptr_t)(*(void**)key)>>FKL_UNUSEDBITNUM)%table->size;
 }
 
 static size_t _f64_hashFunc(const FklVMvalue* v,FklPtrStack* s)
@@ -1074,7 +1074,7 @@ static size_t _userdata_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 	if(udHashFunc)
 		return udHashFunc(v->u.ud->data,s);
 	else
-		return ((uintptr_t)v>>3);
+		return ((uintptr_t)v>>FKL_UNUSEDBITNUM);
 }
 
 static size_t _hashTable_hashFunc(const FklVMvalue* v,FklPtrStack* s)
@@ -1129,7 +1129,7 @@ static size_t VMvalueHashFunc(const FklVMvalue* v)
 		else if(FKL_IS_PTR(root)&&(valueHashFunc=valueHashFuncTable[v->type]))
 			sum+=valueHashFunc(root,stack);
 		else
-			sum+=((uintptr_t)root>>3);
+			sum+=((uintptr_t)root>>FKL_UNUSEDBITNUM);
 	}
 	fklFreePtrStack(stack);
 	return sum;

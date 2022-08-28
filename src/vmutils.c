@@ -144,7 +144,7 @@ typedef struct
 static size_t _LineNumHash_hashFunc(void* pKey,FklHashTable* table)
 {
 	FklVMvalue* key=*(FklVMvalue**)pKey;
-	return ((uintptr_t)FKL_GET_PTR(key))%table->size;
+	return ((uintptr_t)FKL_GET_PTR(key)>>FKL_UNUSEDBITNUM)%table->size;
 }
 
 static int _LineNumHash_keyEqual(void* pKey0,void* pKey1)

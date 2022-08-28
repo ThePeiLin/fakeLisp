@@ -4355,6 +4355,7 @@ static const struct SymbolFuncStruct
 	{"integer?",              builtin_integer_p,               },
 	{"i32?",                  builtin_i32_p,                   },
 	{"i64?",                  builtin_i64_p,                   },
+	{"big-int?",              builtin_big_int_p,               },
 	{"f64?",                  builtin_f64_p,                   },
 	{"pair?",                 builtin_pair_p,                  },
 
@@ -4438,8 +4439,6 @@ static const struct SymbolFuncStruct
 	{"fwrite",                builtin_fwrite,                  },
 	{"fgets",                 builtin_fgets,                   },
 	{"fgetb",                 builtin_fgetb,                   },
-
-	{"big-int?",              builtin_big_int_p,               },
 
 	{"set-car!",              builtin_set_car,                 },
 	{"set-cdr!",              builtin_set_cdr,                 },

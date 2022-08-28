@@ -208,7 +208,8 @@ FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklHashTable* lineHash,FklVMg
 			uint64_t line=fklPopUintStack(reftypeStack);
 			FklVMvalue* v=fklNewVMvalueNoGC(type,NULL,gc);
 			fklPushPtrStack(v,tStack);
-			fklPutReplHashItem(newLineNumHashItem(v,NULL,line),lineHash);
+			if(lineHash)
+				fklPutReplHashItem(newLineNumHashItem(v,NULL,line),lineHash);
 			switch(type)
 			{
 				case FKL_TYPE_BOX:

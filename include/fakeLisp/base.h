@@ -71,7 +71,7 @@ typedef struct FklHashTable
 
 typedef struct FklHashTableMethodTable
 {
-	size_t (*__hashFunc)(void*,FklHashTable*);
+	size_t (*__hashFunc)(void*);
 	void (*__freeItem)(void*);
 	int (*__keyEqual)(void*,void*);
 	void* (*__getKey)(void*);

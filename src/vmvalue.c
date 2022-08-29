@@ -925,10 +925,10 @@ static VMenvHashItem* newVMenvHashItme(FklSid_t id,FklVMvalue* v)
 	return r;
 }
 
-static size_t _vmenv_hashFunc(void* key,FklHashTable* table)
+static size_t _vmenv_hashFunc(void* key)
 {
 	FklSid_t sid=*(FklSid_t*)key;
-	return sid%table->size;
+	return sid;
 }
 
 static void _vmenv_freeItem(void* item)
@@ -988,9 +988,9 @@ static FklVMhashTableItem* newVMhashTableItem(FklVMvalue* key,FklVMvalue* v,FklV
 	return tmp;
 }
 
-static size_t _vmhashtableEq_hashFunc(void* key,FklHashTable* table)
+static size_t _vmhashtableEq_hashFunc(void* key)
 {
-	return ((uintptr_t)(*(void**)key)>>FKL_UNUSEDBITNUM)%table->size;
+	return (uintptr_t)(*(void**)key)>>FKL_UNUSEDBITNUM;
 }
 
 static size_t integerHashFunc(const FklVMvalue* v)
@@ -1007,13 +1007,13 @@ static size_t integerHashFunc(const FklVMvalue* v)
 	}
 }
 
-static size_t _vmhashtableEqv_hashFunc(void* key,FklHashTable* table)
+static size_t _vmhashtableEqv_hashFunc(void* key)
 {
 	FklVMvalue* v=*(FklVMvalue**)key;
 	if(fklIsInt(v))
 		return integerHashFunc(v);
 	else
-		return ((uintptr_t)(*(void**)key)>>FKL_UNUSEDBITNUM)%table->size;
+		return (uintptr_t)(*(void**)key)>>FKL_UNUSEDBITNUM;
 }
 
 static size_t _f64_hashFunc(const FklVMvalue* v,FklPtrStack* s)
@@ -1085,7 +1085,7 @@ static size_t _hashTable_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 		fklPushPtrStack(item->key,s);
 		fklPushPtrStack(item->v,s);
 	}
-	return v->u.hash->ht->num;
+	return v->u.hash->ht->num+v->u.hash->type;
 }
 
 static size_t (*const valueHashFuncTable[])(const FklVMvalue*,FklPtrStack* s)=
@@ -1135,13 +1135,13 @@ static size_t VMvalueHashFunc(const FklVMvalue* v)
 	return sum;
 }
 
-static size_t _vmhashtable_hashFunc(void* key,FklHashTable* table)
+static size_t _vmhashtable_hashFunc(void* key)
 {
 	FklVMvalue* v=*(FklVMvalue**)key;
 	if(fklIsInt(v))
 		return integerHashFunc(v);
 	else
-		return VMvalueHashFunc(v)%table->size;
+		return VMvalueHashFunc(v);
 }
 
 static void _vmhashtable_freeItem(void* item)

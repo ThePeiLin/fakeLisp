@@ -97,10 +97,10 @@ static FklTypeId_t addToGlobTypeUnionList(FklDefTypeUnion type)
 	return num;
 }
 
-size_t _member_hashFunc(void* key,FklHashTable* table)
+size_t _member_hashFunc(void* key)
 {
 	FklSid_t sid=*(FklSid_t*)key;
-	return sid%table->size;
+	return sid;
 }
 
 void _member_freeItem(void* item)

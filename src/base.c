@@ -1564,10 +1564,10 @@ FklHashTable* fklNewHashTable(size_t size
 
 void* fklGetHashItem(void* key,FklHashTable* table)
 {
-	size_t (*__hashFunc)(void*,FklHashTable*)=table->t->__hashFunc;
+	size_t (*__hashFunc)(void*)=table->t->__hashFunc;
 	void* (*__getKey)(void*)=table->t->__getKey;
 	int (*__keyEqual)(void*,void*)=table->t->__keyEqual;
-	for(FklHashTableNode* p=table->base[__hashFunc(key,table)];p;p=p->next)
+	for(FklHashTableNode* p=table->base[__hashFunc(key)%table->size];p;p=p->next)
 		if(__keyEqual(key,__getKey(p->item)))
 			return p->item;
 	return NULL;
@@ -1598,10 +1598,10 @@ static FklHashTableNodeList* newHashTableNodeList(FklHashTableNode* node,FklHash
 
 void* fklPutReplHashItem(void* item,FklHashTable* table)
 {
-	size_t (*__hashFunc)(void*,FklHashTable*)=table->t->__hashFunc;
+	size_t (*__hashFunc)(void*)=table->t->__hashFunc;
 	void* (*__getKey)(void*)=table->t->__getKey;
 	int (*__keyEqual)(void*,void*)=table->t->__keyEqual;
-	FklHashTableNode** pp=&table->base[__hashFunc(__getKey(item),table)];
+	FklHashTableNode** pp=&table->base[__hashFunc(__getKey(item))%table->size];
 	int i=0;
 	for(;*pp;pp=&(*pp)->next,i++)
 		if(__keyEqual(__getKey((*pp)->item),__getKey(item)))
@@ -1620,10 +1620,10 @@ void* fklPutReplHashItem(void* item,FklHashTable* table)
 
 void* fklPutInReverseOrder(void* item,FklHashTable* table)
 {
-	size_t (*__hashFunc)(void*,FklHashTable*)=table->t->__hashFunc;
+	size_t (*__hashFunc)(void*)=table->t->__hashFunc;
 	void* (*__getKey)(void*)=table->t->__getKey;
 	int (*__keyEqual)(void*,void*)=table->t->__keyEqual;
-	FklHashTableNode** pp=&table->base[__hashFunc(__getKey(item),table)];
+	FklHashTableNode** pp=&table->base[__hashFunc(__getKey(item))%table->size];
 	int i=0;
 	for(;*pp;pp=&(*pp)->next,i++)
 		if(__keyEqual(__getKey((*pp)->item),__getKey(item)))
@@ -1642,10 +1642,10 @@ void* fklPutInReverseOrder(void* item,FklHashTable* table)
 
 void* fklPutNoRpHashItem(void* item,FklHashTable* table)
 {
-	size_t (*__hashFunc)(void*,FklHashTable*)=table->t->__hashFunc;
+	size_t (*__hashFunc)(void*)=table->t->__hashFunc;
 	void* (*__getKey)(void*)=table->t->__getKey;
 	int (*__keyEqual)(void*,void*)=table->t->__keyEqual;
-	FklHashTableNode** pp=&table->base[__hashFunc(__getKey(item),table)];
+	FklHashTableNode** pp=&table->base[__hashFunc(__getKey(item))%table->size];
 	int i=0;
 	for(;*pp;pp=&(*pp)->next,i++)
 		if(__keyEqual(__getKey((*pp)->item),__getKey(item)))

@@ -42,10 +42,10 @@ FklCompEnvHashItem* newCompEnvHashItem(FklSid_t key)
 	return r;
 }
 
-size_t _compenv_hashFunc(void* key,FklHashTable* table)
+size_t _compenv_hashFunc(void* key)
 {
 	FklSid_t sid=*(FklSid_t*)key;
-	return sid%table->size;
+	return sid;
 }
 
 void _compenv_freeItem(void* item)

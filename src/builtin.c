@@ -1887,6 +1887,19 @@ void builtin_bytevector_to_string(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void builtin_string_to_bytevector(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMframe* frame=exe->frames;
+	FklVMvalue* str=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.string->bytevector",FKL_ERR_TOOMANYARG,frame,exe);
+	FKL_NI_CHECK_TYPE(str,FKL_IS_STR,"builtin.string->bytevector",frame,exe);
+	FklVMvalue* r=fklNewVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklNewBytevector(str->u.str->size,(uint8_t*)str->u.str->str),stack,exe->gc);
+	fklNiReturn(r,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 void builtin_list_to_string(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -4404,6 +4417,7 @@ static const struct SymbolFuncStruct
 	{"bytevector",            builtin_bytevector,              },
 	{"sub-bytevector",        builtin_sub_bytevector,          },
 	{"make-bytevector",       builtin_make_bytevector,         },
+	{"string->bytevector",    builtin_string_to_bytevector,},
 	{"bytevector->s8-list",   builtin_bytevector_to_s8_list,   },
 	{"bytevector->u8-list",   builtin_bytevector_to_u8_list,   },
 	{"bytevector->s8-vector", builtin_bytevector_to_s8_vector, },

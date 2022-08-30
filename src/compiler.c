@@ -3056,10 +3056,6 @@ void fklPrintCompileError(const FklAstCptr* obj,FklBuiltInErrorType type,FklInte
 			if(obj!=NULL)fklPrintCptr(obj,stderr);
 			fprintf(stderr," undefined");
 			break;
-		case FKL_ERR_INVALIDMEMBER:
-			fprintf(stderr,"invalid member ");
-			if(obj!=NULL)fklPrintCptr(obj,stderr);
-			break;
 		case FKL_ERR_FILEFAILURE:
 			fprintf(stderr,"failed for file:");
 			fklPrintCptr(obj,stderr);

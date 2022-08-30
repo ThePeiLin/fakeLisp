@@ -680,6 +680,10 @@ char* fklGenErrorMessage(FklBuiltInErrorType type,FklVMframe* frame,FklVM* exe)
 			break;
 		case FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0:
 			t=fklStrCat(t,"Number should not be less than 0");
+			break;
+		case FKL_ERR_INVALID_VALUE:
+			t=fklStrCat(t,"Invalid value");
+			break;
 		default:
 			break;
 	}

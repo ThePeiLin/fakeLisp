@@ -51,7 +51,7 @@ static const char* builtInErrorType[]=
 	"unexpect-eof",
 	"div-zero-error",
 	"file-failure",
-	"invalid-member-symbol",
+	"invalid-value",
 	"invalid-assign",
 	"invalid-access",
 	"import-failed",
@@ -1896,6 +1896,48 @@ void builtin_string_to_bytevector(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.string->bytevector",FKL_ERR_TOOMANYARG,frame,exe);
 	FKL_NI_CHECK_TYPE(str,FKL_IS_STR,"builtin.string->bytevector",frame,exe);
 	FklVMvalue* r=fklNewVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklNewBytevector(str->u.str->size,(uint8_t*)str->u.str->str),stack,exe->gc);
+	fklNiReturn(r,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_vector_to_bytevector(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMframe* frame=exe->frames;
+	FklVMvalue* vec=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.vector->bytevector",FKL_ERR_TOOMANYARG,frame,exe);
+	FKL_NI_CHECK_TYPE(vec,FKL_IS_VECTOR,"builtin.vector->bytevector",frame,exe);
+	FklVMvalue* r=fklNewVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklNewBytevector(vec->u.str->size,NULL),stack,exe->gc);
+	uint64_t size=vec->u.vec->size;
+	FklVMvalue** base=vec->u.vec->base;
+	uint8_t* ptr=r->u.bvec->ptr;
+	for(uint64_t i=0;i<size;i++)
+	{
+		FklVMvalue* cur=base[i];
+		FKL_NI_CHECK_TYPE(cur,fklIsInt,"builtin.vector->bytevector",frame,exe);
+		ptr[i]=fklGetInt(cur);
+	}
+	fklNiReturn(r,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_list_to_bytevector(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMframe* frame=exe->frames;
+	FklVMvalue* list=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.list->bytevector",FKL_ERR_TOOMANYARG,frame,exe);
+	FKL_NI_CHECK_TYPE(list,fklIsList,"builtin.list->bytevector",frame,exe);
+	FklVMvalue* r=fklNewVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklNewBytevector(fklVMlistLength(list),NULL),stack,exe->gc);
+	uint8_t* ptr=r->u.bvec->ptr;
+	for(size_t i=0;list!=FKL_VM_NIL;i++,list=list->u.pair->cdr)
+	{
+		FklVMvalue* cur=list->u.pair->car;
+		FKL_NI_CHECK_TYPE(cur,fklIsInt,"builtin.list->bytevector",frame,exe);
+		ptr[i]=fklGetInt(cur);
+	}
 	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -4417,7 +4459,9 @@ static const struct SymbolFuncStruct
 	{"bytevector",            builtin_bytevector,              },
 	{"sub-bytevector",        builtin_sub_bytevector,          },
 	{"make-bytevector",       builtin_make_bytevector,         },
-	{"string->bytevector",    builtin_string_to_bytevector,},
+	{"string->bytevector",    builtin_string_to_bytevector,    },
+	{"vector->bytevector",    builtin_vector_to_bytevector,    },
+	{"list->bytevector",      builtin_list_to_bytevector,      },
 	{"bytevector->s8-list",   builtin_bytevector_to_s8_list,   },
 	{"bytevector->u8-list",   builtin_bytevector_to_u8_list,   },
 	{"bytevector->s8-vector", builtin_bytevector_to_s8_vector, },
@@ -4484,7 +4528,6 @@ static const struct SymbolFuncStruct
 	{"filter",                builtin_filter,                  },
 
 	{"set!",                  builtin_set,                     },
-
 	{"getch",                 builtin_getch,                   },
 	{"sleep",                 builtin_sleep,                   },
 	{"usleep",                builtin_usleep,                  },

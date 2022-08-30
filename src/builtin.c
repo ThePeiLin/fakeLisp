@@ -4332,6 +4332,7 @@ void builtin_error_p(ARGL) {PREDICATE(FKL_IS_ERR(val),"builtin.error?")}
 void builtin_procedure_p(ARGL) {PREDICATE(FKL_IS_PROC(val)||FKL_IS_DLPROC(val),"builtin.procedure?")}
 void builtin_proc_p(ARGL) {PREDICATE(FKL_IS_PROC(val),"builtin.proc?")}
 void builtin_dlproc_p(ARGL) {PREDICATE(FKL_IS_DLPROC(val),"builtin.dlproc?")}
+void builtin_continuation_p(ARGL) {PREDICATE(FKL_IS_CONT(val),"builtin.continuation?")}
 void builtin_vector_p(ARGL) {PREDICATE(FKL_IS_VECTOR(val),"builtin.vector?")}
 void builtin_bytevector_p(ARGL) {PREDICATE(FKL_IS_BYTEVECTOR(val),"builtin.bytevector?")}
 void builtin_chanl_p(ARGL) {PREDICATE(FKL_IS_CHAN(val),"builtin.chanl?")}
@@ -4388,6 +4389,7 @@ static const struct SymbolFuncStruct
 	{"length",                builtin_length,                  },
 	{"apply",                 builtin_apply,                   },
 	{"call/cc",               builtin_call_cc,                 },
+	{"continuation?",         builtin_continuation_p,          },
 	{"fopen",                 builtin_fopen,                   },
 	{"read",                  builtin_read,                    },
 	{"prin1",                 builtin_prin1,                   },

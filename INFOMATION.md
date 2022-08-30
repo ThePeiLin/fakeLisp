@@ -14,5 +14,6 @@ include/fakeLisp/builtin.h 内置函数的定义
 src/builtin.c 内置函数  
 src/fakeLisp.c 解释器源文件  
 src/fakeLispc.c 编译器源文件  
-ffi/* 外部函数接口模块  
-fklc/* 编译器模块  
+src/fakeLispp.c 以可读的形式打印字节码的程序    
+ffi/\* 外部函数接口模块  
+fklc/\* 编译器模块  

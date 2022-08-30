@@ -3874,24 +3874,24 @@ void builtin_sleep(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_usleep(ARGL)
-{
-	FKL_NI_BEGIN(exe);
-	FklVMvalue* second=fklNiGetArg(&ap,stack);
-	FklVMframe* frame=exe->frames;
-	if(!second)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.usleep",FKL_ERR_TOOFEWARG,frame,exe);
-	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.usleep",FKL_ERR_TOOMANYARG,frame,exe);
-	FKL_NI_CHECK_TYPE(second,fklIsInt,"builtin.usleep",frame,exe);
-#ifdef _WIN32
-		Sleep(fklGetInt(second));
-#else
-		usleep(fklGetInt(second));
-#endif
-	fklNiReturn(second,&ap,stack);
-	fklNiEnd(&ap,stack);
-}
+//void builtin_usleep(ARGL)
+//{
+//	FKL_NI_BEGIN(exe);
+//	FklVMvalue* second=fklNiGetArg(&ap,stack);
+//	FklVMframe* frame=exe->frames;
+//	if(!second)
+//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.usleep",FKL_ERR_TOOFEWARG,frame,exe);
+//	if(fklNiResBp(&ap,stack))
+//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.usleep",FKL_ERR_TOOMANYARG,frame,exe);
+//	FKL_NI_CHECK_TYPE(second,fklIsInt,"builtin.usleep",frame,exe);
+//#ifdef _WIN32
+//		Sleep(fklGetInt(second));
+//#else
+//		usleep(fklGetInt(second));
+//#endif
+//	fklNiReturn(second,&ap,stack);
+//	fklNiEnd(&ap,stack);
+//}
 
 void builtin_srand(ARGL)
 {
@@ -4530,7 +4530,6 @@ static const struct SymbolFuncStruct
 	{"set!",                  builtin_set,                     },
 	{"getch",                 builtin_getch,                   },
 	{"sleep",                 builtin_sleep,                   },
-	{"usleep",                builtin_usleep,                  },
 	{"srand",                 builtin_srand,                   },
 	{"rand",                  builtin_rand,                    },
 	{"get-time",              builtin_get_time,                },

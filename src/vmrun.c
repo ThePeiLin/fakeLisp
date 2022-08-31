@@ -553,11 +553,11 @@ void B_pop_var(FklVM* exe)
 	FklVMframe* frame=exe->frames;
 	if(!(stack->tp>stack->bp))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-var",FKL_ERR_STACKERROR,frame,exe);
-	int32_t scopeOfVar=fklGetI32FromByteCode(exe->code+frame->cp+sizeof(char));
+	uint32_t scopeOfVar=fklGetU32FromByteCode(exe->code+frame->cp+sizeof(char));
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+frame->cp+sizeof(char)+sizeof(int32_t));
 	FklVMvalue* curEnv=frame->localenv;
 	FklVMvalue* volatile* pv=NULL;
-	if(scopeOfVar>=0)
+	if(scopeOfVar!=UINT32_MAX)
 	{
 		for(uint32_t i=0;i<scopeOfVar;i++)
 			curEnv=curEnv->u.env->prev;

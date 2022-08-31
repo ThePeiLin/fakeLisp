@@ -1559,7 +1559,7 @@ void builtin_make_vector(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_sub_string(ARGL)
+void builtin_substring(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMgc* gc=exe->gc;
@@ -1568,12 +1568,12 @@ void builtin_sub_string(ARGL)
 	FklVMvalue* vstart=fklNiGetArg(&ap,stack);
 	FklVMvalue* vend=fklNiGetArg(&ap,stack);
 	if(!ostr||!vstart||!vend)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sub-string",FKL_ERR_TOOFEWARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.substring",FKL_ERR_TOOFEWARG,frame,exe);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sub-string",FKL_ERR_TOOMANYARG,frame,exe);
-	FKL_NI_CHECK_TYPE(ostr,FKL_IS_STR,"builtin.sub-string",frame,exe);
-	FKL_NI_CHECK_TYPE(vstart,fklIsInt,"builtin.sub-string",frame,exe);
-	FKL_NI_CHECK_TYPE(vend,fklIsInt,"builtin.sub-string",frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.substring",FKL_ERR_TOOMANYARG,frame,exe);
+	FKL_NI_CHECK_TYPE(ostr,FKL_IS_STR,"builtin.substring",frame,exe);
+	FKL_NI_CHECK_TYPE(vstart,fklIsInt,"builtin.substring",frame,exe);
+	FKL_NI_CHECK_TYPE(vend,fklIsInt,"builtin.substring",frame,exe);
 	size_t size=ostr->u.str->size;
 	size_t start=fklGetUint(vstart);
 	size_t end=fklGetUint(vend);
@@ -1582,9 +1582,68 @@ void builtin_sub_string(ARGL)
 			||start>size
 			||end<start
 			||end>size)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sub-string",FKL_ERR_INVALIDACCESS,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.substring",FKL_ERR_INVALIDACCESS,frame,exe);
 	size=end-start;
 	FklVMvalue* r=fklNewVMvalueToStack(FKL_TYPE_STR,fklNewString(size,ostr->u.str->str+start),stack,gc);
+	fklNiReturn(r,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_sub_string(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMgc* gc=exe->gc;
+	FklVMframe* frame=exe->frames;
+	FklVMvalue* ostr=fklNiGetArg(&ap,stack);
+	FklVMvalue* vstart=fklNiGetArg(&ap,stack);
+	FklVMvalue* vsize=fklNiGetArg(&ap,stack);
+	if(!ostr||!vstart||!vsize)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sub-string",FKL_ERR_TOOFEWARG,frame,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sub-string",FKL_ERR_TOOMANYARG,frame,exe);
+	FKL_NI_CHECK_TYPE(ostr,FKL_IS_STR,"builtin.sub-string",frame,exe);
+	FKL_NI_CHECK_TYPE(vstart,fklIsInt,"builtin.sub-string",frame,exe);
+	FKL_NI_CHECK_TYPE(vsize,fklIsInt,"builtin.sub-string",frame,exe);
+	size_t size=ostr->u.str->size;
+	size_t start=fklGetUint(vstart);
+	size_t osize=fklGetUint(vsize);
+	if(fklVMnumberLt0(vstart)
+			||fklVMnumberLt0(vsize)
+			||start>size
+			||start+osize>size)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sub-string",FKL_ERR_INVALIDACCESS,frame,exe);
+	size=osize;
+	FklVMvalue* r=fklNewVMvalueToStack(FKL_TYPE_STR,fklNewString(size,ostr->u.str->str+start),stack,gc);
+	fklNiReturn(r,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_subbytevector(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMgc* gc=exe->gc;
+	FklVMframe* frame=exe->frames;
+	FklVMvalue* ostr=fklNiGetArg(&ap,stack);
+	FklVMvalue* vstart=fklNiGetArg(&ap,stack);
+	FklVMvalue* vend=fklNiGetArg(&ap,stack);
+	if(!ostr||!vstart||!vend)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.subbytevector",FKL_ERR_TOOFEWARG,frame,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.subbytevector",FKL_ERR_TOOMANYARG,frame,exe);
+	FKL_NI_CHECK_TYPE(ostr,FKL_IS_BYTEVECTOR,"builtin.subbytevector",frame,exe);
+	FKL_NI_CHECK_TYPE(vstart,fklIsInt,"builtin.subbytevector",frame,exe);
+	FKL_NI_CHECK_TYPE(vend,fklIsInt,"builtin.subbytevector",frame,exe);
+	size_t size=ostr->u.str->size;
+	size_t start=fklGetUint(vstart);
+	size_t end=fklGetUint(vend);
+	if(fklVMnumberLt0(vstart)
+			||fklVMnumberLt0(vend)
+			||start>size
+			||end<start
+			||end>size)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.subbytevector",FKL_ERR_INVALIDACCESS,frame,exe);
+	size=end-start;
+	FklVMvalue* r=fklNewVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklNewBytevector(size,ostr->u.bvec->ptr+start),stack,gc);
 	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -1596,15 +1655,44 @@ void builtin_sub_bytevector(ARGL)
 	FklVMframe* frame=exe->frames;
 	FklVMvalue* ostr=fklNiGetArg(&ap,stack);
 	FklVMvalue* vstart=fklNiGetArg(&ap,stack);
-	FklVMvalue* vend=fklNiGetArg(&ap,stack);
-	if(!ostr||!vstart||!vend)
+	FklVMvalue* vsize=fklNiGetArg(&ap,stack);
+	if(!ostr||!vstart||!vsize)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sub-bytevector",FKL_ERR_TOOFEWARG,frame,exe);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sub-bytevector",FKL_ERR_TOOMANYARG,frame,exe);
 	FKL_NI_CHECK_TYPE(ostr,FKL_IS_BYTEVECTOR,"builtin.sub-bytevector",frame,exe);
 	FKL_NI_CHECK_TYPE(vstart,fklIsInt,"builtin.sub-bytevector",frame,exe);
-	FKL_NI_CHECK_TYPE(vend,fklIsInt,"builtin.sub-bytevector",frame,exe);
+	FKL_NI_CHECK_TYPE(vsize,fklIsInt,"builtin.sub-bytevector",frame,exe);
 	size_t size=ostr->u.str->size;
+	size_t start=fklGetUint(vstart);
+	size_t osize=fklGetUint(vsize);
+	if(fklVMnumberLt0(vstart)
+			||fklVMnumberLt0(vsize)
+			||start>size
+			||start+osize>size)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sub-bytevector",FKL_ERR_INVALIDACCESS,frame,exe);
+	size=osize;
+	FklVMvalue* r=fklNewVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklNewBytevector(size,ostr->u.bvec->ptr+start),stack,gc);
+	fklNiReturn(r,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_subvector(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMgc* gc=exe->gc;
+	FklVMframe* frame=exe->frames;
+	FklVMvalue* ovec=fklNiGetArg(&ap,stack);
+	FklVMvalue* vstart=fklNiGetArg(&ap,stack);
+	FklVMvalue* vend=fklNiGetArg(&ap,stack);
+	if(!ovec||!vstart||!vend)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.subvector",FKL_ERR_TOOFEWARG,frame,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.subvector",FKL_ERR_TOOMANYARG,frame,exe);
+	FKL_NI_CHECK_TYPE(ovec,FKL_IS_VECTOR,"builtin.subvector",frame,exe);
+	FKL_NI_CHECK_TYPE(vstart,fklIsInt,"builtin.subvector",frame,exe);
+	FKL_NI_CHECK_TYPE(vend,fklIsInt,"builtin.subvector",frame,exe);
+	size_t size=ovec->u.vec->size;
 	size_t start=fklGetUint(vstart);
 	size_t end=fklGetUint(vend);
 	if(fklVMnumberLt0(vstart)
@@ -1612,9 +1700,9 @@ void builtin_sub_bytevector(ARGL)
 			||start>size
 			||end<start
 			||end>size)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sub-bytevector",FKL_ERR_INVALIDACCESS,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.subvector",FKL_ERR_INVALIDACCESS,frame,exe);
 	size=end-start;
-	FklVMvalue* r=fklNewVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklNewBytevector(size,ostr->u.bvec->ptr+start),stack,gc);
+	FklVMvalue* r=fklNewVMvecV(size,ovec->u.vec->base+start,stack,gc);
 	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -1626,24 +1714,23 @@ void builtin_sub_vector(ARGL)
 	FklVMframe* frame=exe->frames;
 	FklVMvalue* ovec=fklNiGetArg(&ap,stack);
 	FklVMvalue* vstart=fklNiGetArg(&ap,stack);
-	FklVMvalue* vend=fklNiGetArg(&ap,stack);
-	if(!ovec||!vstart||!vend)
+	FklVMvalue* vsize=fklNiGetArg(&ap,stack);
+	if(!ovec||!vstart||!vsize)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sub-vector",FKL_ERR_TOOFEWARG,frame,exe);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sub-vector",FKL_ERR_TOOMANYARG,frame,exe);
 	FKL_NI_CHECK_TYPE(ovec,FKL_IS_VECTOR,"builtin.sub-vector",frame,exe);
 	FKL_NI_CHECK_TYPE(vstart,fklIsInt,"builtin.sub-vector",frame,exe);
-	FKL_NI_CHECK_TYPE(vend,fklIsInt,"builtin.sub-vector",frame,exe);
+	FKL_NI_CHECK_TYPE(vsize,fklIsInt,"builtin.sub-vector",frame,exe);
 	size_t size=ovec->u.vec->size;
 	size_t start=fklGetUint(vstart);
-	size_t end=fklGetUint(vend);
+	size_t osize=fklGetUint(vsize);
 	if(fklVMnumberLt0(vstart)
-			||fklVMnumberLt0(vend)
+			||fklVMnumberLt0(vsize)
 			||start>size
-			||end<start
-			||end>size)
+			||start+osize>size)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sub-vector",FKL_ERR_INVALIDACCESS,frame,exe);
-	size=end-start;
+	size=osize;
 	FklVMvalue* r=fklNewVMvecV(size,ovec->u.vec->base+start,stack,gc);
 	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
@@ -4421,7 +4508,8 @@ static const struct SymbolFuncStruct
 
 	{"string?",               builtin_string_p,                },
 	{"string",                builtin_string,                  },
-	{"sub-string",            builtin_sub_string,              },
+	{"substring",             builtin_substring,               },
+	{"sub-string",             builtin_sub_string,               },
 	{"make-string",           builtin_make_string,             },
 	{"symbol->string",        builtin_symbol_to_string,        },
 	{"number->string",        builtin_number_to_string,        },
@@ -4441,7 +4529,8 @@ static const struct SymbolFuncStruct
 	{"vector?",               builtin_vector_p,                },
 	{"vector",                builtin_vector,                  },
 	{"make-vector",           builtin_make_vector,             },
-	{"sub-vector",            builtin_sub_vector,              },
+	{"subvector",             builtin_subvector,               },
+	{"sub-vector",             builtin_sub_vector,               },
 	{"list->vector",          builtin_list_to_vector,          },
 	{"string->vector",        builtin_string_to_vector,        },
 	{"vref",                  builtin_vref,                    },
@@ -4459,7 +4548,8 @@ static const struct SymbolFuncStruct
 
 	{"bytevector?",           builtin_bytevector_p,            },
 	{"bytevector",            builtin_bytevector,              },
-	{"sub-bytevector",        builtin_sub_bytevector,          },
+	{"subbytevector",         builtin_subbytevector,           },
+	{"sub-bytevector",         builtin_sub_bytevector,           },
 	{"make-bytevector",       builtin_make_bytevector,         },
 	{"string->bytevector",    builtin_string_to_bytevector,    },
 	{"vector->bytevector",    builtin_vector_to_bytevector,    },

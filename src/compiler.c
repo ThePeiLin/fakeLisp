@@ -1339,11 +1339,11 @@ FklByteCodelnt* fklCompileDef(FklAstCptr* tir,FklCompEnv* curEnv,FklInterpreter*
 			}
 			else
 				tmpDef=fklAddCompDef(tmpAtm->value.str,curEnv->prev);
-			fklSetI32ToByteCode(popVar->code+sizeof(char),1);
+			fklSetU32ToByteCode(popVar->code+sizeof(char),2);
 		}
 		else
 		{
-			fklSetI32ToByteCode(popVar->code+sizeof(char),0);
+			fklSetU32ToByteCode(popVar->code+sizeof(char),1);
 			tmpDef=fklAddCompDef(tmpAtm->value.str,curEnv);
 		}
 		fklSetSidToByteCode(popVar->code+sizeof(char)+sizeof(int32_t),tmpDef->id);
@@ -1357,7 +1357,7 @@ FklByteCodelnt* fklCompileDef(FklAstCptr* tir,FklCompEnv* curEnv,FklInterpreter*
 			{
 				FklByteCode* popVar=fklNewByteCode(sizeof(char)+sizeof(int32_t)+sizeof(FklSid_t));
 				popVar->code[0]=FKL_OP_POP_VAR;
-				fklSetI32ToByteCode(popVar->code+sizeof(char),0);
+				fklSetU32ToByteCode(popVar->code+sizeof(char),1);
 				fklSetSidToByteCode(popVar->code+sizeof(char)+sizeof(int32_t),tmpDef->id);
 				fklCodeCat(tmp1Copy->bc,pushTop);
 				fklCodeCat(tmp1Copy->bc,popVar);
@@ -1366,7 +1366,7 @@ FklByteCodelnt* fklCompileDef(FklAstCptr* tir,FklCompEnv* curEnv,FklInterpreter*
 				fklFreeByteCodeAndLnt(tmp1Copy);
 				tmp1Copy=fklCopyByteCodelnt(tmp1);
 				fklCodeCat(tmp1Copy->bc,pushTop);
-				fklSetI32ToByteCode(popVar->code+sizeof(char),0);
+				fklSetU32ToByteCode(popVar->code+sizeof(char),1);
 				fklSetSidToByteCode(popVar->code+sizeof(char)+sizeof(int32_t),fklAddCompDef(tmpAtm->value.str,curEnv)->id);
 				fklCodeCat(tmp1Copy->bc,popVar);
 				fklCodeCat(tmp1->bc,pushTop);
@@ -1422,7 +1422,7 @@ FklByteCodelnt* fklCompileSetq(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 	}
 	for(;;)
 	{
-		uint32_t scope=0;
+		uint32_t scope=1;
 		FklSid_t id=0;
 		FklAstAtom* tmpAtm=sec->u.atom;
 		FklCompEnvHashItem* tmpDef=NULL;
@@ -1444,7 +1444,7 @@ FklByteCodelnt* fklCompileSetq(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 		if(tmpDef==NULL)
 		{
 			FklSymTabNode* node=fklAddSymbolToGlob(tmpAtm->value.str);
-			scope=UINT32_MAX;
+			scope=0;
 			id=node->id;
 		}
 		else
@@ -1455,16 +1455,21 @@ FklByteCodelnt* fklCompileSetq(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 		fklCodeCat(tmp1->bc,pushTop);
 		fklCodeCat(tmp1->bc,popVar);
 		tmp1->l[tmp1->ls-1]->cpc+=(pushTop->size+popVar->size);
-		if(!scope&&tmpDef&&(fklIsConst(objCptr)||fklIsLambdaExpression(objCptr)))
+		if(scope==1&&tmpDef&&(fklIsConst(objCptr)||fklIsLambdaExpression(objCptr)))
 		{
 			fklCodelntCopyCat(curEnv->proc,tmp1);
-			if(tmpEnv->prev&&tmpEnv->prev->exp&&tmpEnv->prev->prefix)
+			if(tmpEnv->prev
+					&&tmpEnv->prev->exp
+					&&tmpEnv->prev->prefix
+					&&fklIsSymbolShouldBeExport(tmpAtm->value.str
+						,tmpEnv->prev->exp
+						,tmpEnv->prev->n))
 			{
 				FklByteCode* popVar=fklNewByteCode(sizeof(char)+sizeof(scope)+sizeof(FklSid_t));
 				popVar->code[0]=FKL_OP_POP_VAR;
-				fklSetI32ToByteCode(popVar->code+sizeof(char),scope+1);
+				fklSetU32ToByteCode(popVar->code+sizeof(char),scope+1);
 				FklString* symbolWithPrefix=fklStringAppend(tmpEnv->prev->prefix,tmpAtm->value.str);
-				*(FklSid_t*)(popVar->code+sizeof(char)+sizeof(scope))=fklFindCompDef(symbolWithPrefix,tmpEnv->prev)->id;
+				fklSetSidToByteCode(popVar->code+sizeof(char)+sizeof(scope),fklFindCompDef(symbolWithPrefix,tmpEnv->prev)->id);
 				free(symbolWithPrefix);
 				fklCodeCat(tmp1Copy->bc,pushTop);
 				fklCodeCat(tmp1Copy->bc,popVar);
@@ -1474,9 +1479,9 @@ FklByteCodelnt* fklCompileSetq(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpr
 			}
 		}
 		fklFreeByteCodeAndLnt(tmp1Copy);
-		if(scope!=UINT32_MAX&&tmpEnv->prev&&tmpEnv->prev->exp&&fklIsSymbolShouldBeExport(tmpAtm->value.str,tmpEnv->prev->exp,tmpEnv->prev->n))
+		if(scope&&tmpEnv->prev&&tmpEnv->prev->exp&&fklIsSymbolShouldBeExport(tmpAtm->value.str,tmpEnv->prev->exp,tmpEnv->prev->n))
 		{
-			fklSetI32ToByteCode(popVar->code+sizeof(char),scope+1);
+			fklSetU32ToByteCode(popVar->code+sizeof(char),scope+1);
 			if(tmpEnv->prev->prefix)
 			{
 				FklString* symbolWithPrefix=fklStringAppend(tmpEnv->prev->prefix,tmpAtm->value.str);
@@ -3487,11 +3492,11 @@ void fklPrintUndefinedSymbol(FklByteCodelnt* code)
 				case -3:
 					{
 						uint32_t scope=fklGetU32FromByteCode(bc->code+i+sizeof(char));
-						FklSid_t id=fklGetSidFromByteCode(bc->code+i+sizeof(char)+sizeof(int32_t));
-						if(scope!=UINT32_MAX)
+						FklSid_t id=fklGetSidFromByteCode(bc->code+i+sizeof(char)+sizeof(scope));
+						if(scope)
 						{
 							FklCompEnv* env=curEnv;
-							for(int32_t i=0;i<scope;i++)
+							for(uint32_t i=1;i<scope;i++)
 								env=curEnv->prev;
 							fklAddCompDefBySid(id,env);
 						}
@@ -3508,7 +3513,7 @@ void fklPrintUndefinedSymbol(FklByteCodelnt* code)
 								fklPushPtrStack(newMayUndefine(curEnv,i,id),mayUndefined);
 						}
 					}
-					i+=sizeof(char)+sizeof(int32_t)+sizeof(FklSid_t);
+					i+=sizeof(char)+sizeof(uint32_t)+sizeof(FklSid_t);
 					break;
 				case -2:
 					fklPushUintStack(i+sizeof(char)+sizeof(uint64_t),cpcstack);

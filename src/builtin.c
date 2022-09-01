@@ -85,8 +85,7 @@ void builtin_car(ARGL)
 	FKL_NI_BEGIN(exe);
 	FklVMframe* frame=exe->frames;
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
-	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.car",FKL_ERR_TOOMANYARG,frame,exe);
+	FKL_NI_CHECK_REST_ARG(&ap,stack,"builtin.car",frame,exe);
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.car",FKL_ERR_TOOFEWARG,frame,exe);
 	FKL_NI_CHECK_TYPE(obj,FKL_IS_PAIR,"builtin.car",frame,exe);
@@ -100,8 +99,7 @@ void builtin_set_car(ARGL)
 	FklVMframe* frame=exe->frames;
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
 	FklVMvalue* target=fklNiGetArg(&ap,stack);
-	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-car!",FKL_ERR_TOOMANYARG,frame,exe);
+	FKL_NI_CHECK_REST_ARG(&ap,stack,"builtin.set-car!",frame,exe);
 	if(!target||!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-car!",FKL_ERR_TOOFEWARG,frame,exe);
 	FKL_NI_CHECK_TYPE(obj,FKL_IS_PAIR,"builtin.set-car!",frame,exe);
@@ -115,8 +113,7 @@ void builtin_cdr(ARGL)
 	FKL_NI_BEGIN(exe);
 	FklVMframe* frame=exe->frames;
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
-	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.cdr",FKL_ERR_TOOMANYARG,frame,exe);
+	FKL_NI_CHECK_REST_ARG(&ap,stack,"builtin.cdr",frame,exe);
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.cdr",FKL_ERR_TOOFEWARG,frame,exe);
 	FKL_NI_CHECK_TYPE(obj,FKL_IS_PAIR,"builtin.cdr",frame,exe);
@@ -130,8 +127,7 @@ void builtin_set_cdr(ARGL)
 	FklVMframe* frame=exe->frames;
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
 	FklVMvalue* target=fklNiGetArg(&ap,stack);
-	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-cdr!",FKL_ERR_TOOMANYARG,frame,exe);
+	FKL_NI_CHECK_REST_ARG(&ap,stack,"builtin.set-cdr!",frame,exe);
 	if(!target||!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-cdr!",FKL_ERR_TOOFEWARG,frame,exe);
 	FKL_NI_CHECK_TYPE(obj,FKL_IS_PAIR,"builtin.set-cdr",frame,exe);
@@ -146,8 +142,7 @@ void builtin_cons(ARGL)
 	FklVMframe* frame=exe->frames;
 	FklVMvalue* car=fklNiGetArg(&ap,stack);
 	FklVMvalue* cdr=fklNiGetArg(&ap,stack);
-	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.cons",FKL_ERR_TOOMANYARG,frame,exe);
+	FKL_NI_CHECK_REST_ARG(&ap,stack,"builtin.cons",frame,exe);
 	if(!car||!cdr)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.cons",FKL_ERR_TOOFEWARG,frame,exe);
 	fklNiReturn(fklNewVMpairV(car,cdr,stack,exe->gc),&ap,stack);

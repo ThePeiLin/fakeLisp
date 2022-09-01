@@ -557,9 +557,9 @@ void B_pop_var(FklVM* exe)
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+frame->cp+sizeof(char)+sizeof(int32_t));
 	FklVMvalue* curEnv=frame->localenv;
 	FklVMvalue* volatile* pv=NULL;
-	if(scopeOfVar!=UINT32_MAX)
+	if(scopeOfVar)
 	{
-		for(uint32_t i=0;i<scopeOfVar;i++)
+		for(uint32_t i=1;i<scopeOfVar;i++)
 			curEnv=curEnv->u.env->prev;
 		pv=fklFindOrAddVar(idOfVar,curEnv->u.env);
 	}

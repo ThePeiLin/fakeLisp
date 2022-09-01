@@ -218,12 +218,12 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 			}
 			break;
 		case -3:
-			fprintf(fp,"%d ",fklGetI32FromByteCode(tmpCode->code+i+sizeof(char)));
+			fprintf(fp,"%d ",fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)));
 			if(table)
 				fklPrintString(fklGetSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)+sizeof(int32_t)),table)->symbol,fp);
 			else
 				fklPrintString(fklGetGlobSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)+sizeof(int32_t)))->symbol,fp);
-			r+=sizeof(char)+sizeof(int32_t)+sizeof(FklSid_t);
+			r+=sizeof(char)+sizeof(uint32_t)+sizeof(FklSid_t);
 			break;
 		case -2:
 			{

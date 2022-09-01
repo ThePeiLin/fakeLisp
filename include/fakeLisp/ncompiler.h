@@ -54,9 +54,23 @@ typedef struct FklCompEnvN
 	FklHashTable* defs;
 }FklCompEnvN;
 
+typedef struct FklCompiler
+{
+	char* filename;
+	char* realpath;
+	char* curDir;
+	FILE* file;
+	uint64_t curline;
+	FklCompEnvN* glob;
+	struct FklLineNumberTable* lnt;
+	struct FklInterpreter* prev;
+}FklCompiler;
+
 int fklPatternMatch(const FklNastNode* pattern,FklNastNode* exp,FklHashTable* ht);
 FklByteCode* fklCompileNode(const FklNastNode*);
-FklByteCodelnt* fklCompileExpression(const FklNastNode* exp,FklCompEnvN* globalEnv);
+FklByteCodelnt* fklCompileExpression(const FklNastNode* exp
+		,FklCompEnvN* globalEnv
+		,FklCompiler* compiler);
 #ifdef __cplusplus
 }
 #endif

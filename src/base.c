@@ -42,7 +42,6 @@ void* fklPopPtrStack(FklPtrStack* stack)
 		return NULL;
 	stack->top-=1;
 	void* tmp=stack->base[stack->top];
-	fklRecyclePtrStack(stack);
 	return tmp;
 }
 
@@ -194,7 +193,6 @@ int64_t fklPopIntStack(FklIntStack* stack)
 		return 0;
 	stack->top-=1;
 	int64_t tmp=stack->base[stack->top];
-	fklRecycleIntStack(stack);
 	return tmp;
 }
 
@@ -267,7 +265,6 @@ uint64_t fklPopUintStack(FklUintStack* stack)
 		return 0;
 	stack->top-=1;
 	uint64_t tmp=stack->base[stack->top];
-	fklRecycleUintStack(stack);
 	return tmp;
 }
 

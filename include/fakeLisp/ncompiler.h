@@ -25,7 +25,11 @@ typedef struct FklNastHashTable
 {
 	uint32_t type;
 	uint64_t num;
-	struct FklNastNode** items;
+	struct
+	{
+		struct FklNastNode* key;
+		struct FklNastNode* value;
+	}* items;
 }FklNastHashTable;
 
 typedef struct FklNastNode
@@ -39,19 +43,21 @@ typedef struct FklNastNode
 		int64_t i64;
 		double f64;
 		FklString str;
+		FklSid_t sym;
 		FklBytevector bvec;
 		FklNastVector vec;
 		FklNastPair pair;
 		FklBigInt bigInt;
 		FklNastHashTable hash;
 		struct FklNastNode* box;
-	}value;
+	}u;
 }FklNastNode;
 
 typedef struct FklCompEnvN
 {
 	struct FklCompEnvN* prev;
 	FklHashTable* defs;
+	uint64_t refcount;
 }FklCompEnvN;
 
 typedef struct FklCompiler
@@ -62,10 +68,29 @@ typedef struct FklCompiler
 	FILE* file;
 	uint64_t curline;
 	FklCompEnvN* glob;
+	FklSymbolTable* globTable;
+	FklSid_t fid;
 	struct FklLineNumberTable* lnt;
-	struct FklInterpreter* prev;
+	struct FklCompiler* prev;
 }FklCompiler;
 
+typedef FklByteCodelnt* (*FklByteCodeProcesser)(FklPtrStack* stack,FklSid_t,uint64_t);
+typedef void (*FklFormCompilerFunc)(FklHashTable* ht
+		,FklCompEnvN* env
+		,FklPtrStack* nextCompileStack
+		,FklCompiler* compiler);
+typedef struct FklNextCompile
+{
+	FklByteCodeProcesser processer;
+	FklPtrStack* stack;
+	FklPtrQueue* queue;
+	FklCompEnvN* env;
+    uint64_t curline;
+	FklCompiler* comp;
+}FklNextCompile;
+
+FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack*);
+void fklInitBuiltInPattern(void);
 int fklPatternMatch(const FklNastNode* pattern,FklNastNode* exp,FklHashTable* ht);
 FklByteCode* fklCompileNode(const FklNastNode*);
 FklByteCodelnt* fklCompileExpression(const FklNastNode* exp

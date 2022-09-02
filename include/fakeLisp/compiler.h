@@ -136,8 +136,8 @@ FklByteCode* fklCompileNil();
 FklByteCodelnt* fklCompileFuncCall(FklAstCptr*,FklCompEnv*,FklInterpreter*,FklErrorState*);
 FklByteCodelnt* fklCompileDef(FklAstCptr*,FklCompEnv*,FklInterpreter*,FklErrorState*);
 FklByteCodelnt* fklCompileSetq(FklAstCptr*,FklCompEnv*,FklInterpreter*,FklErrorState*);
-FklByteCodelnt* fklCompileGetf(FklAstCptr*,FklCompEnv*,FklInterpreter*,FklErrorState*);
-FklByteCodelnt* fklCompileSzof(FklAstCptr*,FklCompEnv*,FklInterpreter*,FklErrorState*);
+//FklByteCodelnt* fklCompileGetf(FklAstCptr*,FklCompEnv*,FklInterpreter*,FklErrorState*);
+//FklByteCodelnt* fklCompileSzof(FklAstCptr*,FklCompEnv*,FklInterpreter*,FklErrorState*);
 FklByteCodelnt* fklCompileSym(FklAstCptr*,FklCompEnv*,FklInterpreter*,FklErrorState*);
 FklByteCodelnt* fklCompileCond(FklAstCptr*,FklCompEnv*,FklInterpreter*,FklErrorState*);
 FklByteCodelnt* fklCompileLambda(FklAstCptr*,FklCompEnv*,FklInterpreter*,FklErrorState*);
@@ -149,7 +149,6 @@ FklByteCodelnt* fklCompileProgn(FklAstCptr*,FklCompEnv*,FklInterpreter*,FklError
 FklByteCodelnt* fklCompileImport(FklAstCptr*,FklCompEnv*,FklInterpreter*,FklErrorState*);
 FklByteCodelnt* fklCompileLibrary(FklAstCptr*,FklCompEnv*,FklInterpreter*,FklErrorState*);
 FklByteCodelnt* fklCompileTry(FklAstCptr*,FklCompEnv*,FklInterpreter*,FklErrorState*);
-FklByteCodelnt* fklCompileFlsym(FklAstCptr*,FklCompEnv*,FklInterpreter*,FklErrorState*);
 
 FklByteCode* fklCompileHashtable(FklAstCptr*);
 FklByteCode* fklCompileVector(FklAstCptr*);

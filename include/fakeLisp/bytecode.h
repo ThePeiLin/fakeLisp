@@ -55,7 +55,7 @@ void fklCodelntCopyCat(FklByteCodelnt*,const FklByteCodelnt*);
 void fklReCodeLntCat(FklByteCodelnt*,FklByteCodelnt*);
 
 FklLineNumberTable* fklNewLineNumTable();
-FklLineNumTabNode* fklNewLineNumTabNode(FklSid_t fid,uint64_t scp,uint64_t cpc,uint32_t line);
+FklLineNumTabNode* fklNewLineNumTabNode(FklSid_t fid,uint64_t scp,uint64_t cpc,uint64_t line);
 FklLineNumTabNode* fklNewLineNumTabNodeWithFilename(const char* filename
 		,uint64_t scp
 		,uint64_t cpc
@@ -63,7 +63,7 @@ FklLineNumTabNode* fklNewLineNumTabNodeWithFilename(const char* filename
 FklLineNumTabNode* fklFindLineNumTabNode(uint64_t cp,FklLineNumberTable*);
 void fklFreeLineNumTabNode(FklLineNumTabNode*);
 void fklFreeLineNumberTable(FklLineNumberTable*);
-void fklLntCat(FklLineNumberTable* t,uint32_t bs,FklLineNumTabNode** l2,uint32_t s2);
+void fklLntCat(FklLineNumberTable* t,uint64_t bs,FklLineNumTabNode** l2,uint64_t s2);
 void fklWriteLineNumberTable(FklLineNumberTable*,FILE*);
 void fklDBG_printByteCode(uint8_t* code,uint64_t s,uint64_t c,FILE*);
 

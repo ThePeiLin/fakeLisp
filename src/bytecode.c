@@ -717,7 +717,7 @@ FklLineNumberTable* fklNewLineNumTable()
 	return t;
 }
 
-FklLineNumTabNode* fklNewLineNumTabNode(FklSid_t fid,uint64_t scp,uint64_t cpc,uint32_t line)
+FklLineNumTabNode* fklNewLineNumTabNode(FklSid_t fid,uint64_t scp,uint64_t cpc,uint64_t line)
 {
 	FklLineNumTabNode* t=(FklLineNumTabNode*)malloc(sizeof(FklLineNumTabNode));
 	FKL_ASSERT(t);
@@ -768,7 +768,7 @@ FklLineNumTabNode* fklFindLineNumTabNode(uint64_t cp,FklLineNumberTable* t)
 	return list[size-1];
 }
 
-void fklLntCat(FklLineNumberTable* t,uint32_t bs,FklLineNumTabNode** l2,uint32_t s2)
+void fklLntCat(FklLineNumberTable* t,uint64_t bs,FklLineNumTabNode** l2,uint64_t s2)
 {
 	if(!t->list)
 	{

@@ -104,7 +104,12 @@ void fklFreePtrQueue(FklPtrQueue* tmp)
 	free(tmp);
 }
 
-int32_t fklLengthPtrQueue(FklPtrQueue* tmp)
+int fklIsPtrQueueEmpty(FklPtrQueue* queue)
+{
+	return queue->head==NULL;
+}
+
+uint64_t fklLengthPtrQueue(FklPtrQueue* tmp)
 {
 	FklQueueNode* cur=tmp->head;
 	int32_t i=0;

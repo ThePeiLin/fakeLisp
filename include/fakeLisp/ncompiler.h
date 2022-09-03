@@ -25,11 +25,7 @@ typedef struct FklNastHashTable
 {
 	uint32_t type;
 	uint64_t num;
-	struct
-	{
-		struct FklNastNode* key;
-		struct FklNastNode* value;
-	}* items;
+	FklNastPair* items;
 }FklNastHashTable;
 
 typedef struct FklNastNode
@@ -76,8 +72,8 @@ typedef struct FklCompiler
 
 typedef FklByteCodelnt* (*FklByteCodeProcesser)(FklPtrStack* stack,FklSid_t,uint64_t);
 typedef void (*FklFormCompilerFunc)(FklHashTable* ht
-		,FklCompEnvN* env
 		,FklPtrStack* nextCompileStack
+		,FklCompEnvN* env
 		,FklCompiler* compiler);
 typedef struct FklNextCompile
 {
@@ -90,9 +86,12 @@ typedef struct FklNextCompile
 }FklNextCompile;
 
 FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack*);
+FklNastNode* fklNewNastNodeFromCstr(const char*);
 void fklInitBuiltInPattern(void);
-int fklPatternMatch(const FklNastNode* pattern,FklNastNode* exp,FklHashTable* ht);
-FklByteCode* fklCompileNode(const FklNastNode*);
+int fklPatternMatch(const FklNastNode* pattern
+		,FklNastNode* exp
+		,FklHashTable* ht);
+FklByteCode* fklCompileNode(const FklNastNode*,FklCompiler* compiler);
 FklByteCodelnt* fklCompileExpression(const FklNastNode* exp
 		,FklCompEnvN* globalEnv
 		,FklCompiler* compiler);

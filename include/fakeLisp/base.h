@@ -123,7 +123,8 @@ void fklFreeQueueNode(FklQueueNode*);
 
 FklPtrQueue* fklNewPtrQueue(void);
 void fklFreePtrQueue(FklPtrQueue*);
-int32_t fklLengthPtrQueue(FklPtrQueue*);
+int fklIsPtrQueueEmpty(FklPtrQueue*);
+uint64_t fklLengthPtrQueue(FklPtrQueue*);
 void* fklFirstPtrQueue(FklPtrQueue*);
 void* fklPopPtrQueue(FklPtrQueue*);
 void fklPushPtrQueue(void*,FklPtrQueue*);

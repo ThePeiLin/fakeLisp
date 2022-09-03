@@ -76,10 +76,10 @@ static int nastNodeEqual(const FklNastNode* n0,const FklNastNode* n1)
 							size_t num=root0->u.hash.num;
 							for(size_t i=0;i<num;i++)
 							{
-								fklPushPtrStack(root0->u.hash.items[i].key,s0);
-								fklPushPtrStack(root0->u.hash.items[i].value,s0);
-								fklPushPtrStack(root1->u.hash.items[i].key,s1);
-								fklPushPtrStack(root1->u.hash.items[i].value,s1);
+								fklPushPtrStack(root0->u.hash.items[i].car,s0);
+								fklPushPtrStack(root0->u.hash.items[i].cdr,s0);
+								fklPushPtrStack(root1->u.hash.items[i].car,s1);
+								fklPushPtrStack(root1->u.hash.items[i].cdr,s1);
 							}
 						}
 						break;
@@ -98,6 +98,14 @@ static FklByteCode* new1lenBc(FklOpcode op)
 {
 	FklByteCode* r=fklNewByteCode(1);
 	r->code[0]=op;
+	return r;
+}
+
+static FklByteCode* new9lenBc(FklOpcode op,uint64_t size)
+{
+	FklByteCode* r=fklNewByteCode(1);
+	r->code[0]=op;
+	fklSetU64ToByteCode(r->code+sizeof(char),size);
 	return r;
 }
 
@@ -173,6 +181,14 @@ static FklNextCompile* newNextCompile(FklByteCodeProcesser f
 }
 
 #define BC_PROCESS(NAME) static FklByteCodelnt* NAME(FklPtrStack* stack,FklSid_t fid,uint64_t line)
+
+BC_PROCESS(_default_bc_process)
+{
+	if(!fklIsPtrStackEmpty(stack))
+		return fklPopPtrStack(stack);
+	else
+		return NULL;
+}
 
 BC_PROCESS(_begin_exp_bc_process)
 {
@@ -273,6 +289,40 @@ inline static void pushListItemToQueue(FklNastNode* list,FklPtrQueue* queue)
 		fklPushPtrQueue(cur,queue);
 }
 
+BC_PROCESS(_funcall_exp_bc_process)
+{
+	FklByteCodelnt* retval=fklNewByteCodelnt(fklNewByteCode(0));
+	while(!fklIsPtrStackEmpty(stack))
+	{
+		FklByteCodelnt* cur=fklPopPtrStack(stack);
+		fklCodeLntCat(retval,cur);
+		fklFreeByteCodelnt(cur);
+	}
+	FklByteCode* setBp=new1lenBc(FKL_OP_SET_BP);
+	FklByteCode* call=new1lenBc(FKL_OP_CALL);
+	bcBclAppendToBcl(setBp,retval,fid,line);
+	bclBcAppendToBcl(retval,call,fid,line);
+	fklFreeByteCode(setBp);
+	fklFreeByteCode(call);
+	return retval;
+}
+
+static void compile_funcall(FklNastNode* rest
+		,FklPtrStack* nextCompileStack
+		,FklCompEnvN* env
+		,FklCompiler* comp)
+{
+	FklPtrQueue* queue=fklNewPtrQueue();
+	pushListItemToQueue(rest,queue);
+	fklPushPtrStack(newNextCompile(_funcall_exp_bc_process
+				,fklNewPtrStack(32,16)
+				,queue
+				,env
+				,rest->curline
+				,comp)
+			,nextCompileStack);
+}
+
 static void compile_begin(FklHashTable* ht
 		,FklPtrStack* nextCompileStack
 		,FklCompEnvN* cur
@@ -290,9 +340,6 @@ static void compile_begin(FklHashTable* ht
 			,nextCompileStack);
 }
 
-//BC_PROCESS(_funcall_exp_bc_process)
-//{
-//}
 //
 //BC_PROCESS(_define_exp_bc_process)
 //{
@@ -358,8 +405,48 @@ int fklPatternMatch(const FklNastNode* pattern,FklNastNode* exp,FklHashTable* ht
 	return 1;
 }
 
-FklByteCode* fklCompileNode(const FklNastNode* node)
+FklByteCode* fklCompileNode(const FklNastNode* node,FklCompiler* compiler)
 {
+	FklPtrStack* stack=fklNewPtrStack(32,16);
+	fklPushPtrStack((void*)node,stack);
+	FklByteCode* retval=fklNewByteCode(0);
+	while(!fklIsPtrStackEmpty(stack))
+	{
+		FklNastNode* node=fklPopPtrStack(stack);
+		FklByteCode* tmp=NULL;
+		switch(node->type)
+		{
+			case FKL_TYPE_SYM:
+				break;
+			case FKL_TYPE_PAIR:
+			tmp=new1lenBc(FKL_OP_PUSH_PAIR);
+			fklPushPtrStack(node->u.pair.car,stack);
+			fklPushPtrStack(node->u.pair.cdr,stack);
+			break;
+			case FKL_TYPE_BOX:
+			tmp=new1lenBc(FKL_OP_PUSH_BOX);
+			fklPushPtrStack(node->u.box,stack);
+			break;
+			case FKL_TYPE_VECTOR:
+			tmp=new9lenBc(FKL_OP_PUSH_VECTOR,node->u.vec.size);
+			for(size_t i=0;i<node->u.vec.size;i++)
+				fklPushPtrStack(node->u.vec.base[i],stack);
+			break;
+			case FKL_TYPE_HASHTABLE:
+			tmp=new9lenBc(FKL_OP_PUSH_HASHTABLE_EQ+node->u.hash.type,node->u.hash.num);
+			for(size_t i=0;i<node->u.hash.num;i++)
+			{
+				fklPushPtrStack(node->u.hash.items->car,stack);
+				fklPushPtrStack(node->u.hash.items->cdr,stack);
+			}
+			break;
+			default:
+			FKL_ASSERT(0);
+			break;
+		}
+		fklReCodeCat(tmp,retval);
+	}
+	return retval;
 }
 
 static int matchAndCall(FklFormCompilerFunc func
@@ -372,9 +459,35 @@ static int matchAndCall(FklFormCompilerFunc func
 	FklHashTable* ht=newCompileHashTable();
 	int r=fklPatternMatch(pattern,exp,ht);
 	if(r)
-		func(ht,env,nextCompileStack,compiler);
+		func(ht,nextCompileStack,env,compiler);
 	fklFreeHashTable(ht);
 	return r;
+}
+
+static struct PatternAndFunc
+{
+	char* ps;
+	FklNastNode* pn;
+	FklFormCompilerFunc func;
+}buildIntPattern[]=
+{
+	{"(begin,rest)",NULL,compile_begin,},
+	{NULL,NULL,NULL,}
+};
+
+void fklInitBuiltInPattern(void)
+{
+	for(struct PatternAndFunc* cur=&buildIntPattern[0];cur->ps!=NULL;cur++)
+		cur->pn=fklNewNastNodeFromCstr(cur->ps);
+}
+
+FklByteCodelnt* fklMakePushVar(const FklNastNode* exp,FklCompiler* comp)
+{
+	FklByteCode* bc=new9lenBc(FKL_OP_PUSH_VAR,0);
+	FklSid_t sid=fklAddSymbol(fklGetGlobSymbolWithId(exp->u.sym)->symbol,comp->globTable)->id;
+	fklSetSidToByteCode(bc->code+sizeof(char),sid);
+	FklByteCodelnt* retval=newBclnt(bc,comp->fid,exp->curline);
+	return retval;
 }
 
 FklByteCodelnt* fklCompileExpression(const FklNastNode* exp
@@ -382,4 +495,63 @@ FklByteCodelnt* fklCompileExpression(const FklNastNode* exp
 		,FklCompiler* compiler)
 {
 	FklPtrStack* nextCompileStack=fklNewPtrStack(32,16);
+	FklPtrQueue* queue=fklNewPtrQueue();
+	FklPtrStack* resultStack=fklNewPtrStack(8,8);
+	fklPushPtrQueue((void*)exp,queue);
+	fklPushPtrStack(newNextCompile(_default_bc_process
+				,fklNewPtrStack(32,16)
+				,queue
+				,globalEnv
+				,exp->curline
+				,compiler)
+			,nextCompileStack);
+	while(!fklIsPtrStackEmpty(nextCompileStack))
+	{
+		FklNextCompile* curCompiling=fklTopPtrStack(nextCompileStack);
+		FklPtrQueue* queue=curCompiling->queue;
+		FklCompEnvN* curEnv=curCompiling->env;
+		FklPtrStack* curBcStack=curCompiling->stack;
+		int r=1;
+		while(!fklIsPtrQueueEmpty(queue)&&r)
+		{
+			FklNastNode* curExp=fklPopPtrQueue(queue);
+			for(struct PatternAndFunc* cur=&buildIntPattern[0];cur->ps!=NULL;cur++)
+				if(matchAndCall(cur->func,cur->pn,curExp,nextCompileStack,curEnv,compiler))
+				{
+					r=0;
+					break;
+				}
+			if(r)
+			{
+				if(curExp->type==FKL_TYPE_PAIR)
+				{
+					compile_funcall(curExp,nextCompileStack,curEnv,compiler);
+					r=0;
+				}
+				else if(curExp->type==FKL_TYPE_SYM)
+					fklPushPtrStack(fklMakePushVar(curExp,compiler),curBcStack);
+				else
+					fklPushPtrStack(newBclnt(fklCompileNode(curExp,compiler)
+								,compiler->fid
+								,curExp->curline)
+							,curBcStack);
+			}
+		}
+		FklNextCompile* otherCompiling=fklTopPtrStack(nextCompileStack);
+		if(otherCompiling==curCompiling)
+		{
+			fklPopPtrStack(nextCompileStack);
+			fklPushPtrStack(curCompiling->processer(curBcStack
+						,compiler->fid
+						,curCompiling->curline)
+					,fklIsPtrStackEmpty(nextCompileStack)
+					?resultStack
+					:((FklNextCompile*)fklTopPtrStack(nextCompileStack))->stack);
+		}
+	}
+	FklByteCodelnt* retval=NULL;
+	if(!fklIsPtrStackEmpty(resultStack))
+		retval=fklPopPtrStack(resultStack);
+	fklFreePtrStack(resultStack);
+	return retval;
 }

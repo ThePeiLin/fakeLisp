@@ -95,6 +95,10 @@ FklByteCode* fklCompileNode(const FklNastNode*,FklCompiler* compiler);
 FklByteCodelnt* fklCompileExpression(const FklNastNode* exp
 		,FklCompEnvN* globalEnv
 		,FklCompiler* compiler);
+void fklAddCompDefBySid(FklSid_t sid,FklCompEnvN*);
+int fklIsSymbolDefined(FklSid_t sid,FklCompEnvN*);
+
+FklCompEnvN* fklNewCompEnvN(FklCompEnvN* prev);
 #ifdef __cplusplus
 }
 #endif

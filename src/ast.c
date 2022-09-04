@@ -1405,17 +1405,14 @@ void fklPrintCptr(const FklAstCptr* o_cptr,FILE* fp)
 						fklPushPtrQueue(newAstElem(AST_BOX,&tmpAtm->value.box),cQueue);
 						break;
 					case FKL_TYPE_HASHTABLE:
-						switch(tmpAtm->value.hash.type)
 						{
-							case FKL_VM_HASH_EQ:
-								fputs("#hash",fp);
-								break;
-							case FKL_VM_HASH_EQV:
-								fputs("#hasheqv",fp);
-								break;
-							case FKL_VM_HASH_EQUAL:
-								fputs("#hashequal",fp);
-								break;
+							const static char* tmp[]=
+							{
+								"#hash",
+								"#hasheqv",
+								"#hashequal",
+							};
+							fputs(tmp[tmpAtm->value.hash.type],fp);
 						}
 						fklPushPtrQueue(newAstElem(AST_BOX,&tmpAtm->value.hash.items),cQueue);
 						break;

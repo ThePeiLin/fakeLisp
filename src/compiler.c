@@ -874,18 +874,7 @@ FklByteCode* fklCompileHashtable(FklAstCptr* objCptr)
 	FklByteCode* pushHash=fklNewByteCode(sizeof(char)+sizeof(uint64_t));
 	FklAstHashTable* hash=&objCptr->u.atom->value.hash;
 	FklByteCode* retval=fklNewByteCode(0);
-	switch(hash->type)
-	{
-		case FKL_VM_HASH_EQ:
-			pushHash->code[0]=FKL_OP_PUSH_HASHTABLE_EQ;
-			break;
-		case FKL_VM_HASH_EQV:
-			pushHash->code[0]=FKL_OP_PUSH_HASHTABLE_EQV;
-			break;
-		case FKL_VM_HASH_EQUAL:
-			pushHash->code[0]=FKL_OP_PUSH_HASHTABLE_EQUAL;
-			break;
-	}
+	pushHash->code[0]=FKL_OP_PUSH_HASHTABLE_EQ+hash->type;
 	for(FklAstCptr* first=fklGetFirstCptr(&hash->items);first;first=fklNextCptr(first))
 	{
 		FklByteCode* key=innerCompileConst(fklGetASTPairCar(first));

@@ -1120,18 +1120,13 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 					}
 					else if(FKL_IS_HASHTABLE(v))
 					{
-						switch(v->u.hash->type)
+						const static char* tmp[]=
 						{
-							case FKL_VM_HASH_EQ:
-								fputs("#hash(",fp);
-								break;
-							case FKL_VM_HASH_EQV:
-								fputs("#hasheqv(",fp);
-								break;
-							case FKL_VM_HASH_EQUAL:
-								fputs("#hashequal(",fp);
-								break;
-						}
+							"#hash",
+							"#hasheqv",
+							"#hashequal",
+						};
+						fputs(tmp[v->u.hash->type],fp);
 						FklPtrQueue* hQueue=fklNewPtrQueue();
 						for(FklHashTableNodeList* list=v->u.hash->ht->list;list;list=list->next)
 						{

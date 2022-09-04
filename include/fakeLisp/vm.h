@@ -17,7 +17,7 @@ extern "C" {
 
 typedef enum
 {
-	FKL_CC_OK,
+	FKL_CC_OK=0,
 	FKL_CC_RE,
 }FklCCState;
 
@@ -135,7 +135,7 @@ typedef struct FklVMenv
 
 typedef enum
 {
-	FKL_VM_HASH_EQ,
+	FKL_VM_HASH_EQ=0,
 	FKL_VM_HASH_EQV,
 	FKL_VM_HASH_EQUAL,
 }FklVMhashTableEqType;

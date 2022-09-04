@@ -2,6 +2,11 @@
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/utils.h>
 
+static FklSid_t builtInPatternVar_rest=0;
+static FklSid_t builtInPatternVar_name=0;
+static FklSid_t builtInPatternVar_value=0;
+static FklSid_t builtInPatternVar_args=0;
+
 static int nastNodeEqual(const FklNastNode* n0,const FklNastNode* n1)
 {
 	FklPtrStack* s0=fklNewPtrStack(32,16);
@@ -109,6 +114,32 @@ static FklByteCode* new9lenBc(FklOpcode op,uint64_t size)
 	return r;
 }
 
+static FklByteCode* newPushVar(FklSid_t id)
+{
+	FklByteCode* r=new9lenBc(FKL_OP_PUSH_VAR,0);
+	fklSetSidToByteCode(r->code+sizeof(char),id);
+	return r;
+}
+
+//static FklByteCode* newPopVar(uint32_t scope,FklSid_t id)
+//{
+//	FklByteCode* r=fklNewByteCode(sizeof(char)+sizeof(uint32_t)+sizeof(FklSid_t));
+//	r->code[0]=FKL_OP_POP_VAR;
+//	fklSetU32ToByteCode(r->code+sizeof(char),scope);
+//	fklSetSidToByteCode(r->code+sizeof(char)+sizeof(uint32_t),id);
+//	return r;
+//}
+
+static FklByteCode* newPushTopPopVar(uint32_t scope,FklSid_t id)
+{
+	FklByteCode* r=fklNewByteCode(sizeof(char)+sizeof(char)+sizeof(uint32_t)+sizeof(FklSid_t));
+	r->code[0]=FKL_OP_PUSH_TOP;
+	r->code[sizeof(char)]=FKL_OP_POP_VAR;
+	fklSetU32ToByteCode(r->code+sizeof(char)+sizeof(char),scope);
+	fklSetSidToByteCode(r->code+sizeof(char)+sizeof(char)+sizeof(uint32_t),id);
+	return r;
+}
+
 static FklByteCodelnt* newBclnt(FklByteCode* bc
 		,FklSid_t fid
 		,uint64_t line)
@@ -118,6 +149,13 @@ static FklByteCodelnt* newBclnt(FklByteCode* bc
 	r->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 	FKL_ASSERT(r->l);
 	r->l[0]=fklNewLineNumTabNode(fid,0,r->bc->size,line);
+	return r;
+}
+
+static FklByteCodelnt* makePushTopAndPopVar(const FklNastNode* sym,uint32_t scope,FklCompiler* comp)
+{
+	FklSid_t sid=fklAddSymbol(fklGetGlobSymbolWithId(sym->u.sym)->symbol,comp->globTable)->id;
+	FklByteCodelnt* r=newBclnt(newPushTopPopVar(scope,sid),comp->fid,sym->curline);
 	return r;
 }
 
@@ -194,9 +232,14 @@ BC_PROCESS(_begin_exp_bc_process)
 {
 	if(stack->top)
 	{
-		FklByteCode* setTp=new1lenBc(FKL_OP_SET_TP);
-		FklByteCode* resTp=new1lenBc(FKL_OP_RES_TP);
-		FklByteCode* popTp=new1lenBc(FKL_OP_POP_TP);
+		uint8_t opcodes[]={
+			FKL_OP_SET_TP,
+			FKL_OP_RES_TP,
+			FKL_OP_POP_TP,
+		};
+		FklByteCode setTp={1,&opcodes[0]};
+		FklByteCode resTp={1,&opcodes[1]};
+		FklByteCode popTp={1,&opcodes[2]};
 		FklByteCodelnt* retval=fklNewByteCodelnt(fklNewByteCode(0));
 		size_t top=stack->top;
 		for(size_t i=0;i<top;i++)
@@ -206,15 +249,12 @@ BC_PROCESS(_begin_exp_bc_process)
 			{
 				fklCodeLntCat(retval,cur);
 				if(i<top-1)
-					bclBcAppendToBcl(retval,resTp,fid,line);
+					bclBcAppendToBcl(retval,&resTp,fid,line);
 			}
 			fklFreeByteCodelnt(cur);
 		}
-		bcBclAppendToBcl(setTp,retval,fid,line);
-		bclBcAppendToBcl(retval,popTp,fid,line);
-		fklFreeByteCode(setTp);
-		fklFreeByteCode(resTp);
-		fklFreeByteCode(popTp);
+		bcBclAppendToBcl(&setTp,retval,fid,line);
+		bclBcAppendToBcl(retval,&popTp,fid,line);
 		return retval;
 	}
 	else
@@ -298,12 +338,11 @@ BC_PROCESS(_funcall_exp_bc_process)
 		fklCodeLntCat(retval,cur);
 		fklFreeByteCodelnt(cur);
 	}
-	FklByteCode* setBp=new1lenBc(FKL_OP_SET_BP);
-	FklByteCode* call=new1lenBc(FKL_OP_CALL);
-	bcBclAppendToBcl(setBp,retval,fid,line);
-	bclBcAppendToBcl(retval,call,fid,line);
-	fklFreeByteCode(setBp);
-	fklFreeByteCode(call);
+	uint8_t opcodes[]={FKL_OP_SET_BP,FKL_OP_CALL};
+	FklByteCode setBp={1,&opcodes[0],};
+	FklByteCode call={1,&opcodes[1],};
+	bcBclAppendToBcl(&setBp,retval,fid,line);
+	bclBcAppendToBcl(retval,&call,fid,line);
 	return retval;
 }
 
@@ -323,45 +362,304 @@ static void compile_funcall(FklNastNode* rest
 			,nextCompileStack);
 }
 
-static void compile_begin(FklHashTable* ht
-		,FklPtrStack* nextCompileStack
-		,FklCompEnvN* cur
+#define COMPILE_FUNC(NAME) void NAME(FklHashTable* ht\
+		,FklPtrStack* nextCompileStack\
+		,FklCompEnvN* curEnv\
 		,FklCompiler* comp)
+
+static COMPILE_FUNC(compile_begin)
 {
-	FklNastNode* rest=compileHashTableRef(fklAddSymbolToGlobCstr("rest")->id,ht);
+	FklNastNode* rest=compileHashTableRef(builtInPatternVar_rest,ht);
 	FklPtrQueue* queue=fklNewPtrQueue();
 	pushListItemToQueue(rest,queue);
 	fklPushPtrStack(newNextCompile(_begin_exp_bc_process
 				,fklNewPtrStack(32,16)
 				,queue
-				,cur
+				,curEnv
 				,rest->curline
 				,comp)
 			,nextCompileStack);
 }
 
-//
-//BC_PROCESS(_define_exp_bc_process)
-//{
-//}
-//
-//BC_PROCESS(_setq_exp_bc_process)
-//{
-//}
-//
+BC_PROCESS(_and_exp_bc_process)
+{
+	if(stack->top)
+	{
+		uint8_t opcodes[]={
+			FKL_OP_SET_TP,
+			FKL_OP_RES_TP,
+			FKL_OP_POP_TP,
+		};
+		FklByteCode setTp={1,&opcodes[0]};
+		FklByteCode resTp={1,&opcodes[1]};
+		FklByteCode popTp={1,&opcodes[2]};
+		FklByteCodelnt* retval=fklNewByteCodelnt(fklNewByteCode(0));
+		size_t top=stack->top;
+		for(size_t i=0;i<top;i++)
+		{
+			FklByteCodelnt* cur=stack->base[i];
+			if(cur->bc->size)
+			{
+				fklCodeLntCat(retval,cur);
+				if(i<top-1)
+					bclBcAppendToBcl(retval,&resTp,fid,line);
+			}
+			fklFreeByteCodelnt(cur);
+		}
+		bcBclAppendToBcl(&setTp,retval,fid,line);
+		bclBcAppendToBcl(retval,&popTp,fid,line);
+		return retval;
+	}
+	else
+		return newBclnt(new1lenBc(FKL_OP_PUSH_NIL),fid,line);
+}
+
+static COMPILE_FUNC(compile_and)
+{
+	FklNastNode* rest=compileHashTableRef(builtInPatternVar_rest,ht);
+	FklPtrQueue* queue=fklNewPtrQueue();
+	pushListItemToQueue(rest,queue);
+	FklCompEnvN* andEnv=fklNewCompEnvN(curEnv);
+	fklPushPtrStack(newNextCompile(_and_exp_bc_process
+				,fklNewPtrStack(32,16)
+				,queue
+				,andEnv
+				,rest->curline
+				,comp)
+			,nextCompileStack);
+}
+
+BC_PROCESS(_or_exp_bc_process)
+{
+	if(stack->top)
+	{
+		uint8_t opcodes[]={
+			FKL_OP_SET_TP,
+			FKL_OP_RES_TP,
+			FKL_OP_POP_TP,
+		};
+		FklByteCode setTp={1,&opcodes[0]};
+		FklByteCode resTp={1,&opcodes[1]};
+		FklByteCode popTp={1,&opcodes[2]};
+		FklByteCodelnt* retval=fklNewByteCodelnt(fklNewByteCode(0));
+		size_t top=stack->top;
+		for(size_t i=0;i<top;i++)
+		{
+			FklByteCodelnt* cur=stack->base[i];
+			if(cur->bc->size)
+			{
+				fklCodeLntCat(retval,cur);
+				if(i<top-1)
+					bclBcAppendToBcl(retval,&resTp,fid,line);
+			}
+			fklFreeByteCodelnt(cur);
+		}
+		bcBclAppendToBcl(&setTp,retval,fid,line);
+		bclBcAppendToBcl(retval,&popTp,fid,line);
+		return retval;
+	}
+	else
+		return newBclnt(new1lenBc(FKL_OP_PUSH_NIL),fid,line);
+}
+
+static COMPILE_FUNC(compile_or)
+{
+	FklNastNode* rest=compileHashTableRef(builtInPatternVar_rest,ht);
+	FklPtrQueue* queue=fklNewPtrQueue();
+	pushListItemToQueue(rest,queue);
+	FklCompEnvN* orEnv=fklNewCompEnvN(curEnv);
+	fklPushPtrStack(newNextCompile(_or_exp_bc_process
+				,fklNewPtrStack(32,16)
+				,queue
+				,orEnv
+				,rest->curline
+				,comp)
+			,nextCompileStack);
+}
+
+
+BC_PROCESS(_lambda_exp_bc_process)
+{
+	if(stack->top)
+	{
+		uint8_t opcodes[]={
+			FKL_OP_SET_TP,
+			FKL_OP_RES_TP,
+			FKL_OP_POP_TP,
+		};
+		FklByteCode setTp={1,&opcodes[0]};
+		FklByteCode resTp={1,&opcodes[1]};
+		FklByteCode popTp={1,&opcodes[2]};
+		FklByteCodelnt* retval=fklNewByteCodelnt(fklNewByteCode(0));
+		size_t top=stack->top;
+		for(size_t i=1;i<top;i++)
+		{
+			FklByteCodelnt* cur=stack->base[i];
+			if(cur->bc->size)
+			{
+				fklCodeLntCat(retval,cur);
+				if(i<top-1)
+					bclBcAppendToBcl(retval,&resTp,fid,line);
+			}
+			fklFreeByteCodelnt(cur);
+		}
+		bcBclAppendToBcl(&setTp,retval,fid,line);
+		bclBcAppendToBcl(retval,&popTp,fid,line);
+		fklReCodeLntCat(stack->base[0],retval);
+		fklFreeByteCodelnt(stack->base[0]);
+		return retval;
+	}
+	else
+		return newBclnt(new1lenBc(FKL_OP_PUSH_NIL),fid,line);
+}
+
+static FklByteCodelnt* makePopArg(FklOpcode code,const FklNastNode* sym,FklCompiler* comp)
+{
+	FklByteCode* bc=new9lenBc(code,0);
+	FklSid_t sid=fklAddSymbol(fklGetGlobSymbolWithId(sym->u.sym)->symbol,comp->globTable)->id;
+	fklSetSidToByteCode(bc->code+sizeof(char),sid);
+	return newBclnt(bc,comp->fid,sym->curline);
+}
+
+static FklByteCodelnt* processArgs(const FklNastNode* args,FklCompEnvN* curEnv,FklCompiler* comp)
+{
+	FklByteCodelnt* retval=fklNewByteCodelnt(fklNewByteCode(0));
+	for(;args->type==FKL_TYPE_PAIR;args=args->u.pair.cdr)
+	{
+		FklNastNode* cur=args->u.pair.car;
+		fklAddCompDefBySid(cur->u.sym,curEnv);
+		FklByteCodelnt* tmp=makePopArg(FKL_OP_POP_ARG,cur,comp);
+		fklCodeLntCat(retval,tmp);
+		fklFreeByteCodelnt(tmp);
+	}
+	if(args)
+	{
+		FklByteCodelnt* tmp=makePopArg(FKL_OP_POP_REST_ARG,args,comp);
+		fklCodeLntCat(retval,tmp);
+		fklFreeByteCodelnt(tmp);
+	}
+	uint8_t opcodes[]={FKL_OP_RES_BP,};
+	FklByteCode resBp={1,&opcodes[0]};
+	bclBcAppendToBcl(retval,&resBp,comp->fid,args->curline);
+	return retval;
+}
+
+static COMPILE_FUNC(compile_lambda)
+{
+	FklNastNode* args=compileHashTableRef(builtInPatternVar_args,ht);
+	FklNastNode* rest=compileHashTableRef(builtInPatternVar_rest,ht);
+	FklPtrQueue* queue=fklNewPtrQueue();
+	pushListItemToQueue(rest,queue);
+	FklPtrStack* stack=fklNewPtrStack(32,16);
+	FklCompEnvN* lambdaCompEnv=fklNewCompEnvN(curEnv);
+	fklPushPtrStack(processArgs(args,lambdaCompEnv,comp),stack);
+	fklPushPtrStack(newNextCompile(_lambda_exp_bc_process
+				,stack
+				,queue
+				,lambdaCompEnv
+				,rest->curline
+				,comp)
+			,nextCompileStack);
+}
+
+BC_PROCESS(_define_exp_bc_process)
+{
+	FklByteCodelnt* cur=fklPopPtrStack(stack);
+	FklByteCodelnt* popVar=fklPopPtrStack(stack);
+	fklCodeLntCat(popVar,cur);
+	fklFreeByteCodelnt(cur);
+	return popVar;
+}
+
+static COMPILE_FUNC(compile_define)
+{
+	FklNastNode* name=compileHashTableRef(builtInPatternVar_name,ht);
+	FklNastNode* value=compileHashTableRef(builtInPatternVar_value,ht);
+	FklPtrQueue* queue=fklNewPtrQueue();
+	FklPtrStack* stack=fklNewPtrStack(2,1);
+	fklAddCompDefBySid(name->u.sym,curEnv);
+	fklPushPtrStack(makePushTopAndPopVar(name,1,comp),stack);
+	fklPushPtrQueue(value,queue);
+	fklPushPtrStack(newNextCompile(_define_exp_bc_process
+				,stack
+				,queue
+				,curEnv
+				,name->curline
+				,comp)
+			,nextCompileStack);
+}
+
+BC_PROCESS(_setq_exp_bc_process)
+{
+	FklByteCodelnt* cur=fklPopPtrStack(stack);
+	FklByteCodelnt* popVar=fklPopPtrStack(stack);
+	fklCodeLntCat(popVar,cur);
+	fklFreeByteCodelnt(cur);
+	return popVar;
+}
+
+static COMPILE_FUNC(compile_setq)
+{
+	FklNastNode* name=compileHashTableRef(builtInPatternVar_name,ht);
+	FklNastNode* value=compileHashTableRef(builtInPatternVar_value,ht);
+	FklPtrQueue* queue=fklNewPtrQueue();
+	FklPtrStack* stack=fklNewPtrStack(2,1);
+	int isDefined=0;
+	uint32_t scope=1;
+	for(FklCompEnvN* cEnv=curEnv;cEnv&&!isDefined;cEnv=cEnv->prev,scope++)
+		isDefined=fklIsSymbolDefined(name->u.sym,cEnv);
+	if(!isDefined)
+		scope=0;
+	fklPushPtrStack(makePushTopAndPopVar(name,scope,comp),stack);
+	fklPushPtrQueue(value,queue);
+	fklPushPtrStack(newNextCompile(_setq_exp_bc_process
+				,stack
+				,queue
+				,curEnv
+				,name->curline
+				,comp)
+			,nextCompileStack);
+}
+
+BC_PROCESS(_quote_exp_bc_process)
+{
+	return fklPopPtrStack(stack);
+}
+
+static COMPILE_FUNC(compile_quote)
+{
+	FklNastNode* value=compileHashTableRef(builtInPatternVar_value,ht);
+	FklPtrStack* stack=fklNewPtrStack(1,1);
+	fklPushPtrStack(newBclnt(fklCompileNode(value,comp),comp->fid,value->curline),stack);
+	fklPushPtrStack(newNextCompile(_quote_exp_bc_process
+				,stack
+				,NULL
+				,curEnv
+				,value->curline
+				,comp)
+			,nextCompileStack);
+}
+
+BC_PROCESS(_unquote_exp_bc_process)
+{
+	return fklPopPtrStack(stack);
+}
+
+static COMPILE_FUNC(compile_unquote)
+{
+	FklNastNode* value=compileHashTableRef(builtInPatternVar_value,ht);
+	FklPtrQueue* queue=fklNewPtrQueue();
+	fklPushPtrQueue(value,queue);
+	fklPushPtrStack(newNextCompile(_unquote_exp_bc_process
+				,fklNewPtrStack(1,1)
+				,queue
+				,curEnv
+				,value->curline
+				,comp)
+			,nextCompileStack);
+}
+
 //BC_PROCESS(_cond_exp_bc_process)
-//{
-//}
-//
-//BC_PROCESS(_lambda_exp_bc_process)
-//{
-//}
-//
-//BC_PROCESS(_and_exp_bc_process)
-//{
-//}
-//
-//BC_PROCESS(_or_exp_bc_process)
 //{
 //}
 //
@@ -471,22 +769,32 @@ static struct PatternAndFunc
 	FklFormCompilerFunc func;
 }buildIntPattern[]=
 {
-	{"(begin,rest)",NULL,compile_begin,},
-	{NULL,NULL,NULL,}
+	{"(begin,rest)",        NULL, compile_begin,   },
+	{"(define name value)", NULL, compile_define,  },
+	{"(setq name value)",   NULL, compile_setq,    },
+	{"(quote value)",       NULL, compile_quote,   },
+	{"(unquote value)",     NULL, compile_unquote, },
+	{"(lambda args,rest)",  NULL, compile_lambda,  },
+	{"(and,rest)",          NULL, compile_and,     },
+	{"(or,rest)",           NULL, compile_or,      },
+	{NULL,                  NULL, NULL,            }
 };
 
 void fklInitBuiltInPattern(void)
 {
+	builtInPatternVar_rest=fklAddSymbolToGlobCstr("rest")->id;
+	builtInPatternVar_name=fklAddSymbolToGlobCstr("name")->id;
+	builtInPatternVar_args=fklAddSymbolToGlobCstr("args")->id;
+	builtInPatternVar_value=fklAddSymbolToGlobCstr("value")->id;
+
 	for(struct PatternAndFunc* cur=&buildIntPattern[0];cur->ps!=NULL;cur++)
 		cur->pn=fklNewNastNodeFromCstr(cur->ps);
 }
 
 FklByteCodelnt* fklMakePushVar(const FklNastNode* exp,FklCompiler* comp)
 {
-	FklByteCode* bc=new9lenBc(FKL_OP_PUSH_VAR,0);
 	FklSid_t sid=fklAddSymbol(fklGetGlobSymbolWithId(exp->u.sym)->symbol,comp->globTable)->id;
-	fklSetSidToByteCode(bc->code+sizeof(char),sid);
-	FklByteCodelnt* retval=newBclnt(bc,comp->fid,exp->curline);
+	FklByteCodelnt* retval=newBclnt(newPushVar(sid),comp->fid,exp->curline);
 	return retval;
 }
 

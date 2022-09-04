@@ -57,7 +57,7 @@ char* fklReadInStringPattern(FILE* fp,char** prev,size_t* size,size_t* prevSize,
 	uint32_t line=curline;
 	for(;;)
 	{
-		char* strs[]={tmp+cpost};
+		const char* strs[]={tmp+cpost};
 		size_t sizes[]={*size-cpost};
 		uint32_t i=0,j=0;
 		int r=fklSplitStringPartsIntoToken(strs,sizes,1,&line,retval,matchStateStack,&i,&j);

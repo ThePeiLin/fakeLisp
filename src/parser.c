@@ -493,7 +493,7 @@ static int isDivider(const char* buf,size_t i,size_t size,FklPtrStack* matchStat
 			||isBuiltInReserveStr(buf+i,size);
 }
 
-int fklSplitStringPartsIntoToken(char** parts,size_t* sizes,uint32_t inum,uint32_t* line,FklPtrStack* retvalStack,FklPtrStack* matchStateStack,uint32_t* pi,uint32_t* pj)
+int fklSplitStringPartsIntoToken(const char** parts,size_t* sizes,uint32_t inum,uint32_t* line,FklPtrStack* retvalStack,FklPtrStack* matchStateStack,uint32_t* pi,uint32_t* pj)
 {
 	int done=0;
 	uint32_t i=0;

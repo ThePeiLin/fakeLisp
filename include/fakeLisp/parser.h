@@ -25,7 +25,7 @@ typedef struct
 	uint32_t line;
 }FklToken;
 
-int fklSplitStringPartsIntoToken(char** parts
+int fklSplitStringPartsIntoToken(const char** parts
 		,size_t* sizes
 		,uint32_t inum
 		,uint32_t* line

@@ -2733,7 +2733,7 @@ void builtin_read(ARGL)
 	}
 	else
 	{
-		char* parts[]={stream->u.str->str};
+		const char* parts[]={stream->u.str->str};
 		size_t sizes[]={stream->u.str->size};
 		uint32_t line=0;
 		FklPtrStack* matchStateStack=fklNewPtrStack(32,16);

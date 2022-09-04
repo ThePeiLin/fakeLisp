@@ -1,6 +1,8 @@
 #include<fakeLisp/ncompiler.h>
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/utils.h>
+#include<fakeLisp/parser.h>
+#include<string.h>
 
 static FklSid_t builtInPatternVar_rest=0;
 static FklSid_t builtInPatternVar_name=0;
@@ -389,29 +391,40 @@ BC_PROCESS(_and_exp_bc_process)
 			FKL_OP_SET_TP,
 			FKL_OP_RES_TP,
 			FKL_OP_POP_TP,
+			FKL_OP_PUSH_R_ENV,
+			FKL_OP_POP_R_ENV,
 		};
+		uint8_t jmpOpcodes[9]={FKL_OP_JMP_IF_FALSE,};
 		FklByteCode setTp={1,&opcodes[0]};
 		FklByteCode resTp={1,&opcodes[1]};
 		FklByteCode popTp={1,&opcodes[2]};
+		FklByteCode pushREnv={1,&opcodes[3]};
+		FklByteCode popREnv={1,&opcodes[4]};
+		FklByteCode jmpIfFalse={9,jmpOpcodes};
 		FklByteCodelnt* retval=fklNewByteCodelnt(fklNewByteCode(0));
-		size_t top=stack->top;
-		for(size_t i=0;i<top;i++)
+		while(!fklIsPtrStackEmpty(stack))
 		{
-			FklByteCodelnt* cur=stack->base[i];
-			if(cur->bc->size)
+			if(retval->bc->size)
 			{
-				fklCodeLntCat(retval,cur);
-				if(i<top-1)
-					bclBcAppendToBcl(retval,&resTp,fid,line);
+				bcBclAppendToBcl(&resTp,retval,fid,line);
+				fklSetI64ToByteCode(&jmpOpcodes[1],retval->bc->size);
+				bcBclAppendToBcl(&jmpIfFalse,retval,fid,line);
 			}
+			FklByteCodelnt* cur=fklPopPtrStack(stack);
+			fklReCodeLntCat(cur,retval);
 			fklFreeByteCodelnt(cur);
+		}
+		if(retval->bc->size)
+		{
+			bcBclAppendToBcl(&pushREnv,retval,fid,line);
+			bclBcAppendToBcl(retval,&popREnv,fid,line);
 		}
 		bcBclAppendToBcl(&setTp,retval,fid,line);
 		bclBcAppendToBcl(retval,&popTp,fid,line);
 		return retval;
 	}
 	else
-		return newBclnt(new1lenBc(FKL_OP_PUSH_NIL),fid,line);
+		return newBclnt(fklNewPushI32ByteCode(1),fid,line);
 }
 
 static COMPILE_FUNC(compile_and)
@@ -437,22 +450,33 @@ BC_PROCESS(_or_exp_bc_process)
 			FKL_OP_SET_TP,
 			FKL_OP_RES_TP,
 			FKL_OP_POP_TP,
+			FKL_OP_PUSH_R_ENV,
+			FKL_OP_POP_R_ENV,
 		};
+		uint8_t jmpOpcodes[9]={FKL_OP_JMP_IF_TRUE,};
 		FklByteCode setTp={1,&opcodes[0]};
 		FklByteCode resTp={1,&opcodes[1]};
 		FklByteCode popTp={1,&opcodes[2]};
+		FklByteCode pushREnv={1,&opcodes[3]};
+		FklByteCode popREnv={1,&opcodes[4]};
+		FklByteCode jmpIfTrue={9,jmpOpcodes};
 		FklByteCodelnt* retval=fklNewByteCodelnt(fklNewByteCode(0));
-		size_t top=stack->top;
-		for(size_t i=0;i<top;i++)
+		while(!fklIsPtrStackEmpty(stack))
 		{
-			FklByteCodelnt* cur=stack->base[i];
-			if(cur->bc->size)
+			if(retval->bc->size)
 			{
-				fklCodeLntCat(retval,cur);
-				if(i<top-1)
-					bclBcAppendToBcl(retval,&resTp,fid,line);
+				bcBclAppendToBcl(&resTp,retval,fid,line);
+				fklSetI64ToByteCode(&jmpOpcodes[1],retval->bc->size);
+				bcBclAppendToBcl(&jmpIfTrue,retval,fid,line);
 			}
+			FklByteCodelnt* cur=fklPopPtrStack(stack);
+			fklReCodeLntCat(cur,retval);
 			fklFreeByteCodelnt(cur);
+		}
+		if(retval->bc->size)
+		{
+			bcBclAppendToBcl(&pushREnv,retval,fid,line);
+			bclBcAppendToBcl(retval,&popREnv,fid,line);
 		}
 		bcBclAppendToBcl(&setTp,retval,fid,line);
 		bclBcAppendToBcl(retval,&popTp,fid,line);
@@ -480,7 +504,8 @@ static COMPILE_FUNC(compile_or)
 
 BC_PROCESS(_lambda_exp_bc_process)
 {
-	if(stack->top)
+	FklByteCodelnt* retval=NULL;
+	if(stack->top>1)
 	{
 		uint8_t opcodes[]={
 			FKL_OP_SET_TP,
@@ -490,7 +515,7 @@ BC_PROCESS(_lambda_exp_bc_process)
 		FklByteCode setTp={1,&opcodes[0]};
 		FklByteCode resTp={1,&opcodes[1]};
 		FklByteCode popTp={1,&opcodes[2]};
-		FklByteCodelnt* retval=fklNewByteCodelnt(fklNewByteCode(0));
+		retval=fklNewByteCodelnt(fklNewByteCode(0));
 		size_t top=stack->top;
 		for(size_t i=1;i<top;i++)
 		{
@@ -505,12 +530,12 @@ BC_PROCESS(_lambda_exp_bc_process)
 		}
 		bcBclAppendToBcl(&setTp,retval,fid,line);
 		bclBcAppendToBcl(retval,&popTp,fid,line);
-		fklReCodeLntCat(stack->base[0],retval);
-		fklFreeByteCodelnt(stack->base[0]);
-		return retval;
 	}
 	else
-		return newBclnt(new1lenBc(FKL_OP_PUSH_NIL),fid,line);
+		retval=newBclnt(new1lenBc(FKL_OP_PUSH_NIL),fid,line);
+	fklReCodeLntCat(stack->base[0],retval);
+	fklFreeByteCodelnt(stack->base[0]);
+	return retval;
 }
 
 static FklByteCodelnt* makePopArg(FklOpcode code,const FklNastNode* sym,FklCompiler* comp)
@@ -789,6 +814,33 @@ void fklInitBuiltInPattern(void)
 
 	for(struct PatternAndFunc* cur=&buildIntPattern[0];cur->ps!=NULL;cur++)
 		cur->pn=fklNewNastNodeFromCstr(cur->ps);
+}
+
+FklNastNode* fklNewNastNodeFromCstr(const char* cStr)
+{
+	FklPtrStack* tokenStack=fklNewPtrStack(8,16);
+	size_t size=strlen(cStr);
+	uint32_t line=0;
+	uint32_t i,j=0;
+	FklPtrStack* matchStateStack=fklNewPtrStack(8,16);
+	fklSplitStringPartsIntoToken(&cStr
+			,&size
+			,0
+			,&line
+			,tokenStack
+			,matchStateStack
+			,&i
+			,&j);
+	FklNastNode* retval=fklNewNastNodeFromTokenStack(tokenStack);
+	while(!fklIsPtrStackEmpty(tokenStack))
+		fklFreeToken(fklPopPtrStack(tokenStack));
+	while(!fklIsPtrStackEmpty(matchStateStack))
+		free(fklPopPtrStack(matchStateStack));
+	return retval;
+}
+
+FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack* tokenStack)
+{
 }
 
 FklByteCodelnt* fklMakePushVar(const FklNastNode* exp,FklCompiler* comp)

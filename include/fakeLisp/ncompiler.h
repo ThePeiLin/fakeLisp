@@ -38,13 +38,13 @@ typedef struct FklNastNode
 		int32_t i32;
 		int64_t i64;
 		double f64;
-		FklString str;
 		FklSid_t sym;
-		FklBytevector bvec;
-		FklNastVector vec;
-		FklNastPair pair;
-		FklBigInt bigInt;
-		FklNastHashTable hash;
+		FklString* str;
+		FklBytevector* bvec;
+		FklBigInt* bigInt;
+		FklNastVector* vec;
+		FklNastPair* pair;
+		FklNastHashTable* hash;
 		struct FklNastNode* box;
 	}u;
 }FklNastNode;
@@ -72,10 +72,10 @@ typedef struct FklCompiler
 
 typedef FklByteCodelnt* (*FklByteCodeProcesser)(FklPtrStack* stack,FklSid_t,uint64_t);
 typedef void (*FklFormCompilerFunc)(FklHashTable* ht
-		,FklPtrStack* nextCompileStack
+		,FklPtrStack* compileQuestStack
 		,FklCompEnvN* env
 		,FklCompiler* compiler);
-typedef struct FklNextCompile
+typedef struct FklCompileQuest
 {
 	FklByteCodeProcesser processer;
 	FklPtrStack* stack;
@@ -83,7 +83,7 @@ typedef struct FklNextCompile
 	FklCompEnvN* env;
     uint64_t curline;
 	FklCompiler* comp;
-}FklNextCompile;
+}FklCompileQuest;
 
 FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack*);
 FklNastNode* fklNewNastNodeFromCstr(const char*);

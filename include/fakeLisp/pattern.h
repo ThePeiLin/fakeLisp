@@ -1,7 +1,7 @@
 #ifndef FKL_PATTERN_H
 #define FKL_PATTERN_H
 #include"bytecode.h"
-#include"vm.h"
+//#include"vm.h"
 #ifdef __cplusplus
 extern "C"{
 #endif

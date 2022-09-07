@@ -778,7 +778,7 @@ static int isHashTableStart(const FklString* str)
 		;
 }
 
-static int isBuiltSingleStr(const FklString* str)
+static int isBuiltInSingleStr(const FklString* str)
 {
 	const char* buf=str->str;
 	return (str->size==1&&(buf[0]=='\''
@@ -1191,7 +1191,7 @@ FklAstCptr* fklCreateAstWithTokens(FklPtrStack* tokenStack,const char* filename,
 					return NULL;
 				}
 			}
-			else if(isBuiltSingleStr(token->value))
+			else if(isBuiltInSingleStr(token->value))
 			{
 				const char* buf=token->value->str;
 				FklStringMatchPattern* pattern=buf[0]=='\''?

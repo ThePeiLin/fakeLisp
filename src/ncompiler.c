@@ -3,6 +3,7 @@
 #include<fakeLisp/utils.h>
 #include<fakeLisp/parser.h>
 #include<fakeLisp/pattern.h>
+#include<fakeLisp/vm.h>
 #include<ctype.h>
 #include<string.h>
 
@@ -10,6 +11,10 @@ static FklSid_t builtInPatternVar_rest=0;
 static FklSid_t builtInPatternVar_name=0;
 static FklSid_t builtInPatternVar_value=0;
 static FklSid_t builtInPatternVar_args=0;
+static FklSid_t builtInPattern_head_quote=0;
+static FklSid_t builtInPattern_head_qsquote=0;
+static FklSid_t builtInPattern_head_unquote=0;
+static FklSid_t builtInPattern_head_unqtesp=0;
 
 static int nastNodeEqual(const FklNastNode* n0,const FklNastNode* n1)
 {
@@ -838,6 +843,10 @@ void fklInitBuiltInPattern(void)
 	builtInPatternVar_name=fklAddSymbolToGlobCstr("name")->id;
 	builtInPatternVar_args=fklAddSymbolToGlobCstr("args")->id;
 	builtInPatternVar_value=fklAddSymbolToGlobCstr("value")->id;
+	builtInPattern_head_quote=fklAddSymbolToGlobCstr("quote")->id;
+	builtInPattern_head_qsquote=fklAddSymbolToGlobCstr("qsquote")->id;
+	builtInPattern_head_unquote=fklAddSymbolToGlobCstr("unquote")->id;
+	builtInPattern_head_unqtesp=fklAddSymbolToGlobCstr("unqtesp")->id;
 
 	for(struct PatternAndFunc* cur=&buildIntPattern[0];cur->ps!=NULL;cur++)
 		cur->pn=fklNewNastNodeFromCstr(cur->ps);
@@ -872,6 +881,40 @@ static FklNastNode* newNastNode(FklValueType type,uint64_t line)
 	FKL_ASSERT(r);
 	r->curline=line;
 	r->type=type;
+	return r;
+}
+
+static FklNastPair* newNastPair(void)
+{
+	FklNastPair* pair=(FklNastPair*)malloc(sizeof(FklNastPair));
+	FKL_ASSERT(pair);
+	pair->car=NULL;
+	pair->cdr=NULL;
+	return pair;
+}
+
+static FklNastVector* newNastVector(size_t size)
+{
+	FklNastVector* vec=(FklNastVector*)malloc(sizeof(FklNastVector));
+	FKL_ASSERT(vec);
+	vec->size=size;
+	vec->base=(FklNastNode**)calloc(size,sizeof(FklNastNode*));
+	FKL_ASSERT(vec->base);
+	return vec;
+}
+
+static FklNastNode* newNastList(FklNastNode** a,size_t num,uint64_t line)
+{
+	FklNastNode* r=NULL;
+	FklNastNode** cur=&r;
+	for(size_t i=0;i<num;i++)
+	{
+		(*cur)=newNastNode(FKL_TYPE_PAIR,line);
+		(*cur)->u.pair=newNastPair();
+		(*cur)->u.pair->car=a[i];
+		cur=&(*cur)->u.pair->cdr;
+	}
+	(*cur)->u.pair->cdr=newNastNode(FKL_TYPE_NIL,line);
 	return r;
 }
 
@@ -1197,8 +1240,315 @@ static MatchState* newMatchState(FklStringMatchPattern* pattern,uint32_t line,ui
 						cStack=fklNewPtrStack(32,16);\
 						fklPushPtrStack(cStack,stackStack)\
 
-static FklNastNode* (*nastStackProcessers[])(FklPtrStack*)=
+static void freeNastPair(FklNastPair* pair)
 {
+	free(pair);
+}
+
+static void freeNastVector(FklNastVector* vec)
+{
+	free(vec->base);
+	free(vec);
+}
+
+static void freeNastHash(FklNastHashTable* hash)
+{
+	free(hash->items);
+	free(hash);
+}
+
+static void freeNastNode(FklNastNode* node)
+{
+	FklPtrStack* stack=fklNewPtrStack(32,16);
+	fklPushPtrStack(node,stack);
+	while(!fklIsPtrStackEmpty(stack))
+	{
+		FklNastNode* cur=fklPopPtrStack(stack);
+		if(cur)
+		{
+			switch(cur->type)
+			{
+				case FKL_TYPE_I64:
+				case FKL_TYPE_I32:
+				case FKL_TYPE_SYM:
+				case FKL_TYPE_NIL:
+				case FKL_TYPE_CHR:
+				case FKL_TYPE_F64:
+					break;
+				case FKL_TYPE_STR:
+					free(cur->u.str);
+					break;
+				case FKL_TYPE_BYTEVECTOR:
+					free(cur->u.bvec);
+					break;
+				case FKL_TYPE_BIG_INT:
+					fklFreeBigInt(cur->u.bigInt);
+					break;
+				case FKL_TYPE_PAIR:
+					fklPushPtrStack(cur->u.pair->car,stack);
+					fklPushPtrStack(cur->u.pair->cdr,stack);
+					freeNastPair(cur->u.pair);
+					break;
+				case FKL_TYPE_BOX:
+					fklPushPtrStack(cur->u.box,stack);
+					break;
+				case FKL_TYPE_VECTOR:
+					for(size_t i=0;i<cur->u.vec->size;i++)
+						fklPushPtrStack(cur->u.vec->base[i],stack);
+					freeNastVector(cur->u.vec);
+					break;
+				case FKL_TYPE_HASHTABLE:
+					for(size_t i=0;i<cur->u.hash->num;i++)
+					{
+						fklPushPtrStack(cur->u.hash->items[i].car,stack);
+						fklPushPtrStack(cur->u.hash->items[i].cdr,stack);
+					}
+					freeNastHash(cur->u.hash);
+					break;
+				default:
+					FKL_ASSERT(0);
+					break;
+			}
+			free(cur);
+		}
+	}
+}
+
+static FklNastNode* listProcesser(FklPtrStack* nodeStack,uint64_t line)
+{
+	FklNastNode* retval=NULL;
+	FklNastNode** cur=&retval;
+	for(size_t i=0;i<nodeStack->top;i++)
+	{
+		NastElem* elem=nodeStack->base[i];
+		FklNastNode* node=elem->node;
+		NastPlace place=elem->place;
+		if(place==NAST_CAR)
+		{
+			(*cur)=newNastNode(FKL_TYPE_PAIR,node->curline);
+			(*cur)->u.pair=newNastPair();
+			(*cur)->u.pair->car=node;
+			cur=&(*cur)->u.pair->cdr;
+		}
+		else if((*cur)==NULL)
+			(*cur)=node;
+		else
+		{
+			for(size_t j=i;j<nodeStack->top;j++)
+			{
+				NastElem* elem=nodeStack->base[i];
+				freeNastNode(elem->node);
+				free(elem);
+			}
+			freeNastNode(retval);
+			retval=NULL;
+			break;
+		}
+		free(elem);
+	}
+	return retval;
+}
+
+static FklNastNode* vectorProcesser(FklPtrStack* nodeStack,uint64_t line)
+{
+	FklNastNode* retval=newNastNode(FKL_TYPE_VECTOR,line);
+	retval->u.vec=newNastVector(nodeStack->top);
+	for(size_t i=0;i<nodeStack->top;i++)
+	{
+		NastElem* elem=nodeStack->base[i];
+		FklNastNode* node=elem->node;
+		NastPlace place=elem->place;
+		if(place==NAST_CAR)
+			retval->u.vec->base[i]=node;
+		else
+		{
+			for(size_t j=i;j<nodeStack->top;j++)
+			{
+				NastElem* elem=nodeStack->base[i];
+				freeNastNode(elem->node);
+				free(elem);
+			}
+			freeNastNode(retval);
+			retval=NULL;
+			break;
+		}
+		free(elem);
+	}
+	return retval;
+}
+
+static FklNastNode* bytevectorProcesser(FklPtrStack* nodeStack,uint64_t line)
+{
+	FklNastNode* retval=newNastNode(FKL_TYPE_BYTEVECTOR,line);
+	retval->u.bvec=fklNewBytevector(nodeStack->top,NULL);
+	for(size_t i=0;i<nodeStack->top;i++)
+	{
+		NastElem* elem=nodeStack->base[i];
+		FklNastNode* node=elem->node;
+		NastPlace place=elem->place;
+		if(place==NAST_CAR
+				&&(node->type==FKL_TYPE_I32
+					||node->type==FKL_TYPE_I64
+					||node->type==FKL_TYPE_BIG_INT))
+		{
+			retval->u.bvec->ptr[i]=node->type==FKL_TYPE_I32
+				?node->u.i32
+				:node->type==FKL_TYPE_I64
+				?node->u.i64
+				:fklBigIntToI64(node->u.bigInt);
+			freeNastNode(node);
+		}
+		else
+		{
+			for(size_t j=i;j<nodeStack->top;j++)
+			{
+				NastElem* elem=nodeStack->base[i];
+				freeNastNode(elem->node);
+				free(elem);
+			}
+			freeNastNode(retval);
+			retval=NULL;
+			break;
+		}
+		free(elem);
+	}
+	return retval;
+}
+
+static FklNastHashTable* newNastHash(FklVMhashTableEqType type,size_t num)
+{
+	FklNastHashTable* r=(FklNastHashTable*)malloc(sizeof(FklNastHashTable));
+	FKL_ASSERT(r);
+	r->items=(FklNastPair*)calloc(sizeof(FklNastPair),num);
+	FKL_ASSERT(r->items);
+	r->num=num;
+	r->type=type;
+	return r;
+}
+
+static FklNastNode* hashEqProcesser(FklPtrStack* nodeStack,uint64_t line)
+{
+	FklNastNode* retval=newNastNode(FKL_TYPE_HASHTABLE,line);
+	retval->u.hash=newNastHash(FKL_VM_HASH_EQ,nodeStack->top);
+	for(size_t i=0;i<nodeStack->top;i++)
+	{
+		NastElem* elem=nodeStack->base[i];
+		FklNastNode* node=elem->node;
+		NastPlace place=elem->place;
+		if(place==NAST_CAR&&node->type==FKL_TYPE_PAIR)
+		{
+			retval->u.hash->items[i].car=node->u.pair->car;
+			retval->u.hash->items[i].cdr=node->u.pair->cdr;
+			node->u.pair->car=NULL;
+			node->u.pair->cdr=NULL;
+			freeNastNode(node);
+		}
+		else
+		{
+			for(size_t j=i;j<nodeStack->top;j++)
+			{
+				NastElem* elem=nodeStack->base[i];
+				freeNastNode(elem->node);
+				free(elem);
+			}
+			freeNastNode(retval);
+			retval=NULL;
+			break;
+		}
+		free(elem);
+	}
+	return retval;
+}
+
+static FklNastNode* hashEqvProcesser(FklPtrStack* nodeStack,uint64_t line)
+{
+	FklNastNode* retval=newNastNode(FKL_TYPE_HASHTABLE,line);
+	retval->u.hash=newNastHash(FKL_VM_HASH_EQV,nodeStack->top);
+	for(size_t i=0;i<nodeStack->top;i++)
+	{
+		NastElem* elem=nodeStack->base[i];
+		FklNastNode* node=elem->node;
+		NastPlace place=elem->place;
+		if(place==NAST_CAR&&node->type==FKL_TYPE_PAIR)
+		{
+			retval->u.hash->items[i].car=node->u.pair->car;
+			retval->u.hash->items[i].cdr=node->u.pair->cdr;
+			node->u.pair->car=NULL;
+			node->u.pair->cdr=NULL;
+			freeNastNode(node);
+		}
+		else
+		{
+			for(size_t j=i;j<nodeStack->top;j++)
+			{
+				NastElem* elem=nodeStack->base[i];
+				freeNastNode(elem->node);
+				free(elem);
+			}
+			freeNastNode(retval);
+			retval=NULL;
+			break;
+		}
+		free(elem);
+	}
+	return retval;
+}
+
+static FklNastNode* hashEqualProcesser(FklPtrStack* nodeStack,uint64_t line)
+{
+	FklNastNode* retval=newNastNode(FKL_TYPE_HASHTABLE,line);
+	retval->u.hash=newNastHash(FKL_VM_HASH_EQUAL,nodeStack->top);
+	for(size_t i=0;i<nodeStack->top;i++)
+	{
+		NastElem* elem=nodeStack->base[i];
+		FklNastNode* node=elem->node;
+		NastPlace place=elem->place;
+		if(place==NAST_CAR&&node->type==FKL_TYPE_PAIR)
+		{
+			retval->u.hash->items[i].car=node->u.pair->car;
+			retval->u.hash->items[i].cdr=node->u.pair->cdr;
+			node->u.pair->car=NULL;
+			node->u.pair->cdr=NULL;
+			freeNastNode(node);
+		}
+		else
+		{
+			for(size_t j=i;j<nodeStack->top;j++)
+			{
+				NastElem* elem=nodeStack->base[i];
+				freeNastNode(elem->node);
+				free(elem);
+			}
+			freeNastNode(retval);
+			retval=NULL;
+			break;
+		}
+		free(elem);
+	}
+	return retval;
+}
+
+
+static FklNastNode* (*nastStackProcessers[])(FklPtrStack*,uint64_t)=
+{
+	listProcesser,
+	listProcesser,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	vectorProcesser,
+	vectorProcesser,
+	NULL,
+	bytevectorProcesser,
+	bytevectorProcesser,
+	hashEqProcesser,
+	hashEqProcesser,
+	hashEqvProcesser,
+	hashEqvProcesser,
+	hashEqualProcesser,
+	hashEqualProcesser,
 };
 
 FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack* tokenStack)
@@ -1265,11 +1615,87 @@ FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack* tokenStack)
 					}
 					continue;
 				}
+				else if(isBuiltInSingleStr(token->value))
+				{
+					const char* buf=token->value->str;
+					FklStringMatchPattern* pattern=buf[0]=='\''?
+						QUOTE:
+						buf[0]=='`'?
+						QSQUOTE:
+						buf[0]==','?
+						DOTTED:
+						buf[0]=='~'?
+						(token->value->size==1?
+						 UNQUOTE:
+						 buf[1]=='@'?
+						 UNQTESP:NULL):
+						(token->value->size==2&&buf[0]=='#'&&buf[1]=='&')?
+						BOX:
+						NULL;
+					MatchState* state=newMatchState(pattern,token->line,0);
+					fklPushPtrStack(state,matchStateStack);
+					cStack=fklNewPtrStack(1,1);
+					fklPushPtrStack(cStack,stackStack);
+					continue;
+				}
 				else if(isRightParenthese(token->value))
 				{
 					fklPopPtrStack(stackStack);
 					MatchState* cState=fklPopPtrStack(matchStateStack);
-					FklNastNode* n=nastStackProcessers[(uintptr_t)cState->pattern](cStack);
+					FklNastNode* n=nastStackProcessers[(uintptr_t)cState->pattern](cStack,token->line);
+					NastElem* v=newNastElem(NAST_CAR,n);
+					fklFreePtrStack(cStack);
+					cStack=fklTopPtrStack(stackStack);
+					freeMatchState(cState);
+					fklPushPtrStack(v,cStack);
+				}
+			}
+			for(MatchState* state=fklTopPtrStack(matchStateStack);
+					state&&(isBuiltInSingleStrPattern(state->pattern)||(!isBuiltInParenthese(state->pattern)
+							&&!isBuiltInVector(state->pattern)
+							&&!isBuiltInBvector(state->pattern)
+							&&!isBuiltInHashTable(state->pattern)));
+					state=fklTopPtrStack(matchStateStack))
+			{
+				if(isBuiltInSingleStrPattern(state->pattern))
+				{
+					fklPopPtrStack(stackStack);
+					MatchState* cState=fklPopPtrStack(matchStateStack);
+					NastElem* postfix=fklPopPtrStack(cStack);
+					fklFreePtrStack(cStack);
+					cStack=fklTopPtrStack(stackStack);
+					if(state->pattern==DOTTED)
+					{
+						postfix->place=NAST_CDR;
+						fklPushPtrStack(postfix,cStack);
+					}
+					else if(state->pattern==BOX)
+					{
+						FklNastNode* box=newNastNode(FKL_TYPE_BOX,token->line);
+						box->u.box=postfix->node;
+						NastElem* v=newNastElem(NAST_CAR,box);
+						fklPushPtrStack(v,cStack);
+						free(postfix);
+					}
+					else
+					{
+						FklNastNode* prefix=newNastNode(FKL_TYPE_SYM,token->line);
+						FklStringMatchPattern* pattern=cState->pattern;
+						FklSid_t prefixValue=pattern==QUOTE?
+							builtInPattern_head_quote:
+							pattern==QSQUOTE?
+							builtInPattern_head_qsquote:
+							pattern==UNQUOTE?
+							builtInPattern_head_unquote:
+							builtInPattern_head_unqtesp;
+						prefix->u.sym=prefixValue;
+						FklNastNode* tmp[]={prefix,postfix->node,};
+						FklNastNode* list=newNastList(tmp,2,prefix->curline);
+						free(postfix);
+						NastElem* v=newNastElem(NAST_CAR,list);
+						fklPushPtrStack(v,cStack);
+					}
+					freeMatchState(cState);
 				}
 			}
 		}

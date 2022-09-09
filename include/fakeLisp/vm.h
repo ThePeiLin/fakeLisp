@@ -3,7 +3,8 @@
 
 #include"base.h"
 #include"bytecode.h"
-#include"compiler.h"
+#include"ast.h"
+//#include"compiler.h"
 #include"builtin.h"
 //#include<stdatomic.h>
 #include<stdio.h>
@@ -374,6 +375,7 @@ double fklGetDouble(const FklVMvalue* p);
 void fklInitVMRunningResource(FklVM*,FklVMvalue*,FklVMgc* gc,FklByteCodelnt*,uint32_t,uint32_t);
 void fklUninitVMRunningResource(FklVM*,FklVMnode*);
 
+typedef struct FklPreEnv FklPreEnv;
 FklHashTable* fklNewLineNumHashTable(void);
 FklVMvalue* fklGetTopValue(FklVMstack* stack);
 FklVMvalue* fklGetValue(FklVMstack* stack,int32_t place);

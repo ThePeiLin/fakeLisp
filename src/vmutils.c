@@ -2,6 +2,7 @@
 #include<fakeLisp/utils.h>
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/ast.h>
+#include<fakeLisp/compiler.h>
 #include<string.h>
 #include<stdio.h>
 #include<stdlib.h>

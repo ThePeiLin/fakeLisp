@@ -5,6 +5,7 @@
 #include<fakeLisp/parser.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/builtin.h>
+#include<fakeLisp/compiler.h>
 #ifdef _WIN32
 #include<conio.h>
 #include<windows.h>

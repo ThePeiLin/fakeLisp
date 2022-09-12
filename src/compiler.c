@@ -19,8 +19,6 @@
 #endif
 #include<math.h>
 
-static char* CurWorkDir=NULL;
-static char* MainFileRealPath=NULL;
 static jmp_buf buf;
 static void errorCallBack(void* a)
 {
@@ -3377,43 +3375,6 @@ FklInterpreter* fklNewTmpIntpr(const char* filename,FILE* fp)
 	tmp->glob=NULL;
 	tmp->lnt=NULL;
 	return tmp;
-}
-
-void fklSetCwd(const char* path)
-{
-	CurWorkDir=fklCopyCstr(path);
-}
-
-void fklFreeCwd(void)
-{
-	free(CurWorkDir);
-	CurWorkDir=NULL;
-}
-
-const char* fklGetCwd(void)
-{
-	return CurWorkDir;
-}
-
-void fklSetMainFileRealPath(const char* path)
-{
-	MainFileRealPath=fklGetDir(path);
-}
-
-void fklSetMainFileRealPathWithCwd(void)
-{
-	MainFileRealPath=fklCopyCstr(CurWorkDir);
-}
-
-void fklFreeMainFileRealPath(void)
-{
-	free(MainFileRealPath);
-	MainFileRealPath=NULL;
-}
-
-const char* fklGetMainFileRealPath(void)
-{
-	return MainFileRealPath;
 }
 
 typedef struct

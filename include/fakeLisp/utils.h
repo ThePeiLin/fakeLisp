@@ -113,6 +113,15 @@ char* fklStrCat(char*,const char*);
 uint8_t* fklCreateByteArry(int32_t);
 
 char* fklCharBufToCstr(const char* buf,size_t size);
+
+const char* fklGetMainFileRealPath(void);
+const char* fklGetCwd(void);
+void fklSetCwd(const char*);
+void fklFreeCwd(void);
+void fklSetMainFileRealPath(const char* path);
+void fklFreeMainFileRealPath(void);
+void fklSetMainFileRealPathWithCwd(void);
+
 #ifdef __cplusplus
 }
 #endif

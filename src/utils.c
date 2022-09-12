@@ -16,6 +16,47 @@
 #include<tchar.h>
 #endif
 
+static char* CurWorkDir=NULL;
+static char* MainFileRealPath=NULL;
+
+void fklSetCwd(const char* path)
+{
+	CurWorkDir=fklCopyCstr(path);
+}
+
+void fklFreeCwd(void)
+{
+	free(CurWorkDir);
+	CurWorkDir=NULL;
+}
+
+const char* fklGetCwd(void)
+{
+	return CurWorkDir;
+}
+
+void fklSetMainFileRealPath(const char* path)
+{
+	MainFileRealPath=fklGetDir(path);
+}
+
+void fklSetMainFileRealPathWithCwd(void)
+{
+	MainFileRealPath=fklCopyCstr(CurWorkDir);
+}
+
+void fklFreeMainFileRealPath(void)
+{
+	free(MainFileRealPath);
+	MainFileRealPath=NULL;
+}
+
+const char* fklGetMainFileRealPath(void)
+{
+	return MainFileRealPath;
+}
+
+
 char* fklGetStringFromList(const char* str)
 {
 	char* tmp=NULL;

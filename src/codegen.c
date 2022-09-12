@@ -1,4 +1,4 @@
-#include<fakeLisp/ncompiler.h>
+#include<fakeLisp/codegen.h>
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/parser.h>
@@ -161,7 +161,7 @@ static FklByteCodelnt* newBclnt(FklByteCode* bc
 	return r;
 }
 
-static FklByteCodelnt* makePushTopAndPopVar(const FklNastNode* sym,uint32_t scope,FklCompiler* comp)
+static FklByteCodelnt* makePushTopAndPopVar(const FklNastNode* sym,uint32_t scope,FklCodegen* comp)
 {
 	FklSid_t sid=fklAddSymbol(fklGetGlobSymbolWithId(sym->u.sym)->symbol,comp->globTable)->id;
 	FklByteCodelnt* r=newBclnt(newPushTopPopVar(scope,sid),comp->fid,sym->curline);
@@ -209,14 +209,14 @@ static void bcBclAppendToBcl(const FklByteCode* bc
 	}
 }
 
-static FklCompileQuest* newCompileQuest(FklByteCodeProcesser f
+static FklCodegenQuest* newCodegenQuest(FklByteCodeProcesser f
 		,FklPtrStack* stack
 		,FklPtrQueue* queue
 		,FklCompEnvN* env
 		,uint64_t curline
-		,FklCompiler* comp)
+		,FklCodegen* comp)
 {
-	FklCompileQuest* r=(FklCompileQuest*)malloc(sizeof(FklCompileQuest));
+	FklCodegenQuest* r=(FklCodegenQuest*)malloc(sizeof(FklCodegenQuest));
 	FKL_ASSERT(r);
 	r->processer=f;
 	r->stack=stack;
@@ -274,62 +274,62 @@ typedef struct
 {
 	FklSid_t id;
 	FklNastNode* node;
-}CompileHashTableItem;
+}CodegenHashTableItem;
 
-static size_t _compile_hash_table_hash_func(void* key)
+static size_t _codegen_hash_table_hash_func(void* key)
 {
 	FklSid_t sid=*(FklSid_t*)key;
 	return sid;
 }
 
-static void _compile_hash_free_item(void* item)
+static void _codegen_hash_free_item(void* item)
 {
 	free(item);
 }
 
-static void* _compile_hash_get_key(void* item)
+static void* _codegen_hash_get_key(void* item)
 {
-	return &((CompileHashTableItem*)item)->id;
+	return &((CodegenHashTableItem*)item)->id;
 }
 
-static int _compile_hash_key_equal(void* pk0,void* pk1)
+static int _codegen_hash_key_equal(void* pk0,void* pk1)
 {
 	FklSid_t k0=*(FklSid_t*)pk0;
 	FklSid_t k1=*(FklSid_t*)pk1;
 	return k0==k1;
 }
 
-static FklHashTableMethodTable Compile_hash_method_table=
+static FklHashTableMethodTable Codegen_hash_method_table=
 {
-	.__hashFunc=_compile_hash_table_hash_func,
-	.__freeItem=_compile_hash_free_item,
-	.__keyEqual=_compile_hash_key_equal,
-	.__getKey=_compile_hash_get_key,
+	.__hashFunc=_codegen_hash_table_hash_func,
+	.__freeItem=_codegen_hash_free_item,
+	.__keyEqual=_codegen_hash_key_equal,
+	.__getKey=_codegen_hash_get_key,
 };
 
-static FklNastNode* compileHashTableRef(FklSid_t sid,FklHashTable* ht)
+static FklNastNode* codegenHashTableRef(FklSid_t sid,FklHashTable* ht)
 {
-	CompileHashTableItem* item=fklGetHashItem(&sid,ht);
+	CodegenHashTableItem* item=fklGetHashItem(&sid,ht);
 	return item->node;
 }
 
-inline static CompileHashTableItem* newCompileHashTableItem(FklSid_t id,FklNastNode* node)
+inline static CodegenHashTableItem* newCodegenHashTableItem(FklSid_t id,FklNastNode* node)
 {
-	CompileHashTableItem* r=(CompileHashTableItem*)malloc(sizeof(CompileHashTableItem*));
+	CodegenHashTableItem* r=(CodegenHashTableItem*)malloc(sizeof(CodegenHashTableItem*));
 	FKL_ASSERT(r);
 	r->id=id;
 	r->node=node;
 	return r;
 }
 
-static void compileHashTableSet(FklSid_t sid,FklNastNode* node,FklHashTable* ht)
+static void codegenHashTableSet(FklSid_t sid,FklNastNode* node,FklHashTable* ht)
 {
-	fklPutReplHashItem(newCompileHashTableItem(sid,node),ht);
+	fklPutReplHashItem(newCodegenHashTableItem(sid,node),ht);
 }
 
-static FklHashTable* newCompileHashTable(void)
+static FklHashTable* newCodegenHashTable(void)
 {
-	return fklNewHashTable(8,8,2,0.75,1,&Compile_hash_method_table);
+	return fklNewHashTable(8,8,2,0.75,1,&Codegen_hash_method_table);
 }
 
 inline static void pushListItemToQueue(FklNastNode* list,FklPtrQueue* queue)
@@ -355,39 +355,39 @@ BC_PROCESS(_funcall_exp_bc_process)
 	return retval;
 }
 
-static void compile_funcall(FklNastNode* rest
-		,FklPtrStack* compileQuestStack
+static void codegen_funcall(FklNastNode* rest
+		,FklPtrStack* codegenQuestStack
 		,FklCompEnvN* env
-		,FklCompiler* comp)
+		,FklCodegen* comp)
 {
 	FklPtrQueue* queue=fklNewPtrQueue();
 	pushListItemToQueue(rest,queue);
-	fklPushPtrStack(newCompileQuest(_funcall_exp_bc_process
+	fklPushPtrStack(newCodegenQuest(_funcall_exp_bc_process
 				,fklNewPtrStack(32,16)
 				,queue
 				,env
 				,rest->curline
 				,comp)
-			,compileQuestStack);
+			,codegenQuestStack);
 }
 
 #define COMPILE_FUNC(NAME) void NAME(FklHashTable* ht\
-		,FklPtrStack* compileQuestStack\
+		,FklPtrStack* codegenQuestStack\
 		,FklCompEnvN* curEnv\
-		,FklCompiler* comp)
+		,FklCodegen* comp)
 
-static COMPILE_FUNC(compile_begin)
+static COMPILE_FUNC(codegen_begin)
 {
-	FklNastNode* rest=compileHashTableRef(builtInPatternVar_rest,ht);
+	FklNastNode* rest=codegenHashTableRef(builtInPatternVar_rest,ht);
 	FklPtrQueue* queue=fklNewPtrQueue();
 	pushListItemToQueue(rest,queue);
-	fklPushPtrStack(newCompileQuest(_begin_exp_bc_process
+	fklPushPtrStack(newCodegenQuest(_begin_exp_bc_process
 				,fklNewPtrStack(32,16)
 				,queue
 				,curEnv
 				,rest->curline
 				,comp)
-			,compileQuestStack);
+			,codegenQuestStack);
 }
 
 BC_PROCESS(_and_exp_bc_process)
@@ -434,19 +434,19 @@ BC_PROCESS(_and_exp_bc_process)
 		return newBclnt(fklNewPushI32ByteCode(1),fid,line);
 }
 
-static COMPILE_FUNC(compile_and)
+static COMPILE_FUNC(codegen_and)
 {
-	FklNastNode* rest=compileHashTableRef(builtInPatternVar_rest,ht);
+	FklNastNode* rest=codegenHashTableRef(builtInPatternVar_rest,ht);
 	FklPtrQueue* queue=fklNewPtrQueue();
 	pushListItemToQueue(rest,queue);
 	FklCompEnvN* andEnv=fklNewCompEnvN(curEnv);
-	fklPushPtrStack(newCompileQuest(_and_exp_bc_process
+	fklPushPtrStack(newCodegenQuest(_and_exp_bc_process
 				,fklNewPtrStack(32,16)
 				,queue
 				,andEnv
 				,rest->curline
 				,comp)
-			,compileQuestStack);
+			,codegenQuestStack);
 }
 
 BC_PROCESS(_or_exp_bc_process)
@@ -493,19 +493,19 @@ BC_PROCESS(_or_exp_bc_process)
 		return newBclnt(new1lenBc(FKL_OP_PUSH_NIL),fid,line);
 }
 
-static COMPILE_FUNC(compile_or)
+static COMPILE_FUNC(codegen_or)
 {
-	FklNastNode* rest=compileHashTableRef(builtInPatternVar_rest,ht);
+	FklNastNode* rest=codegenHashTableRef(builtInPatternVar_rest,ht);
 	FklPtrQueue* queue=fklNewPtrQueue();
 	pushListItemToQueue(rest,queue);
 	FklCompEnvN* orEnv=fklNewCompEnvN(curEnv);
-	fklPushPtrStack(newCompileQuest(_or_exp_bc_process
+	fklPushPtrStack(newCodegenQuest(_or_exp_bc_process
 				,fklNewPtrStack(32,16)
 				,queue
 				,orEnv
 				,rest->curline
 				,comp)
-			,compileQuestStack);
+			,codegenQuestStack);
 }
 
 
@@ -545,7 +545,7 @@ BC_PROCESS(_lambda_exp_bc_process)
 	return retval;
 }
 
-static FklByteCodelnt* makePopArg(FklOpcode code,const FklNastNode* sym,FklCompiler* comp)
+static FklByteCodelnt* makePopArg(FklOpcode code,const FklNastNode* sym,FklCodegen* comp)
 {
 	FklByteCode* bc=new9lenBc(code,0);
 	FklSid_t sid=fklAddSymbol(fklGetGlobSymbolWithId(sym->u.sym)->symbol,comp->globTable)->id;
@@ -553,7 +553,7 @@ static FklByteCodelnt* makePopArg(FklOpcode code,const FklNastNode* sym,FklCompi
 	return newBclnt(bc,comp->fid,sym->curline);
 }
 
-static FklByteCodelnt* processArgs(const FklNastNode* args,FklCompEnvN* curEnv,FklCompiler* comp)
+static FklByteCodelnt* processArgs(const FklNastNode* args,FklCompEnvN* curEnv,FklCodegen* comp)
 {
 	FklByteCodelnt* retval=fklNewByteCodelnt(fklNewByteCode(0));
 	for(;args->type==FKL_TYPE_PAIR;args=args->u.pair->cdr)
@@ -576,22 +576,22 @@ static FklByteCodelnt* processArgs(const FklNastNode* args,FklCompEnvN* curEnv,F
 	return retval;
 }
 
-static COMPILE_FUNC(compile_lambda)
+static COMPILE_FUNC(codegen_lambda)
 {
-	FklNastNode* args=compileHashTableRef(builtInPatternVar_args,ht);
-	FklNastNode* rest=compileHashTableRef(builtInPatternVar_rest,ht);
+	FklNastNode* args=codegenHashTableRef(builtInPatternVar_args,ht);
+	FklNastNode* rest=codegenHashTableRef(builtInPatternVar_rest,ht);
 	FklPtrQueue* queue=fklNewPtrQueue();
 	pushListItemToQueue(rest,queue);
 	FklPtrStack* stack=fklNewPtrStack(32,16);
 	FklCompEnvN* lambdaCompEnv=fklNewCompEnvN(curEnv);
 	fklPushPtrStack(processArgs(args,lambdaCompEnv,comp),stack);
-	fklPushPtrStack(newCompileQuest(_lambda_exp_bc_process
+	fklPushPtrStack(newCodegenQuest(_lambda_exp_bc_process
 				,stack
 				,queue
 				,lambdaCompEnv
 				,rest->curline
 				,comp)
-			,compileQuestStack);
+			,codegenQuestStack);
 }
 
 BC_PROCESS(_define_exp_bc_process)
@@ -603,22 +603,22 @@ BC_PROCESS(_define_exp_bc_process)
 	return popVar;
 }
 
-static COMPILE_FUNC(compile_define)
+static COMPILE_FUNC(codegen_define)
 {
-	FklNastNode* name=compileHashTableRef(builtInPatternVar_name,ht);
-	FklNastNode* value=compileHashTableRef(builtInPatternVar_value,ht);
+	FklNastNode* name=codegenHashTableRef(builtInPatternVar_name,ht);
+	FklNastNode* value=codegenHashTableRef(builtInPatternVar_value,ht);
 	FklPtrQueue* queue=fklNewPtrQueue();
 	FklPtrStack* stack=fklNewPtrStack(2,1);
 	fklAddCompDefBySid(name->u.sym,curEnv);
 	fklPushPtrStack(makePushTopAndPopVar(name,1,comp),stack);
 	fklPushPtrQueue(value,queue);
-	fklPushPtrStack(newCompileQuest(_define_exp_bc_process
+	fklPushPtrStack(newCodegenQuest(_define_exp_bc_process
 				,stack
 				,queue
 				,curEnv
 				,name->curline
 				,comp)
-			,compileQuestStack);
+			,codegenQuestStack);
 }
 
 BC_PROCESS(_setq_exp_bc_process)
@@ -630,10 +630,10 @@ BC_PROCESS(_setq_exp_bc_process)
 	return popVar;
 }
 
-static COMPILE_FUNC(compile_setq)
+static COMPILE_FUNC(codegen_setq)
 {
-	FklNastNode* name=compileHashTableRef(builtInPatternVar_name,ht);
-	FklNastNode* value=compileHashTableRef(builtInPatternVar_value,ht);
+	FklNastNode* name=codegenHashTableRef(builtInPatternVar_name,ht);
+	FklNastNode* value=codegenHashTableRef(builtInPatternVar_value,ht);
 	FklPtrQueue* queue=fklNewPtrQueue();
 	FklPtrStack* stack=fklNewPtrStack(2,1);
 	int isDefined=0;
@@ -644,13 +644,13 @@ static COMPILE_FUNC(compile_setq)
 		scope=0;
 	fklPushPtrStack(makePushTopAndPopVar(name,scope,comp),stack);
 	fklPushPtrQueue(value,queue);
-	fklPushPtrStack(newCompileQuest(_setq_exp_bc_process
+	fklPushPtrStack(newCodegenQuest(_setq_exp_bc_process
 				,stack
 				,queue
 				,curEnv
 				,name->curline
 				,comp)
-			,compileQuestStack);
+			,codegenQuestStack);
 }
 
 BC_PROCESS(_quote_exp_bc_process)
@@ -658,18 +658,18 @@ BC_PROCESS(_quote_exp_bc_process)
 	return fklPopPtrStack(stack);
 }
 
-static COMPILE_FUNC(compile_quote)
+static COMPILE_FUNC(codegen_quote)
 {
-	FklNastNode* value=compileHashTableRef(builtInPatternVar_value,ht);
+	FklNastNode* value=codegenHashTableRef(builtInPatternVar_value,ht);
 	FklPtrStack* stack=fklNewPtrStack(1,1);
-	fklPushPtrStack(newBclnt(fklCompileNode(value,comp),comp->fid,value->curline),stack);
-	fklPushPtrStack(newCompileQuest(_quote_exp_bc_process
+	fklPushPtrStack(newBclnt(fklCodegenNode(value,comp),comp->fid,value->curline),stack);
+	fklPushPtrStack(newCodegenQuest(_quote_exp_bc_process
 				,stack
 				,NULL
 				,curEnv
 				,value->curline
 				,comp)
-			,compileQuestStack);
+			,codegenQuestStack);
 }
 
 BC_PROCESS(_unquote_exp_bc_process)
@@ -677,18 +677,18 @@ BC_PROCESS(_unquote_exp_bc_process)
 	return fklPopPtrStack(stack);
 }
 
-static COMPILE_FUNC(compile_unquote)
+static COMPILE_FUNC(codegen_unquote)
 {
-	FklNastNode* value=compileHashTableRef(builtInPatternVar_value,ht);
+	FklNastNode* value=codegenHashTableRef(builtInPatternVar_value,ht);
 	FklPtrQueue* queue=fklNewPtrQueue();
 	fklPushPtrQueue(value,queue);
-	fklPushPtrStack(newCompileQuest(_unquote_exp_bc_process
+	fklPushPtrStack(newCodegenQuest(_unquote_exp_bc_process
 				,fklNewPtrStack(1,1)
 				,queue
 				,curEnv
 				,value->curline
 				,comp)
-			,compileQuestStack);
+			,codegenQuestStack);
 }
 
 //BC_PROCESS(_cond_exp_bc_process)
@@ -717,7 +717,7 @@ int fklPatternMatch(const FklNastNode* pattern,FklNastNode* exp,FklHashTable* ht
 		FklNastNode* n0=fklPopPtrStack(s0);
 		FklNastNode* n1=fklPopPtrStack(s1);
 		if(n0->type==FKL_TYPE_SYM)
-			compileHashTableSet(n0->u.sym,n1,ht);
+			codegenHashTableSet(n0->u.sym,n1,ht);
 		else if(n0->type==FKL_TYPE_PAIR&&n1->type==FKL_TYPE_PAIR)
 		{
 			fklPushPtrStack(n0->u.pair->cdr,s0);
@@ -735,7 +735,7 @@ int fklPatternMatch(const FklNastNode* pattern,FklNastNode* exp,FklHashTable* ht
 	return 1;
 }
 
-FklByteCode* fklCompileNode(const FklNastNode* node,FklCompiler* compiler)
+FklByteCode* fklCodegenNode(const FklNastNode* node,FklCodegen* codegenr)
 {
 	FklPtrStack* stack=fklNewPtrStack(32,16);
 	fklPushPtrStack((void*)node,stack);
@@ -747,7 +747,7 @@ FklByteCode* fklCompileNode(const FklNastNode* node,FklCompiler* compiler)
 		switch(node->type)
 		{
 			case FKL_TYPE_SYM:
-				tmp=fklNewPushSidByteCode(fklAddSymbol(fklGetGlobSymbolWithId(node->u.sym)->symbol,compiler->globTable)->id);
+				tmp=fklNewPushSidByteCode(fklAddSymbol(fklGetGlobSymbolWithId(node->u.sym)->symbol,codegenr->globTable)->id);
 				break;
 			case FKL_TYPE_NIL:
 				tmp=new1lenBc(FKL_OP_PUSH_NIL);
@@ -804,17 +804,17 @@ FklByteCode* fklCompileNode(const FklNastNode* node,FklCompiler* compiler)
 	return retval;
 }
 
-static int matchAndCall(FklFormCompilerFunc func
+static int matchAndCall(FklFormCodegenFunc func
 		,const FklNastNode* pattern
 		,FklNastNode* exp
-		,FklPtrStack* compileQuestStack
+		,FklPtrStack* codegenQuestStack
 		,FklCompEnvN* env
-		,FklCompiler* compiler)
+		,FklCodegen* codegenr)
 {
-	FklHashTable* ht=newCompileHashTable();
+	FklHashTable* ht=newCodegenHashTable();
 	int r=fklPatternMatch(pattern,exp,ht);
 	if(r)
-		func(ht,compileQuestStack,env,compiler);
+		func(ht,codegenQuestStack,env,codegenr);
 	fklFreeHashTable(ht);
 	return r;
 }
@@ -823,17 +823,17 @@ static struct PatternAndFunc
 {
 	char* ps;
 	FklNastNode* pn;
-	FklFormCompilerFunc func;
+	FklFormCodegenFunc func;
 }buildIntPattern[]=
 {
-	{"(begin,rest)",        NULL, compile_begin,   },
-	{"(define name value)", NULL, compile_define,  },
-	{"(setq name value)",   NULL, compile_setq,    },
-	{"(quote value)",       NULL, compile_quote,   },
-	{"(unquote value)",     NULL, compile_unquote, },
-	{"(lambda args,rest)",  NULL, compile_lambda,  },
-	{"(and,rest)",          NULL, compile_and,     },
-	{"(or,rest)",           NULL, compile_or,      },
+	{"(begin,rest)",        NULL, codegen_begin,   },
+	{"(define name value)", NULL, codegen_define,  },
+	{"(setq name value)",   NULL, codegen_setq,    },
+	{"(quote value)",       NULL, codegen_quote,   },
+	{"(unquote value)",     NULL, codegen_unquote, },
+	{"(lambda args,rest)",  NULL, codegen_lambda,  },
+	{"(and,rest)",          NULL, codegen_and,     },
+	{"(or,rest)",           NULL, codegen_or,      },
 	{NULL,                  NULL, NULL,            }
 };
 
@@ -1713,71 +1713,71 @@ FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack* tokenStack)
 }
 
 #undef BUILTIN_PATTERN_START_PROCESS
-FklByteCodelnt* fklMakePushVar(const FklNastNode* exp,FklCompiler* comp)
+FklByteCodelnt* fklMakePushVar(const FklNastNode* exp,FklCodegen* comp)
 {
 	FklSid_t sid=fklAddSymbol(fklGetGlobSymbolWithId(exp->u.sym)->symbol,comp->globTable)->id;
 	FklByteCodelnt* retval=newBclnt(newPushVar(sid),comp->fid,exp->curline);
 	return retval;
 }
 
-static inline int mapAllBuiltInPattern(FklNastNode* curExp,FklPtrStack* compileQuestStack,FklCompEnvN* curEnv,FklCompiler* compiler)
+static inline int mapAllBuiltInPattern(FklNastNode* curExp,FklPtrStack* codegenQuestStack,FklCompEnvN* curEnv,FklCodegen* codegenr)
 {
 	for(struct PatternAndFunc* cur=&buildIntPattern[0];cur->ps!=NULL;cur++)
-		if(matchAndCall(cur->func,cur->pn,curExp,compileQuestStack,curEnv,compiler))
+		if(matchAndCall(cur->func,cur->pn,curExp,codegenQuestStack,curEnv,codegenr))
 			return 0;
 	return 1;
 }
 
-FklByteCodelnt* fklCompileExpression(const FklNastNode* exp
+FklByteCodelnt* fklCodegenExpression(const FklNastNode* exp
 		,FklCompEnvN* globalEnv
-		,FklCompiler* compiler)
+		,FklCodegen* codegenr)
 {
-	FklPtrStack* compileQuestStack=fklNewPtrStack(32,16);
+	FklPtrStack* codegenQuestStack=fklNewPtrStack(32,16);
 	FklPtrQueue* queue=fklNewPtrQueue();
 	FklPtrStack* resultStack=fklNewPtrStack(8,8);
 	fklPushPtrQueue((void*)exp,queue);
-	fklPushPtrStack(newCompileQuest(_default_bc_process
+	fklPushPtrStack(newCodegenQuest(_default_bc_process
 				,fklNewPtrStack(32,16)
 				,queue
 				,globalEnv
 				,exp->curline
-				,compiler)
-			,compileQuestStack);
-	while(!fklIsPtrStackEmpty(compileQuestStack))
+				,codegenr)
+			,codegenQuestStack);
+	while(!fklIsPtrStackEmpty(codegenQuestStack))
 	{
-		FklCompileQuest* curCompiling=fklTopPtrStack(compileQuestStack);
+		FklCodegenQuest* curCompiling=fklTopPtrStack(codegenQuestStack);
 		FklPtrQueue* queue=curCompiling->queue;
 		FklCompEnvN* curEnv=curCompiling->env;
 		FklPtrStack* curBcStack=curCompiling->stack;
 		while(!fklIsPtrQueueEmpty(queue))
 		{
 			FklNastNode* curExp=fklPopPtrQueue(queue);
-			if(mapAllBuiltInPattern(curExp,compileQuestStack,curEnv,compiler))
+			if(mapAllBuiltInPattern(curExp,codegenQuestStack,curEnv,codegenr))
 			{
 				if(curExp->type==FKL_TYPE_PAIR)
 				{
-					compile_funcall(curExp,compileQuestStack,curEnv,compiler);
+					codegen_funcall(curExp,codegenQuestStack,curEnv,codegenr);
 					break;
 				}
 				else if(curExp->type==FKL_TYPE_SYM)
-					fklPushPtrStack(fklMakePushVar(curExp,compiler),curBcStack);
+					fklPushPtrStack(fklMakePushVar(curExp,codegenr),curBcStack);
 				else
-					fklPushPtrStack(newBclnt(fklCompileNode(curExp,compiler)
-								,compiler->fid
+					fklPushPtrStack(newBclnt(fklCodegenNode(curExp,codegenr)
+								,codegenr->fid
 								,curExp->curline)
 							,curBcStack);
 			}
 		}
-		FklCompileQuest* otherCompiling=fklTopPtrStack(compileQuestStack);
+		FklCodegenQuest* otherCompiling=fklTopPtrStack(codegenQuestStack);
 		if(otherCompiling==curCompiling)
 		{
-			fklPopPtrStack(compileQuestStack);
+			fklPopPtrStack(codegenQuestStack);
 			fklPushPtrStack(curCompiling->processer(curBcStack
-						,compiler->fid
+						,codegenr->fid
 						,curCompiling->curline)
-					,fklIsPtrStackEmpty(compileQuestStack)
+					,fklIsPtrStackEmpty(codegenQuestStack)
 					?resultStack
-					:((FklCompileQuest*)fklTopPtrStack(compileQuestStack))->stack);
+					:((FklCodegenQuest*)fklTopPtrStack(codegenQuestStack))->stack);
 		}
 	}
 	FklByteCodelnt* retval=NULL;

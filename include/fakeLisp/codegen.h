@@ -56,7 +56,7 @@ typedef struct FklCompEnvN
 	uint64_t refcount;
 }FklCompEnvN;
 
-typedef struct FklCompiler
+typedef struct FklCodegen
 {
 	char* filename;
 	char* realpath;
@@ -67,23 +67,23 @@ typedef struct FklCompiler
 	FklSymbolTable* globTable;
 	FklSid_t fid;
 	struct FklLineNumberTable* lnt;
-	struct FklCompiler* prev;
-}FklCompiler;
+	struct FklCodegen* prev;
+}FklCodegen;
 
 typedef FklByteCodelnt* (*FklByteCodeProcesser)(FklPtrStack* stack,FklSid_t,uint64_t);
-typedef void (*FklFormCompilerFunc)(FklHashTable* ht
-		,FklPtrStack* compileQuestStack
+typedef void (*FklFormCodegenFunc)(FklHashTable* ht
+		,FklPtrStack* codegenQuestStack
 		,FklCompEnvN* env
-		,FklCompiler* compiler);
-typedef struct FklCompileQuest
+		,FklCodegen* codegen);
+typedef struct FklCodegenQuest
 {
 	FklByteCodeProcesser processer;
 	FklPtrStack* stack;
 	FklPtrQueue* queue;
 	FklCompEnvN* env;
     uint64_t curline;
-	FklCompiler* comp;
-}FklCompileQuest;
+	FklCodegen* comp;
+}FklCodegenQuest;
 
 FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack*);
 FklNastNode* fklNewNastNodeFromCstr(const char*);
@@ -92,10 +92,10 @@ void fklInitBuiltInPattern(void);
 int fklPatternMatch(const FklNastNode* pattern
 		,FklNastNode* exp
 		,FklHashTable* ht);
-FklByteCode* fklCompileNode(const FklNastNode*,FklCompiler* compiler);
-FklByteCodelnt* fklCompileExpression(const FklNastNode* exp
+FklByteCode* fklCodegenNode(const FklNastNode*,FklCodegen* codegen);
+FklByteCodelnt* fklCodegenExpression(const FklNastNode* exp
 		,FklCompEnvN* globalEnv
-		,FklCompiler* compiler);
+		,FklCodegen* codegen);
 void fklAddCompDefBySid(FklSid_t sid,FklCompEnvN*);
 int fklIsSymbolDefined(FklSid_t sid,FklCompEnvN*);
 

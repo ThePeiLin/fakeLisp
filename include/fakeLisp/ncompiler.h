@@ -87,6 +87,7 @@ typedef struct FklCompileQuest
 
 FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack*);
 FklNastNode* fklNewNastNodeFromCstr(const char*);
+void fklFreeNastNode(FklNastNode*);
 void fklInitBuiltInPattern(void);
 int fklPatternMatch(const FklNastNode* pattern
 		,FklNastNode* exp

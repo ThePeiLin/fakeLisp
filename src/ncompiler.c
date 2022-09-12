@@ -852,6 +852,15 @@ void fklInitBuiltInPattern(void)
 		cur->pn=fklNewNastNodeFromCstr(cur->ps);
 }
 
+void fklUninitBuiltInPattern(void)
+{
+	for(struct PatternAndFunc* cur=&buildIntPattern[0];cur->ps!=NULL;cur++)
+	{
+		fklFreeNastNode(cur->pn);
+		cur->pn=NULL;
+	}
+}
+
 FklNastNode* fklNewNastNodeFromCstr(const char* cStr)
 {
 	FklPtrStack* tokenStack=fklNewPtrStack(8,16);
@@ -1257,7 +1266,7 @@ static void freeNastHash(FklNastHashTable* hash)
 	free(hash);
 }
 
-static void freeNastNode(FklNastNode* node)
+void fklFreeNastNode(FklNastNode* node)
 {
 	FklPtrStack* stack=fklNewPtrStack(32,16);
 	fklPushPtrStack(node,stack);
@@ -1337,10 +1346,10 @@ static FklNastNode* listProcesser(FklPtrStack* nodeStack,uint64_t line)
 			for(size_t j=i;j<nodeStack->top;j++)
 			{
 				NastElem* elem=nodeStack->base[i];
-				freeNastNode(elem->node);
+				fklFreeNastNode(elem->node);
 				free(elem);
 			}
-			freeNastNode(retval);
+			fklFreeNastNode(retval);
 			retval=NULL;
 			break;
 		}
@@ -1365,10 +1374,10 @@ static FklNastNode* vectorProcesser(FklPtrStack* nodeStack,uint64_t line)
 			for(size_t j=i;j<nodeStack->top;j++)
 			{
 				NastElem* elem=nodeStack->base[i];
-				freeNastNode(elem->node);
+				fklFreeNastNode(elem->node);
 				free(elem);
 			}
-			freeNastNode(retval);
+			fklFreeNastNode(retval);
 			retval=NULL;
 			break;
 		}
@@ -1396,17 +1405,17 @@ static FklNastNode* bytevectorProcesser(FklPtrStack* nodeStack,uint64_t line)
 				:node->type==FKL_TYPE_I64
 				?node->u.i64
 				:fklBigIntToI64(node->u.bigInt);
-			freeNastNode(node);
+			fklFreeNastNode(node);
 		}
 		else
 		{
 			for(size_t j=i;j<nodeStack->top;j++)
 			{
 				NastElem* elem=nodeStack->base[i];
-				freeNastNode(elem->node);
+				fklFreeNastNode(elem->node);
 				free(elem);
 			}
-			freeNastNode(retval);
+			fklFreeNastNode(retval);
 			retval=NULL;
 			break;
 		}
@@ -1441,17 +1450,17 @@ static FklNastNode* hashEqProcesser(FklPtrStack* nodeStack,uint64_t line)
 			retval->u.hash->items[i].cdr=node->u.pair->cdr;
 			node->u.pair->car=NULL;
 			node->u.pair->cdr=NULL;
-			freeNastNode(node);
+			fklFreeNastNode(node);
 		}
 		else
 		{
 			for(size_t j=i;j<nodeStack->top;j++)
 			{
 				NastElem* elem=nodeStack->base[i];
-				freeNastNode(elem->node);
+				fklFreeNastNode(elem->node);
 				free(elem);
 			}
-			freeNastNode(retval);
+			fklFreeNastNode(retval);
 			retval=NULL;
 			break;
 		}
@@ -1475,17 +1484,17 @@ static FklNastNode* hashEqvProcesser(FklPtrStack* nodeStack,uint64_t line)
 			retval->u.hash->items[i].cdr=node->u.pair->cdr;
 			node->u.pair->car=NULL;
 			node->u.pair->cdr=NULL;
-			freeNastNode(node);
+			fklFreeNastNode(node);
 		}
 		else
 		{
 			for(size_t j=i;j<nodeStack->top;j++)
 			{
 				NastElem* elem=nodeStack->base[i];
-				freeNastNode(elem->node);
+				fklFreeNastNode(elem->node);
 				free(elem);
 			}
-			freeNastNode(retval);
+			fklFreeNastNode(retval);
 			retval=NULL;
 			break;
 		}
@@ -1509,17 +1518,17 @@ static FklNastNode* hashEqualProcesser(FklPtrStack* nodeStack,uint64_t line)
 			retval->u.hash->items[i].cdr=node->u.pair->cdr;
 			node->u.pair->car=NULL;
 			node->u.pair->cdr=NULL;
-			freeNastNode(node);
+			fklFreeNastNode(node);
 		}
 		else
 		{
 			for(size_t j=i;j<nodeStack->top;j++)
 			{
 				NastElem* elem=nodeStack->base[i];
-				freeNastNode(elem->node);
+				fklFreeNastNode(elem->node);
 				free(elem);
 			}
-			freeNastNode(retval);
+			fklFreeNastNode(retval);
 			retval=NULL;
 			break;
 		}

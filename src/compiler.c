@@ -32,7 +32,7 @@ static int fklAddDefinedMacro(FklPreMacro* macro,FklCompEnv* curEnv);
 static FklErrorState defmacro(FklAstCptr*,FklCompEnv*,FklInterpreter*);
 static FklCompEnv* createPatternCompEnv(FklString* const*,int32_t,FklCompEnv*);
 
-FklCompEnvHashItem* newCompEnvHashItem(FklSid_t key)
+static FklCompEnvHashItem* newCompEnvHashItem(FklSid_t key)
 {
 	FklCompEnvHashItem* r=(FklCompEnvHashItem*)malloc(sizeof(FklCompEnvHashItem));
 	FKL_ASSERT(r);
@@ -40,25 +40,25 @@ FklCompEnvHashItem* newCompEnvHashItem(FklSid_t key)
 	return r;
 }
 
-size_t _compenv_hashFunc(void* key)
+static size_t _compenv_hashFunc(void* key)
 {
 	FklSid_t sid=*(FklSid_t*)key;
 	return sid;
 }
 
-void _compenv_freeItem(void* item)
+static void _compenv_freeItem(void* item)
 {
 	free(item);
 }
 
-int _compenv_keyEqual(void* pkey0,void* pkey1)
+static int _compenv_keyEqual(void* pkey0,void* pkey1)
 {
 	FklSid_t k0=*(FklSid_t*)pkey0;
 	FklSid_t k1=*(FklSid_t*)pkey1;
 	return k0==k1;
 }
 
-void* _compenv_getKey(void* item)
+static void* _compenv_getKey(void* item)
 {
 	return &((FklCompEnvHashItem*)item)->id;
 }

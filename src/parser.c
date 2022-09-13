@@ -399,7 +399,7 @@ static int searchReverseStringChar(const char* part,size_t index,size_t size,Fkl
 				||(size-index>10&&!strncmp("#hashequal(",part+index,11))
 				||(size-index>10&&!strncmp("#hashequal[",part+index,11))
 				||(part[index]=='(')
-				||(part[index]==']')
+				||(part[index]=='[')
 				)
 			return 1;
 		else if(part[index]==')')

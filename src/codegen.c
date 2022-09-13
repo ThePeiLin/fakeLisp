@@ -690,9 +690,9 @@ static CODEGEN_FUNC(codegen_cond)
 		FklPtrStack* tmpStack=fklNewPtrStack(32,16);
 		pushListItemToStack(rest,tmpStack);
 		FklNastNode* lastExp=fklPopPtrStack(tmpStack);
-		while(!fklIsPtrStackEmpty(tmpStack))
+		for(size_t i=0;i<tmpStack->top;i++)
 		{
-			FklNastNode* curExp=fklPopPtrStack(tmpStack);
+			FklNastNode* curExp=tmpStack->base[i];
 			FklPtrQueue* curQueue=fklNewPtrQueue();
 			pushListItemToQueue(curExp,curQueue);
 			fklPushPtrStack(newCodegenQuest(_cond_exp_bc_process_1
@@ -713,6 +713,7 @@ static CODEGEN_FUNC(codegen_cond)
 		fklFreePtrStack(tmpStack);
 	}
 }
+
 //BC_PROCESS(_try_exp_bc_process)
 //{
 //}

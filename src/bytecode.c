@@ -160,6 +160,8 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 {
 	uint32_t tc=cState->tc;
 	uint32_t r=0;
+	if(!table)
+		table=fklGetGlobSymbolTable();
 	if(cState->type==BP_ERROR_HANLER)
 	{
 		fprintf(fp,"EH:");
@@ -181,13 +183,10 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 		case -4:
 			{
 				FklSid_t errSymId=fklGetSidFromByteCode(tmpCode->code+(++i));
-				if(table)
-					fklPrintString(fklGetSymbolWithId(errSymId,table)->symbol,fp);
-				else
-					fklPrintString(fklGetGlobSymbolWithId(errSymId)->symbol,fp);
+				fklPrintString(fklGetSymbolWithId(errSymId,table)->symbol,fp);
 				i+=sizeof(FklSid_t);
 				uint32_t handlerNum=fklGetU32FromByteCode(tmpCode->code+i);
-				fprintf(fp,"%d",handlerNum);
+				fprintf(fp," %d",handlerNum);
 				i+=sizeof(uint32_t);
 				int j=0;
 				r+=sizeof(FklSid_t)+sizeof(uint32_t);
@@ -219,10 +218,7 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 			break;
 		case -3:
 			fprintf(fp,"%d ",fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)));
-			if(table)
-				fklPrintString(fklGetSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)+sizeof(int32_t)),table)->symbol,fp);
-			else
-				fklPrintString(fklGetGlobSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)+sizeof(int32_t)))->symbol,fp);
+			fklPrintString(fklGetSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)+sizeof(int32_t)),table)->symbol,fp);
 			r+=sizeof(char)+sizeof(uint32_t)+sizeof(FklSid_t);
 			break;
 		case -2:
@@ -269,12 +265,7 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 			break;
 		case 4:
 			if(tmpCode->code[i]==FKL_OP_PUSH_SYM)
-			{
-				if(table)
-					fklPrintString(fklGetSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)),table)->symbol,fp);
-				else
-					fklPrintString(fklGetGlobSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)))->symbol,fp);
-			}
+				fklPrintString(fklGetSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)),table)->symbol,fp);
 			else
 				fprintf(fp,"%d"
 						,fklGetI32FromByteCode(tmpCode->code+i+sizeof(char)));
@@ -302,10 +293,7 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 				case FKL_OP_PUSH_VAR:
 				case FKL_OP_PUSH_SYM:
 				case FKL_OP_POP_REST_ARG:
-					if(table)
-						fklPrintRawSymbol(fklGetSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)),table)->symbol,fp);
-					else
-						fklPrintRawSymbol(fklGetGlobSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)))->symbol,fp);
+					fklPrintRawSymbol(fklGetSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)),table)->symbol,fp);
 					break;
 			}
 			r+=sizeof(char)+sizeof(int64_t);

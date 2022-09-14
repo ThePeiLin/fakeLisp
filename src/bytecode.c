@@ -160,8 +160,6 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 {
 	uint32_t tc=cState->tc;
 	uint32_t r=0;
-	if(!table)
-		table=fklGetGlobSymbolTable();
 	if(cState->type==BP_ERROR_HANLER)
 	{
 		fprintf(fp,"EH:");
@@ -306,6 +304,8 @@ void fklPrintByteCode(const FklByteCode* tmpCode,FILE* fp,FklSymbolTable* table)
 {
 	FklPtrStack* s=fklNewPtrStack(32,16);
 	fklPushPtrStack(newByteCodePrintState(BP_NONE,0,0,tmpCode->size),s);
+	if(!table)
+		table=fklGetGlobSymbolTable();
 	if(!fklIsPtrStackEmpty(s))
 	{
 		ByteCodePrintState* cState=fklPopPtrStack(s);
@@ -418,6 +418,8 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,FklSymbolTable* table)
 	FklByteCode* tmpCode=obj->bc;
 	FklPtrStack* s=fklNewPtrStack(32,16);
 	fklPushPtrStack(newByteCodePrintState(BP_NONE,0,0,tmpCode->size),s);
+	if(!table)
+		table=fklGetGlobSymbolTable();
 	uint64_t j=0;
 	FklSid_t fid=0;
 	uint64_t line=0;
@@ -439,7 +441,7 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,FklSymbolTable* table)
 				if(fid)
 				{
 					fprintf(fp,"    ;");
-					fklPrintString(fklGetGlobSymbolWithId(obj->l[j]->fid)->symbol,fp);
+					fklPrintString(fklGetSymbolWithId(obj->l[j]->fid,table)->symbol,fp);
 					fprintf(fp,":%u:%lu",obj->l[j]->line,obj->l[j]->cpc);
 				}
 				else
@@ -459,7 +461,7 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,FklSymbolTable* table)
 				if(fid)
 				{
 					fprintf(fp,"    ;");
-					fklPrintString(fklGetGlobSymbolWithId(obj->l[j]->fid)->symbol,fp);
+					fklPrintString(fklGetSymbolWithId(obj->l[j]->fid,table)->symbol,fp);
 					fprintf(fp,":%u:%lu",obj->l[j]->line,obj->l[j]->cpc);
 				}
 				else
@@ -487,7 +489,7 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,FklSymbolTable* table)
 				if(fid)
 				{
 					fprintf(fp,"    ;");
-					fklPrintString(fklGetGlobSymbolWithId(obj->l[j]->fid)->symbol,fp);
+					fklPrintString(fklGetSymbolWithId(obj->l[j]->fid,table)->symbol,fp);
 					fprintf(fp,":%u:%lu",obj->l[j]->line,obj->l[j]->cpc);
 				}
 				else
@@ -507,7 +509,7 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,FklSymbolTable* table)
 				if(fid)
 				{
 					fprintf(fp,"    ;");
-					fklPrintString(fklGetGlobSymbolWithId(obj->l[j]->fid)->symbol,fp);
+					fklPrintString(fklGetSymbolWithId(obj->l[j]->fid,table)->symbol,fp);
 					fprintf(fp,":%u:%lu",obj->l[j]->line,obj->l[j]->cpc);
 				}
 				else

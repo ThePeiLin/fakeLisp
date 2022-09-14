@@ -765,7 +765,7 @@ static CODEGEN_FUNC(codegen_try)
 			,codegen
 			,codegenQuestStack);
 	FklNastNode* catch=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
-    processCatch(catch,codegenQuestStack,curEnv,codegen);
+    //processCatch(catch,codegenQuestStack,curEnv,codegen);
 }
 #undef BC_PROCESS
 

@@ -158,7 +158,7 @@ static void _ffi_proc_invoke(void* ptr,FklVM* exe)
 			}
 			free(args);
 			free(pArgs);
-			FKL_RAISE_BUILTIN_ERROR(fklGetGlobSymbolWithId(proc->sid)->symbol,FKL_ERR_WRONGARG,curR,exe);
+			FKL_RAISE_BUILTIN_ERROR(fklGetGlobSymbolWithId(proc->sid)->symbol,FKL_ERR_INCORRECT_TYPE_VALUE,curR,exe);
 		}
 		FklFfiMem* mem=ud->data;
 		if(mem->type==FKL_FFI_TYPE_FILE_P||mem->type==FKL_FFI_TYPE_STRING||fklFfiIsArrayTypeId(mem->type))

@@ -600,8 +600,8 @@ char* fklGenErrorMessage(FklBuiltInErrorType type,FklVMframe* frame,FklVM* exe)
 	char* t=fklCopyCstr("");
 	switch(type)
 	{
-		case FKL_ERR_WRONGARG:
-			t=fklStrCat(t,"Wrong arguement");
+		case FKL_ERR_INCORRECT_TYPE_VALUE:
+			t=fklStrCat(t,"Incorrect type of values");
 			break;
 		case FKL_ERR_STACKERROR:
 			t=fklStrCat(t,"Stack error");

@@ -38,7 +38,7 @@ static const char* builtInErrorType[]=
 	"invalid-expression",
 	"circular-load",
 	"invalid-pattern",
-	"wrong-types-of-arguements",
+	"incorrect-types-of-values",
 	"stack-error",
 	"too-many-arguements",
 	"too-few-arguements",
@@ -222,7 +222,7 @@ void builtin_copy(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.copy",FKL_ERR_TOOMANYARG,frame,exe);
 	FklVMvalue* retval=fklCopyVMvalue(obj,stack,exe->gc);
 	if(!retval)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.copy",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.copy",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	fklNiReturn(retval,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -240,11 +240,11 @@ void builtin_append(ARGL)
 		if(cur)
 			retval=fklCopyVMvalue(retval,stack,exe->gc);
 		if(!retval)
-			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.append",FKL_ERR_WRONGARG,frame,exe);
+			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.append",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 		for(;cur;cur=fklNiGetArg(&ap,stack))
 		{
 			if(valueAppend[retval->type](retval,cur))
-				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.append",FKL_ERR_WRONGARG,frame,exe);
+				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.append",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 		}
 	}
 	else
@@ -259,7 +259,7 @@ void builtin_append(ARGL)
 				for(;FKL_IS_PAIR(*prev);prev=&(*prev)->u.pair->cdr);
 			}
 			else
-				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.append",FKL_ERR_WRONGARG,frame,exe);
+				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.append",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 		}
 	}
 	fklNiResBp(&ap,stack);
@@ -346,7 +346,7 @@ void builtin_add(ARGL)
 		else
 		{
 			fklFreeBigInt(bi);
-			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.+",FKL_ERR_WRONGARG,frame,exe);
+			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.+",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 		}
 	}
 	fklNiResBp(&ap,stack);
@@ -485,7 +485,7 @@ void builtin_sub(ARGL)
 			else
 			{
 				fklFreeBigInt(bi);
-				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.-",FKL_ERR_WRONGARG,frame,exe);
+				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.-",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 			}
 		}
 		fklNiResBp(&ap,stack);
@@ -628,7 +628,7 @@ void builtin_mul(ARGL)
 		else
 		{
 			fklFreeBigInt(bi);
-			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.*",FKL_ERR_WRONGARG,frame,exe);
+			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.*",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 		}
 	}
 	fklNiResBp(&ap,stack);
@@ -702,7 +702,7 @@ void builtin_idiv(ARGL)
 			else
 			{
 				fklFreeBigInt(bi);
-				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.//",FKL_ERR_WRONGARG,frame,exe);
+				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.//",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 			}
 		}
 		if(r64==0||FKL_IS_0_BIG_INT(bi))
@@ -804,7 +804,7 @@ void builtin_div(ARGL)
 			else
 			{
 				fklFreeBigInt(bi);
-				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin./",FKL_ERR_WRONGARG,frame,exe);
+				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin./",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 			}
 		}
 		if(r64==0||FKL_IS_0_BIG_INT(bi)||rd==0.0)
@@ -863,7 +863,7 @@ void builtin_mod(ARGL)
 	if(!fir||!sec)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.%",FKL_ERR_TOOFEWARG,frame,exe);
 	if(!fklIsVMnumber(fir)||!fklIsVMnumber(sec))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.%",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.%",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	if(FKL_IS_F64(fir)||FKL_IS_F64(sec))
 	{
 		double af=fklGetDouble(fir);
@@ -959,17 +959,17 @@ void builtin_eqn(ARGL)
 				int isUnableToBeCmp=0;
 				r=prev->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)==0;
 				if(isUnableToBeCmp)
-					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.=",FKL_ERR_WRONGARG,frame,exe);
+					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.=",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 			}
 			else if(FKL_IS_USERDATA(cur)&&cur->u.ud->t->__cmp)
 			{
 				int isUnableToBeCmp=0;
 				r=cur->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)==0;
 				if(isUnableToBeCmp)
-					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.=",FKL_ERR_WRONGARG,frame,exe);
+					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.=",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 			}
 			else
-				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.=",FKL_ERR_WRONGARG,frame,exe);
+				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.=",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 		}
 		if(!r)
 			break;
@@ -1024,17 +1024,17 @@ void builtin_gt(ARGL)
 				int isUnableToBeCmp=0;
 				r=prev->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)>0;
 				if(isUnableToBeCmp)
-					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.>",FKL_ERR_WRONGARG,frame,exe);
+					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.>",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 			}
 			else if(FKL_IS_USERDATA(cur)&&cur->u.ud->t->__cmp)
 			{
 				int isUnableToBeCmp=0;
 				r=cur->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)>0;
 				if(isUnableToBeCmp)
-					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.>",FKL_ERR_WRONGARG,frame,exe);
+					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.>",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 			}
 			else
-				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.>",FKL_ERR_WRONGARG,frame,exe);
+				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.>",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 		}
 		if(!r)
 			break;
@@ -1089,17 +1089,17 @@ void builtin_ge(ARGL)
 				int isUnableToBeCmp=0;
 				r=prev->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)>=0;
 				if(isUnableToBeCmp)
-					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.>=",FKL_ERR_WRONGARG,frame,exe);
+					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.>=",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 			}
 			else if(FKL_IS_USERDATA(cur)&&cur->u.ud->t->__cmp)
 			{
 				int isUnableToBeCmp=0;
 				r=cur->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)>=0;
 				if(isUnableToBeCmp)
-					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.>=",FKL_ERR_WRONGARG,frame,exe);
+					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.>=",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 			}
 			else
-				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.>=",FKL_ERR_WRONGARG,frame,exe);
+				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.>=",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 		}
 		if(!r)
 			break;
@@ -1154,17 +1154,17 @@ void builtin_lt(ARGL)
 				int isUnableToBeCmp=0;
 				r=prev->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)<0;
 				if(isUnableToBeCmp)
-					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.<",FKL_ERR_WRONGARG,frame,exe);
+					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.<",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 			}
 			else if(FKL_IS_USERDATA(cur)&&cur->u.ud->t->__cmp)
 			{
 				int isUnableToBeCmp=0;
 				r=cur->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)<0;
 				if(isUnableToBeCmp)
-					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.<",FKL_ERR_WRONGARG,frame,exe);
+					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.<",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 			}
 			else
-				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.<",FKL_ERR_WRONGARG,frame,exe);
+				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.<",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 		}
 		if(!r)
 			break;
@@ -1219,17 +1219,17 @@ void builtin_le(ARGL)
 				int isUnableToBeCmp=0;
 				r=prev->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)<=0;
 				if(isUnableToBeCmp)
-					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.<=",FKL_ERR_WRONGARG,frame,exe);
+					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.<=",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 			}
 			else if(FKL_IS_USERDATA(cur)&&cur->u.ud->t->__cmp)
 			{
 				int isUnableToBeCmp=0;
 				r=cur->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)<=0;
 				if(isUnableToBeCmp)
-					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.<=",FKL_ERR_WRONGARG,frame,exe);
+					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.<=",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 			}
 			else
-				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.<=",FKL_ERR_WRONGARG,frame,exe);
+				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.<=",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 		}
 		if(!r)
 			break;
@@ -1806,7 +1806,7 @@ void builtin_to_string(ARGL)
 	else if(FKL_IS_USERDATA(obj)&&obj->u.ud->t->__to_string)
 		retval=fklNewVMvalueToStack(FKL_TYPE_STR,obj->u.ud->t->__to_string(obj->u.ud->data),stack,exe->gc);
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.->string",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.->string",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	fklNiReturn(retval,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -2182,7 +2182,7 @@ void builtin_nth(ARGL)
 			fklNiReturn(FKL_VM_NIL,&ap,stack);
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.nth",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.nth",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	fklNiEnd(&ap,stack);
 }
 
@@ -2215,7 +2215,7 @@ void builtin_set_nth(ARGL)
 			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-nth!",FKL_ERR_INVALIDASSIGN,frame,exe);
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-nth!",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-nth!",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	fklNiEnd(&ap,stack);
 }
 
@@ -2230,7 +2230,7 @@ void builtin_sref(ARGL)
 	if(!place||!str)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sref",FKL_ERR_TOOFEWARG,frame,exe);
 	if(!fklIsInt(place)||!FKL_IS_STR(str))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sref",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sref",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	size_t index=fklGetUint(place);
 	size_t size=str->u.str->size;
 	if(fklVMnumberLt0(place)||index>=size)
@@ -2250,7 +2250,7 @@ void builtin_sref(ARGL)
 	if(!place||!bvec)\
 	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_TOOFEWARG,frame,exe);\
 	if(!fklIsInt(place)||!FKL_IS_BYTEVECTOR(bvec))\
-	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_WRONGARG,frame,exe);\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);\
 	size_t index=fklGetUint(place);\
 	size_t size=bvec->u.bvec->size;\
 	TYPE r=0;\
@@ -2269,7 +2269,7 @@ void builtin_sref(ARGL)
 	if(!place||!bvec)\
 	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_TOOFEWARG,frame,exe);\
 	if(!fklIsInt(place)||!FKL_IS_BYTEVECTOR(bvec))\
-	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_WRONGARG,frame,exe);\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);\
 	size_t index=fklGetUint(place);\
 	size_t size=bvec->u.bvec->size;\
 	TYPE r=0;\
@@ -2299,7 +2299,7 @@ void builtin_bvu64ref(ARGL)
 	if(!place||!bvec)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.bvu64ref",FKL_ERR_TOOFEWARG,frame,exe);
 	if(!fklIsInt(place)||!FKL_IS_BYTEVECTOR(bvec))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.bvu64ref",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.bvu64ref",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	size_t index=fklGetUint(place);
 	size_t size=bvec->u.bvec->size;
 	uint64_t r=0;
@@ -2326,7 +2326,7 @@ void builtin_bvu64ref(ARGL)
 	if(!place||!bvec)\
 	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_TOOFEWARG,frame,exe);\
 	if(!fklIsInt(place)||!FKL_IS_BYTEVECTOR(bvec))\
-	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_WRONGARG,frame,exe);\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);\
 	size_t index=fklGetUint(place);\
 	size_t size=bvec->u.bvec->size;\
 	TYPE r=0;\
@@ -2354,7 +2354,7 @@ void builtin_bvf64ref(ARGL) BV_F_REF(double,"builtin.bvf32ref")
 	if(!place||!bvec||!target)\
 	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_TOOFEWARG,frame,exe);\
 	if(!fklIsInt(place)||!FKL_IS_BYTEVECTOR(bvec)||!fklIsInt(target))\
-	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_WRONGARG,frame,exe);\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);\
 	size_t index=fklGetUint(place);\
 	size_t size=bvec->u.bvec->size;\
 	TYPE r=fklGetUint(target);\
@@ -2374,7 +2374,7 @@ void builtin_bvf64ref(ARGL) BV_F_REF(double,"builtin.bvf32ref")
 	if(!place||!bvec||!target)\
 	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_TOOFEWARG,frame,exe);\
 	if(!fklIsInt(place)||!FKL_IS_BYTEVECTOR(bvec)||!fklIsInt(target))\
-	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_WRONGARG,frame,exe);\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);\
 	size_t index=fklGetUint(place);\
 	size_t size=bvec->u.bvec->size;\
 	TYPE r=fklGetUint(target);\
@@ -2407,7 +2407,7 @@ void builtin_set_bvu64ref(ARGL) {SET_BV_REF(uint64_t,"builtin.set-bvu64ref!")}
 	if(!place||!bvec||!target)\
 	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_TOOFEWARG,frame,exe);\
 	if(!fklIsInt(place)||!FKL_IS_BYTEVECTOR(bvec)||!FKL_IS_F64(target))\
-	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_WRONGARG,frame,exe);\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);\
 	size_t index=fklGetUint(place);\
 	size_t size=bvec->u.bvec->size;\
 	TYPE r=target->u.f64;\
@@ -2435,7 +2435,7 @@ void builtin_set_sref(ARGL)
 	if(!place||!str||!target)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-sref!",FKL_ERR_TOOFEWARG,frame,exe);
 	if(!fklIsInt(place)||!FKL_IS_STR(str))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-sref!",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-sref!",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	size_t index=fklGetUint(place);
 	size_t size=str->u.str->size;
 	if(fklVMnumberLt0(place)||index>=size)
@@ -2443,7 +2443,7 @@ void builtin_set_sref(ARGL)
 	if(index>=str->u.str->size)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-sref!",FKL_ERR_INVALIDACCESS,frame,exe);
 	if(!FKL_IS_CHR(target)&&!fklIsInt(target))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-sref!",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-sref!",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	str->u.str->str[index]=FKL_IS_CHR(target)?FKL_GET_CHR(target):fklGetInt(target);
 	fklNiReturn(target,&ap,stack);
 	fklNiEnd(&ap,stack);
@@ -2460,7 +2460,7 @@ void builtin_fill_string(ARGL)
 	if(!str||!content)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fill-string!",FKL_ERR_TOOFEWARG,frame,exe);
 	if(!FKL_IS_CHR(content)||!FKL_IS_STR(str))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fill-string!",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fill-string!",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	memset(str->u.str->str,FKL_GET_CHR(content),str->u.str->size);
 	fklNiReturn(str,&ap,stack);
 	fklNiEnd(&ap,stack);
@@ -2477,7 +2477,7 @@ void builtin_fill_bytevector(ARGL)
 	if(!bvec||!content)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fill-bytevector!",FKL_ERR_TOOFEWARG,frame,exe);
 	if(!fklIsInt(content)||!FKL_IS_BYTEVECTOR(bvec))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fill-bytevector!",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fill-bytevector!",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	memset(bvec->u.bvec->ptr,fklGetInt(content),bvec->u.bvec->size);
 	fklNiReturn(bvec,&ap,stack);
 	fklNiEnd(&ap,stack);
@@ -2494,7 +2494,7 @@ void builtin_vref(ARGL)
 	if(!place||!vector)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.vref",FKL_ERR_TOOFEWARG,frame,exe);
 	if(!fklIsInt(place)||!FKL_IS_VECTOR(vector))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.vref",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.vref",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	size_t index=fklGetUint(place);
 	size_t size=vector->u.vec->size;
 	if(fklVMnumberLt0(place)||index>=size)
@@ -2517,7 +2517,7 @@ void builtin_set_vref(ARGL)
 	if(!place||!vector||!target)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-vref!",FKL_ERR_TOOFEWARG,frame,exe);
 	if(!fklIsInt(place)||!FKL_IS_VECTOR(vector))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-vref!",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-vref!",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	size_t index=fklGetUint(place);
 	size_t size=vector->u.vec->size;
 	if(fklVMnumberLt0(place)||index>=size)
@@ -2559,7 +2559,7 @@ void builtin_cas_vref(ARGL)
 	if(!place||!vector||!old||!new_)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.cas-vref!",FKL_ERR_TOOFEWARG,frame,exe);
 	if(!fklIsInt(place)||!FKL_IS_VECTOR(vector))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.cas-vref!",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.cas-vref!",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	size_t index=fklGetUint(place);
 	size_t size=vector->u.vec->size;
 	if(fklVMnumberLt0(place)||index>=size)
@@ -2601,7 +2601,7 @@ void builtin_nthcdr(ARGL)
 			fklNiReturn(FKL_VM_NIL,&ap,stack);
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.nthcdr",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.nthcdr",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	fklNiEnd(&ap,stack);
 }
 
@@ -2634,7 +2634,7 @@ void builtin_set_nthcdr(ARGL)
 			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-nthcdr!",FKL_ERR_INVALIDACCESS,frame,exe);
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-nthcdr!",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-nthcdr!",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	fklNiEnd(&ap,stack);
 }
 
@@ -2659,7 +2659,7 @@ void builtin_length(ARGL)
 	else if(FKL_IS_USERDATA(obj)&&obj->u.ud->t->__length)
 		len=obj->u.ud->t->__length(obj->u.ud->data);
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.length",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.length",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	fklNiReturn(fklMakeVMuint(len,stack,exe->gc),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -2676,7 +2676,7 @@ void builtin_fopen(ARGL)
 	if(!mode||!filename)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fopen",FKL_ERR_TOOFEWARG,frame,exe);
 	if(!FKL_IS_STR(filename)||!FKL_IS_STR(mode))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fopen",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fopen",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	char c_filename[filename->u.str->size+1];
 	char c_mode[mode->u.str->size+1];
 	fklWriteStringToCstr(c_filename,filename->u.str);
@@ -2716,7 +2716,7 @@ void builtin_read(ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_TOOMANYARG,frame,exe);
 	if(stream&&!FKL_IS_FP(stream)&&!FKL_IS_STR(stream))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	char* tmpString=NULL;
 	FklVMfp* tmpFile=NULL;
 	FklPtrStack* tokenStack=fklNewPtrStack(32,16);
@@ -2770,7 +2770,7 @@ void builtin_fgets(ARGL)
 	if(!file||!psize)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgets",FKL_ERR_TOOFEWARG,frame,exe);
 	if(!FKL_IS_FP(file)||!fklIsInt(psize))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgets",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgets",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	FklVMfp* fp=file->u.fp;
 	if(fklVMnumberLt0(psize))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgets",FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,frame,exe);
@@ -2832,7 +2832,7 @@ void builtin_fgetb(ARGL)
 	if(!file||!psize)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetb",FKL_ERR_TOOFEWARG,frame,exe);
 	if(!FKL_IS_FP(file)||!fklIsInt(psize))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetb",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetb",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	FklVMfp* fp=file->u.fp;
 	if(fklVMnumberLt0(psize))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetb",FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,frame,exe);
@@ -2889,7 +2889,7 @@ void builtin_prin1(ARGL)
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.prin1",FKL_ERR_TOOFEWARG,frame,exe);
 	if(file&&!FKL_IS_FP(file))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.prin1",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.prin1",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	FILE* objFile=file?file->u.fp->fp:stdout;
 	fklPrin1VMvalue(obj,objFile);
 	fklNiReturn(obj,&ap,stack);
@@ -2907,7 +2907,7 @@ void builtin_princ(ARGL)
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.princ",FKL_ERR_TOOFEWARG,frame,exe);
 	if(file&&!FKL_IS_FP(file))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.princ",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.princ",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	FILE* objFile=file?file->u.fp->fp:stdout;
 	fklPrincVMvalue(obj,objFile);
 	fklNiReturn(obj,&ap,stack);
@@ -2947,7 +2947,7 @@ void builtin_dlsym(ARGL)
 	if(!dll||!symbol)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.dlsym",FKL_ERR_TOOFEWARG,frame,exe);
 	if(!FKL_IS_STR(symbol)||!FKL_IS_DLL(dll))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.dlsym",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.dlsym",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	if(!dll->u.dll)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.dlsym",FKL_ERR_INVALIDACCESS,frame,exe);
 	char str[symbol->u.str->size+1];
@@ -2987,7 +2987,7 @@ void builtin_go(ARGL)
 	if(!threadProc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.go",FKL_ERR_TOOFEWARG,frame,exe);
 	if(!FKL_IS_PROC(threadProc)&&!FKL_IS_DLPROC(threadProc)&&!FKL_IS_CONT(threadProc)&&!fklIsCallableUd(threadProc))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.go",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.go",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	FklVM* threadVM=FKL_IS_PROC(threadProc)?fklNewThreadVM(threadProc->u.proc,exe->gc):fklNewThreadCallableObjVM(frame,exe->gc,threadProc);
 	threadVM->lnt=exe->lnt;
 	threadVM->code=exe->code;
@@ -3050,7 +3050,7 @@ void builtin_chanl_num(ARGL)
 	if(FKL_IS_CHAN(obj))
 		len=obj->u.chan->messageNum;
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.chanl-num",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.chanl-num",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	fklNiReturn(fklMakeVMuint(len,stack,exe->gc),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -3117,7 +3117,7 @@ void builtin_error(ARGL)
 	if(!type||!message)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.error",FKL_ERR_TOOFEWARG,frame,exe);
 	if(!FKL_IS_SYM(type)||!FKL_IS_STR(message)||(!FKL_IS_SYM(who)&&!FKL_IS_STR(who)))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.error",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.error",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_ERR,fklNewVMerror((FKL_IS_SYM(who))?fklGetGlobSymbolWithId(FKL_GET_SYM(who))->symbol:who->u.str,FKL_GET_SYM(type),message->u.str),stack,exe->gc),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -3199,7 +3199,7 @@ void builtin_apply(ARGL)
 	{
 		fklFreePtrStack(stack1);
 		fklFreePtrStack(stack2);
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.apply",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.apply",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	}
 	for(;FKL_IS_PAIR(lastList);lastList=fklGetVMpairCdr(lastList))
 		fklPushPtrStack(fklGetVMpairCar(lastList),stack2);
@@ -3207,7 +3207,7 @@ void builtin_apply(ARGL)
 	{
 		fklFreePtrStack(stack1);
 		fklFreePtrStack(stack2);
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.apply",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.apply",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	}
 	fklNiSetBp(ap,stack);
 	while(!fklIsPtrStackEmpty(stack2))
@@ -3299,7 +3299,7 @@ typedef struct
 	{\
 		FklVMvalue* cur=fklNiGetArg(&ap,stack);\
 		if(!fklIsList(cur))\
-		FKL_RAISE_BUILTIN_ERROR_CSTR((FUNC_NAME),FKL_ERR_WRONGARG,frame,exe);\
+		FKL_RAISE_BUILTIN_ERROR_CSTR((FUNC_NAME),FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);\
 		fklSetRef(&argVec->u.vec->base[i],cur,gc);\
 	}\
 	fklNiResBp(&ap,stack);\
@@ -3617,7 +3617,7 @@ void builtin_reverse(ARGL)
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.reverse",FKL_ERR_TOOFEWARG,frame,exe);
 	if(!FKL_IS_PAIR(obj)&&obj!=FKL_VM_NIL)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.reverse",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.reverse",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	FklVMvalue* retval=FKL_VM_NIL;
 	if(obj!=FKL_VM_NIL)
 	{
@@ -3694,7 +3694,7 @@ void builtin_fgetc(ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetc",FKL_ERR_TOOMANYARG,frame,exe);
 	if(stream&&!FKL_IS_FP(stream))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetc",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetc",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	FklVMfp* fp=stream?stream->u.fp:BuiltInStdin->u.fp;
 	if(!fp)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetc",FKL_ERR_INVALIDACCESS,frame,exe);
@@ -3725,7 +3725,7 @@ void builtin_fgeti(ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgeti",FKL_ERR_TOOMANYARG,frame,exe);
 	if(stream&&!FKL_IS_FP(stream))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgeti",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgeti",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	FklVMfp* fp=stream?stream->u.fp:BuiltInStdin->u.fp;
 	if(!fp)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgeti",FKL_ERR_INVALIDACCESS,frame,exe);
@@ -3759,7 +3759,7 @@ void builtin_fwrite(ARGL)
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fwrite",FKL_ERR_TOOFEWARG,frame,exe);
 	if(file&&!FKL_IS_FP(file))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fwrite",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fwrite",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	FILE* objFile=file?file->u.fp->fp:stdout;
 	if(FKL_IS_STR(obj)||FKL_IS_SYM(obj))
 		fklPrincVMvalue(obj,objFile);
@@ -3786,7 +3786,7 @@ void builtin_fwrite(ARGL)
 	else if(FKL_IS_USERDATA(obj)&&obj->u.ud->t->__write)
 		obj->u.ud->t->__write(obj->u.ud->data,objFile);
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fwrite",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fwrite",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	fklNiReturn(obj,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -3997,7 +3997,7 @@ void builtin_rand(ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.rand",FKL_ERR_TOOMANYARG,frame,exe);
 	if(lim&&!fklIsInt(lim))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.rand",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.rand",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	fklNiReturn(FKL_MAKE_VM_I32(rand()%((lim==NULL)?RAND_MAX:fklGetInt(lim))),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -4105,7 +4105,7 @@ void builtin_hash(ARGL)
 		if(!FKL_IS_PAIR(cur))
 		{
 			fklFreeVMhashTable(ht);
-			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.hash",FKL_ERR_WRONGARG,frame,exe);
+			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.hash",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 		}
 		fklSetVMhashTable(cur->u.pair->car,cur->u.pair->cdr,ht,exe->gc);
 	}
@@ -4160,7 +4160,7 @@ void builtin_hasheqv(ARGL)
 		if(!FKL_IS_PAIR(cur))
 		{
 			fklFreeVMhashTable(ht);
-			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.hasheqv",FKL_ERR_WRONGARG,frame,exe);
+			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.hasheqv",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 		}
 		fklSetVMhashTable(cur->u.pair->car,cur->u.pair->cdr,ht,exe->gc);
 	}
@@ -4200,7 +4200,7 @@ void builtin_hashequal(ARGL)
 		if(!FKL_IS_PAIR(cur))
 		{
 			fklFreeVMhashTable(ht);
-			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.hashequal",FKL_ERR_WRONGARG,frame,exe);
+			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.hashequal",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 		}
 		fklSetVMhashTable(cur->u.pair->car,cur->u.pair->cdr,ht,exe->gc);
 	}

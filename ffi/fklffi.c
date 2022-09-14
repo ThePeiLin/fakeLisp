@@ -56,7 +56,7 @@ void ffi_new(ARGL)
 				&&!FKL_IS_PAIR(typedeclare))
 			||(atomic
 				&&!FKL_IS_SYM(atomic)))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.new",FKL_ERR_WRONGARG,exe->frames,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.new",FKL_ERR_INCORRECT_TYPE_VALUE,exe->frames,exe);
 	FklTypeId_t id=fklFfiGenTypeId(typedeclare);
 	if(!id)
 		FKL_FFI_RAISE_ERROR("ffi.new",FKL_FFI_ERR_INVALID_TYPEDECLARE,exe);
@@ -91,7 +91,7 @@ void ffi_delete(ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.delete",FKL_ERR_TOOMANYARG,exe->frames,exe);
 	if(!fklFfiIsMem(mem))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.delete",FKL_ERR_WRONGARG,exe->frames,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.delete",FKL_ERR_INCORRECT_TYPE_VALUE,exe->frames,exe);
 	FklFfiMem* m=mem->u.ud->data;
 	free(m->mem);
 	m->mem=NULL;
@@ -108,7 +108,7 @@ void ffi_sizeof(ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.sizeof",FKL_ERR_TOOMANYARG,exe->frames,exe);
 	if(!FKL_IS_SYM(typedeclare)&&!FKL_IS_PAIR(typedeclare)&&!fklFfiIsMem(typedeclare))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.sizeof",FKL_ERR_WRONGARG,exe->frames,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.sizeof",FKL_ERR_INCORRECT_TYPE_VALUE,exe->frames,exe);
 	if(fklFfiIsMem(typedeclare))
 	{
 		FklFfiMem* m=typedeclare->u.ud->data;
@@ -133,7 +133,7 @@ void ffi_alignof(ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.alignof",FKL_ERR_TOOMANYARG,exe->frames,exe);
 	if(!FKL_IS_SYM(typedeclare)&&!FKL_IS_PAIR(typedeclare)&&!fklFfiIsMem(typedeclare))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.alignof",FKL_ERR_WRONGARG,exe->frames,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.alignof",FKL_ERR_INCORRECT_TYPE_VALUE,exe->frames,exe);
 	if(fklFfiIsMem(typedeclare))
 	{
 		FklFfiMem* m=typedeclare->u.ud->data;
@@ -159,7 +159,7 @@ void ffi_typedef(ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.typedef",FKL_ERR_TOOMANYARG,exe->frames,exe);
 	if(!FKL_IS_SYM(typename)||(!FKL_IS_PAIR(typedeclare)&&!FKL_IS_SYM(typedeclare)))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.typedef",FKL_ERR_WRONGARG,exe->frames,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.typedef",FKL_ERR_INCORRECT_TYPE_VALUE,exe->frames,exe);
 	FklSid_t typenameId=FKL_GET_SYM(typename);
 	if(fklFfiIsNativeTypeName(typenameId))
 		FKL_FFI_RAISE_ERROR("ffi.typedef",FKL_FFI_ERR_INVALID_TYPENAME,exe);
@@ -181,7 +181,7 @@ void ffi_load(ARGL)
 	if(!vpath)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.load",FKL_ERR_TOOFEWARG,frame,exe);
 	if(!FKL_IS_STR(vpath))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.load",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.load",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	char* path=fklCharBufToCstr(vpath->u.str->str,vpath->u.str->size);
 	FklVMdllHandle handle=fklLoadDll(path);
 	if(!handle)
@@ -204,7 +204,7 @@ void ffi_ref(ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.ref",FKL_ERR_TOOMANYARG,frame,exe);
 	if(!fklFfiIsMem(mem)||(selector&&!FKL_IS_SYM(selector)&&selector!=FKL_VM_NIL)||(index&&!fklIsInt(index)))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.ref",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.ref",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	FklVMudata* ref=fklFfiNewMemRefUdWithSI(mem->u.ud->data,selector,index);
 	if(!ref)
 		FKL_FFI_RAISE_ERROR("ffi.ref",FKL_FFI_ERR_INVALID_SELECTOR,exe);
@@ -227,10 +227,10 @@ void ffi_clear(ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.clear!",FKL_ERR_TOOMANYARG,frame,exe);
 	if(!fklFfiIsMem(mem))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.clear!",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.clear!",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	FklFfiMem* ptr=mem->u.ud->data;
 	if(ptr->type==FKL_FFI_TYPE_STRING)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.clear!",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.clear!",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	memset(ptr->mem,0,fklFfiGetTypeSizeWithTypeId(ptr->type));
 	fklNiReturn(mem
 			,&ap
@@ -249,7 +249,7 @@ void ffi_cast_ref(ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.cast-ref",FKL_ERR_TOOMANYARG,frame,exe);
 	if(!fklFfiIsMem(mem)||(!FKL_IS_PAIR(type)&&!FKL_IS_SYM(type)))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.cast-ref",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.cast-ref",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	FklTypeId_t id=fklFfiGenTypeId(type);
 	if(!id)
 		FKL_FFI_RAISE_ERROR("ffi.cast-ref",FKL_FFI_ERR_INVALID_TYPEDECLARE,exe);
@@ -275,7 +275,7 @@ void ffi_set(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.set",FKL_ERR_TOOMANYARG,frame,exe);
 	if(!fklFfiIsMem(ref)
 			||(!fklFfiIsMem(mem)&&!fklFfiIsCastableVMvalueType(mem)))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.set",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.set",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	if(fklFfiSetMem(ref->u.ud->data,mem))
 		FKL_FFI_RAISE_ERROR("ffi.set",FKL_FFI_ERR_INVALID_ASSIGN,exe);
 	fklNiReturn(mem,&ap,stack);
@@ -292,7 +292,7 @@ void ffi_mem(ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.mem",FKL_ERR_TOOMANYARG,frame,exe);
 	if(!fklFfiIsCastableVMvalueType(val))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.mem",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.mem",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_USERDATA,fklFfiCastVMvalueIntoMem(val),stack,exe->gc),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -307,7 +307,7 @@ void ffi_val(ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.val",FKL_ERR_TOOMANYARG,frame,exe);
 	if(!fklFfiIsMem(mem)||!fklFfiIsValuableMem(mem->u.ud->data))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.val",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.val",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	fklNiReturn(fklFfiNewVMvalue(mem->u.ud->data,stack,exe->gc),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -326,7 +326,7 @@ void ffi_proc(ARGL)
 				&&!FKL_IS_PAIR(typedeclare))
 			||(val
 				&&!FKL_IS_STR(val)))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.proc",FKL_ERR_WRONGARG,exe->frames,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.proc",FKL_ERR_INCORRECT_TYPE_VALUE,exe->frames,exe);
 
 	FklTypeId_t id=fklFfiGenTypeId(typedeclare);
 	if(!id||!fklFfiIsFunctionTypeId(id)||!fklFfiIsValidFunctionTypeId(id))

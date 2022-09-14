@@ -97,7 +97,7 @@ void fklc_pattern_match(ARGL)
 	if(!ARG)\
 	FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_ERR_TOOFEWARG,frame,exe);\
 	if(!P(ARG))\
-	FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_ERR_WRONGARG,frame,exe);\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);\
 	fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_USERDATA,fklcNewFbcUd(BC),stack,exe->gc),&ap,stack);\
 	fklNiEnd(&ap,stack);\
 }
@@ -162,7 +162,7 @@ void fklc_compile_obj(ARGL)
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.compile-obj",FKL_ERR_TOOFEWARG,frame,exe);
 	if(!IS_COMPILABLE(obj))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.compile-obj",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.compile-obj",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	FklByteCode* bc=fklcNewPushObjByteCode(obj);
 	if(!bc)
 		FKLC_RAISE_ERROR("fklc.compile-obj",FKL_FKLC_ERR_IMCOMPILABLE_OBJ_OCCUR,exe);
@@ -203,7 +203,7 @@ void fklc_make_fbc(ARGL)
 	if(content)
 	{
 		if(!FKL_IS_CHR(content)&&!fklIsInt(content))
-			FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.make-fbc",FKL_ERR_WRONGARG,frame,exe);
+			FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.make-fbc",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 		c=fklGetInt(content);
 	}
 	memset(bc->code,c,len);

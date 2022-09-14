@@ -819,7 +819,7 @@ static struct PatternAndFunc
 	{"(lambda args,rest)",  NULL, codegen_lambda,  },
 	{"(and,rest)",          NULL, codegen_and,     },
 	{"(or,rest)",           NULL, codegen_or,      },
-	{"(cond,rest)",NULL,codegen_cond,},
+	{"(cond,rest)",         NULL, codegen_cond,    },
 	{NULL,                  NULL, NULL,            }
 };
 

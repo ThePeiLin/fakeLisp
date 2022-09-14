@@ -729,7 +729,7 @@ void B_append(FklVM* exe)
 	FklVMvalue* fir=fklNiGetArg(&ap,stack);
 	FklVMvalue* sec=fklNiGetArg(&ap,stack);
 	if(sec!=FKL_VM_NIL&&!FKL_IS_PAIR(sec))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.append",FKL_ERR_WRONGARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.append",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	if(sec==FKL_VM_NIL)
 		fklNiReturn(fir,&ap,stack);
 	else

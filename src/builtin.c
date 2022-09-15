@@ -4656,7 +4656,7 @@ void fklInitCompEnv(FklCompEnv* curEnv)
 		fklAddCompDefCstr(list->s,curEnv);
 }
 
-void fklInitGlobCodeEnv(FklCodegenEnv* curEnv)
+void fklInitGlobCodegenEnv(FklCodegenEnv* curEnv)
 {
 	for(const struct SymbolFuncStruct* list=builtInSymbolList
 			;list->s!=NULL

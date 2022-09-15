@@ -6,6 +6,12 @@
 #include<fakeLisp/vm.h>
 #include<ctype.h>
 #include<string.h>
+#ifdef _WIN32
+#include<io.h>
+#include<process.h>
+#else
+#include<unistd.h>
+#endif
 
 static FklSid_t builtInPatternVar_rest=0;
 static FklSid_t builtInPatternVar_name=0;
@@ -469,6 +475,13 @@ FklCodegenEnv* fklNewCodegenEnv(FklCodegenEnv* prev)
 	r->prev=prev;
 	r->refcount=0;
 	r->defs=fklNewHashTable(8,4,2,0.75,1,&CodegenEnvHashMethodTable);
+	return r;
+}
+
+FklCodegenEnv* fklNewGlobCodegenEnv(void)
+{
+	FklCodegenEnv* r=fklNewCodegenEnv(NULL);
+	fklInitGlobCodegenEnv(r);
 	return r;
 }
 
@@ -1013,4 +1026,45 @@ FklByteCodelnt* fklGenExpressionCode(const FklNastNode* exp
 		retval=fklPopPtrStack(resultStack);
 	fklFreePtrStack(resultStack);
 	return retval;
+}
+
+void fklInitCodegener(FklCodegen* codegen
+		,const char* filename
+		,FILE* fp
+		,FklCodegenEnv* globalEnv
+		,FklCodegen* prev
+		,FklSymbolTable* globalSymTable)
+{
+	if(fp!=stdin&&filename!=NULL)
+	{
+		char* rp=fklRealpath(filename);
+		if(!rp&&!fp)
+		{
+			perror(filename);
+			exit(EXIT_FAILURE);
+		}
+		codegen->curDir=fklGetDir(rp);
+		codegen->filename=fklRelpath(fklGetMainFileRealPath(),rp);
+		codegen->realpath=rp;
+		codegen->fid=fklAddSymbolCstr(filename,globalSymTable)->id;
+	}
+	else
+	{
+		codegen->curDir=getcwd(NULL,0);
+		codegen->filename=NULL;
+		codegen->realpath=NULL;
+		codegen->fid=0;
+	}
+	codegen->file=fp;
+	codegen->curline=1;
+	codegen->prev=NULL;
+	if(globalEnv)
+		codegen->globalEnv=globalEnv;
+	else
+	{
+		codegen->globalEnv=fklNewCodegenEnv(NULL);
+		fklInitGlobCodegenEnv(codegen->globalEnv);
+	}
+	codegen->globalSymTable=globalSymTable;
+	codegen->prev=prev;
 }

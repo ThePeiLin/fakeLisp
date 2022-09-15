@@ -61,18 +61,10 @@ int main(int argc,char** argv)
 //			inter=fklNewIntpr(NULL,fp,NULL,NULL);
 //			fklInitGlobKeyWord(inter->glob);
 //			runRepl(inter);
+			FklCodegen codegen={.fid=0,};
 			fklInitCodegen();
 			fklInitLexer();
-			FklCodegen codegen={
-				.filename=NULL,
-				.realpath=NULL,
-				.curDir=getcwd(NULL,0),
-				.file=stdin,
-				.curline=1,
-				.globalEnv=fklNewCodegenEnv(NULL),
-				.globalSymTable=fklGetGlobSymbolTable(),
-				.fid=0,
-				.prev=NULL};
+			fklInitCodegener(&codegen,NULL,stdin,fklNewGlobCodegenEnv(),NULL,fklGetGlobSymbolTable());
 			runRepl1(&codegen);
 		}
 		else
@@ -322,6 +314,7 @@ void runRepl1(FklCodegen* codegen)
 	FklByteCode* rawProcList=NULL;
 	FklPtrStack* tokenStack=fklNewPtrStack(32,16);
 	FklLineNumberTable* globalLnt=fklNewLineNumTable();
+	anotherVM->lnt=globalLnt;
 	char* prev=NULL;
 	size_t prevSize=0;
 	int32_t bs=0;

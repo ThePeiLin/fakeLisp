@@ -43,7 +43,7 @@ typedef struct FklVMgc FklVMgc;
 typedef struct FklCodegenEnv FklCodegenEnv;
 
 void fklInitCompEnv(FklCompEnv* curEnv);
-void fklInitGlobCodeEnv(FklCodegenEnv*);
+void fklInitGlobCodegenEnv(FklCodegenEnv*);
 void fklInitGlobEnv(FklVMenv*,FklVMgc*);
 FklSid_t fklGetBuiltInErrorType(FklBuiltInErrorType);
 #endif

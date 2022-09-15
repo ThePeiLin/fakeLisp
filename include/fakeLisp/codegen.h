@@ -44,6 +44,13 @@ typedef struct FklCodegenQuest
 	FklCodegen* codegen;
 }FklCodegenQuest;
 
+void fklInitCodegener(FklCodegen* codegen
+		,const char* filename
+		,FILE* fp
+		,FklCodegenEnv* globalEnv
+		,FklCodegen* prev
+		,FklSymbolTable*);
+void fklUninitCodegener(FklCodegen* codegen);
 void fklInitCodegen(void);
 void fklUninitCodegen(void);
 FklByteCode* fklCodegenNode(const FklNastNode*,FklCodegen* codegen);
@@ -54,6 +61,7 @@ void fklAddCodegenDefBySid(FklSid_t sid,FklCodegenEnv*);
 int fklIsSymbolDefined(FklSid_t sid,FklCodegenEnv*);
 
 FklCodegenEnv* fklNewCodegenEnv(FklCodegenEnv* prev);
+FklCodegenEnv* fklNewGlobCodegenEnv(void);
 
 #ifdef __cplusplus
 }

@@ -263,10 +263,19 @@ void fklWriteGlobSymbolTable(FILE* fp)
 
 FklSymbolTable* fklGetGlobSymbolTable(void)
 {
+	if(!GlobSymbolTable)
+		GlobSymbolTable=fklNewSymbolTable();
 	return GlobSymbolTable;
 }
 
 void fklSetGlobSymbolTable(FklSymbolTable* t)
 {
 	GlobSymbolTable=t;
+}
+
+FklSymbolTable* fklExchangeGlobSymbolTable(FklSymbolTable* other)
+{
+	FklSymbolTable* r=GlobSymbolTable;
+	GlobSymbolTable=other;
+	return r;
 }

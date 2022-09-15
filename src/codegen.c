@@ -12,6 +12,21 @@ static FklSid_t builtInPatternVar_name=0;
 static FklSid_t builtInPatternVar_value=0;
 static FklSid_t builtInPatternVar_args=0;
 
+//typedef enum
+//{
+//	SUB_PATTERN_CATCH=0,
+//}SubPatternEnum;
+//
+//static struct SubPattern
+//{
+//	char* ps;
+//	FklNastNode* pn;
+//}builtInSubPattern[]=
+//{
+//	{"(catch value,rest)",NULL,},
+//	{NULL,NULL,},
+//};
+
 static FklByteCode* new1lenBc(FklOpcode op)
 {
 	FklByteCode* r=fklNewByteCode(1);
@@ -719,54 +734,80 @@ static CODEGEN_FUNC(codegen_cond)
 	}
 }
 
-BC_PROCESS(_try_exp_bc_process_0)
-{
-	if(stack->top)
-	{
-		uint8_t opcodes[]={
-			FKL_OP_SET_TP,
-			FKL_OP_RES_TP,
-			FKL_OP_POP_TP,
-		};
-		FklByteCode setTp={1,&opcodes[0]};
-		FklByteCode resTp={1,&opcodes[1]};
-		FklByteCode popTp={1,&opcodes[2]};
-		FklByteCodelnt* retval=fklNewByteCodelnt(fklNewByteCode(0));
-		size_t top=stack->top;
-		for(size_t i=0;i<top;i++)
-		{
-			FklByteCodelnt* cur=stack->base[i];
-			if(cur->bc->size)
-			{
-				fklCodeLntCat(retval,cur);
-				if(i<top-1)
-					bclBcAppendToBcl(retval,&resTp,fid,line);
-			}
-			fklFreeByteCodelnt(cur);
-		}
-		bcBclAppendToBcl(&setTp,retval,fid,line);
-		bclBcAppendToBcl(retval,&popTp,fid,line);
-		return retval;
-	}
-	else
-		return newBclnt(new1lenBc(FKL_OP_PUSH_NIL),fid,line);
-}
+//BC_PROCESS(_try_exp_bc_process_1)
+//{
+//	FklByteCodelnt* retval=NULL;
+//	if(stack->top)
+//	{
+//		uint8_t opcodes[]={
+//			FKL_OP_SET_TP,
+//			FKL_OP_RES_TP,
+//			FKL_OP_POP_TP,
+//		};
+//		FklByteCode setTp={1,&opcodes[0]};
+//		FklByteCode resTp={1,&opcodes[1]};
+//		FklByteCode popTp={1,&opcodes[2]};
+//		retval=fklNewByteCodelnt(fklNewByteCode(0));
+//		size_t top=stack->top;
+//		for(size_t i=0;i<top;i++)
+//		{
+//			FklByteCodelnt* cur=stack->base[i];
+//			if(cur->bc->size)
+//			{
+//				fklCodeLntCat(retval,cur);
+//				if(i<top-1)
+//					bclBcAppendToBcl(retval,&resTp,fid,line);
+//			}
+//			fklFreeByteCodelnt(cur);
+//		}
+//		bcBclAppendToBcl(&setTp,retval,fid,line);
+//		bclBcAppendToBcl(retval,&popTp,fid,line);
+//	}
+//	else
+//		retval=newBclnt(new1lenBc(FKL_OP_PUSH_NIL),fid,line);
+//	FklByteCode* pushProc=new9lenBc(FKL_OP_PUSH_PROC,retval->bc->size);
+//	FklByteCode* call=new1lenBc(FKL_OP_CALL);
+//	bcBclAppendToBcl(pushProc,retval,fid,line);
+//	bclBcAppendToBcl(retval,call,fid,line);
+//	fklFreeByteCode(pushProc);
+//	fklFreeByteCode(call);
+//	return retval;
+//}
 
-static CODEGEN_FUNC(codegen_try)
-{
-    FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
-	FklPtrQueue* restQueue=fklNewPtrQueue();
-	pushListItemToQueue(rest,restQueue);
-	FKL_PUSH_NEW_CODEGEN_QUEST(_try_exp_bc_process_0
-			,fklNewPtrStack(32,16)
-			,restQueue
-			,fklNewCodegenEnv(curEnv)
-			,rest->curline
-			,codegen
-			,codegenQuestStack);
-	FklNastNode* catch=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
-    //processCatch(catch,codegenQuestStack,curEnv,codegen);
-}
+//BC_PROCESS(_try_exp_bc_process_0)
+//{
+//}
+
+//static void processCatch(FklNastNode* catch,FklPtrStack* codegenQuestStack,FklCodegenEnv* curEnv,FklCodegen* codegen)
+//{
+//	FklHashTable* ht=fklNewPatternMatchingHashTable();
+//	fklPatternMatch(builtInSubPattern[SUB_PATTERN_CATCH].pn,catch,ht);
+//	FklNastNode* errorSym=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
+//	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
+//}
+//
+//static CODEGEN_FUNC(codegen_try)
+//{
+//    FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
+//	FklPtrQueue* restQueue=fklNewPtrQueue();
+//	pushListItemToQueue(rest,restQueue);
+//	FKL_PUSH_NEW_CODEGEN_QUEST(_try_exp_bc_process_0
+//			,fklNewPtrStack(32,16)
+//			,NULL
+//			,curEnv
+//			,rest->curline
+//			,codegen
+//			,codegenQuestStack);
+//	FKL_PUSH_NEW_CODEGEN_QUEST(_try_exp_bc_process_1
+//			,fklNewPtrStack(32,16)
+//			,restQueue
+//			,fklNewCodegenEnv(curEnv)
+//			,rest->curline
+//			,codegen
+//			,codegenQuestStack);
+//	FklNastNode* catch=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
+//    processCatch(catch,codegenQuestStack,curEnv,codegen);
+//}
 #undef BC_PROCESS
 
 FklByteCode* fklCodegenNode(const FklNastNode* node,FklCodegen* codegenr)
@@ -869,18 +910,8 @@ static struct PatternAndFunc
 	{"(and,rest)",          NULL, codegen_and,     },
 	{"(or,rest)",           NULL, codegen_or,      },
 	{"(cond,rest)",         NULL, codegen_cond,    },
-	{"(try value,rest)",          NULL, codegen_try,     },
+//	{"(try value,rest)",          NULL, codegen_try,     },
 	{NULL,                  NULL, NULL,            }
-};
-
-static struct SubPattern
-{
-	char* ps;
-	FklNastNode* pn;
-}builtInSubPattern[]=
-{
-	{"(catch value,rest)",NULL,},
-	{NULL,NULL,},
 };
 
 void fklInitCodegen(void)
@@ -892,8 +923,8 @@ void fklInitCodegen(void)
 
 	for(struct PatternAndFunc* cur=&builtInPattern[0];cur->ps!=NULL;cur++)
 		cur->pn=fklNewNastNodeFromCstr(cur->ps);
-	for(struct SubPattern* cur=&builtInSubPattern[0];cur->ps!=NULL;cur++)
-		cur->pn=fklNewNastNodeFromCstr(cur->ps);
+//	for(struct SubPattern* cur=&builtInSubPattern[0];cur->ps!=NULL;cur++)
+//		cur->pn=fklNewNastNodeFromCstr(cur->ps);
 }
 
 void fklUninitCodegen(void)
@@ -903,11 +934,11 @@ void fklUninitCodegen(void)
 		fklFreeNastNode(cur->pn);
 		cur->pn=NULL;
 	}
-	for(struct SubPattern* cur=&builtInSubPattern[0];cur->ps!=NULL;cur++)
-	{
-		fklFreeNastNode(cur->pn);
-		cur->pn=NULL;
-	}
+//	for(struct SubPattern* cur=&builtInSubPattern[0];cur->ps!=NULL;cur++)
+//	{
+//		fklFreeNastNode(cur->pn);
+//		cur->pn=NULL;
+//	}
 }
 
 FklByteCodelnt* fklMakePushVar(const FklNastNode* exp,FklCodegen* codegen)

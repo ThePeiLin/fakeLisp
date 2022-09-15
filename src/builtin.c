@@ -5,6 +5,7 @@
 #include<fakeLisp/parser.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/builtin.h>
+#include<fakeLisp/codegen.h>
 #include<fakeLisp/compiler.h>
 #ifdef _WIN32
 #include<conio.h>
@@ -4653,6 +4654,14 @@ void fklInitCompEnv(FklCompEnv* curEnv)
 			;list->s!=NULL
 			;list++)
 		fklAddCompDefCstr(list->s,curEnv);
+}
+
+void fklInitGlobCodeEnv(FklCodegenEnv* curEnv)
+{
+	for(const struct SymbolFuncStruct* list=builtInSymbolList
+			;list->s!=NULL
+			;list++)
+		fklAddCodegenDefBySid(fklAddSymbolToGlobCstr(list->s)->id,curEnv);
 }
 
 void fklInitGlobEnv(FklVMenv* obj,FklVMgc* gc)

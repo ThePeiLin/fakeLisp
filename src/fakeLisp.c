@@ -6,6 +6,8 @@
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/ast.h>
 #include<fakeLisp/vm.h>
+#include<fakeLisp/lexer.h>
+#include<fakeLisp/codegen.h>
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
@@ -20,6 +22,7 @@
 #endif
 
 void runRepl(FklInterpreter*);
+void runRepl1(FklCodegen*);
 FklByteCode* loadByteCode(FILE*);
 void loadSymbolTable(FILE*);
 FklLineNumberTable* loadLineNumberTable(FILE*);
@@ -55,9 +58,22 @@ int main(int argc,char** argv)
 		if(fp==stdin)
 		{
 			fklSetMainFileRealPathWithCwd();
-			inter=fklNewIntpr(NULL,fp,NULL,NULL);
-			fklInitGlobKeyWord(inter->glob);
-			runRepl(inter);
+//			inter=fklNewIntpr(NULL,fp,NULL,NULL);
+//			fklInitGlobKeyWord(inter->glob);
+//			runRepl(inter);
+			fklInitCodegen();
+			fklInitLexer();
+			FklCodegen codegen={
+				.filename=NULL,
+				.realpath=NULL,
+				.curDir=getcwd(NULL,0),
+				.file=stdin,
+				.curline=1,
+				.globalEnv=fklNewCodegenEnv(NULL),
+				.globalSymTable=fklGetGlobSymbolTable(),
+				.fid=0,
+				.prev=NULL};
+			runRepl1(&codegen);
 		}
 		else
 		{
@@ -180,7 +196,6 @@ void runRepl(FklInterpreter* inter)
 	FklVMvalue* globEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
 	anotherVM->callback=errorCallBack;
 	anotherVM->lnt=inter->lnt;
-//	fklInitGlobEnv(globEnv->u.env,anotherVM->gc);
 	FklByteCode* rawProcList=NULL;
 	FklPtrStack* tokenStack=fklNewPtrStack(32,16);
 	char* prev=NULL;
@@ -292,6 +307,116 @@ void runRepl(FklInterpreter* inter)
 	fklFreePtrStack(tokenStack);
 	free(rawProcList);
 	fklFreeIntpr(inter);
+	fklUninitPreprocess();
+	fklFreeVMgc(anotherVM->gc);
+	fklFreeAllVMs();
+	fklFreeGlobSymbolTable();
+}
+
+void runRepl1(FklCodegen* codegen)
+{
+	int e=0;
+	FklVM* anotherVM=fklNewVM(NULL);
+	FklVMvalue* globEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
+	anotherVM->callback=errorCallBack;
+	FklByteCode* rawProcList=NULL;
+	FklPtrStack* tokenStack=fklNewPtrStack(32,16);
+	FklLineNumberTable* globalLnt=fklNewLineNumTable();
+	char* prev=NULL;
+	size_t prevSize=0;
+	int32_t bs=0;
+	for(;e<2;)
+	{
+		FklNastNode* begin=NULL;
+		printf(">>>");
+		if(prev)
+			fwrite(prev,sizeof(char),prevSize,stdout);
+		int unexpectEOF=0;
+		size_t size=0;
+		char* list=fklReadInStringPattern(codegen->file,&prev,&size,&prevSize,codegen->curline,&unexpectEOF,tokenStack,NULL);
+		if(unexpectEOF)
+		{
+			switch(unexpectEOF)
+			{
+					case 1:
+						fprintf(stderr,"error of reader:Unexpect EOF at line %lu\n",codegen->curline);
+						break;
+					case 2:
+						fprintf(stderr,"error of reader:Invalid expression at line %lu\n",codegen->curline);
+						break;
+				}
+			free(list);
+			list=NULL;
+			continue;
+		}
+		begin=fklNewNastNodeFromTokenStack(tokenStack);
+		codegen->curline+=fklCountChar(list,'\n',size);
+		while(!fklIsPtrStackEmpty(tokenStack))
+			fklFreeToken(fklPopPtrStack(tokenStack));
+		if(fklIsAllSpaceBufSize(list,size))
+		{
+			free(list);
+			break;
+		}
+		if(begin!=NULL)
+		{
+			FklByteCodelnt* tmpByteCode=fklGenExpressionCode(begin,codegen->globalEnv,codegen);
+			if(tmpByteCode)
+			{
+				fklLntCat(globalLnt,bs,tmpByteCode->l,tmpByteCode->ls);
+				FklByteCode byteCodeOfVM={anotherVM->size,anotherVM->code};
+				fklCodeCat(&byteCodeOfVM,tmpByteCode->bc);
+				anotherVM->code=byteCodeOfVM.code;
+				anotherVM->size=byteCodeOfVM.size;
+				FklVMproc* tmp=fklNewVMproc(bs,tmpByteCode->bc->size);
+				bs+=tmpByteCode->bc->size;
+				fklFreeByteCodelnt(tmpByteCode);
+				tmp->prevEnv=NULL;
+				FklVMframe* mainframe=fklNewVMframe(tmp,anotherVM->frames);
+				mainframe->localenv=globEnv;
+				anotherVM->frames=mainframe;
+				if(!(e=setjmp(buf)))
+				{
+					fklRunVM(anotherVM);
+					FklVMstack* stack=anotherVM->stack;
+					if(stack->tp!=0)
+					{
+						printf(";=>");
+						fklDBG_printVMstack(stack,stdout,0);
+					}
+					fklWaitGC(anotherVM->gc);
+					free(anotherVM->frames);
+					anotherVM->frames=NULL;
+					stack->tp=0;
+					fklFreeVMproc(tmp);
+				}
+				else
+				{
+					if(e>=2&&prev)
+						free(prev);
+					FklVMstack* stack=anotherVM->stack;
+					stack->tp=0;
+					stack->bp=0;
+					tmp->prevEnv=NULL;
+					fklFreeVMproc(tmp);
+					fklDeleteCallChain(anotherVM);
+				}
+			}
+			free(list);
+			list=NULL;
+			free(begin);
+			begin=NULL;
+		}
+		else
+		{
+			fprintf(stderr,"error of reader:Invalid expression at line %ld\n",codegen->curline);
+			if(list!=NULL)
+				free(list);
+		}
+	}
+	fklJoinAllThread(NULL);
+	fklFreePtrStack(tokenStack);
+	free(rawProcList);
 	fklUninitPreprocess();
 	fklFreeVMgc(anotherVM->gc);
 	fklFreeAllVMs();

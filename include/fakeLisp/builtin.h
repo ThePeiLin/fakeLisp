@@ -40,8 +40,10 @@ typedef enum
 typedef struct FklCompEnv FklCompEnv;
 typedef struct FklVMenv FklVMenv;
 typedef struct FklVMgc FklVMgc;
+typedef struct FklCodegenEnv FklCodegenEnv;
 
 void fklInitCompEnv(FklCompEnv* curEnv);
+void fklInitGlobCodeEnv(FklCodegenEnv*);
 void fklInitGlobEnv(FklVMenv*,FklVMgc*);
 FklSid_t fklGetBuiltInErrorType(FklBuiltInErrorType);
 #endif

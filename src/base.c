@@ -88,7 +88,7 @@ FklPtrQueue* fklNewPtrQueue(void)
 	FklPtrQueue* tmp=(FklPtrQueue*)malloc(sizeof(FklPtrQueue));
 	FKL_ASSERT(tmp);
 	tmp->head=NULL;
-	tmp->tail=NULL;
+	tmp->tail=&tmp->head;
 	return tmp;
 }
 
@@ -125,7 +125,7 @@ void* fklPopPtrQueue(FklPtrQueue* tmp)
 	void* retval=head->data;
 	tmp->head=head->next;
 	if(!tmp->head)
-		tmp->tail=NULL;
+		tmp->tail=&tmp->head;
 	fklFreeQueueNode(head);
 	return retval;
 }
@@ -141,16 +141,8 @@ void* fklFirstPtrQueue(FklPtrQueue* tmp)
 void fklPushPtrQueue(void* data,FklPtrQueue* tmp)
 {
 	FklQueueNode* tmpNode=fklNewQueueNode(data);
-	if(!tmp->head)
-	{
-		tmp->head=tmpNode;
-		tmp->tail=tmpNode;
-	}
-	else
-	{
-		tmp->tail->next=tmpNode;
-		tmp->tail=tmpNode;
-	}
+	*(tmp->tail)=tmpNode;
+	tmp->tail=&tmpNode->next;
 }
 
 FklPtrQueue* fklCopyPtrQueue(FklPtrQueue* q)

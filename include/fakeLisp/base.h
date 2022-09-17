@@ -115,7 +115,7 @@ typedef struct FklQueueNode
 typedef struct
 {
 	FklQueueNode* head;
-	FklQueueNode* tail;
+	FklQueueNode** tail;
 }FklPtrQueue;
 
 FklQueueNode* fklNewQueueNode(void*);

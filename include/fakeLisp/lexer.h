@@ -85,6 +85,7 @@ int fklPatternMatch(const FklNastNode* pattern
 FklNastNode* fklPatternMatchingHashTableRef(FklSid_t sid,FklHashTable* ht);
 FklHashTable* fklNewPatternMatchingHashTable(void);
 void fklFreePatternMatchingHashTable(FklHashTable*);
+int fklIsNastNodeList(const FklNastNode* list);
 #ifdef __cplusplus
 }
 #endif

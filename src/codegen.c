@@ -624,6 +624,10 @@ static CODEGEN_FUNC(codegen_unquote)
 			,codegenQuestStack);
 }
 
+static CODEGEN_FUNC(codegen_qsquote)
+{
+}
+
 BC_PROCESS(_cond_exp_bc_process_0)
 {
     FklByteCodelnt* retval=NULL;
@@ -919,11 +923,11 @@ static struct PatternAndFunc
 	{"(setq name value)",   NULL, codegen_setq,    },
 	{"(quote value)",       NULL, codegen_quote,   },
 	{"(unquote value)",     NULL, codegen_unquote, },
+	{"(qsquote value)",     NULL, codegen_qsquote, },
 	{"(lambda args,rest)",  NULL, codegen_lambda,  },
 	{"(and,rest)",          NULL, codegen_and,     },
 	{"(or,rest)",           NULL, codegen_or,      },
 	{"(cond,rest)",         NULL, codegen_cond,    },
-//	{"(try value,rest)",          NULL, codegen_try,     },
 	{NULL,                  NULL, NULL,            }
 };
 
@@ -963,9 +967,10 @@ FklByteCodelnt* fklMakePushVar(const FklNastNode* exp,FklCodegen* codegen)
 
 static inline int mapAllBuiltInPattern(FklNastNode* curExp,FklPtrStack* codegenQuestStack,FklCodegenEnv* curEnv,FklCodegen* codegenr)
 {
-	for(struct PatternAndFunc* cur=&builtInPattern[0];cur->ps!=NULL;cur++)
-		if(matchAndCall(cur->func,cur->pn,curExp,codegenQuestStack,curEnv,codegenr))
-			return 0;
+	if(fklIsNastNodeList(curExp))
+		for(struct PatternAndFunc* cur=&builtInPattern[0];cur->ps!=NULL;cur++)
+			if(matchAndCall(cur->func,cur->pn,curExp,codegenQuestStack,curEnv,codegenr))
+				return 0;
 	return 1;
 }
 

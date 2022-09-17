@@ -3137,6 +3137,10 @@ void builtin_raise(ARGL)
 	fklRaiseVMerror(err,exe);
 }
 
+void builtin_call_eh(ARGL)
+{
+}
+
 void builtin_call_cc(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -4473,6 +4477,7 @@ static const struct SymbolFuncStruct
 	{"length",                builtin_length,                  },
 	{"apply",                 builtin_apply,                   },
 	{"call/cc",               builtin_call_cc,                 },
+	{"call/eh",               builtin_call_eh,                 },
 	{"continuation?",         builtin_continuation_p,          },
 	{"fopen",                 builtin_fopen,                   },
 	{"read",                  builtin_read,                    },

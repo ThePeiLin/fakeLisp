@@ -1183,3 +1183,9 @@ int fklPatternMatch(const FklNastNode* pattern,FklNastNode* exp,FklHashTable* ht
 	}
 	return 1;
 }
+
+int fklIsNastNodeList(const FklNastNode* list)
+{
+	for(;list->type==FKL_TYPE_PAIR;list=list->u.pair->cdr);
+	return list->type==FKL_TYPE_NIL;
+}

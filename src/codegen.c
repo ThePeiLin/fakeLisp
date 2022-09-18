@@ -640,12 +640,55 @@ BC_PROCESS(_unquote_bc_process)
 	return retval;
 }
 
+inline static void unquoteHelperFunc(FklNastNode* value
+		,FklPtrStack* codegenQuestStack
+		,FklCodegenEnv* curEnv
+		,FklCodegen* codegen)
+{
+	FklPtrQueue* queue=fklNewPtrQueue();
+	fklPushPtrQueue(value,queue);
+	FKL_PUSH_NEW_CODEGEN_QUEST(_unquote_bc_process
+			,fklNewPtrStack(1,1)
+			,queue
+			,curEnv
+			,value->curline
+			,codegen
+			,codegenQuestStack);
+}
+
 static CODEGEN_FUNC(codegen_unquote)
+{
+	FklNastNode* value=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
+	unquoteHelperFunc(value,codegenQuestStack,curEnv,codegen);
+}
+
+BC_PROCESS(_unqtesp_bc_process)
+{
+	FklByteCode* append=new1lenBc(FKL_OP_APPEND);
+	FklByteCodelnt* retval=fklPopPtrStack(stack);
+	FklByteCodelnt* other=fklPopPtrStack(stack);
+	if(other)
+	{
+		while(!fklIsPtrStackEmpty(stack))
+		{
+			FklByteCodelnt* cur=fklPopPtrStack(stack);
+			fklCodeLntCat(other,cur);
+			fklFreeByteCodelnt(cur);
+		}
+		fklReCodeLntCat(other,retval);
+		fklFreeByteCodelnt(other);
+	}
+	bclBcAppendToBcl(retval,append,fid,line);
+	fklFreeByteCode(append);
+	return retval;
+}
+
+static CODEGEN_FUNC(codegen_unqtesp)
 {
 	FklNastNode* value=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
 	FklPtrQueue* queue=fklNewPtrQueue();
 	fklPushPtrQueue(value,queue);
-	FKL_PUSH_NEW_CODEGEN_QUEST(_unquote_bc_process
+	FKL_PUSH_NEW_CODEGEN_QUEST(_unqtesp_bc_process
 			,fklNewPtrStack(1,1)
 			,queue
 			,curEnv
@@ -672,25 +715,32 @@ BC_PROCESS(_qsquote_pair_bc_process)
 	return retval;
 }
 
+BC_PROCESS(_qsquote_append_bc_process)
+{
+	FklByteCodelnt* retval=fklPopPtrStack(stack);
+	FklByteCode* append=new1lenBc(FKL_OP_APPEND);
+	bclBcAppendToBcl(retval,append,fid,line);
+	fklFreeByteCode(append);
+	return retval;
+}
+
 typedef enum
 {
-	QSQUOTE_CAR=0,
-	QSQUOTE_CDR,
-	QSQUOTE_VEC,
-	QSQUOTE_BOX,
-}QsquotePlace;
+	QSQUOTE_NONE=0,
+	QSQUOTE_UNQTESP,
+}QsquoteHelperEnum;
 
 typedef struct
 {
-	QsquotePlace place;
+	QsquoteHelperEnum e;
 	FklNastNode* node;
-}QsquotePlaceNode;
+}QsquoteHelperStruct;
 
-QsquotePlaceNode* newQsquotePlaceNode(QsquotePlace place,FklNastNode* node)
+QsquoteHelperStruct* newQsquoteHelperStruct(QsquoteHelperEnum e,FklNastNode* node)
 {
-	QsquotePlaceNode* r=(QsquotePlaceNode*)malloc(sizeof(QsquotePlaceNode));
+	QsquoteHelperStruct* r=(QsquoteHelperStruct*)malloc(sizeof(QsquoteHelperStruct));
 	FKL_ASSERT(r);
-	r->place=place;
+	r->e=e;
 	r->node=node;
 	return r;
 }
@@ -699,49 +749,65 @@ static CODEGEN_FUNC(codegen_qsquote)
 {
 	FklNastNode* value=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
 	FklPtrStack* valueStack=fklNewPtrStack(8,16);
-	fklPushPtrStack(newQsquotePlaceNode(QSQUOTE_CAR,value),valueStack);
+	fklPushPtrStack(newQsquoteHelperStruct(QSQUOTE_NONE,value),valueStack);
 	while(!fklIsPtrStackEmpty(valueStack))
 	{
-		QsquotePlaceNode* curNode=fklPopPtrStack(valueStack);
-		QsquotePlace place=curNode->place;
+		QsquoteHelperStruct* curNode=fklPopPtrStack(valueStack);
+		QsquoteHelperEnum e=curNode->e;
 		FklNastNode* curValue=curNode->node;
 		free(curNode);
-		FklHashTable* unquoteHt=fklNewPatternMatchingHashTable();
-		if(fklPatternMatch(builtInSubPattern[SUB_PATTERN_UNQUOTE].pn,curValue,unquoteHt))
-			codegen_unquote(unquoteHt,codegenQuestStack,curEnv,codegen);
-		else if((place==QSQUOTE_CAR||place==QSQUOTE_VEC)
-				&&fklPatternMatch(builtInSubPattern[SUB_PATTERN_UNQTESP].pn,curValue,unquoteHt))
-		{
-		}
-		else if(curValue->type==FKL_TYPE_PAIR)
-		{
-			FKL_PUSH_NEW_CODEGEN_QUEST(_qsquote_pair_bc_process
-					,fklNewPtrStack(2,1)
-					,NULL
-					,curEnv
-					,curValue->curline
-					,codegen
-					,codegenQuestStack);
-			fklPushPtrStack(newQsquotePlaceNode(QSQUOTE_CAR,curValue->u.pair->car),valueStack);
-			fklPushPtrStack(newQsquotePlaceNode(QSQUOTE_CDR,curValue->u.pair->cdr),valueStack);
-		}
-		else if(curValue->type==FKL_TYPE_VECTOR)
-		{
-		}
-		else if(curValue->type==FKL_TYPE_BOX)
-		{
-			FKL_PUSH_NEW_CODEGEN_QUEST(_qsquote_box_bc_process
-					,fklNewPtrStack(1,1)
-					,NULL
-					,curEnv
-					,curValue->curline
-					,codegen
-					,codegenQuestStack);
-			fklPushPtrStack(newQsquotePlaceNode(QSQUOTE_BOX,curValue->u.box),valueStack);
-		}
+		if(e)
+			unquoteHelperFunc(curValue,codegenQuestStack,curEnv,codegen);
 		else
-			push_default_codegen_quest(curValue,codegenQuestStack,curEnv,codegen);
-		fklFreeHashTable(unquoteHt);
+		{
+			FklHashTable* unquoteHt=fklNewPatternMatchingHashTable();
+			if(fklPatternMatch(builtInSubPattern[SUB_PATTERN_UNQUOTE].pn,curValue,unquoteHt))
+				codegen_unquote(unquoteHt,codegenQuestStack,curEnv,codegen);
+			else if(curValue->type==FKL_TYPE_PAIR)
+			{
+				if(fklPatternMatch(builtInSubPattern[SUB_PATTERN_UNQTESP].pn,curValue->u.pair->car,unquoteHt))
+				{
+					FKL_PUSH_NEW_CODEGEN_QUEST(_qsquote_append_bc_process
+							,fklNewPtrStack(2,1)
+							,NULL
+							,curEnv
+							,curValue->curline
+							,codegen
+							,codegenQuestStack);
+					FklNastNode* unqtespValue=fklPatternMatchingHashTableRef(builtInPatternVar_value,unquoteHt);
+					fklPushPtrStack(newQsquoteHelperStruct(QSQUOTE_UNQTESP,unqtespValue),valueStack);
+				}
+				else
+				{
+					FKL_PUSH_NEW_CODEGEN_QUEST(_qsquote_pair_bc_process
+							,fklNewPtrStack(2,1)
+							,NULL
+							,curEnv
+							,curValue->curline
+							,codegen
+							,codegenQuestStack);
+					fklPushPtrStack(newQsquoteHelperStruct(QSQUOTE_NONE,curValue->u.pair->car),valueStack);
+				}
+				fklPushPtrStack(newQsquoteHelperStruct(QSQUOTE_NONE,curValue->u.pair->cdr),valueStack);
+			}
+			else if(curValue->type==FKL_TYPE_VECTOR)
+			{
+			}
+			else if(curValue->type==FKL_TYPE_BOX)
+			{
+				FKL_PUSH_NEW_CODEGEN_QUEST(_qsquote_box_bc_process
+						,fklNewPtrStack(1,1)
+						,NULL
+						,curEnv
+						,curValue->curline
+						,codegen
+						,codegenQuestStack);
+				fklPushPtrStack(newQsquoteHelperStruct(QSQUOTE_NONE,curValue->u.box),valueStack);
+			}
+			else
+				push_default_codegen_quest(curValue,codegenQuestStack,curEnv,codegen);
+			fklFreeHashTable(unquoteHt);
+		}
 	}
 }
 

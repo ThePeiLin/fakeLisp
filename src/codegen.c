@@ -18,20 +18,22 @@ static FklSid_t builtInPatternVar_name=0;
 static FklSid_t builtInPatternVar_value=0;
 static FklSid_t builtInPatternVar_args=0;
 
-//typedef enum
-//{
-//	SUB_PATTERN_CATCH=0,
-//}SubPatternEnum;
-//
-//static struct SubPattern
-//{
-//	char* ps;
-//	FklNastNode* pn;
-//}builtInSubPattern[]=
-//{
-//	{"(catch value,rest)",NULL,},
-//	{NULL,NULL,},
-//};
+typedef enum
+{
+	SUB_PATTERN_UNQUOTE=0,
+	SUB_PATTERN_UNQTESP=1,
+}SubPatternEnum;
+
+static struct SubPattern
+{
+	char* ps;
+	FklNastNode* pn;
+}builtInSubPattern[]=
+{
+	{"(unquote value)",NULL,},
+	{"(unqtesp value)",NULL,},
+	{NULL,NULL,},
+};
 
 static FklByteCode* new1lenBc(FklOpcode op)
 {
@@ -159,7 +161,16 @@ static FklCodegenQuest* newCodegenQuest(FklByteCodeProcesser f
 BC_PROCESS(_default_bc_process)
 {
 	if(!fklIsPtrStackEmpty(stack))
-		return fklPopPtrStack(stack);
+	{
+		FklByteCodelnt* retval=fklPopPtrStack(stack);
+		while(!fklIsPtrStackEmpty(stack))
+		{
+			FklByteCodelnt* cur=fklPopPtrStack(stack);
+			fklCodeLntCat(retval,cur);
+			fklFreeByteCodelnt(cur);
+		}
+		return retval;
+	}
 	else
 		return NULL;
 }
@@ -586,17 +597,14 @@ static CODEGEN_FUNC(codegen_setq)
 			,codegenQuestStack);
 }
 
-BC_PROCESS(_quote_exp_bc_process)
+inline static void push_default_codegen_quest(FklNastNode* value
+		,FklPtrStack* codegenQuestStack
+		,FklCodegenEnv* curEnv
+		,FklCodegen* codegen)
 {
-	return fklPopPtrStack(stack);
-}
-
-static CODEGEN_FUNC(codegen_quote)
-{
-	FklNastNode* value=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
 	FklPtrStack* stack=fklNewPtrStack(1,1);
 	fklPushPtrStack(newBclnt(fklCodegenNode(value,codegen),codegen->fid,value->curline),stack);
-	FKL_PUSH_NEW_CODEGEN_QUEST(_quote_exp_bc_process
+	FKL_PUSH_NEW_CODEGEN_QUEST(_default_bc_process
 			,stack
 			,NULL
 			,curEnv
@@ -605,9 +613,25 @@ static CODEGEN_FUNC(codegen_quote)
 			,codegenQuestStack);
 }
 
-BC_PROCESS(_unquote_exp_bc_process)
+static CODEGEN_FUNC(codegen_quote)
 {
-	return fklPopPtrStack(stack);
+	FklNastNode* value=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
+	push_default_codegen_quest(value
+			,codegenQuestStack
+			,curEnv
+			,codegen);
+}
+
+BC_PROCESS(_unquote_bc_process)
+{
+	FklByteCodelnt* retval=fklPopPtrStack(stack);
+	for(size_t i=0;i<stack->top;i++)
+	{
+		FklByteCodelnt* cur=stack->base[i];
+		fklReCodeLntCat(cur,retval);
+		fklFreeByteCodelnt(cur);
+	}
+	return retval;
 }
 
 static CODEGEN_FUNC(codegen_unquote)
@@ -615,7 +639,7 @@ static CODEGEN_FUNC(codegen_unquote)
 	FklNastNode* value=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
 	FklPtrQueue* queue=fklNewPtrQueue();
 	fklPushPtrQueue(value,queue);
-	FKL_PUSH_NEW_CODEGEN_QUEST(_unquote_exp_bc_process
+	FKL_PUSH_NEW_CODEGEN_QUEST(_unquote_bc_process
 			,fklNewPtrStack(1,1)
 			,queue
 			,curEnv
@@ -624,8 +648,95 @@ static CODEGEN_FUNC(codegen_unquote)
 			,codegenQuestStack);
 }
 
+BC_PROCESS(_qsquote_box_bc_process)
+{
+	FklByteCodelnt* retval=fklPopPtrStack(stack);
+	FklByteCode* pushBox=new1lenBc(FKL_OP_PUSH_BOX);
+	bclBcAppendToBcl(retval,pushBox,fid,line);
+	fklFreeByteCode(pushBox);
+	return retval;
+}
+
+BC_PROCESS(_qsquote_pair_bc_process)
+{
+	FklByteCodelnt* retval=fklPopPtrStack(stack);
+	FklByteCode* pushPair=new1lenBc(FKL_OP_PUSH_PAIR);
+	bclBcAppendToBcl(retval,pushPair,fid,line);
+	fklFreeByteCode(pushPair);
+	return retval;
+}
+
+typedef enum
+{
+	QSQUOTE_CAR=0,
+	QSQUOTE_CDR,
+	QSQUOTE_VEC,
+	QSQUOTE_BOX,
+}QsquotePlace;
+
+typedef struct
+{
+	QsquotePlace place;
+	FklNastNode* node;
+}QsquotePlaceNode;
+
+QsquotePlaceNode* newQsquotePlaceNode(QsquotePlace place,FklNastNode* node)
+{
+	QsquotePlaceNode* r=(QsquotePlaceNode*)malloc(sizeof(QsquotePlaceNode));
+	FKL_ASSERT(r);
+	r->place=place;
+	r->node=node;
+	return r;
+}
+
 static CODEGEN_FUNC(codegen_qsquote)
 {
+	FklNastNode* value=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
+	FklPtrStack* valueStack=fklNewPtrStack(8,16);
+	fklPushPtrStack(newQsquotePlaceNode(QSQUOTE_CAR,value),valueStack);
+	while(!fklIsPtrStackEmpty(valueStack))
+	{
+		QsquotePlaceNode* curNode=fklPopPtrStack(valueStack);
+		QsquotePlace place=curNode->place;
+		FklNastNode* curValue=curNode->node;
+		free(curNode);
+		FklHashTable* unquoteHt=fklNewPatternMatchingHashTable();
+		if(fklPatternMatch(builtInSubPattern[SUB_PATTERN_UNQUOTE].pn,curValue,unquoteHt))
+			codegen_unquote(unquoteHt,codegenQuestStack,curEnv,codegen);
+		else if((place==QSQUOTE_CAR||place==QSQUOTE_VEC)
+				&&fklPatternMatch(builtInSubPattern[SUB_PATTERN_UNQTESP].pn,curValue,unquoteHt))
+		{
+		}
+		else if(curValue->type==FKL_TYPE_PAIR)
+		{
+			FKL_PUSH_NEW_CODEGEN_QUEST(_qsquote_pair_bc_process
+					,fklNewPtrStack(2,1)
+					,NULL
+					,curEnv
+					,curValue->curline
+					,codegen
+					,codegenQuestStack);
+			fklPushPtrStack(newQsquotePlaceNode(QSQUOTE_CAR,curValue->u.pair->car),valueStack);
+			fklPushPtrStack(newQsquotePlaceNode(QSQUOTE_CDR,curValue->u.pair->cdr),valueStack);
+		}
+		else if(curValue->type==FKL_TYPE_VECTOR)
+		{
+		}
+		else if(curValue->type==FKL_TYPE_BOX)
+		{
+			FKL_PUSH_NEW_CODEGEN_QUEST(_qsquote_box_bc_process
+					,fklNewPtrStack(1,1)
+					,NULL
+					,curEnv
+					,curValue->curline
+					,codegen
+					,codegenQuestStack);
+			fklPushPtrStack(newQsquotePlaceNode(QSQUOTE_BOX,curValue->u.box),valueStack);
+		}
+		else
+			push_default_codegen_quest(curValue,codegenQuestStack,curEnv,codegen);
+		fklFreeHashTable(unquoteHt);
+	}
 }
 
 BC_PROCESS(_cond_exp_bc_process_0)
@@ -940,8 +1051,8 @@ void fklInitCodegen(void)
 
 	for(struct PatternAndFunc* cur=&builtInPattern[0];cur->ps!=NULL;cur++)
 		cur->pn=fklNewNastNodeFromCstr(cur->ps);
-//	for(struct SubPattern* cur=&builtInSubPattern[0];cur->ps!=NULL;cur++)
-//		cur->pn=fklNewNastNodeFromCstr(cur->ps);
+	for(struct SubPattern* cur=&builtInSubPattern[0];cur->ps!=NULL;cur++)
+		cur->pn=fklNewNastNodeFromCstr(cur->ps);
 }
 
 void fklUninitCodegen(void)
@@ -951,11 +1062,11 @@ void fklUninitCodegen(void)
 		fklFreeNastNode(cur->pn);
 		cur->pn=NULL;
 	}
-//	for(struct SubPattern* cur=&builtInSubPattern[0];cur->ps!=NULL;cur++)
-//	{
-//		fklFreeNastNode(cur->pn);
-//		cur->pn=NULL;
-//	}
+	for(struct SubPattern* cur=&builtInSubPattern[0];cur->ps!=NULL;cur++)
+	{
+		fklFreeNastNode(cur->pn);
+		cur->pn=NULL;
+	}
 }
 
 FklByteCodelnt* fklMakePushVar(const FklNastNode* exp,FklCodegen* codegen)

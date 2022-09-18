@@ -662,41 +662,6 @@ static CODEGEN_FUNC(codegen_unquote)
 	unquoteHelperFunc(value,codegenQuestStack,curEnv,codegen);
 }
 
-BC_PROCESS(_unqtesp_bc_process)
-{
-	FklByteCode* append=new1lenBc(FKL_OP_APPEND);
-	FklByteCodelnt* retval=fklPopPtrStack(stack);
-	FklByteCodelnt* other=fklPopPtrStack(stack);
-	if(other)
-	{
-		while(!fklIsPtrStackEmpty(stack))
-		{
-			FklByteCodelnt* cur=fklPopPtrStack(stack);
-			fklCodeLntCat(other,cur);
-			fklFreeByteCodelnt(cur);
-		}
-		fklReCodeLntCat(other,retval);
-		fklFreeByteCodelnt(other);
-	}
-	bclBcAppendToBcl(retval,append,fid,line);
-	fklFreeByteCode(append);
-	return retval;
-}
-
-static CODEGEN_FUNC(codegen_unqtesp)
-{
-	FklNastNode* value=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
-	FklPtrQueue* queue=fklNewPtrQueue();
-	fklPushPtrQueue(value,queue);
-	FKL_PUSH_NEW_CODEGEN_QUEST(_unqtesp_bc_process
-			,fklNewPtrStack(1,1)
-			,queue
-			,curEnv
-			,value->curline
-			,codegen
-			,codegenQuestStack);
-}
-
 BC_PROCESS(_qsquote_box_bc_process)
 {
 	FklByteCodelnt* retval=fklPopPtrStack(stack);
@@ -704,6 +669,15 @@ BC_PROCESS(_qsquote_box_bc_process)
 	bclBcAppendToBcl(retval,pushBox,fid,line);
 	fklFreeByteCode(pushBox);
 	return retval;
+}
+
+BC_PROCESS(_qsquote_vec_bc_process)
+{
+	FklByteCodelnt* vecContents=fklPopPtrStack(stack);
+	FklByteCodelnt* pushVec=fklPopPtrStack(stack);
+	fklReCodeLntCat(vecContents,pushVec);
+	fklFreeByteCodelnt(vecContents);
+	return pushVec;
 }
 
 BC_PROCESS(_qsquote_pair_bc_process)
@@ -792,6 +766,18 @@ static CODEGEN_FUNC(codegen_qsquote)
 			}
 			else if(curValue->type==FKL_TYPE_VECTOR)
 			{
+				size_t vecSize=curValue->u.vec->size;
+				FklPtrStack* bcStack=fklNewPtrStack(vecSize+1,16);
+				fklPushPtrStack(newBclnt(new9lenBc(FKL_OP_PUSH_VECTOR,vecSize),codegen->fid,curValue->curline),bcStack);
+				FKL_PUSH_NEW_CODEGEN_QUEST(_qsquote_vec_bc_process
+						,bcStack
+						,NULL
+						,curEnv
+						,curValue->curline
+						,codegen
+						,codegenQuestStack);
+				for(size_t i=0;i<vecSize;i++)
+					fklPushPtrStack(newQsquoteHelperStruct(QSQUOTE_NONE,curValue->u.vec->base[i]),valueStack);
 			}
 			else if(curValue->type==FKL_TYPE_BOX)
 			{

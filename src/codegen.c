@@ -625,11 +625,17 @@ static CODEGEN_FUNC(codegen_quote)
 BC_PROCESS(_unquote_bc_process)
 {
 	FklByteCodelnt* retval=fklPopPtrStack(stack);
-	for(size_t i=0;i<stack->top;i++)
+	FklByteCodelnt* other=fklPopPtrStack(stack);
+	if(other)
 	{
-		FklByteCodelnt* cur=stack->base[i];
-		fklReCodeLntCat(cur,retval);
-		fklFreeByteCodelnt(cur);
+		while(!fklIsPtrStackEmpty(stack))
+		{
+			FklByteCodelnt* cur=fklPopPtrStack(stack);
+			fklCodeLntCat(other,cur);
+			fklFreeByteCodelnt(cur);
+		}
+		fklReCodeLntCat(other,retval);
+		fklFreeByteCodelnt(other);
 	}
 	return retval;
 }

@@ -1047,7 +1047,7 @@ FklByteCodelnt* fklCompileQsquote(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInte
 	FklByteCode* appd=fklNewByteCode(1);
 	FklByteCode* pushPair=fklNewByteCode(1);
 	pushPair->code[0]=FKL_OP_PUSH_PAIR;
-	appd->code[0]=FKL_OP_APPEND;
+	appd->code[0]=FKL_OP_LIST_APPEND;
 	while(objCptr!=NULL)
 	{
 		if(fklIsUnquoteExpression(objCptr))

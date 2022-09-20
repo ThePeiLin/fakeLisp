@@ -3612,6 +3612,30 @@ void builtin_list(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void builtin_list8(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMgc* gc=exe->gc;
+	fklPushVMvalue(FKL_VM_NIL,stack);
+	FklVMvalue** r=fklNiGetTopSlot(stack);
+	FklVMvalue** pcur=r;
+	for(FklVMvalue* cur=fklNiGetArg(&ap,stack);cur;)
+	{
+		FklVMvalue* next=fklNiGetArg(&ap,stack);
+		if(next)
+		{
+			*pcur=fklNewVMpairV(cur,FKL_VM_NIL,stack,gc);
+			pcur=&(*pcur)->u.pair->cdr;
+		}
+		else
+			*pcur=cur;
+		cur=next;
+	}
+	fklNiResBp(&ap,stack);
+	fklNiReturn(*r,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 void builtin_reverse(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -4542,6 +4566,7 @@ static const struct SymbolFuncStruct
 
 	{"list?",                 builtin_list_p,                  },
 	{"list",                  builtin_list,                    },
+	{"list*",				  builtin_list8,                   },
 	{"make-list",             builtin_make_list,               },
 	{"vector->list",          builtin_vector_to_list,          },
 	{"string->list",          builtin_string_to_list,          },

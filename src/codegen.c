@@ -683,8 +683,11 @@ BC_PROCESS(_qsquote_vec_bc_process)
 BC_PROCESS(_qsquote_pair_bc_process)
 {
 	FklByteCodelnt* retval=fklPopPtrStack(stack);
-	FklByteCode* pushPair=new1lenBc(FKL_OP_PUSH_PAIR);
+	FklByteCode* pushPair=new1lenBc(FKL_OP_PUSH_LIST_0);
+	FklByteCode* setBp=new1lenBc(FKL_OP_SET_TP);
+	bcBclAppendToBcl(setBp,retval,fid,line);
 	bclBcAppendToBcl(retval,pushPair,fid,line);
+	fklFreeByteCode(setBp);
 	fklFreeByteCode(pushPair);
 	return retval;
 }
@@ -692,7 +695,7 @@ BC_PROCESS(_qsquote_pair_bc_process)
 BC_PROCESS(_qsquote_append_bc_process)
 {
 	FklByteCodelnt* retval=fklPopPtrStack(stack);
-	FklByteCode* append=new1lenBc(FKL_OP_APPEND);
+	FklByteCode* append=new1lenBc(FKL_OP_LIST_APPEND);
 	bclBcAppendToBcl(retval,append,fid,line);
 	fklFreeByteCode(append);
 	return retval;
@@ -701,7 +704,8 @@ BC_PROCESS(_qsquote_append_bc_process)
 typedef enum
 {
 	QSQUOTE_NONE=0,
-	QSQUOTE_UNQTESP,
+	QSQUOTE_UNQTESP_CAR,
+	QSQUOTE_UNQTESP_VEC,
 }QsquoteHelperEnum;
 
 typedef struct
@@ -730,8 +734,11 @@ static CODEGEN_FUNC(codegen_qsquote)
 		QsquoteHelperEnum e=curNode->e;
 		FklNastNode* curValue=curNode->node;
 		free(curNode);
-		if(e)
+		if(e==QSQUOTE_UNQTESP_CAR)
 			unquoteHelperFunc(curValue,codegenQuestStack,curEnv,codegen);
+		else if(e==QSQUOTE_UNQTESP_VEC)
+		{
+		}
 		else
 		{
 			FklHashTable* unquoteHt=fklNewPatternMatchingHashTable();
@@ -739,30 +746,32 @@ static CODEGEN_FUNC(codegen_qsquote)
 				codegen_unquote(unquoteHt,codegenQuestStack,curEnv,codegen);
 			else if(curValue->type==FKL_TYPE_PAIR)
 			{
-				if(fklPatternMatch(builtInSubPattern[SUB_PATTERN_UNQTESP].pn,curValue->u.pair->car,unquoteHt))
+				FKL_PUSH_NEW_CODEGEN_QUEST(_qsquote_pair_bc_process
+						,fklNewPtrStack(2,1)
+						,NULL
+						,curEnv
+						,curValue->curline
+						,codegen
+						,codegenQuestStack);
+				FklNastNode* node=curValue;
+				for(;node->type==FKL_TYPE_PAIR;node=node->u.pair->cdr)
 				{
-					FKL_PUSH_NEW_CODEGEN_QUEST(_qsquote_append_bc_process
-							,fklNewPtrStack(2,1)
-							,NULL
-							,curEnv
-							,curValue->curline
-							,codegen
-							,codegenQuestStack);
+					FklNastNode* cur=node->u.pair->car;
+					if(fklPatternMatch(builtInSubPattern[SUB_PATTERN_UNQTESP].pn,cur,unquoteHt))
+					{
+						FklNastNode* unqtespValue=fklPatternMatchingHashTableRef(builtInPatternVar_value,unquoteHt);
+						fklPushPtrStack(newQsquoteHelperStruct(QSQUOTE_UNQTESP_CAR,unqtespValue),valueStack);
+					}
+					else
+						fklPushPtrStack(newQsquoteHelperStruct(QSQUOTE_NONE,cur),valueStack);
+				}
+				if(fklPatternMatch(builtInSubPattern[SUB_PATTERN_UNQTESP].pn,node,unquoteHt))
+				{
 					FklNastNode* unqtespValue=fklPatternMatchingHashTableRef(builtInPatternVar_value,unquoteHt);
-					fklPushPtrStack(newQsquoteHelperStruct(QSQUOTE_UNQTESP,unqtespValue),valueStack);
+					fklPushPtrStack(newQsquoteHelperStruct(QSQUOTE_UNQTESP_CAR,unqtespValue),valueStack);
 				}
 				else
-				{
-					FKL_PUSH_NEW_CODEGEN_QUEST(_qsquote_pair_bc_process
-							,fklNewPtrStack(2,1)
-							,NULL
-							,curEnv
-							,curValue->curline
-							,codegen
-							,codegenQuestStack);
-					fklPushPtrStack(newQsquoteHelperStruct(QSQUOTE_NONE,curValue->u.pair->car),valueStack);
-				}
-				fklPushPtrStack(newQsquoteHelperStruct(QSQUOTE_NONE,curValue->u.pair->cdr),valueStack);
+					fklPushPtrStack(newQsquoteHelperStruct(QSQUOTE_NONE,node),valueStack);
 			}
 			else if(curValue->type==FKL_TYPE_VECTOR)
 			{
@@ -777,7 +786,14 @@ static CODEGEN_FUNC(codegen_qsquote)
 						,codegen
 						,codegenQuestStack);
 				for(size_t i=0;i<vecSize;i++)
-					fklPushPtrStack(newQsquoteHelperStruct(QSQUOTE_NONE,curValue->u.vec->base[i]),valueStack);
+				{
+					if(fklPatternMatch(builtInSubPattern[SUB_PATTERN_UNQTESP].pn,curValue->u.vec->base[i],unquoteHt))
+						fklPushPtrStack(newQsquoteHelperStruct(QSQUOTE_UNQTESP_VEC
+									,fklPatternMatchingHashTableRef(builtInPatternVar_value,unquoteHt))
+								,valueStack);
+					else
+						fklPushPtrStack(newQsquoteHelperStruct(QSQUOTE_NONE,curValue->u.vec->base[i]),valueStack);
+				}
 			}
 			else if(curValue->type==FKL_TYPE_BOX)
 			{
@@ -1035,9 +1051,17 @@ FklByteCode* fklCodegenNode(const FklNastNode* node,FklCodegen* codegenr)
 				tmp=fklNewPushBigIntByteCode(node->u.bigInt);
 				break;
 			case FKL_TYPE_PAIR:
-				tmp=new1lenBc(FKL_OP_PUSH_PAIR);
-				fklPushPtrStack(node->u.pair->car,stack);
-				fklPushPtrStack(node->u.pair->cdr,stack);
+				{
+					size_t i=1;
+					FklNastNode* cur=node;
+					for(;cur->type==FKL_TYPE_PAIR;cur=cur->u.pair->cdr)
+					{
+						fklPushPtrStack(cur->u.pair->car,stack);
+						i++;
+					}
+					fklPushPtrStack(cur,stack);
+					tmp=new9lenBc(FKL_OP_PUSH_LIST,i);
+				}
 				break;
 			case FKL_TYPE_BOX:
 				tmp=new1lenBc(FKL_OP_PUSH_BOX);

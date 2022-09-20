@@ -175,7 +175,7 @@ static void B_jmp_if_false(FklVM*);
 static void B_jmp(FklVM*);
 static void B_push_try(FklVM*);
 static void B_pop_try(FklVM*);
-static void B_append(FklVM*);
+static void B_list_append(FklVM*);
 static void B_push_vector(FklVM*);
 static void B_push_r_env(FklVM*);
 static void B_pop_r_env(FklVM*);
@@ -186,6 +186,8 @@ static void B_push_bytevector(FklVM*);
 static void B_push_hash_eq(FklVM*);
 static void B_push_hash_eqv(FklVM*);
 static void B_push_hash_equal(FklVM*);
+static void B_push_list_0(FklVM*);
+static void B_push_list(FklVM*);
 
 static void (*ByteCodes[])(FklVM*)=
 {
@@ -216,7 +218,7 @@ static void (*ByteCodes[])(FklVM*)=
 	B_jmp,
 	B_push_try,
 	B_pop_try,
-	B_append,
+	B_list_append,
 	B_push_vector,
 	B_push_r_env,
 	B_pop_r_env,
@@ -227,6 +229,8 @@ static void (*ByteCodes[])(FklVM*)=
 	B_push_hash_eq,
 	B_push_hash_eqv,
 	B_push_hash_equal,
+	B_push_list_0,
+	B_push_list,
 };
 
 FklVM* fklNewVM(FklByteCode* mainCode)
@@ -722,7 +726,7 @@ void B_jmp(FklVM* exe)
 	frame->cp+=fklGetI64FromByteCode(exe->code+frame->cp+sizeof(char))+sizeof(char)+sizeof(int64_t);
 }
 
-void B_append(FklVM* exe)
+void B_list_append(FklVM* exe)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMframe* frame=exe->frames;
@@ -736,9 +740,7 @@ void B_append(FklVM* exe)
 	{
 		FklVMvalue** lastcdr=&sec;
 		while(FKL_IS_PAIR(*lastcdr))
-		{
 			lastcdr=&(*lastcdr)->u.pair->cdr;
-		}
 		fklSetRef(lastcdr,fir,exe->gc);
 		fklNiReturn(sec,&ap,stack);
 	}
@@ -792,10 +794,7 @@ void B_push_vector(FklVM* exe)
 	uint64_t size=fklGetU64FromByteCode(exe->code+frame->cp+sizeof(char));
 	FklVMvalue* vec=fklNewVMvecV(size,NULL,stack,exe->gc);
 	for(size_t i=size;i>0;i--)
-	{
-		vec->u.vec->base[i-1]=FKL_VM_NIL;
 		fklSetRef(&vec->u.vec->base[i-1],fklNiGetArg(&ap,stack),exe->gc);
-	}
 	fklNiReturn(vec
 			,&ap
 			,stack);
@@ -907,6 +906,61 @@ void B_push_hash_equal(FklVM* exe)
 	fklNiReturn(hash,&ap,stack);
 	fklNiEnd(&ap,stack);
 	frame->cp+=sizeof(char)+sizeof(uint64_t);
+}
+
+void B_push_list_0(FklVM* exe)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMframe* frame=exe->frames;
+	FklVMvalue* pair=FKL_VM_NIL;
+	FklVMvalue* last=fklNiGetArg(&ap,stack);
+	FklVMvalue** pcur=&pair;
+	size_t bp=stack->bp;
+	for(size_t i=bp;ap>bp;ap--,i++)
+	{
+		*pcur=fklNewVMpairV(stack->values[i],FKL_VM_NIL,stack,exe->gc);
+		pcur=&(*pcur)->u.pair->cdr;
+	}
+	fklSetRef(pcur,last,exe->gc);
+	fklNiResBp(&ap,stack);
+	fklNiReturn(pair,&ap,stack);
+	fklNiEnd(&ap,stack);
+	frame->cp+=sizeof(char);
+}
+
+void B_push_list(FklVM* exe)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMframe* frame=exe->frames;
+	uint64_t size=fklGetU64FromByteCode(exe->code+frame->cp+sizeof(char));
+	FklVMvalue* pair=FKL_VM_NIL;
+	FklVMvalue* last=fklNiGetArg(&ap,stack);
+	size--;
+	FklVMvalue** pcur=&pair;
+	for(size_t i=ap-size;i<ap;i++)
+	{
+		*pcur=fklNewVMpairV(stack->values[i],FKL_VM_NIL,stack,exe->gc);
+		pcur=&(*pcur)->u.pair->cdr;
+	}
+	ap-=size;
+	fklSetRef(pcur,last,exe->gc);
+	fklNiReturn(pair,&ap,stack);
+	fklNiEnd(&ap,stack);
+	frame->cp+=sizeof(char)+sizeof(uint64_t);
+}
+
+void B_push_vector_0(FklVM* exe)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMframe* frame=exe->frames;
+	size_t size=ap-stack->bp;
+	FklVMvalue* vec=fklNewVMvecV(size,NULL,stack,exe->gc);
+	for(size_t i=size;i>0;i--)
+		fklSetRef(&vec->u.vec->base[i-1],fklNiGetArg(&ap,stack),exe->gc);
+	fklNiResBp(&ap,stack);
+	fklNiReturn(vec,&ap,stack);
+	fklNiEnd(&ap,stack);
+	frame->cp+=sizeof(char);
 }
 
 FklVMstack* fklNewVMstack(int32_t size)

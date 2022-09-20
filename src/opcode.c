@@ -33,7 +33,7 @@ static struct
 	{"jmp",                  8,  },
 	{"push-try",             -4, },
 	{"pop-try",              0,  },
-	{"append",               0,  },
+	{"list-append",          0,  },
 	{"push-vector",          8,  },
 	{"push-r-env",           0,  },
 	{"pop-r-env",            0,  },
@@ -44,6 +44,9 @@ static struct
 	{"push-hashtable-eq",    8,  },
 	{"push-hashtable-eqv",   8,  },
 	{"push-hashtable-equal", 8,  },
+	{"push-list-0",          0,  },
+	{"push-list",            8,  },
+	{"push-vector-0",        0,  },
 };
 
 const char* fklGetOpcodeName(FklOpcode opcode)

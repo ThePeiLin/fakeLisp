@@ -190,7 +190,6 @@ static void B_push_list_0(FklVM*);
 static void B_push_list(FklVM*);
 static void B_push_vector_0(FklVM*);
 static void B_list_push(FklVM*);
-static void B_plist_push(FklVM*);
 
 static void (*ByteCodes[])(FklVM*)=
 {
@@ -236,7 +235,6 @@ static void (*ByteCodes[])(FklVM*)=
 	B_push_list,
 	B_push_vector_0,
 	B_list_push,
-	B_plist_push,
 };
 
 FklVM* fklNewVM(FklByteCode* mainCode)
@@ -976,20 +974,8 @@ void B_list_push(FklVM* exe)
 	FklVMvalue* list=fklNiGetArg(&ap,stack);
 	for(;FKL_IS_PAIR(list);list=list->u.pair->cdr)
 		fklNiReturn(list->u.pair->car,&ap,stack);
-	fklNiReturn(list,&ap,stack);
-	fklNiEnd(&ap,stack);
-	frame->cp+=sizeof(char);
-}
-
-void B_plist_push(FklVM* exe)
-{
-	FKL_NI_BEGIN(exe);
-	FklVMframe* frame=exe->frames;
-	FklVMvalue* list=fklNiGetArg(&ap,stack);
-	for(;FKL_IS_PAIR(list);list=list->u.pair->cdr)
-		fklNiReturn(list->u.pair->car,&ap,stack);
 	if(list!=FKL_VM_NIL)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.plist-push",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.list-push",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	fklNiEnd(&ap,stack);
 	frame->cp+=sizeof(char);
 }

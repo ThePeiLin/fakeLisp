@@ -685,7 +685,7 @@ BC_PROCESS(_qsquote_in_vec_bc_process)
 		fklReCodeLntCat(other,retval);
 		fklFreeByteCodelnt(other);
 	}
-	FklByteCode* listPush=new1lenBc(FKL_OP_PLIST_PUSH);
+	FklByteCode* listPush=new1lenBc(FKL_OP_LIST_PUSH);
 	bclBcAppendToBcl(retval,listPush,fid,line);
 	fklFreeByteCode(listPush);
 	return retval;

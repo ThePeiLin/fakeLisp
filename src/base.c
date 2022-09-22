@@ -145,6 +145,15 @@ void fklPushPtrQueue(void* data,FklPtrQueue* tmp)
 	tmp->tail=&tmpNode->next;
 }
 
+void fklPushPtrQueueToFront(void* data,FklPtrQueue* tmp)
+{
+	FklQueueNode* tmpNode=fklNewQueueNode(data);
+	tmpNode->next=tmp->head;
+	tmp->head=tmpNode;
+	if(!tmp->head)
+		tmp->tail=&tmpNode->next;
+}
+
 FklPtrQueue* fklCopyPtrQueue(FklPtrQueue* q)
 {
 	FklQueueNode* head=q->head;

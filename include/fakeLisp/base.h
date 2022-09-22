@@ -128,6 +128,7 @@ uint64_t fklLengthPtrQueue(FklPtrQueue*);
 void* fklFirstPtrQueue(FklPtrQueue*);
 void* fklPopPtrQueue(FklPtrQueue*);
 void fklPushPtrQueue(void*,FklPtrQueue*);
+void fklPushPtrQueueToFront(void*,FklPtrQueue*);
 FklPtrQueue* fklCopyPtrQueue(FklPtrQueue*);
 
 typedef struct

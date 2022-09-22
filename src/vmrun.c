@@ -738,8 +738,6 @@ void B_list_append(FklVM* exe)
 	FklVMframe* frame=exe->frames;
 	FklVMvalue* fir=fklNiGetArg(&ap,stack);
 	FklVMvalue* sec=fklNiGetArg(&ap,stack);
-	if(sec!=FKL_VM_NIL&&!FKL_IS_PAIR(sec))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.append",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	if(sec==FKL_VM_NIL)
 		fklNiReturn(fir,&ap,stack);
 	else
@@ -747,6 +745,8 @@ void B_list_append(FklVM* exe)
 		FklVMvalue** lastcdr=&sec;
 		while(FKL_IS_PAIR(*lastcdr))
 			lastcdr=&(*lastcdr)->u.pair->cdr;
+		if(*lastcdr!=FKL_VM_NIL)
+			FKL_RAISE_BUILTIN_ERROR_CSTR("b.list-append",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 		fklSetRef(lastcdr,fir,exe->gc);
 		fklNiReturn(sec,&ap,stack);
 	}

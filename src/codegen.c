@@ -711,10 +711,16 @@ BC_PROCESS(_qsquote_pair_bc_process)
 
 BC_PROCESS(_qsquote_list_bc_process)
 {
-	FklByteCodelnt* retval=fklPopPtrStack(stack);
-	FklByteCode* listPush=new1lenBc(FKL_OP_LIST_PUSH);
-	bclBcAppendToBcl(retval,listPush,fid,line);
-	fklFreeByteCode(listPush);
+	FklByteCodelnt* retval=stack->base[0];
+	for(size_t i=1;i<stack->top;i++)
+	{
+		FklByteCodelnt* cur=stack->base[i];
+		fklCodeLntCat(retval,cur);
+		fklFreeByteCodelnt(cur);
+	}
+	FklByteCode* pushPair=new1lenBc(FKL_OP_LIST_APPEND);
+	bclBcAppendToBcl(retval,pushPair,fid,line);
+	fklFreeByteCode(pushPair);
 	return retval;
 }
 
@@ -755,7 +761,7 @@ static CODEGEN_FUNC(codegen_qsquote)
 		FklNastNode* curValue=curNode->node;
 		free(curNode);
 		if(e==QSQUOTE_UNQTESP_CAR)
-			unquoteHelperFunc(curValue,codegenQuestStack,curEnv,_qsquote_list_bc_process,prevQuest,codegen);
+			unquoteHelperFunc(curValue,codegenQuestStack,curEnv,_default_bc_process,prevQuest,codegen);
 		else if(e==QSQUOTE_UNQTESP_VEC)
 			unquoteHelperFunc(curValue,codegenQuestStack,curEnv,_qsquote_in_vec_bc_process,prevQuest,codegen);
 		else
@@ -790,12 +796,31 @@ static CODEGEN_FUNC(codegen_qsquote)
 					if(fklPatternMatch(builtInSubPattern[SUB_PATTERN_UNQTESP].pn,cur,unquoteHt))
 					{
 						FklNastNode* unqtespValue=fklPatternMatchingHashTableRef(builtInPatternVar_value,unquoteHt);
-						fklPushPtrStack(newQsquoteHelperStruct(QSQUOTE_UNQTESP_CAR,unqtespValue,curQuest),valueStack);
+						if(node->u.pair->cdr->type!=FKL_TYPE_NIL)
+						{
+							FklCodegenQuest* appendQuest=newCodegenQuest(_qsquote_list_bc_process
+									,fklNewPtrStack(2,1)
+									,NULL
+									,curEnv
+									,curValue->curline
+									,curQuest
+									,codegen);
+							fklPushPtrStack(appendQuest,codegenQuestStack);
+							fklPushPtrStack(newQsquoteHelperStruct(QSQUOTE_UNQTESP_CAR,unqtespValue,appendQuest),valueStack);
+							fklPushPtrStack(newQsquoteHelperStruct(QSQUOTE_NONE,node->u.pair->cdr,appendQuest),valueStack);
+						}
+						else
+							fklPushPtrStack(newQsquoteHelperStruct(QSQUOTE_UNQTESP_CAR,unqtespValue,curQuest),valueStack);
+						break;
 					}
 					else
 						fklPushPtrStack(newQsquoteHelperStruct(QSQUOTE_NONE,cur,curQuest),valueStack);
+					if(node->u.pair->cdr->type!=FKL_TYPE_PAIR)
+					{
+						fklPushPtrStack(newQsquoteHelperStruct(QSQUOTE_NONE,node->u.pair->cdr,curQuest),valueStack);
+						break;
+					}
 				}
-				fklPushPtrStack(newQsquoteHelperStruct(QSQUOTE_NONE,node,curQuest),valueStack);
 			}
 			else if(curValue->type==FKL_TYPE_VECTOR)
 			{

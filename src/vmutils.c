@@ -1110,6 +1110,7 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 					{
 						fputs("#&",fp);
 						size_t w=0;
+						FklPtrQueue* vQueue=fklNewPtrQueue();
 						if((isInStack(v->u.box,recStack,&w)&&isInStack(v->u.box,hasPrintRecStack,NULL))||v->u.box==v)
 							fklPushPtrQueue(newPrtElem(PRT_REC_BOX,(void*)w),cQueue);
 						else

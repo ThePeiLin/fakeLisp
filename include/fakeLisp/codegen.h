@@ -42,6 +42,7 @@ typedef struct FklCodegenQuest
 	FklCodegenEnv* env;
     uint64_t curline;
 	FklCodegen* codegen;
+	struct FklCodegenQuest* prev;
 }FklCodegenQuest;
 
 void fklInitCodegener(FklCodegen* codegen

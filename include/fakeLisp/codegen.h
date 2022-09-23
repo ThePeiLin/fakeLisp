@@ -30,10 +30,6 @@ typedef struct FklCodegen
 }FklCodegen;
 
 typedef FklByteCodelnt* (*FklByteCodeProcesser)(FklPtrStack* stack,FklSid_t,uint64_t);
-typedef void (*FklFormCodegenFunc)(FklHashTable* ht
-		,FklPtrStack* codegenQuestStack
-		,FklCodegenEnv* env
-		,FklCodegen* codegen);
 typedef struct FklCodegenQuest
 {
 	FklByteCodeProcesser processer;

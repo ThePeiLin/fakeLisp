@@ -58,14 +58,13 @@ int main(int argc,char** argv)
 		if(fp==stdin)
 		{
 			fklSetMainFileRealPathWithCwd();
-//			inter=fklNewIntpr(NULL,fp,NULL,NULL);
-//			fklInitGlobKeyWord(inter->glob);
-//			runRepl(inter);
 			FklCodegen codegen={.fid=0,};
 			fklInitCodegen();
 			fklInitLexer();
 			fklInitCodegener(&codegen,NULL,stdin,fklNewGlobCodegenEnv(),NULL,fklGetGlobSymbolTable());
 			runRepl1(&codegen);
+			fklUninitCodegener(&codegen);
+			fklUninitCodegen();
 		}
 		else
 		{
@@ -397,7 +396,7 @@ void runRepl1(FklCodegen* codegen)
 			}
 			free(list);
 			list=NULL;
-			free(begin);
+			fklFreeNastNode(begin);
 			begin=NULL;
 		}
 		else
@@ -407,6 +406,7 @@ void runRepl1(FklCodegen* codegen)
 				free(list);
 		}
 	}
+	fklFreeLineNumberTable(globalLnt);
 	fklJoinAllThread(NULL);
 	fklFreePtrStack(tokenStack);
 	free(rawProcList);

@@ -39,6 +39,8 @@ FklNastNode* fklNewNastNodeFromCstr(const char* cStr)
 		fklFreeToken(fklPopPtrStack(tokenStack));
 	while(!fklIsPtrStackEmpty(matchStateStack))
 		free(fklPopPtrStack(matchStateStack));
+	fklFreePtrStack(tokenStack);
+	fklFreePtrStack(matchStateStack);
 	return retval;
 }
 
@@ -801,6 +803,9 @@ FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack* tokenStack)
 		if(retvalElem)
 			retval=retvalElem->node;
 		free(retvalElem);
+		fklFreePtrStack(stackStack);
+		fklFreePtrStack(matchStateStack);
+		fklFreePtrStack(elemStack);
 	}
 	return retval;
 }
@@ -992,6 +997,7 @@ void fklFreeNastNode(FklNastNode* node)
 			free(cur);
 		}
 	}
+	fklFreePtrStack(stack);
 }
 
 static int nastNodeEqual(const FklNastNode* n0,const FklNastNode* n1)
@@ -1181,6 +1187,8 @@ int fklPatternMatch(const FklNastNode* pattern,FklNastNode* exp,FklHashTable* ht
 			return 0;
 		}
 	}
+	fklFreePtrStack(s0);
+	fklFreePtrStack(s1);
 	return 1;
 }
 

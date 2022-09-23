@@ -62,6 +62,7 @@ void fklAddCodegenDefBySid(FklSid_t sid,FklCodegenEnv*);
 int fklIsSymbolDefined(FklSid_t sid,FklCodegenEnv*);
 
 FklCodegenEnv* fklNewCodegenEnv(FklCodegenEnv* prev);
+void fklFreeCodegenEnv(FklCodegenEnv* env);
 FklCodegenEnv* fklNewGlobCodegenEnv(void);
 
 #ifdef __cplusplus

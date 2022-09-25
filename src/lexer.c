@@ -366,32 +366,32 @@ static int isBuiltInSingleStr(const FklString* str)
 		||!fklStringCstrCmp(str,"#&");
 }
 
-static int isBuiltInPattern(FklStringMatchPattern* pattern)
-{
-	return isBuiltInSingleStrPattern(pattern)
-		||isBuiltInParenthese(pattern)
-		||isBuiltInVector(pattern)
-		||isBuiltInBvector(pattern)
-		||isBuiltInHashTable(pattern);
-}
+//static int isBuiltInPattern(FklStringMatchPattern* pattern)
+//{
+//	return isBuiltInSingleStrPattern(pattern)
+//		||isBuiltInParenthese(pattern)
+//		||isBuiltInVector(pattern)
+//		||isBuiltInBvector(pattern)
+//		||isBuiltInHashTable(pattern);
+//}
 
-static MatchState* searchReverseStringCharMatchState(const FklString* str,FklPtrStack* matchStateStack)
-{
-	MatchState* top=fklTopPtrStack(matchStateStack);
-	uint32_t i=0;
-	for(;top&&!isBuiltInPattern(top->pattern)
-			&&top->cindex+i<top->pattern->num;)
-	{
-		const FklString* cpart=fklGetNthPartOfStringMatchPattern(top->pattern,top->cindex+i);
-		if(!fklIsVar(cpart)&&!fklStringcmp(str,cpart))
-		{
-			top->cindex+=i;
-			return top;
-		}
-		i++;
-	}
-	return NULL;
-}
+//static MatchState* searchReverseStringCharMatchState(const FklString* str,FklPtrStack* matchStateStack)
+//{
+//	MatchState* top=fklTopPtrStack(matchStateStack);
+//	uint32_t i=0;
+//	for(;top&&!isBuiltInPattern(top->pattern)
+//			&&top->cindex+i<top->pattern->num;)
+//	{
+//		const FklString* cpart=fklGetNthPartOfStringMatchPattern(top->pattern,top->cindex+i);
+//		if(!fklIsVar(cpart)&&!fklStringcmp(str,cpart))
+//		{
+//			top->cindex+=i;
+//			return top;
+//		}
+//		i++;
+//	}
+//	return NULL;
+//}
 
 
 static MatchState* newMatchState(FklStringMatchPattern* pattern,uint32_t line,uint32_t cindex)

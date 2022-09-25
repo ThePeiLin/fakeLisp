@@ -136,6 +136,26 @@ static void bcBclAppendToBcl(const FklByteCode* bc
 	}
 }
 
+static FklCodegenQuest* newCodegenQuestWithNewEnv(FklByteCodeProcesser f
+		,FklPtrStack* stack
+		,FklPtrQueue* queue
+		,FklCodegenEnv* prevEnv
+		,uint64_t curline
+		,FklCodegenQuest* prev
+		,FklCodegen* codegen)
+{
+	FklCodegenQuest* r=(FklCodegenQuest*)malloc(sizeof(FklCodegenQuest));
+	FKL_ASSERT(r);
+	r->processer=f;
+	r->stack=stack;
+	r->queue=queue;
+	r->env=fklNewCodegenEnv(prevEnv);
+	r->curline=curline;
+	r->codegen=codegen;
+	r->prev=prev;
+	return r;
+}
+
 static FklCodegenQuest* newCodegenQuest(FklByteCodeProcesser f
 		,FklPtrStack* stack
 		,FklPtrQueue* queue
@@ -161,14 +181,13 @@ static void freeCodegenQuest(FklCodegenQuest* quest)
 {
 	if(quest->queue)
 		fklFreePtrQueue(quest->queue);
-	quest->env->refcount-=1;
-	if(!quest->env->refcount)
-		fklFreeCodegenEnv(quest->env);
+	fklFreeCodegenEnv(quest->env);
 	fklFreePtrStack(quest->stack);
 	free(quest);
 }
 
 #define FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(F,STACK,QUEUE,ENV,LINE,CODEGEN,CODEGEN_STACK) fklPushPtrStack(newCodegenQuest((F),(STACK),(QUEUE),(ENV),(LINE),NULL,(CODEGEN)),(CODEGEN_STACK))
+#define FKL_PUSH_NEW_PREV_ENV_CODEGEN_QUEST(F,STACK,QUEUE,PREV_ENV,LINE,CODEGEN,PREV_QUEST,CODEGEN_STACK) fklPushPtrStack(newCodegenQuestWithNewEnv((F),(STACK),(QUEUE),(PREV_ENV),(LINE),(PREV_QUEST),(CODEGEN)),(CODEGEN_STACK))
 
 #define BC_PROCESS(NAME) static FklByteCodelnt* NAME(FklPtrStack* stack,FklSid_t fid,uint64_t line)
 
@@ -349,13 +368,13 @@ static CODEGEN_FUNC(codegen_and)
 	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
 	FklPtrQueue* queue=fklNewPtrQueue();
 	pushListItemToQueue(rest,queue,NULL);
-	FklCodegenEnv* andEnv=fklNewCodegenEnv(curEnv);
-	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_and_exp_bc_process
+	FKL_PUSH_NEW_PREV_ENV_CODEGEN_QUEST(_and_exp_bc_process
 			,fklNewPtrStack(32,16)
 			,queue
-			,andEnv
+			,curEnv
 			,rest->curline
 			,codegen
+			,NULL
 			,codegenQuestStack);
 }
 
@@ -408,13 +427,13 @@ static CODEGEN_FUNC(codegen_or)
 	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
 	FklPtrQueue* queue=fklNewPtrQueue();
 	pushListItemToQueue(rest,queue,NULL);
-	FklCodegenEnv* orEnv=fklNewCodegenEnv(curEnv);
-	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_or_exp_bc_process
+	FKL_PUSH_NEW_PREV_ENV_CODEGEN_QUEST(_or_exp_bc_process
 			,fklNewPtrStack(32,16)
 			,queue
-			,orEnv
+			,curEnv
 			,rest->curline
 			,codegen
+			,NULL
 			,codegenQuestStack);
 }
 
@@ -613,6 +632,7 @@ static CODEGEN_FUNC(codegen_lambda)
 			,rest->curline
 			,codegen
 			,codegenQuestStack);
+	lambdaCodegenEnv->refcount=0;
 }
 
 BC_PROCESS(_set_var_exp_bc_process)
@@ -1072,10 +1092,10 @@ static CODEGEN_FUNC(codegen_cond)
 				fklFreePtrStack(tmpStack);
 				return;
 			}
-			FklCodegenQuest* curQuest=newCodegenQuest(_cond_exp_bc_process_1
+			FklCodegenQuest* curQuest=newCodegenQuestWithNewEnv(_cond_exp_bc_process_1
 					,fklNewPtrStack(32,16)
 					,curQueue
-					,fklNewCodegenEnv(curEnv)
+					,curEnv
 					,curExp->curline
 					,prevQuest
 					,codegen);
@@ -1100,10 +1120,10 @@ static CODEGEN_FUNC(codegen_cond)
 			fklFreePtrStack(tmpStack);
 			return;
 		}
-		fklPushPtrStack(newCodegenQuest(_cond_exp_bc_process_2
+		fklPushPtrStack(newCodegenQuestWithNewEnv(_cond_exp_bc_process_2
 					,fklNewPtrStack(32,16)
 					,lastQueue
-					,fklNewCodegenEnv(curEnv)
+					,curEnv
 					,lastExp->curline
 					,prevQuest
 					,codegen)
@@ -1112,80 +1132,16 @@ static CODEGEN_FUNC(codegen_cond)
 	}
 }
 
-//BC_PROCESS(_try_exp_bc_process_1)
-//{
-//	FklByteCodelnt* retval=NULL;
-//	if(stack->top)
-//	{
-//		uint8_t opcodes[]={
-//			FKL_OP_SET_TP,
-//			FKL_OP_RES_TP,
-//			FKL_OP_POP_TP,
-//		};
-//		FklByteCode setTp={1,&opcodes[0]};
-//		FklByteCode resTp={1,&opcodes[1]};
-//		FklByteCode popTp={1,&opcodes[2]};
-//		retval=fklNewByteCodelnt(fklNewByteCode(0));
-//		size_t top=stack->top;
-//		for(size_t i=0;i<top;i++)
-//		{
-//			FklByteCodelnt* cur=stack->base[i];
-//			if(cur->bc->size)
-//			{
-//				fklCodeLntCat(retval,cur);
-//				if(i<top-1)
-//					bclBcAppendToBcl(retval,&resTp,fid,line);
-//			}
-//			fklFreeByteCodelnt(cur);
-//		}
-//		bcBclAppendToBcl(&setTp,retval,fid,line);
-//		bclBcAppendToBcl(retval,&popTp,fid,line);
-//	}
-//	else
-//		retval=newBclnt(new1lenBc(FKL_OP_PUSH_NIL),fid,line);
-//	FklByteCode* pushProc=new9lenBc(FKL_OP_PUSH_PROC,retval->bc->size);
-//	FklByteCode* call=new1lenBc(FKL_OP_CALL);
-//	bcBclAppendToBcl(pushProc,retval,fid,line);
-//	bclBcAppendToBcl(retval,call,fid,line);
-//	fklFreeByteCode(pushProc);
-//	fklFreeByteCode(call);
-//	return retval;
-//}
-
-//BC_PROCESS(_try_exp_bc_process_0)
-//{
-//}
-
-//static void processCatch(FklNastNode* catch,FklPtrStack* codegenQuestStack,FklCodegenEnv* curEnv,FklCodegen* codegen)
-//{
-//	FklHashTable* ht=fklNewPatternMatchingHashTable();
-//	fklPatternMatch(builtInSubPattern[SUB_PATTERN_CATCH].pn,catch,ht);
-//	FklNastNode* errorSym=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
-//	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
-//}
-//
-//static CODEGEN_FUNC(codegen_try)
-//{
-//    FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
-//	FklPtrQueue* restQueue=fklNewPtrQueue();
-//	pushListItemToQueue(rest,restQueue);
-//	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_try_exp_bc_process_0
-//			,fklNewPtrStack(32,16)
-//			,NULL
-//			,curEnv
-//			,rest->curline
-//			,codegen
-//			,codegenQuestStack);
-//	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_try_exp_bc_process_1
-//			,fklNewPtrStack(32,16)
-//			,restQueue
-//			,fklNewCodegenEnv(curEnv)
-//			,rest->curline
-//			,codegen
-//			,codegenQuestStack);
-//	FklNastNode* catch=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
-//    processCatch(catch,codegenQuestStack,curEnv,codegen);
-//}
+static CODEGEN_FUNC(codegen_load)
+{
+	FklNastNode* filename=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
+	if(filename->type!=FKL_TYPE_STR)
+	{
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=origExp;
+		return;
+	}
+}
 
 typedef void (*FklFormCodegenFunc)(CODEGEN_ARGS);
 
@@ -1305,6 +1261,7 @@ static struct PatternAndFunc
 	{"(and,rest)",          NULL, codegen_and,     },
 	{"(or,rest)",           NULL, codegen_or,      },
 	{"(cond,rest)",         NULL, codegen_cond,    },
+	{"(load name)",NULL,codegen_load,},
 	{NULL,                  NULL, NULL,            }
 };
 
@@ -1532,14 +1489,12 @@ void fklInitCodegener(FklCodegen* codegen
 		codegen->globalEnv=fklNewCodegenEnv(NULL);
 		fklInitGlobCodegenEnv(codegen->globalEnv);
 	}
-	codegen->globalEnv->refcount+=1;
 	codegen->globalSymTable=globalSymTable;
 	codegen->prev=prev;
 }
 
 void fklUninitCodegener(FklCodegen* codegen)
 {
-	codegen->globalEnv->refcount-=1;
 	fklFreeCodegenEnv(codegen->globalEnv);
 	if(codegen->globalSymTable!=fklGetGlobSymbolTable())
 		fklFreeSymbolTable(codegen->globalSymTable);

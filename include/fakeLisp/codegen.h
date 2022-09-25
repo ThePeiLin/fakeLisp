@@ -27,6 +27,8 @@ typedef struct FklCodegen
 	FklSymbolTable* globalSymTable;
 	FklSid_t fid;
 	struct FklCodegen* prev;
+	unsigned int freeAbleMark:1;
+	unsigned long refcount:63;
 }FklCodegen;
 
 typedef FklByteCodelnt* (*FklByteCodeProcesser)(FklPtrStack* stack,FklSid_t,uint64_t);
@@ -46,8 +48,10 @@ void fklInitCodegener(FklCodegen* codegen
 		,FILE* fp
 		,FklCodegenEnv* globalEnv
 		,FklCodegen* prev
-		,FklSymbolTable*);
+		,FklSymbolTable*
+		,int freeAbleMark);
 void fklUninitCodegener(FklCodegen* codegen);
+FklCodegen* fklNewCodegener(void);
 void fklInitCodegen(void);
 void fklUninitCodegen(void);
 FklByteCode* fklCodegenNode(const FklNastNode*,FklCodegen* codegen);

@@ -179,6 +179,11 @@ static FklCodegenQuest* newCodegenQuest(FklByteCodeProcesser f
 
 static void freeCodegenQuest(FklCodegenQuest* quest)
 {
+	if(quest->codegen->freeAbleMark&&!quest->codegen->refcount)
+	{
+		fklUninitCodegener(quest->codegen);
+		free(quest->codegen);
+	}
 	if(quest->queue)
 		fklFreePtrQueue(quest->queue);
 	fklFreeCodegenEnv(quest->env);
@@ -471,6 +476,9 @@ BC_PROCESS(_lambda_exp_bc_process)
 		retval=newBclnt(new1lenBc(FKL_OP_PUSH_NIL),fid,line);
 	fklReCodeLntCat(stack->base[0],retval);
 	fklFreeByteCodelnt(stack->base[0]);
+	FklByteCode* pushProc=new9lenBc(FKL_OP_PUSH_PROC,retval->bc->size);
+	bcBclAppendToBcl(pushProc,retval,fid,line);
+	fklFreeByteCode(pushProc);
 	return retval;
 }
 
@@ -1261,7 +1269,7 @@ static struct PatternAndFunc
 	{"(and,rest)",          NULL, codegen_and,     },
 	{"(or,rest)",           NULL, codegen_or,      },
 	{"(cond,rest)",         NULL, codegen_cond,    },
-	{"(load name)",NULL,codegen_load,},
+	{"(load name)",         NULL, codegen_load,    },
 	{NULL,                  NULL, NULL,            }
 };
 
@@ -1457,7 +1465,8 @@ void fklInitCodegener(FklCodegen* codegen
 		,FILE* fp
 		,FklCodegenEnv* globalEnv
 		,FklCodegen* prev
-		,FklSymbolTable* globalSymTable)
+		,FklSymbolTable* globalSymTable
+		,int freeAbleMark)
 {
 	if(fp!=stdin&&filename!=NULL)
 	{
@@ -1491,6 +1500,8 @@ void fklInitCodegener(FklCodegen* codegen
 	}
 	codegen->globalSymTable=globalSymTable;
 	codegen->prev=prev;
+	codegen->freeAbleMark=freeAbleMark;
+	codegen->refcount=0;
 }
 
 void fklUninitCodegener(FklCodegen* codegen)

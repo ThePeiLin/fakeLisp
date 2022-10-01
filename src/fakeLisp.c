@@ -228,7 +228,7 @@ void runRepl(FklCodegen* codegen)
 		}
 		if(!begin)
 		{
-			fprintf(stderr,"error of reader:Invalid expression at line %ld\n",codegen->curline);
+			fprintf(stderr,"error of reader:Invalid expression at line %lu\n",errorLine);
 			if(list!=NULL)
 				free(list);
 		}

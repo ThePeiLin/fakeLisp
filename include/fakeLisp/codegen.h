@@ -51,6 +51,7 @@ void fklInitCodegener(FklCodegen* codegen
 		,FklSymbolTable*
 		,int freeAbleMark);
 void fklUninitCodegener(FklCodegen* codegen);
+void fklFreeCodegener(FklCodegen* codegen);
 FklCodegen* fklNewCodegener(void);
 void fklInitCodegen(void);
 void fklUninitCodegen(void);

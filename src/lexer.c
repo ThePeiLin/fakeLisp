@@ -34,7 +34,8 @@ FklNastNode* fklNewNastNodeFromCstr(const char* cStr)
 			,matchStateStack
 			,&i
 			,&j);
-	FklNastNode* retval=fklNewNastNodeFromTokenStack(tokenStack,NULL);
+	size_t errorLine=0;
+	FklNastNode* retval=fklNewNastNodeFromTokenStack(tokenStack,&errorLine);
 	while(!fklIsPtrStackEmpty(tokenStack))
 		fklFreeToken(fklPopPtrStack(tokenStack));
 	while(!fklIsPtrStackEmpty(matchStateStack))
@@ -404,7 +405,7 @@ static MatchState* newMatchState(FklStringMatchPattern* pattern,uint32_t line,ui
 	return state;
 }
 
-static FklNastNode* listProcesser(FklPtrStack* nodeStack,uint64_t line)
+static FklNastNode* listProcesser(FklPtrStack* nodeStack,uint64_t line,size_t* errorLine)
 {
 	FklNastNode* retval=NULL;
 	FklNastNode** cur=&retval;
@@ -425,6 +426,7 @@ static FklNastNode* listProcesser(FklPtrStack* nodeStack,uint64_t line)
 			(*cur)=node;
 		else
 		{
+			*errorLine=node->curline;
 			r=0;
 			for(size_t j=i;j<nodeStack->top;j++)
 			{
@@ -443,7 +445,7 @@ static FklNastNode* listProcesser(FklPtrStack* nodeStack,uint64_t line)
 	return retval;
 }
 
-static FklNastNode* vectorProcesser(FklPtrStack* nodeStack,uint64_t line)
+static FklNastNode* vectorProcesser(FklPtrStack* nodeStack,uint64_t line,size_t* errorLine)
 {
 	FklNastNode* retval=newNastNode(FKL_TYPE_VECTOR,line);
 	retval->u.vec=newNastVector(nodeStack->top);
@@ -456,6 +458,7 @@ static FklNastNode* vectorProcesser(FklPtrStack* nodeStack,uint64_t line)
 			retval->u.vec->base[i]=node;
 		else
 		{
+			*errorLine=node->curline;
 			for(size_t j=i;j<nodeStack->top;j++)
 			{
 				NastElem* elem=nodeStack->base[i];
@@ -471,7 +474,7 @@ static FklNastNode* vectorProcesser(FklPtrStack* nodeStack,uint64_t line)
 	return retval;
 }
 
-static FklNastNode* bytevectorProcesser(FklPtrStack* nodeStack,uint64_t line)
+static FklNastNode* bytevectorProcesser(FklPtrStack* nodeStack,uint64_t line,size_t* errorLine)
 {
 	FklNastNode* retval=newNastNode(FKL_TYPE_BYTEVECTOR,line);
 	retval->u.bvec=fklNewBytevector(nodeStack->top,NULL);
@@ -494,6 +497,7 @@ static FklNastNode* bytevectorProcesser(FklPtrStack* nodeStack,uint64_t line)
 		}
 		else
 		{
+			*errorLine=node->curline;
 			for(size_t j=i;j<nodeStack->top;j++)
 			{
 				NastElem* elem=nodeStack->base[i];
@@ -520,7 +524,7 @@ static FklNastHashTable* newNastHash(FklVMhashTableEqType type,size_t num)
 	return r;
 }
 
-static FklNastNode* hashEqProcesser(FklPtrStack* nodeStack,uint64_t line)
+static FklNastNode* hashEqProcesser(FklPtrStack* nodeStack,uint64_t line,size_t* errorLine)
 {
 	FklNastNode* retval=newNastNode(FKL_TYPE_HASHTABLE,line);
 	retval->u.hash=newNastHash(FKL_VM_HASH_EQ,nodeStack->top);
@@ -539,6 +543,7 @@ static FklNastNode* hashEqProcesser(FklPtrStack* nodeStack,uint64_t line)
 		}
 		else
 		{
+			*errorLine=node->curline;
 			for(size_t j=i;j<nodeStack->top;j++)
 			{
 				NastElem* elem=nodeStack->base[i];
@@ -554,7 +559,7 @@ static FklNastNode* hashEqProcesser(FklPtrStack* nodeStack,uint64_t line)
 	return retval;
 }
 
-static FklNastNode* hashEqvProcesser(FklPtrStack* nodeStack,uint64_t line)
+static FklNastNode* hashEqvProcesser(FklPtrStack* nodeStack,uint64_t line,size_t* errorLine)
 {
 	FklNastNode* retval=newNastNode(FKL_TYPE_HASHTABLE,line);
 	retval->u.hash=newNastHash(FKL_VM_HASH_EQV,nodeStack->top);
@@ -573,6 +578,7 @@ static FklNastNode* hashEqvProcesser(FklPtrStack* nodeStack,uint64_t line)
 		}
 		else
 		{
+			*errorLine=node->curline;
 			for(size_t j=i;j<nodeStack->top;j++)
 			{
 				NastElem* elem=nodeStack->base[i];
@@ -588,7 +594,7 @@ static FklNastNode* hashEqvProcesser(FklPtrStack* nodeStack,uint64_t line)
 	return retval;
 }
 
-static FklNastNode* hashEqualProcesser(FklPtrStack* nodeStack,uint64_t line)
+static FklNastNode* hashEqualProcesser(FklPtrStack* nodeStack,uint64_t line,size_t* errorLine)
 {
 	FklNastNode* retval=newNastNode(FKL_TYPE_HASHTABLE,line);
 	retval->u.hash=newNastHash(FKL_VM_HASH_EQUAL,nodeStack->top);
@@ -607,6 +613,7 @@ static FklNastNode* hashEqualProcesser(FklPtrStack* nodeStack,uint64_t line)
 		}
 		else
 		{
+			*errorLine=node->curline;
 			for(size_t j=i;j<nodeStack->top;j++)
 			{
 				NastElem* elem=nodeStack->base[i];
@@ -623,7 +630,7 @@ static FklNastNode* hashEqualProcesser(FklPtrStack* nodeStack,uint64_t line)
 }
 
 
-static FklNastNode* (*nastStackProcessers[])(FklPtrStack*,uint64_t)=
+static FklNastNode* (*nastStackProcessers[])(FklPtrStack*,uint64_t,size_t*)=
 {
 	listProcesser,
 	listProcesser,
@@ -742,7 +749,7 @@ FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack* tokenStack,size_t* errorL
 				{
 					fklPopPtrStack(stackStack);
 					MatchState* cState=fklPopPtrStack(matchStateStack);
-					FklNastNode* n=nastStackProcessers[(uintptr_t)cState->pattern](cStack,token->line);
+					FklNastNode* n=nastStackProcessers[(uintptr_t)cState->pattern](cStack,token->line,errorLine);
 					fklFreePtrStack(cStack);
 					freeMatchState(cState);
 					if(n)

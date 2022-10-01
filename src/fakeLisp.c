@@ -21,8 +21,7 @@
 #include<unistd.h>
 #endif
 
-void runRepl(FklInterpreter*);
-void runRepl1(FklCodegen*);
+void runRepl(FklCodegen*);
 FklByteCode* loadByteCode(FILE*);
 void loadSymbolTable(FILE*);
 FklLineNumberTable* loadLineNumberTable(FILE*);
@@ -62,7 +61,7 @@ int main(int argc,char** argv)
 			fklInitCodegen();
 			fklInitLexer();
 			fklInitCodegener(&codegen,NULL,stdin,fklNewGlobCodegenEnv(),NULL,fklGetGlobSymbolTable(),0);
-			runRepl1(&codegen);
+			runRepl(&codegen);
 			fklUninitCodegener(&codegen);
 			fklUninitCodegen();
 		}
@@ -180,131 +179,7 @@ int main(int argc,char** argv)
 	return exitState;
 }
 
-void runRepl(FklInterpreter* inter)
-{
-	int e=0;
-	FklVM* anotherVM=fklNewVM(NULL);
-	FklVMvalue* globEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
-	anotherVM->callback=errorCallBack;
-	anotherVM->lnt=inter->lnt;
-	FklByteCode* rawProcList=NULL;
-	FklPtrStack* tokenStack=fklNewPtrStack(32,16);
-	char* prev=NULL;
-	size_t prevSize=0;
-	int32_t bs=0;
-	for(;e<2;)
-	{
-		FklAstCptr* begin=NULL;
-		if(inter->file==stdin)printf(">>>");
-		if(prev)
-			fwrite(prev,sizeof(char),prevSize,stdout);
-		int unexpectEOF=0;
-		size_t size=0;
-		char* list=fklReadInStringPattern(inter->file,&prev,&size,&prevSize,inter->curline,&unexpectEOF,tokenStack,NULL);
-		FklErrorState state={0,NULL};
-		if(unexpectEOF)
-		{
-			switch(unexpectEOF)
-			{
-					case 1:
-						fprintf(stderr,"error of reader:Unexpect EOF at line %d\n",inter->curline);
-						break;
-					case 2:
-						fprintf(stderr,"error of reader:Invalid expression at line %d\n",inter->curline);
-						break;
-				}
-			free(list);
-			list=NULL;
-			continue;
-		}
-		begin=fklCreateAstWithTokens(tokenStack,inter->filename,inter->glob);
-		inter->curline+=fklCountChar(list,'\n',size);
-		while(!fklIsPtrStackEmpty(tokenStack))
-			fklFreeToken(fklPopPtrStack(tokenStack));
-		if(fklIsAllSpaceBufSize(list,size))
-		{
-			free(list);
-			break;
-		}
-		if(begin!=NULL)
-		{
-			FklByteCodelnt* tmpByteCode=fklCompile(begin,inter->glob,inter,&state);
-			if(state.state!=0)
-			{
-				fklPrintCompileError(state.place,state.state,inter);
-				fklDeleteCptr(state.place);
-				if(inter->file!=stdin)
-				{
-					fklDeleteCptr(begin);
-					fklFreeGlobSymbolTable();
-					exit(0);
-				}
-			}
-			else if(tmpByteCode)
-			{
-				fklLntCat(inter->lnt,bs,tmpByteCode->l,tmpByteCode->ls);
-				FklByteCode byteCodeOfVM={anotherVM->size,anotherVM->code};
-				fklCodeCat(&byteCodeOfVM,tmpByteCode->bc);
-				anotherVM->code=byteCodeOfVM.code;
-				anotherVM->size=byteCodeOfVM.size;
-				FklVMproc* tmp=fklNewVMproc(bs,tmpByteCode->bc->size);
-				bs+=tmpByteCode->bc->size;
-				fklFreeByteCodelnt(tmpByteCode);
-				tmp->prevEnv=NULL;
-				FklVMframe* mainframe=fklNewVMframe(tmp,anotherVM->frames);
-				mainframe->localenv=globEnv;
-				anotherVM->frames=mainframe;
-				if(!(e=setjmp(buf)))
-				{
-					fklRunVM(anotherVM);
-					FklVMstack* stack=anotherVM->stack;
-					if(inter->file==stdin&&stack->tp!=0)
-					{
-						printf(";=>");
-						fklDBG_printVMstack(stack,stdout,0);
-					}
-					fklWaitGC(anotherVM->gc);
-					free(anotherVM->frames);
-					anotherVM->frames=NULL;
-					stack->tp=0;
-					fklFreeVMproc(tmp);
-				}
-				else
-				{
-					if(e>=2&&prev)
-						free(prev);
-					FklVMstack* stack=anotherVM->stack;
-					stack->tp=0;
-					stack->bp=0;
-					tmp->prevEnv=NULL;
-					fklFreeVMproc(tmp);
-					fklDeleteCallChain(anotherVM);
-				}
-			}
-			free(list);
-			list=NULL;
-			fklDeleteCptr(begin);
-			free(begin);
-			begin=NULL;
-		}
-		else
-		{
-			fprintf(stderr,"error of reader:Invalid expression at line %d\n",inter->curline);
-			if(list!=NULL)
-				free(list);
-		}
-	}
-	fklJoinAllThread(NULL);
-	fklFreePtrStack(tokenStack);
-	free(rawProcList);
-	fklFreeIntpr(inter);
-	fklUninitPreprocess();
-	fklFreeVMgc(anotherVM->gc);
-	fklFreeAllVMs();
-	fklFreeGlobSymbolTable();
-}
-
-void runRepl1(FklCodegen* codegen)
+void runRepl(FklCodegen* codegen)
 {
 	int e=0;
 	FklVM* anotherVM=fklNewVM(NULL);
@@ -330,18 +205,19 @@ void runRepl1(FklCodegen* codegen)
 		{
 			switch(unexpectEOF)
 			{
-					case 1:
-						fprintf(stderr,"error of reader:Unexpect EOF at line %lu\n",codegen->curline);
-						break;
-					case 2:
-						fprintf(stderr,"error of reader:Invalid expression at line %lu\n",codegen->curline);
-						break;
-				}
+				case 1:
+					fprintf(stderr,"error of reader:Unexpect EOF at line %lu\n",codegen->curline);
+					break;
+				case 2:
+					fprintf(stderr,"error of reader:Invalid expression at line %lu\n",codegen->curline);
+					break;
+			}
 			free(list);
 			list=NULL;
 			continue;
 		}
-		begin=fklNewNastNodeFromTokenStack(tokenStack);
+		size_t errorLine=0;
+		begin=fklNewNastNodeFromTokenStack(tokenStack,&errorLine);
 		codegen->curline+=fklCountChar(list,'\n',size);
 		while(!fklIsPtrStackEmpty(tokenStack))
 			fklFreeToken(fklPopPtrStack(tokenStack));
@@ -350,7 +226,13 @@ void runRepl1(FklCodegen* codegen)
 			free(list);
 			break;
 		}
-		if(begin!=NULL)
+		if(!begin)
+		{
+			fprintf(stderr,"error of reader:Invalid expression at line %ld\n",codegen->curline);
+			if(list!=NULL)
+				free(list);
+		}
+		else
 		{
 			FklByteCodelnt* tmpByteCode=fklGenExpressionCode(begin,codegen->globalEnv,codegen);
 			if(tmpByteCode)
@@ -399,12 +281,7 @@ void runRepl1(FklCodegen* codegen)
 			fklFreeNastNode(begin);
 			begin=NULL;
 		}
-		else
-		{
-			fprintf(stderr,"error of reader:Invalid expression at line %ld\n",codegen->curline);
-			if(list!=NULL)
-				free(list);
-		}
+
 	}
 	fklFreeLineNumberTable(globalLnt);
 	fklJoinAllThread(NULL);

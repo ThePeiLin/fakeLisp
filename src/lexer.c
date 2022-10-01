@@ -34,7 +34,7 @@ FklNastNode* fklNewNastNodeFromCstr(const char* cStr)
 			,matchStateStack
 			,&i
 			,&j);
-	FklNastNode* retval=fklNewNastNodeFromTokenStack(tokenStack);
+	FklNastNode* retval=fklNewNastNodeFromTokenStack(tokenStack,NULL);
 	while(!fklIsPtrStackEmpty(tokenStack))
 		fklFreeToken(fklPopPtrStack(tokenStack));
 	while(!fklIsPtrStackEmpty(matchStateStack))
@@ -651,7 +651,7 @@ static FklNastNode* (*nastStackProcessers[])(FklPtrStack*,uint64_t)=
 						cStack=fklNewPtrStack(32,16);\
 						fklPushPtrStack(cStack,stackStack)\
 
-FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack* tokenStack)
+FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack* tokenStack,size_t* errorLine)
 {
 	FklNastNode* retval=NULL;
 	if(!fklIsPtrStackEmpty(tokenStack))
@@ -743,11 +743,33 @@ FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack* tokenStack)
 					fklPopPtrStack(stackStack);
 					MatchState* cState=fklPopPtrStack(matchStateStack);
 					FklNastNode* n=nastStackProcessers[(uintptr_t)cState->pattern](cStack,token->line);
-					NastElem* v=newNastElem(NAST_CAR,n);
 					fklFreePtrStack(cStack);
-					cStack=fklTopPtrStack(stackStack);
 					freeMatchState(cState);
-					fklPushPtrStack(v,cStack);
+					if(n)
+					{
+						NastElem* v=newNastElem(NAST_CAR,n);
+						cStack=fklTopPtrStack(stackStack);
+						fklPushPtrStack(v,cStack);
+					}
+					else
+					{
+						while(!fklIsPtrStackEmpty(matchStateStack))
+							freeMatchState(fklPopPtrStack(matchStateStack));
+						fklFreePtrStack(matchStateStack);
+						while(!fklIsPtrStackEmpty(stackStack))
+						{
+							FklPtrStack* cStack=fklPopPtrStack(stackStack);
+							while(!fklIsPtrStackEmpty(cStack))
+							{
+								NastElem* elem=fklPopPtrStack(cStack);
+								fklFreeNastNode(elem->node);
+								free(elem);
+							}
+							fklFreePtrStack(cStack);
+						}
+						fklFreePtrStack(stackStack);
+						return NULL;
+					}
 				}
 			}
 			for(MatchState* state=fklTopPtrStack(matchStateStack);

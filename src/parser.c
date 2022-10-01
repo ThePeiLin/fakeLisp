@@ -4,14 +4,6 @@
 #include<ctype.h>
 #include<string.h>
 
-//static size_t skipSpace(const char* str)
-//{
-//	size_t i=0;
-//	for(;str[i]!='\0'&&isspace(str[i]);i++);
-//	return i;
-//}
-
-
 size_t skipString(const char* str)
 {
 	size_t i=1;

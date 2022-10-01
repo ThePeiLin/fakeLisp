@@ -1151,7 +1151,7 @@ static CODEGEN_FUNC(codegen_load)
 	}
 }
 
-typedef void (*FklFormCodegenFunc)(CODEGEN_ARGS);
+typedef void (*FklCodegenFunc)(CODEGEN_ARGS);
 
 #undef BC_PROCESS
 #undef CODEGEN_ARGS
@@ -1236,7 +1236,7 @@ FklByteCode* fklCodegenNode(const FklNastNode* node,FklCodegen* codegenr)
 	return retval;
 }
 
-static int matchAndCall(FklFormCodegenFunc func
+static int matchAndCall(FklCodegenFunc func
 		,const FklNastNode* pattern
 		,FklNastNode* exp
 		,FklPtrStack* codegenQuestStack
@@ -1256,7 +1256,7 @@ static struct PatternAndFunc
 {
 	char* ps;
 	FklNastNode* pn;
-	FklFormCodegenFunc func;
+	FklCodegenFunc func;
 }builtInPattern[]=
 {
 	{"(begin,rest)",        NULL, codegen_begin,   },

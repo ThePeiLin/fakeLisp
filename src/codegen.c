@@ -1160,31 +1160,37 @@ static FklPtrQueue* readExpressionIntoQueue(FklCodegen* codegen,ErrorState* erro
 		size_t errorLine=0;
 		codegen->curline+=fklCountChar(list,'\n',size);
 		begin=fklNewNastNodeFromTokenStack(tokenStack,&errorLine);
-		while(!fklIsPtrStackEmpty(tokenStack))
-			fklFreeToken(fklPopPtrStack(tokenStack));
 		if(fklIsAllSpaceBufSize(list,size))
 		{
+			while(!fklIsPtrStackEmpty(tokenStack))
+				fklFreeToken(fklPopPtrStack(tokenStack));
 			free(list);
 			break;
 		}
 		free(list);
 		if(!begin)
 		{
-			errorState->type=FKL_ERR_INVALIDEXPR;
-			errorState->line=errorLine;
-			while(!fklIsPtrQueueEmpty(queue))
+			if(!fklIsAllComment(tokenStack))
 			{
-				fklPopPtrQueue(codegen->expressionQueue);
-				fklFreeNastNode(fklPopPtrQueue(queue));
+				errorState->type=FKL_ERR_INVALIDEXPR;
+				errorState->line=errorLine;
+				while(!fklIsPtrQueueEmpty(queue))
+				{
+					fklPopPtrQueue(codegen->expressionQueue);
+					fklFreeNastNode(fklPopPtrQueue(queue));
+				}
+				fklFreePtrQueue(queue);
+				fklFreePtrStack(tokenStack);
+				return NULL;
 			}
-			fklFreePtrQueue(queue);
-			return NULL;
 		}
 		else
 		{
 			fklPushPtrQueue(begin,codegen->expressionQueue);
 			fklPushPtrQueue(begin,queue);
 		}
+		while(!fklIsPtrStackEmpty(tokenStack))
+			fklFreeToken(fklPopPtrStack(tokenStack));
 	}
 	fklFreePtrStack(tokenStack);
 	return queue;

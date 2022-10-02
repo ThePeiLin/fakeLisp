@@ -2255,10 +2255,16 @@ FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int* exitstate)
 			switch(unexpectEOF)
 			{
 				case 1:
-					fprintf(stderr,"error of reader:Unexpect EOF at line %d of %s\n",inter->curline,inter->filename);
+					fprintf(stderr
+							,"error of reader:Unexpect EOF at line %d of %s\n"
+							,inter->curline
+							,inter->filename);
 					break;
 				case 2:
-					fprintf(stderr,"error of reader:Invalid expression at line %d of %s\n",inter->curline,inter->filename);
+					fprintf(stderr
+							,"error of reader:Invalid expression at line %d of %s\n"
+							,inter->curline
+							,inter->filename);
 					break;
 			}
 			fklFreeByteCodeAndLnt(tmp);

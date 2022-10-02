@@ -26,6 +26,7 @@ typedef struct FklCodegen
 	FklCodegenEnv* globalEnv;
 	FklSymbolTable* globalSymTable;
 	FklSid_t fid;
+	FklPtrQueue* expressionQueue;
 	struct FklCodegen* prev;
 	unsigned int freeAbleMark:1;
 	unsigned long refcount:63;
@@ -43,13 +44,20 @@ typedef struct FklCodegenQuest
 	struct FklCodegenQuest* prev;
 }FklCodegenQuest;
 
-void fklInitCodegener(FklCodegen* codegen
+void fklInitGlobalCodegener(FklCodegen* codegen
 		,const char* filename
 		,FILE* fp
 		,FklCodegenEnv* globalEnv
+		,FklSymbolTable*
+		,int freeAbleMark);
+void fklInitCodegener(FklCodegen* codegen
+		,const char* filename
+		,FILE* fp
+		,FklCodegenEnv* env
 		,FklCodegen* prev
 		,FklSymbolTable*
 		,int freeAbleMark);
+
 void fklUninitCodegener(FklCodegen* codegen);
 void fklFreeCodegener(FklCodegen* codegen);
 FklCodegen* fklNewCodegener(void);

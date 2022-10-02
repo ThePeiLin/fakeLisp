@@ -60,7 +60,7 @@ int main(int argc,char** argv)
 			FklCodegen codegen={.fid=0,};
 			fklInitCodegen();
 			fklInitLexer();
-			fklInitCodegener(&codegen,NULL,stdin,fklNewGlobCodegenEnv(),NULL,fklGetGlobSymbolTable(),0);
+			fklInitGlobalCodegener(&codegen,NULL,stdin,NULL,fklGetGlobSymbolTable(),0);
 			runRepl(&codegen);
 			fklUninitCodegener(&codegen);
 			fklUninitCodegen();

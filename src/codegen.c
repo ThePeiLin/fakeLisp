@@ -1160,14 +1160,9 @@ static FklPtrQueue* readExpressionIntoQueue(FklCodegen* codegen,ErrorState* erro
 		size_t errorLine=0;
 		codegen->curline+=fklCountChar(list,'\n',size);
 		begin=fklNewNastNodeFromTokenStack(tokenStack,&errorLine);
-		if(fklIsAllSpaceBufSize(list,size))
-		{
-			while(!fklIsPtrStackEmpty(tokenStack))
-				fklFreeToken(fklPopPtrStack(tokenStack));
-			free(list);
-			break;
-		}
 		free(list);
+		if(fklIsPtrStackEmpty(tokenStack))
+			break;
 		if(!begin)
 		{
 			if(!fklIsAllComment(tokenStack))

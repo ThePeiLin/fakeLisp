@@ -219,19 +219,13 @@ void runRepl(FklCodegen* codegen)
 		size_t errorLine=0;
 		begin=fklNewNastNodeFromTokenStack(tokenStack,&errorLine);
 		codegen->curline+=fklCountChar(list,'\n',size);
+		free(list);
+		if(fklIsPtrStackEmpty(tokenStack))
+			break;
 		while(!fklIsPtrStackEmpty(tokenStack))
 			fklFreeToken(fklPopPtrStack(tokenStack));
-		if(fklIsAllSpaceBufSize(list,size))
-		{
-			free(list);
-			break;
-		}
 		if(!begin)
-		{
 			fprintf(stderr,"error of reader:Invalid expression at line %lu\n",errorLine);
-			if(list!=NULL)
-				free(list);
-		}
 		else
 		{
 			FklByteCodelnt* tmpByteCode=fklGenExpressionCode(begin,codegen->globalEnv,codegen);
@@ -276,12 +270,9 @@ void runRepl(FklCodegen* codegen)
 					fklDeleteCallChain(anotherVM);
 				}
 			}
-			free(list);
-			list=NULL;
 			fklFreeNastNode(begin);
 			begin=NULL;
 		}
-
 	}
 	fklFreeLineNumberTable(globalLnt);
 	fklJoinAllThread(NULL);

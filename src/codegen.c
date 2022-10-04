@@ -1415,6 +1415,11 @@ static inline int mapAllBuiltInPattern(FklNastNode* curExp
 		for(struct PatternAndFunc* cur=&builtInPattern[0];cur->ps!=NULL;cur++)
 			if(matchAndCall(cur->func,cur->pn,curExp,codegenQuestStack,curEnv,codegenr,errorState))
 				return 0;
+	if(curExp->type==FKL_TYPE_PAIR)
+	{
+		codegen_funcall(curExp,codegenQuestStack,curEnv,codegenr,errorState);
+		return 0;
+	}
 	return 1;
 }
 
@@ -1520,14 +1525,14 @@ FklByteCodelnt* fklGenExpressionCode(const FklNastNode* exp
 		FklPtrQueue* queue=curCodegenQuest->queue;
 		FklCodegenEnv* curEnv=curCodegenQuest->env;
 		FklPtrStack* curBcStack=curCodegenQuest->stack;
-		while(queue&&!fklIsPtrQueueEmpty(queue))
+		int r=1;
+		while(r&&queue&&!fklIsPtrQueueEmpty(queue))
 		{
 			FklNastNode* curExp=fklPopPtrQueue(queue);
-			if(mapAllBuiltInPattern(curExp,codegenQuestStack,curEnv,codegenr,&errorState))
+			r=mapAllBuiltInPattern(curExp,codegenQuestStack,curEnv,codegenr,&errorState);
+			if(r)
 			{
-				if(fklIsNastNodeList(curExp))
-					codegen_funcall(curExp,codegenQuestStack,curEnv,codegenr,&errorState);
-				else if(curExp->type==FKL_TYPE_SYM)
+				if(curExp->type==FKL_TYPE_SYM)
 					fklPushPtrStack(fklMakePushVar(curExp,codegenr),curBcStack);
 				else
 					fklPushPtrStack(newBclnt(fklCodegenNode(curExp,codegenr)

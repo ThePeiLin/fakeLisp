@@ -228,6 +228,7 @@ void runRepl(FklCodegen* codegen)
 			fprintf(stderr,"error of reader:Invalid expression at line %lu\n",errorLine);
 		else
 		{
+			fklMakeNastNodeRef(begin);
 			FklByteCodelnt* tmpByteCode=fklGenExpressionCode(begin,codegen->globalEnv,codegen);
 			if(tmpByteCode)
 			{

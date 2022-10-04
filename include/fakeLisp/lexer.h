@@ -8,29 +8,20 @@ extern "C" {
 #endif
 
 //typedef enum{
-//	FKL_TYPE_NIL=0,
-//	FKL_TYPE_I32,
-//	FKL_TYPE_SYM,
-//	FKL_TYPE_CHR,
-//	FKL_TYPE_F64,
-//	FKL_TYPE_I64,
-//	FKL_TYPE_BIG_INT,
-//	FKL_TYPE_STR,
-//	FKL_TYPE_VECTOR,
-//	FKL_TYPE_PAIR,
-//	FKL_TYPE_BOX,
-//	FKL_TYPE_BYTEVECTOR,
-//	FKL_TYPE_USERDATA,
-//	FKL_TYPE_PROC,
-//	FKL_TYPE_CONT,
-//	FKL_TYPE_CHAN,
-//	FKL_TYPE_FP,
-//	FKL_TYPE_DLL,
-//	FKL_TYPE_DLPROC,
-//	FKL_TYPE_ERR,
-//	FKL_TYPE_ENV,
-//	FKL_TYPE_HASHTABLE,
-//}FklValueType;
+//	FKL_NAST_NIL=0,
+//	FKL_NAST_I32,
+//	FKL_NAST_SYM,
+//	FKL_NAST_CHR,
+//	FKL_NAST_F64,
+//	FKL_NAST_I64,
+//	FKL_NAST_BIG_INT,
+//	FKL_NAST_STR,
+//	FKL_NAST_VECTOR,
+//	FKL_NAST_PAIR,
+//	FKL_NAST_BOX,
+//	FKL_NAST_BYTEVECTOR,
+//	FKL_NAST_HASHTABLE,
+//}FklNastType;
 
 typedef struct FklNastPair
 {
@@ -54,7 +45,8 @@ typedef struct FklNastHashTable
 typedef struct FklNastNode
 {
 	FklValueType type;
-	uint64_t curline;
+	size_t curline;
+	size_t refcount;
 	union
 	{
 		char chr;
@@ -86,6 +78,8 @@ FklNastNode* fklPatternMatchingHashTableRef(FklSid_t sid,FklHashTable* ht);
 FklHashTable* fklNewPatternMatchingHashTable(void);
 void fklFreePatternMatchingHashTable(FklHashTable*);
 int fklIsNastNodeList(const FklNastNode* list);
+
+FklNastNode* fklMakeNastNodeRef(FklNastNode* n);
 #ifdef __cplusplus
 }
 #endif

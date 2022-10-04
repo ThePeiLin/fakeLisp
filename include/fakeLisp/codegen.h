@@ -13,7 +13,7 @@ typedef struct FklCodegenEnv
 {
 	struct FklCodegenEnv* prev;
 	FklHashTable* defs;
-	uint64_t refcount;
+	size_t refcount;
 }FklCodegenEnv;
 
 typedef struct FklCodegen
@@ -26,7 +26,6 @@ typedef struct FklCodegen
 	FklCodegenEnv* globalEnv;
 	FklSymbolTable* globalSymTable;
 	FklSid_t fid;
-	FklPtrQueue* expressionQueue;
 	struct FklCodegen* prev;
 	unsigned int freeAbleMark:1;
 	unsigned long refcount:63;

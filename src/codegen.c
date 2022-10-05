@@ -271,6 +271,8 @@ static void codegen_funcall(FklNastNode* rest
 		errorState->fid=codegen->fid;
 		errorState->type=FKL_ERR_SYNTAXERROR;
 		errorState->place=rest;
+		while(!fklIsPtrQueueEmpty(queue))
+			fklFreeNastNode(fklPopPtrQueue(queue));
 		fklFreePtrQueue(queue);
 	}
 	else
@@ -1078,6 +1080,8 @@ static CODEGEN_FUNC(codegen_cond)
 				errorState->fid=codegen->fid;
 				errorState->type=FKL_ERR_SYNTAXERROR;
 				errorState->place=origExp;
+				while(!fklIsPtrQueueEmpty(curQueue))
+					fklFreeNastNode(fklPopPtrQueue(curQueue));
 				fklFreePtrQueue(curQueue);
 				fklFreePtrStack(tmpStack);
 				return;
@@ -1108,6 +1112,8 @@ static CODEGEN_FUNC(codegen_cond)
 			errorState->fid=codegen->fid;
 			errorState->type=FKL_ERR_SYNTAXERROR;
 			errorState->place=origExp;
+			while(!fklIsPtrQueueEmpty(lastQueue))
+				fklFreeNastNode(fklPopPtrQueue(lastQueue));
 			fklFreePtrQueue(lastQueue);
 			fklFreePtrStack(tmpStack);
 			return;
@@ -1503,7 +1509,7 @@ static void printCodegenError(const FklNastNode* obj,FklBuiltInErrorType type,Fk
 	}
 }
 
-FklByteCodelnt* fklGenExpressionCode(const FklNastNode* exp
+FklByteCodelnt* fklGenExpressionCode(FklNastNode* exp
 		,FklCodegenEnv* globalEnv
 		,FklCodegen* codegenr)
 {

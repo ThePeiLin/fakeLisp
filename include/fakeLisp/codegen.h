@@ -63,7 +63,7 @@ FklCodegen* fklNewCodegener(void);
 void fklInitCodegen(void);
 void fklUninitCodegen(void);
 FklByteCode* fklCodegenNode(const FklNastNode*,FklCodegen* codegen);
-FklByteCodelnt* fklGenExpressionCode(const FklNastNode* exp
+FklByteCodelnt* fklGenExpressionCode(FklNastNode* exp
 		,FklCodegenEnv* globalEnv
 		,FklCodegen* codegen);
 void fklAddCodegenDefBySid(FklSid_t sid,FklCodegenEnv*);

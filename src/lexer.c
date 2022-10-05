@@ -802,7 +802,7 @@ void fklPrintNastNode(const FklNastNode* exp,FILE* fp)
 			FklNastNode* node=e->node;
 			if(e->place==NAST_CDR)
 				fputc(',',fp);
-			free(e);
+			freeNastElem(e);
 			switch(node->type)
 			{
 				case FKL_TYPE_SYM:

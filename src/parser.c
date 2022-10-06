@@ -789,8 +789,6 @@ void fklPrintToken(FklPtrStack* tokenStack,FILE* fp)
 
 int fklIsAllComment(FklPtrStack* tokenStack)
 {
-	if(fklIsPtrStackEmpty(tokenStack))
-		return 0;
 	for(uint32_t i=0;i<tokenStack->top;i++)
 	{
 		FklToken* token=tokenStack->base[i];

@@ -21,7 +21,6 @@ typedef struct FklCodegen
 	char* filename;
 	char* realpath;
 	char* curDir;
-	FILE* file;
 	uint64_t curline;
 	FklCodegenEnv* globalEnv;
 	FklSymbolTable* globalSymTable;
@@ -32,26 +31,41 @@ typedef struct FklCodegen
 }FklCodegen;
 
 typedef FklByteCodelnt* (*FklByteCodeProcesser)(FklPtrStack* stack,FklSid_t,uint64_t);
+
+typedef struct
+{
+	FklSid_t fid;
+	FklBuiltInErrorType type;
+	FklNastNode* place;
+	size_t line;
+}FklCodegenErrorState;
+
+typedef struct
+{
+	void* context;
+	FklNastNode* (*getNextExpression)(void*,FklCodegenErrorState*);
+	void (*finalizer)(void*);
+}FklCodegenNextExpression;
+
+
 typedef struct FklCodegenQuest
 {
 	FklByteCodeProcesser processer;
 	FklPtrStack* stack;
-	FklPtrQueue* queue;
 	FklCodegenEnv* env;
     uint64_t curline;
 	FklCodegen* codegen;
 	struct FklCodegenQuest* prev;
+	FklCodegenNextExpression* nextExpression;
 }FklCodegenQuest;
 
 void fklInitGlobalCodegener(FklCodegen* codegen
 		,const char* filename
-		,FILE* fp
 		,FklCodegenEnv* globalEnv
 		,FklSymbolTable*
 		,int freeAbleMark);
 void fklInitCodegener(FklCodegen* codegen
 		,const char* filename
-		,FILE* fp
 		,FklCodegenEnv* env
 		,FklCodegen* prev
 		,FklSymbolTable*

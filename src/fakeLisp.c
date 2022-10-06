@@ -60,7 +60,7 @@ int main(int argc,char** argv)
 			FklCodegen codegen={.fid=0,};
 			fklInitCodegen();
 			fklInitLexer();
-			fklInitGlobalCodegener(&codegen,NULL,stdin,NULL,fklGetGlobSymbolTable(),0);
+			fklInitGlobalCodegener(&codegen,NULL,NULL,fklGetGlobSymbolTable(),0);
 			runRepl(&codegen);
 			fklUninitCodegener(&codegen);
 			fklUninitCodegen();
@@ -200,7 +200,7 @@ void runRepl(FklCodegen* codegen)
 			fwrite(prev,sizeof(char),prevSize,stdout);
 		int unexpectEOF=0;
 		size_t size=0;
-		char* list=fklReadInStringPattern(codegen->file,&prev,&size,&prevSize,codegen->curline,&unexpectEOF,tokenStack,NULL);
+		char* list=fklReadInStringPattern(stdin,&prev,&size,&prevSize,codegen->curline,&unexpectEOF,tokenStack,NULL);
 		if(unexpectEOF)
 		{
 			switch(unexpectEOF)

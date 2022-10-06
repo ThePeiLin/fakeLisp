@@ -270,7 +270,7 @@ static void codegen_funcall(FklNastNode* rest
 	{
 		errorState->fid=codegen->fid;
 		errorState->type=FKL_ERR_SYNTAXERROR;
-		errorState->place=rest;
+		errorState->place=fklMakeNastNodeRef(rest);
 		while(!fklIsPtrQueueEmpty(queue))
 			fklFreeNastNode(fklPopPtrQueue(queue));
 		fklFreePtrQueue(queue);
@@ -606,7 +606,7 @@ static CODEGEN_FUNC(codegen_lambda)
 	{
 		errorState->fid=codegen->fid;
 		errorState->type=FKL_ERR_SYNTAXERROR;
-		errorState->place=origExp;
+		errorState->place=fklMakeNastNodeRef(origExp);
 		fklFreeCodegenEnv(lambdaCodegenEnv);
 		return;
 	}
@@ -640,7 +640,7 @@ static CODEGEN_FUNC(codegen_define)
 	{
 		errorState->fid=codegen->fid;
 		errorState->type=FKL_ERR_SYNTAXERROR;
-		errorState->place=origExp;
+		errorState->place=fklMakeNastNodeRef(origExp);
 		return;
 	}
 	FklPtrQueue* queue=fklNewPtrQueue();
@@ -665,7 +665,7 @@ static CODEGEN_FUNC(codegen_setq)
 	{
 		errorState->fid=codegen->fid;
 		errorState->type=FKL_ERR_SYNTAXERROR;
-		errorState->place=origExp;
+		errorState->place=fklMakeNastNodeRef(origExp);
 		return;
 	}
 	FklPtrQueue* queue=fklNewPtrQueue();
@@ -1068,7 +1068,7 @@ static CODEGEN_FUNC(codegen_cond)
 			{
 				errorState->fid=codegen->fid;
 				errorState->type=FKL_ERR_SYNTAXERROR;
-				errorState->place=origExp;
+				errorState->place=fklMakeNastNodeRef(origExp);
 				fklFreePtrStack(tmpStack);
 				return;
 			}
@@ -1079,7 +1079,7 @@ static CODEGEN_FUNC(codegen_cond)
 			{
 				errorState->fid=codegen->fid;
 				errorState->type=FKL_ERR_SYNTAXERROR;
-				errorState->place=origExp;
+				errorState->place=fklMakeNastNodeRef(origExp);
 				while(!fklIsPtrQueueEmpty(curQueue))
 					fklFreeNastNode(fklPopPtrQueue(curQueue));
 				fklFreePtrQueue(curQueue);
@@ -1101,7 +1101,7 @@ static CODEGEN_FUNC(codegen_cond)
 		{
 			errorState->fid=codegen->fid;
 			errorState->type=FKL_ERR_SYNTAXERROR;
-			errorState->place=origExp;
+			errorState->place=fklMakeNastNodeRef(origExp);
 			fklFreePtrStack(tmpStack);
 			return;
 		}
@@ -1111,7 +1111,7 @@ static CODEGEN_FUNC(codegen_cond)
 		{
 			errorState->fid=codegen->fid;
 			errorState->type=FKL_ERR_SYNTAXERROR;
-			errorState->place=origExp;
+			errorState->place=fklMakeNastNodeRef(origExp);
 			while(!fklIsPtrQueueEmpty(lastQueue))
 				fklFreeNastNode(fklPopPtrQueue(lastQueue));
 			fklFreePtrQueue(lastQueue);
@@ -1206,7 +1206,7 @@ static CODEGEN_FUNC(codegen_load)
 	{
 		errorState->fid=codegen->fid;
 		errorState->type=FKL_ERR_SYNTAXERROR;
-		errorState->place=origExp;
+		errorState->place=fklMakeNastNodeRef(origExp);
 		return;
 	}
 	char filenameCstr[filename->u.str->size+1];
@@ -1216,7 +1216,7 @@ static CODEGEN_FUNC(codegen_load)
 	{
 		errorState->fid=codegen->fid;
 		errorState->type=FKL_ERR_FILEFAILURE;
-		errorState->place=filename;
+		errorState->place=fklMakeNastNodeRef(filename);
 		return;
 	}
 	FklCodegen* nextCodegen=newCodegen(codegen,filenameCstr,fp,curEnv);
@@ -1429,7 +1429,7 @@ static inline int mapAllBuiltInPattern(FklNastNode* curExp
 	return 1;
 }
 
-static void printCodegenError(const FklNastNode* obj,FklBuiltInErrorType type,FklSid_t sid,FklSymbolTable* symbolTable,size_t line)
+static void printCodegenError(FklNastNode* obj,FklBuiltInErrorType type,FklSid_t sid,FklSymbolTable* symbolTable,size_t line)
 {
 	if(type==FKL_ERR_DUMMY)
 		return;
@@ -1507,6 +1507,8 @@ static void printCodegenError(const FklNastNode* obj,FklBuiltInErrorType type,Fk
 		fklPrintString(fklGetSymbolWithId(sid,symbolTable)->symbol,stderr);
 		fputc('\n',stderr);
 	}
+	if(obj)
+		fklFreeNastNode(obj);
 }
 
 FklByteCodelnt* fklGenExpressionCode(FklNastNode* exp

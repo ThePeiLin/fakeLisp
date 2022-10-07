@@ -36,15 +36,18 @@ FklByteCodelnt* fklNewByteCodelnt(FklByteCode* bc)
 	return t;
 }
 
+void fklFreeLineNumTabNodeArray(FklLineNumTabNode** a,size_t num)
+{
+	for(size_t i=0;i<num;i++)
+		fklFreeLineNumTabNode(a[i]);
+	free(a);
+}
+
 void fklFreeByteCodeAndLnt(FklByteCodelnt* t)
 {
 	fklFreeByteCode(t->bc);
 	if(t->l)
-	{
-		for(uint32_t i=0;i<(t->ls);i++)
-			fklFreeLineNumTabNode((t->l)[i]);
-		free(t->l);
-	}
+		fklFreeLineNumTabNodeArray(t->l,t->ls);
 	free(t);
 }
 

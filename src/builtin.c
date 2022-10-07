@@ -4694,6 +4694,14 @@ void fklInitGlobCodegenEnv(FklCodegenEnv* curEnv)
 		fklAddCodegenDefBySid(fklAddSymbolToGlobCstr(list->s)->id,curEnv);
 }
 
+void fklInitSymbolTableWithBuiltinSymbol(FklSymbolTable* table)
+{
+	for(const struct SymbolFuncStruct* list=builtInSymbolList
+			;list->s!=NULL
+			;list++)
+		fklAddSymbolCstr(list->s,table);
+}
+
 void fklInitGlobEnv(FklVMenv* obj,FklVMgc* gc)
 {
 	const struct SymbolFuncStruct* list=builtInSymbolList;

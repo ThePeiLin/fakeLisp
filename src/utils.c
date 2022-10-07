@@ -705,10 +705,11 @@ char* fklRelpath(const char* abs,const char* relto)
 char** fklSplit(char* str,char* divstr,int* length)
 {
 	int count=0;
+	char* context=NULL;
 	char* pNext=NULL;
 	char** strArry=(char**)malloc(0);
 	FKL_ASSERT(strArry);
-	pNext=strtok(str,divstr);
+	pNext=strtok_r(str,divstr,&context);
 	while(pNext!=NULL)
 	{
 		count++;
@@ -716,7 +717,7 @@ char** fklSplit(char* str,char* divstr,int* length)
 		FKL_ASSERT(tstrArry);
 		strArry=tstrArry;
 		strArry[count-1]=pNext;
-		pNext=strtok(NULL,divstr);
+		pNext=strtok_r(NULL,divstr,&context);
 	}
 	*length=count;
 	return strArry;

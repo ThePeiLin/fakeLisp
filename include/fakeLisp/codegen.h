@@ -42,11 +42,15 @@ typedef struct
 
 typedef struct
 {
-	void* context;
 	FklNastNode* (*getNextExpression)(void*,FklCodegenErrorState*);
 	void (*finalizer)(void*);
-}FklCodegenNextExpression;
+}FklNextExpressionMethodTable;
 
+typedef struct
+{
+	const FklNextExpressionMethodTable* t;
+	void* context;
+}FklCodegenNextExpression;
 
 typedef struct FklCodegenQuest
 {
@@ -79,6 +83,10 @@ void fklUninitCodegen(void);
 FklByteCode* fklCodegenNode(const FklNastNode*,FklCodegen* codegen);
 FklByteCodelnt* fklGenExpressionCode(FklNastNode* exp
 		,FklCodegenEnv* globalEnv
+		,FklCodegen* codegen);
+FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest*
+		,FklCodegen* codegen);
+FklByteCodelnt* fklGenExpressionCodeWithFp(FILE*
 		,FklCodegen* codegen);
 void fklAddCodegenDefBySid(FklSid_t sid,FklCodegenEnv*);
 int fklIsSymbolDefined(FklSid_t sid,FklCodegenEnv*);

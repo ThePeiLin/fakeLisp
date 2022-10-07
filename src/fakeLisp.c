@@ -50,7 +50,7 @@ int main(int argc,char** argv)
 			fklFreeCwd();
 			return EXIT_FAILURE;
 		}
-		FklInterpreter* inter=NULL;
+//		FklInterpreter* inter=NULL;
 		if(filename)
 			fklAddSymbolToGlobCstr(filename);
 		fklInitVMargs(argc,argv);
@@ -67,26 +67,28 @@ int main(int argc,char** argv)
 		}
 		else
 		{
+			fklInitCodegen();
+			fklInitLexer();
+			FklCodegen codegen={.fid=0,};
 			char* rp=fklRealpath(filename);
 			fklSetMainFileRealPath(rp);
-			int state;
-			inter=fklNewIntpr(rp,fp,NULL,NULL);
-			fklInitGlobKeyWord(inter->glob);
+			fklInitGlobalCodegener(&codegen,rp,NULL,fklNewSymbolTable(),0);
 			free(rp);
-			FklByteCodelnt* mainByteCode=fklCompileFile(inter,&state);
+			FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
 			if(mainByteCode==NULL)
 			{
-				fklFreeIntpr(inter);
-				fklUninitPreprocess();
+				fklUninitCodegener(&codegen);
+				fklUninitCodegen();
 				fklFreeGlobSymbolTable();
 				fklFreeMainFileRealPath();
 				fklFreeCwd();
-				return state;
+				return 1;
 			}
+			FklSymbolTable* globalSymbolTable=fklExchangeGlobSymbolTable(codegen.globalSymTable);
+			fklFreeSymbolTable(globalSymbolTable);
 			chdir(fklGetCwd());
 			fklPrintUndefinedSymbol(mainByteCode);
-			inter->lnt->num=mainByteCode->ls;
-			inter->lnt->list=mainByteCode->l;
+			FklLineNumberTable globalLnt={mainByteCode->ls,mainByteCode->l};
 			FklVM* anotherVM=fklNewVM(mainByteCode->bc);
 			FklVMvalue* globEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
 			fklFreeByteCode(mainByteCode->bc);
@@ -94,33 +96,88 @@ int main(int argc,char** argv)
 			FklVMframe* mainframe=anotherVM->frames;
 			mainframe->localenv=globEnv;
 			anotherVM->callback=errorCallBack;
-			anotherVM->lnt=inter->lnt;
-//			fklInitGlobEnv(globEnv->u.env,anotherVM->gc);
+			anotherVM->lnt=&globalLnt;
 			if(setjmp(buf)==0)
 			{
 				fklRunVM(anotherVM);
 				fklWaitGC(anotherVM->gc);
 				fklJoinAllThread(NULL);
-				fklFreeIntpr(inter);
-				fklUninitPreprocess();
 				fklFreeVMgc(anotherVM->gc);
 				fklFreeGlobSymbolTable();
+				fklUninitCodegener(&codegen);
+				fklUninitCodegen();
+				fklFreeLineNumTabNodeArray(globalLnt.list,globalLnt.num);
 				fklFreeAllVMs();
 			}
 			else
 			{
 				fklDeleteCallChain(anotherVM);
 				fklCancelAllThread();
-				fklFreeIntpr(inter);
-				fklUninitPreprocess();
 				fklFreeVMgc(anotherVM->gc);
 				fklFreeAllVMs();
 				fklFreeMainFileRealPath();
 				fklFreeCwd();
 				fklFreeGlobSymbolTable();
+				fklUninitCodegener(&codegen);
+				fklUninitCodegen();
+				fklFreeLineNumTabNodeArray(globalLnt.list,globalLnt.num);
 				return exitState;
 			}
 		}
+		//{
+		//	char* rp=fklRealpath(filename);
+		//	fklSetMainFileRealPath(rp);
+		//	int state;
+		//	inter=fklNewIntpr(rp,fp,NULL,NULL);
+		//	fklInitGlobKeyWord(inter->glob);
+		//	free(rp);
+		//	FklByteCodelnt* mainByteCode=fklCompileFile(inter,&state);
+		//	if(mainByteCode==NULL)
+		//	{
+		//		fklFreeIntpr(inter);
+		//		fklUninitPreprocess();
+		//		fklFreeGlobSymbolTable();
+		//		fklFreeMainFileRealPath();
+		//		fklFreeCwd();
+		//		return state;
+		//	}
+		//	chdir(fklGetCwd());
+		//	fklPrintUndefinedSymbol(mainByteCode);
+		//	inter->lnt->num=mainByteCode->ls;
+		//	inter->lnt->list=mainByteCode->l;
+		//	FklVM* anotherVM=fklNewVM(mainByteCode->bc);
+		//	FklVMvalue* globEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
+		//	fklFreeByteCode(mainByteCode->bc);
+		//	free(mainByteCode);
+		//	FklVMframe* mainframe=anotherVM->frames;
+		//	mainframe->localenv=globEnv;
+		//	anotherVM->callback=errorCallBack;
+		//	anotherVM->lnt=inter->lnt;
+		//	if(setjmp(buf)==0)
+		//	{
+		//		fklRunVM(anotherVM);
+		//		fklWaitGC(anotherVM->gc);
+		//		fklJoinAllThread(NULL);
+		//		fklFreeIntpr(inter);
+		//		fklUninitPreprocess();
+		//		fklFreeVMgc(anotherVM->gc);
+		//		fklFreeGlobSymbolTable();
+		//		fklFreeAllVMs();
+		//	}
+		//	else
+		//	{
+		//		fklDeleteCallChain(anotherVM);
+		//		fklCancelAllThread();
+		//		fklFreeIntpr(inter);
+		//		fklUninitPreprocess();
+		//		fklFreeVMgc(anotherVM->gc);
+		//		fklFreeAllVMs();
+		//		fklFreeMainFileRealPath();
+		//		fklFreeCwd();
+		//		fklFreeGlobSymbolTable();
+		//		return exitState;
+		//	}
+		//}
 	}
 	else if(fklIscode(filename))
 	{

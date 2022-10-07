@@ -19,14 +19,12 @@ static FklSid_t builtInPatternVar_name=0;
 static FklSid_t builtInPatternVar_value=0;
 static FklSid_t builtInPatternVar_args=0;
 
-static FklCodegenNextExpression* fklCreateCodegenNextExpression(FklNastNode* (*getNextExpression)(void*,FklCodegenErrorState*)
-		,void (*finalizer)(void*)
+static FklCodegenNextExpression* createCodegenNextExpression(const FklNextExpressionMethodTable* t
 		,void* context)
 {
 	FklCodegenNextExpression* r=(FklCodegenNextExpression*)malloc(sizeof(FklCodegenNextExpression));
 	FKL_ASSERT(r);
-	r->getNextExpression=getNextExpression;
-	r->finalizer=finalizer;
+	r->t=t;
 	r->context=context;
 	return r;
 }
@@ -43,10 +41,15 @@ static void _default_codegen_next_expression_finalizer(void* context)
 	fklFreePtrQueue(context);
 }
 
+static const FklNextExpressionMethodTable _default_codegen_next_expression_method_table=
+{
+	.getNextExpression=_default_codegen_get_next_expression,
+	.finalizer=_default_codegen_next_expression_finalizer,
+};
+
 static FklCodegenNextExpression* createDefaultQueueNextExpression(FklPtrQueue* queue)
 {
-	return fklCreateCodegenNextExpression(_default_codegen_get_next_expression
-			,_default_codegen_next_expression_finalizer
+	return createCodegenNextExpression(&_default_codegen_next_expression_method_table
 			,queue);
 }
 
@@ -196,8 +199,8 @@ static void freeCodegenQuest(FklCodegenQuest* quest)
 	FklCodegenNextExpression* nextExpression=quest->nextExpression;
 	if(nextExpression)
 	{
-		if(nextExpression->finalizer)
-			nextExpression->finalizer(nextExpression->context);
+		if(nextExpression->t->finalizer)
+			nextExpression->t->finalizer(nextExpression->context);
 		free(nextExpression);
 	}
 	fklFreeCodegenEnv(quest->env);
@@ -1317,6 +1320,19 @@ static int hasLoadSameFile(const char* rpath,const FklCodegen* codegen)
 	return 0;
 }
 
+static const FklNextExpressionMethodTable _codegen_load_get_next_expression_method_table=
+{
+	.getNextExpression=_codegen_load_get_next_expression,
+	.finalizer=_codegen_load_finalizer,
+};
+
+static FklCodegenNextExpression* createFpNextExpression(FILE* fp,FklCodegen* codegen)
+{
+	CodegenLoadContext* context=createCodegenLoadContext(fp,codegen);
+	return createCodegenNextExpression(&_codegen_load_get_next_expression_method_table
+			,context);
+}
+
 static CODEGEN_FUNC(codegen_load)
 {
 	FklNastNode* filename=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
@@ -1330,6 +1346,14 @@ static CODEGEN_FUNC(codegen_load)
 	char* filenameCstr=(char*)malloc(sizeof(char)*(filename->u.str->size+1));
 	FKL_ASSERT(filenameCstr);
 	fklWriteStringToCstr(filenameCstr,filename->u.str);
+	if(access(filenameCstr,R_OK))
+	{
+		errorState->fid=codegen->fid;
+		errorState->type=FKL_ERR_FILEFAILURE;
+		errorState->place=fklMakeNastNodeRef(filename);
+		free(filenameCstr);
+		return;
+	}
 	FklCodegen* nextCodegen=newCodegen(codegen,filenameCstr,curEnv);
 	if(hasLoadSameFile(nextCodegen->realpath,codegen))
 	{
@@ -1352,12 +1376,9 @@ static CODEGEN_FUNC(codegen_load)
 		free(filenameCstr);
 		return;
 	}
-	CodegenLoadContext* context=createCodegenLoadContext(fp,nextCodegen);
 	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_begin_exp_bc_process
 			,fklNewPtrStack(32,16)
-			,fklCreateCodegenNextExpression(_codegen_load_get_next_expression
-				,_codegen_load_finalizer
-				,context)
+			,createFpNextExpression(fp,nextCodegen)
 			,curEnv
 			,origExp->curline
 			,nextCodegen
@@ -1654,9 +1675,9 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 		int r=1;
 		if(nextExpression)
 		{
-			for(FklNastNode* curExp=nextExpression->getNextExpression(nextExpression->context,&errorState)
-					;curExp&&r
-					;curExp=nextExpression->getNextExpression(nextExpression->context,&errorState))
+			for(FklNastNode* curExp=nextExpression->t->getNextExpression(nextExpression->context,&errorState)
+					;r&&curExp
+					;curExp=nextExpression->t->getNextExpression(nextExpression->context,&errorState))
 			{
 				r=mapAllBuiltInPattern(curExp,codegenQuestStack,curEnv,curCodegen,&errorState);
 				if(r)
@@ -1670,6 +1691,8 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 								,curBcStack);
 				}
 				fklFreeNastNode(curExp);
+				if(!r)
+					break;
 			}
 		}
 		if(errorState.type)
@@ -1710,6 +1733,19 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 
 }
 
+FklByteCodelnt* fklGenExpressionCodeWithFp(FILE* fp
+		,FklCodegen* codegen)
+{
+	FklCodegenQuest* initialQuest=newCodegenQuest(_begin_exp_bc_process
+			,fklNewPtrStack(32,16)
+			,createFpNextExpression(fp,codegen)
+			,codegen->globalEnv
+			,1
+			,NULL
+			,codegen);
+	return fklGenExpressionCodeWithQuest(initialQuest,codegen);
+}
+
 FklByteCodelnt* fklGenExpressionCode(FklNastNode* exp
 		,FklCodegenEnv* globalEnv
 		,FklCodegen* codegenr)
@@ -1732,6 +1768,8 @@ void fklInitGlobalCodegener(FklCodegen* codegen
 		,FklSymbolTable* globalSymTable
 		,int freeAbleMark)
 {
+	fklInitSymbolTableWithBuiltinSymbol(globalSymTable);
+	codegen->globalSymTable=globalSymTable;
 	if(filename!=NULL)
 	{
 		char* rp=fklRealpath(filename);
@@ -1762,7 +1800,6 @@ void fklInitGlobalCodegener(FklCodegen* codegen
 		fklInitGlobCodegenEnv(codegen->globalEnv);
 	}
 	codegen->globalEnv->refcount+=1;
-	codegen->globalSymTable=globalSymTable;
 	codegen->freeAbleMark=freeAbleMark;
 	codegen->refcount=0;
 }

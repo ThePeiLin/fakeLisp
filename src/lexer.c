@@ -81,12 +81,13 @@ static FklNastNode* newNastList(FklNastNode** a,size_t num,uint64_t line)
 	FklNastNode** cur=&r;
 	for(size_t i=0;i<num;i++)
 	{
-		(*cur)=newNastNode(FKL_TYPE_PAIR,line);
+		(*cur)=fklMakeNastNodeRef(newNastNode(FKL_TYPE_PAIR,line));
 		(*cur)->u.pair=newNastPair();
-		(*cur)->u.pair->car=a[i];
+		(*cur)->u.pair->car=fklMakeNastNodeRef(a[i]);
 		cur=&(*cur)->u.pair->cdr;
 	}
-	(*cur)=newNastNode(FKL_TYPE_NIL,line);
+	(*cur)=fklMakeNastNodeRef(newNastNode(FKL_TYPE_NIL,line));
+	r->refcount=0;
 	return r;
 }
 
@@ -499,7 +500,6 @@ static FklNastNode* bytevectorProcesser(FklPtrStack* nodeStack,uint64_t line,siz
 				:node->type==FKL_TYPE_I64
 				?node->u.i64
 				:fklBigIntToI64(node->u.bigInt);
-			fklFreeNastNode(node);
 		}
 		else
 		{
@@ -542,7 +542,6 @@ inline static FklNastNode* hashTableProcess(FklVMhashTableEqType type,FklPtrStac
 		{
 			retval->u.hash->items[i].car=fklMakeNastNodeRef(node->u.pair->car);
 			retval->u.hash->items[i].cdr=fklMakeNastNodeRef(node->u.pair->cdr);
-			fklFreeNastNode(node);
 		}
 		else
 		{
@@ -621,6 +620,25 @@ FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack* tokenStack,size_t* errorL
 			if(token->type>FKL_TOKEN_RESERVE_STR&&token->type<FKL_TOKEN_COMMENT)
 			{
 				FklNastNode* singleLiteral=literalNodeCreator[token->type-FKL_TOKEN_CHAR](token->value,token->line);
+				if(!singleLiteral)
+				{
+					*errorLine=token->line;
+					while(!fklIsPtrStackEmpty(matchStateStack))
+						freeMatchState(fklPopPtrStack(matchStateStack));
+					fklFreePtrStack(matchStateStack);
+					while(!fklIsPtrStackEmpty(stackStack))
+					{
+						FklPtrStack* cStack=fklPopPtrStack(stackStack);
+						while(!fklIsPtrStackEmpty(cStack))
+						{
+							NastElem* elem=fklPopPtrStack(cStack);
+							freeNastElem(elem);
+						}
+						fklFreePtrStack(cStack);
+					}
+					fklFreePtrStack(stackStack);
+					return NULL;
+				}
 				NastElem* elem=newNastElem(NAST_CAR,singleLiteral);
 				fklPushPtrStack(elem,cStack);
 			}
@@ -699,13 +717,7 @@ FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack* tokenStack,size_t* errorL
 					FklNastNode* n=nastStackProcessers[(uintptr_t)cState->pattern](cStack,token->line,errorLine);
 					fklFreePtrStack(cStack);
 					freeMatchState(cState);
-					if(n)
-					{
-						NastElem* v=newNastElem(NAST_CAR,n);
-						cStack=fklTopPtrStack(stackStack);
-						fklPushPtrStack(v,cStack);
-					}
-					else
+					if(!n)
 					{
 						while(!fklIsPtrStackEmpty(matchStateStack))
 							freeMatchState(fklPopPtrStack(matchStateStack));
@@ -723,6 +735,9 @@ FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack* tokenStack,size_t* errorL
 						fklFreePtrStack(stackStack);
 						return NULL;
 					}
+					NastElem* v=newNastElem(NAST_CAR,n);
+					cStack=fklTopPtrStack(stackStack);
+					fklPushPtrStack(v,cStack);
 				}
 			}
 			for(MatchState* state=fklTopPtrStack(matchStateStack);
@@ -747,7 +762,7 @@ FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack* tokenStack,size_t* errorL
 					else if(state->pattern==BOX)
 					{
 						FklNastNode* box=newNastNode(FKL_TYPE_BOX,token->line);
-						box->u.box=postfix->node;
+						box->u.box=fklMakeNastNodeRef(postfix->node);
 						NastElem* v=newNastElem(NAST_CAR,box);
 						fklPushPtrStack(v,cStack);
 						freeNastElem(postfix);
@@ -766,7 +781,7 @@ FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack* tokenStack,size_t* errorL
 						prefix->u.sym=prefixValue;
 						FklNastNode* tmp[]={prefix,postfix->node,};
 						FklNastNode* list=newNastList(tmp,2,prefix->curline);
-						free(postfix);
+						freeNastElem(postfix);
 						NastElem* v=newNastElem(NAST_CAR,list);
 						fklPushPtrStack(v,cStack);
 					}

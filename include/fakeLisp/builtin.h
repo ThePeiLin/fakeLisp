@@ -45,5 +45,6 @@ typedef struct FklCodegenEnv FklCodegenEnv;
 void fklInitCompEnv(FklCompEnv* curEnv);
 void fklInitGlobCodegenEnv(FklCodegenEnv*);
 void fklInitGlobEnv(FklVMenv*,FklVMgc*);
+void fklInitSymbolTableWithBuiltinSymbol(FklSymbolTable* symbolTable);
 FklSid_t fklGetBuiltInErrorType(FklBuiltInErrorType);
 #endif

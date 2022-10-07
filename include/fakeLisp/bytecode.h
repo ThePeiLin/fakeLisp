@@ -91,6 +91,9 @@ FklByteCode* fklNewPushF64ByteCode(double a);
 FklByteCode* fklNewPushNilByteCode(void);
 FklByteCode* fklNewPushStrByteCode(const FklString* str);
 FklByteCode* fklNewPushBvecByteCode(const FklBytevector* bvec);
+
+void fklFreeLineNumTabNodeArray(FklLineNumTabNode** a,size_t num);
+
 #ifdef __cplusplus
 }
 #endif

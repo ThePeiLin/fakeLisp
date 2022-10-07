@@ -194,9 +194,12 @@ static FklCodegenQuest* newCodegenQuest(FklByteCodeProcesser f
 static void freeCodegenQuest(FklCodegenQuest* quest)
 {
 	FklCodegenNextExpression* nextExpression=quest->nextExpression;
-	if(nextExpression->finalizer)
-		nextExpression->finalizer(nextExpression->context);
-	free(nextExpression);
+	if(nextExpression)
+	{
+		if(nextExpression->finalizer)
+			nextExpression->finalizer(nextExpression->context);
+		free(nextExpression);
+	}
 	fklFreeCodegenEnv(quest->env);
 	fklFreePtrStack(quest->stack);
 	fklFreeCodegener(quest->codegen);
@@ -1612,22 +1615,12 @@ static void printCodegenError(FklNastNode* obj,FklBuiltInErrorType type,FklSid_t
 		fklFreeNastNode(obj);
 }
 
-FklByteCodelnt* fklGenExpressionCode(FklNastNode* exp
-		,FklCodegenEnv* globalEnv
-		,FklCodegen* codegenr)
+FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklCodegen* codegener)
 {
+	FklPtrStack* resultStack=fklNewPtrStack(1,8);
 	FklCodegenErrorState errorState={0,0,NULL};
 	FklPtrStack* codegenQuestStack=fklNewPtrStack(32,16);
-	FklPtrQueue* queue=fklNewPtrQueue();
-	FklPtrStack* resultStack=fklNewPtrStack(8,8);
-	fklPushPtrQueue(exp,queue);
-	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_default_bc_process
-			,fklNewPtrStack(32,16)
-			,createDefaultQueueNextExpression(queue)
-			,globalEnv
-			,exp->curline
-			,codegenr
-			,codegenQuestStack);
+	fklPushPtrStack(initialQuest,codegenQuestStack);
 	while(!fklIsPtrStackEmpty(codegenQuestStack))
 	{
 		FklCodegenQuest* curCodegenQuest=fklTopPtrStack(codegenQuestStack);
@@ -1641,14 +1634,14 @@ FklByteCodelnt* fklGenExpressionCode(FklNastNode* exp
 					;curExp&&r
 					;curExp=nextExpression->getNextExpression(nextExpression->context,&errorState))
 			{
-				r=mapAllBuiltInPattern(curExp,codegenQuestStack,curEnv,codegenr,&errorState);
+				r=mapAllBuiltInPattern(curExp,codegenQuestStack,curEnv,codegener,&errorState);
 				if(r)
 				{
 					if(curExp->type==FKL_TYPE_SYM)
-						fklPushPtrStack(fklMakePushVar(curExp,codegenr),curBcStack);
+						fklPushPtrStack(fklMakePushVar(curExp,codegener),curBcStack);
 					else
-						fklPushPtrStack(newBclnt(fklCodegenNode(curExp,codegenr)
-									,codegenr->fid
+						fklPushPtrStack(newBclnt(fklCodegenNode(curExp,codegener)
+									,codegener->fid
 									,curExp->curline)
 								,curBcStack);
 				}
@@ -1657,7 +1650,7 @@ FklByteCodelnt* fklGenExpressionCode(FklNastNode* exp
 		}
 		if(errorState.type)
 		{
-			printCodegenError(errorState.place,errorState.type,errorState.fid,codegenr->globalSymTable,errorState.line);
+			printCodegenError(errorState.place,errorState.type,errorState.fid,codegener->globalSymTable,errorState.line);
 			while(!fklIsPtrStackEmpty(codegenQuestStack))
 			{
 				FklCodegenQuest* curCodegenQuest=fklPopPtrStack(codegenQuestStack);
@@ -1676,7 +1669,7 @@ FklByteCodelnt* fklGenExpressionCode(FklNastNode* exp
 			fklPopPtrStack(codegenQuestStack);
 			FklCodegenQuest* prevQuest=curCodegenQuest->prev?curCodegenQuest->prev:fklTopPtrStack(codegenQuestStack);
 			fklPushPtrStack(curCodegenQuest->processer(curBcStack
-						,codegenr->fid
+						,codegener->fid
 						,curCodegenQuest->curline)
 					,fklIsPtrStackEmpty(codegenQuestStack)
 					?resultStack
@@ -1690,6 +1683,23 @@ FklByteCodelnt* fklGenExpressionCode(FklNastNode* exp
 	fklFreePtrStack(resultStack);
 	fklFreePtrStack(codegenQuestStack);
 	return retval;
+
+}
+
+FklByteCodelnt* fklGenExpressionCode(FklNastNode* exp
+		,FklCodegenEnv* globalEnv
+		,FklCodegen* codegenr)
+{
+	FklPtrQueue* queue=fklNewPtrQueue();
+	fklPushPtrQueue(exp,queue);
+	FklCodegenQuest* initialQuest=newCodegenQuest(_default_bc_process
+			,fklNewPtrStack(32,16)
+			,createDefaultQueueNextExpression(queue)
+			,globalEnv
+			,exp->curline
+			,NULL
+			,codegenr);
+	return fklGenExpressionCodeWithQuest(initialQuest,codegenr);
 }
 
 void fklInitGlobalCodegener(FklCodegen* codegen

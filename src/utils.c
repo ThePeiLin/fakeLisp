@@ -8,12 +8,14 @@
 #include<ctype.h>
 #include<stdint.h>
 #include<math.h>
-#include<unistd.h>
 #include<limits.h>
-#ifndef _WIN32
-#include<dlfcn.h>
-#else
+#ifdef WIN32
+#include<io.h>
+#include<process.h>
 #include<tchar.h>
+#else
+#include<unistd.h>
+#include<dlfcn.h>
 #endif
 
 static char* CurWorkDir=NULL;
@@ -920,5 +922,3 @@ char* fklCastEscapeCharBuf(const char* str,char end,size_t* size)
 	*size=strSize;
 	return tmp;
 }
-
-

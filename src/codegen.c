@@ -1482,7 +1482,10 @@ static int matchAndCall(FklCodegenFunc func
 	FklHashTable* ht=fklNewPatternMatchingHashTable();
 	int r=fklPatternMatch(pattern,exp,ht);
 	if(r)
+	{
+		chdir(codegenr->curDir);
 		func(exp,ht,codegenQuestStack,env,codegenr,errorState);
+	}
 	fklFreeHashTable(ht);
 	return r;
 }
@@ -1833,7 +1836,7 @@ void fklInitCodegener(FklCodegen* codegen
 void fklUninitCodegener(FklCodegen* codegen)
 {
 	fklFreeCodegenEnv(codegen->globalEnv);
-	if(codegen->globalSymTable!=fklGetGlobSymbolTable())
+	if(!codegen->freeAbleMark&&codegen->globalSymTable!=fklGetGlobSymbolTable())
 		fklFreeSymbolTable(codegen->globalSymTable);
 	free(codegen->curDir);
 	if(codegen->filename)

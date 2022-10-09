@@ -103,8 +103,8 @@ int main(int argc,char** argv)
 			fklWaitGC(anotherVM->gc);
 			fklJoinAllThread(NULL);
 			fklFreeVMgc(anotherVM->gc);
-			fklFreeGlobSymbolTable();
 			fklUninitCodegener(&codegen);
+			fklFreeGlobSymbolTable();
 			fklUninitCodegen();
 			fklFreeLineNumTabNodeArray(globalLnt.list,globalLnt.num);
 			fklFreeAllVMs();

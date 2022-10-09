@@ -4686,12 +4686,17 @@ void fklInitCompEnv(FklCompEnv* curEnv)
 		fklAddCompDefCstr(list->s,curEnv);
 }
 
-void fklInitGlobCodegenEnv(FklCodegenEnv* curEnv)
+void fklInitGlobCodegenEnvWithSymbolTable(FklCodegenEnv* curEnv,FklSymbolTable* symbolTable)
 {
 	for(const struct SymbolFuncStruct* list=builtInSymbolList
 			;list->s!=NULL
 			;list++)
-		fklAddCodegenDefBySid(fklAddSymbolToGlobCstr(list->s)->id,curEnv);
+		fklAddCodegenDefBySid(fklAddSymbolCstr(list->s,symbolTable)->id,curEnv);
+}
+
+void fklInitGlobCodegenEnv(FklCodegenEnv* curEnv)
+{
+	fklInitGlobCodegenEnvWithSymbolTable(curEnv,fklGetGlobSymbolTable());
 }
 
 void fklInitSymbolTableWithBuiltinSymbol(FklSymbolTable* table)

@@ -43,6 +43,7 @@ typedef struct FklVMgc FklVMgc;
 typedef struct FklCodegenEnv FklCodegenEnv;
 
 void fklInitCompEnv(FklCompEnv* curEnv);
+void fklInitGlobCodegenEnvWithSymbolTable(FklCodegenEnv*,FklSymbolTable*);
 void fklInitGlobCodegenEnv(FklCodegenEnv*);
 void fklInitGlobEnv(FklVMenv*,FklVMgc*);
 void fklInitSymbolTableWithBuiltinSymbol(FklSymbolTable* symbolTable);

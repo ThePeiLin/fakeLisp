@@ -1,5 +1,4 @@
 #include<fakeLisp/reader.h>
-#include<fakeLisp/syntax.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/parser.h>
 #include<fakeLisp/opcode.h>
@@ -88,7 +87,7 @@ int main(int argc,char** argv)
 		FklSymbolTable* globalSymbolTable=fklExchangeGlobSymbolTable(codegen.globalSymTable);
 		fklFreeSymbolTable(globalSymbolTable);
 		chdir(fklGetCwd());
-		fklPrintUndefinedSymbol(mainByteCode);
+		fklCodegenPrintUndefinedSymbol(mainByteCode,codegen.globalSymTable);
 		FklLineNumberTable globalLnt={mainByteCode->ls,mainByteCode->l};
 		FklVM* anotherVM=fklNewVM(mainByteCode->bc);
 		FklVMvalue* globEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
@@ -288,7 +287,6 @@ void runRepl(FklCodegen* codegen)
 	fklJoinAllThread(NULL);
 	fklFreePtrStack(tokenStack);
 	free(rawProcList);
-	fklUninitPreprocess();
 	fklFreeVMgc(anotherVM->gc);
 	fklFreeAllVMs();
 	fklFreeGlobSymbolTable();

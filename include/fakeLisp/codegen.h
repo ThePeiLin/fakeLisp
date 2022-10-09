@@ -95,6 +95,7 @@ FklCodegenEnv* fklNewCodegenEnv(FklCodegenEnv* prev);
 void fklFreeCodegenEnv(FklCodegenEnv* env);
 FklCodegenEnv* fklNewGlobCodegenEnv(void);
 
+void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklSymbolTable* symbolTable);
 #ifdef __cplusplus
 }
 #endif

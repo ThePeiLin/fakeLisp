@@ -28,12 +28,13 @@ int main(int argc,char** argv)
 		glob(pattern,GLOB_NOSORT,NULL,&buf);
 		fklInitCodegen();
 		fklInitLexer();
+		char* cwd=getcwd(NULL,0);
+		fklSetCwd(cwd);
+		free(cwd);
+		chdir(fklGetCwd());
 		for(int j=0;j<buf.gl_pathc;j++)
 		{
 			char* filename=buf.gl_pathv[j];
-			char* cwd=getcwd(NULL,0);
-			fklSetCwd(cwd);
-			free(cwd);
 			FILE* fp=fopen(filename,"r");
 			if(fp==NULL)
 			{
@@ -56,6 +57,7 @@ int main(int argc,char** argv)
 				FklCodegen codegen={.fid=0,};
 				char* rp=fklRealpath(filename);
 				fklSetMainFileRealPath(rp);
+				chdir(fklGetMainFileRealPath());
 				fklInitGlobalCodegener(&codegen,rp,NULL,fklNewSymbolTable(),0);
 				FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
 				fklInitVMargs(argc,argv);

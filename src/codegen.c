@@ -1814,7 +1814,7 @@ void fklInitCodegener(FklCodegen* codegen
 		codegen->curDir=fklGetDir(rp);
 		codegen->filename=fklRelpath(fklGetMainFileRealPath(),rp);
 		codegen->realpath=rp;
-		codegen->fid=fklAddSymbolCstr(filename,globalSymTable)->id;
+		codegen->fid=fklAddSymbolCstr(codegen->filename,globalSymTable)->id;
 	}
 	else
 	{

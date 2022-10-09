@@ -117,8 +117,8 @@ int main(int argc,char** argv)
 			fklFreeAllVMs();
 			fklFreeMainFileRealPath();
 			fklFreeCwd();
-			fklFreeGlobSymbolTable();
 			fklUninitCodegener(&codegen);
+			fklFreeGlobSymbolTable();
 			fklUninitCodegen();
 			fklFreeLineNumTabNodeArray(globalLnt.list,globalLnt.num);
 			return exitState;

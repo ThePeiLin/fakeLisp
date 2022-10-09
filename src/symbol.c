@@ -184,6 +184,7 @@ void fklFreeGlobSymbolTable()
 	free(GlobSymbolTable->list);
 	free(GlobSymbolTable->idl);
 	free(GlobSymbolTable);
+	GlobSymbolTable=NULL;
 }
 
 FklSymTabNode* fklFindSymbolCstr(const char* symbol,FklSymbolTable* table)

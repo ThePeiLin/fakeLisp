@@ -1,6 +1,5 @@
 #include<fakeLisp/reader.h>
 #include<fakeLisp/syntax.h>
-#include<fakeLisp/compiler.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/parser.h>
 #include<fakeLisp/opcode.h>
@@ -41,146 +40,99 @@ int main(int argc,char** argv)
 	char* cwd=getcwd(NULL,0);
 	fklSetCwd(cwd);
 	free(cwd);
-	if(argc==1||fklIsscript(filename))
+	if(!filename)
 	{
-		FILE* fp=(argc>1)?fopen(argv[1],"r"):stdin;
+		fklInitVMargs(argc,argv);
+		fklSetMainFileRealPathWithCwd();
+		FklCodegen codegen={.fid=0,};
+		fklInitCodegen();
+		fklInitLexer();
+		fklInitGlobalCodegener(&codegen,NULL,NULL,fklGetGlobSymbolTable(),0);
+		runRepl(&codegen);
+		fklUninitCodegener(&codegen);
+		fklUninitCodegen();
+	}
+	else if(fklIsscript(filename))
+	{
+		if(access(filename,R_OK))
+		{
+			perror(filename);
+			fklFreeCwd();
+			return EXIT_FAILURE;
+		}
+		FILE* fp=fopen(filename,"r");
 		if(fp==NULL)
 		{
 			perror(filename);
 			fklFreeCwd();
 			return EXIT_FAILURE;
 		}
-//		FklInterpreter* inter=NULL;
-		if(filename)
-			fklAddSymbolToGlobCstr(filename);
-		fklInitVMargs(argc,argv);
-		if(fp==stdin)
+		fklAddSymbolToGlobCstr(filename);
+		fklInitCodegen();
+		fklInitLexer();
+		FklCodegen codegen={.fid=0,};
+		char* rp=fklRealpath(filename);
+		fklSetMainFileRealPath(rp);
+		fklInitGlobalCodegener(&codegen,rp,NULL,fklNewSymbolTable(),0);
+		free(rp);
+		FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
+		if(mainByteCode==NULL)
 		{
-			fklSetMainFileRealPathWithCwd();
-			FklCodegen codegen={.fid=0,};
-			fklInitCodegen();
-			fklInitLexer();
-			fklInitGlobalCodegener(&codegen,NULL,NULL,fklGetGlobSymbolTable(),0);
-			runRepl(&codegen);
 			fklUninitCodegener(&codegen);
 			fklUninitCodegen();
+			fklFreeGlobSymbolTable();
+			fklFreeMainFileRealPath();
+			fklFreeCwd();
+			return 1;
+		}
+		FklSymbolTable* globalSymbolTable=fklExchangeGlobSymbolTable(codegen.globalSymTable);
+		fklFreeSymbolTable(globalSymbolTable);
+		chdir(fklGetCwd());
+		fklPrintUndefinedSymbol(mainByteCode);
+		FklLineNumberTable globalLnt={mainByteCode->ls,mainByteCode->l};
+		FklVM* anotherVM=fklNewVM(mainByteCode->bc);
+		FklVMvalue* globEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
+		fklFreeByteCode(mainByteCode->bc);
+		free(mainByteCode);
+		FklVMframe* mainframe=anotherVM->frames;
+		mainframe->localenv=globEnv;
+		anotherVM->callback=errorCallBack;
+		anotherVM->lnt=&globalLnt;
+		if(setjmp(buf)==0)
+		{
+			fklRunVM(anotherVM);
+			fklWaitGC(anotherVM->gc);
+			fklJoinAllThread(NULL);
+			fklFreeVMgc(anotherVM->gc);
+			fklFreeGlobSymbolTable();
+			fklUninitCodegener(&codegen);
+			fklUninitCodegen();
+			fklFreeLineNumTabNodeArray(globalLnt.list,globalLnt.num);
+			fklFreeAllVMs();
 		}
 		else
 		{
-			fklInitCodegen();
-			fklInitLexer();
-			FklCodegen codegen={.fid=0,};
-			char* rp=fklRealpath(filename);
-			fklSetMainFileRealPath(rp);
-			fklInitGlobalCodegener(&codegen,rp,NULL,fklNewSymbolTable(),0);
-			free(rp);
-			FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
-			if(mainByteCode==NULL)
-			{
-				fklUninitCodegener(&codegen);
-				fklUninitCodegen();
-				fklFreeGlobSymbolTable();
-				fklFreeMainFileRealPath();
-				fklFreeCwd();
-				return 1;
-			}
-			FklSymbolTable* globalSymbolTable=fklExchangeGlobSymbolTable(codegen.globalSymTable);
-			fklFreeSymbolTable(globalSymbolTable);
-			chdir(fklGetCwd());
-			fklPrintUndefinedSymbol(mainByteCode);
-			FklLineNumberTable globalLnt={mainByteCode->ls,mainByteCode->l};
-			FklVM* anotherVM=fklNewVM(mainByteCode->bc);
-			FklVMvalue* globEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
-			fklFreeByteCode(mainByteCode->bc);
-			free(mainByteCode);
-			FklVMframe* mainframe=anotherVM->frames;
-			mainframe->localenv=globEnv;
-			anotherVM->callback=errorCallBack;
-			anotherVM->lnt=&globalLnt;
-			if(setjmp(buf)==0)
-			{
-				fklRunVM(anotherVM);
-				fklWaitGC(anotherVM->gc);
-				fklJoinAllThread(NULL);
-				fklFreeVMgc(anotherVM->gc);
-				fklFreeGlobSymbolTable();
-				fklUninitCodegener(&codegen);
-				fklUninitCodegen();
-				fklFreeLineNumTabNodeArray(globalLnt.list,globalLnt.num);
-				fklFreeAllVMs();
-			}
-			else
-			{
-				fklDeleteCallChain(anotherVM);
-				fklCancelAllThread();
-				fklFreeVMgc(anotherVM->gc);
-				fklFreeAllVMs();
-				fklFreeMainFileRealPath();
-				fklFreeCwd();
-				fklFreeGlobSymbolTable();
-				fklUninitCodegener(&codegen);
-				fklUninitCodegen();
-				fklFreeLineNumTabNodeArray(globalLnt.list,globalLnt.num);
-				return exitState;
-			}
+			fklDeleteCallChain(anotherVM);
+			fklCancelAllThread();
+			fklFreeVMgc(anotherVM->gc);
+			fklFreeAllVMs();
+			fklFreeMainFileRealPath();
+			fklFreeCwd();
+			fklFreeGlobSymbolTable();
+			fklUninitCodegener(&codegen);
+			fklUninitCodegen();
+			fklFreeLineNumTabNodeArray(globalLnt.list,globalLnt.num);
+			return exitState;
 		}
-		//{
-		//	char* rp=fklRealpath(filename);
-		//	fklSetMainFileRealPath(rp);
-		//	int state;
-		//	inter=fklNewIntpr(rp,fp,NULL,NULL);
-		//	fklInitGlobKeyWord(inter->glob);
-		//	free(rp);
-		//	FklByteCodelnt* mainByteCode=fklCompileFile(inter,&state);
-		//	if(mainByteCode==NULL)
-		//	{
-		//		fklFreeIntpr(inter);
-		//		fklUninitPreprocess();
-		//		fklFreeGlobSymbolTable();
-		//		fklFreeMainFileRealPath();
-		//		fklFreeCwd();
-		//		return state;
-		//	}
-		//	chdir(fklGetCwd());
-		//	fklPrintUndefinedSymbol(mainByteCode);
-		//	inter->lnt->num=mainByteCode->ls;
-		//	inter->lnt->list=mainByteCode->l;
-		//	FklVM* anotherVM=fklNewVM(mainByteCode->bc);
-		//	FklVMvalue* globEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
-		//	fklFreeByteCode(mainByteCode->bc);
-		//	free(mainByteCode);
-		//	FklVMframe* mainframe=anotherVM->frames;
-		//	mainframe->localenv=globEnv;
-		//	anotherVM->callback=errorCallBack;
-		//	anotherVM->lnt=inter->lnt;
-		//	if(setjmp(buf)==0)
-		//	{
-		//		fklRunVM(anotherVM);
-		//		fklWaitGC(anotherVM->gc);
-		//		fklJoinAllThread(NULL);
-		//		fklFreeIntpr(inter);
-		//		fklUninitPreprocess();
-		//		fklFreeVMgc(anotherVM->gc);
-		//		fklFreeGlobSymbolTable();
-		//		fklFreeAllVMs();
-		//	}
-		//	else
-		//	{
-		//		fklDeleteCallChain(anotherVM);
-		//		fklCancelAllThread();
-		//		fklFreeIntpr(inter);
-		//		fklUninitPreprocess();
-		//		fklFreeVMgc(anotherVM->gc);
-		//		fklFreeAllVMs();
-		//		fklFreeMainFileRealPath();
-		//		fklFreeCwd();
-		//		fklFreeGlobSymbolTable();
-		//		return exitState;
-		//	}
-		//}
 	}
 	else if(fklIscode(filename))
 	{
+		if(access(filename,R_OK))
+		{
+			perror(filename);
+			fklFreeCwd();
+			return EXIT_FAILURE;
+		}
 		FILE* fp=fopen(argv[1],"rb");
 		if(fp==NULL)
 		{

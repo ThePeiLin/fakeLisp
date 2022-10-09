@@ -1676,7 +1676,7 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 		if(nextExpression)
 		{
 			for(FklNastNode* curExp=nextExpression->t->getNextExpression(nextExpression->context,&errorState)
-					;r&&curExp
+					;curExp
 					;curExp=nextExpression->t->getNextExpression(nextExpression->context,&errorState))
 			{
 				r=mapAllBuiltInPattern(curExp,codegenQuestStack,curEnv,curCodegen,&errorState);
@@ -1763,25 +1763,19 @@ FklByteCodelnt* fklGenExpressionCode(FklNastNode* exp
 }
 
 void fklInitGlobalCodegener(FklCodegen* codegen
-		,const char* filename
+		,const char* rp
 		,FklCodegenEnv* globalEnv
 		,FklSymbolTable* globalSymTable
 		,int freeAbleMark)
 {
 	fklInitSymbolTableWithBuiltinSymbol(globalSymTable);
 	codegen->globalSymTable=globalSymTable;
-	if(filename!=NULL)
+	if(rp!=NULL)
 	{
-		char* rp=fklRealpath(filename);
-		if(!rp)
-		{
-			perror(filename);
-			exit(EXIT_FAILURE);
-		}
 		codegen->curDir=fklGetDir(rp);
 		codegen->filename=fklRelpath(fklGetMainFileRealPath(),rp);
-		codegen->realpath=rp;
-		codegen->fid=fklAddSymbolCstr(filename,globalSymTable)->id;
+		codegen->realpath=fklCopyCstr(rp);
+		codegen->fid=fklAddSymbolCstr(codegen->filename,globalSymTable)->id;
 	}
 	else
 	{
@@ -1814,11 +1808,6 @@ void fklInitCodegener(FklCodegen* codegen
 	if(filename!=NULL)
 	{
 		char* rp=fklRealpath(filename);
-		if(!rp)
-		{
-			perror(filename);
-			exit(EXIT_FAILURE);
-		}
 		codegen->curDir=fklGetDir(rp);
 		codegen->filename=fklRelpath(fklGetMainFileRealPath(),rp);
 		codegen->realpath=rp;

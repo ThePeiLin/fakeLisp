@@ -64,7 +64,7 @@ typedef struct FklCodegenQuest
 }FklCodegenQuest;
 
 void fklInitGlobalCodegener(FklCodegen* codegen
-		,const char* filename
+		,const char* rp
 		,FklCodegenEnv* globalEnv
 		,FklSymbolTable*
 		,int freeAbleMark);

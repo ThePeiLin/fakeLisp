@@ -48,6 +48,7 @@ int main(int argc,char** argv)
 		fklInitLexer();
 		fklInitGlobalCodegener(&codegen,NULL,NULL,fklGetGlobSymbolTable(),0);
 		runRepl(&codegen);
+		codegen.globalSymTable=NULL;
 		fklUninitCodegener(&codegen);
 		fklUninitCodegen();
 	}

@@ -587,6 +587,11 @@ char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorType ty
 			t=fklStrCat(t,"Failed for file:\"");
 			t=fklStrCat(t,str);
 			t=fklStrCat(t,"\"");
+		case FKL_ERR_SYMUNDEFINE:
+			t=fklStrCat(t,"Symbol ");
+			t=fklStrCat(t,str);
+			t=fklStrCat(t," is undefined");
+			break;
 		default:
 			break;
 	}

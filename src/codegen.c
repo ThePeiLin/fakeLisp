@@ -1836,7 +1836,7 @@ void fklInitCodegener(FklCodegen* codegen
 void fklUninitCodegener(FklCodegen* codegen)
 {
 	fklFreeCodegenEnv(codegen->globalEnv);
-	if(!codegen->freeAbleMark&&codegen->globalSymTable!=fklGetGlobSymbolTable())
+	if(codegen->globalSymTable&&!codegen->freeAbleMark&&codegen->globalSymTable!=fklGetGlobSymbolTable())
 		fklFreeSymbolTable(codegen->globalSymTable);
 	free(codegen->curDir);
 	if(codegen->filename)

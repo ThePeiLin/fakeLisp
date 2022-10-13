@@ -4088,6 +4088,33 @@ void builtin_time(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void builtin_get(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMframe* frame=exe->frames;
+	FklVMvalue* sym=fklNiGetArg(&ap,stack);
+	FklVMvalue* defaultValue=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.get",FKL_ERR_TOOMANYARG,frame,exe);
+	if(!sym)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.get",FKL_ERR_TOOFEWARG,frame,exe);
+	FKL_NI_CHECK_TYPE(sym,FKL_IS_SYM,"builtin.get",frame,exe);
+	FklVMvalue* volatile* pV=fklFindVar(FKL_GET_SYM(sym),frame->localenv->u.env);
+	if(!pV)
+	{
+		if(defaultValue)
+			fklNiReturn(defaultValue,&ap,stack);
+		else
+		{
+			char* cstr=fklStringToCstr(fklGetGlobSymbolWithId(FKL_GET_SYM(sym))->symbol);
+			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("builtin.get",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
+		}
+	}
+	else
+		fklNiReturn(*pV,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 void builtin_set(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -4647,6 +4674,7 @@ static const struct SymbolFuncStruct
 	{"filter",                builtin_filter,                  },
 
 	{"set!",                  builtin_set,                     },
+	{"get",                  builtin_get,                     },
 	{"getch",                 builtin_getch,                   },
 	{"sleep",                 builtin_sleep,                   },
 	{"srand",                 builtin_srand,                   },

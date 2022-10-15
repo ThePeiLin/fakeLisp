@@ -4296,9 +4296,10 @@ void builtin_href(ARGL)
 	if(!ht||!key)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.href",FKL_ERR_TOOFEWARG,frame,exe);
 	FKL_NI_CHECK_TYPE(ht,FKL_IS_HASHTABLE,"builtin.href",frame,exe);
-	FklVMhashTableItem* item=fklRefVMhashTable(key,ht->u.hash);
-	if(item)
-		fklNiReturn(item->v,&ap,stack);
+	int ok=0;
+	FklVMvalue* retval=fklGetVMhashTable(key,ht->u.hash,&ok);
+	if(ok)
+		fklNiReturn(retval,&ap,stack);
 	else
 	{
 		if(defa)
@@ -4674,7 +4675,7 @@ static const struct SymbolFuncStruct
 	{"filter",                builtin_filter,                  },
 
 	{"set!",                  builtin_set,                     },
-	{"get",                  builtin_get,                     },
+	{"get",                   builtin_get,                     },
 	{"getch",                 builtin_getch,                   },
 	{"sleep",                 builtin_sleep,                   },
 	{"srand",                 builtin_srand,                   },

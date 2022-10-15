@@ -1456,8 +1456,8 @@ FklByteCode* fklCodegenNode(const FklNastNode* node,FklCodegen* codegenr)
 				tmp=new9lenBc(FKL_OP_PUSH_HASHTABLE_EQ+node->u.hash->type,node->u.hash->num);
 				for(size_t i=0;i<node->u.hash->num;i++)
 				{
-					fklPushPtrStack(node->u.hash->items->car,stack);
-					fklPushPtrStack(node->u.hash->items->cdr,stack);
+					fklPushPtrStack(node->u.hash->items[i].car,stack);
+					fklPushPtrStack(node->u.hash->items[i].cdr,stack);
 				}
 				break;
 			default:

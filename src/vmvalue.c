@@ -1256,6 +1256,22 @@ FklVMhashTableItem* fklRefVMhashTable(FklVMvalue* key,FklVMhashTable* ht)
 	return item;
 }
 
+FklVMvalue* fklGetVMhashTable(FklVMvalue* key,FklVMhashTable* ht,int* ok)
+{
+	FklVMvalue* r=NULL;
+	pthread_rwlock_rdlock(&ht->lock);
+	FklVMhashTableItem* item=fklGetHashItem(&key,ht->ht);
+	if(item)
+	{
+		*ok=1;
+		r=item->v;
+	}
+	else
+		*ok=0;
+	pthread_rwlock_unlock(&ht->lock);
+	return r;
+}
+
 void fklClearVMhashTable(FklVMhashTable* ht,FklVMgc* gc)
 {
 	pthread_rwlock_wrlock(&ht->lock);

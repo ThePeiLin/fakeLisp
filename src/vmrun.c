@@ -132,22 +132,22 @@ void callDlProc(FklVM* exe,FklVMdlproc* dlproc)
 
 /*--------------------------*/
 
-static FklVMnode* newVMnode(FklVM* exe,FklVMnode* next)
-{
-	FklVMnode* t=(FklVMnode*)malloc(sizeof(FklVMnode));
-	FKL_ASSERT(t);
-	t->vm=exe;
-	t->next=next;
-	return t;
-}
+//static FklVMnode* newVMnode(FklVM* exe,FklVMnode* next)
+//{
+//	FklVMnode* t=(FklVMnode*)malloc(sizeof(FklVMnode));
+//	FKL_ASSERT(t);
+//	t->vm=exe;
+//	t->next=next;
+//	return t;
+//}
 
-static FklVMlist list=
-{
-	NULL,
-	PTHREAD_RWLOCK_INITIALIZER,
-};
-
-static FklVMlist* GlobVMs=&list;
+//static FklVMlist list=
+//{
+//	NULL,
+//	PTHREAD_RWLOCK_INITIALIZER,
+//};
+//
+//static FklVMlist* GlobVMs=&list;
 static void B_dummy(FklVM*);
 static void B_push_nil(FklVM*);
 static void B_push_pair(FklVM*);
@@ -237,7 +237,7 @@ static void (*ByteCodes[])(FklVM*)=
 	B_list_push,
 };
 
-FklVM* fklNewVM(FklByteCode* mainCode)
+FklVM* fklNewVM(FklByteCode* mainCode,FklVM* prev,FklVM* next)
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe);
@@ -263,16 +263,25 @@ FklVM* fklNewVM(FklByteCode* mainCode)
 	exe->gc=fklNewVMgc();
 	exe->callback=NULL;
 	exe->nny=0;
-	exe->thrds=1;
+//	exe->thrds=1;
 	pthread_rwlock_init(&exe->rlock,NULL);
-	pthread_rwlock_wrlock(&GlobVMs->lock);
-	FklVMnode* node=newVMnode(exe,GlobVMs->h);
-	GlobVMs->h=node;
-	pthread_rwlock_unlock(&GlobVMs->lock);
+	pthread_mutex_init(&exe->prev_next_lock,NULL);
+	if(prev)
+	{
+		pthread_mutex_lock(&exe->prev->prev_next_lock);
+		exe->prev->next=exe;
+		pthread_mutex_unlock(&exe->prev->prev_next_lock);
+	}
+	if(next)
+	{
+		pthread_mutex_lock(&exe->next->prev_next_lock);
+		exe->next->prev=exe;
+		pthread_mutex_unlock(&exe->next->prev_next_lock);
+	}
 	return exe;
 }
 
-FklVM* fklNewTmpVM(FklByteCode* mainCode,FklVMgc* gc)
+FklVM* fklNewTmpVM(FklByteCode* mainCode,FklVMgc* gc,FklVM* prev,FklVM* next)
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe);
@@ -300,11 +309,20 @@ FklVM* fklNewTmpVM(FklByteCode* mainCode,FklVMgc* gc)
 	pthread_rwlock_init(&exe->rlock,NULL);
 	//	exe->callback=threadErrorCallBack;
 	exe->callback=NULL;
-	exe->thrds=1;
-	pthread_rwlock_wrlock(&GlobVMs->lock);
-	FklVMnode* node=newVMnode(exe,GlobVMs->h);
-	GlobVMs->h=node;
-	pthread_rwlock_unlock(&GlobVMs->lock);
+//	exe->thrds=1;
+	pthread_mutex_init(&exe->prev_next_lock,NULL);
+	if(prev)
+	{
+		pthread_mutex_lock(&exe->prev->prev_next_lock);
+		exe->prev->next=exe;
+		pthread_mutex_unlock(&exe->prev->prev_next_lock);
+	}
+	if(next)
+	{
+		pthread_mutex_lock(&exe->next->prev_next_lock);
+		exe->next->prev=exe;
+		pthread_mutex_unlock(&exe->next->prev_next_lock);
+	}
 	return exe;
 }
 
@@ -1126,38 +1144,44 @@ void fklGC_markRootToGrey(FklVM* exe)
 		fklGC_toGrey(exe->chan,gc);
 }
 
-void fklGC_markGlobalRoot(void)
+void fklGC_markAllRootToGrey(FklVM* curVM)
 {
-	pthread_rwlock_rdlock(&GlobVMs->lock);
-	for(FklVMnode** ph=&GlobVMs->h;*ph;)
+	for(FklVM* cur=curVM;cur;cur=cur->prev)
 	{
-		FklVMnode* cur=*ph;
-		pthread_rwlock_rdlock(&cur->vm->rlock);
-		int32_t mark=cur->vm->mark;
-		pthread_rwlock_unlock(&cur->vm->rlock);
+		pthread_rwlock_rdlock(&cur->rlock);
+		uint32_t mark=cur->mark;
+		pthread_rwlock_unlock(&cur->rlock);
 		if(mark)
-		{
-			fklGC_markRootToGrey(cur->vm);
-			ph=&cur->next;
-		}
+			fklGC_markRootToGrey(cur);
 		else
 		{
-			pthread_join(cur->vm->tid,NULL);
-			*ph=cur->next;
-			free(cur->vm);
-			free(cur);
+			//pthread_join(cur->vm->tid,NULL);
+			//*ph=cur->next;
+			//free(cur->vm);
+			//free(cur);
 		}
 	}
-	pthread_rwlock_unlock(&GlobVMs->lock);
+	for(FklVM* cur=curVM;cur;cur=cur->next)
+	{
+		pthread_rwlock_rdlock(&cur->rlock);
+		uint32_t mark=cur->mark;
+		pthread_rwlock_unlock(&cur->rlock);
+		if(mark)
+			fklGC_markRootToGrey(cur);
+		else
+		{
+			//pthread_join(cur->vm->tid,NULL);
+			//*ph=cur->next;
+			//free(cur->vm);
+			//free(cur);
+		}
+	}
 }
 
 void fklGC_pause(FklVM* exe)
 {
 	pthread_rwlock_rdlock(&exe->gc->lock);
-	if(exe->thrds)
-		fklGC_markGlobalRoot();
-	else
-		fklGC_markRootToGrey(exe);
+	fklGC_markAllRootToGrey(exe);
 	pthread_rwlock_unlock(&exe->gc->lock);
 }
 
@@ -1399,29 +1423,31 @@ void* fklGC_sweepThreadFunc(void* arg)
 
 void* fklGC_threadFunc(void* arg)
 {
-	FklVMgc* gc=arg;
+	FklVM* exe=arg;
+	FklVMgc* gc=exe->gc;
 	gc->running=FKL_GC_MARK_ROOT;
-	pthread_rwlock_rdlock(&GlobVMs->lock);
-	FklVMnode** ph=&GlobVMs->h;
-	for(;*ph&&(*ph)->vm->gc!=gc;ph=&(*ph)->next);
-	for(;*ph&&(*ph)->vm->gc==gc;)
-	{
-		FklVMnode* cur=*ph;
-		int32_t mark=cur->vm->mark;
-		if(mark)
-		{
-			fklGC_markRootToGrey(cur->vm);
-			ph=&cur->next;
-		}
-		else
-		{
-			pthread_join(cur->vm->tid,NULL);
-			*ph=cur->next;
-			free(cur->vm);
-			free(cur);
-		}
-	}
-	pthread_rwlock_unlock(&GlobVMs->lock);
+//	pthread_rwlock_rdlock(&GlobVMs->lock);
+//	FklVMnode** ph=&GlobVMs->h;
+//	for(;*ph&&(*ph)->vm->gc!=gc;ph=&(*ph)->next);
+	fklGC_markAllRootToGrey(exe);
+//	for(;*ph&&(*ph)->vm->gc==gc;)
+//	{
+//		FklVMnode* cur=*ph;
+//		int32_t mark=cur->vm->mark;
+//		if(mark)
+//		{
+//			fklGC_markRootToGrey(cur->vm);
+//			ph=&cur->next;
+//		}
+//		else
+//		{
+//			pthread_join(cur->vm->tid,NULL);
+//			*ph=cur->next;
+//			free(cur->vm);
+//			free(cur);
+//		}
+//	}
+//	pthread_rwlock_unlock(&GlobVMs->lock);
 	gc->running=FKL_GC_PROPAGATE;
 	while(!fklGC_propagate(gc));
 	FklVMvalue* white=NULL;
@@ -1468,7 +1494,7 @@ void fklFreeAllValues(FklVMgc* gc)
 	}
 }
 
-FklVM* fklNewThreadVM(FklVMproc* mainCode,FklVMgc* gc)
+FklVM* fklNewThreadVM(FklVMproc* mainCode,FklVMgc* gc,FklVM* prev,FklVM* next)
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe);
@@ -1484,16 +1510,25 @@ FklVM* fklNewThreadVM(FklVMproc* mainCode,FklVMgc* gc)
 	exe->nextCall=NULL;
 	exe->nextCallBackUp=NULL;
 	exe->nny=0;
-	exe->thrds=1;
+//	exe->thrds=1;
 	pthread_rwlock_init(&exe->rlock,NULL);
-	pthread_rwlock_wrlock(&GlobVMs->lock);
-	FklVMnode* node=newVMnode(exe,GlobVMs->h);
-	GlobVMs->h=node;
-	pthread_rwlock_unlock(&GlobVMs->lock);
+	pthread_mutex_init(&exe->prev_next_lock,NULL);
+	if(prev)
+	{
+		pthread_mutex_lock(&exe->prev->prev_next_lock);
+		exe->prev->next=exe;
+		pthread_mutex_unlock(&exe->prev->prev_next_lock);
+	}
+	if(next)
+	{
+		pthread_mutex_lock(&exe->next->prev_next_lock);
+		exe->next->prev=exe;
+		pthread_mutex_unlock(&exe->next->prev_next_lock);
+	}
 	return exe;
 }
 
-FklVM* fklNewThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue* nextCall)
+FklVM* fklNewThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue* nextCall,FklVM* prev,FklVM* next)
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe);
@@ -1510,12 +1545,20 @@ FklVM* fklNewThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue* nextC
 	exe->nextCall=nextCall;
 	exe->nextCallBackUp=NULL;
 	exe->nny=0;
-	exe->thrds=1;
+//	exe->thrds=1;
 	pthread_rwlock_init(&exe->rlock,NULL);
-	pthread_rwlock_wrlock(&GlobVMs->lock);
-	FklVMnode* node=newVMnode(exe,GlobVMs->h);
-	GlobVMs->h=node;
-	pthread_rwlock_unlock(&GlobVMs->lock);
+	if(prev)
+	{
+		pthread_mutex_lock(&exe->prev->prev_next_lock);
+		exe->prev->next=exe;
+		pthread_mutex_unlock(&exe->prev->prev_next_lock);
+	}
+	if(next)
+	{
+		pthread_mutex_lock(&exe->next->prev_next_lock);
+		exe->next->prev=exe;
+		pthread_mutex_unlock(&exe->next->prev_next_lock);
+	}
 	return exe;
 }
 
@@ -1529,42 +1572,42 @@ void fklFreeVMstack(FklVMstack* stack)
 	free(stack);
 }
 
-void fklFreeAllTmpVMs(FklVMnode* node)
-{
-	for(FklVMnode** ph=&GlobVMs->h;*ph!=node;)
-	{
-		FklVMnode* cur=*ph;
-		*ph=cur->next;
-		if(cur->vm->mark)
-		{
-			fklDeleteCallChain(cur->vm);
-			fklFreeVMstack(cur->vm->stack);
-			fklFreePtrStack(cur->vm->tstack);
-		}
-		free(cur->vm);
-		free(cur);
-	}
-	pthread_rwlock_destroy(&GlobVMs->lock);
-}
+//void fklFreeAllVMs(FklVM* node)
+//{
+//	for(FklVMnode** ph=&GlobVMs->h;*ph!=node;)
+//	{
+//		FklVMnode* cur=*ph;
+//		*ph=cur->next;
+//		if(cur->vm->mark)
+//		{
+//			fklDeleteCallChain(cur->vm);
+//			fklFreeVMstack(cur->vm->stack);
+//			fklFreePtrStack(cur->vm->tstack);
+//		}
+//		free(cur->vm);
+//		free(cur);
+//	}
+//	pthread_rwlock_destroy(&GlobVMs->lock);
+//}
 
-void fklFreeAllVMs(void)
+void fklFreeAllVMs(FklVM* cur)
 {
-	uint8_t* code=GlobVMs->h?GlobVMs->h->vm->code:NULL;
-	for(FklVMnode** ph=&GlobVMs->h;*ph;)
-	{
-		FklVMnode* cur=*ph;
-		*ph=cur->next;
-		if(cur->vm->mark)
-		{
-			fklDeleteCallChain(cur->vm);
-			fklFreeVMstack(cur->vm->stack);
-			fklFreePtrStack(cur->vm->tstack);
-		}
-		free(cur->vm);
-		free(cur);
-	}
-	free(code);
-	pthread_rwlock_destroy(&GlobVMs->lock);
+	//uint8_t* code=GlobVMs->h?GlobVMs->h->vm->code:NULL;
+	//for(FklVMnode** ph=&GlobVMs->h;*ph;)
+	//{
+	//	FklVMnode* cur=*ph;
+	//	*ph=cur->next;
+	//	if(cur->vm->mark)
+	//	{
+	//		fklDeleteCallChain(cur->vm);
+	//		fklFreeVMstack(cur->vm->stack);
+	//		fklFreePtrStack(cur->vm->tstack);
+	//	}
+	//	free(cur->vm);
+	//	free(cur);
+	//}
+	//free(code);
+	//pthread_rwlock_destroy(&GlobVMs->lock);
 }
 
 void fklFreeVMgc(FklVMgc* gc)
@@ -1576,45 +1619,45 @@ void fklFreeVMgc(FklVMgc* gc)
 	free(gc);
 }
 
-void fklJoinAllThread(FklVMnode* node)
+void fklJoinAllThread(FklVM* cur)
 {
-	pthread_t selfId=pthread_self();
-	for(FklVMnode** ph=&GlobVMs->h;*ph!=node;ph=&(*ph)->next)
-	{
-		FklVMnode* cur=*ph;
-		if(cur->vm->tid!=selfId)
-			pthread_join(cur->vm->tid,NULL);
-	}
+//	pthread_t selfId=pthread_self();
+//	for(FklVMnode** ph=&GlobVMs->h;*ph!=node;ph=&(*ph)->next)
+//	{
+//		FklVMnode* cur=*ph;
+//		if(cur->vm->tid!=selfId)
+//			pthread_join(cur->vm->tid,NULL);
+//	}
 }
 
-FklVMlist* fklGetGlobVMs(void)
-{
-	return GlobVMs;
-}
-
-void fklSetGlobVMs(FklVMlist* l)
-{
-	GlobVMs=l;
-}
+//FklVMlist* fklGetGlobVMs(void)
+//{
+//	return GlobVMs;
+//}
+//
+//void fklSetGlobVMs(FklVMlist* l)
+//{
+//	GlobVMs=l;
+//}
 
 
 void fklCancelAllThread()
 {
 	pthread_t selfId=pthread_self();
-	for(FklVMnode** ph=&GlobVMs->h;*ph;ph=&(*ph)->next)
-	{
-		FklVMnode* cur=*ph;
-		if(cur->vm->tid!=selfId)
-		{
-			pthread_join(cur->vm->tid,NULL);
-			if(cur->vm->mark)
-			{
-				fklDeleteCallChain(cur->vm);
-				fklFreeVMstack(cur->vm->stack);
-				fklFreePtrStack(cur->vm->tstack);
-			}
-		}
-	}
+//	for(FklVMnode** ph=&GlobVMs->h;*ph;ph=&(*ph)->next)
+//	{
+//		FklVMnode* cur=*ph;
+//		if(cur->vm->tid!=selfId)
+//		{
+//			pthread_join(cur->vm->tid,NULL);
+//			if(cur->vm->mark)
+//			{
+//				fklDeleteCallChain(cur->vm);
+//				fklFreeVMstack(cur->vm->stack);
+//				fklFreePtrStack(cur->vm->tstack);
+//			}
+//		}
+//	}
 }
 
 void fklDeleteCallChain(FklVM* exe)

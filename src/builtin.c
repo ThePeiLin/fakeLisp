@@ -2982,14 +2982,14 @@ void builtin_go(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMframe* frame=exe->frames;
-	if(!exe->thrds)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.go",FKL_ERR_CANTCREATETHREAD,frame,exe);
+//	if(!exe->thrds)
+//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.go",FKL_ERR_CANTCREATETHREAD,frame,exe);
 	FklVMvalue* threadProc=fklNiGetArg(&ap,stack);
 	if(!threadProc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.go",FKL_ERR_TOOFEWARG,frame,exe);
 	if(!FKL_IS_PROC(threadProc)&&!FKL_IS_DLPROC(threadProc)&&!FKL_IS_CONT(threadProc)&&!fklIsCallableUd(threadProc))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.go",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
-	FklVM* threadVM=FKL_IS_PROC(threadProc)?fklNewThreadVM(threadProc->u.proc,exe->gc):fklNewThreadCallableObjVM(frame,exe->gc,threadProc);
+	FklVM* threadVM=FKL_IS_PROC(threadProc)?fklNewThreadVM(threadProc->u.proc,exe->gc,exe,exe->next):fklNewThreadCallableObjVM(frame,exe->gc,threadProc,exe,exe->next);
 	threadVM->lnt=exe->lnt;
 	threadVM->code=exe->code;
 	threadVM->size=exe->size;

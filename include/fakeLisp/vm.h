@@ -197,8 +197,8 @@ typedef struct
 
 typedef struct FklVM
 {
-	int32_t mark;
-	int32_t thrds;
+	uint32_t mark;
+//	int32_t thrds;
 	pthread_t tid;
 	uint8_t* code;
 	uint64_t size;
@@ -212,6 +212,9 @@ typedef struct FklVM
 	void (*callback)(void*);
 	FklVMvalue* volatile nextCall;
 	FklVMvalue* volatile nextCallBackUp;
+	pthread_mutex_t prev_next_lock;
+	struct FklVM* prev;
+	struct FklVM* next;
 	jmp_buf buf;
 	int nny;
 }FklVM;
@@ -294,27 +297,21 @@ typedef struct FklVMerrorHandler
 	FklVMproc proc;
 }FklVMerrorHandler;
 
-typedef struct FklVMnode
-{
-	FklVM* vm;
-	struct FklVMnode* next;
-}FklVMnode;
-
-typedef struct FklVMlist
-{
-	FklVMnode* h;
-	pthread_rwlock_t lock;
-}FklVMlist;
+//typedef struct FklVMnode
+//{
+//	FklVM* vm;
+//	struct FklVMnode* next;
+//}FklVMnode;
 
 //vmrun
 
 int fklRunVM(FklVM*);
-FklVMlist* fklGetGlobVMs(void);
-void fklSetGlobVMs(FklVMlist*);
-FklVM* fklNewVM(FklByteCode*);
-FklVM* fklNewTmpVM(FklByteCode*,FklVMgc*);
-FklVM* fklNewThreadVM(FklVMproc*,FklVMgc*);
-FklVM* fklNewThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue*);
+//FklVMlist* fklGetGlobVMs(void);
+//void fklSetGlobVMs(FklVMlist*);
+FklVM* fklNewVM(FklByteCode*,FklVM* prev,FklVM* next);
+FklVM* fklNewTmpVM(FklByteCode*,FklVMgc*,FklVM* prev,FklVM* next);
+FklVM* fklNewThreadVM(FklVMproc*,FklVMgc*,FklVM* prev,FklVM* next);
+FklVM* fklNewThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue*,FklVM* prev,FklVM* next);
 
 void fklFreeVMvalue(FklVMvalue*);
 FklVMstack* fklNewVMstack(int32_t);
@@ -327,10 +324,9 @@ int fklIsTheLastExpress(const FklVMframe*,const FklVMframe*,const FklVM* exe);
 FklVMgc* fklNewVMgc();
 void fklCreateCallChainWithContinuation(FklVM*,FklVMcontinuation*);
 void fklFreeVMgc(FklVMgc*);
-void fklFreeAllTmpVMs(FklVMnode* node);
-void fklFreeAllVMs(void);
+void fklFreeAllVMs(FklVM* cur);
 void fklDeleteCallChain(FklVM*);
-void fklJoinAllThread(FklVMnode* node);
+void fklJoinAllThread(FklVM* cur);
 void fklCancelAllThread();
 void fklChangeGCstate(FklGCstate,FklVMgc*);
 FklGCstate fklGetGCstate(FklVMgc*);
@@ -373,7 +369,7 @@ int fklIsList(const FklVMvalue* p);
 int64_t fklGetInt(const FklVMvalue* p);
 double fklGetDouble(const FklVMvalue* p);
 void fklInitVMRunningResource(FklVM*,FklVMvalue*,FklVMgc* gc,FklByteCodelnt*,uint32_t,uint32_t);
-void fklUninitVMRunningResource(FklVM*,FklVMnode*);
+void fklUninitVMRunningResource(FklVM*);
 
 typedef struct FklPreEnv FklPreEnv;
 FklHashTable* fklNewLineNumHashTable(void);

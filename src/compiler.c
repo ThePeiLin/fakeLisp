@@ -1,11 +1,11 @@
-#include<fakeLisp/compiler.h>
+//#include<fakeLisp/compiler.h>
 #include<fakeLisp/syntax.h>
 #include<fakeLisp/opcode.h>
-#include<fakeLisp/ast.h>
+//#include<fakeLisp/ast.h>
 #include<fakeLisp/parser.h>
-#include<fakeLisp/vm.h>
+//#include<fakeLisp/vm.h>
 #include<fakeLisp/utils.h>
-#include<fakeLisp/reader.h>
+//#include<fakeLisp/reader.h>
 #include<fakeLisp/mem.h>
 #include<stddef.h>
 #include<stdlib.h>

@@ -3,7 +3,7 @@
 
 #include"base.h"
 #include"bytecode.h"
-#include"ast.h"
+//#include"ast.h"
 //#include"compiler.h"
 #include"builtin.h"
 //#include<stdatomic.h>
@@ -15,6 +15,33 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef enum
+{
+	FKL_TYPE_NIL=0,
+	FKL_TYPE_I32,
+	FKL_TYPE_SYM,
+	FKL_TYPE_CHR,
+	FKL_TYPE_F64,
+	FKL_TYPE_I64,
+	FKL_TYPE_BIG_INT,
+	FKL_TYPE_STR,
+	FKL_TYPE_VECTOR,
+	FKL_TYPE_PAIR,
+	FKL_TYPE_BOX,
+	FKL_TYPE_BYTEVECTOR,
+	FKL_TYPE_USERDATA,
+	FKL_TYPE_PROC,
+	FKL_TYPE_CONT,
+	FKL_TYPE_CHAN,
+	FKL_TYPE_FP,
+	FKL_TYPE_DLL,
+	FKL_TYPE_DLPROC,
+	FKL_TYPE_ERR,
+	FKL_TYPE_ENV,
+	FKL_TYPE_HASHTABLE,
+}FklValueType;
+
 
 typedef enum
 {
@@ -376,7 +403,7 @@ FklHashTable* fklNewLineNumHashTable(void);
 FklVMvalue* fklGetTopValue(FklVMstack* stack);
 FklVMvalue* fklGetValue(FklVMstack* stack,int32_t place);
 FklVMvalue* fklCastPreEnvToVMenv(FklPreEnv*,FklVMvalue*,FklHashTable*,FklVMgc*);
-FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,uint64_t curline,FklHashTable*);
+//FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,uint64_t curline,FklHashTable*);
 
 FklVMstack* fklCopyStack(FklVMstack*);
 FklVMvalue* fklPopVMstack(FklVMstack*);
@@ -475,7 +502,7 @@ void fklChanlSend(FklVMsend*,FklVMchanl*);
 void fklChanlRecvOk(FklVMchanl*,FklVMvalue**,int*);
 void fklChanlRecv(FklVMrecv*,FklVMchanl*);
 
-FklVMvalue* fklCastCptrVMvalue(FklAstCptr*,FklHashTable* lineNumberHash,FklVMgc*);
+//FklVMvalue* fklCastCptrVMvalue(FklAstCptr*,FklHashTable* lineNumberHash,FklVMgc*);
 
 FklVMvec* fklNewVMvecNoInit(size_t size);
 FklVMvec* fklNewVMvec(size_t size);

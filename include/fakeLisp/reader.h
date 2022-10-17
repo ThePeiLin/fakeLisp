@@ -1,6 +1,6 @@
 #ifndef FKL_READER_H
 #define FKL_READER_H
-#include"ast.h"
+//#include"ast.h"
 #include"bytecode.h"
 #include"vm.h"
 #include"pattern.h"

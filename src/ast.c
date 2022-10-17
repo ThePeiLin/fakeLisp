@@ -1,9 +1,9 @@
-#include<fakeLisp/ast.h>
+//#include<fakeLisp/ast.h>
 #include<fakeLisp/bytecode.h>
-#include<fakeLisp/vm.h>
+//#include<fakeLisp/vm.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/compiler.h>
-#include<fakeLisp/reader.h>
+//#include<fakeLisp/reader.h>
 #include<fakeLisp/parser.h>
 #ifdef _WIN32
 #include<io.h>

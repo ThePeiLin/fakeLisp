@@ -136,57 +136,57 @@ void fklDecTop(FklVMstack* stack)
 //	pthread_rwlock_unlock(&stack->lock);
 }
 
-typedef struct
-{
-	FklVMvalue* key;
-	uint64_t line;
-}LineNumHashItem;
-
-static size_t _LineNumHash_hashFunc(void* pKey)
-{
-	FklVMvalue* key=*(FklVMvalue**)pKey;
-	return (uintptr_t)FKL_GET_PTR(key)>>FKL_UNUSEDBITNUM;
-}
-
-static int _LineNumHash_keyEqual(void* pKey0,void* pKey1)
-{
-	FklVMvalue* key0=*(FklVMvalue**)pKey0;
-	FklVMvalue* key1=*(FklVMvalue**)pKey1;
-	return key0==key1;
-}
-
-static void _LineNumHash_freeItem(void* item)
-{
-	free(item);
-}
-
-static void* _LineNumHash_getKey(void* item)
-{
-	return &((LineNumHashItem*)item)->key;
-}
-
-static FklHashTableMethodTable LineNumHashMethTable=
-{
-	.__hashFunc=_LineNumHash_hashFunc,
-	.__freeItem=_LineNumHash_freeItem,
-	.__keyEqual=_LineNumHash_keyEqual,
-	.__getKey=_LineNumHash_getKey,
-};
-
-FklHashTable* fklNewLineNumHashTable(void)
-{
-	FklHashTable* lineHash=fklNewHashTable(32,8,2,0.75,1,&LineNumHashMethTable);
-	return lineHash;
-}
-
-static LineNumHashItem* newLineNumHashItem(FklVMvalue* value,FklVMvalue* refBy,uint64_t lineNum)
-{
-	LineNumHashItem* item=(LineNumHashItem*)malloc(sizeof(LineNumHashItem));
-	FKL_ASSERT(item);
-	item->key=value;
-	item->line=lineNum;
-	return item;
-}
+//typedef struct
+//{
+//	FklVMvalue* key;
+//	uint64_t line;
+//}LineNumHashItem;
+//
+//static size_t _LineNumHash_hashFunc(void* pKey)
+//{
+//	FklVMvalue* key=*(FklVMvalue**)pKey;
+//	return (uintptr_t)FKL_GET_PTR(key)>>FKL_UNUSEDBITNUM;
+//}
+//
+//static int _LineNumHash_keyEqual(void* pKey0,void* pKey1)
+//{
+//	FklVMvalue* key0=*(FklVMvalue**)pKey0;
+//	FklVMvalue* key1=*(FklVMvalue**)pKey1;
+//	return key0==key1;
+//}
+//
+//static void _LineNumHash_freeItem(void* item)
+//{
+//	free(item);
+//}
+//
+//static void* _LineNumHash_getKey(void* item)
+//{
+//	return &((LineNumHashItem*)item)->key;
+//}
+//
+//static FklHashTableMethodTable LineNumHashMethTable=
+//{
+//	.__hashFunc=_LineNumHash_hashFunc,
+//	.__freeItem=_LineNumHash_freeItem,
+//	.__keyEqual=_LineNumHash_keyEqual,
+//	.__getKey=_LineNumHash_getKey,
+//};
+//
+//FklHashTable* fklNewLineNumHashTable(void)
+//{
+//	FklHashTable* lineHash=fklNewHashTable(32,8,2,0.75,1,&LineNumHashMethTable);
+//	return lineHash;
+//}
+//
+//static LineNumHashItem* newLineNumHashItem(FklVMvalue* value,FklVMvalue* refBy,uint64_t lineNum)
+//{
+//	LineNumHashItem* item=(LineNumHashItem*)malloc(sizeof(LineNumHashItem));
+//	FKL_ASSERT(item);
+//	item->key=value;
+//	item->line=lineNum;
+//	return item;
+//}
 
 //#define SENTINEL_CPTR (NULL)
 //FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklHashTable* lineHash,FklVMgc* gc)

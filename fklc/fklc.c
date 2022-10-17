@@ -214,9 +214,9 @@ void fklc_make_fbc(ARGL)
 #undef CONST_COMPILE
 #undef IS_LITERAL
 #undef IS_COMPILABLE
-void _fklInit(FklSymbolTable* glob,FklVMvalue* rel,FklVMlist* GlobVMs)
+void _fklInit(FklSymbolTable* glob,FklVMvalue* rel)
 {
-	fklSetGlobVMs(GlobVMs);
+//	fklSetGlobVMs(GlobVMs);
 	fklSetGlobSymbolTable(glob);
 	fklcInitFsym();
 	fklcInit(rel);

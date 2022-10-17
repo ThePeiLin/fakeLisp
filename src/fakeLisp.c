@@ -45,7 +45,7 @@ int main(int argc,char** argv)
 		fklSetMainFileRealPathWithCwd();
 		FklCodegen codegen={.fid=0,};
 		fklInitCodegen();
-		fklInitLexer();
+		//fklInitLexer();
 		fklInitGlobalCodegener(&codegen,NULL,NULL,fklGetGlobSymbolTable(),0);
 		runRepl(&codegen);
 		codegen.globalSymTable=NULL;
@@ -69,7 +69,7 @@ int main(int argc,char** argv)
 		}
 		fklAddSymbolToGlobCstr(filename);
 		fklInitCodegen();
-		fklInitLexer();
+		//fklInitLexer();
 		FklCodegen codegen={.fid=0,};
 		char* rp=fklRealpath(filename);
 		fklSetMainFileRealPath(rp);
@@ -90,7 +90,7 @@ int main(int argc,char** argv)
 		chdir(fklGetCwd());
 		fklCodegenPrintUndefinedSymbol(mainByteCode,codegen.globalSymTable);
 		FklLineNumberTable globalLnt={mainByteCode->ls,mainByteCode->l};
-		FklVM* anotherVM=fklNewVM(mainByteCode->bc);
+		FklVM* anotherVM=fklNewVM(mainByteCode->bc,NULL,NULL);
 		FklVMvalue* globEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
 		fklFreeByteCode(mainByteCode->bc);
 		free(mainByteCode);
@@ -108,14 +108,14 @@ int main(int argc,char** argv)
 			fklFreeGlobSymbolTable();
 			fklUninitCodegen();
 			fklFreeLineNumTabNodeArray(globalLnt.list,globalLnt.num);
-			fklFreeAllVMs();
+			fklFreeAllVMs(anotherVM);
 		}
 		else
 		{
 			fklDeleteCallChain(anotherVM);
 			fklCancelAllThread();
 			fklFreeVMgc(anotherVM->gc);
-			fklFreeAllVMs();
+			fklFreeAllVMs(anotherVM);
 			fklFreeMainFileRealPath();
 			fklFreeCwd();
 			fklUninitCodegener(&codegen);
@@ -146,7 +146,7 @@ int main(int argc,char** argv)
 		free(rp);
 		FklLineNumberTable* lnt=loadLineNumberTable(fp);
 		FklByteCode* mainCode=loadByteCode(fp);
-		FklVM* anotherVM=fklNewVM(mainCode);
+		FklVM* anotherVM=fklNewVM(mainCode,NULL,NULL);
 		FklVMgc* gc=anotherVM->gc;
 		fklFreeByteCode(mainCode);
 		fclose(fp);
@@ -162,14 +162,14 @@ int main(int argc,char** argv)
 			fklJoinAllThread(NULL);
 			fklFreeVMgc(gc);
 			fklFreeGlobSymbolTable();
-			fklFreeAllVMs();
+			fklFreeAllVMs(anotherVM);
 			fklFreeLineNumberTable(lnt);
 		}
 		else
 		{
 			fklDeleteCallChain(anotherVM);
 			fklCancelAllThread();
-			fklFreeAllVMs();
+			fklFreeAllVMs(anotherVM);
 			fklFreeVMgc(gc);
 			fklFreeGlobSymbolTable();
 			fklFreeLineNumberTable(lnt);
@@ -191,7 +191,7 @@ int main(int argc,char** argv)
 void runRepl(FklCodegen* codegen)
 {
 	int e=0;
-	FklVM* anotherVM=fklNewVM(NULL);
+	FklVM* anotherVM=fklNewVM(NULL,NULL,NULL);
 	FklVMvalue* globEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
 	anotherVM->callback=errorCallBack;
 	FklByteCode* rawProcList=NULL;
@@ -289,7 +289,7 @@ void runRepl(FklCodegen* codegen)
 	fklFreePtrStack(tokenStack);
 	free(rawProcList);
 	fklFreeVMgc(anotherVM->gc);
-	fklFreeAllVMs();
+	fklFreeAllVMs(anotherVM);
 	fklFreeGlobSymbolTable();
 }
 

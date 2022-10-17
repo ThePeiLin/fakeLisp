@@ -27,7 +27,7 @@ int main(int argc,char** argv)
 		glob_t buf;
 		glob(pattern,GLOB_NOSORT,NULL,&buf);
 		fklInitCodegen();
-		fklInitLexer();
+		//fklInitLexer();
 		char* cwd=getcwd(NULL,0);
 		fklSetCwd(cwd);
 		free(cwd);

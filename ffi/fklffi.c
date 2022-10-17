@@ -176,8 +176,8 @@ void ffi_load(ARGL)
 	FklVMvalue* vpath=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.load",FKL_ERR_TOOMANYARG,frame,exe);
-	if(!exe->thrds)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.load",FKL_ERR_CANTCREATETHREAD,frame,exe);
+//	if(!exe->thrds)
+//		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.load",FKL_ERR_CANTCREATETHREAD,frame,exe);
 	if(!vpath)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.load",FKL_ERR_TOOFEWARG,frame,exe);
 	if(!FKL_IS_STR(vpath))
@@ -340,10 +340,10 @@ void ffi_proc(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void _fklInit(FklSymbolTable* glob,FklVMvalue* rel,FklVMlist* GlobVMs)
+void _fklInit(FklSymbolTable* glob,FklVMvalue* rel)
 {
 	fklSetGlobSymbolTable(glob);
-	fklSetGlobVMs(GlobVMs);
+//	fklSetGlobVMs(GlobVMs);
 	fklFfiMemInit(rel);
 	fklFfiInitGlobNativeTypes();
 	fklFfiInitTypedefSymbol();

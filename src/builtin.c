@@ -6,7 +6,6 @@
 #include<fakeLisp/utils.h>
 #include<fakeLisp/builtin.h>
 #include<fakeLisp/codegen.h>
-#include<fakeLisp/compiler.h>
 #ifdef _WIN32
 #include<conio.h>
 #include<windows.h>
@@ -2744,19 +2743,19 @@ void builtin_read(ARGL)
 			free(fklPopPtrStack(matchStateStack));
 		fklFreePtrStack(matchStateStack);
 	}
-	FklAstCptr* tmpCptr=fklCreateAstWithTokens(tokenStack,NULL,NULL);
+	size_t errorLine=0;
+	FklNastNode* node=fklNewNastNodeFromTokenStack(tokenStack,&errorLine);
 	FklVMvalue* tmp=NULL;
-	if(tmpCptr==NULL)
+	if(node==NULL)
 		tmp=FKL_VM_NIL;
 	else
-		tmp=fklCastCptrVMvalue(tmpCptr,NULL,exe->gc);
+		tmp=fklCreateVMvalueFromNastNodeAndStoreInStack(node,NULL,exe->gc,stack);
 	while(!fklIsPtrStackEmpty(tokenStack))
 		fklFreeToken(fklPopPtrStack(tokenStack));
 	fklFreePtrStack(tokenStack);
 	fklNiReturn(tmp,&ap,stack);
 	free(tmpString);
-	fklDeleteCptr(tmpCptr);
-	free(tmpCptr);
+	fklFreeNastNode(node);
 	fklNiEnd(&ap,stack);
 }
 
@@ -4709,10 +4708,10 @@ static const struct SymbolFuncStruct
 
 void fklInitCompEnv(FklCompEnv* curEnv)
 {
-	for(const struct SymbolFuncStruct* list=builtInSymbolList
-			;list->s!=NULL
-			;list++)
-		fklAddCompDefCstr(list->s,curEnv);
+//	for(const struct SymbolFuncStruct* list=builtInSymbolList
+//			;list->s!=NULL
+//			;list++)
+//		fklAddCompDefCstr(list->s,curEnv);
 }
 
 void fklInitGlobCodegenEnvWithSymbolTable(FklCodegenEnv* curEnv,FklSymbolTable* symbolTable)

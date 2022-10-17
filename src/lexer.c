@@ -6,18 +6,18 @@
 #include<string.h>
 #include<ctype.h>
 
-static FklSid_t builtInPattern_head_quote=0;
-static FklSid_t builtInPattern_head_qsquote=0;
-static FklSid_t builtInPattern_head_unquote=0;
-static FklSid_t builtInPattern_head_unqtesp=0;
+//static FklSid_t builtInPattern_head_quote=0;
+//static FklSid_t builtInPattern_head_qsquote=0;
+//static FklSid_t builtInPattern_head_unquote=0;
+//static FklSid_t builtInPattern_head_unqtesp=0;
 
-void fklInitLexer(void)
-{
-	builtInPattern_head_quote=fklAddSymbolToGlobCstr("quote")->id;
-	builtInPattern_head_qsquote=fklAddSymbolToGlobCstr("qsquote")->id;
-	builtInPattern_head_unquote=fklAddSymbolToGlobCstr("unquote")->id;
-	builtInPattern_head_unqtesp=fklAddSymbolToGlobCstr("unqtesp")->id;
-}
+//void fklInitLexer(void)
+//{
+//	builtInPattern_head_quote=fklAddSymbolToGlobCstr("quote")->id;
+//	builtInPattern_head_qsquote=fklAddSymbolToGlobCstr("qsquote")->id;
+//	builtInPattern_head_unquote=fklAddSymbolToGlobCstr("unquote")->id;
+//	builtInPattern_head_unqtesp=fklAddSymbolToGlobCstr("unqtesp")->id;
+//}
 
 FklNastNode* fklNewNastNodeFromCstr(const char* cStr)
 {
@@ -772,12 +772,12 @@ FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack* tokenStack,size_t* errorL
 						FklNastNode* prefix=newNastNode(FKL_TYPE_SYM,token->line);
 						FklStringMatchPattern* pattern=cState->pattern;
 						FklSid_t prefixValue=pattern==QUOTE?
-							builtInPattern_head_quote:
+							fklAddSymbolToGlobCstr("quote")->id:
 							pattern==QSQUOTE?
-							builtInPattern_head_qsquote:
+							fklAddSymbolToGlobCstr("qsquote")->id:
 							pattern==UNQUOTE?
-							builtInPattern_head_unquote:
-							builtInPattern_head_unqtesp;
+							fklAddSymbolToGlobCstr("unquote")->id:
+							fklAddSymbolToGlobCstr("unqtesp")->id;
 						prefix->u.sym=prefixValue;
 						FklNastNode* tmp[]={prefix,postfix->node,};
 						FklNastNode* list=newNastList(tmp,2,prefix->curline);

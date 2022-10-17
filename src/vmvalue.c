@@ -1,8 +1,389 @@
 #include<fakeLisp/vm.h>
 #include<fakeLisp/utils.h>
+#include<fakeLisp/lexer.h>
 #include<stdlib.h>
 #include<math.h>
 #include<string.h>
+
+typedef struct
+{
+	FklVMvalue* key;
+	uint64_t line;
+}LineNumHashItem;
+
+static size_t _LineNumHash_hashFunc(void* pKey)
+{
+	FklVMvalue* key=*(FklVMvalue**)pKey;
+	return (uintptr_t)FKL_GET_PTR(key)>>FKL_UNUSEDBITNUM;
+}
+
+static int _LineNumHash_keyEqual(void* pKey0,void* pKey1)
+{
+	FklVMvalue* key0=*(FklVMvalue**)pKey0;
+	FklVMvalue* key1=*(FklVMvalue**)pKey1;
+	return key0==key1;
+}
+
+static void _LineNumHash_freeItem(void* item)
+{
+	free(item);
+}
+
+static void* _LineNumHash_getKey(void* item)
+{
+	return &((LineNumHashItem*)item)->key;
+}
+
+static FklHashTableMethodTable LineNumHashMethTable=
+{
+	.__hashFunc=_LineNumHash_hashFunc,
+	.__freeItem=_LineNumHash_freeItem,
+	.__keyEqual=_LineNumHash_keyEqual,
+	.__getKey=_LineNumHash_getKey,
+};
+
+FklHashTable* fklNewLineNumHashTable(void)
+{
+	FklHashTable* lineHash=fklNewHashTable(32,8,2,0.75,1,&LineNumHashMethTable);
+	return lineHash;
+}
+
+static LineNumHashItem* newLineNumHashItem(FklVMvalue* value,FklVMvalue* refBy,uint64_t lineNum)
+{
+	LineNumHashItem* item=(LineNumHashItem*)malloc(sizeof(LineNumHashItem));
+	FKL_ASSERT(item);
+	item->key=value;
+	item->line=lineNum;
+	return item;
+}
+
+//#define SENTINEL_CPTR (NULL)
+//FklVMvalue* fklCastCptrVMvalue(FklAstCptr* objCptr,FklHashTable* lineHash,FklVMgc* gc)
+//{
+//	FklPtrStack* cptrStack=fklNewPtrStack(32,16);
+//	FklUintStack* reftypeStack=fklNewUintStack(32,16);
+//	FklPtrStack* valueStack=fklNewPtrStack(32,16);
+//	FklPtrStack* stackStack=fklNewPtrStack(32,16);
+//	fklPushPtrStack(objCptr,cptrStack);
+//	fklPushPtrStack(valueStack,stackStack);
+//	while(!fklIsPtrStackEmpty(cptrStack))
+//	{
+//		FklAstCptr* root=fklPopPtrStack(cptrStack);
+//		FklPtrStack* cStack=fklTopPtrStack(stackStack);
+//		if(root==SENTINEL_CPTR)
+//		{
+//			fklPopPtrStack(stackStack);
+//			FklPtrStack* tStack=fklTopPtrStack(stackStack);
+//			FklValueType type=fklPopUintStack(reftypeStack);
+//			uint64_t line=fklPopUintStack(reftypeStack);
+//			FklVMvalue* v=fklNewVMvalueNoGC(type,NULL,gc);
+//			fklPushPtrStack(v,tStack);
+//			if(lineHash)
+//				fklPutReplHashItem(newLineNumHashItem(v,NULL,line),lineHash);
+//			switch(type)
+//			{
+//				case FKL_TYPE_BOX:
+//					v->u.box=fklPopPtrStack(cStack);
+//					break;
+//				case FKL_TYPE_PAIR:
+//					{
+//						FklVMpair* pair=fklNewVMpair();
+//						size_t top=cStack->top;
+//						pair->car=cStack->base[top-1];
+//						pair->cdr=cStack->base[top-2];
+//						v->u.pair=pair;
+//					}
+//					break;
+//				case FKL_TYPE_VECTOR:
+//					{
+//						v->u.vec=fklNewVMvecNoInit(cStack->top);
+//						for(size_t i=cStack->top,j=0;i>0;i--,j++)
+//							v->u.vec->base[j]=cStack->base[i-1];
+//					}
+//					break;
+//				case FKL_TYPE_HASHTABLE:
+//					{
+//						FklVMhashTable* hash=fklNewVMhashTable(fklPopUintStack(reftypeStack));
+//						v->u.hash=hash;
+//						for(size_t i=cStack->top;i>0;i-=2)
+//						{
+//							FklVMvalue* key=cStack->base[i-1];
+//							FklVMvalue* v=cStack->base[i-2];
+//							fklSetVMhashTable(key,v,hash,gc);
+//						}
+//					}
+//					break;
+//				default:
+//					FKL_ASSERT(0);
+//					break;
+//			}
+//			fklFreePtrStack(cStack);
+//			cStack=tStack;
+//		}
+//		else
+//		{
+//			if(root->type==FKL_TYPE_ATM)
+//			{
+//				FklAstAtom* tmpAtm=root->u.atom;
+//				switch(tmpAtm->type)
+//				{
+//					case FKL_TYPE_I32:
+//						fklPushPtrStack(FKL_MAKE_VM_I32(tmpAtm->value.i32),cStack);
+//						break;
+//					case FKL_TYPE_CHR:
+//						fklPushPtrStack(FKL_MAKE_VM_CHR(tmpAtm->value.chr),cStack);
+//						break;
+//					case FKL_TYPE_SYM:
+//						fklPushPtrStack(FKL_MAKE_VM_SYM(fklAddSymbolToGlob(tmpAtm->value.str)->id),cStack);
+//						break;
+//					case FKL_TYPE_F64:
+//						fklPushPtrStack(fklNewVMvalueNoGC(FKL_TYPE_F64,&tmpAtm->value.f64,gc),cStack);
+//						break;
+//					case FKL_TYPE_STR:
+//						fklPushPtrStack(fklNewVMvalueNoGC(FKL_TYPE_STR
+//									,fklNewString(tmpAtm->value.str->size,tmpAtm->value.str->str)
+//									,gc),cStack);
+//						break;
+//					case FKL_TYPE_BYTEVECTOR:
+//						fklPushPtrStack(fklNewVMvalueNoGC(FKL_TYPE_BYTEVECTOR
+//									,fklNewBytevector(tmpAtm->value.bvec->size,tmpAtm->value.bvec->ptr)
+//									,gc),cStack);
+//						break;
+//					case FKL_TYPE_BIG_INT:
+//						fklPushPtrStack(fklNewVMvalueNoGC(FKL_TYPE_BIG_INT,fklCopyBigInt(&tmpAtm->value.bigInt),gc),cStack);
+//						break;
+//					case FKL_TYPE_BOX:
+//						{
+//							FklPtrStack* bStack=fklNewPtrStack(1,16);
+//							fklPushPtrStack(bStack,stackStack);
+//							cStack=bStack;
+//							fklPushUintStack(root->curline,reftypeStack);
+//							fklPushUintStack(FKL_TYPE_BOX,reftypeStack);
+//							fklPushPtrStack(SENTINEL_CPTR,cptrStack);
+//							fklPushPtrStack(&tmpAtm->value.box,cptrStack);
+//						}
+//						break;
+//					case FKL_TYPE_VECTOR:
+//						{
+//							fklPushUintStack(root->curline,reftypeStack);
+//							fklPushUintStack(FKL_TYPE_VECTOR,reftypeStack);
+//							fklPushPtrStack(SENTINEL_CPTR,cptrStack);
+//							for(size_t i=0;i<tmpAtm->value.vec.size;i++)
+//								fklPushPtrStack(&tmpAtm->value.vec.base[i],cptrStack);
+//							FklPtrStack* vStack=fklNewPtrStack(tmpAtm->value.vec.size,16);
+//							fklPushPtrStack(vStack,stackStack);
+//							cStack=vStack;
+//						}
+//						break;
+//					case FKL_TYPE_HASHTABLE:
+//						{
+//							fklPushUintStack(root->u.atom->value.hash.type,reftypeStack);
+//							fklPushUintStack(root->curline,reftypeStack);
+//							fklPushUintStack(FKL_TYPE_HASHTABLE,reftypeStack);
+//							fklPushPtrStack(SENTINEL_CPTR,cptrStack);
+//							for(FklAstCptr* cptr=fklGetFirstCptr(&tmpAtm->value.hash.items);cptr;cptr=fklNextCptr(cptr))
+//							{
+//								fklPushPtrStack(fklGetASTPairCar(cptr),cptrStack);
+//								fklPushPtrStack(fklGetASTPairCdr(cptr),cptrStack);
+//							}
+//							FklPtrStack* hStack=fklNewPtrStack(32,16);
+//							fklPushPtrStack(hStack,stackStack);
+//							cStack=hStack;
+//						}
+//						break;
+//					default:
+//						return NULL;
+//						break;
+//				}
+//			}
+//			else if(root->type==FKL_TYPE_PAIR)
+//			{
+//				FklPtrStack* pStack=fklNewPtrStack(2,16);
+//				fklPushPtrStack(pStack,stackStack);
+//				cStack=pStack;
+//				fklPushUintStack(root->curline,reftypeStack);
+//				fklPushUintStack(FKL_TYPE_PAIR,reftypeStack);
+//				fklPushPtrStack(SENTINEL_CPTR,cptrStack);
+//				fklPushPtrStack(fklGetASTPairCar(root),cptrStack);
+//				fklPushPtrStack(fklGetASTPairCdr(root),cptrStack);
+//			}
+//			else
+//				fklPushPtrStack(FKL_VM_NIL,cStack);
+//		}
+//	}
+//	FklVMvalue* retval=fklTopPtrStack(valueStack);
+//	fklFreePtrStack(stackStack);
+//	fklFreePtrStack(cptrStack);
+//	fklFreePtrStack(valueStack);
+//	fklFreeUintStack(reftypeStack);
+//	return retval;
+//}
+
+#define SENTINEL_NAST_NODE (NULL)
+FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
+		,FklHashTable* lineHash
+		,FklVMgc* gc
+		,FklVMstack* vmStack)
+{
+	FklPtrStack* nodeStack=fklNewPtrStack(32,16);
+	FklUintStack* reftypeStack=fklNewUintStack(32,16);
+	FklPtrStack* valueStack=fklNewPtrStack(32,16);
+	FklPtrStack* stackStack=fklNewPtrStack(32,16);
+	fklPushPtrStack((void*)node,nodeStack);
+	fklPushPtrStack(valueStack,stackStack);
+	while(!fklIsPtrStackEmpty(nodeStack))
+	{
+		FklNastNode* root=fklPopPtrStack(nodeStack);
+		FklPtrStack* cStack=fklTopPtrStack(stackStack);
+		if(root==SENTINEL_NAST_NODE)
+		{
+			fklPopPtrStack(stackStack);
+			FklPtrStack* tStack=fklTopPtrStack(stackStack);
+			FklValueType type=fklPopUintStack(reftypeStack);
+			uint64_t line=fklPopUintStack(reftypeStack);
+			FklVMvalue* v=fklNewVMvalueNoGC(type,NULL,gc);
+			fklPushPtrStack(v,tStack);
+			if(lineHash)
+				fklPutReplHashItem(newLineNumHashItem(v,NULL,line),lineHash);
+			switch(type)
+			{
+				case FKL_TYPE_BOX:
+					v->u.box=fklPopPtrStack(cStack);
+					break;
+				case FKL_TYPE_PAIR:
+					{
+						FklVMpair* pair=fklNewVMpair();
+						size_t top=cStack->top;
+						pair->car=cStack->base[top-1];
+						pair->cdr=cStack->base[top-2];
+						v->u.pair=pair;
+					}
+					break;
+				case FKL_TYPE_VECTOR:
+					{
+						v->u.vec=fklNewVMvecNoInit(cStack->top);
+						for(size_t i=cStack->top,j=0;i>0;i--,j++)
+							v->u.vec->base[j]=cStack->base[i-1];
+					}
+					break;
+				case FKL_TYPE_HASHTABLE:
+					{
+						FklVMhashTable* hash=fklNewVMhashTable(fklPopUintStack(reftypeStack));
+						v->u.hash=hash;
+						for(size_t i=cStack->top;i>0;i-=2)
+						{
+							FklVMvalue* key=cStack->base[i-1];
+							FklVMvalue* v=cStack->base[i-2];
+							fklSetVMhashTable(key,v,hash,gc);
+						}
+					}
+					break;
+				default:
+					FKL_ASSERT(0);
+					break;
+			}
+			fklFreePtrStack(cStack);
+			cStack=tStack;
+		}
+		else
+		{
+			if(root->type==FKL_TYPE_ATM)
+			{
+				FklAstAtom* tmpAtm=root->u.atom;
+				switch(tmpAtm->type)
+				{
+					case FKL_TYPE_I32:
+						fklPushPtrStack(FKL_MAKE_VM_I32(tmpAtm->value.i32),cStack);
+						break;
+					case FKL_TYPE_CHR:
+						fklPushPtrStack(FKL_MAKE_VM_CHR(tmpAtm->value.chr),cStack);
+						break;
+					case FKL_TYPE_SYM:
+						fklPushPtrStack(FKL_MAKE_VM_SYM(fklAddSymbolToGlob(tmpAtm->value.str)->id),cStack);
+						break;
+					case FKL_TYPE_F64:
+						fklPushPtrStack(fklNewVMvalueNoGC(FKL_TYPE_F64,&tmpAtm->value.f64,gc),cStack);
+						break;
+					case FKL_TYPE_STR:
+						fklPushPtrStack(fklNewVMvalueNoGC(FKL_TYPE_STR
+									,fklNewString(tmpAtm->value.str->size,tmpAtm->value.str->str)
+									,gc),cStack);
+						break;
+					case FKL_TYPE_BYTEVECTOR:
+						fklPushPtrStack(fklNewVMvalueNoGC(FKL_TYPE_BYTEVECTOR
+									,fklNewBytevector(tmpAtm->value.bvec->size,tmpAtm->value.bvec->ptr)
+									,gc),cStack);
+						break;
+					case FKL_TYPE_BIG_INT:
+						fklPushPtrStack(fklNewVMvalueNoGC(FKL_TYPE_BIG_INT,fklCopyBigInt(&tmpAtm->value.bigInt),gc),cStack);
+						break;
+					case FKL_TYPE_BOX:
+						{
+							FklPtrStack* bStack=fklNewPtrStack(1,16);
+							fklPushPtrStack(bStack,stackStack);
+							cStack=bStack;
+							fklPushUintStack(root->curline,reftypeStack);
+							fklPushUintStack(FKL_TYPE_BOX,reftypeStack);
+							fklPushPtrStack(SENTINEL_NAST_NODE,nodeStack);
+							fklPushPtrStack(&tmpAtm->value.box,nodeStack);
+						}
+						break;
+					case FKL_TYPE_VECTOR:
+						{
+							fklPushUintStack(root->curline,reftypeStack);
+							fklPushUintStack(FKL_TYPE_VECTOR,reftypeStack);
+							fklPushPtrStack(SENTINEL_NAST_NODE,nodeStack);
+							for(size_t i=0;i<tmpAtm->value.vec.size;i++)
+								fklPushPtrStack(&tmpAtm->value.vec.base[i],nodeStack);
+							FklPtrStack* vStack=fklNewPtrStack(tmpAtm->value.vec.size,16);
+							fklPushPtrStack(vStack,stackStack);
+							cStack=vStack;
+						}
+						break;
+					case FKL_TYPE_HASHTABLE:
+						{
+							fklPushUintStack(root->u.atom->value.hash.type,reftypeStack);
+							fklPushUintStack(root->curline,reftypeStack);
+							fklPushUintStack(FKL_TYPE_HASHTABLE,reftypeStack);
+							fklPushPtrStack(SENTINEL_NAST_NODE,nodeStack);
+							for(FklAstCptr* cptr=fklGetFirstCptr(&tmpAtm->value.hash.items);cptr;cptr=fklNextCptr(cptr))
+							{
+								fklPushPtrStack(fklGetASTPairCar(cptr),nodeStack);
+								fklPushPtrStack(fklGetASTPairCdr(cptr),nodeStack);
+							}
+							FklPtrStack* hStack=fklNewPtrStack(32,16);
+							fklPushPtrStack(hStack,stackStack);
+							cStack=hStack;
+						}
+						break;
+					default:
+						return NULL;
+						break;
+				}
+			}
+			else if(root->type==FKL_TYPE_PAIR)
+			{
+				FklPtrStack* pStack=fklNewPtrStack(2,16);
+				fklPushPtrStack(pStack,stackStack);
+				cStack=pStack;
+				fklPushUintStack(root->curline,reftypeStack);
+				fklPushUintStack(FKL_TYPE_PAIR,reftypeStack);
+				fklPushPtrStack(SENTINEL_NAST_NODE,nodeStack);
+				fklPushPtrStack(fklGetASTPairCar(root),nodeStack);
+				fklPushPtrStack(fklGetASTPairCdr(root),nodeStack);
+			}
+			else
+				fklPushPtrStack(FKL_VM_NIL,cStack);
+		}
+	}
+	FklVMvalue* retval=fklTopPtrStack(valueStack);
+	fklFreePtrStack(stackStack);
+	fklFreePtrStack(nodeStack);
+	fklFreePtrStack(valueStack);
+	fklFreeUintStack(reftypeStack);
+	return retval;
+}
+
 FklVMproc* fklNewVMproc(uint64_t scp,uint64_t cpc)
 {
 	FklVMproc* tmp=(FklVMproc*)malloc(sizeof(FklVMproc));
@@ -670,9 +1051,9 @@ FklVMdllHandle fklNewVMdll(const char* dllName)
 void fklInitVMdll(FklVMvalue* rel)
 {
 	FklVMdllHandle handle=rel->u.dll;
-	void (*init)(FklSymbolTable*,FklVMvalue* rel,FklVMlist*)=fklGetAddress("_fklInit",handle);
+	void (*init)(FklSymbolTable*,FklVMvalue* rel)=fklGetAddress("_fklInit",handle);
 	if(init)
-		init(fklGetGlobSymbolTable(),rel,fklGetGlobVMs());
+		init(fklGetGlobSymbolTable(),rel);
 }
 
 void fklFreeVMvalue(FklVMvalue* cur)

@@ -2,26 +2,26 @@
 #define FKL_LEXER_H
 #include"symbol.h"
 #include"base.h"
-#include"ast.h"
+//#include"ast.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-//typedef enum{
-//	FKL_NAST_NIL=0,
-//	FKL_NAST_I32,
-//	FKL_NAST_SYM,
-//	FKL_NAST_CHR,
-//	FKL_NAST_F64,
-//	FKL_NAST_I64,
-//	FKL_NAST_BIG_INT,
-//	FKL_NAST_STR,
-//	FKL_NAST_VECTOR,
-//	FKL_NAST_PAIR,
-//	FKL_NAST_BOX,
-//	FKL_NAST_BYTEVECTOR,
-//	FKL_NAST_HASHTABLE,
-//}FklNastType;
+typedef enum{
+	FKL_NAST_NIL=0,
+	FKL_NAST_I32,
+	FKL_NAST_SYM,
+	FKL_NAST_CHR,
+	FKL_NAST_F64,
+	FKL_NAST_I64,
+	FKL_NAST_BIG_INT,
+	FKL_NAST_STR,
+	FKL_NAST_VECTOR,
+	FKL_NAST_PAIR,
+	FKL_NAST_BOX,
+	FKL_NAST_BYTEVECTOR,
+	FKL_NAST_HASHTABLE,
+}FklNastType;
 
 typedef struct FklNastPair
 {
@@ -44,7 +44,7 @@ typedef struct FklNastHashTable
 
 typedef struct FklNastNode
 {
-	FklValueType type;
+	FklNastType type;
 	size_t curline;
 	size_t refcount;
 	union
@@ -64,7 +64,7 @@ typedef struct FklNastNode
 	}u;
 }FklNastNode;
 
-void fklInitLexer(void);
+//void fklInitLexer(void);
 FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack*,size_t* errorLine);
 FklNastNode* fklNewNastNodeFromCstr(const char*);
 void fklFreeNastNode(FklNastNode*);

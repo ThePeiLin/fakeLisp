@@ -2724,9 +2724,11 @@ void builtin_read(ARGL)
 	if(!stream||FKL_IS_FP(stream))
 	{
 		tmpFile=stream?stream->u.fp:BuiltInStdin->u.fp;
+		pthread_mutex_lock(&tmpFile->lock);
 		int unexpectEOF=0;
 		size_t size=0;
 		tmpString=fklReadInStringPattern(tmpFile->fp,(char**)&tmpFile->prev,&size,&tmpFile->size,0,&unexpectEOF,tokenStack,NULL);
+		pthread_mutex_unlock(&tmpFile->lock);
 		if(unexpectEOF)
 		{
 			free(tmpString);
@@ -2779,6 +2781,7 @@ void builtin_fgets(ARGL)
 	char* str=(char*)malloc(sizeof(char)*size);
 	FKL_ASSERT(str);
 	int32_t realRead=0;
+	pthread_mutex_lock(&fp->lock);
 	if(fp->size)
 	{
 		if(fp->size<=size)
@@ -2803,6 +2806,7 @@ void builtin_fgets(ARGL)
 	}
 	if(size)
 		realRead+=fread(str,sizeof(uint8_t),size,fp->fp);
+	pthread_mutex_unlock(&fp->lock);
 	if(!realRead)
 	{
 		free(str);
@@ -2841,6 +2845,7 @@ void builtin_fgetb(ARGL)
 	uint8_t* ptr=(uint8_t*)malloc(sizeof(uint8_t)*size);
 	FKL_ASSERT(ptr);
 	int32_t realRead=0;
+	pthread_mutex_lock(&fp->lock);
 	if(fp->size)
 	{
 		if(fp->size<=size)
@@ -2865,6 +2870,7 @@ void builtin_fgetb(ARGL)
 	}
 	if(size)
 		realRead+=fread(ptr,sizeof(uint8_t),size,fp->fp);
+	pthread_mutex_unlock(&fp->lock);
 	if(!realRead)
 	{
 		free(ptr);
@@ -3727,6 +3733,7 @@ void builtin_fgetc(ARGL)
 	FklVMfp* fp=stream?stream->u.fp:BuiltInStdin->u.fp;
 	if(!fp)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetc",FKL_ERR_INVALIDACCESS,frame,exe);
+	pthread_mutex_lock(&fp->lock);
 	if(fp->size)
 	{
 		fp->size-=1;
@@ -3743,6 +3750,7 @@ void builtin_fgetc(ARGL)
 		else
 			fklNiReturn(FKL_MAKE_VM_CHR(ch),&ap,stack);
 	}
+	pthread_mutex_unlock(&fp->lock);
 	fklNiEnd(&ap,stack);
 }
 

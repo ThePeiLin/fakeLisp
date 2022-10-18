@@ -831,6 +831,7 @@ FklVMfp* fklCreateVMfp(FILE* fp)
 	vfp->fp=fp;
 	vfp->size=0;
 	vfp->prev=NULL;
+	pthread_mutex_init(&vfp->lock,NULL);
 	return vfp;
 }
 
@@ -844,6 +845,7 @@ int fklDestroyVMfp(FklVMfp* vfp)
 		FILE* fp=vfp->fp;
 		if(!(fp!=NULL&&fp!=stdin&&fp!=stdout&&fp!=stderr&&fclose(fp)!=EOF))
 			r=1;
+		pthread_mutex_destroy(&vfp->lock);
 		free(vfp);
 	}
 	return r;

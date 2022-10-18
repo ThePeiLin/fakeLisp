@@ -102,6 +102,7 @@ typedef struct FklVMpair
 
 typedef struct FklVMfp
 {
+	pthread_mutex_t lock;
 	size_t size;
 	uint8_t* prev;
 	FILE* fp;

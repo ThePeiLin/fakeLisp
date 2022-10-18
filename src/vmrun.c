@@ -254,7 +254,7 @@ FklVM* fklCreateVM(FklByteCode* mainCode,FklVM* prev,FklVM* next)
 		exe->size=mainCode->size;
 		tmpVMproc=fklCreateVMproc(0,mainCode->size);
 		exe->frames=fklCreateVMframe(tmpVMproc,exe->frames);
-		fklFreeVMproc(tmpVMproc);
+		fklDestroyVMproc(tmpVMproc);
 	}
 	exe->mark=1;
 	exe->chan=NULL;
@@ -344,10 +344,10 @@ void* ThreadVMfunc(void* p)
 			fklChanlSend(fklCreateVMsend(v),tmpCh);
 		fklNiEnd(&ap,stack);
 	}
-	fklFreeVMstack(exe->stack);
+	fklDestroyVMstack(exe->stack);
 	exe->stack=NULL;
 	exe->lnt=NULL;
-	fklFreePtrStack(exe->tstack);
+	fklDestroyPtrStack(exe->tstack);
 	pthread_rwlock_wrlock(&exe->rlock);
 	if(state!=0)
 		fklDeleteCallChain(exe);
@@ -809,7 +809,7 @@ void B_pop_try(FklVM* exe)
 {
 	FklVMframe* frame=exe->frames;
 	FklVMtryBlock* tb=fklPopPtrStack(exe->tstack);
-	fklFreeVMtryBlock(tb);
+	fklDestroyVMtryBlock(tb);
 	frame->cp+=sizeof(char);
 }
 
@@ -1324,7 +1324,7 @@ void fklGC_sweep(FklVMvalue* head)
 	{
 		FklVMvalue* cur=*phead;
 		*phead=cur->next;
-		fklFreeVMvalue(cur);
+		fklDestroyVMvalue(cur);
 	}
 }
 
@@ -1464,10 +1464,10 @@ void* fklGC_threadFunc(void* arg)
 	return NULL;
 }
 
-void fklFreeAllValues(FklVMgc* gc)
+void fklDestroyAllValues(FklVMgc* gc)
 {
 	FklVMvalue** phead=&gc->head;
-	FklVMvalue* freeDll=NULL;
+	FklVMvalue* destroyDll=NULL;
 	while(*phead!=NULL)
 	{
 		FklVMvalue* cur=*phead;
@@ -1476,11 +1476,11 @@ void fklFreeAllValues(FklVMgc* gc)
 			*phead=cur->next;
 			if(FKL_IS_DLL(cur))
 			{
-				cur->next=freeDll;
-				freeDll=cur;
+				cur->next=destroyDll;
+				destroyDll=cur;
 			}
 			else
-				fklFreeVMvalue(cur);
+				fklDestroyVMvalue(cur);
 			gc->num-=1;
 		}
 		else
@@ -1489,12 +1489,12 @@ void fklFreeAllValues(FklVMgc* gc)
 			phead=&cur->next;
 		}
 	}
-	phead=&freeDll;
+	phead=&destroyDll;
 	while(*phead!=NULL)
 	{
 		FklVMvalue* cur=*phead;
 		*phead=cur->next;
-		fklFreeVMvalue(cur);
+		fklDestroyVMvalue(cur);
 	}
 }
 
@@ -1571,16 +1571,16 @@ FklVM* fklCreateThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue* ne
 }
 
 
-void fklFreeVMstack(FklVMstack* stack)
+void fklDestroyVMstack(FklVMstack* stack)
 {
 //	pthread_rwlock_destroy(&stack->lock);
-	fklFreeUintStack(stack->bps);
-	fklFreeUintStack(stack->tps);
+	fklDestroyUintStack(stack->bps);
+	fklDestroyUintStack(stack->tps);
 	free(stack->values);
 	free(stack);
 }
 
-//void fklFreeAllVMs(FklVM* node)
+//void fklDestroyAllVMs(FklVM* node)
 //{
 //	for(FklVMnode** ph=&GlobVMs->h;*ph!=node;)
 //	{
@@ -1589,8 +1589,8 @@ void fklFreeVMstack(FklVMstack* stack)
 //		if(cur->vm->mark)
 //		{
 //			fklDeleteCallChain(cur->vm);
-//			fklFreeVMstack(cur->vm->stack);
-//			fklFreePtrStack(cur->vm->tstack);
+//			fklDestroyVMstack(cur->vm->stack);
+//			fklDestroyPtrStack(cur->vm->tstack);
 //		}
 //		free(cur->vm);
 //		free(cur);
@@ -1598,7 +1598,7 @@ void fklFreeVMstack(FklVMstack* stack)
 //	pthread_rwlock_destroy(&GlobVMs->lock);
 //}
 
-void fklFreeAllVMs(FklVM* curVM)
+void fklDestroyAllVMs(FklVM* curVM)
 {
 	uint8_t* code=curVM->code;
 	for(FklVM* prev=curVM->prev;prev;)
@@ -1606,8 +1606,8 @@ void fklFreeAllVMs(FklVM* curVM)
 		if(prev->mark)
 		{
 			fklDeleteCallChain(prev);
-			fklFreeVMstack(prev->stack);
-			fklFreePtrStack(prev->tstack);
+			fklDestroyVMstack(prev->stack);
+			fklDestroyPtrStack(prev->tstack);
 		}
 		FklVM* t=prev;
 		prev=prev->prev;
@@ -1618,8 +1618,8 @@ void fklFreeAllVMs(FklVM* curVM)
 		if(cur->mark)
 		{
 			fklDeleteCallChain(cur);
-			fklFreeVMstack(cur->stack);
-			fklFreePtrStack(cur->tstack);
+			fklDestroyVMstack(cur->stack);
+			fklDestroyPtrStack(cur->tstack);
 		}
 		FklVM* t=cur;
 		cur=cur->next;
@@ -1628,10 +1628,10 @@ void fklFreeAllVMs(FklVM* curVM)
 	free(code);
 }
 
-void fklFreeVMgc(FklVMgc* gc)
+void fklDestroyVMgc(FklVMgc* gc)
 {
 	fklWaitGC(gc);
-	fklFreeAllValues(gc);
+	fklDestroyAllValues(gc);
 	pthread_rwlock_destroy(&gc->greylock);
 	pthread_rwlock_destroy(&gc->lock);
 	free(gc);
@@ -1669,8 +1669,8 @@ void fklCancelAllThread()
 //			if(cur->vm->mark)
 //			{
 //				fklDeleteCallChain(cur->vm);
-//				fklFreeVMstack(cur->vm->stack);
-//				fklFreePtrStack(cur->vm->tstack);
+//				fklDestroyVMstack(cur->vm->stack);
+//				fklDestroyPtrStack(cur->vm->tstack);
 //			}
 //		}
 //	}
@@ -1682,7 +1682,7 @@ void fklDeleteCallChain(FklVM* exe)
 	{
 		FklVMframe* cur=exe->frames;
 		exe->frames=cur->prev;
-		fklFreeVMframe(cur);
+		fklDestroyVMframe(cur);
 	}
 }
 
@@ -1705,8 +1705,8 @@ void fklCreateCallChainWithContinuation(FklVM* vm,FklVMcontinuation* cc)
 	}
 //	pthread_rwlock_wrlock(&stack->lock);
 	free(stack->values);
-	fklFreeUintStack(stack->tps);
-	fklFreeUintStack(stack->bps);
+	fklDestroyUintStack(stack->tps);
+	fklDestroyUintStack(stack->bps);
 	stack->values=tmpStack->values;
 	stack->bp=tmpStack->bp;
 	stack->bps=tmpStack->bps;
@@ -1731,7 +1731,7 @@ void fklCreateCallChainWithContinuation(FklVM* vm,FklVMcontinuation* cc)
 	}
 	pthread_rwlock_unlock(&vm->rlock);
 	while(!fklIsPtrStackEmpty(vm->tstack))
-		fklFreeVMtryBlock(fklPopPtrStack(vm->tstack));
+		fklDestroyVMtryBlock(fklPopPtrStack(vm->tstack));
 	for(i=0;i<cc->tnum;i++)
 	{
 		FklVMtryBlock* tmp=&cc->tb[i];
@@ -1787,7 +1787,7 @@ inline void fklPushVMvalue(FklVMvalue* v,FklVMstack* s)
 //	pthread_rwlock_unlock(&s->lock);
 }
 
-void fklFreeVMframes(FklVMframe* h)
+void fklDestroyVMframes(FklVMframe* h)
 {
 	while(h)
 	{

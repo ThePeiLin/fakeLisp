@@ -32,11 +32,11 @@ FklNastNode* fklCreateNastNodeFromCstr(const char* cStr,const FklSid_t buildInHe
 	size_t errorLine=0;
 	FklNastNode* retval=fklCreateNastNodeFromTokenStack(tokenStack,&errorLine,buildInHeadSymbolTable);
 	while(!fklIsPtrStackEmpty(tokenStack))
-		fklFreeToken(fklPopPtrStack(tokenStack));
+		fklDestroyToken(fklPopPtrStack(tokenStack));
 	while(!fklIsPtrStackEmpty(matchStateStack))
 		free(fklPopPtrStack(matchStateStack));
-	fklFreePtrStack(tokenStack);
-	fklFreePtrStack(matchStateStack);
+	fklDestroyPtrStack(tokenStack);
+	fklDestroyPtrStack(matchStateStack);
 	return retval;
 }
 
@@ -160,7 +160,7 @@ static FklNastNode* createNum(const FklString* oStr,uint64_t line)
 			}
 			else
 				r->u.i32=num;
-			fklFreeBigInt(bInt);
+			fklDestroyBigInt(bInt);
 		}
 	}
 	return r;
@@ -213,9 +213,9 @@ static NastElem* createNastElem(NastPlace place,FklNastNode* node)
 	return r;
 }
 
-static void freeNastElem(NastElem* n)
+static void destroyNastElem(NastElem* n)
 {
-	fklFreeNastNode(n->node);
+	fklDestroyNastNode(n->node);
 	free(n);
 }
 
@@ -226,7 +226,7 @@ typedef struct
 	uint32_t cindex;
 }MatchState;
 
-static void freeMatchState(MatchState* state)
+static void destroyMatchState(MatchState* state)
 {
 	free(state);
 }
@@ -434,13 +434,13 @@ static FklNastNode* listProcesser(FklPtrStack* nodeStack,uint64_t line,size_t* e
 			for(size_t j=i;j<nodeStack->top;j++)
 			{
 				NastElem* elem=nodeStack->base[i];
-				freeNastElem(elem);
+				destroyNastElem(elem);
 			}
-			fklFreeNastNode(retval);
+			fklDestroyNastNode(retval);
 			retval=NULL;
 			break;
 		}
-		freeNastElem(elem);
+		destroyNastElem(elem);
 	}
 	if(r&&!(*cur))
 		(*cur)=fklMakeNastNodeRef(createNastNode(FKL_NAST_NIL,line));
@@ -465,13 +465,13 @@ static FklNastNode* vectorProcesser(FklPtrStack* nodeStack,uint64_t line,size_t*
 			for(size_t j=i;j<nodeStack->top;j++)
 			{
 				NastElem* elem=nodeStack->base[i];
-				freeNastElem(elem);
+				destroyNastElem(elem);
 			}
-			fklFreeNastNode(retval);
+			fklDestroyNastNode(retval);
 			retval=NULL;
 			break;
 		}
-		freeNastElem(elem);
+		destroyNastElem(elem);
 	}
 	return retval;
 }
@@ -502,13 +502,13 @@ static FklNastNode* bytevectorProcesser(FklPtrStack* nodeStack,uint64_t line,siz
 			for(size_t j=i;j<nodeStack->top;j++)
 			{
 				NastElem* elem=nodeStack->base[i];
-				freeNastElem(elem);
+				destroyNastElem(elem);
 			}
-			fklFreeNastNode(retval);
+			fklDestroyNastNode(retval);
 			retval=NULL;
 			break;
 		}
-		freeNastElem(elem);
+		destroyNastElem(elem);
 	}
 	return retval;
 }
@@ -544,13 +544,13 @@ inline static FklNastNode* hashTableProcess(FklVMhashTableEqType type,FklPtrStac
 			for(size_t j=i;j<nodeStack->top;j++)
 			{
 				NastElem* elem=nodeStack->base[i];
-				freeNastElem(elem);
+				destroyNastElem(elem);
 			}
-			fklFreeNastNode(retval);
+			fklDestroyNastNode(retval);
 			retval=NULL;
 			break;
 		}
-		freeNastElem(elem);
+		destroyNastElem(elem);
 	}
 	return retval;
 }
@@ -619,19 +619,19 @@ FklNastNode* fklCreateNastNodeFromTokenStack(FklPtrStack* tokenStack,size_t* err
 				{
 					*errorLine=token->line;
 					while(!fklIsPtrStackEmpty(matchStateStack))
-						freeMatchState(fklPopPtrStack(matchStateStack));
-					fklFreePtrStack(matchStateStack);
+						destroyMatchState(fklPopPtrStack(matchStateStack));
+					fklDestroyPtrStack(matchStateStack);
 					while(!fklIsPtrStackEmpty(stackStack))
 					{
 						FklPtrStack* cStack=fklPopPtrStack(stackStack);
 						while(!fklIsPtrStackEmpty(cStack))
 						{
 							NastElem* elem=fklPopPtrStack(cStack);
-							freeNastElem(elem);
+							destroyNastElem(elem);
 						}
-						fklFreePtrStack(cStack);
+						fklDestroyPtrStack(cStack);
 					}
-					fklFreePtrStack(stackStack);
+					fklDestroyPtrStack(stackStack);
 					return NULL;
 				}
 				NastElem* elem=createNastElem(NAST_CAR,singleLiteral);
@@ -710,24 +710,24 @@ FklNastNode* fklCreateNastNodeFromTokenStack(FklPtrStack* tokenStack,size_t* err
 					fklPopPtrStack(stackStack);
 					MatchState* cState=fklPopPtrStack(matchStateStack);
 					FklNastNode* n=nastStackProcessers[(uintptr_t)cState->pattern](cStack,token->line,errorLine);
-					fklFreePtrStack(cStack);
-					freeMatchState(cState);
+					fklDestroyPtrStack(cStack);
+					destroyMatchState(cState);
 					if(!n)
 					{
 						while(!fklIsPtrStackEmpty(matchStateStack))
-							freeMatchState(fklPopPtrStack(matchStateStack));
-						fklFreePtrStack(matchStateStack);
+							destroyMatchState(fklPopPtrStack(matchStateStack));
+						fklDestroyPtrStack(matchStateStack);
 						while(!fklIsPtrStackEmpty(stackStack))
 						{
 							FklPtrStack* cStack=fklPopPtrStack(stackStack);
 							while(!fklIsPtrStackEmpty(cStack))
 							{
 								NastElem* elem=fklPopPtrStack(cStack);
-								freeNastElem(elem);
+								destroyNastElem(elem);
 							}
-							fklFreePtrStack(cStack);
+							fklDestroyPtrStack(cStack);
 						}
-						fklFreePtrStack(stackStack);
+						fklDestroyPtrStack(stackStack);
 						return NULL;
 					}
 					NastElem* v=createNastElem(NAST_CAR,n);
@@ -747,7 +747,7 @@ FklNastNode* fklCreateNastNodeFromTokenStack(FklPtrStack* tokenStack,size_t* err
 					fklPopPtrStack(stackStack);
 					MatchState* cState=fklPopPtrStack(matchStateStack);
 					NastElem* postfix=fklPopPtrStack(cStack);
-					fklFreePtrStack(cStack);
+					fklDestroyPtrStack(cStack);
 					cStack=fklTopPtrStack(stackStack);
 					if(state->pattern==DOTTED)
 					{
@@ -760,7 +760,7 @@ FklNastNode* fklCreateNastNodeFromTokenStack(FklPtrStack* tokenStack,size_t* err
 						box->u.box=fklMakeNastNodeRef(postfix->node);
 						NastElem* v=createNastElem(NAST_CAR,box);
 						fklPushPtrStack(v,cStack);
-						freeNastElem(postfix);
+						destroyNastElem(postfix);
 					}
 					else
 					{
@@ -776,11 +776,11 @@ FklNastNode* fklCreateNastNodeFromTokenStack(FklPtrStack* tokenStack,size_t* err
 						prefix->u.sym=prefixValue;
 						FklNastNode* tmp[]={prefix,postfix->node,};
 						FklNastNode* list=createNastList(tmp,2,prefix->curline);
-						freeNastElem(postfix);
+						destroyNastElem(postfix);
 						NastElem* v=createNastElem(NAST_CAR,list);
 						fklPushPtrStack(v,cStack);
 					}
-					freeMatchState(cState);
+					destroyMatchState(cState);
 				}
 			}
 		}
@@ -788,9 +788,9 @@ FklNastNode* fklCreateNastNodeFromTokenStack(FklPtrStack* tokenStack,size_t* err
 		if(retvalElem)
 			retval=retvalElem->node;
 		free(retvalElem);
-		fklFreePtrStack(stackStack);
-		fklFreePtrStack(matchStateStack);
-		fklFreePtrStack(elemStack);
+		fklDestroyPtrStack(stackStack);
+		fklDestroyPtrStack(matchStateStack);
+		fklDestroyPtrStack(elemStack);
 	}
 	return retval;
 }
@@ -812,7 +812,7 @@ void fklPrintNastNode(const FklNastNode* exp,FILE* fp)
 			FklNastNode* node=e->node;
 			if(e->place==NAST_CDR)
 				fputc(',',fp);
-			freeNastElem(e);
+			destroyNastElem(e);
 			switch(node->type)
 			{
 				case FKL_NAST_SYM:
@@ -898,7 +898,7 @@ void fklPrintNastNode(const FklNastNode* exp,FILE* fp)
 				fputc(' ',fp);
 		}
 		fklPopPtrStack(queueStack);
-		fklFreePtrQueue(cQueue);
+		fklDestroyPtrQueue(cQueue);
 		if(!fklIsPtrStackEmpty(queueStack))
 		{
 			fputc(')',fp);
@@ -907,27 +907,27 @@ void fklPrintNastNode(const FklNastNode* exp,FILE* fp)
 				fputc(' ',fp);
 		}
 	}
-	fklFreePtrStack(queueStack);
+	fklDestroyPtrStack(queueStack);
 }
 
-static void freeNastPair(FklNastPair* pair)
+static void destroyNastPair(FklNastPair* pair)
 {
 	free(pair);
 }
 
-static void freeNastVector(FklNastVector* vec)
+static void destroyNastVector(FklNastVector* vec)
 {
 	free(vec->base);
 	free(vec);
 }
 
-static void freeNastHash(FklNastHashTable* hash)
+static void destroyNastHash(FklNastHashTable* hash)
 {
 	free(hash->items);
 	free(hash);
 }
 
-void fklFreeNastNode(FklNastNode* node)
+void fklDestroyNastNode(FklNastNode* node)
 {
 	FklPtrStack* stack=fklCreatePtrStack(32,16);
 	fklPushPtrStack(node,stack);
@@ -955,12 +955,12 @@ void fklFreeNastNode(FklNastNode* node)
 						free(cur->u.bvec);
 						break;
 					case FKL_NAST_BIG_INT:
-						fklFreeBigInt(cur->u.bigInt);
+						fklDestroyBigInt(cur->u.bigInt);
 						break;
 					case FKL_NAST_PAIR:
 						fklPushPtrStack(cur->u.pair->car,stack);
 						fklPushPtrStack(cur->u.pair->cdr,stack);
-						freeNastPair(cur->u.pair);
+						destroyNastPair(cur->u.pair);
 						break;
 					case FKL_NAST_BOX:
 						fklPushPtrStack(cur->u.box,stack);
@@ -968,7 +968,7 @@ void fklFreeNastNode(FklNastNode* node)
 					case FKL_NAST_VECTOR:
 						for(size_t i=0;i<cur->u.vec->size;i++)
 							fklPushPtrStack(cur->u.vec->base[i],stack);
-						freeNastVector(cur->u.vec);
+						destroyNastVector(cur->u.vec);
 						break;
 					case FKL_NAST_HASHTABLE:
 						for(size_t i=0;i<cur->u.hash->num;i++)
@@ -976,7 +976,7 @@ void fklFreeNastNode(FklNastNode* node)
 							fklPushPtrStack(cur->u.hash->items[i].car,stack);
 							fklPushPtrStack(cur->u.hash->items[i].cdr,stack);
 						}
-						freeNastHash(cur->u.hash);
+						destroyNastHash(cur->u.hash);
 						break;
 					default:
 						FKL_ASSERT(0);
@@ -986,7 +986,7 @@ void fklFreeNastNode(FklNastNode* node)
 			}
 		}
 	}
-	fklFreePtrStack(stack);
+	fklDestroyPtrStack(stack);
 }
 
 static int nastNodeEqual(const FklNastNode* n0,const FklNastNode* n1)
@@ -1078,8 +1078,8 @@ static int nastNodeEqual(const FklNastNode* n0,const FklNastNode* n1)
 			}
 		}
 	}
-	fklFreePtrStack(s0);
-	fklFreePtrStack(s1);
+	fklDestroyPtrStack(s0);
+	fklDestroyPtrStack(s1);
 	return r;
 }
 
@@ -1115,7 +1115,7 @@ static int _pattern_matching_hash_key_equal(void* pk0,void* pk1)
 static FklHashTableMethodTable Codegen_hash_method_table=
 {
 	.__hashFunc=_pattern_matching_hash_table_hash_func,
-	.__freeItem=_pattern_matching_hash_free_item,
+	.__destroyItem=_pattern_matching_hash_free_item,
 	.__keyEqual=_pattern_matching_hash_key_equal,
 	.__getKey=_pattern_matching_hash_get_key,
 };
@@ -1171,13 +1171,13 @@ int fklPatternMatch(const FklNastNode* pattern,FklNastNode* exp,FklHashTable* ht
 		}
 		else if(!nastNodeEqual(n0,n1))
 		{
-			fklFreePtrStack(s0);
-			fklFreePtrStack(s1);
+			fklDestroyPtrStack(s0);
+			fklDestroyPtrStack(s1);
 			return 0;
 		}
 	}
-	fklFreePtrStack(s0);
-	fklFreePtrStack(s1);
+	fklDestroyPtrStack(s0);
+	fklDestroyPtrStack(s1);
 	return 1;
 }
 

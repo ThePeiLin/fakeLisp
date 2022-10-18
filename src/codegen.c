@@ -38,8 +38,8 @@ static FklNastNode* _default_codegen_get_next_expression(void* context,FklCodege
 static void _default_codegen_next_expression_finalizer(void* context)
 {
 	while(!fklIsPtrQueueEmpty(context))
-		fklFreeNastNode(fklPopPtrQueue(context));
-	fklFreePtrQueue(context);
+		fklDestroyNastNode(fklPopPtrQueue(context));
+	fklDestroyPtrQueue(context);
 }
 
 static const FklNextExpressionMethodTable _default_codegen_next_expression_method_table=
@@ -195,7 +195,7 @@ static FklCodegenQuest* createCodegenQuest(FklByteCodeProcesser f
 	return r;
 }
 
-static void freeCodegenQuest(FklCodegenQuest* quest)
+static void destroyCodegenQuest(FklCodegenQuest* quest)
 {
 	FklCodegenNextExpression* nextExpression=quest->nextExpression;
 	if(nextExpression)
@@ -204,9 +204,9 @@ static void freeCodegenQuest(FklCodegenQuest* quest)
 			nextExpression->t->finalizer(nextExpression->context);
 		free(nextExpression);
 	}
-	fklFreeCodegenEnv(quest->env);
-	fklFreePtrStack(quest->stack);
-	fklFreeCodegener(quest->codegen);
+	fklDestroyCodegenEnv(quest->env);
+	fklDestroyPtrStack(quest->stack);
+	fklDestroyCodegener(quest->codegen);
 	free(quest);
 }
 
@@ -244,7 +244,7 @@ BC_PROCESS(_begin_exp_bc_process)
 				if(i<top-1)
 					bclBcAppendToBcl(retval,&resTp,fid,line);
 			}
-			fklFreeByteCodelnt(cur);
+			fklDestroyByteCodelnt(cur);
 		}
 		bcBclAppendToBcl(&setTp,retval,fid,line);
 		bclBcAppendToBcl(retval,&popTp,fid,line);
@@ -277,7 +277,7 @@ BC_PROCESS(_funcall_exp_bc_process)
 	{
 		FklByteCodelnt* cur=fklPopPtrStack(stack);
 		fklCodeLntCat(retval,cur);
-		fklFreeByteCodelnt(cur);
+		fklDestroyByteCodelnt(cur);
 	}
 	uint8_t opcodes[]={FKL_OP_SET_BP,FKL_OP_CALL};
 	FklByteCode setBp={1,&opcodes[0],};
@@ -302,8 +302,8 @@ static void codegen_funcall(FklNastNode* rest
 		errorState->type=FKL_ERR_SYNTAXERROR;
 		errorState->place=fklMakeNastNodeRef(rest);
 		while(!fklIsPtrQueueEmpty(queue))
-			fklFreeNastNode(fklPopPtrQueue(queue));
-		fklFreePtrQueue(queue);
+			fklDestroyNastNode(fklPopPtrQueue(queue));
+		fklDestroyPtrQueue(queue);
 	}
 	else
 		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_funcall_exp_bc_process
@@ -367,7 +367,7 @@ BC_PROCESS(_and_exp_bc_process)
 			}
 			FklByteCodelnt* cur=fklPopPtrStack(stack);
 			fklReCodeLntCat(cur,retval);
-			fklFreeByteCodelnt(cur);
+			fklDestroyByteCodelnt(cur);
 		}
 		if(retval->bc->size)
 		{
@@ -425,7 +425,7 @@ BC_PROCESS(_or_exp_bc_process)
 			}
 			FklByteCodelnt* cur=fklPopPtrStack(stack);
 			fklReCodeLntCat(cur,retval);
-			fklFreeByteCodelnt(cur);
+			fklDestroyByteCodelnt(cur);
 		}
 		if(retval->bc->size)
 		{
@@ -479,7 +479,7 @@ BC_PROCESS(_lambda_exp_bc_process)
 				if(i<top-1)
 					bclBcAppendToBcl(retval,&resTp,fid,line);
 			}
-			fklFreeByteCodelnt(cur);
+			fklDestroyByteCodelnt(cur);
 		}
 		bcBclAppendToBcl(&setTp,retval,fid,line);
 		bclBcAppendToBcl(retval,&popTp,fid,line);
@@ -487,10 +487,10 @@ BC_PROCESS(_lambda_exp_bc_process)
 	else
 		retval=createBclnt(create1lenBc(FKL_OP_PUSH_NIL),fid,line);
 	fklReCodeLntCat(stack->base[0],retval);
-	fklFreeByteCodelnt(stack->base[0]);
+	fklDestroyByteCodelnt(stack->base[0]);
 	FklByteCode* pushProc=create9lenBc(FKL_OP_PUSH_PROC,retval->bc->size);
 	bcBclAppendToBcl(pushProc,retval,fid,line);
-	fklFreeByteCode(pushProc);
+	fklDestroyByteCode(pushProc);
 	return retval;
 }
 
@@ -521,7 +521,7 @@ static size_t _codegenenv_hashFunc(void* key)
 	return sid;
 }
 
-static void _codegenenv_freeItem(void* item)
+static void _codegenenv_destroyItem(void* item)
 {
 	free(item);
 }
@@ -541,7 +541,7 @@ static void* _codegenenv_getKey(void* item)
 static FklHashTableMethodTable CodegenEnvHashMethodTable=
 {
 	.__hashFunc=_codegenenv_hashFunc,
-	.__freeItem=_codegenenv_freeItem,
+	.__destroyItem=_codegenenv_destroyItem,
 	.__keyEqual=_codegenenv_keyEqual,
 	.__getKey=_codegenenv_getKey,
 };
@@ -558,7 +558,7 @@ FklCodegenEnv* fklCreateCodegenEnv(FklCodegenEnv* prev)
 	return r;
 }
 
-void fklFreeCodegenEnv(FklCodegenEnv* env)
+void fklDestroyCodegenEnv(FklCodegenEnv* env)
 {
 	while(env)
 	{
@@ -567,7 +567,7 @@ void fklFreeCodegenEnv(FklCodegenEnv* env)
 		{
 			FklCodegenEnv* cur=env;
 			env=env->prev;
-			fklFreeHashTable(cur->defs);
+			fklDestroyHashTable(cur->defs);
 			free(cur);
 		}
 		else
@@ -601,24 +601,24 @@ static FklByteCodelnt* processArgs(const FklNastNode* args,FklCodegenEnv* curEnv
 		FklNastNode* cur=args->u.pair->car;
 		if(cur->type!=FKL_NAST_SYM)
 		{
-			fklFreeByteCodeAndLnt(retval);
+			fklDestroyByteCodeAndLnt(retval);
 			return NULL;
 		}
 		fklAddCodegenDefBySid(cur->u.sym,curEnv);
 		FklByteCodelnt* tmp=makePopArg(FKL_OP_POP_ARG,cur,codegen);
 		fklCodeLntCat(retval,tmp);
-		fklFreeByteCodelnt(tmp);
+		fklDestroyByteCodelnt(tmp);
 	}
 	if(args->type!=FKL_NAST_NIL&&args->type!=FKL_NAST_SYM)
 	{
-		fklFreeByteCodeAndLnt(retval);
+		fklDestroyByteCodeAndLnt(retval);
 		return NULL;
 	}
 	if(args->type==FKL_NAST_SYM)
 	{
 		FklByteCodelnt* tmp=makePopArg(FKL_OP_POP_REST_ARG,args,codegen);
 		fklCodeLntCat(retval,tmp);
-		fklFreeByteCodelnt(tmp);
+		fklDestroyByteCodelnt(tmp);
 	}
 	uint8_t opcodes[]={FKL_OP_RES_BP,};
 	FklByteCode resBp={1,&opcodes[0]};
@@ -637,7 +637,7 @@ static CODEGEN_FUNC(codegen_lambda)
 		errorState->fid=codegen->fid;
 		errorState->type=FKL_ERR_SYNTAXERROR;
 		errorState->place=fklMakeNastNodeRef(origExp);
-		fklFreeCodegenEnv(lambdaCodegenEnv);
+		fklDestroyCodegenEnv(lambdaCodegenEnv);
 		return;
 	}
 	FklPtrQueue* queue=fklCreatePtrQueue();
@@ -658,7 +658,7 @@ BC_PROCESS(_set_var_exp_bc_process)
 	FklByteCodelnt* cur=fklPopPtrStack(stack);
 	FklByteCodelnt* popVar=fklPopPtrStack(stack);
 	fklReCodeLntCat(cur,popVar);
-	fklFreeByteCodelnt(cur);
+	fklDestroyByteCodelnt(cur);
 	return popVar;
 }
 
@@ -775,7 +775,7 @@ BC_PROCESS(_qsquote_box_bc_process)
 	FklByteCodelnt* retval=fklPopPtrStack(stack);
 	FklByteCode* pushBox=create1lenBc(FKL_OP_PUSH_BOX);
 	bclBcAppendToBcl(retval,pushBox,fid,line);
-	fklFreeByteCode(pushBox);
+	fklDestroyByteCode(pushBox);
 	return retval;
 }
 
@@ -786,14 +786,14 @@ BC_PROCESS(_qsquote_vec_bc_process)
 	{
 		FklByteCodelnt* cur=stack->base[i];
 		fklCodeLntCat(retval,cur);
-		fklFreeByteCodelnt(cur);
+		fklDestroyByteCodelnt(cur);
 	}
 	FklByteCode* pushVec=create1lenBc(FKL_OP_PUSH_VECTOR_0);
 	FklByteCode* setBp=create1lenBc(FKL_OP_SET_BP);
 	bcBclAppendToBcl(setBp,retval,fid,line);
 	bclBcAppendToBcl(retval,pushVec,fid,line);
-	fklFreeByteCode(setBp);
-	fklFreeByteCode(pushVec);
+	fklDestroyByteCode(setBp);
+	fklDestroyByteCode(pushVec);
 	return retval;
 }
 
@@ -807,14 +807,14 @@ BC_PROCESS(_unqtesp_vec_bc_process)
 		{
 			FklByteCodelnt* cur=fklPopPtrStack(stack);
 			fklCodeLntCat(other,cur);
-			fklFreeByteCodelnt(cur);
+			fklDestroyByteCodelnt(cur);
 		}
 		fklReCodeLntCat(other,retval);
-		fklFreeByteCodelnt(other);
+		fklDestroyByteCodelnt(other);
 	}
 	FklByteCode* listPush=create1lenBc(FKL_OP_LIST_PUSH);
 	bclBcAppendToBcl(retval,listPush,fid,line);
-	fklFreeByteCode(listPush);
+	fklDestroyByteCode(listPush);
 	return retval;
 }
 
@@ -825,14 +825,14 @@ BC_PROCESS(_qsquote_pair_bc_process)
 	{
 		FklByteCodelnt* cur=stack->base[i];
 		fklCodeLntCat(retval,cur);
-		fklFreeByteCodelnt(cur);
+		fklDestroyByteCodelnt(cur);
 	}
 	FklByteCode* pushPair=create1lenBc(FKL_OP_PUSH_LIST_0);
 	FklByteCode* setBp=create1lenBc(FKL_OP_SET_BP);
 	bcBclAppendToBcl(setBp,retval,fid,line);
 	bclBcAppendToBcl(retval,pushPair,fid,line);
-	fklFreeByteCode(setBp);
-	fklFreeByteCode(pushPair);
+	fklDestroyByteCode(setBp);
+	fklDestroyByteCode(pushPair);
 	return retval;
 }
 
@@ -843,11 +843,11 @@ BC_PROCESS(_qsquote_list_bc_process)
 	{
 		FklByteCodelnt* cur=stack->base[i];
 		fklCodeLntCat(retval,cur);
-		fklFreeByteCodelnt(cur);
+		fklDestroyByteCodelnt(cur);
 	}
 	FklByteCode* pushPair=create1lenBc(FKL_OP_LIST_APPEND);
 	bclBcAppendToBcl(retval,pushPair,fid,line);
-	fklFreeByteCode(pushPair);
+	fklDestroyByteCode(pushPair);
 	return retval;
 }
 
@@ -986,10 +986,10 @@ static CODEGEN_FUNC(codegen_qsquote)
 			}
 			else
 				push_default_codegen_quest(curValue,codegenQuestStack,curEnv,prevQuest,codegen);
-			fklFreeHashTable(unquoteHt);
+			fklDestroyHashTable(unquoteHt);
 		}
 	}
-	fklFreePtrStack(valueStack);
+	fklDestroyPtrStack(valueStack);
 }
 
 BC_PROCESS(_cond_exp_bc_process_0)
@@ -1002,8 +1002,8 @@ BC_PROCESS(_cond_exp_bc_process_0)
         FklByteCode* popTp=create1lenBc(FKL_OP_POP_TP);
         bcBclAppendToBcl(setTp,retval,fid,line);
         bclBcAppendToBcl(retval,popTp,fid,line);
-        fklFreeByteCode(setTp);
-        fklFreeByteCode(popTp);
+        fklDestroyByteCode(setTp);
+        fklDestroyByteCode(popTp);
     }
     else
         retval=createBclnt(create1lenBc(FKL_OP_PUSH_NIL),fid,line);
@@ -1025,7 +1025,7 @@ BC_PROCESS(_cond_exp_bc_process_1)
 		FklByteCodelnt* cur=stack->base[i];
 		bclBcAppendToBcl(retval,resTp,fid,line);
 		fklCodeLntCat(retval,cur);
-		fklFreeByteCodelnt(cur);
+		fklDestroyByteCodelnt(cur);
 	}
 	bclBcAppendToBcl(retval,jmp,fid,line);
 	FklByteCode* jmpIfFalse=create9lenBc(FKL_OP_JMP_IF_FALSE,retval->bc->size);
@@ -1034,13 +1034,13 @@ BC_PROCESS(_cond_exp_bc_process_1)
 	fklCodeLntCat(retval,prev);
 	fklReCodeLntCat(first,retval);
 	bcBclAppendToBcl(pushREnv,retval,fid,line);
-	fklFreeByteCodelnt(prev);
-	fklFreeByteCodelnt(first);
-	fklFreeByteCode(jmp);
-	fklFreeByteCode(jmpIfFalse);
-	fklFreeByteCode(pushREnv);
-	fklFreeByteCode(popREnv);
-	fklFreeByteCode(resTp);
+	fklDestroyByteCodelnt(prev);
+	fklDestroyByteCodelnt(first);
+	fklDestroyByteCode(jmp);
+	fklDestroyByteCode(jmpIfFalse);
+	fklDestroyByteCode(pushREnv);
+	fklDestroyByteCode(popREnv);
+	fklDestroyByteCode(resTp);
 	return retval;
 }
 
@@ -1056,21 +1056,21 @@ BC_PROCESS(_cond_exp_bc_process_2)
 		FklByteCodelnt* cur=stack->base[i];
 		bclBcAppendToBcl(retval,resTp,fid,line);
 		fklCodeLntCat(retval,cur);
-		fklFreeByteCodelnt(cur);
+		fklDestroyByteCodelnt(cur);
 	}
 	if(retval->bc->size)
 	{
 		FklByteCode* jmpIfFalse=create9lenBc(FKL_OP_JMP_IF_FALSE,retval->bc->size);
 		bcBclAppendToBcl(jmpIfFalse,retval,fid,line);
-		fklFreeByteCode(jmpIfFalse);
+		fklDestroyByteCode(jmpIfFalse);
 	}
 	fklReCodeLntCat(first,retval);
 	bclBcAppendToBcl(retval,popREnv,fid,line);
 	bcBclAppendToBcl(pushREnv,retval,fid,line);
-	fklFreeByteCodelnt(first);
-	fklFreeByteCode(pushREnv);
-	fklFreeByteCode(popREnv);
-	fklFreeByteCode(resTp);
+	fklDestroyByteCodelnt(first);
+	fklDestroyByteCode(pushREnv);
+	fklDestroyByteCode(popREnv);
+	fklDestroyByteCode(resTp);
 	return retval;
 }
 
@@ -1099,7 +1099,7 @@ static CODEGEN_FUNC(codegen_cond)
 				errorState->fid=codegen->fid;
 				errorState->type=FKL_ERR_SYNTAXERROR;
 				errorState->place=fklMakeNastNodeRef(origExp);
-				fklFreePtrStack(tmpStack);
+				fklDestroyPtrStack(tmpStack);
 				return;
 			}
 			FklNastNode* last=NULL;
@@ -1111,9 +1111,9 @@ static CODEGEN_FUNC(codegen_cond)
 				errorState->type=FKL_ERR_SYNTAXERROR;
 				errorState->place=fklMakeNastNodeRef(origExp);
 				while(!fklIsPtrQueueEmpty(curQueue))
-					fklFreeNastNode(fklPopPtrQueue(curQueue));
-				fklFreePtrQueue(curQueue);
-				fklFreePtrStack(tmpStack);
+					fklDestroyNastNode(fklPopPtrQueue(curQueue));
+				fklDestroyPtrQueue(curQueue);
+				fklDestroyPtrStack(tmpStack);
 				return;
 			}
 			FklCodegenQuest* curQuest=createCodegenQuest(_cond_exp_bc_process_1
@@ -1132,7 +1132,7 @@ static CODEGEN_FUNC(codegen_cond)
 			errorState->fid=codegen->fid;
 			errorState->type=FKL_ERR_SYNTAXERROR;
 			errorState->place=fklMakeNastNodeRef(origExp);
-			fklFreePtrStack(tmpStack);
+			fklDestroyPtrStack(tmpStack);
 			return;
 		}
 		FklPtrQueue* lastQueue=fklCreatePtrQueue();
@@ -1143,9 +1143,9 @@ static CODEGEN_FUNC(codegen_cond)
 			errorState->type=FKL_ERR_SYNTAXERROR;
 			errorState->place=fklMakeNastNodeRef(origExp);
 			while(!fklIsPtrQueueEmpty(lastQueue))
-				fklFreeNastNode(fklPopPtrQueue(lastQueue));
-			fklFreePtrQueue(lastQueue);
-			fklFreePtrStack(tmpStack);
+				fklDestroyNastNode(fklPopPtrQueue(lastQueue));
+			fklDestroyPtrQueue(lastQueue);
+			fklDestroyPtrStack(tmpStack);
 			return;
 		}
 		fklPushPtrStack(createCodegenQuest(_cond_exp_bc_process_2
@@ -1156,7 +1156,7 @@ static CODEGEN_FUNC(codegen_cond)
 					,prevQuest
 					,codegen)
 				,codegenQuestStack);
-		fklFreePtrStack(tmpStack);
+		fklDestroyPtrStack(tmpStack);
 	}
 }
 
@@ -1185,9 +1185,9 @@ static CODEGEN_FUNC(codegen_cond)
 //					break;
 //			}
 //			while(!fklIsPtrQueueEmpty(queue))
-//				fklFreeNastNode(fklPopPtrQueue(queue));
-//			fklFreePtrStack(tokenStack);
-//			fklFreePtrQueue(queue);
+//				fklDestroyNastNode(fklPopPtrQueue(queue));
+//			fklDestroyPtrStack(tokenStack);
+//			fklDestroyPtrQueue(queue);
 //			return NULL;
 //		}
 //		size_t errorLine=0;
@@ -1203,18 +1203,18 @@ static CODEGEN_FUNC(codegen_cond)
 //				errorState->type=FKL_ERR_INVALIDEXPR;
 //				errorState->line=errorLine;
 //				while(!fklIsPtrQueueEmpty(queue))
-//					fklFreeNastNode(fklPopPtrQueue(queue));
-//				fklFreePtrQueue(queue);
-//				fklFreePtrStack(tokenStack);
+//					fklDestroyNastNode(fklPopPtrQueue(queue));
+//				fklDestroyPtrQueue(queue);
+//				fklDestroyPtrStack(tokenStack);
 //				return NULL;
 //			}
 //		}
 //		else
 //			fklPushPtrQueue(begin,queue);
 //		while(!fklIsPtrStackEmpty(tokenStack))
-//			fklFreeToken(fklPopPtrStack(tokenStack));
+//			fklDestroyToken(fklPopPtrStack(tokenStack));
 //	}
-//	fklFreePtrStack(tokenStack);
+//	fklDestroyPtrStack(tokenStack);
 //	return queue;
 //}
 
@@ -1254,8 +1254,8 @@ static void _codegen_load_finalizer(void* pcontext)
 	CodegenLoadContext* context=pcontext;
 	FklPtrStack* tokenStack=context->tokenStack;
 	while(!fklIsPtrStackEmpty(tokenStack))
-		fklFreeToken(fklPopPtrStack(tokenStack));
-	fklFreePtrStack(tokenStack);
+		fklDestroyToken(fklPopPtrStack(tokenStack));
+	fklDestroyPtrStack(tokenStack);
 	fclose(context->fp);
 	free(context->prev);
 	free(context);
@@ -1309,7 +1309,7 @@ static FklNastNode* _codegen_load_get_next_expression(void* pcontext,FklCodegenE
 		}
 	}
 	while(!fklIsPtrStackEmpty(tokenStack))
-		fklFreeToken(fklPopPtrStack(tokenStack));
+		fklDestroyToken(fklPopPtrStack(tokenStack));
 	return begin;
 }
 
@@ -1362,7 +1362,7 @@ static CODEGEN_FUNC(codegen_load)
 		errorState->type=FKL_ERR_CIRCULARLOAD;
 		errorState->place=fklMakeNastNodeRef(filename);
 		nextCodegen->refcount=1;
-		fklFreeCodegener(nextCodegen);
+		fklDestroyCodegener(nextCodegen);
 		free(filenameCstr);
 		return;
 	}
@@ -1373,7 +1373,7 @@ static CODEGEN_FUNC(codegen_load)
 		errorState->type=FKL_ERR_FILEFAILURE;
 		errorState->place=fklMakeNastNodeRef(filename);
 		nextCodegen->refcount=1;
-		fklFreeCodegener(nextCodegen);
+		fklDestroyCodegener(nextCodegen);
 		free(filenameCstr);
 		return;
 	}
@@ -1466,9 +1466,9 @@ FklByteCode* fklCodegenNode(const FklNastNode* node,FklCodegen* codegenr)
 				break;
 		}
 		fklReCodeCat(tmp,retval);
-		fklFreeByteCode(tmp);
+		fklDestroyByteCode(tmp);
 	}
-	fklFreePtrStack(stack);
+	fklDestroyPtrStack(stack);
 	return retval;
 }
 
@@ -1487,7 +1487,7 @@ static int matchAndCall(FklCodegenFunc func
 		chdir(codegenr->curDir);
 		func(exp,ht,codegenQuestStack,env,codegenr,errorState);
 	}
-	fklFreeHashTable(ht);
+	fklDestroyHashTable(ht);
 	return r;
 }
 
@@ -1539,19 +1539,19 @@ void fklUninitCodegen(void)
 {
 	for(struct PatternAndFunc* cur=&builtInPattern[0];cur->ps!=NULL;cur++)
 	{
-		fklFreeNastNode(cur->pn);
+		fklDestroyNastNode(cur->pn);
 		cur->pn=NULL;
 	}
 	for(struct SubPattern* cur=&builtInSubPattern[0];cur->ps!=NULL;cur++)
 	{
-		fklFreeNastNode(cur->pn);
+		fklDestroyNastNode(cur->pn);
 		cur->pn=NULL;
 	}
 }
 
-void fklFreeCodegener(FklCodegen* codegen)
+void fklDestroyCodegener(FklCodegen* codegen)
 {
-	while(codegen&&codegen->freeAbleMark)
+	while(codegen&&codegen->destroyAbleMark)
 	{
 		codegen->refcount-=1;
 		FklCodegen* prev=codegen->prev;
@@ -1670,7 +1670,7 @@ static void printCodegenError(FklNastNode* obj,FklBuiltInErrorType type,FklSid_t
 		fputc('\n',stderr);
 	}
 	if(obj)
-		fklFreeNastNode(obj);
+		fklDestroyNastNode(obj);
 }
 
 FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklCodegen* codegener)
@@ -1704,7 +1704,7 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 									,curExp->curline)
 								,curBcStack);
 				}
-				fklFreeNastNode(curExp);
+				fklDestroyNastNode(curExp);
 				if(!r)
 					break;
 			}
@@ -1717,11 +1717,11 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 				FklCodegenQuest* curCodegenQuest=fklPopPtrStack(codegenQuestStack);
 				FklPtrStack* bcStack=curCodegenQuest->stack;
 				while(!fklIsPtrStackEmpty(bcStack))
-					fklFreeByteCodeAndLnt(fklPopPtrStack(bcStack));
-				freeCodegenQuest(curCodegenQuest);
+					fklDestroyByteCodeAndLnt(fklPopPtrStack(bcStack));
+				destroyCodegenQuest(curCodegenQuest);
 			}
-			fklFreePtrStack(codegenQuestStack);
-			fklFreePtrStack(resultStack);
+			fklDestroyPtrStack(codegenQuestStack);
+			fklDestroyPtrStack(resultStack);
 			return NULL;
 		}
 		FklCodegenQuest* otherCodegenQuest=fklTopPtrStack(codegenQuestStack);
@@ -1735,14 +1735,14 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 					,fklIsPtrStackEmpty(codegenQuestStack)
 					?resultStack
 					:prevQuest->stack);
-			freeCodegenQuest(curCodegenQuest);
+			destroyCodegenQuest(curCodegenQuest);
 		}
 	}
 	FklByteCodelnt* retval=NULL;
 	if(!fklIsPtrStackEmpty(resultStack))
 		retval=fklPopPtrStack(resultStack);
-	fklFreePtrStack(resultStack);
-	fklFreePtrStack(codegenQuestStack);
+	fklDestroyPtrStack(resultStack);
+	fklDestroyPtrStack(codegenQuestStack);
 	return retval;
 
 }
@@ -1780,7 +1780,7 @@ void fklInitGlobalCodegener(FklCodegen* codegen
 		,const char* rp
 		,FklCodegenEnv* globalEnv
 		,FklSymbolTable* globalSymTable
-		,int freeAbleMark)
+		,int destroyAbleMark)
 {
 	fklInitSymbolTableWithBuiltinSymbol(globalSymTable);
 	codegen->globalSymTable=globalSymTable;
@@ -1808,7 +1808,7 @@ void fklInitGlobalCodegener(FklCodegen* codegen
 		fklInitGlobCodegenEnv(codegen->globalEnv);
 	}
 	codegen->globalEnv->refcount+=1;
-	codegen->freeAbleMark=freeAbleMark;
+	codegen->destroyAbleMark=destroyAbleMark;
 	codegen->refcount=0;
 }
 
@@ -1817,7 +1817,7 @@ void fklInitCodegener(FklCodegen* codegen
 		,FklCodegenEnv* env
 		,FklCodegen* prev
 		,FklSymbolTable* globalSymTable
-		,int freeAbleMark)
+		,int destroyAbleMark)
 {
 	if(filename!=NULL)
 	{
@@ -1840,15 +1840,15 @@ void fklInitCodegener(FklCodegen* codegen
 	codegen->globalEnv=env;
 	env->refcount+=1;
 	codegen->globalSymTable=globalSymTable;
-	codegen->freeAbleMark=freeAbleMark;
+	codegen->destroyAbleMark=destroyAbleMark;
 	codegen->refcount=0;
 }
 
 void fklUninitCodegener(FklCodegen* codegen)
 {
-	fklFreeCodegenEnv(codegen->globalEnv);
-	if(codegen->globalSymTable&&!codegen->freeAbleMark&&codegen->globalSymTable!=fklGetGlobSymbolTable())
-		fklFreeSymbolTable(codegen->globalSymTable);
+	fklDestroyCodegenEnv(codegen->globalEnv);
+	if(codegen->globalSymTable&&!codegen->destroyAbleMark&&codegen->globalSymTable!=fklGetGlobSymbolTable())
+		fklDestroySymbolTable(codegen->globalSymTable);
 	free(codegen->curDir);
 	if(codegen->filename)
 		free(codegen->filename);
@@ -1874,9 +1874,9 @@ static MayUndefine* createMayUndefine(FklCodegenEnv* env,size_t cp,FklSid_t sid)
 	return r;
 }
 
-static void freeMayUndefine(MayUndefine* t)
+static void destroyMayUndefine(MayUndefine* t)
 {
-	fklFreeCodegenEnv(t->env);
+	fklDestroyCodegenEnv(t->env);
 	free(t);
 }
 
@@ -1968,7 +1968,7 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklSymbolTable* symbolT
 					else if(opcode==FKL_OP_POP_R_ENV)
 					{
 						FklCodegenEnv* p=curEnv->prev;
-						fklFreeCodegenEnv(curEnv);
+						fklDestroyCodegenEnv(curEnv);
 						curEnv=p;
 					}
 					i+=sizeof(char);
@@ -2013,11 +2013,11 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklSymbolTable* symbolT
 					break;
 			}
 		}
-		fklFreeCodegenEnv(curEnv);
+		fklDestroyCodegenEnv(curEnv);
 	}
-	fklFreeUintStack(cpcstack);
-	fklFreeUintStack(scpstack);
-	fklFreePtrStack(envstack);
+	fklDestroyUintStack(cpcstack);
+	fklDestroyUintStack(scpstack);
+	fklDestroyPtrStack(envstack);
 	for(uint32_t i=0;i<mayUndefined->top;i++)
 	{
 		MayUndefine* cur=mayUndefined->base[i];
@@ -2039,7 +2039,7 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklSymbolTable* symbolT
 			fklPrintString(fklGetSymbolWithId(node->fid,symbolTable)->symbol,stderr);
 			fputc('\n',stderr);
 		}
-		freeMayUndefine(cur);
+		destroyMayUndefine(cur);
 	}
-	fklFreePtrStack(mayUndefined);
+	fklDestroyPtrStack(mayUndefined);
 }

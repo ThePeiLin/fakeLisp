@@ -24,7 +24,7 @@ static int _LineNumHash_keyEqual(void* pKey0,void* pKey1)
 	return key0==key1;
 }
 
-static void _LineNumHash_freeItem(void* item)
+static void _LineNumHash_destroyItem(void* item)
 {
 	free(item);
 }
@@ -37,7 +37,7 @@ static void* _LineNumHash_getKey(void* item)
 static FklHashTableMethodTable LineNumHashMethTable=
 {
 	.__hashFunc=_LineNumHash_hashFunc,
-	.__freeItem=_LineNumHash_freeItem,
+	.__destroyItem=_LineNumHash_destroyItem,
 	.__keyEqual=_LineNumHash_keyEqual,
 	.__getKey=_LineNumHash_getKey,
 };
@@ -122,7 +122,7 @@ FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
 			}
 			fklAddToGCNoGC(v,gc);
 			fklPushVMvalue(v,vmStack);
-			fklFreePtrStack(cStack);
+			fklDestroyPtrStack(cStack);
 			cStack=tStack;
 		}
 		else
@@ -219,10 +219,10 @@ FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
 		}
 	}
 	FklVMvalue* retval=fklTopPtrStack(valueStack);
-	fklFreePtrStack(stackStack);
-	fklFreePtrStack(nodeStack);
-	fklFreePtrStack(valueStack);
-	fklFreeUintStack(reftypeStack);
+	fklDestroyPtrStack(stackStack);
+	fklDestroyPtrStack(nodeStack);
+	fklDestroyPtrStack(valueStack);
+	fklDestroyUintStack(reftypeStack);
 	return retval;
 }
 
@@ -281,8 +281,8 @@ FklVMvalue* fklCopyVMlistOrAtom(FklVMvalue* obj,FklVMstack* s,FklVMgc* gc)
 				break;
 		}
 	}
-	fklFreePtrStack(s1);
-	fklFreePtrStack(s2);
+	fklDestroyPtrStack(s1);
+	fklDestroyPtrStack(s2);
 	return tmp;
 }
 
@@ -736,8 +736,8 @@ int fklVMvalueEqual(const FklVMvalue* fir,const FklVMvalue* sec)
 		if(!r)
 			break;
 	}
-	fklFreePtrStack(s1);
-	fklFreePtrStack(s2);
+	fklDestroyPtrStack(s1);
+	fklDestroyPtrStack(s2);
 	return r;
 }
 
@@ -805,21 +805,21 @@ FklVMchanl* fklCreateVMchanl(int32_t maxSize)
 //	return i;
 //}
 
-void fklFreeVMchanl(FklVMchanl* ch)
+void fklDestroyVMchanl(FklVMchanl* ch)
 {
 	pthread_mutex_destroy(&ch->lock);
-	fklFreePtrQueue(ch->messages);
+	fklDestroyPtrQueue(ch->messages);
 	FklQueueNode* head=ch->sendq->head;
 	for(;head;head=head->next)
-		fklFreeVMsend(head->data);
+		fklDestroyVMsend(head->data);
 	for(head=ch->recvq->head;head;head=head->next)
-		fklFreeVMrecv(head->data);
-	fklFreePtrQueue(ch->sendq);
-	fklFreePtrQueue(ch->recvq);
+		fklDestroyVMrecv(head->data);
+	fklDestroyPtrQueue(ch->sendq);
+	fklDestroyPtrQueue(ch->recvq);
 	free(ch);
 }
 
-void fklFreeVMproc(FklVMproc* proc)
+void fklDestroyVMproc(FklVMproc* proc)
 {
 	free(proc);
 }
@@ -834,7 +834,7 @@ FklVMfp* fklCreateVMfp(FILE* fp)
 	return vfp;
 }
 
-int fklFreeVMfp(FklVMfp* vfp)
+int fklDestroyVMfp(FklVMfp* vfp)
 {
 	int r=0;
 	if(vfp)
@@ -898,7 +898,7 @@ void fklInitVMdll(FklVMvalue* rel)
 		init(fklGetGlobSymbolTable(),rel);
 }
 
-void fklFreeVMvalue(FklVMvalue* cur)
+void fklDestroyVMvalue(FklVMvalue* cur)
 {
 	switch(cur->type)
 	{
@@ -912,46 +912,46 @@ void fklFreeVMvalue(FklVMvalue* cur)
 			free(cur->u.pair);
 			break;
 		case FKL_TYPE_PROC:
-			fklFreeVMproc(cur->u.proc);
+			fklDestroyVMproc(cur->u.proc);
 			break;
 		case FKL_TYPE_CONT:
-			fklFreeVMcontinuation(cur->u.cont);
+			fklDestroyVMcontinuation(cur->u.cont);
 			break;
 		case FKL_TYPE_CHAN:
-			fklFreeVMchanl(cur->u.chan);
+			fklDestroyVMchanl(cur->u.chan);
 			break;
 		case FKL_TYPE_FP:
-			fklFreeVMfp(cur->u.fp);
+			fklDestroyVMfp(cur->u.fp);
 			break;
 		case FKL_TYPE_DLL:
-			fklFreeVMdll(cur->u.dll);
+			fklDestroyVMdll(cur->u.dll);
 			break;
 		case FKL_TYPE_DLPROC:
-			fklFreeVMdlproc(cur->u.dlproc);
+			fklDestroyVMdlproc(cur->u.dlproc);
 			break;
 		case FKL_TYPE_ERR:
-			fklFreeVMerror(cur->u.err);
+			fklDestroyVMerror(cur->u.err);
 			break;
 		case FKL_TYPE_VECTOR:
-			fklFreeVMvec(cur->u.vec);
+			fklDestroyVMvec(cur->u.vec);
 			break;
 		case FKL_TYPE_USERDATA:
 			if(cur->u.ud->t->__finalizer)
 				cur->u.ud->t->__finalizer(cur->u.ud->data);
-			fklFreeVMudata(cur->u.ud);
+			fklDestroyVMudata(cur->u.ud);
 			break;
 		case FKL_TYPE_F64:
 		case FKL_TYPE_I64:
 		case FKL_TYPE_BOX:
 			break;
 		case FKL_TYPE_ENV:
-			fklFreeVMenv(cur->u.env);
+			fklDestroyVMenv(cur->u.env);
 			break;
 		case FKL_TYPE_HASHTABLE:
-			fklFreeVMhashTable(cur->u.hash);
+			fklDestroyVMhashTable(cur->u.hash);
 			break;
 		case FKL_TYPE_BIG_INT:
-			fklFreeBigInt(cur->u.bigInt);
+			fklDestroyBigInt(cur->u.bigInt);
 			break;
 		default:
 			FKL_ASSERT(0);
@@ -960,7 +960,7 @@ void fklFreeVMvalue(FklVMvalue* cur)
 	free((void*)cur);
 }
 
-void fklFreeVMdll(FklVMdllHandle dll)
+void fklDestroyVMdll(FklVMdllHandle dll)
 {
 	if(dll)
 	{
@@ -968,7 +968,7 @@ void fklFreeVMdll(FklVMdllHandle dll)
 		if(uninit)
 			uninit();
 #ifdef _WIN32
-		FreeLibrary(dll);
+		DestroyLibrary(dll);
 #else
 		dlclose(dll);
 #endif
@@ -996,7 +996,7 @@ FklVMdlproc* fklCreateVMdlproc(FklVMdllFunc address,FklVMvalue* dll)
 	return tmp;
 }
 
-void fklFreeVMdlproc(FklVMdlproc* dlproc)
+void fklDestroyVMdlproc(FklVMdlproc* dlproc)
 {
 	free(dlproc);
 }
@@ -1021,7 +1021,7 @@ FklVMerror* fklCreateVMerrorCstr(const char* who,FklSid_t type,const char* messa
 	return t;
 }
 
-void fklFreeVMerror(FklVMerror* err)
+void fklDestroyVMerror(FklVMerror* err)
 {
 	free(err->who);
 	free(err->message);
@@ -1037,7 +1037,7 @@ FklVMrecv* fklCreateVMrecv(void)
 	return tmp;
 }
 
-void fklFreeVMrecv(FklVMrecv* r)
+void fklDestroyVMrecv(FklVMrecv* r)
 {
 	pthread_cond_destroy(&r->cond);
 	free(r);
@@ -1052,7 +1052,7 @@ FklVMsend* fklCreateVMsend(FklVMvalue* m)
 	return tmp;
 }
 
-void fklFreeVMsend(FklVMsend* s)
+void fklDestroyVMsend(FklVMsend* s)
 {
 	pthread_cond_destroy(&s->cond);
 	free(s);
@@ -1129,7 +1129,7 @@ void fklChanlSend(FklVMsend*s,FklVMchanl* ch)
 			pthread_cond_wait(&s->cond,&ch->lock);
 		}
 	}
-	fklFreeVMsend(s);
+	fklDestroyVMsend(s);
 	pthread_mutex_unlock(&ch->lock);
 }
 
@@ -1154,7 +1154,7 @@ static size_t _vmenv_hashFunc(void* key)
 	return sid;
 }
 
-static void _vmenv_freeItem(void* item)
+static void _vmenv_destroyItem(void* item)
 {
 	free(item);
 }
@@ -1174,7 +1174,7 @@ static void* _vmenv_getKey(void* item)
 static FklHashTableMethodTable VMenvHashMethTable=
 {
 	.__hashFunc=_vmenv_hashFunc,
-	.__freeItem=_vmenv_freeItem,
+	.__destroyItem=_vmenv_destroyItem,
 	.__keyEqual=_vmenv_keyEqual,
 	.__getKey=_vmenv_getKey,
 };
@@ -1354,7 +1354,7 @@ static size_t VMvalueHashFunc(const FklVMvalue* v)
 		else
 			sum+=((uintptr_t)root>>FKL_UNUSEDBITNUM);
 	}
-	fklFreePtrStack(stack);
+	fklDestroyPtrStack(stack);
 	return sum;
 }
 
@@ -1367,7 +1367,7 @@ static size_t _vmhashtable_hashFunc(void* key)
 		return VMvalueHashFunc(v);
 }
 
-static void _vmhashtable_freeItem(void* item)
+static void _vmhashtable_destroyItem(void* item)
 {
 	free(item);
 }
@@ -1387,7 +1387,7 @@ static void* _vmhashtable_getKey(void* item)
 static FklHashTableMethodTable VMhashTableEqMethTable=
 {
 	.__hashFunc=_vmhashtableEq_hashFunc,
-	.__freeItem=_vmhashtable_freeItem,
+	.__destroyItem=_vmhashtable_destroyItem,
 	.__keyEqual=_vmhashtableEq_keyEqual,
 	.__getKey=_vmhashtable_getKey,
 };
@@ -1402,7 +1402,7 @@ static int _vmhashtableEqv_keyEqual(void* pkey0,void* pkey1)
 static FklHashTableMethodTable VMhashTableEqvMethTable=
 {
 	.__hashFunc=_vmhashtableEqv_hashFunc,
-	.__freeItem=_vmhashtable_freeItem,
+	.__destroyItem=_vmhashtable_destroyItem,
 	.__keyEqual=_vmhashtableEqv_keyEqual,
 	.__getKey=_vmhashtable_getKey,
 };
@@ -1417,7 +1417,7 @@ static int _vmhashtableEqual_keyEqual(void* pkey0,void* pkey1)
 static FklHashTableMethodTable VMhashTableEqualMethTable=
 {
 	.__hashFunc=_vmhashtable_hashFunc,
-	.__freeItem=_vmhashtable_freeItem,
+	.__destroyItem=_vmhashtable_destroyItem,
 	.__keyEqual=_vmhashtableEqual_keyEqual,
 	.__getKey=_vmhashtable_getKey,
 };
@@ -1452,9 +1452,9 @@ FklVMhashTable* fklCreateVMhashTable(FklVMhashTableEqType type)
 	return tmp;
 }
 
-void fklFreeVMhashTable(FklVMhashTable* ht)
+void fklDestroyVMhashTable(FklVMhashTable* ht)
 {
-	fklFreeHashTable(ht->ht);
+	fklDestroyHashTable(ht->ht);
 	pthread_rwlock_destroy(&ht->lock);
 	free(ht);
 }
@@ -1613,10 +1613,10 @@ void fklDBG_printVMenv(FklVMenv* curEnv,FILE* fp)
 	}
 }
 
-void fklFreeVMenv(FklVMenv* obj)
+void fklDestroyVMenv(FklVMenv* obj)
 {
 	pthread_rwlock_wrlock(&obj->lock);
-	fklFreeHashTable(obj->t);
+	fklDestroyHashTable(obj->t);
 	pthread_rwlock_unlock(&obj->lock);
 	pthread_rwlock_destroy(&obj->lock);
 	free(obj);
@@ -1698,8 +1698,8 @@ void fklFreeVMenv(FklVMenv* obj)
 //			*root1=FKL_MAKE_VM_PTR(*root1);
 //		}
 //	}
-//	fklFreePtrStack(s1);
-//	fklFreePtrStack(s2);
+//	fklDestroyPtrStack(s1);
+//	fklDestroyPtrStack(s2);
 //	return tmp;
 //}
 
@@ -1721,7 +1721,7 @@ FklVMvec* fklCreateVMvec(size_t size)
 	return r;
 }
 
-void fklFreeVMvec(FklVMvec* vec)
+void fklDestroyVMvec(FklVMvec* vec)
 {
 	free(vec);
 }
@@ -1766,7 +1766,7 @@ int fklIsAppendable(FklVMvalue* v)
 		||(FKL_IS_USERDATA(v)&&v->u.ud->t->__copy&&v->u.ud->t->__append);
 }
 
-void fklFreeVMudata(FklVMudata* u)
+void fklDestroyVMudata(FklVMudata* u)
 {
 	free(u);
 }
@@ -1824,7 +1824,7 @@ FklVMcontinuation* fklCreateVMcontinuation(uint32_t ap,FklVM* exe)
 	return tmp;
 }
 
-void fklFreeVMcontinuation(FklVMcontinuation* cont)
+void fklDestroyVMcontinuation(FklVMcontinuation* cont)
 {
 	int32_t i=0;
 	int32_t tbsize=cont->tnum;
@@ -1834,11 +1834,11 @@ void fklFreeVMcontinuation(FklVMcontinuation* cont)
 	{
 		FklVMframe* cur=curr;
 		curr=curr->prev;
-		fklFreeVMframe(cur);
+		fklDestroyVMframe(cur);
 	}
 	FklVMtryBlock* tb=cont->tb;
-	fklFreeUintStack(stack->tps);
-	fklFreeUintStack(stack->bps);
+	fklDestroyUintStack(stack->tps);
+	fklDestroyUintStack(stack->bps);
 	free(stack->values);
 	free(stack);
 	for(i=0;i<tbsize;i++)
@@ -1847,9 +1847,9 @@ void fklFreeVMcontinuation(FklVMcontinuation* cont)
 		while(!fklIsPtrStackEmpty(hstack))
 		{
 			FklVMerrorHandler* h=fklPopPtrStack(hstack);
-			fklFreeVMerrorHandler(h);
+			fklDestroyVMerrorHandler(h);
 		}
-		fklFreePtrStack(hstack);
+		fklDestroyPtrStack(hstack);
 	}
 	free(tb);
 	free(cont);

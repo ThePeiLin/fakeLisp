@@ -142,7 +142,7 @@ typedef struct FklDefFuncType
 void fklFfiDefType(FklVMvalue* typedeclare);
 
 FklDefTypes* fklFfiCreateDefTypes(void);
-void fklFfiFreeDefTypeTable(FklDefTypes* defs);
+void fklFfiDestroyDefTypeTable(FklDefTypes* defs);
 
 FklTypeId_t fklFfiGenDefTypes(FklVMvalue*,FklDefTypes* otherTypes,FklSid_t typeName);
 FklTypeId_t fklFfiGenDefTypesUnion(FklVMvalue*,FklDefTypes* otherTypes);
@@ -152,7 +152,7 @@ void fklFfiInitNativeDefTypes(FklDefTypes* otherTypes);
 
 void fklFfiWriteTypeList(FILE* fp);
 void fklFfiLoadTypeList(FILE* fp);
-void fklFfiFreeGlobTypeList(void);
+void fklFfiDestroyGlobTypeList(void);
 
 int fklFfiIsNativeTypeId(FklTypeId_t);
 int fklFfiIsIntegerTypeId(FklTypeId_t);
@@ -166,23 +166,23 @@ int fklFfiIsUnionTypeId(FklTypeId_t);
 int fklFfiIsFunctionTypeId(FklTypeId_t);
 
 FklTypeId_t fklFfiCreateNativeType(FklSid_t,size_t,size_t);
-void fklFfiFreeNativeType(FklDefNativeType*);
+void fklFfiDestroyNativeType(FklDefNativeType*);
 
 FklTypeId_t fklFfiCreateArrayType(FklTypeId_t,size_t);
-void fklFfiFreeArrayType(FklDefArrayType*);
+void fklFfiDestroyArrayType(FklDefArrayType*);
 
 FklTypeId_t fklFfiCreatePtrType(FklTypeId_t);
-void fklFfiFreePtrType(FklDefPtrType*);
+void fklFfiDestroyPtrType(FklDefPtrType*);
 
 FklTypeId_t fklFfiCreateStructType(FklSid_t,uint32_t,FklSid_t[],FklTypeId_t []);
-void fklFfiFreeStructType(FklDefStructType*);
+void fklFfiDestroyStructType(FklDefStructType*);
 
 FklTypeId_t fklFfiCreateUnionType(FklSid_t,uint32_t num,FklSid_t symbols[],FklTypeId_t memberTypes[]);
-void fklFfiFreeUnionType(FklDefUnionType*);
+void fklFfiDestroyUnionType(FklDefUnionType*);
 
 FklTypeId_t fklFfiCreateFuncType(FklTypeId_t rtype,uint32_t anum,FklTypeId_t atypes[]);
 FklTypeId_t fklFfiFindSameFuncType(FklTypeId_t,uint32_t anum,FklTypeId_t atypes[]);
-void fklFfiFreeFuncType(FklDefFuncType*);
+void fklFfiDestroyFuncType(FklDefFuncType*);
 
 size_t fklFfiGetTypeSize(FklDefTypeUnion t);
 size_t fklFfiGetTypeAlign(FklDefTypeUnion t);
@@ -191,7 +191,7 @@ size_t fklFfiGetTypeAlignWithTypeId(FklTypeId_t t);
 FklDefTypeUnion fklFfiGetTypeUnion(FklTypeId_t);
 
 void fklFfiInitGlobNativeTypes(void);
-void fklFfiFreeGlobDefTypeTable(void);
+void fklFfiDestroyGlobDefTypeTable(void);
 void fklFfiInitTypedefSymbol(void);
 
 int fklFfiIsNativeTypeName(FklSid_t id);

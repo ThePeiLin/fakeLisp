@@ -39,7 +39,7 @@ int main(int argc,char** argv)
 			if(fp==NULL)
 			{
 				perror(filename);
-				fklFreeCwd();
+				fklDestroyCwd();
 				globfree(&buf);
 				fklUninitCodegen();
 				return EXIT_FAILURE;
@@ -49,7 +49,7 @@ int main(int argc,char** argv)
 				if(access(filename,R_OK))
 				{
 					perror(filename);
-					fklFreeCwd();
+					fklDestroyCwd();
 					fklUninitCodegen();
 					return EXIT_FAILURE;
 				}
@@ -66,15 +66,15 @@ int main(int argc,char** argv)
 					free(rp);
 					fklUninitCodegener(&codegen);
 					fklUninitCodegen();
-					fklFreeGlobSymbolTable();
-					fklFreeMainFileRealPath();
-					fklFreeCwd();
+					fklDestroyGlobSymbolTable();
+					fklDestroyMainFileRealPath();
+					fklDestroyCwd();
 					globfree(&buf);
 					fklUninitCodegen();
 					return 1;
 				}
 				FklSymbolTable* globalSymbolTable=fklExchangeGlobSymbolTable(codegen.globalSymTable);
-				fklFreeSymbolTable(globalSymbolTable);
+				fklDestroySymbolTable(globalSymbolTable);
 				fklCodegenPrintUndefinedSymbol(mainByteCode,codegen.globalSymTable);
 				char* outputname=(char*)malloc(sizeof(char)*(strlen(rp)+2));
 				strcpy(outputname,rp);
@@ -86,9 +86,9 @@ int main(int argc,char** argv)
 					fprintf(stderr,"%s:Can't create byte code file!",outputname);
 					fklUninitCodegener(&codegen);
 					fklUninitCodegen();
-					fklFreeGlobSymbolTable();
-					fklFreeMainFileRealPath();
-					fklFreeCwd();
+					fklDestroyGlobSymbolTable();
+					fklDestroyMainFileRealPath();
+					fklDestroyCwd();
 					globfree(&buf);
 					fklUninitCodegen();
 					return EXIT_FAILURE;
@@ -100,19 +100,19 @@ int main(int argc,char** argv)
 				uint8_t* code=mainByteCode->bc->code;
 				fwrite(&sizeOfMain,sizeof(mainByteCode->bc->size),1,outfp);
 				fwrite(code,sizeof(uint8_t),sizeOfMain,outfp);
-				fklFreeByteCodeAndLnt(mainByteCode);
+				fklDestroyByteCodeAndLnt(mainByteCode);
 				fclose(outfp);
-				fklFreeMainFileRealPath();
-				fklFreeCwd();
+				fklDestroyMainFileRealPath();
+				fklDestroyCwd();
 				fklUninitCodegener(&codegen);
-				fklFreeGlobSymbolTable();
+				fklDestroyGlobSymbolTable();
 				free(outputname);
 			}
 			else
 			{
 				fprintf(stderr,"error: It is not a correct file.\n");
 				fclose(fp);
-				fklFreeCwd();
+				fklDestroyCwd();
 				globfree(&buf);
 				fklUninitCodegen();
 				return EXIT_FAILURE;

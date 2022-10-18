@@ -14,7 +14,7 @@ FklSymbolTable* fklcGetOuterSymbolTable(void)
 
 void fklcUninitFsym(void)
 {
-	fklFreeSymbolTable(OuterSymbolTable);
+	fklDestroySymbolTable(OuterSymbolTable);
 }
 
 FklSid_t fklcGetSymbolIdWithOuterSymbolId(FklSid_t sid)
@@ -93,15 +93,15 @@ int fklcIsValidSyntaxPattern(FklVMvalue* pattern)
 		{
 			if(isInStack(value,symbolStack,NULL))
 			{
-				fklFreePtrStack(stack);
-				fklFreePtrStack(symbolStack);
+				fklDestroyPtrStack(stack);
+				fklDestroyPtrStack(symbolStack);
 				return 0;
 			}
 			fklPushPtrStack(value,symbolStack);
 		}
 	}
-	fklFreePtrStack(stack);
-	fklFreePtrStack(symbolStack);
+	fklDestroyPtrStack(stack);
+	fklDestroyPtrStack(symbolStack);
 	return 1;
 }
 
@@ -130,12 +130,12 @@ int fklcMatchPattern(FklVMvalue* pattern,FklVMvalue* exp,FklVMhashTable* ht,FklV
 		}
 		else if(!fklVMvalueEqual(v0,v1))
 		{
-			fklFreePtrStack(s0);
-			fklFreePtrStack(s1);
+			fklDestroyPtrStack(s0);
+			fklDestroyPtrStack(s1);
 			return 1;
 		}
 	}
-	fklFreePtrStack(s0);
-	fklFreePtrStack(s1);
+	fklDestroyPtrStack(s0);
+	fklDestroyPtrStack(s1);
 	return 0;
 }

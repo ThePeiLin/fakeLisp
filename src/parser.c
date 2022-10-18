@@ -80,8 +80,8 @@ int isCompleteString(const FklString* str,char ch)
 //		retval[i]=fklCopyMemory(str+indexStack->base[i],sizeStack->base[i]+1);
 //		retval[i][sizeStack->base[i]]='\0';
 //	}
-//	fklFreeUintStack(indexStack);
-//	fklFreeUintStack(sizeStack);
+//	fklDestroyUintStack(indexStack);
+//	fklDestroyUintStack(sizeStack);
 //	return retval;
 //}
 
@@ -105,7 +105,7 @@ FklToken* fklCreateToken(FklTokenType type,FklString* str,uint32_t line)
 	return token;
 }
 
-void fklFreeToken(FklToken* token)
+void fklDestroyToken(FklToken* token)
 {
 	free(token->value);
 	free(token);
@@ -126,7 +126,7 @@ static MatchState* createMatchState(FklStringMatchPattern* pattern,uint32_t inde
 	return state;
 }
 
-static void freeMatchState(MatchState* state)
+static void destroyMatchState(MatchState* state)
 {
 	free(state);
 }
@@ -532,15 +532,15 @@ int fklSplitStringPartsIntoToken(const char** parts,size_t* sizes,uint32_t inum,
 						MatchState* prevState=fklTopPtrStack(matchStateStack);
 						if(!isBuiltInParenthese(prevState->pattern))
 						{
-							freeMatchState(state);
+							destroyMatchState(state);
 							while(!fklIsPtrStackEmpty(matchStateStack))
-								freeMatchState(fklPopPtrStack(matchStateStack));
+								destroyMatchState(fklPopPtrStack(matchStateStack));
 							return 2;
 						}
 						fklPushPtrStack(fklCreateToken(FKL_TOKEN_RESERVE_STR,fklCreateStringFromCstr(parenthese),*line),retvalStack);
-						freeMatchState(prevState);
+						destroyMatchState(prevState);
 						fklPopPtrStack(matchStateStack);
-						freeMatchState(state);
+						destroyMatchState(state);
 						j++;
 					}
 				}
@@ -571,7 +571,7 @@ int fklSplitStringPartsIntoToken(const char** parts,size_t* sizes,uint32_t inum,
 					if(state->index!=0&&prevState->pattern!=state->pattern)
 					{
 						while(!fklIsPtrStackEmpty(matchStateStack))
-							freeMatchState(fklPopPtrStack(matchStateStack));
+							destroyMatchState(fklPopPtrStack(matchStateStack));
 						return 2;
 					}
 					state->index++;
@@ -668,7 +668,7 @@ int fklSplitStringPartsIntoToken(const char** parts,size_t* sizes,uint32_t inum,
 							continue;
 						}
 						else
-							freeMatchState(topState);
+							destroyMatchState(topState);
 					}
 				}
 				else
@@ -717,7 +717,7 @@ int fklSplitStringPartsIntoToken(const char** parts,size_t* sizes,uint32_t inum,
 						fklStringCharBufCat(&topToken->value,parts[i]+j,len);
 						j+=len;
 						if(topState&&j<sizes[i]&&parts[i][j]!='|')
-							freeMatchState(fklPopPtrStack(matchStateStack));
+							destroyMatchState(fklPopPtrStack(matchStateStack));
 						else
 							continue;
 					}
@@ -725,7 +725,7 @@ int fklSplitStringPartsIntoToken(const char** parts,size_t* sizes,uint32_t inum,
 				else
 				{
 					while(!fklIsPtrStackEmpty(matchStateStack))
-						freeMatchState(fklPopPtrStack(matchStateStack));
+						destroyMatchState(fklPopPtrStack(matchStateStack));
 					return 2;
 				}
 			}
@@ -735,7 +735,7 @@ int fklSplitStringPartsIntoToken(const char** parts,size_t* sizes,uint32_t inum,
 					topState=fklTopPtrStack(matchStateStack))
 			{
 				if(isBuiltInSingleStrPattern(topState->pattern))
-					freeMatchState(fklPopPtrStack(matchStateStack));
+					destroyMatchState(fklPopPtrStack(matchStateStack));
 				else if(!isBuiltInParenthese(topState->pattern))
 				{
 					const FklString* curPart=fklGetNthPartOfStringMatchPattern(topState->pattern,topState->index);
@@ -744,11 +744,11 @@ int fklSplitStringPartsIntoToken(const char** parts,size_t* sizes,uint32_t inum,
 					else if(curPart&&!fklIsVar(curPart))
 					{
 						while(!fklIsPtrStackEmpty(matchStateStack))
-							freeMatchState(fklPopPtrStack(matchStateStack));
+							destroyMatchState(fklPopPtrStack(matchStateStack));
 						return 2;
 					}
 					if(topState->index>=topState->pattern->num)
-						freeMatchState(fklPopPtrStack(matchStateStack));
+						destroyMatchState(fklPopPtrStack(matchStateStack));
 					else
 						break;
 				}

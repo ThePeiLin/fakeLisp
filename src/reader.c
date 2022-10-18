@@ -81,7 +81,7 @@ char* fklReadInStringPattern(FILE* fp,char** prev,size_t* size,size_t* prevSize,
 		else if(r==1&&feof(fp))
 		{
 			while(!fklIsPtrStackEmpty(retval))
-				fklFreeToken(fklPopPtrStack(retval));
+				fklDestroyToken(fklPopPtrStack(retval));
 			while(!fklIsPtrStackEmpty(matchStateStack))
 				free(fklPopPtrStack(matchStateStack));
 			*unexpectEOF=1;
@@ -92,7 +92,7 @@ char* fklReadInStringPattern(FILE* fp,char** prev,size_t* size,size_t* prevSize,
 		else if(r==2)
 		{
 			while(!fklIsPtrStackEmpty(retval))
-				fklFreeToken(fklPopPtrStack(retval));
+				fklDestroyToken(fklPopPtrStack(retval));
 			while(!fklIsPtrStackEmpty(matchStateStack))
 				free(fklPopPtrStack(matchStateStack));
 			*unexpectEOF=2;
@@ -109,7 +109,7 @@ char* fklReadInStringPattern(FILE* fp,char** prev,size_t* size,size_t* prevSize,
 		*size+=nextSize;
 		free(next);
 	}
-	fklFreePtrStack(matchStateStack);
+	fklDestroyPtrStack(matchStateStack);
 	return tmp;
 }
 

@@ -155,7 +155,7 @@ void fklDecTop(FklVMstack* stack)
 //	return key0==key1;
 //}
 //
-//static void _LineNumHash_freeItem(void* item)
+//static void _LineNumHash_destroyItem(void* item)
 //{
 //	free(item);
 //}
@@ -168,7 +168,7 @@ void fklDecTop(FklVMstack* stack)
 //static FklHashTableMethodTable LineNumHashMethTable=
 //{
 //	.__hashFunc=_LineNumHash_hashFunc,
-//	.__freeItem=_LineNumHash_freeItem,
+//	.__destroyItem=_LineNumHash_destroyItem,
 //	.__keyEqual=_LineNumHash_keyEqual,
 //	.__getKey=_LineNumHash_getKey,
 //};
@@ -248,7 +248,7 @@ void fklDecTop(FklVMstack* stack)
 //					FKL_ASSERT(0);
 //					break;
 //			}
-//			fklFreePtrStack(cStack);
+//			fklDestroyPtrStack(cStack);
 //			cStack=tStack;
 //		}
 //		else
@@ -343,10 +343,10 @@ void fklDecTop(FklVMstack* stack)
 //		}
 //	}
 //	FklVMvalue* retval=fklTopPtrStack(valueStack);
-//	fklFreePtrStack(stackStack);
-//	fklFreePtrStack(cptrStack);
-//	fklFreePtrStack(valueStack);
-//	fklFreeUintStack(reftypeStack);
+//	fklDestroyPtrStack(stackStack);
+//	fklDestroyPtrStack(cptrStack);
+//	fklDestroyPtrStack(valueStack);
+//	fklDestroyUintStack(reftypeStack);
 //	return retval;
 //}
 
@@ -399,15 +399,15 @@ FklVMtryBlock* fklCreateVMtryBlock(FklSid_t sid,uint32_t tp,FklVMframe* frame)
 	return t;
 }
 
-void fklFreeVMtryBlock(FklVMtryBlock* b)
+void fklDestroyVMtryBlock(FklVMtryBlock* b)
 {
 	FklPtrStack* hstack=b->hstack;
 	while(!fklIsPtrStackEmpty(hstack))
 	{
 		FklVMerrorHandler* h=fklPopPtrStack(hstack);
-		fklFreeVMerrorHandler(h);
+		fklDestroyVMerrorHandler(h);
 	}
-	fklFreePtrStack(b->hstack);
+	fklDestroyPtrStack(b->hstack);
 	free(b);
 }
 
@@ -424,7 +424,7 @@ FklVMerrorHandler* fklCreateVMerrorHandler(FklSid_t* typeIds,uint32_t errTypeNum
 	return t;
 }
 
-void fklFreeVMerrorHandler(FklVMerrorHandler* h)
+void fklDestroyVMerrorHandler(FklVMerrorHandler* h)
 {
 	free(h->typeIds);
 	free(h);
@@ -468,13 +468,13 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 				FklVMvalue* curEnv=frame->localenv;
 				FklSid_t idOfError=tb->sid;
 				fklSetRef(fklFindOrAddVar(idOfError,curEnv->u.env),ev,exe->gc);
-				fklFreeVMerrorHandler(h);
+				fklDestroyVMerrorHandler(h);
 				exe->frames=frame;
 				return 1;
 			}
-			fklFreeVMerrorHandler(h);
+			fklDestroyVMerrorHandler(h);
 		}
-		fklFreeVMtryBlock(fklPopPtrStack(exe->tstack));
+		fklDestroyVMtryBlock(fklPopPtrStack(exe->tstack));
 	}
 	fprintf(stderr,"error of ");
 	fklPrintString(err->who,stderr);
@@ -531,14 +531,14 @@ FklVMframe* fklCreateVMframe(FklVMproc* code,FklVMframe* prev)
 	return tmp;
 }
 
-void fklFreeVMframe(FklVMframe* frame)
+void fklDestroyVMframe(FklVMframe* frame)
 {
 	FklVMcCC* curCCC=frame->ccc;
 	while(curCCC)
 	{
 		FklVMcCC* cur=curCCC;
 		curCCC=cur->next;
-		fklFreeVMcCC(cur);
+		fklDestroyVMcCC(cur);
 	}
 	free(frame);
 }
@@ -563,7 +563,7 @@ FklVMcCC* fklCopyVMcCC(FklVMcCC* ccc)
 	return r;
 }
 
-void fklFreeVMcCC(FklVMcCC* cc)
+void fklDestroyVMcCC(FklVMcCC* cc)
 {
 	free(cc->ctx);
 	free(cc);
@@ -805,7 +805,7 @@ static void scanCirRef(FklVMvalue* s,FklPtrStack* recStack)
 						fklPushPtrStack(item->key,beAccessed);
 					}
 				}
-				fklFreePtrStack(stack);
+				fklDestroyPtrStack(stack);
 			}
 			else
 			{
@@ -816,8 +816,8 @@ static void scanCirRef(FklVMvalue* s,FklPtrStack* recStack)
 			}
 		}
 	}
-	fklFreePtrStack(totalAccessed);
-	fklFreePtrStack(beAccessed);
+	fklDestroyPtrStack(totalAccessed);
+	fklDestroyPtrStack(beAccessed);
 }
 
 static void princVMatom(FklVMvalue* v,FILE* fp)
@@ -1217,7 +1217,7 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 				fputc(' ',fp);
 		}
 		fklPopPtrStack(queueStack);
-		fklFreePtrQueue(cQueue);
+		fklDestroyPtrQueue(cQueue);
 		if(!fklIsPtrStackEmpty(queueStack))
 		{
 			fputc(')',fp);
@@ -1230,9 +1230,9 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 				fputc(' ',fp);
 		}
 	}
-	fklFreePtrStack(queueStack);
-	fklFreePtrStack(recStack);
-	fklFreePtrStack(hasPrintRecStack);
+	fklDestroyPtrStack(queueStack);
+	fklDestroyPtrStack(recStack);
+	fklDestroyPtrStack(hasPrintRecStack);
 }
 
 FklVMvalue* fklSetRef(FklVMvalue* volatile* pref,FklVMvalue* v,FklVMgc* gc)
@@ -1419,10 +1419,10 @@ FklVMvalue* fklGetValue(FklVMstack* stack,int32_t place)
 //				fklPushPtrStack(&tmpPair->cdr,s2);
 //			}
 //		}
-//		fklFreePtrStack(s1);
-//		fklFreePtrStack(s2);
+//		fklDestroyPtrStack(s1);
+//		fklDestroyPtrStack(s2);
 //	}
-//	fklFreePtrStack(recStack);
+//	fklDestroyPtrStack(recStack);
 //	return tmp;
 //}
 
@@ -1444,7 +1444,7 @@ void fklInitVMRunningResource(FklVM* vm,FklVMvalue* vEnv,FklVMgc* gc,FklByteCode
 	vm->lnt->list=code->l;
 	if(vm->gc!=gc)
 	{
-		fklFreeVMgc(vm->gc);
+		fklDestroyVMgc(vm->gc);
 		vm->gc=gc;
 	}
 }
@@ -1453,7 +1453,7 @@ void fklUninitVMRunningResource(FklVM* vm)
 {
 	fklWaitGC(vm->gc);
 	free(vm->lnt);
-	fklFreeAllVMs(vm);
+	fklDestroyAllVMs(vm);
 }
 
 size_t fklVMlistLength(FklVMvalue* v)

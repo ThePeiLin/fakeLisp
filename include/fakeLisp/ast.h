@@ -92,7 +92,7 @@ void fklPrintCptr(const FklAstCptr*,FILE*);
 FklAstPair* fklCreatePair(int,FklAstPair*);
 FklAstCptr* fklCreateCptr(int,FklAstPair*);
 FklAstAtom* fklCreateAtom(FklValueType type,FklAstPair*);
-void fklFreeAtom(FklAstAtom*);
+void fklDestroyAtom(FklAstAtom*);
 
 void fklMakeAstHashTable(FklAstHashTable* hash,uint32_t,uint64_t);
 void fklMakeAstVector(FklAstVector* vec,size_t size,const FklAstCptr* base);

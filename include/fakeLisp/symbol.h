@@ -46,9 +46,9 @@ FklSymTabNode* fklGetSymbolWithId(FklSid_t id,FklSymbolTable*);
 FklSymTabNode* fklGetGlobSymbolWithId(FklSid_t id);
 void fklPrintSymbolTable(FklSymbolTable*,FILE*);
 void fklPrintGlobSymbolTable(FILE*);
-void fklFreeSymTabNode(FklSymTabNode*);
-void fklFreeSymbolTable(FklSymbolTable*);
-void fklFreeGlobSymbolTable();
+void fklDestroySymTabNode(FklSymTabNode*);
+void fklDestroySymbolTable(FklSymbolTable*);
+void fklDestroyGlobSymbolTable();
 
 void fklWriteSymbolTable(FklSymbolTable*,FILE*);
 void fklWriteGlobSymbolTable(FILE*);

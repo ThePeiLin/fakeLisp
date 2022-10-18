@@ -117,9 +117,9 @@ char* fklCharBufToCstr(const char* buf,size_t size);
 const char* fklGetMainFileRealPath(void);
 const char* fklGetCwd(void);
 void fklSetCwd(const char*);
-void fklFreeCwd(void);
+void fklDestroyCwd(void);
 void fklSetMainFileRealPath(const char* path);
-void fklFreeMainFileRealPath(void);
+void fklDestroyMainFileRealPath(void);
 void fklSetMainFileRealPathWithCwd(void);
 
 #ifdef __cplusplus

@@ -91,7 +91,7 @@ int main(int argc,char** argv)
 		if(fp==NULL)
 		{
 			perror(filename);
-			fklFreeCwd();
+			fklDestroyCwd();
 			return EXIT_FAILURE;
 		}
 		loadSymbolTable(fp);
@@ -107,12 +107,12 @@ int main(int argc,char** argv)
 			.bc=mainCode,
 		};
 		fklPrintByteCodelnt(&bytecodelnt,stdout,NULL);
-		fklFreeByteCode(mainCode);
+		fklDestroyByteCode(mainCode);
 		fclose(fp);
-		fklFreeCwd();
-		fklFreeGlobSymbolTable();
-		fklFreeLineNumberTable(lnt);
-		fklFreeMainFileRealPath();
+		fklDestroyCwd();
+		fklDestroyGlobSymbolTable();
+		fklDestroyLineNumberTable(lnt);
+		fklDestroyMainFileRealPath();
 	}
 	else
 	{

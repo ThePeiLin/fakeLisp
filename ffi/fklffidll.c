@@ -26,7 +26,7 @@ void fklFfiAddSharedObj(FklFfidllHandle handle)
 	pthread_rwlock_unlock(&GlobSharedObjsLock);
 }
 
-void fklFfiFreeAllSharedObj(void)
+void fklFfiDestroyAllSharedObj(void)
 {
 	FklFfiSharedObjNode* head=GlobSharedObjs;
 	pthread_rwlock_wrlock(&GlobSharedObjsLock);
@@ -37,7 +37,7 @@ void fklFfiFreeAllSharedObj(void)
 		FklFfiSharedObjNode* prev=head;
 		head=head->next;
 #ifdef _WIN32
-		FreeLibrary(prev->dll);
+		DestroyLibrary(prev->dll);
 #else
 		dlclose(prev->dll);
 #endif
@@ -45,7 +45,7 @@ void fklFfiFreeAllSharedObj(void)
 	}
 }
 
-void fklFfiFreeProc(FklFfiProc* t)
+void fklFfiDestroyProc(FklFfiProc* t)
 {
 	free(t->atypes);
 	free(t);
@@ -53,7 +53,7 @@ void fklFfiFreeProc(FklFfiProc* t)
 
 static void _ffi_proc_atomic_finalizer(void* p)
 {
-	fklFfiFreeProc(p);
+	fklFfiDestroyProc(p);
 }
 
 static void _ffi_proc_print(void* p,FILE* fp)
@@ -151,10 +151,10 @@ static void _ffi_proc_invoke(void* ptr,FklVM* exe)
 			for(uint32_t j=0;j<i;j++)
 			{
 				ud->t->__finalizer(ud->data);
-				fklFreeVMudata(ud);
+				fklDestroyVMudata(ud);
 				FklVMudata* tud=udataList[i];
 				tud->t->__finalizer(tud->data);
-				fklFreeVMudata(tud);
+				fklDestroyVMudata(tud);
 			}
 			free(args);
 			free(pArgs);
@@ -185,7 +185,7 @@ static void _ffi_proc_invoke(void* ptr,FklVM* exe)
 	{
 		FklVMudata* ud=udataList[i];
 		ud->t->__finalizer(ud->data);
-		fklFreeVMudata(ud);
+		fklDestroyVMudata(ud);
 	}
 	free(udataList);
 	free(pArgs);

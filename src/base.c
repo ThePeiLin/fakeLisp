@@ -52,7 +52,7 @@ void* fklTopPtrStack(FklPtrStack* stack)
 	return stack->base[stack->top-1];
 }
 
-void fklFreePtrStack(FklPtrStack* stack)
+void fklDestroyPtrStack(FklPtrStack* stack)
 {
 	free(stack->base);
 	free(stack);
@@ -78,7 +78,7 @@ FklQueueNode* fklCreateQueueNode(void* data)
 	return tmp;
 }
 
-void fklFreeQueueNode(FklQueueNode* tmp)
+void fklDestroyQueueNode(FklQueueNode* tmp)
 {
 	free(tmp);
 }
@@ -92,14 +92,14 @@ FklPtrQueue* fklCreatePtrQueue(void)
 	return tmp;
 }
 
-void fklFreePtrQueue(FklPtrQueue* tmp)
+void fklDestroyPtrQueue(FklPtrQueue* tmp)
 {
 	FklQueueNode* cur=tmp->head;
 	while(cur)
 	{
 		FklQueueNode* prev=cur;
 		cur=cur->next;
-		fklFreeQueueNode(prev);
+		fklDestroyQueueNode(prev);
 	}
 	free(tmp);
 }
@@ -126,7 +126,7 @@ void* fklPopPtrQueue(FklPtrQueue* tmp)
 	tmp->head=head->next;
 	if(!tmp->head)
 		tmp->tail=&tmp->head;
-	fklFreeQueueNode(head);
+	fklDestroyQueueNode(head);
 	return retval;
 }
 
@@ -209,7 +209,7 @@ int64_t fklTopIntStack(FklIntStack* stack)
 	return stack->base[stack->top-1];
 }
 
-void fklFreeIntStack(FklIntStack* stack)
+void fklDestroyIntStack(FklIntStack* stack)
 {
 	free(stack->base);
 	free(stack);
@@ -281,7 +281,7 @@ uint64_t fklTopUintStack(FklUintStack* stack)
 	return stack->base[stack->top-1];
 }
 
-void fklFreeUintStack(FklUintStack* stack)
+void fklDestroyUintStack(FklUintStack* stack)
 {
 	free(stack->base);
 	free(stack);
@@ -689,7 +689,7 @@ static FklUintStack* toInexactBitWiseDigitsLe(const FklBigInt* u,uint8_t bits)
 	return res;
 }
 
-void fklFreeBigInt(FklBigInt* t)
+void fklDestroyBigInt(FklBigInt* t)
 {
 	free(t->digits);
 	free(t);
@@ -727,14 +727,14 @@ void fklInitBigIntU(FklBigInt* a,uint64_t v)
 {
 	FklBigInt* bi=fklCreateBigIntU(v);
 	fklInitBigInt(a,bi);
-	fklFreeBigInt(bi);
+	fklDestroyBigInt(bi);
 }
 
 void fklInitBigIntI(FklBigInt* a,int64_t v)
 {
 	FklBigInt* bi=fklCreateBigInt(v);
 	fklInitBigInt(a,bi);
-	fklFreeBigInt(bi);
+	fklDestroyBigInt(bi);
 }
 
 void fklSetBigIntU(FklBigInt* des,uint64_t src)
@@ -889,7 +889,7 @@ void fklAddBigIntI(FklBigInt* a,int64_t addendI)
 {
 	FklBigInt* addend=fklCreateBigInt(addendI);
 	fklAddBigInt(a,addend);
-	fklFreeBigInt(addend);
+	fklDestroyBigInt(addend);
 }
 
 void fklSubBigInt(FklBigInt* a,const FklBigInt* sub)
@@ -906,7 +906,7 @@ void fklSubBigIntI(FklBigInt* a,int64_t sub)
 {
 	FklBigInt* toSub=fklCreateBigInt(sub);
 	fklSubBigInt(a,toSub);
-	fklFreeBigInt(toSub);
+	fklDestroyBigInt(toSub);
 }
 
 void fklMulBigInt(FklBigInt* a,const FklBigInt* multipler)
@@ -954,7 +954,7 @@ void fklMulBigIntI(FklBigInt* a,int64_t mul)
 {
 	FklBigInt* multipler=fklCreateBigInt(mul);
 	fklMulBigInt(a,multipler);
-	fklFreeBigInt(multipler);
+	fklDestroyBigInt(multipler);
 }
 
 int fklDivModBigIntI(FklBigInt* a,int64_t* rem,int64_t div)
@@ -967,7 +967,7 @@ int fklDivModBigIntI(FklBigInt* a,int64_t* rem,int64_t div)
 		FklBigInt* divider=fklCreateBigInt(div);
 		FklBigInt trem=FKL_BIG_INT_INIT;
 		int r=fklDivModBigInt(a,&trem,divider);
-		fklFreeBigInt(divider);
+		fklDestroyBigInt(divider);
 		*rem=fklBigIntToI64(&trem);
 		free(trem.digits);
 		return r;
@@ -983,7 +983,7 @@ int fklDivModBigIntU(FklBigInt* a,uint64_t* rem,uint64_t div)
 		FklBigInt* divider=fklCreateBigIntU(div);
 		FklBigInt trem=FKL_BIG_INT_INIT;
 		int r=fklDivModBigInt(a,&trem,divider);
-		fklFreeBigInt(divider);
+		fklDestroyBigInt(divider);
 		*rem=fklBigIntToU64(&trem);
 		free(trem.digits);
 		return r;
@@ -1097,7 +1097,7 @@ int fklDivBigIntI(FklBigInt* a,int64_t div)
 	{
 		FklBigInt* divider=fklCreateBigInt(div);
 		int r=fklDivBigInt(a,divider);
-		fklFreeBigInt(divider);
+		fklDestroyBigInt(divider);
 		return r;
 	}
 }
@@ -1110,7 +1110,7 @@ int fklDivBigIntU(FklBigInt* a,uint64_t div)
 	{
 		FklBigInt* divider=fklCreateBigIntU(div);
 		int r=fklDivBigInt(a,divider);
-		fklFreeBigInt(divider);
+		fklDestroyBigInt(divider);
 		return r;
 	}
 }
@@ -1154,7 +1154,7 @@ int fklModBigIntU(FklBigInt* a,uint64_t div)
 	{
 		FklBigInt* divider=fklCreateBigIntU(div);
 		int r=fklModBigInt(a,divider);
-		fklFreeBigInt(divider);
+		fklDestroyBigInt(divider);
 		return r;
 	}
 }
@@ -1167,7 +1167,7 @@ int fklModBigIntI(FklBigInt* a,int64_t div)
 	{
 		FklBigInt* divider=fklCreateBigInt(div);
 		int r=fklModBigInt(a,divider);
-		fklFreeBigInt(divider);
+		fklDestroyBigInt(divider);
 		return r;
 	}
 }
@@ -1188,7 +1188,7 @@ int fklIsDivisibleBigIntI(const FklBigInt* a,int64_t i)
 {
 	FklBigInt* bi=fklCreateBigInt(i);
 	int r=fklIsDivisibleBigInt(a,bi);
-	fklFreeBigInt(bi);
+	fklDestroyBigInt(bi);
 	return r;
 }
 
@@ -1199,7 +1199,7 @@ int fklIsDivisibleIBigInt(int64_t i,const FklBigInt* b)
 	fklModBigInt(a,b);
 	if(a->num==1&&a->digits[0]==0)
 		r=1;
-	fklFreeBigInt(a);
+	fklDestroyBigInt(a);
 	return r;
 }
 
@@ -1208,8 +1208,8 @@ int fklIsGeLeI64BigInt(const FklBigInt* a)
 	FklBigInt* bI64Max=fklCreateBigInt(INT64_MAX);
 	FklBigInt* bI64Min=fklCreateBigInt(INT64_MIN);
 	int r=(fklCmpBigInt(a,bI64Max)>=0||fklCmpBigInt(a,bI64Min)<=0);
-	fklFreeBigInt(bI64Max);
-	fklFreeBigInt(bI64Min);
+	fklDestroyBigInt(bI64Max);
+	fklDestroyBigInt(bI64Min);
 	return r;
 }
 
@@ -1218,8 +1218,8 @@ int fklIsGtLtI64BigInt(const FklBigInt* a)
 	FklBigInt* bI64Max=fklCreateBigInt(INT64_MAX);
 	FklBigInt* bI64Min=fklCreateBigInt(INT64_MIN);
 	int r=(fklCmpBigInt(a,bI64Max)>0||fklCmpBigInt(a,bI64Min)<0);
-	fklFreeBigInt(bI64Max);
-	fklFreeBigInt(bI64Min);
+	fklDestroyBigInt(bI64Max);
+	fklDestroyBigInt(bI64Min);
 	return r;
 }
 
@@ -1227,7 +1227,7 @@ int fklIsGtU64MaxBigInt(const FklBigInt* a)
 {
 	FklBigInt* bI64Max=fklCreateBigIntU(UINT64_MAX);
 	int r=fklCmpBigInt(a,bI64Max)>0;
-	fklFreeBigInt(bI64Max);
+	fklDestroyBigInt(bI64Max);
 	return r;
 }
 
@@ -1235,7 +1235,7 @@ int fklIsGtI64MaxBigInt(const FklBigInt* a)
 {
 	FklBigInt* bI64Max=fklCreateBigInt(INT64_MAX);
 	int r=fklCmpBigInt(a,bI64Max)>0;
-	fklFreeBigInt(bI64Max);
+	fklDestroyBigInt(bI64Max);
 	return r;
 }
 
@@ -1243,7 +1243,7 @@ int fklIsLtI64MinBigInt(const FklBigInt* a)
 {
 	FklBigInt* bI64Min=fklCreateBigInt(INT64_MIN);
 	int r=fklCmpBigInt(a,bI64Min)<0;
-	fklFreeBigInt(bI64Min);
+	fklDestroyBigInt(bI64Min);
 	return r;
 }
 
@@ -1313,7 +1313,7 @@ void fklPrintBigInt(const FklBigInt* a,FILE* fp)
 			else
 				fputc('A'+c,fp);
 		}
-		fklFreeUintStack(res);
+		fklDestroyUintStack(res);
 	}
 }
 
@@ -1366,7 +1366,7 @@ FklString* fklBigIntToString(const FklBigInt* a,int radix)
 			uint64_t c=res->base[i-1];
 			buf[j]=c<10?c+'0':c-10+'A';
 		}
-		fklFreeUintStack(res);
+		fklDestroyUintStack(res);
 		return s;
 	}
 }
@@ -1385,7 +1385,7 @@ void fklSprintBigInt(const FklBigInt* bi,size_t size,char* buf)
 		FklUintStack* res=toRadixDigitsLe(bi,10);
 		for(size_t i=res->top;i>0;i--)
 			buf[i]=res->base[i-1]+'0';
-		fklFreeUintStack(res);
+		fklDestroyUintStack(res);
 	}
 }
 
@@ -1393,7 +1393,7 @@ int fklCmpBigIntI(const FklBigInt* bi,int64_t i)
 {
 	FklBigInt* tbi=fklCreateBigInt(i);
 	int r=fklCmpBigInt(bi,tbi);
-	fklFreeBigInt(tbi);
+	fklDestroyBigInt(tbi);
 	return r;
 }
 
@@ -1490,7 +1490,7 @@ void fklPrintString(const FklString* str,FILE* fp)
 	fwrite(str->str,str->size,1,fp);
 }
 
-void fklFreeStringArray(FklString** ss,uint32_t num)
+void fklDestroyStringArray(FklString** ss,uint32_t num)
 {
 	for(uint32_t i=0;i<num;i++)
 		free(ss[i]);
@@ -1609,7 +1609,7 @@ void* fklPutReplHashItem(void* item,FklHashTable* table)
 	for(;*pp;pp=&(*pp)->next,i++)
 		if(__keyEqual(__getKey((*pp)->item),__getKey(item)))
 		{
-			table->t->__freeItem((*pp)->item);
+			table->t->__destroyItem((*pp)->item);
 			(*pp)->item=item;
 			return item;
 		}
@@ -1631,7 +1631,7 @@ void* fklPutInReverseOrder(void* item,FklHashTable* table)
 	for(;*pp;pp=&(*pp)->next,i++)
 		if(__keyEqual(__getKey((*pp)->item),__getKey(item)))
 		{
-			table->t->__freeItem(item);
+			table->t->__destroyItem(item);
 			return (*pp)->item;
 		}
 	*pp=createHashTableNode(item,NULL);
@@ -1653,7 +1653,7 @@ void* fklPutNoRpHashItem(void* item,FklHashTable* table)
 	for(;*pp;pp=&(*pp)->next,i++)
 		if(__keyEqual(__getKey((*pp)->item),__getKey(item)))
 		{
-			table->t->__freeItem(item);
+			table->t->__destroyItem(item);
 			return (*pp)->item;
 		}
 	*pp=createHashTableNode(item,NULL);
@@ -1685,14 +1685,14 @@ void fklRehashTable(FklHashTable* table,unsigned int inc)
 	}
 }
 
-void fklFreeHashTable(FklHashTable* table)
+void fklDestroyHashTable(FklHashTable* table)
 {
-	void (*__freeItem)(void*)=table->t->__freeItem;
+	void (*__destroyItem)(void*)=table->t->__destroyItem;
 	FklHashTableNodeList* list=table->list;
 	while(list)
 	{
 		FklHashTableNodeList* cur=list;
-		__freeItem(cur->node->item);
+		__destroyItem(cur->node->item);
 		free(cur->node);
 		list=list->next;
 		free(cur);

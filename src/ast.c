@@ -70,7 +70,7 @@
 //	return vEnv;
 //}
 //
-//void fklFreeAtom(FklAstAtom* objAtm)
+//void fklDestroyAtom(FklAstAtom* objAtm)
 //{
 //	if(objAtm->type==FKL_TYPE_SYM||objAtm->type==FKL_TYPE_STR)
 //		free(objAtm->value.str);
@@ -281,8 +281,8 @@
 //				break;
 //		}
 //	}
-//	fklFreePtrStack(s1);
-//	fklFreePtrStack(s2);
+//	fklDestroyPtrStack(s1);
+//	fklDestroyPtrStack(s2);
 //	return 1;
 //}
 //void fklReplaceCptr(FklAstCptr* fir,const FklAstCptr* sec)
@@ -324,7 +324,7 @@
 //		}
 //		else if(tmpCptr->type==FKL_TYPE_ATM)
 //		{
-//			fklFreeAtom(tmpCptr->u.atom);
+//			fklDestroyAtom(tmpCptr->u.atom);
 //			tmpCptr->type=FKL_TYPE_NIL;
 //			tmpCptr->u.all=NULL;
 //			continue;
@@ -585,7 +585,7 @@
 //			else
 //				r->value.i32=num;
 //		}
-//		fklFreeBigInt(bInt);
+//		fklDestroyBigInt(bInt);
 //	}
 //	return r;
 //}
@@ -632,7 +632,7 @@
 //	return state;
 //}
 //
-//static void freeMatchState(MatchState* state)
+//static void destroyMatchState(MatchState* state)
 //{
 //	free(state);
 //}
@@ -845,11 +845,11 @@
 //	if(!tmpGlobEnv)
 //	{
 //		fklDestroyEnv(tmpEnv);
-//		fklFreeByteCodelnt(t);
-//		fklFreeVMgc(tmpVM->gc);
-//		fklFreeVMstack(tmpVM->stack);
-//		fklFreeVMframes(tmpVM->frames);
-//		fklFreePtrStack(tmpVM->tstack);
+//		fklDestroyByteCodelnt(t);
+//		fklDestroyVMgc(tmpVM->gc);
+//		fklDestroyVMstack(tmpVM->stack);
+//		fklDestroyVMframes(tmpVM->frames);
+//		fklDestroyPtrStack(tmpVM->tstack);
 //		free(tmpVM);
 //		chdir(cwd);
 //		free(cwd);
@@ -870,23 +870,23 @@
 //	else
 //	{
 //		fklJoinAllThread(prevVMs);
-//		fklFreeByteCodeAndLnt(t);
+//		fklDestroyByteCodeAndLnt(t);
 //		fklUninitVMRunningResource(tmpVM,prevVMs);
 //		chdir(cwd);
 //		free(cwd);
-//		fklFreeVMgc(gc);
+//		fklDestroyVMgc(gc);
 //		fklDestroyEnv(tmpEnv);
-//		fklFreeHashTable(lineHash);
+//		fklDestroyHashTable(lineHash);
 //		return NULL;
 //	}
-//	fklFreeByteCodeAndLnt(t);
+//	fklDestroyByteCodeAndLnt(t);
 //	gc=tmpVM->gc;
 //	fklUninitVMRunningResource(tmpVM,prevVMs);
-//	fklFreeVMgc(gc);
+//	fklDestroyVMgc(gc);
 //	chdir(cwd);
 //	free(cwd);
 //	fklDestroyEnv(tmpEnv);
-//	fklFreeHashTable(lineHash);
+//	fklDestroyHashTable(lineHash);
 //	return retval;
 //}
 //
@@ -922,13 +922,13 @@
 //						free(v);
 //					}
 //				}
-//				fklFreePtrStack(stackStack);
+//				fklDestroyPtrStack(stackStack);
 //				while(!fklIsPtrStackEmpty(matchStateStack))
 //				{
 //					MatchState* state=fklPopPtrStack(matchStateStack);
 //					free(state);
 //				}
-//				fklFreePtrStack(matchStateStack);
+//				fklDestroyPtrStack(matchStateStack);
 //				return NULL;
 //			}
 //			cur->type=FKL_TYPE_ATM;
@@ -965,7 +965,7 @@
 //						free(c->cptr);
 //						free(c);
 //					}
-//					fklFreePtrStack(cStack);
+//					fklDestroyPtrStack(cStack);
 //					cStack=fklTopPtrStack(stackStack);
 //					if(!r)
 //						fklPushPtrStack(v,cStack);
@@ -985,15 +985,15 @@
 //								free(cptr);
 //								free(v);
 //							}
-//							fklFreePtrStack(cStack);
+//							fklDestroyPtrStack(cStack);
 //						}
-//						fklFreePtrStack(stackStack);
+//						fklDestroyPtrStack(stackStack);
 //						while(!fklIsPtrStackEmpty(matchStateStack))
 //						{
 //							MatchState* state=fklPopPtrStack(matchStateStack);
 //							free(state);
 //						}
-//						fklFreePtrStack(matchStateStack);
+//						fklDestroyPtrStack(matchStateStack);
 //						return NULL;
 //					}
 //				}
@@ -1158,11 +1158,11 @@
 //						free(c);
 //					}
 //				}
-//				fklFreePtrStack(cStack);
+//				fklDestroyPtrStack(cStack);
 //				cStack=fklTopPtrStack(stackStack);
 //				if(!r)
 //					fklPushPtrStack(v,cStack);
-//				freeMatchState(cState);
+//				destroyMatchState(cState);
 //				if(r)
 //				{
 //					fklDeleteCptr(v->cptr);
@@ -1179,15 +1179,15 @@
 //							free(cptr);
 //							free(v);
 //						}
-//						fklFreePtrStack(cStack);
+//						fklDestroyPtrStack(cStack);
 //					}
-//					fklFreePtrStack(stackStack);
+//					fklDestroyPtrStack(stackStack);
 //					while(!fklIsPtrStackEmpty(matchStateStack))
 //					{
 //						MatchState* state=fklPopPtrStack(matchStateStack);
 //						free(state);
 //					}
-//					fklFreePtrStack(matchStateStack);
+//					fklDestroyPtrStack(matchStateStack);
 //					return NULL;
 //				}
 //			}
@@ -1227,7 +1227,7 @@
 //				fklPopPtrStack(stackStack);
 //				MatchState* cState=fklPopPtrStack(matchStateStack);
 //				AstElem* postfix=fklPopPtrStack(cStack);
-//				fklFreePtrStack(cStack);
+//				fklDestroyPtrStack(cStack);
 //				cStack=fklTopPtrStack(stackStack);
 //				if(state->pattern==DOTTED)
 //				{
@@ -1270,7 +1270,7 @@
 //					free(postfix->cptr);
 //					free(postfix);
 //				}
-//				freeMatchState(cState);
+//				destroyMatchState(cState);
 //			}
 //			else
 //			{
@@ -1289,7 +1289,7 @@
 //				{
 //					fklPopPtrStack(stackStack);
 //					FklAstCptr* r=expandReaderMacroWithTreeStack(state->pattern,filename,glob,cStack,state->line);
-//					freeMatchState(fklPopPtrStack(matchStateStack));
+//					destroyMatchState(fklPopPtrStack(matchStateStack));
 //					for(uint32_t i=0;i<cStack->top;i++)
 //					{
 //						AstElem* elem=cStack->base[i];
@@ -1297,7 +1297,7 @@
 //						free(elem->cptr);
 //						free(elem);
 //					}
-//					fklFreePtrStack(cStack);
+//					fklDestroyPtrStack(cStack);
 //					cStack=fklTopPtrStack(stackStack);
 //					fklPushPtrStack(createAstElem(AST_CAR,r),cStack);
 //				}
@@ -1309,9 +1309,9 @@
 //	AstElem* retvalElem=fklTopPtrStack(elemStack);
 //	FklAstCptr* retval=(retvalElem)?retvalElem->cptr:NULL;
 //	free(retvalElem);
-//	fklFreePtrStack(matchStateStack);
-//	fklFreePtrStack(stackStack);
-//	fklFreePtrStack(elemStack);
+//	fklDestroyPtrStack(matchStateStack);
+//	fklDestroyPtrStack(stackStack);
+//	fklDestroyPtrStack(elemStack);
 //	return retval;
 //}
 //
@@ -1452,7 +1452,7 @@
 //				fputc(' ',fp);
 //		}
 //		fklPopPtrStack(queueStack);
-//		fklFreePtrQueue(cQueue);
+//		fklDestroyPtrQueue(cQueue);
 //		if(!fklIsPtrStackEmpty(queueStack))
 //		{
 //			fputc(')',fp);
@@ -1461,5 +1461,5 @@
 //				fputc(' ',fp);
 //		}
 //	}
-//	fklFreePtrStack(queueStack);
+//	fklDestroyPtrStack(queueStack);
 //}

@@ -46,7 +46,7 @@
 //	return sid;
 //}
 //
-//static void _compenv_freeItem(void* item)
+//static void _compenv_destroyItem(void* item)
 //{
 //	free(item);
 //}
@@ -66,7 +66,7 @@
 //static FklHashTableMethodTable CompEnvHashMethodTable=
 //{
 //	.__hashFunc=_compenv_hashFunc,
-//	.__freeItem=_compenv_freeItem,
+//	.__destroyItem=_compenv_destroyItem,
 //	.__keyEqual=_compenv_keyEqual,
 //	.__getKey=_compenv_getKey,
 //};
@@ -110,7 +110,7 @@
 //			}
 //		}
 //	}
-//	fklFreePtrStack(stack);
+//	fklDestroyPtrStack(stack);
 //	return vEnv;
 //}
 //
@@ -151,11 +151,11 @@
 //		if(!tmpGlob)
 //		{
 //			fklDestroyEnv(macroEnv);
-//			fklFreeVMstack(tmpVM->stack);
-//			fklFreeVMframes(tmpVM->frames);
-//			fklFreePtrStack(tmpVM->tstack);
-//			fklFreeVMgc(tmpVM->gc);
-//			fklFreeByteCodeAndLnt(t);
+//			fklDestroyVMstack(tmpVM->stack);
+//			fklDestroyVMframes(tmpVM->frames);
+//			fklDestroyPtrStack(tmpVM->tstack);
+//			fklDestroyVMgc(tmpVM->gc);
+//			fklDestroyByteCodeAndLnt(t);
 //			chdir(cwd);
 //			free(cwd);
 //			free(tmpVM);
@@ -181,11 +181,11 @@
 //					fprintf(stderr,"error of compiling: Circular reference occur in expanding macro at line %lu of %s\n",objCptr->curline,inter->filename);
 //				else
 //					fprintf(stderr,"error of compiling: Circular reference occur in expanding macro at line %lu\n",objCptr->curline);
-//				fklFreeByteCodeAndLnt(t);
+//				fklDestroyByteCodeAndLnt(t);
 //				FklVMgc* gc=tmpVM->gc;
 //				fklUninitVMRunningResource(tmpVM,prevVMs);
-//				fklFreeVMgc(gc);
-//				fklFreeHashTable(lineHash);
+//				fklDestroyVMgc(gc);
+//				fklDestroyHashTable(lineHash);
 //				return 2;
 //			}
 //			fklReplaceCptr(objCptr,tmpCptr);
@@ -195,21 +195,21 @@
 //		else
 //		{
 //			fklJoinAllThread(prevVMs);
-//			fklFreeByteCodeAndLnt(t);
+//			fklDestroyByteCodeAndLnt(t);
 //			FklVMgc* gc=tmpVM->gc;
 //			fklUninitVMRunningResource(tmpVM,prevVMs);
-//			fklFreeVMgc(gc);
-//			fklFreeHashTable(lineHash);
+//			fklDestroyVMgc(gc);
+//			fklDestroyHashTable(lineHash);
 //			return 2;
 //		}
-//		fklFreeByteCodeAndLnt(t);
+//		fklDestroyByteCodeAndLnt(t);
 //		gc=tmpVM->gc;
 //		fklUninitVMRunningResource(tmpVM,prevVMs);
-//		fklFreeVMgc(gc);
-//		fklFreeHashTable(lineHash);
+//		fklDestroyVMgc(gc);
+//		fklDestroyHashTable(lineHash);
 //		return 1;
 //	}
-//	fklFreeByteCodeAndLnt(t);
+//	fklDestroyByteCodeAndLnt(t);
 //	return 0;
 //}
 //
@@ -236,7 +236,7 @@
 //	{
 //		fklDeleteCptr(current->pattern);
 //		fklDestroyCompEnv(current->macroEnv);
-//		fklFreeByteCodeAndLnt(current->proc);
+//		fklDestroyByteCodeAndLnt(current->proc);
 //		current->pattern=macro->pattern;
 //		current->proc=macro->proc;
 //		current->macroEnv=macro->macroEnv;
@@ -268,7 +268,7 @@
 //	{
 //		fklDeleteCptr(current->pattern);
 //		free(current->pattern);
-//		fklFreeByteCodeAndLnt(current->proc);
+//		fklDestroyByteCodeAndLnt(current->proc);
 //		current->pattern=pattern;
 //		current->proc=proc;
 //	}
@@ -507,7 +507,7 @@
 //
 //void fklUninitPreprocess()
 //{
-//	fklFreeAllStringPattern();
+//	fklDestroyAllStringPattern();
 //}
 //
 //FklAstCptr** dealArg(FklAstCptr* argCptr,int num)
@@ -550,7 +550,7 @@
 //				fklAddReDefStringPattern(parts,num,args[1],inter);
 //			else
 //				fklAddStringPattern(parts,num,args[1],inter);
-////			fklFreeStringArray(parts,num);
+////			fklDestroyStringArray(parts,num);
 //			free(args);
 //		}
 //		else
@@ -601,7 +601,7 @@
 //		else
 //		{
 //			if(tmpByteCodelnt)
-//				fklFreeByteCodeAndLnt(tmpByteCodelnt);
+//				fklDestroyByteCodeAndLnt(tmpByteCodelnt);
 //			fklDeleteCptr(pattern);
 //			free(pattern);
 //			free(args);
@@ -630,12 +630,12 @@
 //	else
 //	{
 //		if(tmpByteCodelnt)
-//			fklFreeByteCodeAndLnt(tmpByteCodelnt);
+//			fklDestroyByteCodeAndLnt(tmpByteCodelnt);
 //		fklPrintCompileError(state.place,state.state,inter);
 //		state.place=NULL;
 //		state.state=0;
 //	}
-//	fklFreeAllMacroThenDestroyCompEnv(tmpCompEnv);
+//	fklDestroyAllMacroThenDestroyCompEnv(tmpCompEnv);
 //	free(tmpInter);
 //	return tmp;
 //}
@@ -655,20 +655,20 @@
 //	FklByteCodelnt* tmpByteCodelnt=fklCompile(express,tmpCompEnv,tmpInter,&state);
 //	if(!state.state)
 //	{
-//		fklFreeStringArray(tmp->parts,num);
-//		fklFreeByteCodeAndLnt(tmp->proc);
+//		fklDestroyStringArray(tmp->parts,num);
+//		fklDestroyByteCodeAndLnt(tmp->proc);
 //		tmp->parts=parts;
 //		tmp->proc=tmpByteCodelnt;
 //	}
 //	else
 //	{
 //		if(tmpByteCodelnt)
-//			fklFreeByteCodeAndLnt(tmpByteCodelnt);
+//			fklDestroyByteCodeAndLnt(tmpByteCodelnt);
 //		fklPrintCompileError(state.place,state.state,inter);
 //		state.place=NULL;
 //		state.state=0;
 //	}
-//	fklFreeAllMacroThenDestroyCompEnv(tmpCompEnv);
+//	fklDestroyAllMacroThenDestroyCompEnv(tmpCompEnv);
 //	free(tmpInter);
 //	return tmp;
 //}
@@ -860,10 +860,10 @@
 //	{
 //		FklByteCode* tmp=innerCompileConst(&vec->base[i]);
 //		fklCodeCat(retval,tmp);
-//		fklFreeByteCode(tmp);
+//		fklDestroyByteCode(tmp);
 //	}
 //	fklCodeCat(retval,pushVector);
-//	fklFreeByteCode(pushVector);
+//	fklDestroyByteCode(pushVector);
 //	return retval;
 //}
 //
@@ -879,12 +879,12 @@
 //		FklByteCode* value=innerCompileConst(fklGetASTPairCdr(first));
 //		fklCodeCat(retval,key);
 //		fklCodeCat(retval,value);
-//		fklFreeByteCode(key);
-//		fklFreeByteCode(value);
+//		fklDestroyByteCode(key);
+//		fklDestroyByteCode(value);
 //	}
 //	fklSetU64ToByteCode(pushHash->code+sizeof(char),hash->num);
 //	fklCodeCat(retval,pushHash);
-//	fklFreeByteCode(pushHash);
+//	fklDestroyByteCode(pushHash);
 //	return retval;
 //}
 //
@@ -895,7 +895,7 @@
 //	pushBox->code[0]=FKL_OP_PUSH_BOX;
 //	FklByteCode* tmp=innerCompileConst(box);
 //	fklReCodeCat(tmp,pushBox);
-//	fklFreeByteCode(tmp);
+//	fklDestroyByteCode(tmp);
 //	return pushBox;
 //}
 //
@@ -919,7 +919,7 @@
 //		{
 //			FklByteCode* tmp1=(objCptr->type==FKL_TYPE_ATM)?fklCompileAtom(objCptr):fklCompileNil();
 //			fklReCodeCat(tmp1,tmp);
-//			fklFreeByteCode(tmp1);
+//			fklDestroyByteCode(tmp1);
 //			if(objPair!=NULL&&objCptr==&objPair->cdr)
 //			{
 //				objCptr=&objPair->car;
@@ -941,7 +941,7 @@
 //		}
 //		if(objPair==NULL)break;
 //	}
-//	fklFreeByteCode(pushPair);
+//	fklDestroyByteCode(pushPair);
 //	return tmp;
 //}
 //
@@ -957,7 +957,7 @@
 //	{
 //		if(fklIsUnqtespExpression(&vec->base[i]))
 //		{
-//			fklFreeByteCodeAndLnt(retval);
+//			fklDestroyByteCodeAndLnt(retval);
 //			state->state=FKL_ERR_SYNTAXERROR;
 //			state->place=objCptr;
 //			return NULL;
@@ -967,20 +967,20 @@
 //			FklByteCodelnt* tmp=fklCompileUnquote(&vec->base[i],curEnv,inter,state);
 //			if(state->state)
 //			{
-//				fklFreeByteCodeAndLnt(retval);
+//				fklDestroyByteCodeAndLnt(retval);
 //				state->state=FKL_ERR_SYNTAXERROR;
 //				state->place=objCptr;
 //				return NULL;
 //			}
 //			fklCodelntCopyCat(retval,tmp);
-//			fklFreeByteCodeAndLnt(tmp);
+//			fklDestroyByteCodeAndLnt(tmp);
 //		}
 //		else
 //		{
 //			FklByteCode* tmp=innerCompileConst(&vec->base[i]);
 //			fklCodeCat(retval->bc,tmp);
 //			retval->l[retval->ls-1]->cpc+=tmp->size;
-//			fklFreeByteCode(tmp);
+//			fklDestroyByteCode(tmp);
 //		}
 //	}
 //	FklByteCode* pushVector=fklCreateByteCode(sizeof(char)+sizeof(uint64_t));
@@ -988,7 +988,7 @@
 //	fklSetU64ToByteCode(pushVector->code+sizeof(char),vec->size);
 //	fklCodeCat(retval->bc,pushVector);
 //	retval->l[retval->ls-1]->cpc+=pushVector->size;
-//	fklFreeByteCode(pushVector);
+//	fklDestroyByteCode(pushVector);
 //	return retval;
 //}
 //
@@ -1016,26 +1016,26 @@
 //				FklByteCodelnt* tmp=fklCompileUnquote(box,curEnv,inter,state);
 //				if(state->state)
 //				{
-//					fklFreeByteCodeAndLnt(retval);
+//					fklDestroyByteCodeAndLnt(retval);
 //					state->state=FKL_ERR_SYNTAXERROR;
 //					state->place=objCptr;
 //					return NULL;
 //				}
 //				fklCodelntCopyCat(retval,tmp);
-//				fklFreeByteCodeAndLnt(tmp);
+//				fklDestroyByteCodeAndLnt(tmp);
 //			}
 //			else
 //			{
 //				FklByteCode* tmp=innerCompileConst(box);
 //				fklCodeCat(retval->bc,tmp);
 //				retval->l[retval->ls-1]->cpc+=tmp->size;
-//				fklFreeByteCode(tmp);
+//				fklDestroyByteCode(tmp);
 //			}
 //			FklByteCode* pushBox=fklCreateByteCode(sizeof(char));
 //			pushBox->code[0]=FKL_OP_PUSH_BOX;
 //			fklCodeCat(retval->bc,pushBox);
 //			retval->l[retval->ls-1]->cpc+=pushBox->size;
-//			fklFreeByteCode(pushBox);
+//			fklDestroyByteCode(pushBox);
 //			return retval;
 //		}
 //	}
@@ -1055,13 +1055,13 @@
 //			FklByteCodelnt* tmp1=fklCompileUnquote(objCptr,curEnv,inter,state);
 //			if(state->state!=0)
 //			{
-//				fklFreeByteCodeAndLnt(tmp);
-//				fklFreeByteCode(appd);
-//				fklFreeByteCode(pushPair);
+//				fklDestroyByteCodeAndLnt(tmp);
+//				fklDestroyByteCode(appd);
+//				fklDestroyByteCode(pushPair);
 //				return NULL;
 //			}
 //			fklReCodeLntCat(tmp1,tmp);
-//			fklFreeByteCodelnt(tmp1);
+//			fklDestroyByteCodelnt(tmp1);
 //			if(objPair!=NULL&&objCptr==&objPair->cdr)
 //			{
 //				objCptr=&objPair->car;
@@ -1072,9 +1072,9 @@
 //		{
 //			if(objCptr==&objPair->cdr||objCptr==top)
 //			{
-//				fklFreeByteCode(pushPair);
-//				fklFreeByteCode(appd);
-//				fklFreeByteCodeAndLnt(tmp);
+//				fklDestroyByteCode(pushPair);
+//				fklDestroyByteCode(appd);
+//				fklDestroyByteCodeAndLnt(tmp);
 //				state->state=FKL_ERR_INVALIDEXPR;
 //				state->place=objCptr;
 //				return NULL;
@@ -1082,13 +1082,13 @@
 //			FklByteCodelnt* tmp1=fklCompile(fklNextCptr(fklGetFirstCptr(objCptr)),curEnv,inter,state);
 //			if(state->state!=0)
 //			{
-//				fklFreeByteCodeAndLnt(tmp);
-//				fklFreeByteCode(appd);
-//				fklFreeByteCode(pushPair);
+//				fklDestroyByteCodeAndLnt(tmp);
+//				fklDestroyByteCode(appd);
+//				fklDestroyByteCode(pushPair);
 //				return NULL;
 //			}
 //			fklReCodeLntCat(tmp1,tmp);
-//			fklFreeByteCodelnt(tmp1);
+//			fklDestroyByteCodelnt(tmp1);
 //			if(objPair!=NULL&&objCptr==&objPair->cdr)
 //			{
 //				objCptr=&objPair->car;
@@ -1123,16 +1123,16 @@
 //				tmp1=fklCompileUnquoteVector(objCptr,curEnv,inter,state);
 //				if(state->state!=0)
 //				{
-//					fklFreeByteCodeAndLnt(tmp);
-//					fklFreeByteCode(appd);
-//					fklFreeByteCode(pushPair);
+//					fklDestroyByteCodeAndLnt(tmp);
+//					fklDestroyByteCode(appd);
+//					fklDestroyByteCode(pushPair);
 //					return NULL;
 //				}
 //			}
 //			else
 //				tmp1=fklCompileConst(objCptr,curEnv,inter,state);
 //			fklReCodeLntCat(tmp1,tmp);
-//			fklFreeByteCodelnt(tmp1);
+//			fklDestroyByteCodelnt(tmp1);
 //			if(objPair!=NULL&&objCptr==&objPair->cdr)
 //			{
 //				objCptr=&objPair->car;
@@ -1154,8 +1154,8 @@
 //		}
 //		if(objPair==NULL)break;
 //	}
-//	fklFreeByteCode(pushPair);
-//	fklFreeByteCode(appd);
+//	fklDestroyByteCode(pushPair);
+//	fklDestroyByteCode(appd);
 //	return tmp;
 //}
 //
@@ -1273,17 +1273,17 @@
 //			tmp1=fklCompile(objCptr,curEnv,inter,state);
 //			if(state->state!=0)
 //			{
-//				fklFreeByteCodeAndLnt(tmp);
+//				fklDestroyByteCodeAndLnt(tmp);
 //				tmp=NULL;
 //				break;
 //			}
 //			fklCodeLntCat(tmp,tmp1);
-//			fklFreeByteCodelnt(tmp1);
+//			fklDestroyByteCodelnt(tmp1);
 //			objCptr=fklPrevCptr(objCptr);
 //		}
 //	}
-//	fklFreeByteCode(setBp);
-//	fklFreeByteCode(call);
+//	fklDestroyByteCode(setBp);
+//	fklDestroyByteCode(call);
 //	return tmp;
 //}
 //
@@ -1308,8 +1308,8 @@
 //	tmp1=fklCompile(objCptr,curEnv,inter,state);
 //	if(state->state!=0)
 //	{
-//		fklFreeByteCode(popVar);
-//		fklFreeByteCode(pushTop);
+//		fklDestroyByteCode(popVar);
+//		fklDestroyByteCode(pushTop);
 //		return NULL;
 //	}
 //	for(;;)
@@ -1350,7 +1350,7 @@
 //				fklCodeCat(tmp1Copy->bc,popVar);
 //				tmp1Copy->l[tmp1Copy->ls-1]->cpc+=(popVar->size+pushTop->size);
 //				fklCodelntCopyCat(curEnv->prev->proc,tmp1Copy);
-//				fklFreeByteCodeAndLnt(tmp1Copy);
+//				fklDestroyByteCodeAndLnt(tmp1Copy);
 //				tmp1Copy=fklCopyByteCodelnt(tmp1);
 //				fklCodeCat(tmp1Copy->bc,pushTop);
 //				fklSetU32ToByteCode(popVar->code+sizeof(char),1);
@@ -1362,12 +1362,12 @@
 //				fklCodeCat(tmp1Copy->bc,popVar);
 //				tmp1Copy->l[tmp1Copy->ls-1]->cpc+=(popVar->size+pushTop->size);
 //				fklCodelntCopyCat(curEnv->proc,tmp1Copy);
-//				fklFreeByteCode(popVar);
+//				fklDestroyByteCode(popVar);
 //			}
 //			else
 //				fklCodelntCopyCat(curEnv->proc,tmp1);
 //		}
-//		fklFreeByteCodeAndLnt(tmp1Copy);
+//		fklDestroyByteCodeAndLnt(tmp1Copy);
 //		if(fir->outer==tmpPair)
 //			break;
 //		else
@@ -1377,8 +1377,8 @@
 //			fir=fklPrevCptr(sec);
 //		}
 //	}
-//	fklFreeByteCode(popVar);
-//	fklFreeByteCode(pushTop);
+//	fklDestroyByteCode(popVar);
+//	fklDestroyByteCode(pushTop);
 //	return tmp1;
 //}
 //
@@ -1403,8 +1403,8 @@
 //	tmp1=fklCompile(objCptr,curEnv,inter,state);
 //	if(state->state!=0)
 //	{
-//		fklFreeByteCode(popVar);
-//		fklFreeByteCode(pushTop);
+//		fklDestroyByteCode(popVar);
+//		fklDestroyByteCode(pushTop);
 //		return NULL;
 //	}
 //	for(;;)
@@ -1461,11 +1461,11 @@
 //				fklCodeCat(tmp1Copy->bc,pushTop);
 //				fklCodeCat(tmp1Copy->bc,popVar);
 //				tmp1Copy->l[tmp1Copy->ls-1]->cpc+=(pushTop->size+popVar->size);
-//				fklFreeByteCode(popVar);
+//				fklDestroyByteCode(popVar);
 //				fklCodelntCopyCat(tmpEnv->proc,tmp1Copy);
 //			}
 //		}
-//		fklFreeByteCodeAndLnt(tmp1Copy);
+//		fklDestroyByteCodeAndLnt(tmp1Copy);
 //		if(scope&&tmpEnv->prev&&tmpEnv->prev->exp&&fklIsSymbolShouldBeExport(tmpAtm->value.str,tmpEnv->prev->exp,tmpEnv->prev->n))
 //		{
 //			fklSetU32ToByteCode(popVar->code+sizeof(char),scope+1);
@@ -1489,8 +1489,8 @@
 //			fir=fklPrevCptr(sec);
 //		}
 //	}
-//	fklFreeByteCode(pushTop);
-//	fklFreeByteCode(popVar);
+//	fklDestroyByteCode(pushTop);
+//	fklDestroyByteCode(popVar);
 //	return tmp1;
 //}
 //
@@ -1509,7 +1509,7 @@
 ////		FklByteCodelnt* tmp2=fklCompile(tir,curEnv,inter,state);
 ////		if(state->state!=0)
 ////		{
-////			fklFreeByteCodeAndLnt(tmp1);
+////			fklDestroyByteCodeAndLnt(tmp1);
 ////			return NULL;
 ////		}
 ////		FklByteCode* popRef=fklCreateByteCode(sizeof(char));
@@ -1517,8 +1517,8 @@
 ////		fklCodeLntCat(tmp1,tmp2);
 ////		fklCodeCat(tmp1->bc,popRef);
 ////		tmp1->l[tmp1->ls-1]->cpc+=popRef->size;
-////		fklFreeByteCode(popRef);
-////		fklFreeByteCodelnt(tmp2);
+////		fklDestroyByteCode(popRef);
+////		fklDestroyByteCodelnt(tmp2);
 ////		return tmp1;
 ////	}
 ////}
@@ -1592,15 +1592,15 @@
 //		FklByteCodelnt* tmp1=fklCompile(objCptr,andExprEnv,inter,state);
 //		if(state->state!=0)
 //		{
-//			fklFreeByteCode(resTp);
-//			fklFreeByteCode(popTp);
-//			fklFreeByteCode(setTp);
-//			fklFreeByteCodeAndLnt(tmp);
-//			fklFreeByteCode(jumpiffalse);
-//			fklFreeByteCode(push1);
-//			fklFreeByteCode(pushREnv);
-//			fklFreeByteCode(popREnv);
-//			fklFreePtrStack(stack);
+//			fklDestroyByteCode(resTp);
+//			fklDestroyByteCode(popTp);
+//			fklDestroyByteCode(setTp);
+//			fklDestroyByteCodeAndLnt(tmp);
+//			fklDestroyByteCode(jumpiffalse);
+//			fklDestroyByteCode(push1);
+//			fklDestroyByteCode(pushREnv);
+//			fklDestroyByteCode(popREnv);
+//			fklDestroyPtrStack(stack);
 //			fklDestroyCompEnv(andExprEnv);
 //			return NULL;
 //		}
@@ -1617,7 +1617,7 @@
 //		tmp1->l[0]->cpc+=resTp->size;
 //		FKL_INCREASE_ALL_SCP(tmp1->l+1,tmp1->ls-1,resTp->size);
 //		fklReCodeLntCat(tmp1,tmp);
-//		fklFreeByteCodelnt(tmp1);
+//		fklDestroyByteCodelnt(tmp1);
 //	}
 //	if(tmp->bc->size)
 //	{
@@ -1655,14 +1655,14 @@
 //	FKL_INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,setTp->size);
 //	fklCodeCat(tmp->bc,popTp);
 //	tmp->l[tmp->ls-1]->cpc+=popTp->size;
-//	fklFreeByteCode(resTp);
-//	fklFreeByteCode(popTp);
-//	fklFreeByteCode(setTp);
-//	fklFreeByteCode(jumpiffalse);
-//	fklFreeByteCode(push1);
-//	fklFreeByteCode(pushREnv);
-//	fklFreeByteCode(popREnv);
-//	fklFreePtrStack(stack);
+//	fklDestroyByteCode(resTp);
+//	fklDestroyByteCode(popTp);
+//	fklDestroyByteCode(setTp);
+//	fklDestroyByteCode(jumpiffalse);
+//	fklDestroyByteCode(push1);
+//	fklDestroyByteCode(pushREnv);
+//	fklDestroyByteCode(popREnv);
+//	fklDestroyPtrStack(stack);
 //	return tmp;
 //}
 //
@@ -1692,15 +1692,15 @@
 //		FklByteCodelnt* tmp1=fklCompile(objCptr,orExprEnv,inter,state);
 //		if(state->state!=0)
 //		{
-//			fklFreeByteCode(resTp);
-//			fklFreeByteCode(popTp);
-//			fklFreeByteCode(setTp);
-//			fklFreeByteCodeAndLnt(tmp);
-//			fklFreeByteCode(jumpifture);
-//			fklFreeByteCode(pushnil);
-//			fklFreeByteCode(pushREnv);
-//			fklFreeByteCode(popREnv);
-//			fklFreePtrStack(stack);
+//			fklDestroyByteCode(resTp);
+//			fklDestroyByteCode(popTp);
+//			fklDestroyByteCode(setTp);
+//			fklDestroyByteCodeAndLnt(tmp);
+//			fklDestroyByteCode(jumpifture);
+//			fklDestroyByteCode(pushnil);
+//			fklDestroyByteCode(pushREnv);
+//			fklDestroyByteCode(popREnv);
+//			fklDestroyPtrStack(stack);
 //			fklDestroyCompEnv(orExprEnv);
 //			return NULL;
 //		}
@@ -1717,7 +1717,7 @@
 //		tmp1->l[0]->cpc+=resTp->size;
 //		FKL_INCREASE_ALL_SCP(tmp1->l+1,tmp1->ls-1,resTp->size);
 //		fklReCodeLntCat(tmp1,tmp);
-//		fklFreeByteCodelnt(tmp1);
+//		fklDestroyByteCodelnt(tmp1);
 //	}
 //	if(tmp->bc->size)
 //	{
@@ -1755,14 +1755,14 @@
 //	FKL_INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,setTp->size);
 //	fklCodeCat(tmp->bc,popTp);
 //	tmp->l[tmp->ls-1]->cpc+=popTp->size;
-//	fklFreeByteCode(resTp);
-//	fklFreeByteCode(popTp);
-//	fklFreeByteCode(setTp);
-//	fklFreeByteCode(jumpifture);
-//	fklFreeByteCode(pushnil);
-//	fklFreeByteCode(pushREnv);
-//	fklFreeByteCode(popREnv);
-//	fklFreePtrStack(stack);
+//	fklDestroyByteCode(resTp);
+//	fklDestroyByteCode(popTp);
+//	fklDestroyByteCode(setTp);
+//	fklDestroyByteCode(jumpifture);
+//	fklDestroyByteCode(pushnil);
+//	fklDestroyByteCode(pushREnv);
+//	fklDestroyByteCode(popREnv);
+//	fklDestroyPtrStack(stack);
 //	return tmp;
 //}
 //
@@ -1780,7 +1780,7 @@
 //		pushnil->code[0]=FKL_OP_PUSH_NIL;
 //		fklCodeCat(tmp->bc,pushnil);
 //		tmp->l[tmp->ls-1]->cpc+=pushnil->size;
-//		fklFreeByteCode(pushnil);
+//		fklDestroyByteCode(pushnil);
 //	}
 //	else
 //	{
@@ -1795,10 +1795,10 @@
 //			FklByteCodelnt* tmp1=fklCompile(firCptr,curEnv,inter,state);
 //			if(state->state!=0)
 //			{
-//				fklFreeByteCodeAndLnt(tmp);
-//				fklFreeByteCode(resTp);
-//				fklFreeByteCode(setTp);
-//				fklFreeByteCode(popTp);
+//				fklDestroyByteCodeAndLnt(tmp);
+//				fklDestroyByteCode(resTp);
+//				fklDestroyByteCode(setTp);
+//				fklDestroyByteCode(popTp);
 //				return NULL;
 //			}
 //			if(tmp->bc->size&&tmp1->bc->size)
@@ -1808,7 +1808,7 @@
 //				FKL_INCREASE_ALL_SCP(tmp1->l+1,tmp1->ls-1,resTp->size);
 //			}
 //			fklCodeLntCat(tmp,tmp1);
-//			fklFreeByteCodelnt(tmp1);
+//			fklDestroyByteCodelnt(tmp1);
 //			firCptr=fklNextCptr(firCptr);
 //		}
 //		fklReCodeCat(setTp,tmp->bc);
@@ -1826,9 +1826,9 @@
 //		}
 //		fklCodeCat(tmp->bc,popTp);
 //		tmp->l[tmp->ls-1]->cpc+=popTp->size;
-//		fklFreeByteCode(setTp);
-//		fklFreeByteCode(resTp);
-//		fklFreeByteCode(popTp);
+//		fklDestroyByteCode(setTp);
+//		fklDestroyByteCode(resTp);
+//		fklDestroyByteCode(popTp);
 //	}
 //	return tmp;
 //}
@@ -1848,10 +1848,10 @@
 //	{
 //		state->state=FKL_ERR_SYNTAXERROR;
 //		state->place=objCptr;
-//		fklFreeByteCodeAndLnt(tmp);
-//		fklFreeByteCode(resTp);
-//		fklFreeByteCode(setTp);
-//		fklFreeByteCode(popTp);
+//		fklDestroyByteCodeAndLnt(tmp);
+//		fklDestroyByteCode(resTp);
+//		fklDestroyByteCode(setTp);
+//		fklDestroyByteCode(popTp);
 //		return NULL;
 //	}
 //	while(firCptr)
@@ -1859,10 +1859,10 @@
 //		FklByteCodelnt* tmp1=fklCompile(firCptr,curEnv,inter,state);
 //		if(state->state!=0)
 //		{
-//			fklFreeByteCodeAndLnt(tmp);
-//			fklFreeByteCode(resTp);
-//			fklFreeByteCode(setTp);
-//			fklFreeByteCode(popTp);
+//			fklDestroyByteCodeAndLnt(tmp);
+//			fklDestroyByteCode(resTp);
+//			fklDestroyByteCode(setTp);
+//			fklDestroyByteCode(popTp);
 //			return NULL;
 //		}
 //		i++;
@@ -1874,7 +1874,7 @@
 //			i=0;
 //		}
 //		fklCodeLntCat(tmp,tmp1);
-//		fklFreeByteCodelnt(tmp1);
+//		fklDestroyByteCodelnt(tmp1);
 //		firCptr=fklNextCptr(firCptr);
 //	}
 //	fklReCodeCat(setTp,tmp->bc);
@@ -1892,9 +1892,9 @@
 //	}
 //	fklCodeCat(tmp->bc,popTp);
 //	tmp->l[tmp->ls-1]->cpc+=popTp->size;
-//	fklFreeByteCode(setTp);
-//	fklFreeByteCode(resTp);
-//	fklFreeByteCode(popTp);
+//	fklDestroyByteCode(setTp);
+//	fklDestroyByteCode(resTp);
+//	fklDestroyByteCode(popTp);
 //	return tmp;
 //}
 //
@@ -1921,9 +1921,9 @@
 //			{
 //				state->state=FKL_ERR_SYNTAXERROR;
 //				state->place=tmpCptr;
-//				fklFreeByteCode(popArg);
-//				fklFreeByteCode(popRestArg);
-//				fklFreeAllMacroThenDestroyCompEnv(tmpEnv);
+//				fklDestroyByteCode(popArg);
+//				fklDestroyByteCode(popRestArg);
+//				fklDestroyAllMacroThenDestroyCompEnv(tmpEnv);
 //				return NULL;
 //			}
 //			FklCompEnvHashItem* tmpDef=fklFindCompDef(tmpAtm->value.str,tmpEnv);
@@ -1931,9 +1931,9 @@
 //			{
 //				state->state=FKL_ERR_SYNTAXERROR;
 //				state->place=tmpCptr;
-//				fklFreeByteCode(popArg);
-//				fklFreeByteCode(popRestArg);
-//				fklFreeAllMacroThenDestroyCompEnv(tmpEnv);
+//				fklDestroyByteCode(popArg);
+//				fklDestroyByteCode(popRestArg);
+//				fklDestroyAllMacroThenDestroyCompEnv(tmpEnv);
 //				return NULL;
 //			}
 //			else
@@ -1947,9 +1947,9 @@
 //				{
 //					state->state=FKL_ERR_SYNTAXERROR;
 //					state->place=tmpCptr;
-//					fklFreeByteCode(popArg);
-//					fklFreeByteCode(popRestArg);
-//					fklFreeAllMacroThenDestroyCompEnv(tmpEnv);
+//					fklDestroyByteCode(popArg);
+//					fklDestroyByteCode(popRestArg);
+//					fklDestroyAllMacroThenDestroyCompEnv(tmpEnv);
 //					return NULL;
 //				}
 //				tmpDef=fklAddCompDef(tmpAtom1->value.str,tmpEnv);
@@ -1966,17 +1966,17 @@
 //		{
 //			state->state=FKL_ERR_SYNTAXERROR;
 //			state->place=tmpCptr;
-//			fklFreeByteCode(popArg);
-//			fklFreeByteCode(popRestArg);
-//			fklFreeAllMacroThenDestroyCompEnv(tmpEnv);
+//			fklDestroyByteCode(popArg);
+//			fklDestroyByteCode(popRestArg);
+//			fklDestroyAllMacroThenDestroyCompEnv(tmpEnv);
 //			return NULL;
 //		}
 //		FklCompEnvHashItem* tmpDef=fklAddCompDef(tmpAtm->value.str,tmpEnv);
 //		fklSetSidToByteCode(popRestArg->code+sizeof(char),tmpDef->id);
 //		fklCodeCat(pArg,popRestArg);
 //	}
-//	fklFreeByteCode(popRestArg);
-//	fklFreeByteCode(popArg);
+//	fklDestroyByteCode(popRestArg);
+//	fklDestroyByteCode(popArg);
 //	FklAstCptr* begin=fklNextCptr(fklNextCptr(objCptr));
 //	FklByteCodelnt* codeOfLambda=fklCreateByteCodelnt(pArg);
 //	codeOfLambda->ls=1;
@@ -1989,7 +1989,7 @@
 //		pushnil->code[0]=FKL_OP_PUSH_NIL;
 //		fklCodeCat(codeOfLambda->bc,pushnil);
 //		codeOfLambda->l[codeOfLambda->ls-1]->cpc+=pushnil->size;
-//		fklFreeByteCode(pushnil);
+//		fklDestroyByteCode(pushnil);
 //	}
 //	else
 //	{
@@ -2000,8 +2000,8 @@
 //		fklCodeCat(pArg,fklResBp);
 //		fklCodeCat(pArg,setTp);
 //		codeOfLambda->l[0]=fklCreateLineNumTabNodeWithFilename(inter->filename,0,pArg->size,line);
-//		fklFreeByteCode(fklResBp);
-//		fklFreeByteCode(setTp);
+//		fklDestroyByteCode(fklResBp);
+//		fklDestroyByteCode(setTp);
 //		objCptr=begin;
 //		FklByteCode* resTp=fklCreateByteCode(sizeof(char));
 //		resTp->code[0]=FKL_OP_RES_TP;
@@ -2010,9 +2010,9 @@
 //			FklByteCodelnt* tmp1=fklCompile(objCptr,tmpEnv,inter,state);
 //			if(state->state!=0)
 //			{
-//				fklFreeByteCodeAndLnt(codeOfLambda);
-//				fklFreeByteCode(resTp);
-//				fklFreeAllMacroThenDestroyCompEnv(tmpEnv);
+//				fklDestroyByteCodeAndLnt(codeOfLambda);
+//				fklDestroyByteCode(resTp);
+//				fklDestroyAllMacroThenDestroyCompEnv(tmpEnv);
 //				return NULL;
 //			}
 //			if(fklNextCptr(objCptr)!=NULL)
@@ -2021,14 +2021,14 @@
 //				tmp1->l[tmp1->ls-1]->cpc+=resTp->size;
 //			}
 //			fklCodeLntCat(codeOfLambda,tmp1);
-//			fklFreeByteCodelnt(tmp1);
+//			fklDestroyByteCodelnt(tmp1);
 //		}
-//		fklFreeByteCode(resTp);
+//		fklDestroyByteCode(resTp);
 //		FklByteCode* popTp=fklCreateByteCode(sizeof(char));
 //		popTp->code[0]=FKL_OP_POP_TP;
 //		fklCodeCat(codeOfLambda->bc,popTp);
 //		codeOfLambda->l[codeOfLambda->ls-1]->cpc+=popTp->size;
-//		fklFreeByteCode(popTp);
+//		fklDestroyByteCode(popTp);
 //	}
 //	FklByteCode* pushProc=fklCreateByteCode(sizeof(char)+sizeof(codeOfLambda->bc->size));
 //	pushProc->code[0]=FKL_OP_PUSH_PROC;
@@ -2038,10 +2038,10 @@
 //	toReturn->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 //	FKL_ASSERT(toReturn->l);
 //	toReturn->l[0]=fklCreateLineNumTabNodeWithFilename(inter->filename,0,pushProc->size,line);
-//	fklFreeAllMacroThenDestroyCompEnv(tmpEnv);
+//	fklDestroyAllMacroThenDestroyCompEnv(tmpEnv);
 //	fklScanAndSetTailCall(codeOfLambda->bc);
 //	fklCodeLntCat(toReturn,codeOfLambda);
-//	fklFreeByteCodelnt(codeOfLambda);
+//	fklDestroyByteCodelnt(codeOfLambda);
 //	return toReturn;
 //}
 //
@@ -2059,15 +2059,15 @@
 //	FklByteCodelnt* tmp=fklCreateByteCodelnt(fklCreateByteCode(0));
 //	FklPtrStack* stack1=fklCreatePtrStack(32,16);
 //	FklMemMenager* memMenager=fklCreateMemMenager(32);
-//	fklPushMem(pushnil,(FklGenDestructor)fklFreeByteCode,memMenager);
-//	fklPushMem(jumpiffalse,(FklGenDestructor)fklFreeByteCode,memMenager);
-//	fklPushMem(jump,(FklGenDestructor)fklFreeByteCode,memMenager);
-//	fklPushMem(resTp,(FklGenDestructor)fklFreeByteCode,memMenager);
-//	fklPushMem(setTp,(FklGenDestructor)fklFreeByteCode,memMenager);
-//	fklPushMem(popTp,(FklGenDestructor)fklFreeByteCode,memMenager);
-//	fklPushMem(pushREnv,(FklGenDestructor)fklFreeByteCode,memMenager);
-//	fklPushMem(popREnv,(FklGenDestructor)fklFreeByteCode,memMenager);
-//	fklPushMem(stack1,(FklGenDestructor)fklFreePtrStack,memMenager);
+//	fklPushMem(pushnil,(FklGenDestructor)fklDestroyByteCode,memMenager);
+//	fklPushMem(jumpiffalse,(FklGenDestructor)fklDestroyByteCode,memMenager);
+//	fklPushMem(jump,(FklGenDestructor)fklDestroyByteCode,memMenager);
+//	fklPushMem(resTp,(FklGenDestructor)fklDestroyByteCode,memMenager);
+//	fklPushMem(setTp,(FklGenDestructor)fklDestroyByteCode,memMenager);
+//	fklPushMem(popTp,(FklGenDestructor)fklDestroyByteCode,memMenager);
+//	fklPushMem(pushREnv,(FklGenDestructor)fklDestroyByteCode,memMenager);
+//	fklPushMem(popREnv,(FklGenDestructor)fklDestroyByteCode,memMenager);
+//	fklPushMem(stack1,(FklGenDestructor)fklDestroyPtrStack,memMenager);
 //	setTp->code[0]=FKL_OP_SET_TP;
 //	resTp->code[0]=FKL_OP_RES_TP;
 //	popTp->code[0]=FKL_OP_POP_TP;
@@ -2089,12 +2089,12 @@
 //			FklByteCodelnt* tmp1=fklCompile(objCptr,conditionEnv,inter,state);
 //			if(state->state!=0)
 //			{
-//				fklFreeByteCodeAndLnt(tmp);
-//				fklFreeMemMenager(memMenager);
-//				fklFreePtrStack(stack2);
+//				fklDestroyByteCodeAndLnt(tmp);
+//				fklDestroyMemMenager(memMenager);
+//				fklDestroyPtrStack(stack2);
 //				if(conditionCode)
 //				{
-//					fklFreeByteCodeAndLnt(conditionCode);
+//					fklDestroyByteCodeAndLnt(conditionCode);
 //				}
 //				fklDestroyCompEnv(conditionEnv);
 //				return NULL;
@@ -2109,9 +2109,9 @@
 //			tmp1->l[0]->cpc+=resTp->size;
 //			FKL_INCREASE_ALL_SCP(tmp1->l+1,tmp1->ls-1,resTp->size);
 //			fklReCodeLntCat(tmp1,tmpCond);
-//			fklFreeByteCodelnt(tmp1);
+//			fklDestroyByteCodelnt(tmp1);
 //		}
-//		fklFreePtrStack(stack2);
+//		fklDestroyPtrStack(stack2);
 //		if(tmpCond->bc->size+((fklNextCptr(cond)==NULL)?0:jump->size))
 //		{
 //			fklSetI64ToByteCode(jumpiffalse->code+sizeof(char),tmpCond->bc->size+((fklNextCptr(cond)==NULL)?0:jump->size));
@@ -2119,7 +2119,7 @@
 //			conditionCode->l[conditionCode->ls-1]->cpc+=jumpiffalse->size;
 //		}
 //		fklReCodeLntCat(conditionCode,tmpCond);
-//		fklFreeByteCodelnt(conditionCode);
+//		fklDestroyByteCodelnt(conditionCode);
 //		fklPushPtrStack(tmpCond,stack1);
 //		fklDestroyCompEnv(conditionEnv);
 //	}
@@ -2141,7 +2141,7 @@
 //			tmpCond->l[tmpCond->ls-1]->cpc+=jump->size;
 //		}
 //		fklReCodeLntCat(tmpCond,tmp);
-//		fklFreeByteCodelnt(tmpCond);
+//		fklDestroyByteCodelnt(tmpCond);
 //	}
 //	if(!tmp->l)
 //	{
@@ -2161,7 +2161,7 @@
 //		fklCodeCat(tmp->bc,popTp);
 //		tmp->l[tmp->ls-1]->cpc+=popTp->size;
 //	}
-//	fklFreeMemMenager(memMenager);
+//	fklDestroyMemMenager(memMenager);
 //	return tmp;
 //}
 //
@@ -2199,7 +2199,7 @@
 //	chdir(tmpIntpr->prev->curDir);
 //	tmpIntpr->glob=NULL;
 //	tmpIntpr->lnt=NULL;
-//	fklFreeIntpr(tmpIntpr);
+//	fklDestroyIntpr(tmpIntpr);
 //	if(tmp)
 //	{
 //		if(!tmp->bc->size)
@@ -2208,7 +2208,7 @@
 //			pushnil->code[0]=FKL_OP_PUSH_NIL;
 //			fklCodeCat(tmp->bc,pushnil);
 //			tmp->l[tmp->ls-1]->cpc+=pushnil->size;
-//			fklFreeByteCode(pushnil);
+//			fklDestroyByteCode(pushnil);
 //		}
 //		else
 //		{
@@ -2221,8 +2221,8 @@
 //			tmp->l[0]->cpc+=setTp->size;
 //			FKL_INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,setTp->size);
 //			tmp->l[tmp->ls-1]->cpc+=popTp->size;
-//			fklFreeByteCode(popTp);
-//			fklFreeByteCode(setTp);
+//			fklDestroyByteCode(popTp);
+//			fklDestroyByteCode(setTp);
 //		}
 //	}
 //	free(rpath);
@@ -2267,7 +2267,7 @@
 //							,inter->filename);
 //					break;
 //			}
-//			fklFreeByteCodeAndLnt(tmp);
+//			fklDestroyByteCodeAndLnt(tmp);
 //			free(list);
 //			if(exitstate)
 //				*exitstate=FKL_ERR_UNEXPECTEOF;
@@ -2279,7 +2279,7 @@
 //		if(fklIsAllSpaceBufSize(list,size))
 //		{
 //			while(!fklIsPtrStackEmpty(tokenStack))
-//				fklFreeToken(fklPopPtrStack(tokenStack));
+//				fklDestroyToken(fklPopPtrStack(tokenStack));
 //			free(list);
 //			break;
 //		}
@@ -2297,13 +2297,13 @@
 //				}
 //				if(tmpByteCodelnt==NULL&&!state.state&&exitstate)
 //					*exitstate=FKL_ERR_MACROEXPANDFAILED;
-//				fklFreeByteCodeAndLnt(tmp);
+//				fklDestroyByteCodeAndLnt(tmp);
 //				free(list);
 //				fklDeleteCptr(begin);
 //				free(begin);
 //				tmp=NULL;
 //				while(!fklIsPtrStackEmpty(tokenStack))
-//					fklFreeToken(fklPopPtrStack(tokenStack));
+//					fklDestroyToken(fklPopPtrStack(tokenStack));
 //				break;
 //			}
 //			if(tmp->bc->size&&tmpByteCodelnt->bc->size)
@@ -2313,7 +2313,7 @@
 //				FKL_INCREASE_ALL_SCP(tmpByteCodelnt->l+1,tmpByteCodelnt->ls-1,resTp->size);
 //			}
 //			fklCodeLntCat(tmp,tmpByteCodelnt);
-//			fklFreeByteCodelnt(tmpByteCodelnt);
+//			fklDestroyByteCodelnt(tmpByteCodelnt);
 //			fklDeleteCptr(begin);
 //			free(begin);
 //		}
@@ -2322,20 +2322,20 @@
 //			fprintf(stderr,"error of reader:Invalid expression at line %d of %s\n",inter->curline,inter->filename);
 //			*exitstate=FKL_ERR_INVALIDEXPR;
 //			while(!fklIsPtrStackEmpty(tokenStack))
-//				fklFreeToken(fklPopPtrStack(tokenStack));
+//				fklDestroyToken(fklPopPtrStack(tokenStack));
 //			free(list);
 //			list=NULL;
 //			break;
 //		}
 //		while(!fklIsPtrStackEmpty(tokenStack))
-//			fklFreeToken(fklPopPtrStack(tokenStack));
+//			fklDestroyToken(fklPopPtrStack(tokenStack));
 //		free(list);
 //		list=NULL;
 //	}
 //	if(prev)
 //		free(prev);
-//	fklFreeByteCode(resTp);
-//	fklFreePtrStack(tokenStack);
+//	fklDestroyByteCode(resTp);
+//	fklDestroyPtrStack(tokenStack);
 //	return tmp;
 //}
 //
@@ -2344,7 +2344,7 @@
 //	FklMemMenager* memMenager=fklCreateMemMenager(32);
 //	char postfix[]=".fkl";
 //	FklByteCodelnt* tmp=fklCreateByteCodelnt(fklCreateByteCode(0));
-//	fklPushMem(tmp,(FklGenDestructor)fklFreeByteCodeAndLnt,memMenager);
+//	fklPushMem(tmp,(FklGenDestructor)fklDestroyByteCodeAndLnt,memMenager);
 //	chdir(inter->curDir);
 //	char* prev=NULL;
 //	size_t prevSize=0;
@@ -2361,7 +2361,7 @@
 //		{
 //			state->state=FKL_ERR_SYNTAXERROR;
 //			state->place=plib;
-//			fklFreeMemMenager(memMenager);
+//			fklDestroyMemMenager(memMenager);
 //			return NULL;
 //		}
 //		uint32_t count=0;
@@ -2372,9 +2372,9 @@
 //			{
 //				state->state=FKL_ERR_SYNTAXERROR;
 //				state->place=plib;
-//				fklFreeMemMenager(memMenager);
+//				fklDestroyMemMenager(memMenager);
 //				if(count)
-//					fklFreeStringArray(partsOfPath,count);
+//					fklDestroyStringArray(partsOfPath,count);
 //				return NULL;
 //			}
 //			FklAstAtom* tmpAtm=pPartsOfPath->u.atom;
@@ -2382,9 +2382,9 @@
 //			{
 //				state->state=FKL_ERR_SYNTAXERROR;
 //				state->place=plib;
-//				fklFreeMemMenager(memMenager);
+//				fklDestroyMemMenager(memMenager);
 //				if(count)
-//					fklFreeStringArray(partsOfPath,count);
+//					fklDestroyStringArray(partsOfPath,count);
 //				return NULL;
 //			}
 //			if(tmpAtm->type==FKL_TYPE_SYM&&!fklStringCstrCmp(tmpAtm->value.str,"prefix")&&fklNextCptr(pPartsOfPath)->type==FKL_TYPE_PAIR)
@@ -2394,9 +2394,9 @@
 //				{
 //					state->state=FKL_ERR_SYNTAXERROR;
 //					state->place=objCptr;
-//					fklFreeMemMenager(memMenager);
+//					fklDestroyMemMenager(memMenager);
 //					if(count)
-//						fklFreeStringArray(partsOfPath,count);
+//						fklDestroyStringArray(partsOfPath,count);
 //					return NULL;
 //				}
 //				tmpCptr=fklNextCptr(tmpCptr);
@@ -2404,9 +2404,9 @@
 //				{
 //					state->state=FKL_ERR_SYNTAXERROR;
 //					state->place=plib;
-//					fklFreeMemMenager(memMenager);
+//					fklDestroyMemMenager(memMenager);
 //					if(count)
-//						fklFreeStringArray(partsOfPath,count);
+//						fklDestroyStringArray(partsOfPath,count);
 //					return NULL;
 //				}
 //				FklAstAtom* prefixAtom=tmpCptr->u.atom;
@@ -2414,9 +2414,9 @@
 //				{
 //					state->state=FKL_ERR_SYNTAXERROR;
 //					state->place=plib;
-//					fklFreeMemMenager(memMenager);
+//					fklDestroyMemMenager(memMenager);
 //					if(count)
-//						fklFreeStringArray(partsOfPath,count);
+//						fklDestroyStringArray(partsOfPath,count);
 //					return NULL;
 //				}
 //				libPrefix=fklCopyString(prefixAtom->value.str);
@@ -2462,16 +2462,16 @@
 //			state->state=FKL_ERR_IMPORTFAILED;
 //			state->place=pairOfpPartsOfPath;
 //			free(rpath);
-//			fklFreeMemMenager(memMenager);
-//			fklFreeStringArray(partsOfPath,count);
+//			fklDestroyMemMenager(memMenager);
+//			fklDestroyStringArray(partsOfPath,count);
 //			return NULL;
 //		}
 //		if(fklHasLoadSameFile(rpath,inter))
 //		{
 //			state->state=FKL_ERR_CIRCULARLOAD;
 //			state->place=objCptr;
-//			fklFreeMemMenager(memMenager);
-//			fklFreeStringArray(partsOfPath,count);
+//			fklDestroyMemMenager(memMenager);
+//			fklDestroyStringArray(partsOfPath,count);
 //			return NULL;
 //		}
 //		fklAddSymbolToGlobCstr(rpath);
@@ -2485,11 +2485,11 @@
 //		resTp->code[0]=FKL_OP_RES_TP;
 //		setTp->code[0]=FKL_OP_SET_TP;
 //		popTp->code[0]=FKL_OP_POP_TP;
-//		fklPushMem(resTp,(FklGenDestructor)fklFreeByteCode,memMenager);
-//		fklPushMem(setTp,(FklGenDestructor)fklFreeByteCode,memMenager);
-//		fklPushMem(popTp,(FklGenDestructor)fklFreeByteCode,memMenager);
+//		fklPushMem(resTp,(FklGenDestructor)fklDestroyByteCode,memMenager);
+//		fklPushMem(setTp,(FklGenDestructor)fklDestroyByteCode,memMenager);
+//		fklPushMem(popTp,(FklGenDestructor)fklDestroyByteCode,memMenager);
 //		FklByteCodelnt* libByteCodelnt=fklCreateByteCodelnt(fklCreateByteCode(0));
-//		fklPushMem(libByteCodelnt,(FklGenDestructor)fklFreeByteCodeAndLnt,memMenager);
+//		fklPushMem(libByteCodelnt,(FklGenDestructor)fklDestroyByteCodeAndLnt,memMenager);
 //		FklPtrStack* tokenStack=fklCreatePtrStack(32,16);
 //		for(;;)
 //		{
@@ -2517,7 +2517,7 @@
 //			if(fklIsAllSpaceBufSize(list,size))
 //			{
 //				while(!fklIsPtrStackEmpty(tokenStack))
-//					fklFreeToken(fklPopPtrStack(tokenStack));
+//					fklDestroyToken(fklPopPtrStack(tokenStack));
 //				free(list);
 //				break;
 //			}
@@ -2541,16 +2541,16 @@
 //							free(begin);
 //							chdir(tmpInter->prev->curDir);
 //							tmpInter->lnt=NULL;
-//							fklFreeAllMacroThenDestroyCompEnv(tmpCurEnv);
-//							fklFreeIntpr(tmpInter);
+//							fklDestroyAllMacroThenDestroyCompEnv(tmpCurEnv);
+//							fklDestroyIntpr(tmpInter);
 //							if(libPrefix)
 //								free(libPrefix);
-//							fklFreeMemMenager(memMenager);
-//							fklFreeStringArray(partsOfPath,count);
+//							fklDestroyMemMenager(memMenager);
+//							fklDestroyStringArray(partsOfPath,count);
 //							free(list);
 //							while(!fklIsPtrStackEmpty(tokenStack))
-//								fklFreeToken(fklPopPtrStack(tokenStack));
-//							fklFreePtrStack(tokenStack);
+//								fklDestroyToken(fklPopPtrStack(tokenStack));
+//							fklDestroyPtrStack(tokenStack);
 //							return NULL;
 //						}
 //						else
@@ -2570,16 +2570,16 @@
 //									free(begin);
 //									chdir(tmpInter->prev->curDir);
 //									tmpInter->lnt=NULL;
-//									fklFreeAllMacroThenDestroyCompEnv(tmpCurEnv);
-//									fklFreeIntpr(tmpInter);
+//									fklDestroyAllMacroThenDestroyCompEnv(tmpCurEnv);
+//									fklDestroyIntpr(tmpInter);
 //									if(libPrefix)
 //										free(libPrefix);
-//									fklFreeMemMenager(memMenager);
-//									fklFreeStringArray(partsOfPath,count);
+//									fklDestroyMemMenager(memMenager);
+//									fklDestroyStringArray(partsOfPath,count);
 //									free(list);
 //									while(!fklIsPtrStackEmpty(tokenStack))
-//										fklFreeToken(fklPopPtrStack(tokenStack));
-//									fklFreePtrStack(tokenStack);
+//										fklDestroyToken(fklPopPtrStack(tokenStack));
+//									fklDestroyPtrStack(tokenStack);
 //									return NULL;
 //								}
 //								FklAstAtom* pSymbol=pExportSymbols->u.atom;
@@ -2608,18 +2608,18 @@
 //									free(begin);
 //									chdir(tmpInter->prev->curDir);
 //									tmpInter->lnt=NULL;
-//									fklFreeAllMacroThenDestroyCompEnv(tmpCurEnv);
-//									fklFreeIntpr(tmpInter);
+//									fklDestroyAllMacroThenDestroyCompEnv(tmpCurEnv);
+//									fklDestroyIntpr(tmpInter);
 //									state->state=0;
 //									state->place=NULL;
 //									if(libPrefix)
 //										free(libPrefix);
-//									fklFreeMemMenager(memMenager);
-//									fklFreeStringArray(partsOfPath,count);
+//									fklDestroyMemMenager(memMenager);
+//									fklDestroyStringArray(partsOfPath,count);
 //									free(list);
 //									while(!fklIsPtrStackEmpty(tokenStack))
-//										fklFreeToken(fklPopPtrStack(tokenStack));
-//									fklFreePtrStack(tokenStack);
+//										fklDestroyToken(fklPopPtrStack(tokenStack));
+//									fklDestroyPtrStack(tokenStack);
 //									return NULL;
 //								}
 //								i++;
@@ -2631,7 +2631,7 @@
 //									i=0;
 //								}
 //								fklCodeLntCat(libByteCodelnt,otherByteCodelnt);
-//								fklFreeByteCodelnt(otherByteCodelnt);
+//								fklDestroyByteCodelnt(otherByteCodelnt);
 //							}
 //							fklReCodeCat(setTp,libByteCodelnt->bc);
 //							if(!libByteCodelnt->l)
@@ -2651,7 +2651,7 @@
 //							libByteCodelnt->l[libByteCodelnt->ls-1]->cpc+=popTp->size+resTp->size;
 //							fklCodeLntCat(tmp,libByteCodelnt);
 //							fklDeleteMem(libByteCodelnt,memMenager);
-//							fklFreeByteCodelnt(libByteCodelnt);
+//							fklDestroyByteCodelnt(libByteCodelnt);
 //							libByteCodelnt=NULL;
 //							FklByteCode* pushProc=fklCreateByteCode(sizeof(char)+sizeof(tmp->bc->size));
 //							pushProc->code[0]=FKL_OP_PUSH_PROC;
@@ -2659,12 +2659,12 @@
 //							fklReCodeCat(pushProc,tmp->bc);
 //							tmp->l[0]->cpc+=pushProc->size;
 //							FKL_INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,pushProc->size);
-//							fklFreeByteCode(pushProc);
+//							fklDestroyByteCode(pushProc);
 //							FklByteCode* call=fklCreateByteCode(sizeof(char));
 //							call->code[0]=FKL_OP_CALL;
 //							fklCodeCat(tmp->bc,call);
 //							tmp->l[tmp->ls-1]->cpc+=call->size;
-//							fklFreeByteCode(call);
+//							fklDestroyByteCode(call);
 //						}
 //						FklAstCptr* pExportSymbols=fklNextCptr(fklGetFirstCptr(exportCptr));
 //						for(;pExportSymbols;pExportSymbols=fklNextCptr(pExportSymbols))
@@ -2675,19 +2675,19 @@
 //								fklPrintCompileError(exportCptr,FKL_ERR_SYNTAXERROR,tmpInter);
 //								fklDeleteCptr(begin);
 //								free(begin);
-//								fklFreeByteCodelnt(tmp);
+//								fklDestroyByteCodelnt(tmp);
 //								chdir(tmpInter->prev->curDir);
 //								tmpInter->lnt=NULL;
-//								fklFreeAllMacroThenDestroyCompEnv(tmpCurEnv);
-//								fklFreeIntpr(tmpInter);
+//								fklDestroyAllMacroThenDestroyCompEnv(tmpCurEnv);
+//								fklDestroyIntpr(tmpInter);
 //								if(libPrefix)
 //									free(libPrefix);
-//								fklFreeMemMenager(memMenager);
-//								fklFreeStringArray(partsOfPath,count);
+//								fklDestroyMemMenager(memMenager);
+//								fklDestroyStringArray(partsOfPath,count);
 //								free(list);
 //								while(!fklIsPtrStackEmpty(tokenStack))
-//									fklFreeToken(fklPopPtrStack(tokenStack));
-//								fklFreePtrStack(tokenStack);
+//									fklDestroyToken(fklPopPtrStack(tokenStack));
+//								fklDestroyPtrStack(tokenStack);
 //								return NULL;
 //							}
 //							FklAstAtom* pSymbol=pExportSymbols->u.atom;
@@ -2705,17 +2705,17 @@
 //								free(begin);
 //								chdir(tmpInter->prev->curDir);
 //								tmpInter->lnt=NULL;
-//								fklFreeAllMacroThenDestroyCompEnv(tmpCurEnv);
-//								fklFreeIntpr(tmpInter);
+//								fklDestroyAllMacroThenDestroyCompEnv(tmpCurEnv);
+//								fklDestroyIntpr(tmpInter);
 //								if(libPrefix)
 //									free(libPrefix);
 //								free(symbolWouldExport);
-//								fklFreeMemMenager(memMenager);
-//								fklFreeStringArray(partsOfPath,count);
+//								fklDestroyMemMenager(memMenager);
+//								fklDestroyStringArray(partsOfPath,count);
 //								free(list);
 //								while(!fklIsPtrStackEmpty(tokenStack))
-//									fklFreeToken(fklPopPtrStack(tokenStack));
-//								fklFreePtrStack(tokenStack);
+//									fklDestroyToken(fklPopPtrStack(tokenStack));
+//								fklDestroyPtrStack(tokenStack);
 //								return NULL;
 //							}
 //							else
@@ -2738,7 +2738,7 @@
 //						free(begin);
 //						free(list);
 //						while(!fklIsPtrStackEmpty(tokenStack))
-//							fklFreeToken(fklPopPtrStack(tokenStack));
+//							fklDestroyToken(fklPopPtrStack(tokenStack));
 //						break;
 //					}
 //				}
@@ -2750,13 +2750,13 @@
 //				fprintf(stderr,"error of reader:Invalid expression at line %d of %s\n",tmpInter->curline,tmpInter->filename);
 //				free(prev);
 //				while(!fklIsPtrStackEmpty(tokenStack))
-//					fklFreeToken(fklPopPtrStack(tokenStack));
+//					fklDestroyToken(fklPopPtrStack(tokenStack));
 //				if(list)
 //					free(list);
 //				break;
 //			}
 //			while(!fklIsPtrStackEmpty(tokenStack))
-//				fklFreeToken(fklPopPtrStack(tokenStack));
+//				fklDestroyToken(fklPopPtrStack(tokenStack));
 //			free(list);
 //			list=NULL;
 //		}
@@ -2765,26 +2765,26 @@
 //			state->state=(tmp)?FKL_ERR_LIBUNDEFINED:0;
 //			state->place=(tmp)?pairOfpPartsOfPath:NULL;
 //			tmpInter->lnt=NULL;
-//			fklFreeIntpr(tmpInter);
+//			fklDestroyIntpr(tmpInter);
 //			if(libPrefix)
 //				free(libPrefix);
-//			fklFreeMemMenager(memMenager);
-//			fklFreeStringArray(partsOfPath,count);
-//			fklFreePtrStack(tokenStack);
+//			fklDestroyMemMenager(memMenager);
+//			fklDestroyStringArray(partsOfPath,count);
+//			fklDestroyPtrStack(tokenStack);
 //			return NULL;
 //		}
 //		chdir(tmpInter->prev->curDir);
 //		tmpInter->lnt=NULL;
-//		fklFreeIntpr(tmpInter);
-//		fklFreePtrStack(tokenStack);
+//		fklDestroyIntpr(tmpInter);
+//		fklDestroyPtrStack(tokenStack);
 //		if(libPrefix)
 //			free(libPrefix);
-//		fklFreeStringArray(partsOfPath,count);
+//		fklDestroyStringArray(partsOfPath,count);
 //	}
 //	if(tmp)
 //	{
 //		fklDeleteMem(tmp,memMenager);
-//		fklFreeMemMenager(memMenager);
+//		fklDestroyMemMenager(memMenager);
 //	}
 //	chdir(inter->curDir);
 //	return tmp;
@@ -2815,10 +2815,10 @@
 //			FklByteCodelnt* tmp=fklCompile(pExpression,createEnv,inter,state);
 //			if(state->state)
 //			{
-//				fklFreeByteCodeAndLnt(expressionByteCodelnt);
-//				fklFreeByteCode(resTp);
-//				fklFreeByteCode(setTp);
-//				fklFreeByteCode(popTp);
+//				fklDestroyByteCodeAndLnt(expressionByteCodelnt);
+//				fklDestroyByteCode(resTp);
+//				fklDestroyByteCode(setTp);
+//				fklDestroyByteCode(popTp);
 //				return NULL;
 //			}
 //			if(tmp->bc->size&&expressionByteCodelnt->bc->size)
@@ -2828,7 +2828,7 @@
 //				FKL_INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,resTp->size);
 //			}
 //			fklCodeLntCat(expressionByteCodelnt,tmp);
-//			fklFreeByteCodelnt(tmp);
+//			fklDestroyByteCodelnt(tmp);
 //		}
 //		fklReCodeCat(setTp,expressionByteCodelnt->bc);
 //		if(!expressionByteCodelnt->l)
@@ -2845,22 +2845,22 @@
 //		}
 //		fklCodeCat(expressionByteCodelnt->bc,popTp);
 //		expressionByteCodelnt->l[expressionByteCodelnt->ls-1]->cpc+=popTp->size;
-//		fklFreeByteCode(resTp);
-//		fklFreeByteCode(setTp);
-//		fklFreeByteCode(popTp);
+//		fklDestroyByteCode(resTp);
+//		fklDestroyByteCode(setTp);
+//		fklDestroyByteCode(popTp);
 //	}
 //	else
 //	{
 //		FklByteCode* pushnil=fklCreateByteCode(1);
 //		pushnil->code[0]=FKL_OP_PUSH_NIL;
 //		fklCodeCat(expressionByteCodelnt->bc,pushnil);
-//		fklFreeByteCode(pushnil);
+//		fklDestroyByteCode(pushnil);
 //		expressionByteCodelnt->ls=1;
 //		expressionByteCodelnt->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 //		FKL_ASSERT(expressionByteCodelnt->l);
 //		expressionByteCodelnt->l[0]=fklCreateLineNumTabNodeWithFilename(inter->filename,0,expressionByteCodelnt->bc->size,objCptr->curline);
 //	}
-//	fklFreeAllMacroThenDestroyCompEnv(createEnv);
+//	fklDestroyAllMacroThenDestroyCompEnv(createEnv);
 //	FklByteCode* pushProc=fklCreateByteCode(sizeof(char)+sizeof(expressionByteCodelnt->bc->size));
 //	FklByteCode* call=fklCreateByteCode(1);
 //	call->code[0]=FKL_OP_CALL;
@@ -2871,8 +2871,8 @@
 //	FKL_INCREASE_ALL_SCP(expressionByteCodelnt->l+1,expressionByteCodelnt->ls-1,pushProc->size);
 //	fklCodeCat(expressionByteCodelnt->bc,call);
 //	expressionByteCodelnt->l[expressionByteCodelnt->ls-1]->cpc+=call->size;
-//	fklFreeByteCode(pushProc);
-//	fklFreeByteCode(call);
+//	fklDestroyByteCode(pushProc);
+//	fklDestroyByteCode(call);
 //	FklAstCptr* pErrSymbol=fklNextCptr(fklGetFirstCptr(pCatchExpression));
 //	FklAstCptr* pHandlerExpression=NULL;
 //	if(!pErrSymbol
@@ -2882,7 +2882,7 @@
 //	{
 //		state->state=FKL_ERR_SYNTAXERROR;
 //		state->place=objCptr;
-//		fklFreeByteCodeAndLnt(expressionByteCodelnt);
+//		fklDestroyByteCodeAndLnt(expressionByteCodelnt);
 //		return NULL;
 //	}
 //	FklString* errSymbol=pErrSymbol->u.atom->value.str;
@@ -2895,7 +2895,7 @@
 //		{
 //			state->state=FKL_ERR_SYNTAXERROR;
 //			state->place=objCptr;
-//			fklFreeByteCodeAndLnt(expressionByteCodelnt);
+//			fklDestroyByteCodeAndLnt(expressionByteCodelnt);
 //			return NULL;
 //		}
 //		FklAstCptr* pErrorTypes=fklGetFirstCptr(pHandlerExpression);
@@ -2910,8 +2910,8 @@
 //				state->state=FKL_ERR_SYNTAXERROR;
 //				state->place=objCptr;
 //				free(errTypeIds);
-//				fklFreeByteCodeAndLnt(expressionByteCodelnt);
-//				fklFreePtrStack(handlerByteCodelntStack);
+//				fklDestroyByteCodeAndLnt(expressionByteCodelnt);
+//				fklDestroyPtrStack(handlerByteCodelntStack);
 //				return NULL;
 //			}
 //			errTypeIds[i]=fklAddSymbolToGlob(firErrSymbol->u.atom->value.str)->id;
@@ -2922,8 +2922,8 @@
 //		//{
 //		//	state->state=FKL_ERR_SYNTAXERROR;
 //		//	state->place=objCptr;
-//		//	fklFreeByteCodeAndLnt(expressionByteCodelnt);
-//		//	fklFreePtrStack(handlerByteCodelntStack);
+//		//	fklDestroyByteCodeAndLnt(expressionByteCodelnt);
+//		//	fklDestroyPtrStack(handlerByteCodelntStack);
 //		//	return NULL;
 //		//}
 //		FklCompEnv* tmpEnv=fklCreateCompEnv(curEnv);
@@ -2935,9 +2935,9 @@
 //			if(state->state)
 //			{
 //				free(errTypeIds);
-//				fklFreeByteCodeAndLnt(expressionByteCodelnt);
-//				fklFreePtrStack(handlerByteCodelntStack);
-//				fklFreeAllMacroThenDestroyCompEnv(tmpEnv);
+//				fklDestroyByteCodeAndLnt(expressionByteCodelnt);
+//				fklDestroyPtrStack(handlerByteCodelntStack);
+//				fklDestroyAllMacroThenDestroyCompEnv(tmpEnv);
 //				return NULL;
 //			}
 //			if(!t)
@@ -2949,7 +2949,7 @@
 //				fklReCodeCat(resTp,tmp1->bc);
 //				tmp1->l[0]->cpc+=1;
 //				FKL_INCREASE_ALL_SCP(tmp1->l+1,tmp1->ls-1,resTp->size);
-//				fklFreeByteCode(resTp);
+//				fklDestroyByteCode(resTp);
 //			}
 //		}
 //		if(!t)
@@ -2957,12 +2957,12 @@
 //			state->state=FKL_ERR_SYNTAXERROR;
 //			state->place=objCptr;
 //			free(errTypeIds);
-//			fklFreeByteCodeAndLnt(expressionByteCodelnt);
-//			fklFreePtrStack(handlerByteCodelntStack);
-//			fklFreeAllMacroThenDestroyCompEnv(tmpEnv);
+//			fklDestroyByteCodeAndLnt(expressionByteCodelnt);
+//			fklDestroyPtrStack(handlerByteCodelntStack);
+//			fklDestroyAllMacroThenDestroyCompEnv(tmpEnv);
 //			return NULL;
 //		}
-//		fklFreeAllMacroThenDestroyCompEnv(tmpEnv);
+//		fklDestroyAllMacroThenDestroyCompEnv(tmpEnv);
 //		FklByteCode* setTp=fklCreateByteCode(1);
 //		FklByteCode* popTp=fklCreateByteCode(1);
 //		setTp->code[0]=FKL_OP_SET_TP;
@@ -2972,8 +2972,8 @@
 //		FKL_INCREASE_ALL_SCP(t->l+1,t->ls-1,setTp->size);
 //		fklCodeCat(t->bc,popTp);
 //		t->l[t->ls-1]->cpc+=popTp->size;
-//		fklFreeByteCode(setTp);
-//		fklFreeByteCode(popTp);
+//		fklDestroyByteCode(setTp);
+//		fklDestroyByteCode(popTp);
 //		//char* errorType=pErrorType->u.atom->value.str;
 //		//FklSid_t typeid=fklAddSymbolToGlob(errorType)->id;
 //		FklByteCode* errorTypeByteCode=fklCreateByteCode(sizeof(uint32_t)+sizeof(FklSid_t)*errTypeNum+sizeof(t->bc->size));
@@ -2984,7 +2984,7 @@
 //		fklReCodeCat(errorTypeByteCode,t->bc);
 //		t->l[0]->cpc+=errorTypeByteCode->size;
 //		FKL_INCREASE_ALL_SCP(t->l+1,t->ls-1,errorTypeByteCode->size);
-//		fklFreeByteCode(errorTypeByteCode);
+//		fklDestroyByteCode(errorTypeByteCode);
 //		fklPushPtrStack(t,handlerByteCodelntStack);
 //		free(errTypeIds);
 //	}
@@ -2994,9 +2994,9 @@
 //	{
 //		FklByteCodelnt* tmp=fklPopPtrStack(handlerByteCodelntStack);
 //		fklReCodeLntCat(tmp,t);
-//		fklFreeByteCodelnt(tmp);
+//		fklDestroyByteCodelnt(tmp);
 //	}
-//	fklFreePtrStack(handlerByteCodelntStack);
+//	fklDestroyPtrStack(handlerByteCodelntStack);
 //	FklByteCode* header=fklCreateByteCode(sizeof(FklSid_t)+sizeof(uint32_t)+sizeof(char));
 //	header->code[0]=FKL_OP_PUSH_TRY;
 //	fklSetSidToByteCode(header->code+sizeof(char),sid);
@@ -3004,12 +3004,12 @@
 //	fklReCodeCat(header,t->bc);
 //	t->l[0]->cpc+=header->size;
 //	FKL_INCREASE_ALL_SCP(t->l+1,t->ls-1,header->size);
-//	fklFreeByteCode(header);
+//	fklDestroyByteCode(header);
 //	FklByteCode* popTry=fklCreateByteCode(sizeof(char));
 //	popTry->code[0]=FKL_OP_POP_TRY;
 //	fklCodeCat(t->bc,popTry);
 //	t->l[t->ls-1]->cpc+=popTry->size;
-//	fklFreeByteCode(popTry);
+//	fklDestroyByteCode(popTry);
 //	return t;
 //}
 //
@@ -3211,11 +3211,11 @@
 //	}
 //}
 //
-//void fklFreeAllMacroThenDestroyCompEnv(FklCompEnv* env)
+//void fklDestroyAllMacroThenDestroyCompEnv(FklCompEnv* env)
 //{
 //	if(env)
 //	{
-//		fklFreeAllMacro(env->macro);
+//		fklDestroyAllMacro(env->macro);
 //		env->macro=NULL;
 //		fklDestroyCompEnv(env);
 //	}
@@ -3264,7 +3264,7 @@
 //	return tmp;
 //}
 //
-//void fklFreeIntpr(FklInterpreter* inter)
+//void fklDestroyIntpr(FklInterpreter* inter)
 //{
 //	if(inter->filename)
 //		free(inter->filename);
@@ -3273,8 +3273,8 @@
 //	if(inter->realpath)
 //		free(inter->realpath);
 //	free(inter->curDir);
-//	fklFreeAllMacroThenDestroyCompEnv(inter->glob);
-//	if(inter->lnt)fklFreeLineNumberTable(inter->lnt);
+//	fklDestroyAllMacroThenDestroyCompEnv(inter->glob);
+//	if(inter->lnt)fklDestroyLineNumberTable(inter->lnt);
 //	free(inter);
 //}
 //
@@ -3287,10 +3287,10 @@
 //		{
 //			FklCompEnv* curEnv=objEnv;
 //			objEnv=objEnv->prev;
-//			fklFreeHashTable(curEnv->defs);
-//			fklFreeByteCodeAndLnt(curEnv->proc);
-//			fklFreeAllMacro(curEnv->macro);
-//			fklFreeAllKeyWord(curEnv->keyWords);
+//			fklDestroyHashTable(curEnv->defs);
+//			fklDestroyByteCodeAndLnt(curEnv->proc);
+//			fklDestroyAllMacro(curEnv->macro);
+//			fklDestroyAllKeyWord(curEnv->keyWords);
 //			free(curEnv);
 //		}
 //		else
@@ -3319,7 +3319,7 @@
 //	return inter;
 //}
 //
-//void fklFreeAllMacro(FklPreMacro* head)
+//void fklDestroyAllMacro(FklPreMacro* head)
 //{
 //	FklPreMacro* cur=head;
 //	while(cur!=NULL)
@@ -3329,7 +3329,7 @@
 //		fklDeleteCptr(prev->pattern);
 //		free(prev->pattern);
 //		fklDestroyCompEnv(prev->macroEnv);
-//		fklFreeByteCodeAndLnt(prev->proc);
+//		fklDestroyByteCodeAndLnt(prev->proc);
 //		free(prev);
 //	}
 //}
@@ -3341,7 +3341,7 @@
 //	return inter->curDir;
 //}
 //
-//void fklFreeAllKeyWord(FklKeyWord* head)
+//void fklDestroyAllKeyWord(FklKeyWord* head)
 //{
 //	FklKeyWord* cur=head;
 //	while(cur!=NULL)
@@ -3401,7 +3401,7 @@
 //	return r;
 //}
 //
-//static void freeMayUndefine(MayUndefine* t)
+//static void destroyMayUndefine(MayUndefine* t)
 //{
 //	fklDestroyCompEnv(t->env);
 //	free(t);
@@ -3536,9 +3536,9 @@
 //		}
 //		fklDestroyCompEnv(curEnv);
 //	}
-//	fklFreeUintStack(cpcstack);
-//	fklFreeUintStack(scpstack);
-//	fklFreePtrStack(envstack);
+//	fklDestroyUintStack(cpcstack);
+//	fklDestroyUintStack(scpstack);
+//	fklDestroyPtrStack(envstack);
 //	for(uint32_t i=0;i<mayUndefined->top;i++)
 //	{
 //		MayUndefine* cur=mayUndefined->base[i];
@@ -3560,7 +3560,7 @@
 //			fklPrintString(fklGetGlobSymbolWithId(node->fid)->symbol,stderr);
 //			fputc('\n',stderr);
 //		}
-//		freeMayUndefine(cur);
+//		destroyMayUndefine(cur);
 //	}
-//	fklFreePtrStack(mayUndefined);
+//	fklDestroyPtrStack(mayUndefined);
 //}

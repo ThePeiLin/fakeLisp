@@ -26,7 +26,7 @@ typedef struct FklCodegen
 	FklSymbolTable* globalSymTable;
 	FklSid_t fid;
 	struct FklCodegen* prev;
-	unsigned int freeAbleMark:1;
+	unsigned int destroyAbleMark:1;
 	unsigned long refcount:63;
 }FklCodegen;
 
@@ -67,16 +67,16 @@ void fklInitGlobalCodegener(FklCodegen* codegen
 		,const char* rp
 		,FklCodegenEnv* globalEnv
 		,FklSymbolTable*
-		,int freeAbleMark);
+		,int destroyAbleMark);
 void fklInitCodegener(FklCodegen* codegen
 		,const char* filename
 		,FklCodegenEnv* env
 		,FklCodegen* prev
 		,FklSymbolTable*
-		,int freeAbleMark);
+		,int destroyAbleMark);
 
 void fklUninitCodegener(FklCodegen* codegen);
-void fklFreeCodegener(FklCodegen* codegen);
+void fklDestroyCodegener(FklCodegen* codegen);
 FklCodegen* fklCreateCodegener(void);
 const FklSid_t* fklInitCodegen(void);
 void fklUninitCodegen(void);
@@ -92,7 +92,7 @@ void fklAddCodegenDefBySid(FklSid_t sid,FklCodegenEnv*);
 int fklIsSymbolDefined(FklSid_t sid,FklCodegenEnv*);
 
 FklCodegenEnv* fklCreateCodegenEnv(FklCodegenEnv* prev);
-void fklFreeCodegenEnv(FklCodegenEnv* env);
+void fklDestroyCodegenEnv(FklCodegenEnv* env);
 FklCodegenEnv* fklCreateGlobCodegenEnv(void);
 
 void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklSymbolTable* symbolTable);

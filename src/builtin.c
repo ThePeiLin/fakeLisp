@@ -346,7 +346,7 @@ void builtin_add(ARGL)
 			rd+=cur->u.f64;
 		else
 		{
-			fklFreeBigInt(bi);
+			fklDestroyBigInt(bi);
 			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.+",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 		}
 	}
@@ -355,12 +355,12 @@ void builtin_add(ARGL)
 	{
 		rd+=r64+fklBigIntToDouble(bi);
 		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&rd,stack,exe->gc),&ap,stack);
-		fklFreeBigInt(bi);
+		fklDestroyBigInt(bi);
 	}
 	else if(FKL_IS_0_BIG_INT(bi))
 	{
 		fklNiReturn(fklMakeVMint(r64,stack,exe->gc),&ap,stack);
-		fklFreeBigInt(bi);
+		fklDestroyBigInt(bi);
 	}
 	else
 	{
@@ -370,7 +370,7 @@ void builtin_add(ARGL)
 		else
 		{
 			fklNiReturn(fklMakeVMint(fklBigIntToI64(bi),stack,exe->gc),&ap,stack);
-			fklFreeBigInt(bi);
+			fklDestroyBigInt(bi);
 		}
 	}
 	fklNiEnd(&ap,stack);
@@ -462,7 +462,7 @@ void builtin_sub(ARGL)
 			else
 			{
 				fklNiReturn(fklMakeVMint(fklBigIntToI64(bi),stack,exe->gc),&ap,stack);
-				fklFreeBigInt(bi);
+				fklDestroyBigInt(bi);
 			}
 		}
 	}
@@ -485,7 +485,7 @@ void builtin_sub(ARGL)
 				rd+=cur->u.f64;
 			else
 			{
-				fklFreeBigInt(bi);
+				fklDestroyBigInt(bi);
 				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.-",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 			}
 		}
@@ -494,7 +494,7 @@ void builtin_sub(ARGL)
 		{
 			rd=fklGetDouble(prev)-rd-r64-fklBigIntToDouble(bi);
 			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&rd,stack,exe->gc),&ap,stack);
-			fklFreeBigInt(bi);
+			fklDestroyBigInt(bi);
 		}
 		else if(FKL_IS_0_BIG_INT(bi)&&!FKL_IS_BIG_INT(prev))
 		{
@@ -509,7 +509,7 @@ void builtin_sub(ARGL)
 			{
 				r64=p64-r64;
 				fklNiReturn(fklMakeVMint(r64,stack,exe->gc),&ap,stack);
-				fklFreeBigInt(bi);
+				fklDestroyBigInt(bi);
 			}
 		}
 		else
@@ -628,7 +628,7 @@ void builtin_mul(ARGL)
 			rd*=cur->u.f64;
 		else
 		{
-			fklFreeBigInt(bi);
+			fklDestroyBigInt(bi);
 			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.*",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 		}
 	}
@@ -637,12 +637,12 @@ void builtin_mul(ARGL)
 	{
 		rd*=r64*fklBigIntToDouble(bi);
 		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&rd,stack,exe->gc),&ap,stack);
-		fklFreeBigInt(bi);
+		fklDestroyBigInt(bi);
 	}
 	else if(FKL_IS_1_BIG_INT(bi))
 	{
 		fklNiReturn(fklMakeVMint(r64,stack,exe->gc),&ap,stack);
-		fklFreeBigInt(bi);
+		fklDestroyBigInt(bi);
 	}
 	else
 	{
@@ -702,13 +702,13 @@ void builtin_idiv(ARGL)
 				fklMulBigInt(bi,cur->u.bigInt);
 			else
 			{
-				fklFreeBigInt(bi);
+				fklDestroyBigInt(bi);
 				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.//",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 			}
 		}
 		if(r64==0||FKL_IS_0_BIG_INT(bi))
 		{
-			fklFreeBigInt(bi);
+			fklDestroyBigInt(bi);
 			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.//",FKL_ERR_DIVZEROERROR,frame,exe);
 		}
 		fklNiResBp(&ap,stack);
@@ -723,7 +723,7 @@ void builtin_idiv(ARGL)
 			else
 			{
 				fklNiReturn(fklMakeVMint(fklBigIntToI64(t),stack,exe->gc),&ap,stack);
-				fklFreeBigInt(t);
+				fklDestroyBigInt(t);
 			}
 		}
 		else
@@ -731,7 +731,7 @@ void builtin_idiv(ARGL)
 			r64=fklGetInt(prev)/r64;
 			fklNiReturn(fklMakeVMint(r64,stack,exe->gc),&ap,stack);
 		}
-		fklFreeBigInt(bi);
+		fklDestroyBigInt(bi);
 	}
 	fklNiEnd(&ap,stack);
 }
@@ -804,13 +804,13 @@ void builtin_div(ARGL)
 				rd*=cur->u.f64;
 			else
 			{
-				fklFreeBigInt(bi);
+				fklDestroyBigInt(bi);
 				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin./",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 			}
 		}
 		if(r64==0||FKL_IS_0_BIG_INT(bi)||rd==0.0)
 		{
-			fklFreeBigInt(bi);
+			fklDestroyBigInt(bi);
 			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin./",FKL_ERR_DIVZEROERROR,frame,exe);
 		}
 		fklNiResBp(&ap,stack);
@@ -839,7 +839,7 @@ void builtin_div(ARGL)
 				else
 				{
 					fklNiReturn(fklMakeVMint(fklBigIntToI64(t),stack,exe->gc),&ap,stack);
-					fklFreeBigInt(t);
+					fklDestroyBigInt(t);
 				}
 			}
 			else
@@ -848,7 +848,7 @@ void builtin_div(ARGL)
 				fklNiReturn(fklMakeVMint(r64,stack,exe->gc),&ap,stack);
 			}
 		}
-		fklFreeBigInt(bi);
+		fklDestroyBigInt(bi);
 	}
 	fklNiEnd(&ap,stack);
 }
@@ -893,7 +893,7 @@ void builtin_mod(ARGL)
 		{
 			if(FKL_IS_0_BIG_INT(sec->u.bigInt))
 			{
-				fklFreeBigInt(rem);
+				fklDestroyBigInt(rem);
 				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.%",FKL_ERR_DIVZEROERROR,frame,exe);
 			}
 			fklModBigInt(rem,sec->u.bigInt);
@@ -903,7 +903,7 @@ void builtin_mod(ARGL)
 			int64_t si=fklGetInt(sec);
 			if(si==0)
 			{
-				fklFreeBigInt(rem);
+				fklDestroyBigInt(rem);
 				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.%",FKL_ERR_DIVZEROERROR,frame,exe);
 			}
 			fklModBigIntI(rem,si);
@@ -913,7 +913,7 @@ void builtin_mod(ARGL)
 		else
 		{
 			fklNiReturn(fklMakeVMint(fklBigIntToI64(rem),stack,exe->gc),&ap,stack);
-			fklFreeBigInt(rem);
+			fklDestroyBigInt(rem);
 		}
 	}
 	fklNiEnd(&ap,stack);
@@ -1882,7 +1882,7 @@ void builtin_string_to_number(ARGL)
 			if(!fklIsGtLtI64BigInt(bi))
 			{
 				r=fklMakeVMint(fklBigIntToI64(bi),stack,exe->gc);
-				fklFreeBigInt(bi);
+				fklDestroyBigInt(bi);
 			}
 			else
 				r=fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,stack,exe->gc);
@@ -2702,7 +2702,7 @@ void builtin_fclose(ARGL)
 	if(!fp)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fclose",FKL_ERR_TOOFEWARG,frame,exe);
 	FKL_NI_CHECK_TYPE(fp,FKL_IS_FP,"builtin.fclose",frame,exe);
-	if(fp->u.fp==NULL||fklFreeVMfp(fp->u.fp))
+	if(fp->u.fp==NULL||fklDestroyVMfp(fp->u.fp))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fclose",FKL_ERR_INVALIDACCESS,frame,exe);
 	fp->u.fp=NULL;
 	fklNiReturn(FKL_VM_NIL,&ap,stack);
@@ -2742,7 +2742,7 @@ void builtin_read(ARGL)
 		fklSplitStringPartsIntoToken(parts,sizes,1,&line,tokenStack,matchStateStack,NULL,NULL);
 		while(!fklIsPtrStackEmpty(matchStateStack))
 			free(fklPopPtrStack(matchStateStack));
-		fklFreePtrStack(matchStateStack);
+		fklDestroyPtrStack(matchStateStack);
 	}
 	size_t errorLine=0;
 	FklNastNode* node=fklCreateNastNodeFromTokenStack(tokenStack,&errorLine,builtInHeadSymbolTable);
@@ -2752,11 +2752,11 @@ void builtin_read(ARGL)
 	else
 		tmp=fklCreateVMvalueFromNastNodeAndStoreInStack(node,NULL,exe->gc,stack);
 	while(!fklIsPtrStackEmpty(tokenStack))
-		fklFreeToken(fklPopPtrStack(tokenStack));
-	fklFreePtrStack(tokenStack);
+		fklDestroyToken(fklPopPtrStack(tokenStack));
+	fklDestroyPtrStack(tokenStack);
 	fklNiReturn(tmp,&ap,stack);
 	free(tmpString);
-	fklFreeNastNode(node);
+	fklDestroyNastNode(node);
 	fklNiEnd(&ap,stack);
 }
 
@@ -3005,14 +3005,14 @@ void builtin_go(ARGL)
 		FklVMvalue* tmp=fklPopPtrStack(comStack);
 		fklPushVMvalue(tmp,threadVMstack);
 	}
-	fklFreePtrStack(comStack);
+	fklDestroyPtrStack(comStack);
 	FklVMvalue* chan=threadVM->chan;
 	int32_t faildCode=0;
 	faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMfunc,threadVM);
 	if(faildCode)
 	{
 		fklDeleteCallChain(threadVM);
-		fklFreeVMstack(threadVM->stack);
+		fklDestroyVMstack(threadVM->stack);
 		threadVM->stack=NULL;
 		threadVM->lnt=NULL;
 		fklNiReturn(FKL_MAKE_VM_I32(faildCode),&ap,stack);
@@ -3101,7 +3101,7 @@ void builtin_recv(ARGL)
 		FklVMrecv* t=fklCreateVMrecv();
 		fklChanlRecv(t,ch->u.chan);
 		fklNiReturn(t->v,&ap,stack);
-		fklFreeVMrecv(t);
+		fklDestroyVMrecv(t);
 	}
 	fklNiEnd(&ap,stack);
 }
@@ -3202,16 +3202,16 @@ void builtin_apply(ARGL)
 	FklPtrStack* stack2=fklCreatePtrStack(32,16);
 	if(!FKL_IS_PAIR(lastList)&&lastList!=FKL_VM_NIL)
 	{
-		fklFreePtrStack(stack1);
-		fklFreePtrStack(stack2);
+		fklDestroyPtrStack(stack1);
+		fklDestroyPtrStack(stack2);
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.apply",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	}
 	for(;FKL_IS_PAIR(lastList);lastList=fklGetVMpairCdr(lastList))
 		fklPushPtrStack(fklGetVMpairCar(lastList),stack2);
 	if(lastList!=FKL_VM_NIL)
 	{
-		fklFreePtrStack(stack1);
-		fklFreePtrStack(stack2);
+		fklDestroyPtrStack(stack1);
+		fklDestroyPtrStack(stack2);
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.apply",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	}
 	fklNiSetBp(ap,stack);
@@ -3220,13 +3220,13 @@ void builtin_apply(ARGL)
 		FklVMvalue* t=fklPopPtrStack(stack2);
 		fklNiReturn(t,&ap,stack);
 	}
-	fklFreePtrStack(stack2);
+	fklDestroyPtrStack(stack2);
 	while(!fklIsPtrStackEmpty(stack1))
 	{
 		FklVMvalue* t=fklPopPtrStack(stack1);
 		fklNiReturn(t,&ap,stack);
 	}
-	fklFreePtrStack(stack1);
+	fklDestroyPtrStack(stack1);
 	switch(proc->type)
 	{
 		case FKL_TYPE_PROC:
@@ -4160,7 +4160,7 @@ void builtin_hash(ARGL)
 	{
 		if(!FKL_IS_PAIR(cur))
 		{
-			fklFreeVMhashTable(ht);
+			fklDestroyVMhashTable(ht);
 			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.hash",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 		}
 		fklSetVMhashTable(cur->u.pair->car,cur->u.pair->cdr,ht,exe->gc);
@@ -4194,7 +4194,7 @@ void builtin_make_hash(ARGL)
 		FklVMvalue* value=fklNiGetArg(&ap,stack);
 		if(!value)
 		{
-			fklFreeVMhashTable(ht);
+			fklDestroyVMhashTable(ht);
 			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.make-hash",FKL_ERR_TOOFEWARG,frame,exe);
 		}
 		fklSetVMhashTable(key,value,ht,exe->gc);
@@ -4215,7 +4215,7 @@ void builtin_hasheqv(ARGL)
 	{
 		if(!FKL_IS_PAIR(cur))
 		{
-			fklFreeVMhashTable(ht);
+			fklDestroyVMhashTable(ht);
 			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.hasheqv",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 		}
 		fklSetVMhashTable(cur->u.pair->car,cur->u.pair->cdr,ht,exe->gc);
@@ -4234,7 +4234,7 @@ void builtin_make_hasheqv(ARGL)
 		FklVMvalue* value=fklNiGetArg(&ap,stack);
 		if(!value)
 		{
-			fklFreeVMhashTable(ht);
+			fklDestroyVMhashTable(ht);
 			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.make-hasheqv",FKL_ERR_TOOFEWARG,frame,exe);
 		}
 		fklSetVMhashTable(key,value,ht,exe->gc);
@@ -4255,7 +4255,7 @@ void builtin_hashequal(ARGL)
 	{
 		if(!FKL_IS_PAIR(cur))
 		{
-			fklFreeVMhashTable(ht);
+			fklDestroyVMhashTable(ht);
 			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.hashequal",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 		}
 		fklSetVMhashTable(cur->u.pair->car,cur->u.pair->cdr,ht,exe->gc);
@@ -4274,7 +4274,7 @@ void builtin_make_hashequal(ARGL)
 		FklVMvalue* value=fklNiGetArg(&ap,stack);
 		if(!value)
 		{
-			fklFreeVMhashTable(ht);
+			fklDestroyVMhashTable(ht);
 			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.make-hashequal",FKL_ERR_TOOFEWARG,frame,exe);
 		}
 		fklSetVMhashTable(key,value,ht,exe->gc);

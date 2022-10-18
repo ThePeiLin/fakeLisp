@@ -10,7 +10,7 @@ FklMem* fklCreateMem(void* block,void (*destructor)(void*))
 	return tmp;
 }
 
-void fklFreeMem(FklMem* mem)
+void fklDestroyMem(FklMem* mem)
 {
 	void (*f)(void*)=mem->destructor;
 	f(mem->block);
@@ -25,13 +25,13 @@ FklMemMenager* fklCreateMemMenager(size_t size)
 	return tmp;
 }
 
-void fklFreeMemMenager(FklMemMenager* memMenager)
+void fklDestroyMemMenager(FklMemMenager* memMenager)
 {
 	size_t i=0;
 	FklPtrStack* s=memMenager->s;
 	for(;i<s->top;i++)
-		fklFreeMem(s->base[i]);
-	fklFreePtrStack(s);
+		fklDestroyMem(s->base[i]);
+	fklDestroyPtrStack(s);
 	free(memMenager);
 }
 

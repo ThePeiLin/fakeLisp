@@ -56,14 +56,14 @@ int main(int argc,char** argv)
 		if(access(filename,R_OK))
 		{
 			perror(filename);
-			fklFreeCwd();
+			fklDestroyCwd();
 			return EXIT_FAILURE;
 		}
 		FILE* fp=fopen(filename,"r");
 		if(fp==NULL)
 		{
 			perror(filename);
-			fklFreeCwd();
+			fklDestroyCwd();
 			return EXIT_FAILURE;
 		}
 		fklAddSymbolToGlobCstr(filename);
@@ -79,19 +79,19 @@ int main(int argc,char** argv)
 		{
 			fklUninitCodegener(&codegen);
 			fklUninitCodegen();
-			fklFreeGlobSymbolTable();
-			fklFreeMainFileRealPath();
-			fklFreeCwd();
+			fklDestroyGlobSymbolTable();
+			fklDestroyMainFileRealPath();
+			fklDestroyCwd();
 			return 1;
 		}
 		FklSymbolTable* globalSymbolTable=fklExchangeGlobSymbolTable(codegen.globalSymTable);
-		fklFreeSymbolTable(globalSymbolTable);
+		fklDestroySymbolTable(globalSymbolTable);
 		chdir(fklGetCwd());
 		fklCodegenPrintUndefinedSymbol(mainByteCode,codegen.globalSymTable);
 		FklLineNumberTable globalLnt={mainByteCode->ls,mainByteCode->l};
 		FklVM* anotherVM=fklCreateVM(mainByteCode->bc,NULL,NULL);
 		FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
-		fklFreeByteCode(mainByteCode->bc);
+		fklDestroyByteCode(mainByteCode->bc);
 		free(mainByteCode);
 		FklVMframe* mainframe=anotherVM->frames;
 		mainframe->localenv=globEnv;
@@ -102,25 +102,25 @@ int main(int argc,char** argv)
 			fklRunVM(anotherVM);
 			fklWaitGC(anotherVM->gc);
 			fklJoinAllThread(anotherVM);
-			fklFreeVMgc(anotherVM->gc);
+			fklDestroyVMgc(anotherVM->gc);
 			fklUninitCodegener(&codegen);
-			fklFreeGlobSymbolTable();
+			fklDestroyGlobSymbolTable();
 			fklUninitCodegen();
-			fklFreeLineNumTabNodeArray(globalLnt.list,globalLnt.num);
-			fklFreeAllVMs(anotherVM);
+			fklDestroyLineNumTabNodeArray(globalLnt.list,globalLnt.num);
+			fklDestroyAllVMs(anotherVM);
 		}
 		else
 		{
 			fklDeleteCallChain(anotherVM);
 			fklCancelAllThread();
-			fklFreeVMgc(anotherVM->gc);
-			fklFreeAllVMs(anotherVM);
-			fklFreeMainFileRealPath();
-			fklFreeCwd();
+			fklDestroyVMgc(anotherVM->gc);
+			fklDestroyAllVMs(anotherVM);
+			fklDestroyMainFileRealPath();
+			fklDestroyCwd();
 			fklUninitCodegener(&codegen);
-			fklFreeGlobSymbolTable();
+			fklDestroyGlobSymbolTable();
 			fklUninitCodegen();
-			fklFreeLineNumTabNodeArray(globalLnt.list,globalLnt.num);
+			fklDestroyLineNumTabNodeArray(globalLnt.list,globalLnt.num);
 			return exitState;
 		}
 	}
@@ -129,14 +129,14 @@ int main(int argc,char** argv)
 		if(access(filename,R_OK))
 		{
 			perror(filename);
-			fklFreeCwd();
+			fklDestroyCwd();
 			return EXIT_FAILURE;
 		}
 		FILE* fp=fopen(argv[1],"rb");
 		if(fp==NULL)
 		{
 			perror(filename);
-			fklFreeCwd();
+			fklDestroyCwd();
 			return EXIT_FAILURE;
 		}
 		loadSymbolTable(fp);
@@ -147,7 +147,7 @@ int main(int argc,char** argv)
 		FklByteCode* mainCode=loadByteCode(fp);
 		FklVM* anotherVM=fklCreateVM(mainCode,NULL,NULL);
 		FklVMgc* gc=anotherVM->gc;
-		fklFreeByteCode(mainCode);
+		fklDestroyByteCode(mainCode);
 		fclose(fp);
 		FklVMframe* mainframe=anotherVM->frames;
 		FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
@@ -159,31 +159,31 @@ int main(int argc,char** argv)
 		{
 			fklRunVM(anotherVM);
 			fklJoinAllThread(anotherVM);
-			fklFreeVMgc(gc);
-			fklFreeGlobSymbolTable();
-			fklFreeAllVMs(anotherVM);
-			fklFreeLineNumberTable(lnt);
+			fklDestroyVMgc(gc);
+			fklDestroyGlobSymbolTable();
+			fklDestroyAllVMs(anotherVM);
+			fklDestroyLineNumberTable(lnt);
 		}
 		else
 		{
 			fklDeleteCallChain(anotherVM);
 			fklCancelAllThread();
-			fklFreeAllVMs(anotherVM);
-			fklFreeVMgc(gc);
-			fklFreeGlobSymbolTable();
-			fklFreeLineNumberTable(lnt);
-			fklFreeCwd();
+			fklDestroyAllVMs(anotherVM);
+			fklDestroyVMgc(gc);
+			fklDestroyGlobSymbolTable();
+			fklDestroyLineNumberTable(lnt);
+			fklDestroyCwd();
 			return exitState;
 		}
 	}
 	else
 	{
 		fprintf(stderr,"%s: It is not a correct file.\n",filename);
-		fklFreeCwd();
+		fklDestroyCwd();
 		return EXIT_FAILURE;
 	}
-	fklFreeMainFileRealPath();
-	fklFreeCwd();
+	fklDestroyMainFileRealPath();
+	fklDestroyCwd();
 	return exitState;
 }
 
@@ -231,7 +231,7 @@ void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 		if(fklIsPtrStackEmpty(tokenStack))
 			break;
 		while(!fklIsPtrStackEmpty(tokenStack))
-			fklFreeToken(fklPopPtrStack(tokenStack));
+			fklDestroyToken(fklPopPtrStack(tokenStack));
 		if(!begin)
 			fprintf(stderr,"error of reader:Invalid expression at line %lu\n",errorLine);
 		else
@@ -247,7 +247,7 @@ void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 				anotherVM->size=byteCodeOfVM.size;
 				FklVMproc* tmp=fklCreateVMproc(bs,tmpByteCode->bc->size);
 				bs+=tmpByteCode->bc->size;
-				fklFreeByteCodelnt(tmpByteCode);
+				fklDestroyByteCodelnt(tmpByteCode);
 				tmp->prevEnv=NULL;
 				FklVMframe* mainframe=fklCreateVMframe(tmp,anotherVM->frames);
 				mainframe->localenv=globEnv;
@@ -265,7 +265,7 @@ void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 					free(anotherVM->frames);
 					anotherVM->frames=NULL;
 					stack->tp=0;
-					fklFreeVMproc(tmp);
+					fklDestroyVMproc(tmp);
 				}
 				else
 				{
@@ -275,21 +275,21 @@ void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 					stack->tp=0;
 					stack->bp=0;
 					tmp->prevEnv=NULL;
-					fklFreeVMproc(tmp);
+					fklDestroyVMproc(tmp);
 					fklDeleteCallChain(anotherVM);
 				}
 			}
-			fklFreeNastNode(begin);
+			fklDestroyNastNode(begin);
 			begin=NULL;
 		}
 	}
-	fklFreeLineNumberTable(globalLnt);
+	fklDestroyLineNumberTable(globalLnt);
 	fklJoinAllThread(anotherVM);
-	fklFreePtrStack(tokenStack);
+	fklDestroyPtrStack(tokenStack);
 	free(rawProcList);
-	fklFreeVMgc(anotherVM->gc);
-	fklFreeAllVMs(anotherVM);
-	fklFreeGlobSymbolTable();
+	fklDestroyVMgc(anotherVM->gc);
+	fklDestroyAllVMs(anotherVM);
+	fklDestroyGlobSymbolTable();
 }
 
 FklByteCode* loadByteCode(FILE* fp)

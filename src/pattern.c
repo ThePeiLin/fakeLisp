@@ -179,20 +179,20 @@ FklString** fklSplitPattern(const FklString* str,uint32_t* num)
 	return tmp;
 }
 
-void fklFreeAllStringPattern()
+void fklDestroyAllStringPattern()
 {
 	FklStringMatchPattern* cur=HeadOfStringPattern;
 	while(cur)
 	{
 		FklStringMatchPattern* prev=cur;
 		cur=cur->next;
-		fklFreeStringArray(prev->parts,prev->num);
-		fklFreeByteCodeAndLnt(prev->proc);
+		fklDestroyStringArray(prev->parts,prev->num);
+		fklDestroyByteCodeAndLnt(prev->proc);
 		free(prev);
 	}
 }
 
-void fklFreeStringPattern(FklStringMatchPattern* o)
+void fklDestroyStringPattern(FklStringMatchPattern* o)
 {
 	int i=0;
 	int32_t num=o->num;
@@ -290,7 +290,7 @@ int fklIsVar(const FklString* part)
 	return 0;
 }
 
-void fklFreeCstrArray(char** ss,uint32_t num)
+void fklDestroyCstrArray(char** ss,uint32_t num)
 {
 	for(uint32_t i=0;i<num;i++)
 		free(ss[i]);

@@ -160,27 +160,27 @@ FklSymTabNode* fklAddSymbolToGlob(const FklString* sym)
 	return fklAddSymbol(sym,GlobSymbolTable);
 }
 
-void fklFreeSymTabNode(FklSymTabNode* node)
+void fklDestroySymTabNode(FklSymTabNode* node)
 {
 	free(node->symbol);
 	free(node);
 }
 
-void fklFreeSymbolTable(FklSymbolTable* table)
+void fklDestroySymbolTable(FklSymbolTable* table)
 {
 	int32_t i=0;
 	for(;i<table->num;i++)
-		fklFreeSymTabNode(table->list[i]);
+		fklDestroySymTabNode(table->list[i]);
 	free(table->list);
 	free(table->idl);
 	free(table);
 }
 
-void fklFreeGlobSymbolTable()
+void fklDestroyGlobSymbolTable()
 {
 	int32_t i=0;
 	for(;i<GlobSymbolTable->num;i++)
-		fklFreeSymTabNode(GlobSymbolTable->list[i]);
+		fklDestroySymTabNode(GlobSymbolTable->list[i]);
 	free(GlobSymbolTable->list);
 	free(GlobSymbolTable->idl);
 	free(GlobSymbolTable);

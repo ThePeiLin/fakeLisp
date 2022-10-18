@@ -25,7 +25,7 @@ typedef struct FklFfiProc
 }FklFfiProc;
 
 int fklFfiIsProc(FklVMvalue*);
-void fklFfiFreeAllSharedObj(void);
+void fklFfiDestroyAllSharedObj(void);
 void fklFfiAddSharedObj(FklFfidllHandle handle);
 FklVMudata* fklFfiCreateProcUd(FklTypeId_t id,const char* );
 FklFfiProc* fklFfiCreateProc(FklTypeId_t type,void* func,FklSid_t);

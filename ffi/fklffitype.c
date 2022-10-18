@@ -31,10 +31,10 @@ void fklFfiInitGlobNativeTypes(void)
 	fklFfiInitNativeDefTypes(GlobDefTypes);
 }
 
-void fklFfiFreeGlobDefTypeTable(void)
+void fklFfiDestroyGlobDefTypeTable(void)
 {
 	pthread_rwlock_wrlock(&GlobDefTypesLock);
-	fklFfiFreeDefTypeTable(GlobDefTypes);
+	fklFfiDestroyDefTypeTable(GlobDefTypes);
 	pthread_rwlock_unlock(&GlobDefTypesLock);
 	pthread_rwlock_destroy(&GlobDefTypesLock);
 }
@@ -103,7 +103,7 @@ size_t _member_hashFunc(void* key)
 	return sid;
 }
 
-void _member_freeItem(void* item)
+void _member_destroyItem(void* item)
 {
 	free(item);
 }
@@ -123,7 +123,7 @@ void* _member_getKey(void* item)
 static FklHashTableMethodTable FfiMemberHashMethodTable=
 {
 	.__hashFunc=_member_hashFunc,
-	.__freeItem=_member_freeItem,
+	.__destroyItem=_member_destroyItem,
 	.__keyEqual=_member_keyEqual,
 	.__getKey=_member_getKey,
 };
@@ -334,7 +334,7 @@ FklTypeId_t fklFfiCreateNativeType(FklSid_t type,size_t size,size_t align)
 	return addToGlobTypeUnionList((FklDefTypeUnion)FKL_MAKE_NATIVE_TYPE(tmp));
 }
 
-void fklFfiFreeNativeType(FklDefNativeType* obj)
+void fklFfiDestroyNativeType(FklDefNativeType* obj)
 {
 	free(obj);
 }
@@ -384,7 +384,7 @@ int fklFfiAddDefTypes(FklDefTypes* otherTypes,FklSid_t typeName,FklTypeId_t type
 	return 0;
 }
 
-void fklFfiFreeDefTypeTable(FklDefTypes* defs)
+void fklFfiDestroyDefTypeTable(FklDefTypes* defs)
 {
 	size_t i=0;
 	size_t num=defs->num;
@@ -394,7 +394,7 @@ void fklFfiFreeDefTypeTable(FklDefTypes* defs)
 	free(defs);
 }
 
-void fklFfiFreeGlobTypeList()
+void fklFfiDestroyGlobTypeList()
 {
 	FklTypeId_t num=GlobTypeUnionList.num;
 	FklDefTypeUnion* ul=GlobTypeUnionList.ul;
@@ -406,22 +406,22 @@ void fklFfiFreeGlobTypeList()
 		switch(tag)
 		{
 			case FKL_FFI_DEF_NATIVE_TYPE_TAG:
-				fklFfiFreeNativeType(tu.all);
+				fklFfiDestroyNativeType(tu.all);
 				break;
 			case FKL_FFI_DEF_PTR_TYPE_TAG:
-				fklFfiFreePtrType(tu.all);
+				fklFfiDestroyPtrType(tu.all);
 				break;
 			case FKL_FFI_DEF_ARRAY_TYPE_TAG:
-				fklFfiFreeArrayType(tu.all);
+				fklFfiDestroyArrayType(tu.all);
 				break;
 			case FKL_FFI_DEF_STRUCT_TYPE_TAG:
-				fklFfiFreeStructType(tu.all);
+				fklFfiDestroyStructType(tu.all);
 				break;
 			case FKL_FFI_DEF_UNION_TYPE_TAG:
-				fklFfiFreeUnionType(tu.all);
+				fklFfiDestroyUnionType(tu.all);
 				break;
 			case FKL_FFI_DEF_FUNC_TYPE_TAG:
-				fklFfiFreeFuncType(tu.all);
+				fklFfiDestroyFuncType(tu.all);
 				break;
 			default:
 				break;
@@ -430,31 +430,31 @@ void fklFfiFreeGlobTypeList()
 	free(ul);
 }
 
-void fklFfiFreePtrType(FklDefPtrType* obj)
+void fklFfiDestroyPtrType(FklDefPtrType* obj)
 {
 	free(FKL_GET_TYPES_PTR(obj));
 }
 
-void fklFfiFreeArrayType(FklDefArrayType* obj)
+void fklFfiDestroyArrayType(FklDefArrayType* obj)
 {
 	free(FKL_GET_TYPES_PTR(obj));
 }
 
-void fklFfiFreeStructType(FklDefStructType* obj)
+void fklFfiDestroyStructType(FklDefStructType* obj)
 {
 	FklDefStructType* st=FKL_GET_TYPES_PTR(obj);
-	fklFreeHashTable(st->layout);
+	fklDestroyHashTable(st->layout);
 	free(st);
 }
 
-void fklFfiFreeUnionType(FklDefUnionType* obj)
+void fklFfiDestroyUnionType(FklDefUnionType* obj)
 {
 	FklDefUnionType* ut=FKL_GET_TYPES_PTR(obj);
-	fklFreeHashTable(ut->layout);
+	fklDestroyHashTable(ut->layout);
 	free(ut);
 }
 
-void fklFfiFreeFuncType(FklDefFuncType* obj)
+void fklFfiDestroyFuncType(FklDefFuncType* obj)
 {
 	free(FKL_GET_TYPES_PTR(obj));
 }
@@ -599,7 +599,7 @@ static void initStructTypeId(FklTypeId_t id,FklSid_t structNameId,uint32_t num,F
 	ost->totalSize=totalSize;
 	ost->align=align;
 	if(ost->layout)
-		fklFreeHashTable(ost->layout);
+		fklDestroyHashTable(ost->layout);
 	ost->layout=fklCreateHashTable(8,4,2,0.75,1,&FfiMemberHashMethodTable);
 	size_t offset=0;
 	for(uint32_t i=0;i<num;i++)
@@ -741,7 +741,7 @@ static void initUnionTypeId(FklTypeId_t id,FklSid_t unionNameId,uint32_t num,Fkl
 	out->maxSize=maxSize;
 	out->align=align;
 	if(out->layout)
-		fklFreeHashTable(out->layout);
+		fklDestroyHashTable(out->layout);
 	out->layout=fklCreateHashTable(8,4,2,0.75,1,&FfiMemberHashMethodTable);
 	for(uint32_t i=0;i<num;i++)
 		fklPutNoRpHashItem(createMemberHashItem(symbols[i],memberTypes[i],0),out->layout);

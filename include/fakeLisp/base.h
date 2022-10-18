@@ -28,7 +28,7 @@ void fklPrintRawString(const FklString* str,FILE* fp);
 void fklPrintString(const FklString* str,FILE* fp);
 void fklPrintRawSymbol(const FklString* str,FILE* fp);
 FklString* fklStringAppend(const FklString*,const FklString*);
-void fklFreeStringArray(FklString**,uint32_t num);
+void fklDestroyStringArray(FklString**,uint32_t num);
 void fklWriteStringToCstr(char*,const FklString*);
 
 typedef struct FklBytevector
@@ -72,7 +72,7 @@ typedef struct FklHashTable
 typedef struct FklHashTableMethodTable
 {
 	size_t (*__hashFunc)(void*);
-	void (*__freeItem)(void*);
+	void (*__destroyItem)(void*);
 	int (*__keyEqual)(void*,void*);
 	void* (*__getKey)(void*);
 }FklHashTableMethodTable;
@@ -87,7 +87,7 @@ void* fklGetHashItem(void* key,FklHashTable*);
 void* fklPutInReverseOrder(void* item,FklHashTable* table);
 void* fklPutReplHashItem(void* item,FklHashTable*); //put and replace;
 void* fklPutNoRpHashItem(void* item,FklHashTable* table); //put and no replace
-void fklFreeHashTable(FklHashTable*);
+void fklDestroyHashTable(FklHashTable*);
 void fklRehashTable(FklHashTable*,unsigned int);
 
 typedef struct
@@ -102,7 +102,7 @@ FklPtrStack* fklCreatePtrStack(uint32_t size,uint32_t inc);
 void fklPushPtrStack(void* data,FklPtrStack*);
 void* fklPopPtrStack(FklPtrStack*);
 void* fklTopPtrStack(FklPtrStack*);
-void fklFreePtrStack(FklPtrStack*);
+void fklDestroyPtrStack(FklPtrStack*);
 void fklRecyclePtrStack(FklPtrStack*);
 int fklIsPtrStackEmpty(FklPtrStack*);
 
@@ -119,10 +119,10 @@ typedef struct
 }FklPtrQueue;
 
 FklQueueNode* fklCreateQueueNode(void*);
-void fklFreeQueueNode(FklQueueNode*);
+void fklDestroyQueueNode(FklQueueNode*);
 
 FklPtrQueue* fklCreatePtrQueue(void);
-void fklFreePtrQueue(FklPtrQueue*);
+void fklDestroyPtrQueue(FklPtrQueue*);
 int fklIsPtrQueueEmpty(FklPtrQueue*);
 uint64_t fklLengthPtrQueue(FklPtrQueue*);
 void* fklFirstPtrQueue(FklPtrQueue*);
@@ -143,7 +143,7 @@ FklIntStack* fklCreateIntStack(uint32_t size,uint32_t inc);
 void fklPushIntStack(int64_t e,FklIntStack*);
 int64_t fklPopIntStack(FklIntStack*);
 int64_t fklTopIntStack(FklIntStack*);
-void fklFreeIntStack(FklIntStack*);
+void fklDestroyIntStack(FklIntStack*);
 void fklRecycleIntStack(FklIntStack*);
 int fklIsIntStackEmpty(FklIntStack*);
 
@@ -160,7 +160,7 @@ FklUintStack* fklCreateUintStackFromStack(FklUintStack*);
 void fklPushUintStack(uint64_t e,FklUintStack*);
 uint64_t fklPopUintStack(FklUintStack*);
 uint64_t fklTopUintStack(FklUintStack*);
-void fklFreeUintStack(FklUintStack*);
+void fklDestroyUintStack(FklUintStack*);
 void fklRecycleUintStack(FklUintStack*);
 int fklIsUintStackEmpty(FklUintStack*);
 
@@ -220,7 +220,7 @@ int fklIsDivisibleIBigInt(int64_t a,const FklBigInt* b);
 int64_t fklBigIntToI64(const FklBigInt*);
 uint64_t fklBigIntToU64(const FklBigInt*);
 double fklBigIntToDouble(const FklBigInt*);
-void fklFreeBigInt(FklBigInt*);
+void fklDestroyBigInt(FklBigInt*);
 void fklPrintBigInt(const FklBigInt*,FILE*);
 void fklSprintBigInt(const FklBigInt*,size_t size,char* buf);
 FklString* fklBigIntToString(const FklBigInt*,int radix);

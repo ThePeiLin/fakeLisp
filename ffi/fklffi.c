@@ -351,8 +351,8 @@ void _fklInit(FklSymbolTable* glob,FklVMvalue* rel)
 
 void _fklUninit(void)
 {
-	fklFfiFreeGlobDefTypeTable();
-	fklFfiFreeGlobTypeList();
-	fklFfiFreeAllSharedObj();
+	fklFfiDestroyGlobDefTypeTable();
+	fklFfiDestroyGlobTypeList();
+	fklFfiDestroyAllSharedObj();
 }
 #undef ARGL

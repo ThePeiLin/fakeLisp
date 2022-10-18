@@ -56,7 +56,7 @@ void fklc_pattern_match(ARGL)
 	FklVMhashTable* hash=fklCreateVMhashTable(FKL_VM_HASH_EQ);
 	if(fklcMatchPattern(pattern,exp,hash,exe->gc))
 	{
-		fklFreeVMhashTable(hash);
+		fklDestroyVMhashTable(hash);
 		fklNiReturn(FKL_VM_NIL,&ap,stack);
 	}
 	else

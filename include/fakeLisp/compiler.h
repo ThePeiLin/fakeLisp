@@ -84,13 +84,13 @@ FklCompEnvHashItem* fklAddCompDefCstr(const char*,FklCompEnv*);
 FklCompEnv* fklCreateCompEnv(FklCompEnv*);
 FklCompEnv* fklCreateGlobCompEnv(FklCompEnv*);
 void fklDestroyCompEnv(FklCompEnv* objEnv);
-void fklFreeAllMacroThenDestroyCompEnv(FklCompEnv* env);
+void fklDestroyAllMacroThenDestroyCompEnv(FklCompEnv* env);
 FklCompEnvHashItem* fklFindCompDef(const FklString*,FklCompEnv*);
 FklCompEnvHashItem* fklFindCompDefBySid(FklSid_t,FklCompEnv*);
 FklInterpreter* fklCreateIntpr(const char*,FILE*,FklCompEnv*,FklLineNumberTable*);
 FklInterpreter* fklCreateTmpIntpr(const char*,FILE*);
 
-void fklFreeIntpr(FklInterpreter*);
+void fklDestroyIntpr(FklInterpreter*);
 FklPreEnv* fklCreateEnv(FklPreEnv*);
 void fklDestroyEnv(FklPreEnv*);
 
@@ -101,13 +101,13 @@ FklInterpreter* fklGetFirstIntpr(FklInterpreter*);
 
 char* fklGetLastWorkDir(FklInterpreter*);
 
-void fklFreeAllMacro(FklPreMacro* head);
-void fklFreeAllKeyWord(FklKeyWord*);
+void fklDestroyAllMacro(FklPreMacro* head);
+void fklDestroyAllKeyWord(FklKeyWord*);
 
 FklPreMacro* fklPreMacroMatch(const FklAstCptr*,FklPreEnv**,FklCompEnv*,FklCompEnv**);
 int fklPreMacroExpand(FklAstCptr*,FklCompEnv*,FklInterpreter* inter);
 int fklAddMacro(FklAstCptr*,FklByteCodelnt*,FklCompEnv* curEnv);
-void fklFreeMacroEnv();
+void fklDestroyMacroEnv();
 FklCompEnv* fklCreateMacroCompEnv(const FklAstCptr*,FklCompEnv*);
 int fklRetree(FklAstCptr**,FklAstCptr*);
 void fklUninitPreprocess();

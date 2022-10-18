@@ -9,7 +9,7 @@ FklSid_t FklcBcUdSid=0;
 extern FklSymbolTable* OuterSymbolTable;
 static void _bc_finalizer(void* p)
 {
-	fklFreeByteCode(p);
+	fklDestroyByteCode(p);
 }
 
 static void _bc_princ(void* p,FILE* fp)
@@ -137,15 +137,15 @@ FklByteCode* fklcCreatePushObjByteCode(FklVMvalue* obj)
 		FklVMvalue* t=fklPopPtrStack(stack);
 		if(!IS_COMPILABLE(t))
 		{
-			fklFreePtrStack(stack);
-			fklFreeByteCode(retval);
+			fklDestroyPtrStack(stack);
+			fklDestroyByteCode(retval);
 			return NULL;
 		}
 		if(IS_LITERAL(t))
 		{
 			FklByteCode* tmp=COMPILE_LITERAL(t);
 			fklReCodeCat(tmp,retval);
-			fklFreeByteCode(tmp);
+			fklDestroyByteCode(tmp);
 		}
 		else
 		{
@@ -197,10 +197,10 @@ FklByteCode* fklcCreatePushObjByteCode(FklVMvalue* obj)
 					fklPushPtrStack(t->u.vec->base[i],stack);
 			}
 			fklReCodeCat(tmp,retval);
-			fklFreeByteCode(tmp);
+			fklDestroyByteCode(tmp);
 		}
 	}
-	fklFreePtrStack(stack);
+	fklDestroyPtrStack(stack);
 	return retval;
 }
 

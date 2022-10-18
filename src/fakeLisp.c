@@ -101,7 +101,7 @@ int main(int argc,char** argv)
 		{
 			fklRunVM(anotherVM);
 			fklWaitGC(anotherVM->gc);
-			fklJoinAllThread(NULL);
+			fklJoinAllThread(anotherVM);
 			fklFreeVMgc(anotherVM->gc);
 			fklUninitCodegener(&codegen);
 			fklFreeGlobSymbolTable();
@@ -158,7 +158,7 @@ int main(int argc,char** argv)
 		if(!setjmp(buf))
 		{
 			fklRunVM(anotherVM);
-			fklJoinAllThread(NULL);
+			fklJoinAllThread(anotherVM);
 			fklFreeVMgc(gc);
 			fklFreeGlobSymbolTable();
 			fklFreeAllVMs(anotherVM);
@@ -284,7 +284,7 @@ void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 		}
 	}
 	fklFreeLineNumberTable(globalLnt);
-	fklJoinAllThread(NULL);
+	fklJoinAllThread(anotherVM);
 	fklFreePtrStack(tokenStack);
 	free(rawProcList);
 	fklFreeVMgc(anotherVM->gc);

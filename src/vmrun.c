@@ -1654,15 +1654,12 @@ void fklFreeVMgc(FklVMgc* gc)
 	free(gc);
 }
 
-void fklJoinAllThread(FklVM* cur)
+void fklJoinAllThread(FklVM* curVM)
 {
-//	pthread_t selfId=pthread_self();
-//	for(FklVMnode** ph=&GlobVMs->h;*ph!=node;ph=&(*ph)->next)
-//	{
-//		FklVMnode* cur=*ph;
-//		if(cur->vm->tid!=selfId)
-//			pthread_join(cur->vm->tid,NULL);
-//	}
+	for(FklVM* cur=curVM->prev;cur;cur=cur->prev)
+		pthread_join(cur->tid,NULL);
+	for(FklVM* cur=curVM->next;cur;cur=cur->next)
+		pthread_join(cur->tid,NULL);
 }
 
 //FklVMlist* fklGetGlobVMs(void)

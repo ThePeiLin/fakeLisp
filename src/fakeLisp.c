@@ -18,7 +18,7 @@
 #include<unistd.h>
 #endif
 
-void runRepl(FklCodegen*);
+void runRepl(FklCodegen*,const FklSid_t*);
 FklByteCode* loadByteCode(FILE*);
 void loadSymbolTable(FILE*);
 FklLineNumberTable* loadLineNumberTable(FILE*);
@@ -43,10 +43,10 @@ int main(int argc,char** argv)
 		fklInitVMargs(argc,argv);
 		fklSetMainFileRealPathWithCwd();
 		FklCodegen codegen={.fid=0,};
-		fklInitCodegen();
+		const FklSid_t* builtInHeadSymbolTable=fklInitCodegen();
 		//fklInitLexer();
 		fklInitGlobalCodegener(&codegen,NULL,NULL,fklGetGlobSymbolTable(),0);
-		runRepl(&codegen);
+		runRepl(&codegen,builtInHeadSymbolTable);
 		codegen.globalSymTable=NULL;
 		fklUninitCodegener(&codegen);
 		fklUninitCodegen();
@@ -187,7 +187,7 @@ int main(int argc,char** argv)
 	return exitState;
 }
 
-void runRepl(FklCodegen* codegen)
+void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 {
 	int e=0;
 	FklVM* anotherVM=fklNewVM(NULL,NULL,NULL);
@@ -225,7 +225,7 @@ void runRepl(FklCodegen* codegen)
 			continue;
 		}
 		size_t errorLine=0;
-		begin=fklNewNastNodeFromTokenStack(tokenStack,&errorLine);
+		begin=fklNewNastNodeFromTokenStack(tokenStack,&errorLine,builtInHeadSymbolTable);
 		codegen->curline+=fklCountChar(list,'\n',size);
 		free(list);
 		if(fklIsPtrStackEmpty(tokenStack))

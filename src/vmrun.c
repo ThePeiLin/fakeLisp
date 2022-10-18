@@ -266,6 +266,8 @@ FklVM* fklNewVM(FklByteCode* mainCode,FklVM* prev,FklVM* next)
 //	exe->thrds=1;
 	pthread_rwlock_init(&exe->rlock,NULL);
 	pthread_mutex_init(&exe->prev_next_lock,NULL);
+	exe->prev=prev;
+	exe->next=next;
 	if(prev)
 	{
 		pthread_mutex_lock(&exe->prev->prev_next_lock);
@@ -311,6 +313,8 @@ FklVM* fklNewTmpVM(FklByteCode* mainCode,FklVMgc* gc,FklVM* prev,FklVM* next)
 	exe->callback=NULL;
 //	exe->thrds=1;
 	pthread_mutex_init(&exe->prev_next_lock,NULL);
+	exe->prev=prev;
+	exe->next=next;
 	if(prev)
 	{
 		pthread_mutex_lock(&exe->prev->prev_next_lock);
@@ -1513,6 +1517,8 @@ FklVM* fklNewThreadVM(FklVMproc* mainCode,FklVMgc* gc,FklVM* prev,FklVM* next)
 //	exe->thrds=1;
 	pthread_rwlock_init(&exe->rlock,NULL);
 	pthread_mutex_init(&exe->prev_next_lock,NULL);
+	exe->prev=prev;
+	exe->next=next;
 	if(prev)
 	{
 		pthread_mutex_lock(&exe->prev->prev_next_lock);
@@ -1547,6 +1553,8 @@ FklVM* fklNewThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue* nextC
 	exe->nny=0;
 //	exe->thrds=1;
 	pthread_rwlock_init(&exe->rlock,NULL);
+	exe->next=next;
+	exe->prev=prev;
 	if(prev)
 	{
 		pthread_mutex_lock(&exe->prev->prev_next_lock);
@@ -1590,8 +1598,35 @@ void fklFreeVMstack(FklVMstack* stack)
 //	pthread_rwlock_destroy(&GlobVMs->lock);
 //}
 
-void fklFreeAllVMs(FklVM* cur)
+void fklFreeAllVMs(FklVM* curVM)
 {
+	uint8_t* code=curVM->code;
+	for(FklVM* prev=curVM->prev;prev;)
+	{
+		if(prev->mark)
+		{
+			fklDeleteCallChain(prev);
+			fklFreeVMstack(prev->stack);
+			fklFreePtrStack(prev->tstack);
+		}
+		FklVM* t=prev;
+		prev=prev->prev;
+		free(t);
+	}
+	curVM->mark=1;
+	for(FklVM* cur=curVM;cur;)
+	{
+		if(cur->mark)
+		{
+			fklDeleteCallChain(cur);
+			fklFreeVMstack(cur->stack);
+			fklFreePtrStack(cur->tstack);
+		}
+		FklVM* t=cur;
+		cur=cur->next;
+		free(t);
+	}
+	free(code);
 	//uint8_t* code=GlobVMs->h?GlobVMs->h->vm->code:NULL;
 	//for(FklVMnode** ph=&GlobVMs->h;*ph;)
 	//{
@@ -1643,7 +1678,7 @@ void fklJoinAllThread(FklVM* cur)
 
 void fklCancelAllThread()
 {
-	pthread_t selfId=pthread_self();
+//	pthread_t selfId=pthread_self();
 //	for(FklVMnode** ph=&GlobVMs->h;*ph;ph=&(*ph)->next)
 //	{
 //		FklVMnode* cur=*ph;

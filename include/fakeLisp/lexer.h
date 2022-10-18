@@ -65,8 +65,8 @@ typedef struct FklNastNode
 }FklNastNode;
 
 //void fklInitLexer(void);
-FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack*,size_t* errorLine);
-FklNastNode* fklNewNastNodeFromCstr(const char*);
+FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack*,size_t* errorLine,const FklSid_t t[4]);
+FklNastNode* fklNewNastNodeFromCstr(const char*,const FklSid_t t[4]);
 void fklFreeNastNode(FklNastNode*);
 void fklPrintNastNode(const FklNastNode* node,FILE* fp);
 

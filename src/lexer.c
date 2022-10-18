@@ -6,20 +6,15 @@
 #include<string.h>
 #include<ctype.h>
 
-//static FklSid_t builtInPattern_head_quote=0;
-//static FklSid_t builtInPattern_head_qsquote=0;
-//static FklSid_t builtInPattern_head_unquote=0;
-//static FklSid_t builtInPattern_head_unqtesp=0;
+enum
+{
+	BUILTIN_HEAD_QUOTE=0,
+	BUILTIN_HEAD_QSQUOTE=1,
+	BUILTIN_HEAD_UNQUOTE=2,
+	BUILTIN_HEAD_UNQTESP=3,
+}BuildInHeadSymbolIndex;
 
-//void fklInitLexer(void)
-//{
-//	builtInPattern_head_quote=fklAddSymbolToGlobCstr("quote")->id;
-//	builtInPattern_head_qsquote=fklAddSymbolToGlobCstr("qsquote")->id;
-//	builtInPattern_head_unquote=fklAddSymbolToGlobCstr("unquote")->id;
-//	builtInPattern_head_unqtesp=fklAddSymbolToGlobCstr("unqtesp")->id;
-//}
-
-FklNastNode* fklNewNastNodeFromCstr(const char* cStr)
+FklNastNode* fklNewNastNodeFromCstr(const char* cStr,const FklSid_t buildInHeadSymbolTable[4])
 {
 	FklPtrStack* tokenStack=fklNewPtrStack(8,16);
 	size_t size=strlen(cStr);
@@ -35,7 +30,7 @@ FklNastNode* fklNewNastNodeFromCstr(const char* cStr)
 			,&i
 			,&j);
 	size_t errorLine=0;
-	FklNastNode* retval=fklNewNastNodeFromTokenStack(tokenStack,&errorLine);
+	FklNastNode* retval=fklNewNastNodeFromTokenStack(tokenStack,&errorLine,buildInHeadSymbolTable);
 	while(!fklIsPtrStackEmpty(tokenStack))
 		fklFreeToken(fklPopPtrStack(tokenStack));
 	while(!fklIsPtrStackEmpty(matchStateStack))
@@ -604,7 +599,7 @@ static FklNastNode* (*nastStackProcessers[])(FklPtrStack*,uint64_t,size_t*)=
 						cStack=fklNewPtrStack(32,16);\
 						fklPushPtrStack(cStack,stackStack)\
 
-FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack* tokenStack,size_t* errorLine)
+FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack* tokenStack,size_t* errorLine,const FklSid_t buildInHeadSymbolTable[4])
 {
 	FklNastNode* retval=NULL;
 	if(!fklIsPtrStackEmpty(tokenStack))
@@ -772,12 +767,12 @@ FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack* tokenStack,size_t* errorL
 						FklNastNode* prefix=newNastNode(FKL_NAST_SYM,token->line);
 						FklStringMatchPattern* pattern=cState->pattern;
 						FklSid_t prefixValue=pattern==QUOTE?
-							fklAddSymbolToGlobCstr("quote")->id:
+							buildInHeadSymbolTable[BUILTIN_HEAD_QUOTE]:
 							pattern==QSQUOTE?
-							fklAddSymbolToGlobCstr("qsquote")->id:
+							buildInHeadSymbolTable[BUILTIN_HEAD_QSQUOTE]:
 							pattern==UNQUOTE?
-							fklAddSymbolToGlobCstr("unquote")->id:
-							fklAddSymbolToGlobCstr("unqtesp")->id;
+							buildInHeadSymbolTable[BUILTIN_HEAD_UNQUOTE]:
+							buildInHeadSymbolTable[BUILTIN_HEAD_UNQTESP];
 						prefix->u.sym=prefixValue;
 						FklNastNode* tmp[]={prefix,postfix->node,};
 						FklNastNode* list=newNastList(tmp,2,prefix->curline);

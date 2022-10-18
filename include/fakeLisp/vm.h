@@ -4,6 +4,7 @@
 #include"base.h"
 #include"bytecode.h"
 //#include"ast.h"
+#include"lexer.h"
 //#include"compiler.h"
 #include"builtin.h"
 //#include<stdatomic.h>
@@ -450,7 +451,12 @@ FklVMvalue* fklCopyVMlistOrAtom(FklVMvalue*,FklVMstack*,FklVMgc*);
 FklVMvalue* fklCopyVMvalue(FklVMvalue*,FklVMstack*,FklVMgc*);
 FklVMvalue* fklNewVMvalue(FklValueType,void*,FklVMgc*);
 FklVMvalue* fklNewVMvalueNoGC(FklValueType,void*,FklVMgc*);
+FklVMvalue* fklNewVMvalueNoGCAndToStack(FklValueType,void*,FklVMgc*,FklVMstack* s);
 FklVMvalue* fklNewSaveVMvalue(FklValueType,void*);
+FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
+		,FklHashTable* lineHash
+		,FklVMgc* gc
+		,FklVMstack* vmStack);
 void fklAddToGC(FklVMvalue*,FklVMgc*);
 void fklAddToGCNoGC(FklVMvalue*,FklVMgc*);
 void fklAddToGCBeforeGC(FklVMvalue*,FklVMgc*);

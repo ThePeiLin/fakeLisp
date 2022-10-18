@@ -78,7 +78,7 @@ void fklInitCodegener(FklCodegen* codegen
 void fklUninitCodegener(FklCodegen* codegen);
 void fklFreeCodegener(FklCodegen* codegen);
 FklCodegen* fklNewCodegener(void);
-void fklInitCodegen(void);
+const FklSid_t* fklInitCodegen(void);
 void fklUninitCodegen(void);
 FklByteCode* fklCodegenNode(const FklNastNode*,FklCodegen* codegen);
 FklByteCodelnt* fklGenExpressionCode(FklNastNode* exp

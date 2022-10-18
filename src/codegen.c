@@ -18,6 +18,7 @@ static FklSid_t builtInPatternVar_rest=0;
 static FklSid_t builtInPatternVar_name=0;
 static FklSid_t builtInPatternVar_value=0;
 static FklSid_t builtInPatternVar_args=0;
+static FklSid_t builtInHeadSymbolTable[4]={0};
 
 static FklCodegenNextExpression* createCodegenNextExpression(const FklNextExpressionMethodTable* t
 		,void* context)
@@ -1294,7 +1295,7 @@ static FklNastNode* _codegen_load_get_next_expression(void* pcontext,FklCodegenE
 	}
 	size_t errorLine=0;
 	codegen->curline+=fklCountChar(list,'\n',size);
-	begin=fklNewNastNodeFromTokenStack(tokenStack,&errorLine);
+	begin=fklNewNastNodeFromTokenStack(tokenStack,&errorLine,builtInHeadSymbolTable);
 	free(list);
 	if(!begin)
 	{
@@ -1511,17 +1512,27 @@ static struct PatternAndFunc
 	{NULL,                  NULL, NULL,            }
 };
 
-void fklInitCodegen(void)
+const FklSid_t* fklInitCodegen(void)
 {
+	static const char* builtInHeadSymbolTableCstr[4]=
+	{
+		"quote",
+		"qsquote",
+		"unquote",
+		"unqtesp",
+	};
+	for(int i=0;i<4;i++)
+		builtInHeadSymbolTable[i]=fklAddSymbolToGlobCstr(builtInHeadSymbolTableCstr[i])->id;
 	builtInPatternVar_rest=fklAddSymbolToGlobCstr("rest")->id;
 	builtInPatternVar_name=fklAddSymbolToGlobCstr("name")->id;
 	builtInPatternVar_args=fklAddSymbolToGlobCstr("args")->id;
 	builtInPatternVar_value=fklAddSymbolToGlobCstr("value")->id;
 
 	for(struct PatternAndFunc* cur=&builtInPattern[0];cur->ps!=NULL;cur++)
-		cur->pn=fklNewNastNodeFromCstr(cur->ps);
+		cur->pn=fklNewNastNodeFromCstr(cur->ps,builtInHeadSymbolTable);
 	for(struct SubPattern* cur=&builtInSubPattern[0];cur->ps!=NULL;cur++)
-		cur->pn=fklNewNastNodeFromCstr(cur->ps);
+		cur->pn=fklNewNastNodeFromCstr(cur->ps,builtInHeadSymbolTable);
+	return builtInHeadSymbolTable;
 }
 
 void fklUninitCodegen(void)

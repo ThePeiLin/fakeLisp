@@ -29,6 +29,7 @@ static FklVMvalue* BuiltInStdin=NULL;
 static FklVMvalue* BuiltInStdout=NULL;
 static FklVMvalue* BuiltInStderr=NULL;
 
+static FklSid_t builtInHeadSymbolTable[4]={0};
 
 static const char* builtInErrorType[]=
 {
@@ -2744,7 +2745,7 @@ void builtin_read(ARGL)
 		fklFreePtrStack(matchStateStack);
 	}
 	size_t errorLine=0;
-	FklNastNode* node=fklNewNastNodeFromTokenStack(tokenStack,&errorLine);
+	FklNastNode* node=fklNewNastNodeFromTokenStack(tokenStack,&errorLine,builtInHeadSymbolTable);
 	FklVMvalue* tmp=NULL;
 	if(node==NULL)
 		tmp=FKL_VM_NIL;
@@ -4737,6 +4738,15 @@ void fklInitSymbolTableWithBuiltinSymbol(FklSymbolTable* table)
 
 void fklInitGlobEnv(FklVMenv* obj,FklVMgc* gc)
 {
+	static const char* builtInHeadSymbolTableCstr[4]=
+	{
+		"quote",
+		"qsquote",
+		"unquote",
+		"unqtesp",
+	};
+	for(int i=0;i<4;i++)
+		builtInHeadSymbolTable[i]=fklAddSymbolToGlobCstr(builtInHeadSymbolTableCstr[i])->id;
 	const struct SymbolFuncStruct* list=builtInSymbolList;
 	BuiltInStdin=fklNewVMvalueNoGC(FKL_TYPE_FP,fklNewVMfp(stdin),gc);
 	BuiltInStdout=fklNewVMvalueNoGC(FKL_TYPE_FP,fklNewVMfp(stdout),gc);

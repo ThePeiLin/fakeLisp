@@ -10,13 +10,13 @@ extern "C"{
 
 int fklcIsFbc(FklVMvalue*);
 void fklcInit(FklVMvalue* rel);
-FklVMudata* fklcNewFbcUd(FklByteCode* code);
+FklVMudata* fklcCreateFbcUd(FklByteCode* code);
 FklVMvalue* fklcGetRel(void);
-FklByteCode* fklcNewPushSidByteCode(FklSid_t);
-FklByteCode* fklcNewPushObjByteCode(FklVMvalue*);
-FklByteCode* fklcNewPushPairByteCode(FklVMvalue*);
-FklByteCode* fklcNewPushBoxByteCode(FklVMvalue*);
-FklByteCode* fklcNewPushVectorByteCode(FklVMvalue*);
+FklByteCode* fklcCreatePushSidByteCode(FklSid_t);
+FklByteCode* fklcCreatePushObjByteCode(FklVMvalue*);
+FklByteCode* fklcCreatePushPairByteCode(FklVMvalue*);
+FklByteCode* fklcCreatePushBoxByteCode(FklVMvalue*);
+FklByteCode* fklcCreatePushVectorByteCode(FklVMvalue*);
 void fklcCodeAppend(FklByteCode**,const FklByteCode*);
 #ifdef __cplusplus
 }

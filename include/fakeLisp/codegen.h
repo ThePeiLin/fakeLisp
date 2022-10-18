@@ -77,7 +77,7 @@ void fklInitCodegener(FklCodegen* codegen
 
 void fklUninitCodegener(FklCodegen* codegen);
 void fklFreeCodegener(FklCodegen* codegen);
-FklCodegen* fklNewCodegener(void);
+FklCodegen* fklCreateCodegener(void);
 const FklSid_t* fklInitCodegen(void);
 void fklUninitCodegen(void);
 FklByteCode* fklCodegenNode(const FklNastNode*,FklCodegen* codegen);
@@ -91,9 +91,9 @@ FklByteCodelnt* fklGenExpressionCodeWithFp(FILE*
 void fklAddCodegenDefBySid(FklSid_t sid,FklCodegenEnv*);
 int fklIsSymbolDefined(FklSid_t sid,FklCodegenEnv*);
 
-FklCodegenEnv* fklNewCodegenEnv(FklCodegenEnv* prev);
+FklCodegenEnv* fklCreateCodegenEnv(FklCodegenEnv* prev);
 void fklFreeCodegenEnv(FklCodegenEnv* env);
-FklCodegenEnv* fklNewGlobCodegenEnv(void);
+FklCodegenEnv* fklCreateGlobCodegenEnv(void);
 
 void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklSymbolTable* symbolTable);
 #ifdef __cplusplus

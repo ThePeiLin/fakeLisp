@@ -12,8 +12,8 @@ extern FklSymbolTable* OuterSymbolTable;
 
 #define FKLC_RAISE_ERROR(WHO,ERRORTYPE,EXE) do{\
 	char* errorMessage=fklcGenErrorMessage((ERRORTYPE));\
-	FklVMvalue* err=fklNewVMvalueToStack(FKL_TYPE_ERR\
-			,fklNewVMerrorCstr((WHO)\
+	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR\
+			,fklCreateVMerrorCstr((WHO)\
 				,fklcGetErrorType(ERRORTYPE)\
 				,errorMessage)\
 			,(EXE)->stack\
@@ -53,14 +53,14 @@ void fklc_pattern_match(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.pattern-match",FKL_ERR_TOOFEWARG,frame,exe);
 	if(!fklcIsValidSyntaxPattern(pattern))
 		FKLC_RAISE_ERROR("fklc.pattern-match",FKL_FKLC_ERR_INVALID_SYNTAX_PATTERN,exe);
-	FklVMhashTable* hash=fklNewVMhashTable(FKL_VM_HASH_EQ);
+	FklVMhashTable* hash=fklCreateVMhashTable(FKL_VM_HASH_EQ);
 	if(fklcMatchPattern(pattern,exp,hash,exe->gc))
 	{
 		fklFreeVMhashTable(hash);
 		fklNiReturn(FKL_VM_NIL,&ap,stack);
 	}
 	else
-		fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_HASHTABLE,hash,stack,exe->gc),&ap,stack);
+		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE,hash,stack,exe->gc),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -69,24 +69,24 @@ void fklc_pattern_match(ARGL)
 #define IS_COMPILABLE(V) (IS_LITERAL(V)||FKL_IS_PAIR(V)||FKL_IS_BOX(V)||FKL_IS_VECTOR(V))
 
 #define COMPILE_INTEGER(V) (FKL_IS_I32(V)?\
-		fklNewPushI32ByteCode(FKL_GET_I32(V)):\
+		fklCreatePushI32ByteCode(FKL_GET_I32(V)):\
 		FKL_IS_I64(V)?\
-		fklNewPushI64ByteCode((V)->u.i64):\
-		fklNewPushBigIntByteCode((V)->u.bigInt))
+		fklCreatePushI64ByteCode((V)->u.i64):\
+		fklCreatePushBigIntByteCode((V)->u.bigInt))
 
-#define COMPILE_NUMBER(V) (fklIsInt(V)?COMPILE_INTEGER(V):fklNewPushF64ByteCode((V)->u.f64))
+#define COMPILE_NUMBER(V) (fklIsInt(V)?COMPILE_INTEGER(V):fklCreatePushF64ByteCode((V)->u.f64))
 
 #define COMPILE_LITERAL(V) ((V)==FKL_VM_NIL?\
-		fklNewPushNilByteCode():\
+		fklCreatePushNilByteCode():\
 		fklIsVMnumber(V)?\
 		COMPILE_NUMBER(V):\
 		FKL_IS_CHR(V)?\
-		fklNewPushCharByteCode(FKL_GET_CHR(V)):\
+		fklCreatePushCharByteCode(FKL_GET_CHR(V)):\
 		FKL_IS_STR(V)?\
-		fklNewPushStrByteCode((V)->u.str):\
+		fklCreatePushStrByteCode((V)->u.str):\
 		FKL_IS_SYM(V)?\
-		fklNewPushSidByteCode(FKL_GET_SYM(V)):\
-		fklNewPushBvecByteCode((V)->u.bvec))
+		fklCreatePushSidByteCode(FKL_GET_SYM(V)):\
+		fklCreatePushBvecByteCode((V)->u.bvec))
 
 #define CONST_COMPILE(ERR_INFO,ARG,P,BC) {\
 	FKL_NI_BEGIN(exe);\
@@ -98,7 +98,7 @@ void fklc_pattern_match(ARGL)
 	FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_ERR_TOOFEWARG,frame,exe);\
 	if(!P(ARG))\
 	FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);\
-	fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_USERDATA,fklcNewFbcUd(BC),stack,exe->gc),&ap,stack);\
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklcCreateFbcUd(BC),stack,exe->gc),&ap,stack);\
 	fklNiEnd(&ap,stack);\
 }
 
@@ -108,7 +108,7 @@ void fklc_make_push_nil(ARGL)
 	FklVMframe* frame=exe->frames;
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.make-push-nil",FKL_ERR_TOOMANYARG,frame,exe);
-	fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_USERDATA,fklcNewFbcUd(fklNewPushNilByteCode()),stack,exe->gc),&ap,stack);
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklcCreateFbcUd(fklCreatePushNilByteCode()),stack,exe->gc),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -123,7 +123,7 @@ void fklc_fbc_to_bytevector(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.fbc->bytevector",FKL_ERR_TOOMANYARG,frame,exe);
 	FKL_NI_CHECK_TYPE(fbc,fklcIsFbc,"fklc.fbc->bytevector",frame,exe);
 	FklByteCode* bc=fbc->u.ud->data;
-	fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklNewBytevector(bc->size,bc->code),stack,exe->gc),&ap,stack);
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCreateBytevector(bc->size,bc->code),stack,exe->gc),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -137,18 +137,18 @@ void fklc_bytevector_to_fbc(ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.fbc->bytevector",FKL_ERR_TOOMANYARG,frame,exe);
 	FKL_NI_CHECK_TYPE(bv,FKL_IS_BYTEVECTOR,"fklc.fbc->bytevector",frame,exe);
-	fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_USERDATA,fklcNewFbcUd(fklNewByteCodeAndInit(bv->u.bvec->size,bv->u.bvec->ptr)),stack,exe->gc),&ap,stack);
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklcCreateFbcUd(fklCreateByteCodeAndInit(bv->u.bvec->size,bv->u.bvec->ptr)),stack,exe->gc),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
-void fklc_compile_i32(ARGL) CONST_COMPILE("fklc.compile-i32",i_32,FKL_IS_I32,fklNewPushI32ByteCode(FKL_GET_I32(i_32)))
-void fklc_compile_i64(ARGL) CONST_COMPILE("fklc.compile-i64",i_64,FKL_IS_I64,fklNewPushI64ByteCode(i_64->u.i64))
-void fklc_compile_char(ARGL) CONST_COMPILE("fklc.compile-char",chr,FKL_IS_CHR,fklNewPushCharByteCode(FKL_GET_CHR(chr)))
-void fklc_compile_symbol(ARGL) CONST_COMPILE("fklc.compile-symbol",sym,FKL_IS_SYM,fklNewPushSidByteCode(fklcGetSymbolIdWithOuterSymbolId(FKL_GET_SYM(sym))))
-void fklc_compile_big_int(ARGL) CONST_COMPILE("fklc.compile-big-int",big_int,FKL_IS_BIG_INT,fklNewPushBigIntByteCode(big_int->u.bigInt))
-void fklc_compile_f64(ARGL) CONST_COMPILE("fklc.compile-f64",f_64,FKL_IS_F64,fklNewPushF64ByteCode(f_64->u.f64))
-void fklc_compile_string(ARGL) CONST_COMPILE("fklc.compile-string",str,FKL_IS_STR,fklNewPushStrByteCode(str->u.str))
-void fklc_compile_bytevector(ARGL) CONST_COMPILE("fklc.compile-bytevector",bvec,FKL_IS_BYTEVECTOR,fklNewPushBvecByteCode(bvec->u.bvec))
+void fklc_compile_i32(ARGL) CONST_COMPILE("fklc.compile-i32",i_32,FKL_IS_I32,fklCreatePushI32ByteCode(FKL_GET_I32(i_32)))
+void fklc_compile_i64(ARGL) CONST_COMPILE("fklc.compile-i64",i_64,FKL_IS_I64,fklCreatePushI64ByteCode(i_64->u.i64))
+void fklc_compile_char(ARGL) CONST_COMPILE("fklc.compile-char",chr,FKL_IS_CHR,fklCreatePushCharByteCode(FKL_GET_CHR(chr)))
+void fklc_compile_symbol(ARGL) CONST_COMPILE("fklc.compile-symbol",sym,FKL_IS_SYM,fklCreatePushSidByteCode(fklcGetSymbolIdWithOuterSymbolId(FKL_GET_SYM(sym))))
+void fklc_compile_big_int(ARGL) CONST_COMPILE("fklc.compile-big-int",big_int,FKL_IS_BIG_INT,fklCreatePushBigIntByteCode(big_int->u.bigInt))
+void fklc_compile_f64(ARGL) CONST_COMPILE("fklc.compile-f64",f_64,FKL_IS_F64,fklCreatePushF64ByteCode(f_64->u.f64))
+void fklc_compile_string(ARGL) CONST_COMPILE("fklc.compile-string",str,FKL_IS_STR,fklCreatePushStrByteCode(str->u.str))
+void fklc_compile_bytevector(ARGL) CONST_COMPILE("fklc.compile-bytevector",bvec,FKL_IS_BYTEVECTOR,fklCreatePushBvecByteCode(bvec->u.bvec))
 void fklc_compile_integer(ARGL) CONST_COMPILE("fklc.compile-integer",integer,fklIsInt,COMPILE_INTEGER(integer))
 void fklc_compile_number(ARGL) CONST_COMPILE("fklc.compile-number",number,fklIsVMnumber,COMPILE_NUMBER(number))
 void fklc_compile_atom_literal(ARGL) CONST_COMPILE("fklc.compile-atom-literal",literal,IS_LITERAL,COMPILE_LITERAL(literal))
@@ -163,10 +163,10 @@ void fklc_compile_obj(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.compile-obj",FKL_ERR_TOOFEWARG,frame,exe);
 	if(!IS_COMPILABLE(obj))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.compile-obj",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
-	FklByteCode* bc=fklcNewPushObjByteCode(obj);
+	FklByteCode* bc=fklcCreatePushObjByteCode(obj);
 	if(!bc)
 		FKLC_RAISE_ERROR("fklc.compile-obj",FKL_FKLC_ERR_IMCOMPILABLE_OBJ_OCCUR,exe);
-	fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_USERDATA,fklcNewFbcUd(bc),stack,exe->gc),&ap,stack);
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklcCreateFbcUd(bc),stack,exe->gc),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -198,7 +198,7 @@ void fklc_make_fbc(ARGL)
 	if(fklVMnumberLt0(size))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.make-fbc",FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,frame,exe);
 	size_t len=fklGetUint(size);
-	FklByteCode* bc=fklNewByteCode(len);
+	FklByteCode* bc=fklCreateByteCode(len);
 	uint8_t c=0;
 	if(content)
 	{
@@ -207,7 +207,7 @@ void fklc_make_fbc(ARGL)
 		c=fklGetInt(content);
 	}
 	memset(bc->code,c,len);
-	fklNiReturn(fklNewVMvalueToStack(FKL_TYPE_USERDATA,fklcNewFbcUd(bc),stack,exe->gc),&ap,stack);
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklcCreateFbcUd(bc),stack,exe->gc),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

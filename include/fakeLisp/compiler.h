@@ -76,22 +76,22 @@ typedef struct FklKeyWord
 void fklPrintCompileError(const FklAstCptr*,FklBuiltInErrorType,FklInterpreter*);
 FklPreDef* fklAddDefine(const FklString*,const FklAstCptr*,FklPreEnv*);
 FklPreDef* fklFindDefine(const FklString*,const FklPreEnv*);
-FklPreDef* fklNewDefines(const FklString*);
+FklPreDef* fklCreateDefines(const FklString*);
 
 FklCompEnvHashItem* fklAddCompDef(const FklString*,FklCompEnv*);
 FklCompEnvHashItem* fklAddCompDefBySid(FklSid_t,FklCompEnv*);
 FklCompEnvHashItem* fklAddCompDefCstr(const char*,FklCompEnv*);
-FklCompEnv* fklNewCompEnv(FklCompEnv*);
-FklCompEnv* fklNewGlobCompEnv(FklCompEnv*);
+FklCompEnv* fklCreateCompEnv(FklCompEnv*);
+FklCompEnv* fklCreateGlobCompEnv(FklCompEnv*);
 void fklDestroyCompEnv(FklCompEnv* objEnv);
 void fklFreeAllMacroThenDestroyCompEnv(FklCompEnv* env);
 FklCompEnvHashItem* fklFindCompDef(const FklString*,FklCompEnv*);
 FklCompEnvHashItem* fklFindCompDefBySid(FklSid_t,FklCompEnv*);
-FklInterpreter* fklNewIntpr(const char*,FILE*,FklCompEnv*,FklLineNumberTable*);
-FklInterpreter* fklNewTmpIntpr(const char*,FILE*);
+FklInterpreter* fklCreateIntpr(const char*,FILE*,FklCompEnv*,FklLineNumberTable*);
+FklInterpreter* fklCreateTmpIntpr(const char*,FILE*);
 
 void fklFreeIntpr(FklInterpreter*);
-FklPreEnv* fklNewEnv(FklPreEnv*);
+FklPreEnv* fklCreateEnv(FklPreEnv*);
 void fklDestroyEnv(FklPreEnv*);
 
 void fklInitCompEnv(FklCompEnv*);

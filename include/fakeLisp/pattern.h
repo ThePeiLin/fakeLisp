@@ -18,7 +18,7 @@ typedef struct FklStringMatchPattern
 
 FklStringMatchPattern* fklFindStringPattern(const FklString*);
 FklStringMatchPattern* fklFindStringPatternBuf(const char* buf,size_t size);
-FklStringMatchPattern* fklNewStringMatchPattern(uint32_t,FklString**,FklByteCodelnt*);
+FklStringMatchPattern* fklCreateStringMatchPattern(uint32_t,FklString**,FklByteCodelnt*);
 const FklString* fklGetNthReverseCharOfStringMatchPattern(FklStringMatchPattern* pattern,uint32_t nth);
 const FklString* fklGetNthPartOfStringMatchPattern(FklStringMatchPattern* pattern,uint32_t nth);
 FklString** fklSplitPattern(const FklString*,uint32_t*);

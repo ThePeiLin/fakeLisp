@@ -13,10 +13,10 @@ typedef struct FklString
 	char str[];
 }FklString;
 
-FklString* fklNewString(size_t,const char*);
+FklString* fklCreateString(size_t,const char*);
 FklString* fklCopyString(const FklString*);
-FklString* fklNewEmptyString();
-FklString* fklNewStringFromCstr(const char*);
+FklString* fklCreateEmptyString();
+FklString* fklCreateStringFromCstr(const char*);
 void fklStringCat(FklString**,const FklString*);
 void fklStringCstrCat(FklString**,const char*);
 void fklStringCharBufCat(FklString**,const char* buf,size_t s);
@@ -37,7 +37,7 @@ typedef struct FklBytevector
 	uint8_t ptr[];
 }FklBytevector;
 
-FklBytevector* fklNewBytevector(size_t,const uint8_t*);
+FklBytevector* fklCreateBytevector(size_t,const uint8_t*);
 FklBytevector* fklCopyBytevector(const FklBytevector*);
 void fklBytevectorCat(FklBytevector**,const FklBytevector*);
 int fklBytevectorcmp(const FklBytevector*,const FklBytevector*);
@@ -77,7 +77,7 @@ typedef struct FklHashTableMethodTable
 	void* (*__getKey)(void*);
 }FklHashTableMethodTable;
 
-FklHashTable* fklNewHashTable(size_t size
+FklHashTable* fklCreateHashTable(size_t size
 		,size_t linkNum
 		,int linkNumInc
 		,double threshold
@@ -98,7 +98,7 @@ typedef struct
 	uint32_t inc;
 }FklPtrStack;
 
-FklPtrStack* fklNewPtrStack(uint32_t size,uint32_t inc);
+FklPtrStack* fklCreatePtrStack(uint32_t size,uint32_t inc);
 void fklPushPtrStack(void* data,FklPtrStack*);
 void* fklPopPtrStack(FklPtrStack*);
 void* fklTopPtrStack(FklPtrStack*);
@@ -118,10 +118,10 @@ typedef struct
 	FklQueueNode** tail;
 }FklPtrQueue;
 
-FklQueueNode* fklNewQueueNode(void*);
+FklQueueNode* fklCreateQueueNode(void*);
 void fklFreeQueueNode(FklQueueNode*);
 
-FklPtrQueue* fklNewPtrQueue(void);
+FklPtrQueue* fklCreatePtrQueue(void);
 void fklFreePtrQueue(FklPtrQueue*);
 int fklIsPtrQueueEmpty(FklPtrQueue*);
 uint64_t fklLengthPtrQueue(FklPtrQueue*);
@@ -139,7 +139,7 @@ typedef struct
 	uint32_t inc;
 }FklIntStack;
 
-FklIntStack* fklNewIntStack(uint32_t size,uint32_t inc);
+FklIntStack* fklCreateIntStack(uint32_t size,uint32_t inc);
 void fklPushIntStack(int64_t e,FklIntStack*);
 int64_t fklPopIntStack(FklIntStack*);
 int64_t fklTopIntStack(FklIntStack*);
@@ -155,8 +155,8 @@ typedef struct
 	uint32_t inc;
 }FklUintStack;
 
-FklUintStack* fklNewUintStack(uint32_t size,uint32_t inc);
-FklUintStack* fklNewUintStackFromStack(FklUintStack*);
+FklUintStack* fklCreateUintStack(uint32_t size,uint32_t inc);
+FklUintStack* fklCreateUintStackFromStack(FklUintStack*);
 void fklPushUintStack(uint64_t e,FklUintStack*);
 uint64_t fklPopUintStack(FklUintStack*);
 uint64_t fklTopUintStack(FklUintStack*);
@@ -175,14 +175,14 @@ typedef struct FklBigInt
 #define FKL_BIG_INT_INIT {NULL,0,0,0}
 #define FKL_IS_0_BIG_INT(I) ((I)->num==1&&(I)->digits[0]==0)
 #define FKL_IS_1_BIG_INT(I) ((I)->num==1&&(I)->neg==0&&(I)->digits[0]==1)
-FklBigInt* fklNewBigInt(int64_t v);
-FklBigInt* fklNewBigIntD(double v);
-FklBigInt* fklNewBigIntU(uint64_t v);
-FklBigInt* fklNewBigIntFromCstr(const char* str);
-FklBigInt* fklNewBigIntFromMem(const void* mem,size_t size);
-FklBigInt* fklNewBigIntFromString(const FklString*);
-FklBigInt* fklNewBigInt0(void);
-FklBigInt* fklNewBigInt1(void);
+FklBigInt* fklCreateBigInt(int64_t v);
+FklBigInt* fklCreateBigIntD(double v);
+FklBigInt* fklCreateBigIntU(uint64_t v);
+FklBigInt* fklCreateBigIntFromCstr(const char* str);
+FklBigInt* fklCreateBigIntFromMem(const void* mem,size_t size);
+FklBigInt* fklCreateBigIntFromString(const FklString*);
+FklBigInt* fklCreateBigInt0(void);
+FklBigInt* fklCreateBigInt1(void);
 FklBigInt* fklCopyBigInt(const FklBigInt*);
 void fklInitBigInt(FklBigInt*,const FklBigInt*);
 void fklInitBigIntI(FklBigInt*,int64_t v);

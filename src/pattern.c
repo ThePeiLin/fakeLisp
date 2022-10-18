@@ -82,7 +82,7 @@ FklStringMatchPattern* fklFindStringPattern(const FklString* str)
 	return cur;
 }
 
-FklStringMatchPattern* fklNewStringMatchPattern(uint32_t num,FklString** parts,FklByteCodelnt* proc)
+FklStringMatchPattern* fklCreateStringMatchPattern(uint32_t num,FklString** parts,FklByteCodelnt* proc)
 {
 	FklStringMatchPattern* tmp=(FklStringMatchPattern*)malloc(sizeof(FklStringMatchPattern));
 	FKL_ASSERT(tmp);
@@ -162,7 +162,7 @@ FklString** fklSplitPattern(const FklString* str,uint32_t* num)
 		{
 			size_t j=i;
 			for(;j<size&&buf[j]!=')';j++);
-			FklString* tmpStr=fklNewString(j-i+1,buf+i);
+			FklString* tmpStr=fklCreateString(j-i+1,buf+i);
 			tmp[count]=tmpStr;
 			i=j;
 			count++;
@@ -170,7 +170,7 @@ FklString** fklSplitPattern(const FklString* str,uint32_t* num)
 		}
 		size_t j=i;
 		for(;j<size&&buf[j]!='(';j++);
-		FklString* tmpStr=fklNewString(j-i,buf+i);
+		FklString* tmpStr=fklCreateString(j-i,buf+i);
 		tmp[count]=tmpStr;
 		count++;
 		i=j-1;
@@ -304,7 +304,7 @@ FklString* fklGetVarName(const FklString* str)
 	size_t i=(buf[1]==',')?2:1;
 	size_t j=i;
 	for(;i<size&&buf[i]!=')';i++);
-	FklString* tmp=fklNewString(i-j,buf+j);
+	FklString* tmp=fklCreateString(i-j,buf+j);
 	return tmp;
 }
 

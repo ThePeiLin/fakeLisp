@@ -351,7 +351,7 @@ void fklAddKeyWordCstr(const char* objStr,FklCompEnv* curEnv)
 		if(current==NULL)
 		{
 			current=(FklKeyWord*)malloc(sizeof(FklKeyWord));
-			current->word=fklNewStringFromCstr(objStr);
+			current->word=fklCreateStringFromCstr(objStr);
 			if(prev!=NULL)prev->next=current;
 			else
 				curEnv->keyWords=current;

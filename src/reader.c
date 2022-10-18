@@ -38,7 +38,7 @@ char* fklReadInStringPattern(FILE* fp,char** prev,size_t* size,size_t* prevSize,
 {
 	char* tmp=NULL;
 	*unexpectEOF=0;
-	FklPtrStack* matchStateStack=fklNewPtrStack(32,16);
+	FklPtrStack* matchStateStack=fklCreatePtrStack(32,16);
 	if(!read)
 		read=fklReadLine;
 	if(*prev)

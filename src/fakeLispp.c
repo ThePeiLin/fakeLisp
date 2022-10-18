@@ -41,7 +41,7 @@ void loadSymbolTable(FILE* fp)
 	{
 		uint64_t len=0;
 		fread(&len,sizeof(len),1,fp);
-		FklString* buf=fklNewString(len,NULL);
+		FklString* buf=fklCreateString(len,NULL);
 		fread(buf->str,len,1,fp);
 		fklAddSymbolToGlob(buf);
 		free(buf);
@@ -65,10 +65,10 @@ FklLineNumberTable* loadLineNumberTable(FILE* fp)
 		fread(&scp,sizeof(scp),1,fp);
 		fread(&cpc,sizeof(cpc),1,fp);
 		fread(&line,sizeof(line),1,fp);
-		FklLineNumTabNode* n=fklNewLineNumTabNode(fid,scp,cpc,line);
+		FklLineNumTabNode* n=fklCreateLineNumTabNode(fid,scp,cpc,line);
 		list[i]=n;
 	}
-	FklLineNumberTable* lnt=fklNewLineNumTable();
+	FklLineNumberTable* lnt=fklCreateLineNumTable();
 	lnt->list=list;
 	lnt->num=size;
 	return lnt;

@@ -19,10 +19,10 @@ typedef struct
 	FklPtrStack* s;
 }FklMemMenager;
 
-FklMem* fklNewMem(void* mem,void (*destructor)(void*));
+FklMem* fklCreateMem(void* mem,void (*destructor)(void*));
 void fklFreeMem(FklMem*);
 
-FklMemMenager* fklNewMemMenager(size_t size);
+FklMemMenager* fklCreateMemMenager(size_t size);
 void* fklReallocMem(void* o_block,void* n_block,FklMemMenager*);
 void fklFreeMemMenager(FklMemMenager*);
 void fklPushMem(void* block,void (*destructor)(void*),FklMemMenager* memMenager);

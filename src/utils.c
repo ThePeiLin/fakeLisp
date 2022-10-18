@@ -128,7 +128,7 @@ FklString* fklDoubleToString(double num)
 {
 	char numString[256]={0};
 	int lenOfNum=sprintf(numString,"%lf",num);
-	FklString* tmp=fklNewString(lenOfNum,numString);
+	FklString* tmp=fklCreateString(lenOfNum,numString);
 	return tmp;
 }
 
@@ -145,7 +145,7 @@ FklString* fklIntToString(long num)
 {
 	char numString[256]={0};
 	int lenOfNum=sprintf(numString,"%ld",num);
-	FklString* tmp=fklNewString(lenOfNum,numString);
+	FklString* tmp=fklCreateString(lenOfNum,numString);
 	return tmp;
 }
 

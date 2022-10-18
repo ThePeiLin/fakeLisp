@@ -89,9 +89,9 @@ typedef struct FklStringMatchPattern FklStringMatchPattern;
 typedef struct FklCompEnv FklCompEnv;
 
 void fklPrintCptr(const FklAstCptr*,FILE*);
-FklAstPair* fklNewPair(int,FklAstPair*);
-FklAstCptr* fklNewCptr(int,FklAstPair*);
-FklAstAtom* fklNewAtom(FklValueType type,FklAstPair*);
+FklAstPair* fklCreatePair(int,FklAstPair*);
+FklAstCptr* fklCreateCptr(int,FklAstPair*);
+FklAstAtom* fklCreateAtom(FklValueType type,FklAstPair*);
 void fklFreeAtom(FklAstAtom*);
 
 void fklMakeAstHashTable(FklAstHashTable* hash,uint32_t,uint64_t);

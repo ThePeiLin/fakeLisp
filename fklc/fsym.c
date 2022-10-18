@@ -4,7 +4,7 @@ FklSymbolTable* OuterSymbolTable=NULL;
 
 void fklcInitFsym(void)
 {
-	OuterSymbolTable=fklNewSymbolTable();
+	OuterSymbolTable=fklCreateSymbolTable();
 }
 
 FklSymbolTable* fklcGetOuterSymbolTable(void)
@@ -78,8 +78,8 @@ int fklcIsValidSyntaxPattern(FklVMvalue* pattern)
 	if(!FKL_IS_SYM(head))
 		return 0;
 	FklVMvalue* body=pattern->u.pair->cdr;
-	FklPtrStack* symbolStack=fklNewPtrStack(32,16);
-	FklPtrStack* stack=fklNewPtrStack(32,16);
+	FklPtrStack* symbolStack=fklCreatePtrStack(32,16);
+	FklPtrStack* stack=fklCreatePtrStack(32,16);
 	fklPushPtrStack(body,stack);
 	while(!fklIsPtrStackEmpty(stack))
 	{
@@ -111,8 +111,8 @@ int fklcMatchPattern(FklVMvalue* pattern,FklVMvalue* exp,FklVMhashTable* ht,FklV
 		return 1;
 	if(pattern->u.pair->car!=exp->u.pair->car)
 		return 1;
-	FklPtrStack* s0=fklNewPtrStack(32,16);
-	FklPtrStack* s1=fklNewPtrStack(32,16);
+	FklPtrStack* s0=fklCreatePtrStack(32,16);
+	FklPtrStack* s1=fklCreatePtrStack(32,16);
 	fklPushPtrStack(pattern->u.pair->cdr,s0);
 	fklPushPtrStack(exp->u.pair->cdr,s1);
 	while(!fklIsPtrStackEmpty(s0)&&!fklIsPtrStackEmpty(s1))

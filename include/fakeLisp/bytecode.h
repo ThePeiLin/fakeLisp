@@ -36,8 +36,8 @@ typedef struct FklLineNumberTableNode
 	uint32_t line;
 }FklLineNumTabNode;
 
-FklByteCode* fklNewByteCode(size_t);
-FklByteCode* fklNewByteCodeAndInit(size_t,const uint8_t*);
+FklByteCode* fklCreateByteCode(size_t);
+FklByteCode* fklCreateByteCodeAndInit(size_t,const uint8_t*);
 void fklCodeCat(FklByteCode*,const FklByteCode*);
 void fklReCodeCat(const FklByteCode*,FklByteCode*);
 FklByteCode* fklCopyByteCode(const FklByteCode*);
@@ -45,7 +45,7 @@ FklByteCodelnt* fklCopyByteCodelnt(const FklByteCodelnt*);
 void fklFreeByteCode(FklByteCode*);
 void fklPrintByteCode(const FklByteCode*,FILE*,FklSymbolTable*);
 
-FklByteCodelnt* fklNewByteCodelnt(FklByteCode* bc);
+FklByteCodelnt* fklCreateByteCodelnt(FklByteCode* bc);
 void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,FklSymbolTable*);
 void fklFreeByteCodelnt(FklByteCodelnt*);
 void fklFreeByteCodeAndLnt(FklByteCodelnt*);
@@ -54,9 +54,9 @@ void fklCodeLntCat(FklByteCodelnt*,FklByteCodelnt*);
 void fklCodelntCopyCat(FklByteCodelnt*,const FklByteCodelnt*);
 void fklReCodeLntCat(FklByteCodelnt*,FklByteCodelnt*);
 
-FklLineNumberTable* fklNewLineNumTable();
-FklLineNumTabNode* fklNewLineNumTabNode(FklSid_t fid,uint64_t scp,uint64_t cpc,uint64_t line);
-FklLineNumTabNode* fklNewLineNumTabNodeWithFilename(const char* filename
+FklLineNumberTable* fklCreateLineNumTable();
+FklLineNumTabNode* fklCreateLineNumTabNode(FklSid_t fid,uint64_t scp,uint64_t cpc,uint64_t line);
+FklLineNumTabNode* fklCreateLineNumTabNodeWithFilename(const char* filename
 		,uint64_t scp
 		,uint64_t cpc
 		,uint32_t line);
@@ -82,15 +82,15 @@ void fklSetF64ToByteCode(uint8_t* code,double i);
 void fklSetSidToByteCode(uint8_t* code,FklSid_t i);
 void fklScanAndSetTailCall(FklByteCode* bc);
 
-FklByteCode* fklNewPushI32ByteCode(int32_t);
-FklByteCode* fklNewPushI64ByteCode(int64_t);
-FklByteCode* fklNewPushBigIntByteCode(const FklBigInt*);
-FklByteCode* fklNewPushSidByteCode(FklSid_t);
-FklByteCode* fklNewPushCharByteCode(char);
-FklByteCode* fklNewPushF64ByteCode(double a);
-FklByteCode* fklNewPushNilByteCode(void);
-FklByteCode* fklNewPushStrByteCode(const FklString* str);
-FklByteCode* fklNewPushBvecByteCode(const FklBytevector* bvec);
+FklByteCode* fklCreatePushI32ByteCode(int32_t);
+FklByteCode* fklCreatePushI64ByteCode(int64_t);
+FklByteCode* fklCreatePushBigIntByteCode(const FklBigInt*);
+FklByteCode* fklCreatePushSidByteCode(FklSid_t);
+FklByteCode* fklCreatePushCharByteCode(char);
+FklByteCode* fklCreatePushF64ByteCode(double a);
+FklByteCode* fklCreatePushNilByteCode(void);
+FklByteCode* fklCreatePushStrByteCode(const FklString* str);
+FklByteCode* fklCreatePushBvecByteCode(const FklBytevector* bvec);
 
 void fklFreeLineNumTabNodeArray(FklLineNumTabNode** a,size_t num);
 

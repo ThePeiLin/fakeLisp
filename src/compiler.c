@@ -32,7 +32,7 @@
 //static FklErrorState defmacro(FklAstCptr*,FklCompEnv*,FklInterpreter*);
 //static FklCompEnv* createPatternCompEnv(FklString* const*,int32_t,FklCompEnv*);
 //
-//static FklCompEnvHashItem* newCompEnvHashItem(FklSid_t key)
+//static FklCompEnvHashItem* createCompEnvHashItem(FklSid_t key)
 //{
 //	FklCompEnvHashItem* r=(FklCompEnvHashItem*)malloc(sizeof(FklCompEnvHashItem));
 //	FKL_ASSERT(r);
@@ -73,7 +73,7 @@
 //
 //static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMgc* gc)
 //{
-//	FklPtrStack* stack=fklNewPtrStack(32,16);
+//	FklPtrStack* stack=fklCreatePtrStack(32,16);
 //	FklCompEnv* tcEnv=cEnv;
 //	for(;tcEnv;tcEnv=tcEnv->prev)
 //		fklPushPtrStack(tcEnv,stack);
@@ -84,14 +84,14 @@
 //	{
 //		FklCompEnv* curEnv=fklPopPtrStack(stack);
 //		if(!preEnv)
-//			vEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewGlobVMenv(preEnv,gc),gc);//fklInitGlobEnv(vEnv->u.env,gc);
+//			vEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(preEnv,gc),gc);//fklInitGlobEnv(vEnv->u.env,gc);
 //		else
-//			vEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewVMenv(preEnv,gc),gc);
+//			vEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateVMenv(preEnv,gc),gc);
 //		preEnv=vEnv;
 //		if(curEnv->proc->bc->size)
 //		{
 //			FklVMnode* prevVMs=fklGetGlobVMs()->h;
-//			FklVM* tmpVM=fklNewTmpVM(NULL,NULL);
+//			FklVM* tmpVM=fklCreateTmpVM(NULL,NULL);
 //			tmpVM->callback=errorCallBack;
 //			fklCodelntCopyCat(t,curEnv->proc);
 //			fklInitVMRunningResource(tmpVM,vEnv,gc,t,bs,curEnv->proc->bc->size);
@@ -137,16 +137,16 @@
 //int fklPreMacroExpand(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter)
 //{
 //	FklPreEnv* macroEnv=NULL;
-//	FklByteCodelnt* t=fklNewByteCodelnt(fklNewByteCode(0));
+//	FklByteCodelnt* t=fklCreateByteCodelnt(fklCreateByteCode(0));
 //	FklPreMacro* tmp=fklPreMacroMatch(objCptr,&macroEnv,curEnv,&curEnv);
 //	if(tmp!=NULL)
 //	{
 //		char* cwd=getcwd(NULL,0);
 //		chdir(fklGetCwd());
-//		FklVMgc* gc=fklNewVMgc();
+//		FklVMgc* gc=fklCreateVMgc();
 //		FklVMvalue* tmpGlob=genGlobEnv(tmp->macroEnv,t,gc);
 //		FklVMnode* prevVMs=fklGetGlobVMs()->h;
-//		FklVM* tmpVM=fklNewTmpVM(NULL,gc);
+//		FklVM* tmpVM=fklCreateTmpVM(NULL,gc);
 //		tmpVM->callback=errorCallBack;
 //		if(!tmpGlob)
 //		{
@@ -161,7 +161,7 @@
 //			free(tmpVM);
 //			return 2;
 //		}
-//		FklHashTable* lineHash=fklNewLineNumHashTable();
+//		FklHashTable* lineHash=fklCreateLineNumHashTable();
 //		FklVMvalue* macroVMenv=fklCastPreEnvToVMenv(macroEnv,tmpGlob,lineHash,tmpVM->gc);
 //		fklDestroyEnv(macroEnv);
 //		macroEnv=NULL;
@@ -351,7 +351,7 @@
 //		return 0;
 //	format=&forPair->cdr;
 //	origin=&oriPair->cdr;
-//	FklPreEnv* macroEnv=fklNewEnv(NULL);
+//	FklPreEnv* macroEnv=fklCreateEnv(NULL);
 //	while(origin!=NULL)
 //	{
 //		if(format->type==FKL_TYPE_PAIR&&origin->type==FKL_TYPE_PAIR)
@@ -415,7 +415,7 @@
 //FklCompEnv* fklCreateMacroCompEnv(const FklAstCptr* objCptr,FklCompEnv* prev)
 //{
 //	if(objCptr==NULL)return NULL;
-//	FklCompEnv* tmpEnv=fklNewCompEnv(prev);
+//	FklCompEnv* tmpEnv=fklCreateCompEnv(prev);
 //	FklAstPair* tmpPair=(objCptr->type==FKL_TYPE_PAIR)?objCptr->u.pair:NULL;
 //	FklAstPair* objPair=tmpPair;
 //	while(objCptr!=NULL)
@@ -571,7 +571,7 @@
 //			free(args);
 //			return state;
 //		}
-//		FklAstCptr* pattern=fklNewCptr(0,NULL);
+//		FklAstCptr* pattern=fklCreateCptr(0,NULL);
 //		fklReplaceCptr(pattern,args[0]);
 //		head=fklGetFirstCptr(pattern);
 //		if(curEnv->prev
@@ -584,7 +584,7 @@
 //			head->u.atom->value.str=t;
 //		}
 //		FklAstCptr* express=args[1];
-//		FklInterpreter* tmpInter=fklNewTmpIntpr(NULL,NULL);
+//		FklInterpreter* tmpInter=fklCreateTmpIntpr(NULL,NULL);
 //		tmpInter->filename=inter->filename;
 //		tmpInter->curline=inter->curline;
 //		tmpInter->glob=curEnv;
@@ -616,7 +616,7 @@
 //{
 //	FklStringMatchPattern* tmp=NULL;
 //	FklErrorState state={0,NULL};
-//	FklInterpreter* tmpInter=fklNewTmpIntpr(NULL,NULL);
+//	FklInterpreter* tmpInter=fklCreateTmpIntpr(NULL,NULL);
 //	tmpInter->filename=inter->filename;
 //	tmpInter->curline=inter->curline;
 //	tmpInter->glob=inter->glob;
@@ -626,7 +626,7 @@
 //	FklCompEnv* tmpCompEnv=createPatternCompEnv(parts,num,inter->glob);
 //	FklByteCodelnt* tmpByteCodelnt=fklCompile(express,tmpCompEnv,tmpInter,&state);
 //	if(!state.state)
-//		tmp=fklNewStringMatchPattern(num,parts,tmpByteCodelnt);
+//		tmp=fklCreateStringMatchPattern(num,parts,tmpByteCodelnt);
 //	else
 //	{
 //		if(tmpByteCodelnt)
@@ -644,7 +644,7 @@
 //{
 //	FklStringMatchPattern* tmp=fklFindStringPattern(parts[0]);
 //	FklErrorState state={0,NULL};
-//	FklInterpreter* tmpInter=fklNewTmpIntpr(NULL,NULL);
+//	FklInterpreter* tmpInter=fklCreateTmpIntpr(NULL,NULL);
 //	tmpInter->filename=inter->filename;
 //	tmpInter->curline=inter->curline;
 //	tmpInter->glob=inter->glob;
@@ -707,7 +707,7 @@
 //				state->place=t.place;
 //				return NULL;
 //			}
-//			FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
+//			FklByteCodelnt* tmp=fklCreateByteCodelnt(fklCreateByteCode(0));
 //			tmp->ls=0;
 //			tmp->l=NULL;
 //			return tmp;
@@ -719,11 +719,11 @@
 //			if(i==1)
 //			{
 //				FklByteCode* code=fklCompileQuote(nextCptr);
-//				FklByteCodelnt* retval=fklNewByteCodelnt(code);
+//				FklByteCodelnt* retval=fklCreateByteCodelnt(code);
 //				retval->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 //				FKL_ASSERT(retval->l);
 //				retval->ls=1;
-//				retval->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,code->size,objCptr->curline);
+//				retval->l[0]=fklCreateLineNumTabNodeWithFilename(inter->filename,0,code->size,objCptr->curline);
 //				return retval;
 //			}
 //		}
@@ -749,7 +749,7 @@
 //FklCompEnv* createPatternCompEnv(FklString* const* parts,int32_t num,FklCompEnv* prev)
 //{
 //	if(parts==NULL)return NULL;
-//	FklCompEnv* tmpEnv=fklNewCompEnv(prev);
+//	FklCompEnv* tmpEnv=fklCreateCompEnv(prev);
 //	int32_t i=0;
 //	for(;i<num;i++)
 //		if(fklIsVar(parts[i]))
@@ -768,28 +768,28 @@
 //	switch(tmpAtm->type)
 //	{
 //		case FKL_TYPE_SYM:
-//			tmp=fklNewPushSidByteCode(fklAddSymbolToGlob(tmpAtm->value.str)->id);
+//			tmp=fklCreatePushSidByteCode(fklAddSymbolToGlob(tmpAtm->value.str)->id);
 //			break;
 //		case FKL_TYPE_I32:
-//			tmp=fklNewPushI32ByteCode(tmpAtm->value.i32);
+//			tmp=fklCreatePushI32ByteCode(tmpAtm->value.i32);
 //			break;
 //		case FKL_TYPE_I64:
-//			tmp=fklNewPushI64ByteCode(tmpAtm->value.i64);
+//			tmp=fklCreatePushI64ByteCode(tmpAtm->value.i64);
 //			break;
 //		case FKL_TYPE_F64:
-//			tmp=fklNewPushF64ByteCode(tmpAtm->value.f64);
+//			tmp=fklCreatePushF64ByteCode(tmpAtm->value.f64);
 //			break;
 //		case FKL_TYPE_CHR:
-//			tmp=fklNewPushCharByteCode(tmpAtm->value.chr);
+//			tmp=fklCreatePushCharByteCode(tmpAtm->value.chr);
 //			break;
 //		case FKL_TYPE_STR:
-//			tmp=fklNewPushStrByteCode(tmpAtm->value.str);
+//			tmp=fklCreatePushStrByteCode(tmpAtm->value.str);
 //			break;
 //		case FKL_TYPE_BYTEVECTOR:
-//			tmp=fklNewPushBvecByteCode(tmpAtm->value.bvec);
+//			tmp=fklCreatePushBvecByteCode(tmpAtm->value.bvec);
 //			break;
 //		case FKL_TYPE_BIG_INT:
-//			tmp=fklNewPushBigIntByteCode(&tmpAtm->value.bigInt);
+//			tmp=fklCreatePushBigIntByteCode(&tmpAtm->value.bigInt);
 //			break;
 //		default:
 //			break;
@@ -799,7 +799,7 @@
 //
 //FklByteCode* fklCompileNil()
 //{
-//	FklByteCode* tmp=fklNewByteCode(1);
+//	FklByteCode* tmp=fklCreateByteCode(1);
 //	tmp->code[0]=FKL_OP_PUSH_NIL;
 //	return tmp;
 //}
@@ -814,7 +814,7 @@
 //		case FKL_TYPE_ATM:
 //			if(objCptr->u.atom->type==FKL_TYPE_SYM)
 //			{
-//				FklByteCode* tmp=fklNewByteCode(sizeof(char)+sizeof(FklSid_t));
+//				FklByteCode* tmp=fklCreateByteCode(sizeof(char)+sizeof(FklSid_t));
 //				const FklString* sym=objCptr->u.atom->value.str;
 //				FklSymTabNode* node=fklAddSymbolToGlob(sym);
 //				tmp->code[0]=FKL_OP_PUSH_SYM;
@@ -852,10 +852,10 @@
 //FklByteCode* fklCompileVector(FklAstCptr* objCptr)
 //{
 //	FklAstVector* vec=&objCptr->u.atom->value.vec;
-//	FklByteCode* pushVector=fklNewByteCode(sizeof(char)+sizeof(uint64_t));
+//	FklByteCode* pushVector=fklCreateByteCode(sizeof(char)+sizeof(uint64_t));
 //	pushVector->code[0]=FKL_OP_PUSH_VECTOR;
 //	fklSetU64ToByteCode(pushVector->code+sizeof(char),vec->size);
-//	FklByteCode* retval=fklNewByteCode(0);
+//	FklByteCode* retval=fklCreateByteCode(0);
 //	for(size_t i=0;i<vec->size;i++)
 //	{
 //		FklByteCode* tmp=innerCompileConst(&vec->base[i]);
@@ -869,9 +869,9 @@
 //
 //FklByteCode* fklCompileHashtable(FklAstCptr* objCptr)
 //{
-//	FklByteCode* pushHash=fklNewByteCode(sizeof(char)+sizeof(uint64_t));
+//	FklByteCode* pushHash=fklCreateByteCode(sizeof(char)+sizeof(uint64_t));
 //	FklAstHashTable* hash=&objCptr->u.atom->value.hash;
-//	FklByteCode* retval=fklNewByteCode(0);
+//	FklByteCode* retval=fklCreateByteCode(0);
 //	pushHash->code[0]=FKL_OP_PUSH_HASHTABLE_EQ+hash->type;
 //	for(FklAstCptr* first=fklGetFirstCptr(&hash->items);first;first=fklNextCptr(first))
 //	{
@@ -891,7 +891,7 @@
 //FklByteCode* fklCompileBox(FklAstCptr* objCptr)
 //{
 //	FklAstCptr* box=&objCptr->u.atom->value.box;
-//	FklByteCode* pushBox=fklNewByteCode(sizeof(char));
+//	FklByteCode* pushBox=fklCreateByteCode(sizeof(char));
 //	pushBox->code[0]=FKL_OP_PUSH_BOX;
 //	FklByteCode* tmp=innerCompileConst(box);
 //	fklReCodeCat(tmp,pushBox);
@@ -901,10 +901,10 @@
 //
 //FklByteCode* fklCompilePair(FklAstCptr* objCptr)
 //{
-//	FklByteCode* tmp=fklNewByteCode(0);
+//	FklByteCode* tmp=fklCreateByteCode(0);
 //	FklAstPair* objPair=objCptr->u.pair;
 //	FklAstPair* tmpPair=objPair;
-//	FklByteCode* pushPair=fklNewByteCode(1);
+//	FklByteCode* pushPair=fklCreateByteCode(1);
 //	pushPair->code[0]=FKL_OP_PUSH_PAIR;
 //	while(objCptr!=NULL)
 //	{
@@ -948,11 +948,11 @@
 //FklByteCodelnt* fklCompileUnquoteVector(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state)
 //{
 //	FklAstVector* vec=&objCptr->u.atom->value.vec;
-//	FklByteCodelnt* retval=fklNewByteCodelnt(fklNewByteCode(0));
+//	FklByteCodelnt* retval=fklCreateByteCodelnt(fklCreateByteCode(0));
 //	retval->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 //	FKL_ASSERT(retval->l);
 //	retval->ls=1;
-//	retval->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,retval->bc->size,objCptr->curline);
+//	retval->l[0]=fklCreateLineNumTabNodeWithFilename(inter->filename,0,retval->bc->size,objCptr->curline);
 //	for(size_t i=0;i<vec->size;i++)
 //	{
 //		if(fklIsUnqtespExpression(&vec->base[i]))
@@ -983,7 +983,7 @@
 //			fklFreeByteCode(tmp);
 //		}
 //	}
-//	FklByteCode* pushVector=fklNewByteCode(sizeof(char)+sizeof(uint64_t));
+//	FklByteCode* pushVector=fklCreateByteCode(sizeof(char)+sizeof(uint64_t));
 //	pushVector->code[0]=FKL_OP_PUSH_VECTOR;
 //	fklSetU64ToByteCode(pushVector->code+sizeof(char),vec->size);
 //	fklCodeCat(retval->bc,pushVector);
@@ -1006,11 +1006,11 @@
 //		else
 //		{
 //			FklAstCptr* box=&objCptr->u.atom->value.box;
-//			FklByteCodelnt* retval=fklNewByteCodelnt(fklNewByteCode(0));
+//			FklByteCodelnt* retval=fklCreateByteCodelnt(fklCreateByteCode(0));
 //			retval->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 //			FKL_ASSERT(retval->l);
 //			retval->ls=1;
-//			retval->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,retval->bc->size,objCptr->curline);
+//			retval->l[0]=fklCreateLineNumTabNodeWithFilename(inter->filename,0,retval->bc->size,objCptr->curline);
 //			if(fklIsUnquoteExpression(box))
 //			{
 //				FklByteCodelnt* tmp=fklCompileUnquote(box,curEnv,inter,state);
@@ -1031,7 +1031,7 @@
 //				retval->l[retval->ls-1]->cpc+=tmp->size;
 //				fklFreeByteCode(tmp);
 //			}
-//			FklByteCode* pushBox=fklNewByteCode(sizeof(char));
+//			FklByteCode* pushBox=fklCreateByteCode(sizeof(char));
 //			pushBox->code[0]=FKL_OP_PUSH_BOX;
 //			fklCodeCat(retval->bc,pushBox);
 //			retval->l[retval->ls-1]->cpc+=pushBox->size;
@@ -1041,11 +1041,11 @@
 //	}
 //	else if(fklIsUnquoteExpression(objCptr))
 //		return fklCompileUnquote(objCptr,curEnv,inter,state);
-//	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
+//	FklByteCodelnt* tmp=fklCreateByteCodelnt(fklCreateByteCode(0));
 //	FklAstPair* objPair=objCptr->u.pair;
 //	FklAstPair* tmpPair=objPair;
-//	FklByteCode* appd=fklNewByteCode(1);
-//	FklByteCode* pushPair=fklNewByteCode(1);
+//	FklByteCode* appd=fklCreateByteCode(1);
+//	FklByteCode* pushPair=fklCreateByteCode(1);
 //	pushPair->code[0]=FKL_OP_PUSH_PAIR;
 //	appd->code[0]=FKL_OP_LIST_APPEND;
 //	while(objCptr!=NULL)
@@ -1104,7 +1104,7 @@
 //				tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 //				FKL_ASSERT(tmp->l);
 //				tmp->ls=1;
-//				tmp->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,cons->size,objCptr->curline);
+//				tmp->l[0]=fklCreateLineNumTabNodeWithFilename(inter->filename,0,cons->size,objCptr->curline);
 //			}
 //			else
 //			{
@@ -1169,7 +1169,7 @@
 //		case FKL_TYPE_ATM:
 //			if(objCptr->u.atom->type==FKL_TYPE_SYM)
 //			{
-//				FklByteCode* tmp=fklNewByteCode(sizeof(char)+sizeof(FklSid_t));
+//				FklByteCode* tmp=fklCreateByteCode(sizeof(char)+sizeof(FklSid_t));
 //				FklString* sym=objCptr->u.atom->value.str;
 //				FklSymTabNode* node=fklAddSymbolToGlob(sym);
 //				tmp->code[0]=FKL_OP_PUSH_SYM;
@@ -1214,8 +1214,8 @@
 //		state->place=objCptr;
 //		return NULL;
 //	}
-//	FklByteCodelnt* t=fklNewByteCodelnt(tmp);
-//	FklLineNumTabNode* n=fklNewLineNumTabNodeWithFilename(inter->filename,0,tmp->size,line);
+//	FklByteCodelnt* t=fklCreateByteCodelnt(tmp);
+//	FklLineNumTabNode* n=fklCreateLineNumTabNodeWithFilename(inter->filename,0,tmp->size,line);
 //	t->ls=1;
 //	t->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
 //	FKL_ASSERT(t->l);
@@ -1229,9 +1229,9 @@
 //	FklAstPair* tmpPair=objCptr->u.pair;
 //	uint64_t line=objCptr->curline;
 //	FklByteCodelnt* tmp1=NULL;
-//	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
-//	FklByteCode* setBp=fklNewByteCode(1);
-//	FklByteCode* call=fklNewByteCode(1);
+//	FklByteCodelnt* tmp=fklCreateByteCodelnt(fklCreateByteCode(0));
+//	FklByteCode* setBp=fklCreateByteCode(1);
+//	FklByteCode* call=fklCreateByteCode(1);
 //	setBp->code[0]=FKL_OP_SET_BP;
 //	call->code[0]=FKL_OP_CALL;
 //	for(;;)
@@ -1244,7 +1244,7 @@
 //				tmp->ls=1;
 //				tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 //				FKL_ASSERT(tmp->l);
-//				tmp->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,call->size,line);
+//				tmp->l[0]=fklCreateLineNumTabNodeWithFilename(inter->filename,0,call->size,line);
 //			}
 //			else
 //				tmp->l[tmp->ls-1]->cpc+=call->size;
@@ -1261,7 +1261,7 @@
 //				tmp->ls=1;
 //				tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 //				FKL_ASSERT(tmp->l);
-//				tmp->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,setBp->size,line);
+//				tmp->l[0]=fklCreateLineNumTabNodeWithFilename(inter->filename,0,setBp->size,line);
 //			}
 //			else
 //				tmp->l[tmp->ls-1]->cpc+=setBp->size;
@@ -1294,8 +1294,8 @@
 //	FklAstCptr* sec=NULL;
 //	FklAstCptr* objCptr=NULL;
 //	FklByteCodelnt* tmp1=NULL;
-//	FklByteCode* pushTop=fklNewByteCode(sizeof(char));
-//	FklByteCode* popVar=fklNewByteCode(sizeof(char)+sizeof(int32_t)+sizeof(FklSid_t));
+//	FklByteCode* pushTop=fklCreateByteCode(sizeof(char));
+//	FklByteCode* popVar=fklCreateByteCode(sizeof(char)+sizeof(int32_t)+sizeof(FklSid_t));
 //	popVar->code[0]=FKL_OP_POP_VAR;
 //	pushTop->code[0]=FKL_OP_PUSH_TOP;
 //	while(fklIsDefExpression(tir))
@@ -1342,7 +1342,7 @@
 //		{
 //			if(curEnv->prev&&fklIsSymbolShouldBeExport(tmpAtm->value.str,curEnv->prev->exp,curEnv->prev->n))
 //			{
-//				FklByteCode* popVar=fklNewByteCode(sizeof(char)+sizeof(int32_t)+sizeof(FklSid_t));
+//				FklByteCode* popVar=fklCreateByteCode(sizeof(char)+sizeof(int32_t)+sizeof(FklSid_t));
 //				popVar->code[0]=FKL_OP_POP_VAR;
 //				fklSetU32ToByteCode(popVar->code+sizeof(char),1);
 //				fklSetSidToByteCode(popVar->code+sizeof(char)+sizeof(int32_t),tmpDef->id);
@@ -1389,8 +1389,8 @@
 //	FklAstCptr* sec=fklNextCptr(fir);
 //	FklAstCptr* tir=fklNextCptr(sec);
 //	FklByteCodelnt* tmp1=NULL;
-//	FklByteCode* pushTop=fklNewByteCode(sizeof(char));
-//	FklByteCode* popVar=fklNewByteCode(sizeof(char)+sizeof(int32_t)+sizeof(FklSid_t));
+//	FklByteCode* pushTop=fklCreateByteCode(sizeof(char));
+//	FklByteCode* popVar=fklCreateByteCode(sizeof(char)+sizeof(int32_t)+sizeof(FklSid_t));
 //	popVar->code[0]=FKL_OP_POP_VAR;
 //	pushTop->code[0]=FKL_OP_PUSH_TOP;
 //	while(fklIsSetqExpression(tir))
@@ -1452,7 +1452,7 @@
 //						,tmpEnv->prev->exp
 //						,tmpEnv->prev->n))
 //			{
-//				FklByteCode* popVar=fklNewByteCode(sizeof(char)+sizeof(scope)+sizeof(FklSid_t));
+//				FklByteCode* popVar=fklCreateByteCode(sizeof(char)+sizeof(scope)+sizeof(FklSid_t));
 //				popVar->code[0]=FKL_OP_POP_VAR;
 //				fklSetU32ToByteCode(popVar->code+sizeof(char),scope+1);
 //				FklString* symbolWithPrefix=fklStringAppend(tmpEnv->prev->prefix,tmpAtm->value.str);
@@ -1512,7 +1512,7 @@
 ////			fklFreeByteCodeAndLnt(tmp1);
 ////			return NULL;
 ////		}
-////		FklByteCode* popRef=fklNewByteCode(sizeof(char));
+////		FklByteCode* popRef=fklCreateByteCode(sizeof(char));
 ////		popRef->code[0]=FKL_OP_POP_REF;
 ////		fklCodeLntCat(tmp1,tmp2);
 ////		fklCodeCat(tmp1->bc,popRef);
@@ -1532,7 +1532,7 @@
 //		state->place=objCptr;
 //		return NULL;
 //	}
-//	FklByteCode* pushVar=fklNewByteCode(sizeof(char)+sizeof(FklSid_t));
+//	FklByteCode* pushVar=fklCreateByteCode(sizeof(char)+sizeof(FklSid_t));
 //	pushVar->code[0]=FKL_OP_PUSH_VAR;
 //	FklAstAtom* tmpAtm=objCptr->u.atom;
 //	FklCompEnvHashItem* tmpDef=NULL;
@@ -1557,26 +1557,26 @@
 //	else
 //		id=tmpDef->id;
 //	fklSetSidToByteCode(pushVar->code+sizeof(char),id);
-//	FklByteCodelnt* bcl=fklNewByteCodelnt(pushVar);
+//	FklByteCodelnt* bcl=fklCreateByteCodelnt(pushVar);
 //	bcl->ls=1;
 //	bcl->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 //	FKL_ASSERT(bcl->l);
-//	bcl->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,pushVar->size,line);
+//	bcl->l[0]=fklCreateLineNumTabNodeWithFilename(inter->filename,0,pushVar->size,line);
 //	return bcl;
 //}
 //
 //FklByteCodelnt* fklCompileAnd(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state)
 //{
 //	int32_t curline=objCptr->curline;
-//	FklByteCode* jumpiffalse=fklNewByteCode(sizeof(char)+sizeof(int64_t));
-//	FklByteCode* push1=fklNewByteCode(sizeof(char)+sizeof(int32_t));
-//	FklByteCode* resTp=fklNewByteCode(sizeof(char));
-//	FklByteCode* setTp=fklNewByteCode(sizeof(char));
-//	FklByteCode* popTp=fklNewByteCode(sizeof(char));
-//	FklByteCode* pushREnv=fklNewByteCode(sizeof(char));
-//	FklByteCode* popREnv=fklNewByteCode(sizeof(char));
-//	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
-//	FklPtrStack* stack=fklNewPtrStack(32,16);
+//	FklByteCode* jumpiffalse=fklCreateByteCode(sizeof(char)+sizeof(int64_t));
+//	FklByteCode* push1=fklCreateByteCode(sizeof(char)+sizeof(int32_t));
+//	FklByteCode* resTp=fklCreateByteCode(sizeof(char));
+//	FklByteCode* setTp=fklCreateByteCode(sizeof(char));
+//	FklByteCode* popTp=fklCreateByteCode(sizeof(char));
+//	FklByteCode* pushREnv=fklCreateByteCode(sizeof(char));
+//	FklByteCode* popREnv=fklCreateByteCode(sizeof(char));
+//	FklByteCodelnt* tmp=fklCreateByteCodelnt(fklCreateByteCode(0));
+//	FklPtrStack* stack=fklCreatePtrStack(32,16);
 //	jumpiffalse->code[0]=FKL_OP_JMP_IF_FALSE;
 //	push1->code[0]=FKL_OP_PUSH_I32;
 //	fklSetI32ToByteCode(push1->code+sizeof(char),1);
@@ -1586,7 +1586,7 @@
 //	pushREnv->code[0]=FKL_OP_PUSH_R_ENV;
 //	popREnv->code[0]=FKL_OP_POP_R_ENV;
 //	objCptr=fklNextCptr(fklGetFirstCptr(objCptr));
-//	FklCompEnv* andExprEnv=fklNewCompEnv(curEnv);
+//	FklCompEnv* andExprEnv=fklCreateCompEnv(curEnv);
 //	for(;objCptr!=NULL;objCptr=fklNextCptr(objCptr))
 //	{
 //		FklByteCodelnt* tmp1=fklCompile(objCptr,andExprEnv,inter,state);
@@ -1628,7 +1628,7 @@
 //			tmp->ls=1;
 //			tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
 //			FKL_ASSERT(tmp->l);
-//			tmp->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,tmp->bc->size,curline);
+//			tmp->l[0]=fklCreateLineNumTabNodeWithFilename(inter->filename,0,tmp->bc->size,curline);
 //		}
 //		else
 //		{
@@ -1643,7 +1643,7 @@
 //		tmp->ls=1;
 //		tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
 //		FKL_ASSERT(tmp->l);
-//		tmp->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,tmp->bc->size,curline);
+//		tmp->l[0]=fklCreateLineNumTabNodeWithFilename(inter->filename,0,tmp->bc->size,curline);
 //	}
 //	else
 //	{
@@ -1669,15 +1669,15 @@
 //FklByteCodelnt* fklCompileOr(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state)
 //{
 //	int32_t curline=objCptr->curline;
-//	FklByteCode* setTp=fklNewByteCode(sizeof(char));
-//	FklByteCode* popTp=fklNewByteCode(sizeof(char));
-//	FklByteCode* resTp=fklNewByteCode(sizeof(char));
-//	FklByteCode* jumpifture=fklNewByteCode(sizeof(char)+sizeof(int64_t));
-//	FklByteCode* pushnil=fklNewByteCode(sizeof(char));
-//	FklByteCode* pushREnv=fklNewByteCode(sizeof(char));
-//	FklByteCode* popREnv=fklNewByteCode(sizeof(char));
-//	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
-//	FklPtrStack* stack=fklNewPtrStack(32,16);
+//	FklByteCode* setTp=fklCreateByteCode(sizeof(char));
+//	FklByteCode* popTp=fklCreateByteCode(sizeof(char));
+//	FklByteCode* resTp=fklCreateByteCode(sizeof(char));
+//	FklByteCode* jumpifture=fklCreateByteCode(sizeof(char)+sizeof(int64_t));
+//	FklByteCode* pushnil=fklCreateByteCode(sizeof(char));
+//	FklByteCode* pushREnv=fklCreateByteCode(sizeof(char));
+//	FklByteCode* popREnv=fklCreateByteCode(sizeof(char));
+//	FklByteCodelnt* tmp=fklCreateByteCodelnt(fklCreateByteCode(0));
+//	FklPtrStack* stack=fklCreatePtrStack(32,16);
 //	pushnil->code[0]=FKL_OP_PUSH_NIL;
 //	jumpifture->code[0]=FKL_OP_JMP_IF_TRUE;
 //	setTp->code[0]=FKL_OP_SET_TP;
@@ -1686,7 +1686,7 @@
 //	pushREnv->code[0]=FKL_OP_PUSH_R_ENV;
 //	popREnv->code[0]=FKL_OP_POP_R_ENV;
 //	objCptr=fklNextCptr(fklGetFirstCptr(objCptr));
-//	FklCompEnv* orExprEnv=fklNewCompEnv(curEnv);
+//	FklCompEnv* orExprEnv=fklCreateCompEnv(curEnv);
 //	for(;objCptr!=NULL;objCptr=fklNextCptr(objCptr))
 //	{
 //		FklByteCodelnt* tmp1=fklCompile(objCptr,orExprEnv,inter,state);
@@ -1728,7 +1728,7 @@
 //			tmp->ls=1;
 //			tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
 //			FKL_ASSERT(tmp->l);
-//			tmp->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,tmp->bc->size,curline);
+//			tmp->l[0]=fklCreateLineNumTabNodeWithFilename(inter->filename,0,tmp->bc->size,curline);
 //		}
 //		else
 //		{
@@ -1743,7 +1743,7 @@
 //		tmp->ls=1;
 //		tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
 //		FKL_ASSERT(tmp->l);
-//		tmp->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,tmp->bc->size,curline);
+//		tmp->l[0]=fklCreateLineNumTabNodeWithFilename(inter->filename,0,tmp->bc->size,curline);
 //	}
 //	else
 //	{
@@ -1769,14 +1769,14 @@
 //FklByteCodelnt* fklCompileBegin(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state)
 //{
 //	FklAstCptr* firCptr=fklNextCptr(fklGetFirstCptr(objCptr));
-//	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
+//	FklByteCodelnt* tmp=fklCreateByteCodelnt(fklCreateByteCode(0));
 //	if(!firCptr)
 //	{
 //		tmp->ls=1;
 //		tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 //		FKL_ASSERT(tmp->l);
-//		tmp->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,tmp->bc->size,objCptr->curline);
-//		FklByteCode* pushnil=fklNewByteCode(1);
+//		tmp->l[0]=fklCreateLineNumTabNodeWithFilename(inter->filename,0,tmp->bc->size,objCptr->curline);
+//		FklByteCode* pushnil=fklCreateByteCode(1);
 //		pushnil->code[0]=FKL_OP_PUSH_NIL;
 //		fklCodeCat(tmp->bc,pushnil);
 //		tmp->l[tmp->ls-1]->cpc+=pushnil->size;
@@ -1784,9 +1784,9 @@
 //	}
 //	else
 //	{
-//		FklByteCode* resTp=fklNewByteCode(1);
-//		FklByteCode* setTp=fklNewByteCode(1);
-//		FklByteCode* popTp=fklNewByteCode(1);
+//		FklByteCode* resTp=fklCreateByteCode(1);
+//		FklByteCode* setTp=fklCreateByteCode(1);
+//		FklByteCode* popTp=fklCreateByteCode(1);
 //		resTp->code[0]=FKL_OP_RES_TP;
 //		setTp->code[0]=FKL_OP_SET_TP;
 //		popTp->code[0]=FKL_OP_POP_TP;
@@ -1817,7 +1817,7 @@
 //			tmp->ls=1;
 //			tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 //			FKL_ASSERT(tmp->l);
-//			tmp->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,tmp->bc->size,objCptr->curline);
+//			tmp->l[0]=fklCreateLineNumTabNodeWithFilename(inter->filename,0,tmp->bc->size,objCptr->curline);
 //		}
 //		else
 //		{
@@ -1836,10 +1836,10 @@
 //FklByteCodelnt* fklCompileLibrary(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state)
 //{
 //	FklAstCptr* firCptr=fklNextCptr(fklNextCptr(fklNextCptr(fklGetFirstCptr(objCptr))));
-//	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
-//	FklByteCode* resTp=fklNewByteCode(1);
-//	FklByteCode* setTp=fklNewByteCode(1);
-//	FklByteCode* popTp=fklNewByteCode(1);
+//	FklByteCodelnt* tmp=fklCreateByteCodelnt(fklCreateByteCode(0));
+//	FklByteCode* resTp=fklCreateByteCode(1);
+//	FklByteCode* setTp=fklCreateByteCode(1);
+//	FklByteCode* popTp=fklCreateByteCode(1);
 //	resTp->code[0]=FKL_OP_RES_TP;
 //	setTp->code[0]=FKL_OP_SET_TP;
 //	popTp->code[0]=FKL_OP_POP_TP;
@@ -1883,7 +1883,7 @@
 //		tmp->ls=1;
 //		tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 //		FKL_ASSERT(tmp->l);
-//		tmp->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,tmp->bc->size,objCptr->curline);
+//		tmp->l[0]=fklCreateLineNumTabNodeWithFilename(inter->filename,0,tmp->bc->size,objCptr->curline);
 //	}
 //	else
 //	{
@@ -1903,10 +1903,10 @@
 //	uint32_t line=objCptr->curline;
 //	FklAstCptr* tmpCptr=objCptr;
 //	FklAstPair* objPair=NULL;
-//	FklCompEnv* tmpEnv=fklNewCompEnv(curEnv);
-//	FklByteCode* popArg=fklNewByteCode(sizeof(char)+sizeof(FklSid_t));
-//	FklByteCode* popRestArg=fklNewByteCode(sizeof(char)+sizeof(FklSid_t));
-//	FklByteCode* pArg=fklNewByteCode(0);
+//	FklCompEnv* tmpEnv=fklCreateCompEnv(curEnv);
+//	FklByteCode* popArg=fklCreateByteCode(sizeof(char)+sizeof(FklSid_t));
+//	FklByteCode* popRestArg=fklCreateByteCode(sizeof(char)+sizeof(FklSid_t));
+//	FklByteCode* pArg=fklCreateByteCode(0);
 //	popArg->code[0]=FKL_OP_POP_ARG;
 //	popRestArg->code[0]=FKL_OP_POP_REST_ARG;
 //	objPair=objCptr->u.pair;
@@ -1978,14 +1978,14 @@
 //	fklFreeByteCode(popRestArg);
 //	fklFreeByteCode(popArg);
 //	FklAstCptr* begin=fklNextCptr(fklNextCptr(objCptr));
-//	FklByteCodelnt* codeOfLambda=fklNewByteCodelnt(pArg);
+//	FklByteCodelnt* codeOfLambda=fklCreateByteCodelnt(pArg);
 //	codeOfLambda->ls=1;
 //	codeOfLambda->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 //	FKL_ASSERT(codeOfLambda->l);
 //	if(!begin)
 //	{
-//		codeOfLambda->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,pArg->size,line);
-//		FklByteCode* pushnil=fklNewByteCode(1);
+//		codeOfLambda->l[0]=fklCreateLineNumTabNodeWithFilename(inter->filename,0,pArg->size,line);
+//		FklByteCode* pushnil=fklCreateByteCode(1);
 //		pushnil->code[0]=FKL_OP_PUSH_NIL;
 //		fklCodeCat(codeOfLambda->bc,pushnil);
 //		codeOfLambda->l[codeOfLambda->ls-1]->cpc+=pushnil->size;
@@ -1993,17 +1993,17 @@
 //	}
 //	else
 //	{
-//		FklByteCode* fklResBp=fklNewByteCode(sizeof(char));
+//		FklByteCode* fklResBp=fklCreateByteCode(sizeof(char));
 //		fklResBp->code[0]=FKL_OP_RES_BP;
-//		FklByteCode* setTp=fklNewByteCode(sizeof(char));
+//		FklByteCode* setTp=fklCreateByteCode(sizeof(char));
 //		setTp->code[0]=FKL_OP_SET_TP;
 //		fklCodeCat(pArg,fklResBp);
 //		fklCodeCat(pArg,setTp);
-//		codeOfLambda->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,pArg->size,line);
+//		codeOfLambda->l[0]=fklCreateLineNumTabNodeWithFilename(inter->filename,0,pArg->size,line);
 //		fklFreeByteCode(fklResBp);
 //		fklFreeByteCode(setTp);
 //		objCptr=begin;
-//		FklByteCode* resTp=fklNewByteCode(sizeof(char));
+//		FklByteCode* resTp=fklCreateByteCode(sizeof(char));
 //		resTp->code[0]=FKL_OP_RES_TP;
 //		for(;objCptr;objCptr=fklNextCptr(objCptr))
 //		{
@@ -2024,20 +2024,20 @@
 //			fklFreeByteCodelnt(tmp1);
 //		}
 //		fklFreeByteCode(resTp);
-//		FklByteCode* popTp=fklNewByteCode(sizeof(char));
+//		FklByteCode* popTp=fklCreateByteCode(sizeof(char));
 //		popTp->code[0]=FKL_OP_POP_TP;
 //		fklCodeCat(codeOfLambda->bc,popTp);
 //		codeOfLambda->l[codeOfLambda->ls-1]->cpc+=popTp->size;
 //		fklFreeByteCode(popTp);
 //	}
-//	FklByteCode* pushProc=fklNewByteCode(sizeof(char)+sizeof(codeOfLambda->bc->size));
+//	FklByteCode* pushProc=fklCreateByteCode(sizeof(char)+sizeof(codeOfLambda->bc->size));
 //	pushProc->code[0]=FKL_OP_PUSH_PROC;
 //	fklSetU64ToByteCode(pushProc->code+sizeof(char),codeOfLambda->bc->size);
-//	FklByteCodelnt* toReturn=fklNewByteCodelnt(pushProc);
+//	FklByteCodelnt* toReturn=fklCreateByteCodelnt(pushProc);
 //	toReturn->ls=1;
 //	toReturn->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 //	FKL_ASSERT(toReturn->l);
-//	toReturn->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,pushProc->size,line);
+//	toReturn->l[0]=fklCreateLineNumTabNodeWithFilename(inter->filename,0,pushProc->size,line);
 //	fklFreeAllMacroThenDestroyCompEnv(tmpEnv);
 //	fklScanAndSetTailCall(codeOfLambda->bc);
 //	fklCodeLntCat(toReturn,codeOfLambda);
@@ -2048,17 +2048,17 @@
 //FklByteCodelnt* fklCompileCond(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state)
 //{
 //	FklAstCptr* cond=NULL;
-//	FklByteCode* pushnil=fklNewByteCode(sizeof(char));
-//	FklByteCode* jumpiffalse=fklNewByteCode(sizeof(char)+sizeof(int64_t));
-//	FklByteCode* jump=fklNewByteCode(sizeof(char)+sizeof(int64_t));
-//	FklByteCode* resTp=fklNewByteCode(sizeof(char));
-//	FklByteCode* setTp=fklNewByteCode(sizeof(char));
-//	FklByteCode* popTp=fklNewByteCode(sizeof(char));
-//	FklByteCode* pushREnv=fklNewByteCode(sizeof(char));
-//	FklByteCode* popREnv=fklNewByteCode(sizeof(char));
-//	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
-//	FklPtrStack* stack1=fklNewPtrStack(32,16);
-//	FklMemMenager* memMenager=fklNewMemMenager(32);
+//	FklByteCode* pushnil=fklCreateByteCode(sizeof(char));
+//	FklByteCode* jumpiffalse=fklCreateByteCode(sizeof(char)+sizeof(int64_t));
+//	FklByteCode* jump=fklCreateByteCode(sizeof(char)+sizeof(int64_t));
+//	FklByteCode* resTp=fklCreateByteCode(sizeof(char));
+//	FklByteCode* setTp=fklCreateByteCode(sizeof(char));
+//	FklByteCode* popTp=fklCreateByteCode(sizeof(char));
+//	FklByteCode* pushREnv=fklCreateByteCode(sizeof(char));
+//	FklByteCode* popREnv=fklCreateByteCode(sizeof(char));
+//	FklByteCodelnt* tmp=fklCreateByteCodelnt(fklCreateByteCode(0));
+//	FklPtrStack* stack1=fklCreatePtrStack(32,16);
+//	FklMemMenager* memMenager=fklCreateMemMenager(32);
 //	fklPushMem(pushnil,(FklGenDestructor)fklFreeByteCode,memMenager);
 //	fklPushMem(jumpiffalse,(FklGenDestructor)fklFreeByteCode,memMenager);
 //	fklPushMem(jump,(FklGenDestructor)fklFreeByteCode,memMenager);
@@ -2078,10 +2078,10 @@
 //	jump->code[0]=FKL_OP_JMP;
 //	for(cond=fklNextCptr(fklGetFirstCptr(objCptr));cond!=NULL;cond=fklNextCptr(cond))
 //	{
-//		FklCompEnv* conditionEnv=fklNewCompEnv(curEnv);
+//		FklCompEnv* conditionEnv=fklCreateCompEnv(curEnv);
 //		objCptr=fklGetFirstCptr(cond);
 //		FklByteCodelnt* conditionCode=fklCompile(objCptr,conditionEnv,inter,state);
-//		FklPtrStack* stack2=fklNewPtrStack(32,16);
+//		FklPtrStack* stack2=fklCreatePtrStack(32,16);
 //		fklReCodeCat(pushREnv,conditionCode->bc);
 //		conditionCode->l[conditionCode->ls-1]->cpc+=pushREnv->size;
 //		for(objCptr=fklNextCptr(objCptr);objCptr!=NULL;objCptr=fklNextCptr(objCptr))
@@ -2101,7 +2101,7 @@
 //			}
 //			fklPushPtrStack(tmp1,stack2);
 //		}
-//		FklByteCodelnt* tmpCond=fklNewByteCodelnt(fklNewByteCode(0));
+//		FklByteCodelnt* tmpCond=fklCreateByteCodelnt(fklCreateByteCode(0));
 //		while(!fklIsPtrStackEmpty(stack2))
 //		{
 //			FklByteCodelnt* tmp1=fklPopPtrStack(stack2);
@@ -2149,7 +2149,7 @@
 //		tmp->ls=1;
 //		tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*));
 //		FKL_ASSERT(tmp->l);
-//		tmp->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,pushnil->size,objCptr->curline);
+//		tmp->l[0]=fklCreateLineNumTabNodeWithFilename(inter->filename,0,pushnil->size,objCptr->curline);
 //	}
 //	else
 //	{
@@ -2192,7 +2192,7 @@
 //		return NULL;
 //	}
 //	fklAddSymbolToGlobCstr(rpath);
-//	FklInterpreter* tmpIntpr=fklNewIntpr(rpath,file,curEnv,inter->lnt);
+//	FklInterpreter* tmpIntpr=fklCreateIntpr(rpath,file,curEnv,inter->lnt);
 //	tmpIntpr->prev=inter;
 //	tmpIntpr->glob=curEnv;
 //	FklByteCodelnt* tmp=fklCompileFile(tmpIntpr,NULL);
@@ -2204,7 +2204,7 @@
 //	{
 //		if(!tmp->bc->size)
 //		{
-//			FklByteCode* pushnil=fklNewByteCode(1);
+//			FklByteCode* pushnil=fklCreateByteCode(1);
 //			pushnil->code[0]=FKL_OP_PUSH_NIL;
 //			fklCodeCat(tmp->bc,pushnil);
 //			tmp->l[tmp->ls-1]->cpc+=pushnil->size;
@@ -2212,8 +2212,8 @@
 //		}
 //		else
 //		{
-//			FklByteCode* setTp=fklNewByteCode(1);
-//			FklByteCode* popTp=fklNewByteCode(1);
+//			FklByteCode* setTp=fklCreateByteCode(1);
+//			FklByteCode* popTp=fklCreateByteCode(1);
 //			setTp->code[0]=FKL_OP_SET_TP;
 //			popTp->code[0]=FKL_OP_POP_TP;
 //			fklReCodeCat(setTp,tmp->bc);
@@ -2232,16 +2232,16 @@
 //FklByteCodelnt* fklCompileFile(FklInterpreter* inter,int* exitstate)
 //{
 //	chdir(inter->curDir);
-//	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
+//	FklByteCodelnt* tmp=fklCreateByteCodelnt(fklCreateByteCode(0));
 //	tmp->ls=1;
 //	tmp->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 //	FKL_ASSERT(tmp->l);
-//	tmp->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,0,1);
-//	FklByteCode* resTp=fklNewByteCode(1);
+//	tmp->l[0]=fklCreateLineNumTabNodeWithFilename(inter->filename,0,0,1);
+//	FklByteCode* resTp=fklCreateByteCode(1);
 //	resTp->code[0]=FKL_OP_RES_TP;
 //	char* prev=NULL;
 //	size_t prevSize=0;
-//	FklPtrStack* tokenStack=fklNewPtrStack(32,16);
+//	FklPtrStack* tokenStack=fklCreatePtrStack(32,16);
 //	for(;;)
 //	{
 //		FklAstCptr* begin=NULL;
@@ -2341,9 +2341,9 @@
 //
 //FklByteCodelnt* fklCompileImport(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state)
 //{
-//	FklMemMenager* memMenager=fklNewMemMenager(32);
+//	FklMemMenager* memMenager=fklCreateMemMenager(32);
 //	char postfix[]=".fkl";
-//	FklByteCodelnt* tmp=fklNewByteCodelnt(fklNewByteCode(0));
+//	FklByteCodelnt* tmp=fklCreateByteCodelnt(fklCreateByteCode(0));
 //	fklPushMem(tmp,(FklGenDestructor)fklFreeByteCodeAndLnt,memMenager);
 //	chdir(inter->curDir);
 //	char* prev=NULL;
@@ -2436,7 +2436,7 @@
 //		for(;i<count;i++)
 //			totalPathLength+=partsOfPath[i]->size;
 //		totalPathLength+=count-1;
-//		FklString* path=fklNewString(totalPathLength,NULL);
+//		FklString* path=fklCreateString(totalPathLength,NULL);
 //		FKL_ASSERT(path);
 //		size_t l=0;
 //		for(i=0;i<count;i++)
@@ -2475,22 +2475,22 @@
 //			return NULL;
 //		}
 //		fklAddSymbolToGlobCstr(rpath);
-//		FklInterpreter* tmpInter=fklNewIntpr(rpath,fp,fklNewGlobCompEnv(NULL),inter->lnt);
+//		FklInterpreter* tmpInter=fklCreateIntpr(rpath,fp,fklCreateGlobCompEnv(NULL),inter->lnt);
 //		fklInitGlobKeyWord(tmpInter->glob);
 //		free(rpath);
 //		tmpInter->prev=inter;
-//		FklByteCode* resTp=fklNewByteCode(1);
-//		FklByteCode* setTp=fklNewByteCode(1);
-//		FklByteCode* popTp=fklNewByteCode(1);
+//		FklByteCode* resTp=fklCreateByteCode(1);
+//		FklByteCode* setTp=fklCreateByteCode(1);
+//		FklByteCode* popTp=fklCreateByteCode(1);
 //		resTp->code[0]=FKL_OP_RES_TP;
 //		setTp->code[0]=FKL_OP_SET_TP;
 //		popTp->code[0]=FKL_OP_POP_TP;
 //		fklPushMem(resTp,(FklGenDestructor)fklFreeByteCode,memMenager);
 //		fklPushMem(setTp,(FklGenDestructor)fklFreeByteCode,memMenager);
 //		fklPushMem(popTp,(FklGenDestructor)fklFreeByteCode,memMenager);
-//		FklByteCodelnt* libByteCodelnt=fklNewByteCodelnt(fklNewByteCode(0));
+//		FklByteCodelnt* libByteCodelnt=fklCreateByteCodelnt(fklCreateByteCode(0));
 //		fklPushMem(libByteCodelnt,(FklGenDestructor)fklFreeByteCodeAndLnt,memMenager);
-//		FklPtrStack* tokenStack=fklNewPtrStack(32,16);
+//		FklPtrStack* tokenStack=fklCreatePtrStack(32,16);
 //		for(;;)
 //		{
 //			FklAstCptr* begin=NULL;
@@ -2532,7 +2532,7 @@
 //					FklAstCptr* objLibName=fklGetLastCptr(pairOfpPartsOfPath);
 //					if(fklCptrcmp(libName,objLibName))
 //					{
-//						FklCompEnv* tmpCurEnv=fklNewCompEnv(tmpInter->glob);
+//						FklCompEnv* tmpCurEnv=fklCreateCompEnv(tmpInter->glob);
 //						FklAstCptr* exportCptr=fklNextCptr(libName);
 //						if(!exportCptr||!fklIsExportExpression(exportCptr))
 //						{
@@ -2639,7 +2639,7 @@
 //								libByteCodelnt->ls=setTp->size;
 //								libByteCodelnt->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 //								FKL_ASSERT(libByteCodelnt->l);
-//								libByteCodelnt->l[0]=fklNewLineNumTabNodeWithFilename(tmpInter->filename,0,libByteCodelnt->bc->size,objCptr->curline);
+//								libByteCodelnt->l[0]=fklCreateLineNumTabNodeWithFilename(tmpInter->filename,0,libByteCodelnt->bc->size,objCptr->curline);
 //							}
 //							else
 //							{
@@ -2653,14 +2653,14 @@
 //							fklDeleteMem(libByteCodelnt,memMenager);
 //							fklFreeByteCodelnt(libByteCodelnt);
 //							libByteCodelnt=NULL;
-//							FklByteCode* pushProc=fklNewByteCode(sizeof(char)+sizeof(tmp->bc->size));
+//							FklByteCode* pushProc=fklCreateByteCode(sizeof(char)+sizeof(tmp->bc->size));
 //							pushProc->code[0]=FKL_OP_PUSH_PROC;
 //							fklSetU64ToByteCode(pushProc->code+sizeof(char),tmp->bc->size);
 //							fklReCodeCat(pushProc,tmp->bc);
 //							tmp->l[0]->cpc+=pushProc->size;
 //							FKL_INCREASE_ALL_SCP(tmp->l+1,tmp->ls-1,pushProc->size);
 //							fklFreeByteCode(pushProc);
-//							FklByteCode* call=fklNewByteCode(sizeof(char));
+//							FklByteCode* call=fklCreateByteCode(sizeof(char));
 //							call->code[0]=FKL_OP_CALL;
 //							fklCodeCat(tmp->bc,call);
 //							tmp->l[tmp->ls-1]->cpc+=call->size;
@@ -2792,7 +2792,7 @@
 //
 //FklByteCodelnt* fklCompileTry(FklAstCptr* objCptr,FklCompEnv* curEnv,FklInterpreter* inter,FklErrorState* state)
 //{
-//	FklCompEnv* newEnv=fklNewCompEnv(curEnv);
+//	FklCompEnv* createEnv=fklCreateCompEnv(curEnv);
 //	FklAstCptr* pCatchExpression=fklNextCptr(fklGetFirstCptr(objCptr));
 //	FklAstCptr* pExpression=fklNextCptr(pCatchExpression);
 //	if(!fklIsCatchExpression(pCatchExpression))
@@ -2801,18 +2801,18 @@
 //		state->place=objCptr;
 //		return NULL;
 //	}
-//	FklByteCodelnt* expressionByteCodelnt=fklNewByteCodelnt(fklNewByteCode(0));
+//	FklByteCodelnt* expressionByteCodelnt=fklCreateByteCodelnt(fklCreateByteCode(0));
 //	if(pExpression)
 //	{
-//		FklByteCode* resTp=fklNewByteCode(1);
-//		FklByteCode* setTp=fklNewByteCode(1);
-//		FklByteCode* popTp=fklNewByteCode(1);
+//		FklByteCode* resTp=fklCreateByteCode(1);
+//		FklByteCode* setTp=fklCreateByteCode(1);
+//		FklByteCode* popTp=fklCreateByteCode(1);
 //		resTp->code[0]=FKL_OP_RES_TP;
 //		setTp->code[0]=FKL_OP_SET_TP;
 //		popTp->code[0]=FKL_OP_POP_TP;
 //		for(;pExpression;pExpression=fklNextCptr(pExpression))
 //		{
-//			FklByteCodelnt* tmp=fklCompile(pExpression,newEnv,inter,state);
+//			FklByteCodelnt* tmp=fklCompile(pExpression,createEnv,inter,state);
 //			if(state->state)
 //			{
 //				fklFreeByteCodeAndLnt(expressionByteCodelnt);
@@ -2836,7 +2836,7 @@
 //			expressionByteCodelnt->ls=1;
 //			expressionByteCodelnt->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 //			FKL_ASSERT(expressionByteCodelnt->l);
-//			expressionByteCodelnt->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,expressionByteCodelnt->bc->size,objCptr->curline);
+//			expressionByteCodelnt->l[0]=fklCreateLineNumTabNodeWithFilename(inter->filename,0,expressionByteCodelnt->bc->size,objCptr->curline);
 //		}
 //		else
 //		{
@@ -2851,18 +2851,18 @@
 //	}
 //	else
 //	{
-//		FklByteCode* pushnil=fklNewByteCode(1);
+//		FklByteCode* pushnil=fklCreateByteCode(1);
 //		pushnil->code[0]=FKL_OP_PUSH_NIL;
 //		fklCodeCat(expressionByteCodelnt->bc,pushnil);
 //		fklFreeByteCode(pushnil);
 //		expressionByteCodelnt->ls=1;
 //		expressionByteCodelnt->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
 //		FKL_ASSERT(expressionByteCodelnt->l);
-//		expressionByteCodelnt->l[0]=fklNewLineNumTabNodeWithFilename(inter->filename,0,expressionByteCodelnt->bc->size,objCptr->curline);
+//		expressionByteCodelnt->l[0]=fklCreateLineNumTabNodeWithFilename(inter->filename,0,expressionByteCodelnt->bc->size,objCptr->curline);
 //	}
-//	fklFreeAllMacroThenDestroyCompEnv(newEnv);
-//	FklByteCode* pushProc=fklNewByteCode(sizeof(char)+sizeof(expressionByteCodelnt->bc->size));
-//	FklByteCode* call=fklNewByteCode(1);
+//	fklFreeAllMacroThenDestroyCompEnv(createEnv);
+//	FklByteCode* pushProc=fklCreateByteCode(sizeof(char)+sizeof(expressionByteCodelnt->bc->size));
+//	FklByteCode* call=fklCreateByteCode(1);
 //	call->code[0]=FKL_OP_CALL;
 //	pushProc->code[0]=FKL_OP_PUSH_PROC;
 //	fklSetU64ToByteCode(pushProc->code+sizeof(char),expressionByteCodelnt->bc->size);
@@ -2887,7 +2887,7 @@
 //	}
 //	FklString* errSymbol=pErrSymbol->u.atom->value.str;
 //	FklSid_t sid=fklAddSymbolToGlob(errSymbol)->id;
-//	FklPtrStack* handlerByteCodelntStack=fklNewPtrStack(32,16);
+//	FklPtrStack* handlerByteCodelntStack=fklCreatePtrStack(32,16);
 //	for(;pHandlerExpression;pHandlerExpression=fklNextCptr(pHandlerExpression))
 //	{
 //		if(pHandlerExpression->type!=FKL_TYPE_PAIR
@@ -2926,7 +2926,7 @@
 //		//	fklFreePtrStack(handlerByteCodelntStack);
 //		//	return NULL;
 //		//}
-//		FklCompEnv* tmpEnv=fklNewCompEnv(curEnv);
+//		FklCompEnv* tmpEnv=fklCreateCompEnv(curEnv);
 //		fklAddCompDef(errSymbol,tmpEnv);
 //		FklByteCodelnt* t=NULL;
 //		for(;begin;begin=fklNextCptr(begin))
@@ -2944,7 +2944,7 @@
 //				t=tmp1;
 //			else
 //			{
-//				FklByteCode* resTp=fklNewByteCode(1);
+//				FklByteCode* resTp=fklCreateByteCode(1);
 //				resTp->code[0]=FKL_OP_RES_TP;
 //				fklReCodeCat(resTp,tmp1->bc);
 //				tmp1->l[0]->cpc+=1;
@@ -2963,8 +2963,8 @@
 //			return NULL;
 //		}
 //		fklFreeAllMacroThenDestroyCompEnv(tmpEnv);
-//		FklByteCode* setTp=fklNewByteCode(1);
-//		FklByteCode* popTp=fklNewByteCode(1);
+//		FklByteCode* setTp=fklCreateByteCode(1);
+//		FklByteCode* popTp=fklCreateByteCode(1);
 //		setTp->code[0]=FKL_OP_SET_TP;
 //		popTp->code[0]=FKL_OP_POP_TP;
 //		fklReCodeCat(setTp,t->bc);
@@ -2976,7 +2976,7 @@
 //		fklFreeByteCode(popTp);
 //		//char* errorType=pErrorType->u.atom->value.str;
 //		//FklSid_t typeid=fklAddSymbolToGlob(errorType)->id;
-//		FklByteCode* errorTypeByteCode=fklNewByteCode(sizeof(uint32_t)+sizeof(FklSid_t)*errTypeNum+sizeof(t->bc->size));
+//		FklByteCode* errorTypeByteCode=fklCreateByteCode(sizeof(uint32_t)+sizeof(FklSid_t)*errTypeNum+sizeof(t->bc->size));
 //		fklSetU32ToByteCode(errorTypeByteCode->code,errTypeNum);
 //		for(uint32_t i=0;i<errTypeNum;i++)
 //			fklSetSidToByteCode(errorTypeByteCode->code+sizeof(uint32_t)+i*sizeof(FklSid_t),errTypeIds[i]);
@@ -2997,7 +2997,7 @@
 //		fklFreeByteCodelnt(tmp);
 //	}
 //	fklFreePtrStack(handlerByteCodelntStack);
-//	FklByteCode* header=fklNewByteCode(sizeof(FklSid_t)+sizeof(uint32_t)+sizeof(char));
+//	FklByteCode* header=fklCreateByteCode(sizeof(FklSid_t)+sizeof(uint32_t)+sizeof(char));
 //	header->code[0]=FKL_OP_PUSH_TRY;
 //	fklSetSidToByteCode(header->code+sizeof(char),sid);
 //	fklSetU32ToByteCode(header->code+sizeof(char)+sizeof(FklSid_t),numOfHandlerByteCode);
@@ -3005,7 +3005,7 @@
 //	t->l[0]->cpc+=header->size;
 //	FKL_INCREASE_ALL_SCP(t->l+1,t->ls-1,header->size);
 //	fklFreeByteCode(header);
-//	FklByteCode* popTry=fklNewByteCode(sizeof(char));
+//	FklByteCode* popTry=fklCreateByteCode(sizeof(char));
 //	popTry->code[0]=FKL_OP_POP_TRY;
 //	fklCodeCat(t->bc,popTry);
 //	t->l[t->ls-1]->cpc+=popTry->size;
@@ -3079,7 +3079,7 @@
 //{
 //	if(curEnv->symbols==NULL)
 //	{
-//		curEnv->symbols=fklNewDefines(symbol);
+//		curEnv->symbols=fklCreateDefines(symbol);
 //		fklReplaceCptr(&curEnv->symbols->obj,objCptr);
 //		curEnv->symbols->next=NULL;
 //		return curEnv->symbols;
@@ -3089,7 +3089,7 @@
 //		FklPreDef* curDef=fklFindDefine(symbol,curEnv);
 //		if(curDef==NULL)
 //		{
-//			curDef=fklNewDefines(symbol);
+//			curDef=fklCreateDefines(symbol);
 //			curDef->next=curEnv->symbols;
 //			curEnv->symbols=curDef;
 //			fklReplaceCptr(&curDef->obj,objCptr);
@@ -3100,7 +3100,7 @@
 //	}
 //}
 //
-//FklPreDef* fklNewDefines(const FklString* name)
+//FklPreDef* fklCreateDefines(const FklString* name)
 //{
 //	FklPreDef* tmp=(FklPreDef*)malloc(sizeof(FklPreDef));
 //	FKL_ASSERT(tmp);
@@ -3124,12 +3124,12 @@
 //
 //FklCompEnvHashItem* fklAddCompDefCstr(const char* name,FklCompEnv* curEnv)
 //{
-//	return (FklCompEnvHashItem*)fklPutNoRpHashItem(newCompEnvHashItem(fklAddSymbolToGlobCstr(name)->id),curEnv->defs);
+//	return (FklCompEnvHashItem*)fklPutNoRpHashItem(createCompEnvHashItem(fklAddSymbolToGlobCstr(name)->id),curEnv->defs);
 //}
 //
 //FklCompEnvHashItem* fklAddCompDef(const FklString* name,FklCompEnv* curEnv)
 //{
-//	return (FklCompEnvHashItem*)fklPutNoRpHashItem(newCompEnvHashItem(fklAddSymbolToGlob(name)->id),curEnv->defs);
+//	return (FklCompEnvHashItem*)fklPutNoRpHashItem(createCompEnvHashItem(fklAddSymbolToGlob(name)->id),curEnv->defs);
 //}
 //
 //FklCompEnvHashItem* fklFindCompDefBySid(FklSid_t id,FklCompEnv* curEnv)
@@ -3139,10 +3139,10 @@
 //
 //FklCompEnvHashItem* fklAddCompDefBySid(FklSid_t id,FklCompEnv* curEnv)
 //{
-//	return (FklCompEnvHashItem*)fklPutNoRpHashItem(newCompEnvHashItem(id),curEnv->defs);
+//	return (FklCompEnvHashItem*)fklPutNoRpHashItem(createCompEnvHashItem(id),curEnv->defs);
 //}
 //
-//FklCompEnv* fklNewGlobCompEnv(FklCompEnv* prev)
+//FklCompEnv* fklCreateGlobCompEnv(FklCompEnv* prev)
 //{
 //	FklCompEnv* tmp=(FklCompEnv*)malloc(sizeof(FklCompEnv));
 //	FKL_ASSERT(tmp);
@@ -3151,17 +3151,17 @@
 //		prev->refcount+=1;
 //	tmp->prefix=NULL;
 //	tmp->exp=NULL;
-//	tmp->defs=fklNewHashTable(512,4,2,0.75,1,&CompEnvHashMethodTable);
+//	tmp->defs=fklCreateHashTable(512,4,2,0.75,1,&CompEnvHashMethodTable);
 //	tmp->n=0;
 //	tmp->macro=NULL;
 //	tmp->keyWords=NULL;
-//	tmp->proc=fklNewByteCodelnt(fklNewByteCode(0));
+//	tmp->proc=fklCreateByteCodelnt(fklCreateByteCode(0));
 //	tmp->refcount=0;
 //	fklInitCompEnv(tmp);
 //	return tmp;
 //}
 //
-//FklCompEnv* fklNewCompEnv(FklCompEnv* prev)
+//FklCompEnv* fklCreateCompEnv(FklCompEnv* prev)
 //{
 //	FklCompEnv* tmp=(FklCompEnv*)malloc(sizeof(FklCompEnv));
 //	FKL_ASSERT(tmp);
@@ -3170,16 +3170,16 @@
 //		prev->refcount+=1;
 //	tmp->prefix=NULL;
 //	tmp->exp=NULL;
-//	tmp->defs=fklNewHashTable(8,4,2,0.75,1,&CompEnvHashMethodTable);
+//	tmp->defs=fklCreateHashTable(8,4,2,0.75,1,&CompEnvHashMethodTable);
 //	tmp->n=0;
 //	tmp->macro=NULL;
 //	tmp->keyWords=NULL;
-//	tmp->proc=fklNewByteCodelnt(fklNewByteCode(0));
+//	tmp->proc=fklCreateByteCodelnt(fklCreateByteCode(0));
 //	tmp->refcount=0;
 //	return tmp;
 //}
 //
-//FklPreEnv* fklNewEnv(FklPreEnv* prev)
+//FklPreEnv* fklCreateEnv(FklPreEnv* prev)
 //{
 //	FklPreEnv* curEnv=NULL;
 //	curEnv=(FklPreEnv*)malloc(sizeof(FklPreEnv));
@@ -3226,7 +3226,7 @@
 //	return (FklCompEnvHashItem*)fklGetHashItem(&fklAddSymbolToGlob(name)->id,curEnv->defs);
 //}
 //
-//FklInterpreter* fklNewIntpr(const char* filename,FILE* file,FklCompEnv* env,FklLineNumberTable* lnt)
+//FklInterpreter* fklCreateIntpr(const char* filename,FILE* file,FklCompEnv* env,FklLineNumberTable* lnt)
 //{
 //	FklInterpreter* tmp=(FklInterpreter*)malloc(sizeof(FklInterpreter));
 //	FKL_ASSERT(tmp);
@@ -3254,13 +3254,13 @@
 //	if(lnt)
 //		tmp->lnt=lnt;
 //	else
-//		tmp->lnt=fklNewLineNumTable();
+//		tmp->lnt=fklCreateLineNumTable();
 //	if(env)
 //	{
 //		tmp->glob=env;
 //		return tmp;
 //	}
-//	tmp->glob=fklNewGlobCompEnv(NULL);
+//	tmp->glob=fklCreateGlobCompEnv(NULL);
 //	return tmp;
 //}
 //
@@ -3353,7 +3353,7 @@
 //	}
 //}
 //
-//FklInterpreter* fklNewTmpIntpr(const char* filename,FILE* fp)
+//FklInterpreter* fklCreateTmpIntpr(const char* filename,FILE* fp)
 //{
 //	FklInterpreter* tmp=(FklInterpreter*)malloc(sizeof(FklInterpreter));
 //	FKL_ASSERT(tmp);
@@ -3390,7 +3390,7 @@
 //	FklSid_t sid;
 //}MayUndefine;
 //
-//static MayUndefine* newMayUndefine(FklCompEnv* env,size_t cp,FklSid_t sid)
+//static MayUndefine* createMayUndefine(FklCompEnv* env,size_t cp,FklSid_t sid)
 //{
 //	MayUndefine* r=(MayUndefine*)malloc(sizeof(MayUndefine));
 //	FKL_ASSERT(r);
@@ -3409,14 +3409,14 @@
 //
 //void fklPrintUndefinedSymbol(FklByteCodelnt* code)
 //{
-//	FklUintStack* cpcstack=fklNewUintStack(32,16);
-//	FklUintStack* scpstack=fklNewUintStack(32,16);
-//	FklPtrStack* envstack=fklNewPtrStack(32,16);
-//	FklPtrStack* mayUndefined=fklNewPtrStack(32,16);
+//	FklUintStack* cpcstack=fklCreateUintStack(32,16);
+//	FklUintStack* scpstack=fklCreateUintStack(32,16);
+//	FklPtrStack* envstack=fklCreatePtrStack(32,16);
+//	FklPtrStack* mayUndefined=fklCreatePtrStack(32,16);
 //	FklByteCode* bc=code->bc;
 //	fklPushUintStack(0,cpcstack);
 //	fklPushUintStack(bc->size,scpstack);
-//	FklCompEnv* globEnv=fklNewGlobCompEnv(NULL);
+//	FklCompEnv* globEnv=fklCreateGlobCompEnv(NULL);
 //	fklPushPtrStack(globEnv,envstack);
 //	while((!fklIsUintStackEmpty(cpcstack))&&(!fklIsUintStackEmpty(scpstack)))
 //	{
@@ -3466,7 +3466,7 @@
 //									break;
 //							}
 //							if(!def)
-//								fklPushPtrStack(newMayUndefine(curEnv,i,id),mayUndefined);
+//								fklPushPtrStack(createMayUndefine(curEnv,i,id),mayUndefined);
 //						}
 //					}
 //					i+=sizeof(char)+sizeof(uint32_t)+sizeof(FklSid_t);
@@ -3475,7 +3475,7 @@
 //					fklPushUintStack(i+sizeof(char)+sizeof(uint64_t),cpcstack);
 //					{
 //						fklPushUintStack(fklGetU64FromByteCode(bc->code+i+sizeof(char)),scpstack);
-//						FklCompEnv* nextEnv=fklNewCompEnv(curEnv);
+//						FklCompEnv* nextEnv=fklCreateCompEnv(curEnv);
 //						fklPushPtrStack(nextEnv,envstack);
 //					}
 //					i+=sizeof(char)+sizeof(uint64_t)+fklGetU64FromByteCode(bc->code+i+sizeof(char));
@@ -3485,7 +3485,7 @@
 //					break;
 //				case 0:
 //					if(opcode==FKL_OP_PUSH_R_ENV)
-//						curEnv=fklNewCompEnv(curEnv);
+//						curEnv=fklCreateCompEnv(curEnv);
 //					else if(opcode==FKL_OP_POP_R_ENV)
 //					{
 //						FklCompEnv* p=curEnv->prev;
@@ -3524,7 +3524,7 @@
 //											break;
 //									}
 //									if(!def)
-//										fklPushPtrStack(newMayUndefine(curEnv,i,id),mayUndefined);
+//										fklPushPtrStack(createMayUndefine(curEnv,i,id),mayUndefined);
 //								}
 //							}
 //							break;

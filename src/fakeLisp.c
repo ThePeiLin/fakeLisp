@@ -72,7 +72,7 @@ int main(int argc,char** argv)
 		FklCodegen codegen={.fid=0,};
 		char* rp=fklRealpath(filename);
 		fklSetMainFileRealPath(rp);
-		fklInitGlobalCodegener(&codegen,rp,NULL,fklNewSymbolTable(),0);
+		fklInitGlobalCodegener(&codegen,rp,NULL,fklCreateSymbolTable(),0);
 		free(rp);
 		FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
 		if(mainByteCode==NULL)
@@ -89,8 +89,8 @@ int main(int argc,char** argv)
 		chdir(fklGetCwd());
 		fklCodegenPrintUndefinedSymbol(mainByteCode,codegen.globalSymTable);
 		FklLineNumberTable globalLnt={mainByteCode->ls,mainByteCode->l};
-		FklVM* anotherVM=fklNewVM(mainByteCode->bc,NULL,NULL);
-		FklVMvalue* globEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
+		FklVM* anotherVM=fklCreateVM(mainByteCode->bc,NULL,NULL);
+		FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
 		fklFreeByteCode(mainByteCode->bc);
 		free(mainByteCode);
 		FklVMframe* mainframe=anotherVM->frames;
@@ -145,12 +145,12 @@ int main(int argc,char** argv)
 		free(rp);
 		FklLineNumberTable* lnt=loadLineNumberTable(fp);
 		FklByteCode* mainCode=loadByteCode(fp);
-		FklVM* anotherVM=fklNewVM(mainCode,NULL,NULL);
+		FklVM* anotherVM=fklCreateVM(mainCode,NULL,NULL);
 		FklVMgc* gc=anotherVM->gc;
 		fklFreeByteCode(mainCode);
 		fclose(fp);
 		FklVMframe* mainframe=anotherVM->frames;
-		FklVMvalue* globEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
+		FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
 		mainframe->localenv=globEnv;
 		anotherVM->callback=errorCallBack;
 		anotherVM->lnt=lnt;
@@ -190,12 +190,12 @@ int main(int argc,char** argv)
 void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 {
 	int e=0;
-	FklVM* anotherVM=fklNewVM(NULL,NULL,NULL);
-	FklVMvalue* globEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
+	FklVM* anotherVM=fklCreateVM(NULL,NULL,NULL);
+	FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
 	anotherVM->callback=errorCallBack;
 	FklByteCode* rawProcList=NULL;
-	FklPtrStack* tokenStack=fklNewPtrStack(32,16);
-	FklLineNumberTable* globalLnt=fklNewLineNumTable();
+	FklPtrStack* tokenStack=fklCreatePtrStack(32,16);
+	FklLineNumberTable* globalLnt=fklCreateLineNumTable();
 	anotherVM->lnt=globalLnt;
 	char* prev=NULL;
 	size_t prevSize=0;
@@ -225,7 +225,7 @@ void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 			continue;
 		}
 		size_t errorLine=0;
-		begin=fklNewNastNodeFromTokenStack(tokenStack,&errorLine,builtInHeadSymbolTable);
+		begin=fklCreateNastNodeFromTokenStack(tokenStack,&errorLine,builtInHeadSymbolTable);
 		codegen->curline+=fklCountChar(list,'\n',size);
 		free(list);
 		if(fklIsPtrStackEmpty(tokenStack))
@@ -245,11 +245,11 @@ void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 				fklCodeCat(&byteCodeOfVM,tmpByteCode->bc);
 				anotherVM->code=byteCodeOfVM.code;
 				anotherVM->size=byteCodeOfVM.size;
-				FklVMproc* tmp=fklNewVMproc(bs,tmpByteCode->bc->size);
+				FklVMproc* tmp=fklCreateVMproc(bs,tmpByteCode->bc->size);
 				bs+=tmpByteCode->bc->size;
 				fklFreeByteCodelnt(tmpByteCode);
 				tmp->prevEnv=NULL;
-				FklVMframe* mainframe=fklNewVMframe(tmp,anotherVM->frames);
+				FklVMframe* mainframe=fklCreateVMframe(tmp,anotherVM->frames);
 				mainframe->localenv=globEnv;
 				anotherVM->frames=mainframe;
 				if(!(e=setjmp(buf)))
@@ -313,7 +313,7 @@ void loadSymbolTable(FILE* fp)
 	{
 		uint64_t len=0;
 		fread(&len,sizeof(len),1,fp);
-		FklString* buf=fklNewString(len,NULL);
+		FklString* buf=fklCreateString(len,NULL);
 		fread(buf->str,len,1,fp);
 		fklAddSymbolToGlob(buf);
 		free(buf);
@@ -337,10 +337,10 @@ FklLineNumberTable* loadLineNumberTable(FILE* fp)
 		fread(&scp,sizeof(scp),1,fp);
 		fread(&cpc,sizeof(cpc),1,fp);
 		fread(&line,sizeof(line),1,fp);
-		FklLineNumTabNode* n=fklNewLineNumTabNode(fid,scp,cpc,line);
+		FklLineNumTabNode* n=fklCreateLineNumTabNode(fid,scp,cpc,line);
 		list[i]=n;
 	}
-	FklLineNumberTable* lnt=fklNewLineNumTable();
+	FklLineNumberTable* lnt=fklCreateLineNumTable();
 	lnt->list=list;
 	lnt->num=size;
 	return lnt;

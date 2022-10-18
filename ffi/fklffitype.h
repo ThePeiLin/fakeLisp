@@ -141,7 +141,7 @@ typedef struct FklDefFuncType
 
 void fklFfiDefType(FklVMvalue* typedeclare);
 
-FklDefTypes* fklFfiNewDefTypes(void);
+FklDefTypes* fklFfiCreateDefTypes(void);
 void fklFfiFreeDefTypeTable(FklDefTypes* defs);
 
 FklTypeId_t fklFfiGenDefTypes(FklVMvalue*,FklDefTypes* otherTypes,FklSid_t typeName);
@@ -165,22 +165,22 @@ int fklFfiIsStructTypeId(FklTypeId_t);
 int fklFfiIsUnionTypeId(FklTypeId_t);
 int fklFfiIsFunctionTypeId(FklTypeId_t);
 
-FklTypeId_t fklFfiNewNativeType(FklSid_t,size_t,size_t);
+FklTypeId_t fklFfiCreateNativeType(FklSid_t,size_t,size_t);
 void fklFfiFreeNativeType(FklDefNativeType*);
 
-FklTypeId_t fklFfiNewArrayType(FklTypeId_t,size_t);
+FklTypeId_t fklFfiCreateArrayType(FklTypeId_t,size_t);
 void fklFfiFreeArrayType(FklDefArrayType*);
 
-FklTypeId_t fklFfiNewPtrType(FklTypeId_t);
+FklTypeId_t fklFfiCreatePtrType(FklTypeId_t);
 void fklFfiFreePtrType(FklDefPtrType*);
 
-FklTypeId_t fklFfiNewStructType(FklSid_t,uint32_t,FklSid_t[],FklTypeId_t []);
+FklTypeId_t fklFfiCreateStructType(FklSid_t,uint32_t,FklSid_t[],FklTypeId_t []);
 void fklFfiFreeStructType(FklDefStructType*);
 
-FklTypeId_t fklFfiNewUnionType(FklSid_t,uint32_t num,FklSid_t symbols[],FklTypeId_t memberTypes[]);
+FklTypeId_t fklFfiCreateUnionType(FklSid_t,uint32_t num,FklSid_t symbols[],FklTypeId_t memberTypes[]);
 void fklFfiFreeUnionType(FklDefUnionType*);
 
-FklTypeId_t fklFfiNewFuncType(FklTypeId_t rtype,uint32_t anum,FklTypeId_t atypes[]);
+FklTypeId_t fklFfiCreateFuncType(FklTypeId_t rtype,uint32_t anum,FklTypeId_t atypes[]);
 FklTypeId_t fklFfiFindSameFuncType(FklTypeId_t,uint32_t anum,FklTypeId_t atypes[]);
 void fklFfiFreeFuncType(FklDefFuncType*);
 
@@ -202,8 +202,8 @@ FklTypeId_t fklFfiGenTypeId(FklVMvalue*);
 FklTypeId_t fklFfiTypedef(FklVMvalue*,FklSid_t typeName);
 #define FKL_FFI_RAISE_ERROR(WHO,ERRORTYPE,EXE) do{\
 	char* errorMessage=fklFfiGenErrorMessage((ERRORTYPE));\
-	FklVMvalue* err=fklNewVMvalueToStack(FKL_TYPE_ERR\
-			,fklNewVMerrorCstr((WHO)\
+	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR\
+			,fklCreateVMerrorCstr((WHO)\
 				,fklFfiGetErrorType(ERRORTYPE)\
 				,errorMessage)\
 			,(EXE)->stack\

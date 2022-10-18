@@ -39,18 +39,18 @@
 //		return 1;
 //	fir->type=FKL_TYPE_PAIR;
 //	fir->curline=sec->curline;
-//	fir->u.pair=fklNewPair(sec->curline,fir->outer);
+//	fir->u.pair=fklCreatePair(sec->curline,fir->outer);
 //	fklReplaceCptr(&fir->u.pair->car,sec);
 //	return 0;
 //}
 //
 //static FklVMvalue* genGlobEnv(FklCompEnv* cEnv,FklByteCodelnt* t,FklVMgc* gc)
 //{
-//	FklVMvalue* vEnv=fklNewVMvalueNoGC(FKL_TYPE_ENV,fklNewGlobVMenv(FKL_VM_NIL,gc),gc);
+//	FklVMvalue* vEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,gc),gc);
 //	if(cEnv->proc->bc->size)
 //	{
 //		FklVMnode* prevVMs=fklGetGlobVMs()->h;
-//		FklVM* tmpVM=fklNewTmpVM(NULL,NULL);
+//		FklVM* tmpVM=fklCreateTmpVM(NULL,NULL);
 //		tmpVM->callback=errorCallBack;
 //		fklInitVMRunningResource(tmpVM,vEnv,gc,cEnv->proc,0,cEnv->proc->bc->size);
 //		if(setjmp(buf)==0)
@@ -115,7 +115,7 @@
 //	free(objAtm);
 //}
 //
-//FklAstPair* fklNewPair(int curline,FklAstPair* prev)
+//FklAstPair* fklCreatePair(int curline,FklAstPair* prev)
 //{
 //	FklAstPair* tmp=(FklAstPair*)malloc(sizeof(FklAstPair));
 //	FKL_ASSERT(tmp);
@@ -131,7 +131,7 @@
 //	return tmp;
 //}
 //
-//FklAstCptr* fklNewCptr(int curline,FklAstPair* outer)
+//FklAstCptr* fklCreateCptr(int curline,FklAstPair* outer)
 //{
 //	FklAstCptr* tmp=(FklAstCptr*)malloc(sizeof(FklAstCptr));
 //	FKL_ASSERT(tmp);
@@ -142,7 +142,7 @@
 //	return tmp;
 //}
 //
-//FklAstAtom* fklNewAtom(FklValueType type,FklAstPair* prev)
+//FklAstAtom* fklCreateAtom(FklValueType type,FklAstPair* prev)
 //{
 //	FklAstAtom* tmp=(FklAstAtom*)malloc(sizeof(FklAstAtom));
 //	FKL_ASSERT(tmp);
@@ -195,8 +195,8 @@
 //int fklCopyCptr(FklAstCptr* objCptr,const FklAstCptr* copiedCptr)
 //{
 //	if(copiedCptr==NULL||objCptr==NULL)return 0;
-//	FklPtrStack* s1=fklNewPtrStack(32,16);
-//	FklPtrStack* s2=fklNewPtrStack(32,16);
+//	FklPtrStack* s1=fklCreatePtrStack(32,16);
+//	FklPtrStack* s2=fklCreatePtrStack(32,16);
 //	fklPushPtrStack(objCptr,s1);
 //	fklPushPtrStack((void*)copiedCptr,s2);
 //	FklAstAtom* atom1=NULL;
@@ -210,7 +210,7 @@
 //		switch(root1->type)
 //		{
 //			case FKL_TYPE_PAIR:
-//				root1->u.pair=fklNewPair(0,root1->outer);
+//				root1->u.pair=fklCreatePair(0,root1->outer);
 //				fklPushPtrStack(fklGetASTPairCar(root1),s1);
 //				fklPushPtrStack(fklGetASTPairCdr(root1),s1);
 //				fklPushPtrStack(fklGetASTPairCar(root2),s2);
@@ -223,15 +223,15 @@
 //				{
 //					case FKL_TYPE_STR:
 //					case FKL_TYPE_SYM:
-//						atom1=fklNewAtom(atom2->type,root1->outer);
+//						atom1=fklCreateAtom(atom2->type,root1->outer);
 //						atom1->value.str=fklCopyString(atom2->value.str);
 //						break;
 //					case FKL_TYPE_BYTEVECTOR:
-//						atom1=fklNewAtom(atom2->type,root1->outer);
+//						atom1=fklCreateAtom(atom2->type,root1->outer);
 //						atom1->value.bvec=fklCopyBytevector(atom2->value.bvec);
 //						break;
 //					case FKL_TYPE_VECTOR:
-//						atom1=fklNewAtom(atom2->type,root1->outer);
+//						atom1=fklCreateAtom(atom2->type,root1->outer);
 //						fklMakeAstVector(&atom1->value.vec,atom2->value.vec.size,NULL);
 //						for(size_t i=0;i<atom2->value.vec.size;i++)
 //						{
@@ -240,38 +240,38 @@
 //						}
 //						break;
 //					case FKL_TYPE_HASHTABLE:
-//						atom1=fklNewAtom(atom2->type,root1->outer);
+//						atom1=fklCreateAtom(atom2->type,root1->outer);
 //						fklMakeAstHashTable(&atom1->value.hash,atom2->value.hash.type,atom2->value.hash.num);
 //						fklPushPtrStack(&atom1->value.hash.items,s1);
 //						fklPushPtrStack(&atom2->value.hash.items,s2);
 //						break;
 //					case FKL_TYPE_BOX:
-//						atom1=fklNewAtom(atom2->type,root1->outer);
+//						atom1=fklCreateAtom(atom2->type,root1->outer);
 //						fklPushPtrStack(&atom1->value.box,s1);
 //						fklPushPtrStack(&atom2->value.box,s2);
 //						break;
 //					case FKL_TYPE_I32:
-//						atom1=fklNewAtom(atom2->type,root1->outer);
+//						atom1=fklCreateAtom(atom2->type,root1->outer);
 //						atom1->value.i32=atom2->value.i32;
 //						break;
 //					case FKL_TYPE_I64:
-//						atom1=fklNewAtom(atom2->type,root1->outer);
+//						atom1=fklCreateAtom(atom2->type,root1->outer);
 //						atom1->value.i64=atom2->value.i64;
 //						break;
 //					case FKL_TYPE_F64:
-//						atom1=fklNewAtom(atom2->type,root1->outer);
+//						atom1=fklCreateAtom(atom2->type,root1->outer);
 //						atom1->value.f64=atom2->value.f64;
 //						break;
 //					case FKL_TYPE_CHR:
-//						atom1=fklNewAtom(atom2->type,root1->outer);
+//						atom1=fklCreateAtom(atom2->type,root1->outer);
 //						atom1->value.chr=atom2->value.chr;
 //						break;
 //					case FKL_TYPE_BIG_INT:
-//						atom1=fklNewAtom(atom2->type,root1->outer);
+//						atom1=fklCreateAtom(atom2->type,root1->outer);
 //						fklSetBigInt(&atom1->value.bigInt,&atom2->value.bigInt);
 //						break;
 //					default:
-//						atom1=fklNewAtom(atom2->type,root1->outer);
+//						atom1=fklCreateAtom(atom2->type,root1->outer);
 //						break;
 //				}
 //				root1->u.atom=atom1;
@@ -548,7 +548,7 @@
 //{
 //	if(!fklIsValidCharStr(oStr->str+2,oStr->size-2))
 //		return NULL;
-//	FklAstAtom* r=fklNewAtom(FKL_TYPE_CHR,prev);
+//	FklAstAtom* r=fklCreateAtom(FKL_TYPE_CHR,prev);
 //	r->value.chr=fklCharBufToChar(oStr->str+2,oStr->size-2);
 //	return r;
 //}
@@ -558,13 +558,13 @@
 //	FklAstAtom* r=NULL;
 //	if(fklIsDoubleString(oStr))
 //	{
-//		r=fklNewAtom(FKL_TYPE_F64,prev);
+//		r=fklCreateAtom(FKL_TYPE_F64,prev);
 //		r->value.f64=fklStringToDouble(oStr);
 //	}
 //	else
 //	{
-//		r=fklNewAtom(FKL_TYPE_I32,prev);
-//		FklBigInt* bInt=fklNewBigIntFromString(oStr);
+//		r=fklCreateAtom(FKL_TYPE_I32,prev);
+//		FklBigInt* bInt=fklCreateBigIntFromString(oStr);
 //		if(fklIsGtLtI64BigInt(bInt))
 //		{
 //			r->type=FKL_TYPE_BIG_INT;
@@ -594,15 +594,15 @@
 //{
 //	size_t size=0;
 //	char* str=fklCastEscapeCharBuf(oStr->str+1,'\"',&size);
-//	FklAstAtom* r=fklNewAtom(FKL_TYPE_STR,prev);
-//	r->value.str=fklNewString(size,str);
+//	FklAstAtom* r=fklCreateAtom(FKL_TYPE_STR,prev);
+//	r->value.str=fklCreateString(size,str);
 //	free(str);
 //	return r;
 //}
 //
 //static FklAstAtom* createSymbol(const FklString* oStr,FklAstPair* prev)
 //{
-//	FklAstAtom* r=fklNewAtom(FKL_TYPE_SYM,prev);
+//	FklAstAtom* r=fklCreateAtom(FKL_TYPE_SYM,prev);
 //	r->value.str=fklCopyString(oStr);
 //	return r;
 //}
@@ -622,7 +622,7 @@
 //	uint32_t cindex;
 //}MatchState;
 //
-//static MatchState* newMatchState(FklStringMatchPattern* pattern,uint32_t line,uint32_t cindex)
+//static MatchState* createMatchState(FklStringMatchPattern* pattern,uint32_t line,uint32_t cindex)
 //{
 //	MatchState* state=(MatchState*)malloc(sizeof(MatchState));
 //	FKL_ASSERT(state);
@@ -669,7 +669,7 @@
 //	FklAstCptr* cptr;
 //}AstElem;
 //
-//AstElem* newAstElem(AstPlace place,FklAstCptr* cptr)
+//AstElem* createAstElem(AstPlace place,FklAstCptr* cptr)
 //{
 //	AstElem* t=(AstElem*)malloc(sizeof(AstElem));
 //	FKL_ASSERT(t);
@@ -818,7 +818,7 @@
 //
 //static FklAstCptr* expandReaderMacroWithTreeStack(FklStringMatchPattern* pattern,const char* filename,FklCompEnv* glob,FklPtrStack* treeStack,uint32_t curline)
 //{
-//	FklPreEnv* tmpEnv=fklNewEnv(NULL);
+//	FklPreEnv* tmpEnv=fklCreateEnv(NULL);
 //	for(uint32_t j=0;j<treeStack->top;)
 //	{
 //		for(uint32_t i=0;i<pattern->num;i++)
@@ -837,10 +837,10 @@
 //	FklAstCptr* retval=NULL;
 //	char* cwd=getcwd(NULL,0);
 //	chdir(fklGetCwd());
-//	FklVMgc* gc=fklNewVMgc();
-//	FklByteCodelnt* t=fklNewByteCodelnt(fklNewByteCode(0));
+//	FklVMgc* gc=fklCreateVMgc();
+//	FklByteCodelnt* t=fklCreateByteCodelnt(fklCreateByteCode(0));
 //	FklVMvalue* tmpGlobEnv=genGlobEnv(glob,t,gc);
-//	FklVM* tmpVM=fklNewTmpVM(NULL,gc);
+//	FklVM* tmpVM=fklCreateTmpVM(NULL,gc);
 //	tmpVM->callback=errorCallBack;
 //	if(!tmpGlobEnv)
 //	{
@@ -855,7 +855,7 @@
 //		free(cwd);
 //		return NULL;
 //	}
-//	FklHashTable* lineHash=fklNewLineNumHashTable();
+//	FklHashTable* lineHash=fklCreateLineNumHashTable();
 //	FklVMvalue* stringPatternEnv=fklCastPreEnvToVMenv(tmpEnv,tmpGlobEnv,lineHash,tmpVM->gc);
 //	uint32_t start=t->bc->size;
 //	fklCodelntCopyCat(t,pattern->proc);
@@ -894,9 +894,9 @@
 //{
 //	if(fklIsPtrStackEmpty(tokenStack))
 //		return NULL;
-//	FklPtrStack* matchStateStack=fklNewPtrStack(32,16);
-//	FklPtrStack* stackStack=fklNewPtrStack(32,16);
-//	FklPtrStack* elemStack=fklNewPtrStack(32,16);
+//	FklPtrStack* matchStateStack=fklCreatePtrStack(32,16);
+//	FklPtrStack* stackStack=fklCreatePtrStack(32,16);
+//	FklPtrStack* elemStack=fklCreatePtrStack(32,16);
 //	fklPushPtrStack(elemStack,stackStack);
 //	for(uint32_t i=0;i<tokenStack->top;i++)
 //	{
@@ -904,7 +904,7 @@
 //		FklPtrStack* cStack=fklTopPtrStack(stackStack);
 //		if(token->type>FKL_TOKEN_RESERVE_STR&&token->type<FKL_TOKEN_COMMENT)
 //		{
-//			FklAstCptr* cur=fklNewCptr(token->line,NULL);
+//			FklAstCptr* cur=fklCreateCptr(token->line,NULL);
 //			FklAstAtom* atm=atomCreators[token->type-1](token->value,cur->outer);
 //			if(!atm)
 //			{
@@ -934,7 +934,7 @@
 //			cur->type=FKL_TYPE_ATM;
 //			cur->curline=token->line;
 //			cur->u.atom=atm;
-//			AstElem* elem=newAstElem(AST_CAR,cur);
+//			AstElem* elem=createAstElem(AST_CAR,cur);
 //			fklPushPtrStack(elem,cStack);
 //		}
 //		else if(token->type==FKL_TOKEN_RESERVE_STR)
@@ -948,7 +948,7 @@
 //				if(part&&fklIsVar(part)&&fklIsMustList(part))
 //				{
 //					fklPopPtrStack(stackStack);
-//					AstElem* v=newAstElem(AST_CAR,fklNewCptr(state->line,NULL));
+//					AstElem* v=createAstElem(AST_CAR,fklCreateCptr(state->line,NULL));
 //					int r=0;
 //					uint32_t i=0;
 //					for(;i<cStack->top;i++)
@@ -1001,7 +1001,7 @@
 //				part=fklGetNthPartOfStringMatchPattern(pattern,state->cindex);
 //				if(part&&fklIsVar(part)&&fklIsMustList(part))
 //				{
-//					cStack=fklNewPtrStack(32,16);
+//					cStack=fklCreatePtrStack(32,16);
 //					fklPushPtrStack(cStack,stackStack);
 //				}
 //				if(state->cindex<state->pattern->num)
@@ -1009,14 +1009,14 @@
 //			}
 //			else if(pattern)
 //			{
-//				MatchState* state=newMatchState(pattern,token->line,1);
+//				MatchState* state=createMatchState(pattern,token->line,1);
 //				fklPushPtrStack(state,matchStateStack);
-//				cStack=fklNewPtrStack(32,16);
+//				cStack=fklCreatePtrStack(32,16);
 //				fklPushPtrStack(cStack,stackStack);
 //				const FklString* part=fklGetNthPartOfStringMatchPattern(pattern,state->cindex);
 //				if(fklIsVar(part)&&fklIsMustList(part))
 //				{
-//					cStack=fklNewPtrStack(32,16);
+//					cStack=fklCreatePtrStack(32,16);
 //					fklPushPtrStack(cStack,stackStack);
 //				}
 //				continue;
@@ -1024,36 +1024,36 @@
 //			else if(isLeftParenthese(token->value))
 //			{
 //				FklStringMatchPattern* pattern=token->value->str[0]=='('?PARENTHESE_0:PARENTHESE_1;
-//				MatchState* state=newMatchState(pattern,token->line,0);
+//				MatchState* state=createMatchState(pattern,token->line,0);
 //				fklPushPtrStack(state,matchStateStack);
-//				cStack=fklNewPtrStack(32,16);
+//				cStack=fklCreatePtrStack(32,16);
 //				fklPushPtrStack(cStack,stackStack);
 //				continue;
 //			}
 //			else if(isVectorStart(token->value))
 //			{
 //				FklStringMatchPattern* pattern=token->value->str[1]=='('?VECTOR_0:VECTOR_1;
-//				MatchState* state=newMatchState(pattern,token->line,0);
+//				MatchState* state=createMatchState(pattern,token->line,0);
 //				fklPushPtrStack(state,matchStateStack);
-//				cStack=fklNewPtrStack(32,16);
+//				cStack=fklCreatePtrStack(32,16);
 //				fklPushPtrStack(cStack,stackStack);
 //				continue;
 //			}
 //			else if(isBytevectorStart(token->value))
 //			{
 //				FklStringMatchPattern* pattern=token->value->str[4]=='('?BVECTOR_0:BVECTOR_1;
-//				MatchState* state=newMatchState(pattern,token->line,0);
+//				MatchState* state=createMatchState(pattern,token->line,0);
 //				fklPushPtrStack(state,matchStateStack);
-//				cStack=fklNewPtrStack(32,16);
+//				cStack=fklCreatePtrStack(32,16);
 //				fklPushPtrStack(cStack,stackStack);
 //				continue;
 //			}
 //			else if(isHashTableStart(token->value))
 //			{
 //				FklStringMatchPattern* pattern=getHashPattern(token->value);
-//				MatchState* state=newMatchState(pattern,token->line,0);
+//				MatchState* state=createMatchState(pattern,token->line,0);
 //				fklPushPtrStack(state,matchStateStack);
-//				cStack=fklNewPtrStack(32,16);
+//				cStack=fklCreatePtrStack(32,16);
 //				fklPushPtrStack(cStack,stackStack);
 //				continue;
 //			}
@@ -1061,7 +1061,7 @@
 //			{
 //				fklPopPtrStack(stackStack);
 //				MatchState* cState=fklPopPtrStack(matchStateStack);
-//				AstElem* v=newAstElem(AST_CAR,fklNewCptr(cState->line,NULL));
+//				AstElem* v=createAstElem(AST_CAR,fklCreateCptr(cState->line,NULL));
 //				int r=0;
 //				if(isBuiltInParenthese(cState->pattern))
 //				{
@@ -1082,7 +1082,7 @@
 //				}
 //				else if(isBuiltInVector(cState->pattern))
 //				{
-//					FklAstAtom* vec=fklNewAtom(FKL_TYPE_VECTOR,v->cptr->outer);
+//					FklAstAtom* vec=fklCreateAtom(FKL_TYPE_VECTOR,v->cptr->outer);
 //					fklMakeAstVector(&vec->value.vec,cStack->top,NULL);
 //					v->cptr->type=FKL_TYPE_ATM;
 //					v->cptr->u.atom=vec;
@@ -1103,7 +1103,7 @@
 //				}
 //				else if(isBuiltInHashTable(cState->pattern))
 //				{
-//					FklAstAtom* hash=fklNewAtom(FKL_TYPE_HASHTABLE,v->cptr->outer);
+//					FklAstAtom* hash=fklCreateAtom(FKL_TYPE_HASHTABLE,v->cptr->outer);
 //					fklMakeAstHashTable(&hash->value.hash
 //							,(cState->pattern==HASH_EQ_0||cState->pattern==HASH_EQ_1)?FKL_VM_HASH_EQ
 //							:(cState->pattern==HASH_EQV_0||cState->pattern==HASH_EQV_1)?FKL_VM_HASH_EQV
@@ -1131,10 +1131,10 @@
 //				}
 //				else
 //				{
-//					FklAstAtom* bvec=fklNewAtom(FKL_TYPE_BYTEVECTOR,v->cptr->outer);
+//					FklAstAtom* bvec=fklCreateAtom(FKL_TYPE_BYTEVECTOR,v->cptr->outer);
 //					v->cptr->type=FKL_TYPE_ATM;
 //					v->cptr->u.atom=bvec;
-//					FklBytevector* bv=fklNewBytevector(cStack->top,NULL);
+//					FklBytevector* bv=fklCreateBytevector(cStack->top,NULL);
 //					v->cptr->u.atom->value.bvec=bv;
 //					for(uint32_t i=0;i<cStack->top;i++)
 //					{
@@ -1208,9 +1208,9 @@
 //					(token->value->size==2&&buf[0]=='#'&&buf[1]=='&')?
 //					BOX:
 //					NULL;
-//				MatchState* state=newMatchState(pattern,token->line,0);
+//				MatchState* state=createMatchState(pattern,token->line,0);
 //				fklPushPtrStack(state,matchStateStack);
-//				cStack=fklNewPtrStack(1,1);
+//				cStack=fklCreatePtrStack(1,1);
 //				fklPushPtrStack(cStack,stackStack);
 //				continue;
 //			}
@@ -1236,10 +1236,10 @@
 //				}
 //				else if(state->pattern==BOX)
 //				{
-//					AstElem* v=newAstElem(AST_CAR,fklNewCptr(token->line,NULL));
+//					AstElem* v=createAstElem(AST_CAR,fklCreateCptr(token->line,NULL));
 //					FklAstCptr* vCptr=v->cptr;
 //					vCptr->type=FKL_TYPE_ATM;
-//					FklAstAtom* atom=fklNewAtom(FKL_TYPE_BOX,vCptr->outer);
+//					FklAstAtom* atom=fklCreateAtom(FKL_TYPE_BOX,vCptr->outer);
 //					atom->value.box=*(postfix->cptr);
 //					vCptr->u.atom=atom;
 //					free(postfix->cptr);
@@ -1248,8 +1248,8 @@
 //				}
 //				else
 //				{
-//					AstElem* v=newAstElem(AST_CAR,fklNewCptr(token->line,NULL));
-//					FklAstCptr* prefix=fklNewCptr(token->line,NULL);
+//					AstElem* v=createAstElem(AST_CAR,fklCreateCptr(token->line,NULL));
+//					FklAstCptr* prefix=fklCreateCptr(token->line,NULL);
 //					FklStringMatchPattern* pattern=cState->pattern;
 //					const char* prefixValue=pattern==QUOTE?
 //						"quote":
@@ -1260,8 +1260,8 @@
 //						"unqtesp";
 //					fklPushPtrStack(v,cStack);
 //					prefix->type=FKL_TYPE_ATM;
-//					prefix->u.atom=fklNewAtom(FKL_TYPE_SYM,v->cptr->outer);
-//					prefix->u.atom->value.str=fklNewString(strlen(prefixValue),prefixValue);
+//					prefix->u.atom=fklCreateAtom(FKL_TYPE_SYM,v->cptr->outer);
+//					prefix->u.atom->value.str=fklCreateString(strlen(prefixValue),prefixValue);
 //					copyAndAddToList(v->cptr,prefix);
 //					copyAndAddToList(v->cptr,postfix->cptr);
 //					fklDeleteCptr(prefix);
@@ -1281,7 +1281,7 @@
 //					cpart=fklGetNthPartOfStringMatchPattern(state->pattern,state->cindex);
 //					if(cpart&&fklIsVar(cpart)&&fklIsMustList(cpart))
 //					{
-//						cStack=fklNewPtrStack(32,16);
+//						cStack=fklCreatePtrStack(32,16);
 //						fklPushPtrStack(cStack,stackStack);
 //					}
 //				}
@@ -1299,7 +1299,7 @@
 //					}
 //					fklFreePtrStack(cStack);
 //					cStack=fklTopPtrStack(stackStack);
-//					fklPushPtrStack(newAstElem(AST_CAR,r),cStack);
+//					fklPushPtrStack(createAstElem(AST_CAR,r),cStack);
 //				}
 //				else
 //					break;
@@ -1346,9 +1346,9 @@
 //
 //void fklPrintCptr(const FklAstCptr* o_cptr,FILE* fp)
 //{
-//	FklPtrQueue* queue=fklNewPtrQueue();
-//	FklPtrStack* queueStack=fklNewPtrStack(32,16);
-//	fklPushPtrQueue(newAstElem(AST_CAR,(FklAstCptr*)o_cptr),queue);
+//	FklPtrQueue* queue=fklCreatePtrQueue();
+//	FklPtrStack* queueStack=fklCreatePtrStack(32,16);
+//	fklPushPtrQueue(createAstElem(AST_CAR,(FklAstCptr*)o_cptr),queue);
 //	fklPushPtrStack(queue,queueStack);
 //	while(!fklIsPtrStackEmpty(queueStack))
 //	{
@@ -1389,9 +1389,9 @@
 //					case FKL_TYPE_VECTOR:
 //						fputs("#(",fp);
 //						{
-//							FklPtrQueue* vQueue=fklNewPtrQueue();
+//							FklPtrQueue* vQueue=fklCreatePtrQueue();
 //							for(size_t i=0;i<tmpAtm->value.vec.size;i++)
-//								fklPushPtrQueue(newAstElem(AST_CAR,&tmpAtm->value.vec.base[i]),vQueue);
+//								fklPushPtrQueue(createAstElem(AST_CAR,&tmpAtm->value.vec.base[i]),vQueue);
 //							fklPushPtrStack(vQueue,queueStack);
 //							cQueue=vQueue;
 //							continue;
@@ -1402,7 +1402,7 @@
 //						break;
 //					case FKL_TYPE_BOX:
 //						fputs("#&",fp);
-//						fklPushPtrQueue(newAstElem(AST_BOX,&tmpAtm->value.box),cQueue);
+//						fklPushPtrQueue(createAstElem(AST_BOX,&tmpAtm->value.box),cQueue);
 //						break;
 //					case FKL_TYPE_HASHTABLE:
 //						{
@@ -1414,7 +1414,7 @@
 //							};
 //							fputs(tmp[tmpAtm->value.hash.type],fp);
 //						}
-//						fklPushPtrQueue(newAstElem(AST_BOX,&tmpAtm->value.hash.items),cQueue);
+//						fklPushPtrQueue(createAstElem(AST_BOX,&tmpAtm->value.hash.items),cQueue);
 //						break;
 //					default:
 //						break;
@@ -1425,11 +1425,11 @@
 //			else if(cptr->type==FKL_TYPE_PAIR)
 //			{
 //				fputc('(',fp);
-//				FklPtrQueue* lQueue=fklNewPtrQueue();
+//				FklPtrQueue* lQueue=fklCreatePtrQueue();
 //				FklAstCptr* c=&cptr->u.pair->car;
 //				for(;;)
 //				{
-//					AstElem* ce=newAstElem(AST_CAR,c);
+//					AstElem* ce=createAstElem(AST_CAR,c);
 //					fklPushPtrQueue(ce,lQueue);
 //					FklAstCptr* next=fklNextCptr(c);
 //					if(!next)
@@ -1437,7 +1437,7 @@
 //						FklAstCptr* cdr=fklGetCptrCdr(c);
 //						if(cdr->type!=FKL_TYPE_NIL)
 //						{
-//							AstElem* cdre=newAstElem(AST_CDR,cdr);
+//							AstElem* cdre=createAstElem(AST_CDR,cdr);
 //							fklPushPtrQueue(cdre,lQueue);
 //						}
 //						break;

@@ -7,7 +7,7 @@
 
 FklSymbolTable* GlobSymbolTable=NULL;
 
-FklSymbolTable* fklNewSymbolTable()
+FklSymbolTable* fklCreateSymbolTable()
 {
 	FklSymbolTable* tmp=(FklSymbolTable*)malloc(sizeof(FklSymbolTable));
 	FKL_ASSERT(tmp);
@@ -18,16 +18,16 @@ FklSymbolTable* fklNewSymbolTable()
 	return tmp;
 }
 
-FklSymTabNode* fklNewSymTabNodeCstr(const char* symbol)
+FklSymTabNode* fklCreateSymTabNodeCstr(const char* symbol)
 {
 	FklSymTabNode* tmp=(FklSymTabNode*)malloc(sizeof(FklSymTabNode));
 	FKL_ASSERT(tmp);
 	tmp->id=0;
-	tmp->symbol=fklNewStringFromCstr(symbol);
+	tmp->symbol=fklCreateStringFromCstr(symbol);
 	return tmp;
 }
 
-FklSymTabNode* fklNewSymTabNode(const FklString* symbol)
+FklSymTabNode* fklCreateSymTabNode(const FklString* symbol)
 {
 	FklSymTabNode* tmp=(FklSymTabNode*)malloc(sizeof(FklSymTabNode));
 	FKL_ASSERT(tmp);
@@ -42,7 +42,7 @@ FklSymTabNode* fklAddSymbol(const FklString* sym,FklSymbolTable* table)
 	pthread_rwlock_wrlock(&table->rwlock);
 	if(!table->list)
 	{
-		node=fklNewSymTabNode(sym);
+		node=fklCreateSymTabNode(sym);
 		table->num=1;
 		node->id=table->num;
 		table->list=(FklSymTabNode**)malloc(sizeof(FklSymTabNode*)*1);
@@ -78,7 +78,7 @@ FklSymTabNode* fklAddSymbol(const FklString* sym,FklSymbolTable* table)
 		int32_t i=table->num-1;
 		table->list=(FklSymTabNode**)realloc(table->list,sizeof(FklSymTabNode*)*table->num);
 		FKL_ASSERT(table->list);
-		node=fklNewSymTabNode(sym);
+		node=fklCreateSymTabNode(sym);
 		for(;i>mid;i--)
 			table->list[i]=table->list[i-1];
 		table->list[mid]=node;
@@ -97,7 +97,7 @@ FklSymTabNode* fklAddSymbolCstr(const char* sym,FklSymbolTable* table)
 	pthread_rwlock_wrlock(&table->rwlock);
 	if(!table->list)
 	{
-		node=fklNewSymTabNodeCstr(sym);
+		node=fklCreateSymTabNodeCstr(sym);
 		table->num=1;
 		node->id=table->num;
 		table->list=(FklSymTabNode**)malloc(sizeof(FklSymTabNode*)*1);
@@ -133,7 +133,7 @@ FklSymTabNode* fklAddSymbolCstr(const char* sym,FklSymbolTable* table)
 		int32_t i=table->num-1;
 		table->list=(FklSymTabNode**)realloc(table->list,sizeof(FklSymTabNode*)*table->num);
 		FKL_ASSERT(table->list);
-		node=fklNewSymTabNodeCstr(sym);
+		node=fklCreateSymTabNodeCstr(sym);
 		for(;i>mid;i--)
 			table->list[i]=table->list[i-1];
 		table->list[mid]=node;
@@ -149,14 +149,14 @@ FklSymTabNode* fklAddSymbolCstr(const char* sym,FklSymbolTable* table)
 FklSymTabNode* fklAddSymbolToGlobCstr(const char* sym)
 {
 	if(!GlobSymbolTable)
-		GlobSymbolTable=fklNewSymbolTable();
+		GlobSymbolTable=fklCreateSymbolTable();
 	return fklAddSymbolCstr(sym,GlobSymbolTable);
 }
 
 FklSymTabNode* fklAddSymbolToGlob(const FklString* sym)
 {
 	if(!GlobSymbolTable)
-		GlobSymbolTable=fklNewSymbolTable();
+		GlobSymbolTable=fklCreateSymbolTable();
 	return fklAddSymbol(sym,GlobSymbolTable);
 }
 
@@ -265,7 +265,7 @@ void fklWriteGlobSymbolTable(FILE* fp)
 FklSymbolTable* fklGetGlobSymbolTable(void)
 {
 	if(!GlobSymbolTable)
-		GlobSymbolTable=fklNewSymbolTable();
+		GlobSymbolTable=fklCreateSymbolTable();
 	return GlobSymbolTable;
 }
 

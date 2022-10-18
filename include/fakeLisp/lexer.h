@@ -65,8 +65,8 @@ typedef struct FklNastNode
 }FklNastNode;
 
 //void fklInitLexer(void);
-FklNastNode* fklNewNastNodeFromTokenStack(FklPtrStack*,size_t* errorLine,const FklSid_t t[4]);
-FklNastNode* fklNewNastNodeFromCstr(const char*,const FklSid_t t[4]);
+FklNastNode* fklCreateNastNodeFromTokenStack(FklPtrStack*,size_t* errorLine,const FklSid_t t[4]);
+FklNastNode* fklCreateNastNodeFromCstr(const char*,const FklSid_t t[4]);
 void fklFreeNastNode(FklNastNode*);
 void fklPrintNastNode(const FklNastNode* node,FILE* fp);
 
@@ -75,7 +75,7 @@ int fklPatternMatch(const FklNastNode* pattern
 		,FklHashTable* ht);
 
 FklNastNode* fklPatternMatchingHashTableRef(FklSid_t sid,FklHashTable* ht);
-FklHashTable* fklNewPatternMatchingHashTable(void);
+FklHashTable* fklCreatePatternMatchingHashTable(void);
 void fklFreePatternMatchingHashTable(FklHashTable*);
 int fklIsNastNodeList(const FklNastNode* list);
 

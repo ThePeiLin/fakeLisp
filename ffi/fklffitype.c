@@ -27,7 +27,7 @@ struct GlobTypeUnionListStruct
 
 void fklFfiInitGlobNativeTypes(void)
 {
-	GlobDefTypes=fklFfiNewDefTypes();
+	GlobDefTypes=fklFfiCreateDefTypes();
 	fklFfiInitNativeDefTypes(GlobDefTypes);
 }
 
@@ -82,7 +82,7 @@ void fklFfiInitNativeDefTypes(FklDefTypes* otherTypes)
 	for(;i<num;i++)
 	{
 		FklSid_t typeName=fklAddSymbolToGlobCstr(nativeTypeList[i].typeName)->id;
-		FklTypeId_t t=fklFfiNewNativeType(typeName,nativeTypeList[i].size,nativeTypeList[i].align);
+		FklTypeId_t t=fklFfiCreateNativeType(typeName,nativeTypeList[i].size,nativeTypeList[i].align);
 		fklFfiAddDefTypes(otherTypes,typeName,t);
 	}
 }
@@ -128,7 +128,7 @@ static FklHashTableMethodTable FfiMemberHashMethodTable=
 	.__getKey=_member_getKey,
 };
 
-static FklFfiMemberHashItem* newMemberHashItem(FklSid_t id,FklTypeId_t type,size_t offset)
+static FklFfiMemberHashItem* createMemberHashItem(FklSid_t id,FklTypeId_t type,size_t offset)
 {
 	FklFfiMemberHashItem* r=(FklFfiMemberHashItem*)malloc(sizeof(FklFfiMemberHashItem));
 	FKL_ASSERT(r);
@@ -139,7 +139,7 @@ static FklFfiMemberHashItem* newMemberHashItem(FklSid_t id,FklTypeId_t type,size
 }
 
 
-FklTypeId_t fklFfiNewStructType(FklSid_t structName,uint32_t num,FklSid_t symbols[],FklTypeId_t memberTypes[])
+FklTypeId_t fklFfiCreateStructType(FklSid_t structName,uint32_t num,FklSid_t symbols[],FklTypeId_t memberTypes[])
 {
 	FklTypeId_t id=0;
 	if(structName)
@@ -183,14 +183,14 @@ FklTypeId_t fklFfiNewStructType(FklSid_t structName,uint32_t num,FklSid_t symbol
 		tmp->type=structName;
 		tmp->totalSize=totalSize;
 		tmp->align=structAlign;
-		tmp->layout=fklNewHashTable(8,4,2,0.75,1,&FfiMemberHashMethodTable);
+		tmp->layout=fklCreateHashTable(8,4,2,0.75,1,&FfiMemberHashMethodTable);
 		size_t offset=0;
 		for(uint32_t i=0;i<num;i++)
 		{
 			FklDefTypeUnion tu=fklFfiGetTypeUnion(memberTypes[i]);
 			size_t align=fklFfiGetTypeAlign(tu);
 			offset+=(offset%align)?align-offset%align:0;
-			fklPutNoRpHashItem(newMemberHashItem(symbols[i],memberTypes[i],offset),tmp->layout);
+			fklPutNoRpHashItem(createMemberHashItem(symbols[i],memberTypes[i],offset),tmp->layout);
 			size_t memberSize=fklFfiGetTypeSize(tu);
 			offset+=memberSize;
 		}
@@ -199,7 +199,7 @@ FklTypeId_t fklFfiNewStructType(FklSid_t structName,uint32_t num,FklSid_t symbol
 	return id;
 }
 
-FklTypeId_t fklFfiNewPtrType(FklTypeId_t type)
+FklTypeId_t fklFfiCreatePtrType(FklTypeId_t type)
 {
 	FklTypeId_t id=0;
 	size_t i=0;
@@ -227,7 +227,7 @@ FklTypeId_t fklFfiNewPtrType(FklTypeId_t type)
 	return id;
 }
 
-FklTypeId_t fklFfiNewFuncType(FklTypeId_t rtype,uint32_t anum,FklTypeId_t atypes[])
+FklTypeId_t fklFfiCreateFuncType(FklTypeId_t rtype,uint32_t anum,FklTypeId_t atypes[])
 {
 	FklTypeId_t id=0;
 	size_t i=0;
@@ -259,7 +259,7 @@ FklTypeId_t fklFfiNewFuncType(FklTypeId_t rtype,uint32_t anum,FklTypeId_t atypes
 	return id;
 }
 
-FklTypeId_t fklFfiNewArrayType(FklTypeId_t type,size_t num)
+FklTypeId_t fklFfiCreateArrayType(FklTypeId_t type,size_t num)
 {
 	FklTypeId_t id=0;
 	size_t i=0;
@@ -291,7 +291,7 @@ FklTypeId_t fklFfiNewArrayType(FklTypeId_t type,size_t num)
 		return id;
 }
 
-FklTypeId_t fklFfiNewUnionType(FklSid_t unionName,uint32_t num,FklSid_t symbols[],FklTypeId_t memberTypes[])
+FklTypeId_t fklFfiCreateUnionType(FklSid_t unionName,uint32_t num,FklSid_t symbols[],FklTypeId_t memberTypes[])
 {
 	size_t maxSize=0;
 	size_t align=0;
@@ -309,13 +309,13 @@ FklTypeId_t fklFfiNewUnionType(FklSid_t unionName,uint32_t num,FklSid_t symbols[
 	tmp->type=unionName;
 	tmp->maxSize=maxSize;
 	tmp->align=align;
-	tmp->layout=fklNewHashTable(8,4,2,0.75,1,&FfiMemberHashMethodTable);
+	tmp->layout=fklCreateHashTable(8,4,2,0.75,1,&FfiMemberHashMethodTable);
 	for(uint32_t i=0;i<num;i++)
-		fklPutNoRpHashItem(newMemberHashItem(symbols[i],memberTypes[i],0),tmp->layout);
+		fklPutNoRpHashItem(createMemberHashItem(symbols[i],memberTypes[i],0),tmp->layout);
 	return addToGlobTypeUnionList((FklDefTypeUnion)FKL_MAKE_UNION_TYPE(tmp));
 }
 
-FklDefTypes* fklFfiNewDefTypes(void)
+FklDefTypes* fklFfiCreateDefTypes(void)
 {
 	FklDefTypes* tmp=(FklDefTypes*)malloc(sizeof(FklDefTypes));
 	FKL_ASSERT(tmp);
@@ -324,7 +324,7 @@ FklDefTypes* fklFfiNewDefTypes(void)
 	return tmp;
 }
 
-FklTypeId_t fklFfiNewNativeType(FklSid_t type,size_t size,size_t align)
+FklTypeId_t fklFfiCreateNativeType(FklSid_t type,size_t size,size_t align)
 {
 	FklDefNativeType* tmp=(FklDefNativeType*)malloc(sizeof(FklDefNativeType));
 	FKL_ASSERT(tmp);
@@ -484,7 +484,7 @@ static FklTypeId_t genArrayTypeId(FklVMvalue* numPair,FklDefTypes* otherTypes)
 	FklTypeId_t type=fklFfiGenDefTypesUnion(typeV,otherTypes);
 	if(!type||type==FKL_FFI_TYPE_STRING)
 		return type;
-	return fklFfiNewArrayType(type,fklGetInt(numV));
+	return fklFfiCreateArrayType(type,fklGetInt(numV));
 }
 
 static FklTypeId_t genPtrTypeId(FklVMvalue* typePair,FklDefTypes* otherTypes)
@@ -497,7 +497,7 @@ static FklTypeId_t genPtrTypeId(FklVMvalue* typePair,FklDefTypes* otherTypes)
 	FklTypeId_t pType=fklFfiGenDefTypesUnion(ptrTypeV,otherTypes);
 	if(!pType)
 		return pType;
-	return fklFfiNewPtrType(pType);
+	return fklFfiCreatePtrType(pType);
 }
 
 FklDefTypeUnion fklFfiGetTypeUnion(FklTypeId_t t)
@@ -600,14 +600,14 @@ static void initStructTypeId(FklTypeId_t id,FklSid_t structNameId,uint32_t num,F
 	ost->align=align;
 	if(ost->layout)
 		fklFreeHashTable(ost->layout);
-	ost->layout=fklNewHashTable(8,4,2,0.75,1,&FfiMemberHashMethodTable);
+	ost->layout=fklCreateHashTable(8,4,2,0.75,1,&FfiMemberHashMethodTable);
 	size_t offset=0;
 	for(uint32_t i=0;i<num;i++)
 	{
 		FklDefTypeUnion tu=fklFfiGetTypeUnion(memberTypes[i]);
 		size_t align=fklFfiGetTypeAlign(tu);
 		offset+=(offset%align)?align-offset%align:0;
-		fklPutNoRpHashItem(newMemberHashItem(symbols[i],memberTypes[i],offset),ost->layout);
+		fklPutNoRpHashItem(createMemberHashItem(symbols[i],memberTypes[i],offset),ost->layout);
 		size_t memberSize=fklFfiGetTypeSize(tu);
 		offset+=memberSize;
 	}
@@ -658,7 +658,7 @@ static FklTypeId_t genStructTypeId(FklVMvalue* structBodyPair,FklDefTypes* other
 			return retval;
 	}
 	else if(structNameId!=0)
-		retval=fklFfiNewStructType(structNameId,0,NULL,NULL);
+		retval=fklFfiCreateStructType(structNameId,0,NULL,NULL);
 	for(FklVMvalue* first=memberPair;FKL_IS_PAIR(first);first=first->u.pair->cdr)
 		num++;
 	FklSid_t* memberSymbolList=NULL;
@@ -713,7 +713,7 @@ static FklTypeId_t genStructTypeId(FklVMvalue* structBodyPair,FklDefTypes* other
 	if(retval&&num)
 		initStructTypeId(retval,structNameId,num,memberSymbolList,memberTypeList);
 	else if(!retval)
-		retval=fklFfiNewStructType(structNameId,num,memberSymbolList,memberTypeList);
+		retval=fklFfiCreateStructType(structNameId,num,memberSymbolList,memberTypeList);
 	free(memberSymbolList);
 	free(memberTypeList);
 	return retval;
@@ -742,9 +742,9 @@ static void initUnionTypeId(FklTypeId_t id,FklSid_t unionNameId,uint32_t num,Fkl
 	out->align=align;
 	if(out->layout)
 		fklFreeHashTable(out->layout);
-	out->layout=fklNewHashTable(8,4,2,0.75,1,&FfiMemberHashMethodTable);
+	out->layout=fklCreateHashTable(8,4,2,0.75,1,&FfiMemberHashMethodTable);
 	for(uint32_t i=0;i<num;i++)
-		fklPutNoRpHashItem(newMemberHashItem(symbols[i],memberTypes[i],0),out->layout);
+		fklPutNoRpHashItem(createMemberHashItem(symbols[i],memberTypes[i],0),out->layout);
 	put->ut=FKL_MAKE_UNION_TYPE(out);
 }
 
@@ -792,7 +792,7 @@ static FklTypeId_t genUnionTypeId(FklVMvalue* unionBodyPair,FklDefTypes* otherTy
 			return retval;
 	}
 	else if(unionNameId!=0)
-		retval=fklFfiNewUnionType(unionNameId,0,NULL,NULL);
+		retval=fklFfiCreateUnionType(unionNameId,0,NULL,NULL);
 	for(FklVMvalue* first=memberPair;FKL_IS_PAIR(first);first=first->u.pair->cdr)
 		num++;
 	FklSid_t* memberSymbolList=NULL;
@@ -847,7 +847,7 @@ static FklTypeId_t genUnionTypeId(FklVMvalue* unionBodyPair,FklDefTypes* otherTy
 	if(retval&&num)
 		initUnionTypeId(retval,unionNameId,num,memberTypeList,memberTypeList);
 	else if(!retval)
-		retval=fklFfiNewUnionType(unionNameId,num,memberSymbolList,memberTypeList);
+		retval=fklFfiCreateUnionType(unionNameId,num,memberSymbolList,memberTypeList);
 	free(memberSymbolList);
 	free(memberTypeList);
 	return retval;
@@ -903,7 +903,7 @@ static FklTypeId_t genFuncTypeId(FklVMvalue* functionBodyV,FklDefTypes* otherTyp
         }
         atypes[i]=tmp;
     }
-    FklTypeId_t retval=fklFfiNewFuncType(rtype,i,atypes);
+    FklTypeId_t retval=fklFfiCreateFuncType(rtype,i,atypes);
     free(atypes);
     return retval;
 }

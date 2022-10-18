@@ -25,10 +25,10 @@ typedef struct FklSymbolTable
 	pthread_rwlock_t rwlock;
 }FklSymbolTable;
 
-FklSymbolTable* fklNewSymbolTable();
+FklSymbolTable* fklCreateSymbolTable();
 
-FklSymTabNode* fklNewSymTabNode(const FklString*);
-FklSymTabNode* fklNewSymTabNodeCstr(const char*);
+FklSymTabNode* fklCreateSymTabNode(const FklString*);
+FklSymTabNode* fklCreateSymTabNodeCstr(const char*);
 
 FklSymTabNode* fklAddSymbol(const FklString*,FklSymbolTable*);
 FklSymTabNode* fklAddSymbolCstr(const char*,FklSymbolTable*);

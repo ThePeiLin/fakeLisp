@@ -1,7 +1,7 @@
 #include<fakeLisp/mem.h>
 #include<fakeLisp/utils.h>
 #include<stdlib.h>
-FklMem* fklNewMem(void* block,void (*destructor)(void*))
+FklMem* fklCreateMem(void* block,void (*destructor)(void*))
 {
 	FklMem* tmp=(FklMem*)malloc(sizeof(FklMem));
 	FKL_ASSERT(tmp);
@@ -17,11 +17,11 @@ void fklFreeMem(FklMem* mem)
 	free(mem);
 }
 
-FklMemMenager* fklNewMemMenager(size_t size)
+FklMemMenager* fklCreateMemMenager(size_t size)
 {
 	FklMemMenager* tmp=(FklMemMenager*)malloc(sizeof(FklMemMenager));
 	FKL_ASSERT(tmp);
-	tmp->s=fklNewPtrStack(size,size/2);
+	tmp->s=fklCreatePtrStack(size,size/2);
 	return tmp;
 }
 
@@ -37,7 +37,7 @@ void fklFreeMemMenager(FklMemMenager* memMenager)
 
 void fklPushMem(void* block,void (*destructor)(void*),FklMemMenager* memMenager)
 {
-	FklMem* mem=fklNewMem(block,destructor);
+	FklMem* mem=fklCreateMem(block,destructor);
 	fklPushPtrStack(mem,memMenager->s);
 }
 

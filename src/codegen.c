@@ -1951,6 +1951,7 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklSymbolTable* symbolT
 					{
 						fklPushUintStack(fklGetU64FromByteCode(bc->code+i+sizeof(char)),scpstack);
 						FklCodegenEnv* nextEnv=fklNewCodegenEnv(curEnv);
+						nextEnv->refcount=1;
 						fklPushPtrStack(nextEnv,envstack);
 					}
 					i+=sizeof(char)+sizeof(uint64_t)+fklGetU64FromByteCode(bc->code+i+sizeof(char));
@@ -1960,7 +1961,10 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklSymbolTable* symbolT
 					break;
 				case 0:
 					if(opcode==FKL_OP_PUSH_R_ENV)
+					{
 						curEnv=fklNewCodegenEnv(curEnv);
+						curEnv->refcount=1;
+					}
 					else if(opcode==FKL_OP_POP_R_ENV)
 					{
 						FklCodegenEnv* p=curEnv->prev;

@@ -15,36 +15,36 @@
 #include<tchar.h>
 #endif
 
-FklVMvalue* fklMakeVMf64(double f,FklVMstack* s,FklVMgc* gc)
+FklVMvalue* fklMakeVMf64(double f,FklVM* vm)
 {
-	return fklCreateVMvalueToStack(FKL_TYPE_F64,&f,s,gc);
+	return fklCreateVMvalueToStack(FKL_TYPE_F64,&f,vm);
 }
 
-FklVMvalue* fklMakeVMint(int64_t r64,FklVMstack* s,FklVMgc* gc)
+FklVMvalue* fklMakeVMint(int64_t r64,FklVM* vm)
 {
 	if(r64>INT32_MAX||r64<INT32_MIN)
-		return fklCreateVMvalueToStack(FKL_TYPE_I64,&r64,s,gc);
+		return fklCreateVMvalueToStack(FKL_TYPE_I64,&r64,vm);
 	else
 		return FKL_MAKE_VM_I32(r64);
 }
 
-FklVMvalue* fklMakeVMuint(uint64_t r64,FklVMstack* s,FklVMgc* gc)
+FklVMvalue* fklMakeVMuint(uint64_t r64,FklVM* vm)
 {
 	if(r64>INT64_MAX)
 	{
 		FklBigInt* bi=fklCreateBigIntU(r64);
-		return fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,s,gc);
+		return fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,vm);
 	}
 	else if(r64>INT32_MAX)
-		return fklCreateVMvalueToStack(FKL_TYPE_I64,&r64,s,gc);
+		return fklCreateVMvalueToStack(FKL_TYPE_I64,&r64,vm);
 	else
 		return FKL_MAKE_VM_I32(r64);
 }
 
-FklVMvalue* fklMakeVMintD(double r64,FklVMstack* s,FklVMgc* gc)
+FklVMvalue* fklMakeVMintD(double r64,FklVM* vm)
 {
 	if(r64-INT32_MAX>DBL_EPSILON||r64-INT32_MIN<-DBL_EPSILON)
-		return fklCreateVMvalueToStack(FKL_TYPE_I64,&r64,s,gc);
+		return fklCreateVMvalueToStack(FKL_TYPE_I64,&r64,vm);
 	else
 		return FKL_MAKE_VM_I32(r64);
 }
@@ -464,7 +464,7 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 				FklVMframe* prevFrame=exe->frames;
 				FklVMframe* frame=fklCreateVMframe(&h->proc,prevFrame);
 				frame->localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(prevFrame->localenv,exe->gc));
-				fklAddToGC(frame->localenv,exe->gc);
+				fklAddToGC(frame->localenv,exe);
 				FklVMvalue* curEnv=frame->localenv;
 				FklSid_t idOfError=tb->sid;
 				fklSetRef(fklFindOrAddVar(idOfError,curEnv->u.env),ev,exe->gc);

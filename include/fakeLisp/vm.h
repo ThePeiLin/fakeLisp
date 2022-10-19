@@ -387,10 +387,10 @@ void fklPrincVMvalue(FklVMvalue*,FILE*);
 
 //vmutils
 
-FklVMvalue* fklMakeVMf64(double f,FklVMstack*,FklVMgc* gc);
-FklVMvalue* fklMakeVMint(int64_t r64,FklVMstack*,FklVMgc* gc);
-FklVMvalue* fklMakeVMuint(uint64_t r64,FklVMstack*,FklVMgc* gc);
-FklVMvalue* fklMakeVMintD(double r64,FklVMstack*,FklVMgc* gc);
+FklVMvalue* fklMakeVMf64(double f,FklVM*);
+FklVMvalue* fklMakeVMint(int64_t r64,FklVM*);
+FklVMvalue* fklMakeVMuint(uint64_t r64,FklVM*);
+FklVMvalue* fklMakeVMintD(double r64,FklVM*);
 int fklIsVMnumber(const FklVMvalue* p);
 int fklIsFixint(const FklVMvalue* p);
 int fklIsInt(const FklVMvalue* p);
@@ -404,7 +404,7 @@ typedef struct FklPreEnv FklPreEnv;
 FklHashTable* fklCreateLineNumHashTable(void);
 FklVMvalue* fklGetTopValue(FklVMstack* stack);
 FklVMvalue* fklGetValue(FklVMstack* stack,int32_t place);
-FklVMvalue* fklCastPreEnvToVMenv(FklPreEnv*,FklVMvalue*,FklHashTable*,FklVMgc*);
+//FklVMvalue* fklCastPreEnvToVMenv(FklPreEnv*,FklVMvalue*,FklHashTable*,FklVMgc*);
 //FklAstCptr* fklCastVMvalueToCptr(FklVMvalue* value,uint64_t curline,FklHashTable*);
 
 FklVMstack* fklCopyStack(FklVMstack*);
@@ -448,21 +448,21 @@ void fklDestroyVMenv(FklVMenv*);
 
 FklVMproc* fklCreateVMproc(uint64_t scp,uint64_t cpc);
 
-FklVMvalue* fklCopyVMlistOrAtom(FklVMvalue*,FklVMstack*,FklVMgc*);
-FklVMvalue* fklCopyVMvalue(FklVMvalue*,FklVMstack*,FklVMgc*);
-FklVMvalue* fklCreateVMvalue(FklValueType,void*,FklVMgc*);
+FklVMvalue* fklCopyVMlistOrAtom(FklVMvalue*,FklVM*);
+FklVMvalue* fklCopyVMvalue(FklVMvalue*,FklVM*);
+FklVMvalue* fklCreateVMvalue(FklValueType,void*,FklVM*);
 FklVMvalue* fklCreateVMvalueNoGC(FklValueType,void*,FklVMgc*);
 FklVMvalue* fklCreateVMvalueNoGCAndToStack(FklValueType,void*,FklVMgc*,FklVMstack* s);
 FklVMvalue* fklCreateSaveVMvalue(FklValueType,void*);
 FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
 		,FklHashTable* lineHash
-		,FklVMgc* gc
-		,FklVMstack* vmStack);
-void fklAddToGC(FklVMvalue*,FklVMgc*);
+		,FklVM* vm);
+
+void fklAddToGC(FklVMvalue*,FklVM*);
 void fklAddToGCNoGC(FklVMvalue*,FklVMgc*);
-void fklAddToGCBeforeGC(FklVMvalue*,FklVMgc*);
-FklVMvalue* fklCreateTrueValue(FklVMgc*);
-FklVMvalue* fklCreateNilValue();
+void fklAddToGCBeforeGC(FklVMvalue*,FklVM*);
+FklVMvalue* fklCreateTrueValue(void);
+FklVMvalue* fklCreateNilValue(void);
 FklVMvalue* fklGetTopValue(FklVMstack*);
 FklVMvalue* fklGetValue(FklVMstack*,int32_t);
 FklVMvalue* fklGetVMpairCar(FklVMvalue*);
@@ -473,7 +473,7 @@ int fklVMvalueEq(const FklVMvalue*,const FklVMvalue*);
 int fklNumcmp(FklVMvalue*,FklVMvalue*);
 
 FklVMpair* fklCreateVMpair(void);
-FklVMvalue* fklCreateVMpairV(FklVMvalue* car,FklVMvalue* cdr,FklVMstack*,FklVMgc*);
+FklVMvalue* fklCreateVMpairV(FklVMvalue* car,FklVMvalue* cdr,FklVM*);
 
 FklVMchanl* fklCreateVMchanl(int32_t size);
 
@@ -513,8 +513,8 @@ void fklChanlRecv(FklVMrecv*,FklVMchanl*);
 
 FklVMvec* fklCreateVMvecNoInit(size_t size);
 FklVMvec* fklCreateVMvec(size_t size);
-FklVMvalue* fklCreateVMvecV(size_t size,FklVMvalue** base,FklVMstack*,FklVMgc*);
-FklVMvalue* fklCreateVMvecVFromStack(size_t size,FklVMvalue** base,FklVMstack*,FklVMgc*);
+FklVMvalue* fklCreateVMvecV(size_t size,FklVMvalue** base,FklVM*);
+FklVMvalue* fklCreateVMvecVFromStack(size_t size,FklVMvalue** base,FklVM*);
 void fklDestroyVMvec(FklVMvec*);
 void fklVMvecCat(FklVMvec**,const FklVMvec*);
 
@@ -534,8 +534,7 @@ FklVMvalue* fklTopGet(FklVMstack* stack);
 void fklDecTop(FklVMstack* s);
 FklVMvalue* fklCreateVMvalueToStack(FklValueType
 		,void* p
-		,FklVMstack*
-		,FklVMgc* gc);
+		,FklVM*);
 FklVMvalue* fklSetRef(FklVMvalue* volatile*
 		,FklVMvalue* v
 		,FklVMgc*);
@@ -576,7 +575,7 @@ void fklDestroyVMframes(FklVMframe* h);
 
 #define FKL_RAISE_BUILTIN_ERROR(WHO,ERRORTYPE,RUNNABLE,EXE) do{\
 	char* errorMessage=fklGenErrorMessage((ERRORTYPE),(RUNNABLE),(EXE));\
-	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerrorMCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE)->stack,(EXE)->gc);\
+	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerrorMCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE));\
 	free(errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
 	return;\
@@ -584,7 +583,7 @@ void fklDestroyVMframes(FklVMframe* h);
 
 #define FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,ERRORTYPE,RUNNABLE,EXE) do{\
 	char* errorMessage=fklGenErrorMessage((ERRORTYPE),(RUNNABLE),(EXE));\
-	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerrorCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE)->stack,(EXE)->gc);\
+	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerrorCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE));\
 	free(errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
 	return;\
@@ -592,7 +591,7 @@ void fklDestroyVMframes(FklVMframe* h);
 
 #define FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(WHO,STR,FREE,ERRORTYPE,EXE) do{\
 	char* errorMessage=fklGenInvalidSymbolErrorMessage((STR),(FREE),(ERRORTYPE));\
-	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerrorCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE)->stack,(EXE)->gc);\
+	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerrorCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE));\
 	free(errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
 	return;\

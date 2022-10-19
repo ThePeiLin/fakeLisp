@@ -60,9 +60,10 @@ static LineNumHashItem* createLineNumHashItem(FklVMvalue* value,FklVMvalue* refB
 #define SENTINEL_NAST_NODE (NULL)
 FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
 		,FklHashTable* lineHash
-		,FklVMgc* gc
-		,FklVMstack* vmStack)
+		,FklVM* vm)
 {
+	FklVMstack* vmStack=vm->stack;
+	FklVMgc* gc=vm->gc;
 	FklPtrStack* nodeStack=fklCreatePtrStack(32,16);
 	FklUintStack* reftypeStack=fklCreateUintStack(32,16);
 	FklPtrStack* valueStack=fklCreatePtrStack(32,16);
@@ -120,7 +121,7 @@ FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
 					FKL_ASSERT(0);
 					break;
 			}
-			fklAddToGCNoGC(v,gc);
+			fklAddToGCNoGC(v,vm->gc);
 			fklPushVMvalue(v,vmStack);
 			fklDestroyPtrStack(cStack);
 			cStack=tStack;
@@ -237,7 +238,7 @@ FklVMproc* fklCreateVMproc(uint64_t scp,uint64_t cpc)
 	return tmp;
 }
 
-FklVMvalue* fklCopyVMlistOrAtom(FklVMvalue* obj,FklVMstack* s,FklVMgc* gc)
+FklVMvalue* fklCopyVMlistOrAtom(FklVMvalue* obj,FklVM* vm)
 {
 	FklPtrStack* s1=fklCreatePtrStack(32,16);
 	FklPtrStack* s2=fklCreatePtrStack(32,16);
@@ -263,7 +264,7 @@ FklVMvalue* fklCopyVMlistOrAtom(FklVMvalue* obj,FklVMstack* s,FklVMgc* gc)
 					switch(type)
 					{
 						case FKL_TYPE_PAIR:
-							*root1=fklCreateVMvalueToStack(FKL_TYPE_PAIR,fklCreateVMpair(),s,gc);
+							*root1=fklCreateVMvalueToStack(FKL_TYPE_PAIR,fklCreateVMpair(),vm);
 							fklPushPtrStack(&(*root1)->u.pair->car,s2);
 							fklPushPtrStack(&(*root1)->u.pair->cdr,s2);
 							fklPushPtrStack(root->u.pair->car,s1);
@@ -286,52 +287,51 @@ FklVMvalue* fklCopyVMlistOrAtom(FklVMvalue* obj,FklVMstack* s,FklVMgc* gc)
 	return tmp;
 }
 
-static FklVMvalue* __fkl_f64_copyer(FklVMvalue* obj,FklVMstack* s,FklVMgc* gc)
+static FklVMvalue* __fkl_f64_copyer(FklVMvalue* obj,FklVM* vm)
 {
-	FklVMvalue* tmp=fklCreateVMvalueToStack(FKL_TYPE_F64,NULL,s,gc);
+	FklVMvalue* tmp=fklCreateVMvalueToStack(FKL_TYPE_F64,NULL,vm);
 	tmp->u.f64=obj->u.f64;
 	return tmp;
 }
 
-static FklVMvalue* __fkl_i64_copyer(FklVMvalue* obj,FklVMstack* s,FklVMgc* gc)
+static FklVMvalue* __fkl_i64_copyer(FklVMvalue* obj,FklVM* vm)
 {
-	FklVMvalue* tmp=fklCreateVMvalueToStack(FKL_TYPE_I64,NULL,s,gc);
+	FklVMvalue* tmp=fklCreateVMvalueToStack(FKL_TYPE_I64,NULL,vm);
 	tmp->u.i64=obj->u.i64;
 	return tmp;
 }
 
-static FklVMvalue* __fkl_bigint_copyer(FklVMvalue* obj,FklVMstack* s,FklVMgc* gc)
+static FklVMvalue* __fkl_bigint_copyer(FklVMvalue* obj,FklVM* vm)
 {
-	return fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,fklCopyBigInt(obj->u.bigInt),s,gc);
+	return fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,fklCopyBigInt(obj->u.bigInt),vm);
 }
 
-static FklVMvalue* __fkl_vector_copyer(FklVMvalue* obj,FklVMstack* s,FklVMgc* gc)
+static FklVMvalue* __fkl_vector_copyer(FklVMvalue* obj,FklVM* vm)
 {
-	return fklCreateVMvecV(obj->u.vec->size,obj->u.vec->base,s,gc);
+	return fklCreateVMvecV(obj->u.vec->size,obj->u.vec->base,vm);
 }
 
-static FklVMvalue* __fkl_str_copyer(FklVMvalue* obj,FklVMstack* s,FklVMgc* gc)
+static FklVMvalue* __fkl_str_copyer(FklVMvalue* obj,FklVM* vm)
 {
-	return fklCreateVMvalueToStack(FKL_TYPE_STR,fklCopyString(obj->u.str),s,gc);
+	return fklCreateVMvalueToStack(FKL_TYPE_STR,fklCopyString(obj->u.str),vm); }
+
+static FklVMvalue* __fkl_bytevector_copyer(FklVMvalue* obj,FklVM* vm)
+{
+	return fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCopyBytevector(obj->u.bvec),vm);
 }
 
-static FklVMvalue* __fkl_bytevector_copyer(FklVMvalue* obj,FklVMstack* s,FklVMgc* gc)
-{
-	return fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCopyBytevector(obj->u.bvec),s,gc);
-}
-
-static FklVMvalue* __fkl_pair_copyer(FklVMvalue* obj,FklVMstack* s,FklVMgc* gc)
+static FklVMvalue* __fkl_pair_copyer(FklVMvalue* obj,FklVM* vm)
 {
 //	return fklCreateVMpairV(obj->u.pair->car,obj->u.pair->cdr,s,gc);
-	return fklCopyVMlistOrAtom(obj,s,gc);
+	return fklCopyVMlistOrAtom(obj,vm);
 }
 
-static FklVMvalue* __fkl_box_copyer(FklVMvalue* obj,FklVMstack* s,FklVMgc* gc)
+static FklVMvalue* __fkl_box_copyer(FklVMvalue* obj,FklVM* vm)
 {
-	return fklCreateVMvalueToStack(FKL_TYPE_BOX,obj->u.box,s,gc);
+	return fklCreateVMvalueToStack(FKL_TYPE_BOX,obj->u.box,vm);
 }
 
-static FklVMvalue* __fkl_userdata_copyer(FklVMvalue* obj,FklVMstack* s,FklVMgc* gc)
+static FklVMvalue* __fkl_userdata_copyer(FklVMvalue* obj,FklVM* vm)
 {
 	if(obj->u.ud->t->__copy==NULL)
 		return NULL;
@@ -341,22 +341,22 @@ static FklVMvalue* __fkl_userdata_copyer(FklVMvalue* obj,FklVMstack* s,FklVMgc* 
 					,obj->u.ud->t
 					,obj->u.ud->t->__copy(obj->u.ud->data)
 					,obj->u.ud->rel)
-				,s,gc);
+				,vm);
 }
 
-static FklVMvalue* __fkl_hashtable_copyer(FklVMvalue* obj,FklVMstack* s,FklVMgc* gc)
+static FklVMvalue* __fkl_hashtable_copyer(FklVMvalue* obj,FklVM* vm)
 {
 	FklVMhashTable* ht=obj->u.hash;
 	FklVMhashTable* nht=fklCreateVMhashTable(obj->u.hash->type);
 	for(FklHashTableNodeList* list=ht->ht->list;list;list=list->next)
 	{
 		FklVMhashTableItem* item=list->node->item;
-		fklSetVMhashTable(item->key,item->v,nht,gc);
+		fklSetVMhashTable(item->key,item->v,nht,vm->gc);
 	}
-	return fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE,nht,s,gc);
+	return fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE,nht,vm);
 }
 
-static FklVMvalue* (*const valueCopyers[])(FklVMvalue* obj,FklVMstack* s,FklVMgc* gc)=
+static FklVMvalue* (*const valueCopyers[])(FklVMvalue* obj,FklVM* vm)=
 {
 	NULL,
 	NULL,
@@ -383,7 +383,7 @@ static FklVMvalue* (*const valueCopyers[])(FklVMvalue* obj,FklVMstack* s,FklVMgc
 	NULL,
 };
 
-FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVMstack* s,FklVMgc* gc)
+FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVM* vm)
 {
 	FklVMvalue* tmp=FKL_VM_NIL;
 	FklVMptrTag tag=FKL_GET_TAG(obj);
@@ -399,11 +399,11 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVMstack* s,FklVMgc* gc)
 			{
 				FklValueType type=obj->type;
 				FKL_ASSERT(type<=FKL_TYPE_HASHTABLE);
-				FklVMvalue* (*valueCopyer)(FklVMvalue* obj,FklVMstack* s,FklVMgc* gc)=valueCopyers[type];
+				FklVMvalue* (*valueCopyer)(FklVMvalue* obj,FklVM* vm)=valueCopyers[type];
 				if(!valueCopyer)
 					return NULL;
 				else
-					return valueCopyer(obj,s,gc);
+					return valueCopyer(obj,vm);
 			}
 			break;
 		default:
@@ -441,23 +441,23 @@ static inline int64_t getI64FromByteCode(uint8_t* code)
 	return i;
 }
 
-FklVMvalue* fklCreateVMvalue(FklValueType type,void* pValue,FklVMgc* gc)
+FklVMvalue* fklCreateVMvalue(FklValueType type,void* pValue,FklVM* vm)
 {
 	FklVMvalue* r=fklCreateSaveVMvalue(type,pValue);
-	fklAddToGC(r,gc);
+	fklAddToGC(r,vm);
 	return r;
 }
 
 FklVMvalue* fklCreateVMvalueToStack(FklValueType type
 		,void* pValue
-		,FklVMstack* stack
-		,FklVMgc* gc)
+		,FklVM* vm)
 {
+	FklVMstack* stack=vm->stack;
 	FklVMvalue* r=fklCreateSaveVMvalue(type,pValue);
-//	pthread_rwlock_wrlock(&stack->lock);
+	//	pthread_rwlock_wrlock(&stack->lock);
 	fklPushVMvalue(r,stack);
-//	pthread_rwlock_unlock(&stack->lock);
-	fklAddToGCBeforeGC(r,gc);
+	//	pthread_rwlock_unlock(&stack->lock);
+	fklAddToGCBeforeGC(r,vm);
 	return stack->values[stack->tp-1];
 }
 
@@ -550,10 +550,11 @@ void fklAddToGCNoGC(FklVMvalue* v,FklVMgc* gc)
 	}
 }
 
-static void tryGC(FklVMgc* gc)
+static void tryGC(FklVM* vm)
 {
+	FklVMgc* gc=vm->gc;
 	if(gc->num>gc->threshold)
-		fklGC_threadFunc(gc);
+		fklGC_threadFunc(vm);
 }
 
 FklVMvalue* fklCreateVMvalueNoGC(FklValueType type,void* pValue,FklVMgc* gc)
@@ -571,8 +572,9 @@ FklVMvalue* fklCreateVMvalueNoGCAndToStack(FklValueType type,void* pValue,FklVMg
 	return r;
 }
 
-void fklAddToGCBeforeGC(FklVMvalue* v,FklVMgc* gc)
+void fklAddToGCBeforeGC(FklVMvalue* v,FklVM* vm)
 {
+	FklVMgc* gc=vm->gc;
 	if(FKL_IS_PTR(v))
 	{
 		FklGCstate running=fklGetGCstate(gc);
@@ -582,13 +584,14 @@ void fklAddToGCBeforeGC(FklVMvalue* v,FklVMgc* gc)
 		gc->num+=1;
 		v->next=gc->head;
 		gc->head=v;
-		tryGC(gc);
+		tryGC(vm);
 		pthread_rwlock_unlock(&gc->lock);
 	}
 }
 
-void fklAddToGC(FklVMvalue* v,FklVMgc* gc)
+void fklAddToGC(FklVMvalue* v,FklVM* vm)
 {
+	FklVMgc* gc=vm->gc;
 	if(FKL_IS_PTR(v))
 	{
 		FklGCstate running=fklGetGCstate(gc);
@@ -596,23 +599,21 @@ void fklAddToGC(FklVMvalue* v,FklVMgc* gc)
 			fklGC_toGrey(v,gc);
 		pthread_rwlock_wrlock(&gc->lock);
 		gc->num+=1;
-		tryGC(gc);
+		tryGC(vm);
 		v->next=gc->head;
 		gc->head=v;
 		pthread_rwlock_unlock(&gc->lock);
 	}
 }
 
-FklVMvalue* fklCreateTrueValue(FklVMgc* gc)
+inline FklVMvalue* fklCreateTrueValue()
 {
-	FklVMvalue* tmp=fklCreateVMvalue(FKL_TYPE_I32,(FklVMptr)1,gc);
-	return tmp;
+	return FKL_MAKE_VM_I32(1);
 }
 
-FklVMvalue* fklCreateNilValue(FklVMgc* gc)
+inline FklVMvalue* fklCreateNilValue()
 {
-	FklVMvalue* tmp=fklCreateVMvalue(FKL_TYPE_NIL,NULL,gc);
-	return tmp;
+	return FKL_VM_NIL;
 }
 
 FklVMvalue* fklGetVMpairCar(FklVMvalue* obj)
@@ -764,17 +765,19 @@ FklVMpair* fklCreateVMpair(void)
 	return tmp;
 }
 
-FklVMvalue* fklCreateVMpairV(FklVMvalue* car,FklVMvalue* cdr,FklVMstack* stack,FklVMgc* gc)
+FklVMvalue* fklCreateVMpairV(FklVMvalue* car,FklVMvalue* cdr,FklVM* vm)
 {
-	FklVMvalue* pair=fklCreateVMvalueToStack(FKL_TYPE_PAIR,fklCreateVMpair(),stack,gc);
+	FklVMgc* gc=vm->gc;
+	FklVMvalue* pair=fklCreateVMvalueToStack(FKL_TYPE_PAIR,fklCreateVMpair(),vm);
 	fklSetRef(&pair->u.pair->car,car,gc);
 	fklSetRef(&pair->u.pair->cdr,cdr,gc);
 	return pair;
 }
 
-FklVMvalue* fklCreateVMvecV(size_t size,FklVMvalue** base,FklVMstack* stack,FklVMgc* gc)
+FklVMvalue* fklCreateVMvecV(size_t size,FklVMvalue** base,FklVM* vm)
 {
-	FklVMvalue* vec=fklCreateVMvalueToStack(FKL_TYPE_VECTOR,fklCreateVMvec(size),stack,gc);
+	FklVMgc* gc=vm->gc;
+	FklVMvalue* vec=fklCreateVMvalueToStack(FKL_TYPE_VECTOR,fklCreateVMvec(size),vm);
 	if(base)
 		for(size_t i=0;i<size;i++)
 			fklSetRef(&vec->u.vec->base[i],base[i],gc);

@@ -147,7 +147,7 @@ void builtin_cons(ARGL)
 	FKL_NI_CHECK_REST_ARG(&ap,stack,"builtin.cons",frame,exe);
 	if(!car||!cdr)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.cons",FKL_ERR_TOOFEWARG,frame,exe);
-	fklNiReturn(fklCreateVMpairV(car,cdr,stack,exe->gc),&ap,stack);
+	fklNiReturn(fklCreateVMpairV(car,cdr,exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -221,7 +221,7 @@ void builtin_copy(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.copy",FKL_ERR_TOOFEWARG,frame,exe);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.copy",FKL_ERR_TOOMANYARG,frame,exe);
-	FklVMvalue* retval=fklCopyVMvalue(obj,stack,exe->gc);
+	FklVMvalue* retval=fklCopyVMvalue(obj,exe);
 	if(!retval)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.copy",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	fklNiReturn(retval,&ap,stack);
@@ -239,7 +239,7 @@ void builtin_append(ARGL)
 		retval=cur;
 		cur=fklNiGetArg(&ap,stack);
 		if(cur)
-			retval=fklCopyVMvalue(retval,stack,exe->gc);
+			retval=fklCopyVMvalue(retval,exe);
 		if(!retval)
 			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.append",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 		for(;cur;cur=fklNiGetArg(&ap,stack))
@@ -256,7 +256,7 @@ void builtin_append(ARGL)
 			if(*prev==FKL_VM_NIL)
 			{
 				*prev=cur;
-				*prev=fklCopyVMlistOrAtom(*prev,stack,exe->gc);
+				*prev=fklCopyVMlistOrAtom(*prev,exe);
 				for(;FKL_IS_PAIR(*prev);prev=&(*prev)->u.pair->cdr);
 			}
 			else
@@ -354,22 +354,22 @@ void builtin_add(ARGL)
 	if(rd!=0.0)
 	{
 		rd+=r64+fklBigIntToDouble(bi);
-		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&rd,stack,exe->gc),&ap,stack);
+		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&rd,exe),&ap,stack);
 		fklDestroyBigInt(bi);
 	}
 	else if(FKL_IS_0_BIG_INT(bi))
 	{
-		fklNiReturn(fklMakeVMint(r64,stack,exe->gc),&ap,stack);
+		fklNiReturn(fklMakeVMint(r64,exe),&ap,stack);
 		fklDestroyBigInt(bi);
 	}
 	else
 	{
 		fklAddBigIntI(bi,r64);
 		if(fklIsGtLtI64BigInt(bi))
-			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,stack,exe->gc),&ap,stack);
+			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,exe),&ap,stack);
 		else
 		{
-			fklNiReturn(fklMakeVMint(fklBigIntToI64(bi),stack,exe->gc),&ap,stack);
+			fklNiReturn(fklMakeVMint(fklBigIntToI64(bi),exe),&ap,stack);
 			fklDestroyBigInt(bi);
 		}
 	}
@@ -389,7 +389,7 @@ void builtin_add_1(ARGL)
 	if(FKL_IS_F64(arg))
 	{
 		double r=arg->u.f64+1.0;
-		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&r,stack,exe->gc),&ap,stack);
+		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&r,exe),&ap,stack);
 	}
 	else
 	{
@@ -400,10 +400,10 @@ void builtin_add_1(ARGL)
 				FklBigInt* bi=fklCreateBigInt0();
 				fklSetBigInt(bi,arg->u.bigInt);
 				fklAddBigIntI(bi,1);
-				fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,stack,exe->gc),&ap,stack);
+				fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,exe),&ap,stack);
 			}
 			else
-				fklNiReturn(fklMakeVMint(fklBigIntToI64(arg->u.bigInt)+1,stack,exe->gc),&ap,stack);
+				fklNiReturn(fklMakeVMint(fklBigIntToI64(arg->u.bigInt)+1,exe),&ap,stack);
 		}
 		else
 		{
@@ -412,10 +412,10 @@ void builtin_add_1(ARGL)
 			{
 				FklBigInt* bi=fklCreateBigInt(i);
 				fklAddBigIntI(bi,1);
-				fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,stack,exe->gc),&ap,stack);
+				fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,exe),&ap,stack);
 			}
 			else
-				fklNiReturn(fklMakeVMint(fklGetInt(arg)+1,stack,exe->gc),&ap,stack);
+				fklNiReturn(fklMakeVMint(fklGetInt(arg)+1,exe),&ap,stack);
 		}
 	}
 	fklNiEnd(&ap,stack);
@@ -438,7 +438,7 @@ void builtin_sub(ARGL)
 		if(FKL_IS_F64(prev))
 		{
 			rd=-prev->u.f64;
-			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&rd,stack,exe->gc),&ap,stack);
+			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&rd,exe),&ap,stack);
 		}
 		else if(fklIsFixint(prev))
 		{
@@ -447,10 +447,10 @@ void builtin_sub(ARGL)
 			{
 				FklBigInt* bi=fklCreateBigInt(p64);
 				fklMulBigIntI(bi,-1);
-				fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,stack,exe->gc),&ap,stack);
+				fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,exe),&ap,stack);
 			}
 			else
-				fklNiReturn(fklMakeVMint(-fklGetInt(prev),stack,exe->gc),&ap,stack);
+				fklNiReturn(fklMakeVMint(-fklGetInt(prev),exe),&ap,stack);
 		}
 		else
 		{
@@ -458,10 +458,10 @@ void builtin_sub(ARGL)
 			fklSetBigInt(bi,prev->u.bigInt);
 			fklMulBigIntI(bi,-1);
 			if(fklIsGtLtI64BigInt(bi))
-				fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,stack,exe->gc),&ap,stack);
+				fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,exe),&ap,stack);
 			else
 			{
-				fklNiReturn(fklMakeVMint(fklBigIntToI64(bi),stack,exe->gc),&ap,stack);
+				fklNiReturn(fklMakeVMint(fklBigIntToI64(bi),exe),&ap,stack);
 				fklDestroyBigInt(bi);
 			}
 		}
@@ -493,7 +493,7 @@ void builtin_sub(ARGL)
 		if(FKL_IS_F64(prev)||rd!=0.0)
 		{
 			rd=fklGetDouble(prev)-rd-r64-fklBigIntToDouble(bi);
-			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&rd,stack,exe->gc),&ap,stack);
+			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&rd,exe),&ap,stack);
 			fklDestroyBigInt(bi);
 		}
 		else if(FKL_IS_0_BIG_INT(bi)&&!FKL_IS_BIG_INT(prev))
@@ -503,12 +503,12 @@ void builtin_sub(ARGL)
 			{
 				fklAddBigIntI(bi,p64);
 				fklSubBigIntI(bi,r64);
-				fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,stack,exe->gc),&ap,stack);
+				fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,exe),&ap,stack);
 			}
 			else
 			{
 				r64=p64-r64;
-				fklNiReturn(fklMakeVMint(r64,stack,exe->gc),&ap,stack);
+				fklNiReturn(fklMakeVMint(r64,exe),&ap,stack);
 				fklDestroyBigInt(bi);
 			}
 		}
@@ -517,7 +517,7 @@ void builtin_sub(ARGL)
 			fklSubBigInt(bi,prev->u.bigInt);
 			fklMulBigIntI(bi,-1);
 			fklSubBigIntI(bi,r64);
-			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,stack,exe->gc),&ap,stack);
+			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,exe),&ap,stack);
 		}
 	}
 	fklNiEnd(&ap,stack);
@@ -534,7 +534,7 @@ void builtin_abs(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.abs",FKL_ERR_TOOFEWARG,frame,exe);
 	FKL_NI_CHECK_TYPE(obj,fklIsVMnumber,"builtin.abs",frame,exe);
 	if(FKL_IS_F64(obj))
-		fklNiReturn(fklMakeVMf64(fabs(obj->u.f64),stack,exe->gc),&ap,stack);
+		fklNiReturn(fklMakeVMf64(fabs(obj->u.f64),exe),&ap,stack);
 	else
 	{
 		if(fklIsFixint(obj))
@@ -544,16 +544,16 @@ void builtin_abs(ARGL)
 			{
 				FklBigInt* bi=fklCreateBigInt(i);
 				bi->neg=0;
-				fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,stack,exe->gc),&ap,stack);
+				fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,exe),&ap,stack);
 			}
 			else
-				fklNiReturn(fklMakeVMuint(labs(i),stack,exe->gc),&ap,stack);
+				fklNiReturn(fklMakeVMuint(labs(i),exe),&ap,stack);
 		}
 		else
 		{
 			FklBigInt* bi=fklCopyBigInt(obj->u.bigInt);
 			bi->neg=0;
-			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,stack,exe->gc),&ap,stack);
+			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,exe),&ap,stack);
 		}
 	}
 	fklNiEnd(&ap,stack);
@@ -572,7 +572,7 @@ void builtin_sub_1(ARGL)
 	if(FKL_IS_F64(arg))
 	{
 		double r=arg->u.f64-1.0;
-		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&r,stack,exe->gc),&ap,stack);
+		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&r,exe),&ap,stack);
 	}
 	else
 	{
@@ -583,10 +583,10 @@ void builtin_sub_1(ARGL)
 				FklBigInt* bi=fklCreateBigInt0();
 				fklSetBigInt(bi,arg->u.bigInt);
 				fklAddBigIntI(bi,1);
-				fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,stack,exe->gc),&ap,stack);
+				fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,exe),&ap,stack);
 			}
 			else
-				fklNiReturn(fklMakeVMint(fklBigIntToI64(arg->u.bigInt)-1,stack,exe->gc),&ap,stack);
+				fklNiReturn(fklMakeVMint(fklBigIntToI64(arg->u.bigInt)-1,exe),&ap,stack);
 		}
 		else
 		{
@@ -595,10 +595,10 @@ void builtin_sub_1(ARGL)
 			{
 				FklBigInt* bi=fklCreateBigInt(i);
 				fklSubBigIntI(bi,1);
-				fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,stack,exe->gc),&ap,stack);
+				fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,exe),&ap,stack);
 			}
 			else
-				fklNiReturn(fklMakeVMint(fklGetInt(arg)-1,stack,exe->gc),&ap,stack);
+				fklNiReturn(fklMakeVMint(fklGetInt(arg)-1,exe),&ap,stack);
 		}
 	}
 	fklNiEnd(&ap,stack);
@@ -636,18 +636,18 @@ void builtin_mul(ARGL)
 	if(rd!=1.0)
 	{
 		rd*=r64*fklBigIntToDouble(bi);
-		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&rd,stack,exe->gc),&ap,stack);
+		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&rd,exe),&ap,stack);
 		fklDestroyBigInt(bi);
 	}
 	else if(FKL_IS_1_BIG_INT(bi))
 	{
-		fklNiReturn(fklMakeVMint(r64,stack,exe->gc),&ap,stack);
+		fklNiReturn(fklMakeVMint(r64,exe),&ap,stack);
 		fklDestroyBigInt(bi);
 	}
 	else
 	{
 		fklMulBigIntI(bi,r64);
-		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,stack,exe->gc),&ap,stack);
+		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,exe),&ap,stack);
 	}
 	fklNiEnd(&ap,stack);
 }
@@ -719,17 +719,17 @@ void builtin_idiv(ARGL)
 			fklDivBigInt(t,bi);
 			fklDivBigIntI(t,r64);
 			if(fklIsGtLtI64BigInt(t))
-				fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,t,stack,exe->gc),&ap,stack);
+				fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,t,exe),&ap,stack);
 			else
 			{
-				fklNiReturn(fklMakeVMint(fklBigIntToI64(t),stack,exe->gc),&ap,stack);
+				fklNiReturn(fklMakeVMint(fklBigIntToI64(t),exe),&ap,stack);
 				fklDestroyBigInt(t);
 			}
 		}
 		else
 		{
 			r64=fklGetInt(prev)/r64;
-			fklNiReturn(fklMakeVMint(r64,stack,exe->gc),&ap,stack);
+			fklNiReturn(fklMakeVMint(r64,exe),&ap,stack);
 		}
 		fklDestroyBigInt(bi);
 	}
@@ -755,7 +755,7 @@ void builtin_div(ARGL)
 			if(prev->u.f64==0.0)
 				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin./",FKL_ERR_DIVZEROERROR,frame,exe);
 			rd=1/prev->u.f64;
-			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&rd,stack,exe->gc),&ap,stack);
+			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&rd,exe),&ap,stack);
 		}
 		else
 		{
@@ -767,7 +767,7 @@ void builtin_div(ARGL)
 				if(1%r64)
 				{
 					rd=1.0/r64;
-					fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&rd,stack,exe->gc),&ap,stack);
+					fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&rd,exe),&ap,stack);
 				}
 				else
 					fklNiReturn(FKL_MAKE_VM_I32(1),&ap,stack);
@@ -780,7 +780,7 @@ void builtin_div(ARGL)
 				{
 					double bd=fklBigIntToDouble(prev->u.bigInt);
 					rd=1.0/bd;
-					fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&rd,stack,exe->gc),&ap,stack);
+					fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&rd,exe),&ap,stack);
 				}
 			}
 		}
@@ -824,7 +824,7 @@ void builtin_div(ARGL)
 						||!fklIsDivisibleBigIntI(prev->u.bigInt,r64))))
 		{
 			rd=fklGetDouble(prev)/rd/r64/fklBigIntToDouble(bi);
-			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&rd,stack,exe->gc),&ap,stack);
+			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&rd,exe),&ap,stack);
 		}
 		else
 		{
@@ -835,17 +835,17 @@ void builtin_div(ARGL)
 				fklDivBigInt(t,bi);
 				fklDivBigIntI(t,r64);
 				if(fklIsGtLtI64BigInt(t))
-					fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,t,stack,exe->gc),&ap,stack);
+					fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,t,exe),&ap,stack);
 				else
 				{
-					fklNiReturn(fklMakeVMint(fklBigIntToI64(t),stack,exe->gc),&ap,stack);
+					fklNiReturn(fklMakeVMint(fklBigIntToI64(t),exe),&ap,stack);
 					fklDestroyBigInt(t);
 				}
 			}
 			else
 			{
 				r64=fklGetInt(prev)/r64;
-				fklNiReturn(fklMakeVMint(r64,stack,exe->gc),&ap,stack);
+				fklNiReturn(fklMakeVMint(r64,exe),&ap,stack);
 			}
 		}
 		fklDestroyBigInt(bi);
@@ -872,7 +872,7 @@ void builtin_mod(ARGL)
 		if(as==0.0)
 			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.%",FKL_ERR_DIVZEROERROR,frame,exe);
 		double r=fmod(af,as);
-		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&r,stack,exe->gc),&ap,stack);
+		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&r,exe),&ap,stack);
 	}
 	else if(fklIsFixint(fir)&&fklIsFixint(sec))
 	{
@@ -880,7 +880,7 @@ void builtin_mod(ARGL)
 		int64_t r=fklGetInt(fir)%si;
 		if(si==0)
 			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.%",FKL_ERR_DIVZEROERROR,frame,exe);
-		fklNiReturn(fklMakeVMint(r,stack,exe->gc),&ap,stack);
+		fklNiReturn(fklMakeVMint(r,exe),&ap,stack);
 	}
 	else
 	{
@@ -909,10 +909,10 @@ void builtin_mod(ARGL)
 			fklModBigIntI(rem,si);
 		}
 		if(fklIsGtLtI64BigInt(rem))
-			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,rem,stack,exe->gc),&ap,stack);
+			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,rem,exe),&ap,stack);
 		else
 		{
-			fklNiReturn(fklMakeVMint(fklBigIntToI64(rem),stack,exe->gc),&ap,stack);
+			fklNiReturn(fklMakeVMint(fklBigIntToI64(rem),exe),&ap,stack);
 			fklDestroyBigInt(rem);
 		}
 	}
@@ -1285,7 +1285,7 @@ void builtin_list_to_vector(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.list->vector",FKL_ERR_TOOFEWARG,frame,exe);
 	FKL_NI_CHECK_TYPE(obj,fklIsList,"builtin.list->vector",frame,exe);
 	size_t len=fklVMlistLength(obj);
-	FklVMvalue* r=fklCreateVMvecV(len,NULL,stack,exe->gc);
+	FklVMvalue* r=fklCreateVMvecV(len,NULL,exe);
 	for(size_t i=0;obj!=FKL_VM_NIL;i++,obj=obj->u.pair->cdr)
 		fklSetRef(&r->u.vec->base[i],obj->u.pair->car,exe->gc);
 	fklNiReturn(r,&ap,stack);
@@ -1303,7 +1303,7 @@ void builtin_string_to_vector(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.string->vector",FKL_ERR_TOOFEWARG,frame,exe);
 	FKL_NI_CHECK_TYPE(obj,FKL_IS_STR,"builtin.string->vector",frame,exe);
 	size_t len=obj->u.str->size;
-	FklVMvalue* r=fklCreateVMvecV(len,NULL,stack,exe->gc);
+	FklVMvalue* r=fklCreateVMvecV(len,NULL,exe);
 	for(size_t i=0;i<len;i++)
 		fklSetRef(&r->u.vec->base[i],FKL_MAKE_VM_CHR(obj->u.str->str[i]),exe->gc);
 	fklNiReturn(r,&ap,stack);
@@ -1331,7 +1331,7 @@ void builtin_make_list(ARGL)
 	FklVMvalue* t=content?content:FKL_VM_NIL;
 	for(size_t i=0;i<len;i++)
 	{
-		fklSetRef(cur,fklCreateVMvalue(FKL_TYPE_PAIR,fklCreateVMpair(),gc),gc);
+		fklSetRef(cur,fklCreateVMvalue(FKL_TYPE_PAIR,fklCreateVMpair(),exe),gc);
 		fklSetRef(&(*cur)->u.pair->car,t,gc);
 		cur=&(*cur)->u.pair->cdr;
 	}
@@ -1356,7 +1356,7 @@ void builtin_string_to_list(ARGL)
 	FklVMvalue** cur=pr;
 	for(size_t i=0;i<str->size;i++)
 	{
-		fklSetRef(cur,fklCreateVMvalue(FKL_TYPE_PAIR,fklCreateVMpair(),gc),gc);
+		fklSetRef(cur,fklCreateVMvalue(FKL_TYPE_PAIR,fklCreateVMpair(),exe),gc);
 		fklSetRef(&(*cur)->u.pair->car,FKL_MAKE_VM_CHR(str->str[i]),gc);
 		cur=&(*cur)->u.pair->cdr;
 	}
@@ -1382,7 +1382,7 @@ void builtin_bytevector_to_s8_list(ARGL)
 	FklVMvalue** cur=pr;
 	for(size_t i=0;i<size;i++)
 	{
-		fklSetRef(cur,fklCreateVMvalue(FKL_TYPE_PAIR,fklCreateVMpair(),gc),gc);
+		fklSetRef(cur,fklCreateVMvalue(FKL_TYPE_PAIR,fklCreateVMpair(),exe),gc);
 		fklSetRef(&(*cur)->u.pair->car,FKL_MAKE_VM_I32(s8a[i]),gc);
 		cur=&(*cur)->u.pair->cdr;
 	}
@@ -1408,7 +1408,7 @@ void builtin_bytevector_to_u8_list(ARGL)
 	FklVMvalue** cur=pr;
 	for(size_t i=0;i<size;i++)
 	{
-		fklSetRef(cur,fklCreateVMvalue(FKL_TYPE_PAIR,fklCreateVMpair(),gc),gc);
+		fklSetRef(cur,fklCreateVMvalue(FKL_TYPE_PAIR,fklCreateVMpair(),exe),gc);
 		fklSetRef(&(*cur)->u.pair->car,FKL_MAKE_VM_I32(u8a[i]),gc);
 		cur=&(*cur)->u.pair->cdr;
 	}
@@ -1430,7 +1430,7 @@ void builtin_bytevector_to_s8_vector(ARGL)
 	fklPushVMvalue(FKL_VM_NIL,stack);
 	size_t size=obj->u.bvec->size;
 	int8_t* s8a=(int8_t*)obj->u.bvec->ptr;
-	FklVMvalue* vec=fklCreateVMvecV(obj->u.bvec->size,NULL,stack,exe->gc);
+	FklVMvalue* vec=fklCreateVMvecV(obj->u.bvec->size,NULL,exe);
 	for(size_t i=0;i<size;i++)
 		fklSetRef(&vec->u.vec->base[i],FKL_MAKE_VM_I32(s8a[i]),gc);
 	fklNiReturn(vec,&ap,stack);
@@ -1451,7 +1451,7 @@ void builtin_bytevector_to_u8_vector(ARGL)
 	fklPushVMvalue(FKL_VM_NIL,stack);
 	size_t size=obj->u.bvec->size;
 	uint8_t* u8a=obj->u.bvec->ptr;
-	FklVMvalue* vec=fklCreateVMvecV(obj->u.bvec->size,NULL,stack,exe->gc);
+	FklVMvalue* vec=fklCreateVMvecV(obj->u.bvec->size,NULL,exe);
 	for(size_t i=0;i<size;i++)
 		fklSetRef(&vec->u.vec->base[i],FKL_MAKE_VM_I32(u8a[i]),gc);
 	fklNiReturn(vec,&ap,stack);
@@ -1475,7 +1475,7 @@ void builtin_vector_to_list(ARGL)
 	FklVMvalue** cur=pr;
 	for(size_t i=0;i<vec->size;i++)
 	{
-		fklSetRef(cur,fklCreateVMpairV(vec->base[i],FKL_VM_NIL,stack,gc),gc);
+		fklSetRef(cur,fklCreateVMpairV(vec->base[i],FKL_VM_NIL,exe),gc);
 		cur=&(*cur)->u.pair->cdr;
 		fklPopVMstack(stack);
 	}
@@ -1486,10 +1486,9 @@ void builtin_vector_to_list(ARGL)
 void builtin_string(ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMgc* gc=exe->gc;
 	FklVMframe* frame=exe->frames;
 	size_t size=ap-stack->bp;
-	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(size,NULL),stack,gc);
+	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(size,NULL),exe);
 	FklString* str=r->u.str;
 	size_t i=0;
 	for(FklVMvalue* cur=fklNiGetArg(&ap,stack)
@@ -1507,7 +1506,6 @@ void builtin_string(ARGL)
 void builtin_make_string(ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMgc* gc=exe->gc;
 	FklVMframe* frame=exe->frames;
 	FklVMvalue* size=fklNiGetArg(&ap,stack);
 	if(!size)
@@ -1517,7 +1515,7 @@ void builtin_make_string(ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.make-string",FKL_ERR_TOOMANYARG,frame,exe);
 	size_t len=fklGetUint(size);
-	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(len,NULL),stack,gc);
+	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(len,NULL),exe);
 	FklString* str=r->u.str;
 	char ch=0;
 	if(content)
@@ -1545,7 +1543,7 @@ void builtin_make_vector(ARGL)
 	if(fklVMnumberLt0(size))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.make-vector",FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,frame,exe);
 	size_t len=fklGetUint(size);
-	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_VECTOR,fklCreateVMvec(len),stack,gc);
+	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_VECTOR,fklCreateVMvec(len),exe);
 	if(content)
 	{
 		FklVMvec* vec=r->u.vec;
@@ -1559,7 +1557,6 @@ void builtin_make_vector(ARGL)
 void builtin_substring(ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMgc* gc=exe->gc;
 	FklVMframe* frame=exe->frames;
 	FklVMvalue* ostr=fklNiGetArg(&ap,stack);
 	FklVMvalue* vstart=fklNiGetArg(&ap,stack);
@@ -1581,7 +1578,7 @@ void builtin_substring(ARGL)
 			||end>size)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.substring",FKL_ERR_INVALIDACCESS,frame,exe);
 	size=end-start;
-	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(size,ostr->u.str->str+start),stack,gc);
+	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(size,ostr->u.str->str+start),exe);
 	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -1589,7 +1586,6 @@ void builtin_substring(ARGL)
 void builtin_sub_string(ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMgc* gc=exe->gc;
 	FklVMframe* frame=exe->frames;
 	FklVMvalue* ostr=fklNiGetArg(&ap,stack);
 	FklVMvalue* vstart=fklNiGetArg(&ap,stack);
@@ -1610,7 +1606,7 @@ void builtin_sub_string(ARGL)
 			||start+osize>size)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sub-string",FKL_ERR_INVALIDACCESS,frame,exe);
 	size=osize;
-	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(size,ostr->u.str->str+start),stack,gc);
+	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(size,ostr->u.str->str+start),exe);
 	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -1618,7 +1614,6 @@ void builtin_sub_string(ARGL)
 void builtin_subbytevector(ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMgc* gc=exe->gc;
 	FklVMframe* frame=exe->frames;
 	FklVMvalue* ostr=fklNiGetArg(&ap,stack);
 	FklVMvalue* vstart=fklNiGetArg(&ap,stack);
@@ -1640,7 +1635,7 @@ void builtin_subbytevector(ARGL)
 			||end>size)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.subbytevector",FKL_ERR_INVALIDACCESS,frame,exe);
 	size=end-start;
-	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCreateBytevector(size,ostr->u.bvec->ptr+start),stack,gc);
+	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCreateBytevector(size,ostr->u.bvec->ptr+start),exe);
 	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -1648,7 +1643,6 @@ void builtin_subbytevector(ARGL)
 void builtin_sub_bytevector(ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMgc* gc=exe->gc;
 	FklVMframe* frame=exe->frames;
 	FklVMvalue* ostr=fklNiGetArg(&ap,stack);
 	FklVMvalue* vstart=fklNiGetArg(&ap,stack);
@@ -1669,7 +1663,7 @@ void builtin_sub_bytevector(ARGL)
 			||start+osize>size)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sub-bytevector",FKL_ERR_INVALIDACCESS,frame,exe);
 	size=osize;
-	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCreateBytevector(size,ostr->u.bvec->ptr+start),stack,gc);
+	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCreateBytevector(size,ostr->u.bvec->ptr+start),exe);
 	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -1677,7 +1671,6 @@ void builtin_sub_bytevector(ARGL)
 void builtin_subvector(ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMgc* gc=exe->gc;
 	FklVMframe* frame=exe->frames;
 	FklVMvalue* ovec=fklNiGetArg(&ap,stack);
 	FklVMvalue* vstart=fklNiGetArg(&ap,stack);
@@ -1699,7 +1692,7 @@ void builtin_subvector(ARGL)
 			||end>size)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.subvector",FKL_ERR_INVALIDACCESS,frame,exe);
 	size=end-start;
-	FklVMvalue* r=fklCreateVMvecV(size,ovec->u.vec->base+start,stack,gc);
+	FklVMvalue* r=fklCreateVMvecV(size,ovec->u.vec->base+start,exe);
 	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -1707,7 +1700,6 @@ void builtin_subvector(ARGL)
 void builtin_sub_vector(ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMgc* gc=exe->gc;
 	FklVMframe* frame=exe->frames;
 	FklVMvalue* ovec=fklNiGetArg(&ap,stack);
 	FklVMvalue* vstart=fklNiGetArg(&ap,stack);
@@ -1728,7 +1720,7 @@ void builtin_sub_vector(ARGL)
 			||start+osize>size)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sub-vector",FKL_ERR_INVALIDACCESS,frame,exe);
 	size=osize;
-	FklVMvalue* r=fklCreateVMvecV(size,ovec->u.vec->base+start,stack,gc);
+	FklVMvalue* r=fklCreateVMvecV(size,ovec->u.vec->base+start,exe);
 	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -1746,18 +1738,18 @@ void builtin_to_string(ARGL)
 	if(FKL_IS_SYM(obj))
 		retval=fklCreateVMvalueToStack(FKL_TYPE_STR
 				,fklCopyString(fklGetGlobSymbolWithId(FKL_GET_SYM(obj))->symbol)
-				,stack,exe->gc);
+				,exe);
 	else if(FKL_IS_CHR(obj))
 	{
 		FklString* r=fklCreateString(1,NULL);
 		r->str[0]=FKL_GET_CHR(obj);
 		retval=fklCreateVMvalueToStack(FKL_TYPE_STR
 				,r
-				,stack,exe->gc);
+				,exe);
 	}
 	else if(fklIsVMnumber(obj))
 	{
-		retval=fklCreateVMvalueToStack(FKL_TYPE_STR,NULL,stack,exe->gc);
+		retval=fklCreateVMvalueToStack(FKL_TYPE_STR,NULL,exe);
 		if(fklIsInt(obj))
 		{
 			if(FKL_IS_BIG_INT(obj))
@@ -1782,11 +1774,11 @@ void builtin_to_string(ARGL)
 	else if(FKL_IS_BYTEVECTOR(obj))
 		retval=fklCreateVMvalueToStack(FKL_TYPE_STR
 				,fklCreateString(obj->u.bvec->size,(char*)obj->u.bvec->ptr)
-				,stack,exe->gc);
+				,exe);
 	else if(FKL_IS_VECTOR(obj))
 	{
 		size_t size=obj->u.vec->size;
-		retval=fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(size,NULL),stack,exe->gc);
+		retval=fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(size,NULL),exe);
 		for(size_t i=0;i<size;i++)
 		{
 			FKL_NI_CHECK_TYPE(obj->u.vec->base[i],FKL_IS_CHR,"builtin.->string",frame,exe);
@@ -1796,7 +1788,7 @@ void builtin_to_string(ARGL)
 	else if(fklIsList(obj))
 	{
 		size_t size=fklVMlistLength(obj);
-		retval=fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(size,NULL),stack,exe->gc);
+		retval=fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(size,NULL),exe);
 		for(size_t i=0;i<size;i++)
 		{
 			FKL_NI_CHECK_TYPE(obj->u.pair->car,FKL_IS_CHR,"builtin.->string",frame,exe);
@@ -1805,7 +1797,7 @@ void builtin_to_string(ARGL)
 		}
 	}
 	else if(FKL_IS_USERDATA(obj)&&obj->u.ud->t->__to_string)
-		retval=fklCreateVMvalueToStack(FKL_TYPE_STR,obj->u.ud->t->__to_string(obj->u.ud->data),stack,exe->gc);
+		retval=fklCreateVMvalueToStack(FKL_TYPE_STR,obj->u.ud->t->__to_string(obj->u.ud->data),exe);
 	else
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.->string",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
 	fklNiReturn(retval,&ap,stack);
@@ -1824,7 +1816,7 @@ void builtin_symbol_to_string(ARGL)
 	FKL_NI_CHECK_TYPE(obj,FKL_IS_SYM,"builtin.symbol->string",frame,exe);
 	FklVMvalue* retval=fklCreateVMvalueToStack(FKL_TYPE_STR
 			,fklCopyString(fklGetGlobSymbolWithId(FKL_GET_SYM(obj))->symbol)
-			,stack,exe->gc);
+			,exe);
 	fklNiReturn(retval,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -1853,7 +1845,7 @@ void builtin_symbol_to_integer(ARGL)
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.symbol->integer",FKL_ERR_TOOFEWARG,frame,exe);
 	FKL_NI_CHECK_TYPE(obj,FKL_IS_SYM,"builtin.symbol->integer",frame,exe);
-	FklVMvalue* r=fklMakeVMint(FKL_GET_SYM(obj),stack,exe->gc);
+	FklVMvalue* r=fklMakeVMint(FKL_GET_SYM(obj),exe);
 	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -1874,18 +1866,18 @@ void builtin_string_to_number(ARGL)
 		if(fklIsDoubleString(obj->u.str))
 		{
 			double d=fklStringToDouble(obj->u.str);
-			r=fklCreateVMvalueToStack(FKL_TYPE_F64,&d,stack,exe->gc);
+			r=fklCreateVMvalueToStack(FKL_TYPE_F64,&d,exe);
 		}
 		else
 		{
 			FklBigInt* bi=fklCreateBigIntFromString(obj->u.str);
 			if(!fklIsGtLtI64BigInt(bi))
 			{
-				r=fklMakeVMint(fklBigIntToI64(bi),stack,exe->gc);
+				r=fklMakeVMint(fklBigIntToI64(bi),exe);
 				fklDestroyBigInt(bi);
 			}
 			else
-				r=fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,stack,exe->gc);
+				r=fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,exe);
 		}
 	}
 	fklNiReturn(r,&ap,stack);
@@ -1903,7 +1895,7 @@ void builtin_number_to_string(ARGL)
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->string",FKL_ERR_TOOFEWARG,frame,exe);
 	FKL_NI_CHECK_TYPE(obj,fklIsVMnumber,"builtin.number->string",frame,exe);
-	FklVMvalue* retval=fklCreateVMvalueToStack(FKL_TYPE_STR,NULL,stack,exe->gc);
+	FklVMvalue* retval=fklCreateVMvalueToStack(FKL_TYPE_STR,NULL,exe);
 	if(fklIsInt(obj))
 	{
 		uint32_t base=10;
@@ -1948,7 +1940,7 @@ void builtin_vector_to_string(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.vector->string",FKL_ERR_TOOMANYARG,frame,exe);
 	FKL_NI_CHECK_TYPE(vec,FKL_IS_VECTOR,"builtin.vector->string",frame,exe);
 	size_t size=vec->u.vec->size;
-	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(size,NULL),stack,exe->gc);
+	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(size,NULL),exe);
 	for(size_t i=0;i<size;i++)
 	{
 		FKL_NI_CHECK_TYPE(vec->u.vec->base[i],FKL_IS_CHR,"builtin.vector->string",frame,exe);
@@ -1966,7 +1958,7 @@ void builtin_bytevector_to_string(ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.bytevector->string",FKL_ERR_TOOMANYARG,frame,exe);
 	FKL_NI_CHECK_TYPE(vec,FKL_IS_BYTEVECTOR,"builtin.bytevector->string",frame,exe);
-	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(vec->u.bvec->size,(char*)vec->u.bvec->ptr),stack,exe->gc);
+	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(vec->u.bvec->size,(char*)vec->u.bvec->ptr),exe);
 	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -1979,7 +1971,7 @@ void builtin_string_to_bytevector(ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.string->bytevector",FKL_ERR_TOOMANYARG,frame,exe);
 	FKL_NI_CHECK_TYPE(str,FKL_IS_STR,"builtin.string->bytevector",frame,exe);
-	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCreateBytevector(str->u.str->size,(uint8_t*)str->u.str->str),stack,exe->gc);
+	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCreateBytevector(str->u.str->size,(uint8_t*)str->u.str->str),exe);
 	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -1992,7 +1984,7 @@ void builtin_vector_to_bytevector(ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.vector->bytevector",FKL_ERR_TOOMANYARG,frame,exe);
 	FKL_NI_CHECK_TYPE(vec,FKL_IS_VECTOR,"builtin.vector->bytevector",frame,exe);
-	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCreateBytevector(vec->u.str->size,NULL),stack,exe->gc);
+	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCreateBytevector(vec->u.str->size,NULL),exe);
 	uint64_t size=vec->u.vec->size;
 	FklVMvalue** base=vec->u.vec->base;
 	uint8_t* ptr=r->u.bvec->ptr;
@@ -2014,7 +2006,7 @@ void builtin_list_to_bytevector(ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.list->bytevector",FKL_ERR_TOOMANYARG,frame,exe);
 	FKL_NI_CHECK_TYPE(list,fklIsList,"builtin.list->bytevector",frame,exe);
-	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCreateBytevector(fklVMlistLength(list),NULL),stack,exe->gc);
+	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCreateBytevector(fklVMlistLength(list),NULL),exe);
 	uint8_t* ptr=r->u.bvec->ptr;
 	for(size_t i=0;list!=FKL_VM_NIL;i++,list=list->u.pair->cdr)
 	{
@@ -2035,7 +2027,7 @@ void builtin_list_to_string(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.list->string",FKL_ERR_TOOMANYARG,frame,exe);
 	FKL_NI_CHECK_TYPE(list,fklIsList,"builtin.list->string",frame,exe);
 	size_t size=fklVMlistLength(list);
-	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(size,NULL),stack,exe->gc);
+	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(size,NULL),exe);
 	for(size_t i=0;i<size;i++)
 	{
 		FKL_NI_CHECK_TYPE(list->u.pair->car,FKL_IS_CHR,"builtin.list->string",frame,exe);
@@ -2055,7 +2047,7 @@ void builtin_number_to_f64(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.integer->f64",FKL_ERR_TOOMANYARG,frame,exe);
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.integer->f64",FKL_ERR_TOOFEWARG,frame,exe);
-	FklVMvalue* retval=fklCreateVMvalueToStack(FKL_TYPE_F64,NULL,stack,exe->gc);
+	FklVMvalue* retval=fklCreateVMvalueToStack(FKL_TYPE_F64,NULL,exe);
 	FKL_NI_CHECK_TYPE(obj,fklIsVMnumber,"builtin.integer->f64",frame,exe);
 	if(fklIsFixint(obj))
 		retval->u.f64=(double)fklGetInt(obj);
@@ -2080,9 +2072,9 @@ void builtin_number_to_integer(ARGL)
 	if(FKL_IS_F64(obj))
 	{
 		if(obj->u.f64-(double)INT64_MAX>DBL_EPSILON||obj->u.f64-INT64_MIN<-DBL_EPSILON)
-			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,fklCreateBigIntD(obj->u.f64),stack,exe->gc),&ap,stack);
+			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,fklCreateBigIntD(obj->u.f64),exe),&ap,stack);
 		else
-			fklNiReturn(fklMakeVMintD(obj->u.f64,stack,exe->gc),&ap,stack);
+			fklNiReturn(fklMakeVMintD(obj->u.f64,exe),&ap,stack);
 	}
 	else if(FKL_IS_BIG_INT(obj))
 	{
@@ -2090,13 +2082,13 @@ void builtin_number_to_integer(ARGL)
 		{
 			FklBigInt* bi=fklCreateBigInt0();
 			fklSetBigInt(bi,obj->u.bigInt);
-			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,stack,exe->gc),&ap,stack);
+			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,exe),&ap,stack);
 		}
 		else
-			fklNiReturn(fklMakeVMint(fklBigIntToI64(obj->u.bigInt),stack,exe->gc),&ap,stack);
+			fklNiReturn(fklMakeVMint(fklBigIntToI64(obj->u.bigInt),exe),&ap,stack);
 	}
 	else
-		fklNiReturn(fklMakeVMint(fklGetInt(obj),stack,exe->gc),&ap,stack);
+		fklNiReturn(fklMakeVMint(fklGetInt(obj),exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -2136,7 +2128,7 @@ void builtin_number_to_big_int(ARGL)
 		bi=fklCopyBigInt(obj->u.bigInt);
 	else
 		bi=fklCreateBigInt(fklGetInt(obj));
-	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,stack,exe->gc),&ap,stack);
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -2155,7 +2147,7 @@ void builtin_number_to_i64(ARGL)
 		r=obj->u.f64;
 	else
 		r=fklGetInt(obj);
-	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_I64,&r,stack,exe->gc),&ap,stack);
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_I64,&r,exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -2258,7 +2250,7 @@ void builtin_sref(ARGL)
 	if(fklVMnumberLt0(place)||index>=size||size-index<sizeof(r))\
 	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_INVALIDACCESS,frame,exe);\
 	r=bvec->u.bvec->ptr[index];\
-	fklNiReturn(fklMakeVMint(r,stack,exe->gc),&ap,stack);\
+	fklNiReturn(fklMakeVMint(r,exe),&ap,stack);\
 	fklNiEnd(&ap,stack);
 
 #define BV_LT_U64_REF(TYPE,WHO) FKL_NI_BEGIN(exe);\
@@ -2278,7 +2270,7 @@ void builtin_sref(ARGL)
 	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_INVALIDACCESS,frame,exe);\
 	for(size_t i=0;i<sizeof(r);i++)\
 		((uint8_t*)&r)[i]=bvec->u.bvec->ptr[index+i];\
-	fklNiReturn(fklMakeVMint(r,stack,exe->gc),&ap,stack);\
+	fklNiReturn(fklMakeVMint(r,exe),&ap,stack);\
 	fklNiEnd(&ap,stack);
 
 void builtin_bvs8ref(ARGL) {BV_U_S_8_REF(int8_t,"builtin.bvs8ref")}
@@ -2309,9 +2301,9 @@ void builtin_bvu64ref(ARGL)
 	for(size_t i=0;i<sizeof(r);i++)
 		((uint8_t*)&r)[i]=bvec->u.bvec->ptr[index+i];
 	if(r>=INT64_MAX)
-		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,fklCreateBigIntU(r),stack,exe->gc),&ap,stack);
+		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,fklCreateBigIntU(r),exe),&ap,stack);
 	else
-		fklNiReturn(fklMakeVMint(r,stack,exe->gc),&ap,stack);
+		fklNiReturn(fklMakeVMint(r,exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 #undef BV_LT_U64_REF
@@ -2335,7 +2327,7 @@ void builtin_bvu64ref(ARGL)
 	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_INVALIDACCESS,frame,exe);\
 	for(size_t i=0;i<sizeof(r);i++)\
 	((uint8_t*)&r)[i]=bvec->u.bvec->ptr[index+i];\
-	FklVMvalue* f=fklCreateVMvalueToStack(FKL_TYPE_F64,NULL,stack,exe->gc);\
+	FklVMvalue* f=fklCreateVMvalueToStack(FKL_TYPE_F64,NULL,exe);\
 	f->u.f64=r;\
 	fklNiReturn(f,&ap,stack);\
 	fklNiEnd(&ap,stack);\
@@ -2661,7 +2653,7 @@ void builtin_length(ARGL)
 		len=obj->u.ud->t->__length(obj->u.ud->data);
 	else
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.length",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
-	fklNiReturn(fklMakeVMuint(len,stack,exe->gc),&ap,stack);
+	fklNiReturn(fklMakeVMuint(len,exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -2669,7 +2661,6 @@ void builtin_fopen(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMframe* frame=exe->frames;
-	FklVMgc* gc=exe->gc;
 	FklVMvalue* filename=fklNiGetArg(&ap,stack);
 	FklVMvalue* mode=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
@@ -2687,7 +2678,7 @@ void builtin_fopen(ARGL)
 	if(!file)
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("builtin.fopen",c_filename,0,FKL_ERR_FILEFAILURE,exe);
 	else
-		obj=fklCreateVMvalueToStack(FKL_TYPE_FP,fklCreateVMfp(file),stack,gc);
+		obj=fklCreateVMvalueToStack(FKL_TYPE_FP,fklCreateVMfp(file),exe);
 	fklNiReturn(obj,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -2752,7 +2743,7 @@ void builtin_read(ARGL)
 	if(node==NULL)
 		tmp=FKL_VM_NIL;
 	else
-		tmp=fklCreateVMvalueFromNastNodeAndStoreInStack(node,NULL,exe->gc,stack);
+		tmp=fklCreateVMvalueFromNastNodeAndStoreInStack(node,NULL,exe);
 	while(!fklIsPtrStackEmpty(tokenStack))
 		fklDestroyToken(fklPopPtrStack(tokenStack));
 	fklDestroyPtrStack(tokenStack);
@@ -2815,7 +2806,7 @@ void builtin_fgets(ARGL)
 	else
 	{
 		size_t size=fklGetUint(psize);
-		FklVMvalue* vmstr=fklCreateVMvalueToStack(FKL_TYPE_STR,NULL,stack,exe->gc);
+		FklVMvalue* vmstr=fklCreateVMvalueToStack(FKL_TYPE_STR,NULL,exe);
 		vmstr->u.str=(FklString*)malloc(sizeof(FklString)+size);
 		FKL_ASSERT(vmstr->u.str);
 		vmstr->u.str->size=size;
@@ -2878,7 +2869,7 @@ void builtin_fgetb(ARGL)
 	}
 	else
 	{
-		FklVMvalue* bvec=fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCreateBytevector(realRead,ptr),stack,exe->gc);
+		FklVMvalue* bvec=fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCreateBytevector(realRead,ptr),exe);
 		free(ptr);
 		fklNiReturn(bvec,&ap,stack);
 	}
@@ -2936,7 +2927,7 @@ void builtin_dlopen(ARGL)
 	FklVMdllHandle* dll=fklCreateVMdll(str);
 	if(!dll)
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("builtin.dlopen",str,0,FKL_ERR_LOADDLLFAILD,exe);
-	FklVMvalue* rel=fklCreateVMvalueToStack(FKL_TYPE_DLL,dll,stack,exe->gc);
+	FklVMvalue* rel=fklCreateVMvalueToStack(FKL_TYPE_DLL,dll,exe);
 	fklInitVMdll(rel);
 	fklNiReturn(rel,&ap,stack);
 	fklNiEnd(&ap,stack);
@@ -2946,7 +2937,6 @@ void builtin_dlsym(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMframe* frame=exe->frames;
-	FklVMgc* gc=exe->gc;
 	FklVMvalue* dll=fklNiGetArg(&ap,stack);
 	FklVMvalue* symbol=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
@@ -2963,7 +2953,7 @@ void builtin_dlsym(ARGL)
 	if(!funcAddress)
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("builtin.dlsym",str,0,FKL_ERR_INVALIDSYMBOL,exe);
 	FklVMdlproc* dlproc=fklCreateVMdlproc(funcAddress,dll);
-	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_DLPROC,dlproc,stack,gc),&ap,stack);
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_DLPROC,dlproc,exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -2979,7 +2969,7 @@ void builtin_argv(ARGL)
 	int argc=fklGetVMargc();
 	char** argv=fklGetVMargv();
 	for(;i<argc;i++,tmp=&(*tmp)->u.pair->cdr)
-		*tmp=fklCreateVMpairV(fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(strlen(argv[i]),argv[i]),stack,exe->gc),FKL_VM_NIL,stack,exe->gc);
+		*tmp=fklCreateVMpairV(fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(strlen(argv[i]),argv[i]),exe),FKL_VM_NIL,exe);
 	fklNiReturn(retval,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -2988,8 +2978,6 @@ void builtin_go(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMframe* frame=exe->frames;
-//	if(!exe->thrds)
-//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.go",FKL_ERR_CANTCREATETHREAD,frame,exe);
 	FklVMvalue* threadProc=fklNiGetArg(&ap,stack);
 	if(!threadProc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.go",FKL_ERR_TOOFEWARG,frame,exe);
@@ -3040,7 +3028,7 @@ void builtin_chanl(ARGL)
 	FKL_NI_CHECK_TYPE(maxSize,fklIsInt,"builtin.chanl",frame,exe);
 	if(fklVMnumberLt0(maxSize))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.chanl",FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,frame,exe);
-	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_CHAN,fklCreateVMchanl(fklGetUint(maxSize)),stack,exe->gc),&ap,stack);
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_CHAN,fklCreateVMchanl(fklGetUint(maxSize)),exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -3058,7 +3046,7 @@ void builtin_chanl_num(ARGL)
 		len=obj->u.chan->messageNum;
 	else
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.chanl-num",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
-	fklNiReturn(fklMakeVMuint(len,stack,exe->gc),&ap,stack);
+	fklNiReturn(fklMakeVMuint(len,exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -3125,7 +3113,7 @@ void builtin_error(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.error",FKL_ERR_TOOFEWARG,frame,exe);
 	if(!FKL_IS_SYM(type)||!FKL_IS_STR(message)||(!FKL_IS_SYM(who)&&!FKL_IS_STR(who)))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.error",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
-	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerror((FKL_IS_SYM(who))?fklGetGlobSymbolWithId(FKL_GET_SYM(who))->symbol:who->u.str,FKL_GET_SYM(type),message->u.str),stack,exe->gc),&ap,stack);
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerror((FKL_IS_SYM(who))?fklGetGlobSymbolWithId(FKL_GET_SYM(who))->symbol:who->u.str,FKL_GET_SYM(type),message->u.str),exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -3161,7 +3149,7 @@ void builtin_call_cc(ARGL)
 	FklVMcontinuation* cc=fklCreateVMcontinuation(ap,exe);
 	if(!cc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.call/cc",FKL_ERR_CROSS_C_CALL_CONTINUATION,frame,exe);
-	FklVMvalue* vcc=fklCreateVMvalueToStack(FKL_TYPE_CONT,cc,stack,exe->gc);
+	FklVMvalue* vcc=fklCreateVMvalueToStack(FKL_TYPE_CONT,cc,exe);
 	pthread_rwlock_unlock(&exe->rlock);
 	fklNiSetBp(ap,stack);
 	fklNiReturn(vcc,&ap,stack);
@@ -3174,7 +3162,7 @@ void builtin_call_cc(ARGL)
 		else
 		{
 			FklVMframe* tmpFrame=fklCreateVMframe(tmpProc,exe->frames);
-			tmpFrame->localenv=fklCreateVMvalueToStack(FKL_TYPE_ENV,fklCreateVMenv(tmpProc->prevEnv,exe->gc),stack,exe->gc);
+			tmpFrame->localenv=fklCreateVMvalueToStack(FKL_TYPE_ENV,fklCreateVMenv(tmpProc->prevEnv,exe->gc),exe);
 			exe->frames=tmpFrame;
 		}
 	}
@@ -3305,7 +3293,7 @@ typedef struct
 	size_t argNum=ap-stack->bp;\
 	if(argNum==0)\
 	FKL_RAISE_BUILTIN_ERROR_CSTR((FUNC_NAME),FKL_ERR_TOOFEWARG,frame,exe);\
-	FklVMvalue* argVec=fklCreateVMvecV(ap-stack->bp,NULL,stack,gc);\
+	FklVMvalue* argVec=fklCreateVMvecV(ap-stack->bp,NULL,exe);\
 	for(size_t i=0;i<argNum;i++)\
 	{\
 		FklVMvalue* cur=fklNiGetArg(&ap,stack);\
@@ -3325,7 +3313,7 @@ typedef struct
 	}\
 	else\
 	{\
-		FklVMvalue* cars=fklCreateVMvecV(argNum,NULL,stack,gc);\
+		FklVMvalue* cars=fklCreateVMvecV(argNum,NULL,exe);\
 		MapCtx* mapctx=(MapCtx*)malloc(sizeof(MapCtx));\
 		FKL_ASSERT(mapctx);\
 		fklPushVMvalue((DEFAULT_VALUE),stack);\
@@ -3341,7 +3329,7 @@ typedef struct
 		(K_FUNC)(exe,FKL_CC_OK,mapctx);}\
 
 static void k_map(K_FUNC_ARGL) {K_MAP_PATTERN(k_map,
-		*(mapctx->cur)=fklCreateVMvalueToStack(FKL_TYPE_PAIR,fklCreateVMpair(),stack,gc);,
+		*(mapctx->cur)=fklCreateVMvalueToStack(FKL_TYPE_PAIR,fklCreateVMpair(),exe);,
 		fklSetRef(&(*mapctx->cur)->u.pair->car,result,gc);,
 		mapctx->cur=&(*mapctx->cur)->u.pair->cdr;)}
 void builtin_map(ARGL) {MAP_PATTERN("builtin.map",k_map,FKL_VM_NIL)}
@@ -3548,7 +3536,7 @@ static void k_filter(K_FUNC_ARGL)
 		FklVMvalue* result=fklGetTopValue(stack);
 		if(result!=FKL_VM_NIL)
 		{
-			*filterctx->cur=fklCreateVMvalueToStack(FKL_TYPE_PAIR,fklCreateVMpair(),stack,exe->gc);
+			*filterctx->cur=fklCreateVMvalueToStack(FKL_TYPE_PAIR,fklCreateVMpair(),exe);
 			fklSetRef(&(*filterctx->cur)->u.pair->car,filterctx->list->u.pair->car,exe->gc);
 			filterctx->cur=&(*filterctx->cur)->u.pair->cdr;
 		}
@@ -3563,7 +3551,7 @@ static void k_filter(K_FUNC_ARGL)
 		FklVMvalue* result=fklGetTopValue(stack);
 		if(result!=FKL_VM_NIL)
 		{
-			*filterctx->cur=fklCreateVMvalueToStack(FKL_TYPE_PAIR,fklCreateVMpair(),stack,exe->gc);
+			*filterctx->cur=fklCreateVMvalueToStack(FKL_TYPE_PAIR,fklCreateVMpair(),exe);
 			fklSetRef(&(*filterctx->cur)->u.pair->car,filterctx->list->u.pair->car,exe->gc);
 			filterctx->cur=&(*filterctx->cur)->u.pair->cdr;
 		}
@@ -3602,7 +3590,6 @@ void builtin_filter(ARGL)
 void builtin_list(ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMgc* gc=exe->gc;
 	fklPushVMvalue(FKL_VM_NIL,stack);
 	FklVMvalue** r=fklNiGetTopSlot(stack);
 	FklVMvalue** pcur=r;
@@ -3610,7 +3597,7 @@ void builtin_list(ARGL)
 			;cur
 			;cur=fklNiGetArg(&ap,stack))
 	{
-		*pcur=fklCreateVMpairV(cur,FKL_VM_NIL,stack,gc);
+		*pcur=fklCreateVMpairV(cur,FKL_VM_NIL,exe);
 		pcur=&(*pcur)->u.pair->cdr;
 	}
 	fklNiResBp(&ap,stack);
@@ -3621,7 +3608,6 @@ void builtin_list(ARGL)
 void builtin_list8(ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMgc* gc=exe->gc;
 	fklPushVMvalue(FKL_VM_NIL,stack);
 	FklVMvalue** r=fklNiGetTopSlot(stack);
 	FklVMvalue** pcur=r;
@@ -3630,7 +3616,7 @@ void builtin_list8(ARGL)
 		FklVMvalue* next=fklNiGetArg(&ap,stack);
 		if(next)
 		{
-			*pcur=fklCreateVMpairV(cur,FKL_VM_NIL,stack,gc);
+			*pcur=fklCreateVMpairV(cur,FKL_VM_NIL,exe);
 			pcur=&(*pcur)->u.pair->cdr;
 		}
 		else
@@ -3656,9 +3642,8 @@ void builtin_reverse(ARGL)
 	FklVMvalue* retval=FKL_VM_NIL;
 	if(obj!=FKL_VM_NIL)
 	{
-		FklVMgc* gc=exe->gc;
 		for(FklVMvalue* cdr=obj;cdr!=FKL_VM_NIL;cdr=cdr->u.pair->cdr)
-			retval=fklCreateVMpairV(cdr->u.pair->car,retval,stack,gc);
+			retval=fklCreateVMpairV(cdr->u.pair->car,retval,exe);
 	}
 	fklNiReturn(retval,&ap,stack);
 	fklNiEnd(&ap,stack);
@@ -3684,7 +3669,7 @@ void builtin_vector(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	size_t size=ap-stack->bp;
-	FklVMvalue* vec=fklCreateVMvecV(size,NULL,stack,exe->gc);
+	FklVMvalue* vec=fklCreateVMvecV(size,NULL,exe);
 	for(size_t i=0;i<size;i++)
 		fklSetRef(&vec->u.vec->base[i],fklNiGetArg(&ap,stack),exe->gc);
 	fklNiResBp(&ap,stack);
@@ -3710,13 +3695,13 @@ void builtin_getdir(ARGL)
 		free(rpath);
 		FklString* str=fklCreateString(strlen(dir),dir);
 		free(dir);
-		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_STR,str,stack,exe->gc),&ap,stack);
+		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_STR,str,exe),&ap,stack);
 	}
 	else
 	{
 		const char* cwd=fklGetCwd();
 		FklString* str=fklCreateString(strlen(cwd),cwd);
-		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_STR,str,stack,exe->gc),&ap,stack);
+		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_STR,str,exe),&ap,stack);
 	}
 	fklNiEnd(&ap,stack);
 }
@@ -3837,7 +3822,7 @@ void builtin_box(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.box",FKL_ERR_TOOMANYARG,frame,exe);
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.box",FKL_ERR_TOOFEWARG,frame,exe);
-	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BOX,obj,stack,exe->gc),&ap,stack);
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BOX,obj,exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -3896,10 +3881,9 @@ void builtin_cas_box(ARGL)
 void builtin_bytevector(ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMgc* gc=exe->gc;
 	FklVMframe* frame=exe->frames;
 	size_t size=ap-stack->bp;
-	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCreateBytevector(size,NULL),stack,gc);
+	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCreateBytevector(size,NULL),exe);
 	FklBytevector* bytevec=r->u.bvec;
 	size_t i=0;
 	for(FklVMvalue* cur=fklNiGetArg(&ap,stack)
@@ -3917,7 +3901,6 @@ void builtin_bytevector(ARGL)
 void builtin_make_bytevector(ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMgc* gc=exe->gc;
 	FklVMframe* frame=exe->frames;
 	FklVMvalue* size=fklNiGetArg(&ap,stack);
 	if(!size)
@@ -3929,7 +3912,7 @@ void builtin_make_bytevector(ARGL)
 	if(fklVMnumberLt0(size))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.make-bytevector",FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,frame,exe);
 	size_t len=fklGetUint(size);
-	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCreateBytevector(len,NULL),stack,gc);
+	FklVMvalue* r=fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCreateBytevector(len,NULL),exe);
 	FklBytevector* bytevec=r->u.bvec;
 	uint8_t u_8=0;
 	if(content)
@@ -3990,7 +3973,7 @@ void builtin_sleep(ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sleep",FKL_ERR_TOOMANYARG,frame,exe);
 	FKL_NI_CHECK_TYPE(second,fklIsInt,"builtin.sleep",frame,exe);
-	fklNiReturn(fklMakeVMint((sleep(fklGetInt(second))),stack,exe->gc),&ap,stack);
+	fklNiReturn(fklMakeVMint((sleep(fklGetInt(second))),exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -4064,7 +4047,7 @@ void builtin_get_time(ARGL)
 	FKL_ASSERT(trueTime);
 	sprintf(trueTime,"%s-%s-%s_%s_%s_%s",year,mon,day,hour,min,sec);
 	FklString* str=fklCreateString(timeLen-1,trueTime);
-	FklVMvalue* tmpVMvalue=fklCreateVMvalueToStack(FKL_TYPE_STR,str,stack,exe->gc);
+	FklVMvalue* tmpVMvalue=fklCreateVMvalueToStack(FKL_TYPE_STR,str,exe);
 	free(trueTime);
 	fklNiReturn(tmpVMvalue,&ap,stack);
 	fklNiEnd(&ap,stack);
@@ -4092,7 +4075,7 @@ void builtin_time(ARGL)
 	FklVMframe* frame=exe->frames;
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.time",FKL_ERR_TOOMANYARG,frame,exe);
-	fklNiReturn(fklMakeVMint((int64_t)time(NULL),stack,exe->gc),&ap,stack);
+	fklNiReturn(fklMakeVMint((int64_t)time(NULL),exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -4153,7 +4136,7 @@ void builtin_system(ARGL)
 	FKL_NI_CHECK_TYPE(name,FKL_IS_STR,"builtin.system",frame,exe);
 	char str[name->u.str->size+1];
 	fklWriteStringToCstr(str,name->u.str);
-	fklNiReturn(fklMakeVMint(system(str),stack,exe->gc),&ap,stack);
+	fklNiReturn(fklMakeVMint(system(str),exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -4174,7 +4157,7 @@ void builtin_hash(ARGL)
 		fklSetVMhashTable(cur->u.pair->car,cur->u.pair->cdr,ht,exe->gc);
 	}
 	fklNiResBp(&ap,stack);
-	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE,ht,stack,exe->gc),&ap,stack);;
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE,ht,exe),&ap,stack);;
 	fklNiEnd(&ap,stack);
 }
 
@@ -4188,7 +4171,7 @@ void builtin_hash_num(ARGL)
 	if(!ht)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.hash-num",FKL_ERR_TOOFEWARG,frame,exe);
 	FKL_NI_CHECK_TYPE(ht,FKL_IS_HASHTABLE,"builtin.hash-num",frame,exe);
-	fklNiReturn(fklMakeVMuint(ht->u.hash->ht->num,stack,exe->gc),&ap,stack);
+	fklNiReturn(fklMakeVMuint(ht->u.hash->ht->num,exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -4208,7 +4191,7 @@ void builtin_make_hash(ARGL)
 		fklSetVMhashTable(key,value,ht,exe->gc);
 	}
 	fklNiResBp(&ap,stack);
-	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE,ht,stack,exe->gc),&ap,stack);;
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE,ht,exe),&ap,stack);;
 	fklNiEnd(&ap,stack);
 }
 
@@ -4228,7 +4211,7 @@ void builtin_hasheqv(ARGL)
 		}
 		fklSetVMhashTable(cur->u.pair->car,cur->u.pair->cdr,ht,exe->gc);
 	}
-	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE,ht,stack,exe->gc),&ap,stack);;
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE,ht,exe),&ap,stack);;
 	fklNiEnd(&ap,stack);
 }
 
@@ -4248,7 +4231,7 @@ void builtin_make_hasheqv(ARGL)
 		fklSetVMhashTable(key,value,ht,exe->gc);
 	}
 	fklNiResBp(&ap,stack);
-	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE,ht,stack,exe->gc),&ap,stack);;
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE,ht,exe),&ap,stack);;
 	fklNiEnd(&ap,stack);
 }
 
@@ -4268,7 +4251,7 @@ void builtin_hashequal(ARGL)
 		}
 		fklSetVMhashTable(cur->u.pair->car,cur->u.pair->cdr,ht,exe->gc);
 	}
-	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE,ht,stack,exe->gc),&ap,stack);;
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE,ht,exe),&ap,stack);;
 	fklNiEnd(&ap,stack);
 }
 
@@ -4288,7 +4271,7 @@ void builtin_make_hashequal(ARGL)
 		fklSetVMhashTable(key,value,ht,exe->gc);
 	}
 	fklNiResBp(&ap,stack);
-	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE,ht,stack,exe->gc),&ap,stack);;
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE,ht,exe),&ap,stack);;
 	fklNiEnd(&ap,stack);
 }
 
@@ -4405,8 +4388,8 @@ void builtin_hash_to_list(ARGL)
 	for(FklHashTableNodeList* list=hash->ht->list;list;list=list->next)
 	{
 		FklVMhashTableItem* item=list->node->item;
-		FklVMvalue* pair=fklCreateVMpairV(item->key,item->v,stack,gc);
-		fklSetRef(cur,fklCreateVMpairV(pair,FKL_VM_NIL,stack,gc),gc);
+		FklVMvalue* pair=fklCreateVMpairV(item->key,item->v,exe);
+		fklSetRef(cur,fklCreateVMpairV(pair,FKL_VM_NIL,exe),gc);
 		cur=&(*cur)->u.pair->cdr;
 	}
 	fklNiReturn(*pr,&ap,stack);
@@ -4431,7 +4414,7 @@ void builtin_hash_keys(ARGL)
 	for(FklHashTableNodeList* list=hash->ht->list;list;list=list->next)
 	{
 		FklVMhashTableItem* item=list->node->item;
-		fklSetRef(cur,fklCreateVMpairV(item->key,FKL_VM_NIL,stack,gc),gc);
+		fklSetRef(cur,fklCreateVMpairV(item->key,FKL_VM_NIL,exe),gc);
 		cur=&(*cur)->u.pair->cdr;
 	}
 	fklNiReturn(*pr,&ap,stack);
@@ -4456,7 +4439,7 @@ void builtin_hash_values(ARGL)
 	for(FklHashTableNodeList* list=hash->ht->list;list;list=list->next)
 	{
 		FklVMhashTableItem* item=list->node->item;
-		fklSetRef(cur,fklCreateVMpairV(item->v,FKL_VM_NIL,stack,gc),gc);
+		fklSetRef(cur,fklCreateVMpairV(item->v,FKL_VM_NIL,exe),gc);
 		cur=&(*cur)->u.pair->cdr;
 	}
 	fklNiReturn(*pr,&ap,stack);

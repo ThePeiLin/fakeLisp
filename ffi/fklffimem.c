@@ -896,24 +896,24 @@ int fklFfiIsValuableMem(FklFfiMem* mem)
 	return 0;
 }
 
-FklVMvalue* fklFfiCreateVMvalue(FklFfiMem* mem,FklVMstack* stack,FklVMgc* gc)
+FklVMvalue* fklFfiCreateVMvalue(FklFfiMem* mem,FklVM* vm)
 {
 	if(fklFfiIsNull(mem))
 		return FKL_VM_NIL;
 	else if(mem->type==FKL_FFI_TYPE_STRING)
 	{
 		FklString* str=fklCreateString(strlen(mem->mem),mem->mem);
-		return fklCreateVMvalueToStack(FKL_TYPE_STR,str,stack,gc);
+		return fklCreateVMvalueToStack(FKL_TYPE_STR,str,vm);
 	}
 	else
 	{
 		if(fklFfiIsFloatTypeId(mem->type))
 		{
 			double d=__ffiGetDoubleFuncList[mem->type](mem);
-			return fklCreateVMvalueToStack(FKL_TYPE_F64,&d,stack,gc);
+			return fklCreateVMvalueToStack(FKL_TYPE_F64,&d,vm);
 		}
 		else
-			return fklMakeVMint(__ffiGetIntegerFuncList[mem->type](mem),stack,gc);
+			return fklMakeVMint(__ffiGetIntegerFuncList[mem->type](mem),vm);
 	}
 }
 

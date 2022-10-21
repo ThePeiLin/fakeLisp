@@ -600,7 +600,7 @@ char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorType ty
 	return t;
 }
 
-char* fklGenErrorMessage(FklBuiltInErrorType type,FklVMframe* frame,FklVM* exe)
+char* fklGenErrorMessage(FklBuiltInErrorType type,FklVM* exe)
 {
 	char* t=fklCopyCstr("");
 	switch(type)
@@ -619,11 +619,6 @@ char* fklGenErrorMessage(FklBuiltInErrorType type,FklVMframe* frame,FklVM* exe)
 			break;
 		case FKL_ERR_CANTCREATETHREAD:
 			t=fklStrCat(t,"Can't create thread");
-			break;
-		case FKL_ERR_SYMUNDEFINE:
-			t=fklStrCat(t,"Symbol ");
-			t=fklCstrStringCat(t,fklGetGlobSymbolWithId(fklGetSymbolIdInByteCode(exe->code+frame->cp))->symbol);
-			t=fklStrCat(t," is undefined");
 			break;
 		case FKL_ERR_CALL_ERROR:
 			t=fklStrCat(t,"Try to call an object that can't be call");

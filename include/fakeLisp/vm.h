@@ -41,6 +41,7 @@ typedef enum
 	FKL_TYPE_ERR,
 	FKL_TYPE_ENV,
 	FKL_TYPE_HASHTABLE,
+	FKL_TYPE_CODE_OBJ,
 }FklValueType;
 
 
@@ -128,6 +129,12 @@ typedef enum{
 	FKL_MARK_B,
 }FklVMvalueMark;
 
+typedef struct
+{
+	FklLineNumberTable lnt;
+	FklBytevector code;
+}FklCodeObj;
+
 typedef struct FklVMvalue
 {
 	FklVMvalueMark volatile mark;
@@ -152,6 +159,7 @@ typedef struct FklVMvalue
 		FklBigInt* bigInt;
 		FklVMudata* ud;
 		struct FklVMvalue* box;
+		FklCodeObj* code;
 	}u;
 	struct FklVMvalue* next;
 }FklVMvalue;
@@ -205,6 +213,7 @@ typedef struct FklVMframe
 {
 	unsigned int mark :1;
 	FklVMvalue* localenv;
+	FklVMvalue* code;
 	uint64_t scp;
 	uint64_t cp;
 	uint64_t cpc;
@@ -235,6 +244,7 @@ typedef struct FklVM
 	FklVMframe* frames;
 	FklPtrStack* tstack;
 	FklVMstack* stack;
+	FklVMvalue* codeObj;
 	struct FklVMvalue* chan;
 	struct FklVMgc* gc;
 	struct FklLineNumberTable* lnt;
@@ -417,7 +427,7 @@ void fklDestroyVMerrorHandler(FklVMerrorHandler*);
 int fklRaiseVMerror(FklVMvalue* err,FklVM*);
 FklVMframe* fklCreateVMframe(FklVMproc*,FklVMframe*);
 void fklDestroyVMframe(FklVMframe*);
-char* fklGenErrorMessage(FklBuiltInErrorType type,FklVMframe* frame,FklVM* exe);
+char* fklGenErrorMessage(FklBuiltInErrorType type,FklVM* exe);
 char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorType);
 int32_t fklGetSymbolIdInByteCode(const uint8_t*);
 
@@ -573,16 +583,16 @@ void fklDestroyVMframes(FklVMframe* h);
 	(stack)->tp+=1;\
 }while(0)
 
-#define FKL_RAISE_BUILTIN_ERROR(WHO,ERRORTYPE,RUNNABLE,EXE) do{\
-	char* errorMessage=fklGenErrorMessage((ERRORTYPE),(RUNNABLE),(EXE));\
+#define FKL_RAISE_BUILTIN_ERROR(WHO,ERRORTYPE,EXE) do{\
+	char* errorMessage=fklGenErrorMessage((ERRORTYPE),(EXE));\
 	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerrorMCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE));\
 	free(errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
 	return;\
 }while(0)
 
-#define FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,ERRORTYPE,RUNNABLE,EXE) do{\
-	char* errorMessage=fklGenErrorMessage((ERRORTYPE),(RUNNABLE),(EXE));\
+#define FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,ERRORTYPE,EXE) do{\
+	char* errorMessage=fklGenErrorMessage((ERRORTYPE),(EXE));\
 	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerrorCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE));\
 	free(errorMessage);\
 	fklRaiseVMerror(err,(EXE));\

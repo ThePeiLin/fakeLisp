@@ -68,6 +68,8 @@ static struct SubPattern
 {
 	{"(unquote value)",NULL,},
 	{"(unqtesp value)",NULL,},
+	{"(prefix name value)",NULL,},
+	{"(library name args,rest)",NULL,},
 	{NULL,NULL,},
 };
 
@@ -1387,6 +1389,9 @@ static CODEGEN_FUNC(codegen_load)
 	free(filenameCstr);
 }
 
+static CODEGEN_FUNC(codegen_import)
+{
+}
 typedef void (*FklCodegenFunc)(CODEGEN_ARGS);
 
 #undef BC_PROCESS
@@ -1509,6 +1514,7 @@ static struct PatternAndFunc
 	{"(or,rest)",           NULL, codegen_or,      },
 	{"(cond,rest)",         NULL, codegen_cond,    },
 	{"(load name)",         NULL, codegen_load,    },
+	{"(import,rest)",       NULL, codegen_import,  },
 	{NULL,                  NULL, NULL,            }
 };
 

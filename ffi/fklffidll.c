@@ -116,7 +116,6 @@ static void _ffi_proc_invoke(void* ptr,FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklFfiProc* proc=ptr;
 	FklTypeId_t type=proc->type;
-	FklVMframe* curR=exe->frames;
 	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(type).all);
 	uint32_t anum=ft->anum;
 	uint32_t i=0;
@@ -130,14 +129,14 @@ static void _ffi_proc_invoke(void* ptr,FklVM* exe)
 		if(v==NULL)
 		{
 			free(args);
-			FKL_RAISE_BUILTIN_ERROR(fklGetGlobSymbolWithId(proc->sid)->symbol,FKL_ERR_TOOFEWARG,curR,exe);
+			FKL_RAISE_BUILTIN_ERROR(fklGetGlobSymbolWithId(proc->sid)->symbol,FKL_ERR_TOOFEWARG,exe);
 		}
 		args[i]=v;
 	}
 	if(fklNiResBp(&ap,stack))
 	{
 		free(args);
-		FKL_RAISE_BUILTIN_ERROR(fklGetGlobSymbolWithId(proc->sid)->symbol,FKL_ERR_TOOMANYARG,curR,exe);
+		FKL_RAISE_BUILTIN_ERROR(fklGetGlobSymbolWithId(proc->sid)->symbol,FKL_ERR_TOOMANYARG,exe);
 	}
 	void** pArgs=(void**)malloc(sizeof(void*)*anum);
 	FklVMudata** udataList=(FklVMudata**)malloc(sizeof(FklVMudata*)*anum);
@@ -158,7 +157,7 @@ static void _ffi_proc_invoke(void* ptr,FklVM* exe)
 			}
 			free(args);
 			free(pArgs);
-			FKL_RAISE_BUILTIN_ERROR(fklGetGlobSymbolWithId(proc->sid)->symbol,FKL_ERR_INCORRECT_TYPE_VALUE,curR,exe);
+			FKL_RAISE_BUILTIN_ERROR(fklGetGlobSymbolWithId(proc->sid)->symbol,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 		}
 		FklFfiMem* mem=ud->data;
 		if(mem->type==FKL_FFI_TYPE_FILE_P||mem->type==FKL_FFI_TYPE_STRING||fklFfiIsArrayTypeId(mem->type))

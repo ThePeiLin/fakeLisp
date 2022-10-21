@@ -541,7 +541,10 @@ void B_push_var(FklVM* exe)
 		curEnv=curEnv->u.env->prev;
 	}
 	if(pv==NULL)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.push-var",FKL_ERR_SYMUNDEFINE,frame,exe);
+	{
+		char* cstr=fklStringToCstr(fklGetGlobSymbolWithId(idOfVar)->symbol);
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.push-var",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
+	}
 	fklPushVMvalue(*pv,stack);
 	frame->cp+=sizeof(char)+sizeof(FklSid_t);
 }
@@ -551,7 +554,7 @@ void B_push_top(FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklVMframe* frame=exe->frames;
 	if(stack->tp==stack->bp)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.push-top",FKL_ERR_STACKERROR,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.push-top",FKL_ERR_STACKERROR,exe);
 	FklVMvalue* val=fklNiGetArg(&ap,stack);
 	fklNiReturn(val,&ap,stack);
 	fklNiReturn(val,&ap,stack);
@@ -584,7 +587,7 @@ void B_pop_var(FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklVMframe* frame=exe->frames;
 	if(!(stack->tp>stack->bp))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-var",FKL_ERR_STACKERROR,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-var",FKL_ERR_STACKERROR,exe);
 	uint32_t scopeOfVar=fklGetU32FromByteCode(exe->code+frame->cp+sizeof(char));
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+frame->cp+sizeof(char)+sizeof(int32_t));
 	FklVMvalue* curEnv=frame->localenv;
@@ -603,7 +606,10 @@ void B_pop_var(FklVM* exe)
 			curEnv=curEnv->u.env->prev;
 		}
 		if(pv==NULL)
-			FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-var",FKL_ERR_SYMUNDEFINE,frame,exe);
+		{
+			char* cstr=fklStringToCstr(fklGetGlobSymbolWithId(idOfVar)->symbol);
+			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.pop-var",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
+		}
 	}
 	fklSetRef(pv,fklNiGetArg(&ap,stack),exe->gc);
 	fklNiEnd(&ap,stack);
@@ -619,7 +625,7 @@ void B_pop_arg(FklVM* exe)
 	FKL_NI_BEGIN(exe);
 	FklVMframe* frame=exe->frames;
 	if(ap<=stack->bp)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-arg",FKL_ERR_TOOFEWARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-arg",FKL_ERR_TOOFEWARG,exe);
 	FklSid_t idOfVar=fklGetSidFromByteCode(exe->code+frame->cp+sizeof(char));
 	FklVMvalue* curEnv=frame->localenv;
 	FklVMvalue* volatile* pValue=fklFindOrAddVar(idOfVar,curEnv->u.env);
@@ -683,7 +689,7 @@ void B_res_bp(FklVM* exe)
 	FklVMstack* stack=exe->stack;
 	FklVMframe* frame=exe->frames;
 	if(stack->tp>stack->bp)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.res-bp",FKL_ERR_TOOMANYARG,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.res-bp",FKL_ERR_TOOMANYARG,exe);
 	stack->bp=fklPopUintStack(stack->bps);
 	frame->cp+=sizeof(char);
 }
@@ -694,7 +700,7 @@ void B_call(FklVM* exe)
 	FklVMframe* frame=exe->frames;
 	FklVMvalue* tmpValue=fklNiGetArg(&ap,stack);
 	if(!fklIsCallable(tmpValue))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.call",FKL_ERR_CALL_ERROR,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.call",FKL_ERR_CALL_ERROR,exe);
 	frame->cp+=sizeof(char);
 	switch(tmpValue->type)
 	{
@@ -714,7 +720,7 @@ void B_tail_call(FklVM* exe)
 	FklVMframe* frame=exe->frames;
 	FklVMvalue* tmpValue=fklNiGetArg(&ap,stack);
 	if(!fklIsCallable(tmpValue))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.tail-call",FKL_ERR_CALL_ERROR,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.tail-call",FKL_ERR_CALL_ERROR,exe);
 	frame->cp+=sizeof(char);
 	switch(tmpValue->type)
 	{
@@ -768,7 +774,7 @@ void B_list_append(FklVM* exe)
 		while(FKL_IS_PAIR(*lastcdr))
 			lastcdr=&(*lastcdr)->u.pair->cdr;
 		if(*lastcdr!=FKL_VM_NIL)
-			FKL_RAISE_BUILTIN_ERROR_CSTR("b.list-append",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
+			FKL_RAISE_BUILTIN_ERROR_CSTR("b.list-append",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 		fklSetRef(lastcdr,fir,exe->gc);
 		fklNiReturn(sec,&ap,stack);
 	}
@@ -998,7 +1004,7 @@ void B_list_push(FklVM* exe)
 	for(;FKL_IS_PAIR(list);list=list->u.pair->cdr)
 		fklNiReturn(list->u.pair->car,&ap,stack);
 	if(list!=FKL_VM_NIL)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.list-push",FKL_ERR_INCORRECT_TYPE_VALUE,frame,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.list-push",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	fklNiEnd(&ap,stack);
 	frame->cp+=sizeof(char);
 }

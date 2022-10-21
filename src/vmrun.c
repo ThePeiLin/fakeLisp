@@ -237,6 +237,26 @@ static void (*ByteCodes[])(FklVM*)=
 	B_list_push,
 };
 
+inline static void insert_to_VM_chain(FklVM* cur,FklVM* prev,FklVM* next,FklVMgc* gc)
+{
+	cur->prev=prev;
+	cur->next=next;
+	pthread_rwlock_wrlock(&gc->lock);
+	if(prev)
+	{
+		pthread_mutex_lock(&prev->prev_next_lock);
+		prev->next=cur;
+		pthread_mutex_unlock(&cur->prev->prev_next_lock);
+	}
+	if(next)
+	{
+		pthread_mutex_lock(&next->prev_next_lock);
+		next->prev=cur;
+		pthread_mutex_unlock(&cur->next->prev_next_lock);
+	}
+	pthread_rwlock_unlock(&gc->lock);
+}
+
 FklVM* fklCreateVM(FklByteCode* mainCode,FklVM* prev,FklVM* next)
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
@@ -265,20 +285,7 @@ FklVM* fklCreateVM(FklByteCode* mainCode,FklVM* prev,FklVM* next)
 	exe->nny=0;
 	pthread_rwlock_init(&exe->rlock,NULL);
 	pthread_mutex_init(&exe->prev_next_lock,NULL);
-	exe->prev=prev;
-	exe->next=next;
-	if(prev)
-	{
-		pthread_mutex_lock(&exe->prev->prev_next_lock);
-		exe->prev->next=exe;
-		pthread_mutex_unlock(&exe->prev->prev_next_lock);
-	}
-	if(next)
-	{
-		pthread_mutex_lock(&exe->next->prev_next_lock);
-		exe->next->prev=exe;
-		pthread_mutex_unlock(&exe->next->prev_next_lock);
-	}
+	insert_to_VM_chain(exe,prev,next,exe->gc);
 	return exe;
 }
 
@@ -1524,22 +1531,7 @@ FklVM* fklCreateThreadVM(FklVMproc* mainCode,FklVMgc* gc,FklVM* prev,FklVM* next
 	exe->nny=0;
 	pthread_rwlock_init(&exe->rlock,NULL);
 	pthread_mutex_init(&exe->prev_next_lock,NULL);
-	exe->prev=prev;
-	exe->next=next;
-	pthread_rwlock_wrlock(&gc->lock);
-	if(prev)
-	{
-		pthread_mutex_lock(&exe->prev->prev_next_lock);
-		exe->prev->next=exe;
-		pthread_mutex_unlock(&exe->prev->prev_next_lock);
-	}
-	if(next)
-	{
-		pthread_mutex_lock(&exe->next->prev_next_lock);
-		exe->next->prev=exe;
-		pthread_mutex_unlock(&exe->next->prev_next_lock);
-	}
-	pthread_rwlock_unlock(&gc->lock);
+	insert_to_VM_chain(exe,prev,next,gc);
 	fklAddToGCNoGC(t->localenv,gc);
 	fklAddToGCNoGC(exe->chan,gc);
 	return exe;
@@ -1563,22 +1555,8 @@ FklVM* fklCreateThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue* ne
 	exe->nextCallBackUp=NULL;
 	exe->nny=0;
 	pthread_rwlock_init(&exe->rlock,NULL);
-	exe->next=next;
-	exe->prev=prev;
-	pthread_rwlock_wrlock(&gc->lock);
-	if(prev)
-	{
-		pthread_mutex_lock(&exe->prev->prev_next_lock);
-		exe->prev->next=exe;
-		pthread_mutex_unlock(&exe->prev->prev_next_lock);
-	}
-	if(next)
-	{
-		pthread_mutex_lock(&exe->next->prev_next_lock);
-		exe->next->prev=exe;
-		pthread_mutex_unlock(&exe->next->prev_next_lock);
-	}
-	pthread_rwlock_unlock(&gc->lock);
+	pthread_mutex_init(&exe->prev_next_lock,NULL);
+	insert_to_VM_chain(exe,prev,next,gc);
 	fklAddToGCNoGC(exe->chan,gc);
 	return exe;
 }

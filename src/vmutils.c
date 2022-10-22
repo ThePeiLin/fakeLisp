@@ -462,7 +462,7 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 				}
 				exe->frames=curr;
 				FklVMframe* prevFrame=exe->frames;
-				FklVMframe* frame=fklCreateVMframe(&h->proc,prevFrame);
+				FklVMframe* frame=fklCreateVMframeWithProc(&h->proc,prevFrame);
 				frame->localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(prevFrame->localenv,exe->gc));
 				fklAddToGC(frame->localenv,exe);
 				FklVMvalue* curEnv=frame->localenv;
@@ -495,7 +495,7 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 			else
 				fprintf(stderr,"at <top>");
 		}
-		FklLineNumTabNode* node=fklFindLineNumTabNode(cur->cp,exe->lnt);
+		FklLineNumTabNode* node=fklFindLineNumTabNode(cur->cp,exe->codeObj->u.code->ls,exe->codeObj->u.code->l);
 		if(node->fid)
 		{
 			fprintf(stderr,"(%u:",node->line);
@@ -510,7 +510,7 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 	return 255;
 }
 
-FklVMframe* fklCreateVMframe(FklVMproc* code,FklVMframe* prev)
+FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVMframe* prev,FklVMgc* gc)
 {
 	FklVMframe* tmp=(FklVMframe*)malloc(sizeof(FklVMframe));
 	FKL_ASSERT(tmp);
@@ -520,6 +520,28 @@ FklVMframe* fklCreateVMframe(FklVMproc* code,FklVMframe* prev)
 	tmp->cpc=0;
 	tmp->prev=prev;
 	tmp->ccc=NULL;
+	tmp->sid=0;
+	fklSetRef(&tmp->codeObj,codeObj,gc);
+	tmp->code=codeObj->u.code->bc->code;
+	tmp->cp=0;
+	tmp->scp=0;
+	tmp->cpc=codeObj->u.code->bc->size;
+	tmp->mark=0;
+	return tmp;
+}
+
+FklVMframe* fklCreateVMframeWithProc(FklVMproc* code,FklVMframe* prev)
+{
+	FklVMframe* tmp=(FklVMframe*)malloc(sizeof(FklVMframe));
+	FKL_ASSERT(tmp);
+	tmp->sid=0;
+	tmp->cp=0;
+	tmp->scp=0;
+	tmp->cpc=0;
+	tmp->prev=prev;
+	tmp->ccc=NULL;
+	tmp->codeObj=code->codeObj;
+	tmp->code=code->codeObj->u.code->bc->code;
 	if(code)
 	{
 		tmp->cp=code->scp;
@@ -889,6 +911,9 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 					case FKL_TYPE_BIG_INT:
 						fklPrintBigInt(v->u.bigInt,fp);
 						break;
+					case FKL_TYPE_CODE_OBJ:
+						fprintf(fp,"<#code-obj>");
+						break;
 					case FKL_TYPE_USERDATA:
 						if(v->u.ud->t->__princ)
 							v->u.ud->t->__princ(v->u.ud->data,fp);
@@ -988,6 +1013,9 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 						break;
 					case FKL_TYPE_BIG_INT:
 						fklPrintBigInt(v->u.bigInt,fp);
+						break;
+					case FKL_TYPE_CODE_OBJ:
+						fprintf(fp,"<#code-obj>");
 						break;
 					case FKL_TYPE_USERDATA:
 						if(v->u.ud->t->__prin1)
@@ -1421,35 +1449,35 @@ FklVMvalue* fklGetValue(FklVMstack* stack,int32_t place)
 //	return tmp;
 //}
 
-void fklInitVMRunningResource(FklVM* vm,FklVMvalue* vEnv,FklVMgc* gc,FklByteCodelnt* code,uint32_t start,uint32_t size)
-{
-	FklVMproc proc={
-		.scp=start,
-		.cpc=size,
-		.sid=0,
-		.prevEnv=NULL,
-	};
-	FklVMframe* mainframe=fklCreateVMframe(&proc,NULL);
-	mainframe->localenv=vEnv;
-	vm->code=code->bc->code;
-	vm->size=code->bc->size;
-	vm->frames=mainframe;
-	vm->lnt=fklCreateLineNumTable();
-	vm->lnt->num=code->ls;
-	vm->lnt->list=code->l;
-	if(vm->gc!=gc)
-	{
-		fklDestroyVMgc(vm->gc);
-		vm->gc=gc;
-	}
-}
+//void fklInitVMRunningResource(FklVM* vm,FklVMvalue* vEnv,FklVMgc* gc,FklByteCodelnt* code,uint32_t start,uint32_t size)
+//{
+//	FklVMproc proc={
+//		.scp=start,
+//		.cpc=size,
+//		.sid=0,
+//		.prevEnv=NULL,
+//	};
+//	FklVMframe* mainframe=fklCreateVMframe(&proc,NULL);
+//	mainframe->localenv=vEnv;
+//	vm->code=code->bc->code;
+//	vm->size=code->bc->size;
+//	vm->frames=mainframe;
+//	vm->lnt=fklCreateLineNumTable();
+//	vm->lnt->num=code->ls;
+//	vm->lnt->list=code->l;
+//	if(vm->gc!=gc)
+//	{
+//		fklDestroyVMgc(vm->gc);
+//		vm->gc=gc;
+//	}
+//}
 
-void fklUninitVMRunningResource(FklVM* vm)
-{
-	fklWaitGC(vm->gc);
-	free(vm->lnt);
-	fklDestroyAllVMs(vm);
-}
+//void fklUninitVMRunningResource(FklVM* vm)
+//{
+//	fklWaitGC(vm->gc);
+//	free(vm->lnt);
+//	fklDestroyAllVMs(vm);
+//}
 
 size_t fklVMlistLength(FklVMvalue* v)
 {

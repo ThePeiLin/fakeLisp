@@ -100,7 +100,7 @@ int main(int argc,char** argv)
 				uint8_t* code=mainByteCode->bc->code;
 				fwrite(&sizeOfMain,sizeof(mainByteCode->bc->size),1,outfp);
 				fwrite(code,sizeof(uint8_t),sizeOfMain,outfp);
-				fklDestroyByteCodeAndLnt(mainByteCode);
+				fklDestroyByteCodelnt(mainByteCode);
 				fclose(outfp);
 				fklDestroyMainFileRealPath();
 				fklDestroyCwd();

@@ -120,9 +120,9 @@ static FklByteCodelnt* createBclnt(FklByteCode* bc
 {
 	FklByteCodelnt* r=fklCreateByteCodelnt(bc);
 	r->ls=1;
-	r->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
+	r->l=(FklLineNumTabNode*)malloc(sizeof(FklLineNumTabNode)*1);
 	FKL_ASSERT(r->l);
-	r->l[0]=fklCreateLineNumTabNode(fid,0,r->bc->size,line);
+	fklInitLineNumTabNode(&r->l[0],fid,0,bc->size,line);
 	return r;
 }
 
@@ -141,15 +141,15 @@ static void bclBcAppendToBcl(FklByteCodelnt* bcl
 	if(!bcl->l)
 	{
 		bcl->ls=1;
-		bcl->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
+		bcl->l=(FklLineNumTabNode*)malloc(sizeof(FklLineNumTabNode)*1);
 		FKL_ASSERT(bcl->l);
-		bcl->l[0]=fklCreateLineNumTabNode(fid,0,bc->size,line);
+		fklInitLineNumTabNode(&bcl->l[0],fid,0,bc->size,line);
 		fklCodeCat(bcl->bc,bc);
 	}
 	else
 	{
 		fklCodeCat(bcl->bc,bc);
-		bcl->l[bcl->ls-1]->cpc+=bc->size;
+		bcl->l[bcl->ls-1].cpc+=bc->size;
 	}
 }
 
@@ -161,15 +161,15 @@ static void bcBclAppendToBcl(const FklByteCode* bc
 	if(!bcl->l)
 	{
 		bcl->ls=1;
-		bcl->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*1);
+		bcl->l=(FklLineNumTabNode*)malloc(sizeof(FklLineNumTabNode)*1);
 		FKL_ASSERT(bcl->l);
-		bcl->l[0]=fklCreateLineNumTabNode(fid,0,bc->size,line);
+		fklInitLineNumTabNode(&bcl->l[0],fid,0,bc->size,line);
 		fklCodeCat(bcl->bc,bc);
 	}
 	else
 	{
 		fklReCodeCat(bc,bcl->bc);
-		bcl->l[0]->cpc+=bc->size;
+		bcl->l[0].cpc+=bc->size;
 		FKL_INCREASE_ALL_SCP(bcl->l+1,bcl->ls-1,bc->size);
 	}
 }
@@ -603,7 +603,7 @@ static FklByteCodelnt* processArgs(const FklNastNode* args,FklCodegenEnv* curEnv
 		FklNastNode* cur=args->u.pair->car;
 		if(cur->type!=FKL_NAST_SYM)
 		{
-			fklDestroyByteCodeAndLnt(retval);
+			fklDestroyByteCodelnt(retval);
 			return NULL;
 		}
 		fklAddCodegenDefBySid(cur->u.sym,curEnv);
@@ -613,7 +613,7 @@ static FklByteCodelnt* processArgs(const FklNastNode* args,FklCodegenEnv* curEnv
 	}
 	if(args->type!=FKL_NAST_NIL&&args->type!=FKL_NAST_SYM)
 	{
-		fklDestroyByteCodeAndLnt(retval);
+		fklDestroyByteCodelnt(retval);
 		return NULL;
 	}
 	if(args->type==FKL_NAST_SYM)
@@ -1723,7 +1723,7 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 				FklCodegenQuest* curCodegenQuest=fklPopPtrStack(codegenQuestStack);
 				FklPtrStack* bcStack=curCodegenQuest->stack;
 				while(!fklIsPtrStackEmpty(bcStack))
-					fklDestroyByteCodeAndLnt(fklPopPtrStack(bcStack));
+					fklDestroyByteCodelnt(fklPopPtrStack(bcStack));
 				destroyCodegenQuest(curCodegenQuest);
 			}
 			fklDestroyPtrStack(codegenQuestStack);
@@ -2037,8 +2037,7 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklSymbolTable* symbolT
 		}
 		if(!r)
 		{
-			FklLineNumberTable table={.list=code->l,.num=code->ls};
-			FklLineNumTabNode* node=fklFindLineNumTabNode(cur->cp,&table);
+			FklLineNumTabNode* node=fklFindLineNumTabNode(cur->cp,code->ls,code->l);
 			fprintf(stderr,"warning of compiling: Symbol \"");
 			fklPrintString(fklGetSymbolWithId(cur->sid,symbolTable)->symbol,stderr);
 			fprintf(stderr,"\" is undefined at line %d of ",node->line);

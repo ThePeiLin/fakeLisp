@@ -21,7 +21,7 @@
 void runRepl(FklCodegen*,const FklSid_t*);
 FklByteCode* loadByteCode(FILE*);
 void loadSymbolTable(FILE*);
-FklLineNumberTable* loadLineNumberTable(FILE*);
+void loadLineNumberTable(FILE*,FklLineNumTabNode** plist,size_t* pnum);
 static jmp_buf buf;
 static int exitState=0;
 
@@ -88,15 +88,11 @@ int main(int argc,char** argv)
 		fklDestroySymbolTable(globalSymbolTable);
 		chdir(fklGetCwd());
 		fklCodegenPrintUndefinedSymbol(mainByteCode,codegen.globalSymTable);
-		FklLineNumberTable globalLnt={mainByteCode->ls,mainByteCode->l};
-		FklVM* anotherVM=fklCreateVM(mainByteCode->bc,NULL,NULL);
+		FklVM* anotherVM=fklCreateVM(mainByteCode,NULL,NULL);
 		FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
-		fklDestroyByteCode(mainByteCode->bc);
-		free(mainByteCode);
 		FklVMframe* mainframe=anotherVM->frames;
 		mainframe->localenv=globEnv;
 		anotherVM->callback=errorCallBack;
-		anotherVM->lnt=&globalLnt;
 		if(setjmp(buf)==0)
 		{
 			fklRunVM(anotherVM);
@@ -106,7 +102,6 @@ int main(int argc,char** argv)
 			fklUninitCodegener(&codegen);
 			fklDestroyGlobSymbolTable();
 			fklUninitCodegen();
-			fklDestroyLineNumTabNodeArray(globalLnt.list,globalLnt.num);
 			fklDestroyAllVMs(anotherVM);
 		}
 		else
@@ -120,7 +115,6 @@ int main(int argc,char** argv)
 			fklUninitCodegener(&codegen);
 			fklDestroyGlobSymbolTable();
 			fklUninitCodegen();
-			fklDestroyLineNumTabNodeArray(globalLnt.list,globalLnt.num);
 			return exitState;
 		}
 	}
@@ -143,17 +137,17 @@ int main(int argc,char** argv)
 		char* rp=fklRealpath(filename);
 		fklSetMainFileRealPath(rp);
 		free(rp);
-		FklLineNumberTable* lnt=loadLineNumberTable(fp);
+		FklByteCodelnt* mainCodelnt=fklCreateByteCodelnt(NULL);
+		loadLineNumberTable(fp,&mainCodelnt->l,&mainCodelnt->ls);
 		FklByteCode* mainCode=loadByteCode(fp);
-		FklVM* anotherVM=fklCreateVM(mainCode,NULL,NULL);
+		mainCodelnt->bc=mainCode;
+		FklVM* anotherVM=fklCreateVM(mainCodelnt,NULL,NULL);
 		FklVMgc* gc=anotherVM->gc;
-		fklDestroyByteCode(mainCode);
 		fclose(fp);
 		FklVMframe* mainframe=anotherVM->frames;
 		FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
 		mainframe->localenv=globEnv;
 		anotherVM->callback=errorCallBack;
-		anotherVM->lnt=lnt;
 //		fklInitGlobEnv(globEnv->u.env,anotherVM->gc);
 		if(!setjmp(buf))
 		{
@@ -162,7 +156,6 @@ int main(int argc,char** argv)
 			fklDestroyVMgc(gc);
 			fklDestroyGlobSymbolTable();
 			fklDestroyAllVMs(anotherVM);
-			fklDestroyLineNumberTable(lnt);
 		}
 		else
 		{
@@ -171,7 +164,6 @@ int main(int argc,char** argv)
 			fklDestroyAllVMs(anotherVM);
 			fklDestroyVMgc(gc);
 			fklDestroyGlobSymbolTable();
-			fklDestroyLineNumberTable(lnt);
 			fklDestroyCwd();
 			return exitState;
 		}
@@ -196,7 +188,7 @@ void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 	FklByteCode* rawProcList=NULL;
 	FklPtrStack* tokenStack=fklCreatePtrStack(32,16);
 	FklLineNumberTable* globalLnt=fklCreateLineNumTable();
-	anotherVM->lnt=globalLnt;
+	anotherVM->codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,fklCreateByteCodelnt(fklCreateByteCode(0)),anotherVM->gc);
 	char* prev=NULL;
 	size_t prevSize=0;
 	int32_t bs=0;
@@ -240,16 +232,12 @@ void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 			FklByteCodelnt* tmpByteCode=fklGenExpressionCode(begin,codegen->globalEnv,codegen);
 			if(tmpByteCode)
 			{
-				fklLntCat(globalLnt,bs,tmpByteCode->l,tmpByteCode->ls);
-				FklByteCode byteCodeOfVM={anotherVM->size,anotherVM->code};
-				fklCodeCat(&byteCodeOfVM,tmpByteCode->bc);
-				anotherVM->code=byteCodeOfVM.code;
-				anotherVM->size=byteCodeOfVM.size;
-				FklVMproc* tmp=fklCreateVMproc(bs,tmpByteCode->bc->size);
+				fklCodeLntCat(anotherVM->codeObj->u.code,tmpByteCode);
+				FklVMproc* tmp=fklCreateVMproc(bs,tmpByteCode->bc->size,anotherVM->codeObj,anotherVM->gc);
 				bs+=tmpByteCode->bc->size;
 				fklDestroyByteCodelnt(tmpByteCode);
 				tmp->prevEnv=NULL;
-				FklVMframe* mainframe=fklCreateVMframe(tmp,anotherVM->frames);
+				FklVMframe* mainframe=fklCreateVMframeWithProc(tmp,anotherVM->frames);
 				mainframe->localenv=globEnv;
 				anotherVM->frames=mainframe;
 				if(!(e=setjmp(buf)))
@@ -320,14 +308,13 @@ void loadSymbolTable(FILE* fp)
 	}
 }
 
-FklLineNumberTable* loadLineNumberTable(FILE* fp)
+void loadLineNumberTable(FILE* fp,FklLineNumTabNode** plist,size_t* pnum)
 {
-	uint32_t size=0;
-	uint32_t i=0;
+	size_t size=0;
 	fread(&size,sizeof(uint32_t),1,fp);
-	FklLineNumTabNode** list=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*size);
+	FklLineNumTabNode* list=(FklLineNumTabNode*)malloc(sizeof(FklLineNumTabNode)*size);
 	FKL_ASSERT(list);
-	for(;i<size;i++)
+	for(size_t i=0;i<size;i++)
 	{
 		FklSid_t fid=0;
 		uint64_t scp=0;
@@ -337,11 +324,8 @@ FklLineNumberTable* loadLineNumberTable(FILE* fp)
 		fread(&scp,sizeof(scp),1,fp);
 		fread(&cpc,sizeof(cpc),1,fp);
 		fread(&line,sizeof(line),1,fp);
-		FklLineNumTabNode* n=fklCreateLineNumTabNode(fid,scp,cpc,line);
-		list[i]=n;
+		fklInitLineNumTabNode(&list[i],fid,scp,cpc,line);
 	}
-	FklLineNumberTable* lnt=fklCreateLineNumTable();
-	lnt->list=list;
-	lnt->num=size;
-	return lnt;
+	*plist=list;
+	*pnum=size;
 }

@@ -129,12 +129,6 @@ typedef enum{
 	FKL_MARK_B,
 }FklVMvalueMark;
 
-typedef struct
-{
-	FklLineNumberTable lnt;
-	FklBytevector code;
-}FklCodeObj;
-
 typedef struct FklVMvalue
 {
 	FklVMvalueMark volatile mark;
@@ -159,7 +153,7 @@ typedef struct FklVMvalue
 		FklBigInt* bigInt;
 		FklVMudata* ud;
 		struct FklVMvalue* box;
-		FklCodeObj* code;
+		FklByteCodelnt* code;
 	}u;
 	struct FklVMvalue* next;
 }FklVMvalue;
@@ -197,6 +191,7 @@ typedef struct FklVMproc
 	uint64_t cpc;
 	FklSid_t sid;
 	FklVMvalue* prevEnv;
+	FklVMvalue* codeObj;
 }FklVMproc;
 
 typedef void (*FklVMFuncK)(struct FklVM*,FklCCState,void*);
@@ -213,7 +208,8 @@ typedef struct FklVMframe
 {
 	unsigned int mark :1;
 	FklVMvalue* localenv;
-	FklVMvalue* code;
+	FklVMvalue* codeObj;
+	uint8_t* code;
 	uint64_t scp;
 	uint64_t cp;
 	uint64_t cpc;
@@ -236,10 +232,7 @@ typedef struct
 typedef struct FklVM
 {
 	uint32_t mark;
-//	int32_t thrds;
 	pthread_t tid;
-	uint8_t* code;
-	uint64_t size;
 	pthread_rwlock_t rlock;
 	FklVMframe* frames;
 	FklPtrStack* tstack;
@@ -247,7 +240,6 @@ typedef struct FklVM
 	FklVMvalue* codeObj;
 	struct FklVMvalue* chan;
 	struct FklVMgc* gc;
-	struct FklLineNumberTable* lnt;
 	void (*callback)(void*);
 	FklVMvalue* volatile nextCall;
 	FklVMvalue* volatile nextCallBackUp;
@@ -319,6 +311,7 @@ typedef struct FklVMcontinuation
 	FklVMframe* curr;
 	struct FklVMtryBlock* tb;
 	FklVMvalue* nextCall;
+	FklVMvalue* codeObj;
 }FklVMcontinuation;
 
 typedef struct FklVMtryBlock
@@ -347,8 +340,8 @@ typedef struct FklVMerrorHandler
 int fklRunVM(FklVM*);
 //FklVMlist* fklGetGlobVMs(void);
 //void fklSetGlobVMs(FklVMlist*);
-FklVM* fklCreateVM(FklByteCode*,FklVM* prev,FklVM* next);
-FklVM* fklCreateTmpVM(FklByteCode*,FklVMgc*,FklVM* prev,FklVM* next);
+FklVM* fklCreateVM(FklByteCodelnt*,FklVM* prev,FklVM* next);
+//FklVM* fklCreateTmpVM(FklByteCode*,FklVMgc*,FklVM* prev,FklVM* next);
 FklVM* fklCreateThreadVM(FklVMproc*,FklVMgc*,FklVM* prev,FklVM* next);
 FklVM* fklCreateThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue*,FklVM* prev,FklVM* next);
 
@@ -407,8 +400,8 @@ int fklIsInt(const FklVMvalue* p);
 int fklIsList(const FklVMvalue* p);
 int64_t fklGetInt(const FklVMvalue* p);
 double fklGetDouble(const FklVMvalue* p);
-void fklInitVMRunningResource(FklVM*,FklVMvalue*,FklVMgc* gc,FklByteCodelnt*,uint32_t,uint32_t);
-void fklUninitVMRunningResource(FklVM*);
+//void fklInitVMRunningResource(FklVM*,FklVMvalue*,FklVMgc* gc,FklByteCodelnt*,uint32_t,uint32_t);
+//void fklUninitVMRunningResource(FklVM*);
 
 typedef struct FklPreEnv FklPreEnv;
 FklHashTable* fklCreateLineNumHashTable(void);
@@ -425,7 +418,8 @@ void fklDestroyVMtryBlock(FklVMtryBlock* b);
 FklVMerrorHandler* fklCreateVMerrorHandler(FklSid_t* typeIds,uint32_t,uint64_t scp,uint64_t cpc);
 void fklDestroyVMerrorHandler(FklVMerrorHandler*);
 int fklRaiseVMerror(FklVMvalue* err,FklVM*);
-FklVMframe* fklCreateVMframe(FklVMproc*,FklVMframe*);
+FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVMframe* prev,FklVMgc* gc);
+FklVMframe* fklCreateVMframeWithProc(FklVMproc*,FklVMframe*);
 void fklDestroyVMframe(FklVMframe*);
 char* fklGenErrorMessage(FklBuiltInErrorType type,FklVM* exe);
 char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorType);
@@ -456,7 +450,7 @@ FklVMvalue* volatile* fklFindOrAddVarWithValue(FklSid_t id,FklVMvalue*,FklVMenv*
 void fklAtomicVMenv(FklVMenv*,FklVMgc*);
 void fklDestroyVMenv(FklVMenv*);
 
-FklVMproc* fklCreateVMproc(uint64_t scp,uint64_t cpc);
+FklVMproc* fklCreateVMproc(uint64_t scp,uint64_t cpc,FklVMvalue* codeObj,FklVMgc* gc);
 
 FklVMvalue* fklCopyVMlistOrAtom(FklVMvalue*,FklVM*);
 FklVMvalue* fklCopyVMvalue(FklVMvalue*,FklVM*);

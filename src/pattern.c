@@ -187,7 +187,7 @@ void fklDestroyAllStringPattern()
 		FklStringMatchPattern* prev=cur;
 		cur=cur->next;
 		fklDestroyStringArray(prev->parts,prev->num);
-		fklDestroyByteCodeAndLnt(prev->proc);
+		fklDestroyByteCodelnt(prev->proc);
 		free(prev);
 	}
 }

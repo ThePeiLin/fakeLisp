@@ -53,7 +53,7 @@ FklLineNumberTable* loadLineNumberTable(FILE* fp)
 	uint32_t size=0;
 	uint32_t i=0;
 	fread(&size,sizeof(uint32_t),1,fp);
-	FklLineNumTabNode** list=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*size);
+	FklLineNumTabNode* list=(FklLineNumTabNode*)malloc(sizeof(FklLineNumTabNode)*size);
 	FKL_ASSERT(list);
 	for(;i<size;i++)
 	{
@@ -65,8 +65,7 @@ FklLineNumberTable* loadLineNumberTable(FILE* fp)
 		fread(&scp,sizeof(scp),1,fp);
 		fread(&cpc,sizeof(cpc),1,fp);
 		fread(&line,sizeof(line),1,fp);
-		FklLineNumTabNode* n=fklCreateLineNumTabNode(fid,scp,cpc,line);
-		list[i]=n;
+		fklInitLineNumTabNode(&list[i],fid,scp,cpc,line);
 	}
 	FklLineNumberTable* lnt=fklCreateLineNumTable();
 	lnt->list=list;

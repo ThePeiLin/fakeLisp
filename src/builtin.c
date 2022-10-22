@@ -2894,9 +2894,6 @@ void builtin_go(ARGL)
 	if(!FKL_IS_PROC(threadProc)&&!FKL_IS_DLPROC(threadProc)&&!FKL_IS_CONT(threadProc)&&!fklIsCallableUd(threadProc))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.go",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FklVM* threadVM=FKL_IS_PROC(threadProc)?fklCreateThreadVM(threadProc->u.proc,exe->gc,exe,exe->next):fklCreateThreadCallableObjVM(frame,exe->gc,threadProc,exe,exe->next);
-	threadVM->lnt=exe->lnt;
-	threadVM->code=exe->code;
-	threadVM->size=exe->size;
 	FklVMstack* threadVMstack=threadVM->stack;
 	fklNiSetBp(threadVMstack->tp,threadVMstack);
 	FklVMvalue* cur=fklNiGetArg(&ap,stack);
@@ -2918,7 +2915,7 @@ void builtin_go(ARGL)
 		fklDeleteCallChain(threadVM);
 		fklDestroyVMstack(threadVM->stack);
 		threadVM->stack=NULL;
-		threadVM->lnt=NULL;
+		threadVM->codeObj=NULL;
 		fklNiReturn(FKL_MAKE_VM_I32(faildCode),&ap,stack);
 	}
 	else
@@ -3065,7 +3062,7 @@ void builtin_call_cc(ARGL)
 			prevProc->mark=1;
 		else
 		{
-			FklVMframe* tmpFrame=fklCreateVMframe(tmpProc,exe->frames);
+			FklVMframe* tmpFrame=fklCreateVMframeWithProc(tmpProc,exe->frames);
 			tmpFrame->localenv=fklCreateVMvalueToStack(FKL_TYPE_ENV,fklCreateVMenv(tmpProc->prevEnv,exe->gc),exe);
 			exe->frames=tmpFrame;
 		}
@@ -3580,7 +3577,7 @@ void builtin_getdir(ARGL)
 	FklVMframe* frame=exe->frames;
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.getdir",FKL_ERR_TOOMANYARG,exe);
-	FklLineNumTabNode* node=fklFindLineNumTabNode(frame->cp,exe->lnt);
+	FklLineNumTabNode* node=fklFindLineNumTabNode(frame->cp,frame->codeObj->u.code->ls,frame->codeObj->u.code->l);
 	if(node->fid)
 	{
 		char* filename=fklCopyCstr(fklGetMainFileRealPath());

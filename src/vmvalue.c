@@ -227,7 +227,7 @@ FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
 	return retval;
 }
 
-FklVMproc* fklCreateVMproc(uint64_t scp,uint64_t cpc)
+FklVMproc* fklCreateVMproc(uint64_t scp,uint64_t cpc,FklVMvalue* codeObj,FklVMgc* gc)
 {
 	FklVMproc* tmp=(FklVMproc*)malloc(sizeof(FklVMproc));
 	FKL_ASSERT(tmp);
@@ -235,6 +235,7 @@ FklVMproc* fklCreateVMproc(uint64_t scp,uint64_t cpc)
 	tmp->scp=scp;
 	tmp->cpc=cpc;
 	tmp->sid=0;
+	fklSetRef(&tmp->codeObj,codeObj,gc);
 	return tmp;
 }
 
@@ -525,6 +526,8 @@ FklVMvalue* fklCreateSaveVMvalue(FklValueType type,void* pValue)
 						tmp->u.box=pValue;break;
 					case FKL_TYPE_HASHTABLE:
 						tmp->u.hash=pValue;break;
+					case FKL_TYPE_CODE_OBJ:
+						tmp->u.code=pValue;break;
 					default:
 						return NULL;
 						break;
@@ -957,6 +960,9 @@ void fklDestroyVMvalue(FklVMvalue* cur)
 			break;
 		case FKL_TYPE_BIG_INT:
 			fklDestroyBigInt(cur->u.bigInt);
+			break;
+		case FKL_TYPE_CODE_OBJ:
+			fklDestroyByteCodelnt(cur->u.code);
 			break;
 		default:
 			FKL_ASSERT(0);
@@ -1794,9 +1800,10 @@ FklVMcontinuation* fklCreateVMcontinuation(uint32_t ap,FklVM* exe)
 	tmp->stack->tp=ap;
 	tmp->curr=NULL;
 	tmp->nextCall=nextCall;
+	tmp->codeObj=exe->codeObj;
 	for(FklVMframe* cur=curr;cur;cur=cur->prev)
 	{
-		FklVMframe* t=fklCreateVMframe(NULL,tmp->curr);
+		FklVMframe* t=fklCreateVMframeWithProc(NULL,tmp->curr);
 		tmp->curr=t;
 		t->cp=cur->cp;
 		t->localenv=cur->localenv;
@@ -1804,6 +1811,7 @@ FklVMcontinuation* fklCreateVMcontinuation(uint32_t ap,FklVM* exe)
 		t->scp=cur->scp;
 		t->sid=cur->sid;
 		t->mark=cur->mark;
+		t->codeObj=cur->codeObj;
 		t->ccc=fklCopyVMcCC(cur->ccc);
 	}
 	tmp->tnum=tbnum;

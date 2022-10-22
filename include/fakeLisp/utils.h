@@ -26,11 +26,6 @@ extern "C" {
 #define FKL_THRESHOLD_SIZE (512)
 #define FKL_MAX_STRING_SIZE (64)
 #define FKL_STATIC_SYMBOL_INIT {0,NULL,NULL}
-#define FKL_INCREASE_ALL_SCP(l,ls,s) {int32_t i=0;\
-	for(;i<(ls);i++)\
-	(l)[i]->scp+=(s);\
-}
-
 #define FKL_MIN(a,b) (((a)<(b))?(a):(b))
 #define FKL_MAX(a,b) (((a)>(b))?(a):(b))
 #define FKL_ASSERT(exp) assert(exp)

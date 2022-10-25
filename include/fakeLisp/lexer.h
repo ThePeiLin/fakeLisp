@@ -78,6 +78,7 @@ FklNastNode* fklPatternMatchingHashTableRef(FklSid_t sid,FklHashTable* ht);
 FklHashTable* fklCreatePatternMatchingHashTable(void);
 void fklDestroyPatternMatchingHashTable(FklHashTable*);
 int fklIsNastNodeList(const FklNastNode* list);
+int fklIsNastNodeListAndHasSameType(const FklNastNode* list,FklNastType type);
 
 FklNastNode* fklMakeNastNodeRef(FklNastNode* n);
 #ifdef __cplusplus

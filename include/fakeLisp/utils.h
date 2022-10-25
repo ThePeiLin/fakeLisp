@@ -12,15 +12,15 @@ extern "C" {
 #endif
 
 #ifdef _WIN32
-#define FKL_PATH_SEPARATOR '\\'
+#define FKL_PATH_SEPARATOR ('\\')
 #else
-#define FKL_PATH_SEPARATOR '/'
+#define FKL_PATH_SEPARATOR ('/')
 #endif
 
 #ifdef _WIN32
-#define FKL_PATH_SEPARATOR_STR "\\"
+#define FKL_PATH_SEPARATOR_STR ("\\")
 #else
-#define FKL_PATH_SEPARATOR_STR "/"
+#define FKL_PATH_SEPARATOR_STR ("/")
 #endif
 
 #define FKL_THRESHOLD_SIZE (512)

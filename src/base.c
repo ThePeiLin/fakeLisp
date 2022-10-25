@@ -1507,6 +1507,8 @@ FklString* fklStringAppend(const FklString* a,const FklString* b)
 
 char* fklCstrStringCat(char* fir,const FklString* sec)
 {
+	if(!fir)
+		return fklStringToCstr(sec);
 	size_t len=strlen(fir);
 	fir=(char*)realloc(fir,sizeof(char)*len+sec->size+1);
 	FKL_ASSERT(fir);

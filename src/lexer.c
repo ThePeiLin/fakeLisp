@@ -1187,6 +1187,14 @@ int fklIsNastNodeList(const FklNastNode* list)
 	return list->type==FKL_NAST_NIL;
 }
 
+int fklIsNastNodeListAndHasSameType(const FklNastNode* list,FklNastType type)
+{
+	for(;list->type==FKL_NAST_PAIR;list=list->u.pair->cdr)
+		if(list->u.pair->car->type!=type)
+			return 0;
+	return list->type==FKL_NAST_NIL;
+}
+
 FklNastNode* fklMakeNastNodeRef(FklNastNode* n)
 {
 	n->refcount+=1;

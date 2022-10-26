@@ -1583,7 +1583,7 @@ FklVM* fklCreateThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue* ne
 	FKL_ASSERT(exe);
 	FklVMframe* t=fklCreateVMframeWithCodeObj(frame->codeObj,NULL,gc);
 	t->cp=frame->scp+frame->cpc;
-	t->localenv=NULL;
+	t->localenv=FKL_VM_NIL;
 	exe->frames=t;
 	exe->mark=1;
 	exe->chan=fklCreateSaveVMvalue(FKL_TYPE_CHAN,fklCreateVMchanl(0));

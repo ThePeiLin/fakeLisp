@@ -59,7 +59,8 @@ typedef enum
 	SUB_PATTERN_UNQUOTE=0,
 	SUB_PATTERN_UNQTESP=1,
 	SUB_PATTERN_LIBRARY=2,
-	SUB_PATTERN_PREFIX=3,
+	SUB_PATTERN_EXPORT=3,
+	SUB_PATTERN_PREFIX=4,
 }SubPatternEnum;
 
 static struct SubPattern
@@ -71,6 +72,7 @@ static struct SubPattern
 	{"(unquote value)",NULL,},
 	{"(unqtesp value)",NULL,},
 	{"(library name args,rest)",NULL,},
+	{"(export,rest)",NULL,},
 	{"(prefix name value)",NULL,},
 	{NULL,NULL,},
 };
@@ -705,7 +707,7 @@ static CODEGEN_FUNC(codegen_setq)
 	FklPtrQueue* queue=fklCreatePtrQueue();
 	FklPtrStack* stack=fklCreatePtrStack(2,1);
 	int isDefined=0;
-	uint32_t scope=1;
+	uint32_t scope=0;
 	for(FklCodegenEnv* cEnv=curEnv;cEnv&&!isDefined;cEnv=cEnv->prev,scope++)
 		isDefined=fklIsSymbolDefined(name->u.sym,cEnv);
 	if(!isDefined)
@@ -1425,7 +1427,7 @@ inline static char* combineFileNameFromListAndGetLastNode(FklNastNode* list,FklN
 		r=fklCstrStringCat(r,fklGetGlobSymbolWithId(cur->u.sym)->symbol);
 		if(curPair->u.pair->cdr->type==FKL_NAST_NIL)
 		{
-			*last=fklMakeNastNodeRef(cur);
+			*last=cur;
 			r=fklStrCat(r,".fkl");
 		}
 		else
@@ -1444,8 +1446,8 @@ static CODEGEN_FUNC(codegen_import)
 		errorState->place=fklMakeNastNodeRef(origExp);
 		return;
 	}
-	FklNastNode* libraryName=NULL;
-	char* filename=combineFileNameFromListAndGetLastNode(name,&libraryName);
+	FklNastNode* importLibraryName=NULL;
+	char* filename=combineFileNameFromListAndGetLastNode(name,&importLibraryName);
 	if(access(filename,R_OK))
 	{
 		errorState->fid=codegen->fid;
@@ -1484,7 +1486,7 @@ static CODEGEN_FUNC(codegen_import)
 	FklPtrStack* tokenStack=fklCreatePtrStack(32,16);
 	FklNastNode* libraryExpression=NULL;
 	FklHashTable* patternMatchTable=fklCreatePatternMatchingHashTable();
-	do
+	for(;;)
 	{
 		libraryExpression=getExpressionFromFile(nextCodegen
 				,fp
@@ -1494,6 +1496,8 @@ static CODEGEN_FUNC(codegen_import)
 				,tokenStack
 				,&errorLine
 				,&hasError);
+		if(!libraryExpression)
+			break;
 		if(unexpectEOF)
 		{
 			errorState->line=nextCodegen->curline;
@@ -1522,13 +1526,23 @@ static CODEGEN_FUNC(codegen_import)
 			fklDestroyCodegener(nextCodegen);
 			return;
 		}
-		int r=fklPatternMatch(builtInSubPattern[SUB_PATTERN_LIBRARY].pn
-				,libraryExpression
-				,patternMatchTable);
-		if(r)
+		if(fklIsNastNodeList(libraryExpression)
+				&&fklPatternMatch(builtInSubPattern[SUB_PATTERN_LIBRARY].pn
+					,libraryExpression
+					,patternMatchTable))
 		{
+			FklNastNode* libraryName=fklPatternMatchingHashTableRef(builtInPatternVar_name
+					,patternMatchTable);
+			if(libraryName->type!=FKL_NAST_SYM)
+			{
+			}
+			FklNastNode* export=fklPatternMatchingHashTableRef(builtInPatternVar_args
+					,patternMatchTable);
+			if(!fklIsNastNodeList(export))
+			{
+			}
 		}
-	}while(libraryExpression);
+	}
 	if(!libraryExpression)
 	{
 		errorState->fid=nextCodegen->fid;

@@ -1446,6 +1446,17 @@ static void add_symbol_to_locale_env_in_list(const FklNastNode* list,FklCodegenE
 	}
 }
 
+BC_PROCESS(_library_bc_process)
+{
+	FklByteCodelnt* retval=createBclnt(create1lenBc(FKL_OP_PUSH_NIL),fid,line);
+	while(!fklIsPtrStackEmpty(stack))
+	{
+		FklByteCodelnt* cur=fklPopPtrStack(stack);
+		fklDestroyByteCodelnt(cur);
+	}
+	return retval;
+}
+
 static CODEGEN_FUNC(codegen_import)
 {
 	FklNastNode* name=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
@@ -1524,6 +1535,8 @@ static CODEGEN_FUNC(codegen_import)
 			}
 			nextCodegen->refcount=1;
 			fklDestroyCodegener(nextCodegen);
+			fclose(fp);
+			fklDestroyPtrStack(tokenStack);
 			return;
 		}
 		if(hasError)
@@ -1534,6 +1547,8 @@ static CODEGEN_FUNC(codegen_import)
 			errorState->place=NULL;
 			nextCodegen->refcount=1;
 			fklDestroyCodegener(nextCodegen);
+			fclose(fp);
+			fklDestroyPtrStack(tokenStack);
 			return;
 		}
 		if(fklIsNastNodeList(libraryExpression)
@@ -1552,6 +1567,8 @@ static CODEGEN_FUNC(codegen_import)
 				errorState->place=fklMakeNastNodeRef(libraryExpression);
 				nextCodegen->refcount=1;
 				fklDestroyCodegener(nextCodegen);
+				fclose(fp);
+				fklDestroyNastNode(libraryExpression);
 				return;
 			}
 			if(libraryName->u.sym==importLibraryName->u.sym)
@@ -1567,6 +1584,9 @@ static CODEGEN_FUNC(codegen_import)
 					nextCodegen->refcount=1;
 					fklDestroyCodegener(nextCodegen);
 					fklDestroyHashTable(exportExpressionMatchTable);
+					fclose(fp);
+					fklDestroyNastNode(libraryExpression);
+					fklDestroyPtrStack(tokenStack);
 					return;
 				}
 				FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,exportExpressionMatchTable);
@@ -1578,15 +1598,32 @@ static CODEGEN_FUNC(codegen_import)
 					errorState->place=fklMakeNastNodeRef(libraryExpression);
 					nextCodegen->refcount=1;
 					fklDestroyCodegener(nextCodegen);
+					fclose(fp);
+					fklDestroyNastNode(libraryExpression);
+					fklDestroyPtrStack(tokenStack);
 					return;
 				}
 				add_symbol_to_locale_env_in_list(rest,curEnv,codegen->globalSymTable);
+				rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,patternMatchTable);
+				FklPtrQueue* libraryRestExpressionQueue=fklCreatePtrQueue();
+				pushListItemToQueue(rest,libraryRestExpressionQueue,NULL);
+				FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_library_bc_process
+						,fklCreatePtrStack(32,16)
+						,createDefaultQueueNextExpression(libraryRestExpressionQueue)
+						,nextCodegen->globalEnv
+						,rest->curline
+						,nextCodegen
+						,codegenQuestStack);
+				fklDestroyNastNode(libraryExpression);
 				break;
 			}
 		}
 		else
 			fklDestroyNastNode(libraryExpression);
 	}
+	fclose(fp);
+	fklDestroyHashTable(patternMatchTable);
+	fklDestroyPtrStack(tokenStack);
 	if(!libraryExpression)
 	{
 		errorState->fid=nextCodegen->fid;

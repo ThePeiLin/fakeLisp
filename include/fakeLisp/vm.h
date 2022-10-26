@@ -439,7 +439,6 @@ void fklSetVMhashTable(FklVMvalue* key,FklVMvalue* v,FklVMhashTable* ht,FklVMgc*
 FklVMhashTableItem* fklRefVMhashTable1(FklVMvalue* key,FklVMvalue* toSet,FklVMhashTable* ht,FklVMgc*);
 FklVMhashTableItem* fklRefVMhashTable(FklVMvalue* key,FklVMhashTable* ht);
 FklVMvalue* fklGetVMhashTable(FklVMvalue* key,FklVMhashTable* ht,int* ok);
-void fklAtomicVMhashTable(FklVMhashTable* ht,FklVMgc* gc);
 void fklDestroyVMhashTable(FklVMhashTable*);
 
 FklVMenv* fklCreateGlobVMenv(FklVMvalue*,FklVMgc*);
@@ -447,10 +446,21 @@ FklVMenv* fklCreateVMenv(FklVMvalue*,FklVMgc*);
 FklVMvalue* volatile* fklFindVar(FklSid_t id,FklVMenv*);
 FklVMvalue* volatile* fklFindOrAddVar(FklSid_t id,FklVMenv* env);
 FklVMvalue* volatile* fklFindOrAddVarWithValue(FklSid_t id,FklVMvalue*,FklVMenv* env);
-void fklAtomicVMenv(FklVMenv*,FklVMgc*);
 void fklDestroyVMenv(FklVMenv*);
 
 FklVMproc* fklCreateVMproc(uint64_t scp,uint64_t cpc,FklVMvalue* codeObj,FklVMgc* gc);
+
+void fklAtomicVMhashTable(FklVMvalue* pht,FklVMgc* gc);
+void fklAtomicVMenv(FklVMvalue* penv,FklVMgc*);
+void fklAtomicVMuserdata(FklVMvalue*,FklVMgc*);
+void fklAtomicVMpair(FklVMvalue*,FklVMgc*);
+void fklAtomicVMproc(FklVMvalue*,FklVMgc*);
+void fklAtomicVMvec(FklVMvalue*,FklVMgc*);
+void fklAtomicVMbox(FklVMvalue*,FklVMgc*);
+void fklAtomicVMdlproc(FklVMvalue*,FklVMgc*);
+void fklAtomicVMcontinuation(FklVMvalue*,FklVMgc*);
+void fklAtomicVMchan(FklVMvalue*,FklVMgc*);
+
 
 FklVMvalue* fklCopyVMlistOrAtom(FklVMvalue*,FklVM*);
 FklVMvalue* fklCopyVMvalue(FklVMvalue*,FklVM*);

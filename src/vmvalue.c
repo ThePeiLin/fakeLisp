@@ -1440,8 +1440,9 @@ static FklHashTableMethodTable* const VMhashTableMethTableTable[]=
 	&VMhashTableEqualMethTable,
 };
 
-void fklAtomicVMhashTable(FklVMhashTable* ht,FklVMgc* gc)
+void fklAtomicVMhashTable(FklVMvalue* pht,FklVMgc* gc)
 {
+	FklVMhashTable* ht=pht->u.hash;
 	pthread_rwlock_rdlock(&ht->lock);
 	FklHashTable* table=ht->ht;
 	for(FklHashTableNodeList* list=table->list;list;list=list->next)
@@ -1553,8 +1554,71 @@ void fklSetVMhashTable(FklVMvalue* key,FklVMvalue* v,FklVMhashTable* ht,FklVMgc*
 	}
 }
 
-void fklAtomicVMenv(FklVMenv* env,FklVMgc* gc)
+void fklAtomicVMvec(FklVMvalue* pVec,FklVMgc* gc)
 {
+	FklVMvec* vec=pVec->u.vec;
+	for(size_t i=0;i<vec->size;i++)
+		fklGC_toGrey(vec->base[i],gc);
+}
+
+void fklAtomicVMpair(FklVMvalue* root,FklVMgc* gc)
+{
+	fklGC_toGrey(root->u.pair->car,gc);
+	fklGC_toGrey(root->u.pair->cdr,gc);
+}
+
+void fklAtomicVMproc(FklVMvalue* root,FklVMgc* gc)
+{
+	if(root->u.proc->prevEnv)
+		fklGC_toGrey(root->u.proc->prevEnv,gc);
+	fklGC_toGrey(root->u.proc->codeObj,gc);
+}
+
+void fklAtomicVMcontinuation(FklVMvalue* root,FklVMgc* gc)
+{
+	for(uint32_t i=0;i<root->u.cont->stack->tp;i++)
+		fklGC_toGrey(root->u.cont->stack->values[i],gc);
+	for(FklVMframe* curr=root->u.cont->curr;curr;curr=curr->prev)
+		fklGC_toGrey(curr->localenv,gc);
+	if(root->u.cont->nextCall)
+		fklGC_toGrey(root->u.cont->nextCall,gc);
+	if(root->u.cont->codeObj)
+		fklGC_toGrey(root->u.cont->codeObj,gc);
+}
+
+void fklAtomicVMchan(FklVMvalue* root,FklVMgc* gc)
+{
+	pthread_mutex_lock(&root->u.chan->lock);
+	FklQueueNode* head=root->u.chan->messages->head;
+	for(;head;head=head->next)
+		fklGC_toGrey(head->data,gc);
+	for(head=root->u.chan->sendq->head;head;head=head->next)
+		fklGC_toGrey(((FklVMsend*)head->data)->m,gc);
+	pthread_mutex_unlock(&root->u.chan->lock);
+}
+
+void fklAtomicVMdlproc(FklVMvalue* root,FklVMgc* gc)
+{
+	if(root->u.dlproc->dll)
+		fklGC_toGrey(root->u.dlproc->dll,gc);
+}
+
+void fklAtomicVMbox(FklVMvalue* root,FklVMgc* gc)
+{
+	fklGC_toGrey(root->u.box,gc);
+}
+
+void fklAtomicVMuserdata(FklVMvalue* root,FklVMgc* gc)
+{
+	if(root->u.ud->rel)
+		fklGC_toGrey(root->u.ud->rel,gc);
+	if(root->u.ud->t->__atomic)
+		root->u.ud->t->__atomic(root->u.ud->data,gc);
+}
+
+void fklAtomicVMenv(FklVMvalue* penv,FklVMgc* gc)
+{
+	FklVMenv* env=penv->u.env;
 	FklHashTable* table=env->t;
 	if(env->prev)
 		fklGC_toGrey(env->prev,gc);
@@ -1812,6 +1876,7 @@ FklVMcontinuation* fklCreateVMcontinuation(uint32_t ap,FklVM* exe)
 		t->sid=cur->sid;
 		t->mark=cur->mark;
 		t->codeObj=cur->codeObj;
+		t->code=cur->code;
 		t->ccc=fklCopyVMcCC(cur->ccc);
 	}
 	tmp->tnum=tbnum;

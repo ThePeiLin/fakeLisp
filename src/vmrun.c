@@ -267,7 +267,11 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode,FklVM* prev,FklVM* next)
 	exe->tid=pthread_self();
 	exe->gc=fklCreateVMgc();
 	if(mainCode!=NULL)
-		exe->frames=fklCreateVMframeWithCodeObj(fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,mainCode,exe->gc),exe->frames,exe->gc);
+	{
+		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,mainCode,exe->gc);
+		exe->frames=fklCreateVMframeWithCodeObj(codeObj,exe->frames,exe->gc);
+		exe->codeObj=codeObj;
+	}
 	exe->mark=1;
 	exe->chan=NULL;
 	exe->stack=fklCreateVMstack(0);
@@ -1208,77 +1212,107 @@ void fklGC_pause(FklVM* exe)
 
 void propagateMark(FklVMvalue* root,FklVMgc* gc)
 {
-	switch(root->type)
+	FKL_ASSERT(root->type<=FKL_TYPE_CODE_OBJ);
+	static void(* const fkl_atomic_value_method_table[])(FklVMvalue*,FklVMgc*)=
 	{
-		case FKL_TYPE_PAIR:
-			fklGC_toGrey(root->u.pair->car,gc);
-			fklGC_toGrey(root->u.pair->cdr,gc);
-			break;
-		case FKL_TYPE_PROC:
-			if(root->u.proc->prevEnv)
-				fklGC_toGrey(root->u.proc->prevEnv,gc);
-			fklGC_toGrey(root->u.proc->codeObj,gc);
-			break;
-		case FKL_TYPE_CONT:
-			for(uint32_t i=0;i<root->u.cont->stack->tp;i++)
-				fklGC_toGrey(root->u.cont->stack->values[i],gc);
-			for(FklVMframe* curr=root->u.cont->curr;curr;curr=curr->prev)
-				fklGC_toGrey(curr->localenv,gc);
-			if(root->u.cont->nextCall)
-				fklGC_toGrey(root->u.cont->nextCall,gc);
-			if(root->u.cont->codeObj)
-				fklGC_toGrey(root->u.cont->codeObj,gc);
-			break;
-		case FKL_TYPE_VECTOR:
-			{
-				FklVMvec* vec=root->u.vec;
-				for(size_t i=0;i<vec->size;i++)
-					fklGC_toGrey(vec->base[i],gc);
-			}
-			break;
-		case FKL_TYPE_BOX:
-			fklGC_toGrey(root->u.box,gc);
-			break;
-		case FKL_TYPE_CHAN:
-			{
-				pthread_mutex_lock(&root->u.chan->lock);
-				FklQueueNode* head=root->u.chan->messages->head;
-				for(;head;head=head->next)
-					fklGC_toGrey(head->data,gc);
-				for(head=root->u.chan->sendq->head;head;head=head->next)
-					fklGC_toGrey(((FklVMsend*)head->data)->m,gc);
-				pthread_mutex_unlock(&root->u.chan->lock);
-			}
-			break;
-		case FKL_TYPE_DLPROC:
-			if(root->u.dlproc->dll)
-				fklGC_toGrey(root->u.dlproc->dll,gc);
-			break;
-		case FKL_TYPE_ENV:
-			fklAtomicVMenv(root->u.env,gc);
-			break;
-		case FKL_TYPE_HASHTABLE:
-			fklAtomicVMhashTable(root->u.hash,gc);
-			break;
-		case FKL_TYPE_USERDATA:
-			if(root->u.ud->rel)
-				fklGC_toGrey(root->u.ud->rel,gc);
-			if(root->u.ud->t->__atomic)
-				root->u.ud->t->__atomic(root->u.ud->data,gc);
-			break;
-		case FKL_TYPE_I64:
-		case FKL_TYPE_F64:
-		case FKL_TYPE_FP:
-		case FKL_TYPE_DLL:
-		case FKL_TYPE_ERR:
-		case FKL_TYPE_STR:
-		case FKL_TYPE_BYTEVECTOR:
-		case FKL_TYPE_BIG_INT:
-			break;
-		default:
-			FKL_ASSERT(0);
-			break;
-	}
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		fklAtomicVMvec,
+		fklAtomicVMpair,
+		fklAtomicVMbox,
+		NULL,
+		fklAtomicVMuserdata,
+		fklAtomicVMproc,
+		fklAtomicVMcontinuation,
+		fklAtomicVMchan,
+		NULL,
+		NULL,
+		fklAtomicVMdlproc,
+		NULL,
+		fklAtomicVMenv,
+		fklAtomicVMhashTable,
+		NULL,
+	};
+	void (*atomic_value_func)(FklVMvalue*,FklVMgc*)=fkl_atomic_value_method_table[root->type];
+	if(atomic_value_func)
+		atomic_value_func(root,gc);
+	//switch(root->type)
+	//{
+	//	case FKL_TYPE_PAIR:
+	//		fklGC_toGrey(root->u.pair->car,gc);
+	//		fklGC_toGrey(root->u.pair->cdr,gc);
+	//		break;
+	//	case FKL_TYPE_PROC:
+	//		if(root->u.proc->prevEnv)
+	//			fklGC_toGrey(root->u.proc->prevEnv,gc);
+	//		fklGC_toGrey(root->u.proc->codeObj,gc);
+	//		break;
+	//	case FKL_TYPE_CONT:
+	//		for(uint32_t i=0;i<root->u.cont->stack->tp;i++)
+	//			fklGC_toGrey(root->u.cont->stack->values[i],gc);
+	//		for(FklVMframe* curr=root->u.cont->curr;curr;curr=curr->prev)
+	//			fklGC_toGrey(curr->localenv,gc);
+	//		if(root->u.cont->nextCall)
+	//			fklGC_toGrey(root->u.cont->nextCall,gc);
+	//		if(root->u.cont->codeObj)
+	//			fklGC_toGrey(root->u.cont->codeObj,gc);
+	//		break;
+	//	case FKL_TYPE_VECTOR:
+	//		{
+	//			FklVMvec* vec=root->u.vec;
+	//			for(size_t i=0;i<vec->size;i++)
+	//				fklGC_toGrey(vec->base[i],gc);
+	//		}
+	//		break;
+	//	case FKL_TYPE_BOX:
+	//		fklGC_toGrey(root->u.box,gc);
+	//		break;
+	//	case FKL_TYPE_CHAN:
+	//		{
+	//			pthread_mutex_lock(&root->u.chan->lock);
+	//			FklQueueNode* head=root->u.chan->messages->head;
+	//			for(;head;head=head->next)
+	//				fklGC_toGrey(head->data,gc);
+	//			for(head=root->u.chan->sendq->head;head;head=head->next)
+	//				fklGC_toGrey(((FklVMsend*)head->data)->m,gc);
+	//			pthread_mutex_unlock(&root->u.chan->lock);
+	//		}
+	//		break;
+	//	case FKL_TYPE_DLPROC:
+	//		if(root->u.dlproc->dll)
+	//			fklGC_toGrey(root->u.dlproc->dll,gc);
+	//		break;
+	//	case FKL_TYPE_ENV:
+	//		fklAtomicVMenv(root->u.env,gc);
+	//		break;
+	//	case FKL_TYPE_HASHTABLE:
+	//		fklAtomicVMhashTable(root->u.hash,gc);
+	//		break;
+	//	case FKL_TYPE_USERDATA:
+	//		if(root->u.ud->rel)
+	//			fklGC_toGrey(root->u.ud->rel,gc);
+	//		if(root->u.ud->t->__atomic)
+	//			root->u.ud->t->__atomic(root->u.ud->data,gc);
+	//		break;
+	//	case FKL_TYPE_I64:
+	//	case FKL_TYPE_F64:
+	//	case FKL_TYPE_FP:
+	//	case FKL_TYPE_DLL:
+	//	case FKL_TYPE_ERR:
+	//	case FKL_TYPE_STR:
+	//	case FKL_TYPE_BYTEVECTOR:
+	//	case FKL_TYPE_BIG_INT:
+	//		break;
+	//	default:
+	//		FKL_ASSERT(0);
+	//		break;
+	//}
 }
 
 int fklGC_propagate(FklVMgc* gc)
@@ -1547,8 +1581,8 @@ FklVM* fklCreateThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue* ne
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe);
-	FklVMframe* t=fklCreateVMframeWithProc(NULL,NULL);
-	t->cp=frame->cp;
+	FklVMframe* t=fklCreateVMframeWithCodeObj(frame->codeObj,NULL,gc);
+	t->cp=frame->scp+frame->cpc;
 	t->localenv=NULL;
 	exe->frames=t;
 	exe->mark=1;
@@ -1560,6 +1594,7 @@ FklVM* fklCreateThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue* ne
 	exe->nextCall=nextCall;
 	exe->nextCallBackUp=NULL;
 	exe->nny=0;
+	exe->codeObj=NULL;
 	pthread_rwlock_init(&exe->rlock,NULL);
 	pthread_mutex_init(&exe->prev_next_lock,NULL);
 	insert_to_VM_chain(exe,prev,next,gc);
@@ -1725,6 +1760,7 @@ void fklCreateCallChainWithContinuation(FklVM* vm,FklVMcontinuation* cc)
 		frame->sid=cur->sid;
 		frame->mark=cur->mark;
 		frame->codeObj=cur->codeObj;
+		frame->code=cur->code;
 	}
 	pthread_rwlock_unlock(&vm->rlock);
 	while(!fklIsPtrStackEmpty(vm->tstack))

@@ -1436,6 +1436,16 @@ inline static char* combineFileNameFromListAndGetLastNode(FklNastNode* list,FklN
 	return r;
 }
 
+static void add_symbol_to_locale_env_in_list(const FklNastNode* list,FklCodegenEnv* env,FklSymbolTable* globalSymTable)
+{
+	for(;list->type==FKL_NAST_PAIR;list=list->u.pair->cdr)
+	{
+		FklNastNode* cur=list->u.pair->car;
+		fklAddCodegenDefBySid(cur->u.sym,env);
+		fklAddSymbol(fklGetGlobSymbolWithId(cur->u.sym)->symbol,globalSymTable);
+	}
+}
+
 static CODEGEN_FUNC(codegen_import)
 {
 	FklNastNode* name=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
@@ -1533,15 +1543,49 @@ static CODEGEN_FUNC(codegen_import)
 		{
 			FklNastNode* libraryName=fklPatternMatchingHashTableRef(builtInPatternVar_name
 					,patternMatchTable);
-			if(libraryName->type!=FKL_NAST_SYM)
-			{
-			}
 			FklNastNode* export=fklPatternMatchingHashTableRef(builtInPatternVar_args
 					,patternMatchTable);
-			if(!fklIsNastNodeList(export))
+			if(libraryName->type!=FKL_NAST_SYM)
 			{
+				errorState->fid=nextCodegen->fid;
+				errorState->type=FKL_ERR_SYNTAXERROR;
+				errorState->place=fklMakeNastNodeRef(libraryExpression);
+				nextCodegen->refcount=1;
+				fklDestroyCodegener(nextCodegen);
+				return;
+			}
+			if(libraryName->u.sym==importLibraryName->u.sym)
+			{
+				FklHashTable* exportExpressionMatchTable=fklCreatePatternMatchingHashTable();
+				if(!fklPatternMatch(builtInSubPattern[SUB_PATTERN_EXPORT].pn
+							,export
+							,exportExpressionMatchTable))
+				{
+					errorState->fid=nextCodegen->fid;
+					errorState->type=FKL_ERR_INVALIDEXPR;
+					errorState->place=fklMakeNastNodeRef(export);
+					nextCodegen->refcount=1;
+					fklDestroyCodegener(nextCodegen);
+					fklDestroyHashTable(exportExpressionMatchTable);
+					return;
+				}
+				FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,exportExpressionMatchTable);
+				fklDestroyHashTable(exportExpressionMatchTable);
+				if(!fklIsNastNodeListAndHasSameType(rest,FKL_NAST_SYM))
+				{
+					errorState->fid=nextCodegen->fid;
+					errorState->type=FKL_ERR_SYNTAXERROR;
+					errorState->place=fklMakeNastNodeRef(libraryExpression);
+					nextCodegen->refcount=1;
+					fklDestroyCodegener(nextCodegen);
+					return;
+				}
+				add_symbol_to_locale_env_in_list(rest,curEnv,codegen->globalSymTable);
+				break;
 			}
 		}
+		else
+			fklDestroyNastNode(libraryExpression);
 	}
 	if(!libraryExpression)
 	{

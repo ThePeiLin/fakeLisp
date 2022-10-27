@@ -190,6 +190,7 @@ static void B_push_list_0(FklVM*);
 static void B_push_list(FklVM*);
 static void B_push_vector_0(FklVM*);
 static void B_list_push(FklVM*);
+static void B_import(FklVM*);
 
 static void (*ByteCodes[])(FklVM*)=
 {
@@ -235,6 +236,7 @@ static void (*ByteCodes[])(FklVM*)=
 	B_push_list,
 	B_push_vector_0,
 	B_list_push,
+	B_import,
 };
 
 inline static void insert_to_VM_chain(FklVM* cur,FklVM* prev,FklVM* next,FklVMgc* gc)
@@ -1002,6 +1004,12 @@ void B_list_push(FklVM* exe)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.list-push",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	fklNiEnd(&ap,stack);
 	frame->cp+=sizeof(char);
+}
+
+void B_import(FklVM* exe)
+{
+	FklVMframe* frame=exe->frames;
+	frame->cp+=sizeof(char)+sizeof(FklSid_t);
 }
 
 FklVMstack* fklCreateVMstack(int32_t size)

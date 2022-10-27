@@ -25,12 +25,15 @@ typedef struct FklCodegen
 	FklCodegenEnv* globalEnv;
 	FklSymbolTable* globalSymTable;
 	FklSid_t fid;
+	size_t exportNum;
+	FklSid_t* exports;
+	size_t libId;
 	struct FklCodegen* prev;
 	unsigned int destroyAbleMark:1;
 	unsigned long refcount:63;
 }FklCodegen;
 
-typedef FklByteCodelnt* (*FklByteCodeProcesser)(FklPtrStack* stack,FklSid_t,uint64_t);
+typedef FklByteCodelnt* (*FklByteCodeProcesser)(FklCodegen*,FklPtrStack* stack,FklSid_t,uint64_t);
 
 typedef struct
 {

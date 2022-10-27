@@ -275,6 +275,7 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 				case FKL_OP_PUSH_HASHTABLE_EQUAL:
 				case FKL_OP_JMP_IF_FALSE:
 				case FKL_OP_JMP_IF_TRUE:
+				case FKL_OP_IMPORT:
 					fprintf(fp,"%ld"
 							,fklGetI64FromByteCode(tmpCode->code+i+sizeof(char)));
 					break;

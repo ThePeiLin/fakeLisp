@@ -229,6 +229,14 @@ typedef struct
 //	pthread_rwlock_t lock;
 }FklVMstack;
 
+typedef struct FklVMlib
+{
+	size_t exportNum;
+	FklSid_t* exports;
+	FklVMvalue* proc;
+	FklVMvalue* libEnv;
+}FklVMlib;
+
 typedef struct FklVM
 {
 	uint32_t mark;
@@ -243,6 +251,8 @@ typedef struct FklVM
 	void (*callback)(void*);
 	FklVMvalue* volatile nextCall;
 	FklVMvalue* volatile nextCallBackUp;
+	size_t libNum;
+	FklVMlib* libs;
 	pthread_mutex_t prev_next_lock;
 	struct FklVM* prev;
 	struct FklVM* next;
@@ -342,8 +352,8 @@ int fklRunVM(FklVM*);
 //void fklSetGlobVMs(FklVMlist*);
 FklVM* fklCreateVM(FklByteCodelnt*,FklVM* prev,FklVM* next);
 //FklVM* fklCreateTmpVM(FklByteCode*,FklVMgc*,FklVM* prev,FklVM* next);
-FklVM* fklCreateThreadVM(FklVMproc*,FklVMgc*,FklVM* prev,FklVM* next);
-FklVM* fklCreateThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue*,FklVM* prev,FklVM* next);
+FklVM* fklCreateThreadVM(FklVMproc*,FklVMgc*,FklVM* prev,FklVM* next,size_t libNum,FklVMlib* libs);
+FklVM* fklCreateThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue*,FklVM* prev,FklVM* next,size_t libNum,FklVMlib* libs);
 
 void fklDestroyVMvalue(FklVMvalue*);
 FklVMstack* fklCreateVMstack(int32_t);
@@ -570,6 +580,12 @@ int fklVMcallInDlproc(FklVMvalue*
 
 size_t fklVMlistLength(FklVMvalue*);
 void fklDestroyVMframes(FklVMframe* h);
+
+FklVMlib* fklCreateVMlib(size_t exportNum,FklSid_t* exports,FklVMvalue* codeObj);
+void fklDestroyVMlib(FklVMlib* lib);
+void fklInitVMlib(FklVMlib*,size_t exportNum,FklSid_t* exports,FklVMvalue* codeObj);
+void fklUninitVMlib(FklVMlib*);
+
 #define FKL_SET_RETURN(fn,v,stack) do{\
 	if((stack)->tp>=(stack)->size)\
 	{\

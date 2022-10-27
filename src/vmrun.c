@@ -280,6 +280,8 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode,FklVM* prev,FklVM* next)
 	exe->tstack=fklCreatePtrStack(32,16);
 	exe->callback=NULL;
 	exe->nny=0;
+	exe->libNum=0;
+	exe->libs=NULL;
 	pthread_rwlock_init(&exe->rlock,NULL);
 	pthread_mutex_init(&exe->prev_next_lock,NULL);
 	insert_to_VM_chain(exe,prev,next,exe->gc);
@@ -1009,7 +1011,28 @@ void B_list_push(FklVM* exe)
 void B_import(FklVM* exe)
 {
 	FklVMframe* frame=exe->frames;
-	frame->cp+=sizeof(char)+sizeof(FklSid_t);
+	uint64_t libId=fklGetU64FromByteCode(frame->code+frame->cp+sizeof(char));
+	FklVMlib* plib=&exe->libs[libId-1];
+	if(plib->libEnv==FKL_VM_NIL)
+	{
+		callNativeProcdure(exe,plib->proc->u.proc,frame);
+		fklSetRef(&plib->libEnv,exe->frames->localenv,exe->gc);
+	}
+	else
+	{
+		for(size_t i=0;i<plib->exportNum;i++)
+		{
+			FklVMvalue* volatile* pv=fklFindVar(plib->exports[i],plib->libEnv->u.env);
+			if(pv==NULL)
+			{
+				char* cstr=fklStringToCstr(fklGetGlobSymbolWithId(plib->exports[i])->symbol);
+				FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.push-var",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
+			}
+			FklVMvalue* volatile* pValue=fklFindOrAddVar(plib->exports[i],frame->localenv->u.env);
+			fklSetRef(pValue,*pv,exe->gc);
+		}
+		frame->cp+=sizeof(char)+sizeof(FklSid_t);
+	}
 }
 
 FklVMstack* fklCreateVMstack(int32_t size)
@@ -1186,6 +1209,12 @@ void fklGC_markAllRootToGrey(FklVM* curVM)
 			cur=cur->prev;
 			free(t);
 		}
+	}
+	for(size_t i=0;i<curVM->libNum;i++)
+	{
+		FklVMlib* cur=&curVM->libs[i];
+		fklGC_toGrey(cur->libEnv,curVM->gc);
+		fklGC_toGrey(cur->proc,curVM->gc);
 	}
 	for(FklVM* cur=curVM;cur;)
 	{
@@ -1560,7 +1589,7 @@ void fklDestroyAllValues(FklVMgc* gc)
 	}
 }
 
-FklVM* fklCreateThreadVM(FklVMproc* mainCode,FklVMgc* gc,FklVM* prev,FklVM* next)
+FklVM* fklCreateThreadVM(FklVMproc* mainCode,FklVMgc* gc,FklVM* prev,FklVM* next,size_t libNum,FklVMlib* libs)
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe);
@@ -1577,6 +1606,8 @@ FklVM* fklCreateThreadVM(FklVMproc* mainCode,FklVMgc* gc,FklVM* prev,FklVM* next
 	exe->nextCallBackUp=NULL;
 	exe->nny=0;
 	exe->codeObj=mainCode->codeObj;
+	exe->libNum=libNum;
+	exe->libs=libs;
 	pthread_rwlock_init(&exe->rlock,NULL);
 	pthread_mutex_init(&exe->prev_next_lock,NULL);
 	insert_to_VM_chain(exe,prev,next,gc);
@@ -1585,7 +1616,7 @@ FklVM* fklCreateThreadVM(FklVMproc* mainCode,FklVMgc* gc,FklVM* prev,FklVM* next
 	return exe;
 }
 
-FklVM* fklCreateThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue* nextCall,FklVM* prev,FklVM* next)
+FklVM* fklCreateThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue* nextCall,FklVM* prev,FklVM* next,size_t libNum,FklVMlib* libs)
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe);
@@ -1602,6 +1633,8 @@ FklVM* fklCreateThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue* ne
 	exe->nextCall=nextCall;
 	exe->nextCallBackUp=NULL;
 	exe->nny=0;
+	exe->libNum=libNum;
+	exe->libs=libs;
 	exe->codeObj=frame->codeObj;
 	pthread_rwlock_init(&exe->rlock,NULL);
 	pthread_mutex_init(&exe->prev_next_lock,NULL);
@@ -1640,6 +1673,8 @@ void fklDestroyVMstack(FklVMstack* stack)
 
 void fklDestroyAllVMs(FklVM* curVM)
 {
+	size_t libNum=curVM->libNum;
+	FklVMlib* libs=curVM->libs;
 	for(FklVM* prev=curVM->prev;prev;)
 	{
 		if(prev->mark)
@@ -1664,6 +1699,9 @@ void fklDestroyAllVMs(FklVM* curVM)
 		cur=cur->next;
 		free(t);
 	}
+	for(size_t i=0;i<libNum;i++)
+		fklUninitVMlib(&libs[i]);
+	free(libs);
 }
 
 void fklDestroyVMgc(FklVMgc* gc)
@@ -1837,4 +1875,31 @@ void fklDestroyVMframes(FklVMframe* h)
 		cur->localenv=NULL;
 		free(cur);
 	}
+}
+
+void fklInitVMlib(FklVMlib* lib,size_t exportNum,FklSid_t* exports,FklVMvalue* proc)
+{
+	lib->exportNum=exportNum;
+	lib->exports=exports;
+	lib->proc=proc;
+	lib->libEnv=FKL_VM_NIL;
+}
+
+FklVMlib* fklCreateVMlib(size_t exportNum,FklSid_t* exports,FklVMvalue* proc)
+{
+	FklVMlib* lib=(FklVMlib*)malloc(sizeof(FklVMlib));
+	FKL_ASSERT(lib);
+	fklInitVMlib(lib,exportNum,exports,proc);
+	return lib;
+}
+
+void fklUninitVMlib(FklVMlib* lib)
+{
+	free(lib->exports);
+}
+
+void fklDestroyVMlib(FklVMlib* lib)
+{
+	fklUninitVMlib(lib);
+	free(lib);
 }

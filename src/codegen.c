@@ -1653,7 +1653,7 @@ static CODEGEN_FUNC(codegen_import)
 					FklUintStack* idStack=fklCreateUintStack(32,16);
 					add_symbol_to_locale_env_in_list(rest,curEnv,codegen->globalSymTable,idStack);
 					nextCodegen->exportNum=idStack->top;
-					nextCodegen->exports=fklCopyMemory(idStack->base,idStack->top);
+					nextCodegen->exports=fklCopyMemory(idStack->base,sizeof(FklSid_t)*idStack->top);
 					fklDestroyUintStack(idStack);
 					rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,patternMatchTable);
 					FklPtrQueue* libraryRestExpressionQueue=fklCreatePtrQueue();

@@ -16,6 +16,14 @@ typedef struct FklCodegenEnv
 	size_t refcount;
 }FklCodegenEnv;
 
+typedef struct FklCodegenLib
+{
+	char* rp;
+	FklByteCodelnt* bcl;
+	size_t exportNum;
+	FklSid_t* exports;
+}FklCodegenLib;
+
 typedef struct FklCodegen
 {
 	char* filename;
@@ -27,7 +35,7 @@ typedef struct FklCodegen
 	FklSid_t fid;
 	size_t exportNum;
 	FklSid_t* exports;
-	size_t libId;
+	FklPtrStack* loadedLibStack;
 	struct FklCodegen* prev;
 	unsigned int destroyAbleMark:1;
 	unsigned long refcount:63;
@@ -99,6 +107,9 @@ void fklDestroyCodegenEnv(FklCodegenEnv* env);
 FklCodegenEnv* fklCreateGlobCodegenEnv(void);
 
 void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklSymbolTable* symbolTable);
+
+FklCodegenLib* fklCreateCodegenLib(char* rp,FklByteCodelnt* bcl,size_t exportNum,FklSid_t* exports);
+void fklDestroyCodegenLib(FklCodegenLib*);
 #ifdef __cplusplus
 }
 #endif

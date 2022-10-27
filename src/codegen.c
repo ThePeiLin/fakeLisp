@@ -1409,7 +1409,6 @@ static CODEGEN_FUNC(codegen_load)
 		fklDestroyCodegener(nextCodegen);
 		return;
 	}
-	nextCodegen->libId=codegen->libId;
 	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_begin_exp_bc_process
 			,fklCreatePtrStack(32,16)
 			,createFpNextExpression(fp,nextCodegen)
@@ -1449,7 +1448,6 @@ static void add_symbol_to_locale_env_in_list(const FklNastNode* list,FklCodegenE
 
 BC_PROCESS(_library_bc_process)
 {
-	FklByteCodelnt* retval=stack->base[0];
 	FklByteCodelnt* libBc=NULL;
 	if(stack->top>1)
 	{
@@ -1480,7 +1478,24 @@ BC_PROCESS(_library_bc_process)
 	}
 	else
 		libBc=createBclnt(create1lenBc(FKL_OP_PUSH_NIL),fid,line);
+	fklPushPtrStack(fklCreateCodegenLib(codegen->realpath,libBc,codegen->exportNum,codegen->exports),codegen->loadedLibStack);
+	FklByteCodelnt* retval=stack->base[0];
+	fklSetU64ToByteCode(retval->bc->code+sizeof(char),codegen->loadedLibStack->top);
+	codegen->exportNum=0;
+	codegen->exports=NULL;
+	codegen->realpath=NULL;
 	return retval;
+}
+
+static size_t check_loaded_lib(const char* realpath,FklPtrStack* loadedLibStack)
+{
+	for(size_t i=0;i<loadedLibStack->top;i++)
+	{
+		FklCodegenLib* cur=loadedLibStack->base[i];
+		if(!strcmp(realpath,cur->rp))
+			return i+1;
+	}
+	return 0;
 }
 
 static CODEGEN_FUNC(codegen_import)
@@ -1517,110 +1532,82 @@ static CODEGEN_FUNC(codegen_import)
 		free(filename);
 		return;
 	}
-	FILE* fp=fopen(filename,"r");
-	free(filename);
-	if(!fp)
+	size_t libId=check_loaded_lib(nextCodegen->realpath,codegen->loadedLibStack);
+	if(!libId)
 	{
-		errorState->fid=codegen->fid;
-		errorState->type=FKL_ERR_FILEFAILURE;
-		errorState->place=fklMakeNastNodeRef(name);
-		nextCodegen->refcount=1;
-		fklDestroyCodegener(nextCodegen);
-		return;
-	}
-	int unexpectEOF=0;
-	int hasError=0;
-	char* prev=NULL;
-	size_t prevSize=0;
-	size_t errorLine=0;
-	FklPtrStack* tokenStack=fklCreatePtrStack(32,16);
-	FklNastNode* libraryExpression=NULL;
-	FklHashTable* patternMatchTable=fklCreatePatternMatchingHashTable();
-	for(;;)
-	{
-		libraryExpression=getExpressionFromFile(nextCodegen
-				,fp
-				,&prev
-				,&prevSize
-				,&unexpectEOF
-				,tokenStack
-				,&errorLine
-				,&hasError);
-		if(!libraryExpression)
-			break;
-		if(unexpectEOF)
+		FILE* fp=fopen(filename,"r");
+		free(filename);
+		if(!fp)
 		{
-			errorState->line=nextCodegen->curline;
-			errorState->fid=nextCodegen->fid;
-			errorState->place=NULL;
-			switch(unexpectEOF)
-			{
-				case 1:
-					errorState->type=FKL_ERR_UNEXPECTEOF;
-					break;
-				case 2:
-					errorState->type=FKL_ERR_INVALIDEXPR;
-					break;
-			}
+			errorState->fid=codegen->fid;
+			errorState->type=FKL_ERR_FILEFAILURE;
+			errorState->place=fklMakeNastNodeRef(name);
 			nextCodegen->refcount=1;
 			fklDestroyCodegener(nextCodegen);
-			fclose(fp);
-			fklDestroyPtrStack(tokenStack);
 			return;
 		}
-		if(hasError)
+		int unexpectEOF=0;
+		int hasError=0;
+		char* prev=NULL;
+		size_t prevSize=0;
+		size_t errorLine=0;
+		FklPtrStack* tokenStack=fklCreatePtrStack(32,16);
+		FklNastNode* libraryExpression=NULL;
+		FklHashTable* patternMatchTable=fklCreatePatternMatchingHashTable();
+		for(;;)
 		{
-			errorState->fid=nextCodegen->fid;
-			errorState->type=FKL_ERR_INVALIDEXPR;
-			errorState->line=errorLine;
-			errorState->place=NULL;
-			nextCodegen->refcount=1;
-			fklDestroyCodegener(nextCodegen);
-			fclose(fp);
-			fklDestroyPtrStack(tokenStack);
-			return;
-		}
-		if(fklIsNastNodeList(libraryExpression)
-				&&fklPatternMatch(builtInSubPattern[SUB_PATTERN_LIBRARY].pn
-					,libraryExpression
-					,patternMatchTable))
-		{
-			FklNastNode* libraryName=fklPatternMatchingHashTableRef(builtInPatternVar_name
-					,patternMatchTable);
-			FklNastNode* export=fklPatternMatchingHashTableRef(builtInPatternVar_args
-					,patternMatchTable);
-			if(libraryName->type!=FKL_NAST_SYM)
+			libraryExpression=getExpressionFromFile(nextCodegen
+					,fp
+					,&prev
+					,&prevSize
+					,&unexpectEOF
+					,tokenStack
+					,&errorLine
+					,&hasError);
+			if(!libraryExpression)
+				break;
+			if(unexpectEOF)
 			{
+				errorState->line=nextCodegen->curline;
 				errorState->fid=nextCodegen->fid;
-				errorState->type=FKL_ERR_SYNTAXERROR;
-				errorState->place=fklMakeNastNodeRef(libraryExpression);
+				errorState->place=NULL;
+				switch(unexpectEOF)
+				{
+					case 1:
+						errorState->type=FKL_ERR_UNEXPECTEOF;
+						break;
+					case 2:
+						errorState->type=FKL_ERR_INVALIDEXPR;
+						break;
+				}
 				nextCodegen->refcount=1;
 				fklDestroyCodegener(nextCodegen);
 				fclose(fp);
-				fklDestroyNastNode(libraryExpression);
+				fklDestroyPtrStack(tokenStack);
 				return;
 			}
-			if(libraryName->u.sym==importLibraryName->u.sym)
+			if(hasError)
 			{
-				FklHashTable* exportExpressionMatchTable=fklCreatePatternMatchingHashTable();
-				if(!fklPatternMatch(builtInSubPattern[SUB_PATTERN_EXPORT].pn
-							,export
-							,exportExpressionMatchTable))
-				{
-					errorState->fid=nextCodegen->fid;
-					errorState->type=FKL_ERR_INVALIDEXPR;
-					errorState->place=fklMakeNastNodeRef(export);
-					nextCodegen->refcount=1;
-					fklDestroyCodegener(nextCodegen);
-					fklDestroyHashTable(exportExpressionMatchTable);
-					fclose(fp);
-					fklDestroyNastNode(libraryExpression);
-					fklDestroyPtrStack(tokenStack);
-					return;
-				}
-				FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,exportExpressionMatchTable);
-				fklDestroyHashTable(exportExpressionMatchTable);
-				if(!fklIsNastNodeListAndHasSameType(rest,FKL_NAST_SYM))
+				errorState->fid=nextCodegen->fid;
+				errorState->type=FKL_ERR_INVALIDEXPR;
+				errorState->line=errorLine;
+				errorState->place=NULL;
+				nextCodegen->refcount=1;
+				fklDestroyCodegener(nextCodegen);
+				fclose(fp);
+				fklDestroyPtrStack(tokenStack);
+				return;
+			}
+			if(fklIsNastNodeList(libraryExpression)
+					&&fklPatternMatch(builtInSubPattern[SUB_PATTERN_LIBRARY].pn
+						,libraryExpression
+						,patternMatchTable))
+			{
+				FklNastNode* libraryName=fklPatternMatchingHashTableRef(builtInPatternVar_name
+						,patternMatchTable);
+				FklNastNode* export=fklPatternMatchingHashTableRef(builtInPatternVar_args
+						,patternMatchTable);
+				if(libraryName->type!=FKL_NAST_SYM)
 				{
 					errorState->fid=nextCodegen->fid;
 					errorState->type=FKL_ERR_SYNTAXERROR;
@@ -1629,46 +1616,91 @@ static CODEGEN_FUNC(codegen_import)
 					fklDestroyCodegener(nextCodegen);
 					fclose(fp);
 					fklDestroyNastNode(libraryExpression);
-					fklDestroyPtrStack(tokenStack);
 					return;
 				}
-				nextCodegen->libId=codegen->libId+=1;
-				FklUintStack* idStack=fklCreateUintStack(32,16);
-				add_symbol_to_locale_env_in_list(rest,curEnv,codegen->globalSymTable,idStack);
-				nextCodegen->exportNum=idStack->top;
-				nextCodegen->exports=fklCopyMemory(idStack->base,idStack->top);
-				fklDestroyUintStack(idStack);
-				rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,patternMatchTable);
-				FklPtrQueue* libraryRestExpressionQueue=fklCreatePtrQueue();
-				pushListItemToQueue(rest,libraryRestExpressionQueue,NULL);
-				FklPtrStack* bcStack=fklCreatePtrStack(32,16);
-				FklByteCodelnt* importBc=createBclnt(create9lenBc(FKL_OP_IMPORT,nextCodegen->libId),codegen->fid,origExp->curline);
-				fklPushPtrStack(importBc,bcStack);
-				FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_library_bc_process
-						,bcStack
-						,createDefaultQueueNextExpression(libraryRestExpressionQueue)
-						,nextCodegen->globalEnv
-						,rest->curline
-						,nextCodegen
-						,codegenQuestStack);
-				fklDestroyNastNode(libraryExpression);
-				break;
+				if(libraryName->u.sym==importLibraryName->u.sym)
+				{
+					FklHashTable* exportExpressionMatchTable=fklCreatePatternMatchingHashTable();
+					if(!fklPatternMatch(builtInSubPattern[SUB_PATTERN_EXPORT].pn
+								,export
+								,exportExpressionMatchTable))
+					{
+						errorState->fid=nextCodegen->fid;
+						errorState->type=FKL_ERR_INVALIDEXPR;
+						errorState->place=fklMakeNastNodeRef(export);
+						nextCodegen->refcount=1;
+						fklDestroyCodegener(nextCodegen);
+						fklDestroyHashTable(exportExpressionMatchTable);
+						fclose(fp);
+						fklDestroyNastNode(libraryExpression);
+						fklDestroyPtrStack(tokenStack);
+						return;
+					}
+					FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,exportExpressionMatchTable);
+					fklDestroyHashTable(exportExpressionMatchTable);
+					if(!fklIsNastNodeListAndHasSameType(rest,FKL_NAST_SYM))
+					{
+						errorState->fid=nextCodegen->fid;
+						errorState->type=FKL_ERR_SYNTAXERROR;
+						errorState->place=fklMakeNastNodeRef(libraryExpression);
+						nextCodegen->refcount=1;
+						fklDestroyCodegener(nextCodegen);
+						fclose(fp);
+						fklDestroyNastNode(libraryExpression);
+						fklDestroyPtrStack(tokenStack);
+						return;
+					}
+					FklUintStack* idStack=fklCreateUintStack(32,16);
+					add_symbol_to_locale_env_in_list(rest,curEnv,codegen->globalSymTable,idStack);
+					nextCodegen->exportNum=idStack->top;
+					nextCodegen->exports=fklCopyMemory(idStack->base,idStack->top);
+					fklDestroyUintStack(idStack);
+					rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,patternMatchTable);
+					FklPtrQueue* libraryRestExpressionQueue=fklCreatePtrQueue();
+					pushListItemToQueue(rest,libraryRestExpressionQueue,NULL);
+					FklPtrStack* bcStack=fklCreatePtrStack(32,16);
+					FklByteCodelnt* importBc=createBclnt(create9lenBc(FKL_OP_IMPORT,0),codegen->fid,origExp->curline);
+					fklPushPtrStack(importBc,bcStack);
+					FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_library_bc_process
+							,bcStack
+							,createDefaultQueueNextExpression(libraryRestExpressionQueue)
+							,nextCodegen->globalEnv
+							,rest->curline
+							,nextCodegen
+							,codegenQuestStack);
+					fklDestroyNastNode(libraryExpression);
+					break;
+				}
 			}
+			else
+				fklDestroyNastNode(libraryExpression);
 		}
-		else
-			fklDestroyNastNode(libraryExpression);
+		fclose(fp);
+		fklDestroyHashTable(patternMatchTable);
+		fklDestroyPtrStack(tokenStack);
+		if(!libraryExpression)
+		{
+			errorState->fid=nextCodegen->fid;
+			errorState->type=FKL_ERR_LIBUNDEFINED;
+			errorState->place=fklMakeNastNodeRef(name);
+			nextCodegen->refcount=1;
+			fklDestroyCodegener(nextCodegen);
+			return;
+		}
 	}
-	fclose(fp);
-	fklDestroyHashTable(patternMatchTable);
-	fklDestroyPtrStack(tokenStack);
-	if(!libraryExpression)
+	else
 	{
-		errorState->fid=nextCodegen->fid;
-		errorState->type=FKL_ERR_LIBUNDEFINED;
-		errorState->place=fklMakeNastNodeRef(name);
-		nextCodegen->refcount=1;
-		fklDestroyCodegener(nextCodegen);
-		return;
+		free(filename);
+		FklByteCodelnt* importBc=createBclnt(create9lenBc(FKL_OP_IMPORT,libId),codegen->fid,origExp->curline);
+		FklPtrStack* bcStack=fklCreatePtrStack(1,1);
+		fklPushPtrStack(importBc,bcStack);
+		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_default_bc_process
+				,bcStack
+				,NULL
+				,nextCodegen->globalEnv
+				,origExp->curline
+				,nextCodegen
+				,codegenQuestStack);
 	}
 }
 
@@ -2015,9 +2047,9 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 		{
 			fklPopPtrStack(codegenQuestStack);
 			FklCodegenQuest* prevQuest=curCodegenQuest->prev?curCodegenQuest->prev:fklTopPtrStack(codegenQuestStack);
-			fklPushPtrStack(curCodegenQuest->processer(codegener
+			fklPushPtrStack(curCodegenQuest->processer(curCodegenQuest->codegen
 						,curBcStack
-						,codegener->fid
+						,curCodegenQuest->codegen->fid
 						,curCodegenQuest->curline)
 					,fklIsPtrStackEmpty(codegenQuestStack)
 					?resultStack
@@ -2098,6 +2130,9 @@ void fklInitGlobalCodegener(FklCodegen* codegen
 	codegen->globalEnv->refcount+=1;
 	codegen->destroyAbleMark=destroyAbleMark;
 	codegen->refcount=0;
+	codegen->exportNum=0;
+	codegen->exports=NULL;
+	codegen->loadedLibStack=fklCreatePtrStack(8,8);
 }
 
 void fklInitCodegener(FklCodegen* codegen
@@ -2130,16 +2165,22 @@ void fklInitCodegener(FklCodegen* codegen
 	codegen->globalSymTable=globalSymTable;
 	codegen->destroyAbleMark=destroyAbleMark;
 	codegen->refcount=0;
-	codegen->libId=0;
 	codegen->exportNum=0;
 	codegen->exports=NULL;
+	codegen->loadedLibStack=prev?prev->loadedLibStack:fklCreatePtrStack(8,8);
 }
 
 void fklUninitCodegener(FklCodegen* codegen)
 {
 	fklDestroyCodegenEnv(codegen->globalEnv);
-	if(codegen->globalSymTable&&!codegen->destroyAbleMark&&codegen->globalSymTable!=fklGetGlobSymbolTable())
-		fklDestroySymbolTable(codegen->globalSymTable);
+	if(!codegen->destroyAbleMark)
+	{
+		if(codegen->globalSymTable&&codegen->globalSymTable!=fklGetGlobSymbolTable())
+			fklDestroySymbolTable(codegen->globalSymTable);
+		while(!fklIsPtrStackEmpty(codegen->loadedLibStack))
+			fklDestroyCodegenLib(fklPopPtrStack(codegen->loadedLibStack));
+		fklDestroyPtrStack(codegen->loadedLibStack);
+	}
 	free(codegen->curDir);
 	if(codegen->filename)
 		free(codegen->filename);
@@ -2333,4 +2374,24 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklSymbolTable* symbolT
 		destroyMayUndefine(cur);
 	}
 	fklDestroyPtrStack(mayUndefined);
+}
+
+FklCodegenLib* fklCreateCodegenLib(char* rp,FklByteCodelnt* bcl,size_t exportNum,FklSid_t* exports)
+{
+	FklCodegenLib* lib=(FklCodegenLib*)malloc(sizeof(FklCodegenLib));
+	FKL_ASSERT(lib);
+	lib->rp=rp;
+	lib->bcl=bcl;
+	lib->exportNum=exportNum;
+	lib->exports=exports;
+	return lib;
+}
+
+void fklDestroyCodegenLib(FklCodegenLib* lib)
+{
+	free(lib->rp);
+	fklDestroyByteCodelnt(lib->bcl);
+	free(lib->exports);
+	lib->exportNum=0;
+	free(lib);
 }

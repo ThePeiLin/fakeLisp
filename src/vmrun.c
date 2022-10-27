@@ -1583,7 +1583,7 @@ FklVM* fklCreateThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue* ne
 	FKL_ASSERT(exe);
 	FklVMframe* t=fklCreateVMframeWithCodeObj(frame->codeObj,NULL,gc);
 	t->cp=frame->scp+frame->cpc;
-	t->localenv=FKL_VM_NIL;
+	t->localenv=frame->localenv;
 	exe->frames=t;
 	exe->mark=1;
 	exe->chan=fklCreateSaveVMvalue(FKL_TYPE_CHAN,fklCreateVMchanl(0));
@@ -1594,7 +1594,7 @@ FklVM* fklCreateThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue* ne
 	exe->nextCall=nextCall;
 	exe->nextCallBackUp=NULL;
 	exe->nny=0;
-	exe->codeObj=NULL;
+	exe->codeObj=frame->codeObj;
 	pthread_rwlock_init(&exe->rlock,NULL);
 	pthread_mutex_init(&exe->prev_next_lock,NULL);
 	insert_to_VM_chain(exe,prev,next,gc);

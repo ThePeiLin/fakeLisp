@@ -1477,7 +1477,10 @@ static CODEGEN_FUNC(codegen_import)
 		free(filename);
 		return;
 	}
-	FklCodegen* nextCodegen=createCodegen(codegen,filename,curEnv);
+	FklCodegenEnv* globalEnv=curEnv;
+	while(globalEnv->prev)globalEnv=globalEnv->prev;
+	FklCodegenEnv* libEnv=fklCreateCodegenEnv(globalEnv);
+	FklCodegen* nextCodegen=createCodegen(codegen,filename,libEnv);
 	if(hasLoadSameFile(nextCodegen->realpath,codegen))
 	{
 		errorState->fid=codegen->fid;
@@ -1999,10 +2002,11 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 FklByteCodelnt* fklGenExpressionCodeWithFp(FILE* fp
 		,FklCodegen* codegen)
 {
+	FklCodegenEnv* mainEnv=fklCreateCodegenEnv(codegen->globalEnv);
 	FklCodegenQuest* initialQuest=createCodegenQuest(_begin_exp_bc_process
 			,fklCreatePtrStack(32,16)
 			,createFpNextExpression(fp,codegen)
-			,codegen->globalEnv
+			,mainEnv
 			,1
 			,NULL
 			,codegen);
@@ -2139,9 +2143,11 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklSymbolTable* symbolT
 	fklPushUintStack(0,cpcstack);
 	fklPushUintStack(bc->size,scpstack);
 	FklCodegenEnv* globEnv=fklCreateCodegenEnv(NULL);
+	FklCodegenEnv* mainEnv=fklCreateCodegenEnv(globEnv);
 	globEnv->refcount=1;
+	mainEnv->refcount=1;
 	fklInitGlobCodegenEnvWithSymbolTable(globEnv,symbolTable);
-	fklPushPtrStack(globEnv,envstack);
+	fklPushPtrStack(mainEnv,envstack);
 	while((!fklIsUintStackEmpty(cpcstack))&&(!fklIsUintStackEmpty(scpstack)))
 	{
 		uint64_t i=fklPopUintStack(cpcstack);

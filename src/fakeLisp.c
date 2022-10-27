@@ -90,8 +90,9 @@ int main(int argc,char** argv)
 		fklCodegenPrintUndefinedSymbol(mainByteCode,codegen.globalSymTable);
 		FklVM* anotherVM=fklCreateVM(mainByteCode,NULL,NULL);
 		FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
+		FklVMvalue* mainEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateVMenv(globEnv,anotherVM->gc),anotherVM->gc);
 		FklVMframe* mainframe=anotherVM->frames;
-		mainframe->localenv=globEnv;
+		mainframe->localenv=mainEnv;
 		anotherVM->callback=errorCallBack;
 		if(setjmp(buf)==0)
 		{
@@ -146,9 +147,9 @@ int main(int argc,char** argv)
 		fclose(fp);
 		FklVMframe* mainframe=anotherVM->frames;
 		FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
-		mainframe->localenv=globEnv;
+		FklVMvalue* mainEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateVMenv(globEnv,anotherVM->gc),anotherVM->gc);
+		mainframe->localenv=mainEnv;
 		anotherVM->callback=errorCallBack;
-//		fklInitGlobEnv(globEnv->u.env,anotherVM->gc);
 		if(!setjmp(buf))
 		{
 			fklRunVM(anotherVM);
@@ -192,6 +193,8 @@ void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 	char* prev=NULL;
 	size_t prevSize=0;
 	int32_t bs=0;
+	FklVMvalue* mainEnv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(globEnv,anotherVM->gc));
+	FklCodegenEnv* mainCodegenEnv=fklCreateCodegenEnv(codegen->globalEnv);
 	for(;e<2;)
 	{
 		FklNastNode* begin=NULL;
@@ -229,7 +232,7 @@ void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 		else
 		{
 			fklMakeNastNodeRef(begin);
-			FklByteCodelnt* tmpByteCode=fklGenExpressionCode(begin,codegen->globalEnv,codegen);
+			FklByteCodelnt* tmpByteCode=fklGenExpressionCode(begin,mainCodegenEnv,codegen);
 			if(tmpByteCode)
 			{
 				fklCodeLntCat(anotherVM->codeObj->u.code,tmpByteCode);
@@ -238,7 +241,7 @@ void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 				fklDestroyByteCodelnt(tmpByteCode);
 				tmp->prevEnv=NULL;
 				FklVMframe* mainframe=fklCreateVMframeWithProc(tmp,anotherVM->frames);
-				mainframe->localenv=globEnv;
+				mainframe->localenv=mainEnv;
 				anotherVM->frames=mainframe;
 				if(!(e=setjmp(buf)))
 				{
@@ -275,6 +278,7 @@ void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 	fklJoinAllThread(anotherVM);
 	fklDestroyPtrStack(tokenStack);
 	free(rawProcList);
+	fklAddToGCNoGC(mainEnv,anotherVM->gc);
 	fklDestroyVMgc(anotherVM->gc);
 	fklDestroyAllVMs(anotherVM);
 	fklDestroyGlobSymbolTable();

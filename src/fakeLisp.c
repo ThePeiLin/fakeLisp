@@ -135,6 +135,7 @@ int main(int argc,char** argv)
 		{
 			fklDeleteCallChain(anotherVM);
 			fklCancelAllThread();
+			fklJoinAllThread(anotherVM);
 			fklDestroyVMgc(anotherVM->gc);
 			fklDestroyAllVMs(anotherVM);
 			fklDestroyMainFileRealPath();
@@ -189,6 +190,7 @@ int main(int argc,char** argv)
 		{
 			fklDeleteCallChain(anotherVM);
 			fklCancelAllThread();
+			fklJoinAllThread(anotherVM);
 			fklDestroyAllVMs(anotherVM);
 			fklDestroyVMgc(gc);
 			fklDestroyGlobSymbolTable();

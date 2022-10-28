@@ -75,7 +75,17 @@ int main(int argc,char** argv)
 				}
 				FklSymbolTable* globalSymbolTable=fklExchangeGlobSymbolTable(codegen.globalSymTable);
 				fklDestroySymbolTable(globalSymbolTable);
-				fklCodegenPrintUndefinedSymbol(mainByteCode,codegen.globalSymTable);
+				FklPtrStack* loadedLibStack=codegen.loadedLibStack;
+				for(size_t i=0;i<loadedLibStack->top;i++)
+				{
+					FklCodegenLib* cur=loadedLibStack->base[i];
+					fklCodegenPrintUndefinedSymbol(cur->bcl
+							,(FklCodegenLib**)loadedLibStack->base
+							,codegen.globalSymTable
+							,cur->exportNum
+							,cur->exports);
+				}
+				fklCodegenPrintUndefinedSymbol(mainByteCode,(FklCodegenLib**)codegen.loadedLibStack->base,codegen.globalSymTable,0,NULL);
 				char* outputname=(char*)malloc(sizeof(char)*(strlen(rp)+2));
 				strcpy(outputname,rp);
 				strcat(outputname,"c");
@@ -100,7 +110,6 @@ int main(int argc,char** argv)
 				uint8_t* code=mainByteCode->bc->code;
 				fwrite(&sizeOfMain,sizeof(mainByteCode->bc->size),1,outfp);
 				fwrite(code,sizeOfMain,1,outfp);
-				FklPtrStack* loadedLibStack=codegen.loadedLibStack;
 				uint64_t num=loadedLibStack->top;
 				fwrite(&num,sizeof(uint64_t),1,outfp);
 				for(size_t i=0;i<num;i++)

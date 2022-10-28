@@ -94,10 +94,15 @@ int main(int argc,char** argv)
 		FklSymbolTable* globalSymbolTable=fklExchangeGlobSymbolTable(codegen.globalSymTable);
 		fklDestroySymbolTable(globalSymbolTable);
 		chdir(fklGetCwd());
-		fklCodegenPrintUndefinedSymbol(mainByteCode,codegen.globalSymTable);
+		FklPtrStack* loadedLibStack=codegen.loadedLibStack;
+		for(size_t i=0;i<loadedLibStack->top;i++)
+		{
+			FklCodegenLib* cur=loadedLibStack->base[i];
+			fklCodegenPrintUndefinedSymbol(cur->bcl,(FklCodegenLib**)loadedLibStack->base,codegen.globalSymTable,cur->exportNum,cur->exports);
+		}
+		fklCodegenPrintUndefinedSymbol(mainByteCode,(FklCodegenLib**)codegen.loadedLibStack->base,codegen.globalSymTable,0,NULL);
 		FklVM* anotherVM=fklCreateVM(mainByteCode,NULL,NULL);
 		FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
-		FklPtrStack* loadedLibStack=codegen.loadedLibStack;
 		anotherVM->libNum=codegen.loadedLibStack->top;
 		anotherVM->libs=(FklVMlib*)malloc(sizeof(FklVMlib)*loadedLibStack->top);
 		FKL_ASSERT(anotherVM->libs);

@@ -2213,7 +2213,7 @@ static void destroyMayUndefine(MayUndefine* t)
 	free(t);
 }
 
-void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklSymbolTable* symbolTable)
+void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib** libs,FklSymbolTable* symbolTable,size_t exportNum,FklSid_t* exports)
 {
 	FklUintStack* cpcstack=fklCreateUintStack(32,16);
 	FklUintStack* scpstack=fklCreateUintStack(32,16);
@@ -2225,7 +2225,7 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklSymbolTable* symbolT
 	FklCodegenEnv* globEnv=fklCreateCodegenEnv(NULL);
 	FklCodegenEnv* mainEnv=fklCreateCodegenEnv(globEnv);
 	globEnv->refcount=1;
-	mainEnv->refcount=1;
+	mainEnv->refcount=2;
 	fklInitGlobCodegenEnvWithSymbolTable(globEnv,symbolTable);
 	fklPushPtrStack(mainEnv,envstack);
 	while((!fklIsUintStackEmpty(cpcstack))&&(!fklIsUintStackEmpty(scpstack)))
@@ -2338,6 +2338,14 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklSymbolTable* symbolT
 								}
 							}
 							break;
+						case FKL_OP_IMPORT:
+							{
+								uint64_t libCount=fklGetU64FromByteCode(bc->code+i+sizeof(char));
+								FklCodegenLib* lib=libs[libCount-1];
+								for(size_t i=0;i<lib->exportNum;i++)
+									fklAddCodegenDefBySid(lib->exports[i],curEnv);
+							}
+							break;
 						default:
 							break;
 					}
@@ -2347,6 +2355,12 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklSymbolTable* symbolT
 		}
 		fklDestroyCodegenEnv(curEnv);
 	}
+	for(size_t i=0;i<exportNum;i++)
+	{
+		if(!fklIsSymbolDefined(exports[i],mainEnv))
+			fklPushPtrStack(createMayUndefine(mainEnv,0,exports[i]),mayUndefined);
+	}
+	fklDestroyCodegenEnv(mainEnv);
 	fklDestroyUintStack(cpcstack);
 	fklDestroyUintStack(scpstack);
 	fklDestroyPtrStack(envstack);

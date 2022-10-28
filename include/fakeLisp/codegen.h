@@ -106,7 +106,7 @@ FklCodegenEnv* fklCreateCodegenEnv(FklCodegenEnv* prev);
 void fklDestroyCodegenEnv(FklCodegenEnv* env);
 FklCodegenEnv* fklCreateGlobCodegenEnv(void);
 
-void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklSymbolTable* symbolTable);
+void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib**,FklSymbolTable* symbolTable,size_t exportNum,FklSid_t* exports);
 
 FklCodegenLib* fklCreateCodegenLib(char* rp,FklByteCodelnt* bcl,size_t exportNum,FklSid_t* exports);
 void fklDestroyCodegenLib(FklCodegenLib*);

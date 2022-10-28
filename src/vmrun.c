@@ -53,12 +53,13 @@ static void callNativeProcdure(FklVM* exe,FklVMproc* tmpProc,FklVMframe* frame)
 {
 	pthread_rwlock_wrlock(&exe->rlock);
 	FklVMframe* tmpFrame=fklCreateVMframeWithProc(tmpProc,exe->frames);
-	tmpFrame->localenv=fklCreateVMvalue(FKL_TYPE_ENV,fklCreateVMenv(tmpProc->prevEnv,exe->gc),exe);
+	tmpFrame->localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(tmpProc->prevEnv,exe->gc));
 	exe->frames=tmpFrame;
 	pthread_rwlock_unlock(&exe->rlock);
+	fklAddToGCNoGC(tmpFrame->localenv,exe->gc);
 }
 
-void tailCallNativeProcdure(FklVM* exe,FklVMproc* proc,FklVMframe* frame)
+static void tailCallNativeProcdure(FklVM* exe,FklVMproc* proc,FklVMframe* frame)
 {
 	if(frame->scp==proc->scp)
 		frame->mark=1;
@@ -1131,6 +1132,11 @@ void fklGC_markRootToGrey(FklVM* exe)
 		fklGC_toGrey(cur->localenv,gc);
 		fklGC_toGrey(cur->codeObj,gc);
 	}
+	for(size_t i=0;i<exe->libNum;i++)
+	{
+		fklGC_toGrey(exe->libs[i].libEnv,gc);
+		fklGC_toGrey(exe->libs[i].proc,gc);
+	}
 //	pthread_rwlock_unlock(&exe->rlock);
 //	pthread_rwlock_rdlock(&stack->lock);
 	for(uint32_t i=0;i<stack->tp;i++)
@@ -1168,12 +1174,6 @@ void fklGC_markAllRootToGrey(FklVM* curVM)
 			free(t->libs);
 			free(t);
 		}
-	}
-	for(size_t i=0;i<curVM->libNum;i++)
-	{
-		FklVMlib* cur=&curVM->libs[i];
-		fklGC_toGrey(cur->libEnv,curVM->gc);
-		fklGC_toGrey(cur->proc,curVM->gc);
 	}
 	for(FklVM* cur=curVM;cur;)
 	{

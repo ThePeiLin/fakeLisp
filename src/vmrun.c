@@ -31,7 +31,7 @@ typedef struct Greylink
 	struct Greylink* next;
 }Greylink;
 
-Greylink* createGreylink(FklVMvalue* v,struct Greylink* next)
+static Greylink* createGreylink(FklVMvalue* v,struct Greylink* next)
 {
 	Greylink* g=(Greylink*)malloc(sizeof(Greylink));
 	FKL_ASSERT(g);
@@ -40,7 +40,7 @@ Greylink* createGreylink(FklVMvalue* v,struct Greylink* next)
 	return g;
 }
 
-void threadErrorCallBack(void* a)
+static void threadErrorCallBack(void* a)
 {
 	void** e=(void**)a;
 	int* i=(int*)a;
@@ -49,28 +49,13 @@ void threadErrorCallBack(void* a)
 }
 
 /*procedure call functions*/
-void fklCallNativeProcdure(FklVM* exe,FklVMproc* tmpProc,FklVMframe* frame)
+static void callNativeProcdure(FklVM* exe,FklVMproc* tmpProc,FklVMframe* frame)
 {
 	pthread_rwlock_wrlock(&exe->rlock);
 	FklVMframe* tmpFrame=fklCreateVMframeWithProc(tmpProc,exe->frames);
 	tmpFrame->localenv=fklCreateVMvalue(FKL_TYPE_ENV,fklCreateVMenv(tmpProc->prevEnv,exe->gc),exe);
 	exe->frames=tmpFrame;
 	pthread_rwlock_unlock(&exe->rlock);
-}
-
-void applyNativeProc(FklVM* exe,FklVMproc* tmpProc,FklVMframe* frame)
-{
-	FklVMframe* prevProc=fklHasSameProc(tmpProc->scp,exe->frames);
-	if(fklIsTheLastExpress(frame,prevProc,exe)&&prevProc)
-		prevProc->mark=1;
-	else
-	{
-		pthread_rwlock_wrlock(&exe->rlock);
-		FklVMframe* tmpFrame=fklCreateVMframeWithProc(tmpProc,exe->frames);
-		tmpFrame->localenv=fklCreateVMvalue(FKL_TYPE_ENV,fklCreateVMenv(tmpProc->prevEnv,exe->gc),exe);
-		exe->frames=tmpFrame;
-		pthread_rwlock_unlock(&exe->rlock);
-	}
 }
 
 void tailCallNativeProcdure(FklVM* exe,FklVMproc* proc,FklVMframe* frame)
@@ -335,34 +320,7 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode,FklVM* prev,FklVM* next)
 //	return exe;
 //}
 
-void* ThreadVMfunc(void* p)
-{
-	FklVM* exe=(FklVM*)p;
-	int64_t state=fklRunVM(exe);
-	FklVMchanl* tmpCh=exe->chan->u.chan;
-	exe->chan=NULL;
-	if(!state)
-	{
-		FKL_NI_BEGIN(exe);
-		FklVMvalue* v=NULL;
-		while((v=fklNiGetArg(&ap,stack)))
-			fklChanlSend(fklCreateVMsend(v),tmpCh);
-		fklNiEnd(&ap,stack);
-	}
-	fklDestroyVMstack(exe->stack);
-	exe->stack=NULL;
-	exe->codeObj=NULL;
-	fklDestroyPtrStack(exe->tstack);
-	pthread_rwlock_wrlock(&exe->rlock);
-	if(state!=0)
-		fklDeleteCallChain(exe);
-	exe->frames=NULL;
-	exe->mark=0;
-	pthread_rwlock_unlock(&exe->rlock);
-	return (void*)state;
-}
-
-void callCallableObj(FklVMvalue* v,FklVM* exe)
+static void callCallableObj(FklVMvalue* v,FklVM* exe)
 {
 	exe->nextCallBackUp=exe->nextCall;
 	exe->nextCall=NULL;
@@ -704,7 +662,7 @@ void B_call(FklVM* exe)
 	switch(tmpValue->type)
 	{
 		case FKL_TYPE_PROC:
-			fklCallNativeProcdure(exe,tmpValue->u.proc,frame);
+			callNativeProcdure(exe,tmpValue->u.proc,frame);
 			break;
 		default:
 			exe->nextCall=tmpValue;
@@ -1015,7 +973,7 @@ void B_import(FklVM* exe)
 	FklVMlib* plib=&exe->libs[libId-1];
 	if(plib->libEnv==FKL_VM_NIL)
 	{
-		fklCallNativeProcdure(exe,plib->proc->u.proc,frame);
+		callNativeProcdure(exe,plib->proc->u.proc,frame);
 		fklSetRef(&plib->libEnv,exe->frames->localenv,exe->gc);
 	}
 	else

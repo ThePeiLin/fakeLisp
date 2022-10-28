@@ -48,6 +48,13 @@ int main(int argc,char** argv)
 		fklInitGlobalCodegener(&codegen,NULL,NULL,fklGetGlobSymbolTable(),0);
 		runRepl(&codegen,builtInHeadSymbolTable);
 		codegen.globalSymTable=NULL;
+		FklPtrStack* loadedLibStack=codegen.loadedLibStack;
+		while(!fklIsPtrStackEmpty(loadedLibStack))
+		{
+			FklCodegenLib* lib=fklPopPtrStack(loadedLibStack);
+			free(lib->rp);
+			free(lib);
+		}
 		fklUninitCodegener(&codegen);
 		fklUninitCodegen();
 	}
@@ -209,6 +216,8 @@ void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 	int32_t bs=0;
 	FklVMvalue* mainEnv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(globEnv,anotherVM->gc));
 	FklCodegenEnv* mainCodegenEnv=fklCreateCodegenEnv(codegen->globalEnv);
+	mainCodegenEnv->refcount=1;
+	size_t libNum=codegen->loadedLibStack->top;
 	for(;e<2;)
 	{
 		FklNastNode* begin=NULL;
@@ -249,6 +258,27 @@ void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 			FklByteCodelnt* tmpByteCode=fklGenExpressionCode(begin,mainCodegenEnv,codegen);
 			if(tmpByteCode)
 			{
+				size_t unloadlibNum=codegen->loadedLibStack->top-libNum;
+				if(unloadlibNum)
+				{
+					libNum+=unloadlibNum;
+					FklVMlib* nlibs=(FklVMlib*)malloc(sizeof(FklVMlib)*libNum);
+					FKL_ASSERT(nlibs);
+					memcpy(nlibs,anotherVM->libs,sizeof(FklVMlib)*anotherVM->libNum);
+					for(size_t i=anotherVM->libNum;i<libNum;i++)
+					{
+						FklVMlib* curVMlib=&nlibs[i];
+						FklCodegenLib* curCGlib=codegen->loadedLibStack->base[i];
+						FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,curCGlib->bcl,anotherVM->gc);
+						FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(0,curCGlib->bcl->bc->size,codeObj,anotherVM->gc),anotherVM->gc);
+						fklSetRef(&proc->u.proc->prevEnv,globEnv,anotherVM->gc);
+						fklInitVMlib(curVMlib,curCGlib->exportNum,curCGlib->exports,proc);
+					}
+					FklVMlib* prev=anotherVM->libs;
+					anotherVM->libs=nlibs;
+					anotherVM->libNum=libNum;
+					free(prev);
+				}
 				fklCodeLntCat(anotherVM->codeObj->u.code,tmpByteCode);
 				FklVMproc* tmp=fklCreateVMproc(bs,tmpByteCode->bc->size,anotherVM->codeObj,anotherVM->gc);
 				bs+=tmpByteCode->bc->size;
@@ -288,6 +318,7 @@ void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 			begin=NULL;
 		}
 	}
+	fklDestroyCodegenEnv(mainCodegenEnv);
 	fklDestroyLineNumberTable(globalLnt);
 	fklJoinAllThread(anotherVM);
 	fklDestroyPtrStack(tokenStack);

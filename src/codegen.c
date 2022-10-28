@@ -1467,8 +1467,7 @@ BC_PROCESS(_library_bc_process)
 			if(cur->bc->size)
 			{
 				fklCodeLntCat(r,cur);
-				if(i<top-1)
-					bclBcAppendToBcl(r,&resTp,fid,line);
+				bclBcAppendToBcl(r,&resTp,fid,line);
 			}
 			fklDestroyByteCodelnt(cur);
 		}

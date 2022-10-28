@@ -75,9 +75,6 @@ FklSid_t fklGetBuiltInErrorType(FklBuiltInErrorType type)
 	return errorTypeId[type];
 }
 
-extern void applyNativeProc(FklVM*,FklVMproc*,FklVMframe*);
-extern void* ThreadVMfunc(void* p);
-
 //builtin functions
 
 #define ARGL FklVM* exe
@@ -2884,6 +2881,33 @@ void builtin_argv(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+static void* ThreadVMfunc(void* p)
+{
+	FklVM* exe=(FklVM*)p;
+	int64_t state=fklRunVM(exe);
+	FklVMchanl* tmpCh=exe->chan->u.chan;
+	exe->chan=NULL;
+	if(!state)
+	{
+		FKL_NI_BEGIN(exe);
+		FklVMvalue* v=NULL;
+		while((v=fklNiGetArg(&ap,stack)))
+			fklChanlSend(fklCreateVMsend(v),tmpCh);
+		fklNiEnd(&ap,stack);
+	}
+	fklDestroyVMstack(exe->stack);
+	exe->stack=NULL;
+	exe->codeObj=NULL;
+	fklDestroyPtrStack(exe->tstack);
+	pthread_rwlock_wrlock(&exe->rlock);
+	if(state!=0)
+		fklDeleteCallChain(exe);
+	exe->frames=NULL;
+	exe->mark=0;
+	pthread_rwlock_unlock(&exe->rlock);
+	return (void*)state;
+}
+
 void builtin_go(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -3072,6 +3096,21 @@ void builtin_call_cc(ARGL)
 	else
 		exe->nextCall=proc;
 	fklNiEnd(&ap,stack);
+}
+
+static void applyNativeProc(FklVM* exe,FklVMproc* tmpProc,FklVMframe* frame)
+{
+	FklVMframe* prevProc=fklHasSameProc(tmpProc->scp,exe->frames);
+	if(fklIsTheLastExpress(frame,prevProc,exe)&&prevProc)
+		prevProc->mark=1;
+	else
+	{
+		pthread_rwlock_wrlock(&exe->rlock);
+		FklVMframe* tmpFrame=fklCreateVMframeWithProc(tmpProc,exe->frames);
+		tmpFrame->localenv=fklCreateVMvalue(FKL_TYPE_ENV,fklCreateVMenv(tmpProc->prevEnv,exe->gc),exe);
+		exe->frames=tmpFrame;
+		pthread_rwlock_unlock(&exe->rlock);
+	}
 }
 
 void builtin_apply(ARGL)

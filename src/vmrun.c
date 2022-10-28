@@ -49,7 +49,7 @@ void threadErrorCallBack(void* a)
 }
 
 /*procedure call functions*/
-void callNativeProcdure(FklVM* exe,FklVMproc* tmpProc,FklVMframe* frame)
+void fklCallNativeProcdure(FklVM* exe,FklVMproc* tmpProc,FklVMframe* frame)
 {
 	pthread_rwlock_wrlock(&exe->rlock);
 	FklVMframe* tmpFrame=fklCreateVMframeWithProc(tmpProc,exe->frames);
@@ -704,7 +704,7 @@ void B_call(FklVM* exe)
 	switch(tmpValue->type)
 	{
 		case FKL_TYPE_PROC:
-			callNativeProcdure(exe,tmpValue->u.proc,frame);
+			fklCallNativeProcdure(exe,tmpValue->u.proc,frame);
 			break;
 		default:
 			exe->nextCall=tmpValue;
@@ -1015,7 +1015,7 @@ void B_import(FklVM* exe)
 	FklVMlib* plib=&exe->libs[libId-1];
 	if(plib->libEnv==FKL_VM_NIL)
 	{
-		callNativeProcdure(exe,plib->proc->u.proc,frame);
+		fklCallNativeProcdure(exe,plib->proc->u.proc,frame);
 		fklSetRef(&plib->libEnv,exe->frames->localenv,exe->gc);
 	}
 	else
@@ -1026,7 +1026,7 @@ void B_import(FklVM* exe)
 			if(pv==NULL)
 			{
 				char* cstr=fklStringToCstr(fklGetGlobSymbolWithId(plib->exports[i])->symbol);
-				FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.push-var",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
+				FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
 			}
 			FklVMvalue* volatile* pValue=fklFindOrAddVar(plib->exports[i],frame->localenv->u.env);
 			fklSetRef(pValue,*pv,exe->gc);
@@ -1207,6 +1207,7 @@ void fklGC_markAllRootToGrey(FklVM* curVM)
 			if(cur->next)
 				cur->next->prev=cur->prev;
 			cur=cur->prev;
+			free(t->libs);
 			free(t);
 		}
 	}
@@ -1235,6 +1236,7 @@ void fklGC_markAllRootToGrey(FklVM* curVM)
 			if(cur->next)
 				cur->next->prev=cur->prev;
 			cur=cur->next;
+			free(t->libs);
 			free(t);
 		}
 	}
@@ -1607,7 +1609,7 @@ FklVM* fklCreateThreadVM(FklVMproc* mainCode,FklVMgc* gc,FklVM* prev,FklVM* next
 	exe->nny=0;
 	exe->codeObj=mainCode->codeObj;
 	exe->libNum=libNum;
-	exe->libs=libs;
+	exe->libs=fklCopyMemory(libs,libNum*sizeof(FklVMlib));
 	pthread_rwlock_init(&exe->rlock,NULL);
 	pthread_mutex_init(&exe->prev_next_lock,NULL);
 	insert_to_VM_chain(exe,prev,next,gc);
@@ -1634,7 +1636,7 @@ FklVM* fklCreateThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue* ne
 	exe->nextCallBackUp=NULL;
 	exe->nny=0;
 	exe->libNum=libNum;
-	exe->libs=libs;
+	exe->libs=fklCopyMemory(libs,libNum*sizeof(FklVMlib));
 	exe->codeObj=frame->codeObj;
 	pthread_rwlock_init(&exe->rlock,NULL);
 	pthread_mutex_init(&exe->prev_next_lock,NULL);
@@ -1675,6 +1677,8 @@ void fklDestroyAllVMs(FklVM* curVM)
 {
 	size_t libNum=curVM->libNum;
 	FklVMlib* libs=curVM->libs;
+	for(size_t i=0;i<libNum;i++)
+		fklUninitVMlib(&libs[i]);
 	for(FklVM* prev=curVM->prev;prev;)
 	{
 		if(prev->mark)
@@ -1685,6 +1689,7 @@ void fklDestroyAllVMs(FklVM* curVM)
 		}
 		FklVM* t=prev;
 		prev=prev->prev;
+		free(t->libs);
 		free(t);
 	}
 	for(FklVM* cur=curVM;cur;)
@@ -1697,11 +1702,9 @@ void fklDestroyAllVMs(FklVM* curVM)
 		}
 		FklVM* t=cur;
 		cur=cur->next;
+		free(t->libs);
 		free(t);
 	}
-	for(size_t i=0;i<libNum;i++)
-		fklUninitVMlib(&libs[i]);
-	free(libs);
 }
 
 void fklDestroyVMgc(FklVMgc* gc)

@@ -3107,9 +3107,10 @@ static void applyNativeProc(FklVM* exe,FklVMproc* tmpProc,FklVMframe* frame)
 	{
 		pthread_rwlock_wrlock(&exe->rlock);
 		FklVMframe* tmpFrame=fklCreateVMframeWithProc(tmpProc,exe->frames);
-		tmpFrame->localenv=fklCreateVMvalue(FKL_TYPE_ENV,fklCreateVMenv(tmpProc->prevEnv,exe->gc),exe);
+		tmpFrame->localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(tmpProc->prevEnv,exe->gc));
 		exe->frames=tmpFrame;
 		pthread_rwlock_unlock(&exe->rlock);
+		fklAddToGC(tmpFrame->localenv,exe);
 	}
 }
 

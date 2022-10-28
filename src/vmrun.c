@@ -56,7 +56,7 @@ static void callNativeProcdure(FklVM* exe,FklVMproc* tmpProc,FklVMframe* frame)
 	tmpFrame->localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(tmpProc->prevEnv,exe->gc));
 	exe->frames=tmpFrame;
 	pthread_rwlock_unlock(&exe->rlock);
-	fklAddToGCNoGC(tmpFrame->localenv,exe->gc);
+	fklAddToGC(tmpFrame->localenv,exe);
 }
 
 static void tailCallNativeProcdure(FklVM* exe,FklVMproc* proc,FklVMframe* frame)
@@ -67,9 +67,10 @@ static void tailCallNativeProcdure(FklVM* exe,FklVMproc* proc,FklVMframe* frame)
 	{
 		pthread_rwlock_wrlock(&exe->rlock);
 		FklVMframe* tmpFrame=fklCreateVMframeWithProc(proc,exe->frames->prev);
-		tmpFrame->localenv=fklCreateVMvalue(FKL_TYPE_ENV,fklCreateVMenv(proc->prevEnv,exe->gc),exe);
+		tmpFrame->localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(proc->prevEnv,exe->gc));
 		exe->frames->prev=tmpFrame;
 		pthread_rwlock_unlock(&exe->rlock);
+		fklAddToGC(tmpFrame->localenv,exe);
 	}
 }
 
@@ -93,9 +94,10 @@ int fklVMcallInDlproc(FklVMvalue* proc
 			{
 				pthread_rwlock_wrlock(&exe->rlock);
 				FklVMframe* tmpFrame=fklCreateVMframeWithProc(proc->u.proc,exe->frames);
-				tmpFrame->localenv=fklCreateVMvalue(FKL_TYPE_ENV,fklCreateVMenv(proc->u.proc->prevEnv,exe->gc),exe);
+				tmpFrame->localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(proc->u.proc->prevEnv,exe->gc));
 				exe->frames=tmpFrame;
 				pthread_rwlock_unlock(&exe->rlock);
+				fklAddToGC(tmpFrame->localenv,exe);
 			}
 			break;
 		default:

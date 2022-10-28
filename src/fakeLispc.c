@@ -99,7 +99,24 @@ int main(int argc,char** argv)
 				uint64_t sizeOfMain=mainByteCode->bc->size;
 				uint8_t* code=mainByteCode->bc->code;
 				fwrite(&sizeOfMain,sizeof(mainByteCode->bc->size),1,outfp);
-				fwrite(code,sizeof(uint8_t),sizeOfMain,outfp);
+				fwrite(code,sizeOfMain,1,outfp);
+				FklPtrStack* loadedLibStack=codegen.loadedLibStack;
+				uint64_t num=loadedLibStack->top;
+				fwrite(&num,sizeof(uint64_t),1,outfp);
+				for(size_t i=0;i<num;i++)
+				{
+					FklCodegenLib* lib=loadedLibStack->base[i];
+					uint64_t exportNum=lib->exportNum;
+					FklSid_t* exports=lib->exports;
+					fwrite(&exportNum,sizeof(uint64_t),1,outfp);
+					fwrite(exports,sizeof(FklSid_t),exportNum,outfp);
+					FklLineNumberTable tmpLnt={lib->bcl->ls,lib->bcl->l};
+					fklWriteLineNumberTable(&tmpLnt,outfp);
+					uint64_t libSize=lib->bcl->bc->size;
+					uint8_t* libCode=lib->bcl->bc->code;
+					fwrite(&libSize,sizeof(uint64_t),1,outfp);
+					fwrite(libCode,libSize,1,outfp);
+				}
 				fklDestroyByteCodelnt(mainByteCode);
 				fclose(outfp);
 				fklDestroyMainFileRealPath();

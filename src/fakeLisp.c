@@ -21,6 +21,7 @@
 void runRepl(FklCodegen*,const FklSid_t*);
 FklByteCode* loadByteCode(FILE*);
 void loadSymbolTable(FILE*);
+void loadLib(FILE*,size_t*,FklVMlib**,FklVMgc*);
 void loadLineNumberTable(FILE*,FklLineNumTabNode** plist,size_t* pnum);
 static jmp_buf buf;
 static int exitState=0;
@@ -165,6 +166,7 @@ int main(int argc,char** argv)
 		mainCodelnt->bc=mainCode;
 		FklVM* anotherVM=fklCreateVM(mainCodelnt,NULL,NULL);
 		FklVMgc* gc=anotherVM->gc;
+		loadLib(fp,&anotherVM->libNum,&anotherVM->libs,anotherVM->gc);
 		fclose(fp);
 		FklVMframe* mainframe=anotherVM->frames;
 		FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
@@ -327,6 +329,10 @@ void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 	fklDestroyVMgc(anotherVM->gc);
 	fklDestroyAllVMs(anotherVM);
 	fklDestroyGlobSymbolTable();
+}
+
+void loadLib(FILE* fp,size_t* plibNum,FklVMlib** plibs,FklVMgc* gc)
+{
 }
 
 FklByteCode* loadByteCode(FILE* fp)

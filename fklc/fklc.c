@@ -134,6 +134,7 @@ void fklc_bytevector_to_fbc(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void fklc_compile_i32(ARGL) CONST_COMPILE("fklc.compile-i32",i_32,FKL_IS_I32,fklCreatePushI32ByteCode(FKL_GET_I32(i_32)))
 void fklc_compile_i64(ARGL) CONST_COMPILE("fklc.compile-i64",i_64,FKL_IS_I64,fklCreatePushI64ByteCode(i_64->u.i64))
 void fklc_compile_char(ARGL) CONST_COMPILE("fklc.compile-char",chr,FKL_IS_CHR,fklCreatePushCharByteCode(FKL_GET_CHR(chr)))
 void fklc_compile_symbol(ARGL) CONST_COMPILE("fklc.compile-symbol",sym,FKL_IS_SYM,fklCreatePushSidByteCode(fklcGetSymbolIdWithOuterSymbolId(FKL_GET_SYM(sym))))

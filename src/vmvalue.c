@@ -546,6 +546,7 @@ void fklAddToGCNoGC(FklVMvalue* v,FklVMgc* gc)
 		if(running>FKL_GC_NONE&&running<FKL_GC_SWEEPING)
 			fklGC_toGrey(v,gc);
 		pthread_rwlock_wrlock(&gc->lock);
+		v->mark=FKL_MARK_W;
 		v->next=gc->head;
 		gc->head=v;
 		gc->num+=1;
@@ -588,6 +589,7 @@ void fklAddToGCBeforeGC(FklVMvalue* v,FklVM* vm)
 		v->next=gc->head;
 		gc->head=v;
 		tryGC(vm);
+		v->mark=FKL_MARK_W;
 		pthread_rwlock_unlock(&gc->lock);
 	}
 }
@@ -604,6 +606,7 @@ void fklAddToGC(FklVMvalue* v,FklVM* vm)
 		gc->num+=1;
 		tryGC(vm);
 		v->next=gc->head;
+		v->mark=FKL_MARK_W;
 		gc->head=v;
 		pthread_rwlock_unlock(&gc->lock);
 	}

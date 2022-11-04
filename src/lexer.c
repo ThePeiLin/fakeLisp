@@ -1161,7 +1161,10 @@ int fklPatternMatch(const FklNastNode* pattern,FklNastNode* exp,FklHashTable* ht
 		FklNastNode* n0=fklPopPtrStack(s0);
 		FklNastNode* n1=fklPopPtrStack(s1);
 		if(n0->type==FKL_NAST_SYM)
-			patternMatchingHashTableSet(n0->u.sym,n1,ht);
+		{
+			if(ht!=NULL)
+				patternMatchingHashTableSet(n0->u.sym,n1,ht);
+		}
 		else if(n0->type==FKL_NAST_PAIR&&n1->type==FKL_NAST_PAIR)
 		{
 			fklPushPtrStack(n0->u.pair->cdr,s0);

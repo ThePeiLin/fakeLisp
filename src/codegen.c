@@ -1703,6 +1703,37 @@ static CODEGEN_FUNC(codegen_import)
 	}
 }
 
+static CODEGEN_FUNC(codegen_library)
+{
+	FklNastNode* name=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
+	if(name->type!=FKL_NAST_SYM)
+	{
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		return;
+	}
+	FklNastNode* exportExpression=fklPatternMatchingHashTableRef(builtInPatternVar_args,ht);
+	if(!fklIsNastNodeList(exportExpression)
+			||!fklPatternMatch(builtInSubPattern[SUB_PATTERN_EXPORT].pn
+				,exportExpression
+				,NULL))
+	{
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		return;
+	}
+	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
+	FklPtrQueue* queue=fklCreatePtrQueue();
+	pushListItemToQueue(rest,queue,NULL);
+	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_begin_exp_bc_process
+			,fklCreatePtrStack(32,16)
+			,createDefaultQueueNextExpression(queue)
+			,curEnv
+			,rest->curline
+			,codegen
+			,codegenQuestStack);
+}
+
 typedef void (*FklCodegenFunc)(CODEGEN_ARGS);
 
 #undef BC_PROCESS
@@ -1814,19 +1845,20 @@ static struct PatternAndFunc
 	FklCodegenFunc func;
 }builtInPattern[]=
 {
-	{"(begin,rest)",        NULL, codegen_begin,   },
-	{"(define name value)", NULL, codegen_define,  },
-	{"(setq name value)",   NULL, codegen_setq,    },
-	{"(quote value)",       NULL, codegen_quote,   },
-	{"(unquote value)",     NULL, codegen_unquote, },
-	{"(qsquote value)",     NULL, codegen_qsquote, },
-	{"(lambda args,rest)",  NULL, codegen_lambda,  },
-	{"(and,rest)",          NULL, codegen_and,     },
-	{"(or,rest)",           NULL, codegen_or,      },
-	{"(cond,rest)",         NULL, codegen_cond,    },
-	{"(load name)",         NULL, codegen_load,    },
-	{"(import name)",       NULL, codegen_import,  },
-	{NULL,                  NULL, NULL,            }
+	{"(begin,rest)",             NULL, codegen_begin,   },
+	{"(define name value)",      NULL, codegen_define,  },
+	{"(setq name value)",        NULL, codegen_setq,    },
+	{"(quote value)",            NULL, codegen_quote,   },
+	{"(unquote value)",          NULL, codegen_unquote, },
+	{"(qsquote value)",          NULL, codegen_qsquote, },
+	{"(lambda args,rest)",       NULL, codegen_lambda,  },
+	{"(and,rest)",               NULL, codegen_and,     },
+	{"(or,rest)",                NULL, codegen_or,      },
+	{"(cond,rest)",              NULL, codegen_cond,    },
+	{"(load name)",              NULL, codegen_load,    },
+	{"(import name)",            NULL, codegen_import,  },
+	{"(library name args,rest)", NULL, codegen_library, },
+	{NULL,                       NULL, NULL,            }
 };
 
 const FklSid_t* fklInitCodegen(void)

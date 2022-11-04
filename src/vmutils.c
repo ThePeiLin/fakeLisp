@@ -495,7 +495,7 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 			else
 				fprintf(stderr,"at <top>");
 		}
-		FklLineNumTabNode* node=fklFindLineNumTabNode(cur->cp,exe->codeObj->u.code->ls,exe->codeObj->u.code->l);
+		FklLineNumTabNode* node=fklFindLineNumTabNode(cur->cp,cur->codeObj->u.code->ls,cur->codeObj->u.code->l);
 		if(node->fid)
 		{
 			fprintf(stderr,"(%u:",node->line);

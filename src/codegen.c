@@ -1437,17 +1437,18 @@ inline static char* combineFileNameFromListAndGetLastNode(FklNastNode* list,FklN
 }
 
 static void add_symbol_with_prefix_to_locale_env_in_list(const FklNastNode* list
-		,FklSid_t prefix
+		,FklSid_t prefixId
 		,FklCodegenEnv* env
 		,FklSymbolTable* globalSymTable
 		,FklUintStack* idStack
 		,FklUintStack* idWithPrefixStack)
 {
+	FklString* prefix=fklGetGlobSymbolWithId(prefixId)->symbol;
 	for(;list->type==FKL_NAST_PAIR;list=list->u.pair->cdr)
 	{
 		FklNastNode* cur=list->u.pair->car;
 		FklString* origSymbol=fklGetGlobSymbolWithId(cur->u.sym)->symbol;
-		FklString* symbolWithPrefix=fklStringAppend(fklGetGlobSymbolWithId(prefix)->symbol,origSymbol);
+		FklString* symbolWithPrefix=fklStringAppend(prefix,origSymbol);
 		FklSid_t sym=fklAddSymbolToGlob(symbolWithPrefix)->id;
 		fklAddCodegenDefBySid(sym,env);
 		fklPushUintStack(fklAddSymbol(origSymbol,globalSymTable)->id,idStack);
@@ -1463,6 +1464,34 @@ static void add_symbol_to_locale_env_in_list(const FklNastNode* list,FklCodegenE
 		FklNastNode* cur=list->u.pair->car;
 		fklAddCodegenDefBySid(cur->u.sym,env);
 		fklPushUintStack(fklAddSymbol(fklGetGlobSymbolWithId(cur->u.sym)->symbol,globalSymTable)->id,idStack);
+	}
+}
+
+static void add_symbol_to_locale_env_in_array(FklCodegenEnv* env,FklSymbolTable* symbolTable,size_t num,FklSid_t* exports)
+{
+	for(size_t i=0;i<num;i++)
+	{
+		FklSid_t sym=fklAddSymbolToGlob(fklGetSymbolWithId(exports[i],symbolTable)->symbol)->id;
+		fklAddCodegenDefBySid(sym,env);
+	}
+}
+
+static void add_symbol_with_prefix_to_locale_env_in_array(FklCodegenEnv* env
+		,FklSymbolTable* symbolTable
+		,FklSid_t prefixId
+		,size_t num
+		,FklSid_t* exports
+		,FklSid_t* exportsWithPrefix)
+{
+	FklString* prefix=fklGetGlobSymbolWithId(prefixId)->symbol;
+	for(size_t i=0;i<num;i++)
+	{
+		FklString* origSymbol=fklGetSymbolWithId(exports[i],symbolTable)->symbol;
+		FklString* symbolWithPrefix=fklStringAppend(prefix,origSymbol);
+		FklSid_t sym=fklAddSymbolToGlob(symbolWithPrefix)->id;
+		fklAddCodegenDefBySid(sym,env);
+		exportsWithPrefix[i]=fklAddSymbol(symbolWithPrefix,symbolTable)->id;
+		free(symbolWithPrefix);
 	}
 }
 
@@ -1710,6 +1739,8 @@ static CODEGEN_FUNC(codegen_import)
 	else
 	{
 		free(filename);
+		FklCodegenLib* lib=codegen->loadedLibStack->base[libId-1];
+		add_symbol_to_locale_env_in_array(curEnv,codegen->globalSymTable,lib->exportNum,lib->exports);
 		FklByteCodelnt* importBc=createBclnt(create9lenBc(FKL_OP_IMPORT,libId),codegen->fid,origExp->curline);
 		FklPtrStack* bcStack=fklCreatePtrStack(1,1);
 		fklPushPtrStack(importBc,bcStack);
@@ -1944,7 +1975,22 @@ static CODEGEN_FUNC(codegen_import_with_prefix)
 	else
 	{
 		free(filename);
-		FklByteCodelnt* importBc=createBclnt(create9lenBc(FKL_OP_IMPORT,libId),codegen->fid,origExp->curline);
+		FklCodegenLib* lib=codegen->loadedLibStack->base[libId-1];
+		FklSid_t* exportsWithPrefix=(FklSid_t*)malloc(sizeof(FklSid_t)*lib->exportNum);
+		FKL_ASSERT(exportsWithPrefix);
+		add_symbol_with_prefix_to_locale_env_in_array(curEnv
+				,codegen->globalSymTable
+				,prefixNode->u.sym
+				,lib->exportNum
+				,lib->exports
+				,exportsWithPrefix);
+		FklByteCode* bc=fklCreateByteCode(sizeof(char)+sizeof(uint64_t)*2+sizeof(FklSid_t)*lib->exportNum);
+		bc->code[0]=FKL_OP_IMPORT_WITH_SYMBOLS;
+		fklSetU64ToByteCode(bc->code+sizeof(char),libId);
+		fklSetU64ToByteCode(bc->code+sizeof(char)+sizeof(uint64_t),lib->exportNum);
+		memcpy(bc->code+sizeof(char)+sizeof(uint64_t)*2,exportsWithPrefix,sizeof(FklSid_t)*lib->exportNum);
+		free(exportsWithPrefix);
+		FklByteCodelnt* importBc=createBclnt(bc,codegen->fid,origExp->curline);
 		FklPtrStack* bcStack=fklCreatePtrStack(1,1);
 		fklPushPtrStack(importBc,bcStack);
 		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_default_bc_process
@@ -2114,9 +2160,9 @@ static struct PatternAndFunc
 	{"(cond,rest)",              NULL, codegen_cond,               },
 	{"(load name)",              NULL, codegen_load,               },
 	{"(import name)",            NULL, codegen_import,             },
-	{"(import name rest)",      NULL, codegen_import_with_prefix, },
+	{"(import name rest)",       NULL, codegen_import_with_prefix, },
 	{"(library name args,rest)", NULL, codegen_library,            },
-	{NULL,                       NULL, NULL,                       }
+	{NULL,                       NULL, NULL,                       },
 };
 
 const FklSid_t* fklInitCodegen(void)

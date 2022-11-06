@@ -1,20 +1,20 @@
 //#include<fakeLisp/ast.h>
-#include<fakeLisp/bytecode.h>
+//#include<fakeLisp/bytecode.h>
 //#include<fakeLisp/vm.h>
-#include<fakeLisp/utils.h>
-#include<fakeLisp/compiler.h>
+//#include<fakeLisp/utils.h>
+//#include<fakeLisp/compiler.h>
 //#include<fakeLisp/reader.h>
-#include<fakeLisp/parser.h>
-#ifdef _WIN32
-#include<io.h>
-#include<process.h>
-#else
-#include<unistd.h>
-#endif
-#include<string.h>
-#include<stdlib.h>
-#include<math.h>
-#include<ctype.h>
+//#include<fakeLisp/parser.h>
+//#ifdef _WIN32
+//#include<io.h>
+//#include<process.h>
+//#else
+//#include<unistd.h>
+//#endif
+//#include<string.h>
+//#include<stdlib.h>
+//#include<math.h>
+//#include<ctype.h>
 
 //static int copyAndAddToTail(FklAstCptr* fir,const FklAstCptr* sec)
 //{

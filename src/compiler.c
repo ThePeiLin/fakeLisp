@@ -1,23 +1,23 @@
 //#include<fakeLisp/compiler.h>
-#include<fakeLisp/syntax.h>
-#include<fakeLisp/opcode.h>
+//#include<fakeLisp/syntax.h>
+//#include<fakeLisp/opcode.h>
 //#include<fakeLisp/ast.h>
-#include<fakeLisp/parser.h>
+//#include<fakeLisp/parser.h>
 //#include<fakeLisp/vm.h>
-#include<fakeLisp/utils.h>
+//#include<fakeLisp/utils.h>
 //#include<fakeLisp/reader.h>
-#include<fakeLisp/mem.h>
-#include<stddef.h>
-#include<stdlib.h>
-#include<ctype.h>
-#include<string.h>
-#ifdef _WIN32
-#include<io.h>
-#include<process.h>
-#else
-#include<unistd.h>
-#endif
-#include<math.h>
+//#include<fakeLisp/mem.h>
+//#include<stddef.h>
+//#include<stdlib.h>
+//#include<ctype.h>
+//#include<string.h>
+//#ifdef _WIN32
+//#include<io.h>
+//#include<process.h>
+//#else
+//#include<unistd.h>
+//#endif
+//#include<math.h>
 
 //static jmp_buf buf;
 //static void errorCallBack(void* a)

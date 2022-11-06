@@ -1,7 +1,7 @@
 #include<fakeLisp/codegen.h>
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/utils.h>
-#include<fakeLisp/parser.h>
+#include<fakeLisp/nlexer.h>
 #include<fakeLisp/pattern.h>
 #include<fakeLisp/vm.h>
 #include<fakeLisp/reader.h>

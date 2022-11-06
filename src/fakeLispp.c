@@ -1,15 +1,7 @@
-#include<fakeLisp/reader.h>
 #include<fakeLisp/utils.h>
-#include<fakeLisp/parser.h>
-#include<fakeLisp/opcode.h>
 #include<fakeLisp/codegen.h>
 #include<fakeLisp/vm.h>
 #include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
-#include<ctype.h>
-#include<pthread.h>
-#include<setjmp.h>
 #ifdef _WIN32
 #include<io.h>
 #include<process.h>

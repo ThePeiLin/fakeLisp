@@ -96,6 +96,7 @@ FklByteCode* fklCreatePushNilByteCode(void);
 FklByteCode* fklCreatePushStrByteCode(const FklString* str);
 FklByteCode* fklCreatePushBvecByteCode(const FklBytevector* bvec);
 
+void fklLoadLineNumberTable(FILE* fp,FklLineNumTabNode** plist,size_t* pnum);
 #define FKL_INCREASE_ALL_SCP(l,ls,s) for(size_t i=0;i<(ls);i++)(l)[i].scp+=(s)
 
 #ifdef __cplusplus

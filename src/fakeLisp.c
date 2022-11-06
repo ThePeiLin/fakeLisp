@@ -18,11 +18,10 @@
 #include<unistd.h>
 #endif
 
-void runRepl(FklCodegen*,const FklSid_t*);
-FklByteCode* loadByteCode(FILE*);
-void loadSymbolTable(FILE*);
-void loadLib(FILE*,size_t*,FklVMlib**,FklVMvalue* globEnv,FklVMgc*);
-void loadLineNumberTable(FILE*,FklLineNumTabNode** plist,size_t* pnum);
+static void runRepl(FklCodegen*,const FklSid_t*);
+static FklByteCode* loadByteCode(FILE*);
+static void loadSymbolTable(FILE*);
+static void loadLib(FILE*,size_t*,FklVMlib**,FklVMvalue* globEnv,FklVMgc*);
 static jmp_buf buf;
 static int exitState=0;
 
@@ -166,7 +165,7 @@ int main(int argc,char** argv)
 		fklSetMainFileRealPath(rp);
 		free(rp);
 		FklByteCodelnt* mainCodelnt=fklCreateByteCodelnt(NULL);
-		loadLineNumberTable(fp,&mainCodelnt->l,&mainCodelnt->ls);
+		fklLoadLineNumberTable(fp,&mainCodelnt->l,&mainCodelnt->ls);
 		FklByteCode* mainCode=loadByteCode(fp);
 		mainCodelnt->bc=mainCode;
 		FklVM* anotherVM=fklCreateVM(mainCodelnt,NULL,NULL);
@@ -209,7 +208,7 @@ int main(int argc,char** argv)
 	return exitState;
 }
 
-void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
+static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 {
 	int e=0;
 	FklVM* anotherVM=fklCreateVM(NULL,NULL,NULL);
@@ -337,7 +336,7 @@ void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 	fklDestroyGlobSymbolTable();
 }
 
-void loadLib(FILE* fp,size_t* plibNum,FklVMlib** plibs,FklVMvalue* globEnv,FklVMgc* gc)
+static void loadLib(FILE* fp,size_t* plibNum,FklVMlib** plibs,FklVMvalue* globEnv,FklVMgc* gc)
 {
 	fread(plibNum,sizeof(uint64_t),1,fp);
 	size_t libNum=*plibNum;
@@ -352,7 +351,7 @@ void loadLib(FILE* fp,size_t* plibNum,FklVMlib** plibs,FklVMvalue* globEnv,FklVM
 		FKL_ASSERT(exports);
 		fread(exports,sizeof(FklSid_t),exportNum,fp);
 		FklByteCodelnt* bcl=fklCreateByteCodelnt(NULL);
-		loadLineNumberTable(fp,&bcl->l,&bcl->ls);
+		fklLoadLineNumberTable(fp,&bcl->l,&bcl->ls);
 		FklByteCode* bc=loadByteCode(fp);
 		bcl->bc=bc;
 		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,bcl,gc);
@@ -362,7 +361,7 @@ void loadLib(FILE* fp,size_t* plibNum,FklVMlib** plibs,FklVMvalue* globEnv,FklVM
 	}
 }
 
-FklByteCode* loadByteCode(FILE* fp)
+static FklByteCode* loadByteCode(FILE* fp)
 {
 	uint64_t size=0;
 	fread(&size,sizeof(uint64_t),1,fp);
@@ -375,7 +374,7 @@ FklByteCode* loadByteCode(FILE* fp)
 	return tmp;
 }
 
-void loadSymbolTable(FILE* fp)
+static void loadSymbolTable(FILE* fp)
 {
 	uint64_t size=0;
 	fread(&size,sizeof(size),1,fp);
@@ -388,26 +387,4 @@ void loadSymbolTable(FILE* fp)
 		fklAddSymbolToGlob(buf);
 		free(buf);
 	}
-}
-
-void loadLineNumberTable(FILE* fp,FklLineNumTabNode** plist,size_t* pnum)
-{
-	size_t size=0;
-	fread(&size,sizeof(uint32_t),1,fp);
-	FklLineNumTabNode* list=(FklLineNumTabNode*)malloc(sizeof(FklLineNumTabNode)*size);
-	FKL_ASSERT(list);
-	for(size_t i=0;i<size;i++)
-	{
-		FklSid_t fid=0;
-		uint64_t scp=0;
-		uint64_t cpc=0;
-		uint32_t line=0;
-		fread(&fid,sizeof(fid),1,fp);
-		fread(&scp,sizeof(scp),1,fp);
-		fread(&cpc,sizeof(cpc),1,fp);
-		fread(&line,sizeof(line),1,fp);
-		fklInitLineNumTabNode(&list[i],fid,scp,cpc,line);
-	}
-	*plist=list;
-	*pnum=size;
 }

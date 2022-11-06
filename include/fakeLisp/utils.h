@@ -120,6 +120,7 @@ void fklSetMainFileRealPathWithCwd(void);
 int fklIsRegFile(const char* s);
 
 int fklIsAccessableScriptFile(const char* s);
+
 #ifdef __cplusplus
 }
 #endif

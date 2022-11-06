@@ -271,11 +271,8 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 			r+=sizeof(char)+sizeof(char);
 			break;
 		case 4:
-			if(tmpCode->code[i]==FKL_OP_PUSH_SYM)
-				fklPrintString(fklGetSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)),table)->symbol,fp);
-			else
-				fprintf(fp,"%d"
-						,fklGetI32FromByteCode(tmpCode->code+i+sizeof(char)));
+			fprintf(fp,"%d"
+					,fklGetI32FromByteCode(tmpCode->code+i+sizeof(char)));
 			r+=sizeof(char)+sizeof(int32_t);
 			break;
 		case 8:
@@ -1037,4 +1034,26 @@ FklByteCode* fklCreatePushNilByteCode(void)
 	FklByteCode* r=fklCreateByteCode(sizeof(char));
 	r->code[0]=FKL_OP_PUSH_NIL;
 	return r;
+}
+
+void fklLoadLineNumberTable(FILE* fp,FklLineNumTabNode** plist,size_t* pnum)
+{
+	size_t size=0;
+	fread(&size,sizeof(uint32_t),1,fp);
+	FklLineNumTabNode* list=(FklLineNumTabNode*)malloc(sizeof(FklLineNumTabNode)*size);
+	FKL_ASSERT(list);
+	for(size_t i=0;i<size;i++)
+	{
+		FklSid_t fid=0;
+		uint64_t scp=0;
+		uint64_t cpc=0;
+		uint32_t line=0;
+		fread(&fid,sizeof(fid),1,fp);
+		fread(&scp,sizeof(scp),1,fp);
+		fread(&cpc,sizeof(cpc),1,fp);
+		fread(&line,sizeof(line),1,fp);
+		fklInitLineNumTabNode(&list[i],fid,scp,cpc,line);
+	}
+	*plist=list;
+	*pnum=size;
 }

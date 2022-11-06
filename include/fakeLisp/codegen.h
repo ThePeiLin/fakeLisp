@@ -108,6 +108,7 @@ FklCodegenEnv* fklCreateGlobCodegenEnv(void);
 
 void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib**,FklSymbolTable* symbolTable,size_t exportNum,FklSid_t* exports);
 
+void fklInitCodegenLib(FklCodegenLib* lib,char* rp,FklByteCodelnt* bcl,size_t exportNum,FklSid_t* exports);
 FklCodegenLib* fklCreateCodegenLib(char* rp,FklByteCodelnt* bcl,size_t exportNum,FklSid_t* exports);
 void fklDestroyCodegenLib(FklCodegenLib*);
 #ifdef __cplusplus

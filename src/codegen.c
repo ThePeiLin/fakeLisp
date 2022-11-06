@@ -2642,14 +2642,19 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib** libs,Fk
 	fklDestroyPtrStack(mayUndefined);
 }
 
-FklCodegenLib* fklCreateCodegenLib(char* rp,FklByteCodelnt* bcl,size_t exportNum,FklSid_t* exports)
+void fklInitCodegenLib(FklCodegenLib* lib,char* rp,FklByteCodelnt* bcl,size_t exportNum,FklSid_t* exports)
 {
-	FklCodegenLib* lib=(FklCodegenLib*)malloc(sizeof(FklCodegenLib));
-	FKL_ASSERT(lib);
 	lib->rp=rp;
 	lib->bcl=bcl;
 	lib->exportNum=exportNum;
 	lib->exports=exports;
+}
+
+FklCodegenLib* fklCreateCodegenLib(char* rp,FklByteCodelnt* bcl,size_t exportNum,FklSid_t* exports)
+{
+	FklCodegenLib* lib=(FklCodegenLib*)malloc(sizeof(FklCodegenLib));
+	FKL_ASSERT(lib);
+	fklInitCodegenLib(lib,rp,bcl,exportNum,exports);
 	return lib;
 }
 

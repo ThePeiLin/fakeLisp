@@ -1446,14 +1446,6 @@ static void add_symbol_to_locale_env_in_list(const FklNastNode* list,FklCodegenE
 	}
 }
 
-static void set_id_for_import_bc(uint8_t* code,size_t size,uint64_t libid)
-{
-	size_t len=sizeof(char)+sizeof(uint64_t)+sizeof(FklSid_t);
-	size_t num=size/len;
-	for(size_t i=0;i<num;i++)
-		fklSetU64ToByteCode(code+i*len+sizeof(char),libid);
-}
-
 BC_PROCESS(_library_bc_process)
 {
 	FklByteCodelnt* libBc=NULL;
@@ -1487,7 +1479,7 @@ BC_PROCESS(_library_bc_process)
 		libBc=createBclnt(fklCreateByteCode(0),fid,line);
 	fklPushPtrStack(fklCreateCodegenLib(codegen->realpath,libBc,codegen->exportNum,codegen->exports),codegen->loadedLibStack);
 	FklByteCodelnt* retval=stack->base[0];
-	set_id_for_import_bc(retval->bc->code,retval->bc->size,codegen->loadedLibStack->top);
+	fklSetU64ToByteCode(retval->bc->code+sizeof(char),codegen->loadedLibStack->top);
 	codegen->exportNum=0;
 	codegen->exports=NULL;
 	codegen->realpath=NULL;
@@ -2485,61 +2477,75 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib** libs,Fk
 			FklOpcode opcode=(FklOpcode)(bc->code[i]);
 			switch(fklGetOpcodeArgLen(opcode))
 			{
-				case -4:
-					{
-						i+=sizeof(FklSid_t)+sizeof(char);
-						uint32_t handlerNum=fklGetU32FromByteCode(bc->code+i);
-						i+=sizeof(uint32_t);
-						int j=0;
-						for(;j<handlerNum;j++)
-						{
-							uint32_t num=fklGetU32FromByteCode(bc->code+i);
-							i+=sizeof(num);
-							i+=sizeof(FklSid_t)*num;
-							uint32_t pCpc=fklGetU64FromByteCode(bc->code+i);
-							i+=sizeof(uint64_t);
-							i+=pCpc;
-						}
-					}
-					break;
-				case -3:
-					{
-						uint32_t scope=fklGetU32FromByteCode(bc->code+i+sizeof(char));
-						FklSid_t id=fklGetSidFromByteCode(bc->code+i+sizeof(char)+sizeof(scope));
-						if(scope)
-						{
-							FklCodegenEnv* env=curEnv;
-							for(uint32_t i=1;i<scope;i++)
-								env=curEnv->prev;
-							fklAddCodegenDefBySid(id,env);
-						}
-						else
-						{
-							int r=0;
-							for(FklCodegenEnv* e=curEnv;e;e=e->prev)
-							{
-								r=fklIsSymbolDefined(id,e);
-								if(r)
-									break;
-							}
-							if(!r)
-								fklPushPtrStack(createMayUndefine(curEnv,i,id),mayUndefined);
-						}
-					}
-					i+=sizeof(char)+sizeof(uint32_t)+sizeof(FklSid_t);
-					break;
-				case -2:
-					fklPushUintStack(i+sizeof(char)+sizeof(uint64_t),cpcstack);
-					{
-						fklPushUintStack(fklGetU64FromByteCode(bc->code+i+sizeof(char)),scpstack);
-						FklCodegenEnv* nextEnv=fklCreateCodegenEnv(curEnv);
-						nextEnv->refcount=1;
-						fklPushPtrStack(nextEnv,envstack);
-					}
-					i+=sizeof(char)+sizeof(uint64_t)+fklGetU64FromByteCode(bc->code+i+sizeof(char));
-					break;
 				case -1:
-					i+=sizeof(char)+sizeof(uint64_t)+fklGetU64FromByteCode(bc->code+i+sizeof(char));
+					{
+						switch(opcode)
+						{
+							case FKL_OP_PUSH_TRY:
+								{
+									i+=sizeof(FklSid_t)+sizeof(char);
+									uint32_t handlerNum=fklGetU32FromByteCode(bc->code+i);
+									i+=sizeof(uint32_t);
+									int j=0;
+									for(;j<handlerNum;j++)
+									{
+										uint32_t num=fklGetU32FromByteCode(bc->code+i);
+										i+=sizeof(num);
+										i+=sizeof(FklSid_t)*num;
+										uint32_t pCpc=fklGetU64FromByteCode(bc->code+i);
+										i+=sizeof(uint64_t);
+										i+=pCpc;
+									}
+								}
+								break;
+							case FKL_OP_POP_VAR:
+								{
+									uint32_t scope=fklGetU32FromByteCode(bc->code+i+sizeof(char));
+									FklSid_t id=fklGetSidFromByteCode(bc->code+i+sizeof(char)+sizeof(scope));
+									if(scope)
+									{
+										FklCodegenEnv* env=curEnv;
+										for(uint32_t i=1;i<scope;i++)
+											env=curEnv->prev;
+										fklAddCodegenDefBySid(id,env);
+									}
+									else
+									{
+										int r=0;
+										for(FklCodegenEnv* e=curEnv;e;e=e->prev)
+										{
+											r=fklIsSymbolDefined(id,e);
+											if(r)
+												break;
+										}
+										if(!r)
+											fklPushPtrStack(createMayUndefine(curEnv,i,id),mayUndefined);
+									}
+								}
+								i+=sizeof(char)+sizeof(uint32_t)+sizeof(FklSid_t);
+								break;
+							case FKL_OP_PUSH_PROC:
+								fklPushUintStack(i+sizeof(char)+sizeof(uint64_t),cpcstack);
+								{
+									fklPushUintStack(fklGetU64FromByteCode(bc->code+i+sizeof(char)),scpstack);
+									FklCodegenEnv* nextEnv=fklCreateCodegenEnv(curEnv);
+									nextEnv->refcount=1;
+									fklPushPtrStack(nextEnv,envstack);
+								}
+								i+=sizeof(char)+sizeof(uint64_t)+fklGetU64FromByteCode(bc->code+i+sizeof(char));
+								break;
+							case FKL_OP_PUSH_STR:
+							case FKL_OP_PUSH_BIG_INT:
+							case FKL_OP_PUSH_BYTEVECTOR:
+								i+=sizeof(char)
+									+sizeof(uint64_t)
+									+fklGetU64FromByteCode(bc->code+i+sizeof(char));
+								break;
+							default:
+								FKL_ASSERT(0);
+								break;
+						}
+					}
 					break;
 				case 0:
 					if(opcode==FKL_OP_PUSH_R_ENV)

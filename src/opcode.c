@@ -17,9 +17,9 @@ static struct
 	{"push-sym",             8,  },
 	{"push-var",             8,  },
 	{"push-top",             0,  },
-	{"push-proc",            -2, },
+	{"push-proc",            -1, },
 	{"pop",                  0,  },
-	{"pop-var",              -3, },
+	{"pop-var",              -1, },
 	{"pop-arg",              8,  },
 	{"pop-rest-arg",         8,  },
 	{"set-tp",               0,  },
@@ -31,7 +31,7 @@ static struct
 	{"jmp-if-true",          8,  },
 	{"jmp-if-false",         8,  },
 	{"jmp",                  8,  },
-	{"push-try",             -4, },
+	{"push-try",             -1, },
 	{"pop-try",              0,  },
 	{"list-append",          0,  },
 	{"push-vector",          8,  },
@@ -48,7 +48,8 @@ static struct
 	{"push-list",            8,  },
 	{"push-vector-0",        0,  },
 	{"list-push",            0,  },
-	{"import",               16, },
+	{"import",               8, },
+	{"import-with-symbols",  -1, },
 };
 
 const char* fklGetOpcodeName(FklOpcode opcode)

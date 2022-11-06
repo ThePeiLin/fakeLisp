@@ -2141,9 +2141,21 @@ static int matchAndCall(FklCodegenFunc func
 	return r;
 }
 
+static struct SymbolReplacement
+{
+	const char* s;
+	FklSid_t sid;
+	const char* ps;
+	FklNastNode* pn;
+}builtInSymbolReplacement[]=
+{
+	{"nil", 0, "()", NULL, },
+	{NULL,  0, NULL, NULL, },
+};
+
 static struct PatternAndFunc
 {
-	char* ps;
+	const char* ps;
 	FklNastNode* pn;
 	FklCodegenFunc func;
 }builtInPattern[]=
@@ -2183,6 +2195,11 @@ const FklSid_t* fklInitCodegen(void)
 
 	for(struct PatternAndFunc* cur=&builtInPattern[0];cur->ps!=NULL;cur++)
 		cur->pn=fklCreateNastNodeFromCstr(cur->ps,builtInHeadSymbolTable);
+	for(struct SymbolReplacement* cur=&builtInSymbolReplacement[0];cur->s!=NULL;cur++)
+	{
+		cur->sid=fklAddSymbolToGlobCstr(cur->s)->id;
+		cur->pn=fklCreateNastNodeFromCstr(cur->ps,builtInHeadSymbolTable);
+	}
 	for(struct SubPattern* cur=&builtInSubPattern[0];cur->ps!=NULL;cur++)
 		cur->pn=fklCreateNastNodeFromCstr(cur->ps,builtInHeadSymbolTable);
 	return builtInHeadSymbolTable;
@@ -2192,6 +2209,12 @@ void fklUninitCodegen(void)
 {
 	for(struct PatternAndFunc* cur=&builtInPattern[0];cur->ps!=NULL;cur++)
 	{
+		fklDestroyNastNode(cur->pn);
+		cur->pn=NULL;
+	}
+	for(struct SymbolReplacement* cur=&builtInSymbolReplacement[0];cur->s!=NULL;cur++)
+	{
+		cur->sid=0;
 		fklDestroyNastNode(cur->pn);
 		cur->pn=NULL;
 	}

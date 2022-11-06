@@ -2042,7 +2042,10 @@ FklByteCode* fklCodegenNode(const FklNastNode* node,FklCodegen* codegenr)
 						i++;
 					}
 					fklPushPtrStack(cur,stack);
-					tmp=create9lenBc(FKL_OP_PUSH_LIST,i);
+					if(i==2)
+						tmp=create1lenBc(FKL_OP_PUSH_PAIR);
+					else
+						tmp=create9lenBc(FKL_OP_PUSH_LIST,i);
 				}
 				break;
 			case FKL_NAST_BOX:

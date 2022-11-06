@@ -366,69 +366,56 @@ static uint64_t skipToCall(uint64_t index,const FklByteCode* bc)
 	uint64_t r=0;
 	while(index+r<bc->size&&bc->code[index+r]!=FKL_OP_CALL)
 	{
-		switch(fklGetOpcodeArgLen((FklOpcode)(bc->code[index+r])))
+		size_t len=fklGetOpcodeArgLen((FklOpcode)(bc->code[index+r]));
+		if(len<0)
 		{
-			case -1:
-				{
-					FklOpcode op=bc->code[index+r];
-					switch(op)
+			FklOpcode op=bc->code[index+r];
+			switch(op)
+			{
+				case FKL_OP_PUSH_STR:
+				case FKL_OP_PUSH_BIG_INT:
+				case FKL_OP_PUSH_BYTEVECTOR:
+					r+=sizeof(char)
+						+sizeof(uint64_t)
+						+fklGetU64FromByteCode(bc->code+index+r+sizeof(char));
+					break;
+				case FKL_OP_PUSH_PROC:
+					r+=sizeof(char)
+						+sizeof(uint64_t)
+						+fklGetU64FromByteCode(bc->code+index+r+sizeof(char));
+					break;
+				case FKL_OP_POP_VAR:
+					r+=sizeof(char)+sizeof(int32_t)+sizeof(FklSid_t);
+					break;
+				case FKL_OP_PUSH_TRY:
 					{
-						case FKL_OP_PUSH_STR:
-						case FKL_OP_PUSH_BIG_INT:
-						case FKL_OP_PUSH_BYTEVECTOR:
-							r+=sizeof(char)
-								+sizeof(uint64_t)
-								+fklGetU64FromByteCode(bc->code+index+r+sizeof(char));
-							break;
-						case FKL_OP_PUSH_PROC:
-							r+=sizeof(char)
-								+sizeof(uint64_t)
-								+fklGetU64FromByteCode(bc->code+index+r+sizeof(char));
-							break;
-						case FKL_OP_POP_VAR:
-							r+=sizeof(char)+sizeof(int32_t)+sizeof(FklSid_t);
-							break;
-						case FKL_OP_PUSH_TRY:
-							{
-								r+=sizeof(char);
-								r+=sizeof(FklSid_t);
-								uint32_t handlerNum=fklGetU32FromByteCode(bc->code+index+r);
-								r+=sizeof(uint32_t);
-								for(uint32_t j=0;j<handlerNum;j++)
-								{
-									uint32_t errTypeNum=fklGetU64FromByteCode(bc->code+index+r);
-									r+=sizeof(FklSid_t)*errTypeNum;
-									uint64_t pCpc=fklGetU64FromByteCode(bc->code+index+r);
-									r+=sizeof(uint64_t);
-									r+=pCpc;
-								}
-							}
-							break;
-						case FKL_OP_IMPORT_WITH_SYMBOLS:
-							{
-								size_t exportsCount=fklGetU64FromByteCode(bc->code+index+r+sizeof(char)+sizeof(uint64_t));
-								r+=sizeof(char)+sizeof(uint64_t)*2+sizeof(FklSid_t)*exportsCount;
-							}
-							break;
-						default:
-							FKL_ASSERT(0);
-							break;
+						r+=sizeof(char);
+						r+=sizeof(FklSid_t);
+						uint32_t handlerNum=fklGetU32FromByteCode(bc->code+index+r);
+						r+=sizeof(uint32_t);
+						for(uint32_t j=0;j<handlerNum;j++)
+						{
+							uint32_t errTypeNum=fklGetU64FromByteCode(bc->code+index+r);
+							r+=sizeof(FklSid_t)*errTypeNum;
+							uint64_t pCpc=fklGetU64FromByteCode(bc->code+index+r);
+							r+=sizeof(uint64_t);
+							r+=pCpc;
+						}
 					}
-				}
-				break;
-			case 0:
-				r+=sizeof(char);
-				break;
-			case 1:
-				r+=sizeof(char)+sizeof(char);
-				break;
-			case 4:
-				r+=sizeof(char)+sizeof(int32_t);
-				break;
-			case 8:
-				r+=sizeof(char)+sizeof(int64_t);
-				break;
+					break;
+				case FKL_OP_IMPORT_WITH_SYMBOLS:
+					{
+						size_t exportsCount=fklGetU64FromByteCode(bc->code+index+r+sizeof(char)+sizeof(uint64_t));
+						r+=sizeof(char)+sizeof(uint64_t)*2+sizeof(FklSid_t)*exportsCount;
+					}
+					break;
+				default:
+					FKL_ASSERT(0);
+					break;
+			}
 		}
+		else
+			r+=sizeof(char)+len;
 	}
 	return r;
 }

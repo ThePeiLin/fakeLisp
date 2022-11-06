@@ -1020,7 +1020,7 @@ void B_import_with_symbols(FklVM* exe)
 			{
 				free(exports);
 				char* cstr=fklStringToCstr(fklGetGlobSymbolWithId(plib->exports[i])->symbol);
-				FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
+				FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-with-symbols",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
 			}
 			FklVMvalue* volatile* pValue=fklFindOrAddVar(exports[i],frame->localenv->u.env);
 			fklSetRef(pValue,*pv,exe->gc);

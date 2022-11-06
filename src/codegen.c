@@ -1452,6 +1452,7 @@ static void add_symbol_with_prefix_to_locale_env_in_list(const FklNastNode* list
 		fklAddCodegenDefBySid(sym,env);
 		fklPushUintStack(fklAddSymbol(origSymbol,globalSymTable)->id,idStack);
 		fklPushUintStack(fklAddSymbol(symbolWithPrefix,globalSymTable)->id,idWithPrefixStack);
+		free(symbolWithPrefix);
 	}
 }
 
@@ -1897,7 +1898,7 @@ static CODEGEN_FUNC(codegen_import_with_prefix)
 					FklPtrQueue* libraryRestExpressionQueue=fklCreatePtrQueue();
 					pushListItemToQueue(rest,libraryRestExpressionQueue,NULL);
 					FklPtrStack* bcStack=fklCreatePtrStack(32,16);
-					FklByteCode* bc=fklCreateByteCode(sizeof(char)+sizeof(uint64_t)*2+sizeof(FklSid_t)*idStack->top);
+					FklByteCode* bc=fklCreateByteCode(sizeof(char)+sizeof(uint64_t)*2+sizeof(FklSid_t)*idWithPrefixStack->top);
 					bc->code[0]=FKL_OP_IMPORT_WITH_SYMBOLS;
 					fklSetU64ToByteCode(bc->code+sizeof(char),0);
 					fklSetU64ToByteCode(bc->code+sizeof(char)+sizeof(uint64_t),idWithPrefixStack->top);
@@ -1910,6 +1911,7 @@ static CODEGEN_FUNC(codegen_import_with_prefix)
 								+i*sizeof(FklSid_t)
 								,id);
 					}
+					fklDestroyUintStack(idWithPrefixStack);
 					FklByteCodelnt* importBc=createBclnt(bc,codegen->fid,origExp->curline);
 					fklPushPtrStack(importBc,bcStack);
 					FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_library_bc_process
@@ -2594,6 +2596,7 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib** libs,Fk
 											,sizeof(FklSid_t)*exportsNum);
 									for(size_t i=0;i<exportsNum;i++)
 										fklAddCodegenDefBySid(exports[i],curEnv);
+									free(exports);
 									i+=sizeof(char)+sizeof(uint64_t)*2+exportsNum*sizeof(FklSid_t);
 								}
 								break;
@@ -2656,7 +2659,6 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib** libs,Fk
 							}
 							break;
 						default:
-							FKL_ASSERT(0);
 							break;
 					}
 					i+=sizeof(char)+sizeof(int64_t);

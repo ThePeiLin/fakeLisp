@@ -1,6 +1,6 @@
 #include<fakeLisp/parser.h>
 #include<fakeLisp/utils.h>
-#include<fakeLisp/nlexer.h>
+#include<fakeLisp/lexer.h>
 #include<fakeLisp/pattern.h>
 #include<fakeLisp/vm.h>
 #include<string.h>

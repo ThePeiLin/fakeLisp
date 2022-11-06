@@ -179,6 +179,7 @@ static void B_push_list(FklVM*);
 static void B_push_vector_0(FklVM*);
 static void B_list_push(FklVM*);
 static void B_import(FklVM*);
+static void B_import_with_symbols(FklVM*);
 
 static void (*ByteCodes[])(FklVM*)=
 {
@@ -225,6 +226,7 @@ static void (*ByteCodes[])(FklVM*)=
 	B_push_vector_0,
 	B_list_push,
 	B_import,
+	B_import_with_symbols,
 };
 
 inline static void insert_to_VM_chain(FklVM* cur,FklVM* prev,FklVM* next,FklVMgc* gc)
@@ -992,7 +994,39 @@ void B_import(FklVM* exe)
 			FklVMvalue* volatile* pValue=fklFindOrAddVar(plib->exports[i],frame->localenv->u.env);
 			fklSetRef(pValue,*pv,exe->gc);
 		}
-		frame->cp+=sizeof(char)+sizeof(FklSid_t);
+		frame->cp+=sizeof(char)+sizeof(uint64_t);
+	}
+}
+
+void B_import_with_symbols(FklVM* exe)
+{
+	FklVMframe* frame=exe->frames;
+	uint64_t libId=fklGetU64FromByteCode(frame->code+frame->cp+sizeof(char));
+	FklVMlib* plib=&exe->libs[libId-1];
+	if(plib->libEnv==FKL_VM_NIL)
+	{
+		callNativeProcdure(exe,plib->proc->u.proc,frame);
+		fklSetRef(&plib->libEnv,exe->frames->localenv,exe->gc);
+	}
+	else
+	{
+		uint64_t exportNum=fklGetU64FromByteCode(frame->code+frame->cp+sizeof(char)+sizeof(uint64_t));
+		FklSid_t* exports=fklCopyMemory(frame->code+frame->cp+sizeof(char)+sizeof(uint64_t)+sizeof(uint64_t)
+				,sizeof(FklSid_t)*exportNum);
+		for(size_t i=0;i<exportNum;i++)
+		{
+			FklVMvalue* volatile* pv=fklFindVar(plib->exports[i],plib->libEnv->u.env);
+			if(pv==NULL)
+			{
+				free(exports);
+				char* cstr=fklStringToCstr(fklGetGlobSymbolWithId(plib->exports[i])->symbol);
+				FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
+			}
+			FklVMvalue* volatile* pValue=fklFindOrAddVar(exports[i],frame->localenv->u.env);
+			fklSetRef(pValue,*pv,exe->gc);
+		}
+		free(exports);
+		frame->cp+=sizeof(char)+sizeof(uint64_t)*2+exportNum*sizeof(FklSid_t);
 	}
 }
 

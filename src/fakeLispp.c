@@ -131,6 +131,7 @@ int main(int argc,char** argv)
 				fklPrintRawSymbol(fklGetGlobSymbolWithId(id)->symbol,stdout);
 				fputc('\n',stdout);
 			}
+			fputc('\n',stdout);
 			fklPrintByteCodelnt(cur->bcl,stdout,NULL);
 			fputc('\n',stdout);
 		}

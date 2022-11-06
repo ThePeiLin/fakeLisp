@@ -925,9 +925,14 @@ char* fklCastEscapeCharBuf(const char* str,char end,size_t* size)
 
 #include<sys/stat.h>
 #include<sys/types.h>
-int fklIsReg(const char* p)
+int fklIsRegFile(const char* p)
 {
 	struct stat buf;
 	stat(p,&buf);
 	return S_ISREG(buf.st_mode);
+}
+
+int fklIsAccessableScriptFile(const char* p)
+{
+	return !access(p,R_OK)&&fklIsRegFile(p);
 }

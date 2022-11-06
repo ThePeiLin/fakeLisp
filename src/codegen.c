@@ -1380,7 +1380,7 @@ static CODEGEN_FUNC(codegen_load)
 		return;
 	}
 	char* filenameCstr=fklStringToCstr(filename->u.str);
-	if(access(filenameCstr,R_OK)||!fklIsReg(filenameCstr))
+	if(!fklIsAccessableScriptFile(filenameCstr))
 	{
 		errorState->fid=codegen->fid;
 		errorState->type=FKL_ERR_FILEFAILURE;
@@ -1517,7 +1517,7 @@ static CODEGEN_FUNC(codegen_import)
 	}
 	FklNastNode* importLibraryName=NULL;
 	char* filename=combineFileNameFromListAndGetLastNode(name,&importLibraryName);
-	if(access(filename,R_OK))
+	if(!fklIsAccessableScriptFile(filename))
 	{
 		errorState->fid=codegen->fid;
 		errorState->type=FKL_ERR_IMPORTFAILED;
@@ -1723,7 +1723,7 @@ static CODEGEN_FUNC(codegen_import_with_prefix)
 	}
 	FklNastNode* importLibraryName=NULL;
 	char* filename=combineFileNameFromListAndGetLastNode(name,&importLibraryName);
-	if(access(filename,R_OK))
+	if(!fklIsAccessableScriptFile(filename))
 	{
 		errorState->fid=codegen->fid;
 		errorState->type=FKL_ERR_IMPORTFAILED;

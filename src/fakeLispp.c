@@ -83,7 +83,7 @@ int main(int argc,char** argv)
 	char* filename=argv[1];
 	if(fklIscode(filename))
 	{
-		if(access(filename,R_OK)||!fklIsReg(filename))
+		if(!fklIsAccessableScriptFile(filename))
 		{
 			perror(filename);
 			fklDestroyCwd();

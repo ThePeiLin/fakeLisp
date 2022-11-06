@@ -3,7 +3,7 @@
 #include<fakeLisp/nlexer.h>
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/vm.h>
-#include<fakeLisp/lexer.h>
+#include<fakeLisp/parser.h>
 #include<fakeLisp/codegen.h>
 #include<stdio.h>
 #include<stdlib.h>

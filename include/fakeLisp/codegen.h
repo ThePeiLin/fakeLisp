@@ -2,7 +2,7 @@
 #define FKL_CODEGEN_H
 #include"symbol.h"
 #include"base.h"
-#include"lexer.h"
+#include"parser.h"
 #include"bytecode.h"
 #include"builtin.h"
 #ifdef __cplusplus

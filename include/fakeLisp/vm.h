@@ -4,7 +4,7 @@
 #include"base.h"
 #include"bytecode.h"
 //#include"ast.h"
-#include"lexer.h"
+#include"parser.h"
 //#include"compiler.h"
 #include"builtin.h"
 //#include<stdatomic.h>

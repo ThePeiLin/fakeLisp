@@ -2,7 +2,6 @@
 #include<fakeLisp/utils.h>
 #include<fakeLisp/vm.h>
 #include<fakeLisp/codegen.h>
-#include<fakeLisp/lexer.h>
 #include<string.h>
 #include<stdio.h>
 #include<stdlib.h>

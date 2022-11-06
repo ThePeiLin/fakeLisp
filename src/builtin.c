@@ -2620,7 +2620,7 @@ void builtin_read(ARGL)
 	FklVMvalue* stream=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_TOOMANYARG,exe);
-	if(stream&&!FKL_IS_FP(stream)&&!FKL_IS_STR(stream))
+	if(stream&&!FKL_IS_FP(stream))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	char* tmpString=NULL;
 	FklVMfp* tmpFile=NULL;
@@ -2636,25 +2636,61 @@ void builtin_read(ARGL)
 		if(unexpectEOF)
 		{
 			free(tmpString);
+			while(!fklIsPtrStackEmpty(tokenStack))
+				fklDestroyToken(fklPopPtrStack(tokenStack));
+			fklDestroyPtrStack(tokenStack);
 			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_UNEXPECTEOF,exe);
 		}
-	}
-	else
-	{
-		const char* parts[]={stream->u.str->str};
-		size_t sizes[]={stream->u.str->size};
-		uint32_t line=0;
-		FklPtrStack* matchStateStack=fklCreatePtrStack(32,16);
-		fklSplitStringPartsIntoToken(parts,sizes,1,&line,tokenStack,matchStateStack,NULL,NULL);
-		while(!fklIsPtrStackEmpty(matchStateStack))
-			free(fklPopPtrStack(matchStateStack));
-		fklDestroyPtrStack(matchStateStack);
 	}
 	size_t errorLine=0;
 	FklNastNode* node=fklCreateNastNodeFromTokenStack(tokenStack,&errorLine,builtInHeadSymbolTable);
 	FklVMvalue* tmp=NULL;
 	if(node==NULL)
-		tmp=FKL_VM_NIL;
+	{
+		free(tmpString);
+		while(!fklIsPtrStackEmpty(tokenStack))
+			fklDestroyToken(fklPopPtrStack(tokenStack));
+		fklDestroyPtrStack(tokenStack);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_INVALIDEXPR,exe);
+	}
+	else
+		tmp=fklCreateVMvalueFromNastNodeAndStoreInStack(node,NULL,exe);
+	while(!fklIsPtrStackEmpty(tokenStack))
+		fklDestroyToken(fklPopPtrStack(tokenStack));
+	fklDestroyPtrStack(tokenStack);
+	fklNiReturn(tmp,&ap,stack);
+	free(tmpString);
+	fklDestroyNastNode(node);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_parser(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* stream=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_TOOMANYARG,exe);
+	if(!stream)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.parser",FKL_ERR_TOOFEWARG,exe);
+	if(!FKL_IS_STR(stream))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	char* tmpString=NULL;
+	FklPtrStack* tokenStack=fklCreatePtrStack(32,16);
+	const char* parts[]={stream->u.str->str};
+	size_t sizes[]={stream->u.str->size};
+	uint32_t line=0;
+	FklPtrStack* matchStateStack=fklCreatePtrStack(32,16);
+	fklSplitStringPartsIntoToken(parts,sizes,1,&line,tokenStack,matchStateStack,NULL,NULL);
+	while(!fklIsPtrStackEmpty(matchStateStack))
+		free(fklPopPtrStack(matchStateStack));
+	fklDestroyPtrStack(matchStateStack);
+	size_t errorLine=0;
+	FklNastNode* node=fklCreateNastNodeFromTokenStack(tokenStack,&errorLine,builtInHeadSymbolTable);
+	FklVMvalue* tmp=NULL;
+	if(node==NULL)
+	{
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_INVALIDEXPR,exe);
+	}
 	else
 		tmp=fklCreateVMvalueFromNastNodeAndStoreInStack(node,NULL,exe);
 	while(!fklIsPtrStackEmpty(tokenStack))
@@ -4430,6 +4466,7 @@ static const struct SymbolFuncStruct
 	{"continuation?",         builtin_continuation_p,          },
 	{"fopen",                 builtin_fopen,                   },
 	{"read",                  builtin_read,                    },
+	{"parser",                builtin_parser,                  },
 	{"prin1",                 builtin_prin1,                   },
 	{"princ",                 builtin_princ,                   },
 	{"dlopen",                builtin_dlopen,                  },

@@ -692,6 +692,9 @@ char* fklGenErrorMessage(FklBuiltInErrorType type,FklVM* exe)
 		case FKL_ERR_UNEXPECTEOF:
 			t=fklStrCat(t,"Unexpected eof");
 			break;
+		case FKL_ERR_INVALIDEXPR:
+			t=fklStrCat(t,"Invalid expression");
+			break;
 		case FKL_ERR_FAILD_TO_CREATE_BIG_INT_FROM_MEM:
 			t=fklStrCat(t,"Failed to create big-int from mem");
 			break;

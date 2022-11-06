@@ -433,7 +433,7 @@ static FklNastNode* listProcesser(FklPtrStack* nodeStack,uint64_t line,size_t* e
 			r=0;
 			for(size_t j=i;j<nodeStack->top;j++)
 			{
-				NastElem* elem=nodeStack->base[i];
+				NastElem* elem=nodeStack->base[j];
 				destroyNastElem(elem);
 			}
 			fklDestroyNastNode(retval);
@@ -444,7 +444,8 @@ static FklNastNode* listProcesser(FklPtrStack* nodeStack,uint64_t line,size_t* e
 	}
 	if(r&&!(*cur))
 		(*cur)=fklMakeNastNodeRef(createNastNode(FKL_NAST_NIL,line));
-	retval->refcount=0;
+	if(retval)
+		retval->refcount=0;
 	return retval;
 }
 
@@ -464,9 +465,10 @@ static FklNastNode* vectorProcesser(FklPtrStack* nodeStack,uint64_t line,size_t*
 			*errorLine=node->curline;
 			for(size_t j=i;j<nodeStack->top;j++)
 			{
-				NastElem* elem=nodeStack->base[i];
+				NastElem* elem=nodeStack->base[j];
 				destroyNastElem(elem);
 			}
+			retval->refcount=1;
 			fklDestroyNastNode(retval);
 			retval=NULL;
 			break;
@@ -501,9 +503,10 @@ static FklNastNode* bytevectorProcesser(FklPtrStack* nodeStack,uint64_t line,siz
 			*errorLine=node->curline;
 			for(size_t j=i;j<nodeStack->top;j++)
 			{
-				NastElem* elem=nodeStack->base[i];
+				NastElem* elem=nodeStack->base[j];
 				destroyNastElem(elem);
 			}
+			retval->refcount=1;
 			fklDestroyNastNode(retval);
 			retval=NULL;
 			break;
@@ -543,9 +546,10 @@ inline static FklNastNode* hashTableProcess(FklVMhashTableEqType type,FklPtrStac
 			*errorLine=node->curline;
 			for(size_t j=i;j<nodeStack->top;j++)
 			{
-				NastElem* elem=nodeStack->base[i];
+				NastElem* elem=nodeStack->base[j];
 				destroyNastElem(elem);
 			}
+			retval->refcount=1;
 			fklDestroyNastNode(retval);
 			retval=NULL;
 			break;

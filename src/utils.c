@@ -922,3 +922,12 @@ char* fklCastEscapeCharBuf(const char* str,char end,size_t* size)
 	*size=strSize;
 	return tmp;
 }
+
+#include<sys/stat.h>
+#include<sys/types.h>
+int fklIsReg(const char* p)
+{
+	struct stat buf;
+	stat(p,&buf);
+	return S_ISREG(buf.st_mode);
+}

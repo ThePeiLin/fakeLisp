@@ -1380,7 +1380,7 @@ static CODEGEN_FUNC(codegen_load)
 		return;
 	}
 	char* filenameCstr=fklStringToCstr(filename->u.str);
-	if(access(filenameCstr,R_OK))
+	if(access(filenameCstr,R_OK)||!fklIsReg(filenameCstr))
 	{
 		errorState->fid=codegen->fid;
 		errorState->type=FKL_ERR_FILEFAILURE;
@@ -1446,6 +1446,14 @@ static void add_symbol_to_locale_env_in_list(const FklNastNode* list,FklCodegenE
 	}
 }
 
+static void set_id_for_import_bc(uint8_t* code,size_t size,uint64_t libid)
+{
+	size_t len=sizeof(char)+sizeof(uint64_t)+sizeof(FklSid_t);
+	size_t num=size/len;
+	for(size_t i=0;i<num;i++)
+		fklSetU64ToByteCode(code+i*len+sizeof(char),libid);
+}
+
 BC_PROCESS(_library_bc_process)
 {
 	FklByteCodelnt* libBc=NULL;
@@ -1479,7 +1487,7 @@ BC_PROCESS(_library_bc_process)
 		libBc=createBclnt(fklCreateByteCode(0),fid,line);
 	fklPushPtrStack(fklCreateCodegenLib(codegen->realpath,libBc,codegen->exportNum,codegen->exports),codegen->loadedLibStack);
 	FklByteCodelnt* retval=stack->base[0];
-	fklSetU64ToByteCode(retval->bc->code+sizeof(char),codegen->loadedLibStack->top);
+	set_id_for_import_bc(retval->bc->code,retval->bc->size,codegen->loadedLibStack->top);
 	codegen->exportNum=0;
 	codegen->exports=NULL;
 	codegen->realpath=NULL;

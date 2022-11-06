@@ -117,6 +117,8 @@ void fklSetMainFileRealPath(const char* path);
 void fklDestroyMainFileRealPath(void);
 void fklSetMainFileRealPathWithCwd(void);
 
+int fklIsReg(const char* s);
+
 #ifdef __cplusplus
 }
 #endif

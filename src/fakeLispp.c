@@ -83,6 +83,12 @@ int main(int argc,char** argv)
 	char* filename=argv[1];
 	if(fklIscode(filename))
 	{
+		if(access(filename,R_OK)||!fklIsReg(filename))
+		{
+			perror(filename);
+			fklDestroyCwd();
+			return EXIT_FAILURE;
+		}
 		char* cwd=getcwd(NULL,0);
 		fklSetCwd(cwd);
 		free(cwd);

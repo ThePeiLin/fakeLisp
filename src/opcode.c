@@ -48,8 +48,7 @@ static struct
 	{"push-list",            8,  },
 	{"push-vector-0",        0,  },
 	{"list-push",            0,  },
-	{"import",               8,  },
-	{"import-with-prefix",   16, },
+	{"import",               16, },
 };
 
 const char* fklGetOpcodeName(FklOpcode opcode)

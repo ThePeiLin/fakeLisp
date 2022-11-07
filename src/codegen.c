@@ -2388,6 +2388,7 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 					else
 					{
 						fklPushPtrStack(fklMakePushVar(curExp,curCodegen),curBcStack);
+						fklDestroyNastNode(curExp);
 						continue;
 					}
 				}

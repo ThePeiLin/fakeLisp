@@ -550,6 +550,41 @@ static FklHashTableMethodTable CodegenEnvHashMethodTable=
 	.__getKey=_codegenenv_getKey,
 };
 
+typedef struct
+{
+	FklSid_t id;
+	FklNastNode* node;
+}FklCodegenReplacement;
+
+static FklCodegenReplacement* createCodegenReplacement(FklSid_t key,FklNastNode* node)
+{
+	FklCodegenReplacement* r=(FklCodegenReplacement*)malloc(sizeof(FklCodegenReplacement));
+	FKL_ASSERT(r);
+	r->id=key;
+	r->node=fklMakeNastNodeRef(node);
+	return r;
+}
+
+static void _codegen_replacement_destroyItem(void* item)
+{
+	FklCodegenReplacement* replace=(FklCodegenReplacement*)item;
+	fklDestroyNastNode(replace->node);
+	free(replace);
+}
+
+static void* _codegen_replacement_getKey(void* item)
+{
+	return &((FklCodegenReplacement*)item)->id;
+}
+
+static FklHashTableMethodTable CodegenReplacementHashMethodTable=
+{
+	.__hashFunc=_codegenenv_hashFunc,
+	.__destroyItem=_codegen_replacement_destroyItem,
+	.__keyEqual=_codegenenv_keyEqual,
+	.__getKey=_codegen_replacement_getKey,
+};
+
 FklCodegenEnv* fklCreateCodegenEnv(FklCodegenEnv* prev)
 {
 	FklCodegenEnv* r=(FklCodegenEnv*)malloc(sizeof(FklCodegenEnv));
@@ -558,7 +593,12 @@ FklCodegenEnv* fklCreateCodegenEnv(FklCodegenEnv* prev)
 	r->refcount=0;
 	r->defs=fklCreateHashTable(8,4,2,0.75,1,&CodegenEnvHashMethodTable);
 	if(prev)
+	{
+		r->replacements=fklCreateHashTable(8,4,2,0.75,1,&CodegenReplacementHashMethodTable);
 		prev->refcount+=1;
+	}
+	else
+		r->replacements=NULL;
 	return r;
 }
 
@@ -572,6 +612,8 @@ void fklDestroyCodegenEnv(FklCodegenEnv* env)
 			FklCodegenEnv* cur=env;
 			env=env->prev;
 			fklDestroyHashTable(cur->defs);
+			if(cur->replacements)
+				fklDestroyHashTable(cur->replacements);
 			free(cur);
 		}
 		else
@@ -592,9 +634,27 @@ void fklAddCodegenDefBySid(FklSid_t id,FklCodegenEnv* env)
 	fklPutNoRpHashItem(createCodegenEnvHashItem(id),env->defs);
 }
 
+void fklAddReplacementBySid(FklSid_t id,FklNastNode* node,FklCodegenEnv* env)
+{
+	fklPutNoRpHashItem(createCodegenReplacement(id,node),env->replacements);
+}
+
 int fklIsSymbolDefined(FklSid_t id,FklCodegenEnv* env)
 {
 	return fklGetHashItem(&id,env->defs)!=NULL;
+}
+
+int fklIsReplacementDefined(FklSid_t id,FklCodegenEnv* env)
+{
+	return fklGetHashItem(&id,env->replacements)!=NULL;
+}
+
+FklNastNode* fklGetReplacement(FklSid_t id,FklCodegenEnv* env)
+{
+	FklCodegenReplacement* replace=fklGetHashItem(&id,env->replacements);
+	if(replace)
+		return fklCopyNastNode(replace->node);
+	return NULL;
 }
 
 static FklByteCodelnt* processArgs(const FklNastNode* args,FklCodegenEnv* curEnv,FklCodegen* codegen)
@@ -2031,6 +2091,28 @@ static CODEGEN_FUNC(codegen_library)
 			,codegenQuestStack);
 }
 
+static CODEGEN_FUNC(codegen_defmacro)
+{
+	FklNastNode* name=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
+	FklNastNode* value=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
+	if(name->type==FKL_NAST_SYM)
+		fklAddReplacementBySid(name->u.sym,value,curEnv);
+	else if(name->type==FKL_NAST_PAIR)
+	{
+#pragma message "Todo:defmacro for compiler macro"
+	}
+	else if(name->type==FKL_NAST_STR)
+	{
+#pragma message "Todo:defmacro for reader macro"
+	}
+	else
+	{
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		return;
+	}
+}
+
 typedef void (*FklCodegenFunc)(CODEGEN_ARGS);
 
 #undef BC_PROCESS
@@ -2146,11 +2228,11 @@ static FklNastNode* _nil_replacement(const FklNastNode* orig,FklCodegenEnv* env,
 static FklNastNode* _file_dir_replacement(const FklNastNode* orig,FklCodegenEnv* env,FklCodegen* codegen)
 {
 	FklString* s=NULL;
+	FklNastNode* r=fklCreateNastNode(FKL_NAST_STR,orig->curline);
 	if(codegen->filename==NULL)
 		s=fklCreateStringFromCstr(fklGetCwd());
 	else
 		s=fklCreateStringFromCstr(codegen->curDir);
-	FklNastNode* r=fklCreateNastNode(FKL_NAST_STR,orig->curline);
 	r->u.str=s;
 	return fklMakeNastNodeRef(r);
 }
@@ -2223,6 +2305,7 @@ static struct PatternAndFunc
 	{"(import name)",            NULL, codegen_import,             },
 	{"(import name rest)",       NULL, codegen_import_with_prefix, },
 	{"(library name args,rest)", NULL, codegen_library,            },
+	{"(defmacro name value)",    NULL, codegen_defmacro,           },
 	{NULL,                       NULL, NULL,                       },
 };
 
@@ -2421,18 +2504,29 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 			{
 				if(curExp->type==FKL_NAST_SYM)
 				{
-					RelpacementFunc f=findBuiltInReplacementWithId(curExp->u.sym);
-					if(f)
+					FklNastNode* replacement=NULL;
+					for(FklCodegenEnv* env=curEnv;env->prev&&!replacement;env=env->prev)
+						replacement=fklGetReplacement(curExp->u.sym,env);
+					if(replacement)
 					{
-						FklNastNode* t=f(curExp,curEnv,curCodegen);
 						fklDestroyNastNode(curExp);
-						curExp=t;
+						curExp=replacement;
 					}
 					else
 					{
-						fklPushPtrStack(fklMakePushVar(curExp,curCodegen),curBcStack);
-						fklDestroyNastNode(curExp);
-						continue;
+						RelpacementFunc f=findBuiltInReplacementWithId(curExp->u.sym);
+						if(f)
+						{
+							FklNastNode* t=f(curExp,curEnv,curCodegen);
+							fklDestroyNastNode(curExp);
+							curExp=t;
+						}
+						else
+						{
+							fklPushPtrStack(fklMakePushVar(curExp,curCodegen),curBcStack);
+							fklDestroyNastNode(curExp);
+							continue;
+						}
 					}
 				}
 				r=mapAllBuiltInPattern(curExp,codegenQuestStack,curEnv,curCodegen,&errorState);
@@ -2444,7 +2538,7 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 							,curBcStack);
 				}
 				fklDestroyNastNode(curExp);
-				if(!r)
+				if(!r&&fklTopPtrStack(codegenQuestStack)!=curCodegenQuest)
 					break;
 			}
 		}

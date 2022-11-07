@@ -13,6 +13,7 @@ typedef struct FklCodegenEnv
 {
 	struct FklCodegenEnv* prev;
 	FklHashTable* defs;
+	FklHashTable* replacements;
 	size_t refcount;
 }FklCodegenEnv;
 
@@ -100,7 +101,10 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest*
 FklByteCodelnt* fklGenExpressionCodeWithFp(FILE*
 		,FklCodegen* codegen);
 void fklAddCodegenDefBySid(FklSid_t sid,FklCodegenEnv*);
+void fklAddReplacementBySid(FklSid_t sid,FklNastNode*,FklCodegenEnv*);
 int fklIsSymbolDefined(FklSid_t sid,FklCodegenEnv*);
+int fklIsReplacementDefined(FklSid_t sid,FklCodegenEnv*);
+FklNastNode* fklGetReplacement(FklSid_t sid,FklCodegenEnv*);
 
 FklCodegenEnv* fklCreateCodegenEnv(FklCodegenEnv* prev);
 void fklDestroyCodegenEnv(FklCodegenEnv* env);

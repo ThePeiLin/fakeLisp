@@ -68,6 +68,7 @@ typedef struct FklNastNode
 FklNastNode* fklCreateNastNode(FklNastType type,uint64_t line);
 FklNastNode* fklCreateNastNodeFromTokenStack(FklPtrStack*,size_t* errorLine,const FklSid_t t[4]);
 FklNastNode* fklCreateNastNodeFromCstr(const char*,const FklSid_t t[4]);
+FklNastNode* fklCopyNastNode(const FklNastNode* n);
 void fklDestroyNastNode(FklNastNode*);
 void fklPrintNastNode(const FklNastNode* node,FILE* fp);
 

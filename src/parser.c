@@ -1207,3 +1207,84 @@ FklNastNode* fklMakeNastNodeRef(FklNastNode* n)
 	n->refcount+=1;
 	return n;
 }
+
+FklNastNode* fklCopyNastNode(const FklNastNode* node)
+{
+	FklPtrStack* stack=fklCreatePtrStack(32,16);
+	FklPtrStack* cstack=fklCreatePtrStack(32,16);
+	FklNastNode* r=NULL;
+	fklPushPtrStack((void*)node,stack);
+	fklPushPtrStack(&r,cstack);
+	while(!fklIsPtrStackEmpty(stack))
+	{
+		const FklNastNode* root=fklPopPtrStack(stack);
+		FklNastNode** pcur=fklPopPtrStack(cstack);
+		FklNastNode* cur=fklCreateNastNode(root->type,root->curline);
+		cur->refcount=1;
+		switch(root->type)
+		{
+			case FKL_NAST_NIL:
+				cur->u.str=NULL;
+				break;
+			case FKL_NAST_I32:
+				cur->u.i32=root->u.i32;
+				break;
+			case FKL_NAST_I64:
+				cur->u.i64=root->u.i64;
+				break;
+			case FKL_NAST_F64:
+				cur->u.f64=root->u.f64;
+				break;
+			case FKL_NAST_CHR:
+				cur->u.chr=root->u.chr;
+				break;
+			case FKL_NAST_BIG_INT:
+				cur->u.bigInt=fklCopyBigInt(root->u.bigInt);
+				break;
+			case FKL_NAST_SYM:
+				cur->u.sym=root->u.sym;
+				break;
+			case FKL_NAST_STR:
+				cur->u.str=fklCopyString(root->u.str);
+				break;
+			case FKL_NAST_BYTEVECTOR:
+				cur->u.bvec=fklCopyBytevector(root->u.bvec);
+				break;
+			case FKL_NAST_BOX:
+				fklPushPtrStack(root->u.box,stack);
+				fklPushPtrStack(&cur->u.box,cstack);
+				break;
+			case FKL_NAST_PAIR:
+				fklPushPtrStack(root->u.pair->car,stack);
+				fklPushPtrStack(root->u.pair->cdr,stack);
+				cur->u.pair=createNastPair();
+				fklPushPtrStack(&cur->u.pair->car,cstack);
+				fklPushPtrStack(&cur->u.pair->cdr,cstack);
+				break;
+			case FKL_NAST_VECTOR:
+				for(size_t i=0;i<root->u.vec->size;i++)
+					fklPushPtrStack(root->u.vec->base[i],stack);
+				cur->u.vec=createNastVector(root->u.vec->size);
+				for(size_t i=0;cur->u.vec->size;i++)
+					fklPushPtrStack(&cur->u.vec->base[i],cstack);
+				break;
+			case FKL_NAST_HASHTABLE:
+				for(size_t i=0;i<root->u.hash->num;i++)
+				{
+					fklPushPtrStack(root->u.hash->items[i].car,stack);
+					fklPushPtrStack(root->u.hash->items[i].cdr,stack);
+				}
+				cur->u.hash=createNastHash(root->u.hash->type,root->u.hash->num);
+				for(size_t i=0;i<cur->u.hash->num;i++)
+				{
+					fklPushPtrStack(&cur->u.hash->items[i].car,cstack);
+					fklPushPtrStack(&cur->u.hash->items[i].cdr,cstack);
+				}
+				break;
+		}
+		*pcur=cur;
+	}
+	fklDestroyPtrStack(stack);
+	fklDestroyPtrStack(cstack);
+	return r;
+}

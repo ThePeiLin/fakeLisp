@@ -3649,32 +3649,13 @@ void builtin_vector(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_getdir(ARGL)
+void builtin_getcwd(ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMframe* frame=exe->frames;
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.getdir",FKL_ERR_TOOMANYARG,exe);
-	FklLineNumTabNode* node=fklFindLineNumTabNode(frame->cp,frame->codeObj->u.code->ls,frame->codeObj->u.code->l);
-	if(node->fid)
-	{
-		char* filename=fklCopyCstr(fklGetMainFileRealPath());
-		filename=fklStrCat(filename,FKL_PATH_SEPARATOR_STR);
-		filename=fklCstrStringCat(filename,fklGetGlobSymbolWithId(node->fid)->symbol);
-		char* rpath=fklRealpath(filename);
-		char* dir=fklGetDir(rpath);
-		free(filename);
-		free(rpath);
-		FklString* str=fklCreateString(strlen(dir),dir);
-		free(dir);
-		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_STR,str,exe),&ap,stack);
-	}
-	else
-	{
-		const char* cwd=fklGetCwd();
-		FklString* str=fklCreateString(strlen(cwd),cwd);
-		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_STR,str,exe),&ap,stack);
-	}
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.getcwd",FKL_ERR_TOOMANYARG,exe);
+	FklVMvalue* s=fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateStringFromCstr(fklGetCwd()),exe);
+	fklNiReturn(s,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -4571,7 +4552,7 @@ static const struct SymbolFuncStruct
 
 	{"chanl?",                builtin_chanl_p,                 },
 	{"dll?",                  builtin_dll_p,                   },
-	{"getdir",                builtin_getdir,                  },
+	{"getcwd",                builtin_getcwd,                  },
 	{"fgetc",                 builtin_fgetc,                   },
 	{"fgeti",                 builtin_fgeti,                   },
 	{"fwrite",                builtin_fwrite,                  },

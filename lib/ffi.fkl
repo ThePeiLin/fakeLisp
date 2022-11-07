@@ -16,7 +16,7 @@
     ffi-cast-ref
     ffi-clear!
     ffi-proc)
-  (define ffi (dlopen (append (getdir) "/../fklffi")))
+  (define ffi (dlopen (append *file-dir* "/../fklffi")))
   (define ffi-mem? (dlsym ffi "ffi_mem_p"))
   (define ffi-null? (dlsym ffi "ffi_null_p"))
   (define ffi-new (dlsym ffi "ffi_new"))

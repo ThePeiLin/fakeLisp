@@ -2160,6 +2160,21 @@ static FklNastNode* _file_dir_replacement(const FklNastNode* orig,FklCodegenEnv*
 	return fklMakeNastNodeRef(r);
 }
 
+static FklNastNode* _file_name_replacement(const FklNastNode* orig,FklCodegenEnv* env,FklCodegen* codegen)
+{
+	FklNastNode* r=NULL;
+	if(codegen->filename==NULL)
+		r=fklCreateNastNode(FKL_NAST_NIL,orig->curline);
+	else
+	{
+		r=fklCreateNastNode(FKL_NAST_STR,orig->curline);
+		FklString* s=NULL;
+		s=fklCreateStringFromCstr(codegen->filename);
+		r->u.str=s;
+	}
+	return fklMakeNastNodeRef(r);
+}
+
 static FklNastNode* _line_replacement(const FklNastNode* orig,FklCodegenEnv* env,FklCodegen* codegen)
 {
 	uint64_t line=orig->curline;
@@ -2185,10 +2200,11 @@ static struct SymbolReplacement
 	RelpacementFunc func;
 }builtInSymbolReplacement[]=
 {
-	{"nil", 0, _nil_replacement, },
-	{"*file-dir*",0,_file_dir_replacement,},
-	{"*line*",0,_line_replacement,},
-	{NULL,  0, NULL,             },
+	{"nil",         0, _nil_replacement,       },
+	{"*line*",      0, _line_replacement,      },
+	{"*file-dir*",  0, _file_dir_replacement,  },
+	{"*file-name*", 0, _file_name_replacement, },
+	{NULL,          0, NULL,                   },
 };
 
 static struct PatternAndFunc

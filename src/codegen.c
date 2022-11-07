@@ -60,7 +60,6 @@ typedef enum
 	SUB_PATTERN_UNQTESP=1,
 	SUB_PATTERN_LIBRARY=2,
 	SUB_PATTERN_EXPORT=3,
-	SUB_PATTERN_PREFIX=4,
 }SubPatternEnum;
 
 static struct SubPattern
@@ -73,7 +72,6 @@ static struct SubPattern
 	{"(unqtesp value)",NULL,},
 	{"(library name args,rest)",NULL,},
 	{"(export,rest)",NULL,},
-	{"(prefix name value)",NULL,},
 	{NULL,NULL,},
 };
 
@@ -2359,51 +2357,6 @@ static FklNastNode* findBuiltInReplacementWithId(FklSid_t id)
 	return NULL;
 }
 
-static void symbolReplace(FklNastNode** exp,FklCodegenEnv* curEnv,FklCodegen* codegen)
-{
-	FklPtrStack* stack=fklCreatePtrStack(32,16);
-	fklPushPtrStack(exp,stack);
-	while(!fklIsPtrStackEmpty(stack))
-	{
-		FklNastNode** cur=fklPopPtrStack(stack);
-		FklNastNode* root=*cur;
-		switch(root->type)
-		{
-			case FKL_NAST_SYM:
-				{
-					FklNastNode* pn=findBuiltInReplacementWithId(root->u.sym);
-					if(pn)
-					{
-						*cur=fklMakeNastNodeRef(pn);
-						fklDestroyNastNode(root);
-					}
-				}
-				break;
-			case FKL_NAST_PAIR:
-				fklPushPtrStack(&root->u.pair->car,stack);
-				fklPushPtrStack(&root->u.pair->cdr,stack);
-				break;
-			case FKL_NAST_VECTOR:
-				for(size_t i=0;i<root->u.vec->size;i++)
-					fklPushPtrStack(&root->u.vec->base[i],stack);
-				break;
-			case FKL_NAST_HASHTABLE:
-				for(size_t i=0;i<root->u.hash->num;i++)
-				{
-					fklPushPtrStack(&root->u.hash->items[i].car,stack);
-					fklPushPtrStack(&root->u.hash->items[i].cdr,stack);
-				}
-				break;
-			case FKL_NAST_BOX:
-				fklPushPtrStack(&root->u.box,stack);
-				break;
-			default:
-				break;
-		}
-	}
-	fklDestroyPtrStack(stack);
-}
-
 FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklCodegen* codegener)
 {
 	FklPtrStack* resultStack=fklCreatePtrStack(1,8);
@@ -2424,17 +2377,27 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 					;curExp
 					;curExp=nextExpression->t->getNextExpression(nextExpression->context,&errorState))
 			{
-				symbolReplace(&curExp,curEnv,curCodegen);
+				if(curExp->type==FKL_NAST_SYM)
+				{
+					FklNastNode* pn=findBuiltInReplacementWithId(curExp->u.sym);
+					if(pn)
+					{
+						fklDestroyNastNode(curExp);
+						curExp=fklMakeNastNodeRef(pn);
+					}
+					else
+					{
+						fklPushPtrStack(fklMakePushVar(curExp,curCodegen),curBcStack);
+						continue;
+					}
+				}
 				r=mapAllBuiltInPattern(curExp,codegenQuestStack,curEnv,curCodegen,&errorState);
 				if(r)
 				{
-					if(curExp->type==FKL_NAST_SYM)
-						fklPushPtrStack(fklMakePushVar(curExp,curCodegen),curBcStack);
-					else
-						fklPushPtrStack(createBclnt(fklCodegenNode(curExp,curCodegen)
-									,curCodegen->fid
-									,curExp->curline)
-								,curBcStack);
+					fklPushPtrStack(createBclnt(fklCodegenNode(curExp,curCodegen)
+								,curCodegen->fid
+								,curExp->curline)
+							,curBcStack);
 				}
 				fklDestroyNastNode(curExp);
 				if(!r)

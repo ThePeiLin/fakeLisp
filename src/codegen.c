@@ -2139,16 +2139,56 @@ static int matchAndCall(FklCodegenFunc func
 	return r;
 }
 
+static FklNastNode* _nil_replacement(const FklNastNode* orig,FklCodegenEnv* env,FklCodegen* codegen)
+{
+	return fklMakeNastNodeRef(fklCreateNastNode(FKL_NAST_NIL,orig->curline));
+}
+
+static FklNastNode* _file_dir_replacement(const FklNastNode* orig,FklCodegenEnv* env,FklCodegen* codegen)
+{
+	FklString* s=NULL;
+	if(codegen->filename==NULL)
+		s=fklCreateStringFromCstr(fklGetCwd());
+	else
+	{
+		char* dir=fklGetDir(codegen->realpath);
+		s=fklCreateStringFromCstr(dir);
+		free(dir);
+	}
+	FklNastNode* r=fklCreateNastNode(FKL_NAST_STR,orig->curline);
+	r->u.str=s;
+	return fklMakeNastNodeRef(r);
+}
+
+static FklNastNode* _line_replacement(const FklNastNode* orig,FklCodegenEnv* env,FklCodegen* codegen)
+{
+	uint64_t line=orig->curline;
+	FklNastNode* r=NULL;
+	if(line<INT32_MAX)
+	{
+		r=fklCreateNastNode(FKL_NAST_I32,orig->curline);
+		r->u.i32=line;
+	}
+	else
+	{
+		r=fklCreateNastNode(FKL_NAST_I64,orig->curline);
+		r->u.i64=line;
+	}
+	return fklMakeNastNodeRef(r);
+}
+
+typedef FklNastNode* (*RelpacementFunc)(const FklNastNode* orig,FklCodegenEnv* env,FklCodegen* codegen);
 static struct SymbolReplacement
 {
 	const char* s;
 	FklSid_t sid;
-	const char* ps;
-	FklNastNode* pn;
+	RelpacementFunc func;
 }builtInSymbolReplacement[]=
 {
-	{"nil", 0, "()", NULL, },
-	{NULL,  0, NULL, NULL, },
+	{"nil", 0, _nil_replacement, },
+	{"*file-dir*",0,_file_dir_replacement,},
+	{"*line*",0,_line_replacement,},
+	{NULL,  0, NULL,             },
 };
 
 static struct PatternAndFunc
@@ -2194,10 +2234,7 @@ const FklSid_t* fklInitCodegen(void)
 	for(struct PatternAndFunc* cur=&builtInPattern[0];cur->ps!=NULL;cur++)
 		cur->pn=fklCreateNastNodeFromCstr(cur->ps,builtInHeadSymbolTable);
 	for(struct SymbolReplacement* cur=&builtInSymbolReplacement[0];cur->s!=NULL;cur++)
-	{
 		cur->sid=fklAddSymbolToGlobCstr(cur->s)->id;
-		cur->pn=fklCreateNastNodeFromCstr(cur->ps,builtInHeadSymbolTable);
-	}
 	for(struct SubPattern* cur=&builtInSubPattern[0];cur->ps!=NULL;cur++)
 		cur->pn=fklCreateNastNodeFromCstr(cur->ps,builtInHeadSymbolTable);
 	return builtInHeadSymbolTable;
@@ -2207,12 +2244,6 @@ void fklUninitCodegen(void)
 {
 	for(struct PatternAndFunc* cur=&builtInPattern[0];cur->ps!=NULL;cur++)
 	{
-		fklDestroyNastNode(cur->pn);
-		cur->pn=NULL;
-	}
-	for(struct SymbolReplacement* cur=&builtInSymbolReplacement[0];cur->s!=NULL;cur++)
-	{
-		cur->sid=0;
 		fklDestroyNastNode(cur->pn);
 		cur->pn=NULL;
 	}
@@ -2347,12 +2378,12 @@ static void printCodegenError(FklNastNode* obj,FklBuiltInErrorType type,FklSid_t
 		fklDestroyNastNode(obj);
 }
 
-static FklNastNode* findBuiltInReplacementWithId(FklSid_t id)
+static RelpacementFunc findBuiltInReplacementWithId(FklSid_t id)
 {
 	for(struct SymbolReplacement* cur=&builtInSymbolReplacement[0];cur->s!=NULL;cur++)
 	{
 		if(cur->sid==id)
-			return cur->pn;
+			return cur->func;
 	}
 	return NULL;
 }
@@ -2379,11 +2410,12 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 			{
 				if(curExp->type==FKL_NAST_SYM)
 				{
-					FklNastNode* pn=findBuiltInReplacementWithId(curExp->u.sym);
-					if(pn)
+					RelpacementFunc f=findBuiltInReplacementWithId(curExp->u.sym);
+					if(f)
 					{
+						FklNastNode* t=f(curExp,curEnv,curCodegen);
 						fklDestroyNastNode(curExp);
-						curExp=fklMakeNastNodeRef(pn);
+						curExp=t;
 					}
 					else
 					{

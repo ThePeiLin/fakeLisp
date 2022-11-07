@@ -118,8 +118,10 @@ void fklDestroyMainFileRealPath(void);
 void fklSetMainFileRealPathWithCwd(void);
 
 int fklIsRegFile(const char* s);
+int fklIsDirectory(const char* s);
 
 int fklIsAccessableScriptFile(const char* s);
+int fklIsAccessableDirectory(const char* s);
 
 #ifdef __cplusplus
 }

@@ -932,6 +932,18 @@ int fklIsRegFile(const char* p)
 	return S_ISREG(buf.st_mode);
 }
 
+int fklIsDirectory(const char* p)
+{
+	struct stat buf;
+	stat(p,&buf);
+	return S_ISDIR(buf.st_mode);
+}
+
+int fklIsAccessableDirectory(const char* p)
+{
+	return !access(p,R_OK)&&fklIsDirectory(p);
+}
+
 int fklIsAccessableScriptFile(const char* p)
 {
 	return !access(p,R_OK)&&fklIsRegFile(p);

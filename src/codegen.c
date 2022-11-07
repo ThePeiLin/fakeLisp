@@ -1424,10 +1424,7 @@ inline static char* combineFileNameFromListAndGetLastNode(FklNastNode* list,FklN
 		FklNastNode* cur=curPair->u.pair->car;
 		r=fklCstrStringCat(r,fklGetGlobSymbolWithId(cur->u.sym)->symbol);
 		if(curPair->u.pair->cdr->type==FKL_NAST_NIL)
-		{
 			*last=cur;
-			r=fklStrCat(r,".fkl");
-		}
 		else
 			r=fklStrCat(r,FKL_PATH_SEPARATOR_STR);
 	}
@@ -1556,6 +1553,7 @@ static CODEGEN_FUNC(codegen_import)
 	}
 	FklNastNode* importLibraryName=NULL;
 	char* filename=combineFileNameFromListAndGetLastNode(name,&importLibraryName);
+	filename=fklStrCat(filename,".fkl");
 	if(!fklIsAccessableScriptFile(filename))
 	{
 		errorState->fid=codegen->fid;
@@ -1772,6 +1770,7 @@ static CODEGEN_FUNC(codegen_import_with_prefix)
 	}
 	FklNastNode* importLibraryName=NULL;
 	char* filename=combineFileNameFromListAndGetLastNode(name,&importLibraryName);
+	filename=fklStrCat(filename,".fkl");
 	if(!fklIsAccessableScriptFile(filename))
 	{
 		errorState->fid=codegen->fid;
@@ -2150,11 +2149,7 @@ static FklNastNode* _file_dir_replacement(const FklNastNode* orig,FklCodegenEnv*
 	if(codegen->filename==NULL)
 		s=fklCreateStringFromCstr(fklGetCwd());
 	else
-	{
-		char* dir=fklGetDir(codegen->realpath);
-		s=fklCreateStringFromCstr(dir);
-		free(dir);
-	}
+		s=fklCreateStringFromCstr(codegen->curDir);
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_STR,orig->curline);
 	r->u.str=s;
 	return fklMakeNastNodeRef(r);

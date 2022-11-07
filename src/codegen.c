@@ -2349,6 +2349,61 @@ static void printCodegenError(FklNastNode* obj,FklBuiltInErrorType type,FklSid_t
 		fklDestroyNastNode(obj);
 }
 
+static FklNastNode* findBuiltInReplacementWithId(FklSid_t id)
+{
+	for(struct SymbolReplacement* cur=&builtInSymbolReplacement[0];cur->s!=NULL;cur++)
+	{
+		if(cur->sid==id)
+			return cur->pn;
+	}
+	return NULL;
+}
+
+static void symbolReplace(FklNastNode** exp,FklCodegenEnv* curEnv,FklCodegen* codegen)
+{
+	FklPtrStack* stack=fklCreatePtrStack(32,16);
+	fklPushPtrStack(exp,stack);
+	while(!fklIsPtrStackEmpty(stack))
+	{
+		FklNastNode** cur=fklPopPtrStack(stack);
+		FklNastNode* root=*cur;
+		switch(root->type)
+		{
+			case FKL_NAST_SYM:
+				{
+					FklNastNode* pn=findBuiltInReplacementWithId(root->u.sym);
+					if(pn)
+					{
+						*cur=fklMakeNastNodeRef(pn);
+						fklDestroyNastNode(root);
+					}
+				}
+				break;
+			case FKL_NAST_PAIR:
+				fklPushPtrStack(&root->u.pair->car,stack);
+				fklPushPtrStack(&root->u.pair->cdr,stack);
+				break;
+			case FKL_NAST_VECTOR:
+				for(size_t i=0;i<root->u.vec->size;i++)
+					fklPushPtrStack(&root->u.vec->base[i],stack);
+				break;
+			case FKL_NAST_HASHTABLE:
+				for(size_t i=0;i<root->u.hash->num;i++)
+				{
+					fklPushPtrStack(&root->u.hash->items[i].car,stack);
+					fklPushPtrStack(&root->u.hash->items[i].cdr,stack);
+				}
+				break;
+			case FKL_NAST_BOX:
+				fklPushPtrStack(&root->u.box,stack);
+				break;
+			default:
+				break;
+		}
+	}
+	fklDestroyPtrStack(stack);
+}
+
 FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklCodegen* codegener)
 {
 	FklPtrStack* resultStack=fklCreatePtrStack(1,8);
@@ -2369,6 +2424,7 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 					;curExp
 					;curExp=nextExpression->t->getNextExpression(nextExpression->context,&errorState))
 			{
+				symbolReplace(&curExp,curEnv,curCodegen);
 				r=mapAllBuiltInPattern(curExp,codegenQuestStack,curEnv,curCodegen,&errorState);
 				if(r)
 				{

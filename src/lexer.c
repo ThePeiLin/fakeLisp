@@ -1,6 +1,7 @@
 #include<fakeLisp/lexer.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/reader.h>
+#include<fakeLisp/pattern.h>
 #include<ctype.h>
 #include<string.h>
 

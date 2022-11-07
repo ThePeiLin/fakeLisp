@@ -4429,7 +4429,6 @@ static const struct SymbolFuncStruct
 	FklVMdllFunc f;
 }builtInSymbolList[]=
 {
-	{"nil",                   NULL,                            },
 	{"stdin",                 NULL,                            },
 	{"stdout",                NULL,                            },
 	{"stderr",                NULL,                            },
@@ -4679,13 +4678,12 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMgc* gc)
 		"unquote",
 		"unqtesp",
 	};
-	for(int i=0;i<4;i++)
+	for(int i=0;i<3;i++)
 		builtInHeadSymbolTable[i]=fklAddSymbolToGlobCstr(builtInHeadSymbolTableCstr[i])->id;
 	const struct SymbolFuncStruct* list=builtInSymbolList;
 	BuiltInStdin=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stdin),gc);
 	BuiltInStdout=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stdout),gc);
 	BuiltInStderr=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stderr),gc);
-	fklFindOrAddVarWithValue(fklAddSymbolToGlobCstr((list++)->s)->id,FKL_VM_NIL,obj);
 	fklFindOrAddVarWithValue(fklAddSymbolToGlobCstr((list++)->s)->id,BuiltInStdin,obj);
 	fklFindOrAddVarWithValue(fklAddSymbolToGlobCstr((list++)->s)->id,BuiltInStdout,obj);
 	fklFindOrAddVarWithValue(fklAddSymbolToGlobCstr((list++)->s)->id,BuiltInStderr,obj);

@@ -90,7 +90,7 @@ void* fklCopyMemory(const void*,size_t);
 int fklIsSymbolShouldBeExport(const FklString* str,const FklString** pStr,uint32_t n);
 void fklPrintByteStr(size_t size,const uint8_t* str,FILE*,int);
 void fklPrintAsByteStr(const uint8_t*,int32_t,FILE*);
-void fklChangeWorkPath(const char*);
+int fklChangeWorkPath(const char*);
 char* fklGetDir(const char*);
 char* fklGetStringFromFile(FILE*);
 char** fklSplit(char*,char*,int*);

@@ -1087,12 +1087,6 @@ static int nastNodeEqual(const FklNastNode* n0,const FklNastNode* n1)
 	return r;
 }
 
-typedef struct
-{
-	FklSid_t id;
-	FklNastNode* node;
-}PatternMatchingHashTableItem;
-
 static size_t _pattern_matching_hash_table_hash_func(void* key)
 {
 	FklSid_t sid=*(FklSid_t*)key;
@@ -1106,7 +1100,7 @@ static void _pattern_matching_hash_free_item(void* item)
 
 static void* _pattern_matching_hash_get_key(void* item)
 {
-	return &((PatternMatchingHashTableItem*)item)->id;
+	return &((FklPatternMatchingHashTableItem*)item)->id;
 }
 
 static int _pattern_matching_hash_key_equal(void* pk0,void* pk1)
@@ -1126,13 +1120,13 @@ static FklHashTableMethodTable Codegen_hash_method_table=
 
 FklNastNode* fklPatternMatchingHashTableRef(FklSid_t sid,FklHashTable* ht)
 {
-	PatternMatchingHashTableItem* item=fklGetHashItem(&sid,ht);
+	FklPatternMatchingHashTableItem* item=fklGetHashItem(&sid,ht);
 	return item->node;
 }
 
-inline static PatternMatchingHashTableItem* createPatternMatchingHashTableItem(FklSid_t id,FklNastNode* node)
+inline static FklPatternMatchingHashTableItem* createPatternMatchingHashTableItem(FklSid_t id,FklNastNode* node)
 {
-	PatternMatchingHashTableItem* r=(PatternMatchingHashTableItem*)malloc(sizeof(PatternMatchingHashTableItem));
+	FklPatternMatchingHashTableItem* r=(FklPatternMatchingHashTableItem*)malloc(sizeof(FklPatternMatchingHashTableItem));
 	FKL_ASSERT(r);
 	r->id=id;
 	r->node=node;
@@ -1286,5 +1280,224 @@ FklNastNode* fklCopyNastNode(const FklNastNode* node)
 	}
 	fklDestroyPtrStack(stack);
 	fklDestroyPtrStack(cstack);
+	return r;
+}
+
+typedef struct
+{
+	FklSid_t id;
+}FklSidHashItem;
+
+static FklSidHashItem* createSidHashItem(FklSid_t key)
+{
+	FklSidHashItem* r=(FklSidHashItem*)malloc(sizeof(FklSidHashItem));
+	FKL_ASSERT(r);
+	r->id=key;
+	return r;
+}
+
+static size_t _sid_hashFunc(void* key)
+{
+	FklSid_t sid=*(FklSid_t*)key;
+	return sid;
+}
+
+static void _sid_destroyItem(void* item)
+{
+	free(item);
+}
+
+static int _sid_keyEqual(void* pkey0,void* pkey1)
+{
+	FklSid_t k0=*(FklSid_t*)pkey0;
+	FklSid_t k1=*(FklSid_t*)pkey1;
+	return k0==k1;
+}
+
+static void* _sid_getKey(void* item)
+{
+	return &((FklSidHashItem*)item)->id;
+}
+
+static FklHashTableMethodTable SidHashMethodTable=
+{
+	.__hashFunc=_sid_hashFunc,
+	.__destroyItem=_sid_destroyItem,
+	.__keyEqual=_sid_keyEqual,
+	.__getKey=_sid_getKey,
+};
+
+int fklIsValidSyntaxPattern(const FklNastNode* p)
+{
+	if(p->type!=FKL_NAST_PAIR)
+		return 0;
+	FklNastNode* head=p->u.pair->car;
+	if(head->type!=FKL_NAST_SYM)
+		return 0;
+	const FklNastNode* body=p->u.pair->cdr;
+	FklHashTable* symbolTable=fklCreateHashTable(8,4,2,0.75,1,&SidHashMethodTable);
+	FklPtrStack* stack=fklCreatePtrStack(32,16);
+	fklPushPtrStack((void*)body,stack);
+	while(!fklIsPtrStackEmpty(stack))
+	{
+		const FklNastNode* c=fklPopPtrStack(stack);
+		switch(c->type)
+		{
+			case FKL_NAST_PAIR:
+				fklPushPtrStack(c->u.pair->car,stack);
+				fklPushPtrStack(c->u.pair->cdr,stack);
+				break;
+			case FKL_TYPE_SYM:
+				if(fklGetHashItem((void*)&c->u.sym,symbolTable))
+				{
+					fklDestroyHashTable(symbolTable);
+					fklDestroyPtrStack(stack);
+					return 0;
+				}
+				fklPutNoRpHashItem(createSidHashItem(c->u.sym)
+						,symbolTable);
+				break;
+			default:
+				break;
+		}
+	}
+	fklDestroyHashTable(symbolTable);
+	fklDestroyPtrStack(stack);
+	return 1;
+}
+
+int fklPatternEqual(const FklNastNode* p0,const FklNastNode* p1)
+{
+	if(p0->type!=FKL_NAST_PAIR||p1->type!=FKL_NAST_PAIR)
+		return 0;
+	const FklNastNode* h0=p0->u.pair->car;
+	const FklNastNode* h1=p1->u.pair->car;
+	if(h0->type!=FKL_NAST_SYM||h1->type!=FKL_NAST_SYM
+			||h0->u.sym!=h1->u.sym)
+		return 0;
+	const FklNastNode* b0=p0->u.pair->cdr;
+	const FklNastNode* b1=p1->u.pair->cdr;
+	FklPtrStack* s0=fklCreatePtrStack(16,16);
+	FklPtrStack* s1=fklCreatePtrStack(16,16);
+	fklPushPtrStack((void*)b0,s0);
+	fklPushPtrStack((void*)b1,s1);
+	int r=1;
+	while(!fklIsPtrStackEmpty(s0)&&!fklIsPtrStackEmpty(s1))
+	{
+		const FklNastNode* c0=fklPopPtrStack(s0);
+		const FklNastNode* c1=fklPopPtrStack(s1);
+		if(c0->type!=c1->type)
+			r=0;
+		else
+		{
+			switch(c0->type)
+			{
+				case FKL_NAST_SYM:
+					break;
+				case FKL_NAST_PAIR:
+					fklPushPtrStack(c0->u.pair->car,s0);
+					fklPushPtrStack(c0->u.pair->cdr,s0);
+					fklPushPtrStack(c1->u.pair->car,s1);
+					fklPushPtrStack(c1->u.pair->cdr,s1);
+					break;
+				default:
+					fklNastNodeEqual(c0,c1);
+					break;
+			}
+		}
+		if(!r)
+			break;
+	}
+	fklDestroyPtrStack(s0);
+	fklDestroyPtrStack(s1);
+	return r;
+}
+
+int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1)
+{
+	FklPtrStack* s0=fklCreatePtrStack(16,16);
+	FklPtrStack* s1=fklCreatePtrStack(16,16);
+	fklPushPtrStack((void*)n0,s0);
+	fklPushPtrStack((void*)n1,s1);
+	int r=1;
+	while(!fklIsPtrStackEmpty(s0)&&!fklIsPtrStackEmpty(s1))
+	{
+		const FklNastNode* c0=fklPopPtrStack(s0);
+		const FklNastNode* c1=fklPopPtrStack(s1);
+		if(c0->type!=c1->type)
+			r=0;
+		else
+		{
+			switch(c0->type)
+			{
+				case FKL_NAST_SYM:
+					r=c0->u.sym==c1->u.sym;
+					break;
+				case FKL_NAST_I32:
+					r=c0->u.i32==c1->u.i32;
+					break;
+				case FKL_NAST_I64:
+					r=c0->u.i64==c1->u.i64;
+					break;
+				case FKL_NAST_F64:
+					r=c0->u.f64==c1->u.f64;
+					break;
+				case FKL_NAST_NIL:
+					break;
+				case FKL_NAST_STR:
+					r=!fklStringcmp(c0->u.str,c1->u.str);
+					break;
+				case FKL_NAST_BYTEVECTOR:
+					r=!fklBytevectorcmp(c0->u.bvec,c1->u.bvec);
+					break;
+				case FKL_NAST_CHR:
+					r=c0->u.chr==c1->u.chr;
+					break;
+				case FKL_NAST_BIG_INT:
+					r=fklCmpBigInt(c0->u.bigInt,c1->u.bigInt);
+					break;
+				case FKL_NAST_BOX:
+					fklPushPtrStack(c0->u.box,s0);
+					fklPushPtrStack(c1->u.box,s1);
+					break;
+				case FKL_NAST_VECTOR:
+					r=c0->u.vec->size==c1->u.vec->size;
+					if(r)
+					{
+						for(size_t i=0;i<c0->u.vec->size;i++)
+							fklPushPtrStack(c0->u.vec->base[i],s0);
+						for(size_t i=0;i<c1->u.vec->size;i++)
+							fklPushPtrStack(c1->u.vec->base[i],s0);
+					}
+					break;
+				case FKL_NAST_HASHTABLE:
+					r=c0->u.hash->num==c1->u.hash->num;
+					if(r)
+					{
+						for(size_t i=0;i<c0->u.hash->num;i++)
+						{
+							fklPushPtrStack(c0->u.hash->items[i].car,s0);
+							fklPushPtrStack(c0->u.hash->items[i].cdr,s0);
+						}
+						for(size_t i=0;i<c1->u.hash->num;i++)
+						{
+							fklPushPtrStack(c1->u.hash->items[i].car,s0);
+							fklPushPtrStack(c1->u.hash->items[i].cdr,s0);
+						}
+					}
+					break;
+				case FKL_NAST_PAIR:
+					fklPushPtrStack(c0->u.pair->car,s0);
+					fklPushPtrStack(c0->u.pair->cdr,s0);
+					fklPushPtrStack(c1->u.pair->car,s1);
+					fklPushPtrStack(c1->u.pair->cdr,s1);
+					break;
+			}
+		}
+		if(!r)
+			break;
+	}
+	fklDestroyPtrStack(s0);
+	fklDestroyPtrStack(s1);
 	return r;
 }

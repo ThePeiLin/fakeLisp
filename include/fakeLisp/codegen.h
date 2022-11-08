@@ -14,8 +14,15 @@ typedef struct FklCodegenEnv
 	struct FklCodegenEnv* prev;
 	FklHashTable* defs;
 	FklHashTable* replacements;
+	struct FklCodegenMacroScope* macros;
 	size_t refcount;
 }FklCodegenEnv;
+
+typedef struct FklCodegenMacroScope
+{
+	struct FklCodegenMacroScope* prev;
+	FklPtrStack* macroStack;
+}FklCodegenMacroScope;
 
 typedef struct FklCodegenLib
 {
@@ -75,6 +82,12 @@ typedef struct FklCodegenQuest
 	FklCodegenNextExpression* nextExpression;
 }FklCodegenQuest;
 
+typedef struct FklCodegenMacro
+{
+	FklNastNode* pattern;
+	FklByteCodelnt* bcl;
+}FklCodegenMacro;
+
 void fklInitGlobalCodegener(FklCodegen* codegen
 		,const char* rp
 		,FklCodegenEnv* globalEnv
@@ -115,6 +128,12 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib**,FklSymb
 void fklInitCodegenLib(FklCodegenLib* lib,char* rp,FklByteCodelnt* bcl,size_t exportNum,FklSid_t* exports);
 FklCodegenLib* fklCreateCodegenLib(char* rp,FklByteCodelnt* bcl,size_t exportNum,FklSid_t* exports);
 void fklDestroyCodegenLib(FklCodegenLib*);
+
+FklCodegenMacro* fklCreateCodegenMacro(FklNastNode* pattern,FklByteCodelnt* bcl);
+void fklDestroyCodegenMacro(FklCodegenMacro* macro);
+
+FklCodegenMacroScope* fklCreateCodegenMacroScope(FklCodegenMacroScope* prev);
+void fklDestroyCodegenMacroScope(FklCodegenMacroScope* c);
 #ifdef __cplusplus
 }
 #endif

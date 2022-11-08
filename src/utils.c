@@ -595,17 +595,14 @@ void* fklCopyMemory(const void* pm,size_t size)
 	return tmp;
 }
 
-void fklChangeWorkPath(const char* filename)
+int fklChangeWorkPath(const char* filename)
 {
 	char* p=fklRealpath(filename);
 	char* wp=fklGetDir(p);
-	if(chdir(wp))
-	{
-		perror(wp);
-		exit(EXIT_FAILURE);
-	}
+	int r=chdir(wp);
 	free(p);
 	free(wp);
+	return r;
 }
 
 char* fklRealpath(const char* filename)

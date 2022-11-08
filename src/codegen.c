@@ -596,9 +596,13 @@ FklCodegenEnv* fklCreateCodegenEnv(FklCodegenEnv* prev)
 	{
 		r->replacements=fklCreateHashTable(8,4,2,0.75,1,&CodegenReplacementHashMethodTable);
 		prev->refcount+=1;
+		r->macros=fklCreateCodegenMacroScope(prev->macros);
 	}
 	else
+	{
 		r->replacements=NULL;
+		r->macros=NULL;
+	}
 	return r;
 }
 
@@ -612,8 +616,11 @@ void fklDestroyCodegenEnv(FklCodegenEnv* env)
 			FklCodegenEnv* cur=env;
 			env=env->prev;
 			fklDestroyHashTable(cur->defs);
-			if(cur->replacements)
+			if(cur->prev)
+			{
 				fklDestroyHashTable(cur->replacements);
+				fklDestroyCodegenMacroScope(cur->macros);
+			}
 			free(cur);
 		}
 		else
@@ -2091,6 +2098,11 @@ static CODEGEN_FUNC(codegen_library)
 			,codegenQuestStack);
 }
 
+BC_PROCESS(_compiler_macro_bc_process)
+{
+#pragma message "Todo:bc process for compiler macro"
+}
+
 static CODEGEN_FUNC(codegen_defmacro)
 {
 	FklNastNode* name=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
@@ -2100,6 +2112,38 @@ static CODEGEN_FUNC(codegen_defmacro)
 	else if(name->type==FKL_NAST_PAIR)
 	{
 #pragma message "Todo:defmacro for compiler macro"
+		if(!fklIsValidSyntaxPattern(name))
+		{
+			errorState->type=FKL_ERR_INVALID_MACRO_PATTERN;
+			errorState->place=fklMakeNastNodeRef(name);
+			return;
+		}
+		FklHashTable* psht=fklCreatePatternMatchingHashTable();
+		fklPatternMatch(name,name,psht);
+		FklCodegenEnv* globalEnv=curEnv;
+		while(globalEnv->prev)globalEnv=globalEnv->prev;
+		FklCodegenEnv* macroEnv=fklCreateCodegenEnv(globalEnv);
+		macroEnv->macros->prev=curEnv->macros;
+		for(size_t i=0;i<psht->num;i++)
+		{
+			FklPatternMatchingHashTableItem* item=psht->base[i]->item;
+			fklAddCodegenDefBySid(item->id,macroEnv);
+		}
+		fklDestroyHashTable(psht);
+		FklCodegen* macroCodegen=createCodegen(codegen
+				,fklCopyCstr(codegen->filename)
+				,macroEnv);
+		macroCodegen->globalSymTable=fklGetGlobSymbolTable();
+		FklPtrStack* bcStack=fklCreatePtrStack(16,16);
+		FklPtrQueue* queue=fklCreatePtrQueue();
+		fklPushPtrQueue(fklMakeNastNodeRef(value),queue);
+		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_compiler_macro_bc_process
+				,bcStack
+				,createDefaultQueueNextExpression(queue)
+				,macroEnv
+				,value->curline
+				,macroCodegen
+				,codegenQuestStack);
 	}
 	else if(name->type==FKL_NAST_STR)
 	{
@@ -2953,4 +2997,41 @@ void fklDestroyCodegenLib(FklCodegenLib* lib)
 	free(lib->exports);
 	lib->exportNum=0;
 	free(lib);
+}
+
+FklCodegenMacro* fklCreateCodegenMacro(FklNastNode* pattern,FklByteCodelnt* bcl)
+{
+	FklCodegenMacro* r=(FklCodegenMacro*)malloc(sizeof(FklCodegenMacro));
+	FKL_ASSERT(r);
+	r->pattern=fklMakeNastNodeRef(pattern);
+	r->bcl=bcl;
+	return r;
+}
+
+void fklDestroyCodegenMacro(FklCodegenMacro* macro)
+{
+	fklDestroyNastNode(macro->pattern);
+	fklDestroyByteCodelnt(macro->bcl);
+	free(macro);
+}
+
+FklCodegenMacroScope* fklCreateCodegenMacroScope(FklCodegenMacroScope* prev)
+{
+	FklCodegenMacroScope* r=(FklCodegenMacroScope*)malloc(sizeof(FklCodegenMacroScope));
+	FKL_ASSERT(r);
+	r->macroStack=fklCreatePtrStack(8,8);
+	r->prev=prev;
+	return r;
+}
+
+void fklDestroyCodegenMacroScope(FklCodegenMacroScope* macros)
+{
+	FklPtrStack* s=macros->macroStack;
+	while(!fklIsPtrStackEmpty(s))
+	{
+		FklCodegenMacro* m=fklPopPtrStack(s);
+		fklDestroyCodegenMacro(m);
+	}
+	fklDestroyPtrStack(s);
+	free(macros);
 }

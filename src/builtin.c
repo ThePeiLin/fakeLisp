@@ -3096,6 +3096,7 @@ void builtin_raise(ARGL)
 
 void builtin_call_eh(ARGL)
 {
+#pragma message "Todo:call/eh"
 }
 
 void builtin_call_cc(ARGL)
@@ -3656,6 +3657,24 @@ void builtin_getcwd(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.getcwd",FKL_ERR_TOOMANYARG,exe);
 	FklVMvalue* s=fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateStringFromCstr(fklGetCwd()),exe);
 	fklNiReturn(s,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_chdir(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* dir=fklNiGetArg(&ap,stack);
+	if(!dir)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.chdir",FKL_ERR_TOOFEWARG,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.chdir",FKL_ERR_TOOMANYARG,exe);
+	FKL_NI_CHECK_TYPE(dir,FKL_IS_STR,"builtin.chdir",exe);
+	char* cdir=fklStringToCstr(dir->u.str);
+	int r=fklChangeWorkPath(cdir);
+	if(r)
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("builtin.chdir",cdir,1,FKL_ERR_FILEFAILURE,exe);
+	free(cdir);
+	fklNiReturn(FKL_VM_NIL,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -4553,6 +4572,7 @@ static const struct SymbolFuncStruct
 	{"chanl?",                builtin_chanl_p,                 },
 	{"dll?",                  builtin_dll_p,                   },
 	{"getcwd",                builtin_getcwd,                  },
+	{"chdir",                 builtin_chdir,                   },
 	{"fgetc",                 builtin_fgetc,                   },
 	{"fgeti",                 builtin_fgeti,                   },
 	{"fwrite",                builtin_fwrite,                  },

@@ -72,9 +72,19 @@ FklNastNode* fklCopyNastNode(const FklNastNode* n);
 void fklDestroyNastNode(FklNastNode*);
 void fklPrintNastNode(const FklNastNode* node,FILE* fp);
 
+typedef struct
+{
+	FklSid_t id;
+	FklNastNode* node;
+}FklPatternMatchingHashTableItem;
+
 int fklPatternMatch(const FklNastNode* pattern
 		,FklNastNode* exp
 		,FklHashTable* ht);
+
+int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1);
+int fklIsValidSyntaxPattern(const FklNastNode* p);
+int fklPatternEqual(const FklNastNode* p0,const FklNastNode* p1);
 
 FklNastNode* fklPatternMatchingHashTableRef(FklSid_t sid,FklHashTable* ht);
 FklHashTable* fklCreatePatternMatchingHashTable(void);

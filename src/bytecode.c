@@ -36,13 +36,6 @@ FklByteCodelnt* fklCreateByteCodelnt(FklByteCode* bc)
 	return t;
 }
 
-void fklDestroyLineNumTabNodeArray(FklLineNumTabNode** a,size_t num)
-{
-	for(size_t i=0;i<num;i++)
-		fklDestroyLineNumTabNode(a[i]);
-	free(a);
-}
-
 void fklDestroyByteCodelnt(FklByteCodelnt* t)
 {
 	fklDestroyByteCode(t->bc);

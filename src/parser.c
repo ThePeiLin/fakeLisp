@@ -993,100 +993,6 @@ void fklDestroyNastNode(FklNastNode* node)
 	fklDestroyPtrStack(stack);
 }
 
-static int nastNodeEqual(const FklNastNode* n0,const FklNastNode* n1)
-{
-	FklPtrStack* s0=fklCreatePtrStack(32,16);
-	FklPtrStack* s1=fklCreatePtrStack(32,16);
-	fklPushPtrStack((void*)n0,s0);
-	fklPushPtrStack((void*)n1,s1);
-	int r=1;
-	while(!fklIsPtrStackEmpty(s0)&&!fklIsPtrStackEmpty(s1)&&r)
-	{
-		FklNastNode* root0=fklPopPtrStack(s0);
-		FklNastNode* root1=fklPopPtrStack(s1);
-		if(root0!=root1)
-		{
-			if(root0->type!=root1->type)
-			{
-				r=0;
-				break;
-			}
-			else
-			{
-				switch(root0->type)
-				{
-					case FKL_NAST_SYM:
-						r=root0->u.sym==root1->u.sym;
-						break;
-					case FKL_NAST_STR:
-						r=!fklStringcmp(root0->u.str,root1->u.str);
-						break;
-					case FKL_NAST_BYTEVECTOR:
-						r=!fklBytevectorcmp(root0->u.bvec,root1->u.bvec);
-						break;
-					case FKL_NAST_CHR:
-						r=root0->u.chr==root1->u.chr;
-						break;
-					case FKL_NAST_I32:
-						r=root0->u.i32==root1->u.i32;
-						break;
-					case FKL_NAST_I64:
-						r=root0->u.i64==root1->u.i64;
-						break;
-					case FKL_NAST_BIG_INT:
-						r=fklCmpBigInt(root0->u.bigInt,root1->u.bigInt);
-						break;
-					case FKL_NAST_F64:
-						r=root0->u.f64==root1->u.f64;
-						break;
-					case FKL_NAST_PAIR:
-						fklPushPtrStack(root0->u.pair->cdr,s0);
-						fklPushPtrStack(root0->u.pair->car,s0);
-						fklPushPtrStack(root1->u.pair->cdr,s1);
-						fklPushPtrStack(root1->u.pair->car,s1);
-						break;
-					case FKL_NAST_VECTOR:
-						if(root0->u.vec->size!=root1->u.vec->size)
-							r=0;
-						else
-						{
-							size_t size=root0->u.vec->size;
-							for(size_t i=0;i<size;i++)
-							{
-								fklPushPtrStack(root0->u.vec->base[i],s0);
-								fklPushPtrStack(root1->u.vec->base[i],s1);
-							}
-						}
-						break;
-					case FKL_NAST_HASHTABLE:
-						if(root0->u.hash->type!=root1->u.hash->type
-								||root0->u.hash->num!=root1->u.hash->num)
-							r=0;
-						else
-						{
-							size_t num=root0->u.hash->num;
-							for(size_t i=0;i<num;i++)
-							{
-								fklPushPtrStack(root0->u.hash->items[i].car,s0);
-								fklPushPtrStack(root0->u.hash->items[i].cdr,s0);
-								fklPushPtrStack(root1->u.hash->items[i].car,s1);
-								fklPushPtrStack(root1->u.hash->items[i].cdr,s1);
-							}
-						}
-						break;
-					case FKL_NAST_NIL:
-						break;
-					default:
-						FKL_ASSERT(0);
-				}
-			}
-		}
-	}
-	fklDestroyPtrStack(s0);
-	fklDestroyPtrStack(s1);
-	return r;
-}
-
 static size_t _pattern_matching_hash_table_hash_func(void* key)
 {
 	FklSid_t sid=*(FklSid_t*)key;
@@ -1143,7 +1049,7 @@ FklHashTable* fklCreatePatternMatchingHashTable(void)
 	return fklCreateHashTable(8,8,2,0.75,1,&Codegen_hash_method_table);
 }
 
-int fklPatternMatch(const FklNastNode* pattern,FklNastNode* exp,FklHashTable* ht)
+int fklPatternMatch(const FklNastNode* pattern,const FklNastNode* exp,FklHashTable* ht)
 {
 	if(exp->type!=FKL_NAST_PAIR)
 		return 0;
@@ -1170,7 +1076,7 @@ int fklPatternMatch(const FklNastNode* pattern,FklNastNode* exp,FklHashTable* ht
 			fklPushPtrStack(n1->u.pair->cdr,s1);
 			fklPushPtrStack(n1->u.pair->car,s1);
 		}
-		else if(!nastNodeEqual(n0,n1))
+		else if(!fklNastNodeEqual(n0,n1))
 		{
 			fklDestroyPtrStack(s0);
 			fklDestroyPtrStack(s1);
@@ -1366,51 +1272,9 @@ int fklIsValidSyntaxPattern(const FklNastNode* p)
 	return 1;
 }
 
-int fklPatternEqual(const FklNastNode* p0,const FklNastNode* p1)
+inline int fklPatternEqual(const FklNastNode* p0,const FklNastNode* p1)
 {
-	if(p0->type!=FKL_NAST_PAIR||p1->type!=FKL_NAST_PAIR)
-		return 0;
-	const FklNastNode* h0=p0->u.pair->car;
-	const FklNastNode* h1=p1->u.pair->car;
-	if(h0->type!=FKL_NAST_SYM||h1->type!=FKL_NAST_SYM
-			||h0->u.sym!=h1->u.sym)
-		return 0;
-	const FklNastNode* b0=p0->u.pair->cdr;
-	const FklNastNode* b1=p1->u.pair->cdr;
-	FklPtrStack* s0=fklCreatePtrStack(16,16);
-	FklPtrStack* s1=fklCreatePtrStack(16,16);
-	fklPushPtrStack((void*)b0,s0);
-	fklPushPtrStack((void*)b1,s1);
-	int r=1;
-	while(!fklIsPtrStackEmpty(s0)&&!fklIsPtrStackEmpty(s1))
-	{
-		const FklNastNode* c0=fklPopPtrStack(s0);
-		const FklNastNode* c1=fklPopPtrStack(s1);
-		if(c0->type!=c1->type)
-			r=0;
-		else
-		{
-			switch(c0->type)
-			{
-				case FKL_NAST_SYM:
-					break;
-				case FKL_NAST_PAIR:
-					fklPushPtrStack(c0->u.pair->car,s0);
-					fklPushPtrStack(c0->u.pair->cdr,s0);
-					fklPushPtrStack(c1->u.pair->car,s1);
-					fklPushPtrStack(c1->u.pair->cdr,s1);
-					break;
-				default:
-					fklNastNodeEqual(c0,c1);
-					break;
-			}
-		}
-		if(!r)
-			break;
-	}
-	fklDestroyPtrStack(s0);
-	fklDestroyPtrStack(s1);
-	return r;
+	return fklPatternMatch(p1,p0,NULL);
 }
 
 int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1)
@@ -1471,7 +1335,7 @@ int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1)
 					}
 					break;
 				case FKL_NAST_HASHTABLE:
-					r=c0->u.hash->num==c1->u.hash->num;
+					r=c0->u.hash->type==c1->u.hash->type&&c0->u.hash->num==c1->u.hash->num;
 					if(r)
 					{
 						for(size_t i=0;i<c0->u.hash->num;i++)

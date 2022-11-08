@@ -482,6 +482,8 @@ FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
 		,FklHashTable* lineHash
 		,FklVM* vm);
 
+FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v,FklHashTable*);
+
 void fklAddToGC(FklVMvalue*,FklVM*);
 void fklAddToGCNoGC(FklVMvalue*,FklVMgc*);
 void fklAddToGCBeforeGC(FklVMvalue*,FklVM*);

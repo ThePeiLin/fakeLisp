@@ -79,7 +79,7 @@ typedef struct
 }FklPatternMatchingHashTableItem;
 
 int fklPatternMatch(const FklNastNode* pattern
-		,FklNastNode* exp
+		,const FklNastNode* exp
 		,FklHashTable* ht);
 
 int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1);

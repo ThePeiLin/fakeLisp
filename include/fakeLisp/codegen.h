@@ -134,6 +134,11 @@ void fklDestroyCodegenMacro(FklCodegenMacro* macro);
 
 FklCodegenMacroScope* fklCreateCodegenMacroScope(FklCodegenMacroScope* prev);
 void fklDestroyCodegenMacroScope(FklCodegenMacroScope* c);
+
+FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
+		,FklCodegen*
+		,FklCodegenMacroScope* macros
+		,FklCodegenErrorState*);
 #ifdef __cplusplus
 }
 #endif

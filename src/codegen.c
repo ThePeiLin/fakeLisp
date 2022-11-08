@@ -2601,6 +2601,9 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 						}
 					}
 				}
+				curExp=fklTryExpandCodegenMacro(curExp,curCodegen,curEnv->macros,&errorState);
+				if(errorState.type)
+					break;
 				r=mapAllBuiltInPattern(curExp,codegenQuestStack,curEnv,curCodegen,&errorState);
 				if(r)
 				{
@@ -3062,4 +3065,101 @@ void fklDestroyCodegenMacroScope(FklCodegenMacroScope* macros)
 	}
 	fklDestroyPtrStack(s);
 	free(macros);
+}
+
+static FklCodegenMacro* findMacro(FklNastNode* exp
+		,FklCodegenMacroScope* macros
+		,FklHashTable** pht)
+{
+	FklCodegenMacro* r=NULL;
+	for(;macros;macros=macros->prev)
+	{
+		FklPtrStack* macroStack=macros->macroStack;
+		FklHashTable* ht=fklCreatePatternMatchingHashTable();
+		for(size_t i=0;i<macroStack->top;i++)
+		{
+			FklCodegenMacro* cur=macroStack->base[i];
+			if(fklPatternMatch(cur->pattern,exp,ht))
+			{
+				*pht=ht;
+				r=cur;
+				break;
+			}
+		}
+		fklDestroyHashTable(ht);
+	}
+	return r;
+}
+
+#include<setjmp.h>
+static jmp_buf buf;
+static void errorCallBack(void* a)
+{
+	int* i=(int*)a;
+	longjmp(buf,i[(sizeof(void*)*2)/sizeof(int)]);
+}
+
+static FklVM* initMacroExpandVM(FklByteCodelnt* bcl
+		,FklHashTable* ht
+		,FklHashTable* lineHash
+		,FklCodegen* codegen)
+{
+	FklVM* anotherVM=fklCreateVM(fklCopyByteCodelnt(bcl),NULL,NULL);
+	FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
+	FklPtrStack* loadedLibStack=codegen->loadedLibStack;
+	anotherVM->libNum=loadedLibStack->top;
+	anotherVM->libs=(FklVMlib*)malloc(sizeof(FklVMlib)*loadedLibStack->top);
+	FKL_ASSERT(anotherVM->libs);
+	for(size_t i=0;i<loadedLibStack->top;i++)
+	{
+		FklCodegenLib* cur=loadedLibStack->base[i];
+		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,fklCopyByteCodelnt(cur->bcl),anotherVM->gc);
+		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(0,cur->bcl->bc->size,codeObj,anotherVM->gc),anotherVM->gc);
+		fklSetRef(&proc->u.proc->prevEnv,globEnv,anotherVM->gc);
+		fklInitVMlib(&anotherVM->libs[loadedLibStack->top],cur->exportNum,cur->exports,proc);
+	}
+	FklVMvalue* mainEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateVMenv(globEnv,anotherVM->gc),anotherVM->gc);
+	FklVMframe* mainframe=anotherVM->frames;
+	mainframe->localenv=mainEnv;
+	anotherVM->callback=errorCallBack;
+	return anotherVM;
+}
+
+FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
+		,FklCodegen* codegen
+		,FklCodegenMacroScope* macros
+		,FklCodegenErrorState* errorState)
+{
+#pragma message "Todo:expand codegen macro"
+	FklNastNode* r=exp;
+	FklHashTable* ht=NULL;
+	for(FklCodegenMacro* macro=findMacro(r,macros,&ht);macro;macro=findMacro(r,macros,&ht))
+	{
+		FklHashTable* lineHash=fklCreateLineNumHashTable();
+		FklVM* anotherVM=initMacroExpandVM(fklCopyByteCodelnt(macro->bcl),ht,lineHash,codegen);
+		FklVMgc* gc=anotherVM->gc;
+		if(!setjmp(buf))
+		{
+			fklRunVM(anotherVM);
+			fklJoinAllThread(anotherVM);
+			fklDestroyNastNode(r);
+			r=fklCreateNastNodeFromVMvalue(fklGetTopValue(anotherVM->stack),lineHash);
+			fklDestroyHashTable(ht);
+			fklDestroyHashTable(lineHash);
+			fklDestroyVMgc(gc);
+			fklDestroyAllVMs(anotherVM);
+		}
+		else
+		{
+			fklDestroyHashTable(ht);
+			fklDestroyHashTable(lineHash);
+			fklDeleteCallChain(anotherVM);
+			fklCancelAllThread();
+			fklJoinAllThread(anotherVM);
+			fklDestroyAllVMs(anotherVM);
+			fklDestroyVMgc(gc);
+			return NULL;
+		}
+	}
+	return r;
 }

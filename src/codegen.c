@@ -3118,7 +3118,7 @@ static FklVM* initMacroExpandVM(FklByteCodelnt* bcl
 		fklSetRef(&proc->u.proc->prevEnv,globEnv,anotherVM->gc);
 		fklInitVMlib(&anotherVM->libs[loadedLibStack->top],cur->exportNum,cur->exports,proc);
 	}
-	FklVMvalue* mainEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateVMenv(globEnv,anotherVM->gc),anotherVM->gc);
+	FklVMvalue* mainEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,createVMenvFromPatternMatchTable(globEnv,ht,anotherVM->gc),anotherVM->gc);
 	FklVMframe* mainframe=anotherVM->frames;
 	mainframe->localenv=mainEnv;
 	anotherVM->callback=errorCallBack;
@@ -3142,8 +3142,9 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 		{
 			fklRunVM(anotherVM);
 			fklJoinAllThread(anotherVM);
+			uint64_t curline=r->curline;
 			fklDestroyNastNode(r);
-			r=fklCreateNastNodeFromVMvalue(fklGetTopValue(anotherVM->stack),lineHash);
+			r=fklCreateNastNodeFromVMvalue(fklGetTopValue(anotherVM->stack),curline,lineHash);
 			fklDestroyHashTable(ht);
 			fklDestroyHashTable(lineHash);
 			fklDestroyVMgc(gc);

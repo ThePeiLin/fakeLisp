@@ -2577,9 +2577,12 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 					;curExp
 					;curExp=nextExpression->t->getNextExpression(nextExpression->context,&errorState))
 			{
-				curExp=fklTryExpandCodegenMacro(curExp,curCodegen,curEnv->macros,&errorState);
-				if(errorState.type)
-					break;
+				if(curExp->type==FKL_NAST_PAIR)
+				{
+					curExp=fklTryExpandCodegenMacro(curExp,curCodegen,curEnv->macros,&errorState);
+					if(errorState.type)
+						break;
+				}
 				if(curExp->type==FKL_NAST_SYM)
 				{
 					FklNastNode* replacement=NULL;
@@ -3141,7 +3144,6 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 		,FklCodegenMacroScope* macros
 		,FklCodegenErrorState* errorState)
 {
-#pragma message "Todo:expand codegen macro"
 	FklNastNode* r=exp;
 	FklHashTable* ht=NULL;
 	uint64_t curline=exp->curline;

@@ -64,6 +64,7 @@ static const char* builtInErrorType[]=
 	"invalid-radix",
 	"no-value-for-key",
 	"number-should-not-be-less-than-0",
+	"cir-ref",
 	NULL,
 };
 

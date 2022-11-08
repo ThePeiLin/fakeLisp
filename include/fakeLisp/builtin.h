@@ -35,6 +35,7 @@ typedef enum
 	FKL_ERR_INVALIDRADIX,
 	FKL_ERR_NO_VALUE_FOR_KEY,
 	FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,
+	FKL_ERR_CIR_REF,
 }FklBuiltInErrorType;
 
 typedef struct FklCompEnv FklCompEnv;

@@ -87,6 +87,11 @@ int fklIsValidSyntaxPattern(const FklNastNode* p);
 int fklPatternEqual(const FklNastNode* p0,const FklNastNode* p1);
 
 FklNastNode* fklPatternMatchingHashTableRef(FklSid_t sid,FklHashTable* ht);
+
+enum FklVMhashTableEqType;
+FklNastPair* fklCreateNastPair(void);
+FklNastHashTable* fklCreateNastHash(enum FklVMhashTableEqType,size_t);
+FklNastVector* fklCreateNastVector(size_t);
 FklHashTable* fklCreatePatternMatchingHashTable(void);
 void fklDestroyPatternMatchingHashTable(FklHashTable*);
 int fklIsNastNodeList(const FklNastNode* list);

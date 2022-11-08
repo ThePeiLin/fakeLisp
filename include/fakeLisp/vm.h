@@ -165,7 +165,7 @@ typedef struct FklVMenv
 	FklHashTable* t;
 }FklVMenv;
 
-typedef enum
+typedef enum FklVMhashTableEqType
 {
 	FKL_VM_HASH_EQ=0,
 	FKL_VM_HASH_EQV,
@@ -413,6 +413,8 @@ double fklGetDouble(const FklVMvalue* p);
 //void fklInitVMRunningResource(FklVM*,FklVMvalue*,FklVMgc* gc,FklByteCodelnt*,uint32_t,uint32_t);
 //void fklUninitVMRunningResource(FklVM*);
 
+void fklScanCirRef(FklVMvalue* s,FklPtrStack* recStack);
+
 typedef struct FklPreEnv FklPreEnv;
 FklHashTable* fklCreateLineNumHashTable(void);
 FklVMvalue* fklGetTopValue(FklVMstack* stack);
@@ -481,6 +483,7 @@ FklVMvalue* fklCreateSaveVMvalue(FklValueType,void*);
 FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
 		,FklHashTable* lineHash
 		,FklVM* vm);
+FklVMvalue* fklCreateVMvalueFromNastNodeNoGC(const FklNastNode* node,FklHashTable*,FklVMgc* gc);
 FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 		,uint64_t curline
 		,FklHashTable*);

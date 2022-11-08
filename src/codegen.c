@@ -2100,7 +2100,33 @@ static CODEGEN_FUNC(codegen_library)
 
 BC_PROCESS(_compiler_macro_bc_process)
 {
-#pragma message "Todo:bc process for compiler macro"
+	FklByteCodelnt* macroBcl=fklPopPtrStack(stack);
+	FklNastNode* pattern=fklPopPtrStack(stack);
+	FklCodegenMacroScope* macros=fklPopPtrStack(stack);
+	FklCodegenMacro* macro=NULL;
+	for(size_t i=0;i<macros->macroStack->top;i++)
+	{
+		FklCodegenMacro* cur=macros->macroStack->base[i];
+		if(fklPatternEqual(cur->pattern,pattern))
+		{
+			macro=cur;
+			break;
+		}
+	}
+	if(!macro)
+	{
+		macro=fklCreateCodegenMacro(pattern,macroBcl);
+		fklPushPtrStack(macro,macros->macroStack);
+	}
+	else
+	{
+		fklDestroyNastNode(macro->pattern);
+		fklDestroyByteCodelnt(macro->bcl);
+		macro->pattern=fklMakeNastNodeRef(macro->pattern);
+		macro->bcl=macro->bcl;
+	}
+	fklDestroyNastNode(pattern);
+	return fklCreateByteCodelnt(fklCreateByteCode(0));
 }
 
 static CODEGEN_FUNC(codegen_defmacro)
@@ -2124,17 +2150,19 @@ static CODEGEN_FUNC(codegen_defmacro)
 		while(globalEnv->prev)globalEnv=globalEnv->prev;
 		FklCodegenEnv* macroEnv=fklCreateCodegenEnv(globalEnv);
 		macroEnv->macros->prev=curEnv->macros;
-		for(size_t i=0;i<psht->num;i++)
+		for(FklHashTableNodeList* list=psht->list;list;list=list->next)
 		{
-			FklPatternMatchingHashTableItem* item=psht->base[i]->item;
+			FklPatternMatchingHashTableItem* item=list->node->item;
 			fklAddCodegenDefBySid(item->id,macroEnv);
 		}
 		fklDestroyHashTable(psht);
 		FklCodegen* macroCodegen=createCodegen(codegen
-				,fklCopyCstr(codegen->filename)
+				,codegen->filename
 				,macroEnv);
 		macroCodegen->globalSymTable=fklGetGlobSymbolTable();
 		FklPtrStack* bcStack=fklCreatePtrStack(16,16);
+		fklPushPtrStack(curEnv->macros,bcStack);
+		fklPushPtrStack(fklMakeNastNodeRef(name),bcStack);
 		FklPtrQueue* queue=fklCreatePtrQueue();
 		fklPushPtrQueue(fklMakeNastNodeRef(value),queue);
 		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_compiler_macro_bc_process

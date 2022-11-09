@@ -143,7 +143,9 @@ void fklInitCodegenLib(FklCodegenLib* lib,char* rp,FklByteCodelnt* bcl,size_t ex
 FklCodegenLib* fklCreateCodegenLib(char* rp,FklByteCodelnt* bcl,size_t exportNum,FklSid_t* exports);
 void fklDestroyCodegenLib(FklCodegenLib*);
 
-FklCodegenMacro* fklCreateCodegenMacro(FklNastNode* pattern,FklByteCodelnt* bcl);
+FklCodegenMacro* fklCreateCodegenMacro(FklNastNode* pattern
+		,FklByteCodelnt* bcl
+		,FklCodegenMacro* next);
 void fklDestroyCodegenMacro(FklCodegenMacro* macro);
 
 FklCodegenMacroScope* fklCreateCodegenMacroScope(FklCodegenMacroScope* prev);

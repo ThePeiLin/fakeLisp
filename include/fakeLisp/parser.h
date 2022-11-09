@@ -88,7 +88,7 @@ int fklPatternMatch(const FklNastNode* pattern
 
 int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1);
 int fklIsValidSyntaxPattern(const FklNastNode* p);
-int fklPatternEqual(const FklNastNode* p0,const FklNastNode* p1);
+int fklPatternCoverState(const FklNastNode* p0,const FklNastNode* p1);
 
 FklNastNode* fklPatternMatchingHashTableRef(FklSid_t sid,FklHashTable* ht);
 

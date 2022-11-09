@@ -2170,26 +2170,39 @@ BC_PROCESS(_compiler_macro_bc_process)
 	FklByteCodelnt* macroBcl=fklPopPtrStack(stack);
 	FklNastNode* pattern=fklPopPtrStack(stack);
 	FklCodegenMacroScope* macros=fklPopPtrStack(stack);
-	FklCodegenMacro* macro=NULL;
-	for(size_t i=0;i<macros->macroStack->top;i++)
+	int coverState=0;
+	FklCodegenMacro** pmacro=&macros->head;
+	for(;*pmacro;pmacro=&(*pmacro)->next)
 	{
-		FklCodegenMacro* cur=macros->macroStack->base[i];
-		if(fklPatternEqual(cur->pattern,pattern))
-		{
-			macro=cur;
+		FklCodegenMacro* cur=*pmacro;
+		coverState=fklPatternCoverState(cur->pattern,pattern);
+		if(coverState)
 			break;
-		}
 	}
-	if(!macro)
+	if(!coverState)
 	{
-		macro=fklCreateCodegenMacro(pattern,macroBcl);
-		fklPushPtrStack(macro,macros->macroStack);
+		FklCodegenMacro* macro=fklCreateCodegenMacro(pattern,macroBcl,macros->head);
+		macros->head=macro;
 	}
 	else
 	{
-		fklDestroyNastNode(macro->pattern);
-		macro->pattern=fklMakeNastNodeRef(macro->pattern);
-		macro->bcl=macro->bcl;
+		if(coverState==FKL_PATTERN_COVER)
+		{
+			FklCodegenMacro* next=*pmacro;
+			*pmacro=fklCreateCodegenMacro(pattern,macroBcl,next);
+		}
+		else if(coverState==FKL_PATTERN_BE_COVER)
+		{
+			FklCodegenMacro* cur=(*pmacro);
+			FklCodegenMacro* next=cur->next;
+			cur->next=fklCreateCodegenMacro(pattern,macroBcl,next);
+		}
+		else
+		{
+			FklCodegenMacro* macro=*pmacro;
+			macro->pattern=fklMakeNastNodeRef(macro->pattern);
+			macro->bcl=macro->bcl;
+		}
 	}
 	fklDestroyNastNode(pattern);
 	return fklCreateByteCodelnt(fklCreateByteCode(0));
@@ -3120,12 +3133,13 @@ void fklDestroyCodegenLib(FklCodegenLib* lib)
 	free(lib);
 }
 
-FklCodegenMacro* fklCreateCodegenMacro(FklNastNode* pattern,FklByteCodelnt* bcl)
+FklCodegenMacro* fklCreateCodegenMacro(FklNastNode* pattern,FklByteCodelnt* bcl,FklCodegenMacro* next)
 {
 	FklCodegenMacro* r=(FklCodegenMacro*)malloc(sizeof(FklCodegenMacro));
 	FKL_ASSERT(r);
 	r->pattern=fklMakeNastNodeRef(pattern);
 	r->bcl=bcl;
+	r->next=next;
 	return r;
 }
 
@@ -3140,20 +3154,19 @@ FklCodegenMacroScope* fklCreateCodegenMacroScope(FklCodegenMacroScope* prev)
 {
 	FklCodegenMacroScope* r=(FklCodegenMacroScope*)malloc(sizeof(FklCodegenMacroScope));
 	FKL_ASSERT(r);
-	r->macroStack=fklCreatePtrStack(8,8);
+	r->head=NULL;
 	r->prev=prev;
 	return r;
 }
 
 void fklDestroyCodegenMacroScope(FklCodegenMacroScope* macros)
 {
-	FklPtrStack* s=macros->macroStack;
-	while(!fklIsPtrStackEmpty(s))
+	for(FklCodegenMacro* cur=macros->head;cur;)
 	{
-		FklCodegenMacro* m=fklPopPtrStack(s);
-		fklDestroyCodegenMacro(m);
+		FklCodegenMacro* t=cur;
+		cur=cur->next;
+		fklDestroyCodegenMacro(t);
 	}
-	fklDestroyPtrStack(s);
 	free(macros);
 }
 
@@ -3166,11 +3179,9 @@ static FklCodegenMacro* findMacro(FklNastNode* exp
 	FklCodegenMacro* r=NULL;
 	for(;!r&&macros;macros=macros->prev)
 	{
-		FklPtrStack* macroStack=macros->macroStack;
-		for(size_t i=0;i<macroStack->top;i++)
+		for(FklCodegenMacro* cur=macros->head;cur;cur=cur->next)
 		{
 			FklHashTable* ht=fklCreatePatternMatchingHashTable();
-			FklCodegenMacro* cur=macroStack->base[i];
 			if(fklPatternMatch(cur->pattern,exp,ht))
 			{
 				*pht=ht;

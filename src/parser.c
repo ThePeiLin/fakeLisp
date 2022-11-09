@@ -1272,9 +1272,12 @@ int fklIsValidSyntaxPattern(const FklNastNode* p)
 	return 1;
 }
 
-inline int fklPatternEqual(const FklNastNode* p0,const FklNastNode* p1)
+inline int fklPatternCoverState(const FklNastNode* p0,const FklNastNode* p1)
 {
-	return fklPatternMatch(p1,p0,NULL);
+	int r=0;
+	r+=fklPatternMatch(p0,p1,NULL)?FKL_PATTERN_COVER:0;
+	r+=fklPatternMatch(p1,p0,NULL)?FKL_PATTERN_BE_COVER:0;
+	return r;
 }
 
 int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1)

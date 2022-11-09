@@ -2232,7 +2232,7 @@ static CODEGEN_FUNC(codegen_defmacro)
 		fklAddReplacementBySid(name->u.sym,value,curEnv);
 	else if(name->type==FKL_NAST_PAIR)
 	{
-#pragma message "Todo:defmacro for compiler macro"
+#pragma message "Todo:compiler macro export"
 		if(!fklIsValidSyntaxPattern(name))
 		{
 			errorState->type=FKL_ERR_INVALID_MACRO_PATTERN;

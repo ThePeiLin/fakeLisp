@@ -49,7 +49,20 @@ typedef struct FklCodegen
 	unsigned long refcount:63;
 }FklCodegen;
 
-typedef FklByteCodelnt* (*FklByteCodeProcesser)(FklCodegen*,FklPtrStack* stack,FklSid_t,uint64_t);
+typedef struct
+{
+	void (*__put_bcl)(void*,FklByteCodelnt* bcl);
+	void (*__finalizer)(void*);
+	FklPtrStack* (*__get_bcl_stack)(void*);
+}FklCodegenQuestContextMethodTable;
+
+typedef struct FklCodegenQuestContext
+{
+	void* data;
+	const FklCodegenQuestContextMethodTable* t;
+}FklCodegenQuestContext;
+
+typedef FklByteCodelnt* (*FklByteCodeProcesser)(FklCodegen*,FklCodegenQuestContext* context,FklSid_t,uint64_t);
 
 typedef struct
 {
@@ -74,7 +87,7 @@ typedef struct
 typedef struct FklCodegenQuest
 {
 	FklByteCodeProcesser processer;
-	FklPtrStack* stack;
+	FklCodegenQuestContext* context;
 	FklCodegenEnv* env;
     uint64_t curline;
 	FklCodegen* codegen;

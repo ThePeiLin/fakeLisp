@@ -51,6 +51,7 @@ typedef struct FklCodegen
 	size_t exportNum;
 	FklSid_t* exports;
 	FklPtrStack* loadedLibStack;
+	FklPtrStack* macroLibStack;
 	struct FklCodegen* prev;
 	unsigned int destroyAbleMark:1;
 	unsigned long refcount:63;

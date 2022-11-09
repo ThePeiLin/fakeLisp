@@ -2200,8 +2200,10 @@ BC_PROCESS(_compiler_macro_bc_process)
 		else
 		{
 			FklCodegenMacro* macro=*pmacro;
-			macro->pattern=fklMakeNastNodeRef(macro->pattern);
-			macro->bcl=macro->bcl;
+			fklDestroyNastNode(macro->pattern);
+			fklDestroyByteCodelnt(macro->bcl);
+			macro->pattern=fklMakeNastNodeRef(pattern);
+			macro->bcl=macroBcl;
 		}
 	}
 	fklDestroyNastNode(pattern);
@@ -2255,6 +2257,7 @@ static CODEGEN_FUNC(codegen_defmacro)
 				,codegen->filename
 				,macroEnv);
 		macroCodegen->globalSymTable=fklGetGlobSymbolTable();
+		macroCodegen->loadedLibStack=macroCodegen->macroLibStack;
 		FklPtrStack* bcStack=fklCreatePtrStack(16,16);
 		fklPushPtrStack(curEnv->macros,bcStack);
 		fklPushPtrStack(fklMakeNastNodeRef(name),bcStack);
@@ -2826,6 +2829,7 @@ void fklInitGlobalCodegener(FklCodegen* codegen
 	codegen->exportNum=0;
 	codegen->exports=NULL;
 	codegen->loadedLibStack=fklCreatePtrStack(8,8);
+	codegen->macroLibStack=fklCreatePtrStack(8,8);
 }
 
 void fklInitCodegener(FklCodegen* codegen
@@ -2861,6 +2865,7 @@ void fklInitCodegener(FklCodegen* codegen
 	codegen->exportNum=0;
 	codegen->exports=NULL;
 	codegen->loadedLibStack=prev?prev->loadedLibStack:fklCreatePtrStack(8,8);
+	codegen->macroLibStack=prev?prev->macroLibStack:fklCreatePtrStack(8,8);
 }
 
 void fklUninitCodegener(FklCodegen* codegen)
@@ -2873,6 +2878,16 @@ void fklUninitCodegener(FklCodegen* codegen)
 		while(!fklIsPtrStackEmpty(codegen->loadedLibStack))
 			fklDestroyCodegenLib(fklPopPtrStack(codegen->loadedLibStack));
 		fklDestroyPtrStack(codegen->loadedLibStack);
+		FklPtrStack* macroLibStack=codegen->macroLibStack;
+		while(!fklIsPtrStackEmpty(macroLibStack))
+		{
+			FklCodegenLib* cur=fklPopPtrStack(macroLibStack);
+			fklDestroyByteCodelnt(cur->bcl);
+			free(cur->exports);
+			free(cur->rp);
+			free(cur);
+		}
+		fklDestroyPtrStack(macroLibStack);
 	}
 	free(codegen->curDir);
 	if(codegen->filename)
@@ -3225,8 +3240,21 @@ static FklVM* initMacroExpandVM(FklByteCodelnt* bcl
 {
 	FklVM* anotherVM=fklCreateVM(fklCopyByteCodelnt(bcl),NULL,NULL);
 	FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
-	anotherVM->libNum=0;
-	anotherVM->libs=NULL;
+	FklPtrStack* macroLibStack=codegen->macroLibStack;
+	anotherVM->libNum=macroLibStack->top;;
+	anotherVM->libs=(FklVMlib*)malloc(sizeof(FklVMlib)*macroLibStack->top);
+	FKL_ASSERT(anotherVM->libs);
+	for(size_t i=0;i<macroLibStack->top;i++)
+	{
+		FklCodegenLib* cur=macroLibStack->base[i];
+		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,fklCopyByteCodelnt(cur->bcl),anotherVM->gc);
+		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(0,cur->bcl->bc->size,codeObj,anotherVM->gc),anotherVM->gc);
+		fklSetRef(&proc->u.proc->prevEnv,globEnv,anotherVM->gc);
+		fklInitVMlib(&anotherVM->libs[i]
+				,cur->exportNum
+				,fklCopyMemory(cur->exports,cur->exportNum*sizeof(FklSid_t))
+				,proc);
+	}
 	FklVMvalue* mainEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,createVMenvFromPatternMatchTable(globEnv,ht,lineHash,anotherVM->gc),anotherVM->gc);
 	FklVMframe* mainframe=anotherVM->frames;
 	mainframe->localenv=mainEnv;

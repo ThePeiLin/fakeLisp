@@ -112,6 +112,7 @@ int main(int argc,char** argv)
 			FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(0,cur->bcl->bc->size,codeObj,anotherVM->gc),anotherVM->gc);
 			fklSetRef(&proc->u.proc->prevEnv,globEnv,anotherVM->gc);
 			fklInitVMlib(&anotherVM->libs[loadedLibStack->top],cur->exportNum,cur->exports,proc);
+			fklDestroyCodegenMacroList(cur->head);
 			free(cur->rp);
 			free(cur);
 		}
@@ -280,6 +281,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 						FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(0,curCGlib->bcl->bc->size,codeObj,anotherVM->gc),anotherVM->gc);
 						fklSetRef(&proc->u.proc->prevEnv,globEnv,anotherVM->gc);
 						fklInitVMlib(curVMlib,curCGlib->exportNum,curCGlib->exports,proc);
+						fklDestroyCodegenMacroList(curCGlib->head);
 					}
 					FklVMlib* prev=anotherVM->libs;
 					anotherVM->libs=nlibs;

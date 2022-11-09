@@ -159,6 +159,6 @@ static void loadLib(FILE* fp,size_t* pnum,FklCodegenLib** plibs)
 		fklLoadLineNumberTable(fp,&bcl->l,&bcl->ls);
 		FklByteCode* bc=loadByteCode(fp);
 		bcl->bc=bc;
-		fklInitCodegenLib(&libs[i],NULL,bcl,exportNum,exports);
+		fklInitCodegenLib(&libs[i],NULL,bcl,exportNum,exports,NULL);
 	}
 }

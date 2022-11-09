@@ -559,14 +559,17 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 	{
 		FklPtrStack* s0=fklCreatePtrStack(32,16);
 		FklPtrStack* s1=fklCreatePtrStack(32,16);
+		FklUintStack* lineStack=fklCreateUintStack(32,16);
 		fklPushPtrStack(v,s0);
 		fklPushPtrStack(&retval,s1);
+		fklPushUintStack(curline,lineStack);
 		while(!fklIsPtrStackEmpty(s0))
 		{
 			FklVMvalue* value=fklPopPtrStack(s0);
 			FklNastNode** pcur=fklPopPtrStack(s1);
 			LineNumHashItem* item=fklGetHashItem(&value,lineHash);
-			uint64_t line=item?item->line:curline;
+			uint64_t sline=fklPopUintStack(lineStack);
+			uint64_t line=item?item->line:sline;
 			FklNastNode* cur=fklMakeNastNodeRef(fklCreateNastNode(FKL_NAST_NIL,line));
 			*pcur=cur;
 			switch(FKL_GET_TAG(value))
@@ -659,6 +662,7 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 								cur->type=FKL_NAST_BOX;
 								fklPushPtrStack(value->u.box,s0);
 								fklPushPtrStack(&cur->u.box,s1);
+								fklPushUintStack(cur->curline,lineStack);
 								break;
 							case FKL_TYPE_PAIR:
 								cur->type=FKL_NAST_PAIR;
@@ -667,6 +671,8 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 								fklPushPtrStack(value->u.pair->cdr,s0);
 								fklPushPtrStack(&cur->u.pair->car,s1);
 								fklPushPtrStack(&cur->u.pair->cdr,s1);
+								fklPushUintStack(cur->curline,lineStack);
+								fklPushUintStack(cur->curline,lineStack);
 								break;
 							case FKL_TYPE_VECTOR:
 								cur->type=FKL_NAST_VECTOR;
@@ -674,7 +680,10 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 								for(size_t i=0;i<value->u.vec->size;i++)
 									fklPushPtrStack(value->u.vec->base[i],s0);
 								for(size_t i=0;i<cur->u.vec->size;i++)
+								{
 									fklPushPtrStack(&cur->u.vec->base[i],s1);
+									fklPushUintStack(cur->curline,lineStack);
+								}
 								break;
 							case FKL_TYPE_HASHTABLE:
 								cur->type=FKL_NAST_HASHTABLE;
@@ -689,6 +698,8 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 								{
 									fklPushPtrStack(&cur->u.hash->items[i].car,s1);
 									fklPushPtrStack(&cur->u.hash->items[i].cdr,s1);
+									fklPushUintStack(cur->curline,lineStack);
+									fklPushUintStack(cur->curline,lineStack);
 								}
 								break;
 						}
@@ -698,6 +709,7 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 		}
 		fklDestroyPtrStack(s0);
 		fklDestroyPtrStack(s1);
+		fklDestroyUintStack(lineStack);
 	}
 	fklDestroyPtrStack(recStack);
 	return retval;

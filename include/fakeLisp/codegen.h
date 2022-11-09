@@ -18,10 +18,17 @@ typedef struct FklCodegenEnv
 	size_t refcount;
 }FklCodegenEnv;
 
+typedef struct FklCodegenMacro
+{
+	FklNastNode* pattern;
+	FklByteCodelnt* bcl;
+	struct FklCodegenMacro* next;
+}FklCodegenMacro;
+
 typedef struct FklCodegenMacroScope
 {
 	struct FklCodegenMacroScope* prev;
-	FklPtrStack* macroStack;
+	FklCodegenMacro* head;
 }FklCodegenMacroScope;
 
 typedef struct FklCodegenLib
@@ -94,12 +101,6 @@ typedef struct FklCodegenQuest
 	struct FklCodegenQuest* prev;
 	FklCodegenNextExpression* nextExpression;
 }FklCodegenQuest;
-
-typedef struct FklCodegenMacro
-{
-	FklNastNode* pattern;
-	FklByteCodelnt* bcl;
-}FklCodegenMacro;
 
 void fklInitGlobalCodegener(FklCodegen* codegen
 		,const char* rp

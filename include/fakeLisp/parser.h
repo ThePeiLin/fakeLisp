@@ -7,6 +7,10 @@
 extern "C" {
 #endif
 
+#define FKL_PATTERN_COVER    (1)
+#define FKL_PATTERN_BE_COVER (2)
+#define FKL_PATTERN_EQUAL    (3)
+
 typedef enum{
 	FKL_NAST_NIL=0,
 	FKL_NAST_I32,

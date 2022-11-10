@@ -1713,6 +1713,74 @@ BC_PROCESS(_library_bc_process)
 	return retval;
 }
 
+static FklNastNode* createPatternWithPrefixFromOrig(FklNastNode* orig,FklString* prefix)
+{
+	FklString* head=fklGetGlobSymbolWithId(orig->u.pair->car->u.sym)->symbol;
+	FklString* symbolWithPrefix=fklStringAppend(prefix,head);
+	FklNastNode* patternWithPrefix=fklCreateNastNode(FKL_NAST_PAIR,orig->curline);
+	FklNastNode* newHead=fklCreateNastNode(FKL_NAST_SYM,orig->u.pair->car->curline);
+	newHead->u.sym=fklAddSymbolToGlob(symbolWithPrefix)->id;
+	patternWithPrefix->u.pair=fklCreateNastPair();
+	patternWithPrefix->u.pair->car=fklMakeNastNodeRef(newHead);
+	patternWithPrefix->u.pair->cdr=fklMakeNastNodeRef(orig->u.pair->cdr);
+	free(symbolWithPrefix);
+	return patternWithPrefix;
+}
+
+BC_PROCESS(_library_be_imported_with_prefix_bc_process)
+{
+	FklByteCodelnt* libBc=NULL;
+	FklPtrStack* stack=GET_STACK(context);
+	if(stack->top>3)
+	{
+		uint8_t opcodes[]={
+			FKL_OP_SET_TP,
+			FKL_OP_RES_TP,
+			FKL_OP_POP_TP,
+		};
+		FklByteCode setTp={1,&opcodes[0]};
+		FklByteCode resTp={1,&opcodes[1]};
+		FklByteCode popTp={1,&opcodes[2]};
+		FklByteCodelnt* r=fklCreateByteCodelnt(fklCreateByteCode(0));
+		size_t top=stack->top;
+		for(size_t i=3;i<top;i++)
+		{
+			FklByteCodelnt* cur=stack->base[i];
+			if(cur->bc->size)
+			{
+				fklCodeLntCat(r,cur);
+				bclBcAppendToBcl(r,&resTp,fid,line);
+			}
+			fklDestroyByteCodelnt(cur);
+		}
+		bcBclAppendToBcl(&setTp,r,fid,line);
+		bclBcAppendToBcl(r,&popTp,fid,line);
+		libBc=r;
+	}
+	else
+		libBc=createBclnt(fklCreateByteCode(0),fid,line);
+	fklPushPtrStack(fklCreateCodegenLib(codegen->realpath
+				,libBc
+				,codegen->exportNum
+				,codegen->exports
+				,codegen->globalEnv->macros->head),codegen->loadedLibStack);
+	FklCodegenEnv* exportTargetEnv=stack->base[0];
+	FklString* prefix=stack->base[1];
+	for(FklCodegenMacro* cur=codegen->globalEnv->macros->head;cur;cur=cur->next)
+		add_compiler_macro(exportTargetEnv->macros
+				,fklMakeNastNodeRef(createPatternWithPrefixFromOrig(cur->pattern,prefix))
+				,fklCopyByteCodelnt(cur->bcl));
+	fklDestroyCodegenEnv(exportTargetEnv);
+	codegen->globalEnv->macros->head=NULL;
+	FklByteCodelnt* retval=stack->base[2];
+	stack->top=0;
+	fklSetU64ToByteCode(retval->bc->code+sizeof(char),codegen->loadedLibStack->top);
+	codegen->exportNum=0;
+	codegen->exports=NULL;
+	codegen->realpath=NULL;
+	return retval;
+}
+
 static size_t check_loaded_lib(const char* realpath,FklPtrStack* loadedLibStack)
 {
 	for(size_t i=0;i<loadedLibStack->top;i++)
@@ -1724,7 +1792,7 @@ static size_t check_loaded_lib(const char* realpath,FklPtrStack* loadedLibStack)
 	return 0;
 }
 
-static void _import_macro_without_prefix_stack_context_finalizer(void* data)
+static void _import_macro_stack_context_finalizer(void* data)
 {
 	FklPtrStack* s=data;
 	while(s->top>1)
@@ -1733,13 +1801,12 @@ static void _import_macro_without_prefix_stack_context_finalizer(void* data)
 	fklDestroyPtrStack(s);
 }
 
-static const FklCodegenQuestContextMethodTable ImportMacroWithoutPrefixStackContextMethodTable=
+static const FklCodegenQuestContextMethodTable ImportMacroStackContextMethodTable=
 {
 	.__get_bcl_stack=_default_stack_context_get_bcl_stack,
 	.__put_bcl=_default_stack_context_put_bcl,
-	.__finalizer=_import_macro_without_prefix_stack_context_finalizer,
+	.__finalizer=_import_macro_stack_context_finalizer,
 };
-
 
 static CODEGEN_FUNC(codegen_import)
 {
@@ -1908,7 +1975,7 @@ static CODEGEN_FUNC(codegen_import)
 					curEnv->refcount+=1;
 					fklPushPtrStack(importBc,bcStack);
 					FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_library_bc_process
-							,createCodegenQuestContext(bcStack,&ImportMacroWithoutPrefixStackContextMethodTable)
+							,createCodegenQuestContext(bcStack,&ImportMacroStackContextMethodTable)
 							,createDefaultQueueNextExpression(libraryRestExpressionQueue)
 							,nextCodegen->globalEnv
 							,rest->curline
@@ -1953,6 +2020,23 @@ static CODEGEN_FUNC(codegen_import)
 				,codegenQuestStack);
 	}
 }
+
+static void _import_macro_with_prefix_stack_context_finalizer(void* data)
+{
+	FklPtrStack* s=data;
+	while(s->top>2)
+		fklDestroyByteCodelnt(fklPopPtrStack(s));
+	fklPopPtrStack(s);
+	fklDestroyCodegenEnv(fklPopPtrStack(s));
+	fklDestroyPtrStack(s);
+}
+
+static const FklCodegenQuestContextMethodTable ImportMacroWithPrefixStackContextMethodTable=
+{
+	.__get_bcl_stack=_default_stack_context_get_bcl_stack,
+	.__put_bcl=_default_stack_context_put_bcl,
+	.__finalizer=_import_macro_with_prefix_stack_context_finalizer,
+};
 
 static CODEGEN_FUNC(codegen_import_with_prefix)
 {
@@ -2145,9 +2229,12 @@ static CODEGEN_FUNC(codegen_import_with_prefix)
 					}
 					fklDestroyUintStack(idWithPrefixStack);
 					FklByteCodelnt* importBc=createBclnt(bc,codegen->fid,origExp->curline);
+					fklPushPtrStack(curEnv,bcStack);
+					curEnv->refcount+=1;
+					fklPushPtrStack(fklGetGlobSymbolWithId(prefixNode->u.sym)->symbol,bcStack);
 					fklPushPtrStack(importBc,bcStack);
-					FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_library_bc_process
-							,createDefaultStackContext(bcStack)
+					FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_library_be_imported_with_prefix_bc_process
+							,createCodegenQuestContext(bcStack,&ImportMacroWithPrefixStackContextMethodTable)
 							,createDefaultQueueNextExpression(libraryRestExpressionQueue)
 							,nextCodegen->globalEnv
 							,rest->curline
@@ -2177,6 +2264,11 @@ static CODEGEN_FUNC(codegen_import_with_prefix)
 	{
 		free(filename);
 		FklCodegenLib* lib=codegen->loadedLibStack->base[libId-1];
+		FklString* prefix=fklGetGlobSymbolWithId(prefixNode->u.sym)->symbol;
+		for(FklCodegenMacro* cur=codegen->globalEnv->macros->head;cur;cur=cur->next)
+			add_compiler_macro(curEnv->macros
+					,fklMakeNastNodeRef(createPatternWithPrefixFromOrig(cur->pattern,prefix))
+					,fklCopyByteCodelnt(cur->bcl));
 		FklSid_t* exportsWithPrefix=(FklSid_t*)malloc(sizeof(FklSid_t)*lib->exportNum);
 		FKL_ASSERT(exportsWithPrefix);
 		add_symbol_with_prefix_to_locale_env_in_array(curEnv
@@ -2250,6 +2342,7 @@ static void _macro_stack_context_finalizer(void* data)
 	FklPtrStack* s=data;
 	while(s->top>2)
 		fklDestroyByteCodelnt(fklPopPtrStack(s));
+	fklPopPtrStack(s);
 	fklDestroyNastNode(fklPopPtrStack(s));
 	fklDestroyPtrStack(s);
 }

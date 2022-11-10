@@ -2362,7 +2362,6 @@ static CODEGEN_FUNC(codegen_defmacro)
 		fklAddReplacementBySid(name->u.sym,value,curEnv);
 	else if(name->type==FKL_NAST_PAIR)
 	{
-#pragma message "Todo:compiler macro export"
 		if(!fklIsValidSyntaxPattern(name))
 		{
 			errorState->type=FKL_ERR_INVALID_MACRO_PATTERN;
@@ -2382,8 +2381,13 @@ static CODEGEN_FUNC(codegen_defmacro)
 		}
 		fklDestroyHashTable(psht);
 		FklCodegen* macroCodegen=createCodegen(codegen
-				,codegen->filename
+				,NULL
 				,macroEnv);
+		free(macroCodegen->curDir);
+		macroCodegen->curDir=fklCopyCstr(codegen->curDir);
+		macroCodegen->filename=fklCopyCstr(codegen->filename);
+		macroCodegen->realpath=fklCopyCstr(codegen->realpath);
+
 		macroCodegen->globalSymTable=fklGetGlobSymbolTable();
 		macroCodegen->loadedLibStack=macroCodegen->macroLibStack;
 		FklPtrStack* bcStack=fklCreatePtrStack(16,16);

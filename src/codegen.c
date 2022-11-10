@@ -860,6 +860,7 @@ inline static void push_default_codegen_quest(FklNastNode* value
 static CODEGEN_FUNC(codegen_macroexpand)
 {
 	FklNastNode* value=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
+	fklMakeNastNodeRef(value);
 	if(value->type==FKL_NAST_PAIR)
 		value=fklTryExpandCodegenMacro(value,codegen,curEnv->macros,errorState);
 	if(errorState->type)
@@ -869,6 +870,7 @@ static CODEGEN_FUNC(codegen_macroexpand)
 			,curEnv
 			,NULL
 			,codegen);
+	fklDestroyNastNode(value);
 }
 
 static CODEGEN_FUNC(codegen_quote)
@@ -2288,7 +2290,7 @@ static CODEGEN_FUNC(codegen_import_with_prefix)
 		free(filename);
 		FklCodegenLib* lib=codegen->loadedLibStack->base[libId-1];
 		FklString* prefix=fklGetGlobSymbolWithId(prefixNode->u.sym)->symbol;
-		for(FklCodegenMacro* cur=codegen->globalEnv->macros->head;cur;cur=cur->next)
+		for(FklCodegenMacro* cur=lib->head;cur;cur=cur->next)
 			add_compiler_macro(curEnv->macros
 					,fklMakeNastNodeRef(createPatternWithPrefixFromOrig(cur->pattern,prefix))
 					,fklCopyByteCodelnt(cur->bcl));

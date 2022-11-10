@@ -857,6 +857,20 @@ inline static void push_default_codegen_quest(FklNastNode* value
 	fklPushPtrStack(quest,codegenQuestStack);
 }
 
+static CODEGEN_FUNC(codegen_macroexpand)
+{
+	FklNastNode* value=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
+	if(value->type==FKL_NAST_PAIR)
+		value=fklTryExpandCodegenMacro(value,codegen,curEnv->macros,errorState);
+	if(errorState->type)
+		return;
+	push_default_codegen_quest(value
+			,codegenQuestStack
+			,curEnv
+			,NULL
+			,codegen);
+}
+
 static CODEGEN_FUNC(codegen_quote)
 {
 	FklNastNode* value=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
@@ -1048,7 +1062,16 @@ static CODEGEN_FUNC(codegen_qsquote)
 				for(;;)
 				{
 					if(fklPatternMatch(builtInSubPattern[SUB_PATTERN_UNQUOTE].pn,node,unquoteHt))
+					{
+						FklNastNode* unquoteValue=fklPatternMatchingHashTableRef(builtInPatternVar_value,unquoteHt);
+						unquoteHelperFunc(unquoteValue
+								,codegenQuestStack
+								,curEnv
+								,_default_bc_process
+								,curQuest
+								,codegen);
 						break;
+					}
 					FklNastNode* cur=node->u.pair->car;
 					if(fklPatternMatch(builtInSubPattern[SUB_PATTERN_UNQTESP].pn,cur,unquoteHt))
 					{
@@ -2608,6 +2631,7 @@ static struct PatternAndFunc
 	{"(import name)",            NULL, codegen_import,             },
 	{"(import name rest)",       NULL, codegen_import_with_prefix, },
 	{"(library name args,rest)", NULL, codegen_library,            },
+	{"(macroexpand value)",      NULL, codegen_macroexpand,        },
 	{"(defmacro name value)",    NULL, codegen_defmacro,           },
 	{NULL,                       NULL, NULL,                       },
 };

@@ -2428,7 +2428,7 @@ static CODEGEN_FUNC(codegen_defmacro)
 				,macroCodegen
 				,codegenQuestStack);
 	}
-	else if(name->type==FKL_NAST_STR)
+	else if(name->type==FKL_NAST_VECTOR)
 	{
 #pragma message "Todo:defmacro for reader macro"
 	}
@@ -2633,8 +2633,8 @@ static struct PatternAndFunc
 	{"(import name)",            NULL, codegen_import,             },
 	{"(import name rest)",       NULL, codegen_import_with_prefix, },
 	{"(library name args,rest)", NULL, codegen_library,            },
-	{"(macroexpand value)",      NULL, codegen_macroexpand,        },
 	{"(defmacro name value)",    NULL, codegen_defmacro,           },
+	{"(macroexpand value)",      NULL, codegen_macroexpand,        },
 	{NULL,                       NULL, NULL,                       },
 };
 

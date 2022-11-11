@@ -1,6 +1,5 @@
 #include<fakeLisp/utils.h>
 #include<fakeLisp/opcode.h>
-#include<fakeLisp/ast.h>
 #include<fakeLisp/symbol.h>
 #include<stdlib.h>
 #include<stdio.h>

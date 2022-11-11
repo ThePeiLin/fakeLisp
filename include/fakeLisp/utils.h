@@ -30,15 +30,6 @@ extern "C" {
 #define FKL_MAX(a,b) (((a)>(b))?(a):(b))
 #define FKL_ASSERT(exp) assert(exp)
 
-/*{ \
-	if(!(exp)) \
-	{\
-		fprintf(stderr,"In file \"%s\" line %d\n",__FILE__,__LINE__);\
-		perror((str));\
-		exit(1);\
-	}\
-}*/
-
 int fklIsHexNumString(const FklString*);
 int fklIsOctNumString(const FklString*);
 int fklIsDoubleString(const FklString*);

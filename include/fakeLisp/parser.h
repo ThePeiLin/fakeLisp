@@ -7,10 +7,6 @@
 extern "C" {
 #endif
 
-#define FKL_PATTERN_COVER    (1)
-#define FKL_PATTERN_BE_COVER (2)
-#define FKL_PATTERN_EQUAL    (3)
-
 typedef enum{
 	FKL_NAST_NIL=0,
 	FKL_NAST_I32,
@@ -76,28 +72,12 @@ FklNastNode* fklCopyNastNode(const FklNastNode* n);
 void fklDestroyNastNode(FklNastNode*);
 void fklPrintNastNode(const FklNastNode* node,FILE* fp);
 
-typedef struct
-{
-	FklSid_t id;
-	FklNastNode* node;
-}FklPatternMatchingHashTableItem;
-
-int fklPatternMatch(const FklNastNode* pattern
-		,const FklNastNode* exp
-		,FklHashTable* ht);
-
 int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1);
-int fklIsValidSyntaxPattern(const FklNastNode* p);
-int fklPatternCoverState(const FklNastNode* p0,const FklNastNode* p1);
-
-FklNastNode* fklPatternMatchingHashTableRef(FklSid_t sid,FklHashTable* ht);
 
 enum FklVMhashTableEqType;
 FklNastPair* fklCreateNastPair(void);
 FklNastHashTable* fklCreateNastHash(enum FklVMhashTableEqType,size_t);
 FklNastVector* fklCreateNastVector(size_t);
-FklHashTable* fklCreatePatternMatchingHashTable(void);
-void fklDestroyPatternMatchingHashTable(FklHashTable*);
 int fklIsNastNodeList(const FklNastNode* list);
 int fklIsNastNodeListAndHasSameType(const FklNastNode* list,FklNastType type);
 

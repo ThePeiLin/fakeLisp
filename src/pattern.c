@@ -17,13 +17,25 @@ FklStringMatchPattern* fklCreateStringMatchPattern(FklNastNode* parts
 	return r;
 }
 
-static const char* BuiltinStringPattern_0[]={":'","#a",};
-static const char* BuiltinStringPattern_1[]={":(","&a",":)",};
-static const char* BuiltinStringPattern_2[]={":[","&a",":]",};
-static const char* BuiltinStringPattern_3[]={":(","#a","&b",":,","#c",":)",};
-static const char* BuiltinStringPattern_4[]={":[","#a","&b",":,","#c",":]",};
-static const char* BuiltinStringPattern_5[]={":#(","&a",":)",};
-static const char* BuiltinStringPattern_6[]={":#[","&a",":]",};
+static const char* BuiltinStringPattern_quote[]={":'","#a",};
+static const char* BuiltinStringPattern_qsquote[]={":`","#a",};
+static const char* BuiltinStringPattern_unquote[]={":~","#a",};
+static const char* BuiltinStringPattern_unqtesp[]={":~@","#a",};
+static const char* BuiltinStringPattern_box[]={":#&","#a",};
+static const char* BuiltinStringPattern_list_0[]={":(","&a",":)",};
+static const char* BuiltinStringPattern_list_1[]={":[","&a",":]",};
+static const char* BuiltinStringPattern_pair_0[]={":(","#a","&b",":,","#c",":)",};
+static const char* BuiltinStringPattern_pair_1[]={":[","#a","&b",":,","#c",":]",};
+static const char* BuiltinStringPattern_vector_0[]={":#(","&a",":)",};
+static const char* BuiltinStringPattern_vector_1[]={":#[","&a",":]",};
+static const char* BuiltinStringPattern_bytevector_0[]={":#vu8(","&a",":)",};
+static const char* BuiltinStringPattern_bytevector_1[]={":#vu8[","&a",":]",};
+static const char* BuiltinStringPattern_hash_0[]={":#hash(","&a",":)",};
+static const char* BuiltinStringPattern_hash_1[]={":#hash[","&a",":]",};
+static const char* BuiltinStringPattern_hasheqv_0[]={":#hasheqv(","&a",":)",};
+static const char* BuiltinStringPattern_hasheqv_1[]={":#hasheqv[","&a",":]",};
+static const char* BuiltinStringPattern_hashequal_0[]={":#hashequal(","&a",":)",};
+static const char* BuiltinStringPattern_hashequal_1[]={":#hashequal[","&a",":]",};
 
 static struct BuiltinStringPattern
 {
@@ -32,13 +44,33 @@ static struct BuiltinStringPattern
 	FklNastNode* (*func)(FklPtrStack*,uint64_t,size_t*);
 }BuiltinStringPatterns[]=
 {
-	{2,BuiltinStringPattern_0,NULL},
-	{3,BuiltinStringPattern_1,NULL},
-	{3,BuiltinStringPattern_2,NULL},
-	{6,BuiltinStringPattern_3,NULL},
-	{6,BuiltinStringPattern_4,NULL},
-	{3,BuiltinStringPattern_5,NULL},
-	{3,BuiltinStringPattern_6,NULL},
+	{2,BuiltinStringPattern_quote,NULL},
+	{2,BuiltinStringPattern_qsquote,NULL},
+	{2,BuiltinStringPattern_unquote,NULL},
+	{2,BuiltinStringPattern_unqtesp,NULL},
+	{2,BuiltinStringPattern_box,NULL},
+
+	{3,BuiltinStringPattern_list_0,NULL},
+	{3,BuiltinStringPattern_list_1,NULL},
+
+	{6,BuiltinStringPattern_pair_0,NULL},
+	{6,BuiltinStringPattern_pair_1,NULL},
+
+	{3,BuiltinStringPattern_vector_0,NULL},
+	{3,BuiltinStringPattern_vector_1,NULL},
+
+	{3,BuiltinStringPattern_bytevector_0,NULL},
+	{3,BuiltinStringPattern_bytevector_1,NULL},
+
+	{3,BuiltinStringPattern_hash_0,NULL},
+	{3,BuiltinStringPattern_hash_1,NULL},
+
+	{3,BuiltinStringPattern_hasheqv_0,NULL},
+	{3,BuiltinStringPattern_hasheqv_1,NULL},
+
+	{3,BuiltinStringPattern_hashequal_0,NULL},
+	{3,BuiltinStringPattern_hashequal_1,NULL},
+
 	{0,NULL,NULL},
 };
 
@@ -424,14 +456,6 @@ static int updateBoxState(const char* buf
 		else
 			pstate=&(*pstate)->next;
 	}
-	if(!r)
-	{
-		*pset=matchInUniversSet(buf,n
-				,patterns
-				,pt
-				,line
-				,prev);
-	}
 	return r;
 }
 
@@ -456,11 +480,6 @@ static void updateSymState(const char* buf
 		else
 			pstate=&(*pstate)->next;
 	}
-	*pset=matchInUniversSet(buf,n
-			,patterns
-			,pt
-			,line
-			,prev);
 }
 
 static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
@@ -473,11 +492,6 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 	FklStringMatchSet* r=NULL;
 	if(set==NULL)
 		r=matchInUniversSet(buf,n,patterns,pt,line,NULL);
-	else if(set->str==NULL&&set->box==NULL&&set->sym==NULL)
-	{
-		r=set->prev;
-		free(set);
-	}
 	else
 	{
 		FklStringMatchState* strs=set->str;
@@ -492,11 +506,22 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 			if(!updateBoxState(buf,n,&r,boxes,set,patterns,pt,line))
 			{
 				updateSymState(buf,n,&r,syms,set,patterns,pt,line);
+				r=matchInUniversSet(buf,n
+						,patterns
+						,pt
+						,line
+						,set);
 				if(!*pt)
 					*pt=defaultTokenCreator(buf,n,set->box,patterns,set,line);
 			}
 		}
-		r=set;
+		if(!r)
+			r=set;
+		if(r->str==NULL&&r->box==NULL&&r->sym==NULL)
+		{
+			r=set->prev;
+			free(set);
+		}
 	}
 	return r;
 }

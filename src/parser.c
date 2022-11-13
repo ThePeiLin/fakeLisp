@@ -18,7 +18,7 @@ FklNastNode* fklCreateNastNodeFromCstr(const char* cStr,const FklSid_t buildInHe
 {
 	FklPtrStack* tokenStack=fklCreatePtrStack(8,16);
 	size_t size=strlen(cStr);
-	uint32_t line=0;
+	size_t line=0;
 	uint32_t i,j=0;
 	FklPtrStack* matchStateStack=fklCreatePtrStack(8,16);
 	fklSplitStringPartsIntoToken(&cStr

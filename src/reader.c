@@ -1,6 +1,7 @@
 #include<fakeLisp/reader.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/lexer.h>
+#include<fakeLisp/pattern.h>
 #include<string.h>
 #include<stdlib.h>
 #include<ctype.h>
@@ -54,7 +55,7 @@ char* fklReadInStringPattern(FILE* fp,char** prev,size_t* size,size_t* prevSize,
 	else
 		*size=0;
 	uint32_t cpost=0;
-	uint32_t line=curline;
+	size_t line=curline;
 	for(;;)
 	{
 		const char* strs[]={tmp+cpost};

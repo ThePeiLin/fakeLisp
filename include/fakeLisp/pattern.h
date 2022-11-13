@@ -7,42 +7,85 @@
 extern "C"{
 #endif
 
+typedef enum
+{
+	FKL_TOKEN_RESERVE_STR=0,
+	FKL_TOKEN_CHAR,
+	FKL_TOKEN_NUM,
+	FKL_TOKEN_STRING,
+	FKL_TOKEN_SYMBOL,
+	FKL_TOKEN_COMMENT,
+}FklTokenType;
+
+typedef struct
+{
+	FklTokenType type;
+	FklString* value;
+	size_t line;
+}FklToken;
+
+FklToken* fklCreateToken(FklTokenType type,FklString* str,size_t line);
+FklToken* fklCreateTokenCopyStr(FklTokenType type,const FklString* str,size_t line);
+void fklDestroyToken(FklToken* token);
+void fklPrintToken(FklPtrStack*,FILE* fp);
+
+typedef enum
+{
+	FKL_STRING_PATTERN_ATOM,
+	FKL_STRING_PATTERN_BUILTIN,
+	FKL_STRING_PATTERN_DEFINED,
+}FklStringPatternType;
+
 typedef struct FklStringMatchPattern
 {
-	uint32_t num;
-	uint32_t reserveCharNum;
-	FklString** parts;
-	FklByteCodelnt* proc;
-	struct FklStringMatchPattern* prev;
+	FklNastNode* parts;
+	FklStringPatternType type;
+	union
+	{
+		FklByteCodelnt* proc;
+		FklNastNode* (*func)(FklPtrStack*,uint64_t,size_t*);
+	}u;
 	struct FklStringMatchPattern* next;
 }FklStringMatchPattern;
 
-FklStringMatchPattern* fklFindStringPattern(const FklString*);
-FklStringMatchPattern* fklFindStringPatternBuf(const char* buf,size_t size);
-FklStringMatchPattern* fklCreateStringMatchPattern(uint32_t,FklString**,FklByteCodelnt*);
-const FklString* fklGetNthReverseCharOfStringMatchPattern(FklStringMatchPattern* pattern,uint32_t nth);
-const FklString* fklGetNthPartOfStringMatchPattern(FklStringMatchPattern* pattern,uint32_t nth);
-FklString** fklSplitPattern(const FklString*,uint32_t*);
-void fklDestroyAllStringPattern();
-void fklDestroyStringPattern(FklStringMatchPattern*);
-int fklIsInValidStringPattern(FklString* const*,uint32_t);
-int fklIsReDefStringPattern(FklString* const*,uint32_t);
-int fklIsVar(const FklString*);
-int fklIsMustList(const FklString*);
-//int fklMaybePatternPrefix(const char*);
-//uint32_t fklFindKeyString(const FklString*);
-//FklString** fklSplitStringInPattern(const FklString*,FklStringMatchPattern*,uint32_t*);
+typedef struct FklStringMatchState
+{
+	FklStringMatchPattern* pattern;
+	size_t index;
+	struct FklStringMatchState* next;
+}FklStringMatchState;
 
-void fklDestroyCstrArray(char** ss,uint32_t num);
-FklString* fklGetVarName(const FklString*);
-//size_t fklSkipInPattern(const FklString*,size_t i,FklStringMatchPattern*);
-//size_t fklSkipSpace(const FklString*,size_t i);
-//uint32_t fklCountInPattern(const FklString* str,FklStringMatchPattern*);
-//size_t fklSkipUntilNext(const FklString* str,size_t,const FklString*);
-//size_t fklSkipUntilNextWhenReading(const FklString*,size_t,const FklString*);
-//size_t fklSkipParentheses(const FklString*,size_t);
-//size_t fklSkipAtom(const FklString*,size_t,const FklString*);
-//void fklPrintInPattern(FklString**,FklStringMatchPattern*,FILE*,uint32_t);
+typedef struct FklStringMatchSet
+{
+	FklStringMatchState* str;
+	FklStringMatchState* box;
+	FklStringMatchState* sym;
+	struct FklStringMatchSet* prev;
+}FklStringMatchSet;
+
+FklStringMatchPattern* fklInitBuiltInStringPattern(void);
+
+FklStringMatchSet* fklGetMatchingSet(const char* s
+		,size_t n
+		,FklStringMatchSet*
+		,FklStringMatchPattern* pattern
+		,FklToken**
+		,size_t line);
+
+FklStringMatchPattern* fklFindStringPatternBuf(const char* buf,size_t size);
+FklStringMatchPattern* fklCreateStringMatchPattern(FklNastNode*
+		,FklByteCodelnt*
+		,FklStringMatchPattern* next);
+
+void fklAddStringMatchPattern(FklNastNode*
+		,FklByteCodelnt*
+		,FklStringMatchPattern** head);
+
+int fklStringPatternCoverState(const FklNastVector* p0,const FklNastVector* p1);
+void fklDestroyAllStringPattern(FklStringMatchPattern*);
+int fklIsInValidStringPattern(FklNastNode*);
+
+FklSid_t* fklGetVarId(const FklNastNode*);
 
 typedef struct
 {

@@ -3,309 +3,358 @@
 #include<fakeLisp/vm.h>
 #include<string.h>
 #include<ctype.h>
-static FklStringMatchPattern* HeadOfStringPattern=NULL;
-static uint32_t countStringParts(const FklString*);
-static uint32_t countReverseCharNum(uint32_t num,FklString* const* parts)
+
+FklStringMatchPattern* fklCreateStringMatchPattern(FklNastNode* parts
+		,FklByteCodelnt* bcl
+		,FklStringMatchPattern* next)
 {
-	uint32_t retval=0;
-	for(uint32_t i=0;i<num;i++)
-		if(!fklIsVar(parts[i]))
-			retval++;
-	return retval;
+	FklStringMatchPattern* r=(FklStringMatchPattern*)malloc(sizeof(FklStringMatchPattern));
+	FKL_ASSERT(r);
+	r->parts=fklMakeNastNodeRef(parts);
+	r->type=FKL_STRING_PATTERN_BUILTIN;
+	r->u.proc=bcl;
+	r->next=next;
+	return r;
 }
 
-static size_t fklSkipSpace(const FklString* str,size_t index)
+void fklAddStringMatchPattern(FklNastNode* parts
+		,FklByteCodelnt* proc
+		,FklStringMatchPattern** head)
 {
-	size_t i=0;
-	size_t size=str->size;
-	const char* buf=str->str;
-	for(;i+index<size&&isspace(buf[i]);i++);
-	return i;
-}
-
-
-uint32_t countStringParts(const FklString* str)
-{
-	uint32_t count=0;
-	size_t size=str->size;
-	const char* buf=str->str;
-	for(size_t i=0;i<size;i++)
+	int coverState=0;
+	FklStringMatchPattern** phead=head;
+	for(;*phead;phead=&(*phead)->next)
 	{
-		if(isspace(buf[i]))
-			i+=fklSkipSpace(str,i);
-		if(buf[i]=='(')
-		{
-			size_t j=i;
-			for(;j<size&&buf[j]!=')';j++);
-			i=j;
-			count++;
-			continue;
-		}
-		size_t j=i;
-		for(;j<size&&buf[j]!='(';j++);
-		count++;
-		i=j-1;
-		continue;
-	}
-	return count;
-}
-
-
-FklStringMatchPattern* fklFindStringPatternBuf(const char* buf,size_t size)
-{
-	if(!HeadOfStringPattern)
-		return NULL;
-	FklStringMatchPattern* cur=HeadOfStringPattern;
-	while(cur)
-	{
-		const FklString* part=cur->parts[0];
-		if(size>=part->size&&!memcmp(buf,part->str,part->size))
+		FklStringMatchPattern* cur=*phead;
+		coverState=fklStringPatternCoverState(cur->parts->u.vec,parts->u.vec);
+		if(coverState)
 			break;
-		cur=cur->next;
 	}
-	return cur;
-}
-
-FklStringMatchPattern* fklFindStringPattern(const FklString* str)
-{
-	if(!HeadOfStringPattern)
-		return NULL;
-	FklStringMatchPattern* cur=HeadOfStringPattern;
-	str+=fklSkipSpace(str,0);
-	while(cur)
-	{
-		const FklString* part=cur->parts[0];
-		if(str->size>=part->size&&!memcmp(str->str,part->str,part->size))
-			break;
-		cur=cur->next;
-	}
-	return cur;
-}
-
-FklStringMatchPattern* fklCreateStringMatchPattern(uint32_t num,FklString** parts,FklByteCodelnt* proc)
-{
-	FklStringMatchPattern* tmp=(FklStringMatchPattern*)malloc(sizeof(FklStringMatchPattern));
-	FKL_ASSERT(tmp);
-	tmp->num=num;
-	tmp->reserveCharNum=countReverseCharNum(num,parts);
-	tmp->parts=parts;
-	tmp->proc=proc;
-	tmp->next=NULL;
-	tmp->prev=NULL;
-	if(!HeadOfStringPattern)
-		HeadOfStringPattern=tmp;
+	if(!coverState)
+		*head=fklCreateStringMatchPattern(parts,proc,*head);
 	else
 	{
-		FklStringMatchPattern* cur=HeadOfStringPattern;
-		while(cur)
+		if(coverState==FKL_PATTERN_COVER)
 		{
-			int32_t fir=tmp->parts[0]->size;
-			int32_t sec=cur->parts[0]->size;
-			if(fir>sec)
+			FklStringMatchPattern* next=*phead;
+			*phead=fklCreateStringMatchPattern(parts,proc,next);
+		}
+		else if(coverState==FKL_PATTERN_BE_COVER)
+		{
+			FklStringMatchPattern* next=(*phead)->next;
+			(*phead)->next=fklCreateStringMatchPattern(parts,proc,next);
+		}
+		else
+		{
+			FklStringMatchPattern* cur=*phead;
+			fklDestroyNastNode(cur->parts);
+			if(cur->type==FKL_STRING_PATTERN_DEFINED)
+				fklDestroyByteCodelnt(cur->u.proc);
+			else
+				cur->type=FKL_STRING_PATTERN_DEFINED;
+			cur->parts=fklMakeNastNodeRef(parts);
+			cur->u.proc=proc;
+		}
+	}
+}
+
+inline static FklNastNode* getPartFromState(FklStringMatchState* state,size_t index)
+{
+	return state->pattern->parts->u.vec->base[index];
+}
+
+inline static size_t getSizeFromPattern(FklStringMatchPattern* p)
+{
+	return p->parts->u.vec->size;
+}
+
+
+static FklStringMatchState* createStringMatchState(FklStringMatchPattern* pattern
+		,size_t index
+		,FklStringMatchState* next)
+{
+	FklStringMatchState* r=(FklStringMatchState*)malloc(sizeof(FklStringMatchState));
+	FKL_ASSERT(r);
+	r->next=next;
+	r->index=index;
+	r->pattern=pattern;
+	return r;
+}
+
+static void addStateIntoSyms(FklStringMatchState** syms,FklStringMatchState* state)
+{
+	state->next=*syms;
+	*syms=state;
+}
+
+static void addStateIntoStrs(FklStringMatchState** strs,FklStringMatchState* state)
+{
+	size_t len=getPartFromState(state,state->index)->u.str->size;
+	for(;*strs;strs=&(*strs)->next)
+	{
+		size_t curlen=getPartFromState((*strs),(*strs)->index)->u.str->size;
+		if(len>=curlen)
+		{
+			state->next=*strs;
+			*strs=state;
+			break;
+		}
+	}
+	if(!*strs)
+	{
+		state->next=*strs;
+		*strs=state;
+	}
+}
+
+static void addStateIntoBoxes(FklStringMatchState** boxes,FklStringMatchState* state)
+{
+	size_t len=getPartFromState(state,state->index+1)->u.str->size;
+	for(;*boxes;boxes=&(*boxes)->next)
+	{
+		size_t curlen=getPartFromState((*boxes),(*boxes)->index+1)->u.str->size;
+		if(len>=curlen)
+		{
+			state->next=*boxes;
+			*boxes=state;
+			break;
+		}
+	}
+	if(!*boxes)
+	{
+		state->next=*boxes;
+		*boxes=state;
+	}
+}
+
+static void addStateIntoSet(FklStringMatchState* state
+		,FklStringMatchState** strs
+		,FklStringMatchState** boxes
+		,FklStringMatchState** syms)
+{
+	FklNastNode* part=getPartFromState(state,state->index);
+	switch(part->type)
+	{
+		case FKL_NAST_STR:
+			addStateIntoStrs(strs,state);
+			break;
+		case FKL_NAST_BOX:
+			addStateIntoBoxes(boxes,state);
+			break;
+		case FKL_NAST_SYM:
+			addStateIntoSyms(syms,state);
+			break;
+		default:
+			FKL_ASSERT(0);
+	}
+}
+
+static FklStringMatchSet* createStringMatchSet(FklStringMatchState* strs
+		,FklStringMatchState* boxes
+		,FklStringMatchState* syms
+		,FklStringMatchSet* prev)
+{
+	FklStringMatchSet* r=(FklStringMatchSet*)malloc(sizeof(FklStringMatchSet));
+	FKL_ASSERT(r);
+	r->str=strs;
+	r->box=boxes;
+	r->sym=syms;
+	r->prev=prev;
+	return r;
+}
+
+inline static int matchWithStr(size_t pn,const char* buf,size_t n,FklString* s)
+{
+	return (pn==0||pn==s->size)&&n>=s->size&&!memcmp(s->str,buf,s->size);
+}
+
+static FklStringMatchSet* matchInUniversSet(const char* buf
+		,size_t n
+		,FklStringMatchPattern* p
+		,FklToken** pt
+		,size_t line
+		,FklStringMatchSet* prev)
+{
+	FklStringMatchSet* r=NULL;
+	size_t pn=0;
+	FklStringMatchState* strs=NULL;
+	FklStringMatchState* boxes=NULL;
+	FklStringMatchState* syms=NULL;
+	for(;p;p=p->next)
+	{
+		FklString* s=p->parts->u.vec->base[0]->u.str;
+		if(pn!=0&&pn>s->size)
+			break;
+		if(matchWithStr(pn,buf,n,s))
+		{
+			pn=s->size;
+			if(!*pt)
+				*pt=fklCreateToken(FKL_TOKEN_RESERVE_STR,fklCopyString(s),line);
+			FklStringMatchState* state=createStringMatchState(p,0,NULL);
+			addStateIntoSet(state,&strs,&boxes,&syms);
+		}
+	}
+	if(strs||boxes||syms)
+		r=createStringMatchSet(strs,boxes,syms,prev);
+	return r;
+}
+
+static int updateStrState(const char* buf
+		,size_t n
+		,FklStringMatchSet** pset
+		,FklStringMatchState* strs
+		,FklStringMatchSet* prev
+		,FklToken** pt
+		,size_t line)
+{
+	int r=0;
+	size_t pn=0;
+	for(FklStringMatchState** pstate=&strs;*pstate;)
+	{
+		FklStringMatchState* cur=*pstate;
+		FklString* s=getPartFromState(cur,cur->index)->u.str;
+		if(pn!=0&&pn>s->size)
+			break;
+		if(matchWithStr(pn,buf,n,s))
+		{
+			pn=s->size;
+			if(!*pt)
+				*pt=fklCreateToken(FKL_TOKEN_RESERVE_STR,fklCopyString(s),line);
+			cur->index++;
+			if(cur->index<getSizeFromPattern(cur->pattern))
 			{
-				if(!cur->prev)
-				{
-					tmp->next=HeadOfStringPattern;
-					HeadOfStringPattern->prev=tmp;
-					HeadOfStringPattern=tmp;
-				}
-				else
-				{
-					cur->prev->next=tmp;
-					tmp->prev=cur->prev;
-					cur->prev=tmp;
-					tmp->next=cur;
-				}
-				break;
+				*pstate=cur->next;
+				addStateIntoSet(cur,&prev->str,&prev->box,&prev->sym);
 			}
-			cur=cur->next;
+			else
+				pstate=&(*pstate)->next;
+			r=1;
 		}
-		if(!cur)
-		{
-			for(cur=HeadOfStringPattern;cur->next;cur=cur->next);
-			cur->next=tmp;
-			tmp->prev=cur;
-		}
+		else
+			pstate=&(*pstate)->next;
 	}
-	return tmp;
+	return r;
 }
 
-const FklString* fklGetNthReverseCharOfStringMatchPattern(FklStringMatchPattern* pattern,uint32_t nth)
+static int updateBoxState(const char* buf
+		,size_t n
+		,FklStringMatchSet** pset
+		,FklStringMatchState* boxes
+		,FklStringMatchSet* prev
+		,FklStringMatchPattern* patterns
+		,FklToken** pt
+		,size_t line)
 {
-	uint32_t i=0;
-	uint32_t j=0;
-	for(;i<pattern->num&&j<nth+1;i++,j+=!fklIsVar(pattern->parts[i]));
-	return (j==nth)?pattern->parts[i]:NULL;
-}
-
-const FklString* fklGetNthPartOfStringMatchPattern(FklStringMatchPattern* pattern,uint32_t nth)
-{
-	if(nth>=pattern->num||nth<0)
-		return NULL;
-	return pattern->parts[nth];
-}
-
-FklString** fklSplitPattern(const FklString* str,uint32_t* num)
-{
-	uint32_t count=countStringParts(str);
-	*num=count;
-	FklString** tmp=(FklString**)malloc(sizeof(FklString*)*count);
-	FKL_ASSERT(tmp);
-	count=0;
-	const char* buf=str->str;
-	size_t size=str->size;
-	for(size_t i=0;i<size;i++)
+	int r=0;
+	for(FklStringMatchState** pstate=&boxes;*pstate;)
 	{
-		if(isspace(buf[i]))
-			i+=fklSkipSpace(str,i);
-		if(buf[i]=='(')
+		FklStringMatchState* cur=*pstate;
+		FklString* s=getPartFromState(cur,cur->index+1)->u.str;
+		if(n>=s->size&&!memcmp(s->str,buf,s->size))
 		{
-			size_t j=i;
-			for(;j<size&&buf[j]!=')';j++);
-			FklString* tmpStr=fklCreateString(j-i+1,buf+i);
-			tmp[count]=tmpStr;
-			i=j;
-			count++;
-			continue;
+			*pstate=cur->next;
+			cur->index+=2;
+			if(cur->index<getSizeFromPattern(cur->pattern))
+			{
+				*pstate=cur->next;
+				addStateIntoSet(cur,&prev->str,&prev->box,&prev->sym);
+			}
+			else
+				pstate=&(*pstate)->next;
+			r=1;
 		}
-		size_t j=i;
-		for(;j<size&&buf[j]!='(';j++);
-		FklString* tmpStr=fklCreateString(j-i,buf+i);
-		tmp[count]=tmpStr;
-		count++;
-		i=j-1;
-		continue;
+		else
+			pstate=&(*pstate)->next;
 	}
-	return tmp;
+	if(!r)
+	{
+		*pset=matchInUniversSet(buf,n
+				,patterns
+				,pt
+				,line
+				,prev);
+		if(*pset)
+			r=1;
+	}
+	return r;
 }
 
-void fklDestroyAllStringPattern()
+static int updateSymState(const char* buf
+		,size_t n
+		,FklStringMatchSet** pset
+		,FklStringMatchState* syms
+		,FklStringMatchSet* prev
+		,FklStringMatchPattern* patterns
+		,FklToken** pt
+		,size_t line)
 {
-	FklStringMatchPattern* cur=HeadOfStringPattern;
-	while(cur)
+	for(FklStringMatchState** pstate=&syms;*pstate;)
 	{
-		FklStringMatchPattern* prev=cur;
-		cur=cur->next;
-		fklDestroyStringArray(prev->parts,prev->num);
-		fklDestroyByteCodelnt(prev->proc);
-		free(prev);
+		FklStringMatchState* cur=*pstate;
+		cur->index++;
+		if(cur->index<getSizeFromPattern(cur->pattern))
+		{
+			*pstate=cur->next;
+			addStateIntoSet(cur,&prev->str,&prev->box,&prev->sym);
+		}
+		else
+			pstate=&(*pstate)->next;
 	}
+	*pset=matchInUniversSet(buf,n
+			,patterns
+			,pt
+			,line
+			,prev);
+	return *pset!=NULL;
+}
+
+static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
+		,const char* buf
+		,size_t n
+		,FklStringMatchPattern* patterns
+		,FklToken** pt
+		,size_t line)
+{
+	FklStringMatchSet* r=NULL;
+	if(set==NULL)
+		r=matchInUniversSet(buf,n,patterns,pt,line,NULL);
+	else if(set->str==NULL&&set->box==NULL&&set->sym==NULL)
+	{
+		r=set->prev;
+		free(set);
+	}
+	else
+	{
+		FklStringMatchState* strs=set->str;
+		FklStringMatchState* boxes=set->box;
+		FklStringMatchState* syms=set->sym;
+		set->sym=NULL;
+		set->box=NULL;
+		set->str=NULL;
+		r=NULL;
+		if(!updateStrState(buf,n,&r,strs,set,pt,line))
+			if(!updateBoxState(buf,n,&r,boxes,set,patterns,pt,line))
+				updateSymState(buf,n,&r,syms,set,patterns,pt,line);
+		r=set;
+	}
+	return r;
+}
+
+FklStringMatchSet* fklGetMatchingSet(const char* s,size_t n
+		,FklStringMatchSet* curSet
+		,FklStringMatchPattern* patterns
+		,FklToken** ptoken
+		,size_t line)
+{
+	return updatePreviusSet(curSet,s,n,patterns,ptoken,line);
 }
 
 void fklDestroyStringPattern(FklStringMatchPattern* o)
 {
-	int i=0;
-	int32_t num=o->num;
-	for(;i<num;i++)
-		free(o->parts[i]);
-	free(o->parts);
+	if(o->type==FKL_STRING_PATTERN_DEFINED)
+		fklDestroyByteCodelnt(o->u.proc);
+	fklDestroyNastNode(o->parts);
 	free(o);
-}
-
-int fklIsInValidStringPattern(FklString* const* parts,uint32_t num)
-{
-	FklStringMatchPattern* pattern=HeadOfStringPattern;
-	if(fklIsVar(parts[0])||parts[0]->str[0]=='\"')
-		return 1;
-	if(pattern)
-	{
-		while(pattern->prev)
-			pattern=pattern->prev;
-		while(pattern)
-		{
-			if(!fklStringcmp(parts[0],pattern->parts[0]))
-				return 1;
-			pattern=pattern->next;
-		}
-	}
-	int i=0;
-	for(;i<num;i++)
-	{
-		if(fklIsVar(parts[i])&&fklIsMustList(parts[i]))
-		{
-			if(i<num-1)
-			{
-				if(fklIsVar(parts[i+1]))
-					return 1;
-			}
-			else
-				return 1;
-		}
-		else if(parts[i]->str[0]=='\"'||parts[i]->str[0]==';'||!memcmp(parts[i]->str,"#!",strlen("#!")))
-			return 1;
-	}
-	return 0;
-}
-
-int fklIsReDefStringPattern(FklString* const* parts,uint32_t num)
-{
-	FklStringMatchPattern* pattern=HeadOfStringPattern;
-	if(pattern)
-	{
-		while(pattern->prev)
-			pattern=pattern->prev;
-		while(pattern)
-		{
-			if(!fklStringcmp(parts[0],pattern->parts[0]))
-			{
-				if(pattern->num!=num)
-					return 0;
-				else
-				{
-					int32_t i=0;
-					for(;i<num;i++)
-					{
-						if(fklIsVar(pattern->parts[i])&&fklIsVar(parts[i]))
-							continue;
-						else if(fklIsVar(pattern->parts[i])||fklIsVar(parts[i]))
-							return 0;
-						else if(fklStringcmp(parts[i],pattern->parts[i]))
-							return 0;
-					}
-				}
-				return 1;
-			}
-			pattern=pattern->next;
-		}
-		return 0;
-	}
-	else
-		return 0;
-}
-
-int fklIsMustList(const FklString* str)
-{
-	if(!fklIsVar(str))
-		return 0;
-	if(str->str[1]==',')
-		return 1;
-	return 0;
-}
-
-int fklIsVar(const FklString* part)
-{
-	const char* buf=part->str;
-	if(buf[0]=='(')
-		return 1;
-	return 0;
-}
-
-void fklDestroyCstrArray(char** ss,uint32_t num)
-{
-	for(uint32_t i=0;i<num;i++)
-		free(ss[i]);
-	free(ss);
-}
-
-FklString* fklGetVarName(const FklString* str)
-{
-	size_t size=str->size;
-	const char* buf=str->str;
-	size_t i=(buf[1]==',')?2:1;
-	size_t j=i;
-	for(;i<size&&buf[i]!=')';i++);
-	FklString* tmp=fklCreateString(i-j,buf+j);
-	return tmp;
 }
 
 FklNastNode* fklPatternMatchingHashTableRef(FklSid_t sid,FklHashTable* ht)
@@ -492,4 +541,62 @@ inline int fklPatternCoverState(const FklNastNode* p0,const FklNastNode* p1)
 	r+=fklPatternMatch(p0,p1,NULL)?FKL_PATTERN_COVER:0;
 	r+=fklPatternMatch(p1,p0,NULL)?FKL_PATTERN_BE_COVER:0;
 	return r;
+}
+
+FklToken* fklCreateTokenCopyStr(FklTokenType type,const FklString* str,size_t line)
+{
+	FklToken* token=(FklToken*)malloc(sizeof(FklToken));
+	FKL_ASSERT(token);
+	token->type=type;
+	token->line=line;
+	token->value=fklCopyString(str);
+	return token;
+}
+
+FklToken* fklCreateToken(FklTokenType type,FklString* str,size_t line)
+{
+	FklToken* token=(FklToken*)malloc(sizeof(FklToken));
+	FKL_ASSERT(token);
+	token->type=type;
+	token->line=line;
+	token->value=str;
+	return token;
+}
+
+void fklDestroyToken(FklToken* token)
+{
+	free(token->value);
+	free(token);
+}
+
+void fklPrintToken(FklPtrStack* tokenStack,FILE* fp)
+{
+	static const char* tokenTypeName[]=
+	{
+		"reserve_str",
+		"char",
+		"num",
+		"byts",
+		"string",
+		"symbol",
+		"comment",
+	};
+	for(uint32_t i=0;i<tokenStack->top;i++)
+	{
+		FklToken* token=tokenStack->base[i];
+		fprintf(fp,"%lu,%s:",token->line,tokenTypeName[token->type]);
+		fklPrintString(token->value,fp);
+		fputc('\n',fp);
+	}
+}
+
+int fklIsAllComment(FklPtrStack* tokenStack)
+{
+	for(uint32_t i=0;i<tokenStack->top;i++)
+	{
+		FklToken* token=tokenStack->base[i];
+		if(token->type!=FKL_TOKEN_COMMENT)
+			return 0;
+	}
+	return 1;
 }

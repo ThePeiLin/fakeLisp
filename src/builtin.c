@@ -3,6 +3,7 @@
 #include<fakeLisp/fklni.h>
 #include<fakeLisp/base.h>
 #include<fakeLisp/lexer.h>
+#include<fakeLisp/pattern.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/builtin.h>
 #include<fakeLisp/codegen.h>
@@ -2679,7 +2680,7 @@ void builtin_parser(ARGL)
 	FklPtrStack* tokenStack=fklCreatePtrStack(32,16);
 	const char* parts[]={stream->u.str->str};
 	size_t sizes[]={stream->u.str->size};
-	uint32_t line=0;
+	size_t line=0;
 	FklPtrStack* matchStateStack=fklCreatePtrStack(32,16);
 	fklSplitStringPartsIntoToken(parts,sizes,1,&line,tokenStack,matchStateStack,NULL,NULL);
 	while(!fklIsPtrStackEmpty(matchStateStack))

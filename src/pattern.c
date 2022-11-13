@@ -11,9 +11,100 @@ FklStringMatchPattern* fklCreateStringMatchPattern(FklNastNode* parts
 	FklStringMatchPattern* r=(FklStringMatchPattern*)malloc(sizeof(FklStringMatchPattern));
 	FKL_ASSERT(r);
 	r->parts=fklMakeNastNodeRef(parts);
-	r->type=FKL_STRING_PATTERN_BUILTIN;
+	r->type=FKL_STRING_PATTERN_DEFINED;
 	r->u.proc=bcl;
 	r->next=next;
+	return r;
+}
+
+static const char* BuiltinStringPattern_0[]={":'","#a",};
+static const char* BuiltinStringPattern_1[]={":(","&a",":)",};
+static const char* BuiltinStringPattern_2[]={":[","&a",":]",};
+static const char* BuiltinStringPattern_3[]={":(","#a","&b",":,","#c",":)",};
+static const char* BuiltinStringPattern_4[]={":[","#a","&b",":,","#c",":]",};
+static const char* BuiltinStringPattern_5[]={":#(","&a",":)",};
+static const char* BuiltinStringPattern_6[]={":#[","&a",":]",};
+
+static struct BuiltinStringPattern
+{
+	size_t num;
+	const char** parts;
+	FklNastNode* (*func)(FklPtrStack*,uint64_t,size_t*);
+}BuiltinStringPatterns[]=
+{
+	{2,BuiltinStringPattern_0,NULL},
+	{3,BuiltinStringPattern_1,NULL},
+	{3,BuiltinStringPattern_2,NULL},
+	{6,BuiltinStringPattern_3,NULL},
+	{6,BuiltinStringPattern_4,NULL},
+	{3,BuiltinStringPattern_5,NULL},
+	{3,BuiltinStringPattern_6,NULL},
+	{0,NULL,NULL},
+};
+
+static FklNastNode* createPatternPartFromCstr(const char* s)
+{
+	FklNastNode* r=fklCreateNastNode(FKL_NAST_NIL,0);
+	switch(s[0])
+	{
+		case ':':
+			r->type=FKL_NAST_STR;
+			r->u.str=fklCreateStringFromCstr(&s[1]);
+			break;
+		case '#':
+			r->type=FKL_NAST_SYM;
+			r->u.sym=fklAddSymbolToGlobCstr(&s[1])->id;
+			break;
+		case '&':
+			r->type=FKL_NAST_BOX;
+			r->u.box=fklMakeNastNodeRef(fklCreateNastNode(FKL_NAST_SYM,0));
+			r->u.box->u.sym=fklAddSymbolToGlobCstr(&s[1])->id;
+			break;
+		default:
+			FKL_ASSERT(0);
+	}
+	return r;
+}
+
+static FklStringMatchPattern* createBuiltinStringPattern(FklNastNode* parts
+		,FklNastNode* (*func)(FklPtrStack*,uint64_t,size_t*)
+		,FklStringMatchPattern* next)
+{
+	FklStringMatchPattern* r=(FklStringMatchPattern*)malloc(sizeof(FklStringMatchPattern));
+	FKL_ASSERT(r);
+	r->parts=fklMakeNastNodeRef(parts);
+	r->type=FKL_STRING_PATTERN_BUILTIN;
+	r->u.func=func;
+	r->next=next;
+	return r;
+}
+
+static int isCover(const FklNastVector* p0,const FklNastVector* p1)
+{
+	return 0;
+}
+
+int fklStringPatternCoverState(const FklNastVector* p0,const FklNastVector* p1)
+{
+	int r=0;
+	r+=isCover(p0,p1)?FKL_PATTERN_COVER:0;
+	r+=isCover(p0,p1)?FKL_PATTERN_BE_COVER:0;
+	return r;
+}
+
+FklStringMatchPattern* fklInitBuiltInStringPattern(void)
+{
+	FklStringMatchPattern* r=NULL;
+	for(struct BuiltinStringPattern* cur=&BuiltinStringPatterns[0];cur->parts;cur++)
+	{
+		size_t num=cur->num;
+		const char** curParts=cur->parts;
+		FklNastNode* vec=fklCreateNastNode(FKL_NAST_VECTOR,0);
+		vec->u.vec=fklCreateNastVector(num);
+		for(size_t i=0;i<num;i++)
+			vec->u.vec->base[i]=fklMakeNastNodeRef(createPatternPartFromCstr(curParts[i]));
+		r=createBuiltinStringPattern(vec,NULL,r);
+	}
 	return r;
 }
 
@@ -190,7 +281,7 @@ static FklStringMatchSet* matchInUniversSet(const char* buf
 			pn=s->size;
 			if(!*pt)
 				*pt=fklCreateToken(FKL_TOKEN_RESERVE_STR,fklCopyString(s),line);
-			FklStringMatchState* state=createStringMatchState(p,0,NULL);
+			FklStringMatchState* state=createStringMatchState(p,1,NULL);
 			addStateIntoSet(state,&strs,&boxes,&syms);
 		}
 	}
@@ -246,22 +337,25 @@ static int updateBoxState(const char* buf
 		,size_t line)
 {
 	int r=0;
+	size_t pn=0;
 	for(FklStringMatchState** pstate=&boxes;*pstate;)
 	{
 		FklStringMatchState* cur=*pstate;
 		FklString* s=getPartFromState(cur,cur->index+1)->u.str;
-		if(n>=s->size&&!memcmp(s->str,buf,s->size))
+		if(pn!=0&&pn>s->size)
+			break;
+		if(matchWithStr(pn,buf,n,s))
+		{
+			pn=s->size;
+			if(!*pt)
+				*pt=fklCreateToken(FKL_TOKEN_RESERVE_STR,fklCopyString(s),line);
+			cur->index+=2;
+			r=1;
+		}
+		if(cur->index<getSizeFromPattern(cur->pattern))
 		{
 			*pstate=cur->next;
-			cur->index+=2;
-			if(cur->index<getSizeFromPattern(cur->pattern))
-			{
-				*pstate=cur->next;
-				addStateIntoSet(cur,&prev->str,&prev->box,&prev->sym);
-			}
-			else
-				pstate=&(*pstate)->next;
-			r=1;
+			addStateIntoSet(cur,&prev->str,&prev->box,&prev->sym);
 		}
 		else
 			pstate=&(*pstate)->next;

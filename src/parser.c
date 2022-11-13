@@ -645,15 +645,15 @@ FklNastNode* fklCreateNastNodeFromTokenStack(FklPtrStack* tokenStack,size_t* err
 			{
 				//MatchState* state=searchReverseStringCharMatchState(token->value
 				//		,matchStateStack);
-				FklStringMatchPattern* pattern=fklFindStringPattern(token->value);
+				FklStringMatchPattern* pattern=NULL;//fklFindStringPattern(token->value);
 				if(pattern)
 				{
 					MatchState* state=createMatchState(pattern,token->line,1);
 					fklPushPtrStack(state,matchStateStack);
 					cStack=fklCreatePtrStack(32,16);
 					fklPushPtrStack(cStack,stackStack);
-					const FklString* part=fklGetNthPartOfStringMatchPattern(pattern,state->cindex);
-					if(fklIsVar(part)&&fklIsMustList(part))
+					const FklString* part=NULL;//fklGetNthPartOfStringMatchPattern(pattern,state->cindex);
+					if(1)//fklIsVar(part)&&fklIsMustList(part))
 					{
 						cStack=fklCreatePtrStack(32,16);
 						fklPushPtrStack(cStack,stackStack);

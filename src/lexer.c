@@ -460,6 +460,17 @@ static size_t skipSpaceAndCountLine(const char* str,size_t index,size_t size,siz
 //			||isBuiltInReserveStr(buf+i,size);
 //}
 
+int fklSplitStringPartsIntoToken(const char** parts
+		,size_t* sizes
+		,uint32_t inum
+		,size_t* line
+		,FklPtrStack* retvalStack
+		,FklPtrStack* matchStateStack
+		,uint32_t* pi
+		,uint32_t* pj)
+{
+}
+
 //int fklSplitStringPartsIntoToken(const char** parts
 //,size_t* sizes
 //,uint32_t inum
@@ -761,7 +772,7 @@ FklStringMatchSet* fklSplitStringPartsIntoTokenWithPattern(const char** parts
 	for(;i<inum;i++)
 	{
 		size_t j=0;
-		for(;;)
+		while(j<sizes[i])
 		{
 			FklToken* token=NULL;
 			matchSet=fklGetMatchingSet(&parts[i][j]
@@ -771,12 +782,16 @@ FklStringMatchSet* fklSplitStringPartsIntoTokenWithPattern(const char** parts
 					,&token
 					,*line);
 			if(token)
+			{
 				fklPushPtrStack(token,retvalStack);
+				j+=token->value->size;
+				line+=fklCountChar(token->value->str,token->value->size,'\n');
+			}
 			else
 			{
-				j+=skipSpaceAndCountLine(parts[i],j,sizes[i],line);
-				if(j>=sizes[i])
-					break;
+				j++;
+				if(parts[i][j]=='\n')
+					line++;
 			}
 		}
 	}

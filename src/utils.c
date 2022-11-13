@@ -740,6 +740,15 @@ int32_t fklCountChar(const char* str,char c,int32_t len)
 	return num;
 }
 
+size_t fklCountCharInBuf(const char* buf,size_t n,char c)
+{
+	size_t num=0;
+	for(size_t i=0;i<n;i++)
+		if(buf[i]==c)
+			num++;
+	return num;
+}
+
 int fklIsAllSpace(const char* str)
 {
 	for(;*str;str++)

@@ -785,7 +785,7 @@ FklStringMatchSet* fklSplitStringPartsIntoTokenWithPattern(const char** parts
 			{
 				fklPushPtrStack(token,retvalStack);
 				j+=token->value->size;
-				line+=fklCountChar(token->value->str,token->value->size,'\n');
+				line+=fklCountCharInString(token->value,'\n');
 			}
 			else
 			{

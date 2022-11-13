@@ -1542,6 +1542,11 @@ void fklWriteStringToCstr(char* c_str,const FklString* str)
 	c_str[len]='\0';
 }
 
+size_t fklCountCharInString(FklString* s,char c)
+{
+	return fklCountCharInBuf(s->str,s->size,c);
+}
+
 FklHashTable* fklCreateHashTable(size_t size
 		,size_t linkNum
 		,int linkNumInc

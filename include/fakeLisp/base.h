@@ -17,6 +17,7 @@ FklString* fklCreateString(size_t,const char*);
 FklString* fklCopyString(const FklString*);
 FklString* fklCreateEmptyString();
 FklString* fklCreateStringFromCstr(const char*);
+size_t fklCountCharInString(FklString* s,char c);
 void fklStringCat(FklString**,const FklString*);
 void fklStringCstrCat(FklString**,const char*);
 void fklStringCharBufCat(FklString**,const char* buf,size_t s);

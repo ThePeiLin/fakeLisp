@@ -154,6 +154,11 @@ inline static FklNastNode* getPartFromState(FklStringMatchState* state,size_t in
 	return state->pattern->parts->u.vec->base[index];
 }
 
+inline static FklNastNode* getPartFromPattern(FklStringMatchPattern* pattern,size_t index)
+{
+	return pattern->parts->u.vec->base[index];
+}
+
 inline static size_t getSizeFromPattern(FklStringMatchPattern* p)
 {
 	return p->parts->u.vec->size;
@@ -254,9 +259,14 @@ static FklStringMatchSet* createStringMatchSet(FklStringMatchState* strs
 	return r;
 }
 
+inline static int simpleMatch(const char* buf,size_t n,FklString* s)
+{
+	return n>=s->size&&!memcmp(s->str,buf,s->size);
+}
+
 inline static int matchWithStr(size_t pn,const char* buf,size_t n,FklString* s)
 {
-	return (pn==0||pn==s->size)&&n>=s->size&&!memcmp(s->str,buf,s->size);
+	return (pn==0||pn==s->size)&&simpleMatch(buf,n,s);
 }
 
 static FklStringMatchSet* matchInUniversSet(const char* buf
@@ -288,6 +298,60 @@ static FklStringMatchSet* matchInUniversSet(const char* buf
 	if(strs||boxes||syms)
 		r=createStringMatchSet(strs,boxes,syms,prev);
 	return r;
+}
+
+static int matchStrInBoxes(const char* buf
+		,size_t n
+		,FklStringMatchState* boxes)
+{
+	for(;boxes;boxes=boxes->next)
+	{
+		FklString* s=getPartFromState(boxes,boxes->index+1)->u.str;
+		if(simpleMatch(buf,n,s))
+			return 1;
+	}
+	return 0;
+}
+
+static int matchStrInPatterns(const char* buf
+		,size_t n
+		,FklStringMatchPattern* patterns)
+{
+	for(;patterns;patterns=patterns->next)
+	{
+		FklString* s=getPartFromPattern(patterns,0)->u.str;
+		if(simpleMatch(buf,n,s))
+			return 1;
+	}
+	return 0;
+}
+
+static size_t getDefaultSymbolLen(const char* buf
+		,size_t n
+		,FklStringMatchState* boxes
+		,FklStringMatchPattern* patterns)
+{
+	size_t i=0;
+	for(;i<n
+			&&!isspace(buf[i])
+			&&!matchStrInBoxes(&buf[i],n-i,boxes)
+			&&!matchStrInPatterns(&buf[i],n-i,patterns)
+			;i++);
+	return i;
+}
+
+static FklToken* defaultTokenCreator(const char* buf
+		,size_t n
+		,FklStringMatchState* boxes
+		,FklStringMatchPattern* patterns
+		,FklStringMatchSet* prev
+		,size_t line)
+{
+	size_t len=getDefaultSymbolLen(buf,n,boxes,patterns);
+	if(len)
+		return fklCreateToken(FKL_TOKEN_SYMBOL,fklCreateString(len,buf),line);
+	else
+		return NULL;
 }
 
 static int updateStrState(const char* buf
@@ -367,13 +431,11 @@ static int updateBoxState(const char* buf
 				,pt
 				,line
 				,prev);
-		if(*pset)
-			r=1;
 	}
 	return r;
 }
 
-static int updateSymState(const char* buf
+static void updateSymState(const char* buf
 		,size_t n
 		,FklStringMatchSet** pset
 		,FklStringMatchState* syms
@@ -399,7 +461,6 @@ static int updateSymState(const char* buf
 			,pt
 			,line
 			,prev);
-	return *pset!=NULL;
 }
 
 static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
@@ -427,8 +488,14 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 		set->str=NULL;
 		r=NULL;
 		if(!updateStrState(buf,n,&r,strs,set,pt,line))
+		{
 			if(!updateBoxState(buf,n,&r,boxes,set,patterns,pt,line))
+			{
 				updateSymState(buf,n,&r,syms,set,patterns,pt,line);
+				if(!*pt)
+					*pt=defaultTokenCreator(buf,n,set->box,patterns,set,line);
+			}
+		}
 		r=set;
 	}
 	return r;
@@ -670,7 +737,6 @@ void fklPrintToken(FklPtrStack* tokenStack,FILE* fp)
 		"reserve_str",
 		"char",
 		"num",
-		"byts",
 		"string",
 		"symbol",
 		"comment",

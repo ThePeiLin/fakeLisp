@@ -345,6 +345,20 @@ static int matchStrInBoxes(const char* buf
 	return 0;
 }
 
+static int matchStrInStrs(const char* buf
+		,size_t n
+		,FklStringMatchState* strs)
+{
+	for(;strs;strs=strs->next)
+	{
+		FklString* s=getPartFromState(strs,strs->index)->u.str;
+		if(simpleMatch(buf,n,s))
+			return 1;
+	}
+	return 0;
+}
+
+
 static int matchStrInPatterns(const char* buf
 		,size_t n
 		,FklStringMatchPattern* patterns)
@@ -360,12 +374,14 @@ static int matchStrInPatterns(const char* buf
 
 static size_t getDefaultSymbolLen(const char* buf
 		,size_t n
+		,FklStringMatchState* strs
 		,FklStringMatchState* boxes
 		,FklStringMatchPattern* patterns)
 {
 	size_t i=0;
 	for(;i<n
 			&&!isspace(buf[i])
+			&&!matchStrInStrs(&buf[i],n-i,strs)
 			&&!matchStrInBoxes(&buf[i],n-i,boxes)
 			&&!matchStrInPatterns(&buf[i],n-i,patterns)
 			;i++);
@@ -374,12 +390,13 @@ static size_t getDefaultSymbolLen(const char* buf
 
 static FklToken* defaultTokenCreator(const char* buf
 		,size_t n
+		,FklStringMatchState* strs
 		,FklStringMatchState* boxes
 		,FklStringMatchPattern* patterns
 		,FklStringMatchSet* prev
 		,size_t line)
 {
-	size_t len=getDefaultSymbolLen(buf,n,boxes,patterns);
+	size_t len=getDefaultSymbolLen(buf,n,strs,boxes,patterns);
 	if(len)
 		return fklCreateToken(FKL_TOKEN_SYMBOL,fklCreateString(len,buf),line);
 	else
@@ -388,7 +405,6 @@ static FklToken* defaultTokenCreator(const char* buf
 
 static int updateStrState(const char* buf
 		,size_t n
-		,FklStringMatchSet** pset
 		,FklStringMatchState* strs
 		,FklStringMatchSet* prev
 		,FklToken** pt
@@ -408,24 +424,21 @@ static int updateStrState(const char* buf
 			if(!*pt)
 				*pt=fklCreateToken(FKL_TOKEN_RESERVE_STR,fklCopyString(s),line);
 			cur->index++;
+			r=1;
 			if(cur->index<getSizeFromPattern(cur->pattern))
 			{
 				*pstate=cur->next;
 				addStateIntoSet(cur,&prev->str,&prev->box,&prev->sym);
+				continue;
 			}
-			else
-				pstate=&(*pstate)->next;
-			r=1;
 		}
-		else
-			pstate=&(*pstate)->next;
+		pstate=&(*pstate)->next;
 	}
 	return r;
 }
 
 static int updateBoxState(const char* buf
 		,size_t n
-		,FklStringMatchSet** pset
 		,FklStringMatchState* boxes
 		,FklStringMatchSet* prev
 		,FklStringMatchPattern* patterns
@@ -447,21 +460,22 @@ static int updateBoxState(const char* buf
 				*pt=fklCreateToken(FKL_TOKEN_RESERVE_STR,fklCopyString(s),line);
 			cur->index+=2;
 			r=1;
+			if(cur->index<getSizeFromPattern(cur->pattern))
+			{
+				*pstate=cur->next;
+				addStateIntoSet(cur,&prev->str,&prev->box,&prev->sym);
+				continue;
+			}
 		}
-		if(cur->index<getSizeFromPattern(cur->pattern))
-		{
-			*pstate=cur->next;
-			addStateIntoSet(cur,&prev->str,&prev->box,&prev->sym);
-		}
-		else
-			pstate=&(*pstate)->next;
+		pstate=&(*pstate)->next;
 	}
+	if(!r)
+		prev->box=boxes;
 	return r;
 }
 
 static void updateSymState(const char* buf
 		,size_t n
-		,FklStringMatchSet** pset
 		,FklStringMatchState* syms
 		,FklStringMatchSet* prev
 		,FklStringMatchPattern* patterns
@@ -500,28 +514,28 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 		set->sym=NULL;
 		set->box=NULL;
 		set->str=NULL;
-		r=NULL;
-		if(!updateStrState(buf,n,&r,strs,set,pt,line))
+		int b=!updateStrState(buf,n,strs,set,pt,line)
+			&&!updateBoxState(buf,n,boxes,set,patterns,pt,line);
+		if(b)
+			updateSymState(buf,n,syms,set,patterns,pt,line);
+		if(set->str==NULL&&set->box==NULL&&set->sym==NULL)
 		{
-			if(!updateBoxState(buf,n,&r,boxes,set,patterns,pt,line))
-			{
-				updateSymState(buf,n,&r,syms,set,patterns,pt,line);
-				r=matchInUniversSet(buf,n
-						,patterns
-						,pt
-						,line
-						,set);
-				if(!*pt)
-					*pt=defaultTokenCreator(buf,n,set->box,patterns,set,line);
-			}
-		}
-		if(!r)
-			r=set;
-		if(r->str==NULL&&r->box==NULL&&r->sym==NULL)
-		{
-			r=set->prev;
+			FklStringMatchSet* prev=set->prev;
 			free(set);
+			set=prev;
 		}
+		FklStringMatchSet* nset=NULL;
+		if(b)
+		{
+			nset=matchInUniversSet(buf,n
+					,patterns
+					,pt
+					,line
+					,set);
+			if(!*pt)
+				*pt=defaultTokenCreator(buf,n,set->str,set->box,patterns,set,line);
+		}
+		r=(nset==NULL)?set:nset;
 	}
 	return r;
 }

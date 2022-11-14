@@ -291,6 +291,11 @@ static FklStringMatchSet* createStringMatchSet(FklStringMatchState* strs
 	return r;
 }
 
+inline static int charbufEqual(const char* buf,size_t n,const char* s,size_t l)
+{
+	return n>=l&&!memcmp(s,buf,l);
+}
+
 inline static int simpleMatch(const char* buf,size_t n,FklString* s)
 {
 	return n>=s->size&&!memcmp(s->str,buf,s->size);
@@ -372,6 +377,49 @@ static int matchStrInPatterns(const char* buf
 	return 0;
 }
 
+#define DEFAULT_TOKEN_HEADER_STR       (0)
+#define DEFAULT_TOKEN_HEADER_SYM       (1)
+#define DEFAULT_TOKEN_HEADER_COMMENT_0 (2)
+#define DEFAULT_TOKEN_HEADER_COMMENT_1 (3)
+#define DEFAULT_TOKEN_HEADER_CHR       (4)
+
+static const struct DefaultTokenHeader
+{
+	size_t l;
+	const char* s;
+}
+DefaultTokenHeaders[]=
+{
+	{1,"\"",},
+	{1,"|",},
+	{1,";",},
+	{2,"#!",},
+	{2,"#\\",},
+	{0,NULL,},
+};
+
+inline static int isComment(const char* buf,size_t n)
+{
+	return charbufEqual(buf,n
+			,DefaultTokenHeaders[DEFAULT_TOKEN_HEADER_COMMENT_0].s
+			,DefaultTokenHeaders[DEFAULT_TOKEN_HEADER_COMMENT_0].l)
+		||charbufEqual(buf,n
+				,DefaultTokenHeaders[DEFAULT_TOKEN_HEADER_COMMENT_1].s
+				,DefaultTokenHeaders[DEFAULT_TOKEN_HEADER_COMMENT_1].l);
+}
+
+inline static int matchStrInDefaultHeaders(const char* buf,size_t n)
+{
+	for(const struct DefaultTokenHeader* cur=&DefaultTokenHeaders[0];cur->l;cur++)
+	{
+		size_t l=cur->l;
+		const char* s=cur->s;
+		if(charbufEqual(buf,n,s,l))
+			return 1;
+	}
+	return 0;
+}
+
 static size_t getDefaultSymbolLen(const char* buf
 		,size_t n
 		,FklStringMatchState* strs
@@ -384,11 +432,12 @@ static size_t getDefaultSymbolLen(const char* buf
 			&&!matchStrInStrs(&buf[i],n-i,strs)
 			&&!matchStrInBoxes(&buf[i],n-i,boxes)
 			&&!matchStrInPatterns(&buf[i],n-i,patterns)
+			&&!matchStrInDefaultHeaders(&buf[i],n-i)
 			;i++);
 	return i;
 }
 
-static FklToken* defaultTokenCreator(const char* buf
+static FklToken* createDefaultToken(const char* buf
 		,size_t n
 		,FklStringMatchState* strs
 		,FklStringMatchState* boxes
@@ -396,11 +445,26 @@ static FklToken* defaultTokenCreator(const char* buf
 		,FklStringMatchSet* prev
 		,size_t line)
 {
-	size_t len=getDefaultSymbolLen(buf,n,strs,boxes,patterns);
-	if(len)
-		return fklCreateToken(FKL_TOKEN_SYMBOL,fklCreateString(len,buf),line);
+	if(charbufEqual(buf,n
+				,DefaultTokenHeaders[DEFAULT_TOKEN_HEADER_CHR].s
+				,DefaultTokenHeaders[DEFAULT_TOKEN_HEADER_CHR].l))
+	{
+		size_t len=getDefaultSymbolLen(&buf[3],n-3,strs,boxes,patterns)+3;
+		return fklCreateToken(FKL_TOKEN_CHAR,fklCreateString(len,buf),line);
+	}
 	else
-		return NULL;
+	{
+		size_t len=getDefaultSymbolLen(buf,n,strs,boxes,patterns);
+		if(len)
+		{
+			FklToken* t=fklCreateToken(FKL_TOKEN_SYMBOL,fklCreateString(len,buf),line);
+			if(fklIsNumberString(t->value))
+				t->type=FKL_TOKEN_NUM;
+			return t;
+		}
+		else
+			return NULL;
+	}
 }
 
 static int updateStrState(const char* buf
@@ -496,11 +560,6 @@ static void updateSymState(const char* buf
 	}
 }
 
-static int isComment(const char* buf,size_t n)
-{
-	return (n>=2&&buf[0]==';')||(n>=3&&buf[0]=='#'&&buf[1]=='!');
-}
-
 static FklStringMatchState* getRollBack(FklStringMatchState** pcur,FklStringMatchState* prev)
 {
 	FklStringMatchState* r=NULL;
@@ -584,7 +643,7 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 					,line
 					,set);
 			if(!*pt&&set)
-				*pt=defaultTokenCreator(buf,n,set->str,set->box,patterns,set,line);
+				*pt=createDefaultToken(buf,n,set->str,set->box,patterns,set,line);
 			if(!*pt)
 			{
 				rollBack(strs,boxes,syms,oset);

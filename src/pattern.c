@@ -501,6 +501,48 @@ static int isComment(const char* buf,size_t n)
 	return (n>=2&&buf[0]==';')||(n>=3&&buf[0]=='#'&&buf[1]=='!');
 }
 
+static FklStringMatchState* getRollBack(FklStringMatchState** pcur,FklStringMatchState* prev)
+{
+	FklStringMatchState* r=NULL;
+	for(;*pcur!=prev;)
+	{
+		FklStringMatchState* cur=*pcur;
+		*pcur=cur->next;
+		cur->next=r;
+		cur->index--;
+		r=cur;
+	}
+	return r;
+}
+
+static void rollBack(FklStringMatchState* strs
+		,FklStringMatchState* boxes
+		,FklStringMatchState* syms
+		,FklStringMatchSet* oset)
+{
+	if(syms)
+	{
+		FklStringMatchState* ostrs=getRollBack(&oset->str,strs);
+		FklStringMatchState* oboxes=getRollBack(&oset->box,boxes);
+		for(FklStringMatchState* cur=oset->sym;cur;cur=cur->next)
+			cur->index--;
+		for(FklStringMatchState* cur=ostrs;cur;)
+		{
+			FklStringMatchState* t=cur->next;
+			addStateIntoSet(cur,&oset->str,&oset->box,&oset->sym);
+			cur=t;
+		}
+		for(FklStringMatchState* cur=oboxes;cur;)
+		{
+			FklStringMatchState* t=cur->next;
+			addStateIntoSet(cur,&oset->str,&oset->box,&oset->sym);
+			cur=t;
+		}
+	}
+	else
+		oset->str=strs;
+}
+
 static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 		,const char* buf
 		,size_t n
@@ -545,10 +587,7 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 				*pt=defaultTokenCreator(buf,n,set->str,set->box,patterns,set,line);
 			if(!*pt)
 			{
-				for(FklStringMatchState* cur=syms;cur;cur=cur->next)
-					cur->index--;
-				oset->sym=syms;
-				oset->str=strs;
+				rollBack(strs,boxes,syms,oset);
 				set=oset;
 			}
 		}

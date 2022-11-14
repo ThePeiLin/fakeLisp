@@ -496,6 +496,11 @@ static void updateSymState(const char* buf
 	}
 }
 
+static int isComment(const char* buf,size_t n)
+{
+	return (n>=2&&buf[0]==';')||(n>=3&&buf[0]=='#'&&buf[1]=='!');
+}
+
 static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 		,const char* buf
 		,size_t n
@@ -503,6 +508,13 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 		,FklToken** pt
 		,size_t line)
 {
+	if(isComment(buf,n))
+	{
+		size_t len=0;
+		for(;len<n&&buf[len]!='\n';len++);
+		*pt=fklCreateToken(FKL_TOKEN_COMMENT,fklCreateString(len,buf),line);
+		return set;
+	}
 	FklStringMatchSet* r=NULL;
 	if(set==NULL)
 		r=matchInUniversSet(buf,n,patterns,pt,line,NULL);
@@ -518,12 +530,9 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 			&&!updateBoxState(buf,n,boxes,set,patterns,pt,line);
 		if(b)
 			updateSymState(buf,n,syms,set,patterns,pt,line);
+		FklStringMatchSet* oset=set;
 		if(set->str==NULL&&set->box==NULL&&set->sym==NULL)
-		{
-			FklStringMatchSet* prev=set->prev;
-			free(set);
-			set=prev;
-		}
+			set=set->prev;
 		FklStringMatchSet* nset=NULL;
 		if(b)
 		{
@@ -532,8 +541,16 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 					,pt
 					,line
 					,set);
-			if(!*pt)
+			if(!*pt&&set)
 				*pt=defaultTokenCreator(buf,n,set->str,set->box,patterns,set,line);
+			if(!*pt)
+			{
+				for(FklStringMatchState* cur=syms;cur;cur=cur->next)
+					cur->index--;
+				oset->sym=syms;
+				oset->str=strs;
+				set=oset;
+			}
 		}
 		r=(nset==NULL)?set:nset;
 	}

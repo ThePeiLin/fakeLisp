@@ -1054,7 +1054,7 @@ static FklToken* createDefaultToken(const char* buf
 			return fklCreateToken(FKL_TOKEN_STRING,str,line);
 		}
 		else
-			return fklCreateToken(FKL_TOKEN_STRING,NULL,line);
+			return FKL_INCOMPLETED_TOKEN;
 	}
 	else
 	{
@@ -1074,7 +1074,7 @@ static FklToken* createDefaultToken(const char* buf
 				if(!complete)
 				{
 					fklUninitUintStack(&lenStack);
-					return fklCreateToken(FKL_TOKEN_SYMBOL,NULL,line);
+					return FKL_INCOMPLETED_TOKEN;
 				}
 			}
 			else
@@ -1306,7 +1306,7 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 						,patterns,line,jInc);
 			else
 				*jInc=(*pt)->value->size;
-			if(!*pt||(*pt)->value==NULL)
+			if(!*pt||(*pt)==FKL_INCOMPLETED_TOKEN)
 			{
 				rollBack(strs,boxes,syms,oset);
 				set=oset;
@@ -1339,23 +1339,19 @@ FklStringMatchSet* fklSplitStringIntoTokenWithPattern(const char* buf
 				,&token
 				,*line
 				,&jInc);
-		if(token)
-		{
-			if(token->value==NULL)
-			{
-				free(token);
-				*pj=j;
-				break;
-			}
-			fklPushPtrStack(token,retvalStack);
-			j+=jInc;
-			line+=fklCountCharInString(token->value,'\n');
-		}
-		else
+		if(token==FKL_INCOMPLETED_TOKEN)
+			break;
+		else if(token==NULL)
 		{
 			j++;
 			if(buf[j]=='\n')
 				line++;
+		}
+		else
+		{
+			fklPushPtrStack(token,retvalStack);
+			j+=jInc;
+			line+=fklCountCharInString(token->value,'\n');
 		}
 	}
 	*pj=j;

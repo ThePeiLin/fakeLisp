@@ -19,6 +19,7 @@ typedef enum
 	FKL_TOKEN_COMMENT,
 }FklTokenType;
 
+#define FKL_INCOMPLETED_TOKEN ((void*)0x1)
 typedef struct
 {
 	FklTokenType type;

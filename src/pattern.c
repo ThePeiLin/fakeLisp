@@ -189,6 +189,17 @@ void fklDestroyStringPattern(FklStringMatchPattern* o)
 	free(o);
 }
 
+void fklDestroyAllStringPattern(FklStringMatchPattern* h)
+{
+	FklStringMatchPattern** ph=&h;
+	while(*ph)
+	{
+		FklStringMatchPattern* cur=*ph;
+		*ph=cur->next;
+		fklDestroyStringPattern(cur);
+	}
+}
+
 FklNastNode* fklPatternMatchingHashTableRef(FklSid_t sid,FklHashTable* ht)
 {
 	FklPatternMatchingHashTableItem* item=fklGetHashItem(&sid,ht);

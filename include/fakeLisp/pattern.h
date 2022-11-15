@@ -53,6 +53,7 @@ FklStringMatchPattern* fklCreateStringMatchPattern(FklNastNode*
 void fklAddStringMatchPattern(FklNastNode*
 		,FklByteCodelnt*
 		,FklStringMatchPattern** head);
+void fklDestroyStringPattern(FklStringMatchPattern*);
 
 int fklStringPatternCoverState(const FklNastVector* p0,const FklNastVector* p1);
 void fklDestroyAllStringPattern(FklStringMatchPattern*);

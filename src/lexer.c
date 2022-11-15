@@ -1117,14 +1117,14 @@ static FklToken* createDefaultToken(const char* buf
 
 static int updateStrState(const char* buf
 		,size_t n
-		,FklStringMatchState* strs
+		,FklStringMatchState** strs
 		,FklStringMatchSet* prev
 		,FklToken** pt
 		,size_t line)
 {
 	int r=0;
 	size_t pn=0;
-	for(FklStringMatchState** pstate=&strs;*pstate;)
+	for(FklStringMatchState** pstate=strs;*pstate;)
 	{
 		FklStringMatchState* cur=*pstate;
 		FklString* s=getPartFromState(cur,cur->index)->u.str;
@@ -1151,7 +1151,7 @@ static int updateStrState(const char* buf
 
 static int updateBoxState(const char* buf
 		,size_t n
-		,FklStringMatchState* boxes
+		,FklStringMatchState** boxes
 		,FklStringMatchSet* prev
 		,FklStringMatchPattern* patterns
 		,FklToken** pt
@@ -1159,7 +1159,7 @@ static int updateBoxState(const char* buf
 {
 	int r=0;
 	size_t pn=0;
-	for(FklStringMatchState** pstate=&boxes;*pstate;)
+	for(FklStringMatchState** pstate=boxes;*pstate;)
 	{
 		FklStringMatchState* cur=*pstate;
 		FklString* s=getPartFromState(cur,cur->index+1)->u.str;
@@ -1182,19 +1182,22 @@ static int updateBoxState(const char* buf
 		pstate=&(*pstate)->next;
 	}
 	if(!r)
-		prev->box=boxes;
+	{
+		prev->box=*boxes;
+		*boxes=NULL;
+	}
 	return r;
 }
 
 static void updateSymState(const char* buf
 		,size_t n
-		,FklStringMatchState* syms
+		,FklStringMatchState** syms
 		,FklStringMatchSet* prev
 		,FklStringMatchPattern* patterns
 		,FklToken** pt
 		,size_t line)
 {
-	for(FklStringMatchState** pstate=&syms;*pstate;)
+	for(FklStringMatchState** pstate=syms;*pstate;)
 	{
 		FklStringMatchState* cur=*pstate;
 		cur->index++;
@@ -1276,6 +1279,8 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 					,jInc);
 		else
 			*jInc=(*pt)->value->size;
+		if(!*pt||(*pt)==FKL_INCOMPLETED_TOKEN)
+			return set;
 	}
 	else
 	{
@@ -1285,10 +1290,10 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 		set->sym=NULL;
 		set->box=NULL;
 		set->str=NULL;
-		int b=!updateStrState(buf,n,strs,set,pt,line)
-			&&!updateBoxState(buf,n,boxes,set,patterns,pt,line);
+		int b=!updateStrState(buf,n,&strs,set,pt,line)
+			&&!updateBoxState(buf,n,&boxes,set,patterns,pt,line);
 		if(b)
-			updateSymState(buf,n,syms,set,patterns,pt,line);
+			updateSymState(buf,n,&syms,set,patterns,pt,line);
 		FklStringMatchSet* oset=set;
 		if(set->str==NULL&&set->box==NULL&&set->sym==NULL)
 			set=set->prev;
@@ -1313,7 +1318,29 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 			}
 		}
 		else
+		{
 			*jInc=(*pt)->value->size;
+			for(FklStringMatchState** pcur=&strs;*pcur;)
+			{
+				FklStringMatchState* cur=*pcur;
+				*pcur=cur->next;
+				free(cur);
+			}
+			for(FklStringMatchState** pcur=&boxes;*pcur;)
+			{
+				FklStringMatchState* cur=*pcur;
+				*pcur=cur->next;
+				free(cur);
+			}
+			for(FklStringMatchState** pcur=&syms;*pcur;)
+			{
+				FklStringMatchState* cur=*pcur;
+				*pcur=cur->next;
+				free(cur);
+			}
+		}
+		if(oset->str==NULL&&oset->box==NULL&&oset->sym==NULL)
+			free(oset);
 		r=(nset==NULL)?set:nset;
 	}
 	return r;

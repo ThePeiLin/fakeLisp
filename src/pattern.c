@@ -452,6 +452,12 @@ static FklToken* createDefaultToken(const char* buf
 		size_t len=getDefaultSymbolLen(&buf[3],n-3,strs,boxes,patterns)+3;
 		return fklCreateToken(FKL_TOKEN_CHAR,fklCreateString(len,buf),line);
 	}
+	else if(charbufEqual(buf,n
+				,DefaultTokenHeaders[DEFAULT_TOKEN_HEADER_STR].s
+				,DefaultTokenHeaders[DEFAULT_TOKEN_HEADER_STR].l))
+	{
+		return NULL;
+	}
 	else
 	{
 		size_t len=getDefaultSymbolLen(buf,n,strs,boxes,patterns);
@@ -617,7 +623,7 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 		return set;
 	}
 	FklStringMatchSet* r=NULL;
-	if(set==NULL)
+	if(set==FKL_STRING_PATTERN_UNIVERSAL_SET)
 		r=matchInUniversSet(buf,n,patterns,pt,line,NULL);
 	else
 	{

@@ -55,6 +55,8 @@ typedef struct FklStringMatchState
 	struct FklStringMatchState* next;
 }FklStringMatchState;
 
+#define FKL_STRING_PATTERN_UNIVERSAL_SET ((void*)0x1)
+
 typedef struct FklStringMatchSet
 {
 	FklStringMatchState* str;

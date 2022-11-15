@@ -948,7 +948,7 @@ FklVMvalue* fklCreateVMvalueToStack(FklValueType type
 	//	pthread_rwlock_wrlock(&stack->lock);
 	fklPushVMvalue(r,stack);
 	//	pthread_rwlock_unlock(&stack->lock);
-	fklAddToGCBeforeGC(r,vm);
+	fklAddToGC(r,vm);
 	return stack->values[stack->tp-1];
 }
 
@@ -1066,23 +1066,23 @@ FklVMvalue* fklCreateVMvalueNoGCAndToStack(FklValueType type,void* pValue,FklVMg
 	return r;
 }
 
-void fklAddToGCBeforeGC(FklVMvalue* v,FklVM* vm)
-{
-	FklVMgc* gc=vm->gc;
-	if(FKL_IS_PTR(v))
-	{
-		FklGCstate running=fklGetGCstate(gc);
-		if(running>FKL_GC_NONE&&running<FKL_GC_SWEEPING)
-			fklGC_toGrey(v,gc);
-		pthread_rwlock_wrlock(&gc->lock);
-		gc->num+=1;
-		v->next=gc->head;
-		gc->head=v;
-		tryGC(vm);
-		v->mark=FKL_MARK_W;
-		pthread_rwlock_unlock(&gc->lock);
-	}
-}
+//void fklAddToGCBeforeGC(FklVMvalue* v,FklVM* vm)
+//{
+//	FklVMgc* gc=vm->gc;
+//	if(FKL_IS_PTR(v))
+//	{
+//		FklGCstate running=fklGetGCstate(gc);
+//		if(running>FKL_GC_NONE&&running<FKL_GC_SWEEPING)
+//			fklGC_toGrey(v,gc);
+//		pthread_rwlock_wrlock(&gc->lock);
+//		gc->num+=1;
+//		v->next=gc->head;
+//		gc->head=v;
+//		tryGC(vm);
+//		v->mark=FKL_MARK_W;
+//		pthread_rwlock_unlock(&gc->lock);
+//	}
+//}
 
 void fklAddToGC(FklVMvalue* v,FklVM* vm)
 {

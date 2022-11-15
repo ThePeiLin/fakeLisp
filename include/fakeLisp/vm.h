@@ -490,7 +490,6 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 
 void fklAddToGC(FklVMvalue*,FklVM*);
 void fklAddToGCNoGC(FklVMvalue*,FklVMgc*);
-void fklAddToGCBeforeGC(FklVMvalue*,FklVM*);
 FklVMvalue* fklCreateTrueValue(void);
 FklVMvalue* fklCreateNilValue(void);
 FklVMvalue* fklGetTopValue(FklVMstack*);

@@ -9,28 +9,6 @@ extern "C"{
 
 typedef enum
 {
-	FKL_TOKEN_RESERVE_STR=0,
-	FKL_TOKEN_CHAR,
-	FKL_TOKEN_NUM,
-	FKL_TOKEN_STRING,
-	FKL_TOKEN_SYMBOL,
-	FKL_TOKEN_COMMENT,
-}FklTokenType;
-
-typedef struct
-{
-	FklTokenType type;
-	FklString* value;
-	size_t line;
-}FklToken;
-
-FklToken* fklCreateToken(FklTokenType type,FklString* str,size_t line);
-FklToken* fklCreateTokenCopyStr(FklTokenType type,const FklString* str,size_t line);
-void fklDestroyToken(FklToken* token);
-void fklPrintToken(FklPtrStack*,FILE* fp);
-
-typedef enum
-{
 	FKL_STRING_PATTERN_ATOM,
 	FKL_STRING_PATTERN_BUILTIN,
 	FKL_STRING_PATTERN_DEFINED,
@@ -66,13 +44,6 @@ typedef struct FklStringMatchSet
 }FklStringMatchSet;
 
 FklStringMatchPattern* fklInitBuiltInStringPattern(void);
-
-FklStringMatchSet* fklGetMatchingSet(const char* s
-		,size_t n
-		,FklStringMatchSet*
-		,FklStringMatchPattern* pattern
-		,FklToken**
-		,size_t line);
 
 FklStringMatchPattern* fklFindStringPatternBuf(const char* buf,size_t size);
 FklStringMatchPattern* fklCreateStringMatchPattern(FklNastNode*

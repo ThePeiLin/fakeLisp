@@ -35,7 +35,14 @@ char* fklReadLine(FILE* fp,size_t* size)
 	return tmp;
 }
 
-char* fklReadInStringPattern(FILE* fp,char** prev,size_t* size,size_t* prevSize,uint32_t curline,int* unexpectEOF,FklPtrStack* retval,char* (*read)(FILE*,size_t*))
+char* fklReadInStringPattern(FILE* fp
+		,char** prev
+		,size_t* size
+		,size_t* prevSize
+		,size_t curline
+		,int* unexpectEOF
+		,FklPtrStack* retval
+		,char* (*read)(FILE*,size_t*))
 {
 	char* tmp=NULL;
 	*unexpectEOF=0;
@@ -54,7 +61,7 @@ char* fklReadInStringPattern(FILE* fp,char** prev,size_t* size,size_t* prevSize,
 	}
 	else
 		*size=0;
-	uint32_t cpost=0;
+	size_t cpost=0;
 	size_t line=curline;
 	for(;;)
 	{

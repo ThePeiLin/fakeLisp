@@ -9,6 +9,28 @@
 extern "C"{
 #endif
 
+typedef enum
+{
+	FKL_TOKEN_RESERVE_STR=0,
+	FKL_TOKEN_CHAR,
+	FKL_TOKEN_NUM,
+	FKL_TOKEN_STRING,
+	FKL_TOKEN_SYMBOL,
+	FKL_TOKEN_COMMENT,
+}FklTokenType;
+
+typedef struct
+{
+	FklTokenType type;
+	FklString* value;
+	size_t line;
+}FklToken;
+
+FklToken* fklCreateToken(FklTokenType type,FklString* str,size_t line);
+FklToken* fklCreateTokenCopyStr(FklTokenType type,const FklString* str,size_t line);
+void fklDestroyToken(FklToken* token);
+void fklPrintToken(FklPtrStack*,FILE* fp);
+
 int fklSplitStringPartsIntoToken(const char** parts
 		,size_t* sizes
 		,uint32_t inum
@@ -18,10 +40,10 @@ int fklSplitStringPartsIntoToken(const char** parts
 		,uint32_t* pi
 		,uint32_t* pj);
 
-FklStringMatchSet* fklSplitStringPartsIntoTokenWithPattern(const char** parts
-		,size_t* sizes
-		,size_t inum
+FklStringMatchSet* fklSplitStringPartsIntoTokenWithPattern(const char* buf
+		,size_t size
 		,size_t* line
+		,size_t* pj
 		,FklPtrStack* retvalStack
 		,FklStringMatchSet* matchSet
 		,FklStringMatchPattern* patterns);

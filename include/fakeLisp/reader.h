@@ -12,7 +12,7 @@ char* fklReadInStringPattern(FILE*
 		,char**
 		,size_t* size
 		,size_t* prevSize
-		,uint32_t
+		,size_t
 		,int*
 		,FklPtrStack* retval
 		,char* (*)(FILE*,size_t* size));

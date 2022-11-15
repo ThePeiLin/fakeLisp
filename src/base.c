@@ -231,16 +231,26 @@ int fklIsUintStackEmpty(FklUintStack* stack)
 	return stack->top==0;
 }
 
+void fklInitUintStack(FklUintStack* r,uint32_t size,uint32_t inc)
+{
+	r->base=(uint64_t*)malloc(sizeof(uint64_t)*size);
+	FKL_ASSERT(r->base);
+	r->size=size;
+	r->inc=inc;
+	r->top=0;
+}
+
 FklUintStack* fklCreateUintStack(uint32_t size,uint32_t inc)
 {
 	FklUintStack* tmp=(FklUintStack*)malloc(sizeof(FklUintStack));
 	FKL_ASSERT(tmp);
-	tmp->base=(uint64_t*)malloc(sizeof(uint64_t)*size);
-	FKL_ASSERT(tmp->base);
-	tmp->size=size;
-	tmp->inc=inc;
-	tmp->top=0;
+	fklInitUintStack(tmp,size,inc);
 	return tmp;
+}
+
+void fklUninitUintStack(FklUintStack* r)
+{
+	free(r->base);
 }
 
 FklUintStack* fklCreateUintStackFromStack(FklUintStack* stack)
@@ -283,7 +293,7 @@ uint64_t fklTopUintStack(FklUintStack* stack)
 
 void fklDestroyUintStack(FklUintStack* stack)
 {
-	free(stack->base);
+	fklUninitUintStack(stack);
 	free(stack);
 }
 

@@ -1022,27 +1022,20 @@ static size_t getDefaultSymbolLen(const char* buf
 	return i;
 }
 
-static size_t getStringLen(const char* str,size_t n,char ch)
-{
-	size_t i=1;
-	for(;i<n&&(str[i-1]=='\\'||str[i]!=ch);i++);
-	if(i<n&&str[i]==ch)
-		i++;
-	return i;
-}
-
 static FklToken* createDefaultToken(const char* buf
 		,size_t n
 		,FklStringMatchState* strs
 		,FklStringMatchState* boxes
 		,FklStringMatchPattern* patterns
-		,size_t line)
+		,size_t line
+		,size_t* jInc)
 {
 	if(charbufEqual(buf,n
 				,DefaultTokenHeaders[DEFAULT_TOKEN_HEADER_CHR].s
 				,DefaultTokenHeaders[DEFAULT_TOKEN_HEADER_CHR].l))
 	{
 		size_t len=getDefaultSymbolLen(&buf[3],n-3,strs,boxes,patterns)+3;
+		*jInc=len;
 		return fklCreateToken(FKL_TOKEN_CHAR,fklCreateString(len,buf),line);
 	}
 	else if(charbufEqual(buf,n
@@ -1053,32 +1046,72 @@ static FklToken* createDefaultToken(const char* buf
 		int complete=isCompleteStringBuf(buf,n,'"',&len);
 		if(complete)
 		{
-			FklString* str=fklCreateString(len,buf);
+			*jInc=len;
+			size_t size=0;
+			char* s=fklCastEscapeCharBuf(&buf[1],'"',&size);
+			FklString* str=fklCreateString(size,s);
+			free(s);
 			return fklCreateToken(FKL_TOKEN_STRING,str,line);
 		}
 		else
 			return fklCreateToken(FKL_TOKEN_STRING,NULL,line);
 	}
-	else if(charbufEqual(buf,n
-				,DefaultTokenHeaders[DEFAULT_TOKEN_HEADER_SYM].s
-				,DefaultTokenHeaders[DEFAULT_TOKEN_HEADER_SYM].l))
-	{
-		size_t len=getStringLen(buf,n,'|');
-		FklString* str=fklCreateString(len,buf);
-		return fklCreateToken(FKL_TOKEN_SYMBOL,str,line);
-	}
 	else
 	{
-		size_t len=getDefaultSymbolLen(buf,n,strs,boxes,patterns);
-		if(len)
+		int shouldBeSymbol=0;
+		size_t i=0;
+		FklUintStack lenStack={NULL,0,0,0,};
+		fklInitUintStack(&lenStack,2,4);
+		while(i<n)
 		{
-			FklToken* t=fklCreateToken(FKL_TOKEN_SYMBOL,fklCreateString(len,buf),line);
-			if(fklIsNumberString(t->value))
-				t->type=FKL_TOKEN_NUM;
-			return t;
+			size_t len=0;
+			if(charbufEqual(&buf[i],n-i
+						,DefaultTokenHeaders[DEFAULT_TOKEN_HEADER_SYM].s
+						,DefaultTokenHeaders[DEFAULT_TOKEN_HEADER_SYM].l))
+			{
+				shouldBeSymbol=1;
+				int complete=isCompleteStringBuf(&buf[i],n-i,'|',&len);
+				if(!complete)
+				{
+					fklUninitUintStack(&lenStack);
+					return fklCreateToken(FKL_TOKEN_SYMBOL,NULL,line);
+				}
+			}
+			else
+				len=getDefaultSymbolLen(&buf[i],n-i,strs,boxes,patterns);
+			if(!len)
+				break;
+			i+=len;
+			fklPushUintStack(len,&lenStack);
 		}
-		else
-			return NULL;
+		FklToken* t=NULL;
+		if(i)
+		{
+			i=0;
+			FklString* str=fklCreateEmptyString();
+			while(!fklIsUintStackEmpty(&lenStack))
+			{
+				uint64_t len=fklPopUintStack(&lenStack);
+				if(charbufEqual(&buf[i],n-i
+							,DefaultTokenHeaders[DEFAULT_TOKEN_HEADER_SYM].s
+							,DefaultTokenHeaders[DEFAULT_TOKEN_HEADER_SYM].l))
+				{
+					size_t size=0;
+					char* s=fklCastEscapeCharBuf(&buf[i+1],'|',&size);
+					fklStringCharBufCat(&str,s,size);
+					free(s);
+				}
+				else
+					fklStringCharBufCat(&str,&buf[i],len);
+				i+=len;
+			}
+			*jInc=i;
+			t=fklCreateToken(FKL_TOKEN_SYMBOL,str,line);
+			if(!shouldBeSymbol&&fklIsNumberString(t->value))
+				t->type=FKL_TOKEN_NUM;
+		}
+		fklUninitUintStack(&lenStack);
+		return t;
 	}
 }
 
@@ -1222,21 +1255,27 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 		,size_t n
 		,FklStringMatchPattern* patterns
 		,FklToken** pt
-		,size_t line)
+		,size_t line
+		,size_t* jInc)
 {
 	if(isComment(buf,n))
 	{
 		size_t len=0;
 		for(;len<n&&buf[len]!='\n';len++);
 		*pt=fklCreateToken(FKL_TOKEN_COMMENT,fklCreateString(len,buf),line);
+		*jInc=len;
 		return set;
 	}
 	FklStringMatchSet* r=NULL;
 	if(set==FKL_STRING_PATTERN_UNIVERSAL_SET)
 	{
 		r=matchInUniversSet(buf,n,patterns,pt,line,NULL);
-		*pt=createDefaultToken(buf,n
-				,NULL,NULL,patterns,line);
+		if(!*pt)
+			*pt=createDefaultToken(buf,n
+					,NULL,NULL,patterns,line
+					,jInc);
+		else
+			*jInc=(*pt)->value->size;
 	}
 	else
 	{
@@ -1263,19 +1302,24 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 					,set);
 			if(!*pt&&set)
 				*pt=createDefaultToken(buf,n
-						,set->str,set->box,patterns,line);
+						,set->str,set->box
+						,patterns,line,jInc);
+			else
+				*jInc=(*pt)->value->size;
 			if(!*pt||(*pt)->value==NULL)
 			{
 				rollBack(strs,boxes,syms,oset);
 				set=oset;
 			}
 		}
+		else
+			*jInc=(*pt)->value->size;
 		r=(nset==NULL)?set:nset;
 	}
 	return r;
 }
 
-FklStringMatchSet* fklSplitStringPartsIntoTokenWithPattern(const char* buf
+FklStringMatchSet* fklSplitStringIntoTokenWithPattern(const char* buf
 		,size_t size
 		,size_t* line
 		,size_t* pj
@@ -1287,12 +1331,14 @@ FklStringMatchSet* fklSplitStringPartsIntoTokenWithPattern(const char* buf
 	while(j<size&&matchSet)
 	{
 		FklToken* token=NULL;
+		size_t jInc=0;
 		matchSet=updatePreviusSet(matchSet
 				,&buf[j]
 				,size-j
 				,patterns
 				,&token
-				,*line);
+				,*line
+				,&jInc);
 		if(token)
 		{
 			if(token->value==NULL)
@@ -1302,7 +1348,7 @@ FklStringMatchSet* fklSplitStringPartsIntoTokenWithPattern(const char* buf
 				break;
 			}
 			fklPushPtrStack(token,retvalStack);
-			j+=token->value->size;
+			j+=jInc;
 			line+=fklCountCharInString(token->value,'\n');
 		}
 		else

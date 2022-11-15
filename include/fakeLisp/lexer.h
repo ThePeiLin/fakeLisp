@@ -40,7 +40,7 @@ int fklSplitStringPartsIntoToken(const char** parts
 		,uint32_t* pi
 		,uint32_t* pj);
 
-FklStringMatchSet* fklSplitStringPartsIntoTokenWithPattern(const char* buf
+FklStringMatchSet* fklSplitStringIntoTokenWithPattern(const char* buf
 		,size_t size
 		,size_t* line
 		,size_t* pj

@@ -156,6 +156,8 @@ typedef struct
 	uint32_t inc;
 }FklUintStack;
 
+void fklInitUintStack(FklUintStack*,uint32_t size,uint32_t inc);
+void fklUninitUintStack(FklUintStack*);
 FklUintStack* fklCreateUintStack(uint32_t size,uint32_t inc);
 FklUintStack* fklCreateUintStackFromStack(FklUintStack*);
 void fklPushUintStack(uint64_t e,FklUintStack*);

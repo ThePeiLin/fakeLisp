@@ -229,6 +229,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 	for(;e<2;)
 	{
 		FklNastNode* begin=NULL;
+		FklStringMatchRouteNode* route=NULL;
 		printf(">>>");
 		if(prev)
 			fwrite(prev,sizeof(char),prevSize,stdout);
@@ -242,7 +243,8 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 				,&unexpectEOF
 				,tokenStack
 				,NULL
-				,codegen->patterns);
+				,codegen->patterns
+				,&route);
 		if(unexpectEOF)
 		{
 			switch(unexpectEOF)

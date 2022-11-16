@@ -31,6 +31,7 @@ typedef struct FklStringMatchRouteNode
 	FklStringMatchPattern* pattern;
 	size_t start;
 	size_t end;
+	struct FklStringMatchRouteNode* parent;
 	struct FklStringMatchRouteNode* siblings;
 	struct FklStringMatchRouteNode* children;
 }FklStringMatchRouteNode;
@@ -70,6 +71,17 @@ void fklDestroyStringPattern(FklStringMatchPattern*);
 int fklStringPatternCoverState(const FklNastVector* p0,const FklNastVector* p1);
 void fklDestroyAllStringPattern(FklStringMatchPattern*);
 int fklIsInValidStringPattern(FklNastNode*);
+
+FklStringMatchRouteNode* fklCreateStringMatchRouteNode(FklStringMatchPattern* p
+		,size_t s
+		,size_t e
+		,FklStringMatchRouteNode* parent
+		,FklStringMatchRouteNode* siblings
+		,FklStringMatchRouteNode* children);
+
+void fklInsertMatchRouteNodeAsLastChild(FklStringMatchRouteNode* parent,FklStringMatchRouteNode* c);
+void fklDestroyStringMatchRoute(FklStringMatchRouteNode* start);
+void fklPrintStringMatchRoute(FklStringMatchRouteNode* root,FILE*);
 
 FklSid_t* fklGetVarId(const FklNastNode*);
 

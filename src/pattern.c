@@ -412,3 +412,80 @@ void fklDestroyStringMatchSet(FklStringMatchSet* set)
 		}
 	}
 }
+
+FklStringMatchRouteNode* fklCreateStringMatchRouteNode(FklStringMatchPattern* p
+		,size_t s
+		,size_t e
+		,FklStringMatchRouteNode* parent
+		,FklStringMatchRouteNode* siblings
+		,FklStringMatchRouteNode* children)
+{
+	FklStringMatchRouteNode* r=(FklStringMatchRouteNode*)malloc(sizeof(FklStringMatchRouteNode));
+	FKL_ASSERT(r);
+	r->pattern=p;
+	r->start=s;
+	r->end=e;
+	r->parent=parent;
+	r->siblings=siblings;
+	r->children=children;
+	return r;
+}
+
+void fklInsertMatchRouteNodeAsLastChild(FklStringMatchRouteNode* p,FklStringMatchRouteNode* c)
+{
+	c->parent=p;
+	FklStringMatchRouteNode** pnode=&p->children;
+	for(;*pnode;pnode=&(*pnode)->siblings);
+	*pnode=c;
+}
+
+void fklDestroyStringMatchRoute(FklStringMatchRouteNode* root)
+{
+	FklPtrStack stack={NULL,0,0,0};
+	fklInitPtrStack(&stack,32,16);
+	fklPushPtrStack(root,&stack);
+	while(!fklIsPtrStackEmpty(&stack))
+	{
+		FklStringMatchRouteNode* cur=fklPopPtrStack(&stack);
+		if(cur)
+		{
+			fklPushPtrStack(cur->siblings,&stack);
+			fklPushPtrStack(cur->children,&stack);
+			free(cur);
+		}
+	}
+	fklUninitPtrStack(&stack);
+}
+
+inline static void printStringMatchRoute(FklStringMatchRouteNode* root,FILE* fp,uint32_t depth)
+{
+	for(uint32_t i=0;i<depth;i++)
+		putc('\t',fp);
+	fprintf(fp,"[%p,%lu,%lu]",root->pattern,root->start,root->end);
+	if(root->children)
+	{
+		putc('{',fp);
+		putc('\n',fp);
+		for(FklStringMatchRouteNode* cur=root->children;cur;cur=cur->siblings)
+		{
+			printStringMatchRoute(cur,fp,depth+1);
+			putc(';',fp);
+			putc('\n',fp);
+		}
+		for(uint32_t i=0;i<depth;i++)
+			putc('\t',fp);
+		putc('}',fp);
+	}
+}
+
+void fklPrintStringMatchRoute(FklStringMatchRouteNode* root,FILE* fp)
+{
+//	FklPtrStack stack={NULL,0,0,0};
+//	fklInitPtrStack(&stack,32,16);
+//	while(!fklIsPtrStackEmpty(&stack))
+//	{
+//		FklStringMatchRouteNode* cur=fklPopPtrStack(&stack);
+//	}
+//	fklUninitPtrStack(&stack);
+	printStringMatchRoute(root,fp,0);
+}

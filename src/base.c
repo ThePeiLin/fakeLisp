@@ -11,16 +11,21 @@ int fklIsPtrStackEmpty(FklPtrStack* stack)
 	return stack->top==0;
 }
 
+void fklInitPtrStack(FklPtrStack* r,uint32_t size,uint32_t inc)
+{
+	r->base=(void**)malloc(sizeof(void*)*size);
+	FKL_ASSERT(r->base);
+	r->size=size;
+	r->inc=inc;
+	r->top=0;
+}
+
 FklPtrStack* fklCreatePtrStack(uint32_t size,uint32_t inc)
 {
-	FklPtrStack* tmp=(FklPtrStack*)malloc(sizeof(FklPtrStack));
-	FKL_ASSERT(tmp);
-	tmp->base=(void**)malloc(sizeof(void*)*size);
-	FKL_ASSERT(tmp->base);
-	tmp->size=size;
-	tmp->inc=inc;
-	tmp->top=0;
-	return tmp;
+	FklPtrStack* r=(FklPtrStack*)malloc(sizeof(FklPtrStack));
+	FKL_ASSERT(r);
+	fklInitPtrStack(r,size,inc);
+	return r;
 }
 
 void fklPushPtrStack(void* data,FklPtrStack* stack)
@@ -52,9 +57,14 @@ void* fklTopPtrStack(FklPtrStack* stack)
 	return stack->base[stack->top-1];
 }
 
+void fklUninitPtrStack(FklPtrStack* s)
+{
+	free(s->base);
+}
+
 void fklDestroyPtrStack(FklPtrStack* stack)
 {
-	free(stack->base);
+	fklUninitPtrStack(stack);
 	free(stack);
 }
 

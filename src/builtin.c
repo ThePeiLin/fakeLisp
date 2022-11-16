@@ -2633,6 +2633,7 @@ void builtin_read(ARGL)
 		pthread_mutex_lock(&tmpFile->lock);
 		int unexpectEOF=0;
 		size_t size=0;
+		FklStringMatchRouteNode* route=NULL;
 		tmpString=fklReadInStringPattern(tmpFile->fp
 				,(char**)&tmpFile->prev
 				,&size
@@ -2640,7 +2641,8 @@ void builtin_read(ARGL)
 				,0
 				,&unexpectEOF
 				,tokenStack,NULL
-				,exe->patterns);
+				,exe->patterns
+				,&route);
 		pthread_mutex_unlock(&tmpFile->lock);
 		if(unexpectEOF)
 		{
@@ -2692,10 +2694,12 @@ void builtin_parser(ARGL)
 			,stream->u.str->size
 			,line
 			,&line
+			,j
 			,&j
 			,tokenStack
 			,matchSet
-			,exe->patterns);
+			,exe->patterns
+			,NULL);
 	fklDestroyStringMatchSet(matchSet);
 	size_t errorLine=0;
 	FklNastNode* node=fklCreateNastNodeFromTokenStack(tokenStack,&errorLine,builtInHeadSymbolTable);

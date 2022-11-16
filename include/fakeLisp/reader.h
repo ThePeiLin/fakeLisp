@@ -16,7 +16,8 @@ char* fklReadInStringPattern(FILE*
 		,int*
 		,FklPtrStack* retval
 		,char* (*)(FILE*,size_t* size)
-		,FklStringMatchPattern* patterns);
+		,FklStringMatchPattern* patterns
+		,FklStringMatchRouteNode** proute);
 
 int fklIsAllSpaceBufSize(const char* buf,size_t size);
 #ifdef __cplusplus

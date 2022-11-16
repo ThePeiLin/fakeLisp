@@ -27,11 +27,13 @@ FklNastNode* fklCreateNastNodeFromCstr(const char* cStr
 	fklSplitStringIntoTokenWithPattern(cStr
 			,size
 			,line
-			,&j
 			,&line
+			,j
+			,&j
 			,tokenStack
 			,matchSet
-			,patterns);
+			,patterns
+			,NULL);
 	size_t errorLine=0;
 	FklNastNode* retval=fklCreateNastNodeFromTokenStack(tokenStack,&errorLine,buildInHeadSymbolTable);
 	while(!fklIsPtrStackEmpty(tokenStack))

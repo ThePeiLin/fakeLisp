@@ -1432,6 +1432,7 @@ inline static FklNastNode* getExpressionFromFile(FklCodegen* codegen
 {
 	size_t size=0;
 	FklNastNode* begin=NULL;
+	FklStringMatchRouteNode* route=NULL;
 	char* list=fklReadInStringPattern(fp
 			,prev
 			,&size
@@ -1439,7 +1440,8 @@ inline static FklNastNode* getExpressionFromFile(FklCodegen* codegen
 			,codegen->curline
 			,unexpectEOF
 			,tokenStack,NULL
-			,codegen->patterns);
+			,codegen->patterns
+			,&route);
 	if(*unexpectEOF)
 		return NULL;
 	codegen->curline+=fklCountChar(list,'\n',size);

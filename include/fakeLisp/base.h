@@ -99,6 +99,8 @@ typedef struct
 	uint32_t inc;
 }FklPtrStack;
 
+void fklInitPtrStack(FklPtrStack*,uint32_t size,uint32_t inc);
+void fklUninitPtrStack(FklPtrStack*);
 FklPtrStack* fklCreatePtrStack(uint32_t size,uint32_t inc);
 void fklPushPtrStack(void* data,FklPtrStack*);
 void* fklPopPtrStack(FklPtrStack*);

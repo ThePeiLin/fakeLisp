@@ -836,6 +836,8 @@ void fklPrintRawCharBuf(const char* str,char se,size_t size,FILE* out)
 	{
 		if(str[i]==se)
 			fprintf(out,"\\%c",se);
+		else if(str[i]=='\\')
+			fprintf(out,"\\\\");
 		else if(isgraph(str[i]))
 			putc(str[i],out);
 		else if(str[i]=='\x20')

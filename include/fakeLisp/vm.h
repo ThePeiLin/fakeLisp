@@ -3,10 +3,9 @@
 
 #include"base.h"
 #include"bytecode.h"
-//#include"ast.h"
 #include"parser.h"
-//#include"compiler.h"
 #include"builtin.h"
+#include"pattern.h"
 //#include<stdatomic.h>
 #include<stdio.h>
 #include<stdint.h>
@@ -43,7 +42,6 @@ typedef enum
 	FKL_TYPE_HASHTABLE,
 	FKL_TYPE_CODE_OBJ,
 }FklValueType;
-
 
 typedef enum
 {
@@ -246,6 +244,7 @@ typedef struct FklVM
 	FklPtrStack* tstack;
 	FklVMstack* stack;
 	FklVMvalue* codeObj;
+	FklStringMatchPattern* patterns;
 	struct FklVMvalue* chan;
 	struct FklVMgc* gc;
 	void (*callback)(void*);

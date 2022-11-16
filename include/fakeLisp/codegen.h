@@ -1,6 +1,7 @@
 #ifndef FKL_CODEGEN_H
 #define FKL_CODEGEN_H
 #include"symbol.h"
+#include"pattern.h"
 #include"base.h"
 #include"parser.h"
 #include"bytecode.h"
@@ -53,6 +54,7 @@ typedef struct FklCodegen
 	FklSid_t* exports;
 	FklPtrStack* loadedLibStack;
 	FklPtrStack* macroLibStack;
+	FklStringMatchPattern* patterns;
 	struct FklCodegen* prev;
 	unsigned int destroyAbleMark:1;
 	unsigned long refcount:63;

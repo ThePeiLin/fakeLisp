@@ -1,8 +1,6 @@
 #ifndef FKL_PATTERN_H
 #define FKL_PATTERN_H
 #include"bytecode.h"
-#include"parser.h"
-//#include"vm.h"
 #ifdef __cplusplus
 extern "C"{
 #endif
@@ -14,6 +12,8 @@ typedef enum
 	FKL_STRING_PATTERN_DEFINED,
 }FklStringPatternType;
 
+typedef struct FklNastNode FklNastNode;
+typedef struct FklNastVector FklNastVector;
 typedef struct FklStringMatchPattern
 {
 	FklNastNode* parts;
@@ -42,6 +42,9 @@ typedef struct FklStringMatchSet
 	FklStringMatchState* sym;
 	struct FklStringMatchSet* prev;
 }FklStringMatchSet;
+
+void fklDestroyStringMatchState(FklStringMatchState* state);
+void fklDestroyStringMatchSet(FklStringMatchSet* set);
 
 FklStringMatchPattern* fklInitBuiltInStringPattern(void);
 

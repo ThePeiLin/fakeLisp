@@ -2,6 +2,7 @@
 #include<fakeLisp/utils.h>
 #include<fakeLisp/reader.h>
 #include<fakeLisp/pattern.h>
+#include<fakeLisp/parser.h>
 #include<ctype.h>
 #include<string.h>
 
@@ -1320,24 +1321,9 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 		else
 		{
 			*jInc=(*pt)->value->size;
-			for(FklStringMatchState** pcur=&strs;*pcur;)
-			{
-				FklStringMatchState* cur=*pcur;
-				*pcur=cur->next;
-				free(cur);
-			}
-			for(FklStringMatchState** pcur=&boxes;*pcur;)
-			{
-				FklStringMatchState* cur=*pcur;
-				*pcur=cur->next;
-				free(cur);
-			}
-			for(FklStringMatchState** pcur=&syms;*pcur;)
-			{
-				FklStringMatchState* cur=*pcur;
-				*pcur=cur->next;
-				free(cur);
-			}
+			fklDestroyStringMatchState(strs);
+			fklDestroyStringMatchState(boxes);
+			fklDestroyStringMatchState(syms);
 		}
 		if(oset->str==NULL&&oset->box==NULL&&oset->sym==NULL)
 			free(oset);
@@ -1348,13 +1334,14 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 
 FklStringMatchSet* fklSplitStringIntoTokenWithPattern(const char* buf
 		,size_t size
-		,size_t* line
+		,size_t line
+		,size_t* pline
 		,size_t* pj
 		,FklPtrStack* retvalStack
 		,FklStringMatchSet* matchSet
 		,FklStringMatchPattern* patterns)
 {
-	size_t j=*pj;
+	size_t j=0;
 	while(j<size&&matchSet)
 	{
 		FklToken* token=NULL;
@@ -1364,7 +1351,7 @@ FklStringMatchSet* fklSplitStringIntoTokenWithPattern(const char* buf
 				,size-j
 				,patterns
 				,&token
-				,*line
+				,line
 				,&jInc);
 		if(token==FKL_INCOMPLETED_TOKEN)
 			break;
@@ -1381,6 +1368,7 @@ FklStringMatchSet* fklSplitStringIntoTokenWithPattern(const char* buf
 			line+=fklCountCharInString(token->value,'\n');
 		}
 	}
+	*pline=line;
 	*pj=j;
 	return matchSet;
 }

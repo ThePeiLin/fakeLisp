@@ -242,7 +242,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 				,&unexpectEOF
 				,tokenStack
 				,NULL
-				,NULL);
+				,codegen->patterns);
 		if(unexpectEOF)
 		{
 			switch(unexpectEOF)

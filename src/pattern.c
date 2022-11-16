@@ -17,25 +17,25 @@ FklStringMatchPattern* fklCreateStringMatchPattern(FklNastNode* parts
 	return r;
 }
 
-static const char* BuiltinStringPattern_quote[]={":'","#a",};
-static const char* BuiltinStringPattern_qsquote[]={":`","#a",};
-static const char* BuiltinStringPattern_unquote[]={":~","#a",};
-static const char* BuiltinStringPattern_unqtesp[]={":~@","#a",};
-static const char* BuiltinStringPattern_box[]={":#&","#a",};
-static const char* BuiltinStringPattern_list_0[]={":(","&a",":)",};
-static const char* BuiltinStringPattern_list_1[]={":[","&a",":]",};
-static const char* BuiltinStringPattern_pair_0[]={":(","#a","&b",":,","#c",":)",};
-static const char* BuiltinStringPattern_pair_1[]={":[","#a","&b",":,","#c",":]",};
-static const char* BuiltinStringPattern_vector_0[]={":#(","&a",":)",};
-static const char* BuiltinStringPattern_vector_1[]={":#[","&a",":]",};
-static const char* BuiltinStringPattern_bytevector_0[]={":#vu8(","&a",":)",};
-static const char* BuiltinStringPattern_bytevector_1[]={":#vu8[","&a",":]",};
-static const char* BuiltinStringPattern_hash_0[]={":#hash(","&a",":)",};
-static const char* BuiltinStringPattern_hash_1[]={":#hash[","&a",":]",};
-static const char* BuiltinStringPattern_hasheqv_0[]={":#hasheqv(","&a",":)",};
-static const char* BuiltinStringPattern_hasheqv_1[]={":#hasheqv[","&a",":]",};
-static const char* BuiltinStringPattern_hashequal_0[]={":#hashequal(","&a",":)",};
-static const char* BuiltinStringPattern_hashequal_1[]={":#hashequal[","&a",":]",};
+static const char* BuiltinStringPattern_quote[]={":'","#car",};
+static const char* BuiltinStringPattern_qsquote[]={":`","#car",};
+static const char* BuiltinStringPattern_unquote[]={":~","#car",};
+static const char* BuiltinStringPattern_unqtesp[]={":~@","#car",};
+static const char* BuiltinStringPattern_box[]={":#&","#car",};
+static const char* BuiltinStringPattern_list_0[]={":(","&car",":)",};
+static const char* BuiltinStringPattern_list_1[]={":[","&car",":]",};
+static const char* BuiltinStringPattern_pair_0[]={":(","#car","&cdr",":,","#cons",":)",};
+static const char* BuiltinStringPattern_pair_1[]={":[","#car","&cdr",":,","#cons",":]",};
+static const char* BuiltinStringPattern_vector_0[]={":#(","&car",":)",};
+static const char* BuiltinStringPattern_vector_1[]={":#[","&car",":]",};
+static const char* BuiltinStringPattern_bytevector_0[]={":#vu8(","&car",":)",};
+static const char* BuiltinStringPattern_bytevector_1[]={":#vu8[","&car",":]",};
+static const char* BuiltinStringPattern_hash_0[]={":#hash(","&car",":)",};
+static const char* BuiltinStringPattern_hash_1[]={":#hash[","&car",":]",};
+static const char* BuiltinStringPattern_hasheqv_0[]={":#hasheqv(","&car",":)",};
+static const char* BuiltinStringPattern_hasheqv_1[]={":#hasheqv[","&car",":]",};
+static const char* BuiltinStringPattern_hashequal_0[]={":#hashequal(","&car",":)",};
+static const char* BuiltinStringPattern_hashequal_1[]={":#hashequal[","&car",":]",};
 
 static struct BuiltinStringPattern
 {
@@ -384,4 +384,31 @@ inline int fklPatternCoverState(const FklNastNode* p0,const FklNastNode* p1)
 	r+=fklPatternMatch(p0,p1,NULL)?FKL_PATTERN_COVER:0;
 	r+=fklPatternMatch(p1,p0,NULL)?FKL_PATTERN_BE_COVER:0;
 	return r;
+}
+
+void fklDestroyStringMatchState(FklStringMatchState* state)
+{
+	for(FklStringMatchState** pcur=&state;*pcur;)
+	{
+		FklStringMatchState* cur=*pcur;
+		*pcur=cur->next;
+		free(cur);
+	}
+
+}
+
+void fklDestroyStringMatchSet(FklStringMatchSet* set)
+{
+	if(set!=NULL&&set!=FKL_STRING_PATTERN_UNIVERSAL_SET)
+	{
+		for(FklStringMatchSet** pset=&set;*pset;)
+		{
+			FklStringMatchSet* cur=*pset;
+			*pset=cur->prev;
+			fklDestroyStringMatchState(cur->str);
+			fklDestroyStringMatchState(cur->box);
+			fklDestroyStringMatchState(cur->sym);
+			free(cur);
+		}
+	}
 }

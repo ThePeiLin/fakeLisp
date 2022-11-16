@@ -1439,7 +1439,7 @@ inline static FklNastNode* getExpressionFromFile(FklCodegen* codegen
 			,codegen->curline
 			,unexpectEOF
 			,tokenStack,NULL
-			,NULL);
+			,codegen->patterns);
 	if(*unexpectEOF)
 		return NULL;
 	codegen->curline+=fklCountChar(list,'\n',size);
@@ -2655,12 +2655,14 @@ const FklSid_t* fklInitCodegen(void)
 	builtInPatternVar_args=fklAddSymbolToGlobCstr("args")->id;
 	builtInPatternVar_value=fklAddSymbolToGlobCstr("value")->id;
 
+	FklStringMatchPattern* builtinStringPatterns=fklInitBuiltInStringPattern();
 	for(struct PatternAndFunc* cur=&builtInPattern[0];cur->ps!=NULL;cur++)
-		cur->pn=fklCreateNastNodeFromCstr(cur->ps,builtInHeadSymbolTable);
+		cur->pn=fklCreateNastNodeFromCstr(cur->ps,builtInHeadSymbolTable,builtinStringPatterns);
 	for(struct SymbolReplacement* cur=&builtInSymbolReplacement[0];cur->s!=NULL;cur++)
 		cur->sid=fklAddSymbolToGlobCstr(cur->s)->id;
 	for(struct SubPattern* cur=&builtInSubPattern[0];cur->ps!=NULL;cur++)
-		cur->pn=fklCreateNastNodeFromCstr(cur->ps,builtInHeadSymbolTable);
+		cur->pn=fklCreateNastNodeFromCstr(cur->ps,builtInHeadSymbolTable,builtinStringPatterns);
+	fklDestroyAllStringPattern(builtinStringPatterns);
 	return builtInHeadSymbolTable;
 }
 
@@ -2987,6 +2989,7 @@ void fklInitGlobalCodegener(FklCodegen* codegen
 	codegen->refcount=0;
 	codegen->exportNum=0;
 	codegen->exports=NULL;
+	codegen->patterns=fklInitBuiltInStringPattern();
 	codegen->loadedLibStack=fklCreatePtrStack(8,8);
 	codegen->macroLibStack=fklCreatePtrStack(8,8);
 }
@@ -3023,6 +3026,7 @@ void fklInitCodegener(FklCodegen* codegen
 	codegen->refcount=0;
 	codegen->exportNum=0;
 	codegen->exports=NULL;
+	codegen->patterns=prev?prev->patterns:fklInitBuiltInStringPattern();
 	codegen->loadedLibStack=prev?prev->loadedLibStack:fklCreatePtrStack(8,8);
 	codegen->macroLibStack=prev?prev->macroLibStack:fklCreatePtrStack(8,8);
 }
@@ -3036,6 +3040,7 @@ void fklUninitCodegener(FklCodegen* codegen)
 			fklDestroySymbolTable(codegen->globalSymTable);
 		while(!fklIsPtrStackEmpty(codegen->loadedLibStack))
 			fklDestroyCodegenLib(fklPopPtrStack(codegen->loadedLibStack));
+		fklDestroyAllStringPattern(codegen->patterns);
 		fklDestroyPtrStack(codegen->loadedLibStack);
 		FklPtrStack* macroLibStack=codegen->macroLibStack;
 		while(!fklIsPtrStackEmpty(macroLibStack))

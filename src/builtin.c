@@ -2639,7 +2639,8 @@ void builtin_read(ARGL)
 				,&tmpFile->size
 				,0
 				,&unexpectEOF
-				,tokenStack,NULL,NULL);
+				,tokenStack,NULL
+				,exe->patterns);
 		pthread_mutex_unlock(&tmpFile->lock);
 		if(unexpectEOF)
 		{
@@ -2684,14 +2685,18 @@ void builtin_parser(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	char* tmpString=NULL;
 	FklPtrStack* tokenStack=fklCreatePtrStack(32,16);
-	const char* parts[]={stream->u.str->str};
-	size_t sizes[]={stream->u.str->size};
-	size_t line=0;
-	FklPtrStack* matchStateStack=fklCreatePtrStack(32,16);
-	fklSplitStringPartsIntoToken(parts,sizes,1,&line,tokenStack,matchStateStack,NULL,NULL);
-	while(!fklIsPtrStackEmpty(matchStateStack))
-		free(fklPopPtrStack(matchStateStack));
-	fklDestroyPtrStack(matchStateStack);
+	FklStringMatchSet* matchSet=FKL_STRING_PATTERN_UNIVERSAL_SET;
+	size_t line=1;
+	size_t j=0;
+	fklSplitStringIntoTokenWithPattern(stream->u.str->str
+			,stream->u.str->size
+			,line
+			,&line
+			,&j
+			,tokenStack
+			,matchSet
+			,exe->patterns);
+	fklDestroyStringMatchSet(matchSet);
 	size_t errorLine=0;
 	FklNastNode* node=fklCreateNastNodeFromTokenStack(tokenStack,&errorLine,builtInHeadSymbolTable);
 	FklVMvalue* tmp=NULL;

@@ -68,8 +68,9 @@ char* fklReadInStringPattern(FILE* fp
 		size_t j=0;
 		matchSet=fklSplitStringIntoTokenWithPattern(tmp
 				,size
-				,&line
+				,line
 				,&j
+				,&line
 				,retval
 				,FKL_STRING_PATTERN_UNIVERSAL_SET,patterns);
 		if(matchSet==NULL)
@@ -93,6 +94,7 @@ char* fklReadInStringPattern(FILE* fp
 		{
 			while(!fklIsPtrStackEmpty(retval))
 				fklDestroyToken(fklPopPtrStack(retval));
+			fklDestroyStringMatchSet(matchSet);
 			*unexpectEOF=1;
 			free(tmp);
 			tmp=NULL;

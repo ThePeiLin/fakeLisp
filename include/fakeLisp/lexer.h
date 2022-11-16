@@ -43,7 +43,8 @@ void fklPrintToken(FklPtrStack*,FILE* fp);
 
 FklStringMatchSet* fklSplitStringIntoTokenWithPattern(const char* buf
 		,size_t size
-		,size_t* line
+		,size_t line
+		,size_t* pline
 		,size_t* pj
 		,FklPtrStack* retvalStack
 		,FklStringMatchSet* matchSet

@@ -2,7 +2,6 @@
 #define FKL_LEXER_H
 #include"symbol.h"
 #include"base.h"
-//#include"ast.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -67,7 +66,8 @@ typedef struct FklNastNode
 //void fklInitLexer(void);
 FklNastNode* fklCreateNastNode(FklNastType type,uint64_t line);
 FklNastNode* fklCreateNastNodeFromTokenStack(FklPtrStack*,size_t* errorLine,const FklSid_t t[4]);
-FklNastNode* fklCreateNastNodeFromCstr(const char*,const FklSid_t t[4]);
+struct FklStringMatchPattern;
+FklNastNode* fklCreateNastNodeFromCstr(const char*,const FklSid_t t[4],struct FklStringMatchPattern* pattern);
 FklNastNode* fklCopyNastNode(const FklNastNode* n);
 void fklDestroyNastNode(FklNastNode*);
 void fklPrintNastNode(const FklNastNode* node,FILE* fp);

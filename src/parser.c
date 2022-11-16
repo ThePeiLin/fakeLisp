@@ -14,21 +14,24 @@ enum
 	BUILTIN_HEAD_UNQTESP=3,
 }BuildInHeadSymbolIndex;
 
-FklNastNode* fklCreateNastNodeFromCstr(const char* cStr,const FklSid_t buildInHeadSymbolTable[4])
+FklNastNode* fklCreateNastNodeFromCstr(const char* cStr
+		,const FklSid_t buildInHeadSymbolTable[4]
+		,FklStringMatchPattern* patterns)
 {
 	FklPtrStack* tokenStack=fklCreatePtrStack(8,16);
 	size_t size=strlen(cStr);
 	size_t line=0;
-	uint32_t i,j=0;
+	size_t j=0;
+	FklStringMatchSet* matchSet=FKL_STRING_PATTERN_UNIVERSAL_SET;
 	FklPtrStack* matchStateStack=fklCreatePtrStack(8,16);
-	fklSplitStringPartsIntoToken(&cStr
-			,&size
-			,1
+	fklSplitStringIntoTokenWithPattern(cStr
+			,size
+			,line
+			,&j
 			,&line
 			,tokenStack
-			,matchStateStack
-			,&i
-			,&j);
+			,matchSet
+			,patterns);
 	size_t errorLine=0;
 	FklNastNode* retval=fklCreateNastNodeFromTokenStack(tokenStack,&errorLine,buildInHeadSymbolTable);
 	while(!fklIsPtrStackEmpty(tokenStack))

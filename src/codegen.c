@@ -1438,7 +1438,8 @@ inline static FklNastNode* getExpressionFromFile(FklCodegen* codegen
 			,prevSize
 			,codegen->curline
 			,unexpectEOF
-			,tokenStack,NULL);
+			,tokenStack,NULL
+			,NULL);
 	if(*unexpectEOF)
 		return NULL;
 	codegen->curline+=fklCountChar(list,'\n',size);

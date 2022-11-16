@@ -234,7 +234,15 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 			fwrite(prev,sizeof(char),prevSize,stdout);
 		int unexpectEOF=0;
 		size_t size=0;
-		char* list=fklReadInStringPattern(stdin,&prev,&size,&prevSize,codegen->curline,&unexpectEOF,tokenStack,NULL);
+		char* list=fklReadInStringPattern(stdin
+				,&prev
+				,&size
+				,&prevSize
+				,codegen->curline
+				,&unexpectEOF
+				,tokenStack
+				,NULL
+				,NULL);
 		if(unexpectEOF)
 		{
 			switch(unexpectEOF)

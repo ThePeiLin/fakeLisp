@@ -32,14 +32,14 @@ FklToken* fklCreateTokenCopyStr(FklTokenType type,const FklString* str,size_t li
 void fklDestroyToken(FklToken* token);
 void fklPrintToken(FklPtrStack*,FILE* fp);
 
-int fklSplitStringPartsIntoToken(const char** parts
-		,size_t* sizes
-		,uint32_t inum
-		,size_t* line
-		,FklPtrStack* retvalStack
-		,FklPtrStack* matchStateStack
-		,uint32_t* pi
-		,uint32_t* pj);
+//int fklSplitStringPartsIntoToken(const char** parts
+//		,size_t* sizes
+//		,uint32_t inum
+//		,size_t* line
+//		,FklPtrStack* retvalStack
+//		,FklPtrStack* matchStateStack
+//		,uint32_t* pi
+//		,uint32_t* pj);
 
 FklStringMatchSet* fklSplitStringIntoTokenWithPattern(const char* buf
 		,size_t size

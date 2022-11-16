@@ -1,7 +1,6 @@
 #include<fakeLisp/reader.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/lexer.h>
-#include<fakeLisp/pattern.h>
 #include<string.h>
 #include<stdlib.h>
 #include<ctype.h>
@@ -37,16 +36,17 @@ char* fklReadLine(FILE* fp,size_t* size)
 
 char* fklReadInStringPattern(FILE* fp
 		,char** prev
-		,size_t* size
+		,size_t* psize
 		,size_t* prevSize
 		,size_t curline
 		,int* unexpectEOF
 		,FklPtrStack* retval
-		,char* (*read)(FILE*,size_t*))
+		,char* (*read)(FILE*,size_t*)
+		,FklStringMatchPattern* patterns)
 {
+	size_t size=0;
 	char* tmp=NULL;
 	*unexpectEOF=0;
-	FklPtrStack* matchStateStack=fklCreatePtrStack(32,16);
 	if(!read)
 		read=fklReadLine;
 	if(*prev)
@@ -56,68 +56,57 @@ char* fklReadInStringPattern(FILE* fp
 		memcpy(tmp,*prev,*prevSize);
 		free(*prev);
 		*prev=NULL;
-		*size=*prevSize;
+		size=*prevSize;
 		*prevSize=0;
 	}
 	else
-		*size=0;
-	size_t cpost=0;
+		size=0;
 	size_t line=curline;
+	FklStringMatchSet* matchSet=FKL_STRING_PATTERN_UNIVERSAL_SET;
 	for(;;)
 	{
-		const char* strs[]={tmp+cpost};
-		size_t sizes[]={*size-cpost};
-		uint32_t i=0,j=0;
-		int r=fklSplitStringPartsIntoToken(strs,sizes,1,&line,retval,matchStateStack,&i,&j);
-		if(r==0)
+		size_t j=0;
+		matchSet=fklSplitStringIntoTokenWithPattern(tmp
+				,size
+				,&line
+				,&j
+				,retval
+				,FKL_STRING_PATTERN_UNIVERSAL_SET,patterns);
+		if(matchSet==NULL)
 		{
-			if(*size-j-cpost)
+			if(size-j)
 			{
-				*prevSize=*size-j-cpost;
-				*prev=fklCopyMemory(tmp+cpost+j,*prevSize);
-				*size-=*prevSize;
+				*prevSize=size-j;
+				*prev=fklCopyMemory(tmp+j,*prevSize);
+				size-=*prevSize;
 			}
-			char* rt=(char*)realloc(tmp,sizeof(char)*(*size));
-			FKL_ASSERT(!*size||rt);
+			char* rt=(char*)realloc(tmp,sizeof(char)*(size));
+			FKL_ASSERT(!size||rt);
 			tmp=rt;
-			if((!fklIsAllSpaceBufSize(tmp,*size)&&!fklIsAllComment(retval))||feof(fp))
+			if((!fklIsAllSpaceBufSize(tmp,size)&&!fklIsAllComment(retval))||feof(fp))
 			{
 				curline=line;
 				break;
 			}
 		}
-		else if(r==1&&feof(fp))
+		else if(feof(fp))
 		{
 			while(!fklIsPtrStackEmpty(retval))
 				fklDestroyToken(fklPopPtrStack(retval));
-			while(!fklIsPtrStackEmpty(matchStateStack))
-				free(fklPopPtrStack(matchStateStack));
 			*unexpectEOF=1;
 			free(tmp);
 			tmp=NULL;
 			break;
 		}
-		else if(r==2)
-		{
-			while(!fklIsPtrStackEmpty(retval))
-				fklDestroyToken(fklPopPtrStack(retval));
-			while(!fklIsPtrStackEmpty(matchStateStack))
-				free(fklPopPtrStack(matchStateStack));
-			*unexpectEOF=2;
-			free(tmp);
-			tmp=NULL;
-			break;
-		}
-		cpost+=j;
 		size_t nextSize=0;
 		char* next=read(fp,&nextSize);
-		tmp=(char*)realloc(tmp,sizeof(char)+(*size+nextSize));
+		tmp=(char*)realloc(tmp,sizeof(char)+(size+nextSize));
 		FKL_ASSERT(tmp);
-		memcpy(tmp+*size,next,nextSize);
-		*size+=nextSize;
+		memcpy(tmp+size,next,nextSize);
+		size+=nextSize;
 		free(next);
 	}
-	fklDestroyPtrStack(matchStateStack);
+	*psize=size;
 	return tmp;
 }
 

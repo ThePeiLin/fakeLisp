@@ -1,6 +1,6 @@
 #ifndef FKL_READER_H
 #define FKL_READER_H
-//#include"ast.h"
+#include"pattern.h"
 #include"base.h"
 #include<stdio.h>
 #include<stdint.h>
@@ -15,7 +15,8 @@ char* fklReadInStringPattern(FILE*
 		,size_t
 		,int*
 		,FklPtrStack* retval
-		,char* (*)(FILE*,size_t* size));
+		,char* (*)(FILE*,size_t* size)
+		,FklStringMatchPattern* patterns);
 
 int fklIsAllSpaceBufSize(const char* buf,size_t size);
 #ifdef __cplusplus

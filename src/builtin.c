@@ -2633,7 +2633,13 @@ void builtin_read(ARGL)
 		pthread_mutex_lock(&tmpFile->lock);
 		int unexpectEOF=0;
 		size_t size=0;
-		tmpString=fklReadInStringPattern(tmpFile->fp,(char**)&tmpFile->prev,&size,&tmpFile->size,0,&unexpectEOF,tokenStack,NULL);
+		tmpString=fklReadInStringPattern(tmpFile->fp
+				,(char**)&tmpFile->prev
+				,&size
+				,&tmpFile->size
+				,0
+				,&unexpectEOF
+				,tokenStack,NULL,NULL);
 		pthread_mutex_unlock(&tmpFile->lock);
 		if(unexpectEOF)
 		{

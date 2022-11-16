@@ -69,8 +69,8 @@ char* fklReadInStringPattern(FILE* fp
 		matchSet=fklSplitStringIntoTokenWithPattern(tmp
 				,size
 				,line
-				,&j
 				,&line
+				,&j
 				,retval
 				,FKL_STRING_PATTERN_UNIVERSAL_SET,patterns);
 		if(matchSet==NULL)

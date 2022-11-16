@@ -26,6 +26,15 @@ typedef struct FklStringMatchPattern
 	struct FklStringMatchPattern* next;
 }FklStringMatchPattern;
 
+typedef struct FklStringMatchRouteNode
+{
+	FklStringMatchPattern* pattern;
+	size_t start;
+	size_t end;
+	struct FklStringMatchRouteNode* siblings;
+	struct FklStringMatchRouteNode* children;
+}FklStringMatchRouteNode;
+
 typedef struct FklStringMatchState
 {
 	FklStringMatchPattern* pattern;

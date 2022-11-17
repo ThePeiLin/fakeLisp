@@ -530,6 +530,22 @@ inline static int isValidToken(FklToken* t)
 	return t&&t!=FKL_INCOMPLETED_TOKEN;
 }
 
+inline static FklStringMatchPattern* getCompleteMatchPattern(FklStringMatchState* strs
+		,FklStringMatchState* boxes
+		,FklStringMatchState* syms)
+{
+	for(FklStringMatchState* cur=strs;cur;cur=cur->next)
+		if(cur->index>=getSizeFromPattern(cur->pattern))
+			return cur->pattern;
+	for(FklStringMatchState* cur=boxes;cur;cur=cur->next)
+		if(cur->index>=getSizeFromPattern(cur->pattern))
+			return cur->pattern;
+	for(FklStringMatchState* cur=syms;cur;cur=cur->next)
+		if(cur->index>=getSizeFromPattern(cur->pattern))
+			return cur->pattern;
+	return NULL;
+}
+
 static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 		,const char* buf
 		,size_t n
@@ -609,11 +625,9 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 		}
 		else
 			*jInc=(*pt)->value->size;
+		route->pattern=getCompleteMatchPattern(strs,boxes,syms);
 		if(!nset&&isValidToken(*pt))
 		{
-			fklDestroyStringMatchState(strs);
-			fklDestroyStringMatchState(boxes);
-			fklDestroyStringMatchState(syms);
 			set=oset;
 			while(set&&set->str==NULL&&set->box==NULL&&set->sym==NULL)
 			{
@@ -625,6 +639,9 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 			}
 			*proute=route;
 		}
+		fklDestroyStringMatchState(strs);
+		fklDestroyStringMatchState(boxes);
+		fklDestroyStringMatchState(syms);
 		r=(nset==NULL)?set:nset;
 	}
 	return r;

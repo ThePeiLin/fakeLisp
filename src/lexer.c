@@ -505,8 +505,9 @@ static void rollBack(FklStringMatchState* strs
 	{
 		FklStringMatchState* ostrs=getRollBack(&oset->str,strs);
 		FklStringMatchState* oboxes=getRollBack(&oset->box,boxes);
-		for(FklStringMatchState* cur=oset->sym;cur;cur=cur->next)
+		for(FklStringMatchState* cur=syms;cur;cur=cur->next)
 			cur->index--;
+		oset->sym=syms;
 		for(FklStringMatchState* cur=ostrs;cur;)
 		{
 			FklStringMatchState* t=cur->next;
@@ -563,12 +564,9 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 	}
 	else
 	{
-		FklStringMatchState* ostrs=set->str;
-		FklStringMatchState* oboxes=set->box;
-		FklStringMatchState* osyms=set->sym;
-		FklStringMatchState* strs=ostrs;
-		FklStringMatchState* boxes=oboxes;
-		FklStringMatchState* syms=osyms;
+		FklStringMatchState* strs=set->str;
+		FklStringMatchState* boxes=set->box;
+		FklStringMatchState* syms=set->sym;
 		set->sym=NULL;
 		set->box=NULL;
 		set->str=NULL;
@@ -596,7 +594,7 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 						,NULL
 						,NULL
 						,NULL);
-				fklInsertMatchRouteNodeAsLastChild(route,node);
+				fklInsertMatchRouteNodeAsFirstChild(route,node);
 				if(nset)
 				{
 					*proute=node;
@@ -605,7 +603,7 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 			}
 			else
 			{
-				rollBack(ostrs,oboxes,osyms,oset);
+				rollBack(strs,boxes,syms,oset);
 				set=oset;
 			}
 		}
@@ -669,8 +667,8 @@ FklStringMatchSet* fklSplitStringIntoTokenWithPattern(const char* buf
 		else
 		{
 			fklPushPtrStack(token,retvalStack);
+			line+=fklCountCharInBuf(&buf[j],jInc,'\n');
 			j+=jInc;
-			line+=fklCountCharInString(token->value,'\n');
 		}
 	}
 	*pline=line;

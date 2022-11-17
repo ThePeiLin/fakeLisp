@@ -439,6 +439,13 @@ void fklInsertMatchRouteNodeAsLastChild(FklStringMatchRouteNode* p,FklStringMatc
 	*pnode=c;
 }
 
+void fklInsertMatchRouteNodeAsFirstChild(FklStringMatchRouteNode* p,FklStringMatchRouteNode* c)
+{
+	c->parent=p;
+	c->siblings=p->children;
+	p->children=c;
+}
+
 void fklDestroyStringMatchRoute(FklStringMatchRouteNode* root)
 {
 	FklPtrStack stack={NULL,0,0,0};

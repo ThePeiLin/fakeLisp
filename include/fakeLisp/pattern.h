@@ -80,6 +80,7 @@ FklStringMatchRouteNode* fklCreateStringMatchRouteNode(FklStringMatchPattern* p
 		,FklStringMatchRouteNode* children);
 
 void fklInsertMatchRouteNodeAsLastChild(FklStringMatchRouteNode* parent,FklStringMatchRouteNode* c);
+void fklInsertMatchRouteNodeAsFirstChild(FklStringMatchRouteNode* parent,FklStringMatchRouteNode* c);
 void fklDestroyStringMatchRoute(FklStringMatchRouteNode* start);
 void fklPrintStringMatchRoute(FklStringMatchRouteNode* root,FILE*);
 

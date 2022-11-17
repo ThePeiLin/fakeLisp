@@ -466,13 +466,15 @@ void fklDestroyStringMatchRoute(FklStringMatchRouteNode* root)
 
 inline static void printStringMatchRoute(FklStringMatchRouteNode* root,FILE* fp,uint32_t depth)
 {
-	for(uint32_t i=0;i<depth;i++)
-		fprintf(fp,"    ");
+	for(uint32_t i=1;i<depth;i++)
+		fprintf(fp,"|   ");
+	if(depth)
+		fprintf(fp,"+---");
 	fprintf(fp,"[%p,%lu,%lu]",root->pattern,root->start,root->end);
 	if(root->children)
 	{
 		//putc('{',fp);
-		putc(':',fp);
+		//putc(':',fp);
 		for(FklStringMatchRouteNode* cur=root->children;cur;cur=cur->siblings)
 		{
 			putc('\n',fp);

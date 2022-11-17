@@ -861,7 +861,12 @@ void fklPrintNastNode(const FklNastNode* exp,FILE* fp)
 					break;
 				case FKL_NAST_BOX:
 					fputs("#&",fp);
-					fklPushPtrQueue(createNastElem(NAST_BOX,node->u.box),cQueue);
+					{
+						FklPtrQueue* bQueue=fklCreatePtrQueue();
+						fklPushPtrQueue(createNastElem(NAST_BOX,node->u.box),bQueue);
+						fklPushPtrStack(bQueue,queueStack);
+						cQueue=bQueue;
+					}
 					break;
 				case FKL_NAST_HASHTABLE:
 					{
@@ -873,7 +878,6 @@ void fklPrintNastNode(const FklNastNode* exp,FILE* fp)
 						};
 						fputs(tmp[node->u.hash->type],fp);
 					}
-//					fklPushPtrQueue(createNastElem(NAST_BOX,node->u.hash->items),cQueue);
 					break;
 				case FKL_NAST_NIL:
 					fputs("()",fp);

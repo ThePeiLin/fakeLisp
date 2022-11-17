@@ -608,14 +608,12 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 			}
 		}
 		else
-		{
 			*jInc=(*pt)->value->size;
+		if(!nset&&isValidToken(*pt))
+		{
 			fklDestroyStringMatchState(strs);
 			fklDestroyStringMatchState(boxes);
 			fklDestroyStringMatchState(syms);
-		}
-		if(!nset&&isValidToken(*pt))
-		{
 			set=oset;
 			while(set&&set->str==NULL&&set->box==NULL&&set->sym==NULL)
 			{

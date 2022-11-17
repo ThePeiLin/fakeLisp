@@ -93,11 +93,7 @@ char* fklReadInStringPattern(FILE* fp
 			char* rt=(char*)realloc(tmp,sizeof(char)*(size));
 			FKL_ASSERT(!size||rt);
 			tmp=rt;
-			if((!fklIsAllSpaceBufSize(tmp,size)&&!fklIsAllComment(retval))||feof(fp))
-			{
-				curline=line;
-				break;
-			}
+			break;
 		}
 		else if(feof(fp))
 		{

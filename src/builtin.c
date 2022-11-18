@@ -2747,8 +2747,9 @@ void builtin_parser(ARGL)
 	size_t line=1;
 	size_t j=0;
 	PublicBuiltInUserData* pbd=pd->u.ud->data;
-	FklStringMatchRouteNode* route=fklCreateStringMatchRouteNode(NULL,0,0,NULL,NULL,NULL);
 	FklStringMatchPattern* patterns=pbd->patterns;
+	FklStringMatchRouteNode* route=fklCreateStringMatchRouteNode(NULL,0,0,NULL,NULL,NULL);
+	FklStringMatchRouteNode* troute=route;
 	fklSplitStringIntoTokenWithPattern(stream->u.str->str
 			,stream->u.str->size
 			,line
@@ -2758,7 +2759,8 @@ void builtin_parser(ARGL)
 			,tokenStack
 			,matchSet
 			,patterns
-			,route);
+			,route
+			,&troute);
 	fklDestroyStringMatchSet(matchSet);
 	size_t errorLine=0;
 	FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack,route,&errorLine,builtInHeadSymbolTable);

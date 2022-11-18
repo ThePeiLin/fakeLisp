@@ -576,7 +576,11 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 				,NULL
 				,jInc);
 		if(!isValidToken(*pt))
+		{
+			route->start=top;
+			route->end=top;
 			return set;
+		}
 	}
 	else
 	{
@@ -656,7 +660,8 @@ FklStringMatchSet* fklSplitStringIntoTokenWithPattern(const char* buf
 		,FklPtrStack* retvalStack
 		,FklStringMatchSet* matchSet
 		,FklStringMatchPattern* patterns
-		,FklStringMatchRouteNode* route)
+		,FklStringMatchRouteNode* route
+		,FklStringMatchRouteNode** proute)
 {
 	while(j<size&&matchSet)
 	{
@@ -675,9 +680,9 @@ FklStringMatchSet* fklSplitStringIntoTokenWithPattern(const char* buf
 			break;
 		else if(token==NULL)
 		{
-			j++;
 			if(buf[j]=='\n')
 				line++;
+			j++;
 		}
 		else
 		{
@@ -688,6 +693,7 @@ FklStringMatchSet* fklSplitStringIntoTokenWithPattern(const char* buf
 	}
 	*pline=line;
 	*pj=j;
+	*proute=route;
 	return matchSet;
 }
 

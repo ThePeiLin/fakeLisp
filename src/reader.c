@@ -69,6 +69,7 @@ char* fklReadInStringPattern(FILE* fp
 			,NULL
 			,NULL
 			,NULL);
+	*proute=route;
 	size_t j=0;
 	for(;;)
 	{
@@ -81,7 +82,8 @@ char* fklReadInStringPattern(FILE* fp
 				,retval
 				,matchSet
 				,patterns
-				,route);
+				,route
+				,&route);
 		if(matchSet==NULL)
 		{
 			if(size-j)
@@ -115,7 +117,6 @@ char* fklReadInStringPattern(FILE* fp
 		free(next);
 	}
 	*pline=line;
-	*proute=route;
 	*psize=size;
 	return tmp;
 }

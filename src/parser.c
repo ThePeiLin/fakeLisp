@@ -17,6 +17,7 @@ FklNastNode* fklCreateNastNodeFromCstr(const char* cStr
 	FklStringMatchSet* matchSet=FKL_STRING_PATTERN_UNIVERSAL_SET;
 	FklPtrStack* matchStateStack=fklCreatePtrStack(8,16);
 	FklStringMatchRouteNode* route=fklCreateStringMatchRouteNode(NULL,0,0,NULL,NULL,NULL);
+	FklStringMatchRouteNode* tmp=route;
 	fklSplitStringIntoTokenWithPattern(cStr
 			,size
 			,line
@@ -26,7 +27,8 @@ FklNastNode* fklCreateNastNodeFromCstr(const char* cStr
 			,tokenStack
 			,matchSet
 			,patterns
-			,route);
+			,route
+			,&tmp);
 	size_t errorLine=0;
 	FklNastNode* retval=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack
 			,route
@@ -674,7 +676,7 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 		while(!fklIsPtrStackEmpty(curRouteStack))
 		{
 			FklStringMatchRouteNode* curRoute=fklPopPtrStack(curRouteStack);
-			if(curRoute->children)
+			if(curRoute->pattern)
 			{
 				FklPtrStack* newRouteStack=fklCreatePtrStack(8,16);
 				for(FklStringMatchRouteNode* child=curRoute->children
@@ -691,11 +693,14 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 			else
 			{
 				FklToken* token=getSingleToken(curRoute,tokenStack);
-				FklNastNode* node=literalNodeCreator[token->type-FKL_TOKEN_CHAR](token->value
-						,token->line);
-				if(!node)
-					return NULL;
-				fklPushPtrStack(fklMakeNastNodeRef(node),curNastStack);
+				if(token->type!=FKL_TOKEN_COMMENT)
+				{
+					FklNastNode* node=literalNodeCreator[token->type-FKL_TOKEN_CHAR](token->value
+							,token->line);
+					if(!node)
+						return NULL;
+					fklPushPtrStack(fklMakeNastNodeRef(node),curNastStack);
+				}
 			}
 		}
 		CreateNastNodeQuest* otherCodegenQuest=fklTopPtrStack(&questStack);

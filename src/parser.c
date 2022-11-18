@@ -698,7 +698,21 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 					FklNastNode* node=literalNodeCreator[token->type-FKL_TOKEN_CHAR](token->value
 							,token->line);
 					if(!node)
+					{
+						while(!fklIsPtrStackEmpty(&questStack))
+						{
+							CreateNastNodeQuest* cur=fklPopPtrStack(&questStack);
+							while(!fklIsPtrStackEmpty(cur->nast))
+							{
+								FklNastNode* curNode=fklPopPtrStack(cur->nast);
+								curNode->refcount++;
+								fklDestroyNastNode(curNode);
+							}
+							destroyNastNodeQuest(cur);
+						}
+						fklUninitPtrStack(&questStack);
 						return NULL;
+					}
 					fklPushPtrStack(node,curNastStack);
 				}
 			}
@@ -720,9 +734,29 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 			else
 			{
 			}
-			destroyNastNodeQuest(curQuest);
 			if(!r)
+			{
+				while(!fklIsPtrStackEmpty(curQuest->nast))
+				{
+					FklNastNode* curNode=fklPopPtrStack(curQuest->nast);
+					curNode->refcount++;
+					fklDestroyNastNode(curNode);
+				}
+				destroyNastNodeQuest(curQuest);
+				while(!fklIsPtrStackEmpty(&questStack))
+				{
+					CreateNastNodeQuest* cur=fklPopPtrStack(&questStack);
+					while(!fklIsPtrStackEmpty(cur->nast))
+					{
+						FklNastNode* curNode=fklPopPtrStack(cur->nast);
+						fklDestroyNastNode(curNode);
+					}
+					destroyNastNodeQuest(cur);
+				}
+				fklUninitPtrStack(&questStack);
 				return NULL;
+			}
+			destroyNastNodeQuest(curQuest);
 			if(prevQuest)
 				fklPushPtrStack(r,prevQuest->nast);
 			else

@@ -1,7 +1,6 @@
-(library
+(module
   fklc
-  (export
-    compile-i32
+  (compile-i32
     compile-i64
     compile-char
     compile-symbol

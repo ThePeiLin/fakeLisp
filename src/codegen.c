@@ -99,7 +99,6 @@ typedef enum
 	SUB_PATTERN_UNQUOTE=0,
 	SUB_PATTERN_UNQTESP=1,
 	SUB_PATTERN_LIBRARY=2,
-	SUB_PATTERN_EXPORT=3,
 }SubPatternEnum;
 
 static struct SubPattern
@@ -110,8 +109,7 @@ static struct SubPattern
 {
 	{"(unquote value)",NULL,},
 	{"(unqtesp value)",NULL,},
-	{"(library name args,rest)",NULL,},
-	{"(export,rest)",NULL,},
+	{"(module name args,rest)",NULL,},
 	{NULL,NULL,},
 };
 
@@ -1960,25 +1958,7 @@ static CODEGEN_FUNC(codegen_import)
 				}
 				if(libraryName->u.sym==importLibraryName->u.sym)
 				{
-					FklHashTable* exportExpressionMatchTable=fklCreatePatternMatchingHashTable();
-					if(!fklPatternMatch(builtInSubPattern[SUB_PATTERN_EXPORT].pn
-								,export
-								,exportExpressionMatchTable))
-					{
-						errorState->fid=nextCodegen->fid;
-						errorState->type=FKL_ERR_INVALIDEXPR;
-						errorState->place=fklMakeNastNodeRef(export);
-						nextCodegen->refcount=1;
-						fklDestroyCodegener(nextCodegen);
-						fklDestroyHashTable(exportExpressionMatchTable);
-						fclose(fp);
-						fklDestroyNastNode(libraryExpression);
-						fklDestroyPtrStack(tokenStack);
-						return;
-					}
-					FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,exportExpressionMatchTable);
-					fklDestroyHashTable(exportExpressionMatchTable);
-					if(!fklIsNastNodeListAndHasSameType(rest,FKL_NAST_SYM))
+					if(!fklIsNastNodeListAndHasSameType(export,FKL_NAST_SYM))
 					{
 						errorState->fid=nextCodegen->fid;
 						errorState->type=FKL_ERR_SYNTAXERROR;
@@ -1991,11 +1971,11 @@ static CODEGEN_FUNC(codegen_import)
 						return;
 					}
 					FklUintStack* idStack=fklCreateUintStack(32,16);
-					add_symbol_to_locale_env_in_list(rest,curEnv,codegen->globalSymTable,idStack);
+					add_symbol_to_locale_env_in_list(export,curEnv,codegen->globalSymTable,idStack);
 					nextCodegen->exportNum=idStack->top;
 					nextCodegen->exports=fklCopyMemory(idStack->base,sizeof(FklSid_t)*idStack->top);
 					fklDestroyUintStack(idStack);
-					rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,patternMatchTable);
+					FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,patternMatchTable);
 					FklPtrQueue* libraryRestExpressionQueue=fklCreatePtrQueue();
 					pushListItemToQueue(rest,libraryRestExpressionQueue,NULL);
 					FklPtrStack* bcStack=fklCreatePtrStack(32,16);
@@ -2018,6 +1998,8 @@ static CODEGEN_FUNC(codegen_import)
 				fklDestroyNastNode(libraryExpression);
 		}
 		fclose(fp);
+		if(prev)
+			free(prev);
 		fklDestroyHashTable(patternMatchTable);
 		fklDestroyPtrStack(tokenStack);
 		if(!libraryExpression)
@@ -2198,25 +2180,7 @@ static CODEGEN_FUNC(codegen_import_with_prefix)
 				}
 				if(libraryName->u.sym==importLibraryName->u.sym)
 				{
-					FklHashTable* exportExpressionMatchTable=fklCreatePatternMatchingHashTable();
-					if(!fklPatternMatch(builtInSubPattern[SUB_PATTERN_EXPORT].pn
-								,export
-								,exportExpressionMatchTable))
-					{
-						errorState->fid=nextCodegen->fid;
-						errorState->type=FKL_ERR_INVALIDEXPR;
-						errorState->place=fklMakeNastNodeRef(export);
-						nextCodegen->refcount=1;
-						fklDestroyCodegener(nextCodegen);
-						fklDestroyHashTable(exportExpressionMatchTable);
-						fclose(fp);
-						fklDestroyNastNode(libraryExpression);
-						fklDestroyPtrStack(tokenStack);
-						return;
-					}
-					FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,exportExpressionMatchTable);
-					fklDestroyHashTable(exportExpressionMatchTable);
-					if(!fklIsNastNodeListAndHasSameType(rest,FKL_NAST_SYM))
+					if(!fklIsNastNodeListAndHasSameType(export,FKL_NAST_SYM))
 					{
 						errorState->fid=nextCodegen->fid;
 						errorState->type=FKL_ERR_SYNTAXERROR;
@@ -2230,7 +2194,7 @@ static CODEGEN_FUNC(codegen_import_with_prefix)
 					}
 					FklUintStack* idStack=fklCreateUintStack(32,16);
 					FklUintStack* idWithPrefixStack=fklCreateUintStack(32,16);
-					add_symbol_with_prefix_to_locale_env_in_list(rest
+					add_symbol_with_prefix_to_locale_env_in_list(export
 							,prefixNode->u.sym
 							,curEnv
 							,codegen->globalSymTable
@@ -2239,7 +2203,7 @@ static CODEGEN_FUNC(codegen_import_with_prefix)
 					nextCodegen->exportNum=idStack->top;
 					nextCodegen->exports=fklCopyMemory(idStack->base,sizeof(FklSid_t)*idStack->top);
 					fklDestroyUintStack(idStack);
-					rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,patternMatchTable);
+					FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,patternMatchTable);
 					FklPtrQueue* libraryRestExpressionQueue=fklCreatePtrQueue();
 					pushListItemToQueue(rest,libraryRestExpressionQueue,NULL);
 					FklPtrStack* bcStack=fklCreatePtrStack(32,16);
@@ -2327,7 +2291,7 @@ static CODEGEN_FUNC(codegen_import_with_prefix)
 	}
 }
 
-static CODEGEN_FUNC(codegen_library)
+static CODEGEN_FUNC(codegen_module)
 {
 	FklNastNode* name=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
 	if(name->type!=FKL_NAST_SYM)
@@ -2337,10 +2301,7 @@ static CODEGEN_FUNC(codegen_library)
 		return;
 	}
 	FklNastNode* exportExpression=fklPatternMatchingHashTableRef(builtInPatternVar_args,ht);
-	if(!fklIsNastNodeList(exportExpression)
-			||!fklPatternMatch(builtInSubPattern[SUB_PATTERN_EXPORT].pn
-				,exportExpression
-				,NULL))
+	if(!fklIsNastNodeListAndHasSameType(exportExpression,FKL_NAST_SYM))
 	{
 		errorState->type=FKL_ERR_SYNTAXERROR;
 		errorState->place=fklMakeNastNodeRef(origExp);
@@ -2625,23 +2586,23 @@ static struct PatternAndFunc
 	FklCodegenFunc func;
 }builtInPattern[]=
 {
-	{"(begin,rest)",             NULL, codegen_begin,              },
-	{"(define name value)",      NULL, codegen_define,             },
-	{"(setq name value)",        NULL, codegen_setq,               },
-	{"(quote value)",            NULL, codegen_quote,              },
-	{"(unquote value)",          NULL, codegen_unquote,            },
-	{"(qsquote value)",          NULL, codegen_qsquote,            },
-	{"(lambda args,rest)",       NULL, codegen_lambda,             },
-	{"(and,rest)",               NULL, codegen_and,                },
-	{"(or,rest)",                NULL, codegen_or,                 },
-	{"(cond,rest)",              NULL, codegen_cond,               },
-	{"(load name)",              NULL, codegen_load,               },
-	{"(import name)",            NULL, codegen_import,             },
-	{"(import name rest)",       NULL, codegen_import_with_prefix, },
-	{"(library name args,rest)", NULL, codegen_library,            },
-	{"(defmacro name value)",    NULL, codegen_defmacro,           },
-	{"(macroexpand value)",      NULL, codegen_macroexpand,        },
-	{NULL,                       NULL, NULL,                       },
+	{"(begin,rest)",            NULL, codegen_begin,              },
+	{"(define name value)",     NULL, codegen_define,             },
+	{"(setq name value)",       NULL, codegen_setq,               },
+	{"(quote value)",           NULL, codegen_quote,              },
+	{"(unquote value)",         NULL, codegen_unquote,            },
+	{"(qsquote value)",         NULL, codegen_qsquote,            },
+	{"(lambda args,rest)",      NULL, codegen_lambda,             },
+	{"(and,rest)",              NULL, codegen_and,                },
+	{"(or,rest)",               NULL, codegen_or,                 },
+	{"(cond,rest)",             NULL, codegen_cond,               },
+	{"(load name)",             NULL, codegen_load,               },
+	{"(import name)",           NULL, codegen_import,             },
+	{"(import name rest)",      NULL, codegen_import_with_prefix, },
+	{"(module name args,rest)", NULL, codegen_module,             },
+	{"(defmacro name value)",   NULL, codegen_defmacro,           },
+	{"(macroexpand value)",     NULL, codegen_macroexpand,        },
+	{NULL,                      NULL, NULL,                       },
 };
 
 const FklSid_t* fklInitCodegen(void)

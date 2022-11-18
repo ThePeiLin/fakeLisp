@@ -1,7 +1,6 @@
-(library
+(module
   ffi
-  (export
-    ffi-mem?
+  (ffi-mem?
     ffi-null?
     ffi-new
     ffi-delete

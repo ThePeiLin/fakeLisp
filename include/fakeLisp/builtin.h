@@ -38,12 +38,12 @@ typedef enum
 	FKL_ERR_CIR_REF,
 }FklBuiltInErrorType;
 
-typedef struct FklCompEnv FklCompEnv;
+//typedef struct FklCompEnv FklCompEnv;
 typedef struct FklVMenv FklVMenv;
 typedef struct FklVMgc FklVMgc;
 typedef struct FklCodegenEnv FklCodegenEnv;
 
-void fklInitCompEnv(FklCompEnv* curEnv);
+//void fklInitCompEnv(FklCompEnv* curEnv);
 void fklInitGlobCodegenEnvWithSymbolTable(FklCodegenEnv*,FklSymbolTable*);
 void fklInitGlobCodegenEnv(FklCodegenEnv*);
 void fklInitGlobEnv(FklVMenv*,FklVMgc*);

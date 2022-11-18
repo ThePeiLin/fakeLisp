@@ -26,20 +26,24 @@
 #include<dlfcn.h>
 #endif
 
-static FklVMvalue* BuiltInStdin=NULL;
-static FklVMvalue* BuiltInStdout=NULL;
-static FklVMvalue* BuiltInStderr=NULL;
-
 typedef struct
 {
+	FklVMvalue* sysIn;
+	FklVMvalue* sysOut;
+	FklVMvalue* sysErr;
 	FklStringMatchPattern* patterns;
 }PublicBuiltInUserData;
 
-static PublicBuiltInUserData* createPublicBuiltInUserData(void)
+static PublicBuiltInUserData* createPublicBuiltInUserData(FklVMvalue* sysIn
+		,FklVMvalue* sysOut
+		,FklVMvalue* sysErr)
 {
 	PublicBuiltInUserData* r=(PublicBuiltInUserData*)malloc(sizeof(PublicBuiltInUserData));
 	FKL_ASSERT(r);
 	r->patterns=fklInitBuiltInStringPattern();
+	r->sysIn=sysIn;
+	r->sysOut=sysOut;
+	r->sysErr=sysErr;
 	return r;
 }
 
@@ -48,6 +52,14 @@ static void _public_builtin_userdata_finalizer(void* p)
 	PublicBuiltInUserData* d=p;
 	fklDestroyAllStringPattern(d->patterns);
 	free(d);
+}
+
+static void _public_builtin_userdata_atomic(void* p,FklVMgc* gc)
+{
+	PublicBuiltInUserData* d=p;
+	fklGC_toGrey(d->sysIn,gc);
+	fklGC_toGrey(d->sysOut,gc);
+	fklGC_toGrey(d->sysErr,gc);
 }
 
 static FklVMudMethodTable PublicBuiltInUserDataMethodTable=
@@ -59,14 +71,12 @@ static FklVMudMethodTable PublicBuiltInUserDataMethodTable=
 	.__call=NULL,
 	.__cmp=NULL,
 	.__write=NULL,
-	.__atomic=NULL,
+	.__atomic=_public_builtin_userdata_atomic,
 	.__append=NULL,
 	.__copy=NULL,
 	.__length=NULL,
 	.__hash=NULL,
 };
-
-static FklVMvalue* PublicUserData=NULL;
 
 static FklSid_t builtInHeadSymbolTable[4]={0};
 
@@ -117,7 +127,7 @@ FklSid_t fklGetBuiltInErrorType(FklBuiltInErrorType type)
 
 //builtin functions
 
-#define ARGL FklVM* exe
+#define ARGL FklVM* exe,FklVMvalue* pd
 #define K_FUNC_ARGL FklVM* exe,FklCCState s,void* ctx
 void builtin_car(ARGL)
 {
@@ -2666,13 +2676,14 @@ void builtin_read(ARGL)
 	FklVMfp* tmpFile=NULL;
 	FklPtrStack* tokenStack=fklCreatePtrStack(32,16);
 	FklStringMatchRouteNode* route=NULL;
+	PublicBuiltInUserData* pbd=pd->u.ud->data;
 	if(!stream||FKL_IS_FP(stream))
 	{
-		tmpFile=stream?stream->u.fp:BuiltInStdin->u.fp;
+		tmpFile=stream?stream->u.fp:pbd->sysIn->u.fp;
 		pthread_mutex_lock(&tmpFile->lock);
 		int unexpectEOF=0;
 		size_t size=0;
-		FklStringMatchPattern* patterns=((PublicBuiltInUserData*)PublicUserData->u.ud->data)->patterns;
+		FklStringMatchPattern* patterns=pbd->patterns;
 		tmpString=fklReadInStringPattern(tmpFile->fp
 				,(char**)&tmpFile->prev
 				,&size
@@ -2733,8 +2744,9 @@ void builtin_parser(ARGL)
 	FklStringMatchSet* matchSet=FKL_STRING_PATTERN_UNIVERSAL_SET;
 	size_t line=1;
 	size_t j=0;
+	PublicBuiltInUserData* pbd=pd->u.ud->data;
 	FklStringMatchRouteNode* route=fklCreateStringMatchRouteNode(NULL,0,0,NULL,NULL,NULL);
-	FklStringMatchPattern* patterns=((PublicBuiltInUserData*)PublicUserData->u.ud->data)->patterns;
+	FklStringMatchPattern* patterns=pbd->patterns;
 	fklSplitStringIntoTokenWithPattern(stream->u.str->str
 			,stream->u.str->size
 			,line
@@ -2931,7 +2943,7 @@ void builtin_dlopen(ARGL)
 	FKL_NI_CHECK_TYPE(dllName,FKL_IS_STR,"builtin.dlopen",exe);
 	char str[dllName->u.str->size+1];
 	fklWriteStringToCstr(str,dllName->u.str);
-	FklVMdllHandle* dll=fklCreateVMdll(str);
+	FklVMdll* dll=fklCreateVMdll(str);
 	if(!dll)
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("builtin.dlopen",str,0,FKL_ERR_LOADDLLFAILD,exe);
 	FklVMvalue* rel=fklCreateVMvalueToStack(FKL_TYPE_DLL,dll,exe);
@@ -2955,10 +2967,10 @@ void builtin_dlsym(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.dlsym",FKL_ERR_INVALIDACCESS,exe);
 	char str[symbol->u.str->size+1];
 	fklWriteStringToCstr(str,symbol->u.str);
-	FklVMdllFunc funcAddress=fklGetAddress(str,dll->u.dll);
+	FklVMdllFunc funcAddress=fklGetAddress(str,dll->u.dll->handle);
 	if(!funcAddress)
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("builtin.dlsym",str,0,FKL_ERR_INVALIDSYMBOL,exe);
-	FklVMdlproc* dlproc=fklCreateVMdlproc(funcAddress,dll);
+	FklVMdlproc* dlproc=fklCreateVMdlproc(funcAddress,dll,dll->u.dll->pd);
 	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_DLPROC,dlproc,exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -3749,7 +3761,8 @@ void builtin_fgetc(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetc",FKL_ERR_TOOMANYARG,exe);
 	if(stream&&!FKL_IS_FP(stream))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetc",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	FklVMfp* fp=stream?stream->u.fp:BuiltInStdin->u.fp;
+	PublicBuiltInUserData* pbd=pd->u.ud->data;
+	FklVMfp* fp=stream?stream->u.fp:pbd->sysIn->u.fp;
 	if(!fp)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetc",FKL_ERR_INVALIDACCESS,exe);
 	pthread_mutex_lock(&fp->lock);
@@ -3781,7 +3794,8 @@ void builtin_fgeti(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgeti",FKL_ERR_TOOMANYARG,exe);
 	if(stream&&!FKL_IS_FP(stream))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgeti",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	FklVMfp* fp=stream?stream->u.fp:BuiltInStdin->u.fp;
+	PublicBuiltInUserData* pbd=pd->u.ud->data;
+	FklVMfp* fp=stream?stream->u.fp:pbd->sysIn->u.fp;
 	if(!fp)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgeti",FKL_ERR_INVALIDACCESS,exe);
 	if(fp->size)
@@ -4745,21 +4759,23 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMgc* gc)
 	for(int i=0;i<3;i++)
 		builtInHeadSymbolTable[i]=fklAddSymbolToGlobCstr(builtInHeadSymbolTableCstr[i])->id;
 	const struct SymbolFuncStruct* list=builtInSymbolList;
-	BuiltInStdin=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stdin),gc);
-	BuiltInStdout=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stdout),gc);
-	BuiltInStderr=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stderr),gc);
-	PublicUserData=fklCreateVMvalueNoGC(FKL_TYPE_USERDATA
+	FklVMvalue* builtInStdin=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stdin),gc);
+	FklVMvalue* builtInStdout=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stdout),gc);
+	FklVMvalue* builtInStderr=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stderr),gc);
+	FklVMvalue* publicUserData=fklCreateVMvalueNoGC(FKL_TYPE_USERDATA
 			,fklCreateVMudata(0
 				,&PublicBuiltInUserDataMethodTable
-				,createPublicBuiltInUserData()
+				,createPublicBuiltInUserData(builtInStdin
+					,builtInStdout
+					,builtInStderr)
 				,FKL_VM_NIL)
 			,gc);
-	fklFindOrAddVarWithValue(fklAddSymbolToGlobCstr((list++)->s)->id,BuiltInStdin,obj);
-	fklFindOrAddVarWithValue(fklAddSymbolToGlobCstr((list++)->s)->id,BuiltInStdout,obj);
-	fklFindOrAddVarWithValue(fklAddSymbolToGlobCstr((list++)->s)->id,BuiltInStderr,obj);
+	fklFindOrAddVarWithValue(fklAddSymbolToGlobCstr((list++)->s)->id,builtInStdin,obj);
+	fklFindOrAddVarWithValue(fklAddSymbolToGlobCstr((list++)->s)->id,builtInStdout,obj);
+	fklFindOrAddVarWithValue(fklAddSymbolToGlobCstr((list++)->s)->id,builtInStderr,obj);
 	for(;list->s!=NULL;list++)
 	{
-		FklVMdlproc* proc=fklCreateVMdlproc(list->f,PublicUserData);
+		FklVMdlproc* proc=fklCreateVMdlproc(list->f,NULL,publicUserData);
 		FklSymTabNode* node=fklAddSymbolToGlobCstr(list->s);
 		proc->sid=node->id;
 		fklFindOrAddVarWithValue(node->id,fklCreateVMvalueNoGC(FKL_TYPE_DLPROC,proc,gc),obj);

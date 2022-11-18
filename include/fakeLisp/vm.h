@@ -50,7 +50,8 @@ typedef enum
 }FklCCState;
 
 struct FklVM;
-typedef void (*FklVMdllFunc)(struct FklVM*);
+struct FklVMvalue;
+typedef void (*FklVMdllFunc)(struct FklVM*,struct FklVMvalue* pd);
 typedef struct FklVMvalue* FklVMptr;
 typedef enum
 {
@@ -68,6 +69,12 @@ typedef HMODULE FklVMdllHandle;
 #include<dlfcn.h>
 typedef void* FklVMdllHandle;
 #endif
+
+typedef struct FklVMdll
+{
+	FklVMdllHandle handle;
+	struct FklVMvalue* pd;
+}FklVMdll;
 
 typedef struct FklVMchanl
 {
@@ -139,7 +146,7 @@ typedef struct FklVMvalue
 		struct FklString* str;
 		struct FklBytevector* bvec;
 		struct FklVMproc* proc;
-		FklVMdllHandle dll;
+		FklVMdll* dll;
 		struct FklVMdlproc* dlproc;
 		struct FklVMcontinuation* cont;
 		FklVMfp* fp;
@@ -303,6 +310,7 @@ typedef struct FklVMdlproc
 	FklVMdllFunc func;
 	FklVMvalue* dll;
 	FklSid_t sid;
+	FklVMvalue* pd;
 }FklVMdlproc;
 
 typedef struct FklVMerror
@@ -467,6 +475,7 @@ void fklAtomicVMpair(FklVMvalue*,FklVMgc*);
 void fklAtomicVMproc(FklVMvalue*,FklVMgc*);
 void fklAtomicVMvec(FklVMvalue*,FklVMgc*);
 void fklAtomicVMbox(FklVMvalue*,FklVMgc*);
+void fklAtomicVMdll(FklVMvalue*,FklVMgc*);
 void fklAtomicVMdlproc(FklVMvalue*,FklVMgc*);
 void fklAtomicVMcontinuation(FklVMvalue*,FklVMgc*);
 void fklAtomicVMchan(FklVMvalue*,FklVMgc*);
@@ -512,12 +521,14 @@ void fklDestroyVMproc(FklVMproc*);
 FklVMfp* fklCreateVMfp(FILE*);
 int fklDestroyVMfp(FklVMfp*);
 
-FklVMdllHandle fklCreateVMdll(const char*);
+FklVMdll* fklCreateVMdll(const char*);
 void fklInitVMdll(FklVMvalue* rel);
 void* fklGetAddress(const char*,FklVMdllHandle);
 void fklDestroyVMdll(FklVMdllHandle);
 
-FklVMdlproc* fklCreateVMdlproc(FklVMdllFunc,FklVMvalue*);
+FklVMdlproc* fklCreateVMdlproc(FklVMdllFunc
+		,FklVMvalue*
+		,FklVMvalue*);
 void fklDestroyVMdlproc(FklVMdlproc*);
 
 FklVMerror* fklCreateVMerror(const FklString* who,FklSid_t type,const FklString* message);

@@ -8,7 +8,7 @@
 #include"flnt.h"
 #include"fsym.h"
 extern FklSymbolTable* OuterSymbolTable;
-#define ARGL FklVM* exe,pthread_rwlock_t* gclock
+#define ARGL FklVM* exe,FklVMvalue* pd
 
 #define FKLC_RAISE_ERROR(WHO,ERRORTYPE,EXE) do{\
 	char* errorMessage=fklcGenErrorMessage((ERRORTYPE));\
@@ -204,7 +204,7 @@ void fklc_make_fbc(ARGL)
 #undef CONST_COMPILE
 #undef IS_LITERAL
 #undef IS_COMPILABLE
-void _fklInit(FklSymbolTable* glob,FklVMvalue* rel)
+void _fklInit(FklSymbolTable* glob,FklVMdll* rel)
 {
 //	fklSetGlobVMs(GlobVMs);
 	fklSetGlobSymbolTable(glob);

@@ -1360,7 +1360,7 @@ FklVMdllHandle fklLoadDll(const char* path)
 	return handle;
 }
 
-FklVMdllHandle fklCreateVMdll(const char* dllName)
+FklVMdll* fklCreateVMdll(const char* dllName)
 {
 #ifdef _WIN32
 	char filetype[]=".dll";
@@ -1388,15 +1388,19 @@ FklVMdllHandle fklCreateVMdll(const char* dllName)
 	}
 	free(realDllName);
 	free(rpath);
-	return handle;
+	FklVMdll* r=(FklVMdll*)malloc(sizeof(FklVMdll));
+	FKL_ASSERT(r);
+	r->handle=handle;
+	r->pd=FKL_VM_NIL;
+	return r;
 }
 
 void fklInitVMdll(FklVMvalue* rel)
 {
 	FklVMdllHandle handle=rel->u.dll;
-	void (*init)(FklSymbolTable*,FklVMvalue* rel)=fklGetAddress("_fklInit",handle);
+	void (*init)(FklSymbolTable*,FklVMdll* dll)=fklGetAddress("_fklInit",handle);
 	if(init)
-		init(fklGetGlobSymbolTable(),rel);
+		init(fklGetGlobSymbolTable(),rel->u.dll);
 }
 
 void fklDestroyVMvalue(FklVMvalue* cur)
@@ -1490,12 +1494,15 @@ void* fklGetAddress(const char* funcname,FklVMdllHandle dlhandle)
 	return pfunc;
 }
 
-FklVMdlproc* fklCreateVMdlproc(FklVMdllFunc address,FklVMvalue* dll)
+FklVMdlproc* fklCreateVMdlproc(FklVMdllFunc address
+		,FklVMvalue* dll
+		,FklVMvalue* pd)
 {
 	FklVMdlproc* tmp=(FklVMdlproc*)malloc(sizeof(FklVMdlproc));
 	FKL_ASSERT(tmp);
 	tmp->func=address;
 	tmp->dll=dll;
+	tmp->pd=pd;
 	tmp->sid=0;
 	return tmp;
 }
@@ -2090,10 +2097,18 @@ void fklAtomicVMchan(FklVMvalue* root,FklVMgc* gc)
 	pthread_mutex_unlock(&root->u.chan->lock);
 }
 
+void fklAtomicVMdll(FklVMvalue* root,FklVMgc* gc)
+{
+	if(root->u.dll->pd)
+		fklGC_toGrey(root->u.dll->pd,gc);
+}
+
 void fklAtomicVMdlproc(FklVMvalue* root,FklVMgc* gc)
 {
 	if(root->u.dlproc->dll)
 		fklGC_toGrey(root->u.dlproc->dll,gc);
+	if(root->u.dlproc->pd)
+		fklGC_toGrey(root->u.dlproc->pd,gc);
 }
 
 void fklAtomicVMbox(FklVMvalue* root,FklVMgc* gc)

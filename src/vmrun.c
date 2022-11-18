@@ -115,7 +115,7 @@ void callContinuation(FklVM* exe,FklVMcontinuation* cc)
 
 void callDlProc(FklVM* exe,FklVMdlproc* dlproc)
 {
-	dlproc->func(exe);
+	dlproc->func(exe,dlproc->pd);
 }
 
 /*--------------------------*/
@@ -1265,7 +1265,7 @@ void propagateMark(FklVMvalue* root,FklVMgc* gc)
 		fklAtomicVMcontinuation,
 		fklAtomicVMchan,
 		NULL,
-		NULL,
+		fklAtomicVMdll,
 		fklAtomicVMdlproc,
 		NULL,
 		fklAtomicVMenv,

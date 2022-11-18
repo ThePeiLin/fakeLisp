@@ -9,7 +9,7 @@ extern "C"{
 #endif
 
 int fklcIsFbc(FklVMvalue*);
-void fklcInit(FklVMvalue* rel);
+void fklcInit(FklVMdll* rel);
 FklVMudata* fklcCreateFbcUd(FklByteCode* code);
 FklVMvalue* fklcGetRel(void);
 FklByteCode* fklcCreatePushSidByteCode(FklSid_t);

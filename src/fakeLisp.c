@@ -261,7 +261,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 			continue;
 		}
 		size_t errorLine=0;
-		begin=fklCreateNastNodeFromTokenStack(tokenStack,&errorLine,builtInHeadSymbolTable);
+		begin=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack,route,&errorLine,builtInHeadSymbolTable);
 		codegen->curline+=fklCountChar(list,'\n',size);
 		free(list);
 		if(fklIsPtrStackEmpty(tokenStack))

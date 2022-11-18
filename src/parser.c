@@ -71,21 +71,21 @@ FklNastVector* fklCreateNastVector(size_t size)
 	return vec;
 }
 
-static FklNastNode* createNastList(FklNastNode** a,size_t num,uint64_t line)
-{
-	FklNastNode* r=NULL;
-	FklNastNode** cur=&r;
-	for(size_t i=0;i<num;i++)
-	{
-		(*cur)=fklMakeNastNodeRef(fklCreateNastNode(FKL_NAST_PAIR,line));
-		(*cur)->u.pair=fklCreateNastPair();
-		(*cur)->u.pair->car=fklMakeNastNodeRef(a[i]);
-		cur=&(*cur)->u.pair->cdr;
-	}
-	(*cur)=fklMakeNastNodeRef(fklCreateNastNode(FKL_NAST_NIL,line));
-	r->refcount=0;
-	return r;
-}
+//static FklNastNode* createNastList(FklNastNode** a,size_t num,uint64_t line)
+//{
+//	FklNastNode* r=NULL;
+//	FklNastNode** cur=&r;
+//	for(size_t i=0;i<num;i++)
+//	{
+//		(*cur)=fklMakeNastNodeRef(fklCreateNastNode(FKL_NAST_PAIR,line));
+//		(*cur)->u.pair=fklCreateNastPair();
+//		(*cur)->u.pair->car=fklMakeNastNodeRef(a[i]);
+//		cur=&(*cur)->u.pair->cdr;
+//	}
+//	(*cur)=fklMakeNastNodeRef(fklCreateNastNode(FKL_NAST_NIL,line));
+//	r->refcount=0;
+//	return r;
+//}
 
 static int fklIsValidCharStr(const char* str,size_t len)
 {
@@ -225,149 +225,149 @@ typedef struct
 	uint32_t cindex;
 }MatchState;
 
-static void destroyMatchState(MatchState* state)
-{
-	free(state);
-}
+//static void destroyMatchState(MatchState* state)
+//{
+//	free(state);
+//}
 
-#define PARENTHESE_0 ((void*)0)
-#define PARENTHESE_1 ((void*)1)
-#define QUOTE ((void*)2)
-#define QSQUOTE ((void*)3)
-#define UNQUOTE ((void*)4)
-#define UNQTESP ((void*)5)
-#define DOTTED ((void*)6)
-#define VECTOR_0 ((void*)7)
-#define VECTOR_1 ((void*)8)
-#define BOX ((void*)9)
-#define BVECTOR_0 ((void*)10)
-#define BVECTOR_1 ((void*)11)
-#define HASH_EQ_0 ((void*)12)
-#define HASH_EQ_1 ((void*)13)
-#define HASH_EQV_0 ((void*)14)
-#define HASH_EQV_1 ((void*)15)
-#define HASH_EQUAL_0 ((void*)16)
-#define HASH_EQUAL_1 ((void*)17)
-
-static int isBuiltInSingleStrPattern(FklStringMatchPattern* pattern)
-{
-	return pattern==QUOTE
-		||pattern==QSQUOTE
-		||pattern==UNQUOTE
-		||pattern==UNQTESP
-		||pattern==DOTTED
-		||pattern==BOX
-		;
-}
-
-static int isBuiltInHashTable(FklStringMatchPattern* pattern)
-{
-	return pattern==HASH_EQ_0
-		||pattern==HASH_EQ_1
-		||pattern==HASH_EQV_0
-		||pattern==HASH_EQV_1
-		||pattern==HASH_EQUAL_0
-		||pattern==HASH_EQUAL_1
-		;
-}
-
-static int isBuiltInParenthese(FklStringMatchPattern* pattern)
-{
-	return pattern==PARENTHESE_0
-		||pattern==PARENTHESE_1
-		;
-}
-
-static int isBuiltInVector(FklStringMatchPattern* pattern)
-{
-	return pattern==VECTOR_0
-		||pattern==VECTOR_1
-		;
-}
-
-static int isBuiltInBvector(FklStringMatchPattern* pattern)
-{
-	return pattern==BVECTOR_0
-		||pattern==BVECTOR_1
-		;
-}
-
-static int isLeftParenthese(const FklString* str)
-{
-	return str->size==1&&(str->str[0]=='('||str->str[0]=='[');
-}
-
-static int isVectorStart(const FklString* str)
-{
-	return str->size==2&&str->str[0]=='#'&&(str->str[1]=='('||str->str[1]=='[');
-}
-
-static int isBytevectorStart(const FklString* str)
-{
-	return str->size==5&&!strncmp(str->str,"#vu8",4)&&(str->str[4]=='('||str->str[4]=='[');
-}
-
-static int isRightParenthese(const FklString* str)
-{
-	return str->size==1&&(str->str[0]==')'||str->str[0]==']');
-}
-
-static FklStringMatchPattern* getHashPattern(const FklString* str)
-{
-	if(str->size==6&&!strncmp(str->str,"#hash",5))
-	{
-		if(str->str[5]=='(')
-			return HASH_EQ_0;
-		if(str->str[5]=='[')
-			return HASH_EQ_1;
-		return NULL;
-	}
-	else if(str->size==9&&!strncmp(str->str,"#hasheqv",8))
-	{
-		if(str->str[8]=='(')
-			return HASH_EQV_0;
-		if(str->str[8]=='[')
-			return HASH_EQV_1;
-		return NULL;
-	}
-	else if(str->size==11&&!strncmp(str->str,"#hashequal",10))
-	{
-		if(str->str[10]=='(')
-			return HASH_EQUAL_0;
-		if(str->str[10]=='[')
-			return HASH_EQUAL_1;
-		return NULL;
-	}
-	return NULL;
-}
-
-static int isHashTableStart(const FklString* str)
-{
-	return (str->size==6&&!strncmp(str->str,"#hash",5)&&(str->str[5]=='('||str->str[5]=='['))
-		||(str->size==9&&!strncmp(str->str,"#hasheqv",8)&&(str->str[8]=='('||str->str[8]=='['))
-		||(str->size==11&&!strncmp(str->str,"#hashequal",10)&&(str->str[10]=='('||str->str[10]=='['))
-		;
-}
-
-static int isBuilInPatternStart(const FklString* str)
-{
-	return isLeftParenthese(str)
-		||isVectorStart(str)
-		||isBytevectorStart(str)
-		||isHashTableStart(str)
-		;
-}
-
-static int isBuiltInSingleStr(const FklString* str)
-{
-	const char* buf=str->str;
-	return (str->size==1&&(buf[0]=='\''
-				||buf[0]=='`'
-				||buf[0]=='~'
-				||buf[0]==','))
-		||!fklStringCstrCmp(str,"~@")
-		||!fklStringCstrCmp(str,"#&");
-}
+//#define PARENTHESE_0 ((void*)0)
+//#define PARENTHESE_1 ((void*)1)
+//#define QUOTE ((void*)2)
+//#define QSQUOTE ((void*)3)
+//#define UNQUOTE ((void*)4)
+//#define UNQTESP ((void*)5)
+//#define DOTTED ((void*)6)
+//#define VECTOR_0 ((void*)7)
+//#define VECTOR_1 ((void*)8)
+//#define BOX ((void*)9)
+//#define BVECTOR_0 ((void*)10)
+//#define BVECTOR_1 ((void*)11)
+//#define HASH_EQ_0 ((void*)12)
+//#define HASH_EQ_1 ((void*)13)
+//#define HASH_EQV_0 ((void*)14)
+//#define HASH_EQV_1 ((void*)15)
+//#define HASH_EQUAL_0 ((void*)16)
+//#define HASH_EQUAL_1 ((void*)17)
+//
+//static int isBuiltInSingleStrPattern(FklStringMatchPattern* pattern)
+//{
+//	return pattern==QUOTE
+//		||pattern==QSQUOTE
+//		||pattern==UNQUOTE
+//		||pattern==UNQTESP
+//		||pattern==DOTTED
+//		||pattern==BOX
+//		;
+//}
+//
+//static int isBuiltInHashTable(FklStringMatchPattern* pattern)
+//{
+//	return pattern==HASH_EQ_0
+//		||pattern==HASH_EQ_1
+//		||pattern==HASH_EQV_0
+//		||pattern==HASH_EQV_1
+//		||pattern==HASH_EQUAL_0
+//		||pattern==HASH_EQUAL_1
+//		;
+//}
+//
+//static int isBuiltInParenthese(FklStringMatchPattern* pattern)
+//{
+//	return pattern==PARENTHESE_0
+//		||pattern==PARENTHESE_1
+//		;
+//}
+//
+//static int isBuiltInVector(FklStringMatchPattern* pattern)
+//{
+//	return pattern==VECTOR_0
+//		||pattern==VECTOR_1
+//		;
+//}
+//
+//static int isBuiltInBvector(FklStringMatchPattern* pattern)
+//{
+//	return pattern==BVECTOR_0
+//		||pattern==BVECTOR_1
+//		;
+//}
+//
+//static int isLeftParenthese(const FklString* str)
+//{
+//	return str->size==1&&(str->str[0]=='('||str->str[0]=='[');
+//}
+//
+//static int isVectorStart(const FklString* str)
+//{
+//	return str->size==2&&str->str[0]=='#'&&(str->str[1]=='('||str->str[1]=='[');
+//}
+//
+//static int isBytevectorStart(const FklString* str)
+//{
+//	return str->size==5&&!strncmp(str->str,"#vu8",4)&&(str->str[4]=='('||str->str[4]=='[');
+//}
+//
+//static int isRightParenthese(const FklString* str)
+//{
+//	return str->size==1&&(str->str[0]==')'||str->str[0]==']');
+//}
+//
+//static FklStringMatchPattern* getHashPattern(const FklString* str)
+//{
+//	if(str->size==6&&!strncmp(str->str,"#hash",5))
+//	{
+//		if(str->str[5]=='(')
+//			return HASH_EQ_0;
+//		if(str->str[5]=='[')
+//			return HASH_EQ_1;
+//		return NULL;
+//	}
+//	else if(str->size==9&&!strncmp(str->str,"#hasheqv",8))
+//	{
+//		if(str->str[8]=='(')
+//			return HASH_EQV_0;
+//		if(str->str[8]=='[')
+//			return HASH_EQV_1;
+//		return NULL;
+//	}
+//	else if(str->size==11&&!strncmp(str->str,"#hashequal",10))
+//	{
+//		if(str->str[10]=='(')
+//			return HASH_EQUAL_0;
+//		if(str->str[10]=='[')
+//			return HASH_EQUAL_1;
+//		return NULL;
+//	}
+//	return NULL;
+//}
+//
+//static int isHashTableStart(const FklString* str)
+//{
+//	return (str->size==6&&!strncmp(str->str,"#hash",5)&&(str->str[5]=='('||str->str[5]=='['))
+//		||(str->size==9&&!strncmp(str->str,"#hasheqv",8)&&(str->str[8]=='('||str->str[8]=='['))
+//		||(str->size==11&&!strncmp(str->str,"#hashequal",10)&&(str->str[10]=='('||str->str[10]=='['))
+//		;
+//}
+//
+//static int isBuilInPatternStart(const FklString* str)
+//{
+//	return isLeftParenthese(str)
+//		||isVectorStart(str)
+//		||isBytevectorStart(str)
+//		||isHashTableStart(str)
+//		;
+//}
+//
+//static int isBuiltInSingleStr(const FklString* str)
+//{
+//	const char* buf=str->str;
+//	return (str->size==1&&(buf[0]=='\''
+//				||buf[0]=='`'
+//				||buf[0]=='~'
+//				||buf[0]==','))
+//		||!fklStringCstrCmp(str,"~@")
+//		||!fklStringCstrCmp(str,"#&");
+//}
 
 //static int isBuiltInPattern(FklStringMatchPattern* pattern)
 //{
@@ -397,123 +397,123 @@ static int isBuiltInSingleStr(const FklString* str)
 //}
 
 
-static MatchState* createMatchState(FklStringMatchPattern* pattern,uint32_t line,uint32_t cindex)
-{
-	MatchState* state=(MatchState*)malloc(sizeof(MatchState));
-	FKL_ASSERT(state);
-	state->pattern=pattern;
-	state->line=line;
-	state->cindex=cindex;
-	return state;
-}
+//static MatchState* createMatchState(FklStringMatchPattern* pattern,uint32_t line,uint32_t cindex)
+//{
+//	MatchState* state=(MatchState*)malloc(sizeof(MatchState));
+//	FKL_ASSERT(state);
+//	state->pattern=pattern;
+//	state->line=line;
+//	state->cindex=cindex;
+//	return state;
+//}
 
-static FklNastNode* listProcesser(FklPtrStack* nodeStack,uint64_t line,size_t* errorLine)
-{
-	FklNastNode* retval=NULL;
-	FklNastNode** cur=&retval;
-	int r=1;
-	for(size_t i=0;i<nodeStack->top;i++)
-	{
-		NastElem* elem=nodeStack->base[i];
-		FklNastNode* node=elem->node;
-		NastPlace place=elem->place;
-		if(place==NAST_CAR)
-		{
-			(*cur)=fklMakeNastNodeRef(fklCreateNastNode(FKL_NAST_PAIR,node->curline));
-			(*cur)->u.pair=fklCreateNastPair();
-			(*cur)->u.pair->car=fklMakeNastNodeRef(node);
-			cur=&(*cur)->u.pair->cdr;
-		}
-		else if((*cur)==NULL)
-			(*cur)=fklMakeNastNodeRef(node);
-		else
-		{
-			*errorLine=node->curline;
-			r=0;
-			for(size_t j=i;j<nodeStack->top;j++)
-			{
-				NastElem* elem=nodeStack->base[j];
-				destroyNastElem(elem);
-			}
-			fklDestroyNastNode(retval);
-			retval=NULL;
-			break;
-		}
-		destroyNastElem(elem);
-	}
-	if(r&&!(*cur))
-		(*cur)=fklMakeNastNodeRef(fklCreateNastNode(FKL_NAST_NIL,line));
-	if(retval)
-		retval->refcount=0;
-	return retval;
-}
+//static FklNastNode* listProcesser(FklPtrStack* nodeStack,uint64_t line,size_t* errorLine)
+//{
+//	FklNastNode* retval=NULL;
+//	FklNastNode** cur=&retval;
+//	int r=1;
+//	for(size_t i=0;i<nodeStack->top;i++)
+//	{
+//		NastElem* elem=nodeStack->base[i];
+//		FklNastNode* node=elem->node;
+//		NastPlace place=elem->place;
+//		if(place==NAST_CAR)
+//		{
+//			(*cur)=fklMakeNastNodeRef(fklCreateNastNode(FKL_NAST_PAIR,node->curline));
+//			(*cur)->u.pair=fklCreateNastPair();
+//			(*cur)->u.pair->car=fklMakeNastNodeRef(node);
+//			cur=&(*cur)->u.pair->cdr;
+//		}
+//		else if((*cur)==NULL)
+//			(*cur)=fklMakeNastNodeRef(node);
+//		else
+//		{
+//			*errorLine=node->curline;
+//			r=0;
+//			for(size_t j=i;j<nodeStack->top;j++)
+//			{
+//				NastElem* elem=nodeStack->base[j];
+//				destroyNastElem(elem);
+//			}
+//			fklDestroyNastNode(retval);
+//			retval=NULL;
+//			break;
+//		}
+//		destroyNastElem(elem);
+//	}
+//	if(r&&!(*cur))
+//		(*cur)=fklMakeNastNodeRef(fklCreateNastNode(FKL_NAST_NIL,line));
+//	if(retval)
+//		retval->refcount=0;
+//	return retval;
+//}
 
-static FklNastNode* vectorProcesser(FklPtrStack* nodeStack,uint64_t line,size_t* errorLine)
-{
-	FklNastNode* retval=fklCreateNastNode(FKL_NAST_VECTOR,line);
-	retval->u.vec=fklCreateNastVector(nodeStack->top);
-	for(size_t i=0;i<nodeStack->top;i++)
-	{
-		NastElem* elem=nodeStack->base[i];
-		FklNastNode* node=elem->node;
-		NastPlace place=elem->place;
-		if(place==NAST_CAR)
-			retval->u.vec->base[i]=fklMakeNastNodeRef(node);
-		else
-		{
-			*errorLine=node->curline;
-			for(size_t j=i;j<nodeStack->top;j++)
-			{
-				NastElem* elem=nodeStack->base[j];
-				destroyNastElem(elem);
-			}
-			retval->refcount=1;
-			fklDestroyNastNode(retval);
-			retval=NULL;
-			break;
-		}
-		destroyNastElem(elem);
-	}
-	return retval;
-}
+//static FklNastNode* vectorProcesser(FklPtrStack* nodeStack,uint64_t line,size_t* errorLine)
+//{
+//	FklNastNode* retval=fklCreateNastNode(FKL_NAST_VECTOR,line);
+//	retval->u.vec=fklCreateNastVector(nodeStack->top);
+//	for(size_t i=0;i<nodeStack->top;i++)
+//	{
+//		NastElem* elem=nodeStack->base[i];
+//		FklNastNode* node=elem->node;
+//		NastPlace place=elem->place;
+//		if(place==NAST_CAR)
+//			retval->u.vec->base[i]=fklMakeNastNodeRef(node);
+//		else
+//		{
+//			*errorLine=node->curline;
+//			for(size_t j=i;j<nodeStack->top;j++)
+//			{
+//				NastElem* elem=nodeStack->base[j];
+//				destroyNastElem(elem);
+//			}
+//			retval->refcount=1;
+//			fklDestroyNastNode(retval);
+//			retval=NULL;
+//			break;
+//		}
+//		destroyNastElem(elem);
+//	}
+//	return retval;
+//}
 
-static FklNastNode* bytevectorProcesser(FklPtrStack* nodeStack,uint64_t line,size_t* errorLine)
-{
-	FklNastNode* retval=fklCreateNastNode(FKL_NAST_BYTEVECTOR,line);
-	retval->u.bvec=fklCreateBytevector(nodeStack->top,NULL);
-	for(size_t i=0;i<nodeStack->top;i++)
-	{
-		NastElem* elem=nodeStack->base[i];
-		FklNastNode* node=elem->node;
-		NastPlace place=elem->place;
-		if(place==NAST_CAR
-				&&(node->type==FKL_NAST_I32
-					||node->type==FKL_NAST_I64
-					||node->type==FKL_NAST_BIG_INT))
-		{
-			retval->u.bvec->ptr[i]=node->type==FKL_NAST_I32
-				?node->u.i32
-				:node->type==FKL_NAST_I64
-				?node->u.i64
-				:fklBigIntToI64(node->u.bigInt);
-		}
-		else
-		{
-			*errorLine=node->curline;
-			for(size_t j=i;j<nodeStack->top;j++)
-			{
-				NastElem* elem=nodeStack->base[j];
-				destroyNastElem(elem);
-			}
-			retval->refcount=1;
-			fklDestroyNastNode(retval);
-			retval=NULL;
-			break;
-		}
-		destroyNastElem(elem);
-	}
-	return retval;
-}
+//static FklNastNode* bytevectorProcesser(FklPtrStack* nodeStack,uint64_t line,size_t* errorLine)
+//{
+//	FklNastNode* retval=fklCreateNastNode(FKL_NAST_BYTEVECTOR,line);
+//	retval->u.bvec=fklCreateBytevector(nodeStack->top,NULL);
+//	for(size_t i=0;i<nodeStack->top;i++)
+//	{
+//		NastElem* elem=nodeStack->base[i];
+//		FklNastNode* node=elem->node;
+//		NastPlace place=elem->place;
+//		if(place==NAST_CAR
+//				&&(node->type==FKL_NAST_I32
+//					||node->type==FKL_NAST_I64
+//					||node->type==FKL_NAST_BIG_INT))
+//		{
+//			retval->u.bvec->ptr[i]=node->type==FKL_NAST_I32
+//				?node->u.i32
+//				:node->type==FKL_NAST_I64
+//				?node->u.i64
+//				:fklBigIntToI64(node->u.bigInt);
+//		}
+//		else
+//		{
+//			*errorLine=node->curline;
+//			for(size_t j=i;j<nodeStack->top;j++)
+//			{
+//				NastElem* elem=nodeStack->base[j];
+//				destroyNastElem(elem);
+//			}
+//			retval->refcount=1;
+//			fklDestroyNastNode(retval);
+//			retval=NULL;
+//			break;
+//		}
+//		destroyNastElem(elem);
+//	}
+//	return retval;
+//}
 
 FklNastHashTable* fklCreateNastHash(FklVMhashTableEqType type,size_t num)
 {
@@ -526,84 +526,84 @@ FklNastHashTable* fklCreateNastHash(FklVMhashTableEqType type,size_t num)
 	return r;
 }
 
-static FklNastNode* hashTableProcess(FklVMhashTableEqType type,FklPtrStack* nodeStack,uint64_t line,size_t* errorLine)
-{
-	FklNastNode* retval=fklCreateNastNode(FKL_NAST_HASHTABLE,line);
-	retval->u.hash=fklCreateNastHash(type,nodeStack->top);
-	for(size_t i=0;i<nodeStack->top;i++)
-	{
-		NastElem* elem=nodeStack->base[i];
-		FklNastNode* node=elem->node;
-		NastPlace place=elem->place;
-		if(place==NAST_CAR&&node->type==FKL_NAST_PAIR)
-		{
-			retval->u.hash->items[i].car=fklMakeNastNodeRef(node->u.pair->car);
-			retval->u.hash->items[i].cdr=fklMakeNastNodeRef(node->u.pair->cdr);
-		}
-		else
-		{
-			*errorLine=node->curline;
-			for(size_t j=i;j<nodeStack->top;j++)
-			{
-				NastElem* elem=nodeStack->base[j];
-				destroyNastElem(elem);
-			}
-			retval->refcount=1;
-			fklDestroyNastNode(retval);
-			retval=NULL;
-			break;
-		}
-		destroyNastElem(elem);
-	}
-	return retval;
-}
+//static FklNastNode* hashTableProcess(FklVMhashTableEqType type,FklPtrStack* nodeStack,uint64_t line,size_t* errorLine)
+//{
+//	FklNastNode* retval=fklCreateNastNode(FKL_NAST_HASHTABLE,line);
+//	retval->u.hash=fklCreateNastHash(type,nodeStack->top);
+//	for(size_t i=0;i<nodeStack->top;i++)
+//	{
+//		NastElem* elem=nodeStack->base[i];
+//		FklNastNode* node=elem->node;
+//		NastPlace place=elem->place;
+//		if(place==NAST_CAR&&node->type==FKL_NAST_PAIR)
+//		{
+//			retval->u.hash->items[i].car=fklMakeNastNodeRef(node->u.pair->car);
+//			retval->u.hash->items[i].cdr=fklMakeNastNodeRef(node->u.pair->cdr);
+//		}
+//		else
+//		{
+//			*errorLine=node->curline;
+//			for(size_t j=i;j<nodeStack->top;j++)
+//			{
+//				NastElem* elem=nodeStack->base[j];
+//				destroyNastElem(elem);
+//			}
+//			retval->refcount=1;
+//			fklDestroyNastNode(retval);
+//			retval=NULL;
+//			break;
+//		}
+//		destroyNastElem(elem);
+//	}
+//	return retval;
+//}
 
-static FklNastNode* hashEqProcesser(FklPtrStack* nodeStack,uint64_t line,size_t* errorLine)
-{
-	return hashTableProcess(FKL_VM_HASH_EQ,nodeStack,line,errorLine);
-}
+//static FklNastNode* hashEqProcesser(FklPtrStack* nodeStack,uint64_t line,size_t* errorLine)
+//{
+//	return hashTableProcess(FKL_VM_HASH_EQ,nodeStack,line,errorLine);
+//}
 
-static FklNastNode* hashEqvProcesser(FklPtrStack* nodeStack,uint64_t line,size_t* errorLine)
-{
-	return hashTableProcess(FKL_VM_HASH_EQV,nodeStack,line,errorLine);
-}
+//static FklNastNode* hashEqvProcesser(FklPtrStack* nodeStack,uint64_t line,size_t* errorLine)
+//{
+//	return hashTableProcess(FKL_VM_HASH_EQV,nodeStack,line,errorLine);
+//}
 
-static FklNastNode* hashEqualProcesser(FklPtrStack* nodeStack,uint64_t line,size_t* errorLine)
-{
-	return hashTableProcess(FKL_VM_HASH_EQUAL,nodeStack,line,errorLine);
-}
+//static FklNastNode* hashEqualProcesser(FklPtrStack* nodeStack,uint64_t line,size_t* errorLine)
+//{
+//	return hashTableProcess(FKL_VM_HASH_EQUAL,nodeStack,line,errorLine);
+//}
 
 
-static FklNastNode* (*nastStackProcessers[])(FklPtrStack*,uint64_t,size_t*)=
-{
-	listProcesser,
-	listProcesser,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	vectorProcesser,
-	vectorProcesser,
-	NULL,
-	bytevectorProcesser,
-	bytevectorProcesser,
-	hashEqProcesser,
-	hashEqProcesser,
-	hashEqvProcesser,
-	hashEqvProcesser,
-	hashEqualProcesser,
-	hashEqualProcesser,
-};
+//static FklNastNode* (*nastStackProcessers[])(FklPtrStack*,uint64_t,size_t*)=
+//{
+//	listProcesser,
+//	listProcesser,
+//	NULL,
+//	NULL,
+//	NULL,
+//	NULL,
+//	NULL,
+//	vectorProcesser,
+//	vectorProcesser,
+//	NULL,
+//	bytevectorProcesser,
+//	bytevectorProcesser,
+//	hashEqProcesser,
+//	hashEqProcesser,
+//	hashEqvProcesser,
+//	hashEqvProcesser,
+//	hashEqualProcesser,
+//	hashEqualProcesser,
+//};
 
-#define BUILTIN_PATTERN_START_PROCESS(PATTERN) FklStringMatchPattern* pattern=(PATTERN);\
-						MatchState* state=createMatchState(pattern,token->line,0);\
-						fklPushPtrStack(state,matchStateStack);\
-						cStack=fklCreatePtrStack(32,16);\
-						fklPushPtrStack(cStack,stackStack)\
+/*#define BUILTIN_PATTERN_START_PROCESS(PATTERN) FklStringMatchPattern* pattern=(PATTERN);\
+//						MatchState* state=createMatchState(pattern,token->line,0);\
+//						fklPushPtrStack(state,matchStateStack);\
+//						cStack=fklCreatePtrStack(32,16);\
+//						fklPushPtrStack(cStack,stackStack)\*/
 
-FklNastNode* fklCreateNastNodeFromTokenStack(FklPtrStack* tokenStack,size_t* errorLine,const FklSid_t buildInHeadSymbolTable[4])
-{
+//FklNastNode* fklCreateNastNodeFromTokenStack(FklPtrStack* tokenStack,size_t* errorLine,const FklSid_t buildInHeadSymbolTable[4])
+//{
 //	FklNastNode* retval=NULL;
 //	if(!fklIsPtrStackEmpty(tokenStack))
 //	{
@@ -796,9 +796,9 @@ FklNastNode* fklCreateNastNodeFromTokenStack(FklPtrStack* tokenStack,size_t* err
 //		fklDestroyPtrStack(elemStack);
 //	}
 //	return retval;
-}
+//}
 
-#undef BUILTIN_PATTERN_START_PROCESS
+//#undef BUILTIN_PATTERN_START_PROCESS
 
 void fklPrintNastNode(const FklNastNode* exp,FILE* fp)
 {

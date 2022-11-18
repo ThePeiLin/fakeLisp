@@ -204,12 +204,12 @@ void fklc_make_fbc(ARGL)
 #undef CONST_COMPILE
 #undef IS_LITERAL
 #undef IS_COMPILABLE
-void _fklInit(FklSymbolTable* glob,FklVMdll* rel)
+void _fklInit(FklSymbolTable* glob,FklVMdll* dll)
 {
 //	fklSetGlobVMs(GlobVMs);
 	fklSetGlobSymbolTable(glob);
 	fklcInitFsym();
-	fklcInit(rel);
+	fklcInit(dll);
 }
 
 void _fklUninit(void)

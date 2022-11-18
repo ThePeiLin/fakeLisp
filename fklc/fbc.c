@@ -85,10 +85,11 @@ int fklcIsFbc(FklVMvalue* p)
 	return FKL_IS_USERDATA(p)&&p->u.ud->type==FklcBcUdSid&&p->u.ud->t==&FklcBcMethodTable;
 }
 
-void fklcInit(FklVMvalue* rel)
+void fklcInit(FklVMdll* dll)
 {
 	FklcBcUdSid=fklAddSymbolToGlobCstr("fbc")->id;
-	FklcRel=rel;
+	dll->pd=NULL;
+	FklcRel=dll;
 }
 
 void fklcCodeAppend(FklByteCode** fir,const FklByteCode* sec)

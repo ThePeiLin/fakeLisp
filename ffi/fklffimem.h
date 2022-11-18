@@ -15,18 +15,17 @@ void fklFfiMemInit(FklVMvalue*);
 FklSid_t fklFfiGetFfiMemUdSid(void);
 FklFfiMem* fklFfiCreateMem(FklTypeId_t type,size_t);
 FklFfiMem* fklFfiCreateRef(FklTypeId_t type,void* ref);
-FklVMudata* fklFfiCreateMemUd(FklTypeId_t type,size_t size,FklVMvalue* atomic);
-FklVMudata* fklFfiCreateMemRefUdWithSI(FklFfiMem* m,FklVMvalue* selector,FklVMvalue* index);
-FklVMudata* fklFfiCreateMemRefUd(FklTypeId_t type,void*);
+FklVMudata* fklFfiCreateMemUd(FklTypeId_t type,size_t size,FklVMvalue* atomic,FklVMvalue* rel);
+FklVMudata* fklFfiCreateMemRefUdWithSI(FklFfiMem* m,FklVMvalue* selector,FklVMvalue* index,FklVMvalue* rel);
+FklVMudata* fklFfiCreateMemRefUd(FklTypeId_t type,void*,FklVMvalue* rel);
 int fklFfiIsMem(FklVMvalue*);
 int fklFfiSetMem(FklFfiMem*,FklVMvalue*);
 int fklFfiSetMemForProc(FklVMudata*,FklVMvalue*);
 int fklFfiIsNull(FklFfiMem*);
-FklVMudata* fklFfiCastVMvalueIntoMem(FklVMvalue*);
+FklVMudata* fklFfiCastVMvalueIntoMem(FklVMvalue*,FklVMvalue* rel);
 int fklFfiIsCastableVMvalueType(FklVMvalue* v);
 int fklFfiIsValuableMem(FklFfiMem* mem);
 FklVMvalue* fklFfiCreateVMvalue(FklFfiMem* mem,FklVM* vm);
-FklVMvalue* fklFfiGetRel(void);
 #ifdef __cplusplus
 }
 #endif

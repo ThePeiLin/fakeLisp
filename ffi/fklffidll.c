@@ -111,7 +111,7 @@ ffi_type* fklFfiGetFfiType(FklTypeId_t type)
 	return NativeFFITypeList[type];
 }
 
-static void _ffi_proc_invoke(void* ptr,FklVM* exe)
+static void _ffi_proc_invoke(void* ptr,FklVM* exe,FklVMvalue* rel)
 {
 	FKL_NI_BEGIN(exe);
 	FklFfiProc* proc=ptr;
@@ -144,7 +144,7 @@ static void _ffi_proc_invoke(void* ptr,FklVM* exe)
 	FKL_ASSERT(pArgs);
 	for(i=0;i<anum;i++)
 	{
-		FklVMudata* ud=fklFfiCreateMemUd(atypes[i],fklFfiGetTypeSizeWithTypeId(atypes[i]),NULL);
+		FklVMudata* ud=fklFfiCreateMemUd(atypes[i],fklFfiGetTypeSizeWithTypeId(atypes[i]),NULL,rel);
 		if(fklFfiSetMemForProc(ud,args[i]))
 		{
 			for(uint32_t j=0;j<i;j++)
@@ -174,7 +174,7 @@ static void _ffi_proc_invoke(void* ptr,FklVM* exe)
 	}
 	else
 	{
-		FklVMudata* ud=fklFfiCreateMemUd(rtype,fklFfiGetTypeSizeWithTypeId(rtype),NULL);
+		FklVMudata* ud=fklFfiCreateMemUd(rtype,fklFfiGetTypeSizeWithTypeId(rtype),NULL,rel);
 		void* retval=((FklFfiMem*)ud->data)->mem;
 		FKL_ASSERT(retval);
 		ffi_call(&proc->cif,proc->func,retval,pArgs);
@@ -252,7 +252,7 @@ FklFfiProc* fklFfiCreateProc(FklTypeId_t type,void* func,FklSid_t sid)
 	return tmp;
 }
 
-FklVMudata* fklFfiCreateProcUd(FklTypeId_t type,const char* cStr)
+FklVMudata* fklFfiCreateProcUd(FklTypeId_t type,const char* cStr,FklVMvalue* rel)
 {
 	pthread_rwlock_rdlock(&GlobSharedObjsLock);
 	void* address=NULL;
@@ -265,5 +265,5 @@ FklVMudata* fklFfiCreateProcUd(FklTypeId_t type,const char* cStr)
 	pthread_rwlock_unlock(&GlobSharedObjsLock);
 	if(!address)
 		return NULL;
-	return fklCreateVMudata(fklFfiGetFfiMemUdSid(),&FfiProcMethodTable,fklFfiCreateProc(type,address,fklAddSymbolToGlobCstr(cStr)->id),fklFfiGetRel());
+	return fklCreateVMudata(fklFfiGetFfiMemUdSid(),&FfiProcMethodTable,fklFfiCreateProc(type,address,fklAddSymbolToGlobCstr(cStr)->id),rel);
 }

@@ -8,7 +8,7 @@
 #include"flnt.h"
 #include"fsym.h"
 extern FklSymbolTable* OuterSymbolTable;
-#define ARGL FklVM* exe,FklVMvalue* pd
+#define ARGL FklVM* exe,FklVMvalue* dll,FklVMvalue* pd
 
 #define FKLC_RAISE_ERROR(WHO,ERRORTYPE,EXE) do{\
 	char* errorMessage=fklcGenErrorMessage((ERRORTYPE));\
@@ -94,7 +94,7 @@ void fklc_pattern_match(ARGL)
 	FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_ERR_TOOFEWARG,exe);\
 	if(!P(ARG))\
 	FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_ERR_INCORRECT_TYPE_VALUE,exe);\
-	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklcCreateFbcUd(BC),exe),&ap,stack);\
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklcCreateFbcUd(BC,dll),exe),&ap,stack);\
 	fklNiEnd(&ap,stack);\
 }
 
@@ -103,7 +103,7 @@ void fklc_make_push_nil(ARGL)
 	FKL_NI_BEGIN(exe);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.make-push-nil",FKL_ERR_TOOMANYARG,exe);
-	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklcCreateFbcUd(fklCreatePushNilByteCode()),exe),&ap,stack);
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklcCreateFbcUd(fklCreatePushNilByteCode(),dll),exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -130,7 +130,7 @@ void fklc_bytevector_to_fbc(ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.fbc->bytevector",FKL_ERR_TOOMANYARG,exe);
 	FKL_NI_CHECK_TYPE(bv,FKL_IS_BYTEVECTOR,"fklc.fbc->bytevector",exe);
-	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklcCreateFbcUd(fklCreateByteCodeAndInit(bv->u.bvec->size,bv->u.bvec->ptr)),exe),&ap,stack);
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklcCreateFbcUd(fklCreateByteCodeAndInit(bv->u.bvec->size,bv->u.bvec->ptr),dll),exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -158,7 +158,7 @@ void fklc_compile_obj(ARGL)
 	FklByteCode* bc=fklcCreatePushObjByteCode(obj);
 	if(!bc)
 		FKLC_RAISE_ERROR("fklc.compile-obj",FKL_FKLC_ERR_IMCOMPILABLE_OBJ_OCCUR,exe);
-	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklcCreateFbcUd(bc),exe),&ap,stack);
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklcCreateFbcUd(bc,dll),exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -197,7 +197,7 @@ void fklc_make_fbc(ARGL)
 		c=fklGetInt(content);
 	}
 	memset(bc->code,c,len);
-	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklcCreateFbcUd(bc),exe),&ap,stack);
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklcCreateFbcUd(bc,dll),exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

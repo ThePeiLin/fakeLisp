@@ -3,7 +3,6 @@
 #include<fakeLisp/symbol.h>
 #include<fakeLisp/vm.h>
 #include<string.h>
-static FklVMvalue* FklcRel;
 FklSid_t FklcBcUdSid=0;
 
 extern FklSymbolTable* OuterSymbolTable;
@@ -75,9 +74,9 @@ static FklVMudMethodTable FklcBcMethodTable=
 	.__hash=_bc_hash,
 };
 
-FklVMudata* fklcCreateFbcUd(FklByteCode* code)
+FklVMudata* fklcCreateFbcUd(FklByteCode* code,FklVMvalue* rel)
 {
-	return fklCreateVMudata(FklcBcUdSid,&FklcBcMethodTable,code,FklcRel);
+	return fklCreateVMudata(FklcBcUdSid,&FklcBcMethodTable,code,rel);
 }
 
 int fklcIsFbc(FklVMvalue* p)
@@ -89,7 +88,6 @@ void fklcInit(FklVMdll* dll)
 {
 	FklcBcUdSid=fklAddSymbolToGlobCstr("fbc")->id;
 	dll->pd=NULL;
-	FklcRel=dll;
 }
 
 void fklcCodeAppend(FklByteCode** fir,const FklByteCode* sec)

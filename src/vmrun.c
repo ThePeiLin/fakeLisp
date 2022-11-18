@@ -115,7 +115,7 @@ void callContinuation(FklVM* exe,FklVMcontinuation* cc)
 
 void callDlProc(FklVM* exe,FklVMdlproc* dlproc)
 {
-	dlproc->func(exe,dlproc->pd);
+	dlproc->func(exe,dlproc->dll,dlproc->pd);
 }
 
 /*--------------------------*/
@@ -338,7 +338,7 @@ static void callCallableObj(FklVMvalue* v,FklVM* exe)
 			callDlProc(exe,v->u.dlproc);
 			break;
 		case FKL_TYPE_USERDATA:
-			v->u.ud->t->__call(v->u.ud->data,exe);
+			v->u.ud->t->__call(v->u.ud->data,exe,v->u.ud->rel);
 			break;
 		default:
 			break;

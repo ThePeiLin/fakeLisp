@@ -1285,6 +1285,7 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 			else
 			{
 			}
+			destroyNastNodeQuest(curQuest);
 			if(prevQuest)
 				fklPushPtrStack(r,prevQuest->nast);
 			else

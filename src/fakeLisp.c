@@ -52,6 +52,7 @@ int main(int argc,char** argv)
 		while(!fklIsPtrStackEmpty(loadedLibStack))
 		{
 			FklCodegenLib* lib=fklPopPtrStack(loadedLibStack);
+			fklDestroyCodegenMacroList(lib->head);
 			free(lib->rp);
 			free(lib);
 		}
@@ -290,7 +291,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 						FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(0,curCGlib->bcl->bc->size,codeObj,anotherVM->gc),anotherVM->gc);
 						fklSetRef(&proc->u.proc->prevEnv,globEnv,anotherVM->gc);
 						fklInitVMlib(curVMlib,curCGlib->exportNum,curCGlib->exports,proc);
-						fklDestroyCodegenMacroList(curCGlib->head);
+						//fklDestroyCodegenMacroList(curCGlib->head);
 					}
 					FklVMlib* prev=anotherVM->libs;
 					anotherVM->libs=nlibs;

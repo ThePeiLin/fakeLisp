@@ -30,6 +30,44 @@ static FklVMvalue* BuiltInStdin=NULL;
 static FklVMvalue* BuiltInStdout=NULL;
 static FklVMvalue* BuiltInStderr=NULL;
 
+typedef struct
+{
+	FklStringMatchPattern* patterns;
+}PublicBuiltInUserData;
+
+static PublicBuiltInUserData* createPublicBuiltInUserData(void)
+{
+	PublicBuiltInUserData* r=(PublicBuiltInUserData*)malloc(sizeof(PublicBuiltInUserData));
+	FKL_ASSERT(r);
+	r->patterns=fklInitBuiltInStringPattern();
+	return r;
+}
+
+static void _public_builtin_userdata_finalizer(void* p)
+{
+	PublicBuiltInUserData* d=p;
+	fklDestroyAllStringPattern(d->patterns);
+	free(d);
+}
+
+static FklVMudMethodTable PublicBuiltInUserDataMethodTable=
+{
+	.__princ=NULL,
+	.__prin1=NULL,
+	.__finalizer=_public_builtin_userdata_finalizer,
+	.__equal=NULL,
+	.__call=NULL,
+	.__cmp=NULL,
+	.__write=NULL,
+	.__atomic=NULL,
+	.__append=NULL,
+	.__copy=NULL,
+	.__length=NULL,
+	.__hash=NULL,
+};
+
+static FklVMvalue* PublicUserData=NULL;
+
 static FklSid_t builtInHeadSymbolTable[4]={0};
 
 static const char* builtInErrorType[]=
@@ -2627,21 +2665,23 @@ void builtin_read(ARGL)
 	char* tmpString=NULL;
 	FklVMfp* tmpFile=NULL;
 	FklPtrStack* tokenStack=fklCreatePtrStack(32,16);
+	FklStringMatchRouteNode* route=NULL;
 	if(!stream||FKL_IS_FP(stream))
 	{
 		tmpFile=stream?stream->u.fp:BuiltInStdin->u.fp;
 		pthread_mutex_lock(&tmpFile->lock);
 		int unexpectEOF=0;
 		size_t size=0;
-		FklStringMatchRouteNode* route=NULL;
+		FklStringMatchPattern* patterns=((PublicBuiltInUserData*)PublicUserData->u.ud->data)->patterns;
 		tmpString=fklReadInStringPattern(tmpFile->fp
 				,(char**)&tmpFile->prev
 				,&size
 				,&tmpFile->size
 				,0
 				,&unexpectEOF
-				,tokenStack,NULL
-				,exe->patterns
+				,tokenStack
+				,NULL
+				,patterns
 				,&route);
 		pthread_mutex_unlock(&tmpFile->lock);
 		if(unexpectEOF)
@@ -2650,11 +2690,12 @@ void builtin_read(ARGL)
 			while(!fklIsPtrStackEmpty(tokenStack))
 				fklDestroyToken(fklPopPtrStack(tokenStack));
 			fklDestroyPtrStack(tokenStack);
+			fklDestroyStringMatchRoute(route);
 			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_UNEXPECTEOF,exe);
 		}
 	}
 	size_t errorLine=0;
-	FklNastNode* node=fklCreateNastNodeFromTokenStack(tokenStack,&errorLine,builtInHeadSymbolTable);
+	FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack,route,&errorLine,builtInHeadSymbolTable);
 	FklVMvalue* tmp=NULL;
 	if(node==NULL)
 	{
@@ -2662,6 +2703,7 @@ void builtin_read(ARGL)
 		while(!fklIsPtrStackEmpty(tokenStack))
 			fklDestroyToken(fklPopPtrStack(tokenStack));
 		fklDestroyPtrStack(tokenStack);
+		fklDestroyStringMatchRoute(route);
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_INVALIDEXPR,exe);
 	}
 	else
@@ -2669,6 +2711,7 @@ void builtin_read(ARGL)
 	while(!fklIsPtrStackEmpty(tokenStack))
 		fklDestroyToken(fklPopPtrStack(tokenStack));
 	fklDestroyPtrStack(tokenStack);
+	fklDestroyStringMatchRoute(route);
 	fklNiReturn(tmp,&ap,stack);
 	free(tmpString);
 	fklDestroyNastNode(node);
@@ -2690,6 +2733,8 @@ void builtin_parser(ARGL)
 	FklStringMatchSet* matchSet=FKL_STRING_PATTERN_UNIVERSAL_SET;
 	size_t line=1;
 	size_t j=0;
+	FklStringMatchRouteNode* route=fklCreateStringMatchRouteNode(NULL,0,0,NULL,NULL,NULL);
+	FklStringMatchPattern* patterns=((PublicBuiltInUserData*)PublicUserData->u.ud->data)->patterns;
 	fklSplitStringIntoTokenWithPattern(stream->u.str->str
 			,stream->u.str->size
 			,line
@@ -2698,11 +2743,12 @@ void builtin_parser(ARGL)
 			,&j
 			,tokenStack
 			,matchSet
-			,exe->patterns
-			,NULL);
+			,patterns
+			,route);
 	fklDestroyStringMatchSet(matchSet);
 	size_t errorLine=0;
-	FklNastNode* node=fklCreateNastNodeFromTokenStack(tokenStack,&errorLine,builtInHeadSymbolTable);
+	FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack,route,&errorLine,builtInHeadSymbolTable);
+	fklDestroyStringMatchRoute(route);
 	FklVMvalue* tmp=NULL;
 	if(node==NULL)
 	{
@@ -4658,13 +4704,13 @@ static const struct SymbolFuncStruct
 	{NULL,                    NULL,                            },
 };
 
-void fklInitCompEnv(FklCompEnv* curEnv)
-{
+//void fklInitCompEnv(FklCompEnv* curEnv)
+//{
 //	for(const struct SymbolFuncStruct* list=builtInSymbolList
 //			;list->s!=NULL
 //			;list++)
 //		fklAddCompDefCstr(list->s,curEnv);
-}
+//}
 
 void fklInitGlobCodegenEnvWithSymbolTable(FklCodegenEnv* curEnv,FklSymbolTable* symbolTable)
 {
@@ -4702,12 +4748,18 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMgc* gc)
 	BuiltInStdin=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stdin),gc);
 	BuiltInStdout=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stdout),gc);
 	BuiltInStderr=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stderr),gc);
+	PublicUserData=fklCreateVMvalueNoGC(FKL_TYPE_USERDATA
+			,fklCreateVMudata(0
+				,&PublicBuiltInUserDataMethodTable
+				,createPublicBuiltInUserData()
+				,FKL_VM_NIL)
+			,gc);
 	fklFindOrAddVarWithValue(fklAddSymbolToGlobCstr((list++)->s)->id,BuiltInStdin,obj);
 	fklFindOrAddVarWithValue(fklAddSymbolToGlobCstr((list++)->s)->id,BuiltInStdout,obj);
 	fklFindOrAddVarWithValue(fklAddSymbolToGlobCstr((list++)->s)->id,BuiltInStderr,obj);
 	for(;list->s!=NULL;list++)
 	{
-		FklVMdlproc* proc=fklCreateVMdlproc(list->f,NULL);
+		FklVMdlproc* proc=fklCreateVMdlproc(list->f,PublicUserData);
 		FklSymTabNode* node=fklAddSymbolToGlobCstr(list->s);
 		proc->sid=node->id;
 		fklFindOrAddVarWithValue(node->id,fklCreateVMvalueNoGC(FKL_TYPE_DLPROC,proc,gc),obj);

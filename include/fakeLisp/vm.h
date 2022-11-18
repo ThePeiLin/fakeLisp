@@ -244,7 +244,6 @@ typedef struct FklVM
 	FklPtrStack* tstack;
 	FklVMstack* stack;
 	FklVMvalue* codeObj;
-	FklStringMatchPattern* patterns;
 	struct FklVMvalue* chan;
 	struct FklVMgc* gc;
 	void (*callback)(void*);

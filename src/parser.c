@@ -36,6 +36,7 @@ FklNastNode* fklCreateNastNodeFromCstr(const char* cStr
 			,buildInHeadSymbolTable);
 	while(!fklIsPtrStackEmpty(tokenStack))
 		fklDestroyToken(fklPopPtrStack(tokenStack));
+	fklDestroyStringMatchRoute(route);
 	while(!fklIsPtrStackEmpty(matchStateStack))
 		free(fklPopPtrStack(matchStateStack));
 	fklDestroyPtrStack(tokenStack);
@@ -193,14 +194,13 @@ static NastElem* createNastElem(NastPlace place,FklNastNode* node)
 {
 	NastElem* r=(NastElem*)malloc(sizeof(NastElem));
 	FKL_ASSERT(r);
-	r->node=fklMakeNastNodeRef(node);
+	r->node=node;
 	r->place=place;
 	return r;
 }
 
 static void destroyNastElem(NastElem* n)
 {
-	fklDestroyNastNode(n->node);
 	free(n);
 }
 
@@ -699,7 +699,7 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 							,token->line);
 					if(!node)
 						return NULL;
-					fklPushPtrStack(fklMakeNastNodeRef(node),curNastStack);
+					fklPushPtrStack(node,curNastStack);
 				}
 			}
 		}
@@ -723,11 +723,10 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 			destroyNastNodeQuest(curQuest);
 			if(!r)
 				return NULL;
-			r=fklMakeNastNodeRef(r);
 			if(prevQuest)
 				fklPushPtrStack(r,prevQuest->nast);
 			else
-				retval=r;
+				retval=fklMakeNastNodeRef(r);
 		}
 	}
 	fklUninitPtrStack(&questStack);

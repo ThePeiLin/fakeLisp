@@ -231,8 +231,6 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 		FklNastNode* begin=NULL;
 		FklStringMatchRouteNode* route=NULL;
 		printf(">>>");
-		if(prev)
-			fwrite(prev,sizeof(char),prevSize,stdout);
 		int unexpectEOF=0;
 		size_t size=0;
 		char* list=fklReadInStringPattern(stdin

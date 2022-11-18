@@ -2276,6 +2276,8 @@ static CODEGEN_FUNC(codegen_import_with_prefix)
 			else
 				fklDestroyNastNode(libraryExpression);
 		}
+		if(prev)
+			free(prev);
 		fclose(fp);
 		fklDestroyHashTable(patternMatchTable);
 		fklDestroyPtrStack(tokenStack);

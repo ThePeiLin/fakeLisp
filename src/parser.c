@@ -1193,10 +1193,38 @@ int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1)
 	return r;
 }
 
-static FklToken* getSingleToken(FklStringMatchRouteNode* routeNode
+inline static FklToken* getSingleToken(FklStringMatchRouteNode* routeNode
 		,FklPtrStack* tokenStack)
 {
 	return tokenStack->base[routeNode->start];
+}
+
+typedef struct CreateNastNodeQuest
+{
+	uint64_t line;
+	FklStringMatchPattern* pattern;
+	FklPtrStack* route;
+	FklPtrStack* nast;
+}CreateNastNodeQuest;
+
+static CreateNastNodeQuest* createNastNodeQuest(uint64_t line
+		,FklStringMatchPattern* pattern
+		,FklPtrStack* route)
+{
+	CreateNastNodeQuest* r=(CreateNastNodeQuest*)malloc(sizeof(CreateNastNodeQuest));
+	FKL_ASSERT(r);
+	r->line=line;
+	r->pattern=pattern;
+	r->route=route;
+	r->nast=fklCreatePtrStack(8,16);
+	return r;
+}
+
+static void destroyNastNodeQuest(CreateNastNodeQuest* p)
+{
+	fklDestroyPtrStack(p->nast);
+	fklDestroyPtrStack(p->route);
+	free(p);
 }
 
 FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStack
@@ -1204,44 +1232,65 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 		,size_t* errorLine
 		,const FklSid_t t[4])
 {
-	FklPtrStack routeStackStack={NULL,0,0,0,};
-	fklInitPtrStack(&routeStackStack,32,16);
-	FklPtrStack* routeStack=fklCreatePtrStack(8,16);
+	FklPtrStack questStack={NULL,0,0,0,};
+	FklPtrStack* routeStack=fklCreatePtrStack(1,16);
+	FklNastNode* retval=NULL;
 	fklPushPtrStack(route,routeStack);
-	fklPushPtrStack(routeStack,&routeStackStack);
-
-	FklPtrStack nastStackStack={NULL,0,0,0,};
-	fklInitPtrStack(&nastStackStack,32,16);
-	FklPtrStack* nastStack=fklCreatePtrStack(8,16);
-	fklPushPtrStack(nastStack,&nastStackStack);
-
-
-	while(!fklIsPtrStackEmpty(&routeStackStack))
+	fklInitPtrStack(&questStack,32,16);
+	CreateNastNodeQuest* firstQuest=createNastNodeQuest(getSingleToken(route,tokenStack)->line
+			,NULL
+			,routeStack);
+	fklPushPtrStack(firstQuest,&questStack);
+	while(!fklIsPtrStackEmpty(&questStack))
 	{
-		FklPtrStack* curRouteStack=fklTopPtrStack(&routeStackStack);
-		FklPtrStack* curNastStack=fklTopPtrStack(&nastStackStack);
+		CreateNastNodeQuest* curQuest=fklTopPtrStack(&questStack);
+		FklPtrStack* curRouteStack=curQuest->route;
+		FklPtrStack* curNastStack=curQuest->nast;
 		while(!fklIsPtrStackEmpty(curRouteStack))
 		{
-			FklStringMatchRouteNode* cur=fklPopPtrStack(curRouteStack);
-			if(cur->children)
+			FklStringMatchRouteNode* curRoute=fklPopPtrStack(curRouteStack);
+			if(curRoute->children)
 			{
-				FklPtrStack* newRouteStack=fklCreatePtrStack(32,16);
-				for(FklStringMatchRouteNode* child=cur->children;child;child=child->siblings)
+				FklPtrStack* newRouteStack=fklCreatePtrStack(8,16);
+				for(FklStringMatchRouteNode* child=curRoute->children
+						;child
+						;child=child->siblings)
 					fklPushPtrStack(child,newRouteStack);
-				curRouteStack=newRouteStack;
+				CreateNastNodeQuest* quest=createNastNodeQuest(getSingleToken(curRoute
+							,tokenStack)->line
+						,curRoute->pattern
+						,newRouteStack);
+				fklPushPtrStack(quest,&questStack);
+				break;
 			}
 			else
 			{
-				FklToken* token=getSingleToken(cur,tokenStack);
-				FklNastNode* nastNode=literalNodeCreator[token->type-FKL_TOKEN_CHAR](token->value
+				FklToken* token=getSingleToken(curRoute,tokenStack);
+				FklNastNode* node=literalNodeCreator[token->type-FKL_TOKEN_CHAR](token->value
 						,token->line);
-				fklPushPtrStack(nastNode,curNastStack);
+				fklPushPtrStack(node,curNastStack);
 			}
 		}
-		fklPopPtrStack(&routeStackStack);
+		CreateNastNodeQuest* otherCodegenQuest=fklTopPtrStack(&questStack);
+		if(otherCodegenQuest==curQuest)
+		{
+			fklPopPtrStack(&questStack);
+			CreateNastNodeQuest* prevQuest=fklTopPtrStack(&questStack);
+			FklStringMatchPattern* pattern=curQuest->pattern;
+			FklNastNode* r=NULL;
+			if(!pattern)
+				r=fklPopPtrStack(curQuest->nast);
+			else if(pattern->type==FKL_STRING_PATTERN_BUILTIN)
+				r=pattern->u.func(curQuest->nast,curQuest->line,errorLine);
+			else
+			{
+			}
+			if(prevQuest)
+				fklPushPtrStack(r,prevQuest->nast);
+			else
+				retval=r;
+		}
 	}
-
-	fklUninitPtrStack(&routeStackStack);
-	fklUninitPtrStack(&nastStackStack);
-	return fklPopPtrStack(nastStack);
+	fklUninitPtrStack(&questStack);
+	return retval;
 }

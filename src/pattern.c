@@ -37,6 +37,26 @@ static const char* BuiltinStringPattern_hasheqv_1[]={":#hasheqv[","&car",":]",};
 static const char* BuiltinStringPattern_hashequal_0[]={":#hashequal(","&car",":)",};
 static const char* BuiltinStringPattern_hashequal_1[]={":#hashequal[","&car",":]",};
 
+static FklNastNode* listProcesser(FklPtrStack* nastStack,uint64_t line,size_t* errorLine)
+{
+	FklNastNode* retval=NULL;
+	FklNastNode** cur=&retval;
+	int r=1;
+	for(size_t i=0;i<nastStack->top;i++)
+	{
+		FklNastNode* node=nastStack->base[i];
+		(*cur)=fklMakeNastNodeRef(fklCreateNastNode(FKL_NAST_PAIR,node->curline));
+		(*cur)->u.pair=fklCreateNastPair();
+		(*cur)->u.pair->car=fklMakeNastNodeRef(node);
+		cur=&(*cur)->u.pair->cdr;
+	}
+	if(r&&!(*cur))
+		(*cur)=fklMakeNastNodeRef(fklCreateNastNode(FKL_NAST_NIL,line));
+	if(retval)
+		retval->refcount=0;
+	return retval;
+}
+
 static struct BuiltinStringPattern
 {
 	size_t num;
@@ -50,8 +70,8 @@ static struct BuiltinStringPattern
 	{2,BuiltinStringPattern_unqtesp,NULL},
 	{2,BuiltinStringPattern_box,NULL},
 
-	{3,BuiltinStringPattern_list_0,NULL},
-	{3,BuiltinStringPattern_list_1,NULL},
+	{3,BuiltinStringPattern_list_0,listProcesser},
+	{3,BuiltinStringPattern_list_1,listProcesser},
 
 	{6,BuiltinStringPattern_pair_0,NULL},
 	{6,BuiltinStringPattern_pair_1,NULL},
@@ -135,7 +155,7 @@ FklStringMatchPattern* fklInitBuiltInStringPattern(void)
 		vec->u.vec=fklCreateNastVector(num);
 		for(size_t i=0;i<num;i++)
 			vec->u.vec->base[i]=fklMakeNastNodeRef(createPatternPartFromCstr(curParts[i]));
-		r=createBuiltinStringPattern(vec,NULL,r);
+		r=createBuiltinStringPattern(vec,cur->func,r);
 	}
 	return r;
 }

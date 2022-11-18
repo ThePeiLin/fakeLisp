@@ -1453,11 +1453,12 @@ inline static FklNastNode* getExpressionFromFile(FklCodegen* codegen
 	}
 	else
 	{
-		begin=fklCreateNastNodeFromTokenStack(tokenStack,errorLine,builtInHeadSymbolTable);
+		begin=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack,route,errorLine,builtInHeadSymbolTable);
 		*hasError=(begin==NULL);
 	}
 	while(!fklIsPtrStackEmpty(tokenStack))
 		fklDestroyToken(fklPopPtrStack(tokenStack));
+	fklDestroyStringMatchRoute(route);
 	return begin;
 }
 
@@ -2659,11 +2660,18 @@ const FklSid_t* fklInitCodegen(void)
 
 	FklStringMatchPattern* builtinStringPatterns=fklInitBuiltInStringPattern();
 	for(struct PatternAndFunc* cur=&builtInPattern[0];cur->ps!=NULL;cur++)
-		cur->pn=fklCreateNastNodeFromCstr(cur->ps,builtInHeadSymbolTable,builtinStringPatterns);
+		cur->pn=fklCreateNastNodeFromCstr(cur->ps
+				,builtInHeadSymbolTable
+				,builtinStringPatterns);
+
 	for(struct SymbolReplacement* cur=&builtInSymbolReplacement[0];cur->s!=NULL;cur++)
 		cur->sid=fklAddSymbolToGlobCstr(cur->s)->id;
+
 	for(struct SubPattern* cur=&builtInSubPattern[0];cur->ps!=NULL;cur++)
-		cur->pn=fklCreateNastNodeFromCstr(cur->ps,builtInHeadSymbolTable,builtinStringPatterns);
+		cur->pn=fklCreateNastNodeFromCstr(cur->ps
+				,builtInHeadSymbolTable
+				,builtinStringPatterns);
+
 	fklDestroyAllStringPattern(builtinStringPatterns);
 	return builtInHeadSymbolTable;
 }

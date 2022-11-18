@@ -537,10 +537,10 @@ inline static FklStringMatchPattern* getCompleteMatchPattern(FklStringMatchState
 	for(FklStringMatchState* cur=strs;cur;cur=cur->next)
 		if(cur->index>=getSizeFromPattern(cur->pattern))
 			return cur->pattern;
-	for(FklStringMatchState* cur=boxes;cur;cur=cur->next)
+	for(FklStringMatchState* cur=syms;cur;cur=cur->next)
 		if(cur->index>=getSizeFromPattern(cur->pattern))
 			return cur->pattern;
-	for(FklStringMatchState* cur=syms;cur;cur=cur->next)
+	for(FklStringMatchState* cur=boxes;cur;cur=cur->next)
 		if(cur->index>=getSizeFromPattern(cur->pattern))
 			return cur->pattern;
 	return NULL;

@@ -24,6 +24,7 @@ FklNastNode* fklCreateNastNodeFromCstr(const char* cStr
 	size_t j=0;
 	FklStringMatchSet* matchSet=FKL_STRING_PATTERN_UNIVERSAL_SET;
 	FklPtrStack* matchStateStack=fklCreatePtrStack(8,16);
+	FklStringMatchRouteNode* route=fklCreateStringMatchRouteNode(NULL,0,0,NULL,NULL,NULL);
 	fklSplitStringIntoTokenWithPattern(cStr
 			,size
 			,line
@@ -33,9 +34,12 @@ FklNastNode* fklCreateNastNodeFromCstr(const char* cStr
 			,tokenStack
 			,matchSet
 			,patterns
-			,NULL);
+			,route);
 	size_t errorLine=0;
-	FklNastNode* retval=fklCreateNastNodeFromTokenStack(tokenStack,&errorLine,buildInHeadSymbolTable);
+	FklNastNode* retval=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack
+			,route
+			,&errorLine
+			,buildInHeadSymbolTable);
 	while(!fklIsPtrStackEmpty(tokenStack))
 		fklDestroyToken(fklPopPtrStack(tokenStack));
 	while(!fklIsPtrStackEmpty(matchStateStack))
@@ -173,11 +177,8 @@ static FklNastNode* createNum(const FklString* oStr,uint64_t line)
 
 static FklNastNode* createString(const FklString* oStr,uint64_t line)
 {
-	size_t size=0;
-	char* str=fklCastEscapeCharBuf(oStr->str+1,'\"',&size);
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_STR,line);
-	r->u.str=fklCreateString(size,str);
-	free(str);
+	r->u.str=fklCopyString(oStr);
 	return r;
 }
 
@@ -610,198 +611,198 @@ static FklNastNode* (*nastStackProcessers[])(FklPtrStack*,uint64_t,size_t*)=
 
 FklNastNode* fklCreateNastNodeFromTokenStack(FklPtrStack* tokenStack,size_t* errorLine,const FklSid_t buildInHeadSymbolTable[4])
 {
-	FklNastNode* retval=NULL;
-	if(!fklIsPtrStackEmpty(tokenStack))
-	{
-		FklPtrStack* matchStateStack=fklCreatePtrStack(32,16);
-		FklPtrStack* stackStack=fklCreatePtrStack(32,16);
-		FklPtrStack* elemStack=fklCreatePtrStack(32,16);
-		fklPushPtrStack(elemStack,stackStack);
-		for(uint32_t i=0;i<tokenStack->top;i++)
-		{
-			FklToken* token=tokenStack->base[i];
-			FklPtrStack* cStack=fklTopPtrStack(stackStack);
-			if(token->type>FKL_TOKEN_RESERVE_STR&&token->type<FKL_TOKEN_COMMENT)
-			{
-				FklNastNode* singleLiteral=literalNodeCreator[token->type-FKL_TOKEN_CHAR](token->value,token->line);
-				if(!singleLiteral)
-				{
-					*errorLine=token->line;
-					while(!fklIsPtrStackEmpty(matchStateStack))
-						destroyMatchState(fklPopPtrStack(matchStateStack));
-					fklDestroyPtrStack(matchStateStack);
-					while(!fklIsPtrStackEmpty(stackStack))
-					{
-						FklPtrStack* cStack=fklPopPtrStack(stackStack);
-						while(!fklIsPtrStackEmpty(cStack))
-						{
-							NastElem* elem=fklPopPtrStack(cStack);
-							destroyNastElem(elem);
-						}
-						fklDestroyPtrStack(cStack);
-					}
-					fklDestroyPtrStack(stackStack);
-					return NULL;
-				}
-				NastElem* elem=createNastElem(NAST_CAR,singleLiteral);
-				fklPushPtrStack(elem,cStack);
-			}
-			else if(token->type==FKL_TOKEN_RESERVE_STR)
-			{
-				//MatchState* state=searchReverseStringCharMatchState(token->value
-				//		,matchStateStack);
-				FklStringMatchPattern* pattern=NULL;//fklFindStringPattern(token->value);
-				if(pattern)
-				{
-					MatchState* state=createMatchState(pattern,token->line,1);
-					fklPushPtrStack(state,matchStateStack);
-					cStack=fklCreatePtrStack(32,16);
-					fklPushPtrStack(cStack,stackStack);
-					const FklString* part=NULL;//fklGetNthPartOfStringMatchPattern(pattern,state->cindex);
-					if(1)//fklIsVar(part)&&fklIsMustList(part))
-					{
-						cStack=fklCreatePtrStack(32,16);
-						fklPushPtrStack(cStack,stackStack);
-					}
-					continue;
-				}
-				else if(isBuilInPatternStart(token->value))
-				{
-					if(isLeftParenthese(token->value))
-					{
-						BUILTIN_PATTERN_START_PROCESS(token->value->str[0]=='('
-								?PARENTHESE_0
-								:PARENTHESE_1);
-					}
-					else if(isVectorStart(token->value))
-					{
-						BUILTIN_PATTERN_START_PROCESS(token->value->str[1]=='('
-								?VECTOR_0
-								:VECTOR_1);
-					}
-					else if(isBytevectorStart(token->value))
-					{
-						BUILTIN_PATTERN_START_PROCESS(token->value->str[4]=='('
-								?BVECTOR_0
-								:BVECTOR_1);
-					}
-					else if(isHashTableStart(token->value))
-					{
-						BUILTIN_PATTERN_START_PROCESS(getHashPattern(token->value));
-					}
-					continue;
-				}
-				else if(isBuiltInSingleStr(token->value))
-				{
-					const char* buf=token->value->str;
-					FklStringMatchPattern* pattern=buf[0]=='\''?
-						QUOTE:
-						buf[0]=='`'?
-						QSQUOTE:
-						buf[0]==','?
-						DOTTED:
-						buf[0]=='~'?
-						(token->value->size==1?
-						 UNQUOTE:
-						 buf[1]=='@'?
-						 UNQTESP:NULL):
-						(token->value->size==2&&buf[0]=='#'&&buf[1]=='&')?
-						BOX:
-						NULL;
-					MatchState* state=createMatchState(pattern,token->line,0);
-					fklPushPtrStack(state,matchStateStack);
-					cStack=fklCreatePtrStack(1,1);
-					fklPushPtrStack(cStack,stackStack);
-					continue;
-				}
-				else if(isRightParenthese(token->value))
-				{
-					fklPopPtrStack(stackStack);
-					MatchState* cState=fklPopPtrStack(matchStateStack);
-					FklNastNode* n=nastStackProcessers[(uintptr_t)cState->pattern](cStack,token->line,errorLine);
-					fklDestroyPtrStack(cStack);
-					destroyMatchState(cState);
-					if(!n)
-					{
-						while(!fklIsPtrStackEmpty(matchStateStack))
-							destroyMatchState(fklPopPtrStack(matchStateStack));
-						fklDestroyPtrStack(matchStateStack);
-						while(!fklIsPtrStackEmpty(stackStack))
-						{
-							FklPtrStack* cStack=fklPopPtrStack(stackStack);
-							while(!fklIsPtrStackEmpty(cStack))
-							{
-								NastElem* elem=fklPopPtrStack(cStack);
-								destroyNastElem(elem);
-							}
-							fklDestroyPtrStack(cStack);
-						}
-						fklDestroyPtrStack(stackStack);
-						return NULL;
-					}
-					NastElem* v=createNastElem(NAST_CAR,n);
-					cStack=fklTopPtrStack(stackStack);
-					fklPushPtrStack(v,cStack);
-				}
-			}
-			for(MatchState* state=fklTopPtrStack(matchStateStack);
-					state&&(isBuiltInSingleStrPattern(state->pattern)||(!isBuiltInParenthese(state->pattern)
-							&&!isBuiltInVector(state->pattern)
-							&&!isBuiltInBvector(state->pattern)
-							&&!isBuiltInHashTable(state->pattern)));
-					state=fklTopPtrStack(matchStateStack))
-			{
-				if(isBuiltInSingleStrPattern(state->pattern))
-				{
-					fklPopPtrStack(stackStack);
-					MatchState* cState=fklPopPtrStack(matchStateStack);
-					NastElem* postfix=fklPopPtrStack(cStack);
-					fklDestroyPtrStack(cStack);
-					cStack=fklTopPtrStack(stackStack);
-					if(state->pattern==DOTTED)
-					{
-						postfix->place=NAST_CDR;
-						fklPushPtrStack(postfix,cStack);
-					}
-					else if(state->pattern==BOX)
-					{
-						FklNastNode* box=fklCreateNastNode(FKL_NAST_BOX,token->line);
-						box->u.box=fklMakeNastNodeRef(postfix->node);
-						NastElem* v=createNastElem(NAST_CAR,box);
-						fklPushPtrStack(v,cStack);
-						destroyNastElem(postfix);
-					}
-					else
-					{
-						FklNastNode* prefix=fklCreateNastNode(FKL_NAST_SYM,token->line);
-						FklStringMatchPattern* pattern=cState->pattern;
-						FklSid_t prefixValue=pattern==QUOTE?
-							buildInHeadSymbolTable[BUILTIN_HEAD_QUOTE]:
-							pattern==QSQUOTE?
-							buildInHeadSymbolTable[BUILTIN_HEAD_QSQUOTE]:
-							pattern==UNQUOTE?
-							buildInHeadSymbolTable[BUILTIN_HEAD_UNQUOTE]:
-							buildInHeadSymbolTable[BUILTIN_HEAD_UNQTESP];
-						prefix->u.sym=prefixValue;
-						FklNastNode* tmp[]={prefix,postfix->node,};
-						FklNastNode* list=createNastList(tmp,2,prefix->curline);
-						destroyNastElem(postfix);
-						NastElem* v=createNastElem(NAST_CAR,list);
-						fklPushPtrStack(v,cStack);
-					}
-					destroyMatchState(cState);
-				}
-			}
-		}
-		NastElem* retvalElem=fklTopPtrStack(elemStack);
-		if(retvalElem)
-			retval=retvalElem->node;
-		free(retvalElem);
-		fklDestroyPtrStack(stackStack);
-		fklDestroyPtrStack(matchStateStack);
-		fklDestroyPtrStack(elemStack);
-	}
-	return retval;
+//	FklNastNode* retval=NULL;
+//	if(!fklIsPtrStackEmpty(tokenStack))
+//	{
+//		FklPtrStack* matchStateStack=fklCreatePtrStack(32,16);
+//		FklPtrStack* stackStack=fklCreatePtrStack(32,16);
+//		FklPtrStack* elemStack=fklCreatePtrStack(32,16);
+//		fklPushPtrStack(elemStack,stackStack);
+//		for(uint32_t i=0;i<tokenStack->top;i++)
+//		{
+//			FklToken* token=tokenStack->base[i];
+//			FklPtrStack* cStack=fklTopPtrStack(stackStack);
+//			if(token->type>FKL_TOKEN_RESERVE_STR&&token->type<FKL_TOKEN_COMMENT)
+//			{
+//				FklNastNode* singleLiteral=literalNodeCreator[token->type-FKL_TOKEN_CHAR](token->value,token->line);
+//				if(!singleLiteral)
+//				{
+//					*errorLine=token->line;
+//					while(!fklIsPtrStackEmpty(matchStateStack))
+//						destroyMatchState(fklPopPtrStack(matchStateStack));
+//					fklDestroyPtrStack(matchStateStack);
+//					while(!fklIsPtrStackEmpty(stackStack))
+//					{
+//						FklPtrStack* cStack=fklPopPtrStack(stackStack);
+//						while(!fklIsPtrStackEmpty(cStack))
+//						{
+//							NastElem* elem=fklPopPtrStack(cStack);
+//							destroyNastElem(elem);
+//						}
+//						fklDestroyPtrStack(cStack);
+//					}
+//					fklDestroyPtrStack(stackStack);
+//					return NULL;
+//				}
+//				NastElem* elem=createNastElem(NAST_CAR,singleLiteral);
+//				fklPushPtrStack(elem,cStack);
+//			}
+//			else if(token->type==FKL_TOKEN_RESERVE_STR)
+//			{
+//				//MatchState* state=searchReverseStringCharMatchState(token->value
+//				//		,matchStateStack);
+//				FklStringMatchPattern* pattern=NULL;//fklFindStringPattern(token->value);
+//				if(pattern)
+//				{
+//					MatchState* state=createMatchState(pattern,token->line,1);
+//					fklPushPtrStack(state,matchStateStack);
+//					cStack=fklCreatePtrStack(32,16);
+//					fklPushPtrStack(cStack,stackStack);
+//					const FklString* part=NULL;//fklGetNthPartOfStringMatchPattern(pattern,state->cindex);
+//					if(1)//fklIsVar(part)&&fklIsMustList(part))
+//					{
+//						cStack=fklCreatePtrStack(32,16);
+//						fklPushPtrStack(cStack,stackStack);
+//					}
+//					continue;
+//				}
+//				else if(isBuilInPatternStart(token->value))
+//				{
+//					if(isLeftParenthese(token->value))
+//					{
+//						BUILTIN_PATTERN_START_PROCESS(token->value->str[0]=='('
+//								?PARENTHESE_0
+//								:PARENTHESE_1);
+//					}
+//					else if(isVectorStart(token->value))
+//					{
+//						BUILTIN_PATTERN_START_PROCESS(token->value->str[1]=='('
+//								?VECTOR_0
+//								:VECTOR_1);
+//					}
+//					else if(isBytevectorStart(token->value))
+//					{
+//						BUILTIN_PATTERN_START_PROCESS(token->value->str[4]=='('
+//								?BVECTOR_0
+//								:BVECTOR_1);
+//					}
+//					else if(isHashTableStart(token->value))
+//					{
+//						BUILTIN_PATTERN_START_PROCESS(getHashPattern(token->value));
+//					}
+//					continue;
+//				}
+//				else if(isBuiltInSingleStr(token->value))
+//				{
+//					const char* buf=token->value->str;
+//					FklStringMatchPattern* pattern=buf[0]=='\''?
+//						QUOTE:
+//						buf[0]=='`'?
+//						QSQUOTE:
+//						buf[0]==','?
+//						DOTTED:
+//						buf[0]=='~'?
+//						(token->value->size==1?
+//						 UNQUOTE:
+//						 buf[1]=='@'?
+//						 UNQTESP:NULL):
+//						(token->value->size==2&&buf[0]=='#'&&buf[1]=='&')?
+//						BOX:
+//						NULL;
+//					MatchState* state=createMatchState(pattern,token->line,0);
+//					fklPushPtrStack(state,matchStateStack);
+//					cStack=fklCreatePtrStack(1,1);
+//					fklPushPtrStack(cStack,stackStack);
+//					continue;
+//				}
+//				else if(isRightParenthese(token->value))
+//				{
+//					fklPopPtrStack(stackStack);
+//					MatchState* cState=fklPopPtrStack(matchStateStack);
+//					FklNastNode* n=nastStackProcessers[(uintptr_t)cState->pattern](cStack,token->line,errorLine);
+//					fklDestroyPtrStack(cStack);
+//					destroyMatchState(cState);
+//					if(!n)
+//					{
+//						while(!fklIsPtrStackEmpty(matchStateStack))
+//							destroyMatchState(fklPopPtrStack(matchStateStack));
+//						fklDestroyPtrStack(matchStateStack);
+//						while(!fklIsPtrStackEmpty(stackStack))
+//						{
+//							FklPtrStack* cStack=fklPopPtrStack(stackStack);
+//							while(!fklIsPtrStackEmpty(cStack))
+//							{
+//								NastElem* elem=fklPopPtrStack(cStack);
+//								destroyNastElem(elem);
+//							}
+//							fklDestroyPtrStack(cStack);
+//						}
+//						fklDestroyPtrStack(stackStack);
+//						return NULL;
+//					}
+//					NastElem* v=createNastElem(NAST_CAR,n);
+//					cStack=fklTopPtrStack(stackStack);
+//					fklPushPtrStack(v,cStack);
+//				}
+//			}
+//			for(MatchState* state=fklTopPtrStack(matchStateStack);
+//					state&&(isBuiltInSingleStrPattern(state->pattern)||(!isBuiltInParenthese(state->pattern)
+//							&&!isBuiltInVector(state->pattern)
+//							&&!isBuiltInBvector(state->pattern)
+//							&&!isBuiltInHashTable(state->pattern)));
+//					state=fklTopPtrStack(matchStateStack))
+//			{
+//				if(isBuiltInSingleStrPattern(state->pattern))
+//				{
+//					fklPopPtrStack(stackStack);
+//					MatchState* cState=fklPopPtrStack(matchStateStack);
+//					NastElem* postfix=fklPopPtrStack(cStack);
+//					fklDestroyPtrStack(cStack);
+//					cStack=fklTopPtrStack(stackStack);
+//					if(state->pattern==DOTTED)
+//					{
+//						postfix->place=NAST_CDR;
+//						fklPushPtrStack(postfix,cStack);
+//					}
+//					else if(state->pattern==BOX)
+//					{
+//						FklNastNode* box=fklCreateNastNode(FKL_NAST_BOX,token->line);
+//						box->u.box=fklMakeNastNodeRef(postfix->node);
+//						NastElem* v=createNastElem(NAST_CAR,box);
+//						fklPushPtrStack(v,cStack);
+//						destroyNastElem(postfix);
+//					}
+//					else
+//					{
+//						FklNastNode* prefix=fklCreateNastNode(FKL_NAST_SYM,token->line);
+//						FklStringMatchPattern* pattern=cState->pattern;
+//						FklSid_t prefixValue=pattern==QUOTE?
+//							buildInHeadSymbolTable[BUILTIN_HEAD_QUOTE]:
+//							pattern==QSQUOTE?
+//							buildInHeadSymbolTable[BUILTIN_HEAD_QSQUOTE]:
+//							pattern==UNQUOTE?
+//							buildInHeadSymbolTable[BUILTIN_HEAD_UNQUOTE]:
+//							buildInHeadSymbolTable[BUILTIN_HEAD_UNQTESP];
+//						prefix->u.sym=prefixValue;
+//						FklNastNode* tmp[]={prefix,postfix->node,};
+//						FklNastNode* list=createNastList(tmp,2,prefix->curline);
+//						destroyNastElem(postfix);
+//						NastElem* v=createNastElem(NAST_CAR,list);
+//						fklPushPtrStack(v,cStack);
+//					}
+//					destroyMatchState(cState);
+//				}
+//			}
+//		}
+//		NastElem* retvalElem=fklTopPtrStack(elemStack);
+//		if(retvalElem)
+//			retval=retvalElem->node;
+//		free(retvalElem);
+//		fklDestroyPtrStack(stackStack);
+//		fklDestroyPtrStack(matchStateStack);
+//		fklDestroyPtrStack(elemStack);
+//	}
+//	return retval;
 }
 
 #undef BUILTIN_PATTERN_START_PROCESS
@@ -1190,4 +1191,57 @@ int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1)
 	fklDestroyPtrStack(s0);
 	fklDestroyPtrStack(s1);
 	return r;
+}
+
+static FklToken* getSingleToken(FklStringMatchRouteNode* routeNode
+		,FklPtrStack* tokenStack)
+{
+	return tokenStack->base[routeNode->start];
+}
+
+FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStack
+		,FklStringMatchRouteNode* route
+		,size_t* errorLine
+		,const FklSid_t t[4])
+{
+	FklPtrStack routeStackStack={NULL,0,0,0,};
+	fklInitPtrStack(&routeStackStack,32,16);
+	FklPtrStack* routeStack=fklCreatePtrStack(8,16);
+	fklPushPtrStack(route,routeStack);
+	fklPushPtrStack(routeStack,&routeStackStack);
+
+	FklPtrStack nastStackStack={NULL,0,0,0,};
+	fklInitPtrStack(&nastStackStack,32,16);
+	FklPtrStack* nastStack=fklCreatePtrStack(8,16);
+	fklPushPtrStack(nastStack,&nastStackStack);
+
+
+	while(!fklIsPtrStackEmpty(&routeStackStack))
+	{
+		FklPtrStack* curRouteStack=fklTopPtrStack(&routeStackStack);
+		FklPtrStack* curNastStack=fklTopPtrStack(&nastStackStack);
+		while(!fklIsPtrStackEmpty(curRouteStack))
+		{
+			FklStringMatchRouteNode* cur=fklPopPtrStack(curRouteStack);
+			if(cur->children)
+			{
+				FklPtrStack* newRouteStack=fklCreatePtrStack(32,16);
+				for(FklStringMatchRouteNode* child=cur->children;child;child=child->siblings)
+					fklPushPtrStack(child,newRouteStack);
+				curRouteStack=newRouteStack;
+			}
+			else
+			{
+				FklToken* token=getSingleToken(cur,tokenStack);
+				FklNastNode* nastNode=literalNodeCreator[token->type-FKL_TOKEN_CHAR](token->value
+						,token->line);
+				fklPushPtrStack(nastNode,curNastStack);
+			}
+		}
+		fklPopPtrStack(&routeStackStack);
+	}
+
+	fklUninitPtrStack(&routeStackStack);
+	fklUninitPtrStack(&nastStackStack);
+	return fklPopPtrStack(nastStack);
 }

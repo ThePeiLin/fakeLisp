@@ -2752,13 +2752,9 @@ static void printCodegenError(FklNastNode* obj,FklBuiltInErrorType type,FklSid_t
 			if(obj!=NULL)fklPrintNastNode(obj,stderr);
 			break;
 		case FKL_ERR_INVALIDEXPR:
+			fprintf(stderr,"Invalid expression ");
 			if(obj!=NULL)
-			{
-				fprintf(stderr,"Invalid expression ");
 				fklPrintNastNode(obj,stderr);
-			}
-			else
-				fprintf(stderr,"Invalid expression");
 			break;
 		case FKL_ERR_CIRCULARLOAD:
 			fprintf(stderr,"Circular load file ");

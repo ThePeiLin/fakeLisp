@@ -20,7 +20,7 @@ typedef struct FklStringMatchPattern
 	union
 	{
 		FklByteCodelnt* proc;
-		FklNastNode* (*func)(FklPtrStack*,uint64_t,size_t*);
+		FklNastNode* (*func)(FklPtrStack*,uint64_t,size_t*,const FklSid_t[4]);
 	}u;
 	struct FklStringMatchPattern* next;
 }FklStringMatchPattern;

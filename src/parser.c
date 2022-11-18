@@ -6,14 +6,6 @@
 #include<string.h>
 #include<ctype.h>
 
-enum
-{
-	BUILTIN_HEAD_QUOTE=0,
-	BUILTIN_HEAD_QSQUOTE=1,
-	BUILTIN_HEAD_UNQUOTE=2,
-	BUILTIN_HEAD_UNQTESP=3,
-}BuildInHeadSymbolIndex;
-
 FklNastNode* fklCreateNastNodeFromCstr(const char* cStr
 		,const FklSid_t buildInHeadSymbolTable[4]
 		,FklStringMatchPattern* patterns)
@@ -202,6 +194,7 @@ typedef enum
 	NAST_CAR,
 	NAST_CDR,
 	NAST_BOX,
+	NAST_HASH_ITEM,
 }NastPlace;
 
 typedef struct
@@ -533,7 +526,7 @@ FklNastHashTable* fklCreateNastHash(FklVMhashTableEqType type,size_t num)
 	return r;
 }
 
-inline static FklNastNode* hashTableProcess(FklVMhashTableEqType type,FklPtrStack* nodeStack,uint64_t line,size_t* errorLine)
+static FklNastNode* hashTableProcess(FklVMhashTableEqType type,FklPtrStack* nodeStack,uint64_t line,size_t* errorLine)
 {
 	FklNastNode* retval=fklCreateNastNode(FKL_NAST_HASHTABLE,line);
 	retval->u.hash=fklCreateNastHash(type,nodeStack->top);
@@ -878,6 +871,16 @@ void fklPrintNastNode(const FklNastNode* exp,FILE* fp)
 							"#hashequal",
 						};
 						fputs(tmp[node->u.hash->type],fp);
+						fputc('(',fp);
+						FklPtrQueue* vQueue=fklCreatePtrQueue();
+						for(size_t i=0;i<node->u.hash->num;i++)
+						{
+							fklPushPtrQueue(createNastElem(NAST_CAR,node->u.hash->items[i].car),vQueue);
+							fklPushPtrQueue(createNastElem(NAST_CDR,node->u.hash->items[i].cdr),vQueue);
+						}
+						fklPushPtrStack(vQueue,queueStack);
+						cQueue=vQueue;
+						continue;
 					}
 					break;
 				case FKL_NAST_NIL:
@@ -1230,7 +1233,7 @@ static void destroyNastNodeQuest(CreateNastNodeQuest* p)
 FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStack
 		,FklStringMatchRouteNode* route
 		,size_t* errorLine
-		,const FklSid_t t[4])
+		,const FklSid_t st[4])
 {
 	FklPtrStack questStack={NULL,0,0,0,};
 	FklPtrStack* routeStack=fklCreatePtrStack(1,16);
@@ -1268,6 +1271,10 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 				FklToken* token=getSingleToken(curRoute,tokenStack);
 				FklNastNode* node=literalNodeCreator[token->type-FKL_TOKEN_CHAR](token->value
 						,token->line);
+				if(!node)
+				{
+					return NULL;
+				}
 				fklPushPtrStack(node,curNastStack);
 			}
 		}
@@ -1281,11 +1288,16 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 			if(!pattern)
 				r=fklPopPtrStack(curQuest->nast);
 			else if(pattern->type==FKL_STRING_PATTERN_BUILTIN)
-				r=pattern->u.func(curQuest->nast,curQuest->line,errorLine);
+				r=pattern->u.func(curQuest->nast
+						,curQuest->line
+						,errorLine
+						,st);
 			else
 			{
 			}
 			destroyNastNodeQuest(curQuest);
+			if(!r)
+				return NULL;
 			if(prevQuest)
 				fklPushPtrStack(r,prevQuest->nast);
 			else

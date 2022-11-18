@@ -655,6 +655,8 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 		,size_t* errorLine
 		,const FklSid_t st[4])
 {
+	if(fklIsPtrStackEmpty(tokenStack))
+		return NULL;
 	FklPtrStack questStack={NULL,0,0,0,};
 	FklPtrStack* routeStack=fklCreatePtrStack(1,16);
 	FklNastNode* retval=NULL;
@@ -692,10 +694,8 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 				FklNastNode* node=literalNodeCreator[token->type-FKL_TOKEN_CHAR](token->value
 						,token->line);
 				if(!node)
-				{
 					return NULL;
-				}
-				fklPushPtrStack(node,curNastStack);
+				fklPushPtrStack(fklMakeNastNodeRef(node),curNastStack);
 			}
 		}
 		CreateNastNodeQuest* otherCodegenQuest=fklTopPtrStack(&questStack);
@@ -718,6 +718,7 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 			destroyNastNodeQuest(curQuest);
 			if(!r)
 				return NULL;
+			r=fklMakeNastNodeRef(r);
 			if(prevQuest)
 				fklPushPtrStack(r,prevQuest->nast);
 			else

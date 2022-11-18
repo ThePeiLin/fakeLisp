@@ -127,7 +127,7 @@ FklSid_t fklGetBuiltInErrorType(FklBuiltInErrorType type)
 
 //builtin functions
 
-#define ARGL FklVM* exe,FklVMvalue* pd
+#define ARGL FklVM* exe,FklVMvalue* dll,FklVMvalue* pd
 #define K_FUNC_ARGL FklVM* exe,FklCCState s,void* ctx
 void builtin_car(ARGL)
 {
@@ -2679,6 +2679,7 @@ void builtin_read(ARGL)
 	PublicBuiltInUserData* pbd=pd->u.ud->data;
 	if(!stream||FKL_IS_FP(stream))
 	{
+		size_t line=1;
 		tmpFile=stream?stream->u.fp:pbd->sysIn->u.fp;
 		pthread_mutex_lock(&tmpFile->lock);
 		int unexpectEOF=0;
@@ -2688,7 +2689,8 @@ void builtin_read(ARGL)
 				,(char**)&tmpFile->prev
 				,&size
 				,&tmpFile->size
-				,0
+				,line
+				,&line
 				,&unexpectEOF
 				,tokenStack
 				,NULL
@@ -2943,10 +2945,10 @@ void builtin_dlopen(ARGL)
 	FKL_NI_CHECK_TYPE(dllName,FKL_IS_STR,"builtin.dlopen",exe);
 	char str[dllName->u.str->size+1];
 	fklWriteStringToCstr(str,dllName->u.str);
-	FklVMdll* dll=fklCreateVMdll(str);
-	if(!dll)
+	FklVMdll* ndll=fklCreateVMdll(str);
+	if(!ndll)
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("builtin.dlopen",str,0,FKL_ERR_LOADDLLFAILD,exe);
-	FklVMvalue* rel=fklCreateVMvalueToStack(FKL_TYPE_DLL,dll,exe);
+	FklVMvalue* rel=fklCreateVMvalueToStack(FKL_TYPE_DLL,ndll,exe);
 	fklInitVMdll(rel);
 	fklNiReturn(rel,&ap,stack);
 	fklNiEnd(&ap,stack);
@@ -2955,22 +2957,22 @@ void builtin_dlopen(ARGL)
 void builtin_dlsym(ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMvalue* dll=fklNiGetArg(&ap,stack);
+	FklVMvalue* ndll=fklNiGetArg(&ap,stack);
 	FklVMvalue* symbol=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.dlsym",FKL_ERR_TOOMANYARG,exe);
-	if(!dll||!symbol)
+	if(!ndll||!symbol)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.dlsym",FKL_ERR_TOOFEWARG,exe);
-	if(!FKL_IS_STR(symbol)||!FKL_IS_DLL(dll))
+	if(!FKL_IS_STR(symbol)||!FKL_IS_DLL(ndll))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.dlsym",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	if(!dll->u.dll)
+	if(!ndll->u.dll)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.dlsym",FKL_ERR_INVALIDACCESS,exe);
 	char str[symbol->u.str->size+1];
 	fklWriteStringToCstr(str,symbol->u.str);
-	FklVMdllFunc funcAddress=fklGetAddress(str,dll->u.dll->handle);
+	FklVMdllFunc funcAddress=fklGetAddress(str,ndll->u.dll->handle);
 	if(!funcAddress)
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("builtin.dlsym",str,0,FKL_ERR_INVALIDSYMBOL,exe);
-	FklVMdlproc* dlproc=fklCreateVMdlproc(funcAddress,dll,dll->u.dll->pd);
+	FklVMdlproc* dlproc=fklCreateVMdlproc(funcAddress,ndll,ndll->u.dll->pd);
 	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_DLPROC,dlproc,exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }

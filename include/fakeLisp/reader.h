@@ -12,7 +12,8 @@ char* fklReadInStringPattern(FILE*
 		,char**
 		,size_t* size
 		,size_t* prevSize
-		,size_t
+		,size_t line
+		,size_t* pline
 		,int*
 		,FklPtrStack* retval
 		,char* (*)(FILE*,size_t* size)

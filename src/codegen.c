@@ -1438,13 +1438,13 @@ inline static FklNastNode* getExpressionFromFile(FklCodegen* codegen
 			,&size
 			,prevSize
 			,codegen->curline
+			,&codegen->curline
 			,unexpectEOF
 			,tokenStack,NULL
 			,codegen->patterns
 			,&route);
 	if(*unexpectEOF)
 		return NULL;
-	codegen->curline+=fklCountChar(list,'\n',size);
 	free(list);
 	if(fklIsAllComment(tokenStack))
 	{

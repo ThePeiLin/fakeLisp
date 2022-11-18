@@ -51,7 +51,7 @@ typedef enum
 
 struct FklVM;
 struct FklVMvalue;
-typedef void (*FklVMdllFunc)(struct FklVM*,struct FklVMvalue* pd);
+typedef void (*FklVMdllFunc)(struct FklVM*,struct FklVMvalue* dll,struct FklVMvalue* pd);
 typedef struct FklVMvalue* FklVMptr;
 typedef enum
 {
@@ -271,7 +271,7 @@ typedef struct FklVMudMethodTable
 	void (*__prin1)(void*,FILE*);
 	void (*__finalizer)(void*);
 	int  (*__equal)(const FklVMudata*,const FklVMudata*);
-	void (*__call)(void*,FklVM*);
+	void (*__call)(void*,FklVM*,FklVMvalue* rel);
 	int (*__cmp)(FklVMvalue*,FklVMvalue*,int*);
 	void (*__write)(void*,FILE*);
 	void (*__atomic)(void*,struct FklVMgc*);

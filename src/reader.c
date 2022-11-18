@@ -38,7 +38,8 @@ char* fklReadInStringPattern(FILE* fp
 		,char** prev
 		,size_t* psize
 		,size_t* prevSize
-		,size_t curline
+		,size_t line
+		,size_t* pline
 		,int* unexpectEOF
 		,FklPtrStack* retval
 		,char* (*read)(FILE*,size_t*)
@@ -62,7 +63,6 @@ char* fklReadInStringPattern(FILE* fp
 	}
 	else
 		size=0;
-	size_t line=curline;
 	FklStringMatchSet* matchSet=FKL_STRING_PATTERN_UNIVERSAL_SET;
 	FklStringMatchRouteNode* route=fklCreateStringMatchRouteNode(NULL
 			,0,0
@@ -100,7 +100,8 @@ char* fklReadInStringPattern(FILE* fp
 			while(!fklIsPtrStackEmpty(retval))
 				fklDestroyToken(fklPopPtrStack(retval));
 			fklDestroyStringMatchSet(matchSet);
-			*unexpectEOF=1;
+			if(matchSet!=FKL_STRING_PATTERN_UNIVERSAL_SET)
+				*unexpectEOF=1;
 			free(tmp);
 			tmp=NULL;
 			break;
@@ -113,6 +114,7 @@ char* fklReadInStringPattern(FILE* fp
 		size+=nextSize;
 		free(next);
 	}
+	*pline=line;
 	*proute=route;
 	*psize=size;
 	return tmp;

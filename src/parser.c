@@ -1,4 +1,5 @@
 #include<fakeLisp/parser.h>
+#include<fakeLisp/codegen.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/lexer.h>
 #include<fakeLisp/pattern.h>
@@ -33,7 +34,8 @@ FklNastNode* fklCreateNastNodeFromCstr(const char* cStr
 	FklNastNode* retval=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack
 			,route
 			,&errorLine
-			,buildInHeadSymbolTable);
+			,buildInHeadSymbolTable
+			,NULL);
 	while(!fklIsPtrStackEmpty(tokenStack))
 		fklDestroyToken(fklPopPtrStack(tokenStack));
 	fklDestroyStringMatchRoute(route);
@@ -655,7 +657,8 @@ static void destroyNastNodeQuest(CreateNastNodeQuest* p)
 FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStack
 		,FklStringMatchRouteNode* route
 		,size_t* errorLine
-		,const FklSid_t st[4])
+		,const FklSid_t st[4]
+		,FklCodegen* codegen)
 {
 	if(fklIsPtrStackEmpty(tokenStack))
 		return NULL;

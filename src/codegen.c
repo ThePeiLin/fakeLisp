@@ -1451,7 +1451,11 @@ inline static FklNastNode* getExpressionFromFile(FklCodegen* codegen
 	}
 	else
 	{
-		begin=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack,route,errorLine,builtInHeadSymbolTable);
+		begin=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack
+				,route
+				,errorLine
+				,builtInHeadSymbolTable
+				,codegen);
 		*hasError=(begin==NULL);
 	}
 	while(!fklIsPtrStackEmpty(tokenStack))

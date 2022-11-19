@@ -261,7 +261,11 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 			continue;
 		}
 		size_t errorLine=0;
-		begin=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack,route,&errorLine,builtInHeadSymbolTable);
+		begin=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack
+				,route
+				,&errorLine
+				,builtInHeadSymbolTable
+				,codegen);
 		fklDestroyStringMatchRoute(route);
 		free(list);
 		if(fklIsPtrStackEmpty(tokenStack))

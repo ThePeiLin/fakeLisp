@@ -2708,7 +2708,11 @@ void builtin_read(ARGL)
 		}
 	}
 	size_t errorLine=0;
-	FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack,route,&errorLine,builtInHeadSymbolTable);
+	FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack
+			,route
+			,&errorLine
+			,builtInHeadSymbolTable
+			,NULL);
 	FklVMvalue* tmp=NULL;
 	if(node==NULL)
 	{
@@ -2763,7 +2767,11 @@ void builtin_parser(ARGL)
 			,&troute);
 	fklDestroyStringMatchSet(matchSet);
 	size_t errorLine=0;
-	FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack,route,&errorLine,builtInHeadSymbolTable);
+	FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack
+			,route
+			,&errorLine
+			,builtInHeadSymbolTable
+			,NULL);
 	fklDestroyStringMatchRoute(route);
 	FklVMvalue* tmp=NULL;
 	if(node==NULL)

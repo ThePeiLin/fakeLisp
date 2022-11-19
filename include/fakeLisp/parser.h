@@ -66,10 +66,12 @@ typedef struct FklNastNode
 FklNastNode* fklCreateNastNode(FklNastType type,uint64_t line);
 
 struct FklStringMatchRouteNode;
+struct FklCodegen;
 FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack*
 		,struct FklStringMatchRouteNode*
 		,size_t* errorLine
-		,const FklSid_t t[4]);
+		,const FklSid_t t[4]
+		,struct FklCodegen*);
 
 struct FklStringMatchPattern;
 FklNastNode* fklCreateNastNodeFromCstr(const char*,const FklSid_t t[4],struct FklStringMatchPattern* pattern);

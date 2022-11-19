@@ -69,7 +69,9 @@ void fklDestroyStringPattern(FklStringMatchPattern*);
 
 int fklStringPatternCoverState(const FklNastVector* p0,const FklNastVector* p1);
 void fklDestroyAllStringPattern(FklStringMatchPattern*);
-int fklIsInValidStringPattern(const FklNastNode*);
+int fklIsValidStringPattern(const FklNastNode*);
+struct FklCodegenEnv;
+void fklInitCodegenEnvWithPatternParts(const FklNastNode*,struct FklCodegenEnv* env);
 
 FklStringMatchRouteNode* fklCreateStringMatchRouteNode(FklStringMatchPattern* p
 		,size_t s

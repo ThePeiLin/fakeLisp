@@ -1,4 +1,5 @@
 #include<fakeLisp/pattern.h>
+#include<fakeLisp/codegen.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/vm.h>
 #include<string.h>
@@ -388,6 +389,21 @@ FklStringMatchPattern* fklInitBuiltInStringPattern(void)
 int fklIsValidStringPattern(const FklNastNode* parts)
 {
 #pragma message "Todo:fklIsValidStringPattern"
+	return 0;
+}
+
+void fklInitCodegenEnvWithPatternParts(const FklNastNode* parts,FklCodegenEnv* env)
+{
+	size_t size=parts->u.vec->size;
+	FklNastNode** base=parts->u.vec->base;
+	for(size_t i=0;i<size;i++)
+	{
+		FklNastNode* cur=base[i];
+		if(cur->type==FKL_NAST_SYM)
+			fklAddCodegenDefBySid(cur->u.sym,env);
+		else if(cur->type==FKL_NAST_BOX)
+			fklAddCodegenDefBySid(cur->u.box->u.sym,env);
+	}
 }
 
 void fklAddStringMatchPattern(FklNastNode* parts

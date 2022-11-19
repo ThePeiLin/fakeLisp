@@ -706,7 +706,23 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 			else
 			{
 				FklToken* token=getSingleToken(curRoute,tokenStack);
-				if(token->type!=FKL_TOKEN_COMMENT)
+				if(token->type==FKL_TOKEN_RESERVE_STR)
+				{
+					while(!fklIsPtrStackEmpty(&questStack))
+					{
+						CreateNastNodeQuest* cur=fklPopPtrStack(&questStack);
+						while(!fklIsPtrStackEmpty(cur->nast))
+						{
+							FklNastNode* curNode=fklPopPtrStack(cur->nast);
+							curNode->refcount++;
+							fklDestroyNastNode(curNode);
+						}
+						destroyNastNodeQuest(cur);
+					}
+					fklUninitPtrStack(&questStack);
+					return NULL;
+				}
+				else if(token->type!=FKL_TOKEN_COMMENT)
 				{
 					FklNastNode* node=literalNodeCreator[token->type-FKL_TOKEN_CHAR](token->value
 							,token->line);

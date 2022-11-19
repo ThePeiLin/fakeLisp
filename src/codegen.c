@@ -2430,24 +2430,17 @@ static CODEGEN_FUNC(codegen_defmacro)
 	else if(name->type==FKL_NAST_VECTOR)
 	{
 #pragma message "Todo:defmacro for reader macro"
-		if(!fklIsInValidStringPattern(name))
+		if(!fklIsValidStringPattern(name))
 		{
 			errorState->type=FKL_ERR_INVALID_MACRO_PATTERN;
 			errorState->place=fklMakeNastNodeRef(name);
 			return;
 		}
-		FklHashTable* psht=fklCreatePatternMatchingHashTable();
-		fklGetStringPatternSymbol(name,psht);
 		FklCodegenEnv* globalEnv=curEnv;
 		while(globalEnv->prev)globalEnv=globalEnv->prev;
 		FklCodegenEnv* macroEnv=fklCreateCodegenEnv(globalEnv);
 		macroEnv->macros->prev=curEnv->macros;
-		for(FklHashTableNodeList* list=psht->list;list;list=list->next)
-		{
-			FklPatternMatchingHashTableItem* item=list->node->item;
-			fklAddCodegenDefBySid(item->id,macroEnv);
-		}
-		fklDestroyHashTable(psht);
+		fklInitCodegenEnvWithPatternParts(name,macroEnv);
 		FklCodegen* macroCodegen=createCodegen(codegen
 				,NULL
 				,macroEnv);

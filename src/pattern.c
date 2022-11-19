@@ -190,6 +190,7 @@ static FklNastNode* bytevectorProcesser(FklPtrStack* nastStack
 	for(size_t i=0;i<nastStack->top;i++)
 	{
 		FklNastNode* node=nastStack->base[i];
+		fklMakeNastNodeRef(node);
 		if(node->type==FKL_NAST_I32
 				||node->type==FKL_NAST_I64
 				||node->type==FKL_NAST_BIG_INT)
@@ -199,10 +200,18 @@ static FklNastNode* bytevectorProcesser(FklPtrStack* nastStack
 				:node->type==FKL_NAST_I64
 				?node->u.i64
 				:fklBigIntToI64(node->u.bigInt);
+			fklDestroyNastNode(node);
 		}
 		else
 		{
 			*errorLine=node->curline;
+			fklDestroyNastNode(node);
+			for(size_t j=i+1;j<nastStack->top;j++)
+			{
+				FklNastNode* node=fklMakeNastNodeRef(nastStack->base[j]);
+				fklDestroyNastNode(node);
+			}
+			nastStack->top=0;
 			retval->refcount=1;
 			fklDestroyNastNode(retval);
 			retval=NULL;
@@ -222,14 +231,23 @@ static FklNastNode* hashTableProcess(FklVMhashTableEqType type
 	for(size_t i=0;i<nastStack->top;i++)
 	{
 		FklNastNode* node=nastStack->base[i];
+		fklMakeNastNodeRef(node);
 		if(node->type==FKL_NAST_PAIR)
 		{
 			retval->u.hash->items[i].car=fklMakeNastNodeRef(node->u.pair->car);
 			retval->u.hash->items[i].cdr=fklMakeNastNodeRef(node->u.pair->cdr);
+			fklDestroyNastNode(node);
 		}
 		else
 		{
 			*errorLine=node->curline;
+			fklDestroyNastNode(node);
+			for(size_t j=i+1;j<nastStack->top;j++)
+			{
+				FklNastNode* node=fklMakeNastNodeRef(nastStack->base[j]);
+				fklDestroyNastNode(node);
+			}
+			nastStack->top=0;
 			retval->refcount=1;
 			fklDestroyNastNode(retval);
 			retval=NULL;
@@ -337,10 +355,11 @@ static FklStringMatchPattern* createBuiltinStringPattern(FklNastNode* parts
 	return r;
 }
 
-//static int isCover(const FklNastVector* p0,const FklNastVector* p1)
-//{
-//	return 0;
-//}
+static int isCover(const FklNastVector* p0,const FklNastVector* p1)
+{
+#pragma message "Todo:IsCover"
+	return 0;
+}
 
 int fklStringPatternCoverState(const FklNastVector* p0,const FklNastVector* p1)
 {
@@ -364,6 +383,11 @@ FklStringMatchPattern* fklInitBuiltInStringPattern(void)
 		r=createBuiltinStringPattern(vec,cur->func,r);
 	}
 	return r;
+}
+
+int fklIsValidStringPattern(const FklNastNode* parts)
+{
+#pragma message "Todo:fklIsValidStringPattern"
 }
 
 void fklAddStringMatchPattern(FklNastNode* parts

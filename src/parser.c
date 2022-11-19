@@ -236,9 +236,21 @@ void fklPrintNastNode(const FklNastNode* exp,FILE* fp)
 		while(fklLengthPtrQueue(cQueue))
 		{
 			NastElem* e=fklPopPtrQueue(cQueue);
-			FklNastNode* node=e->node;
 			if(e->place==NAST_CDR)
 				fputc(',',fp);
+			else if(e->place==NAST_HASH_ITEM)
+			{
+				FklNastPair* t=(FklNastPair*)e->node;
+				fputc('(',fp);
+				FklPtrQueue* iQueue=fklCreatePtrQueue();
+				fklPushPtrQueue(createNastElem(NAST_CAR,t->car),iQueue);
+				fklPushPtrQueue(createNastElem(NAST_CDR,t->cdr),iQueue);
+				fklPushPtrStack(iQueue,queueStack);
+				cQueue=iQueue;
+				destroyNastElem(e);
+				continue;
+			}
+			FklNastNode* node=e->node;
 			destroyNastElem(e);
 			switch(node->type)
 			{
@@ -298,10 +310,8 @@ void fklPrintNastNode(const FklNastNode* exp,FILE* fp)
 						fputc('(',fp);
 						FklPtrQueue* vQueue=fklCreatePtrQueue();
 						for(size_t i=0;i<node->u.hash->num;i++)
-						{
-							fklPushPtrQueue(createNastElem(NAST_CAR,node->u.hash->items[i].car),vQueue);
-							fklPushPtrQueue(createNastElem(NAST_CDR,node->u.hash->items[i].cdr),vQueue);
-						}
+							fklPushPtrQueue(createNastElem(NAST_HASH_ITEM
+										,(FklNastNode*)&node->u.hash->items[i]),vQueue);
 						fklPushPtrStack(vQueue,queueStack);
 						cQueue=vQueue;
 						continue;

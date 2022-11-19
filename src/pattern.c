@@ -337,10 +337,10 @@ static FklStringMatchPattern* createBuiltinStringPattern(FklNastNode* parts
 	return r;
 }
 
-static int isCover(const FklNastVector* p0,const FklNastVector* p1)
-{
-	return 0;
-}
+//static int isCover(const FklNastVector* p0,const FklNastVector* p1)
+//{
+//	return 0;
+//}
 
 int fklStringPatternCoverState(const FklNastVector* p0,const FklNastVector* p1)
 {

@@ -1439,7 +1439,7 @@ inline static FklNastNode* getExpressionFromFile(FklCodegen* codegen
 			,&codegen->curline
 			,unexpectEOF
 			,tokenStack,NULL
-			,codegen->patterns
+			,*(codegen->patterns)
 			,&route);
 	if(*unexpectEOF)
 		return NULL;
@@ -2329,6 +2329,15 @@ BC_PROCESS(_compiler_macro_bc_process)
 	return fklCreateByteCodelnt(fklCreateByteCode(0));
 }
 
+BC_PROCESS(_reader_macro_bc_process)
+{
+	FklPtrStack* stack=GET_STACK(context);
+	FklByteCodelnt* macroBcl=fklPopPtrStack(stack);
+	FklNastNode* pattern=fklPopPtrStack(stack);
+	fklAddStringMatchPattern(pattern,macroBcl,codegen->patterns);
+	return fklCreateByteCodelnt(fklCreateByteCode(0));
+}
+
 static void _macro_stack_context_finalizer(void* data)
 {
 	FklPtrStack* s=data;
@@ -2339,12 +2348,29 @@ static void _macro_stack_context_finalizer(void* data)
 	fklDestroyPtrStack(s);
 }
 
+static void _reader_macro_stack_context_finalizer(void* data)
+{
+	FklPtrStack* s=data;
+	while(s->top>1)
+		fklDestroyByteCodelnt(fklPopPtrStack(s));
+	fklDestroyNastNode(fklPopPtrStack(s));
+	fklDestroyPtrStack(s);
+}
+
 static const FklCodegenQuestContextMethodTable MacroStackContextMethodTable=
 {
 	.__get_bcl_stack=_default_stack_context_get_bcl_stack,
 	.__put_bcl=_default_stack_context_put_bcl,
 	.__finalizer=_macro_stack_context_finalizer,
 };
+
+static const FklCodegenQuestContextMethodTable ReaderMacroStackContextMethodTable=
+{
+	.__get_bcl_stack=_default_stack_context_get_bcl_stack,
+	.__put_bcl=_default_stack_context_put_bcl,
+	.__finalizer=_reader_macro_stack_context_finalizer,
+};
+
 
 static CODEGEN_FUNC(codegen_defmacro)
 {
@@ -2382,9 +2408,11 @@ static CODEGEN_FUNC(codegen_defmacro)
 
 		macroCodegen->globalSymTable=fklGetGlobSymbolTable();
 		macroCodegen->loadedLibStack=macroCodegen->macroLibStack;
+
 		FklPtrStack* bcStack=fklCreatePtrStack(16,16);
 		fklPushPtrStack(curEnv->macros,bcStack);
 		fklPushPtrStack(fklMakeNastNodeRef(name),bcStack);
+
 		FklPtrQueue* queue=fklCreatePtrQueue();
 		fklPushPtrQueue(fklMakeNastNodeRef(value),queue);
 		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_compiler_macro_bc_process
@@ -2398,6 +2426,47 @@ static CODEGEN_FUNC(codegen_defmacro)
 	else if(name->type==FKL_NAST_VECTOR)
 	{
 #pragma message "Todo:defmacro for reader macro"
+		if(!fklIsInValidStringPattern(name))
+		{
+			errorState->type=FKL_ERR_INVALID_MACRO_PATTERN;
+			errorState->place=fklMakeNastNodeRef(name);
+			return;
+		}
+		FklHashTable* psht=fklCreatePatternMatchingHashTable();
+		fklGetStringPatternSymbol(name,psht);
+		FklCodegenEnv* globalEnv=curEnv;
+		while(globalEnv->prev)globalEnv=globalEnv->prev;
+		FklCodegenEnv* macroEnv=fklCreateCodegenEnv(globalEnv);
+		macroEnv->macros->prev=curEnv->macros;
+		for(FklHashTableNodeList* list=psht->list;list;list=list->next)
+		{
+			FklPatternMatchingHashTableItem* item=list->node->item;
+			fklAddCodegenDefBySid(item->id,macroEnv);
+		}
+		fklDestroyHashTable(psht);
+		FklCodegen* macroCodegen=createCodegen(codegen
+				,NULL
+				,macroEnv);
+		free(macroCodegen->curDir);
+		macroCodegen->curDir=fklCopyCstr(codegen->curDir);
+		macroCodegen->filename=fklCopyCstr(codegen->filename);
+		macroCodegen->realpath=fklCopyCstr(codegen->realpath);
+
+		macroCodegen->globalSymTable=fklGetGlobSymbolTable();
+		macroCodegen->loadedLibStack=macroCodegen->macroLibStack;
+
+		FklPtrStack* bcStack=fklCreatePtrStack(16,16);
+		fklPushPtrStack(fklMakeNastNodeRef(name),bcStack);
+
+		FklPtrQueue* queue=fklCreatePtrQueue();
+		fklPushPtrQueue(fklMakeNastNodeRef(value),queue);
+		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_reader_macro_bc_process
+				,createCodegenQuestContext(bcStack,&ReaderMacroStackContextMethodTable)
+				,createDefaultQueueNextExpression(queue)
+				,macroEnv
+				,value->curline
+				,macroCodegen
+				,codegenQuestStack);
 	}
 	else
 	{
@@ -2922,6 +2991,14 @@ FklByteCodelnt* fklGenExpressionCode(FklNastNode* exp
 	return fklGenExpressionCodeWithQuest(initialQuest,codegenr);
 }
 
+static FklStringMatchPattern** createPointPattern(FklStringMatchPattern* p)
+{
+	FklStringMatchPattern** r=(FklStringMatchPattern**)malloc(sizeof(FklStringMatchPattern*));
+	FKL_ASSERT(r);
+	*r=p;
+	return r;
+}
+
 void fklInitGlobalCodegener(FklCodegen* codegen
 		,const char* rp
 		,FklCodegenEnv* globalEnv
@@ -2958,7 +3035,7 @@ void fklInitGlobalCodegener(FklCodegen* codegen
 	codegen->refcount=0;
 	codegen->exportNum=0;
 	codegen->exports=NULL;
-	codegen->patterns=fklInitBuiltInStringPattern();
+	codegen->patterns=createPointPattern(fklInitBuiltInStringPattern());
 	codegen->loadedLibStack=fklCreatePtrStack(8,8);
 	codegen->macroLibStack=fklCreatePtrStack(8,8);
 }
@@ -2995,7 +3072,9 @@ void fklInitCodegener(FklCodegen* codegen
 	codegen->refcount=0;
 	codegen->exportNum=0;
 	codegen->exports=NULL;
-	codegen->patterns=prev?prev->patterns:fklInitBuiltInStringPattern();
+	codegen->patterns=prev?
+		prev->patterns:
+		createPointPattern(fklInitBuiltInStringPattern());
 	codegen->loadedLibStack=prev?prev->loadedLibStack:fklCreatePtrStack(8,8);
 	codegen->macroLibStack=prev?prev->macroLibStack:fklCreatePtrStack(8,8);
 }
@@ -3009,7 +3088,8 @@ void fklUninitCodegener(FklCodegen* codegen)
 			fklDestroySymbolTable(codegen->globalSymTable);
 		while(!fklIsPtrStackEmpty(codegen->loadedLibStack))
 			fklDestroyCodegenLib(fklPopPtrStack(codegen->loadedLibStack));
-		fklDestroyAllStringPattern(codegen->patterns);
+		fklDestroyAllStringPattern(*(codegen->patterns));
+		free(codegen->patterns);
 		fklDestroyPtrStack(codegen->loadedLibStack);
 		FklPtrStack* macroLibStack=codegen->macroLibStack;
 		while(!fklIsPtrStackEmpty(macroLibStack))

@@ -1,9 +1,10 @@
-(defmacro "\\(a)->(b)"
+(defmacro #("\\" a "->" b)
   `(lambda (~a) ~b))
-(defmacro "call(a)(b)" (cons a b))
-(defmacro "var(a)=(b)"
+(defmacro #("call" a b)
+  `(~a,~b))
+(defmacro #("var" a "=" b)
   `(define ~a ~b))
-(defmacro "function(n)(a){(,b)}"
+(defmacro #("function" n a "{" #&b "}")
   `(define ~n (lambda ~a ~@b)))
 
 var pop=9

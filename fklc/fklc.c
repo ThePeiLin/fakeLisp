@@ -206,7 +206,6 @@ void fklc_make_fbc(ARGL)
 #undef IS_COMPILABLE
 void _fklInit(FklSymbolTable* glob,FklVMdll* dll)
 {
-//	fklSetGlobVMs(GlobVMs);
 	fklSetGlobSymbolTable(glob);
 	fklcInitFsym();
 	fklcInit(dll);

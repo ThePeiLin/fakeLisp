@@ -435,7 +435,7 @@ static FklVMudMethodTable FfiAtomicMemMethodTable=
 	.__hash=NULL,
 };
 
-void fklFfiMemInit(FklVMvalue* rel)
+void fklFfiMemInit(void)
 {
 	FfiMemUdSid=fklAddSymbolToGlobCstr("ffi-mem")->id;
 	FfiAtomicSid=fklAddSymbolToGlobCstr("atomic")->id;

@@ -41,7 +41,7 @@ void ffi_null_p(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void ffi_create(ARGL)
+void ffi_new(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* typedeclare=fklNiGetArg(&ap,stack);
@@ -326,13 +326,13 @@ void ffi_proc(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void _fklInit(FklSymbolTable* glob,FklVMvalue* rel)
+void _fklInit(FklSymbolTable* glob,FklVMdll* rel)
 {
 	fklSetGlobSymbolTable(glob);
-//	fklSetGlobVMs(GlobVMs);
-	fklFfiMemInit(rel);
+	fklFfiMemInit();
 	fklFfiInitGlobNativeTypes();
 	fklFfiInitTypedefSymbol();
+	rel->pd=FKL_VM_NIL;
 }
 
 void _fklUninit(void)

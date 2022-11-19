@@ -11,7 +11,7 @@ typedef struct FklFfiMem
 	void* mem;
 }FklFfiMem;
 
-void fklFfiMemInit(FklVMvalue*);
+void fklFfiMemInit(void);
 FklSid_t fklFfiGetFfiMemUdSid(void);
 FklFfiMem* fklFfiCreateMem(FklTypeId_t type,size_t);
 FklFfiMem* fklFfiCreateRef(FklTypeId_t type,void* ref);

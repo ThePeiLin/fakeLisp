@@ -1397,7 +1397,7 @@ FklVMdll* fklCreateVMdll(const char* dllName)
 
 void fklInitVMdll(FklVMvalue* rel)
 {
-	FklVMdllHandle handle=rel->u.dll;
+	FklVMdllHandle handle=rel->u.dll->handle;
 	void (*init)(FklSymbolTable*,FklVMdll* dll)=fklGetAddress("_fklInit",handle);
 	if(init)
 		init(fklGetGlobSymbolTable(),rel->u.dll);
@@ -1468,19 +1468,20 @@ void fklDestroyVMvalue(FklVMvalue* cur)
 	free((void*)cur);
 }
 
-void fklDestroyVMdll(FklVMdllHandle dll)
+void fklDestroyVMdll(FklVMdll* dll)
 {
-	if(dll)
+	if(dll->handle)
 	{
-		void (*uninit)(void)=fklGetAddress("_fklUninit",dll);
+		void (*uninit)(void)=fklGetAddress("_fklUninit",dll->handle);
 		if(uninit)
 			uninit();
 #ifdef _WIN32
-		DestroyLibrary(dll);
+		DestroyLibrary(dll->handle);
 #else
-		dlclose(dll);
+		dlclose(dll->handle);
 #endif
 	}
+	free(dll);
 }
 
 void* fklGetAddress(const char* funcname,FklVMdllHandle dlhandle)

@@ -524,7 +524,7 @@ int fklDestroyVMfp(FklVMfp*);
 FklVMdll* fklCreateVMdll(const char*);
 void fklInitVMdll(FklVMvalue* rel);
 void* fklGetAddress(const char*,FklVMdllHandle);
-void fklDestroyVMdll(FklVMdllHandle);
+void fklDestroyVMdll(FklVMdll*);
 
 FklVMdlproc* fklCreateVMdlproc(FklVMdllFunc
 		,FklVMvalue*

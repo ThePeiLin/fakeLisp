@@ -2384,24 +2384,28 @@ static CODEGEN_FUNC(codegen_defmacro)
 		fklAddReplacementBySid(name->u.sym,value,curEnv);
 	else if(name->type==FKL_NAST_PAIR)
 	{
-		if(!fklIsValidSyntaxPattern(name))
+		FklHashTable* symbolTable=NULL;
+		if(!fklIsValidSyntaxPattern(name,&symbolTable))
 		{
 			errorState->type=FKL_ERR_INVALID_MACRO_PATTERN;
 			errorState->place=fklMakeNastNodeRef(name);
 			return;
 		}
-		FklHashTable* psht=fklCreatePatternMatchingHashTable();
-		fklPatternMatch(name,name,psht);
 		FklCodegenEnv* globalEnv=curEnv;
 		while(globalEnv->prev)globalEnv=globalEnv->prev;
 		FklCodegenEnv* macroEnv=fklCreateCodegenEnv(globalEnv);
 		macroEnv->macros->prev=curEnv->macros;
-		for(FklHashTableNodeList* list=psht->list;list;list=list->next)
+		for(FklHashTableNodeList* list=symbolTable->list
+				;list
+				;list=list->next)
 		{
-			FklPatternMatchingHashTableItem* item=list->node->item;
+			struct
+			{
+				FklSid_t id;
+			}* item=list->node->item;
 			fklAddCodegenDefBySid(item->id,macroEnv);
 		}
-		fklDestroyHashTable(psht);
+		fklDestroyHashTable(symbolTable);
 		FklCodegen* macroCodegen=createCodegen(codegen
 				,NULL
 				,macroEnv);
@@ -2430,7 +2434,8 @@ static CODEGEN_FUNC(codegen_defmacro)
 	else if(name->type==FKL_NAST_VECTOR)
 	{
 #pragma message "Todo:defmacro for reader macro"
-		if(!fklIsValidStringPattern(name))
+		FklHashTable* symbolTable=NULL;
+		if(!fklIsValidStringPattern(name,&symbolTable))
 		{
 			errorState->type=FKL_ERR_INVALID_MACRO_PATTERN;
 			errorState->place=fklMakeNastNodeRef(name);
@@ -2440,7 +2445,18 @@ static CODEGEN_FUNC(codegen_defmacro)
 		while(globalEnv->prev)globalEnv=globalEnv->prev;
 		FklCodegenEnv* macroEnv=fklCreateCodegenEnv(globalEnv);
 		macroEnv->macros->prev=curEnv->macros;
-		fklInitCodegenEnvWithPatternParts(name,macroEnv);
+		for(FklHashTableNodeList* list=symbolTable->list
+				;list
+				;list=list->next)
+		{
+			struct
+			{
+				FklSid_t id;
+			}* item=list->node->item;
+			fklAddCodegenDefBySid(item->id,macroEnv);
+		}
+		fklDestroyHashTable(symbolTable);
+
 		FklCodegen* macroCodegen=createCodegen(codegen
 				,NULL
 				,macroEnv);

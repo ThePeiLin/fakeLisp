@@ -386,10 +386,106 @@ FklStringMatchPattern* fklInitBuiltInStringPattern(void)
 	return r;
 }
 
-int fklIsValidStringPattern(const FklNastNode* parts)
+typedef struct
 {
-#pragma message "Todo:fklIsValidStringPattern"
-	return 0;
+	FklSid_t id;
+}FklSidHashItem;
+
+static FklSidHashItem* createSidHashItem(FklSid_t key)
+{
+	FklSidHashItem* r=(FklSidHashItem*)malloc(sizeof(FklSidHashItem));
+	FKL_ASSERT(r);
+	r->id=key;
+	return r;
+}
+
+static size_t _sid_hashFunc(void* key)
+{
+	FklSid_t sid=*(FklSid_t*)key;
+	return sid;
+}
+
+static void _sid_destroyItem(void* item)
+{
+	free(item);
+}
+
+static int _sid_keyEqual(void* pkey0,void* pkey1)
+{
+	FklSid_t k0=*(FklSid_t*)pkey0;
+	FklSid_t k1=*(FklSid_t*)pkey1;
+	return k0==k1;
+}
+
+static void* _sid_getKey(void* item)
+{
+	return &((FklSidHashItem*)item)->id;
+}
+
+static FklHashTableMethodTable SidHashMethodTable=
+{
+	.__hashFunc=_sid_hashFunc,
+	.__destroyItem=_sid_destroyItem,
+	.__keyEqual=_sid_keyEqual,
+	.__getKey=_sid_getKey,
+};
+
+int fklIsValidStringPattern(const FklNastNode* parts,FklHashTable** psymbolTable)
+{
+	size_t size=parts->u.vec->size;
+	FklNastNode** base=parts->u.vec->base;
+	if(size<1)
+		return 0;
+	if(base[0]->type!=FKL_NAST_STR)
+		return 0;
+	FklHashTable* symbolTable=fklCreateHashTable(8,4,2,0.75,1,&SidHashMethodTable);
+	for(size_t i=1;i<size;i++)
+	{
+		FklNastNode* cur=base[i];
+		switch(cur->type)
+		{
+			case FKL_NAST_SYM:
+				if(fklGetHashItem((void*)&cur->u.sym,symbolTable))
+				{
+					fklDestroyHashTable(symbolTable);
+					*psymbolTable=NULL;
+					return 0;
+				}
+				fklPutNoRpHashItem(createSidHashItem(cur->u.sym)
+						,symbolTable);
+				break;
+			case FKL_NAST_BOX:
+				if(i==size-1
+						||base[i+1]->type!=FKL_NAST_STR
+						||cur->u.box->type!=FKL_NAST_SYM)
+				{
+					fklDestroyHashTable(symbolTable);
+					*psymbolTable=NULL;
+					return 0;
+				}
+				else
+				{
+					FklSid_t id=cur->u.box->u.sym;
+					if(fklGetHashItem(&id,symbolTable))
+					{
+						fklDestroyHashTable(symbolTable);
+						*psymbolTable=NULL;
+						return 0;
+					}
+					fklPutNoRpHashItem(createSidHashItem(cur->u.sym)
+							,symbolTable);
+				}
+				break;
+			case FKL_NAST_STR:
+				break;
+			default:
+				fklDestroyHashTable(symbolTable);
+				*psymbolTable=NULL;
+				return 0;
+		}
+	}
+	*psymbolTable=symbolTable;
+	return 1;
 }
 
 void fklInitCodegenEnvWithPatternParts(const FklNastNode* parts,FklCodegenEnv* env)
@@ -561,51 +657,7 @@ FklHashTable* fklCreatePatternMatchingHashTable(void)
 	return fklCreateHashTable(8,8,2,0.75,1,&Codegen_hash_method_table);
 }
 
-typedef struct
-{
-	FklSid_t id;
-}FklSidHashItem;
-
-static FklSidHashItem* createSidHashItem(FklSid_t key)
-{
-	FklSidHashItem* r=(FklSidHashItem*)malloc(sizeof(FklSidHashItem));
-	FKL_ASSERT(r);
-	r->id=key;
-	return r;
-}
-
-static size_t _sid_hashFunc(void* key)
-{
-	FklSid_t sid=*(FklSid_t*)key;
-	return sid;
-}
-
-static void _sid_destroyItem(void* item)
-{
-	free(item);
-}
-
-static int _sid_keyEqual(void* pkey0,void* pkey1)
-{
-	FklSid_t k0=*(FklSid_t*)pkey0;
-	FklSid_t k1=*(FklSid_t*)pkey1;
-	return k0==k1;
-}
-
-static void* _sid_getKey(void* item)
-{
-	return &((FklSidHashItem*)item)->id;
-}
-
-static FklHashTableMethodTable SidHashMethodTable=
-{
-	.__hashFunc=_sid_hashFunc,
-	.__destroyItem=_sid_destroyItem,
-	.__keyEqual=_sid_keyEqual,
-	.__getKey=_sid_getKey,
-};
-
-int fklIsValidSyntaxPattern(const FklNastNode* p)
+int fklIsValidSyntaxPattern(const FklNastNode* p,FklHashTable** psymbolTable)
 {
 	if(p->type!=FKL_NAST_PAIR)
 		return 0;
@@ -622,14 +674,15 @@ int fklIsValidSyntaxPattern(const FklNastNode* p)
 		switch(c->type)
 		{
 			case FKL_NAST_PAIR:
-				fklPushPtrStack(c->u.pair->car,stack);
 				fklPushPtrStack(c->u.pair->cdr,stack);
+				fklPushPtrStack(c->u.pair->car,stack);
 				break;
 			case FKL_TYPE_SYM:
 				if(fklGetHashItem((void*)&c->u.sym,symbolTable))
 				{
 					fklDestroyHashTable(symbolTable);
 					fklDestroyPtrStack(stack);
+					*psymbolTable=NULL;
 					return 0;
 				}
 				fklPutNoRpHashItem(createSidHashItem(c->u.sym)
@@ -639,7 +692,7 @@ int fklIsValidSyntaxPattern(const FklNastNode* p)
 				break;
 		}
 	}
-	fklDestroyHashTable(symbolTable);
+	*psymbolTable=symbolTable;
 	fklDestroyPtrStack(stack);
 	return 1;
 }

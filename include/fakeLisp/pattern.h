@@ -69,9 +69,7 @@ void fklDestroyStringPattern(FklStringMatchPattern*);
 
 int fklStringPatternCoverState(const FklNastVector* p0,const FklNastVector* p1);
 void fklDestroyAllStringPattern(FklStringMatchPattern*);
-int fklIsValidStringPattern(const FklNastNode*);
-struct FklCodegenEnv;
-void fklInitCodegenEnvWithPatternParts(const FklNastNode*,struct FklCodegenEnv* env);
+int fklIsValidStringPattern(const FklNastNode*,FklHashTable** psymbolTable);
 
 FklStringMatchRouteNode* fklCreateStringMatchRouteNode(FklStringMatchPattern* p
 		,size_t s
@@ -101,7 +99,7 @@ int fklPatternMatch(const FklNastNode* pattern
 		,const FklNastNode* exp
 		,FklHashTable* ht);
 
-int fklIsValidSyntaxPattern(const FklNastNode* p);
+int fklIsValidSyntaxPattern(const FklNastNode* p,FklHashTable** psymbolTable);
 int fklPatternCoverState(const FklNastNode* p0,const FklNastNode* p1);
 FklNastNode* fklPatternMatchingHashTableRef(FklSid_t sid,FklHashTable* ht);
 FklHashTable* fklCreatePatternMatchingHashTable(void);

@@ -486,7 +486,7 @@ static void updateSymState(const char* buf
 static FklStringMatchState* getRollBack(FklStringMatchState** pcur,FklStringMatchState* prev)
 {
 	FklStringMatchState* r=NULL;
-	for(;*pcur!=prev;)
+	while(*pcur!=prev)
 	{
 		FklStringMatchState* cur=*pcur;
 		*pcur=cur->next;
@@ -589,16 +589,23 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 		set->sym=NULL;
 		set->box=NULL;
 		set->str=NULL;
+		int doDestorySymState=1;
 		int b=!updateStrState(buf,n,&strs,set,pt,line,route,top)
 			&&!updateBoxState(buf,n,&boxes,set,patterns,pt,line,route,top);
 		if(b)
 			updateSymState(buf,n,&syms,set,patterns,pt,line);
 		FklStringMatchSet* nset=NULL;
 		FklStringMatchSet* oset=set;
-		while(set&&set->str==NULL&&set->box==NULL&&set->sym==NULL)
+		while(osyms&&set&&set->str==NULL&&set->box==NULL&&set->sym==NULL)
 			set=set->prev;
 		if(b)
 		{
+			if(!osyms)
+			{
+				set->str=strs;
+				strs=NULL;
+				boxes=NULL;
+			}
 			nset=matchInUniversSet(buf,n
 					,patterns
 					,pt
@@ -622,7 +629,11 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 			}
 			else
 			{
-				rollBack(ostrs,oboxes,osyms,oset);
+				if(osyms)
+				{
+					doDestorySymState=0;
+					rollBack(ostrs,oboxes,syms,oset);
+				}
 				set=oset;
 			}
 		}
@@ -644,7 +655,8 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 		}
 		fklDestroyStringMatchState(strs);
 		fklDestroyStringMatchState(boxes);
-		fklDestroyStringMatchState(syms);
+		if(doDestorySymState)
+			fklDestroyStringMatchState(syms);
 		r=(nset==NULL)?set:nset;
 	}
 	return r;

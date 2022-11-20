@@ -3460,14 +3460,6 @@ static FklCodegenMacro* findMacro(FklNastNode* exp
 	return r;
 }
 
-#include<setjmp.h>
-static jmp_buf buf;
-static void errorCallBack(void* a)
-{
-	int* i=(int*)a;
-	longjmp(buf,i[(sizeof(void*)*2)/sizeof(int)]);
-}
-
 static FklVMenv* createVMenvFromPatternMatchTable(FklVMvalue* prev
 		,FklHashTable* ht
 		,FklHashTable* lineHash
@@ -3509,7 +3501,6 @@ FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 	FklVMvalue* mainEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,createVMenvFromPatternMatchTable(globEnv,ht,lineHash,anotherVM->gc),anotherVM->gc);
 	FklVMframe* mainframe=anotherVM->frames;
 	mainframe->localenv=mainEnv;
-	anotherVM->callback=errorCallBack;
 	return anotherVM;
 }
 
@@ -3526,9 +3517,21 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 		FklHashTable* lineHash=fklCreateLineNumHashTable();
 		FklVM* anotherVM=fklInitMacroExpandVM(macro->bcl,ht,lineHash,codegen);
 		FklVMgc* gc=anotherVM->gc;
-		if(!setjmp(buf))
+		int e=fklRunVM(anotherVM);
+		if(e)
 		{
-			fklRunVM(anotherVM);
+			errorState->type=FKL_ERR_MACROEXPANDFAILED;
+			errorState->place=r;
+			errorState->fid=codegen->fid;
+			errorState->line=curline;
+			fklDeleteCallChain(anotherVM);
+			fklCancelAllThread();
+			fklJoinAllThread(anotherVM);
+			r=NULL;
+		}
+		else
+		{
+			fklWaitGC(anotherVM->gc);
 			fklJoinAllThread(anotherVM);
 			uint64_t curline=r->curline;
 			fklDestroyNastNode(r);
@@ -3540,26 +3543,11 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 				errorState->fid=codegen->fid;
 				errorState->line=curline;
 			}
-			fklDestroyHashTable(ht);
-			fklDestroyHashTable(lineHash);
-			fklDestroyVMgc(gc);
-			fklDestroyAllVMs(anotherVM);
 		}
-		else
-		{
-			errorState->type=FKL_ERR_MACROEXPANDFAILED;
-			errorState->place=r;
-			errorState->fid=codegen->fid;
-			errorState->line=curline;
-			fklDestroyHashTable(ht);
-			fklDestroyHashTable(lineHash);
-			fklDeleteCallChain(anotherVM);
-			fklCancelAllThread();
-			fklJoinAllThread(anotherVM);
-			fklDestroyAllVMs(anotherVM);
-			fklDestroyVMgc(gc);
-			r=NULL;
-		}
+		fklDestroyHashTable(ht);
+		fklDestroyHashTable(lineHash);
+		fklDestroyAllVMs(anotherVM);
+		fklDestroyVMgc(gc);
 	}
 	return r;
 }

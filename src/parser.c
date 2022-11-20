@@ -673,7 +673,7 @@ static size_t getNumOfList(FklStringMatchRouteNode* curRoute
 {
 	size_t i=0;
 	for(;curRoute
-			&&(curRoute==NULL
+			&&(curRoute->siblings==NULL
 				||curRoute->siblings->start-curRoute->end>1)\
 			;curRoute=curRoute->siblings)
 	{
@@ -717,8 +717,10 @@ static FklHashTable* processNastStackWithPatternParts(FklNastNode* parts
 					FklNastNode* list=fklMakeNastNodeRef(fklCreateNastList(&nastBase[nastIndex],num,curNast->curline));
 					nastIndex+=num;
 					child=nextChild;
-					fklPatternMatchingHashTableSet(curPart->u.sym,list,ht);
+					fklPatternMatchingHashTableSet(curPart->u.box->u.sym,list,ht);
 				}
+				break;
+			case FKL_NAST_STR:
 				break;
 			default:
 				FKL_ASSERT(0);
@@ -757,7 +759,6 @@ static FklNastNode* readerMacroExpand(FklStringMatchPattern* pattern
 	{
 		fklWaitGC(anotherVM->gc);
 		fklJoinAllThread(anotherVM);
-		uint64_t curline=r->curline;
 		fklDestroyNastNode(r);
 		r=fklCreateNastNodeFromVMvalue(fklGetTopValue(anotherVM->stack),curline,lineHash);
 	}
@@ -765,7 +766,7 @@ static FklNastNode* readerMacroExpand(FklStringMatchPattern* pattern
 	fklDestroyHashTable(lineHash);
 	fklDestroyVMgc(gc);
 	fklDestroyAllVMs(anotherVM);
-	return NULL;
+	return r;
 }
 
 FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStack

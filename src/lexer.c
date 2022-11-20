@@ -11,8 +11,9 @@ inline static int isCompleteStringBuf(const char* buf,size_t size,char ch,size_t
 	int mark=0;
 	int markN=0;
 	size_t i=0;
-	for(;i<size&&markN<2;i++)
-		if(buf[i]==ch&&(!i||buf[i-1]!='\\'))
+	for(;i<size&&markN<2
+			;i+=(buf[i]=='\\')+1)
+		if(buf[i]==ch)
 		{
 			mark=~mark;
 			markN+=1;
@@ -501,28 +502,23 @@ static void rollBack(FklStringMatchState* strs
 		,FklStringMatchState* syms
 		,FklStringMatchSet* oset)
 {
-	if(syms)
+	FklStringMatchState* ostrs=getRollBack(&oset->str,strs);
+	FklStringMatchState* oboxes=getRollBack(&oset->box,boxes);
+	for(FklStringMatchState* cur=syms;cur;cur=cur->next)
+		cur->index--;
+	oset->sym=syms;
+	for(FklStringMatchState* cur=ostrs;cur;)
 	{
-		FklStringMatchState* ostrs=getRollBack(&oset->str,strs);
-		FklStringMatchState* oboxes=getRollBack(&oset->box,boxes);
-		for(FklStringMatchState* cur=syms;cur;cur=cur->next)
-			cur->index--;
-		oset->sym=syms;
-		for(FklStringMatchState* cur=ostrs;cur;)
-		{
-			FklStringMatchState* t=cur->next;
-			addStateIntoSet(cur,&oset->str,&oset->box,&oset->sym);
-			cur=t;
-		}
-		for(FklStringMatchState* cur=oboxes;cur;)
-		{
-			FklStringMatchState* t=cur->next;
-			addStateIntoSet(cur,&oset->str,&oset->box,&oset->sym);
-			cur=t;
-		}
+		FklStringMatchState* t=cur->next;
+		addStateIntoSet(cur,&oset->str,&oset->box,&oset->sym);
+		cur=t;
 	}
-	else
-		oset->str=strs;
+	for(FklStringMatchState* cur=oboxes;cur;)
+	{
+		FklStringMatchState* t=cur->next;
+		addStateIntoSet(cur,&oset->str,&oset->box,&oset->sym);
+		cur=t;
+	}
 }
 
 inline static int isValidToken(FklToken* t)
@@ -587,6 +583,9 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 		FklStringMatchState* strs=set->str;
 		FklStringMatchState* boxes=set->box;
 		FklStringMatchState* syms=set->sym;
+		FklStringMatchState* ostrs=strs;
+		FklStringMatchState* oboxes=boxes;
+		FklStringMatchState* osyms=syms;
 		set->sym=NULL;
 		set->box=NULL;
 		set->str=NULL;
@@ -623,7 +622,7 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 			}
 			else
 			{
-				rollBack(strs,boxes,syms,oset);
+				rollBack(ostrs,oboxes,osyms,oset);
 				set=oset;
 			}
 		}

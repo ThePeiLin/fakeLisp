@@ -754,6 +754,7 @@ static FklNastNode* readerMacroExpand(FklStringMatchPattern* pattern
 		fklCancelAllThread();
 		fklJoinAllThread(anotherVM);
 		r=NULL;
+		*errorLine=curline;
 	}
 	else
 	{

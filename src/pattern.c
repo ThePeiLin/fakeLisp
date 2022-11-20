@@ -11,7 +11,7 @@ FklStringMatchPattern* fklCreateStringMatchPattern(FklNastNode* parts
 {
 	FklStringMatchPattern* r=(FklStringMatchPattern*)malloc(sizeof(FklStringMatchPattern));
 	FKL_ASSERT(r);
-	r->parts=fklMakeNastNodeRef(parts);
+	r->parts=parts;
 	r->type=FKL_STRING_PATTERN_DEFINED;
 	r->u.proc=bcl;
 	r->next=next;

@@ -1503,7 +1503,7 @@ static FklNastNode* _codegen_load_get_next_expression(void* pcontext,FklCodegenE
 	{
 		errorState->fid=codegen->fid;
 		errorState->type=FKL_ERR_INVALIDEXPR;
-		errorState->line=errorLine;
+		errorState->line=errorLine?errorLine:codegen->curline;
 		errorState->place=NULL;
 		return NULL;
 	}
@@ -2801,9 +2801,12 @@ static void printCodegenError(FklNastNode* obj,FklBuiltInErrorType type,FklSid_t
 			if(obj!=NULL)fklPrintNastNode(obj,stderr);
 			break;
 		case FKL_ERR_INVALIDEXPR:
-			fprintf(stderr,"Invalid expression ");
+			fprintf(stderr,"Invalid expression");
 			if(obj!=NULL)
+			{
+				fputc(' ',stderr);
 				fklPrintNastNode(obj,stderr);
+			}
 			break;
 		case FKL_ERR_CIRCULARLOAD:
 			fprintf(stderr,"Circular load file ");

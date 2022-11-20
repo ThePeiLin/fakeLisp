@@ -38,7 +38,7 @@ static const char* BuiltinStringPattern_hasheqv_1[]={":#hasheqv[","&car",":]",};
 static const char* BuiltinStringPattern_hashequal_0[]={":#hashequal(","&car",":)",};
 static const char* BuiltinStringPattern_hashequal_1[]={":#hashequal[","&car",":]",};
 
-static FklNastNode* createNastList(FklNastNode** a,size_t num,uint64_t line)
+FklNastNode* fklCreateNastList(FklNastNode** a,size_t num,uint64_t line)
 {
 	FklNastNode* r=NULL;
 	FklNastNode** cur=&r;
@@ -59,7 +59,7 @@ static FklNastNode* nastWithHeaderProcesser(FklSid_t sid,FklNastNode* v,uint64_t
 	FklNastNode* header=fklCreateNastNode(FKL_NAST_SYM,line);
 	header->u.sym=sid;
 	FklNastNode* a[]={header,v};
-	return createNastList(a,2,line);
+	return fklCreateNastList(a,2,line);
 }
 
 enum
@@ -362,11 +362,13 @@ static int isCover(const FklNastVector* p0,const FklNastVector* p1)
 	return 0;
 }
 
-int fklStringPatternCoverState(const FklNastVector* p0,const FklNastVector* p1)
+int fklStringPatternCoverState(const FklNastNode* p0,const FklNastNode* p1)
 {
 	int r=0;
-	r+=isCover(p0,p1)?FKL_PATTERN_COVER:0;
-	r+=isCover(p0,p1)?FKL_PATTERN_BE_COVER:0;
+	FklNastVector* v0=p0->u.vec;
+	FklNastVector* v1=p1->u.vec;
+	r+=isCover(v0,v1)?FKL_PATTERN_COVER:0;
+	r+=isCover(v0,v1)?FKL_PATTERN_BE_COVER:0;
 	return r;
 }
 
@@ -511,7 +513,7 @@ void fklAddStringMatchPattern(FklNastNode* parts
 	for(;*phead;phead=&(*phead)->next)
 	{
 		FklStringMatchPattern* cur=*phead;
-		coverState=fklStringPatternCoverState(cur->parts->u.vec,parts->u.vec);
+		coverState=fklStringPatternCoverState(cur->parts,parts);
 		if(coverState)
 			break;
 	}
@@ -577,7 +579,7 @@ inline static FklPatternMatchingHashTableItem* createPatternMatchingHashTableIte
 	return r;
 }
 
-static void patternMatchingHashTableSet(FklSid_t sid,FklNastNode* node,FklHashTable* ht)
+void fklPatternMatchingHashTableSet(FklSid_t sid,FklNastNode* node,FklHashTable* ht)
 {
 	fklPutReplHashItem(createPatternMatchingHashTableItem(sid,node),ht);
 }
@@ -600,7 +602,7 @@ int fklPatternMatch(const FklNastNode* pattern,const FklNastNode* exp,FklHashTab
 		if(n0->type==FKL_NAST_SYM)
 		{
 			if(ht!=NULL)
-				patternMatchingHashTableSet(n0->u.sym,n1,ht);
+				fklPatternMatchingHashTableSet(n0->u.sym,n1,ht);
 		}
 		else if(n0->type==FKL_NAST_PAIR&&n1->type==FKL_NAST_PAIR)
 		{

@@ -1426,7 +1426,8 @@ inline static FklNastNode* getExpressionFromFile(FklCodegen* codegen
 		,int* unexpectEOF
 		,FklPtrStack* tokenStack
 		,size_t* errorLine
-		,int* hasError)
+		,int* hasError
+		,FklCodegenErrorState* errorState)
 {
 	size_t size=0;
 	FklNastNode* begin=NULL;
@@ -1480,7 +1481,8 @@ static FklNastNode* _codegen_load_get_next_expression(void* pcontext,FklCodegenE
 			,&unexpectEOF
 			,tokenStack
 			,&errorLine
-			,&hasError);
+			,&hasError
+			,errorState);
 	if(unexpectEOF)
 	{
 		errorState->line=codegen->curline;
@@ -1905,7 +1907,8 @@ static CODEGEN_FUNC(codegen_import)
 					,&unexpectEOF
 					,tokenStack
 					,&errorLine
-					,&hasError);
+					,&hasError
+					,errorState);
 			if(!libraryExpression)
 				break;
 			if(unexpectEOF)
@@ -2127,7 +2130,8 @@ static CODEGEN_FUNC(codegen_import_with_prefix)
 					,&unexpectEOF
 					,tokenStack
 					,&errorLine
-					,&hasError);
+					,&hasError
+					,errorState);
 			if(!libraryExpression)
 				break;
 			if(unexpectEOF)
@@ -3480,7 +3484,7 @@ static FklVMenv* createVMenvFromPatternMatchTable(FklVMvalue* prev
 	return env;
 }
 
-static FklVM* initMacroExpandVM(FklByteCodelnt* bcl
+FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 		,FklHashTable* ht
 		,FklHashTable* lineHash
 		,FklCodegen* codegen)
@@ -3520,7 +3524,7 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 	for(FklCodegenMacro* macro=findMacro(r,macros,&ht);macro;macro=findMacro(r,macros,&ht))
 	{
 		FklHashTable* lineHash=fklCreateLineNumHashTable();
-		FklVM* anotherVM=initMacroExpandVM(macro->bcl,ht,lineHash,codegen);
+		FklVM* anotherVM=fklInitMacroExpandVM(macro->bcl,ht,lineHash,codegen);
 		FklVMgc* gc=anotherVM->gc;
 		if(!setjmp(buf))
 		{

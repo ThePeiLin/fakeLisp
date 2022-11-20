@@ -75,7 +75,7 @@ typedef struct FklCodegenQuestContext
 
 typedef FklByteCodelnt* (*FklByteCodeProcesser)(FklCodegen*,FklCodegenQuestContext* context,FklSid_t,uint64_t);
 
-typedef struct
+typedef struct FklCodegenErrorState
 {
 	FklSid_t fid;
 	FklBuiltInErrorType type;
@@ -169,6 +169,12 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 		,FklCodegen*
 		,FklCodegenMacroScope* macros
 		,FklCodegenErrorState*);
+
+struct FklVM;
+struct FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
+		,FklHashTable* ht
+		,FklHashTable* lineHash
+		,FklCodegen* codegen);
 #ifdef __cplusplus
 }
 #endif

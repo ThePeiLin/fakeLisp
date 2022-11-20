@@ -67,7 +67,7 @@ void fklAddStringMatchPattern(FklNastNode*
 		,FklStringMatchPattern** head);
 void fklDestroyStringPattern(FklStringMatchPattern*);
 
-int fklStringPatternCoverState(const FklNastVector* p0,const FklNastVector* p1);
+int fklStringPatternCoverState(const FklNastNode* p0,const FklNastNode* p1);
 void fklDestroyAllStringPattern(FklStringMatchPattern*);
 int fklIsValidStringPattern(const FklNastNode*,FklHashTable** psymbolTable);
 
@@ -98,6 +98,7 @@ typedef struct
 int fklPatternMatch(const FklNastNode* pattern
 		,const FklNastNode* exp
 		,FklHashTable* ht);
+void fklPatternMatchingHashTableSet(FklSid_t sid,FklNastNode* node,FklHashTable* ht);
 
 int fklIsValidSyntaxPattern(const FklNastNode* p,FklHashTable** psymbolTable);
 int fklPatternCoverState(const FklNastNode* p0,const FklNastNode* p1);

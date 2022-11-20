@@ -268,7 +268,7 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode,FklVM* prev,FklVM* next)
 	exe->chan=NULL;
 	exe->stack=fklCreateVMstack(0);
 	exe->tstack=fklCreatePtrStack(32,16);
-	exe->callback=NULL;
+	exe->callback=threadErrorCallBack;
 	exe->nny=0;
 	exe->libNum=0;
 	exe->libs=NULL;

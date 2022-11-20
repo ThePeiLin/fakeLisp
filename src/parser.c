@@ -640,11 +640,13 @@ typedef struct CreateNastNodeQuest
 {
 	uint64_t line;
 	FklStringMatchPattern* pattern;
+	FklStringMatchRouteNode* routeNode;
 	FklPtrStack* route;
 	FklPtrStack* nast;
 }CreateNastNodeQuest;
 
 static CreateNastNodeQuest* createNastNodeQuest(uint64_t line
+		,FklStringMatchRouteNode* routeNode
 		,FklStringMatchPattern* pattern
 		,FklPtrStack* route)
 {
@@ -652,6 +654,7 @@ static CreateNastNodeQuest* createNastNodeQuest(uint64_t line
 	FKL_ASSERT(r);
 	r->line=line;
 	r->pattern=pattern;
+	r->routeNode=routeNode;
 	r->route=route;
 	r->nast=fklCreatePtrStack(8,16);
 	return r;
@@ -662,6 +665,107 @@ static void destroyNastNodeQuest(CreateNastNodeQuest* p)
 	fklDestroyPtrStack(p->nast);
 	fklDestroyPtrStack(p->route);
 	free(p);
+}
+
+static size_t getNumOfList(FklStringMatchRouteNode* curRoute
+		,FklStringMatchRouteNode** endRoute
+		,FklPtrStack* tokenStack)
+{
+	size_t i=0;
+	for(;curRoute
+			&&(curRoute==NULL
+				||curRoute->siblings->start-curRoute->end>1)\
+			;curRoute=curRoute->siblings)
+	{
+		i+=curRoute->start!=curRoute->end
+			||(curRoute->end==curRoute->start
+					&&getSingleToken(curRoute,tokenStack)->type!=FKL_TOKEN_COMMENT);
+	}
+	*endRoute=curRoute;
+	return i;
+}
+
+static FklHashTable* processNastStackWithPatternParts(FklNastNode* parts
+		,FklStringMatchRouteNode* route
+		,FklPtrStack* nastStack
+		,FklPtrStack* tokenStack)
+{
+	FklHashTable* ht=fklCreatePatternMatchingHashTable();
+	size_t partsNum=parts->u.vec->size;
+	FklNastNode** partsBase=parts->u.vec->base;
+	FklStringMatchRouteNode* child=route->children;
+	FklNastNode** nastBase=(FklNastNode**)nastStack->base;
+	size_t partIndex=1;
+	size_t nastIndex=0;
+	while(partIndex<partsNum)
+	{
+		FklNastNode* curPart=partsBase[partIndex];
+		FklNastNode* curNast=nastBase[nastIndex];
+		switch(curPart->type)
+		{
+			case FKL_NAST_SYM:
+				fklPatternMatchingHashTableSet(curPart->u.sym,fklMakeNastNodeRef(curNast),ht);
+				nastIndex++;
+				child=child->siblings;
+				break;
+			case FKL_NAST_BOX:
+				{
+					FklStringMatchRouteNode* nextChild=NULL;
+					size_t num=getNumOfList(child
+							,&nextChild
+							,tokenStack);
+					FklNastNode* list=fklMakeNastNodeRef(fklCreateNastList(&nastBase[nastIndex],num,curNast->curline));
+					nastIndex+=num;
+					child=nextChild;
+					fklPatternMatchingHashTableSet(curPart->u.sym,list,ht);
+				}
+				break;
+			default:
+				FKL_ASSERT(0);
+				break;
+		}
+		partIndex++;
+	}
+	return ht;
+}
+
+static FklNastNode* readerMacroExpand(FklStringMatchPattern* pattern
+		,FklStringMatchRouteNode* route
+		,FklPtrStack* nastStack
+		,FklPtrStack* tokenStack
+		,size_t curline
+		,size_t* errorLine
+		,FklCodegen* codegen)
+{
+	FklHashTable* ht=processNastStackWithPatternParts(pattern->parts
+			,route
+			,nastStack
+			,tokenStack);
+	FklHashTable* lineHash=fklCreateLineNumHashTable();
+	FklVM* anotherVM=fklInitMacroExpandVM(pattern->u.proc,ht,lineHash,codegen);
+	FklVMgc* gc=anotherVM->gc;
+	FklNastNode* r=NULL;
+	int e=fklRunVM(anotherVM);
+	if(e)
+	{
+		fklDeleteCallChain(anotherVM);
+		fklCancelAllThread();
+		fklJoinAllThread(anotherVM);
+		r=NULL;
+	}
+	else
+	{
+		fklWaitGC(anotherVM->gc);
+		fklJoinAllThread(anotherVM);
+		uint64_t curline=r->curline;
+		fklDestroyNastNode(r);
+		r=fklCreateNastNodeFromVMvalue(fklGetTopValue(anotherVM->stack),curline,lineHash);
+	}
+	fklDestroyHashTable(ht);
+	fklDestroyHashTable(lineHash);
+	fklDestroyVMgc(gc);
+	fklDestroyAllVMs(anotherVM);
+	return NULL;
 }
 
 FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStack
@@ -678,6 +782,7 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 	fklPushPtrStack(route,routeStack);
 	fklInitPtrStack(&questStack,32,16);
 	CreateNastNodeQuest* firstQuest=createNastNodeQuest(getSingleToken(route,tokenStack)->line
+			,route
 			,NULL
 			,routeStack);
 	fklPushPtrStack(firstQuest,&questStack);
@@ -698,6 +803,7 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 					fklPushPtrStack(child,newRouteStack);
 				CreateNastNodeQuest* quest=createNastNodeQuest(getSingleToken(curRoute
 							,tokenStack)->line
+						,curRoute
 						,curRoute->pattern
 						,newRouteStack);
 				fklPushPtrStack(quest,&questStack);
@@ -761,8 +867,13 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 						,errorLine
 						,st);
 			else
-			{
-			}
+				r=readerMacroExpand(pattern
+						,curQuest->routeNode
+						,curQuest->nast
+						,tokenStack
+						,curQuest->line
+						,errorLine
+						,codegen);
 			if(!r)
 			{
 				while(!fklIsPtrStackEmpty(curQuest->nast))

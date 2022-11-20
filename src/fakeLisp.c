@@ -22,15 +22,7 @@ static void runRepl(FklCodegen*,const FklSid_t*);
 static FklByteCode* loadByteCode(FILE*);
 static void loadSymbolTable(FILE*);
 static void loadLib(FILE*,size_t*,FklVMlib**,FklVMvalue* globEnv,FklVMgc*);
-static jmp_buf buf;
 static int exitState=0;
-
-static void errorCallBack(void* a)
-{
-	int* i=(int*)a;
-	exitState=255;
-	longjmp(buf,i[(sizeof(void*)*2)/sizeof(int)]);
-}
 
 int main(int argc,char** argv)
 {
@@ -120,32 +112,22 @@ int main(int argc,char** argv)
 		FklVMvalue* mainEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateVMenv(globEnv,anotherVM->gc),anotherVM->gc);
 		FklVMframe* mainframe=anotherVM->frames;
 		mainframe->localenv=mainEnv;
-		anotherVM->callback=errorCallBack;
-		if(setjmp(buf)==0)
+		int r=fklRunVM(anotherVM);
+		if(r)
 		{
-			fklRunVM(anotherVM);
-			fklWaitGC(anotherVM->gc);
-			fklJoinAllThread(anotherVM);
-			fklDestroyVMgc(anotherVM->gc);
-			fklUninitCodegener(&codegen);
-			fklDestroyGlobSymbolTable();
-			fklUninitCodegen();
-			fklDestroyAllVMs(anotherVM);
-		}
-		else
-		{
+			exitState=r;
 			fklDeleteCallChain(anotherVM);
 			fklCancelAllThread();
-			fklJoinAllThread(anotherVM);
-			fklDestroyVMgc(anotherVM->gc);
-			fklDestroyAllVMs(anotherVM);
-			fklDestroyMainFileRealPath();
-			fklDestroyCwd();
-			fklUninitCodegener(&codegen);
-			fklDestroyGlobSymbolTable();
-			fklUninitCodegen();
-			return exitState;
 		}
+		else
+			fklWaitGC(anotherVM->gc);
+		fklJoinAllThread(anotherVM);
+		fklDestroyVMgc(anotherVM->gc);
+		fklDestroyAllVMs(anotherVM);
+		fklUninitCodegener(&codegen);
+		fklDestroyGlobSymbolTable();
+		fklUninitCodegen();
+
 	}
 	else if(fklIscode(filename))
 	{
@@ -178,26 +160,19 @@ int main(int argc,char** argv)
 		FklVMframe* mainframe=anotherVM->frames;
 		FklVMvalue* mainEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateVMenv(globEnv,anotherVM->gc),anotherVM->gc);
 		mainframe->localenv=mainEnv;
-		anotherVM->callback=errorCallBack;
-		if(!setjmp(buf))
+		int r=fklRunVM(anotherVM);
+		if(r)
 		{
-			fklRunVM(anotherVM);
-			fklJoinAllThread(anotherVM);
-			fklDestroyVMgc(gc);
-			fklDestroyGlobSymbolTable();
-			fklDestroyAllVMs(anotherVM);
-		}
-		else
-		{
+			exitState=r;
 			fklDeleteCallChain(anotherVM);
 			fklCancelAllThread();
-			fklJoinAllThread(anotherVM);
-			fklDestroyAllVMs(anotherVM);
-			fklDestroyVMgc(gc);
-			fklDestroyGlobSymbolTable();
-			fklDestroyCwd();
-			return exitState;
 		}
+		else
+			fklWaitGC(anotherVM->gc);
+		fklJoinAllThread(anotherVM);
+		fklDestroyAllVMs(anotherVM);
+		fklDestroyVMgc(gc);
+		fklDestroyGlobSymbolTable();
 	}
 	else
 	{
@@ -215,7 +190,6 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 	int e=0;
 	FklVM* anotherVM=fklCreateVM(NULL,NULL,NULL);
 	FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
-	anotherVM->callback=errorCallBack;
 	FklByteCode* rawProcList=NULL;
 	FklPtrStack* tokenStack=fklCreatePtrStack(32,16);
 	FklLineNumberTable* globalLnt=fklCreateLineNumTable();
@@ -310,9 +284,20 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 				FklVMframe* mainframe=fklCreateVMframeWithProc(tmp,anotherVM->frames);
 				mainframe->localenv=mainEnv;
 				anotherVM->frames=mainframe;
-				if(!(e=setjmp(buf)))
+				int r=fklRunVM(anotherVM);
+				if(r)
 				{
-					fklRunVM(anotherVM);
+					if(e>=2&&prev)
+						free(prev);
+					FklVMstack* stack=anotherVM->stack;
+					stack->tp=0;
+					stack->bp=0;
+					tmp->prevEnv=NULL;
+					fklDestroyVMproc(tmp);
+					fklDeleteCallChain(anotherVM);
+				}
+				else
+				{
 					FklVMstack* stack=anotherVM->stack;
 					if(stack->tp!=0)
 					{
@@ -324,17 +309,6 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 					anotherVM->frames=NULL;
 					stack->tp=0;
 					fklDestroyVMproc(tmp);
-				}
-				else
-				{
-					if(e>=2&&prev)
-						free(prev);
-					FklVMstack* stack=anotherVM->stack;
-					stack->tp=0;
-					stack->bp=0;
-					tmp->prevEnv=NULL;
-					fklDestroyVMproc(tmp);
-					fklDeleteCallChain(anotherVM);
 				}
 			}
 			fklDestroyNastNode(begin);

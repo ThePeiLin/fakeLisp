@@ -886,13 +886,20 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 							fprintf(fp,"#<proc>");
 						break;
 					case FKL_TYPE_CONT:
-						fprintf(fp,"#<cont>");
+						fputs("#<continuation>",fp);
 						break;
 					case FKL_TYPE_CHAN:
-						fprintf(fp,"#<chan>");
+						fputs("#<chanl>",fp);
 						break;
 					case FKL_TYPE_FP:
-						fprintf(fp,"#<fp>");
+						if(v->u.fp->fp==stdin)
+							fputs("#<fp:stdin>",fp);
+						else if(v->u.fp->fp==stdout)
+							fputs("#<fp:stdout>",fp);
+						else if(v->u.fp->fp==stderr)
+							fputs("#<fp:stderr>",fp);
+						else
+							fputs("#<fp>",fp);
 						break;
 					case FKL_TYPE_DLL:
 						fprintf(fp,"<#dll>");
@@ -990,7 +997,14 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 						fputs("#<chanl>",fp);
 						break;
 					case FKL_TYPE_FP:
-						fputs("#<fp>",fp);
+						if(v->u.fp->fp==stdin)
+							fputs("#<fp:stdin>",fp);
+						else if(v->u.fp->fp==stdout)
+							fputs("#<fp:stdout>",fp);
+						else if(v->u.fp->fp==stderr)
+							fputs("#<fp:stderr>",fp);
+						else
+							fputs("#<fp>",fp);
 						break;
 					case FKL_TYPE_DLL:
 						fputs("#<dll>",fp);

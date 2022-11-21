@@ -540,10 +540,12 @@ FklVMframe* fklCreateVMframeWithProc(FklVMproc* code,FklVMframe* prev)
 	tmp->cpc=0;
 	tmp->prev=prev;
 	tmp->ccc=NULL;
-	tmp->codeObj=code->codeObj;
-	tmp->code=code->codeObj->u.code->bc->code;
+	tmp->codeObj=NULL;
+	tmp->code=NULL;
 	if(code)
 	{
+		tmp->codeObj=code->codeObj;
+		tmp->code=code->codeObj->u.code->bc->code;
 		tmp->cp=code->scp;
 		tmp->scp=code->scp;
 		tmp->cpc=code->cpc;

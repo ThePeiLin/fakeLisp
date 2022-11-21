@@ -1912,8 +1912,6 @@ static CODEGEN_FUNC(codegen_import)
 					,&errorLine
 					,&hasError
 					,errorState);
-			if(!libraryExpression)
-				break;
 			if(unexpectEOF)
 			{
 				errorState->line=nextCodegen->curline;
@@ -1946,6 +1944,8 @@ static CODEGEN_FUNC(codegen_import)
 				fklDestroyPtrStack(tokenStack);
 				return;
 			}
+			if(!libraryExpression)
+				break;
 			if(fklIsNastNodeList(libraryExpression)
 					&&fklPatternMatch(builtInSubPattern[SUB_PATTERN_LIBRARY].pn
 						,libraryExpression
@@ -2787,7 +2787,7 @@ static void printCodegenError(FklNastNode* obj,FklBuiltInErrorType type,FklSid_t
 {
 	if(type==FKL_ERR_DUMMY)
 		return;
-	fprintf(stderr,"error of compiling: ");
+	fprintf(stderr,"error of compiler: ");
 	switch(type)
 	{
 		case FKL_ERR_CIR_REF:

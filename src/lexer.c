@@ -416,6 +416,11 @@ static int updateStrState(const char* buf
 		}
 		pstate=&(*pstate)->next;
 	}
+	if(!r)
+	{
+		prev->str=*strs;
+		*strs=NULL;
+	}
 	return r;
 }
 
@@ -499,14 +504,15 @@ static FklStringMatchState* getRollBack(FklStringMatchState** pcur,FklStringMatc
 
 static void rollBack(FklStringMatchState* strs
 		,FklStringMatchState* boxes
-		,FklStringMatchState* syms
+		,FklStringMatchState** syms
 		,FklStringMatchSet* oset)
 {
 	FklStringMatchState* ostrs=getRollBack(&oset->str,strs);
 	FklStringMatchState* oboxes=getRollBack(&oset->box,boxes);
-	for(FklStringMatchState* cur=syms;cur;cur=cur->next)
+	for(FklStringMatchState* cur=*syms;cur;cur=cur->next)
 		cur->index--;
-	oset->sym=syms;
+	oset->sym=*syms;
+	*syms=NULL;
 	for(FklStringMatchState* cur=ostrs;cur;)
 	{
 		FklStringMatchState* t=cur->next;
@@ -583,29 +589,21 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 		FklStringMatchState* strs=set->str;
 		FklStringMatchState* boxes=set->box;
 		FklStringMatchState* syms=set->sym;
-		FklStringMatchState* ostrs=strs;
-		FklStringMatchState* oboxes=boxes;
-		FklStringMatchState* osyms=syms;
-		set->sym=NULL;
-		set->box=NULL;
+		FklStringMatchState* ostrs=set->str;
+		FklStringMatchState* oboxes=set->box;
 		set->str=NULL;
-		int doDestorySymState=1;
+		set->box=NULL;
+		set->sym=NULL;
 		int b=!updateStrState(buf,n,&strs,set,pt,line,route,top)
 			&&!updateBoxState(buf,n,&boxes,set,patterns,pt,line,route,top);
 		if(b)
 			updateSymState(buf,n,&syms,set,patterns,pt,line);
 		FklStringMatchSet* nset=NULL;
 		FklStringMatchSet* oset=set;
-		while(osyms&&set&&set->str==NULL&&set->box==NULL&&set->sym==NULL)
+		while(set&&set->str==NULL&&set->box==NULL&&set->sym==NULL)
 			set=set->prev;
 		if(b)
 		{
-			if(!osyms)
-			{
-				set->str=strs;
-				strs=NULL;
-				boxes=NULL;
-			}
 			nset=matchInUniversSet(buf,n
 					,patterns
 					,pt
@@ -629,11 +627,7 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 			}
 			else
 			{
-				if(osyms)
-				{
-					doDestorySymState=0;
-					rollBack(ostrs,oboxes,syms,oset);
-				}
+				rollBack(ostrs,oboxes,&syms,oset);
 				set=oset;
 			}
 		}
@@ -655,8 +649,7 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 		}
 		fklDestroyStringMatchState(strs);
 		fklDestroyStringMatchState(boxes);
-		if(doDestorySymState)
-			fklDestroyStringMatchState(syms);
+		fklDestroyStringMatchState(syms);
 		r=(nset==NULL)?set:nset;
 	}
 	return r;

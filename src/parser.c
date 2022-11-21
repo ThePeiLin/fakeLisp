@@ -739,6 +739,7 @@ static FklHashTable* processNastStackWithPatternParts(FklNastNode* parts
 		}
 		partIndex++;
 	}
+	fklUninitPtrStack(&routeStack);
 	return ht;
 }
 

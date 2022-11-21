@@ -511,7 +511,10 @@ static void rollBack(FklStringMatchState* strs
 	FklStringMatchState* oboxes=getRollBack(&oset->box,boxes);
 	for(FklStringMatchState* cur=*syms;cur;cur=cur->next)
 		cur->index--;
-	oset->sym=*syms;
+	FklStringMatchState** psym=&oset->sym;
+	for(;*psym;psym=&(*psym)->next)
+		(*psym)->index--;
+	*psym=*syms;
 	*syms=NULL;
 	for(FklStringMatchState* cur=ostrs;cur;)
 	{

@@ -763,10 +763,17 @@ static FklNastNode* readerMacroExpand(FklStringMatchPattern* pattern
 		fklDestroyNastNode(r);
 		r=fklCreateNastNodeFromVMvalue(fklGetTopValue(anotherVM->stack),curline,lineHash);
 	}
+	for(FklHashTableNodeList* list=ht->list;list;list=list->next)
+	{
+		FklPatternMatchingHashTableItem* item=list->node->item;
+		fklDestroyNastNode(item->node);
+	}
 	fklDestroyHashTable(ht);
 	fklDestroyHashTable(lineHash);
 	fklDestroyVMgc(gc);
 	fklDestroyAllVMs(anotherVM);
+	if(r)
+		r->refcount=0;
 	return r;
 }
 

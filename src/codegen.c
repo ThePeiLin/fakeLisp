@@ -2437,7 +2437,6 @@ static CODEGEN_FUNC(codegen_defmacro)
 	}
 	else if(name->type==FKL_NAST_VECTOR)
 	{
-#pragma message "Todo:defmacro for reader macro"
 		FklHashTable* symbolTable=NULL;
 		if(!fklIsValidStringPattern(name,&symbolTable))
 		{

@@ -667,21 +667,28 @@ static void destroyNastNodeQuest(CreateNastNodeQuest* p)
 	free(p);
 }
 
-static size_t getNumOfList(FklStringMatchRouteNode* curRoute
-		,FklStringMatchRouteNode** endRoute
+static int isNoSeperatorBetween(const FklStringMatchRouteNode* a
+		,const FklStringMatchRouteNode* b
+		,FklPtrStack* tokenStack)
+{
+	size_t end=a->start;
+	FklToken** base=(FklToken**)tokenStack->base;
+	for(size_t i=b->end+1;i<end;i++)
+		if(base[i]->type==FKL_TOKEN_RESERVE_STR)
+			return 0;
+	return 1;
+}
+
+static size_t getNumOfList(size_t index
+		,FklStringMatchRouteNode** base
 		,FklPtrStack* tokenStack)
 {
 	size_t i=0;
-	for(;curRoute
-			&&(curRoute->siblings==NULL
-				||curRoute->siblings->start-curRoute->end>1)\
-			;curRoute=curRoute->siblings)
-	{
-		i+=curRoute->start!=curRoute->end
-			||(curRoute->end==curRoute->start
-					&&getSingleToken(curRoute,tokenStack)->type!=FKL_TOKEN_COMMENT);
-	}
-	*endRoute=curRoute;
+	for(;index>0
+			&&(index<2
+				||isNoSeperatorBetween(base[index-2],base[index-1],tokenStack))
+			;index--
+			,i++);
 	return i;
 }
 
@@ -693,10 +700,16 @@ static FklHashTable* processNastStackWithPatternParts(FklNastNode* parts
 	FklHashTable* ht=fklCreatePatternMatchingHashTable();
 	size_t partsNum=parts->u.vec->size;
 	FklNastNode** partsBase=parts->u.vec->base;
-	FklStringMatchRouteNode* child=route->children;
 	FklNastNode** nastBase=(FklNastNode**)nastStack->base;
 	size_t partIndex=1;
 	size_t nastIndex=0;
+	FklPtrStack routeStack={NULL,0,0,0};
+	fklInitPtrStack(&routeStack,8,16);
+	for(FklStringMatchRouteNode* child=route->children
+			;child
+			;child=child->siblings)
+		fklPushPtrStack(child,&routeStack);
+	size_t routeIndex=routeStack.top;
 	while(partIndex<partsNum)
 	{
 		FklNastNode* curPart=partsBase[partIndex];
@@ -706,17 +719,15 @@ static FklHashTable* processNastStackWithPatternParts(FklNastNode* parts
 			case FKL_NAST_SYM:
 				fklPatternMatchingHashTableSet(curPart->u.sym,fklMakeNastNodeRef(curNast),ht);
 				nastIndex++;
-				child=child->siblings;
 				break;
 			case FKL_NAST_BOX:
 				{
-					FklStringMatchRouteNode* nextChild=NULL;
-					size_t num=getNumOfList(child
-							,&nextChild
+					size_t num=getNumOfList(routeIndex
+							,(FklStringMatchRouteNode**)routeStack.base
 							,tokenStack);
 					FklNastNode* list=fklMakeNastNodeRef(fklCreateNastList(&nastBase[nastIndex],num,curNast->curline));
 					nastIndex+=num;
-					child=nextChild;
+					routeIndex-=num;
 					fklPatternMatchingHashTableSet(curPart->u.box->u.sym,list,ht);
 				}
 				break;
@@ -837,7 +848,7 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 					fklUninitPtrStack(&questStack);
 					return NULL;
 				}
-				else if(token->type!=FKL_TOKEN_COMMENT)
+				else
 				{
 					FklNastNode* node=literalNodeCreator[token->type-FKL_TOKEN_CHAR](token->value
 							,token->line);

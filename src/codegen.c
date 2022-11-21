@@ -1443,21 +1443,24 @@ inline static FklNastNode* getExpressionFromFile(FklCodegen* codegen
 			,*(codegen->patterns)
 			,&route);
 	if(*unexpectEOF)
-		return NULL;
-	free(list);
-	if(fklIsAllComment(tokenStack))
-	{
 		begin=NULL;
-		*hasError=0;
-	}
 	else
 	{
-		begin=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack
-				,route
-				,errorLine
-				,builtInHeadSymbolTable
-				,codegen);
-		*hasError=(begin==NULL);
+		free(list);
+		if(fklIsAllComment(tokenStack))
+		{
+			begin=NULL;
+			*hasError=0;
+		}
+		else
+		{
+			begin=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack
+					,route
+					,errorLine
+					,builtInHeadSymbolTable
+					,codegen);
+			*hasError=(begin==NULL);
+		}
 	}
 	while(!fklIsPtrStackEmpty(tokenStack))
 		fklDestroyToken(fklPopPtrStack(tokenStack));

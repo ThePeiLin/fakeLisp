@@ -377,9 +377,9 @@ static int isCover(const FklNastVector* p0,const FklNastVector* p1)
 					FklString* s0=b0[i0]->u.str;
 					FklString* s1=b1[i1]->u.str;
 					r=s0->size<s1->size&&!memcmp(s0->str,s1->str,s0->size);
-					i1++;
 				}
 				i0++;
+				i1++;
 				break;
 			case FKL_NAST_SYM:
 				r=b1[i1]->type!=FKL_NAST_BOX;

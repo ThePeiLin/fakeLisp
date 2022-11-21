@@ -2080,7 +2080,7 @@ void fklAtomicVMcontinuation(FklVMvalue* root,FklVMgc* gc)
 	for(uint32_t i=0;i<root->u.cont->stack->tp;i++)
 		fklGC_toGrey(root->u.cont->stack->values[i],gc);
 	for(FklVMframe* curr=root->u.cont->curr;curr;curr=curr->prev)
-		fklGC_toGrey(curr->localenv,gc);
+		fklGC_toGrey(curr->u.n.localenv,gc);
 	if(root->u.cont->nextCall)
 		fklGC_toGrey(root->u.cont->nextCall,gc);
 	if(root->u.cont->codeObj)
@@ -2280,14 +2280,9 @@ FklVMcontinuation* fklCreateVMcontinuation(uint32_t ap,FklVM* exe)
 		return NULL;
 	FklVMstack* stack=exe->stack;
 	FklVMframe* curr=exe->frames;
-	FklPtrStack* tstack=exe->tstack;
 	FklVMvalue* nextCall=exe->nextCall;
-	uint32_t i=0;
 	FklVMcontinuation* tmp=(FklVMcontinuation*)malloc(sizeof(FklVMcontinuation));
 	FKL_ASSERT(tmp);
-	uint32_t tbnum=tstack->top;
-	FklVMtryBlock* tb=(FklVMtryBlock*)malloc(sizeof(FklVMtryBlock)*tbnum);
-	FKL_ASSERT(tb);
 	tmp->stack=fklCopyStack(stack);
 	tmp->stack->tp=ap;
 	tmp->curr=NULL;
@@ -2297,43 +2292,21 @@ FklVMcontinuation* fklCreateVMcontinuation(uint32_t ap,FklVM* exe)
 	{
 		FklVMframe* t=fklCreateVMframeWithProc(NULL,tmp->curr);
 		tmp->curr=t;
-		t->cp=cur->cp;
-		t->localenv=cur->localenv;
-		t->cpc=cur->cpc;
-		t->scp=cur->scp;
-		t->sid=cur->sid;
-		t->mark=cur->mark;
-		t->codeObj=cur->codeObj;
-		t->code=cur->code;
+		t->u.n.cp=cur->u.n.cp;
+		t->u.n.localenv=cur->u.n.localenv;
+		t->u.n.cpc=cur->u.n.cpc;
+		t->u.n.scp=cur->u.n.scp;
+		t->u.n.sid=cur->u.n.sid;
+		t->u.n.mark=cur->u.n.mark;
+		t->u.n.codeObj=cur->u.n.codeObj;
+		t->u.n.code=cur->u.n.code;
 		t->ccc=fklCopyVMcCC(cur->ccc);
 	}
-	tmp->tnum=tbnum;
-	for(i=0;i<tbnum;i++)
-	{
-		FklVMtryBlock* cur=tstack->base[i];
-		tb[i].sid=cur->sid;
-		FklPtrStack* hstack=cur->hstack;
-		int32_t handlerNum=hstack->top;
-		FklPtrStack* curHstack=fklCreatePtrStack(handlerNum,handlerNum/2);
-		int32_t j=0;
-		for(;j<handlerNum;j++)
-		{
-			FklVMerrorHandler* curH=hstack->base[i];
-			FklVMerrorHandler* h=fklCreateVMerrorHandler(fklCopyMemory(curH->typeIds,sizeof(FklSid_t)*curH->num),curH->num,curH->proc.scp,curH->proc.cpc);
-			fklPushPtrStack(h,curHstack);
-		}
-		tb[i].hstack=curHstack;
-		tb[i].curFrame=cur->curFrame;
-		tb[i].tp=cur->tp;
-	}
-	tmp->tb=tb;
 	return tmp;
 }
 
 void fklDestroyVMcontinuation(FklVMcontinuation* cont)
 {
-	int32_t i=0;
-	int32_t tbsize=cont->tnum;
 	FklVMstack* stack=cont->stack;
 	FklVMframe* curr=cont->curr;
 	while(curr)
@@ -2342,21 +2315,9 @@ void fklDestroyVMcontinuation(FklVMcontinuation* cont)
 		curr=curr->prev;
 		fklDestroyVMframe(cur);
 	}
-	FklVMtryBlock* tb=cont->tb;
 	fklDestroyUintStack(stack->tps);
 	fklDestroyUintStack(stack->bps);
 	free(stack->values);
 	free(stack);
-	for(i=0;i<tbsize;i++)
-	{
-		FklPtrStack* hstack=tb[i].hstack;
-		while(!fklIsPtrStackEmpty(hstack))
-		{
-			FklVMerrorHandler* h=fklPopPtrStack(hstack);
-			fklDestroyVMerrorHandler(h);
-		}
-		fklDestroyPtrStack(hstack);
-	}
-	free(tb);
 	free(cont);
 }

@@ -111,7 +111,7 @@ int main(int argc,char** argv)
 		}
 		FklVMvalue* mainEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateVMenv(globEnv,anotherVM->gc),anotherVM->gc);
 		FklVMframe* mainframe=anotherVM->frames;
-		mainframe->localenv=mainEnv;
+		mainframe->u.n.localenv=mainEnv;
 		int r=fklRunVM(anotherVM);
 		if(r)
 		{
@@ -159,7 +159,7 @@ int main(int argc,char** argv)
 		fclose(fp);
 		FklVMframe* mainframe=anotherVM->frames;
 		FklVMvalue* mainEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateVMenv(globEnv,anotherVM->gc),anotherVM->gc);
-		mainframe->localenv=mainEnv;
+		mainframe->u.n.localenv=mainEnv;
 		int r=fklRunVM(anotherVM);
 		if(r)
 		{
@@ -283,7 +283,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 				fklDestroyByteCodelnt(tmpByteCode);
 				tmp->prevEnv=NULL;
 				FklVMframe* mainframe=fklCreateVMframeWithProc(tmp,anotherVM->frames);
-				mainframe->localenv=mainEnv;
+				mainframe->u.n.localenv=mainEnv;
 				anotherVM->frames=mainframe;
 				int r=fklRunVM(anotherVM);
 				if(r)

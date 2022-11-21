@@ -3021,7 +3021,6 @@ static void* ThreadVMfunc(void* p)
 	fklDestroyVMstack(exe->stack);
 	exe->stack=NULL;
 	exe->codeObj=NULL;
-	fklDestroyPtrStack(exe->tstack);
 	pthread_rwlock_wrlock(&exe->rlock);
 	if(state!=0)
 		fklDeleteCallChain(exe);
@@ -3209,11 +3208,11 @@ void builtin_call_cc(ARGL)
 		FklVMproc* tmpProc=proc->u.proc;
 		FklVMframe* prevProc=fklHasSameProc(tmpProc->scp,exe->frames);
 		if(fklIsTheLastExpress(frame,prevProc,exe)&&prevProc)
-			prevProc->mark=1;
+			prevProc->u.n.mark=1;
 		else
 		{
 			FklVMframe* tmpFrame=fklCreateVMframeWithProc(tmpProc,exe->frames);
-			tmpFrame->localenv=fklCreateVMvalueToStack(FKL_TYPE_ENV,fklCreateVMenv(tmpProc->prevEnv,exe->gc),exe);
+			tmpFrame->u.n.localenv=fklCreateVMvalueToStack(FKL_TYPE_ENV,fklCreateVMenv(tmpProc->prevEnv,exe->gc),exe);
 			exe->frames=tmpFrame;
 		}
 	}
@@ -3226,15 +3225,15 @@ static void applyNativeProc(FklVM* exe,FklVMproc* tmpProc,FklVMframe* frame)
 {
 	FklVMframe* prevProc=fklHasSameProc(tmpProc->scp,exe->frames);
 	if(fklIsTheLastExpress(frame,prevProc,exe)&&prevProc)
-		prevProc->mark=1;
+		prevProc->u.n.mark=1;
 	else
 	{
 		pthread_rwlock_wrlock(&exe->rlock);
 		FklVMframe* tmpFrame=fklCreateVMframeWithProc(tmpProc,exe->frames);
-		tmpFrame->localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(tmpProc->prevEnv,exe->gc));
+		tmpFrame->u.n.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(tmpProc->prevEnv,exe->gc));
 		exe->frames=tmpFrame;
 		pthread_rwlock_unlock(&exe->rlock);
-		fklAddToGC(tmpFrame->localenv,exe);
+		fklAddToGC(tmpFrame->u.n.localenv,exe);
 	}
 }
 
@@ -4136,7 +4135,7 @@ void builtin_get(ARGL)
 	if(!sym)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.get",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(sym,FKL_IS_SYM,"builtin.get",exe);
-	FklVMvalue* volatile* pV=fklFindVar(FKL_GET_SYM(sym),frame->localenv->u.env);
+	FklVMvalue* volatile* pV=fklFindVar(FKL_GET_SYM(sym),frame->u.n.localenv->u.env);
 	if(!pV)
 	{
 		if(defaultValue)
@@ -4163,7 +4162,7 @@ void builtin_set(ARGL)
 	if(!sym||!value)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set!",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(sym,FKL_IS_SYM,"builtin.set!",exe);
-	fklSetRef(fklFindOrAddVar(FKL_GET_SYM(sym),frame->localenv->u.env)
+	fklSetRef(fklFindOrAddVar(FKL_GET_SYM(sym),frame->u.n.localenv->u.env)
 			,value
 			,exe->gc);
 	fklNiReturn(value,&ap,stack);

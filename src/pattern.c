@@ -358,8 +358,43 @@ static FklStringMatchPattern* createBuiltinStringPattern(FklNastNode* parts
 
 static int isCover(const FklNastVector* p0,const FklNastVector* p1)
 {
-#pragma message "Todo:IsCover"
-	return 0;
+	size_t i0=0;
+	size_t i1=0;
+	size_t s0=p0->size;
+	size_t s1=p1->size;
+	FklNastNode** b0=p0->base;
+	FklNastNode** b1=p1->base;
+	int r=1;
+	while(r&&i0<s0&&i1<s1)
+	{
+		switch(b0[i0]->type)
+		{
+			case FKL_NAST_STR:
+				if(b1[i1]->type!=FKL_NAST_STR)
+					r=0;
+				else
+				{
+					FklString* s0=b0[i0]->u.str;
+					FklString* s1=b1[i1]->u.str;
+					r=s0->size<s1->size&&!memcmp(s0->str,s1->str,s0->size);
+					i1++;
+				}
+				i0++;
+				break;
+			case FKL_NAST_SYM:
+				r=b1[i1]->type!=FKL_NAST_BOX;
+				i0++;
+				i1++;
+				break;
+			case FKL_NAST_BOX:
+				i1++;
+				break;
+			default:
+				FKL_ASSERT(0);
+				break;
+		}
+	}
+	return r;
 }
 
 int fklStringPatternCoverState(const FklNastNode* p0,const FklNastNode* p1)

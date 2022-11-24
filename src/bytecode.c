@@ -84,8 +84,7 @@ FklByteCodelnt* fklCopyByteCodelnt(const FklByteCodelnt* obj)
 	tmp->ls=obj->ls;
 	tmp->l=(FklLineNumTabNode*)malloc(sizeof(FklLineNumTabNode)*obj->ls);
 	FKL_ASSERT(tmp->l);
-	int32_t i=0;
-	for(;i<obj->ls;i++)
+	for(size_t i=0;i<obj->ls;i++)
 		tmp->l[i]=obj->l[i];
 	return tmp;
 }

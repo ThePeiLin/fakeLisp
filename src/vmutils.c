@@ -492,16 +492,16 @@ FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe* f,FklVMframe* pr
 {
 	FklVMframe* tmp=(FklVMframe*)malloc(sizeof(FklVMframe));
 	FKL_ASSERT(tmp);
-	tmp->u.n.sid=f->u.n.sid;
-	tmp->u.n.cp=f->u.n.cp;
-	tmp->u.n.scp=f->u.n.scp;
-	tmp->u.n.cpc=f->u.n.cpc;
+	tmp->u.c.sid=f->u.c.sid;
+	tmp->u.c.cp=f->u.c.cp;
+	tmp->u.c.scp=f->u.c.scp;
+	tmp->u.c.cpc=f->u.c.cpc;
 	tmp->prev=prev;
 	tmp->ccc=fklCopyVMcCC(f->ccc);
-	tmp->u.n.sid=0;
-	fklSetRef(&tmp->u.n.codeObj,f->u.n.codeObj,gc);
-	tmp->u.n.code=f->u.n.codeObj->u.code->bc->code;
-	tmp->u.n.mark=0;
+	tmp->u.c.sid=0;
+	fklSetRef(&tmp->u.c.codeObj,f->u.c.codeObj,gc);
+	tmp->u.c.code=f->u.c.codeObj->u.code->bc->code;
+	tmp->u.c.mark=0;
 	tmp->type=FKL_FRAME_COMPOUND;
 	return tmp;
 }
@@ -512,13 +512,13 @@ FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVMframe* prev,Fkl
 	FKL_ASSERT(tmp);
 	tmp->prev=prev;
 	tmp->ccc=NULL;
-	tmp->u.n.sid=0;
-	fklSetRef(&tmp->u.n.codeObj,codeObj,gc);
-	tmp->u.n.code=codeObj->u.code->bc->code;
-	tmp->u.n.cp=0;
-	tmp->u.n.scp=0;
-	tmp->u.n.cpc=codeObj->u.code->bc->size;
-	tmp->u.n.mark=0;
+	tmp->u.c.sid=0;
+	fklSetRef(&tmp->u.c.codeObj,codeObj,gc);
+	tmp->u.c.code=codeObj->u.code->bc->code;
+	tmp->u.c.cp=0;
+	tmp->u.c.scp=0;
+	tmp->u.c.cpc=codeObj->u.code->bc->size;
+	tmp->u.c.mark=0;
 	tmp->type=FKL_FRAME_COMPOUND;
 	return tmp;
 }
@@ -527,24 +527,24 @@ FklVMframe* fklCreateVMframeWithProc(FklVMproc* code,FklVMframe* prev)
 {
 	FklVMframe* tmp=(FklVMframe*)malloc(sizeof(FklVMframe));
 	FKL_ASSERT(tmp);
-	tmp->u.n.sid=0;
-	tmp->u.n.cp=0;
-	tmp->u.n.scp=0;
-	tmp->u.n.cpc=0;
+	tmp->u.c.sid=0;
+	tmp->u.c.cp=0;
+	tmp->u.c.scp=0;
+	tmp->u.c.cpc=0;
 	tmp->prev=prev;
 	tmp->ccc=NULL;
-	tmp->u.n.codeObj=NULL;
-	tmp->u.n.code=NULL;
+	tmp->u.c.codeObj=NULL;
+	tmp->u.c.code=NULL;
 	if(code)
 	{
-		tmp->u.n.codeObj=code->codeObj;
-		tmp->u.n.code=code->codeObj->u.code->bc->code;
-		tmp->u.n.cp=code->scp;
-		tmp->u.n.scp=code->scp;
-		tmp->u.n.cpc=code->cpc;
-		tmp->u.n.sid=code->sid;
+		tmp->u.c.codeObj=code->codeObj;
+		tmp->u.c.code=code->codeObj->u.code->bc->code;
+		tmp->u.c.cp=code->scp;
+		tmp->u.c.scp=code->scp;
+		tmp->u.c.cpc=code->cpc;
+		tmp->u.c.sid=code->sid;
 	}
-	tmp->u.n.mark=0;
+	tmp->u.c.mark=0;
 	tmp->type=FKL_FRAME_COMPOUND;
 	return tmp;
 }

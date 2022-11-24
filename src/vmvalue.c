@@ -2080,7 +2080,7 @@ void fklAtomicVMcontinuation(FklVMvalue* root,FklVMgc* gc)
 	for(uint32_t i=0;i<root->u.cont->stack->tp;i++)
 		fklGC_toGrey(root->u.cont->stack->values[i],gc);
 	for(FklVMframe* curr=root->u.cont->curr;curr;curr=curr->prev)
-		fklGC_toGrey(curr->u.n.localenv,gc);
+		fklGC_toGrey(curr->u.c.localenv,gc);
 	if(root->u.cont->nextCall)
 		fklGC_toGrey(root->u.cont->nextCall,gc);
 	if(root->u.cont->codeObj)
@@ -2292,14 +2292,14 @@ FklVMcontinuation* fklCreateVMcontinuation(uint32_t ap,FklVM* exe)
 	{
 		FklVMframe* t=fklCreateVMframeWithProc(NULL,tmp->curr);
 		tmp->curr=t;
-		t->u.n.cp=cur->u.n.cp;
-		t->u.n.localenv=cur->u.n.localenv;
-		t->u.n.cpc=cur->u.n.cpc;
-		t->u.n.scp=cur->u.n.scp;
-		t->u.n.sid=cur->u.n.sid;
-		t->u.n.mark=cur->u.n.mark;
-		t->u.n.codeObj=cur->u.n.codeObj;
-		t->u.n.code=cur->u.n.code;
+		t->u.c.cp=cur->u.c.cp;
+		t->u.c.localenv=cur->u.c.localenv;
+		t->u.c.cpc=cur->u.c.cpc;
+		t->u.c.scp=cur->u.c.scp;
+		t->u.c.sid=cur->u.c.sid;
+		t->u.c.mark=cur->u.c.mark;
+		t->u.c.codeObj=cur->u.c.codeObj;
+		t->u.c.code=cur->u.c.code;
 		t->ccc=fklCopyVMcCC(cur->ccc);
 	}
 	return tmp;

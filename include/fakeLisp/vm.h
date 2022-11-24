@@ -230,7 +230,7 @@ typedef struct FklVMframe
 			uint64_t cp;
 			uint64_t cpc;
 			FklSid_t sid;
-		}n;
+		}c;
 		FklVMvalue* o;
 	}u;
 	FklVMcCC* ccc;

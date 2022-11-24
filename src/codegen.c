@@ -3505,7 +3505,7 @@ FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 	}
 	FklVMvalue* mainEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,createVMenvFromPatternMatchTable(globEnv,ht,lineHash,anotherVM->gc),anotherVM->gc);
 	FklVMframe* mainframe=anotherVM->frames;
-	mainframe->u.n.localenv=mainEnv;
+	mainframe->u.c.localenv=mainEnv;
 	return anotherVM;
 }
 

@@ -53,7 +53,7 @@ static void callCompoundProcdure(FklVM* exe,FklVMproc* tmpProc,FklVMframe* frame
 {
 	pthread_rwlock_wrlock(&exe->rlock);
 	FklVMframe* tmpFrame=fklCreateVMframeWithProc(tmpProc,exe->frames);
-	tmpFrame->u.n.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(tmpProc->prevEnv,exe->gc));
+	tmpFrame->u.c.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(tmpProc->prevEnv,exe->gc));
 	exe->frames=tmpFrame;
 	pthread_rwlock_unlock(&exe->rlock);
 	fklAddToGC(fklGetCompoundFrameLocalenv(tmpFrame),exe);
@@ -62,12 +62,12 @@ static void callCompoundProcdure(FklVM* exe,FklVMproc* tmpProc,FklVMframe* frame
 static void tailCallCompoundProcdure(FklVM* exe,FklVMproc* proc,FklVMframe* frame)
 {
 	if(fklGetCompoundFrameScp(frame)==proc->scp)
-		frame->u.n.mark=1;
+		frame->u.c.mark=1;
 	else
 	{
 		pthread_rwlock_wrlock(&exe->rlock);
 		FklVMframe* tmpFrame=fklCreateVMframeWithProc(proc,exe->frames->prev);
-		tmpFrame->u.n.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(proc->prevEnv,exe->gc));
+		tmpFrame->u.c.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(proc->prevEnv,exe->gc));
 		exe->frames->prev=tmpFrame;
 		pthread_rwlock_unlock(&exe->rlock);
 		fklAddToGC(fklGetCompoundFrameLocalenv(tmpFrame),exe);
@@ -94,7 +94,7 @@ int fklVMcallInDlproc(FklVMvalue* proc
 			{
 				pthread_rwlock_wrlock(&exe->rlock);
 				FklVMframe* tmpFrame=fklCreateVMframeWithProc(proc->u.proc,exe->frames);
-				tmpFrame->u.n.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(proc->u.proc->prevEnv,exe->gc));
+				tmpFrame->u.c.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(proc->u.proc->prevEnv,exe->gc));
 				exe->frames=tmpFrame;
 				pthread_rwlock_unlock(&exe->rlock);
 				fklAddToGC(fklGetCompoundFrameLocalenv(tmpFrame),exe);
@@ -763,7 +763,7 @@ void B_push_r_env(FklVM* exe)
 	FklVMvalue* n=fklCreateVMvalueToStack(FKL_TYPE_ENV,fklCreateVMenv(FKL_VM_NIL,exe->gc),exe);
 	fklSetRef(&n->u.env->prev,fklGetCompoundFrameLocalenv(frame),exe->gc);
 	pthread_rwlock_wrlock(&exe->rlock);
-	frame->u.n.localenv=n;
+	frame->u.c.localenv=n;
 	pthread_rwlock_unlock(&exe->rlock);
 	fklNiEnd(&ap,stack);
 	fklIncCompoundFrameCp(frame);
@@ -773,7 +773,7 @@ void B_pop_r_env(FklVM* exe)
 {
 	FklVMframe* frame=exe->frames;
 	pthread_rwlock_wrlock(&exe->rlock);
-	frame->u.n.localenv=fklGetCompoundFrameLocalenv(frame)->u.env->prev;
+	frame->u.c.localenv=fklGetCompoundFrameLocalenv(frame)->u.env->prev;
 	pthread_rwlock_unlock(&exe->rlock);
 	fklIncCompoundFrameCp(frame);
 }
@@ -1548,7 +1548,7 @@ FklVM* fklCreateThreadVM(FklVMproc* mainCode,FklVMgc* gc,FklVM* prev,FklVM* next
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe);
 	FklVMframe* t=fklCreateVMframeWithProc(mainCode,NULL);
-	t->u.n.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(mainCode->prevEnv,gc));
+	t->u.c.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(mainCode->prevEnv,gc));
 	exe->frames=t;
 	exe->mark=1;
 	exe->chan=fklCreateSaveVMvalue(FKL_TYPE_CHAN,fklCreateVMchanl(0));
@@ -1574,7 +1574,7 @@ FklVM* fklCreateThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue* ne
 	FKL_ASSERT(exe);
 	FklVMframe* t=fklCreateVMframeWithCodeObj(fklGetCompoundFrameCodeObj(frame),NULL,gc);
 	fklSetCompoundFrameCp(t,fklGetCompoundFrameScp(frame)+fklGetCompoundFrameCpc(frame));
-	t->u.n.localenv=fklGetCompoundFrameLocalenv(frame);
+	t->u.c.localenv=fklGetCompoundFrameLocalenv(frame);
 	exe->frames=t;
 	exe->mark=1;
 	exe->chan=fklCreateSaveVMvalue(FKL_TYPE_CHAN,fklCreateVMchanl(0));
@@ -1793,7 +1793,7 @@ void fklDestroyVMframes(FklVMframe* h)
 	{
 		FklVMframe* cur=h;
 		h=h->prev;
-		cur->u.n.localenv=NULL;
+		cur->u.c.localenv=NULL;
 		free(cur);
 	}
 }
@@ -1827,83 +1827,83 @@ void fklDestroyVMlib(FklVMlib* lib)
 
 unsigned int fklGetCompoundFrameMark(const FklVMframe* f)
 {
-	return f->u.n.mark;
+	return f->u.c.mark;
 }
 
 unsigned int fklSetCompoundFrameMark(FklVMframe* f,unsigned int m)
 {
-	f->u.n.mark=m;
+	f->u.c.mark=m;
 	return m;
 }
 
 FklVMvalue* fklGetCompoundFrameLocalenv(const FklVMframe* f)
 {
-	return f->u.n.localenv;
+	return f->u.c.localenv;
 }
 
 FklVMvalue* fklGetCompoundFrameCodeObj(const FklVMframe* f)
 {
-	return f->u.n.codeObj;
+	return f->u.c.codeObj;
 }
 
 uint8_t* fklGetCompoundFrameCode(const FklVMframe* f)
 {
-	return f->u.n.code;
+	return f->u.c.code;
 }
 
 uint64_t fklGetCompoundFrameScp(const FklVMframe* f)
 {
-	return f->u.n.scp;
+	return f->u.c.scp;
 }
 
 
 uint64_t fklGetCompoundFrameCp(const FklVMframe* f)
 {
-	return f->u.n.cp;
+	return f->u.c.cp;
 }
 
 uint64_t fklAddCompoundFrameCp(FklVMframe* f,int64_t a)
 {
-	f->u.n.cp+=a;
-	return f->u.n.cp;
+	f->u.c.cp+=a;
+	return f->u.c.cp;
 }
 
 uint64_t fklIncCompoundFrameCp(FklVMframe* f)
 {
-	f->u.n.cp++;
-	return f->u.n.cp;
+	f->u.c.cp++;
+	return f->u.c.cp;
 }
 
 uint64_t fklIncAndAddCompoundFrameCp(FklVMframe* f,int64_t a)
 {
-	f->u.n.cp+=1+a;
-	return f->u.n.cp;
+	f->u.c.cp+=1+a;
+	return f->u.c.cp;
 }
 
 uint64_t fklSetCompoundFrameCp(FklVMframe* f,uint64_t a)
 {
-	f->u.n.cp=a;
-	return f->u.n.cp;
+	f->u.c.cp=a;
+	return f->u.c.cp;
 }
 
 uint64_t fklResetCompoundFrameCp(FklVMframe* f)
 {
-	f->u.n.cp=f->u.n.scp;
-	return f->u.n.scp;
+	f->u.c.cp=f->u.c.scp;
+	return f->u.c.scp;
 }
 
 uint64_t fklGetCompoundFrameCpc(const FklVMframe* f)
 {
-	return f->u.n.cpc;
+	return f->u.c.cpc;
 }
 
 FklSid_t fklGetCompoundFrameSid(const FklVMframe* f)
 {
-	return f->u.n.sid;
+	return f->u.c.sid;
 }
 
 int fklIsCompoundFrameReachEnd(const FklVMframe* f)
 {
-	return f->u.n.cp>=(f->u.n.scp+f->u.n.cpc);
+	return f->u.c.cp>=(f->u.c.scp+f->u.c.cpc);
 }
 

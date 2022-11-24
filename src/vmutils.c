@@ -981,7 +981,8 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 							fprintf(fp,"<#proc: ");
 							fklPrintString(fklGetGlobSymbolWithId(v->u.proc->sid)->symbol,fp);
 							fputc('>',fp);
-						}					else
+						}
+						else
 							fputs("#<proc>",fp);
 						break;
 					case FKL_TYPE_CONT:

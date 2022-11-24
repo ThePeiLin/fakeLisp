@@ -527,7 +527,7 @@ void B_push_proc(FklVM* exe)
 	FklVMproc* code=fklCreateVMproc(fklGetCompoundFrameCp(frame)+sizeof(char)+sizeof(uint64_t),sizeOfProc,fklGetCompoundFrameCodeObj(frame),exe->gc);
 	fklCreateVMvalueToStack(FKL_TYPE_PROC,code,exe);
 	fklSetRef(&code->prevEnv,fklGetCompoundFrameLocalenv(frame),exe->gc);
-	fklIncAndAddCompoundFrameCp(frame,sizeof(char)+sizeof(uint64_t)+sizeOfProc);
+	fklIncAndAddCompoundFrameCp(frame,sizeof(uint64_t)+sizeOfProc);
 }
 
 void B_pop(FklVM* exe)

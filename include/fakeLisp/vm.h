@@ -220,9 +220,9 @@ typedef struct FklVMframe
 	FklFrameType type;
 	union
 	{
-		struct
+		struct FklVMframeContext
 		{
-			unsigned int mark :1;
+			unsigned int mark;
 			FklVMvalue* localenv;
 			FklVMvalue* codeObj;
 			uint8_t* code;
@@ -231,7 +231,7 @@ typedef struct FklVMframe
 			uint64_t cpc;
 			FklSid_t sid;
 		}c;
-		FklVMvalue* o;
+		uint8_t o[sizeof(struct FklVMframeContext)];
 	}u;
 	FklVMcCC* ccc;
 	void (*errorCallBack)(void*);

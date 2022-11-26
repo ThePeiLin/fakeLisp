@@ -3234,6 +3234,10 @@ static void error_handler_frame_copy(void* const s[6],void* d[6],FklVM* exe)
 	fklSetRef(&dc->proc,sc->proc,gc);
 	size_t num=sc->num;
 	dc->num=num;
+	dc->errorSymbolLists=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*num);
+	FKL_ASSERT(dc->errorSymbolLists);
+	dc->errorHandlers=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*num);
+	FKL_ASSERT(dc->errorHandlers);
 	for(size_t i=0;i<num;i++)
 	{
 		fklSetRef(&dc->errorSymbolLists[i],sc->errorSymbolLists[i],gc);

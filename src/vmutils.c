@@ -498,7 +498,6 @@ FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe* f,FklVMframe* pr
 	tmp->u.c.scp=f->u.c.scp;
 	tmp->u.c.cpc=f->u.c.cpc;
 	tmp->prev=prev;
-	tmp->ccc=fklCopyVMcCC(f->ccc);
 	tmp->u.c.sid=0;
 	fklSetRef(&tmp->u.c.codeObj,f->u.c.codeObj,gc);
 	tmp->u.c.code=f->u.c.codeObj->u.code->bc->code;
@@ -512,7 +511,6 @@ FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVMframe* prev,Fkl
 	FklVMframe* tmp=(FklVMframe*)malloc(sizeof(FklVMframe));
 	FKL_ASSERT(tmp);
 	tmp->prev=prev;
-	tmp->ccc=NULL;
 	tmp->u.c.sid=0;
 	fklSetRef(&tmp->u.c.codeObj,codeObj,gc);
 	tmp->u.c.code=codeObj->u.code->bc->code;
@@ -533,7 +531,6 @@ FklVMframe* fklCreateVMframeWithProc(FklVMproc* code,FklVMframe* prev)
 	tmp->u.c.scp=0;
 	tmp->u.c.cpc=0;
 	tmp->prev=prev;
-	tmp->ccc=NULL;
 	tmp->u.c.codeObj=NULL;
 	tmp->u.c.code=NULL;
 	if(code)
@@ -550,42 +547,25 @@ FklVMframe* fklCreateVMframeWithProc(FklVMproc* code,FklVMframe* prev)
 	return tmp;
 }
 
+FklVMframe* fklCreateOtherObjVMframe(const FklVMframeContextMethodTable* t,FklVMframe* prev)
+{
+	FklVMframe* r=(FklVMframe*)malloc(sizeof(FklVMframe));
+	FKL_ASSERT(r);
+	r->type=FKL_FRAME_OTHEROBJ;
+	r->u.o.t=t;
+	r->u.o.data[0]=NULL;
+	r->u.o.data[1]=NULL;
+	r->u.o.data[2]=NULL;
+	r->u.o.data[3]=NULL;
+	r->u.o.data[4]=NULL;
+	r->u.o.data[5]=NULL;
+}
+
 void fklDestroyVMframe(FklVMframe* frame)
 {
-	FklVMcCC* curCCC=frame->ccc;
-	while(curCCC)
-	{
-		FklVMcCC* cur=curCCC;
-		curCCC=cur->next;
-		fklDestroyVMcCC(cur);
-	}
+	if(frame->type==FKL_FRAME_OTHEROBJ)
+		fklDoFinalizeObjFrame(frame);
 	free(frame);
-}
-
-FklVMcCC* fklCreateVMcCC(FklVMFuncK kFunc,void* ctx,size_t size,FklVMcCC* next)
-{
-	FklVMcCC* r=(FklVMcCC*)malloc(sizeof(FklVMcCC));
-	FKL_ASSERT(r);
-	r->kFunc=kFunc;
-	r->ctx=ctx;
-	r->size=size;
-	r->next=next;
-	return r;
-}
-
-FklVMcCC* fklCopyVMcCC(FklVMcCC* ccc)
-{
-	FklVMcCC* r=NULL;
-	FklVMcCC** pr=&r;
-	for(FklVMcCC* curCCC=ccc;curCCC;curCCC=curCCC->next,pr=&(*pr)->next)
-		*pr=fklCreateVMcCC(curCCC->kFunc,fklCopyMemory(curCCC->ctx,curCCC->size),curCCC->size,NULL);
-	return r;
-}
-
-void fklDestroyVMcCC(FklVMcCC* cc)
-{
-	free(cc->ctx);
-	free(cc);
 }
 
 char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorType type)

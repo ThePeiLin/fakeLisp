@@ -243,6 +243,11 @@ typedef struct FklVMframe
 	struct FklVMframe* prev;
 }FklVMframe;
 
+void** fklGetFrameData(FklVMframe* f);
+int fklIsCallableObjFrameReachEnd(FklVMframe* f);
+void fklDoCallableObjFrameStep(FklVMframe* f,struct FklVM* exe);
+void fklDoFinalizeObjFrame(FklVMframe* f);
+
 typedef struct
 {
 	FklUintStack* bps;
@@ -602,6 +607,8 @@ int fklVMcallInDlproc(FklVMvalue*
 		,size_t);
 
 size_t fklVMlistLength(FklVMvalue*);
+
+FklVMframe* fklCreateOtherObjVMframe(const FklVMframeContextMethodTable* t,FklVMframe* prev);
 
 unsigned int fklGetCompoundFrameMark(const FklVMframe*);
 unsigned int fklSetCompoundFrameMark(FklVMframe*,unsigned int);

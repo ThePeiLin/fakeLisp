@@ -100,19 +100,11 @@ typedef struct
 	FklVMcCC ccc;
 }DlprocFrameContext;
 
-inline static void initVMcCC(FklVMcCC* ccc)
+inline static void initVMcCC(FklVMcCC* ccc,FklVMFuncK kFunc,void* ctx,size_t size)
 {
-	ccc->kFunc=NULL;
-	ccc->ctx=NULL;
-	ccc->size=0;
-}
-
-inline static void initDlprocFrameContext(void* data[6],FklVMvalue* proc,FklVMgc* gc)
-{
-	DlprocFrameContext* c=(DlprocFrameContext*)data;
-	fklSetRef(&c->proc,proc,gc);
-	c->state=DLPROC_READY;
-	initVMcCC(&c->ccc);
+	ccc->kFunc=kFunc;
+	ccc->ctx=ctx;
+	ccc->size=size;
 }
 
 static void dlproc_frame_atomic(void* data[6],FklVMgc* gc)
@@ -162,6 +154,7 @@ static void dlproc_frame_step(void* data[6],FklVM* exe)
 			dlproc->func(exe,dlproc->dll,dlproc->pd);
 			break;
 		case DLPROC_CCC:
+			c->state=DLPROC_DONE;
 			c->ccc.kFunc(exe,FKL_CC_RE,c->ccc.ctx);
 			break;
 		case DLPROC_DONE:
@@ -179,9 +172,21 @@ static const FklVMframeContextMethodTable DlprocContextMethodTable=
 	.step=dlproc_frame_step,
 };
 
-void callDlProc(FklVM* exe,FklVMdlproc* dlproc)
+inline static void initDlprocFrameContext(void* data[6],FklVMvalue* proc,FklVMgc* gc)
 {
-	dlproc->func(exe,dlproc->dll,dlproc->pd);
+	DlprocFrameContext* c=(DlprocFrameContext*)data;
+	fklSetRef(&c->proc,proc,gc);
+	c->state=DLPROC_READY;
+	initVMcCC(&c->ccc,NULL,NULL,0);
+}
+
+void callDlProc(FklVM* exe,FklVMvalue* dlproc)
+{
+	pthread_rwlock_wrlock(&exe->rlock);
+	FklVMframe* prev=exe->frames;
+	FklVMframe* f=fklCreateOtherObjVMframe(&DlprocContextMethodTable,prev);
+	initDlprocFrameContext(f->u.o.data,dlproc,exe->gc);
+	pthread_rwlock_unlock(&exe->rlock);
 }
 
 /*--------------------------*/
@@ -385,24 +390,24 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode,FklVM* prev,FklVM* next)
 //	return exe;
 //}
 
-inline static void** getFrameData(FklVMframe* f)
+inline void** fkGetFrameData(FklVMframe* f)
 {
 	return f->u.o.data;
 }
 
-inline static int isCallableObjFrameReachEnd(FklVMframe* f)
+inline int fklIsCallableObjFrameReachEnd(FklVMframe* f)
 {
-	return f->u.o.t->end(getFrameData(f));
+	return f->u.o.t->end(fklGetFrameData(f));
 }
 
-inline static void doCallableObjFrameStep(FklVMframe* f,FklVM* exe)
+inline void fklDoCallableObjFrameStep(FklVMframe* f,FklVM* exe)
 {
-	f->u.o.t->step(getFrameData(f),exe);
+	f->u.o.t->step(fklGetFrameData(f),exe);
 }
 
-inline static void doFinalObjFrame(FklVMframe* f)
+inline void fklDoFinalizeObjFrame(FklVMframe* f)
 {
-	f->u.o.t->finalizer(getFrameData(f));
+	f->u.o.t->finalizer(fklGetFrameData(f));
 }
 
 inline static FklVMframe* popFrame(FklVM* exe)
@@ -416,7 +421,7 @@ inline static FklVMframe* popFrame(FklVM* exe)
 
 inline static void doAtomicFrame(FklVMframe* f,FklVMgc* gc)
 {
-	f->u.o.t->atomic(getFrameData(f),gc);
+	f->u.o.t->atomic(fklGetFrameData(f),gc);
 }
 
 inline static void callCallableObj(FklVMvalue* v,FklVM* exe)
@@ -427,7 +432,7 @@ inline static void callCallableObj(FklVMvalue* v,FklVM* exe)
 			callContinuation(exe,v->u.cont);
 			break;
 		case FKL_TYPE_DLPROC:
-			callDlProc(exe,v->u.dlproc);
+			callDlProc(exe,v);
 			break;
 		case FKL_TYPE_USERDATA:
 			v->u.ud->t->__call(v->u.ud->data,exe,v->u.ud->rel);
@@ -447,7 +452,9 @@ int fklVMcallInDlproc(FklVMvalue* proc
 		,size_t size)
 {
 	FklVMstack* stack=exe->stack;
-	frame->ccc=fklCreateVMcCC(kFunc,ctx,size,frame->ccc);
+	DlprocFrameContext* c=(DlprocFrameContext*)frame->u.o.data;
+	c->state=DLPROC_CCC;
+	initVMcCC(&c->ccc,kFunc,ctx,size);
 	fklNiSetBp(stack->tp,stack);
 	for(size_t i=argNum;i>0;i--)
 		fklPushVMvalue(arglist[i-1],stack);
@@ -478,15 +485,15 @@ int fklRunVM(FklVM* exe)
 		if(setjmp(exe->buf)==1)
 			return 255;
 		FklVMframe* curframe=exe->frames;
-		while(curframe->ccc)
-		{
-			FklVMcCC* curCCC=curframe->ccc;
-			curframe->ccc=curCCC->next;
-			FklVMFuncK kFunc=curCCC->kFunc;
-			void* ctx=curCCC->ctx;
-			free(curCCC);
-			kFunc(exe,FKL_CC_RE,ctx);
-		}
+		//while(curframe->ccc)
+		//{
+		//	FklVMcCC* curCCC=curframe->ccc;
+		//	curframe->ccc=curCCC->next;
+		//	FklVMFuncK kFunc=curCCC->kFunc;
+		//	void* ctx=curCCC->ctx;
+		//	free(curCCC);
+		//	kFunc(exe,FKL_CC_RE,ctx);
+		//}
 		switch(curframe->type)
 		{
 			case FKL_FRAME_COMPOUND:
@@ -507,11 +514,11 @@ int fklRunVM(FklVM* exe)
 				ByteCodes[fklGetCompoundFrameCode(curframe)[cp]](exe);
 				break;
 			case FKL_FRAME_OTHEROBJ:
-				if(isCallableObjFrameReachEnd(curframe))
-					doCallableObjFrameStep(curframe,exe);
+				if(fklIsCallableObjFrameReachEnd(curframe))
+					fklDoCallableObjFrameStep(curframe,exe);
 				else
 				{
-					doFinalObjFrame(popFrame(exe));
+					fklDoFinalizeObjFrame(popFrame(exe));
 					continue;
 				}
 				break;

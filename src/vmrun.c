@@ -40,14 +40,6 @@ static Greylink* createGreylink(FklVMvalue* v,struct Greylink* next)
 	return g;
 }
 
-//static void threadErrorCallBack(void* a)
-//{
-//	void** e=(void**)a;
-//	int* i=(int*)a;
-//	FklVM* exe=e[0];
-//	longjmp(exe->buf,i[(sizeof(void*)*2)/sizeof(int)]);
-//}
-
 /*procedure call functions*/
 static void callCompoundProcdure(FklVM* exe,FklVMproc* tmpProc,FklVMframe* frame)
 {
@@ -105,6 +97,21 @@ inline static void initVMcCC(FklVMcCC* ccc,FklVMFuncK kFunc,void* ctx,size_t siz
 	ccc->kFunc=kFunc;
 	ccc->ctx=ctx;
 	ccc->size=size;
+}
+
+static void dlproc_frame_backtrace(void* data[6],FILE* fp)
+{
+	DlprocFrameContext* c=(DlprocFrameContext*)data;
+	FklVMdlproc* dlproc=c->proc->u.dlproc;
+	if(dlproc->sid)
+	{
+		fprintf(fp,"at dlproc:");
+		fklPrintString(fklGetGlobSymbolWithId(dlproc->sid)->symbol
+				,stderr);
+		fputc('\n',fp);
+	}
+	else
+		fputs("at <dlproc>\n",fp);
 }
 
 static void dlproc_frame_atomic(void* data[6],FklVMgc* gc)
@@ -167,7 +174,7 @@ static const FklVMframeContextMethodTable DlprocContextMethodTable=
 	.atomic=dlproc_frame_atomic,
 	.finalizer=dlproc_frame_finalizer,
 	.copy=dlproc_frame_copy,
-	.backtrace=NULL,
+	.backtrace=dlproc_frame_backtrace,
 	.end=dlproc_frame_end,
 	.step=dlproc_frame_step,
 };
@@ -399,6 +406,15 @@ inline void** fklGetFrameData(FklVMframe* f)
 inline int fklIsCallableObjFrameReachEnd(FklVMframe* f)
 {
 	return f->u.o.t->end(fklGetFrameData(f));
+}
+
+inline void fklDoBacktrace(FklVMframe* f,FILE* fp)
+{
+	void (*backtrace)(void* data[6],FILE*)=f->u.o.t->backtrace;
+	if(backtrace)
+		backtrace(f->u.o.data,fp);
+	else
+		fprintf(fp,"at callable-obj\n");
 }
 
 inline void fklDoCallableObjFrameStep(FklVMframe* f,FklVM* exe)

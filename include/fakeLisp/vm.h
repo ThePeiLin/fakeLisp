@@ -243,6 +243,7 @@ typedef struct FklVMframe
 	struct FklVMframe* prev;
 }FklVMframe;
 
+void fklDoBacktrace(FklVMframe* f,FILE* fp);
 void fklCallobj(FklVMvalue*,FklVMframe*,struct FklVM* exe);
 void fklTailCallobj(FklVMvalue*,FklVMframe*,struct FklVM* exe);
 void fklDoAtomicFrame(FklVMframe* f,struct FklVMgc*);

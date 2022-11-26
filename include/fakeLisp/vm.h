@@ -201,14 +201,6 @@ typedef struct FklVMproc
 
 typedef void (*FklVMFuncK)(struct FklVM*,FklCCState,void*);
 
-typedef struct FklVMcCC
-{
-	FklVMFuncK kFunc;
-	void* ctx;
-	size_t size;
-	struct FklVMcCC* next;
-}FklVMcCC;
-
 typedef enum
 {
 	FKL_FRAME_COMPOUND,
@@ -218,11 +210,11 @@ typedef enum
 typedef struct
 {
 	int (*end)(void* data[6]);
-	int (*step)(void* data[6],struct FklVM*);
+	void (*step)(void* data[6],struct FklVM*);
 	void (*backtrace)(void* data[6],FILE* fp);
 	void (*atomic)(void* data[6],FklVMgc*);
 	void (*finalizer)(void* data[6]);
-	void (*copy)(void* s[6],void* d[6]);
+	void (*copy)(const void* s[6],void* d[6],struct FklVM*);
 }FklVMframeContextMethodTable;
 
 typedef struct FklVMframe
@@ -247,7 +239,6 @@ typedef struct FklVMframe
 			void* data[6];
 		}o;
 	}u;
-	FklVMcCC* ccc;
 	void (*errorCallBack)(void*);
 	struct FklVMframe* prev;
 }FklVMframe;
@@ -282,8 +273,6 @@ typedef struct FklVM
 	FklVMvalue* codeObj;
 	struct FklVMvalue* chan;
 	struct FklVMgc* gc;
-	FklVMvalue* volatile nextCall;
-	FklVMvalue* volatile nextCallBackUp;
 	size_t libNum;
 	FklVMlib* libs;
 	pthread_mutex_t prev_next_lock;
@@ -463,9 +452,9 @@ char* fklGenErrorMessage(FklBuiltInErrorType type,FklVM* exe);
 char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorType);
 int32_t fklGetSymbolIdInByteCode(const uint8_t*);
 
-FklVMcCC* fklCreateVMcCC(FklVMFuncK kFunc,void* ctx,size_t,FklVMcCC* next);
-FklVMcCC* fklCopyVMcCC(FklVMcCC*);
-void fklDestroyVMcCC(FklVMcCC*);
+//FklVMcCC* fklCreateVMcCC(FklVMFuncK kFunc,void* ctx,size_t,FklVMcCC* next);
+//FklVMcCC* fklCopyVMcCC(FklVMcCC*);
+//void fklDestroyVMcCC(FklVMcCC*);
 
 FklVMcontinuation* fklCreateVMcontinuation(uint32_t ap,FklVM*);
 void fklDestroyVMcontinuation(FklVMcontinuation* cont);

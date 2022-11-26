@@ -205,6 +205,7 @@ static FklVMudMethodTable FfiProcMethodTable=
 	.__append=NULL,
 	.__copy=NULL,
 	.__hash=NULL,
+	.__setq_hook=NULL,
 };
 
 int fklFfiIsProc(FklVMvalue* p)

@@ -341,6 +341,40 @@ static void callCallableObj(FklVMvalue* v,FklVM* exe)
 	}
 }
 
+inline static void** getFrameData(FklVMframe* f)
+{
+	return f->u.o.data;
+}
+
+inline static int isCallableObjFrameReachEnd(FklVMframe* f)
+{
+	return f->u.o.t->end(getFrameData(f));
+}
+
+inline static void doCallableObjFrameStep(FklVMframe* f,FklVM* exe)
+{
+	f->u.o.t->step(getFrameData(f),exe);
+}
+
+inline static void doFinalObjFrame(FklVMframe* f)
+{
+	f->u.o.t->finalizer(getFrameData(f));
+}
+
+inline static FklVMframe* popFrame(FklVM* exe)
+{
+	pthread_rwlock_wrlock(&exe->rlock);
+	FklVMframe* frame=exe->frames;
+	exe->frames=frame->prev;
+	pthread_rwlock_unlock(&exe->rlock);
+	return frame;
+}
+
+inline static void doAtomicFrame(FklVMframe* f,FklVMgc* gc)
+{
+	f->u.o.t->atomic(getFrameData(f),gc);
+}
+
 int fklRunVM(FklVM* exe)
 {
 	while(exe->frames)
@@ -359,26 +393,36 @@ int fklRunVM(FklVM* exe)
 			free(curCCC);
 			kFunc(exe,FKL_CC_RE,ctx);
 		}
-		if(fklIsCompoundFrameReachEnd(curframe))
+		switch(curframe->type)
 		{
-			if(fklGetCompoundFrameMark(curframe))
-			{
-				fklResetCompoundFrameCp(curframe);
-				fklSetCompoundFrameMark(curframe,0);
-			}
-			else
-			{
-				pthread_rwlock_wrlock(&exe->rlock);
-				FklVMframe* frame=exe->frames;
-				exe->frames=frame->prev;
-				free(frame);
-				pthread_rwlock_unlock(&exe->rlock);
-				continue;
-			}
+			case FKL_FRAME_COMPOUND:
+				if(fklIsCompoundFrameReachEnd(curframe))
+				{
+					if(fklGetCompoundFrameMark(curframe))
+					{
+						fklResetCompoundFrameCp(curframe);
+						fklSetCompoundFrameMark(curframe,0);
+					}
+					else
+					{
+						free(popFrame(exe));
+						continue;
+					}
+				}
+				uint64_t cp=fklGetCompoundFrameCp(curframe);
+				ByteCodes[fklGetCompoundFrameCode(curframe)[cp]](exe);
+				break;
+			case FKL_FRAME_OTHEROBJ:
+				if(isCallableObjFrameReachEnd(curframe))
+					doCallableObjFrameStep(curframe,exe);
+				else
+				{
+					doFinalObjFrame(popFrame(exe));
+					continue;
+				}
+				break;
 		}
-		uint64_t cp=fklGetCompoundFrameCp(curframe);
-		ByteCodes[fklGetCompoundFrameCode(curframe)[cp]](exe);
-//		fklGC_step(exe);
+		//fklGC_step(exe);
 	}
 	return 0;
 }
@@ -571,10 +615,7 @@ void B_pop_var(FklVM* exe)
 	}
 	fklSetRef(pv,fklNiGetArg(&ap,stack),exe->gc);
 	fklNiEnd(&ap,stack);
-	if(FKL_IS_PROC(*pv)&&(*pv)->u.proc->sid==0)
-		(*pv)->u.proc->sid=idOfVar;
-	if(FKL_IS_DLPROC(*pv)&&(*pv)->u.dlproc->sid==0)
-		(*pv)->u.dlproc->sid=idOfVar;
+	fklNiDoSomeAfterSetq(*pv,idOfVar);
 	fklIncAndAddCompoundFrameCp(frame,sizeof(int32_t)+sizeof(FklSid_t));
 }
 
@@ -589,6 +630,7 @@ void B_pop_arg(FklVM* exe)
 	FklVMvalue* volatile* pValue=fklFindOrAddVar(idOfVar,curEnv->u.env);
 	fklSetRef(pValue,fklNiGetArg(&ap,stack),exe->gc);
 	fklNiEnd(&ap,stack);
+	fklNiDoSomeAfterSetq(*pValue,idOfVar);
 	fklIncAndAddCompoundFrameCp(frame,sizeof(FklSid_t));
 }
 
@@ -1120,26 +1162,32 @@ void fklGC_markRootToGrey(FklVM* exe)
 		fklGC_toGrey(exe->codeObj,gc);
 	if(exe->nextCallBackUp)
 		fklGC_toGrey(exe->nextCallBackUp,gc);
-//	pthread_rwlock_rdlock(&exe->rlock);
+	//	pthread_rwlock_rdlock(&exe->rlock);
 	for(FklVMframe* cur=exe->frames;cur;cur=cur->prev)
-	{
-		fklGC_toGrey(fklGetCompoundFrameLocalenv(cur),gc);
-		fklGC_toGrey(fklGetCompoundFrameCodeObj(cur),gc);
-	}
+		switch(cur->type)
+		{
+			case FKL_FRAME_COMPOUND:
+				fklGC_toGrey(fklGetCompoundFrameLocalenv(cur),gc);
+				fklGC_toGrey(fklGetCompoundFrameCodeObj(cur),gc);
+				break;
+			case FKL_FRAME_OTHEROBJ:
+				doAtomicFrame(cur,gc);
+				break;
+		}
 	for(size_t i=0;i<exe->libNum;i++)
 	{
 		fklGC_toGrey(exe->libs[i].libEnv,gc);
 		fklGC_toGrey(exe->libs[i].proc,gc);
 	}
-//	pthread_rwlock_unlock(&exe->rlock);
-//	pthread_rwlock_rdlock(&stack->lock);
+	//	pthread_rwlock_unlock(&exe->rlock);
+	//	pthread_rwlock_rdlock(&stack->lock);
 	for(uint32_t i=0;i<stack->tp;i++)
 	{
 		FklVMvalue* value=stack->values[i];
 		if(FKL_IS_PTR(value))
 			fklGC_toGrey(value,gc);
 	}
-//	pthread_rwlock_unlock(&stack->lock);
+	//	pthread_rwlock_unlock(&stack->lock);
 	if(exe->chan)
 		fklGC_toGrey(exe->chan,gc);
 }

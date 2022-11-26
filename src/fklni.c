@@ -95,3 +95,15 @@ FklVMvalue* fklNiPopTop(size_t* ap,FklVMstack* stack)
 	*ap-=1;
 	return stack->values[*ap];
 }
+
+void fklNiDoSomeAfterSetq(FklVMvalue* v,FklSid_t sid)
+{
+	if(FKL_IS_PROC(v)&&v->u.proc->sid==0)
+		v->u.proc->sid=sid;
+	else if(FKL_IS_DLPROC(v)&&v->u.dlproc->sid==0)
+		v->u.dlproc->sid=sid;
+	else if(FKL_IS_USERDATA(v)&&v->u.ud->t->__setq_hook)
+		v->u.ud->t->__setq_hook(v->u.ud->data,sid);
+}
+
+

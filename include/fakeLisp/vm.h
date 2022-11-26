@@ -215,23 +215,37 @@ typedef enum
 	FKL_FRAME_OTHEROBJ,
 }FklFrameType;
 
+typedef struct
+{
+	int (*end)(void* data[6]);
+	int (*step)(void* data[6],struct FklVM*);
+	void (*backtrace)(void* data[6],FILE* fp);
+	void (*atomic)(void* data[6],FklVMgc*);
+	void (*finalizer)(void* data[6]);
+	void (*copy)(void* s[6],void* d[6]);
+}FklVMframeContextMethodTable;
+
 typedef struct FklVMframe
 {
 	FklFrameType type;
 	union
 	{
-		struct FklVMframeContext
+		struct
 		{
-			unsigned int mark;
+			unsigned int mark:3;
+			FklSid_t sid:61;
 			FklVMvalue* localenv;
 			FklVMvalue* codeObj;
 			uint8_t* code;
 			uint64_t scp;
 			uint64_t cp;
 			uint64_t cpc;
-			FklSid_t sid;
 		}c;
-		uint8_t o[sizeof(struct FklVMframeContext)];
+		struct
+		{
+			const FklVMframeContextMethodTable* t;
+			void* data[6];
+		}o;
 	}u;
 	FklVMcCC* ccc;
 	void (*errorCallBack)(void*);
@@ -293,6 +307,7 @@ typedef struct FklVMudMethodTable
 	void (*__append)(void**,void*);
 	void* (*__copy)(void*);
 	size_t (*__hash)(void*,FklPtrStack*);
+	void (*__setq_hook)(void*,FklSid_t);
 	FklString* (*__to_string)(void*);
 }FklVMudMethodTable;
 

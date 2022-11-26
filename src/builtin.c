@@ -2735,16 +2735,16 @@ void builtin_read(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_parser(ARGL)
+void builtin_parse(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* stream=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_TOOMANYARG,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.parse",FKL_ERR_TOOMANYARG,exe);
 	if(!stream)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.parser",FKL_ERR_TOOFEWARG,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.parse",FKL_ERR_TOOFEWARG,exe);
 	if(!FKL_IS_STR(stream))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.parse",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	char* tmpString=NULL;
 	FklPtrStack* tokenStack=fklCreatePtrStack(32,16);
 	FklStringMatchSet* matchSet=FKL_STRING_PATTERN_UNIVERSAL_SET;
@@ -4162,11 +4162,12 @@ void builtin_set(ARGL)
 	if(!sym||!value)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set!",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(sym,FKL_IS_SYM,"builtin.set!",exe);
-	fklSetRef(fklFindOrAddVar(FKL_GET_SYM(sym),frame->u.c.localenv->u.env)
-			,value
-			,exe->gc);
+	FklSid_t sid=FKL_GET_SYM(sym);
+	FklVMvalue* volatile* pv=fklFindOrAddVar(sid,frame->u.c.localenv->u.env);
+	fklSetRef(pv,value,exe->gc);
 	fklNiReturn(value,&ap,stack);
 	fklNiEnd(&ap,stack);
+	fklNiDoSomeAfterSetq(*pv,sid);
 }
 
 void builtin_system(ARGL)
@@ -4553,7 +4554,7 @@ static const struct SymbolFuncStruct
 	{"continuation?",         builtin_continuation_p,          },
 	{"fopen",                 builtin_fopen,                   },
 	{"read",                  builtin_read,                    },
-	{"parser",                builtin_parser,                  },
+	{"parse",                 builtin_parse,                   },
 	{"prin1",                 builtin_prin1,                   },
 	{"princ",                 builtin_princ,                   },
 	{"dlopen",                builtin_dlopen,                  },

@@ -419,6 +419,7 @@ static int isShouldBeHandle(FklSid_t* typeIds,uint32_t num,FklSid_t type)
 
 int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 {
+	FklVMframe* frame=exe->frames;
 	FklVMerror* err=ev->u.err;
 	//while(!fklIsPtrStackEmpty(exe->tstack))
 	//{
@@ -483,8 +484,8 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 		else
 			fprintf(stderr,"(%u)\n",node->line);
 	}
-	//void* i[3]={exe,(void*)255,(void*)1};
-	//exe->callback(i);
+	void* i[3]={exe,(void*)255,(void*)1};
+	frame->errorCallBack(i);
 	return 255;
 }
 

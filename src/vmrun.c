@@ -186,6 +186,7 @@ void callDlProc(FklVM* exe,FklVMvalue* dlproc)
 	FklVMframe* prev=exe->frames;
 	FklVMframe* f=fklCreateOtherObjVMframe(&DlprocContextMethodTable,prev);
 	initDlprocFrameContext(f->u.o.data,dlproc,exe->gc);
+	exe->frames=f;
 	pthread_rwlock_unlock(&exe->rlock);
 }
 
@@ -390,7 +391,7 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode,FklVM* prev,FklVM* next)
 //	return exe;
 //}
 
-inline void** fkGetFrameData(FklVMframe* f)
+inline void** fklGetFrameData(FklVMframe* f)
 {
 	return f->u.o.data;
 }
@@ -438,6 +439,35 @@ inline static void callCallableObj(FklVMvalue* v,FklVM* exe)
 			v->u.ud->t->__call(v->u.ud->data,exe,v->u.ud->rel);
 			break;
 		default:
+			break;
+	}
+}
+
+inline static void applyCompoundProc(FklVM* exe,FklVMproc* tmpProc,FklVMframe* frame)
+{
+	FklVMframe* prevProc=fklHasSameProc(tmpProc->scp,exe->frames);
+	if(fklIsTheLastExpress(frame,prevProc,exe)&&prevProc)
+		prevProc->u.c.mark=1;
+	else
+	{
+		pthread_rwlock_wrlock(&exe->rlock);
+		FklVMframe* tmpFrame=fklCreateVMframeWithProc(tmpProc,exe->frames);
+		tmpFrame->u.c.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(tmpProc->prevEnv,exe->gc));
+		exe->frames=tmpFrame;
+		pthread_rwlock_unlock(&exe->rlock);
+		fklAddToGC(tmpFrame->u.c.localenv,exe);
+	}
+}
+
+void fklCallobj(FklVMvalue* proc,FklVMframe* frame,FklVM* exe)
+{
+	switch(proc->type)
+	{
+		case FKL_TYPE_PROC:
+			applyCompoundProc(exe,proc->u.proc,frame);
+			break;
+		default:
+			callCallableObj(proc,exe);
 			break;
 	}
 }
@@ -514,7 +544,7 @@ int fklRunVM(FklVM* exe)
 				ByteCodes[fklGetCompoundFrameCode(curframe)[cp]](exe);
 				break;
 			case FKL_FRAME_OTHEROBJ:
-				if(fklIsCallableObjFrameReachEnd(curframe))
+				if(!fklIsCallableObjFrameReachEnd(curframe))
 					fklDoCallableObjFrameStep(curframe,exe);
 				else
 				{
@@ -1192,7 +1222,7 @@ int fklIsTheLastExpress(const FklVMframe* frame,const FklVMframe* same,const Fkl
 {
 	if(same==NULL)
 		return 0;
-	uint32_t size=0;
+	size_t size=0;
 	for(;;)
 	{
 		uint8_t* code=fklGetCompoundFrameCode(frame);

@@ -3203,38 +3203,8 @@ void builtin_call_cc(ARGL)
 	pthread_rwlock_unlock(&exe->rlock);
 	fklNiSetBp(ap,stack);
 	fklNiReturn(vcc,&ap,stack);
-	if(proc->type==FKL_TYPE_PROC)
-	{
-		FklVMproc* tmpProc=proc->u.proc;
-		FklVMframe* prevProc=fklHasSameProc(tmpProc->scp,exe->frames);
-		if(fklIsTheLastExpress(frame,prevProc,exe)&&prevProc)
-			prevProc->u.c.mark=1;
-		else
-		{
-			FklVMframe* tmpFrame=fklCreateVMframeWithProc(tmpProc,exe->frames);
-			tmpFrame->u.c.localenv=fklCreateVMvalueToStack(FKL_TYPE_ENV,fklCreateVMenv(tmpProc->prevEnv,exe->gc),exe);
-			exe->frames=tmpFrame;
-		}
-	}
-	else
-		exe->nextCall=proc;
+	fklCallobj(proc,frame,exe);
 	fklNiEnd(&ap,stack);
-}
-
-static void applyNativeProc(FklVM* exe,FklVMproc* tmpProc,FklVMframe* frame)
-{
-	FklVMframe* prevProc=fklHasSameProc(tmpProc->scp,exe->frames);
-	if(fklIsTheLastExpress(frame,prevProc,exe)&&prevProc)
-		prevProc->u.c.mark=1;
-	else
-	{
-		pthread_rwlock_wrlock(&exe->rlock);
-		FklVMframe* tmpFrame=fklCreateVMframeWithProc(tmpProc,exe->frames);
-		tmpFrame->u.c.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(tmpProc->prevEnv,exe->gc));
-		exe->frames=tmpFrame;
-		pthread_rwlock_unlock(&exe->rlock);
-		fklAddToGC(tmpFrame->u.c.localenv,exe);
-	}
 }
 
 void builtin_apply(ARGL)
@@ -3287,15 +3257,7 @@ void builtin_apply(ARGL)
 		fklNiReturn(t,&ap,stack);
 	}
 	fklDestroyPtrStack(stack1);
-	switch(proc->type)
-	{
-		case FKL_TYPE_PROC:
-			applyNativeProc(exe,proc->u.proc,frame);
-			break;
-		default:
-			exe->nextCall=proc;
-			break;
-	}
+	fklCallobj(proc,frame,exe);
 	fklNiEnd(&ap,stack);
 }
 

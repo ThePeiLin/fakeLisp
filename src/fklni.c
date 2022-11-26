@@ -105,5 +105,3 @@ void fklNiDoSomeAfterSetq(FklVMvalue* v,FklSid_t sid)
 	else if(FKL_IS_USERDATA(v)&&v->u.ud->t->__setq_hook)
 		v->u.ud->t->__setq_hook(v->u.ud->data,sid);
 }
-
-

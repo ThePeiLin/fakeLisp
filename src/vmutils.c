@@ -551,6 +551,7 @@ FklVMframe* fklCreateOtherObjVMframe(const FklVMframeContextMethodTable* t,FklVM
 {
 	FklVMframe* r=(FklVMframe*)malloc(sizeof(FklVMframe));
 	FKL_ASSERT(r);
+	r->prev=prev;
 	r->type=FKL_FRAME_OTHEROBJ;
 	r->u.o.t=t;
 	r->u.o.data[0]=NULL;
@@ -559,6 +560,7 @@ FklVMframe* fklCreateOtherObjVMframe(const FklVMframeContextMethodTable* t,FklVM
 	r->u.o.data[3]=NULL;
 	r->u.o.data[4]=NULL;
 	r->u.o.data[5]=NULL;
+	return r;
 }
 
 void fklDestroyVMframe(FklVMframe* frame)
@@ -1324,4 +1326,3 @@ size_t fklVMlistLength(FklVMvalue* v)
 	for(;FKL_IS_PAIR(v);v=fklGetVMpairCdr(v))len++;
 	return len;
 }
-

@@ -2280,13 +2280,11 @@ FklVMcontinuation* fklCreateVMcontinuation(uint32_t ap,FklVM* exe)
 		return NULL;
 	FklVMstack* stack=exe->stack;
 	FklVMframe* curr=exe->frames;
-	FklVMvalue* nextCall=exe->nextCall;
 	FklVMcontinuation* tmp=(FklVMcontinuation*)malloc(sizeof(FklVMcontinuation));
 	FKL_ASSERT(tmp);
 	tmp->stack=fklCopyStack(stack);
 	tmp->stack->tp=ap;
 	tmp->curr=NULL;
-	tmp->nextCall=nextCall;
 	tmp->codeObj=exe->codeObj;
 	for(FklVMframe* cur=curr;cur;cur=cur->prev)
 	{
@@ -2300,7 +2298,6 @@ FklVMcontinuation* fklCreateVMcontinuation(uint32_t ap,FklVM* exe)
 		t->u.c.mark=cur->u.c.mark;
 		t->u.c.codeObj=cur->u.c.codeObj;
 		t->u.c.code=cur->u.c.code;
-		t->ccc=fklCopyVMcCC(cur->ccc);
 	}
 	return tmp;
 }

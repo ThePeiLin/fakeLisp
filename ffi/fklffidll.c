@@ -113,6 +113,7 @@ ffi_type* fklFfiGetFfiType(FklTypeId_t type)
 
 static void _ffi_proc_invoke(void* ptr,FklVM* exe,FklVMvalue* rel)
 {
+#pragma message "Todo:call ffi"
 	FKL_NI_BEGIN(exe);
 	FklFfiProc* proc=ptr;
 	FklTypeId_t type=proc->type;

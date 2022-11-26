@@ -3309,7 +3309,6 @@ static int errorCallBackWithErrorHandler(FklVMframe* f,FklVMvalue* errValue,FklV
 
 void builtin_call_eh(ARGL)
 {
-#pragma message "Todo:call/eh"
 #define GET_LIST (0)
 #define GET_PROC (1)
 

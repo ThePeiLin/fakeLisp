@@ -2674,7 +2674,8 @@ void builtin_read(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	char* tmpString=NULL;
 	FklVMfp* tmpFile=NULL;
-	FklPtrStack* tokenStack=fklCreatePtrStack(32,16);
+	FklPtrStack tokenStack={NULL,0,0,0};
+	fklInitPtrStack(&tokenStack,32,16);
 	FklStringMatchRouteNode* route=NULL;
 	PublicBuiltInUserData* pbd=pd->u.ud->data;
 	if(!stream||FKL_IS_FP(stream))
@@ -2692,7 +2693,7 @@ void builtin_read(ARGL)
 				,line
 				,&line
 				,&unexpectEOF
-				,tokenStack
+				,&tokenStack
 				,NULL
 				,patterns
 				,&route);
@@ -2700,15 +2701,15 @@ void builtin_read(ARGL)
 		if(unexpectEOF)
 		{
 			free(tmpString);
-			while(!fklIsPtrStackEmpty(tokenStack))
-				fklDestroyToken(fklPopPtrStack(tokenStack));
-			fklDestroyPtrStack(tokenStack);
+			while(!fklIsPtrStackEmpty(&tokenStack))
+				fklDestroyToken(fklPopPtrStack(&tokenStack));
+			fklUninitPtrStack(&tokenStack);
 			fklDestroyStringMatchRoute(route);
 			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_UNEXPECTEOF,exe);
 		}
 	}
 	size_t errorLine=0;
-	FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack
+	FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(&tokenStack
 			,route
 			,&errorLine
 			,builtInHeadSymbolTable
@@ -2717,17 +2718,17 @@ void builtin_read(ARGL)
 	if(node==NULL)
 	{
 		free(tmpString);
-		while(!fklIsPtrStackEmpty(tokenStack))
-			fklDestroyToken(fklPopPtrStack(tokenStack));
-		fklDestroyPtrStack(tokenStack);
+		while(!fklIsPtrStackEmpty(&tokenStack))
+			fklDestroyToken(fklPopPtrStack(&tokenStack));
+		fklUninitPtrStack(&tokenStack);
 		fklDestroyStringMatchRoute(route);
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_INVALIDEXPR,exe);
 	}
 	else
 		tmp=fklCreateVMvalueFromNastNodeAndStoreInStack(node,NULL,exe);
-	while(!fklIsPtrStackEmpty(tokenStack))
-		fklDestroyToken(fklPopPtrStack(tokenStack));
-	fklDestroyPtrStack(tokenStack);
+	while(!fklIsPtrStackEmpty(&tokenStack))
+		fklDestroyToken(fklPopPtrStack(&tokenStack));
+	fklUninitPtrStack(&tokenStack);
 	fklDestroyStringMatchRoute(route);
 	fklNiReturn(tmp,&ap,stack);
 	free(tmpString);
@@ -3180,9 +3181,202 @@ void builtin_raise(ARGL)
 	fklRaiseVMerror(err,exe);
 }
 
+typedef struct
+{
+	FklVMvalue* proc;
+	FklVMvalue** errorSymbolLists;
+	FklVMvalue** errorHandlers;
+	size_t num;
+	size_t bp;
+	size_t top;
+}EhFrameContext;
+
+
+static void error_handler_frame_print_backtrace(void* data[6],FILE* fp)
+{
+	EhFrameContext* c=(EhFrameContext*)data;
+	FklVMdlproc* dlproc=c->proc->u.dlproc;
+	if(dlproc->sid)
+	{
+		fprintf(fp,"at dlproc:");
+		fklPrintString(fklGetGlobSymbolWithId(dlproc->sid)->symbol
+				,stderr);
+		fputc('\n',fp);
+	}
+	else
+		fputs("at <dlproc>\n",fp);
+}
+
+static void error_handler_frame_atomic(void* data[6],FklVMgc* gc)
+{
+	EhFrameContext* c=(EhFrameContext*)data;
+	fklGC_toGrey(c->proc,gc);
+	size_t num=c->num;
+	for(size_t i=0;i<num;i++)
+	{
+		fklGC_toGrey(c->errorSymbolLists[i],gc);
+		fklGC_toGrey(c->errorHandlers[i],gc);
+	}
+}
+
+static void error_handler_frame_finalizer(void* data[6])
+{
+	EhFrameContext* c=(EhFrameContext*)data;
+	free(c->errorSymbolLists);
+	free(c->errorHandlers);
+}
+
+static void error_handler_frame_copy(void* const s[6],void* d[6],FklVM* exe)
+{
+	EhFrameContext* sc=(EhFrameContext*)s;
+	EhFrameContext* dc=(EhFrameContext*)d;
+	FklVMgc* gc=exe->gc;
+	fklSetRef(&dc->proc,sc->proc,gc);
+	size_t num=sc->num;
+	dc->num=num;
+	for(size_t i=0;i<num;i++)
+	{
+		fklSetRef(&dc->errorSymbolLists[i],sc->errorSymbolLists[i],gc);
+		fklSetRef(&dc->errorHandlers[i],sc->errorHandlers[i],gc);
+	}
+}
+
+static int error_handler_frame_end(void* data[6])
+{
+	return 1;
+}
+
+static void error_handler_frame_step(void* data[6],FklVM* exe)
+{
+	return;
+}
+
+static const FklVMframeContextMethodTable ErrorHandlerContextMethodTable=
+{
+	.atomic=error_handler_frame_atomic,
+	.finalizer=error_handler_frame_finalizer,
+	.copy=error_handler_frame_copy,
+	.print_backtrace=error_handler_frame_print_backtrace,
+	.end=error_handler_frame_end,
+	.step=error_handler_frame_step,
+};
+
+static int isShouldBeHandle(const FklVMvalue* symbolList,FklSid_t type)
+{
+	if(symbolList==FKL_VM_NIL)
+		return 1;
+	for(;symbolList!=FKL_VM_NIL;symbolList=symbolList->u.pair->cdr)
+	{
+		FklVMvalue* cur=symbolList->u.pair->car;
+		FklSid_t sid=FKL_GET_SYM(cur);
+		if(sid==type)
+			return 1;
+	}
+	return 0;
+}
+
+static int errorCallBackWithErrorHandler(FklVMframe* f,FklVMvalue* errValue,FklVM* exe,void* a)
+{
+	EhFrameContext* c=(EhFrameContext*)f->u.o.data;
+	size_t num=c->num;
+	FklVMvalue** errSymbolLists=c->errorSymbolLists;
+	FklVMerror* err=errValue->u.err;
+	for(size_t i=0;i<num;i++)
+	{
+		if(isShouldBeHandle(errSymbolLists[i],err->type))
+		{
+			FklVMstack* stack=exe->stack;
+			stack->bps->top=c->top;
+			stack->tp=c->bp;
+			fklPushVMvalue(errValue,stack);
+			fklNiSetBp(c->bp,stack);
+			fklTailCallobj(c->errorHandlers[i],f,exe);
+			return 1;
+		}
+	}
+	return 0;
+}
+
 void builtin_call_eh(ARGL)
 {
 #pragma message "Todo:call/eh"
+#define GET_LIST (0)
+#define GET_PROC (1)
+
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* proc=fklNiGetArg(&ap,stack);
+	if(!proc)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.call/eh",FKL_ERR_TOOFEWARG,exe);
+	FKL_NI_CHECK_TYPE(proc,fklIsCallable,"builtin.call/eh",exe);
+	FklPtrStack errSymbolLists={NULL,0,0,0};
+	FklPtrStack errHandlers={NULL,0,0,0};
+	fklInitPtrStack(&errSymbolLists,32,16);
+	fklInitPtrStack(&errHandlers,32,16);
+	int state=GET_LIST;
+	for(FklVMvalue* v=fklNiGetArg(&ap,stack)
+			;v
+			;v=fklNiGetArg(&ap,stack))
+	{
+		switch(state)
+		{
+			case GET_LIST:
+				if(!fklIsSymbolList(v))
+				{
+					fklUninitPtrStack(&errSymbolLists);
+					fklUninitPtrStack(&errHandlers);
+					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.call/eh"
+							,FKL_ERR_INCORRECT_TYPE_VALUE
+							,exe);
+				}
+				fklPushPtrStack(v,&errSymbolLists);
+				break;
+			case GET_PROC:
+				if(!fklIsCallable(v))
+				{
+					fklUninitPtrStack(&errSymbolLists);
+					fklUninitPtrStack(&errHandlers);
+					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.call/eh"
+							,FKL_ERR_INCORRECT_TYPE_VALUE
+							,exe);
+				}
+				fklPushPtrStack(v,&errHandlers);
+				break;
+		}
+		state=!state;
+	}
+	if(state==GET_PROC)
+	{
+		fklUninitPtrStack(&errSymbolLists);
+		fklUninitPtrStack(&errHandlers);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.call/eh",FKL_ERR_TOOFEWARG,exe);
+	}
+	fklNiResBp(&ap,stack);
+	FklVMframe* curframe=exe->frames;
+	if(errSymbolLists.top)
+	{
+		curframe->errorCallBack=errorCallBackWithErrorHandler;
+		curframe->u.o.t=&ErrorHandlerContextMethodTable;
+		EhFrameContext* c=(EhFrameContext*)curframe->u.o.data;
+		c->num=errSymbolLists.top;
+		FklVMvalue** t=(FklVMvalue**)realloc(errSymbolLists.base,errSymbolLists.top);
+		FKL_ASSERT(t);
+		c->errorSymbolLists=t;
+		t=(FklVMvalue**)realloc(errHandlers.base,errHandlers.top);
+		FKL_ASSERT(t);
+		c->errorHandlers=t;
+		c->bp=ap;
+		c->top=stack->bps->top;
+	}
+	else
+	{
+		fklUninitPtrStack(&errSymbolLists);
+		fklUninitPtrStack(&errHandlers);
+	}
+	fklNiSetBp(ap,stack);
+	fklCallobj(proc,curframe,exe);
+	fklNiEnd(&ap,exe->stack);
+#undef GET_PROC
+#undef GET_LIST
 }
 
 void builtin_call_cc(ARGL)
@@ -3215,7 +3409,8 @@ void builtin_apply(ARGL)
 	if(!proc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.apply",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(proc,fklIsCallable,"builtin.apply",exe);
-	FklPtrStack* stack1=fklCreatePtrStack(32,16);
+	FklPtrStack stack1={NULL,0,0,0};
+	fklInitPtrStack(&stack1,32,16);
 	FklVMvalue* value=NULL;
 	FklVMvalue* lastList=NULL;
 	while((value=fklNiGetArg(&ap,stack)))
@@ -3225,38 +3420,39 @@ void builtin_apply(ARGL)
 			lastList=value;
 			break;
 		}
-		fklPushPtrStack(value,stack1);
+		fklPushPtrStack(value,&stack1);
 	}
 	if(!lastList)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.apply",FKL_ERR_TOOFEWARG,exe);
-	FklPtrStack* stack2=fklCreatePtrStack(32,16);
+	FklPtrStack stack2={NULL,0,0,0};
+	fklInitPtrStack(&stack2,32,16);
 	if(!FKL_IS_PAIR(lastList)&&lastList!=FKL_VM_NIL)
 	{
-		fklDestroyPtrStack(stack1);
-		fklDestroyPtrStack(stack2);
+		fklUninitPtrStack(&stack1);
+		fklUninitPtrStack(&stack2);
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.apply",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	}
 	for(;FKL_IS_PAIR(lastList);lastList=fklGetVMpairCdr(lastList))
-		fklPushPtrStack(fklGetVMpairCar(lastList),stack2);
+		fklPushPtrStack(fklGetVMpairCar(lastList),&stack2);
 	if(lastList!=FKL_VM_NIL)
 	{
-		fklDestroyPtrStack(stack1);
-		fklDestroyPtrStack(stack2);
+		fklUninitPtrStack(&stack1);
+		fklUninitPtrStack(&stack2);
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.apply",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	}
 	fklNiSetBp(ap,stack);
-	while(!fklIsPtrStackEmpty(stack2))
+	while(!fklIsPtrStackEmpty(&stack2))
 	{
-		FklVMvalue* t=fklPopPtrStack(stack2);
+		FklVMvalue* t=fklPopPtrStack(&stack2);
 		fklNiReturn(t,&ap,stack);
 	}
-	fklDestroyPtrStack(stack2);
-	while(!fklIsPtrStackEmpty(stack1))
+	fklUninitPtrStack(&stack2);
+	while(!fklIsPtrStackEmpty(&stack1))
 	{
-		FklVMvalue* t=fklPopPtrStack(stack1);
+		FklVMvalue* t=fklPopPtrStack(&stack1);
 		fklNiReturn(t,&ap,stack);
 	}
-	fklDestroyPtrStack(stack1);
+	fklUninitPtrStack(&stack1);
 	fklTailCallobj(proc,frame,exe);
 	fklNiEnd(&ap,stack);
 }

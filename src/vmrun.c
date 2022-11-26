@@ -71,12 +71,12 @@ void callContinuation(FklVM* exe,FklVMcontinuation* cc)
 	fklCreateCallChainWithContinuation(exe,cc);
 }
 
-typedef struct FklVMcCC
+typedef struct
 {
 	FklVMFuncK kFunc;
 	void* ctx;
 	size_t size;
-}FklVMcCC;
+}VMcCC;
 
 typedef enum
 {
@@ -89,17 +89,17 @@ typedef struct
 {
 	FklVMvalue* proc;
 	DlprocFrameState state;
-	FklVMcCC ccc;
+	VMcCC ccc;
 }DlprocFrameContext;
 
-inline static void initVMcCC(FklVMcCC* ccc,FklVMFuncK kFunc,void* ctx,size_t size)
+inline static void initVMcCC(VMcCC* ccc,FklVMFuncK kFunc,void* ctx,size_t size)
 {
 	ccc->kFunc=kFunc;
 	ccc->ctx=ctx;
 	ccc->size=size;
 }
 
-static void dlproc_frame_backtrace(void* data[6],FILE* fp)
+static void dlproc_frame_print_backtrace(void* data[6],FILE* fp)
 {
 	DlprocFrameContext* c=(DlprocFrameContext*)data;
 	FklVMdlproc* dlproc=c->proc->u.dlproc;
@@ -126,7 +126,7 @@ static void dlproc_frame_finalizer(void* data[6])
 	free(c->ccc.ctx);
 }
 
-static void dlproc_ccc_copy(const FklVMcCC* s,FklVMcCC* d)
+static void dlproc_ccc_copy(const VMcCC* s,VMcCC* d)
 {
 	d->kFunc=s->kFunc;
 	d->size=s->size;
@@ -174,7 +174,7 @@ static const FklVMframeContextMethodTable DlprocContextMethodTable=
 	.atomic=dlproc_frame_atomic,
 	.finalizer=dlproc_frame_finalizer,
 	.copy=dlproc_frame_copy,
-	.backtrace=dlproc_frame_backtrace,
+	.print_backtrace=dlproc_frame_print_backtrace,
 	.end=dlproc_frame_end,
 	.step=dlproc_frame_step,
 };
@@ -408,9 +408,9 @@ inline int fklIsCallableObjFrameReachEnd(FklVMframe* f)
 	return f->u.o.t->end(fklGetFrameData(f));
 }
 
-inline void fklDoBacktrace(FklVMframe* f,FILE* fp)
+inline void fklDoPrintBacktrace(FklVMframe* f,FILE* fp)
 {
-	void (*backtrace)(void* data[6],FILE*)=f->u.o.t->backtrace;
+	void (*backtrace)(void* data[6],FILE*)=f->u.o.t->print_backtrace;
 	if(backtrace)
 		backtrace(f->u.o.data,fp);
 	else

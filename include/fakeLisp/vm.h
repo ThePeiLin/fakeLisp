@@ -211,7 +211,7 @@ typedef struct
 {
 	int (*end)(void* data[6]);
 	void (*step)(void* data[6],struct FklVM*);
-	void (*backtrace)(void* data[6],FILE* fp);
+	void (*print_backtrace)(void* data[6],FILE* fp);
 	void (*atomic)(void* data[6],FklVMgc*);
 	void (*finalizer)(void* data[6]);
 	void (*copy)(void* const s[6],void* d[6],struct FklVM*);
@@ -239,11 +239,11 @@ typedef struct FklVMframe
 			void* data[6];
 		}o;
 	}u;
-	void (*errorCallBack)(void*);
+	int (*errorCallBack)(struct FklVMframe*,FklVMvalue*,struct FklVM*,void*);
 	struct FklVMframe* prev;
 }FklVMframe;
 
-void fklDoBacktrace(FklVMframe* f,FILE* fp);
+void fklDoPrintBacktrace(FklVMframe* f,FILE* fp);
 void fklCallobj(FklVMvalue*,FklVMframe*,struct FklVM* exe);
 void fklTailCallobj(FklVMvalue*,FklVMframe*,struct FklVM* exe);
 void fklDoAtomicFrame(FklVMframe* f,struct FklVMgc*);
@@ -430,6 +430,7 @@ int fklIsVMnumber(const FklVMvalue* p);
 int fklIsFixint(const FklVMvalue* p);
 int fklIsInt(const FklVMvalue* p);
 int fklIsList(const FklVMvalue* p);
+int fklIsSymbolList(const FklVMvalue* p);
 int64_t fklGetInt(const FklVMvalue* p);
 double fklGetDouble(const FklVMvalue* p);
 //void fklInitVMRunningResource(FklVM*,FklVMvalue*,FklVMgc* gc,FklByteCodelnt*,uint32_t,uint32_t);

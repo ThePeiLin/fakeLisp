@@ -111,11 +111,63 @@ ffi_type* fklFfiGetFfiType(FklTypeId_t type)
 	return NativeFFITypeList[type];
 }
 
-static void _ffi_proc_invoke(void* ptr,FklVM* exe,FklVMvalue* rel)
+typedef enum
+{
+	FFIPROC_READY=0,
+	FFIPROC_DONE,
+}FfiprocFrameState;
+
+typedef struct
+{
+	FklVMvalue* proc;
+	FfiprocFrameState state;
+}FfiprocFrameContext;
+
+static void ffiproc_frame_print_backtrace(void* data[6],FILE* fp)
+{
+	FfiprocFrameContext* c=(FfiprocFrameContext*)data;
+	FklFfiProc* ffiproc=c->proc->u.ud->data;
+	if(ffiproc->sid)
+	{
+		fprintf(fp,"at dlproc:");
+		fklPrintString(fklGetGlobSymbolWithId(ffiproc->sid)->symbol
+				,stderr);
+		fputc('\n',fp);
+	}
+	else
+		fputs("at <dlproc>\n",fp);
+}
+
+static void ffiproc_frame_atomic(void* data[6],FklVMgc* gc)
+{
+	FfiprocFrameContext* c=(FfiprocFrameContext*)data;
+	fklGC_toGrey(c->proc,gc);
+}
+
+static void ffiproc_frame_finalizer(void* data[6])
+{
+	return;
+}
+
+static void ffiproc_frame_copy(void* const s[6],void* d[6],FklVM* exe)
+{
+	FfiprocFrameContext* sc=(FfiprocFrameContext*)s;
+	FfiprocFrameContext* dc=(FfiprocFrameContext*)d;
+	FklVMgc* gc=exe->gc;
+	dc->state=sc->state;
+	fklSetRef(&dc->proc,sc->proc,gc);
+}
+
+static int ffiproc_frame_end(void* data[6])
+{
+	FfiprocFrameContext* c=(FfiprocFrameContext*)data;
+	return c->state==FFIPROC_DONE;
+}
+
+static void _ffi_proc_invoke(FklFfiProc* proc,FklVM* exe,FklVMvalue* rel)
 {
 #pragma message "Todo:call ffi"
 	FKL_NI_BEGIN(exe);
-	FklFfiProc* proc=ptr;
 	FklTypeId_t type=proc->type;
 	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(type).all);
 	uint32_t anum=ft->anum;
@@ -193,6 +245,48 @@ static void _ffi_proc_invoke(void* ptr,FklVM* exe,FklVMvalue* rel)
 	fklNiEnd(&ap,stack);
 }
 
+static void ffiproc_frame_step(void* data[6],FklVM* exe)
+{
+	FfiprocFrameContext* c=(FfiprocFrameContext*)data;
+	FklFfiProc* ffiproc=c->proc->u.ud->data;
+	switch(c->state)
+	{
+		case FFIPROC_READY:
+			c->state=FFIPROC_DONE;
+			_ffi_proc_invoke(ffiproc,exe,c->proc->u.ud->rel);
+			break;
+		case FFIPROC_DONE:
+			break;
+	}
+}
+
+static const FklVMframeContextMethodTable FfiprocContextMethodTable=
+{
+	.atomic=ffiproc_frame_atomic,
+	.finalizer=ffiproc_frame_finalizer,
+	.copy=ffiproc_frame_copy,
+	.print_backtrace=ffiproc_frame_print_backtrace,
+	.end=ffiproc_frame_end,
+	.step=ffiproc_frame_step,
+};
+
+inline static void initFfiprocFrameContext(void* data[6],FklVMvalue* proc,FklVMgc* gc)
+{
+	FfiprocFrameContext* c=(FfiprocFrameContext*)data;
+	fklSetRef(&c->proc,proc,gc);
+	c->state=FFIPROC_READY;
+}
+
+static void _ffi_call_proc(FklVMvalue* ffiproc,FklVM* exe,FklVMvalue* rel)
+{
+	pthread_rwlock_wrlock(&exe->rlock);
+	FklVMframe* prev=exe->frames;
+	FklVMframe* f=fklCreateOtherObjVMframe(&FfiprocContextMethodTable,prev);
+	initFfiprocFrameContext(f->u.o.data,ffiproc,exe->gc);
+	exe->frames=f;
+	pthread_rwlock_unlock(&exe->rlock);
+}
+
 extern int _mem_equal(const FklVMudata* a,const FklVMudata* b);
 static FklVMudMethodTable FfiProcMethodTable=
 {
@@ -200,7 +294,7 @@ static FklVMudMethodTable FfiProcMethodTable=
 	.__prin1=_ffi_proc_print,
 	.__finalizer=_ffi_proc_atomic_finalizer,
 	.__equal=_mem_equal,
-	.__call=_ffi_proc_invoke,
+	.__call=_ffi_call_proc,
 	.__write=NULL,
 	.__atomic=NULL,
 	.__append=NULL,

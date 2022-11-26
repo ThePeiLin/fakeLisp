@@ -166,7 +166,6 @@ static int ffiproc_frame_end(void* data[6])
 
 static void _ffi_proc_invoke(FklFfiProc* proc,FklVM* exe,FklVMvalue* rel)
 {
-#pragma message "Todo:call ffi"
 	FKL_NI_BEGIN(exe);
 	FklTypeId_t type=proc->type;
 	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(type).all);

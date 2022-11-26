@@ -3290,6 +3290,16 @@ static int errorCallBackWithErrorHandler(FklVMframe* f,FklVMvalue* errValue,FklV
 			stack->tp=c->bp;
 			fklPushVMvalue(errValue,stack);
 			fklNiSetBp(c->bp,stack);
+			pthread_rwlock_wrlock(&exe->rlock);
+			FklVMframe* topFrame=exe->frames;
+			exe->frames=f;
+			while(topFrame!=f)
+			{
+				FklVMframe* cur=topFrame;
+				topFrame=topFrame->prev;
+				fklDestroyVMframe(cur);
+			}
+			pthread_rwlock_unlock(&exe->rlock);
 			fklTailCallobj(c->errorHandlers[i],f,exe);
 			return 1;
 		}
@@ -3358,10 +3368,10 @@ void builtin_call_eh(ARGL)
 		curframe->u.o.t=&ErrorHandlerContextMethodTable;
 		EhFrameContext* c=(EhFrameContext*)curframe->u.o.data;
 		c->num=errSymbolLists.top;
-		FklVMvalue** t=(FklVMvalue**)realloc(errSymbolLists.base,errSymbolLists.top);
+		FklVMvalue** t=(FklVMvalue**)realloc(errSymbolLists.base,errSymbolLists.top*sizeof(FklVMvalue*));
 		FKL_ASSERT(t);
 		c->errorSymbolLists=t;
-		t=(FklVMvalue**)realloc(errHandlers.base,errHandlers.top);
+		t=(FklVMvalue**)realloc(errHandlers.base,errHandlers.top*sizeof(FklVMvalue*));
 		FKL_ASSERT(t);
 		c->errorHandlers=t;
 		c->bp=ap;

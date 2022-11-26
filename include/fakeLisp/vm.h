@@ -214,7 +214,7 @@ typedef struct
 	void (*backtrace)(void* data[6],FILE* fp);
 	void (*atomic)(void* data[6],FklVMgc*);
 	void (*finalizer)(void* data[6]);
-	void (*copy)(const void* s[6],void* d[6],struct FklVM*);
+	void (*copy)(void* const s[6],void* d[6],struct FklVM*);
 }FklVMframeContextMethodTable;
 
 typedef struct FklVMframe
@@ -245,6 +245,8 @@ typedef struct FklVMframe
 
 void fklCallobj(FklVMvalue*,FklVMframe*,struct FklVM* exe);
 void fklTailCallobj(FklVMvalue*,FklVMframe*,struct FklVM* exe);
+void fklDoAtomicFrame(FklVMframe* f,struct FklVMgc*);
+void fklDoCopyObjFrameContext(FklVMframe*,FklVMframe*,struct FklVM* exe);
 void** fklGetFrameData(FklVMframe* f);
 int fklIsCallableObjFrameReachEnd(FklVMframe* f);
 void fklDoCallableObjFrameStep(FklVMframe* f,struct FklVM* exe);
@@ -347,11 +349,8 @@ typedef struct FklVMerror
 
 typedef struct FklVMcontinuation
 {
-	uint32_t tnum;
 	FklVMstack* stack;
 	FklVMframe* curr;
-	FklVMvalue* nextCall;
-	FklVMvalue* codeObj;
 }FklVMcontinuation;
 
 typedef struct FklVMerrorHandler
@@ -632,6 +631,7 @@ FklSid_t fklGetCompoundFrameSid(const FklVMframe*);
 int fklIsCompoundFrameReachEnd(const FklVMframe*);
 
 FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe*,FklVMframe* prev,FklVMgc*);
+FklVMframe* fklCopyVMframe(FklVMframe*,FklVMframe* prev,FklVM*);
 void fklDestroyVMframes(FklVMframe* h);
 
 FklVMlib* fklCreateVMlib(size_t exportNum,FklSid_t* exports,FklVMvalue* codeObj);

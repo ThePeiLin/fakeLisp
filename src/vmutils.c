@@ -489,6 +489,24 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 	return 255;
 }
 
+FklVMframe* fklCopyVMframe(FklVMframe* f,FklVMframe* prev,FklVM* exe)
+{
+	switch(f->type)
+	{
+		case FKL_FRAME_COMPOUND:
+			return fklCreateVMframeWithCompoundFrame(f,prev,exe->gc);
+			break;
+		case FKL_FRAME_OTHEROBJ:
+			{
+				FklVMframe* r=fklCreateOtherObjVMframe(f->u.o.t,prev);
+				fklDoCopyObjFrameContext(f,r,exe);
+				return r;
+			}
+			break;
+	}
+	return NULL;
+}
+
 FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe* f,FklVMframe* prev,FklVMgc* gc)
 {
 	FklVMframe* tmp=(FklVMframe*)malloc(sizeof(FklVMframe));
@@ -498,10 +516,11 @@ FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe* f,FklVMframe* pr
 	tmp->u.c.scp=f->u.c.scp;
 	tmp->u.c.cpc=f->u.c.cpc;
 	tmp->prev=prev;
-	tmp->u.c.sid=0;
+	tmp->u.c.sid=f->u.c.sid;
 	fklSetRef(&tmp->u.c.codeObj,f->u.c.codeObj,gc);
+	fklSetRef(&tmp->u.c.localenv,f->u.c.localenv,gc);
 	tmp->u.c.code=f->u.c.codeObj->u.code->bc->code;
-	tmp->u.c.mark=0;
+	tmp->u.c.mark=f->u.c.mark;
 	tmp->type=FKL_FRAME_COMPOUND;
 	return tmp;
 }
@@ -567,7 +586,8 @@ void fklDestroyVMframe(FklVMframe* frame)
 {
 	if(frame->type==FKL_FRAME_OTHEROBJ)
 		fklDoFinalizeObjFrame(frame);
-	free(frame);
+	else
+		free(frame);
 }
 
 char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorType type)

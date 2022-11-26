@@ -127,7 +127,7 @@ static void dlproc_ccc_copy(const FklVMcCC* s,FklVMcCC* d)
 		d->ctx=fklCopyMemory(s->ctx,d->size);
 }
 
-static void dlproc_frame_copy(const void* s[6],void* d[6],FklVM* exe)
+static void dlproc_frame_copy(void* const s[6],void* d[6],FklVM* exe)
 {
 	DlprocFrameContext* sc=(DlprocFrameContext*)s;
 	DlprocFrameContext* dc=(DlprocFrameContext*)d;
@@ -412,6 +412,11 @@ inline void fklDoFinalizeObjFrame(FklVMframe* f)
 	free(f);
 }
 
+inline void fklDoCopyObjFrameContext(FklVMframe* s,FklVMframe* d,FklVM* exe)
+{
+	s->u.o.t->copy(fklGetFrameData(s),fklGetFrameData(d),exe);
+}
+
 inline static FklVMframe* popFrame(FklVM* exe)
 {
 	pthread_rwlock_wrlock(&exe->rlock);
@@ -424,6 +429,20 @@ inline static FklVMframe* popFrame(FklVM* exe)
 inline static void doAtomicFrame(FklVMframe* f,FklVMgc* gc)
 {
 	f->u.o.t->atomic(fklGetFrameData(f),gc);
+}
+
+void fklDoAtomicFrame(FklVMframe* f,FklVMgc* gc)
+{
+	switch(f->type)
+	{
+		case FKL_FRAME_COMPOUND:
+			fklGC_toGrey(fklGetCompoundFrameLocalenv(f),gc);
+			fklGC_toGrey(fklGetCompoundFrameCodeObj(f),gc);
+			break;
+		case FKL_FRAME_OTHEROBJ:
+			doAtomicFrame(f,gc);
+			break;
+	}
 }
 
 inline static void callCallableObj(FklVMvalue* v,FklVM* exe)
@@ -1301,32 +1320,23 @@ void fklGC_markRootToGrey(FklVM* exe)
 	FklVMgc* gc=exe->gc;
 	if(exe->codeObj)
 		fklGC_toGrey(exe->codeObj,gc);
-	//	pthread_rwlock_rdlock(&exe->rlock);
+	//pthread_rwlock_rdlock(&exe->rlock);
 	for(FklVMframe* cur=exe->frames;cur;cur=cur->prev)
-		switch(cur->type)
-		{
-			case FKL_FRAME_COMPOUND:
-				fklGC_toGrey(fklGetCompoundFrameLocalenv(cur),gc);
-				fklGC_toGrey(fklGetCompoundFrameCodeObj(cur),gc);
-				break;
-			case FKL_FRAME_OTHEROBJ:
-				doAtomicFrame(cur,gc);
-				break;
-		}
+		fklDoAtomicFrame(cur,gc);
 	for(size_t i=0;i<exe->libNum;i++)
 	{
 		fklGC_toGrey(exe->libs[i].libEnv,gc);
 		fklGC_toGrey(exe->libs[i].proc,gc);
 	}
-	//	pthread_rwlock_unlock(&exe->rlock);
-	//	pthread_rwlock_rdlock(&stack->lock);
+	//pthread_rwlock_unlock(&exe->rlock);
+	//pthread_rwlock_rdlock(&stack->lock);
 	for(uint32_t i=0;i<stack->tp;i++)
 	{
 		FklVMvalue* value=stack->values[i];
 		if(FKL_IS_PTR(value))
 			fklGC_toGrey(value,gc);
 	}
-	//	pthread_rwlock_unlock(&stack->lock);
+	//pthread_rwlock_unlock(&stack->lock);
 	if(exe->chan)
 		fklGC_toGrey(exe->chan,gc);
 }
@@ -1910,7 +1920,7 @@ void fklCreateCallChainWithContinuation(FklVM* vm,FklVMcontinuation* cc)
 		tmpStack->values[tmpStack->tp]=stack->values[i];
 		tmpStack->tp+=1;
 	}
-	//	pthread_rwlock_wrlock(&stack->lock);
+	//pthread_rwlock_wrlock(&stack->lock);
 	free(stack->values);
 	fklDestroyUintStack(stack->tps);
 	fklDestroyUintStack(stack->bps);
@@ -1921,13 +1931,12 @@ void fklCreateCallChainWithContinuation(FklVM* vm,FklVMcontinuation* cc)
 	stack->tp=tmpStack->tp;
 	stack->tps=tmpStack->tps;
 	free(tmpStack);
-	//	pthread_rwlock_unlock(&stack->lock);
+	//pthread_rwlock_unlock(&stack->lock);
 	pthread_rwlock_wrlock(&vm->rlock);
 	fklDeleteCallChain(vm);
 	vm->frames=NULL;
-	vm->codeObj=cc->codeObj;
 	for(FklVMframe* cur=cc->curr;cur;cur=cur->prev)
-		vm->frames=fklCreateVMframeWithCompoundFrame(cur,vm->frames,vm->gc);
+		vm->frames=fklCopyVMframe(cur,vm->frames,vm);
 	pthread_rwlock_unlock(&vm->rlock);
 }
 

@@ -409,6 +409,7 @@ inline void fklDoCallableObjFrameStep(FklVMframe* f,FklVM* exe)
 inline void fklDoFinalizeObjFrame(FklVMframe* f)
 {
 	f->u.o.t->finalizer(fklGetFrameData(f));
+	free(f);
 }
 
 inline static FklVMframe* popFrame(FklVM* exe)
@@ -470,6 +471,15 @@ void fklCallobj(FklVMvalue* proc,FklVMframe* frame,FklVM* exe)
 			callCallableObj(proc,exe);
 			break;
 	}
+}
+
+void fklTailCallobj(FklVMvalue* proc,FklVMframe* frame,FklVM* exe)
+{
+	pthread_rwlock_wrlock(&exe->rlock);
+	exe->frames=frame->prev;
+	fklDoFinalizeObjFrame(frame);
+	pthread_rwlock_unlock(&exe->rlock);
+	fklCallobj(proc,exe->frames,exe);
 }
 
 int fklVMcallInDlproc(FklVMvalue* proc
@@ -544,13 +554,13 @@ int fklRunVM(FklVM* exe)
 				ByteCodes[fklGetCompoundFrameCode(curframe)[cp]](exe);
 				break;
 			case FKL_FRAME_OTHEROBJ:
-				if(!fklIsCallableObjFrameReachEnd(curframe))
-					fklDoCallableObjFrameStep(curframe,exe);
-				else
+				if(fklIsCallableObjFrameReachEnd(curframe))
 				{
 					fklDoFinalizeObjFrame(popFrame(exe));
 					continue;
 				}
+				else
+					fklDoCallableObjFrameStep(curframe,exe);
 				break;
 		}
 		//fklGC_step(exe);
@@ -1225,6 +1235,8 @@ int fklIsTheLastExpress(const FklVMframe* frame,const FklVMframe* same,const Fkl
 	size_t size=0;
 	for(;;)
 	{
+		if(frame->type!=FKL_FRAME_COMPOUND)
+			return 0;
 		uint8_t* code=fklGetCompoundFrameCode(frame);
 		uint32_t i=fklGetCompoundFrameCp(frame)+(code[fklGetCompoundFrameCp(frame)]==FKL_OP_CALL||code[fklGetCompoundFrameCp(frame)]==FKL_OP_TAIL_CALL);
 		size=fklGetCompoundFrameScp(frame)+fklGetCompoundFrameCpc(frame);

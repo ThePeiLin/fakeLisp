@@ -3203,7 +3203,7 @@ void builtin_call_cc(ARGL)
 	pthread_rwlock_unlock(&exe->rlock);
 	fklNiSetBp(ap,stack);
 	fklNiReturn(vcc,&ap,stack);
-	fklCallobj(proc,frame,exe);
+	fklTailCallobj(proc,frame,exe);
 	fklNiEnd(&ap,stack);
 }
 
@@ -3257,7 +3257,7 @@ void builtin_apply(ARGL)
 		fklNiReturn(t,&ap,stack);
 	}
 	fklDestroyPtrStack(stack1);
-	fklCallobj(proc,frame,exe);
+	fklTailCallobj(proc,frame,exe);
 	fklNiEnd(&ap,stack);
 }
 
@@ -3308,8 +3308,7 @@ typedef struct
 	}\
 	fklNiPopTp(stack);\
 	fklNiReturn(*mapctx->r,&mapctx->ap,stack);\
-	fklNiEnd(&mapctx->ap,stack);\
-	free(ctx);}
+	fklNiEnd(&mapctx->ap,stack);}
 
 #define MAP_PATTERN(FUNC_NAME,K_FUNC,DEFAULT_VALUE) FKL_NI_BEGIN(exe);\
 	FklVMvalue* proc=fklNiGetArg(&ap,stack);\
@@ -3437,7 +3436,6 @@ static void k_member(K_FUNC_ARGL)
 	fklNiPopTp(stack);
 	fklNiReturn(*memberctx->r,&memberctx->ap,stack);
 	fklNiEnd(&memberctx->ap,stack);
-	free(ctx);
 }
 
 void builtin_member(ARGL)
@@ -3516,7 +3514,6 @@ static void k_memp(K_FUNC_ARGL)
 	fklNiPopTp(stack);
 	fklNiReturn(*mempctx->r,&mempctx->ap,stack);
 	fklNiEnd(&mempctx->ap,stack);
-	free(ctx);
 }
 
 void builtin_memp(ARGL)
@@ -3585,7 +3582,6 @@ static void k_filter(K_FUNC_ARGL)
 	fklNiPopTp(stack);
 	fklNiReturn(*filterctx->r,&filterctx->ap,stack);
 	fklNiEnd(&filterctx->ap,stack);
-	free(ctx);
 }
 
 void builtin_filter(ARGL)

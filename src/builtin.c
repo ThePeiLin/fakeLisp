@@ -2678,12 +2678,12 @@ void builtin_read(ARGL)
 	fklInitPtrStack(&tokenStack,32,16);
 	FklStringMatchRouteNode* route=NULL;
 	PublicBuiltInUserData* pbd=pd->u.ud->data;
+	int unexpectEOF=0;
 	if(!stream||FKL_IS_FP(stream))
 	{
 		size_t line=1;
 		tmpFile=stream?stream->u.fp:pbd->sysIn->u.fp;
 		pthread_mutex_lock(&tmpFile->lock);
-		int unexpectEOF=0;
 		size_t size=0;
 		FklStringMatchPattern* patterns=pbd->patterns;
 		tmpString=fklReadInStringPattern(tmpFile->fp
@@ -2717,12 +2717,17 @@ void builtin_read(ARGL)
 	FklVMvalue* tmp=NULL;
 	if(node==NULL)
 	{
-		free(tmpString);
-		while(!fklIsPtrStackEmpty(&tokenStack))
-			fklDestroyToken(fklPopPtrStack(&tokenStack));
-		fklUninitPtrStack(&tokenStack);
-		fklDestroyStringMatchRoute(route);
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_INVALIDEXPR,exe);
+		if(unexpectEOF)
+		{
+			free(tmpString);
+			while(!fklIsPtrStackEmpty(&tokenStack))
+				fklDestroyToken(fklPopPtrStack(&tokenStack));
+			fklUninitPtrStack(&tokenStack);
+			fklDestroyStringMatchRoute(route);
+			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_INVALIDEXPR,exe);
+		}
+		else
+			tmp=FKL_VM_NIL;
 	}
 	else
 		tmp=fklCreateVMvalueFromNastNodeAndStoreInStack(node,NULL,exe);

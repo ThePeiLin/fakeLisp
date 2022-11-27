@@ -281,8 +281,6 @@ static void (*ByteCodes[])(FklVM*)=
 	B_jmp_if_true,
 	B_jmp_if_false,
 	B_jmp,
-	NULL,
-	NULL,
 	B_list_append,
 	B_push_vector,
 	B_push_r_env,
@@ -1278,7 +1276,6 @@ int fklIsTheLastExpress(const FklVMframe* frame,const FklVMframe* same,const Fkl
 
 		for(;i<size;i+=(code[i]==FKL_OP_JMP)?fklGetI64FromByteCode(code+i+sizeof(char))+sizeof(char)+sizeof(int64_t):1)
 			if(code[i]!=FKL_OP_POP_TP
-					&&code[i]!=FKL_OP_POP_TRY
 					&&code[i]!=FKL_OP_JMP
 					&&code[i]!=FKL_OP_POP_R_ENV)
 				return 0;

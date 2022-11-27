@@ -181,42 +181,6 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 							*needBreak=1;
 						}
 						break;
-					case FKL_OP_PUSH_TRY:
-						{
-							FklSid_t errSymId=fklGetSidFromByteCode(tmpCode->code+(++i));
-							fklPrintString(fklGetSymbolWithId(errSymId,table)->symbol,fp);
-							i+=sizeof(FklSid_t);
-							uint32_t handlerNum=fklGetU32FromByteCode(tmpCode->code+i);
-							fprintf(fp," %d",handlerNum);
-							i+=sizeof(uint32_t);
-							int j=0;
-							r+=sizeof(FklSid_t)+sizeof(uint32_t);
-							FklPtrStack* tmpStack=fklCreatePtrStack(32,16);
-							for(;j<handlerNum;j++)
-							{
-								uint64_t ti=i;
-								uint32_t errTypeNum=fklGetU32FromByteCode(tmpCode->code+i);
-								i+=sizeof(uint32_t);
-								r+=sizeof(uint32_t);
-								for(uint32_t k=0;k<errTypeNum;k++)
-								{
-									i+=sizeof(FklSid_t);
-									r+=sizeof(FklSid_t);
-								}
-								uint64_t pCpc=fklGetU64FromByteCode(tmpCode->code+i);
-								i+=sizeof(uint64_t);
-								r+=sizeof(uint64_t);
-								i+=pCpc;
-								r+=pCpc;
-								fklPushPtrStack(createByteCodePrintState(BP_ERROR_HANLER,cState->tc+1,ti,i),tmpStack);
-							}
-							fklPushPtrStack(createByteCodePrintState(cState->type,cState->tc,i,cState->cpc),s);
-							while(!fklIsPtrStackEmpty(tmpStack))
-								fklPushPtrStack(fklPopPtrStack(tmpStack),s);
-							fklDestroyPtrStack(tmpStack);
-							*needBreak=1;
-						}
-						break;
 					case FKL_OP_PUSH_STR:
 						{
 							fprintf(fp,"%lu "
@@ -379,22 +343,6 @@ static uint64_t skipToCall(uint64_t index,const FklByteCode* bc)
 				case FKL_OP_POP_VAR:
 					r+=sizeof(char)+sizeof(int32_t)+sizeof(FklSid_t);
 					break;
-				case FKL_OP_PUSH_TRY:
-					{
-						r+=sizeof(char);
-						r+=sizeof(FklSid_t);
-						uint32_t handlerNum=fklGetU32FromByteCode(bc->code+index+r);
-						r+=sizeof(uint32_t);
-						for(uint32_t j=0;j<handlerNum;j++)
-						{
-							uint32_t errTypeNum=fklGetU64FromByteCode(bc->code+index+r);
-							r+=sizeof(FklSid_t)*errTypeNum;
-							uint64_t pCpc=fklGetU64FromByteCode(bc->code+index+r);
-							r+=sizeof(uint64_t);
-							r+=pCpc;
-						}
-					}
-					break;
 				case FKL_OP_IMPORT_WITH_SYMBOLS:
 					{
 						size_t exportsCount=fklGetU64FromByteCode(bc->code+index+r+sizeof(char)+sizeof(uint64_t));
@@ -418,7 +366,6 @@ static int fklIsTheLastExpression(uint64_t index,FklByteCode* bc)
 	uint8_t* code=bc->code;
 	for(uint64_t i=index;i<size;i+=(code[i]==FKL_OP_JMP)?fklGetI64FromByteCode(code+i+sizeof(char))+sizeof(char)+sizeof(int64_t):1)
 		if(code[i]!=FKL_OP_POP_TP
-				&&code[i]!=FKL_OP_POP_TRY
 				&&code[i]!=FKL_OP_JMP
 				&&code[i]!=FKL_OP_POP_R_ENV)
 			return 0;

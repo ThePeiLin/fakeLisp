@@ -3186,23 +3186,6 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib** libs,Fk
 					{
 						switch(opcode)
 						{
-							case FKL_OP_PUSH_TRY:
-								{
-									i+=sizeof(FklSid_t)+sizeof(char);
-									uint32_t handlerNum=fklGetU32FromByteCode(bc->code+i);
-									i+=sizeof(uint32_t);
-									int j=0;
-									for(;j<handlerNum;j++)
-									{
-										uint32_t num=fklGetU32FromByteCode(bc->code+i);
-										i+=sizeof(num);
-										i+=sizeof(FklSid_t)*num;
-										uint32_t pCpc=fklGetU64FromByteCode(bc->code+i);
-										i+=sizeof(uint64_t);
-										i+=pCpc;
-									}
-								}
-								break;
 							case FKL_OP_POP_VAR:
 								{
 									uint32_t scope=fklGetU32FromByteCode(bc->code+i+sizeof(char));

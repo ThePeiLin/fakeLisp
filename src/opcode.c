@@ -31,8 +31,6 @@ static struct
 	{"jmp-if-true",          8,  },
 	{"jmp-if-false",         8,  },
 	{"jmp",                  8,  },
-	{"push-try",             -1, },
-	{"pop-try",              0,  },
 	{"list-append",          0,  },
 	{"push-vector",          8,  },
 	{"push-r-env",           0,  },

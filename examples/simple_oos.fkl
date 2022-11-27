@@ -16,7 +16,7 @@
                      (if (and (not (eq segment-id 'data))
                               (not (eq segment-id 'method)))
                        (break nil))
-                     (case segment-id
+                     (case (segment-id segment-id)
                        ((data) (setq data-list (append data-list segment-data)))
                        ((method) (setq pre-method-list (append pre-method-list segment-data)))))
               (loop (cdr c)))))
@@ -52,7 +52,7 @@
            ~@(cdr construct-method)
            (define this
              (lambda (selector)
-               (case selector
+               (case (selector selector)
                  ~@case-list))))))))
 
 (class Vec3

@@ -196,7 +196,7 @@
              (cond ((<= xp (1+ row))
                     (let ((front (car (vref g-map place)))
                           (back (cdr (vref g-map place))))
-                      (case front
+                      (case (front front)
                         ((0) (cond ((eqv back 0)
                                     (print "\033[0m\033["
                                            light
@@ -292,7 +292,7 @@
              (loop-i (1+ i))))))
   (print-map g-map row line xl yl bombnum)
   (let loop-ch ((ch (getch)))
-    (case ch
+    (case (ch ch)
       ((#\h) (move-left))
       ((#\k) (move-up))
       ((#\j) (move-down))

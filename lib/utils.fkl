@@ -224,13 +224,13 @@
     `(cond [(not ~pred)
             ~@expressions]))
 
-  (defmacro (case v,b)
+  (defmacro (case (s v),b)
     (begin
       (define body
         (let [(tb (map (lambda (x) (cdr x)) b))
               (cs (map (lambda (x)
                          (if (pair? x)
-                           `(member _ '~x)
+                           `(member ~s '~x)
                            x))
                        (map (lambda (x) (nth 0 x)) b)))]
           (map (lambda (x)
@@ -238,7 +238,7 @@
                  (setq tb (cdr tb))
                  r)
                cs)))
-      `((lambda (_) (cond,~body)) ~v)))
+      `((lambda (~s) (cond,~body)) ~v)))
 
   (defmacro (define (name,args),body)
     `(define ~name

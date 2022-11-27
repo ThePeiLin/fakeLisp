@@ -16,7 +16,7 @@
 
 (new-term)
 (let main ((ch (getch)))
-  (case ch
+  (case (ch ch)
     ((#\h) (move-left))
     ((#\k) (move-up))
     ((#\j) (move-down))

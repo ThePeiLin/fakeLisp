@@ -70,7 +70,7 @@ size_t fklCountCharInBuf(const char*,size_t s,char);
 int fklStringToChar(const FklString*);
 int fklCharBufToChar(const char*,size_t);
 
-char* fklCastEscapeCharBuf(const char* str,char end,size_t* size);
+char* fklCastEscapeCharBuf(const char* str,size_t size,size_t* psize);
 
 uint8_t* fklCastStrByteStr(const char*);
 uint8_t fklCastCharInt(char);

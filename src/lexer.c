@@ -272,7 +272,7 @@ static FklToken* createDefaultToken(const char* buf
 		{
 			*jInc=len;
 			size_t size=0;
-			char* s=fklCastEscapeCharBuf(&buf[1],'"',&size);
+			char* s=fklCastEscapeCharBuf(&buf[1],len-2,&size);
 			FklString* str=fklCreateString(size,s);
 			free(s);
 			return fklCreateToken(FKL_TOKEN_STRING,str,line);
@@ -321,7 +321,7 @@ static FklToken* createDefaultToken(const char* buf
 							,DefaultTokenHeaders[DEFAULT_TOKEN_HEADER_SYM].l))
 				{
 					size_t size=0;
-					char* s=fklCastEscapeCharBuf(&buf[i+1],'|',&size);
+					char* s=fklCastEscapeCharBuf(&buf[i+1],len-2,&size);
 					fklStringCharBufCat(&str,s,size);
 					free(s);
 				}

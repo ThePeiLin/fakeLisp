@@ -275,13 +275,13 @@ int fklCharBufToChar(const char* buf,size_t len)
 	if(toupper(buf[0])=='X'&&isxdigit(buf[1]))
 	{
 		for(size_t i=1;i<len&&isxdigit(buf[i]);i++)
-			ch=ch*16+isdigit(buf[i])?buf[i]-'0':toupper(buf[i])-'A'+10;
+			ch=ch*16+(isdigit(buf[i])?buf[i]-'0':(toupper(buf[i])-'A'+10));
 	}
 	else if(fklIsNumberCharBuf(buf,len))
 	{
 		if(fklIsHexNumCharBuf(buf,len))
 			for(size_t i=2;i<len&&isxdigit(buf[i]);i++)
-				ch=ch*16+isdigit(buf[i])?buf[i]-'0':toupper(buf[i])-'A'+10;
+				ch=ch*16+(isdigit(buf[i])?buf[i]-'0':(toupper(buf[i])-'A'+10));
 		else if(fklIsOctNumCharBuf(buf,len))
 			for(size_t i=1;i<len&&isdigit(buf[i])&&buf[i]<'8';i++)
 				ch=ch*8+buf[i]-'0';

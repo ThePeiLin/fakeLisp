@@ -374,8 +374,8 @@ int fklRunVM(FklVM*);
 //void fklSetGlobVMs(FklVMlist*);
 FklVM* fklCreateVM(FklByteCodelnt*,FklVM* prev,FklVM* next);
 //FklVM* fklCreateTmpVM(FklByteCode*,FklVMgc*,FklVM* prev,FklVM* next);
-FklVM* fklCreateThreadVM(FklVMproc*,FklVMgc*,FklVM* prev,FklVM* next,size_t libNum,FklVMlib* libs);
-FklVM* fklCreateThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue*,FklVM* prev,FklVM* next,size_t libNum,FklVMlib* libs);
+FklVM* fklCreateThreadVM(FklVMgc* gc,FklVMvalue*,FklVM* prev,FklVM* next,size_t libNum,FklVMlib* libs);
+//FklVM* fklCreateThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue*,FklVM* prev,FklVM* next,size_t libNum,FklVMlib* libs);
 
 void fklDestroyVMvalue(FklVMvalue*);
 FklVMstack* fklCreateVMstack(int32_t);
@@ -611,6 +611,7 @@ int fklVMcallInDlproc(FklVMvalue*
 
 size_t fklVMlistLength(FklVMvalue*);
 
+void fklPushVMframe(FklVMframe*,FklVM* exe);
 FklVMframe* fklCreateOtherObjVMframe(const FklVMframeContextMethodTable* t,FklVMframe* prev);
 
 unsigned int fklGetCompoundFrameMark(const FklVMframe*);

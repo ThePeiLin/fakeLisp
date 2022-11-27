@@ -3034,15 +3034,12 @@ static void* ThreadVMfunc(void* p)
 void builtin_go(ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMframe* frame=exe->frames;
 	FklVMvalue* threadProc=fklNiGetArg(&ap,stack);
 	if(!threadProc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.go",FKL_ERR_TOOFEWARG,exe);
 	if(!FKL_IS_PROC(threadProc)&&!FKL_IS_DLPROC(threadProc)&&!FKL_IS_CONT(threadProc)&&!fklIsCallableUd(threadProc))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.go",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	FklVM* threadVM=FKL_IS_PROC(threadProc)
-		?fklCreateThreadVM(threadProc->u.proc,exe->gc,exe,exe->next,exe->libNum,exe->libs)
-		:fklCreateThreadCallableObjVM(frame,exe->gc,threadProc,exe,exe->next,exe->libNum,exe->libs);
+	FklVM* threadVM=fklCreateThreadVM(exe->gc,threadProc,exe,exe->next,exe->libNum,exe->libs);
 	FklVMstack* threadVMstack=threadVM->stack;
 	fklNiSetBp(threadVMstack->tp,threadVMstack);
 	FklVMvalue* cur=fklNiGetArg(&ap,stack);

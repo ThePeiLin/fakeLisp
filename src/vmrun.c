@@ -43,12 +43,10 @@ static Greylink* createGreylink(FklVMvalue* v,struct Greylink* next)
 /*procedure call functions*/
 static void callCompoundProcdure(FklVM* exe,FklVMproc* tmpProc,FklVMframe* frame)
 {
-	pthread_rwlock_wrlock(&exe->rlock);
 	FklVMframe* tmpFrame=fklCreateVMframeWithProc(tmpProc,exe->frames);
 	tmpFrame->u.c.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(tmpProc->prevEnv,exe->gc));
-	exe->frames=tmpFrame;
-	pthread_rwlock_unlock(&exe->rlock);
-	fklAddToGC(fklGetCompoundFrameLocalenv(tmpFrame),exe);
+	fklPushVMframe(tmpFrame,exe);
+	fklAddToGC(tmpFrame->u.c.localenv,exe);
 }
 
 static void tailCallCompoundProcdure(FklVM* exe,FklVMproc* proc,FklVMframe* frame)
@@ -62,7 +60,7 @@ static void tailCallCompoundProcdure(FklVM* exe,FklVMproc* proc,FklVMframe* fram
 		tmpFrame->u.c.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(proc->prevEnv,exe->gc));
 		exe->frames->prev=tmpFrame;
 		pthread_rwlock_unlock(&exe->rlock);
-		fklAddToGC(fklGetCompoundFrameLocalenv(tmpFrame),exe);
+		fklAddToGC(tmpFrame->u.c.localenv,exe);
 	}
 }
 
@@ -189,12 +187,10 @@ inline static void initDlprocFrameContext(void* data[6],FklVMvalue* proc,FklVMgc
 
 void callDlProc(FklVM* exe,FklVMvalue* dlproc)
 {
-	pthread_rwlock_wrlock(&exe->rlock);
 	FklVMframe* prev=exe->frames;
 	FklVMframe* f=fklCreateOtherObjVMframe(&DlprocContextMethodTable,prev);
 	initDlprocFrameContext(f->u.o.data,dlproc,exe->gc);
-	exe->frames=f;
-	pthread_rwlock_unlock(&exe->rlock);
+	fklPushVMframe(f,exe);
 }
 
 /*--------------------------*/
@@ -433,6 +429,14 @@ inline void fklDoCopyObjFrameContext(FklVMframe* s,FklVMframe* d,FklVM* exe)
 	s->u.o.t->copy(fklGetFrameData(s),fklGetFrameData(d),exe);
 }
 
+inline void fklPushVMframe(FklVMframe* f,FklVM* exe)
+{
+	pthread_rwlock_wrlock(&exe->rlock);
+	f->prev=exe->frames;
+	exe->frames=f;
+	pthread_rwlock_unlock(&exe->rlock);
+}
+
 inline static FklVMframe* popFrame(FklVM* exe)
 {
 	pthread_rwlock_wrlock(&exe->rlock);
@@ -486,11 +490,9 @@ inline static void applyCompoundProc(FklVM* exe,FklVMproc* tmpProc,FklVMframe* f
 		prevProc->u.c.mark=1;
 	else
 	{
-		pthread_rwlock_wrlock(&exe->rlock);
 		FklVMframe* tmpFrame=fklCreateVMframeWithProc(tmpProc,exe->frames);
 		tmpFrame->u.c.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(tmpProc->prevEnv,exe->gc));
-		exe->frames=tmpFrame;
-		pthread_rwlock_unlock(&exe->rlock);
+		fklPushVMframe(tmpFrame,exe);
 		fklAddToGC(tmpFrame->u.c.localenv,exe);
 	}
 }
@@ -537,12 +539,10 @@ int fklVMcallInDlproc(FklVMvalue* proc
 	{
 		case FKL_TYPE_PROC:
 			{
-				pthread_rwlock_wrlock(&exe->rlock);
 				FklVMframe* tmpFrame=fklCreateVMframeWithProc(proc->u.proc,exe->frames);
 				tmpFrame->u.c.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(proc->u.proc->prevEnv,exe->gc));
-				exe->frames=tmpFrame;
-				pthread_rwlock_unlock(&exe->rlock);
-				fklAddToGC(fklGetCompoundFrameLocalenv(tmpFrame),exe);
+				fklPushVMframe(tmpFrame,exe);
+				fklAddToGC(tmpFrame->u.c.localenv,exe);
 			}
 			break;
 		default:
@@ -1756,37 +1756,10 @@ void fklDestroyAllValues(FklVMgc* gc)
 	}
 }
 
-FklVM* fklCreateThreadVM(FklVMproc* mainCode,FklVMgc* gc,FklVM* prev,FklVM* next,size_t libNum,FklVMlib* libs)
+FklVM* fklCreateThreadVM(FklVMgc* gc,FklVMvalue* nextCall,FklVM* prev,FklVM* next,size_t libNum,FklVMlib* libs)
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe);
-	FklVMframe* t=fklCreateVMframeWithProc(mainCode,NULL);
-	t->u.c.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(mainCode->prevEnv,gc));
-	exe->frames=t;
-	exe->mark=1;
-	exe->chan=fklCreateSaveVMvalue(FKL_TYPE_CHAN,fklCreateVMchanl(0));
-	exe->stack=fklCreateVMstack(0);
-	exe->gc=gc;
-	exe->nny=0;
-	exe->codeObj=mainCode->codeObj;
-	exe->libNum=libNum;
-	exe->libs=fklCopyMemory(libs,libNum*sizeof(FklVMlib));
-	pthread_rwlock_init(&exe->rlock,NULL);
-	pthread_mutex_init(&exe->prev_next_lock,NULL);
-	insert_to_VM_chain(exe,prev,next,gc);
-	fklAddToGCNoGC(fklGetCompoundFrameLocalenv(t),gc);
-	fklAddToGCNoGC(exe->chan,gc);
-	return exe;
-}
-
-FklVM* fklCreateThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue* nextCall,FklVM* prev,FklVM* next,size_t libNum,FklVMlib* libs)
-{
-	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
-	FKL_ASSERT(exe);
-	FklVMframe* t=fklCreateVMframeWithCodeObj(fklGetCompoundFrameCodeObj(frame),NULL,gc);
-	fklSetCompoundFrameCp(t,fklGetCompoundFrameScp(frame)+fklGetCompoundFrameCpc(frame));
-	t->u.c.localenv=fklGetCompoundFrameLocalenv(frame);
-	exe->frames=t;
 	exe->mark=1;
 	exe->chan=fklCreateSaveVMvalue(FKL_TYPE_CHAN,fklCreateVMchanl(0));
 	exe->stack=fklCreateVMstack(0);
@@ -1794,8 +1767,10 @@ FklVM* fklCreateThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue* ne
 	exe->nny=0;
 	exe->libNum=libNum;
 	exe->libs=fklCopyMemory(libs,libNum*sizeof(FklVMlib));
-	exe->codeObj=fklGetCompoundFrameCodeObj(frame);
+	exe->codeObj=prev->codeObj;
 	pthread_rwlock_init(&exe->rlock,NULL);
+	exe->frames=NULL;
+	fklCallobj(nextCall,NULL,exe);
 	pthread_mutex_init(&exe->prev_next_lock,NULL);
 	insert_to_VM_chain(exe,prev,next,gc);
 	fklAddToGCNoGC(exe->chan,gc);

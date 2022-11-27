@@ -278,12 +278,10 @@ inline static void initFfiprocFrameContext(void* data[6],FklVMvalue* proc,FklVMg
 
 static void _ffi_call_proc(FklVMvalue* ffiproc,FklVM* exe,FklVMvalue* rel)
 {
-	pthread_rwlock_wrlock(&exe->rlock);
 	FklVMframe* prev=exe->frames;
 	FklVMframe* f=fklCreateOtherObjVMframe(&FfiprocContextMethodTable,prev);
 	initFfiprocFrameContext(f->u.o.data,ffiproc,exe->gc);
-	exe->frames=f;
-	pthread_rwlock_unlock(&exe->rlock);
+	fklPushVMframe(f,exe);
 }
 
 extern int _mem_equal(const FklVMudata* a,const FklVMudata* b);

@@ -302,12 +302,11 @@ void fklPrintNastNode(const FklNastNode* exp,FILE* fp)
 					{
 						const static char* tmp[]=
 						{
-							"#hash",
-							"#hasheqv",
-							"#hashequal",
+							"#hash(",
+							"#hasheqv(",
+							"#hashequal(",
 						};
 						fputs(tmp[node->u.hash->type],fp);
-						fputc('(',fp);
 						FklPtrQueue* vQueue=fklCreatePtrQueue();
 						for(size_t i=0;i<node->u.hash->num;i++)
 							fklPushPtrQueue(createNastElem(NAST_HASH_ITEM

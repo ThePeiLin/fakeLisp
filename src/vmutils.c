@@ -1162,9 +1162,9 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 					{
 						const static char* tmp[]=
 						{
-							"#hash",
-							"#hasheqv",
-							"#hashequal",
+							"#hash(",
+							"#hasheqv(",
+							"#hashequal(",
 						};
 						fputs(tmp[v->u.hash->type],fp);
 						FklPtrQueue* hQueue=fklCreatePtrQueue();

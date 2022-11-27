@@ -30,9 +30,9 @@ int main(int argc,char** argv)
 	char* cwd=getcwd(NULL,0);
 	fklSetCwd(cwd);
 	free(cwd);
+	fklInitVMargs(argc,argv);
 	if(!filename)
 	{
-		fklInitVMargs(argc,argv);
 		fklSetMainFileRealPathWithCwd();
 		FklCodegen codegen={.fid=0,};
 		const FklSid_t* builtInHeadSymbolTable=fklInitCodegen();

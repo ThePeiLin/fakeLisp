@@ -3031,6 +3031,142 @@ static void* ThreadVMfunc(void* p)
 	return (void*)state;
 }
 
+int matchPattern(FklVMvalue* pattern,FklVMvalue* exp,FklVMhashTable* ht,FklVMgc* gc)
+{
+	if(!FKL_IS_PAIR(exp))
+		return 1;
+	if(pattern->u.pair->car!=exp->u.pair->car)
+		return 1;
+	FklPtrStack* s0=fklCreatePtrStack(32,16);
+	FklPtrStack* s1=fklCreatePtrStack(32,16);
+	fklPushPtrStack(pattern->u.pair->cdr,s0);
+	fklPushPtrStack(exp->u.pair->cdr,s1);
+	while(!fklIsPtrStackEmpty(s0)&&!fklIsPtrStackEmpty(s1))
+	{
+		FklVMvalue* v0=fklPopPtrStack(s0);
+		FklVMvalue* v1=fklPopPtrStack(s1);
+		if(FKL_IS_SYM(v0))
+			fklSetVMhashTable(v0,v1,ht,gc);
+		else if(FKL_IS_PAIR(v0)&&FKL_IS_PAIR(v1))
+		{
+			fklPushPtrStack(v0->u.pair->cdr,s0);
+			fklPushPtrStack(v0->u.pair->car,s0);
+			fklPushPtrStack(v1->u.pair->cdr,s1);
+			fklPushPtrStack(v1->u.pair->car,s1);
+		}
+		else if(!fklVMvalueEqual(v0,v1))
+		{
+			fklDestroyPtrStack(s0);
+			fklDestroyPtrStack(s1);
+			return 1;
+		}
+	}
+	fklDestroyPtrStack(s0);
+	fklDestroyPtrStack(s1);
+	return 0;
+}
+
+typedef struct
+{
+	FklSid_t id;
+}SidHashItem;
+
+static SidHashItem* createSidHashItem(FklSid_t key)
+{
+	SidHashItem* r=(SidHashItem*)malloc(sizeof(SidHashItem));
+	FKL_ASSERT(r);
+	r->id=key;
+	return r;
+}
+
+static size_t _sid_hashFunc(void* key)
+{
+	FklSid_t sid=*(FklSid_t*)key;
+	return sid;
+}
+
+static void _sid_destroyItem(void* item)
+{
+	free(item);
+}
+
+static int _sid_keyEqual(void* pkey0,void* pkey1)
+{
+	FklSid_t k0=*(FklSid_t*)pkey0;
+	FklSid_t k1=*(FklSid_t*)pkey1;
+	return k0==k1;
+}
+
+static void* _sid_getKey(void* item)
+{
+	return &((SidHashItem*)item)->id;
+}
+
+static FklHashTableMethodTable SidHashMethodTable=
+{
+	.__hashFunc=_sid_hashFunc,
+	.__destroyItem=_sid_destroyItem,
+	.__keyEqual=_sid_keyEqual,
+	.__getKey=_sid_getKey,
+};
+
+static int isValidSyntaxPattern(const FklVMvalue* p)
+{
+	if(!FKL_IS_PAIR(p))
+		return 0;
+	FklVMvalue* head=p->u.pair->car;
+	if(!FKL_IS_SYM(head))
+		return 0;
+	const FklVMvalue* body=p->u.pair->cdr;
+	FklHashTable* symbolTable=fklCreateHashTable(8,4,2,0.75,1,&SidHashMethodTable);
+	FklPtrStack* stack=fklCreatePtrStack(32,16);
+	fklPushPtrStack((void*)body,stack);
+	while(!fklIsPtrStackEmpty(stack))
+	{
+		const FklVMvalue* c=fklPopPtrStack(stack);
+		if(FKL_IS_PAIR(c))
+		{
+			fklPushPtrStack(c->u.pair->cdr,stack);
+			fklPushPtrStack(c->u.pair->car,stack);
+		}
+		else if(FKL_IS_SYM(c))
+		{
+			FklSid_t sid=FKL_GET_SYM(c);
+			if(fklGetHashItem(&sid,symbolTable))
+			{
+				fklDestroyHashTable(symbolTable);
+				fklDestroyPtrStack(stack);
+				return 0;
+			}
+			fklPutNoRpHashItem(createSidHashItem(sid)
+					,symbolTable);
+		}
+	}
+	fklDestroyHashTable(symbolTable);
+	fklDestroyPtrStack(stack);
+	return 1;
+}
+
+void builtin_pattern_match(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* pattern=fklNiGetArg(&ap,stack);
+	FklVMvalue* exp=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.pattern-match",FKL_ERR_TOOFEWARG,exe);
+	if(!isValidSyntaxPattern(pattern))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.pattern-match",FKL_ERR_INVALIDPATTERN,exe);
+	FklVMhashTable* hash=fklCreateVMhashTable(FKL_VM_HASH_EQ);
+	if(matchPattern(pattern,exp,hash,exe->gc))
+	{
+		fklDestroyVMhashTable(hash);
+		fklNiReturn(FKL_VM_NIL,&ap,stack);
+	}
+	else
+		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE,hash,exe),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 void builtin_go(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -4751,7 +4887,7 @@ static const struct SymbolFuncStruct
 	{"string?",               builtin_string_p,                },
 	{"string",                builtin_string,                  },
 	{"substring",             builtin_substring,               },
-	{"sub-string",             builtin_sub_string,               },
+	{"sub-string",            builtin_sub_string,              },
 	{"make-string",           builtin_make_string,             },
 	{"symbol->string",        builtin_symbol_to_string,        },
 	{"number->string",        builtin_number_to_string,        },
@@ -4772,7 +4908,7 @@ static const struct SymbolFuncStruct
 	{"vector",                builtin_vector,                  },
 	{"make-vector",           builtin_make_vector,             },
 	{"subvector",             builtin_subvector,               },
-	{"sub-vector",             builtin_sub_vector,               },
+	{"sub-vector",            builtin_sub_vector,              },
 	{"list->vector",          builtin_list_to_vector,          },
 	{"string->vector",        builtin_string_to_vector,        },
 	{"vref",                  builtin_vref,                    },
@@ -4782,7 +4918,7 @@ static const struct SymbolFuncStruct
 
 	{"list?",                 builtin_list_p,                  },
 	{"list",                  builtin_list,                    },
-	{"list*",				  builtin_list8,                   },
+	{"list*",                 builtin_list8,                   },
 	{"make-list",             builtin_make_list,               },
 	{"vector->list",          builtin_vector_to_list,          },
 	{"string->list",          builtin_string_to_list,          },
@@ -4792,7 +4928,7 @@ static const struct SymbolFuncStruct
 	{"bytevector?",           builtin_bytevector_p,            },
 	{"bytevector",            builtin_bytevector,              },
 	{"subbytevector",         builtin_subbytevector,           },
-	{"sub-bytevector",         builtin_sub_bytevector,           },
+	{"sub-bytevector",        builtin_sub_bytevector,          },
 	{"make-bytevector",       builtin_make_bytevector,         },
 	{"string->bytevector",    builtin_string_to_bytevector,    },
 	{"vector->bytevector",    builtin_vector_to_bytevector,    },
@@ -4892,6 +5028,8 @@ static const struct SymbolFuncStruct
 	{"hash->list",            builtin_hash_to_list,            },
 	{"hash-keys",             builtin_hash_keys,               },
 	{"hash-values",           builtin_hash_values,             },
+
+	{"pattern-match",         builtin_pattern_match,           },
 
 	{NULL,                    NULL,                            },
 };

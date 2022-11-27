@@ -15,8 +15,6 @@ typedef enum
 	FKL_FKLC_ERR_INVALID_SYNTAX_PATTERN,
 }FklFklcErrType;
 
-int fklcIsValidSyntaxPattern(FklVMvalue* pattern);
-int fklcMatchPattern(FklVMvalue* pattern,FklVMvalue* exp,FklVMhashTable* hash,FklVMgc*);
 char* fklcGenErrorMessage(FklFklcErrType);
 FklSid_t fklcGetErrorType(FklFklcErrType);
 #ifdef __cplusplus

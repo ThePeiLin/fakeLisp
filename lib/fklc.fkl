@@ -16,7 +16,6 @@
     compile-obj
     fbc->bytevector
     bytevector->fbc
-    pattern-match
     opcode-list
     opcode-hashtable
     opcode->number
@@ -85,7 +84,6 @@
       (href opcode-hashtable s ())))
   (define fklc (dlopen (append *file-dir* "/../fklc")))
   (define fbc? (dlsym fklc "fklc_fbc_p"))
-  (define pattern-match (dlsym fklc "fklc_pattern_match"))
   (define compile-i32 (dlsym fklc "fklc_compile_i32"))
   (define compile-i64 (dlsym fklc "fklc_compile_i64"))
   (define compile-char (dlsym fklc "fklc_compile_char"))

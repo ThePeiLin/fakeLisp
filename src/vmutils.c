@@ -700,6 +700,9 @@ char* fklGenErrorMessage(FklBuiltInErrorType type,FklVM* exe)
 		case FKL_ERR_INVALID_VALUE:
 			t=fklStrCat(t,"Invalid value");
 			break;
+		case FKL_ERR_INVALIDPATTERN:
+			t=fklStrCat(t,"invalid pattern ");
+			break;
 		default:
 			break;
 	}
@@ -1337,3 +1340,4 @@ size_t fklVMlistLength(FklVMvalue* v)
 	for(;FKL_IS_PAIR(v);v=fklGetVMpairCdr(v))len++;
 	return len;
 }
+

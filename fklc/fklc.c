@@ -41,26 +41,6 @@ void fklc_fbc_p(ARGL) PREDICATE(fklcIsFbc(val),"fklc.fbc?")
 
 #undef PREDICATE
 
-void fklc_pattern_match(ARGL)
-{
-	FKL_NI_BEGIN(exe);
-	FklVMvalue* pattern=fklNiGetArg(&ap,stack);
-	FklVMvalue* exp=fklNiGetArg(&ap,stack);
-	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.pattern-match",FKL_ERR_TOOFEWARG,exe);
-	if(!fklcIsValidSyntaxPattern(pattern))
-		FKLC_RAISE_ERROR("fklc.pattern-match",FKL_FKLC_ERR_INVALID_SYNTAX_PATTERN,exe);
-	FklVMhashTable* hash=fklCreateVMhashTable(FKL_VM_HASH_EQ);
-	if(fklcMatchPattern(pattern,exp,hash,exe->gc))
-	{
-		fklDestroyVMhashTable(hash);
-		fklNiReturn(FKL_VM_NIL,&ap,stack);
-	}
-	else
-		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE,hash,exe),&ap,stack);
-	fklNiEnd(&ap,stack);
-}
-
 #define IS_LITERAL(V) ((V)==FKL_VM_NIL||fklIsVMnumber(V)||FKL_IS_CHR(V)||FKL_IS_STR(V)||FKL_IS_BYTEVECTOR(V)||FKL_IS_SYM(V))
 
 #define IS_COMPILABLE(V) (IS_LITERAL(V)||FKL_IS_PAIR(V)||FKL_IS_BOX(V)||FKL_IS_VECTOR(V))

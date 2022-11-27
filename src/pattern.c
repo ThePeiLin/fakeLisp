@@ -426,11 +426,11 @@ FklStringMatchPattern* fklInitBuiltInStringPattern(void)
 typedef struct
 {
 	FklSid_t id;
-}FklSidHashItem;
+}SidHashItem;
 
-static FklSidHashItem* createSidHashItem(FklSid_t key)
+static SidHashItem* createSidHashItem(FklSid_t key)
 {
-	FklSidHashItem* r=(FklSidHashItem*)malloc(sizeof(FklSidHashItem));
+	SidHashItem* r=(SidHashItem*)malloc(sizeof(SidHashItem));
 	FKL_ASSERT(r);
 	r->id=key;
 	return r;
@@ -456,7 +456,7 @@ static int _sid_keyEqual(void* pkey0,void* pkey1)
 
 static void* _sid_getKey(void* item)
 {
-	return &((FklSidHashItem*)item)->id;
+	return &((SidHashItem*)item)->id;
 }
 
 static FklHashTableMethodTable SidHashMethodTable=

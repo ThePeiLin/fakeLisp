@@ -3367,6 +3367,7 @@ void builtin_call_eh(ARGL)
 	FklVMframe* curframe=exe->frames;
 	if(errSymbolLists.top)
 	{
+		pthread_rwlock_wrlock(&exe->rlock);
 		curframe->errorCallBack=errorCallBackWithErrorHandler;
 		curframe->u.o.t=&ErrorHandlerContextMethodTable;
 		EhFrameContext* c=(EhFrameContext*)curframe->u.o.data;
@@ -3379,6 +3380,7 @@ void builtin_call_eh(ARGL)
 		c->errorHandlers=t;
 		c->bp=ap;
 		c->top=stack->bps->top;
+		pthread_rwlock_unlock(&exe->rlock);
 	}
 	else
 	{

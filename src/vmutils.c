@@ -750,40 +750,93 @@ static PrtElem* createPrtElem(enum PrintingState state,FklVMvalue* v)
 	return r;
 }
 
-static int isInStack(FklVMvalue* v,FklPtrStack* stack,size_t* w)
+typedef struct
 {
-	for(size_t i=0;i<stack->top;i++)
-		if(stack->base[i]==v)
-		{
-			if(w)
-				*w=i;
-			return 1;
-		}
-	return 0;
+	FklVMvalue* v;
+	size_t w;
+}VMvalueHashItem;
+
+static VMvalueHashItem* createVMvalueHashItem(FklVMvalue* key,size_t w)
+{
+	VMvalueHashItem* r=(VMvalueHashItem*)malloc(sizeof(VMvalueHashItem));
+	FKL_ASSERT(r);
+	r->v=key;
+	r->w=w;
+	return r;
 }
 
-void fklScanCirRef(FklVMvalue* s,FklPtrStack* recStack)
+static size_t _VMvalue_hashFunc(void* key)
 {
+	FklVMvalue* v=*(FklVMvalue**)key;
+	return (uintptr_t)v>>3;
+}
+
+static void _VMvalue_destroyItem(void* item)
+{
+	free(item);
+}
+
+static int _VMvalue_keyEqual(void* pkey0,void* pkey1)
+{
+	FklVMvalue* k0=*(FklVMvalue**)pkey0;
+	FklVMvalue* k1=*(FklVMvalue**)pkey1;
+	return k0==k1;
+}
+
+static void* _VMvalue_getKey(void* item)
+{
+	return &((VMvalueHashItem*)item)->v;
+}
+
+static FklHashTableMethodTable VMvalueHashMethodTable=
+{
+	.__hashFunc=_VMvalue_hashFunc,
+	.__destroyItem=_VMvalue_destroyItem,
+	.__keyEqual=_VMvalue_keyEqual,
+	.__getKey=_VMvalue_getKey,
+};
+
+FklHashTable* fklCreateValueSetHashtable(void)
+{
+	return fklCreateHashTable(32,8,2,0.75,1,&VMvalueHashMethodTable);
+}
+
+static void putValueInSet(FklHashTable* s,FklVMvalue* v)
+{
+	size_t w=s->num;
+	fklPutNoRpHashItem(createVMvalueHashItem(v,w),s);
+}
+
+static int isInValueSet(FklVMvalue* v,FklHashTable* t,size_t* w)
+{
+	VMvalueHashItem* item=fklGetHashItem(&v,t);
+	if(item&&w)
+		*w=item->w;
+	return item!=NULL;
+}
+
+void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet)
+{
+	FklHashTable* totalAccessed=fklCreateValueSetHashtable();
 	FklPtrStack* beAccessed=fklCreatePtrStack(32,16);
-	FklPtrStack* totalAccessed=fklCreatePtrStack(32,16);
 	fklPushPtrStack(s,beAccessed);
 	while(!fklIsPtrStackEmpty(beAccessed))
 	{
 		FklVMvalue* v=fklPopPtrStack(beAccessed);
 		if(FKL_IS_PAIR(v)||FKL_IS_VECTOR(v)||FKL_IS_BOX(v)||FKL_IS_HASHTABLE(v))
 		{
-			if(isInStack(v,totalAccessed,NULL))
+			if(isInValueSet(v,totalAccessed,NULL))
 			{
-				fklPushPtrStack(v,recStack);
+				putValueInSet(recValueSet,v);
 				continue;
 			}
-			if(isInStack(v,recStack,NULL))
+			if(isInValueSet(v,recValueSet,NULL))
 				continue;
-			fklPushPtrStack(v,totalAccessed);
+			putValueInSet(totalAccessed,v);
 			if(FKL_IS_PAIR(v))
 			{
 				if(v->u.pair->cdr==v||v->u.pair->car==v)
-					fklPushPtrStack(v,recStack);
+					putValueInSet(recValueSet,v);
 				else
 				{
 					fklPushPtrStack(v->u.pair->cdr,beAccessed);
@@ -796,7 +849,7 @@ void fklScanCirRef(FklVMvalue* s,FklPtrStack* recStack)
 				for(size_t i=vec->size;i>0;i--)
 				{
 					if(vec->base[i-1]==v)
-						fklPushPtrStack(v,recStack);
+						putValueInSet(recValueSet,v);
 					else
 						fklPushPtrStack(vec->base[i-1],beAccessed);
 				}
@@ -811,7 +864,7 @@ void fklScanCirRef(FklVMvalue* s,FklPtrStack* recStack)
 				{
 					FklVMhashTableItem* item=fklPopPtrStack(stack);
 					if(item->v==v||item->key==v)
-						fklPushPtrStack(v,recStack);
+						putValueInSet(recValueSet,v);
 					else
 					{
 						fklPushPtrStack(item->v,beAccessed);
@@ -823,13 +876,13 @@ void fklScanCirRef(FklVMvalue* s,FklPtrStack* recStack)
 			else
 			{
 				if(v->u.box==v)
-					fklPushPtrStack(v,recStack);
+					putValueInSet(recValueSet,v);
 				else
 					fklPushPtrStack(v->u.box,beAccessed);
 			}
 		}
 	}
-	fklDestroyPtrStack(totalAccessed);
+	fklDestroyHashTable(totalAccessed);
 	fklDestroyPtrStack(beAccessed);
 }
 
@@ -1077,9 +1130,9 @@ static HashPrtElem* createHashPrtElem(PrtElem* key,PrtElem* v)
 
 void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v,FILE* fp))
 {
-	FklPtrStack* recStack=fklCreatePtrStack(32,16);
-	FklPtrStack* hasPrintRecStack=fklCreatePtrStack(32,16);
-	fklScanCirRef(value,recStack);
+	FklHashTable* recValueSet=fklCreateValueSetHashtable();
+	FklHashTable* hasPrintRecSet=fklCreateValueSetHashtable();
+	fklScanCirRef(value,recValueSet);
 	FklPtrQueue* queue=fklCreatePtrQueue();
 	FklPtrStack* queueStack=fklCreatePtrStack(32,16);
 	fklPushPtrQueue(createPrtElem(PRT_CAR,value),queue);
@@ -1118,12 +1171,9 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 					atomPrinter(v,fp);
 				else
 				{
-					for(uint32_t i=0;i<recStack->top;i++)
-						if(recStack->base[i]==v)
-						{
-							fprintf(fp,"#%u=",i);
-							break;
-						}
+					size_t i=0;
+					if(isInValueSet(v,recValueSet,&i))
+						fprintf(fp,"#%lu=",i);
 					if(FKL_IS_VECTOR(v))
 					{
 						fputs("#(",fp);
@@ -1131,14 +1181,14 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 						for(size_t i=0;i<v->u.vec->size;i++)
 						{
 							size_t w=0;
-							if((isInStack(v->u.vec->base[i],recStack,&w)&&isInStack(v->u.vec->base[i],hasPrintRecStack,NULL))||v->u.vec->base[i]==v)
+							if((isInValueSet(v->u.vec->base[i],recValueSet,&w)&&isInValueSet(v->u.vec->base[i],hasPrintRecSet,NULL))||v->u.vec->base[i]==v)
 								fklPushPtrQueue(createPrtElem(PRT_REC_CAR,(void*)w)
 										,vQueue);
 							else
 							{
 								fklPushPtrQueue(createPrtElem(PRT_CAR,v->u.vec->base[i])
 										,vQueue);
-								fklPushPtrStack(v->u.vec->base[i],hasPrintRecStack);
+								putValueInSet(hasPrintRecSet,v->u.vec->base[i]);
 							}
 						}
 						fklPushPtrStack(vQueue,queueStack);
@@ -1149,12 +1199,12 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 					{
 						fputs("#&",fp);
 						size_t w=0;
-						if((isInStack(v->u.box,recStack,&w)&&isInStack(v->u.box,hasPrintRecStack,NULL))||v->u.box==v)
+						if((isInValueSet(v->u.box,recValueSet,&w)&&isInValueSet(v->u.box,hasPrintRecSet,NULL))||v->u.box==v)
 							fklPushPtrQueueToFront(createPrtElem(PRT_REC_BOX,(void*)w),cQueue);
 						else
 						{
 							fklPushPtrQueueToFront(createPrtElem(PRT_BOX,v->u.box),cQueue);
-							fklPushPtrStack(v->u.box,hasPrintRecStack);
+							putValueInSet(hasPrintRecSet,v->u.box);
 						}
 						continue;
 					}
@@ -1174,19 +1224,19 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 							PrtElem* keyElem=NULL;
 							PrtElem* vElem=NULL;
 							size_t w=0;
-							if((isInStack(item->key,recStack,&w)&&isInStack(item->key,hasPrintRecStack,NULL))||item->key==v)
+							if((isInValueSet(item->key,recValueSet,&w)&&isInValueSet(item->key,hasPrintRecSet,NULL))||item->key==v)
 								keyElem=createPrtElem(PRT_REC_CAR,(void*)w);
 							else
 							{
 								keyElem=createPrtElem(PRT_CAR,item->key);
-								fklPushPtrStack(item->key,hasPrintRecStack);
+								putValueInSet(hasPrintRecSet,item->key);
 							}
-							if((isInStack(item->v,recStack,&w)&&isInStack(item->key,hasPrintRecStack,NULL))||item->v==v)
+							if((isInValueSet(item->v,recValueSet,&w)&&isInValueSet(item->key,hasPrintRecSet,NULL))||item->v==v)
 								vElem=createPrtElem(PRT_REC_CDR,(void*)w);
 							else
 							{
 								vElem=createPrtElem(PRT_CDR,item->v);
-								fklPushPtrStack(item->v,hasPrintRecStack);
+								putValueInSet(hasPrintRecSet,item->v);
 							}
 							fklPushPtrQueue(createPrtElem(PRT_HASH_ITEM,(void*)createHashPrtElem(keyElem,vElem)),hQueue);
 						}
@@ -1203,21 +1253,21 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 						{
 							PrtElem* ce=NULL;
 							size_t w=0;
-							if(isInStack(p->car,recStack,&w)&&(isInStack(p->car,hasPrintRecStack,NULL)||p->car==v))
+							if(isInValueSet(p->car,recValueSet,&w)&&(isInValueSet(p->car,hasPrintRecSet,NULL)||p->car==v))
 								ce=createPrtElem(PRT_REC_CAR,(void*)w);
 							else
 							{
 								ce=createPrtElem(PRT_CAR,p->car);
-								fklPushPtrStack(p->car,hasPrintRecStack);
+								putValueInSet(hasPrintRecSet,p->car);
 							}
 							fklPushPtrQueue(ce,lQueue);
-							if(isInStack(p->cdr,recStack,&w))
+							if(isInValueSet(p->cdr,recValueSet,&w))
 							{
 								PrtElem* cdre=NULL;
-								if(p->cdr!=v&&!isInStack(p->cdr,hasPrintRecStack,NULL))
+								if(p->cdr!=v&&!isInValueSet(p->cdr,hasPrintRecSet,NULL))
 								{
 									cdre=createPrtElem(PRT_CDR,p->cdr);
-									fklPushPtrStack(p->cdr,hasPrintRecStack);
+									putValueInSet(hasPrintRecSet,p->cdr);
 								}
 								else
 								{
@@ -1265,8 +1315,8 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 		}
 	}
 	fklDestroyPtrStack(queueStack);
-	fklDestroyPtrStack(recStack);
-	fklDestroyPtrStack(hasPrintRecStack);
+	fklDestroyHashTable(recValueSet);
+	fklDestroyHashTable(hasPrintRecSet);
 }
 
 FklVMvalue* fklSetRef(FklVMvalue* volatile* pref,FklVMvalue* v,FklVMgc* gc)

@@ -436,7 +436,8 @@ double fklGetDouble(const FklVMvalue* p);
 //void fklInitVMRunningResource(FklVM*,FklVMvalue*,FklVMgc* gc,FklByteCodelnt*,uint32_t,uint32_t);
 //void fklUninitVMRunningResource(FklVM*);
 
-void fklScanCirRef(FklVMvalue* s,FklPtrStack* recStack);
+FklHashTable* fklCreateValueSetHashtable(void);
+void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet);
 
 typedef struct FklPreEnv FklPreEnv;
 FklHashTable* fklCreateLineNumHashTable(void);

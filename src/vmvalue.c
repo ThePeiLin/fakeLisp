@@ -552,10 +552,10 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 		,uint64_t curline
 		,FklHashTable* lineHash)
 {
-	FklPtrStack* recStack=fklCreatePtrStack(32,16);
+	FklHashTable* recValueSet=fklCreateValueSetHashtable();
 	FklNastNode* retval=NULL;
-	fklScanCirRef(v,recStack);
-	if(!recStack->top)
+	fklScanCirRef(v,recValueSet);
+	if(!recValueSet->num)
 	{
 		FklPtrStack* s0=fklCreatePtrStack(32,16);
 		FklPtrStack* s1=fklCreatePtrStack(32,16);
@@ -711,7 +711,7 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 		fklDestroyPtrStack(s1);
 		fklDestroyUintStack(lineStack);
 	}
-	fklDestroyPtrStack(recStack);
+	fklDestroyHashTable(recValueSet);
 	return retval;
 }
 

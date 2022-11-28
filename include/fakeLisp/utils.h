@@ -60,8 +60,9 @@ FklString* fklDoubleToString(double);
 double fklCstrToDouble(const char*);
 double fklStringToDouble(const FklString*);
 
-char* fklIntToCstr(long);
-FklString* fklIntToString(long);
+int fklWriteCharAsCstr(char,char*,size_t);
+char* fklIntToCstr(int64_t);
+FklString* fklIntToString(int64_t);
 //int64_t fklCstrToInt(const char*);
 //int64_t fklStringToInt(const FklString*);
 

@@ -416,6 +416,7 @@ void fklDBG_printVMenv(FklVMenv*,FILE*);
 void fklDBG_printVMvalue(FklVMvalue*,FILE*);
 void fklDBG_printVMstack(FklVMstack*,FILE*,int);
 
+FklString* fklStringify(FklVMvalue*);
 void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v,FILE* fp));
 void fklPrin1VMvalue(FklVMvalue*,FILE*);
 void fklPrincVMvalue(FklVMvalue*,FILE*);

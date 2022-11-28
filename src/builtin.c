@@ -2741,6 +2741,20 @@ void builtin_read(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void builtin_stringify(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* v=fklNiGetArg(&ap,stack);
+	if(!v)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.stringify",FKL_ERR_TOOFEWARG,exe);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.stringify",FKL_ERR_TOOMANYARG,exe);
+	FklString* s=fklStringify(v);
+	FklVMvalue* retval=fklCreateVMvalueToStack(FKL_TYPE_STR,s,exe);
+	fklNiReturn(retval,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 void builtin_parse(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -4864,6 +4878,7 @@ static const struct SymbolFuncStruct
 	{"fopen",                 builtin_fopen,                   },
 	{"read",                  builtin_read,                    },
 	{"parse",                 builtin_parse,                   },
+	{"stringify",             builtin_stringify,               },
 	{"prin1",                 builtin_prin1,                   },
 	{"princ",                 builtin_princ,                   },
 	{"dlopen",                builtin_dlopen,                  },

@@ -32,6 +32,9 @@ FklString* fklStringAppend(const FklString*,const FklString*);
 void fklDestroyStringArray(FklString**,uint32_t num);
 void fklWriteStringToCstr(char*,const FklString*);
 
+FklString* fklStringToRawString(const FklString* str);
+FklString* fklStringToRawSymbol(const FklString* str);
+
 typedef struct FklBytevector
 {
 	uint64_t size;
@@ -43,6 +46,7 @@ FklBytevector* fklCopyBytevector(const FklBytevector*);
 void fklBytevectorCat(FklBytevector**,const FklBytevector*);
 int fklBytevectorcmp(const FklBytevector*,const FklBytevector*);
 void fklPrintRawBytevector(const FklBytevector* str,FILE* fp);
+FklString* fklBytevectorToString(const FklBytevector*);
 
 typedef struct FklHashTableNode
 {

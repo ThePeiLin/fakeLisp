@@ -59,7 +59,7 @@ static void _ffi_proc_atomic_finalizer(void* p)
 static void _ffi_proc_print(void* p,FILE* fp)
 {
 	FklFfiProc* f=p;
-	fprintf(fp,"#<ffi-proc:");
+	fprintf(fp,"#<ffi-proc ");
 	fklPrintString(fklGetGlobSymbolWithId(f->sid)->symbol,fp);
 	fputc('>',fp);
 }

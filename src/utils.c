@@ -140,7 +140,7 @@ double fklStringToDouble(const FklString* str)
 	return tmp;
 }
 
-FklString* fklIntToString(long num)
+FklString* fklIntToString(int64_t num)
 {
 	char numString[256]={0};
 	int lenOfNum=sprintf(numString,"%ld",num);
@@ -148,7 +148,7 @@ FklString* fklIntToString(long num)
 	return tmp;
 }
 
-char* fklIntToCstr(long num)
+char* fklIntToCstr(int64_t num)
 {
 	char numString[256]={0};
 	sprintf(numString,"%ld",num);
@@ -463,6 +463,44 @@ int fklIsNumberCstr(const char* objStr)
 		}
 	}
 	return 1;
+}
+
+int fklWriteCharAsCstr(char chr,char* buf,size_t s)
+{
+	if(s<=3)
+		return 1;
+	buf[0]='#';
+	buf[1]='\\';
+	if(isgraph(chr))
+	{
+		if(chr=='\\')
+		{
+			if(s<=4)
+				return 1;
+			buf[2]='\\';
+			buf[3]='\\';
+			buf[4]='\0';
+		}
+		else
+		{
+			buf[2]=chr;
+			buf[3]='\0';
+		}
+	}
+	else
+	{
+		if(s<=6)
+			return 1;
+		uint8_t j=chr;
+		uint8_t h=j/16;
+		uint8_t l=j%16;
+		buf[2]='\\';
+		buf[3]='x';
+		buf[4]=h<10?'0'+h:'A'+(h-10);
+		buf[5]=l<10?'0'+l:'A'+(l-10);
+		buf[6]='\0';
+	}
+	return 0;
 }
 
 void fklPrintRawChar(char chr,FILE* out)

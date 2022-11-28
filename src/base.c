@@ -1323,15 +1323,11 @@ void fklPrintBigInt(const FklBigInt* a,FILE* fp)
 		fputc('0',fp);
 	else
 	{
-		FklUintStack* res=NULL;
-		res=toRadixDigitsLe(a,10);
+		FklUintStack* res=toRadixDigitsLe(a,10);
 		for(size_t i=res->top;i>0;i--)
 		{
 			uint8_t c=res->base[i-1];
-			if(c<10)
-				fputc('0'+c,fp);
-			else
-				fputc('A'+c,fp);
+			fputc('0'+c,fp);
 		}
 		fklDestroyUintStack(res);
 	}
@@ -1508,6 +1504,38 @@ void fklPrintRawSymbol(const FklString* str,FILE* fp)
 void fklPrintString(const FklString* str,FILE* fp)
 {
 	fwrite(str->str,str->size,1,fp);
+}
+
+FklString* fklStringToRawString(const FklString* str)
+{
+	FklString* retval=fklCreateStringFromCstr("\"");
+	size_t size=str->size;
+	const char* buf=str->str;
+	char c_str[FKL_MAX_STRING_SIZE]={0};
+	for(size_t i=0;i<size;i++)
+	{
+		char cur=buf[i];
+		fklWriteCharAsCstr(cur,c_str,FKL_MAX_STRING_SIZE);
+		fklStringCstrCat(&retval,&c_str[2]);
+	}
+	fklStringCstrCat(&retval,"\"");
+	return retval;
+}
+
+FklString* fklStringToRawSymbol(const FklString* str)
+{
+	FklString* retval=fklCreateStringFromCstr("|");
+	size_t size=str->size;
+	const char* buf=str->str;
+	char c_str[FKL_MAX_STRING_SIZE]={0};
+	for(size_t i=0;i<size;i++)
+	{
+		char cur=buf[i];
+		fklWriteCharAsCstr(cur,c_str,FKL_MAX_STRING_SIZE);
+		fklStringCstrCat(&retval,&c_str[2]);
+	}
+	fklStringCstrCat(&retval,"|");
+	return retval;
 }
 
 void fklDestroyStringArray(FklString** ss,uint32_t num)
@@ -1761,6 +1789,22 @@ int fklBytevectorcmp(const FklBytevector* fir,const FklBytevector* sec)
 void fklPrintRawBytevector(const FklBytevector* bv,FILE* fp)
 {
 	fklPrintRawByteBuf(bv->ptr,bv->size,fp);
+}
+
+FklString* fklBytevectorToString(const FklBytevector* bv)
+{
+	FklString* retval=fklCreateStringFromCstr("#vu8(");
+	const uint8_t* ptr=bv->ptr;
+	size_t size=bv->size;
+	char c_str[FKL_MAX_STRING_SIZE]={0};
+	for(size_t i=0;i<size;i++)
+	{
+		snprintf(c_str,FKL_MAX_STRING_SIZE,"0x%X",ptr[i]);
+		if(i<size-1)
+			fklStringCstrCat(&retval," ");
+	}
+	fklStringCstrCat(&retval,")");
+	return retval;
 }
 
 FklBytevector* fklCopyBytevector(const FklBytevector* obj)

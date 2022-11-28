@@ -4435,6 +4435,7 @@ void builtin_get(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMframe* frame=exe->frames;
+	for(;frame->type!=FKL_FRAME_COMPOUND;frame=frame->prev);
 	FklVMvalue* sym=fklNiGetArg(&ap,stack);
 	FklVMvalue* defaultValue=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
@@ -4462,6 +4463,7 @@ void builtin_set(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMframe* frame=exe->frames;
+	for(;frame->type!=FKL_FRAME_COMPOUND;frame=frame->prev);
 	FklVMvalue* sym=fklNiGetArg(&ap,stack);
 	FklVMvalue* value=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))

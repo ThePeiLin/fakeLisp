@@ -1387,6 +1387,7 @@ static void atomStringify(FklString** pr,FklVMvalue* v)
 							FklString* s=fklStringToRawSymbol(fklGetGlobSymbolWithId(v->u.proc->sid)->symbol);
 							fklStringCat(pr,s);
 							free(s);
+							fklStringCstrCat(pr,">");
 						}
 						else
 							fklStringCstrCat(pr,"#<proc>");
@@ -1417,6 +1418,7 @@ static void atomStringify(FklString** pr,FklVMvalue* v)
 							FklString* s=fklStringToRawSymbol(fklGetGlobSymbolWithId(v->u.proc->sid)->symbol);
 							fklStringCat(pr,s);
 							free(s);
+							fklStringCstrCat(pr,">");
 						}
 						else
 							fklStringCstrCat(pr,"#<dlproc>");

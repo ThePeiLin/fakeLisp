@@ -1800,6 +1800,7 @@ FklString* fklBytevectorToString(const FklBytevector* bv)
 	for(size_t i=0;i<size;i++)
 	{
 		snprintf(c_str,FKL_MAX_STRING_SIZE,"0x%X",ptr[i]);
+		fklStringCstrCat(&retval,c_str);
 		if(i<size-1)
 			fklStringCstrCat(&retval," ");
 	}

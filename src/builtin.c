@@ -1928,6 +1928,58 @@ void builtin_number_to_string(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void builtin_integer_to_string(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	FklVMvalue* radix=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.integer->string",FKL_ERR_TOOMANYARG,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.integer->string",FKL_ERR_TOOFEWARG,exe);
+	FKL_NI_CHECK_TYPE(obj,fklIsInt,"builtin.integer->string",exe);
+	FklVMvalue* retval=fklCreateVMvalueToStack(FKL_TYPE_STR,NULL,exe);
+	uint32_t base=10;
+	if(radix)
+	{
+		FKL_NI_CHECK_TYPE(radix,fklIsInt,"builtin.integer->string",exe);
+		int64_t t=fklGetInt(radix);
+		if(t!=8&&t!=10&&t!=16)
+			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.integer->string",FKL_ERR_INVALIDRADIX,exe);
+		base=t;
+	}
+	if(FKL_IS_BIG_INT(obj))
+		retval->u.str=fklBigIntToString(obj->u.bigInt,base);
+	else
+	{
+		FklBigInt bi=FKL_BIG_INT_INIT;
+		uint8_t t[64]={0};
+		bi.size=64;
+		bi.digits=t;
+		fklSetBigIntI(&bi,fklGetInt(obj));
+		retval->u.str=fklBigIntToString(&bi,base);
+	}
+	fklNiReturn(retval,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_f64_to_string(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.f64->string",FKL_ERR_TOOMANYARG,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.f64->string",FKL_ERR_TOOFEWARG,exe);
+	FKL_NI_CHECK_TYPE(obj,FKL_IS_F64,"builtin.f64->string",exe);
+	FklVMvalue* retval=fklCreateVMvalueToStack(FKL_TYPE_STR,NULL,exe);
+	char buf[256]={0};
+	size_t size=snprintf(buf,64,"%lf",obj->u.f64);
+	retval->u.str=fklCreateString(size,buf);
+	fklNiReturn(retval,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 void builtin_vector_to_string(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -4913,6 +4965,8 @@ static const struct SymbolFuncStruct
 	{"make-string",           builtin_make_string,             },
 	{"symbol->string",        builtin_symbol_to_string,        },
 	{"number->string",        builtin_number_to_string,        },
+	{"integer->string",       builtin_integer_to_string,       },
+	{"f64->string",           builtin_f64_to_string,           },
 	{"vector->string",        builtin_vector_to_string,        },
 	{"bytevector->string",    builtin_bytevector_to_string,    },
 	{"list->string",          builtin_list_to_string,          },

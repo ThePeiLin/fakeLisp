@@ -322,7 +322,7 @@ static uint64_t skipToCall(uint64_t index,const FklByteCode* bc)
 	uint64_t r=0;
 	while(index+r<bc->size&&bc->code[index+r]!=FKL_OP_CALL)
 	{
-		size_t len=fklGetOpcodeArgLen((FklOpcode)(bc->code[index+r]));
+		int len=fklGetOpcodeArgLen((FklOpcode)(bc->code[index+r]));
 		if(len<0)
 		{
 			FklOpcode op=bc->code[index+r];

@@ -540,6 +540,7 @@ BC_PROCESS(_lambda_exp_bc_process)
 	fklReCodeLntCat(stack->base[0],retval);
 	fklDestroyByteCodelnt(stack->base[0]);
 	stack->top=0;
+	fklScanAndSetTailCall(retval->bc);
 	FklByteCode* pushProc=create9lenBc(FKL_OP_PUSH_PROC,retval->bc->size);
 	bcBclAppendToBcl(pushProc,retval,fid,line);
 	fklDestroyByteCode(pushProc);
@@ -2980,7 +2981,6 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 	fklDestroyPtrStack(resultStack);
 	fklDestroyPtrStack(codegenQuestStack);
 	return retval;
-
 }
 
 FklByteCodelnt* fklGenExpressionCodeWithFp(FILE* fp

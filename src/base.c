@@ -1508,7 +1508,7 @@ void fklPrintString(const FklString* str,FILE* fp)
 
 FklString* fklStringToRawString(const FklString* str)
 {
-	FklString* retval=fklCreateStringFromCstr("\"");
+	FklString* retval=fklCreateStringFromCstr("\\\"");
 	size_t size=str->size;
 	const char* buf=str->str;
 	char c_str[FKL_MAX_STRING_SIZE]={0};
@@ -1518,7 +1518,7 @@ FklString* fklStringToRawString(const FklString* str)
 		fklWriteCharAsCstr(cur,c_str,FKL_MAX_STRING_SIZE);
 		fklStringCstrCat(&retval,&c_str[2]);
 	}
-	fklStringCstrCat(&retval,"\"");
+	fklStringCstrCat(&retval,"\\\"");
 	return retval;
 }
 

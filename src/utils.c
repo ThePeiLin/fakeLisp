@@ -497,24 +497,40 @@ unsigned int fklGetByteNumOfUtf8(const uint8_t* byte,size_t max)
 		return 7;
 #undef UTF8_ASCII
 #undef UTF8_M
-	static uint8_t utf8bits[]=
+	static struct{uint8_t a;uint8_t b;} utf8bits[]=
 	{
-		0x7F,
-		0xDF,
-		0xEF,
-		0xF7,
-		0xFB,
-		0xFD,
+		{0x7F,0x7F,},
+		{0xDF,0x1F,},
+		{0xEF,0x0F,},
+		{0xF7,0x07,},
+		{0xFB,0x03,},
+		{0xFD,0x01,},
 	};
 	size_t i=0;
 	for(;i<6;i++)
-		if((byte[0]|utf8bits[i])==utf8bits[i])
+		if((byte[0]|utf8bits[i].a)==utf8bits[i].a)
 			break;
 	i++;
 	if(i>max)
 		return 7;
 	else
-		return i;
+	{
+		uint32_t sum=0;
+		uint32_t bitmove=0;
+#define UTF8_M_BITS (0x3F)
+		for(size_t j=i;j>1;j--)
+		{
+			uint32_t cur=byte[j-1]&UTF8_M_BITS;
+			sum+=cur<<bitmove;
+			bitmove+=6;
+		}
+		sum+=(utf8bits[i-1].b&byte[0])<<bitmove;
+#undef UTF8_M_BITS
+		if(sum==0)
+			return 7;
+		else
+			return i;
+	}
 }
 
 int fklWriteCharAsCstr(char chr,char* buf,size_t s)
@@ -635,46 +651,6 @@ uint8_t fklCastCharInt(char ch)
 		else if(ch>='A'&&ch<='F')return 10+ch-'A';
 	}
 	return 0;
-}
-
-uint8_t* fklCastStrByteStr(const char* str)
-{
-	int len=strlen(str);
-	int32_t size=(len%2)?(len/2+1):len/2;
-	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	FKL_ASSERT(tmp);
-	int32_t i=0;
-	int k=0;
-	for(;i<size;i++)
-	{
-		tmp[i]=16*fklCastCharInt(str[k]);
-		if(str[k+1]!='\0')tmp[i]+=fklCastCharInt(str[k+1]);
-		k+=2;
-	}
-	return tmp;
-}
-
-void fklPrintByteStr(size_t size,const uint8_t* str,FILE* fp,int mode)
-{
-	if(mode)fputs("#b",fp);
-	unsigned int i=0;
-	for(;i<size;i++)
-	{
-		uint8_t j=str[i];
-		fprintf(fp,"%X",j/16);
-		fprintf(fp,"%X",j%16);
-	}
-}
-
-void fklPrintAsByteStr(const uint8_t* str,int32_t size,FILE* fp)
-{
-	fputs("#b",fp);
-	for(int i=0;i<size;i++)
-	{
-		uint8_t j=str[i];
-		fprintf(fp,"%X",j%16);
-		fprintf(fp,"%X",j/16);
-	}
 }
 
 void* fklCopyMemory(const void* pm,size_t size)

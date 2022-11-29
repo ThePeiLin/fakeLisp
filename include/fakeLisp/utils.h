@@ -74,7 +74,6 @@ int fklCharBufToChar(const char*,size_t);
 
 char* fklCastEscapeCharBuf(const char* str,size_t size,size_t* psize);
 
-uint8_t* fklCastStrByteStr(const char*);
 uint8_t fklCastCharInt(char);
 int fklIsscript(const char*);
 int fklIscode(const char*);
@@ -82,8 +81,6 @@ int fklIsAllSpace(const char*);
 char* fklCopyCstr(const char*);
 void* fklCopyMemory(const void*,size_t);
 int fklIsSymbolShouldBeExport(const FklString* str,const FklString** pStr,uint32_t n);
-void fklPrintByteStr(size_t size,const uint8_t* str,FILE*,int);
-void fklPrintAsByteStr(const uint8_t*,int32_t,FILE*);
 int fklChangeWorkPath(const char*);
 char* fklGetDir(const char*);
 char* fklGetStringFromFile(FILE*);

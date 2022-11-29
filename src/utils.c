@@ -497,14 +497,14 @@ unsigned int fklGetByteNumOfUtf8(const uint8_t* byte,size_t max)
 		return 7;
 #undef UTF8_ASCII
 #undef UTF8_M
-	static struct{uint8_t a;uint8_t b;} utf8bits[]=
+	static struct{uint8_t a;uint8_t b;uint32_t min;} utf8bits[]=
 	{
-		{0x7F,0x7F,},
-		{0xDF,0x1F,},
-		{0xEF,0x0F,},
-		{0xF7,0x07,},
-		{0xFB,0x03,},
-		{0xFD,0x01,},
+		{0x7F,0x7F,0x00000000,},
+		{0xDF,0x1F,0x00000080,},
+		{0xEF,0x0F,0x00000800,},
+		{0xF7,0x07,0x00010000,},
+		{0xFB,0x03,0x00200000,},
+		{0xFD,0x01,0x04000000,},
 	};
 	size_t i=0;
 	for(;i<6;i++)
@@ -517,6 +517,7 @@ unsigned int fklGetByteNumOfUtf8(const uint8_t* byte,size_t max)
 	{
 		uint32_t sum=0;
 		uint32_t bitmove=0;
+		uint32_t min=utf8bits[i-1].min;
 #define UTF8_M_BITS (0x3F)
 		for(size_t j=i;j>1;j--)
 		{
@@ -526,7 +527,7 @@ unsigned int fklGetByteNumOfUtf8(const uint8_t* byte,size_t max)
 		}
 		sum+=(utf8bits[i-1].b&byte[0])<<bitmove;
 #undef UTF8_M_BITS
-		if(sum==0)
+		if(sum<min)
 			return 7;
 		else
 			return i;

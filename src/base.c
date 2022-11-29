@@ -1531,36 +1531,6 @@ int static isSpecialCharAndWrite(uint8_t ch,FklString** pr)
 	return r;
 }
 
-static unsigned int getByteNumOfUtf8(const uint8_t* byte,size_t max)
-{
-#define UTF8_ASCII (0x80)
-#define UTF8_M (0xC0)
-	if(byte[0]<UTF8_ASCII)
-		return 1;
-	else if(byte[0]<UTF8_M)
-		return 7;
-#undef UTF8_ASCII
-#undef UTF8_M
-	static uint8_t utf8bits[]=
-	{
-		0x7F,
-		0xDF,
-		0xEF,
-		0xF7,
-		0xFB,
-		0xFD,
-	};
-	size_t i=0;
-	for(;i<6;i++)
-		if((byte[0]|utf8bits[i])==utf8bits[i])
-			break;
-	i++;
-	if(i>max)
-		return 7;
-	else
-		return i;
-}
-
 inline static void writeRawCharBufToString(const uint8_t* str,const char se,size_t size,FklString** pr)
 {
 	char buf[7]={se,0};
@@ -1568,7 +1538,7 @@ inline static void writeRawCharBufToString(const uint8_t* str,const char se,size
 	uint64_t i=0;
 	while(i<size)
 	{
-		unsigned int l=getByteNumOfUtf8(&str[i],size-i);
+		unsigned int l=fklGetByteNumOfUtf8(&str[i],size-i);
 		if(l==7)
 		{
 			uint8_t j=str[i];

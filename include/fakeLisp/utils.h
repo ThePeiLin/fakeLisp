@@ -60,6 +60,7 @@ FklString* fklDoubleToString(double);
 double fklCstrToDouble(const char*);
 double fklStringToDouble(const FklString*);
 
+unsigned int fklGetByteNumOfUtf8(const uint8_t* byte,size_t max);
 int fklWriteCharAsCstr(char,char*,size_t);
 char* fklIntToCstr(int64_t);
 FklString* fklIntToString(int64_t);

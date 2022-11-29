@@ -487,7 +487,7 @@ inline int static isSpecialCharAndPrint(uint8_t ch,FILE* out)
 	return r;
 }
 
-inline static unsigned int getByteNumOfUtf8(const uint8_t* byte,size_t max)
+unsigned int fklGetByteNumOfUtf8(const uint8_t* byte,size_t max)
 {
 #define UTF8_ASCII (0x80)
 #define UTF8_M (0xC0)
@@ -927,7 +927,7 @@ void fklPrintRawCharBuf(const uint8_t* str,char se,size_t size,FILE* out)
 	uint64_t i=0;
 	while(i<size)
 	{
-		unsigned int l=getByteNumOfUtf8(&str[i],size-i);
+		unsigned int l=fklGetByteNumOfUtf8(&str[i],size-i);
 		if(l==7)
 		{
 			uint8_t j=str[i];

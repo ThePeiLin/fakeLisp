@@ -165,7 +165,7 @@ int fklPower(int first,int second)
 
 void fklPrintRawCstring(const char* objStr,char se,FILE* out)
 {
-	fklPrintRawCharBuf(objStr,se,strlen(objStr),out);
+	fklPrintRawCharBuf((const uint8_t*)objStr,se,strlen(objStr),out);
 }
 
 int fklIsHexNumCstr(const char* objStr)
@@ -465,6 +465,58 @@ int fklIsNumberCstr(const char* objStr)
 	return 1;
 }
 
+inline int static isSpecialCharAndPrint(uint8_t ch,FILE* out)
+{
+	int r=0;
+	if((r=ch=='\n'))
+		fputs("\\n",out);
+	else if((r=ch=='\t'))
+		fputs("\\t",out);
+	else if((r=ch=='\v'))
+		fputs("\\v",out);
+	else if((r=ch=='\a'))
+		fputs("\\a",out);
+	else if((r=ch=='\b'))
+		fputs("\\b",out);
+	else if((r=ch=='\f'))
+		fputs("\\f",out);
+	else if((r=ch=='\r'))
+		fputs("\\r",out);
+	else if((r=ch=='\x20'))
+		putc(ch,out);
+	return r;
+}
+
+inline static unsigned int getByteNumOfUtf8(const uint8_t* byte,size_t max)
+{
+#define UTF8_ASCII (0x80)
+#define UTF8_M (0xC0)
+	if(byte[0]<UTF8_ASCII)
+		return 1;
+	else if(byte[0]<UTF8_M)
+		return 7;
+#undef UTF8_ASCII
+#undef UTF8_M
+	static uint8_t utf8bits[]=
+	{
+		0x7F,
+		0xDF,
+		0xEF,
+		0xF7,
+		0xFB,
+		0xFD,
+	};
+	size_t i=0;
+	for(;i<6;i++)
+		if((byte[0]|utf8bits[i])==utf8bits[i])
+			break;
+	i++;
+	if(i>max)
+		return 7;
+	else
+		return i;
+}
+
 int fklWriteCharAsCstr(char chr,char* buf,size_t s)
 {
 	if(s<=3)
@@ -505,17 +557,19 @@ int fklWriteCharAsCstr(char chr,char* buf,size_t s)
 
 void fklPrintRawChar(char chr,FILE* out)
 {
+	fprintf(out,"#\\");
 	if(isgraph(chr))
 	{
 		if(chr=='\\')
-			fprintf(out,"#\\\\\\");
+			fprintf(out,"\\\\");
 		else
-			fprintf(out,"#\\%c",chr);
+			fprintf(out,"%c",chr);
 	}
+	else if(isSpecialCharAndPrint(chr,out));
 	else
 	{
 		uint8_t j=chr;
-		fprintf(out,"#\\\\x");
+		fprintf(out,"x");
 		fprintf(out,"%X",j/16);
 		fprintf(out,"%X",j%16);
 	}
@@ -867,25 +921,44 @@ char* fklCharBufToCstr(const char* buf,size_t size)
 	return str;
 }
 
-void fklPrintRawCharBuf(const char* str,char se,size_t size,FILE* out)
+void fklPrintRawCharBuf(const uint8_t* str,char se,size_t size,FILE* out)
 {
 	putc(se,out);
-	for(uint64_t i=0;i<size;i++)
+	uint64_t i=0;
+	while(i<size)
 	{
-		if(str[i]==se)
-			fprintf(out,"\\%c",se);
-		else if(str[i]=='\\')
-			fprintf(out,"\\\\");
-		else if(isgraph(str[i]))
-			putc(str[i],out);
-		else if(str[i]=='\x20')
-			putc(str[i],out);
-		else
+		unsigned int l=getByteNumOfUtf8(&str[i],size-i);
+		if(l==7)
 		{
 			uint8_t j=str[i];
 			fprintf(out,"\\x");
 			fprintf(out,"%X",j/16);
 			fprintf(out,"%X",j%16);
+			i++;
+		}
+		else if(l==1)
+		{
+			if(str[i]==se)
+				fprintf(out,"\\%c",se);
+			else if(str[i]=='\\')
+				fprintf(out,"\\\\");
+			else if(isgraph(str[i]))
+				putc(str[i],out);
+			else if(isSpecialCharAndPrint(str[i],out));
+			else
+			{
+				uint8_t j=str[i];
+				fprintf(out,"\\x");
+				fprintf(out,"%X",j/16);
+				fprintf(out,"%X",j%16);
+			}
+			i++;
+		}
+		else
+		{
+			for(int j=0;j<l;j++)
+				putc(str[i+j],out);
+			i+=l;
 		}
 	}
 	putc(se,out);

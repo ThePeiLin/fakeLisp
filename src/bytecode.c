@@ -185,7 +185,7 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 						{
 							fprintf(fp,"%lu "
 									,fklGetU64FromByteCode(tmpCode->code+i+sizeof(char)));
-							fklPrintRawCharBuf((char*)tmpCode->code+i+sizeof(char)+sizeof(uint64_t)
+							fklPrintRawCharBuf(tmpCode->code+i+sizeof(char)+sizeof(uint64_t)
 									,'"'
 									,fklGetU64FromByteCode(tmpCode->code+i+sizeof(char))
 									,fp);

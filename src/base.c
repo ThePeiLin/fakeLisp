@@ -1493,12 +1493,12 @@ FklString* fklCreateEmptyString()
 
 void fklPrintRawString(const FklString* str,FILE* fp)
 {
-	fklPrintRawCharBuf(str->str,'"',str->size,fp);
+	fklPrintRawCharBuf((const uint8_t*)str->str,'"',str->size,fp);
 }
 
 void fklPrintRawSymbol(const FklString* str,FILE* fp)
 {
-	fklPrintRawCharBuf(str->str,'|',str->size,fp);
+	fklPrintRawCharBuf((const uint8_t*)str->str,'|',str->size,fp);
 }
 
 void fklPrintString(const FklString* str,FILE* fp)
@@ -1506,35 +1506,144 @@ void fklPrintString(const FklString* str,FILE* fp)
 	fwrite(str->str,str->size,1,fp);
 }
 
+int static isSpecialCharAndWrite(uint8_t ch,FklString** pr)
+{
+	char buf[3]={'\\',0,0};
+	int r=0;
+	if((r=ch=='\n'))
+		buf[1]='n';
+	else if((r=ch=='\t'))
+		buf[1]='t';
+	else if((r=ch=='\v'))
+		buf[1]='v';
+	else if((r=ch=='\a'))
+		buf[1]='a';
+	else if((r=ch=='\b'))
+		buf[1]='b';
+	else if((r=ch=='\f'))
+		buf[1]='f';
+	else if((r=ch=='\r'))
+		buf[1]='r';
+	else if((r=ch=='\x20'))
+		buf[0]=' ';
+	if(r)
+		fklStringCstrCat(pr,buf);
+	return r;
+}
+
+static unsigned int getByteNumOfUtf8(const uint8_t* byte,size_t max)
+{
+#define UTF8_ASCII (0x80)
+#define UTF8_M (0xC0)
+	if(byte[0]<UTF8_ASCII)
+		return 1;
+	else if(byte[0]<UTF8_M)
+		return 7;
+#undef UTF8_ASCII
+#undef UTF8_M
+	static uint8_t utf8bits[]=
+	{
+		0x7F,
+		0xDF,
+		0xEF,
+		0xF7,
+		0xFB,
+		0xFD,
+	};
+	size_t i=0;
+	for(;i<6;i++)
+		if((byte[0]|utf8bits[i])==utf8bits[i])
+			break;
+	i++;
+	if(i>max)
+		return 7;
+	else
+		return i;
+}
+
+inline static void writeRawCharBufToString(const uint8_t* str,const char se,size_t size,FklString** pr)
+{
+	char buf[7]={se,0};
+	fklStringCstrCat(pr,buf);
+	uint64_t i=0;
+	while(i<size)
+	{
+		unsigned int l=getByteNumOfUtf8(&str[i],size-i);
+		if(l==7)
+		{
+			uint8_t j=str[i];
+			uint8_t h=j/16;
+			uint8_t l=j%16;
+			buf[0]='\\';
+			buf[1]='x';
+			buf[2]=h<10?'0'+h:'A'+(h-10);
+			buf[3]=l<10?'0'+l:'A'+(l-10);
+			buf[4]='\0';
+			fklStringCstrCat(pr,buf);
+			i++;
+		}
+		else if(l==1)
+		{
+			if(str[i]==se)
+			{
+				buf[0]='\\';
+				buf[1]=se;
+				buf[2]='\0';
+				fklStringCstrCat(pr,buf);
+			}
+			else if(str[i]=='\\')
+			{
+				buf[0]='\\';
+				buf[1]='\\';
+				buf[2]='\0';
+				fklStringCstrCat(pr,buf);
+			}
+			else if(isgraph(str[i]))
+			{
+				buf[0]=str[i];
+				buf[1]='\0';
+				fklStringCstrCat(pr,buf);
+			}
+			else if(isSpecialCharAndWrite(str[i],pr));
+			else
+			{
+				uint8_t j=str[i];
+				uint8_t h=j/16;
+				uint8_t l=j%16;
+				buf[0]='\\';
+				buf[1]='x';
+				buf[2]=h<10?'0'+h:'A'+(h-10);
+				buf[3]=l<10?'0'+l:'A'+(l-10);
+				buf[4]='\0';
+				fklStringCstrCat(pr,buf);
+			}
+			i++;
+		}
+		else
+		{
+			for(int j=0;j<l;j++)
+				buf[j]=str[i+j];
+			buf[l]='\0';
+			fklStringCstrCat(pr,buf);
+			i+=l;
+		}
+	}
+	buf[0]=se;
+	buf[1]=0;
+	fklStringCstrCat(pr,buf);
+}
+
 FklString* fklStringToRawString(const FklString* str)
 {
-	FklString* retval=fklCreateStringFromCstr("\"");
-	size_t size=str->size;
-	const char* buf=str->str;
-	char c_str[FKL_MAX_STRING_SIZE]={0};
-	for(size_t i=0;i<size;i++)
-	{
-		char cur=buf[i];
-		fklWriteCharAsCstr(cur,c_str,FKL_MAX_STRING_SIZE);
-		fklStringCstrCat(&retval,&c_str[2]);
-	}
-	fklStringCstrCat(&retval,"\"");
+	FklString* retval=fklCreateEmptyString();
+	writeRawCharBufToString((const uint8_t*)str->str,'\"',str->size,&retval);
 	return retval;
 }
 
 FklString* fklStringToRawSymbol(const FklString* str)
 {
-	FklString* retval=fklCreateStringFromCstr("|");
-	size_t size=str->size;
-	const char* buf=str->str;
-	char c_str[FKL_MAX_STRING_SIZE]={0};
-	for(size_t i=0;i<size;i++)
-	{
-		char cur=buf[i];
-		fklWriteCharAsCstr(cur,c_str,FKL_MAX_STRING_SIZE);
-		fklStringCstrCat(&retval,&c_str[2]);
-	}
-	fklStringCstrCat(&retval,"|");
+	FklString* retval=fklCreateEmptyString();
+	writeRawCharBufToString((const uint8_t*)str->str,'|',str->size,&retval);
 	return retval;
 }
 

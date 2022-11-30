@@ -239,8 +239,7 @@ void fklFfiDestroyFuncType(FklDefFuncType*);
 
 size_t fklFfiGetTypeSize(FklDefTypeUnion t);
 size_t fklFfiGetTypeAlign(FklDefTypeUnion t);
-size_t fklFfiGetTypeSizeWithTypeId(FklTypeId_t t,FklFfiPublicData*);
-size_t fklFfiGetTypeAlignWithTypeId(FklTypeId_t t,FklFfiPublicData*);
+FklDefTypeUnion fklFfiLockAndGetTypeUnion(FklTypeId_t,FklFfiPublicData* pd);
 FklDefTypeUnion fklFfiGetTypeUnion(FklTypeId_t,FklFfiPublicData* pd);
 
 void fklFfiInitGlobNativeTypes(FklFfiPublicData*);

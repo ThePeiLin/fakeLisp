@@ -217,13 +217,13 @@ static void _mem_print(void* p,FILE* fp)
 		fprintf(fp,"%s",(char*)m->mem);
 	else if(fklFfiIsStructTypeId(m->type,pd))
 	{
-		FklDefStructType* st=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type,pd).all);
+		FklDefStructType* st=FKL_GET_TYPES_PTR(fklFfiLockAndGetTypeUnion(m->type,pd).all);
 		fputc('{',fp);
 		size_t offset=0;
 		for(FklHashTableNodeList* list=st->layout->list;list;list=list->next)
 		{
 			FklFfiMemberHashItem* item=list->node->item;
-			FklDefTypeUnion tu=fklFfiGetTypeUnion(item->type,pd);
+			FklDefTypeUnion tu=fklFfiLockAndGetTypeUnion(item->type,pd);
 			size_t align=fklFfiGetTypeAlign(tu);
 			offset+=(offset%align)?align-offset%align:0;
 			fputc('.',fp);
@@ -239,7 +239,7 @@ static void _mem_print(void* p,FILE* fp)
 	}
 	else if(fklFfiIsUnionTypeId(m->type,pd))
 	{
-		FklDefUnionType* ut=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type,pd).all);
+		FklDefUnionType* ut=FKL_GET_TYPES_PTR(fklFfiLockAndGetTypeUnion(m->type,pd).all);
 		fputc('{',fp);
 		for(FklHashTableNodeList* list=ut->layout->list;list;list=list->next)
 		{
@@ -255,7 +255,7 @@ static void _mem_print(void* p,FILE* fp)
 	}
 	else if(fklFfiIsArrayTypeId(m->type,pd))
 	{
-		FklDefArrayType* at=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type,pd).all);
+		FklDefArrayType* at=FKL_GET_TYPES_PTR(fklFfiLockAndGetTypeUnion(m->type,pd).all);
 		fputc('[',fp);
 		for(uint32_t i=0;i<at->num;i++)
 		{
@@ -503,13 +503,13 @@ FklVMudata* fklFfiCreateMemRefUdWithSI(FklFfiMem* m,FklVMvalue* selector,FklVMva
 			int64_t index=fklGetInt(pindex);
 			if(fklFfiIsPtrTypeId(m->type,publicData))
 			{
-				FklDefPtrType* pt=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type,publicData).all);
+				FklDefPtrType* pt=FKL_GET_TYPES_PTR(fklFfiLockAndGetTypeUnion(m->type,publicData).all);
 				void* p=*(void**)m->mem;
 				return fklCreateVMudata(FfiMemUdSid,&FfiMemMethodTable,fklFfiCreateRef(pt->ptype,p+index*fklFfiGetTypeSizeWithTypeId(pt->ptype,publicData),pd),rel);
 			}
 			else if(fklFfiIsArrayTypeId(m->type,publicData))
 			{
-				FklDefArrayType* at=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type,publicData).all);
+				FklDefArrayType* at=FKL_GET_TYPES_PTR(fklFfiLockAndGetTypeUnion(m->type,publicData).all);
 				return fklCreateVMudata(FfiMemUdSid,&FfiMemMethodTable,fklFfiCreateRef(at->etype,m->mem+index*fklFfiGetTypeSizeWithTypeId(at->etype,publicData),pd),rel);
 			}
 			else
@@ -531,7 +531,7 @@ FklVMudata* fklFfiCreateMemRefUdWithSI(FklFfiMem* m,FklVMvalue* selector,FklVMva
 		{
 			if(!fklFfiIsPtrTypeId(m->type,publicData))
 				return NULL;
-			FklDefPtrType* ptrType=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type,publicData).all);
+			FklDefPtrType* ptrType=FKL_GET_TYPES_PTR(fklFfiLockAndGetTypeUnion(m->type,publicData).all);
 			FklFfiMem* deref=fklFfiCreateRef(ptrType->ptype,*(void**)m->mem,pd);
 			return fklCreateVMudata(FfiMemUdSid,&FfiMemMethodTable,deref,rel);
 		}
@@ -540,12 +540,12 @@ FklVMudata* fklFfiCreateMemRefUdWithSI(FklFfiMem* m,FklVMvalue* selector,FklVMva
 			FklHashTable* layout=NULL;
 			if(fklFfiIsStructTypeId(m->type,publicData))
 			{
-				FklDefStructType* st=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type,publicData).all);
+				FklDefStructType* st=FKL_GET_TYPES_PTR(fklFfiLockAndGetTypeUnion(m->type,publicData).all);
 				layout=st->layout;
 			}
 			else
 			{
-				FklDefUnionType* ut=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type,publicData).all);
+				FklDefUnionType* ut=FKL_GET_TYPES_PTR(fklFfiLockAndGetTypeUnion(m->type,publicData).all);
 				layout=ut->layout;
 			}
 			FklFfiMemberHashItem* item=fklGetHashItem(&selectorId,layout);

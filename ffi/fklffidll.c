@@ -167,7 +167,7 @@ static void _ffi_proc_invoke(FklFfiProc* proc
 	FKL_NI_BEGIN(exe);
 	FklTypeId_t type=proc->type;
 	FklFfiPublicData* pd=proc->pd->u.ud->data;
-	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(type,pd).all);
+	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklFfiLockAndGetTypeUnion(type,pd).all);
 	uint32_t anum=ft->anum;
 	uint32_t i=0;
 	FklTypeId_t rtype=ft->rtype;
@@ -314,7 +314,7 @@ int fklFfiIsProc(FklVMvalue* p)
 
 int fklFfiIsValidFunctionTypeId(FklSid_t id,FklFfiPublicData* pd)
 {
-	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(id,pd).all);
+	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklFfiLockAndGetTypeUnion(id,pd).all);
 	uint32_t anum=ft->anum;
 	FklTypeId_t* atypes=ft->atypes;
 	FklTypeId_t rtype=ft->rtype;
@@ -338,7 +338,7 @@ FklFfiProc* fklFfiCreateProc(FklTypeId_t type,void* func,FklSid_t sid,FklVMvalue
 	tmp->sid=sid;
 	tmp->pd=pd;
 	FklFfiPublicData* publicData=pd->u.ud->data;
-	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(type,publicData).all);
+	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklFfiLockAndGetTypeUnion(type,publicData).all);
 	uint32_t anum=ft->anum;
 	FklTypeId_t* atypes=ft->atypes;
 	ffi_type** ffiAtypes=(ffi_type**)malloc(sizeof(ffi_type*)*anum);

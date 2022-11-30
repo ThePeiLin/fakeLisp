@@ -1101,7 +1101,7 @@ int fklFfiIsFloatTypeId(FklTypeId_t type)
 	return type==FKL_FFI_TYPE_FLOAT||type==FKL_FFI_TYPE_DOUBLE;
 }
 
-int fklFfiIsArrayTypeId(FklDefTypeUnion tu)
+int fklFfiIsArrayType(FklDefTypeUnion tu)
 {
 	return FKL_GET_TYPES_TAG(tu.all)==FKL_FFI_DEF_ARRAY_TYPE_TAG;
 }
@@ -1116,12 +1116,12 @@ int fklFfiIsStructType(FklDefTypeUnion tu)
 	return FKL_GET_TYPES_TAG(tu.all)==FKL_FFI_DEF_STRUCT_TYPE_TAG;
 }
 
-int fklFfiIsUnionTypeId(FklDefTypeUnion tu)
+int fklFfiIsUnionType(FklDefTypeUnion tu)
 {
 	return FKL_GET_TYPES_TAG(tu.all)==FKL_FFI_DEF_UNION_TYPE_TAG;
 }
 
-int fklFfiIsFunctionTypeId(FklDefTypeUnion tu)
+int fklFfiIsFunctionType(FklDefTypeUnion tu)
 {
 	return FKL_GET_TYPES_TAG(tu.all)==FKL_FFI_DEF_FUNC_TYPE_TAG;
 }

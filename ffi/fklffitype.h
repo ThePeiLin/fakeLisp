@@ -89,6 +89,45 @@ typedef union FklTypeUnion
 	struct FklDefFuncType* ft;
 }FklDefTypeUnion;
 
+#ifdef _WIN32
+#include<windows.h>
+typedef HMODULE FklFfidllHandle;
+#else
+#include<dlfcn.h>
+typedef void* FklFfidllHandle;
+#endif
+
+typedef struct FklFfiSharedObjNode
+{
+	FklFfidllHandle dll;
+	struct FklFfiSharedObjNode* next;
+}FklFfiSharedObjNode;
+
+typedef struct FklFfiPublicData
+{
+	FklSid_t memUdSid;
+	FklSid_t atomicSid;
+	FklSid_t rawSid;
+	FklSid_t refSid;
+	FklSid_t deRefSid;
+	FklSid_t arrayTypedefSymbolId;
+	FklSid_t ptrTypedefSymbolId;
+	FklSid_t structTypedefSymbolId;
+	FklSid_t unionTypedefSymbolId;
+	FklSid_t functionTypedefSymbolId;
+	FklSid_t voidSymbolId;
+	pthread_rwlock_t defTypesLock;
+	FklDefTypes* defTypes;
+	struct
+	{
+		pthread_rwlock_t typeUnionLock;
+		FklTypeId_t num;
+		FklDefTypeUnion* ul;
+	}typeUnionList;
+	pthread_rwlock_t sharedObjsLock;
+	FklFfiSharedObjNode *sharedObjs;
+}FklFfiPublicData;
+
 typedef struct FklDefNativeType
 {
 	FklSid_t type;
@@ -144,62 +183,77 @@ void fklFfiDefType(FklVMvalue* typedeclare);
 FklDefTypes* fklFfiCreateDefTypes(void);
 void fklFfiDestroyDefTypeTable(FklDefTypes* defs);
 
-FklTypeId_t fklFfiGenDefTypes(FklVMvalue*,FklDefTypes* otherTypes,FklSid_t typeName);
-FklTypeId_t fklFfiGenDefTypesUnion(FklVMvalue*,FklDefTypes* otherTypes);
+FklTypeId_t fklFfiGenDefTypes(FklVMvalue*,FklDefTypes* otherTypes,FklSid_t typeName,FklFfiPublicData* pd);
+FklTypeId_t fklFfiGenDefTypesUnion(FklVMvalue*,FklDefTypes* otherTypes,FklFfiPublicData* pd);
 FklDefTypesNode* fklFfiFindDefTypesNode(FklSid_t typeId,FklDefTypes* otherTypes);
 int fklFfiAddDefTypes(FklDefTypes*,FklSid_t typeName,FklTypeId_t);
-void fklFfiInitNativeDefTypes(FklDefTypes* otherTypes);
+void fklFfiInitNativeDefTypes(FklDefTypes* otherTypes,FklFfiPublicData*);
 
 void fklFfiWriteTypeList(FILE* fp);
 void fklFfiLoadTypeList(FILE* fp);
-void fklFfiDestroyGlobTypeList(void);
+void fklFfiDestroyGlobTypeList(FklFfiPublicData* pd);
 
 int fklFfiIsNativeTypeId(FklTypeId_t);
 int fklFfiIsIntegerTypeId(FklTypeId_t);
 int fklFfiIsNumTypeId(FklTypeId_t type);
 int fklFfiIsFloatTypeId(FklTypeId_t);
 
-int fklFfiIsArrayTypeId(FklTypeId_t);
-int fklFfiIsPtrTypeId(FklTypeId_t);
-int fklFfiIsStructTypeId(FklTypeId_t);
-int fklFfiIsUnionTypeId(FklTypeId_t);
-int fklFfiIsFunctionTypeId(FklTypeId_t);
+int fklFfiIsArrayTypeId(FklTypeId_t,FklFfiPublicData* pd);
+int fklFfiIsPtrTypeId(FklTypeId_t,FklFfiPublicData* pd);
+int fklFfiIsStructTypeId(FklTypeId_t,FklFfiPublicData* pd);
+int fklFfiIsUnionTypeId(FklTypeId_t,FklFfiPublicData* pd);
+int fklFfiIsFunctionTypeId(FklTypeId_t,FklFfiPublicData* pd);
 
-FklTypeId_t fklFfiCreateNativeType(FklSid_t,size_t,size_t);
+FklTypeId_t fklFfiCreateNativeType(FklSid_t,size_t,size_t,FklFfiPublicData* pd);
 void fklFfiDestroyNativeType(FklDefNativeType*);
 
-FklTypeId_t fklFfiCreateArrayType(FklTypeId_t,size_t);
+FklTypeId_t fklFfiCreateArrayType(FklTypeId_t,size_t,FklFfiPublicData* pd);
 void fklFfiDestroyArrayType(FklDefArrayType*);
 
-FklTypeId_t fklFfiCreatePtrType(FklTypeId_t);
+FklTypeId_t fklFfiCreatePtrType(FklTypeId_t,FklFfiPublicData* pd);
 void fklFfiDestroyPtrType(FklDefPtrType*);
 
-FklTypeId_t fklFfiCreateStructType(FklSid_t,uint32_t,FklSid_t[],FklTypeId_t []);
+FklTypeId_t fklFfiCreateStructType(FklSid_t
+		,uint32_t
+		,FklSid_t[]
+		,FklTypeId_t []
+		,FklFfiPublicData* pd);
 void fklFfiDestroyStructType(FklDefStructType*);
 
-FklTypeId_t fklFfiCreateUnionType(FklSid_t,uint32_t num,FklSid_t symbols[],FklTypeId_t memberTypes[]);
+FklTypeId_t fklFfiCreateUnionType(FklSid_t
+		,uint32_t num
+		,FklSid_t symbols[]
+		,FklTypeId_t memberTypes[]
+		,FklFfiPublicData* pd);
 void fklFfiDestroyUnionType(FklDefUnionType*);
 
-FklTypeId_t fklFfiCreateFuncType(FklTypeId_t rtype,uint32_t anum,FklTypeId_t atypes[]);
-FklTypeId_t fklFfiFindSameFuncType(FklTypeId_t,uint32_t anum,FklTypeId_t atypes[]);
+FklTypeId_t fklFfiCreateFuncType(FklTypeId_t rtype
+		,uint32_t anum
+		,FklTypeId_t atypes[]
+		,FklFfiPublicData* pd);
+FklTypeId_t fklFfiFindSameFuncType(FklTypeId_t
+		,uint32_t anum
+		,FklTypeId_t atypes[]
+		,FklFfiPublicData* pd);
 void fklFfiDestroyFuncType(FklDefFuncType*);
 
 size_t fklFfiGetTypeSize(FklDefTypeUnion t);
 size_t fklFfiGetTypeAlign(FklDefTypeUnion t);
-size_t fklFfiGetTypeSizeWithTypeId(FklTypeId_t t);
-size_t fklFfiGetTypeAlignWithTypeId(FklTypeId_t t);
-FklDefTypeUnion fklFfiGetTypeUnion(FklTypeId_t);
+size_t fklFfiGetTypeSizeWithTypeId(FklTypeId_t t,FklFfiPublicData*);
+size_t fklFfiGetTypeAlignWithTypeId(FklTypeId_t t,FklFfiPublicData*);
+FklDefTypeUnion fklFfiGetTypeUnion(FklTypeId_t,FklFfiPublicData* pd);
 
-void fklFfiInitGlobNativeTypes(void);
-void fklFfiDestroyGlobDefTypeTable(void);
-void fklFfiInitTypedefSymbol(void);
+void fklFfiInitGlobNativeTypes(FklFfiPublicData*);
+void fklFfiDestroyGlobDefTypeTable(FklFfiPublicData*);
+void fklFfiInitTypedefSymbol(FklFfiPublicData* pd);
 
-int fklFfiIsNativeTypeName(FklSid_t id);
+int fklFfiIsNativeTypeName(FklSid_t id,FklFfiPublicData* pd);
 FklSid_t fklFfiGetErrorType(FklFfiErrorType);
 FklString* fklFfiGenErrorMessage(FklFfiErrorType);
 
-FklTypeId_t fklFfiGenTypeId(FklVMvalue*);
-FklTypeId_t fklFfiTypedef(FklVMvalue*,FklSid_t typeName);
+FklTypeId_t fklFfiGenTypeId(FklVMvalue*,FklFfiPublicData* pd);
+FklTypeId_t fklFfiTypedef(FklVMvalue*,FklSid_t typeName,FklFfiPublicData* pd);
+
 #define FKL_FFI_RAISE_ERROR(WHO,ERRORTYPE,EXE) do{\
 	FklString* errorMessage=fklFfiGenErrorMessage((ERRORTYPE));\
 	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR\

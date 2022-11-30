@@ -7,14 +7,6 @@ extern "C" {
 #endif
 
 #include<ffi.h>
-#ifdef _WIN32
-#include<windows.h>
-typedef HMODULE FklFfidllHandle;
-#else
-#include<dlfcn.h>
-typedef void* FklFfidllHandle;
-#endif
-
 typedef struct FklFfiProc
 {
 	void* func;
@@ -22,14 +14,16 @@ typedef struct FklFfiProc
 	ffi_type** atypes;
 	FklTypeId_t type;
 	FklSid_t sid;
+	FklVMvalue* pd;
 }FklFfiProc;
 
+void fklFfiInitSharedObj(FklFfiPublicData*);
 int fklFfiIsProc(FklVMvalue*);
-void fklFfiDestroyAllSharedObj(void);
-void fklFfiAddSharedObj(FklFfidllHandle handle);
-FklVMudata* fklFfiCreateProcUd(FklTypeId_t id,const char*,FklVMvalue*);
-FklFfiProc* fklFfiCreateProc(FklTypeId_t type,void* func,FklSid_t);
-int fklFfiIsValidFunctionTypeId(FklTypeId_t type);
+void fklFfiDestroyAllSharedObj(FklFfiPublicData* pd);
+void fklFfiAddSharedObj(FklFfidllHandle handle,FklFfiPublicData* pd);
+FklVMudata* fklFfiCreateProcUd(FklTypeId_t id,const char*,FklVMvalue*,FklVMvalue* pd);
+FklFfiProc* fklFfiCreateProc(FklTypeId_t type,void* func,FklSid_t,FklVMvalue*);
+int fklFfiIsValidFunctionTypeId(FklTypeId_t type,FklFfiPublicData* pd);
 
 #ifdef __cplusplus
 }

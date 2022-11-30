@@ -3031,7 +3031,7 @@ void builtin_dlopen(ARGL)
 	if(!ndll)
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("builtin.dlopen",str,0,FKL_ERR_LOADDLLFAILD,exe);
 	FklVMvalue* rel=fklCreateVMvalueToStack(FKL_TYPE_DLL,ndll,exe);
-	fklInitVMdll(rel);
+	fklInitVMdll(rel,exe);
 	fklNiReturn(rel,&ap,stack);
 	fklNiEnd(&ap,stack);
 }

@@ -206,29 +206,30 @@ static void (*NativeTypePrinterList[])(FILE*,void*)=
 static void _mem_print(void* p,FILE* fp)
 {
 	FklFfiMem* m=p;
+	FklFfiPublicData* pd=m->pd->u.ud->data;
 	if(fklFfiIsNativeTypeId(m->type))
 		NativeTypePrinterList[m->type-1](fp,m->mem);
-	if(fklFfiIsPtrTypeId(m->type)||fklFfiIsFunctionTypeId(m->type))
+	if(fklFfiIsPtrTypeId(m->type,pd)||fklFfiIsFunctionTypeId(m->type,pd))
 		fprintf(fp,"%p",*((void**)(m->mem)));
 	else if(m->type==FKL_FFI_TYPE_FILE_P)
 		fprintf(fp,"%p",*((void**)(m->mem)));
 	else if(m->type==FKL_FFI_TYPE_STRING)
 		fprintf(fp,"%s",(char*)m->mem);
-	else if(fklFfiIsStructTypeId(m->type))
+	else if(fklFfiIsStructTypeId(m->type,pd))
 	{
-		FklDefStructType* st=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type).all);
+		FklDefStructType* st=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type,pd).all);
 		fputc('{',fp);
 		size_t offset=0;
 		for(FklHashTableNodeList* list=st->layout->list;list;list=list->next)
 		{
 			FklFfiMemberHashItem* item=list->node->item;
-			FklDefTypeUnion tu=fklFfiGetTypeUnion(item->type);
+			FklDefTypeUnion tu=fklFfiGetTypeUnion(item->type,pd);
 			size_t align=fklFfiGetTypeAlign(tu);
 			offset+=(offset%align)?align-offset%align:0;
 			fputc('.',fp);
 			fklPrintString(fklGetGlobSymbolWithId(item->key)->symbol,fp);
 			fputc('=',fp);
-			FklFfiMem tm={item->type,m->mem+offset};
+			FklFfiMem tm={m->pd,item->type,m->mem+offset};
 			_mem_print(&tm,fp);
 			size_t memberSize=fklFfiGetTypeSize(tu);
 			offset+=memberSize;
@@ -236,9 +237,9 @@ static void _mem_print(void* p,FILE* fp)
 		}
 		fputc('}',fp);
 	}
-	else if(fklFfiIsUnionTypeId(m->type))
+	else if(fklFfiIsUnionTypeId(m->type,pd))
 	{
-		FklDefUnionType* ut=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type).all);
+		FklDefUnionType* ut=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type,pd).all);
 		fputc('{',fp);
 		for(FklHashTableNodeList* list=ut->layout->list;list;list=list->next)
 		{
@@ -246,19 +247,19 @@ static void _mem_print(void* p,FILE* fp)
 			fputc('.',fp);
 			fklPrintString(fklGetGlobSymbolWithId(item->key)->symbol,fp);
 			fputc('=',fp);
-			FklFfiMem tm={item->type,m->mem};
+			FklFfiMem tm={m->pd,item->type,m->mem};
 			_mem_print(&tm,fp);
 			fputc(';',fp);
 		}
 		fputc('}',fp);
 	}
-	else if(fklFfiIsArrayTypeId(m->type))
+	else if(fklFfiIsArrayTypeId(m->type,pd))
 	{
-		FklDefArrayType* at=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type).all);
+		FklDefArrayType* at=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type,pd).all);
 		fputc('[',fp);
 		for(uint32_t i=0;i<at->num;i++)
 		{
-			FklFfiMem tm={at->etype,m->mem+i*fklFfiGetTypeSizeWithTypeId(at->etype)};
+			FklFfiMem tm={m->pd,at->etype,m->mem+i*fklFfiGetTypeSizeWithTypeId(at->etype,pd)};
 			_mem_print(&tm,fp);
 			fputc(',',fp);
 		}
@@ -281,11 +282,12 @@ int _mem_equal(const FklVMudata* a,const FklVMudata* b)
 	{
 		FklFfiMem* m0=a->data;
 		FklFfiMem* m1=b->data;
+		FklFfiPublicData* pd=m0->pd->u.ud->data;
 		if(m0->type==m1->type)
 		{
 			if((m0->type==FKL_FFI_TYPE_STRING||m0->type==FKL_FFI_TYPE_FILE_P)&&m0->mem==m1->mem)
 				return 1;
-			else if(!memcmp(m0->mem,m1->mem,fklFfiGetTypeSizeWithTypeId(m0->type)))
+			else if(!memcmp(m0->mem,m1->mem,fklFfiGetTypeSizeWithTypeId(m0->type,pd)))
 				return 1;
 		}
 	}
@@ -405,6 +407,12 @@ static int _mem_cmp(FklVMvalue* a,FklVMvalue* b,int* isUnableToBeCmp)
 	}
 }
 
+static void _mem_atomic(void* data,FklVMgc* gc)
+{
+	FklFfiMem* mem=data;
+	fklGC_toGrey(mem->pd,gc);
+}
+
 static FklVMudMethodTable FfiMemMethodTable=
 {
 	.__princ=_mem_print,
@@ -414,7 +422,7 @@ static FklVMudMethodTable FfiMemMethodTable=
 	.__call=NULL,
 	.__cmp=_mem_cmp,
 	.__write=NULL,
-	.__atomic=NULL,
+	.__atomic=_mem_atomic,
 	.__append=NULL,
 	.__copy=NULL,
 	.__hash=NULL,
@@ -430,7 +438,7 @@ static FklVMudMethodTable FfiAtomicMemMethodTable=
 	.__call=NULL,
 	.__cmp=_mem_cmp,
 	.__write=NULL,
-	.__atomic=NULL,
+	.__atomic=_mem_atomic,
 	.__append=NULL,
 	.__copy=NULL,
 	.__hash=NULL,
@@ -446,7 +454,7 @@ void fklFfiMemInit(void)
 	FfiDeRefSid=fklAddSymbolToGlobCstr("*")->id;
 }
 
-FklFfiMem* fklFfiCreateMem(FklTypeId_t type,size_t size)
+FklFfiMem* fklFfiCreateMem(FklTypeId_t type,size_t size,FklVMvalue* pd)
 {
 	FklFfiMem* r=(FklFfiMem*)malloc(sizeof(FklFfiMem));
 	FKL_ASSERT(r);
@@ -454,93 +462,96 @@ FklFfiMem* fklFfiCreateMem(FklTypeId_t type,size_t size)
 	void* p=calloc(sizeof(uint8_t),size);
 	FKL_ASSERT(p);
 	r->mem=p;
+	r->pd=pd;
 	return r;
 }
 
-FklFfiMem* fklFfiCreateRef(FklTypeId_t type,void* ref)
+FklFfiMem* fklFfiCreateRef(FklTypeId_t type,void* ref,FklVMvalue* pd)
 {
 	FklFfiMem* r=(FklFfiMem*)malloc(sizeof(FklFfiMem));
 	FKL_ASSERT(r);
 	r->type=type;
 	r->mem=ref;
+	r->pd=pd;
 	return r;
 }
 
-FklVMudata* fklFfiCreateMemUd(FklTypeId_t type,size_t size,FklVMvalue* atomic,FklVMvalue* rel)
+FklVMudata* fklFfiCreateMemUd(FklTypeId_t type,size_t size,FklVMvalue* atomic,FklVMvalue* rel,FklVMvalue* pd)
 {
 	if(atomic==NULL||FKL_GET_SYM(atomic)==FfiAtomicSid)
-		return fklCreateVMudata(FfiMemUdSid,&FfiAtomicMemMethodTable,fklFfiCreateMem(type,size),rel);
+		return fklCreateVMudata(FfiMemUdSid,&FfiAtomicMemMethodTable,fklFfiCreateMem(type,size,pd),rel);
 	else if(FKL_GET_SYM(atomic)==FfiRawSid)
-		return fklCreateVMudata(FfiMemUdSid,&FfiMemMethodTable,fklFfiCreateMem(type,size),rel);
+		return fklCreateVMudata(FfiMemUdSid,&FfiMemMethodTable,fklFfiCreateMem(type,size,pd),rel);
 	else
 		return NULL;
 }
 
-FklVMudata* fklFfiCreateMemRefUd(FklTypeId_t type,void* mem,FklVMvalue* rel)
+FklVMudata* fklFfiCreateMemRefUd(FklTypeId_t type,void* mem,FklVMvalue* rel,FklVMvalue* pd)
 {
-	return fklCreateVMudata(FfiMemUdSid,&FfiMemMethodTable,fklFfiCreateRef(type,mem),rel);
+	return fklCreateVMudata(FfiMemUdSid,&FfiMemMethodTable,fklFfiCreateRef(type,mem,pd),rel);
 }
 
-FklVMudata* fklFfiCreateMemRefUdWithSI(FklFfiMem* m,FklVMvalue* selector,FklVMvalue* pindex,FklVMvalue* rel)
+FklVMudata* fklFfiCreateMemRefUdWithSI(FklFfiMem* m,FklVMvalue* selector,FklVMvalue* pindex,FklVMvalue* rel,FklVMvalue* pd)
 {
+	FklFfiPublicData* publicData=pd->u.ud->data;
 	if(selector==NULL||selector==FKL_VM_NIL)
 	{
-		if(pindex&&(!fklFfiIsPtrTypeId(m->type)&&!fklFfiIsArrayTypeId(m->type)&&m->type!=FKL_FFI_TYPE_STRING))
+		if(pindex&&(!fklFfiIsPtrTypeId(m->type,publicData)&&!fklFfiIsArrayTypeId(m->type,publicData)&&m->type!=FKL_FFI_TYPE_STRING))
 			return NULL;
-		if(pindex&&(fklFfiIsPtrTypeId(m->type)||fklFfiIsArrayTypeId(m->type)||m->type==FKL_FFI_TYPE_STRING))
+		if(pindex&&(fklFfiIsPtrTypeId(m->type,publicData)||fklFfiIsArrayTypeId(m->type,publicData)||m->type==FKL_FFI_TYPE_STRING))
 		{
 			int64_t index=fklGetInt(pindex);
-			if(fklFfiIsPtrTypeId(m->type))
+			if(fklFfiIsPtrTypeId(m->type,publicData))
 			{
-				FklDefPtrType* pt=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type).all);
+				FklDefPtrType* pt=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type,publicData).all);
 				void* p=*(void**)m->mem;
-				return fklCreateVMudata(FfiMemUdSid,&FfiMemMethodTable,fklFfiCreateRef(pt->ptype,p+index*fklFfiGetTypeSizeWithTypeId(pt->ptype)),rel);
+				return fklCreateVMudata(FfiMemUdSid,&FfiMemMethodTable,fklFfiCreateRef(pt->ptype,p+index*fklFfiGetTypeSizeWithTypeId(pt->ptype,publicData),pd),rel);
 			}
-			else if(fklFfiIsArrayTypeId(m->type))
+			else if(fklFfiIsArrayTypeId(m->type,publicData))
 			{
-				FklDefArrayType* at=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type).all);
-				return fklCreateVMudata(FfiMemUdSid,&FfiMemMethodTable,fklFfiCreateRef(at->etype,m->mem+index*fklFfiGetTypeSizeWithTypeId(at->etype)),rel);
+				FklDefArrayType* at=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type,publicData).all);
+				return fklCreateVMudata(FfiMemUdSid,&FfiMemMethodTable,fklFfiCreateRef(at->etype,m->mem+index*fklFfiGetTypeSizeWithTypeId(at->etype,publicData),pd),rel);
 			}
 			else
-				return fklCreateVMudata(FfiMemUdSid,&FfiMemMethodTable,fklFfiCreateRef(FKL_FFI_TYPE_CHAR,m->mem+index*sizeof(char)),rel);
+				return fklCreateVMudata(FfiMemUdSid,&FfiMemMethodTable,fklFfiCreateRef(FKL_FFI_TYPE_CHAR,m->mem+index*sizeof(char),pd),rel);
 		}
 		else
-			return fklCreateVMudata(FfiMemUdSid,&FfiMemMethodTable,fklFfiCreateRef(m->type,m->mem),rel);
+			return fklCreateVMudata(FfiMemUdSid,&FfiMemMethodTable,fklFfiCreateRef(m->type,m->mem,pd),rel);
 	}
 	else
 	{
 		FklSid_t selectorId=FKL_GET_SYM(selector);
 		if(selectorId==FfiRefSid)
 		{
-			FklFfiMem* ptr=fklFfiCreateMem(fklFfiCreatePtrType(m->type),sizeof(void*));
+			FklFfiMem* ptr=fklFfiCreateMem(fklFfiCreatePtrType(m->type,publicData),sizeof(void*),pd);
 			*(void**)ptr->mem=m->mem;
 			return fklCreateVMudata(FfiMemUdSid,&FfiAtomicMemMethodTable,ptr,rel);
 		}
 		else if(selectorId==FfiDeRefSid)
 		{
-			if(!fklFfiIsPtrTypeId(m->type))
+			if(!fklFfiIsPtrTypeId(m->type,publicData))
 				return NULL;
-			FklDefPtrType* ptrType=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type).all);
-			FklFfiMem* deref=fklFfiCreateRef(ptrType->ptype,*(void**)m->mem);
+			FklDefPtrType* ptrType=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type,publicData).all);
+			FklFfiMem* deref=fklFfiCreateRef(ptrType->ptype,*(void**)m->mem,pd);
 			return fklCreateVMudata(FfiMemUdSid,&FfiMemMethodTable,deref,rel);
 		}
-		else if(fklFfiIsStructTypeId(m->type)||fklFfiIsUnionTypeId(m->type))
+		else if(fklFfiIsStructTypeId(m->type,publicData)||fklFfiIsUnionTypeId(m->type,publicData))
 		{
 			FklHashTable* layout=NULL;
-			if(fklFfiIsStructTypeId(m->type))
+			if(fklFfiIsStructTypeId(m->type,publicData))
 			{
-				FklDefStructType* st=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type).all);
+				FklDefStructType* st=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type,publicData).all);
 				layout=st->layout;
 			}
 			else
 			{
-				FklDefUnionType* ut=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type).all);
+				FklDefUnionType* ut=FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(m->type,publicData).all);
 				layout=ut->layout;
 			}
 			FklFfiMemberHashItem* item=fklGetHashItem(&selectorId,layout);
 			return fklCreateVMudata(FfiMemUdSid
 					,&FfiMemMethodTable
-					,fklFfiCreateRef(item->type,m->mem+item->offset),rel);
+					,fklFfiCreateRef(item->type,m->mem+item->offset,pd),rel);
 		}
 	}
 	return NULL;
@@ -647,18 +658,19 @@ static int (*__ffiMemSetList[])(void*,FklVMvalue*)=
 int fklFfiSetMemForProc(FklVMudata* ud,FklVMvalue* val)
 {
 	FklFfiMem* ref=ud->data;
+	FklFfiPublicData* pd=ref->pd->u.ud->data;
 	if(fklFfiIsNumTypeId(ref->type))
 		return __ffiMemSetList[ref->type](ref->mem,val);
-	else if(fklFfiIsPtrTypeId(ref->type))
+	else if(fklFfiIsPtrTypeId(ref->type,pd))
 	{
 		if(val==FKL_VM_NIL)
 			*(void**)ref->mem=NULL;
 		else if(fklFfiIsMem(val))
 		{
 			FklFfiMem* valmem=val->u.ud->data;
-			if(!fklFfiIsPtrTypeId(valmem->type)&&valmem->type!=FKL_FFI_TYPE_STRING&&valmem->type!=FKL_FFI_TYPE_FILE_P)
+			if(!fklFfiIsPtrTypeId(valmem->type,pd)&&valmem->type!=FKL_FFI_TYPE_STRING&&valmem->type!=FKL_FFI_TYPE_FILE_P)
 				return 1;
-			if(fklFfiIsPtrTypeId(valmem->type))
+			if(fklFfiIsPtrTypeId(valmem->type,pd))
 				*(void**)ref->mem=*(void**)valmem->mem;
 			else if(valmem->type==FKL_FFI_TYPE_STRING)
 				*(void**)ref->mem=valmem->mem;
@@ -718,14 +730,14 @@ int fklFfiSetMemForProc(FklVMudata* ud,FklVMvalue* val)
 			FklFfiMem* valmem=val->u.ud->data;
 			if(ref->type!=valmem->type)
 				return 1;
-			if(fklFfiIsArrayTypeId(ref->type))
+			if(fklFfiIsArrayTypeId(ref->type,pd))
 			{
 				free(ref->mem);
 				ref->mem=valmem->mem;
 				ud->t=&FfiMemMethodTable;
 			}
 			else
-				memcpy(ref->mem,valmem->mem,fklFfiGetTypeSizeWithTypeId(ref->type));
+				memcpy(ref->mem,valmem->mem,fklFfiGetTypeSizeWithTypeId(ref->type,pd));
 		}
 	}
 	return 0;
@@ -733,18 +745,19 @@ int fklFfiSetMemForProc(FklVMudata* ud,FklVMvalue* val)
 
 int fklFfiSetMem(FklFfiMem* ref,FklVMvalue* val)
 {
+	FklFfiPublicData* pd=ref->pd->u.ud->data;
 	if(fklFfiIsNumTypeId(ref->type))
 		return __ffiMemSetList[ref->type](ref->mem,val);
-	else if(fklFfiIsPtrTypeId(ref->type))
+	else if(fklFfiIsPtrTypeId(ref->type,pd))
 	{
 		if(val==FKL_VM_NIL)
 			*(void**)ref->mem=NULL;
 		else if(fklFfiIsMem(val))
 		{
 			FklFfiMem* valmem=val->u.ud->data;
-			if(!fklFfiIsPtrTypeId(valmem->type)&&valmem->type!=FKL_FFI_TYPE_STRING&&valmem->type!=FKL_FFI_TYPE_FILE_P)
+			if(!fklFfiIsPtrTypeId(valmem->type,pd)&&valmem->type!=FKL_FFI_TYPE_STRING&&valmem->type!=FKL_FFI_TYPE_FILE_P)
 				return 1;
-			if(fklFfiIsPtrTypeId(valmem->type))
+			if(fklFfiIsPtrTypeId(valmem->type,pd))
 				*(void**)ref->mem=*(void**)valmem->mem;
 			else if(valmem->type==FKL_FFI_TYPE_STRING)
 				*(void**)ref->mem=valmem->mem;
@@ -804,7 +817,7 @@ int fklFfiSetMem(FklFfiMem* ref,FklVMvalue* val)
 			if(ref->type!=valmem->type)
 				return 1;
 			else
-				memcpy(ref->mem,valmem->mem,fklFfiGetTypeSizeWithTypeId(ref->type));
+				memcpy(ref->mem,valmem->mem,fklFfiGetTypeSizeWithTypeId(ref->type,pd));
 		}
 	}
 	return 0;
@@ -812,7 +825,8 @@ int fklFfiSetMem(FklFfiMem* ref,FklVMvalue* val)
 
 int fklFfiIsNull(FklFfiMem* m)
 {
-	return (m->type==FKL_FFI_TYPE_VPTR||fklFfiIsPtrTypeId(m->type))&&!(*(void**)m->mem);
+	FklFfiPublicData* pd=m->pd->u.ud->data;
+	return (m->type==FKL_FFI_TYPE_VPTR||fklFfiIsPtrTypeId(m->type,pd))&&!(*(void**)m->mem);
 }
 
 int fklFfiIsCastableVMvalueType(FklVMvalue* v)
@@ -828,55 +842,55 @@ int fklFfiIsCastableVMvalueType(FklVMvalue* v)
 		&&!fklFfiIsMem(v);
 }
 
-FklVMudata* fklFfiCastVMvalueIntoMem(FklVMvalue* v,FklVMvalue* rel)
+FklVMudata* fklFfiCastVMvalueIntoMem(FklVMvalue* v,FklVMvalue* rel,FklVMvalue* pd)
 {
 	FklFfiMem* m=NULL;
 	FklVMudata* r=NULL;
 	if(FKL_IS_I32(v))
 	{
-		m=fklFfiCreateMem(FKL_FFI_TYPE_INT32_T,sizeof(void*));
+		m=fklFfiCreateMem(FKL_FFI_TYPE_INT32_T,sizeof(void*),pd);
 		*(int32_t*)m->mem=FKL_GET_I32(v);
 	}
 	else if(FKL_IS_I64(v))
 	{
-		m=fklFfiCreateMem(FKL_FFI_TYPE_INT64_T,sizeof(void*));
+		m=fklFfiCreateMem(FKL_FFI_TYPE_INT64_T,sizeof(void*),pd);
 		*(int64_t*)m->mem=v->u.i64;
 	}
 	else if(FKL_IS_F64(v))
 	{
-		m=fklFfiCreateMem(FKL_FFI_TYPE_DOUBLE,sizeof(void*));
+		m=fklFfiCreateMem(FKL_FFI_TYPE_DOUBLE,sizeof(void*),pd);
 		*(double*)m->mem=v->u.f64;
 	}
 	else if(FKL_IS_CHR(v))
 	{
-		m=fklFfiCreateMem(FKL_FFI_TYPE_CHAR,sizeof(void*));
+		m=fklFfiCreateMem(FKL_FFI_TYPE_CHAR,sizeof(void*),pd);
 		*(char*)m->mem=FKL_GET_CHR(v);
 	}
 	else if(FKL_IS_STR(v))
-		m=fklFfiCreateRef(FKL_FFI_TYPE_STRING,fklCharBufToCstr(v->u.str->str,v->u.str->size));
+		m=fklFfiCreateRef(FKL_FFI_TYPE_STRING,fklCharBufToCstr(v->u.str->str,v->u.str->size),pd);
 	else if(FKL_IS_SYM(v))
 	{
 		FklString* s=fklGetGlobSymbolWithId(FKL_GET_SYM(v))->symbol;
-		m=fklFfiCreateRef(FKL_FFI_TYPE_STRING,fklCharBufToCstr(s->str,s->size));
+		m=fklFfiCreateRef(FKL_FFI_TYPE_STRING,fklCharBufToCstr(s->str,s->size),pd);
 	}
 	else if(FKL_IS_FP(v))
 	{
-		m=fklFfiCreateMem(FKL_FFI_TYPE_FILE_P,sizeof(void*));
+		m=fklFfiCreateMem(FKL_FFI_TYPE_FILE_P,sizeof(void*),pd);
 		*(FILE**)m->mem=v->u.fp->fp;
 	}
 	else if(v==FKL_VM_NIL)
-		m=fklFfiCreateMem(FKL_FFI_TYPE_VPTR,sizeof(void*));
+		m=fklFfiCreateMem(FKL_FFI_TYPE_VPTR,sizeof(void*),pd);
 	else if(fklFfiIsMem(v))
 	{
 		if(v->u.ud->t->__call)
 		{
 			FklFfiProc* proc=v->u.ud->data;
-			m=fklFfiCreateRef(proc->type,proc->func);
+			m=fklFfiCreateRef(proc->type,proc->func,pd);
 		}
 		else
 		{
 			FklFfiMem* mem=v->u.ud->data;
-			m=fklFfiCreateRef(mem->type,mem->mem);
+			m=fklFfiCreateRef(mem->type,mem->mem,pd);
 			return fklCreateVMudata(FfiMemUdSid,&FfiMemMethodTable,m,rel);
 		}
 	}

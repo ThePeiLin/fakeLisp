@@ -5,33 +5,29 @@
 #include<fakeLisp/vm.h>
 #include<fakeLisp/fklni.h>
 
-static pthread_rwlock_t GlobSharedObjsLock=PTHREAD_RWLOCK_INITIALIZER;
-
-typedef struct FklFfiSharedObjNode
-{
-	FklFfidllHandle dll;
-	struct FklFfiSharedObjNode* next;
-}FklFfiSharedObjNode;
-
-static FklFfiSharedObjNode* GlobSharedObjs=NULL;
-
-void fklFfiAddSharedObj(FklFfidllHandle handle)
+void fklFfiAddSharedObj(FklFfidllHandle handle,FklFfiPublicData* pd)
 {
 	FklFfiSharedObjNode* node=(FklFfiSharedObjNode*)malloc(sizeof(FklFfiSharedObjNode));
 	FKL_ASSERT(node);
 	node->dll=handle;
-	pthread_rwlock_wrlock(&GlobSharedObjsLock);
-	node->next=GlobSharedObjs;
-	GlobSharedObjs=node;
-	pthread_rwlock_unlock(&GlobSharedObjsLock);
+	pthread_rwlock_wrlock(&pd->sharedObjsLock);
+	node->next=pd->sharedObjs;
+	pd->sharedObjs=node;
+	pthread_rwlock_unlock(&pd->sharedObjsLock);
 }
 
-void fklFfiDestroyAllSharedObj(void)
+void fklFfiInitSharedObj(FklFfiPublicData* pd)
 {
-	FklFfiSharedObjNode* head=GlobSharedObjs;
-	pthread_rwlock_wrlock(&GlobSharedObjsLock);
-	GlobSharedObjs=NULL;
-	pthread_rwlock_unlock(&GlobSharedObjsLock);
+	pthread_rwlock_init(&pd->sharedObjsLock,NULL);
+	pd->sharedObjs=NULL;
+}
+
+void fklFfiDestroyAllSharedObj(FklFfiPublicData* pd)
+{
+	FklFfiSharedObjNode* head=pd->sharedObjs;
+	pthread_rwlock_wrlock(&pd->sharedObjsLock);
+	pd->sharedObjs=NULL;
+	pthread_rwlock_unlock(&pd->sharedObjsLock);
 	while(head)
 	{
 		FklFfiSharedObjNode* prev=head;
@@ -164,11 +160,14 @@ static int ffiproc_frame_end(void* data[6])
 	return c->state==FFIPROC_DONE;
 }
 
-static void _ffi_proc_invoke(FklFfiProc* proc,FklVM* exe,FklVMvalue* rel)
+static void _ffi_proc_invoke(FklFfiProc* proc
+		,FklVM* exe
+		,FklVMvalue* rel)
 {
 	FKL_NI_BEGIN(exe);
 	FklTypeId_t type=proc->type;
-	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(type).all);
+	FklFfiPublicData* pd=proc->pd->u.ud->data;
+	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(type,pd).all);
 	uint32_t anum=ft->anum;
 	uint32_t i=0;
 	FklTypeId_t rtype=ft->rtype;
@@ -196,7 +195,7 @@ static void _ffi_proc_invoke(FklFfiProc* proc,FklVM* exe,FklVMvalue* rel)
 	FKL_ASSERT(pArgs);
 	for(i=0;i<anum;i++)
 	{
-		FklVMudata* ud=fklFfiCreateMemUd(atypes[i],fklFfiGetTypeSizeWithTypeId(atypes[i]),NULL,rel);
+		FklVMudata* ud=fklFfiCreateMemUd(atypes[i],fklFfiGetTypeSizeWithTypeId(atypes[i],pd),NULL,rel,proc->pd);
 		if(fklFfiSetMemForProc(ud,args[i]))
 		{
 			for(uint32_t j=0;j<i;j++)
@@ -213,7 +212,7 @@ static void _ffi_proc_invoke(FklFfiProc* proc,FklVM* exe,FklVMvalue* rel)
 			FKL_RAISE_BUILTIN_ERROR(fklGetGlobSymbolWithId(proc->sid)->symbol,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 		}
 		FklFfiMem* mem=ud->data;
-		if(mem->type==FKL_FFI_TYPE_FILE_P||mem->type==FKL_FFI_TYPE_STRING||fklFfiIsArrayTypeId(mem->type))
+		if(mem->type==FKL_FFI_TYPE_FILE_P||mem->type==FKL_FFI_TYPE_STRING||fklFfiIsArrayTypeId(mem->type,pd))
 			pArgs[i]=&mem->mem;
 		else
 			pArgs[i]=mem->mem;
@@ -227,7 +226,7 @@ static void _ffi_proc_invoke(FklFfiProc* proc,FklVM* exe,FklVMvalue* rel)
 	}
 	else
 	{
-		FklVMudata* ud=fklFfiCreateMemUd(rtype,fklFfiGetTypeSizeWithTypeId(rtype),NULL,rel);
+		FklVMudata* ud=fklFfiCreateMemUd(rtype,fklFfiGetTypeSizeWithTypeId(rtype,pd),NULL,rel,proc->pd);
 		void* retval=((FklFfiMem*)ud->data)->mem;
 		FKL_ASSERT(retval);
 		ffi_call(&proc->cif,proc->func,retval,pArgs);
@@ -286,6 +285,13 @@ static void _ffi_call_proc(FklVMvalue* ffiproc,FklVM* exe,FklVMvalue* rel)
 }
 
 extern int _mem_equal(const FklVMudata* a,const FklVMudata* b);
+
+static void _ffi_proc_atomic(void* data,FklVMgc* gc)
+{
+	FklFfiProc* proc=data;
+	fklGC_toGrey(proc->pd,gc);
+}
+
 static FklVMudMethodTable FfiProcMethodTable=
 {
 	.__princ=_ffi_proc_print,
@@ -294,7 +300,7 @@ static FklVMudMethodTable FfiProcMethodTable=
 	.__equal=_mem_equal,
 	.__call=_ffi_call_proc,
 	.__write=NULL,
-	.__atomic=NULL,
+	.__atomic=_ffi_proc_atomic,
 	.__append=NULL,
 	.__copy=NULL,
 	.__hash=NULL,
@@ -306,31 +312,33 @@ int fklFfiIsProc(FklVMvalue* p)
 	return FKL_IS_USERDATA(p)&&p->u.ud->type==fklFfiGetFfiMemUdSid()&&p->u.ud->t==&FfiProcMethodTable;
 }
 
-int fklFfiIsValidFunctionTypeId(FklSid_t id)
+int fklFfiIsValidFunctionTypeId(FklSid_t id,FklFfiPublicData* pd)
 {
-	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(id).all);
+	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(id,pd).all);
 	uint32_t anum=ft->anum;
 	FklTypeId_t* atypes=ft->atypes;
 	FklTypeId_t rtype=ft->rtype;
 	uint32_t i=0;
 	for(;i<anum;i++)
 	{
-		if(!fklFfiIsArrayTypeId(atypes[i])&&fklFfiGetTypeSizeWithTypeId(atypes[i])>sizeof(void*))
+		if(!fklFfiIsArrayTypeId(atypes[i],pd)&&fklFfiGetTypeSizeWithTypeId(atypes[i],pd)>sizeof(void*))
 			return 0;
 	}
-	if(rtype&&!fklFfiIsArrayTypeId(rtype)&&fklFfiGetTypeSizeWithTypeId(rtype)>sizeof(void*))
+	if(rtype&&!fklFfiIsArrayTypeId(rtype,pd)&&fklFfiGetTypeSizeWithTypeId(rtype,pd)>sizeof(void*))
 		return 0;
 	return 1;
 }
 
-FklFfiProc* fklFfiCreateProc(FklTypeId_t type,void* func,FklSid_t sid)
+FklFfiProc* fklFfiCreateProc(FklTypeId_t type,void* func,FklSid_t sid,FklVMvalue* pd)
 {
 	FklFfiProc* tmp=(FklFfiProc*)malloc(sizeof(FklFfiProc));
 	FKL_ASSERT(tmp);
 	tmp->type=type;
 	tmp->func=func;
 	tmp->sid=sid;
-	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(type).all);
+	tmp->pd=pd;
+	FklFfiPublicData* publicData=pd->u.ud->data;
+	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklFfiGetTypeUnion(type,publicData).all);
 	uint32_t anum=ft->anum;
 	FklTypeId_t* atypes=ft->atypes;
 	ffi_type** ffiAtypes=(ffi_type**)malloc(sizeof(ffi_type*)*anum);
@@ -346,18 +354,21 @@ FklFfiProc* fklFfiCreateProc(FklTypeId_t type,void* func,FklSid_t sid)
 	return tmp;
 }
 
-FklVMudata* fklFfiCreateProcUd(FklTypeId_t type,const char* cStr,FklVMvalue* rel)
+FklVMudata* fklFfiCreateProcUd(FklTypeId_t type
+		,const char* cStr
+		,FklVMvalue* rel,FklVMvalue* pd)
 {
-	pthread_rwlock_rdlock(&GlobSharedObjsLock);
+	FklFfiPublicData* publicData=pd->u.ud->data;
+	pthread_rwlock_rdlock(&publicData->sharedObjsLock);
 	void* address=NULL;
-	for(FklFfiSharedObjNode* head=GlobSharedObjs;head;head=head->next)
+	for(FklFfiSharedObjNode* head=publicData->sharedObjs;head;head=head->next)
 	{
 		address=fklGetAddress(cStr,head->dll);
 		if(address)
 			break;
 	}
-	pthread_rwlock_unlock(&GlobSharedObjsLock);
+	pthread_rwlock_unlock(&publicData->sharedObjsLock);
 	if(!address)
 		return NULL;
-	return fklCreateVMudata(fklFfiGetFfiMemUdSid(),&FfiProcMethodTable,fklFfiCreateProc(type,address,fklAddSymbolToGlobCstr(cStr)->id),rel);
+	return fklCreateVMudata(fklFfiGetFfiMemUdSid(),&FfiProcMethodTable,fklFfiCreateProc(type,address,fklAddSymbolToGlobCstr(cStr)->id,pd),rel);
 }

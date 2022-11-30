@@ -1395,12 +1395,12 @@ FklVMdll* fklCreateVMdll(const char* dllName)
 	return r;
 }
 
-void fklInitVMdll(FklVMvalue* rel)
+void fklInitVMdll(FklVMvalue* rel,FklVM* exe)
 {
 	FklVMdllHandle handle=rel->u.dll->handle;
-	void (*init)(FklSymbolTable*,FklVMdll* dll)=fklGetAddress("_fklInit",handle);
+	void (*init)(FklSymbolTable*,FklVMdll* dll,FklVM* exe)=fklGetAddress("_fklInit",handle);
 	if(init)
-		init(fklGetGlobSymbolTable(),rel->u.dll);
+		init(fklGetGlobSymbolTable(),rel->u.dll,exe);
 }
 
 void fklDestroyVMvalue(FklVMvalue* cur)

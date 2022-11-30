@@ -7,22 +7,23 @@ extern "C"{
 #endif
 typedef struct FklFfiMem
 {
+	FklVMvalue* pd;
 	FklTypeId_t type;
 	void* mem;
 }FklFfiMem;
 
 void fklFfiMemInit(void);
 FklSid_t fklFfiGetFfiMemUdSid(void);
-FklFfiMem* fklFfiCreateMem(FklTypeId_t type,size_t);
-FklFfiMem* fklFfiCreateRef(FklTypeId_t type,void* ref);
-FklVMudata* fklFfiCreateMemUd(FklTypeId_t type,size_t size,FklVMvalue* atomic,FklVMvalue* rel);
-FklVMudata* fklFfiCreateMemRefUdWithSI(FklFfiMem* m,FklVMvalue* selector,FklVMvalue* index,FklVMvalue* rel);
-FklVMudata* fklFfiCreateMemRefUd(FklTypeId_t type,void*,FklVMvalue* rel);
+FklFfiMem* fklFfiCreateMem(FklTypeId_t type,size_t,FklVMvalue* pd);
+FklFfiMem* fklFfiCreateRef(FklTypeId_t type,void* ref,FklVMvalue* pd);
+FklVMudata* fklFfiCreateMemUd(FklTypeId_t type,size_t size,FklVMvalue* atomic,FklVMvalue* rel,FklVMvalue* pd);
+FklVMudata* fklFfiCreateMemRefUdWithSI(FklFfiMem* m,FklVMvalue* selector,FklVMvalue* index,FklVMvalue* rel,FklVMvalue* pd);
+FklVMudata* fklFfiCreateMemRefUd(FklTypeId_t type,void*,FklVMvalue* rel,FklVMvalue* pd);
 int fklFfiIsMem(FklVMvalue*);
 int fklFfiSetMem(FklFfiMem*,FklVMvalue*);
 int fklFfiSetMemForProc(FklVMudata*,FklVMvalue*);
 int fklFfiIsNull(FklFfiMem*);
-FklVMudata* fklFfiCastVMvalueIntoMem(FklVMvalue*,FklVMvalue* rel);
+FklVMudata* fklFfiCastVMvalueIntoMem(FklVMvalue*,FklVMvalue* rel,FklVMvalue* pd);
 int fklFfiIsCastableVMvalueType(FklVMvalue* v);
 int fklFfiIsValuableMem(FklFfiMem* mem);
 FklVMvalue* fklFfiCreateVMvalue(FklFfiMem* mem,FklVM* vm);

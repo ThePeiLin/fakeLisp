@@ -742,8 +742,8 @@ int fklFfiSetMemForProc(FklVMudata* ud,FklVMvalue* val)
 				FklFfiMem* valmem=val->u.ud->data;
 				if(ref->type!=valmem->type)
 					return 1;
-				FklDefTypeUnion vtu=fklFfiLockAndGetTypeUnion(ref->type,pd);
-				if(fklFfiIsArrayType(vtu))
+				FklDefTypeUnion rtu=fklFfiLockAndGetTypeUnion(ref->type,pd);
+				if(fklFfiIsArrayType(rtu))
 				{
 					free(ref->mem);
 					ref->mem=valmem->mem;
@@ -751,7 +751,7 @@ int fklFfiSetMemForProc(FklVMudata* ud,FklVMvalue* val)
 				}
 				else
 					memcpy(ref->mem,valmem->mem
-							,fklFfiGetTypeSize(vtu));
+							,fklFfiGetTypeSize(rtu));
 			}
 		}
 	}

@@ -314,9 +314,9 @@ int fklFfiIsProc(FklVMvalue* p)
 	return FKL_IS_USERDATA(p)&&p->u.ud->type==fklFfiGetFfiMemUdSid()&&p->u.ud->t==&FfiProcMethodTable;
 }
 
-int fklFfiIsValidFunctionTypeId(FklSid_t id,FklFfiPublicData* pd)
+int fklFfiIsValidFunctionType(FklDefTypeUnion tu,FklFfiPublicData* pd)
 {
-	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklFfiLockAndGetTypeUnion(id,pd).all);
+	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(tu.all);
 	uint32_t anum=ft->anum;
 	FklTypeId_t* atypes=ft->atypes;
 	FklTypeId_t rtype=ft->rtype;

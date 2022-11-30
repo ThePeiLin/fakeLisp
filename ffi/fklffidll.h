@@ -23,7 +23,7 @@ void fklFfiDestroyAllSharedObj(FklFfiPublicData* pd);
 void fklFfiAddSharedObj(FklFfidllHandle handle,FklFfiPublicData* pd);
 FklVMudata* fklFfiCreateProcUd(FklTypeId_t id,const char*,FklVMvalue*,FklVMvalue* pd);
 FklFfiProc* fklFfiCreateProc(FklTypeId_t type,void* func,FklSid_t,FklVMvalue*);
-int fklFfiIsValidFunctionTypeId(FklTypeId_t type,FklFfiPublicData* pd);
+int fklFfiIsValidFunctionType(FklDefTypeUnion type,FklFfiPublicData* pd);
 
 #ifdef __cplusplus
 }

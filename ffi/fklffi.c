@@ -324,8 +324,14 @@ void ffi_proc(ARGL)
 
 	FklFfiPublicData* publicData=pd->u.ud->data;
 	FklTypeId_t id=fklFfiGenTypeId(typedeclare,publicData);
-	if(!id||!fklFfiIsFunctionType(fklFfiLockAndGetTypeUnion(id,publicData))||!fklFfiIsValidFunctionTypeId(id,publicData))
+	if(!id)
 		FKL_FFI_RAISE_ERROR("ffi.proc",FKL_FFI_ERR_INVALID_TYPEDECLARE,exe);
+	else
+	{
+		FklDefTypeUnion tu=fklFfiLockAndGetTypeUnion(id,publicData);
+		if(!fklFfiIsFunctionType(tu)||!fklFfiIsValidFunctionType(tu,publicData))
+			FKL_FFI_RAISE_ERROR("ffi.proc",FKL_FFI_ERR_INVALID_TYPEDECLARE,exe);
+	}
 	char* cStr=fklCharBufToCstr(val->u.str->str,val->u.str->size);
 	FklVMudata* func=fklFfiCreateProcUd(id,cStr,rel,pd);
 	if(!func)

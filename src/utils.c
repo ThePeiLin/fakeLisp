@@ -510,27 +510,18 @@ unsigned int fklGetByteNumOfUtf8(const uint8_t* byte,size_t max)
 	for(;i<6;i++)
 		if((byte[0]|utf8bits[i].a)==utf8bits[i].a)
 			break;
-	i++;
-	if(i>max)
+	if(i+1>max)
 		return 7;
 	else
 	{
-		uint32_t sum=0;
-		uint32_t bitmove=0;
-		uint32_t min=utf8bits[i-1].min;
 #define UTF8_M_BITS (0x3F)
-		for(size_t j=i;j>1;j--)
-		{
-			uint32_t cur=byte[j-1]&UTF8_M_BITS;
-			sum+=cur<<bitmove;
-			bitmove+=6;
-		}
-		sum+=(utf8bits[i-1].b&byte[0])<<bitmove;
+		uint32_t sum=((utf8bits[i].b&byte[0])<<(i*6))+(byte[1]&UTF8_M_BITS<<((i-1)*6));
 #undef UTF8_M_BITS
+		uint32_t min=utf8bits[i].min;
 		if(sum<min)
 			return 7;
 		else
-			return i;
+			return i+1;
 	}
 }
 

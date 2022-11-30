@@ -195,7 +195,8 @@ static void _ffi_proc_invoke(FklFfiProc* proc
 	FKL_ASSERT(pArgs);
 	for(i=0;i<anum;i++)
 	{
-		FklVMudata* ud=fklFfiCreateMemUd(atypes[i],fklFfiGetTypeSizeWithTypeId(atypes[i],pd),NULL,rel,proc->pd);
+		FklDefTypeUnion tu=fklFfiLockAndGetTypeUnion(atypes[i],pd);
+		FklVMudata* ud=fklFfiCreateMemUd(atypes[i],fklFfiGetTypeSize(tu),NULL,rel,proc->pd);
 		if(fklFfiSetMemForProc(ud,args[i]))
 		{
 			for(uint32_t j=0;j<i;j++)
@@ -226,7 +227,8 @@ static void _ffi_proc_invoke(FklFfiProc* proc
 	}
 	else
 	{
-		FklVMudata* ud=fklFfiCreateMemUd(rtype,fklFfiGetTypeSizeWithTypeId(rtype,pd),NULL,rel,proc->pd);
+		FklDefTypeUnion tu=fklFfiLockAndGetTypeUnion(rtype,pd);
+		FklVMudata* ud=fklFfiCreateMemUd(rtype,fklFfiGetTypeSize(tu),NULL,rel,proc->pd);
 		void* retval=((FklFfiMem*)ud->data)->mem;
 		FKL_ASSERT(retval);
 		ffi_call(&proc->cif,proc->func,retval,pArgs);
@@ -321,10 +323,11 @@ int fklFfiIsValidFunctionTypeId(FklSid_t id,FklFfiPublicData* pd)
 	uint32_t i=0;
 	for(;i<anum;i++)
 	{
-		if(!fklFfiIsArrayTypeId(atypes[i],pd)&&fklFfiGetTypeSizeWithTypeId(atypes[i],pd)>sizeof(void*))
+		FklDefTypeUnion tu=fklFfiLockAndGetTypeUnion(atypes[i],pd);
+		if(!fklFfiIsArrayTypeId(atypes[i],pd)&&fklFfiGetTypeSize(tu)>sizeof(void*))
 			return 0;
 	}
-	if(rtype&&!fklFfiIsArrayTypeId(rtype,pd)&&fklFfiGetTypeSizeWithTypeId(rtype,pd)>sizeof(void*))
+	if(rtype&&!fklFfiIsArrayTypeId(rtype,pd)&&fklFfiGetTypeSize(fklFfiLockAndGetTypeUnion(rtype,pd))>sizeof(void*))
 		return 0;
 	return 1;
 }

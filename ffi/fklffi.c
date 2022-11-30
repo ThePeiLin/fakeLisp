@@ -64,7 +64,7 @@ void ffi_new(ARGL)
 		mem=fklFfiCreateMemRefUd(id,NULL,rel,pd);
 	else
 	{
-		size_t size=fklFfiGetTypeSizeWithTypeId(id,publicData);
+		size_t size=fklFfiGetTypeSize(fklFfiLockAndGetTypeUnion(id,publicData));
 		mem=fklFfiCreateMemUd(id,size,atomic,rel,pd);
 	}
 	if(!mem)
@@ -112,14 +112,14 @@ void ffi_sizeof(ARGL)
 	if(fklFfiIsMem(typedeclare))
 	{
 		FklFfiMem* m=typedeclare->u.ud->data;
-		fklNiReturn(fklMakeVMint(fklFfiGetTypeSizeWithTypeId(m->type,publicData),exe),&ap,stack);
+		fklNiReturn(fklMakeVMint(fklFfiGetTypeSize(fklFfiLockAndGetTypeUnion(m->type,publicData)),exe),&ap,stack);
 	}
 	else
 	{
 		FklTypeId_t id=fklFfiGenTypeId(typedeclare,publicData);
 		if(!id)
 			FKL_FFI_RAISE_ERROR("ffi.sizeof",FKL_FFI_ERR_INVALID_TYPEDECLARE,exe);
-		fklNiReturn(fklMakeVMint(fklFfiGetTypeSizeWithTypeId(id,publicData),exe),&ap,stack);
+		fklNiReturn(fklMakeVMint(fklFfiGetTypeSize(fklFfiLockAndGetTypeUnion(id,publicData)),exe),&ap,stack);
 	}
 	fklNiEnd(&ap,stack);
 }
@@ -138,14 +138,14 @@ void ffi_alignof(ARGL)
 	if(fklFfiIsMem(typedeclare))
 	{
 		FklFfiMem* m=typedeclare->u.ud->data;
-		fklNiReturn(fklMakeVMint(fklFfiGetTypeSizeWithTypeId(m->type,publicData),exe),&ap,stack);
+		fklNiReturn(fklMakeVMint(fklFfiGetTypeSize(fklFfiLockAndGetTypeUnion(m->type,publicData)),exe),&ap,stack);
 	}
 	else
 	{
 		FklTypeId_t id=fklFfiGenTypeId(typedeclare,publicData);
 		if(!id)
 			FKL_FFI_RAISE_ERROR("ffi.alignof",FKL_FFI_ERR_INVALID_TYPEDECLARE,exe);
-		fklNiReturn(fklMakeVMint(fklFfiGetTypeAlignWithTypeId(id,publicData),exe),&ap,stack);
+		fklNiReturn(fklMakeVMint(fklFfiGetTypeAlign(fklFfiLockAndGetTypeUnion(id,publicData)),exe),&ap,stack);
 	}
 	fklNiEnd(&ap,stack);
 }
@@ -229,7 +229,8 @@ void ffi_clear(ARGL)
 	if(ptr->type==FKL_FFI_TYPE_STRING)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.clear!",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FklFfiPublicData* publicData=pd->u.ud->data;
-	memset(ptr->mem,0,fklFfiGetTypeSizeWithTypeId(ptr->type,publicData));
+	FklDefTypeUnion tu=fklFfiLockAndGetTypeUnion(ptr->type,publicData);
+	memset(ptr->mem,0,fklFfiGetTypeSize(tu));
 	fklNiReturn(mem
 			,&ap
 			,stack);

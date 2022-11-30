@@ -373,8 +373,8 @@ void _fklInit(FklSymbolTable* glob,FklVMdll* rel,FklVM* exe)
 {
 	FklVMgc* gc=exe->gc;
 	fklSetGlobSymbolTable(glob);
-	fklFfiMemInit();
 	FklFfiPublicData* pd=createFfiPd();
+	fklFfiMemInit(pd);
 	fklFfiInitGlobNativeTypes(pd);
 	fklFfiInitTypedefSymbol(pd);
 	fklFfiInitSharedObj(pd);

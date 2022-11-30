@@ -311,7 +311,7 @@ static FklVMudMethodTable FfiProcMethodTable=
 
 int fklFfiIsProc(FklVMvalue* p)
 {
-	return FKL_IS_USERDATA(p)&&p->u.ud->type==fklFfiGetFfiMemUdSid()&&p->u.ud->t==&FfiProcMethodTable;
+	return FKL_IS_USERDATA(p)&&p->u.ud->t==&FfiProcMethodTable;
 }
 
 int fklFfiIsValidFunctionType(FklDefTypeUnion tu,FklFfiPublicData* pd)
@@ -377,5 +377,5 @@ FklVMudata* fklFfiCreateProcUd(FklTypeId_t type
 	pthread_rwlock_unlock(&publicData->sharedObjsLock);
 	if(!address)
 		return NULL;
-	return fklCreateVMudata(fklFfiGetFfiMemUdSid(),&FfiProcMethodTable,fklFfiCreateProc(type,address,fklAddSymbolToGlobCstr(cStr)->id,pd),rel);
+	return fklCreateVMudata(publicData->memUdSid,&FfiProcMethodTable,fklFfiCreateProc(type,address,fklAddSymbolToGlobCstr(cStr)->id,pd),rel);
 }

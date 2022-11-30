@@ -962,25 +962,27 @@ FklSid_t fklFfiGetErrorType(FklFfiErrorType type)
 	return ffiErrorTypeId[type];
 }
 
-char* fklFfiGenErrorMessage(FklFfiErrorType type)
+#include<fakeLisp/base.h>
+
+FklString* fklFfiGenErrorMessage(FklFfiErrorType type)
 {
-	char* t=fklCopyCstr("");
+	FklString* t=NULL;
 	switch(type)
 	{
 		case FKL_FFI_ERR_INVALID_TYPEDECLARE:
-			t=fklStrCat(t,"Invalid type declare ");
+			t=fklCreateStringFromCstr("Invalid type declare ");
 			break;
 		case FKL_FFI_ERR_INVALID_TYPENAME:
-			t=fklStrCat(t,"Invalid type name ");
+			t=fklCreateStringFromCstr("Invalid type name ");
 			break;
 		case FKL_FFI_ERR_INVALID_MEM_MODE:
-			t=fklStrCat(t,"Invalid mem mode ");
+			t=fklCreateStringFromCstr("Invalid mem mode ");
 			break;
 		case FKL_FFI_ERR_INVALID_SELECTOR:
-			t=fklStrCat(t,"Invalid selector ");
+			t=fklCreateStringFromCstr("Invalid selector ");
 			break;
 		case FKL_FFI_ERR_INVALID_ASSIGN:
-			t=fklStrCat(t,"Invalid assign ");
+			t=fklCreateStringFromCstr("Invalid assign ");
 			break;
 		default:
 			FKL_ASSERT(0);

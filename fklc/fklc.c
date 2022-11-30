@@ -11,13 +11,12 @@ extern FklSymbolTable* OuterSymbolTable;
 #define ARGL FklVM* exe,FklVMvalue* dll,FklVMvalue* pd
 
 #define FKLC_RAISE_ERROR(WHO,ERRORTYPE,EXE) do{\
-	char* errorMessage=fklcGenErrorMessage((ERRORTYPE));\
+	FklString* errorMessage=fklcGenErrorMessage((ERRORTYPE));\
 	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR\
 			,fklCreateVMerrorCstr((WHO)\
 				,fklcGetErrorType(ERRORTYPE)\
 				,errorMessage)\
 			,(EXE));\
-	free(errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
 	return;\
 }while(0)

@@ -40,16 +40,16 @@ FklSid_t fklcGetErrorType(FklFklcErrType type)
 	return fklcErrorTypeId[type];
 }
 
-char* fklcGenErrorMessage(FklFklcErrType type)
+FklString* fklcGenErrorMessage(FklFklcErrType type)
 {
-	char* t=fklCopyCstr("");
+	FklString* t=NULL;
 	switch(type)
 	{
 		case FKL_FKLC_ERR_IMCOMPILABLE_OBJ_OCCUR:
-			t=fklStrCat(t,"imcompilable obj occur ");
+			t=fklCreateStringFromCstr("imcompilable obj occur");
 			break;
 		case FKL_FKLC_ERR_INVALID_SYNTAX_PATTERN:
-			t=fklStrCat(t,"invalid syntax pattern ");
+			t=fklCreateStringFromCstr("invalid syntax pattern ");
 			break;
 		default:
 			FKL_ASSERT(0);

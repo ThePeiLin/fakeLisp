@@ -1513,23 +1513,23 @@ void fklDestroyVMdlproc(FklVMdlproc* dlproc)
 	free(dlproc);
 }
 
-FklVMerror* fklCreateVMerror(const FklString* who,FklSid_t type,const FklString* message)
+FklVMerror* fklCreateVMerror(const FklString* who,FklSid_t type,FklString* message)
 {
 	FklVMerror* t=(FklVMerror*)malloc(sizeof(FklVMerror));
 	FKL_ASSERT(t);
 	t->who=fklCopyString(who);
 	t->type=type;
-	t->message=fklCopyString(message);
+	t->message=message;
 	return t;
 }
 
-FklVMerror* fklCreateVMerrorCstr(const char* who,FklSid_t type,const char* message)
+FklVMerror* fklCreateVMerrorCstr(const char* who,FklSid_t type,FklString* message)
 {
 	FklVMerror* t=(FklVMerror*)malloc(sizeof(FklVMerror));
 	FKL_ASSERT(t);
 	t->who=fklCreateStringFromCstr(who);
 	t->type=type;
-	t->message=fklCreateStringFromCstr(message);
+	t->message=message;
 	return t;
 }
 

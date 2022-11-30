@@ -196,18 +196,17 @@ void fklFfiInitTypedefSymbol(void);
 
 int fklFfiIsNativeTypeName(FklSid_t id);
 FklSid_t fklFfiGetErrorType(FklFfiErrorType);
-char* fklFfiGenErrorMessage(FklFfiErrorType);
+FklString* fklFfiGenErrorMessage(FklFfiErrorType);
 
 FklTypeId_t fklFfiGenTypeId(FklVMvalue*);
 FklTypeId_t fklFfiTypedef(FklVMvalue*,FklSid_t typeName);
 #define FKL_FFI_RAISE_ERROR(WHO,ERRORTYPE,EXE) do{\
-	char* errorMessage=fklFfiGenErrorMessage((ERRORTYPE));\
+	FklString* errorMessage=fklFfiGenErrorMessage((ERRORTYPE));\
 	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR\
 			,fklCreateVMerrorCstr((WHO)\
 				,fklFfiGetErrorType(ERRORTYPE)\
 				,errorMessage)\
 			,(EXE));\
-	free(errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
 	return;\
 }while(0)

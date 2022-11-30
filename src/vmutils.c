@@ -349,28 +349,28 @@ void fklDestroyVMframe(FklVMframe* frame)
 		free(frame);
 }
 
-char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorType type)
+FklString* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorType type)
 {
-	char* t=fklCopyCstr("");
+	FklString* t=fklCreateEmptyString();
 	switch(type)
 	{
 		case FKL_ERR_LOADDLLFAILD:
-			t=fklStrCat(t,"Faild to load dll \"");
-			t=fklStrCat(t,str);
-			t=fklStrCat(t,"\"");
+			fklStringCstrCat(&t,"Faild to load dll \"");
+			fklStringCstrCat(&t,str);
+			fklStringCstrCat(&t,"\"");
 			break;
 		case FKL_ERR_INVALIDSYMBOL:
-			t=fklStrCat(t,"Invalid symbol ");
-			t=fklStrCat(t,str);
+			fklStringCstrCat(&t,"Invalid symbol ");
+			fklStringCstrCat(&t,str);
 			break;
 		case FKL_ERR_FILEFAILURE:
-			t=fklStrCat(t,"Failed for file:\"");
-			t=fklStrCat(t,str);
-			t=fklStrCat(t,"\"");
+			fklStringCstrCat(&t,"Failed for file:\"");
+			fklStringCstrCat(&t,str);
+			fklStringCstrCat(&t,"\"");
 		case FKL_ERR_SYMUNDEFINE:
-			t=fklStrCat(t,"Symbol ");
-			t=fklStrCat(t,str);
-			t=fklStrCat(t," is undefined");
+			fklStringCstrCat(&t,"Symbol ");
+			fklStringCstrCat(&t,str);
+			fklStringCstrCat(&t," is undefined");
 			break;
 		default:
 			break;
@@ -380,101 +380,46 @@ char* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorType ty
 	return t;
 }
 
-char* fklGenErrorMessage(FklBuiltInErrorType type,FklVM* exe)
+FklString* fklGenErrorMessage(FklBuiltInErrorType type)
 {
-	char* t=fklCopyCstr("");
-	switch(type)
+	static const char* builtinErrorMessages[]=
 	{
-		case FKL_ERR_INCORRECT_TYPE_VALUE:
-			t=fklStrCat(t,"Incorrect type of values");
-			break;
-		case FKL_ERR_STACKERROR:
-			t=fklStrCat(t,"Stack error");
-			break;
-		case FKL_ERR_TOOMANYARG:
-			t=fklStrCat(t,"Too many arguements");
-			break;
-		case FKL_ERR_TOOFEWARG:
-			t=fklStrCat(t,"Too few arguements");
-			break;
-		case FKL_ERR_CANTCREATETHREAD:
-			t=fklStrCat(t,"Can't create thread");
-			break;
-		case FKL_ERR_CALL_ERROR:
-			t=fklStrCat(t,"Try to call an object that can't be call");
-			break;
-		case FKL_ERR_CROSS_C_CALL_CONTINUATION:
-			t=fklStrCat(t,"attempt to get a continuation cross C-call boundary");
-			break;
-		case FKL_ERR_LOADDLLFAILD:
-			t=fklStrCat(t,"Faild to load dll \"");
-			{
-				FklVMvalue* v=exe->stack->values[exe->stack->tp-1];
-				char* str=fklStringToCstr(v->u.str);
-				t=fklStrCat(t,str);
-				free(str);
-			}
-			t=fklStrCat(t,"\"");
-			break;
-		case FKL_ERR_INVALIDSYMBOL:
-			t=fklStrCat(t,"Invalid symbol ");
-			{
-				FklVMvalue* v=exe->stack->values[exe->stack->tp-1];
-				char* str=fklStringToCstr(v->u.str);
-				t=fklStrCat(t,str);
-				free(str);
-			}
-			break;
-		case FKL_ERR_DIVZEROERROR:
-			t=fklStrCat(t,"Divided by zero");
-			break;
-		case FKL_ERR_FILEFAILURE:
-			t=fklStrCat(t,"Failed for file:\"");
-			{
-				FklVMvalue* v=exe->stack->values[exe->stack->tp-1];
-				char* str=fklStringToCstr(v->u.str);
-				t=fklStrCat(t,str);
-				free(str);
-			}
-			t=fklStrCat(t,"\"");
-			break;
-		case FKL_ERR_NO_VALUE_FOR_KEY:
-			t=fklStrCat(t,"No value for key");
-			break;
-		case FKL_ERR_INVALIDASSIGN:
-			t=fklStrCat(t,"Invalid assign");
-			break;
-		case FKL_ERR_INVALIDACCESS:
-			t=fklStrCat(t,"Invalid access");
-			break;
-		case FKL_ERR_UNEXPECTEOF:
-			t=fklStrCat(t,"Unexpected eof");
-			break;
-		case FKL_ERR_INVALIDEXPR:
-			t=fklStrCat(t,"Invalid expression");
-			break;
-		case FKL_ERR_FAILD_TO_CREATE_BIG_INT_FROM_MEM:
-			t=fklStrCat(t,"Failed to create big-int from mem");
-			break;
-		case FKL_ERR_LIST_DIFFER_IN_LENGTH:
-			t=fklStrCat(t,"List differ in length");
-			break;
-		case FKL_ERR_INVALIDRADIX:
-			t=fklStrCat(t,"Radix should be 8,10 or 16");
-			break;
-		case FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0:
-			t=fklStrCat(t,"Number should not be less than 0");
-			break;
-		case FKL_ERR_INVALID_VALUE:
-			t=fklStrCat(t,"Invalid value");
-			break;
-		case FKL_ERR_INVALIDPATTERN:
-			t=fklStrCat(t,"invalid pattern ");
-			break;
-		default:
-			break;
-	}
-	return t;
+		NULL,
+		NULL,
+		NULL,
+		"Invalid expression",
+		NULL,
+		"Invalid pattern ",
+		"Incorrect type of values",
+		"Stack error",
+		"Too many arguements",
+		"Too few arguements",
+		"Can't create thread",
+		NULL,
+		NULL,
+		"Try to call an object that can't be call",
+		NULL,
+		NULL,
+		NULL,
+		"Unexpected eof",
+		"Divided by zero",
+		NULL,
+		"Invalid value",
+		"Invalid assign",
+		"Invalid access",
+		NULL,
+		NULL,
+		"Failed to create big-int from mem",
+		"List differ in length",
+		"Attempt to get a continuation cross C-call boundary",
+		"Radix should be 8,10 or 16",
+		"No value for key",
+		"Number should not be less than 0",
+		NULL,
+	};
+	const char* s=builtinErrorMessages[type];
+	FKL_ASSERT(s);
+	return fklCreateStringFromCstr(s);
 }
 
 int32_t fklGetSymbolIdInByteCode(const uint8_t* code)

@@ -129,13 +129,13 @@ static void ffiproc_frame_print_backtrace(void* data[6],FILE* fp)
 	FklFfiProc* ffiproc=c->proc->u.ud->data;
 	if(ffiproc->sid)
 	{
-		fprintf(fp,"at dlproc:");
+		fprintf(fp,"at ffi-proc:");
 		fklPrintString(fklGetGlobSymbolWithId(ffiproc->sid)->symbol
 				,stderr);
 		fputc('\n',fp);
 	}
 	else
-		fputs("at <dlproc>\n",fp);
+		fputs("at <ffi-proc>\n",fp);
 }
 
 static void ffiproc_frame_atomic(void* data[6],FklVMgc* gc)
@@ -201,14 +201,15 @@ static void _ffi_proc_invoke(FklFfiProc* proc,FklVM* exe,FklVMvalue* rel)
 		{
 			for(uint32_t j=0;j<i;j++)
 			{
-				ud->t->__finalizer(ud->data);
-				fklDestroyVMudata(ud);
 				FklVMudata* tud=udataList[i];
 				tud->t->__finalizer(tud->data);
 				fklDestroyVMudata(tud);
 			}
+			ud->t->__finalizer(ud->data);
+			fklDestroyVMudata(ud);
 			free(args);
 			free(pArgs);
+			free(udataList);
 			FKL_RAISE_BUILTIN_ERROR(fklGetGlobSymbolWithId(proc->sid)->symbol,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 		}
 		FklFfiMem* mem=ud->data;

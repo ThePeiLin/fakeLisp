@@ -15,7 +15,7 @@ typedef enum
 	FKL_FKLC_ERR_INVALID_SYNTAX_PATTERN,
 }FklFklcErrType;
 
-char* fklcGenErrorMessage(FklFklcErrType);
+FklString* fklcGenErrorMessage(FklFklcErrType);
 FklSid_t fklcGetErrorType(FklFklcErrType);
 #ifdef __cplusplus
 }

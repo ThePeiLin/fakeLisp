@@ -24,6 +24,10 @@ void ffi_mem_p(ARGL) PREDICATE(fklFfiIsMem(val),"ffi.mem?")
 
 #undef PREDICATE
 
+static struct FfiPublicData
+{
+}ffi_public_data;
+
 void ffi_null_p(ARGL)
 {
 	FKL_NI_BEGIN(exe);

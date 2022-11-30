@@ -1065,8 +1065,8 @@ int fklFfiIsNativeTypeName(FklSid_t typeName,FklFfiPublicData* pd)
 
 FklTypeId_t fklFfiTypedef(FklVMvalue* obj,FklSid_t typeName,FklFfiPublicData* pd)
 {
-	pthread_rwlock_wrlock(&pd->defTypesLock);
 	FklTypeId_t retval=fklFfiGenDefTypesUnion(obj,pd->defTypes,pd);
+	pthread_rwlock_wrlock(&pd->defTypesLock);
 	if(retval)
 		fklFfiAddDefTypes(pd->defTypes,typeName,retval);
 	pthread_rwlock_unlock(&pd->defTypesLock);

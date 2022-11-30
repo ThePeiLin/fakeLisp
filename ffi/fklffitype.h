@@ -198,11 +198,13 @@ int fklFfiIsIntegerTypeId(FklTypeId_t);
 int fklFfiIsNumTypeId(FklTypeId_t type);
 int fklFfiIsFloatTypeId(FklTypeId_t);
 
-int fklFfiIsArrayTypeId(FklTypeId_t,FklFfiPublicData* pd);
-int fklFfiIsPtrTypeId(FklTypeId_t,FklFfiPublicData* pd);
-int fklFfiIsStructTypeId(FklTypeId_t,FklFfiPublicData* pd);
-int fklFfiIsUnionTypeId(FklTypeId_t,FklFfiPublicData* pd);
-int fklFfiIsFunctionTypeId(FklTypeId_t,FklFfiPublicData* pd);
+int fklFfiIsArrayType(FklDefTypeUnion tu);
+
+int fklFfiIsPtrTypeId(FklTypeId_t tid,FklDefTypeUnion tu);
+
+int fklFfiIsStructType(FklDefTypeUnion tu);
+int fklFfiIsUnionType(FklDefTypeUnion tu);
+int fklFfiIsFunctionType(FklDefTypeUnion tu);
 
 FklTypeId_t fklFfiCreateNativeType(FklSid_t,size_t,size_t,FklFfiPublicData* pd);
 void fklFfiDestroyNativeType(FklDefNativeType*);

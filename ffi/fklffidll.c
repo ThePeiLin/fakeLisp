@@ -213,7 +213,7 @@ static void _ffi_proc_invoke(FklFfiProc* proc
 			FKL_RAISE_BUILTIN_ERROR(fklGetGlobSymbolWithId(proc->sid)->symbol,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 		}
 		FklFfiMem* mem=ud->data;
-		if(mem->type==FKL_FFI_TYPE_FILE_P||mem->type==FKL_FFI_TYPE_STRING||fklFfiIsArrayTypeId(mem->type,pd))
+		if(mem->type==FKL_FFI_TYPE_FILE_P||mem->type==FKL_FFI_TYPE_STRING||fklFfiIsArrayType(fklFfiLockAndGetTypeUnion(mem->type,pd)))
 			pArgs[i]=&mem->mem;
 		else
 			pArgs[i]=mem->mem;
@@ -324,11 +324,15 @@ int fklFfiIsValidFunctionTypeId(FklSid_t id,FklFfiPublicData* pd)
 	for(;i<anum;i++)
 	{
 		FklDefTypeUnion tu=fklFfiLockAndGetTypeUnion(atypes[i],pd);
-		if(!fklFfiIsArrayTypeId(atypes[i],pd)&&fklFfiGetTypeSize(tu)>sizeof(void*))
+		if(!fklFfiIsArrayType(tu)&&fklFfiGetTypeSize(tu)>sizeof(void*))
 			return 0;
 	}
-	if(rtype&&!fklFfiIsArrayTypeId(rtype,pd)&&fklFfiGetTypeSize(fklFfiLockAndGetTypeUnion(rtype,pd))>sizeof(void*))
-		return 0;
+	if(rtype)
+	{
+		FklDefTypeUnion tu=fklFfiLockAndGetTypeUnion(rtype,pd);
+		if(fklFfiIsArrayType(tu)&&fklFfiGetTypeSize(tu)>sizeof(void*))
+			return 0;
+	}
 	return 1;
 }
 

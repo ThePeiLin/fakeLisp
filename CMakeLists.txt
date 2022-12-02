@@ -91,7 +91,7 @@ target_link_libraries(${ORIGINAL_SHARED_LIB_NAME} ${LINK_TARGET})
 set_property(TARGET ${LIBFKL_TARGET_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 
-#fakeLisp and fakeLispc
+#fakeLisp, fakeLispc, fakeLispp
 add_executable(${INTERPRETER_TARGET_NAME} ${INTERPRETER_SOURCE})
 add_executable(${COMPILER_TARGET_NAME} ${COMPILER_SOURCE})
 add_executable(${BYTECODE_PRINTER_TARGET_NAME} ${BYTECODE_PRINTER_SOURCE})

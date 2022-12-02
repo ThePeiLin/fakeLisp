@@ -15,8 +15,19 @@ typedef enum
 	FKL_FKLC_ERR_INVALID_SYNTAX_PATTERN,
 }FklFklcErrType;
 
+#define FKL_FKLC_ERROR_NUM (FKL_FKLC_ERR_INVALID_SYNTAX_PATTERN+1)
+
+typedef struct
+{
+	FklSid_t bcUdSid;
+	FklSymbolTable* outerSymbolTable;
+	FklSid_t fklcErrorTypeId[FKL_FKLC_ERROR_NUM];
+}FklFklcPublicData;
+
+void fklFklcInitErrorTypeId(FklSid_t fklcErrorTypeId[FKL_FKLC_ERROR_NUM]
+		,FklSymbolTable* table);
 FklString* fklcGenErrorMessage(FklFklcErrType);
-FklSid_t fklcGetErrorType(FklFklcErrType);
+FklSid_t fklcGetErrorType(FklFklcErrType,FklSid_t fklcErrorTypeId[FKL_FKLC_ERROR_NUM]);
 #ifdef __cplusplus
 }
 #endif

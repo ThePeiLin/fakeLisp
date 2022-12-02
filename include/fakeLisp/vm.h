@@ -376,7 +376,14 @@ int fklRunVM(FklVM*);
 //void fklSetGlobVMs(FklVMlist*);
 FklVM* fklCreateVM(FklByteCodelnt*,FklSymbolTable*,FklVM* prev,FklVM* next);
 //FklVM* fklCreateTmpVM(FklByteCode*,FklVMgc*,FklVM* prev,FklVM* next);
-FklVM* fklCreateThreadVM(FklVMgc* gc,FklVMvalue*,FklVM* prev,FklVM* next,size_t libNum,FklVMlib* libs);
+FklVM* fklCreateThreadVM(FklVMgc* gc
+		,FklVMvalue*
+		,FklVM* prev
+		,FklVM* next
+		,size_t libNum
+		,FklVMlib* libs
+		,FklSymbolTable*
+		,FklSid_t* builtinErrorTypeId);
 //FklVM* fklCreateThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue*,FklVM* prev,FklVM* next,size_t libNum,FklVMlib* libs);
 
 void fklDestroyVMvalue(FklVMvalue*);

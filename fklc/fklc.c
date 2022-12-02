@@ -176,20 +176,26 @@ void fklc_make_fbc(ARGL)
 		c=fklGetInt(content);
 	}
 	memset(bc->code,c,len);
-	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklcCreateFbcUd(bc,dll),exe),&ap,stack);
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklcCreateFbcUd(bc,dll,pd),exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
 #undef CONST_COMPILE
 #undef IS_LITERAL
 #undef IS_COMPILABLE
+
+static FklFklcPublicData* createFklcPublicData(FklSymbolTable* table)
+{
+	FklFklcPublicData* r=(FklFklcPublicData*)malloc(sizeof(FklFklcPublicData));
+	FKL_ASSERT(r);
+	r->bcUdSid=fklAddSymbolCstr("fbc",table)->id;
+	r->outerSymbolTable=fklCreateSymbolTable();
+	fklFklcInitErrorTypeId(r->fklcErrorTypeId,table);
+	return r;
+}
+
 void _fklInit(FklVMdll* dll,FklVM* exe)
 {
 	fklcInitFsym();
 	fklcInit(dll);
-}
-
-void _fklUninit(void)
-{
-	fklcUninitFsym();
 }

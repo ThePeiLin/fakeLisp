@@ -1766,7 +1766,14 @@ void fklDestroyAllValues(FklVMgc* gc)
 	}
 }
 
-FklVM* fklCreateThreadVM(FklVMgc* gc,FklVMvalue* nextCall,FklVM* prev,FklVM* next,size_t libNum,FklVMlib* libs)
+FklVM* fklCreateThreadVM(FklVMgc* gc
+		,FklVMvalue* nextCall
+		,FklVM* prev
+		,FklVM* next
+		,size_t libNum
+		,FklVMlib* libs
+		,FklSymbolTable* table
+		,FklSid_t* builtinErrorTypeId)
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe);
@@ -1775,7 +1782,9 @@ FklVM* fklCreateThreadVM(FklVMgc* gc,FklVMvalue* nextCall,FklVM* prev,FklVM* nex
 	exe->stack=fklCreateVMstack(0);
 	exe->gc=gc;
 	exe->nny=0;
+	exe->symbolTable=table;
 	exe->libNum=libNum;
+	exe->builtinErrorTypeId=builtinErrorTypeId;
 	exe->libs=fklCopyMemory(libs,libNum*sizeof(FklVMlib));
 	exe->codeObj=prev->codeObj;
 	pthread_rwlock_init(&exe->rlock,NULL);

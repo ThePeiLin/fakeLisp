@@ -4,16 +4,12 @@
 #include<fakeLisp/vm.h>
 #include<string.h>
 
-//FklSid_t FklcBcUdSid=0;
-
-//extern FklSymbolTable* OuterSymbolTable;
-
 static void _bc_finalizer(void* p)
 {
 	fklDestroyByteCode(p);
 }
 
-static void _bc_princ(void* p,FILE* fp)
+static void _bc_princ(void* p,FILE* fp,FklSymbolTable* OuterSymbolTable)
 {
 	fklPrintByteCode(p,fp,OuterSymbolTable);
 }
@@ -77,21 +73,22 @@ static FklVMudMethodTable FklcBcMethodTable=
 	.__setq_hook=NULL,
 };
 
-FklVMudata* fklcCreateFbcUd(FklByteCode* code,FklVMvalue* rel)
+FklVMudata* fklcCreateFbcUd(FklByteCode* code,FklVMvalue* rel,FklVMvalue* pd)
 {
-	return fklCreateVMudata(FklcBcUdSid,&FklcBcMethodTable,code,rel);
+	FklFklcPublicData* publicData=pd->u.ud->data;
+	return fklCreateVMudata(publicData->bcUdSid,&FklcBcMethodTable,code,rel);
 }
 
 int fklcIsFbc(FklVMvalue* p)
 {
-	return FKL_IS_USERDATA(p)&&p->u.ud->type==FklcBcUdSid&&p->u.ud->t==&FklcBcMethodTable;
+	return FKL_IS_USERDATA(p)&&p->u.ud->t==&FklcBcMethodTable;
 }
 
-void fklcInit(FklVMdll* dll)
-{
-	FklcBcUdSid=fklAddSymbolToGlobCstr("fbc")->id;
-	dll->pd=NULL;
-}
+//void fklcInit(FklVMdll* dll)
+//{
+//	FklcBcUdSid=fklAddSymbolToGlobCstr("fbc")->id;
+//	dll->pd=NULL;
+//}
 
 void fklcCodeAppend(FklByteCode** fir,const FklByteCode* sec)
 {

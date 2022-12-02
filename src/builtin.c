@@ -32,6 +32,7 @@ typedef struct
 	FklVMvalue* sysOut;
 	FklVMvalue* sysErr;
 	FklStringMatchPattern* patterns;
+	FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM];
 }PublicBuiltInUserData;
 
 static PublicBuiltInUserData* createPublicBuiltInUserData(FklVMvalue* sysIn
@@ -82,48 +83,50 @@ static FklVMudMethodTable PublicBuiltInUserDataMethodTable=
 
 static FklSid_t builtInHeadSymbolTable[4]={0};
 
-static const char* builtInErrorType[]=
+void fklInitBuiltinErrorType(PublicBuiltInUserData* pd,FklSymbolTable* table)
 {
-	"dummy",
-	"symbol-undefined",
-	"syntax-error",
-	"invalid-expression",
-	"circular-load",
-	"invalid-pattern",
-	"incorrect-types-of-values",
-	"stack-error",
-	"too-many-arguements",
-	"too-few-arguements",
-	"cant-create-threads",
-	"thread-error",
-	"macro-expand-error",
-	"call-error",
-	"load-dll-faild",
-	"invalid-symbol",
-	"library-undefined",
-	"unexpect-eof",
-	"div-zero-error",
-	"file-failure",
-	"invalid-value",
-	"invalid-assign",
-	"invalid-access",
-	"import-failed",
-	"invalid-macro-pattern",
-	"faild-to-create-big-int-from-mem",
-	"differ-list-in-list",
-	"cross-c-call-continuation",
-	"invalid-radix",
-	"no-value-for-key",
-	"number-should-not-be-less-than-0",
-	"cir-ref",
-	NULL,
-};
+	static const char* builtInErrorType[]=
+	{
+		"dummy",
+		"symbol-undefined",
+		"syntax-error",
+		"invalid-expression",
+		"circular-load",
+		"invalid-pattern",
+		"incorrect-types-of-values",
+		"stack-error",
+		"too-many-arguements",
+		"too-few-arguements",
+		"cant-create-threads",
+		"thread-error",
+		"macro-expand-error",
+		"call-error",
+		"load-dll-faild",
+		"invalid-symbol",
+		"library-undefined",
+		"unexpect-eof",
+		"div-zero-error",
+		"file-failure",
+		"invalid-value",
+		"invalid-assign",
+		"invalid-access",
+		"import-failed",
+		"invalid-macro-pattern",
+		"faild-to-create-big-int-from-mem",
+		"differ-list-in-list",
+		"cross-c-call-continuation",
+		"invalid-radix",
+		"no-value-for-key",
+		"number-should-not-be-less-than-0",
+		"cir-ref",
+	};
 
-FklSid_t fklGetBuiltInErrorType(FklBuiltInErrorType type,FklSymbolTable* table)
+	for(size_t i=0;i<FKL_BUILTIN_ERR_NUM;i++)
+		pd->errorTypeId[i]=fklAddSymbolCstr(builtInErrorType[i],table)->id;
+}
+
+FklSid_t fklGetBuiltInErrorType(FklBuiltInErrorType type,FklSid_t errorTypeId[FKL_ERR_INCORRECT_TYPE_VALUE])
 {
-	static FklSid_t errorTypeId[sizeof(builtInErrorType)/sizeof(const char*)]={0};
-	if(!errorTypeId[type])
-		errorTypeId[type]=fklAddSymbolCstr(builtInErrorType[type],table)->id;
 	return errorTypeId[type];
 }
 

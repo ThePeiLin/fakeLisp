@@ -34,6 +34,7 @@ typedef enum FklFfiErrorType
 	FKL_FFI_ERR_INVALID_ASSIGN,
 }FklFfiErrorType;
 
+#define FKL_FFI_ERROR_NUM (FKL_FFI_ERR_INVALID_ASSIGN+1)
 typedef enum FklFfiNativeTypeEnum
 {
 	FKL_FFI_TYPE_SHORT=1,
@@ -126,6 +127,7 @@ typedef struct FklFfiPublicData
 	}typeUnionList;
 	pthread_rwlock_t sharedObjsLock;
 	FklFfiSharedObjNode *sharedObjs;
+	FklSid_t ffiErrorTypeId[5];
 }FklFfiPublicData;
 
 typedef struct FklDefNativeType
@@ -252,14 +254,15 @@ int fklFfiIsNativeTypeName(FklSid_t id,FklFfiPublicData* pd);
 FklSid_t fklFfiGetErrorType(FklFfiErrorType,const FklSid_t*);
 FklString* fklFfiGenErrorMessage(FklFfiErrorType);
 
+void fklInitErrorTypes(FklFfiPublicData*,FklSymbolTable* table);
 FklTypeId_t fklFfiGenTypeId(FklVMvalue*,FklFfiPublicData* pd);
 FklTypeId_t fklFfiTypedef(FklVMvalue*,FklSid_t typeName,FklFfiPublicData* pd);
 
-#define FKL_FFI_RAISE_ERROR(WHO,ERRORTYPE,EXE) do{\
+#define FKL_FFI_RAISE_ERROR(WHO,ERRORTYPE,EXE,PB) do{\
 	FklString* errorMessage=fklFfiGenErrorMessage((ERRORTYPE));\
 	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR\
 			,fklCreateVMerrorCstr((WHO)\
-				,fklFfiGetErrorType(ERRORTYPE)\
+				,fklFfiGetErrorType((ERRORTYPE),(PB)->ffiErrorTypeId)\
 				,errorMessage)\
 			,(EXE));\
 	fklRaiseVMerror(err,(EXE));\

@@ -38,6 +38,7 @@ typedef enum
 	FKL_ERR_CIR_REF,
 }FklBuiltInErrorType;
 
+#define FKL_BUILTIN_ERR_NUM (FKL_ERR_CIR_REF+1)
 //typedef struct FklCompEnv FklCompEnv;
 typedef struct FklVMenv FklVMenv;
 typedef struct FklVMgc FklVMgc;

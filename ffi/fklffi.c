@@ -58,7 +58,7 @@ void ffi_new(ARGL)
 	FklFfiPublicData* publicData=pd->u.ud->data;
 	FklTypeId_t id=fklFfiGenTypeId(typedeclare,publicData);
 	if(!id)
-		FKL_FFI_RAISE_ERROR("ffi.create",FKL_FFI_ERR_INVALID_TYPEDECLARE,exe);
+		FKL_FFI_RAISE_ERROR("ffi.create",FKL_FFI_ERR_INVALID_TYPEDECLARE,exe,publicData);
 	FklVMudata* mem=NULL;
 	if(id==FKL_FFI_TYPE_FILE_P||id==FKL_FFI_TYPE_STRING)
 		mem=fklFfiCreateMemRefUd(id,NULL,rel,pd);
@@ -68,7 +68,7 @@ void ffi_new(ARGL)
 		mem=fklFfiCreateMemUd(id,size,atomic,rel,pd);
 	}
 	if(!mem)
-		FKL_FFI_RAISE_ERROR("ffi.create",FKL_FFI_ERR_INVALID_MEM_MODE,exe);
+		FKL_FFI_RAISE_ERROR("ffi.create",FKL_FFI_ERR_INVALID_MEM_MODE,exe,publicData);
 	if(id==FKL_FFI_TYPE_FILE_P||id==FKL_FFI_TYPE_STRING)
 	{
 		mem->t->__finalizer(mem->data);
@@ -118,7 +118,7 @@ void ffi_sizeof(ARGL)
 	{
 		FklTypeId_t id=fklFfiGenTypeId(typedeclare,publicData);
 		if(!id)
-			FKL_FFI_RAISE_ERROR("ffi.sizeof",FKL_FFI_ERR_INVALID_TYPEDECLARE,exe);
+			FKL_FFI_RAISE_ERROR("ffi.sizeof",FKL_FFI_ERR_INVALID_TYPEDECLARE,exe,publicData);
 		fklNiReturn(fklMakeVMint(fklFfiGetTypeSize(fklFfiLockAndGetTypeUnion(id,publicData)),exe),&ap,stack);
 	}
 	fklNiEnd(&ap,stack);
@@ -144,7 +144,7 @@ void ffi_alignof(ARGL)
 	{
 		FklTypeId_t id=fklFfiGenTypeId(typedeclare,publicData);
 		if(!id)
-			FKL_FFI_RAISE_ERROR("ffi.alignof",FKL_FFI_ERR_INVALID_TYPEDECLARE,exe);
+			FKL_FFI_RAISE_ERROR("ffi.alignof",FKL_FFI_ERR_INVALID_TYPEDECLARE,exe,publicData);
 		fklNiReturn(fklMakeVMint(fklFfiGetTypeAlign(fklFfiLockAndGetTypeUnion(id,publicData)),exe),&ap,stack);
 	}
 	fklNiEnd(&ap,stack);
@@ -164,9 +164,9 @@ void ffi_typedef(ARGL)
 	FklSid_t typenameId=FKL_GET_SYM(typename);
 	FklFfiPublicData* publicData=pd->u.ud->data;
 	if(fklFfiIsNativeTypeName(typenameId,publicData))
-		FKL_FFI_RAISE_ERROR("ffi.typedef",FKL_FFI_ERR_INVALID_TYPENAME,exe);
+		FKL_FFI_RAISE_ERROR("ffi.typedef",FKL_FFI_ERR_INVALID_TYPENAME,exe,publicData);
 	if(!fklFfiTypedef(typedeclare,typenameId,publicData))
-		FKL_FFI_RAISE_ERROR("ffi.typedef",FKL_FFI_ERR_INVALID_TYPEDECLARE,exe);
+		FKL_FFI_RAISE_ERROR("ffi.typedef",FKL_FFI_ERR_INVALID_TYPEDECLARE,exe,publicData);
 	fklNiReturn(typename,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -205,8 +205,9 @@ void ffi_ref(ARGL)
 	if(!fklFfiIsMem(mem)||(selector&&!FKL_IS_SYM(selector)&&selector!=FKL_VM_NIL)||(index&&!fklIsInt(index)))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.ref",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FklVMudata* ref=fklFfiCreateMemRefUdWithSI(mem->u.ud->data,selector,index,rel,pd);
+	FklFfiPublicData* publicData=pd->u.ud->data;
 	if(!ref)
-		FKL_FFI_RAISE_ERROR("ffi.ref",FKL_FFI_ERR_INVALID_SELECTOR,exe);
+		FKL_FFI_RAISE_ERROR("ffi.ref",FKL_FFI_ERR_INVALID_SELECTOR,exe,publicData);
 	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA
 				,ref
 				,exe)
@@ -251,7 +252,7 @@ void ffi_cast_ref(ARGL)
 	FklFfiPublicData* publicData=pd->u.ud->data;
 	FklTypeId_t id=fklFfiGenTypeId(type,publicData);
 	if(!id)
-		FKL_FFI_RAISE_ERROR("ffi.cast-ref",FKL_FFI_ERR_INVALID_TYPEDECLARE,exe);
+		FKL_FFI_RAISE_ERROR("ffi.cast-ref",FKL_FFI_ERR_INVALID_TYPEDECLARE,exe,publicData);
 	FklVMudata* ref=fklFfiCreateMemRefUd(id,((FklFfiMem*)mem->u.ud->data)->mem,rel,pd);
 	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA
 				,ref
@@ -273,8 +274,9 @@ void ffi_set(ARGL)
 	if(!fklFfiIsMem(ref)
 			||(!fklFfiIsMem(mem)&&!fklFfiIsCastableVMvalueType(mem)))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.set",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	FklFfiPublicData* publicData=pd->u.ud->data;
 	if(fklFfiSetMem(ref->u.ud->data,mem,exe->symbolTable))
-		FKL_FFI_RAISE_ERROR("ffi.set",FKL_FFI_ERR_INVALID_ASSIGN,exe);
+		FKL_FFI_RAISE_ERROR("ffi.set",FKL_FFI_ERR_INVALID_ASSIGN,exe,publicData);
 	fklNiReturn(mem,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -325,12 +327,12 @@ void ffi_proc(ARGL)
 	FklFfiPublicData* publicData=pd->u.ud->data;
 	FklTypeId_t id=fklFfiGenTypeId(typedeclare,publicData);
 	if(!id)
-		FKL_FFI_RAISE_ERROR("ffi.proc",FKL_FFI_ERR_INVALID_TYPEDECLARE,exe);
+		FKL_FFI_RAISE_ERROR("ffi.proc",FKL_FFI_ERR_INVALID_TYPEDECLARE,exe,publicData);
 	else
 	{
 		FklDefTypeUnion tu=fklFfiLockAndGetTypeUnion(id,publicData);
 		if(!fklFfiIsFunctionType(tu)||!fklFfiIsValidFunctionType(tu,publicData))
-			FKL_FFI_RAISE_ERROR("ffi.proc",FKL_FFI_ERR_INVALID_TYPEDECLARE,exe);
+			FKL_FFI_RAISE_ERROR("ffi.proc",FKL_FFI_ERR_INVALID_TYPEDECLARE,exe,publicData);
 	}
 	char* cStr=fklCharBufToCstr(val->u.str->str,val->u.str->size);
 	FklVMudata* func=fklFfiCreateProcUd(id,cStr,rel,pd,exe->symbolTable);
@@ -374,8 +376,9 @@ void _fklInit(FklSymbolTable* glob,FklVMdll* rel,FklVM* exe)
 	FklVMgc* gc=exe->gc;
 	FklFfiPublicData* pd=createFfiPd();
 	fklFfiMemInit(pd,exe->symbolTable);
-	fklFfiInitGlobNativeTypes(pd);
-	fklFfiInitTypedefSymbol(pd);
+	fklFfiInitGlobNativeTypes(pd,exe->symbolTable);
+	fklFfiInitTypedefSymbol(pd,exe->symbolTable);
+	fklInitErrorTypes(pd,exe->symbolTable);
 	fklFfiInitSharedObj(pd);
 	FklVMvalue* ud=fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklCreateVMudata(0,&pdtable,pd,FKL_VM_NIL),exe);
 	fklSetRef(&rel->pd,ud,gc);

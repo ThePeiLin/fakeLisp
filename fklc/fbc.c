@@ -3,9 +3,11 @@
 #include<fakeLisp/symbol.h>
 #include<fakeLisp/vm.h>
 #include<string.h>
-FklSid_t FklcBcUdSid=0;
 
-extern FklSymbolTable* OuterSymbolTable;
+//FklSid_t FklcBcUdSid=0;
+
+//extern FklSymbolTable* OuterSymbolTable;
+
 static void _bc_finalizer(void* p)
 {
 	fklDestroyByteCode(p);

@@ -979,18 +979,23 @@ FklTypeId_t fklFfiGenDefTypesUnion(FklVMvalue* obj,FklDefTypes* otherTypes,FklFf
 		return 0;
 }
 
-static const char* FfiErrorType[]=
+void fklInitErrorTypes(FklFfiPublicData* pd,FklSymbolTable* table)
 {
-	"invalid-type-declare",
-	"invalid-type-name",
-	"invalid-mem-mode",
-	"invalid-selector",
-	"invalid-assign",
-};
+	FklSid_t* const ffiErrorTypeId=pd->ffiErrorTypeId;
+	static const char* ffiErrorType[]=
+	{
+		"invalid-type-declare",
+		"invalid-type-name",
+		"invalid-mem-mode",
+		"invalid-selector",
+		"invalid-assign",
+	};
+	for(size_t i=0;i<FKL_FFI_ERROR_NUM;i++)
+		ffiErrorTypeId[i]=fklAddSymbolCstr(ffiErrorType[i],table)->id;
+}
 
 FklSid_t fklFfiGetErrorType(FklFfiErrorType type
-		,const FklSid_t* ffiErrorTypeId
-		)
+		,const FklSid_t* ffiErrorTypeId)
 {
 	return ffiErrorTypeId[type];
 }

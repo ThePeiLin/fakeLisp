@@ -9,9 +9,10 @@ static void _bc_finalizer(void* p)
 	fklDestroyByteCode(p);
 }
 
-static void _bc_princ(void* p,FILE* fp,FklSymbolTable* OuterSymbolTable)
+static void _bc_princ(void* p,FILE* fp,FklSymbolTable* st,FklVMvalue* pdv)
 {
-	fklPrintByteCode(p,fp,OuterSymbolTable);
+	FklFklcPublicData* pd=pdv->u.ud->data;
+	fklPrintByteCode(p,fp,pd->outerSymbolTable);
 }
 
 static void* _bc_copy(void* p)
@@ -76,7 +77,7 @@ static FklVMudMethodTable FklcBcMethodTable=
 FklVMudata* fklcCreateFbcUd(FklByteCode* code,FklVMvalue* rel,FklVMvalue* pd)
 {
 	FklFklcPublicData* publicData=pd->u.ud->data;
-	return fklCreateVMudata(publicData->bcUdSid,&FklcBcMethodTable,code,rel);
+	return fklCreateVMudata(publicData->bcUdSid,&FklcBcMethodTable,code,rel,pd);
 }
 
 int fklcIsFbc(FklVMvalue* p)
@@ -109,7 +110,7 @@ void fklcCodeAppend(FklByteCode** fir,const FklByteCode* sec)
 
 #define COMPILE_NUMBER(V) (fklIsInt(V)?COMPILE_INTEGER(V):fklCreatePushF64ByteCode((V)->u.f64))
 
-#define COMPILE_LITERAL(V) ((V)==FKL_VM_NIL?\
+#define COMPILE_LITERAL(V,ST,PD) ((V)==FKL_VM_NIL?\
 		fklCreatePushNilByteCode():\
 		fklIsVMnumber(V)?\
 		COMPILE_NUMBER(V):\
@@ -118,15 +119,16 @@ void fklcCodeAppend(FklByteCode** fir,const FklByteCode* sec)
 		FKL_IS_STR(V)?\
 		fklCreatePushStrByteCode((V)->u.str):\
 		FKL_IS_SYM(V)?\
-		fklcCreatePushSidByteCode(FKL_GET_SYM(V)):\
+		fklcCreatePushSidByteCode(FKL_GET_SYM(V),(ST),(PD)):\
 		fklCreatePushBvecByteCode((V)->u.bvec))
 
-FklByteCode* fklcCreatePushSidByteCode(FklSid_t a)
+FklByteCode* fklcCreatePushSidByteCode(FklSid_t a,FklSymbolTable* table,FklVMvalue* pdv)
 {
-	return fklCreatePushSidByteCode(fklAddSymbol(fklGetGlobSymbolWithId(a)->symbol,OuterSymbolTable)->id);
+	FklFklcPublicData* pd=pdv->u.ud->data;
+	return fklCreatePushSidByteCode(fklAddSymbol(fklGetSymbolWithId(a,table)->symbol,pd->outerSymbolTable)->id);
 }
 
-FklByteCode* fklcCreatePushObjByteCode(FklVMvalue* obj)
+FklByteCode* fklcCreatePushObjByteCode(FklVMvalue* obj,FklSymbolTable* st,FklVMvalue* pd)
 {
 	FklPtrStack* stack=fklCreatePtrStack(32,16);
 	fklPushPtrStack(obj,stack);
@@ -142,7 +144,7 @@ FklByteCode* fklcCreatePushObjByteCode(FklVMvalue* obj)
 		}
 		if(IS_LITERAL(t))
 		{
-			FklByteCode* tmp=COMPILE_LITERAL(t);
+			FklByteCode* tmp=COMPILE_LITERAL(t,st,pd);
 			fklReCodeCat(tmp,retval);
 			fklDestroyByteCode(tmp);
 		}

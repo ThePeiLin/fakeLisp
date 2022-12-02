@@ -487,7 +487,7 @@ inline static void callCallableObj(FklVMvalue* v,FklVM* exe)
 			callDlProc(exe,v);
 			break;
 		case FKL_TYPE_USERDATA:
-			v->u.ud->t->__call(v,exe,v->u.ud->rel);
+			v->u.ud->t->__call(v,exe);
 			break;
 		default:
 			break;

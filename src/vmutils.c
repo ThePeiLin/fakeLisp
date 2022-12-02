@@ -685,7 +685,7 @@ static void princVMatom(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
 						break;
 					case FKL_TYPE_USERDATA:
 						if(v->u.ud->t->__princ)
-							v->u.ud->t->__princ(v->u.ud->data,fp,table);
+							v->u.ud->t->__princ(v->u.ud->data,fp,table,v->u.ud->pd);
 						else
 						{
 							fprintf(fp,"#<");
@@ -796,7 +796,7 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
 						break;
 					case FKL_TYPE_USERDATA:
 						if(v->u.ud->t->__prin1)
-							v->u.ud->t->__prin1(v->u.ud->data,fp,table);
+							v->u.ud->t->__prin1(v->u.ud->data,fp,table,v->u.ud->pd);
 						else
 						{
 							fprintf(fp,"#<");

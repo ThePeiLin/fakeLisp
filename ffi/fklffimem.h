@@ -7,7 +7,6 @@ extern "C"{
 #endif
 typedef struct FklFfiMem
 {
-	FklVMvalue* pd;
 	FklTypeId_t type;
 	void* mem;
 }FklFfiMem;
@@ -19,13 +18,13 @@ FklVMudata* fklFfiCreateMemUd(FklTypeId_t type,size_t size,FklVMvalue* atomic,Fk
 FklVMudata* fklFfiCreateMemRefUdWithSI(FklFfiMem* m,FklVMvalue* selector,FklVMvalue* index,FklVMvalue* rel,FklVMvalue* pd);
 FklVMudata* fklFfiCreateMemRefUd(FklTypeId_t type,void*,FklVMvalue* rel,FklVMvalue* pd);
 int fklFfiIsMem(FklVMvalue*);
-int fklFfiSetMem(FklFfiMem*,FklVMvalue*,FklSymbolTable* table);
+int fklFfiSetMem(FklVMudata* ud,FklFfiMem*,FklVMvalue*,FklSymbolTable* table);
 int fklFfiSetMemForProc(FklVMudata*,FklVMvalue*,FklSymbolTable* table);
-int fklFfiIsNull(FklFfiMem*);
+int fklFfiIsNull(FklFfiMem*,FklVMvalue* pd);
 FklVMudata* fklFfiCastVMvalueIntoMem(FklVMvalue*,FklVMvalue* rel,FklVMvalue* pd,FklSymbolTable* table);
 int fklFfiIsCastableVMvalueType(FklVMvalue* v);
-int fklFfiIsValuableMem(FklFfiMem* mem);
-FklVMvalue* fklFfiCreateVMvalue(FklFfiMem* mem,FklVM* vm);
+int fklFfiIsValuableMem(FklFfiMem* mem,FklVMvalue* pd);
+FklVMvalue* fklFfiCreateVMvalue(FklFfiMem* mem,FklVM* vm,FklVMvalue* pd);
 #ifdef __cplusplus
 }
 #endif

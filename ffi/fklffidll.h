@@ -14,7 +14,6 @@ typedef struct FklFfiProc
 	ffi_type** atypes;
 	FklTypeId_t type;
 	FklSid_t sid;
-	FklVMvalue* pd;
 }FklFfiProc;
 
 void fklFfiInitSharedObj(FklFfiPublicData*);

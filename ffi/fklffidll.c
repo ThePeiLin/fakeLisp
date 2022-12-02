@@ -52,7 +52,7 @@ static void _ffi_proc_atomic_finalizer(void* p)
 	fklFfiDestroyProc(p);
 }
 
-static void _ffi_proc_print(void* p,FILE* fp,FklSymbolTable* table)
+static void _ffi_proc_print(void* p,FILE* fp,FklSymbolTable* table,FklVMvalue* pd)
 {
 	FklFfiProc* f=p;
 	fprintf(fp,"#<ffi-proc ");
@@ -162,11 +162,12 @@ static int ffiproc_frame_end(void* data[6])
 
 static void _ffi_proc_invoke(FklFfiProc* proc
 		,FklVM* exe
-		,FklVMvalue* rel)
+		,FklVMvalue* rel
+		,FklVMvalue* pdv)
 {
 	FKL_NI_BEGIN(exe);
 	FklTypeId_t type=proc->type;
-	FklFfiPublicData* pd=proc->pd->u.ud->data;
+	FklFfiPublicData* pd=pdv->u.ud->data;
 	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklFfiLockAndGetTypeUnion(type,pd).all);
 	uint32_t anum=ft->anum;
 	uint32_t i=0;
@@ -196,7 +197,7 @@ static void _ffi_proc_invoke(FklFfiProc* proc
 	for(i=0;i<anum;i++)
 	{
 		FklDefTypeUnion tu=fklFfiLockAndGetTypeUnion(atypes[i],pd);
-		FklVMudata* ud=fklFfiCreateMemUd(atypes[i],fklFfiGetTypeSize(tu),NULL,rel,proc->pd);
+		FklVMudata* ud=fklFfiCreateMemUd(atypes[i],fklFfiGetTypeSize(tu),NULL,rel,pdv);
 		if(fklFfiSetMemForProc(ud,args[i],exe->symbolTable))
 		{
 			for(uint32_t j=0;j<i;j++)
@@ -228,7 +229,7 @@ static void _ffi_proc_invoke(FklFfiProc* proc
 	else
 	{
 		FklDefTypeUnion tu=fklFfiLockAndGetTypeUnion(rtype,pd);
-		FklVMudata* ud=fklFfiCreateMemUd(rtype,fklFfiGetTypeSize(tu),NULL,rel,proc->pd);
+		FklVMudata* ud=fklFfiCreateMemUd(rtype,fklFfiGetTypeSize(tu),NULL,rel,pdv);
 		void* retval=((FklFfiMem*)ud->data)->mem;
 		FKL_ASSERT(retval);
 		ffi_call(&proc->cif,proc->func,retval,pArgs);
@@ -254,7 +255,7 @@ static void ffiproc_frame_step(void* data[6],FklVM* exe)
 	{
 		case FFIPROC_READY:
 			c->state=FFIPROC_DONE;
-			_ffi_proc_invoke(ffiproc,exe,c->proc->u.ud->rel);
+			_ffi_proc_invoke(ffiproc,exe,c->proc->u.ud->rel,c->proc->u.ud->pd);
 			break;
 		case FFIPROC_DONE:
 			break;
@@ -278,7 +279,7 @@ inline static void initFfiprocFrameContext(void* data[6],FklVMvalue* proc,FklVMg
 	c->state=FFIPROC_READY;
 }
 
-static void _ffi_call_proc(FklVMvalue* ffiproc,FklVM* exe,FklVMvalue* rel)
+static void _ffi_call_proc(FklVMvalue* ffiproc,FklVM* exe)
 {
 	FklVMframe* prev=exe->frames;
 	FklVMframe* f=fklCreateOtherObjVMframe(&FfiprocContextMethodTable,prev);
@@ -288,12 +289,6 @@ static void _ffi_call_proc(FklVMvalue* ffiproc,FklVM* exe,FklVMvalue* rel)
 
 extern int _mem_equal(const FklVMudata* a,const FklVMudata* b);
 
-static void _ffi_proc_atomic(void* data,FklVMgc* gc)
-{
-	FklFfiProc* proc=data;
-	fklGC_toGrey(proc->pd,gc);
-}
-
 static FklVMudMethodTable FfiProcMethodTable=
 {
 	.__princ=_ffi_proc_print,
@@ -302,7 +297,7 @@ static FklVMudMethodTable FfiProcMethodTable=
 	.__equal=_mem_equal,
 	.__call=_ffi_call_proc,
 	.__write=NULL,
-	.__atomic=_ffi_proc_atomic,
+	.__atomic=NULL,
 	.__append=NULL,
 	.__copy=NULL,
 	.__hash=NULL,
@@ -343,7 +338,6 @@ FklFfiProc* fklFfiCreateProc(FklTypeId_t type,void* func,FklSid_t sid,FklVMvalue
 	tmp->type=type;
 	tmp->func=func;
 	tmp->sid=sid;
-	tmp->pd=pd;
 	FklFfiPublicData* publicData=pd->u.ud->data;
 	FklDefFuncType* ft=(FklDefFuncType*)FKL_GET_TYPES_PTR(fklFfiLockAndGetTypeUnion(type,publicData).all);
 	uint32_t anum=ft->anum;
@@ -379,5 +373,5 @@ FklVMudata* fklFfiCreateProcUd(FklTypeId_t type
 	pthread_rwlock_unlock(&publicData->sharedObjsLock);
 	if(!address)
 		return NULL;
-	return fklCreateVMudata(publicData->memUdSid,&FfiProcMethodTable,fklFfiCreateProc(type,address,fklAddSymbolCstr(cStr,table)->id,pd),rel);
+	return fklCreateVMudata(publicData->memUdSid,&FfiProcMethodTable,fklFfiCreateProc(type,address,fklAddSymbolCstr(cStr,table)->id,pd),rel,pd);
 }

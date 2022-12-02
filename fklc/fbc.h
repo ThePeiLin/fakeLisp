@@ -11,8 +11,8 @@ extern "C"{
 int fklcIsFbc(FklVMvalue*);
 void fklcInit(FklVMdll* rel);
 FklVMudata* fklcCreateFbcUd(FklByteCode* code,FklVMvalue* dll,FklVMvalue* pd);
-FklByteCode* fklcCreatePushSidByteCode(FklSid_t);
-FklByteCode* fklcCreatePushObjByteCode(FklVMvalue*);
+FklByteCode* fklcCreatePushSidByteCode(FklSid_t,FklSymbolTable*,FklVMvalue* pd);
+FklByteCode* fklcCreatePushObjByteCode(FklVMvalue*,FklSymbolTable*,FklVMvalue*);
 FklByteCode* fklcCreatePushPairByteCode(FklVMvalue*);
 FklByteCode* fklcCreatePushBoxByteCode(FklVMvalue*);
 FklByteCode* fklcCreatePushVectorByteCode(FklVMvalue*);

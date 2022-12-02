@@ -7,14 +7,13 @@
 #include"fbc.h"
 #include"flnt.h"
 #include"fsym.h"
-extern FklSymbolTable* OuterSymbolTable;
 #define ARGL FklVM* exe,FklVMvalue* dll,FklVMvalue* pd
 
-#define FKLC_RAISE_ERROR(WHO,ERRORTYPE,EXE) do{\
+#define FKLC_RAISE_ERROR(WHO,ERRORTYPE,EXE,PD) do{\
 	FklString* errorMessage=fklcGenErrorMessage((ERRORTYPE));\
 	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR\
 			,fklCreateVMerrorCstr((WHO)\
-				,fklcGetErrorType(ERRORTYPE)\
+				,fklcGetErrorType(ERRORTYPE,(PD)->fklcErrorTypeId)\
 				,errorMessage)\
 			,(EXE));\
 	fklRaiseVMerror(err,(EXE));\
@@ -73,7 +72,7 @@ void fklc_fbc_p(ARGL) PREDICATE(fklcIsFbc(val),"fklc.fbc?")
 	FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_ERR_TOOFEWARG,exe);\
 	if(!P(ARG))\
 	FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_ERR_INCORRECT_TYPE_VALUE,exe);\
-	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklcCreateFbcUd(BC,dll),exe),&ap,stack);\
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklcCreateFbcUd(BC,dll,pd),exe),&ap,stack);\
 	fklNiEnd(&ap,stack);\
 }
 
@@ -82,7 +81,7 @@ void fklc_make_push_nil(ARGL)
 	FKL_NI_BEGIN(exe);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.make-push-nil",FKL_ERR_TOOMANYARG,exe);
-	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklcCreateFbcUd(fklCreatePushNilByteCode(),dll),exe),&ap,stack);
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklcCreateFbcUd(fklCreatePushNilByteCode(),dll,pd),exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -109,7 +108,7 @@ void fklc_bytevector_to_fbc(ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.fbc->bytevector",FKL_ERR_TOOMANYARG,exe);
 	FKL_NI_CHECK_TYPE(bv,FKL_IS_BYTEVECTOR,"fklc.fbc->bytevector",exe);
-	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklcCreateFbcUd(fklCreateByteCodeAndInit(bv->u.bvec->size,bv->u.bvec->ptr),dll),exe),&ap,stack);
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklcCreateFbcUd(fklCreateByteCodeAndInit(bv->u.bvec->size,bv->u.bvec->ptr),dll,pd),exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -134,10 +133,11 @@ void fklc_compile_obj(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.compile-obj",FKL_ERR_TOOFEWARG,exe);
 	if(!IS_COMPILABLE(obj))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.compile-obj",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	FklByteCode* bc=fklcCreatePushObjByteCode(obj);
+	FklByteCode* bc=fklcCreatePushObjByteCode(obj,exe->symbolTable,pd);
+	FklFklcPublicData* publicData=pd->u.ud->data;
 	if(!bc)
-		FKLC_RAISE_ERROR("fklc.compile-obj",FKL_FKLC_ERR_IMCOMPILABLE_OBJ_OCCUR,exe);
-	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklcCreateFbcUd(bc,dll),exe),&ap,stack);
+		FKLC_RAISE_ERROR("fklc.compile-obj",FKL_FKLC_ERR_IMCOMPILABLE_OBJ_OCCUR,exe,publicData);
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklcCreateFbcUd(bc,dll,pd),exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -150,7 +150,8 @@ void fklc_add_symbol(ARGL)
 	if(!str)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("fklc.add-symbol!",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(str,FKL_IS_STR,"fklc.add-symbol!",exe);
-	fklNiReturn(fklMakeVMint(fklAddSymbol(str->u.str,OuterSymbolTable)->id,exe),&ap,stack);
+	FklFklcPublicData* publicData=pd->u.ud->data;
+	fklNiReturn(fklMakeVMint(fklAddSymbol(str->u.str,publicData->outerSymbolTable)->id,exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

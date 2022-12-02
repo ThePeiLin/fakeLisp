@@ -124,6 +124,7 @@ typedef struct FklVMudata
 {
 	FklSid_t type;
 	struct FklVMvalue* rel;
+	struct FklVMvalue* pd;
 	struct FklVMudMethodTable* t;
 	void* data;
 }FklVMudata;
@@ -296,11 +297,11 @@ typedef struct FklVM
 
 typedef struct FklVMudMethodTable
 {
-	void (*__princ)(void*,FILE*,FklSymbolTable* table);
-	void (*__prin1)(void*,FILE*,FklSymbolTable* table);
+	void (*__princ)(void*,FILE*,FklSymbolTable* table,FklVMvalue* pd);
+	void (*__prin1)(void*,FILE*,FklSymbolTable* table,FklVMvalue* pd);
 	void (*__finalizer)(void*);
 	int  (*__equal)(const FklVMudata*,const FklVMudata*);
-	void (*__call)(FklVMvalue*,FklVM*,FklVMvalue* rel);
+	void (*__call)(FklVMvalue*,FklVM*);
 	int (*__cmp)(FklVMvalue*,FklVMvalue*,int*);
 	void (*__write)(void*,FILE*);
 	void (*__atomic)(void*,struct FklVMgc*);
@@ -579,7 +580,7 @@ FklVMvalue* fklCreateVMvecVFromStack(size_t size,FklVMvalue** base,FklVM*);
 void fklDestroyVMvec(FklVMvec*);
 void fklVMvecCat(FklVMvec**,const FklVMvec*);
 
-FklVMudata* fklCreateVMudata(FklSid_t type,FklVMudMethodTable* t,void* mem,FklVMvalue* rel);
+FklVMudata* fklCreateVMudata(FklSid_t type,FklVMudMethodTable* t,void* mem,FklVMvalue* rel,FklVMvalue* pd);
 int fklIsCallableUd(FklVMvalue*);
 void fklDestroyVMudata(FklVMudata*);
 

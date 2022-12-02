@@ -832,7 +832,8 @@ static FklVMvalue* __fkl_userdata_copyer(FklVMvalue* obj,FklVM* vm)
 				,fklCreateVMudata(obj->u.ud->type
 					,obj->u.ud->t
 					,obj->u.ud->t->__copy(obj->u.ud->data)
-					,obj->u.ud->rel)
+					,obj->u.ud->rel
+					,obj->u.ud->pd)
 				,vm);
 }
 
@@ -2120,6 +2121,8 @@ void fklAtomicVMuserdata(FklVMvalue* root,FklVMgc* gc)
 {
 	if(root->u.ud->rel)
 		fklGC_toGrey(root->u.ud->rel,gc);
+	if(root->u.ud->pd)
+		fklGC_toGrey(root->u.ud->rel,gc);
 	if(root->u.ud->t->__atomic)
 		root->u.ud->t->__atomic(root->u.ud->data,gc);
 }
@@ -2239,13 +2242,14 @@ void fklVMvecCat(FklVMvec** fir,const FklVMvec* sec)
 		(*fir)->base[firSize+i]=sec->base[i];
 }
 
-FklVMudata* fklCreateVMudata(FklSid_t type,FklVMudMethodTable* t,void* mem,FklVMvalue* rel)
+FklVMudata* fklCreateVMudata(FklSid_t type,FklVMudMethodTable* t,void* mem,FklVMvalue* rel,FklVMvalue* pd)
 {
 	FklVMudata* r=(FklVMudata*)malloc(sizeof(FklVMudata));
 	FKL_ASSERT(r);
 	r->type=type;
 	r->t=t;
 	r->rel=rel;
+	r->pd=pd;
 	r->data=mem;
 	return r;
 }

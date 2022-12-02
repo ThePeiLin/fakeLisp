@@ -5170,6 +5170,7 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMgc* gc,FklSymbolTable* table)
 			,fklCreateVMudata(0
 				,&PublicBuiltInUserDataMethodTable
 				,pd
+				,FKL_VM_NIL
 				,FKL_VM_NIL)
 			,gc);
 	for(int i=0;i<3;i++)

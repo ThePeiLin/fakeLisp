@@ -36,11 +36,13 @@ typedef struct
 
 static PublicBuiltInUserData* createPublicBuiltInUserData(FklVMvalue* sysIn
 		,FklVMvalue* sysOut
-		,FklVMvalue* sysErr)
+		,FklVMvalue* sysErr
+		,FklSymbolTable* publicSymbolTable
+		)
 {
 	PublicBuiltInUserData* r=(PublicBuiltInUserData*)malloc(sizeof(PublicBuiltInUserData));
 	FKL_ASSERT(r);
-	r->patterns=fklInitBuiltInStringPattern();
+	r->patterns=fklInitBuiltInStringPattern(publicSymbolTable);
 	r->sysIn=sysIn;
 	r->sysOut=sysOut;
 	r->sysErr=sysErr;
@@ -117,11 +119,11 @@ static const char* builtInErrorType[]=
 	NULL,
 };
 
-FklSid_t fklGetBuiltInErrorType(FklBuiltInErrorType type)
+FklSid_t fklGetBuiltInErrorType(FklBuiltInErrorType type,FklSymbolTable* table)
 {
 	static FklSid_t errorTypeId[sizeof(builtInErrorType)/sizeof(const char*)]={0};
 	if(!errorTypeId[type])
-		errorTypeId[type]=fklAddSymbolToGlobCstr(builtInErrorType[type])->id;
+		errorTypeId[type]=fklAddSymbolCstr(builtInErrorType[type],table)->id;
 	return errorTypeId[type];
 }
 
@@ -1739,7 +1741,7 @@ void builtin_to_string(ARGL)
 	FklVMvalue* retval=FKL_VM_NIL;
 	if(FKL_IS_SYM(obj))
 		retval=fklCreateVMvalueToStack(FKL_TYPE_STR
-				,fklCopyString(fklGetGlobSymbolWithId(FKL_GET_SYM(obj))->symbol)
+				,fklCopyString(fklGetSymbolWithId(FKL_GET_SYM(obj),exe->symbolTable)->symbol)
 				,exe);
 	else if(FKL_IS_CHR(obj))
 	{
@@ -1816,7 +1818,7 @@ void builtin_symbol_to_string(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.symbol->string",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(obj,FKL_IS_SYM,"builtin.symbol->string",exe);
 	FklVMvalue* retval=fklCreateVMvalueToStack(FKL_TYPE_STR
-			,fklCopyString(fklGetGlobSymbolWithId(FKL_GET_SYM(obj))->symbol)
+			,fklCopyString(fklGetSymbolWithId(FKL_GET_SYM(obj),exe->symbolTable)->symbol)
 			,exe);
 	fklNiReturn(retval,&ap,stack);
 	fklNiEnd(&ap,stack);
@@ -1831,7 +1833,7 @@ void builtin_string_to_symbol(ARGL)
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.string->symbol",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(obj,FKL_IS_STR,"builtin.string->symbol",exe);
-	fklNiReturn(FKL_MAKE_VM_SYM(fklAddSymbolToGlob(obj->u.str)->id),&ap,stack);
+	fklNiReturn(FKL_MAKE_VM_SYM(fklAddSymbol(obj->u.str,exe->symbolTable)->id),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -2801,7 +2803,7 @@ void builtin_stringify(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.stringify",FKL_ERR_TOOFEWARG,exe);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.stringify",FKL_ERR_TOOMANYARG,exe);
-	FklString* s=fklStringify(v);
+	FklString* s=fklStringify(v,exe->symbolTable);
 	FklVMvalue* retval=fklCreateVMvalueToStack(FKL_TYPE_STR,s,exe);
 	fklNiReturn(retval,&ap,stack);
 	fklNiEnd(&ap,stack);
@@ -2994,7 +2996,7 @@ void builtin_prin1(ARGL)
 	if(file&&!FKL_IS_FP(file))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.prin1",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FILE* objFile=file?file->u.fp->fp:stdout;
-	fklPrin1VMvalue(obj,objFile);
+	fklPrin1VMvalue(obj,objFile,exe->symbolTable);
 	fklNiReturn(obj,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -3011,7 +3013,7 @@ void builtin_princ(ARGL)
 	if(file&&!FKL_IS_FP(file))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.princ",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FILE* objFile=file?file->u.fp->fp:stdout;
-	fklPrincVMvalue(obj,objFile);
+	fklPrincVMvalue(obj,objFile,exe->symbolTable);
 	fklNiReturn(obj,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -3368,7 +3370,7 @@ void builtin_error(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.error",FKL_ERR_TOOFEWARG,exe);
 	if(!FKL_IS_SYM(type)||!FKL_IS_STR(message)||(!FKL_IS_SYM(who)&&!FKL_IS_STR(who)))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.error",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerror((FKL_IS_SYM(who))?fklGetGlobSymbolWithId(FKL_GET_SYM(who))->symbol:who->u.str
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerror((FKL_IS_SYM(who))?fklGetSymbolWithId(FKL_GET_SYM(who),exe->symbolTable)->symbol:who->u.str
 					,FKL_GET_SYM(type)
 					,fklCopyString(message->u.str)),exe),&ap,stack);
 	fklNiEnd(&ap,stack);
@@ -3398,14 +3400,14 @@ typedef struct
 }EhFrameContext;
 
 
-static void error_handler_frame_print_backtrace(void* data[6],FILE* fp)
+static void error_handler_frame_print_backtrace(void* data[6],FILE* fp,FklSymbolTable* table)
 {
 	EhFrameContext* c=(EhFrameContext*)data;
 	FklVMdlproc* dlproc=c->proc->u.dlproc;
 	if(dlproc->sid)
 	{
 		fprintf(fp,"at dlproc:");
-		fklPrintString(fklGetGlobSymbolWithId(dlproc->sid)->symbol
+		fklPrintString(fklGetSymbolWithId(dlproc->sid,table)->symbol
 				,stderr);
 		fputc('\n',fp);
 	}
@@ -4216,7 +4218,7 @@ void builtin_fwrite(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fwrite",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FILE* objFile=file?file->u.fp->fp:stdout;
 	if(FKL_IS_STR(obj)||FKL_IS_SYM(obj))
-		fklPrincVMvalue(obj,objFile);
+		fklPrincVMvalue(obj,objFile,exe->symbolTable);
 	else if(FKL_IS_BYTEVECTOR(obj))
 		fwrite(obj->u.bvec->ptr,obj->u.bvec->size,1,objFile);
 	else if(FKL_IS_CHR(obj))
@@ -4518,7 +4520,7 @@ void builtin_get(ARGL)
 			fklNiReturn(defaultValue,&ap,stack);
 		else
 		{
-			char* cstr=fklStringToCstr(fklGetGlobSymbolWithId(FKL_GET_SYM(sym))->symbol);
+			char* cstr=fklStringToCstr(fklGetSymbolWithId(FKL_GET_SYM(sym),exe->symbolTable)->symbol);
 			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("builtin.get",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
 		}
 	}
@@ -5120,17 +5122,12 @@ static const struct SymbolFuncStruct
 //		fklAddCompDefCstr(list->s,curEnv);
 //}
 
-void fklInitGlobCodegenEnvWithSymbolTable(FklCodegenEnv* curEnv,FklSymbolTable* symbolTable)
+void fklInitGlobCodegenEnv(FklCodegenEnv* curEnv,FklSymbolTable* publicSymbolTable)
 {
 	for(const struct SymbolFuncStruct* list=builtInSymbolList
 			;list->s!=NULL
 			;list++)
-		fklAddCodegenDefBySid(fklAddSymbolCstr(list->s,symbolTable)->id,curEnv);
-}
-
-void fklInitGlobCodegenEnv(FklCodegenEnv* curEnv)
-{
-	fklInitGlobCodegenEnvWithSymbolTable(curEnv,fklGetGlobSymbolTable());
+		fklAddCodegenDefBySid(fklAddSymbolCstr(list->s,publicSymbolTable)->id,curEnv);
 }
 
 void fklInitSymbolTableWithBuiltinSymbol(FklSymbolTable* table)
@@ -5141,7 +5138,7 @@ void fklInitSymbolTableWithBuiltinSymbol(FklSymbolTable* table)
 		fklAddSymbolCstr(list->s,table);
 }
 
-void fklInitGlobEnv(FklVMenv* obj,FklVMgc* gc)
+void fklInitGlobEnv(FklVMenv* obj,FklVMgc* gc,FklSymbolTable* table)
 {
 	static const char* builtInHeadSymbolTableCstr[4]=
 	{
@@ -5151,7 +5148,7 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMgc* gc)
 		"unqtesp",
 	};
 	for(int i=0;i<3;i++)
-		builtInHeadSymbolTable[i]=fklAddSymbolToGlobCstr(builtInHeadSymbolTableCstr[i])->id;
+		builtInHeadSymbolTable[i]=fklAddSymbolCstr(builtInHeadSymbolTableCstr[i],table)->id;
 	const struct SymbolFuncStruct* list=builtInSymbolList;
 	FklVMvalue* builtInStdin=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stdin),gc);
 	FklVMvalue* builtInStdout=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stdout),gc);
@@ -5161,16 +5158,17 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMgc* gc)
 				,&PublicBuiltInUserDataMethodTable
 				,createPublicBuiltInUserData(builtInStdin
 					,builtInStdout
-					,builtInStderr)
+					,builtInStderr
+					,table)
 				,FKL_VM_NIL)
 			,gc);
-	fklFindOrAddVarWithValue(fklAddSymbolToGlobCstr((list++)->s)->id,builtInStdin,obj);
-	fklFindOrAddVarWithValue(fklAddSymbolToGlobCstr((list++)->s)->id,builtInStdout,obj);
-	fklFindOrAddVarWithValue(fklAddSymbolToGlobCstr((list++)->s)->id,builtInStderr,obj);
+	fklFindOrAddVarWithValue(fklAddSymbolCstr((list++)->s,table)->id,builtInStdin,obj);
+	fklFindOrAddVarWithValue(fklAddSymbolCstr((list++)->s,table)->id,builtInStdout,obj);
+	fklFindOrAddVarWithValue(fklAddSymbolCstr((list++)->s,table)->id,builtInStderr,obj);
 	for(;list->s!=NULL;list++)
 	{
 		FklVMdlproc* proc=fklCreateVMdlproc(list->f,NULL,publicUserData);
-		FklSymTabNode* node=fklAddSymbolToGlobCstr(list->s);
+		FklSymTabNode* node=fklAddSymbolCstr(list->s,table);
 		proc->sid=node->id;
 		fklFindOrAddVarWithValue(node->id,fklCreateVMvalueNoGC(FKL_TYPE_DLPROC,proc,gc),obj);
 	}

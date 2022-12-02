@@ -117,7 +117,7 @@ static int fklIsValidCharStr(const char* str,size_t len)
 	return 1;
 }
 
-static FklNastNode* createChar(const FklString* oStr,uint64_t line)
+static FklNastNode* createChar(const FklString* oStr,uint64_t line,FklSymbolTable* table)
 {
 	if(!fklIsValidCharStr(oStr->str+2,oStr->size-2))
 		return NULL;
@@ -126,7 +126,7 @@ static FklNastNode* createChar(const FklString* oStr,uint64_t line)
 	return r;
 }
 
-static FklNastNode* createNum(const FklString* oStr,uint64_t line)
+static FklNastNode* createNum(const FklString* oStr,uint64_t line,FklSymbolTable* table)
 {
 	FklNastNode* r=NULL;
 	if(fklIsDoubleString(oStr))
@@ -156,21 +156,21 @@ static FklNastNode* createNum(const FklString* oStr,uint64_t line)
 	return r;
 }
 
-static FklNastNode* createString(const FklString* oStr,uint64_t line)
+static FklNastNode* createString(const FklString* oStr,uint64_t line,FklSymbolTable* table)
 {
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_STR,line);
 	r->u.str=fklCopyString(oStr);
 	return r;
 }
 
-static FklNastNode* createSymbol(const FklString* oStr,uint64_t line)
+static FklNastNode* createSymbol(const FklString* oStr,uint64_t line,FklSymbolTable* publicSymbolTable)
 {
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_SYM,line);
-	r->u.sym=fklAddSymbolToGlob(oStr)->id;
+	r->u.sym=fklAddSymbol(oStr,publicSymbolTable)->id;
 	return r;
 }
 
-static FklNastNode* (*literalNodeCreator[])(const FklString*,uint64_t)=
+static FklNastNode* (*literalNodeCreator[])(const FklString*,uint64_t,FklSymbolTable*)=
 {
 	createChar,
 	createNum,
@@ -224,7 +224,9 @@ FklNastHashTable* fklCreateNastHash(FklVMhashTableEqType type,size_t num)
 	return r;
 }
 
-void fklPrintNastNode(const FklNastNode* exp,FILE* fp)
+void fklPrintNastNode(const FklNastNode* exp
+		,FILE* fp
+		,FklSymbolTable* table)
 {
 	FklPtrQueue* queue=fklCreatePtrQueue();
 	FklPtrStack* queueStack=fklCreatePtrStack(32,16);
@@ -255,7 +257,7 @@ void fklPrintNastNode(const FklNastNode* exp,FILE* fp)
 			switch(node->type)
 			{
 				case FKL_NAST_SYM:
-					fklPrintRawSymbol(fklGetGlobSymbolWithId(node->u.sym)->symbol,fp);
+					fklPrintRawSymbol(fklGetSymbolWithId(node->u.sym,table)->symbol,fp);
 					break;
 				case FKL_NAST_BYTEVECTOR:
 					fklPrintRawBytevector(node->u.bvec,fp);
@@ -851,7 +853,8 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 				else
 				{
 					FklNastNode* node=literalNodeCreator[token->type-FKL_TOKEN_CHAR](token->value
-							,token->line);
+							,token->line
+							,codegen->publicSymbolTable);
 					if(!node)
 					{
 						while(!fklIsPtrStackEmpty(&questStack))

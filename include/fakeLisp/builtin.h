@@ -44,9 +44,8 @@ typedef struct FklVMgc FklVMgc;
 typedef struct FklCodegenEnv FklCodegenEnv;
 
 //void fklInitCompEnv(FklCompEnv* curEnv);
-void fklInitGlobCodegenEnvWithSymbolTable(FklCodegenEnv*,FklSymbolTable*);
-void fklInitGlobCodegenEnv(FklCodegenEnv*);
-void fklInitGlobEnv(FklVMenv*,FklVMgc*);
+void fklInitGlobCodegenEnv(FklCodegenEnv*,FklSymbolTable*);
+void fklInitGlobEnv(FklVMenv*,FklVMgc*,FklSymbolTable*);
 void fklInitSymbolTableWithBuiltinSymbol(FklSymbolTable* symbolTable);
-FklSid_t fklGetBuiltInErrorType(FklBuiltInErrorType);
+FklSid_t fklGetBuiltInErrorType(FklBuiltInErrorType,FklSymbolTable*);
 #endif

@@ -63,7 +63,8 @@ FklLineNumTabNode* fklCreateLineNumTabNode(FklSid_t fid,uint64_t scp,uint64_t cp
 FklLineNumTabNode* fklCreateLineNumTabNodeWithFilename(const char* filename
 		,uint64_t scp
 		,uint64_t cpc
-		,uint32_t line);
+		,uint32_t line
+		,FklSymbolTable* table);
 FklLineNumTabNode* fklFindLineNumTabNode(uint64_t cp,size_t ls,FklLineNumTabNode* l);
 void fklDestroyLineNumTabNode(FklLineNumTabNode*);
 void fklDestroyLineNumberTable(FklLineNumberTable*);

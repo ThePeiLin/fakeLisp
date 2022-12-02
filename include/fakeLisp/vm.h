@@ -211,7 +211,7 @@ typedef struct
 {
 	int (*end)(void* data[6]);
 	void (*step)(void* data[6],struct FklVM*);
-	void (*print_backtrace)(void* data[6],FILE* fp);
+	void (*print_backtrace)(void* data[6],FILE* fp,FklSymbolTable*);
 	void (*atomic)(void* data[6],FklVMgc*);
 	void (*finalizer)(void* data[6]);
 	void (*copy)(void* const s[6],void* d[6],struct FklVM*);
@@ -243,7 +243,7 @@ typedef struct FklVMframe
 	struct FklVMframe* prev;
 }FklVMframe;
 
-void fklDoPrintBacktrace(FklVMframe* f,FILE* fp);
+void fklDoPrintBacktrace(FklVMframe* f,FILE* fp,FklSymbolTable* table);
 void fklCallobj(FklVMvalue*,FklVMframe*,struct FklVM* exe);
 void fklTailCallobj(FklVMvalue*,FklVMframe*,struct FklVM* exe);
 void fklDoAtomicFrame(FklVMframe* f,struct FklVMgc*);
@@ -290,6 +290,7 @@ typedef struct FklVM
 	struct FklVM* next;
 	jmp_buf buf;
 	int nny;
+	FklSymbolTable* symbolTable;
 }FklVM;
 
 typedef struct FklVMudMethodTable
@@ -412,14 +413,17 @@ void fklWaitGC(FklVMgc* gc);
 void fklDestroyAllValues(FklVMgc*);
 void fklGC_sweep(FklVMvalue*);
 
-void fklDBG_printVMenv(FklVMenv*,FILE*);
-void fklDBG_printVMvalue(FklVMvalue*,FILE*);
-void fklDBG_printVMstack(FklVMstack*,FILE*,int);
+void fklDBG_printVMenv(FklVMenv*,FILE*,FklSymbolTable* table);
+void fklDBG_printVMvalue(FklVMvalue*,FILE*,FklSymbolTable* table);
+void fklDBG_printVMstack(FklVMstack*,FILE*,int,FklSymbolTable* table);
 
-FklString* fklStringify(FklVMvalue*);
-void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v,FILE* fp));
-void fklPrin1VMvalue(FklVMvalue*,FILE*);
-void fklPrincVMvalue(FklVMvalue*,FILE*);
+FklString* fklStringify(FklVMvalue*,FklSymbolTable*);
+void fklPrintVMvalue(FklVMvalue* value
+		,FILE* fp
+		,void(*atomPrinter)(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
+		,FklSymbolTable* table);
+void fklPrin1VMvalue(FklVMvalue*,FILE*,FklSymbolTable* table);
+void fklPrincVMvalue(FklVMvalue*,FILE*,FklSymbolTable* table);
 
 //vmutils
 
@@ -654,21 +658,21 @@ void fklUninitVMlib(FklVMlib*);
 
 #define FKL_RAISE_BUILTIN_ERROR(WHO,ERRORTYPE,EXE) do{\
 	FklString* errorMessage=fklGenErrorMessage((ERRORTYPE));\
-	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerror((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE));\
+	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerror((WHO),fklGetBuiltInErrorType(ERRORTYPE,(EXE)->symbolTable),errorMessage),(EXE));\
 	fklRaiseVMerror(err,(EXE));\
 	return;\
 }while(0)
 
 #define FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,ERRORTYPE,EXE) do{\
 	FklString* errorMessage=fklGenErrorMessage((ERRORTYPE));\
-	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerrorCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE));\
+	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerrorCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE,(EXE)->symbolTable),errorMessage),(EXE));\
 	fklRaiseVMerror(err,(EXE));\
 	return;\
 }while(0)
 
 #define FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(WHO,STR,FREE,ERRORTYPE,EXE) do{\
 	FklString* errorMessage=fklGenInvalidSymbolErrorMessage((STR),(FREE),(ERRORTYPE));\
-	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerrorCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE),errorMessage),(EXE));\
+	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerrorCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE,(EXE)->symbolTable),errorMessage),(EXE));\
 	fklRaiseVMerror(err,(EXE));\
 	return;\
 }while(0)

@@ -97,14 +97,14 @@ inline static void initVMcCC(VMcCC* ccc,FklVMFuncK kFunc,void* ctx,size_t size)
 	ccc->size=size;
 }
 
-static void dlproc_frame_print_backtrace(void* data[6],FILE* fp)
+static void dlproc_frame_print_backtrace(void* data[6],FILE* fp,FklSymbolTable* table)
 {
 	DlprocFrameContext* c=(DlprocFrameContext*)data;
 	FklVMdlproc* dlproc=c->proc->u.dlproc;
 	if(dlproc->sid)
 	{
 		fprintf(fp,"at dlproc:");
-		fklPrintString(fklGetGlobSymbolWithId(dlproc->sid)->symbol
+		fklPrintString(fklGetSymbolWithId(dlproc->sid,table)->symbol
 				,stderr);
 		fputc('\n',fp);
 	}
@@ -402,11 +402,11 @@ inline int fklIsCallableObjFrameReachEnd(FklVMframe* f)
 	return f->u.o.t->end(fklGetFrameData(f));
 }
 
-inline void fklDoPrintBacktrace(FklVMframe* f,FILE* fp)
+inline void fklDoPrintBacktrace(FklVMframe* f,FILE* fp,FklSymbolTable* table)
 {
-	void (*backtrace)(void* data[6],FILE*)=f->u.o.t->print_backtrace;
+	void (*backtrace)(void* data[6],FILE*,FklSymbolTable*)=f->u.o.t->print_backtrace;
 	if(backtrace)
-		backtrace(f->u.o.data,fp);
+		backtrace(f->u.o.data,fp,table);
 	else
 		fprintf(fp,"at callable-obj\n");
 }
@@ -718,7 +718,7 @@ void B_push_var(FklVM* exe)
 	}
 	if(pv==NULL)
 	{
-		char* cstr=fklStringToCstr(fklGetGlobSymbolWithId(idOfVar)->symbol);
+		char* cstr=fklStringToCstr(fklGetSymbolWithId(idOfVar,exe->symbolTable)->symbol);
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.push-var",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
 	}
 	fklPushVMvalue(*pv,stack);
@@ -783,7 +783,7 @@ void B_pop_var(FklVM* exe)
 		}
 		if(pv==NULL)
 		{
-			char* cstr=fklStringToCstr(fklGetGlobSymbolWithId(idOfVar)->symbol);
+			char* cstr=fklStringToCstr(fklGetSymbolWithId(idOfVar,exe->symbolTable)->symbol);
 			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.pop-var",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
 		}
 	}
@@ -1162,7 +1162,7 @@ void B_import(FklVM* exe)
 			FklVMvalue* volatile* pv=fklFindVar(plib->exports[i],plib->libEnv->u.env);
 			if(pv==NULL)
 			{
-				char* cstr=fklStringToCstr(fklGetGlobSymbolWithId(plib->exports[i])->symbol);
+				char* cstr=fklStringToCstr(fklGetSymbolWithId(plib->exports[i],exe->symbolTable)->symbol);
 				FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
 			}
 			FklVMvalue* volatile* pValue=fklFindOrAddVar(plib->exports[i],fklGetCompoundFrameLocalenv(frame)->u.env);
@@ -1193,7 +1193,7 @@ void B_import_with_symbols(FklVM* exe)
 			if(pv==NULL)
 			{
 				free(exports);
-				char* cstr=fklStringToCstr(fklGetGlobSymbolWithId(plib->exports[i])->symbol);
+				char* cstr=fklStringToCstr(fklGetSymbolWithId(plib->exports[i],exe->symbolTable)->symbol);
 				FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-with-symbols",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
 			}
 			FklVMvalue* volatile* pValue=fklFindOrAddVar(exports[i],fklGetCompoundFrameLocalenv(frame)->u.env);
@@ -1229,7 +1229,7 @@ void fklStackRecycle(FklVMstack* stack)
 	}
 }
 
-void fklDBG_printVMstack(FklVMstack* stack,FILE* fp,int mode)
+void fklDBG_printVMstack(FklVMstack* stack,FILE* fp,int mode,FklSymbolTable* table)
 {
 	if(fp!=stdout)fprintf(fp,"Current stack:\n");
 	if(stack->tp==0)fprintf(fp,"[#EMPTY]\n");
@@ -1242,15 +1242,15 @@ void fklDBG_printVMstack(FklVMstack* stack,FILE* fp,int mode)
 				fputs("->",stderr);
 			if(fp!=stdout)fprintf(fp,"%ld:",i);
 			FklVMvalue* tmp=stack->values[i];
-			fklPrin1VMvalue(tmp,fp);
+			fklPrin1VMvalue(tmp,fp,table);
 			putc('\n',fp);
 		}
 	}
 }
 
-void fklDBG_printVMvalue(FklVMvalue* v,FILE* fp)
+void fklDBG_printVMvalue(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
 {
-	fklPrin1VMvalue(v,fp);
+	fklPrin1VMvalue(v,fp,table);
 }
 
 FklVMframe* fklHasSameProc(uint32_t scp,FklVMframe* frames)

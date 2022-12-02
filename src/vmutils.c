@@ -213,7 +213,7 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 				if(fklGetCompoundFrameSid(cur)!=0)
 				{
 					fprintf(stderr,"at proc:");
-					fklPrintString(fklGetGlobSymbolWithId(fklGetCompoundFrameSid(cur))->symbol
+					fklPrintString(fklGetSymbolWithId(fklGetCompoundFrameSid(cur),exe->symbolTable)->symbol
 							,stderr);
 				}
 				else
@@ -230,14 +230,14 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 				if(node->fid)
 				{
 					fprintf(stderr,"(%u:",node->line);
-					fklPrintString(fklGetGlobSymbolWithId(node->fid)->symbol,stderr);
+					fklPrintString(fklGetSymbolWithId(node->fid,exe->symbolTable)->symbol,stderr);
 					fprintf(stderr,")\n");
 				}
 				else
 					fprintf(stderr,"(%u)\n",node->line);
 			}
 			else
-				fklDoPrintBacktrace(cur,stderr);
+				fklDoPrintBacktrace(cur,stderr,exe->symbolTable);
 		}
 		threadErrorCallBack(i);
 	}
@@ -599,7 +599,7 @@ void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet)
 	fklDestroyPtrStack(beAccessed);
 }
 
-static void princVMatom(FklVMvalue* v,FILE* fp)
+static void princVMatom(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
 {
 	FklVMptrTag tag=FKL_GET_TAG(v);
 	switch(tag)
@@ -614,7 +614,7 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 			putc(FKL_GET_CHR(v),fp);
 			break;
 		case FKL_TAG_SYM:
-			fklPrintString(fklGetGlobSymbolWithId(FKL_GET_SYM(v))->symbol,fp);
+			fklPrintString(fklGetSymbolWithId(FKL_GET_SYM(v),table)->symbol,fp);
 			break;
 		case FKL_TAG_PTR:
 			{
@@ -636,7 +636,7 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 						if(v->u.proc->sid)
 						{
 							fprintf(fp,"#<proc ");
-							fklPrintString(fklGetGlobSymbolWithId(v->u.proc->sid)->symbol,fp);
+							fklPrintString(fklGetSymbolWithId(v->u.proc->sid,table)->symbol,fp);
 							fputc('>',fp);
 						}
 						else
@@ -668,7 +668,7 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 						if(v->u.dlproc->sid)
 						{
 							fprintf(fp,"#<dlproc ");
-							fklPrintString(fklGetGlobSymbolWithId(v->u.dlproc->sid)->symbol,fp);
+							fklPrintString(fklGetSymbolWithId(v->u.dlproc->sid,table)->symbol,fp);
 							fputc('>',fp);
 						}
 						else
@@ -689,7 +689,7 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 						else
 						{
 							fprintf(fp,"#<");
-							fklPrintString(fklGetGlobSymbolWithId(v->u.ud->type)->symbol,fp);
+							fklPrintString(fklGetSymbolWithId(v->u.ud->type,table)->symbol,fp);
 							fprintf(fp," %p>",v->u.ud);
 						}
 						break;
@@ -705,7 +705,7 @@ static void princVMatom(FklVMvalue* v,FILE* fp)
 	}
 }
 
-static void prin1VMatom(FklVMvalue* v,FILE* fp)
+static void prin1VMatom(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
 {
 	FklVMptrTag tag=FKL_GET_TAG(v);
 	switch(tag)
@@ -720,7 +720,7 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 			fklPrintRawChar(FKL_GET_CHR(v),fp);
 			break;
 		case FKL_TAG_SYM:
-			fklPrintRawSymbol(fklGetGlobSymbolWithId(FKL_GET_SYM(v))->symbol,fp);
+			fklPrintRawSymbol(fklGetSymbolWithId(FKL_GET_SYM(v),table)->symbol,fp);
 			break;
 		case FKL_TAG_PTR:
 			{
@@ -742,7 +742,7 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 						if(v->u.proc->sid)
 						{
 							fprintf(fp,"#<proc ");
-							fklPrintRawSymbol(fklGetGlobSymbolWithId(v->u.proc->sid)->symbol,fp);
+							fklPrintRawSymbol(fklGetSymbolWithId(v->u.proc->sid,table)->symbol,fp);
 							fputc('>',fp);
 						}
 						else
@@ -770,7 +770,7 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 					case FKL_TYPE_DLPROC:
 						if(v->u.dlproc->sid){
 							fprintf(fp,"#<dlproc ");
-							fklPrintRawSymbol(fklGetGlobSymbolWithId(v->u.dlproc->sid)->symbol,fp);
+							fklPrintRawSymbol(fklGetSymbolWithId(v->u.dlproc->sid,table)->symbol,fp);
 							fputc('>',fp);
 						}
 						else
@@ -783,7 +783,7 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 						fprintf(fp,"#<err w:");
 						fklPrintRawString(v->u.err->who,fp);
 						fprintf(fp," t:");
-						fklPrintRawSymbol(fklGetGlobSymbolWithId(v->u.err->type)->symbol,fp);
+						fklPrintRawSymbol(fklGetSymbolWithId(v->u.err->type,table)->symbol,fp);
 						fprintf(fp," m:");
 						fklPrintRawString(v->u.err->message,fp);
 						fprintf(fp,">");
@@ -800,7 +800,7 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 						else
 						{
 							fprintf(fp,"#<");
-							fklPrintRawSymbol(fklGetGlobSymbolWithId(v->u.ud->type)->symbol,fp);
+							fklPrintRawSymbol(fklGetSymbolWithId(v->u.ud->type,table)->symbol,fp);
 							fprintf(fp," %p>",v->u.ud);
 						}
 						break;
@@ -816,14 +816,14 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp)
 	}
 }
 
-void fklPrin1VMvalue(FklVMvalue* value,FILE* fp)
+void fklPrin1VMvalue(FklVMvalue* value,FILE* fp,FklSymbolTable* table)
 {
-	fklPrintVMvalue(value,fp,prin1VMatom);
+	fklPrintVMvalue(value,fp,prin1VMatom,table);
 }
 
-void fklPrincVMvalue(FklVMvalue* value,FILE* fp)
+void fklPrincVMvalue(FklVMvalue* value,FILE* fp,FklSymbolTable* table)
 {
-	fklPrintVMvalue(value,fp,princVMatom);
+	fklPrintVMvalue(value,fp,princVMatom,table);
 }
 
 typedef struct
@@ -841,7 +841,10 @@ static HashPrtElem* createHashPrtElem(PrtElem* key,PrtElem* v)
 	return r;
 }
 
-void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v,FILE* fp))
+void fklPrintVMvalue(FklVMvalue* value
+		,FILE* fp
+		,void(*atomPrinter)(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
+		,FklSymbolTable* table)
 {
 	FklHashTable* recValueSet=fklCreateValueSetHashtable();
 	FklHashTable* hasPrintRecSet=fklCreateValueSetHashtable();
@@ -881,7 +884,7 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 			{
 				free(e);
 				if(!FKL_IS_VECTOR(v)&&!FKL_IS_PAIR(v)&&!FKL_IS_BOX(v)&&!FKL_IS_HASHTABLE(v))
-					atomPrinter(v,fp);
+					atomPrinter(v,fp,table);
 				else
 				{
 					size_t i=0;
@@ -1032,7 +1035,7 @@ void fklPrintVMvalue(FklVMvalue* value,FILE* fp,void(*atomPrinter)(FklVMvalue* v
 	fklDestroyHashTable(hasPrintRecSet);
 }
 
-static void atomStringify(FklString** pr,FklVMvalue* v)
+static void atomStringify(FklString** pr,FklVMvalue* v,FklSymbolTable* table)
 {
 	FklVMptrTag tag=FKL_GET_TAG(v);
 	switch(tag)
@@ -1056,7 +1059,7 @@ static void atomStringify(FklString** pr,FklVMvalue* v)
 			break;
 		case FKL_TAG_SYM:
 			{
-				FklString* s=fklStringToRawSymbol(fklGetGlobSymbolWithId(FKL_GET_SYM(v))->symbol);
+				FklString* s=fklStringToRawSymbol(fklGetSymbolWithId(FKL_GET_SYM(v),table)->symbol);
 				fklStringCat(pr,s);
 				free(s);
 			}
@@ -1097,7 +1100,7 @@ static void atomStringify(FklString** pr,FklVMvalue* v)
 						if(v->u.proc->sid)
 						{
 							fklStringCstrCat(pr,"#<proc ");
-							FklString* s=fklStringToRawSymbol(fklGetGlobSymbolWithId(v->u.proc->sid)->symbol);
+							FklString* s=fklStringToRawSymbol(fklGetSymbolWithId(v->u.proc->sid,table)->symbol);
 							fklStringCat(pr,s);
 							free(s);
 							fklStringCstrCat(pr,">");
@@ -1128,7 +1131,7 @@ static void atomStringify(FklString** pr,FklVMvalue* v)
 						if(v->u.dlproc->sid)
 						{
 							fklStringCstrCat(pr,"#<dlproc ");
-							FklString* s=fklStringToRawSymbol(fklGetGlobSymbolWithId(v->u.proc->sid)->symbol);
+							FklString* s=fklStringToRawSymbol(fklGetSymbolWithId(v->u.proc->sid,table)->symbol);
 							fklStringCat(pr,s);
 							free(s);
 							fklStringCstrCat(pr,">");
@@ -1146,7 +1149,7 @@ static void atomStringify(FklString** pr,FklVMvalue* v)
 							fklStringCat(pr,s);
 							free(s);
 							fklStringCstrCat(pr,"t:");
-							s=fklStringToRawSymbol(fklGetGlobSymbolWithId(v->u.err->type)->symbol);
+							s=fklStringToRawSymbol(fklGetSymbolWithId(v->u.err->type,table)->symbol);
 							fklStringCat(pr,s);
 							free(s);
 							fklStringCstrCat(pr,"m:");
@@ -1176,7 +1179,7 @@ static void atomStringify(FklString** pr,FklVMvalue* v)
 						else
 						{
 							fklStringCstrCat(pr,"#<");
-							FklString* s=fklStringToRawSymbol(fklGetGlobSymbolWithId(v->u.ud->type)->symbol);
+							FklString* s=fklStringToRawSymbol(fklGetSymbolWithId(v->u.ud->type,table)->symbol);
 							fklStringCat(pr,s);
 							free(s);
 							char c_str[FKL_MAX_STRING_SIZE]={0};
@@ -1196,7 +1199,7 @@ static void atomStringify(FklString** pr,FklVMvalue* v)
 	}
 }
 
-FklString* fklStringify(FklVMvalue* value)
+FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 {
 	FklString* retval=fklCreateEmptyString();
 	FklHashTable* recValueSet=fklCreateValueSetHashtable();
@@ -1238,7 +1241,7 @@ FklString* fklStringify(FklVMvalue* value)
 			{
 				free(e);
 				if(!FKL_IS_VECTOR(v)&&!FKL_IS_PAIR(v)&&!FKL_IS_BOX(v)&&!FKL_IS_HASHTABLE(v))
-					atomStringify(&retval,v);
+					atomStringify(&retval,v,table);
 				else
 				{
 					size_t i=0;

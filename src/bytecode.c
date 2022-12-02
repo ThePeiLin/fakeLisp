@@ -275,12 +275,12 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 	return r;
 }
 
-void fklPrintByteCode(const FklByteCode* tmpCode,FILE* fp,FklSymbolTable* table)
+void fklPrintByteCode(const FklByteCode* tmpCode
+		,FILE* fp
+		,FklSymbolTable* table)
 {
 	FklPtrStack* s=fklCreatePtrStack(32,16);
 	fklPushPtrStack(createByteCodePrintState(BP_NONE,0,0,tmpCode->size),s);
-	if(!table)
-		table=fklGetGlobSymbolTable();
 	if(!fklIsPtrStackEmpty(s))
 	{
 		ByteCodePrintState* cState=fklPopPtrStack(s);
@@ -386,8 +386,6 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,FklSymbolTable* table)
 	FklByteCode* tmpCode=obj->bc;
 	FklPtrStack* s=fklCreatePtrStack(32,16);
 	fklPushPtrStack(createByteCodePrintState(BP_NONE,0,0,tmpCode->size),s);
-	if(!table)
-		table=fklGetGlobSymbolTable();
 	uint64_t j=0;
 	FklSid_t fid=0;
 	uint64_t line=0;
@@ -696,11 +694,12 @@ FklLineNumTabNode* fklCreateLineNumTabNode(FklSid_t fid,uint64_t scp,uint64_t cp
 FklLineNumTabNode* fklCreateLineNumTabNodeWithFilename(const char* filename
 		,uint64_t scp
 		,uint64_t cpc
-		,uint32_t line)
+		,uint32_t line
+		,FklSymbolTable* table)
 {
 	FklLineNumTabNode* t=(FklLineNumTabNode*)malloc(sizeof(FklLineNumTabNode));
 	FKL_ASSERT(t);
-	t->fid=filename?fklAddSymbolToGlobCstr(filename)->id:0;
+	t->fid=filename?fklAddSymbolCstr(filename,table)->id:0;
 	t->scp=scp;
 	t->cpc=cpc;
 	t->line=line;

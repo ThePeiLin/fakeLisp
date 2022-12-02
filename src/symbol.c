@@ -5,8 +5,6 @@
 #include<stdlib.h>
 #include<string.h>
 
-FklSymbolTable* GlobSymbolTable=NULL;
-
 FklSymbolTable* fklCreateSymbolTable()
 {
 	FklSymbolTable* tmp=(FklSymbolTable*)malloc(sizeof(FklSymbolTable));
@@ -146,19 +144,19 @@ FklSymTabNode* fklAddSymbolCstr(const char* sym,FklSymbolTable* table)
 	return node;
 }
 
-FklSymTabNode* fklAddSymbolToGlobCstr(const char* sym)
-{
-	if(!GlobSymbolTable)
-		GlobSymbolTable=fklCreateSymbolTable();
-	return fklAddSymbolCstr(sym,GlobSymbolTable);
-}
+//FklSymTabNode* fklAddSymbolToGlobCstr(const char* sym)
+//{
+//	if(!GlobSymbolTable)
+//		GlobSymbolTable=fklCreateSymbolTable();
+//	return fklAddSymbolCstr(sym,GlobSymbolTable);
+//}
 
-FklSymTabNode* fklAddSymbolToGlob(const FklString* sym)
-{
-	if(!GlobSymbolTable)
-		GlobSymbolTable=fklCreateSymbolTable();
-	return fklAddSymbol(sym,GlobSymbolTable);
-}
+//FklSymTabNode* fklAddSymbolToGlob(const FklString* sym)
+//{
+//	if(!GlobSymbolTable)
+//		GlobSymbolTable=fklCreateSymbolTable();
+//	return fklAddSymbol(sym,GlobSymbolTable);
+//}
 
 void fklDestroySymTabNode(FklSymTabNode* node)
 {
@@ -176,16 +174,16 @@ void fklDestroySymbolTable(FklSymbolTable* table)
 	free(table);
 }
 
-void fklDestroyGlobSymbolTable()
-{
-	int32_t i=0;
-	for(;i<GlobSymbolTable->num;i++)
-		fklDestroySymTabNode(GlobSymbolTable->list[i]);
-	free(GlobSymbolTable->list);
-	free(GlobSymbolTable->idl);
-	free(GlobSymbolTable);
-	GlobSymbolTable=NULL;
-}
+//void fklDestroyGlobSymbolTable()
+//{
+//	int32_t i=0;
+//	for(;i<GlobSymbolTable->num;i++)
+//		fklDestroySymTabNode(GlobSymbolTable->list[i]);
+//	free(GlobSymbolTable->list);
+//	free(GlobSymbolTable->idl);
+//	free(GlobSymbolTable);
+//	GlobSymbolTable=NULL;
+//}
 
 FklSymTabNode* fklFindSymbolCstr(const char* symbol,FklSymbolTable* table)
 {
@@ -215,15 +213,15 @@ FklSymTabNode* fklFindSymbolCstr(const char* symbol,FklSymbolTable* table)
 	return retval;
 }
 
-FklSymTabNode* fklFindSymbolInGlobCstr(const char* sym)
-{
-	return fklFindSymbolCstr(sym,GlobSymbolTable);
-}
+//FklSymTabNode* fklFindSymbolInGlobCstr(const char* sym)
+//{
+//	return fklFindSymbolCstr(sym,GlobSymbolTable);
+//}
 
-FklSymTabNode* fklGetGlobSymbolWithId(FklSid_t id)
-{
-	return fklGetSymbolWithId(id,GlobSymbolTable);
-}
+//FklSymTabNode* fklGetGlobSymbolWithId(FklSid_t id)
+//{
+//	return fklGetSymbolWithId(id,GlobSymbolTable);
+//}
 
 FklSymTabNode* fklGetSymbolWithId(FklSid_t id,FklSymbolTable* table)
 {
@@ -245,10 +243,10 @@ void fklPrintSymbolTable(FklSymbolTable* table,FILE* fp)
 	fprintf(fp,"size:%lu\n",table->num);
 }
 
-void fklPrintGlobSymbolTable(FILE* fp)
-{
-	fklPrintSymbolTable(GlobSymbolTable,fp);
-}
+//void fklPrintGlobSymbolTable(FILE* fp)
+//{
+//	fklPrintSymbolTable(GlobSymbolTable,fp);
+//}
 
 void fklWriteSymbolTable(FklSymbolTable* table,FILE* fp)
 {
@@ -257,26 +255,26 @@ void fklWriteSymbolTable(FklSymbolTable* table,FILE* fp)
 		fwrite(table->idl[i]->symbol,table->idl[i]->symbol->size+sizeof(table->idl[i]->symbol->size),1,fp);
 }
 
-void fklWriteGlobSymbolTable(FILE* fp)
-{
-	fklWriteSymbolTable(GlobSymbolTable,fp);
-}
+//void fklWriteGlobSymbolTable(FILE* fp)
+//{
+//	fklWriteSymbolTable(GlobSymbolTable,fp);
+//}
 
-FklSymbolTable* fklGetGlobSymbolTable(void)
-{
-	if(!GlobSymbolTable)
-		GlobSymbolTable=fklCreateSymbolTable();
-	return GlobSymbolTable;
-}
+//FklSymbolTable* fklGetGlobSymbolTable(void)
+//{
+//	if(!GlobSymbolTable)
+//		GlobSymbolTable=fklCreateSymbolTable();
+//	return GlobSymbolTable;
+//}
 
-void fklSetGlobSymbolTable(FklSymbolTable* t)
-{
-	GlobSymbolTable=t;
-}
+//void fklSetGlobSymbolTable(FklSymbolTable* t)
+//{
+//	GlobSymbolTable=t;
+//}
 
-FklSymbolTable* fklExchangeGlobSymbolTable(FklSymbolTable* other)
-{
-	FklSymbolTable* r=GlobSymbolTable;
-	GlobSymbolTable=other;
-	return r;
-}
+//FklSymbolTable* fklExchangeGlobSymbolTable(FklSymbolTable* other)
+//{
+//	FklSymbolTable* r=GlobSymbolTable;
+//	GlobSymbolTable=other;
+//	return r;
+//}

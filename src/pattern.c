@@ -319,7 +319,7 @@ static struct BuiltinStringPattern
 	{0,NULL,NULL},
 };
 
-static FklNastNode* createPatternPartFromCstr(const char* s)
+static FklNastNode* createPatternPartFromCstr(const char* s,FklSymbolTable* publicSymbolTable)
 {
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_NIL,0);
 	switch(s[0])
@@ -330,12 +330,12 @@ static FklNastNode* createPatternPartFromCstr(const char* s)
 			break;
 		case '#':
 			r->type=FKL_NAST_SYM;
-			r->u.sym=fklAddSymbolToGlobCstr(&s[1])->id;
+			r->u.sym=fklAddSymbolCstr(&s[1],publicSymbolTable)->id;
 			break;
 		case '&':
 			r->type=FKL_NAST_BOX;
 			r->u.box=fklMakeNastNodeRef(fklCreateNastNode(FKL_NAST_SYM,0));
-			r->u.box->u.sym=fklAddSymbolToGlobCstr(&s[1])->id;
+			r->u.box->u.sym=fklAddSymbolCstr(&s[1],publicSymbolTable)->id;
 			break;
 		default:
 			FKL_ASSERT(0);
@@ -407,7 +407,7 @@ int fklStringPatternCoverState(const FklNastNode* p0,const FklNastNode* p1)
 	return r;
 }
 
-FklStringMatchPattern* fklInitBuiltInStringPattern(void)
+FklStringMatchPattern* fklInitBuiltInStringPattern(FklSymbolTable* publicSymbolTable)
 {
 	FklStringMatchPattern* r=NULL;
 	for(struct BuiltinStringPattern* cur=&BuiltinStringPatterns[0];cur->parts;cur++)
@@ -417,7 +417,7 @@ FklStringMatchPattern* fklInitBuiltInStringPattern(void)
 		FklNastNode* vec=fklCreateNastNode(FKL_NAST_VECTOR,0);
 		vec->u.vec=fklCreateNastVector(num);
 		for(size_t i=0;i<num;i++)
-			vec->u.vec->base[i]=fklMakeNastNodeRef(createPatternPartFromCstr(curParts[i]));
+			vec->u.vec->base[i]=fklMakeNastNodeRef(createPatternPartFromCstr(curParts[i],publicSymbolTable));
 		r=createBuiltinStringPattern(vec,cur->func,r);
 	}
 	return r;

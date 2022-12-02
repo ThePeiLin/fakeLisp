@@ -55,7 +55,7 @@ typedef struct FklStringMatchSet
 void fklDestroyStringMatchState(FklStringMatchState* state);
 void fklDestroyStringMatchSet(FklStringMatchSet* set);
 
-FklStringMatchPattern* fklInitBuiltInStringPattern(void);
+FklStringMatchPattern* fklInitBuiltInStringPattern(FklSymbolTable* publicSymbolTable);
 
 FklStringMatchPattern* fklFindStringPatternBuf(const char* buf,size_t size);
 FklStringMatchPattern* fklCreateStringMatchPattern(FklNastNode*

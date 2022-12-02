@@ -33,29 +33,29 @@ FklSymTabNode* fklCreateSymTabNodeCstr(const char*);
 FklSymTabNode* fklAddSymbol(const FklString*,FklSymbolTable*);
 FklSymTabNode* fklAddSymbolCstr(const char*,FklSymbolTable*);
 
-FklSymTabNode* fklAddSymbolToGlob(const FklString*);
-FklSymTabNode* fklAddSymbolToGlobCstr(const char*);
+//FklSymTabNode* fklAddSymbolToGlob(const FklString*);
+//FklSymTabNode* fklAddSymbolToGlobCstr(const char*);
 
 FklSymTabNode* fklFindSymbol(const FklString*,FklSymbolTable*);
 FklSymTabNode* fklFindSymbolCstr(const char*,FklSymbolTable*);
 
-FklSymTabNode* fklFindSymbolInGlob(const FklString*);
-FklSymTabNode* fklFindSymbolInGlobCstr(const char*);
+//FklSymTabNode* fklFindSymbolInGlob(const FklString*);
+//FklSymTabNode* fklFindSymbolInGlobCstr(const char*);
 
 FklSymTabNode* fklGetSymbolWithId(FklSid_t id,FklSymbolTable*);
-FklSymTabNode* fklGetGlobSymbolWithId(FklSid_t id);
+//FklSymTabNode* fklGetGlobSymbolWithId(FklSid_t id);
 void fklPrintSymbolTable(FklSymbolTable*,FILE*);
-void fklPrintGlobSymbolTable(FILE*);
+//void fklPrintGlobSymbolTable(FILE*);
 void fklDestroySymTabNode(FklSymTabNode*);
 void fklDestroySymbolTable(FklSymbolTable*);
-void fklDestroyGlobSymbolTable();
+//void fklDestroyGlobSymbolTable();
 
 void fklWriteSymbolTable(FklSymbolTable*,FILE*);
-void fklWriteGlobSymbolTable(FILE*);
+//void fklWriteGlobSymbolTable(FILE*);
 
-FklSymbolTable* fklGetGlobSymbolTable(void);
-FklSymbolTable* fklExchangeGlobSymbolTable(FklSymbolTable* other);
-void fklSetGlobSymbolTable(FklSymbolTable*);
+//FklSymbolTable* fklGetGlobSymbolTable(void);
+//FklSymbolTable* fklExchangeGlobSymbolTable(FklSymbolTable* other);
+//void fklSetGlobSymbolTable(FklSymbolTable*);
 #ifdef __cplusplus
 }
 #endif

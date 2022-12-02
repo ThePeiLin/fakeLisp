@@ -77,7 +77,9 @@ struct FklStringMatchPattern;
 FklNastNode* fklCreateNastNodeFromCstr(const char*,const FklSid_t t[4],struct FklStringMatchPattern* pattern);
 FklNastNode* fklCopyNastNode(const FklNastNode* n);
 void fklDestroyNastNode(FklNastNode*);
-void fklPrintNastNode(const FklNastNode* node,FILE* fp);
+void fklPrintNastNode(const FklNastNode* node
+		,FILE* fp
+		,FklSymbolTable*);
 
 int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1);
 

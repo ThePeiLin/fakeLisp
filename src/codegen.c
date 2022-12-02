@@ -3527,7 +3527,8 @@ FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 		,FklCodegen* codegen)
 {
 	FklVM* anotherVM=fklCreateVM(fklCopyByteCodelnt(bcl),NULL,NULL);
-	FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
+	FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV
+			,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc,codegen->publicSymbolTable),anotherVM->gc);
 	FklPtrStack* macroLibStack=codegen->macroLibStack;
 	anotherVM->libNum=macroLibStack->top;;
 	anotherVM->libs=(FklVMlib*)malloc(sizeof(FklVMlib)*macroLibStack->top);
@@ -3580,7 +3581,10 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 			fklJoinAllThread(anotherVM);
 			uint64_t curline=r->curline;
 			fklDestroyNastNode(r);
-			r=fklCreateNastNodeFromVMvalue(fklGetTopValue(anotherVM->stack),curline,lineHash);
+			r=fklCreateNastNodeFromVMvalue(fklGetTopValue(anotherVM->stack)
+					,curline
+					,lineHash
+					,codegen->publicSymbolTable);
 			if(!r)
 			{
 				errorState->type=FKL_ERR_CIR_REF;

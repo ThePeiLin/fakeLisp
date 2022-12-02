@@ -474,7 +474,7 @@ FklVMhashTableItem* fklRefVMhashTable(FklVMvalue* key,FklVMhashTable* ht);
 FklVMvalue* fklGetVMhashTable(FklVMvalue* key,FklVMhashTable* ht,int* ok);
 void fklDestroyVMhashTable(FklVMhashTable*);
 
-FklVMenv* fklCreateGlobVMenv(FklVMvalue*,FklVMgc*);
+FklVMenv* fklCreateGlobVMenv(FklVMvalue*,FklVMgc*,FklSymbolTable*);
 FklVMenv* fklCreateVMenv(FklVMvalue*,FklVMgc*);
 FklVMvalue* volatile* fklFindVar(FklSid_t id,FklVMenv*);
 FklVMvalue* volatile* fklFindOrAddVar(FklSid_t id,FklVMenv* env);
@@ -508,7 +508,8 @@ FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
 FklVMvalue* fklCreateVMvalueFromNastNodeNoGC(const FklNastNode* node,FklHashTable*,FklVMgc* gc);
 FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 		,uint64_t curline
-		,FklHashTable*);
+		,FklHashTable*
+		,FklSymbolTable* symbolTable);
 
 void fklAddToGC(FklVMvalue*,FklVM*);
 void fklAddToGCNoGC(FklVMvalue*,FklVMgc*);

@@ -774,7 +774,9 @@ static FklNastNode* readerMacroExpand(FklStringMatchPattern* pattern
 		fklWaitGC(anotherVM->gc);
 		fklJoinAllThread(anotherVM);
 		fklDestroyNastNode(r);
-		r=fklCreateNastNodeFromVMvalue(fklGetTopValue(anotherVM->stack),curline,lineHash);
+		r=fklCreateNastNodeFromVMvalue(fklGetTopValue(anotherVM->stack)
+				,curline,lineHash
+				,codegen->publicSymbolTable);
 	}
 	for(FklHashTableNodeList* list=ht->list;list;list=list->next)
 	{

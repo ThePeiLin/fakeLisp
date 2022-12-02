@@ -550,7 +550,8 @@ FklVMvalue* fklCreateVMvalueFromNastNodeNoGC(const FklNastNode* node
 
 FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 		,uint64_t curline
-		,FklHashTable* lineHash)
+		,FklHashTable* lineHash
+		,FklSymbolTable* table)
 {
 	FklHashTable* recValueSet=fklCreateValueSetHashtable();
 	FklNastNode* retval=NULL;
@@ -620,43 +621,43 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 								break;
 							case FKL_TYPE_PROC:
 								cur->type=FKL_NAST_SYM;
-								cur->u.sym=fklAddSymbolToGlobCstr("#<proc>")->id;
+								cur->u.sym=fklAddSymbolCstr("#<proc>",table)->id;
 								break;
 							case FKL_TYPE_DLPROC:
 								cur->type=FKL_NAST_SYM;
-								cur->u.sym=fklAddSymbolToGlobCstr("#<dlproc>")->id;
+								cur->u.sym=fklAddSymbolCstr("#<dlproc>",table)->id;
 								break;
 							case FKL_TYPE_CONT:
 								cur->type=FKL_NAST_SYM;
-								cur->u.sym=fklAddSymbolToGlobCstr("#<cont>")->id;
+								cur->u.sym=fklAddSymbolCstr("#<cont>",table)->id;
 								break;
 							case FKL_TYPE_CHAN:
 								cur->type=FKL_NAST_SYM;
-								cur->u.sym=fklAddSymbolToGlobCstr("#<chan>")->id;
+								cur->u.sym=fklAddSymbolCstr("#<chan>",table)->id;
 								break;
 							case FKL_TYPE_FP:
 								cur->type=FKL_NAST_SYM;
-								cur->u.sym=fklAddSymbolToGlobCstr("#<fp>")->id;
+								cur->u.sym=fklAddSymbolCstr("#<fp>",table)->id;
 								break;
 							case FKL_TYPE_ERR:
 								cur->type=FKL_NAST_SYM;
-								cur->u.sym=fklAddSymbolToGlobCstr("#<err>")->id;
+								cur->u.sym=fklAddSymbolCstr("#<err>",table)->id;
 								break;
 							case FKL_TYPE_CODE_OBJ:
 								cur->type=FKL_NAST_SYM;
-								cur->u.sym=fklAddSymbolToGlobCstr("#<code-obj>")->id;
+								cur->u.sym=fklAddSymbolCstr("#<code-obj>",table)->id;
 								break;
 							case FKL_TYPE_ENV:
 								cur->type=FKL_NAST_SYM;
-								cur->u.sym=fklAddSymbolToGlobCstr("#<env>")->id;
+								cur->u.sym=fklAddSymbolCstr("#<env>",table)->id;
 								break;
 							case FKL_TYPE_USERDATA:
 								cur->type=FKL_NAST_SYM;
-								cur->u.sym=fklAddSymbolToGlobCstr("#<userdata>")->id;
+								cur->u.sym=fklAddSymbolCstr("#<userdata>",table)->id;
 								break;
 							case FKL_TYPE_DLL:
 								cur->type=FKL_NAST_SYM;
-								cur->u.sym=fklAddSymbolToGlobCstr("#<dll>")->id;
+								cur->u.sym=fklAddSymbolCstr("#<dll>",table)->id;
 								break;
 							case FKL_TYPE_BOX:
 								cur->type=FKL_NAST_BOX;
@@ -1398,9 +1399,9 @@ FklVMdll* fklCreateVMdll(const char* dllName)
 void fklInitVMdll(FklVMvalue* rel,FklVM* exe)
 {
 	FklVMdllHandle handle=rel->u.dll->handle;
-	void (*init)(FklSymbolTable*,FklVMdll* dll,FklVM* exe)=fklGetAddress("_fklInit",handle);
+	void (*init)(FklVMdll* dll,FklVM* exe)=fklGetAddress("_fklInit",handle);
 	if(init)
-		init(fklGetGlobSymbolTable(),rel->u.dll,exe);
+		init(rel->u.dll,exe);
 }
 
 void fklDestroyVMvalue(FklVMvalue* cur)
@@ -1691,7 +1692,9 @@ static FklHashTableMethodTable VMenvHashMethTable=
 	.__getKey=_vmenv_getKey,
 };
 
-FklVMenv* fklCreateGlobVMenv(FklVMvalue* prev,FklVMgc* gc)
+FklVMenv* fklCreateGlobVMenv(FklVMvalue* prev
+		,FklVMgc* gc
+		,FklSymbolTable* table)
 {
 	FklVMenv* tmp=(FklVMenv*)malloc(sizeof(FklVMenv));
 	FKL_ASSERT(tmp);
@@ -1699,7 +1702,7 @@ FklVMenv* fklCreateGlobVMenv(FklVMvalue* prev,FklVMgc* gc)
 	tmp->prev=prev;
 	tmp->t=fklCreateHashTable(512,4,2,0.75,1,&VMenvHashMethTable);
 	fklSetRef(&tmp->prev,prev,gc);
-	fklInitGlobEnv(tmp,gc);
+	fklInitGlobEnv(tmp,gc,table);
 	return tmp;
 }
 
@@ -2176,7 +2179,7 @@ FklVMvalue* volatile* fklFindOrAddVarWithValue(FklSid_t id,FklVMvalue* v,FklVMen
 	return r;
 }
 
-void fklDBG_printVMenv(FklVMenv* curEnv,FILE* fp)
+void fklDBG_printVMenv(FklVMenv* curEnv,FILE* fp,FklSymbolTable* table)
 {
 	if(curEnv->t->num==0)
 		fprintf(fp,"This ENV is empty!");
@@ -2187,7 +2190,7 @@ void fklDBG_printVMenv(FklVMenv* curEnv,FILE* fp)
 		{
 			VMenvHashItem* item=list->node->item;
 			FklVMvalue* tmp=item->v;
-			fklPrin1VMvalue(tmp,fp);
+			fklPrin1VMvalue(tmp,fp,table);
 			putc(' ',fp);
 		}
 	}

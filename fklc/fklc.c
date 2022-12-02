@@ -183,9 +183,8 @@ void fklc_make_fbc(ARGL)
 #undef CONST_COMPILE
 #undef IS_LITERAL
 #undef IS_COMPILABLE
-void _fklInit(FklSymbolTable* glob,FklVMdll* dll,FklVM* exe)
+void _fklInit(FklVMdll* dll,FklVM* exe)
 {
-	fklSetGlobSymbolTable(glob);
 	fklcInitFsym();
 	fklcInit(dll);
 }

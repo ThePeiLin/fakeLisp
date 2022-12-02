@@ -291,6 +291,7 @@ typedef struct FklVM
 	jmp_buf buf;
 	int nny;
 	FklSymbolTable* symbolTable;
+	FklSid_t* builtinErrorTypeId;
 }FklVM;
 
 typedef struct FklVMudMethodTable
@@ -373,7 +374,7 @@ typedef struct FklVMerrorHandler
 int fklRunVM(FklVM*);
 //FklVMlist* fklGetGlobVMs(void);
 //void fklSetGlobVMs(FklVMlist*);
-FklVM* fklCreateVM(FklByteCodelnt*,FklVM* prev,FklVM* next);
+FklVM* fklCreateVM(FklByteCodelnt*,FklSymbolTable*,FklVM* prev,FklVM* next);
 //FklVM* fklCreateTmpVM(FklByteCode*,FklVMgc*,FklVM* prev,FklVM* next);
 FklVM* fklCreateThreadVM(FklVMgc* gc,FklVMvalue*,FklVM* prev,FklVM* next,size_t libNum,FklVMlib* libs);
 //FklVM* fklCreateThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue*,FklVM* prev,FklVM* next,size_t libNum,FklVMlib* libs);
@@ -659,21 +660,21 @@ void fklUninitVMlib(FklVMlib*);
 
 #define FKL_RAISE_BUILTIN_ERROR(WHO,ERRORTYPE,EXE) do{\
 	FklString* errorMessage=fklGenErrorMessage((ERRORTYPE));\
-	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerror((WHO),fklGetBuiltInErrorType(ERRORTYPE,(EXE)->symbolTable),errorMessage),(EXE));\
+	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerror((WHO),fklGetBuiltInErrorType(ERRORTYPE,(EXE)->builtinErrorTypeId),errorMessage),(EXE));\
 	fklRaiseVMerror(err,(EXE));\
 	return;\
 }while(0)
 
 #define FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,ERRORTYPE,EXE) do{\
 	FklString* errorMessage=fklGenErrorMessage((ERRORTYPE));\
-	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerrorCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE,(EXE)->symbolTable),errorMessage),(EXE));\
+	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerrorCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE,(EXE)->builtinErrorTypeId),errorMessage),(EXE));\
 	fklRaiseVMerror(err,(EXE));\
 	return;\
 }while(0)
 
 #define FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(WHO,STR,FREE,ERRORTYPE,EXE) do{\
 	FklString* errorMessage=fklGenInvalidSymbolErrorMessage((STR),(FREE),(ERRORTYPE));\
-	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerrorCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE,(EXE)->symbolTable),errorMessage),(EXE));\
+	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerrorCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE,(EXE)->builtinErrorTypeId),errorMessage),(EXE));\
 	fklRaiseVMerror(err,(EXE));\
 	return;\
 }while(0)

@@ -3526,7 +3526,10 @@ FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 		,FklHashTable* lineHash
 		,FklCodegen* codegen)
 {
-	FklVM* anotherVM=fklCreateVM(fklCopyByteCodelnt(bcl),NULL,NULL);
+	FklVM* anotherVM=fklCreateVM(fklCopyByteCodelnt(bcl)
+			,codegen->publicSymbolTable
+			,NULL
+			,NULL);
 	FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV
 			,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc,codegen->publicSymbolTable),anotherVM->gc);
 	FklPtrStack* macroLibStack=codegen->macroLibStack;

@@ -23,7 +23,7 @@
 (let iter ((cp 0)
            (mp 0))
   (when (< cp len)
-    (case (code (sref code cp))
+    (case (_ (sref code cp))
       [(#\>) (begin
                (setq mp (1+ mp))
                (if (>= mp (length m))

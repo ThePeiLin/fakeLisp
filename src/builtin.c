@@ -32,7 +32,7 @@ typedef struct
 	FklVMvalue* sysOut;
 	FklVMvalue* sysErr;
 	FklStringMatchPattern* patterns;
-	FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM];
+	FklSid_t builtInHeadSymbolTable[4];
 }PublicBuiltInUserData;
 
 static PublicBuiltInUserData* createPublicBuiltInUserData(FklVMvalue* sysIn
@@ -81,9 +81,8 @@ static FklVMudMethodTable PublicBuiltInUserDataMethodTable=
 	.__hash=NULL,
 };
 
-static FklSid_t builtInHeadSymbolTable[4]={0};
 
-void fklInitBuiltinErrorType(PublicBuiltInUserData* pd,FklSymbolTable* table)
+void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbolTable* table)
 {
 	static const char* builtInErrorType[]=
 	{
@@ -122,7 +121,7 @@ void fklInitBuiltinErrorType(PublicBuiltInUserData* pd,FklSymbolTable* table)
 	};
 
 	for(size_t i=0;i<FKL_BUILTIN_ERR_NUM;i++)
-		pd->errorTypeId[i]=fklAddSymbolCstr(builtInErrorType[i],table)->id;
+		errorTypeId[i]=fklAddSymbolCstr(builtInErrorType[i],table)->id;
 }
 
 FklSid_t fklGetBuiltInErrorType(FklBuiltInErrorType type,FklSid_t errorTypeId[FKL_ERR_INCORRECT_TYPE_VALUE])
@@ -2766,10 +2765,11 @@ void builtin_read(ARGL)
 		}
 	}
 	size_t errorLine=0;
+	PublicBuiltInUserData* publicUserData=pd->u.ud->data;
 	FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(&tokenStack
 			,route
 			,&errorLine
-			,builtInHeadSymbolTable
+			,publicUserData->builtInHeadSymbolTable
 			,NULL);
 	FklVMvalue* tmp=NULL;
 	if(node==NULL)
@@ -2844,10 +2844,11 @@ void builtin_parse(ARGL)
 			,&troute);
 	fklDestroyStringMatchSet(matchSet);
 	size_t errorLine=0;
+	PublicBuiltInUserData* publicUserData=pd->u.ud->data;
 	FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack
 			,route
 			,&errorLine
-			,builtInHeadSymbolTable
+			,publicUserData->builtInHeadSymbolTable
 			,NULL);
 	fklDestroyStringMatchRoute(route);
 	FklVMvalue* tmp=NULL;
@@ -5150,21 +5151,22 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMgc* gc,FklSymbolTable* table)
 		"unquote",
 		"unqtesp",
 	};
-	for(int i=0;i<3;i++)
-		builtInHeadSymbolTable[i]=fklAddSymbolCstr(builtInHeadSymbolTableCstr[i],table)->id;
 	const struct SymbolFuncStruct* list=builtInSymbolList;
 	FklVMvalue* builtInStdin=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stdin),gc);
 	FklVMvalue* builtInStdout=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stdout),gc);
 	FklVMvalue* builtInStderr=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stderr),gc);
+	PublicBuiltInUserData* pd=createPublicBuiltInUserData(builtInStdin
+					,builtInStdout
+					,builtInStderr
+					,table);
 	FklVMvalue* publicUserData=fklCreateVMvalueNoGC(FKL_TYPE_USERDATA
 			,fklCreateVMudata(0
 				,&PublicBuiltInUserDataMethodTable
-				,createPublicBuiltInUserData(builtInStdin
-					,builtInStdout
-					,builtInStderr
-					,table)
+				,pd
 				,FKL_VM_NIL)
 			,gc);
+	for(int i=0;i<3;i++)
+		pd->builtInHeadSymbolTable[i]=fklAddSymbolCstr(builtInHeadSymbolTableCstr[i],table)->id;
 	fklFindOrAddVarWithValue(fklAddSymbolCstr((list++)->s,table)->id,builtInStdin,obj);
 	fklFindOrAddVarWithValue(fklAddSymbolCstr((list++)->s,table)->id,builtInStdout,obj);
 	fklFindOrAddVarWithValue(fklAddSymbolCstr((list++)->s,table)->id,builtInStderr,obj);

@@ -48,5 +48,6 @@ typedef struct FklCodegenEnv FklCodegenEnv;
 void fklInitGlobCodegenEnv(FklCodegenEnv*,FklSymbolTable*);
 void fklInitGlobEnv(FklVMenv*,FklVMgc*,FklSymbolTable*);
 void fklInitSymbolTableWithBuiltinSymbol(FklSymbolTable* symbolTable);
-FklSid_t fklGetBuiltInErrorType(FklBuiltInErrorType,FklSymbolTable*);
+void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbolTable* table);
+FklSid_t fklGetBuiltInErrorType(FklBuiltInErrorType type,FklSid_t errorTypeId[FKL_ERR_INCORRECT_TYPE_VALUE]);
 #endif

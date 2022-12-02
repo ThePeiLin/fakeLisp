@@ -7,14 +7,14 @@
 typedef SSIZE_T ssize_t;
 #endif
 
-void fklFfiInitGlobNativeTypes(FklFfiPublicData* pd)
+void fklFfiInitGlobNativeTypes(FklFfiPublicData* pd,FklSymbolTable* table)
 {
 	pd->defTypes=fklFfiCreateDefTypes();
 	pthread_rwlock_init(&pd->defTypesLock,NULL);
 	pthread_rwlock_init(&pd->typeUnionList.typeUnionLock,NULL);
 	pd->typeUnionList.num=0;
 	pd->typeUnionList.ul=NULL;
-	fklFfiInitNativeDefTypes(pd->defTypes,pd);
+	fklFfiInitNativeDefTypes(pd->defTypes,pd,table);
 }
 
 void fklFfiDestroyGlobDefTypeTable(FklFfiPublicData* pd)
@@ -25,7 +25,9 @@ void fklFfiDestroyGlobDefTypeTable(FklFfiPublicData* pd)
 	pthread_rwlock_destroy(&pd->defTypesLock);
 }
 
-void fklFfiInitNativeDefTypes(FklDefTypes* otherTypes,FklFfiPublicData* pd)
+void fklFfiInitNativeDefTypes(FklDefTypes* otherTypes
+		,FklFfiPublicData* pd
+		,FklSymbolTable* table)
 {
 	struct
 	{
@@ -67,7 +69,7 @@ void fklFfiInitNativeDefTypes(FklDefTypes* otherTypes,FklFfiPublicData* pd)
 	size_t i=0;
 	for(;i<num;i++)
 	{
-		FklSid_t typeName=fklAddSymbolToGlobCstr(nativeTypeList[i].typeName)->id;
+		FklSid_t typeName=fklAddSymbolCstr(nativeTypeList[i].typeName,table)->id;
 		FklTypeId_t t=fklFfiCreateNativeType(typeName,nativeTypeList[i].size,nativeTypeList[i].align,pd);
 		fklFfiAddDefTypes(otherTypes,typeName,t);
 	}
@@ -471,14 +473,14 @@ void fklFfiDestroyFuncType(FklDefFuncType* obj)
 	free(FKL_GET_TYPES_PTR(obj));
 }
 
-void fklFfiInitTypedefSymbol(FklFfiPublicData* pd)
+void fklFfiInitTypedefSymbol(FklFfiPublicData* pd,FklSymbolTable* table)
 {
-	pd->arrayTypedefSymbolId=fklAddSymbolToGlobCstr("array")->id;
-	pd->ptrTypedefSymbolId=fklAddSymbolToGlobCstr("ptr")->id;
-	pd->structTypedefSymbolId=fklAddSymbolToGlobCstr("struct")->id;
-	pd->unionTypedefSymbolId=fklAddSymbolToGlobCstr("union")->id;
-	pd->functionTypedefSymbolId=fklAddSymbolToGlobCstr("function")->id;
-	pd->voidSymbolId=fklAddSymbolToGlobCstr("void")->id;
+	pd->arrayTypedefSymbolId=fklAddSymbolCstr("array",table)->id;
+	pd->ptrTypedefSymbolId=fklAddSymbolCstr("ptr",table)->id;
+	pd->structTypedefSymbolId=fklAddSymbolCstr("struct",table)->id;
+	pd->unionTypedefSymbolId=fklAddSymbolCstr("union",table)->id;
+	pd->functionTypedefSymbolId=fklAddSymbolCstr("function",table)->id;
+	pd->voidSymbolId=fklAddSymbolCstr("void",table)->id;
 }
 
 /*genTypeId functions list*/
@@ -986,11 +988,10 @@ static const char* FfiErrorType[]=
 	"invalid-assign",
 };
 
-FklSid_t fklFfiGetErrorType(FklFfiErrorType type)
+FklSid_t fklFfiGetErrorType(FklFfiErrorType type
+		,const FklSid_t* ffiErrorTypeId
+		)
 {
-	static FklSid_t ffiErrorTypeId[sizeof(FfiErrorType)/sizeof(const char*)]={0};
-	if(!ffiErrorTypeId[type])
-		ffiErrorTypeId[type]=fklAddSymbolToGlobCstr(FfiErrorType[type])->id;
 	return ffiErrorTypeId[type];
 }
 

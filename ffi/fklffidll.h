@@ -21,8 +21,15 @@ void fklFfiInitSharedObj(FklFfiPublicData*);
 int fklFfiIsProc(FklVMvalue*);
 void fklFfiDestroyAllSharedObj(FklFfiPublicData* pd);
 void fklFfiAddSharedObj(FklFfidllHandle handle,FklFfiPublicData* pd);
-FklVMudata* fklFfiCreateProcUd(FklTypeId_t id,const char*,FklVMvalue*,FklVMvalue* pd);
-FklFfiProc* fklFfiCreateProc(FklTypeId_t type,void* func,FklSid_t,FklVMvalue*);
+FklVMudata* fklFfiCreateProcUd(FklTypeId_t id
+		,const char*
+		,FklVMvalue*
+		,FklVMvalue* pd
+		,FklSymbolTable* table);
+FklFfiProc* fklFfiCreateProc(FklTypeId_t type
+		,void* func
+		,FklSid_t
+		,FklVMvalue*);
 int fklFfiIsValidFunctionType(FklDefTypeUnion type,FklFfiPublicData* pd);
 
 #ifdef __cplusplus

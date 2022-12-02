@@ -273,7 +273,7 @@ void ffi_set(ARGL)
 	if(!fklFfiIsMem(ref)
 			||(!fklFfiIsMem(mem)&&!fklFfiIsCastableVMvalueType(mem)))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.set",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	if(fklFfiSetMem(ref->u.ud->data,mem))
+	if(fklFfiSetMem(ref->u.ud->data,mem,exe->symbolTable))
 		FKL_FFI_RAISE_ERROR("ffi.set",FKL_FFI_ERR_INVALID_ASSIGN,exe);
 	fklNiReturn(mem,&ap,stack);
 	fklNiEnd(&ap,stack);
@@ -289,7 +289,7 @@ void ffi_mem(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.mem",FKL_ERR_TOOMANYARG,exe);
 	if(!fklFfiIsCastableVMvalueType(val))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("ffi.mem",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklFfiCastVMvalueIntoMem(val,rel,pd),exe),&ap,stack);
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_USERDATA,fklFfiCastVMvalueIntoMem(val,rel,pd,exe->symbolTable),exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -333,7 +333,7 @@ void ffi_proc(ARGL)
 			FKL_FFI_RAISE_ERROR("ffi.proc",FKL_FFI_ERR_INVALID_TYPEDECLARE,exe);
 	}
 	char* cStr=fklCharBufToCstr(val->u.str->str,val->u.str->size);
-	FklVMudata* func=fklFfiCreateProcUd(id,cStr,rel,pd);
+	FklVMudata* func=fklFfiCreateProcUd(id,cStr,rel,pd,exe->symbolTable);
 	if(!func)
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("ffi.proc",cStr,1,FKL_ERR_INVALIDSYMBOL,exe);
 	free(cStr);
@@ -372,9 +372,8 @@ static FklVMudMethodTable pdtable=
 void _fklInit(FklSymbolTable* glob,FklVMdll* rel,FklVM* exe)
 {
 	FklVMgc* gc=exe->gc;
-	fklSetGlobSymbolTable(glob);
 	FklFfiPublicData* pd=createFfiPd();
-	fklFfiMemInit(pd);
+	fklFfiMemInit(pd,exe->symbolTable);
 	fklFfiInitGlobNativeTypes(pd);
 	fklFfiInitTypedefSymbol(pd);
 	fklFfiInitSharedObj(pd);

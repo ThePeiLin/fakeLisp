@@ -52,11 +52,11 @@ static void _ffi_proc_atomic_finalizer(void* p)
 	fklFfiDestroyProc(p);
 }
 
-static void _ffi_proc_print(void* p,FILE* fp)
+static void _ffi_proc_print(void* p,FILE* fp,FklSymbolTable* table)
 {
 	FklFfiProc* f=p;
 	fprintf(fp,"#<ffi-proc ");
-	fklPrintString(fklGetGlobSymbolWithId(f->sid)->symbol,fp);
+	fklPrintString(fklGetSymbolWithId(f->sid,table)->symbol,fp);
 	fputc('>',fp);
 }
 
@@ -119,14 +119,14 @@ typedef struct
 	FfiprocFrameState state;
 }FfiprocFrameContext;
 
-static void ffiproc_frame_print_backtrace(void* data[6],FILE* fp)
+static void ffiproc_frame_print_backtrace(void* data[6],FILE* fp,FklSymbolTable* table)
 {
 	FfiprocFrameContext* c=(FfiprocFrameContext*)data;
 	FklFfiProc* ffiproc=c->proc->u.ud->data;
 	if(ffiproc->sid)
 	{
 		fprintf(fp,"at ffi-proc:");
-		fklPrintString(fklGetGlobSymbolWithId(ffiproc->sid)->symbol
+		fklPrintString(fklGetSymbolWithId(ffiproc->sid,table)->symbol
 				,stderr);
 		fputc('\n',fp);
 	}
@@ -180,14 +180,14 @@ static void _ffi_proc_invoke(FklFfiProc* proc
 		if(v==NULL)
 		{
 			free(args);
-			FKL_RAISE_BUILTIN_ERROR(fklGetGlobSymbolWithId(proc->sid)->symbol,FKL_ERR_TOOFEWARG,exe);
+			FKL_RAISE_BUILTIN_ERROR(fklGetSymbolWithId(proc->sid,exe->symbolTable)->symbol,FKL_ERR_TOOFEWARG,exe);
 		}
 		args[i]=v;
 	}
 	if(fklNiResBp(&ap,stack))
 	{
 		free(args);
-		FKL_RAISE_BUILTIN_ERROR(fklGetGlobSymbolWithId(proc->sid)->symbol,FKL_ERR_TOOMANYARG,exe);
+		FKL_RAISE_BUILTIN_ERROR(fklGetSymbolWithId(proc->sid,exe->symbolTable)->symbol,FKL_ERR_TOOMANYARG,exe);
 	}
 	void** pArgs=(void**)malloc(sizeof(void*)*anum);
 	FklVMudata** udataList=(FklVMudata**)malloc(sizeof(FklVMudata*)*anum);
@@ -197,7 +197,7 @@ static void _ffi_proc_invoke(FklFfiProc* proc
 	{
 		FklDefTypeUnion tu=fklFfiLockAndGetTypeUnion(atypes[i],pd);
 		FklVMudata* ud=fklFfiCreateMemUd(atypes[i],fklFfiGetTypeSize(tu),NULL,rel,proc->pd);
-		if(fklFfiSetMemForProc(ud,args[i]))
+		if(fklFfiSetMemForProc(ud,args[i],exe->symbolTable))
 		{
 			for(uint32_t j=0;j<i;j++)
 			{
@@ -210,7 +210,7 @@ static void _ffi_proc_invoke(FklFfiProc* proc
 			free(args);
 			free(pArgs);
 			free(udataList);
-			FKL_RAISE_BUILTIN_ERROR(fklGetGlobSymbolWithId(proc->sid)->symbol,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+			FKL_RAISE_BUILTIN_ERROR(fklGetSymbolWithId(proc->sid,exe->symbolTable)->symbol,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 		}
 		FklFfiMem* mem=ud->data;
 		if(mem->type==FKL_FFI_TYPE_FILE_P||mem->type==FKL_FFI_TYPE_STRING||fklFfiIsArrayType(fklFfiLockAndGetTypeUnion(mem->type,pd)))
@@ -363,7 +363,9 @@ FklFfiProc* fklFfiCreateProc(FklTypeId_t type,void* func,FklSid_t sid,FklVMvalue
 
 FklVMudata* fklFfiCreateProcUd(FklTypeId_t type
 		,const char* cStr
-		,FklVMvalue* rel,FklVMvalue* pd)
+		,FklVMvalue* rel
+		,FklVMvalue* pd
+		,FklSymbolTable* table)
 {
 	FklFfiPublicData* publicData=pd->u.ud->data;
 	pthread_rwlock_rdlock(&publicData->sharedObjsLock);
@@ -377,5 +379,5 @@ FklVMudata* fklFfiCreateProcUd(FklTypeId_t type
 	pthread_rwlock_unlock(&publicData->sharedObjsLock);
 	if(!address)
 		return NULL;
-	return fklCreateVMudata(publicData->memUdSid,&FfiProcMethodTable,fklFfiCreateProc(type,address,fklAddSymbolToGlobCstr(cStr)->id,pd),rel);
+	return fklCreateVMudata(publicData->memUdSid,&FfiProcMethodTable,fklFfiCreateProc(type,address,fklAddSymbolCstr(cStr,table)->id,pd),rel);
 }

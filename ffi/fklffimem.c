@@ -9,12 +9,12 @@
 typedef SSIZE_T ssize_t;
 #endif
 
-static void _mem_finalizer(void* p)
+static void fkl_ffi_mem_finalizer(void* p)
 {
 	free(p);
 }
 
-static void _mem_atomic_finalizer(void* p)
+static void fkl_ffi_mem_atomic_finalizer(void* p)
 {
 	FklFfiMem* m=p;
 	free(m->mem);
@@ -197,7 +197,7 @@ static void (*NativeTypePrinterList[])(FILE*,void*)=
 	printVptr     ,
 };
 
-static void _mem_print(void* p,FILE* fp)
+static void fkl_ffi_mem_print(void* p,FILE* fp,FklSymbolTable* table)
 {
 	FklFfiMem* m=p;
 	FklFfiPublicData* pd=m->pd->u.ud->data;
@@ -224,10 +224,10 @@ static void _mem_print(void* p,FILE* fp)
 				size_t align=fklFfiGetTypeAlign(tu);
 				offset+=(offset%align)?align-offset%align:0;
 				fputc('.',fp);
-				fklPrintString(fklGetGlobSymbolWithId(item->key)->symbol,fp);
+				fklPrintString(fklGetSymbolWithId(item->key,table)->symbol,fp);
 				fputc('=',fp);
 				FklFfiMem tm={m->pd,item->type,m->mem+offset};
-				_mem_print(&tm,fp);
+				fkl_ffi_mem_print(&tm,fp,table);
 				size_t memberSize=fklFfiGetTypeSize(tu);
 				offset+=memberSize;
 				fputc(',',fp);
@@ -242,10 +242,10 @@ static void _mem_print(void* p,FILE* fp)
 			{
 				FklFfiMemberHashItem* item=list->node->item;
 				fputc('.',fp);
-				fklPrintString(fklGetGlobSymbolWithId(item->key)->symbol,fp);
+				fklPrintString(fklGetSymbolWithId(item->key,table)->symbol,fp);
 				fputc('=',fp);
 				FklFfiMem tm={m->pd,item->type,m->mem};
-				_mem_print(&tm,fp);
+				fkl_ffi_mem_print(&tm,fp,table);
 				fputc(';',fp);
 			}
 			fputc('}',fp);
@@ -257,7 +257,7 @@ static void _mem_print(void* p,FILE* fp)
 			for(uint32_t i=0;i<at->num;i++)
 			{
 				FklFfiMem tm={m->pd,at->etype,m->mem+i*fklFfiGetTypeSize(tu)};
-				_mem_print(&tm,fp);
+				fkl_ffi_mem_print(&tm,fp,table);
 				fputc(',',fp);
 			}
 			fputc(']',fp);
@@ -265,7 +265,7 @@ static void _mem_print(void* p,FILE* fp)
 	}
 }
 
-int _mem_equal(const FklVMudata* a,const FklVMudata* b)
+int fkl_ffi_mem_equal(const FklVMudata* a,const FklVMudata* b)
 {
 	if(a->t->__call!=b->t->__call)
 		return 0;
@@ -292,7 +292,7 @@ int _mem_equal(const FklVMudata* a,const FklVMudata* b)
 	return 0;
 }
 
-static int _mem_cmp_VU(FklVMvalue* a,FklFfiMem* b,int* isUnableToBeCmp)
+static int fkl_ffi_mem_cmp_VU(FklVMvalue* a,FklFfiMem* b,int* isUnableToBeCmp)
 {
 	if((FKL_IS_STR(a)&&b->type!=FKL_FFI_TYPE_STRING)
 			||(!FKL_IS_STR(a)&&b->type==FKL_FFI_TYPE_STRING)
@@ -353,7 +353,7 @@ static int _mem_cmp_VU(FklVMvalue* a,FklFfiMem* b,int* isUnableToBeCmp)
 	return 0;
 }
 
-static int _mem_cmp_UU(FklFfiMem* a,FklFfiMem* b,int* isUnableToBeCmp)
+static int fkl_ffi_mem_cmp_UU(FklFfiMem* a,FklFfiMem* b,int* isUnableToBeCmp)
 {
 	if((a->type==FKL_FFI_TYPE_STRING&&b->type!=a->type)
 			||(a->type!=FKL_FFI_TYPE_STRING&&b->type==FKL_FFI_TYPE_STRING)
@@ -390,14 +390,14 @@ static int _mem_cmp_UU(FklFfiMem* a,FklFfiMem* b,int* isUnableToBeCmp)
 	return 0;
 }
 
-static int _mem_cmp(FklVMvalue* a,FklVMvalue* b,int* isUnableToBeCmp)
+static int fkl_ffi_mem_cmp(FklVMvalue* a,FklVMvalue* b,int* isUnableToBeCmp)
 {
 	if(fklFfiIsMem(a)&&!fklFfiIsMem(b))
-		return _mem_cmp_VU(b,a->u.ud->data,isUnableToBeCmp)*-1;
+		return fkl_ffi_mem_cmp_VU(b,a->u.ud->data,isUnableToBeCmp)*-1;
 	else if(fklFfiIsMem(b)&&!fklFfiIsMem(a))
-		return _mem_cmp_VU(a,b->u.ud->data,isUnableToBeCmp);
+		return fkl_ffi_mem_cmp_VU(a,b->u.ud->data,isUnableToBeCmp);
 	else if(fklFfiIsMem(a)&&fklFfiIsMem(b))
-		return _mem_cmp_UU(a->u.ud->data,b->u.ud->data,isUnableToBeCmp);
+		return fkl_ffi_mem_cmp_UU(a->u.ud->data,b->u.ud->data,isUnableToBeCmp);
 	else
 	{
 		*isUnableToBeCmp=1;
@@ -405,7 +405,7 @@ static int _mem_cmp(FklVMvalue* a,FklVMvalue* b,int* isUnableToBeCmp)
 	}
 }
 
-static void _mem_atomic(void* data,FklVMgc* gc)
+static void fkl_ffi_mem_atomic(void* data,FklVMgc* gc)
 {
 	FklFfiMem* mem=data;
 	fklGC_toGrey(mem->pd,gc);
@@ -413,14 +413,14 @@ static void _mem_atomic(void* data,FklVMgc* gc)
 
 static FklVMudMethodTable FfiMemMethodTable=
 {
-	.__princ=_mem_print,
-	.__prin1=_mem_print,
-	.__finalizer=_mem_finalizer,
-	.__equal=_mem_equal,
+	.__princ=fkl_ffi_mem_print,
+	.__prin1=fkl_ffi_mem_print,
+	.__finalizer=fkl_ffi_mem_finalizer,
+	.__equal=fkl_ffi_mem_equal,
 	.__call=NULL,
-	.__cmp=_mem_cmp,
+	.__cmp=fkl_ffi_mem_cmp,
 	.__write=NULL,
-	.__atomic=_mem_atomic,
+	.__atomic=fkl_ffi_mem_atomic,
 	.__append=NULL,
 	.__copy=NULL,
 	.__hash=NULL,
@@ -429,27 +429,27 @@ static FklVMudMethodTable FfiMemMethodTable=
 
 static FklVMudMethodTable FfiAtomicMemMethodTable=
 {
-	.__princ=_mem_print,
-	.__prin1=_mem_print,
-	.__finalizer=_mem_atomic_finalizer,
-	.__equal=_mem_equal,
+	.__princ=fkl_ffi_mem_print,
+	.__prin1=fkl_ffi_mem_print,
+	.__finalizer=fkl_ffi_mem_atomic_finalizer,
+	.__equal=fkl_ffi_mem_equal,
 	.__call=NULL,
-	.__cmp=_mem_cmp,
+	.__cmp=fkl_ffi_mem_cmp,
 	.__write=NULL,
-	.__atomic=_mem_atomic,
+	.__atomic=fkl_ffi_mem_atomic,
 	.__append=NULL,
 	.__copy=NULL,
 	.__hash=NULL,
 	.__setq_hook=NULL,
 };
 
-void fklFfiMemInit(FklFfiPublicData* pd)
+void fklFfiMemInit(FklFfiPublicData* pd,FklSymbolTable* table)
 {
-	pd->memUdSid=fklAddSymbolToGlobCstr("ffi-mem")->id;
-	pd->atomicSid=fklAddSymbolToGlobCstr("atomic")->id;
-	pd->rawSid=fklAddSymbolToGlobCstr("raw")->id;
-	pd->refSid=fklAddSymbolToGlobCstr("&")->id;
-	pd->deRefSid=fklAddSymbolToGlobCstr("*")->id;
+	pd->memUdSid=fklAddSymbolCstr("ffi-mem",table)->id;
+	pd->atomicSid=fklAddSymbolCstr("atomic",table)->id;
+	pd->rawSid=fklAddSymbolCstr("raw",table)->id;
+	pd->refSid=fklAddSymbolCstr("&",table)->id;
+	pd->deRefSid=fklAddSymbolCstr("*",table)->id;
 }
 
 FklFfiMem* fklFfiCreateMem(FklTypeId_t type,size_t size,FklVMvalue* pd)
@@ -666,7 +666,7 @@ static int (*__ffiMemSetList[])(void*,FklVMvalue*)=
 	__set_uptr     ,
 };
 
-int fklFfiSetMemForProc(FklVMudata* ud,FklVMvalue* val)
+int fklFfiSetMemForProc(FklVMudata* ud,FklVMvalue* val,FklSymbolTable* table)
 {
 	FklFfiMem* ref=ud->data;
 	FklFfiPublicData* pd=ref->pd->u.ud->data;
@@ -714,7 +714,7 @@ int fklFfiSetMemForProc(FklVMudata* ud,FklVMvalue* val)
 			{
 				if(ref->mem)
 					free(ref->mem);
-				FklString* s=fklGetGlobSymbolWithId(FKL_GET_SYM(val))->symbol;
+				FklString* s=fklGetSymbolWithId(FKL_GET_SYM(val),table)->symbol;
 				ref->mem=fklCharBufToCstr(s->str,s->size);
 			}
 			else if(fklFfiIsMem(val))
@@ -761,7 +761,7 @@ int fklFfiSetMemForProc(FklVMudata* ud,FklVMvalue* val)
 	return 0;
 }
 
-int fklFfiSetMem(FklFfiMem* ref,FklVMvalue* val)
+int fklFfiSetMem(FklFfiMem* ref,FklVMvalue* val,FklSymbolTable* table)
 {
 	FklFfiPublicData* pd=ref->pd->u.ud->data;
 	if(fklFfiIsNumTypeId(ref->type))
@@ -808,7 +808,7 @@ int fklFfiSetMem(FklFfiMem* ref,FklVMvalue* val)
 			{
 				if(ref->mem)
 					free(ref->mem);
-				FklString* s=fklGetGlobSymbolWithId(FKL_GET_SYM(val))->symbol;
+				FklString* s=fklGetSymbolWithId(FKL_GET_SYM(val),table)->symbol;
 				ref->mem=fklCharBufToCstr(s->str,s->size);
 			}
 			else if(fklFfiIsMem(val))
@@ -867,7 +867,10 @@ int fklFfiIsCastableVMvalueType(FklVMvalue* v)
 		&&!fklFfiIsMem(v);
 }
 
-FklVMudata* fklFfiCastVMvalueIntoMem(FklVMvalue* v,FklVMvalue* rel,FklVMvalue* pd)
+FklVMudata* fklFfiCastVMvalueIntoMem(FklVMvalue* v
+		,FklVMvalue* rel
+		,FklVMvalue* pd
+		,FklSymbolTable* table)
 {
 	FklFfiPublicData* publicData=pd->u.ud->data;
 	FklFfiMem* m=NULL;
@@ -896,7 +899,7 @@ FklVMudata* fklFfiCastVMvalueIntoMem(FklVMvalue* v,FklVMvalue* rel,FklVMvalue* p
 		m=fklFfiCreateRef(FKL_FFI_TYPE_STRING,fklCharBufToCstr(v->u.str->str,v->u.str->size),pd);
 	else if(FKL_IS_SYM(v))
 	{
-		FklString* s=fklGetGlobSymbolWithId(FKL_GET_SYM(v))->symbol;
+		FklString* s=fklGetSymbolWithId(FKL_GET_SYM(v),table)->symbol;
 		m=fklFfiCreateRef(FKL_FFI_TYPE_STRING,fklCharBufToCstr(s->str,s->size),pd);
 	}
 	else if(FKL_IS_FP(v))

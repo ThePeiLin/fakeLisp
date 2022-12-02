@@ -187,7 +187,7 @@ FklTypeId_t fklFfiGenDefTypes(FklVMvalue*,FklDefTypes* otherTypes,FklSid_t typeN
 FklTypeId_t fklFfiGenDefTypesUnion(FklVMvalue*,FklDefTypes* otherTypes,FklFfiPublicData* pd);
 FklDefTypesNode* fklFfiFindDefTypesNode(FklSid_t typeId,FklDefTypes* otherTypes);
 int fklFfiAddDefTypes(FklDefTypes*,FklSid_t typeName,FklTypeId_t);
-void fklFfiInitNativeDefTypes(FklDefTypes* otherTypes,FklFfiPublicData*);
+void fklFfiInitNativeDefTypes(FklDefTypes* otherTypes,FklFfiPublicData*,FklSymbolTable* table);
 
 void fklFfiWriteTypeList(FILE* fp);
 void fklFfiLoadTypeList(FILE* fp);
@@ -244,12 +244,12 @@ size_t fklFfiGetTypeAlign(FklDefTypeUnion t);
 FklDefTypeUnion fklFfiLockAndGetTypeUnion(FklTypeId_t,FklFfiPublicData* pd);
 FklDefTypeUnion fklFfiGetTypeUnion(FklTypeId_t,FklFfiPublicData* pd);
 
-void fklFfiInitGlobNativeTypes(FklFfiPublicData*);
+void fklFfiInitGlobNativeTypes(FklFfiPublicData*,FklSymbolTable* table);
 void fklFfiDestroyGlobDefTypeTable(FklFfiPublicData*);
-void fklFfiInitTypedefSymbol(FklFfiPublicData* pd);
+void fklFfiInitTypedefSymbol(FklFfiPublicData* pd,FklSymbolTable* table);
 
 int fklFfiIsNativeTypeName(FklSid_t id,FklFfiPublicData* pd);
-FklSid_t fklFfiGetErrorType(FklFfiErrorType);
+FklSid_t fklFfiGetErrorType(FklFfiErrorType,const FklSid_t*);
 FklString* fklFfiGenErrorMessage(FklFfiErrorType);
 
 FklTypeId_t fklFfiGenTypeId(FklVMvalue*,FklFfiPublicData* pd);

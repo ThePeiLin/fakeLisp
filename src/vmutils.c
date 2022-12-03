@@ -531,11 +531,12 @@ static int isInValueSet(FklVMvalue* v,FklHashTable* t,size_t* w)
 void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet)
 {
 	FklHashTable* totalAccessed=fklCreateValueSetHashtable();
-	FklPtrStack* beAccessed=fklCreatePtrStack(32,16);
-	fklPushPtrStack(s,beAccessed);
-	while(!fklIsPtrStackEmpty(beAccessed))
+	FklPtrStack beAccessed={NULL,0,0,0};
+	fklInitPtrStack(&beAccessed,32,16);
+	fklPushPtrStack(s,&beAccessed);
+	while(!fklIsPtrStackEmpty(&beAccessed))
 	{
-		FklVMvalue* v=fklPopPtrStack(beAccessed);
+		FklVMvalue* v=fklPopPtrStack(&beAccessed);
 		if(FKL_IS_PAIR(v)||FKL_IS_VECTOR(v)||FKL_IS_BOX(v)||FKL_IS_HASHTABLE(v))
 		{
 			if(isInValueSet(v,totalAccessed,NULL))
@@ -552,8 +553,8 @@ void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet)
 					putValueInSet(recValueSet,v);
 				else
 				{
-					fklPushPtrStack(v->u.pair->cdr,beAccessed);
-					fklPushPtrStack(v->u.pair->car,beAccessed);
+					fklPushPtrStack(v->u.pair->cdr,&beAccessed);
+					fklPushPtrStack(v->u.pair->car,&beAccessed);
 				}
 			}
 			else if(FKL_IS_VECTOR(v))
@@ -564,39 +565,40 @@ void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet)
 					if(vec->base[i-1]==v)
 						putValueInSet(recValueSet,v);
 					else
-						fklPushPtrStack(vec->base[i-1],beAccessed);
+						fklPushPtrStack(vec->base[i-1],&beAccessed);
 				}
 			}
 			else if(FKL_IS_HASHTABLE(v))
 			{
 				FklVMhashTable* ht=v->u.hash;
-				FklPtrStack* stack=fklCreatePtrStack(32,16);
+				FklPtrStack stack={NULL,0,0,0};
+				fklInitPtrStack(&stack,32,16);
 				for(FklHashTableNodeList* list=ht->ht->list;list;list=list->next)
-					fklPushPtrStack(list->node->item,stack);
-				while(!fklIsPtrStackEmpty(stack))
+					fklPushPtrStack(list->node->item,&stack);
+				while(!fklIsPtrStackEmpty(&stack))
 				{
-					FklVMhashTableItem* item=fklPopPtrStack(stack);
+					FklVMhashTableItem* item=fklPopPtrStack(&stack);
 					if(item->v==v||item->key==v)
 						putValueInSet(recValueSet,v);
 					else
 					{
-						fklPushPtrStack(item->v,beAccessed);
-						fklPushPtrStack(item->key,beAccessed);
+						fklPushPtrStack(item->v,&beAccessed);
+						fklPushPtrStack(item->key,&beAccessed);
 					}
 				}
-				fklDestroyPtrStack(stack);
+				fklUninitPtrStack(&stack);
 			}
 			else
 			{
 				if(v->u.box==v)
 					putValueInSet(recValueSet,v);
 				else
-					fklPushPtrStack(v->u.box,beAccessed);
+					fklPushPtrStack(v->u.box,&beAccessed);
 			}
 		}
 	}
 	fklDestroyHashTable(totalAccessed);
-	fklDestroyPtrStack(beAccessed);
+	fklUninitPtrStack(&beAccessed);
 }
 
 static void princVMatom(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
@@ -850,12 +852,13 @@ void fklPrintVMvalue(FklVMvalue* value
 	FklHashTable* hasPrintRecSet=fklCreateValueSetHashtable();
 	fklScanCirRef(value,recValueSet);
 	FklPtrQueue* queue=fklCreatePtrQueue();
-	FklPtrStack* queueStack=fklCreatePtrStack(32,16);
+	FklPtrStack queueStack={NULL,0,0,0};
+	fklInitPtrStack(&queueStack,32,16);
 	fklPushPtrQueue(createPrtElem(PRT_CAR,value),queue);
-	fklPushPtrStack(queue,queueStack);
-	while(!fklIsPtrStackEmpty(queueStack))
+	fklPushPtrStack(queue,&queueStack);
+	while(!fklIsPtrStackEmpty(&queueStack))
 	{
-		FklPtrQueue* cQueue=fklTopPtrStack(queueStack);
+		FklPtrQueue* cQueue=fklTopPtrStack(&queueStack);
 		while(fklLengthPtrQueue(cQueue))
 		{
 			PrtElem* e=fklPopPtrQueue(cQueue);
@@ -874,7 +877,7 @@ void fklPrintVMvalue(FklVMvalue* value
 				HashPrtElem* elem=(void*)e->v;
 				fklPushPtrQueue(elem->key,iQueue);
 				fklPushPtrQueue(elem->v,iQueue);
-				fklPushPtrStack(iQueue,queueStack);
+				fklPushPtrStack(iQueue,&queueStack);
 				cQueue=iQueue;
 				free(elem);
 				free(e);
@@ -907,7 +910,7 @@ void fklPrintVMvalue(FklVMvalue* value
 								putValueInSet(hasPrintRecSet,v->u.vec->base[i]);
 							}
 						}
-						fklPushPtrStack(vQueue,queueStack);
+						fklPushPtrStack(vQueue,&queueStack);
 						cQueue=vQueue;
 						continue;
 					}
@@ -956,7 +959,7 @@ void fklPrintVMvalue(FklVMvalue* value
 							}
 							fklPushPtrQueue(createPrtElem(PRT_HASH_ITEM,(void*)createHashPrtElem(keyElem,vElem)),hQueue);
 						}
-						fklPushPtrStack(hQueue,queueStack);
+						fklPushPtrStack(hQueue,&queueStack);
 						cQueue=hQueue;
 						continue;
 					}
@@ -1002,7 +1005,7 @@ void fklPrintVMvalue(FklVMvalue* value
 							}
 							p=next;
 						}
-						fklPushPtrStack(lQueue,queueStack);
+						fklPushPtrStack(lQueue,&queueStack);
 						cQueue=lQueue;
 						continue;
 					}
@@ -1016,12 +1019,12 @@ void fklPrintVMvalue(FklVMvalue* value
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_REC_BOX)
 				fputc(' ',fp);
 		}
-		fklPopPtrStack(queueStack);
+		fklPopPtrStack(&queueStack);
 		fklDestroyPtrQueue(cQueue);
-		if(!fklIsPtrStackEmpty(queueStack))
+		if(!fklIsPtrStackEmpty(&queueStack))
 		{
 			fputc(')',fp);
-			cQueue=fklTopPtrStack(queueStack);
+			cQueue=fklTopPtrStack(&queueStack);
 			if(fklLengthPtrQueue(cQueue)
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_CDR
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_REC_CDR
@@ -1030,7 +1033,7 @@ void fklPrintVMvalue(FklVMvalue* value
 				fputc(' ',fp);
 		}
 	}
-	fklDestroyPtrStack(queueStack);
+	fklUninitPtrStack(&queueStack);
 	fklDestroyHashTable(recValueSet);
 	fklDestroyHashTable(hasPrintRecSet);
 }
@@ -1206,12 +1209,13 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 	FklHashTable* hasPrintRecSet=fklCreateValueSetHashtable();
 	fklScanCirRef(value,recValueSet);
 	FklPtrQueue* queue=fklCreatePtrQueue();
-	FklPtrStack* queueStack=fklCreatePtrStack(32,16);
+	FklPtrStack queueStack={NULL,0,0,0};
+	fklInitPtrStack(&queueStack,32,16);
 	fklPushPtrQueue(createPrtElem(PRT_CAR,value),queue);
-	fklPushPtrStack(queue,queueStack);
-	while(!fklIsPtrStackEmpty(queueStack))
+	fklPushPtrStack(queue,&queueStack);
+	while(!fklIsPtrStackEmpty(&queueStack))
 	{
-		FklPtrQueue* cQueue=fklTopPtrStack(queueStack);
+		FklPtrQueue* cQueue=fklTopPtrStack(&queueStack);
 		while(fklLengthPtrQueue(cQueue))
 		{
 			PrtElem* e=fklPopPtrQueue(cQueue);
@@ -1231,7 +1235,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 				HashPrtElem* elem=(void*)e->v;
 				fklPushPtrQueue(elem->key,iQueue);
 				fklPushPtrQueue(elem->v,iQueue);
-				fklPushPtrStack(iQueue,queueStack);
+				fklPushPtrStack(iQueue,&queueStack);
 				cQueue=iQueue;
 				free(elem);
 				free(e);
@@ -1268,7 +1272,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 								putValueInSet(hasPrintRecSet,v->u.vec->base[i]);
 							}
 						}
-						fklPushPtrStack(vQueue,queueStack);
+						fklPushPtrStack(vQueue,&queueStack);
 						cQueue=vQueue;
 						continue;
 					}
@@ -1317,7 +1321,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 							}
 							fklPushPtrQueue(createPrtElem(PRT_HASH_ITEM,(void*)createHashPrtElem(keyElem,vElem)),hQueue);
 						}
-						fklPushPtrStack(hQueue,queueStack);
+						fklPushPtrStack(hQueue,&queueStack);
 						cQueue=hQueue;
 						continue;
 					}
@@ -1363,7 +1367,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 							}
 							p=next;
 						}
-						fklPushPtrStack(lQueue,queueStack);
+						fklPushPtrStack(lQueue,&queueStack);
 						cQueue=lQueue;
 						continue;
 					}
@@ -1377,12 +1381,12 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_REC_BOX)
 				fklStringCstrCat(&retval," ");
 		}
-		fklPopPtrStack(queueStack);
+		fklPopPtrStack(&queueStack);
 		fklDestroyPtrQueue(cQueue);
-		if(!fklIsPtrStackEmpty(queueStack))
+		if(!fklIsPtrStackEmpty(&queueStack))
 		{
 			fklStringCstrCat(&retval,")");
-			cQueue=fklTopPtrStack(queueStack);
+			cQueue=fklTopPtrStack(&queueStack);
 			if(fklLengthPtrQueue(cQueue)
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_CDR
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_REC_CDR
@@ -1391,7 +1395,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 				fklStringCstrCat(&retval," ");
 		}
 	}
-	fklDestroyPtrStack(queueStack);
+	fklUninitPtrStack(&queueStack);
 	fklDestroyHashTable(recValueSet);
 	fklDestroyHashTable(hasPrintRecSet);
 	return retval;

@@ -626,14 +626,16 @@ int fklPatternMatch(const FklNastNode* pattern,const FklNastNode* exp,FklHashTab
 	if(exp->u.pair->car->type!=FKL_NAST_SYM
 			||pattern->u.pair->car->u.sym!=exp->u.pair->car->u.sym)
 		return 0;
-	FklPtrStack* s0=fklCreatePtrStack(32,16);
-	FklPtrStack* s1=fklCreatePtrStack(32,16);
-	fklPushPtrStack(pattern->u.pair->cdr,s0);
-	fklPushPtrStack(exp->u.pair->cdr,s1);
-	while(!fklIsPtrStackEmpty(s0)&&!fklIsPtrStackEmpty(s1))
+	FklPtrStack s0={NULL,0,0,0};
+	fklInitPtrStack(&s0,32,16);
+	FklPtrStack s1={NULL,0,0,0};
+	fklInitPtrStack(&s1,32,16);
+	fklPushPtrStack(pattern->u.pair->cdr,&s0);
+	fklPushPtrStack(exp->u.pair->cdr,&s1);
+	while(!fklIsPtrStackEmpty(&s0)&&!fklIsPtrStackEmpty(&s1))
 	{
-		FklNastNode* n0=fklPopPtrStack(s0);
-		FklNastNode* n1=fklPopPtrStack(s1);
+		FklNastNode* n0=fklPopPtrStack(&s0);
+		FklNastNode* n1=fklPopPtrStack(&s1);
 		if(n0->type==FKL_NAST_SYM)
 		{
 			if(ht!=NULL)
@@ -641,20 +643,20 @@ int fklPatternMatch(const FklNastNode* pattern,const FklNastNode* exp,FklHashTab
 		}
 		else if(n0->type==FKL_NAST_PAIR&&n1->type==FKL_NAST_PAIR)
 		{
-			fklPushPtrStack(n0->u.pair->cdr,s0);
-			fklPushPtrStack(n0->u.pair->car,s0);
-			fklPushPtrStack(n1->u.pair->cdr,s1);
-			fklPushPtrStack(n1->u.pair->car,s1);
+			fklPushPtrStack(n0->u.pair->cdr,&s0);
+			fklPushPtrStack(n0->u.pair->car,&s0);
+			fklPushPtrStack(n1->u.pair->cdr,&s1);
+			fklPushPtrStack(n1->u.pair->car,&s1);
 		}
 		else if(!fklNastNodeEqual(n0,n1))
 		{
-			fklDestroyPtrStack(s0);
-			fklDestroyPtrStack(s1);
+			fklUninitPtrStack(&s0);
+			fklUninitPtrStack(&s1);
 			return 0;
 		}
 	}
-	fklDestroyPtrStack(s0);
-	fklDestroyPtrStack(s1);
+	fklUninitPtrStack(&s0);
+	fklUninitPtrStack(&s1);
 	return 1;
 }
 
@@ -703,22 +705,23 @@ int fklIsValidSyntaxPattern(const FklNastNode* p,FklHashTable** psymbolTable)
 		return 0;
 	const FklNastNode* body=p->u.pair->cdr;
 	FklHashTable* symbolTable=fklCreateHashTable(8,4,2,0.75,1,&SidHashMethodTable);
-	FklPtrStack* stack=fklCreatePtrStack(32,16);
-	fklPushPtrStack((void*)body,stack);
-	while(!fklIsPtrStackEmpty(stack))
+	FklPtrStack stack={NULL,0,0,0};
+	fklInitPtrStack(&stack,32,16);
+	fklPushPtrStack((void*)body,&stack);
+	while(!fklIsPtrStackEmpty(&stack))
 	{
-		const FklNastNode* c=fklPopPtrStack(stack);
+		const FklNastNode* c=fklPopPtrStack(&stack);
 		switch(c->type)
 		{
 			case FKL_NAST_PAIR:
-				fklPushPtrStack(c->u.pair->cdr,stack);
-				fklPushPtrStack(c->u.pair->car,stack);
+				fklPushPtrStack(c->u.pair->cdr,&stack);
+				fklPushPtrStack(c->u.pair->car,&stack);
 				break;
 			case FKL_TYPE_SYM:
 				if(fklGetHashItem((void*)&c->u.sym,symbolTable))
 				{
 					fklDestroyHashTable(symbolTable);
-					fklDestroyPtrStack(stack);
+					fklUninitPtrStack(&stack);
 					*psymbolTable=NULL;
 					return 0;
 				}
@@ -730,7 +733,7 @@ int fklIsValidSyntaxPattern(const FklNastNode* p,FklHashTable** psymbolTable)
 		}
 	}
 	*psymbolTable=symbolTable;
-	fklDestroyPtrStack(stack);
+	fklUninitPtrStack(&stack);
 	return 1;
 }
 

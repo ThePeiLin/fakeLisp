@@ -2824,7 +2824,8 @@ void builtin_parse(ARGL)
 	if(!FKL_IS_STR(stream))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.parse",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	char* tmpString=NULL;
-	FklPtrStack* tokenStack=fklCreatePtrStack(32,16);
+	FklPtrStack tokenStack={NULL,0,0,0};
+	fklInitPtrStack(&tokenStack,32,16);
 	FklStringMatchSet* matchSet=FKL_STRING_PATTERN_UNIVERSAL_SET;
 	size_t line=1;
 	size_t j=0;
@@ -2838,7 +2839,7 @@ void builtin_parse(ARGL)
 			,&line
 			,j
 			,&j
-			,tokenStack
+			,&tokenStack
 			,matchSet
 			,patterns
 			,route
@@ -2846,7 +2847,7 @@ void builtin_parse(ARGL)
 	fklDestroyStringMatchSet(matchSet);
 	size_t errorLine=0;
 	PublicBuiltInUserData* publicUserData=pd->u.ud->data;
-	FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack
+	FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(&tokenStack
 			,route
 			,&errorLine
 			,publicUserData->builtInHeadSymbolTable
@@ -2860,9 +2861,9 @@ void builtin_parse(ARGL)
 	}
 	else
 		tmp=fklCreateVMvalueFromNastNodeAndStoreInStack(node,NULL,exe);
-	while(!fklIsPtrStackEmpty(tokenStack))
-		fklDestroyToken(fklPopPtrStack(tokenStack));
-	fklDestroyPtrStack(tokenStack);
+	while(!fklIsPtrStackEmpty(&tokenStack))
+		fklDestroyToken(fklPopPtrStack(&tokenStack));
+	fklUninitPtrStack(&tokenStack);
 	fklNiReturn(tmp,&ap,stack);
 	free(tmpString);
 	fklDestroyNastNode(node);
@@ -3116,32 +3117,34 @@ int matchPattern(FklVMvalue* pattern,FklVMvalue* exp,FklVMhashTable* ht,FklVMgc*
 		return 1;
 	if(pattern->u.pair->car!=exp->u.pair->car)
 		return 1;
-	FklPtrStack* s0=fklCreatePtrStack(32,16);
-	FklPtrStack* s1=fklCreatePtrStack(32,16);
-	fklPushPtrStack(pattern->u.pair->cdr,s0);
-	fklPushPtrStack(exp->u.pair->cdr,s1);
-	while(!fklIsPtrStackEmpty(s0)&&!fklIsPtrStackEmpty(s1))
+	FklPtrStack s0={NULL,0,0,0};
+	fklInitPtrStack(&s0,32,16);
+	FklPtrStack s1={NULL,0,0,0};
+	fklInitPtrStack(&s1,32,16);
+	fklPushPtrStack(pattern->u.pair->cdr,&s0);
+	fklPushPtrStack(exp->u.pair->cdr,&s1);
+	while(!fklIsPtrStackEmpty(&s0)&&!fklIsPtrStackEmpty(&s1))
 	{
-		FklVMvalue* v0=fklPopPtrStack(s0);
-		FklVMvalue* v1=fklPopPtrStack(s1);
+		FklVMvalue* v0=fklPopPtrStack(&s0);
+		FklVMvalue* v1=fklPopPtrStack(&s1);
 		if(FKL_IS_SYM(v0))
 			fklSetVMhashTable(v0,v1,ht,gc);
 		else if(FKL_IS_PAIR(v0)&&FKL_IS_PAIR(v1))
 		{
-			fklPushPtrStack(v0->u.pair->cdr,s0);
-			fklPushPtrStack(v0->u.pair->car,s0);
-			fklPushPtrStack(v1->u.pair->cdr,s1);
-			fklPushPtrStack(v1->u.pair->car,s1);
+			fklPushPtrStack(v0->u.pair->cdr,&s0);
+			fklPushPtrStack(v0->u.pair->car,&s0);
+			fklPushPtrStack(v1->u.pair->cdr,&s1);
+			fklPushPtrStack(v1->u.pair->car,&s1);
 		}
 		else if(!fklVMvalueEqual(v0,v1))
 		{
-			fklDestroyPtrStack(s0);
-			fklDestroyPtrStack(s1);
+			fklUninitPtrStack(&s0);
+			fklUninitPtrStack(&s1);
 			return 1;
 		}
 	}
-	fklDestroyPtrStack(s0);
-	fklDestroyPtrStack(s1);
+	fklUninitPtrStack(&s0);
+	fklUninitPtrStack(&s1);
 	return 0;
 }
 
@@ -3198,15 +3201,16 @@ static int isValidSyntaxPattern(const FklVMvalue* p)
 		return 0;
 	const FklVMvalue* body=p->u.pair->cdr;
 	FklHashTable* symbolTable=fklCreateHashTable(8,4,2,0.75,1,&SidHashMethodTable);
-	FklPtrStack* stack=fklCreatePtrStack(32,16);
-	fklPushPtrStack((void*)body,stack);
-	while(!fklIsPtrStackEmpty(stack))
+	FklPtrStack stack={NULL,0,0,0};
+	fklInitPtrStack(&stack,32,16);
+	fklPushPtrStack((void*)body,&stack);
+	while(!fklIsPtrStackEmpty(&stack))
 	{
-		const FklVMvalue* c=fklPopPtrStack(stack);
+		const FklVMvalue* c=fklPopPtrStack(&stack);
 		if(FKL_IS_PAIR(c))
 		{
-			fklPushPtrStack(c->u.pair->cdr,stack);
-			fklPushPtrStack(c->u.pair->car,stack);
+			fklPushPtrStack(c->u.pair->cdr,&stack);
+			fklPushPtrStack(c->u.pair->car,&stack);
 		}
 		else if(FKL_IS_SYM(c))
 		{
@@ -3214,7 +3218,7 @@ static int isValidSyntaxPattern(const FklVMvalue* p)
 			if(fklGetHashItem(&sid,symbolTable))
 			{
 				fklDestroyHashTable(symbolTable);
-				fklDestroyPtrStack(stack);
+				fklUninitPtrStack(&stack);
 				return 0;
 			}
 			fklPutNoRpHashItem(createSidHashItem(sid)
@@ -3222,7 +3226,7 @@ static int isValidSyntaxPattern(const FklVMvalue* p)
 		}
 	}
 	fklDestroyHashTable(symbolTable);
-	fklDestroyPtrStack(stack);
+	fklUninitPtrStack(&stack);
 	return 1;
 }
 
@@ -3265,16 +3269,17 @@ void builtin_go(ARGL)
 	FklVMstack* threadVMstack=threadVM->stack;
 	fklNiSetBp(threadVMstack->tp,threadVMstack);
 	FklVMvalue* cur=fklNiGetArg(&ap,stack);
-	FklPtrStack* comStack=fklCreatePtrStack(32,16);
+	FklPtrStack comStack={NULL,0,0,0};
+	fklInitPtrStack(&comStack,32,16);
 	for(;cur;cur=fklNiGetArg(&ap,stack))
-		fklPushPtrStack(cur,comStack);
+		fklPushPtrStack(cur,&comStack);
 	fklNiResBp(&ap,stack);
-	while(!fklIsPtrStackEmpty(comStack))
+	while(!fklIsPtrStackEmpty(&comStack))
 	{
-		FklVMvalue* tmp=fklPopPtrStack(comStack);
+		FklVMvalue* tmp=fklPopPtrStack(&comStack);
 		fklPushVMvalue(tmp,threadVMstack);
 	}
-	fklDestroyPtrStack(comStack);
+	fklUninitPtrStack(&comStack);
 	FklVMvalue* chan=threadVM->chan;
 	int32_t faildCode=0;
 	faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMfunc,threadVM);

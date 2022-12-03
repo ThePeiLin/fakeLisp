@@ -2009,11 +2009,12 @@ static CODEGEN_FUNC(codegen_import)
 						fklDestroyPtrStack(tokenStack);
 						return;
 					}
-					FklUintStack* idStack=fklCreateUintStack(32,16);
-					add_symbol_to_locale_env_in_list(export,curEnv,codegen->globalSymTable,codegen->publicSymbolTable,idStack);
-					nextCodegen->exportNum=idStack->top;
-					nextCodegen->exports=fklCopyMemory(idStack->base,sizeof(FklSid_t)*idStack->top);
-					fklDestroyUintStack(idStack);
+					FklUintStack idStack={NULL,0,0,0};
+					fklInitUintStack(&idStack,32,16);
+					add_symbol_to_locale_env_in_list(export,curEnv,codegen->globalSymTable,codegen->publicSymbolTable,&idStack);
+					nextCodegen->exportNum=idStack.top;
+					nextCodegen->exports=fklCopyMemory(idStack.base,sizeof(FklSid_t)*idStack.top);
+					fklUninitUintStack(&idStack);
 					FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,patternMatchTable);
 					FklPtrQueue* libraryRestExpressionQueue=fklCreatePtrQueue();
 					pushListItemToQueue(rest,libraryRestExpressionQueue,NULL);
@@ -2238,36 +2239,38 @@ static CODEGEN_FUNC(codegen_import_with_prefix)
 						fklDestroyPtrStack(tokenStack);
 						return;
 					}
-					FklUintStack* idStack=fklCreateUintStack(32,16);
-					FklUintStack* idWithPrefixStack=fklCreateUintStack(32,16);
+					FklUintStack idStack={NULL,0,0,0};
+					fklInitUintStack(&idStack,32,16);
+					FklUintStack idWithPrefixStack={NULL,0,0,0};
+					fklInitUintStack(&idWithPrefixStack,32,16);
 					add_symbol_with_prefix_to_locale_env_in_list(export
 							,prefixNode->u.sym
 							,curEnv
 							,codegen->globalSymTable
 							,codegen->publicSymbolTable
-							,idStack
-							,idWithPrefixStack);
-					nextCodegen->exportNum=idStack->top;
-					nextCodegen->exports=fklCopyMemory(idStack->base,sizeof(FklSid_t)*idStack->top);
-					fklDestroyUintStack(idStack);
+							,&idStack
+							,&idWithPrefixStack);
+					nextCodegen->exportNum=idStack.top;
+					nextCodegen->exports=fklCopyMemory(idStack.base,sizeof(FklSid_t)*idStack.top);
+					fklUninitUintStack(&idStack);
 					FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,patternMatchTable);
 					FklPtrQueue* libraryRestExpressionQueue=fklCreatePtrQueue();
 					pushListItemToQueue(rest,libraryRestExpressionQueue,NULL);
 					FklPtrStack* bcStack=fklCreatePtrStack(32,16);
-					FklByteCode* bc=fklCreateByteCode(sizeof(char)+sizeof(uint64_t)*2+sizeof(FklSid_t)*idWithPrefixStack->top);
+					FklByteCode* bc=fklCreateByteCode(sizeof(char)+sizeof(uint64_t)*2+sizeof(FklSid_t)*idWithPrefixStack.top);
 					bc->code[0]=FKL_OP_IMPORT_WITH_SYMBOLS;
 					fklSetU64ToByteCode(bc->code+sizeof(char),0);
-					fklSetU64ToByteCode(bc->code+sizeof(char)+sizeof(uint64_t),idWithPrefixStack->top);
-					for(size_t i=0;i<idWithPrefixStack->top;i++)
+					fklSetU64ToByteCode(bc->code+sizeof(char)+sizeof(uint64_t),idWithPrefixStack.top);
+					for(size_t i=0;i<idWithPrefixStack.top;i++)
 					{
-						FklSid_t id=idWithPrefixStack->base[i];
+						FklSid_t id=idWithPrefixStack.base[i];
 						fklSetSidToByteCode(bc->code
 								+sizeof(char)
 								+sizeof(uint64_t)*2
 								+i*sizeof(FklSid_t)
 								,id);
 					}
-					fklDestroyUintStack(idWithPrefixStack);
+					fklUninitUintStack(&idWithPrefixStack);
 					FklByteCodelnt* importBc=createBclnt(bc,codegen->fid,origExp->curline);
 					fklPushPtrStack(curEnv,bcStack);
 					curEnv->refcount+=1;
@@ -3219,23 +3222,25 @@ static void destroyMayUndefine(MayUndefine* t)
 
 void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib** libs,FklSymbolTable* symbolTable,size_t exportNum,FklSid_t* exports)
 {
-	FklUintStack* cpcstack=fklCreateUintStack(32,16);
-	FklUintStack* scpstack=fklCreateUintStack(32,16);
+	FklUintStack cpcstack={NULL,0,0,0};
+	fklInitUintStack(&cpcstack,32,16);
+	FklUintStack scpstack={NULL,0,0,0};
+	fklInitUintStack(&scpstack,32,16);
 	FklPtrStack* envstack=fklCreatePtrStack(32,16);
 	FklPtrStack* mayUndefined=fklCreatePtrStack(32,16);
 	FklByteCode* bc=code->bc;
-	fklPushUintStack(0,cpcstack);
-	fklPushUintStack(bc->size,scpstack);
+	fklPushUintStack(0,&cpcstack);
+	fklPushUintStack(bc->size,&scpstack);
 	FklCodegenEnv* globEnv=fklCreateCodegenEnv(NULL);
 	FklCodegenEnv* mainEnv=fklCreateCodegenEnv(globEnv);
 	globEnv->refcount=1;
 	mainEnv->refcount=2;
 	fklInitGlobCodegenEnv(globEnv,symbolTable);
 	fklPushPtrStack(mainEnv,envstack);
-	while((!fklIsUintStackEmpty(cpcstack))&&(!fklIsUintStackEmpty(scpstack)))
+	while((!fklIsUintStackEmpty(&cpcstack))&&(!fklIsUintStackEmpty(&scpstack)))
 	{
-		uint64_t i=fklPopUintStack(cpcstack);
-		uint64_t end=i+fklPopUintStack(scpstack);
+		uint64_t i=fklPopUintStack(&cpcstack);
+		uint64_t end=i+fklPopUintStack(&scpstack);
 		FklCodegenEnv* curEnv=fklPopPtrStack(envstack);
 		while(i<end)
 		{
@@ -3273,9 +3278,9 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib** libs,Fk
 								i+=sizeof(char)+sizeof(uint32_t)+sizeof(FklSid_t);
 								break;
 							case FKL_OP_PUSH_PROC:
-								fklPushUintStack(i+sizeof(char)+sizeof(uint64_t),cpcstack);
+								fklPushUintStack(i+sizeof(char)+sizeof(uint64_t),&cpcstack);
 								{
-									fklPushUintStack(fklGetU64FromByteCode(bc->code+i+sizeof(char)),scpstack);
+									fklPushUintStack(fklGetU64FromByteCode(bc->code+i+sizeof(char)),&scpstack);
 									FklCodegenEnv* nextEnv=fklCreateCodegenEnv(curEnv);
 									nextEnv->refcount=1;
 									fklPushPtrStack(nextEnv,envstack);
@@ -3373,8 +3378,8 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib** libs,Fk
 			fklPushPtrStack(createMayUndefine(mainEnv,0,exports[i]),mayUndefined);
 	}
 	fklDestroyCodegenEnv(mainEnv);
-	fklDestroyUintStack(cpcstack);
-	fklDestroyUintStack(scpstack);
+	fklUninitUintStack(&cpcstack);
+	fklUninitUintStack(&scpstack);
 	fklDestroyPtrStack(envstack);
 	for(uint32_t i=0;i<mayUndefined->top;i++)
 	{

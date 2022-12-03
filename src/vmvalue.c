@@ -65,7 +65,8 @@ FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
 	FklVMstack* vmStack=vm->stack;
 	FklVMgc* gc=vm->gc;
 	FklPtrStack* nodeStack=fklCreatePtrStack(32,16);
-	FklUintStack* reftypeStack=fklCreateUintStack(32,16);
+	FklUintStack reftypeStack={NULL,0,0,0};
+	fklInitUintStack(&reftypeStack,32,16);
 	FklPtrStack* valueStack=fklCreatePtrStack(32,16);
 	FklPtrStack* stackStack=fklCreatePtrStack(32,16);
 	fklPushPtrStack((void*)node,nodeStack);
@@ -78,8 +79,8 @@ FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
 		{
 			fklPopPtrStack(stackStack);
 			FklPtrStack* tStack=fklTopPtrStack(stackStack);
-			FklValueType type=fklPopUintStack(reftypeStack);
-			uint64_t line=fklPopUintStack(reftypeStack);
+			FklValueType type=fklPopUintStack(&reftypeStack);
+			uint64_t line=fklPopUintStack(&reftypeStack);
 			FklVMvalue* v=fklCreateSaveVMvalue(type,NULL);
 			fklPushPtrStack(v,tStack);
 			if(lineHash)
@@ -107,7 +108,7 @@ FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
 					break;
 				case FKL_TYPE_HASHTABLE:
 					{
-						FklVMhashTable* hash=fklCreateVMhashTable(fklPopUintStack(reftypeStack));
+						FklVMhashTable* hash=fklCreateVMhashTable(fklPopUintStack(&reftypeStack));
 						v->u.hash=hash;
 						for(size_t i=cStack->top;i>0;i-=2)
 						{
@@ -165,16 +166,16 @@ FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
 						FklPtrStack* bStack=fklCreatePtrStack(1,16);
 						fklPushPtrStack(bStack,stackStack);
 						cStack=bStack;
-						fklPushUintStack(root->curline,reftypeStack);
-						fklPushUintStack(FKL_TYPE_BOX,reftypeStack);
+						fklPushUintStack(root->curline,&reftypeStack);
+						fklPushUintStack(FKL_TYPE_BOX,&reftypeStack);
 						fklPushPtrStack(SENTINEL_NAST_NODE,nodeStack);
 						fklPushPtrStack(root->u.box,nodeStack);
 					}
 					break;
 				case FKL_NAST_VECTOR:
 					{
-						fklPushUintStack(root->curline,reftypeStack);
-						fklPushUintStack(FKL_TYPE_VECTOR,reftypeStack);
+						fklPushUintStack(root->curline,&reftypeStack);
+						fklPushUintStack(FKL_TYPE_VECTOR,&reftypeStack);
 						fklPushPtrStack(SENTINEL_NAST_NODE,nodeStack);
 						for(size_t i=0;i<root->u.vec->size;i++)
 							fklPushPtrStack(root->u.vec->base[i],nodeStack);
@@ -185,9 +186,9 @@ FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
 					break;
 				case FKL_NAST_HASHTABLE:
 					{
-						fklPushUintStack(root->u.hash->type,reftypeStack);
-						fklPushUintStack(root->curline,reftypeStack);
-						fklPushUintStack(FKL_TYPE_HASHTABLE,reftypeStack);
+						fklPushUintStack(root->u.hash->type,&reftypeStack);
+						fklPushUintStack(root->curline,&reftypeStack);
+						fklPushUintStack(FKL_TYPE_HASHTABLE,&reftypeStack);
 						fklPushPtrStack(SENTINEL_NAST_NODE,nodeStack);
 						size_t num=root->u.hash->num;
 						FklNastHashTable* hash=root->u.hash;
@@ -206,8 +207,8 @@ FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
 						FklPtrStack* pStack=fklCreatePtrStack(2,16);
 						fklPushPtrStack(pStack,stackStack);
 						cStack=pStack;
-						fklPushUintStack(root->curline,reftypeStack);
-						fklPushUintStack(FKL_TYPE_PAIR,reftypeStack);
+						fklPushUintStack(root->curline,&reftypeStack);
+						fklPushUintStack(FKL_TYPE_PAIR,&reftypeStack);
 						fklPushPtrStack(SENTINEL_NAST_NODE,nodeStack);
 						fklPushPtrStack(root->u.pair->car,nodeStack);
 						fklPushPtrStack(root->u.pair->cdr,nodeStack);
@@ -223,7 +224,7 @@ FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
 	fklDestroyPtrStack(stackStack);
 	fklDestroyPtrStack(nodeStack);
 	fklDestroyPtrStack(valueStack);
-	fklDestroyUintStack(reftypeStack);
+	fklUninitUintStack(&reftypeStack);
 	return retval;
 }
 
@@ -231,22 +232,26 @@ FklVMvalue* fklCreateVMvalueFromNastNodeNoGC(const FklNastNode* node
 		,FklHashTable* lineHash
 		,FklVMgc* gc)
 {
-	FklPtrStack* nodeStack=fklCreatePtrStack(32,16);
-	FklUintStack* reftypeStack=fklCreateUintStack(32,16);
-	FklPtrStack* valueStack=fklCreatePtrStack(32,16);
-	FklPtrStack* stackStack=fklCreatePtrStack(32,16);
-	fklPushPtrStack((void*)node,nodeStack);
-	fklPushPtrStack(valueStack,stackStack);
-	while(!fklIsPtrStackEmpty(nodeStack))
+	FklPtrStack nodeStack={NULL,0,0,0};
+	fklInitPtrStack(&nodeStack,32,16);
+	FklUintStack reftypeStack={NULL,0,0,0};
+	fklInitUintStack(&reftypeStack,32,16);
+	FklPtrStack valueStack={NULL,0,0,0};
+	fklInitPtrStack(&valueStack,32,16);
+	FklPtrStack stackStack={NULL,0,0,0};
+	fklInitPtrStack(&stackStack,32,16);
+	fklPushPtrStack((void*)node,&nodeStack);
+	fklPushPtrStack(&valueStack,&stackStack);
+	while(!fklIsPtrStackEmpty(&nodeStack))
 	{
-		FklNastNode* root=fklPopPtrStack(nodeStack);
-		FklPtrStack* cStack=fklTopPtrStack(stackStack);
+		FklNastNode* root=fklPopPtrStack(&nodeStack);
+		FklPtrStack* cStack=fklTopPtrStack(&stackStack);
 		if(root==SENTINEL_NAST_NODE)
 		{
-			fklPopPtrStack(stackStack);
-			FklPtrStack* tStack=fklTopPtrStack(stackStack);
-			FklValueType type=fklPopUintStack(reftypeStack);
-			uint64_t line=fklPopUintStack(reftypeStack);
+			fklPopPtrStack(&stackStack);
+			FklPtrStack* tStack=fklTopPtrStack(&stackStack);
+			FklValueType type=fklPopUintStack(&reftypeStack);
+			uint64_t line=fklPopUintStack(&reftypeStack);
 			FklVMvalue* v=fklCreateSaveVMvalue(type,NULL);
 			fklPushPtrStack(v,tStack);
 			if(lineHash)
@@ -274,7 +279,7 @@ FklVMvalue* fklCreateVMvalueFromNastNodeNoGC(const FklNastNode* node
 					break;
 				case FKL_TYPE_HASHTABLE:
 					{
-						FklVMhashTable* hash=fklCreateVMhashTable(fklPopUintStack(reftypeStack));
+						FklVMhashTable* hash=fklCreateVMhashTable(fklPopUintStack(&reftypeStack));
 						v->u.hash=hash;
 						for(size_t i=cStack->top;i>0;i-=2)
 						{
@@ -328,54 +333,54 @@ FklVMvalue* fklCreateVMvalueFromNastNodeNoGC(const FklNastNode* node
 				case FKL_NAST_BOX:
 					{
 						FklPtrStack* bStack=fklCreatePtrStack(1,16);
-						fklPushPtrStack(bStack,stackStack);
+						fklPushPtrStack(bStack,&stackStack);
 						cStack=bStack;
-						fklPushUintStack(root->curline,reftypeStack);
-						fklPushUintStack(FKL_TYPE_BOX,reftypeStack);
-						fklPushPtrStack(SENTINEL_NAST_NODE,nodeStack);
-						fklPushPtrStack(root->u.box,nodeStack);
+						fklPushUintStack(root->curline,&reftypeStack);
+						fklPushUintStack(FKL_TYPE_BOX,&reftypeStack);
+						fklPushPtrStack(SENTINEL_NAST_NODE,&nodeStack);
+						fklPushPtrStack(root->u.box,&nodeStack);
 					}
 					break;
 				case FKL_NAST_VECTOR:
 					{
-						fklPushUintStack(root->curline,reftypeStack);
-						fklPushUintStack(FKL_TYPE_VECTOR,reftypeStack);
-						fklPushPtrStack(SENTINEL_NAST_NODE,nodeStack);
+						fklPushUintStack(root->curline,&reftypeStack);
+						fklPushUintStack(FKL_TYPE_VECTOR,&reftypeStack);
+						fklPushPtrStack(SENTINEL_NAST_NODE,&nodeStack);
 						for(size_t i=0;i<root->u.vec->size;i++)
-							fklPushPtrStack(root->u.vec->base[i],nodeStack);
+							fklPushPtrStack(root->u.vec->base[i],&nodeStack);
 						FklPtrStack* vStack=fklCreatePtrStack(root->u.vec->size,16);
-						fklPushPtrStack(vStack,stackStack);
+						fklPushPtrStack(vStack,&stackStack);
 						cStack=vStack;
 					}
 					break;
 				case FKL_NAST_HASHTABLE:
 					{
-						fklPushUintStack(root->u.hash->type,reftypeStack);
-						fklPushUintStack(root->curline,reftypeStack);
-						fklPushUintStack(FKL_TYPE_HASHTABLE,reftypeStack);
-						fklPushPtrStack(SENTINEL_NAST_NODE,nodeStack);
+						fklPushUintStack(root->u.hash->type,&reftypeStack);
+						fklPushUintStack(root->curline,&reftypeStack);
+						fklPushUintStack(FKL_TYPE_HASHTABLE,&reftypeStack);
+						fklPushPtrStack(SENTINEL_NAST_NODE,&nodeStack);
 						size_t num=root->u.hash->num;
 						FklNastHashTable* hash=root->u.hash;
 						for(size_t i=0;i<num;i++)
 						{
-							fklPushPtrStack(hash->items[i].car,nodeStack);
-							fklPushPtrStack(hash->items[i].cdr,nodeStack);
+							fklPushPtrStack(hash->items[i].car,&nodeStack);
+							fklPushPtrStack(hash->items[i].cdr,&nodeStack);
 						}
 						FklPtrStack* hStack=fklCreatePtrStack(32,16);
-						fklPushPtrStack(hStack,stackStack);
+						fklPushPtrStack(hStack,&stackStack);
 						cStack=hStack;
 					}
 					break;
 				case FKL_NAST_PAIR:
 					{
 						FklPtrStack* pStack=fklCreatePtrStack(2,16);
-						fklPushPtrStack(pStack,stackStack);
+						fklPushPtrStack(pStack,&stackStack);
 						cStack=pStack;
-						fklPushUintStack(root->curline,reftypeStack);
-						fklPushUintStack(FKL_TYPE_PAIR,reftypeStack);
-						fklPushPtrStack(SENTINEL_NAST_NODE,nodeStack);
-						fklPushPtrStack(root->u.pair->car,nodeStack);
-						fklPushPtrStack(root->u.pair->cdr,nodeStack);
+						fklPushUintStack(root->curline,&reftypeStack);
+						fklPushUintStack(FKL_TYPE_PAIR,&reftypeStack);
+						fklPushPtrStack(SENTINEL_NAST_NODE,&nodeStack);
+						fklPushPtrStack(root->u.pair->car,&nodeStack);
+						fklPushPtrStack(root->u.pair->cdr,&nodeStack);
 					}
 					break;
 				default:
@@ -384,11 +389,11 @@ FklVMvalue* fklCreateVMvalueFromNastNodeNoGC(const FklNastNode* node
 			}
 		}
 	}
-	FklVMvalue* retval=fklTopPtrStack(valueStack);
-	fklDestroyPtrStack(stackStack);
-	fklDestroyPtrStack(nodeStack);
-	fklDestroyPtrStack(valueStack);
-	fklDestroyUintStack(reftypeStack);
+	FklVMvalue* retval=fklTopPtrStack(&valueStack);
+	fklUninitPtrStack(&stackStack);
+	fklUninitPtrStack(&nodeStack);
+	fklUninitPtrStack(&valueStack);
+	fklUninitUintStack(&reftypeStack);
 	return retval;
 }
 
@@ -560,16 +565,17 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 	{
 		FklPtrStack* s0=fklCreatePtrStack(32,16);
 		FklPtrStack* s1=fklCreatePtrStack(32,16);
-		FklUintStack* lineStack=fklCreateUintStack(32,16);
+		FklUintStack lineStack={NULL,0,0,0};
+		fklInitUintStack(&lineStack,32,16);
 		fklPushPtrStack(v,s0);
 		fklPushPtrStack(&retval,s1);
-		fklPushUintStack(curline,lineStack);
+		fklPushUintStack(curline,&lineStack);
 		while(!fklIsPtrStackEmpty(s0))
 		{
 			FklVMvalue* value=fklPopPtrStack(s0);
 			FklNastNode** pcur=fklPopPtrStack(s1);
 			LineNumHashItem* item=fklGetHashItem(&value,lineHash);
-			uint64_t sline=fklPopUintStack(lineStack);
+			uint64_t sline=fklPopUintStack(&lineStack);
 			uint64_t line=item?item->line:sline;
 			FklNastNode* cur=fklMakeNastNodeRef(fklCreateNastNode(FKL_NAST_NIL,line));
 			*pcur=cur;
@@ -663,7 +669,7 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 								cur->type=FKL_NAST_BOX;
 								fklPushPtrStack(value->u.box,s0);
 								fklPushPtrStack(&cur->u.box,s1);
-								fklPushUintStack(cur->curline,lineStack);
+								fklPushUintStack(cur->curline,&lineStack);
 								break;
 							case FKL_TYPE_PAIR:
 								cur->type=FKL_NAST_PAIR;
@@ -672,8 +678,8 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 								fklPushPtrStack(value->u.pair->cdr,s0);
 								fklPushPtrStack(&cur->u.pair->car,s1);
 								fklPushPtrStack(&cur->u.pair->cdr,s1);
-								fklPushUintStack(cur->curline,lineStack);
-								fklPushUintStack(cur->curline,lineStack);
+								fklPushUintStack(cur->curline,&lineStack);
+								fklPushUintStack(cur->curline,&lineStack);
 								break;
 							case FKL_TYPE_VECTOR:
 								cur->type=FKL_NAST_VECTOR;
@@ -683,7 +689,7 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 								for(size_t i=0;i<cur->u.vec->size;i++)
 								{
 									fklPushPtrStack(&cur->u.vec->base[i],s1);
-									fklPushUintStack(cur->curline,lineStack);
+									fklPushUintStack(cur->curline,&lineStack);
 								}
 								break;
 							case FKL_TYPE_HASHTABLE:
@@ -699,8 +705,8 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 								{
 									fklPushPtrStack(&cur->u.hash->items[i].car,s1);
 									fklPushPtrStack(&cur->u.hash->items[i].cdr,s1);
-									fklPushUintStack(cur->curline,lineStack);
-									fklPushUintStack(cur->curline,lineStack);
+									fklPushUintStack(cur->curline,&lineStack);
+									fklPushUintStack(cur->curline,&lineStack);
 								}
 								break;
 						}
@@ -710,7 +716,7 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 		}
 		fklDestroyPtrStack(s0);
 		fklDestroyPtrStack(s1);
-		fklDestroyUintStack(lineStack);
+		fklUninitUintStack(&lineStack);
 	}
 	fklDestroyHashTable(recValueSet);
 	return retval;

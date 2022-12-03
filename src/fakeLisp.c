@@ -187,7 +187,8 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 	FklVM* anotherVM=fklCreateVM(NULL,codegen->globalSymTable,NULL,NULL);
 	FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc,anotherVM->symbolTable),anotherVM->gc);
 	FklByteCode* rawProcList=NULL;
-	FklPtrStack* tokenStack=fklCreatePtrStack(32,16);
+	FklPtrStack tokenStack={NULL,0,0,0};
+	fklInitPtrStack(&tokenStack,32,16);
 	FklLineNumberTable* globalLnt=fklCreateLineNumTable();
 	anotherVM->codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,fklCreateByteCodelnt(fklCreateByteCode(0)),anotherVM->gc);
 	char* prev=NULL;
@@ -211,7 +212,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 				,codegen->curline
 				,&codegen->curline
 				,&unexpectEOF
-				,tokenStack
+				,&tokenStack
 				,NULL
 				,*(codegen->patterns)
 				,&route);
@@ -232,7 +233,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 			continue;
 		}
 		size_t errorLine=0;
-		begin=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack
+		begin=fklCreateNastNodeFromTokenStackAndMatchRoute(&tokenStack
 				,route
 				,&errorLine
 				,builtInHeadSymbolTable
@@ -240,10 +241,10 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 				,codegen->publicSymbolTable);
 		fklDestroyStringMatchRoute(route);
 		free(list);
-		if(fklIsPtrStackEmpty(tokenStack))
+		if(fklIsPtrStackEmpty(&tokenStack))
 			break;
-		while(!fklIsPtrStackEmpty(tokenStack))
-			fklDestroyToken(fklPopPtrStack(tokenStack));
+		while(!fklIsPtrStackEmpty(&tokenStack))
+			fklDestroyToken(fklPopPtrStack(&tokenStack));
 		if(!begin)
 			fprintf(stderr,"error of reader:Invalid expression at line %lu\n",errorLine);
 		else
@@ -316,7 +317,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 	fklDestroyCodegenEnv(mainCodegenEnv);
 	fklDestroyLineNumberTable(globalLnt);
 	fklJoinAllThread(anotherVM);
-	fklDestroyPtrStack(tokenStack);
+	fklUninitPtrStack(&tokenStack);
 	free(rawProcList);
 	fklAddToGCNoGC(mainEnv,anotherVM->gc);
 	fklDestroyVMgc(anotherVM->gc);

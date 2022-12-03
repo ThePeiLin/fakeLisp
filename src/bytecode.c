@@ -279,42 +279,43 @@ void fklPrintByteCode(const FklByteCode* tmpCode
 		,FILE* fp
 		,FklSymbolTable* table)
 {
-	FklPtrStack* s=fklCreatePtrStack(32,16);
-	fklPushPtrStack(createByteCodePrintState(BP_NONE,0,0,tmpCode->size),s);
-	if(!fklIsPtrStackEmpty(s))
+	FklPtrStack s={NULL,0,0,0};
+	fklInitPtrStack(&s,32,16);
+	fklPushPtrStack(createByteCodePrintState(BP_NONE,0,0,tmpCode->size),&s);
+	if(!fklIsPtrStackEmpty(&s))
 	{
-		ByteCodePrintState* cState=fklPopPtrStack(s);
+		ByteCodePrintState* cState=fklPopPtrStack(&s);
 		uint64_t i=cState->cp;
 		uint64_t cpc=cState->cpc;
 		int needBreak=0;
 		if(i<cpc)
-			i+=printSingleByteCode(tmpCode,i,fp,cState,s,&needBreak,table);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table);
 		while(i<cpc&&!needBreak)
 		{
 			putc('\n',fp);
-			i+=printSingleByteCode(tmpCode,i,fp,cState,s,&needBreak,table);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table);
 		}
 		free(cState);
 	}
-	while(!fklIsPtrStackEmpty(s))
+	while(!fklIsPtrStackEmpty(&s))
 	{
-		ByteCodePrintState* cState=fklPopPtrStack(s);
+		ByteCodePrintState* cState=fklPopPtrStack(&s);
 		uint64_t i=cState->cp;
 		uint64_t cpc=cState->cpc;
 		int needBreak=0;
 		if(i<cpc)
 		{
 			putc('\n',fp);
-			i+=printSingleByteCode(tmpCode,i,fp,cState,s,&needBreak,table);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table);
 		}
 		while(i<cpc&&!needBreak)
 		{
 			putc('\n',fp);
-			i+=printSingleByteCode(tmpCode,i,fp,cState,s,&needBreak,table);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table);
 		}
 		free(cState);
 	}
-	fklDestroyPtrStack(s);
+	fklUninitPtrStack(&s);
 }
 
 static uint64_t skipToCall(uint64_t index,const FklByteCode* bc)
@@ -384,20 +385,21 @@ void fklScanAndSetTailCall(FklByteCode* bc)
 void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,FklSymbolTable* table)
 {
 	FklByteCode* tmpCode=obj->bc;
-	FklPtrStack* s=fklCreatePtrStack(32,16);
-	fklPushPtrStack(createByteCodePrintState(BP_NONE,0,0,tmpCode->size),s);
+	FklPtrStack s={NULL,0,0,};
+	fklInitPtrStack(&s,32,16);
+	fklPushPtrStack(createByteCodePrintState(BP_NONE,0,0,tmpCode->size),&s);
 	uint64_t j=0;
 	FklSid_t fid=0;
 	uint64_t line=0;
-	if(!fklIsPtrStackEmpty(s))
+	if(!fklIsPtrStackEmpty(&s))
 	{
-		ByteCodePrintState* cState=fklPopPtrStack(s);
+		ByteCodePrintState* cState=fklPopPtrStack(&s);
 		uint64_t i=cState->cp;
 		uint64_t cpc=cState->cpc;
 		int needBreak=0;
 		if(i<cpc)
 		{
-			i+=printSingleByteCode(tmpCode,i,fp,cState,s,&needBreak,table);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table);
 			if(obj->l[j].scp+obj->l[j].cpc<i)
 				j++;
 			if(obj->l[j].fid!=fid||obj->l[j].line!=line)
@@ -417,7 +419,7 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,FklSymbolTable* table)
 		while(i<cpc&&!needBreak)
 		{
 			putc('\n',fp);
-			i+=printSingleByteCode(tmpCode,i,fp,cState,s,&needBreak,table);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table);
 			if(obj->l[j].scp+obj->l[j].cpc<i)
 				j++;
 			if(obj->l[j].fid!=fid||obj->l[j].line!=line)
@@ -436,16 +438,16 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,FklSymbolTable* table)
 		}
 		free(cState);
 	}
-	while(!fklIsPtrStackEmpty(s))
+	while(!fklIsPtrStackEmpty(&s))
 	{
-		ByteCodePrintState* cState=fklPopPtrStack(s);
+		ByteCodePrintState* cState=fklPopPtrStack(&s);
 		uint64_t i=cState->cp;
 		uint64_t cpc=cState->cpc;
 		int needBreak=0;
 		if(i<cpc)
 		{
 			putc('\n',fp);
-			i+=printSingleByteCode(tmpCode,i,fp,cState,s,&needBreak,table);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table);
 			if(obj->l[j].scp+obj->l[j].cpc<i)
 				j++;
 			if(obj->l[j].fid!=fid||obj->l[j].line!=line)
@@ -465,7 +467,7 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,FklSymbolTable* table)
 		while(i<cpc&&!needBreak)
 		{
 			putc('\n',fp);
-			i+=printSingleByteCode(tmpCode,i,fp,cState,s,&needBreak,table);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table);
 			if(obj->l[j].scp+obj->l[j].cpc<i)
 				j++;
 			if(obj->l[j].fid!=fid||obj->l[j].line!=line)
@@ -486,7 +488,7 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,FklSymbolTable* table)
 		}
 		free(cState);
 	}
-	fklDestroyPtrStack(s);
+	fklUninitPtrStack(&s);
 }
 
 void fklIncreaseScpOfByteCodelnt(FklByteCodelnt* o,uint64_t size)

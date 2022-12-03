@@ -12,12 +12,12 @@ FklNastNode* fklCreateNastNodeFromCstr(const char* cStr
 		,FklStringMatchPattern* patterns
 		,FklSymbolTable* publicSymbolTable)
 {
-	FklPtrStack* tokenStack=fklCreatePtrStack(8,16);
+	FklPtrStack tokenStack={NULL,0,0,0};
+	fklInitPtrStack(&tokenStack,8,16);
 	size_t size=strlen(cStr);
 	size_t line=0;
 	size_t j=0;
 	FklStringMatchSet* matchSet=FKL_STRING_PATTERN_UNIVERSAL_SET;
-	FklPtrStack* matchStateStack=fklCreatePtrStack(8,16);
 	FklStringMatchRouteNode* route=fklCreateStringMatchRouteNode(NULL,0,0,NULL,NULL,NULL);
 	FklStringMatchRouteNode* tmp=route;
 	fklSplitStringIntoTokenWithPattern(cStr
@@ -26,25 +26,22 @@ FklNastNode* fklCreateNastNodeFromCstr(const char* cStr
 			,&line
 			,j
 			,&j
-			,tokenStack
+			,&tokenStack
 			,matchSet
 			,patterns
 			,route
 			,&tmp);
 	size_t errorLine=0;
-	FklNastNode* retval=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack
+	FklNastNode* retval=fklCreateNastNodeFromTokenStackAndMatchRoute(&tokenStack
 			,route
 			,&errorLine
 			,buildInHeadSymbolTable
 			,NULL
 			,publicSymbolTable);
-	while(!fklIsPtrStackEmpty(tokenStack))
-		fklDestroyToken(fklPopPtrStack(tokenStack));
+	while(!fklIsPtrStackEmpty(&tokenStack))
+		fklDestroyToken(fklPopPtrStack(&tokenStack));
 	fklDestroyStringMatchRoute(route);
-	while(!fklIsPtrStackEmpty(matchStateStack))
-		free(fklPopPtrStack(matchStateStack));
-	fklDestroyPtrStack(tokenStack);
-	fklDestroyPtrStack(matchStateStack);
+	fklUninitPtrStack(&tokenStack);
 	return retval;
 }
 
@@ -231,12 +228,13 @@ void fklPrintNastNode(const FklNastNode* exp
 		,FklSymbolTable* table)
 {
 	FklPtrQueue* queue=fklCreatePtrQueue();
-	FklPtrStack* queueStack=fklCreatePtrStack(32,16);
+	FklPtrStack queueStack={NULL,0,0,0};
+	fklInitPtrStack(&queueStack,32,16);
 	fklPushPtrQueue(createNastElem(NAST_CAR,(FklNastNode*)exp),queue);
-	fklPushPtrStack(queue,queueStack);
-	while(!fklIsPtrStackEmpty(queueStack))
+	fklPushPtrStack(queue,&queueStack);
+	while(!fklIsPtrStackEmpty(&queueStack))
 	{
-		FklPtrQueue* cQueue=fklTopPtrStack(queueStack);
+		FklPtrQueue* cQueue=fklTopPtrStack(&queueStack);
 		while(fklLengthPtrQueue(cQueue))
 		{
 			NastElem* e=fklPopPtrQueue(cQueue);
@@ -249,7 +247,7 @@ void fklPrintNastNode(const FklNastNode* exp
 				FklPtrQueue* iQueue=fklCreatePtrQueue();
 				fklPushPtrQueue(createNastElem(NAST_CAR,t->car),iQueue);
 				fklPushPtrQueue(createNastElem(NAST_CDR,t->cdr),iQueue);
-				fklPushPtrStack(iQueue,queueStack);
+				fklPushPtrStack(iQueue,&queueStack);
 				cQueue=iQueue;
 				destroyNastElem(e);
 				continue;
@@ -285,7 +283,7 @@ void fklPrintNastNode(const FklNastNode* exp
 						FklPtrQueue* vQueue=fklCreatePtrQueue();
 						for(size_t i=0;i<node->u.vec->size;i++)
 							fklPushPtrQueue(createNastElem(NAST_CAR,node->u.vec->base[i]),vQueue);
-						fklPushPtrStack(vQueue,queueStack);
+						fklPushPtrStack(vQueue,&queueStack);
 						cQueue=vQueue;
 						continue;
 					}
@@ -298,7 +296,7 @@ void fklPrintNastNode(const FklNastNode* exp
 					{
 						FklPtrQueue* bQueue=fklCreatePtrQueue();
 						fklPushPtrQueue(createNastElem(NAST_BOX,node->u.box),bQueue);
-						fklPushPtrStack(bQueue,queueStack);
+						fklPushPtrStack(bQueue,&queueStack);
 						cQueue=bQueue;
 					}
 					break;
@@ -315,7 +313,7 @@ void fklPrintNastNode(const FklNastNode* exp
 						for(size_t i=0;i<node->u.hash->num;i++)
 							fklPushPtrQueue(createNastElem(NAST_HASH_ITEM
 										,(FklNastNode*)&node->u.hash->items[i]),vQueue);
-						fklPushPtrStack(vQueue,queueStack);
+						fklPushPtrStack(vQueue,&queueStack);
 						cQueue=vQueue;
 						continue;
 					}
@@ -339,7 +337,7 @@ void fklPrintNastNode(const FklNastNode* exp
 							NastElem* cdre=createNastElem(NAST_CDR,cur);
 							fklPushPtrQueue(cdre,lQueue);
 						}
-						fklPushPtrStack(lQueue,queueStack);
+						fklPushPtrStack(lQueue,&queueStack);
 						cQueue=lQueue;
 						continue;
 					}
@@ -351,17 +349,17 @@ void fklPrintNastNode(const FklNastNode* exp
 			if(fklLengthPtrQueue(cQueue)&&((NastElem*)fklFirstPtrQueue(cQueue))->place!=NAST_CDR&&((NastElem*)fklFirstPtrQueue(cQueue))->place!=NAST_BOX)
 				fputc(' ',fp);
 		}
-		fklPopPtrStack(queueStack);
+		fklPopPtrStack(&queueStack);
 		fklDestroyPtrQueue(cQueue);
-		if(!fklIsPtrStackEmpty(queueStack))
+		if(!fklIsPtrStackEmpty(&queueStack))
 		{
 			fputc(')',fp);
-			cQueue=fklTopPtrStack(queueStack);
+			cQueue=fklTopPtrStack(&queueStack);
 			if(fklLengthPtrQueue(cQueue)&&((NastElem*)fklFirstPtrQueue(cQueue))->place!=NAST_CDR)
 				fputc(' ',fp);
 		}
 	}
-	fklDestroyPtrStack(queueStack);
+	fklUninitPtrStack(&queueStack);
 }
 
 static void destroyNastPair(FklNastPair* pair)
@@ -383,11 +381,12 @@ static void destroyNastHash(FklNastHashTable* hash)
 
 void fklDestroyNastNode(FklNastNode* node)
 {
-	FklPtrStack* stack=fklCreatePtrStack(32,16);
-	fklPushPtrStack(node,stack);
-	while(!fklIsPtrStackEmpty(stack))
+	FklPtrStack stack={NULL,0,0,0};
+	fklInitPtrStack(&stack,32,16);
+	fklPushPtrStack(node,&stack);
+	while(!fklIsPtrStackEmpty(&stack))
 	{
-		FklNastNode* cur=fklPopPtrStack(stack);
+		FklNastNode* cur=fklPopPtrStack(&stack);
 		if(cur)
 		{
 			cur->refcount-=1;
@@ -412,23 +411,23 @@ void fklDestroyNastNode(FklNastNode* node)
 						fklDestroyBigInt(cur->u.bigInt);
 						break;
 					case FKL_NAST_PAIR:
-						fklPushPtrStack(cur->u.pair->car,stack);
-						fklPushPtrStack(cur->u.pair->cdr,stack);
+						fklPushPtrStack(cur->u.pair->car,&stack);
+						fklPushPtrStack(cur->u.pair->cdr,&stack);
 						destroyNastPair(cur->u.pair);
 						break;
 					case FKL_NAST_BOX:
-						fklPushPtrStack(cur->u.box,stack);
+						fklPushPtrStack(cur->u.box,&stack);
 						break;
 					case FKL_NAST_VECTOR:
 						for(size_t i=0;i<cur->u.vec->size;i++)
-							fklPushPtrStack(cur->u.vec->base[i],stack);
+							fklPushPtrStack(cur->u.vec->base[i],&stack);
 						destroyNastVector(cur->u.vec);
 						break;
 					case FKL_NAST_HASHTABLE:
 						for(size_t i=0;i<cur->u.hash->num;i++)
 						{
-							fklPushPtrStack(cur->u.hash->items[i].car,stack);
-							fklPushPtrStack(cur->u.hash->items[i].cdr,stack);
+							fklPushPtrStack(cur->u.hash->items[i].car,&stack);
+							fklPushPtrStack(cur->u.hash->items[i].cdr,&stack);
 						}
 						destroyNastHash(cur->u.hash);
 						break;
@@ -440,7 +439,7 @@ void fklDestroyNastNode(FklNastNode* node)
 			}
 		}
 	}
-	fklDestroyPtrStack(stack);
+	fklUninitPtrStack(&stack);
 }
 
 int fklIsNastNodeList(const FklNastNode* list)
@@ -465,15 +464,17 @@ FklNastNode* fklMakeNastNodeRef(FklNastNode* n)
 
 FklNastNode* fklCopyNastNode(const FklNastNode* node)
 {
-	FklPtrStack* stack=fklCreatePtrStack(32,16);
-	FklPtrStack* cstack=fklCreatePtrStack(32,16);
+	FklPtrStack stack={NULL,0,0,0};
+	fklInitPtrStack(&stack,32,16);
+	FklPtrStack cstack={NULL,0,0,0};
+	fklInitPtrStack(&cstack,32,16);
 	FklNastNode* r=NULL;
-	fklPushPtrStack((void*)node,stack);
-	fklPushPtrStack(&r,cstack);
-	while(!fklIsPtrStackEmpty(stack))
+	fklPushPtrStack((void*)node,&stack);
+	fklPushPtrStack(&r,&cstack);
+	while(!fklIsPtrStackEmpty(&stack))
 	{
-		const FklNastNode* root=fklPopPtrStack(stack);
-		FklNastNode** pcur=fklPopPtrStack(cstack);
+		const FklNastNode* root=fklPopPtrStack(&stack);
+		FklNastNode** pcur=fklPopPtrStack(&cstack);
 		FklNastNode* cur=fklCreateNastNode(root->type,root->curline);
 		cur->refcount=1;
 		switch(root->type)
@@ -506,55 +507,57 @@ FklNastNode* fklCopyNastNode(const FklNastNode* node)
 				cur->u.bvec=fklCopyBytevector(root->u.bvec);
 				break;
 			case FKL_NAST_BOX:
-				fklPushPtrStack(root->u.box,stack);
-				fklPushPtrStack(&cur->u.box,cstack);
+				fklPushPtrStack(root->u.box,&stack);
+				fklPushPtrStack(&cur->u.box,&cstack);
 				break;
 			case FKL_NAST_PAIR:
-				fklPushPtrStack(root->u.pair->car,stack);
-				fklPushPtrStack(root->u.pair->cdr,stack);
+				fklPushPtrStack(root->u.pair->car,&stack);
+				fklPushPtrStack(root->u.pair->cdr,&stack);
 				cur->u.pair=fklCreateNastPair();
-				fklPushPtrStack(&cur->u.pair->car,cstack);
-				fklPushPtrStack(&cur->u.pair->cdr,cstack);
+				fklPushPtrStack(&cur->u.pair->car,&cstack);
+				fklPushPtrStack(&cur->u.pair->cdr,&cstack);
 				break;
 			case FKL_NAST_VECTOR:
 				for(size_t i=0;i<root->u.vec->size;i++)
-					fklPushPtrStack(root->u.vec->base[i],stack);
+					fklPushPtrStack(root->u.vec->base[i],&stack);
 				cur->u.vec=fklCreateNastVector(root->u.vec->size);
 				for(size_t i=0;cur->u.vec->size;i++)
-					fklPushPtrStack(&cur->u.vec->base[i],cstack);
+					fklPushPtrStack(&cur->u.vec->base[i],&cstack);
 				break;
 			case FKL_NAST_HASHTABLE:
 				for(size_t i=0;i<root->u.hash->num;i++)
 				{
-					fklPushPtrStack(root->u.hash->items[i].car,stack);
-					fklPushPtrStack(root->u.hash->items[i].cdr,stack);
+					fklPushPtrStack(root->u.hash->items[i].car,&stack);
+					fklPushPtrStack(root->u.hash->items[i].cdr,&stack);
 				}
 				cur->u.hash=fklCreateNastHash(root->u.hash->type,root->u.hash->num);
 				for(size_t i=0;i<cur->u.hash->num;i++)
 				{
-					fklPushPtrStack(&cur->u.hash->items[i].car,cstack);
-					fklPushPtrStack(&cur->u.hash->items[i].cdr,cstack);
+					fklPushPtrStack(&cur->u.hash->items[i].car,&cstack);
+					fklPushPtrStack(&cur->u.hash->items[i].cdr,&cstack);
 				}
 				break;
 		}
 		*pcur=cur;
 	}
-	fklDestroyPtrStack(stack);
-	fklDestroyPtrStack(cstack);
+	fklUninitPtrStack(&stack);
+	fklUninitPtrStack(&cstack);
 	return r;
 }
 
 int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1)
 {
-	FklPtrStack* s0=fklCreatePtrStack(16,16);
-	FklPtrStack* s1=fklCreatePtrStack(16,16);
-	fklPushPtrStack((void*)n0,s0);
-	fklPushPtrStack((void*)n1,s1);
+	FklPtrStack s0={NULL,0,0,0};
+	fklInitPtrStack(&s0,16,16);
+	FklPtrStack s1={NULL,0,0,0};
+	fklInitPtrStack(&s1,16,16);
+	fklPushPtrStack((void*)n0,&s0);
+	fklPushPtrStack((void*)n1,&s1);
 	int r=1;
-	while(!fklIsPtrStackEmpty(s0)&&!fklIsPtrStackEmpty(s1))
+	while(!fklIsPtrStackEmpty(&s0)&&!fklIsPtrStackEmpty(&s1))
 	{
-		const FklNastNode* c0=fklPopPtrStack(s0);
-		const FklNastNode* c1=fklPopPtrStack(s1);
+		const FklNastNode* c0=fklPopPtrStack(&s0);
+		const FklNastNode* c1=fklPopPtrStack(&s1);
 		if(c0->type!=c1->type)
 			r=0;
 		else
@@ -588,17 +591,17 @@ int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1)
 					r=fklCmpBigInt(c0->u.bigInt,c1->u.bigInt);
 					break;
 				case FKL_NAST_BOX:
-					fklPushPtrStack(c0->u.box,s0);
-					fklPushPtrStack(c1->u.box,s1);
+					fklPushPtrStack(c0->u.box,&s0);
+					fklPushPtrStack(c1->u.box,&s1);
 					break;
 				case FKL_NAST_VECTOR:
 					r=c0->u.vec->size==c1->u.vec->size;
 					if(r)
 					{
 						for(size_t i=0;i<c0->u.vec->size;i++)
-							fklPushPtrStack(c0->u.vec->base[i],s0);
+							fklPushPtrStack(c0->u.vec->base[i],&s0);
 						for(size_t i=0;i<c1->u.vec->size;i++)
-							fklPushPtrStack(c1->u.vec->base[i],s0);
+							fklPushPtrStack(c1->u.vec->base[i],&s1);
 					}
 					break;
 				case FKL_NAST_HASHTABLE:
@@ -607,29 +610,29 @@ int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1)
 					{
 						for(size_t i=0;i<c0->u.hash->num;i++)
 						{
-							fklPushPtrStack(c0->u.hash->items[i].car,s0);
-							fklPushPtrStack(c0->u.hash->items[i].cdr,s0);
+							fklPushPtrStack(c0->u.hash->items[i].car,&s0);
+							fklPushPtrStack(c0->u.hash->items[i].cdr,&s0);
 						}
 						for(size_t i=0;i<c1->u.hash->num;i++)
 						{
-							fklPushPtrStack(c1->u.hash->items[i].car,s0);
-							fklPushPtrStack(c1->u.hash->items[i].cdr,s0);
+							fklPushPtrStack(c1->u.hash->items[i].car,&s1);
+							fklPushPtrStack(c1->u.hash->items[i].cdr,&s1);
 						}
 					}
 					break;
 				case FKL_NAST_PAIR:
-					fklPushPtrStack(c0->u.pair->car,s0);
-					fklPushPtrStack(c0->u.pair->cdr,s0);
-					fklPushPtrStack(c1->u.pair->car,s1);
-					fklPushPtrStack(c1->u.pair->cdr,s1);
+					fklPushPtrStack(c0->u.pair->car,&s0);
+					fklPushPtrStack(c0->u.pair->cdr,&s0);
+					fklPushPtrStack(c1->u.pair->car,&s1);
+					fklPushPtrStack(c1->u.pair->cdr,&s1);
 					break;
 			}
 		}
 		if(!r)
 			break;
 	}
-	fklDestroyPtrStack(s0);
-	fklDestroyPtrStack(s1);
+	fklUninitPtrStack(&s0);
+	fklUninitPtrStack(&s1);
 	return r;
 }
 

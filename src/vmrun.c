@@ -877,7 +877,7 @@ void B_res_bp(FklVM* exe)
 	FklVMframe* frame=exe->frames;
 	if(stack->tp>stack->bp)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.res-bp",FKL_ERR_TOOMANYARG,exe);
-	stack->bp=fklPopUintStack(stack->bps);
+	stack->bp=fklPopUintStack(&stack->bps);
 	fklIncCompoundFrameCp(frame);
 }
 
@@ -1226,8 +1226,10 @@ FklVMstack* fklCreateVMstack(int32_t size)
 	tmp->bp=0;
 	tmp->values=(FklVMvalue**)malloc(size*sizeof(FklVMvalue*));
 	FKL_ASSERT(tmp->values);
-	tmp->tps=fklCreateUintStack(32,16);
-	tmp->bps=fklCreateUintStack(32,16);
+	tmp->tps=(FklUintStack){NULL,0,0,0};
+	fklInitUintStack(&tmp->tps,32,16);
+	tmp->bps=(FklUintStack){NULL,0,0,0};
+	fklInitUintStack(&tmp->bps,32,16);
 //	pthread_rwlock_init(&tmp->lock,NULL);
 	return tmp;
 }
@@ -1800,8 +1802,8 @@ FklVM* fklCreateThreadVM(FklVMgc* gc
 void fklDestroyVMstack(FklVMstack* stack)
 {
 //	pthread_rwlock_destroy(&stack->lock);
-	fklDestroyUintStack(stack->bps);
-	fklDestroyUintStack(stack->tps);
+	fklUninitUintStack(&stack->bps);
+	fklUninitUintStack(&stack->tps);
 	free(stack->values);
 	free(stack);
 }
@@ -1933,8 +1935,8 @@ void fklCreateCallChainWithContinuation(FklVM* vm,FklVMcontinuation* cc)
 	}
 	//pthread_rwlock_wrlock(&stack->lock);
 	free(stack->values);
-	fklDestroyUintStack(stack->tps);
-	fklDestroyUintStack(stack->bps);
+	fklUninitUintStack(&stack->tps);
+	fklUninitUintStack(&stack->bps);
 	stack->values=tmpStack->values;
 	stack->bp=tmpStack->bp;
 	stack->bps=tmpStack->bps;

@@ -256,8 +256,8 @@ void fklDoFinalizeObjFrame(FklVMframe* f);
 
 typedef struct
 {
-	FklUintStack* bps;
-	FklUintStack* tps;
+	FklUintStack bps;
+	FklUintStack tps;
 	uint64_t volatile tp;
 	uint64_t bp;
 	size_t size;

@@ -5,26 +5,26 @@ int fklNiResBp(size_t* ap,FklVMstack* stack)
 {
 	if(*ap>stack->bp)
 		return *ap-stack->bp;
-	stack->bp=fklPopUintStack(stack->bps);
+	stack->bp=fklPopUintStack(&stack->bps);
 	return 0;
 }
 
 void fklNiResTp(FklVMstack* stack)
 {
 //	pthread_rwlock_wrlock(&stack->lock);
-	stack->tp=fklTopUintStack(stack->tps);
+	stack->tp=fklTopUintStack(&stack->tps);
 	fklStackRecycle(stack);
 //	pthread_rwlock_unlock(&stack->lock);
 }
 
 void fklNiSetTp(FklVMstack* stack)
 {
-	fklPushUintStack(stack->tp,stack->tps);
+	fklPushUintStack(stack->tp,&stack->tps);
 }
 
 void fklNiPopTp(FklVMstack* stack)
 {
-	fklPopUintStack(stack->tps);
+	fklPopUintStack(&stack->tps);
 }
 
 FklVMvalue** fklNiGetTopSlot(FklVMstack* stack)
@@ -34,7 +34,7 @@ FklVMvalue** fklNiGetTopSlot(FklVMstack* stack)
 
 void fklNiSetBp(uint64_t nbp,FklVMstack* s)
 {
-	fklPushUintStack(s->bp,s->bps);
+	fklPushUintStack(s->bp,&s->bps);
 	s->bp=nbp;
 }
 

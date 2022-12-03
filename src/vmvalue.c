@@ -2309,8 +2309,8 @@ void fklDestroyVMcontinuation(FklVMcontinuation* cont)
 		curr=curr->prev;
 		fklDestroyVMframe(cur);
 	}
-	fklDestroyUintStack(stack->tps);
-	fklDestroyUintStack(stack->bps);
+	fklUninitUintStack(&stack->tps);
+	fklUninitUintStack(&stack->bps);
 	free(stack->values);
 	free(stack);
 	free(cont);

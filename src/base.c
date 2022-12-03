@@ -263,12 +263,19 @@ void fklUninitUintStack(FklUintStack* r)
 	free(r->base);
 }
 
-FklUintStack* fklCreateUintStackFromStack(FklUintStack* stack)
+void fklInitUintStackWithStack(FklUintStack* r,const FklUintStack* stack)
 {
-	FklUintStack* r=fklCreateUintStack(stack->size,stack->inc);
+	fklInitUintStack(r,stack->size,stack->inc);
 	r->top=stack->top;
 	for(size_t i=0;i<stack->top;i++)
 		r->base[i]=stack->base[i];
+}
+
+FklUintStack* fklCreateUintStackFromStack(const FklUintStack* stack)
+{
+	FklUintStack* r=(FklUintStack*)malloc(sizeof(FklUintStack));
+	FKL_ASSERT(r);
+	fklInitUintStackWithStack(r,stack);
 	return r;
 }
 

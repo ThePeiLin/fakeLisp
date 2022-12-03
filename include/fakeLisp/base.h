@@ -165,7 +165,8 @@ typedef struct
 void fklInitUintStack(FklUintStack*,uint32_t size,uint32_t inc);
 void fklUninitUintStack(FklUintStack*);
 FklUintStack* fklCreateUintStack(uint32_t size,uint32_t inc);
-FklUintStack* fklCreateUintStackFromStack(FklUintStack*);
+void fklInitUintStackWithStack(FklUintStack*,const FklUintStack*);
+FklUintStack* fklCreateUintStackFromStack(const FklUintStack*);
 void fklPushUintStack(uint64_t e,FklUintStack*);
 uint64_t fklPopUintStack(FklUintStack*);
 uint64_t fklTopUintStack(FklUintStack*);

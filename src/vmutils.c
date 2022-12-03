@@ -158,8 +158,10 @@ FklVMstack* fklCopyStack(FklVMstack* stack)
 	FKL_ASSERT(tmp->values);
 	for(;i<stack->tp;i++)
 		tmp->values[i]=stack->values[i];
-	tmp->tps=fklCreateUintStackFromStack(stack->tps);
-	tmp->bps=fklCreateUintStackFromStack(stack->bps);
+	tmp->tps=(FklUintStack){NULL,0,0,0};
+	fklInitUintStackWithStack(&tmp->tps,&stack->tps);
+	tmp->bps=(FklUintStack){NULL,0,0,0};
+	fklInitUintStackWithStack(&tmp->bps,&stack->bps);
 //	pthread_rwlock_unlock(&stack->lock);
 	return tmp;
 }

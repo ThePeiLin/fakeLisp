@@ -3516,7 +3516,7 @@ static int errorCallBackWithErrorHandler(FklVMframe* f,FklVMvalue* errValue,FklV
 		if(isShouldBeHandle(errSymbolLists[i],err->type))
 		{
 			FklVMstack* stack=exe->stack;
-			stack->bps->top=c->top;
+			stack->bps.top=c->top;
 			stack->tp=c->bp;
 			fklPushVMvalue(errValue,stack);
 			fklNiSetBp(c->bp,stack);
@@ -3605,7 +3605,7 @@ void builtin_call_eh(ARGL)
 		FKL_ASSERT(t);
 		c->errorHandlers=t;
 		c->bp=ap;
-		c->top=stack->bps->top;
+		c->top=stack->bps.top;
 		pthread_rwlock_unlock(&exe->rlock);
 	}
 	else

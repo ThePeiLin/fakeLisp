@@ -1458,77 +1458,6 @@ void propagateMark(FklVMvalue* root,FklVMgc* gc)
 	void (*atomic_value_func)(FklVMvalue*,FklVMgc*)=fkl_atomic_value_method_table[root->type];
 	if(atomic_value_func)
 		atomic_value_func(root,gc);
-	//switch(root->type)
-	//{
-	//	case FKL_TYPE_PAIR:
-	//		fklGC_toGrey(root->u.pair->car,gc);
-	//		fklGC_toGrey(root->u.pair->cdr,gc);
-	//		break;
-	//	case FKL_TYPE_PROC:
-	//		if(root->u.proc->prevEnv)
-	//			fklGC_toGrey(root->u.proc->prevEnv,gc);
-	//		fklGC_toGrey(root->u.proc->codeObj,gc);
-	//		break;
-	//	case FKL_TYPE_CONT:
-	//		for(uint32_t i=0;i<root->u.cont->stack->tp;i++)
-	//			fklGC_toGrey(root->u.cont->stack->values[i],gc);
-	//		for(FklVMframe* curr=root->u.cont->curr;curr;curr=curr->prev)
-	//			fklGC_toGrey(curr->localenv,gc);
-	//		if(root->u.cont->nextCall)
-	//			fklGC_toGrey(root->u.cont->nextCall,gc);
-	//		if(root->u.cont->codeObj)
-	//			fklGC_toGrey(root->u.cont->codeObj,gc);
-	//		break;
-	//	case FKL_TYPE_VECTOR:
-	//		{
-	//			FklVMvec* vec=root->u.vec;
-	//			for(size_t i=0;i<vec->size;i++)
-	//				fklGC_toGrey(vec->base[i],gc);
-	//		}
-	//		break;
-	//	case FKL_TYPE_BOX:
-	//		fklGC_toGrey(root->u.box,gc);
-	//		break;
-	//	case FKL_TYPE_CHAN:
-	//		{
-	//			pthread_mutex_lock(&root->u.chan->lock);
-	//			FklQueueNode* head=root->u.chan->messages->head;
-	//			for(;head;head=head->next)
-	//				fklGC_toGrey(head->data,gc);
-	//			for(head=root->u.chan->sendq->head;head;head=head->next)
-	//				fklGC_toGrey(((FklVMsend*)head->data)->m,gc);
-	//			pthread_mutex_unlock(&root->u.chan->lock);
-	//		}
-	//		break;
-	//	case FKL_TYPE_DLPROC:
-	//		if(root->u.dlproc->dll)
-	//			fklGC_toGrey(root->u.dlproc->dll,gc);
-	//		break;
-	//	case FKL_TYPE_ENV:
-	//		fklAtomicVMenv(root->u.env,gc);
-	//		break;
-	//	case FKL_TYPE_HASHTABLE:
-	//		fklAtomicVMhashTable(root->u.hash,gc);
-	//		break;
-	//	case FKL_TYPE_USERDATA:
-	//		if(root->u.ud->rel)
-	//			fklGC_toGrey(root->u.ud->rel,gc);
-	//		if(root->u.ud->t->__atomic)
-	//			root->u.ud->t->__atomic(root->u.ud->data,gc);
-	//		break;
-	//	case FKL_TYPE_I64:
-	//	case FKL_TYPE_F64:
-	//	case FKL_TYPE_FP:
-	//	case FKL_TYPE_DLL:
-	//	case FKL_TYPE_ERR:
-	//	case FKL_TYPE_STR:
-	//	case FKL_TYPE_BYTEVECTOR:
-	//	case FKL_TYPE_BIG_INT:
-	//		break;
-	//	default:
-	//		FKL_ASSERT(0);
-	//		break;
-	//}
 }
 
 int fklGC_propagate(FklVMgc* gc)
@@ -1700,28 +1629,7 @@ void* fklGC_threadFunc(void* arg)
 	FklVM* exe=arg;
 	FklVMgc* gc=exe->gc;
 	gc->running=FKL_GC_MARK_ROOT;
-//	pthread_rwlock_rdlock(&GlobVMs->lock);
-//	FklVMnode** ph=&GlobVMs->h;
-//	for(;*ph&&(*ph)->vm->gc!=gc;ph=&(*ph)->next);
 	fklGC_markAllRootToGrey(exe);
-//	for(;*ph&&(*ph)->vm->gc==gc;)
-//	{
-//		FklVMnode* cur=*ph;
-//		int32_t mark=cur->vm->mark;
-//		if(mark)
-//		{
-//			fklGC_markRootToGrey(cur->vm);
-//			ph=&cur->next;
-//		}
-//		else
-//		{
-//			pthread_join(cur->vm->tid,NULL);
-//			*ph=cur->next;
-//			free(cur->vm);
-//			free(cur);
-//		}
-//	}
-//	pthread_rwlock_unlock(&GlobVMs->lock);
 	gc->running=FKL_GC_PROPAGATE;
 	while(!fklGC_propagate(gc));
 	FklVMvalue* white=NULL;

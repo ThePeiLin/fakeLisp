@@ -534,60 +534,6 @@ void fklCodeLntCat(FklByteCodelnt* f,FklByteCodelnt* s)
 	}
 }
 
-//void fklCodelntCopyCat(FklByteCodelnt* f,const FklByteCodelnt* s)
-//{
-//	if(s->bc->size)
-//	{
-//		if(s->ls)
-//		{
-//			if(!f->l)
-//			{
-//				f->ls=s->ls;
-//				f->l=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*s->ls);
-//				FKL_ASSERT(f->l);
-//				uint32_t i=0;
-//				for(;i<f->ls;i++)
-//				{
-//					FklLineNumTabNode* t=s->l[i];
-//					f->l[i]=fklCreateLineNumTabNode(t->fid,t->scp,t->cpc,t->line);
-//				}
-//				f->l[0]->cpc+=f->bc->size;
-//				FKL_INCREASE_ALL_SCP(f->l+1,f->ls-1,f->bc->size);
-//			}
-//			else
-//			{
-//				uint32_t i=0;
-//				FklLineNumTabNode** tl=(FklLineNumTabNode**)malloc(sizeof(FklLineNumTabNode*)*s->ls);
-//				FKL_ASSERT(tl);
-//				for(;i<s->ls;i++)
-//				{
-//					FklLineNumTabNode* t=s->l[i];
-//					tl[i]=fklCreateLineNumTabNode(t->fid,t->scp,t->cpc,t->line);
-//				}
-//				FKL_INCREASE_ALL_SCP(tl,s->ls,f->bc->size);
-//				if(f->l[f->ls-1]->line==s->l[0]->line&&f->l[f->ls-1]->fid==s->l[0]->fid)
-//				{
-//					f->l[f->ls-1]->cpc+=s->l[0]->cpc;
-//					f->l=(FklLineNumTabNode**)realloc(f->l,sizeof(FklLineNumTabNode*)*(f->ls+s->ls-1));
-//					FKL_ASSERT(f->l);
-//					memcpy(f->l+f->ls,tl+1,(s->ls-1)*sizeof(FklLineNumTabNode*));
-//					f->ls+=s->ls-1;
-//					fklDestroyLineNumTabNode(tl[0]);
-//				}
-//				else
-//				{
-//					f->l=(FklLineNumTabNode**)realloc(f->l,sizeof(FklLineNumTabNode*)*(f->ls+s->ls));
-//					FKL_ASSERT(f->l);
-//					memcpy(f->l+f->ls,tl,(s->ls)*sizeof(FklLineNumTabNode*));
-//					f->ls+=s->ls;
-//				}
-//				free(tl);
-//			}
-//		}
-//		fklCodeCat(f->bc,s->bc);
-//	}
-//}
-
 void fklReCodeLntCat(FklByteCodelnt* f,FklByteCodelnt* s)
 {
 	if(f->bc->size)

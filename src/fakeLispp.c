@@ -105,7 +105,7 @@ int main(int argc,char** argv)
 			.l=lnt->list,
 			.bc=mainCode,
 		};
-		fklPrintByteCodelnt(&bytecodelnt,stdout,NULL);
+		fklPrintByteCodelnt(&bytecodelnt,stdout,table);
 		fputc('\n',stdout);
 		fklDestroyByteCode(mainCode);
 		FklCodegenLib* libs=NULL;
@@ -124,13 +124,16 @@ int main(int argc,char** argv)
 				fputc('\n',stdout);
 			}
 			fputc('\n',stdout);
-			fklPrintByteCodelnt(cur->bcl,stdout,NULL);
+			fklPrintByteCodelnt(cur->bcl,stdout,table);
 			fputc('\n',stdout);
+			fklUninitCodegenLib(cur);
 		}
+		free(libs);
 		fclose(fp);
 		fklDestroyCwd();
 		fklDestroyLineNumberTable(lnt);
 		fklDestroyMainFileRealPath();
+		fklDestroySymbolTable(table);
 	}
 	else
 	{

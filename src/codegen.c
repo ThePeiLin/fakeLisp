@@ -3436,14 +3436,18 @@ void fklDestroyCodegenMacroList(FklCodegenMacro* cur)
 		fklDestroyCodegenMacro(t);
 	}
 }
-
-void fklDestroyCodegenLib(FklCodegenLib* lib)
+void fklUninitCodegenLib(FklCodegenLib* lib)
 {
 	free(lib->rp);
 	fklDestroyByteCodelnt(lib->bcl);
 	free(lib->exports);
 	fklDestroyCodegenMacroList(lib->head);
 	lib->exportNum=0;
+}
+
+void fklDestroyCodegenLib(FklCodegenLib* lib)
+{
+	fklUninitCodegenLib(lib);
 	free(lib);
 }
 

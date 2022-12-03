@@ -152,6 +152,7 @@ void fklInitCodegenLib(FklCodegenLib* lib
 		,size_t exportNum
 		,FklSid_t* exports
 		,FklCodegenMacro* head);
+void fklUninitCodegenLib(FklCodegenLib*);
 FklCodegenLib* fklCreateCodegenLib(char* rp
 		,FklByteCodelnt* bcl
 		,size_t exportNum

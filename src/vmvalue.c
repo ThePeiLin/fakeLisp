@@ -2242,7 +2242,7 @@ void fklVMvecCat(FklVMvec** fir,const FklVMvec* sec)
 		(*fir)->base[firSize+i]=sec->base[i];
 }
 
-FklVMudata* fklCreateVMudata(FklSid_t type,FklVMudMethodTable* t,void* mem,FklVMvalue* rel,FklVMvalue* pd)
+FklVMudata* fklCreateVMudata(FklSid_t type,const FklVMudMethodTable* t,void* mem,FklVMvalue* rel,FklVMvalue* pd)
 {
 	FklVMudata* r=(FklVMudata*)malloc(sizeof(FklVMudata));
 	FKL_ASSERT(r);

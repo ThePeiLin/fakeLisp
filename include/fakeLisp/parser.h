@@ -71,10 +71,14 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack*
 		,struct FklStringMatchRouteNode*
 		,size_t* errorLine
 		,const FklSid_t t[4]
-		,struct FklCodegen*);
+		,struct FklCodegen*
+		,FklSymbolTable*);
 
 struct FklStringMatchPattern;
-FklNastNode* fklCreateNastNodeFromCstr(const char*,const FklSid_t t[4],struct FklStringMatchPattern* pattern);
+FklNastNode* fklCreateNastNodeFromCstr(const char*
+		,const FklSid_t t[4]
+		,struct FklStringMatchPattern* pattern
+		,FklSymbolTable* publicSymbolTable);
 FklNastNode* fklCopyNastNode(const FklNastNode* n);
 void fklDestroyNastNode(FklNastNode*);
 void fklPrintNastNode(const FklNastNode* node

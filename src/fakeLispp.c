@@ -10,7 +10,6 @@
 #endif
 
 static FklByteCode* loadByteCode(FILE*);
-static void loadSymbolTable(FILE*);
 static FklLineNumberTable* loadLineNumberTable(FILE*);
 static void loadLib(FILE*,size_t* pnum,FklCodegenLib** libs);
 
@@ -27,7 +26,7 @@ FklByteCode* loadByteCode(FILE* fp)
 	return tmp;
 }
 
-void loadSymbolTable(FILE* fp)
+static void loadSymbolTable(FILE* fp,FklSymbolTable* table)
 {
 	uint64_t size=0;
 	fread(&size,sizeof(size),1,fp);
@@ -37,7 +36,7 @@ void loadSymbolTable(FILE* fp)
 		fread(&len,sizeof(len),1,fp);
 		FklString* buf=fklCreateString(len,NULL);
 		fread(buf->str,len,1,fp);
-		fklAddSymbolToGlob(buf);
+		fklAddSymbol(buf,table);
 		free(buf);
 	}
 }
@@ -93,7 +92,8 @@ int main(int argc,char** argv)
 			fklDestroyCwd();
 			return EXIT_FAILURE;
 		}
-		loadSymbolTable(fp);
+		FklSymbolTable* table=fklCreateSymbolTable();
+		loadSymbolTable(fp,table);
 		char* rp=fklRealpath(filename);
 		fklSetMainFileRealPath(rp);
 		free(rp);
@@ -120,7 +120,7 @@ int main(int argc,char** argv)
 			for(size_t j=0;j<cur->exportNum;j++)
 			{
 				FklSid_t id=cur->exports[j];
-				fklPrintRawSymbol(fklGetGlobSymbolWithId(id)->symbol,stdout);
+				fklPrintRawSymbol(fklGetSymbolWithId(id,table)->symbol,stdout);
 				fputc('\n',stdout);
 			}
 			fputc('\n',stdout);
@@ -129,7 +129,6 @@ int main(int argc,char** argv)
 		}
 		fclose(fp);
 		fklDestroyCwd();
-		fklDestroyGlobSymbolTable();
 		fklDestroyLineNumberTable(lnt);
 		fklDestroyMainFileRealPath();
 	}

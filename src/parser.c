@@ -9,7 +9,8 @@
 
 FklNastNode* fklCreateNastNodeFromCstr(const char* cStr
 		,const FklSid_t buildInHeadSymbolTable[4]
-		,FklStringMatchPattern* patterns)
+		,FklStringMatchPattern* patterns
+		,FklSymbolTable* publicSymbolTable)
 {
 	FklPtrStack* tokenStack=fklCreatePtrStack(8,16);
 	size_t size=strlen(cStr);
@@ -35,7 +36,8 @@ FklNastNode* fklCreateNastNodeFromCstr(const char* cStr
 			,route
 			,&errorLine
 			,buildInHeadSymbolTable
-			,NULL);
+			,NULL
+			,publicSymbolTable);
 	while(!fklIsPtrStackEmpty(tokenStack))
 		fklDestroyToken(fklPopPtrStack(tokenStack));
 	fklDestroyStringMatchRoute(route);
@@ -796,7 +798,8 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 		,FklStringMatchRouteNode* route
 		,size_t* errorLine
 		,const FklSid_t st[4]
-		,FklCodegen* codegen)
+		,FklCodegen* codegen
+		,FklSymbolTable* publicSymbolTable)
 {
 	if(fklIsPtrStackEmpty(tokenStack))
 		return NULL;
@@ -856,7 +859,7 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 				{
 					FklNastNode* node=literalNodeCreator[token->type-FKL_TOKEN_CHAR](token->value
 							,token->line
-							,codegen->publicSymbolTable);
+							,publicSymbolTable);
 					if(!node)
 					{
 						while(!fklIsPtrStackEmpty(&questStack))

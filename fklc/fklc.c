@@ -185,6 +185,30 @@ void fklc_make_fbc(ARGL)
 #undef IS_LITERAL
 #undef IS_COMPILABLE
 
+static void fklc_pdmt_finalizer(void* data)
+{
+	FklFklcPublicData* pd=data;
+	fklDestroySymbolTable(pd->outerSymbolTable);
+	free(data);
+}
+
+static const FklVMudMethodTable fklc_pdmt=
+{
+	.__finalizer=fklc_pdmt_finalizer,
+	.__append=NULL,
+	.__atomic=NULL,
+	.__call=NULL,
+	.__cmp=NULL,
+	.__copy=NULL,
+	.__setq_hook=NULL,
+	.__to_string=NULL,
+	.__length=NULL,
+	.__hash=NULL,
+	.__prin1=NULL,
+	.__princ=NULL,
+	.__write=NULL,
+};
+
 static FklFklcPublicData* createFklcPublicData(FklSymbolTable* table)
 {
 	FklFklcPublicData* r=(FklFklcPublicData*)malloc(sizeof(FklFklcPublicData));
@@ -197,6 +221,8 @@ static FklFklcPublicData* createFklcPublicData(FklSymbolTable* table)
 
 void _fklInit(FklVMdll* dll,FklVM* exe)
 {
-	fklcInitFsym();
-	fklcInit(dll);
+	FklFklcPublicData* pd=createFklcPublicData(exe->symbolTable);
+	FklVMudata* pdud=fklCreateVMudata(0,&fklc_pdmt,pd,NULL,NULL);
+	FklVMvalue* ud=fklCreateVMvalueToStack(FKL_TYPE_USERDATA,pdud,exe);
+	fklSetRef(&dll->pd,ud,exe->gc);
 }

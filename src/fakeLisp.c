@@ -20,7 +20,7 @@
 
 static void runRepl(FklCodegen*,const FklSid_t*);
 static FklByteCode* loadByteCode(FILE*);
-static void loadSymbolTable(FILE*);
+static void loadSymbolTable(FILE*,FklSymbolTable* table);
 static void loadLib(FILE*,size_t*,FklVMlib**,FklVMvalue* globEnv,FklVMgc*);
 static int exitState=0;
 
@@ -83,8 +83,6 @@ int main(int argc,char** argv)
 			fklDestroyCwd();
 			return 1;
 		}
-		FklSymbolTable* globalSymbolTable=fklExchangeGlobSymbolTable(codegen.globalSymTable);
-		fklDestroySymbolTable(globalSymbolTable);
 		chdir(fklGetCwd());
 		FklPtrStack* loadedLibStack=codegen.loadedLibStack;
 		for(size_t i=0;i<loadedLibStack->top;i++)
@@ -93,8 +91,8 @@ int main(int argc,char** argv)
 			fklCodegenPrintUndefinedSymbol(cur->bcl,(FklCodegenLib**)loadedLibStack->base,codegen.globalSymTable,cur->exportNum,cur->exports);
 		}
 		fklCodegenPrintUndefinedSymbol(mainByteCode,(FklCodegenLib**)codegen.loadedLibStack->base,codegen.globalSymTable,0,NULL);
-		FklVM* anotherVM=fklCreateVM(mainByteCode,NULL,NULL);
-		FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
+		FklVM* anotherVM=fklCreateVM(mainByteCode,codegen.globalSymTable,NULL,NULL);
+		FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc,anotherVM->symbolTable),anotherVM->gc);
 		anotherVM->libNum=codegen.loadedLibStack->top;
 		anotherVM->libs=(FklVMlib*)malloc(sizeof(FklVMlib)*loadedLibStack->top);
 		FKL_ASSERT(anotherVM->libs);
@@ -125,7 +123,6 @@ int main(int argc,char** argv)
 		fklDestroyVMgc(anotherVM->gc);
 		fklDestroyAllVMs(anotherVM);
 		fklUninitCodegener(&codegen);
-		fklDestroyGlobSymbolTable();
 		fklUninitCodegen();
 	}
 	else if(fklIscode(filename))
@@ -143,7 +140,8 @@ int main(int argc,char** argv)
 			fklDestroyCwd();
 			return EXIT_FAILURE;
 		}
-		loadSymbolTable(fp);
+		FklSymbolTable* table=fklCreateSymbolTable();
+		loadSymbolTable(fp,table);
 		char* rp=fklRealpath(filename);
 		fklSetMainFileRealPath(rp);
 		free(rp);
@@ -151,9 +149,9 @@ int main(int argc,char** argv)
 		fklLoadLineNumberTable(fp,&mainCodelnt->l,&mainCodelnt->ls);
 		FklByteCode* mainCode=loadByteCode(fp);
 		mainCodelnt->bc=mainCode;
-		FklVM* anotherVM=fklCreateVM(mainCodelnt,NULL,NULL);
+		FklVM* anotherVM=fklCreateVM(mainCodelnt,table,NULL,NULL);
 		FklVMgc* gc=anotherVM->gc;
-		FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
+		FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc,table),anotherVM->gc);
 		loadLib(fp,&anotherVM->libNum,&anotherVM->libs,globEnv,anotherVM->gc);
 		fclose(fp);
 		FklVMframe* mainframe=anotherVM->frames;
@@ -171,7 +169,6 @@ int main(int argc,char** argv)
 		fklJoinAllThread(anotherVM);
 		fklDestroyAllVMs(anotherVM);
 		fklDestroyVMgc(gc);
-		fklDestroyGlobSymbolTable();
 	}
 	else
 	{
@@ -187,8 +184,8 @@ int main(int argc,char** argv)
 static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 {
 	int e=0;
-	FklVM* anotherVM=fklCreateVM(NULL,NULL,NULL);
-	FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc),anotherVM->gc);
+	FklVM* anotherVM=fklCreateVM(NULL,codegen->globalSymTable,NULL,NULL);
+	FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc,anotherVM->symbolTable),anotherVM->gc);
 	FklByteCode* rawProcList=NULL;
 	FklPtrStack* tokenStack=fklCreatePtrStack(32,16);
 	FklLineNumberTable* globalLnt=fklCreateLineNumTable();
@@ -239,7 +236,8 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 				,route
 				,&errorLine
 				,builtInHeadSymbolTable
-				,codegen);
+				,codegen
+				,codegen->publicSymbolTable);
 		fklDestroyStringMatchRoute(route);
 		free(list);
 		if(fklIsPtrStackEmpty(tokenStack))
@@ -302,7 +300,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 					if(stack->tp!=0)
 					{
 						printf(";=>");
-						fklDBG_printVMstack(stack,stdout,0);
+						fklDBG_printVMstack(stack,stdout,0,anotherVM->symbolTable);
 					}
 					fklWaitGC(anotherVM->gc);
 					free(anotherVM->frames);
@@ -323,7 +321,6 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 	fklAddToGCNoGC(mainEnv,anotherVM->gc);
 	fklDestroyVMgc(anotherVM->gc);
 	fklDestroyAllVMs(anotherVM);
-	fklDestroyGlobSymbolTable();
 }
 
 static void loadLib(FILE* fp,size_t* plibNum,FklVMlib** plibs,FklVMvalue* globEnv,FklVMgc* gc)
@@ -364,7 +361,7 @@ static FklByteCode* loadByteCode(FILE* fp)
 	return tmp;
 }
 
-static void loadSymbolTable(FILE* fp)
+static void loadSymbolTable(FILE* fp,FklSymbolTable* table)
 {
 	uint64_t size=0;
 	fread(&size,sizeof(size),1,fp);
@@ -374,7 +371,7 @@ static void loadSymbolTable(FILE* fp)
 		fread(&len,sizeof(len),1,fp);
 		FklString* buf=fklCreateString(len,NULL);
 		fread(buf->str,len,1,fp);
-		fklAddSymbolToGlob(buf);
+		fklAddSymbol(buf,table);
 		free(buf);
 	}
 }

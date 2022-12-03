@@ -1468,7 +1468,8 @@ inline static FklNastNode* getExpressionFromFile(FklCodegen* codegen
 					,route
 					,errorLine
 					,builtInHeadSymbolTable
-					,codegen);
+					,codegen
+					,codegen->publicSymbolTable);
 			*hasError=(begin==NULL);
 		}
 	}
@@ -2756,7 +2757,8 @@ const FklSid_t* fklInitCodegen(FklSymbolTable* publicSymbolTable)
 	for(struct PatternAndFunc* cur=&builtInPattern[0];cur->ps!=NULL;cur++)
 		cur->pn=fklCreateNastNodeFromCstr(cur->ps
 				,builtInHeadSymbolTable
-				,builtinStringPatterns);
+				,builtinStringPatterns
+				,publicSymbolTable);
 
 	for(struct SymbolReplacement* cur=&builtInSymbolReplacement[0];cur->s!=NULL;cur++)
 		cur->sid=fklAddSymbolCstr(cur->s,publicSymbolTable)->id;
@@ -2764,7 +2766,8 @@ const FklSid_t* fklInitCodegen(FklSymbolTable* publicSymbolTable)
 	for(struct SubPattern* cur=&builtInSubPattern[0];cur->ps!=NULL;cur++)
 		cur->pn=fklCreateNastNodeFromCstr(cur->ps
 				,builtInHeadSymbolTable
-				,builtinStringPatterns);
+				,builtinStringPatterns
+				,publicSymbolTable);
 
 	fklDestroyAllStringPattern(builtinStringPatterns);
 	return builtInHeadSymbolTable;

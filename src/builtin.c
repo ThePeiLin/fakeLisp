@@ -2770,7 +2770,8 @@ void builtin_read(ARGL)
 			,route
 			,&errorLine
 			,publicUserData->builtInHeadSymbolTable
-			,NULL);
+			,NULL
+			,exe->symbolTable);
 	FklVMvalue* tmp=NULL;
 	if(node==NULL)
 	{
@@ -2849,7 +2850,8 @@ void builtin_parse(ARGL)
 			,route
 			,&errorLine
 			,publicUserData->builtInHeadSymbolTable
-			,NULL);
+			,NULL
+			,exe->symbolTable);
 	fklDestroyStringMatchRoute(route);
 	FklVMvalue* tmp=NULL;
 	if(node==NULL)

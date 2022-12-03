@@ -25,7 +25,8 @@ int main(int argc,char** argv)
 		char* pattern=argv[i];
 		glob_t buf;
 		glob(pattern,GLOB_NOSORT,NULL,&buf);
-		fklInitCodegen();
+		FklSymbolTable* table=fklCreateSymbolTable();
+		fklInitCodegen(table);
 		//fklInitLexer();
 		char* cwd=getcwd(NULL,0);
 		fklSetCwd(cwd);
@@ -52,12 +53,12 @@ int main(int argc,char** argv)
 					fklUninitCodegen();
 					return EXIT_FAILURE;
 				}
-				fklAddSymbolToGlobCstr(filename);
+				fklAddSymbolCstr(filename,table);
 				FklCodegen codegen={.fid=0,};
 				char* rp=fklRealpath(filename);
 				fklSetMainFileRealPath(rp);
 				chdir(fklGetMainFileRealPath());
-				fklInitGlobalCodegener(&codegen,rp,NULL,fklCreateSymbolTable(),0);
+				fklInitGlobalCodegener(&codegen,rp,NULL,fklCreateSymbolTable(),table,0);
 				FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
 				fklInitVMargs(argc,argv);
 				if(mainByteCode==NULL)
@@ -65,15 +66,12 @@ int main(int argc,char** argv)
 					free(rp);
 					fklUninitCodegener(&codegen);
 					fklUninitCodegen();
-					fklDestroyGlobSymbolTable();
 					fklDestroyMainFileRealPath();
 					fklDestroyCwd();
 					globfree(&buf);
 					fklUninitCodegen();
 					return 1;
 				}
-				FklSymbolTable* globalSymbolTable=fklExchangeGlobSymbolTable(codegen.globalSymTable);
-				fklDestroySymbolTable(globalSymbolTable);
 				FklPtrStack* loadedLibStack=codegen.loadedLibStack;
 				for(size_t i=0;i<loadedLibStack->top;i++)
 				{
@@ -95,7 +93,6 @@ int main(int argc,char** argv)
 					fprintf(stderr,"%s:Can't create byte code file!",outputname);
 					fklUninitCodegener(&codegen);
 					fklUninitCodegen();
-					fklDestroyGlobSymbolTable();
 					fklDestroyMainFileRealPath();
 					fklDestroyCwd();
 					globfree(&buf);
@@ -103,7 +100,7 @@ int main(int argc,char** argv)
 					return EXIT_FAILURE;
 				}
 				FklLineNumberTable globalLnt={mainByteCode->ls,mainByteCode->l};
-				fklWriteGlobSymbolTable(outfp);
+				fklWriteSymbolTable(codegen.globalSymTable,outfp);
 				fklWriteLineNumberTable(&globalLnt,outfp);
 				uint64_t sizeOfMain=mainByteCode->bc->size;
 				uint8_t* code=mainByteCode->bc->code;
@@ -130,7 +127,6 @@ int main(int argc,char** argv)
 				fklDestroyMainFileRealPath();
 				fklDestroyCwd();
 				fklUninitCodegener(&codegen);
-				fklDestroyGlobSymbolTable();
 				free(outputname);
 			}
 			else

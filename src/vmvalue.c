@@ -1242,7 +1242,6 @@ FklVMdll* fklCreateVMdll(const char* dllName)
 	FklVMdllHandle handle=fklLoadDll(rpath);
 	if(!handle)
 	{
-		putc('\n',stderr);
 		free(rpath);
 		free(realDllName);
 		return NULL;

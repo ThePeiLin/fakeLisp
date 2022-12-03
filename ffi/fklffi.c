@@ -371,7 +371,7 @@ static FklVMudMethodTable pdtable=
 	.__finalizer=ffi_pd_finalizer,
 };
 
-void _fklInit(FklSymbolTable* glob,FklVMdll* rel,FklVM* exe)
+void _fklInit(FklVMdll* rel,FklVM* exe)
 {
 	FklVMgc* gc=exe->gc;
 	FklFfiPublicData* pd=createFfiPd();

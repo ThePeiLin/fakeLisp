@@ -287,14 +287,26 @@ static void _ffi_call_proc(FklVMvalue* ffiproc,FklVM* exe)
 	fklPushVMframe(f,exe);
 }
 
-extern int _mem_equal(const FklVMudata* a,const FklVMudata* b);
+int ffi_proc_equal(const FklVMudata* a,const FklVMudata* b)
+{
+	if(a->t->__call!=b->t->__call)
+		return 0;
+	if(a->t->__call)
+	{
+		FklFfiProc* p0=a->data;
+		FklFfiProc* p1=b->data;
+		if(p0->type==p1->type&&p0->func==p1->func)
+			return 1;
+	}
+	return 0;
+}
 
 static FklVMudMethodTable FfiProcMethodTable=
 {
 	.__princ=_ffi_proc_print,
 	.__prin1=_ffi_proc_print,
 	.__finalizer=_ffi_proc_atomic_finalizer,
-	.__equal=_mem_equal,
+	.__equal=ffi_proc_equal,
 	.__call=_ffi_call_proc,
 	.__write=NULL,
 	.__atomic=NULL,

@@ -265,7 +265,7 @@ static void fkl_ffi_mem_print(void* p,FILE* fp,FklSymbolTable* table,FklVMvalue*
 	}
 }
 
-int fkl_ffi_mem_equal(const FklVMudata* a,const FklVMudata* b)
+static int fkl_ffi_mem_equal(const FklVMudata* a,const FklVMudata* b)
 {
 	if(a->t->__call!=b->t->__call)
 		return 0;

@@ -6,7 +6,6 @@
     (define pre-method-list nil)
     (define method-list nil)
     (define construct-method nil)
-    (define case-list nil)
 
     (let loop ((c body))
       (cond (c
@@ -21,29 +20,14 @@
                        ((method) (setq pre-method-list (append pre-method-list segment-data)))))
               (loop (cdr c)))))
 
-    (let loop ((c data-list))
-      (cond (c (let ((name (car (car c))))
-                 (setq case-list (cons `((~name) ~name) case-list)))
-               (loop (cdr c)))))
-
     (let loop ((c pre-method-list))
       (cond (c
               (let ((method-name (car (car c))))
                 (cond ((not (eq method-name name))
-                       (setq method-list (cons `(~method-name (lambda ~@(cdr (car c)))) method-list))
-                       (setq case-list (cons `((~method-name) ~method-name) case-list)))
+                       (setq method-list (cons `(~method-name (lambda ~@(cdr (car c)))) method-list)))
                       (1
                        (setq construct-method (cdr (car c))))))
               (loop (cdr c)))))
-    (setq case-list
-          (append case-list
-                `((1
-                   (raise (error
-                            'passing-member-symbol
-                            'invalid-selector
-                            (append "error:Invalid selector \""
-                                    (symbol->string selector)
-                                    "\"\n")))))))
 
     (define local-env (append data-list method-list))
     `(define ~name
@@ -52,8 +36,7 @@
            ~@(cdr construct-method)
            (define this
              (lambda (selector)
-               (case (selector selector)
-                 ~@case-list))))))))
+               (get* selector 2 this))))))))
 
 (class Vec3
        (data

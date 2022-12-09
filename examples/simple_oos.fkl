@@ -25,8 +25,8 @@
               (let ((method-name (car (car c))))
                 (cond ((not (eq method-name name))
                        (setq method-list (cons `(~method-name (lambda ~@(cdr (car c)))) method-list)))
-                      (1
-                       (setq construct-method (cdr (car c))))))
+                  (1
+                   (setq construct-method (cdr (car c))))))
               (loop (cdr c)))))
 
     (define local-env (append data-list method-list))
@@ -36,7 +36,7 @@
            ~@(cdr construct-method)
            (define this
              (lambda (selector)
-               (get* selector 2 this))))))))
+               (get* selector 2))))))))
 
 (class Vec3
        (data

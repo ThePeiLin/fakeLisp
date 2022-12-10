@@ -8,26 +8,26 @@
     (define construct-method nil)
 
     (let loop [(c body)]
-      (cond [c
-              (letcc break
-                     (define segment-id (car (car c)))
-                     (define segment-data (cdr (car c)))
-                     (if (and (not (eq segment-id 'data))
-                              (not (eq segment-id 'method)))
-                       (break nil))
-                     (case (segment-id segment-id)
-                       [(data) (setq data-list (append data-list segment-data))]
-                       [(method) (setq pre-method-list (append pre-method-list segment-data))]))
-              (loop (cdr c))]))
+      (when c
+        (define segment-id (car (car c)))
+        (define segment-data (cdr (car c)))
+        (case (segment-id segment-id)
+          [(data) (setq data-list (append data-list segment-data))]
+          [(method) (setq pre-method-list (append pre-method-list segment-data))]
+          [else (raise (error "expanding-macro-class"
+                              'syntax-error
+                              "Wrong segment-id"))])
+        (loop (cdr c))))
 
-    (let loop ((c pre-method-list))
-      (cond (c
-              (let ((method-name (car (car c))))
-                (cond ((not (eq method-name name))
-                       (setq method-list (cons `(~method-name (lambda ~@(cdr (car c)))) method-list)))
-                  (1
-                   (setq construct-method (cdr (car c))))))
-              (loop (cdr c)))))
+    (let loop [(c pre-method-list)]
+      (when c
+        (let [(method-name (car (car c)))]
+          (cond
+            [(not (eq method-name name))
+             (setq method-list (cons `(~method-name (lambda ~@(cdr (car c)))) method-list))]
+            [1
+             (setq construct-method (cdr (car c)))]))
+        (loop (cdr c))))
 
     (define local-env (append data-list method-list))
     `(define ~name

@@ -7,8 +7,8 @@
     (define method-list nil)
     (define construct-method nil)
 
-    (let loop ((c body))
-      (cond (c
+    (let loop [(c body)]
+      (cond [c
               (letcc break
                      (define segment-id (car (car c)))
                      (define segment-data (cdr (car c)))
@@ -16,9 +16,9 @@
                               (not (eq segment-id 'method)))
                        (break nil))
                      (case (segment-id segment-id)
-                       ((data) (setq data-list (append data-list segment-data)))
-                       ((method) (setq pre-method-list (append pre-method-list segment-data)))))
-              (loop (cdr c)))))
+                       [(data) (setq data-list (append data-list segment-data))]
+                       [(method) (setq pre-method-list (append pre-method-list segment-data))]))
+              (loop (cdr c))]))
 
     (let loop ((c pre-method-list))
       (cond (c

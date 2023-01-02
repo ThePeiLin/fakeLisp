@@ -4956,6 +4956,58 @@ void builtin_hasheq_p(ARGL) {PREDICATE(FKL_IS_HASHTABLE_EQ(val),"builtin.hash?")
 void builtin_hasheqv_p(ARGL) {PREDICATE(FKL_IS_HASHTABLE_EQV(val),"builtin.hash?")}
 void builtin_hashequal_p(ARGL) {PREDICATE(FKL_IS_HASHTABLE_EQUAL(val),"builtin.hash?")}
 
+void builtin_odd_p(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* val=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.odd?",FKL_ERR_TOOMANYARG,exe);
+	if(!val)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.odd?",FKL_ERR_TOOFEWARG,exe);
+	FKL_NI_CHECK_TYPE(val,fklIsInt,"builtin.odd?",exe);
+	int r=0;
+	if(fklIsFixint(val))
+		r=fklGetInt(val)%2;
+	else
+	{
+		FklBigInt bi={NULL,0,0,0,};
+		fklSetBigInt(&bi,val->u.bigInt);
+		fklModBigIntI(&bi,2);
+		r=!FKL_IS_0_BIG_INT(&bi);
+	}
+	if(r)
+		fklNiReturn(FKL_VM_TRUE,&ap,stack);
+	else
+		fklNiReturn(FKL_VM_NIL,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_even_p(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* val=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.even?",FKL_ERR_TOOMANYARG,exe);
+	if(!val)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.even?",FKL_ERR_TOOFEWARG,exe);
+	FKL_NI_CHECK_TYPE(val,fklIsInt,"builtin.even?",exe);
+	int r=0;
+	if(fklIsFixint(val))
+		r=fklGetInt(val)%2==0;
+	else
+	{
+		FklBigInt bi={NULL,0,0,0,};
+		fklSetBigInt(&bi,val->u.bigInt);
+		fklModBigIntI(&bi,2);
+		r=FKL_IS_0_BIG_INT(&bi);
+	}
+	if(r)
+		fklNiReturn(FKL_VM_TRUE,&ap,stack);
+	else
+		fklNiReturn(FKL_VM_NIL,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 #undef ARGL
 #undef K_FUNC_ARGL
 #undef PREDICATE
@@ -5181,6 +5233,9 @@ static const struct SymbolFuncStruct
 	{"hash-values",           builtin_hash_values,             },
 
 	{"pattern-match",         builtin_pattern_match,           },
+
+	{"odd?",                  builtin_odd_p,                   },
+	{"even?",                 builtin_even_p,                  },
 
 	{NULL,                    NULL,                            },
 };

@@ -171,13 +171,6 @@ typedef struct FklVMenv
 	FklHashTable* t;
 }FklVMenv;
 
-typedef enum FklVMhashTableEqType
-{
-	FKL_VM_HASH_EQ=0,
-	FKL_VM_HASH_EQV,
-	FKL_VM_HASH_EQUAL,
-}FklVMhashTableEqType;
-
 typedef struct
 {
 	FklVMvalue* key;

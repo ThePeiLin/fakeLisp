@@ -95,9 +95,8 @@ static ffi_type* NativeFFITypeList[]=
 void fklFfiPrepFFIcif(ffi_cif* cif,int argc,ffi_type** atypes,ffi_type* rtype)
 {
 	pthread_mutex_lock(&GPrepCifLock);
-	ffi_status r=ffi_prep_cif(cif,FFI_DEFAULT_ABI,argc,rtype,atypes);
+	FKL_ASSERT(ffi_prep_cif(cif,FFI_DEFAULT_ABI,argc,rtype,atypes));
 	pthread_mutex_unlock(&GPrepCifLock);
-	FKL_ASSERT(r==FFI_OK);
 }
 
 ffi_type* fklFfiGetFfiType(FklTypeId_t type)

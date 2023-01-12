@@ -87,7 +87,11 @@ void fklPrintNastNode(const FklNastNode* node
 
 int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1);
 
+#ifdef __cplusplus
+enum FklVMhashTableEqType:unsigned int;
+#else
 enum FklVMhashTableEqType;
+#endif
 FklNastPair* fklCreateNastPair(void);
 FklNastNode* fklCreateNastList(FklNastNode** a,size_t num,uint64_t line);
 FklNastHashTable* fklCreateNastHash(enum FklVMhashTableEqType,size_t);

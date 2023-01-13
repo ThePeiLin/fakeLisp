@@ -1953,6 +1953,12 @@ FklVMvalue* fklGetCompoundFrameLocalenv(const FklVMframe* f)
 	return f->u.c.localenv;
 }
 
+FklVMvalue* fklSetCompoundFrameLocalenv(FklVMframe* f,FklVMvalue* env)
+{
+	f->u.c.localenv=env;
+	return env;
+}
+
 FklVMvalue* fklGetCompoundFrameCodeObj(const FklVMframe* f)
 {
 	return f->u.c.codeObj;

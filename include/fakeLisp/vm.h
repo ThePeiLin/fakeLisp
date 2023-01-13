@@ -616,7 +616,10 @@ FklVMframe* fklCreateOtherObjVMframe(const FklVMframeContextMethodTable* t,FklVM
 
 unsigned int fklGetCompoundFrameMark(const FklVMframe*);
 unsigned int fklSetCompoundFrameMark(FklVMframe*,unsigned int);
+
 FklVMvalue* fklGetCompoundFrameLocalenv(const FklVMframe*);
+FklVMvalue* fklSetCompoundFrameLocalenv(FklVMframe*,FklVMvalue* env);
+
 FklVMvalue* fklGetCompoundFrameCodeObj(const FklVMframe*);
 uint8_t* fklGetCompoundFrameCode(const FklVMframe*);
 uint64_t fklGetCompoundFrameScp(const FklVMframe*);
@@ -628,6 +631,7 @@ uint64_t fklIncAndAddCompoundFrameCp(FklVMframe*,int64_t a);
 
 uint64_t fklSetCompoundFrameCp(FklVMframe*,uint64_t a);
 uint64_t fklResetCompoundFrameCp(FklVMframe*);
+
 
 uint64_t fklGetCompoundFrameCpc(const FklVMframe*);
 FklSid_t fklGetCompoundFrameSid(const FklVMframe*);

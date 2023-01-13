@@ -20,7 +20,7 @@ FklNastNode* fklCreateNastNodeFromCstr(const char* cStr
 	FklStringMatchSet* matchSet=FKL_STRING_PATTERN_UNIVERSAL_SET;
 	FklStringMatchRouteNode* route=fklCreateStringMatchRouteNode(NULL,0,0,NULL,NULL,NULL);
 	FklStringMatchRouteNode* tmp=route;
-	fklSplitStringIntoTokenWithPattern(cStr
+	matchSet=fklSplitStringIntoTokenWithPattern(cStr
 			,size
 			,line
 			,&line
@@ -31,13 +31,17 @@ FklNastNode* fklCreateNastNodeFromCstr(const char* cStr
 			,patterns
 			,route
 			,&tmp);
-	size_t errorLine=0;
-	FklNastNode* retval=fklCreateNastNodeFromTokenStackAndMatchRoute(&tokenStack
-			,route
-			,&errorLine
-			,buildInHeadSymbolTable
-			,NULL
-			,publicSymbolTable);
+	FklNastNode* retval=NULL;
+	if(!matchSet)
+	{
+		size_t errorLine=0;
+		retval=fklCreateNastNodeFromTokenStackAndMatchRoute(&tokenStack
+				,route
+				,&errorLine
+				,buildInHeadSymbolTable
+				,NULL
+				,publicSymbolTable);
+	}
 	while(!fklIsPtrStackEmpty(&tokenStack))
 		fklDestroyToken(fklPopPtrStack(&tokenStack));
 	fklDestroyStringMatchRoute(route);

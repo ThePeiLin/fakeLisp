@@ -42,6 +42,8 @@ FklNastNode* fklCreateNastNodeFromCstr(const char* cStr
 				,NULL
 				,publicSymbolTable);
 	}
+	else
+		fklDestroyStringMatchSet(matchSet);
 	while(!fklIsPtrStackEmpty(&tokenStack))
 		fklDestroyToken(fklPopPtrStack(&tokenStack));
 	fklDestroyStringMatchRoute(route);

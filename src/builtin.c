@@ -2739,7 +2739,6 @@ void builtin_read(ARGL)
 	{
 		size_t line=1;
 		tmpFile=stream?stream->u.fp:pbd->sysIn->u.fp;
-		pthread_mutex_lock(&tmpFile->lock);
 		size_t size=0;
 		FklStringMatchPattern* patterns=pbd->patterns;
 		tmpString=fklReadInStringPattern(tmpFile->fp
@@ -2753,7 +2752,6 @@ void builtin_read(ARGL)
 				,NULL
 				,patterns
 				,&route);
-		pthread_mutex_unlock(&tmpFile->lock);
 		if(unexpectEOF)
 		{
 			free(tmpString);
@@ -2888,7 +2886,6 @@ void builtin_fgets(ARGL)
 	char* str=(char*)malloc(sizeof(char)*size);
 	FKL_ASSERT(str);
 	int32_t realRead=0;
-	pthread_mutex_lock(&fp->lock);
 	if(fp->size)
 	{
 		if(fp->size<=size)
@@ -2913,7 +2910,6 @@ void builtin_fgets(ARGL)
 	}
 	if(size)
 		realRead+=fread(str,sizeof(uint8_t),size,fp->fp);
-	pthread_mutex_unlock(&fp->lock);
 	if(!realRead)
 	{
 		free(str);
@@ -2951,7 +2947,6 @@ void builtin_fgetb(ARGL)
 	uint8_t* ptr=(uint8_t*)malloc(sizeof(uint8_t)*size);
 	FKL_ASSERT(ptr);
 	int32_t realRead=0;
-	pthread_mutex_lock(&fp->lock);
 	if(fp->size)
 	{
 		if(fp->size<=size)
@@ -2976,7 +2971,6 @@ void builtin_fgetb(ARGL)
 	}
 	if(size)
 		realRead+=fread(ptr,sizeof(uint8_t),size,fp->fp);
-	pthread_mutex_unlock(&fp->lock);
 	if(!realRead)
 	{
 		free(ptr);
@@ -3088,26 +3082,26 @@ void builtin_argv(ARGL)
 static void* ThreadVMfunc(void* p)
 {
 	FklVM* exe=(FklVM*)p;
-	int64_t state=fklRunVM(exe);
 	FklVMchanl* tmpCh=exe->chan->u.chan;
+	int64_t state=fklRunVM(exe);
+	fklTcMutexAcquire(exe->gc);
 	exe->chan=NULL;
 	if(!state)
 	{
 		FKL_NI_BEGIN(exe);
 		FklVMvalue* v=NULL;
 		while((v=fklNiGetArg(&ap,stack)))
-			fklChanlSend(fklCreateVMsend(v),tmpCh);
+			fklChanlSend(fklCreateVMsend(v),tmpCh,exe->gc);
 		fklNiEnd(&ap,stack);
 	}
 	fklDestroyVMstack(exe->stack);
 	exe->stack=NULL;
 	exe->codeObj=NULL;
-	pthread_rwlock_wrlock(&exe->rlock);
 	if(state!=0)
 		fklDeleteCallChain(exe);
 	exe->frames=NULL;
 	exe->mark=0;
-	pthread_rwlock_unlock(&exe->rlock);
+	fklTcMutexRelease(exe->gc);
 	return (void*)state;
 }
 
@@ -3339,7 +3333,7 @@ void builtin_send(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.send",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(ch,FKL_IS_CHAN,"builtin.send",exe);
 	FklVMsend* t=fklCreateVMsend(message);
-	fklChanlSend(t,ch->u.chan);
+	fklChanlSend(t,ch->u.chan,exe->gc);
 	fklNiReturn(message,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -3369,7 +3363,7 @@ void builtin_recv(ARGL)
 	else
 	{
 		FklVMrecv* t=fklCreateVMrecv();
-		fklChanlRecv(t,ch->u.chan);
+		fklChanlRecv(t,ch->u.chan,exe->gc);
 		fklNiReturn(t->v,&ap,stack);
 		fklDestroyVMrecv(t);
 	}
@@ -3520,7 +3514,6 @@ static int errorCallBackWithErrorHandler(FklVMframe* f,FklVMvalue* errValue,FklV
 			stack->tp=c->bp;
 			fklPushVMvalue(errValue,stack);
 			fklNiSetBp(c->bp,stack);
-			pthread_rwlock_wrlock(&exe->rlock);
 			FklVMframe* topFrame=exe->frames;
 			exe->frames=f;
 			while(topFrame!=f)
@@ -3529,7 +3522,6 @@ static int errorCallBackWithErrorHandler(FklVMframe* f,FklVMvalue* errValue,FklV
 				topFrame=topFrame->prev;
 				fklDestroyVMframe(cur);
 			}
-			pthread_rwlock_unlock(&exe->rlock);
 			fklTailCallobj(c->errorHandlers[i],f,exe);
 			return 1;
 		}
@@ -3593,7 +3585,6 @@ void builtin_call_eh(ARGL)
 	FklVMframe* curframe=exe->frames;
 	if(errSymbolLists.top)
 	{
-		pthread_rwlock_wrlock(&exe->rlock);
 		curframe->errorCallBack=errorCallBackWithErrorHandler;
 		curframe->u.o.t=&ErrorHandlerContextMethodTable;
 		EhFrameContext* c=(EhFrameContext*)curframe->u.o.data;
@@ -3606,7 +3597,6 @@ void builtin_call_eh(ARGL)
 		c->errorHandlers=t;
 		c->bp=ap;
 		c->top=stack->bps.top;
-		pthread_rwlock_unlock(&exe->rlock);
 	}
 	else
 	{
@@ -3630,12 +3620,10 @@ void builtin_call_cc(ARGL)
 	if(!proc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.call/cc",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(proc,fklIsCallable,"builtin.call/cc",exe);
-	pthread_rwlock_rdlock(&exe->rlock);
 	FklVMcontinuation* cc=fklCreateVMcontinuation(ap,exe);
 	if(!cc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.call/cc",FKL_ERR_CROSS_C_CALL_CONTINUATION,exe);
 	FklVMvalue* vcc=fklCreateVMvalueToStack(FKL_TYPE_CONT,cc,exe);
-	pthread_rwlock_unlock(&exe->rlock);
 	fklNiSetBp(ap,stack);
 	fklNiReturn(vcc,&ap,stack);
 	fklTailCallobj(proc,frame,exe);
@@ -4139,7 +4127,6 @@ void builtin_fgetc(ARGL)
 	FklVMfp* fp=stream?stream->u.fp:pbd->sysIn->u.fp;
 	if(!fp)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetc",FKL_ERR_INVALIDACCESS,exe);
-	pthread_mutex_lock(&fp->lock);
 	if(fp->size)
 	{
 		fp->size-=1;
@@ -4156,7 +4143,6 @@ void builtin_fgetc(ARGL)
 		else
 			fklNiReturn(FKL_MAKE_VM_CHR(ch),&ap,stack);
 	}
-	pthread_mutex_unlock(&fp->lock);
 	fklNiEnd(&ap,stack);
 }
 

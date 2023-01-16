@@ -55,11 +55,9 @@ static void tailCallCompoundProcdure(FklVM* exe,FklVMproc* proc,FklVMframe* fram
 		frame->u.c.mark=1;
 	else
 	{
-		pthread_rwlock_wrlock(&exe->rlock);
 		FklVMframe* tmpFrame=fklCreateVMframeWithProc(proc,exe->frames->prev);
 		tmpFrame->u.c.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(proc->prevEnv,exe->gc));
 		exe->frames->prev=tmpFrame;
-		pthread_rwlock_unlock(&exe->rlock);
 		fklAddToGC(tmpFrame->u.c.localenv,exe);
 	}
 }
@@ -304,20 +302,14 @@ inline static void insert_to_VM_chain(FklVM* cur,FklVM* prev,FklVM* next,FklVMgc
 {
 	cur->prev=prev;
 	cur->next=next;
-	pthread_rwlock_wrlock(&gc->lock);
 	if(prev)
 	{
-		pthread_mutex_lock(&prev->prev_next_lock);
 		prev->next=cur;
-		pthread_mutex_unlock(&cur->prev->prev_next_lock);
 	}
 	if(next)
 	{
-		pthread_mutex_lock(&next->prev_next_lock);
 		next->prev=cur;
-		pthread_mutex_unlock(&cur->next->prev_next_lock);
 	}
-	pthread_rwlock_unlock(&gc->lock);
 }
 
 static FklSid_t* createBuiltinErrorTypeIdList(void)
@@ -352,8 +344,6 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 	exe->nny=0;
 	exe->libNum=0;
 	exe->libs=NULL;
-	pthread_rwlock_init(&exe->rlock,NULL);
-	pthread_mutex_init(&exe->prev_next_lock,NULL);
 	insert_to_VM_chain(exe,prev,next,exe->gc);
 	return exe;
 }
@@ -442,18 +432,14 @@ inline void fklDoCopyObjFrameContext(FklVMframe* s,FklVMframe* d,FklVM* exe)
 
 inline void fklPushVMframe(FklVMframe* f,FklVM* exe)
 {
-	pthread_rwlock_wrlock(&exe->rlock);
 	f->prev=exe->frames;
 	exe->frames=f;
-	pthread_rwlock_unlock(&exe->rlock);
 }
 
 inline static FklVMframe* popFrame(FklVM* exe)
 {
-	pthread_rwlock_wrlock(&exe->rlock);
 	FklVMframe* frame=exe->frames;
 	exe->frames=frame->prev;
-	pthread_rwlock_unlock(&exe->rlock);
 	return frame;
 }
 
@@ -523,10 +509,8 @@ void fklCallobj(FklVMvalue* proc,FklVMframe* frame,FklVM* exe)
 
 void fklTailCallobj(FklVMvalue* proc,FklVMframe* frame,FklVM* exe)
 {
-	pthread_rwlock_wrlock(&exe->rlock);
 	exe->frames=frame->prev;
 	fklDoFinalizeObjFrame(frame);
-	pthread_rwlock_unlock(&exe->rlock);
 	fklCallobj(proc,exe->frames,exe);
 }
 
@@ -621,17 +605,13 @@ int fklRunVM(FklVM* exe)
 
 inline void fklChangeGCstate(FklGCstate state,FklVMgc* gc)
 {
-	pthread_rwlock_wrlock(&gc->lock);
 	gc->running=state;
-	pthread_rwlock_unlock(&gc->lock);
 }
 
 inline FklGCstate fklGetGCstate(FklVMgc* gc)
 {
 	FklGCstate state=FKL_GC_NONE;
-	pthread_rwlock_wrlock(&gc->lock);
 	state=gc->running;
-	pthread_rwlock_unlock(&gc->lock);
 	return state;
 }
 
@@ -996,9 +976,7 @@ void B_push_r_env(FklVM* exe)
 	FklVMframe* frame=exe->frames;
 	FklVMvalue* n=fklCreateVMvalueToStack(FKL_TYPE_ENV,fklCreateVMenv(FKL_VM_NIL,exe->gc),exe);
 	fklSetRef(&n->u.env->prev,fklGetCompoundFrameLocalenv(frame),exe->gc);
-	pthread_rwlock_wrlock(&exe->rlock);
 	frame->u.c.localenv=n;
-	pthread_rwlock_unlock(&exe->rlock);
 	fklNiEnd(&ap,stack);
 	fklIncCompoundFrameCp(frame);
 }
@@ -1006,9 +984,7 @@ void B_push_r_env(FklVM* exe)
 void B_pop_r_env(FklVM* exe)
 {
 	FklVMframe* frame=exe->frames;
-	pthread_rwlock_wrlock(&exe->rlock);
 	frame->u.c.localenv=fklGetCompoundFrameLocalenv(frame)->u.env->prev;
-	pthread_rwlock_unlock(&exe->rlock);
 	fklIncCompoundFrameCp(frame);
 }
 
@@ -1317,8 +1293,6 @@ FklVMgc* fklCreateVMgc()
 	tmp->grey=NULL;
 	tmp->greyNum=0;
 	pthread_mutex_init(&tmp->tcMutex,NULL);
-	pthread_rwlock_init(&tmp->lock,NULL);
-	pthread_rwlock_init(&tmp->greylock,NULL);
 	return tmp;
 }
 
@@ -1341,10 +1315,8 @@ void fklGC_toGrey(FklVMvalue* v,FklVMgc* gc)
 	{
 		v->mark=FKL_MARK_G;
 //		atomic_store(&v->mark,FKL_MARK_G);
-		pthread_rwlock_wrlock(&gc->greylock);
 		gc->grey=createGreylink(v,gc->grey);
 		gc->greyNum++;
-		pthread_rwlock_unlock(&gc->greylock);
 	}
 }
 
@@ -1379,9 +1351,7 @@ void fklGC_markAllRootToGrey(FklVM* curVM)
 {
 	for(FklVM* cur=curVM->prev;cur;)
 	{
-		pthread_rwlock_rdlock(&cur->rlock);
 		uint32_t mark=cur->mark;
-		pthread_rwlock_unlock(&cur->rlock);
 		if(mark)
 		{
 			fklGC_markRootToGrey(cur);
@@ -1402,9 +1372,7 @@ void fklGC_markAllRootToGrey(FklVM* curVM)
 	}
 	for(FklVM* cur=curVM;cur;)
 	{
-		pthread_rwlock_rdlock(&cur->rlock);
 		uint32_t mark=cur->mark;
-		pthread_rwlock_unlock(&cur->rlock);
 		if(mark)
 		{
 			fklGC_markRootToGrey(cur);
@@ -1427,9 +1395,7 @@ void fklGC_markAllRootToGrey(FklVM* curVM)
 
 void fklGC_pause(FklVM* exe)
 {
-	pthread_rwlock_rdlock(&exe->gc->lock);
 	fklGC_markAllRootToGrey(exe);
-	pthread_rwlock_unlock(&exe->gc->lock);
 }
 
 void propagateMark(FklVMvalue* root,FklVMgc* gc)
@@ -1468,7 +1434,6 @@ void propagateMark(FklVMvalue* root,FklVMgc* gc)
 
 int fklGC_propagate(FklVMgc* gc)
 {
-	pthread_rwlock_wrlock(&gc->greylock);
 	Greylink* g=gc->grey;
 	FklVMvalue* v=FKL_VM_NIL;
 	if(g)
@@ -1478,7 +1443,6 @@ int fklGC_propagate(FklVMgc* gc)
 		v=g->v;
 		free(g);
 	}
-	pthread_rwlock_unlock(&gc->greylock);
 	//if(FKL_IS_PTR(v)&&atomic_load(&v->mark)==FKL_MARK_G)
 	if(FKL_IS_PTR(v)&&v->mark==FKL_MARK_G)
 	{
@@ -1535,10 +1499,8 @@ void fklGC_sweep(FklVMvalue* head)
 
 inline void fklGetGCstateAndGCNum(FklVMgc* gc,FklGCstate* s,int* cr)
 {
-	pthread_rwlock_rdlock(&gc->lock);
 	*s=gc->running;
 	*cr=gc->num>gc->threshold;
-	pthread_rwlock_unlock(&gc->lock);
 }
 
 //static size_t fklGetHeapNum(FklVMgc* gc)
@@ -1703,10 +1665,8 @@ FklVM* fklCreateThreadVM(FklVMgc* gc
 	exe->builtinErrorTypeId=builtinErrorTypeId;
 	exe->libs=fklCopyMemory(libs,libNum*sizeof(FklVMlib));
 	exe->codeObj=prev->codeObj;
-	pthread_rwlock_init(&exe->rlock,NULL);
 	exe->frames=NULL;
 	fklCallobj(nextCall,NULL,exe);
-	pthread_mutex_init(&exe->prev_next_lock,NULL);
 	insert_to_VM_chain(exe,prev,next,gc);
 	fklAddToGCNoGC(exe->chan,gc);
 	return exe;
@@ -1777,8 +1737,6 @@ void fklDestroyVMgc(FklVMgc* gc)
 {
 	fklWaitGC(gc);
 	fklDestroyAllValues(gc);
-	pthread_rwlock_destroy(&gc->greylock);
-	pthread_rwlock_destroy(&gc->lock);
 	free(gc);
 }
 
@@ -1829,12 +1787,10 @@ void fklCreateCallChainWithContinuation(FklVM* vm,FklVMcontinuation* cc)
 	stack->tps=tmpStack->tps;
 	free(tmpStack);
 	//pthread_rwlock_unlock(&stack->lock);
-	pthread_rwlock_wrlock(&vm->rlock);
 	fklDeleteCallChain(vm);
 	vm->frames=NULL;
 	for(FklVMframe* cur=cc->curr;cur;cur=cur->prev)
 		vm->frames=fklCopyVMframe(cur,vm->frames,vm);
-	pthread_rwlock_unlock(&vm->rlock);
 }
 
 void fklInitVMargs(int argc,char** argv)

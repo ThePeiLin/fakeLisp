@@ -894,12 +894,10 @@ void fklAddToGCNoGC(FklVMvalue* v,FklVMgc* gc)
 		FklGCstate running=fklGetGCstate(gc);
 		if(running>FKL_GC_NONE&&running<FKL_GC_SWEEPING)
 			fklGC_toGrey(v,gc);
-		pthread_rwlock_wrlock(&gc->lock);
 		v->mark=FKL_MARK_W;
 		v->next=gc->head;
 		gc->head=v;
 		gc->num+=1;
-		pthread_rwlock_unlock(&gc->lock);
 	}
 }
 
@@ -951,13 +949,11 @@ void fklAddToGC(FklVMvalue* v,FklVM* vm)
 		FklGCstate running=fklGetGCstate(gc);
 		if(running>FKL_GC_NONE&&running<FKL_GC_SWEEPING)
 			fklGC_toGrey(v,gc);
-		pthread_rwlock_wrlock(&gc->lock);
 		gc->num+=1;
 		tryGC(vm);
 		v->next=gc->head;
 		v->mark=FKL_MARK_W;
 		gc->head=v;
-		pthread_rwlock_unlock(&gc->lock);
 	}
 }
 
@@ -1145,7 +1141,6 @@ FklVMchanl* fklCreateVMchanl(int32_t maxSize)
 {
 	FklVMchanl* tmp=(FklVMchanl*)malloc(sizeof(FklVMchanl));
 	FKL_ASSERT(tmp);
-	pthread_mutex_init(&tmp->lock,NULL);
 	tmp->max=maxSize;
 	tmp->messageNum=0;
 	tmp->sendNum=0;
@@ -1167,7 +1162,6 @@ FklVMchanl* fklCreateVMchanl(int32_t maxSize)
 
 void fklDestroyVMchanl(FklVMchanl* ch)
 {
-	pthread_mutex_destroy(&ch->lock);
 	fklDestroyPtrQueue(ch->messages);
 	FklQueueNode* head=ch->sendq->head;
 	for(;head;head=head->next)
@@ -1191,7 +1185,6 @@ FklVMfp* fklCreateVMfp(FILE* fp)
 	vfp->fp=fp;
 	vfp->size=0;
 	vfp->prev=NULL;
-	pthread_mutex_init(&vfp->lock,NULL);
 	return vfp;
 }
 
@@ -1205,7 +1198,6 @@ int fklDestroyVMfp(FklVMfp* vfp)
 		FILE* fp=vfp->fp;
 		if(!(fp!=NULL&&fp!=stdin&&fp!=stdout&&fp!=stderr&&fclose(fp)!=EOF))
 			r=1;
-		pthread_mutex_destroy(&vfp->lock);
 		free(vfp);
 	}
 	return r;
@@ -1430,11 +1422,15 @@ void fklDestroyVMsend(FklVMsend* s)
 	free(s);
 }
 
+inline void fklResumeThread(pthread_cond_t* cond)
+{
+	pthread_cond_signal(cond);
+}
+
 void fklChanlRecvOk(FklVMchanl* ch,FklVMvalue** r,int* ok)
 {
 	if(ch->messageNum)
 	{
-		pthread_mutex_lock(&ch->lock);
 		*r=fklPopPtrQueue(ch->messages);
 		ch->messageNum--;
 		if(ch->messageNum<ch->max)
@@ -1442,23 +1438,26 @@ void fklChanlRecvOk(FklVMchanl* ch,FklVMvalue** r,int* ok)
 			FklVMsend* s=fklPopPtrQueue(ch->sendq);
 			ch->sendNum--;
 			if(s)
-				pthread_cond_signal(&s->cond);
+				fklResumeThread(&s->cond);
 		}
-		pthread_mutex_unlock(&ch->lock);
 		*ok=1;
 	}
 	else
 		*ok=0;
 }
 
-void fklChanlRecv(FklVMrecv* r,FklVMchanl* ch)
+inline void fklSuspendThread(pthread_cond_t* cond,FklVMgc* gc)
 {
-	pthread_mutex_lock(&ch->lock);
+	pthread_cond_wait(cond,&gc->tcMutex);
+}
+
+void fklChanlRecv(FklVMrecv* r,FklVMchanl* ch,FklVMgc* gc)
+{
 	if(!ch->messageNum)
 	{
 		fklPushPtrQueue(r,ch->recvq);
 		ch->recvNum++;
-		pthread_cond_wait(&r->cond,&ch->lock);
+		fklSuspendThread(&r->cond,gc);
 	}
 	r->v=fklPopPtrQueue(ch->messages);
 	ch->messageNum--;
@@ -1467,20 +1466,18 @@ void fklChanlRecv(FklVMrecv* r,FklVMchanl* ch)
 		FklVMsend* s=fklPopPtrQueue(ch->sendq);
 		ch->sendNum--;
 		if(s)
-			pthread_cond_signal(&s->cond);
+			fklResumeThread(&s->cond);
 	}
-	pthread_mutex_unlock(&ch->lock);
 }
 
-void fklChanlSend(FklVMsend*s,FklVMchanl* ch)
+void fklChanlSend(FklVMsend* s,FklVMchanl* ch,FklVMgc* gc)
 {
-	pthread_mutex_lock(&ch->lock);
 	if(ch->recvNum)
 	{
 		FklVMrecv* r=fklPopPtrQueue(ch->recvq);
 		ch->recvNum--;
 		if(r)
-			pthread_cond_signal(&r->cond);
+			fklResumeThread(&r->cond);
 	}
 	if(!ch->max||ch->messageNum<ch->max-1)
 	{
@@ -1498,11 +1495,10 @@ void fklChanlSend(FklVMsend*s,FklVMchanl* ch)
 				fklPushPtrQueue(s->m,ch->messages);
 				ch->messageNum++;
 			}
-			pthread_cond_wait(&s->cond,&ch->lock);
+			fklSuspendThread(&s->cond,gc);
 		}
 	}
 	fklDestroyVMsend(s);
-	pthread_mutex_unlock(&ch->lock);
 }
 
 typedef struct
@@ -1557,7 +1553,6 @@ FklVMenv* fklCreateGlobVMenv(FklVMvalue* prev
 {
 	FklVMenv* tmp=(FklVMenv*)malloc(sizeof(FklVMenv));
 	FKL_ASSERT(tmp);
-	pthread_rwlock_init(&tmp->lock,NULL);
 	tmp->prev=prev;
 	tmp->t=fklCreateHashTable(512,4,2,0.75,1,&VMenvHashMethTable);
 	fklSetRef(&tmp->prev,prev,gc);
@@ -1569,7 +1564,6 @@ FklVMenv* fklCreateVMenv(FklVMvalue* prev,FklVMgc* gc)
 {
 	FklVMenv* tmp=(FklVMenv*)malloc(sizeof(FklVMenv));
 	FKL_ASSERT(tmp);
-	pthread_rwlock_init(&tmp->lock,NULL);
 	tmp->prev=prev;
 	tmp->t=fklCreateHashTable(8,4,2,0.75,1,&VMenvHashMethTable);
 	fklSetRef(&tmp->prev,prev,gc);
@@ -1807,7 +1801,6 @@ static FklHashTableMethodTable* const VMhashTableMethTableTable[]=
 void fklAtomicVMhashTable(FklVMvalue* pht,FklVMgc* gc)
 {
 	FklVMhashTable* ht=pht->u.hash;
-	pthread_rwlock_rdlock(&ht->lock);
 	FklHashTable* table=ht->ht;
 	for(FklHashTableNodeList* list=table->list;list;list=list->next)
 	{
@@ -1815,14 +1808,12 @@ void fklAtomicVMhashTable(FklVMvalue* pht,FklVMgc* gc)
 		fklGC_toGrey(item->key,gc);
 		fklGC_toGrey(item->v,gc);
 	}
-	pthread_rwlock_unlock(&ht->lock);
 }
 
 FklVMhashTable* fklCreateVMhashTable(FklVMhashTableEqType type)
 {
 	FklVMhashTable* tmp=(FklVMhashTable*)malloc(sizeof(FklVMhashTable));
 	FKL_ASSERT(tmp);
-	pthread_rwlock_init(&tmp->lock,NULL);
 	tmp->type=type;
 	tmp->ht=fklCreateHashTable(8,8,2,1.0,1,VMhashTableMethTableTable[type]);
 	return tmp;
@@ -1831,7 +1822,6 @@ FklVMhashTable* fklCreateVMhashTable(FklVMhashTableEqType type)
 void fklDestroyVMhashTable(FklVMhashTable* ht)
 {
 	fklDestroyHashTable(ht->ht);
-	pthread_rwlock_destroy(&ht->lock);
 	free(ht);
 }
 
@@ -1840,25 +1830,20 @@ FklVMhashTableItem* fklRefVMhashTable1(FklVMvalue* key,FklVMvalue* toSet,FklVMha
 	FklVMhashTableItem* item=fklRefVMhashTable(key,ht);
 	if(!item)
 	{
-		pthread_rwlock_wrlock(&ht->lock);
 		item=fklPutNoRpHashItem(createVMhashTableItem(key,toSet,gc),ht->ht);
-		pthread_rwlock_unlock(&ht->lock);
 	}
 	return item;
 }
 
 FklVMhashTableItem* fklRefVMhashTable(FklVMvalue* key,FklVMhashTable* ht)
 {
-	pthread_rwlock_rdlock(&ht->lock);
 	FklVMhashTableItem* item=fklGetHashItem(&key,ht->ht);
-	pthread_rwlock_unlock(&ht->lock);
 	return item;
 }
 
 FklVMvalue* fklGetVMhashTable(FklVMvalue* key,FklVMhashTable* ht,int* ok)
 {
 	FklVMvalue* r=NULL;
-	pthread_rwlock_rdlock(&ht->lock);
 	FklVMhashTableItem* item=fklGetHashItem(&key,ht->ht);
 	if(item)
 	{
@@ -1867,13 +1852,11 @@ FklVMvalue* fklGetVMhashTable(FklVMvalue* key,FklVMhashTable* ht,int* ok)
 	}
 	else
 		*ok=0;
-	pthread_rwlock_unlock(&ht->lock);
 	return r;
 }
 
 void fklClearVMhashTable(FklVMhashTable* ht,FklVMgc* gc)
 {
-	pthread_rwlock_wrlock(&ht->lock);
 	FklHashTable* hash=ht->ht;
 	for(FklHashTableNodeList* list=hash->list;list;)
 	{
@@ -1889,7 +1872,6 @@ void fklClearVMhashTable(FklVMhashTable* ht,FklVMgc* gc)
 	hash->num=0;
 	hash->list=NULL;
 	hash->tail=&hash->list;
-	pthread_rwlock_unlock(&ht->lock);
 }
 
 void fklSetVMhashTableInReverseOrder(FklVMvalue* key,FklVMvalue* v,FklVMhashTable* ht,FklVMgc* gc)
@@ -1899,9 +1881,7 @@ void fklSetVMhashTableInReverseOrder(FklVMvalue* key,FklVMvalue* v,FklVMhashTabl
 		fklSetRef(&item->v,v,gc);
 	else
 	{
-		pthread_rwlock_wrlock(&ht->lock);
 		fklPutInReverseOrder(createVMhashTableItem(key,v,gc),ht->ht);
-		pthread_rwlock_unlock(&ht->lock);
 	}
 }
 
@@ -1912,9 +1892,7 @@ void fklSetVMhashTable(FklVMvalue* key,FklVMvalue* v,FklVMhashTable* ht,FklVMgc*
 		fklSetRef(&item->v,v,gc);
 	else
 	{
-		pthread_rwlock_wrlock(&ht->lock);
 		fklPutReplHashItem(createVMhashTableItem(key,v,gc),ht->ht);
-		pthread_rwlock_unlock(&ht->lock);
 	}
 }
 
@@ -1948,13 +1926,11 @@ void fklAtomicVMcontinuation(FklVMvalue* root,FklVMgc* gc)
 
 void fklAtomicVMchan(FklVMvalue* root,FklVMgc* gc)
 {
-	pthread_mutex_lock(&root->u.chan->lock);
 	FklQueueNode* head=root->u.chan->messages->head;
 	for(;head;head=head->next)
 		fklGC_toGrey(head->data,gc);
 	for(head=root->u.chan->sendq->head;head;head=head->next)
 		fklGC_toGrey(((FklVMsend*)head->data)->m,gc);
-	pthread_mutex_unlock(&root->u.chan->lock);
 }
 
 void fklAtomicVMdll(FklVMvalue* root,FklVMgc* gc)
@@ -1992,21 +1968,17 @@ void fklAtomicVMenv(FklVMvalue* penv,FklVMgc* gc)
 	FklHashTable* table=env->t;
 	if(env->prev)
 		fklGC_toGrey(env->prev,gc);
-	pthread_rwlock_rdlock(&env->lock);
 	for(FklHashTableNodeList* list=table->list;list;list=list->next)
 	{
 		VMenvHashItem* item=list->node->item;
 		fklGC_toGrey(item->v,gc);
 	}
-	pthread_rwlock_unlock(&env->lock);
 }
 
 FklVMvalue* volatile* fklFindVar(FklSid_t id,FklVMenv* env)
 {
 	FklVMvalue* volatile* r=NULL;
-	pthread_rwlock_rdlock(&env->lock);
 	VMenvHashItem* item=fklGetHashItem(&id,env->t);
-	pthread_rwlock_unlock(&env->lock);
 	if(item)
 		r=&item->v;
 	return r;
@@ -2018,9 +1990,7 @@ FklVMvalue* volatile* fklFindOrAddVar(FklSid_t id,FklVMenv* env)
 	r=fklFindVar(id,env);
 	if(!r)
 	{
-		pthread_rwlock_wrlock(&env->lock);
 		VMenvHashItem* ritem=fklPutNoRpHashItem(createVMenvHashItme(id,FKL_VM_NIL),env->t);
-		pthread_rwlock_unlock(&env->lock);
 		r=&ritem->v;
 	}
 	return r;
@@ -2032,9 +2002,7 @@ FklVMvalue* volatile* fklFindOrAddVarWithValue(FklSid_t id,FklVMvalue* v,FklVMen
 	r=fklFindVar(id,env);
 	if(!r)
 	{
-		pthread_rwlock_wrlock(&env->lock);
 		VMenvHashItem* ritem=fklPutNoRpHashItem(createVMenvHashItme(id,FKL_VM_NIL),env->t);
-		pthread_rwlock_unlock(&env->lock);
 		r=&ritem->v;
 	}
 	*r=v;
@@ -2060,10 +2028,7 @@ void fklDBG_printVMenv(FklVMenv* curEnv,FILE* fp,FklSymbolTable* table)
 
 void fklDestroyVMenv(FklVMenv* obj)
 {
-	pthread_rwlock_wrlock(&obj->lock);
 	fklDestroyHashTable(obj->t);
-	pthread_rwlock_unlock(&obj->lock);
-	pthread_rwlock_destroy(&obj->lock);
 	free(obj);
 }
 

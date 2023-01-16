@@ -556,9 +556,11 @@ void fklDestroyVMrecv(FklVMrecv*);
 FklVMsend* fklCreateVMsend(FklVMvalue*);
 void fklDestroyVMsend(FklVMsend*);
 
-void fklChanlSend(FklVMsend*,FklVMchanl*);
+void fklSuspendThread(pthread_cond_t* cond,FklVMgc* gc);
+void fklResumeThread(pthread_cond_t* cond);
+void fklChanlSend(FklVMsend*,FklVMchanl*,FklVMgc*);
 void fklChanlRecvOk(FklVMchanl*,FklVMvalue**,int*);
-void fklChanlRecv(FklVMrecv*,FklVMchanl*);
+void fklChanlRecv(FklVMrecv*,FklVMchanl*,FklVMgc*);
 
 //FklVMvalue* fklCastCptrVMvalue(FklAstCptr*,FklHashTable* lineNumberHash,FklVMgc*);
 

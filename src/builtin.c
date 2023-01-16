@@ -4371,7 +4371,11 @@ void builtin_sleep(ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sleep",FKL_ERR_TOOMANYARG,exe);
 	FKL_NI_CHECK_TYPE(second,fklIsInt,"builtin.sleep",exe);
-	fklNiReturn(fklMakeVMint((sleep(fklGetInt(second))),exe),&ap,stack);
+	int64_t sec=fklGetInt(second);
+	fklTcMutexRelease(exe->gc);
+	unsigned int r=sleep(sec);
+	fklTcMutexAcquire(exe->gc);
+	fklNiReturn(fklMakeVMuint(r,exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

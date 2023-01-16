@@ -82,7 +82,6 @@ typedef struct FklVMchanl
 	volatile size_t messageNum;
 	volatile size_t sendNum;
 	volatile size_t recvNum;
-	pthread_mutex_t lock;
 	FklPtrQueue* messages;
 	FklPtrQueue* recvq;
 	FklPtrQueue* sendq;
@@ -108,7 +107,6 @@ typedef struct FklVMpair
 
 typedef struct FklVMfp
 {
-	pthread_mutex_t lock;
 	size_t size;
 	uint8_t* prev;
 	FILE* fp;
@@ -166,7 +164,6 @@ typedef struct FklVMvalue
 
 typedef struct FklVMenv
 {
-	pthread_rwlock_t lock;
 	struct FklVMvalue* volatile prev;
 	FklHashTable* t;
 }FklVMenv;
@@ -179,7 +176,6 @@ typedef struct
 
 typedef struct FklVMhashTable
 {
-	pthread_rwlock_t lock;
 	FklHashTable* ht;
 	FklVMhashTableEqType type;
 }FklVMhashTable;
@@ -255,7 +251,6 @@ typedef struct
 	uint64_t bp;
 	size_t size;
 	FklVMvalue** values;
-//	pthread_rwlock_t lock;
 }FklVMstack;
 
 typedef struct FklVMlib
@@ -270,16 +265,13 @@ typedef struct FklVM
 {
 	uint32_t mark;
 	pthread_t tid;
-	pthread_rwlock_t rlock;
 	FklVMframe* frames;
-	//FklPtrStack* tstack;
 	FklVMstack* stack;
 	FklVMvalue* codeObj;
 	struct FklVMvalue* chan;
 	struct FklVMgc* gc;
 	size_t libNum;
 	FklVMlib* libs;
-	pthread_mutex_t prev_next_lock;
 	struct FklVM* prev;
 	struct FklVM* next;
 	jmp_buf buf;
@@ -321,11 +313,9 @@ typedef struct FklVMgc
 {
 	FklGCstate volatile running;
 	pthread_mutex_t tcMutex;
-	pthread_rwlock_t lock;
 	size_t volatile num;
 	uint32_t threshold;
 	FklVMvalue* head;
-	pthread_rwlock_t greylock;
 	struct Greylink* volatile grey;
 	size_t volatile greyNum;
 }FklVMgc;

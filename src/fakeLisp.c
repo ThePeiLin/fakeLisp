@@ -9,7 +9,6 @@
 #include<stdlib.h>
 #include<string.h>
 #include<ctype.h>
-#include<pthread.h>
 #include<setjmp.h>
 #ifdef _WIN32
 #include<io.h>

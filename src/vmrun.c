@@ -560,56 +560,62 @@ int fklVMcallInDlproc(FklVMvalue* proc
 			callCallableObj(proc,exe);
 			break;
 	}
-	longjmp(exe->buf,2);
 	return 0;
+}
+
+inline int fklTcMutexTryAcquire(FklVMgc* gc)
+{
+	return pthread_mutex_trylock(&gc->tcMutex);
+}
+
+inline void fklTcMutexAcquire(FklVMgc* gc)
+{
+	pthread_mutex_lock(&gc->tcMutex);
+}
+
+inline void fklTcMutexRelease(FklVMgc* gc)
+{
+	pthread_mutex_unlock(&gc->tcMutex);
+}
+
+inline void fklDoCompoundFrameStep(FklVMframe* curframe,FklVM* exe)
+{
+	if(fklGetCompoundFrameMark(curframe))
+	{
+		fklResetCompoundFrameCp(curframe);
+		fklSetCompoundFrameMark(curframe,0);
+	}
+	uint64_t cp=fklGetCompoundFrameCp(curframe);
+	ByteCodes[fklGetCompoundFrameCode(curframe)[cp]](exe);
 }
 
 int fklRunVM(FklVM* exe)
 {
+	if(setjmp(exe->buf)==1)
+	{
+		fklTcMutexRelease(exe->gc);
+		return 255;
+	}
 	while(exe->frames)
 	{
-		if(setjmp(exe->buf)==1)
-			return 255;
+		fklTcMutexAcquire(exe->gc);
 		FklVMframe* curframe=exe->frames;
-		//while(curframe->ccc)
-		//{
-		//	FklVMcCC* curCCC=curframe->ccc;
-		//	curframe->ccc=curCCC->next;
-		//	FklVMFuncK kFunc=curCCC->kFunc;
-		//	void* ctx=curCCC->ctx;
-		//	free(curCCC);
-		//	kFunc(exe,FKL_CC_RE,ctx);
-		//}
 		switch(curframe->type)
 		{
 			case FKL_FRAME_COMPOUND:
 				if(fklIsCompoundFrameReachEnd(curframe))
-				{
-					if(fklGetCompoundFrameMark(curframe))
-					{
-						fklResetCompoundFrameCp(curframe);
-						fklSetCompoundFrameMark(curframe,0);
-					}
-					else
-					{
-						free(popFrame(exe));
-						continue;
-					}
-				}
-				uint64_t cp=fklGetCompoundFrameCp(curframe);
-				ByteCodes[fklGetCompoundFrameCode(curframe)[cp]](exe);
+					free(popFrame(exe));
+				else
+					fklDoCompoundFrameStep(curframe,exe);
 				break;
 			case FKL_FRAME_OTHEROBJ:
 				if(fklIsCallableObjFrameReachEnd(curframe))
-				{
 					fklDoFinalizeObjFrame(popFrame(exe));
-					continue;
-				}
 				else
 					fklDoCallableObjFrameStep(curframe,exe);
 				break;
 		}
-		//fklGC_step(exe);
+		fklTcMutexRelease(exe->gc);
 	}
 	return 0;
 }
@@ -1311,6 +1317,7 @@ FklVMgc* fklCreateVMgc()
 	tmp->head=NULL;
 	tmp->grey=NULL;
 	tmp->greyNum=0;
+	pthread_mutex_init(&tmp->tcMutex,NULL);
 	pthread_rwlock_init(&tmp->lock,NULL);
 	pthread_rwlock_init(&tmp->greylock,NULL);
 	return tmp;
@@ -1785,36 +1792,6 @@ void fklJoinAllThread(FklVM* curVM)
 	curVM->mark=1;
 }
 
-//FklVMlist* fklGetGlobVMs(void)
-//{
-//	return GlobVMs;
-//}
-//
-//void fklSetGlobVMs(FklVMlist* l)
-//{
-//	GlobVMs=l;
-//}
-
-
-void fklCancelAllThread()
-{
-//	pthread_t selfId=pthread_self();
-//	for(FklVMnode** ph=&GlobVMs->h;*ph;ph=&(*ph)->next)
-//	{
-//		FklVMnode* cur=*ph;
-//		if(cur->vm->tid!=selfId)
-//		{
-//			pthread_join(cur->vm->tid,NULL);
-//			if(cur->vm->mark)
-//			{
-//				fklDeleteCallChain(cur->vm);
-//				fklDestroyVMstack(cur->vm->stack);
-//				fklDestroyPtrStack(cur->vm->tstack);
-//			}
-//		}
-//	}
-}
-
 void fklDeleteCallChain(FklVM* exe)
 {
 	while(exe->frames)
@@ -2022,6 +1999,6 @@ FklSid_t fklGetCompoundFrameSid(const FklVMframe* f)
 
 int fklIsCompoundFrameReachEnd(const FklVMframe* f)
 {
-	return f->u.c.cp>=(f->u.c.scp+f->u.c.cpc);
+	return (!f->u.c.mark)&&f->u.c.cp>=(f->u.c.scp+f->u.c.cpc);
 }
 

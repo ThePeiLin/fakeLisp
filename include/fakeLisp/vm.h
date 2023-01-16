@@ -320,6 +320,7 @@ typedef enum
 typedef struct FklVMgc
 {
 	FklGCstate volatile running;
+	pthread_mutex_t tcMutex;
 	pthread_rwlock_t lock;
 	size_t volatile num;
 	uint32_t threshold;
@@ -391,10 +392,15 @@ int fklIsTheLastExpress(const FklVMframe*,const FklVMframe*,const FklVM* exe);
 FklVMgc* fklCreateVMgc();
 void fklCreateCallChainWithContinuation(FklVM*,FklVMcontinuation*);
 void fklDestroyVMgc(FklVMgc*);
+
+void fklTcMutexAcquire(FklVMgc*);
+int fklTcMutexTryAcquire(FklVMgc*);
+void fklTcMutexRelease(FklVMgc*);
+
 void fklDestroyAllVMs(FklVM* cur);
 void fklDeleteCallChain(FklVM*);
 void fklJoinAllThread(FklVM* cur);
-void fklCancelAllThread();
+//void fklCancelAllThread();
 void fklChangeGCstate(FklGCstate,FklVMgc*);
 FklGCstate fklGetGCstate(FklVMgc*);
 void fklGetGCstateAndGCNum(FklVMgc*,FklGCstate* s,int* num);
@@ -609,6 +615,8 @@ int fklVMcallInDlproc(FklVMvalue*
 		,void*
 		,size_t);
 
+#define FKL_CALL_IN_DL_PROC(PROC,ARG_NUM,ARG_LIST,FRAME,VM,K_FUNC,CTX,SIZE) fklVMcallInDlproc((PROC),(ARG_NUM),(ARG_LIST),(FRAME),(VM),(K_FUNC),(CTX),(SIZE));return
+
 size_t fklVMlistLength(FklVMvalue*);
 
 void fklPushVMframe(FklVMframe*,FklVM* exe);
@@ -636,6 +644,7 @@ uint64_t fklResetCompoundFrameCp(FklVMframe*);
 uint64_t fklGetCompoundFrameCpc(const FklVMframe*);
 FklSid_t fklGetCompoundFrameSid(const FklVMframe*);
 int fklIsCompoundFrameReachEnd(const FklVMframe*);
+void fklDoCompoundFrameStep(FklVMframe* curframe,FklVM* exe);
 
 FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe*,FklVMframe* prev,FklVMgc*);
 FklVMframe* fklCopyVMframe(FklVMframe*,FklVMframe* prev,FklVM*);

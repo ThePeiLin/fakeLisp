@@ -3592,7 +3592,6 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 			errorState->fid=codegen->fid;
 			errorState->line=curline;
 			fklDeleteCallChain(anotherVM);
-			fklCancelAllThread();
 			fklJoinAllThread(anotherVM);
 			r=NULL;
 		}

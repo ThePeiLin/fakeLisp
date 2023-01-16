@@ -3727,7 +3727,7 @@ typedef struct
 		fklNiResTp(exe->stack);\
 		mapctx->i++;\
 	}\
-	while(mapctx->i<len)\
+	if(mapctx->i<len)\
 	{\
 		CUR_PROCESS\
 		for(size_t i=0;i<argNum;i++)\
@@ -3736,12 +3736,7 @@ typedef struct
 			fklSetRef(&(mapctx->cars)->u.vec->base[i],pair->u.pair->car,gc);\
 			fklSetRef(&mapctx->vec->u.vec->base[i],pair->u.pair->cdr,gc);\
 		}\
-		fklVMcallInDlproc(mapctx->proc,argNum,mapctx->cars->u.vec->base,frame,exe,(K_FUNC),mapctx,sizeof(MapCtx));\
-		FklVMvalue* result=fklGetTopValue(exe->stack);\
-		RESULT_PROCESS\
-		NEXT_PROCESS\
-		fklNiResTp(exe->stack);\
-		mapctx->i++;\
+		FKL_CALL_IN_DL_PROC(mapctx->proc,argNum,mapctx->cars->u.vec->base,frame,exe,(K_FUNC),mapctx,sizeof(MapCtx));\
 	}\
 	fklNiPopTp(stack);\
 	fklNiReturn(*mapctx->r,&mapctx->ap,stack);\
@@ -3854,21 +3849,12 @@ static void k_member(K_FUNC_ARGL)
 			memberctx->list=memberctx->list->u.pair->cdr;
 		fklNiResTp(stack);
 	}
-	while(memberctx->list!=FKL_VM_NIL)
+	if(memberctx->list!=FKL_VM_NIL)
 	{
 		FklVMvalue* arglist[2]={memberctx->obj,memberctx->list->u.pair->car};
-		fklVMcallInDlproc(memberctx->proc
+		FKL_CALL_IN_DL_PROC(memberctx->proc
 				,2,arglist
 				,exe->frames,exe,k_member,memberctx,sizeof(MemberCtx));
-		FklVMvalue* result=fklGetTopValue(stack);
-		if(result!=FKL_VM_NIL)
-		{
-			*memberctx->r=memberctx->list;
-			memberctx->list=FKL_VM_NIL;
-		}
-		else
-			memberctx->list=memberctx->list->u.pair->cdr;
-		fklNiResTp(stack);
 	}
 	fklNiPopTp(stack);
 	fklNiReturn(*memberctx->r,&memberctx->ap,stack);
@@ -3933,20 +3919,11 @@ static void k_memp(K_FUNC_ARGL)
 			mempctx->list=mempctx->list->u.pair->cdr;
 		fklNiResTp(stack);
 	}
-	while(mempctx->list!=FKL_VM_NIL)
+	if(mempctx->list!=FKL_VM_NIL)
 	{
-		fklVMcallInDlproc(mempctx->proc
+		FKL_CALL_IN_DL_PROC(mempctx->proc
 				,1,&mempctx->list->u.pair->car
 				,exe->frames,exe,k_memp,mempctx,sizeof(MempCtx));
-		FklVMvalue* result=fklGetTopValue(stack);
-		if(result!=FKL_VM_NIL)
-		{
-			*mempctx->r=mempctx->list;
-			mempctx->list=FKL_VM_NIL;
-		}
-		else
-			mempctx->list=mempctx->list->u.pair->cdr;
-		fklNiResTp(stack);
 	}
 	fklNiPopTp(stack);
 	fklNiReturn(*mempctx->r,&mempctx->ap,stack);
@@ -4001,20 +3978,11 @@ static void k_filter(K_FUNC_ARGL)
 		filterctx->list=filterctx->list->u.pair->cdr;
 		fklNiResTp(stack);
 	}
-	while(filterctx->list!=FKL_VM_NIL)
+	if(filterctx->list!=FKL_VM_NIL)
 	{
-		fklVMcallInDlproc(filterctx->proc
+		FKL_CALL_IN_DL_PROC(filterctx->proc
 				,1,&filterctx->list->u.pair->car
 				,exe->frames,exe,k_filter,filterctx,sizeof(FilterCtx));
-		FklVMvalue* result=fklGetTopValue(stack);
-		if(result!=FKL_VM_NIL)
-		{
-			*filterctx->cur=fklCreateVMvalueToStack(FKL_TYPE_PAIR,fklCreateVMpair(),exe);
-			fklSetRef(&(*filterctx->cur)->u.pair->car,filterctx->list->u.pair->car,exe->gc);
-			filterctx->cur=&(*filterctx->cur)->u.pair->cdr;
-		}
-		filterctx->list=filterctx->list->u.pair->cdr;
-		fklNiResTp(stack);
 	}
 	fklNiPopTp(stack);
 	fklNiReturn(*filterctx->r,&filterctx->ap,stack);

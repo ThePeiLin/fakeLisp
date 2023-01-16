@@ -115,7 +115,6 @@ int main(int argc,char** argv)
 		{
 			exitState=r;
 			fklDeleteCallChain(anotherVM);
-			fklCancelAllThread();
 		}
 		else
 			fklWaitGC(anotherVM->gc);
@@ -162,7 +161,6 @@ int main(int argc,char** argv)
 		{
 			exitState=r;
 			fklDeleteCallChain(anotherVM);
-			fklCancelAllThread();
 		}
 		else
 			fklWaitGC(anotherVM->gc);

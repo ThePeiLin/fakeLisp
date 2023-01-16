@@ -530,7 +530,7 @@ void fklTailCallobj(FklVMvalue* proc,FklVMframe* frame,FklVM* exe)
 	fklCallobj(proc,exe->frames,exe);
 }
 
-int fklVMcallInDlproc(FklVMvalue* proc
+void fklVMcallInDlproc(FklVMvalue* proc
 		,size_t argNum
 		,FklVMvalue* arglist[]
 		,FklVMframe* frame
@@ -560,7 +560,6 @@ int fklVMcallInDlproc(FklVMvalue* proc
 			callCallableObj(proc,exe);
 			break;
 	}
-	return 0;
 }
 
 inline int fklTcMutexTryAcquire(FklVMgc* gc)

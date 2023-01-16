@@ -606,7 +606,7 @@ FklVMdllHandle fklLoadDll(const char* path);
 
 void fklPushVMvalue(FklVMvalue* v,FklVMstack* s);
 
-int fklVMcallInDlproc(FklVMvalue*
+void fklVMcallInDlproc(FklVMvalue*
 		,size_t argNum
 		,FklVMvalue*[]
 		,FklVMframe*
@@ -614,8 +614,6 @@ int fklVMcallInDlproc(FklVMvalue*
 		,FklVMFuncK
 		,void*
 		,size_t);
-
-#define FKL_CALL_IN_DL_PROC(PROC,ARG_NUM,ARG_LIST,FRAME,VM,K_FUNC,CTX,SIZE) fklVMcallInDlproc((PROC),(ARG_NUM),(ARG_LIST),(FRAME),(VM),(K_FUNC),(CTX),(SIZE));return
 
 size_t fklVMlistLength(FklVMvalue*);
 

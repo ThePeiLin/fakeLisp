@@ -3736,7 +3736,7 @@ typedef struct
 			fklSetRef(&(mapctx->cars)->u.vec->base[i],pair->u.pair->car,gc);\
 			fklSetRef(&mapctx->vec->u.vec->base[i],pair->u.pair->cdr,gc);\
 		}\
-		FKL_CALL_IN_DL_PROC(mapctx->proc,argNum,mapctx->cars->u.vec->base,frame,exe,(K_FUNC),mapctx,sizeof(MapCtx));\
+		return fklVMcallInDlproc(mapctx->proc,argNum,mapctx->cars->u.vec->base,frame,exe,(K_FUNC),mapctx,sizeof(MapCtx));\
 	}\
 	fklNiPopTp(stack);\
 	fklNiReturn(*mapctx->r,&mapctx->ap,stack);\
@@ -3852,7 +3852,7 @@ static void k_member(K_FUNC_ARGL)
 	if(memberctx->list!=FKL_VM_NIL)
 	{
 		FklVMvalue* arglist[2]={memberctx->obj,memberctx->list->u.pair->car};
-		FKL_CALL_IN_DL_PROC(memberctx->proc
+		return fklVMcallInDlproc(memberctx->proc
 				,2,arglist
 				,exe->frames,exe,k_member,memberctx,sizeof(MemberCtx));
 	}
@@ -3921,7 +3921,7 @@ static void k_memp(K_FUNC_ARGL)
 	}
 	if(mempctx->list!=FKL_VM_NIL)
 	{
-		FKL_CALL_IN_DL_PROC(mempctx->proc
+		return fklVMcallInDlproc(mempctx->proc
 				,1,&mempctx->list->u.pair->car
 				,exe->frames,exe,k_memp,mempctx,sizeof(MempCtx));
 	}
@@ -3980,7 +3980,7 @@ static void k_filter(K_FUNC_ARGL)
 	}
 	if(filterctx->list!=FKL_VM_NIL)
 	{
-		FKL_CALL_IN_DL_PROC(filterctx->proc
+		return fklVMcallInDlproc(filterctx->proc
 				,1,&filterctx->list->u.pair->car
 				,exe->frames,exe,k_filter,filterctx,sizeof(FilterCtx));
 	}

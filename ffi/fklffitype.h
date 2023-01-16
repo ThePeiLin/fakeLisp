@@ -117,15 +117,12 @@ typedef struct FklFfiPublicData
 	FklSid_t unionTypedefSymbolId;
 	FklSid_t functionTypedefSymbolId;
 	FklSid_t voidSymbolId;
-	pthread_rwlock_t defTypesLock;
 	FklDefTypes* defTypes;
 	struct
 	{
-		pthread_rwlock_t typeUnionLock;
 		FklTypeId_t num;
 		FklDefTypeUnion* ul;
 	}typeUnionList;
-	pthread_rwlock_t sharedObjsLock;
 	FklFfiSharedObjNode *sharedObjs;
 	FklSid_t ffiErrorTypeId[5];
 }FklFfiPublicData;

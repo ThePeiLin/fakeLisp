@@ -10,8 +10,6 @@ typedef SSIZE_T ssize_t;
 void fklFfiInitGlobNativeTypes(FklFfiPublicData* pd,FklSymbolTable* table)
 {
 	pd->defTypes=fklFfiCreateDefTypes();
-	pthread_rwlock_init(&pd->defTypesLock,NULL);
-	pthread_rwlock_init(&pd->typeUnionList.typeUnionLock,NULL);
 	pd->typeUnionList.num=0;
 	pd->typeUnionList.ul=NULL;
 	fklFfiInitNativeDefTypes(pd->defTypes,pd,table);
@@ -19,10 +17,7 @@ void fklFfiInitGlobNativeTypes(FklFfiPublicData* pd,FklSymbolTable* table)
 
 void fklFfiDestroyGlobDefTypeTable(FklFfiPublicData* pd)
 {
-	pthread_rwlock_wrlock(&pd->defTypesLock);
 	fklFfiDestroyDefTypeTable(pd->defTypes);
-	pthread_rwlock_unlock(&pd->defTypesLock);
-	pthread_rwlock_destroy(&pd->defTypesLock);
 }
 
 void fklFfiInitNativeDefTypes(FklDefTypes* otherTypes
@@ -77,13 +72,11 @@ void fklFfiInitNativeDefTypes(FklDefTypes* otherTypes
 
 static FklTypeId_t addToGlobTypeUnionList(FklDefTypeUnion type,FklFfiPublicData* pd)
 {
-	pthread_rwlock_wrlock(&pd->typeUnionList.typeUnionLock);
 	pd->typeUnionList.num+=1;
 	size_t num=pd->typeUnionList.num;
 	pd->typeUnionList.ul=(FklDefTypeUnion*)realloc(pd->typeUnionList.ul,sizeof(FklDefTypeUnion)*num);
 	FKL_ASSERT(pd->typeUnionList.ul);
 	pd->typeUnionList.ul[num-1]=type;
-	pthread_rwlock_unlock(&pd->typeUnionList.typeUnionLock);
 	return num;
 }
 
@@ -139,7 +132,6 @@ FklTypeId_t fklFfiCreateStructType(FklSid_t structName
 	if(structName)
 	{
 		size_t i=0;
-		pthread_rwlock_rdlock(&pd->typeUnionList.typeUnionLock);
 		size_t num=pd->typeUnionList.num;
 		for(;i<num;i++)
 		{
@@ -154,7 +146,6 @@ FklTypeId_t fklFfiCreateStructType(FklSid_t structName
 				}
 			}
 		}
-		pthread_rwlock_unlock(&pd->typeUnionList.typeUnionLock);
 	}
 	if(!id)
 	{
@@ -199,7 +190,6 @@ FklTypeId_t fklFfiCreatePtrType(FklTypeId_t type,FklFfiPublicData* pd)
 {
 	FklTypeId_t id=0;
 	size_t i=0;
-	pthread_rwlock_rdlock(&pd->typeUnionList.typeUnionLock);
 	size_t typeNum=pd->typeUnionList.num;
 	for(;i<typeNum;i++)
 	{
@@ -214,7 +204,6 @@ FklTypeId_t fklFfiCreatePtrType(FklTypeId_t type,FklFfiPublicData* pd)
 			}
 		}
 	}
-	pthread_rwlock_unlock(&pd->typeUnionList.typeUnionLock);
 	if(!id)
 	{
 		FklDefPtrType* tmp=(FklDefPtrType*)malloc(sizeof(FklDefPtrType));
@@ -232,7 +221,6 @@ FklTypeId_t fklFfiCreateFuncType(FklTypeId_t rtype
 {
 	FklTypeId_t id=0;
 	size_t i=0;
-	pthread_rwlock_rdlock(&pd->typeUnionList.typeUnionLock);
 	size_t typeNum=pd->typeUnionList.num;
 	for(;i<typeNum;i++)
 	{
@@ -247,7 +235,6 @@ FklTypeId_t fklFfiCreateFuncType(FklTypeId_t rtype
 			}
 		}
 	}
-	pthread_rwlock_unlock(&pd->typeUnionList.typeUnionLock);
 	if(!id)
 	{
 		FklDefFuncType* tmp=(FklDefFuncType*)malloc(sizeof(FklDefFuncType)+sizeof(FklTypeId_t)*anum);
@@ -266,7 +253,6 @@ FklTypeId_t fklFfiCreateArrayType(FklTypeId_t type,size_t num,FklFfiPublicData* 
 {
 	FklTypeId_t id=0;
 	size_t i=0;
-	pthread_rwlock_rdlock(&pd->typeUnionList.typeUnionLock);
 	size_t typeNum=pd->typeUnionList.num;
 	for(;i<typeNum;i++)
 	{
@@ -281,7 +267,6 @@ FklTypeId_t fklFfiCreateArrayType(FklTypeId_t type,size_t num,FklFfiPublicData* 
 			}
 		}
 	}
-	pthread_rwlock_unlock(&pd->typeUnionList.typeUnionLock);
 	if(!id)
 	{
 		FklDefArrayType* tmp=(FklDefArrayType*)malloc(sizeof(FklDefArrayType));
@@ -407,7 +392,6 @@ void fklFfiDestroyDefTypeTable(FklDefTypes* defs)
 
 void fklFfiDestroyGlobTypeList(FklFfiPublicData* pd)
 {
-	pthread_rwlock_wrlock(&pd->typeUnionList.typeUnionLock);
 	FklTypeId_t num=pd->typeUnionList.num;
 	FklDefTypeUnion* ul=pd->typeUnionList.ul;
 	FklTypeId_t i=0;
@@ -440,8 +424,6 @@ void fklFfiDestroyGlobTypeList(FklFfiPublicData* pd)
 		}
 	}
 	free(ul);
-	pthread_rwlock_unlock(&pd->typeUnionList.typeUnionLock);
-	pthread_rwlock_destroy(&pd->typeUnionList.typeUnionLock);
 }
 
 void fklFfiDestroyPtrType(FklDefPtrType* obj)
@@ -522,9 +504,7 @@ FklDefTypeUnion fklFfiGetTypeUnion(FklTypeId_t t,FklFfiPublicData* pd)
 
 FklDefTypeUnion fklFfiLockAndGetTypeUnion(FklTypeId_t t,FklFfiPublicData* pd)
 {
-	pthread_rwlock_rdlock(&pd->typeUnionList.typeUnionLock);
 	FklDefTypeUnion r=pd->typeUnionList.ul[t-1];
-	pthread_rwlock_unlock(&pd->typeUnionList.typeUnionLock);
 	return r;
 }
 
@@ -608,7 +588,6 @@ static void initStructTypeId(FklTypeId_t id
 			align=prevAllign;
 		totalSize+=fklFfiGetTypeSize(tu);
 	}
-	pthread_rwlock_wrlock(&pd->typeUnionList.typeUnionLock);
 	FklDefTypeUnion* pst=&pd->typeUnionList.ul[id-1];
 	FklDefStructType* ost=(FklDefStructType*)FKL_GET_TYPES_PTR(pst->st);
 	FklDefStructType* tost=(FklDefStructType*)realloc(ost,sizeof(FklDefStructType));
@@ -631,7 +610,6 @@ static void initStructTypeId(FklTypeId_t id
 		offset+=memberSize;
 	}
 	pst->st=FKL_MAKE_STRUCT_TYPE(ost);
-	pthread_rwlock_unlock(&pd->typeUnionList.typeUnionLock);
 }
 
 static FklTypeId_t genStructTypeId(FklVMvalue* structBodyPair,FklDefTypes* otherTypes,FklFfiPublicData* pd)
@@ -660,7 +638,6 @@ static FklTypeId_t genStructTypeId(FklVMvalue* structBodyPair,FklDefTypes* other
 	if(memberV==NULL&&structNameId!=0)
 	{
 		FklTypeId_t i=0;
-		pthread_rwlock_rdlock(&pd->typeUnionList.typeUnionLock);
 		FklTypeId_t num=pd->typeUnionList.num;
 		for(;i<num;i++)
 		{
@@ -675,7 +652,6 @@ static FklTypeId_t genStructTypeId(FklVMvalue* structBodyPair,FklDefTypes* other
 				}
 			}
 		}
-		pthread_rwlock_unlock(&pd->typeUnionList.typeUnionLock);
 		if(!retval)
 			return retval;
 	}
@@ -760,7 +736,6 @@ static void initUnionTypeId(FklTypeId_t id
 		if(ta>align)
 			align=ta;
 	}
-	pthread_rwlock_wrlock(&pd->typeUnionList.typeUnionLock);
 	FklDefTypeUnion* put=&pd->typeUnionList.ul[id-1];
 	FklDefUnionType* out=(FklDefUnionType*)FKL_GET_TYPES_PTR(put->ut);
 	FklDefUnionType* tout=(FklDefUnionType*)realloc(out,sizeof(FklDefUnionType)+num);
@@ -775,7 +750,6 @@ static void initUnionTypeId(FklTypeId_t id
 	for(uint32_t i=0;i<num;i++)
 		fklPutNoRpHashItem(createMemberHashItem(symbols[i],memberTypes[i],0),out->layout);
 	put->ut=FKL_MAKE_UNION_TYPE(out);
-	pthread_rwlock_unlock(&pd->typeUnionList.typeUnionLock);
 }
 
 static FklTypeId_t genUnionTypeId(FklVMvalue* unionBodyPair
@@ -806,7 +780,6 @@ static FklTypeId_t genUnionTypeId(FklVMvalue* unionBodyPair
 	if(memberV==NULL&&unionNameId!=0)
 	{
 		FklTypeId_t i=0;
-		pthread_rwlock_rdlock(&pd->typeUnionList.typeUnionLock);
 		uint32_t num=pd->typeUnionList.num;
 		for(;i<num;i++)
 		{
@@ -821,7 +794,6 @@ static FklTypeId_t genUnionTypeId(FklVMvalue* unionBodyPair
 				}
 			}
 		}
-		pthread_rwlock_unlock(&pd->typeUnionList.typeUnionLock);
 		if(!retval)
 			return retval;
 	}
@@ -1046,19 +1018,15 @@ FklTypeId_t fklFfiGenDefTypes(FklVMvalue* obj,FklDefTypes* otherTypes,FklSid_t t
 
 int fklFfiIsNativeTypeName(FklSid_t typeName,FklFfiPublicData* pd)
 {
-	pthread_rwlock_rdlock(&pd->defTypesLock);
 	int r=isNativeType(typeName,pd->defTypes,pd);
-	pthread_rwlock_unlock(&pd->defTypesLock);
 	return r;
 }
 
 FklTypeId_t fklFfiTypedef(FklVMvalue* obj,FklSid_t typeName,FklFfiPublicData* pd)
 {
 	FklTypeId_t retval=fklFfiGenDefTypesUnion(obj,pd->defTypes,pd);
-	pthread_rwlock_wrlock(&pd->defTypesLock);
 	if(retval)
 		fklFfiAddDefTypes(pd->defTypes,typeName,retval);
-	pthread_rwlock_unlock(&pd->defTypesLock);
 	return retval;
 }
 

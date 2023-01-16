@@ -1,7 +1,6 @@
 #include"fklffidll.h"
 #include"fklffimem.h"
 #include<fakeLisp/utils.h>
-#include<fakeLisp/vm.h>
 #include<fakeLisp/fklni.h>
 
 void fklFfiAddSharedObj(FklFfidllHandle handle,FklFfiPublicData* pd)
@@ -9,24 +8,19 @@ void fklFfiAddSharedObj(FklFfidllHandle handle,FklFfiPublicData* pd)
 	FklFfiSharedObjNode* node=(FklFfiSharedObjNode*)malloc(sizeof(FklFfiSharedObjNode));
 	FKL_ASSERT(node);
 	node->dll=handle;
-	pthread_rwlock_wrlock(&pd->sharedObjsLock);
 	node->next=pd->sharedObjs;
 	pd->sharedObjs=node;
-	pthread_rwlock_unlock(&pd->sharedObjsLock);
 }
 
 void fklFfiInitSharedObj(FklFfiPublicData* pd)
 {
-	pthread_rwlock_init(&pd->sharedObjsLock,NULL);
 	pd->sharedObjs=NULL;
 }
 
 void fklFfiDestroyAllSharedObj(FklFfiPublicData* pd)
 {
 	FklFfiSharedObjNode* head=pd->sharedObjs;
-	pthread_rwlock_wrlock(&pd->sharedObjsLock);
 	pd->sharedObjs=NULL;
-	pthread_rwlock_unlock(&pd->sharedObjsLock);
 	while(head)
 	{
 		FklFfiSharedObjNode* prev=head;
@@ -59,7 +53,6 @@ static void _ffi_proc_print(void* p,FILE* fp,FklSymbolTable* table,FklVMvalue* p
 	fputc('>',fp);
 }
 
-static pthread_mutex_t GPrepCifLock=PTHREAD_MUTEX_INITIALIZER;
 static ffi_type* NativeFFITypeList[]=
 {
 	&ffi_type_void,
@@ -93,10 +86,12 @@ static ffi_type* NativeFFITypeList[]=
 
 void fklFfiPrepFFIcif(ffi_cif* cif,int argc,ffi_type** atypes,ffi_type* rtype)
 {
-	pthread_mutex_lock(&GPrepCifLock);
+#ifdef NDEBUG
+	ffi_prep_cif(cif,FFI_DEFAULT_ABI,argc,rtype,atypes);
+#else
 	ffi_status r=ffi_prep_cif(cif,FFI_DEFAULT_ABI,argc,rtype,atypes);
-	pthread_mutex_unlock(&GPrepCifLock);
 	FKL_ASSERT(r==FFI_OK);
+#endif
 }
 
 ffi_type* fklFfiGetFfiType(FklTypeId_t type)
@@ -373,7 +368,6 @@ FklVMudata* fklFfiCreateProcUd(FklTypeId_t type
 		,FklSymbolTable* table)
 {
 	FklFfiPublicData* publicData=pd->u.ud->data;
-	pthread_rwlock_rdlock(&publicData->sharedObjsLock);
 	void* address=NULL;
 	for(FklFfiSharedObjNode* head=publicData->sharedObjs;head;head=head->next)
 	{
@@ -381,7 +375,6 @@ FklVMudata* fklFfiCreateProcUd(FklTypeId_t type
 		if(address)
 			break;
 	}
-	pthread_rwlock_unlock(&publicData->sharedObjsLock);
 	if(!address)
 		return NULL;
 	return fklCreateVMudata(publicData->memUdSid,&FfiProcMethodTable,fklFfiCreateProc(type,address,fklAddSymbolCstr(cStr,table)->id,pd),rel,pd);

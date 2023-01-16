@@ -12,7 +12,6 @@ FklSymbolTable* fklCreateSymbolTable()
 	tmp->list=NULL;
 	tmp->idl=NULL;
 	tmp->num=0;
-	pthread_rwlock_init(&tmp->rwlock,NULL);
 	return tmp;
 }
 
@@ -37,7 +36,6 @@ FklSymTabNode* fklCreateSymTabNode(const FklString* symbol)
 FklSymTabNode* fklAddSymbol(const FklString* sym,FklSymbolTable* table)
 {
 	FklSymTabNode* node=NULL;
-	pthread_rwlock_wrlock(&table->rwlock);
 	if(!table->list)
 	{
 		node=fklCreateSymTabNode(sym);
@@ -66,7 +64,6 @@ FklSymTabNode* fklAddSymbol(const FklString* sym,FklSymbolTable* table)
 			else
 			{
 				node=table->list[mid];
-				pthread_rwlock_unlock(&table->rwlock);
 				return node;
 			}
 		}
@@ -85,14 +82,12 @@ FklSymTabNode* fklAddSymbol(const FklString* sym,FklSymbolTable* table)
 		FKL_ASSERT(table->idl);
 		table->idl[table->num-1]=node;
 	}
-	pthread_rwlock_unlock(&table->rwlock);
 	return node;
 }
 
 FklSymTabNode* fklAddSymbolCstr(const char* sym,FklSymbolTable* table)
 {
 	FklSymTabNode* node=NULL;
-	pthread_rwlock_wrlock(&table->rwlock);
 	if(!table->list)
 	{
 		node=fklCreateSymTabNodeCstr(sym);
@@ -121,7 +116,6 @@ FklSymTabNode* fklAddSymbolCstr(const char* sym,FklSymbolTable* table)
 			else
 			{
 				node=table->list[mid];
-				pthread_rwlock_unlock(&table->rwlock);
 				return node;
 			}
 		}
@@ -140,7 +134,6 @@ FklSymTabNode* fklAddSymbolCstr(const char* sym,FklSymbolTable* table)
 		FKL_ASSERT(table->idl);
 		table->idl[table->num-1]=node;
 	}
-	pthread_rwlock_unlock(&table->rwlock);
 	return node;
 }
 
@@ -188,7 +181,6 @@ void fklDestroySymbolTable(FklSymbolTable* table)
 FklSymTabNode* fklFindSymbolCstr(const char* symbol,FklSymbolTable* table)
 {
 	FklSymTabNode* retval=NULL;
-	pthread_rwlock_rdlock(&table->rwlock);
 	if(table->list)
 	{
 		int32_t l=0;
@@ -209,7 +201,6 @@ FklSymTabNode* fklFindSymbolCstr(const char* symbol,FklSymbolTable* table)
 			}
 		}
 	}
-	pthread_rwlock_unlock(&table->rwlock);
 	return retval;
 }
 

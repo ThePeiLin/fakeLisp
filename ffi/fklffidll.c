@@ -1,6 +1,5 @@
 #include"fklffidll.h"
 #include"fklffimem.h"
-#include<pthread.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/vm.h>
 #include<fakeLisp/fklni.h>

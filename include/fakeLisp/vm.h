@@ -633,7 +633,7 @@ uint64_t fklResetCompoundFrameCp(FklVMframe*);
 
 uint64_t fklGetCompoundFrameCpc(const FklVMframe*);
 FklSid_t fklGetCompoundFrameSid(const FklVMframe*);
-int fklIsCompoundFrameReachEnd(const FklVMframe*);
+int fklIsCompoundFrameReachEnd(FklVMframe*);
 void fklDoCompoundFrameStep(FklVMframe* curframe,FklVM* exe);
 
 FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe*,FklVMframe* prev,FklVMgc*);

@@ -563,11 +563,6 @@ inline void fklTcMutexRelease(FklVMgc* gc)
 
 inline void fklDoCompoundFrameStep(FklVMframe* curframe,FklVM* exe)
 {
-	if(fklGetCompoundFrameMark(curframe))
-	{
-		fklResetCompoundFrameCp(curframe);
-		fklSetCompoundFrameMark(curframe,0);
-	}
 	uint64_t cp=fklGetCompoundFrameCp(curframe);
 	ByteCodes[fklGetCompoundFrameCode(curframe)[cp]](exe);
 }
@@ -1952,8 +1947,18 @@ FklSid_t fklGetCompoundFrameSid(const FklVMframe* f)
 	return f->u.c.sid;
 }
 
-int fklIsCompoundFrameReachEnd(const FklVMframe* f)
+int fklIsCompoundFrameReachEnd(FklVMframe* f)
 {
-	return (!f->u.c.mark)&&f->u.c.cp>=(f->u.c.scp+f->u.c.cpc);
+	if(f->u.c.cp>=(f->u.c.scp+f->u.c.cpc))
+	{
+		if(f->u.c.mark)
+		{
+			f->u.c.cp=f->u.c.scp;
+			f->u.c.mark=0;
+			return 0;
+		}
+		return 1;
+	}
+	return 0;
 }
 

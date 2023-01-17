@@ -3354,10 +3354,7 @@ void builtin_recv(ARGL)
 		FklVMvalue* r=FKL_VM_NIL;
 		int ok=0;
 		fklChanlRecvOk(ch->u.chan,&r,&ok);
-		if(ok)
-			okBox->u.box=FKL_VM_TRUE;
-		else
-			okBox->u.box=FKL_VM_NIL;
+		okBox->u.box=ok?FKL_VM_TRUE:FKL_VM_NIL;
 		fklNiReturn(r,&ap,stack);
 	}
 	else

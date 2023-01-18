@@ -224,6 +224,10 @@
     `(cond [(not ~pred)
             ~@expressions]))
 
+  (defmacro (unless pred,expressions)
+    `(cond [(not ~pred)
+            ~@expressions]))
+
   (defmacro (case (s v),b)
     (begin
       (define body

@@ -230,12 +230,14 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 			continue;
 		}
 		size_t errorLine=0;
+		fklTcMutexAcquire(anotherVM->gc);
 		begin=fklCreateNastNodeFromTokenStackAndMatchRoute(&tokenStack
 				,route
 				,&errorLine
 				,builtInHeadSymbolTable
 				,codegen
 				,codegen->publicSymbolTable);
+		fklTcMutexRelease(anotherVM->gc);
 		fklDestroyStringMatchRoute(route);
 		free(list);
 		if(fklIsPtrStackEmpty(&tokenStack))
@@ -247,6 +249,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 		else
 		{
 			fklMakeNastNodeRef(begin);
+			fklTcMutexAcquire(anotherVM->gc);
 			FklByteCodelnt* tmpByteCode=fklGenExpressionCode(begin,mainCodegenEnv,codegen);
 			if(tmpByteCode)
 			{
@@ -280,7 +283,9 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 				FklVMframe* mainframe=fklCreateVMframeWithProc(tmp,anotherVM->frames);
 				mainframe->u.c.localenv=mainEnv;
 				anotherVM->frames=mainframe;
+				fklTcMutexRelease(anotherVM->gc);
 				int r=fklRunVM(anotherVM);
+				fklTcMutexAcquire(anotherVM->gc);
 				if(r)
 				{
 					if(e>=2&&prev)
@@ -309,6 +314,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 					fklDestroyVMproc(tmp);
 				}
 			}
+			fklTcMutexRelease(anotherVM->gc);
 			fklDestroyNastNode(begin);
 			begin=NULL;
 		}

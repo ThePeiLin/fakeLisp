@@ -33,7 +33,8 @@
     fprin1
     square
     min
-    max)
+    max
+    merge-sort!)
   (define caar (lambda (a)
                  (car (car a))))
 
@@ -153,6 +154,51 @@
       (cond
         [(> a b) a]
         [1 b])))
+
+  (define merge-sort!
+    (lambda (cmpf ls)
+      (define partition
+        (lambda (ls)
+          (define fast-and-slow
+            (lambda (h s f)
+              (define nf (and f (cdr f)))
+              (cond
+                [nf (fast-and-slow (cdr h) (cdr s) (cdr nf))]
+                [1
+                 (set-cdr! h nil)
+                 s])))
+          (fast-and-slow (cons nil ls) ls ls)))
+
+      (define merge
+        (lambda (l h)
+          (define head '((),()))
+          (define m-iter
+            (lambda (c l h)
+              (cond
+                [(and l h)
+                 (define cl (car l))
+                 (define ch (car h))
+                 (define r (cmpf cl ch))
+                 (cond
+                   [r
+                     (set-cdr! c (cons cl nil))
+                     (m-iter (cdr c) (cdr l) h)]
+                   [1
+                    (set-cdr! c (cons ch nil))
+                    (m-iter (cdr c) l (cdr h))])]
+                [1
+                 (set-cdr! c (cond [l l][1 h]))])))
+          (m-iter head l h)
+          (cdr head)))
+      (define msort!
+        (lambda (l)
+          (cond
+            [(and l (cdr l))
+             (define h (partition l))
+             (merge (msort! l)
+                    (msort! h))]
+            [1 l])))
+      (msort! ls)))
 
   (defmacro
     (let d,b)

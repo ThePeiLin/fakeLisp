@@ -34,7 +34,8 @@
     square
     min
     max
-    merge-sort!)
+    merge-sort!
+    merge-sort)
   (define caar (lambda (a)
                  (car (car a))))
 
@@ -199,6 +200,10 @@
                     (msort! h))]
             [1 l])))
       (msort! ls)))
+
+  (define merge-sort
+    (lambda (cmpf ls)
+      (merge-sort! cmpf (copy ls))))
 
   (defmacro
     (let d,b)

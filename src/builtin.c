@@ -3019,6 +3019,20 @@ void builtin_princ(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void builtin_newline(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* file=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.newline",FKL_ERR_TOOMANYARG,exe);
+	if(file&&!FKL_IS_FP(file))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.newline",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	FILE* objFile=file?file->u.fp->fp:stdout;
+	fputc('\n',objFile);
+	fklNiReturn(FKL_VM_NIL,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 void builtin_dlopen(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -5014,6 +5028,7 @@ static const struct SymbolFuncStruct
 	{"stringify",             builtin_stringify,               },
 	{"prin1",                 builtin_prin1,                   },
 	{"princ",                 builtin_princ,                   },
+	{"newline",               builtin_newline,                   },
 	{"dlopen",                builtin_dlopen,                  },
 	{"dlsym",                 builtin_dlsym,                   },
 	{"argv",                  builtin_argv,                    },

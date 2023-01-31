@@ -1210,15 +1210,17 @@ FklVMstack* fklCreateVMstack(int32_t size)
 	return tmp;
 }
 
+#define RECYCLE_NUN (64)
 void fklStackRecycle(FklVMstack* stack)
 {
-	if(stack->size-stack->tp>64)
+	if(stack->size-stack->tp>RECYCLE_NUN)
 	{
-		stack->values=(FklVMvalue**)realloc(stack->values,sizeof(FklVMvalue*)*(stack->size-64));
+		stack->values=(FklVMvalue**)realloc(stack->values,sizeof(FklVMvalue*)*(stack->size-RECYCLE_NUN));
 		FKL_ASSERT(stack->values);
-		stack->size-=64;
+		stack->size-=RECYCLE_NUN;
 	}
 }
+#undef RECYCLE_NUN
 
 void fklDBG_printVMstack(FklVMstack* stack,FILE* fp,int mode,FklSymbolTable* table)
 {

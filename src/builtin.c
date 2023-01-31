@@ -3717,7 +3717,7 @@ typedef struct
 	FklVMstack* stack=exe->stack;\
 	FklVMframe* frame=exe->frames;\
 	if(s==FKL_CC_OK)\
-	fklNiSetTp(exe->stack);\
+		fklNiSetTp(exe->stack);\
 	else if(s==FKL_CC_RE)\
 	{\
 		FklVMvalue* result=fklGetTopValue(exe->stack);\
@@ -3771,11 +3771,11 @@ typedef struct
 	else\
 	{\
 		FklVMvalue* cars=fklCreateVMvecV(argNum,NULL,exe);\
+		FklVMvalue* resultBox=fklCreateVMvalueToStack(FKL_TYPE_BOX,(DEFAULT_VALUE),exe);\
 		MapCtx* mapctx=(MapCtx*)malloc(sizeof(MapCtx));\
 		FKL_ASSERT(mapctx);\
-		fklPushVMvalue((DEFAULT_VALUE),stack);\
 		mapctx->proc=proc;\
-		mapctx->r=fklNiGetTopSlot(stack);\
+		mapctx->r=&resultBox->u.box;\
 		mapctx->ap=ap;\
 		mapctx->cars=cars;\
 		mapctx->cur=mapctx->r;\

@@ -3876,8 +3876,8 @@ void builtin_member(ARGL)
 		FKL_NI_CHECK_TYPE(proc,fklIsCallable,"builtin.member",exe);
 		MemberCtx* memberctx=(MemberCtx*)malloc(sizeof(MemberCtx));
 		FKL_ASSERT(memberctx);
-		fklPushVMvalue(FKL_VM_NIL,stack);
-		memberctx->r=fklNiGetTopSlot(stack);
+		FklVMvalue* resultBox=fklCreateVMvalueToStack(FKL_TYPE_BOX,FKL_VM_NIL,exe);
+		memberctx->r=&resultBox->u.box;
 		memberctx->obj=obj;
 		memberctx->proc=proc;
 		memberctx->list=list;
@@ -3942,8 +3942,8 @@ void builtin_memp(ARGL)
 	FKL_NI_CHECK_TYPE(list,fklIsList,"builtin.memp",exe);
 	MempCtx* mempctx=(MempCtx*)malloc(sizeof(MempCtx));
 	FKL_ASSERT(mempctx);
-	fklPushVMvalue(FKL_VM_NIL,stack);
-	mempctx->r=fklNiGetTopSlot(stack);
+	FklVMvalue* resultBox=fklCreateVMvalueToStack(FKL_TYPE_BOX,FKL_VM_NIL,exe);
+	mempctx->r=&resultBox->u.box;
 	mempctx->proc=proc;
 	mempctx->list=list;
 	mempctx->ap=ap;
@@ -4001,8 +4001,8 @@ void builtin_filter(ARGL)
 	FKL_NI_CHECK_TYPE(list,fklIsList,"builtin.filter",exe);
 	FilterCtx* filterctx=(FilterCtx*)malloc(sizeof(FilterCtx));
 	FKL_ASSERT(filterctx);
-	fklPushVMvalue(FKL_VM_NIL,stack);
-	filterctx->r=fklNiGetTopSlot(stack);
+	FklVMvalue* resultBox=fklCreateVMvalueToStack(FKL_TYPE_BOX,FKL_VM_NIL,exe);
+	filterctx->r=&resultBox->u.box;
 	filterctx->cur=filterctx->r;
 	filterctx->proc=proc;
 	filterctx->list=list;

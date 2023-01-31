@@ -1210,7 +1210,7 @@ FklVMstack* fklCreateVMstack(int32_t size)
 	return tmp;
 }
 
-#define RECYCLE_NUN (64)
+#define RECYCLE_NUN (128)
 void fklStackRecycle(FklVMstack* stack)
 {
 	if(stack->size-stack->tp>RECYCLE_NUN)

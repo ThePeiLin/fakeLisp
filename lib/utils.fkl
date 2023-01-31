@@ -312,13 +312,13 @@
   (defmacro (-> x,forms)
     (begin
       (let iter [(c (cdr forms))
-                 (r (append (cons (caar forms) ())
+                 (r (append (cons (car (car forms)) ())
                             (cons x ())
-                            (cdar forms)))]
+                            (cdr (car forms))))]
         (cond
           [c (iter (cdr c)
-                   (append (cons (caar c) ())
+                   (append (cons (car (car c)) ())
                            (cons r ())
-                           (cdar c)))]
+                           (cdr (car c))))]
           [1 r]))))
   )

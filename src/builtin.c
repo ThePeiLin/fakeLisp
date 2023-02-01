@@ -706,6 +706,8 @@ void builtin_idiv(ARGL)
 				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.//",FKL_ERR_DIVZEROERROR,exe);
 			if(r64==1)
 				fklNiReturn(FKL_MAKE_VM_I32(1),&ap,stack);
+			else if(r64==-1)
+				fklNiReturn(FKL_MAKE_VM_I32(-1),&ap,stack);
 			else
 				fklNiReturn(FKL_MAKE_VM_I32(0),&ap,stack);
 		}
@@ -803,7 +805,7 @@ void builtin_div(ARGL)
 					fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&rd,exe),&ap,stack);
 				}
 				else
-					fklNiReturn(FKL_MAKE_VM_I32(1),&ap,stack);
+					fklNiReturn(FKL_MAKE_VM_I32(1/r64),&ap,stack);
 			}
 			else
 			{

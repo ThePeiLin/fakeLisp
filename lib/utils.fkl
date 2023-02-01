@@ -302,23 +302,37 @@
 
   (defmacro (->> x,forms)
     (begin
+      (define car-forms (car forms))
       (let iter [(c (cdr forms))
-                 (r (append (car forms) (cons x ())))]
+                 (r (if (pair? car-forms)
+                      `(~@car-forms ~@`(~x))
+                      `(~car-forms,(~x))))]
         (cond
-          [c (iter (cdr c)
-                   (append (car c) (cons r ())))]
+          [c
+            (define car-c (car c))
+            (iter (cdr c)
+                  (if (pair? car-c)
+                   `(~@car-c ~@`(~r))
+                   `(~car-c,(~r))))]
           [1 r]))))
 
   (defmacro (-> x,forms)
     (begin
+      (define car-forms (car forms))
       (let iter [(c (cdr forms))
-                 (r (append (cons (car (car forms)) ())
-                            (cons x ())
-                            (cdr (car forms))))]
+                 (r (if (pair? car-forms)
+                      `(~(car car-forms)
+                         ~@`(~x)
+                         ,~(cdr car-forms))
+                      `(~car-forms,(~x))))]
         (cond
-          [c (iter (cdr c)
-                   (append (cons (car (car c)) ())
-                           (cons r ())
-                           (cdr (car c))))]
+          [c (define car-c (car c))
+             (iter (cdr c)
+                   (if (pair? car-c)
+                     `(~(car car-c)
+                        ~@`(~r)
+                        ,~(cdr car-c))
+                     `(~car-c,(~r)))
+                   )]
           [1 r]))))
   )

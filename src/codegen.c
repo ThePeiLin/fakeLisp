@@ -2469,6 +2469,7 @@ static CODEGEN_FUNC(codegen_defmacro)
 
 		macroCodegen->globalSymTable=codegen->publicSymbolTable;
 		macroCodegen->publicSymbolTable=codegen->publicSymbolTable;
+		macroCodegen->fid=fklAddSymbolCstr(macroCodegen->filename,macroCodegen->publicSymbolTable)->id;
 		macroCodegen->loadedLibStack=macroCodegen->macroLibStack;
 
 		FklPtrStack* bcStack=fklCreatePtrStack(16,16);

@@ -799,13 +799,15 @@ void builtin_div(ARGL)
 				r64=fklGetInt(prev);
 				if(!r64)
 					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin./",FKL_ERR_DIVZEROERROR,exe);
-				if(1%r64)
+				if(r64==1)
+					fklNiReturn(FKL_MAKE_VM_I32(1),&ap,stack);
+				else if(r64==-1)
+					fklNiReturn(FKL_MAKE_VM_I32(-1),&ap,stack);
+				else
 				{
 					rd=1.0/r64;
 					fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&rd,exe),&ap,stack);
 				}
-				else
-					fklNiReturn(FKL_MAKE_VM_I32(1/r64),&ap,stack);
 			}
 			else
 			{

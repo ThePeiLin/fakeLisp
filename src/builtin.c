@@ -1351,8 +1351,8 @@ void builtin_make_list(ARGL)
 	if(fklVMnumberLt0(size))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.make-list",FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	size_t len=fklGetUint(size);
-	fklPushVMvalue(FKL_VM_NIL,stack);
-	FklVMvalue** pr=fklNiGetTopSlot(stack);
+	FklVMvalue* resultBox=fklCreateVMvalueToStack(FKL_TYPE_BOX,FKL_VM_NIL,exe);
+	FklVMvalue** pr=&resultBox->u.box;
 	FklVMvalue** cur=pr;
 	FklVMvalue* t=content?content:FKL_VM_NIL;
 	for(size_t i=0;i<len;i++)
@@ -1375,9 +1375,9 @@ void builtin_string_to_list(ARGL)
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.string->list",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(obj,FKL_IS_STR,"builtin.string->list",exe);
-	fklPushVMvalue(FKL_VM_NIL,stack);
+	FklVMvalue* resultBox=fklCreateVMvalueToStack(FKL_TYPE_BOX,FKL_VM_NIL,exe);
 	FklString* str=obj->u.str;
-	FklVMvalue** pr=fklNiGetTopSlot(stack);
+	FklVMvalue** pr=&resultBox->u.box;
 	FklVMvalue** cur=pr;
 	for(size_t i=0;i<str->size;i++)
 	{
@@ -1399,10 +1399,10 @@ void builtin_bytevector_to_s8_list(ARGL)
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.bytevector->s8-list",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(obj,FKL_IS_BYTEVECTOR,"builtin.bytevector->s8-list",exe);
-	fklPushVMvalue(FKL_VM_NIL,stack);
 	size_t size=obj->u.bvec->size;
 	int8_t* s8a=(int8_t*)obj->u.bvec->ptr;
-	FklVMvalue** pr=fklNiGetTopSlot(stack);
+	FklVMvalue* resultBox=fklCreateVMvalueToStack(FKL_TYPE_BOX,FKL_VM_NIL,exe);
+	FklVMvalue** pr=&resultBox->u.box;
 	FklVMvalue** cur=pr;
 	for(size_t i=0;i<size;i++)
 	{
@@ -1424,10 +1424,10 @@ void builtin_bytevector_to_u8_list(ARGL)
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.bytevector->s8-list",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(obj,FKL_IS_BYTEVECTOR,"builtin.bytevector->s8-list",exe);
-	fklPushVMvalue(FKL_VM_NIL,stack);
 	size_t size=obj->u.bvec->size;
 	uint8_t* u8a=obj->u.bvec->ptr;
-	FklVMvalue** pr=fklNiGetTopSlot(stack);
+	FklVMvalue* resultBox=fklCreateVMvalueToStack(FKL_TYPE_BOX,FKL_VM_NIL,exe);
+	FklVMvalue** pr=&resultBox->u.box;
 	FklVMvalue** cur=pr;
 	for(size_t i=0;i<size;i++)
 	{
@@ -1449,7 +1449,6 @@ void builtin_bytevector_to_s8_vector(ARGL)
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.bytevector->s8-vector",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(obj,FKL_IS_BYTEVECTOR,"builtin.bytevector->s8-vector",exe);
-	fklPushVMvalue(FKL_VM_NIL,stack);
 	size_t size=obj->u.bvec->size;
 	int8_t* s8a=(int8_t*)obj->u.bvec->ptr;
 	FklVMvalue* vec=fklCreateVMvecV(obj->u.bvec->size,NULL,exe);
@@ -1469,7 +1468,6 @@ void builtin_bytevector_to_u8_vector(ARGL)
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.bytevector->u8-vector",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(obj,FKL_IS_BYTEVECTOR,"builtin.bytevector->u8-vector",exe);
-	fklPushVMvalue(FKL_VM_NIL,stack);
 	size_t size=obj->u.bvec->size;
 	uint8_t* u8a=obj->u.bvec->ptr;
 	FklVMvalue* vec=fklCreateVMvecV(obj->u.bvec->size,NULL,exe);
@@ -1489,9 +1487,9 @@ void builtin_vector_to_list(ARGL)
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.vector->list",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(obj,FKL_IS_VECTOR,"builtin.vector->list",exe);
-	fklPushVMvalue(FKL_VM_NIL,stack);
 	FklVMvec* vec=obj->u.vec;
-	FklVMvalue** pr=fklNiGetTopSlot(stack);
+	FklVMvalue* resultBox=fklCreateVMvalueToStack(FKL_TYPE_BOX,FKL_VM_NIL,exe);
+	FklVMvalue** pr=&resultBox->u.box;
 	FklVMvalue** cur=pr;
 	for(size_t i=0;i<vec->size;i++)
 	{
@@ -4021,8 +4019,8 @@ void builtin_filter(ARGL)
 void builtin_list(ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	fklPushVMvalue(FKL_VM_NIL,stack);
-	FklVMvalue** r=fklNiGetTopSlot(stack);
+	FklVMvalue* resultBox=fklCreateVMvalueToStack(FKL_TYPE_BOX,FKL_VM_NIL,exe);
+	FklVMvalue** r=&resultBox->u.box;
 	FklVMvalue** pcur=r;
 	for(FklVMvalue* cur=fklNiGetArg(&ap,stack)
 			;cur
@@ -4039,8 +4037,8 @@ void builtin_list(ARGL)
 void builtin_list8(ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	fklPushVMvalue(FKL_VM_NIL,stack);
-	FklVMvalue** r=fklNiGetTopSlot(stack);
+	FklVMvalue* resultBox=fklCreateVMvalueToStack(FKL_TYPE_BOX,FKL_VM_NIL,exe);
+	FklVMvalue** r=&resultBox->u.box;
 	FklVMvalue** pcur=r;
 	for(FklVMvalue* cur=fklNiGetArg(&ap,stack);cur;)
 	{
@@ -4840,9 +4838,9 @@ void builtin_hash_to_list(ARGL)
 	if(!ht)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builin.hash->list",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(ht,FKL_IS_HASHTABLE,"builtin.hash->list",exe);
-	fklPushVMvalue(FKL_VM_NIL,stack);
 	FklVMhashTable* hash=ht->u.hash;
-	FklVMvalue** pr=fklNiGetTopSlot(stack);
+	FklVMvalue* resultBox=fklCreateVMvalueToStack(FKL_TYPE_BOX,FKL_VM_NIL,exe);
+	FklVMvalue** pr=&resultBox->u.box;
 	FklVMvalue** cur=pr;
 	for(FklHashTableNodeList* list=hash->ht->list;list;list=list->next)
 	{
@@ -4865,9 +4863,9 @@ void builtin_hash_keys(ARGL)
 	if(!ht)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builin.hash-keys",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(ht,FKL_IS_HASHTABLE,"builtin.hash-keys",exe);
-	fklPushVMvalue(FKL_VM_NIL,stack);
 	FklVMhashTable* hash=ht->u.hash;
-	FklVMvalue** pr=fklNiGetTopSlot(stack);
+	FklVMvalue* resultBox=fklCreateVMvalueToStack(FKL_TYPE_BOX,FKL_VM_NIL,exe);
+	FklVMvalue** pr=&resultBox->u.box;
 	FklVMvalue** cur=pr;
 	for(FklHashTableNodeList* list=hash->ht->list;list;list=list->next)
 	{
@@ -4889,9 +4887,9 @@ void builtin_hash_values(ARGL)
 	if(!ht)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builin.hash-values",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(ht,FKL_IS_HASHTABLE,"builtin.hash-values",exe);
-	fklPushVMvalue(FKL_VM_NIL,stack);
 	FklVMhashTable* hash=ht->u.hash;
-	FklVMvalue** pr=fklNiGetTopSlot(stack);
+	FklVMvalue* resultBox=fklCreateVMvalueToStack(FKL_TYPE_BOX,FKL_VM_NIL,exe);
+	FklVMvalue** pr=&resultBox->u.box;
 	FklVMvalue** cur=pr;
 	for(FklHashTableNodeList* list=hash->ht->list;list;list=list->next)
 	{

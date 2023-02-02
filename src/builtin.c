@@ -1749,6 +1749,10 @@ void builtin_to_string(ARGL)
 		retval=fklCreateVMvalueToStack(FKL_TYPE_STR
 				,fklCopyString(fklGetSymbolWithId(FKL_GET_SYM(obj),exe->symbolTable)->symbol)
 				,exe);
+	else if(FKL_IS_STR(obj))
+		retval=fklCreateVMvalueToStack(FKL_TYPE_STR
+				,fklCopyString(obj->u.str)
+				,exe);
 	else if(FKL_IS_CHR(obj))
 	{
 		FklString* r=fklCreateString(1,NULL);

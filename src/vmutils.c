@@ -203,7 +203,7 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 		FklVMerror* err=ev->u.err;
 		fprintf(stderr,"error of ");
 		fklPrintString(err->who,stderr);
-		fprintf(stderr," :");
+		fprintf(stderr,": ");
 		fklPrintString(err->message,stderr);
 		fprintf(stderr,"\n");
 		for(FklVMframe* cur=exe->frames;cur;cur=cur->prev)
@@ -355,9 +355,17 @@ FklString* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorTy
 	switch(type)
 	{
 		case FKL_ERR_LOADDLLFAILD:
-			fklStringCstrCat(&t,"Faild to load dll \"");
-			fklStringCstrCat(&t,str);
-			fklStringCstrCat(&t,"\"");
+			{
+				char* errStr=dlerror();
+				if(errStr)
+					fklStringCstrCat(&t,errStr);
+				else
+				{
+					fklStringCstrCat(&t,"Faild to load dll \"");
+					fklStringCstrCat(&t,str);
+					fklStringCstrCat(&t,"\"");
+				}
+			}
 			break;
 		case FKL_ERR_INVALIDSYMBOL:
 			fklStringCstrCat(&t,"Invalid symbol ");

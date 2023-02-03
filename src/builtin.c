@@ -4031,9 +4031,8 @@ void builtin_list(ARGL)
 void builtin_list8(ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMvalue* resultBox=fklCreateVMvalueToStack(FKL_TYPE_BOX,FKL_VM_NIL,exe);
-	FklVMvalue** r=&resultBox->u.box;
-	FklVMvalue** pcur=r;
+	FklVMvalue* r=FKL_VM_NIL;
+	FklVMvalue** pcur=&r;
 	for(FklVMvalue* cur=fklNiGetArg(&ap,stack);cur;)
 	{
 		FklVMvalue* next=fklNiGetArg(&ap,stack);
@@ -4047,7 +4046,7 @@ void builtin_list8(ARGL)
 		cur=next;
 	}
 	fklNiResBp(&ap,stack);
-	fklNiReturn(*r,&ap,stack);
+	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -4833,9 +4832,8 @@ void builtin_hash_to_list(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builin.hash->list",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(ht,FKL_IS_HASHTABLE,"builtin.hash->list",exe);
 	FklVMhashTable* hash=ht->u.hash;
-	FklVMvalue* resultBox=fklCreateVMvalueToStack(FKL_TYPE_BOX,FKL_VM_NIL,exe);
-	FklVMvalue** pr=&resultBox->u.box;
-	FklVMvalue** cur=pr;
+	FklVMvalue* r=FKL_VM_NIL;
+	FklVMvalue** cur=&r;
 	for(FklHashTableNodeList* list=hash->ht->list;list;list=list->next)
 	{
 		FklVMhashTableItem* item=list->node->item;
@@ -4843,7 +4841,7 @@ void builtin_hash_to_list(ARGL)
 		fklSetRef(cur,fklCreateVMpairV(pair,FKL_VM_NIL,exe),gc);
 		cur=&(*cur)->u.pair->cdr;
 	}
-	fklNiReturn(*pr,&ap,stack);
+	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -4858,16 +4856,15 @@ void builtin_hash_keys(ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builin.hash-keys",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(ht,FKL_IS_HASHTABLE,"builtin.hash-keys",exe);
 	FklVMhashTable* hash=ht->u.hash;
-	FklVMvalue* resultBox=fklCreateVMvalueToStack(FKL_TYPE_BOX,FKL_VM_NIL,exe);
-	FklVMvalue** pr=&resultBox->u.box;
-	FklVMvalue** cur=pr;
+	FklVMvalue* r=FKL_VM_NIL;
+	FklVMvalue** cur=&r;
 	for(FklHashTableNodeList* list=hash->ht->list;list;list=list->next)
 	{
 		FklVMhashTableItem* item=list->node->item;
 		fklSetRef(cur,fklCreateVMpairV(item->key,FKL_VM_NIL,exe),gc);
 		cur=&(*cur)->u.pair->cdr;
 	}
-	fklNiReturn(*pr,&ap,stack);
+	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

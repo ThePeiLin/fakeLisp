@@ -1,0 +1,39 @@
+(module
+  queue
+  (
+   enqueue
+   queue-push!
+   queue-pop!
+   dequeue
+   queue-front
+   queue-rear
+   queue-length
+   make-queue
+   )
+
+  (define make-queue
+    (lambda ()
+      `#(queue () ())))
+
+  (define type
+    (lambda (q)
+      (vref q 0)))
+
+  (define queue?
+    (lambda (queue)
+      (and (vector? queue)
+           (eqv (length queue) 3)
+           (eq (type queue) 'queue))))
+
+  (define queue-front
+    (lambda (queue)
+      (vref queue 1)))
+
+  (define queue-rear
+    (lambda (queue)
+      (vref queue 2)))
+
+  (define queue-empty?
+    (lambda (queue)
+      (null (front queue))))
+  )

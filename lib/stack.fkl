@@ -1,0 +1,56 @@
+(module
+  stack
+  (stack-push!
+    stack-pop!
+    stack?
+    stack-top
+    stack-empty?
+    make-stack
+    stack->list)
+
+  (define base
+    (lambda (s)
+      (vref s 1)))
+
+  (define set-base!
+    (lambda (s b)
+      (set-vref! s 1 b)))
+
+  (define type
+    (lambda (s)
+      (vref s 0)))
+
+  (define make-stack
+    (lambda elems
+      `#(stack ~(reverse elems))))
+
+  (define stack->list
+    (lambda (stack)
+      (copy (base stack))))
+
+  (define stack?
+    (lambda (stack)
+      (and (vector? stack)
+           (eq (type stack) 'stack)
+           (eqv (length stack) 2)
+           (list? (base stack)))))
+
+  (define stack-push!
+    (lambda (s e)
+      (set-base! s (cons e (base s)))
+      e))
+
+  (define stack-top
+    (lambda (s)
+      (car (base s))))
+
+  (define stack-pop!
+    (lambda (s)
+      (define r (stack-top s))
+      (set-base! s (cdr (base s)))
+      r))
+
+  (define stack-empty?
+    (lambda (s)
+      (not (base s))))
+  )

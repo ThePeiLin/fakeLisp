@@ -2623,6 +2623,25 @@ void builtin_nthcdr(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void builtin_tail(ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* objlist=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.tail",FKL_ERR_TOOMANYARG,exe);
+	if(!objlist)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.tail",FKL_ERR_TOOFEWARG,exe);
+	if(objlist==FKL_VM_NIL||FKL_IS_PAIR(objlist))
+	{
+		FklVMvalue* objPair=objlist;
+		for(;FKL_IS_PAIR(objPair)&&objPair->u.pair->cdr!=FKL_VM_NIL;objPair=fklGetVMpairCdr(objPair));
+		fklNiReturn(objPair,&ap,stack);
+	}
+	else
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.tail",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	fklNiEnd(&ap,stack);
+}
+
 void builtin_set_nthcdr(ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -5039,6 +5058,7 @@ static const struct SymbolFuncStruct
 	{"fclose",                builtin_fclose,                  },
 	{"feof",                  builtin_feof,                    },
 	{"nthcdr",                builtin_nthcdr,                  },
+	{"tail",                  builtin_tail,                    },
 	{"char?",                 builtin_char_p,                  },
 	{"integer?",              builtin_integer_p,               },
 	{"i32?",                  builtin_i32_p,                   },

@@ -1,10 +1,11 @@
 (module
   queue
   (
-   enqueue
+   enqueue!
    queue-push!
    queue-pop!
-   dequeue
+   dequeue!
+   queue-base
    queue-front
    queue-rear
    queue-length
@@ -12,8 +13,11 @@
    )
 
   (define make-queue
-    (lambda ()
-      `#(queue () ())))
+    (lambda elems
+      (define front (copy elems))
+      (define rear (tail front))
+      `#(queue ~front
+               ~rear)))
 
   (define type
     (lambda (q)
@@ -25,15 +29,67 @@
            (eqv (length queue) 3)
            (eq (type queue) 'queue))))
 
-  (define queue-front
+  (define queue-base
     (lambda (queue)
       (vref queue 1)))
 
+  (define queue-front
+    (lambda (queue)
+      (car (queue-base queue))))
+
+  (define q-tail
+    (lambda (q)
+      (vref q 2)))
+
   (define queue-rear
     (lambda (queue)
-      (vref queue 2)))
+      (car (q-tail queue))))
+
+    (define set-rear!
+    (lambda (q r)
+      (set-vref! q 2 r)))
+
+  (define set-new-tail!
+    (lambda (q n)
+      (set-cdr! (q-tail q) n)))
+
+  (define set-base!
+    (lambda (q f)
+      (set-vref! q 1 f)))
 
   (define queue-empty?
     (lambda (queue)
-      (null (front queue))))
+      (null (queue-base queue))))
+
+  (define queue-length
+    (lambda (queue)
+      (length (queue-base queue))))
+
+  (define enqueue!
+    (lambda (q e)
+      (define n `(~e))
+      (cond
+        [(queue-empty? q)
+         (set-base! q n)]
+        [1 (set-new-tail! q n)])
+      (set-rear! q n)))
+
+  (define queue-push!
+    (lambda (q e)
+      (define n (cons e (queue-base q)))
+      (set-base! q n)
+      (cond
+        [(null (q-tail q))
+         (set-rear! q n)])))
+
+  (define queue-pop!
+    (lambda (q)
+      (define r (queue-front q))
+      (set-base! q (cdr (queue-base q)))
+      (cond
+        [(queue-empty? q)
+         (set-rear! q nil)])
+      r))
+
+  (define dequeue! queue-pop!)
   )

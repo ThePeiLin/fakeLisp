@@ -1,12 +1,15 @@
 (module
   stack
-  (stack-push!
-    stack-pop!
-    stack?
-    stack-top
-    stack-empty?
-    make-stack
-    stack->list)
+  (
+   stack-push!
+   stack-pop!
+   stack?
+   stack-top
+   stack-empty?
+   make-stack
+   stack->list
+   stack-count
+   )
 
   (define base
     (lambda (s)
@@ -49,6 +52,10 @@
       (define r (stack-top s))
       (set-base! s (cdr (base s)))
       r))
+
+  (define stack-count
+    (lambda (s)
+      (length (base s))))
 
   (define stack-empty?
     (lambda (s)

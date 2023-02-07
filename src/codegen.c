@@ -2077,7 +2077,7 @@ static CODEGEN_FUNC(codegen_import)
 			,codegen->publicSymbolTable);
 	char* scriptFileName=fklStrCat(fklCopyCstr(filename),".fkl");
 	char* dllFileName=fklStrCat(fklCopyCstr(filename),FKL_DLL_FILE_TYPE);
-	if(fklIsAccessableRegFile(filename))
+	if(fklIsAccessableRegFile(scriptFileName))
 	{
 		process_import_code(origExp
 			,name
@@ -2088,7 +2088,7 @@ static CODEGEN_FUNC(codegen_import)
 			,errorState
 			,codegenQuestStack);
 	}
-	else if(!fklIsAccessableRegFile(dllFileName))
+	else if(fklIsAccessableRegFile(dllFileName))
 	{
 	}
 	else

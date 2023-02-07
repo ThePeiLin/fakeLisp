@@ -13,8 +13,6 @@
 !CMakeLists.txt
 !/src/
 !/src/*
-!/fklc/
-!/fklc/*
 *.fklc
 !README.md
 !README_ZH.md

@@ -29,7 +29,6 @@ set(INTERPRETER_TARGET_NAME fakeLisp)
 set(COMPILER_TARGET_NAME fakeLispc)
 set(BYTECODE_PRINTER_TARGET_NAME fakeLispp)
 set(LIBFKL_TARGET_NAME fkl)
-set(FFI_TARGET_NAME fklffi)
 set(FKLC_TARGET_NAME fklc)
 set(CONT_TARGET_NAME cont)
 
@@ -44,8 +43,6 @@ file(GLOB COMPILER_SOURCE "src/fakeLispc.c")
 
 file(GLOB BYTECODE_PRINTER_SOURCE "src/fakeLispp.c")
 
-file(GLOB FFI_SOURCE "ffi/*.c")
-
 file(GLOB FKLC_SOURCE "fklc/*.c")
 
 file(GLOB CONT_SOURCE "cont/*.c")
@@ -55,12 +52,6 @@ file(GLOB CONT_SOURCE "cont/*.c")
 #	MODULE
 #	${BTK_SOURCE})
 #set_target_properties(${BTK_TARGET_NAME} PROPERTIES PREFIX "")
-
-#fklffi.so
-add_library(${FFI_TARGET_NAME}
-	MODULE
-	${FFI_SOURCE})
-set_target_properties(${FFI_TARGET_NAME} PROPERTIES PREFIX "")
 
 #fklc.so
 add_library(${FKLC_TARGET_NAME}
@@ -110,9 +101,8 @@ target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 target_link_libraries(${BYTECODE_PRINTER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 
 #target_link_libraries(${BTK_TARGET_NAME} ${LIBFKL_TARGET_NAME})
-target_link_libraries(${FFI_TARGET_NAME} ${LIBFKL_TARGET_NAME} ffi)
 target_link_libraries(${FKLC_TARGET_NAME} ${LIBFKL_TARGET_NAME})
-target_link_libraries(${CONT_TARGET_NAME} ${LIBFKL_TARGET_NAME} ffi)
+target_link_libraries(${CONT_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 
 #copy lib/*.fkl
 add_custom_target(COPY_LIB_FKL ALL

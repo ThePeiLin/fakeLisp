@@ -17,6 +17,8 @@
 !/ffi/*
 !/fklc/
 !/fklc/*
+!/cont/
+!/cont/*
 *.fklc
 !README.md
 !README_ZH.md

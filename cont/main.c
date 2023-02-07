@@ -7,7 +7,7 @@
 
 #define ARGL FklVM* exe,FklVMvalue* rel,FklVMvalue* pd
 
-void cont_p(ARGL)
+void continuation_p(ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* val=fklNiGetArg(&ap,stack);

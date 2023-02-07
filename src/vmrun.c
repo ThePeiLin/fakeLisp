@@ -463,9 +463,6 @@ inline static void callCallableObj(FklVMvalue* v,FklVM* exe)
 {
 	switch(v->type)
 	{
-		//case FKL_TYPE_CONT:
-		//	callContinuation(exe,v->u.cont);
-		//	break;
 		case FKL_TYPE_DLPROC:
 			callDlProc(exe,v);
 			break;

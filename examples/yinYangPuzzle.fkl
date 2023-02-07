@@ -1,9 +1,0 @@
-(import (.. lib utils))
-(import (.. lib cont))
-
-(let* [(yin ((lambda (cc) (princ #\@) cc)
-             (call/cc (lambda (c) c))))
-       (yang ((lambda (cc) (princ #\*) cc)
-              (call/cc (lambda (c) c))))]
-  (if (eq (getch) #\\4) nil
-    (yin yang)))

@@ -5,4 +5,7 @@
   (define cont (dlopen (append *file-dir* "/../cont")))
   (define continuation? (dlsym cont "cont_p"))
   (define call/cc (dlsym cont "call_cc"))
+  (defmacro
+    (letcc t,b)
+    `(call/cc (lambda (~t) ~@b)))
   )

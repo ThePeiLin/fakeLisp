@@ -1,4 +1,5 @@
 (import (.. lib utils))
+(import (.. lib cont))
 
 (let* [(yin ((lambda (cc) (princ #\@) cc)
              (call/cc (lambda (c) c))))

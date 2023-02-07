@@ -3284,7 +3284,7 @@ void builtin_go(ARGL)
 	FklVMvalue* threadProc=fklNiGetArg(&ap,stack);
 	if(!threadProc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.go",FKL_ERR_TOOFEWARG,exe);
-	if(!FKL_IS_PROC(threadProc)&&!FKL_IS_DLPROC(threadProc)&&!FKL_IS_CONT(threadProc)&&!fklIsCallableUd(threadProc))
+	if(!FKL_IS_PROC(threadProc)&&!FKL_IS_DLPROC(threadProc)&&!fklIsCallableUd(threadProc))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.go",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FklVM* threadVM=fklCreateThreadVM(exe->gc
 			,threadProc
@@ -3639,26 +3639,6 @@ void builtin_call_eh(ARGL)
 	fklNiEnd(&ap,exe->stack);
 #undef GET_PROC
 #undef GET_LIST
-}
-
-void builtin_call_cc(ARGL)
-{
-	FKL_NI_BEGIN(exe);
-	FklVMframe* frame=exe->frames;
-	FklVMvalue* proc=fklNiGetArg(&ap,stack);
-	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.call/cc",FKL_ERR_TOOMANYARG,exe);
-	if(!proc)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.call/cc",FKL_ERR_TOOFEWARG,exe);
-	FKL_NI_CHECK_TYPE(proc,fklIsCallable,"builtin.call/cc",exe);
-	FklVMcontinuation* cc=fklCreateVMcontinuation(ap,exe);
-	if(!cc)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.call/cc",FKL_ERR_CROSS_C_CALL_CONTINUATION,exe);
-	FklVMvalue* vcc=fklCreateVMvalueToStack(FKL_TYPE_CONT,cc,exe);
-	fklNiSetBp(ap,stack);
-	fklNiReturn(vcc,&ap,stack);
-	fklTailCallobj(proc,frame,exe);
-	fklNiEnd(&ap,stack);
 }
 
 void builtin_apply(ARGL)
@@ -4927,7 +4907,7 @@ void builtin_error_p(ARGL) {PREDICATE(FKL_IS_ERR(val),"builtin.error?")}
 void builtin_procedure_p(ARGL) {PREDICATE(FKL_IS_PROC(val)||FKL_IS_DLPROC(val),"builtin.procedure?")}
 void builtin_proc_p(ARGL) {PREDICATE(FKL_IS_PROC(val),"builtin.proc?")}
 void builtin_dlproc_p(ARGL) {PREDICATE(FKL_IS_DLPROC(val),"builtin.dlproc?")}
-void builtin_continuation_p(ARGL) {PREDICATE(FKL_IS_CONT(val),"builtin.continuation?")}
+//void builtin_continuation_p(ARGL) {PREDICATE(FKL_IS_CONT(val),"builtin.continuation?")}
 void builtin_vector_p(ARGL) {PREDICATE(FKL_IS_VECTOR(val),"builtin.vector?")}
 void builtin_bytevector_p(ARGL) {PREDICATE(FKL_IS_BYTEVECTOR(val),"builtin.bytevector?")}
 void builtin_chanl_p(ARGL) {PREDICATE(FKL_IS_CHAN(val),"builtin.chanl?")}
@@ -5034,9 +5014,9 @@ static const struct SymbolFuncStruct
 	{"nth",                   builtin_nth,                     },
 	{"length",                builtin_length,                  },
 	{"apply",                 builtin_apply,                   },
-	{"call/cc",               builtin_call_cc,                 },
+	//{"call/cc",               builtin_call_cc,                 },
 	{"call/eh",               builtin_call_eh,                 },
-	{"continuation?",         builtin_continuation_p,          },
+	//{"continuation?",         builtin_continuation_p,          },
 	{"fopen",                 builtin_fopen,                   },
 	{"read",                  builtin_read,                    },
 	{"parse",                 builtin_parse,                   },

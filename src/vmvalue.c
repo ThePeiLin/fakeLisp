@@ -482,10 +482,6 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 								cur->type=FKL_NAST_SYM;
 								cur->u.sym=fklAddSymbolCstr("#<dlproc>",table)->id;
 								break;
-							case FKL_TYPE_CONT:
-								cur->type=FKL_NAST_SYM;
-								cur->u.sym=fklAddSymbolCstr("#<cont>",table)->id;
-								break;
 							case FKL_TYPE_CHAN:
 								cur->type=FKL_NAST_SYM;
 								cur->u.sym=fklAddSymbolCstr("#<chan>",table)->id;
@@ -851,8 +847,6 @@ FklVMvalue* fklCreateSaveVMvalue(FklValueType type,void* pValue)
 						tmp->u.pair=pValue;break;
 					case FKL_TYPE_PROC:
 						tmp->u.proc=pValue;break;
-					case FKL_TYPE_CONT:
-						tmp->u.cont=pValue;break;
 					case FKL_TYPE_CHAN:
 						tmp->u.chan=pValue;break;
 					case FKL_TYPE_FP:
@@ -1270,9 +1264,6 @@ void fklDestroyVMvalue(FklVMvalue* cur)
 			break;
 		case FKL_TYPE_PROC:
 			fklDestroyVMproc(cur->u.proc);
-			break;
-		case FKL_TYPE_CONT:
-			fklDestroyVMcontinuation(cur->u.cont);
 			break;
 		case FKL_TYPE_CHAN:
 			fklDestroyVMchanl(cur->u.chan);
@@ -1916,14 +1907,6 @@ void fklAtomicVMproc(FklVMvalue* root,FklVMgc* gc)
 	fklGC_toGrey(root->u.proc->codeObj,gc);
 }
 
-void fklAtomicVMcontinuation(FklVMvalue* root,FklVMgc* gc)
-{
-	for(uint32_t i=0;i<root->u.cont->stack->tp;i++)
-		fklGC_toGrey(root->u.cont->stack->values[i],gc);
-	for(FklVMframe* curr=root->u.cont->curr;curr;curr=curr->prev)
-		fklDoAtomicFrame(curr,gc);
-}
-
 void fklAtomicVMchan(FklVMvalue* root,FklVMgc* gc)
 {
 	FklQueueNode* head=root->u.chan->messages->head;
@@ -2085,7 +2068,7 @@ int fklIsCallableUd(FklVMvalue* v)
 
 int fklIsCallable(FklVMvalue* v)
 {
-	return FKL_IS_PROC(v)||FKL_IS_DLPROC(v)||FKL_IS_CONT(v)||fklIsCallableUd(v);
+	return FKL_IS_PROC(v)||FKL_IS_DLPROC(v)||fklIsCallableUd(v);
 }
 
 int fklIsAppendable(FklVMvalue* v)
@@ -2101,35 +2084,3 @@ void fklDestroyVMudata(FklVMudata* u)
 	free(u);
 }
 
-FklVMcontinuation* fklCreateVMcontinuation(uint32_t ap,FklVM* exe)
-{
-	if(exe->nny)
-		return NULL;
-	FklVMstack* stack=exe->stack;
-	FklVMframe* curr=exe->frames;
-	FklVMcontinuation* tmp=(FklVMcontinuation*)malloc(sizeof(FklVMcontinuation));
-	FKL_ASSERT(tmp);
-	tmp->stack=fklCopyStack(stack);
-	tmp->stack->tp=ap;
-	tmp->curr=NULL;
-	for(FklVMframe* cur=curr;cur;cur=cur->prev)
-		tmp->curr=fklCopyVMframe(cur,tmp->curr,exe);
-	return tmp;
-}
-
-void fklDestroyVMcontinuation(FklVMcontinuation* cont)
-{
-	FklVMstack* stack=cont->stack;
-	FklVMframe* curr=cont->curr;
-	while(curr)
-	{
-		FklVMframe* cur=curr;
-		curr=curr->prev;
-		fklDestroyVMframe(cur);
-	}
-	fklUninitUintStack(&stack->tps);
-	fklUninitUintStack(&stack->bps);
-	free(stack->values);
-	free(stack);
-	free(cont);
-}

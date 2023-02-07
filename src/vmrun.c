@@ -62,11 +62,6 @@ static void tailCallCompoundProcdure(FklVM* exe,FklVMproc* proc,FklVMframe* fram
 	}
 }
 
-void callContinuation(FklVM* exe,FklVMcontinuation* cc)
-{
-	fklCreateCallChainWithContinuation(exe,cc);
-}
-
 typedef struct
 {
 	FklVMFuncK kFunc;
@@ -344,7 +339,6 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 	exe->mark=1;
 	exe->chan=NULL;
 	exe->stack=fklCreateVMstack(0);
-	exe->nny=0;
 	exe->libNum=0;
 	exe->libs=NULL;
 	insert_to_VM_chain(exe,prev,next,exe->gc);
@@ -469,9 +463,9 @@ inline static void callCallableObj(FklVMvalue* v,FklVM* exe)
 {
 	switch(v->type)
 	{
-		case FKL_TYPE_CONT:
-			callContinuation(exe,v->u.cont);
-			break;
+		//case FKL_TYPE_CONT:
+		//	callContinuation(exe,v->u.cont);
+		//	break;
 		case FKL_TYPE_DLPROC:
 			callDlProc(exe,v);
 			break;
@@ -1376,7 +1370,6 @@ void propagateMark(FklVMvalue* root,FklVMgc* gc)
 		NULL,
 		fklAtomicVMuserdata,
 		fklAtomicVMproc,
-		fklAtomicVMcontinuation,
 		fklAtomicVMchan,
 		NULL,
 		fklAtomicVMdll,
@@ -1618,7 +1611,6 @@ FklVM* fklCreateThreadVM(FklVMgc* gc
 	exe->chan=fklCreateSaveVMvalue(FKL_TYPE_CHAN,fklCreateVMchanl(0));
 	exe->stack=fklCreateVMstack(0);
 	exe->gc=gc;
-	exe->nny=0;
 	exe->symbolTable=table;
 	exe->libNum=libNum;
 	exe->builtinErrorTypeId=builtinErrorTypeId;
@@ -1716,40 +1708,6 @@ void fklDeleteCallChain(FklVM* exe)
 		exe->frames=cur->prev;
 		fklDestroyVMframe(cur);
 	}
-}
-
-void fklCreateCallChainWithContinuation(FklVM* vm,FklVMcontinuation* cc)
-{
-	FklVMstack* stack=vm->stack;
-	FklVMstack* tmpStack=fklCopyStack(cc->stack);
-	int32_t i=stack->bp;
-	for(;i<stack->tp;i++)
-	{
-		if(tmpStack->tp>=tmpStack->size)
-		{
-			tmpStack->values=(FklVMvalue**)realloc(tmpStack->values,sizeof(FklVMvalue*)*(tmpStack->size+64));
-			FKL_ASSERT(tmpStack->values);
-			tmpStack->size+=64;
-		}
-		tmpStack->values[tmpStack->tp]=stack->values[i];
-		tmpStack->tp+=1;
-	}
-	//pthread_rwlock_wrlock(&stack->lock);
-	free(stack->values);
-	fklUninitUintStack(&stack->tps);
-	fklUninitUintStack(&stack->bps);
-	stack->values=tmpStack->values;
-	stack->bp=tmpStack->bp;
-	stack->bps=tmpStack->bps;
-	stack->size=tmpStack->size;
-	stack->tp=tmpStack->tp;
-	stack->tps=tmpStack->tps;
-	free(tmpStack);
-	//pthread_rwlock_unlock(&stack->lock);
-	fklDeleteCallChain(vm);
-	vm->frames=NULL;
-	for(FklVMframe* cur=cc->curr;cur;cur=cur->prev)
-		vm->frames=fklCopyVMframe(cur,vm->frames,vm);
 }
 
 void fklInitVMargs(int argc,char** argv)

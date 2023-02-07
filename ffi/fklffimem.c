@@ -855,7 +855,6 @@ int fklFfiIsCastableVMvalueType(FklVMvalue* v)
 		&&!FKL_IS_DLPROC(v)
 		&&!FKL_IS_VECTOR(v)
 		&&!FKL_IS_ERR(v)
-		&&!FKL_IS_CONT(v)
 		&&!fklFfiIsMem(v);
 }
 

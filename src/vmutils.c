@@ -652,9 +652,6 @@ static void princVMatom(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
 						else
 							fprintf(fp,"#<proc>");
 						break;
-					case FKL_TYPE_CONT:
-						fputs("#<continuation>",fp);
-						break;
 					case FKL_TYPE_CHAN:
 						fputs("#<chanl>",fp);
 						break;
@@ -699,7 +696,10 @@ static void princVMatom(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
 						else
 						{
 							fprintf(fp,"#<");
-							fklPrintString(fklGetSymbolWithId(v->u.ud->type,table)->symbol,fp);
+							if(v->u.ud->type)
+								fklPrintString(fklGetSymbolWithId(v->u.ud->type,table)->symbol,fp);
+							else
+								fputs("userdata",fp);
 							fprintf(fp," %p>",v->u.ud);
 						}
 						break;
@@ -758,9 +758,6 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
 						else
 							fputs("#<proc>",fp);
 						break;
-					case FKL_TYPE_CONT:
-						fputs("#<continuation>",fp);
-						break;
 					case FKL_TYPE_CHAN:
 						fputs("#<chanl>",fp);
 						break;
@@ -810,7 +807,10 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
 						else
 						{
 							fprintf(fp,"#<");
-							fklPrintRawSymbol(fklGetSymbolWithId(v->u.ud->type,table)->symbol,fp);
+							if(v->u.ud->type)
+								fklPrintRawSymbol(fklGetSymbolWithId(v->u.ud->type,table)->symbol,fp);
+							else
+								fputs("userdata",fp);
 							fprintf(fp," %p>",v->u.ud);
 						}
 						break;
@@ -1119,9 +1119,6 @@ static void atomStringify(FklString** pr,FklVMvalue* v,FklSymbolTable* table)
 						else
 							fklStringCstrCat(pr,"#<proc>");
 						break;
-					case FKL_TYPE_CONT:
-						fklStringCstrCat(pr,"#<continuation>");
-						break;
 					case FKL_TYPE_CHAN:
 						fklStringCstrCat(pr,"#<chanl>");
 						break;
@@ -1190,7 +1187,11 @@ static void atomStringify(FklString** pr,FklVMvalue* v,FklSymbolTable* table)
 						else
 						{
 							fklStringCstrCat(pr,"#<");
-							FklString* s=fklStringToRawSymbol(fklGetSymbolWithId(v->u.ud->type,table)->symbol);
+							FklString* s=NULL;
+							if(v->u.ud->type)
+								s=fklStringToRawSymbol(fklGetSymbolWithId(v->u.ud->type,table)->symbol);
+							else
+								s=fklCreateStringFromCstr("userdata");
 							fklStringCat(pr,s);
 							free(s);
 							char c_str[FKL_MAX_STRING_SIZE]={0};

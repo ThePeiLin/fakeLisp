@@ -32,7 +32,7 @@ typedef enum
 	FKL_TYPE_BYTEVECTOR,
 	FKL_TYPE_USERDATA,
 	FKL_TYPE_PROC,
-	FKL_TYPE_CONT,
+	//FKL_TYPE_CONT,
 	FKL_TYPE_CHAN,
 	FKL_TYPE_FP,
 	FKL_TYPE_DLL,
@@ -275,7 +275,6 @@ typedef struct FklVM
 	struct FklVM* prev;
 	struct FklVM* next;
 	jmp_buf buf;
-	int nny;
 	FklSymbolTable* symbolTable;
 	FklSid_t* builtinErrorTypeId;
 }FklVM;
@@ -335,12 +334,6 @@ typedef struct FklVMerror
 	FklString* message;
 }FklVMerror;
 
-typedef struct FklVMcontinuation
-{
-	FklVMstack* stack;
-	FklVMframe* curr;
-}FklVMcontinuation;
-
 typedef struct FklVMerrorHandler
 {
 	FklSid_t* typeIds;
@@ -380,7 +373,6 @@ int fklCreateCreateThread(FklVM*);
 FklVMframe* fklHasSameProc(uint32_t,FklVMframe*);
 int fklIsTheLastExpress(const FklVMframe*,const FklVMframe*,const FklVM* exe);
 FklVMgc* fklCreateVMgc();
-void fklCreateCallChainWithContinuation(FklVM*,FklVMcontinuation*);
 void fklDestroyVMgc(FklVMgc*);
 
 void fklTcMutexAcquire(FklVMgc*);
@@ -460,9 +452,6 @@ FklString* fklGenErrorMessage(FklBuiltInErrorType type);
 FklString* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorType);
 int32_t fklGetSymbolIdInByteCode(const uint8_t*);
 
-FklVMcontinuation* fklCreateVMcontinuation(uint32_t ap,FklVM*);
-void fklDestroyVMcontinuation(FklVMcontinuation* cont);
-
 FklVMhashTable* fklCreateVMhashTable(FklVMhashTableEqType);
 void fklClearVMhashTable(FklVMhashTable* ht,FklVMgc*);
 void fklSetVMhashTableInReverseOrder(FklVMvalue* key,FklVMvalue* v,FklVMhashTable* ht,FklVMgc* gc);
@@ -490,7 +479,6 @@ void fklAtomicVMvec(FklVMvalue*,FklVMgc*);
 void fklAtomicVMbox(FklVMvalue*,FklVMgc*);
 void fklAtomicVMdll(FklVMvalue*,FklVMgc*);
 void fklAtomicVMdlproc(FklVMvalue*,FklVMgc*);
-void fklAtomicVMcontinuation(FklVMvalue*,FklVMgc*);
 void fklAtomicVMchan(FklVMvalue*,FklVMgc*);
 
 
@@ -712,7 +700,7 @@ void fklUninitVMlib(FklVMlib*);
 #define FKL_IS_VECTOR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_VECTOR)
 #define FKL_IS_BYTEVECTOR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_BYTEVECTOR)
 #define FKL_IS_ERR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_ERR)
-#define FKL_IS_CONT(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_CONT)
+//#define FKL_IS_CONT(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_CONT)
 #define FKL_IS_I32(P) (FKL_GET_TAG(P)==FKL_TAG_I32)
 #define FKL_IS_CHR(P) (FKL_GET_TAG(P)==FKL_TAG_CHR)
 #define FKL_IS_SYM(P) (FKL_GET_TAG(P)==FKL_TAG_SYM)

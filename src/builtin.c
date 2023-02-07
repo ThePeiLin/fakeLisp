@@ -3113,7 +3113,7 @@ void builtin_argv(ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-static void* ThreadVMfunc(void* p)
+static void* threadVMfunc(void* p)
 {
 	FklVM* exe=(FklVM*)p;
 	FklVMchanl* tmpCh=exe->chan->u.chan;
@@ -3122,11 +3122,14 @@ static void* ThreadVMfunc(void* p)
 	exe->chan=NULL;
 	if(!state)
 	{
-		FKL_NI_BEGIN(exe);
-		FklVMvalue* v=NULL;
-		while((v=fklNiGetArg(&ap,stack)))
-			fklChanlSend(fklCreateVMsend(v),tmpCh,exe->gc);
-		fklNiEnd(&ap,stack);
+		FklVMvalue* v=fklGetTopValue(exe->stack);
+		FklVMvalue* resultBox=fklCreateVMvalueToStack(FKL_TYPE_BOX,v,exe);
+		fklChanlSend(fklCreateVMsend(resultBox),tmpCh,exe->gc);
+	}
+	else
+	{
+		FklVMvalue* err=fklGetTopValue(exe->stack);
+		fklChanlSend(fklCreateVMsend(err),tmpCh,exe->gc);
 	}
 	fklDestroyVMstack(exe->stack);
 	exe->stack=NULL;
@@ -3310,7 +3313,7 @@ void builtin_go(ARGL)
 	fklUninitPtrStack(&comStack);
 	FklVMvalue* chan=threadVM->chan;
 	int32_t faildCode=0;
-	faildCode=pthread_create(&threadVM->tid,NULL,ThreadVMfunc,threadVM);
+	faildCode=pthread_create(&threadVM->tid,NULL,threadVMfunc,threadVM);
 	if(faildCode)
 	{
 		fklDeleteCallChain(threadVM);
@@ -5023,7 +5026,7 @@ static const struct SymbolFuncStruct
 	{"stringify",             builtin_stringify,               },
 	{"prin1",                 builtin_prin1,                   },
 	{"princ",                 builtin_princ,                   },
-	{"newline",               builtin_newline,                   },
+	{"newline",               builtin_newline,                 },
 	{"dlopen",                builtin_dlopen,                  },
 	{"dlsym",                 builtin_dlsym,                   },
 	{"argv",                  builtin_argv,                    },

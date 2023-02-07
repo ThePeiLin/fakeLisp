@@ -52,7 +52,7 @@ int main(int argc,char** argv)
 	}
 	else if(fklIsscript(filename))
 	{
-		if(!fklIsAccessableScriptFile(filename))
+		if(!fklIsAccessableRegFile(filename))
 		{
 			perror(filename);
 			fklDestroyCwd();
@@ -125,7 +125,7 @@ int main(int argc,char** argv)
 	}
 	else if(fklIscode(filename))
 	{
-		if(!fklIsAccessableScriptFile(filename))
+		if(!fklIsAccessableRegFile(filename))
 		{
 			perror(filename);
 			fklDestroyCwd();

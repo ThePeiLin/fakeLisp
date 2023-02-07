@@ -1029,7 +1029,7 @@ int fklIsAccessableDirectory(const char* p)
 	return !access(p,R_OK)&&fklIsDirectory(p);
 }
 
-int fklIsAccessableScriptFile(const char* p)
+int fklIsAccessableRegFile(const char* p)
 {
 	return !access(p,R_OK)&&fklIsRegFile(p);
 }

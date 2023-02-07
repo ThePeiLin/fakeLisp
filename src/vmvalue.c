@@ -1209,16 +1209,11 @@ FklVMdllHandle fklLoadDll(const char* path)
 
 FklVMdll* fklCreateVMdll(const char* dllName)
 {
-#ifdef _WIN32
-	char filetype[]=".dll";
-#else
-	char filetype[]=".so";
-#endif
-	size_t len=strlen(dllName)+strlen(filetype)+1;
+	size_t len=strlen(dllName)+strlen(FKL_DLL_FILE_TYPE)+1;
 	char* realDllName=(char*)malloc(sizeof(char)*len);
 	FKL_ASSERT(realDllName);
 	strcpy(realDllName,dllName);
-	strcat(realDllName,filetype);
+	strcat(realDllName,FKL_DLL_FILE_TYPE);
 	char* rpath=fklRealpath(realDllName);
 	if(!rpath)
 	{

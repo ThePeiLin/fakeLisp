@@ -13,14 +13,12 @@ extern "C" {
 
 #ifdef _WIN32
 #define FKL_PATH_SEPARATOR ('\\')
+#define FKL_PATH_SEPARATOR_STR ("\\")
+#define FKL_DLL_FILE_TYPE (".dll")
 #else
 #define FKL_PATH_SEPARATOR ('/')
-#endif
-
-#ifdef _WIN32
-#define FKL_PATH_SEPARATOR_STR ("\\")
-#else
 #define FKL_PATH_SEPARATOR_STR ("/")
+#define FKL_DLL_FILE_TYPE (".so")
 #endif
 
 #define FKL_THRESHOLD_SIZE (512)
@@ -111,7 +109,7 @@ void fklSetMainFileRealPathWithCwd(void);
 int fklIsRegFile(const char* s);
 int fklIsDirectory(const char* s);
 
-int fklIsAccessableScriptFile(const char* s);
+int fklIsAccessableRegFile(const char* s);
 int fklIsAccessableDirectory(const char* s);
 
 #ifdef __cplusplus

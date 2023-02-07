@@ -1557,7 +1557,7 @@ static CODEGEN_FUNC(codegen_load)
 		return;
 	}
 	char* filenameCstr=fklStringToCstr(filename->u.str);
-	if(!fklIsAccessableScriptFile(filenameCstr))
+	if(!fklIsAccessableRegFile(filenameCstr))
 	{
 		errorState->fid=codegen->fid;
 		errorState->type=FKL_ERR_FILEFAILURE;
@@ -2075,8 +2075,23 @@ static CODEGEN_FUNC(codegen_import)
 	FklNastNode* importLibraryName=NULL;
 	char* filename=combineFileNameFromListAndGetLastNode(name,&importLibraryName
 			,codegen->publicSymbolTable);
-	filename=fklStrCat(filename,".fkl");
-	if(!fklIsAccessableScriptFile(filename))
+	char* scriptFileName=fklStrCat(fklCopyCstr(filename),".fkl");
+	char* dllFileName=fklStrCat(fklCopyCstr(filename),FKL_DLL_FILE_TYPE);
+	if(fklIsAccessableRegFile(filename))
+	{
+		process_import_code(origExp
+			,name
+			,importLibraryName
+			,scriptFileName
+			,curEnv
+			,codegen
+			,errorState
+			,codegenQuestStack);
+	}
+	else if(!fklIsAccessableRegFile(dllFileName))
+	{
+	}
+	else
 	{
 		errorState->fid=codegen->fid;
 		errorState->type=FKL_ERR_IMPORTFAILED;
@@ -2084,15 +2099,9 @@ static CODEGEN_FUNC(codegen_import)
 		free(filename);
 		return;
 	}
-	process_import_code(origExp
-			,name
-			,importLibraryName
-			,filename
-			,curEnv
-			,codegen
-			,errorState
-			,codegenQuestStack);
 	free(filename);
+	free(scriptFileName);
+	free(dllFileName);
 }
 
 static void _import_macro_with_prefix_stack_context_finalizer(void* data)
@@ -2135,7 +2144,7 @@ static CODEGEN_FUNC(codegen_import_with_prefix)
 			,&importLibraryName
 			,codegen->publicSymbolTable);
 	filename=fklStrCat(filename,".fkl");
-	if(!fklIsAccessableScriptFile(filename))
+	if(!fklIsAccessableRegFile(filename))
 	{
 		errorState->fid=codegen->fid;
 		errorState->type=FKL_ERR_IMPORTFAILED;

@@ -76,7 +76,7 @@ int main(int argc,char** argv)
 	char* filename=argv[1];
 	if(fklIscode(filename))
 	{
-		if(!fklIsAccessableScriptFile(filename))
+		if(!fklIsAccessableRegFile(filename))
 		{
 			perror(filename);
 			fklDestroyCwd();

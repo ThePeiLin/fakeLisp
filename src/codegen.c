@@ -1873,28 +1873,15 @@ static const FklCodegenQuestContextMethodTable ImportMacroStackContextMethodTabl
 	.__finalizer=_import_macro_stack_context_finalizer,
 };
 
-static CODEGEN_FUNC(codegen_import)
+static inline void process_import_code(FklNastNode* origExp
+		,FklNastNode* name
+		,FklNastNode* importLibraryName
+		,const char* filename
+		,FklCodegenEnv* curEnv
+		,FklCodegen* codegen
+		,FklCodegenErrorState* errorState
+		,FklPtrStack* codegenQuestStack)
 {
-	FklNastNode* name=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
-	if(name->type==FKL_NAST_NIL||!fklIsNastNodeListAndHasSameType(name,FKL_NAST_SYM))
-	{
-		errorState->fid=codegen->fid;
-		errorState->type=FKL_ERR_SYNTAXERROR;
-		errorState->place=fklMakeNastNodeRef(origExp);
-		return;
-	}
-	FklNastNode* importLibraryName=NULL;
-	char* filename=combineFileNameFromListAndGetLastNode(name,&importLibraryName
-			,codegen->publicSymbolTable);
-	filename=fklStrCat(filename,".fkl");
-	if(!fklIsAccessableScriptFile(filename))
-	{
-		errorState->fid=codegen->fid;
-		errorState->type=FKL_ERR_IMPORTFAILED;
-		errorState->place=fklMakeNastNodeRef(name);
-		free(filename);
-		return;
-	}
 	FklCodegenEnv* globalEnv=curEnv;
 	while(globalEnv->prev)globalEnv=globalEnv->prev;
 	FklCodegenEnv* libEnv=fklCreateCodegenEnv(globalEnv);
@@ -1906,14 +1893,12 @@ static CODEGEN_FUNC(codegen_import)
 		errorState->place=fklMakeNastNodeRef(name);
 		nextCodegen->refcount=1;
 		fklDestroyCodegener(nextCodegen);
-		free(filename);
 		return;
 	}
 	size_t libId=check_loaded_lib(nextCodegen->realpath,codegen->loadedLibStack);
 	if(!libId)
 	{
 		FILE* fp=fopen(filename,"r");
-		free(filename);
 		if(!fp)
 		{
 			errorState->fid=codegen->fid;
@@ -2056,7 +2041,6 @@ static CODEGEN_FUNC(codegen_import)
 	}
 	else
 	{
-		free(filename);
 		FklCodegenLib* lib=codegen->loadedLibStack->base[libId-1];
 		for(FklCodegenMacro* cur=lib->head;cur;cur=cur->next)
 			add_compiler_macro(curEnv->macros,fklMakeNastNodeRef(cur->pattern),fklCopyByteCodelnt(cur->bcl));
@@ -2076,6 +2060,39 @@ static CODEGEN_FUNC(codegen_import)
 				,nextCodegen
 				,codegenQuestStack);
 	}
+}
+
+static CODEGEN_FUNC(codegen_import)
+{
+	FklNastNode* name=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
+	if(name->type==FKL_NAST_NIL||!fklIsNastNodeListAndHasSameType(name,FKL_NAST_SYM))
+	{
+		errorState->fid=codegen->fid;
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		return;
+	}
+	FklNastNode* importLibraryName=NULL;
+	char* filename=combineFileNameFromListAndGetLastNode(name,&importLibraryName
+			,codegen->publicSymbolTable);
+	filename=fklStrCat(filename,".fkl");
+	if(!fklIsAccessableScriptFile(filename))
+	{
+		errorState->fid=codegen->fid;
+		errorState->type=FKL_ERR_IMPORTFAILED;
+		errorState->place=fklMakeNastNodeRef(name);
+		free(filename);
+		return;
+	}
+	process_import_code(origExp
+			,name
+			,importLibraryName
+			,filename
+			,curEnv
+			,codegen
+			,errorState
+			,codegenQuestStack);
+	free(filename);
 }
 
 static void _import_macro_with_prefix_stack_context_finalizer(void* data)

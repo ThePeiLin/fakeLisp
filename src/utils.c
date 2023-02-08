@@ -1033,3 +1033,33 @@ int fklIsAccessableRegFile(const char* p)
 {
 	return !access(p,R_OK)&&fklIsRegFile(p);
 }
+
+void fklDestroyDll(FklDllHandle handle)
+{
+#ifdef _WIN32
+	DestroyLibrary(handle);
+#else
+	dlclose(handle);
+#endif
+}
+
+void* fklGetAddress(const char* funcname,FklDllHandle dlhandle)
+{
+	void* pfunc=NULL;
+#ifdef _WIN32
+		pfunc=GetProcAddress(dlhandle,funcname);
+#else
+		pfunc=dlsym(dlhandle,funcname);
+#endif
+	return pfunc;
+}
+
+FklDllHandle fklLoadDll(const char* path)
+{
+#ifdef _WIN32
+	return LoadLibraryExA(path,NULL,LOAD_WITH_ALTERED_SEARCH_PATH);
+#else
+	return dlopen(path,RTLD_LAZY);
+#endif
+}
+

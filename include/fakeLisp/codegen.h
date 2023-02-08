@@ -32,8 +32,19 @@ typedef struct FklCodegenMacroScope
 	FklCodegenMacro* head;
 }FklCodegenMacroScope;
 
+typedef enum FklCodegenLibType
+{
+	FKL_CODEGEN_LIB_SCRIPT,
+	FKL_CODEGEN_LIB_DLL,
+}FklCodegenLibType;
+
 typedef struct FklCodegenLib
 {
+	FklCodegenLibType type;
+	union
+	{
+		FklByteCodelnt* bcl;
+	}u;
 	char* rp;
 	FklByteCodelnt* bcl;
 	size_t exportNum;

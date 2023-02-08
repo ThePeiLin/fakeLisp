@@ -6,6 +6,7 @@
 #include"parser.h"
 #include"builtin.h"
 #include"pattern.h"
+#include"utils.h"
 //#include<stdatomic.h>
 #include<stdio.h>
 #include<stdint.h>
@@ -61,17 +62,9 @@ typedef enum
 	FKL_TAG_CHR,
 }FklVMptrTag;
 
-#ifdef _WIN32
-#include<windows.h>
-typedef HMODULE FklVMdllHandle;
-#else
-#include<dlfcn.h>
-typedef void* FklVMdllHandle;
-#endif
-
 typedef struct FklVMdll
 {
-	FklVMdllHandle handle;
+	FklDllHandle handle;
 	struct FklVMvalue* pd;
 }FklVMdll;
 
@@ -524,7 +517,6 @@ int fklDestroyVMfp(FklVMfp*);
 
 FklVMdll* fklCreateVMdll(const char*);
 void fklInitVMdll(FklVMvalue* rel,FklVM*);
-void* fklGetAddress(const char*,FklVMdllHandle);
 void fklDestroyVMdll(FklVMdll*);
 
 FklVMdlproc* fklCreateVMdlproc(FklVMdllFunc
@@ -581,7 +573,6 @@ FklVMvalue* fklSetRef(FklVMvalue* volatile*
 
 int fklVMnumberLt0(const FklVMvalue*);
 uint64_t fklGetUint(const FklVMvalue*);
-FklVMdllHandle fklLoadDll(const char* path);
 
 void fklPushVMvalue(FklVMvalue* v,FklVMstack* s);
 

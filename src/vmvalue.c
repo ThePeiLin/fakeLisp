@@ -1197,16 +1197,6 @@ int fklDestroyVMfp(FklVMfp* vfp)
 	return r;
 }
 
-FklVMdllHandle fklLoadDll(const char* path)
-{
-#ifdef _WIN32
-	FklVMdllHandle handle=LoadLibraryExA(path,NULL,LOAD_WITH_ALTERED_SEARCH_PATH);
-#else
-	FklVMdllHandle handle=dlopen(path,RTLD_LAZY);
-#endif
-	return handle;
-}
-
 FklVMdll* fklCreateVMdll(const char* dllName)
 {
 	size_t len=strlen(dllName)+strlen(FKL_DLL_FILE_TYPE)+1;
@@ -1220,7 +1210,7 @@ FklVMdll* fklCreateVMdll(const char* dllName)
 		free(realDllName);
 		return NULL;
 	}
-	FklVMdllHandle handle=fklLoadDll(rpath);
+	FklDllHandle handle=fklLoadDll(rpath);
 	if(!handle)
 	{
 		free(rpath);
@@ -1238,7 +1228,7 @@ FklVMdll* fklCreateVMdll(const char* dllName)
 
 void fklInitVMdll(FklVMvalue* rel,FklVM* exe)
 {
-	FklVMdllHandle handle=rel->u.dll->handle;
+	FklDllHandle handle=rel->u.dll->handle;
 	void (*init)(FklVMdll* dll,FklVM* exe)=fklGetAddress("_fklInit",handle);
 	if(init)
 		init(rel->u.dll,exe);
@@ -1313,24 +1303,9 @@ void fklDestroyVMdll(FklVMdll* dll)
 		void (*uninit)(void)=fklGetAddress("_fklUninit",dll->handle);
 		if(uninit)
 			uninit();
-#ifdef _WIN32
-		DestroyLibrary(dll->handle);
-#else
-		dlclose(dll->handle);
-#endif
+		fklDestroyDll(dll->handle);
 	}
 	free(dll);
-}
-
-void* fklGetAddress(const char* funcname,FklVMdllHandle dlhandle)
-{
-	void* pfunc=NULL;
-#ifdef _WIN32
-		pfunc=GetProcAddress(dlhandle,funcname);
-#else
-		pfunc=dlsym(dlhandle,funcname);
-#endif
-	return pfunc;
 }
 
 FklVMdlproc* fklCreateVMdlproc(FklVMdllFunc address

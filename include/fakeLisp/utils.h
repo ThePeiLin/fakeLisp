@@ -15,10 +15,14 @@ extern "C" {
 #define FKL_PATH_SEPARATOR ('\\')
 #define FKL_PATH_SEPARATOR_STR ("\\")
 #define FKL_DLL_FILE_TYPE (".dll")
+#include<windows.h>
+typedef HMODULE FklDllHandle;
 #else
 #define FKL_PATH_SEPARATOR ('/')
 #define FKL_PATH_SEPARATOR_STR ("/")
 #define FKL_DLL_FILE_TYPE (".so")
+#include<dlfcn.h>
+typedef void* FklDllHandle;
 #endif
 
 #define FKL_THRESHOLD_SIZE (512)
@@ -112,6 +116,9 @@ int fklIsDirectory(const char* s);
 int fklIsAccessableRegFile(const char* s);
 int fklIsAccessableDirectory(const char* s);
 
+FklDllHandle fklLoadDll(const char* path);
+void* fklGetAddress(const char*,FklDllHandle);
+void fklDestroyDll(FklDllHandle);
 #ifdef __cplusplus
 }
 #endif

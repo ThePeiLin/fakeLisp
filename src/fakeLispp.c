@@ -2,6 +2,7 @@
 #include<fakeLisp/codegen.h>
 #include<fakeLisp/vm.h>
 #include<stdio.h>
+#include<string.h>
 #ifdef _WIN32
 #include<io.h>
 #include<process.h>
@@ -11,7 +12,7 @@
 
 static FklByteCode* loadByteCode(FILE*);
 static FklLineNumberTable* loadLineNumberTable(FILE*);
-static void loadLib(FILE*,size_t* pnum,FklCodegenLib** libs);
+static void loadLib(FILE*,size_t* pnum,FklCodegenLib** libs,FklSymbolTable*);
 
 FklByteCode* loadByteCode(FILE* fp)
 {
@@ -110,7 +111,7 @@ int main(int argc,char** argv)
 		fklDestroyByteCode(mainCode);
 		FklCodegenLib* libs=NULL;
 		size_t num=0;
-		loadLib(fp,&num,&libs);
+		loadLib(fp,&num,&libs,table);
 		for(size_t i=0;i<num;i++)
 		{
 			FklCodegenLib* cur=&libs[i];
@@ -124,7 +125,15 @@ int main(int argc,char** argv)
 				fputc('\n',stdout);
 			}
 			fputc('\n',stdout);
-			fklPrintByteCodelnt(cur->bcl,stdout,table);
+			switch(cur->type)
+			{
+				case FKL_CODEGEN_LIB_SCRIPT:
+					fklPrintByteCodelnt(cur->u.bcl,stdout,table);
+					break;
+				case FKL_CODEGEN_LIB_DLL:
+					fputs(cur->rp,stdout);
+					break;
+			}
 			fputc('\n',stdout);
 			fklUninitCodegenLib(cur);
 		}
@@ -143,7 +152,7 @@ int main(int argc,char** argv)
 	return 0;
 }
 
-static void loadLib(FILE* fp,size_t* pnum,FklCodegenLib** plibs)
+static void loadLib(FILE* fp,size_t* pnum,FklCodegenLib** plibs,FklSymbolTable* table)
 {
 	fread(pnum,sizeof(uint64_t),1,fp);
 	size_t num=*pnum;
@@ -157,10 +166,38 @@ static void loadLib(FILE* fp,size_t* pnum,FklCodegenLib** plibs)
 		FklSid_t* exports=(FklSid_t*)malloc(sizeof(FklSid_t)*exportNum);
 		FKL_ASSERT(exports);
 		fread(exports,sizeof(FklSid_t),exportNum,fp);
-		FklByteCodelnt* bcl=fklCreateByteCodelnt(NULL);
-		fklLoadLineNumberTable(fp,&bcl->l,&bcl->ls);
-		FklByteCode* bc=loadByteCode(fp);
-		bcl->bc=bc;
-		fklInitCodegenLib(&libs[i],NULL,bcl,exportNum,exports,NULL);
+		FklCodegenLibType libType=FKL_CODEGEN_LIB_SCRIPT;
+		fread(&libType,sizeof(char),1,fp);
+		if(libType==FKL_CODEGEN_LIB_SCRIPT)
+		{
+			FklByteCodelnt* bcl=fklCreateByteCodelnt(NULL);
+			fklLoadLineNumberTable(fp,&bcl->l,&bcl->ls);
+			FklByteCode* bc=loadByteCode(fp);
+			bcl->bc=bc;
+			fklInitCodegenScriptLib(&libs[i],NULL,bcl,exportNum,exports,NULL);
+		}
+		else
+		{
+			uint64_t len=0;
+			uint64_t typelen=strlen(FKL_DLL_FILE_TYPE);
+			fread(&len,sizeof(uint64_t),1,fp);
+			char* rp=(char*)calloc(sizeof(char),len+typelen+1);
+			FKL_ASSERT(rp);
+			fread(rp,len,1,fp);
+			strcat(rp,FKL_DLL_FILE_TYPE);
+			FklDllHandle dll=fklLoadDll(rp);
+			if(!dll)
+			{
+				fprintf(stderr,"%s\n",dlerror());
+				exit(1);
+			}
+			FklCodegenDllLibInitExportFunc init=fklGetCodegenInitExportFunc(dll);
+			if(!init)
+			{
+				fprintf(stderr,"%s\n",dlerror());
+				exit(1);
+			}
+			fklInitCodegenDllLib(&libs[i],rp,dll,table,init);
+		}
 	}
 }

@@ -35,8 +35,8 @@ typedef struct FklCodegenMacroScope
 
 typedef enum FklCodegenLibType
 {
-	FKL_CODEGEN_LIB_SCRIPT,
-	FKL_CODEGEN_LIB_DLL,
+	FKL_CODEGEN_LIB_SCRIPT=0,
+	FKL_CODEGEN_LIB_DLL=1,
 }FklCodegenLibType;
 
 typedef struct FklCodegenLib
@@ -166,6 +166,9 @@ void fklInitCodegenScriptLib(FklCodegenLib* lib
 		,FklCodegenMacro* head);
 
 typedef void (*FklCodegenDllLibInitExportFunc)(size_t*,FklSid_t**,FklSymbolTable* table);
+
+FklCodegenDllLibInitExportFunc fklGetCodegenInitExportFunc(FklDllHandle dll);
+
 void fklInitCodegenDllLib(FklCodegenLib* lib
 		,char* rp
 		,FklDllHandle dll

@@ -2064,6 +2064,11 @@ static inline void process_import_script(FklNastNode* origExp
 	}
 }
 
+inline FklCodegenDllLibInitExportFunc fklGetCodegenInitExportFunc(FklDllHandle dll)
+{
+	return fklGetAddress("_fklExportSymbolInit",dll);
+}
+
 static inline FklByteCodelnt* process_import_from_dll(FklNastNode* origExp
 		,FklNastNode* name
 		,FklNastNode* importLibraryName
@@ -2088,7 +2093,7 @@ static inline FklByteCodelnt* process_import_from_dll(FklNastNode* origExp
 			free(realpath);
 			return NULL;
 		}
-		FklCodegenDllLibInitExportFunc initExport=fklGetAddress("_fklExportSymbolInit",dll);
+		FklCodegenDllLibInitExportFunc initExport=fklGetCodegenInitExportFunc(dll);
 		if(!initExport)
 		{
 			fklDestroyDll(dll);

@@ -116,12 +116,25 @@ int main(int argc,char** argv)
 					FklSid_t* exports=lib->exports;
 					fwrite(&exportNum,sizeof(uint64_t),1,outfp);
 					fwrite(exports,sizeof(FklSid_t),exportNum,outfp);
-					FklLineNumberTable tmpLnt={lib->bcl->ls,lib->bcl->l};
-					fklWriteLineNumberTable(&tmpLnt,outfp);
-					uint64_t libSize=lib->bcl->bc->size;
-					uint8_t* libCode=lib->bcl->bc->code;
-					fwrite(&libSize,sizeof(uint64_t),1,outfp);
-					fwrite(libCode,libSize,1,outfp);
+					fwrite(&lib->type,sizeof(char),1,outfp);
+					if(lib->type==FKL_CODEGEN_LIB_SCRIPT)
+					{
+						FklByteCodelnt* bcl=lib->u.bcl;
+						FklLineNumberTable tmpLnt={bcl->ls,bcl->l};
+						fklWriteLineNumberTable(&tmpLnt,outfp);
+						uint64_t libSize=bcl->bc->size;
+						uint8_t* libCode=bcl->bc->code;
+						fwrite(&libSize,sizeof(uint64_t),1,outfp);
+						fwrite(libCode,libSize,1,outfp);
+					}
+					else
+					{
+						const char* rp=lib->rp;
+						uint64_t typelen=strlen(FKL_DLL_FILE_TYPE);
+						uint64_t len=strlen(rp)-typelen;
+						fwrite(&len,sizeof(uint64_t),1,outfp);
+						fwrite(rp,len,1,outfp);
+					}
 				}
 				fklDestroyByteCodelnt(mainByteCode);
 				fclose(outfp);

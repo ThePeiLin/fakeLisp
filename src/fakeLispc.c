@@ -76,11 +76,12 @@ int main(int argc,char** argv)
 				for(size_t i=0;i<loadedLibStack->top;i++)
 				{
 					FklCodegenLib* cur=loadedLibStack->base[i];
-					fklCodegenPrintUndefinedSymbol(cur->bcl
-							,(FklCodegenLib**)loadedLibStack->base
-							,codegen.globalSymTable
-							,cur->exportNum
-							,cur->exports);
+					if(cur->type==FKL_CODEGEN_LIB_SCRIPT)
+						fklCodegenPrintUndefinedSymbol(cur->u.bcl
+								,(FklCodegenLib**)loadedLibStack->base
+								,codegen.globalSymTable
+								,cur->exportNum
+								,cur->exports);
 				}
 				fklCodegenPrintUndefinedSymbol(mainByteCode,(FklCodegenLib**)codegen.loadedLibStack->base,codegen.globalSymTable,0,NULL);
 				char* outputname=(char*)malloc(sizeof(char)*(strlen(rp)+2));

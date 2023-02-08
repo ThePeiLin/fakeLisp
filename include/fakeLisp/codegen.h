@@ -48,7 +48,6 @@ typedef struct FklCodegenLib
 		FklDllHandle dll;
 	}u;
 	char* rp;
-	FklByteCodelnt* bcl;
 	size_t exportNum;
 	FklSid_t* exports;
 	FklCodegenMacro* head;
@@ -159,18 +158,33 @@ void fklDestroyCodegenEnv(FklCodegenEnv* env);
 
 void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib**,FklSymbolTable* symbolTable,size_t exportNum,FklSid_t* exports);
 
-void fklInitCodegenLib(FklCodegenLib* lib
+void fklInitCodegenScriptLib(FklCodegenLib* lib
 		,char* rp
 		,FklByteCodelnt* bcl
 		,size_t exportNum
 		,FklSid_t* exports
 		,FklCodegenMacro* head);
+
+typedef void (*FklCodegenDllLibInitExportFunc)(size_t*,FklSid_t**,FklSymbolTable* table);
+void fklInitCodegenDllLib(FklCodegenLib* lib
+		,char* rp
+		,FklDllHandle dll
+		,FklSymbolTable* table
+		,FklCodegenDllLibInitExportFunc init);
+
 void fklUninitCodegenLib(FklCodegenLib*);
-FklCodegenLib* fklCreateCodegenLib(char* rp
+
+FklCodegenLib* fklCreateCodegenScriptLib(char* rp
 		,FklByteCodelnt* bcl
 		,size_t exportNum
 		,FklSid_t* exports
 		,FklCodegenMacro* head);
+
+FklCodegenLib* fklCreateCodegenDllLib(char* rp
+		,FklDllHandle dll
+		,FklSymbolTable* table
+		,FklCodegenDllLibInitExportFunc init);
+
 void fklDestroyCodegenLib(FklCodegenLib*);
 
 FklCodegenMacro* fklCreateCodegenMacro(FklNastNode* pattern

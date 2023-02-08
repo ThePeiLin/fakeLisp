@@ -1157,6 +1157,8 @@ static void B_import_from_dll(FklVM* exe,FklVMframe* frame)
 	if(plib->libEnv==FKL_VM_NIL)
 	{
 		void (*initFunc)(FklVM*,FklVMvalue*,FklVMvalue*)=fklGetAddress("_fklImportInit",plib->proc->u.dll->handle);
+		if(!initFunc)
+			FKL_RAISE_BUILTIN_ERROR_CSTR("b.import-from-dll",FKL_ERR_IMPORTFAILED,exe);
 		initFunc(exe,plib->proc,plib->libEnv);
 	}
 	for(size_t i=0;i<plib->exportNum;i++)
@@ -1180,6 +1182,8 @@ static void B_import_from_dll_with_symbols(FklVM* exe,FklVMframe* frame)
 	if(plib->libEnv==FKL_VM_NIL)
 	{
 		void (*initFunc)(FklVM*,FklVMvalue*,FklVMvalue*)=fklGetAddress("_fklImportInit",plib->proc->u.dll->handle);
+		if(!initFunc)
+			FKL_RAISE_BUILTIN_ERROR_CSTR("b.import-from-dll-with-symbols",FKL_ERR_IMPORTFAILED,exe);
 		initFunc(exe,plib->proc,plib->libEnv);
 	}
 	uint64_t exportNum=fklGetU64FromByteCode(fklGetCompoundFrameCode(frame)+fklGetCompoundFrameCp(frame)+sizeof(char)+sizeof(uint64_t));

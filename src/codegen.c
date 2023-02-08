@@ -1646,7 +1646,8 @@ static void add_symbol_to_locale_env_in_list(const FklNastNode* list
 		FklNastNode* cur=list->u.pair->car;
 		fklAddCodegenDefBySid(cur->u.sym,env);
 		fklPushUintStack(fklAddSymbol(fklGetSymbolWithId(cur->u.sym
-						,publicSymbolTable)->symbol,globalSymTable)->id,idStack);
+						,publicSymbolTable)->symbol
+					,globalSymTable)->id,idStack);
 	}
 }
 
@@ -1756,7 +1757,7 @@ BC_PROCESS(_library_bc_process)
 	}
 	else
 		libBc=createBclnt(fklCreateByteCode(0),fid,line);
-	fklPushPtrStack(fklCreateCodegenLib(codegen->realpath
+	fklPushPtrStack(fklCreateCodegenScriptLib(codegen->realpath
 				,libBc
 				,codegen->exportNum
 				,codegen->exports
@@ -1823,7 +1824,7 @@ BC_PROCESS(_library_be_imported_with_prefix_bc_process)
 	}
 	else
 		libBc=createBclnt(fklCreateByteCode(0),fid,line);
-	fklPushPtrStack(fklCreateCodegenLib(codegen->realpath
+	fklPushPtrStack(fklCreateCodegenScriptLib(codegen->realpath
 				,libBc
 				,codegen->exportNum
 				,codegen->exports
@@ -1874,7 +1875,7 @@ static const FklCodegenQuestContextMethodTable ImportMacroStackContextMethodTabl
 	.__finalizer=_import_macro_stack_context_finalizer,
 };
 
-static inline void process_import_code(FklNastNode* origExp
+static inline void process_import_script(FklNastNode* origExp
 		,FklNastNode* name
 		,FklNastNode* importLibraryName
 		,const char* filename
@@ -2073,24 +2074,47 @@ static inline FklByteCodelnt* process_import_from_dll(FklNastNode* origExp
 {
 	char* realpath=fklRealpath(filename);
 	size_t libId=check_loaded_lib(realpath,codegen->loadedLibStack);
+	FklDllHandle dll;
+	FklCodegenLib* lib=NULL;
 	if(!libId)
 	{
-		FklDllHandle dll=fklLoadDll(realpath);
+		dll=fklLoadDll(realpath);
 		if(!dll)
 		{
 			errorState->fid=codegen->fid;
 			errorState->type=FKL_ERR_FILEFAILURE;
 			errorState->place=fklMakeNastNodeRef(name);
+			free(realpath);
 			return NULL;
 		}
-		return createBclnt(create9lenBc(FKL_OP_IMPORT,libId),codegen->fid,origExp->curline);
+		FklCodegenDllLibInitExportFunc initExport=fklGetAddress("_fklExportSymbolInit",dll);
+		if(!initExport)
+		{
+			fklDestroyDll(dll);
+			errorState->fid=codegen->fid;
+			errorState->type=FKL_ERR_IMPORTFAILED;
+			errorState->place=fklMakeNastNodeRef(name);
+			free(realpath);
+			return NULL;
+		}
+		FklCodegenLib* lib=fklCreateCodegenDllLib(realpath
+				,dll
+				,codegen->globalSymTable
+				,initExport);
+		fklPushPtrStack(lib,codegen->loadedLibStack);
+		libId=codegen->loadedLibStack->top;
 	}
 	else
 	{
-		FklCodegenLib* lib=codegen->loadedLibStack->base[libId-1];
-		FklDllHandle dll=lib->u.dll;
-		return createBclnt(create9lenBc(FKL_OP_IMPORT,libId),codegen->fid,origExp->curline);
+		lib=codegen->loadedLibStack->base[libId-1];
+		dll=lib->u.dll;
 	}
+	add_symbol_to_locale_env_in_array(curEnv
+			,codegen->globalSymTable
+			,codegen->publicSymbolTable
+			,lib->exportNum
+			,lib->exports);
+	return createBclnt(create9lenBc(FKL_OP_IMPORT,libId),codegen->fid,origExp->curline);
 }
 
 static CODEGEN_FUNC(codegen_import)
@@ -2110,7 +2134,7 @@ static CODEGEN_FUNC(codegen_import)
 	char* dllFileName=fklStrCat(fklCopyCstr(filename),FKL_DLL_FILE_TYPE);
 	if(fklIsAccessableRegFile(scriptFileName))
 	{
-		process_import_code(origExp
+		process_import_script(origExp
 			,name
 			,importLibraryName
 			,scriptFileName
@@ -2128,10 +2152,10 @@ static CODEGEN_FUNC(codegen_import)
 				,curEnv
 				,codegen
 				,errorState);
-		FklPtrStack* bcStack=fklCreatePtrStack(1,1);
-		fklPushPtrStack(bc,bcStack);
 		if(bc)
 		{
+			FklPtrStack* bcStack=fklCreatePtrStack(1,1);
+			fklPushPtrStack(bc,bcStack);
 			FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_default_bc_process
 					,createDefaultStackContext(bcStack)
 					,NULL
@@ -2146,8 +2170,6 @@ static CODEGEN_FUNC(codegen_import)
 		errorState->fid=codegen->fid;
 		errorState->type=FKL_ERR_IMPORTFAILED;
 		errorState->place=fklMakeNastNodeRef(name);
-		free(filename);
-		return;
 	}
 	free(filename);
 	free(scriptFileName);
@@ -3282,7 +3304,7 @@ void fklUninitCodegener(FklCodegen* codegen)
 		while(!fklIsPtrStackEmpty(macroLibStack))
 		{
 			FklCodegenLib* cur=fklPopPtrStack(macroLibStack);
-			fklDestroyByteCodelnt(cur->bcl);
+			fklDestroyByteCodelnt(cur->u.bcl);
 			free(cur->exports);
 			free(cur->rp);
 			free(cur);
@@ -3508,7 +3530,7 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib** libs,Fk
 	fklDestroyPtrStack(mayUndefined);
 }
 
-void fklInitCodegenLib(FklCodegenLib* lib
+void fklInitCodegenScriptLib(FklCodegenLib* lib
 		,char* rp
 		,FklByteCodelnt* bcl
 		,size_t exportNum
@@ -3516,13 +3538,14 @@ void fklInitCodegenLib(FklCodegenLib* lib
 		,FklCodegenMacro* head)
 {
 	lib->rp=rp;
-	lib->bcl=bcl;
+	lib->type=FKL_CODEGEN_LIB_SCRIPT,
+	lib->u.bcl=bcl;
 	lib->exportNum=exportNum;
 	lib->exports=exports;
 	lib->head=head;
 }
 
-FklCodegenLib* fklCreateCodegenLib(char* rp
+FklCodegenLib* fklCreateCodegenScriptLib(char* rp
 		,FklByteCodelnt* bcl
 		,size_t exportNum
 		,FklSid_t* exports
@@ -3530,8 +3553,31 @@ FklCodegenLib* fklCreateCodegenLib(char* rp
 {
 	FklCodegenLib* lib=(FklCodegenLib*)malloc(sizeof(FklCodegenLib));
 	FKL_ASSERT(lib);
-	fklInitCodegenLib(lib,rp,bcl,exportNum,exports,head);
+	fklInitCodegenScriptLib(lib,rp,bcl,exportNum,exports,head);
 	return lib;
+}
+
+FklCodegenLib* fklCreateCodegenDllLib(char* rp
+		,FklDllHandle dll
+		,FklSymbolTable* table
+		,FklCodegenDllLibInitExportFunc init)
+{
+	FklCodegenLib* lib=(FklCodegenLib*)malloc(sizeof(FklCodegenLib));
+	FKL_ASSERT(lib);
+	fklInitCodegenDllLib(lib,rp,dll,table,init);
+	return lib;
+}
+
+void fklInitCodegenDllLib(FklCodegenLib* lib
+		,char* rp
+		,FklDllHandle dll
+		,FklSymbolTable* table
+		,FklCodegenDllLibInitExportFunc init)
+{
+	lib->rp=rp;
+	lib->type=FKL_CODEGEN_LIB_DLL;
+	lib->u.dll=dll;
+	init(&lib->exportNum,&lib->exports,table);
 }
 
 void fklDestroyCodegenMacroList(FklCodegenMacro* cur)
@@ -3546,7 +3592,15 @@ void fklDestroyCodegenMacroList(FklCodegenMacro* cur)
 void fklUninitCodegenLib(FklCodegenLib* lib)
 {
 	free(lib->rp);
-	fklDestroyByteCodelnt(lib->bcl);
+	switch(lib->type)
+	{
+		case FKL_CODEGEN_LIB_SCRIPT:
+			fklDestroyByteCodelnt(lib->u.bcl);
+			break;
+		case FKL_CODEGEN_LIB_DLL:
+			fklDestroyDll(lib->u.dll);
+			break;
+	}
 	free(lib->exports);
 	fklDestroyCodegenMacroList(lib->head);
 	lib->exportNum=0;
@@ -3653,13 +3707,16 @@ FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 	for(size_t i=0;i<macroLibStack->top;i++)
 	{
 		FklCodegenLib* cur=macroLibStack->base[i];
-		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,fklCopyByteCodelnt(cur->bcl),anotherVM->gc);
-		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(0,cur->bcl->bc->size,codeObj,anotherVM->gc),anotherVM->gc);
-		fklSetRef(&proc->u.proc->prevEnv,globEnv,anotherVM->gc);
-		fklInitVMlib(&anotherVM->libs[i]
-				,cur->exportNum
-				,fklCopyMemory(cur->exports,cur->exportNum*sizeof(FklSid_t))
-				,proc);
+		if(cur->type==FKL_CODEGEN_LIB_SCRIPT)
+		{
+			FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,fklCopyByteCodelnt(cur->u.bcl),anotherVM->gc);
+			FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(0,cur->u.bcl->bc->size,codeObj,anotherVM->gc),anotherVM->gc);
+			fklSetRef(&proc->u.proc->prevEnv,globEnv,anotherVM->gc);
+			fklInitVMlib(&anotherVM->libs[i]
+					,cur->exportNum
+					,fklCopyMemory(cur->exports,cur->exportNum*sizeof(FklSid_t))
+					,proc);
+		}
 	}
 	FklVMvalue* mainEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,createVMenvFromPatternMatchTable(globEnv,ht,lineHash,anotherVM->gc),anotherVM->gc);
 	FklVMframe* mainframe=anotherVM->frames;

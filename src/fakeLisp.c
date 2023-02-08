@@ -87,7 +87,8 @@ int main(int argc,char** argv)
 		for(size_t i=0;i<loadedLibStack->top;i++)
 		{
 			FklCodegenLib* cur=loadedLibStack->base[i];
-			fklCodegenPrintUndefinedSymbol(cur->bcl,(FklCodegenLib**)loadedLibStack->base,codegen.globalSymTable,cur->exportNum,cur->exports);
+			if(cur->type==FKL_CODEGEN_LIB_SCRIPT)
+				fklCodegenPrintUndefinedSymbol(cur->u.bcl,(FklCodegenLib**)loadedLibStack->base,codegen.globalSymTable,cur->exportNum,cur->exports);
 		}
 		fklCodegenPrintUndefinedSymbol(mainByteCode,(FklCodegenLib**)codegen.loadedLibStack->base,codegen.globalSymTable,0,NULL);
 		FklVM* anotherVM=fklCreateVM(mainByteCode,codegen.globalSymTable,NULL,NULL);
@@ -98,10 +99,13 @@ int main(int argc,char** argv)
 		while(!fklIsPtrStackEmpty(loadedLibStack))
 		{
 			FklCodegenLib* cur=fklPopPtrStack(loadedLibStack);
-			FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,cur->bcl,anotherVM->gc);
-			FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(0,cur->bcl->bc->size,codeObj,anotherVM->gc),anotherVM->gc);
-			fklSetRef(&proc->u.proc->prevEnv,globEnv,anotherVM->gc);
-			fklInitVMlib(&anotherVM->libs[loadedLibStack->top],cur->exportNum,cur->exports,proc);
+			if(cur->type==FKL_CODEGEN_LIB_SCRIPT)
+			{
+				FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,cur->u.bcl,anotherVM->gc);
+				FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(0,cur->u.bcl->bc->size,codeObj,anotherVM->gc),anotherVM->gc);
+				fklSetRef(&proc->u.proc->prevEnv,globEnv,anotherVM->gc);
+				fklInitVMlib(&anotherVM->libs[loadedLibStack->top],cur->exportNum,cur->exports,proc);
+			}
 			fklDestroyCodegenMacroList(cur->head);
 			free(cur->rp);
 			free(cur);
@@ -264,11 +268,16 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 					{
 						FklVMlib* curVMlib=&nlibs[i];
 						FklCodegenLib* curCGlib=codegen->loadedLibStack->base[i];
-						FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,curCGlib->bcl,anotherVM->gc);
-						FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(0,curCGlib->bcl->bc->size,codeObj,anotherVM->gc),anotherVM->gc);
-						fklSetRef(&proc->u.proc->prevEnv,globEnv,anotherVM->gc);
-						fklInitVMlib(curVMlib,curCGlib->exportNum,curCGlib->exports,proc);
-						//fklDestroyCodegenMacroList(curCGlib->head);
+						if(curCGlib->type==FKL_CODEGEN_LIB_SCRIPT)
+						{
+							FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,curCGlib->u.bcl,anotherVM->gc);
+							FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(0,curCGlib->u.bcl->bc->size,codeObj,anotherVM->gc),anotherVM->gc);
+							fklSetRef(&proc->u.proc->prevEnv,globEnv,anotherVM->gc);
+							fklInitVMlib(curVMlib,curCGlib->exportNum,curCGlib->exports,proc);
+						}
+						else
+						{
+						}
 					}
 					FklVMlib* prev=anotherVM->libs;
 					anotherVM->libs=nlibs;

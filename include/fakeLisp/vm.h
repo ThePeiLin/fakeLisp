@@ -515,7 +515,7 @@ void fklDestroyVMproc(FklVMproc*);
 FklVMfp* fklCreateVMfp(FILE*);
 int fklDestroyVMfp(FklVMfp*);
 
-typedef void (*FklImportDllInitFunc)(FklVM*,FklVMvalue*,FklVMvalue*);
+typedef void (*FklImportDllInitFunc)(FklVM* exe,FklVMvalue* dll,FklVMvalue* env);
 
 FklVMdll* fklCreateVMdll(const char*);
 void fklInitVMdll(FklVMvalue* rel,FklVM*);
@@ -703,6 +703,8 @@ void fklUninitVMlib(FklVMlib*);
 #define FKL_IS_HASHTABLE_EQ(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_HASHTABLE&&(P)->u.hash->type==FKL_VM_HASH_EQ)
 #define FKL_IS_HASHTABLE_EQV(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_HASHTABLE&&(P)->u.hash->type==FKL_VM_HASH_EQV)
 #define FKL_IS_HASHTABLE_EQUAL(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_HASHTABLE&&(P)->u.hash->type==FKL_VM_HASH_EQUAL)
+
+#define FKL_DL_PROC_ARGL FklVM* exe,FklVMvalue* rel,FklVMvalue* pd
 
 #ifdef __cplusplus
 }

@@ -3578,6 +3578,7 @@ void fklInitCodegenDllLib(FklCodegenLib* lib
 	lib->rp=rp;
 	lib->type=FKL_CODEGEN_LIB_DLL;
 	lib->u.dll=dll;
+	lib->head=NULL;
 	init(&lib->exportNum,&lib->exports,table);
 }
 

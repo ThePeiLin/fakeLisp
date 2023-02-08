@@ -1150,18 +1150,31 @@ static void B_import_with_symbols(FklVM* exe,FklVMframe* frame)
 	}
 }
 
+static inline FklImportDllInitFunc getImportInit(FklDllHandle handle)
+{
+	return fklGetAddress("_fklImportInit",handle);
+}
+
 static void B_import_from_dll(FklVM* exe,FklVMframe* frame)
 {
 	uint64_t libId=fklGetU64FromByteCode(fklGetCompoundFrameCode(frame)+fklGetCompoundFrameCp(frame)+sizeof(char));
 	FklVMlib* plib=&exe->libs[libId-1];
+	FKL_NI_BEGIN(exe);
 	if(plib->libEnv==FKL_VM_NIL)
 	{
 		char* realpath=fklStringToCstr(plib->proc->u.str);
 		FklVMdll* dll=fklCreateVMdll(realpath);
-		FklVMvalue* dllValue=fklCreateVMvalueToStack(FKL_TYPE_DLL,dll,exe);
-		FklImportDllInitFunc initFunc=fklGetAddress("_fklImportInit",dll->handle);
+		FklImportDllInitFunc initFunc=NULL;
+		if(dll)
+			initFunc=getImportInit(dll->handle);
+		else
+		{
+			fklDestroyVMdll(dll);
+			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-from-dll",realpath,1,FKL_ERR_IMPORTFAILED,exe);
+		}
 		if(!initFunc)
 			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-from-dll",realpath,1,FKL_ERR_IMPORTFAILED,exe);
+		FklVMvalue* dllValue=fklCreateVMvalueToStack(FKL_TYPE_DLL,dll,exe);
 		fklInitVMdll(dllValue,exe);
 		FklVMenv* env=fklCreateVMenv(FKL_VM_NIL,exe->gc);
 		FklVMvalue* envValue=fklCreateVMvalueToStack(FKL_TYPE_ENV,env,exe);
@@ -1182,6 +1195,7 @@ static void B_import_from_dll(FklVM* exe,FklVMframe* frame)
 		fklSetRef(pValue,*pv,exe->gc);
 	}
 	fklIncAndAddCompoundFrameCp(frame,sizeof(uint64_t));
+	fklNiEnd(&ap,stack);
 }
 
 static void B_import_from_dll_with_symbols(FklVM* exe,FklVMframe* frame)
@@ -1192,10 +1206,12 @@ static void B_import_from_dll_with_symbols(FklVM* exe,FklVMframe* frame)
 	{
 		char* realpath=fklStringToCstr(plib->proc->u.str);
 		FklVMdll* dll=fklCreateVMdll(realpath);
-		FklVMvalue* dllValue=fklCreateVMvalueToStack(FKL_TYPE_DLL,dll,exe);
-		FklImportDllInitFunc initFunc=fklGetAddress("_fklImportInit",dll->handle);
+		FklImportDllInitFunc initFunc=NULL;
+		if(dll)
+			initFunc=getImportInit(dll->handle);
 		if(!initFunc)
-			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-from-dll-with-symbols",realpath,1,FKL_ERR_IMPORTFAILED,exe);
+			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-from-dll-wit-symbols",realpath,1,FKL_ERR_IMPORTFAILED,exe);
+		FklVMvalue* dllValue=fklCreateVMvalueToStack(FKL_TYPE_DLL,dll,exe);
 		fklInitVMdll(dllValue,exe);
 		FklVMenv* env=fklCreateVMenv(FKL_VM_NIL,exe->gc);
 		FklVMvalue* envValue=fklCreateVMvalueToStack(FKL_TYPE_ENV,env,exe);

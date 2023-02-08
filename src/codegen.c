@@ -228,7 +228,8 @@ static FklCodegenQuest* createCodegenQuest(FklByteCodeProcesser f
 	FKL_ASSERT(r);
 	r->processer=f;
 	r->context=context;
-	env->refcount+=1;
+	if(env)
+		env->refcount+=1;
 	r->nextExpression=nextExpression;
 	r->env=env;
 	r->curline=curline;
@@ -2055,10 +2056,40 @@ static inline void process_import_code(FklNastNode* origExp
 		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_default_bc_process
 				,createDefaultStackContext(bcStack)
 				,NULL
-				,nextCodegen->globalEnv
+				,NULL
 				,origExp->curline
 				,nextCodegen
 				,codegenQuestStack);
+	}
+}
+
+static inline FklByteCodelnt* process_import_from_dll(FklNastNode* origExp
+		,FklNastNode* name
+		,FklNastNode* importLibraryName
+		,const char* filename
+		,FklCodegenEnv* curEnv
+		,FklCodegen* codegen
+		,FklCodegenErrorState* errorState)
+{
+	char* realpath=fklRealpath(filename);
+	size_t libId=check_loaded_lib(realpath,codegen->loadedLibStack);
+	if(!libId)
+	{
+		FklDllHandle dll=fklLoadDll(realpath);
+		if(!dll)
+		{
+			errorState->fid=codegen->fid;
+			errorState->type=FKL_ERR_FILEFAILURE;
+			errorState->place=fklMakeNastNodeRef(name);
+			return NULL;
+		}
+		return createBclnt(create9lenBc(FKL_OP_IMPORT,libId),codegen->fid,origExp->curline);
+	}
+	else
+	{
+		FklCodegenLib* lib=codegen->loadedLibStack->base[libId-1];
+		FklDllHandle dll=lib->u.dll;
+		return createBclnt(create9lenBc(FKL_OP_IMPORT,libId),codegen->fid,origExp->curline);
 	}
 }
 
@@ -2090,6 +2121,25 @@ static CODEGEN_FUNC(codegen_import)
 	}
 	else if(fklIsAccessableRegFile(dllFileName))
 	{
+		FklByteCodelnt* bc=process_import_from_dll(origExp
+				,name
+				,importLibraryName
+				,dllFileName
+				,curEnv
+				,codegen
+				,errorState);
+		FklPtrStack* bcStack=fklCreatePtrStack(1,1);
+		fklPushPtrStack(bc,bcStack);
+		if(bc)
+		{
+			FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_default_bc_process
+					,createDefaultStackContext(bcStack)
+					,NULL
+					,NULL
+					,origExp->curline
+					,codegen
+					,codegenQuestStack);
+		}
 	}
 	else
 	{

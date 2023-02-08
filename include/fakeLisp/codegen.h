@@ -1,5 +1,6 @@
 #ifndef FKL_CODEGEN_H
 #define FKL_CODEGEN_H
+#include"utils.h"
 #include"symbol.h"
 #include"pattern.h"
 #include"base.h"
@@ -44,6 +45,7 @@ typedef struct FklCodegenLib
 	union
 	{
 		FklByteCodelnt* bcl;
+		FklDllHandle dll;
 	}u;
 	char* rp;
 	FklByteCodelnt* bcl;

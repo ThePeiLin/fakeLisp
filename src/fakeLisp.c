@@ -113,8 +113,10 @@ int main(int argc,char** argv)
 			{
 				FklVMvalue* realpath=fklCreateVMvalueNoGC(FKL_TYPE_STR,fklCreateString(strlen(cur->rp)-strlen(FKL_DLL_FILE_TYPE),cur->rp),anotherVM->gc);
 				fklInitVMlib(curVMlib,cur->exportNum,cur->exports,realpath);
+				fklDestroyDll(cur->u.dll);
 			}
-			fklUninitCodegenLib(cur);
+			fklDestroyCodegenMacroList(cur->head);
+			free(cur->rp);
 			free(cur);
 		}
 		FklVMvalue* mainEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateVMenv(globEnv,anotherVM->gc),anotherVM->gc);

@@ -354,6 +354,11 @@ FklString* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorTy
 	FklString* t=fklCreateEmptyString();
 	switch(type)
 	{
+		case FKL_ERR_IMPORTFAILED:
+			fklStringCstrCat(&t,"Failed to import dll:\"");
+			fklStringCstrCat(&t,str);
+			fklStringCstrCat(&t,"\"");
+			break;
 		case FKL_ERR_LOADDLLFAILD:
 			{
 				char* errStr=dlerror();

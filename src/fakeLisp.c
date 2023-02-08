@@ -277,6 +277,8 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 						}
 						else
 						{
+							FklVMvalue* realpath=fklCreateVMvalueNoGC(FKL_TYPE_STR,fklCreateString(strlen(curCGlib->rp)-strlen(FKL_DLL_FILE_TYPE),curCGlib->rp),anotherVM->gc);
+							fklInitVMlib(curVMlib,curCGlib->exportNum,curCGlib->exports,realpath);
 						}
 					}
 					FklVMlib* prev=anotherVM->libs;

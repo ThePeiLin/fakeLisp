@@ -2081,6 +2081,7 @@ static inline FklByteCodelnt* process_import_from_dll(FklNastNode* origExp
 		dll=fklLoadDll(realpath);
 		if(!dll)
 		{
+			fprintf(stderr,"%s\n",dlerror());
 			errorState->fid=codegen->fid;
 			errorState->type=FKL_ERR_FILEFAILURE;
 			errorState->place=fklMakeNastNodeRef(name);
@@ -2097,7 +2098,7 @@ static inline FklByteCodelnt* process_import_from_dll(FklNastNode* origExp
 			free(realpath);
 			return NULL;
 		}
-		FklCodegenLib* lib=fklCreateCodegenDllLib(realpath
+		lib=fklCreateCodegenDllLib(realpath
 				,dll
 				,codegen->globalSymTable
 				,initExport);
@@ -2114,7 +2115,7 @@ static inline FklByteCodelnt* process_import_from_dll(FklNastNode* origExp
 			,codegen->publicSymbolTable
 			,lib->exportNum
 			,lib->exports);
-	return createBclnt(create9lenBc(FKL_OP_IMPORT,libId),codegen->fid,origExp->curline);
+	return createBclnt(create9lenBc(FKL_OP_IMPORT_FROM_DLL,libId),codegen->fid,origExp->curline);
 }
 
 static CODEGEN_FUNC(codegen_import)

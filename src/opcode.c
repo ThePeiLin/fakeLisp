@@ -16,7 +16,7 @@ static struct
 	{"push-str",                     -1, },
 	{"push-sym",                     8,  },
 	{"push-var",                     8,  },
-	{"push-top",                     0,  },
+	{"dup",                          0,  },
 	{"push-proc",                    -1, },
 	{"pop",                          0,  },
 	{"pop-var",                      -1, },
@@ -50,6 +50,10 @@ static struct
 	{"import-with-symbols",          -1, },
 	{"import-from-dll",              8,  },
 	{"import-from-dll-with-symbols", -1, },
+	{"push-0",                       0,  },
+	{"push-1",                       0,  },
+	{"push-i8",                      1,  },
+	{"push-i16",                     2,  },
 };
 
 const char* fklGetOpcodeName(FklOpcode opcode)

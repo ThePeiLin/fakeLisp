@@ -72,6 +72,7 @@ void fklLntCat(FklLineNumberTable* t,uint64_t bs,FklLineNumTabNode* l2,uint64_t 
 void fklWriteLineNumberTable(FklLineNumberTable*,FILE*);
 void fklDBG_printByteCode(uint8_t* code,uint64_t s,uint64_t c,FILE*);
 
+int16_t fklGetI16FromByteCode(uint8_t* code);
 int32_t fklGetI32FromByteCode(uint8_t* code);
 uint32_t fklGetU32FromByteCode(uint8_t* code);
 int64_t fklGetI64FromByteCode(uint8_t* code);
@@ -79,6 +80,8 @@ uint64_t fklGetU64FromByteCode(uint8_t* code);
 double fklGetF64FromByteCode(uint8_t* code);
 FklSid_t fklGetSidFromByteCode(uint8_t* code);
 
+void fklSetI8ToByteCode(uint8_t* code,int8_t i);
+void fklSetI16ToByteCode(uint8_t* code,int16_t i);
 void fklSetI32ToByteCode(uint8_t* code,int32_t i);
 void fklSetU32ToByteCode(uint8_t* code,uint32_t i);
 void fklSetI64ToByteCode(uint8_t* code,int64_t i);
@@ -87,6 +90,8 @@ void fklSetF64ToByteCode(uint8_t* code,double i);
 void fklSetSidToByteCode(uint8_t* code,FklSid_t i);
 void fklScanAndSetTailCall(FklByteCode* bc);
 
+FklByteCode* fklCreatePushI8ByteCode(int8_t);
+FklByteCode* fklCreatePushI16ByteCode(int16_t);
 FklByteCode* fklCreatePushI32ByteCode(int32_t);
 FklByteCode* fklCreatePushI64ByteCode(int64_t);
 FklByteCode* fklCreatePushBigIntByteCode(const FklBigInt*);

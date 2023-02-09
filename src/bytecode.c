@@ -231,8 +231,18 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 			r+=sizeof(char);
 			break;
 		case 1:
-			fklPrintRawChar(tmpCode->code[i+1],fp);
+			{
+				FklOpcode op=tmpCode->code[i];
+				if(op==FKL_OP_PUSH_CHAR)
+					fklPrintRawChar(tmpCode->code[i+1],fp);
+				else
+					fprintf(fp,"%d",tmpCode->code[i+1]);
+			}
 			r+=sizeof(char)+sizeof(char);
+			break;
+		case 2:
+			fprintf(fp,"%d",fklGetI16FromByteCode(tmpCode->code+i+sizeof(char)));
+			r+=sizeof(char)+sizeof(int16_t);
 			break;
 		case 4:
 			fprintf(fp,"%d"
@@ -728,6 +738,14 @@ void fklDBG_printByteCode(uint8_t* code,uint64_t s,uint64_t c,FILE* fp)
 	fklPrintByteCode(&t,fp,NULL);
 }
 
+inline int16_t fklGetI16FromByteCode(uint8_t* code)
+{
+	int16_t i=0;
+	((uint8_t*)&i)[0]=code[0];
+	((uint8_t*)&i)[1]=code[1];
+	return i;
+}
+
 inline int32_t fklGetI32FromByteCode(uint8_t* code)
 {
 	int32_t i=0;
@@ -804,6 +822,17 @@ inline FklSid_t fklGetSidFromByteCode(uint8_t* code)
 	return i;
 }
 
+inline void fklSetI8ToByteCode(uint8_t* code,int8_t i)
+{
+	code[0]=i;
+}
+
+inline void fklSetI16ToByteCode(uint8_t* code,int16_t i)
+{
+	code[0]=((uint8_t*)&i)[0];
+	code[1]=((uint8_t*)&i)[1];
+}
+
 inline void fklSetI32ToByteCode(uint8_t* code,int32_t i)
 {
 	code[0]=((uint8_t*)&i)[0];
@@ -878,6 +907,8 @@ static void fklSetCharToByteCode(uint8_t* code,char c)
 	(OBJ_SETTER)(t->code+sizeof(char),(OBJ));\
 	return t
 
+FklByteCode* fklCreatePushI8ByteCode(int8_t a) {NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_I8,a,fklSetI8ToByteCode);}
+FklByteCode* fklCreatePushI16ByteCode(int16_t a) {NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_I16,a,fklSetI16ToByteCode);}
 FklByteCode* fklCreatePushI32ByteCode(int32_t a) {NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_I32,a,fklSetI32ToByteCode);}
 FklByteCode* fklCreatePushI64ByteCode(int64_t a) {NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_I64,a,fklSetI64ToByteCode);}
 FklByteCode* fklCreatePushSidByteCode(FklSid_t a) {NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_SYM,a,fklSetSidToByteCode);}

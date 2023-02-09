@@ -41,19 +41,12 @@ file(GLOB COMPILER_SOURCE "src/fakeLispc.c")
 
 file(GLOB BYTECODE_PRINTER_SOURCE "src/fakeLispp.c")
 
-#btk.so
-#add_library(${BTK_TARGET_NAME}
-#	MODULE
-#	${BTK_SOURCE})
-#set_target_properties(${BTK_TARGET_NAME} PROPERTIES PREFIX "")
-
 #libfkl.a
 file(GLOB LIBFKL_SOURCE "src/*.c")
 list(REMOVE_ITEM LIBFKL_SOURCE
 	"${PROJECT_SOURCE_DIR}/src/fakeLisp.c"
 	"${PROJECT_SOURCE_DIR}/src/fakeLispc.c"
 	"${PROJECT_SOURCE_DIR}/src/fakeLispp.c"
-	#"${PROJECT_SOURCE_DIR}/src/btk.c"
 	)
 
 add_library(${LIBFKL_TARGET_NAME}
@@ -61,12 +54,12 @@ add_library(${LIBFKL_TARGET_NAME}
 	${LIBFKL_SOURCE})
 
 #libfkl.so
-set(ORIGINAL_SHARED_LIB_NAME ${LIBFKL_TARGET_NAME}-shared)
-add_library(${ORIGINAL_SHARED_LIB_NAME}
+set(FKL_SHARED_LIB_NAME ${LIBFKL_TARGET_NAME}-shared)
+add_library(${FKL_SHARED_LIB_NAME}
 	SHARED
 	$<TARGET_OBJECTS:${LIBFKL_TARGET_NAME}>)
-set_target_properties(${ORIGINAL_SHARED_LIB_NAME} PROPERTIES OUTPUT_NAME ${LIBFKL_TARGET_NAME})
-target_link_libraries(${ORIGINAL_SHARED_LIB_NAME} ${LINK_TARGET})
+set_target_properties(${FKL_SHARED_LIB_NAME} PROPERTIES OUTPUT_NAME ${LIBFKL_TARGET_NAME})
+target_link_libraries(${FKL_SHARED_LIB_NAME} ${LINK_TARGET})
 
 set_property(TARGET ${LIBFKL_TARGET_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 

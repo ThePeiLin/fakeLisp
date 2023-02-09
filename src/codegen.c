@@ -147,7 +147,7 @@ static FklByteCode* createPushVar(FklSid_t id)
 static FklByteCode* createPushTopPopVar(uint32_t scope,FklSid_t id)
 {
 	FklByteCode* r=fklCreateByteCode(sizeof(char)+sizeof(char)+sizeof(uint32_t)+sizeof(FklSid_t));
-	r->code[0]=FKL_OP_PUSH_TOP;
+	r->code[0]=FKL_OP_DUP;
 	r->code[sizeof(char)]=FKL_OP_POP_VAR;
 	fklSetU32ToByteCode(r->code+sizeof(char)+sizeof(char),scope);
 	fklSetSidToByteCode(r->code+sizeof(char)+sizeof(char)+sizeof(uint32_t),id);
@@ -2853,6 +2853,20 @@ typedef void (*FklCodegenFunc)(CODEGEN_ARGS);
 #undef CODEGEN_ARGS
 #undef CODEGEN_FUNC
 
+static FklByteCode* createPushI32(int32_t i)
+{
+	if(i==0)
+		return create1lenBc(FKL_OP_PUSH_0);
+	else if(i==1)
+		return create1lenBc(FKL_OP_PUSH_1);
+	else if(i>=INT8_MIN&&i<=INT8_MAX)
+		return fklCreatePushI8ByteCode(i);
+	else if(i>=INT16_MIN&&i<=INT16_MAX)
+		return fklCreatePushI16ByteCode(i);
+	else
+		return fklCreatePushI32ByteCode(i);
+}
+
 FklByteCode* fklCodegenNode(const FklNastNode* node,FklCodegen* codegenr)
 {
 	FklPtrStack stack={NULL,0,0,0};
@@ -2877,7 +2891,7 @@ FklByteCode* fklCodegenNode(const FklNastNode* node,FklCodegen* codegenr)
 				tmp=fklCreatePushCharByteCode(node->u.chr);
 				break;
 			case FKL_NAST_I32:
-				tmp=fklCreatePushI32ByteCode(node->u.i32);
+				tmp=createPushI32(node->u.i32);
 				break;
 			case FKL_NAST_I64:
 				tmp=fklCreatePushI64ByteCode(node->u.i64);
@@ -3480,7 +3494,8 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib** libs,Fk
 		while(i<end)
 		{
 			FklOpcode opcode=(FklOpcode)(bc->code[i]);
-			switch(fklGetOpcodeArgLen(opcode))
+			size_t len=fklGetOpcodeArgLen(opcode);
+			switch(len)
 			{
 				case -1:
 					{
@@ -3561,12 +3576,6 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib** libs,Fk
 					}
 					i+=sizeof(char);
 					break;
-				case 1:
-					i+=sizeof(char)+sizeof(char);
-					break;
-				case 4:
-					i+=sizeof(char)+sizeof(int32_t);
-					break;
 				case 8:
 					switch(opcode)
 					{
@@ -3604,6 +3613,9 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib** libs,Fk
 							break;
 					}
 					i+=sizeof(char)+sizeof(int64_t);
+					break;
+				default:
+					i+=sizeof(char)+len;
 					break;
 			}
 		}

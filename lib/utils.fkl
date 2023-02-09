@@ -1,41 +1,17 @@
 (module
   utils
-  (caar
-    cadr
-    cdar
-    cddr
-    caaar
-    caadr
-    cadar
-    caddr
-    cdaar
-    cdadr
-    cddar
-    cdddr
-    caaaar
-    caaadr
-    caadar
-    caaddr
-    cadaar
-    cadadr
-    caddar
-    cadddr
-    cdaaar
-    cdaadr
-    cdadar
-    cdaddr
-    cddaar
-    cddadr
-    cdddar
-    cddddr
-    fprint
-    print
-    fprin1
-    square
-    min
-    max
-    merge-sort!
-    merge-sort)
+  (
+   caar cadr cdar cddr
+   caaar caadr cadar caddr
+   cdaar cdadr cddar cdddr
+   caaaar caaadr caadar caaddr
+   cadaar cadadr caddar cadddr
+   cdaaar cdaadr cdadar cdaddr
+   cddaar cddadr cdddar cddddr
+   fprint print fprin1
+   square min max
+   merge-sort! merge-sort
+   )
   (define caar (lambda (a)
                  (car (car a))))
 

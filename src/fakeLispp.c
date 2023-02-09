@@ -174,7 +174,13 @@ static void loadLib(FILE* fp,size_t* pnum,FklCodegenLib** plibs,FklSymbolTable* 
 			fklLoadLineNumberTable(fp,&bcl->l,&bcl->ls);
 			FklByteCode* bc=loadByteCode(fp);
 			bcl->bc=bc;
-			fklInitCodegenScriptLib(&libs[i],NULL,bcl,exportNum,exports,NULL);
+			fklInitCodegenScriptLib(&libs[i]
+					,NULL
+					,bcl
+					,exportNum
+					,exports
+					,NULL
+					,NULL);
 		}
 		else
 		{

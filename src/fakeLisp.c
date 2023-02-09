@@ -44,6 +44,7 @@ int main(int argc,char** argv)
 		{
 			FklCodegenLib* lib=fklPopPtrStack(loadedLibStack);
 			fklDestroyCodegenMacroList(lib->head);
+			fklDestroyHashTable(lib->replacements);
 			if(lib->type==FKL_CODEGEN_LIB_DLL)
 				fklDestroyDll(lib->u.dll);
 			free(lib->rp);
@@ -116,6 +117,7 @@ int main(int argc,char** argv)
 				fklDestroyDll(cur->u.dll);
 			}
 			fklDestroyCodegenMacroList(cur->head);
+			fklDestroyHashTable(cur->replacements);
 			free(cur->rp);
 			free(cur);
 		}

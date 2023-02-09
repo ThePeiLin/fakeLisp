@@ -1,6 +1,6 @@
 (module
   utils
-  (
+  [
    caar cadr cdar cddr
    caaar caadr cadar caddr
    cdaar cdadr cddar cdddr
@@ -11,7 +11,133 @@
    fprint print fprin1
    square min max
    merge-sort! merge-sort
-   )
+   (defmacro (let d,b)
+     (begin
+       (define args nil)
+       (define vals nil)
+       (cond [(symbol? d)
+              (setq
+                args
+                (cond
+                  [(car b)
+                   (map (lambda (sd) (nth 0 sd)) (car b))]
+                  [1 nil]))
+              (setq
+                vals
+                (cond
+                  [(car b)
+                   (map (lambda (sd) (nth 1 sd)) (car b))]
+                  [1 nil]))
+              `(let ()
+                 (define ~d
+                   (lambda ~args
+                     ~@(cdr b)))
+                 (~d ~@vals))]
+         [(pair? d)
+          (setq args
+            (map (lambda (sd) (nth 0 sd)) d))
+          (setq vals
+            (map (lambda (sd) (nth 1 sd)) d))
+          `((lambda ~args ~@b) ~@vals)]
+         [(null d)
+          `((lambda () ~@b))]
+         [1 (raise (error "expanding-macro-let"
+                          'syntax-error
+                          "Wrong type of object behind key word:let\n"))])))
+   (defmacro (let* d,b)
+     (cond ((or (atom d)
+                (null d)
+                (null (cdr d)))
+            `(let ~d ~@b))
+       (1
+        `(let (~(car d))
+           (let* ~(cdr d)
+             ~@b)))))
+
+   (defmacro (letrec d,b)
+     (begin
+       (define dfs
+         (map (lambda (sd)
+                `(define ~(car sd) ~@(cdr sd))) d))
+       `(let () ~@dfs ~@b)))
+
+   (defmacro (if condition exp1)
+     `(cond (~condition ~exp1)))
+
+   (defmacro (if condition exp1 exp2)
+     `(cond (~condition ~exp1)
+        (1 ~exp2)))
+
+   (defmacro (when pred,expressions)
+     `(cond [~pred
+              ~@expressions]))
+
+   (defmacro (unless pred,expressions)
+     `(cond [(not ~pred)
+             ~@expressions]))
+
+   (defmacro (unless pred,expressions)
+     `(cond [(not ~pred)
+             ~@expressions]))
+
+   (defmacro (case (s v),b)
+     (begin
+       (define body
+         (let [(tb (map (lambda (x) (cdr x)) b))
+               (cs (map (lambda (x)
+                          (if (pair? x)
+                            `(member ~s '~x)
+                            x))
+                        (map (lambda (x) (nth 0 x)) b)))]
+           (map (lambda (x)
+                  (define r (cons x (car tb)))
+                  (setq tb (cdr tb))
+                  r)
+                cs)))
+       `((lambda (~s) (cond,~body)) ~v)))
+
+   (defmacro (define (name,args),body)
+     `(define ~name
+        (lambda ~args
+          ~@body)))
+
+   (defmacro (->> x,forms)
+     (begin
+       (define car-forms (car forms))
+       (let iter [(c (cdr forms))
+                  (r (if (pair? car-forms)
+                       `(~@car-forms ~@`(~x))
+                       `(~car-forms,(~x))))]
+         (cond
+           [c
+             (define car-c (car c))
+             (iter (cdr c)
+                   (if (pair? car-c)
+                     `(~@car-c ~@`(~r))
+                     `(~car-c,(~r))))]
+           [1 r]))))
+
+   (defmacro (-> x,forms)
+     (begin
+       (define car-forms (car forms))
+       (let iter [(c (cdr forms))
+                  (r (if (pair? car-forms)
+                       `(~(car car-forms)
+                          ~@`(~x)
+                          ,~(cdr car-forms))
+                       `(~car-forms,(~x))))]
+         (cond
+           [c (define car-c (car c))
+              (iter (cdr c)
+                    (if (pair? car-c)
+                      `(~(car car-c)
+                         ~@`(~r)
+                         ,~(cdr car-c))
+                      `(~car-c,(~r)))
+                    )]
+           [1 r]))))
+   ]
+
   (define caar (lambda (a)
                  (car (car a))))
 
@@ -181,130 +307,4 @@
     (lambda (cmpf ls)
       (merge-sort! cmpf (copy ls))))
 
-  (defmacro
-    (let d,b)
-    (begin
-      (define args nil)
-      (define vals nil)
-      (cond ((symbol? d)
-             (setq
-               args
-               (cond
-                 [(car b)
-                  (map (lambda (sd) (nth 0 sd)) (car b))]
-                 [1 nil]))
-             (setq
-               vals
-               (cond
-                 [(car b)
-                  (map (lambda (sd) (nth 1 sd)) (car b))]
-                 [1 nil]))
-             `(let ()
-                (define ~d
-                  (lambda ~args
-                    ~@(cdr b)))
-                (~d ~@vals)))
-        ((pair? d)
-         (setq args
-           (map (lambda (sd) (nth 0 sd)) d))
-         (setq vals
-           (map (lambda (sd) (nth 1 sd)) d))
-         `((lambda ~args ~@b) ~@vals))
-        ((null d)
-         `((lambda () ~@b)))
-        (1 (raise (error "expanding-macro-let" 'syntax-error "Wrong type of object behind key word:let\n"))))))
-
-  (defmacro
-    (let* d,b)
-    (cond ((or (atom d)
-               (<= (length d) 1))
-           `(let ~d ~@b))
-      (1
-       `(let (~(car d))
-          (let* ~(cdr d)
-            ~@b)))))
-
-  (defmacro
-    (letrec d,b)
-    (begin
-      (define dfs
-        (map (lambda (sd)
-               `(define ~(car sd) ~@(cdr sd))) d))
-      `(let () ~@dfs ~@b)))
-
-  (defmacro (if condition exp1)
-    `(cond (~condition ~exp1)))
-
-  (defmacro (if condition exp1 exp2)
-    `(cond (~condition ~exp1)
-       (1 ~exp2)))
-
-  (defmacro (when pred,expressions)
-    `(cond [~pred
-             ~@expressions]))
-
-  (defmacro (unless pred,expressions)
-    `(cond [(not ~pred)
-            ~@expressions]))
-
-  (defmacro (unless pred,expressions)
-    `(cond [(not ~pred)
-            ~@expressions]))
-
-  (defmacro (case (s v),b)
-    (begin
-      (define body
-        (let [(tb (map (lambda (x) (cdr x)) b))
-              (cs (map (lambda (x)
-                         (if (pair? x)
-                           `(member ~s '~x)
-                           x))
-                       (map (lambda (x) (nth 0 x)) b)))]
-          (map (lambda (x)
-                 (define r (cons x (car tb)))
-                 (setq tb (cdr tb))
-                 r)
-               cs)))
-      `((lambda (~s) (cond,~body)) ~v)))
-
-  (defmacro (define (name,args),body)
-    `(define ~name
-       (lambda ~args
-         ~@body)))
-
-  (defmacro (->> x,forms)
-    (begin
-      (define car-forms (car forms))
-      (let iter [(c (cdr forms))
-                 (r (if (pair? car-forms)
-                      `(~@car-forms ~@`(~x))
-                      `(~car-forms,(~x))))]
-        (cond
-          [c
-            (define car-c (car c))
-            (iter (cdr c)
-                  (if (pair? car-c)
-                   `(~@car-c ~@`(~r))
-                   `(~car-c,(~r))))]
-          [1 r]))))
-
-  (defmacro (-> x,forms)
-    (begin
-      (define car-forms (car forms))
-      (let iter [(c (cdr forms))
-                 (r (if (pair? car-forms)
-                      `(~(car car-forms)
-                         ~@`(~x)
-                         ,~(cdr car-forms))
-                      `(~car-forms,(~x))))]
-        (cond
-          [c (define car-c (car c))
-             (iter (cdr c)
-                   (if (pair? car-c)
-                     `(~(car car-c)
-                        ~@`(~r)
-                        ,~(cdr car-c))
-                     `(~car-c,(~r)))
-                   )]
-          [1 r]))))
-  )
+    )

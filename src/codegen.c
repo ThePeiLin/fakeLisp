@@ -2046,7 +2046,6 @@ static inline FklNastNode* findModuleExpressionInFile(FklCodegen* nextCodegen
 				errorState->place=fklMakeNastNodeRef(libraryExpression);
 				nextCodegen->refcount=1;
 				fklDestroyCodegener(nextCodegen);
-				fclose(fp);
 				fklDestroyNastNode(libraryExpression);
 				return NULL;
 			}

@@ -3830,6 +3830,14 @@ void fklDestroyCodegenMacroList(FklCodegenMacro* cur)
 		fklDestroyCodegenMacro(t);
 	}
 }
+
+void fklDestroyCodegenLibMacroScope(FklCodegenLib* lib)
+{
+	fklDestroyCodegenMacroList(lib->head);
+	if(lib->replacements)
+		fklDestroyHashTable(lib->replacements);
+}
+
 void fklUninitCodegenLib(FklCodegenLib* lib)
 {
 	free(lib->rp);

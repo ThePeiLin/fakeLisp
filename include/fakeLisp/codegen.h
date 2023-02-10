@@ -177,6 +177,7 @@ void fklInitCodegenDllLib(FklCodegenLib* lib
 		,FklSymbolTable* table
 		,FklCodegenDllLibInitExportFunc init);
 
+void fklDestroyCodegenLibMacroScope(FklCodegenLib* lib);
 void fklUninitCodegenLib(FklCodegenLib*);
 
 FklCodegenLib* fklCreateCodegenScriptLib(char* rp

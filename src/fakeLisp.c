@@ -43,8 +43,7 @@ int main(int argc,char** argv)
 		while(!fklIsPtrStackEmpty(loadedLibStack))
 		{
 			FklCodegenLib* lib=fklPopPtrStack(loadedLibStack);
-			fklDestroyCodegenMacroList(lib->head);
-			fklDestroyHashTable(lib->replacements);
+			fklDestroyCodegenLibMacroScope(lib);
 			if(lib->type==FKL_CODEGEN_LIB_DLL)
 				fklDestroyDll(lib->u.dll);
 			free(lib->rp);
@@ -116,8 +115,7 @@ int main(int argc,char** argv)
 				fklInitVMlib(curVMlib,cur->exportNum,cur->exports,realpath);
 				fklDestroyDll(cur->u.dll);
 			}
-			fklDestroyCodegenMacroList(cur->head);
-			fklDestroyHashTable(cur->replacements);
+			fklDestroyCodegenLibMacroScope(cur);
 			free(cur->rp);
 			free(cur);
 		}

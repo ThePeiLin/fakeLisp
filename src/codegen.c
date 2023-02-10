@@ -3534,9 +3534,7 @@ void fklUninitCodegener(FklCodegen* codegen)
 		while(!fklIsPtrStackEmpty(macroLibStack))
 		{
 			FklCodegenLib* cur=fklPopPtrStack(macroLibStack);
-			fklDestroyByteCodelnt(cur->u.bcl);
-			free(cur->exports);
-			free(cur->rp);
+			fklUninitCodegenLib(cur);
 			free(cur);
 		}
 		fklDestroyPtrStack(macroLibStack);
@@ -3851,8 +3849,7 @@ void fklUninitCodegenLib(FklCodegenLib* lib)
 			break;
 	}
 	free(lib->exports);
-	fklDestroyCodegenMacroList(lib->head);
-	fklDestroyHashTable(lib->replacements);
+	fklDestroyCodegenLibMacroScope(lib);
 	lib->exportNum=0;
 }
 
@@ -3969,6 +3966,14 @@ FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 					,cur->exportNum
 					,fklCopyMemory(cur->exports,cur->exportNum*sizeof(FklSid_t))
 					,proc);
+		}
+		else
+		{
+			FklVMvalue* realpath=fklCreateVMvalueNoGC(FKL_TYPE_STR,fklCreateString(strlen(cur->rp)-strlen(FKL_DLL_FILE_TYPE),cur->rp),anotherVM->gc);
+			fklInitVMlib(&anotherVM->libs[i]
+					,cur->exportNum
+					,fklCopyMemory(cur->exports,cur->exportNum*sizeof(FklSid_t))
+					,realpath);
 		}
 	}
 	FklVMvalue* mainEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,createVMenvFromPatternMatchTable(globEnv,ht,lineHash,anotherVM->gc),anotherVM->gc);

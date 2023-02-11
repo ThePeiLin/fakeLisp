@@ -139,7 +139,8 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 		,ByteCodePrintState* cState
 		,FklPtrStack* s
 		,int* needBreak
-		,FklSymbolTable* table)
+		,FklSymbolTable* table
+		,const char* format)
 {
 	uint32_t tc=cState->tc;
 	uint32_t r=0;
@@ -152,7 +153,8 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 		i+=r;
 		cState->type=BP_NONE;
 	}
-	fprintf(fp,"%ld:",i);
+	fprintf(fp,format,i);
+	putc(':',fp);
 	for(uint32_t i=0;i<tc;i++)
 		fputc('\t',fp);
 	fprintf(fp," %s",fklGetOpcodeName((FklOpcode)(tmpCode->code[i])));
@@ -285,6 +287,7 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 	return r;
 }
 
+#include<math.h>
 void fklPrintByteCode(const FklByteCode* tmpCode
 		,FILE* fp
 		,FklSymbolTable* table)
@@ -292,6 +295,11 @@ void fklPrintByteCode(const FklByteCode* tmpCode
 	FklPtrStack s={NULL,0,0,0};
 	fklInitPtrStack(&s,32,16);
 	fklPushPtrStack(createByteCodePrintState(BP_NONE,0,0,tmpCode->size),&s);
+	uint64_t codeLen=tmpCode->size;
+	int numLen=codeLen?(int)(log10(codeLen)+1):1;
+	char format[FKL_MAX_STRING_SIZE]="";
+	snprintf(format,FKL_MAX_STRING_SIZE,"%%-%dld",numLen);
+
 	if(!fklIsPtrStackEmpty(&s))
 	{
 		ByteCodePrintState* cState=fklPopPtrStack(&s);
@@ -299,11 +307,11 @@ void fklPrintByteCode(const FklByteCode* tmpCode
 		uint64_t cpc=cState->cpc;
 		int needBreak=0;
 		if(i<cpc)
-			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table,format);
 		while(i<cpc&&!needBreak)
 		{
 			putc('\n',fp);
-			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table,format);
 		}
 		free(cState);
 	}
@@ -316,12 +324,12 @@ void fklPrintByteCode(const FklByteCode* tmpCode
 		if(i<cpc)
 		{
 			putc('\n',fp);
-			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table,format);
 		}
 		while(i<cpc&&!needBreak)
 		{
 			putc('\n',fp);
-			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table,format);
 		}
 		free(cState);
 	}
@@ -401,6 +409,12 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,FklSymbolTable* table)
 	uint64_t j=0;
 	FklSid_t fid=0;
 	uint64_t line=0;
+
+	uint64_t codeLen=tmpCode->size;
+	int numLen=codeLen?(int)(log10(codeLen)+1):1;
+	char format[FKL_MAX_STRING_SIZE]="";
+	snprintf(format,FKL_MAX_STRING_SIZE,"%%-%dld",numLen);
+
 	if(!fklIsPtrStackEmpty(&s))
 	{
 		ByteCodePrintState* cState=fklPopPtrStack(&s);
@@ -409,7 +423,7 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,FklSymbolTable* table)
 		int needBreak=0;
 		if(i<cpc)
 		{
-			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table,format);
 			if(obj->l[j].scp+obj->l[j].cpc<i)
 				j++;
 			if(obj->l[j].fid!=fid||obj->l[j].line!=line)
@@ -429,7 +443,7 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,FklSymbolTable* table)
 		while(i<cpc&&!needBreak)
 		{
 			putc('\n',fp);
-			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table,format);
 			if(obj->l[j].scp+obj->l[j].cpc<i)
 				j++;
 			if(obj->l[j].fid!=fid||obj->l[j].line!=line)
@@ -457,7 +471,7 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,FklSymbolTable* table)
 		if(i<cpc)
 		{
 			putc('\n',fp);
-			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table,format);
 			if(obj->l[j].scp+obj->l[j].cpc<i)
 				j++;
 			if(obj->l[j].fid!=fid||obj->l[j].line!=line)
@@ -477,7 +491,7 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,FklSymbolTable* table)
 		while(i<cpc&&!needBreak)
 		{
 			putc('\n',fp);
-			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table,format);
 			if(obj->l[j].scp+obj->l[j].cpc<i)
 				j++;
 			if(obj->l[j].fid!=fid||obj->l[j].line!=line)

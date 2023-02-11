@@ -102,22 +102,7 @@ int main(int argc,char** argv)
 		{
 			FklCodegenLib* cur=fklPopPtrStack(loadedLibStack);
 			FklVMlib* curVMlib=&anotherVM->libs[loadedLibStack->top];
-			if(cur->type==FKL_CODEGEN_LIB_SCRIPT)
-			{
-				FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,cur->u.bcl,anotherVM->gc);
-				FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(0,cur->u.bcl->bc->size,codeObj,anotherVM->gc),anotherVM->gc);
-				fklSetRef(&proc->u.proc->prevEnv,globEnv,anotherVM->gc);
-				fklInitVMlib(curVMlib,cur->exportNum,cur->exports,proc);
-			}
-			else
-			{
-				FklVMvalue* realpath=fklCreateVMvalueNoGC(FKL_TYPE_STR,fklCreateString(strlen(cur->rp)-strlen(FKL_DLL_FILE_TYPE),cur->rp),anotherVM->gc);
-				fklInitVMlib(curVMlib,cur->exportNum,cur->exports,realpath);
-				fklDestroyDll(cur->u.dll);
-			}
-			fklDestroyCodegenLibMacroScope(cur);
-			free(cur->rp);
-			free(cur);
+			fklInitVMlibWithCodgenLibAndDestroy(cur,curVMlib,globEnv,anotherVM->gc);
 		}
 		FklVMvalue* mainEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateVMenv(globEnv,anotherVM->gc),anotherVM->gc);
 		FklVMframe* mainframe=anotherVM->frames;

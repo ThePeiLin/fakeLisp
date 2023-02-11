@@ -3957,24 +3957,7 @@ FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 	for(size_t i=0;i<macroLibStack->top;i++)
 	{
 		FklCodegenLib* cur=macroLibStack->base[i];
-		if(cur->type==FKL_CODEGEN_LIB_SCRIPT)
-		{
-			FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,fklCopyByteCodelnt(cur->u.bcl),anotherVM->gc);
-			FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(0,cur->u.bcl->bc->size,codeObj,anotherVM->gc),anotherVM->gc);
-			fklSetRef(&proc->u.proc->prevEnv,globEnv,anotherVM->gc);
-			fklInitVMlib(&anotherVM->libs[i]
-					,cur->exportNum
-					,fklCopyMemory(cur->exports,cur->exportNum*sizeof(FklSid_t))
-					,proc);
-		}
-		else
-		{
-			FklVMvalue* realpath=fklCreateVMvalueNoGC(FKL_TYPE_STR,fklCreateString(strlen(cur->rp)-strlen(FKL_DLL_FILE_TYPE),cur->rp),anotherVM->gc);
-			fklInitVMlib(&anotherVM->libs[i]
-					,cur->exportNum
-					,fklCopyMemory(cur->exports,cur->exportNum*sizeof(FklSid_t))
-					,realpath);
-		}
+		fklInitVMlibWithCodgenLib(cur,&anotherVM->libs[i],globEnv,anotherVM->gc);
 	}
 	FklVMvalue* mainEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,createVMenvFromPatternMatchTable(globEnv,ht,lineHash,anotherVM->gc),anotherVM->gc);
 	FklVMframe* mainframe=anotherVM->frames;
@@ -4032,3 +4015,48 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 	return r;
 }
 
+void fklInitVMlibWithCodgenLib(FklCodegenLib* clib
+		,FklVMlib* vlib
+		,FklVMvalue* globEnv
+		,FklVMgc* gc)
+{
+	FklVMvalue* val=FKL_VM_NIL;
+	if(clib->type==FKL_CODEGEN_LIB_SCRIPT)
+	{
+		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,fklCopyByteCodelnt(clib->u.bcl),gc);
+		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(0,clib->u.bcl->bc->size,codeObj,gc),gc);
+		fklSetRef(&proc->u.proc->prevEnv,globEnv,gc);
+		val=proc;
+	}
+	else
+		val=fklCreateVMvalueNoGC(FKL_TYPE_STR,fklCreateString(strlen(clib->rp)-strlen(FKL_DLL_FILE_TYPE),clib->rp),gc);
+	fklInitVMlib(vlib
+			,clib->exportNum
+			,fklCopyMemory(clib->exports,clib->exportNum*sizeof(FklSid_t))
+			,val);
+
+}
+
+void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
+		,FklVMlib* vlib
+		,FklVMvalue* globEnv
+		,FklVMgc* gc)
+{
+	FklVMvalue* val=FKL_VM_NIL;
+	if(clib->type==FKL_CODEGEN_LIB_SCRIPT)
+	{
+		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,clib->u.bcl,gc);
+		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(0,clib->u.bcl->bc->size,codeObj,gc),gc);
+		fklSetRef(&proc->u.proc->prevEnv,globEnv,gc);
+		val=proc;
+	}
+	else
+	{
+		val=fklCreateVMvalueNoGC(FKL_TYPE_STR,fklCreateString(strlen(clib->rp)-strlen(FKL_DLL_FILE_TYPE),clib->rp),gc);
+		fklDestroyDll(clib->u.dll);
+	}
+	fklInitVMlib(vlib,clib->exportNum,clib->exports,val);
+	fklDestroyCodegenLibMacroScope(clib);
+	free(clib->rp);
+	free(clib);
+}

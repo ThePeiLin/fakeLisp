@@ -213,6 +213,18 @@ struct FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 		,FklHashTable* ht
 		,FklHashTable* lineHash
 		,FklCodegen* codegen);
+
+struct FklVMlib;
+struct FklVMvalue;
+void fklInitVMlibWithCodgenLib(FklCodegenLib* clib
+		,struct FklVMlib* vlib
+		,struct FklVMvalue* globEnv
+		,struct FklVMgc* vm);
+
+void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
+		,struct FklVMlib* vlib
+		,struct FklVMvalue* globEnv
+		,struct FklVMgc* vm);
 #ifdef __cplusplus
 }
 #endif

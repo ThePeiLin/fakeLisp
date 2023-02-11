@@ -274,6 +274,7 @@ FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe* f,FklVMframe* pr
 	tmp->u.c.sid=f->u.c.sid;
 	fklSetRef(&tmp->u.c.codeObj,f->u.c.codeObj,gc);
 	fklSetRef(&tmp->u.c.localenv,f->u.c.localenv,gc);
+	fklSetRef(&tmp->u.c.proc,f->u.c.proc,gc);
 	tmp->u.c.code=f->u.c.codeObj->u.code->bc->code;
 	tmp->u.c.mark=f->u.c.mark;
 	tmp->errorCallBack=f->errorCallBack;
@@ -288,6 +289,7 @@ FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVMframe* prev,Fkl
 	tmp->prev=prev;
 	tmp->u.c.sid=0;
 	fklSetRef(&tmp->u.c.codeObj,codeObj,gc);
+	tmp->u.c.proc=FKL_VM_NIL;
 	tmp->u.c.code=codeObj->u.code->bc->code;
 	tmp->u.c.cp=0;
 	tmp->u.c.scp=0;
@@ -309,6 +311,8 @@ FklVMframe* fklCreateVMframeWithProc(FklVMproc* code,FklVMframe* prev)
 	tmp->prev=prev;
 	tmp->u.c.codeObj=NULL;
 	tmp->u.c.code=NULL;
+	tmp->u.c.proc=NULL;
+	tmp->u.c.proc=FKL_VM_NIL;
 	if(code)
 	{
 		tmp->u.c.codeObj=code->codeObj;
@@ -317,6 +321,35 @@ FklVMframe* fklCreateVMframeWithProc(FklVMproc* code,FklVMframe* prev)
 		tmp->u.c.scp=code->scp;
 		tmp->u.c.cpc=code->cpc;
 		tmp->u.c.sid=code->sid;
+	}
+	tmp->u.c.mark=0;
+	tmp->errorCallBack=NULL;
+	tmp->type=FKL_FRAME_COMPOUND;
+	return tmp;
+}
+
+FklVMframe* fklCreateVMframeWithProcValue(FklVMvalue* proc,FklVMframe* prev)
+{
+	FklVMproc* code=proc->u.proc;
+	FklVMframe* tmp=(FklVMframe*)malloc(sizeof(FklVMframe));
+	FKL_ASSERT(tmp);
+	tmp->u.c.sid=0;
+	tmp->u.c.cp=0;
+	tmp->u.c.scp=0;
+	tmp->u.c.cpc=0;
+	tmp->prev=prev;
+	tmp->u.c.codeObj=NULL;
+	tmp->u.c.code=NULL;
+	tmp->u.c.proc=NULL;
+	if(code)
+	{
+		tmp->u.c.codeObj=code->codeObj;
+		tmp->u.c.code=code->codeObj->u.code->bc->code;
+		tmp->u.c.cp=code->scp;
+		tmp->u.c.scp=code->scp;
+		tmp->u.c.cpc=code->cpc;
+		tmp->u.c.sid=code->sid;
+		tmp->u.c.proc=proc;
 	}
 	tmp->u.c.mark=0;
 	tmp->errorCallBack=NULL;

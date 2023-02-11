@@ -41,23 +41,24 @@ static Greylink* createGreylink(FklVMvalue* v,struct Greylink* next)
 }
 
 /*procedure call functions*/
-static void callCompoundProcdure(FklVM* exe,FklVMproc* tmpProc,FklVMframe* frame)
+static void callCompoundProcdure(FklVM* exe,FklVMvalue* proc,FklVMframe* frame)
 {
-	FklVMframe* tmpFrame=fklCreateVMframeWithProc(tmpProc,exe->frames);
-	tmpFrame->u.c.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(tmpProc->prevEnv,exe->gc));
+	FklVMframe* tmpFrame=fklCreateVMframeWithProcValue(proc,exe->frames);
+	tmpFrame->u.c.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(proc->u.proc->prevEnv,exe->gc));
 	fklPushVMframe(tmpFrame,exe);
 	fklAddToGC(tmpFrame->u.c.localenv,exe);
 }
 
-static void tailCallCompoundProcdure(FklVM* exe,FklVMproc* proc,FklVMframe* frame)
+static void tailCallCompoundProcdure(FklVM* exe,FklVMvalue* proc,FklVMframe* frame)
 {
-	if(fklGetCompoundFrameScp(frame)==proc->scp)
+	if((frame=fklGetCompoundFrameProc(frame)==proc?frame:fklHasSameProc(proc,frame->prev)))
 		frame->u.c.mark=1;
 	else
 	{
-		FklVMframe* tmpFrame=fklCreateVMframeWithProc(proc,exe->frames->prev);
-		tmpFrame->u.c.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(proc->prevEnv,exe->gc));
-		exe->frames->prev=tmpFrame;
+		FklVMframe* tmpFrame=fklCreateVMframeWithProcValue(proc,exe->frames->prev);
+		tmpFrame->u.c.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(proc->u.proc->prevEnv,exe->gc));
+		fklPushVMframe(tmpFrame,exe);
+		//exe->frames->prev=tmpFrame;
 		fklAddToGC(tmpFrame->u.c.localenv,exe);
 	}
 }
@@ -90,7 +91,7 @@ inline static void initVMcCC(VMcCC* ccc,FklVMFuncK kFunc,void* ctx,size_t size)
 	ccc->size=size;
 }
 
-static void dlproc_frame_print_backtrace(void* data[6],FILE* fp,FklSymbolTable* table)
+static void dlproc_frame_print_backtrace(FklCallObjData data,FILE* fp,FklSymbolTable* table)
 {
 	DlprocFrameContext* c=(DlprocFrameContext*)data;
 	FklVMdlproc* dlproc=c->proc->u.dlproc;
@@ -105,13 +106,13 @@ static void dlproc_frame_print_backtrace(void* data[6],FILE* fp,FklSymbolTable* 
 		fputs("at <dlproc>\n",fp);
 }
 
-static void dlproc_frame_atomic(void* data[6],FklVMgc* gc)
+static void dlproc_frame_atomic(FklCallObjData data,FklVMgc* gc)
 {
 	DlprocFrameContext* c=(DlprocFrameContext*)data;
 	fklGC_toGrey(c->proc,gc);
 }
 
-static void dlproc_frame_finalizer(void* data[6])
+static void dlproc_frame_finalizer(FklCallObjData data)
 {
 	DlprocFrameContext* c=(DlprocFrameContext*)data;
 	free(c->ccc.ctx);
@@ -135,13 +136,13 @@ static void dlproc_frame_copy(void* const s[6],void* d[6],FklVM* exe)
 	dlproc_ccc_copy(&sc->ccc,&dc->ccc);
 }
 
-static int dlproc_frame_end(void* data[6])
+static int dlproc_frame_end(FklCallObjData data)
 {
 	DlprocFrameContext* c=(DlprocFrameContext*)data;
 	return c->state==DLPROC_DONE;
 }
 
-static void dlproc_frame_step(void* data[6],FklVM* exe)
+static void dlproc_frame_step(FklCallObjData data,FklVM* exe)
 {
 	DlprocFrameContext* c=(DlprocFrameContext*)data;
 	FklVMdlproc* dlproc=c->proc->u.dlproc;
@@ -170,7 +171,7 @@ static const FklVMframeContextMethodTable DlprocContextMethodTable=
 	.step=dlproc_frame_step,
 };
 
-inline static void initDlprocFrameContext(void* data[6],FklVMvalue* proc,FklVMgc* gc)
+inline static void initDlprocFrameContext(FklCallObjData data,FklVMvalue* proc,FklVMgc* gc)
 {
 	DlprocFrameContext* c=(DlprocFrameContext*)data;
 	fklSetRef(&c->proc,proc,gc);
@@ -416,7 +417,7 @@ inline int fklIsCallableObjFrameReachEnd(FklVMframe* f)
 
 inline void fklDoPrintBacktrace(FklVMframe* f,FILE* fp,FklSymbolTable* table)
 {
-	void (*backtrace)(void* data[6],FILE*,FklSymbolTable*)=f->u.o.t->print_backtrace;
+	void (*backtrace)(FklCallObjData data,FILE*,FklSymbolTable*)=f->u.o.t->print_backtrace;
 	if(backtrace)
 		backtrace(f->u.o.data,fp,table);
 	else
@@ -464,6 +465,7 @@ void fklDoAtomicFrame(FklVMframe* f,FklVMgc* gc)
 		case FKL_FRAME_COMPOUND:
 			fklGC_toGrey(fklGetCompoundFrameLocalenv(f),gc);
 			fklGC_toGrey(fklGetCompoundFrameCodeObj(f),gc);
+			fklGC_toGrey(fklGetCompoundFrameProc(f),gc);
 			break;
 		case FKL_FRAME_OTHEROBJ:
 			doAtomicFrame(f,gc);
@@ -486,15 +488,15 @@ inline static void callCallableObj(FklVMvalue* v,FklVM* exe)
 	}
 }
 
-inline static void applyCompoundProc(FklVM* exe,FklVMproc* tmpProc,FklVMframe* frame)
+inline static void applyCompoundProc(FklVM* exe,FklVMvalue* proc,FklVMframe* frame)
 {
-	FklVMframe* prevProc=fklHasSameProc(tmpProc->scp,exe->frames);
-	if(fklIsTheLastExpress(frame,prevProc,exe)&&prevProc)
+	FklVMframe* prevProc=fklHasSameProc(proc,exe->frames);
+	if(prevProc&&fklIsTheLastExpress(frame,prevProc,exe))
 		prevProc->u.c.mark=1;
 	else
 	{
-		FklVMframe* tmpFrame=fklCreateVMframeWithProc(tmpProc,exe->frames);
-		tmpFrame->u.c.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(tmpProc->prevEnv,exe->gc));
+		FklVMframe* tmpFrame=fklCreateVMframeWithProcValue(proc,exe->frames);
+		tmpFrame->u.c.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(proc->u.proc->prevEnv,exe->gc));
 		fklPushVMframe(tmpFrame,exe);
 		fklAddToGC(tmpFrame->u.c.localenv,exe);
 	}
@@ -505,7 +507,7 @@ void fklCallobj(FklVMvalue* proc,FklVMframe* frame,FklVM* exe)
 	switch(proc->type)
 	{
 		case FKL_TYPE_PROC:
-			applyCompoundProc(exe,proc->u.proc,frame);
+			applyCompoundProc(exe,proc,frame);
 			break;
 		default:
 			callCallableObj(proc,exe);
@@ -849,7 +851,7 @@ static void B_call(FklVM* exe,FklVMframe* frame)
 	switch(tmpValue->type)
 	{
 		case FKL_TYPE_PROC:
-			callCompoundProcdure(exe,tmpValue->u.proc,frame);
+			callCompoundProcdure(exe,tmpValue,frame);
 			break;
 		default:
 			callCallableObj(tmpValue,exe);
@@ -867,7 +869,7 @@ static void B_tail_call(FklVM* exe,FklVMframe* frame)
 	switch(tmpValue->type)
 	{
 		case FKL_TYPE_PROC:
-			tailCallCompoundProcdure(exe,tmpValue->u.proc,frame);
+			tailCallCompoundProcdure(exe,tmpValue,frame);
 			break;
 		default:
 			callCallableObj(tmpValue,exe);
@@ -1094,7 +1096,7 @@ static void B_import(FklVM* exe,FklVMframe* frame)
 	if(plib->libEnv==FKL_VM_NIL)
 	{
 		fklAddCompoundFrameCp(frame,-1);
-		callCompoundProcdure(exe,plib->proc->u.proc,frame);
+		callCompoundProcdure(exe,plib->proc,frame);
 		fklSetRef(&plib->libEnv,fklGetCompoundFrameLocalenv(exe->frames),exe->gc);
 	}
 	else
@@ -1121,7 +1123,7 @@ static void B_import_with_symbols(FklVM* exe,FklVMframe* frame)
 	if(plib->libEnv==FKL_VM_NIL)
 	{
 		fklAddCompoundFrameCp(frame,-1);
-		callCompoundProcdure(exe,plib->proc->u.proc,frame);
+		callCompoundProcdure(exe,plib->proc,frame);
 		fklSetRef(&plib->libEnv,fklGetCompoundFrameLocalenv(exe->frames),exe->gc);
 	}
 	else
@@ -1323,18 +1325,16 @@ void fklDBG_printVMvalue(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
 	fklPrin1VMvalue(v,fp,table);
 }
 
-FklVMframe* fklHasSameProc(uint32_t scp,FklVMframe* frames)
+FklVMframe* fklHasSameProc(FklVMvalue* proc,FklVMframe* frames)
 {
 	for(;frames;frames=frames->prev)
-		if(fklGetCompoundFrameScp(frames)==scp)
+		if(frames->type==FKL_FRAME_COMPOUND&&fklGetCompoundFrameProc(frames)==proc)
 			return frames;
 	return NULL;
 }
 
 int fklIsTheLastExpress(const FklVMframe* frame,const FklVMframe* same,const FklVM* exe)
 {
-	if(same==NULL)
-		return 0;
 	for(;;)
 	{
 		if(frame->type!=FKL_FRAME_COMPOUND)
@@ -1888,31 +1888,36 @@ void fklDestroyVMlib(FklVMlib* lib)
 	free(lib);
 }
 
-unsigned int fklGetCompoundFrameMark(const FklVMframe* f)
+inline unsigned int fklGetCompoundFrameMark(const FklVMframe* f)
 {
 	return f->u.c.mark;
 }
 
-unsigned int fklSetCompoundFrameMark(FklVMframe* f,unsigned int m)
+inline unsigned int fklSetCompoundFrameMark(FklVMframe* f,unsigned int m)
 {
 	f->u.c.mark=m;
 	return m;
 }
 
-FklVMvalue* fklGetCompoundFrameLocalenv(const FklVMframe* f)
+inline FklVMvalue* fklGetCompoundFrameLocalenv(const FklVMframe* f)
 {
 	return f->u.c.localenv;
 }
 
-FklVMvalue* fklSetCompoundFrameLocalenv(FklVMframe* f,FklVMvalue* env)
+inline FklVMvalue* fklSetCompoundFrameLocalenv(FklVMframe* f,FklVMvalue* env)
 {
 	f->u.c.localenv=env;
 	return env;
 }
 
-FklVMvalue* fklGetCompoundFrameCodeObj(const FklVMframe* f)
+inline FklVMvalue* fklGetCompoundFrameCodeObj(const FklVMframe* f)
 {
 	return f->u.c.codeObj;
+}
+
+inline FklVMvalue* fklGetCompoundFrameProc(const FklVMframe* f)
+{
+	return f->u.c.proc;
 }
 
 inline uint8_t* fklGetCompoundFrameCode(const FklVMframe* f)

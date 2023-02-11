@@ -3445,7 +3445,7 @@ typedef struct
 }EhFrameContext;
 
 
-static void error_handler_frame_print_backtrace(void* data[6],FILE* fp,FklSymbolTable* table)
+static void error_handler_frame_print_backtrace(FklCallObjData data,FILE* fp,FklSymbolTable* table)
 {
 	EhFrameContext* c=(EhFrameContext*)data;
 	FklVMdlproc* dlproc=c->proc->u.dlproc;
@@ -3460,7 +3460,7 @@ static void error_handler_frame_print_backtrace(void* data[6],FILE* fp,FklSymbol
 		fputs("at <dlproc>\n",fp);
 }
 
-static void error_handler_frame_atomic(void* data[6],FklVMgc* gc)
+static void error_handler_frame_atomic(FklCallObjData data,FklVMgc* gc)
 {
 	EhFrameContext* c=(EhFrameContext*)data;
 	fklGC_toGrey(c->proc,gc);
@@ -3472,7 +3472,7 @@ static void error_handler_frame_atomic(void* data[6],FklVMgc* gc)
 	}
 }
 
-static void error_handler_frame_finalizer(void* data[6])
+static void error_handler_frame_finalizer(FklCallObjData data)
 {
 	EhFrameContext* c=(EhFrameContext*)data;
 	free(c->errorSymbolLists);
@@ -3498,12 +3498,12 @@ static void error_handler_frame_copy(void* const s[6],void* d[6],FklVM* exe)
 	}
 }
 
-static int error_handler_frame_end(void* data[6])
+static int error_handler_frame_end(FklCallObjData data)
 {
 	return 1;
 }
 
-static void error_handler_frame_step(void* data[6],FklVM* exe)
+static void error_handler_frame_step(FklCallObjData data,FklVM* exe)
 {
 	return;
 }

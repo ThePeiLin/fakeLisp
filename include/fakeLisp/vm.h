@@ -199,6 +199,7 @@ typedef struct
 	void (*copy)(void* const s[6],void* d[6],struct FklVM*);
 }FklVMframeContextMethodTable;
 
+typedef void* FklCallObjData[7];
 typedef struct FklVMframe
 {
 	FklFrameType type;
@@ -210,6 +211,7 @@ typedef struct FklVMframe
 			FklSid_t sid:61;
 			FklVMvalue* localenv;
 			FklVMvalue* codeObj;
+			FklVMvalue* proc;
 			uint8_t* code;
 			uint64_t scp;
 			uint64_t cp;
@@ -218,7 +220,7 @@ typedef struct FklVMframe
 		struct
 		{
 			const FklVMframeContextMethodTable* t;
-			void* data[6];
+			FklCallObjData data;
 		}o;
 	}u;
 	int (*errorCallBack)(struct FklVMframe*,FklVMvalue*,struct FklVM*,void*);
@@ -362,7 +364,7 @@ void fklDestroyVMstack(FklVMstack*);
 void fklStackRecycle(FklVMstack*);
 int fklCreateCreateThread(FklVM*);
 //FklVMlist* fklCreateThreadStack(int32_t);
-FklVMframe* fklHasSameProc(uint32_t,FklVMframe*);
+FklVMframe* fklHasSameProc(FklVMvalue* proc,FklVMframe*);
 int fklIsTheLastExpress(const FklVMframe*,const FklVMframe*,const FklVM* exe);
 FklVMgc* fklCreateVMgc();
 void fklDestroyVMgc(FklVMgc*);
@@ -438,6 +440,7 @@ FklVMerrorHandler* fklCreateVMerrorHandler(FklSid_t* typeIds,uint32_t,uint64_t s
 void fklDestroyVMerrorHandler(FklVMerrorHandler*);
 int fklRaiseVMerror(FklVMvalue* err,FklVM*);
 FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVMframe* prev,FklVMgc* gc);
+FklVMframe* fklCreateVMframeWithProcValue(FklVMvalue*,FklVMframe*);
 FklVMframe* fklCreateVMframeWithProc(FklVMproc*,FklVMframe*);
 void fklDestroyVMframe(FklVMframe*);
 FklString* fklGenErrorMessage(FklBuiltInErrorType type);
@@ -599,6 +602,7 @@ FklVMvalue* fklGetCompoundFrameLocalenv(const FklVMframe*);
 FklVMvalue* fklSetCompoundFrameLocalenv(FklVMframe*,FklVMvalue* env);
 
 FklVMvalue* fklGetCompoundFrameCodeObj(const FklVMframe*);
+FklVMvalue* fklGetCompoundFrameProc(const FklVMframe*);
 
 uint8_t* fklGetCompoundFrameCode(const FklVMframe*);
 
@@ -615,7 +619,6 @@ uint64_t fklGetCompoundFrameRestCp(const FklVMframe* frame);
 
 uint64_t fklSetCompoundFrameCp(FklVMframe*,uint64_t a);
 uint64_t fklResetCompoundFrameCp(FklVMframe*);
-
 
 uint64_t fklGetCompoundFrameCpc(const FklVMframe*);
 FklSid_t fklGetCompoundFrameSid(const FklVMframe*);

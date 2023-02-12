@@ -79,6 +79,36 @@ static int is_last_expression(FklVMframe* frame)
 	return 1;
 }
 
+//inline static void print_link_back_trace(FklVMframe* t,FklSymbolTable* table)
+//{
+//	if(t->type==FKL_FRAME_COMPOUND)
+//	{
+//		if(t->u.c.sid)
+//			fklPrintString(fklGetSymbolWithId(t->u.c.sid,table)->symbol,stderr);
+//		else
+//			fputs("<lambda>",stderr);
+//		fprintf(stderr,"[%u,%u]",t->u.c.mark,t->u.c.tail);
+//	}
+//	else
+//		fputs("<obj>",stderr);
+//
+//	for(FklVMframe* cur=t->prev;cur;cur=cur->prev)
+//	{
+//		fputs(" --> ",stderr);
+//		if(cur->type==FKL_FRAME_COMPOUND)
+//		{
+//			if(cur->u.c.sid)
+//				fklPrintString(fklGetSymbolWithId(cur->u.c.sid,table)->symbol,stderr);
+//			else
+//				fputs("<lambda>",stderr);
+//		fprintf(stderr,"[%u,%u]",cur->u.c.mark,cur->u.c.tail);
+//		}
+//		else
+//			fputs("<obj>",stderr);
+//	}
+//	fputc('\n',stderr);
+//}
+
 static void tailCallCompoundProcdure(FklVM* exe,FklVMvalue* proc,FklVMframe* frame)
 {
 	FklVMframe* topframe=frame;
@@ -528,7 +558,10 @@ inline static void callCallableObj(FklVMvalue* v,FklVM* exe)
 inline static void applyCompoundProc(FklVM* exe,FklVMvalue* proc,FklVMframe* frame)
 {
 	FklVMframe* prevProc=fklHasSameProc(proc,exe->frames);
-	if(prevProc&&(frame->u.c.tail=is_last_expression(frame))&&(prevProc->u.c.tail=is_last_expression(prevProc)))
+	if(frame->type==FKL_FRAME_COMPOUND
+			&&(frame->u.c.tail=is_last_expression(frame))
+			&&prevProc
+			&&(frame->u.c.tail&=prevProc->u.c.tail))
 	{
 		prevProc->u.c.mark=1;
 		fklSwapCompoundFrame(frame,prevProc);
@@ -555,41 +588,10 @@ void fklCallobj(FklVMvalue* proc,FklVMframe* frame,FklVM* exe)
 	}
 }
 
-inline static void print_link_back_trace(FklVMframe* t,FklSymbolTable* table)
-{
-	if(t->type==FKL_FRAME_COMPOUND)
-	{
-		if(t->u.c.sid)
-			fklPrintString(fklGetSymbolWithId(t->u.c.sid,table)->symbol,stderr);
-		else
-			fputs("<lambda>",stderr);
-		fprintf(stderr,"[%u,%u]",t->u.c.mark,t->u.c.tail);
-	}
-	else
-		fputs("<obj>",stderr);
-
-	for(FklVMframe* cur=t->prev;cur;cur=cur->prev)
-	{
-		fputs(" --> ",stderr);
-		if(cur->type==FKL_FRAME_COMPOUND)
-		{
-			if(cur->u.c.sid)
-				fklPrintString(fklGetSymbolWithId(cur->u.c.sid,table)->symbol,stderr);
-			else
-				fputs("<lambda>",stderr);
-		fprintf(stderr,"[%u,%u]",cur->u.c.mark,cur->u.c.tail);
-		}
-		else
-			fputs("<obj>",stderr);
-	}
-	fputc('\n',stderr);
-}
-
 void fklTailCallobj(FklVMvalue* proc,FklVMframe* frame,FklVM* exe)
 {
 	exe->frames=frame->prev;
 	fklDoFinalizeObjFrame(frame);
-	print_link_back_trace(exe->frames,exe->symbolTable);
 	fklCallobj(proc,exe->frames,exe);
 }
 
@@ -671,7 +673,6 @@ int fklRunVM(FklVM* exe)
 					fklDoCallableObjFrameStep(curframe,exe);
 				break;
 		}
-		//print_link_back_trace(exe->frames,exe->symbolTable);
 		fklTcMutexRelease(exe->gc);
 	}
 	return 0;

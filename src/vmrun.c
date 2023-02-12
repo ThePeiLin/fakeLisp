@@ -59,17 +59,18 @@ inline void fklSwapCompoundFrame(FklVMframe* a,FklVMframe* b)
 	}
 }
 
-static int is_last_call(const FklVMframe* frame,const FklVMframe* same,const FklVM* exe)
+static int is_last_call(const FklVMframe* frame,const FklVM* exe)
 {
-	for(;;)
-	{
-		if(frame->type!=FKL_FRAME_COMPOUND||!frame->u.c.tail)
-			return 0;
-		if(frame==same)
-			break;
-		frame=frame->prev;
-	}
-	return 1;
+	//for(;;)
+	//{
+	//	if(frame->type!=FKL_FRAME_COMPOUND||!frame->u.c.tail)
+	//		return 0;
+	//	if(frame==same)
+	//		break;
+	//	frame=frame->prev;
+	//}
+	//return 1;
+	return frame->type==FKL_FRAME_COMPOUND&&frame->u.c.tail;
 }
 
 static int is_last_call_or_expression(FklVMframe* frame,const FklVM* exe)
@@ -98,7 +99,7 @@ static void tailCallCompoundProcdure(FklVM* exe,FklVMvalue* proc,FklVMframe* fra
 	topframe->u.c.tail=1;
 	if(fklGetCompoundFrameProc(frame)==proc)
 		frame->u.c.mark=1;
-	else if((frame=fklHasSameProc(proc,frame->prev))&&is_last_call(topframe,frame,exe))
+	else if((frame=fklHasSameProc(proc,frame->prev))&&is_last_call(topframe,exe))
 	{
 		frame->u.c.mark=1;
 		fklSwapCompoundFrame(topframe,frame);
@@ -684,7 +685,7 @@ int fklRunVM(FklVM* exe)
 					fklDoCallableObjFrameStep(curframe,exe);
 				break;
 		}
-		print_link_back_trace(exe->frames,exe->symbolTable);
+		//print_link_back_trace(exe->frames,exe->symbolTable);
 		fklTcMutexRelease(exe->gc);
 	}
 	return 0;

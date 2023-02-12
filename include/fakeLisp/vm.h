@@ -200,23 +200,26 @@ typedef struct
 }FklVMframeContextMethodTable;
 
 typedef void* FklCallObjData[7];
+
+typedef struct FklVMCompoundFrameData
+{
+	unsigned int mark:3;
+	FklSid_t sid:61;
+	FklVMvalue* localenv;
+	FklVMvalue* codeObj;
+	FklVMvalue* proc;
+	uint8_t* code;
+	uint64_t scp;
+	uint64_t cp;
+	uint64_t cpc;
+}FklVMCompoundFrameData;
+
 typedef struct FklVMframe
 {
 	FklFrameType type;
 	union
 	{
-		struct
-		{
-			unsigned int mark:3;
-			FklSid_t sid:61;
-			FklVMvalue* localenv;
-			FklVMvalue* codeObj;
-			FklVMvalue* proc;
-			uint8_t* code;
-			uint64_t scp;
-			uint64_t cp;
-			uint64_t cpc;
-		}c;
+		FklVMCompoundFrameData c;
 		struct
 		{
 			const FklVMframeContextMethodTable* t;
@@ -595,6 +598,7 @@ size_t fklVMlistLength(FklVMvalue*);
 void fklPushVMframe(FklVMframe*,FklVM* exe);
 FklVMframe* fklCreateOtherObjVMframe(const FklVMframeContextMethodTable* t,FklVMframe* prev);
 
+void fklSwapCompoundFrame(FklVMframe*,FklVMframe*);
 unsigned int fklGetCompoundFrameMark(const FklVMframe*);
 unsigned int fklSetCompoundFrameMark(FklVMframe*,unsigned int);
 

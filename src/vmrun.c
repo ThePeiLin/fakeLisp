@@ -49,10 +49,24 @@ static void callCompoundProcdure(FklVM* exe,FklVMvalue* proc,FklVMframe* frame)
 	fklAddToGC(tmpFrame->u.c.localenv,exe);
 }
 
+inline void fklSwapCompoundFrame(FklVMframe* a,FklVMframe* b)
+{
+	if(a!=b)
+	{
+		FklVMCompoundFrameData t=a->u.c;
+		a->u.c=b->u.c;
+		b->u.c=t;
+	}
+}
+
 static void tailCallCompoundProcdure(FklVM* exe,FklVMvalue* proc,FklVMframe* frame)
 {
+	FklVMframe* topframe=frame;
 	if((frame=fklGetCompoundFrameProc(frame)==proc?frame:fklHasSameProc(proc,frame->prev)))
+	{
 		frame->u.c.mark=1;
+		fklSwapCompoundFrame(topframe,frame);
+	}
 	else
 	{
 		FklVMframe* tmpFrame=fklCreateVMframeWithProcValue(proc,exe->frames->prev);
@@ -490,9 +504,13 @@ inline static void callCallableObj(FklVMvalue* v,FklVM* exe)
 
 inline static void applyCompoundProc(FklVM* exe,FklVMvalue* proc,FklVMframe* frame)
 {
+	FklVMframe* topFrame=frame;
 	FklVMframe* prevProc=fklHasSameProc(proc,exe->frames);
 	if(prevProc&&fklIsTheLastExpress(frame,prevProc,exe))
+	{
 		prevProc->u.c.mark=1;
+		fklSwapCompoundFrame(topFrame,prevProc);
+	}
 	else
 	{
 		FklVMframe* tmpFrame=fklCreateVMframeWithProcValue(proc,exe->frames);

@@ -62,7 +62,9 @@ inline void fklSwapCompoundFrame(FklVMframe* a,FklVMframe* b)
 static void tailCallCompoundProcdure(FklVM* exe,FklVMvalue* proc,FklVMframe* frame)
 {
 	FklVMframe* topframe=frame;
-	if((frame=fklGetCompoundFrameProc(frame)==proc?frame:fklHasSameProc(proc,frame->prev)))
+	if(fklGetCompoundFrameProc(frame)==proc)
+		frame->u.c.mark=1;
+	else if((frame=fklHasSameProc(proc,frame->prev))&&fklIsTheLastExpress(topframe,frame,exe))
 	{
 		frame->u.c.mark=1;
 		fklSwapCompoundFrame(topframe,frame);

@@ -144,7 +144,10 @@ static FklNastNode* createNum(const FklString* oStr,uint64_t line,FklSymbolTable
 		r=fklCreateNastNode(FKL_NAST_I32,line);
 		FklBigInt* bInt=fklCreateBigIntFromString(oStr);
 		if(fklIsGtLtI64BigInt(bInt))
+		{
 			r->u.bigInt=bInt;
+			r->type=FKL_NAST_BIG_INT;
+		}
 		else
 		{
 			int64_t num=fklBigIntToI64(bInt);

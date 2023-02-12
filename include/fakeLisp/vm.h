@@ -203,7 +203,8 @@ typedef void* FklCallObjData[7];
 
 typedef struct FklVMCompoundFrameData
 {
-	unsigned int mark:3;
+	unsigned int tail:1;
+	unsigned int mark:2;
 	FklSid_t sid:61;
 	FklVMvalue* localenv;
 	FklVMvalue* codeObj;
@@ -368,7 +369,6 @@ void fklStackRecycle(FklVMstack*);
 int fklCreateCreateThread(FklVM*);
 //FklVMlist* fklCreateThreadStack(int32_t);
 FklVMframe* fklHasSameProc(FklVMvalue* proc,FklVMframe*);
-int fklIsTheLastExpress(const FklVMframe*,const FklVMframe*,const FklVM* exe);
 FklVMgc* fklCreateVMgc();
 void fklDestroyVMgc(FklVMgc*);
 

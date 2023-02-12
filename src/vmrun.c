@@ -59,21 +59,7 @@ inline void fklSwapCompoundFrame(FklVMframe* a,FklVMframe* b)
 	}
 }
 
-static int is_last_call(const FklVMframe* frame,const FklVM* exe)
-{
-	//for(;;)
-	//{
-	//	if(frame->type!=FKL_FRAME_COMPOUND||!frame->u.c.tail)
-	//		return 0;
-	//	if(frame==same)
-	//		break;
-	//	frame=frame->prev;
-	//}
-	//return 1;
-	return frame->type==FKL_FRAME_COMPOUND&&frame->u.c.tail;
-}
-
-static int is_last_call_or_expression(FklVMframe* frame,const FklVM* exe)
+static int is_last_expression(FklVMframe* frame)
 {
 	if(frame->type!=FKL_FRAME_COMPOUND)
 		return 0;
@@ -99,7 +85,7 @@ static void tailCallCompoundProcdure(FklVM* exe,FklVMvalue* proc,FklVMframe* fra
 	topframe->u.c.tail=1;
 	if(fklGetCompoundFrameProc(frame)==proc)
 		frame->u.c.mark=1;
-	else if((frame=fklHasSameProc(proc,frame->prev))&&is_last_call(topframe,exe))
+	else if((frame=fklHasSameProc(proc,frame->prev))&&(topframe->u.c.tail&=frame->u.c.tail))
 	{
 		frame->u.c.mark=1;
 		fklSwapCompoundFrame(topframe,frame);
@@ -541,12 +527,11 @@ inline static void callCallableObj(FklVMvalue* v,FklVM* exe)
 
 inline static void applyCompoundProc(FklVM* exe,FklVMvalue* proc,FklVMframe* frame)
 {
-	FklVMframe* topFrame=frame;
 	FklVMframe* prevProc=fklHasSameProc(proc,exe->frames);
-	if(is_last_call_or_expression(frame,exe)&&prevProc)
+	if(prevProc&&(frame->u.c.tail=is_last_expression(frame))&&(prevProc->u.c.tail=is_last_expression(prevProc)))
 	{
 		prevProc->u.c.mark=1;
-		fklSwapCompoundFrame(topFrame,prevProc);
+		fklSwapCompoundFrame(frame,prevProc);
 	}
 	else
 	{
@@ -578,7 +563,7 @@ inline static void print_link_back_trace(FklVMframe* t,FklSymbolTable* table)
 			fklPrintString(fklGetSymbolWithId(t->u.c.sid,table)->symbol,stderr);
 		else
 			fputs("<lambda>",stderr);
-		fprintf(stderr,":%u:%u",t->u.c.mark,t->u.c.tail);
+		fprintf(stderr,"[%u,%u]",t->u.c.mark,t->u.c.tail);
 	}
 	else
 		fputs("<obj>",stderr);
@@ -592,7 +577,7 @@ inline static void print_link_back_trace(FklVMframe* t,FklSymbolTable* table)
 				fklPrintString(fklGetSymbolWithId(cur->u.c.sid,table)->symbol,stderr);
 			else
 				fputs("<lambda>",stderr);
-		fprintf(stderr,":%u:%u",cur->u.c.mark,cur->u.c.tail);
+		fprintf(stderr,"[%u,%u]",cur->u.c.mark,cur->u.c.tail);
 		}
 		else
 			fputs("<obj>",stderr);
@@ -604,6 +589,7 @@ void fklTailCallobj(FklVMvalue* proc,FklVMframe* frame,FklVM* exe)
 {
 	exe->frames=frame->prev;
 	fklDoFinalizeObjFrame(frame);
+	print_link_back_trace(exe->frames,exe->symbolTable);
 	fklCallobj(proc,exe->frames,exe);
 }
 

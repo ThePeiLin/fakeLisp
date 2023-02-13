@@ -747,36 +747,37 @@ void builtin_idiv(FKL_DL_PROC_ARGL)
 	}
 	else
 	{
-		FklBigInt* bi=fklCreateBigInt1();
+		FklBigInt bi=FKL_BIG_INT_INIT;
+		fklInitBigInt1(&bi);
 		for(;cur;cur=fklNiGetArg(&ap,stack))
 		{
 			if(fklIsFixint(cur))
 			{
 				int64_t c64=fklGetInt(cur);
 				if(fklIsI64MulOverflow(r64,c64))
-					fklMulBigIntI(bi,c64);
+					fklMulBigIntI(&bi,c64);
 				else
 					r64*=c64;
 			}
 			else if(FKL_IS_BIG_INT(cur))
-				fklMulBigInt(bi,cur->u.bigInt);
+				fklMulBigInt(&bi,cur->u.bigInt);
 			else
 			{
-				fklDestroyBigInt(bi);
+				fklUninitBigInt(&bi);
 				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.//",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 			}
 		}
-		if(r64==0||FKL_IS_0_BIG_INT(bi))
+		if(r64==0||FKL_IS_0_BIG_INT(&bi))
 		{
-			fklDestroyBigInt(bi);
+			fklUninitBigInt(&bi);
 			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.//",FKL_ERR_DIVZEROERROR,exe);
 		}
 		fklNiResBp(&ap,stack);
-		if(FKL_IS_BIG_INT(prev)&&!fklIsGtLtI64BigInt(prev->u.bigInt)&&!FKL_IS_1_BIG_INT(bi))
+		if(FKL_IS_BIG_INT(prev)&&!fklIsGtLtI64BigInt(prev->u.bigInt)&&!FKL_IS_1_BIG_INT(&bi))
 		{
 			FklBigInt* t=fklCreateBigInt0();
 			fklSetBigInt(t,prev->u.bigInt);
-			fklDivBigInt(t,bi);
+			fklDivBigInt(t,&bi);
 			fklDivBigIntI(t,r64);
 			if(fklIsGtLtI64BigInt(t))
 				fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,t,exe),&ap,stack);
@@ -791,7 +792,7 @@ void builtin_idiv(FKL_DL_PROC_ARGL)
 			r64=fklGetInt(prev)/r64;
 			fklNiReturn(fklMakeVMint(r64,exe),&ap,stack);
 		}
-		fklDestroyBigInt(bi);
+		fklUninitBigInt(&bi);
 	}
 	fklNiEnd(&ap,stack);
 }
@@ -848,52 +849,53 @@ void builtin_div(FKL_DL_PROC_ARGL)
 	}
 	else
 	{
-		FklBigInt* bi=fklCreateBigInt1();
+		FklBigInt bi=FKL_BIG_INT_INIT;
+		fklInitBigInt1(&bi);
 		for(;cur;cur=fklNiGetArg(&ap,stack))
 		{
 			if(fklIsFixint(cur))
 			{
 				int64_t c64=fklGetInt(cur);
 				if(fklIsI64MulOverflow(r64,c64))
-					fklMulBigIntI(bi,c64);
+					fklMulBigIntI(&bi,c64);
 				else
 					r64*=c64;
 			}
 			else if(FKL_IS_BIG_INT(cur))
-				fklMulBigInt(bi,cur->u.bigInt);
+				fklMulBigInt(&bi,cur->u.bigInt);
 			else if(FKL_IS_F64(cur))
 				rd*=cur->u.f64;
 			else
 			{
-				fklDestroyBigInt(bi);
+				fklUninitBigInt(&bi);
 				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin./",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 			}
 		}
-		if(r64==0||FKL_IS_0_BIG_INT(bi)||rd==0.0)
+		if(r64==0||FKL_IS_0_BIG_INT(&bi)||rd==0.0)
 		{
-			fklDestroyBigInt(bi);
+			fklUninitBigInt(&bi);
 			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin./",FKL_ERR_DIVZEROERROR,exe);
 		}
 		fklNiResBp(&ap,stack);
 		if(FKL_IS_F64(prev)
 				||rd!=1.0
 				||(fklIsFixint(prev)
-					&&FKL_IS_1_BIG_INT(bi)
+					&&FKL_IS_1_BIG_INT(&bi)
 					&&fklGetInt(prev)%(r64))
 				||(FKL_IS_BIG_INT(prev)
-					&&((!FKL_IS_1_BIG_INT(bi)&&!fklIsDivisibleBigInt(prev->u.bigInt,bi))
+					&&((!FKL_IS_1_BIG_INT(&bi)&&!fklIsDivisibleBigInt(prev->u.bigInt,&bi))
 						||!fklIsDivisibleBigIntI(prev->u.bigInt,r64))))
 		{
-			rd=fklGetDouble(prev)/rd/r64/fklBigIntToDouble(bi);
+			rd=fklGetDouble(prev)/rd/r64/fklBigIntToDouble(&bi);
 			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&rd,exe),&ap,stack);
 		}
 		else
 		{
-			if(FKL_IS_BIG_INT(prev)&&!fklIsGtLtI64BigInt(prev->u.bigInt)&&!FKL_IS_1_BIG_INT(bi))
+			if(FKL_IS_BIG_INT(prev)&&!fklIsGtLtI64BigInt(prev->u.bigInt)&&!FKL_IS_1_BIG_INT(&bi))
 			{
 				FklBigInt* t=fklCreateBigInt0();
 				fklSetBigInt(t,prev->u.bigInt);
-				fklDivBigInt(t,bi);
+				fklDivBigInt(t,&bi);
 				fklDivBigIntI(t,r64);
 				if(fklIsGtLtI64BigInt(t))
 					fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,t,exe),&ap,stack);
@@ -909,7 +911,7 @@ void builtin_div(FKL_DL_PROC_ARGL)
 				fklNiReturn(fklMakeVMint(r64,exe),&ap,stack);
 			}
 		}
-		fklDestroyBigInt(bi);
+		fklUninitBigInt(&bi);
 	}
 	fklNiEnd(&ap,stack);
 }

@@ -946,36 +946,41 @@ void builtin_mod(FKL_DL_PROC_ARGL)
 	}
 	else
 	{
-		FklBigInt* rem=fklCreateBigInt0();
+		FklBigInt rem=FKL_BIG_INT_INIT;
+		fklInitBigInt0(&rem);
 		if(FKL_IS_BIG_INT(fir))
-			fklSetBigInt(rem,fir->u.bigInt);
+			fklSetBigInt(&rem,fir->u.bigInt);
 		else
-			fklSetBigIntI(rem,fklGetInt(fir));
+			fklSetBigIntI(&rem,fklGetInt(fir));
 		if(FKL_IS_BIG_INT(sec))
 		{
 			if(FKL_IS_0_BIG_INT(sec->u.bigInt))
 			{
-				fklDestroyBigInt(rem);
+				fklUninitBigInt(&rem);
 				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.%",FKL_ERR_DIVZEROERROR,exe);
 			}
-			fklModBigInt(rem,sec->u.bigInt);
+			fklModBigInt(&rem,sec->u.bigInt);
 		}
 		else
 		{
 			int64_t si=fklGetInt(sec);
 			if(si==0)
 			{
-				fklDestroyBigInt(rem);
+				fklUninitBigInt(&rem);
 				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.%",FKL_ERR_DIVZEROERROR,exe);
 			}
-			fklModBigIntI(rem,si);
+			fklModBigIntI(&rem,si);
 		}
-		if(fklIsGtLtI64BigInt(rem))
-			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,rem,exe),&ap,stack);
+		if(fklIsGtLtI64BigInt(&rem))
+		{
+			FklBigInt* r=create_uninit_big_int();
+			*r=rem;
+			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,r,exe),&ap,stack);
+		}
 		else
 		{
-			fklNiReturn(fklMakeVMint(fklBigIntToI64(rem),exe),&ap,stack);
-			fklDestroyBigInt(rem);
+			fklNiReturn(fklMakeVMint(fklBigIntToI64(&rem),exe),&ap,stack);
+			fklUninitBigInt(&rem);
 		}
 	}
 	fklNiEnd(&ap,stack);

@@ -376,29 +376,39 @@ FklBigInt* fklCreateBigIntU(uint64_t v)
 	return t;
 }
 
-FklBigInt* fklCreateBigInt0(void)
+void fklInitBigInt0(FklBigInt* t)
 {
-	FklBigInt* t=(FklBigInt*)malloc(sizeof(FklBigInt));
-	FKL_ASSERT(t);
 	t->neg=0;
 	t->num=1;
 	t->size=t->num;
 	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*t->num);
 	FKL_ASSERT(t->digits);
 	t->digits[0]=0;
-	return t;
 }
 
-FklBigInt* fklCreateBigInt1(void)
+FklBigInt* fklCreateBigInt0(void)
 {
 	FklBigInt* t=(FklBigInt*)malloc(sizeof(FklBigInt));
 	FKL_ASSERT(t);
+	fklInitBigInt0(t);
+	return t;
+}
+
+void fklInitBigInt1(FklBigInt* t)
+{
 	t->neg=0;
 	t->num=1;
 	t->size=t->num;
 	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*t->num);
 	FKL_ASSERT(t->digits);
 	t->digits[0]=1;
+}
+
+FklBigInt* fklCreateBigInt1(void)
+{
+	FklBigInt* t=(FklBigInt*)malloc(sizeof(FklBigInt));
+	FKL_ASSERT(t);
+	fklInitBigInt1(t);
 	return t;
 }
 
@@ -729,16 +739,6 @@ void fklInitBigInt(FklBigInt* a,const FklBigInt* src)
 	a->num=0;
 	a->size=0;
 	fklSetBigInt(a,src);
-}
-
-void fklInitBigInt0(FklBigInt* t)
-{
-	t->neg=0;
-	t->num=1;
-	t->size=t->num;
-	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*t->num);
-	FKL_ASSERT(t->digits);
-	t->digits[0]=0;
 }
 
 void fklInitBigIntU(FklBigInt* t,uint64_t v)

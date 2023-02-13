@@ -200,6 +200,7 @@ void fklInitBigInt(FklBigInt*,const FklBigInt*);
 void fklInitBigIntI(FklBigInt*,int64_t v);
 void fklInitBigIntU(FklBigInt*,uint64_t v);
 void fklInitBigIntFromMem(FklBigInt*,const void*mem,size_t size);
+void fklInitBigIntFromString(FklBigInt*,const FklString*);
 void fklUninitBigInt(FklBigInt*);
 
 void fklSetBigInt(FklBigInt*,const FklBigInt* src);

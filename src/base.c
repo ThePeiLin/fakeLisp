@@ -404,43 +404,8 @@ FklBigInt* fklCreateBigInt1(void)
 
 FklBigInt* fklCreateBigIntFromString(const FklString* str)
 {
-	const char* buf=str->str;
 	FklBigInt* r=fklCreateBigInt0();
-	size_t len=str->size;
-	FKL_ASSERT(r);
-	if(fklIsHexNumCharBuf(buf,len))
-	{
-		int neg=buf[0]=='-';
-		uint64_t i=2+neg;
-		for(;i<len&&isxdigit(buf[i]);i++)
-		{
-			fklMulBigIntI(r,16);
-			fklAddBigIntI(r,isdigit(buf[i])?buf[i]-'0':toupper(buf[i])-'A'+10);
-		}
-		r->neg=neg;
-	}
-	else if(fklIsOctNumCharBuf(buf,len))
-	{
-		int neg=buf[0]=='-';
-		uint64_t i=1+neg;
-		for(;i<len&&isdigit(buf[i])&&buf[i]<'9';i++)
-		{
-			fklMulBigIntI(r,8);
-			fklAddBigIntI(r,buf[i]-'0');
-		}
-		r->neg=neg;
-	}
-	else
-	{
-		int neg=buf[0]=='-';
-		uint64_t i=neg;
-		for(;i<len&&isdigit(buf[i]);i++)
-		{
-			fklMulBigIntI(r,10);
-			fklAddBigIntI(r,buf[i]-'0');
-		}
-		r->neg=neg;
-	}
+	fklInitBigIntFromString(r,str);
 	return r;
 }
 
@@ -497,6 +462,45 @@ FklBigInt* fklCopyBigInt(const FklBigInt* bigint)
 	FKL_ASSERT(t->digits);
 	memcpy(t->digits,bigint->digits,t->num);
 	return t;
+}
+
+void fklInitBigIntFromString(FklBigInt* r,const FklString* str)
+{
+	const char* buf=str->str;
+	size_t len=str->size;
+	if(fklIsHexNumCharBuf(buf,len))
+	{
+		int neg=buf[0]=='-';
+		uint64_t i=2+neg;
+		for(;i<len&&isxdigit(buf[i]);i++)
+		{
+			fklMulBigIntI(r,16);
+			fklAddBigIntI(r,isdigit(buf[i])?buf[i]-'0':toupper(buf[i])-'A'+10);
+		}
+		r->neg=neg;
+	}
+	else if(fklIsOctNumCharBuf(buf,len))
+	{
+		int neg=buf[0]=='-';
+		uint64_t i=1+neg;
+		for(;i<len&&isdigit(buf[i])&&buf[i]<'9';i++)
+		{
+			fklMulBigIntI(r,8);
+			fklAddBigIntI(r,buf[i]-'0');
+		}
+		r->neg=neg;
+	}
+	else
+	{
+		int neg=buf[0]=='-';
+		uint64_t i=neg;
+		for(;i<len&&isdigit(buf[i]);i++)
+		{
+			fklMulBigIntI(r,10);
+			fklAddBigIntI(r,buf[i]-'0');
+		}
+		r->neg=neg;
+	}
 }
 
 void fklInitBigIntFromMem(FklBigInt* t,const void* mem,size_t size)

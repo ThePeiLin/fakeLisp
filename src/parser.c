@@ -142,15 +142,19 @@ static FklNastNode* createNum(const FklString* oStr,uint64_t line,FklSymbolTable
 	else
 	{
 		r=fklCreateNastNode(FKL_NAST_I32,line);
-		FklBigInt* bInt=fklCreateBigIntFromString(oStr);
-		if(fklIsGtLtI64BigInt(bInt))
+		FklBigInt bInt=FKL_BIG_INT_INIT;
+		fklInitBigIntFromString(&bInt,oStr);
+		if(fklIsGtLtI64BigInt(&bInt))
 		{
-			r->u.bigInt=bInt;
+			FklBigInt* bi=(FklBigInt*)malloc(sizeof(FklBigInt));
+			FKL_ASSERT(bi);
+			*bi=bInt;
+			r->u.bigInt=bi;
 			r->type=FKL_NAST_BIG_INT;
 		}
 		else
 		{
-			int64_t num=fklBigIntToI64(bInt);
+			int64_t num=fklBigIntToI64(&bInt);
 			if(num>INT32_MAX||num<INT32_MIN)
 			{
 				r->type=FKL_NAST_I64;
@@ -158,7 +162,7 @@ static FklNastNode* createNum(const FklString* oStr,uint64_t line,FklSymbolTable
 			}
 			else
 				r->u.i32=num;
-			fklDestroyBigInt(bInt);
+			fklUninitBigInt(&bInt);
 		}
 	}
 	return r;

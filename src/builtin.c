@@ -773,7 +773,7 @@ void builtin_idiv(FKL_DL_PROC_ARGL)
 			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.//",FKL_ERR_DIVZEROERROR,exe);
 		}
 		fklNiResBp(&ap,stack);
-		if(FKL_IS_BIG_INT(prev)&&!fklIsGtLtI64BigInt(prev->u.bigInt)&&!FKL_IS_1_BIG_INT(&bi))
+		if(FKL_IS_BIG_INT(prev)&&!FKL_IS_1_BIG_INT(&bi))
 		{
 			FklBigInt* t=fklCreateBigInt0();
 			fklSetBigInt(t,prev->u.bigInt);
@@ -891,7 +891,7 @@ void builtin_div(FKL_DL_PROC_ARGL)
 		}
 		else
 		{
-			if(FKL_IS_BIG_INT(prev)&&!fklIsGtLtI64BigInt(prev->u.bigInt)&&!FKL_IS_1_BIG_INT(&bi))
+			if(FKL_IS_BIG_INT(prev)&&!FKL_IS_1_BIG_INT(&bi))
 			{
 				FklBigInt* t=fklCreateBigInt0();
 				fklSetBigInt(t,prev->u.bigInt);

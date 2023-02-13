@@ -1242,13 +1242,13 @@ int fklIsDivisibleBigInt(const FklBigInt* a,const FklBigInt* b)
 	fklModBigInt(&tbi,b);
 	if(FKL_IS_0_BIG_INT(&tbi))
 		r=1;
-	free(tbi.digits);
+	fklUninitBigInt(&tbi);
 	return r;
 }
 
 int fklIsDivisibleBigIntI(const FklBigInt* a,int64_t i)
 {
-	FklBigInt bi=FKL_STACK_INIT;
+	FklBigInt bi=FKL_BIG_INT_INIT;
 	fklInitBigIntI(&bi,i);
 	int r=fklIsDivisibleBigInt(a,&bi);
 	fklUninitBigInt(&bi);
@@ -1261,7 +1261,7 @@ int fklIsDivisibleIBigInt(int64_t i,const FklBigInt* b)
 	FklBigInt a=FKL_BIG_INT_INIT;
 	fklInitBigIntI(&a,i);
 	fklModBigInt(&a,b);
-	if(a.num==1&&a.digits[0]==0)
+	if(FKL_IS_0_BIG_INT(&a))
 		r=1;
 	fklUninitBigInt(&a);
 	return r;

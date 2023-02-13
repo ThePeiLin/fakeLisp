@@ -840,37 +840,23 @@ FklVMvalue* fklCreateSaveVMvalue(FklValueType type,void* pValue)
 							tmp->u.i64=getI64FromByteCode(pValue);
 						break;
 					case FKL_TYPE_BYTEVECTOR:
-						tmp->u.bvec=pValue;break;
 					case FKL_TYPE_STR:
-						tmp->u.str=pValue;break;
 					case FKL_TYPE_PAIR:
-						tmp->u.pair=pValue;break;
 					case FKL_TYPE_PROC:
-						tmp->u.proc=pValue;break;
 					case FKL_TYPE_CHAN:
-						tmp->u.chan=pValue;break;
 					case FKL_TYPE_FP:
-						tmp->u.fp=pValue;break;
 					case FKL_TYPE_DLL:
-						tmp->u.dll=pValue;break;
 					case FKL_TYPE_DLPROC:
-						tmp->u.dlproc=pValue;break;
 					case FKL_TYPE_ERR:
-						tmp->u.err=pValue;break;
 					case FKL_TYPE_VECTOR:
-						tmp->u.vec=pValue;break;
 					case FKL_TYPE_USERDATA:
-						tmp->u.ud=pValue;break;
 					case FKL_TYPE_ENV:
-						tmp->u.env=pValue;break;
 					case FKL_TYPE_BIG_INT:
-						tmp->u.bigInt=pValue;break;
 					case FKL_TYPE_BOX:
-						tmp->u.box=pValue;break;
 					case FKL_TYPE_HASHTABLE:
-						tmp->u.hash=pValue;break;
 					case FKL_TYPE_CODE_OBJ:
-						tmp->u.code=pValue;break;
+						tmp->u.box=pValue;
+						break;
 					default:
 						return NULL;
 						break;

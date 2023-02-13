@@ -197,6 +197,7 @@ FklBigInt* fklCreateBigInt1(void);
 FklBigInt* fklCopyBigInt(const FklBigInt*);
 void fklInitBigInt(FklBigInt*,const FklBigInt*);
 void fklInitBigIntI(FklBigInt*,int64_t v);
+void fklInitBigIntU(FklBigInt*,uint64_t v);
 void fklInitBigIntFromMem(FklBigInt*,const void*mem,size_t size);
 void fklUninitBigInt(FklBigInt*);
 

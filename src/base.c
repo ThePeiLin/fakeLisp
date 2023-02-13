@@ -372,20 +372,7 @@ FklBigInt* fklCreateBigIntU(uint64_t v)
 		return fklCreateBigInt0();
 	FklBigInt* t=(FklBigInt*)malloc(sizeof(FklBigInt));
 	FKL_ASSERT(t);
-	t->neg=0;
-	t->num=floor(log2(v)/log2(FKL_BIG_INT_RADIX))+1;
-	if(t->num==0)
-		t->num=1;
-	t->size=t->num;
-	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*t->num);
-	FKL_ASSERT(t->digits);
-	for(uint64_t i=0;i<t->num;i++)
-	{
-		t->digits[i]=v%FKL_BIG_INT_RADIX;
-		if(t->neg)
-			t->digits[i]*=-1;
-		v/=FKL_BIG_INT_RADIX;
-	}
+	fklInitBigIntU(t,v);
 	return t;
 }
 
@@ -740,11 +727,22 @@ void fklInitBigInt(FklBigInt* a,const FklBigInt* src)
 	fklSetBigInt(a,src);
 }
 
-void fklInitBigIntU(FklBigInt* a,uint64_t v)
+void fklInitBigIntU(FklBigInt* t,uint64_t v)
 {
-	FklBigInt* bi=fklCreateBigIntU(v);
-	fklInitBigInt(a,bi);
-	fklDestroyBigInt(bi);
+	t->neg=0;
+	t->num=floor(log2(v)/log2(FKL_BIG_INT_RADIX))+1;
+	if(t->num==0)
+		t->num=1;
+	t->size=t->num;
+	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*t->num);
+	FKL_ASSERT(t->digits);
+	for(uint64_t i=0;i<t->num;i++)
+	{
+		t->digits[i]=v%FKL_BIG_INT_RADIX;
+		if(t->neg)
+			t->digits[i]*=-1;
+		v/=FKL_BIG_INT_RADIX;
+	}
 }
 
 void fklInitBigInt0(FklBigInt* t)
@@ -936,9 +934,10 @@ void fklAddBigInt(FklBigInt* a,const FklBigInt* addend)
 
 void fklAddBigIntI(FklBigInt* a,int64_t addendI)
 {
-	FklBigInt* addend=fklCreateBigInt(addendI);
-	fklAddBigInt(a,addend);
-	fklDestroyBigInt(addend);
+	FklBigInt add=FKL_BIG_INT_INIT;
+	fklInitBigIntI(&add,addendI);
+	fklAddBigInt(a,&add);
+	fklUninitBigInt(&add);
 }
 
 void fklSubBigInt(FklBigInt* a,const FklBigInt* sub)
@@ -953,9 +952,10 @@ void fklSubBigInt(FklBigInt* a,const FklBigInt* sub)
 
 void fklSubBigIntI(FklBigInt* a,int64_t sub)
 {
-	FklBigInt* toSub=fklCreateBigInt(sub);
-	fklSubBigInt(a,toSub);
-	fklDestroyBigInt(toSub);
+	FklBigInt toSub=FKL_BIG_INT_INIT;
+	fklInitBigIntI(&toSub,sub);
+	fklSubBigInt(a,&toSub);
+	fklUninitBigInt(&toSub);
 }
 
 void fklMulBigInt(FklBigInt* a,const FklBigInt* multipler)

@@ -284,7 +284,7 @@ static FklToken* createDefaultToken(const char* buf
 	{
 		int shouldBeSymbol=0;
 		size_t i=0;
-		FklUintStack lenStack={NULL,0,0,0,};
+		FklUintStack lenStack=FKL_STACK_INIT;
 		fklInitUintStack(&lenStack,2,4);
 		while(i<n)
 		{

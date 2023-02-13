@@ -95,6 +95,7 @@ void* fklPutNoRpHashItem(void* item,FklHashTable* table); //put and no replace
 void fklDestroyHashTable(FklHashTable*);
 void fklRehashTable(FklHashTable*,unsigned int);
 
+#define FKL_STACK_INIT {NULL,0,0,0}
 typedef struct
 {
 	void** base;

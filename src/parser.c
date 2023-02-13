@@ -12,7 +12,7 @@ FklNastNode* fklCreateNastNodeFromCstr(const char* cStr
 		,FklStringMatchPattern* patterns
 		,FklSymbolTable* publicSymbolTable)
 {
-	FklPtrStack tokenStack={NULL,0,0,0};
+	FklPtrStack tokenStack=FKL_STACK_INIT;
 	fklInitPtrStack(&tokenStack,8,16);
 	size_t size=strlen(cStr);
 	size_t line=0;
@@ -237,7 +237,7 @@ void fklPrintNastNode(const FklNastNode* exp
 		,FklSymbolTable* table)
 {
 	FklPtrQueue* queue=fklCreatePtrQueue();
-	FklPtrStack queueStack={NULL,0,0,0};
+	FklPtrStack queueStack=FKL_STACK_INIT;
 	fklInitPtrStack(&queueStack,32,16);
 	fklPushPtrQueue(createNastElem(NAST_CAR,(FklNastNode*)exp),queue);
 	fklPushPtrStack(queue,&queueStack);
@@ -390,7 +390,7 @@ static void destroyNastHash(FklNastHashTable* hash)
 
 void fklDestroyNastNode(FklNastNode* node)
 {
-	FklPtrStack stack={NULL,0,0,0};
+	FklPtrStack stack=FKL_STACK_INIT;
 	fklInitPtrStack(&stack,32,16);
 	fklPushPtrStack(node,&stack);
 	while(!fklIsPtrStackEmpty(&stack))
@@ -473,9 +473,9 @@ FklNastNode* fklMakeNastNodeRef(FklNastNode* n)
 
 FklNastNode* fklCopyNastNode(const FklNastNode* node)
 {
-	FklPtrStack stack={NULL,0,0,0};
+	FklPtrStack stack=FKL_STACK_INIT;
 	fklInitPtrStack(&stack,32,16);
-	FklPtrStack cstack={NULL,0,0,0};
+	FklPtrStack cstack=FKL_STACK_INIT;
 	fklInitPtrStack(&cstack,32,16);
 	FklNastNode* r=NULL;
 	fklPushPtrStack((void*)node,&stack);
@@ -556,9 +556,9 @@ FklNastNode* fklCopyNastNode(const FklNastNode* node)
 
 int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1)
 {
-	FklPtrStack s0={NULL,0,0,0};
+	FklPtrStack s0=FKL_STACK_INIT;
 	fklInitPtrStack(&s0,16,16);
-	FklPtrStack s1={NULL,0,0,0};
+	FklPtrStack s1=FKL_STACK_INIT;
 	fklInitPtrStack(&s1,16,16);
 	fklPushPtrStack((void*)n0,&s0);
 	fklPushPtrStack((void*)n1,&s1);
@@ -718,7 +718,7 @@ static FklHashTable* processNastStackWithPatternParts(FklNastNode* parts
 	FklNastNode** nastBase=(FklNastNode**)nastStack->base;
 	size_t partIndex=1;
 	size_t nastIndex=0;
-	FklPtrStack routeStack={NULL,0,0,0};
+	FklPtrStack routeStack=FKL_STACK_INIT;
 	fklInitPtrStack(&routeStack,8,16);
 	for(FklStringMatchRouteNode* child=route->children
 			;child
@@ -814,7 +814,7 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 {
 	if(fklIsPtrStackEmpty(tokenStack))
 		return NULL;
-	FklPtrStack questStack={NULL,0,0,0,};
+	FklPtrStack questStack=FKL_STACK_INIT;
 	FklPtrStack* routeStack=fklCreatePtrStack(1,16);
 	FklNastNode* retval=NULL;
 	fklPushPtrStack(route,routeStack);

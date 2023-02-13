@@ -1325,9 +1325,9 @@ FklVMstack* fklCreateVMstack(int32_t size)
 	tmp->bp=0;
 	tmp->values=(FklVMvalue**)malloc(size*sizeof(FklVMvalue*));
 	FKL_ASSERT(tmp->values);
-	tmp->tps=(FklUintStack){NULL,0,0,0};
+	tmp->tps=(FklUintStack)FKL_STACK_INIT;
 	fklInitUintStack(&tmp->tps,32,16);
-	tmp->bps=(FklUintStack){NULL,0,0,0};
+	tmp->bps=(FklUintStack)FKL_STACK_INIT;
 	fklInitUintStack(&tmp->bps,32,16);
 //	pthread_rwlock_init(&tmp->lock,NULL);
 	return tmp;

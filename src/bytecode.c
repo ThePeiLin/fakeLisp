@@ -292,7 +292,7 @@ void fklPrintByteCode(const FklByteCode* tmpCode
 		,FILE* fp
 		,FklSymbolTable* table)
 {
-	FklPtrStack s={NULL,0,0,0};
+	FklPtrStack s=FKL_STACK_INIT;
 	fklInitPtrStack(&s,32,16);
 	fklPushPtrStack(createByteCodePrintState(BP_NONE,0,0,tmpCode->size),&s);
 	uint64_t codeLen=tmpCode->size;
@@ -403,7 +403,7 @@ void fklScanAndSetTailCall(FklByteCode* bc)
 void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,FklSymbolTable* table)
 {
 	FklByteCode* tmpCode=obj->bc;
-	FklPtrStack s={NULL,0,0,};
+	FklPtrStack s=FKL_STACK_INIT;
 	fklInitPtrStack(&s,32,16);
 	fklPushPtrStack(createByteCodePrintState(BP_NONE,0,0,tmpCode->size),&s);
 	uint64_t j=0;

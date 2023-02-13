@@ -1199,7 +1199,7 @@ int fklModBigIntI(FklBigInt* a,int64_t div)
 int fklIsDivisibleBigInt(const FklBigInt* a,const FklBigInt* b)
 {
 	int r=0;
-	FklBigInt tbi={NULL,0,0,0};
+	FklBigInt tbi=FKL_BIG_INT_INIT;
 	fklInitBigInt(&tbi,a);
 	fklModBigInt(&tbi,b);
 	if(FKL_IS_0_BIG_INT(&tbi))
@@ -1327,7 +1327,7 @@ void fklPrintBigInt(const FklBigInt* a,FILE* fp)
 		fputc('0',fp);
 	else
 	{
-		FklUintStack res={NULL,0,0,0};
+		FklUintStack res=FKL_STACK_INIT;
 		fklBigIntToRadixDigitsLe(a,10,&res);
 		for(size_t i=res.top;i>0;i--)
 		{
@@ -1355,7 +1355,7 @@ FklString* fklBigIntToString(const FklBigInt* a,int radix)
 			j++;
 			len++;
 		}
-		FklUintStack res={NULL,0,0,0};
+		FklUintStack res=FKL_STACK_INIT;
 		if(radix==10)
 			fklBigIntToRadixDigitsLe(a,radix,&res);
 		else if(radix==16)
@@ -1403,7 +1403,7 @@ void fklSprintBigInt(const FklBigInt* bi,size_t size,char* buf)
 		buf[0]='0';
 	else
 	{
-		FklUintStack res={NULL,0,0,0};
+		FklUintStack res=FKL_STACK_INIT;
 		fklBigIntToRadixDigitsLe(bi,10,&res);
 		for(size_t i=res.top;i>0;i--)
 			buf[i]=res.base[i-1]+'0';

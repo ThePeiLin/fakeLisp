@@ -2749,7 +2749,7 @@ void builtin_read(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	char* tmpString=NULL;
 	FklVMfp* tmpFile=NULL;
-	FklPtrStack tokenStack={NULL,0,0,0};
+	FklPtrStack tokenStack=FKL_STACK_INIT;
 	fklInitPtrStack(&tokenStack,32,16);
 	FklStringMatchRouteNode* route=NULL;
 	PublicBuiltInUserData* pbd=pd->u.ud->data;
@@ -2841,7 +2841,7 @@ void builtin_parse(FKL_DL_PROC_ARGL)
 	if(!FKL_IS_STR(stream))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.parse",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	char* tmpString=NULL;
-	FklPtrStack tokenStack={NULL,0,0,0};
+	FklPtrStack tokenStack=FKL_STACK_INIT;
 	fklInitPtrStack(&tokenStack,32,16);
 	FklStringMatchSet* matchSet=FKL_STRING_PATTERN_UNIVERSAL_SET;
 	size_t line=1;
@@ -3147,9 +3147,9 @@ int matchPattern(FklVMvalue* pattern,FklVMvalue* exp,FklVMhashTable* ht,FklVMgc*
 		return 1;
 	if(pattern->u.pair->car!=exp->u.pair->car)
 		return 1;
-	FklPtrStack s0={NULL,0,0,0};
+	FklPtrStack s0=FKL_STACK_INIT;
 	fklInitPtrStack(&s0,32,16);
-	FklPtrStack s1={NULL,0,0,0};
+	FklPtrStack s1=FKL_STACK_INIT;
 	fklInitPtrStack(&s1,32,16);
 	fklPushPtrStack(pattern->u.pair->cdr,&s0);
 	fklPushPtrStack(exp->u.pair->cdr,&s1);
@@ -3231,7 +3231,7 @@ static int isValidSyntaxPattern(const FklVMvalue* p)
 		return 0;
 	const FklVMvalue* body=p->u.pair->cdr;
 	FklHashTable* symbolTable=fklCreateHashTable(8,4,2,0.75,1,&SidHashMethodTable);
-	FklPtrStack stack={NULL,0,0,0};
+	FklPtrStack stack=FKL_STACK_INIT;
 	fklInitPtrStack(&stack,32,16);
 	fklPushPtrStack((void*)body,&stack);
 	while(!fklIsPtrStackEmpty(&stack))
@@ -3299,7 +3299,7 @@ void builtin_go(FKL_DL_PROC_ARGL)
 	FklVMstack* threadVMstack=threadVM->stack;
 	fklNiSetBp(threadVMstack->tp,threadVMstack);
 	FklVMvalue* cur=fklNiGetArg(&ap,stack);
-	FklPtrStack comStack={NULL,0,0,0};
+	FklPtrStack comStack=FKL_STACK_INIT;
 	fklInitPtrStack(&comStack,32,16);
 	for(;cur;cur=fklNiGetArg(&ap,stack))
 		fklPushPtrStack(cur,&comStack);
@@ -3572,8 +3572,8 @@ void builtin_call_eh(FKL_DL_PROC_ARGL)
 	if(!proc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.call/eh",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(proc,fklIsCallable,"builtin.call/eh",exe);
-	FklPtrStack errSymbolLists={NULL,0,0,0};
-	FklPtrStack errHandlers={NULL,0,0,0};
+	FklPtrStack errSymbolLists=FKL_STACK_INIT;
+	FklPtrStack errHandlers=FKL_STACK_INIT;
 	fklInitPtrStack(&errSymbolLists,32,16);
 	fklInitPtrStack(&errHandlers,32,16);
 	int state=GET_LIST;
@@ -3651,7 +3651,7 @@ void builtin_apply(FKL_DL_PROC_ARGL)
 	if(!proc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.apply",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(proc,fklIsCallable,"builtin.apply",exe);
-	FklPtrStack stack1={NULL,0,0,0};
+	FklPtrStack stack1=FKL_STACK_INIT;
 	fklInitPtrStack(&stack1,32,16);
 	FklVMvalue* value=NULL;
 	FklVMvalue* lastList=NULL;
@@ -3666,7 +3666,7 @@ void builtin_apply(FKL_DL_PROC_ARGL)
 	}
 	if(!lastList)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.apply",FKL_ERR_TOOFEWARG,exe);
-	FklPtrStack stack2={NULL,0,0,0};
+	FklPtrStack stack2=FKL_STACK_INIT;
 	fklInitPtrStack(&stack2,32,16);
 	if(!FKL_IS_PAIR(lastList)&&lastList!=FKL_VM_NIL)
 	{
@@ -4935,7 +4935,7 @@ void builtin_odd_p(FKL_DL_PROC_ARGL)
 		r=fklGetInt(val)%2;
 	else
 	{
-		FklBigInt bi={NULL,0,0,0,};
+		FklBigInt bi=FKL_BIG_INT_INIT;
 		fklSetBigInt(&bi,val->u.bigInt);
 		fklModBigIntI(&bi,2);
 		r=!FKL_IS_0_BIG_INT(&bi);
@@ -4961,7 +4961,7 @@ void builtin_even_p(FKL_DL_PROC_ARGL)
 		r=fklGetInt(val)%2==0;
 	else
 	{
-		FklBigInt bi={NULL,0,0,0,};
+		FklBigInt bi=FKL_BIG_INT_INIT;
 		fklSetBigInt(&bi,val->u.bigInt);
 		fklModBigIntI(&bi,2);
 		r=FKL_IS_0_BIG_INT(&bi);

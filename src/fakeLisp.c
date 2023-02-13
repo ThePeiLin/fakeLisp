@@ -183,7 +183,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 	FklVM* anotherVM=fklCreateVM(NULL,codegen->globalSymTable,NULL,NULL);
 	FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc,anotherVM->symbolTable),anotherVM->gc);
 	FklByteCode* rawProcList=NULL;
-	FklPtrStack tokenStack={NULL,0,0,0};
+	FklPtrStack tokenStack=FKL_STACK_INIT;
 	fklInitPtrStack(&tokenStack,32,16);
 	FklLineNumberTable* globalLnt=fklCreateLineNumTable();
 	anotherVM->codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,fklCreateByteCodelnt(fklCreateByteCode(0)),anotherVM->gc);

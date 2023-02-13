@@ -64,13 +64,13 @@ FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
 {
 	FklVMstack* vmStack=vm->stack;
 	FklVMgc* gc=vm->gc;
-	FklPtrStack nodeStack={NULL,0,0,0};
+	FklPtrStack nodeStack=FKL_STACK_INIT;
 	fklInitPtrStack(&nodeStack,32,16);
-	FklUintStack reftypeStack={NULL,0,0,0};
+	FklUintStack reftypeStack=FKL_STACK_INIT;
 	fklInitUintStack(&reftypeStack,32,16);
-	FklPtrStack valueStack={NULL,0,0,0};
+	FklPtrStack valueStack=FKL_STACK_INIT;
 	fklInitPtrStack(&valueStack,32,16);
-	FklPtrStack stackStack={NULL,0,0,0};
+	FklPtrStack stackStack=FKL_STACK_INIT;
 	fklInitPtrStack(&stackStack,32,16);
 	fklPushPtrStack((void*)node,&nodeStack);
 	fklPushPtrStack(&valueStack,&stackStack);
@@ -235,13 +235,13 @@ FklVMvalue* fklCreateVMvalueFromNastNodeNoGC(const FklNastNode* node
 		,FklHashTable* lineHash
 		,FklVMgc* gc)
 {
-	FklPtrStack nodeStack={NULL,0,0,0};
+	FklPtrStack nodeStack=FKL_STACK_INIT;
 	fklInitPtrStack(&nodeStack,32,16);
-	FklUintStack reftypeStack={NULL,0,0,0};
+	FklUintStack reftypeStack=FKL_STACK_INIT;
 	fklInitUintStack(&reftypeStack,32,16);
-	FklPtrStack valueStack={NULL,0,0,0};
+	FklPtrStack valueStack=FKL_STACK_INIT;
 	fklInitPtrStack(&valueStack,32,16);
-	FklPtrStack stackStack={NULL,0,0,0};
+	FklPtrStack stackStack=FKL_STACK_INIT;
 	fklInitPtrStack(&stackStack,32,16);
 	fklPushPtrStack((void*)node,&nodeStack);
 	fklPushPtrStack(&valueStack,&stackStack);
@@ -410,11 +410,11 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 	fklScanCirRef(v,recValueSet);
 	if(!recValueSet->num)
 	{
-		FklPtrStack s0={NULL,0,0,0};
+		FklPtrStack s0=FKL_STACK_INIT;
 		fklInitPtrStack(&s0,32,16);
-		FklPtrStack s1={NULL,0,0,0};
+		FklPtrStack s1=FKL_STACK_INIT;
 		fklInitPtrStack(&s1,32,16);
-		FklUintStack lineStack={NULL,0,0,0};
+		FklUintStack lineStack=FKL_STACK_INIT;
 		fklInitUintStack(&lineStack,32,16);
 		fklPushPtrStack(v,&s0);
 		fklPushPtrStack(&retval,&s1);
@@ -583,9 +583,9 @@ FklVMproc* fklCreateVMproc(uint64_t scp,uint64_t cpc,FklVMvalue* codeObj,FklVMgc
 
 FklVMvalue* fklCopyVMlistOrAtom(FklVMvalue* obj,FklVM* vm)
 {
-	FklPtrStack s1={NULL,0,0,0};
+	FklPtrStack s1=FKL_STACK_INIT;
 	fklInitPtrStack(&s1,32,16);
-	FklPtrStack s2={NULL,0,0,0};
+	FklPtrStack s2=FKL_STACK_INIT;
 	fklInitPtrStack(&s2,32,16);
 	FklVMvalue* tmp=FKL_VM_NIL;
 	fklPushPtrStack(obj,&s1);
@@ -995,9 +995,9 @@ inline int fklVMvalueEq(const FklVMvalue* fir,const FklVMvalue* sec)
 
 int fklVMvalueEqual(const FklVMvalue* fir,const FklVMvalue* sec)
 {
-	FklPtrStack s1={NULL,0,0,0};
+	FklPtrStack s1=FKL_STACK_INIT;
 	fklInitPtrStack(&s1,32,16);
-	FklPtrStack s2={NULL,0,0,0};
+	FklPtrStack s2=FKL_STACK_INIT;
 	fklInitPtrStack(&s2,32,16);
 	fklPushPtrStack((void*)fir,&s1);
 	fklPushPtrStack((void*)sec,&s2);
@@ -1670,7 +1670,7 @@ static size_t (*const valueHashFuncTable[])(const FklVMvalue*,FklPtrStack* s)=
 static size_t VMvalueHashFunc(const FklVMvalue* v)
 {
 	size_t sum=0;
-	FklPtrStack stack={NULL,0,0,0};
+	FklPtrStack stack=FKL_STACK_INIT;
 	fklInitPtrStack(&stack,32,16);
 	fklPushPtrStack((void*)v,&stack);
 	while(!fklIsPtrStackEmpty(&stack))

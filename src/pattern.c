@@ -626,9 +626,9 @@ int fklPatternMatch(const FklNastNode* pattern,const FklNastNode* exp,FklHashTab
 	if(exp->u.pair->car->type!=FKL_NAST_SYM
 			||pattern->u.pair->car->u.sym!=exp->u.pair->car->u.sym)
 		return 0;
-	FklPtrStack s0={NULL,0,0,0};
+	FklPtrStack s0=FKL_STACK_INIT;
 	fklInitPtrStack(&s0,32,16);
-	FklPtrStack s1={NULL,0,0,0};
+	FklPtrStack s1=FKL_STACK_INIT;
 	fklInitPtrStack(&s1,32,16);
 	fklPushPtrStack(pattern->u.pair->cdr,&s0);
 	fklPushPtrStack(exp->u.pair->cdr,&s1);
@@ -705,7 +705,7 @@ int fklIsValidSyntaxPattern(const FklNastNode* p,FklHashTable** psymbolTable)
 		return 0;
 	const FklNastNode* body=p->u.pair->cdr;
 	FklHashTable* symbolTable=fklCreateHashTable(8,4,2,0.75,1,&SidHashMethodTable);
-	FklPtrStack stack={NULL,0,0,0};
+	FklPtrStack stack=FKL_STACK_INIT;
 	fklInitPtrStack(&stack,32,16);
 	fklPushPtrStack((void*)body,&stack);
 	while(!fklIsPtrStackEmpty(&stack))
@@ -807,7 +807,7 @@ void fklInsertMatchRouteNodeAsFirstChild(FklStringMatchRouteNode* p,FklStringMat
 
 void fklDestroyStringMatchRoute(FklStringMatchRouteNode* root)
 {
-	FklPtrStack stack={NULL,0,0,0};
+	FklPtrStack stack=FKL_STACK_INIT;
 	fklInitPtrStack(&stack,32,16);
 	fklPushPtrStack(root,&stack);
 	while(!fklIsPtrStackEmpty(&stack))
@@ -847,7 +847,7 @@ inline static void printStringMatchRoute(FklStringMatchRouteNode* root,FILE* fp,
 
 void fklPrintStringMatchRoute(FklStringMatchRouteNode* root,FILE* fp)
 {
-//	FklPtrStack stack={NULL,0,0,0};
+//	FklPtrStack stack=FKL_STACK_INIT;
 //	fklInitPtrStack(&stack,32,16);
 //	while(!fklIsPtrStackEmpty(&stack))
 //	{

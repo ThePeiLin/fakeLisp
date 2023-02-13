@@ -156,9 +156,9 @@ FklVMstack* fklCopyStack(FklVMstack* stack)
 	FKL_ASSERT(tmp->values);
 	for(;i<stack->tp;i++)
 		tmp->values[i]=stack->values[i];
-	tmp->tps=(FklUintStack){NULL,0,0,0};
+	tmp->tps=(FklUintStack)FKL_STACK_INIT;
 	fklInitUintStackWithStack(&tmp->tps,&stack->tps);
-	tmp->bps=(FklUintStack){NULL,0,0,0};
+	tmp->bps=(FklUintStack)FKL_STACK_INIT;
 	fklInitUintStackWithStack(&tmp->bps,&stack->bps);
 //	pthread_rwlock_unlock(&stack->lock);
 	return tmp;
@@ -581,7 +581,7 @@ static int isInValueSet(FklVMvalue* v,FklHashTable* t,size_t* w)
 void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet)
 {
 	FklHashTable* totalAccessed=fklCreateValueSetHashtable();
-	FklPtrStack beAccessed={NULL,0,0,0};
+	FklPtrStack beAccessed=FKL_STACK_INIT;
 	fklInitPtrStack(&beAccessed,32,16);
 	fklPushPtrStack(s,&beAccessed);
 	while(!fklIsPtrStackEmpty(&beAccessed))
@@ -621,7 +621,7 @@ void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet)
 			else if(FKL_IS_HASHTABLE(v))
 			{
 				FklVMhashTable* ht=v->u.hash;
-				FklPtrStack stack={NULL,0,0,0};
+				FklPtrStack stack=FKL_STACK_INIT;
 				fklInitPtrStack(&stack,32,16);
 				for(FklHashTableNodeList* list=ht->ht->list;list;list=list->next)
 					fklPushPtrStack(list->node->item,&stack);
@@ -746,7 +746,7 @@ static void princVMatom(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
 						}
 						break;
 					default:
-						fputs("#<unknown>",fp);
+						FKL_ASSERT(0);
 						break;
 				}
 			}
@@ -857,7 +857,7 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
 						}
 						break;
 					default:
-						fputs("#<unknown>",fp);
+						FKL_ASSERT(0);
 						break;
 				}
 			}
@@ -902,7 +902,7 @@ void fklPrintVMvalue(FklVMvalue* value
 	FklHashTable* hasPrintRecSet=fklCreateValueSetHashtable();
 	fklScanCirRef(value,recValueSet);
 	FklPtrQueue* queue=fklCreatePtrQueue();
-	FklPtrStack queueStack={NULL,0,0,0};
+	FklPtrStack queueStack=FKL_STACK_INIT;
 	fklInitPtrStack(&queueStack,32,16);
 	fklPushPtrQueue(createPrtElem(PRT_CAR,value),queue);
 	fklPushPtrStack(queue,&queueStack);
@@ -1214,7 +1214,7 @@ inline static void print_big_int_to_ut_string(UT_string* s,FklBigInt* a)
 		utstring_printf(s,"0");
 	else
 	{
-		FklUintStack res={NULL,0,0,0};
+		FklUintStack res=FKL_STACK_INIT;
 		fklBigIntToRadixDigitsLe(a,10,&res);
 		for(size_t i=res.top;i>0;i--)
 		{
@@ -1330,7 +1330,7 @@ inline static void print_atom_to_ut_string(UT_string* result,FklVMvalue* v,FklSy
 						}
 						break;
 					default:
-						utstring_printf(result,"#<unknown>");
+						FKL_ASSERT(0);
 						break;
 				}
 			}
@@ -1349,7 +1349,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 	FklHashTable* hasPrintRecSet=fklCreateValueSetHashtable();
 	fklScanCirRef(value,recValueSet);
 	FklPtrQueue* queue=fklCreatePtrQueue();
-	FklPtrStack queueStack={NULL,0,0,0};
+	FklPtrStack queueStack=FKL_STACK_INIT;
 	fklInitPtrStack(&queueStack,32,16);
 	fklPushPtrQueue(createPrtElem(PRT_CAR,value),queue);
 	fklPushPtrStack(queue,&queueStack);

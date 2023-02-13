@@ -1026,7 +1026,7 @@ QsquoteHelperStruct* createQsquoteHelperStruct(QsquoteHelperEnum e,FklNastNode* 
 static CODEGEN_FUNC(codegen_qsquote)
 {
 	FklNastNode* value=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
-	FklPtrStack valueStack={NULL,0,0,0};
+	FklPtrStack valueStack=FKL_STACK_INIT;
 	fklInitPtrStack(&valueStack,8,16);
 	fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_NONE,value,NULL),&valueStack);
 	while(!fklIsPtrStackEmpty(&valueStack))
@@ -1983,7 +1983,7 @@ static inline FklNastNode* findModuleExpressionInFile(FklCodegen* nextCodegen
 	char* prev=NULL;
 	size_t prevSize=0;
 	size_t errorLine=0;
-	FklPtrStack tokenStack={NULL,0,0,0};
+	FklPtrStack tokenStack=FKL_STACK_INIT;
 	fklInitPtrStack(&tokenStack,32,16);
 	FklNastNode* libraryExpression=NULL;
 	FklHashTable* patternMatchTable=fklCreatePatternMatchingHashTable();
@@ -2136,7 +2136,7 @@ static inline void process_import_script(FklNastNode* origExp
 			fklDestroyCodegener(nextCodegen);
 			return;
 		}
-		FklUintStack idStack={NULL,0,0,0};
+		FklUintStack idStack=FKL_STACK_INIT;
 		fklInitUintStack(&idStack,32,16);
 		FklPtrQueue* exportMacroQueue=fklCreatePtrQueue();
 
@@ -2381,9 +2381,9 @@ static inline void process_import_script_with_prefix(FklNastNode* origExp
 			fklDestroyCodegener(nextCodegen);
 			return;
 		}
-		FklUintStack idStack={NULL,0,0,0};
+		FklUintStack idStack=FKL_STACK_INIT;
 		fklInitUintStack(&idStack,32,16);
-		FklUintStack idWithPrefixStack={NULL,0,0,0};
+		FklUintStack idWithPrefixStack=FKL_STACK_INIT;
 		fklInitUintStack(&idWithPrefixStack,32,16);
 
 		FklPtrQueue* exportMacroQueue=fklCreatePtrQueue();
@@ -2946,7 +2946,7 @@ static FklByteCode* createPushI32(int32_t i)
 
 FklByteCode* fklCodegenNode(const FklNastNode* node,FklCodegen* codegenr)
 {
-	FklPtrStack stack={NULL,0,0,0};
+	FklPtrStack stack=FKL_STACK_INIT;
 	fklInitPtrStack(&stack,32,16);
 	fklPushPtrStack((void*)node,&stack);
 	FklByteCode* retval=fklCreateByteCode(0);
@@ -3285,10 +3285,10 @@ static void printCodegenError(FklNastNode* obj
 
 FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklCodegen* codegener)
 {
-	FklPtrStack resultStack={NULL,0,0,0};
+	FklPtrStack resultStack=FKL_STACK_INIT;
 	fklInitPtrStack(&resultStack,1,8);
 	FklCodegenErrorState errorState={0,0,NULL};
-	FklPtrStack codegenQuestStack={NULL,0,0,0};
+	FklPtrStack codegenQuestStack=FKL_STACK_INIT;
 	fklInitPtrStack(&codegenQuestStack,32,16);
 	fklPushPtrStack(initialQuest,&codegenQuestStack);
 	while(!fklIsPtrStackEmpty(&codegenQuestStack))
@@ -3574,9 +3574,9 @@ static void destroyMayUndefine(MayUndefine* t)
 
 void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib** libs,FklSymbolTable* symbolTable,size_t exportNum,FklSid_t* exports)
 {
-	FklUintStack cpcstack={NULL,0,0,0};
+	FklUintStack cpcstack=FKL_STACK_INIT;
 	fklInitUintStack(&cpcstack,32,16);
-	FklUintStack scpstack={NULL,0,0,0};
+	FklUintStack scpstack=FKL_STACK_INIT;
 	fklInitUintStack(&scpstack,32,16);
 	FklPtrStack* envstack=fklCreatePtrStack(32,16);
 	FklPtrStack* mayUndefined=fklCreatePtrStack(32,16);

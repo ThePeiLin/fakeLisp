@@ -558,7 +558,7 @@ inline static void callCallableObj(FklVMvalue* v,FklVM* exe)
 inline static void applyCompoundProc(FklVM* exe,FklVMvalue* proc,FklVMframe* frame)
 {
 	FklVMframe* prevProc=fklHasSameProc(proc,exe->frames);
-	if(frame->type==FKL_FRAME_COMPOUND
+	if(frame&&frame->type==FKL_FRAME_COMPOUND
 			&&(frame->u.c.tail=is_last_expression(frame))
 			&&prevProc
 			&&(frame->u.c.tail&=prevProc->u.c.tail))

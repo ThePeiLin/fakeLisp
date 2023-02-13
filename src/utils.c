@@ -952,11 +952,20 @@ inline int fklIsI64AddOverflow(int64_t a,int64_t b)
 
 inline int fklIsI64MulOverflow(int64_t a,int64_t b)
 {
-	if(b==0)
+	if(b==0||a==0)
 		return 0;
-	int64_t t=a*b;
-	t/=b;
-	return a!=t;
+	if(a>=0&&b>=0)
+		return (INT64_MAX/a)<b;
+	else if(a<0&&b<0)
+		return (INT64_MIN/a)>b;
+	else if(a*b==INT64_MIN)
+		return 0;
+	else
+	{
+		int64_t t=a*b;
+		t/=b;
+		return a!=t;
+	}
 }
 
 char* fklCastEscapeCharBuf(const char* str,size_t size,size_t* psize)

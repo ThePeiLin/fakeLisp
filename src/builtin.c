@@ -1904,14 +1904,19 @@ void builtin_string_to_number(FKL_DL_PROC_ARGL)
 		}
 		else
 		{
-			FklBigInt* bi=fklCreateBigIntFromString(obj->u.str);
-			if(!fklIsGtLtI64BigInt(bi))
+			FklBigInt bi=FKL_BIG_INT_INIT;
+			fklInitBigIntFromString(&bi,obj->u.str);
+			if(!fklIsGtLtI64BigInt(&bi))
 			{
-				r=fklMakeVMint(fklBigIntToI64(bi),exe);
-				fklDestroyBigInt(bi);
+				r=fklMakeVMint(fklBigIntToI64(&bi),exe);
+				fklUninitBigInt(&bi);
 			}
 			else
-				r=fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,exe);
+			{
+				FklBigInt* rr=create_uninit_big_int();
+				*rr=bi;
+				r=fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,rr,exe);
+			}
 		}
 	}
 	fklNiReturn(r,&ap,stack);

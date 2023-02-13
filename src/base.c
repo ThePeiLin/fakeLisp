@@ -727,8 +727,20 @@ void fklInitBigInt(FklBigInt* a,const FklBigInt* src)
 	fklSetBigInt(a,src);
 }
 
+void fklInitBigInt0(FklBigInt* t)
+{
+	t->neg=0;
+	t->num=1;
+	t->size=t->num;
+	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*t->num);
+	FKL_ASSERT(t->digits);
+	t->digits[0]=0;
+}
+
 void fklInitBigIntU(FklBigInt* t,uint64_t v)
 {
+	if(v==0)
+		return fklInitBigInt0(t);
 	t->neg=0;
 	t->num=floor(log2(v)/log2(FKL_BIG_INT_RADIX))+1;
 	if(t->num==0)
@@ -745,20 +757,10 @@ void fklInitBigIntU(FklBigInt* t,uint64_t v)
 	}
 }
 
-void fklInitBigInt0(FklBigInt* t)
-{
-	t->neg=0;
-	t->num=1;
-	t->size=t->num;
-	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*t->num);
-	FKL_ASSERT(t->digits);
-	t->digits[0]=0;
-}
-
 void fklInitBigIntI(FklBigInt* t,int64_t v)
 {
 	if(v==0)
-		fklInitBigInt0(t);
+		return fklInitBigInt0(t);
 	double d=v;
 	FKL_ASSERT(t);
 	if(v<0)
@@ -1001,9 +1003,10 @@ void fklMulBigInt(FklBigInt* a,const FklBigInt* multipler)
 
 void fklMulBigIntI(FklBigInt* a,int64_t mul)
 {
-	FklBigInt* multipler=fklCreateBigInt(mul);
-	fklMulBigInt(a,multipler);
-	fklDestroyBigInt(multipler);
+	FklBigInt multipler=FKL_BIG_INT_INIT;
+	fklInitBigIntI(&multipler,mul);
+	fklMulBigInt(a,&multipler);
+	fklUninitBigInt(&multipler);
 }
 
 int fklDivModBigIntI(FklBigInt* a,int64_t* rem,int64_t div)
@@ -1013,12 +1016,13 @@ int fklDivModBigIntI(FklBigInt* a,int64_t* rem,int64_t div)
 		return 1;
 	else
 	{
-		FklBigInt* divider=fklCreateBigInt(div);
+		FklBigInt divider=FKL_BIG_INT_INIT;
+		fklInitBigIntI(&divider,div);
 		FklBigInt trem=FKL_BIG_INT_INIT;
-		int r=fklDivModBigInt(a,&trem,divider);
-		fklDestroyBigInt(divider);
+		int r=fklDivModBigInt(a,&trem,&divider);
+		fklUninitBigInt(&divider);
 		*rem=fklBigIntToI64(&trem);
-		free(trem.digits);
+		fklUninitBigInt(&trem);
 		return r;
 	}
 }
@@ -1029,12 +1033,13 @@ int fklDivModBigIntU(FklBigInt* a,uint64_t* rem,uint64_t div)
 		return 1;
 	else
 	{
-		FklBigInt* divider=fklCreateBigIntU(div);
+		FklBigInt divider=FKL_BIG_INT_INIT;
+		fklInitBigIntU(&divider,div);
 		FklBigInt trem=FKL_BIG_INT_INIT;
-		int r=fklDivModBigInt(a,&trem,divider);
-		fklDestroyBigInt(divider);
+		int r=fklDivModBigInt(a,&trem,&divider);
+		fklUninitBigInt(&divider);
 		*rem=fklBigIntToU64(&trem);
-		free(trem.digits);
+		fklUninitBigInt(&trem);
 		return r;
 	}
 }
@@ -1144,9 +1149,10 @@ int fklDivBigIntI(FklBigInt* a,int64_t div)
 		return 1;
 	else
 	{
-		FklBigInt* divider=fklCreateBigInt(div);
-		int r=fklDivBigInt(a,divider);
-		fklDestroyBigInt(divider);
+		FklBigInt divider=FKL_BIG_INT_INIT;
+		fklInitBigIntI(&divider,div);
+		int r=fklDivBigInt(a,&divider);
+		fklUninitBigInt(&divider);
 		return r;
 	}
 }
@@ -1157,9 +1163,10 @@ int fklDivBigIntU(FklBigInt* a,uint64_t div)
 		return 1;
 	else
 	{
-		FklBigInt* divider=fklCreateBigIntU(div);
-		int r=fklDivBigInt(a,divider);
-		fklDestroyBigInt(divider);
+		FklBigInt divider=FKL_BIG_INT_INIT;
+		fklInitBigIntU(&divider,div);
+		int r=fklDivBigInt(a,&divider);
+		fklUninitBigInt(&divider);
 		return r;
 	}
 }
@@ -1201,9 +1208,10 @@ int fklModBigIntU(FklBigInt* a,uint64_t div)
 		return 1;
 	else
 	{
-		FklBigInt* divider=fklCreateBigIntU(div);
-		int r=fklModBigInt(a,divider);
-		fklDestroyBigInt(divider);
+		FklBigInt divider=FKL_BIG_INT_INIT;
+		fklInitBigIntU(&divider,div);
+		int r=fklModBigInt(a,&divider);
+		fklUninitBigInt(&divider);
 		return r;
 	}
 }
@@ -1214,9 +1222,10 @@ int fklModBigIntI(FklBigInt* a,int64_t div)
 		return 1;
 	else
 	{
-		FklBigInt* divider=fklCreateBigInt(div);
-		int r=fklModBigInt(a,divider);
-		fklDestroyBigInt(divider);
+		FklBigInt divider=FKL_BIG_INT_INIT;
+		fklInitBigIntI(&divider,div);
+		int r=fklModBigInt(a,&divider);
+		fklUninitBigInt(&divider);
 		return r;
 	}
 }

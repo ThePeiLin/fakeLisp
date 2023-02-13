@@ -234,6 +234,7 @@ void fklDestroyBigInt(FklBigInt*);
 void fklPrintBigInt(const FklBigInt*,FILE*);
 void fklSprintBigInt(const FklBigInt*,size_t size,char* buf);
 FklString* fklBigIntToString(const FklBigInt*,int radix);
+void fklBigIntToRadixDigitsLe(const FklBigInt* u,uint32_t radix,FklUintStack* res);
 
 #ifdef __cplusplus
 }

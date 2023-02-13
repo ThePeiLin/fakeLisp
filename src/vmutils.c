@@ -1088,161 +1088,249 @@ void fklPrintVMvalue(FklVMvalue* value
 	fklDestroyHashTable(hasPrintRecSet);
 }
 
-static void atomStringify(FklString** pr,FklVMvalue* v,FklSymbolTable* table)
+#include"utstring.h"
+#include<ctype.h>
+inline static int is_special_char_and_print_to_utstring(UT_string* s,char ch)
+{
+	int r=0;
+	if((r=ch=='\n'))
+		utstring_printf(s,"\\n");
+	else if((r=ch=='\t'))
+		utstring_printf(s,"\\t");
+	else if((r=ch=='\v'))
+		utstring_printf(s,"\\v");
+	else if((r=ch=='\a'))
+		utstring_printf(s,"\\a");
+	else if((r=ch=='\b'))
+		utstring_printf(s,"\\b");
+	else if((r=ch=='\f'))
+		utstring_printf(s,"\\f");
+	else if((r=ch=='\r'))
+		utstring_printf(s,"\\r");
+	else if((r=ch=='\x20'))
+		utstring_printf(s," ");
+	return r;
+}
+
+inline static void print_raw_char_to_utstring(UT_string* s,char c)
+{
+	utstring_printf(s,"#\\");
+	if(isgraph(c))
+	{
+		if(c=='\\')
+			utstring_printf(s,"\\\\");
+		else
+			utstring_printf(s,"%c",c);
+	}
+	else if(is_special_char_and_print_to_utstring(s,c));
+	else
+	{
+		uint8_t j=c;
+		utstring_printf(s,"x");
+		utstring_printf(s,"%X",j/16);
+		utstring_printf(s,"%X",j%16);
+	}
+}
+
+inline static void print_raw_string_to_ut_string_with_se(UT_string* s,FklString* fstr,char se)
+{
+	char buf[7]={0};
+	utstring_printf(s,"%c",se);
+	size_t size=fstr->size;
+	uint8_t* str=(uint8_t*)fstr->str;
+	for(size_t i=0;i<size;)
+	{
+		unsigned int l=fklGetByteNumOfUtf8(&str[i],size-i);
+		if(l==7)
+		{
+			uint8_t j=str[i];
+			uint8_t h=j/16;
+			uint8_t l=j%16;
+			utstring_printf(s,"\\x%c%c"
+					,h<10?'0'+h:'A'+(h-10)
+					,l<10?'0'+l:'A'+(l-10));
+			i++;
+		}
+		else if(l==1)
+		{
+			if(str[i]==se)
+				utstring_printf(s,"\\%c",se);
+			else if(str[i]=='\\')
+				utstring_printf(s,"\\\\");
+			else if(isgraph(str[i]))
+				utstring_printf(s,"%c",str[i]);
+			else if(is_special_char_and_print_to_utstring(s,str[i]));
+			else
+			{
+				uint8_t j=str[i];
+				uint8_t h=j/16;
+				uint8_t l=j%16;
+				utstring_printf(s,"\\x%c%c"
+						,h<10?'0'+h:'A'+(h-10)
+						,l<10?'0'+l:'A'+(l-10));
+			}
+			i++;
+		}
+		else
+		{
+			strncpy(buf,(char*)&str[i],l);
+			buf[l]='\0';
+			utstring_printf(s,"%s",buf);
+			i+=l;
+		}
+	}
+	utstring_printf(s,"%c",se);
+}
+
+inline static void print_raw_string_to_ut_string(UT_string* s,FklString* f)
+{
+	print_raw_string_to_ut_string_with_se(s,f,'"');
+}
+
+inline static void print_raw_symbol_to_ut_string(UT_string* s,FklString* f)
+{
+	print_raw_string_to_ut_string_with_se(s,f,'|');
+}
+
+inline static void print_bytevector_to_ut_string(UT_string* s,FklBytevector* bvec)
+{
+	size_t size=bvec->size;
+	uint8_t* ptr=bvec->ptr;
+	utstring_printf(s,"#vu8(");
+	for(size_t i=0;i<size;i++)
+	{
+		utstring_printf(s,"0x%X",ptr[i]);
+		if(i<size-1)
+			utstring_printf(s," ");
+	}
+	utstring_printf(s,")");
+}
+
+inline static void print_big_int_to_ut_string(UT_string* s,FklBigInt* a)
+{
+	if(!FKL_IS_0_BIG_INT(a)&&a->neg)
+		utstring_printf(s,"-");
+	if(FKL_IS_0_BIG_INT(a))
+		utstring_printf(s,"0");
+	else
+	{
+		FklUintStack res={NULL,0,0,0};
+		fklBigIntToRadixDigitsLe(a,10,&res);
+		for(size_t i=res.top;i>0;i--)
+		{
+			uint8_t c=res.base[i-1];
+			utstring_printf(s,"%c",'0'+c);
+		}
+		fklUninitUintStack(&res);
+	}
+}
+
+inline static void print_atom_to_ut_string(UT_string* result,FklVMvalue* v,FklSymbolTable* table)
 {
 	FklVMptrTag tag=FKL_GET_TAG(v);
 	switch(tag)
 	{
 		case FKL_TAG_NIL:
-			fklStringCstrCat(pr,"()");
+			utstring_printf(result,"()");
 			break;
 		case FKL_TAG_I32:
-			{
-				FklString* s=fklIntToString(FKL_GET_I32(v));
-				fklStringCat(pr,s);
-				free(s);
-			}
+			utstring_printf(result,"%d",FKL_GET_I32(v));
 			break;
 		case FKL_TAG_CHR:
-			{
-				char c_str[FKL_MAX_STRING_SIZE]={0};
-				fklWriteCharAsCstr(FKL_GET_CHR(v),c_str,FKL_MAX_STRING_SIZE);
-				fklStringCstrCat(pr,c_str);
-			}
+			print_raw_char_to_utstring(result,FKL_GET_CHR(v));
 			break;
 		case FKL_TAG_SYM:
-			{
-				FklString* s=fklStringToRawSymbol(fklGetSymbolWithId(FKL_GET_SYM(v),table)->symbol);
-				fklStringCat(pr,s);
-				free(s);
-			}
+			print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(FKL_GET_SYM(v),table)->symbol);
 			break;
 		case FKL_TAG_PTR:
 			{
 				switch(v->type)
 				{
 					case FKL_TYPE_F64:
-						{
-							FklString* s=fklDoubleToString(v->u.f64);
-							fklStringCat(pr,s);
-							free(s);
-						}
+						utstring_printf(result,"%lf",v->u.f64);
 						break;
 					case FKL_TYPE_I64:
-						{
-							FklString* s=fklIntToString(v->u.i64);
-							fklStringCat(pr,s);
-							free(s);
-						}
+						utstring_printf(result,"%ld",v->u.i64);
 						break;
 					case FKL_TYPE_STR:
-						{
-							FklString* s=fklStringToRawString(v->u.str);
-							fklStringCat(pr,s);
-							free(s);
-						}
+						print_raw_string_to_ut_string(result,v->u.str);
 						break;
 					case FKL_TYPE_BYTEVECTOR:
-						{
-							FklString* s=fklBytevectorToString(v->u.bvec);
-							fklStringCat(pr,s);
-							free(s);
-						}
+						print_bytevector_to_ut_string(result,v->u.bvec);
 						break;
 					case FKL_TYPE_PROC:
 						if(v->u.proc->sid)
 						{
-							fklStringCstrCat(pr,"#<proc ");
-							FklString* s=fklStringToRawSymbol(fklGetSymbolWithId(v->u.proc->sid,table)->symbol);
-							fklStringCat(pr,s);
-							free(s);
-							fklStringCstrCat(pr,">");
+							utstring_printf(result,"#<proc ");
+							print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(v->u.proc->sid,table)->symbol);
+							utstring_printf(result,">");
 						}
 						else
-							fklStringCstrCat(pr,"#<proc>");
+							utstring_printf(result,"#<proc>");
 						break;
 					case FKL_TYPE_CHAN:
-						fklStringCstrCat(pr,"#<chanl>");
+						utstring_printf(result,"#<chanl>");
 						break;
 					case FKL_TYPE_FP:
 						if(v->u.fp->fp==stdin)
-							fklStringCstrCat(pr,"#<fp stdin>");
+							utstring_printf(result,"#<fp stdin>");
 						else if(v->u.fp->fp==stdout)
-							fklStringCstrCat(pr,"#<fp stdout>");
+							utstring_printf(result,"#<fp stdout>");
 						else if(v->u.fp->fp==stderr)
-							fklStringCstrCat(pr,"#<fp stderr>");
+							utstring_printf(result,"#<fp stderr>");
 						else
-							fklStringCstrCat(pr,"#<fp>");
+							utstring_printf(result,"#<fp>");
 						break;
 					case FKL_TYPE_DLL:
-						fklStringCstrCat(pr,"#<dll>");
+						utstring_printf(result,"#<dll>");
 						break;
 					case FKL_TYPE_DLPROC:
 						if(v->u.dlproc->sid)
 						{
-							fklStringCstrCat(pr,"#<dlproc ");
-							FklString* s=fklStringToRawSymbol(fklGetSymbolWithId(v->u.proc->sid,table)->symbol);
-							fklStringCat(pr,s);
-							free(s);
-							fklStringCstrCat(pr,">");
+							utstring_printf(result,"#<dlproc ");
+							print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(v->u.proc->sid,table)->symbol);
+							utstring_printf(result,">");
 						}
 						else
-							fklStringCstrCat(pr,"#<dlproc>");
+							utstring_printf(result,"#<dlproc>");
 						break;
 					case FKL_TYPE_ENV:
-						fklStringCstrCat(pr,"#<env>");
+						utstring_printf(result,"#<env>");
 						break;
 					case FKL_TYPE_ERR:
-						{
-							fklStringCstrCat(pr,"#<err w:");
-							FklString* s=fklStringToRawString(v->u.err->who);
-							fklStringCat(pr,s);
-							free(s);
-							fklStringCstrCat(pr,"t:");
-							s=fklStringToRawSymbol(fklGetSymbolWithId(v->u.err->type,table)->symbol);
-							fklStringCat(pr,s);
-							free(s);
-							fklStringCstrCat(pr,"m:");
-							s=fklStringToRawString(v->u.err->message);
-							fklStringCat(pr,s);
-							free(s);
-							fklStringCstrCat(pr,">");
-						}
+						utstring_printf(result,"#<err w:");
+						print_raw_string_to_ut_string(result,v->u.err->who);
+						utstring_printf(result,"t:");
+						print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(v->u.err->type,table)->symbol);
+						utstring_printf(result,"m:");
+						print_raw_string_to_ut_string(result,v->u.err->message);
+						utstring_printf(result,">");
 						break;
 					case FKL_TYPE_BIG_INT:
-						{
-							FklString* s=fklBigIntToString(v->u.bigInt,10);
-							fklStringCat(pr,s);
-							free(s);
-						}
+						print_big_int_to_ut_string(result,v->u.bigInt);
 						break;
 					case FKL_TYPE_CODE_OBJ:
-						fklStringCstrCat(pr,"#<code-obj>");
+						utstring_printf(result,"#<code-obj>");
 						break;
 					case FKL_TYPE_USERDATA:
 						if(v->u.ud->t->__to_string)
 						{
 							FklString* s=v->u.ud->t->__to_string(v->u.ud->data);
-							fklStringCat(pr,s);
+							utstring_bincpy(result,s->str,s->size);
 							free(s);
 						}
 						else
 						{
-							fklStringCstrCat(pr,"#<");
-							FklString* s=NULL;
+							utstring_printf(result,"#<");
 							if(v->u.ud->type)
-								s=fklStringToRawSymbol(fklGetSymbolWithId(v->u.ud->type,table)->symbol);
+								print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(v->u.ud->type,table)->symbol);
 							else
-								s=fklCreateStringFromCstr("userdata");
-							fklStringCat(pr,s);
-							free(s);
-							char c_str[FKL_MAX_STRING_SIZE]={0};
-							snprintf(c_str,FKL_MAX_STRING_SIZE,"%p>",v->u.ud);
-							fklStringCstrCat(pr,c_str);
+								utstring_printf(result,"userdata");
+							utstring_printf(result," %p>",v->u.ud);
 						}
 						break;
 					default:
-						fklStringCstrCat(pr,"#<unknown>");
+						utstring_printf(result,"#<unknown>");
 						break;
 				}
 			}
@@ -1255,7 +1343,8 @@ static void atomStringify(FklString** pr,FklVMvalue* v,FklSymbolTable* table)
 
 FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 {
-	FklString* retval=fklCreateEmptyString();
+	UT_string result={};
+	utstring_init(&result);
 	FklHashTable* recValueSet=fklCreateValueSetHashtable();
 	FklHashTable* hasPrintRecSet=fklCreateValueSetHashtable();
 	fklScanCirRef(value,recValueSet);
@@ -1272,16 +1361,12 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 			PrtElem* e=fklPopPtrQueue(cQueue);
 			FklVMvalue* v=e->v;
 			if(e->state==PRT_CDR||e->state==PRT_REC_CDR)
-				fklStringCstrCat(&retval,",");
+				utstring_printf(&result,",");
 			if(e->state==PRT_REC_CAR||e->state==PRT_REC_CDR||e->state==PRT_REC_BOX)
-			{
-				char c_str[FKL_MAX_STRING_SIZE]={0};
-				snprintf(c_str,FKL_MAX_STRING_SIZE,"#%lu",(uintptr_t)e->v);
-				fklStringCstrCat(&retval,c_str);
-			}
+				utstring_printf(&result,"#%lu",(uintptr_t)e->v);
 			else if(e->state==PRT_HASH_ITEM)
 			{
-				fklStringCstrCat(&retval,"(");
+				utstring_printf(&result,"(");
 				FklPtrQueue* iQueue=fklCreatePtrQueue();
 				HashPrtElem* elem=(void*)e->v;
 				fklPushPtrQueue(elem->key,iQueue);
@@ -1296,19 +1381,15 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 			{
 				free(e);
 				if(!FKL_IS_VECTOR(v)&&!FKL_IS_PAIR(v)&&!FKL_IS_BOX(v)&&!FKL_IS_HASHTABLE(v))
-					atomStringify(&retval,v,table);
+					print_atom_to_ut_string(&result,v,table);
 				else
 				{
 					size_t i=0;
 					if(isInValueSet(v,recValueSet,&i))
-					{
-						char c_str[FKL_MAX_STRING_SIZE]={0};
-						snprintf(c_str,FKL_MAX_STRING_SIZE,"#%lu=",i);
-						fklStringCstrCat(&retval,c_str);
-					}
+						utstring_printf(&result,"#%lu=",i);
 					if(FKL_IS_VECTOR(v))
 					{
-						fklStringCstrCat(&retval,"#(");
+						utstring_printf(&result,"#(");
 						FklPtrQueue* vQueue=fklCreatePtrQueue();
 						for(size_t i=0;i<v->u.vec->size;i++)
 						{
@@ -1329,7 +1410,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 					}
 					else if(FKL_IS_BOX(v))
 					{
-						fklStringCstrCat(&retval,"#&");
+						utstring_printf(&result,"#&");
 						size_t w=0;
 						if((isInValueSet(v->u.box,recValueSet,&w)&&isInValueSet(v->u.box,hasPrintRecSet,NULL))||v->u.box==v)
 							fklPushPtrQueueToFront(createPrtElem(PRT_REC_BOX,(void*)w),cQueue);
@@ -1348,7 +1429,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 							"#hasheqv(",
 							"#hashequal(",
 						};
-						fklStringCstrCat(&retval,tmp[v->u.hash->type]);
+						utstring_printf(&result,"%s",tmp[v->u.hash->type]);
 						FklPtrQueue* hQueue=fklCreatePtrQueue();
 						for(FklHashTableNodeList* list=v->u.hash->ht->list;list;list=list->next)
 						{
@@ -1378,7 +1459,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 					}
 					else
 					{
-						fklStringCstrCat(&retval,"(");
+						utstring_printf(&result,"(");
 						FklPtrQueue* lQueue=fklCreatePtrQueue();
 						FklVMpair* p=v->u.pair;
 						for(;;)
@@ -1430,25 +1511,27 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_REC_CDR
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_BOX
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_REC_BOX)
-				fklStringCstrCat(&retval," ");
+				utstring_printf(&result," ");
 		}
 		fklPopPtrStack(&queueStack);
 		fklDestroyPtrQueue(cQueue);
 		if(!fklIsPtrStackEmpty(&queueStack))
 		{
-			fklStringCstrCat(&retval,")");
+			utstring_printf(&result,")");
 			cQueue=fklTopPtrStack(&queueStack);
 			if(fklLengthPtrQueue(cQueue)
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_CDR
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_REC_CDR
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_BOX
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_REC_BOX)
-				fklStringCstrCat(&retval," ");
+				utstring_printf(&result," ");
 		}
 	}
 	fklUninitPtrStack(&queueStack);
 	fklDestroyHashTable(recValueSet);
 	fklDestroyHashTable(hasPrintRecSet);
+	FklString* retval=fklCreateString(utstring_len(&result),utstring_body(&result));
+	utstring_done(&result);
 	return retval;
 }
 

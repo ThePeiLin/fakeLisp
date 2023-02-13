@@ -599,12 +599,12 @@ static void divRemBigIntU8(FklBigInt* a,uint64_t* prem,uint8_t b)
 	*prem=rem;
 }
 
-static FklUintStack* toRadixDigitsLe(const FklBigInt* u,uint32_t radix)
+void fklBigIntToRadixDigitsLe(const FklBigInt* u,uint32_t radix,FklUintStack* res)
 {
 	FKL_ASSERT(!FKL_IS_0_BIG_INT(u));
 	const double radixLog2=log2(radix);
 	const size_t radixDigits=ceil((((double)(u->num*FKL_BIG_INT_BITS))/radixLog2));
-	FklUintStack* res=fklCreateUintStack(radixDigits,16);
+	fklInitUintStack(res,radixDigits,16);
 	uint8_t base=BASE8[radix].base;
 	size_t pow=BASE8[radix].pow;
 	FklBigInt digits=FKL_BIG_INT_INIT;
@@ -665,14 +665,13 @@ static FklUintStack* toRadixDigitsLe(const FklBigInt* u,uint32_t radix)
 		r/=radix;
 	}
 	free(digits.digits);
-	return res;
 }
 
-static FklUintStack* toBitWiseDigitsLe(const FklBigInt* u,uint8_t bits)
+static void toBitWiseDigitsLe(const FklBigInt* u,uint8_t bits,FklUintStack* res)
 {
 	uint8_t mask=(1<<bits)-1;
 	uint8_t digitsPerUint8=FKL_BIG_INT_BITS/bits;
-	FklUintStack* res=fklCreateUintStack((u->num*FKL_BIG_INT_BITS)/bits,16);
+	fklInitUintStack(res,(u->num*FKL_BIG_INT_BITS)/bits,16);
 	for(size_t i=0;i<u->num;i++)
 	{
 		uint8_t c=u->digits[i];
@@ -684,15 +683,14 @@ static FklUintStack* toBitWiseDigitsLe(const FklBigInt* u,uint8_t bits)
 	}
 	while(!fklIsUintStackEmpty(res)&&fklTopUintStack(res)==0)
 		fklPopUintStack(res);
-	return res;
 }
 
-static FklUintStack* toInexactBitWiseDigitsLe(const FklBigInt* u,uint8_t bits)
+static void toInexactBitWiseDigitsLe(const FklBigInt* u,uint8_t bits,FklUintStack* res)
 {
 	FKL_ASSERT(!FKL_IS_0_BIG_INT(u)&&bits<=8);
 	const size_t digits=ceil(((double)(u->num*FKL_BIG_INT_BITS))/bits);
 	const uint8_t mask=(1<<bits)-1;
-	FklUintStack* res=fklCreateUintStack(digits,16);
+	fklInitUintStack(res,digits,16);
 	int32_t r=0;
 	int32_t rbits=0;
 	for(size_t i=0;i<u->num;i++)
@@ -713,7 +711,6 @@ static FklUintStack* toInexactBitWiseDigitsLe(const FklBigInt* u,uint8_t bits)
 		fklPushUintStack(r,res);
 	while(!fklIsUintStackEmpty(res)&&fklTopUintStack(res)==0)
 		fklPopUintStack(res);
-	return res;
 }
 
 void fklDestroyBigInt(FklBigInt* t)
@@ -1330,13 +1327,14 @@ void fklPrintBigInt(const FklBigInt* a,FILE* fp)
 		fputc('0',fp);
 	else
 	{
-		FklUintStack* res=toRadixDigitsLe(a,10);
-		for(size_t i=res->top;i>0;i--)
+		FklUintStack res={NULL,0,0,0};
+		fklBigIntToRadixDigitsLe(a,10,&res);
+		for(size_t i=res.top;i>0;i--)
 		{
-			uint8_t c=res->base[i-1];
+			uint8_t c=res.base[i-1];
 			fputc('0'+c,fp);
 		}
-		fklDestroyUintStack(res);
+		fklUninitUintStack(&res);
 	}
 }
 
@@ -1357,12 +1355,12 @@ FklString* fklBigIntToString(const FklBigInt* a,int radix)
 			j++;
 			len++;
 		}
-		FklUintStack* res=NULL;
+		FklUintStack res={NULL,0,0,0};
 		if(radix==10)
-			res=toRadixDigitsLe(a,radix);
+			fklBigIntToRadixDigitsLe(a,radix,&res);
 		else if(radix==16)
 		{
-			res=toBitWiseDigitsLe(a,4);
+			toBitWiseDigitsLe(a,4,&res);
 			len+=2;
 			j+=2;
 		}
@@ -1370,9 +1368,9 @@ FklString* fklBigIntToString(const FklBigInt* a,int radix)
 		{
 			len++;
 			j++;
-			res=toInexactBitWiseDigitsLe(a,3);
+			toInexactBitWiseDigitsLe(a,3,&res);
 		}
-		len+=res->top;
+		len+=res.top;
 		FklString* s=fklCreateString(sizeof(char)*len,NULL);
 		char* buf=s->str;
 		if(a->neg)
@@ -1384,12 +1382,12 @@ FklString* fklBigIntToString(const FklBigInt* a,int radix)
 		}
 		else if(radix==8)
 			buf[a->neg]='0';
-		for(size_t i=res->top;i>0;i--,j++)
+		for(size_t i=res.top;i>0;i--,j++)
 		{
-			uint64_t c=res->base[i-1];
+			uint64_t c=res.base[i-1];
 			buf[j]=c<10?c+'0':c-10+'A';
 		}
-		fklDestroyUintStack(res);
+		fklUninitUintStack(&res);
 		return s;
 	}
 }
@@ -1405,10 +1403,11 @@ void fklSprintBigInt(const FklBigInt* bi,size_t size,char* buf)
 		buf[0]='0';
 	else
 	{
-		FklUintStack* res=toRadixDigitsLe(bi,10);
-		for(size_t i=res->top;i>0;i--)
-			buf[i]=res->base[i-1]+'0';
-		fklDestroyUintStack(res);
+		FklUintStack res={NULL,0,0,0};
+		fklBigIntToRadixDigitsLe(bi,10,&res);
+		for(size_t i=res.top;i>0;i--)
+			buf[i]=res.base[i-1]+'0';
+		fklUninitUintStack(&res);
 	}
 }
 

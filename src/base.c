@@ -333,29 +333,8 @@ FklBigInt* fklCreateBigInt(int64_t v)
 	if(v==0)
 		return fklCreateBigInt0();
 	FklBigInt* t=(FklBigInt*)malloc(sizeof(FklBigInt));
-	double d=v;
 	FKL_ASSERT(t);
-	if(v<0)
-	{
-		t->neg=1;
-		d*=-1;
-	}
-	else
-		t->neg=0;
-	t->num=floor(log2(d)/log2(FKL_BIG_INT_RADIX))+1;
-	if(t->num==0)
-		t->num=1;
-	t->size=t->num;
-	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*t->num);
-	FKL_ASSERT(t->digits);
-	for(uint64_t i=0;i<t->num;i++)
-	{
-		int c=v%FKL_BIG_INT_RADIX;
-		if(c<0)
-			c*=-1;
-		t->digits[i]=c;
-		v/=FKL_BIG_INT_RADIX;
-	}
+	fklInitBigIntI(t,v);
 	return t;
 }
 
@@ -533,17 +512,11 @@ FklBigInt* fklCopyBigInt(const FklBigInt* bigint)
 	return t;
 }
 
-FklBigInt* fklCreateBigIntFromMem(const void* mem,size_t size)
+void fklInitBigIntFromMem(FklBigInt* t,const void* mem,size_t size)
 {
-	if(size<2)
-		return NULL;
 	uint8_t neg=((uint8_t*)mem)[0];
-	if(neg>1)
-		return NULL;
 	mem++;
 	uint64_t num=size-1;
-	FklBigInt* t=(FklBigInt*)malloc(sizeof(FklBigInt));
-	FKL_ASSERT(t);
 	t->num=num;
 	t->size=num;
 	t->neg=neg;
@@ -554,6 +527,26 @@ FklBigInt* fklCreateBigIntFromMem(const void* mem,size_t size)
 		uint8_t n=((uint8_t*)mem)[i];
 		t->digits[i]=n;
 	}
+}
+
+void fklUninitBigInt(FklBigInt* bi)
+{
+	free(bi->digits);
+	bi->digits=NULL;
+	bi->neg=0;
+	bi->num=0;
+	bi->size=0;
+}
+
+FklBigInt* fklCreateBigIntFromMem(const void* mem,size_t size)
+{
+	if(size<2)
+		return NULL;
+	if(((uint8_t*)mem)[0]>1)
+		return NULL;
+	FklBigInt* t=(FklBigInt*)malloc(sizeof(FklBigInt));
+	FKL_ASSERT(t);
+	fklInitBigIntFromMem(t,mem,size);
 	return t;
 }
 
@@ -754,11 +747,43 @@ void fklInitBigIntU(FklBigInt* a,uint64_t v)
 	fklDestroyBigInt(bi);
 }
 
-void fklInitBigIntI(FklBigInt* a,int64_t v)
+void fklInitBigInt0(FklBigInt* t)
 {
-	FklBigInt* bi=fklCreateBigInt(v);
-	fklInitBigInt(a,bi);
-	fklDestroyBigInt(bi);
+	t->neg=0;
+	t->num=1;
+	t->size=t->num;
+	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*t->num);
+	FKL_ASSERT(t->digits);
+	t->digits[0]=0;
+}
+
+void fklInitBigIntI(FklBigInt* t,int64_t v)
+{
+	if(v==0)
+		fklInitBigInt0(t);
+	double d=v;
+	FKL_ASSERT(t);
+	if(v<0)
+	{
+		t->neg=1;
+		d*=-1;
+	}
+	else
+		t->neg=0;
+	t->num=floor(log2(d)/log2(FKL_BIG_INT_RADIX))+1;
+	if(t->num==0)
+		t->num=1;
+	t->size=t->num;
+	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*t->num);
+	FKL_ASSERT(t->digits);
+	for(uint64_t i=0;i<t->num;i++)
+	{
+		int c=v%FKL_BIG_INT_RADIX;
+		if(c<0)
+			c*=-1;
+		t->digits[i]=c;
+		v/=FKL_BIG_INT_RADIX;
+	}
 }
 
 void fklSetBigIntU(FklBigInt* des,uint64_t src)

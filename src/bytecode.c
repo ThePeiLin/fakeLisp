@@ -209,10 +209,11 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 					case FKL_OP_PUSH_BIG_INT:
 						{
 							uint64_t num=fklGetU64FromByteCode(tmpCode->code+i+sizeof(char));
-							FklBigInt* bi=fklCreateBigIntFromMem(tmpCode->code+i+sizeof(char)+sizeof(num),num);
-							fklPrintBigInt(bi,fp);
-							r+=sizeof(char)+sizeof(bi->num)+sizeof(uint8_t)*num;
-							fklDestroyBigInt(bi);
+							FklBigInt bi=FKL_BIG_INT_INIT;
+							fklInitBigIntFromMem(&bi,tmpCode->code+i+sizeof(char)+sizeof(num),num);
+							fklPrintBigInt(&bi,fp);
+							r+=sizeof(char)+sizeof(bi.num)+sizeof(uint8_t)*num;
+							fklUninitBigInt(&bi);
 						}
 						break;
 					case FKL_OP_IMPORT_WITH_SYMBOLS:

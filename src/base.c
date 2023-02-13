@@ -1244,65 +1244,56 @@ int fklIsDivisibleBigInt(const FklBigInt* a,const FklBigInt* b)
 
 int fklIsDivisibleBigIntI(const FklBigInt* a,int64_t i)
 {
-	FklBigInt* bi=fklCreateBigInt(i);
-	int r=fklIsDivisibleBigInt(a,bi);
-	fklDestroyBigInt(bi);
+	FklBigInt bi=FKL_STACK_INIT;
+	fklInitBigIntI(&bi,i);
+	int r=fklIsDivisibleBigInt(a,&bi);
+	fklUninitBigInt(&bi);
 	return r;
 }
 
 int fklIsDivisibleIBigInt(int64_t i,const FklBigInt* b)
 {
 	int r=0;
-	FklBigInt* a=fklCreateBigInt(i);
-	fklModBigInt(a,b);
-	if(a->num==1&&a->digits[0]==0)
+	FklBigInt a=FKL_BIG_INT_INIT;
+	fklInitBigIntI(&a,i);
+	fklModBigInt(&a,b);
+	if(a.num==1&&a.digits[0]==0)
 		r=1;
-	fklDestroyBigInt(a);
+	fklUninitBigInt(&a);
 	return r;
 }
 
-int fklIsGeLeI64BigInt(const FklBigInt* a)
+static const uint8_t FKL_BIG_INT_I64_MAX_BIT[8]={0xff,0xff,0xff,0xff,0xff,0xff,0xff,0x7f,};
+static const uint8_t FKL_BIG_INT_I64_MIN_BIT[8]={0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80,};
+static const uint8_t FKL_BIG_INT_U64_MAX_BIT[8]={0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,};
+
+static const FklBigInt FKL_BIG_INT_I64_MAX={(uint8_t*)FKL_BIG_INT_I64_MAX_BIT,8,8,0};
+static const FklBigInt FKL_BIG_INT_I64_MIN={(uint8_t*)FKL_BIG_INT_I64_MIN_BIT,8,8,1};
+static const FklBigInt FKL_BIG_INT_U64_MAX={(uint8_t*)FKL_BIG_INT_U64_MAX_BIT,8,8,0};
+
+inline int fklIsGeLeI64BigInt(const FklBigInt* a)
 {
-	FklBigInt* bI64Max=fklCreateBigInt(INT64_MAX);
-	FklBigInt* bI64Min=fklCreateBigInt(INT64_MIN);
-	int r=(fklCmpBigInt(a,bI64Max)>=0||fklCmpBigInt(a,bI64Min)<=0);
-	fklDestroyBigInt(bI64Max);
-	fklDestroyBigInt(bI64Min);
-	return r;
+	return (fklCmpBigInt(a,&FKL_BIG_INT_I64_MAX)>=0||fklCmpBigInt(a,&FKL_BIG_INT_I64_MIN)<=0);
 }
 
-int fklIsGtLtI64BigInt(const FklBigInt* a)
+inline int fklIsGtLtI64BigInt(const FklBigInt* a)
 {
-	FklBigInt* bI64Max=fklCreateBigInt(INT64_MAX);
-	FklBigInt* bI64Min=fklCreateBigInt(INT64_MIN);
-	int r=(fklCmpBigInt(a,bI64Max)>0||fklCmpBigInt(a,bI64Min)<0);
-	fklDestroyBigInt(bI64Max);
-	fklDestroyBigInt(bI64Min);
-	return r;
+	return (fklCmpBigInt(a,&FKL_BIG_INT_I64_MAX)>0||fklCmpBigInt(a,&FKL_BIG_INT_I64_MIN)<0);
 }
 
-int fklIsGtU64MaxBigInt(const FklBigInt* a)
+inline int fklIsGtU64MaxBigInt(const FklBigInt* a)
 {
-	FklBigInt* bI64Max=fklCreateBigIntU(UINT64_MAX);
-	int r=fklCmpBigInt(a,bI64Max)>0;
-	fklDestroyBigInt(bI64Max);
-	return r;
+	return fklCmpBigInt(a,&FKL_BIG_INT_U64_MAX)>0;
 }
 
-int fklIsGtI64MaxBigInt(const FklBigInt* a)
+inline int fklIsGtI64MaxBigInt(const FklBigInt* a)
 {
-	FklBigInt* bI64Max=fklCreateBigInt(INT64_MAX);
-	int r=fklCmpBigInt(a,bI64Max)>0;
-	fklDestroyBigInt(bI64Max);
-	return r;
+	return fklCmpBigInt(a,&FKL_BIG_INT_I64_MAX)>0;
 }
 
-int fklIsLtI64MinBigInt(const FklBigInt* a)
+inline int fklIsLtI64MinBigInt(const FklBigInt* a)
 {
-	FklBigInt* bI64Min=fklCreateBigInt(INT64_MIN);
-	int r=fklCmpBigInt(a,bI64Min)<0;
-	fklDestroyBigInt(bI64Min);
-	return r;
+	return fklCmpBigInt(a,&FKL_BIG_INT_I64_MIN)<0;
 }
 
 uint64_t fklBigIntToU64(const FklBigInt* a)
@@ -1447,9 +1438,10 @@ void fklSprintBigInt(const FklBigInt* bi,size_t size,char* buf)
 
 int fklCmpBigIntI(const FklBigInt* bi,int64_t i)
 {
-	FklBigInt* tbi=fklCreateBigInt(i);
-	int r=fklCmpBigInt(bi,tbi);
-	fklDestroyBigInt(tbi);
+	FklBigInt tbi=FKL_BIG_INT_INIT;
+	fklInitBigIntI(&tbi,i);
+	int r=fklCmpBigInt(bi,&tbi);
+	fklUninitBigInt(&tbi);
 	return r;
 }
 

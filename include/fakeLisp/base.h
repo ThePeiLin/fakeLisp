@@ -195,6 +195,7 @@ FklBigInt* fklCreateBigIntFromString(const FklString*);
 FklBigInt* fklCreateBigInt0(void);
 FklBigInt* fklCreateBigInt1(void);
 FklBigInt* fklCopyBigInt(const FklBigInt*);
+
 void fklInitBigInt(FklBigInt*,const FklBigInt*);
 void fklInitBigIntI(FklBigInt*,int64_t v);
 void fklInitBigIntU(FklBigInt*,uint64_t v);
@@ -204,6 +205,7 @@ void fklUninitBigInt(FklBigInt*);
 void fklSetBigInt(FklBigInt*,const FklBigInt* src);
 void fklSetBigIntI(FklBigInt*,int64_t src);
 void fklSetBigIntU(FklBigInt*,uint64_t src);
+
 void fklAddBigInt(FklBigInt*,const FklBigInt* addend);
 void fklAddBigIntI(FklBigInt*,int64_t addend);
 void fklSubBigInt(FklBigInt*,const FklBigInt* toSub);

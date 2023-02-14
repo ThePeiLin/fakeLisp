@@ -617,8 +617,9 @@ uint8_t* fklGetCompoundFrameEnd(const FklVMframe*);
 
 uint8_t* fklGetCompoundFrameCodeAndAdd(FklVMframe*,size_t a);
 
-uint8_t* fklGetCompoundFrameCodeAndInc(FklVMframe* frame);
+//uint8_t* fklGetCompoundFrameCodeAndInc(FklVMframe* frame);
 
+uint8_t fklGetCompoundFrameOpAndInc(FklVMframe* frame);
 //uint64_t fklGetCompoundFrameScp(const FklVMframe*);
 
 //uint64_t fklGetCompoundFrameCp(const FklVMframe*);

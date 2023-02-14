@@ -597,7 +597,7 @@ inline void fklTcMutexRelease(FklVMgc* gc)
 
 inline void fklDoCompoundFrameStep(FklVMframe* curframe,FklVM* exe)
 {
-	ByteCodes[*fklGetCompoundFrameCodeAndInc(curframe)](exe,curframe);
+	ByteCodes[fklGetCompoundFrameOpAndInc(curframe)](exe,curframe);
 }
 
 int fklRunVM(FklVM* exe)
@@ -1907,9 +1907,14 @@ inline uint8_t* fklGetCompoundFrameCode(const FklVMframe* f)
 	return f->u.c.pc;
 }
 
-inline uint8_t* fklGetCompoundFrameCodeAndInc(FklVMframe* f)
+//inline uint8_t* fklGetCompoundFrameCodeAndInc(FklVMframe* f)
+//{
+//	return f->u.c.pc++;
+//}
+
+inline uint8_t fklGetCompoundFrameOpAndInc(FklVMframe* f)
 {
-	return f->u.c.pc++;
+	return *f->u.c.pc++;
 }
 
 //inline uint64_t fklGetCompoundFrameScp(const FklVMframe* f)

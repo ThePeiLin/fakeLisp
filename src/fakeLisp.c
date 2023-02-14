@@ -265,8 +265,9 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 						FklCodegenLib* curCGlib=codegen->loadedLibStack->base[i];
 						if(curCGlib->type==FKL_CODEGEN_LIB_SCRIPT)
 						{
+							FklByteCode* bc=curCGlib->u.bcl->bc;
 							FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,curCGlib->u.bcl,anotherVM->gc);
-							FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(0,curCGlib->u.bcl->bc->size,codeObj,anotherVM->gc),anotherVM->gc);
+							FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(bc->code,bc->size,codeObj,anotherVM->gc),anotherVM->gc);
 							fklSetRef(&proc->u.proc->prevEnv,globEnv,anotherVM->gc);
 							fklInitVMlib(curVMlib,curCGlib->exportNum,curCGlib->exports,proc);
 						}
@@ -282,7 +283,8 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 					free(prev);
 				}
 				fklCodeLntCat(anotherVM->codeObj->u.code,tmpByteCode);
-				FklVMproc* tmp=fklCreateVMproc(bs,tmpByteCode->bc->size,anotherVM->codeObj,anotherVM->gc);
+				FklByteCodelnt* anotherVMCode=anotherVM->codeObj->u.code;
+				FklVMproc* tmp=fklCreateVMproc(anotherVMCode->bc->code+bs,tmpByteCode->bc->size,anotherVM->codeObj,anotherVM->gc);
 				bs+=tmpByteCode->bc->size;
 				fklDestroyByteCodelnt(tmpByteCode);
 				tmp->prevEnv=NULL;
@@ -358,7 +360,7 @@ static void loadLib(FILE* fp,size_t* plibNum,FklVMlib** plibs,FklVMvalue* globEn
 			FklByteCode* bc=loadByteCode(fp);
 			bcl->bc=bc;
 			FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,bcl,gc);
-			FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(0,bcl->bc->size,codeObj,gc),gc);
+			FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(bc->code,bc->size,codeObj,gc),gc);
 			fklSetRef(&proc->u.proc->prevEnv,globEnv,gc);
 			fklInitVMlib(&libs[i],exportNum,exports,proc);
 		}

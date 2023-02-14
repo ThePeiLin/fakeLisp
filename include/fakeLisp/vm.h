@@ -174,8 +174,8 @@ typedef struct FklVMhashTable
 
 typedef struct FklVMproc
 {
-	uint64_t scp;
-	uint64_t cpc;
+	uint8_t* spc;
+	uint8_t* end;
 	FklSid_t sid;
 	FklVMvalue* prevEnv;
 	FklVMvalue* codeObj;
@@ -189,7 +189,7 @@ typedef enum
 	FKL_FRAME_OTHEROBJ,
 }FklFrameType;
 
-typedef void* FklCallObjData[7];
+typedef void* FklCallObjData[6];
 
 typedef struct
 {
@@ -209,10 +209,13 @@ typedef struct FklVMCompoundFrameData
 	FklVMvalue* localenv;
 	FklVMvalue* codeObj;
 	FklVMvalue* proc;
-	uint8_t* code;
-	uint64_t scp;
-	uint64_t cp;
-	uint64_t cpc;
+	uint8_t* spc;
+	uint8_t* pc;
+	uint8_t* end;
+	//uint64_t scp;
+	//uint64_t cp;
+	//uint64_t cpc;
+	//uint64_t rst;
 }FklVMCompoundFrameData;
 
 typedef struct FklVMframe
@@ -439,7 +442,7 @@ FklVMvalue* fklGetValue(FklVMstack* stack,int32_t place);
 FklVMstack* fklCopyStack(FklVMstack*);
 FklVMvalue* fklPopVMstack(FklVMstack*);
 
-FklVMerrorHandler* fklCreateVMerrorHandler(FklSid_t* typeIds,uint32_t,uint64_t scp,uint64_t cpc);
+FklVMerrorHandler* fklCreateVMerrorHandler(FklSid_t* typeIds,uint32_t,uint8_t* spc,uint64_t cpc);
 void fklDestroyVMerrorHandler(FklVMerrorHandler*);
 int fklRaiseVMerror(FklVMvalue* err,FklVM*);
 FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVMframe* prev,FklVMgc* gc);
@@ -466,7 +469,7 @@ FklVMvalue* volatile* fklFindOrAddVar(FklSid_t id,FklVMenv* env);
 FklVMvalue* volatile* fklFindOrAddVarWithValue(FklSid_t id,FklVMvalue*,FklVMenv* env);
 void fklDestroyVMenv(FklVMenv*);
 
-FklVMproc* fklCreateVMproc(uint64_t scp,uint64_t cpc,FklVMvalue* codeObj,FklVMgc* gc);
+FklVMproc* fklCreateVMproc(uint8_t* spc,uint64_t cpc,FklVMvalue* codeObj,FklVMgc* gc);
 
 void fklAtomicVMhashTable(FklVMvalue* pht,FklVMgc* gc);
 void fklAtomicVMenv(FklVMvalue* penv,FklVMgc*);
@@ -610,19 +613,21 @@ FklVMvalue* fklGetCompoundFrameProc(const FklVMframe*);
 
 uint8_t* fklGetCompoundFrameCode(const FklVMframe*);
 
+uint8_t* fklGetCompoundFrameEnd(const FklVMframe*);
+
 uint8_t* fklGetCompoundFrameCodeAndAdd(FklVMframe*,size_t a);
 
 uint8_t* fklGetCompoundFrameCodeAndInc(FklVMframe* frame);
 
-uint64_t fklGetCompoundFrameScp(const FklVMframe*);
+//uint64_t fklGetCompoundFrameScp(const FklVMframe*);
 
-uint64_t fklGetCompoundFrameCp(const FklVMframe*);
-uint64_t fklAddCompoundFrameCp(FklVMframe*,int64_t a);
+//uint64_t fklGetCompoundFrameCp(const FklVMframe*);
+void fklAddCompoundFrameCp(FklVMframe*,int64_t a);
 
-uint64_t fklGetCompoundFrameRestCp(const FklVMframe* frame);
+//uint64_t fklGetCompoundFrameRestCp(const FklVMframe* frame);
 
-uint64_t fklSetCompoundFrameCp(FklVMframe*,uint64_t a);
-uint64_t fklResetCompoundFrameCp(FklVMframe*);
+//uint64_t fklSetCompoundFrameCp(FklVMframe*,uint64_t a);
+//uint64_t fklResetCompoundFrameCp(FklVMframe*);
 
 uint64_t fklGetCompoundFrameCpc(const FklVMframe*);
 FklSid_t fklGetCompoundFrameSid(const FklVMframe*);

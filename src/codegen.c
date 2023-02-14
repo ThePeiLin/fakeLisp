@@ -4023,8 +4023,9 @@ void fklInitVMlibWithCodgenLib(FklCodegenLib* clib
 	FklVMvalue* val=FKL_VM_NIL;
 	if(clib->type==FKL_CODEGEN_LIB_SCRIPT)
 	{
+		FklByteCode* bc=clib->u.bcl->bc;
 		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,fklCopyByteCodelnt(clib->u.bcl),gc);
-		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(0,clib->u.bcl->bc->size,codeObj,gc),gc);
+		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(bc->code,bc->size,codeObj,gc),gc);
 		fklSetRef(&proc->u.proc->prevEnv,globEnv,gc);
 		val=proc;
 	}
@@ -4045,8 +4046,9 @@ void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
 	FklVMvalue* val=FKL_VM_NIL;
 	if(clib->type==FKL_CODEGEN_LIB_SCRIPT)
 	{
+		FklByteCode* bc=clib->u.bcl->bc;
 		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,clib->u.bcl,gc);
-		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(0,clib->u.bcl->bc->size,codeObj,gc),gc);
+		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(bc->code,bc->size,codeObj,gc),gc);
 		fklSetRef(&proc->u.proc->prevEnv,globEnv,gc);
 		val=proc;
 	}

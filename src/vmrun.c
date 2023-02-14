@@ -67,7 +67,7 @@ static int is_last_expression(FklVMframe* frame)
 	{
 		uint8_t* pc=fklGetCompoundFrameCode(frame);
 		if(*pc==FKL_OP_CALL||*pc==FKL_OP_TAIL_CALL)pc++;
-		uint8_t* end=pc+fklGetCompoundFrameRestCp(frame);
+		uint8_t* end=fklGetCompoundFrameEnd(frame);
 
 		for(;pc<end;pc+=(*pc==FKL_OP_JMP)?1+fklGetI64FromByteCode(pc+1)+sizeof(int64_t):1)
 			if(*pc!=FKL_OP_POP_TP
@@ -745,7 +745,7 @@ static void B_push_top(FklVM* exe,FklVMframe* frame)
 static void B_push_proc(FklVM* exe,FklVMframe* frame)
 {
 	uint64_t sizeOfProc=fklGetU64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint64_t)));
-	FklVMproc* code=fklCreateVMproc(fklGetCompoundFrameCp(frame),sizeOfProc,fklGetCompoundFrameCodeObj(frame),exe->gc);
+	FklVMproc* code=fklCreateVMproc(fklGetCompoundFrameCode(frame),sizeOfProc,fklGetCompoundFrameCodeObj(frame),exe->gc);
 	fklCreateVMvalueToStack(FKL_TYPE_PROC,code,exe);
 	fklSetRef(&code->prevEnv,fklGetCompoundFrameLocalenv(frame),exe->gc);
 	fklAddCompoundFrameCp(frame,sizeOfProc);
@@ -1898,57 +1898,61 @@ inline FklVMvalue* fklGetCompoundFrameProc(const FklVMframe* f)
 inline uint8_t* fklGetCompoundFrameCodeAndAdd(FklVMframe* f,size_t a)
 {
 	uint8_t* r=fklGetCompoundFrameCode(f);
-	f->u.c.cp+=a;
+	f->u.c.pc+=a;
 	return r;
 }
 
 inline uint8_t* fklGetCompoundFrameCode(const FklVMframe* f)
 {
-	return &f->u.c.code[f->u.c.cp];
+	return f->u.c.pc;
 }
 
 inline uint8_t* fklGetCompoundFrameCodeAndInc(FklVMframe* f)
 {
-	return &f->u.c.code[f->u.c.cp++];
+	return f->u.c.pc++;
 }
 
-inline uint64_t fklGetCompoundFrameScp(const FklVMframe* f)
+//inline uint64_t fklGetCompoundFrameScp(const FklVMframe* f)
+//{
+//	return f->u.c.scp;
+//}
+
+//inline uint64_t fklGetCompoundFrameCp(const FklVMframe* f)
+//{
+//	return f->u.c.cp;
+//}
+
+inline void fklAddCompoundFrameCp(FklVMframe* f,int64_t a)
 {
-	return f->u.c.scp;
+	f->u.c.pc+=a;
 }
 
-inline uint64_t fklGetCompoundFrameCp(const FklVMframe* f)
+inline uint8_t* fklGetCompoundFrameEnd(const FklVMframe* f)
 {
-	return f->u.c.cp;
+	return f->u.c.end;
 }
 
-inline uint64_t fklAddCompoundFrameCp(FklVMframe* f,int64_t a)
-{
-	f->u.c.cp+=a;
-	return f->u.c.cp;
-}
+//inline uint64_t fklGetCompoundFrameRestCp(const FklVMframe* f)
+//{
+//	return f->u.c.rst;
+//}
 
-inline uint64_t fklGetCompoundFrameRestCp(const FklVMframe* f)
-{
-	return f->u.c.scp+f->u.c.cpc-f->u.c.cp;
-}
+//inline uint64_t fklSetCompoundFrameCp(FklVMframe* f,uint64_t a)
+//{
+//	f->u.c.cp=a;
+//	return f->u.c.cp;
+//}
 
-inline uint64_t fklSetCompoundFrameCp(FklVMframe* f,uint64_t a)
-{
-	f->u.c.cp=a;
-	return f->u.c.cp;
-}
+//inline uint64_t fklResetCompoundFrameCp(FklVMframe* f)
+//{
+//	f->u.c.cp=f->u.c.scp;
+//	return f->u.c.scp;
+//}
 
-inline uint64_t fklResetCompoundFrameCp(FklVMframe* f)
-{
-	f->u.c.cp=f->u.c.scp;
-	return f->u.c.scp;
-}
-
-inline uint64_t fklGetCompoundFrameCpc(const FklVMframe* f)
-{
-	return f->u.c.cpc;
-}
+//inline uint64_t fklGetCompoundFrameCpc(const FklVMframe* f)
+//{
+//	return f->u.c.cpc;
+//}
 
 inline FklSid_t fklGetCompoundFrameSid(const FklVMframe* f)
 {
@@ -1957,11 +1961,11 @@ inline FklSid_t fklGetCompoundFrameSid(const FklVMframe* f)
 
 inline int fklIsCompoundFrameReachEnd(FklVMframe* f)
 {
-	if(f->u.c.cp>=(f->u.c.scp+f->u.c.cpc))
+	if(f->u.c.pc==f->u.c.end)
 	{
 		if(f->u.c.mark)
 		{
-			f->u.c.cp=f->u.c.scp;
+			f->u.c.pc=f->u.c.spc;
 			f->u.c.mark=0;
 			f->u.c.tail=0;
 			return 0;

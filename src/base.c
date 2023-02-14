@@ -593,12 +593,12 @@ static void divRemBigIntU8(FklBigInt* a,uint64_t* prem,uint8_t b)
 	*prem=rem;
 }
 
-void fklBigIntToRadixDigitsLe(const FklBigInt* u,uint32_t radix,FklUintStack* res)
+void fklBigIntToRadixDigitsLe(const FklBigInt* u,uint32_t radix,FklU8Stack* res)
 {
 	FKL_ASSERT(!FKL_IS_0_BIG_INT(u));
 	const double radixLog2=log2(radix);
 	const size_t radixDigits=ceil((((double)(u->num*FKL_BIG_INT_BITS))/radixLog2));
-	fklInitUintStack(res,radixDigits,16);
+	fklInitU8Stack(res,radixDigits,16);
 	uint8_t base=BASE8[radix].base;
 	size_t pow=BASE8[radix].pow;
 	FklBigInt digits=FKL_BIG_INT_INIT;
@@ -634,7 +634,7 @@ void fklBigIntToRadixDigitsLe(const FklBigInt* u,uint32_t radix,FklUintStack* re
 				divRemBigIntU8(&bigR,&r,base);
 				for(size_t j=0;j<pow;j++)
 				{
-					fklPushUintStack(r%radix,res);
+					fklPushU8Stack(r%radix,res);
 					r/=radix;
 				}
 			}
@@ -648,43 +648,43 @@ void fklBigIntToRadixDigitsLe(const FklBigInt* u,uint32_t radix,FklUintStack* re
 		divRemBigIntU8(&digits,&r,base);
 		for(size_t i=0;i<pow;i++)
 		{
-			fklPushUintStack(r%radix,res);
+			fklPushU8Stack(r%radix,res);
 			r/=radix;
 		}
 	}
 	uint8_t r=digits.digits[0];
 	while(r!=0)
 	{
-		fklPushUintStack(r%radix,res);
+		fklPushU8Stack(r%radix,res);
 		r/=radix;
 	}
 	free(digits.digits);
 }
 
-static void toBitWiseDigitsLe(const FklBigInt* u,uint8_t bits,FklUintStack* res)
+static void toBitWiseDigitsLe(const FklBigInt* u,uint8_t bits,FklU8Stack* res)
 {
 	uint8_t mask=(1<<bits)-1;
 	uint8_t digitsPerUint8=FKL_BIG_INT_BITS/bits;
-	fklInitUintStack(res,(u->num*FKL_BIG_INT_BITS)/bits,16);
+	fklInitU8Stack(res,(u->num*FKL_BIG_INT_BITS)/bits,16);
 	for(size_t i=0;i<u->num;i++)
 	{
 		uint8_t c=u->digits[i];
 		for(size_t j=0;j<digitsPerUint8;j++)
 		{
-			fklPushUintStack(c&mask,res);
+			fklPushU8Stack(c&mask,res);
 			c>>=bits;
 		}
 	}
-	while(!fklIsUintStackEmpty(res)&&fklTopUintStack(res)==0)
-		fklPopUintStack(res);
+	while(!fklIsU8StackEmpty(res)&&fklTopU8Stack(res)==0)
+		fklPopU8Stack(res);
 }
 
-static void toInexactBitWiseDigitsLe(const FklBigInt* u,uint8_t bits,FklUintStack* res)
+static void toInexactBitWiseDigitsLe(const FklBigInt* u,uint8_t bits,FklU8Stack* res)
 {
 	FKL_ASSERT(!FKL_IS_0_BIG_INT(u)&&bits<=8);
 	const size_t digits=ceil(((double)(u->num*FKL_BIG_INT_BITS))/bits);
 	const uint8_t mask=(1<<bits)-1;
-	fklInitUintStack(res,digits,16);
+	fklInitU8Stack(res,digits,16);
 	int32_t r=0;
 	int32_t rbits=0;
 	for(size_t i=0;i<u->num;i++)
@@ -694,7 +694,7 @@ static void toInexactBitWiseDigitsLe(const FklBigInt* u,uint8_t bits,FklUintStac
 		rbits+=FKL_BIG_INT_BITS;
 		while(rbits>=bits)
 		{
-			fklPushUintStack(r&mask,res);
+			fklPushU8Stack(r&mask,res);
 			r>>=bits;
 			if(rbits>FKL_BIG_INT_BITS)
 				r=c>>(FKL_BIG_INT_BITS-(rbits-bits));
@@ -702,9 +702,9 @@ static void toInexactBitWiseDigitsLe(const FklBigInt* u,uint8_t bits,FklUintStac
 		}
 	}
 	if(rbits!=0)
-		fklPushUintStack(r,res);
-	while(!fklIsUintStackEmpty(res)&&fklTopUintStack(res)==0)
-		fklPopUintStack(res);
+		fklPushU8Stack(r,res);
+	while(!fklIsU8StackEmpty(res)&&fklTopU8Stack(res)==0)
+		fklPopU8Stack(res);
 }
 
 void fklDestroyBigInt(FklBigInt* t)
@@ -1356,14 +1356,14 @@ void fklPrintBigInt(const FklBigInt* a,FILE* fp)
 		fputc('0',fp);
 	else
 	{
-		FklUintStack res=FKL_STACK_INIT;
+		FklU8Stack res=FKL_STACK_INIT;
 		fklBigIntToRadixDigitsLe(a,10,&res);
 		for(size_t i=res.top;i>0;i--)
 		{
 			uint8_t c=res.base[i-1];
 			fputc('0'+c,fp);
 		}
-		fklUninitUintStack(&res);
+		fklUninitU8Stack(&res);
 	}
 }
 
@@ -1384,7 +1384,7 @@ FklString* fklBigIntToString(const FklBigInt* a,int radix)
 			j++;
 			len++;
 		}
-		FklUintStack res=FKL_STACK_INIT;
+		FklU8Stack res=FKL_STACK_INIT;
 		if(radix==10)
 			fklBigIntToRadixDigitsLe(a,radix,&res);
 		else if(radix==16)
@@ -1416,7 +1416,7 @@ FklString* fklBigIntToString(const FklBigInt* a,int radix)
 			uint64_t c=res.base[i-1];
 			buf[j]=c<10?c+'0':c-10+'A';
 		}
-		fklUninitUintStack(&res);
+		fklUninitU8Stack(&res);
 		return s;
 	}
 }
@@ -1432,11 +1432,11 @@ void fklSprintBigInt(const FklBigInt* bi,size_t size,char* buf)
 		buf[0]='0';
 	else
 	{
-		FklUintStack res=FKL_STACK_INIT;
+		FklU8Stack res=FKL_STACK_INIT;
 		fklBigIntToRadixDigitsLe(bi,10,&res);
 		for(size_t i=res.top;i>0;i--)
 			buf[i]=res.base[i-1]+'0';
-		fklUninitUintStack(&res);
+		fklUninitU8Stack(&res);
 	}
 }
 
@@ -1931,4 +1931,76 @@ FklBytevector* fklCopyBytevector(const FklBytevector* obj)
 	memcpy(tmp->ptr,obj->ptr,obj->size);
 	tmp->size=obj->size;
 	return tmp;
+}
+
+void fklInitU8Stack(FklU8Stack* r,size_t size,uint32_t inc)
+{
+	r->base=(uint8_t*)malloc(sizeof(uint8_t)*size);
+	FKL_ASSERT(r->base);
+	r->size=size;
+	r->inc=inc;
+	r->top=0;
+}
+
+FklU8Stack* fklCreateU8Stack(size_t size,uint32_t inc)
+{
+	FklU8Stack* tmp=(FklU8Stack*)malloc(sizeof(FklU8Stack));
+	FKL_ASSERT(tmp);
+	fklInitU8Stack(tmp,size,inc);
+	return tmp;
+}
+
+inline void fklUninitU8Stack(FklU8Stack* r)
+{
+	free(r->base);
+}
+
+inline void fklDestroyU8Stack(FklU8Stack* r)
+{
+	fklUninitU8Stack(r);
+	free(r);
+}
+
+void fklPushU8Stack(uint8_t data,FklU8Stack* stack)
+{
+	if(stack->top==stack->size)
+	{
+		uint8_t* tmpData=(uint8_t*)realloc(stack->base,(stack->size+stack->inc)*sizeof(uint8_t));
+		FKL_ASSERT(tmpData);
+		stack->base=tmpData;
+		stack->size+=stack->inc;
+	}
+	stack->base[stack->top]=data;
+	stack->top+=1;
+}
+
+inline uint8_t fklPopU8Stack(FklU8Stack* s)
+{
+	if(fklIsU8StackEmpty(s))
+		return 0;
+	return s->base[s->top--];
+}
+
+inline uint8_t fklTopU8Stack(FklU8Stack* s)
+{
+	if(fklIsU8StackEmpty(s))
+		return 0;
+	return s->base[s->top-1];
+
+}
+
+inline int fklIsU8StackEmpty(FklU8Stack* s)
+{
+	return s->top==0;
+}
+
+void fklRecycleU8Stack(FklU8Stack* s)
+{
+	if(s->size-s->top>s->inc)
+	{
+		uint8_t* tmpData=(uint8_t*)realloc(s->base,(s->size-s->inc)*sizeof(uint8_t));
+		FKL_ASSERT(tmpData);
+		s->base=tmpData;
+		s->size-=s->inc;
+	}
 }

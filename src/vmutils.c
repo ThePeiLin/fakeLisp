@@ -1214,14 +1214,14 @@ inline static void print_big_int_to_ut_string(UT_string* s,FklBigInt* a)
 		utstring_printf(s,"0");
 	else
 	{
-		FklUintStack res=FKL_STACK_INIT;
+		FklU8Stack res=FKL_STACK_INIT;
 		fklBigIntToRadixDigitsLe(a,10,&res);
 		for(size_t i=res.top;i>0;i--)
 		{
 			uint8_t c=res.base[i-1];
 			utstring_printf(s,"%c",'0'+c);
 		}
-		fklUninitUintStack(&res);
+		fklUninitU8Stack(&res);
 	}
 }
 

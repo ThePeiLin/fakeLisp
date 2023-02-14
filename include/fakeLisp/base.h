@@ -158,7 +158,7 @@ int fklIsIntStackEmpty(FklIntStack*);
 typedef struct
 {
 	uint64_t* base;
-	size_t size;
+	uint32_t size;
 	uint32_t top;
 	uint32_t inc;
 }FklUintStack;
@@ -174,6 +174,24 @@ uint64_t fklTopUintStack(FklUintStack*);
 void fklDestroyUintStack(FklUintStack*);
 void fklRecycleUintStack(FklUintStack*);
 int fklIsUintStackEmpty(FklUintStack*);
+
+typedef struct
+{
+	uint8_t* base;
+	size_t size;
+	size_t top;
+	uint32_t inc;
+}FklU8Stack;
+
+void fklInitU8Stack(FklU8Stack*,size_t size,uint32_t inc);
+void fklUninitU8Stack(FklU8Stack*);
+FklU8Stack* fklCreateU8Stack(size_t size,uint32_t inc);
+void fklPushU8Stack(uint8_t e,FklU8Stack*);
+uint8_t fklPopU8Stack(FklU8Stack*);
+uint8_t fklTopU8Stack(FklU8Stack*);
+void fklDestroyU8Stack(FklU8Stack*);
+void fklRecycleU8Stack(FklU8Stack*);
+int fklIsU8StackEmpty(FklU8Stack*);
 
 typedef struct FklBigInt
 {
@@ -244,7 +262,7 @@ void fklDestroyBigInt(FklBigInt*);
 void fklPrintBigInt(const FklBigInt*,FILE*);
 void fklSprintBigInt(const FklBigInt*,size_t size,char* buf);
 FklString* fklBigIntToString(const FklBigInt*,int radix);
-void fklBigIntToRadixDigitsLe(const FklBigInt* u,uint32_t radix,FklUintStack* res);
+void fklBigIntToRadixDigitsLe(const FklBigInt* u,uint32_t radix,FklU8Stack* res);
 
 #ifdef __cplusplus
 }

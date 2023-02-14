@@ -193,9 +193,9 @@ static void dlproc_ccc_copy(const VMcCC* s,VMcCC* d)
 		d->ctx=fklCopyMemory(s->ctx,d->size);
 }
 
-static void dlproc_frame_copy(void* const s[6],void* d[6],FklVM* exe)
+static void dlproc_frame_copy(const FklCallObjData s,FklCallObjData d,FklVM* exe)
 {
-	DlprocFrameContext* sc=(DlprocFrameContext*)s;
+	DlprocFrameContext const* const sc=(DlprocFrameContext*)s;
 	DlprocFrameContext* dc=(DlprocFrameContext*)d;
 	FklVMgc* gc=exe->gc;
 	dc->state=sc->state;

@@ -425,53 +425,6 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 	return exe;
 }
 
-//FklVM* fklCreateTmpVM(FklByteCode* mainCode,FklVMgc* gc,FklVM* prev,FklVM* next)
-//{
-//	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
-//	FKL_ASSERT(exe);
-//	exe->code=NULL;
-//	exe->size=0;
-//	exe->frames=NULL;
-//	exe->nextCall=NULL;
-//	exe->nextCallBackUp=NULL;
-//	if(mainCode!=NULL)
-//	{
-//		exe->code=fklCopyMemory(mainCode->code,mainCode->size);
-//		exe->size=mainCode->size;
-//		exe->frames=fklCreateVMframe(fklCreateVMproc(0,mainCode->size),exe->frames);
-//	}
-//	exe->tid=pthread_self();
-//	exe->mark=1;
-//	exe->nny=0;
-//	exe->chan=NULL;
-//	exe->stack=fklCreateVMstack(0);
-//	exe->tstack=fklCreatePtrStack(32,16);
-//	if(gc)
-//		exe->gc=gc;
-//	else
-//		exe->gc=fklCreateVMgc();
-//	pthread_rwlock_init(&exe->rlock,NULL);
-//	//	exe->callback=threadErrorCallBack;
-//	exe->callback=NULL;
-////	exe->thrds=1;
-//	pthread_mutex_init(&exe->prev_next_lock,NULL);
-//	exe->prev=prev;
-//	exe->next=next;
-//	if(prev)
-//	{
-//		pthread_mutex_lock(&exe->prev->prev_next_lock);
-//		exe->prev->next=exe;
-//		pthread_mutex_unlock(&exe->prev->prev_next_lock);
-//	}
-//	if(next)
-//	{
-//		pthread_mutex_lock(&exe->next->prev_next_lock);
-//		exe->next->prev=exe;
-//		pthread_mutex_unlock(&exe->next->prev_next_lock);
-//	}
-//	return exe;
-//}
-
 inline void** fklGetFrameData(FklVMframe* f)
 {
 	return f->u.o.data;

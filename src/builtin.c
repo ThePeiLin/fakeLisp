@@ -3516,7 +3516,7 @@ static void error_handler_frame_finalizer(FklCallObjData data)
 	free(c->errorHandlers);
 }
 
-static void error_handler_frame_copy(void* const s[6],void* d[6],FklVM* exe)
+static void error_handler_frame_copy(const FklCallObjData s,FklCallObjData d,FklVM* exe)
 {
 	EhFrameContext* sc=(EhFrameContext*)s;
 	EhFrameContext* dc=(EhFrameContext*)d;

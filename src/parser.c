@@ -141,10 +141,10 @@ static FklNastNode* createNum(const FklString* oStr,uint64_t line,FklSymbolTable
 	}
 	else
 	{
-		r=fklCreateNastNode(FKL_NAST_I32,line);
+		r=fklCreateNastNode(FKL_NAST_FIX,line);
 		FklBigInt bInt=FKL_BIG_INT_INIT;
 		fklInitBigIntFromString(&bInt,oStr);
-		if(fklIsGtLtI64BigInt(&bInt))
+		if(fklIsGtLtFixBigInt(&bInt))
 		{
 			FklBigInt* bi=(FklBigInt*)malloc(sizeof(FklBigInt));
 			FKL_ASSERT(bi);
@@ -155,13 +155,8 @@ static FklNastNode* createNum(const FklString* oStr,uint64_t line,FklSymbolTable
 		else
 		{
 			int64_t num=fklBigIntToI64(&bInt);
-			if(num>INT32_MAX||num<INT32_MIN)
-			{
-				r->type=FKL_NAST_I64;
-				r->u.i64=num;
-			}
-			else
-				r->u.i32=num;
+			r->type=FKL_NAST_FIX;
+			r->u.fix=num;
 			fklUninitBigInt(&bInt);
 		}
 	}
@@ -278,11 +273,8 @@ void fklPrintNastNode(const FklNastNode* exp
 				case FKL_NAST_STR:
 					fklPrintRawString(node->u.str,fp);
 					break;
-				case FKL_NAST_I32:
-					fprintf(fp,"%d",node->u.i32);
-					break;
-				case FKL_NAST_I64:
-					fprintf(fp,"%ld",node->u.i64);
+				case FKL_NAST_FIX:
+					fprintf(fp,"%ld",node->u.fix);
 					break;
 				case FKL_NAST_F64:
 					fprintf(fp,"%lf",node->u.f64);
@@ -407,8 +399,7 @@ void fklDestroyNastNode(FklNastNode* node)
 			{
 				switch(cur->type)
 				{
-					case FKL_NAST_I64:
-					case FKL_NAST_I32:
+					case FKL_NAST_FIX:
 					case FKL_NAST_SYM:
 					case FKL_NAST_NIL:
 					case FKL_NAST_CHR:
@@ -495,11 +486,8 @@ FklNastNode* fklCopyNastNode(const FklNastNode* node)
 			case FKL_NAST_NIL:
 				cur->u.str=NULL;
 				break;
-			case FKL_NAST_I32:
-				cur->u.i32=root->u.i32;
-				break;
-			case FKL_NAST_I64:
-				cur->u.i64=root->u.i64;
+			case FKL_NAST_FIX:
+				cur->u.fix=root->u.fix;
 				break;
 			case FKL_NAST_F64:
 				cur->u.f64=root->u.f64;
@@ -580,11 +568,8 @@ int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1)
 				case FKL_NAST_SYM:
 					r=c0->u.sym==c1->u.sym;
 					break;
-				case FKL_NAST_I32:
-					r=c0->u.i32==c1->u.i32;
-					break;
-				case FKL_NAST_I64:
-					r=c0->u.i64==c1->u.i64;
+				case FKL_NAST_FIX:
+					r=c0->u.fix==c1->u.fix;
 					break;
 				case FKL_NAST_F64:
 					r=c0->u.f64==c1->u.f64;

@@ -137,8 +137,8 @@ FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
 				case FKL_NAST_NIL:
 					fklPushPtrStack(FKL_VM_NIL,cStack);
 					break;
-				case FKL_NAST_I32:
-					fklPushPtrStack(FKL_MAKE_VM_I32(root->u.i32),cStack);
+				case FKL_NAST_FIX:
+					fklPushPtrStack(FKL_MAKE_VM_FIX(root->u.fix),cStack);
 					break;
 				case FKL_NAST_CHR:
 					fklPushPtrStack(FKL_MAKE_VM_CHR(root->u.chr),cStack);
@@ -307,8 +307,8 @@ FklVMvalue* fklCreateVMvalueFromNastNodeNoGC(const FklNastNode* node
 				case FKL_NAST_NIL:
 					fklPushPtrStack(FKL_VM_NIL,cStack);
 					break;
-				case FKL_NAST_I32:
-					fklPushPtrStack(FKL_MAKE_VM_I32(root->u.i32),cStack);
+				case FKL_NAST_FIX:
+					fklPushPtrStack(FKL_MAKE_VM_FIX(root->u.fix),cStack);
 					break;
 				case FKL_NAST_CHR:
 					fklPushPtrStack(FKL_MAKE_VM_CHR(root->u.chr),cStack);
@@ -441,26 +441,17 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 					cur->type=FKL_NAST_CHR;
 					cur->u.chr=FKL_GET_CHR(value);
 					break;
-				case FKL_TAG_I32:
-					cur->type=FKL_NAST_I32;
-					cur->u.i32=FKL_GET_I32(value);
+				case FKL_TAG_FIX:
+					cur->type=FKL_NAST_FIX;
+					cur->u.fix=FKL_GET_FIX(value);
 					break;
 				case FKL_TAG_PTR:
 					{
 						switch(value->type)
 						{
-							case FKL_TYPE_NIL:
-							case FKL_TYPE_SYM:
-							case FKL_TYPE_I32:
-							case FKL_TYPE_CHR:
-								break;
 							case FKL_TYPE_F64:
 								cur->type=FKL_NAST_F64;
 								cur->u.f64=value->u.f64;
-								break;
-							case FKL_TYPE_I64:
-								cur->type=FKL_NAST_I64;
-								cur->u.i64=value->u.i64;
 								break;
 							case FKL_TYPE_STR:
 								cur->type=FKL_NAST_STR;
@@ -598,7 +589,7 @@ FklVMvalue* fklCopyVMlistOrAtom(FklVMvalue* obj,FklVM* vm)
 		switch(tag)
 		{
 			case FKL_TAG_NIL:
-			case FKL_TAG_I32:
+			case FKL_TAG_FIX:
 			case FKL_TAG_SYM:
 			case FKL_TAG_CHR:
 				*root1=root;
@@ -639,12 +630,12 @@ static FklVMvalue* __fkl_f64_copyer(FklVMvalue* obj,FklVM* vm)
 	return tmp;
 }
 
-static FklVMvalue* __fkl_i64_copyer(FklVMvalue* obj,FklVM* vm)
-{
-	FklVMvalue* tmp=fklCreateVMvalueToStack(FKL_TYPE_I64,NULL,vm);
-	tmp->u.i64=obj->u.i64;
-	return tmp;
-}
+//static FklVMvalue* __fkl_i64_copyer(FklVMvalue* obj,FklVM* vm)
+//{
+//	FklVMvalue* tmp=fklCreateVMvalueToStack(FKL_TYPE_I64,NULL,vm);
+//	tmp->u.i64=obj->u.i64;
+//	return tmp;
+//}
 
 static FklVMvalue* __fkl_bigint_copyer(FklVMvalue* obj,FklVM* vm)
 {
@@ -704,12 +695,7 @@ static FklVMvalue* __fkl_hashtable_copyer(FklVMvalue* obj,FklVM* vm)
 
 static FklVMvalue* (*const valueCopyers[])(FklVMvalue* obj,FklVM* vm)=
 {
-	NULL,
-	NULL,
-	NULL,
-	NULL,
 	__fkl_f64_copyer,
-	__fkl_i64_copyer,
 	__fkl_bigint_copyer,
 	__fkl_str_copyer,
 	__fkl_vector_copyer,
@@ -736,7 +722,7 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVM* vm)
 	switch(tag)
 	{
 		case FKL_TAG_NIL:
-		case FKL_TAG_I32:
+		case FKL_TAG_FIX:
 		case FKL_TAG_SYM:
 		case FKL_TAG_CHR:
 			tmp=obj;
@@ -773,19 +759,19 @@ static inline double getF64FromByteCode(uint8_t* code)
 	return i;
 }
 
-static inline int64_t getI64FromByteCode(uint8_t* code)
-{
-	int64_t i=0;
-	((uint8_t*)&i)[0]=code[0];
-	((uint8_t*)&i)[1]=code[1];
-	((uint8_t*)&i)[2]=code[2];
-	((uint8_t*)&i)[3]=code[3];
-	((uint8_t*)&i)[4]=code[4];
-	((uint8_t*)&i)[5]=code[5];
-	((uint8_t*)&i)[6]=code[6];
-	((uint8_t*)&i)[7]=code[7];
-	return i;
-}
+//static inline int64_t getI64FromByteCode(uint8_t* code)
+//{
+//	int64_t i=0;
+//	((uint8_t*)&i)[0]=code[0];
+//	((uint8_t*)&i)[1]=code[1];
+//	((uint8_t*)&i)[2]=code[2];
+//	((uint8_t*)&i)[3]=code[3];
+//	((uint8_t*)&i)[4]=code[4];
+//	((uint8_t*)&i)[5]=code[5];
+//	((uint8_t*)&i)[6]=code[6];
+//	((uint8_t*)&i)[7]=code[7];
+//	return i;
+//}
 
 FklVMvalue* fklCreateVMvalue(FklValueType type,void* pValue,FklVM* vm)
 {
@@ -809,62 +795,99 @@ FklVMvalue* fklCreateVMvalueToStack(FklValueType type
 
 FklVMvalue* fklCreateSaveVMvalue(FklValueType type,void* pValue)
 {
+	FklVMvalue* tmp=(FklVMvalue*)malloc(sizeof(FklVMvalue));
+	FKL_ASSERT(tmp);
+	tmp->type=type;
+	tmp->mark=FKL_MARK_W;
 	switch(type)
 	{
-		case FKL_TYPE_NIL:
-			return FKL_VM_NIL;
+		case FKL_TYPE_F64:
+			if(pValue)
+				tmp->u.f64=getF64FromByteCode(pValue);
 			break;
-		case FKL_TYPE_CHR:
-			return FKL_MAKE_VM_CHR(pValue);
-			break;
-		case FKL_TYPE_I32:
-			return FKL_MAKE_VM_I32(pValue);
-			break;
-		case FKL_TYPE_SYM:
-			return FKL_MAKE_VM_SYM(pValue);
+			//case FKL_TYPE_I64:
+			//	if(pValue)
+			//		tmp->u.i64=getI64FromByteCode(pValue);
+			//	break;
+		case FKL_TYPE_BYTEVECTOR:
+		case FKL_TYPE_STR:
+		case FKL_TYPE_PAIR:
+		case FKL_TYPE_PROC:
+		case FKL_TYPE_CHAN:
+		case FKL_TYPE_FP:
+		case FKL_TYPE_DLL:
+		case FKL_TYPE_DLPROC:
+		case FKL_TYPE_ERR:
+		case FKL_TYPE_VECTOR:
+		case FKL_TYPE_USERDATA:
+		case FKL_TYPE_ENV:
+		case FKL_TYPE_BIG_INT:
+		case FKL_TYPE_BOX:
+		case FKL_TYPE_HASHTABLE:
+		case FKL_TYPE_CODE_OBJ:
+			tmp->u.box=pValue;
 			break;
 		default:
-			{
-				FklVMvalue* tmp=(FklVMvalue*)malloc(sizeof(FklVMvalue));
-				FKL_ASSERT(tmp);
-				tmp->type=type;
-				tmp->mark=FKL_MARK_W;
-				switch(type)
-				{
-					case FKL_TYPE_F64:
-						if(pValue)
-							tmp->u.f64=getF64FromByteCode(pValue);
-						break;
-					case FKL_TYPE_I64:
-						if(pValue)
-							tmp->u.i64=getI64FromByteCode(pValue);
-						break;
-					case FKL_TYPE_BYTEVECTOR:
-					case FKL_TYPE_STR:
-					case FKL_TYPE_PAIR:
-					case FKL_TYPE_PROC:
-					case FKL_TYPE_CHAN:
-					case FKL_TYPE_FP:
-					case FKL_TYPE_DLL:
-					case FKL_TYPE_DLPROC:
-					case FKL_TYPE_ERR:
-					case FKL_TYPE_VECTOR:
-					case FKL_TYPE_USERDATA:
-					case FKL_TYPE_ENV:
-					case FKL_TYPE_BIG_INT:
-					case FKL_TYPE_BOX:
-					case FKL_TYPE_HASHTABLE:
-					case FKL_TYPE_CODE_OBJ:
-						tmp->u.box=pValue;
-						break;
-					default:
-						return NULL;
-						break;
-				}
-				return FKL_MAKE_VM_PTR(tmp);
-			}
+			return NULL;
 			break;
 	}
+	return FKL_MAKE_VM_PTR(tmp);
+		//switch(type)
+		//{
+		//	//case FKL_TYPE_NIL:
+		//	//	return FKL_VM_NIL;
+		//	//	break;
+		//	//case FKL_TYPE_CHR:
+		//	//	return FKL_MAKE_VM_CHR(pValue);
+		//	//	break;
+		//	//case FKL_TYPE_I32:
+		//	//	return FKL_MAKE_VM_I32(pValue);
+		//	//	break;
+		//	//case FKL_TYPE_SYM:
+		//	//	return FKL_MAKE_VM_SYM(pValue);
+		//	//	break;
+		//	default:
+		//		{
+		//			FklVMvalue* tmp=(FklVMvalue*)malloc(sizeof(FklVMvalue));
+		//			FKL_ASSERT(tmp);
+		//			tmp->type=type;
+		//			tmp->mark=FKL_MARK_W;
+		//			switch(type)
+		//			{
+		//				case FKL_TYPE_F64:
+		//					if(pValue)
+		//						tmp->u.f64=getF64FromByteCode(pValue);
+		//					break;
+		//					//case FKL_TYPE_I64:
+		//					//	if(pValue)
+		//					//		tmp->u.i64=getI64FromByteCode(pValue);
+		//					//	break;
+		//				case FKL_TYPE_BYTEVECTOR:
+		//				case FKL_TYPE_STR:
+		//				case FKL_TYPE_PAIR:
+		//				case FKL_TYPE_PROC:
+		//				case FKL_TYPE_CHAN:
+		//				case FKL_TYPE_FP:
+		//				case FKL_TYPE_DLL:
+		//				case FKL_TYPE_DLPROC:
+		//				case FKL_TYPE_ERR:
+		//				case FKL_TYPE_VECTOR:
+		//				case FKL_TYPE_USERDATA:
+		//				case FKL_TYPE_ENV:
+		//				case FKL_TYPE_BIG_INT:
+		//				case FKL_TYPE_BOX:
+		//				case FKL_TYPE_HASHTABLE:
+		//				case FKL_TYPE_CODE_OBJ:
+		//					tmp->u.box=pValue;
+		//					break;
+		//				default:
+		//					return NULL;
+		//					break;
+		//			}
+		//			return FKL_MAKE_VM_PTR(tmp);
+		//		}
+		//		break;
+		//}
 }
 
 void fklAddToGCNoGC(FklVMvalue* v,FklVMgc* gc)
@@ -939,7 +962,7 @@ void fklAddToGC(FklVMvalue* v,FklVM* vm)
 
 inline FklVMvalue* fklCreateTrueValue()
 {
-	return FKL_MAKE_VM_I32(1);
+	return FKL_MAKE_VM_FIX(1);
 }
 
 inline FklVMvalue* fklCreateNilValue()
@@ -1077,14 +1100,12 @@ int fklVMvalueEqual(const FklVMvalue* fir,const FklVMvalue* sec)
 
 int fklNumcmp(FklVMvalue* fir,FklVMvalue* sec)
 {
-	if(FKL_GET_TAG(fir)==FKL_GET_TAG(sec)&&FKL_GET_TAG(fir)==FKL_TAG_I32)
+	if(FKL_GET_TAG(fir)==FKL_GET_TAG(sec)&&FKL_GET_TAG(fir)==FKL_TAG_FIX)
 		return fir==sec;
 	else
 	{
-		double first=(FKL_GET_TAG(fir)==FKL_TAG_I32)?FKL_GET_I32(fir)
-			:((FKL_IS_I64(fir))?fir->u.i64:fir->u.f64);
-		double second=(FKL_GET_TAG(sec)==FKL_TAG_I32)?FKL_GET_I32(sec)
-			:((FKL_IS_I64(sec))?sec->u.i64:sec->u.f64);
+		double first=(FKL_GET_TAG(fir)==FKL_TAG_FIX)?FKL_GET_FIX(fir):fir->u.f64;
+		double second=(FKL_GET_TAG(sec)==FKL_TAG_FIX)?FKL_GET_FIX(sec):sec->u.f64;
 		return fabs(first-second)==0;
 	}
 }
@@ -1260,7 +1281,6 @@ void fklDestroyVMvalue(FklVMvalue* cur)
 			fklDestroyVMudata(cur->u.ud);
 			break;
 		case FKL_TYPE_F64:
-		case FKL_TYPE_I64:
 		case FKL_TYPE_BOX:
 			break;
 		case FKL_TYPE_ENV:

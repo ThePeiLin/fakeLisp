@@ -1275,6 +1275,17 @@ static const FklBigInt FKL_BIG_INT_I64_MAX={(uint8_t*)FKL_BIG_INT_I64_MAX_BIT,8,
 static const FklBigInt FKL_BIG_INT_I64_MIN={(uint8_t*)FKL_BIG_INT_I64_MIN_BIT,8,8,1};
 static const FklBigInt FKL_BIG_INT_U64_MAX={(uint8_t*)FKL_BIG_INT_U64_MAX_BIT,8,8,0};
 
+static const uint8_t FKL_BIG_INT_FIX_MAX_BIT[8]={0xff,0xff,0xff,0xff,0xff,0xff,0xff,0x0f,};
+static const uint8_t FKL_BIG_INT_FIX_MIN_BIT[8]={0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x10,};
+
+static const FklBigInt FKL_BIG_INT_FIX_MAX={(uint8_t*)FKL_BIG_INT_FIX_MAX_BIT,8,8,0};
+static const FklBigInt FKL_BIG_INT_FIX_MIN={(uint8_t*)FKL_BIG_INT_FIX_MIN_BIT,8,8,1};
+
+inline int fklIsGtLtFixBigInt(const FklBigInt* a)
+{
+	return (fklCmpBigInt(a,&FKL_BIG_INT_FIX_MAX)>=0||fklCmpBigInt(a,&FKL_BIG_INT_FIX_MIN)<=0);
+}
+
 inline int fklIsGeLeI64BigInt(const FklBigInt* a)
 {
 	return (fklCmpBigInt(a,&FKL_BIG_INT_I64_MAX)>=0||fklCmpBigInt(a,&FKL_BIG_INT_I64_MIN)<=0);

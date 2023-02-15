@@ -953,13 +953,23 @@ FklByteCode* fklCreatePushBvecByteCode(const FklBytevector* bvec)
 
 FklByteCode* fklCreatePushBigIntByteCode(const FklBigInt* bigInt)
 {
-	FklByteCode* tmp=fklCreateByteCode(sizeof(char)+sizeof(char)+sizeof(bigInt->size)+bigInt->num);
-	tmp->code[0]=FKL_OP_PUSH_BIG_INT;
-	fklSetU64ToByteCode(tmp->code+sizeof(char),bigInt->num+1);
-	tmp->code[sizeof(char)+sizeof(bigInt->num)]=bigInt->neg;
-	memcpy(tmp->code+sizeof(char)+sizeof(bigInt->num)+sizeof(char)
-			,bigInt->digits
-			,bigInt->num);
+	FklByteCode* tmp=NULL;
+	if(fklIsGtLtI64BigInt(bigInt))
+	{
+		tmp=fklCreateByteCode(sizeof(char)+sizeof(char)+sizeof(bigInt->size)+bigInt->num);
+		tmp->code[0]=FKL_OP_PUSH_BIG_INT;
+		fklSetU64ToByteCode(tmp->code+sizeof(char),bigInt->num+1);
+		tmp->code[sizeof(char)+sizeof(bigInt->num)]=bigInt->neg;
+		memcpy(tmp->code+sizeof(char)+sizeof(bigInt->num)+sizeof(char)
+				,bigInt->digits
+				,bigInt->num);
+	}
+	else
+	{
+		tmp=fklCreateByteCode(sizeof(char)+sizeof(int64_t));
+		tmp->code[0]=FKL_OP_PUSH_I64_BIG;
+		fklSetI64ToByteCode(tmp->code+sizeof(char),fklBigIntToI64(bigInt));
+	}
 	return tmp;
 }
 

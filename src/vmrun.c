@@ -307,6 +307,7 @@ static void B_push_0(BYTE_CODE_ARGS);
 static void B_push_1(BYTE_CODE_ARGS);
 static void B_push_i8(BYTE_CODE_ARGS);
 static void B_push_i16(BYTE_CODE_ARGS);
+static void B_push_i64_big(BYTE_CODE_ARGS);
 #undef BYTE_CODE_ARGS
 
 static void (*ByteCodes[])(FklVM*,FklVMframe*)=
@@ -359,6 +360,7 @@ static void (*ByteCodes[])(FklVM*,FklVMframe*)=
 	B_push_1,
 	B_push_i8,
 	B_push_i16,
+	B_push_i64_big,
 };
 
 inline static void insert_to_VM_chain(FklVM* cur,FklVM* prev,FklVM* next,FklVMgc* gc)
@@ -679,12 +681,13 @@ static void B_push_pair(FklVM* exe,FklVMframe* frame)
 
 static void B_push_i32(FklVM* exe,FklVMframe* frame)
 {
-	fklPushVMvalue(FKL_MAKE_VM_I32(fklGetI32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(int32_t)))),exe->stack);
+	fklPushVMvalue(FKL_MAKE_VM_FIX(fklGetI32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(int32_t)))),exe->stack);
 }
 
 static void B_push_i64(FklVM* exe,FklVMframe* frame)
 {
-	fklCreateVMvalueToStack(FKL_TYPE_I64,fklGetCompoundFrameCodeAndAdd(frame,sizeof(int64_t)),exe);
+	fklPushVMvalue(FKL_MAKE_VM_FIX(fklGetI64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(int64_t)))),exe->stack);
+	//fklCreateVMvalueToStack(FKL_TYPE_I64,fklGetCompoundFrameCodeAndAdd(frame,sizeof(int64_t)),exe);
 }
 
 static void B_push_chr(FklVM* exe,FklVMframe* frame)
@@ -1245,22 +1248,29 @@ static void B_import_from_dll_with_symbols(FklVM* exe,FklVMframe* frame)
 
 static void B_push_0(FklVM* exe,FklVMframe* frame)
 {
-	fklPushVMvalue(FKL_MAKE_VM_I32(0),exe->stack);
+	fklPushVMvalue(FKL_MAKE_VM_FIX(0),exe->stack);
 }
 
 static void B_push_1(FklVM* exe,FklVMframe* frame)
 {
-	fklPushVMvalue(FKL_MAKE_VM_I32(1),exe->stack);
+	fklPushVMvalue(FKL_MAKE_VM_FIX(1),exe->stack);
 }
 
 static void B_push_i8(FklVM* exe,FklVMframe* frame)
 {
-	fklPushVMvalue(FKL_MAKE_VM_I32(*(int8_t*)fklGetCompoundFrameCodeAndAdd(frame,sizeof(int8_t))),exe->stack);
+	fklPushVMvalue(FKL_MAKE_VM_FIX(*(int8_t*)fklGetCompoundFrameCodeAndAdd(frame,sizeof(int8_t))),exe->stack);
 }
 
 static void B_push_i16(FklVM* exe,FklVMframe* frame)
 {
-	fklPushVMvalue(FKL_MAKE_VM_I32(fklGetI16FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(int16_t)))),exe->stack);
+	fklPushVMvalue(FKL_MAKE_VM_FIX(fklGetI16FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(int16_t)))),exe->stack);
+}
+
+static void B_push_i64_big(FklVM* exe,FklVMframe* frame)
+{
+	fklCreateVMvalueToStack(FKL_TYPE_BIG_INT
+			,fklCreateBigInt(fklGetI64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(int64_t))))
+			,exe);
 }
 
 FklVMstack* fklCreateVMstack(int32_t size)

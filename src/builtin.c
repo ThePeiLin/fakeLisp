@@ -787,24 +787,26 @@ void builtin_idiv(FKL_DL_PROC_ARGL)
 		fklNiResBp(&ap,stack);
 		if(fklIsFixint(prev))
 		{
-			r64=fklGetInt(prev);
+			r64=FKL_GET_FIX(prev);
 			if(!r64)
 				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.//",FKL_ERR_DIVZEROERROR,exe);
 			if(r64==1)
-				fklNiReturn(FKL_MAKE_VM_I32(1),&ap,stack);
+				fklNiReturn(FKL_MAKE_VM_FIX(1),&ap,stack);
 			else if(r64==-1)
-				fklNiReturn(FKL_MAKE_VM_I32(-1),&ap,stack);
+				fklNiReturn(FKL_MAKE_VM_FIX(-1),&ap,stack);
 			else
-				fklNiReturn(FKL_MAKE_VM_I32(0),&ap,stack);
+				fklNiReturn(FKL_MAKE_VM_FIX(0),&ap,stack);
 		}
 		else
 		{
 			if(FKL_IS_0_BIG_INT(prev->u.bigInt))
 				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.//",FKL_ERR_DIVZEROERROR,exe);
 			if(FKL_IS_1_BIG_INT(prev->u.bigInt))
-				fklNiReturn(FKL_MAKE_VM_I32(1),&ap,stack);
+				fklNiReturn(FKL_MAKE_VM_FIX(1),&ap,stack);
+			else if(FKL_IS_N_1_BIG_INT(prev->u.bigInt))
+				fklNiReturn(FKL_MAKE_VM_FIX(-1),&ap,stack);
 			else
-				fklNiReturn(FKL_MAKE_VM_I32(0),&ap,stack);
+				fklNiReturn(FKL_MAKE_VM_FIX(0),&ap,stack);
 		}
 	}
 	else
@@ -887,9 +889,9 @@ void builtin_div(FKL_DL_PROC_ARGL)
 				if(!r64)
 					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin./",FKL_ERR_DIVZEROERROR,exe);
 				if(r64==1)
-					fklNiReturn(FKL_MAKE_VM_I32(1),&ap,stack);
+					fklNiReturn(FKL_MAKE_VM_FIX(1),&ap,stack);
 				else if(r64==-1)
-					fklNiReturn(FKL_MAKE_VM_I32(-1),&ap,stack);
+					fklNiReturn(FKL_MAKE_VM_FIX(-1),&ap,stack);
 				else
 				{
 					rd=1.0/r64;
@@ -899,7 +901,9 @@ void builtin_div(FKL_DL_PROC_ARGL)
 			else
 			{
 				if(FKL_IS_1_BIG_INT(prev->u.bigInt))
-					fklNiReturn(FKL_MAKE_VM_I32(1),&ap,stack);
+					fklNiReturn(FKL_MAKE_VM_FIX(1),&ap,stack);
+				else if(FKL_IS_N_1_BIG_INT(prev->u.bigInt))
+					fklNiReturn(FKL_MAKE_VM_FIX(-1),&ap,stack);
 				else
 				{
 					double bd=fklBigIntToDouble(prev->u.bigInt);
@@ -1379,7 +1383,7 @@ void builtin_char_to_integer(FKL_DL_PROC_ARGL)
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.char->integer",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(obj,FKL_IS_CHR,"builtin.char->integer",exe);
-	fklNiReturn(FKL_MAKE_VM_I32(FKL_GET_CHR(obj)),&ap,stack);
+	fklNiReturn(FKL_MAKE_VM_FIX(FKL_GET_CHR(obj)),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -1497,7 +1501,7 @@ void builtin_bytevector_to_s8_list(FKL_DL_PROC_ARGL)
 	for(size_t i=0;i<size;i++)
 	{
 		fklSetRef(cur,fklCreateVMvalue(FKL_TYPE_PAIR,fklCreateVMpair(),exe),gc);
-		fklSetRef(&(*cur)->u.pair->car,FKL_MAKE_VM_I32(s8a[i]),gc);
+		fklSetRef(&(*cur)->u.pair->car,FKL_MAKE_VM_FIX(s8a[i]),gc);
 		cur=&(*cur)->u.pair->cdr;
 	}
 	fklNiReturn(r,&ap,stack);
@@ -1521,7 +1525,7 @@ void builtin_bytevector_to_u8_list(FKL_DL_PROC_ARGL)
 	for(size_t i=0;i<size;i++)
 	{
 		fklSetRef(cur,fklCreateVMvalue(FKL_TYPE_PAIR,fklCreateVMpair(),exe),gc);
-		fklSetRef(&(*cur)->u.pair->car,FKL_MAKE_VM_I32(u8a[i]),gc);
+		fklSetRef(&(*cur)->u.pair->car,FKL_MAKE_VM_FIX(u8a[i]),gc);
 		cur=&(*cur)->u.pair->cdr;
 	}
 	fklNiReturn(r,&ap,stack);
@@ -1542,7 +1546,7 @@ void builtin_bytevector_to_s8_vector(FKL_DL_PROC_ARGL)
 	int8_t* s8a=(int8_t*)obj->u.bvec->ptr;
 	FklVMvalue* vec=fklCreateVMvecV(obj->u.bvec->size,NULL,exe);
 	for(size_t i=0;i<size;i++)
-		fklSetRef(&vec->u.vec->base[i],FKL_MAKE_VM_I32(s8a[i]),gc);
+		fklSetRef(&vec->u.vec->base[i],FKL_MAKE_VM_FIX(s8a[i]),gc);
 	fklNiReturn(vec,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -1561,7 +1565,7 @@ void builtin_bytevector_to_u8_vector(FKL_DL_PROC_ARGL)
 	uint8_t* u8a=obj->u.bvec->ptr;
 	FklVMvalue* vec=fklCreateVMvecV(obj->u.bvec->size,NULL,exe);
 	for(size_t i=0;i<size;i++)
-		fklSetRef(&vec->u.vec->base[i],FKL_MAKE_VM_I32(u8a[i]),gc);
+		fklSetRef(&vec->u.vec->base[i],FKL_MAKE_VM_FIX(u8a[i]),gc);
 	fklNiReturn(vec,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -2236,23 +2240,23 @@ void builtin_number_to_integer(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_number_to_i32(FKL_DL_PROC_ARGL)
-{
-	FKL_NI_BEGIN(exe);
-	FklVMvalue* obj=fklNiGetArg(&ap,stack);
-	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->i32",FKL_ERR_TOOMANYARG,exe);
-	if(!obj)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->i32",FKL_ERR_TOOFEWARG,exe);
-	FKL_NI_CHECK_TYPE(obj,fklIsVMnumber,"builtin.number->i32",exe);
-	int32_t r=0;
-	if(FKL_IS_F64(obj))
-		r=obj->u.f64;
-	else
-		r=fklGetInt(obj);
-	fklNiReturn(FKL_MAKE_VM_I32(r),&ap,stack);
-	fklNiEnd(&ap,stack);
-}
+//void builtin_number_to_i32(FKL_DL_PROC_ARGL)
+//{
+//	FKL_NI_BEGIN(exe);
+//	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+//	if(fklNiResBp(&ap,stack))
+//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->i32",FKL_ERR_TOOMANYARG,exe);
+//	if(!obj)
+//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->i32",FKL_ERR_TOOFEWARG,exe);
+//	FKL_NI_CHECK_TYPE(obj,fklIsVMnumber,"builtin.number->i32",exe);
+//	int32_t r=0;
+//	if(FKL_IS_F64(obj))
+//		r=obj->u.f64;
+//	else
+//		r=fklGetInt(obj);
+//	fklNiReturn(FKL_MAKE_VM_FIX(r),&ap,stack);
+//	fklNiEnd(&ap,stack);
+//}
 
 void builtin_number_to_big_int(FKL_DL_PROC_ARGL)
 {
@@ -2274,23 +2278,41 @@ void builtin_number_to_big_int(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_number_to_i64(FKL_DL_PROC_ARGL)
+void builtin_number_to_fix_int(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->i64",FKL_ERR_TOOMANYARG,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->fix-int",FKL_ERR_TOOMANYARG,exe);
 	if(!obj)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->i64",FKL_ERR_TOOFEWARG,exe);
-	FKL_NI_CHECK_TYPE(obj,fklIsVMnumber,"builtin.number->i64",exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->fix-int",FKL_ERR_TOOFEWARG,exe);
+	FKL_NI_CHECK_TYPE(obj,fklIsVMnumber,"builtin.number->fix-int",exe);
 	int64_t r=0;
 	if(FKL_IS_F64(obj))
 		r=obj->u.f64;
 	else
 		r=fklGetInt(obj);
-	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_I64,&r,exe),&ap,stack);
+	fklNiReturn(FKL_MAKE_VM_FIX(r),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
+
+//void builtin_number_to_i64(FKL_DL_PROC_ARGL)
+//{
+//	FKL_NI_BEGIN(exe);
+//	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+//	if(fklNiResBp(&ap,stack))
+//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->i64",FKL_ERR_TOOMANYARG,exe);
+//	if(!obj)
+//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->i64",FKL_ERR_TOOFEWARG,exe);
+//	FKL_NI_CHECK_TYPE(obj,fklIsVMnumber,"builtin.number->i64",exe);
+//	int64_t r=0;
+//	if(FKL_IS_F64(obj))
+//		r=obj->u.f64;
+//	else
+//		r=fklGetInt(obj);
+//	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_I64,&r,exe),&ap,stack);
+//	fklNiEnd(&ap,stack);
+//}
 
 void builtin_nth(FKL_DL_PROC_ARGL)
 {
@@ -3418,7 +3440,7 @@ void builtin_go(FKL_DL_PROC_ARGL)
 		fklDestroyVMstack(threadVM->stack);
 		threadVM->stack=NULL;
 		threadVM->codeObj=NULL;
-		fklNiReturn(FKL_MAKE_VM_I32(faildCode),&ap,stack);
+		fklNiReturn(FKL_MAKE_VM_FIX(faildCode),&ap,stack);
 	}
 	else
 		fklNiReturn(chan,&ap,stack);
@@ -4288,7 +4310,7 @@ void builtin_fgeti(FKL_DL_PROC_ARGL)
 		if(ch==EOF)
 			fklNiReturn(FKL_VM_NIL,&ap,stack);
 		else
-			fklNiReturn(FKL_MAKE_VM_I32(ch),&ap,stack);
+			fklNiReturn(FKL_MAKE_VM_FIX(ch),&ap,stack);
 	}
 	fklNiEnd(&ap,stack);
 }
@@ -4305,28 +4327,10 @@ void builtin_fwrite(FKL_DL_PROC_ARGL)
 	if(file&&!FKL_IS_FP(file))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fwrite",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FILE* objFile=file?file->u.fp->fp:stdout;
-	if(FKL_IS_STR(obj)||FKL_IS_SYM(obj))
-		fklPrincVMvalue(obj,objFile,exe->symbolTable);
-	else if(FKL_IS_BYTEVECTOR(obj))
+	if(FKL_IS_STR(obj))
+		fwrite(obj->u.str->str,obj->u.str->size,1,objFile);
+	if(FKL_IS_BYTEVECTOR(obj))
 		fwrite(obj->u.bvec->ptr,obj->u.bvec->size,1,objFile);
-	else if(FKL_IS_CHR(obj))
-		fputc(FKL_GET_CHR(obj),objFile);
-	else if(FKL_IS_I32(obj))
-	{
-		int32_t r=FKL_GET_I32(obj);
-		fwrite(&r,sizeof(int32_t),1,objFile);
-	}
-	else if(FKL_IS_BIG_INT(obj))
-	{
-		uint64_t len=obj->u.bigInt->num+1;
-		fwrite(&len,sizeof(len),1,objFile);
-		fwrite(&obj->u.bigInt->neg,sizeof(uint8_t),1,objFile);
-		fwrite(obj->u.bigInt->digits,sizeof(uint8_t),obj->u.bigInt->num,objFile);
-	}
-	else if(FKL_IS_I64(obj))
-		fwrite((void*)&obj->u.i64,sizeof(int64_t),1,objFile);
-	else if(FKL_IS_F64(obj))
-		fwrite((void*)&obj->u.f64,sizeof(double),1,objFile);
 	else if(FKL_IS_USERDATA(obj)&&obj->u.ud->t->__write)
 		obj->u.ud->t->__write(obj->u.ud->data,objFile);
 	else
@@ -4534,7 +4538,7 @@ void builtin_rand(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.rand",FKL_ERR_TOOMANYARG,exe);
 	if(lim&&!fklIsInt(lim))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.rand",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	fklNiReturn(FKL_MAKE_VM_I32(rand()%((lim==NULL)?RAND_MAX:fklGetInt(lim))),&ap,stack);
+	fklNiReturn(FKL_MAKE_VM_FIX(rand()%((lim==NULL)?RAND_MAX:fklGetInt(lim))),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -4580,7 +4584,7 @@ void builtin_remove_file(FKL_DL_PROC_ARGL)
 	FKL_NI_CHECK_TYPE(name,FKL_IS_STR,"builtin.remove-file",exe);
 	char str[name->u.str->size+1];
 	fklWriteStringToCstr(str,name->u.str);
-	fklNiReturn(FKL_MAKE_VM_I32(remove(str)),&ap,stack);
+	fklNiReturn(FKL_MAKE_VM_FIX(remove(str)),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -5001,10 +5005,10 @@ void builtin_not(FKL_DL_PROC_ARGL) {PREDICATE(val==FKL_VM_NIL,"builtin.not")}
 void builtin_null(FKL_DL_PROC_ARGL) {PREDICATE(val==FKL_VM_NIL,"builtin.null")}
 void builtin_atom(FKL_DL_PROC_ARGL) {PREDICATE(!FKL_IS_PAIR(val),"builtin.atom?")}
 void builtin_char_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_CHR(val),"builtin.char?")}
-void builtin_integer_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_I32(val)||FKL_IS_I64(val)||FKL_IS_BIG_INT(val),"builtin.integer?")}
-void builtin_fix_int_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_I32(val)||FKL_IS_I64(val),"builtin.fix-int?")}
-void builtin_i32_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_I32(val),"builtin.i32?")}
-void builtin_i64_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_I64(val),"builtin.i64?")}
+void builtin_integer_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_FIX(val)||FKL_IS_BIG_INT(val),"builtin.integer?")}
+void builtin_fix_int_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_FIX(val),"builtin.fix-int?")}
+//void builtin_i32_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_I32(val),"builtin.i32?")}
+//void builtin_i64_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_I64(val),"builtin.i64?")}
 void builtin_f64_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_F64(val),"builtin.i64?")}
 void builtin_number_p(FKL_DL_PROC_ARGL) {PREDICATE(fklIsVMnumber(val),"builtin.number?")}
 void builtin_pair_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_PAIR(val),"builtin.pair?")}
@@ -5147,8 +5151,9 @@ static const struct SymbolFuncStruct
 	{"tail",                  builtin_tail,                    },
 	{"char?",                 builtin_char_p,                  },
 	{"integer?",              builtin_integer_p,               },
-	{"i32?",                  builtin_i32_p,                   },
-	{"i64?",                  builtin_i64_p,                   },
+	//{"i32?",                builtin_i32_p,                   },
+	//{"i64?",                builtin_i64_p,                   },
+	{"fix-int?",              builtin_fix_int_p,               },
 	{"big-int?",              builtin_big_int_p,               },
 	{"f64?",                  builtin_f64_p,                   },
 	{"pair?",                 builtin_pair_p,                  },
@@ -5260,9 +5265,10 @@ static const struct SymbolFuncStruct
 	{"integer->char",         builtin_integer_to_char,         },
 	{"number->f64",           builtin_number_to_f64,           },
 	{"number->integer",       builtin_number_to_integer,       },
-	{"number->i32",           builtin_number_to_i32,           },
-	{"number->i64",           builtin_number_to_i64,           },
-	{"number->big-int",       builtin_number_to_big_int,       },
+	//{"number->fix-int",       builtin_number_to_fix_int,       },
+	//{"number->i32",           builtin_number_to_i32,           },
+	//{"number->i64",           builtin_number_to_i64,           },
+	//{"number->big-int",       builtin_number_to_big_int,       },
 
 	{"map",                   builtin_map,                     },
 	{"foreach",               builtin_foreach,                 },

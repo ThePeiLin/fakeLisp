@@ -20,41 +20,36 @@ FklVMvalue* fklMakeVMf64(double f,FklVM* vm)
 
 FklVMvalue* fklMakeVMint(int64_t r64,FklVM* vm)
 {
-	if(r64>INT32_MAX||r64<INT32_MIN)
-		return fklCreateVMvalueToStack(FKL_TYPE_I64,&r64,vm);
+	if(r64>FKL_FIX_INT_MAX||r64<FKL_FIX_INT_MIN)
+		return fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,fklCreateBigInt(r64),vm);
 	else
-		return FKL_MAKE_VM_I32(r64);
+		return FKL_MAKE_VM_FIX(r64);
 }
 
 FklVMvalue* fklMakeVMuint(uint64_t r64,FklVM* vm)
 {
-	if(r64>INT64_MAX)
-	{
-		FklBigInt* bi=fklCreateBigIntU(r64);
-		return fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,vm);
-	}
-	else if(r64>INT32_MAX)
-		return fklCreateVMvalueToStack(FKL_TYPE_I64,&r64,vm);
+	if(r64>FKL_FIX_INT_MAX)
+		return fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,fklCreateBigIntU(r64),vm);
 	else
-		return FKL_MAKE_VM_I32(r64);
+		return FKL_MAKE_VM_FIX(r64);
 }
 
 FklVMvalue* fklMakeVMintD(double r64,FklVM* vm)
 {
-	if(r64-INT32_MAX>DBL_EPSILON||r64-INT32_MIN<-DBL_EPSILON)
-		return fklCreateVMvalueToStack(FKL_TYPE_I64,&r64,vm);
+	if((r64-(double)FKL_FIX_INT_MAX)>DBL_EPSILON||(r64-FKL_FIX_INT_MIN)<-DBL_EPSILON)
+		return fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,fklCreateBigIntD(r64),vm);
 	else
-		return FKL_MAKE_VM_I32(r64);
+		return FKL_MAKE_VM_FIX(r64);
 }
 
 inline int fklIsFixint(const FklVMvalue* p)
 {
-	return FKL_IS_I32(p)||FKL_IS_I64(p);
+	return FKL_IS_FIX(p);
 }
 
 inline int fklIsInt(const FklVMvalue* p)
 {
-	return FKL_IS_I32(p)||FKL_IS_I64(p)||FKL_IS_BIG_INT(p);
+	return FKL_IS_FIX(p)||FKL_IS_BIG_INT(p);
 }
 
 inline int fklIsVMnumber(const FklVMvalue* p)
@@ -80,17 +75,15 @@ int fklIsSymbolList(const FklVMvalue* p)
 
 inline int64_t fklGetInt(const FklVMvalue* p)
 {
-	return FKL_IS_I32(p)
-		?FKL_GET_I32(p)
-		:(FKL_IS_I64(p))?p->u.i64
+	return FKL_IS_FIX(p)
+		?FKL_GET_FIX(p)
 		:fklBigIntToI64(p->u.bigInt);
 }
 
 inline uint64_t fklGetUint(const FklVMvalue* p)
 {
-	return FKL_IS_I32(p)
-		?FKL_GET_I32(p)
-		:(FKL_IS_I64(p))?p->u.i64
+	return FKL_IS_FIX(p)
+		?FKL_GET_FIX(p)
 		:fklBigIntToU64(p->u.bigInt);
 }
 
@@ -105,8 +98,7 @@ inline int fklVMnumberLt0(const FklVMvalue* p)
 
 inline double fklGetDouble(const FklVMvalue* p)
 {
-	return FKL_IS_I32(p)?FKL_GET_I32(p)
-		:(FKL_IS_I64(p))?p->u.i64
+	return FKL_IS_FIX(p)?FKL_GET_FIX(p)
 		:(FKL_IS_BIG_INT(p))?fklBigIntToDouble(p->u.bigInt)
 		:p->u.f64;
 }
@@ -654,8 +646,8 @@ static void princVMatom(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
 		case FKL_TAG_NIL:
 			fprintf(fp,"()");
 			break;
-		case FKL_TAG_I32:
-			fprintf(fp,"%d",FKL_GET_I32(v));
+		case FKL_TAG_FIX:
+			fprintf(fp,"%ld",FKL_GET_FIX(v));
 			break;
 		case FKL_TAG_CHR:
 			putc(FKL_GET_CHR(v),fp);
@@ -669,9 +661,6 @@ static void princVMatom(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
 				{
 					case FKL_TYPE_F64:
 						fprintf(fp,"%lf",v->u.f64);
-						break;
-					case FKL_TYPE_I64:
-						fprintf(fp,"%ld",v->u.i64);
 						break;
 					case FKL_TYPE_STR:
 						fwrite(v->u.str->str,v->u.str->size,1,fp);
@@ -760,8 +749,8 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
 		case FKL_TAG_NIL:
 			fputs("()",fp);
 			break;
-		case FKL_TAG_I32:
-			fprintf(fp,"%d",FKL_GET_I32(v));
+		case FKL_TAG_FIX:
+			fprintf(fp,"%ld",FKL_GET_FIX(v));
 			break;
 		case FKL_TAG_CHR:
 			fklPrintRawChar(FKL_GET_CHR(v),fp);
@@ -775,9 +764,6 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
 				{
 					case FKL_TYPE_F64:
 						fprintf(fp,"%lf",v->u.f64);
-						break;
-					case FKL_TYPE_I64:
-						fprintf(fp,"%ld",v->u.i64);
 						break;
 					case FKL_TYPE_STR:
 						fklPrintRawString(v->u.str,fp);
@@ -1228,8 +1214,8 @@ inline static void print_atom_to_ut_string(UT_string* result,FklVMvalue* v,FklSy
 		case FKL_TAG_NIL:
 			utstring_printf(result,"()");
 			break;
-		case FKL_TAG_I32:
-			utstring_printf(result,"%d",FKL_GET_I32(v));
+		case FKL_TAG_FIX:
+			utstring_printf(result,"%ld",FKL_GET_FIX(v));
 			break;
 		case FKL_TAG_CHR:
 			print_raw_char_to_utstring(result,FKL_GET_CHR(v));
@@ -1243,9 +1229,6 @@ inline static void print_atom_to_ut_string(UT_string* result,FklVMvalue* v,FklSy
 				{
 					case FKL_TYPE_F64:
 						utstring_printf(result,"%lf",v->u.f64);
-						break;
-					case FKL_TYPE_I64:
-						utstring_printf(result,"%ld",v->u.i64);
 						break;
 					case FKL_TYPE_STR:
 						print_raw_string_to_ut_string(result,v->u.str);

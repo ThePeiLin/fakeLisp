@@ -54,6 +54,7 @@ static struct
 	{"push-1",                       0,  },
 	{"push-i8",                      1,  },
 	{"push-i16",                     2,  },
+	{"push-i64-big",                 8,  },
 };
 
 const char* fklGetOpcodeName(FklOpcode opcode)

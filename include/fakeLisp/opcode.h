@@ -54,6 +54,7 @@ typedef enum
 	FKL_OP_PUSH_1,
 	FKL_OP_PUSH_I8,
 	FKL_OP_PUSH_I16,
+	FKL_OP_PUSH_I64_BIG,
 	FKL_OP_LAST_OPCODE,
 }FklOpcode;
 

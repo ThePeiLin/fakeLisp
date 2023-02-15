@@ -2751,15 +2751,15 @@ static FklNastNode* _line_replacement(const FklNastNode* orig,FklCodegenEnv* env
 {
 	uint64_t line=orig->curline;
 	FklNastNode* r=NULL;
-	if(line<INT32_MAX)
+	if(line<FKL_FIX_INT_MAX)
 	{
-		r=fklCreateNastNode(FKL_NAST_I32,orig->curline);
-		r->u.i32=line;
+		r=fklCreateNastNode(FKL_NAST_FIX,orig->curline);
+		r->u.fix=line;
 	}
 	else
 	{
-		r=fklCreateNastNode(FKL_NAST_I64,orig->curline);
-		r->u.i64=line;
+		r=fklCreateNastNode(FKL_NAST_BIG_INT,orig->curline);
+		r->u.bigInt=fklCreateBigInt(line);
 	}
 	return fklMakeNastNodeRef(r);
 }
@@ -2930,7 +2930,7 @@ typedef void (*FklCodegenFunc)(CODEGEN_ARGS);
 #undef CODEGEN_ARGS
 #undef CODEGEN_FUNC
 
-static FklByteCode* createPushI32(int32_t i)
+static FklByteCode* createPushFix(int64_t i)
 {
 	if(i==0)
 		return create1lenBc(FKL_OP_PUSH_0);
@@ -2940,8 +2940,10 @@ static FklByteCode* createPushI32(int32_t i)
 		return fklCreatePushI8ByteCode(i);
 	else if(i>=INT16_MIN&&i<=INT16_MAX)
 		return fklCreatePushI16ByteCode(i);
-	else
+	else if(i>=INT32_MIN&&i<=INT32_MAX)
 		return fklCreatePushI32ByteCode(i);
+	else
+		return fklCreatePushI64ByteCode(i);
 }
 
 FklByteCode* fklCodegenNode(const FklNastNode* node,FklCodegen* codegenr)
@@ -2967,11 +2969,8 @@ FklByteCode* fklCodegenNode(const FklNastNode* node,FklCodegen* codegenr)
 			case FKL_NAST_CHR:
 				tmp=fklCreatePushCharByteCode(node->u.chr);
 				break;
-			case FKL_NAST_I32:
-				tmp=createPushI32(node->u.i32);
-				break;
-			case FKL_NAST_I64:
-				tmp=fklCreatePushI64ByteCode(node->u.i64);
+			case FKL_NAST_FIX:
+				tmp=createPushFix(node->u.fix);
 				break;
 			case FKL_NAST_F64:
 				tmp=fklCreatePushF64ByteCode(node->u.f64);

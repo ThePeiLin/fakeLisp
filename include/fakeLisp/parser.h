@@ -8,11 +8,10 @@ extern "C" {
 
 typedef enum{
 	FKL_NAST_NIL=0,
-	FKL_NAST_I32,
+	FKL_NAST_FIX,
 	FKL_NAST_SYM,
 	FKL_NAST_CHR,
 	FKL_NAST_F64,
-	FKL_NAST_I64,
 	FKL_NAST_BIG_INT,
 	FKL_NAST_STR,
 	FKL_NAST_VECTOR,
@@ -49,8 +48,7 @@ typedef struct FklNastNode
 	union
 	{
 		char chr;
-		int32_t i32;
-		int64_t i64;
+		int64_t fix;
 		double f64;
 		FklSid_t sym;
 		FklString* str;

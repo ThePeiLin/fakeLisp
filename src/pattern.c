@@ -192,14 +192,11 @@ static FklNastNode* bytevectorProcesser(FklPtrStack* nastStack
 	{
 		FklNastNode* node=nastStack->base[i];
 		fklMakeNastNodeRef(node);
-		if(node->type==FKL_NAST_I32
-				||node->type==FKL_NAST_I64
+		if(node->type==FKL_NAST_FIX
 				||node->type==FKL_NAST_BIG_INT)
 		{
-			retval->u.bvec->ptr[i]=node->type==FKL_NAST_I32
-				?node->u.i32
-				:node->type==FKL_NAST_I64
-				?node->u.i64
+			retval->u.bvec->ptr[i]=node->type==FKL_NAST_FIX
+				?node->u.fix
 				:fklBigIntToI64(node->u.bigInt);
 			fklDestroyNastNode(node);
 		}
@@ -717,7 +714,7 @@ int fklIsValidSyntaxPattern(const FklNastNode* p,FklHashTable** psymbolTable)
 				fklPushPtrStack(c->u.pair->cdr,&stack);
 				fklPushPtrStack(c->u.pair->car,&stack);
 				break;
-			case FKL_TYPE_SYM:
+			case FKL_NAST_SYM:
 				if(fklGetHashItem((void*)&c->u.sym,symbolTable))
 				{
 					fklDestroyHashTable(symbolTable);

@@ -7,6 +7,9 @@
 extern "C"{
 #endif
 
+#define FKL_FIX_INT_MAX (1152921504606846975)
+#define FKL_FIX_INT_MIN (-1152921504606846975-1)
+
 typedef struct FklString
 {
 	uint64_t size;
@@ -204,6 +207,9 @@ typedef struct FklBigInt
 #define FKL_BIG_INT_INIT {NULL,0,0,0}
 #define FKL_IS_0_BIG_INT(I) ((I)->num==1&&(I)->digits[0]==0)
 #define FKL_IS_1_BIG_INT(I) ((I)->num==1&&(I)->neg==0&&(I)->digits[0]==1)
+#define FKL_IS_N_1_BIG_INT(I) ((I)->num==1&&(I)->neg==0&&(I)->digits[0]==1)
+//#define FKL_IS_1_N_1_BIG_INT(I) ((I)->num==1&&(I)->digits[0]==1)
+
 FklBigInt* fklCreateBigInt(int64_t v);
 FklBigInt* fklCreateBigIntD(double v);
 FklBigInt* fklCreateBigIntU(uint64_t v);
@@ -233,6 +239,7 @@ void fklSubBigInt(FklBigInt*,const FklBigInt* toSub);
 void fklSubBigIntI(FklBigInt*,int64_t toSub);
 void fklMulBigInt(FklBigInt*,const FklBigInt* multiplier);
 void fklMulBigIntI(FklBigInt*,int64_t multiplier);
+int fklIsGtLtFixBigInt(const FklBigInt* a);
 int fklIsGtLtI64BigInt(const FklBigInt* a);
 int fklIsGtI64MaxBigInt(const FklBigInt* a);
 int fklIsGtU64MaxBigInt(const FklBigInt* a);

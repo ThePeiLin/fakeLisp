@@ -3653,12 +3653,15 @@ void builtin_call_eh(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.call/eh",FKL_ERR_TOOFEWARG,exe);
 	}
 	fklNiResBp(&ap,stack);
-	FklVMframe* curframe=exe->frames;
 	if(errSymbolLists.top)
 	{
-		curframe->errorCallBack=errorCallBackWithErrorHandler;
-		curframe->u.o.t=&ErrorHandlerContextMethodTable;
-		EhFrameContext* c=(EhFrameContext*)curframe->u.o.data;
+		FklVMframe* sf=exe->frames;
+		FklVMframe* nf=fklCreateOtherObjVMframe(sf->u.o.t,sf->prev);
+		nf->errorCallBack=errorCallBackWithErrorHandler;
+		fklDoCopyObjFrameContext(sf,nf,exe);
+		exe->frames=nf;
+		nf->u.o.t=&ErrorHandlerContextMethodTable;
+		EhFrameContext* c=(EhFrameContext*)nf->u.o.data;
 		c->num=errSymbolLists.top;
 		FklVMvalue** t=(FklVMvalue**)realloc(errSymbolLists.base,errSymbolLists.top*sizeof(FklVMvalue*));
 		FKL_ASSERT(t);
@@ -3668,14 +3671,15 @@ void builtin_call_eh(FKL_DL_PROC_ARGL)
 		c->errorHandlers=t;
 		c->bp=ap;
 		c->top=stack->bps.top;
+		fklCallobj(proc,nf,exe);
 	}
 	else
 	{
 		fklUninitPtrStack(&errSymbolLists);
 		fklUninitPtrStack(&errHandlers);
+		fklTailCallobj(proc,exe->frames,exe);
 	}
 	fklNiSetBp(ap,stack);
-	fklCallobj(proc,curframe,exe);
 	fklNiEnd(&ap,exe->stack);
 #undef GET_PROC
 #undef GET_LIST

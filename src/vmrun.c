@@ -251,29 +251,13 @@ void callDlProc(FklVM* exe,FklVMvalue* dlproc)
 	FklVMframe* f=&exe->sf;
 	f->type=FKL_FRAME_OTHEROBJ;
 	f->u.o.t=&DlprocContextMethodTable;
+	f->errorCallBack=NULL;
 	initDlprocFrameContext(f->u.o.data,dlproc,exe->gc);
 	fklPushVMframe(f,exe);
 }
 
 /*--------------------------*/
 
-//static FklVMnode* createVMnode(FklVM* exe,FklVMnode* next)
-//{
-//	FklVMnode* t=(FklVMnode*)malloc(sizeof(FklVMnode));
-//	FKL_ASSERT(t);
-//	t->vm=exe;
-//	t->next=next;
-//	return t;
-//}
-
-//static FklVMlist list=
-//{
-//	NULL,
-//	PTHREAD_RWLOCK_INITIALIZER,
-//};
-//
-//static FklVMlist* GlobVMs=&list;
-//
 #define BYTE_CODE_ARGS FklVM*,FklVMframe*
 static void B_dummy(BYTE_CODE_ARGS);
 static void B_push_nil(BYTE_CODE_ARGS);
@@ -554,6 +538,7 @@ inline void fklCallFuncK(FklVMFuncK kf,FklVM* v,void* ctx)
 {
 	FklVMframe* sf=v->frames;
 	FklVMframe* nf=fklCreateOtherObjVMframe(sf->u.o.t,sf->prev);
+	nf->errorCallBack=sf->errorCallBack;
 	fklDoCopyObjFrameContext(sf,nf,v);
 	v->frames=nf;
 	kf(v,FKL_CC_OK,ctx);
@@ -765,10 +750,7 @@ static void B_push_proc(FklVM* exe,FklVMframe* frame)
 
 static void B_pop(FklVM* exe,FklVMframe* frame)
 {
-	FklVMstack* stack=exe->stack;
-//	pthread_rwlock_wrlock(&stack->lock);
-	stack->tp-=1;
-//	pthread_rwlock_unlock(&stack->lock);
+	exe->stack->tp-=1;
 }
 
 static void B_pop_var(FklVM* exe,FklVMframe* frame)
@@ -1294,7 +1276,6 @@ FklVMstack* fklCreateVMstack(int32_t size)
 	fklInitUintStack(&tmp->tps,32,16);
 	tmp->bps=(FklUintStack)FKL_STACK_INIT;
 	fklInitUintStack(&tmp->bps,32,16);
-//	pthread_rwlock_init(&tmp->lock,NULL);
 	return tmp;
 }
 
@@ -1374,7 +1355,7 @@ void fklGC_toGrey(FklVMvalue* v,FklVMgc* gc)
 	if(FKL_IS_PTR(v)&&v->mark!=FKL_MARK_B)
 	{
 		v->mark=FKL_MARK_G;
-//		atomic_store(&v->mark,FKL_MARK_G);
+	//atomic_store(&v->mark,FKL_MARK_G);
 		gc->grey=createGreylink(v,gc->grey);
 		gc->greyNum++;
 	}
@@ -1506,7 +1487,7 @@ int fklGC_propagate(FklVMgc* gc)
 	if(FKL_IS_PTR(v)&&v->mark==FKL_MARK_G)
 	{
 		v->mark=FKL_MARK_B;
-//		atomic_store(&v->mark,FKL_MARK_B);
+		//atomic_store(&v->mark,FKL_MARK_B);
 		propagateMark(v,gc);
 	}
 	return gc->grey==NULL;
@@ -1515,11 +1496,11 @@ int fklGC_propagate(FklVMgc* gc)
 void fklGC_collect(FklVMgc* gc,FklVMvalue** pw)
 {
 	size_t count=0;
-//	pthread_rwlock_wrlock(&gc->lock);
+	//pthread_rwlock_wrlock(&gc->lock);
 	FklVMvalue* head=gc->head;
 	gc->head=NULL;
 	gc->running=FKL_GC_SWEEPING;
-//	pthread_rwlock_unlock(&gc->lock);
+	//pthread_rwlock_unlock(&gc->lock);
 	FklVMvalue** phead=&head;
 	while(*phead)
 	{
@@ -1538,11 +1519,11 @@ void fklGC_collect(FklVMgc* gc,FklVMvalue** pw)
 			phead=&cur->next;
 		}
 	}
-//	pthread_rwlock_wrlock(&gc->lock);
+	//pthread_rwlock_wrlock(&gc->lock);
 	*phead=gc->head;
 	gc->head=head;
 	gc->num-=count;
-//	pthread_rwlock_unlock(&gc->lock);
+	//pthread_rwlock_unlock(&gc->lock);
 }
 
 void fklGC_sweep(FklVMvalue* head)
@@ -1933,25 +1914,10 @@ inline uint8_t* fklGetCompoundFrameCode(const FklVMframe* f)
 	return f->u.c.pc;
 }
 
-//inline uint8_t* fklGetCompoundFrameCodeAndInc(FklVMframe* f)
-//{
-//	return f->u.c.pc++;
-//}
-
 inline uint8_t fklGetCompoundFrameOpAndInc(FklVMframe* f)
 {
 	return *f->u.c.pc++;
 }
-
-//inline uint64_t fklGetCompoundFrameScp(const FklVMframe* f)
-//{
-//	return f->u.c.scp;
-//}
-
-//inline uint64_t fklGetCompoundFrameCp(const FklVMframe* f)
-//{
-//	return f->u.c.cp;
-//}
 
 inline void fklAddCompoundFrameCp(FklVMframe* f,int64_t a)
 {
@@ -1962,28 +1928,6 @@ inline uint8_t* fklGetCompoundFrameEnd(const FklVMframe* f)
 {
 	return f->u.c.end;
 }
-
-//inline uint64_t fklGetCompoundFrameRestCp(const FklVMframe* f)
-//{
-//	return f->u.c.rst;
-//}
-
-//inline uint64_t fklSetCompoundFrameCp(FklVMframe* f,uint64_t a)
-//{
-//	f->u.c.cp=a;
-//	return f->u.c.cp;
-//}
-
-//inline uint64_t fklResetCompoundFrameCp(FklVMframe* f)
-//{
-//	f->u.c.cp=f->u.c.scp;
-//	return f->u.c.scp;
-//}
-
-//inline uint64_t fklGetCompoundFrameCpc(const FklVMframe* f)
-//{
-//	return f->u.c.cpc;
-//}
 
 inline FklSid_t fklGetCompoundFrameSid(const FklVMframe* f)
 {

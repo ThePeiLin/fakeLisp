@@ -460,7 +460,7 @@ FklString* fklGenErrorMessage(FklBuiltInErrorType type)
 		"Radix should be 8,10 or 16",
 		"No value for key",
 		"Number should not be less than 0",
-		NULL,
+		"Circular reference occurs",
 	};
 	const char* s=builtinErrorMessages[type];
 	FKL_ASSERT(s);

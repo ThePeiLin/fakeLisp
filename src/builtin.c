@@ -272,6 +272,26 @@ void builtin_copy(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+static inline FklVMvalue* get_fast_value(FklVMvalue* head)
+{
+	return FKL_IS_PAIR(head)
+		&&FKL_IS_PAIR(head->u.pair->cdr)
+		&&FKL_IS_PAIR(head->u.pair->cdr->u.pair->cdr)?head->u.pair->cdr->u.pair->cdr:FKL_VM_NIL;
+}
+
+static inline FklVMvalue* get_initial_fast_value(FklVMvalue* pr)
+{
+	return FKL_IS_PAIR(pr)?(pr)->u.pair->cdr:FKL_VM_NIL;
+}
+
+static inline FklVMvalue** copy_list(FklVMvalue** pv,FklVM* exe)
+{
+	FklVMvalue* v=*pv;
+	for(;FKL_IS_PAIR(v);v=v->u.pair->cdr,pv=&(*pv)->u.pair->cdr)
+		*pv=fklCreateVMpairV(v->u.pair->car,v->u.pair->cdr,exe);
+	return pv;
+}
+
 void builtin_append(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -296,14 +316,56 @@ void builtin_append(FKL_DL_PROC_ARGL)
 		FklVMvalue** prev=&retval;
 		for(;cur;cur=fklNiGetArg(&ap,stack))
 		{
+			FklVMvalue* pr=*prev;
+			for(FklVMvalue* head=get_initial_fast_value(pr)
+					;FKL_IS_PAIR(pr)
+					;pr=pr->u.pair->cdr
+					,head=get_fast_value(head))
+				if(head==pr)
+					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.append!",FKL_ERR_CIR_REF,exe);
+			prev=copy_list(prev,exe);
+			for(;FKL_IS_PAIR(*prev);prev=&(*prev)->u.pair->cdr);
 			if(*prev==FKL_VM_NIL)
-			{
 				*prev=cur;
-				*prev=fklCopyVMlistOrAtom(*prev,exe);
-				for(;FKL_IS_PAIR(*prev);prev=&(*prev)->u.pair->cdr);
-			}
 			else
 				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.append",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		}
+	}
+	fklNiResBp(&ap,stack);
+	fklNiReturn(retval,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+void builtin_append1(FKL_DL_PROC_ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* retval=FKL_VM_NIL;
+	FklVMvalue* cur=fklNiGetArg(&ap,stack);
+	if(cur&&fklIsAppendable(cur))
+	{
+		retval=cur;
+		cur=fklNiGetArg(&ap,stack);
+		for(;cur;cur=fklNiGetArg(&ap,stack))
+		{
+			if(valueAppend[retval->type](retval,cur))
+				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.append!",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		}
+	}
+	else
+	{
+		FklVMvalue** prev=&retval;
+		for(;cur;cur=fklNiGetArg(&ap,stack))
+		{
+			for(FklVMvalue* head=get_initial_fast_value(*prev)
+					;FKL_IS_PAIR(*prev)
+					;prev=&(*prev)->u.pair->cdr
+					,head=get_fast_value(head))
+				if(head==*prev)
+					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.append!",FKL_ERR_CIR_REF,exe);
+			if(*prev==FKL_VM_NIL)
+				*prev=cur;
+			else
+				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.append!",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 		}
 	}
 	fklNiResBp(&ap,stack);
@@ -5033,6 +5095,7 @@ static const struct SymbolFuncStruct
 	{"cdr",                   builtin_cdr,                     },
 	{"cons",                  builtin_cons,                    },
 	{"append",                builtin_append,                  },
+	{"append!",               builtin_append1,                 },
 	{"copy",                  builtin_copy,                    },
 	{"atom",                  builtin_atom,                    },
 	{"null",                  builtin_null,                    },

@@ -242,7 +242,7 @@ void fklDoCopyObjFrameContext(FklVMframe*,FklVMframe*,struct FklVM* exe);
 void** fklGetFrameData(FklVMframe* f);
 int fklIsCallableObjFrameReachEnd(FklVMframe* f);
 void fklDoCallableObjFrameStep(FklVMframe* f,struct FklVM* exe);
-void fklDoFinalizeObjFrame(FklVMframe* f);
+void fklDoFinalizeObjFrame(FklVMframe* f,FklVMframe* sf);
 
 typedef struct
 {
@@ -451,7 +451,7 @@ int fklRaiseVMerror(FklVMvalue* err,FklVM*);
 FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVMframe* prev,FklVMgc* gc);
 FklVMframe* fklCreateVMframeWithProcValue(FklVMvalue*,FklVMframe*);
 FklVMframe* fklCreateVMframeWithProc(FklVMproc*,FklVMframe*);
-void fklDestroyVMframe(FklVMframe*);
+void fklDestroyVMframe(FklVMframe*,FklVMframe* sf);
 FklString* fklGenErrorMessage(FklBuiltInErrorType type);
 FklString* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorType);
 int32_t fklGetSymbolIdInByteCode(const uint8_t*);
@@ -590,7 +590,9 @@ uint64_t fklGetUint(const FklVMvalue*);
 
 void fklPushVMvalue(FklVMvalue* v,FklVMstack* s);
 
-void fklVMcallInDlproc(FklVMvalue*
+void fklCallFuncK(FklVMFuncK funck,FklVM*,void* ctx);
+
+void fklCallInDlproc(FklVMvalue*
 		,size_t argNum
 		,FklVMvalue*[]
 		,FklVMframe*

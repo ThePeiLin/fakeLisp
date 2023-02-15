@@ -248,8 +248,9 @@ inline static void initDlprocFrameContext(FklCallObjData data,FklVMvalue* proc,F
 
 void callDlProc(FklVM* exe,FklVMvalue* dlproc)
 {
-	FklVMframe* prev=exe->frames;
-	FklVMframe* f=fklCreateOtherObjVMframe(&DlprocContextMethodTable,prev);
+	FklVMframe* f=&exe->sf;
+	f->type=FKL_FRAME_OTHEROBJ;
+	f->u.o.t=&DlprocContextMethodTable;
 	initDlprocFrameContext(f->u.o.data,dlproc,exe->gc);
 	fklPushVMframe(f,exe);
 }
@@ -449,10 +450,11 @@ inline void fklDoCallableObjFrameStep(FklVMframe* f,FklVM* exe)
 	f->u.o.t->step(fklGetFrameData(f),exe);
 }
 
-inline void fklDoFinalizeObjFrame(FklVMframe* f)
+inline void fklDoFinalizeObjFrame(FklVMframe* f,FklVMframe* sf)
 {
 	f->u.o.t->finalizer(fklGetFrameData(f));
-	free(f);
+	if(f!=sf)
+		free(f);
 }
 
 inline void fklDoCopyObjFrameContext(FklVMframe* s,FklVMframe* d,FklVM* exe)
@@ -544,11 +546,20 @@ void fklCallobj(FklVMvalue* proc,FklVMframe* frame,FklVM* exe)
 void fklTailCallobj(FklVMvalue* proc,FklVMframe* frame,FklVM* exe)
 {
 	exe->frames=frame->prev;
-	fklDoFinalizeObjFrame(frame);
+	fklDoFinalizeObjFrame(frame,&exe->sf);
 	fklCallobj(proc,exe->frames,exe);
 }
 
-void fklVMcallInDlproc(FklVMvalue* proc
+inline void fklCallFuncK(FklVMFuncK kf,FklVM* v,void* ctx)
+{
+	FklVMframe* sf=v->frames;
+	FklVMframe* nf=fklCreateOtherObjVMframe(sf->u.o.t,sf->prev);
+	fklDoCopyObjFrameContext(sf,nf,v);
+	v->frames=nf;
+	kf(v,FKL_CC_OK,ctx);
+}
+
+void fklCallInDlproc(FklVMvalue* proc
 		,size_t argNum
 		,FklVMvalue* arglist[]
 		,FklVMframe* frame
@@ -607,6 +618,7 @@ int fklRunVM(FklVM* exe)
 		fklTcMutexRelease(exe->gc);
 		return 255;
 	}
+	FklVMframe* sf=&exe->sf;
 	while(exe->frames)
 	{
 		fklTcMutexAcquire(exe->gc);
@@ -621,7 +633,7 @@ int fklRunVM(FklVM* exe)
 				break;
 			case FKL_FRAME_OTHEROBJ:
 				if(fklIsCallableObjFrameReachEnd(curframe))
-					fklDoFinalizeObjFrame(popFrame(exe));
+					fklDoFinalizeObjFrame(popFrame(exe),sf);
 				else
 					fklDoCallableObjFrameStep(curframe,exe);
 				break;
@@ -1779,11 +1791,12 @@ void fklJoinAllThread(FklVM* curVM)
 
 void fklDeleteCallChain(FklVM* exe)
 {
+	FklVMframe* sf=&exe->sf;
 	while(exe->frames)
 	{
 		FklVMframe* cur=exe->frames;
 		exe->frames=cur->prev;
-		fklDestroyVMframe(cur);
+		fklDestroyVMframe(cur,sf);
 	}
 }
 

@@ -373,10 +373,10 @@ FklVMframe* fklCreateOtherObjVMframe(const FklVMframeContextMethodTable* t,FklVM
 	return r;
 }
 
-void fklDestroyVMframe(FklVMframe* frame)
+void fklDestroyVMframe(FklVMframe* frame,FklVMframe* sf)
 {
 	if(frame->type==FKL_FRAME_OTHEROBJ)
-		fklDoFinalizeObjFrame(frame);
+		fklDoFinalizeObjFrame(frame,sf);
 	else
 		free(frame);
 }

@@ -3575,6 +3575,7 @@ static int errorCallBackWithErrorHandler(FklVMframe* f,FklVMvalue* errValue,FklV
 	size_t num=c->num;
 	FklVMvalue** errSymbolLists=c->errorSymbolLists;
 	FklVMerror* err=errValue->u.err;
+	FklVMframe* sf=&exe->sf;
 	for(size_t i=0;i<num;i++)
 	{
 		if(isShouldBeHandle(errSymbolLists[i],err->type))
@@ -3590,7 +3591,7 @@ static int errorCallBackWithErrorHandler(FklVMframe* f,FklVMvalue* errValue,FklV
 			{
 				FklVMframe* cur=topFrame;
 				topFrame=topFrame->prev;
-				fklDestroyVMframe(cur);
+				fklDestroyVMframe(cur,sf);
 			}
 			fklTailCallobj(c->errorHandlers[i],f,exe);
 			return 1;
@@ -3774,7 +3775,7 @@ typedef struct
 			fklSetRef(&(mapctx->cars)->u.vec->base[i],pair->u.pair->car,gc);\
 			fklSetRef(&mapctx->vec->u.vec->base[i],pair->u.pair->cdr,gc);\
 		}\
-		return fklVMcallInDlproc(mapctx->proc,argNum,mapctx->cars->u.vec->base,frame,exe,(K_FUNC),mapctx,sizeof(MapCtx));\
+		return fklCallInDlproc(mapctx->proc,argNum,mapctx->cars->u.vec->base,frame,exe,(K_FUNC),mapctx,sizeof(MapCtx));\
 	}\
 	fklNiPopTp(stack);\
 	fklNiReturn(*mapctx->r,&mapctx->ap,stack);\
@@ -3822,7 +3823,7 @@ typedef struct
 		mapctx->len=len;\
 		mapctx->num=argNum;\
 		mapctx->vec=argVec;\
-		(K_FUNC)(exe,FKL_CC_OK,mapctx);}\
+		fklCallFuncK((K_FUNC),exe,mapctx);}\
 
 static void k_map(K_FUNC_ARGL) {K_MAP_PATTERN(k_map,
 		*(mapctx->cur)=fklCreateVMvalueToStack(FKL_TYPE_PAIR,fklCreateVMpair(),exe);,
@@ -3890,7 +3891,7 @@ static void k_member(K_FUNC_ARGL)
 	if(memberctx->list!=FKL_VM_NIL)
 	{
 		FklVMvalue* arglist[2]={memberctx->obj,memberctx->list->u.pair->car};
-		return fklVMcallInDlproc(memberctx->proc
+		return fklCallInDlproc(memberctx->proc
 				,2,arglist
 				,exe->frames,exe,k_member,memberctx,sizeof(MemberCtx));
 	}
@@ -3921,7 +3922,8 @@ void builtin_member(FKL_DL_PROC_ARGL)
 		memberctx->proc=proc;
 		memberctx->list=list;
 		memberctx->ap=ap;
-		k_member(exe,FKL_CC_OK,memberctx);
+		fklCallFuncK(k_member,exe,memberctx);
+		//k_member(exe,FKL_CC_OK,memberctx);
 	}
 	FklVMvalue* r=list;
 	for(;r!=FKL_VM_NIL;r=r->u.pair->cdr)
@@ -3959,7 +3961,7 @@ static void k_memp(K_FUNC_ARGL)
 	}
 	if(mempctx->list!=FKL_VM_NIL)
 	{
-		return fklVMcallInDlproc(mempctx->proc
+		return fklCallInDlproc(mempctx->proc
 				,1,&mempctx->list->u.pair->car
 				,exe->frames,exe,k_memp,mempctx,sizeof(MempCtx));
 	}
@@ -3986,7 +3988,7 @@ void builtin_memp(FKL_DL_PROC_ARGL)
 	mempctx->proc=proc;
 	mempctx->list=list;
 	mempctx->ap=ap;
-	k_memp(exe,FKL_CC_OK,mempctx);
+	fklCallFuncK(k_memp,exe,mempctx);
 }
 
 typedef struct
@@ -4018,7 +4020,7 @@ static void k_filter(K_FUNC_ARGL)
 	}
 	if(filterctx->list!=FKL_VM_NIL)
 	{
-		return fklVMcallInDlproc(filterctx->proc
+		return fklCallInDlproc(filterctx->proc
 				,1,&filterctx->list->u.pair->car
 				,exe->frames,exe,k_filter,filterctx,sizeof(FilterCtx));
 	}
@@ -4046,7 +4048,7 @@ void builtin_filter(FKL_DL_PROC_ARGL)
 	filterctx->proc=proc;
 	filterctx->list=list;
 	filterctx->ap=ap;
-	k_filter(exe,FKL_CC_OK,filterctx);
+	fklCallFuncK(k_filter,exe,filterctx);
 }
 
 void builtin_list(FKL_DL_PROC_ARGL)

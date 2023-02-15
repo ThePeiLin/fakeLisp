@@ -7,7 +7,7 @@ extern "C"{
 
 typedef enum
 {
-	FKL_STRING_PATTERN_BUILTIN,
+	FKL_STRING_PATTERN_BUILTIN=0,
 	FKL_STRING_PATTERN_DEFINED,
 }FklStringPatternType;
 

@@ -1338,7 +1338,7 @@ inline static void print_atom_to_ut_string(UT_string* result,FklVMvalue* v,FklSy
 
 FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 {
-	UT_string result={};
+	UT_string result;
 	utstring_init(&result);
 	FklHashTable* recValueSet=fklCreateValueSetHashtable();
 	FklHashTable* hasPrintRecSet=fklCreateValueSetHashtable();

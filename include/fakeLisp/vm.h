@@ -185,7 +185,7 @@ typedef void (*FklVMFuncK)(struct FklVM*,FklCCState,void*);
 
 typedef enum
 {
-	FKL_FRAME_COMPOUND,
+	FKL_FRAME_COMPOUND=0,
 	FKL_FRAME_OTHEROBJ,
 }FklFrameType;
 
@@ -235,8 +235,8 @@ typedef struct FklVMframe
 }FklVMframe;
 
 void fklDoPrintBacktrace(FklVMframe* f,FILE* fp,FklSymbolTable* table);
-void fklCallobj(FklVMvalue*,FklVMframe*,struct FklVM* exe);
-void fklTailCallobj(FklVMvalue*,FklVMframe*,struct FklVM* exe);
+void fklCallObj(FklVMvalue*,FklVMframe*,struct FklVM* exe);
+void fklTailCallObj(FklVMvalue*,FklVMframe*,struct FklVM* exe);
 void fklDoAtomicFrame(FklVMframe* f,struct FklVMgc*);
 void fklDoCopyObjFrameContext(FklVMframe*,FklVMframe*,struct FklVM* exe);
 void** fklGetFrameData(FklVMframe* f);

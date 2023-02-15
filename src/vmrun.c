@@ -514,7 +514,7 @@ inline static void applyCompoundProc(FklVM* exe,FklVMvalue* proc,FklVMframe* fra
 	}
 }
 
-void fklCallobj(FklVMvalue* proc,FklVMframe* frame,FklVM* exe)
+void fklCallObj(FklVMvalue* proc,FklVMframe* frame,FklVM* exe)
 {
 	switch(proc->type)
 	{
@@ -527,11 +527,11 @@ void fklCallobj(FklVMvalue* proc,FklVMframe* frame,FklVM* exe)
 	}
 }
 
-void fklTailCallobj(FklVMvalue* proc,FklVMframe* frame,FklVM* exe)
+void fklTailCallObj(FklVMvalue* proc,FklVMframe* frame,FklVM* exe)
 {
 	exe->frames=frame->prev;
 	fklDoFinalizeObjFrame(frame,&exe->sf);
-	fklCallobj(proc,exe->frames,exe);
+	fklCallObj(proc,exe->frames,exe);
 }
 
 inline void fklCallFuncK(FklVMFuncK kf,FklVM* v,void* ctx)
@@ -1705,7 +1705,7 @@ FklVM* fklCreateThreadVM(FklVMgc* gc
 	exe->libs=fklCopyMemory(libs,libNum*sizeof(FklVMlib));
 	exe->codeObj=prev->codeObj;
 	exe->frames=NULL;
-	fklCallobj(nextCall,NULL,exe);
+	fklCallObj(nextCall,NULL,exe);
 	insert_to_VM_chain(exe,prev,next,gc);
 	fklAddToGCNoGC(exe->chan,gc);
 	return exe;

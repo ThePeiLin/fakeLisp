@@ -3655,7 +3655,7 @@ static int errorCallBackWithErrorHandler(FklVMframe* f,FklVMvalue* errValue,FklV
 				topFrame=topFrame->prev;
 				fklDestroyVMframe(cur,sf);
 			}
-			fklTailCallobj(c->errorHandlers[i],f,exe);
+			fklTailCallObj(c->errorHandlers[i],f,exe);
 			return 1;
 		}
 	}
@@ -3733,13 +3733,13 @@ void builtin_call_eh(FKL_DL_PROC_ARGL)
 		c->errorHandlers=t;
 		c->bp=ap;
 		c->top=stack->bps.top;
-		fklCallobj(proc,nf,exe);
+		fklCallObj(proc,nf,exe);
 	}
 	else
 	{
 		fklUninitPtrStack(&errSymbolLists);
 		fklUninitPtrStack(&errHandlers);
-		fklTailCallobj(proc,exe->frames,exe);
+		fklTailCallObj(proc,exe->frames,exe);
 	}
 	fklNiSetBp(ap,stack);
 	fklNiEnd(&ap,exe->stack);
@@ -3799,7 +3799,7 @@ void builtin_apply(FKL_DL_PROC_ARGL)
 		fklNiReturn(t,&ap,stack);
 	}
 	fklUninitPtrStack(&stack1);
-	fklTailCallobj(proc,frame,exe);
+	fklTailCallObj(proc,frame,exe);
 	fklNiEnd(&ap,stack);
 }
 

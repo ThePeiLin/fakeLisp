@@ -1844,6 +1844,19 @@ void fklInitVMlib(FklVMlib* lib,size_t exportNum,FklSid_t* exports,FklVMvalue* p
 	lib->libEnv=FKL_VM_NIL;
 }
 
+inline void fklInitVMlibWithCodeObj(FklVMlib* lib
+		,size_t exportNum
+		,FklSid_t* exports
+		,FklVMvalue* globEnv
+		,FklVMvalue* codeObj
+		,FklVMgc* gc)
+{
+	FklByteCode* bc=codeObj->u.code->bc;
+	FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(bc->code,bc->size,codeObj,gc),gc);
+	fklSetRef(&proc->u.proc->prevEnv,globEnv,gc);
+	fklInitVMlib(lib,exportNum,exports,proc);
+}
+
 FklVMlib* fklCreateVMlib(size_t exportNum,FklSid_t* exports,FklVMvalue* proc)
 {
 	FklVMlib* lib=(FklVMlib*)malloc(sizeof(FklVMlib));

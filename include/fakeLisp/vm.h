@@ -644,7 +644,12 @@ void fklDestroyVMlib(FklVMlib* lib);
 
 void fklInitVMlib(FklVMlib*,size_t exportNum,FklSid_t* exports,FklVMvalue* proc);
 
-void fklInitVMlibWithCodeObj(FklVMlib*,size_t exportNum,FklSid_t* exports,FklVMvalue* codeObj);
+void fklInitVMlibWithCodeObj(FklVMlib*
+		,size_t exportNum
+		,FklSid_t* exports
+		,FklVMvalue* globEnv
+		,FklVMvalue* codeObj
+		,FklVMgc* gc);
 
 void fklUninitVMlib(FklVMlib*);
 

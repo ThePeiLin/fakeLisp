@@ -352,9 +352,7 @@ static void loadLib(FILE* fp,size_t* plibNum,FklVMlib** plibs,FklVMvalue* globEn
 			FklByteCode* bc=loadByteCode(fp);
 			bcl->bc=bc;
 			FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,bcl,gc);
-			FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(bc->code,bc->size,codeObj,gc),gc);
-			fklSetRef(&proc->u.proc->prevEnv,globEnv,gc);
-			fklInitVMlib(&libs[i],exportNum,exports,proc);
+			fklInitVMlibWithCodeObj(&libs[i],exportNum,exports,globEnv,codeObj,gc);
 		}
 		else
 		{

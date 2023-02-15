@@ -267,6 +267,9 @@ typedef struct FklVM
 	uint32_t mark;
 	pthread_t tid;
 	FklVMframe* frames;
+	//static stack frame,only for dlproc and callable obj;
+	//如果这个栈帧不会再进行调用，那么就会直接使用这个
+	FklVMframe sf;
 	FklVMstack* stack;
 	FklVMvalue* codeObj;
 	struct FklVMvalue* chan;

@@ -19,12 +19,12 @@ extern "C" {
 
 typedef enum
 {
-	FKL_TYPE_NIL=0,
-	FKL_TYPE_I32,
-	FKL_TYPE_SYM,
-	FKL_TYPE_CHR,
+	//FKL_TYPE_NIL=0,
+	//FKL_TYPE_I32,
+	//FKL_TYPE_SYM,
+	//FKL_TYPE_CHR,
 	FKL_TYPE_F64,
-	FKL_TYPE_I64,
+	//FKL_TYPE_I64,
 	FKL_TYPE_BIG_INT,
 	FKL_TYPE_STR,
 	FKL_TYPE_VECTOR,
@@ -57,7 +57,7 @@ typedef enum
 {
 	FKL_TAG_PTR=0,
 	FKL_TAG_NIL,
-	FKL_TAG_I32,
+	FKL_TAG_FIX,
 	FKL_TAG_SYM,
 	FKL_TAG_CHR,
 }FklVMptrTag;
@@ -701,9 +701,9 @@ void fklUninitVMlib(FklVMlib*);
 #define FKL_TAG_MASK ((intptr_t)0x7)
 
 #define FKL_VM_NIL ((FklVMptr)0x1)
-#define FKL_VM_TRUE (FKL_MAKE_VM_I32(1))
+#define FKL_VM_TRUE (FKL_MAKE_VM_FIX(1))
 #define FKL_VM_EOF ((FklVMptr)0x7fffffffa)
-#define FKL_MAKE_VM_I32(I) ((FklVMptr)((((uintptr_t)(I))<<FKL_UNUSEDBITNUM)|FKL_TAG_I32))
+#define FKL_MAKE_VM_FIX(I) ((FklVMptr)((((uintptr_t)(I))<<FKL_UNUSEDBITNUM)|FKL_TAG_FIX))
 #define FKL_MAKE_VM_CHR(C) ((FklVMptr)((((uintptr_t)(C))<<FKL_UNUSEDBITNUM)|FKL_TAG_CHR))
 #define FKL_MAKE_VM_SYM(S) ((FklVMptr)((((uintptr_t)(S))<<FKL_UNUSEDBITNUM)|FKL_TAG_SYM))
 #define FKL_MAKE_VM_PTR(P) ((FklVMptr)(((uintptr_t)(P))|FKL_TAG_PTR))
@@ -726,6 +726,7 @@ void fklUninitVMlib(FklVMlib*);
 #define FKL_IS_BYTEVECTOR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_BYTEVECTOR)
 #define FKL_IS_ERR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_ERR)
 #define FKL_IS_I32(P) (FKL_GET_TAG(P)==FKL_TAG_I32)
+#define FKL_IS_FIX_INT(P) (FKL_GET_TAG(P)==FKL_TAG_FIX)
 #define FKL_IS_CHR(P) (FKL_GET_TAG(P)==FKL_TAG_CHR)
 #define FKL_IS_SYM(P) (FKL_GET_TAG(P)==FKL_TAG_SYM)
 #define FKL_IS_I64(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_I64)

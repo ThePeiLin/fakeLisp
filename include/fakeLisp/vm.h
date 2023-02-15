@@ -641,7 +641,11 @@ void fklDestroyVMframes(FklVMframe* h);
 
 FklVMlib* fklCreateVMlib(size_t exportNum,FklSid_t* exports,FklVMvalue* codeObj);
 void fklDestroyVMlib(FklVMlib* lib);
-void fklInitVMlib(FklVMlib*,size_t exportNum,FklSid_t* exports,FklVMvalue* codeObj);
+
+void fklInitVMlib(FklVMlib*,size_t exportNum,FklSid_t* exports,FklVMvalue* proc);
+
+void fklInitVMlibWithCodeObj(FklVMlib*,size_t exportNum,FklSid_t* exports,FklVMvalue* codeObj);
+
 void fklUninitVMlib(FklVMlib*);
 
 #define FKL_SET_RETURN(fn,v,stack) do{\

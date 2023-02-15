@@ -3957,7 +3957,7 @@ FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 	for(size_t i=0;i<macroLibStack->top;i++)
 	{
 		FklCodegenLib* cur=macroLibStack->base[i];
-		fklInitVMlibWithCodgenLib(cur,&anotherVM->libs[i],globEnv,anotherVM->gc);
+		fklInitVMlibWithCodgenLib(cur,&anotherVM->libs[i],globEnv,anotherVM->gc,1);
 	}
 	FklVMvalue* mainEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,createVMenvFromPatternMatchTable(globEnv,ht,lineHash,anotherVM->gc),anotherVM->gc);
 	FklVMframe* mainframe=anotherVM->frames;
@@ -4015,16 +4015,17 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 	return r;
 }
 
-void fklInitVMlibWithCodgenLib(FklCodegenLib* clib
+inline void fklInitVMlibWithCodgenLib(FklCodegenLib* clib
 		,FklVMlib* vlib
 		,FklVMvalue* globEnv
-		,FklVMgc* gc)
+		,FklVMgc* gc
+		,int needCopy)
 {
 	FklVMvalue* val=FKL_VM_NIL;
 	if(clib->type==FKL_CODEGEN_LIB_SCRIPT)
 	{
 		FklByteCode* bc=clib->u.bcl->bc;
-		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,fklCopyByteCodelnt(clib->u.bcl),gc);
+		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,needCopy?fklCopyByteCodelnt(clib->u.bcl):clib->u.bcl,gc);
 		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(bc->code,bc->size,codeObj,gc),gc);
 		fklSetRef(&proc->u.proc->prevEnv,globEnv,gc);
 		val=proc;
@@ -4033,12 +4034,12 @@ void fklInitVMlibWithCodgenLib(FklCodegenLib* clib
 		val=fklCreateVMvalueNoGC(FKL_TYPE_STR,fklCreateString(strlen(clib->rp)-strlen(FKL_DLL_FILE_TYPE),clib->rp),gc);
 	fklInitVMlib(vlib
 			,clib->exportNum
-			,fklCopyMemory(clib->exports,clib->exportNum*sizeof(FklSid_t))
+			,needCopy?fklCopyMemory(clib->exports,clib->exportNum*sizeof(FklSid_t)):clib->exports
 			,val);
 
 }
 
-void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
+inline void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
 		,FklVMlib* vlib
 		,FklVMvalue* globEnv
 		,FklVMgc* gc)

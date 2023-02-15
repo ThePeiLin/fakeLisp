@@ -263,19 +263,11 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 					{
 						FklVMlib* curVMlib=&nlibs[i];
 						FklCodegenLib* curCGlib=codegen->loadedLibStack->base[i];
-						if(curCGlib->type==FKL_CODEGEN_LIB_SCRIPT)
-						{
-							FklByteCode* bc=curCGlib->u.bcl->bc;
-							FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,curCGlib->u.bcl,anotherVM->gc);
-							FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(bc->code,bc->size,codeObj,anotherVM->gc),anotherVM->gc);
-							fklSetRef(&proc->u.proc->prevEnv,globEnv,anotherVM->gc);
-							fklInitVMlib(curVMlib,curCGlib->exportNum,curCGlib->exports,proc);
-						}
-						else
-						{
-							FklVMvalue* realpath=fklCreateVMvalueNoGC(FKL_TYPE_STR,fklCreateString(strlen(curCGlib->rp)-strlen(FKL_DLL_FILE_TYPE),curCGlib->rp),anotherVM->gc);
-							fklInitVMlib(curVMlib,curCGlib->exportNum,curCGlib->exports,realpath);
-						}
+						fklInitVMlibWithCodgenLib(curCGlib
+								,curVMlib
+								,globEnv
+								,anotherVM->gc
+								,0);
 					}
 					FklVMlib* prev=anotherVM->libs;
 					anotherVM->libs=nlibs;

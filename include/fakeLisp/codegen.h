@@ -219,7 +219,8 @@ struct FklVMvalue;
 void fklInitVMlibWithCodgenLib(FklCodegenLib* clib
 		,struct FklVMlib* vlib
 		,struct FklVMvalue* globEnv
-		,struct FklVMgc* vm);
+		,struct FklVMgc* vm
+		,int needCopy);
 
 void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
 		,struct FklVMlib* vlib

@@ -1648,10 +1648,6 @@ static size_t _hashTable_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 
 static size_t (*const valueHashFuncTable[])(const FklVMvalue*,FklPtrStack* s)=
 {
-	NULL,
-	NULL,
-	NULL,
-	NULL,
 	_f64_hashFunc,
 	NULL,
 	NULL,

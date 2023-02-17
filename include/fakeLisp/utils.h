@@ -92,6 +92,9 @@ char* fklRelpath(const char*,const char*);
 
 int fklIsI64AddOverflow(int64_t a,int64_t b);
 int fklIsI64MulOverflow(int64_t a,int64_t b);
+
+int fklIsFixAddOverflow(int64_t a,int64_t b);
+int fklIsFixMulOverflow(int64_t a,int64_t b);
 void mergeSort(void* base
 		,size_t num
 		,size_t size

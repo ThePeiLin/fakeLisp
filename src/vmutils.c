@@ -89,8 +89,8 @@ inline uint64_t fklGetUint(const FklVMvalue* p)
 
 inline int fklVMnumberLt0(const FklVMvalue* p)
 {
-	return fklIsFixint(p)
-		?fklGetInt(p)<0
+	return FKL_IS_FIX(p)
+		?FKL_GET_FIX(p)<0
 		:FKL_IS_F64(p)
 		?0.0-p->u.f64>DBL_EPSILON
 		:!FKL_IS_0_BIG_INT(p->u.bigInt)&&p->u.bigInt->neg;

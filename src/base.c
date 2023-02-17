@@ -1283,6 +1283,11 @@ static const FklBigInt FKL_BIG_INT_FIX_MIN={(uint8_t*)FKL_BIG_INT_FIX_MIN_BIT,8,
 
 inline int fklIsGtLtFixBigInt(const FklBigInt* a)
 {
+	return (fklCmpBigInt(a,&FKL_BIG_INT_FIX_MAX)>0||fklCmpBigInt(a,&FKL_BIG_INT_FIX_MIN)<0);
+}
+
+inline int fklIsGeLeFixBigInt(const FklBigInt* a)
+{
 	return (fklCmpBigInt(a,&FKL_BIG_INT_FIX_MAX)>=0||fklCmpBigInt(a,&FKL_BIG_INT_FIX_MIN)<=0);
 }
 

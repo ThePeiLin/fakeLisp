@@ -239,12 +239,16 @@ void fklSubBigInt(FklBigInt*,const FklBigInt* toSub);
 void fklSubBigIntI(FklBigInt*,int64_t toSub);
 void fklMulBigInt(FklBigInt*,const FklBigInt* multiplier);
 void fklMulBigIntI(FklBigInt*,int64_t multiplier);
+
 int fklIsGtLtFixBigInt(const FklBigInt* a);
+int fklIsGeLeFixBigInt(const FklBigInt* a);
+
 int fklIsGtLtI64BigInt(const FklBigInt* a);
 int fklIsGtI64MaxBigInt(const FklBigInt* a);
 int fklIsGtU64MaxBigInt(const FklBigInt* a);
 int fklIsLtI64MinBigInt(const FklBigInt* a);
 int fklIsGeLeI64BigInt(const FklBigInt* a);
+
 int fklDivModBigInt(FklBigInt*,FklBigInt*,const FklBigInt* divider);
 int fklDivModBigIntI(FklBigInt*,int64_t*,int64_t divider);
 int fklDivModBigIntU(FklBigInt*,uint64_t*,uint64_t divider);

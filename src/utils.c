@@ -950,22 +950,51 @@ inline int fklIsI64AddOverflow(int64_t a,int64_t b)
 	return (a<0&&b<0&&sum>0)||(a>0&&b>0&&sum<0);
 }
 
+union Fixu
+{
+	struct
+	{
+		int64_t fix:61;
+		int8_t o:3;
+	}s;
+	int64_t i;
+};
+
+inline int fklIsFixAddOverflow(int64_t a,int64_t b)
+{
+	union Fixu us={.s.fix=a+b};
+	int64_t sum=us.s.fix;
+	return (a<0&&b<0&&sum>0)||(a>0&&b>0&&sum<0);
+}
+
 inline int fklIsI64MulOverflow(int64_t a,int64_t b)
 {
 	if(b==0||a==0)
 		return 0;
 	if(a>=0&&b>=0)
 		return (INT64_MAX/a)<b;
-	else if(a<0&&b<0)
-		return (INT64_MIN/a)>b;
-	else if(a*b==INT64_MIN)
+	if(a<0&&b<0)
+		return (INT64_MAX/a)>b;
+	if(a*b==INT64_MIN)
 		return 0;
-	else
-	{
-		int64_t t=a*b;
-		t/=b;
-		return a!=t;
-	}
+	int64_t t=a*b;
+	t/=b;
+	return a!=t;
+}
+
+inline int fklIsFixMulOverflow(int64_t a,int64_t b)
+{
+	if(b==0||a==0)
+		return 0;
+	if(a>=0&&b>=0)
+		return (INT64_MAX/a)<b;
+	if(a<0&&b<0)
+		return (INT64_MAX/a)>b;
+	if(a*b==INT64_MIN)
+		return 0;
+	union Fixu t={.s.fix=a*b};
+	t.s.fix/=b;
+	return a!=t.s.fix;
 }
 
 char* fklCastEscapeCharBuf(const char* str,size_t size,size_t* psize)

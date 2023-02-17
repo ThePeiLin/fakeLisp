@@ -209,7 +209,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 				,&unexpectEOF
 				,&tokenStack
 				,NULL
-				,*(codegen->patterns)
+				,*(codegen->phead)
 				,&route);
 		if(unexpectEOF)
 		{

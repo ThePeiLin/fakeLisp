@@ -180,6 +180,7 @@ static void loadLib(FILE* fp,size_t* pnum,FklCodegenLib** plibs,FklSymbolTable* 
 					,exportNum
 					,exports
 					,NULL
+					,NULL
 					,NULL);
 		}
 		else

@@ -3166,6 +3166,17 @@ void builtin_println(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void builtin_print(FKL_DL_PROC_ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	for(;obj;obj=fklNiGetArg(&ap,stack))
+		fklPrincVMvalue(obj,stdout,exe->symbolTable);
+	fklNiResBp(&ap,stack);
+	fklNiReturn(FKL_VM_NIL,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 void builtin_newline(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -5141,6 +5152,7 @@ static const struct SymbolFuncStruct
 	{"prin1",                 builtin_prin1,                   },
 	{"princ",                 builtin_princ,                   },
 	{"println",               builtin_println,                 },
+	{"print",                 builtin_print,                   },
 	{"newline",               builtin_newline,                 },
 	{"dlopen",                builtin_dlopen,                  },
 	{"dlsym",                 builtin_dlsym,                   },

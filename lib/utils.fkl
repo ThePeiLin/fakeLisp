@@ -230,10 +230,6 @@
                    (p-iter (cdr c))))))
       (p-iter l)))
 
-  (define print
-    (lambda l
-      (apply fprint stdout l)))
-
   (define fprin1
     (lambda (f,l)
       (define w-iter

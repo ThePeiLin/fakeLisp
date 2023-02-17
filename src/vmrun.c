@@ -1105,16 +1105,19 @@ static inline void process_import(FklVMlib* plib,FklVM* exe,FklVMframe* frame,ch
 	}
 }
 
+static inline void init_import_env(FklVMframe* frame,FklVMlib* plib,FklVM* exe)
+{
+	fklAddCompoundFrameCp(frame,-1);
+	callCompoundProcdure(exe,plib->proc,frame);
+	fklSetRef(&plib->libEnv,fklGetCompoundFrameLocalenv(exe->frames),exe->gc);
+}
+
 static void inline B_import(FklVM* exe,FklVMframe* frame)
 {
 	uint64_t libId=fklGetU64FromByteCode(fklGetCompoundFrameCode(frame));
 	FklVMlib* plib=&exe->libs[libId-1];
 	if(plib->libEnv==FKL_VM_NIL)
-	{
-		fklAddCompoundFrameCp(frame,-1);
-		callCompoundProcdure(exe,plib->proc,frame);
-		fklSetRef(&plib->libEnv,fklGetCompoundFrameLocalenv(exe->frames),exe->gc);
-	}
+		init_import_env(frame,plib,exe);
 	else
 	{
 		char* cstr=NULL;
@@ -1130,11 +1133,7 @@ static void inline B_import_with_symbols(FklVM* exe,FklVMframe* frame)
 	uint64_t libId=fklGetU64FromByteCode(fklGetCompoundFrameCode(frame));
 	FklVMlib* plib=&exe->libs[libId-1];
 	if(plib->libEnv==FKL_VM_NIL)
-	{
-		fklAddCompoundFrameCp(frame,-1);
-		callCompoundProcdure(exe,plib->proc,frame);
-		fklSetRef(&plib->libEnv,fklGetCompoundFrameLocalenv(exe->frames),exe->gc);
-	}
+		init_import_env(frame,plib,exe);
 	else
 	{
 		fklAddCompoundFrameCp(frame,sizeof(uint64_t));

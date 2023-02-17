@@ -630,13 +630,6 @@ static FklVMvalue* __fkl_f64_copyer(FklVMvalue* obj,FklVM* vm)
 	return tmp;
 }
 
-//static FklVMvalue* __fkl_i64_copyer(FklVMvalue* obj,FklVM* vm)
-//{
-//	FklVMvalue* tmp=fklCreateVMvalueToStack(FKL_TYPE_I64,NULL,vm);
-//	tmp->u.i64=obj->u.i64;
-//	return tmp;
-//}
-
 static FklVMvalue* __fkl_bigint_copyer(FklVMvalue* obj,FklVM* vm)
 {
 	return fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,fklCopyBigInt(obj->u.bigInt),vm);
@@ -703,7 +696,6 @@ static FklVMvalue* (*const valueCopyers[])(FklVMvalue* obj,FklVM* vm)=
 	__fkl_box_copyer,
 	__fkl_bytevector_copyer,
 	__fkl_userdata_copyer,
-	NULL,
 	NULL,
 	NULL,
 	NULL,
@@ -1587,6 +1579,20 @@ static size_t _f64_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 	return t.i;
 }
 
+static size_t _big_int_hashFunc(const FklVMvalue* v,FklPtrStack* s)
+{
+	const FklBigInt* bi=v->u.bigInt;
+	size_t r=0;
+	for(size_t i=0;i<bi->size;i++)
+	{
+		uint64_t c=bi->digits[i];
+		r+=c<<(i%8);
+	}
+	if(bi->neg)
+		r*=-1;
+	return r;
+}
+
 static size_t _str_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 {
 	FklString* str=v->u.str;
@@ -1649,15 +1655,13 @@ static size_t _hashTable_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 static size_t (*const valueHashFuncTable[])(const FklVMvalue*,FklPtrStack* s)=
 {
 	_f64_hashFunc,
-	NULL,
-	NULL,
+	_big_int_hashFunc,
 	_str_hashFunc,
 	_vector_hashFunc,
 	_pair_hashFunc,
 	_box_hashFunc,
 	_bytevector_hashFunc,
 	_userdata_hashFunc,
-	NULL,
 	NULL,
 	NULL,
 	NULL,

@@ -189,7 +189,6 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 	anotherVM->codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,fklCreateByteCodelnt(fklCreateByteCode(0)),anotherVM->gc);
 	char* prev=NULL;
 	size_t prevSize=0;
-	int32_t bs=0;
 	FklVMvalue* mainEnv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(globEnv,anotherVM->gc));
 	FklCodegenEnv* mainCodegenEnv=fklCreateCodegenEnv(codegen->globalEnv);
 	mainCodegenEnv->refcount=1;
@@ -274,11 +273,8 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 					anotherVM->libNum=libNum;
 					free(prev);
 				}
-				fklCodeLntCat(anotherVM->codeObj->u.code,tmpByteCode);
-				FklByteCodelnt* anotherVMCode=anotherVM->codeObj->u.code;
-				FklVMproc* tmp=fklCreateVMproc(anotherVMCode->bc->code+bs,tmpByteCode->bc->size,anotherVM->codeObj,anotherVM->gc);
-				bs+=tmpByteCode->bc->size;
-				fklDestroyByteCodelnt(tmpByteCode);
+				FklVMvalue* anotherCodeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,tmpByteCode,anotherVM->gc);
+				FklVMproc* tmp=fklCreateVMproc(tmpByteCode->bc->code,tmpByteCode->bc->size,anotherCodeObj,anotherVM->gc);
 				tmp->prevEnv=NULL;
 				FklVMframe* mainframe=fklCreateVMframeWithProc(tmp,anotherVM->frames);
 				mainframe->u.c.localenv=mainEnv;

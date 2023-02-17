@@ -8,7 +8,7 @@
    cadaar cadadr caddar cadddr
    cdaaar cdaadr cdadar cdaddr
    cddaar cddadr cdddar cddddr
-   fprint print fprin1
+   fprint fprin1
    square min max
    merge-sort! merge-sort
    (defmacro (let d,b)

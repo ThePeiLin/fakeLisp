@@ -659,18 +659,18 @@ inline void fklWaitGC(FklVMgc* gc)
 		head->mark=FKL_MARK_W;
 }
 
-static void B_dummy(FklVM* exe,FklVMframe* frame)
+static void inline B_dummy(FklVM* exe,FklVMframe* frame)
 {
 	FKL_ASSERT(0);
 }
 
-static void B_push_nil(FklVM* exe,FklVMframe* frame)
+static void inline B_push_nil(FklVM* exe,FklVMframe* frame)
 {
 	FklVMstack* stack=exe->stack;
 	fklPushVMvalue(FKL_VM_NIL,stack);
 }
 
-static void B_push_pair(FklVM* exe,FklVMframe* frame)
+static void inline B_push_pair(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* cdr=fklNiGetArg(&ap,stack);
@@ -679,39 +679,39 @@ static void B_push_pair(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
-static void B_push_i32(FklVM* exe,FklVMframe* frame)
+static void inline B_push_i32(FklVM* exe,FklVMframe* frame)
 {
 	fklPushVMvalue(FKL_MAKE_VM_FIX(fklGetI32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(int32_t)))),exe->stack);
 }
 
-static void B_push_i64(FklVM* exe,FklVMframe* frame)
+static void inline B_push_i64(FklVM* exe,FklVMframe* frame)
 {
 	fklPushVMvalue(FKL_MAKE_VM_FIX(fklGetI64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(int64_t)))),exe->stack);
 	//fklCreateVMvalueToStack(FKL_TYPE_I64,fklGetCompoundFrameCodeAndAdd(frame,sizeof(int64_t)),exe);
 }
 
-static void B_push_chr(FklVM* exe,FklVMframe* frame)
+static void inline B_push_chr(FklVM* exe,FklVMframe* frame)
 {
 	fklPushVMvalue(FKL_MAKE_VM_CHR(*(char*)(fklGetCompoundFrameCodeAndAdd(frame,sizeof(char)))),exe->stack);
 }
 
-static void B_push_f64(FklVM* exe,FklVMframe* frame)
+static void inline B_push_f64(FklVM* exe,FklVMframe* frame)
 {
 	fklCreateVMvalueToStack(FKL_TYPE_F64,fklGetCompoundFrameCodeAndAdd(frame,sizeof(double)),exe);
 }
 
-static void B_push_str(FklVM* exe,FklVMframe* frame)
+static void inline B_push_str(FklVM* exe,FklVMframe* frame)
 {
 	uint64_t size=fklGetU64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint64_t)));
 	fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(size,(char*)fklGetCompoundFrameCodeAndAdd(frame,size)),exe);
 }
 
-static void B_push_sym(FklVM* exe,FklVMframe* frame)
+static void inline B_push_sym(FklVM* exe,FklVMframe* frame)
 {
 	fklPushVMvalue(FKL_MAKE_VM_SYM(fklGetSidFromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(FklSid_t)))),exe->stack);
 }
 
-static void B_push_var(FklVM* exe,FklVMframe* frame)
+static void inline B_push_var(FklVM* exe,FklVMframe* frame)
 {
 	FklVMstack* stack=exe->stack;
 	FklSid_t idOfVar=fklGetSidFromByteCode(fklGetCompoundFrameCode(frame));
@@ -731,7 +731,7 @@ static void B_push_var(FklVM* exe,FklVMframe* frame)
 	fklAddCompoundFrameCp(frame,sizeof(FklSid_t));
 }
 
-static void B_push_top(FklVM* exe,FklVMframe* frame)
+static void inline B_push_top(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
 	if(stack->tp==stack->bp)
@@ -742,7 +742,7 @@ static void B_push_top(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
-static void B_push_proc(FklVM* exe,FklVMframe* frame)
+static void inline B_push_proc(FklVM* exe,FklVMframe* frame)
 {
 	uint64_t sizeOfProc=fklGetU64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint64_t)));
 	FklVMproc* code=fklCreateVMproc(fklGetCompoundFrameCode(frame),sizeOfProc,fklGetCompoundFrameCodeObj(frame),exe->gc);
@@ -751,12 +751,12 @@ static void B_push_proc(FklVM* exe,FklVMframe* frame)
 	fklAddCompoundFrameCp(frame,sizeOfProc);
 }
 
-static void B_pop(FklVM* exe,FklVMframe* frame)
+static void inline B_pop(FklVM* exe,FklVMframe* frame)
 {
 	exe->stack->tp-=1;
 }
 
-static void B_pop_var(FklVM* exe,FklVMframe* frame)
+static void inline B_pop_var(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
 	if(!(stack->tp>stack->bp))
@@ -791,7 +791,7 @@ static void B_pop_var(FklVM* exe,FklVMframe* frame)
 	fklAddCompoundFrameCp(frame,sizeof(FklSid_t));
 }
 
-static void B_pop_arg(FklVM* exe,FklVMframe* frame)
+static void inline B_pop_arg(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
 	if(ap<=stack->bp)
@@ -804,7 +804,7 @@ static void B_pop_arg(FklVM* exe,FklVMframe* frame)
 	fklNiDoSomeAfterSetq(*pValue,idOfVar);
 }
 
-static void B_pop_rest_arg(FklVM* exe,FklVMframe* frame)
+static void inline B_pop_rest_arg(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMgc* gc=exe->gc;
@@ -819,32 +819,32 @@ static void B_pop_rest_arg(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
-static void B_set_tp(FklVM* exe,FklVMframe* frame)
+static void inline B_set_tp(FklVM* exe,FklVMframe* frame)
 {
 	FklVMstack* stack=exe->stack;
 	fklNiSetTp(stack);
 }
 
-static void B_set_bp(FklVM* exe,FklVMframe* frame)
+static void inline B_set_bp(FklVM* exe,FklVMframe* frame)
 {
 	FklVMstack* stack=exe->stack;
 	fklNiSetBp(stack->tp,stack);
 	stack->bp=stack->tp;
 }
 
-static void B_res_tp(FklVM* exe,FklVMframe* frame)
+static void inline B_res_tp(FklVM* exe,FklVMframe* frame)
 {
 	FklVMstack* stack=exe->stack;
 	fklNiResTp(stack);
 }
 
-static void B_pop_tp(FklVM* exe,FklVMframe* frame)
+static void inline B_pop_tp(FklVM* exe,FklVMframe* frame)
 {
 	FklVMstack* stack=exe->stack;
 	fklNiPopTp(stack);
 }
 
-static void B_res_bp(FklVM* exe,FklVMframe* frame)
+static void inline B_res_bp(FklVM* exe,FklVMframe* frame)
 {
 	FklVMstack* stack=exe->stack;
 	if(stack->tp>stack->bp)
@@ -852,7 +852,7 @@ static void B_res_bp(FklVM* exe,FklVMframe* frame)
 	stack->bp=fklPopUintStack(&stack->bps);
 }
 
-static void B_call(FklVM* exe,FklVMframe* frame)
+static void inline B_call(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* tmpValue=fklNiGetArg(&ap,stack);
@@ -870,7 +870,7 @@ static void B_call(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
-static void B_tail_call(FklVM* exe,FklVMframe* frame)
+static void inline B_tail_call(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* tmpValue=fklNiGetArg(&ap,stack);
@@ -888,7 +888,7 @@ static void B_tail_call(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
-static void B_jmp_if_true(FklVM* exe,FklVMframe* frame)
+static void inline B_jmp_if_true(FklVM* exe,FklVMframe* frame)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMvalue* tmpValue=fklGetTopValue(stack);
@@ -897,7 +897,7 @@ static void B_jmp_if_true(FklVM* exe,FklVMframe* frame)
 	fklAddCompoundFrameCp(frame,sizeof(int64_t));
 }
 
-static void B_jmp_if_false(FklVM* exe,FklVMframe* frame)
+static void inline B_jmp_if_false(FklVM* exe,FklVMframe* frame)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMvalue* tmpValue=fklGetTopValue(stack);
@@ -906,13 +906,13 @@ static void B_jmp_if_false(FklVM* exe,FklVMframe* frame)
 	fklAddCompoundFrameCp(frame,sizeof(int64_t));
 }
 
-static void B_jmp(FklVM* exe,FklVMframe* frame)
+static void inline B_jmp(FklVM* exe,FklVMframe* frame)
 {
 	fklAddCompoundFrameCp(frame
 			,fklGetI64FromByteCode(fklGetCompoundFrameCode(frame))+sizeof(int64_t));
 }
 
-static void B_list_append(FklVM* exe,FklVMframe* frame)
+static void inline B_list_append(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* fir=fklNiGetArg(&ap,stack);
@@ -932,7 +932,7 @@ static void B_list_append(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
-static void B_push_vector(FklVM* exe,FklVMframe* frame)
+static void inline B_push_vector(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
 	uint64_t size=fklGetU64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint64_t)));
@@ -945,7 +945,7 @@ static void B_push_vector(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
-static void B_push_r_env(FklVM* exe,FklVMframe* frame)
+static void inline B_push_r_env(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* n=fklCreateVMvalueToStack(FKL_TYPE_ENV,fklCreateVMenv(FKL_VM_NIL,exe->gc),exe);
@@ -954,19 +954,19 @@ static void B_push_r_env(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
-static void B_pop_r_env(FklVM* exe,FklVMframe* frame)
+static void inline B_pop_r_env(FklVM* exe,FklVMframe* frame)
 {
 	frame->u.c.localenv=fklGetCompoundFrameLocalenv(frame)->u.env->prev;
 }
 
-static void B_push_big_int(FklVM* exe,FklVMframe* frame)
+static void inline B_push_big_int(FklVM* exe,FklVMframe* frame)
 {
 	uint64_t num=fklGetU64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(num)));
 	FklBigInt* bigInt=fklCreateBigIntFromMem(fklGetCompoundFrameCodeAndAdd(frame,num),sizeof(uint8_t)*num);
 	fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bigInt,exe);
 }
 
-static void B_push_box(FklVM* exe,FklVMframe* frame)
+static void inline B_push_box(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* c=fklNiGetArg(&ap,stack);
@@ -976,13 +976,13 @@ static void B_push_box(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
-static void B_push_bytevector(FklVM* exe,FklVMframe* frame)
+static void inline B_push_bytevector(FklVM* exe,FklVMframe* frame)
 {
 	uint64_t size=fklGetU64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint64_t)));
 	fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCreateBytevector(size,fklGetCompoundFrameCodeAndAdd(frame,size)),exe);
 }
 
-static void B_push_hash_eq(FklVM* exe,FklVMframe* frame)
+static void inline B_push_hash_eq(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
 	uint64_t num=fklGetU64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint64_t)));
@@ -998,7 +998,7 @@ static void B_push_hash_eq(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
-static void B_push_hash_eqv(FklVM* exe,FklVMframe* frame)
+static void inline B_push_hash_eqv(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
 	uint64_t num=fklGetU64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint64_t)));
@@ -1014,7 +1014,7 @@ static void B_push_hash_eqv(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
-static void B_push_hash_equal(FklVM* exe,FklVMframe* frame)
+static void inline B_push_hash_equal(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
 	uint64_t num=fklGetU64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint64_t)));
@@ -1030,7 +1030,7 @@ static void B_push_hash_equal(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
-static void B_push_list_0(FklVM* exe,FklVMframe* frame)
+static void inline B_push_list_0(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* pair=FKL_VM_NIL;
@@ -1048,7 +1048,7 @@ static void B_push_list_0(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
-static void B_push_list(FklVM* exe,FklVMframe* frame)
+static void inline B_push_list(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
 	uint64_t size=fklGetU64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint64_t)));
@@ -1067,7 +1067,7 @@ static void B_push_list(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
-static void B_push_vector_0(FklVM* exe,FklVMframe* frame)
+static void inline B_push_vector_0(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
 	size_t size=ap-stack->bp;
@@ -1079,7 +1079,7 @@ static void B_push_vector_0(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
-static void B_list_push(FklVM* exe,FklVMframe* frame)
+static void inline B_list_push(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* list=fklNiGetArg(&ap,stack);
@@ -1105,7 +1105,7 @@ static inline void process_import(FklVMlib* plib,FklVM* exe,FklVMframe* frame,ch
 	}
 }
 
-static void B_import(FklVM* exe,FklVMframe* frame)
+static void inline B_import(FklVM* exe,FklVMframe* frame)
 {
 	uint64_t libId=fklGetU64FromByteCode(fklGetCompoundFrameCode(frame));
 	FklVMlib* plib=&exe->libs[libId-1];
@@ -1125,7 +1125,7 @@ static void B_import(FklVM* exe,FklVMframe* frame)
 	}
 }
 
-static void B_import_with_symbols(FklVM* exe,FklVMframe* frame)
+static void inline B_import_with_symbols(FklVM* exe,FklVMframe* frame)
 {
 	uint64_t libId=fklGetU64FromByteCode(fklGetCompoundFrameCode(frame));
 	FklVMlib* plib=&exe->libs[libId-1];
@@ -1163,7 +1163,7 @@ static inline FklImportDllInitFunc getImportInit(FklDllHandle handle)
 	return fklGetAddress("_fklImportInit",handle);
 }
 
-static void B_import_from_dll(FklVM* exe,FklVMframe* frame)
+static void inline B_import_from_dll(FklVM* exe,FklVMframe* frame)
 {
 	uint64_t libId=fklGetU64FromByteCode(fklGetCompoundFrameCode(frame));
 	FklVMlib* plib=&exe->libs[libId-1];
@@ -1199,7 +1199,7 @@ static void B_import_from_dll(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
-static void B_import_from_dll_with_symbols(FklVM* exe,FklVMframe* frame)
+static void inline B_import_from_dll_with_symbols(FklVM* exe,FklVMframe* frame)
 {
 	uint64_t libId=fklGetU64FromByteCode(fklGetCompoundFrameCode(frame));
 	FklVMlib* plib=&exe->libs[libId-1];
@@ -1247,27 +1247,27 @@ static void B_import_from_dll_with_symbols(FklVM* exe,FklVMframe* frame)
 	fklAddCompoundFrameCp(frame,exportNum*sizeof(FklSid_t));
 }
 
-static void B_push_0(FklVM* exe,FklVMframe* frame)
+static void inline B_push_0(FklVM* exe,FklVMframe* frame)
 {
 	fklPushVMvalue(FKL_MAKE_VM_FIX(0),exe->stack);
 }
 
-static void B_push_1(FklVM* exe,FklVMframe* frame)
+static void inline B_push_1(FklVM* exe,FklVMframe* frame)
 {
 	fklPushVMvalue(FKL_MAKE_VM_FIX(1),exe->stack);
 }
 
-static void B_push_i8(FklVM* exe,FklVMframe* frame)
+static void inline B_push_i8(FklVM* exe,FklVMframe* frame)
 {
 	fklPushVMvalue(FKL_MAKE_VM_FIX(*(int8_t*)fklGetCompoundFrameCodeAndAdd(frame,sizeof(int8_t))),exe->stack);
 }
 
-static void B_push_i16(FklVM* exe,FklVMframe* frame)
+static void inline B_push_i16(FklVM* exe,FklVMframe* frame)
 {
 	fklPushVMvalue(FKL_MAKE_VM_FIX(fklGetI16FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(int16_t)))),exe->stack);
 }
 
-static void B_push_i64_big(FklVM* exe,FklVMframe* frame)
+static void inline B_push_i64_big(FklVM* exe,FklVMframe* frame)
 {
 	fklCreateVMvalueToStack(FKL_TYPE_BIG_INT
 			,fklCreateBigInt(fklGetI64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(int64_t))))

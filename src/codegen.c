@@ -2090,6 +2090,8 @@ static inline void process_import_script(FklNastNode* origExp
 	while(globalEnv->prev)globalEnv=globalEnv->prev;
 	FklCodegenEnv* libEnv=fklCreateCodegenEnv(globalEnv);
 	FklCodegen* nextCodegen=createCodegen(codegen,filename,libEnv);
+	nextCodegen->head=fklInitBuiltInStringPattern(nextCodegen->publicSymbolTable);
+	nextCodegen->patterns=&nextCodegen->head;
 	if(hasLoadSameFile(nextCodegen->realpath,codegen))
 	{
 		errorState->fid=codegen->fid;
@@ -2847,7 +2849,7 @@ static CODEGEN_FUNC(codegen_defmacro)
 
 		macroCodegen->globalSymTable=codegen->publicSymbolTable;
 		macroCodegen->publicSymbolTable=codegen->publicSymbolTable;
-		macroCodegen->fid=fklAddSymbolCstr(macroCodegen->filename,macroCodegen->publicSymbolTable)->id;
+		macroCodegen->fid=macroCodegen->filename?fklAddSymbolCstr(macroCodegen->filename,macroCodegen->publicSymbolTable)->id:0;
 		macroCodegen->loadedLibStack=macroCodegen->macroLibStack;
 
 		FklPtrStack* bcStack=fklCreatePtrStack(16,16);
@@ -2900,7 +2902,7 @@ static CODEGEN_FUNC(codegen_defmacro)
 		macroCodegen->globalSymTable=codegen->publicSymbolTable;
 		macroCodegen->publicSymbolTable=codegen->publicSymbolTable;
 		macroCodegen->loadedLibStack=macroCodegen->macroLibStack;
-		macroCodegen->fid=fklAddSymbolCstr(macroCodegen->filename,macroCodegen->publicSymbolTable)->id;
+		macroCodegen->fid=macroCodegen->filename?fklAddSymbolCstr(macroCodegen->filename,macroCodegen->publicSymbolTable)->id:0;
 
 		FklPtrStack* bcStack=fklCreatePtrStack(16,16);
 		fklPushPtrStack(fklMakeNastNodeRef(name),bcStack);
@@ -3521,6 +3523,11 @@ void fklInitCodegener(FklCodegen* codegen
 void fklUninitCodegener(FklCodegen* codegen)
 {
 	fklDestroyCodegenEnv(codegen->globalEnv);
+	if(codegen->patterns==&codegen->head)
+	{
+		fklDestroyAllStringPattern(codegen->head);
+		codegen->head=NULL;
+	}
 	if(!codegen->destroyAbleMark)
 	{
 		if(codegen->globalSymTable&&codegen->globalSymTable!=codegen->publicSymbolTable)
@@ -3528,8 +3535,6 @@ void fklUninitCodegener(FklCodegen* codegen)
 		fklDestroySymbolTable(codegen->publicSymbolTable);
 		while(!fklIsPtrStackEmpty(codegen->loadedLibStack))
 			fklDestroyCodegenLib(fklPopPtrStack(codegen->loadedLibStack));
-		fklDestroyAllStringPattern(*(codegen->patterns));
-		codegen->head=NULL;
 		fklDestroyPtrStack(codegen->loadedLibStack);
 		FklPtrStack* macroLibStack=codegen->macroLibStack;
 		while(!fklIsPtrStackEmpty(macroLibStack))

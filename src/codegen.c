@@ -3424,14 +3424,6 @@ FklByteCodelnt* fklGenExpressionCode(FklNastNode* exp
 	return fklGenExpressionCodeWithQuest(initialQuest,codegenr);
 }
 
-static FklStringMatchPattern** createPointPattern(FklStringMatchPattern* p)
-{
-	FklStringMatchPattern** r=(FklStringMatchPattern**)malloc(sizeof(FklStringMatchPattern*));
-	FKL_ASSERT(r);
-	*r=p;
-	return r;
-}
-
 void fklInitGlobalCodegener(FklCodegen* codegen
 		,const char* rp
 		,FklCodegenEnv* globalEnv
@@ -3470,7 +3462,8 @@ void fklInitGlobalCodegener(FklCodegen* codegen
 	codegen->refcount=0;
 	codegen->exportNum=0;
 	codegen->exports=NULL;
-	codegen->patterns=createPointPattern(fklInitBuiltInStringPattern(publicSymTable));
+	codegen->head=fklInitBuiltInStringPattern(publicSymTable);
+	codegen->patterns=&codegen->head;
 	codegen->loadedLibStack=fklCreatePtrStack(8,8);
 	codegen->macroLibStack=fklCreatePtrStack(8,8);
 }
@@ -3509,11 +3502,20 @@ void fklInitCodegener(FklCodegen* codegen
 	codegen->refcount=0;
 	codegen->exportNum=0;
 	codegen->exports=NULL;
-	codegen->patterns=prev?
-		prev->patterns:
-		createPointPattern(fklInitBuiltInStringPattern(publicSymTable));
-	codegen->loadedLibStack=prev?prev->loadedLibStack:fklCreatePtrStack(8,8);
-	codegen->macroLibStack=prev?prev->macroLibStack:fklCreatePtrStack(8,8);
+	codegen->head=NULL;
+	if(prev)
+	{
+		codegen->patterns=prev->patterns;
+		codegen->loadedLibStack=prev->loadedLibStack;
+		codegen->macroLibStack=prev->macroLibStack;
+	}
+	else
+	{
+		codegen->head=fklInitBuiltInStringPattern(publicSymTable);
+		codegen->patterns=&codegen->head;
+		codegen->loadedLibStack=fklCreatePtrStack(8,8);
+		codegen->macroLibStack=fklCreatePtrStack(8,8);
+	}
 }
 
 void fklUninitCodegener(FklCodegen* codegen)
@@ -3527,7 +3529,7 @@ void fklUninitCodegener(FklCodegen* codegen)
 		while(!fklIsPtrStackEmpty(codegen->loadedLibStack))
 			fklDestroyCodegenLib(fklPopPtrStack(codegen->loadedLibStack));
 		fklDestroyAllStringPattern(*(codegen->patterns));
-		free(codegen->patterns);
+		codegen->head=NULL;
 		fklDestroyPtrStack(codegen->loadedLibStack);
 		FklPtrStack* macroLibStack=codegen->macroLibStack;
 		while(!fklIsPtrStackEmpty(macroLibStack))

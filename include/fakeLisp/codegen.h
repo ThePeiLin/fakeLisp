@@ -68,6 +68,7 @@ typedef struct FklCodegen
 	FklSid_t* exports;
 	FklPtrStack* loadedLibStack;
 	FklPtrStack* macroLibStack;
+	FklStringMatchPattern* head;
 	FklStringMatchPattern** patterns;
 	struct FklCodegen* prev;
 	unsigned int destroyAbleMark:1;

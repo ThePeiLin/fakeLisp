@@ -193,7 +193,7 @@ typedef struct
 	void (*print_backtrace)(FklCallObjData data,FILE* fp,FklSymbolTable*);
 	void (*atomic)(FklCallObjData data,FklVMgc*);
 	void (*finalizer)(FklCallObjData data);
-	void (*copy)(const FklCallObjData s,FklCallObjData d,struct FklVM*);
+	void (*copy)(FklCallObjData dst,const FklCallObjData src,struct FklVM*);
 }FklVMframeContextMethodTable;
 
 typedef struct FklVMCompoundFrameData
@@ -207,10 +207,6 @@ typedef struct FklVMCompoundFrameData
 	uint8_t* spc;
 	uint8_t* pc;
 	uint8_t* end;
-	//uint64_t scp;
-	//uint64_t cp;
-	//uint64_t cpc;
-	//uint64_t rst;
 }FklVMCompoundFrameData;
 
 typedef struct FklVMframe
@@ -719,11 +715,9 @@ void fklUninitVMlib(FklVMlib*);
 #define FKL_IS_VECTOR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_VECTOR)
 #define FKL_IS_BYTEVECTOR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_BYTEVECTOR)
 #define FKL_IS_ERR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_ERR)
-//#define FKL_IS_I32(P) (FKL_GET_TAG(P)==FKL_TAG_I32)
 #define FKL_IS_FIX(P) (FKL_GET_TAG(P)==FKL_TAG_FIX)
 #define FKL_IS_CHR(P) (FKL_GET_TAG(P)==FKL_TAG_CHR)
 #define FKL_IS_SYM(P) (FKL_GET_TAG(P)==FKL_TAG_SYM)
-//#define FKL_IS_I64(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_I64)
 #define FKL_IS_USERDATA(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_USERDATA)
 #define FKL_IS_BIG_INT(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_BIG_INT)
 #define FKL_IS_BOX(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_BOX)

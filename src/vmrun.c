@@ -193,7 +193,7 @@ static void dlproc_ccc_copy(const VMcCC* s,VMcCC* d)
 		d->ctx=fklCopyMemory(s->ctx,d->size);
 }
 
-static void dlproc_frame_copy(const FklCallObjData s,FklCallObjData d,FklVM* exe)
+static void dlproc_frame_copy(FklCallObjData d,const FklCallObjData s,FklVM* exe)
 {
 	DlprocFrameContext const* const sc=(DlprocFrameContext*)s;
 	DlprocFrameContext* dc=(DlprocFrameContext*)d;
@@ -445,7 +445,7 @@ inline void fklDoFinalizeObjFrame(FklVMframe* f,FklVMframe* sf)
 
 inline void fklDoCopyObjFrameContext(FklVMframe* s,FklVMframe* d,FklVM* exe)
 {
-	s->u.o.t->copy(fklGetFrameData(s),fklGetFrameData(d),exe);
+	s->u.o.t->copy(fklGetFrameData(d),fklGetFrameData(s),exe);
 }
 
 inline void fklPushVMframe(FklVMframe* f,FklVM* exe)

@@ -151,11 +151,13 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest*
 		,FklCodegen* codegen);
 FklByteCodelnt* fklGenExpressionCodeWithFp(FILE*
 		,FklCodegen* codegen);
-void fklAddCodegenDefBySid(FklSid_t sid,FklCodegenEnv*);
-void fklAddReplacementBySid(FklSid_t sid,FklNastNode*,FklCodegenEnv*);
+
+uint32_t fklAddCodegenDefBySid(FklSid_t sid,FklCodegenEnv*);
 int fklIsSymbolDefined(FklSid_t sid,FklCodegenEnv*);
 int fklIsReplacementDefined(FklSid_t sid,FklCodegenEnv*);
+
 FklNastNode* fklGetReplacement(FklSid_t sid,FklCodegenEnv*);
+void fklAddReplacementBySid(FklSid_t sid,FklNastNode*,FklCodegenEnv*);
 
 FklCodegenEnv* fklCreateCodegenEnv(FklCodegenEnv* prev);
 void fklDestroyCodegenEnv(FklCodegenEnv* env);

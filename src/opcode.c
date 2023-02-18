@@ -20,8 +20,8 @@ static struct
 	{"push-proc",                    -1, },
 	{"pop",                          0,  },
 	{"pop-var",                      -1, },
-	{"pop-arg",                      8,  },
-	{"pop-rest-arg",                 8,  },
+	{"pop-arg",                      4,  },
+	{"pop-rest-arg",                 4,  },
 	{"set-tp",                       0,  },
 	{"set-bp",                       0,  },
 	{"call",                         0,  },
@@ -55,6 +55,8 @@ static struct
 	{"push-i8",                      1,  },
 	{"push-i16",                     2,  },
 	{"push-i64-big",                 8,  },
+	{"get-loc",                      4,  },
+	{"put-loc",                      4,  },
 };
 
 const char* fklGetOpcodeName(FklOpcode opcode)

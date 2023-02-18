@@ -979,11 +979,11 @@ int fklVMvalueEqv(const FklVMvalue* fir,const FklVMvalue* sec)
 		if(FKL_IS_BIG_INT(fir)&&FKL_IS_BIG_INT(sec))
 			return fklCmpBigInt(fir->u.bigInt,sec->u.bigInt)==0;
 		else if(FKL_IS_BIG_INT(fir))
-			return fklCmpBigIntI(fir->u.bigInt,fklGetInt(sec))==0;
+			return fklCmpBigIntI(fir->u.bigInt,FKL_GET_FIX(sec))==0;
 		else if(FKL_IS_BIG_INT(fir))
-			return fklCmpBigIntI(fir->u.bigInt,fklGetInt(sec))==0;
+			return fklCmpBigIntI(fir->u.bigInt,FKL_GET_FIX(sec))==0;
 		else
-			return fklGetInt(fir)==fklGetInt(sec);
+			return FKL_GET_FIX(fir)==FKL_GET_FIX(sec);
 	}
 	else
 		return fir==sec;

@@ -98,8 +98,10 @@ inline int fklVMnumberLt0(const FklVMvalue* p)
 
 inline double fklGetDouble(const FklVMvalue* p)
 {
-	return FKL_IS_FIX(p)?FKL_GET_FIX(p)
-		:(FKL_IS_BIG_INT(p))?fklBigIntToDouble(p->u.bigInt)
+	return FKL_IS_FIX(p)
+		?FKL_GET_FIX(p)
+		:(FKL_IS_BIG_INT(p))
+		?fklBigIntToDouble(p->u.bigInt)
 		:p->u.f64;
 }
 

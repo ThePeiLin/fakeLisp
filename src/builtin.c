@@ -436,13 +436,13 @@ void builtin_add(FKL_DL_PROC_ARGL)
 	fklInitBigInt0(&bi);
 	for(;cur;cur=fklNiGetArg(&ap,stack))
 	{
-		if(fklIsFixint(cur))
+		if(FKL_IS_FIX(cur))
 		{
 			int64_t c64=fklGetInt(cur);
 			if(fklIsFixAddOverflow(r64,c64))
 				fklAddBigIntI(&bi,c64);
 			else
-				r64+=fklGetInt(cur);
+				r64+=c64;
 		}
 		else if(FKL_IS_BIG_INT(cur))
 			fklAddBigInt(&bi,cur->u.bigInt);
@@ -546,7 +546,7 @@ void builtin_sub(FKL_DL_PROC_ARGL)
 			rd=-prev->u.f64;
 			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&rd,exe),&ap,stack);
 		}
-		else if(fklIsFixint(prev))
+		else if(FKL_IS_FIX(prev))
 		{
 			int64_t p64=fklGetInt(prev);
 			if(fklIsFixMulOverflow(p64,-1))
@@ -556,7 +556,7 @@ void builtin_sub(FKL_DL_PROC_ARGL)
 				fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,exe),&ap,stack);
 			}
 			else
-				fklNiReturn(fklMakeVMint(-fklGetInt(prev),exe),&ap,stack);
+				fklNiReturn(fklMakeVMint(-p64,exe),&ap,stack);
 		}
 		else
 		{
@@ -583,7 +583,7 @@ void builtin_sub(FKL_DL_PROC_ARGL)
 		fklInitBigInt0(&bi);
 		for(;cur;cur=fklNiGetArg(&ap,stack))
 		{
-			if(fklIsFixint(cur))
+			if(FKL_IS_FIX(cur))
 			{
 				int64_t c64=fklGetInt(cur);
 				if(fklIsFixAddOverflow(r64,c64))
@@ -652,7 +652,7 @@ void builtin_abs(FKL_DL_PROC_ARGL)
 		fklNiReturn(fklMakeVMf64(fabs(obj->u.f64),exe),&ap,stack);
 	else
 	{
-		if(fklIsFixint(obj))
+		if(FKL_IS_FIX(obj))
 		{
 			int64_t i=fklGetInt(obj);
 			if(i==INT64_MIN)
@@ -712,7 +712,7 @@ void builtin_sub_1(FKL_DL_PROC_ARGL)
 				fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,exe),&ap,stack);
 			}
 			else
-				fklNiReturn(fklMakeVMint(fklGetInt(arg)-1,exe),&ap,stack);
+				fklNiReturn(fklMakeVMint(i-1,exe),&ap,stack);
 		}
 	}
 	fklNiEnd(&ap,stack);
@@ -728,7 +728,7 @@ void builtin_mul(FKL_DL_PROC_ARGL)
 	fklInitBigInt1(&bi);
 	for(;cur;cur=fklNiGetArg(&ap,stack))
 	{
-		if(fklIsFixint(cur))
+		if(FKL_IS_FIX(cur))
 		{
 			int64_t c64=fklGetInt(cur);
 			if(fklIsFixMulOverflow(r64,c64))
@@ -780,7 +780,7 @@ void builtin_idiv(FKL_DL_PROC_ARGL)
 	if(!cur)
 	{
 		fklNiResBp(&ap,stack);
-		if(fklIsFixint(prev))
+		if(FKL_IS_FIX(prev))
 		{
 			r64=FKL_GET_FIX(prev);
 			if(!r64)
@@ -810,7 +810,7 @@ void builtin_idiv(FKL_DL_PROC_ARGL)
 		fklInitBigInt1(&bi);
 		for(;cur;cur=fklNiGetArg(&ap,stack))
 		{
-			if(fklIsFixint(cur))
+			if(FKL_IS_FIX(cur))
 			{
 				int64_t c64=fklGetInt(cur);
 				if(fklIsFixMulOverflow(r64,c64))
@@ -878,7 +878,7 @@ void builtin_div(FKL_DL_PROC_ARGL)
 		}
 		else
 		{
-			if(fklIsFixint(prev))
+			if(FKL_IS_FIX(prev))
 			{
 				r64=fklGetInt(prev);
 				if(!r64)
@@ -914,7 +914,7 @@ void builtin_div(FKL_DL_PROC_ARGL)
 		fklInitBigInt1(&bi);
 		for(;cur;cur=fklNiGetArg(&ap,stack))
 		{
-			if(fklIsFixint(cur))
+			if(FKL_IS_FIX(cur))
 			{
 				int64_t c64=fklGetInt(cur);
 				if(fklIsFixMulOverflow(r64,c64))
@@ -940,7 +940,7 @@ void builtin_div(FKL_DL_PROC_ARGL)
 		fklNiResBp(&ap,stack);
 		if(FKL_IS_F64(prev)
 				||rd!=1.0
-				||(fklIsFixint(prev)
+				||(FKL_IS_FIX(prev)
 					&&FKL_IS_1_BIG_INT(&bi)
 					&&fklGetInt(prev)%(r64))
 				||(FKL_IS_BIG_INT(prev)
@@ -997,7 +997,7 @@ void builtin_mod(FKL_DL_PROC_ARGL)
 		double r=fmod(af,as);
 		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&r,exe),&ap,stack);
 	}
-	else if(fklIsFixint(fir)&&fklIsFixint(sec))
+	else if(FKL_IS_FIX(fir)&&FKL_IS_FIX(sec))
 	{
 		int64_t si=fklGetInt(sec);
 		int64_t r=fklGetInt(fir)%si;
@@ -1064,13 +1064,13 @@ void builtin_eqn(FKL_DL_PROC_ARGL)
 				r=fabs(fklGetDouble(prev)-fklGetDouble(cur))<DBL_EPSILON;
 			else if(fklIsInt(prev)&&fklIsInt(cur))
 			{
-				if(fklIsFixint(prev)&&fklIsFixint(cur))
+				if(FKL_IS_FIX(prev)&&FKL_IS_FIX(cur))
 					r=fklGetInt(prev)==fklGetInt(cur);
 				else
 				{
-					if(fklIsFixint(prev))
+					if(FKL_IS_FIX(prev))
 						r=fklCmpBigIntI(cur->u.bigInt,fklGetInt(prev))==0;
-					else if(fklIsFixint(cur))
+					else if(FKL_IS_FIX(cur))
 						r=fklCmpBigIntI(prev->u.bigInt,fklGetInt(cur))==0;
 					else
 						r=fklCmpBigInt(prev->u.bigInt,cur->u.bigInt)==0;
@@ -1130,13 +1130,13 @@ void builtin_gt(FKL_DL_PROC_ARGL)
 				r=(fklGetDouble(prev)-fklGetDouble(cur))>DBL_EPSILON;
 			else if(fklIsInt(prev)&&fklIsInt(cur))
 			{
-				if(fklIsFixint(prev)&&fklIsFixint(cur))
-					r=fklGetInt(prev)>fklGetInt(cur);
+				if(FKL_IS_FIX(prev)&&FKL_IS_FIX(cur))
+					r=FKL_GET_FIX(prev)>FKL_GET_FIX(cur);
 				else
 				{
-					if(fklIsFixint(prev))
+					if(FKL_IS_FIX(prev))
 						r=fklCmpBigIntI(cur->u.bigInt,fklGetInt(prev))<0;
-					else if(fklIsFixint(cur))
+					else if(FKL_IS_FIX(cur))
 						r=fklCmpBigIntI(prev->u.bigInt,fklGetInt(cur))>0;
 					else
 						r=fklCmpBigInt(prev->u.bigInt,cur->u.bigInt)>0;
@@ -1194,13 +1194,13 @@ void builtin_ge(FKL_DL_PROC_ARGL)
 				r=(fklGetDouble(prev)-fklGetDouble(cur))>=DBL_EPSILON;
 			else if(fklIsInt(prev)&&fklIsInt(cur))
 			{
-				if(fklIsFixint(prev)&&fklIsFixint(cur))
-					r=fklGetInt(prev)>=fklGetInt(cur);
+				if(FKL_IS_FIX(prev)&&FKL_IS_FIX(cur))
+					r=FKL_GET_FIX(prev)>=FKL_GET_FIX(cur);
 				else
 				{
-					if(fklIsFixint(prev))
+					if(FKL_IS_FIX(prev))
 						r=fklCmpBigIntI(cur->u.bigInt,fklGetInt(prev))<=0;
-					else if(fklIsFixint(cur))
+					else if(FKL_IS_FIX(cur))
 						r=fklCmpBigIntI(prev->u.bigInt,fklGetInt(cur))>=0;
 					else
 						r=fklCmpBigInt(prev->u.bigInt,cur->u.bigInt)>=0;
@@ -1258,13 +1258,13 @@ void builtin_lt(FKL_DL_PROC_ARGL)
 				r=(fklGetDouble(prev)-fklGetDouble(cur))<-DBL_EPSILON;
 			else if(fklIsInt(prev)&&fklIsInt(cur))
 			{
-				if(fklIsFixint(prev)&&fklIsFixint(cur))
+				if(FKL_IS_FIX(prev)&&FKL_IS_FIX(cur))
 					r=fklGetInt(prev)<fklGetInt(cur);
 				else
 				{
-					if(fklIsFixint(prev))
+					if(FKL_IS_FIX(prev))
 						r=fklCmpBigIntI(cur->u.bigInt,fklGetInt(prev))>0;
-					else if(fklIsFixint(cur))
+					else if(FKL_IS_FIX(cur))
 						r=fklCmpBigIntI(prev->u.bigInt,fklGetInt(cur))<0;
 					else
 						r=fklCmpBigInt(prev->u.bigInt,cur->u.bigInt)<0;
@@ -1322,13 +1322,13 @@ void builtin_le(FKL_DL_PROC_ARGL)
 				r=(fklGetDouble(prev)-fklGetDouble(cur))<=-DBL_EPSILON;
 			else if(fklIsInt(prev)&&fklIsInt(cur))
 			{
-				if(fklIsFixint(prev)&&fklIsFixint(cur))
+				if(FKL_IS_FIX(prev)&&FKL_IS_FIX(cur))
 					r=fklGetInt(prev)<=fklGetInt(cur);
 				else
 				{
-					if(fklIsFixint(prev))
+					if(FKL_IS_FIX(prev))
 						r=fklCmpBigIntI(cur->u.bigInt,fklGetInt(prev))>=0;
-					else if(fklIsFixint(cur))
+					else if(FKL_IS_FIX(cur))
 						r=fklCmpBigIntI(prev->u.bigInt,fklGetInt(cur))<=0;
 					else
 						r=fklCmpBigInt(prev->u.bigInt,cur->u.bigInt)<=0;
@@ -2193,7 +2193,7 @@ void builtin_number_to_f64(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.integer->f64",FKL_ERR_TOOFEWARG,exe);
 	FklVMvalue* retval=fklCreateVMvalueToStack(FKL_TYPE_F64,NULL,exe);
 	FKL_NI_CHECK_TYPE(obj,fklIsVMnumber,"builtin.integer->f64",exe);
-	if(fklIsFixint(obj))
+	if(FKL_IS_FIX(obj))
 		retval->u.f64=(double)fklGetInt(obj);
 	else if(FKL_IS_BIG_INT(obj))
 		retval->u.f64=fklBigIntToDouble(obj->u.bigInt);
@@ -4656,7 +4656,7 @@ void builtin_get8(FKL_DL_PROC_ARGL)
 	if(!sym)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.get*",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(sym,FKL_IS_SYM,"builtin.get*",exe);
-	FKL_NI_CHECK_TYPE(scope,fklIsFixint,"builtin.get*",exe);
+	FKL_NI_CHECK_TYPE(scope,FKL_IS_FIX,"builtin.get*",exe);
 	FklVMvalue* env=fklGetCompoundFrameLocalenv(frame);
 	FklVMvalue* volatile* pV=NULL;
 	FklSid_t idOfVar=FKL_GET_SYM(sym);
@@ -5058,7 +5058,7 @@ void builtin_odd_p(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.odd?",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(val,fklIsInt,"builtin.odd?",exe);
 	int r=0;
-	if(fklIsFixint(val))
+	if(FKL_IS_FIX(val))
 		r=fklGetInt(val)%2;
 	else
 	{
@@ -5084,7 +5084,7 @@ void builtin_even_p(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.even?",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(val,fklIsInt,"builtin.even?",exe);
 	int r=0;
-	if(fklIsFixint(val))
+	if(FKL_IS_FIX(val))
 		r=fklGetInt(val)%2==0;
 	else
 	{

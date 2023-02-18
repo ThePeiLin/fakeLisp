@@ -1545,8 +1545,8 @@ static size_t _vmhashtableEq_hashFunc(void* key)
 
 static size_t integerHashFunc(const FklVMvalue* v)
 {
-	if(fklIsFixint(v))
-		return fklGetInt(v);
+	if(FKL_IS_FIX(v))
+		return FKL_GET_FIX(v);
 	else
 	{
 		size_t sum=0;

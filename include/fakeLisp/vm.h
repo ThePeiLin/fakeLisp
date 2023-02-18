@@ -420,7 +420,6 @@ FklVMvalue* fklMakeVMint(int64_t r64,FklVM*);
 FklVMvalue* fklMakeVMuint(uint64_t r64,FklVM*);
 FklVMvalue* fklMakeVMintD(double r64,FklVM*);
 int fklIsVMnumber(const FklVMvalue* p);
-int fklIsFixint(const FklVMvalue* p);
 int fklIsInt(const FklVMvalue* p);
 int fklIsList(const FklVMvalue* p);
 int fklIsSymbolList(const FklVMvalue* p);
@@ -704,7 +703,7 @@ void fklUninitVMlib(FklVMlib*);
 #define FKL_MAKE_VM_PTR(P) ((FklVMptr)(((uintptr_t)(P))|FKL_TAG_PTR))
 #define FKL_GET_TAG(P) ((FklVMptrTag)(((uintptr_t)(P))&FKL_TAG_MASK))
 #define FKL_GET_PTR(P) ((FklVMptr)(((uintptr_t)(P))&FKL_PTR_MASK))
-#define FKL_GET_FIX(P) ((int64_t)((intptr_t)(P)/(1<<FKL_UNUSEDBITNUM)))
+#define FKL_GET_FIX(P) ((int64_t)((intptr_t)(P)>>FKL_UNUSEDBITNUM))
 #define FKL_GET_CHR(P) ((char)((uintptr_t)(P)>>FKL_UNUSEDBITNUM))
 #define FKL_GET_SYM(P) ((FklSid_t)((uintptr_t)(P)>>FKL_UNUSEDBITNUM))
 #define FKL_IS_NIL(P) ((P)==FKL_VM_NIL)

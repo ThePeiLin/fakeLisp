@@ -251,6 +251,7 @@
                      back)))
   (define (quit)
     (setq is-game-over 1))
+
   (define (open-block)
     (define x (-1+ xl))
     (define y (-1+ yl))
@@ -282,6 +283,7 @@
                                                        (* tier 2)))))))
                              (loop-yt (-1+ yt)))))
                     (loop-tier (+ tier (if (have-unopened-block g-map row line x y tier) 0 1)))))))))
+
   (define (open-all-block)
     (define num-of-block (* (+ line 2) (+ row 2)))
     (let loop-i ((i 0))

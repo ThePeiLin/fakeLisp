@@ -290,6 +290,7 @@ typedef struct FklVMudMethodTable
 	size_t (*__hash)(void*,FklPtrStack*);
 	void (*__setq_hook)(void*,FklSid_t);
 	FklString* (*__to_string)(void*);
+	FklBytevector* (*__to_bvec)(void*);
 }FklVMudMethodTable;
 
 typedef enum

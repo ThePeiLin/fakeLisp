@@ -175,11 +175,12 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 						break;
 					case FKL_OP_PUSH_PROC:
 						{
+							i+=sizeof(uint32_t);
 							uint64_t ncpc=fklGetU64FromByteCode(tmpCode->code+i+sizeof(char));
 							fprintf(fp,"%lu",ncpc);
 							fklPushPtrStack(createByteCodePrintState(cState->type,cState->tc,i+sizeof(char)+sizeof(uint64_t)+ncpc,cState->cpc),s);
 							fklPushPtrStack(createByteCodePrintState(BP_NONE,tc+1,i+sizeof(char)+sizeof(uint64_t),i+sizeof(char)+sizeof(uint64_t)+ncpc),s);
-							r+=sizeof(char)+sizeof(uint64_t);
+							r+=sizeof(char)+sizeof(uint32_t)+sizeof(uint64_t);
 							*needBreak=1;
 						}
 						break;
@@ -357,6 +358,7 @@ static uint64_t skipToCall(uint64_t index,const FklByteCode* bc)
 					break;
 				case FKL_OP_PUSH_PROC:
 					r+=sizeof(char)
+						+sizeof(uint32_t)
 						+sizeof(uint64_t)
 						+fklGetU64FromByteCode(bc->code+index+r+sizeof(char));
 					break;

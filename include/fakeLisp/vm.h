@@ -120,10 +120,28 @@ typedef enum{
 	FKL_MARK_B,
 }FklVMvalueMark;
 
+typedef struct
+{
+	uint8_t islocal:1;
+	uint32_t idx;
+}FklVMclosureVarDef;
+
+typedef struct
+{
+	FklVMclosureVarDef* cv;
+	uint32_t count;
+}FklVMclosureVars;
+
+typedef struct
+{
+	FklVMclosureVars* cvs;
+	uint32_t count;
+}FklVMclosureVarPool;
+
 typedef struct FklVMvalue
 {
-	FklVMvalueMark volatile mark;
-	FklValueType type;
+	FklVMvalueMark volatile mark:32;
+	FklValueType type:32;
 	union
 	{
 		struct FklVMpair* pair;
@@ -152,9 +170,9 @@ typedef struct FklVMenv
 {
 	struct FklVMvalue* volatile prev;
 	FklVMvalue** loc;
-	uint32_t lnum;
+	uint32_t lcount;
 	FklVMvalue** ref;
-	uint32_t rnum;
+	uint32_t rcount;
 	FklHashTable* t;
 }FklVMenv;
 
@@ -175,6 +193,8 @@ typedef struct FklVMproc
 	uint8_t* spc;
 	uint8_t* end;
 	FklSid_t sid;
+	FklVMvalue** closure;
+	uint32_t cvcount;
 	FklVMvalue* prevEnv;
 	FklVMvalue* codeObj;
 }FklVMproc;
@@ -273,7 +293,10 @@ typedef struct FklVM
 	struct FklVM* prev;
 	struct FklVM* next;
 	jmp_buf buf;
+	FklVMvalue** closure;
+	uint32_t count;
 	FklSymbolTable* symbolTable;
+	FklVMclosureVarPool* cpool;
 	FklSid_t* builtinErrorTypeId;
 }FklVM;
 

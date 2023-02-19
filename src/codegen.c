@@ -675,6 +675,7 @@ FklCodegenEnv* fklCreateCodegenEnv(FklCodegenEnv* prev)
 	r->prev=prev;
 	r->refcount=0;
 	r->defs=fklCreateHashTable(8,4,2,0.75,1,&CodegenEnvHashMethodTable);
+	r->refs=fklCreateHashTable(8,4,2,0.75,1,&CodegenEnvHashMethodTable);
 	r->phead=NULL;
 	if(prev)
 	{
@@ -712,6 +713,38 @@ void fklDestroyCodegenEnv(FklCodegenEnv* env)
 //	return r;
 //}
 
+int fklIsSymbolRefed(FklSid_t id,FklCodegenEnv* env)
+{
+	return fklGetHashItem(&id,env->defs)!=NULL||fklGetHashItem(&id,env->refs)!=NULL;
+}
+
+uint32_t fklAddCodegenRefById(FklSid_t id,FklCodegenEnv* env)
+{
+	FklHashTable* ht=env->refs;
+	FklCodegenEnvHashItem* el=fklGetHashItem(&id,ht);
+	if(el)
+		return el->idx;
+	else
+	{
+		uint32_t idx=ht->num;
+		fklPutNoRpHashItem(createCodegenEnvHashItem(id,idx),ht);
+		FklCodegenEnv* cur=env->prev;
+		while(cur)
+		{
+			if(!fklIsSymbolRefed(id,cur))
+			{
+				FklHashTable* ht=cur->refs;
+				uint32_t idx=ht->num;
+				fklPutNoRpHashItem(createCodegenEnvHashItem(id,idx),ht);
+				cur=cur->prev;
+			}
+			else
+				break;
+		}
+		return idx;
+	}
+}
+
 uint32_t fklAddCodegenDefBySid(FklSid_t id,FklCodegenEnv* env)
 {
 	FklHashTable* ht=env->defs;
@@ -721,7 +754,7 @@ uint32_t fklAddCodegenDefBySid(FklSid_t id,FklCodegenEnv* env)
 	else
 	{
 		uint32_t idx=ht->num;
-		fklPutNoRpHashItem(createCodegenEnvHashItem(id,idx),env->defs);
+		fklPutNoRpHashItem(createCodegenEnvHashItem(id,idx),ht);
 		return idx;
 	}
 }
@@ -3268,6 +3301,12 @@ static FklByteCodelnt* makeGetLocBc(uint32_t idx,FklSid_t fid,uint64_t curline)
 	return createBclnt(bc,fid,curline);
 }
 
+static FklByteCodelnt* makeGetVarRefBc(uint32_t idx,FklSid_t fid,uint64_t curline)
+{
+	FklByteCode* bc=create5lenBc(FKL_OP_GET_VAR_REF,idx);
+	return createBclnt(bc,fid,curline);
+}
+
 static void printCodegenError(FklNastNode* obj
 		,FklBuiltInErrorType type
 		,FklSid_t sid
@@ -3413,7 +3452,10 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 								bcl=makeGetLocBc(idx,curCodegen->fid,curExp->curline);
 							}
 							else
-								bcl=fklMakePushVar(curExp,curCodegen);
+							{
+								uint32_t idx=fklAddCodegenRefById(curExp->u.sym,curEnv);
+								bcl=makeGetVarRefBc(idx,curCodegen->fid,curExp->curline);
+							}
 							curContext->t->__put_bcl(curContext->data,bcl);
 							fklDestroyNastNode(curExp);
 							continue;

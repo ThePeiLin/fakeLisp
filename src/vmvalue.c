@@ -568,6 +568,8 @@ FklVMproc* fklCreateVMproc(uint8_t* spc,uint64_t cpc,FklVMvalue* codeObj,FklVMgc
 	tmp->spc=spc;
 	tmp->end=spc+cpc;
 	tmp->sid=0;
+	tmp->closure=NULL;
+	tmp->cvcount=0;
 	fklSetRef(&tmp->codeObj,codeObj,gc);
 	return tmp;
 }
@@ -1525,6 +1527,8 @@ FklVMenv* fklCreateVMenv(FklVMvalue* prev,FklVMgc* gc)
 	FKL_ASSERT(tmp);
 	tmp->prev=prev;
 	tmp->t=fklCreateHashTable(8,4,2,0.75,1,&VMenvHashMethTable);
+	tmp->loc=NULL;
+	tmp->lcount=0;
 	fklSetRef(&tmp->prev,prev,gc);
 	return tmp;
 }

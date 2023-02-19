@@ -57,6 +57,8 @@ static struct
 	{"push-i64-big",                 8,  },
 	{"get-loc",                      4,  },
 	{"put-loc",                      4,  },
+	{"get-var-ref",                  4,  },
+	{"put-var-ref",                  4,  },
 };
 
 const char* fklGetOpcodeName(FklOpcode opcode)

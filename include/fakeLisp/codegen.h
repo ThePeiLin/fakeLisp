@@ -15,6 +15,7 @@ typedef struct FklCodegenEnv
 {
 	struct FklCodegenEnv* prev;
 	FklHashTable* defs;
+	FklHashTable* refs;
 	struct FklCodegenMacroScope* macros;
 	FklStringMatchPattern** phead;
 	size_t refcount;

@@ -310,6 +310,8 @@ static void B_push_i16(BYTE_CODE_ARGS);
 static void B_push_i64_big(BYTE_CODE_ARGS);
 static void B_get_loc(BYTE_CODE_ARGS);
 static void B_put_loc(BYTE_CODE_ARGS);
+static void B_get_var_ref(BYTE_CODE_ARGS);
+static void B_put_var_ref(BYTE_CODE_ARGS);
 #undef BYTE_CODE_ARGS
 
 static void (*ByteCodes[])(FklVM*,FklVMframe*)=
@@ -800,14 +802,14 @@ static void inline B_pop_arg(FklVM* exe,FklVMframe* frame)
 	//FklSid_t idOfVar=fklGetSidFromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(FklSid_t)));
 	FklVMvalue* curEnv=fklGetCompoundFrameLocalenv(frame);
 	FklVMenv* env=curEnv->u.env;
-	if(idx>=env->num)
+	if(idx>=env->lnum)
 	{
-		env->num=idx+1;
-		FklVMvalue** ref=(FklVMvalue**)realloc(env->ref,sizeof(FklVMvalue*)*env->num);
-		FKL_ASSERT(ref);
-		env->ref=ref;
+		env->lnum++;
+		FklVMvalue** loc=(FklVMvalue**)realloc(env->loc,sizeof(FklVMvalue*)*env->lnum);
+		FKL_ASSERT(loc);
+		env->loc=loc;
 	}
-	env->ref[idx]=fklNiGetArg(&ap,stack);
+	env->loc[idx]=fklNiGetArg(&ap,stack);
 	//FklVMvalue* volatile* pValue=fklFindOrAddVar(idOfVar,curEnv->u.env);
 	//fklSetRef(pValue,fklNiGetArg(&ap,stack),exe->gc);
 	fklNiEnd(&ap,stack);
@@ -825,14 +827,14 @@ static void inline B_pop_rest_arg(FklVM* exe,FklVMframe* frame)
 	for(;ap>stack->bp;pValue=&(*pValue)->u.pair->cdr)
 		*pValue=fklCreateVMpairV(fklNiGetArg(&ap,stack),FKL_VM_NIL,exe);
 	FklVMenv* env=curEnv->u.env;
-	if(idx>=env->num)
+	if(idx>=env->lnum)
 	{
-		env->num=idx+1;
-		FklVMvalue** ref=(FklVMvalue**)realloc(env->ref,sizeof(FklVMvalue*)*env->num);
-		FKL_ASSERT(ref);
-		env->ref=ref;
+		env->lnum++;
+		FklVMvalue** loc=(FklVMvalue**)realloc(env->loc,sizeof(FklVMvalue*)*env->lnum);
+		FKL_ASSERT(loc);
+		env->loc=loc;
 	}
-	env->ref[idx]=obj;
+	env->loc[idx]=obj;
 	//pValue=fklFindOrAddVar(idOfVar,curEnv->u.env);
 	//fklSetRef(pValue,obj,gc);
 	fklNiEnd(&ap,stack);
@@ -1296,7 +1298,7 @@ static void inline B_get_loc(FklVM* exe,FklVMframe* frame)
 {
 	FklVMenv* env=fklGetCompoundFrameLocalenv(frame)->u.env;
 	uint32_t idx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(idx)));
-	FklVMvalue* v=env->ref[idx];
+	FklVMvalue* v=env->loc[idx];
 	fklPushVMvalue(v,exe->stack);
 }
 
@@ -1306,14 +1308,31 @@ static void inline B_put_loc(FklVM* exe,FklVMframe* frame)
 	uint32_t idx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint32_t)));
 	FklVMvalue* curEnv=fklGetCompoundFrameLocalenv(frame);
 	FklVMenv* env=curEnv->u.env;
-	if(idx>=env->num)
+	if(idx>=env->lnum)
 	{
-		env->num=idx+1;
-		FklVMvalue** ref=(FklVMvalue**)realloc(env->ref,sizeof(FklVMvalue*)*env->num);
-		FKL_ASSERT(ref);
-		env->ref=ref;
+		env->lnum++;
+		FklVMvalue** loc=(FklVMvalue**)realloc(env->loc,sizeof(FklVMvalue*)*env->lnum);
+		FKL_ASSERT(loc);
+		env->loc=loc;
 	}
-	env->ref[idx]=fklNiGetArg(&ap,stack);
+	env->loc[idx]=fklNiGetArg(&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+static void inline B_get_var_ref(FklVM* exe,FklVMframe* frame)
+{
+	FklVMenv* env=fklGetCompoundFrameLocalenv(frame)->u.env;
+	uint32_t idx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(idx)));
+	fklPushVMvalue(env->ref[idx]->u.box,exe->stack);
+}
+
+static void inline B_put_var_ref(FklVM* exe,FklVMframe* frame)
+{
+	FKL_NI_BEGIN(exe);
+	uint32_t idx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint32_t)));
+	FklVMvalue* curEnv=fklGetCompoundFrameLocalenv(frame);
+	FklVMenv* env=curEnv->u.env;
+	env->ref[idx]->u.box=fklNiGetArg(&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

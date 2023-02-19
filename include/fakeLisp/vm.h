@@ -114,14 +114,6 @@ typedef struct FklVMudata
 	void* data;
 }FklVMudata;
 
-typedef struct FklVMloc
-{
-	struct FklVMclosure* closure;
-	size_t num;
-	size_t size;
-	struct FklVMvalue** ref;
-}FklVMloc;
-
 typedef enum{
 	FKL_MARK_W=0,
 	FKL_MARK_G,
@@ -159,8 +151,10 @@ typedef struct FklVMvalue
 typedef struct FklVMenv
 {
 	struct FklVMvalue* volatile prev;
+	FklVMvalue** loc;
+	uint32_t lnum;
 	FklVMvalue** ref;
-	uint32_t num;
+	uint32_t rnum;
 	FklHashTable* t;
 }FklVMenv;
 

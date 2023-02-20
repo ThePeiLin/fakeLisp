@@ -169,10 +169,6 @@ typedef struct FklVMvalue
 typedef struct FklVMenv
 {
 	struct FklVMvalue* volatile prev;
-	FklVMvalue** loc;
-	uint32_t lcount;
-	FklVMvalue** ref;
-	uint32_t rcount;
 	FklHashTable* t;
 }FklVMenv;
 
@@ -194,7 +190,7 @@ typedef struct FklVMproc
 	uint8_t* end;
 	FklSid_t sid;
 	FklVMvalue** closure;
-	uint32_t cvcount;
+	uint32_t count;
 	FklVMvalue* prevEnv;
 	FklVMvalue* codeObj;
 }FklVMproc;
@@ -224,6 +220,10 @@ typedef struct FklVMCompoundFrameData
 	unsigned int tail:1;
 	unsigned int mark:2;
 	FklSid_t sid:61;
+	FklVMvalue** loc;
+	uint32_t lcount;
+	FklVMvalue** ref;
+	uint32_t rcount;
 	FklVMvalue* localenv;
 	FklVMvalue* codeObj;
 	FklVMvalue* proc;
@@ -572,7 +572,9 @@ void fklChanlSend(FklVMsend*,FklVMchanl*,FklVMgc*);
 void fklChanlRecvOk(FklVMchanl*,FklVMvalue**,int*);
 void fklChanlRecv(FklVMrecv*,FklVMchanl*,FklVMgc*);
 
-//FklVMvalue* fklCastCptrVMvalue(FklAstCptr*,FklHashTable* lineNumberHash,FklVMgc*);
+FklVMvalue* fklCreateVMboxNoGC(FklVMgc*,FklVMvalue*);
+
+void fklInitMainProcRefs(FklVMproc* proc,FklVM* exe);
 
 FklVMvec* fklCreateVMvecNoInit(size_t size);
 FklVMvec* fklCreateVMvec(size_t size);

@@ -153,6 +153,7 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest*
 FklByteCodelnt* fklGenExpressionCodeWithFp(FILE*
 		,FklCodegen* codegen);
 
+uint32_t fklAddCodegenRefById(FklSid_t id,FklCodegenEnv* env);
 uint32_t fklAddCodegenDefBySid(FklSid_t sid,FklCodegenEnv*);
 int fklIsSymbolDefined(FklSid_t sid,FklCodegenEnv*);
 int fklIsReplacementDefined(FklSid_t sid,FklCodegenEnv*);
@@ -225,6 +226,12 @@ struct FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 
 struct FklVMlib;
 struct FklVMvalue;
+
+void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
+		,struct FklVMlib* vlib
+		,FklVM* exe
+		,int needCopy);
+
 void fklInitVMlibWithCodgenLib(FklCodegenLib* clib
 		,struct FklVMlib* vlib
 		,struct FklVMvalue* globEnv

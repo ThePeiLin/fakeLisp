@@ -569,7 +569,7 @@ FklVMproc* fklCreateVMproc(uint8_t* spc,uint64_t cpc,FklVMvalue* codeObj,FklVMgc
 	tmp->end=spc+cpc;
 	tmp->sid=0;
 	tmp->closure=NULL;
-	tmp->cvcount=0;
+	tmp->count=0;
 	fklSetRef(&tmp->codeObj,codeObj,gc);
 	return tmp;
 }
@@ -1527,8 +1527,6 @@ FklVMenv* fklCreateVMenv(FklVMvalue* prev,FklVMgc* gc)
 	FKL_ASSERT(tmp);
 	tmp->prev=prev;
 	tmp->t=fklCreateHashTable(8,4,2,0.75,1,&VMenvHashMethTable);
-	tmp->loc=NULL;
-	tmp->lcount=0;
 	fklSetRef(&tmp->prev,prev,gc);
 	return tmp;
 }
@@ -1993,6 +1991,11 @@ void fklDestroyVMenv(FklVMenv* obj)
 {
 	fklDestroyHashTable(obj->t);
 	free(obj);
+}
+
+inline FklVMvalue* fklCreateVMboxNoGC(FklVMgc* gc,FklVMvalue* v)
+{
+	return fklCreateVMvalueNoGC(FKL_TYPE_BOX,v,gc);
 }
 
 FklVMvec* fklCreateVMvecNoInit(size_t size)

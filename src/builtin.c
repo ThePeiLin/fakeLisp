@@ -5351,7 +5351,7 @@ void fklInitGlobCodegenEnv(FklCodegenEnv* curEnv,FklSymbolTable* publicSymbolTab
 	for(const struct SymbolFuncStruct* list=builtInSymbolList
 			;list->s!=NULL
 			;list++)
-		fklAddCodegenDefBySid(fklAddSymbolCstr(list->s,publicSymbolTable)->id,curEnv);
+		fklAddCodegenRefById(fklAddSymbolCstr(list->s,publicSymbolTable)->id,curEnv);
 }
 
 void fklInitSymbolTableWithBuiltinSymbol(FklSymbolTable* table)
@@ -5362,7 +5362,7 @@ void fklInitSymbolTableWithBuiltinSymbol(FklSymbolTable* table)
 		fklAddSymbolCstr(list->s,table);
 }
 
-void fklInitGlobEnv(FklVMenv* obj,FklVMgc* gc,FklSymbolTable* table)
+inline static PublicBuiltInUserData* init_vm_public_data(FklVMgc* gc,FklSymbolTable* table)
 {
 	static const char* builtInHeadSymbolTableCstr[4]=
 	{
@@ -5371,14 +5371,53 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMgc* gc,FklSymbolTable* table)
 		"unquote",
 		"unqtesp",
 	};
-	const struct SymbolFuncStruct* list=builtInSymbolList;
 	FklVMvalue* builtInStdin=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stdin),gc);
 	FklVMvalue* builtInStdout=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stdout),gc);
 	FklVMvalue* builtInStderr=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stderr),gc);
 	PublicBuiltInUserData* pd=createPublicBuiltInUserData(builtInStdin
-					,builtInStdout
-					,builtInStderr
-					,table);
+			,builtInStdout
+			,builtInStderr
+			,table);
+	for(int i=0;i<3;i++)
+		pd->builtInHeadSymbolTable[i]=fklAddSymbolCstr(builtInHeadSymbolTableCstr[i],table)->id;
+	return pd;
+
+}
+
+void fklInitGlobalVMclosure(FklVM* exe)
+{
+	static const size_t RefCount=(sizeof(builtInSymbolList)/sizeof(struct SymbolFuncStruct))-1;
+	exe->count=RefCount;
+	FklVMvalue** closure=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*exe->count);
+	FKL_ASSERT(closure);
+	exe->closure=closure;
+	PublicBuiltInUserData* pd=init_vm_public_data(exe->gc,exe->symbolTable);
+	FklVMvalue* publicUserData=fklCreateVMvalueNoGC(FKL_TYPE_USERDATA
+			,fklCreateVMudata(0
+				,&PublicBuiltInUserDataMethodTable
+				,pd
+				,FKL_VM_NIL
+				,FKL_VM_NIL)
+			,exe->gc);
+
+	closure[0]=fklCreateVMboxNoGC(exe->gc,pd->sysIn);
+	closure[1]=fklCreateVMboxNoGC(exe->gc,pd->sysOut);
+	closure[2]=fklCreateVMboxNoGC(exe->gc,pd->sysErr);
+
+	FklSymbolTable* table=exe->symbolTable;
+	for(size_t i=3;i<RefCount;i++)
+	{
+		FklVMdlproc* proc=fklCreateVMdlproc(builtInSymbolList[i].f,NULL,publicUserData);
+		proc->sid=fklAddSymbolCstr(builtInSymbolList[i].s,table)->id;
+		FklVMvalue* v=fklCreateVMvalueNoGC(FKL_TYPE_DLPROC,proc,exe->gc);
+		closure[i]=fklCreateVMboxNoGC(exe->gc,v);
+	}
+}
+
+void fklInitGlobEnv(FklVMenv* obj,FklVMgc* gc,FklSymbolTable* table)
+{
+	const struct SymbolFuncStruct* list=builtInSymbolList;
+	PublicBuiltInUserData* pd=init_vm_public_data(gc,table);
 	FklVMvalue* publicUserData=fklCreateVMvalueNoGC(FKL_TYPE_USERDATA
 			,fklCreateVMudata(0
 				,&PublicBuiltInUserDataMethodTable
@@ -5386,11 +5425,9 @@ void fklInitGlobEnv(FklVMenv* obj,FklVMgc* gc,FklSymbolTable* table)
 				,FKL_VM_NIL
 				,FKL_VM_NIL)
 			,gc);
-	for(int i=0;i<3;i++)
-		pd->builtInHeadSymbolTable[i]=fklAddSymbolCstr(builtInHeadSymbolTableCstr[i],table)->id;
-	fklFindOrAddVarWithValue(fklAddSymbolCstr((list++)->s,table)->id,builtInStdin,obj);
-	fklFindOrAddVarWithValue(fklAddSymbolCstr((list++)->s,table)->id,builtInStdout,obj);
-	fklFindOrAddVarWithValue(fklAddSymbolCstr((list++)->s,table)->id,builtInStderr,obj);
+	fklFindOrAddVarWithValue(fklAddSymbolCstr((list++)->s,table)->id,pd->sysIn,obj);
+	fklFindOrAddVarWithValue(fklAddSymbolCstr((list++)->s,table)->id,pd->sysOut,obj);
+	fklFindOrAddVarWithValue(fklAddSymbolCstr((list++)->s,table)->id,pd->sysErr,obj);
 	for(;list->s!=NULL;list++)
 	{
 		FklVMdlproc* proc=fklCreateVMdlproc(list->f,NULL,publicUserData);

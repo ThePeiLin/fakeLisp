@@ -43,6 +43,7 @@ typedef enum
 typedef struct FklVMenv FklVMenv;
 typedef struct FklVMgc FklVMgc;
 typedef struct FklCodegenEnv FklCodegenEnv;
+typedef struct FklVM FklVM;
 
 //void fklInitCompEnv(FklCompEnv* curEnv);
 void fklInitGlobCodegenEnv(FklCodegenEnv*,FklSymbolTable*);
@@ -50,4 +51,5 @@ void fklInitGlobEnv(FklVMenv*,FklVMgc*,FklSymbolTable*);
 void fklInitSymbolTableWithBuiltinSymbol(FklSymbolTable* symbolTable);
 void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbolTable* table);
 FklSid_t fklGetBuiltInErrorType(FklBuiltInErrorType type,FklSid_t errorTypeId[FKL_ERR_INCORRECT_TYPE_VALUE]);
+void fklInitGlobalVMclosure(FklVM* exe);
 #endif

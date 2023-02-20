@@ -181,17 +181,16 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 {
 	int e=0;
 	FklVM* anotherVM=fklCreateVM(NULL,codegen->globalSymTable,NULL,NULL);
-	FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc,anotherVM->symbolTable),anotherVM->gc);
-	FklByteCode* rawProcList=NULL;
+
+	fklInitGlobalVMclosure(anotherVM);
+
 	FklPtrStack tokenStack=FKL_STACK_INIT;
 	fklInitPtrStack(&tokenStack,32,16);
 	FklLineNumberTable* globalLnt=fklCreateLineNumTable();
 	anotherVM->codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,fklCreateByteCodelnt(fklCreateByteCode(0)),anotherVM->gc);
 	char* prev=NULL;
 	size_t prevSize=0;
-	FklVMvalue* mainEnv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(globEnv,anotherVM->gc));
-	FklCodegenEnv* mainCodegenEnv=fklCreateCodegenEnv(codegen->globalEnv);
-	mainCodegenEnv->refcount=1;
+	FklVMvalue* mainEnv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(FKL_VM_NIL,anotherVM->gc));
 	size_t libNum=codegen->loadedLibStack->top;
 	for(;e<2;)
 	{
@@ -248,7 +247,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 		{
 			fklMakeNastNodeRef(begin);
 			fklTcMutexAcquire(anotherVM->gc);
-			FklByteCodelnt* tmpByteCode=fklGenExpressionCode(begin,mainCodegenEnv,codegen);
+			FklByteCodelnt* tmpByteCode=fklGenExpressionCode(begin,codegen->globalEnv,codegen);
 			if(tmpByteCode)
 			{
 				size_t unloadlibNum=codegen->loadedLibStack->top-libNum;
@@ -262,10 +261,9 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 					{
 						FklVMlib* curVMlib=&nlibs[i];
 						FklCodegenLib* curCGlib=codegen->loadedLibStack->base[i];
-						fklInitVMlibWithCodgenLib(curCGlib
+						fklInitVMlibWithCodegenLibRefs(curCGlib
 								,curVMlib
-								,globEnv
-								,anotherVM->gc
+								,anotherVM
 								,0);
 					}
 					FklVMlib* prev=anotherVM->libs;
@@ -315,11 +313,9 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 			begin=NULL;
 		}
 	}
-	fklDestroyCodegenEnv(mainCodegenEnv);
 	fklDestroyLineNumberTable(globalLnt);
 	fklJoinAllThread(anotherVM);
 	fklUninitPtrStack(&tokenStack);
-	free(rawProcList);
 	fklAddToGCNoGC(mainEnv,anotherVM->gc);
 	fklDestroyVMgc(anotherVM->gc);
 	fklDestroyAllVMs(anotherVM);

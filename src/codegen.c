@@ -586,6 +586,8 @@ typedef struct
 {
 	FklSid_t id;
 	uint32_t idx;
+	uint32_t cidx;
+	uint8_t isLocal;
 }FklCodegenEnvHashItem;
 
 static FklCodegenEnvHashItem* createCodegenEnvHashItem(FklSid_t key,uint32_t idx)
@@ -594,6 +596,8 @@ static FklCodegenEnvHashItem* createCodegenEnvHashItem(FklSid_t key,uint32_t idx
 	FKL_ASSERT(r);
 	r->id=key;
 	r->idx=idx;
+	r->cidx=idx;
+	r->isLocal=1;
 	return r;
 }
 
@@ -727,19 +731,30 @@ uint32_t fklAddCodegenRefById(FklSid_t id,FklCodegenEnv* env)
 	else
 	{
 		uint32_t idx=ht->num;
-		fklPutNoRpHashItem(createCodegenEnvHashItem(id,idx),ht);
+		FklCodegenEnvHashItem* cel=createCodegenEnvHashItem(id,idx);
+		fklPutNoRpHashItem(cel,ht);
 		FklCodegenEnv* cur=env->prev;
 		while(cur)
 		{
-			if(!fklIsSymbolRefed(id,cur))
+			FklCodegenEnvHashItem* def=fklGetHashItem(&id,cur->defs);
+			if(def)
 			{
-				FklHashTable* ht=cur->refs;
-				uint32_t idx=ht->num;
-				fklPutNoRpHashItem(createCodegenEnvHashItem(id,idx),ht);
-				cur=cur->prev;
-			}
-			else
+				cel->cidx=def->idx;
 				break;
+			}
+			FklCodegenEnvHashItem* ref=fklGetHashItem(&id,cur->refs);
+			if(ref)
+			{
+				cel->cidx=ref->idx;
+				cel->isLocal=0;
+				break;
+			}
+			FklHashTable* ht=cur->refs;
+			uint32_t idx=ht->num;
+			cel->cidx=idx;
+			cel=createCodegenEnvHashItem(id,idx);
+			fklPutNoRpHashItem(cel,ht);
+			cur=cur->prev;
 		}
 		return idx;
 	}
@@ -3522,11 +3537,10 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 FklByteCodelnt* fklGenExpressionCodeWithFp(FILE* fp
 		,FklCodegen* codegen)
 {
-	FklCodegenEnv* mainEnv=fklCreateCodegenEnv(codegen->globalEnv);
 	FklCodegenQuest* initialQuest=createCodegenQuest(_begin_exp_bc_process
 			,createDefaultStackContext(fklCreatePtrStack(32,16))
 			,createFpNextExpression(fp,codegen)
-			,mainEnv
+			,codegen->globalEnv
 			,1
 			,NULL
 			,codegen);
@@ -4150,6 +4164,30 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 		fklDestroyVMgc(gc);
 	}
 	return r;
+}
+
+inline void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
+		,FklVMlib* vlib
+		,FklVM* exe
+		,int needCopy)
+{
+	FklVMvalue* val=FKL_VM_NIL;
+	FklVMgc* gc=exe->gc;
+	if(clib->type==FKL_CODEGEN_LIB_SCRIPT)
+	{
+		FklByteCode* bc=clib->u.bcl->bc;
+		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,needCopy?fklCopyByteCodelnt(clib->u.bcl):clib->u.bcl,gc);
+		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(bc->code,bc->size,codeObj,gc),gc);
+		fklInitMainProcRefs(proc->u.proc,exe);
+		val=proc;
+	}
+	else
+		val=fklCreateVMvalueNoGC(FKL_TYPE_STR,fklCreateString(strlen(clib->rp)-strlen(FKL_DLL_FILE_TYPE),clib->rp),gc);
+	fklInitVMlib(vlib
+			,clib->exportNum
+			,needCopy?fklCopyMemory(clib->exports,clib->exportNum*sizeof(FklSid_t)):clib->exports
+			,val);
+
 }
 
 inline void fklInitVMlibWithCodgenLib(FklCodegenLib* clib

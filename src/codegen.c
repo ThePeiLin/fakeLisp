@@ -701,6 +701,7 @@ void fklDestroyCodegenEnv(FklCodegenEnv* env)
 			FklCodegenEnv* cur=env;
 			env=env->prev;
 			fklDestroyHashTable(cur->defs);
+			fklDestroyHashTable(cur->refs);
 			if(cur->prev)
 				fklDestroyCodegenMacroScope(cur->macros);
 			free(cur);

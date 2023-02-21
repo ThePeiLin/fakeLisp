@@ -1780,20 +1780,23 @@ static FklHashTableNodeList* createHashTableNodeList(FklHashTableNode* node,FklH
 	return list;
 }
 
-#define REHASH() if(((double)table->num/table->size)>table->threshold)\
+#define REHASH if(((double)table->num/table->size)>table->threshold)\
 	fklRehashTable(table,table->thresholdInc);\
 	else if(table->linkNum&&i>table->linkNum)\
 	fklRehashTable(table,table->linkNumInc)
 
+#define HASH_FUNC_HEADER size_t (*hashv)(void*)=table->t->__hashFunc;\
+	void* (*key)(void*)=table->t->__getKey;\
+	int (*keq)(void*,void*)=table->t->__keyEqual
+
 void* fklPutReplHashItem(void* item,FklHashTable* table)
 {
-	size_t (*__hashFunc)(void*)=table->t->__hashFunc;
-	void* (*__getKey)(void*)=table->t->__getKey;
-	int (*__keyEqual)(void*,void*)=table->t->__keyEqual;
-	FklHashTableNode** pp=&table->base[__hashFunc(__getKey(item))%table->size];
+	HASH_FUNC_HEADER;
+
+	FklHashTableNode** pp=&table->base[hashv(key(item))%table->size];
 	int i=0;
 	for(;*pp;pp=&(*pp)->next,i++)
-		if(__keyEqual(__getKey((*pp)->item),__getKey(item)))
+		if(keq(key((*pp)->item),key(item)))
 		{
 			table->t->__destroyItem((*pp)->item);
 			(*pp)->item=item;
@@ -1803,19 +1806,18 @@ void* fklPutReplHashItem(void* item,FklHashTable* table)
 	*table->tail=createHashTableNodeList(*pp,NULL);
 	table->tail=&(*table->tail)->next;
 	table->num++;
-	REHASH();
+	REHASH;
 	return item;
 }
 
 void* fklPutInReverseOrder(void* item,FklHashTable* table)
 {
-	size_t (*__hashFunc)(void*)=table->t->__hashFunc;
-	void* (*__getKey)(void*)=table->t->__getKey;
-	int (*__keyEqual)(void*,void*)=table->t->__keyEqual;
-	FklHashTableNode** pp=&table->base[__hashFunc(__getKey(item))%table->size];
+	HASH_FUNC_HEADER;
+
+	FklHashTableNode** pp=&table->base[hashv(key(item))%table->size];
 	int i=0;
 	for(;*pp;pp=&(*pp)->next,i++)
-		if(__keyEqual(__getKey((*pp)->item),__getKey(item)))
+		if(keq(key((*pp)->item),key(item)))
 		{
 			table->t->__destroyItem(item);
 			return (*pp)->item;
@@ -1825,19 +1827,18 @@ void* fklPutInReverseOrder(void* item,FklHashTable* table)
 	if(table->tail==&table->list)
 		table->tail=&table->list->next;
 	table->num++;
-	REHASH();
+	REHASH;
 	return item;
 }
 
 void* fklPutNoRpHashItem(void* item,FklHashTable* table)
 {
-	size_t (*__hashFunc)(void*)=table->t->__hashFunc;
-	void* (*__getKey)(void*)=table->t->__getKey;
-	int (*__keyEqual)(void*,void*)=table->t->__keyEqual;
-	FklHashTableNode** pp=&table->base[__hashFunc(__getKey(item))%table->size];
-	int i=0;
+	HASH_FUNC_HEADER;
+
+	FklHashTableNode** pp=&table->base[hashv(key(item))%table->size];
+	uint32_t i=0;
 	for(;*pp;pp=&(*pp)->next,i++)
-		if(__keyEqual(__getKey((*pp)->item),__getKey(item)))
+		if(keq(key((*pp)->item),key(item)))
 		{
 			table->t->__destroyItem(item);
 			return (*pp)->item;
@@ -1846,9 +1847,12 @@ void* fklPutNoRpHashItem(void* item,FklHashTable* table)
 	*table->tail=createHashTableNodeList(*pp,NULL);
 	table->tail=&(*table->tail)->next;
 	table->num++;
-	REHASH();
+	REHASH;
 	return item;
 }
+
+#undef HASH_FUNC_HEADER
+#undef REHASH
 
 void fklRehashTable(FklHashTable* table,unsigned int inc)
 {

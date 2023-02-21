@@ -5104,6 +5104,8 @@ void builtin_even_p(FKL_DL_PROC_ARGL)
 #undef PREDICATE
 //end
 
+#define GLOBAL_REF_COUNT 198
+
 static const struct SymbolFuncStruct
 {
 	const char* s;
@@ -5276,7 +5278,6 @@ static const struct SymbolFuncStruct
 	{"set-box!",              builtin_set_box,                 },
 	{"cas-box!",              builtin_cas_box,                 },
 	{"box?",                  builtin_box_p,                   },
-	{"fix-int?",              builtin_fix_int_p,               },
 
 	{"number?",               builtin_number_p,                },
 	{"string->number",        builtin_string_to_number,        },
@@ -5345,6 +5346,14 @@ static const struct SymbolFuncStruct
 //			;list++)
 //		fklAddCompDefCstr(list->s,curEnv);
 //}
+
+typedef struct
+{
+	FklSid_t id;
+	uint32_t idx;
+	uint32_t cidx;
+	uint8_t isLocal;
+}FklCodegenEnvHashItem;
 
 void fklInitGlobCodegenEnv(FklCodegenEnv* curEnv,FklSymbolTable* publicSymbolTable)
 {

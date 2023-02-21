@@ -421,8 +421,6 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 	exe->stack=fklCreateVMstack(0);
 	exe->libNum=0;
 	exe->libs=NULL;
-	exe->closure=NULL;
-	exe->count=0;
 	exe->cpool=createVMclosurePool();
 	insert_to_VM_chain(exe,prev,next,exe->gc);
 	return exe;
@@ -482,6 +480,17 @@ inline static void doAtomicFrame(FklVMframe* f,FklVMgc* gc)
 	f->u.o.t->atomic(fklGetFrameData(f),gc);
 }
 
+inline static void compound_frame_loc_ref_to_gray(FklVMframe* frame,FklVMgc* gc)
+{
+	FklVMCompoundFrameVarRef* f=&frame->u.c.lr;
+	uint32_t count=f->lcount;
+	for(uint32_t i=0;i<count;i++)
+		fklGC_toGrey(f->loc[i],gc);
+	count=f->rcount;
+	for(uint32_t i=0;i<count;i++)
+		fklGC_toGrey(f->ref[i],gc);
+}
+
 void fklDoAtomicFrame(FklVMframe* f,FklVMgc* gc)
 {
 	switch(f->type)
@@ -490,6 +499,7 @@ void fklDoAtomicFrame(FklVMframe* f,FklVMgc* gc)
 			fklGC_toGrey(fklGetCompoundFrameLocalenv(f),gc);
 			fklGC_toGrey(fklGetCompoundFrameCodeObj(f),gc);
 			fklGC_toGrey(fklGetCompoundFrameProc(f),gc);
+			compound_frame_loc_ref_to_gray(f,gc);
 			break;
 		case FKL_FRAME_OTHEROBJ:
 			doAtomicFrame(f,gc);
@@ -612,6 +622,42 @@ inline void fklTcMutexRelease(FklVMgc* gc)
 inline void fklDoCompoundFrameStep(FklVMframe* curframe,FklVM* exe)
 {
 	ByteCodes[fklGetCompoundFrameOpAndInc(curframe)](exe,curframe);
+}
+
+int fklRunReplVM(FklVM* exe)
+{
+	if(setjmp(exe->buf)==1)
+	{
+		fklTcMutexRelease(exe->gc);
+		return 255;
+	}
+	FklVMframe* sf=&exe->sf;
+	while(exe->frames)
+	{
+		fklTcMutexAcquire(exe->gc);
+		FklVMframe* curframe=exe->frames;
+		switch(curframe->type)
+		{
+			case FKL_FRAME_COMPOUND:
+				if(fklIsCompoundFrameReachEnd(curframe))
+				{
+					FklVMframe* cur=popFrame(exe);
+					if(cur->prev)
+						free(cur);
+				}
+				else
+					fklDoCompoundFrameStep(curframe,exe);
+				break;
+			case FKL_FRAME_OTHEROBJ:
+				if(fklIsCallableObjFrameReachEnd(curframe))
+					fklDoFinalizeObjFrame(popFrame(exe),sf);
+				else
+					fklDoCallableObjFrameStep(curframe,exe);
+				break;
+		}
+		fklTcMutexRelease(exe->gc);
+	}
+	return 0;
 }
 
 int fklRunVM(FklVM* exe)
@@ -761,7 +807,7 @@ static void inline B_push_top(FklVM* exe,FklVMframe* frame)
 static inline FklVMproc* createVMproc(uint8_t* spc
 		,uint64_t cpc
 		,FklVMvalue* codeObj
-		,FklVMvalue* penv
+		,const FklVMCompoundFrameVarRef* lr
 		,FklVMclosureVars* cvs
 		,FklVMgc* gc)
 {
@@ -769,18 +815,19 @@ static inline FklVMproc* createVMproc(uint8_t* spc
 	uint32_t count=cvs->count;
 	if(count)
 	{
-		FklVMenv* curEnv=penv->u.env;
+		FklVMvalue** loc=lr->loc;
+		FklVMvalue** ref=lr->ref;
 		FklVMclosureVarDef* cv=cvs->cv;
-		FklVMvalue** closureRef=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*count);
-		//for(uint32_t i=0;i<count;i++)
-		//{
-		//	FklVMclosureVarDef* c=&cv[i];
-		//	if(c->islocal)
-		//		closureRef[i]=curEnv->loc[i];
-		//	else
-		//		closureRef[i]=curEnv->ref[i];
-		//}
-		proc->closure=closureRef;
+		FklVMvalue** closure=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*count);
+		for(uint32_t i=0;i<count;i++)
+		{
+			FklVMclosureVarDef* c=&cv[i];
+			if(c->islocal)
+				closure[i]=loc[i];
+			else
+				closure[i]=ref[i];
+		}
+		proc->closure=closure;
 		proc->count=count;
 	}
 	return proc;
@@ -794,7 +841,7 @@ static void inline B_push_proc(FklVM* exe,FklVMframe* frame)
 	FklVMproc* code=createVMproc(fklGetCompoundFrameCode(frame)
 			,sizeOfProc
 			,fklGetCompoundFrameCodeObj(frame)
-			,fklGetCompoundFrameLocalenv(frame)
+			,fklGetCompoundFrameLocRef(frame)
 			,cvs
 			,exe->gc);
 	fklCreateVMvalueToStack(FKL_TYPE_PROC,code,exe);
@@ -844,13 +891,13 @@ static void inline B_pop_var(FklVM* exe,FklVMframe* frame)
 
 static inline FklVMvalue* volatile* get_compound_frame_loc(FklVMframe* frame,uint32_t idx)
 {
-	FklVMCompoundFrameData* f=&frame->u.c;
-	return &f->loc[idx]->u.box;
+	FklVMvalue** loc=frame->u.c.lr.loc;
+	return &loc[idx]->u.box;
 }
 
 static inline void inc_compound_frame_loc(FklVMframe* frame,uint32_t idx,FklVM* exe)
 {
-	FklVMCompoundFrameData* f=&frame->u.c;
+	FklVMCompoundFrameVarRef* f=&frame->u.c.lr;
 	if(idx>=f->lcount)
 	{
 		f->lcount++;
@@ -1364,8 +1411,8 @@ static void inline B_put_loc(FklVM* exe,FklVMframe* frame)
 
 inline static FklVMvalue* volatile* get_var_ref(FklVMframe* frame,uint32_t idx)
 {
-	FklVMCompoundFrameData* f=&frame->u.c;
-	return &f->ref[idx]->u.box;
+	FklVMvalue** ref=frame->u.c.lr.ref;
+	return &ref[idx]->u.box;
 }
 
 static void inline B_get_var_ref(FklVM* exe,FklVMframe* frame)
@@ -2006,6 +2053,11 @@ inline FklVMvalue* fklSetCompoundFrameLocalenv(FklVMframe* f,FklVMvalue* env)
 	return env;
 }
 
+inline const FklVMCompoundFrameVarRef* fklGetCompoundFrameLocRef(const FklVMframe* f)
+{
+	return &f->u.c.lr;
+}
+
 inline FklVMvalue* fklGetCompoundFrameCodeObj(const FklVMframe* f)
 {
 	return f->u.c.codeObj;
@@ -2064,8 +2116,8 @@ inline int fklIsCompoundFrameReachEnd(FklVMframe* f)
 	return 0;
 }
 
-inline void fklInitMainProcRefs(FklVMproc* mainProc,FklVM* exe)
+inline void fklInitMainProcRefs(FklVMproc* mainProc,FklVMvalue** closure,uint32_t count)
 {
-	mainProc->count=exe->count;
-	mainProc->closure=fklCopyMemory(exe->closure,sizeof(FklVMvalue*)*mainProc->count);
+	mainProc->count=count;
+	mainProc->closure=fklCopyMemory(closure,sizeof(FklVMvalue*)*mainProc->count);
 }

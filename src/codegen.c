@@ -4169,16 +4169,19 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 inline void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
 		,FklVMlib* vlib
 		,FklVM* exe
+		,FklVMCompoundFrameVarRef* lr
 		,int needCopy)
 {
 	FklVMvalue* val=FKL_VM_NIL;
 	FklVMgc* gc=exe->gc;
+	FklVMvalue** refs=lr->ref;
+	uint32_t count=lr->rcount;
 	if(clib->type==FKL_CODEGEN_LIB_SCRIPT)
 	{
 		FklByteCode* bc=clib->u.bcl->bc;
 		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,needCopy?fklCopyByteCodelnt(clib->u.bcl):clib->u.bcl,gc);
 		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(bc->code,bc->size,codeObj,gc),gc);
-		fklInitMainProcRefs(proc->u.proc,exe);
+		fklInitMainProcRefs(proc->u.proc,refs,count);
 		val=proc;
 	}
 	else

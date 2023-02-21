@@ -5384,13 +5384,14 @@ inline static PublicBuiltInUserData* init_vm_public_data(FklVMgc* gc,FklSymbolTa
 
 }
 
-void fklInitGlobalVMclosure(FklVM* exe)
+void fklInitGlobalVMclosure(FklVMframe* frame,FklVM* exe)
 {
+	FklVMCompoundFrameVarRef* f=&frame->u.c.lr;
 	static const size_t RefCount=(sizeof(builtInSymbolList)/sizeof(struct SymbolFuncStruct))-1;
-	exe->count=RefCount;
-	FklVMvalue** closure=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*exe->count);
+	f->rcount=RefCount;
+	FklVMvalue** closure=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*f->rcount);
 	FKL_ASSERT(closure);
-	exe->closure=closure;
+	f->ref=closure;
 	PublicBuiltInUserData* pd=init_vm_public_data(exe->gc,exe->symbolTable);
 	FklVMvalue* publicUserData=fklCreateVMvalueNoGC(FKL_TYPE_USERDATA
 			,fklCreateVMudata(0

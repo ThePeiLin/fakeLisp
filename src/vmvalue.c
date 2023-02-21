@@ -1880,9 +1880,14 @@ void fklAtomicVMpair(FklVMvalue* root,FklVMgc* gc)
 
 void fklAtomicVMproc(FklVMvalue* root,FklVMgc* gc)
 {
-	if(root->u.proc->prevEnv)
-		fklGC_toGrey(root->u.proc->prevEnv,gc);
-	fklGC_toGrey(root->u.proc->codeObj,gc);
+	FklVMproc* proc=root->u.proc;
+	if(proc->prevEnv)
+		fklGC_toGrey(proc->prevEnv,gc);
+	fklGC_toGrey(proc->codeObj,gc);
+	uint32_t count=proc->count;
+	FklVMvalue** ref=proc->closure;
+	for(uint32_t i=0;i<count;i++)
+		fklGC_toGrey(ref[i],gc);
 }
 
 void fklAtomicVMchan(FklVMvalue* root,FklVMgc* gc)

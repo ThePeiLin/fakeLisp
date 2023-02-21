@@ -182,7 +182,8 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 	int e=0;
 	FklVM* anotherVM=fklCreateVM(NULL,codegen->globalSymTable,NULL,NULL);
 
-	fklInitGlobalVMclosure(anotherVM);
+	FklVMframe mainframe={FKL_FRAME_COMPOUND,};
+	fklInitGlobalVMclosure(&mainframe,anotherVM);
 
 	FklPtrStack tokenStack=FKL_STACK_INIT;
 	fklInitPtrStack(&tokenStack,32,16);
@@ -190,7 +191,6 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 	anotherVM->codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,fklCreateByteCodelnt(fklCreateByteCode(0)),anotherVM->gc);
 	char* prev=NULL;
 	size_t prevSize=0;
-	FklVMvalue* mainEnv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(FKL_VM_NIL,anotherVM->gc));
 	size_t libNum=codegen->loadedLibStack->top;
 	for(;e<2;)
 	{
@@ -264,6 +264,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 						fklInitVMlibWithCodegenLibRefs(curCGlib
 								,curVMlib
 								,anotherVM
+								,&mainframe.u.c.lr
 								,0);
 					}
 					FklVMlib* prev=anotherVM->libs;
@@ -274,11 +275,10 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 				FklVMvalue* anotherCodeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,tmpByteCode,anotherVM->gc);
 				FklVMproc* tmp=fklCreateVMproc(tmpByteCode->bc->code,tmpByteCode->bc->size,anotherCodeObj,anotherVM->gc);
 				tmp->prevEnv=NULL;
-				FklVMframe* mainframe=fklCreateVMframeWithProc(tmp,anotherVM->frames);
-				mainframe->u.c.localenv=mainEnv;
-				anotherVM->frames=mainframe;
+				fklInitMainVMframeWithProc(&mainframe,tmp,anotherVM->frames);
+				anotherVM->frames=&mainframe;
 				fklTcMutexRelease(anotherVM->gc);
-				int r=fklRunVM(anotherVM);
+				int r=fklRunReplVM(anotherVM);
 				fklTcMutexAcquire(anotherVM->gc);
 				if(r)
 				{
@@ -316,7 +316,6 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 	fklDestroyLineNumberTable(globalLnt);
 	fklJoinAllThread(anotherVM);
 	fklUninitPtrStack(&tokenStack);
-	fklAddToGCNoGC(mainEnv,anotherVM->gc);
 	fklDestroyVMgc(anotherVM->gc);
 	fklDestroyAllVMs(anotherVM);
 }

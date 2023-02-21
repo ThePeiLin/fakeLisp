@@ -260,20 +260,28 @@ FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe* f,FklVMframe* pr
 {
 	FklVMframe* tmp=(FklVMframe*)malloc(sizeof(FklVMframe));
 	FKL_ASSERT(tmp);
-	tmp->u.c.sid=f->u.c.sid;
-	tmp->u.c.pc=f->u.c.pc;
-	tmp->u.c.spc=f->u.c.spc;
-	tmp->u.c.end=f->u.c.end;
-	tmp->prev=prev;
-	tmp->u.c.sid=f->u.c.sid;
-	fklSetRef(&tmp->u.c.codeObj,f->u.c.codeObj,gc);
-	fklSetRef(&tmp->u.c.localenv,f->u.c.localenv,gc);
-	fklSetRef(&tmp->u.c.proc,f->u.c.proc,gc);
-	//tmp->u.c.code=f->u.c.codeObj->u.code->bc->code;
-	tmp->u.c.mark=f->u.c.mark;
-	tmp->u.c.tail=f->u.c.tail;
-	tmp->errorCallBack=f->errorCallBack;
 	tmp->type=FKL_FRAME_COMPOUND;
+	tmp->prev=prev;
+	tmp->errorCallBack=f->errorCallBack;
+	FklVMCompoundFrameData* fd=&tmp->u.c;
+	const FklVMCompoundFrameData* pfd=&f->u.c;
+	fd->sid=pfd->sid;
+	fd->pc=pfd->pc;
+	fd->spc=pfd->spc;
+	fd->end=pfd->end;
+	fd->sid=pfd->sid;
+	fklSetRef(&fd->codeObj,pfd->codeObj,gc);
+	fklSetRef(&fd->localenv,pfd->localenv,gc);
+	fklSetRef(&fd->proc,pfd->proc,gc);
+	//tmp->u.c.code=f->u.c.codeObj->u.code->bc->code;
+	fd->mark=pfd->mark;
+	fd->tail=pfd->tail;
+	FklVMCompoundFrameVarRef* lr=&fd->lr;
+	const FklVMCompoundFrameVarRef* plr=&pfd->lr;
+	lr->ref=plr->ref;
+	lr->rcount=plr->rcount;
+	lr->loc=plr->loc;
+	lr->lcount=plr->lcount;
 	return tmp;
 }
 
@@ -282,43 +290,88 @@ FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVMframe* prev,Fkl
 	FklVMframe* tmp=(FklVMframe*)malloc(sizeof(FklVMframe));
 	FKL_ASSERT(tmp);
 	tmp->prev=prev;
-	tmp->u.c.sid=0;
-	fklSetRef(&tmp->u.c.codeObj,codeObj,gc);
-	tmp->u.c.proc=FKL_VM_NIL;
-	tmp->u.c.pc=codeObj->u.code->bc->code;
-	tmp->u.c.spc=tmp->u.c.pc;
-	tmp->u.c.end=tmp->u.c.pc+codeObj->u.code->bc->size;
-	tmp->u.c.mark=0;
-	tmp->u.c.tail=0;
 	tmp->errorCallBack=NULL;
 	tmp->type=FKL_FRAME_COMPOUND;
+
+	FklVMCompoundFrameData* f=&tmp->u.c;
+	f->sid=0;
+	fklSetRef(&f->codeObj,codeObj,gc);
+	f->proc=FKL_VM_NIL;
+	f->pc=codeObj->u.code->bc->code;
+	f->spc=tmp->u.c.pc;
+	f->end=tmp->u.c.pc+codeObj->u.code->bc->size;
+	f->mark=0;
+	f->tail=0;
+	f->lr.rcount=0;
+	f->lr.ref=0;
+	f->lr.loc=NULL;
+	f->lr.lcount=0;
 	return tmp;
+}
+
+inline void fklInitMainVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMframe* prev)
+{
+	tmp->errorCallBack=NULL;
+	tmp->type=FKL_FRAME_COMPOUND;
+	tmp->prev=prev;
+
+	FklVMCompoundFrameData* f=&tmp->u.c;
+	f->sid=0;
+	f->pc=NULL;
+	f->spc=NULL;
+	f->end=NULL;
+	f->codeObj=NULL;
+	f->proc=NULL;
+	f->proc=FKL_VM_NIL;
+	f->mark=0;
+	f->tail=0;
+	if(code)
+	{
+		f->codeObj=code->codeObj;
+		f->pc=code->spc;
+		f->spc=code->spc;
+		f->end=code->end;
+		f->sid=code->sid;
+	}
+}
+
+inline void fklInitVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMframe* prev)
+{
+	tmp->errorCallBack=NULL;
+	tmp->type=FKL_FRAME_COMPOUND;
+	tmp->prev=prev;
+
+	FklVMCompoundFrameData* f=&tmp->u.c;
+	f->sid=0;
+	f->pc=NULL;
+	f->spc=NULL;
+	f->end=NULL;
+	f->codeObj=NULL;
+	f->proc=NULL;
+	f->proc=FKL_VM_NIL;
+	f->mark=0;
+	f->tail=0;
+	f->lr.rcount=0;
+	f->lr.ref=NULL;
+	f->lr.lcount=0;
+	f->lr.loc=NULL;
+	if(code)
+	{
+		f->lr.ref=code->closure;
+		f->lr.rcount=code->count;
+		f->codeObj=code->codeObj;
+		f->pc=code->spc;
+		f->spc=code->spc;
+		f->end=code->end;
+		f->sid=code->sid;
+	}
 }
 
 FklVMframe* fklCreateVMframeWithProc(FklVMproc* code,FklVMframe* prev)
 {
 	FklVMframe* tmp=(FklVMframe*)malloc(sizeof(FklVMframe));
 	FKL_ASSERT(tmp);
-	tmp->u.c.sid=0;
-	tmp->u.c.pc=NULL;
-	tmp->u.c.spc=NULL;
-	tmp->u.c.end=NULL;
-	tmp->prev=prev;
-	tmp->u.c.codeObj=NULL;
-	tmp->u.c.proc=NULL;
-	tmp->u.c.proc=FKL_VM_NIL;
-	if(code)
-	{
-		tmp->u.c.codeObj=code->codeObj;
-		tmp->u.c.pc=code->spc;
-		tmp->u.c.spc=code->spc;
-		tmp->u.c.end=code->end;
-		tmp->u.c.sid=code->sid;
-	}
-	tmp->u.c.mark=0;
-	tmp->u.c.tail=0;
-	tmp->errorCallBack=NULL;
-	tmp->type=FKL_FRAME_COMPOUND;
+	fklInitVMframeWithProc(tmp,code,prev);
 	return tmp;
 }
 
@@ -327,26 +380,34 @@ FklVMframe* fklCreateVMframeWithProcValue(FklVMvalue* proc,FklVMframe* prev)
 	FklVMproc* code=proc->u.proc;
 	FklVMframe* tmp=(FklVMframe*)malloc(sizeof(FklVMframe));
 	FKL_ASSERT(tmp);
-	tmp->u.c.sid=0;
-	tmp->u.c.pc=NULL;
-	tmp->u.c.spc=NULL;
-	tmp->u.c.end=NULL;
-	tmp->prev=prev;
-	tmp->u.c.codeObj=NULL;
-	tmp->u.c.proc=NULL;
-	if(code)
-	{
-		tmp->u.c.codeObj=code->codeObj;
-		tmp->u.c.pc=code->spc;
-		tmp->u.c.spc=code->spc;
-		tmp->u.c.end=code->end;
-		tmp->u.c.sid=code->sid;
-		tmp->u.c.proc=proc;
-	}
-	tmp->u.c.mark=0;
-	tmp->u.c.tail=0;
 	tmp->errorCallBack=NULL;
 	tmp->type=FKL_FRAME_COMPOUND;
+	tmp->prev=prev;
+
+	FklVMCompoundFrameData* f=&tmp->u.c;
+	f->sid=0;
+	f->pc=NULL;
+	f->spc=NULL;
+	f->end=NULL;
+	f->codeObj=NULL;
+	f->proc=NULL;
+	f->mark=0;
+	f->tail=0;
+	f->lr.rcount=0;
+	f->lr.ref=NULL;
+	f->lr.lcount=0;
+	f->lr.loc=NULL;
+	if(code)
+	{
+		f->lr.ref=code->closure;
+		f->lr.rcount=code->count;
+		f->codeObj=code->codeObj;
+		f->pc=code->spc;
+		f->spc=code->spc;
+		f->end=code->end;
+		f->sid=code->sid;
+		f->proc=proc;
+	}
 	return tmp;
 }
 

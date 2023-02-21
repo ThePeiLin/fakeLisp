@@ -215,15 +215,20 @@ typedef struct
 	void (*copy)(FklCallObjData dst,const FklCallObjData src,struct FklVM*);
 }FklVMframeContextMethodTable;
 
+typedef struct FklVMCompoundFrameVarRef
+{
+	FklVMvalue** loc;
+	FklVMvalue** ref;
+	uint32_t lcount;
+	uint32_t rcount;
+}FklVMCompoundFrameVarRef;
+
 typedef struct FklVMCompoundFrameData
 {
 	unsigned int tail:1;
 	unsigned int mark:2;
 	FklSid_t sid:61;
-	FklVMvalue** loc;
-	uint32_t lcount;
-	FklVMvalue** ref;
-	uint32_t rcount;
+	FklVMCompoundFrameVarRef lr;
 	FklVMvalue* localenv;
 	FklVMvalue* codeObj;
 	FklVMvalue* proc;
@@ -293,8 +298,6 @@ typedef struct FklVM
 	struct FklVM* prev;
 	struct FklVM* next;
 	jmp_buf buf;
-	FklVMvalue** closure;
-	uint32_t count;
 	FklSymbolTable* symbolTable;
 	FklVMclosureVarPool* cpool;
 	FklSid_t* builtinErrorTypeId;
@@ -363,19 +366,11 @@ typedef struct FklVMerrorHandler
 	FklVMproc proc;
 }FklVMerrorHandler;
 
-//typedef struct FklVMnode
-//{
-//	FklVM* vm;
-//	struct FklVMnode* next;
-//}FklVMnode;
-
 //vmrun
 
 int fklRunVM(FklVM*);
-//FklVMlist* fklGetGlobVMs(void);
-//void fklSetGlobVMs(FklVMlist*);
+int fklRunReplVM(FklVM*);
 FklVM* fklCreateVM(FklByteCodelnt*,FklSymbolTable*,FklVM* prev,FklVM* next);
-//FklVM* fklCreateTmpVM(FklByteCode*,FklVMgc*,FklVM* prev,FklVM* next);
 FklVM* fklCreateThreadVM(FklVMgc* gc
 		,FklVMvalue*
 		,FklVM* prev
@@ -384,14 +379,12 @@ FklVM* fklCreateThreadVM(FklVMgc* gc
 		,FklVMlib* libs
 		,FklSymbolTable*
 		,FklSid_t* builtinErrorTypeId);
-//FklVM* fklCreateThreadCallableObjVM(FklVMframe* frame,FklVMgc* gc,FklVMvalue*,FklVM* prev,FklVM* next,size_t libNum,FklVMlib* libs);
 
 void fklDestroyVMvalue(FklVMvalue*);
 FklVMstack* fklCreateVMstack(int32_t);
 void fklDestroyVMstack(FklVMstack*);
 void fklStackRecycle(FklVMstack*);
 int fklCreateCreateThread(FklVM*);
-//FklVMlist* fklCreateThreadStack(int32_t);
 FklVMframe* fklHasSameProc(FklVMvalue* proc,FklVMframe*);
 FklVMgc* fklCreateVMgc();
 void fklDestroyVMgc(FklVMgc*);
@@ -403,7 +396,7 @@ void fklTcMutexRelease(FklVMgc*);
 void fklDestroyAllVMs(FklVM* cur);
 void fklDeleteCallChain(FklVM*);
 void fklJoinAllThread(FklVM* cur);
-//void fklCancelAllThread();
+
 void fklChangeGCstate(FklGCstate,FklVMgc*);
 FklGCstate fklGetGCstate(FklVMgc*);
 void fklGetGCstateAndGCNum(FklVMgc*,FklGCstate* s,int* num);
@@ -448,8 +441,6 @@ int fklIsList(const FklVMvalue* p);
 int fklIsSymbolList(const FklVMvalue* p);
 int64_t fklGetInt(const FklVMvalue* p);
 double fklGetDouble(const FklVMvalue* p);
-//void fklInitVMRunningResource(FklVM*,FklVMvalue*,FklVMgc* gc,FklByteCodelnt*,uint32_t,uint32_t);
-//void fklUninitVMRunningResource(FklVM*);
 
 FklHashTable* fklCreateValueSetHashtable(void);
 void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet);
@@ -465,9 +456,15 @@ FklVMvalue* fklPopVMstack(FklVMstack*);
 FklVMerrorHandler* fklCreateVMerrorHandler(FklSid_t* typeIds,uint32_t,uint8_t* spc,uint64_t cpc);
 void fklDestroyVMerrorHandler(FklVMerrorHandler*);
 int fklRaiseVMerror(FklVMvalue* err,FklVM*);
+
+void fklInitMainProcRefs(FklVMproc* mainProc,FklVMvalue** closure,uint32_t count);
+void fklInitMainVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMframe* prev);
+void fklInitVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMframe* prev);
+
 FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVMframe* prev,FklVMgc* gc);
 FklVMframe* fklCreateVMframeWithProcValue(FklVMvalue*,FklVMframe*);
 FklVMframe* fklCreateVMframeWithProc(FklVMproc*,FklVMframe*);
+
 void fklDestroyVMframe(FklVMframe*,FklVMframe* sf);
 FklString* fklGenErrorMessage(FklBuiltInErrorType type);
 FklString* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorType);
@@ -574,8 +571,6 @@ void fklChanlRecv(FklVMrecv*,FklVMchanl*,FklVMgc*);
 
 FklVMvalue* fklCreateVMboxNoGC(FklVMgc*,FklVMvalue*);
 
-void fklInitMainProcRefs(FklVMproc* proc,FklVM* exe);
-
 FklVMvec* fklCreateVMvecNoInit(size_t size);
 FklVMvec* fklCreateVMvec(size_t size);
 FklVMvalue* fklCreateVMvecV(size_t size,FklVMvalue** base,FklVM*);
@@ -629,6 +624,7 @@ void fklSwapCompoundFrame(FklVMframe*,FklVMframe*);
 unsigned int fklGetCompoundFrameMark(const FklVMframe*);
 unsigned int fklSetCompoundFrameMark(FklVMframe*,unsigned int);
 
+const FklVMCompoundFrameVarRef* fklGetCompoundFrameLocRef(const FklVMframe* f);
 FklVMvalue* fklGetCompoundFrameLocalenv(const FklVMframe*);
 FklVMvalue* fklSetCompoundFrameLocalenv(FklVMframe*,FklVMvalue* env);
 

@@ -177,6 +177,18 @@ int main(int argc,char** argv)
 	return exitState;
 }
 
+static inline void delete_another_frame(FklVM* exe,FklVMframe* main)
+{
+	FklVMframe* sf=&exe->sf;
+	while(exe->frames)
+	{
+		FklVMframe* cur=exe->frames;
+		exe->frames=cur->prev;
+		if(cur!=main)
+			fklDestroyVMframe(cur,sf);
+	}
+}
+
 static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 {
 	int e=0;
@@ -291,7 +303,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 					stack->bps.top=0;
 					tmp->prevEnv=NULL;
 					fklDestroyVMproc(tmp);
-					fklDeleteCallChain(anotherVM);
+					delete_another_frame(anotherVM,&mainframe);
 				}
 				else
 				{
@@ -302,7 +314,6 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 						fklDBG_printVMstack(stack,stdout,0,anotherVM->symbolTable);
 					}
 					fklWaitGC(anotherVM->gc);
-					free(anotherVM->frames);
 					anotherVM->frames=NULL;
 					stack->tp=0;
 					fklDestroyVMproc(tmp);

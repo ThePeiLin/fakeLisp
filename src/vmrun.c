@@ -626,10 +626,16 @@ inline void fklDoCompoundFrameStep(FklVMframe* curframe,FklVM* exe)
 
 int fklRunReplVM(FklVM* exe)
 {
-	if(setjmp(exe->buf)==1)
+	int r=setjmp(exe->buf);
+	if(r==1)
 	{
 		fklTcMutexRelease(exe->gc);
 		return 255;
+	}
+	else if(r==2)
+	{
+		fklTcMutexRelease(exe->gc);
+		return 0;
 	}
 	FklVMframe* sf=&exe->sf;
 	while(exe->frames)
@@ -641,9 +647,10 @@ int fklRunReplVM(FklVM* exe)
 			case FKL_FRAME_COMPOUND:
 				if(fklIsCompoundFrameReachEnd(curframe))
 				{
-					FklVMframe* cur=popFrame(exe);
-					if(cur->prev)
-						free(cur);
+					if(curframe->prev)
+						free(popFrame(exe));
+					else
+						longjmp(exe->buf,2);
 				}
 				else
 					fklDoCompoundFrameStep(curframe,exe);

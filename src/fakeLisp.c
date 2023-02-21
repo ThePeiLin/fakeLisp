@@ -107,6 +107,7 @@ int main(int argc,char** argv)
 		FklVMvalue* mainEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateVMenv(globEnv,anotherVM->gc),anotherVM->gc);
 		FklVMframe* mainframe=anotherVM->frames;
 		mainframe->u.c.localenv=mainEnv;
+		fklInitGlobalVMclosure(mainframe,anotherVM);
 		int r=fklRunVM(anotherVM);
 		if(r)
 		{
@@ -153,6 +154,7 @@ int main(int argc,char** argv)
 		FklVMframe* mainframe=anotherVM->frames;
 		FklVMvalue* mainEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateVMenv(globEnv,anotherVM->gc),anotherVM->gc);
 		mainframe->u.c.localenv=mainEnv;
+		fklInitGlobalVMclosure(mainframe,anotherVM);
 		int r=fklRunVM(anotherVM);
 		if(r)
 		{

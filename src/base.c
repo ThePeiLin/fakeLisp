@@ -2024,3 +2024,14 @@ void fklRecycleU8Stack(FklU8Stack* s)
 		s->size-=s->inc;
 	}
 }
+
+inline FklClosureVarPool* fklCreateClosurePool(void)
+{
+	FklClosureVarPool* r=(FklClosureVarPool*)malloc(sizeof(*r));
+	FKL_ASSERT(r);
+	r->count=0;
+	r->cvs=NULL;
+	return r;
+}
+
+

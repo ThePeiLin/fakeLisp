@@ -388,15 +388,6 @@ static FklSid_t* createBuiltinErrorTypeIdList(void)
 	return r;
 }
 
-inline static FklVMclosureVarPool* createVMclosurePool(void)
-{
-	FklVMclosureVarPool* r=(FklVMclosureVarPool*)malloc(sizeof(*r));
-	FKL_ASSERT(r);
-	r->count=0;
-	r->cvs=NULL;
-	return r;
-}
-
 FklVM* fklCreateVM(FklByteCodelnt* mainCode
 		,FklSymbolTable* publicSymbolTable
 		,FklVM* prev
@@ -421,7 +412,7 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 	exe->stack=fklCreateVMstack(0);
 	exe->libNum=0;
 	exe->libs=NULL;
-	exe->cpool=createVMclosurePool();
+	exe->cpool=NULL;
 	insert_to_VM_chain(exe,prev,next,exe->gc);
 	return exe;
 }
@@ -823,7 +814,7 @@ static inline FklVMproc* createVMproc(uint8_t* spc
 		,uint64_t cpc
 		,FklVMvalue* codeObj
 		,const FklVMCompoundFrameVarRef* lr
-		,FklVMclosureVars* cvs
+		,FklClosureVars* cvs
 		,FklVMgc* gc)
 {
 	FklVMproc* proc=fklCreateVMproc(spc,cpc,codeObj,gc);
@@ -832,15 +823,15 @@ static inline FklVMproc* createVMproc(uint8_t* spc
 	{
 		FklVMvalue** loc=lr->loc;
 		FklVMvalue** ref=lr->ref;
-		FklVMclosureVarDef* cv=cvs->cv;
+		FklClosureVarDef* cv=cvs->cv;
 		FklVMvalue** closure=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*count);
 		for(uint32_t i=0;i<count;i++)
 		{
-			FklVMclosureVarDef* c=&cv[i];
+			FklClosureVarDef* c=&cv[i];
 			if(c->islocal)
-				closure[i]=loc[i];
+				closure[i]=loc[c->idx];
 			else
-				closure[i]=ref[i];
+				closure[i]=ref[c->idx];
 		}
 		proc->closure=closure;
 		proc->count=count;
@@ -852,7 +843,7 @@ static void inline B_push_proc(FklVM* exe,FklVMframe* frame)
 {
 	uint32_t closureIdx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(closureIdx)));
 	uint64_t sizeOfProc=fklGetU64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(sizeOfProc)));
-	FklVMclosureVars* cvs=&exe->cpool->cvs[closureIdx];
+	FklClosureVars* cvs=&exe->cpool->cvs[closureIdx];
 	FklVMproc* code=createVMproc(fklGetCompoundFrameCode(frame)
 			,sizeOfProc
 			,fklGetCompoundFrameCodeObj(frame)
@@ -1904,6 +1895,7 @@ void fklDestroyAllVMs(FklVM* curVM)
 	for(size_t i=0;i<libNum;i++)
 		fklUninitVMlib(&libs[i]);
 	free(curVM->builtinErrorTypeId);
+	free(curVM->cpool);
 	for(FklVM* prev=curVM->prev;prev;)
 	{
 		if(prev->mark)

@@ -94,6 +94,7 @@ int main(int argc,char** argv)
 		}
 		fklCodegenPrintUndefinedSymbol(mainByteCode,(FklCodegenLib**)codegen.loadedLibStack->base,codegen.globalSymTable,0,NULL);
 		FklVM* anotherVM=fklCreateVM(mainByteCode,codegen.globalSymTable,NULL,NULL);
+		anotherVM->cpool=codegen.cpool;
 		FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc,anotherVM->symbolTable),anotherVM->gc);
 		anotherVM->libNum=codegen.loadedLibStack->top;
 		anotherVM->libs=(FklVMlib*)malloc(sizeof(FklVMlib)*loadedLibStack->top);
@@ -196,6 +197,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 	int e=0;
 	FklVM* anotherVM=fklCreateVM(NULL,codegen->globalSymTable,NULL,NULL);
 
+	anotherVM->cpool=codegen->cpool;
 	FklVMframe mainframe={FKL_FRAME_COMPOUND,};
 	fklInitGlobalVMclosure(&mainframe,anotherVM);
 

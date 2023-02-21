@@ -77,6 +77,7 @@ typedef struct FklCodegen
 	struct FklCodegen* prev;
 	unsigned int destroyAbleMark:1;
 	unsigned long refcount:63;
+	FklClosureVarPool* cpool;
 }FklCodegen;
 
 typedef struct
@@ -92,7 +93,7 @@ typedef struct FklCodegenQuestContext
 	const FklCodegenQuestContextMethodTable* t;
 }FklCodegenQuestContext;
 
-typedef FklByteCodelnt* (*FklByteCodeProcesser)(FklCodegen*,FklCodegenQuestContext* context,FklSid_t,uint64_t);
+typedef FklByteCodelnt* (*FklByteCodeProcesser)(FklCodegen*,FklCodegenEnv*,FklCodegenQuestContext* context,FklSid_t,uint64_t);
 
 typedef struct FklCodegenErrorState
 {

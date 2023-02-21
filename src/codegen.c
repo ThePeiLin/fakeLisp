@@ -128,6 +128,15 @@ static FklByteCode* create5lenBc(FklOpcode op,uint32_t imm)
 	return r;
 }
 
+static FklByteCode* create13lenBc(FklOpcode op,uint32_t im,uint64_t imm)
+{
+	FklByteCode* r=fklCreateByteCode(13);
+	r->code[0]=op;
+	fklSetU32ToByteCode(r->code+sizeof(char),im);
+	fklSetU64ToByteCode(r->code+sizeof(char)+sizeof(uint32_t),imm);
+	return r;
+}
+
 static FklByteCode* create9lenBc(FklOpcode op,uint64_t imm)
 {
 	FklByteCode* r=fklCreateByteCode(9);
@@ -281,7 +290,7 @@ static void destroyCodegenQuest(FklCodegenQuest* quest)
 }
 
 #define FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(F,STACK,NEXT_EXPRESSIONS,ENV,LINE,CODEGEN,CODEGEN_CONTEXT) fklPushPtrStack(createCodegenQuest((F),(STACK),(NEXT_EXPRESSIONS),(ENV),(LINE),NULL,(CODEGEN)),(CODEGEN_CONTEXT))
-#define BC_PROCESS(NAME) static FklByteCodelnt* NAME(FklCodegen* codegen,FklCodegenQuestContext* context,FklSid_t fid,uint64_t line)
+#define BC_PROCESS(NAME) static FklByteCodelnt* NAME(FklCodegen* codegen,FklCodegenEnv* env,FklCodegenQuestContext* context,FklSid_t fid,uint64_t line)
 
 #define GET_STACK(CONTEXT) ((CONTEXT)->t->__get_bcl_stack((CONTEXT)->data))
 BC_PROCESS(_default_bc_process)
@@ -531,6 +540,35 @@ static CODEGEN_FUNC(codegen_or)
 			,codegenQuestStack);
 }
 
+typedef struct
+{
+	FklSid_t id;
+	uint32_t idx;
+	uint32_t cidx;
+	uint8_t isLocal;
+}FklCodegenEnvHashItem;
+
+static inline void create_and_insert_to_pool(FklClosureVarPool* cp,FklCodegenEnv* env)
+{
+	uint32_t count=cp->count+1;
+	FklClosureVars* cvs=(FklClosureVars*)realloc(cp->cvs,sizeof(FklClosureVars)*count);
+	FKL_ASSERT(cvs);
+	cp->cvs=cvs;
+	FklClosureVars* ccvs=&cvs[cp->count];
+	cp->count+=1;
+	FklHashTable* refs=env->refs;
+	ccvs->count=refs->num;
+	FklClosureVarDef* cv=(FklClosureVarDef*)malloc(sizeof(FklClosureVarDef)*ccvs->count);
+	FKL_ASSERT(cv);
+	ccvs->cv=cv;
+	uint32_t i=0;
+	for(FklHashTableNodeList* list=refs->list;list;list=list->next,i++)
+	{
+		FklCodegenEnvHashItem* el=list->node->item;
+		cv[i].idx=el->cidx;
+		cv[i].islocal=el->isLocal;
+	}
+}
 
 BC_PROCESS(_lambda_exp_bc_process)
 {
@@ -568,7 +606,10 @@ BC_PROCESS(_lambda_exp_bc_process)
 	fklDestroyByteCodelnt(stack->base[0]);
 	stack->top=0;
 	fklScanAndSetTailCall(retval->bc);
-	FklByteCode* pushProc=create9lenBc(FKL_OP_PUSH_PROC,retval->bc->size);
+	FklClosureVarPool* cpool=codegen->cpool;
+	uint32_t count=cpool->count;
+	create_and_insert_to_pool(cpool,env);
+	FklByteCode* pushProc=create13lenBc(FKL_OP_PUSH_PROC,count,retval->bc->size);
 	bcBclAppendToBcl(pushProc,retval,fid,line);
 	fklDestroyByteCode(pushProc);
 	return retval;
@@ -581,14 +622,6 @@ static FklByteCodelnt* makePopArg(FklOpcode code,const FklNastNode* sym,uint32_t
 	FklByteCode* bc=create5lenBc(code,idx);
 	return createBclnt(bc,codegen->fid,sym->curline);
 }
-
-typedef struct
-{
-	FklSid_t id;
-	uint32_t idx;
-	uint32_t cidx;
-	uint8_t isLocal;
-}FklCodegenEnvHashItem;
 
 static FklCodegenEnvHashItem* createCodegenEnvHashItem(FklSid_t key,uint32_t idx)
 {
@@ -743,11 +776,11 @@ uint32_t fklAddCodegenRefById(FklSid_t id,FklCodegenEnv* env)
 				cel->cidx=def->idx;
 				break;
 			}
+			cel->isLocal=0;
 			FklCodegenEnvHashItem* ref=fklGetHashItem(&id,cur->refs);
 			if(ref)
 			{
 				cel->cidx=ref->idx;
-				cel->isLocal=0;
 				break;
 			}
 			FklHashTable* ht=cur->refs;
@@ -3514,6 +3547,7 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 			fklPopPtrStack(&codegenQuestStack);
 			FklCodegenQuest* prevQuest=curCodegenQuest->prev?curCodegenQuest->prev:fklTopPtrStack(&codegenQuestStack);
 			FklByteCodelnt* resultBcl=curCodegenQuest->processer(curCodegenQuest->codegen
+					,curEnv
 					,curContext
 					,curCodegenQuest->codegen->fid
 					,curCodegenQuest->curline);
@@ -3606,6 +3640,7 @@ void fklInitGlobalCodegener(FklCodegen* codegen
 	codegen->phead=&codegen->head;
 	codegen->loadedLibStack=fklCreatePtrStack(8,8);
 	codegen->macroLibStack=fklCreatePtrStack(8,8);
+	codegen->cpool=fklCreateClosurePool();
 }
 
 void fklInitCodegener(FklCodegen* codegen
@@ -3648,6 +3683,7 @@ void fklInitCodegener(FklCodegen* codegen
 		codegen->phead=prev->phead;
 		codegen->loadedLibStack=prev->loadedLibStack;
 		codegen->macroLibStack=prev->macroLibStack;
+		codegen->cpool=prev->cpool;
 		env->phead=prev->phead;
 	}
 	else
@@ -3656,6 +3692,7 @@ void fklInitCodegener(FklCodegen* codegen
 		codegen->phead=&codegen->head;
 		codegen->loadedLibStack=fklCreatePtrStack(8,8);
 		codegen->macroLibStack=fklCreatePtrStack(8,8);
+		codegen->cpool=fklCreateClosurePool();
 		env->phead=&codegen->head;
 	}
 }

@@ -269,9 +269,9 @@ static void B_push_f64(BYTE_CODE_ARGS);
 static void B_push_str(BYTE_CODE_ARGS);
 static void B_push_sym(BYTE_CODE_ARGS);
 static void B_push_var(BYTE_CODE_ARGS);
-static void B_push_top(BYTE_CODE_ARGS);
+static void B_dup(BYTE_CODE_ARGS);
 static void B_push_proc(BYTE_CODE_ARGS);
-static void B_pop(BYTE_CODE_ARGS);
+static void B_drop(BYTE_CODE_ARGS);
 static void B_pop_var(BYTE_CODE_ARGS);
 static void B_pop_arg(BYTE_CODE_ARGS);
 static void B_pop_rest_arg(BYTE_CODE_ARGS);
@@ -326,9 +326,9 @@ static void (*ByteCodes[])(FklVM*,FklVMframe*)=
 	B_push_str,
 	B_push_sym,
 	B_push_var,
-	B_push_top,
+	B_dup,
 	B_push_proc,
-	B_pop,
+	B_drop,
 	B_pop_var,
 	B_pop_arg,
 	B_pop_rest_arg,
@@ -799,7 +799,7 @@ static void inline B_push_var(FklVM* exe,FklVMframe* frame)
 	fklAddCompoundFrameCp(frame,sizeof(FklSid_t));
 }
 
-static void inline B_push_top(FklVM* exe,FklVMframe* frame)
+static void inline B_dup(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
 	if(stack->tp==stack->bp)
@@ -855,7 +855,7 @@ static void inline B_push_proc(FklVM* exe,FklVMframe* frame)
 	fklAddCompoundFrameCp(frame,sizeOfProc);
 }
 
-static void inline B_pop(FklVM* exe,FklVMframe* frame)
+static void inline B_drop(FklVM* exe,FklVMframe* frame)
 {
 	exe->stack->tp-=1;
 }

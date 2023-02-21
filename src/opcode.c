@@ -18,7 +18,7 @@ static struct
 	{"push-var",                     8,  },
 	{"dup",                          0,  },
 	{"push-proc",                    -1, },
-	{"pop",                          0,  },
+	{"drop",                         0,  },
 	{"pop-var",                      -1, },
 	{"pop-arg",                      4,  },
 	{"pop-rest-arg",                 4,  },

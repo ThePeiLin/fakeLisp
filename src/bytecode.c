@@ -156,7 +156,7 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 	fprintf(fp,format,i);
 	putc(':',fp);
 	for(uint32_t i=0;i<tc;i++)
-		fputc('\t',fp);
+		fputs("    ",fp);
 	fprintf(fp," %s",fklGetOpcodeName((FklOpcode)(tmpCode->code[i])));
 	int opcodeArgLen=fklGetOpcodeArgLen((FklOpcode)(tmpCode->code[i]));
 	if(opcodeArgLen)

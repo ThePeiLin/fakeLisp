@@ -3814,14 +3814,15 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib** libs,Fk
 								i+=sizeof(char)+sizeof(uint32_t)+sizeof(FklSid_t);
 								break;
 							case FKL_OP_PUSH_PROC:
-								fklPushUintStack(i+sizeof(char)+sizeof(uint64_t),&cpcstack);
 								{
-									fklPushUintStack(fklGetU64FromByteCode(bc->code+i+sizeof(char)),&scpstack);
+									uint64_t offset=sizeof(char)+sizeof(uint32_t);
+									fklPushUintStack(i+offset+sizeof(uint64_t),&cpcstack);
+									fklPushUintStack(fklGetU64FromByteCode(bc->code+i+offset),&scpstack);
 									FklCodegenEnv* nextEnv=fklCreateCodegenEnv(curEnv);
 									nextEnv->refcount=1;
 									fklPushPtrStack(nextEnv,envstack);
+									i+=offset+sizeof(uint64_t)+fklGetU64FromByteCode(bc->code+i+sizeof(char));
 								}
-								i+=sizeof(char)+sizeof(uint64_t)+fklGetU64FromByteCode(bc->code+i+sizeof(char));
 								break;
 							case FKL_OP_PUSH_STR:
 							case FKL_OP_PUSH_BIG_INT:

@@ -910,6 +910,7 @@ static inline void inc_compound_frame_loc(FklVMframe* frame,uint32_t idx,FklVM* 
 		FklVMvalue** loc=(FklVMvalue**)realloc(f->loc,sizeof(FklVMvalue*)*f->lcount);
 		FKL_ASSERT(loc);
 		f->loc=loc;
+		f->loc[idx]=FKL_VM_NIL;
 		f->loc[idx]=fklCreateVMvalueToStack(FKL_TYPE_BOX,FKL_VM_NIL,exe);
 	}
 }

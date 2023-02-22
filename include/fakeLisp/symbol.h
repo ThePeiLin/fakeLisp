@@ -43,17 +43,9 @@ void fklDestroySymbolTable(FklSymbolTable*);
 
 void fklWriteSymbolTable(FklSymbolTable*,FILE*);
 
-typedef struct
-{
-	uint8_t islocal:1;
-	uint32_t idx;
-}FklClosureVarDef;
-
 typedef struct FklPrototype
 {
 	uint32_t p;
-	FklClosureVarDef* cv;
-	uint32_t count;
 	FklHashTable* defs;
 	FklHashTable* refs;
 }FklPrototype;

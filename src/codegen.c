@@ -548,23 +548,11 @@ static inline void create_and_insert_to_pool(FklPrototypePool* cp,FklCodegenEnv*
 	cp->pts=pts;
 	FklPrototype* cpt=&pts[cp->count];
 	cp->count+=1;
-	FklHashTable* refs=env->refs;
-	cpt->count=refs->num;
-	FklClosureVarDef* cv=(FklClosureVarDef*)malloc(sizeof(FklClosureVarDef)*cpt->count);
-	FKL_ASSERT(cv);
-	cpt->cv=cv;
 	cpt->p=0;
 	cpt->defs=env->defs;
 	cpt->refs=env->refs;
 	env->defs=NULL;
 	env->refs=NULL;
-	uint32_t i=0;
-	for(FklHashTableNodeList* list=refs->list;list;list=list->next,i++)
-	{
-		FklSymbolDef* el=list->node->item;
-		cv[i].idx=el->cidx;
-		cv[i].islocal=el->isLocal;
-	}
 }
 
 BC_PROCESS(_lambda_exp_bc_process)
@@ -742,13 +730,6 @@ void fklDestroyCodegenEnv(FklCodegenEnv* env)
 			break;
 	}
 }
-
-//FklCodegenEnv* fklCreateGlobCodegenEnv(FklSymbolTable* publicSymTable)
-//{
-//	FklCodegenEnv* r=fklCreateCodegenEnv(NULL);
-//	fklInitGlobCodegenEnv(r,publicSymTable);
-//	return r;
-//}
 
 int fklIsSymbolRefed(FklSid_t id,FklCodegenEnv* env)
 {

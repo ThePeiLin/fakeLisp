@@ -827,28 +827,34 @@ static inline FklVMproc* createVMproc(uint8_t* spc
 		,uint64_t cpc
 		,FklVMvalue* codeObj
 		,FklVMCompoundFrameVarRef* lr
-		,FklPrototype* pt
+		,uint32_t prototypeId
 		,FklVM* exe)
 {
 	FklVMgc* gc=exe->gc;
 	FklVMproc* proc=fklCreateVMproc(spc,cpc,codeObj,gc);
-	uint32_t count=pt->count;
+	FklPrototype* pt=&exe->cpool->pts[prototypeId];
+	uint32_t count=pt->refs->num;
 	if(count)
 	{
 		FklVMvalue** ref=lr->ref;
-		FklClosureVarDef* cv=pt->cv;
 		FklVMvalue** closure=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*count);
 		FKL_ASSERT(closure);
-		for(uint32_t i=0;i<count;i++)
+		FklHashTableNodeList* l=pt->refs->list;
+		for(uint32_t i=0;l;i++,l=l->next)
 		{
-			FklClosureVarDef* c=&cv[i];
-			if(c->islocal)
+			FklSymbolDef* c=l->node->item;
+			if(c->isLocal)
 			{
-				inc_compound_frame_loc(lr,c->idx,exe);
-				closure[i]=lr->loc[c->idx];
+				inc_compound_frame_loc(lr,c->cidx,exe);
+				closure[i]=lr->loc[c->cidx];
 			}
 			else
-				closure[i]=ref[c->idx];
+			{
+				if(c->cidx>=lr->rcount)
+					closure[i]=FKL_VM_NIL;
+				else
+					closure[i]=ref[c->cidx];
+			}
 		}
 		proc->closure=closure;
 		proc->count=count;
@@ -860,12 +866,11 @@ static void inline B_push_proc(FklVM* exe,FklVMframe* frame)
 {
 	uint32_t closureIdx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(closureIdx)));
 	uint64_t sizeOfProc=fklGetU64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(sizeOfProc)));
-	FklPrototype* pt=&exe->cpool->pts[closureIdx];
 	FklVMproc* code=createVMproc(fklGetCompoundFrameCode(frame)
 			,sizeOfProc
 			,fklGetCompoundFrameCodeObj(frame)
 			,fklGetCompoundFrameLocRef(frame)
-			,pt
+			,closureIdx
 			,exe);
 	fklCreateVMvalueToStack(FKL_TYPE_PROC,code,exe);
 	fklSetRef(&code->prevEnv,fklGetCompoundFrameLocalenv(frame),exe->gc);

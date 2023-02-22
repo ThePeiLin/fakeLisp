@@ -267,7 +267,6 @@ void fklUninitPrototype(FklPrototype* p)
 		fklDestroyHashTable(p->defs);
 	if(p->refs)
 		fklDestroyHashTable(p->refs);
-	free(p->cv);
 }
 
 void fklDestroyPrototypePool(FklPrototypePool* p)

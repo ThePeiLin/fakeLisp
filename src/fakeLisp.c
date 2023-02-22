@@ -269,6 +269,10 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 			FklByteCodelnt* tmpByteCode=fklGenExpressionCode(begin,codegen->globalEnv,codegen);
 			if(tmpByteCode)
 			{
+				fklUpdatePrototype(codegen->cpool
+						,codegen->globalEnv
+						,codegen->globalSymTable
+						,codegen->publicSymbolTable);
 				size_t unloadlibNum=codegen->loadedLibStack->top-libNum;
 				if(unloadlibNum)
 				{

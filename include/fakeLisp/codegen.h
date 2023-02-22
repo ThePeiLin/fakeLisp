@@ -13,6 +13,7 @@ extern "C" {
 
 typedef struct FklCodegenEnv
 {
+	uint32_t prototypeId;
 	struct FklCodegenEnv* prev;
 	FklHashTable* defs;
 	FklHashTable* refs;
@@ -20,6 +21,8 @@ typedef struct FklCodegenEnv
 	FklStringMatchPattern** phead;
 	size_t refcount;
 }FklCodegenEnv;
+
+void fklUpdatePrototype(FklPrototypePool* cp,FklCodegenEnv* env,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable);
 
 typedef struct FklCodegenMacro
 {

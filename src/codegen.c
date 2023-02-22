@@ -597,6 +597,19 @@ static FklHashTableMethodTable IdxHashMethodTable=
 	.__getKey=_idx_getKey,
 };
 
+static inline FklHashTable* psid_to_gsid_ht(FklHashTable* sht,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable)
+{
+	FklHashTable* iht=fklCreateHashTable(8,4,2,0.75,1,&CodegenEnvHashMethodTable);
+	for(FklHashTableNodeList* list=sht->list;list;list=list->next)
+	{
+		FklSymbolDef* sd=list->node->item;
+		FklSid_t sid=fklAddSymbol(fklGetSymbolWithId(sd->id,publicSymbolTable)->symbol,globalSymTable)->id;
+		FklSymbolDef* id=fklCreateSymbolDef(sid,sd->idx,sd->cidx,sd->isLocal);
+		fklPutNoRpHashItem(id,iht);
+	}
+	return iht;
+}
+
 static inline FklHashTable* sid_ht_to_idx_key_ht(FklHashTable* sht,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable)
 {
 	FklHashTable* iht=fklCreateHashTable(8,4,2,0.75,1,&IdxHashMethodTable);
@@ -610,17 +623,49 @@ static inline FklHashTable* sid_ht_to_idx_key_ht(FklHashTable* sht,FklSymbolTabl
 	return iht;
 }
 
-static inline void create_and_insert_to_pool(FklPrototypePool* cp,FklCodegenEnv* env,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable)
+static inline void create_and_insert_to_pool(FklPrototypePool* cp,uint32_t p,FklCodegenEnv* env,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable)
 {
 	uint32_t count=cp->count+1;
 	FklPrototype* pts=(FklPrototype*)realloc(cp->pts,sizeof(FklPrototype)*count);
 	FKL_ASSERT(pts);
 	cp->pts=pts;
 	FklPrototype* cpt=&pts[cp->count];
+	env->prototypeId=cp->count;
 	cp->count+=1;
-	cpt->p=0;
-	cpt->defs=env->defs->num?sid_ht_to_idx_key_ht(env->defs,globalSymTable,publicSymbolTable):NULL;
-	cpt->refs=env->refs->num?sid_ht_to_idx_key_ht(env->refs,globalSymTable,publicSymbolTable):NULL;
+	cpt->p=p;
+	cpt->defs=psid_to_gsid_ht(env->defs,globalSymTable,publicSymbolTable);
+	cpt->refs=sid_ht_to_idx_key_ht(env->refs,globalSymTable,publicSymbolTable);
+}
+
+inline void fklUpdatePrototype(FklPrototypePool* cp,FklCodegenEnv* env,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable)
+{
+	FklPrototype* pts=&cp->pts[env->prototypeId];
+	FklHashTable* eht=env->defs;
+	FklHashTable* pht=pts->defs;
+	for(FklHashTableNodeList* list=eht->list;list;list=list->next)
+	{
+		FklSymbolDef* sd=list->node->item;
+		FklSymbolDef* el=fklGetHashItem(&sd->id,pht);
+		if(!el)
+		{
+			FklSid_t sid=fklAddSymbol(fklGetSymbolWithId(sd->id,publicSymbolTable)->symbol,globalSymTable)->id;
+			FklSymbolDef* id=fklCreateSymbolDef(sid,sd->idx,sd->cidx,sd->isLocal);
+			fklPutNoRpHashItem(id,pht);
+		}
+	}
+	eht=env->refs;
+	pht=pts->refs;
+	for(FklHashTableNodeList* list=eht->list;list;list=list->next)
+	{
+		FklSymbolDef* sd=list->node->item;
+		FklSymbolDef* el=fklGetHashItem(&sd->id,pht);
+		if(!el)
+		{
+			FklSid_t sid=fklAddSymbol(fklGetSymbolWithId(sd->id,publicSymbolTable)->symbol,globalSymTable)->id;
+			FklSymbolDef* id=fklCreateSymbolDef(sid,sd->idx,sd->cidx,sd->isLocal);
+			fklPutNoRpHashItem(id,pht);
+		}
+	}
 }
 
 BC_PROCESS(_lambda_exp_bc_process)
@@ -660,9 +705,8 @@ BC_PROCESS(_lambda_exp_bc_process)
 	stack->top=0;
 	fklScanAndSetTailCall(retval->bc);
 	FklPrototypePool* cpool=codegen->cpool;
-	uint32_t count=cpool->count;
-	create_and_insert_to_pool(cpool,env,codegen->globalSymTable,codegen->publicSymbolTable);
-	FklByteCode* pushProc=create13lenBc(FKL_OP_PUSH_PROC,count,retval->bc->size);
+	fklUpdatePrototype(cpool,env,codegen->globalSymTable,codegen->publicSymbolTable);
+	FklByteCode* pushProc=create13lenBc(FKL_OP_PUSH_PROC,env->prototypeId,retval->bc->size);
 	bcBclAppendToBcl(pushProc,retval,fid,line);
 	fklDestroyByteCode(pushProc);
 	return retval;
@@ -731,6 +775,7 @@ FklCodegenEnv* fklCreateCodegenEnv(FklCodegenEnv* prev)
 {
 	FklCodegenEnv* r=(FklCodegenEnv*)malloc(sizeof(FklCodegenEnv));
 	FKL_ASSERT(r);
+	r->prototypeId=0;
 	r->prev=prev;
 	r->refcount=0;
 	r->defs=fklCreateHashTable(8,4,2,0.75,1,&CodegenEnvHashMethodTable);
@@ -908,6 +953,11 @@ static CODEGEN_FUNC(codegen_lambda)
 	pushListItemToQueue(rest,queue,NULL);
 	FklPtrStack* stack=fklCreatePtrStack(32,16);
 	fklPushPtrStack(argsBc,stack);
+	create_and_insert_to_pool(codegen->cpool
+			,curEnv->prototypeId
+			,lambdaCodegenEnv
+			,codegen->globalSymTable
+			,codegen->publicSymbolTable);
 	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_lambda_exp_bc_process
 			,createDefaultStackContext(stack)
 			,createDefaultQueueNextExpression(queue)
@@ -3656,6 +3706,11 @@ void fklInitGlobalCodegener(FklCodegen* codegen
 	codegen->loadedLibStack=fklCreatePtrStack(8,8);
 	codegen->macroLibStack=fklCreatePtrStack(8,8);
 	codegen->cpool=fklCreatePrototypePool();
+	create_and_insert_to_pool(codegen->cpool
+			,0
+			,codegen->globalEnv
+			,codegen->globalSymTable
+			,codegen->publicSymbolTable);
 }
 
 void fklInitCodegener(FklCodegen* codegen

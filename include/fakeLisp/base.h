@@ -91,6 +91,7 @@ FklHashTable* fklCreateHashTable(size_t size
 		,double threshold
 		,int thresholdInc
 		,FklHashTableMethodTable*);
+
 void* fklGetHashItem(void* key,FklHashTable*);
 void* fklPutInReverseOrder(void* item,FklHashTable* table);
 void* fklPutReplHashItem(void* item,FklHashTable*); //put and replace;

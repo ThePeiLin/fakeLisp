@@ -832,6 +832,7 @@ static inline FklVMproc* createVMproc(uint8_t* spc
 {
 	FklVMgc* gc=exe->gc;
 	FklVMproc* proc=fklCreateVMproc(spc,cpc,codeObj,gc);
+	proc->protoId=prototypeId;
 	FklPrototype* pt=&exe->cpool->pts[prototypeId];
 	uint32_t count=pt->refs->num;
 	if(count)
@@ -1424,23 +1425,41 @@ static void inline B_put_loc(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
-inline static FklVMvalue* volatile* get_var_ref(FklVMframe* frame,uint32_t idx)
+inline static FklVMvalue* volatile* get_var_ref(FklVMCompoundFrameVarRef* lr,uint32_t idx)
 {
-	FklVMvalue** ref=frame->u.c.lr.ref;
-	return &ref[idx]->u.box;
+	FklVMvalue* v=lr->ref[idx];
+	if(v==FKL_VM_NIL)
+		return NULL;
+	return &v->u.box;
 }
 
 static void inline B_get_var_ref(FklVM* exe,FklVMframe* frame)
 {
 	uint32_t idx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(idx)));
-	fklPushVMvalue(*get_var_ref(frame,idx),exe->stack);
+	FklVMvalue* volatile* pv=get_var_ref(fklGetCompoundFrameLocRef(frame),idx);
+	if(!pv)
+	{
+		FklPrototype* pt=&exe->cpool->pts[fklGetCompoundFrameProc(frame)->u.proc->protoId];
+		FklSymbolDef* def=fklGetHashItem(&idx,pt->refs);
+		char* cstr=fklStringToCstr(fklGetSymbolWithId(def->id,exe->symbolTable)->symbol);
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.push-var",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
+	}
+	fklPushVMvalue(*pv,exe->stack);
 }
 
 static void inline B_put_var_ref(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
-	uint32_t idx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint32_t)));
-	*get_var_ref(frame,idx)=fklNiGetArg(&ap,stack);
+	uint32_t idx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint32_t)));\
+	FklVMvalue* volatile* pv=get_var_ref(fklGetCompoundFrameLocRef(frame),idx);
+	if(!pv)
+	{
+		FklPrototype* pt=&exe->cpool->pts[fklGetCompoundFrameProc(frame)->u.proc->protoId];
+		FklSymbolDef* def=fklGetHashItem(&idx,pt->refs);
+		char* cstr=fklStringToCstr(fklGetSymbolWithId(def->id,exe->symbolTable)->symbol);
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.push-var",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
+	}
+	*pv=fklNiGetArg(&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

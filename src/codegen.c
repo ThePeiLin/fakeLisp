@@ -540,7 +540,77 @@ static CODEGEN_FUNC(codegen_or)
 			,codegenQuestStack);
 }
 
-static inline void create_and_insert_to_pool(FklPrototypePool* cp,FklCodegenEnv* env)
+static size_t _codegenenv_hashFunc(void* key)
+{
+	FklSid_t sid=*(FklSid_t*)key;
+	return sid;
+}
+
+static void _codegenenv_destroyItem(void* item)
+{
+	free(item);
+}
+
+static int _codegenenv_keyEqual(void* pkey0,void* pkey1)
+{
+	FklSid_t k0=*(FklSid_t*)pkey0;
+	FklSid_t k1=*(FklSid_t*)pkey1;
+	return k0==k1;
+}
+
+static void* _codegenenv_getKey(void* item)
+{
+	return &((FklSymbolDef*)item)->id;
+}
+
+static FklHashTableMethodTable CodegenEnvHashMethodTable=
+{
+	.__hashFunc=_codegenenv_hashFunc,
+	.__destroyItem=_codegenenv_destroyItem,
+	.__keyEqual=_codegenenv_keyEqual,
+	.__getKey=_codegenenv_getKey,
+};
+
+static size_t _idx_hashFunc(void* key)
+{
+	uint32_t idx=*(uint32_t*)key;
+	return idx;
+}
+
+static void* _idx_getKey(void* item)
+{
+	return &((FklSymbolDef*)item)->idx;
+}
+
+static int _idx_keyEqual(void* pkey0,void* pkey1)
+{
+	uint32_t k0=*(uint32_t*)pkey0;
+	uint32_t k1=*(uint32_t*)pkey1;
+	return k0==k1;
+}
+
+static FklHashTableMethodTable IdxHashMethodTable=
+{
+	.__hashFunc=_idx_hashFunc,
+	.__destroyItem=_codegenenv_destroyItem,
+	.__keyEqual=_idx_keyEqual,
+	.__getKey=_idx_getKey,
+};
+
+static inline FklHashTable* sid_ht_to_idx_key_ht(FklHashTable* sht,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable)
+{
+	FklHashTable* iht=fklCreateHashTable(8,4,2,0.75,1,&IdxHashMethodTable);
+	for(FklHashTableNodeList* list=sht->list;list;list=list->next)
+	{
+		FklSymbolDef* sd=list->node->item;
+		FklSid_t sid=fklAddSymbol(fklGetSymbolWithId(sd->id,publicSymbolTable)->symbol,globalSymTable)->id;
+		FklSymbolDef* id=fklCreateSymbolDef(sid,sd->idx,sd->cidx,sd->isLocal);
+		fklPutNoRpHashItem(id,iht);
+	}
+	return iht;
+}
+
+static inline void create_and_insert_to_pool(FklPrototypePool* cp,FklCodegenEnv* env,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable)
 {
 	uint32_t count=cp->count+1;
 	FklPrototype* pts=(FklPrototype*)realloc(cp->pts,sizeof(FklPrototype)*count);
@@ -549,10 +619,8 @@ static inline void create_and_insert_to_pool(FklPrototypePool* cp,FklCodegenEnv*
 	FklPrototype* cpt=&pts[cp->count];
 	cp->count+=1;
 	cpt->p=0;
-	cpt->defs=env->defs;
-	cpt->refs=env->refs;
-	env->defs=NULL;
-	env->refs=NULL;
+	cpt->defs=env->defs->num?sid_ht_to_idx_key_ht(env->defs,globalSymTable,publicSymbolTable):NULL;
+	cpt->refs=env->refs->num?sid_ht_to_idx_key_ht(env->refs,globalSymTable,publicSymbolTable):NULL;
 }
 
 BC_PROCESS(_lambda_exp_bc_process)
@@ -593,7 +661,7 @@ BC_PROCESS(_lambda_exp_bc_process)
 	fklScanAndSetTailCall(retval->bc);
 	FklPrototypePool* cpool=codegen->cpool;
 	uint32_t count=cpool->count;
-	create_and_insert_to_pool(cpool,env);
+	create_and_insert_to_pool(cpool,env,codegen->globalSymTable,codegen->publicSymbolTable);
 	FklByteCode* pushProc=create13lenBc(FKL_OP_PUSH_PROC,count,retval->bc->size);
 	bcBclAppendToBcl(pushProc,retval,fid,line);
 	fklDestroyByteCode(pushProc);
@@ -618,37 +686,6 @@ static FklSymbolDef* createCodegenEnvHashItem(FklSid_t key,uint32_t idx)
 	r->isLocal=0;
 	return r;
 }
-
-static size_t _codegenenv_hashFunc(void* key)
-{
-	FklSid_t sid=*(FklSid_t*)key;
-	return sid;
-}
-
-static void _codegenenv_destroyItem(void* item)
-{
-	free(item);
-}
-
-static int _codegenenv_keyEqual(void* pkey0,void* pkey1)
-{
-	FklSid_t k0=*(FklSid_t*)pkey0;
-	FklSid_t k1=*(FklSid_t*)pkey1;
-	return k0==k1;
-}
-
-static void* _codegenenv_getKey(void* item)
-{
-	return &((FklSymbolDef*)item)->id;
-}
-
-static FklHashTableMethodTable CodegenEnvHashMethodTable=
-{
-	.__hashFunc=_codegenenv_hashFunc,
-	.__destroyItem=_codegenenv_destroyItem,
-	.__keyEqual=_codegenenv_keyEqual,
-	.__getKey=_codegenenv_getKey,
-};
 
 typedef struct
 {
@@ -718,10 +755,8 @@ void fklDestroyCodegenEnv(FklCodegenEnv* env)
 		{
 			FklCodegenEnv* cur=env;
 			env=env->prev;
-			if(cur->defs)
-				fklDestroyHashTable(cur->defs);
-			if(cur->refs)
-				fklDestroyHashTable(cur->refs);
+			fklDestroyHashTable(cur->defs);
+			fklDestroyHashTable(cur->refs);
 			if(cur->prev)
 				fklDestroyCodegenMacroScope(cur->macros);
 			free(cur);

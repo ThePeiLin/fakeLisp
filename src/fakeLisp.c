@@ -105,11 +105,24 @@ int main(int argc,char** argv)
 			FklVMlib* curVMlib=&anotherVM->libs[loadedLibStack->top];
 			fklInitVMlibWithCodgenLibAndDestroy(cur,curVMlib,globEnv,anotherVM->gc);
 		}
+
 		FklVMvalue* mainEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateVMenv(globEnv,anotherVM->gc),anotherVM->gc);
 		FklVMframe* mainframe=anotherVM->frames;
 		mainframe->u.c.localenv=mainEnv;
 		fklInitGlobalVMclosure(mainframe,anotherVM);
 		FklVMvalue** ref=mainframe->u.c.lr.ref;
+
+		FklVMproc* tmp=fklCreateVMproc(mainByteCode->bc->code,mainByteCode->bc->size,anotherVM->codeObj,anotherVM->gc);
+		tmp->protoId=0;
+		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,tmp,anotherVM->gc);
+		tmp->prevEnv=NULL;
+		fklInitMainVMframeWithProc(mainframe,tmp,NULL);
+		mainframe->u.c.proc=proc;
+
+		fklUpdatePrototype(codegen.cpool
+						,codegen.globalEnv
+						,codegen.globalSymTable
+						,codegen.publicSymbolTable);
 		int r=fklRunVM(anotherVM);
 		if(r)
 		{
@@ -297,8 +310,11 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 				}
 				FklVMvalue* anotherCodeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,tmpByteCode,anotherVM->gc);
 				FklVMproc* tmp=fklCreateVMproc(tmpByteCode->bc->code,tmpByteCode->bc->size,anotherCodeObj,anotherVM->gc);
+				FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,tmp,anotherVM->gc);
+				tmp->protoId=0;
 				tmp->prevEnv=NULL;
 				fklInitMainVMframeWithProc(&mainframe,tmp,anotherVM->frames);
+				mainframe.u.c.proc=proc;
 				anotherVM->frames=&mainframe;
 				fklTcMutexRelease(anotherVM->gc);
 				int r=fklRunReplVM(anotherVM);
@@ -312,7 +328,6 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 					stack->bp=0;
 					stack->bps.top=0;
 					tmp->prevEnv=NULL;
-					fklDestroyVMproc(tmp);
 					delete_another_frame(anotherVM,&mainframe);
 				}
 				else
@@ -326,7 +341,6 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 					fklWaitGC(anotherVM->gc);
 					anotherVM->frames=NULL;
 					stack->tp=0;
-					fklDestroyVMproc(tmp);
 				}
 			}
 			fklTcMutexRelease(anotherVM->gc);

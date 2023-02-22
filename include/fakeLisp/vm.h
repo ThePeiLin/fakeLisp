@@ -176,6 +176,7 @@ typedef struct FklVMproc
 	uint32_t count;
 	FklVMvalue* prevEnv;
 	FklVMvalue* codeObj;
+	struct FklVMframe* by;
 }FklVMproc;
 
 typedef void (*FklVMFuncK)(struct FklVM*,FklCCState,void*);
@@ -215,6 +216,8 @@ typedef struct FklVMCompoundFrameData
 	FklVMvalue* localenv;
 	FklVMvalue* codeObj;
 	FklVMvalue* proc;
+	FklVMvalue** children;
+	uint32_t chc;
 	uint8_t* spc;
 	uint8_t* pc;
 	uint8_t* end;

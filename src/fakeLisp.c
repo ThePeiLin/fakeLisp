@@ -109,6 +109,7 @@ int main(int argc,char** argv)
 		FklVMframe* mainframe=anotherVM->frames;
 		mainframe->u.c.localenv=mainEnv;
 		fklInitGlobalVMclosure(mainframe,anotherVM);
+		FklVMvalue** ref=mainframe->u.c.lr.ref;
 		int r=fklRunVM(anotherVM);
 		if(r)
 		{
@@ -118,6 +119,7 @@ int main(int argc,char** argv)
 		else
 			fklWaitGC(anotherVM->gc);
 		fklJoinAllThread(anotherVM);
+		free(ref);
 		fklDestroyVMgc(anotherVM->gc);
 		fklDestroyAllVMs(anotherVM);
 		fklUninitCodegener(&codegen);
@@ -156,6 +158,7 @@ int main(int argc,char** argv)
 		FklVMvalue* mainEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateVMenv(globEnv,anotherVM->gc),anotherVM->gc);
 		mainframe->u.c.localenv=mainEnv;
 		fklInitGlobalVMclosure(mainframe,anotherVM);
+		FklVMvalue** ref=mainframe->u.c.lr.ref;
 		int r=fklRunVM(anotherVM);
 		if(r)
 		{
@@ -165,6 +168,7 @@ int main(int argc,char** argv)
 		else
 			fklWaitGC(anotherVM->gc);
 		fklJoinAllThread(anotherVM);
+		free(ref);
 		fklDestroySymbolTable(table);
 		fklDestroyAllVMs(anotherVM);
 		fklDestroyVMgc(gc);
@@ -330,6 +334,8 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 	}
 	fklDestroyLineNumberTable(globalLnt);
 	fklJoinAllThread(anotherVM);
+	free(mainframe.u.c.lr.loc);
+	free(mainframe.u.c.lr.ref);
 	fklUninitPtrStack(&tokenStack);
 	fklDestroyVMgc(anotherVM->gc);
 	fklDestroyAllVMs(anotherVM);

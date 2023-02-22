@@ -606,7 +606,7 @@ void fklSwapCompoundFrame(FklVMframe*,FklVMframe*);
 unsigned int fklGetCompoundFrameMark(const FklVMframe*);
 unsigned int fklSetCompoundFrameMark(FklVMframe*,unsigned int);
 
-const FklVMCompoundFrameVarRef* fklGetCompoundFrameLocRef(const FklVMframe* f);
+FklVMCompoundFrameVarRef* fklGetCompoundFrameLocRef(FklVMframe* f);
 FklVMvalue* fklGetCompoundFrameLocalenv(const FklVMframe*);
 FklVMvalue* fklSetCompoundFrameLocalenv(FklVMframe*,FklVMvalue* env);
 

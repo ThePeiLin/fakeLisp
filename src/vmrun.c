@@ -452,7 +452,6 @@ static inline void do_finalize_compound_frame(FklVMframe* frame)
 {
 	FklVMCompoundFrameVarRef* lr=&frame->u.c.lr;
 	free(lr->loc);
-	free(lr->ref);
 	free(frame);
 }
 
@@ -810,26 +809,44 @@ static void inline B_dup(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
+static inline void inc_compound_frame_loc(FklVMCompoundFrameVarRef* f,uint32_t idx,FklVM* exe)
+{
+	if(idx>=f->lcount)
+	{
+		f->lcount++;
+		FklVMvalue** loc=(FklVMvalue**)realloc(f->loc,sizeof(FklVMvalue*)*f->lcount);
+		FKL_ASSERT(loc);
+		f->loc=loc;
+		f->loc[idx]=FKL_VM_NIL;
+		f->loc[idx]=fklCreateVMvalueToStack(FKL_TYPE_BOX,FKL_VM_NIL,exe);
+		exe->stack->tp--;
+	}
+}
+
 static inline FklVMproc* createVMproc(uint8_t* spc
 		,uint64_t cpc
 		,FklVMvalue* codeObj
-		,const FklVMCompoundFrameVarRef* lr
+		,FklVMCompoundFrameVarRef* lr
 		,FklClosureVars* cvs
-		,FklVMgc* gc)
+		,FklVM* exe)
 {
+	FklVMgc* gc=exe->gc;
 	FklVMproc* proc=fklCreateVMproc(spc,cpc,codeObj,gc);
 	uint32_t count=cvs->count;
 	if(count)
 	{
-		FklVMvalue** loc=lr->loc;
 		FklVMvalue** ref=lr->ref;
 		FklClosureVarDef* cv=cvs->cv;
 		FklVMvalue** closure=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*count);
+		FKL_ASSERT(closure);
 		for(uint32_t i=0;i<count;i++)
 		{
 			FklClosureVarDef* c=&cv[i];
 			if(c->islocal)
-				closure[i]=loc[c->idx];
+			{
+				inc_compound_frame_loc(lr,c->idx,exe);
+				closure[i]=lr->loc[c->idx];
+			}
 			else
 				closure[i]=ref[c->idx];
 		}
@@ -849,7 +866,7 @@ static void inline B_push_proc(FklVM* exe,FklVMframe* frame)
 			,fklGetCompoundFrameCodeObj(frame)
 			,fklGetCompoundFrameLocRef(frame)
 			,cvs
-			,exe->gc);
+			,exe);
 	fklCreateVMvalueToStack(FKL_TYPE_PROC,code,exe);
 	fklSetRef(&code->prevEnv,fklGetCompoundFrameLocalenv(frame),exe->gc);
 	fklAddCompoundFrameCp(frame,sizeOfProc);
@@ -901,20 +918,6 @@ static inline FklVMvalue* volatile* get_compound_frame_loc(FklVMframe* frame,uin
 	return &loc[idx]->u.box;
 }
 
-static inline void inc_compound_frame_loc(FklVMframe* frame,uint32_t idx,FklVM* exe)
-{
-	FklVMCompoundFrameVarRef* f=&frame->u.c.lr;
-	if(idx>=f->lcount)
-	{
-		f->lcount++;
-		FklVMvalue** loc=(FklVMvalue**)realloc(f->loc,sizeof(FklVMvalue*)*f->lcount);
-		FKL_ASSERT(loc);
-		f->loc=loc;
-		f->loc[idx]=FKL_VM_NIL;
-		f->loc[idx]=fklCreateVMvalueToStack(FKL_TYPE_BOX,FKL_VM_NIL,exe);
-	}
-}
-
 static void inline B_pop_arg(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
@@ -922,7 +925,7 @@ static void inline B_pop_arg(FklVM* exe,FklVMframe* frame)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-arg",FKL_ERR_TOOFEWARG,exe);
 	uint32_t idx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint32_t)));
 	//FklSid_t idOfVar=fklGetSidFromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(FklSid_t)));
-	inc_compound_frame_loc(frame,idx,exe);
+	inc_compound_frame_loc(fklGetCompoundFrameLocRef(frame),idx,exe);
 	*get_compound_frame_loc(frame,idx)=fklNiGetArg(&ap,stack);
 	//FklVMvalue* volatile* pValue=fklFindOrAddVar(idOfVar,curEnv->u.env);
 	//fklSetRef(pValue,fklNiGetArg(&ap,stack),exe->gc);
@@ -939,7 +942,7 @@ static void inline B_pop_rest_arg(FklVM* exe,FklVMframe* frame)
 	FklVMvalue* volatile* pValue=&obj;
 	for(;ap>stack->bp;pValue=&(*pValue)->u.pair->cdr)
 		*pValue=fklCreateVMpairV(fklNiGetArg(&ap,stack),FKL_VM_NIL,exe);
-	inc_compound_frame_loc(frame,idx,exe);
+	inc_compound_frame_loc(fklGetCompoundFrameLocRef(frame),idx,exe);
 	*get_compound_frame_loc(frame,idx)=obj;
 	//pValue=fklFindOrAddVar(idOfVar,curEnv->u.env);
 	//fklSetRef(pValue,obj,gc);
@@ -1411,7 +1414,7 @@ static void inline B_put_loc(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
 	uint32_t idx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint32_t)));
-	inc_compound_frame_loc(frame,idx,exe);
+	inc_compound_frame_loc(fklGetCompoundFrameLocRef(frame),idx,exe);
 	*get_compound_frame_loc(frame,idx)=fklNiGetArg(&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -2061,7 +2064,7 @@ inline FklVMvalue* fklSetCompoundFrameLocalenv(FklVMframe* f,FklVMvalue* env)
 	return env;
 }
 
-inline const FklVMCompoundFrameVarRef* fklGetCompoundFrameLocRef(const FklVMframe* f)
+inline FklVMCompoundFrameVarRef* fklGetCompoundFrameLocRef(FklVMframe* f)
 {
 	return &f->u.c.lr;
 }

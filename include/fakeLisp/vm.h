@@ -244,6 +244,7 @@ void** fklGetFrameData(FklVMframe* f);
 int fklIsCallableObjFrameReachEnd(FklVMframe* f);
 void fklDoCallableObjFrameStep(FklVMframe* f,struct FklVM* exe);
 void fklDoFinalizeObjFrame(FklVMframe* f,FklVMframe* sf);
+void fklDoFinalizeCompoundFrame(FklVMframe* frame);
 
 typedef struct
 {

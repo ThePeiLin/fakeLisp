@@ -1170,6 +1170,7 @@ void fklDestroyVMchanl(FklVMchanl* ch)
 
 void fklDestroyVMproc(FklVMproc* proc)
 {
+	free(proc->closure);
 	free(proc);
 }
 

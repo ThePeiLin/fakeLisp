@@ -433,7 +433,7 @@ void fklDestroyVMframe(FklVMframe* frame,FklVMframe* sf)
 	if(frame->type==FKL_FRAME_OTHEROBJ)
 		fklDoFinalizeObjFrame(frame,sf);
 	else
-		free(frame);
+		fklDoFinalizeCompoundFrame(frame);
 }
 
 FklString* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorType type)

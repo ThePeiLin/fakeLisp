@@ -198,7 +198,6 @@ static inline void delete_another_frame(FklVM* exe,FklVMframe* main)
 
 static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 {
-	int e=0;
 	FklVM* anotherVM=fklCreateVM(NULL,codegen->globalSymTable,NULL,NULL);
 
 	anotherVM->cpool=codegen->cpool;
@@ -212,7 +211,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 	char* prev=NULL;
 	size_t prevSize=0;
 	size_t libNum=codegen->loadedLibStack->top;
-	for(;e<2;)
+	for(;;)
 	{
 		FklNastNode* begin=NULL;
 		FklStringMatchRouteNode* route=NULL;
@@ -302,8 +301,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 				fklTcMutexAcquire(anotherVM->gc);
 				if(r)
 				{
-					if(e>=2&&prev)
-						free(prev);
+					free(prev);
 					FklVMstack* stack=anotherVM->stack;
 					stack->tps.top=0;
 					stack->tp=0;

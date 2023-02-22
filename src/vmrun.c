@@ -448,7 +448,7 @@ inline void fklDoFinalizeObjFrame(FklVMframe* f,FklVMframe* sf)
 		free(f);
 }
 
-static inline void do_finalize_compound_frame(FklVMframe* frame)
+inline void fklDoFinalizeCompoundFrame(FklVMframe* frame)
 {
 	FklVMCompoundFrameVarRef* lr=&frame->u.c.lr;
 	free(lr->loc);
@@ -646,7 +646,7 @@ int fklRunReplVM(FklVM* exe)
 				if(fklIsCompoundFrameReachEnd(curframe))
 				{
 					if(curframe->prev)
-						do_finalize_compound_frame(popFrame(exe));
+						fklDoFinalizeCompoundFrame(popFrame(exe));
 					else
 						longjmp(exe->buf,2);
 				}
@@ -681,7 +681,7 @@ int fklRunVM(FklVM* exe)
 		{
 			case FKL_FRAME_COMPOUND:
 				if(fklIsCompoundFrameReachEnd(curframe))
-					do_finalize_compound_frame(popFrame(exe));
+					fklDoFinalizeCompoundFrame(popFrame(exe));
 				else
 					fklDoCompoundFrameStep(curframe,exe);
 				break;

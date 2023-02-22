@@ -540,31 +540,28 @@ static CODEGEN_FUNC(codegen_or)
 			,codegenQuestStack);
 }
 
-typedef struct
-{
-	FklSid_t id;
-	uint32_t idx;
-	uint32_t cidx;
-	uint8_t isLocal;
-}FklCodegenEnvHashItem;
-
-static inline void create_and_insert_to_pool(FklClosureVarPool* cp,FklCodegenEnv* env)
+static inline void create_and_insert_to_pool(FklPrototypePool* cp,FklCodegenEnv* env)
 {
 	uint32_t count=cp->count+1;
-	FklClosureVars* cvs=(FklClosureVars*)realloc(cp->cvs,sizeof(FklClosureVars)*count);
-	FKL_ASSERT(cvs);
-	cp->cvs=cvs;
-	FklClosureVars* ccvs=&cvs[cp->count];
+	FklPrototype* pts=(FklPrototype*)realloc(cp->pts,sizeof(FklPrototype)*count);
+	FKL_ASSERT(pts);
+	cp->pts=pts;
+	FklPrototype* cpt=&pts[cp->count];
 	cp->count+=1;
 	FklHashTable* refs=env->refs;
-	ccvs->count=refs->num;
-	FklClosureVarDef* cv=(FklClosureVarDef*)malloc(sizeof(FklClosureVarDef)*ccvs->count);
+	cpt->count=refs->num;
+	FklClosureVarDef* cv=(FklClosureVarDef*)malloc(sizeof(FklClosureVarDef)*cpt->count);
 	FKL_ASSERT(cv);
-	ccvs->cv=cv;
+	cpt->cv=cv;
+	cpt->p=0;
+	cpt->defs=env->defs;
+	cpt->refs=env->refs;
+	env->defs=NULL;
+	env->refs=NULL;
 	uint32_t i=0;
 	for(FklHashTableNodeList* list=refs->list;list;list=list->next,i++)
 	{
-		FklCodegenEnvHashItem* el=list->node->item;
+		FklSymbolDef* el=list->node->item;
 		cv[i].idx=el->cidx;
 		cv[i].islocal=el->isLocal;
 	}
@@ -606,7 +603,7 @@ BC_PROCESS(_lambda_exp_bc_process)
 	fklDestroyByteCodelnt(stack->base[0]);
 	stack->top=0;
 	fklScanAndSetTailCall(retval->bc);
-	FklClosureVarPool* cpool=codegen->cpool;
+	FklPrototypePool* cpool=codegen->cpool;
 	uint32_t count=cpool->count;
 	create_and_insert_to_pool(cpool,env);
 	FklByteCode* pushProc=create13lenBc(FKL_OP_PUSH_PROC,count,retval->bc->size);
@@ -623,9 +620,9 @@ static FklByteCodelnt* makePopArg(FklOpcode code,const FklNastNode* sym,uint32_t
 	return createBclnt(bc,codegen->fid,sym->curline);
 }
 
-static FklCodegenEnvHashItem* createCodegenEnvHashItem(FklSid_t key,uint32_t idx)
+static FklSymbolDef* createCodegenEnvHashItem(FklSid_t key,uint32_t idx)
 {
-	FklCodegenEnvHashItem* r=(FklCodegenEnvHashItem*)malloc(sizeof(FklCodegenEnvHashItem));
+	FklSymbolDef* r=(FklSymbolDef*)malloc(sizeof(FklSymbolDef));
 	FKL_ASSERT(r);
 	r->id=key;
 	r->idx=idx;
@@ -654,7 +651,7 @@ static int _codegenenv_keyEqual(void* pkey0,void* pkey1)
 
 static void* _codegenenv_getKey(void* item)
 {
-	return &((FklCodegenEnvHashItem*)item)->id;
+	return &((FklSymbolDef*)item)->id;
 }
 
 static FklHashTableMethodTable CodegenEnvHashMethodTable=
@@ -733,8 +730,10 @@ void fklDestroyCodegenEnv(FklCodegenEnv* env)
 		{
 			FklCodegenEnv* cur=env;
 			env=env->prev;
-			fklDestroyHashTable(cur->defs);
-			fklDestroyHashTable(cur->refs);
+			if(cur->defs)
+				fklDestroyHashTable(cur->defs);
+			if(cur->refs)
+				fklDestroyHashTable(cur->refs);
 			if(cur->prev)
 				fklDestroyCodegenMacroScope(cur->macros);
 			free(cur);
@@ -759,25 +758,25 @@ int fklIsSymbolRefed(FklSid_t id,FklCodegenEnv* env)
 uint32_t fklAddCodegenRefById(FklSid_t id,FklCodegenEnv* env)
 {
 	FklHashTable* ht=env->refs;
-	FklCodegenEnvHashItem* el=fklGetHashItem(&id,ht);
+	FklSymbolDef* el=fklGetHashItem(&id,ht);
 	if(el)
 		return el->idx;
 	else
 	{
 		uint32_t idx=ht->num;
-		FklCodegenEnvHashItem* cel=createCodegenEnvHashItem(id,idx);
+		FklSymbolDef* cel=createCodegenEnvHashItem(id,idx);
 		fklPutNoRpHashItem(cel,ht);
 		FklCodegenEnv* cur=env->prev;
 		while(cur)
 		{
-			FklCodegenEnvHashItem* def=fklGetHashItem(&id,cur->defs);
+			FklSymbolDef* def=fklGetHashItem(&id,cur->defs);
 			if(def)
 			{
 				cel->cidx=def->idx;
 				cel->isLocal=1;
 				break;
 			}
-			FklCodegenEnvHashItem* ref=fklGetHashItem(&id,cur->refs);
+			FklSymbolDef* ref=fklGetHashItem(&id,cur->refs);
 			if(ref)
 			{
 				cel->cidx=ref->idx;
@@ -797,7 +796,7 @@ uint32_t fklAddCodegenRefById(FklSid_t id,FklCodegenEnv* env)
 uint32_t fklAddCodegenDefBySid(FklSid_t id,FklCodegenEnv* env)
 {
 	FklHashTable* ht=env->defs;
-	FklCodegenEnvHashItem* el=fklGetHashItem(&id,ht);
+	FklSymbolDef* el=fklGetHashItem(&id,ht);
 	if(el)
 		return el->idx;
 	else
@@ -3640,7 +3639,7 @@ void fklInitGlobalCodegener(FklCodegen* codegen
 	codegen->phead=&codegen->head;
 	codegen->loadedLibStack=fklCreatePtrStack(8,8);
 	codegen->macroLibStack=fklCreatePtrStack(8,8);
-	codegen->cpool=fklCreateClosurePool();
+	codegen->cpool=fklCreatePrototypePool();
 }
 
 void fklInitCodegener(FklCodegen* codegen
@@ -3692,7 +3691,7 @@ void fklInitCodegener(FklCodegen* codegen
 		codegen->phead=&codegen->head;
 		codegen->loadedLibStack=fklCreatePtrStack(8,8);
 		codegen->macroLibStack=fklCreatePtrStack(8,8);
-		codegen->cpool=fklCreateClosurePool();
+		codegen->cpool=fklCreatePrototypePool();
 		env->phead=&codegen->head;
 	}
 }

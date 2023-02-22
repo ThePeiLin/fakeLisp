@@ -31,29 +31,52 @@ FklSymTabNode* fklCreateSymTabNodeCstr(const char*);
 FklSymTabNode* fklAddSymbol(const FklString*,FklSymbolTable*);
 FklSymTabNode* fklAddSymbolCstr(const char*,FklSymbolTable*);
 
-//FklSymTabNode* fklAddSymbolToGlob(const FklString*);
-//FklSymTabNode* fklAddSymbolToGlobCstr(const char*);
-
 FklSymTabNode* fklFindSymbol(const FklString*,FklSymbolTable*);
 FklSymTabNode* fklFindSymbolCstr(const char*,FklSymbolTable*);
 
-//FklSymTabNode* fklFindSymbolInGlob(const FklString*);
-//FklSymTabNode* fklFindSymbolInGlobCstr(const char*);
-
 FklSymTabNode* fklGetSymbolWithId(FklSid_t id,FklSymbolTable*);
-//FklSymTabNode* fklGetGlobSymbolWithId(FklSid_t id);
+
 void fklPrintSymbolTable(FklSymbolTable*,FILE*);
-//void fklPrintGlobSymbolTable(FILE*);
+
 void fklDestroySymTabNode(FklSymTabNode*);
 void fklDestroySymbolTable(FklSymbolTable*);
-//void fklDestroyGlobSymbolTable();
 
 void fklWriteSymbolTable(FklSymbolTable*,FILE*);
-//void fklWriteGlobSymbolTable(FILE*);
 
-//FklSymbolTable* fklGetGlobSymbolTable(void);
-//FklSymbolTable* fklExchangeGlobSymbolTable(FklSymbolTable* other);
-//void fklSetGlobSymbolTable(FklSymbolTable*);
+typedef struct
+{
+	uint8_t islocal:1;
+	uint32_t idx;
+}FklClosureVarDef;
+
+typedef struct FklPrototype
+{
+	uint32_t p;
+	FklClosureVarDef* cv;
+	uint32_t count;
+	FklHashTable* defs;
+	FklHashTable* refs;
+}FklPrototype;
+
+typedef struct
+{
+	FklPrototype* pts;
+	uint32_t count;
+}FklPrototypePool;
+
+typedef struct
+{
+	FklSid_t id;
+	uint32_t idx;
+	uint32_t cidx;
+	uint8_t isLocal;
+}FklSymbolDef;
+
+FklPrototypePool* fklCreatePrototypePool(void);
+FklSymbolDef* fklCreateSymbolDef(FklSid_t key,uint32_t idx,uint32_t cidx,uint8_t isLocal);
+
+void fklUninitPrototype(FklPrototype* p);
+void fklDestroyPrototypePool(FklPrototypePool* p);
 #ifdef __cplusplus
 }
 #endif

@@ -7,26 +7,6 @@
 extern "C"{
 #endif
 
-	typedef struct
-{
-	uint8_t islocal:1;
-	uint32_t idx;
-}FklClosureVarDef;
-
-typedef struct
-{
-	FklClosureVarDef* cv;
-	uint32_t count;
-}FklClosureVars;
-
-typedef struct
-{
-	FklClosureVars* cvs;
-	uint32_t count;
-}FklClosureVarPool;
-
-FklClosureVarPool* fklCreateClosurePool(void);
-
 #define FKL_FIX_INT_MAX (1152921504606846975)
 #define FKL_FIX_INT_MIN (-1152921504606846975-1)
 

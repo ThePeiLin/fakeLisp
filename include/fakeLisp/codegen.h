@@ -77,7 +77,7 @@ typedef struct FklCodegen
 	struct FklCodegen* prev;
 	unsigned int destroyAbleMark:1;
 	unsigned long refcount:63;
-	FklClosureVarPool* cpool;
+	FklPrototypePool* cpool;
 }FklCodegen;
 
 typedef struct

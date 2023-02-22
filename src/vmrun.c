@@ -827,16 +827,16 @@ static inline FklVMproc* createVMproc(uint8_t* spc
 		,uint64_t cpc
 		,FklVMvalue* codeObj
 		,FklVMCompoundFrameVarRef* lr
-		,FklClosureVars* cvs
+		,FklPrototype* pt
 		,FklVM* exe)
 {
 	FklVMgc* gc=exe->gc;
 	FklVMproc* proc=fklCreateVMproc(spc,cpc,codeObj,gc);
-	uint32_t count=cvs->count;
+	uint32_t count=pt->count;
 	if(count)
 	{
 		FklVMvalue** ref=lr->ref;
-		FklClosureVarDef* cv=cvs->cv;
+		FklClosureVarDef* cv=pt->cv;
 		FklVMvalue** closure=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*count);
 		FKL_ASSERT(closure);
 		for(uint32_t i=0;i<count;i++)
@@ -860,12 +860,12 @@ static void inline B_push_proc(FklVM* exe,FklVMframe* frame)
 {
 	uint32_t closureIdx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(closureIdx)));
 	uint64_t sizeOfProc=fklGetU64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(sizeOfProc)));
-	FklClosureVars* cvs=&exe->cpool->cvs[closureIdx];
+	FklPrototype* pt=&exe->cpool->pts[closureIdx];
 	FklVMproc* code=createVMproc(fklGetCompoundFrameCode(frame)
 			,sizeOfProc
 			,fklGetCompoundFrameCodeObj(frame)
 			,fklGetCompoundFrameLocRef(frame)
-			,cvs
+			,pt
 			,exe);
 	fklCreateVMvalueToStack(FKL_TYPE_PROC,code,exe);
 	fklSetRef(&code->prevEnv,fklGetCompoundFrameLocalenv(frame),exe->gc);
@@ -1899,7 +1899,7 @@ void fklDestroyAllVMs(FklVM* curVM)
 	for(size_t i=0;i<libNum;i++)
 		fklUninitVMlib(&libs[i]);
 	free(curVM->builtinErrorTypeId);
-	free(curVM->cpool);
+	fklDestroyPrototypePool(curVM->cpool);
 	for(FklVM* prev=curVM->prev;prev;)
 	{
 		if(prev->mark)

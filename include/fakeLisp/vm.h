@@ -283,7 +283,7 @@ typedef struct FklVM
 	jmp_buf buf;
 	FklSymbolTable* symbolTable;
 	FklSid_t* builtinErrorTypeId;
-	FklClosureVarPool* cpool;
+	FklPrototypePool* cpool;
 }FklVM;
 
 typedef struct FklVMudMethodTable

@@ -234,11 +234,6 @@ void fklPrintSymbolTable(FklSymbolTable* table,FILE* fp)
 	fprintf(fp,"size:%lu\n",table->num);
 }
 
-//void fklPrintGlobSymbolTable(FILE* fp)
-//{
-//	fklPrintSymbolTable(GlobSymbolTable,fp);
-//}
-
 void fklWriteSymbolTable(FklSymbolTable* table,FILE* fp)
 {
 	fwrite(&table->num,sizeof(table->num),1,fp);
@@ -246,26 +241,41 @@ void fklWriteSymbolTable(FklSymbolTable* table,FILE* fp)
 		fwrite(table->idl[i]->symbol,table->idl[i]->symbol->size+sizeof(table->idl[i]->symbol->size),1,fp);
 }
 
-//void fklWriteGlobSymbolTable(FILE* fp)
-//{
-//	fklWriteSymbolTable(GlobSymbolTable,fp);
-//}
+inline FklPrototypePool* fklCreatePrototypePool(void)
+{
+	FklPrototypePool* r=(FklPrototypePool*)malloc(sizeof(*r));
+	FKL_ASSERT(r);
+	r->count=0;
+	r->pts=NULL;
+	return r;
+}
 
-//FklSymbolTable* fklGetGlobSymbolTable(void)
-//{
-//	if(!GlobSymbolTable)
-//		GlobSymbolTable=fklCreateSymbolTable();
-//	return GlobSymbolTable;
-//}
+FklSymbolDef* fklCreateSymbolDef(FklSid_t key,uint32_t idx,uint32_t cidx,uint8_t isLocal)
+{
+	FklSymbolDef* r=(FklSymbolDef*)malloc(sizeof(FklSymbolDef));
+	FKL_ASSERT(r);
+	r->id=key;
+	r->idx=idx;
+	r->cidx=cidx;
+	r->isLocal=isLocal;
+	return r;
+}
 
-//void fklSetGlobSymbolTable(FklSymbolTable* t)
-//{
-//	GlobSymbolTable=t;
-//}
+void fklUninitPrototype(FklPrototype* p)
+{
+	if(p->defs)
+		fklDestroyHashTable(p->defs);
+	if(p->refs)
+		fklDestroyHashTable(p->refs);
+	free(p->cv);
+}
 
-//FklSymbolTable* fklExchangeGlobSymbolTable(FklSymbolTable* other)
-//{
-//	FklSymbolTable* r=GlobSymbolTable;
-//	GlobSymbolTable=other;
-//	return r;
-//}
+void fklDestroyPrototypePool(FklPrototypePool* p)
+{
+	FklPrototype* pts=p->pts;
+	uint32_t count=p->count;
+	for(uint32_t i=0;i<count;i++)
+		fklUninitPrototype(&pts[i]);
+	free(pts);
+	free(p);
+}

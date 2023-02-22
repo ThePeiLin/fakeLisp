@@ -630,7 +630,7 @@ static FklCodegenEnvHashItem* createCodegenEnvHashItem(FklSid_t key,uint32_t idx
 	r->id=key;
 	r->idx=idx;
 	r->cidx=idx;
-	r->isLocal=1;
+	r->isLocal=0;
 	return r;
 }
 
@@ -774,9 +774,9 @@ uint32_t fklAddCodegenRefById(FklSid_t id,FklCodegenEnv* env)
 			if(def)
 			{
 				cel->cidx=def->idx;
+				cel->isLocal=1;
 				break;
 			}
-			cel->isLocal=0;
 			FklCodegenEnvHashItem* ref=fklGetHashItem(&id,cur->refs);
 			if(ref)
 			{

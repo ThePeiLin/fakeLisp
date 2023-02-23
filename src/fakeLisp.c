@@ -321,7 +321,6 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 				fklTcMutexAcquire(anotherVM->gc);
 				if(r)
 				{
-					free(prev);
 					FklVMstack* stack=anotherVM->stack;
 					stack->tps.top=0;
 					stack->tp=0;

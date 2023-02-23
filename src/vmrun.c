@@ -1461,14 +1461,6 @@ static void inline B_put_loc(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
-inline static FklVMvalue* volatile* get_var_ref(FklVMCompoundFrameVarRef* lr,uint32_t idx)
-{
-	FklVMvalue* v=lr->ref[idx];
-	if(v==FKL_VM_NIL)
-		return NULL;
-	return &v->u.box;
-}
-
 static inline FklVMframe* get_proc_create_by(FklVMframe* by)
 {
 	return by->u.c.proc->u.proc->by;
@@ -1500,27 +1492,39 @@ static inline FklVMvalue* find_ref(FklPrototype* pts,FklVMproc* p,FklSymbolDef* 
 	return NULL;
 }
 
-static void inline B_get_var_ref(FklVM* exe,FklVMframe* frame)
+inline static FklVMvalue* volatile* get_var_ref(FklVMframe* frame,uint32_t idx,FklPrototypePool* cpool,FklSid_t* psid)
 {
-	uint32_t idx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(idx)));
-	FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(frame);
-	FklVMvalue* volatile* pv=get_var_ref(lr,idx);
-	if(!pv)
+	FklVMCompoundFrameVarRef* lr=&frame->u.c.lr;
+	FklVMvalue* v=idx>=lr->rcount?FKL_VM_NIL:lr->ref[idx];
+	if(v==FKL_VM_NIL)
 	{
 		FklVMproc* proc=fklGetCompoundFrameProc(frame)->u.proc;
-		FklPrototype* pt=&exe->cpool->pts[proc->protoId];
+		FklPrototype* pt=&cpool->pts[proc->protoId];
 		FklSymbolDef* def=fklGetHashItem(&idx,pt->refs);
-		FklVMvalue* ref=find_ref(exe->cpool->pts,proc,def);
+		FklVMvalue* ref=find_ref(cpool->pts,proc,def);
 		if(ref)
 		{
 			lr->ref[idx]=ref;
-			pv=&ref->u.box;
+			return &ref->u.box;
 		}
 		else
 		{
-			char* cstr=fklStringToCstr(fklGetSymbolWithId(def->id,exe->symbolTable)->symbol);
-			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.get-var-ref",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
+			*psid=def->id;
+			return NULL;
 		}
+	}
+	return &v->u.box;
+}
+
+static void inline B_get_var_ref(FklVM* exe,FklVMframe* frame)
+{
+	uint32_t idx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(idx)));
+	FklSid_t id=0;
+	FklVMvalue* volatile* pv=get_var_ref(frame,idx,exe->cpool,&id);
+	if(!pv)
+	{
+		char* cstr=fklStringToCstr(fklGetSymbolWithId(id,exe->symbolTable)->symbol);
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.get-var-ref",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
 	}
 	fklPushVMvalue(*pv,exe->stack);
 }
@@ -1529,24 +1533,12 @@ static void inline B_put_var_ref(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
 	uint32_t idx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint32_t)));
-	FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(frame);
-	FklVMvalue* volatile* pv=get_var_ref(lr,idx);
+	FklSid_t id=0;
+	FklVMvalue* volatile* pv=get_var_ref(frame,idx,exe->cpool,&id);
 	if(!pv)
 	{
-		FklVMproc* proc=fklGetCompoundFrameProc(frame)->u.proc;
-		FklPrototype* pt=&exe->cpool->pts[proc->protoId];
-		FklSymbolDef* def=fklGetHashItem(&idx,pt->refs);
-		FklVMvalue* ref=find_ref(exe->cpool->pts,proc,def);
-		if(ref)
-		{
-			lr->ref[idx]=ref;
-			pv=&ref->u.box;
-		}
-		else
-		{
-			char* cstr=fklStringToCstr(fklGetSymbolWithId(def->id,exe->symbolTable)->symbol);
-			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.put-var-ref",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
-		}
+		char* cstr=fklStringToCstr(fklGetSymbolWithId(id,exe->symbolTable)->symbol);
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.put-var-ref",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
 	}
 	*pv=fklNiGetArg(&ap,stack);
 	fklNiEnd(&ap,stack);

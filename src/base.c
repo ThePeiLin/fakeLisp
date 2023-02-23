@@ -1771,13 +1771,16 @@ FklHashTable* fklCreateDefaultHashTable(size_t size,FklHashTableMethodTable* t)
 	return r;
 }
 
-void* fklGetHashItem(void* key,FklHashTable* table)
+#define HASH_FUNC_HEADER size_t (*hashv)(void*)=table->t->__hashFunc;\
+	void* (*key)(void*)=table->t->__getKey;\
+	int (*keq)(void*,void*)=table->t->__keyEqual
+
+void* fklGetHashItem(void* pkey,FklHashTable* table)
 {
-	size_t (*__hashFunc)(void*)=table->t->__hashFunc;
-	void* (*__getKey)(void*)=table->t->__getKey;
-	int (*__keyEqual)(void*,void*)=table->t->__keyEqual;
-	for(FklHashTableNode* p=table->base[__hashFunc(key)%table->size];p;p=p->next)
-		if(__keyEqual(key,__getKey(p->item)))
+	HASH_FUNC_HEADER;
+
+	for(FklHashTableNode* p=table->base[hashv(pkey)%table->size];p;p=p->next)
+		if(keq(pkey,key(p->item)))
 			return p->item;
 	return NULL;
 }
@@ -1804,10 +1807,6 @@ static FklHashTableNodeList* createHashTableNodeList(FklHashTableNode* node,FklH
 	fklRehashTable(table,table->thresholdInc);\
 	else if(table->linkNum&&i>table->linkNum)\
 	fklRehashTable(table,table->linkNumInc)
-
-#define HASH_FUNC_HEADER size_t (*hashv)(void*)=table->t->__hashFunc;\
-	void* (*key)(void*)=table->t->__getKey;\
-	int (*keq)(void*,void*)=table->t->__keyEqual
 
 void* fklPutReplHashItem(void* item,FklHashTable* table)
 {

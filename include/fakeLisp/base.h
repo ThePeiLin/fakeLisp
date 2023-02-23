@@ -85,6 +85,8 @@ typedef struct FklHashTableMethodTable
 	void* (*__getKey)(void*);
 }FklHashTableMethodTable;
 
+#define FKL_HASH_GET_KEY(name,type,field) void* name(void* item){return &((type*)item)->field;}
+
 FklHashTable* fklCreateHashTable(size_t size
 		,size_t linkNum
 		,int linkNumInc

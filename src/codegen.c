@@ -558,10 +558,7 @@ static int _codegenenv_keyEqual(void* pkey0,void* pkey1)
 	return k0==k1;
 }
 
-static void* _codegenenv_getKey(void* item)
-{
-	return &((FklSymbolDef*)item)->id;
-}
+static FKL_HASH_GET_KEY(_codegenenv_getKey,FklSymbolDef,id);
 
 static FklHashTableMethodTable CodegenEnvHashMethodTable=
 {
@@ -577,10 +574,7 @@ static size_t _idx_hashFunc(void* key)
 	return idx;
 }
 
-static void* _idx_getKey(void* item)
-{
-	return &((FklSymbolDef*)item)->idx;
-}
+static FKL_HASH_GET_KEY(_idx_getKey,FklSymbolDef,idx);
 
 static int _idx_keyEqual(void* pkey0,void* pkey1)
 {

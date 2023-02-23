@@ -1751,6 +1751,26 @@ FklHashTable* fklCreateHashTable(size_t size
 	return r;
 }
 
+FklHashTable* fklCreateDefaultHashTable(size_t size,FklHashTableMethodTable* t)
+{
+	FKL_ASSERT(size);
+	FklHashTable* r=(FklHashTable*)malloc(sizeof(FklHashTable));
+	FKL_ASSERT(r);
+	FklHashTableNode** base=(FklHashTableNode**)calloc(size,sizeof(FklHashTableNode*));
+	FKL_ASSERT(base);
+	r->base=base;
+	r->list=NULL;
+	r->tail=&r->list;
+	r->num=0;
+	r->size=size;
+	r->linkNum=4;
+	r->linkNumInc=2;
+	r->threshold=0.75;
+	r->thresholdInc=1;
+	r->t=t;
+	return r;
+}
+
 void* fklGetHashItem(void* key,FklHashTable* table)
 {
 	size_t (*__hashFunc)(void*)=table->t->__hashFunc;

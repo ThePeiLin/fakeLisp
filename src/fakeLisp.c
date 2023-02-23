@@ -113,7 +113,7 @@ int main(int argc,char** argv)
 		FklVMvalue** ref=mainframe->u.c.lr.ref;
 
 		FklVMproc* tmp=fklCreateVMproc(mainByteCode->bc->code,mainByteCode->bc->size,anotherVM->codeObj,anotherVM->gc);
-		tmp->protoId=0;
+		tmp->protoId=1;
 		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,tmp,anotherVM->gc);
 		tmp->prevEnv=NULL;
 		fklInitMainVMframeWithProc(mainframe,tmp,NULL);
@@ -311,7 +311,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 				FklVMvalue* anotherCodeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,tmpByteCode,anotherVM->gc);
 				FklVMproc* tmp=fklCreateVMproc(tmpByteCode->bc->code,tmpByteCode->bc->size,anotherCodeObj,anotherVM->gc);
 				FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,tmp,anotherVM->gc);
-				tmp->protoId=0;
+				tmp->protoId=1;
 				tmp->prevEnv=NULL;
 				fklInitMainVMframeWithProc(&mainframe,tmp,anotherVM->frames);
 				mainframe.u.c.proc=proc;

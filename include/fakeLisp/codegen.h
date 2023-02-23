@@ -157,7 +157,7 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest*
 FklByteCodelnt* fklGenExpressionCodeWithFp(FILE*
 		,FklCodegen* codegen);
 
-uint32_t fklAddCodegenRefById(FklSid_t id,FklCodegenEnv* env);
+uint32_t fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env);
 uint32_t fklAddCodegenDefBySid(FklSid_t sid,FklCodegenEnv*);
 int fklIsSymbolDefined(FklSid_t sid,FklCodegenEnv*);
 int fklIsReplacementDefined(FklSid_t sid,FklCodegenEnv*);

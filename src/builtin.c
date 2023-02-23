@@ -5360,7 +5360,7 @@ void fklInitGlobCodegenEnv(FklCodegenEnv* curEnv,FklSymbolTable* publicSymbolTab
 	for(const struct SymbolFuncStruct* list=builtInSymbolList
 			;list->s!=NULL
 			;list++)
-		fklAddCodegenRefById(fklAddSymbolCstr(list->s,publicSymbolTable)->id,curEnv);
+		fklAddCodegenRefBySid(fklAddSymbolCstr(list->s,publicSymbolTable)->id,curEnv);
 }
 
 void fklInitSymbolTableWithBuiltinSymbol(FklSymbolTable* table)

@@ -604,17 +604,18 @@ static inline FklHashTable* psid_to_gsid_ht(FklHashTable* sht,FklSymbolTable* gl
 	return iht;
 }
 
-static inline FklHashTable* sid_ht_to_idx_key_ht(FklHashTable* sht,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable)
+static inline FklSymbolDef* sid_ht_to_idx_key_ht(FklHashTable* sht,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable)
 {
-	FklHashTable* iht=fklCreateHashTable(8,4,2,0.75,1,&IdxHashMethodTable);
+	FklSymbolDef* refs=(FklSymbolDef*)malloc(sizeof(FklSymbolDef)*sht->num);
+	FKL_ASSERT(refs);
 	for(FklHashTableNodeList* list=sht->list;list;list=list->next)
 	{
 		FklSymbolDef* sd=list->node->item;
 		FklSid_t sid=fklAddSymbol(fklGetSymbolWithId(sd->id,publicSymbolTable)->symbol,globalSymTable)->id;
-		FklSymbolDef* id=fklCreateSymbolDef(sid,sd->idx,sd->cidx,sd->isLocal);
-		fklPutNoRpHashItem(id,iht);
+		FklSymbolDef ref={sid,sd->idx,sd->cidx,sd->isLocal};
+		refs[sd->idx]=ref;
 	}
-	return iht;
+	return refs;
 }
 
 static inline void create_and_insert_to_pool(FklPrototypePool* cp,uint32_t p,FklCodegenEnv* env,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable)
@@ -628,6 +629,7 @@ static inline void create_and_insert_to_pool(FklPrototypePool* cp,uint32_t p,Fkl
 	cpt->p=p;
 	cpt->defs=psid_to_gsid_ht(env->defs,globalSymTable,publicSymbolTable);
 	cpt->refs=sid_ht_to_idx_key_ht(env->refs,globalSymTable,publicSymbolTable);
+	cpt->rcount=env->refs->num;
 }
 
 inline void fklUpdatePrototype(FklPrototypePool* cp,FklCodegenEnv* env,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable)
@@ -647,17 +649,17 @@ inline void fklUpdatePrototype(FklPrototypePool* cp,FklCodegenEnv* env,FklSymbol
 		}
 	}
 	eht=env->refs;
-	pht=pts->refs;
+	uint32_t count=eht->num;
+	FklSymbolDef* refs=(FklSymbolDef*)realloc(pts->refs,sizeof(FklSymbolDef)*count);
+	FKL_ASSERT(refs);
+	pts->refs=refs;
+	pts->rcount=count;
 	for(FklHashTableNodeList* list=eht->list;list;list=list->next)
 	{
 		FklSymbolDef* sd=list->node->item;
-		FklSymbolDef* el=fklGetHashItem(&sd->id,pht);
-		if(!el)
-		{
-			FklSid_t sid=fklAddSymbol(fklGetSymbolWithId(sd->id,publicSymbolTable)->symbol,globalSymTable)->id;
-			FklSymbolDef* id=fklCreateSymbolDef(sid,sd->idx,sd->cidx,sd->isLocal);
-			fklPutNoRpHashItem(id,pht);
-		}
+		FklSid_t sid=fklAddSymbol(fklGetSymbolWithId(sd->id,publicSymbolTable)->symbol,globalSymTable)->id;
+		FklSymbolDef ref={sid,sd->idx,sd->cidx,sd->isLocal};
+		refs[sd->idx]=ref;
 	}
 }
 

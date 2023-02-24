@@ -869,16 +869,15 @@ static inline FklVMproc* createVMproc(uint8_t* spc
 	proc->protoId=prototypeId;
 	proc->unsolveRef=0;
 	FklPrototype* pt=&exe->cpool->pts[prototypeId-1];
-	uint32_t count=pt->refs->num;
+	uint32_t count=pt->rcount;
 	if(count)
 	{
 		FklVMvalue** ref=lr->ref;
 		FklVMvalue** closure=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*count);
 		FKL_ASSERT(closure);
-		FklHashTableNodeList* l=pt->refs->list;
-		for(uint32_t i=0;l;i++,l=l->next)
+		for(uint32_t i=0;i<count;i++)
 		{
-			FklSymbolDef* c=l->node->item;
+			FklSymbolDef* c=&pt->refs[i];;
 			if(c->isLocal)
 			{
 				inc_compound_frame_loc(lr,c->cidx,exe);
@@ -983,6 +982,7 @@ static void inline B_pop_arg(FklVM* exe,FklVMframe* frame)
 	if(ap<=stack->bp)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-arg",FKL_ERR_TOOFEWARG,exe);
 	uint32_t idx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint32_t)));
+	inc_compound_frame_loc(fklGetCompoundFrameLocRef(frame),idx,exe);
 	*get_compound_frame_loc(frame,idx)=fklNiGetArg(&ap,stack);
 	fklNiEnd(&ap,stack);
 	//fklNiDoSomeAfterSetq(*pValue,idOfVar);
@@ -996,6 +996,7 @@ static void inline B_pop_rest_arg(FklVM* exe,FklVMframe* frame)
 	FklVMvalue* volatile* pValue=&obj;
 	for(;ap>stack->bp;pValue=&(*pValue)->u.pair->cdr)
 		*pValue=fklCreateVMpairV(fklNiGetArg(&ap,stack),FKL_VM_NIL,exe);
+	inc_compound_frame_loc(fklGetCompoundFrameLocRef(frame),idx,exe);
 	*get_compound_frame_loc(frame,idx)=obj;
 	fklNiEnd(&ap,stack);
 }
@@ -1464,6 +1465,7 @@ static void inline B_put_loc(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
 	uint32_t idx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint32_t)));
+	inc_compound_frame_loc(fklGetCompoundFrameLocRef(frame),idx,exe);
 	*get_compound_frame_loc(frame,idx)=fklNiGetArg(&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -1493,7 +1495,7 @@ static inline FklVMvalue* find_ref(FklPrototype* pts,FklVMproc* p,FklSymbolDef* 
 				FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(by);
 				return lr->loc[def->idx];
 			}
-			cref=fklGetHashItem(&cref->cidx,pt->refs);
+			cref=&pt->refs[cref->cidx];
 		}
 	}
 	return NULL;
@@ -1507,7 +1509,7 @@ inline static FklVMvalue* volatile* get_var_ref(FklVMframe* frame,uint32_t idx,F
 	{
 		FklVMproc* proc=fklGetCompoundFrameProc(frame)->u.proc;
 		FklPrototype* pt=&cpool->pts[proc->protoId-1];
-		FklSymbolDef* def=fklGetHashItem(&idx,pt->refs);
+		FklSymbolDef* def=&pt->refs[idx];
 		FklVMvalue* ref=find_ref(cpool->pts,proc,def);
 		if(ref)
 		{

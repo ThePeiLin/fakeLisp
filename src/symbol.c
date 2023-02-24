@@ -264,7 +264,8 @@ FklSymbolDef* fklCreateSymbolDef(FklSid_t key,uint32_t idx,uint32_t cidx,uint8_t
 void fklUninitPrototype(FklPrototype* p)
 {
 	fklDestroyHashTable(p->defs);
-	fklDestroyHashTable(p->refs);
+	free(p->refs);
+	p->rcount=0;
 }
 
 void fklDestroyPrototypePool(FklPrototypePool* p)

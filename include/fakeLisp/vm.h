@@ -618,6 +618,7 @@ FklVMvalue* fklSetCompoundFrameLocalenv(FklVMframe*,FklVMvalue* env);
 
 FklVMvalue* fklGetCompoundFrameCodeObj(const FklVMframe*);
 FklVMvalue* fklGetCompoundFrameProc(const FklVMframe*);
+FklPrototype* fklGetCompoundFrameProcPrototype(const FklVMframe*,FklVM* exe);
 
 uint8_t* fklGetCompoundFrameCode(const FklVMframe*);
 

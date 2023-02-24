@@ -16,7 +16,7 @@ void fklNiResTp(FklVMstack*);
 void fklNiPopTp(FklVMstack*);
 void fklNiEnd(size_t* ap,FklVMstack*);
 void fklNiBegin(size_t* ap,FklVMstack*);
-void fklNiDoSomeAfterSetq(FklVMvalue*,FklSid_t);
+void fklNiDoSomeAfterSetLoc(FklVMvalue*,uint32_t idx,FklVMframe* f,FklVM* exe);
 #define FKL_NI_BEGIN(EXE) FklVMstack* stack=(EXE)->stack;\
 size_t ap=0;\
 fklNiBegin(&ap,stack);

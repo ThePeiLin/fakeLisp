@@ -966,7 +966,7 @@ static void inline B_pop_var(FklVM* exe,FklVMframe* frame)
 	}
 	fklSetRef(pv,fklNiGetArg(&ap,stack),exe->gc);
 	fklNiEnd(&ap,stack);
-	fklNiDoSomeAfterSetq(*pv,idOfVar);
+	//fklNiDoSomeAfterSetq(*pv,idOfVar);
 	fklAddCompoundFrameCp(frame,sizeof(FklSid_t));
 }
 
@@ -983,9 +983,10 @@ static void inline B_pop_arg(FklVM* exe,FklVMframe* frame)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-arg",FKL_ERR_TOOFEWARG,exe);
 	uint32_t idx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint32_t)));
 	inc_compound_frame_loc(fklGetCompoundFrameLocRef(frame),idx,exe);
-	*get_compound_frame_loc(frame,idx)=fklNiGetArg(&ap,stack);
+	FklVMvalue* v=fklNiGetArg(&ap,stack);
+	*get_compound_frame_loc(frame,idx)=v;
 	fklNiEnd(&ap,stack);
-	//fklNiDoSomeAfterSetq(*pValue,idOfVar);
+	fklNiDoSomeAfterSetLoc(v,idx,frame,exe);
 }
 
 static void inline B_pop_rest_arg(FklVM* exe,FklVMframe* frame)
@@ -1466,8 +1467,10 @@ static void inline B_put_loc(FklVM* exe,FklVMframe* frame)
 	FKL_NI_BEGIN(exe);
 	uint32_t idx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint32_t)));
 	inc_compound_frame_loc(fklGetCompoundFrameLocRef(frame),idx,exe);
-	*get_compound_frame_loc(frame,idx)=fklNiGetArg(&ap,stack);
+	FklVMvalue* v=fklNiGetArg(&ap,stack);
+	*get_compound_frame_loc(frame,idx)=v;
 	fklNiEnd(&ap,stack);
+	fklNiDoSomeAfterSetLoc(v,idx,frame,exe);
 }
 
 static inline FklVMframe* get_proc_create_by(FklVMframe* by)
@@ -2192,6 +2195,12 @@ inline FklVMvalue* fklGetCompoundFrameCodeObj(const FklVMframe* f)
 inline FklVMvalue* fklGetCompoundFrameProc(const FklVMframe* f)
 {
 	return f->u.c.proc;
+}
+
+inline FklPrototype* fklGetCompoundFrameProcPrototype(const FklVMframe* f,FklVM* exe)
+{
+	uint32_t pId=f->u.c.proc->u.proc->protoId;
+	return &exe->cpool->pts[pId-1];
 }
 
 inline uint8_t* fklGetCompoundFrameCodeAndAdd(FklVMframe* f,size_t a)

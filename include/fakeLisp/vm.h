@@ -305,7 +305,7 @@ typedef struct FklVMudMethodTable
 	void (*__append)(void**,void*);
 	void* (*__copy)(void*);
 	size_t (*__hash)(void*,FklPtrStack*);
-	void (*__setq_hook)(void*,FklSid_t);
+	void (*__setq_hook)(void*,uint32_t idx,FklVMframe* f,FklVM* exe);
 	FklString* (*__to_string)(void*);
 	FklBytevector* (*__to_bvec)(void*);
 }FklVMudMethodTable;

@@ -851,12 +851,12 @@ static inline FklVMproc* createVMproc(uint8_t* spc
 		,FklVMCompoundFrameVarRef* lr
 		,uint32_t prototypeId
 		,FklVMframe* by
-		,int* hasUnsolvedRef
 		,FklVM* exe)
 {
 	FklVMgc* gc=exe->gc;
 	FklVMproc* proc=fklCreateVMproc(spc,cpc,codeObj,gc);
 	proc->protoId=prototypeId;
+	proc->unsolveRef=0;
 	FklPrototype* pt=&exe->cpool->pts[prototypeId-1];
 	uint32_t count=pt->refs->num;
 	if(count)
@@ -877,7 +877,7 @@ static inline FklVMproc* createVMproc(uint8_t* spc
 			{
 				if(c->cidx>=lr->rcount)
 				{
-					*hasUnsolvedRef=1;
+					proc->unsolveRef++;
 					closure[i]=FKL_VM_NIL;
 				}
 				else
@@ -887,7 +887,7 @@ static inline FklVMproc* createVMproc(uint8_t* spc
 		proc->closure=closure;
 		proc->count=count;
 	}
-	if(*hasUnsolvedRef)
+	if(proc->unsolveRef)
 		proc->by=by;
 	return proc;
 }
@@ -906,18 +906,16 @@ static void inline B_push_proc(FklVM* exe,FklVMframe* frame)
 {
 	uint32_t prototypeId=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(prototypeId)));
 	uint64_t sizeOfProc=fklGetU64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(sizeOfProc)));
-	int hasUnsolvedRef=0;
 	FklVMproc* code=createVMproc(fklGetCompoundFrameCode(frame)
 			,sizeOfProc
 			,fklGetCompoundFrameCodeObj(frame)
 			,fklGetCompoundFrameLocRef(frame)
 			,prototypeId
 			,frame
-			,&hasUnsolvedRef
 			,exe);
 	FklVMvalue* child=fklCreateVMvalueToStack(FKL_TYPE_PROC,code,exe);
 	fklSetRef(&code->prevEnv,fklGetCompoundFrameLocalenv(frame),exe->gc);
-	if(hasUnsolvedRef)
+	if(code->unsolveRef)
 		add_child_proc(frame,child);
 	fklAddCompoundFrameCp(frame,sizeOfProc);
 }
@@ -1512,6 +1510,7 @@ inline static FklVMvalue* volatile* get_var_ref(FklVMframe* frame,uint32_t idx,F
 		FklVMvalue* ref=find_ref(cpool->pts,proc,def);
 		if(ref)
 		{
+			proc->unsolveRef--;
 			lr->ref[idx]=ref;
 			return &ref->u.box;
 		}

@@ -109,3 +109,22 @@ void fklNiDoSomeAfterSetLoc(FklVMvalue* v,uint32_t idx,FklVMframe* f,FklVM* exe)
 		v->u.ud->t->__setq_hook(v->u.ud->data,pt->loc[idx]->id);
 	}
 }
+
+void fklNiDoSomeAfterSetRef(FklVMvalue* v,uint32_t idx,FklVMframe* f,FklVM* exe)
+{
+	if(FKL_IS_PROC(v)&&v->u.proc->sid==0)
+	{
+		FklPrototype* pt=fklGetCompoundFrameProcPrototype(f,exe);
+		v->u.proc->sid=pt->refs[idx].id;
+	}
+	else if(FKL_IS_DLPROC(v)&&v->u.dlproc->sid==0)
+	{
+		FklPrototype* pt=fklGetCompoundFrameProcPrototype(f,exe);
+		v->u.dlproc->sid=pt->refs[idx].id;
+	}
+	else if(FKL_IS_USERDATA(v)&&v->u.ud->t->__setq_hook)
+	{
+		FklPrototype* pt=fklGetCompoundFrameProcPrototype(f,exe);
+		v->u.ud->t->__setq_hook(v->u.ud->data,pt->refs[idx].id);
+	}
+}

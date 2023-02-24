@@ -595,7 +595,7 @@ static inline void psid_to_gsid_ht(FklHashTable* sht,FklPrototype* cpt,FklSymbol
 {
 	FklHashTable* iht=fklCreateHashTable(8,4,2,0.75,1,&CodegenEnvHashMethodTable);
 	FklSymbolDef** loc=(FklSymbolDef**)malloc(sizeof(FklSymbolDef*)*sht->num);
-	FKL_ASSERT(loc);
+	FKL_ASSERT(!sht->num||loc);
 	for(FklHashTableNodeList* list=sht->list;list;list=list->next)
 	{
 		FklSymbolDef* sd=list->node->item;
@@ -643,7 +643,7 @@ inline void fklUpdatePrototype(FklPrototypePool* cp,FklCodegenEnv* env,FklSymbol
 	FklHashTable* eht=env->defs;
 	FklHashTable* pht=pts->defs;
 	FklSymbolDef** loc=(FklSymbolDef**)realloc(pts->loc,sizeof(FklSymbolDef*)*eht->num);
-	FKL_ASSERT(loc);
+	FKL_ASSERT(!eht->num||loc);
 	for(FklHashTableNodeList* list=eht->list;list;list=list->next)
 	{
 		FklSymbolDef* sd=list->node->item;

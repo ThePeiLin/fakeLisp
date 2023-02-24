@@ -1553,8 +1553,10 @@ static void inline B_put_var_ref(FklVM* exe,FklVMframe* frame)
 		char* cstr=fklStringToCstr(fklGetSymbolWithId(id,exe->symbolTable)->symbol);
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.put-var-ref",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
 	}
-	*pv=fklNiGetArg(&ap,stack);
+	FklVMvalue* v=fklNiGetArg(&ap,stack);
+	*pv=v;
 	fklNiEnd(&ap,stack);
+	fklNiDoSomeAfterSetRef(v,idx,frame,exe);
 }
 
 FklVMstack* fklCreateVMstack(int32_t size)

@@ -67,6 +67,13 @@ typedef struct FklSymbolDef
 	uint8_t isLocal;
 }FklSymbolDef;
 
+typedef struct //unresolved symbol ref
+{
+	FklSid_t id;
+	uint32_t idx;
+	uint32_t prototypeId;
+}FklUnReSymbolRef;
+
 FklPrototypePool* fklCreatePrototypePool(void);
 FklSymbolDef* fklCreateSymbolDef(FklSid_t key,uint32_t idx,uint32_t cidx,uint8_t isLocal);
 

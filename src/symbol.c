@@ -265,6 +265,7 @@ void fklUninitPrototype(FklPrototype* p)
 {
 	fklDestroyHashTable(p->defs);
 	free(p->refs);
+	free(p->loc);
 	p->rcount=0;
 }
 

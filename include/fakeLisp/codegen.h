@@ -13,7 +13,10 @@ extern "C" {
 
 typedef struct FklCodegenEnv
 {
+	FklPtrStack uref;
+
 	uint32_t prototypeId;
+
 	struct FklCodegenEnv* prev;
 	FklHashTable* defs;
 	FklHashTable* refs;
@@ -80,7 +83,7 @@ typedef struct FklCodegen
 	struct FklCodegen* prev;
 	unsigned int destroyAbleMark:1;
 	unsigned long refcount:63;
-	FklPrototypePool* cpool;
+	FklPrototypePool* ptpool;
 }FklCodegen;
 
 typedef struct
@@ -158,7 +161,7 @@ FklByteCodelnt* fklGenExpressionCodeWithFp(FILE*
 		,FklCodegen* codegen);
 
 uint32_t fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env);
-uint32_t fklAddCodegenDefBySid(FklSid_t sid,FklCodegenEnv*);
+uint32_t fklAddCodegenDefBySid(FklSid_t id,FklCodegenEnv* env);
 int fklIsSymbolDefined(FklSid_t sid,FklCodegenEnv*);
 int fklIsReplacementDefined(FklSid_t sid,FklCodegenEnv*);
 

@@ -637,6 +637,26 @@ static inline void create_and_insert_to_pool(FklPrototypePool* cp,uint32_t p,Fkl
 	cpt->rcount=env->refs->num;
 }
 
+inline static void process_unresolve_ref(FklCodegenEnv* env,FklPrototypePool* cp)
+{
+	FklPtrStack* urefs=&env->uref;
+	FklPrototype* pts=cp->pts;
+	while(!fklIsPtrStackEmpty(urefs))
+	{
+		FklUnReSymbolRef* uref=fklPopPtrStack(urefs);
+		FklPrototype* cpt=&pts[uref->prototypeId-1];
+		FklSymbolDef* ref=&cpt->refs[uref->idx];
+		if(fklIsSymbolDefined(uref->id,env))
+		{
+			ref->cidx=fklAddCodegenDefBySid(uref->id,env);
+			ref->isLocal=1;
+		}
+		else
+			ref->cidx=fklAddCodegenRefBySid(uref->id,env);
+		free(uref);
+	}
+}
+
 inline void fklUpdatePrototype(FklPrototypePool* cp,FklCodegenEnv* env,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable)
 {
 	FklPrototype* pts=&cp->pts[env->prototypeId-1];
@@ -658,6 +678,7 @@ inline void fklUpdatePrototype(FklPrototypePool* cp,FklCodegenEnv* env,FklSymbol
 	}
 	pts->loc=loc;
 	pts->lcount=eht->num;
+	process_unresolve_ref(env,cp);
 	eht=env->refs;
 	uint32_t count=eht->num;
 	FklSymbolDef* refs=(FklSymbolDef*)realloc(pts->refs,sizeof(FklSymbolDef)*count);
@@ -709,8 +730,8 @@ BC_PROCESS(_lambda_exp_bc_process)
 	fklDestroyByteCodelnt(stack->base[0]);
 	stack->top=0;
 	fklScanAndSetTailCall(retval->bc);
-	FklPrototypePool* cpool=codegen->cpool;
-	fklUpdatePrototype(cpool,env,codegen->globalSymTable,codegen->publicSymbolTable);
+	FklPrototypePool* ptpool=codegen->ptpool;
+	fklUpdatePrototype(ptpool,env,codegen->globalSymTable,codegen->publicSymbolTable);
 	FklByteCode* pushProc=create13lenBc(FKL_OP_PUSH_PROC,env->prototypeId,retval->bc->size);
 	bcBclAppendToBcl(pushProc,retval,fid,line);
 	fklDestroyByteCode(pushProc);
@@ -733,6 +754,16 @@ static FklSymbolDef* createCodegenEnvHashItem(FklSid_t key,uint32_t idx)
 	r->idx=idx;
 	r->cidx=idx;
 	r->isLocal=0;
+	return r;
+}
+
+static FklUnReSymbolRef* createUnReSymbolRef(FklSid_t id,uint32_t idx,uint32_t prototypeId)
+{
+	FklUnReSymbolRef* r=(FklUnReSymbolRef*)malloc(sizeof(FklUnReSymbolRef));
+	FKL_ASSERT(r);
+	r->id=id;
+	r->idx=idx;
+	r->prototypeId=prototypeId;
 	return r;
 }
 
@@ -785,6 +816,7 @@ FklCodegenEnv* fklCreateCodegenEnv(FklCodegenEnv* prev)
 	r->refcount=0;
 	r->defs=fklCreateHashTable(8,4,2,0.75,1,&CodegenEnvHashMethodTable);
 	r->refs=fklCreateHashTable(8,4,2,0.75,1,&CodegenEnvHashMethodTable);
+	fklInitPtrStack(&r->uref,8,8);
 	r->phead=NULL;
 	if(prev)
 	{
@@ -807,6 +839,7 @@ void fklDestroyCodegenEnv(FklCodegenEnv* env)
 			env=env->prev;
 			fklDestroyHashTable(cur->defs);
 			fklDestroyHashTable(cur->refs);
+			fklUninitPtrStack(&cur->uref);
 			if(cur->prev)
 				fklDestroyCodegenMacroScope(cur->macros);
 			free(cur);
@@ -833,27 +866,26 @@ uint32_t fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env)
 		FklSymbolDef* cel=createCodegenEnvHashItem(id,idx);
 		fklPutNoRpHashItem(cel,ht);
 		FklCodegenEnv* cur=env->prev;
-		while(cur)
+		if(cur)
 		{
 			FklSymbolDef* def=fklGetHashItem(&id,cur->defs);
 			if(def)
 			{
 				cel->cidx=def->idx;
 				cel->isLocal=1;
-				break;
 			}
-			FklSymbolDef* ref=fklGetHashItem(&id,cur->refs);
-			if(ref)
+			else
 			{
-				cel->cidx=ref->idx;
-				break;
+				FklSymbolDef* ref=fklGetHashItem(&id,cur->refs);
+				if(ref)
+					cel->cidx=ref->idx;
+				else
+				{
+					cel->cidx=cur->refs->num;
+					FklUnReSymbolRef* unref=createUnReSymbolRef(id,idx,env->prototypeId);
+					fklPushPtrStack(unref,&cur->uref);
+				}
 			}
-			FklHashTable* ht=cur->refs;
-			uint32_t idx=ht->num;
-			cel->cidx=idx;
-			cel=createCodegenEnvHashItem(id,idx);
-			fklPutNoRpHashItem(cel,ht);
-			cur=cur->prev;
 		}
 		return idx;
 	}
@@ -958,7 +990,7 @@ static CODEGEN_FUNC(codegen_lambda)
 	pushListItemToQueue(rest,queue,NULL);
 	FklPtrStack* stack=fklCreatePtrStack(32,16);
 	fklPushPtrStack(argsBc,stack);
-	create_and_insert_to_pool(codegen->cpool
+	create_and_insert_to_pool(codegen->ptpool
 			,curEnv->prototypeId
 			,lambdaCodegenEnv
 			,codegen->globalSymTable
@@ -3712,8 +3744,8 @@ void fklInitGlobalCodegener(FklCodegen* codegen
 	codegen->phead=&codegen->head;
 	codegen->loadedLibStack=fklCreatePtrStack(8,8);
 	codegen->macroLibStack=fklCreatePtrStack(8,8);
-	codegen->cpool=fklCreatePrototypePool();
-	create_and_insert_to_pool(codegen->cpool
+	codegen->ptpool=fklCreatePrototypePool();
+	create_and_insert_to_pool(codegen->ptpool
 			,0
 			,codegen->globalEnv
 			,codegen->globalSymTable
@@ -3760,7 +3792,7 @@ void fklInitCodegener(FklCodegen* codegen
 		codegen->phead=prev->phead;
 		codegen->loadedLibStack=prev->loadedLibStack;
 		codegen->macroLibStack=prev->macroLibStack;
-		codegen->cpool=prev->cpool;
+		codegen->ptpool=prev->ptpool;
 		env->phead=prev->phead;
 	}
 	else
@@ -3769,7 +3801,7 @@ void fklInitCodegener(FklCodegen* codegen
 		codegen->phead=&codegen->head;
 		codegen->loadedLibStack=fklCreatePtrStack(8,8);
 		codegen->macroLibStack=fklCreatePtrStack(8,8);
-		codegen->cpool=fklCreatePrototypePool();
+		codegen->ptpool=fklCreatePrototypePool();
 		env->phead=&codegen->head;
 	}
 }

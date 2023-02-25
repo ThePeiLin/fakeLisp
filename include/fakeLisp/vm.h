@@ -172,7 +172,7 @@ typedef struct FklVMproc
 	uint8_t* end;
 	FklSid_t sid;
 	uint32_t protoId;
-	uint32_t unsolveRef;
+	uint32_t unresolveRef;
 	FklVMvalue** closure;
 	uint32_t count;
 	FklVMvalue* prevEnv;
@@ -288,7 +288,7 @@ typedef struct FklVM
 	jmp_buf buf;
 	FklSymbolTable* symbolTable;
 	FklSid_t* builtinErrorTypeId;
-	FklPrototypePool* cpool;
+	FklPrototypePool* ptpool;
 }FklVM;
 
 typedef struct FklVMudMethodTable

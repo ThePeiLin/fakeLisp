@@ -489,10 +489,6 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 								cur->type=FKL_NAST_SYM;
 								cur->u.sym=fklAddSymbolCstr("#<code-obj>",table)->id;
 								break;
-							case FKL_TYPE_ENV:
-								cur->type=FKL_NAST_SYM;
-								cur->u.sym=fklAddSymbolCstr("#<env>",table)->id;
-								break;
 							case FKL_TYPE_USERDATA:
 								cur->type=FKL_NAST_SYM;
 								cur->u.sym=fklAddSymbolCstr("#<userdata>",table)->id;
@@ -564,7 +560,7 @@ FklVMproc* fklCreateVMproc(uint8_t* spc,uint64_t cpc,FklVMvalue* codeObj,FklVMgc
 {
 	FklVMproc* tmp=(FklVMproc*)malloc(sizeof(FklVMproc));
 	FKL_ASSERT(tmp);
-	tmp->prevEnv=FKL_VM_NIL;
+	//tmp->prevEnv=FKL_VM_NIL;
 	tmp->spc=spc;
 	tmp->end=spc+cpc;
 	tmp->sid=0;
@@ -691,7 +687,7 @@ static FklVMvalue* __fkl_hashtable_copyer(FklVMvalue* obj,FklVM* vm)
 	return fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE,nht,vm);
 }
 
-static FklVMvalue* (*const valueCopyers[])(FklVMvalue* obj,FklVM* vm)=
+static FklVMvalue* (*const valueCopyers[FKL_TYPE_CODE_OBJ+1])(FklVMvalue* obj,FklVM* vm)=
 {
 	__fkl_f64_copyer,
 	__fkl_bigint_copyer,
@@ -701,7 +697,6 @@ static FklVMvalue* (*const valueCopyers[])(FklVMvalue* obj,FklVM* vm)=
 	__fkl_box_copyer,
 	__fkl_bytevector_copyer,
 	__fkl_userdata_copyer,
-	NULL,
 	NULL,
 	NULL,
 	NULL,
@@ -817,7 +812,6 @@ FklVMvalue* fklCreateSaveVMvalue(FklValueType type,void* pValue)
 		case FKL_TYPE_ERR:
 		case FKL_TYPE_VECTOR:
 		case FKL_TYPE_USERDATA:
-		case FKL_TYPE_ENV:
 		case FKL_TYPE_BIG_INT:
 		case FKL_TYPE_BOX:
 		case FKL_TYPE_HASHTABLE:
@@ -1281,9 +1275,6 @@ void fklDestroyVMvalue(FklVMvalue* cur)
 		case FKL_TYPE_F64:
 		case FKL_TYPE_BOX:
 			break;
-		case FKL_TYPE_ENV:
-			fklDestroyVMenv(cur->u.env);
-			break;
 		case FKL_TYPE_HASHTABLE:
 			fklDestroyVMhashTable(cur->u.hash);
 			break;
@@ -1466,74 +1457,74 @@ void fklChanlSend(FklVMsend* s,FklVMchanl* ch,FklVMgc* gc)
 	fklDestroyVMsend(s);
 }
 
-typedef struct
-{
-	FklSid_t key;
-	FklVMvalue* volatile v;
-}VMenvHashItem;
-
-static VMenvHashItem* createVMenvHashItme(FklSid_t id,FklVMvalue* v)
-{
-	VMenvHashItem* r=(VMenvHashItem*)malloc(sizeof(VMenvHashItem));
-	FKL_ASSERT(r);
-	r->key=id;
-	r->v=v;
-	return r;
-}
-
-static size_t _vmenv_hashFunc(void* key)
-{
-	FklSid_t sid=*(FklSid_t*)key;
-	return sid;
-}
-
-static void _vmenv_destroyItem(void* item)
-{
-	free(item);
-}
-
-static int _vmenv_keyEqual(void* pkey0,void* pkey1)
-{
-	FklSid_t k0=*(FklSid_t*)pkey0;
-	FklSid_t k1=*(FklSid_t*)pkey1;
-	return k0==k1;
-}
-
-static void* _vmenv_getKey(void* item)
-{
-	return &((VMenvHashItem*)item)->key;
-}
-
-static FklHashTableMethodTable VMenvHashMethTable=
-{
-	.__hashFunc=_vmenv_hashFunc,
-	.__destroyItem=_vmenv_destroyItem,
-	.__keyEqual=_vmenv_keyEqual,
-	.__getKey=_vmenv_getKey,
-};
-
-FklVMenv* fklCreateGlobVMenv(FklVMvalue* prev
-		,FklVMgc* gc
-		,FklSymbolTable* table)
-{
-	FklVMenv* tmp=(FklVMenv*)malloc(sizeof(FklVMenv));
-	FKL_ASSERT(tmp);
-	tmp->prev=prev;
-	tmp->t=fklCreateHashTable(512,4,2,0.75,1,&VMenvHashMethTable);
-	fklSetRef(&tmp->prev,prev,gc);
-	fklInitGlobEnv(tmp,gc,table);
-	return tmp;
-}
-
-FklVMenv* fklCreateVMenv(FklVMvalue* prev,FklVMgc* gc)
-{
-	FklVMenv* tmp=(FklVMenv*)malloc(sizeof(FklVMenv));
-	FKL_ASSERT(tmp);
-	tmp->prev=prev;
-	tmp->t=fklCreateHashTable(8,4,2,0.75,1,&VMenvHashMethTable);
-	fklSetRef(&tmp->prev,prev,gc);
-	return tmp;
-}
+//typedef struct
+//{
+//	FklSid_t key;
+//	FklVMvalue* volatile v;
+//}VMenvHashItem;
+//
+//static VMenvHashItem* createVMenvHashItme(FklSid_t id,FklVMvalue* v)
+//{
+//	VMenvHashItem* r=(VMenvHashItem*)malloc(sizeof(VMenvHashItem));
+//	FKL_ASSERT(r);
+//	r->key=id;
+//	r->v=v;
+//	return r;
+//}
+//
+//static size_t _vmenv_hashFunc(void* key)
+//{
+//	FklSid_t sid=*(FklSid_t*)key;
+//	return sid;
+//}
+//
+//static void _vmenv_destroyItem(void* item)
+//{
+//	free(item);
+//}
+//
+//static int _vmenv_keyEqual(void* pkey0,void* pkey1)
+//{
+//	FklSid_t k0=*(FklSid_t*)pkey0;
+//	FklSid_t k1=*(FklSid_t*)pkey1;
+//	return k0==k1;
+//}
+//
+//static void* _vmenv_getKey(void* item)
+//{
+//	return &((VMenvHashItem*)item)->key;
+//}
+//
+//static FklHashTableMethodTable VMenvHashMethTable=
+//{
+//	.__hashFunc=_vmenv_hashFunc,
+//	.__destroyItem=_vmenv_destroyItem,
+//	.__keyEqual=_vmenv_keyEqual,
+//	.__getKey=_vmenv_getKey,
+//};
+//
+//FklVMenv* fklCreateGlobVMenv(FklVMvalue* prev
+//		,FklVMgc* gc
+//		,FklSymbolTable* table)
+//{
+//	FklVMenv* tmp=(FklVMenv*)malloc(sizeof(FklVMenv));
+//	FKL_ASSERT(tmp);
+//	tmp->prev=prev;
+//	tmp->t=fklCreateHashTable(512,4,2,0.75,1,&VMenvHashMethTable);
+//	fklSetRef(&tmp->prev,prev,gc);
+//	fklInitGlobEnv(tmp,gc,table);
+//	return tmp;
+//}
+//
+//FklVMenv* fklCreateVMenv(FklVMvalue* prev,FklVMgc* gc)
+//{
+//	FklVMenv* tmp=(FklVMenv*)malloc(sizeof(FklVMenv));
+//	FKL_ASSERT(tmp);
+//	tmp->prev=prev;
+//	tmp->t=fklCreateHashTable(8,4,2,0.75,1,&VMenvHashMethTable);
+//	fklSetRef(&tmp->prev,prev,gc);
+//	return tmp;
+//}
 
 static FklVMhashTableItem* createVMhashTableItem(FklVMvalue* key,FklVMvalue* v,FklVMgc* gc)
 {
@@ -1658,7 +1649,7 @@ static size_t _hashTable_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 	return v->u.hash->ht->num+v->u.hash->type;
 }
 
-static size_t (*const valueHashFuncTable[])(const FklVMvalue*,FklPtrStack* s)=
+static size_t (*const valueHashFuncTable[FKL_TYPE_CODE_OBJ+1])(const FklVMvalue*,FklPtrStack* s)=
 {
 	_f64_hashFunc,
 	_big_int_hashFunc,
@@ -1668,7 +1659,6 @@ static size_t (*const valueHashFuncTable[])(const FklVMvalue*,FklPtrStack* s)=
 	_box_hashFunc,
 	_bytevector_hashFunc,
 	_userdata_hashFunc,
-	NULL,
 	NULL,
 	NULL,
 	NULL,
@@ -1885,8 +1875,8 @@ void fklAtomicVMpair(FklVMvalue* root,FklVMgc* gc)
 void fklAtomicVMproc(FklVMvalue* root,FklVMgc* gc)
 {
 	FklVMproc* proc=root->u.proc;
-	if(proc->prevEnv)
-		fklGC_toGrey(proc->prevEnv,gc);
+	//if(proc->prevEnv)
+	//	fklGC_toGrey(proc->prevEnv,gc);
 	fklGC_toGrey(proc->codeObj,gc);
 	uint32_t count=proc->count;
 	FklVMvalue** ref=proc->closure;
@@ -1934,73 +1924,73 @@ void fklAtomicVMuserdata(FklVMvalue* root,FklVMgc* gc)
 
 void fklAtomicVMenv(FklVMvalue* penv,FklVMgc* gc)
 {
-	FklVMenv* env=penv->u.env;
-	FklHashTable* table=env->t;
-	if(env->prev)
-		fklGC_toGrey(env->prev,gc);
-	for(FklHashTableNodeList* list=table->list;list;list=list->next)
-	{
-		VMenvHashItem* item=list->node->item;
-		fklGC_toGrey(item->v,gc);
-	}
+	//FklVMenv* env=penv->u.env;
+	//FklHashTable* table=env->t;
+	//if(env->prev)
+	//	fklGC_toGrey(env->prev,gc);
+	//for(FklHashTableNodeList* list=table->list;list;list=list->next)
+	//{
+	//	VMenvHashItem* item=list->node->item;
+	//	fklGC_toGrey(item->v,gc);
+	//}
 }
 
-FklVMvalue* volatile* fklFindVar(FklSid_t id,FklVMenv* env)
-{
-	FklVMvalue* volatile* r=NULL;
-	VMenvHashItem* item=fklGetHashItem(&id,env->t);
-	if(item)
-		r=&item->v;
-	return r;
-}
+//FklVMvalue* volatile* fklFindVar(FklSid_t id,FklVMenv* env)
+//{
+//	FklVMvalue* volatile* r=NULL;
+//	VMenvHashItem* item=fklGetHashItem(&id,env->t);
+//	if(item)
+//		r=&item->v;
+//	return r;
+//}
+//
+//FklVMvalue* volatile* fklFindOrAddVar(FklSid_t id,FklVMenv* env)
+//{
+//	FklVMvalue* volatile* r=NULL;
+//	r=fklFindVar(id,env);
+//	if(!r)
+//	{
+//		VMenvHashItem* ritem=fklPutNoRpHashItem(createVMenvHashItme(id,FKL_VM_NIL),env->t);
+//		r=&ritem->v;
+//	}
+//	return r;
+//}
+//
+//FklVMvalue* volatile* fklFindOrAddVarWithValue(FklSid_t id,FklVMvalue* v,FklVMenv* env)
+//{
+//	FklVMvalue* volatile* r=NULL;
+//	r=fklFindVar(id,env);
+//	if(!r)
+//	{
+//		VMenvHashItem* ritem=fklPutNoRpHashItem(createVMenvHashItme(id,FKL_VM_NIL),env->t);
+//		r=&ritem->v;
+//	}
+//	*r=v;
+//	return r;
+//}
+//
+//void fklDBG_printVMenv(FklVMenv* curEnv,FILE* fp,FklSymbolTable* table)
+//{
+//	if(curEnv->t->num==0)
+//		fprintf(fp,"This ENV is empty!");
+//	else
+//	{
+//		fprintf(fp,"ENV:");
+//		for(FklHashTableNodeList* list=curEnv->t->list;list;list=list->next)
+//		{
+//			VMenvHashItem* item=list->node->item;
+//			FklVMvalue* tmp=item->v;
+//			fklPrin1VMvalue(tmp,fp,table);
+//			putc(' ',fp);
+//		}
+//	}
+//}
 
-FklVMvalue* volatile* fklFindOrAddVar(FklSid_t id,FklVMenv* env)
-{
-	FklVMvalue* volatile* r=NULL;
-	r=fklFindVar(id,env);
-	if(!r)
-	{
-		VMenvHashItem* ritem=fklPutNoRpHashItem(createVMenvHashItme(id,FKL_VM_NIL),env->t);
-		r=&ritem->v;
-	}
-	return r;
-}
-
-FklVMvalue* volatile* fklFindOrAddVarWithValue(FklSid_t id,FklVMvalue* v,FklVMenv* env)
-{
-	FklVMvalue* volatile* r=NULL;
-	r=fklFindVar(id,env);
-	if(!r)
-	{
-		VMenvHashItem* ritem=fklPutNoRpHashItem(createVMenvHashItme(id,FKL_VM_NIL),env->t);
-		r=&ritem->v;
-	}
-	*r=v;
-	return r;
-}
-
-void fklDBG_printVMenv(FklVMenv* curEnv,FILE* fp,FklSymbolTable* table)
-{
-	if(curEnv->t->num==0)
-		fprintf(fp,"This ENV is empty!");
-	else
-	{
-		fprintf(fp,"ENV:");
-		for(FklHashTableNodeList* list=curEnv->t->list;list;list=list->next)
-		{
-			VMenvHashItem* item=list->node->item;
-			FklVMvalue* tmp=item->v;
-			fklPrin1VMvalue(tmp,fp,table);
-			putc(' ',fp);
-		}
-	}
-}
-
-void fklDestroyVMenv(FklVMenv* obj)
-{
-	fklDestroyHashTable(obj->t);
-	free(obj);
-}
+//void fklDestroyVMenv(FklVMenv* obj)
+//{
+//	fklDestroyHashTable(obj->t);
+//	free(obj);
+//}
 
 inline FklVMvalue* fklCreateVMboxNoGC(FklVMgc* gc,FklVMvalue* v)
 {

@@ -95,7 +95,6 @@ int main(int argc,char** argv)
 		fklCodegenPrintUndefinedSymbol(mainByteCode,(FklCodegenLib**)codegen.loadedLibStack->base,codegen.globalSymTable,0,NULL);
 		FklVM* anotherVM=fklCreateVM(mainByteCode,codegen.globalSymTable,NULL,NULL);
 		anotherVM->ptpool=codegen.ptpool;
-		FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc,anotherVM->symbolTable),anotherVM->gc);
 		anotherVM->libNum=codegen.loadedLibStack->top;
 		anotherVM->libs=(FklVMlib*)malloc(sizeof(FklVMlib)*loadedLibStack->top);
 		FKL_ASSERT(anotherVM->libs);
@@ -103,19 +102,16 @@ int main(int argc,char** argv)
 		{
 			FklCodegenLib* cur=fklPopPtrStack(loadedLibStack);
 			FklVMlib* curVMlib=&anotherVM->libs[loadedLibStack->top];
-			fklInitVMlibWithCodgenLibAndDestroy(cur,curVMlib,globEnv,anotherVM->gc);
+			fklInitVMlibWithCodgenLibAndDestroy(cur,curVMlib,FKL_VM_NIL,anotherVM->gc);
 		}
 
-		FklVMvalue* mainEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateVMenv(globEnv,anotherVM->gc),anotherVM->gc);
 		FklVMframe* mainframe=anotherVM->frames;
-		mainframe->u.c.localenv=mainEnv;
 		fklInitGlobalVMclosure(mainframe,anotherVM);
 		FklVMvalue** ref=mainframe->u.c.lr.ref;
 
 		FklVMproc* tmp=fklCreateVMproc(mainByteCode->bc->code,mainByteCode->bc->size,anotherVM->codeObj,anotherVM->gc);
 		tmp->protoId=1;
 		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,tmp,anotherVM->gc);
-		tmp->prevEnv=NULL;
 		fklInitMainVMframeWithProc(mainframe,tmp,NULL);
 		mainframe->u.c.proc=proc;
 
@@ -164,12 +160,9 @@ int main(int argc,char** argv)
 		mainCodelnt->bc=mainCode;
 		FklVM* anotherVM=fklCreateVM(mainCodelnt,table,NULL,NULL);
 		FklVMgc* gc=anotherVM->gc;
-		FklVMvalue* globEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateGlobVMenv(FKL_VM_NIL,anotherVM->gc,table),anotherVM->gc);
-		loadLib(fp,&anotherVM->libNum,&anotherVM->libs,globEnv,anotherVM->gc);
+		loadLib(fp,&anotherVM->libNum,&anotherVM->libs,FKL_VM_NIL,anotherVM->gc);
 		fclose(fp);
 		FklVMframe* mainframe=anotherVM->frames;
-		FklVMvalue* mainEnv=fklCreateVMvalueNoGC(FKL_TYPE_ENV,fklCreateVMenv(globEnv,anotherVM->gc),anotherVM->gc);
-		mainframe->u.c.localenv=mainEnv;
 		fklInitGlobalVMclosure(mainframe,anotherVM);
 		FklVMvalue** ref=mainframe->u.c.lr.ref;
 		int r=fklRunVM(anotherVM);
@@ -312,7 +305,6 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 				FklVMproc* tmp=fklCreateVMproc(tmpByteCode->bc->code,tmpByteCode->bc->size,anotherCodeObj,anotherVM->gc);
 				FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,tmp,anotherVM->gc);
 				tmp->protoId=1;
-				tmp->prevEnv=NULL;
 				fklInitMainVMframeWithProc(&mainframe,tmp,anotherVM->frames);
 				mainframe.u.c.proc=proc;
 				anotherVM->frames=&mainframe;
@@ -326,7 +318,6 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 					stack->tp=0;
 					stack->bp=0;
 					stack->bps.top=0;
-					tmp->prevEnv=NULL;
 					delete_another_frame(anotherVM,&mainframe);
 				}
 				else

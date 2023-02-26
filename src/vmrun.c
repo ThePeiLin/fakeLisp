@@ -55,9 +55,8 @@ static void callCompoundProcdure(FklVM* exe,FklVMvalue* proc,FklVMframe* frame)
 	FklVMCompoundFrameVarRef* f=&tmpFrame->u.c.lr;
 	f->loc=loc;
 	f->lcount=lcount;
-	tmpFrame->u.c.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(proc->u.proc->prevEnv,exe->gc));
+	//tmpFrame->u.c.localenv=FKL_VM_NIL;
 	fklPushVMframe(tmpFrame,exe);
-	fklAddToGC(tmpFrame->u.c.localenv,exe);
 	exe->stack->tp=tp;
 }
 
@@ -135,10 +134,8 @@ static void tailCallCompoundProcdure(FklVM* exe,FklVMvalue* proc,FklVMframe* fra
 	else
 	{
 		FklVMframe* tmpFrame=fklCreateVMframeWithProcValue(proc,exe->frames->prev);
-		tmpFrame->u.c.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(proc->u.proc->prevEnv,exe->gc));
 		fklPushVMframe(tmpFrame,exe);
 		//exe->frames->prev=tmpFrame;
-		fklAddToGC(tmpFrame->u.c.localenv,exe);
 	}
 }
 
@@ -527,7 +524,6 @@ void fklDoAtomicFrame(FklVMframe* f,FklVMgc* gc)
 	switch(f->type)
 	{
 		case FKL_FRAME_COMPOUND:
-			fklGC_toGrey(fklGetCompoundFrameLocalenv(f),gc);
 			fklGC_toGrey(fklGetCompoundFrameCodeObj(f),gc);
 			fklGC_toGrey(fklGetCompoundFrameProc(f),gc);
 			compound_frame_loc_ref_to_gray(f,gc);
@@ -568,9 +564,7 @@ inline static void applyCompoundProc(FklVM* exe,FklVMvalue* proc,FklVMframe* fra
 	else
 	{
 		FklVMframe* tmpFrame=fklCreateVMframeWithProcValue(proc,exe->frames);
-		tmpFrame->u.c.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(proc->u.proc->prevEnv,exe->gc));
 		fklPushVMframe(tmpFrame,exe);
-		fklAddToGC(tmpFrame->u.c.localenv,exe);
 	}
 }
 
@@ -625,9 +619,7 @@ void fklCallInDlproc(FklVMvalue* proc
 		case FKL_TYPE_PROC:
 			{
 				FklVMframe* tmpFrame=fklCreateVMframeWithProc(proc->u.proc,exe->frames);
-				tmpFrame->u.c.localenv=fklCreateSaveVMvalue(FKL_TYPE_ENV,fklCreateVMenv(proc->u.proc->prevEnv,exe->gc));
 				fklPushVMframe(tmpFrame,exe);
-				fklAddToGC(tmpFrame->u.c.localenv,exe);
 			}
 			break;
 		default:
@@ -813,22 +805,22 @@ static void inline B_push_sym(FklVM* exe,FklVMframe* frame)
 
 static void inline B_push_var(FklVM* exe,FklVMframe* frame)
 {
-	FklVMstack* stack=exe->stack;
-	FklSid_t idOfVar=fklGetSidFromByteCode(fklGetCompoundFrameCode(frame));
-	FklVMvalue* curEnv=fklGetCompoundFrameLocalenv(frame);
-	FklVMvalue* volatile* pv=NULL;
-	while(!pv&&curEnv&&curEnv!=FKL_VM_NIL)
-	{
-		pv=fklFindVar(idOfVar,curEnv->u.env);
-		curEnv=curEnv->u.env->prev;
-	}
-	if(pv==NULL)
-	{
-		char* cstr=fklStringToCstr(fklGetSymbolWithId(idOfVar,exe->symbolTable)->symbol);
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.push-var",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
-	}
-	fklPushVMvalue(*pv,stack);
-	fklAddCompoundFrameCp(frame,sizeof(FklSid_t));
+	//FklVMstack* stack=exe->stack;
+	//FklSid_t idOfVar=fklGetSidFromByteCode(fklGetCompoundFrameCode(frame));
+	//FklVMvalue* curEnv=fklGetCompoundFrameLocalenv(frame);
+	//FklVMvalue* volatile* pv=NULL;
+	//while(!pv&&curEnv&&curEnv!=FKL_VM_NIL)
+	//{
+	//	pv=fklFindVar(idOfVar,curEnv->u.env);
+	//	curEnv=curEnv->u.env->prev;
+	//}
+	//if(pv==NULL)
+	//{
+	//	char* cstr=fklStringToCstr(fklGetSymbolWithId(idOfVar,exe->symbolTable)->symbol);
+	//	FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.push-var",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
+	//}
+	//fklPushVMvalue(*pv,stack);
+	//fklAddCompoundFrameCp(frame,sizeof(FklSid_t));
 }
 
 static void inline B_dup(FklVM* exe,FklVMframe* frame)
@@ -931,7 +923,6 @@ static void inline B_push_proc(FklVM* exe,FklVMframe* frame)
 			,frame
 			,exe);
 	FklVMvalue* child=fklCreateVMvalueToStack(FKL_TYPE_PROC,code,exe);
-	fklSetRef(&code->prevEnv,fklGetCompoundFrameLocalenv(frame),exe->gc);
 	if(code->unresolveRef)
 		add_child_proc(frame,child);
 	fklAddCompoundFrameCp(frame,sizeOfProc);
@@ -944,37 +935,37 @@ static void inline B_drop(FklVM* exe,FklVMframe* frame)
 
 static void inline B_pop_var(FklVM* exe,FklVMframe* frame)
 {
-	FKL_NI_BEGIN(exe);
-	if(!(stack->tp>stack->bp))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-var",FKL_ERR_STACKERROR,exe);
-	uint32_t scopeOfVar=fklGetU32FromByteCode(fklGetCompoundFrameCode(frame));
-	fklAddCompoundFrameCp(frame,sizeof(uint32_t));
-	FklSid_t idOfVar=fklGetSidFromByteCode(fklGetCompoundFrameCode(frame));
-	FklVMvalue* curEnv=fklGetCompoundFrameLocalenv(frame);
-	FklVMvalue* volatile* pv=NULL;
-	if(scopeOfVar)
-	{
-		for(uint32_t i=1;i<scopeOfVar;i++)
-			curEnv=curEnv->u.env->prev;
-		pv=fklFindOrAddVar(idOfVar,curEnv->u.env);
-	}
-	else
-	{
-		while(!pv&&curEnv&&curEnv!=FKL_VM_NIL)
-		{
-			pv=fklFindVar(idOfVar,curEnv->u.env);
-			curEnv=curEnv->u.env->prev;
-		}
-		if(pv==NULL)
-		{
-			char* cstr=fklStringToCstr(fklGetSymbolWithId(idOfVar,exe->symbolTable)->symbol);
-			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.pop-var",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
-		}
-	}
-	fklSetRef(pv,fklNiGetArg(&ap,stack),exe->gc);
-	fklNiEnd(&ap,stack);
+	//FKL_NI_BEGIN(exe);
+	//if(!(stack->tp>stack->bp))
+	//	FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-var",FKL_ERR_STACKERROR,exe);
+	//uint32_t scopeOfVar=fklGetU32FromByteCode(fklGetCompoundFrameCode(frame));
+	//fklAddCompoundFrameCp(frame,sizeof(uint32_t));
+	//FklSid_t idOfVar=fklGetSidFromByteCode(fklGetCompoundFrameCode(frame));
+	//FklVMvalue* curEnv=fklGetCompoundFrameLocalenv(frame);
+	//FklVMvalue* volatile* pv=NULL;
+	//if(scopeOfVar)
+	//{
+	//	for(uint32_t i=1;i<scopeOfVar;i++)
+	//		curEnv=curEnv->u.env->prev;
+	//	pv=fklFindOrAddVar(idOfVar,curEnv->u.env);
+	//}
+	//else
+	//{
+	//	while(!pv&&curEnv&&curEnv!=FKL_VM_NIL)
+	//	{
+	//		pv=fklFindVar(idOfVar,curEnv->u.env);
+	//		curEnv=curEnv->u.env->prev;
+	//	}
+	//	if(pv==NULL)
+	//	{
+	//		char* cstr=fklStringToCstr(fklGetSymbolWithId(idOfVar,exe->symbolTable)->symbol);
+	//		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.pop-var",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
+	//	}
+	//}
+	//fklSetRef(pv,fklNiGetArg(&ap,stack),exe->gc);
+	//fklNiEnd(&ap,stack);
 	//fklNiDoSomeAfterSetq(*pv,idOfVar);
-	fklAddCompoundFrameCp(frame,sizeof(FklSid_t));
+	//fklAddCompoundFrameCp(frame,sizeof(FklSid_t));
 }
 
 static inline FklVMvalue* volatile* get_compound_frame_loc(FklVMframe* frame,uint32_t idx,FklVM* exe)
@@ -1139,16 +1130,15 @@ static void inline B_push_vector(FklVM* exe,FklVMframe* frame)
 
 static void inline B_push_r_env(FklVM* exe,FklVMframe* frame)
 {
-	FKL_NI_BEGIN(exe);
-	FklVMvalue* n=fklCreateVMvalueToStack(FKL_TYPE_ENV,fklCreateVMenv(FKL_VM_NIL,exe->gc),exe);
-	fklSetRef(&n->u.env->prev,fklGetCompoundFrameLocalenv(frame),exe->gc);
-	frame->u.c.localenv=n;
-	fklNiEnd(&ap,stack);
+	//FKL_NI_BEGIN(exe);
+	//FklVMvalue* n=fklCreateVMvalueToStack(FKL_TYPE_ENV,fklCreateVMenv(FKL_VM_NIL,exe->gc),exe);
+	//fklSetRef(&n->u.env->prev,fklGetCompoundFrameLocalenv(frame),exe->gc);
+	//fklNiEnd(&ap,stack);
 }
 
 static void inline B_pop_r_env(FklVM* exe,FklVMframe* frame)
 {
-	frame->u.c.localenv=fklGetCompoundFrameLocalenv(frame)->u.env->prev;
+	//frame->u.c.localenv=fklGetCompoundFrameLocalenv(frame)->u.env->prev;
 }
 
 static void inline B_push_big_int(FklVM* exe,FklVMframe* frame)
@@ -1284,24 +1274,24 @@ static void inline B_list_push(FklVM* exe,FklVMframe* frame)
 
 static inline void process_import(FklVMlib* plib,FklVM* exe,FklVMframe* frame,char** cstr)
 {
-	for(size_t i=0;i<plib->exportNum;i++)
-	{
-		FklVMvalue* volatile* pv=fklFindVar(plib->exports[i],plib->libEnv->u.env);
-		if(pv==NULL)
-		{
-			*cstr=fklStringToCstr(fklGetSymbolWithId(plib->exports[i],exe->symbolTable)->symbol);
-			return;
-		}
-		FklVMvalue* volatile* pValue=fklFindOrAddVar(plib->exports[i],fklGetCompoundFrameLocalenv(frame)->u.env);
-		fklSetRef(pValue,*pv,exe->gc);
-	}
+	//for(size_t i=0;i<plib->exportNum;i++)
+	//{
+	//	FklVMvalue* volatile* pv=fklFindVar(plib->exports[i],plib->libEnv->u.env);
+	//	if(pv==NULL)
+	//	{
+	//		*cstr=fklStringToCstr(fklGetSymbolWithId(plib->exports[i],exe->symbolTable)->symbol);
+	//		return;
+	//	}
+	//	FklVMvalue* volatile* pValue=fklFindOrAddVar(plib->exports[i],fklGetCompoundFrameLocalenv(frame)->u.env);
+	//	fklSetRef(pValue,*pv,exe->gc);
+	//}
 }
 
 static inline void init_import_env(FklVMframe* frame,FklVMlib* plib,FklVM* exe)
 {
 	fklAddCompoundFrameCp(frame,-1);
 	callCompoundProcdure(exe,plib->proc,frame);
-	fklSetRef(&plib->libEnv,fklGetCompoundFrameLocalenv(exe->frames),exe->gc);
+	//fklSetRef(&plib->libEnv,fklGetCompoundFrameLocalenv(exe->frames),exe->gc);
 }
 
 static void inline B_import(FklVM* exe,FklVMframe* frame)
@@ -1322,31 +1312,31 @@ static void inline B_import(FklVM* exe,FklVMframe* frame)
 
 static void inline B_import_with_symbols(FklVM* exe,FklVMframe* frame)
 {
-	uint64_t libId=fklGetU64FromByteCode(fklGetCompoundFrameCode(frame));
-	FklVMlib* plib=&exe->libs[libId-1];
-	if(plib->libEnv==FKL_VM_NIL)
-		init_import_env(frame,plib,exe);
-	else
-	{
-		fklAddCompoundFrameCp(frame,sizeof(uint64_t));
-		uint64_t exportNum=fklGetU64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(exportNum)));
-		FklSid_t* exports=fklCopyMemory(fklGetCompoundFrameCode(frame)
-				,sizeof(FklSid_t)*exportNum);
-		for(size_t i=0;i<exportNum;i++)
-		{
-			FklVMvalue* volatile* pv=fklFindVar(plib->exports[i],plib->libEnv->u.env);
-			if(pv==NULL)
-			{
-				free(exports);
-				char* cstr=fklStringToCstr(fklGetSymbolWithId(plib->exports[i],exe->symbolTable)->symbol);
-				FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-with-symbols",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
-			}
-			FklVMvalue* volatile* pValue=fklFindOrAddVar(exports[i],fklGetCompoundFrameLocalenv(frame)->u.env);
-			fklSetRef(pValue,*pv,exe->gc);
-		}
-		free(exports);
-		fklAddCompoundFrameCp(frame,exportNum*sizeof(FklSid_t));
-	}
+	//uint64_t libId=fklGetU64FromByteCode(fklGetCompoundFrameCode(frame));
+	//FklVMlib* plib=&exe->libs[libId-1];
+	//if(plib->libEnv==FKL_VM_NIL)
+	//	init_import_env(frame,plib,exe);
+	//else
+	//{
+	//	fklAddCompoundFrameCp(frame,sizeof(uint64_t));
+	//	uint64_t exportNum=fklGetU64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(exportNum)));
+	//	FklSid_t* exports=fklCopyMemory(fklGetCompoundFrameCode(frame)
+	//			,sizeof(FklSid_t)*exportNum);
+	//	for(size_t i=0;i<exportNum;i++)
+	//	{
+	//		FklVMvalue* volatile* pv=fklFindVar(plib->exports[i],plib->libEnv->u.env);
+	//		if(pv==NULL)
+	//		{
+	//			free(exports);
+	//			char* cstr=fklStringToCstr(fklGetSymbolWithId(plib->exports[i],exe->symbolTable)->symbol);
+	//			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-with-symbols",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
+	//		}
+	//		FklVMvalue* volatile* pValue=fklFindOrAddVar(exports[i],fklGetCompoundFrameLocalenv(frame)->u.env);
+	//		fklSetRef(pValue,*pv,exe->gc);
+	//	}
+	//	free(exports);
+	//	fklAddCompoundFrameCp(frame,exportNum*sizeof(FklSid_t));
+	//}
 }
 
 static inline FklImportDllInitFunc getImportInit(FklDllHandle handle)
@@ -1356,86 +1346,86 @@ static inline FklImportDllInitFunc getImportInit(FklDllHandle handle)
 
 static void inline B_import_from_dll(FklVM* exe,FklVMframe* frame)
 {
-	uint64_t libId=fklGetU64FromByteCode(fklGetCompoundFrameCode(frame));
-	FklVMlib* plib=&exe->libs[libId-1];
-	FKL_NI_BEGIN(exe);
-	if(plib->libEnv==FKL_VM_NIL)
-	{
-		char* realpath=fklStringToCstr(plib->proc->u.str);
-		FklVMdll* dll=fklCreateVMdll(realpath);
-		FklImportDllInitFunc initFunc=NULL;
-		if(dll)
-			initFunc=getImportInit(dll->handle);
-		else
-			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-from-dll",realpath,1,FKL_ERR_IMPORTFAILED,exe);
-		if(!initFunc)
-		{
-			fklDestroyVMdll(dll);
-			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-from-dll",realpath,1,FKL_ERR_IMPORTFAILED,exe);
-		}
-		FklVMvalue* dllValue=fklCreateVMvalueToStack(FKL_TYPE_DLL,dll,exe);
-		fklInitVMdll(dllValue,exe);
-		FklVMenv* env=fklCreateVMenv(FKL_VM_NIL,exe->gc);
-		FklVMvalue* envValue=fklCreateVMvalueToStack(FKL_TYPE_ENV,env,exe);
-		fklSetRef(&plib->libEnv,envValue,exe->gc);
-		fklSetRef(&plib->proc,dllValue,exe->gc);
-		initFunc(exe,dllValue,plib->libEnv);
-		free(realpath);
-	}
-	char* cstr=NULL;
-	process_import(plib,exe,frame,&cstr);
-	if(cstr)
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-from-dll",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
-	fklAddCompoundFrameCp(frame,sizeof(uint64_t));
-	fklNiEnd(&ap,stack);
+	//uint64_t libId=fklGetU64FromByteCode(fklGetCompoundFrameCode(frame));
+	//FklVMlib* plib=&exe->libs[libId-1];
+	//FKL_NI_BEGIN(exe);
+	//if(plib->libEnv==FKL_VM_NIL)
+	//{
+	//	char* realpath=fklStringToCstr(plib->proc->u.str);
+	//	FklVMdll* dll=fklCreateVMdll(realpath);
+	//	FklImportDllInitFunc initFunc=NULL;
+	//	if(dll)
+	//		initFunc=getImportInit(dll->handle);
+	//	else
+	//		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-from-dll",realpath,1,FKL_ERR_IMPORTFAILED,exe);
+	//	if(!initFunc)
+	//	{
+	//		fklDestroyVMdll(dll);
+	//		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-from-dll",realpath,1,FKL_ERR_IMPORTFAILED,exe);
+	//	}
+	//	FklVMvalue* dllValue=fklCreateVMvalueToStack(FKL_TYPE_DLL,dll,exe);
+	//	fklInitVMdll(dllValue,exe);
+	//	FklVMenv* env=fklCreateVMenv(FKL_VM_NIL,exe->gc);
+	//	FklVMvalue* envValue=fklCreateVMvalueToStack(FKL_TYPE_ENV,env,exe);
+	//	fklSetRef(&plib->libEnv,envValue,exe->gc);
+	//	fklSetRef(&plib->proc,dllValue,exe->gc);
+	//	initFunc(exe,dllValue,plib->libEnv);
+	//	free(realpath);
+	//}
+	//char* cstr=NULL;
+	//process_import(plib,exe,frame,&cstr);
+	//if(cstr)
+	//	FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-from-dll",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
+	//fklAddCompoundFrameCp(frame,sizeof(uint64_t));
+	//fklNiEnd(&ap,stack);
 }
 
 static void inline B_import_from_dll_with_symbols(FklVM* exe,FklVMframe* frame)
 {
-	uint64_t libId=fklGetU64FromByteCode(fklGetCompoundFrameCode(frame));
-	FklVMlib* plib=&exe->libs[libId-1];
-	if(plib->libEnv==FKL_VM_NIL)
-	{
-		char* realpath=fklStringToCstr(plib->proc->u.str);
-		FklVMdll* dll=fklCreateVMdll(realpath);
-		FklImportDllInitFunc initFunc=NULL;
-		if(dll)
-			initFunc=getImportInit(dll->handle);
-		else
-			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-from-dll-with-symbols",realpath,1,FKL_ERR_IMPORTFAILED,exe);
-		if(!initFunc)
-		{
-			fklDestroyVMdll(dll);
-			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-from-dll-with-symbols",realpath,1,FKL_ERR_IMPORTFAILED,exe);
-		}
-		FklVMvalue* dllValue=fklCreateVMvalueToStack(FKL_TYPE_DLL,dll,exe);
-		fklInitVMdll(dllValue,exe);
-		FklVMenv* env=fklCreateVMenv(FKL_VM_NIL,exe->gc);
-		FklVMvalue* envValue=fklCreateVMvalueToStack(FKL_TYPE_ENV,env,exe);
-		fklSetRef(&plib->libEnv,envValue,exe->gc);
-		fklSetRef(&plib->proc,dllValue,exe->gc);
-		initFunc(exe,dllValue,plib->libEnv);
-		free(realpath);
-	}
-	fklAddCompoundFrameCp(frame,sizeof(uint64_t));
-	uint64_t exportNum=fklGetU64FromByteCode(fklGetCompoundFrameCode(frame));
-	fklAddCompoundFrameCp(frame,sizeof(uint64_t));
-	FklSid_t* exports=fklCopyMemory(fklGetCompoundFrameCode(frame)
-			,sizeof(FklSid_t)*exportNum);
-	for(size_t i=0;i<exportNum;i++)
-	{
-		FklVMvalue* volatile* pv=fklFindVar(plib->exports[i],plib->libEnv->u.env);
-		if(pv==NULL)
-		{
-			free(exports);
-			char* cstr=fklStringToCstr(fklGetSymbolWithId(plib->exports[i],exe->symbolTable)->symbol);
-			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-from-dll-with-symbols",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
-		}
-		FklVMvalue* volatile* pValue=fklFindOrAddVar(exports[i],fklGetCompoundFrameLocalenv(frame)->u.env);
-		fklSetRef(pValue,*pv,exe->gc);
-	}
-	free(exports);
-	fklAddCompoundFrameCp(frame,exportNum*sizeof(FklSid_t));
+	//uint64_t libId=fklGetU64FromByteCode(fklGetCompoundFrameCode(frame));
+	//FklVMlib* plib=&exe->libs[libId-1];
+	//if(plib->libEnv==FKL_VM_NIL)
+	//{
+	//	char* realpath=fklStringToCstr(plib->proc->u.str);
+	//	FklVMdll* dll=fklCreateVMdll(realpath);
+	//	FklImportDllInitFunc initFunc=NULL;
+	//	if(dll)
+	//		initFunc=getImportInit(dll->handle);
+	//	else
+	//		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-from-dll-with-symbols",realpath,1,FKL_ERR_IMPORTFAILED,exe);
+	//	if(!initFunc)
+	//	{
+	//		fklDestroyVMdll(dll);
+	//		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-from-dll-with-symbols",realpath,1,FKL_ERR_IMPORTFAILED,exe);
+	//	}
+	//	FklVMvalue* dllValue=fklCreateVMvalueToStack(FKL_TYPE_DLL,dll,exe);
+	//	fklInitVMdll(dllValue,exe);
+	//	FklVMenv* env=fklCreateVMenv(FKL_VM_NIL,exe->gc);
+	//	FklVMvalue* envValue=fklCreateVMvalueToStack(FKL_TYPE_ENV,env,exe);
+	//	fklSetRef(&plib->libEnv,envValue,exe->gc);
+	//	fklSetRef(&plib->proc,dllValue,exe->gc);
+	//	initFunc(exe,dllValue,plib->libEnv);
+	//	free(realpath);
+	//}
+	//fklAddCompoundFrameCp(frame,sizeof(uint64_t));
+	//uint64_t exportNum=fklGetU64FromByteCode(fklGetCompoundFrameCode(frame));
+	//fklAddCompoundFrameCp(frame,sizeof(uint64_t));
+	//FklSid_t* exports=fklCopyMemory(fklGetCompoundFrameCode(frame)
+	//		,sizeof(FklSid_t)*exportNum);
+	//for(size_t i=0;i<exportNum;i++)
+	//{
+	//	FklVMvalue* volatile* pv=fklFindVar(plib->exports[i],plib->libEnv->u.env);
+	//	if(pv==NULL)
+	//	{
+	//		free(exports);
+	//		char* cstr=fklStringToCstr(fklGetSymbolWithId(plib->exports[i],exe->symbolTable)->symbol);
+	//		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-from-dll-with-symbols",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
+	//	}
+	//	FklVMvalue* volatile* pValue=fklFindOrAddVar(exports[i],fklGetCompoundFrameLocalenv(frame)->u.env);
+	//	fklSetRef(pValue,*pv,exe->gc);
+	//}
+	//free(exports);
+	//fklAddCompoundFrameCp(frame,exportNum*sizeof(FklSid_t));
 }
 
 static void inline B_push_0(FklVM* exe,FklVMframe* frame)
@@ -1747,7 +1737,7 @@ void fklGC_pause(FklVM* exe)
 void propagateMark(FklVMvalue* root,FklVMgc* gc)
 {
 	FKL_ASSERT(root->type<=FKL_TYPE_CODE_OBJ);
-	static void(* const fkl_atomic_value_method_table[])(FklVMvalue*,FklVMgc*)=
+	static void(* const fkl_atomic_value_method_table[FKL_TYPE_CODE_OBJ+1])(FklVMvalue*,FklVMgc*)=
 	{
 		NULL,
 		NULL,
@@ -1763,7 +1753,6 @@ void propagateMark(FklVMvalue* root,FklVMgc* gc)
 		fklAtomicVMdll,
 		fklAtomicVMdlproc,
 		NULL,
-		fklAtomicVMenv,
 		fklAtomicVMhashTable,
 		NULL,
 	};
@@ -2126,7 +2115,6 @@ void fklDestroyVMframes(FklVMframe* h)
 	{
 		FklVMframe* cur=h;
 		h=h->prev;
-		cur->u.c.localenv=NULL;
 		free(cur);
 	}
 }
@@ -2148,7 +2136,6 @@ inline void fklInitVMlibWithCodeObj(FklVMlib* lib
 {
 	FklByteCode* bc=codeObj->u.code->bc;
 	FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(bc->code,bc->size,codeObj,gc),gc);
-	fklSetRef(&proc->u.proc->prevEnv,globEnv,gc);
 	fklInitVMlib(lib,exportNum,exports,proc);
 }
 
@@ -2184,14 +2171,14 @@ inline unsigned int fklSetCompoundFrameMark(FklVMframe* f,unsigned int m)
 
 inline FklVMvalue* fklGetCompoundFrameLocalenv(const FklVMframe* f)
 {
-	return f->u.c.localenv;
+	return FKL_VM_NIL;//f->u.c.localenv;
 }
 
-inline FklVMvalue* fklSetCompoundFrameLocalenv(FklVMframe* f,FklVMvalue* env)
-{
-	f->u.c.localenv=env;
-	return env;
-}
+//inline FklVMvalue* fklSetCompoundFrameLocalenv(FklVMframe* f,FklVMvalue* env)
+//{
+//	f->u.c.localenv=env;
+//	return env;
+//}
 
 inline FklVMCompoundFrameVarRef* fklGetCompoundFrameLocRef(FklVMframe* f)
 {

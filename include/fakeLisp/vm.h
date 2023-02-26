@@ -19,7 +19,7 @@ extern "C" {
 
 typedef enum
 {
-	FKL_TYPE_F64,
+	FKL_TYPE_F64=0,
 	FKL_TYPE_BIG_INT,
 	FKL_TYPE_STR,
 	FKL_TYPE_VECTOR,
@@ -33,7 +33,7 @@ typedef enum
 	FKL_TYPE_DLL,
 	FKL_TYPE_DLPROC,
 	FKL_TYPE_ERR,
-	FKL_TYPE_ENV,
+	//FKL_TYPE_ENV,
 	FKL_TYPE_HASHTABLE,
 	FKL_TYPE_CODE_OBJ,
 }FklValueType;
@@ -136,7 +136,6 @@ typedef struct FklVMvalue
 		struct FklVMcontinuation* cont;
 		FklVMfp* fp;
 		FklVMvec* vec;
-		struct FklVMenv* env;
 		struct FklVMhashTable* hash;
 		struct FklVMchanl* chan;
 		struct FklVMerror* err;
@@ -148,11 +147,11 @@ typedef struct FklVMvalue
 	struct FklVMvalue* next;
 }FklVMvalue;
 
-typedef struct FklVMenv
-{
-	struct FklVMvalue* volatile prev;
-	FklHashTable* t;
-}FklVMenv;
+//typedef struct FklVMenv
+//{
+//	struct FklVMvalue* volatile prev;
+//	FklHashTable* t;
+//}FklVMenv;
 
 typedef struct
 {
@@ -175,7 +174,6 @@ typedef struct FklVMproc
 	uint32_t unresolveRef;
 	FklVMvalue** closure;
 	uint32_t count;
-	FklVMvalue* prevEnv;
 	FklVMvalue* codeObj;
 	struct FklVMframe* by;
 }FklVMproc;
@@ -214,7 +212,6 @@ typedef struct FklVMCompoundFrameData
 	unsigned int mark:2;
 	FklSid_t sid:61;
 	FklVMCompoundFrameVarRef lr;
-	FklVMvalue* localenv;
 	FklVMvalue* codeObj;
 	FklVMvalue* proc;
 	FklVMvalue** children;
@@ -393,7 +390,7 @@ void* fklGC_sweepThreadFunc(void*);
 void fklGC_mark(FklVM*);
 void fklGC_markValue(FklVMvalue*);
 void fklGC_markValueInStack(FklVMstack*);
-void fklGC_markValueInEnv(FklVMenv*);
+//void fklGC_markValueInEnv(FklVMenv*);
 void fklGC_markValueInCallChain(FklPtrStack*);
 void fklGC_markMessage(FklQueueNode*);
 void fklGC_markSendT(FklQueueNode*);
@@ -405,7 +402,7 @@ void fklWaitGC(FklVMgc* gc);
 void fklDestroyAllValues(FklVMgc*);
 void fklGC_sweep(FklVMvalue*);
 
-void fklDBG_printVMenv(FklVMenv*,FILE*,FklSymbolTable* table);
+//void fklDBG_printVMenv(FklVMenv*,FILE*,FklSymbolTable* table);
 void fklDBG_printVMvalue(FklVMvalue*,FILE*,FklSymbolTable* table);
 void fklDBG_printVMstack(FklVMstack*,FILE*,int,FklSymbolTable* table);
 
@@ -467,17 +464,17 @@ FklVMhashTableItem* fklRefVMhashTable(FklVMvalue* key,FklVMhashTable* ht);
 FklVMvalue* fklGetVMhashTable(FklVMvalue* key,FklVMhashTable* ht,int* ok);
 void fklDestroyVMhashTable(FklVMhashTable*);
 
-FklVMenv* fklCreateGlobVMenv(FklVMvalue*,FklVMgc*,FklSymbolTable*);
-FklVMenv* fklCreateVMenv(FklVMvalue*,FklVMgc*);
-FklVMvalue* volatile* fklFindVar(FklSid_t id,FklVMenv*);
-FklVMvalue* volatile* fklFindOrAddVar(FklSid_t id,FklVMenv* env);
-FklVMvalue* volatile* fklFindOrAddVarWithValue(FklSid_t id,FklVMvalue*,FklVMenv* env);
-void fklDestroyVMenv(FklVMenv*);
+//FklVMenv* fklCreateGlobVMenv(FklVMvalue*,FklVMgc*,FklSymbolTable*);
+//FklVMenv* fklCreateVMenv(FklVMvalue*,FklVMgc*);
+//FklVMvalue* volatile* fklFindVar(FklSid_t id,FklVMenv*);
+//FklVMvalue* volatile* fklFindOrAddVar(FklSid_t id,FklVMenv* env);
+//FklVMvalue* volatile* fklFindOrAddVarWithValue(FklSid_t id,FklVMvalue*,FklVMenv* env);
+//void fklDestroyVMenv(FklVMenv*);
 
 FklVMproc* fklCreateVMproc(uint8_t* spc,uint64_t cpc,FklVMvalue* codeObj,FklVMgc* gc);
 
 void fklAtomicVMhashTable(FklVMvalue* pht,FklVMgc* gc);
-void fklAtomicVMenv(FklVMvalue* penv,FklVMgc*);
+//void fklAtomicVMenv(FklVMvalue* penv,FklVMgc*);
 void fklAtomicVMuserdata(FklVMvalue*,FklVMgc*);
 void fklAtomicVMpair(FklVMvalue*,FklVMgc*);
 void fklAtomicVMproc(FklVMvalue*,FklVMgc*);
@@ -613,8 +610,6 @@ unsigned int fklGetCompoundFrameMark(const FklVMframe*);
 unsigned int fklSetCompoundFrameMark(FklVMframe*,unsigned int);
 
 FklVMCompoundFrameVarRef* fklGetCompoundFrameLocRef(FklVMframe* f);
-FklVMvalue* fklGetCompoundFrameLocalenv(const FklVMframe*);
-FklVMvalue* fklSetCompoundFrameLocalenv(FklVMframe*,FklVMvalue* env);
 
 FklVMvalue* fklGetCompoundFrameCodeObj(const FklVMframe*);
 FklVMvalue* fklGetCompoundFrameProc(const FklVMframe*);

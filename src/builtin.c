@@ -231,7 +231,7 @@ static int __fkl_userdata_append(FklVMvalue* retval,FklVMvalue* cur)
 	return 0;
 }
 
-static int (*const valueAppend[])(FklVMvalue* retval,FklVMvalue* cur)=
+static int (*const valueAppend[FKL_TYPE_CODE_OBJ+1])(FklVMvalue* retval,FklVMvalue* cur)=
 {
 	NULL,
 	NULL,
@@ -241,7 +241,6 @@ static int (*const valueAppend[])(FklVMvalue* retval,FklVMvalue* cur)=
 	NULL,
 	__fkl_bytevector_append,
 	__fkl_userdata_append,
-	NULL,
 	NULL,
 	NULL,
 	NULL,
@@ -5424,25 +5423,25 @@ void fklInitGlobalVMclosure(FklVMframe* frame,FklVM* exe)
 	}
 }
 
-void fklInitGlobEnv(FklVMenv* obj,FklVMgc* gc,FklSymbolTable* table)
-{
-	const struct SymbolFuncStruct* list=builtInSymbolList;
-	PublicBuiltInUserData* pd=init_vm_public_data(gc,table);
-	FklVMvalue* publicUserData=fklCreateVMvalueNoGC(FKL_TYPE_USERDATA
-			,fklCreateVMudata(0
-				,&PublicBuiltInUserDataMethodTable
-				,pd
-				,FKL_VM_NIL
-				,FKL_VM_NIL)
-			,gc);
-	fklFindOrAddVarWithValue(fklAddSymbolCstr((list++)->s,table)->id,pd->sysIn,obj);
-	fklFindOrAddVarWithValue(fklAddSymbolCstr((list++)->s,table)->id,pd->sysOut,obj);
-	fklFindOrAddVarWithValue(fklAddSymbolCstr((list++)->s,table)->id,pd->sysErr,obj);
-	for(;list->s!=NULL;list++)
-	{
-		FklVMdlproc* proc=fklCreateVMdlproc(list->f,NULL,publicUserData);
-		FklSymTabNode* node=fklAddSymbolCstr(list->s,table);
-		proc->sid=node->id;
-		fklFindOrAddVarWithValue(node->id,fklCreateVMvalueNoGC(FKL_TYPE_DLPROC,proc,gc),obj);
-	}
-}
+//void fklInitGlobEnv(FklVMenv* obj,FklVMgc* gc,FklSymbolTable* table)
+//{
+//	const struct SymbolFuncStruct* list=builtInSymbolList;
+//	PublicBuiltInUserData* pd=init_vm_public_data(gc,table);
+//	FklVMvalue* publicUserData=fklCreateVMvalueNoGC(FKL_TYPE_USERDATA
+//			,fklCreateVMudata(0
+//				,&PublicBuiltInUserDataMethodTable
+//				,pd
+//				,FKL_VM_NIL
+//				,FKL_VM_NIL)
+//			,gc);
+//	fklFindOrAddVarWithValue(fklAddSymbolCstr((list++)->s,table)->id,pd->sysIn,obj);
+//	fklFindOrAddVarWithValue(fklAddSymbolCstr((list++)->s,table)->id,pd->sysOut,obj);
+//	fklFindOrAddVarWithValue(fklAddSymbolCstr((list++)->s,table)->id,pd->sysErr,obj);
+//	for(;list->s!=NULL;list++)
+//	{
+//		FklVMdlproc* proc=fklCreateVMdlproc(list->f,NULL,publicUserData);
+//		FklSymTabNode* node=fklAddSymbolCstr(list->s,table);
+//		proc->sid=node->id;
+//		fklFindOrAddVarWithValue(node->id,fklCreateVMvalueNoGC(FKL_TYPE_DLPROC,proc,gc),obj);
+//	}
+//}

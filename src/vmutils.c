@@ -164,7 +164,7 @@ FklVMerrorHandler* fklCreateVMerrorHandler(FklSid_t* typeIds,uint32_t errTypeNum
 	FKL_ASSERT(t);
 	t->typeIds=typeIds;
 	t->num=errTypeNum;
-	t->proc.prevEnv=NULL;
+	//t->proc.prevEnv=NULL;
 	t->proc.spc=spc;
 	t->proc.end=spc+cpc;
 	t->proc.sid=0;
@@ -271,7 +271,7 @@ FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe* f,FklVMframe* pr
 	fd->end=pfd->end;
 	fd->sid=pfd->sid;
 	fklSetRef(&fd->codeObj,pfd->codeObj,gc);
-	fklSetRef(&fd->localenv,pfd->localenv,gc);
+	//fklSetRef(&fd->localenv,pfd->localenv,gc);
 	fklSetRef(&fd->proc,pfd->proc,gc);
 	//tmp->u.c.code=f->u.c.codeObj->u.code->bc->code;
 	fd->mark=pfd->mark;
@@ -763,9 +763,6 @@ static void princVMatom(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
 					case FKL_TYPE_DLL:
 						fprintf(fp,"#<dll>");
 						break;
-					case FKL_TYPE_ENV:
-						fprintf(fp,"#<env>");
-						break;
 					case FKL_TYPE_DLPROC:
 						if(v->u.dlproc->sid)
 						{
@@ -874,9 +871,6 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
 						}
 						else
 							fputs("#<dlproc>",fp);
-						break;
-					case FKL_TYPE_ENV:
-						fprintf(fp,"#<env>");
 						break;
 					case FKL_TYPE_ERR:
 						fprintf(fp,"#<err w:");
@@ -1340,9 +1334,6 @@ inline static void print_atom_to_ut_string(UT_string* result,FklVMvalue* v,FklSy
 						}
 						else
 							utstring_printf(result,"#<dlproc>");
-						break;
-					case FKL_TYPE_ENV:
-						utstring_printf(result,"#<env>");
 						break;
 					case FKL_TYPE_ERR:
 						utstring_printf(result,"#<err w:");

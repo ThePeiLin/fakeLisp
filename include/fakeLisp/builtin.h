@@ -40,7 +40,6 @@ typedef enum
 
 #define FKL_BUILTIN_ERR_NUM (FKL_ERR_CIR_REF+1)
 //typedef struct FklCompEnv FklCompEnv;
-typedef struct FklVMenv FklVMenv;
 typedef struct FklVMgc FklVMgc;
 typedef struct FklCodegenEnv FklCodegenEnv;
 typedef struct FklVM FklVM;
@@ -48,7 +47,7 @@ struct FklVMframe;
 
 //void fklInitCompEnv(FklCompEnv* curEnv);
 void fklInitGlobCodegenEnv(FklCodegenEnv*,FklSymbolTable*);
-void fklInitGlobEnv(FklVMenv*,FklVMgc*,FklSymbolTable*);
+//void fklInitGlobEnv(FklVMenv*,FklVMgc*,FklSymbolTable*);
 void fklInitSymbolTableWithBuiltinSymbol(FklSymbolTable* symbolTable);
 void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbolTable* table);
 FklSid_t fklGetBuiltInErrorType(FklBuiltInErrorType type,FklSid_t errorTypeId[FKL_ERR_INCORRECT_TYPE_VALUE]);

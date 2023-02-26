@@ -1489,7 +1489,7 @@ static inline FklVMframe* get_proc_create_by(FklVMframe* by)
 
 static inline FklVMvalue* find_ref(FklPrototype* pts,FklVMproc* p,FklSymbolDef* cref)
 {
-	FklSid_t id=cref->id;
+	FklSidScope key={cref->id,cref->scope};
 	for(FklVMframe* by=p->by;by;by=get_proc_create_by(by))
 	{
 		FklVMvalue* v=fklGetCompoundFrameProc(by);
@@ -1499,7 +1499,7 @@ static inline FklVMvalue* find_ref(FklPrototype* pts,FklVMproc* p,FklSymbolDef* 
 		{
 			FklVMproc* proc=v->u.proc;
 			FklPrototype* pt=&pts[proc->protoId-1];
-			FklSymbolDef* def=fklGetHashItem(&id,pt->defs);
+			FklSymbolDef* def=fklGetHashItem(&key,pt->defs);
 			if(def)
 			{
 				cref->isLocal=1;

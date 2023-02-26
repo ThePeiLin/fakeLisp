@@ -648,9 +648,10 @@ inline static void process_unresolve_ref(FklCodegenEnv* env,FklPrototypePool* cp
 		FklUnReSymbolRef* uref=fklPopPtrStack(urefs);
 		FklPrototype* cpt=&pts[uref->prototypeId-1];
 		FklSymbolDef* ref=&cpt->refs[uref->idx];
-		if(fklIsSymbolDefined(uref->id,uref->scope,env))
+		FklSymbolDef* def=fklFindSymbolDefByIdAndScope(uref->id,uref->scope,env);
+		if(def)
 		{
-			ref->cidx=fklAddCodegenDefBySid(uref->id,uref->scope,env);
+			ref->cidx=def->idx;
 			ref->isLocal=1;
 		}
 		else
@@ -698,7 +699,7 @@ inline void fklUpdatePrototype(FklPrototypePool* cp,FklCodegenEnv* env,FklSymbol
 		FklSymbolDef* sd=list->node->item;
 		FklSid_t sid=fklAddSymbol(fklGetSymbolWithId(sd->id,publicSymbolTable)->symbol,globalSymTable)->id;
 		FklSymbolDef ref={.id=sid,
-			.scope=0,
+			.scope=sd->scope,
 			.idx=sd->idx,
 			.cidx=sd->cidx,
 			.isLocal=sd->isLocal};

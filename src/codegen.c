@@ -3973,32 +3973,32 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib** libs,Fk
 					{
 						switch(opcode)
 						{
-							case FKL_OP_POP_VAR:
-								{
-									uint32_t scope=fklGetU32FromByteCode(bc->code+i+sizeof(char));
-									FklSid_t id=fklGetSidFromByteCode(bc->code+i+sizeof(char)+sizeof(scope));
-									if(scope)
-									{
-										FklCodegenEnv* env=curEnv;
-										for(uint32_t i=1;i<scope;i++)
-											env=curEnv->prev;
-										fklAddCodegenDefBySid(id,1,env);
-									}
-									else
-									{
-										int r=0;
-										for(FklCodegenEnv* e=curEnv;e;e=e->prev)
-										{
-											r=fklIsSymbolDefined(id,0,e);
-											if(r)
-												break;
-										}
-										if(!r)
-											fklPushPtrStack(createMayUndefine(curEnv,i,id),mayUndefined);
-									}
-								}
-								i+=sizeof(char)+sizeof(uint32_t)+sizeof(FklSid_t);
-								break;
+							//case FKL_OP_POP_VAR:
+							//	{
+							//		uint32_t scope=fklGetU32FromByteCode(bc->code+i+sizeof(char));
+							//		FklSid_t id=fklGetSidFromByteCode(bc->code+i+sizeof(char)+sizeof(scope));
+							//		if(scope)
+							//		{
+							//			FklCodegenEnv* env=curEnv;
+							//			for(uint32_t i=1;i<scope;i++)
+							//				env=curEnv->prev;
+							//			fklAddCodegenDefBySid(id,1,env);
+							//		}
+							//		else
+							//		{
+							//			int r=0;
+							//			for(FklCodegenEnv* e=curEnv;e;e=e->prev)
+							//			{
+							//				r=fklIsSymbolDefined(id,0,e);
+							//				if(r)
+							//					break;
+							//			}
+							//			if(!r)
+							//				fklPushPtrStack(createMayUndefine(curEnv,i,id),mayUndefined);
+							//		}
+							//	}
+							//	i+=sizeof(char)+sizeof(uint32_t)+sizeof(FklSid_t);
+							//	break;
 							case FKL_OP_PUSH_PROC:
 								{
 									uint64_t offset=sizeof(char)+sizeof(uint32_t);

@@ -281,7 +281,7 @@ static void B_push_var(BYTE_CODE_ARGS);
 static void B_dup(BYTE_CODE_ARGS);
 static void B_push_proc(BYTE_CODE_ARGS);
 static void B_drop(BYTE_CODE_ARGS);
-static void B_pop_var(BYTE_CODE_ARGS);
+//static void B_pop_var(BYTE_CODE_ARGS);
 static void B_pop_arg(BYTE_CODE_ARGS);
 static void B_pop_rest_arg(BYTE_CODE_ARGS);
 static void B_set_tp(BYTE_CODE_ARGS);
@@ -338,7 +338,7 @@ static void (*ByteCodes[])(FklVM*,FklVMframe*)=
 	B_dup,
 	B_push_proc,
 	B_drop,
-	B_pop_var,
+	//B_pop_var,
 	B_pop_arg,
 	B_pop_rest_arg,
 	B_set_tp,
@@ -933,8 +933,8 @@ static void inline B_drop(FklVM* exe,FklVMframe* frame)
 	exe->stack->tp-=1;
 }
 
-static void inline B_pop_var(FklVM* exe,FklVMframe* frame)
-{
+//static void inline B_pop_var(FklVM* exe,FklVMframe* frame)
+//{
 	//FKL_NI_BEGIN(exe);
 	//if(!(stack->tp>stack->bp))
 	//	FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-var",FKL_ERR_STACKERROR,exe);
@@ -966,7 +966,7 @@ static void inline B_pop_var(FklVM* exe,FklVMframe* frame)
 	//fklNiEnd(&ap,stack);
 	//fklNiDoSomeAfterSetq(*pv,idOfVar);
 	//fklAddCompoundFrameCp(frame,sizeof(FklSid_t));
-}
+//}
 
 static inline FklVMvalue* volatile* get_compound_frame_loc(FklVMframe* frame,uint32_t idx,FklVM* exe)
 {

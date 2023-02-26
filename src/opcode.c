@@ -19,7 +19,7 @@ static struct
 	{"dup",                          0,  },
 	{"push-proc",                    -1, },
 	{"drop",                         0,  },
-	{"pop-var",                      -1, },
+	//{"pop-var",                      -1, },
 	{"pop-arg",                      4,  },
 	{"pop-rest-arg",                 4,  },
 	{"set-tp",                       0,  },

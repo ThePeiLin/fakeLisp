@@ -528,22 +528,22 @@ FklString* fklGenErrorMessage(FklBuiltInErrorType type)
 	return fklCreateStringFromCstr(s);
 }
 
-int32_t fklGetSymbolIdInByteCode(const uint8_t* code)
-{
-	char op=*code;
-	switch(op)
-	{
-		case FKL_OP_PUSH_VAR:
-			return *(int32_t*)(code+sizeof(char));
-			break;
-		//case FKL_OP_POP_VAR:
-		case FKL_OP_POP_ARG:
-		case FKL_OP_POP_REST_ARG:
-			return *(int32_t*)(code+sizeof(char)+sizeof(int32_t));
-			break;
-	}
-	return -1;
-}
+//int32_t fklGetSymbolIdInByteCode(const uint8_t* code)
+//{
+//	char op=*code;
+//	switch(op)
+//	{
+//		case FKL_OP_PUSH_VAR:
+//			return *(int32_t*)(code+sizeof(char));
+//			break;
+//		case FKL_OP_POP_VAR:
+//		case FKL_OP_POP_ARG:
+//		case FKL_OP_POP_REST_ARG:
+//			return *(int32_t*)(code+sizeof(char)+sizeof(int32_t));
+//			break;
+//	}
+//	return -1;
+//}
 
 typedef struct PrtElem
 {

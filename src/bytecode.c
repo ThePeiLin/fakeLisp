@@ -277,7 +277,7 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 							,fklGetI64FromByteCode(tmpCode->code+i+sizeof(char)));
 					break;
 				case FKL_OP_POP_ARG:
-				case FKL_OP_PUSH_VAR:
+				//case FKL_OP_PUSH_VAR:
 				case FKL_OP_PUSH_SYM:
 				case FKL_OP_POP_REST_ARG:
 					fklPrintRawSymbol(fklGetSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)),table)->symbol,fp);

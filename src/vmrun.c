@@ -277,7 +277,7 @@ static void B_push_chr(BYTE_CODE_ARGS);
 static void B_push_f64(BYTE_CODE_ARGS);
 static void B_push_str(BYTE_CODE_ARGS);
 static void B_push_sym(BYTE_CODE_ARGS);
-static void B_push_var(BYTE_CODE_ARGS);
+//static void B_push_var(BYTE_CODE_ARGS);
 static void B_dup(BYTE_CODE_ARGS);
 static void B_push_proc(BYTE_CODE_ARGS);
 static void B_drop(BYTE_CODE_ARGS);
@@ -334,7 +334,7 @@ static void (*ByteCodes[])(FklVM*,FklVMframe*)=
 	B_push_f64,
 	B_push_str,
 	B_push_sym,
-	B_push_var,
+	//B_push_var,
 	B_dup,
 	B_push_proc,
 	B_drop,
@@ -803,8 +803,8 @@ static void inline B_push_sym(FklVM* exe,FklVMframe* frame)
 	fklPushVMvalue(FKL_MAKE_VM_SYM(fklGetSidFromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(FklSid_t)))),exe->stack);
 }
 
-static void inline B_push_var(FklVM* exe,FklVMframe* frame)
-{
+//static void inline B_push_var(FklVM* exe,FklVMframe* frame)
+//{
 	//FklVMstack* stack=exe->stack;
 	//FklSid_t idOfVar=fklGetSidFromByteCode(fklGetCompoundFrameCode(frame));
 	//FklVMvalue* curEnv=fklGetCompoundFrameLocalenv(frame);
@@ -821,7 +821,7 @@ static void inline B_push_var(FklVM* exe,FklVMframe* frame)
 	//}
 	//fklPushVMvalue(*pv,stack);
 	//fklAddCompoundFrameCp(frame,sizeof(FklSid_t));
-}
+//}
 
 static void inline B_dup(FklVM* exe,FklVMframe* frame)
 {
@@ -874,7 +874,7 @@ static inline FklVMproc* createVMproc(uint8_t* spc
 			FklSymbolDef* c=&pt->refs[i];
 			if(c->isLocal)
 			{
-				if(c->cidx>=lr->lcount||lr->loc[c->idx]==FKL_VM_NIL)
+				if(c->cidx>=lr->lcount||lr->loc[c->cidx]==FKL_VM_NIL)
 				{
 					proc->unresolveRef++;
 					closure[i]=FKL_VM_NIL;

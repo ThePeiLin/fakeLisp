@@ -453,7 +453,7 @@ FklVMframe* fklCreateVMframeWithProc(FklVMproc*,FklVMframe*);
 void fklDestroyVMframe(FklVMframe*,FklVMframe* sf);
 FklString* fklGenErrorMessage(FklBuiltInErrorType type);
 FklString* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorType);
-int32_t fklGetSymbolIdInByteCode(const uint8_t*);
+//int32_t fklGetSymbolIdInByteCode(const uint8_t*);
 
 FklVMhashTable* fklCreateVMhashTable(FklVMhashTableEqType);
 void fklClearVMhashTable(FklVMhashTable* ht,FklVMgc*);

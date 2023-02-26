@@ -145,12 +145,12 @@ static FklByteCode* create9lenBc(FklOpcode op,uint64_t imm)
 	return r;
 }
 
-static FklByteCode* createPushVar(FklSid_t id)
-{
-	FklByteCode* r=create9lenBc(FKL_OP_PUSH_VAR,0);
-	fklSetSidToByteCode(r->code+sizeof(char),id);
-	return r;
-}
+//static FklByteCode* createPushVar(FklSid_t id)
+//{
+//	FklByteCode* r=create9lenBc(FKL_OP_PUSH_VAR,0);
+//	fklSetSidToByteCode(r->code+sizeof(char),id);
+//	return r;
+//}
 
 //static FklByteCode* createPopVar(uint32_t scope,FklSid_t id)
 //{
@@ -3494,12 +3494,12 @@ void fklDestroyCodegener(FklCodegen* codegen)
 	}
 }
 
-FklByteCodelnt* fklMakePushVar(const FklNastNode* exp,FklCodegen* codegen)
-{
-	FklSid_t sid=fklAddSymbol(fklGetSymbolWithId(exp->u.sym,codegen->publicSymbolTable)->symbol,codegen->globalSymTable)->id;
-	FklByteCodelnt* retval=createBclnt(createPushVar(sid),codegen->fid,exp->curline);
-	return retval;
-}
+//FklByteCodelnt* fklMakePushVar(const FklNastNode* exp,FklCodegen* codegen)
+//{
+//	FklSid_t sid=fklAddSymbol(fklGetSymbolWithId(exp->u.sym,codegen->publicSymbolTable)->symbol,codegen->globalSymTable)->id;
+//	FklByteCodelnt* retval=createBclnt(createPushVar(sid),codegen->fid,exp->curline);
+//	return retval;
+//}
 
 static inline int mapAllBuiltInPattern(FklNastNode* curExp
 		,FklPtrStack* codegenQuestStack
@@ -4054,23 +4054,23 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib** libs,Fk
 					{
 						case FKL_OP_POP_ARG:
 						case FKL_OP_POP_REST_ARG:
-						case FKL_OP_PUSH_VAR:
+						//case FKL_OP_PUSH_VAR:
 							{
 								FklSid_t id=fklGetSidFromByteCode(bc->code+i+sizeof(char));
 								if(opcode==FKL_OP_POP_ARG||opcode==FKL_OP_POP_REST_ARG)
 									fklAddCodegenDefBySid(id,1,curEnv);
-								else if(opcode==FKL_OP_PUSH_VAR)
-								{
-									int r=0;
-									for(FklCodegenEnv* e=curEnv;e;e=e->prev)
-									{
-										r=fklIsSymbolDefined(id,0,e);
-										if(r)
-											break;
-									}
-									if(!r)
-										fklPushPtrStack(createMayUndefine(curEnv,i,id),mayUndefined);
-								}
+								//else if(opcode==FKL_OP_PUSH_VAR)
+								//{
+								//	int r=0;
+								//	for(FklCodegenEnv* e=curEnv;e;e=e->prev)
+								//	{
+								//		r=fklIsSymbolDefined(id,0,e);
+								//		if(r)
+								//			break;
+								//	}
+								//	if(!r)
+								//		fklPushPtrStack(createMayUndefine(curEnv,i,id),mayUndefined);
+								//}
 							}
 							break;
 						case FKL_OP_IMPORT:

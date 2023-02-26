@@ -17,7 +17,7 @@ typedef struct FklCodegenEnv
 
 	uint32_t* scopes;
 	uint32_t sc;
-	uint32_t cscope;
+	uint32_t pscope;
 
 	uint32_t prototypeId;
 
@@ -130,6 +130,7 @@ typedef struct FklCodegenQuest
 	FklByteCodeProcesser processer;
 	FklCodegenQuestContext* context;
 	FklCodegenEnv* env;
+	uint32_t scope;
     uint64_t curline;
 	FklCodegen* codegen;
 	struct FklCodegenQuest* prev;
@@ -164,9 +165,16 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest*
 FklByteCodelnt* fklGenExpressionCodeWithFp(FILE*
 		,FklCodegen* codegen);
 
+FklSymbolDef* fklFindSymbolDefByIdAndScope(FklSid_t id,uint32_t scope,FklCodegenEnv* env);
+
 uint32_t fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env);
-uint32_t fklAddCodegenDefBySid(FklSid_t id,FklCodegenEnv* env);
+
+uint32_t fklAddCodegenDefBySid(FklSid_t id,uint32_t scope,FklCodegenEnv* env);
+
+int fklIsSymbolDefinedInCurScope(FklSid_t sid,uint32_t scope,FklCodegenEnv* env);
+
 int fklIsSymbolDefined(FklSid_t sid,uint32_t scope,FklCodegenEnv*);
+
 int fklIsReplacementDefined(FklSid_t sid,FklCodegenEnv*);
 
 FklNastNode* fklGetReplacement(FklSid_t sid,FklCodegenEnv*);

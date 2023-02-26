@@ -530,9 +530,9 @@ void fklInitCodegenEnvWithPatternParts(const FklNastNode* parts,FklCodegenEnv* e
 	{
 		FklNastNode* cur=base[i];
 		if(cur->type==FKL_NAST_SYM)
-			fklAddCodegenDefBySid(cur->u.sym,env);
+			fklAddCodegenDefBySid(cur->u.sym,0,env);
 		else if(cur->type==FKL_NAST_BOX)
-			fklAddCodegenDefBySid(cur->u.box->u.sym,env);
+			fklAddCodegenDefBySid(cur->u.box->u.sym,0,env);
 	}
 }
 

@@ -250,11 +250,12 @@ inline FklPrototypePool* fklCreatePrototypePool(void)
 	return r;
 }
 
-FklSymbolDef* fklCreateSymbolDef(FklSid_t key,uint32_t idx,uint32_t cidx,uint8_t isLocal)
+FklSymbolDef* fklCreateSymbolDef(FklSid_t key,uint32_t scope,uint32_t idx,uint32_t cidx,uint8_t isLocal)
 {
 	FklSymbolDef* r=(FklSymbolDef*)malloc(sizeof(FklSymbolDef));
 	FKL_ASSERT(r);
 	r->id=key;
+	r->scope=scope;
 	r->idx=idx;
 	r->cidx=cidx;
 	r->isLocal=isLocal;

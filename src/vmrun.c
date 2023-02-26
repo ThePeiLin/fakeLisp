@@ -846,12 +846,14 @@ static inline void inc_compound_frame_loc(FklVMCompoundFrameVarRef* f,uint32_t i
 {
 	if(idx>=f->lcount)
 	{
-		f->lcount++;
-		FklVMvalue** loc=(FklVMvalue**)realloc(f->loc,sizeof(FklVMvalue*)*f->lcount);
+		uint32_t nc=idx+1;
+		FklVMvalue** loc=(FklVMvalue**)realloc(f->loc,sizeof(FklVMvalue*)*nc);
 		FKL_ASSERT(loc);
 		f->loc=loc;
-		f->loc[idx]=FKL_VM_NIL;
+		for(uint32_t i=f->lcount;i<nc;i++)
+			f->loc[i]=FKL_VM_NIL;
 		f->loc[idx]=fklCreateVMvalueToStack(FKL_TYPE_BOX,FKL_VM_NIL,exe);
+		f->lcount=nc;
 		exe->stack->tp--;
 	}
 }

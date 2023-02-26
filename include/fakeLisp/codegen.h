@@ -15,6 +15,10 @@ typedef struct FklCodegenEnv
 {
 	FklPtrStack uref;
 
+	uint32_t* scopes;
+	uint32_t sc;
+	uint32_t cscope;
+
 	uint32_t prototypeId;
 
 	struct FklCodegenEnv* prev;
@@ -162,7 +166,7 @@ FklByteCodelnt* fklGenExpressionCodeWithFp(FILE*
 
 uint32_t fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env);
 uint32_t fklAddCodegenDefBySid(FklSid_t id,FklCodegenEnv* env);
-int fklIsSymbolDefined(FklSid_t sid,FklCodegenEnv*);
+int fklIsSymbolDefined(FklSid_t sid,uint32_t scope,FklCodegenEnv*);
 int fklIsReplacementDefined(FklSid_t sid,FklCodegenEnv*);
 
 FklNastNode* fklGetReplacement(FklSid_t sid,FklCodegenEnv*);
@@ -170,7 +174,6 @@ void fklAddReplacementBySid(FklSid_t sid,FklNastNode*,FklCodegenEnv*);
 
 FklCodegenEnv* fklCreateCodegenEnv(FklCodegenEnv* prev);
 void fklDestroyCodegenEnv(FklCodegenEnv* env);
-//FklCodegenEnv* fklCreateGlobCodegenEnv(FklSymbolTable* publicSymbolTable);
 
 void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib**,FklSymbolTable* symbolTable,size_t exportNum,FklSid_t* exports);
 

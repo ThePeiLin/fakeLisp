@@ -180,7 +180,7 @@ int fklIsReplacementDefined(FklSid_t sid,FklCodegenEnv*);
 FklNastNode* fklGetReplacement(FklSid_t sid,FklCodegenEnv*);
 void fklAddReplacementBySid(FklSid_t sid,FklNastNode*,FklCodegenEnv*);
 
-FklCodegenEnv* fklCreateCodegenEnv(FklCodegenEnv* prev);
+FklCodegenEnv* fklCreateCodegenEnv(FklCodegenEnv* prev,uint32_t pscope);
 void fklDestroyCodegenEnv(FklCodegenEnv* env);
 
 void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib**,FklSymbolTable* symbolTable,size_t exportNum,FklSid_t* exports);

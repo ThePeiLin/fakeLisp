@@ -83,7 +83,8 @@ static int is_last_expression(FklVMframe* frame)
 		for(;pc<end;pc+=(*pc==FKL_OP_JMP)?1+fklGetI64FromByteCode(pc+1)+sizeof(int64_t):1)
 			if(*pc!=FKL_OP_POP_TP
 					&&*pc!=FKL_OP_JMP
-					&&*pc!=FKL_OP_POP_R_ENV)
+					//&&*pc!=FKL_OP_POP_R_ENV
+					)
 				return 0;
 		frame->u.c.tail=1;
 	}
@@ -295,8 +296,8 @@ static void B_jmp_if_false(BYTE_CODE_ARGS);
 static void B_jmp(BYTE_CODE_ARGS);
 static void B_list_append(BYTE_CODE_ARGS);
 static void B_push_vector(BYTE_CODE_ARGS);
-static void B_push_r_env(BYTE_CODE_ARGS);
-static void B_pop_r_env(BYTE_CODE_ARGS);
+//static void B_push_r_env(BYTE_CODE_ARGS);
+//static void B_pop_r_env(BYTE_CODE_ARGS);
 static void B_tail_call(BYTE_CODE_ARGS);
 static void B_push_big_int(BYTE_CODE_ARGS);
 static void B_push_box(BYTE_CODE_ARGS);
@@ -352,8 +353,8 @@ static void (*ByteCodes[])(FklVM*,FklVMframe*)=
 	B_jmp,
 	B_list_append,
 	B_push_vector,
-	B_push_r_env,
-	B_pop_r_env,
+	//B_push_r_env,
+	//B_pop_r_env,
 	B_tail_call,
 	B_push_big_int,
 	B_push_box,
@@ -1128,18 +1129,18 @@ static void inline B_push_vector(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
-static void inline B_push_r_env(FklVM* exe,FklVMframe* frame)
-{
-	//FKL_NI_BEGIN(exe);
-	//FklVMvalue* n=fklCreateVMvalueToStack(FKL_TYPE_ENV,fklCreateVMenv(FKL_VM_NIL,exe->gc),exe);
-	//fklSetRef(&n->u.env->prev,fklGetCompoundFrameLocalenv(frame),exe->gc);
-	//fklNiEnd(&ap,stack);
-}
+//static void inline B_push_r_env(FklVM* exe,FklVMframe* frame)
+//{
+//	FKL_NI_BEGIN(exe);
+//	FklVMvalue* n=fklCreateVMvalueToStack(FKL_TYPE_ENV,fklCreateVMenv(FKL_VM_NIL,exe->gc),exe);
+//	fklSetRef(&n->u.env->prev,fklGetCompoundFrameLocalenv(frame),exe->gc);
+//	fklNiEnd(&ap,stack);
+//}
 
-static void inline B_pop_r_env(FklVM* exe,FklVMframe* frame)
-{
-	//frame->u.c.localenv=fklGetCompoundFrameLocalenv(frame)->u.env->prev;
-}
+//static void inline B_pop_r_env(FklVM* exe,FklVMframe* frame)
+//{
+//	frame->u.c.localenv=fklGetCompoundFrameLocalenv(frame)->u.env->prev;
+//}
 
 static void inline B_push_big_int(FklVM* exe,FklVMframe* frame)
 {

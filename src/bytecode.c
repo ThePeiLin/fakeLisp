@@ -389,7 +389,8 @@ static int fklIsTheLastExpression(uint64_t index,FklByteCode* bc)
 	for(uint64_t i=index;i<size;i+=(code[i]==FKL_OP_JMP)?fklGetI64FromByteCode(code+i+sizeof(char))+sizeof(char)+sizeof(int64_t):1)
 		if(code[i]!=FKL_OP_POP_TP
 				&&code[i]!=FKL_OP_JMP
-				&&code[i]!=FKL_OP_POP_R_ENV)
+				//&&code[i]!=FKL_OP_POP_R_ENV
+				)
 			return 0;
 	return 1;
 }

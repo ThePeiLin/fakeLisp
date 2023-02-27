@@ -4036,17 +4036,17 @@ void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib** libs,Fk
 					}
 					break;
 				case 0:
-					if(opcode==FKL_OP_PUSH_R_ENV)
-					{
-						curEnv=fklCreateCodegenEnv(curEnv,0);
-						curEnv->refcount=1;
-					}
-					else if(opcode==FKL_OP_POP_R_ENV)
-					{
-						FklCodegenEnv* p=curEnv->prev;
-						fklDestroyCodegenEnv(curEnv);
-						curEnv=p;
-					}
+					//if(opcode==FKL_OP_PUSH_R_ENV)
+					//{
+					//	curEnv=fklCreateCodegenEnv(curEnv,0);
+					//	curEnv->refcount=1;
+					//}
+					//else if(opcode==FKL_OP_POP_R_ENV)
+					//{
+					//	FklCodegenEnv* p=curEnv->prev;
+					//	fklDestroyCodegenEnv(curEnv);
+					//	curEnv=p;
+					//}
 					i+=sizeof(char);
 					break;
 				case 8:

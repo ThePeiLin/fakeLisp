@@ -781,6 +781,11 @@ static FklNastNode* readerMacroExpand(FklStringMatchPattern* pattern
 		r=fklCreateNastNodeFromVMvalue(fklGetTopValue(anotherVM->stack)
 				,curline,lineHash
 				,codegen->publicSymbolTable);
+		for(FklHashTableNodeList* list=ht->list;list;list=list->next)
+		{
+			FklPatternMatchingHashTableItem* item=list->node->item;
+			fklDestroyNastNode(item->node);
+		}
 	}
 	fklDestroyHashTable(ht);
 	fklDestroyHashTable(lineHash);
@@ -904,7 +909,6 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 				while(!fklIsPtrStackEmpty(curQuest->nast))
 				{
 					FklNastNode* curNode=fklPopPtrStack(curQuest->nast);
-					curNode->refcount++;
 					fklDestroyNastNode(curNode);
 				}
 				destroyNastNodeQuest(curQuest);
@@ -914,6 +918,7 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 					while(!fklIsPtrStackEmpty(cur->nast))
 					{
 						FklNastNode* curNode=fklPopPtrStack(cur->nast);
+						curNode->refcount++;
 						fklDestroyNastNode(curNode);
 					}
 					destroyNastNodeQuest(cur);

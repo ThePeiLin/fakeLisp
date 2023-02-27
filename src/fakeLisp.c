@@ -49,7 +49,7 @@ int main(int argc,char** argv)
 			free(lib->rp);
 			free(lib);
 		}
-		fklUninitCodegener(&codegen,0);
+		fklUninitCodegener(&codegen);
 		fklUninitCodegen();
 	}
 	else if(fklIsscript(filename))
@@ -78,7 +78,8 @@ int main(int argc,char** argv)
 		FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
 		if(mainByteCode==NULL)
 		{
-			fklUninitCodegener(&codegen,1);
+			fklDestroyPrototypePool(codegen.ptpool);
+			fklUninitCodegener(&codegen);
 			fklUninitCodegen();
 			fklDestroyMainFileRealPath();
 			fklDestroyCwd();
@@ -125,7 +126,7 @@ int main(int argc,char** argv)
 		fklJoinAllThread(anotherVM);
 		fklDestroyVMgc(anotherVM->gc);
 		fklDestroyAllVMs(anotherVM);
-		fklUninitCodegener(&codegen,0);
+		fklUninitCodegener(&codegen);
 		fklUninitCodegen();
 	}
 	else if(fklIscode(filename))

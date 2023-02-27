@@ -352,6 +352,7 @@ static FklStringMatchPattern* createBuiltinStringPattern(FklNastNode* parts
 	r->type=FKL_STRING_PATTERN_BUILTIN;
 	r->u.func=func;
 	r->next=next;
+	r->ptpool=NULL;
 	return r;
 }
 
@@ -584,6 +585,7 @@ void fklDestroyStringPattern(FklStringMatchPattern* o)
 {
 	if(o->type==FKL_STRING_PATTERN_DEFINED)
 		fklDestroyByteCodelnt(o->u.proc);
+	fklDestroyPrototypePool(o->ptpool);
 	fklDestroyNastNode(o->parts);
 	free(o);
 }

@@ -64,7 +64,8 @@ int main(int argc,char** argv)
 				if(mainByteCode==NULL)
 				{
 					free(rp);
-					fklUninitCodegener(&codegen,1);
+					fklDestroyPrototypePool(codegen.ptpool);
+					fklUninitCodegener(&codegen);
 					fklUninitCodegen();
 					fklDestroyMainFileRealPath();
 					fklDestroyCwd();
@@ -81,7 +82,8 @@ int main(int argc,char** argv)
 				if(!outfp)
 				{
 					fprintf(stderr,"%s:Can't create byte code file!",outputname);
-					fklUninitCodegener(&codegen,1);
+					fklDestroyPrototypePool(codegen.ptpool);
+					fklUninitCodegener(&codegen);
 					fklUninitCodegen();
 					fklDestroyMainFileRealPath();
 					fklDestroyCwd();
@@ -129,7 +131,7 @@ int main(int argc,char** argv)
 				fclose(outfp);
 				fklDestroyMainFileRealPath();
 				fklDestroyCwd();
-				fklUninitCodegener(&codegen,0);
+				fklUninitCodegener(&codegen);
 				free(outputname);
 			}
 			else

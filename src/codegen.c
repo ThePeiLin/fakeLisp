@@ -1987,7 +1987,7 @@ static void add_symbol_with_prefix_to_locale_env_in_array(FklCodegenEnv* env
 	}
 }
 
-static void add_compiler_macro(FklCodegenMacroScope* macros,FklNastNode* pattern,FklByteCodelnt* bcl)
+static void add_compiler_macro(FklCodegenMacroScope* macros,FklNastNode* pattern,FklByteCodelnt* bcl,FklPrototypePool* ptpool)
 {
 	int coverState=0;
 	FklCodegenMacro** pmacro=&macros->head;
@@ -2000,7 +2000,7 @@ static void add_compiler_macro(FklCodegenMacroScope* macros,FklNastNode* pattern
 	}
 	if(!coverState)
 	{
-		FklCodegenMacro* macro=fklCreateCodegenMacro(pattern,bcl,macros->head);
+		FklCodegenMacro* macro=fklCreateCodegenMacro(pattern,bcl,macros->head,ptpool);
 		macros->head=macro;
 	}
 	else
@@ -2008,13 +2008,13 @@ static void add_compiler_macro(FklCodegenMacroScope* macros,FklNastNode* pattern
 		if(coverState==FKL_PATTERN_COVER)
 		{
 			FklCodegenMacro* next=*pmacro;
-			*pmacro=fklCreateCodegenMacro(pattern,bcl,next);
+			*pmacro=fklCreateCodegenMacro(pattern,bcl,next,ptpool);
 		}
 		else if(coverState==FKL_PATTERN_BE_COVER)
 		{
 			FklCodegenMacro* cur=(*pmacro);
 			FklCodegenMacro* next=cur->next;
-			cur->next=fklCreateCodegenMacro(pattern,bcl,next);
+			cur->next=fklCreateCodegenMacro(pattern,bcl,next,ptpool);
 		}
 		else
 		{
@@ -2039,7 +2039,7 @@ BC_PROCESS(_library_export_macro_bc_process)
 	FklPtrStack* stack=GET_STACK(context);
 	FklCodegenEnv* exportTargetEnv=stack->base[0];
 	for(FklCodegenMacro* cur=codegen->globalEnv->macros->head;cur;cur=cur->next)
-		add_compiler_macro(exportTargetEnv->macros,fklMakeNastNodeRef(cur->pattern),fklCopyByteCodelnt(cur->bcl));
+		add_compiler_macro(exportTargetEnv->macros,fklMakeNastNodeRef(cur->pattern),fklCopyByteCodelnt(cur->bcl),NULL);
 	for(FklHashTableNodeList* cur=codegen->globalEnv->macros->replacements->list;cur;cur=cur->next)
 	{
 		FklCodegenReplacement* rep=cur->node->item;
@@ -2078,7 +2078,7 @@ BC_PROCESS(_library_export_macro_with_prefix_pc_process)
 				,fklMakeNastNodeRef(createPatternWithPrefixFromOrig(cur->pattern
 						,prefix
 						,codegen->publicSymbolTable))
-				,fklCopyByteCodelnt(cur->bcl));
+				,fklCopyByteCodelnt(cur->bcl),NULL);
 
 	for(FklHashTableNodeList* cur=codegen->globalEnv->macros->replacements->list;cur;cur=cur->next)
 	{
@@ -2495,7 +2495,7 @@ static inline void process_import_script(FklNastNode* origExp
 	{
 		FklCodegenLib* lib=codegen->loadedLibStack->base[libId-1];
 		for(FklCodegenMacro* cur=lib->head;cur;cur=cur->next)
-			add_compiler_macro(curEnv->macros,fklMakeNastNodeRef(cur->pattern),fklCopyByteCodelnt(cur->bcl));
+			add_compiler_macro(curEnv->macros,fklMakeNastNodeRef(cur->pattern),fklCopyByteCodelnt(cur->bcl),NULL);
 		add_symbol_to_locale_env_in_array(curEnv
 				,codegen->globalSymTable
 				,codegen->publicSymbolTable
@@ -2776,7 +2776,7 @@ static inline void process_import_script_with_prefix(FklNastNode* origExp
                     ,fklMakeNastNodeRef(createPatternWithPrefixFromOrig(cur->pattern
                             ,prefix
                             ,codegen->publicSymbolTable))
-                    ,fklCopyByteCodelnt(cur->bcl));
+                    ,fklCopyByteCodelnt(cur->bcl),NULL);
 
         for(FklHashTableNodeList* cur=lib->replacements->list;cur;cur=cur->next)
         {
@@ -2991,7 +2991,8 @@ BC_PROCESS(_compiler_macro_bc_process)
 	FklByteCodelnt* macroBcl=fklPopPtrStack(stack);
 	FklNastNode* pattern=fklPopPtrStack(stack);
 	FklCodegenMacroScope* macros=fklPopPtrStack(stack);
-	add_compiler_macro(macros,pattern,macroBcl);
+	fklUpdatePrototype(codegen->ptpool,env,codegen->globalSymTable,codegen->publicSymbolTable);
+	add_compiler_macro(macros,pattern,macroBcl,codegen->ptpool);
 	return fklCreateByteCodelnt(fklCreateByteCode(0));
 }
 
@@ -3178,6 +3179,7 @@ static CODEGEN_FUNC(codegen_defmacro)
 		fklPushPtrStack(curEnv->macros,bcStack);
 		fklPushPtrStack(fklMakeNastNodeRef(name),bcStack);
 
+		create_and_insert_to_pool(macroCodegen->ptpool,0,macroEnv,macroCodegen->globalSymTable,macroCodegen->publicSymbolTable);
 		FklPtrQueue* queue=fklCreatePtrQueue();
 		fklPushPtrQueue(fklMakeNastNodeRef(value),queue);
 		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_compiler_macro_bc_process
@@ -3230,6 +3232,7 @@ static CODEGEN_FUNC(codegen_defmacro)
 		FklPtrStack* bcStack=fklCreatePtrStack(16,16);
 		fklPushPtrStack(fklMakeNastNodeRef(name),bcStack);
 
+		create_and_insert_to_pool(macroCodegen->ptpool,0,macroEnv,macroCodegen->globalSymTable,macroCodegen->publicSymbolTable);
 		FklPtrQueue* queue=fklCreatePtrQueue();
 		fklPushPtrQueue(fklMakeNastNodeRef(value),queue);
 		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_reader_macro_bc_process
@@ -4235,13 +4238,14 @@ void fklDestroyCodegenLib(FklCodegenLib* lib)
 	free(lib);
 }
 
-FklCodegenMacro* fklCreateCodegenMacro(FklNastNode* pattern,FklByteCodelnt* bcl,FklCodegenMacro* next)
+FklCodegenMacro* fklCreateCodegenMacro(FklNastNode* pattern,FklByteCodelnt* bcl,FklCodegenMacro* next,FklPrototypePool* ptpool)
 {
 	FklCodegenMacro* r=(FklCodegenMacro*)malloc(sizeof(FklCodegenMacro));
 	FKL_ASSERT(r);
 	r->pattern=fklMakeNastNodeRef(pattern);
 	r->bcl=bcl;
 	r->next=next;
+	r->ptpool=ptpool;
 	return r;
 }
 
@@ -4300,21 +4304,30 @@ static FklCodegenMacro* findMacro(FklNastNode* exp
 	return r;
 }
 
-//static FklVMenv* createVMenvFromPatternMatchTable(FklVMvalue* prev
-//		,FklHashTable* ht
-//		,FklHashTable* lineHash
-//		,FklVMgc* gc)
-//{
-	//FklVMenv* env=fklCreateVMenv(prev,gc);
-	//for(FklHashTableNodeList* list=ht->list;list;list=list->next)
-	//{
-	//	FklPatternMatchingHashTableItem* item=list->node->item;
-	//	FklVMvalue* v=fklCreateVMvalueFromNastNodeNoGC(item->node,lineHash,gc);
-	//	FklVMvalue* volatile* pv=fklFindOrAddVar(item->id,env);
-	//	*pv=v;
-	//}
-	//return env;
-//}
+static void initVMframeFromPatternMatchTable(FklVMCompoundFrameVarRef* lr
+		,FklHashTable* ht
+		,FklHashTable* lineHash
+		,FklVMgc* gc)
+{
+	uint32_t count=ht->num;
+	FklVMvalue** loc=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*count);
+	FKL_ASSERT(loc);
+	for(uint32_t i=0;i<count;i++)
+	{
+		loc[i]=FKL_VM_NIL;
+		loc[i]=fklCreateVMvalueNoGC(FKL_TYPE_BOX,FKL_VM_NIL,gc);
+	}
+	uint32_t idx=0;
+	for(FklHashTableNodeList* list=ht->list;list;list=list->next)
+	{
+		FklPatternMatchingHashTableItem* item=list->node->item;
+		FklVMvalue* v=fklCreateVMvalueFromNastNodeNoGC(item->node,lineHash,gc);
+		loc[idx]->u.box=v;
+		idx++;
+	}
+	lr->loc=loc;
+	lr->lcount=count;
+}
 
 FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 		,FklPrototypePool* ptpool
@@ -4336,6 +4349,7 @@ FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 		fklInitVMlibWithCodgenLib(cur,&anotherVM->libs[i],FKL_VM_NIL,anotherVM->gc,1);
 	}
 	FklVMframe* mainframe=anotherVM->frames;
+	initVMframeFromPatternMatchTable(fklGetCompoundFrameLocRef(mainframe),ht,lineHash,anotherVM->gc);
 	fklInitGlobalVMclosure(mainframe,anotherVM);
 	anotherVM->ptpool=ptpool;
 	return anotherVM;

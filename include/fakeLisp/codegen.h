@@ -225,7 +225,8 @@ void fklDestroyCodegenLib(FklCodegenLib*);
 
 FklCodegenMacro* fklCreateCodegenMacro(FklNastNode* pattern
 		,FklByteCodelnt* bcl
-		,FklCodegenMacro* next);
+		,FklCodegenMacro* next
+		,FklPrototypePool* ptpool);
 void fklDestroyCodegenMacro(FklCodegenMacro* macro);
 void fklDestroyCodegenMacroList(FklCodegenMacro* macro);
 

@@ -721,7 +721,7 @@ static FklHashTable* processNastStackWithPatternParts(FklNastNode* parts
 		switch(curPart->type)
 		{
 			case FKL_NAST_SYM:
-				fklPatternMatchingHashTableSet(curPart->u.sym,fklMakeNastNodeRef(curNast),ht);
+				fklPatternMatchingHashTableSet(curPart->u.sym,curNast,ht);
 				nastIndex++;
 				routeIndex--;
 				break;
@@ -730,7 +730,7 @@ static FklHashTable* processNastStackWithPatternParts(FklNastNode* parts
 					size_t num=getNumOfList(routeIndex
 							,(FklStringMatchRouteNode**)routeStack.base
 							,tokenStack);
-					FklNastNode* list=fklMakeNastNodeRef(fklCreateNastList(&nastBase[nastIndex],num,curNast->curline));
+					FklNastNode* list=fklCreateNastList(&nastBase[nastIndex],num,curNast->curline);
 					nastIndex+=num;
 					routeIndex-=num;
 					fklPatternMatchingHashTableSet(curPart->u.box->u.sym,list,ht);
@@ -909,6 +909,7 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 				while(!fklIsPtrStackEmpty(curQuest->nast))
 				{
 					FklNastNode* curNode=fklPopPtrStack(curQuest->nast);
+					curNode->refcount++;
 					fklDestroyNastNode(curNode);
 				}
 				destroyNastNodeQuest(curQuest);

@@ -34,6 +34,7 @@ void fklUpdatePrototype(FklPrototypePool* cp,FklCodegenEnv* env,FklSymbolTable* 
 typedef struct FklCodegenMacro
 {
 	FklNastNode* pattern;
+	FklPrototypePool* ptpool;
 	FklByteCodelnt* bcl;
 	struct FklCodegenMacro* next;
 }FklCodegenMacro;
@@ -238,6 +239,7 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 
 struct FklVM;
 struct FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
+		,FklPrototypePool* ptpool
 		,FklHashTable* ht
 		,FklHashTable* lineHash
 		,FklCodegen* codegen);

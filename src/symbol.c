@@ -272,10 +272,13 @@ void fklUninitPrototype(FklPrototype* p)
 
 void fklDestroyPrototypePool(FklPrototypePool* p)
 {
-	FklPrototype* pts=p->pts;
-	uint32_t count=p->count;
-	for(uint32_t i=0;i<count;i++)
-		fklUninitPrototype(&pts[i]);
-	free(pts);
-	free(p);
+	if(p)
+	{
+		FklPrototype* pts=p->pts;
+		uint32_t count=p->count;
+		for(uint32_t i=0;i<count;i++)
+			fklUninitPrototype(&pts[i]);
+		free(pts);
+		free(p);
+	}
 }

@@ -843,7 +843,7 @@ FklCodegenEnv* fklCreateCodegenEnv(FklCodegenEnv* prev,uint32_t pscope)
 		r->macros=fklCreateCodegenMacroScope(prev->macros);
 	}
 	else
-		r->macros=NULL;
+		r->macros=fklCreateCodegenMacroScope(NULL);
 	return r;
 }
 
@@ -3147,8 +3147,7 @@ static CODEGEN_FUNC(codegen_defmacro)
 		}
 		FklCodegenEnv* globalEnv=curEnv;
 		while(globalEnv->prev)globalEnv=globalEnv->prev;
-		FklCodegenEnv* macroEnv=fklCreateCodegenEnv(globalEnv,0);
-		macroEnv->macros->prev=curEnv->macros;
+		FklCodegenEnv* macroEnv=fklCreateCodegenEnv(NULL,0);
 		for(FklHashTableNodeList* list=symbolTable->list
 				;list
 				;list=list->next)
@@ -3167,11 +3166,13 @@ static CODEGEN_FUNC(codegen_defmacro)
 		macroCodegen->curDir=fklCopyCstr(codegen->curDir);
 		macroCodegen->filename=fklCopyCstr(codegen->filename);
 		macroCodegen->realpath=fklCopyCstr(codegen->realpath);
+		macroCodegen->ptpool=fklCreatePrototypePool();
 
 		macroCodegen->globalSymTable=codegen->publicSymbolTable;
 		macroCodegen->publicSymbolTable=codegen->publicSymbolTable;
 		macroCodegen->fid=macroCodegen->filename?fklAddSymbolCstr(macroCodegen->filename,macroCodegen->publicSymbolTable)->id:0;
 		macroCodegen->loadedLibStack=macroCodegen->macroLibStack;
+		fklInitGlobCodegenEnv(macroEnv,macroCodegen->publicSymbolTable);
 
 		FklPtrStack* bcStack=fklCreatePtrStack(16,16);
 		fklPushPtrStack(curEnv->macros,bcStack);
@@ -4316,6 +4317,7 @@ static FklCodegenMacro* findMacro(FklNastNode* exp
 //}
 
 FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
+		,FklPrototypePool* ptpool
 		,FklHashTable* ht
 		,FklHashTable* lineHash
 		,FklCodegen* codegen)
@@ -4333,6 +4335,9 @@ FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 		FklCodegenLib* cur=macroLibStack->base[i];
 		fklInitVMlibWithCodgenLib(cur,&anotherVM->libs[i],FKL_VM_NIL,anotherVM->gc,1);
 	}
+	FklVMframe* mainframe=anotherVM->frames;
+	fklInitGlobalVMclosure(mainframe,anotherVM);
+	anotherVM->ptpool=ptpool;
 	return anotherVM;
 }
 
@@ -4347,9 +4352,10 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 	for(FklCodegenMacro* macro=findMacro(r,macros,&ht);macro;macro=findMacro(r,macros,&ht))
 	{
 		FklHashTable* lineHash=fklCreateLineNumHashTable();
-		FklVM* anotherVM=fklInitMacroExpandVM(macro->bcl,ht,lineHash,codegen);
+		FklVM* anotherVM=fklInitMacroExpandVM(macro->bcl,macro->ptpool,ht,lineHash,codegen);
 		FklVMgc* gc=anotherVM->gc;
 		int e=fklRunVM(anotherVM);
+		anotherVM->ptpool=NULL;
 		if(e)
 		{
 			errorState->type=FKL_ERR_MACROEXPANDFAILED;

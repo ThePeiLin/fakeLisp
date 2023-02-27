@@ -302,6 +302,9 @@ FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVMframe* prev,Fkl
 	f->end=tmp->u.c.pc+codeObj->u.code->bc->size;
 	f->mark=0;
 	f->tail=0;
+
+	f->children=NULL;
+	f->chc=0;
 	f->lr.rcount=0;
 	f->lr.ref=0;
 	f->lr.loc=NULL;

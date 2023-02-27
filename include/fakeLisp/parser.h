@@ -77,7 +77,6 @@ FklNastNode* fklCreateNastNodeFromCstr(const char*
 		,const FklSid_t t[4]
 		,struct FklStringMatchPattern* pattern
 		,FklSymbolTable* publicSymbolTable);
-FklNastNode* fklCopyNastNode(const FklNastNode* n);
 void fklDestroyNastNode(FklNastNode*);
 void fklPrintNastNode(const FklNastNode* node
 		,FILE* fp

@@ -958,7 +958,7 @@ FklNastNode* fklGetReplacement(FklSid_t id,FklCodegenEnv* env)
 {
 	FklCodegenReplacement* replace=fklGetHashItem(&id,env->macros->replacements);
 	if(replace)
-		return fklCopyNastNode(replace->node);
+		return fklMakeNastNodeRef(replace->node);
 	return NULL;
 }
 
@@ -3200,7 +3200,6 @@ static CODEGEN_FUNC(codegen_defmacro)
 			return;
 		}
 		FklCodegenEnv* macroEnv=fklCreateCodegenEnv(NULL,0);
-		macroEnv->macros->prev=curEnv->macros;
 		for(FklHashTableNodeList* list=symbolTable->list
 				;list
 				;list=list->next)

@@ -133,15 +133,14 @@ static FklNastNode* listProcesser(FklPtrStack* nastStack
 	for(size_t i=0;i<nastStack->top;i++)
 	{
 		FklNastNode* node=nastStack->base[i];
-		(*cur)=fklMakeNastNodeRef(fklCreateNastNode(FKL_NAST_PAIR,node->curline));
+		(*cur)=fklCreateNastNode(FKL_NAST_PAIR,node->curline);
 		(*cur)->u.pair=fklCreateNastPair();
-		(*cur)->u.pair->car=fklMakeNastNodeRef(node);
+		(*cur)->u.pair->car=node;
 		cur=&(*cur)->u.pair->cdr;
 	}
 	if(r&&!(*cur))
-		(*cur)=fklMakeNastNodeRef(fklCreateNastNode(FKL_NAST_NIL,line));
-	if(retval)
-		retval->refcount=0;
+		(*cur)=fklCreateNastNode(FKL_NAST_NIL,line);
+	retval->refcount=0;
 	return retval;
 }
 
@@ -156,15 +155,14 @@ static FklNastNode* pairProcesser(FklPtrStack* nastStack
 	for(size_t i=0;i<nastStack->top-1;i++)
 	{
 		FklNastNode* node=nastStack->base[i];
-		(*cur)=fklMakeNastNodeRef(fklCreateNastNode(FKL_NAST_PAIR,node->curline));
+		(*cur)=fklCreateNastNode(FKL_NAST_PAIR,node->curline);
 		(*cur)->u.pair=fklCreateNastPair();
-		(*cur)->u.pair->car=fklMakeNastNodeRef(node);
+		(*cur)->u.pair->car=node;
 		cur=&(*cur)->u.pair->cdr;
 	}
 	if(r&&!(*cur))
-		(*cur)=fklMakeNastNodeRef(fklTopPtrStack(nastStack));
-	if(retval)
-		retval->refcount=0;
+		(*cur)=fklTopPtrStack(nastStack);
+	retval->refcount=0;
 	return retval;
 }
 
@@ -178,7 +176,7 @@ static FklNastNode* vectorProcesser(FklPtrStack* nastStack
 	for(size_t i=0;i<nastStack->top;i++)
 	{
 		FklNastNode* node=nastStack->base[i];
-		retval->u.vec->base[i]=fklMakeNastNodeRef(node);
+		retval->u.vec->base[i]=node;
 	}
 	return retval;
 }
@@ -333,7 +331,7 @@ static FklNastNode* createPatternPartFromCstr(const char* s,FklSymbolTable* publ
 			break;
 		case '&':
 			r->type=FKL_NAST_BOX;
-			r->u.box=fklMakeNastNodeRef(fklCreateNastNode(FKL_NAST_SYM,0));
+			r->u.box=fklCreateNastNode(FKL_NAST_SYM,0);
 			r->u.box->u.sym=fklAddSymbolCstr(&s[1],publicSymbolTable)->id;
 			break;
 		default:
@@ -348,7 +346,7 @@ static FklStringMatchPattern* createBuiltinStringPattern(FklNastNode* parts
 {
 	FklStringMatchPattern* r=(FklStringMatchPattern*)malloc(sizeof(FklStringMatchPattern));
 	FKL_ASSERT(r);
-	r->parts=fklMakeNastNodeRef(parts);
+	r->parts=parts;
 	r->type=FKL_STRING_PATTERN_BUILTIN;
 	r->u.func=func;
 	r->next=next;
@@ -417,7 +415,7 @@ FklStringMatchPattern* fklInitBuiltInStringPattern(FklSymbolTable* publicSymbolT
 		FklNastNode* vec=fklCreateNastNode(FKL_NAST_VECTOR,0);
 		vec->u.vec=fklCreateNastVector(num);
 		for(size_t i=0;i<num;i++)
-			vec->u.vec->base[i]=fklMakeNastNodeRef(createPatternPartFromCstr(curParts[i],publicSymbolTable));
+			vec->u.vec->base[i]=createPatternPartFromCstr(curParts[i],publicSymbolTable);
 		r=createBuiltinStringPattern(vec,cur->func,r);
 	}
 	return r;
@@ -509,7 +507,7 @@ int fklIsValidStringPattern(const FklNastNode* parts,FklHashTable** psymbolTable
 						*psymbolTable=NULL;
 						return 0;
 					}
-					fklPutNoRpHashItem(createSidHashItem(cur->u.sym)
+					fklPutNoRpHashItem(createSidHashItem(id)
 							,symbolTable);
 				}
 				break;

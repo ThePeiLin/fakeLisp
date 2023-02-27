@@ -860,8 +860,7 @@ void fklDestroyCodegenEnv(FklCodegenEnv* env)
 			fklDestroyHashTable(cur->defs);
 			fklDestroyHashTable(cur->refs);
 			fklUninitPtrStack(&cur->uref);
-			if(cur->prev)
-				fklDestroyCodegenMacroScope(cur->macros);
+			fklDestroyCodegenMacroScope(cur->macros);
 			free(cur);
 		}
 		else
@@ -4253,6 +4252,7 @@ void fklDestroyCodegenMacro(FklCodegenMacro* macro)
 {
 	fklDestroyNastNode(macro->pattern);
 	fklDestroyByteCodelnt(macro->bcl);
+	fklDestroyPrototypePool(macro->ptpool);
 	free(macro);
 }
 
@@ -4304,11 +4304,13 @@ static FklCodegenMacro* findMacro(FklNastNode* exp
 	return r;
 }
 
-static void initVMframeFromPatternMatchTable(FklVMCompoundFrameVarRef* lr
+static void initVMframeFromPatternMatchTable(FklVMframe* frame
 		,FklHashTable* ht
 		,FklHashTable* lineHash
 		,FklVMgc* gc)
 {
+	FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(frame);
+	FklVMproc* proc=fklGetCompoundFrameProc(frame)->u.proc;
 	uint32_t count=ht->num;
 	FklVMvalue** loc=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*count);
 	FKL_ASSERT(loc);
@@ -4327,6 +4329,8 @@ static void initVMframeFromPatternMatchTable(FklVMCompoundFrameVarRef* lr
 	}
 	lr->loc=loc;
 	lr->lcount=count;
+	proc->closure=lr->ref;
+	proc->count=lr->rcount;
 }
 
 FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
@@ -4349,8 +4353,8 @@ FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 		fklInitVMlibWithCodgenLib(cur,&anotherVM->libs[i],FKL_VM_NIL,anotherVM->gc,1);
 	}
 	FklVMframe* mainframe=anotherVM->frames;
-	initVMframeFromPatternMatchTable(fklGetCompoundFrameLocRef(mainframe),ht,lineHash,anotherVM->gc);
 	fklInitGlobalVMclosure(mainframe,anotherVM);
+	initVMframeFromPatternMatchTable(mainframe,ht,lineHash,anotherVM->gc);
 	anotherVM->ptpool=ptpool;
 	return anotherVM;
 }

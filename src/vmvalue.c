@@ -556,6 +556,24 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 
 #undef SENTINEL_NAST_NODE
 
+FklVMproc* fklCreateVMprocWithWholeCodeObj(FklVMvalue* codeObj,FklVMgc* gc)
+{
+	FklByteCode* bc=codeObj->u.code->bc;
+	FklVMproc* tmp=(FklVMproc*)malloc(sizeof(FklVMproc));
+	FKL_ASSERT(tmp);
+	//tmp->prevEnv=FKL_VM_NIL;
+	tmp->spc=bc->code;
+	tmp->end=bc->code+bc->size;
+	tmp->sid=0;
+	tmp->closure=NULL;
+	tmp->count=0;
+	tmp->by=NULL;
+	tmp->protoId=1;
+	tmp->unresolveRef=0;
+	fklSetRef(&tmp->codeObj,codeObj,gc);
+	return tmp;
+}
+
 FklVMproc* fklCreateVMproc(uint8_t* spc,uint64_t cpc,FklVMvalue* codeObj,FklVMgc* gc)
 {
 	FklVMproc* tmp=(FklVMproc*)malloc(sizeof(FklVMproc));

@@ -100,10 +100,12 @@ int main(int argc,char** argv)
 
 		FklVMframe* mainframe=anotherVM->frames;
 		fklInitGlobalVMclosure(mainframe,anotherVM);
-		FklVMvalue** ref=mainframe->u.c.lr.ref;
+		FklVMCompoundFrameVarRef* lr=&mainframe->u.c.lr;
 
 		FklVMproc* tmp=fklCreateVMproc(mainByteCode->bc->code,mainByteCode->bc->size,anotherVM->codeObj,anotherVM->gc);
 		tmp->protoId=1;
+		tmp->closure=lr->ref;
+		tmp->count=lr->rcount;
 		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,tmp,anotherVM->gc);
 		fklInitMainVMframeWithProc(mainframe,tmp,NULL);
 		mainframe->u.c.proc=proc;
@@ -121,7 +123,6 @@ int main(int argc,char** argv)
 		else
 			fklWaitGC(anotherVM->gc);
 		fklJoinAllThread(anotherVM);
-		free(ref);
 		fklDestroyVMgc(anotherVM->gc);
 		fklDestroyAllVMs(anotherVM);
 		fklUninitCodegener(&codegen);

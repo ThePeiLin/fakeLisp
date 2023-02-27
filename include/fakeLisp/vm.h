@@ -472,6 +472,7 @@ void fklDestroyVMhashTable(FklVMhashTable*);
 //void fklDestroyVMenv(FklVMenv*);
 
 FklVMproc* fklCreateVMproc(uint8_t* spc,uint64_t cpc,FklVMvalue* codeObj,FklVMgc* gc);
+FklVMproc* fklCreateVMprocWithWholeCodeObj(FklVMvalue* codeObj,FklVMgc* gc);
 
 void fklAtomicVMhashTable(FklVMvalue* pht,FklVMgc* gc);
 //void fklAtomicVMenv(FklVMvalue* penv,FklVMgc*);

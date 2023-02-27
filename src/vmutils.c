@@ -288,6 +288,8 @@ FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe* f,FklVMframe* pr
 FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVMframe* prev,FklVMgc* gc)
 {
 	FklVMframe* tmp=(FklVMframe*)malloc(sizeof(FklVMframe));
+	FklVMproc* proc=fklCreateVMprocWithWholeCodeObj(codeObj,gc);
+	FklVMvalue* procV=fklCreateVMvalueNoGC(FKL_TYPE_PROC,proc,gc);
 	FKL_ASSERT(tmp);
 	tmp->prev=prev;
 	tmp->errorCallBack=NULL;
@@ -296,7 +298,7 @@ FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVMframe* prev,Fkl
 	FklVMCompoundFrameData* f=&tmp->u.c;
 	f->sid=0;
 	fklSetRef(&f->codeObj,codeObj,gc);
-	f->proc=FKL_VM_NIL;
+	f->proc=procV;
 	f->pc=codeObj->u.code->bc->code;
 	f->spc=tmp->u.c.pc;
 	f->end=tmp->u.c.pc+codeObj->u.code->bc->size;

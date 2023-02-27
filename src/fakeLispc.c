@@ -64,7 +64,7 @@ int main(int argc,char** argv)
 				if(mainByteCode==NULL)
 				{
 					free(rp);
-					fklUninitCodegener(&codegen);
+					fklUninitCodegener(&codegen,1);
 					fklUninitCodegen();
 					fklDestroyMainFileRealPath();
 					fklDestroyCwd();
@@ -81,7 +81,7 @@ int main(int argc,char** argv)
 				if(!outfp)
 				{
 					fprintf(stderr,"%s:Can't create byte code file!",outputname);
-					fklUninitCodegener(&codegen);
+					fklUninitCodegener(&codegen,1);
 					fklUninitCodegen();
 					fklDestroyMainFileRealPath();
 					fklDestroyCwd();
@@ -129,7 +129,7 @@ int main(int argc,char** argv)
 				fclose(outfp);
 				fklDestroyMainFileRealPath();
 				fklDestroyCwd();
-				fklUninitCodegener(&codegen);
+				fklUninitCodegener(&codegen,0);
 				free(outputname);
 			}
 			else

@@ -152,7 +152,7 @@ void fklInitCodegener(FklCodegen* codegen
 		,FklSymbolTable* publicSymbolTable
 		,int destroyAbleMark);
 
-void fklUninitCodegener(FklCodegen* codegen);
+void fklUninitCodegener(FklCodegen* codegen,int);
 void fklDestroyCodegener(FklCodegen* codegen);
 FklCodegen* fklCreateCodegener(void);
 const FklSid_t* fklInitCodegen(FklSymbolTable*);

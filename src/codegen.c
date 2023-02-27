@@ -3487,7 +3487,7 @@ void fklDestroyCodegener(FklCodegen* codegen)
 		FklCodegen* prev=codegen->prev;
 		if(!codegen->refcount)
 		{
-			fklUninitCodegener(codegen);
+			fklUninitCodegener(codegen,0);
 			free(codegen);
 			codegen=prev;
 		}
@@ -3885,7 +3885,7 @@ void fklInitCodegener(FklCodegen* codegen
 	}
 }
 
-void fklUninitCodegener(FklCodegen* codegen)
+void fklUninitCodegener(FklCodegen* codegen,int freePtpool)
 {
 	fklDestroyCodegenEnv(codegen->globalEnv);
 	if(codegen->phead==&codegen->head)
@@ -3902,6 +3902,8 @@ void fklUninitCodegener(FklCodegen* codegen)
 			fklDestroyCodegenLib(fklPopPtrStack(codegen->loadedLibStack));
 		fklDestroyPtrStack(codegen->loadedLibStack);
 		FklPtrStack* macroLibStack=codegen->macroLibStack;
+		if(freePtpool)
+			fklDestroyPrototypePool(codegen->ptpool);
 		while(!fklIsPtrStackEmpty(macroLibStack))
 		{
 			FklCodegenLib* cur=fklPopPtrStack(macroLibStack);

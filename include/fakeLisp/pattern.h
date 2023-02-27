@@ -22,6 +22,7 @@ typedef struct FklStringMatchPattern
 		FklByteCodelnt* proc;
 		FklNastNode* (*func)(FklPtrStack*,uint64_t,size_t*,const FklSid_t[4]);
 	}u;
+	FklPrototypePool* ptpool;
 	struct FklStringMatchPattern* next;
 }FklStringMatchPattern;
 
@@ -60,11 +61,13 @@ FklStringMatchPattern* fklInitBuiltInStringPattern(FklSymbolTable* publicSymbolT
 FklStringMatchPattern* fklFindStringPatternBuf(const char* buf,size_t size);
 FklStringMatchPattern* fklCreateStringMatchPattern(FklNastNode*
 		,FklByteCodelnt*
+		,FklPrototypePool* ptpool
 		,FklStringMatchPattern* next);
 
 void fklAddStringMatchPattern(FklNastNode*
 		,FklByteCodelnt*
-		,FklStringMatchPattern** head);
+		,FklStringMatchPattern** head
+		,FklPrototypePool* ptpool);
 void fklDestroyStringPattern(FklStringMatchPattern*);
 
 int fklStringPatternCoverState(const FklNastNode* p0,const FklNastNode* p1);

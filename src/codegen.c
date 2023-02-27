@@ -2030,7 +2030,7 @@ static void add_compiler_macro(FklCodegenMacroScope* macros,FklNastNode* pattern
 static inline void process_import_reader_macro(FklStringMatchPattern** phead,FklStringMatchPattern* head)
 {
 	for(FklStringMatchPattern* cur=head;cur&&cur->type!=FKL_STRING_PATTERN_BUILTIN;cur=cur->next)
-		fklAddStringMatchPattern(fklMakeNastNodeRef(cur->parts),fklCopyByteCodelnt(cur->u.proc),phead);
+		fklAddStringMatchPattern(fklMakeNastNodeRef(cur->parts),fklCopyByteCodelnt(cur->u.proc),phead,NULL);
 }
 
 BC_PROCESS(_library_export_macro_bc_process)
@@ -3000,7 +3000,8 @@ BC_PROCESS(_reader_macro_bc_process)
 	FklPtrStack* stack=GET_STACK(context);
 	FklByteCodelnt* macroBcl=fklPopPtrStack(stack);
 	FklNastNode* pattern=fklPopPtrStack(stack);
-	fklAddStringMatchPattern(pattern,macroBcl,codegen->phead);
+	fklUpdatePrototype(codegen->ptpool,env,codegen->globalSymTable,codegen->publicSymbolTable);
+	fklAddStringMatchPattern(pattern,macroBcl,codegen->phead,codegen->ptpool);
 	return fklCreateByteCodelnt(fklCreateByteCode(0));
 }
 
@@ -3145,8 +3146,6 @@ static CODEGEN_FUNC(codegen_defmacro)
 			errorState->place=fklMakeNastNodeRef(name);
 			return;
 		}
-		FklCodegenEnv* globalEnv=curEnv;
-		while(globalEnv->prev)globalEnv=globalEnv->prev;
 		FklCodegenEnv* macroEnv=fklCreateCodegenEnv(NULL,0);
 		for(FklHashTableNodeList* list=symbolTable->list
 				;list
@@ -3199,9 +3198,7 @@ static CODEGEN_FUNC(codegen_defmacro)
 			errorState->place=fklMakeNastNodeRef(name);
 			return;
 		}
-		FklCodegenEnv* globalEnv=curEnv;
-		while(globalEnv->prev)globalEnv=globalEnv->prev;
-		FklCodegenEnv* macroEnv=fklCreateCodegenEnv(globalEnv,0);
+		FklCodegenEnv* macroEnv=fklCreateCodegenEnv(NULL,0);
 		macroEnv->macros->prev=curEnv->macros;
 		for(FklHashTableNodeList* list=symbolTable->list
 				;list
@@ -3222,11 +3219,13 @@ static CODEGEN_FUNC(codegen_defmacro)
 		macroCodegen->curDir=fklCopyCstr(codegen->curDir);
 		macroCodegen->filename=fklCopyCstr(codegen->filename);
 		macroCodegen->realpath=fklCopyCstr(codegen->realpath);
+		macroCodegen->ptpool=fklCreatePrototypePool();
 
 		macroCodegen->globalSymTable=codegen->publicSymbolTable;
 		macroCodegen->publicSymbolTable=codegen->publicSymbolTable;
 		macroCodegen->loadedLibStack=macroCodegen->macroLibStack;
 		macroCodegen->fid=macroCodegen->filename?fklAddSymbolCstr(macroCodegen->filename,macroCodegen->publicSymbolTable)->id:0;
+		fklInitGlobCodegenEnv(macroEnv,macroCodegen->publicSymbolTable);
 
 		FklPtrStack* bcStack=fklCreatePtrStack(16,16);
 		fklPushPtrStack(fklMakeNastNodeRef(name),bcStack);

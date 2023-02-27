@@ -761,10 +761,11 @@ static FklNastNode* readerMacroExpand(FklStringMatchPattern* pattern
 			,nastStack
 			,tokenStack);
 	FklHashTable* lineHash=fklCreateLineNumHashTable();
-	FklVM* anotherVM=fklInitMacroExpandVM(pattern->u.proc,NULL,ht,lineHash,codegen);
+	FklVM* anotherVM=fklInitMacroExpandVM(pattern->u.proc,pattern->ptpool,ht,lineHash,codegen);
 	FklVMgc* gc=anotherVM->gc;
 	FklNastNode* r=NULL;
 	int e=fklRunVM(anotherVM);
+	anotherVM->ptpool=NULL;
 	if(e)
 	{
 		fklDeleteCallChain(anotherVM);
@@ -780,11 +781,6 @@ static FklNastNode* readerMacroExpand(FklStringMatchPattern* pattern
 		r=fklCreateNastNodeFromVMvalue(fklGetTopValue(anotherVM->stack)
 				,curline,lineHash
 				,codegen->publicSymbolTable);
-	}
-	for(FklHashTableNodeList* list=ht->list;list;list=list->next)
-	{
-		FklPatternMatchingHashTableItem* item=list->node->item;
-		fklDestroyNastNode(item->node);
 	}
 	fklDestroyHashTable(ht);
 	fklDestroyHashTable(lineHash);

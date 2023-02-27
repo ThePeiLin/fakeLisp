@@ -7,6 +7,7 @@
 
 FklStringMatchPattern* fklCreateStringMatchPattern(FklNastNode* parts
 		,FklByteCodelnt* bcl
+		,FklPrototypePool* ptpool
 		,FklStringMatchPattern* next)
 {
 	FklStringMatchPattern* r=(FklStringMatchPattern*)malloc(sizeof(FklStringMatchPattern));
@@ -15,6 +16,7 @@ FklStringMatchPattern* fklCreateStringMatchPattern(FklNastNode* parts
 	r->type=FKL_STRING_PATTERN_DEFINED;
 	r->u.proc=bcl;
 	r->next=next;
+	r->ptpool=ptpool;
 	return r;
 }
 
@@ -538,7 +540,8 @@ void fklInitCodegenEnvWithPatternParts(const FklNastNode* parts,FklCodegenEnv* e
 
 void fklAddStringMatchPattern(FklNastNode* parts
 		,FklByteCodelnt* proc
-		,FklStringMatchPattern** head)
+		,FklStringMatchPattern** head
+		,FklPrototypePool* ptpool)
 {
 	int coverState=0;
 	FklStringMatchPattern** phead=head;
@@ -550,18 +553,18 @@ void fklAddStringMatchPattern(FklNastNode* parts
 			break;
 	}
 	if(!coverState)
-		*head=fklCreateStringMatchPattern(parts,proc,*head);
+		*head=fklCreateStringMatchPattern(parts,proc,ptpool,*head);
 	else
 	{
 		if(coverState==FKL_PATTERN_COVER)
 		{
 			FklStringMatchPattern* next=*phead;
-			*phead=fklCreateStringMatchPattern(parts,proc,next);
+			*phead=fklCreateStringMatchPattern(parts,proc,ptpool,next);
 		}
 		else if(coverState==FKL_PATTERN_BE_COVER)
 		{
 			FklStringMatchPattern* next=(*phead)->next;
-			(*phead)->next=fklCreateStringMatchPattern(parts,proc,next);
+			(*phead)->next=fklCreateStringMatchPattern(parts,proc,ptpool,next);
 		}
 		else
 		{

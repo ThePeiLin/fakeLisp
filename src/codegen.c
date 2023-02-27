@@ -3917,216 +3917,216 @@ void fklUninitCodegener(FklCodegen* codegen)
 		free(codegen->exports);
 }
 
-typedef struct
-{
-	FklCodegenEnv* env;
-	size_t cp;
-	FklSid_t sid;
-}MayUndefine;
-
-static MayUndefine* createMayUndefine(FklCodegenEnv* env,size_t cp,FklSid_t sid)
-{
-	MayUndefine* r=(MayUndefine*)malloc(sizeof(MayUndefine));
-	FKL_ASSERT(r);
-	env->refcount+=1;
-	r->env=env;
-	r->cp=cp;
-	r->sid=sid;
-	return r;
-}
-
-static void destroyMayUndefine(MayUndefine* t)
-{
-	fklDestroyCodegenEnv(t->env);
-	free(t);
-}
-
-void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib** libs,FklSymbolTable* symbolTable,size_t exportNum,FklSid_t* exports)
-{
-	FklUintStack cpcstack=FKL_STACK_INIT;
-	fklInitUintStack(&cpcstack,32,16);
-	FklUintStack scpstack=FKL_STACK_INIT;
-	fklInitUintStack(&scpstack,32,16);
-	FklPtrStack* envstack=fklCreatePtrStack(32,16);
-	FklPtrStack* mayUndefined=fklCreatePtrStack(32,16);
-	FklByteCode* bc=code->bc;
-	fklPushUintStack(0,&cpcstack);
-	fklPushUintStack(bc->size,&scpstack);
-	FklCodegenEnv* globEnv=fklCreateCodegenEnv(NULL,0);
-	FklCodegenEnv* mainEnv=fklCreateCodegenEnv(globEnv,0);
-	globEnv->refcount=1;
-	mainEnv->refcount=2;
-	fklInitGlobCodegenEnv(globEnv,symbolTable);
-	fklPushPtrStack(mainEnv,envstack);
-	while((!fklIsUintStackEmpty(&cpcstack))&&(!fklIsUintStackEmpty(&scpstack)))
-	{
-		uint64_t i=fklPopUintStack(&cpcstack);
-		uint64_t end=i+fklPopUintStack(&scpstack);
-		FklCodegenEnv* curEnv=fklPopPtrStack(envstack);
-		while(i<end)
-		{
-			FklOpcode opcode=(FklOpcode)(bc->code[i]);
-			size_t len=fklGetOpcodeArgLen(opcode);
-			switch(len)
-			{
-				case -1:
-					{
-						switch(opcode)
-						{
-							//case FKL_OP_POP_VAR:
-							//	{
-							//		uint32_t scope=fklGetU32FromByteCode(bc->code+i+sizeof(char));
-							//		FklSid_t id=fklGetSidFromByteCode(bc->code+i+sizeof(char)+sizeof(scope));
-							//		if(scope)
-							//		{
-							//			FklCodegenEnv* env=curEnv;
-							//			for(uint32_t i=1;i<scope;i++)
-							//				env=curEnv->prev;
-							//			fklAddCodegenDefBySid(id,1,env);
-							//		}
-							//		else
-							//		{
-							//			int r=0;
-							//			for(FklCodegenEnv* e=curEnv;e;e=e->prev)
-							//			{
-							//				r=fklIsSymbolDefined(id,0,e);
-							//				if(r)
-							//					break;
-							//			}
-							//			if(!r)
-							//				fklPushPtrStack(createMayUndefine(curEnv,i,id),mayUndefined);
-							//		}
-							//	}
-							//	i+=sizeof(char)+sizeof(uint32_t)+sizeof(FklSid_t);
-							//	break;
-							case FKL_OP_PUSH_PROC:
-								{
-									uint64_t offset=sizeof(char)+sizeof(uint32_t);
-									fklPushUintStack(i+offset+sizeof(uint64_t),&cpcstack);
-									fklPushUintStack(fklGetU64FromByteCode(bc->code+i+offset),&scpstack);
-									FklCodegenEnv* nextEnv=fklCreateCodegenEnv(curEnv,0);
-									nextEnv->refcount=1;
-									fklPushPtrStack(nextEnv,envstack);
-									i+=offset+sizeof(uint64_t)+fklGetU64FromByteCode(bc->code+i+sizeof(char));
-								}
-								break;
-							case FKL_OP_PUSH_STR:
-							case FKL_OP_PUSH_BIG_INT:
-							case FKL_OP_PUSH_BYTEVECTOR:
-								i+=sizeof(char)
-									+sizeof(uint64_t)
-									+fklGetU64FromByteCode(bc->code+i+sizeof(char));
-								break;
-							case FKL_OP_IMPORT_WITH_SYMBOLS:
-							case FKL_OP_IMPORT_FROM_DLL_WITH_SYMBOLS:
-								{
-									uint64_t exportsNum=fklGetU64FromByteCode(bc->code+i+sizeof(char)+sizeof(uint64_t));
-									FklSid_t* exports=fklCopyMemory(bc->code+i+sizeof(char)+sizeof(uint64_t)*2
-											,sizeof(FklSid_t)*exportsNum);
-									for(size_t i=0;i<exportsNum;i++)
-										fklAddCodegenDefBySid(exports[i],1,curEnv);
-									free(exports);
-									i+=sizeof(char)+sizeof(uint64_t)*2+exportsNum*sizeof(FklSid_t);
-								}
-								break;
-							default:
-								FKL_ASSERT(0);
-								break;
-						}
-					}
-					break;
-				case 0:
-					//if(opcode==FKL_OP_PUSH_R_ENV)
-					//{
-					//	curEnv=fklCreateCodegenEnv(curEnv,0);
-					//	curEnv->refcount=1;
-					//}
-					//else if(opcode==FKL_OP_POP_R_ENV)
-					//{
-					//	FklCodegenEnv* p=curEnv->prev;
-					//	fklDestroyCodegenEnv(curEnv);
-					//	curEnv=p;
-					//}
-					i+=sizeof(char);
-					break;
-				case 8:
-					switch(opcode)
-					{
-						case FKL_OP_POP_ARG:
-						case FKL_OP_POP_REST_ARG:
-						//case FKL_OP_PUSH_VAR:
-							{
-								FklSid_t id=fklGetSidFromByteCode(bc->code+i+sizeof(char));
-								if(opcode==FKL_OP_POP_ARG||opcode==FKL_OP_POP_REST_ARG)
-									fklAddCodegenDefBySid(id,1,curEnv);
-								//else if(opcode==FKL_OP_PUSH_VAR)
-								//{
-								//	int r=0;
-								//	for(FklCodegenEnv* e=curEnv;e;e=e->prev)
-								//	{
-								//		r=fklIsSymbolDefined(id,0,e);
-								//		if(r)
-								//			break;
-								//	}
-								//	if(!r)
-								//		fklPushPtrStack(createMayUndefine(curEnv,i,id),mayUndefined);
-								//}
-							}
-							break;
-						case FKL_OP_IMPORT:
-						case FKL_OP_IMPORT_FROM_DLL:
-							{
-								uint64_t libCount=fklGetU64FromByteCode(bc->code+i+sizeof(char));
-								FklCodegenLib* lib=libs[libCount-1];
-								for(size_t i=0;i<lib->exportNum;i++)
-									fklAddCodegenDefBySid(lib->exports[i],1,curEnv);
-							}
-							break;
-						default:
-							break;
-					}
-					i+=sizeof(char)+sizeof(int64_t);
-					break;
-				default:
-					i+=sizeof(char)+len;
-					break;
-			}
-		}
-		fklDestroyCodegenEnv(curEnv);
-	}
-	for(size_t i=0;i<exportNum;i++)
-	{
-		if(!fklIsSymbolDefined(exports[i],0,mainEnv))
-			fklPushPtrStack(createMayUndefine(mainEnv,0,exports[i]),mayUndefined);
-	}
-	fklDestroyCodegenEnv(mainEnv);
-	fklUninitUintStack(&cpcstack);
-	fklUninitUintStack(&scpstack);
-	fklDestroyPtrStack(envstack);
-	for(uint32_t i=0;i<mayUndefined->top;i++)
-	{
-		MayUndefine* cur=mayUndefined->base[i];
-		FklCodegenEnv* curEnv=cur->env;
-		int r=0;
-		for(FklCodegenEnv* e=curEnv;e;e=e->prev)
-		{
-			r=fklIsSymbolDefined(cur->sid,0,e);
-			if(r)
-				break;
-		}
-		if(!r)
-		{
-			FklLineNumTabNode* node=fklFindLineNumTabNode(cur->cp,code->ls,code->l);
-			fprintf(stderr,"warning of compiling: Symbol \"");
-			fklPrintString(fklGetSymbolWithId(cur->sid,symbolTable)->symbol,stderr);
-			fprintf(stderr,"\" is undefined at line %d of ",node->line);
-			fklPrintString(fklGetSymbolWithId(node->fid,symbolTable)->symbol,stderr);
-			fputc('\n',stderr);
-		}
-		destroyMayUndefine(cur);
-	}
-	fklDestroyPtrStack(mayUndefined);
-}
+//typedef struct
+//{
+//	FklCodegenEnv* env;
+//	size_t cp;
+//	FklSid_t sid;
+//}MayUndefine;
+//
+//static MayUndefine* createMayUndefine(FklCodegenEnv* env,size_t cp,FklSid_t sid)
+//{
+//	MayUndefine* r=(MayUndefine*)malloc(sizeof(MayUndefine));
+//	FKL_ASSERT(r);
+//	env->refcount+=1;
+//	r->env=env;
+//	r->cp=cp;
+//	r->sid=sid;
+//	return r;
+//}
+//
+//static void destroyMayUndefine(MayUndefine* t)
+//{
+//	fklDestroyCodegenEnv(t->env);
+//	free(t);
+//}
+//
+//void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib** libs,FklSymbolTable* symbolTable,size_t exportNum,FklSid_t* exports)
+//{
+//	FklUintStack cpcstack=FKL_STACK_INIT;
+//	fklInitUintStack(&cpcstack,32,16);
+//	FklUintStack scpstack=FKL_STACK_INIT;
+//	fklInitUintStack(&scpstack,32,16);
+//	FklPtrStack* envstack=fklCreatePtrStack(32,16);
+//	FklPtrStack* mayUndefined=fklCreatePtrStack(32,16);
+//	FklByteCode* bc=code->bc;
+//	fklPushUintStack(0,&cpcstack);
+//	fklPushUintStack(bc->size,&scpstack);
+//	FklCodegenEnv* globEnv=fklCreateCodegenEnv(NULL,0);
+//	FklCodegenEnv* mainEnv=fklCreateCodegenEnv(globEnv,0);
+//	globEnv->refcount=1;
+//	mainEnv->refcount=2;
+//	fklInitGlobCodegenEnv(globEnv,symbolTable);
+//	fklPushPtrStack(mainEnv,envstack);
+//	while((!fklIsUintStackEmpty(&cpcstack))&&(!fklIsUintStackEmpty(&scpstack)))
+//	{
+//		uint64_t i=fklPopUintStack(&cpcstack);
+//		uint64_t end=i+fklPopUintStack(&scpstack);
+//		FklCodegenEnv* curEnv=fklPopPtrStack(envstack);
+//		while(i<end)
+//		{
+//			FklOpcode opcode=(FklOpcode)(bc->code[i]);
+//			size_t len=fklGetOpcodeArgLen(opcode);
+//			switch(len)
+//			{
+//				case -1:
+//					{
+//						switch(opcode)
+//						{
+//							//case FKL_OP_POP_VAR:
+//							//	{
+//							//		uint32_t scope=fklGetU32FromByteCode(bc->code+i+sizeof(char));
+//							//		FklSid_t id=fklGetSidFromByteCode(bc->code+i+sizeof(char)+sizeof(scope));
+//							//		if(scope)
+//							//		{
+//							//			FklCodegenEnv* env=curEnv;
+//							//			for(uint32_t i=1;i<scope;i++)
+//							//				env=curEnv->prev;
+//							//			fklAddCodegenDefBySid(id,1,env);
+//							//		}
+//							//		else
+//							//		{
+//							//			int r=0;
+//							//			for(FklCodegenEnv* e=curEnv;e;e=e->prev)
+//							//			{
+//							//				r=fklIsSymbolDefined(id,0,e);
+//							//				if(r)
+//							//					break;
+//							//			}
+//							//			if(!r)
+//							//				fklPushPtrStack(createMayUndefine(curEnv,i,id),mayUndefined);
+//							//		}
+//							//	}
+//							//	i+=sizeof(char)+sizeof(uint32_t)+sizeof(FklSid_t);
+//							//	break;
+//							case FKL_OP_PUSH_PROC:
+//								{
+//									uint64_t offset=sizeof(char)+sizeof(uint32_t);
+//									fklPushUintStack(i+offset+sizeof(uint64_t),&cpcstack);
+//									fklPushUintStack(fklGetU64FromByteCode(bc->code+i+offset),&scpstack);
+//									FklCodegenEnv* nextEnv=fklCreateCodegenEnv(curEnv,0);
+//									nextEnv->refcount=1;
+//									fklPushPtrStack(nextEnv,envstack);
+//									i+=offset+sizeof(uint64_t)+fklGetU64FromByteCode(bc->code+i+sizeof(char));
+//								}
+//								break;
+//							case FKL_OP_PUSH_STR:
+//							case FKL_OP_PUSH_BIG_INT:
+//							case FKL_OP_PUSH_BYTEVECTOR:
+//								i+=sizeof(char)
+//									+sizeof(uint64_t)
+//									+fklGetU64FromByteCode(bc->code+i+sizeof(char));
+//								break;
+//							case FKL_OP_IMPORT_WITH_SYMBOLS:
+//							case FKL_OP_IMPORT_FROM_DLL_WITH_SYMBOLS:
+//								{
+//									uint64_t exportsNum=fklGetU64FromByteCode(bc->code+i+sizeof(char)+sizeof(uint64_t));
+//									FklSid_t* exports=fklCopyMemory(bc->code+i+sizeof(char)+sizeof(uint64_t)*2
+//											,sizeof(FklSid_t)*exportsNum);
+//									for(size_t i=0;i<exportsNum;i++)
+//										fklAddCodegenDefBySid(exports[i],1,curEnv);
+//									free(exports);
+//									i+=sizeof(char)+sizeof(uint64_t)*2+exportsNum*sizeof(FklSid_t);
+//								}
+//								break;
+//							default:
+//								FKL_ASSERT(0);
+//								break;
+//						}
+//					}
+//					break;
+//				case 0:
+//					//if(opcode==FKL_OP_PUSH_R_ENV)
+//					//{
+//					//	curEnv=fklCreateCodegenEnv(curEnv,0);
+//					//	curEnv->refcount=1;
+//					//}
+//					//else if(opcode==FKL_OP_POP_R_ENV)
+//					//{
+//					//	FklCodegenEnv* p=curEnv->prev;
+//					//	fklDestroyCodegenEnv(curEnv);
+//					//	curEnv=p;
+//					//}
+//					i+=sizeof(char);
+//					break;
+//				case 8:
+//					switch(opcode)
+//					{
+//						case FKL_OP_POP_ARG:
+//						case FKL_OP_POP_REST_ARG:
+//						//case FKL_OP_PUSH_VAR:
+//							{
+//								FklSid_t id=fklGetSidFromByteCode(bc->code+i+sizeof(char));
+//								if(opcode==FKL_OP_POP_ARG||opcode==FKL_OP_POP_REST_ARG)
+//									fklAddCodegenDefBySid(id,1,curEnv);
+//								//else if(opcode==FKL_OP_PUSH_VAR)
+//								//{
+//								//	int r=0;
+//								//	for(FklCodegenEnv* e=curEnv;e;e=e->prev)
+//								//	{
+//								//		r=fklIsSymbolDefined(id,0,e);
+//								//		if(r)
+//								//			break;
+//								//	}
+//								//	if(!r)
+//								//		fklPushPtrStack(createMayUndefine(curEnv,i,id),mayUndefined);
+//								//}
+//							}
+//							break;
+//						case FKL_OP_IMPORT:
+//						case FKL_OP_IMPORT_FROM_DLL:
+//							{
+//								uint64_t libCount=fklGetU64FromByteCode(bc->code+i+sizeof(char));
+//								FklCodegenLib* lib=libs[libCount-1];
+//								for(size_t i=0;i<lib->exportNum;i++)
+//									fklAddCodegenDefBySid(lib->exports[i],1,curEnv);
+//							}
+//							break;
+//						default:
+//							break;
+//					}
+//					i+=sizeof(char)+sizeof(int64_t);
+//					break;
+//				default:
+//					i+=sizeof(char)+len;
+//					break;
+//			}
+//		}
+//		fklDestroyCodegenEnv(curEnv);
+//	}
+//	for(size_t i=0;i<exportNum;i++)
+//	{
+//		if(!fklIsSymbolDefined(exports[i],0,mainEnv))
+//			fklPushPtrStack(createMayUndefine(mainEnv,0,exports[i]),mayUndefined);
+//	}
+//	fklDestroyCodegenEnv(mainEnv);
+//	fklUninitUintStack(&cpcstack);
+//	fklUninitUintStack(&scpstack);
+//	fklDestroyPtrStack(envstack);
+//	for(uint32_t i=0;i<mayUndefined->top;i++)
+//	{
+//		MayUndefine* cur=mayUndefined->base[i];
+//		FklCodegenEnv* curEnv=cur->env;
+//		int r=0;
+//		for(FklCodegenEnv* e=curEnv;e;e=e->prev)
+//		{
+//			r=fklIsSymbolDefined(cur->sid,0,e);
+//			if(r)
+//				break;
+//		}
+//		if(!r)
+//		{
+//			FklLineNumTabNode* node=fklFindLineNumTabNode(cur->cp,code->ls,code->l);
+//			fprintf(stderr,"warning of compiling: Symbol \"");
+//			fklPrintString(fklGetSymbolWithId(cur->sid,symbolTable)->symbol,stderr);
+//			fprintf(stderr,"\" is undefined at line %d of ",node->line);
+//			fklPrintString(fklGetSymbolWithId(node->fid,symbolTable)->symbol,stderr);
+//			fputc('\n',stderr);
+//		}
+//		destroyMayUndefine(cur);
+//	}
+//	fklDestroyPtrStack(mayUndefined);
+//}
 
 void fklInitCodegenScriptLib(FklCodegenLib* lib
 		,char* rp

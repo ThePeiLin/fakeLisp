@@ -86,13 +86,6 @@ int main(int argc,char** argv)
 		}
 		chdir(fklGetCwd());
 		FklPtrStack* loadedLibStack=codegen.loadedLibStack;
-		for(size_t i=0;i<loadedLibStack->top;i++)
-		{
-			FklCodegenLib* cur=loadedLibStack->base[i];
-			if(cur->type==FKL_CODEGEN_LIB_SCRIPT)
-				fklCodegenPrintUndefinedSymbol(cur->u.bcl,(FklCodegenLib**)loadedLibStack->base,codegen.globalSymTable,cur->exportNum,cur->exports);
-		}
-		fklCodegenPrintUndefinedSymbol(mainByteCode,(FklCodegenLib**)codegen.loadedLibStack->base,codegen.globalSymTable,0,NULL);
 		FklVM* anotherVM=fklCreateVM(mainByteCode,codegen.globalSymTable,NULL,NULL);
 		anotherVM->ptpool=codegen.ptpool;
 		anotherVM->libNum=codegen.loadedLibStack->top;

@@ -94,7 +94,6 @@ typedef enum
 
 
 FklNastPair* fklCreateNastPair(void);
-FklNastNode* fklCreateNastList(FklNastNode** a,size_t num,uint64_t line);
 FklNastHashTable* fklCreateNastHash(FklVMhashTableEqType,size_t);
 FklNastVector* fklCreateNastVector(size_t);
 int fklIsNastNodeList(const FklNastNode* list);

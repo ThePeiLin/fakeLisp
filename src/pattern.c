@@ -40,19 +40,18 @@ static const char* BuiltinStringPattern_hasheqv_1[]={":#hasheqv[","&car",":]",};
 static const char* BuiltinStringPattern_hashequal_0[]={":#hashequal(","&car",":)",};
 static const char* BuiltinStringPattern_hashequal_1[]={":#hashequal[","&car",":]",};
 
-FklNastNode* fklCreateNastList(FklNastNode** a,size_t num,uint64_t line)
+static FklNastNode* create_nast_list(FklNastNode** a,size_t num,uint64_t line)
 {
 	FklNastNode* r=NULL;
 	FklNastNode** cur=&r;
 	for(size_t i=0;i<num;i++)
 	{
-		(*cur)=fklMakeNastNodeRef(fklCreateNastNode(FKL_NAST_PAIR,a[i]->curline));
+		(*cur)=fklCreateNastNode(FKL_NAST_PAIR,a[i]->curline);
 		(*cur)->u.pair=fklCreateNastPair();
-		(*cur)->u.pair->car=fklMakeNastNodeRef(a[i]);
+		(*cur)->u.pair->car=a[i];
 		cur=&(*cur)->u.pair->cdr;
 	}
-	(*cur)=fklMakeNastNodeRef(fklCreateNastNode(FKL_NAST_NIL,line));
-	r->refcount=0;
+	(*cur)=fklCreateNastNode(FKL_NAST_NIL,line);
 	return r;
 }
 
@@ -61,7 +60,7 @@ static FklNastNode* nastWithHeaderProcesser(FklSid_t sid,FklNastNode* v,uint64_t
 	FklNastNode* header=fklCreateNastNode(FKL_NAST_SYM,line);
 	header->u.sym=sid;
 	FklNastNode* a[]={header,v};
-	return fklCreateNastList(a,2,line);
+	return create_nast_list(a,2,line);
 }
 
 enum
@@ -78,7 +77,7 @@ static FklNastNode* quoteProcesser(FklPtrStack* nastStack
 		,const FklSid_t st[4])
 {
 	return nastWithHeaderProcesser(st[BUILTIN_HEAD_QUOTE]
-			,fklPopPtrStack(nastStack)
+			,fklMakeNastNodeRef(fklTopPtrStack(nastStack))
 			,line);
 }
 
@@ -88,7 +87,7 @@ static FklNastNode* qsquoteProcesser(FklPtrStack* nastStack
 		,const FklSid_t st[4])
 {
 	return nastWithHeaderProcesser(st[BUILTIN_HEAD_QSQUOTE]
-			,fklPopPtrStack(nastStack)
+			,fklMakeNastNodeRef(fklTopPtrStack(nastStack))
 			,line);
 }
 
@@ -98,7 +97,7 @@ static FklNastNode* unquoteProcesser(FklPtrStack* nastStack
 		,const FklSid_t st[4])
 {
 	return nastWithHeaderProcesser(st[BUILTIN_HEAD_UNQUOTE]
-			,fklPopPtrStack(nastStack)
+			,fklMakeNastNodeRef(fklTopPtrStack(nastStack))
 			,line);
 }
 
@@ -108,7 +107,7 @@ static FklNastNode* unqtespProcesser(FklPtrStack* nastStack
 		,const FklSid_t st[4])
 {
 	return nastWithHeaderProcesser(st[BUILTIN_HEAD_UNQTESP]
-			,fklPopPtrStack(nastStack)
+			,fklMakeNastNodeRef(fklTopPtrStack(nastStack))
 			,line);
 }
 
@@ -118,7 +117,7 @@ static FklNastNode* boxProcesser(FklPtrStack* nastStack
 		,const FklSid_t st[4])
 {
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_BOX,line);
-	r->u.box=fklMakeNastNodeRef(fklPopPtrStack(nastStack));
+	r->u.box=fklMakeNastNodeRef(fklTopPtrStack(nastStack));
 	return r;
 }
 
@@ -135,12 +134,11 @@ static FklNastNode* listProcesser(FklPtrStack* nastStack
 		FklNastNode* node=nastStack->base[i];
 		(*cur)=fklCreateNastNode(FKL_NAST_PAIR,node->curline);
 		(*cur)->u.pair=fklCreateNastPair();
-		(*cur)->u.pair->car=node;
+		(*cur)->u.pair->car=fklMakeNastNodeRef(node);
 		cur=&(*cur)->u.pair->cdr;
 	}
 	if(r&&!(*cur))
 		(*cur)=fklCreateNastNode(FKL_NAST_NIL,line);
-	retval->refcount=0;
 	return retval;
 }
 
@@ -157,12 +155,11 @@ static FklNastNode* pairProcesser(FklPtrStack* nastStack
 		FklNastNode* node=nastStack->base[i];
 		(*cur)=fklCreateNastNode(FKL_NAST_PAIR,node->curline);
 		(*cur)->u.pair=fklCreateNastPair();
-		(*cur)->u.pair->car=node;
+		(*cur)->u.pair->car=fklMakeNastNodeRef(node);
 		cur=&(*cur)->u.pair->cdr;
 	}
 	if(r&&!(*cur))
-		(*cur)=fklTopPtrStack(nastStack);
-	retval->refcount=0;
+		(*cur)=fklMakeNastNodeRef(fklTopPtrStack(nastStack));
 	return retval;
 }
 
@@ -176,7 +173,7 @@ static FklNastNode* vectorProcesser(FklPtrStack* nastStack
 	for(size_t i=0;i<nastStack->top;i++)
 	{
 		FklNastNode* node=nastStack->base[i];
-		retval->u.vec->base[i]=node;
+		retval->u.vec->base[i]=fklMakeNastNodeRef(node);
 	}
 	return retval;
 }
@@ -191,26 +188,16 @@ static FklNastNode* bytevectorProcesser(FklPtrStack* nastStack
 	for(size_t i=0;i<nastStack->top;i++)
 	{
 		FklNastNode* node=nastStack->base[i];
-		fklMakeNastNodeRef(node);
 		if(node->type==FKL_NAST_FIX
 				||node->type==FKL_NAST_BIG_INT)
 		{
 			retval->u.bvec->ptr[i]=node->type==FKL_NAST_FIX
 				?node->u.fix
 				:fklBigIntToI64(node->u.bigInt);
-			fklDestroyNastNode(node);
 		}
 		else
 		{
 			*errorLine=node->curline;
-			fklDestroyNastNode(node);
-			for(size_t j=i+1;j<nastStack->top;j++)
-			{
-				FklNastNode* node=fklMakeNastNodeRef(nastStack->base[j]);
-				fklDestroyNastNode(node);
-			}
-			nastStack->top=0;
-			retval->refcount=1;
 			fklDestroyNastNode(retval);
 			retval=NULL;
 			break;
@@ -229,24 +216,14 @@ static FklNastNode* hashTableProcess(FklVMhashTableEqType type
 	for(size_t i=0;i<nastStack->top;i++)
 	{
 		FklNastNode* node=nastStack->base[i];
-		fklMakeNastNodeRef(node);
 		if(node->type==FKL_NAST_PAIR)
 		{
 			retval->u.hash->items[i].car=fklMakeNastNodeRef(node->u.pair->car);
 			retval->u.hash->items[i].cdr=fklMakeNastNodeRef(node->u.pair->cdr);
-			fklDestroyNastNode(node);
 		}
 		else
 		{
 			*errorLine=node->curline;
-			fklDestroyNastNode(node);
-			for(size_t j=i+1;j<nastStack->top;j++)
-			{
-				FklNastNode* node=fklMakeNastNodeRef(nastStack->base[j]);
-				fklDestroyNastNode(node);
-			}
-			nastStack->top=0;
-			retval->refcount=1;
 			fklDestroyNastNode(retval);
 			retval=NULL;
 			break;

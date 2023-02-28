@@ -426,7 +426,7 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 			LineNumHashItem* item=fklGetHashItem(&value,lineHash);
 			uint64_t sline=fklPopUintStack(&lineStack);
 			uint64_t line=item?item->line:sline;
-			FklNastNode* cur=fklMakeNastNodeRef(fklCreateNastNode(FKL_NAST_NIL,line));
+			FklNastNode* cur=fklCreateNastNode(FKL_NAST_NIL,line);
 			*pcur=cur;
 			switch(FKL_GET_TAG(value))
 			{

@@ -164,7 +164,6 @@ FklVMerrorHandler* fklCreateVMerrorHandler(FklSid_t* typeIds,uint32_t errTypeNum
 	FKL_ASSERT(t);
 	t->typeIds=typeIds;
 	t->num=errTypeNum;
-	//t->proc.prevEnv=NULL;
 	t->proc.spc=spc;
 	t->proc.end=spc+cpc;
 	t->proc.sid=0;
@@ -271,9 +270,7 @@ FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe* f,FklVMframe* pr
 	fd->end=pfd->end;
 	fd->sid=pfd->sid;
 	fklSetRef(&fd->codeObj,pfd->codeObj,gc);
-	//fklSetRef(&fd->localenv,pfd->localenv,gc);
 	fklSetRef(&fd->proc,pfd->proc,gc);
-	//tmp->u.c.code=f->u.c.codeObj->u.code->bc->code;
 	fd->mark=pfd->mark;
 	fd->tail=pfd->tail;
 	FklVMCompoundFrameVarRef* lr=&fd->lr;
@@ -532,23 +529,6 @@ FklString* fklGenErrorMessage(FklBuiltInErrorType type)
 	FKL_ASSERT(s);
 	return fklCreateStringFromCstr(s);
 }
-
-//int32_t fklGetSymbolIdInByteCode(const uint8_t* code)
-//{
-//	char op=*code;
-//	switch(op)
-//	{
-//		case FKL_OP_PUSH_VAR:
-//			return *(int32_t*)(code+sizeof(char));
-//			break;
-//		case FKL_OP_POP_VAR:
-//		case FKL_OP_POP_ARG:
-//		case FKL_OP_POP_REST_ARG:
-//			return *(int32_t*)(code+sizeof(char)+sizeof(int32_t));
-//			break;
-//	}
-//	return -1;
-//}
 
 typedef struct PrtElem
 {
@@ -1600,48 +1580,6 @@ FklVMvalue* fklGetValue(FklVMstack* stack,int32_t place)
 {
 	return stack->values[place];
 }
-
-//static void addToList(FklAstCptr* fir,FklAstCptr* sec)
-//{
-//	while(fir->type==FKL_TYPE_PAIR)fir=&fir->u.pair->cdr;
-//	fir->type=FKL_TYPE_PAIR;
-//	fir->u.pair=fklCreatePair(sec->curline,fir->outer);
-//	fir->u.pair->car.curline=sec->curline;
-//	fir->u.pair->car.outer=fir->outer;
-//	fir->u.pair->car.type=sec->type;
-//	fir->u.pair->car.u.pair=sec->u.pair;
-//	fir->u.pair->car.u.pair->prev=fir->u.pair;
-//}
-
-//void fklInitVMRunningResource(FklVM* vm,FklVMvalue* vEnv,FklVMgc* gc,FklByteCodelnt* code,uint32_t start,uint32_t size)
-//{
-//	FklVMproc proc={
-//		.scp=start,
-//		.cpc=size,
-//		.sid=0,
-//		.prevEnv=NULL,
-//	};
-//	FklVMframe* mainframe=fklCreateVMframe(&proc,NULL);
-//	mainframe->localenv=vEnv;
-//	vm->code=code->bc->code;
-//	vm->size=code->bc->size;
-//	vm->frames=mainframe;
-//	vm->lnt=fklCreateLineNumTable();
-//	vm->lnt->num=code->ls;
-//	vm->lnt->list=code->l;
-//	if(vm->gc!=gc)
-//	{
-//		fklDestroyVMgc(vm->gc);
-//		vm->gc=gc;
-//	}
-//}
-
-//void fklUninitVMRunningResource(FklVM* vm)
-//{
-//	fklWaitGC(vm->gc);
-//	free(vm->lnt);
-//	fklDestroyAllVMs(vm);
-//}
 
 size_t fklVMlistLength(FklVMvalue* v)
 {

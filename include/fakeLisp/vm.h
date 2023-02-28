@@ -33,7 +33,6 @@ typedef enum
 	FKL_TYPE_DLL,
 	FKL_TYPE_DLPROC,
 	FKL_TYPE_ERR,
-	//FKL_TYPE_ENV,
 	FKL_TYPE_HASHTABLE,
 	FKL_TYPE_CODE_OBJ,
 }FklValueType;
@@ -146,12 +145,6 @@ typedef struct FklVMvalue
 	}u;
 	struct FklVMvalue* next;
 }FklVMvalue;
-
-//typedef struct FklVMenv
-//{
-//	struct FklVMvalue* volatile prev;
-//	FklHashTable* t;
-//}FklVMenv;
 
 typedef struct
 {
@@ -390,7 +383,6 @@ void* fklGC_sweepThreadFunc(void*);
 void fklGC_mark(FklVM*);
 void fklGC_markValue(FklVMvalue*);
 void fklGC_markValueInStack(FklVMstack*);
-//void fklGC_markValueInEnv(FklVMenv*);
 void fklGC_markValueInCallChain(FklPtrStack*);
 void fklGC_markMessage(FklQueueNode*);
 void fklGC_markSendT(FklQueueNode*);
@@ -402,7 +394,6 @@ void fklWaitGC(FklVMgc* gc);
 void fklDestroyAllValues(FklVMgc*);
 void fklGC_sweep(FklVMvalue*);
 
-//void fklDBG_printVMenv(FklVMenv*,FILE*,FklSymbolTable* table);
 void fklDBG_printVMvalue(FklVMvalue*,FILE*,FklSymbolTable* table);
 void fklDBG_printVMstack(FklVMstack*,FILE*,int,FklSymbolTable* table);
 
@@ -453,7 +444,6 @@ FklVMframe* fklCreateVMframeWithProc(FklVMproc*,FklVMframe*);
 void fklDestroyVMframe(FklVMframe*,FklVMframe* sf);
 FklString* fklGenErrorMessage(FklBuiltInErrorType type);
 FklString* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorType);
-//int32_t fklGetSymbolIdInByteCode(const uint8_t*);
 
 FklVMhashTable* fklCreateVMhashTable(FklVMhashTableEqType);
 void fklClearVMhashTable(FklVMhashTable* ht,FklVMgc*);
@@ -464,18 +454,10 @@ FklVMhashTableItem* fklRefVMhashTable(FklVMvalue* key,FklVMhashTable* ht);
 FklVMvalue* fklGetVMhashTable(FklVMvalue* key,FklVMhashTable* ht,int* ok);
 void fklDestroyVMhashTable(FklVMhashTable*);
 
-//FklVMenv* fklCreateGlobVMenv(FklVMvalue*,FklVMgc*,FklSymbolTable*);
-//FklVMenv* fklCreateVMenv(FklVMvalue*,FklVMgc*);
-//FklVMvalue* volatile* fklFindVar(FklSid_t id,FklVMenv*);
-//FklVMvalue* volatile* fklFindOrAddVar(FklSid_t id,FklVMenv* env);
-//FklVMvalue* volatile* fklFindOrAddVarWithValue(FklSid_t id,FklVMvalue*,FklVMenv* env);
-//void fklDestroyVMenv(FklVMenv*);
-
 FklVMproc* fklCreateVMproc(uint8_t* spc,uint64_t cpc,FklVMvalue* codeObj,FklVMgc* gc);
 FklVMproc* fklCreateVMprocWithWholeCodeObj(FklVMvalue* codeObj,FklVMgc* gc);
 
 void fklAtomicVMhashTable(FklVMvalue* pht,FklVMgc* gc);
-//void fklAtomicVMenv(FklVMvalue* penv,FklVMgc*);
 void fklAtomicVMuserdata(FklVMvalue*,FklVMgc*);
 void fklAtomicVMpair(FklVMvalue*,FklVMgc*);
 void fklAtomicVMproc(FklVMvalue*,FklVMgc*);
@@ -520,7 +502,6 @@ FklVMvalue* fklCreateVMpairV(FklVMvalue* car,FklVMvalue* cdr,FklVM*);
 FklVMchanl* fklCreateVMchanl(int32_t size);
 
 void fklDestroyVMchanl(FklVMchanl*);
-//int32_t fklGetNumVMchanl(FklVMchanl*);
 
 void fklDestroyVMproc(FklVMproc*);
 
@@ -622,18 +603,9 @@ uint8_t* fklGetCompoundFrameEnd(const FklVMframe*);
 
 uint8_t* fklGetCompoundFrameCodeAndAdd(FklVMframe*,size_t a);
 
-//uint8_t* fklGetCompoundFrameCodeAndInc(FklVMframe* frame);
-
 uint8_t fklGetCompoundFrameOpAndInc(FklVMframe* frame);
-//uint64_t fklGetCompoundFrameScp(const FklVMframe*);
 
-//uint64_t fklGetCompoundFrameCp(const FklVMframe*);
 void fklAddCompoundFrameCp(FklVMframe*,int64_t a);
-
-//uint64_t fklGetCompoundFrameRestCp(const FklVMframe* frame);
-
-//uint64_t fklSetCompoundFrameCp(FklVMframe*,uint64_t a);
-//uint64_t fklResetCompoundFrameCp(FklVMframe*);
 
 uint64_t fklGetCompoundFrameCpc(const FklVMframe*);
 FklSid_t fklGetCompoundFrameSid(const FklVMframe*);

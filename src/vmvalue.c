@@ -561,7 +561,6 @@ FklVMproc* fklCreateVMprocWithWholeCodeObj(FklVMvalue* codeObj,FklVMgc* gc)
 	FklByteCode* bc=codeObj->u.code->bc;
 	FklVMproc* tmp=(FklVMproc*)malloc(sizeof(FklVMproc));
 	FKL_ASSERT(tmp);
-	//tmp->prevEnv=FKL_VM_NIL;
 	tmp->spc=bc->code;
 	tmp->end=bc->code+bc->size;
 	tmp->sid=0;
@@ -578,7 +577,6 @@ FklVMproc* fklCreateVMproc(uint8_t* spc,uint64_t cpc,FklVMvalue* codeObj,FklVMgc
 {
 	FklVMproc* tmp=(FklVMproc*)malloc(sizeof(FklVMproc));
 	FKL_ASSERT(tmp);
-	//tmp->prevEnv=FKL_VM_NIL;
 	tmp->spc=spc;
 	tmp->end=spc+cpc;
 	tmp->sid=0;
@@ -670,8 +668,8 @@ static FklVMvalue* __fkl_bytevector_copyer(FklVMvalue* obj,FklVM* vm)
 
 static FklVMvalue* __fkl_pair_copyer(FklVMvalue* obj,FklVM* vm)
 {
-//	return fklCreateVMpairV(obj->u.pair->car,obj->u.pair->cdr,s,gc);
-	return fklCopyVMlistOrAtom(obj,vm);
+	return fklCreateVMpairV(obj->u.pair->car,obj->u.pair->cdr,vm);
+	//return fklCopyVMlistOrAtom(obj,vm);
 }
 
 static FklVMvalue* __fkl_box_copyer(FklVMvalue* obj,FklVM* vm)
@@ -769,20 +767,6 @@ static inline double getF64FromByteCode(uint8_t* code)
 	return i;
 }
 
-//static inline int64_t getI64FromByteCode(uint8_t* code)
-//{
-//	int64_t i=0;
-//	((uint8_t*)&i)[0]=code[0];
-//	((uint8_t*)&i)[1]=code[1];
-//	((uint8_t*)&i)[2]=code[2];
-//	((uint8_t*)&i)[3]=code[3];
-//	((uint8_t*)&i)[4]=code[4];
-//	((uint8_t*)&i)[5]=code[5];
-//	((uint8_t*)&i)[6]=code[6];
-//	((uint8_t*)&i)[7]=code[7];
-//	return i;
-//}
-
 FklVMvalue* fklCreateVMvalue(FklValueType type,void* pValue,FklVM* vm)
 {
 	FklVMvalue* r=fklCreateSaveVMvalue(type,pValue);
@@ -815,10 +799,6 @@ FklVMvalue* fklCreateSaveVMvalue(FklValueType type,void* pValue)
 			if(pValue)
 				tmp->u.f64=getF64FromByteCode(pValue);
 			break;
-			//case FKL_TYPE_I64:
-			//	if(pValue)
-			//		tmp->u.i64=getI64FromByteCode(pValue);
-			//	break;
 		case FKL_TYPE_BYTEVECTOR:
 		case FKL_TYPE_STR:
 		case FKL_TYPE_PAIR:
@@ -841,62 +821,6 @@ FklVMvalue* fklCreateSaveVMvalue(FklValueType type,void* pValue)
 			break;
 	}
 	return FKL_MAKE_VM_PTR(tmp);
-		//switch(type)
-		//{
-		//	//case FKL_TYPE_NIL:
-		//	//	return FKL_VM_NIL;
-		//	//	break;
-		//	//case FKL_TYPE_CHR:
-		//	//	return FKL_MAKE_VM_CHR(pValue);
-		//	//	break;
-		//	//case FKL_TYPE_I32:
-		//	//	return FKL_MAKE_VM_I32(pValue);
-		//	//	break;
-		//	//case FKL_TYPE_SYM:
-		//	//	return FKL_MAKE_VM_SYM(pValue);
-		//	//	break;
-		//	default:
-		//		{
-		//			FklVMvalue* tmp=(FklVMvalue*)malloc(sizeof(FklVMvalue));
-		//			FKL_ASSERT(tmp);
-		//			tmp->type=type;
-		//			tmp->mark=FKL_MARK_W;
-		//			switch(type)
-		//			{
-		//				case FKL_TYPE_F64:
-		//					if(pValue)
-		//						tmp->u.f64=getF64FromByteCode(pValue);
-		//					break;
-		//					//case FKL_TYPE_I64:
-		//					//	if(pValue)
-		//					//		tmp->u.i64=getI64FromByteCode(pValue);
-		//					//	break;
-		//				case FKL_TYPE_BYTEVECTOR:
-		//				case FKL_TYPE_STR:
-		//				case FKL_TYPE_PAIR:
-		//				case FKL_TYPE_PROC:
-		//				case FKL_TYPE_CHAN:
-		//				case FKL_TYPE_FP:
-		//				case FKL_TYPE_DLL:
-		//				case FKL_TYPE_DLPROC:
-		//				case FKL_TYPE_ERR:
-		//				case FKL_TYPE_VECTOR:
-		//				case FKL_TYPE_USERDATA:
-		//				case FKL_TYPE_ENV:
-		//				case FKL_TYPE_BIG_INT:
-		//				case FKL_TYPE_BOX:
-		//				case FKL_TYPE_HASHTABLE:
-		//				case FKL_TYPE_CODE_OBJ:
-		//					tmp->u.box=pValue;
-		//					break;
-		//				default:
-		//					return NULL;
-		//					break;
-		//			}
-		//			return FKL_MAKE_VM_PTR(tmp);
-		//		}
-		//		break;
-		//}
 }
 
 void fklAddToGCNoGC(FklVMvalue* v,FklVMgc* gc)
@@ -934,24 +858,6 @@ FklVMvalue* fklCreateVMvalueNoGCAndToStack(FklValueType type,void* pValue,FklVMg
 	fklAddToGCNoGC(r,gc);
 	return r;
 }
-
-//void fklAddToGCBeforeGC(FklVMvalue* v,FklVM* vm)
-//{
-//	FklVMgc* gc=vm->gc;
-//	if(FKL_IS_PTR(v))
-//	{
-//		FklGCstate running=fklGetGCstate(gc);
-//		if(running>FKL_GC_NONE&&running<FKL_GC_SWEEPING)
-//			fklGC_toGrey(v,gc);
-//		pthread_rwlock_wrlock(&gc->lock);
-//		gc->num+=1;
-//		v->next=gc->head;
-//		gc->head=v;
-//		tryGC(vm);
-//		v->mark=FKL_MARK_W;
-//		pthread_rwlock_unlock(&gc->lock);
-//	}
-//}
 
 void fklAddToGC(FklVMvalue* v,FklVM* vm)
 {
@@ -1160,15 +1066,6 @@ FklVMchanl* fklCreateVMchanl(int32_t maxSize)
 	tmp->recvq=fklCreatePtrQueue();
 	return tmp;
 }
-
-//int32_t fklGetNumVMchanl(FklVMchanl* ch)
-//{
-//	pthread_rwlock_rdlock((pthread_rwlock_t*)&ch->lock);
-//	uint32_t i=0;
-//	i=fklLengthPtrQueue(ch->messages);
-//	pthread_rwlock_unlock((pthread_rwlock_t*)&ch->lock);
-//	return i;
-//}
 
 void fklDestroyVMchanl(FklVMchanl* ch)
 {
@@ -1474,75 +1371,6 @@ void fklChanlSend(FklVMsend* s,FklVMchanl* ch,FklVMgc* gc)
 	}
 	fklDestroyVMsend(s);
 }
-
-//typedef struct
-//{
-//	FklSid_t key;
-//	FklVMvalue* volatile v;
-//}VMenvHashItem;
-//
-//static VMenvHashItem* createVMenvHashItme(FklSid_t id,FklVMvalue* v)
-//{
-//	VMenvHashItem* r=(VMenvHashItem*)malloc(sizeof(VMenvHashItem));
-//	FKL_ASSERT(r);
-//	r->key=id;
-//	r->v=v;
-//	return r;
-//}
-//
-//static size_t _vmenv_hashFunc(void* key)
-//{
-//	FklSid_t sid=*(FklSid_t*)key;
-//	return sid;
-//}
-//
-//static void _vmenv_destroyItem(void* item)
-//{
-//	free(item);
-//}
-//
-//static int _vmenv_keyEqual(void* pkey0,void* pkey1)
-//{
-//	FklSid_t k0=*(FklSid_t*)pkey0;
-//	FklSid_t k1=*(FklSid_t*)pkey1;
-//	return k0==k1;
-//}
-//
-//static void* _vmenv_getKey(void* item)
-//{
-//	return &((VMenvHashItem*)item)->key;
-//}
-//
-//static FklHashTableMethodTable VMenvHashMethTable=
-//{
-//	.__hashFunc=_vmenv_hashFunc,
-//	.__destroyItem=_vmenv_destroyItem,
-//	.__keyEqual=_vmenv_keyEqual,
-//	.__getKey=_vmenv_getKey,
-//};
-//
-//FklVMenv* fklCreateGlobVMenv(FklVMvalue* prev
-//		,FklVMgc* gc
-//		,FklSymbolTable* table)
-//{
-//	FklVMenv* tmp=(FklVMenv*)malloc(sizeof(FklVMenv));
-//	FKL_ASSERT(tmp);
-//	tmp->prev=prev;
-//	tmp->t=fklCreateHashTable(512,4,2,0.75,1,&VMenvHashMethTable);
-//	fklSetRef(&tmp->prev,prev,gc);
-//	fklInitGlobEnv(tmp,gc,table);
-//	return tmp;
-//}
-//
-//FklVMenv* fklCreateVMenv(FklVMvalue* prev,FklVMgc* gc)
-//{
-//	FklVMenv* tmp=(FklVMenv*)malloc(sizeof(FklVMenv));
-//	FKL_ASSERT(tmp);
-//	tmp->prev=prev;
-//	tmp->t=fklCreateHashTable(8,4,2,0.75,1,&VMenvHashMethTable);
-//	fklSetRef(&tmp->prev,prev,gc);
-//	return tmp;
-//}
 
 static FklVMhashTableItem* createVMhashTableItem(FklVMvalue* key,FklVMvalue* v,FklVMgc* gc)
 {
@@ -1893,8 +1721,6 @@ void fklAtomicVMpair(FklVMvalue* root,FklVMgc* gc)
 void fklAtomicVMproc(FklVMvalue* root,FklVMgc* gc)
 {
 	FklVMproc* proc=root->u.proc;
-	//if(proc->prevEnv)
-	//	fklGC_toGrey(proc->prevEnv,gc);
 	fklGC_toGrey(proc->codeObj,gc);
 	uint32_t count=proc->count;
 	FklVMvalue** ref=proc->closure;
@@ -1939,76 +1765,6 @@ void fklAtomicVMuserdata(FklVMvalue* root,FklVMgc* gc)
 	if(root->u.ud->t->__atomic)
 		root->u.ud->t->__atomic(root->u.ud->data,gc);
 }
-
-void fklAtomicVMenv(FklVMvalue* penv,FklVMgc* gc)
-{
-	//FklVMenv* env=penv->u.env;
-	//FklHashTable* table=env->t;
-	//if(env->prev)
-	//	fklGC_toGrey(env->prev,gc);
-	//for(FklHashTableNodeList* list=table->list;list;list=list->next)
-	//{
-	//	VMenvHashItem* item=list->node->item;
-	//	fklGC_toGrey(item->v,gc);
-	//}
-}
-
-//FklVMvalue* volatile* fklFindVar(FklSid_t id,FklVMenv* env)
-//{
-//	FklVMvalue* volatile* r=NULL;
-//	VMenvHashItem* item=fklGetHashItem(&id,env->t);
-//	if(item)
-//		r=&item->v;
-//	return r;
-//}
-//
-//FklVMvalue* volatile* fklFindOrAddVar(FklSid_t id,FklVMenv* env)
-//{
-//	FklVMvalue* volatile* r=NULL;
-//	r=fklFindVar(id,env);
-//	if(!r)
-//	{
-//		VMenvHashItem* ritem=fklPutNoRpHashItem(createVMenvHashItme(id,FKL_VM_NIL),env->t);
-//		r=&ritem->v;
-//	}
-//	return r;
-//}
-//
-//FklVMvalue* volatile* fklFindOrAddVarWithValue(FklSid_t id,FklVMvalue* v,FklVMenv* env)
-//{
-//	FklVMvalue* volatile* r=NULL;
-//	r=fklFindVar(id,env);
-//	if(!r)
-//	{
-//		VMenvHashItem* ritem=fklPutNoRpHashItem(createVMenvHashItme(id,FKL_VM_NIL),env->t);
-//		r=&ritem->v;
-//	}
-//	*r=v;
-//	return r;
-//}
-//
-//void fklDBG_printVMenv(FklVMenv* curEnv,FILE* fp,FklSymbolTable* table)
-//{
-//	if(curEnv->t->num==0)
-//		fprintf(fp,"This ENV is empty!");
-//	else
-//	{
-//		fprintf(fp,"ENV:");
-//		for(FklHashTableNodeList* list=curEnv->t->list;list;list=list->next)
-//		{
-//			VMenvHashItem* item=list->node->item;
-//			FklVMvalue* tmp=item->v;
-//			fklPrin1VMvalue(tmp,fp,table);
-//			putc(' ',fp);
-//		}
-//	}
-//}
-
-//void fklDestroyVMenv(FklVMenv* obj)
-//{
-//	fklDestroyHashTable(obj->t);
-//	free(obj);
-//}
 
 inline FklVMvalue* fklCreateVMboxNoGC(FklVMgc* gc,FklVMvalue* v)
 {

@@ -137,20 +137,6 @@ FklSymTabNode* fklAddSymbolCstr(const char* sym,FklSymbolTable* table)
 	return node;
 }
 
-//FklSymTabNode* fklAddSymbolToGlobCstr(const char* sym)
-//{
-//	if(!GlobSymbolTable)
-//		GlobSymbolTable=fklCreateSymbolTable();
-//	return fklAddSymbolCstr(sym,GlobSymbolTable);
-//}
-
-//FklSymTabNode* fklAddSymbolToGlob(const FklString* sym)
-//{
-//	if(!GlobSymbolTable)
-//		GlobSymbolTable=fklCreateSymbolTable();
-//	return fklAddSymbol(sym,GlobSymbolTable);
-//}
-
 void fklDestroySymTabNode(FklSymTabNode* node)
 {
 	free(node->symbol);
@@ -166,17 +152,6 @@ void fklDestroySymbolTable(FklSymbolTable* table)
 	free(table->idl);
 	free(table);
 }
-
-//void fklDestroyGlobSymbolTable()
-//{
-//	int32_t i=0;
-//	for(;i<GlobSymbolTable->num;i++)
-//		fklDestroySymTabNode(GlobSymbolTable->list[i]);
-//	free(GlobSymbolTable->list);
-//	free(GlobSymbolTable->idl);
-//	free(GlobSymbolTable);
-//	GlobSymbolTable=NULL;
-//}
 
 FklSymTabNode* fklFindSymbolCstr(const char* symbol,FklSymbolTable* table)
 {
@@ -203,16 +178,6 @@ FklSymTabNode* fklFindSymbolCstr(const char* symbol,FklSymbolTable* table)
 	}
 	return retval;
 }
-
-//FklSymTabNode* fklFindSymbolInGlobCstr(const char* sym)
-//{
-//	return fklFindSymbolCstr(sym,GlobSymbolTable);
-//}
-
-//FklSymTabNode* fklGetGlobSymbolWithId(FklSid_t id)
-//{
-//	return fklGetSymbolWithId(id,GlobSymbolTable);
-//}
 
 FklSymTabNode* fklGetSymbolWithId(FklSid_t id,FklSymbolTable* table)
 {

@@ -2234,24 +2234,6 @@ void builtin_number_to_integer(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-//void builtin_number_to_i32(FKL_DL_PROC_ARGL)
-//{
-//	FKL_NI_BEGIN(exe);
-//	FklVMvalue* obj=fklNiGetArg(&ap,stack);
-//	if(fklNiResBp(&ap,stack))
-//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->i32",FKL_ERR_TOOMANYARG,exe);
-//	if(!obj)
-//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->i32",FKL_ERR_TOOFEWARG,exe);
-//	FKL_NI_CHECK_TYPE(obj,fklIsVMnumber,"builtin.number->i32",exe);
-//	int32_t r=0;
-//	if(FKL_IS_F64(obj))
-//		r=obj->u.f64;
-//	else
-//		r=fklGetInt(obj);
-//	fklNiReturn(FKL_MAKE_VM_FIX(r),&ap,stack);
-//	fklNiEnd(&ap,stack);
-//}
-
 void builtin_number_to_big_int(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -2289,24 +2271,6 @@ void builtin_number_to_fix_int(FKL_DL_PROC_ARGL)
 	fklNiReturn(FKL_MAKE_VM_FIX(r),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
-
-//void builtin_number_to_i64(FKL_DL_PROC_ARGL)
-//{
-//	FKL_NI_BEGIN(exe);
-//	FklVMvalue* obj=fklNiGetArg(&ap,stack);
-//	if(fklNiResBp(&ap,stack))
-//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->i64",FKL_ERR_TOOMANYARG,exe);
-//	if(!obj)
-//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->i64",FKL_ERR_TOOFEWARG,exe);
-//	FKL_NI_CHECK_TYPE(obj,fklIsVMnumber,"builtin.number->i64",exe);
-//	int64_t r=0;
-//	if(FKL_IS_F64(obj))
-//		r=obj->u.f64;
-//	else
-//		r=fklGetInt(obj);
-//	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_I64,&r,exe),&ap,stack);
-//	fklNiEnd(&ap,stack);
-//}
 
 void builtin_nth(FKL_DL_PROC_ARGL)
 {
@@ -4028,7 +3992,6 @@ void builtin_member(FKL_DL_PROC_ARGL)
 		memberctx->list=list;
 		memberctx->ap=ap;
 		fklCallFuncK(k_member,exe,memberctx);
-		//k_member(exe,FKL_CC_OK,memberctx);
 	}
 	FklVMvalue* r=list;
 	for(;r!=FKL_VM_NIL;r=r->u.pair->cdr)
@@ -5024,8 +4987,6 @@ void builtin_atom(FKL_DL_PROC_ARGL) {PREDICATE(!FKL_IS_PAIR(val),"builtin.atom?"
 void builtin_char_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_CHR(val),"builtin.char?")}
 void builtin_integer_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_FIX(val)||FKL_IS_BIG_INT(val),"builtin.integer?")}
 void builtin_fix_int_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_FIX(val),"builtin.fix-int?")}
-//void builtin_i32_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_I32(val),"builtin.i32?")}
-//void builtin_i64_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_I64(val),"builtin.i64?")}
 void builtin_f64_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_F64(val),"builtin.i64?")}
 void builtin_number_p(FKL_DL_PROC_ARGL) {PREDICATE(fklIsVMnumber(val),"builtin.number?")}
 void builtin_pair_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_PAIR(val),"builtin.pair?")}
@@ -5143,9 +5104,7 @@ static const struct SymbolFuncStruct
 	{"nth",                   builtin_nth,                     },
 	{"length",                builtin_length,                  },
 	{"apply",                 builtin_apply,                   },
-	//{"call/cc",               builtin_call_cc,                 },
 	{"call/eh",               builtin_call_eh,                 },
-	//{"continuation?",         builtin_continuation_p,          },
 	{"fopen",                 builtin_fopen,                   },
 	{"read",                  builtin_read,                    },
 	{"parse",                 builtin_parse,                   },
@@ -5172,8 +5131,6 @@ static const struct SymbolFuncStruct
 	{"tail",                  builtin_tail,                    },
 	{"char?",                 builtin_char_p,                  },
 	{"integer?",              builtin_integer_p,               },
-	//{"i32?",                builtin_i32_p,                   },
-	//{"i64?",                builtin_i64_p,                   },
 	{"fix-int?",              builtin_fix_int_p,               },
 	{"big-int?",              builtin_big_int_p,               },
 	{"f64?",                  builtin_f64_p,                   },
@@ -5285,10 +5242,6 @@ static const struct SymbolFuncStruct
 	{"integer->char",         builtin_integer_to_char,         },
 	{"number->f64",           builtin_number_to_f64,           },
 	{"number->integer",       builtin_number_to_integer,       },
-	//{"number->fix-int",       builtin_number_to_fix_int,       },
-	//{"number->i32",           builtin_number_to_i32,           },
-	//{"number->i64",           builtin_number_to_i64,           },
-	//{"number->big-int",       builtin_number_to_big_int,       },
 
 	{"map",                   builtin_map,                     },
 	{"foreach",               builtin_foreach,                 },
@@ -5337,14 +5290,6 @@ static const struct SymbolFuncStruct
 
 	{NULL,                    NULL,                            },
 };
-
-//void fklInitCompEnv(FklCompEnv* curEnv)
-//{
-//	for(const struct SymbolFuncStruct* list=builtInSymbolList
-//			;list->s!=NULL
-//			;list++)
-//		fklAddCompDefCstr(list->s,curEnv);
-//}
 
 typedef struct
 {
@@ -5423,25 +5368,3 @@ void fklInitGlobalVMclosure(FklVMframe* frame,FklVM* exe)
 	}
 }
 
-//void fklInitGlobEnv(FklVMenv* obj,FklVMgc* gc,FklSymbolTable* table)
-//{
-//	const struct SymbolFuncStruct* list=builtInSymbolList;
-//	PublicBuiltInUserData* pd=init_vm_public_data(gc,table);
-//	FklVMvalue* publicUserData=fklCreateVMvalueNoGC(FKL_TYPE_USERDATA
-//			,fklCreateVMudata(0
-//				,&PublicBuiltInUserDataMethodTable
-//				,pd
-//				,FKL_VM_NIL
-//				,FKL_VM_NIL)
-//			,gc);
-//	fklFindOrAddVarWithValue(fklAddSymbolCstr((list++)->s,table)->id,pd->sysIn,obj);
-//	fklFindOrAddVarWithValue(fklAddSymbolCstr((list++)->s,table)->id,pd->sysOut,obj);
-//	fklFindOrAddVarWithValue(fklAddSymbolCstr((list++)->s,table)->id,pd->sysErr,obj);
-//	for(;list->s!=NULL;list++)
-//	{
-//		FklVMdlproc* proc=fklCreateVMdlproc(list->f,NULL,publicUserData);
-//		FklSymTabNode* node=fklAddSymbolCstr(list->s,table);
-//		proc->sid=node->id;
-//		fklFindOrAddVarWithValue(node->id,fklCreateVMvalueNoGC(FKL_TYPE_DLPROC,proc,gc),obj);
-//	}
-//}

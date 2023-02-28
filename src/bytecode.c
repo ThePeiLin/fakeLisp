@@ -168,11 +168,6 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 				FklOpcode op=tmpCode->code[i];
 				switch(op)
 				{
-					//case FKL_OP_POP_VAR:
-					//	fprintf(fp,"%d ",fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)));
-					//	fklPrintString(fklGetSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)+sizeof(int32_t)),table)->symbol,fp);
-					//	r+=sizeof(char)+sizeof(uint32_t)+sizeof(FklSid_t);
-					//	break;
 					case FKL_OP_PUSH_PROC:
 						{
 							uint32_t offset=sizeof(uint32_t)+sizeof(char);
@@ -277,7 +272,6 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 							,fklGetI64FromByteCode(tmpCode->code+i+sizeof(char)));
 					break;
 				case FKL_OP_POP_ARG:
-				//case FKL_OP_PUSH_VAR:
 				case FKL_OP_PUSH_SYM:
 				case FKL_OP_POP_REST_ARG:
 					fklPrintRawSymbol(fklGetSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)),table)->symbol,fp);
@@ -362,9 +356,6 @@ static uint64_t skipToCall(uint64_t index,const FklByteCode* bc)
 						+sizeof(uint64_t)
 						+fklGetU64FromByteCode(bc->code+index+r+sizeof(char));
 					break;
-				//case FKL_OP_POP_VAR:
-				//	r+=sizeof(char)+sizeof(int32_t)+sizeof(FklSid_t);
-				//	break;
 				case FKL_OP_IMPORT_WITH_SYMBOLS:
 					{
 						size_t exportsCount=fklGetU64FromByteCode(bc->code+index+r+sizeof(char)+sizeof(uint64_t));
@@ -388,9 +379,7 @@ static int fklIsTheLastExpression(uint64_t index,FklByteCode* bc)
 	uint8_t* code=bc->code;
 	for(uint64_t i=index;i<size;i+=(code[i]==FKL_OP_JMP)?fklGetI64FromByteCode(code+i+sizeof(char))+sizeof(char)+sizeof(int64_t):1)
 		if(code[i]!=FKL_OP_POP_TP
-				&&code[i]!=FKL_OP_JMP
-				//&&code[i]!=FKL_OP_POP_R_ENV
-				)
+				&&code[i]!=FKL_OP_JMP)
 			return 0;
 	return 1;
 }

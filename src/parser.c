@@ -723,6 +723,7 @@ static FklHashTable* processNastStackWithPatternParts(FklNastNode* parts
 			case FKL_NAST_SYM:
 				fklPatternMatchingHashTableSet(curPart->u.sym,fklMakeNastNodeRef(curNast),ht);
 				nastIndex++;
+				routeIndex--;
 				break;
 			case FKL_NAST_BOX:
 				{

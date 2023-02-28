@@ -128,7 +128,6 @@ typedef struct FklVMvalue
 	{
 		struct FklVMpair* pair;
 		double f64;
-		int64_t i64;
 		struct FklString* str;
 		struct FklBytevector* bvec;
 		struct FklVMproc* proc;

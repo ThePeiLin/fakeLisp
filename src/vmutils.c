@@ -184,6 +184,11 @@ static void threadErrorCallBack(void* a)
 	longjmp(exe->buf,i[(sizeof(void*)*2)/sizeof(int)]);
 }
 
+inline static FklVMvalue* get_compound_frame_code_obj(FklVMframe* frame)
+{
+	return frame->u.c.proc->u.proc->codeObj;
+}
+
 int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 {
 	FklVMframe* frame=exe->frames;
@@ -216,7 +221,7 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 					else
 						fprintf(stderr,"at <top>");
 				}
-				FklByteCodelnt* codeObj=fklGetCompoundFrameCodeObj(cur)->u.code;
+				FklByteCodelnt* codeObj=get_compound_frame_code_obj(cur)->u.code;
 				FklLineNumTabNode* node=fklFindLineNumTabNode(fklGetCompoundFrameCode(cur)-codeObj->bc->code
 						,codeObj->ls
 						,codeObj->l);
@@ -269,7 +274,6 @@ FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe* f,FklVMframe* pr
 	fd->spc=pfd->spc;
 	fd->end=pfd->end;
 	fd->sid=pfd->sid;
-	fklSetRef(&fd->codeObj,pfd->codeObj,gc);
 	fklSetRef(&fd->proc,pfd->proc,gc);
 	fd->mark=pfd->mark;
 	fd->tail=pfd->tail;
@@ -294,7 +298,6 @@ FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVMframe* prev,Fkl
 
 	FklVMCompoundFrameData* f=&tmp->u.c;
 	f->sid=0;
-	fklSetRef(&f->codeObj,codeObj,gc);
 	f->proc=procV;
 	f->pc=codeObj->u.code->bc->code;
 	f->spc=tmp->u.c.pc;
@@ -322,7 +325,6 @@ inline void fklInitMainVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMfram
 	f->pc=NULL;
 	f->spc=NULL;
 	f->end=NULL;
-	f->codeObj=NULL;
 	f->proc=FKL_VM_NIL;
 	f->mark=0;
 	f->tail=0;
@@ -330,7 +332,6 @@ inline void fklInitMainVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMfram
 	f->chc=0;
 	if(code)
 	{
-		f->codeObj=code->codeObj;
 		f->pc=code->spc;
 		f->spc=code->spc;
 		f->end=code->end;
@@ -349,7 +350,6 @@ inline void fklInitVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMframe* p
 	f->pc=NULL;
 	f->spc=NULL;
 	f->end=NULL;
-	f->codeObj=NULL;
 	f->proc=NULL;
 	f->proc=FKL_VM_NIL;
 	f->mark=0;
@@ -365,7 +365,6 @@ inline void fklInitVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMframe* p
 	{
 		f->lr.ref=code->closure;
 		f->lr.rcount=code->count;
-		f->codeObj=code->codeObj;
 		f->pc=code->spc;
 		f->spc=code->spc;
 		f->end=code->end;
@@ -395,7 +394,6 @@ FklVMframe* fklCreateVMframeWithProcValue(FklVMvalue* proc,FklVMframe* prev)
 	f->pc=NULL;
 	f->spc=NULL;
 	f->end=NULL;
-	f->codeObj=NULL;
 	f->proc=NULL;
 	f->mark=0;
 	f->tail=0;
@@ -409,7 +407,6 @@ FklVMframe* fklCreateVMframeWithProcValue(FklVMvalue* proc,FklVMframe* prev)
 	{
 		f->lr.ref=code->closure;
 		f->lr.rcount=code->count;
-		f->codeObj=code->codeObj;
 		f->pc=code->spc;
 		f->spc=code->spc;
 		f->end=code->end;

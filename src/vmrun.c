@@ -315,6 +315,7 @@ static void B_get_loc(BYTE_CODE_ARGS);
 static void B_put_loc(BYTE_CODE_ARGS);
 static void B_get_var_ref(BYTE_CODE_ARGS);
 static void B_put_var_ref(BYTE_CODE_ARGS);
+static void B_export(BYTE_CODE_ARGS);
 #undef BYTE_CODE_ARGS
 
 static void (*ByteCodes[])(FklVM*,FklVMframe*)=
@@ -368,6 +369,7 @@ static void (*ByteCodes[])(FklVM*,FklVMframe*)=
 	B_put_loc,
 	B_get_var_ref,
 	B_put_var_ref,
+	B_export,
 };
 
 inline static void insert_to_VM_chain(FklVM* cur,FklVM* prev,FklVM* next,FklVMgc* gc)
@@ -514,7 +516,6 @@ void fklDoAtomicFrame(FklVMframe* f,FklVMgc* gc)
 	switch(f->type)
 	{
 		case FKL_FRAME_COMPOUND:
-			fklGC_toGrey(fklGetCompoundFrameCodeObj(f),gc);
 			fklGC_toGrey(fklGetCompoundFrameProc(f),gc);
 			compound_frame_loc_ref_to_gray(f,gc);
 			children_to_gray(f,gc);
@@ -881,13 +882,18 @@ static void inline add_child_proc(FklVMframe* frame,FklVMvalue* child)
 	f->children=children;
 }
 
+inline static FklVMvalue* get_compound_frame_code_obj(FklVMframe* frame)
+{
+	return frame->u.c.proc->u.proc->codeObj;
+}
+
 static void inline B_push_proc(FklVM* exe,FklVMframe* frame)
 {
 	uint32_t prototypeId=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(prototypeId)));
 	uint64_t sizeOfProc=fklGetU64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(sizeOfProc)));
 	FklVMproc* code=createVMproc(fklGetCompoundFrameCode(frame)
 			,sizeOfProc
-			,fklGetCompoundFrameCodeObj(frame)
+			,get_compound_frame_code_obj(frame)
 			,fklGetCompoundFrameLocRef(frame)
 			,prototypeId
 			,frame
@@ -1194,19 +1200,34 @@ static void inline B_list_push(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
-static inline void process_import(FklVMlib* plib,FklVM* exe,FklVMframe* frame,char** cstr)
+static inline void process_import(FklVMlib* plib
+		,FklVM* exe
+		,FklVMframe* frame
+		,char** cstr
+		,uint32_t scope)
 {
-	//for(size_t i=0;i<plib->exportNum;i++)
-	//{
-	//	FklVMvalue* volatile* pv=fklFindVar(plib->exports[i],plib->libEnv->u.env);
-	//	if(pv==NULL)
-	//	{
-	//		*cstr=fklStringToCstr(fklGetSymbolWithId(plib->exports[i],exe->symbolTable)->symbol);
-	//		return;
-	//	}
-	//	FklVMvalue* volatile* pValue=fklFindOrAddVar(plib->exports[i],fklGetCompoundFrameLocalenv(frame)->u.env);
-	//	fklSetRef(pValue,*pv,exe->gc);
-	//}
+	FklVMvalue** loc=plib->loc;
+	uint32_t* exportIndex=plib->idxes;
+	FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(frame);
+	uint32_t protoId=fklGetCompoundFrameProc(frame)->u.proc->protoId;
+	FklPrototype* pt=&exe->ptpool->pts[protoId-1];
+	FklSidScope key={0,scope};
+	for(size_t i=0;i<plib->exportNum;i++)
+	{
+		FklVMvalue* v=loc[exportIndex[i]];
+		key.id=plib->exports[i];
+		if(v==FKL_VM_NIL)
+		{
+			*cstr=fklStringToCstr(fklGetSymbolWithId(key.id,exe->symbolTable)->symbol);
+			return;
+		}
+		FklSymbolDef* def=fklGetHashItem(&key,pt->defs);
+		FklVMvalue* volatile* pv=&lr->loc[def->idx];
+		if(*pv==FKL_VM_NIL)
+			*pv=fklCreateVMvalueNoGC(FKL_TYPE_BOX,v,exe->gc);
+		else
+			(*pv)->u.box=v;
+	}
 }
 
 static inline void init_import_env(FklVMframe* frame,FklVMlib* plib,FklVM* exe)
@@ -1220,16 +1241,17 @@ static void inline B_import(FklVM* exe,FklVMframe* frame)
 {
 	uint64_t libId=fklGetU64FromByteCode(fklGetCompoundFrameCode(frame));
 	FklVMlib* plib=&exe->libs[libId-1];
-	if(plib->libEnv==FKL_VM_NIL)
-		init_import_env(frame,plib,exe);
-	else
+	if(plib->imported)
 	{
 		char* cstr=NULL;
-		process_import(plib,exe,frame,&cstr);
+		uint32_t scope=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(scope)));
+		process_import(plib,exe,frame,&cstr,scope);
 		if(cstr)
 			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
 		fklAddCompoundFrameCp(frame,sizeof(uint64_t));
 	}
+	else
+		init_import_env(frame,plib,exe);
 }
 
 static void inline B_import_with_symbols(FklVM* exe,FklVMframe* frame)
@@ -1480,7 +1502,19 @@ static void inline B_put_var_ref(FklVM* exe,FklVMframe* frame)
 	fklNiDoSomeAfterSetRef(v,idx,frame,exe);
 }
 
-FklVMstack* fklCreateVMstack(int32_t size)
+static void inline B_export(FklVM* exe,FklVMframe* frame)
+{
+	uint64_t libId=fklGetU64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(libId)));
+	FklVMlib* lib=&exe->libs[libId-1];
+	FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(frame);
+	uint32_t count=lr->lcount;
+	FklVMvalue** loc=fklCopyMemory(lr->loc,sizeof(FklVMvalue*)*count);
+	lib->loc=loc;
+	lib->count=count;
+	lib->imported=1;
+}
+
+FklVMstack* fklCreateVMstack(uint32_t size)
 {
 	FklVMstack* tmp=(FklVMstack*)malloc(sizeof(FklVMstack));
 	FKL_ASSERT(tmp);
@@ -1589,8 +1623,10 @@ void fklGC_markRootToGrey(FklVM* exe)
 		fklDoAtomicFrame(cur,gc);
 	for(size_t i=0;i<exe->libNum;i++)
 	{
-		fklGC_toGrey(exe->libs[i].libEnv,gc);
-		fklGC_toGrey(exe->libs[i].proc,gc);
+		FklVMlib* lib=&exe->libs[i];
+		fklGC_toGrey(lib->proc,gc);
+		for(uint32_t i=0;i<lib->count;i++)
+			fklGC_toGrey(lib->loc[i],gc);
 	}
 	//pthread_rwlock_unlock(&exe->rlock);
 	//pthread_rwlock_rdlock(&stack->lock);
@@ -2041,32 +2077,29 @@ void fklDestroyVMframes(FklVMframe* h)
 	}
 }
 
-void fklInitVMlib(FklVMlib* lib,size_t exportNum,FklSid_t* exports,FklVMvalue* proc)
+void fklInitVMlib(FklVMlib* lib
+		,size_t exportNum
+		,FklSid_t* exports
+		,uint32_t* idxes
+		,FklVMvalue* proc)
 {
 	lib->exportNum=exportNum;
 	lib->exports=exports;
 	lib->proc=proc;
-	lib->libEnv=FKL_VM_NIL;
+	lib->idxes=idxes;
+	lib->imported=0;
 }
 
 inline void fklInitVMlibWithCodeObj(FklVMlib* lib
 		,size_t exportNum
 		,FklSid_t* exports
-		,FklVMvalue* globEnv
+		,uint32_t* exportIndex
 		,FklVMvalue* codeObj
 		,FklVMgc* gc)
 {
 	FklByteCode* bc=codeObj->u.code->bc;
 	FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(bc->code,bc->size,codeObj,gc),gc);
-	fklInitVMlib(lib,exportNum,exports,proc);
-}
-
-FklVMlib* fklCreateVMlib(size_t exportNum,FklSid_t* exports,FklVMvalue* proc)
-{
-	FklVMlib* lib=(FklVMlib*)malloc(sizeof(FklVMlib));
-	FKL_ASSERT(lib);
-	fklInitVMlib(lib,exportNum,exports,proc);
-	return lib;
+	fklInitVMlib(lib,exportNum,exports,exportIndex,proc);
 }
 
 void fklUninitVMlib(FklVMlib* lib)
@@ -2094,11 +2127,6 @@ inline unsigned int fklSetCompoundFrameMark(FklVMframe* f,unsigned int m)
 inline FklVMCompoundFrameVarRef* fklGetCompoundFrameLocRef(FklVMframe* f)
 {
 	return &f->u.c.lr;
-}
-
-inline FklVMvalue* fklGetCompoundFrameCodeObj(const FklVMframe* f)
-{
-	return f->u.c.codeObj;
 }
 
 inline FklVMvalue* fklGetCompoundFrameProc(const FklVMframe* f)

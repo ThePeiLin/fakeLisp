@@ -977,7 +977,7 @@ void fklLoadLineNumberTable(FILE* fp,FklLineNumTabNode** plist,size_t* pnum)
 	size_t size=0;
 	fread(&size,sizeof(uint32_t),1,fp);
 	FklLineNumTabNode* list=(FklLineNumTabNode*)malloc(sizeof(FklLineNumTabNode)*size);
-	FKL_ASSERT(list);
+	FKL_ASSERT(list||!size);
 	for(size_t i=0;i<size;i++)
 	{
 		FklSid_t fid=0;

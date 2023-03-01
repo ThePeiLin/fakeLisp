@@ -215,6 +215,15 @@ inline FklPrototypePool* fklCreatePrototypePool(void)
 	return r;
 }
 
+FklImportIndexList* fklCreateImportIndexList(void)
+{
+	FklImportIndexList* r=(FklImportIndexList*)malloc(sizeof(*r));
+	FKL_ASSERT(r);
+	r->count=0;
+	r->idxList=NULL;
+	return r;
+}
+
 FklSymbolDef* fklCreateSymbolDef(FklSid_t key,uint32_t scope,uint32_t idx,uint32_t cidx,uint8_t isLocal)
 {
 	FklSymbolDef* r=(FklSymbolDef*)malloc(sizeof(FklSymbolDef));

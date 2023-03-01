@@ -2982,7 +2982,7 @@ void builtin_fgets(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgets",FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	size_t size=fklGetUint(psize);
 	char* str=(char*)malloc(sizeof(char)*size);
-	FKL_ASSERT(str);
+	FKL_ASSERT(str||!size);
 	int32_t realRead=0;
 	if(fp->size)
 	{
@@ -3043,7 +3043,7 @@ void builtin_fgetb(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetb",FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	size_t size=fklGetUint(psize);
 	uint8_t* ptr=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	FKL_ASSERT(ptr);
+	FKL_ASSERT(ptr||!size);
 	int32_t realRead=0;
 	if(fp->size)
 	{
@@ -3590,9 +3590,9 @@ static void error_handler_frame_copy(FklCallObjData d,const FklCallObjData s,Fkl
 	size_t num=sc->num;
 	dc->num=num;
 	dc->errorSymbolLists=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*num);
-	FKL_ASSERT(dc->errorSymbolLists);
+	FKL_ASSERT(dc->errorSymbolLists||!num);
 	dc->errorHandlers=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*num);
-	FKL_ASSERT(dc->errorHandlers);
+	FKL_ASSERT(dc->errorHandlers||!num);
 	for(size_t i=0;i<num;i++)
 	{
 		fklSetRef(&dc->errorSymbolLists[i],sc->errorSymbolLists[i],gc);

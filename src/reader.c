@@ -29,7 +29,7 @@ char* fklReadLine(FILE* fp,size_t* size)
 		ch=getc(fp);
 	}
 	char* ttmp=(char*)realloc(tmp,sizeof(char)*(*size));
-	FKL_ASSERT(!*size||ttmp);
+	FKL_ASSERT(ttmp||!*size);
 	tmp=ttmp;
 	return tmp;
 }
@@ -93,7 +93,7 @@ char* fklReadInStringPattern(FILE* fp
 				size-=*prevSize;
 			}
 			char* rt=(char*)realloc(tmp,sizeof(char)*(size));
-			FKL_ASSERT(!size||rt);
+			FKL_ASSERT(rt||!size);
 			tmp=rt;
 			break;
 		}

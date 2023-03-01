@@ -83,7 +83,14 @@ typedef struct //unresolved symbol ref
 	uint32_t prototypeId;
 }FklUnReSymbolRef;
 
+typedef struct
+{
+	uint32_t** idxList;
+	uint32_t count;
+}FklImportIndexList;
+
 FklPrototypePool* fklCreatePrototypePool(void);
+FklImportIndexList* fklCreateImportIndexList(void);
 FklSymbolDef* fklCreateSymbolDef(FklSid_t key,uint32_t scope,uint32_t idx,uint32_t cidx,uint8_t isLocal);
 
 void fklUninitPrototype(FklPrototype* p);

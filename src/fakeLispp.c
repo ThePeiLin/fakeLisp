@@ -22,7 +22,7 @@ FklByteCode* loadByteCode(FILE* fp)
 	FKL_ASSERT(tmp);
 	tmp->size=size;
 	tmp->code=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	FKL_ASSERT(tmp->code);
+	FKL_ASSERT(tmp->code||!size);
 	fread(tmp->code,size,1,fp);
 	return tmp;
 }
@@ -48,7 +48,7 @@ FklLineNumberTable* loadLineNumberTable(FILE* fp)
 	uint32_t i=0;
 	fread(&size,sizeof(uint32_t),1,fp);
 	FklLineNumTabNode* list=(FklLineNumTabNode*)malloc(sizeof(FklLineNumTabNode)*size);
-	FKL_ASSERT(list);
+	FKL_ASSERT(list||!size);
 	for(;i<size;i++)
 	{
 		FklSid_t fid=0;
@@ -157,7 +157,7 @@ static void loadLib(FILE* fp,size_t* pnum,FklCodegenLib** plibs,FklSymbolTable* 
 	fread(pnum,sizeof(uint64_t),1,fp);
 	size_t num=*pnum;
 	FklCodegenLib* libs=(FklCodegenLib*)malloc(sizeof(FklCodegen)*num);
-	FKL_ASSERT(libs);
+	FKL_ASSERT(libs||!num);
 	*plibs=libs;
 	for(size_t i=0;i<num;i++)
 	{
@@ -179,6 +179,7 @@ static void loadLib(FILE* fp,size_t* pnum,FklCodegenLib** plibs,FklSymbolTable* 
 					,bcl
 					,exportNum
 					,exports
+					,NULL
 					,NULL
 					,NULL
 					,NULL);

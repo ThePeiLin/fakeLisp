@@ -648,7 +648,7 @@ uint8_t fklCastCharInt(char ch)
 void* fklCopyMemory(const void* pm,size_t size)
 {
 	void* tmp=(void*)malloc(size);
-	FKL_ASSERT(tmp);
+	FKL_ASSERT(tmp||!size);
 	if(pm!=NULL)
 		memcpy(tmp,pm,size);
 	return tmp;
@@ -821,7 +821,7 @@ void mergeSort(void* _base,size_t num,size_t size,int (*cmpf)(const void*,const 
 {
 	void* base0=_base;
 	void* base1=malloc(size*num);
-	FKL_ASSERT(base1);
+	FKL_ASSERT(base1||!num||!size);
 	unsigned int seg=1;
 	unsigned int start=0;
 	for(;seg<num;seg+=seg)
@@ -866,7 +866,7 @@ char* fklStrCat(char* s1,const char* s2)
 uint8_t* fklCreateByteArry(int32_t size)
 {
 	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	FKL_ASSERT(tmp);
+	FKL_ASSERT(tmp||!size);
 	return tmp;
 }
 
@@ -1040,7 +1040,7 @@ char* fklCastEscapeCharBuf(const char* str,size_t size,size_t* psize)
 		tmp[strSize-1]=ch;
 	}
 	char* ttmp=(char*)realloc(tmp,strSize*sizeof(char));
-	FKL_ASSERT(!strSize||ttmp);
+	FKL_ASSERT(ttmp||!strSize);
 	tmp=ttmp;
 	*psize=strSize;
 	return tmp;

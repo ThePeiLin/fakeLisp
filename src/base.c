@@ -14,7 +14,7 @@ int fklIsPtrStackEmpty(FklPtrStack* stack)
 void fklInitPtrStack(FklPtrStack* r,uint32_t size,uint32_t inc)
 {
 	r->base=(void**)malloc(sizeof(void*)*size);
-	FKL_ASSERT(r->base);
+	FKL_ASSERT(r->base||!size);
 	r->size=size;
 	r->inc=inc;
 	r->top=0;
@@ -183,7 +183,7 @@ FklIntStack* fklCreateIntStack(uint32_t size,uint32_t inc)
 	FklIntStack* tmp=(FklIntStack*)malloc(sizeof(FklIntStack));
 	FKL_ASSERT(tmp);
 	tmp->base=(int64_t*)malloc(sizeof(int64_t)*size);
-	FKL_ASSERT(tmp->base);
+	FKL_ASSERT(tmp->base||!size);
 	tmp->size=size;
 	tmp->inc=inc;
 	tmp->top=0;
@@ -244,7 +244,7 @@ int fklIsUintStackEmpty(FklUintStack* stack)
 void fklInitUintStack(FklUintStack* r,uint32_t size,uint32_t inc)
 {
 	r->base=(uint64_t*)malloc(sizeof(uint64_t)*size);
-	FKL_ASSERT(r->base);
+	FKL_ASSERT(r->base||!size);
 	r->size=size;
 	r->inc=inc;
 	r->top=0;
@@ -522,7 +522,7 @@ void fklInitBigIntFromMem(FklBigInt* t,const void* mem,size_t size)
 	t->size=num;
 	t->neg=neg;
 	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*num);
-	FKL_ASSERT(t->digits);
+	FKL_ASSERT(t->digits||!num);
 	for(uint64_t i=0;i<num;i++)
 	{
 		uint8_t n=((uint8_t*)mem)[i];
@@ -1975,7 +1975,7 @@ FklBytevector* fklCopyBytevector(const FklBytevector* obj)
 void fklInitU8Stack(FklU8Stack* r,size_t size,uint32_t inc)
 {
 	r->base=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	FKL_ASSERT(r->base);
+	FKL_ASSERT(r->base||!size);
 	r->size=size;
 	r->inc=inc;
 	r->top=0;

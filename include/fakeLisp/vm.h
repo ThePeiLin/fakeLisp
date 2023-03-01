@@ -205,7 +205,6 @@ typedef struct FklVMCompoundFrameData
 	unsigned int mark:2;
 	FklSid_t sid:61;
 	FklVMCompoundFrameVarRef lr;
-	FklVMvalue* codeObj;
 	FklVMvalue* proc;
 	FklVMvalue** children;
 	uint32_t chc;
@@ -255,8 +254,11 @@ typedef struct FklVMlib
 {
 	size_t exportNum;
 	FklSid_t* exports;
+	uint32_t* idxes;
 	FklVMvalue* proc;
-	FklVMvalue* libEnv;
+	FklVMvalue** loc;
+	uint32_t count;
+	uint8_t imported;
 }FklVMlib;
 
 typedef struct FklVM
@@ -279,6 +281,7 @@ typedef struct FklVM
 	FklSymbolTable* symbolTable;
 	FklSid_t* builtinErrorTypeId;
 	FklPrototypePool* ptpool;
+	FklImportIndexList* importIndexList;
 }FklVM;
 
 typedef struct FklVMudMethodTable
@@ -359,7 +362,7 @@ FklVM* fklCreateThreadVM(FklVMgc* gc
 		,FklSid_t* builtinErrorTypeId);
 
 void fklDestroyVMvalue(FklVMvalue*);
-FklVMstack* fklCreateVMstack(int32_t);
+FklVMstack* fklCreateVMstack(uint32_t);
 void fklDestroyVMstack(FklVMstack*);
 void fklStackRecycle(FklVMstack*);
 int fklCreateCreateThread(FklVM*);
@@ -593,7 +596,6 @@ unsigned int fklSetCompoundFrameMark(FklVMframe*,unsigned int);
 
 FklVMCompoundFrameVarRef* fklGetCompoundFrameLocRef(FklVMframe* f);
 
-FklVMvalue* fklGetCompoundFrameCodeObj(const FklVMframe*);
 FklVMvalue* fklGetCompoundFrameProc(const FklVMframe*);
 FklPrototype* fklGetCompoundFrameProcPrototype(const FklVMframe*,FklVM* exe);
 
@@ -616,15 +618,18 @@ FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe*,FklVMframe* prev
 FklVMframe* fklCopyVMframe(FklVMframe*,FklVMframe* prev,FklVM*);
 void fklDestroyVMframes(FklVMframe* h);
 
-FklVMlib* fklCreateVMlib(size_t exportNum,FklSid_t* exports,FklVMvalue* codeObj);
 void fklDestroyVMlib(FklVMlib* lib);
 
-void fklInitVMlib(FklVMlib*,size_t exportNum,FklSid_t* exports,FklVMvalue* proc);
+void fklInitVMlib(FklVMlib*
+		,size_t exportNum
+		,FklSid_t* exports
+		,uint32_t*
+		,FklVMvalue* proc);
 
 void fklInitVMlibWithCodeObj(FklVMlib*
 		,size_t exportNum
 		,FklSid_t* exports
-		,FklVMvalue* globEnv
+		,uint32_t* idxes
 		,FklVMvalue* codeObj
 		,FklVMgc* gc);
 

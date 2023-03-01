@@ -96,7 +96,7 @@ int main(int argc,char** argv)
 		{
 			FklCodegenLib* cur=fklPopPtrStack(loadedLibStack);
 			FklVMlib* curVMlib=&anotherVM->libs[loadedLibStack->top];
-			fklInitVMlibWithCodgenLibAndDestroy(cur,curVMlib,FKL_VM_NIL,anotherVM->gc);
+			fklInitVMlibWithCodgenLibAndDestroy(cur,curVMlib,anotherVM->gc);
 		}
 
 		FklVMframe* mainframe=anotherVM->frames;
@@ -365,7 +365,7 @@ static void loadLib(FILE* fp,size_t* plibNum,FklVMlib** plibs,FklVMvalue* globEn
 			FklByteCode* bc=loadByteCode(fp);
 			bcl->bc=bc;
 			FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,bcl,gc);
-			fklInitVMlibWithCodeObj(&libs[i],exportNum,exports,globEnv,codeObj,gc);
+			fklInitVMlibWithCodeObj(&libs[i],exportNum,exports,NULL,codeObj,gc);
 		}
 		else
 		{
@@ -374,7 +374,7 @@ static void loadLib(FILE* fp,size_t* plibNum,FklVMlib** plibs,FklVMvalue* globEn
 			FklString* s=fklCreateString(len,NULL);
 			fread(s->str,len,1,fp);
 			FklVMvalue* stringValue=fklCreateVMvalueNoGC(FKL_TYPE_STR,s,gc);
-			fklInitVMlib(&libs[i],exportNum,exports,stringValue);
+			fklInitVMlib(&libs[i],exportNum,exports,NULL,stringValue);
 		}
 	}
 }
@@ -387,7 +387,7 @@ static FklByteCode* loadByteCode(FILE* fp)
 	FKL_ASSERT(tmp);
 	tmp->size=size;
 	tmp->code=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	FKL_ASSERT(tmp->code);
+	FKL_ASSERT(tmp->code||!size);
 	fread(tmp->code,size,1,fp);
 	return tmp;
 }

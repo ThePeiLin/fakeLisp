@@ -63,10 +63,12 @@ typedef struct FklCodegenLib
 	}u;
 	char* rp;
 	size_t exportNum;
+	uint32_t* exportIndex;
 	FklSid_t* exports;
 	FklCodegenMacro* head;
 	FklHashTable* replacements;
 	FklStringMatchPattern* patterns;
+	uint32_t prototypeId;
 }FklCodegenLib;
 
 typedef struct FklCodegen
@@ -193,7 +195,8 @@ void fklInitCodegenScriptLib(FklCodegenLib* lib
 		,FklSid_t* exports
 		,FklCodegenMacro* head
 		,FklHashTable* replacements
-		,FklStringMatchPattern* patterns);
+		,FklStringMatchPattern* patterns
+		,FklCodegenEnv* env);
 
 typedef void (*FklCodegenDllLibInitExportFunc)(size_t*,FklSid_t**,FklSymbolTable* table);
 
@@ -214,7 +217,8 @@ FklCodegenLib* fklCreateCodegenScriptLib(char* rp
 		,FklSid_t* exports
 		,FklCodegenMacro* head
 		,FklHashTable* replacements
-		,FklStringMatchPattern* patterns);
+		,FklStringMatchPattern* patterns
+		,FklCodegenEnv* env);
 
 FklCodegenLib* fklCreateCodegenDllLib(char* rp
 		,FklDllHandle dll
@@ -257,13 +261,11 @@ void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
 
 void fklInitVMlibWithCodgenLib(FklCodegenLib* clib
 		,struct FklVMlib* vlib
-		,struct FklVMvalue* globEnv
 		,struct FklVMgc* vm
 		,int needCopy);
 
 void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
 		,struct FklVMlib* vlib
-		,struct FklVMvalue* globEnv
 		,struct FklVMgc* vm);
 #ifdef __cplusplus
 }

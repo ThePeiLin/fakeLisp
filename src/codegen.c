@@ -1830,14 +1830,15 @@ static void add_symbol_to_locale_env_in_list(const FklNastNode* list
 		,FklSymbolTable* globalSymTable
 		,FklSymbolTable* publicSymbolTable
 		,FklUintStack* idStack
-		,FklPtrQueue* restQueue)
+		,FklPtrQueue* restQueue
+		,uint32_t scope)
 {
 	for(;list->type==FKL_NAST_PAIR;list=list->u.pair->cdr)
 	{
 		FklNastNode* cur=list->u.pair->car;
 		if(cur->type==FKL_NAST_SYM)
 		{
-			fklAddCodegenDefBySid(cur->u.sym,1,env);
+			fklAddCodegenDefBySid(cur->u.sym,scope,env);
 			fklPushUintStack(fklAddSymbol(fklGetSymbolWithId(cur->u.sym
 							,publicSymbolTable)->symbol
 						,globalSymTable)->id,idStack);
@@ -2288,7 +2289,8 @@ static inline void process_import_script(FklNastNode* origExp
 		,FklCodegenEnv* curEnv
 		,FklCodegen* codegen
 		,FklCodegenErrorState* errorState
-		,FklPtrStack* codegenQuestStack)
+		,FklPtrStack* codegenQuestStack
+		,uint32_t scope)
 {
 	FklCodegenEnv* libEnv=fklCreateCodegenEnv(NULL,0);
 	FklCodegen* nextCodegen=createCodegen(codegen,filename,libEnv);
@@ -2352,7 +2354,8 @@ static inline void process_import_script(FklNastNode* origExp
 				,codegen->globalSymTable
 				,codegen->publicSymbolTable
 				,&idStack
-				,exportMacroQueue);
+				,exportMacroQueue
+				,scope);
 
 		nextCodegen->exportNum=idStack.top;
 		nextCodegen->exports=fklCopyMemory(idStack.base,sizeof(FklSid_t)*idStack.top);
@@ -2499,7 +2502,8 @@ static CODEGEN_FUNC(codegen_import)
 			,curEnv
 			,codegen
 			,errorState
-			,codegenQuestStack);
+			,codegenQuestStack
+			,scope);
 	}
 	else if(fklIsAccessableRegFile(dllFileName))
 	{

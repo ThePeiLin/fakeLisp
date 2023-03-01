@@ -56,6 +56,7 @@ static struct
 	{"get-var-ref",                  4,  },
 	{"put-var-ref",                  4,  },
 	{"export",                       4,  },
+	{"load-lib",                     4,  },
 };
 
 const char* fklGetOpcodeName(FklOpcode opcode)

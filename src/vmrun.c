@@ -316,6 +316,7 @@ static void B_put_loc(BYTE_CODE_ARGS);
 static void B_get_var_ref(BYTE_CODE_ARGS);
 static void B_put_var_ref(BYTE_CODE_ARGS);
 static void B_export(BYTE_CODE_ARGS);
+static void B_load_lib(BYTE_CODE_ARGS);
 #undef BYTE_CODE_ARGS
 
 static void (*ByteCodes[])(FklVM*,FklVMframe*)=
@@ -370,6 +371,7 @@ static void (*ByteCodes[])(FklVM*,FklVMframe*)=
 	B_get_var_ref,
 	B_put_var_ref,
 	B_export,
+	B_load_lib,
 };
 
 inline static void insert_to_VM_chain(FklVM* cur,FklVM* prev,FklVM* next,FklVMgc* gc)
@@ -396,6 +398,7 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe);
+	exe->loadingLib=0;
 	exe->frames=NULL;
 	exe->tid=pthread_self();
 	exe->gc=fklCreateVMgc();
@@ -1254,6 +1257,19 @@ static void inline B_import(FklVM* exe,FklVMframe* frame)
 		init_import_env(frame,plib,exe);
 }
 
+static void inline B_load_lib(FklVM* exe,FklVMframe* frame)
+{
+	uint32_t libId=fklGetU32FromByteCode(fklGetCompoundFrameCode(frame));
+	FklVMlib* plib=&exe->libs[libId-1];
+	if(plib->imported)
+	{
+		exe->loadingLib=libId;
+		fklAddCompoundFrameCp(frame,sizeof(libId));
+	}
+	else
+		init_import_env(frame,plib,exe);
+}
+
 static void inline B_import_with_symbols(FklVM* exe,FklVMframe* frame)
 {
 	//uint64_t libId=fklGetU64FromByteCode(fklGetCompoundFrameCode(frame));
@@ -1942,6 +1958,7 @@ FklVM* fklCreateThreadVM(FklVMgc* gc
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe);
+	exe->loadingLib=0;
 	exe->mark=1;
 	exe->chan=fklCreateSaveVMvalue(FKL_TYPE_CHAN,fklCreateVMchanl(0));
 	exe->stack=fklCreateVMstack(0);

@@ -182,6 +182,7 @@ static void loadLib(FILE* fp,size_t* pnum,FklCodegenLib** plibs,FklSymbolTable* 
 					,NULL
 					,NULL
 					,NULL
+					,NULL
 					,NULL);
 		}
 		else

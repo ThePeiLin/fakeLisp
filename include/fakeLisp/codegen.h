@@ -83,6 +83,7 @@ typedef struct FklCodegen
 	FklSid_t fid;
 	size_t exportNum;
 	FklSid_t* exports;
+	FklSid_t* exportsP;
 	FklPtrStack* loadedLibStack;
 	FklPtrStack* macroLibStack;
 	FklStringMatchPattern* head;
@@ -193,6 +194,7 @@ void fklInitCodegenScriptLib(FklCodegenLib* lib
 		,FklByteCodelnt* bcl
 		,size_t exportNum
 		,FklSid_t* exports
+		,FklSid_t* exportsP
 		,FklCodegenMacro* head
 		,FklHashTable* replacements
 		,FklStringMatchPattern* patterns
@@ -215,6 +217,7 @@ FklCodegenLib* fklCreateCodegenScriptLib(char* rp
 		,FklByteCodelnt* bcl
 		,size_t exportNum
 		,FklSid_t* exports
+		,FklSid_t* exportsP
 		,FklCodegenMacro* head
 		,FklHashTable* replacements
 		,FklStringMatchPattern* patterns
@@ -259,6 +262,7 @@ void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
 		,struct FklVMCompoundFrameVarRef* lr
 		,int needCopy);
 
+struct FklVMgc;
 void fklInitVMlibWithCodgenLib(FklCodegenLib* clib
 		,struct FklVMlib* vlib
 		,struct FklVMgc* vm

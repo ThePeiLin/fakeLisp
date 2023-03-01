@@ -1830,18 +1830,28 @@ static void add_symbol_to_locale_env_in_list(const FklNastNode* list
 		,FklSymbolTable* globalSymTable
 		,FklSymbolTable* publicSymbolTable
 		,FklUintStack* idStack
+		,FklUintStack* idPstack
 		,FklPtrQueue* restQueue
-		,uint32_t scope)
+		,uint32_t scope
+		,FklByteCodelnt* bcl
+		,FklSid_t fid
+		,uint64_t line)
 {
+	uint8_t importCode[9]={FKL_OP_IMPORT,0};
+	FklByteCode bc={9,importCode};
 	for(;list->type==FKL_NAST_PAIR;list=list->u.pair->cdr)
 	{
 		FklNastNode* cur=list->u.pair->car;
 		if(cur->type==FKL_NAST_SYM)
 		{
-			fklAddCodegenDefBySid(cur->u.sym,scope,env);
-			fklPushUintStack(fklAddSymbol(fklGetSymbolWithId(cur->u.sym
-							,publicSymbolTable)->symbol
-						,globalSymTable)->id,idStack);
+			uint32_t idx=fklAddCodegenDefBySid(cur->u.sym,scope,env);
+			FklSid_t idp=cur->u.sym;
+			FklSid_t id=fklAddSymbol(fklGetSymbolWithId(idp,publicSymbolTable)->symbol
+						,globalSymTable)->id;
+			fklPushUintStack(id,idStack);
+			fklPushUintStack(idp,idPstack);
+			fklSetU32ToByteCode(&importCode[1],idx);
+			bclBcAppendToBcl(bcl,&bc,fid,line);
 		}
 		else
 			fklPushPtrQueue(fklMakeNastNodeRef(cur),restQueue);
@@ -2050,28 +2060,42 @@ BC_PROCESS(_library_bc_process)
 	codegen->globalEnv->macros->prev->replacements=NULL;
 	fklDestroyCodegenMacroScope(codegen->globalEnv->macros->prev);
 
-	uint8_t exportOpBcCode[4]={FKL_OP_EXPORT,0};
+	uint8_t exportOpBcCode[5]={FKL_OP_EXPORT,0};
 	fklSetU32ToByteCode(&exportOpBcCode[1],codegen->loadedLibStack->top+1);
-	FklByteCode exportOpBc={4,exportOpBcCode};
+	FklByteCode exportOpBc={5,exportOpBcCode};
 	bclBcAppendToBcl(libBc,&exportOpBc,fid,line);
 
-	fklPushPtrStack(fklCreateCodegenScriptLib(codegen->realpath
+	FklCodegenLib* lib=fklCreateCodegenScriptLib(codegen->realpath
 				,libBc
 				,codegen->exportNum
 				,codegen->exports
+				,codegen->exportsP
 				,exportHead
 				,exportReplacements
 				,exportStringPatterns
-				,env)
+				,env);
+
+	fklPushPtrStack(lib
 			,codegen->loadedLibStack);
 
 	destroy_tmp_macros(codegen->globalEnv);
 
 	FklByteCodelnt* retval=stack->base[0];
 	stack->top=0;
-	fklSetU32ToByteCode(retval->bc->code+sizeof(char),codegen->loadedLibStack->top);
+
+	uint8_t* code=retval->bc->code;
+	uint32_t exportNum=lib->exportNum;
+	uint32_t* exportIndex=lib->exportIndex;
+	for(uint32_t i=0;i<exportNum;i++)
+		fklSetU32ToByteCode(&code[5+i*9],exportIndex[i]);
+	exportOpBcCode[0]=FKL_OP_LOAD_LIB;
+	fklSetU32ToByteCode(&exportOpBcCode[1],codegen->loadedLibStack->top);
+	bcBclAppendToBcl(&exportOpBc,retval,fid,line);
+
 	codegen->exportNum=0;
 	codegen->exports=NULL;
+	free(codegen->exportsP);
+	codegen->exportsP=NULL;
 	codegen->realpath=NULL;
 	return retval;
 }
@@ -2092,6 +2116,7 @@ BC_PROCESS(_library_be_imported_with_prefix_bc_process)
 				,libBc
 				,codegen->exportNum
 				,codegen->exports
+				,NULL
 				,exportHead
 				,exportReplacements
 				,exportPatterns
@@ -2346,24 +2371,33 @@ static inline void process_import_script(FklNastNode* origExp
 			return;
 		}
 		FklUintStack idStack=FKL_STACK_INIT;
+		FklUintStack idPstack=FKL_STACK_INIT;
 		fklInitUintStack(&idStack,32,16);
+		fklInitUintStack(&idPstack,32,16);
 		FklPtrQueue* exportMacroQueue=fklCreatePtrQueue();
 
+		FklByteCodelnt* importBc=createBclnt(fklCreateByteCode(0),codegen->fid,origExp->curline);
 		add_symbol_to_locale_env_in_list(export
 				,curEnv
 				,codegen->globalSymTable
 				,codegen->publicSymbolTable
 				,&idStack
+				,&idPstack
 				,exportMacroQueue
-				,scope);
+				,scope
+				,importBc
+				,codegen->fid
+				,origExp->curline);
 
 		nextCodegen->exportNum=idStack.top;
 		nextCodegen->exports=fklCopyMemory(idStack.base,sizeof(FklSid_t)*idStack.top);
+		nextCodegen->exportsP=fklCopyMemory(idPstack.base,sizeof(FklSid_t)*idPstack.top);
 		fklUninitUintStack(&idStack);
+		fklUninitUintStack(&idPstack);
 		FklPtrQueue* libraryRestExpressionQueue=fklCreatePtrQueue();
 		pushListItemToQueue(rest,libraryRestExpressionQueue,NULL);
 		FklPtrStack* bcStack=fklCreatePtrStack(32,16);
-		FklByteCodelnt* importBc=createBclnt(create9lenBc(FKL_OP_IMPORT,0),codegen->fid,origExp->curline);
+		//FklByteCodelnt* importBc=createBclnt(create9lenBc(FKL_OP_IMPORT,0),codegen->fid,origExp->curline);
 		fklPushPtrStack(importBc,bcStack);
 
 		create_and_insert_to_pool(nextCodegen->ptpool,0,libEnv,nextCodegen->globalSymTable,nextCodegen->publicSymbolTable);
@@ -3762,6 +3796,7 @@ void fklInitCodegener(FklCodegen* codegen
 	codegen->refcount=0;
 	codegen->exportNum=0;
 	codegen->exports=NULL;
+	codegen->exportsP=NULL;
 	codegen->head=NULL;
 	if(prev)
 	{
@@ -3821,6 +3856,7 @@ void fklInitCodegenScriptLib(FklCodegenLib* lib
 		,FklByteCodelnt* bcl
 		,size_t exportNum
 		,FklSid_t* exports
+		,FklSid_t* exportsP
 		,FklCodegenMacro* head
 		,FklHashTable* replacements
 		,FklStringMatchPattern* patterns
@@ -3834,16 +3870,27 @@ void fklInitCodegenScriptLib(FklCodegenLib* lib
 	lib->head=head;
 	lib->replacements=replacements;
 	lib->patterns=patterns;
-	uint32_t* idxes=(uint32_t*)malloc(sizeof(uint32_t)*exportNum);
-	FKL_ASSERT(idxes||!exportNum);
-	for(uint32_t i=0;i<exportNum;i++)
-		idxes[i]=fklAddCodegenDefBySid(exports[i],1,env);
+	if(env)
+	{
+		lib->prototypeId=env->prototypeId;
+		uint32_t* idxes=(uint32_t*)malloc(sizeof(uint32_t)*exportNum);
+		for(uint32_t i=0;i<exportNum;i++)
+			idxes[i]=fklAddCodegenDefBySid(exportsP[i],1,env);
+		FKL_ASSERT(idxes||!exportNum);
+		lib->exportIndex=idxes;
+	}
+	else
+	{
+		lib->prototypeId=0;
+		lib->exportIndex=NULL;
+	}
 }
 
 FklCodegenLib* fklCreateCodegenScriptLib(char* rp
 		,FklByteCodelnt* bcl
 		,size_t exportNum
 		,FklSid_t* exports
+		,FklSid_t* exportsP
 		,FklCodegenMacro* head
 		,FklHashTable* replacements
 		,FklStringMatchPattern* patterns
@@ -3856,6 +3903,7 @@ FklCodegenLib* fklCreateCodegenScriptLib(char* rp
 			,bcl
 			,exportNum
 			,exports
+			,exportsP
 			,head
 			,replacements
 			,patterns
@@ -4139,7 +4187,9 @@ inline void fklInitVMlibWithCodgenLib(FklCodegenLib* clib
 	{
 		FklByteCode* bc=clib->u.bcl->bc;
 		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,needCopy?fklCopyByteCodelnt(clib->u.bcl):clib->u.bcl,gc);
-		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(bc->code,bc->size,codeObj,gc),gc);
+		FklVMproc* prc=fklCreateVMproc(bc->code,bc->size,codeObj,gc);
+		prc->protoId=clib->prototypeId;
+		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,prc,gc);
 		val=proc;
 	}
 	else
@@ -4161,7 +4211,9 @@ inline void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
 	{
 		FklByteCode* bc=clib->u.bcl->bc;
 		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,clib->u.bcl,gc);
-		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(bc->code,bc->size,codeObj,gc),gc);
+		FklVMproc* prc=fklCreateVMproc(bc->code,bc->size,codeObj,gc);
+		prc->protoId=clib->prototypeId;
+		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,prc,gc);
 		val=proc;
 	}
 	else

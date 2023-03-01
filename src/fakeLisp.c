@@ -92,16 +92,19 @@ int main(int argc,char** argv)
 		anotherVM->libNum=codegen.loadedLibStack->top;
 		anotherVM->libs=(FklVMlib*)malloc(sizeof(FklVMlib)*loadedLibStack->top);
 		FKL_ASSERT(anotherVM->libs);
-		while(!fklIsPtrStackEmpty(loadedLibStack))
-		{
-			FklCodegenLib* cur=fklPopPtrStack(loadedLibStack);
-			FklVMlib* curVMlib=&anotherVM->libs[loadedLibStack->top];
-			fklInitVMlibWithCodgenLibAndDestroy(cur,curVMlib,anotherVM->gc);
-		}
-
 		FklVMframe* mainframe=anotherVM->frames;
 		fklInitGlobalVMclosure(mainframe,anotherVM);
 		FklVMCompoundFrameVarRef* lr=&mainframe->u.c.lr;
+
+		while(!fklIsPtrStackEmpty(loadedLibStack))
+		{
+			FklCodegenLib* cur=fklPopPtrStack(loadedLibStack);
+			FklCodegenLibType type=cur->type;
+			FklVMlib* curVMlib=&anotherVM->libs[loadedLibStack->top];
+			fklInitVMlibWithCodgenLibAndDestroy(cur,curVMlib,anotherVM->gc);
+			if(type==FKL_CODEGEN_LIB_SCRIPT)
+				fklInitMainProcRefs(curVMlib->proc->u.proc,lr->ref,lr->rcount);
+		}
 
 		FklVMproc* tmp=fklCreateVMproc(mainByteCode->bc->code,mainByteCode->bc->size,anotherVM->codeObj,anotherVM->gc);
 		tmp->protoId=1;

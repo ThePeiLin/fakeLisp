@@ -181,12 +181,13 @@ typedef enum
 
 typedef void* FklCallObjData[6];
 
+struct FklVMgc;
 typedef struct
 {
 	int (*end)(FklCallObjData data);
 	void (*step)(FklCallObjData data,struct FklVM*);
 	void (*print_backtrace)(FklCallObjData data,FILE* fp,FklSymbolTable*);
-	void (*atomic)(FklCallObjData data,FklVMgc*);
+	void (*atomic)(FklCallObjData data,struct FklVMgc*);
 	void (*finalizer)(FklCallObjData data);
 	void (*copy)(FklCallObjData dst,const FklCallObjData src,struct FklVM*);
 }FklVMframeContextMethodTable;
@@ -281,9 +282,7 @@ typedef struct FklVM
 	FklSymbolTable* symbolTable;
 	FklSid_t* builtinErrorTypeId;
 	FklPrototypePool* ptpool;
-	uint32_t loadingLib;
-	uint32_t selfLoadLib;
-	uint32_t loadedLibNum;
+	uint32_t importingLibId;
 }FklVM;
 
 typedef struct FklVMudMethodTable

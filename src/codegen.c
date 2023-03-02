@@ -760,11 +760,18 @@ static void* _codegen_replacement_getKey(void* item)
 	return &((FklCodegenReplacement*)item)->id;
 }
 
+static int _codegen_replacement_keyEqual(void* pkey0,void* pkey1)
+{
+	FklSid_t k0=*(FklSid_t*)pkey0;
+	FklSid_t k1=*(FklSid_t*)pkey1;
+	return k0==k1;
+}
+
 static FklHashTableMethodTable CodegenReplacementHashMethodTable=
 {
 	.__hashFunc=_codegenenv_hashFunc,
 	.__destroyItem=_codegen_replacement_destroyItem,
-	.__keyEqual=_codegenenv_keyEqual,
+	.__keyEqual=_codegen_replacement_keyEqual,
 	.__getKey=_codegen_replacement_getKey,
 };
 
@@ -3586,7 +3593,7 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 				if(curExp->type==FKL_NAST_SYM)
 				{
 					FklNastNode* replacement=NULL;
-					for(FklCodegenEnv* env=curEnv;env->prev&&!replacement;env=env->prev)
+					for(FklCodegenEnv* env=curEnv;env&&!replacement;env=env->prev)
 						replacement=fklGetReplacement(curExp->u.sym,env);
 					if(replacement)
 					{

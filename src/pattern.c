@@ -8,7 +8,8 @@
 FklStringMatchPattern* fklCreateStringMatchPattern(FklNastNode* parts
 		,FklByteCodelnt* bcl
 		,FklPrototypePool* ptpool
-		,FklStringMatchPattern* next)
+		,FklStringMatchPattern* next
+		,int own)
 {
 	FklStringMatchPattern* r=(FklStringMatchPattern*)malloc(sizeof(FklStringMatchPattern));
 	FKL_ASSERT(r);
@@ -17,6 +18,7 @@ FklStringMatchPattern* fklCreateStringMatchPattern(FklNastNode* parts
 	r->u.proc=bcl;
 	r->next=next;
 	r->ptpool=ptpool;
+	r->own=own;
 	return r;
 }
 
@@ -328,6 +330,7 @@ static FklStringMatchPattern* createBuiltinStringPattern(FklNastNode* parts
 	r->u.func=func;
 	r->next=next;
 	r->ptpool=NULL;
+	r->own=1;
 	return r;
 }
 
@@ -514,10 +517,22 @@ void fklInitCodegenEnvWithPatternParts(const FklNastNode* parts,FklCodegenEnv* e
 	}
 }
 
+static inline void uninit_string_match_pattern(FklStringMatchPattern* o)
+{
+	if(o->own)
+	{
+		if(o->type==FKL_STRING_PATTERN_DEFINED)
+			fklDestroyByteCodelnt(o->u.proc);
+		fklDestroyPrototypePool(o->ptpool);
+		fklDestroyNastNode(o->parts);
+	}
+}
+
 void fklAddStringMatchPattern(FklNastNode* parts
 		,FklByteCodelnt* proc
 		,FklStringMatchPattern** head
-		,FklPrototypePool* ptpool)
+		,FklPrototypePool* ptpool
+		,int own)
 {
 	int coverState=0;
 	FklStringMatchPattern** phead=head;
@@ -529,39 +544,35 @@ void fklAddStringMatchPattern(FklNastNode* parts
 			break;
 	}
 	if(!coverState)
-		*head=fklCreateStringMatchPattern(parts,proc,ptpool,*head);
+		*head=fklCreateStringMatchPattern(parts,proc,ptpool,*head,own);
 	else
 	{
 		if(coverState==FKL_PATTERN_COVER)
 		{
 			FklStringMatchPattern* next=*phead;
-			*phead=fklCreateStringMatchPattern(parts,proc,ptpool,next);
+			*phead=fklCreateStringMatchPattern(parts,proc,ptpool,next,own);
 		}
 		else if(coverState==FKL_PATTERN_BE_COVER)
 		{
 			FklStringMatchPattern* next=(*phead)->next;
-			(*phead)->next=fklCreateStringMatchPattern(parts,proc,ptpool,next);
+			(*phead)->next=fklCreateStringMatchPattern(parts,proc,ptpool,next,own);
 		}
 		else
 		{
 			FklStringMatchPattern* cur=*phead;
-			fklDestroyNastNode(cur->parts);
-			if(cur->type==FKL_STRING_PATTERN_DEFINED)
-				fklDestroyByteCodelnt(cur->u.proc);
-			else
-				cur->type=FKL_STRING_PATTERN_DEFINED;
-			cur->parts=fklMakeNastNodeRef(parts);
+			uninit_string_match_pattern(cur);
+			cur->type=FKL_STRING_PATTERN_DEFINED;
+			cur->own=own;
+			cur->parts=parts;
 			cur->u.proc=proc;
+			cur->ptpool=ptpool;
 		}
 	}
 }
 
 void fklDestroyStringPattern(FklStringMatchPattern* o)
 {
-	if(o->type==FKL_STRING_PATTERN_DEFINED)
-		fklDestroyByteCodelnt(o->u.proc);
-	fklDestroyPrototypePool(o->ptpool);
-	fklDestroyNastNode(o->parts);
+	uninit_string_match_pattern(o);
 	free(o);
 }
 

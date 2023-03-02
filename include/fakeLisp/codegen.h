@@ -37,6 +37,7 @@ typedef struct FklCodegenMacro
 	FklPrototypePool* ptpool;
 	FklByteCodelnt* bcl;
 	struct FklCodegenMacro* next;
+	uint8_t own;
 }FklCodegenMacro;
 
 typedef struct FklCodegenMacroScope
@@ -236,7 +237,8 @@ void fklDestroyCodegenLib(FklCodegenLib*);
 FklCodegenMacro* fklCreateCodegenMacro(FklNastNode* pattern
 		,FklByteCodelnt* bcl
 		,FklCodegenMacro* next
-		,FklPrototypePool* ptpool);
+		,FklPrototypePool* ptpool
+		,int own);
 void fklDestroyCodegenMacro(FklCodegenMacro* macro);
 void fklDestroyCodegenMacroList(FklCodegenMacro* macro);
 

@@ -1924,13 +1924,23 @@ static void add_symbol_to_locale_env_in_list(const FklNastNode* list
 static void add_symbol_to_locale_env_in_array(FklCodegenEnv* env
 		,FklSymbolTable* symbolTable
 		,FklSymbolTable* publicSymbolTable
-		,size_t num,FklSid_t* exports)
+		,size_t num
+		,FklSid_t* exports
+		,uint32_t* exportIndex
+		,FklByteCodelnt* bcl
+		,FklSid_t fid
+		,uint64_t line)
 {
+	uint8_t importCode[9]={FKL_OP_IMPORT,0};
+	FklByteCode bc={9,importCode};
 	for(size_t i=0;i<num;i++)
 	{
 		FklSid_t sym=fklAddSymbol(fklGetSymbolWithId(exports[i],symbolTable)->symbol
 				,publicSymbolTable)->id;
-		fklAddCodegenDefBySid(sym,1,env);
+		uint32_t idx=fklAddCodegenDefBySid(sym,1,env);
+		fklSetU32ToByteCode(&importCode[1],idx);
+		fklSetU32ToByteCode(&importCode[5],exportIndex[i]);
+		bclBcAppendToBcl(bcl,&bc,fid,line);
 	}
 }
 
@@ -2480,7 +2490,6 @@ static inline void process_import_script(FklNastNode* origExp
 		FklPtrQueue* libraryRestExpressionQueue=fklCreatePtrQueue();
 		pushListItemToQueue(rest,libraryRestExpressionQueue,NULL);
 		FklPtrStack* bcStack=fklCreatePtrStack(32,16);
-		//FklByteCodelnt* importBc=createBclnt(create9lenBc(FKL_OP_IMPORT,0),codegen->fid,origExp->curline);
 		fklPushPtrStack(importBc,bcStack);
 
 		create_and_insert_to_pool(nextCodegen->ptpool,0,libEnv,nextCodegen->globalSymTable,nextCodegen->publicSymbolTable);
@@ -2519,13 +2528,17 @@ static inline void process_import_script(FklNastNode* origExp
 		FklCodegenLib* lib=codegen->loadedLibStack->base[libId-1];
 		for(FklCodegenMacro* cur=lib->head;cur;cur=cur->next)
 			add_compiler_macro(curEnv->macros,fklMakeNastNodeRef(cur->pattern),fklCopyByteCodelnt(cur->bcl),NULL);
+		FklByteCodelnt* importBc=createBclnt(create5lenBc(FKL_OP_LOAD_LIB,libId),codegen->fid,origExp->curline);
 		add_symbol_to_locale_env_in_array(curEnv
 				,codegen->globalSymTable
 				,codegen->publicSymbolTable
 				,lib->exportNum
-				,lib->exports);
+				,lib->exports
+				,lib->exportIndex
+				,importBc
+				,codegen->fid
+				,origExp->curline);
 		process_import_reader_macro(codegen->phead,lib->patterns);
-		FklByteCodelnt* importBc=createBclnt(create9lenBc(FKL_OP_IMPORT,libId),codegen->fid,origExp->curline);
 		FklPtrStack* bcStack=fklCreatePtrStack(1,1);
 		fklPushPtrStack(importBc,bcStack);
 		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_default_bc_process
@@ -2595,7 +2608,10 @@ static inline FklByteCodelnt* process_import_from_dll(FklNastNode* origExp
 			,codegen->globalSymTable
 			,codegen->publicSymbolTable
 			,lib->exportNum
-			,lib->exports);
+			,lib->exports
+			,lib->exportIndex
+			,NULL
+			,0,0);
 	return createBclnt(create9lenBc(FKL_OP_IMPORT_FROM_DLL,libId),codegen->fid,origExp->curline);
 }
 

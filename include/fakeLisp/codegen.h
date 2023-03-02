@@ -41,6 +41,7 @@ typedef struct FklCodegenMacro
 
 typedef struct FklCodegenMacroScope
 {
+	uint32_t refcount;
 	struct FklCodegenMacroScope* prev;
 	FklHashTable* replacements;
 	FklCodegenMacro* head;

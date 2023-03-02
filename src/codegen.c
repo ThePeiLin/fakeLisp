@@ -223,6 +223,13 @@ static void bcBclAppendToBcl(const FklByteCode* bc
 	}
 }
 
+static inline FklCodegenMacroScope* make_macro_scope_ref(FklCodegenMacroScope* s)
+{
+	if(s)
+		s->refcount++;
+	return s;
+}
+
 static FklCodegenQuest* createCodegenQuest(FklByteCodeProcesser f
 		,FklCodegenQuestContext* context
 		,FklCodegenNextExpression* nextExpression
@@ -236,7 +243,7 @@ static FklCodegenQuest* createCodegenQuest(FklByteCodeProcesser f
 	FklCodegenQuest* r=(FklCodegenQuest*)malloc(sizeof(FklCodegenQuest));
 	FKL_ASSERT(r);
 	r->scope=scope;
-	r->macroScope=macroScope;
+	r->macroScope=make_macro_scope_ref(macroScope);
 	r->processer=f;
 	r->context=context;
 	if(env)
@@ -261,6 +268,7 @@ static void destroyCodegenQuest(FklCodegenQuest* quest)
 		free(nextExpression);
 	}
 	fklDestroyCodegenEnv(quest->env);
+	fklDestroyCodegenMacroScope(quest->macroScope);
 	quest->context->t->__finalizer(quest->context->data);
 	free(quest->context);
 	fklDestroyCodegener(quest->codegen);
@@ -816,10 +824,10 @@ FklCodegenEnv* fklCreateCodegenEnv(FklCodegenEnv* prev,uint32_t pscope)
 	if(prev)
 	{
 		prev->refcount+=1;
-		r->macros=fklCreateCodegenMacroScope(prev->macros);
+		r->macros=make_macro_scope_ref(fklCreateCodegenMacroScope(prev->macros));
 	}
 	else
-		r->macros=fklCreateCodegenMacroScope(NULL);
+		r->macros=make_macro_scope_ref(fklCreateCodegenMacroScope(NULL));
 	return r;
 }
 
@@ -1946,6 +1954,13 @@ static void add_symbol_with_prefix_to_locale_env_in_array(FklCodegenEnv* env
 	}
 }
 
+static inline void uninit_codegen_macro(FklCodegenMacro* macro)
+{
+	fklDestroyNastNode(macro->pattern);
+	fklDestroyByteCodelnt(macro->bcl);
+	fklDestroyPrototypePool(macro->ptpool);
+}
+
 static void add_compiler_macro(FklCodegenMacroScope* macros,FklNastNode* pattern,FklByteCodelnt* bcl,FklPrototypePool* ptpool)
 {
 	int coverState=0;
@@ -1978,8 +1993,8 @@ static void add_compiler_macro(FklCodegenMacroScope* macros,FklNastNode* pattern
 		else
 		{
 			FklCodegenMacro* macro=*pmacro;
-			fklDestroyNastNode(macro->pattern);
-			fklDestroyByteCodelnt(macro->bcl);
+			uninit_codegen_macro(macro);
+			macro->ptpool=ptpool;
 			macro->pattern=fklMakeNastNodeRef(pattern);
 			macro->bcl=bcl;
 		}
@@ -2007,7 +2022,7 @@ BC_PROCESS(_library_export_macro_bc_process)
 	}
 	process_import_reader_macro(exportTargetEnv->phead,*codegen->globalEnv->phead);
 	process_import_reader_macro(&codegen->globalEnv->macros->patterns,*codegen->globalEnv->phead);
-	codegen->globalEnv->macros=fklCreateCodegenMacroScope(codegen->globalEnv->macros);
+	codegen->globalEnv->macros=make_macro_scope_ref(fklCreateCodegenMacroScope(codegen->globalEnv->macros));
 	return (FklByteCodelnt*)codegen->globalEnv->macros->prev;
 }
 
@@ -2234,6 +2249,7 @@ static void _export_macro_stack_context_finalizer(void* data)
 	while(s->top>2)
 		fklDestroyByteCodelnt(fklPopPtrStack(s));
 	fklDestroyCodegenEnv(fklPopPtrStack(s));
+	fklDestroyCodegenMacroScope(fklPopPtrStack(s));
 	fklDestroyPtrStack(s);
 }
 
@@ -2477,7 +2493,7 @@ static inline void process_import_script(FklNastNode* origExp
 		fklPushPtrStack(prevQuest,codegenQuestStack);
 
 		FklPtrStack* exportMacroBcStack=fklCreatePtrStack(32,16);
-		fklPushPtrStack(macroScope,exportMacroBcStack);
+		fklPushPtrStack(make_macro_scope_ref(macroScope),exportMacroBcStack);
 		fklPushPtrStack(curEnv,exportMacroBcStack);
 		curEnv->refcount+=1;
 
@@ -3054,7 +3070,7 @@ typedef FklNastNode* (*ReplacementFunc)(const FklNastNode* orig,FklCodegenEnv* e
 
 static FklNastNode* _nil_replacement(const FklNastNode* orig,FklCodegenEnv* env,FklCodegen* codegen)
 {
-	return fklMakeNastNodeRef(fklCreateNastNode(FKL_NAST_NIL,orig->curline));
+	return fklCreateNastNode(FKL_NAST_NIL,orig->curline);
 }
 
 static FklNastNode* _file_dir_replacement(const FklNastNode* orig,FklCodegenEnv* env,FklCodegen* codegen)
@@ -3066,7 +3082,7 @@ static FklNastNode* _file_dir_replacement(const FklNastNode* orig,FklCodegenEnv*
 	else
 		s=fklCreateStringFromCstr(codegen->curDir);
 	r->u.str=s;
-	return fklMakeNastNodeRef(r);
+	return r;
 }
 
 static FklNastNode* _file_replacement(const FklNastNode* orig,FklCodegenEnv* env,FklCodegen* codegen)
@@ -3081,7 +3097,7 @@ static FklNastNode* _file_replacement(const FklNastNode* orig,FklCodegenEnv* env
 		s=fklCreateStringFromCstr(codegen->filename);
 		r->u.str=s;
 	}
-	return fklMakeNastNodeRef(r);
+	return r;
 }
 
 static FklNastNode* _line_replacement(const FklNastNode* orig,FklCodegenEnv* env,FklCodegen* codegen)
@@ -3098,7 +3114,7 @@ static FklNastNode* _line_replacement(const FklNastNode* orig,FklCodegenEnv* env
 		r=fklCreateNastNode(FKL_NAST_BIG_INT,orig->curline);
 		r->u.bigInt=fklCreateBigInt(line);
 	}
-	return fklMakeNastNodeRef(r);
+	return r;
 }
 
 static struct SymbolReplacement
@@ -4090,9 +4106,7 @@ FklCodegenMacro* fklCreateCodegenMacro(FklNastNode* pattern,FklByteCodelnt* bcl,
 
 void fklDestroyCodegenMacro(FklCodegenMacro* macro)
 {
-	fklDestroyNastNode(macro->pattern);
-	fklDestroyByteCodelnt(macro->bcl);
-	fklDestroyPrototypePool(macro->ptpool);
+	uninit_codegen_macro(macro);
 	free(macro);
 }
 
@@ -4103,21 +4117,33 @@ FklCodegenMacroScope* fklCreateCodegenMacroScope(FklCodegenMacroScope* prev)
 	r->head=NULL;
 	r->patterns=NULL;
 	r->replacements=createCodegenReplacements();
-	r->prev=prev;
+	r->refcount=0;
+	r->prev=make_macro_scope_ref(prev);
 	return r;
 }
 
 void fklDestroyCodegenMacroScope(FklCodegenMacroScope* macros)
 {
-	for(FklCodegenMacro* cur=macros->head;cur;)
+	while(macros)
 	{
-		FklCodegenMacro* t=cur;
-		cur=cur->next;
-		fklDestroyCodegenMacro(t);
+		macros->refcount--;
+		if(macros->refcount)
+			return;
+		else
+		{
+			FklCodegenMacroScope* prev=macros->prev;
+			for(FklCodegenMacro* cur=macros->head;cur;)
+			{
+				FklCodegenMacro* t=cur;
+				cur=cur->next;
+				fklDestroyCodegenMacro(t);
+			}
+			if(macros->replacements)
+				fklDestroyHashTable(macros->replacements);
+			free(macros);
+			macros=prev;
+		}
 	}
-	if(macros->replacements)
-		fklDestroyHashTable(macros->replacements);
-	free(macros);
 }
 
 static FklCodegenMacro* findMacro(FklNastNode* exp

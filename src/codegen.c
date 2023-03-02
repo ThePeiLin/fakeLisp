@@ -227,6 +227,7 @@ static FklCodegenQuest* createCodegenQuest(FklByteCodeProcesser f
 		,FklCodegenQuestContext* context
 		,FklCodegenNextExpression* nextExpression
 		,uint32_t scope
+		,FklCodegenMacroScope* macroScope
 		,FklCodegenEnv* env
 		,uint64_t curline
 		,FklCodegenQuest* prev
@@ -235,6 +236,7 @@ static FklCodegenQuest* createCodegenQuest(FklByteCodeProcesser f
 	FklCodegenQuest* r=(FklCodegenQuest*)malloc(sizeof(FklCodegenQuest));
 	FKL_ASSERT(r);
 	r->scope=scope;
+	r->macroScope=macroScope;
 	r->processer=f;
 	r->context=context;
 	if(env)
@@ -265,7 +267,17 @@ static void destroyCodegenQuest(FklCodegenQuest* quest)
 	free(quest);
 }
 
-#define FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(F,STACK,NEXT_EXPRESSIONS,SCOPE,ENV,LINE,CODEGEN,CODEGEN_CONTEXT) fklPushPtrStack(createCodegenQuest((F),(STACK),(NEXT_EXPRESSIONS),(SCOPE),(ENV),(LINE),NULL,(CODEGEN)),(CODEGEN_CONTEXT))
+#define FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(F,STACK,NEXT_EXPRESSIONS,SCOPE,MACRO_SCOPE,ENV,LINE,CODEGEN,CODEGEN_CONTEXT) fklPushPtrStack(createCodegenQuest((F)\
+			,(STACK)\
+			,(NEXT_EXPRESSIONS)\
+			,(SCOPE)\
+			,(MACRO_SCOPE)\
+			,(ENV)\
+			,(LINE)\
+			,NULL\
+			,(CODEGEN))\
+			,(CODEGEN_CONTEXT))
+
 #define BC_PROCESS(NAME) static FklByteCodelnt* NAME(FklCodegen* codegen,FklCodegenEnv* env,FklCodegenQuestContext* context,FklSid_t fid,uint64_t line)
 
 #define GET_STACK(CONTEXT) ((CONTEXT)->t->__get_bcl_stack((CONTEXT)->data))
@@ -350,6 +362,7 @@ BC_PROCESS(_funcall_exp_bc_process)
 static void codegen_funcall(FklNastNode* rest
 		,FklPtrStack* codegenQuestStack
 		,uint32_t scope
+		,FklCodegenMacroScope* macroScope
 		,FklCodegenEnv* env
 		,FklCodegen* codegen
 		,FklCodegenErrorState* errorState)
@@ -371,6 +384,7 @@ static void codegen_funcall(FklNastNode* rest
 				,createDefaultStackContext(fklCreatePtrStack(32,16))
 				,createDefaultQueueNextExpression(queue)
 				,scope
+				,macroScope
 				,env
 				,rest->curline
 				,codegen
@@ -381,6 +395,7 @@ static void codegen_funcall(FklNastNode* rest
 		,FklHashTable* ht\
 		,FklPtrStack* codegenQuestStack\
 		,uint32_t scope\
+		,FklCodegenMacroScope* macroScope\
 		,FklCodegenEnv* curEnv\
 		,FklCodegen* codegen\
 		,FklCodegenErrorState* errorState
@@ -396,6 +411,7 @@ static CODEGEN_FUNC(codegen_begin)
 			,createDefaultStackContext(fklCreatePtrStack(32,16))
 			,createDefaultQueueNextExpression(queue)
 			,scope
+			,macroScope
 			,curEnv
 			,rest->curline
 			,codegen
@@ -458,6 +474,7 @@ static CODEGEN_FUNC(codegen_and)
 			,createDefaultStackContext(fklCreatePtrStack(32,16))
 			,createDefaultQueueNextExpression(queue)
 			,cs
+			,macroScope
 			,curEnv
 			,rest->curline
 			,codegen
@@ -510,6 +527,7 @@ static CODEGEN_FUNC(codegen_or)
 			,createDefaultStackContext(fklCreatePtrStack(32,16))
 			,createDefaultQueueNextExpression(queue)
 			,cs
+			,macroScope
 			,curEnv
 			,rest->curline
 			,codegen
@@ -992,6 +1010,7 @@ static CODEGEN_FUNC(codegen_lambda)
 			,createDefaultStackContext(stack)
 			,createDefaultQueueNextExpression(queue)
 			,1
+			,lambdaCodegenEnv->macros
 			,lambdaCodegenEnv
 			,rest->curline
 			,codegen
@@ -1028,6 +1047,7 @@ static CODEGEN_FUNC(codegen_define)
 			,createDefaultStackContext(stack)
 			,createDefaultQueueNextExpression(queue)
 			,scope
+			,macroScope
 			,curEnv
 			,name->curline
 			,codegen
@@ -1060,6 +1080,7 @@ static CODEGEN_FUNC(codegen_setq)
 			,createDefaultStackContext(stack)
 			,createDefaultQueueNextExpression(queue)
 			,scope
+			,macroScope
 			,curEnv
 			,name->curline
 			,codegen
@@ -1069,6 +1090,7 @@ static CODEGEN_FUNC(codegen_setq)
 inline static void push_default_codegen_quest(FklNastNode* value
 		,FklPtrStack* codegenQuestStack
 		,uint32_t scope
+		,FklCodegenMacroScope* macroScope
 		,FklCodegenEnv* curEnv
 		,FklCodegenQuest* prev
 		,FklCodegen* codegen)
@@ -1079,6 +1101,7 @@ inline static void push_default_codegen_quest(FklNastNode* value
 			,createDefaultStackContext(stack)
 			,NULL
 			,scope
+			,macroScope
 			,curEnv
 			,value->curline
 			,prev
@@ -1097,6 +1120,7 @@ static CODEGEN_FUNC(codegen_macroexpand)
 	push_default_codegen_quest(value
 			,codegenQuestStack
 			,scope
+			,macroScope
 			,curEnv
 			,NULL
 			,codegen);
@@ -1109,6 +1133,7 @@ static CODEGEN_FUNC(codegen_quote)
 	push_default_codegen_quest(value
 			,codegenQuestStack
 			,scope
+			,macroScope
 			,curEnv
 			,NULL
 			,codegen);
@@ -1117,6 +1142,7 @@ static CODEGEN_FUNC(codegen_quote)
 inline static void unquoteHelperFunc(FklNastNode* value
 		,FklPtrStack* codegenQuestStack
 		,uint32_t scope
+		,FklCodegenMacroScope* macroScope
 		,FklCodegenEnv* curEnv
 		,FklByteCodeProcesser func
 		,FklCodegenQuest* prev
@@ -1128,6 +1154,7 @@ inline static void unquoteHelperFunc(FklNastNode* value
 			,createDefaultStackContext(fklCreatePtrStack(1,1))
 			,createDefaultQueueNextExpression(queue)
 			,scope
+			,macroScope
 			,curEnv
 			,value->curline
 			,prev
@@ -1141,6 +1168,7 @@ static CODEGEN_FUNC(codegen_unquote)
 	unquoteHelperFunc(value
 			,codegenQuestStack
 			,scope
+			,macroScope
 			,curEnv
 			,_default_bc_process
 			,NULL
@@ -1277,6 +1305,7 @@ static CODEGEN_FUNC(codegen_qsquote)
 			unquoteHelperFunc(curValue
 					,codegenQuestStack
 					,scope
+					,macroScope
 					,curEnv
 					,_default_bc_process
 					,prevQuest,codegen);
@@ -1284,6 +1313,7 @@ static CODEGEN_FUNC(codegen_qsquote)
 			unquoteHelperFunc(curValue
 					,codegenQuestStack
 					,scope
+					,macroScope
 					,curEnv
 					,_unqtesp_vec_bc_process
 					,prevQuest
@@ -1297,6 +1327,7 @@ static CODEGEN_FUNC(codegen_qsquote)
 				unquoteHelperFunc(unquoteValue
 						,codegenQuestStack
 						,scope
+						,macroScope
 						,curEnv
 						,_default_bc_process
 						,prevQuest
@@ -1308,6 +1339,7 @@ static CODEGEN_FUNC(codegen_qsquote)
 						,createDefaultStackContext(fklCreatePtrStack(2,1))
 						,NULL
 						,scope
+						,macroScope
 						,curEnv
 						,curValue->curline
 						,prevQuest
@@ -1322,6 +1354,7 @@ static CODEGEN_FUNC(codegen_qsquote)
 						unquoteHelperFunc(unquoteValue
 								,codegenQuestStack
 								,scope
+								,macroScope
 								,curEnv
 								,_default_bc_process
 								,curQuest
@@ -1338,6 +1371,7 @@ static CODEGEN_FUNC(codegen_qsquote)
 									,createDefaultStackContext(fklCreatePtrStack(2,1))
 									,NULL
 									,scope
+									,macroScope
 									,curEnv
 									,curValue->curline
 									,curQuest
@@ -1367,6 +1401,7 @@ static CODEGEN_FUNC(codegen_qsquote)
 						,createDefaultStackContext(fklCreatePtrStack(vecSize,16))
 						,NULL
 						,scope
+						,macroScope
 						,curEnv
 						,curValue->curline
 						,prevQuest
@@ -1389,6 +1424,7 @@ static CODEGEN_FUNC(codegen_qsquote)
 						,createDefaultStackContext(fklCreatePtrStack(1,1))
 						,NULL
 						,scope
+						,macroScope
 						,curEnv
 						,curValue->curline
 						,prevQuest
@@ -1397,7 +1433,13 @@ static CODEGEN_FUNC(codegen_qsquote)
 				fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_NONE,curValue->u.box,curQuest),&valueStack);
 			}
 			else
-				push_default_codegen_quest(curValue,codegenQuestStack,scope,curEnv,prevQuest,codegen);
+				push_default_codegen_quest(curValue
+						,codegenQuestStack
+						,scope
+						,macroScope
+						,curEnv
+						,prevQuest
+						,codegen);
 			fklDestroyHashTable(unquoteHt);
 		}
 	}
@@ -1486,6 +1528,7 @@ static CODEGEN_FUNC(codegen_cond)
 			,createDefaultStackContext(fklCreatePtrStack(32,16))
 			,NULL
 			,scope
+			,macroScope
 			,curEnv
 			,rest->curline
 			,NULL
@@ -1527,6 +1570,7 @@ static CODEGEN_FUNC(codegen_cond)
 					,createDefaultStackContext(fklCreatePtrStack(32,16))
 					,createDefaultQueueNextExpression(curQueue)
 					,curScope
+					,macroScope
 					,curEnv
 					,curExp->curline
 					,prevQuest
@@ -1561,6 +1605,7 @@ static CODEGEN_FUNC(codegen_cond)
 					,createDefaultStackContext(fklCreatePtrStack(32,16))
 					,createDefaultQueueNextExpression(lastQueue)
 					,curScope
+					,macroScope
 					,curEnv
 					,lastExp->curline
 					,prevQuest
@@ -1779,6 +1824,7 @@ static CODEGEN_FUNC(codegen_load)
 			,createDefaultStackContext(fklCreatePtrStack(32,16))
 			,createFpNextExpression(fp,nextCodegen)
 			,scope
+			,macroScope
 			,curEnv
 			,origExp->curline
 			,nextCodegen
@@ -2071,7 +2117,8 @@ BC_PROCESS(_library_bc_process)
 	uint8_t exportOpBcCode[5]={FKL_OP_EXPORT,0};
 	fklSetU32ToByteCode(&exportOpBcCode[1],codegen->loadedLibStack->top+1);
 	FklByteCode exportOpBc={5,exportOpBcCode};
-	bclBcAppendToBcl(libBc,&exportOpBc,fid,line);
+	if(libBc->bc->size)
+		bclBcAppendToBcl(libBc,&exportOpBc,fid,line);
 
 	FklCodegenLib* lib=fklCreateCodegenScriptLib(codegen->realpath
 				,libBc
@@ -2096,9 +2143,13 @@ BC_PROCESS(_library_bc_process)
 	uint32_t* exportIndex=lib->exportIndex;
 	for(uint32_t i=0;i<exportNum;i++)
 		fklSetU32ToByteCode(&code[5+i*9],exportIndex[i]);
-	exportOpBcCode[0]=FKL_OP_LOAD_LIB;
-	fklSetU32ToByteCode(&exportOpBcCode[1],codegen->loadedLibStack->top);
-	bcBclAppendToBcl(&exportOpBc,retval,fid,line);
+
+	if(exportNum)
+	{
+		exportOpBcCode[0]=FKL_OP_LOAD_LIB;
+		fklSetU32ToByteCode(&exportOpBcCode[1],codegen->loadedLibStack->top);
+		bcBclAppendToBcl(&exportOpBc,retval,fid,line);
+	}
 
 	codegen->exportNum=0;
 	codegen->exports=NULL;
@@ -2413,6 +2464,7 @@ static inline void process_import_script(FklNastNode* origExp
 				,createCodegenQuestContext(bcStack,&ImportMacroStackContextMethodTable)
 				,createDefaultQueueNextExpression(libraryRestExpressionQueue)
 				,1
+				,libEnv->macros
 				,libEnv
 				,rest->curline
 				,NULL
@@ -2429,6 +2481,7 @@ static inline void process_import_script(FklNastNode* origExp
 						,&ExportMacroStackContextMethodTable)
 					,createDefaultQueueNextExpression(exportMacroQueue)
 					,1
+					,libEnv->macros
 					,libEnv
 					,export->curline
 					,prevQuest
@@ -2454,6 +2507,7 @@ static inline void process_import_script(FklNastNode* origExp
 				,createDefaultStackContext(bcStack)
 				,NULL
 				,1
+				,NULL
 				,NULL
 				,origExp->curline
 				,nextCodegen
@@ -2564,6 +2618,7 @@ static CODEGEN_FUNC(codegen_import)
 					,createDefaultStackContext(bcStack)
 					,NULL
 					,1
+					,NULL
 					,NULL
 					,origExp->curline
 					,codegen
@@ -2686,6 +2741,7 @@ static inline void process_import_script_with_prefix(FklNastNode* origExp
 				,createCodegenQuestContext(bcStack,&ImportMacroStackContextMethodTable)
 				,createDefaultQueueNextExpression(libraryRestExpressionQueue)
 				,1
+				,nextCodegen->globalEnv->macros
 				,nextCodegen->globalEnv
 				,rest->curline
 				,NULL
@@ -2703,6 +2759,7 @@ static inline void process_import_script_with_prefix(FklNastNode* origExp
 						,&ExportMacroWithPrefixStackContextMethodTable)
 					,createDefaultQueueNextExpression(exportMacroQueue)
 					,1
+					,nextCodegen->globalEnv->macros
 					,nextCodegen->globalEnv
 					,export->curline
 					,prevQuest
@@ -2757,6 +2814,7 @@ static inline void process_import_script_with_prefix(FklNastNode* origExp
                 ,createDefaultStackContext(bcStack)
                 ,NULL
 				,1
+				,nextCodegen->globalEnv->macros
                 ,nextCodegen->globalEnv
                 ,origExp->curline
                 ,nextCodegen
@@ -2884,6 +2942,7 @@ static CODEGEN_FUNC(codegen_import_with_prefix)
 					,NULL
 					,1
 					,NULL
+					,NULL
 					,origExp->curline
 					,codegen
 					,codegenQuestStack);
@@ -2925,6 +2984,7 @@ static CODEGEN_FUNC(codegen_module)
 			,createDefaultStackContext(fklCreatePtrStack(32,16))
 			,createDefaultQueueNextExpression(queue)
 			,scope
+			,macroScope
 			,curEnv
 			,rest->curline
 			,codegen
@@ -3131,6 +3191,7 @@ static CODEGEN_FUNC(codegen_defmacro)
 				,createCodegenQuestContext(bcStack,&MacroStackContextMethodTable)
 				,createDefaultQueueNextExpression(queue)
 				,1
+				,macroEnv->macros
 				,macroEnv
 				,value->curline
 				,macroCodegen
@@ -3183,6 +3244,7 @@ static CODEGEN_FUNC(codegen_defmacro)
 				,createCodegenQuestContext(bcStack,&ReaderMacroStackContextMethodTable)
 				,createDefaultQueueNextExpression(queue)
 				,1
+				,macroEnv->macros
 				,macroEnv
 				,value->curline
 				,macroCodegen
@@ -3304,6 +3366,7 @@ FklByteCode* fklCodegenNode(const FklNastNode* node,FklCodegen* codegenr)
 static int matchAndCall(FklCodegenFunc func
 		,const FklNastNode* pattern
 		,uint32_t scope
+		,FklCodegenMacroScope* macroScope
 		,FklNastNode* exp
 		,FklPtrStack* codegenQuestStack
 		,FklCodegenEnv* env
@@ -3315,7 +3378,14 @@ static int matchAndCall(FklCodegenFunc func
 	if(r)
 	{
 		chdir(codegenr->curDir);
-		func(exp,ht,codegenQuestStack,scope,env,codegenr,errorState);
+		func(exp
+				,ht
+				,codegenQuestStack
+				,scope
+				,macroScope
+				,env
+				,codegenr
+				,errorState);
 	}
 	fklDestroyHashTable(ht);
 	return r;
@@ -3445,17 +3515,30 @@ void fklDestroyCodegener(FklCodegen* codegen)
 static inline int mapAllBuiltInPattern(FklNastNode* curExp
 		,FklPtrStack* codegenQuestStack
 		,uint32_t scope
+		,FklCodegenMacroScope* macroScope
 		,FklCodegenEnv* curEnv
 		,FklCodegen* codegenr
 		,FklCodegenErrorState* errorState)
 {
 	if(fklIsNastNodeList(curExp))
 		for(struct PatternAndFunc* cur=&builtInPattern[0];cur->ps!=NULL;cur++)
-			if(matchAndCall(cur->func,cur->pn,scope,curExp,codegenQuestStack,curEnv,codegenr,errorState))
+			if(matchAndCall(cur->func
+						,cur->pn
+						,scope
+						,macroScope
+						,curExp
+						,codegenQuestStack
+						,curEnv,codegenr,errorState))
 				return 0;
 	if(curExp->type==FKL_NAST_PAIR)
 	{
-		codegen_funcall(curExp,codegenQuestStack,scope,curEnv,codegenr,errorState);
+		codegen_funcall(curExp
+				,codegenQuestStack
+				,scope
+				,macroScope
+				,curEnv
+				,codegenr
+				,errorState);
 		return 0;
 	}
 	return 1;
@@ -3629,6 +3712,7 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 				r=mapAllBuiltInPattern(curExp
 						,&codegenQuestStack
 						,curCodegenQuest->scope
+						,curCodegenQuest->macroScope
 						,curEnv
 						,curCodegen
 						,&errorState);
@@ -3696,6 +3780,7 @@ FklByteCodelnt* fklGenExpressionCodeWithFp(FILE* fp
 			,createDefaultStackContext(fklCreatePtrStack(32,16))
 			,createFpNextExpression(fp,codegen)
 			,1
+			,codegen->globalEnv->macros
 			,codegen->globalEnv
 			,1
 			,NULL
@@ -3713,6 +3798,7 @@ FklByteCodelnt* fklGenExpressionCode(FklNastNode* exp
 			,createDefaultStackContext(fklCreatePtrStack(32,16))
 			,createDefaultQueueNextExpression(queue)
 			,1
+			,globalEnv->macros
 			,globalEnv
 			,exp->curline
 			,NULL

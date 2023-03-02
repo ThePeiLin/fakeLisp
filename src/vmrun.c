@@ -2109,6 +2109,7 @@ void fklInitVMlib(FklVMlib* lib
 	lib->proc=proc;
 	lib->idxes=idxes;
 	lib->imported=0;
+	lib->loc=NULL;
 }
 
 inline void fklInitVMlibWithCodeObj(FklVMlib* lib

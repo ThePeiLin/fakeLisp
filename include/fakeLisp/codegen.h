@@ -135,6 +135,7 @@ typedef struct FklCodegenQuest
 	FklCodegenQuestContext* context;
 	FklCodegenEnv* env;
 	uint32_t scope;
+	FklCodegenMacroScope* macroScope;
     uint64_t curline;
 	FklCodegen* codegen;
 	struct FklCodegenQuest* prev;

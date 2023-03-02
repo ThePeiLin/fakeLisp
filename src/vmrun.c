@@ -612,7 +612,7 @@ void fklCallInDlproc(FklVMvalue* proc
 	{
 		case FKL_TYPE_PROC:
 			{
-				FklVMframe* tmpFrame=fklCreateVMframeWithProc(proc->u.proc,exe->frames);
+				FklVMframe* tmpFrame=fklCreateVMframeWithProcValue(proc,exe->frames);
 				fklPushVMframe(tmpFrame,exe);
 			}
 			break;

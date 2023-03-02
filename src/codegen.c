@@ -848,7 +848,7 @@ void fklDestroyCodegenEnv(FklCodegenEnv* env)
 			free(cur);
 		}
 		else
-			break;
+			return;
 	}
 }
 
@@ -2014,7 +2014,11 @@ BC_PROCESS(_library_export_macro_bc_process)
 	FklCodegenMacroScope* macros=stack->base[0];
 	FklCodegenEnv* exportTargetEnv=stack->base[1];
 	for(FklCodegenMacro* cur=codegen->globalEnv->macros->head;cur;cur=cur->next)
-		add_compiler_macro(macros,fklMakeNastNodeRef(cur->pattern),fklCopyByteCodelnt(cur->bcl),NULL);
+	{
+		FklPrototypePool* ptpool=cur->ptpool;
+		cur->ptpool=NULL;
+		add_compiler_macro(macros,fklMakeNastNodeRef(cur->pattern),fklCopyByteCodelnt(cur->bcl),ptpool);
+	}
 	for(FklHashTableNodeList* cur=codegen->globalEnv->macros->replacements->list;cur;cur=cur->next)
 	{
 		FklCodegenReplacement* rep=cur->node->item;
@@ -3019,6 +3023,7 @@ BC_PROCESS(_compiler_macro_bc_process)
 	FklByteCodelnt* macroBcl=fklPopPtrStack(stack);
 	FklNastNode* pattern=fklPopPtrStack(stack);
 	FklCodegenMacroScope* macros=fklPopPtrStack(stack);
+	fklDestroyCodegenMacroScope(macros);
 	fklUpdatePrototype(codegen->ptpool,env,codegen->globalSymTable,codegen->publicSymbolTable);
 	add_compiler_macro(macros,pattern,macroBcl,codegen->ptpool);
 	return fklCreateByteCodelnt(fklCreateByteCode(0));
@@ -3040,6 +3045,7 @@ static void _macro_stack_context_finalizer(void* data)
 	while(s->top>2)
 		fklDestroyByteCodelnt(fklPopPtrStack(s));
 	fklDestroyNastNode(fklPopPtrStack(s));
+	fklDestroyCodegenMacroScope(fklPopPtrStack(s));
 	fklDestroyPtrStack(s);
 }
 
@@ -3175,7 +3181,7 @@ static CODEGEN_FUNC(codegen_defmacro)
 			errorState->place=fklMakeNastNodeRef(name);
 			return;
 		}
-		FklCodegenEnv* macroEnv=fklCreateCodegenEnv(NULL,0);
+		FklCodegenEnv* macroEnv=fklCreateCodegenEnv(curEnv,0);
 		for(FklHashTableNodeList* list=symbolTable->list
 				;list
 				;list=list->next)
@@ -3190,6 +3196,8 @@ static CODEGEN_FUNC(codegen_defmacro)
 		FklCodegen* macroCodegen=createCodegen(codegen
 				,NULL
 				,macroEnv);
+		fklDestroyCodegenEnv(macroEnv->prev);
+		macroEnv->prev=NULL;
 		free(macroCodegen->curDir);
 		macroCodegen->curDir=fklCopyCstr(codegen->curDir);
 		macroCodegen->filename=fklCopyCstr(codegen->filename);
@@ -3203,7 +3211,7 @@ static CODEGEN_FUNC(codegen_defmacro)
 		fklInitGlobCodegenEnv(macroEnv,macroCodegen->publicSymbolTable);
 
 		FklPtrStack* bcStack=fklCreatePtrStack(16,16);
-		fklPushPtrStack(curEnv->macros,bcStack);
+		fklPushPtrStack(make_macro_scope_ref(macroScope),bcStack);
 		fklPushPtrStack(fklMakeNastNodeRef(name),bcStack);
 
 		create_and_insert_to_pool(macroCodegen->ptpool,0,macroEnv,macroCodegen->globalSymTable,macroCodegen->publicSymbolTable);
@@ -3244,6 +3252,8 @@ static CODEGEN_FUNC(codegen_defmacro)
 		FklCodegen* macroCodegen=createCodegen(codegen
 				,NULL
 				,macroEnv);
+		fklDestroyCodegenEnv(macroEnv->prev);
+		macroEnv->prev=NULL;
 		free(macroCodegen->curDir);
 		macroCodegen->curDir=fklCopyCstr(codegen->curDir);
 		macroCodegen->filename=fklCopyCstr(codegen->filename);
@@ -3691,7 +3701,10 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 			{
 				if(curExp->type==FKL_NAST_PAIR)
 				{
-					curExp=fklTryExpandCodegenMacro(curExp,curCodegen,curEnv->macros,&errorState);
+					curExp=fklTryExpandCodegenMacro(curExp
+							,curCodegen
+							,curCodegenQuest->macroScope
+							,&errorState);
 					if(errorState.type)
 						break;
 				}
@@ -4233,7 +4246,9 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 	FklNastNode* r=exp;
 	FklHashTable* ht=NULL;
 	uint64_t curline=exp->curline;
-	for(FklCodegenMacro* macro=findMacro(r,macros,&ht);macro;macro=findMacro(r,macros,&ht))
+	for(FklCodegenMacro* macro=findMacro(r,macros,&ht)
+			;macro
+			;macro=findMacro(r,macros,&ht))
 	{
 		FklHashTable* lineHash=fklCreateLineNumHashTable();
 		FklVM* anotherVM=fklInitMacroExpandVM(macro->bcl,macro->ptpool,ht,lineHash,codegen);

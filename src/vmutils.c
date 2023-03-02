@@ -350,7 +350,6 @@ inline void fklInitVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMframe* p
 	f->pc=NULL;
 	f->spc=NULL;
 	f->end=NULL;
-	f->proc=NULL;
 	f->proc=FKL_VM_NIL;
 	f->mark=0;
 	f->tail=0;
